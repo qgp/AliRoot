@@ -13,7 +13,6 @@
  
 #include <TMCProcess.h>
 #include <TVirtualMC.h>
-
 #include "AliDecayer.h"
 
 class AliTRDv1;
@@ -151,7 +150,7 @@ class AliTRDsimpleMC : public TVirtualMC {
   // Tracking volume(s) 
   virtual Int_t         CurrentVolID(Int_t& copyNo) const;
   virtual Int_t         CurrentVolOffID(Int_t off, Int_t& copyNo) const;
-  virtual const char*   CurrentVolName() const                                            { return ""; };
+  virtual const char*   CurrentVolName() const;
   virtual const char*   CurrentVolOffName(Int_t off) const                                { return ""; };
   virtual Int_t         CurrentMaterial(Float_t &a, Float_t &z, 
                                         Float_t &dens, Float_t &radl, 
@@ -168,10 +167,9 @@ class AliTRDsimpleMC : public TVirtualMC {
 
   // Dynamic properties
   virtual void          TrackPosition(TLorentzVector& position) const;
+  virtual void          TrackPosition(Double_t &x, Double_t &y, Double_t &z) const;
   virtual void          TrackMomentum(TLorentzVector& momentum) const;
-  virtual void          TrackPosition(Double_t&, Double_t&, Double_t&) const;
-  virtual void          TrackMomentum(Double_t&, Double_t&, 
-				      Double_t&, Double_t&) const;
+  virtual void          TrackMomentum(Double_t &px, Double_t &py, Double_t &pz, Double_t &etot) const;
   virtual Double_t      TrackStep() const                                                 { return fTrackStep; };
   virtual Double_t      TrackLength() const                                               { return 0.0; };
   virtual Double_t      TrackTime() const                                                 { return 0.0; };

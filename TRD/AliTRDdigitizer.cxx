@@ -13,166 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.33.4.3  2002/06/24 09:21:29  cblume
-New IO for TRD
-
-Revision 1.33.4.2  2002/06/03 09:55:03  hristov
-Merged with v3-08-02
-
-
-Revision 1.33.4.1  2002/05/31 09:38:00  hristov
-First set of changes done by Piotr
-
-Revision 1.41  2002/10/21 09:10:32  cblume
-Fix type conversion warnings
-
-Revision 1.40  2002/10/14 14:57:43  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.33.6.3  2002/10/11 07:26:37  hristov
-Updating VirtualMC to v3-09-02
-
-Revision 1.39  2002/10/08 20:46:12  cblume
-Do coupling factors before noise is applied
-
-Revision 1.38  2002/04/30 08:30:40  cblume
-gAlice now only read by AliRunDigitizer. Therefore it is just deleted in AliTRDmerge.C
-
-Revision 1.37  2002/04/29 11:50:47  cblume
-Change initialization of gAlice in the merging case
-
-Revision 1.36  2002/04/12 12:13:23  cblume
-Add Jiris changes
-
-Revision 1.35  2002/03/28 14:59:07  cblume
-Coding conventions
-
-Revision 1.34  2002/03/25 20:00:44  cblume
-Introduce parameter class and regions of interest for merging
-
-Revision 1.33  2002/02/12 17:32:03  cblume
-Rearrange the deleting of the list of sdigitsmanager
-
-Revision 1.32  2002/02/12 16:07:21  cblume
-Add new constructor
-
-Revision 1.31  2002/02/11 14:27:11  cblume
-New pad plane design, new TRF+PRF, tail cancelation, cross talk
-
-Revision 1.30  2001/11/19 08:44:08  cblume
-Fix bugs reported by Rene
-
-Revision 1.29  2001/11/14 19:44:25  hristov
-Numeric const casted (Alpha)
-
-Revision 1.28  2001/11/14 16:35:58  cblume
-Inherits now from AliDetector
-
-Revision 1.27  2001/11/14 10:50:45  cblume
-Changes in digits IO. Add merging of summable digits
-
-Revision 1.26  2001/11/06 17:19:41  cblume
-Add detailed geometry and simple simulator
-
-Revision 1.25  2001/06/27 09:54:44  cblume
-Moved fField initialization to InitDetector()
-
-Revision 1.24  2001/05/21 16:45:47  hristov
-Last minute changes (C.Blume)
-
-Revision 1.23  2001/05/07 08:04:48  cblume
-New TRF and PRF. Speedup of the code. Digits from amplification region included
-
-Revision 1.22  2001/03/30 14:40:14  cblume
-Update of the digitization parameter
-
-Revision 1.21  2001/03/13 09:30:35  cblume
-Update of digitization. Moved digit branch definition to AliTRD
-
-Revision 1.20  2001/02/25 20:19:00  hristov
-Minor correction: loop variable declared only once for HP, Sun
-
-Revision 1.19  2001/02/14 18:22:26  cblume
-Change in the geometry of the padplane
-
-Revision 1.18  2001/01/26 19:56:57  hristov
-Major upgrade of AliRoot code
-
-Revision 1.17  2000/12/08 12:53:27  cblume
-Change in Copy() function for HP-compiler
-
-Revision 1.16  2000/12/07 12:20:46  cblume
-Go back to array compression. Use sampled PRF to speed up digitization
-
-Revision 1.15  2000/11/23 14:34:08  cblume
-Fixed bug in expansion routine of arrays (initialize buffers properly)
-
-Revision 1.14  2000/11/20 08:54:44  cblume
-Switch off compression as default
-
-Revision 1.13  2000/11/10 14:57:52  cblume
-Changes in the geometry constants for the DEC compiler
-
-Revision 1.12  2000/11/01 14:53:20  cblume
-Merge with TRD-develop
-
-Revision 1.1.4.9  2000/10/26 17:00:22  cblume
-Fixed bug in CheckDetector()
-
-Revision 1.1.4.8  2000/10/23 13:41:35  cblume
-Added protection against Log(0) in the gas gain calulation
-
-Revision 1.1.4.7  2000/10/17 02:27:34  cblume
-Get rid of global constants
-
-Revision 1.1.4.6  2000/10/16 01:16:53  cblume
-Changed timebin 0 to be the one closest to the readout
-
-Revision 1.1.4.5  2000/10/15 23:34:29  cblume
-Faster version of the digitizer
-
-Revision 1.1.4.4  2000/10/06 16:49:46  cblume
-Made Getters const
-
-Revision 1.1.4.3  2000/10/04 16:34:58  cblume
-Replace include files by forward declarations
-
-Revision 1.1.4.2  2000/09/22 14:41:10  cblume
-Bug fix in PRF. Included time response. New structure
-
-Revision 1.10  2000/10/05 07:27:53  cblume
-Changes in the header-files by FCA
-
-Revision 1.9  2000/10/02 21:28:19  fca
-Removal of useless dependecies via forward declarations
-
-Revision 1.8  2000/06/09 11:10:07  cblume
-Compiler warnings and coding conventions, next round
-
-Revision 1.7  2000/06/08 18:32:58  cblume
-Make code compliant to coding conventions
-
-Revision 1.6  2000/06/07 16:27:32  cblume
-Try to remove compiler warnings on Sun and HP
-
-Revision 1.5  2000/05/09 16:38:57  cblume
-Removed PadResponse(). Merge problem
-
-Revision 1.4  2000/05/08 15:53:45  cblume
-Resolved merge conflict
-
-Revision 1.3  2000/04/28 14:49:27  cblume
-Only one declaration of iDict in MakeDigits()
-
-Revision 1.1.4.1  2000/05/08 14:42:04  cblume
-Introduced AliTRDdigitsManager
-
-Revision 1.1  2000/02/28 19:00:13  cblume
-Add new TRD classes
-
-*/
+/* $Id$ */
 
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
@@ -269,7 +110,6 @@ AliTRDdigitizer::AliTRDdigitizer(const Text_t *name, const Text_t *title)
   fDigitsManager      = NULL;
   fSDigitsManager     = NULL;
   fSDigitsManagerList = NULL;
-
   fTRD                = NULL;
   fGeo                = NULL;
 
@@ -1182,11 +1022,18 @@ Bool_t AliTRDdigitizer::MakeDigits()
               Float_t signalAmp = signals->GetDataUnchecked(iRow,iCol,iTime);
               // Pad and time coupling
               signalAmp *= coupling;
-              // Add the noise
-              signalAmp  = TMath::Max((Double_t) gRandom->Gaus(signalAmp,fPar->GetNoise()),0.0);
+              // Add the noise, starting from minus ADC baseline in electrons
+              Double_t baselineEl = fPar->GetADCbaseline() * (fPar->GetADCinRange()
+                                                           / fPar->GetADCoutRange()) 
+                                                           / convert;
+              signalAmp  = TMath::Max((Double_t) gRandom->Gaus(signalAmp,fPar->GetNoise())
+                                     ,-baselineEl);
               // Convert to mV
               signalAmp *= convert;
-	      // Convert to ADC counts. Set the overflow-bit fADCoutRange if the 
+              // Add ADC baseline in mV
+              signalAmp += fPar->GetADCbaseline() * (fPar->GetADCinRange()
+                                                   / fPar->GetADCoutRange());
+ 	      // Convert to ADC counts. Set the overflow-bit fADCoutRange if the 
 	      // signal is larger than fADCinRange
               Int_t adc  = 0;
               if (signalAmp >= fPar->GetADCinRange()) {
@@ -1332,6 +1179,7 @@ Bool_t AliTRDdigitizer::ConvertSDigits()
   Double_t adcInRange   = fPar->GetADCinRange();
   Double_t adcOutRange  = fPar->GetADCoutRange();
   Int_t    adcThreshold = fPar->GetADCthreshold();
+  Int_t    adcBaseline  = fPar->GetADCbaseline();   
 
   AliTRDdataArrayI *digitsIn;
   AliTRDdataArrayI *digitsOut;
@@ -1375,10 +1223,13 @@ Bool_t AliTRDdigitizer::ConvertSDigits()
           signal *= sDigitsScale;
           // Pad and time coupling
           signal *= coupling;
-          // Add the noise
-          signal  = TMath::Max((Double_t) gRandom->Gaus(signal,noise),0.0);
+          // Add the noise, starting from minus ADC baseline in electrons
+          Double_t baselineEl = adcBaseline * (adcInRange / adcOutRange) / convert;
+          signal  = TMath::Max((Double_t) gRandom->Gaus(signal,noise),-baselineEl);
           // Convert to mV
           signal *= convert;
+          // add ADC baseline in mV
+          signal += adcBaseline * (adcInRange / adcOutRange);
 	  // Convert to ADC counts. Set the overflow-bit adcOutRange if the 
 	  // signal is larger than adcInRange
           Int_t adc  = 0;

@@ -14,6 +14,7 @@
  **************************************************************************/
 
 /* $Id$ */
+
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
 //  Transition Radiation Detector version 1 -- slow simulator                //
@@ -219,7 +220,7 @@ void AliTRDv1::CreateTRhit(Int_t det)
       // Take the absorbtion in the entrance window into account
       Double_t muMy = fTR->GetMuMy(energyMeV);
       sigma = muMy * fFoilDensity;
-      absLength = gRandom->Exp(sigma);
+      absLength = gRandom->Exp(-sigma);
       if (absLength < AliTRDgeometry::MyThick()) continue;
 
       // The absorbtion cross sections in the drift gas
@@ -238,7 +239,7 @@ void AliTRDv1::CreateTRhit(Int_t det)
 
       // The distance after which the energy of the TR photon
       // is deposited.
-      absLength = gRandom->Exp(sigma);
+      absLength = gRandom->Exp(-sigma);
       if (absLength > AliTRDgeometry::DrThick()) continue;
 
       // The position of the absorbtion
@@ -442,6 +443,9 @@ void AliTRDv1::StepManager()
   TLorentzVector pos, mom;
 
   const Int_t    kNplan       = AliTRDgeometry::Nplan();
+  const Int_t    kNcham       = AliTRDgeometry::Ncham();
+  const Int_t    kNdetsec     = kNplan * kNcham;
+
   const Double_t kBig         = 1.0E+12;
 
   // Ionization energy
@@ -502,7 +506,7 @@ void AliTRDv1::StepManager()
       // The plane and chamber number
       cIdChamber[0] = cIdCurrent[2];
       cIdChamber[1] = cIdCurrent[3];
-      Int_t idChamber = atoi(cIdChamber);
+      Int_t idChamber = (atoi(cIdChamber) % kNdetsec);
       cha = ((Int_t) idChamber / kNplan);
       pla = ((Int_t) idChamber % kNplan);
 
@@ -539,7 +543,7 @@ void AliTRDv1::StepManager()
 	  // momentum components of the particle
           if (gMC->IsTrackEntering() || gMC->IsTrackExiting()) {
             gMC->TrackMomentum(mom);
-            AddTrackReference(gAlice->CurrentTrack(),mom,pos);
+            AddTrackReference(gAlice->CurrentTrack());
           }
 
           // Create the hits from TR photons

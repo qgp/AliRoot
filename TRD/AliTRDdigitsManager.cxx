@@ -13,96 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.16.4.2  2002/06/24 09:21:29  cblume
-New IO for TRD
-
-Revision 1.16.4.1  2002/06/03 09:55:03  hristov
-Merged with v3-08-02
-
-Revision 1.20  2002/10/22 15:53:08  alibrary
-Introducing Riostream.h
-
-Revision 1.19  2002/10/14 14:57:43  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.16.6.2  2002/07/24 10:09:30  alibrary
-Updating VirtualMC
-
-Revision 1.16.6.1  2002/06/10 15:28:58  hristov
-Merged with v3-08-02
-
-Revision 1.18  2002/04/12 12:13:23  cblume
-Add Jiris changes
-
-Revision 1.17  2002/03/28 14:59:07  cblume
-Coding conventions
-
-Revision 1.18  2002/04/12 12:13:23  cblume
-Add Jiris changes
-
-Revision 1.17  2002/03/28 14:59:07  cblume
-Coding conventions
-
-Revision 1.16  2002/02/12 11:42:08  cblume
-Remove fTree from destructor
-
-Revision 1.15  2002/02/11 14:27:54  cblume
-Geometry and hit structure update
-
-Revision 1.14  2001/11/14 10:50:46  cblume
-Changes in digits IO. Add merging of summable digits
-
-Revision 1.13  2001/11/06 17:19:41  cblume
-Add detailed geometry and simple simulator
-
-Revision 1.12  2001/05/16 14:57:28  alibrary
-New files for folders and Stack
-
-Revision 1.11  2001/03/13 09:30:35  cblume
-Update of digitization. Moved digit branch definition to AliTRD
-
-Revision 1.10  2001/01/26 19:56:57  hristov
-Major upgrade of AliRoot code
-
-Revision 1.9  2000/11/02 09:25:53  cblume
-Change also the dictionary to AliTRDdataArray
-
-Revision 1.8  2000/11/01 15:20:13  cblume
-Change AliTRDdataArrayI to AliTRDdataArray in MakeBranch()
-
-Revision 1.7  2000/11/01 14:53:20  cblume
-Merge with TRD-develop
-
-Revision 1.1.2.5  2000/10/17 02:27:34  cblume
-Get rid of global constants
-
-Revision 1.1.2.4  2000/10/15 23:40:01  cblume
-Remove AliTRDconst
-
-Revision 1.1.2.3  2000/10/06 16:49:46  cblume
-Made Getters const
-
-Revision 1.1.2.2  2000/10/04 16:34:58  cblume
-Replace include files by forward declarations
-
-Revision 1.5  2000/06/09 11:10:07  cblume
-Compiler warnings and coding conventions, next round
-
-Revision 1.4  2000/06/08 18:32:58  cblume
-Make code compliant to coding conventions
-
-Revision 1.3  2000/06/07 16:27:01  cblume
-Try to remove compiler warnings on Sun and HP
-
-Revision 1.2  2000/05/08 16:17:27  cblume
-Merge TRD-develop
-
-Revision 1.1.2.1  2000/05/08 14:44:01  cblume
-Add new class AliTRDdigitsManager
-
-*/
+/* $Id$ */
 
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
@@ -171,7 +82,6 @@ AliTRDdigitsManager::~AliTRDdigitsManager()
   // AliTRDdigitsManager destructor
   //
 
-
   if (fDigits) {
     fDigits->Delete();
     delete fDigits;
@@ -212,6 +122,27 @@ void AliTRDdigitsManager::CreateArrays()
   fDigits = new AliTRDsegmentArray("AliTRDdataArrayI",AliTRDgeometry::Ndet());
 
   for (Int_t iDict = 0; iDict < kNDict; iDict++) {
+    fDictionary[iDict] = new AliTRDsegmentArray("AliTRDdataArrayI"
+                                               ,AliTRDgeometry::Ndet());
+  }
+
+}
+//_____________________________________________________________________________
+void AliTRDdigitsManager::ResetArrays()
+{
+  //
+  // Reset the data arrays
+  //
+
+  if (fDigits) {
+    delete fDigits;
+  }
+  fDigits = new AliTRDsegmentArray("AliTRDdataArrayI",AliTRDgeometry::Ndet());
+
+  for (Int_t iDict = 0; iDict < kNDict; iDict++) {
+    if (fDictionary[iDict]) {  
+      delete fDictionary[iDict];
+    }
     fDictionary[iDict] = new AliTRDsegmentArray("AliTRDdataArrayI"
                                                ,AliTRDgeometry::Ndet());
   }

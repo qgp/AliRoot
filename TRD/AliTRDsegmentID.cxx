@@ -13,33 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.3.10.1  2002/06/03 09:55:04  hristov
-Merged with v3-08-02
-
-Revision 1.5  2002/10/14 14:57:44  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.3.12.2  2002/07/24 10:09:31  alibrary
-Updating VirtualMC
-
-Revision 1.4  2002/03/28 14:59:07  cblume
-Coding conventions
-
-Revision 1.3  2000/11/01 14:53:21  cblume
-Merge with TRD-develop
-
-Revision 1.1.4.1  2000/10/04 16:34:58  cblume
-Replace include files by forward declarations
-
-Revision 1.2  2000/06/08 18:32:58  cblume
-Make code compliant to coding conventions
-
-Revision 1.1  2000/02/28 19:03:35  cblume
-Add new TRD classes
-
-*/
+/* $Id$ */
 
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //

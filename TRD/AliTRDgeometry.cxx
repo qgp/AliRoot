@@ -21,7 +21,6 @@
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <TVirtualMC.h>
 
 #include "AliTRDgeometry.h"
 #include "AliTRDparameter.h"
@@ -96,7 +95,7 @@ ClassImp(AliTRDgeometry)
 
   // Difference of outer chamber width and pad plane width
   const Float_t AliTRDgeometry::fgkCpadW   =   1.0;
-  const Float_t AliTRDgeometry::fgkRpadW   =   1.5;
+  const Float_t AliTRDgeometry::fgkRpadW   =   1.0;
 
   //
   // Thickness of the the material layers

@@ -13,33 +13,8 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.4.8.1  2002/06/03 09:55:03  hristov
-Merged with v3-08-02
+/* $Id$ */
 
-Revision 1.7  2002/10/14 14:57:43  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.4.10.2  2002/07/24 10:09:30  alibrary
-Updating VirtualMC
-
-Revision 1.6  2002/06/12 09:54:35  cblume
-Update of tracking code provided by Sergei
-
-Revision 1.4  2001/05/07 08:08:05  cblume
-Update of TRD code
-
-Revision 1.3  2000/12/08 16:07:02  cblume
-Update of the tracking by Sergei
-
-Revision 1.2  2000/10/06 16:49:46  cblume
-Made Getters const
-
-Revision 1.1.2.1  2000/09/22 14:47:52  cblume
-Add the tracking code
-
-*/
  
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //

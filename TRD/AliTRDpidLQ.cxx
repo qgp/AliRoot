@@ -13,42 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.2.6.2  2002/11/22 14:20:12  hristov
-Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
-
-Revision 1.2.6.1  2002/06/03 09:55:04  hristov
-Merged with v3-08-02
-
-Revision 1.5  2002/10/14 14:57:44  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.2.8.2  2002/07/24 10:09:31  alibrary
-Updating VirtualMC
-
-Revision 1.2.8.1  2002/06/10 15:28:58  hristov
-Merged with v3-08-02
-
-Revision 1.4  2002/03/28 15:44:55  cblume
-Remove const from GetIndex()
-
-Revision 1.3  2002/03/28 14:59:07  cblume
-Coding conventions
-
-Revision 1.4  2002/03/28 15:44:55  cblume
-Remove const from GetIndex()
-
-Revision 1.3  2002/03/28 14:59:07  cblume
-Coding conventions
-
-Revision 1.2  2001/11/07 11:04:22  hristov
-Minor corrections needed on Sun (arrays with undefined size created by new, inline decration removed when the body was hot in the header file)
-
-Revision 1.1  2001/11/06 17:19:41  cblume
-Add detailed geometry and simple simulator
-
-*/
+/* $Id$ */
 
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //

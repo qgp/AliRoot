@@ -14,6 +14,7 @@
  **************************************************************************/
  
 /* $Id$ */
+
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
 //  Simple TRD Monte Carlo class                                             //
@@ -29,11 +30,12 @@
 #include "AliTRDparameter.h"
 #include "AliTRDsimpleMC.h"
 #include "AliTRDv1.h"
+#include "AliTRDparameter.h"
  
 ClassImp(AliTRDsimpleMC)
  
 //_____________________________________________________________________________
-AliTRDsimpleMC::AliTRDsimpleMC():TVirtualMC()
+AliTRDsimpleMC::AliTRDsimpleMC()
 {                       
   //
   // AliTRDsimpleMC default constructor
@@ -200,7 +202,7 @@ void AliTRDsimpleMC::NewTrack(Int_t iTrack, Int_t pdg
   fTrackY    = 0.0;
   fTrackZ    = 0.0;
 
-  gAlice->SetCurrentTrack(-1);
+  gAlice->SetCurrentTrack(0);
 
 }
                                                                                 
@@ -300,13 +302,13 @@ Int_t AliTRDsimpleMC::VolId(const Text_t* volName) const
  
   Int_t volId = -1;
 
-  if      (strcmp(volName,"UL05") == 0) {
+  if      (strcmp(volName,"UJ00") == 0) {
     volId = kVolDrRg;
   }
-  else if (strcmp(volName,"UL06") == 0) {
+  else if (strcmp(volName,"UK00") == 0) {
     volId = kVolAmRg;
   }
-  else if (strcmp(volName,"UCII") == 0) {
+  else if (strcmp(volName,"UC00") == 0) {
     volId = kVolDrCh;
   }
 
@@ -335,6 +337,28 @@ Int_t AliTRDsimpleMC::CurrentVolID(Int_t& copyNo) const
   }
 
   return volId;
+
+}
+
+//_____________________________________________________________________________
+const char *AliTRDsimpleMC::CurrentVolName() const
+{
+  //
+  // Check for the current volume
+  //
+
+  Char_t *volName = "UA00";
+
+  // Drift region
+  if      ((fTrackX-fX0) <  AliTRDgeometry::DrThick()) {
+    volName = "UJ00";
+  }
+  else if ((fTrackX-fX0) < (AliTRDgeometry::DrThick() +
+                            AliTRDgeometry::AmThick())) {
+    volName = "UK00";
+  }
+
+  return volName;
 
 }
 

@@ -15,6 +15,12 @@
 
 /*
 $Log$
+Revision 1.9  2003/02/04 17:26:00  cblume
+Include a reset of the digits arrays in order to process several events
+
+Revision 1.8  2001/11/14 10:50:46  cblume
+Changes in digits IO. Add merging of summable digits
+
 Revision 1.7  2001/03/13 09:30:35  cblume
 Update of digitization. Moved digit branch definition to AliTRD
 
@@ -106,6 +112,9 @@ AliTRDsegmentArray::~AliTRDsegmentArray()
   //
   // AliTRDsegmentArray destructor
   //
+
+  Delete();
+
 }
 
 //_____________________________________________________________________________

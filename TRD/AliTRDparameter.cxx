@@ -13,45 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.5.4.1  2002/06/03 09:55:04  hristov
-Merged with v3-08-02
-
-Revision 1.10  2002/10/31 17:46:22  cblume
-New padplane (same number of columns in outer plane
-
-Revision 1.9  2002/10/28 13:02:51  cblume
-Bug fix in GetTiltingAngle()
-
-Revision 1.8  2002/10/14 14:57:44  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.5.6.3  2002/10/11 07:26:37  hristov
-Updating VirtualMC to v3-09-02
-
-Revision 1.7  2002/09/26 09:26:31  cblume
-Bug fix in LUT
-
-Revision 1.6  2002/06/12 09:54:35  cblume
-Update of tracking code provided by Sergei
-
-Revision 1.5  2002/04/30 08:30:40  cblume
-gAlice now only read by AliRunDigitizer. Therefore it is just deleted in AliTRDmerge.C
-
-Revision 1.4  2002/04/12 12:13:23  cblume
-Add Jiris changes
-
-Revision 1.3  2002/03/28 14:59:07  cblume
-Coding conventions
-
-Revision 1.2  2002/03/28 10:00:36  hristov
-Some additional initialisation
-
-Revision 1.1  2002/03/25 20:01:18  cblume
-Introduce parameter class
-
-*/
+/* $Id$ */
 
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
@@ -85,6 +47,7 @@ AliTRDparameter::AliTRDparameter():TNamed()
   fADCoutRange        = 0.0;
   fADCinRange         = 0.0;
   fADCthreshold       = 0;
+  fADCbaseline        = 0;        
   fDiffusionOn        = 0;
   fDiffusionT         = 0.0;
   fDiffusionL         = 0.0;
@@ -138,6 +101,7 @@ AliTRDparameter::AliTRDparameter(const Text_t *name, const Text_t *title)
   fADCoutRange        = 0.0;
   fADCinRange         = 0.0;
   fADCthreshold       = 0;
+  fADCbaseline        = 0;        
   fDiffusionOn        = 0;
   fDiffusionT         = 0.0;
   fDiffusionL         = 0.0;
@@ -248,6 +212,7 @@ void AliTRDparameter::Copy(TObject &p)
   ((AliTRDparameter &) p).fADCoutRange        = fADCoutRange;
   ((AliTRDparameter &) p).fADCinRange         = fADCinRange;
   ((AliTRDparameter &) p).fADCthreshold       = fADCthreshold;
+  ((AliTRDparameter &) p).fADCbaseline        = fADCbaseline; 
   ((AliTRDparameter &) p).fDiffusionOn        = fDiffusionOn; 
   ((AliTRDparameter &) p).fDiffusionT         = fDiffusionT;
   ((AliTRDparameter &) p).fDiffusionL         = fDiffusionL;
@@ -368,8 +333,10 @@ void AliTRDparameter::Init()
   fChipGain       = 12.4;
   fNoise          = 1000.;
   fADCoutRange    = 1023.;          // 10-bit ADC
-  fADCinRange     = 1000.;          // 1V input range
+  //fADCinRange     = 1000.;          // 1V input range
+  fADCinRange     = 2000.;          // 2V input range
   fADCthreshold   = 1;
+  fADCbaseline    = 0;
 
   // The drift velocity (cm / mus)
   fDriftVelocity  = 1.5;
@@ -378,7 +345,7 @@ void AliTRDparameter::Init()
   fDiffusionOn    = 1;
 
   // E x B effects
-  fExBOn          = 0;
+  fExBOn          = 1;
 
   // Propability for electron attachment
   fElAttachOn     = 0;
@@ -391,7 +358,7 @@ void AliTRDparameter::Init()
   fTRFOn          = 1;
 
   // The cross talk
-  fCTOn           = 0;
+  fCTOn           = 1;
 
   // The tail cancelation
   fTCOn           = 1;
@@ -529,7 +496,7 @@ void AliTRDparameter::SetNRowPad()
   	                     - fGeo->GetChamberLength(iplan,1)
                              - fGeo->GetChamberLength(iplan,2) / 2.;
         for (Int_t ic = 0; ic < icham; ic++) {
-          row0 += fGeo->GetChamberLength(iplan,icham);
+          row0 += fGeo->GetChamberLength(iplan,ic);
         }
         fRow0[iplan][icham][isect]       = row0;
 

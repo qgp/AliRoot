@@ -4,7 +4,11 @@
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */ 
 
+/* $Id$ */
+
 #include "AliTracker.h" 
+#include "TObjArray.h" 
+#include "AliBarrelTrack.h"
 
 #include <TNamed.h>
 #include <TH1.h>   
@@ -12,7 +16,6 @@
 class TFile;
 class TParticle;
 class TParticlePDG;
-class TObjArray;
 
 class AliTRDgeometry;
 class AliTRDparameter;
@@ -22,7 +25,7 @@ class AliTRDmcTrack;
 
 const unsigned kMAX_LAYERS_PER_SECTOR = 1000;  
 const unsigned kMAX_TIME_BIN_INDEX = 216;  // (30 drift + 6 ampl) * 6 planes  
-const unsigned kMAX_CLUSTER_PER_TIME_BIN = 3500; 
+const unsigned kMAX_CLUSTER_PER_TIME_BIN = 7000; 
 const unsigned kZONES = 5; 
 const Int_t kTRACKING_SECTORS = 18; 
 
@@ -35,15 +38,18 @@ class AliTRDtracker : public AliTracker {
   ~AliTRDtracker(); 
 
   Int_t         Clusters2Tracks(const TFile *in, TFile *out);
-  Int_t         PropagateBack(TFile *inp, TFile *out);
+  Int_t         PropagateBack(const TFile *in, TFile *out);
   Int_t         PropagateBack();//Almost empty see .cxx for more comments
   Int_t         Clusters2Tracks();//Almost empty see .cxx for more comments
-  AliCluster   *GetCluster(Int_t index) const { return NULL; };
+
+  Int_t         LoadClusters() {LoadEvent(); return 0;};
+  void          UnloadClusters() {UnloadEvent();};
+  AliCluster   *GetCluster(Int_t index) const { return (AliCluster*) fClusters->UncheckedAt(index); };
   virtual void  CookLabel(AliKalmanTrack *t,Float_t wrong) const;
   virtual void  UseClusters(const AliKalmanTrack *t, Int_t from=0) const;  
   
-  void          SetEventNumber(Int_t event) { fEvent = event; }
   void          SetAddTRDseeds() { fAddTRDseeds = kTRUE; }
+  void          SetNoTilt() { fNoTilt = kTRUE; }
 
   Double_t      GetTiltFactor(const AliTRDcluster* c);
 
@@ -79,15 +85,13 @@ class AliTRDtracker : public AliTracker {
     return fTrSec[sec]->CookTimeBinIndex(plane,local_tb); }
   Double_t GetLayerNumber(Int_t sec, Double_t x) const {
     return fTrSec[sec]->GetLayerNumber(x); }
-  Int_t LoadClusters(){return 0;}
-  void UnloadClusters(){}
 
  public:
    class AliTRDpropagationLayer {
    // *****************  internal class *******************
    public: 
      AliTRDpropagationLayer(Double_t x, Double_t dx, Double_t rho, 
-			    Double_t x0, Int_t tb_index); 
+                            Double_t x0, Int_t tb_index); 
 
      ~AliTRDpropagationLayer() { 
        if(fTimeBinIndex >= 0) { delete[] fClusters; delete[] fIndex; }
@@ -102,7 +106,7 @@ class AliTRDtracker : public AliTracker {
      Double_t       GetX0() const { return fX0; }
      Int_t          GetTimeBinIndex() const { return fTimeBinIndex; }     
      void           GetPropagationParameters(Double_t y, Double_t z,
-				Double_t &dx, Double_t &rho, Double_t &x0, 
+                                Double_t &dx, Double_t &rho, Double_t &x0, 
                                 Bool_t &lookForCluster) const;
      Int_t          Find(Double_t y) const; 
      void           SetZmax(Int_t cham, Double_t center, Double_t w)
@@ -113,9 +117,11 @@ class AliTRDtracker : public AliTracker {
      Double_t       GetZc(Int_t c) const { return fZc[c]; }
      
      void           SetHole(Double_t Zmax, Double_t Ymax,
-			    Double_t rho = 1.29e-3, Double_t x0 = 36.66,
-			    Double_t Yc = 0, Double_t Zc = 0);
-			    
+                            Double_t rho = 1.29e-3, Double_t x0 = 36.66,
+                            Double_t Yc = 0, Double_t Zc = 0);
+                            
+     Bool_t         IsSensitive() {return (fTimeBinIndex>=0)? kTRUE: kFALSE;}
+                       
      void    Clear() {for(Int_t i=0; i<fN; i++) fClusters[i] = NULL; fN = 0;}
                    
    private:     
@@ -179,6 +185,7 @@ class AliTRDtracker : public AliTracker {
 
   Int_t         FollowProlongation(AliTRDtrack& t, Int_t rf);
   Int_t         FollowBackProlongation(AliTRDtrack& t);
+  //Int_t         FolowRefitInward(AliTRDtrack *seed, AliTPCtrack *track);
 
   Int_t         PropagateToTPC(AliTRDtrack& t);
   Int_t         PropagateToOuterPlane(AliTRDtrack& t, Double_t x);
@@ -193,8 +200,6 @@ class AliTRDtracker : public AliTracker {
 
 
  protected:
-
-  Int_t              fEvent;            // Event number
 
   AliTRDgeometry     *fGeom;            // Pointer to TRD geometry
   AliTRDparameter    *fPar;     
@@ -217,7 +222,7 @@ class AliTRDtracker : public AliTracker {
   Float_t          fSZ2corr;          // Correction coefficient for
                                       // cluster SigmaZ2 
 
-  static const Float_t  fgkSeedGap;     // Distance between inner and outer
+  static const Float_t  fgkSeedGap;   // Distance between inner and outer
                                       // time bin in seeding 
                                       // (fraction of all time bins) 
   
@@ -252,6 +257,26 @@ class AliTRDtracker : public AliTracker {
   Bool_t                fVocal;   
   Bool_t                fAddTRDseeds;
  
+  Bool_t                fNoTilt;
+ 
+  
+  Bool_t AdjustSector(AliTRDtrack *track); 
+ 
+  
+  // Barrel tracks [SR, 03.04.2003]
+
+  static const Int_t kFirstPlane;   // Id of the first (innermost) reference plane 
+  static const Int_t kLastPlane;    // Id of the last (outermost) reference plane
+  
+  void SetBarrelTree(const char *mode);
+  void StoreBarrelTrack(AliTRDtrack *ps, Int_t refPlane, Int_t isIn);
+  
+  TFile *fBarrelFile;
+  TTree *fBarrelTree;
+  TClonesArray *fBarrelArray;
+  AliBarrelTrack *fBarrelTrack;
+
+
   ClassDef(AliTRDtracker,1)           // manager base class  
 
 };

@@ -224,27 +224,6 @@ void AliTRD::AddCluster(Float_t *pos, Int_t det, Float_t amp
 }
 
 //_____________________________________________________________________________
-void  AliTRD::AddTrackReference(Int_t label, TLorentzVector p, TLorentzVector x)
-{
-  //
-  // Add a trackrefernce to the list
-  //
-
-  if (!fTrackReferences) {
-    Error("AddTrackReference","Container fTrackRefernce not active\n");
-    return;
-  }
-
-  Int_t nref = fTrackReferences->GetEntriesFast();
-  TClonesArray &lref = *fTrackReferences;
-  AliTrackReference * ref =  new(lref[nref]) AliTrackReference();
-  ref->SetMomentum(p[0],p[1],p[2]);
-  ref->SetPosition(x[0],x[1],x[2]);
-  ref->SetTrack(label);
-
-}
-
-//_____________________________________________________________________________
 void AliTRD::Hits2Digits()
 {
   //

@@ -1,16 +1,18 @@
 #ifndef ALITRDTRACK_H
-#define ALITRDTRACK_H  
+#define ALITRDTRACK_H
 
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
- * See cxx source for full Copyright notice                               */ 
+ * See cxx source for full Copyright notice                               */
 
 #include <AliKalmanTrack.h>
-#include <TMath.h>   
+#include <TMath.h>
 
-#include <TObject.h> 
+#include "AliBarrelTrack.h"
+#include "AliTRDgeometry.h"
+#include "TVector2.h"
 
 class AliTRDcluster;
-class AliTPCtrack; 
+class AliTPCtrack;
 
 const unsigned kMAX_CLUSTERS_PER_TRACK=210; 
 
@@ -30,6 +32,10 @@ public:
    void     CookdEdx(Double_t low=0.05, Double_t up=0.70);   
 
    Double_t GetAlpha() const {return fAlpha;}
+   Int_t    GetSector() const {
+     //if (fabs(fAlpha) < AliTRDgeometry::GetAlpha()/2) return 0;
+     return Int_t(TVector2::Phi_0_2pi(fAlpha)/AliTRDgeometry::GetAlpha())%AliTRDgeometry::kNsect;}
+
    Double_t GetC()     const {return fC;}
    Int_t    GetClusterIndex(Int_t i) const {return fIndex[i];}    
    Float_t  GetClusterdQdl(Int_t i) const {return fdQdl[i];}    
@@ -43,7 +49,7 @@ public:
 
    Double_t GetLikelihoodElectron() const { return fLhElectron; };
 
-   Double_t Get1Pt()   const {return TMath::Abs(fC*GetConvConst());} 
+   Double_t Get1Pt()   const {return (1e-9*TMath::Abs(fC)/fC + fC)*GetConvConst(); } 
    Double_t GetP()     const {  
      return TMath::Abs(GetPt())*sqrt(1.+GetTgl()*GetTgl());
    }
@@ -62,8 +68,7 @@ public:
    Double_t GetY()    const {return fY;}
    Double_t GetZ()    const {return fZ;}
 
-   Int_t    PropagateTo(Double_t xr,
-                   Double_t x0=8.72,Double_t rho=5.86e-3,Double_t pm=0.139);
+   Int_t    PropagateTo(Double_t xr, Double_t x0=8.72, Double_t rho=5.86e-3);
    void     ResetCovariance();   
    Int_t    Rotate(Double_t angle);
 
@@ -79,8 +84,15 @@ public:
    void     SetSeedLabel(Int_t lab) { fSeedLab=lab; }
 
    Int_t    Update(const AliTRDcluster* c, Double_t chi2, UInt_t i, 
-		   Double_t h01);
+                   Double_t h01);
 
+  //
+  void GetBarrelTrack(AliBarrelTrack *track);
+  void AddNWrong() {fNWrong++;}
+  
+  Int_t GetNWrong() const {return fNWrong;}
+  Int_t GetNRotate() const {return fNRotate;}
+  //
 
 
 protected:
@@ -91,23 +103,26 @@ protected:
    Double_t fAlpha;       // rotation angle
    Double_t fX;           // running local X-coordinate of the track (time bin)
 
-   Double_t fY;           // Y-coordinate of the track
-   Double_t fZ;           // Z-coordinate of the track
-   Double_t fC;           // track curvature
-   Double_t fE;           // C*x0
-   Double_t fT;           // tangent of the track dip angle   
+
+   Double_t fY;             // Y-coordinate of the track
+   Double_t fZ;             // Z-coordinate of the track
+   Double_t fE;             // C*x0
+   Double_t fT;             // tangent of the track momentum dip angle
+   Double_t fC;             // track curvature
 
    Double_t fCyy;                         // covariance
    Double_t fCzy, fCzz;                   // matrix
-   Double_t fCcy, fCcz, fCcc;             // of the
-   Double_t fCey, fCez, fCec, fCee;       // track
-   Double_t fCty, fCtz, fCtc, fCte, fCtt; // parameters   
-
+   Double_t fCey, fCez, fCee;             // of the
+   Double_t fCty, fCtz, fCte, fCtt;       // track
+   Double_t fCcy, fCcz, fCce, fCct, fCcc; // parameters   
+   
    UInt_t  fIndex[kMAX_CLUSTERS_PER_TRACK];  // global indexes of clusters  
    Float_t fdQdl[kMAX_CLUSTERS_PER_TRACK];   // cluster amplitudes corrected 
                                              // for track angles    
-			   
+                           
    Float_t fLhElectron;    // Likelihood to be an electron    
+   Int_t fNWrong;    // number of wrong clusters
+   Int_t fNRotate;
 
    ClassDef(AliTRDtrack,2) // TRD reconstructed tracks
 
