@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.1.2.7  2002/10/08 09:30:37  iglez2
+Solved stupid missing ;
+
 Revision 1.1.2.6  2002/10/07 13:40:22  iglez2
 First implementations of the PDG <--> Fluka Id conversion routines
 
@@ -46,6 +49,7 @@ First commit of Fluka interface.
 #include "TCallf77.h"      //For the fortran calls
 #include "Fdblprc.h"       //(DBLPRC) fluka common
 #include "Fiounit.h"       //(IOUNIT) fluka common
+#include "Fepisor.h"       //(EPISOR) fluka common
 #include "TVirtualMC.h"
 
 // Fluka methods that may be needed.
@@ -147,6 +151,7 @@ void TFluka::ProcessRun(Int_t nevent) {
     cout << "\t* Calling flukam again..." << endl;
   }
   fApplication->GeneratePrimaries();
+  EPISOR.lsouit = true;
   flukam(0);
 
   if (fVerbosityLevel >=3)
