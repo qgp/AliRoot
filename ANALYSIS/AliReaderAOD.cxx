@@ -122,8 +122,13 @@ Int_t AliReaderAOD::ReadNext()
        } 
 
       fCurrentEvent++;
-      if (retval == 0) fNEventsRead++;
+      if (retval != 0) 
+        {
+          //something wrong has happend during reading this event, take next
+          continue;
+        }
 
+      fNEventsRead++;
       return retval;//success -> read one event
       
     }while(fCurrentDir < GetNumberOfDirs());//end of loop over directories specified in fDirs Obj Array  
