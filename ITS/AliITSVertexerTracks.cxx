@@ -15,9 +15,12 @@
 
 //-----------------------------------------------------------------
 //    Implementation of the vertexer from tracks
+//    It accepts V2 and ESD tracks
 //
-// Origin: A.Dainese, Padova, andrea.dainese@pd.infn.it
-//         M.Masera,  Torino, massimo.masera@to.infn.it
+// Origin: A.Dainese, Padova, 
+//         andrea.dainese@pd.infn.it
+//         M.Masera,  Torino, 
+//         massimo.masera@to.infn.it
 //-----------------------------------------------------------------
 
 //---- standard headers ----
@@ -26,12 +29,8 @@
 #include <TKey.h>
 #include <TFile.h>
 #include <TTree.h>
-#include <TVector3.h>
 #include <TMatrixD.h>
-#include <TRandom.h>
 //---- AliRoot headers -----
-#include <AliRun.h>
-#include "AliKalmanTrack.h"
 #include "AliITSStrLine.h"
 #include "AliITStrackV2.h"
 #include "AliESDVertex.h"
@@ -93,6 +92,21 @@ AliITSVertexerTracks::AliITSVertexerTracks(Double_t field, TString fn,
   fNTrksToSkip = 0;
   for(Int_t i=0; i<3; i++) fInitPos[i] = 0.;
 }
+//______________________________________________________________________
+AliITSVertexerTracks::AliITSVertexerTracks(const AliITSVertexerTracks &vtxr) : AliITSVertexer(vtxr) {
+  // Copy constructor
+  // Copies are not allowed. The method is protected to avoid misuse.
+  Error("AliITSVertexerTracks","Copy constructor not allowed\n");
+}
+
+//______________________________________________________________________
+AliITSVertexerTracks& AliITSVertexerTracks::operator=(const AliITSVertexerTracks& /* vtxr */){
+  // Assignment operator
+  // Assignment is not allowed. The method is protected to avoid misuse.
+  Error("= operator","Assignment operator not allowed\n");
+  return *this;
+}
+
 //-----------------------------------------------------------------------------
 AliITSVertexerTracks::~AliITSVertexerTracks() {
   // Default Destructor
@@ -333,7 +347,15 @@ AliESDVertex* AliITSVertexerTracks::FindVertexForCurrentEvent(AliESD *esdEvent)
     AliESDtrack *esdTrack = (AliESDtrack*)esdEvent->GetTrack(i);
     if(!esdTrack->GetStatus()&AliESDtrack::kITSin)
       { delete esdTrack; continue; }
-    itstrack = new AliITStrackV2(*esdTrack);
+    try {
+      itstrack = new AliITStrackV2(*esdTrack);
+    }
+    catch (const Char_t *msg) {
+        Warning("FindVertexForCurrentEvent",msg);
+        delete esdTrack;
+        continue;
+    }
+
     trkTree->Fill();
     itstrack = 0;
     delete esdTrack; 
@@ -361,6 +383,11 @@ AliESDVertex* AliITSVertexerTracks::FindVertexForCurrentEvent(AliESD *esdEvent)
   // store vertex information in ESD
   fCurrentVertex->GetXYZ(vtx);
   fCurrentVertex->GetCovMatrix(cvtx);
+
+  Double_t tp[3];
+  esdEvent->GetVertex()->GetTruePos(tp);
+  fCurrentVertex->SetTruePos(tp);
+
   esdEvent->SetVertex(fCurrentVertex);
 
   cout<<"Vertex: "<<vtx[0]<<", "<<vtx[1]<<", "<<vtx[2]<<endl;
@@ -410,6 +437,8 @@ fInitPos[1] = fNominalPos[1]+gRandom->Gaus(0.,0.0100); // 100 micron gaussian sm
   Int_t ncombi = 0;
   AliITStrackV2 *track1;
   AliITStrackV2 *track2;
+  AliITSStrLine line1;
+  AliITSStrLine line2;
   for(Int_t i=0; i<nacc; i++){
     track1 = (AliITStrackV2*)fTrkArray.At(i);
     if(fDebug>5){
@@ -430,7 +459,8 @@ fInitPos[1] = fNominalPos[1]+gRandom->Gaus(0.,0.0100); // 100 micron gaussian sm
     Double_t pos1[3];
     Double_t mindist = TMath::Cos(alpha)*fNominalPos[0]+TMath::Sin(alpha)*fNominalPos[1];
     track1->GetGlobalXYZat(mindist,pos1[0],pos1[1],pos1[2]);
-    AliITSStrLine *line1 = new AliITSStrLine(pos1,mom1);
+    line1.SetP0(pos1);
+    line1.SetCd(mom1);
     for(Int_t j=i+1; j<nacc; j++){
       track2 = (AliITStrackV2*)fTrkArray.At(j);
       Double_t mom2[3];
@@ -443,14 +473,15 @@ fInitPos[1] = fNominalPos[1]+gRandom->Gaus(0.,0.0100); // 100 micron gaussian sm
       Double_t pos2[3];
       mindist = TMath::Cos(alpha)*fNominalPos[0]+TMath::Sin(alpha)*fNominalPos[1];
       track2->GetGlobalXYZat(mindist,pos2[0],pos2[1],pos2[2]);
-      AliITSStrLine *line2 = new AliITSStrLine(pos2,mom2);
+      line2.SetP0(pos2);
+      line2.SetCd(mom2);
       Double_t crosspoint[3];
-      Int_t retcode = line2->Cross(line1,crosspoint);
+      Int_t retcode = line2.Cross(&line1,crosspoint);
       if(retcode<0){
 	if(fDebug>10)cout<<" i= "<<i<<",   j= "<<j<<endl;
 	if(fDebug>10)cout<<"bad intersection\n";
-	line1->PrintStatus();
-	line2->PrintStatus();
+	line1.PrintStatus();
+	line2.PrintStatus();
       }
       else {
 	ncombi++;
@@ -459,9 +490,7 @@ fInitPos[1] = fNominalPos[1]+gRandom->Gaus(0.,0.0100); // 100 micron gaussian sm
 	if(fDebug>10)cout<<"\n Cross point: ";
 	if(fDebug>10)cout<<crosspoint[0]<<" "<<crosspoint[1]<<" "<<crosspoint[2]<<endl;
       }
-      delete line2;
     }
-    delete line1;
   }
   if(ncombi>0){
     for(Int_t jj=0;jj<3;jj++)fInitPos[jj] = aver[jj]/ncombi;
@@ -490,7 +519,7 @@ void AliITSVertexerTracks::VertexFitter() {
 
   Int_t i,j,k,step=0;
   TMatrixD rv(3,1);
-  TMatrixD V(3,3);
+  TMatrixD vV(3,3);
   rv(0,0) = fInitPos[0];
   rv(1,0) = fInitPos[1];
   rv(2,0) = 0.;
@@ -516,11 +545,11 @@ void AliITSVertexerTracks::VertexFitter() {
     chi2 = 0.;
     nUsedTrks = 0;
 
-    TMatrixD SumWiri(3,1);
-    TMatrixD SumWi(3,3);
+    TMatrixD sumWiri(3,1);
+    TMatrixD sumWi(3,3);
     for(i=0; i<3; i++) {
-      SumWiri(i,0) = 0.;
-      for(j=0; j<3; j++) SumWi(j,i) = 0.;
+      sumWiri(i,0) = 0.;
+      for(j=0; j<3; j++) sumWi(j,i) = 0.;
     }
 
     // loop on tracks  
@@ -543,34 +572,34 @@ void AliITSVertexerTracks::VertexFitter() {
       ri(2,0) = t->GetZ();
 
       // matrix to go from global (x,y,z) to local (y,z);
-      TMatrixD Qi(2,3);
-      Qi(0,0) = -sinRot;
-      Qi(0,1) = cosRot;
-      Qi(0,2) = 0.;
-      Qi(1,0) = 0.;
-      Qi(1,1) = 0.;
-      Qi(1,2) = 1.;
+      TMatrixD qQi(2,3);
+      qQi(0,0) = -sinRot;
+      qQi(0,1) = cosRot;
+      qQi(0,2) = 0.;
+      qQi(1,0) = 0.;
+      qQi(1,1) = 0.;
+      qQi(1,2) = 1.;
 
       // covariance matrix of local (y,z) - inverted
-      TMatrixD Ui(2,2);
+      TMatrixD uUi(2,2);
       t->GetExternalCovariance(cc);
-      Ui(0,0) = cc[0];
-      Ui(0,1) = cc[1];
-      Ui(1,0) = cc[1];
-      Ui(1,1) = cc[2];
+      uUi(0,0) = cc[0];
+      uUi(0,1) = cc[1];
+      uUi(1,0) = cc[1];
+      uUi(1,1) = cc[2];
 
-      // weights matrix: Wi = QiT * UiInv * Qi
-      if(Ui.Determinant() <= 0.) continue;
-      TMatrixD UiInv(TMatrixD::kInverted,Ui);
-      TMatrixD UiInvQi(UiInv,TMatrixD::kMult,Qi);
-      TMatrixD Wi(Qi,TMatrixD::kTransposeMult,UiInvQi);
+      // weights matrix: wWi = qQiT * uUiInv * qQi
+      if(uUi.Determinant() <= 0.) continue;
+      TMatrixD uUiInv(TMatrixD::kInverted,uUi);
+      TMatrixD uUiInvQi(uUiInv,TMatrixD::kMult,qQi);
+      TMatrixD wWi(qQi,TMatrixD::kTransposeMult,uUiInvQi);
 
       // track chi2
       TMatrixD deltar = rv; deltar -= ri;
-      TMatrixD Wideltar(Wi,TMatrixD::kMult,deltar);
-      chi2i = deltar(0,0)*Wideltar(0,0)+
-              deltar(1,0)*Wideltar(1,0)+
-	      deltar(2,0)*Wideltar(2,0);
+      TMatrixD wWideltar(wWi,TMatrixD::kMult,deltar);
+      chi2i = deltar(0,0)*wWideltar(0,0)+
+              deltar(1,0)*wWideltar(1,0)+
+	      deltar(2,0)*wWideltar(2,0);
 
 
       if(step==1 && chi2i > fMaxChi2PerTrack) {
@@ -581,10 +610,10 @@ void AliITSVertexerTracks::VertexFitter() {
       // add to total chi2
       chi2 += chi2i;
 
-      TMatrixD Wiri(Wi,TMatrixD::kMult,ri); 
+      TMatrixD wWiri(wWi,TMatrixD::kMult,ri); 
 
-      SumWiri += Wiri;
-      SumWi   += Wi;
+      sumWiri += wWiri;
+      sumWi   += wWi;
 
       nUsedTrks++;
     } // end loop on tracks
@@ -594,7 +623,7 @@ void AliITSVertexerTracks::VertexFitter() {
       continue;
     }
 
-    Double_t determinant = SumWi.Determinant();
+    Double_t determinant = sumWi.Determinant();
     //cerr<<" determinant: "<<determinant<<endl;
     if(determinant < 100.)  { 
       printf("det(V) = 0\n");       
@@ -603,11 +632,11 @@ void AliITSVertexerTracks::VertexFitter() {
     }
 
     // inverted of weights matrix
-    TMatrixD InvSumWi(TMatrixD::kInverted,SumWi);
-    V = InvSumWi;
+    TMatrixD invsumWi(TMatrixD::kInverted,sumWi);
+    vV = invsumWi;
      
     // position of primary vertex
-    rv.Mult(V,SumWiri);
+    rv.Mult(vV,sumWiri);
 
   } // end loop on the 3 steps
 
@@ -624,12 +653,12 @@ void AliITSVertexerTracks::VertexFitter() {
   position[1] = rv(1,0);
   position[2] = rv(2,0);
   Double_t covmatrix[6];
-  covmatrix[0] = V(0,0);
-  covmatrix[1] = V(0,1);
-  covmatrix[2] = V(1,1);
-  covmatrix[3] = V(0,2);
-  covmatrix[4] = V(1,2);
-  covmatrix[5] = V(2,2);
+  covmatrix[0] = vV(0,0);
+  covmatrix[1] = vV(0,1);
+  covmatrix[2] = vV(1,1);
+  covmatrix[3] = vV(0,2);
+  covmatrix[4] = vV(1,2);
+  covmatrix[5] = vV(2,2);
   
   // store data in the vertex object
   fCurrentVertex = new AliESDVertex(position,covmatrix,chi2,nUsedTrks);
