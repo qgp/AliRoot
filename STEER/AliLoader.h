@@ -214,7 +214,7 @@ class AliLoader: public TNamed
     void          SetDigitsFileNameSuffix(const TString& suffix);//adds the suffix before ".root", 
                                                           //e.g. TPC.Digits.root -> TPC.DigitsMerged.root
                                                               //made on Jiri Chudoba demand
-    Int_t GetDebug() const {return (Int_t)fgkDebug;}
+    Int_t GetDebug() const {return (Int_t)fgDebug;}
     
    protected:
 
@@ -341,7 +341,9 @@ class AliLoader: public TNamed
     static TDirectory*    ChangeDir(TFile* file, Int_t eventno); //changes the root directory in "file" to directory corresponing to eventno
     static Bool_t         TestFileOption(Option_t* opt);//checks is file is created from scratch
     const TString SetFileOffset(const TString& fname);//adds the proper number before .root extension suffix
-    static Bool_t    fgkDebug; //debug flag for loaders
+    
+    static void SetDebug(Bool_t deb = kTRUE){fgDebug = deb;}
+    static Bool_t    fgDebug; //debug flag for loaders
 
     ClassDef(AliLoader,1)
  };

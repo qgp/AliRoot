@@ -129,9 +129,9 @@ class AliRunLoader: public TNamed
     void        SetDigitsFileNameSuffix(const TString& suffix);//adds the suffix before ".root", 
                                                                //e.g. TPC.Digits.root -> TPC.DigitsMerged.root
                                                                //made on Jiri Chudoba demand
-
+    TString     GetFileName() const;//returns name of galice file
     const TObjArray* GetArrayOfLoaders() const {return fLoaders;}
-    Int_t GetDebug() const {return (Int_t)AliLoader::fgkDebug;}
+    Int_t GetDebug() const {return (Int_t)AliLoader::AliLoader::fgDebug;}
     
   protected:
     /**********************************************/

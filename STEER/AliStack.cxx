@@ -787,7 +787,7 @@ void AliStack::ConnectTree()
 //
 //  Creates branch for writing particles
 //
-  if (AliLoader::fgkDebug) Info("ConnectTree","Connecting TreeK");
+  if (AliLoader::AliLoader::fgDebug) Info("ConnectTree","Connecting TreeK");
   if (fTreeK == 0x0)
    {
     if (TreeK() == 0x0)
@@ -802,12 +802,12 @@ void AliStack::ConnectTree()
 
  //  Create a branch for particles   
   
-  if (AliLoader::fgkDebug) 
+  if (AliLoader::AliLoader::fgDebug) 
    Info("ConnectTree","Tree name is %s",fTreeK->GetName());
    
   if (fTreeK->GetDirectory())
    {
-     if (AliLoader::fgkDebug)    
+     if (AliLoader::AliLoader::fgDebug)    
       Info("ConnectTree","and dir is %s",fTreeK->GetDirectory()->GetName());
    }    
   else
@@ -817,16 +817,16 @@ void AliStack::ConnectTree()
   if(branch == 0x0)
    {
     branch = fTreeK->Branch(AliRunLoader::fgkKineBranchName, "TParticle", &fParticleBuffer, 4000);
-    if (AliLoader::fgkDebug) Info("ConnectTree","Creating Branch in Tree");
+    if (AliLoader::AliLoader::fgDebug) Info("ConnectTree","Creating Branch in Tree");
    }  
   else
    {
-    if (AliLoader::fgkDebug) Info("ConnectTree","Branch Found in Tree");
+    if (AliLoader::AliLoader::fgDebug) Info("ConnectTree","Branch Found in Tree");
     branch->SetAddress(&fParticleBuffer);
    }
   if (branch->GetDirectory())
    {
-    if (AliLoader::fgkDebug) 
+    if (AliLoader::AliLoader::fgDebug) 
       Info("ConnectTree","Branch Dir Name is %s",branch->GetDirectory()->GetName());
    } 
   else

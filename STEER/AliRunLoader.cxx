@@ -306,11 +306,66 @@ AliRunLoader* AliRunLoader::Open
 //in case of error returns NULL
  
  static const TString webaddress("http://alisoft.cern.ch/people/skowron/codedoc/split/index.html");
- if (AliLoader::fgkDebug) 
+ if (AliLoader::fgDebug) 
   ::Info("AliRunLoader::Open",
          "\n\n\nNew I/O strcture: See more info:\n %s\n\n\n",webaddress.Data());
  
  AliRunLoader* result = 0x0;
+ 
+ /* ************************************************ */
+ /* Chceck if folder with given name already exists  */
+ /* ************************************************ */
+ 
+ TObject* obj = AliConfig::Instance()->GetTopFolder()->FindObject(eventfoldername);
+ if(obj)
+  {
+    TFolder* fold = dynamic_cast<TFolder*>(obj);
+    if (fold == 0x0)
+     {
+      ::Error("AliRunLoader::Open","Such a obejct already exists in top alice folder and it is not a folder.");
+      return 0x0;
+     }
+    
+    //check if we can get RL from that folder
+    result = AliRunLoader::GetRunLoader(eventfoldername);
+    if (result == 0x0)
+     {
+       ::Error("AliRunLoader::Open",
+               "Folder %s already exists, and can not find session there. Can not mount.",eventfoldername);
+       return 0x0;
+     }
+
+    if (result->GetFileName().CompareTo(filename) != 0)
+     {
+       ::Error("AliRunLoader::Open","Other file is mounted in demanded folder. Can not mount.");
+       return 0x0;
+     }
+
+    //check if now is demanded (re)creation 
+    if ( AliLoader::TestFileOption(option) == kFALSE)
+     {
+       ::Error("AliRunLoader::Open",
+               "Session already exists in folder %s and this session option is %s. Unable to proceed.",
+                eventfoldername,option);
+       return 0x0;
+     }
+     
+    //check if demanded option is update and existing one 
+    TString tmpstr(option);
+    if ( (tmpstr.CompareTo("update",TString::kIgnoreCase) == 0) && 
+         (result->fGAFile->IsWritable() == kFALSE) )
+     { 
+       ::Error("AliRunLoader::Open",
+               "Session already exists in folder %s and is not writable while this session option is %s. Unable to proceed.",
+                eventfoldername,option);
+       return 0x0;
+     }
+     
+    ::Warning("AliRunLoader::Open","Session is already opened and mounted in demanded folder");	
+    return result;
+  } //end of checking in case of existance of object named identically that folder session is being opened
+ 
+ 
  TFile * gAliceFile = TFile::Open(filename,option);//open a file
  if (!gAliceFile) 
   {//null pointer returned
@@ -328,7 +383,7 @@ AliRunLoader* AliRunLoader::Open
  //else create new AliRunLoader
  if ( AliLoader::TestFileOption(option) )
   { 
-    if (AliLoader::fgkDebug) 
+    if (AliLoader::fgDebug) 
      ::Info("AliRunLoader::Open","Reading RL from file");
     
     result = dynamic_cast<AliRunLoader*>(gAliceFile->Get(fgkRunLoaderName));//get the run Loader from the file
@@ -349,7 +404,7 @@ AliRunLoader* AliRunLoader::Open
   }
  else
   {
-    if (AliLoader::fgkDebug) 
+    if (AliLoader::fgDebug) 
       ::Info("AliRunLoader::Open","Creating new AliRunLoader. Folder name is %s",eventfoldername);
     result = new AliRunLoader(eventfoldername);
   }
@@ -366,7 +421,7 @@ AliRunLoader* AliRunLoader::Open
   }
  else dirname = fname.Remove(nsl);//slash found
  
- if (AliLoader::fgkDebug) 
+ if (AliLoader::fgDebug) 
   ::Info("AliRunLoader::Open","Dir name is : %s",dirname.Data());
  
  result->SetDirName(dirname); 
@@ -512,6 +567,12 @@ Int_t AliRunLoader::LoadgAlice()
 
 Int_t AliRunLoader::LoadHeader()
 {
+ if (TreeE())
+  {
+     Warning("LoadHeader","Header is already loaded. Use ReloadHeader to force reload. Nothing done");
+     return 0;
+  }
+ 
  if (GetEventFolder() == 0x0)
   {
     Error("LoadHaeder","Event folder not specified yet");
@@ -531,6 +592,7 @@ Int_t AliRunLoader::LoadHeader()
   }
 
  TTree* tree = dynamic_cast<TTree*>(fGAFile->Get(fgkHeaderContainerName));
+ if (tree == TreeE()) return 0;
  if (tree == 0x0)
   {
     Fatal("LoadHaeder","Can not find header tree named %s in file %s",
@@ -549,6 +611,12 @@ Int_t AliRunLoader::LoadHeader()
 Int_t AliRunLoader::LoadKinematics(Option_t* option)
 {
 //Loads the kinematics 
+ if (TreeK())
+  {
+     Warning("LoadKinematics","Kinematics is already loaded. Use ReloadKinematics to force reload. Nothing done");
+     return 0;
+  }
+
  if (GetEventFolder() == 0x0)
   {
     Error("LoadKinematics","Event folder not specified yet");
@@ -640,6 +708,7 @@ Int_t AliRunLoader::PostKinematics()
    }
 
   TObject* tree = fKineData.Directory()->Get(fgkKineContainerName);
+  if (tree == TreeK()) return 0; //protection in case in folder is the same obj
   if(tree)
    {
      //if such an obejct already exists - remove it first
@@ -669,6 +738,7 @@ Int_t AliRunLoader::PostTrackRefs()
    }
 
   TObject* tree = fTrackRefsData.Directory()->Get(fgkTrackRefsContainerName);
+  if (tree == TreeTR()) return 0; //protection in case in folder is the same obj
   if(tree)
    {
      //if such an obejct already exists - remove it first
@@ -1505,6 +1575,12 @@ Int_t AliRunLoader::LoadTrackRefs(Option_t* option)
 {
 //Load track references from file (opens file and posts tree to folder)
 
+ if (TreeTR())
+  {
+     Warning("LoadTrackRefs","Track References are already loaded. Use ReloadTrackRefs to force reload. Nothing done");
+     return 0;
+  }
+
  if (GetEventFolder() == 0x0)
   {
     Error("LoadTrackRefs","Event folder not specified yet");
@@ -1588,7 +1664,6 @@ const TString AliRunLoader::SetFileOffset(const TString& fname)
   if (GetDebug()) Info("SetFileOffset"," in=%s out=%s",fname.Data(),out.Data());
   return out;
 }
-
 /*****************************************************************************/ 
 
 void AliRunLoader::SetDigitsFileNameSuffix(const TString& suffix)
@@ -1603,6 +1678,16 @@ void AliRunLoader::SetDigitsFileNameSuffix(const TString& suffix)
    {
      Loader->SetDigitsFileNameSuffix(suffix);
    }
+}
+/*****************************************************************************/ 
+
+TString AliRunLoader::GetFileName() const
+{
+//returns name of galice file
+ TString result;
+ if (fGAFile == 0x0) return result;
+ result = fGAFile->GetName();
+ return result;
 }
 
 /*****************************************************************************/ 

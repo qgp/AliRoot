@@ -23,7 +23,7 @@
 #include <AliRunDigitizer.h>
 #include <AliDigitizer.h>
 
-Bool_t  AliLoader::fgkDebug = kFALSE;
+Bool_t  AliLoader::fgDebug = kFALSE;
 
 const TString AliLoader::fgkDefaultHitsContainerName("TreeH");
 const TString AliLoader::fgkDefaultDigitsContainerName = "TreeD";
@@ -1024,7 +1024,7 @@ TDirectory* AliLoader::ChangeDir(TFile* file, Int_t eventno)
 
  TString dirname("Event");
  dirname+=eventno;
- if (AliLoader::fgkDebug) 
+ if (AliLoader::fgDebug) 
    ::Info("AliLoader::ChangeDir","Changing Dir to %s in file %s.",dirname.Data(),file->GetName());
 
  Bool_t result;
@@ -1033,7 +1033,7 @@ TDirectory* AliLoader::ChangeDir(TFile* file, Int_t eventno)
 
  if (dir == 0x0)
   {
-    if (AliLoader::fgkDebug)
+    if (AliLoader::fgDebug)
      ::Info("AliLoader::ChangeDir","Can not find directory %s in file %s, creating...",
             dirname.Data(),file->GetName());
     
@@ -1620,9 +1620,9 @@ Bool_t  AliLoader::TestFileOption(Option_t* opt)
 //if file is truncated at opening moment ("recreate", "new" or "create") returns kFALSE;
 //else kTRUE (means opened with "read" or "update" mode)
   TString option(opt);
-  if (option.Contains("recreate",TString::kIgnoreCase)) return kFALSE;
-  if (option.Contains("new",TString::kIgnoreCase)) return kFALSE;
-  if (option.Contains("create",TString::kIgnoreCase)) return kFALSE;
+  if (option.CompareTo("recreate",TString::kIgnoreCase) == 0) return kFALSE;
+  if (option.CompareTo("new",TString::kIgnoreCase) == 0) return kFALSE;
+  if (option.CompareTo("create",TString::kIgnoreCase) == 0) return kFALSE;
   return kTRUE;
 }
 /*****************************************************************************/ 
