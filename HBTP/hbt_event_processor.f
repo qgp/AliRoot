@@ -1806,30 +1806,99 @@ CCC   Determine if the Input Reference pair histograms are compatible
 CCC   with the present run parameters:
 
       ref_check = 1
-      if(check(1)  .ne. n_pid_types ) ref_check = 0
-      if(check(2)  .ne. pid(1)      ) ref_check = 0
-      if(check(3)  .ne. pid(2)      ) ref_check = 0
-      if(check(4)  .ne. n_pt_bins   ) ref_check = 0
-      if(check(5)  .ne. n_phi_bins  ) ref_check = 0
-      if(check(6)  .ne. n_eta_bins  ) ref_check = 0
-      if(check(7)  .ne. switch_1d   ) ref_check = 0
-      if(check(8)  .ne. switch_3d   ) ref_check = 0
-      if(check(9)  .ne. switch_type ) ref_check = 0
-      if(check(10) .ne. n_1d_fine   ) ref_check = 0
-      if(check(11) .ne. n_1d_coarse ) ref_check = 0
-      if(check(12) .ne. n_3d_fine   ) ref_check = 0
-      if(check(13) .ne. n_3d_coarse ) ref_check = 0
+      if(check(1)  .ne. n_pid_types ) then 
+         PRINT*,'1 n_pid_types' 
+         ref_check = 0
+      endif   
+      if(check(2)  .ne. pid(1)      ) then 
+         PRINT*,'2 pid(1)' 
+         ref_check = 0
+      endif
+      if(check(3)  .ne. pid(2)      ) then 
+         PRINT*,'3 pid(2)' 
+         ref_check = 0
+      endif
+      if(check(4)  .ne. n_pt_bins   ) then 
+         PRINT*,'4 n_pt_bins' 
+         ref_check = 0
+      endif
+      if(check(5)  .ne. n_phi_bins  ) then 
+         PRINT*,'5 n_phi_bins' 
+         ref_check = 0
+      endif
+      if(check(6)  .ne. n_eta_bins  ) then 
+         PRINT*,'6 n_eta_bins' 
+         ref_check = 0
+      endif
+      if(check(7)  .ne. switch_1d   ) then 
+         PRINT*,'7 switch_1d' 
+         ref_check = 0
+      endif
+      if(check(8)  .ne. switch_3d   ) then 
+         PRINT*,'8 switch_3d' 
+         ref_check = 0
+      endif
+      if(check(9)  .ne. switch_type ) then 
+         PRINT*,'9 switch_type' 
+         ref_check = 0
+      endif
+      if(check(10) .ne. n_1d_fine   ) then 
+         PRINT*,'10 n_1d_fine' 
+         ref_check = 0
+      endif
+      if(check(11) .ne. n_1d_coarse ) then 
+         PRINT*,'11 n_1d_coarse' 
+         ref_check = 0
+      endif
+      if(check(12) .ne. n_3d_fine   ) then 
+         PRINT*,'12 n_3d_fine' 
+         ref_check = 0
+      endif
+      if(check(13) .ne. n_3d_coarse ) then 
+         PRINT*,'13 n_3d_coarse' 
+         ref_check = 0
+      endif
 
-      if(abs(acheck( 1) - pt_min )         .gt. 0.000001) ref_check = 0
-      if(abs(acheck( 2) - pt_max )         .gt. 0.000001) ref_check = 0
-      if(abs(acheck( 3) - phi_min )        .gt. 0.000001) ref_check = 0
-      if(abs(acheck( 4) - phi_max )        .gt. 0.000001) ref_check = 0
-      if(abs(acheck( 5) - eta_min )        .gt. 0.000001) ref_check = 0
-      if(abs(acheck( 6) - eta_max )        .gt. 0.000001) ref_check = 0
-      if(abs(acheck( 7) - binsize_1d_fine) .gt. 0.000001) ref_check = 0
-      if(abs(acheck( 8) - binsize_1d_coarse).gt.0.000001) ref_check = 0
-      if(abs(acheck( 9) - binsize_3d_fine) .gt. 0.000001) ref_check = 0
-      if(abs(acheck(10) - binsize_3d_coarse).gt.0.000001) ref_check = 0
+      if(abs(acheck( 1) - pt_min )         .gt. 0.000001) then 
+         PRINT*,'14 pt_min' 
+         ref_check = 0
+      endif
+      if(abs(acheck( 2) - pt_max )         .gt. 0.000001) then 
+         PRINT*,'15 pt_max' 
+         ref_check = 0
+      endif
+      if(abs(acheck( 3) - phi_min )        .gt. 0.000001) then 
+         PRINT*,'16 phi_min' 
+         ref_check = 0
+      endif
+      if(abs(acheck( 4) - phi_max )        .gt. 0.000001) then 
+         PRINT*,'17 phi_max' 
+         ref_check = 0
+      endif
+      if(abs(acheck( 5) - eta_min )        .gt. 0.000001) then 
+         PRINT*,'18 eta_min', eta_min,' ',abs(acheck( 5))
+         ref_check = 0
+      endif
+      if(abs(acheck( 6) - eta_max )        .gt. 0.000001) then 
+         PRINT*,'19 eta_max', eta_max,' ',abs(acheck( 6))
+         ref_check = 0
+      endif
+      if(abs(acheck( 7) - binsize_1d_fine) .gt. 0.000001) then 
+         PRINT*,'20 binsize_1d_fine' 
+         ref_check = 0
+      endif
+      if(abs(acheck( 8) - binsize_1d_coarse).gt.0.000001) then 
+         PRINT*,'21 binsize_1d_coarse' 
+         ref_check = 0
+      endif
+      if(abs(acheck( 9) - binsize_3d_fine) .gt. 0.000001) then 
+         PRINT*,'22 binsize_3d_fine' 
+         ref_check = 0
+      endif
+      if(abs(acheck(10) - binsize_3d_coarse).gt.0.000001) then 
+         PRINT*,'23 binsize_3d_coarse' 
+         ref_check = 0
+      endif
 
       if(ref_check .eq. 0) then
          write(7,70)
@@ -1917,19 +1986,55 @@ CCC   Determine if Reference one-body histograms are compatible with
 CCC   the present run conditions.
 
       ref_check = 1
-      if(check(1) .ne. n_pid_types)   ref_check = 0
-      if(check(2) .ne. pid(1)     )   ref_check = 0
-      if(check(3) .ne. pid(2)     )   ref_check = 0
-      if(check(4) .ne. n_pt_bins  )   ref_check = 0
-      if(check(5) .ne. n_phi_bins )   ref_check = 0
-      if(check(6) .ne. n_eta_bins )   ref_check = 0
+      if(check(1) .ne. n_pid_types)   then 
+         PRINT*,'1' 
+         ref_check = 0
+      endif
+      if(check(2) .ne. pid(1)     )   then 
+         PRINT*,'1' 
+         ref_check = 0
+      endif
+      if(check(3) .ne. pid(2)     )   then 
+         PRINT*,'1' 
+         ref_check = 0
+      endif
+      if(check(4) .ne. n_pt_bins  )   then 
+         PRINT*,'1' 
+         ref_check = 0
+      endif
+      if(check(5) .ne. n_phi_bins )   then 
+         PRINT*,'1' 
+         ref_check = 0
+      endif
+      if(check(6) .ne. n_eta_bins )   then 
+         PRINT*,'1' 
+         ref_check = 0
+      endif
 
-      if(abs(acheck(1) - pt_min  ).gt.0.000001) ref_check = 0
-      if(abs(acheck(2) - pt_max  ).gt.0.000001) ref_check = 0
-      if(abs(acheck(3) - phi_min ).gt.0.000001) ref_check = 0
-      if(abs(acheck(4) - phi_max ).gt.0.000001) ref_check = 0
-      if(abs(acheck(5) - eta_min ).gt.0.000001) ref_check = 0
-      if(abs(acheck(6) - eta_max ).gt.0.000001) ref_check = 0
+      if(abs(acheck(1) - pt_min  ).gt.0.000001) then 
+         PRINT*,'1' 
+         ref_check = 0
+      endif
+      if(abs(acheck(2) - pt_max  ).gt.0.000001) then 
+         PRINT*,'1' 
+         ref_check = 0
+      endif
+      if(abs(acheck(3) - phi_min ).gt.0.000001) then 
+         PRINT*,'1' 
+         ref_check = 0
+      endif
+      if(abs(acheck(4) - phi_max ).gt.0.000001) then 
+         PRINT*,'1' 
+         ref_check = 0
+      endif
+      if(abs(acheck(5) - eta_min ).gt.0.000001) then 
+         PRINT*,'1' 
+         ref_check = 0
+      endif
+      if(abs(acheck(6) - eta_max ).gt.0.000001) then 
+         PRINT*,'1' 
+         ref_check = 0
+      endif
 
       if(ref_check .eq. 0) then
          write(7,71)
