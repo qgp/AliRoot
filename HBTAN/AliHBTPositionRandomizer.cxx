@@ -35,7 +35,7 @@ AliHBTPositionRandomizer::AliHBTPositionRandomizer():
 
 AliHBTPositionRandomizer::AliHBTPositionRandomizer(AliReader* reader):
  fReader(reader),
- fRandomizer(new AliHBTRndmGaussBall(8.0)),
+ fRandomizer(new AliHBTRndmGaussBall(8.0,0.0,0.0)),
  fModel(0),
  fAddToExistingPos(kFALSE),
  fOnlyParticlesFromVertex(kFALSE),
@@ -130,7 +130,7 @@ void AliHBTPositionRandomizer::Randomize(AliAOD* event) const
    {
      AliVAODParticle* p = event->GetParticle(i);
      Double_t x,y,z,t=0.0;
-     fRandomizer->Randomize(x,y,z,p);
+     fRandomizer->Randomize(x,y,z,t,p);
      
      Double_t nx = x*kfmtocm;
      Double_t ny = y*kfmtocm;
@@ -150,18 +150,18 @@ void AliHBTPositionRandomizer::Randomize(AliAOD* event) const
 }
 /*********************************************************************/
 
-void AliHBTPositionRandomizer::SetGaussianBall(Double_t r)
+void AliHBTPositionRandomizer::SetGaussianBall(Double_t r, Double_t meantime, Double_t sigmatime)
 {
  //Sets Gaussian Ball Model
-  SetGaussianBall(r,r,r);
+  SetGaussianBall(r,r,r,meantime,sigmatime);
 }
 /*********************************************************************/
 
-void AliHBTPositionRandomizer::SetGaussianBall(Double_t rx, Double_t ry, Double_t rz)
+void AliHBTPositionRandomizer::SetGaussianBall(Double_t rx, Double_t ry, Double_t rz, Double_t meantime, Double_t sigmatime)
 {
  //Sets Gaussian Ball Model
   delete fRandomizer;
-  fRandomizer = new AliHBTRndmGaussBall(rx,ry,rz);
+  fRandomizer = new AliHBTRndmGaussBall(rx,ry,rz,meantime,sigmatime);
 }
 /*********************************************************************/
 
@@ -199,25 +199,31 @@ void AliHBTPositionRandomizer::SetEllipse(Double_t rx, Double_t ryz)
 AliHBTRndmGaussBall::AliHBTRndmGaussBall():
  fRx(0.0),
  fRy(0.0),
- fRz(0.0)
+ fRz(0.0),
+ fTmean(0.0),
+ fTsigma(0.0)
 {
   //constructor
 }
 /*********************************************************************/
 
-AliHBTRndmGaussBall::AliHBTRndmGaussBall(Float_t r):
+AliHBTRndmGaussBall::AliHBTRndmGaussBall(Float_t r, Double_t meantime, Double_t sigmatime):
  fRx(r),
  fRy(r),
- fRz(r)
+ fRz(r),
+ fTmean(meantime),
+ fTsigma(sigmatime)
 {
   //constructor
 }
 /*********************************************************************/
 
-AliHBTRndmGaussBall::AliHBTRndmGaussBall(Float_t rx, Float_t ry, Float_t rz):
+AliHBTRndmGaussBall::AliHBTRndmGaussBall(Float_t rx, Float_t ry, Float_t rz, Double_t meantime, Double_t sigmatime):
  fRx(rx),
  fRy(ry),
- fRz(rz)
+ fRz(rz),
+ fTmean(meantime),
+ fTsigma(sigmatime)
 {
   //constructor
 }
@@ -233,12 +239,21 @@ AliHBTRndmEllipse::AliHBTRndmEllipse(Float_t rmin, Float_t rmax):
 
 /*********************************************************************/
 
-void AliHBTRndmGaussBall::Randomize(Double_t& x,Double_t& y,Double_t&z, AliVAODParticle*/*particle*/) const
+void AliHBTRndmGaussBall::Randomize(Double_t& x,Double_t& y,Double_t&z,Double_t&t, AliVAODParticle*/*particle*/) const
 {
 //randomizez gauss for each coordinate separately
   x = gRandom->Gaus(0.0,fRx);
   y = gRandom->Gaus(0.0,fRy);
   z = gRandom->Gaus(0.0,fRz);
+  
+  if (fTsigma == 0.0)
+   {
+     t = 0.0;
+     return;
+   }
+  
+  t = gRandom->Gaus(fTmean,fTsigma);
+    
 }
 /*********************************************************************/
 //_____________________________________________________________________
@@ -248,7 +263,7 @@ void AliHBTRndmGaussBall::Randomize(Double_t& x,Double_t& y,Double_t&z, AliVAODP
 //                                                                   //
 ///////////////////////////////////////////////////////////////////////
 
-void AliHBTRndmCyllSurf::Randomize(Double_t& x,Double_t& y,Double_t&z, AliVAODParticle* particle) const
+void AliHBTRndmCyllSurf::Randomize(Double_t& x,Double_t& y,Double_t&z,Double_t&/*t*/, AliVAODParticle* particle) const
 {
 //Randomizes x,y,z
    Double_t r = fR + gRandom->Gaus(0.0, 1.0);
@@ -262,7 +277,7 @@ void AliHBTRndmCyllSurf::Randomize(Double_t& x,Double_t& y,Double_t&z, AliVAODPa
 /*********************************************************************/
 /*********************************************************************/
 
-void AliHBTRndmEllipse::Randomize(Double_t& x, Double_t& y, Double_t& z,AliVAODParticle*p) const
+void AliHBTRndmEllipse::Randomize(Double_t& x, Double_t& y, Double_t& z,Double_t&/*t*/, AliVAODParticle*p) const
 {
     // p=0; //workaround - fix this damn little thingy
    double R;

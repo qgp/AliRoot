@@ -46,8 +46,8 @@ class AliHBTPositionRandomizer: public AliReader
    void Randomize(AliAOD* event) const;
    void SetEventVertex(Double_t x, Double_t y,Double_t z);
    
-   void SetGaussianBall(Double_t r);
-   void SetGaussianBall(Double_t rx, Double_t ry, Double_t rz);
+   void SetGaussianBall(Double_t r, Double_t meantime, Double_t sigmatime);
+   void SetGaussianBall(Double_t rx, Double_t ry, Double_t rz, Double_t meantime, Double_t sigmatime);
    void SetCyllinderSurface(Double_t r, Double_t l);
    void SetEllipse(Double_t rmin, Double_t rmax);
    
@@ -82,7 +82,7 @@ class AliHBTRndm: public TObject
   public:
    AliHBTRndm(){}
    virtual ~AliHBTRndm(){}
-   virtual void Randomize(Double_t& x,Double_t& y,Double_t&z, AliVAODParticle*p) const = 0;
+   virtual void Randomize(Double_t& x, Double_t& y, Double_t& z, Double_t& t, AliVAODParticle*p) const = 0;
      ClassDef(AliHBTRndm,1)
 };
 
@@ -90,14 +90,16 @@ class AliHBTRndmGaussBall: public AliHBTRndm
 {
   public:
    AliHBTRndmGaussBall();
-   AliHBTRndmGaussBall(Float_t r);
-   AliHBTRndmGaussBall(Float_t rx, Float_t ry, Float_t rz);
+   AliHBTRndmGaussBall(Float_t r, Double_t meantime, Double_t sigmatime);
+   AliHBTRndmGaussBall(Float_t rx, Float_t ry, Float_t rz, Double_t meantime, Double_t sigmatime);
    virtual ~AliHBTRndmGaussBall(){}
-   void Randomize(Double_t& x,Double_t& y,Double_t&z, AliVAODParticle*/*particle*/) const;
+   void Randomize(Double_t& x,Double_t& y,Double_t&z, Double_t& t, AliVAODParticle*/*particle*/) const;
   private:
    Float_t fRx; //Dispertion in x 
    Float_t fRy; //Dispertion in y
    Float_t fRz; //Dispertion in z
+   Float_t fTmean; //Mean emision time in t
+   Float_t fTsigma; //Dispertion in t
    ClassDef(AliHBTRndmGaussBall,1)
 };
 
@@ -108,7 +110,7 @@ class AliHBTRndmCyllSurf: public AliHBTRndm
    AliHBTRndmCyllSurf(Float_t r, Float_t l):fR(r),fL(l){}
    virtual ~AliHBTRndmCyllSurf(){}
    
-   void Randomize(Double_t& x,Double_t& y,Double_t&z, AliVAODParticle* particle) const;
+   void Randomize(Double_t& x,Double_t& y,Double_t&z, Double_t& /*t*/t, AliVAODParticle* particle) const;
   private:
    Float_t fR; //Redius of cylinder
    Float_t fL; //Length of cylinder
@@ -123,7 +125,7 @@ class AliHBTRndmEllipse: public AliHBTRndm
    AliHBTRndmEllipse(Float_t rmin, Float_t rmax);
    virtual ~AliHBTRndmEllipse(){}
    
-   void Randomize(Double_t& x,Double_t& y, Double_t& z, AliVAODParticle* particle) const;
+   void Randomize(Double_t& x,Double_t& y, Double_t& z,  Double_t& , AliVAODParticle* particle) const;
   private:
    Float_t fRmin; //Radius in x direction
    Float_t fRmax; //Radius in y direction
