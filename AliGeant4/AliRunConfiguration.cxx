@@ -16,7 +16,7 @@
 #include "TG4EventAction.h"
 #include "TG4TrackingAction.h"
 #include "TG4SteppingAction.h"
-#include "AliStackingAction.h"
+#include "TG4SpecialStackingAction.h"
 #include "AliFiles.h"
 
 #include "TG4ModularPhysicsList.h"
@@ -89,7 +89,7 @@ void AliRunConfiguration::CreateUserConfiguration()
   fEventAction  = new TG4EventAction();
   fTrackingAction = new TG4TrackingAction();
   fSteppingAction = new TG4SteppingAction();
-  fStackingAction = new AliStackingAction();
+  fStackingAction = new TG4SpecialStackingAction();
 }
 
 // public methods
