@@ -672,7 +672,7 @@ Int_t AliPHOSLoader::ReadTracks()
    {
      //May happen if file is truncated or new in LoadSDigits, or the file is in update mode, 
      //but tracking was not performed yet for a current event
-     Error("ReadTracks","There is no Tree with Tracks");
+     //Error("ReadTracks","There is no Tree with Tracks");
      return 0;
    }
   
