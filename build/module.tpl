@@ -255,10 +255,12 @@ check-@PACKAGE@: $(@PACKAGE@CHECKS)
 @PACKAGE@/check/%.i : @PACKAGE@/%.cxx
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	$(MUTE)$(CXX) -E $(@PACKAGE@DEFINE) $(@PACKAGE@INC) $< > $@ $(@PACKAGE@CXXFLAGS)
+	cd $(dir $@) ; $(IRST_INSTALLDIR)/rules/ALICE/patch4alice.prl $(notdir $@)
 
 # IRST coding rule check
 @PACKAGE@/check/%.viol : @PACKAGE@/check/%.i
-	@$(CODE_CHECK) $< ./ > $@
+	@cd @PACKAGE@ ; [ -r @PACKAGE@ ] || ln -s ../@PACKAGE@ @PACKAGE@
+	-@$(CODE_CHECK) $< ./@PACKAGE@ > $@
 
 @PACKAGE@PREPROC       = $(patsubst %.viol,%.i,$(@PACKAGE@CHECKS))
 
@@ -266,12 +268,12 @@ check-@PACKAGE@: $(@PACKAGE@CHECKS)
 
 .SECONDARY: $(@PACKAGE@REVENGS) $(@PACKAGE@PREPROC)
 
-#reveng:		check/classDiagram.dot
-#
-#check/classDiagram.dot:	$(PREPROC)
-#	@$(REV_ENG) $^
-#	@-mv classDiagram.dot $@
-#
-#revdisp:	reveng
-#	@$(IRST_INSTALLDIR)/scripts/revEngInterface.sh check/classDiagram.dot
+reveng-@PACKAGE@:		@PACKAGE@/check/classDiagram.dot
+
+@PACKAGE@/check/classDiagram.dot:	$(PREPROC)
+	@$(REV_ENG) $^
+	@-mv classDiagram.dot $@
+
+revdisp-@PACKAGE@:	reveng-@PACKAGE@
+	@$(IRST_INSTALLDIR)/scripts/revEngInterface.sh @PACKAGE@/check/classDiagram.dot
 

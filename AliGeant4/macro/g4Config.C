@@ -105,8 +105,8 @@ void Config()
   // Alice modules
   // ============================= 
 
-  //Bool_t isSetInteractively = false;
-  Bool_t isSetInteractively = true;
+  Bool_t isSetInteractively = false;
+  //Bool_t isSetInteractively = true;
 
   if (!isSetInteractively) {
 

@@ -2,25 +2,12 @@
 # ----------------------------------------------------------------
 # This script sets the default environment variables for
 # Alice Geant4 based prototype
-# Options: -g     verbose mode
-#          local  recomended local configuration
-#          silent no output
 #   
 # by I. Hrivnacova, 18.8.1998
 #
 # sh version modified by I. Gonzalez 2.3.2000
-
 #
-# ==================================================================
-# Alice configuration options: 
-# Please define your selection with the variables below.
-# ==================================================================
-# 
-
-#
-# Geant4
-# ==================================
-#
+# modified by fca Sep 2002
 
 export MCINSTALL=$ALICE/geant4vmc
 
