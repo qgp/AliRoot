@@ -111,7 +111,6 @@ AliMUON::AliMUON()
     fAccMax          = 0.;   
     fAccCut          = kFALSE;
     fMerger          = 0;
-    fFileName        = 0;
     fMUONData        = 0;
     fSplitLevel      = 0;
 }
@@ -406,12 +405,6 @@ void   AliMUON::SetResponseModel(Int_t id, AliMUONResponse *response)
     ((AliMUONChamber*) fChambers->At(id))->SetResponseModel(response);
 }
 //____________________________________________________________________
-void   AliMUON::SetReconstructionModel(Int_t id, AliMUONClusterFinderVS *reconst)
-{
-// Set ClusterFinder for chamber id
-    ((AliMUONChamber*) fChambers->At(id))->SetReconstructionModel(reconst);
-}
-//____________________________________________________________________
 void   AliMUON::SetNsec(Int_t id, Int_t nsec)
 {
 // Set number of segmented cathods for chamber id
@@ -462,128 +455,6 @@ AliLoader* AliMUON::MakeLoader(const char* topfoldername)
  fMUONData = new AliMUONData(fLoader,GetName(),GetName()); 
  fMUONData->SetSplitLevel(fSplitLevel);
  return fLoader;
-}
-
-//_______________________________________________________________________
-void AliMUON::Trigger(Int_t /*nev*/){
-// call the Trigger Algorithm and fill TreeR
-
-  Int_t singlePlus[3]  = {0,0,0}; 
-  Int_t singleMinus[3] = {0,0,0}; 
-  Int_t singleUndef[3] = {0,0,0};
-  Int_t pairUnlike[3]  = {0,0,0}; 
-  Int_t pairLike[3]    = {0,0,0};
-  
-  ResetTrigger();
-  AliMUONTriggerDecision* decision= new AliMUONTriggerDecision(fLoader,1);
-  decision->Trigger();   
-  decision->GetGlobalTrigger(singlePlus, singleMinus, singleUndef,
-			     pairUnlike, pairLike);
-  
-  // add a local trigger in the list 
-  GetMUONData()->AddGlobalTrigger(singlePlus, singleMinus, singleUndef, pairUnlike, pairLike);
-  Int_t i;
-  
-  for (Int_t icirc=0; icirc<AliMUONConstants::NTriggerCircuit(); icirc++) { 
-    if(decision->GetITrigger(icirc)==1) {
-      Int_t localtr[7]={0,0,0,0,0,0,0};      
-      Int_t loLpt[2]={0,0}; Int_t loHpt[2]={0,0}; Int_t loApt[2]={0,0};
-      decision->GetLutOutput(icirc, loLpt, loHpt, loApt);
-      localtr[0] = icirc;
-      localtr[1] = decision->GetStripX11(icirc);
-      localtr[2] = decision->GetDev(icirc);
-      localtr[3] = decision->GetStripY11(icirc);
-      for (i=0; i<2; i++) {    // convert the Lut output in 1 digit 
-	localtr[4] = localtr[4]+Int_t(loLpt[i]*TMath::Power(2,i));
-	localtr[5] = localtr[5]+Int_t(loHpt[i]*TMath::Power(2,i));
-	localtr[6] = localtr[6]+Int_t(loApt[i]*TMath::Power(2,i));
-      }
-      GetMUONData()->AddLocalTrigger(localtr);  // add a local trigger in the list
-    }
-  }
-  
-  delete decision;
-
-  //  fLoader->TreeR()->Fill();
-  GetMUONData()->Fill("GLT"); //Filling Global and Local Trigger GLT
-  //  char hname[30];
-  //  sprintf(hname,"TreeR%d",nev);
-  //  fLoader->TreeR()->Write(hname,TObject::kOverwrite);
-    //  fLoader->TreeR()->Reset();
-  fLoader->WriteRecPoints("OVERWRITE");
-  
-  //  printf("\n End of trigger for event %d\n", nev);
-}
-
-//____________________________________________________________________
-void AliMUON::Digits2Reco()
-{
-  FindClusters();
-  Int_t nev = gAlice->GetHeader()->GetEvent();
-  GetMUONData()->Fill("RC"); //Filling Reconstructed Cluster
-  fLoader->WriteRecPoints("OVERWRITE");
-  GetMUONData()->ResetRawClusters();        
-  Info("Digits2Reco","End of cluster finding for event %d", nev);
-}
-//____________________________________________________________________
-void AliMUON::FindClusters()
-{
-//
-//  Perform cluster finding
-//
-    TClonesArray *dig1, *dig2;
-    Int_t ndig, k;
-    dig1 = new TClonesArray("AliMUONDigit",1000);
-    dig2 = new TClonesArray("AliMUONDigit",1000);
-    AliMUONDigit *digit;
-// Loop on chambers and on cathode planes
-//
-    ResetRawClusters();        
-    TClonesArray * muonDigits;
-
-    for (Int_t ich = 0; ich < 10; ich++) {
-      //PH	AliMUONChamber* iChamber = (AliMUONChamber*) (*fChambers)[ich];
-	AliMUONChamber* iChamber = (AliMUONChamber*) fChambers->At(ich);
-	AliMUONClusterFinderVS* rec = iChamber->ReconstructionModel();
-    
-	ResetDigits();
-	GetMUONData()->GetCathode(0);
-	//TClonesArray *
-	muonDigits = GetMUONData()->Digits(ich); 
-	ndig=muonDigits->GetEntriesFast();
-	if(fDebug) 
-	printf("\n 1 Found %d digits in %p chamber %d", ndig, muonDigits,ich);
-	TClonesArray &lhits1 = *dig1;
-	Int_t n = 0;
-	for (k = 0; k < ndig; k++) {
-	    digit = (AliMUONDigit*) muonDigits->UncheckedAt(k);
-	    if (rec->TestTrack(digit->Track(0)))
-		new(lhits1[n++]) AliMUONDigit(*digit);
-	}
-	GetMUONData()->ResetDigits();
-	GetMUONData()->GetCathode(1);
-	muonDigits =  GetMUONData()->Digits(ich);  
-	ndig=muonDigits->GetEntriesFast();
-	if(fDebug) 
-	printf("\n 2 Found %d digits in %p %d", ndig, muonDigits, ich);
-	TClonesArray &lhits2 = *dig2;
-	n=0;
-	
-	for (k=0; k<ndig; k++) {
-	    digit= (AliMUONDigit*) muonDigits->UncheckedAt(k);
-	    if (rec->TestTrack(digit->Track(0)))
-	    new(lhits2[n++]) AliMUONDigit(*digit);
-	}
-
-	if (rec) {	 
-	    AliMUONClusterInput::Instance()->SetDigits(ich, dig1, dig2);
-	    rec->FindRawClusters();
-	}
-	dig1->Delete();
-	dig2->Delete();
-    } // for ich
-    delete dig1;
-    delete dig2;
 }
 //______________________________________________________________________
 #ifdef never
@@ -860,121 +731,106 @@ void AliMUON::Reconstruct() const
 //________________________________________________________________________
 void AliMUON::FillESD(AliESD* event) const
 {
-
-  TClonesArray* recTracksArray;
-  TClonesArray* recTrigTracksArray;
+  TClonesArray* recTracksArray = 0;
+  TClonesArray* recTrigTracksArray = 0;
   
   //YS AliLoader* loader = GetLoader();
-  AliRunLoader* runLoader = fLoader->GetRunLoader(); //YS loader->GetRunLoader();
+  AliRunLoader* runLoader = fLoader->GetRunLoader(); 
   fLoader->LoadTracks("READ"); //YS
 
 
   // declaration  
-  Int_t ievent;
-  Int_t ntrackhits;
-  Double_t fitfmin;
+  Int_t iEvent;
+  Int_t nTrackHits;
+  Double_t fitFmin;
  
 
-  Double_t bendingSlope, nonBendingSlope, fInverseBendingMomentum;
-  Double_t fXRec, fYRec, fZRec;
-
-  Float_t  x11, y11, thetaX,thetaY ;
+  Double_t bendingSlope, nonBendingSlope, inverseBendingMomentum;
+  Double_t xRec, yRec, zRec, chi2MatchTrigger;
+  Bool_t matchTrigger;
 
   //YS Int_t nEvents = runLoader->GetNumberOfEvents();
 
   // setting pointer for tracks, triggertracks& trackparam at vertex
-  AliMUONTrack * rectrack;
-  AliMUONTriggerTrack * rectriggertrack;
-  AliMUONTrackParam *trackParam;
-  
-  ievent = runLoader->GetEventNumber() ; //YS, seems not to be implemented yet (Ch. F)
-  //YS for (ievent = 0; ievent < nEvents; ievent++) {
-    runLoader->GetEvent(ievent);
+  AliMUONTrack* recTrack = 0;
+  AliMUONTrackParam* trackParam = 0;
+  AliMUONTriggerTrack* recTriggerTrack = 0;
 
-    // setting ESD MUON class
-    AliESDMuonTrack* ESDTrack = new  AliESDMuonTrack() ;
+  iEvent = runLoader->GetEventNumber() ; //YS, seems not to be implemented yet (Ch. F)
+  runLoader->GetEvent(iEvent);
 
-    // -------------------- tracks-------------
-    fMUONData->SetTreeAddress("RT");
-    fMUONData->GetRecTracks();
-    recTracksArray = fMUONData->RecTracks();
-        
-    Int_t nrectracks = (Int_t) recTracksArray->GetEntriesFast(); //
+  // setting ESD MUON class
+  AliESDMuonTrack* ESDTrack = new  AliESDMuonTrack() ;
 
-    //-------------------- trigger tracks-------------
-    Bool_t ifirst = true;
-    Long_t trigPat = 0;
-    fMUONData->SetTreeAddress("RL");
-    fMUONData->GetRecTriggerTracks();
-    recTrigTracksArray = fMUONData->RecTriggerTracks();
-        
-    Int_t ntrectracks = (Int_t) recTrigTracksArray->GetEntriesFast(); //YS
+  //-------------------- trigger tracks-------------
+  Long_t trigPat = 0;
+  fMUONData->SetTreeAddress("RL");
+  fMUONData->GetRecTriggerTracks();
+  recTrigTracksArray = fMUONData->RecTriggerTracks();
+
+  // ready global trigger pattern from first track
+  if (recTrigTracksArray) 
+    recTriggerTrack = (AliMUONTriggerTrack*) recTrigTracksArray->First();
+  if (recTriggerTrack) trigPat = recTriggerTrack->GetGTPattern();
+
+  //printf(">>> Event %d Number of Recconstructed tracks %d \n",iEvent, nrectracks);
  
-    //printf(">>> Event %d Number of Recconstructed tracks %d \n",ievent, nrectracks);
-   
-    Int_t ntracks = TMath::Max(nrectracks, ntrectracks);
+  // -------------------- tracks-------------
+  fMUONData->SetTreeAddress("RT");
+  fMUONData->GetRecTracks();
+  recTracksArray = fMUONData->RecTracks();
+        
+  Int_t nRecTracks = 0;
+  if (recTracksArray)
+    nRecTracks = (Int_t) recTracksArray->GetEntriesFast(); //
+  
+  // loop over tracks
+  for (Int_t iRecTracks = 0; iRecTracks <  nRecTracks;  iRecTracks++) {
 
-    // loop over tracks
-    for (Int_t irectracks = 0; irectracks <  ntracks;  irectracks++) {
+    // reading info from tracks
+    recTrack = (AliMUONTrack*) recTracksArray->At(iRecTracks);
 
-    // -------------------- tracks-------------
-    // not the best way to do, avoid creating two "branches" in fMuonTracks
-      if (irectracks < nrectracks) { 
-	rectrack = (AliMUONTrack*) recTracksArray->At(irectracks);
+    trackParam = recTrack->GetTrackParamAtVertex();
 
-	trackParam = rectrack->GetTrackParamAtVertex();
+    bendingSlope            = trackParam->GetBendingSlope();
+    nonBendingSlope         = trackParam->GetNonBendingSlope();
+    inverseBendingMomentum = trackParam->GetInverseBendingMomentum();
+    xRec  = trackParam->GetNonBendingCoor();
+    yRec  = trackParam->GetBendingCoor();
+    zRec  = trackParam->GetZ();
 
-	bendingSlope            = trackParam->GetBendingSlope();
-	nonBendingSlope         = trackParam->GetNonBendingSlope();
-	fInverseBendingMomentum = trackParam->GetInverseBendingMomentum();
-	fXRec  = trackParam->GetNonBendingCoor();
-	fYRec  = trackParam->GetBendingCoor();
-	fZRec  = trackParam->GetZ();
+    nTrackHits       = recTrack->GetNTrackHits();
+    fitFmin          = recTrack->GetFitFMin();
+    matchTrigger     = recTrack->GetMatchTrigger();
+    chi2MatchTrigger = recTrack->GetChi2MatchTrigger();
 
-	ntrackhits = rectrack->GetNTrackHits();
-	fitfmin = rectrack->GetFitFMin();
+    // setting data member of ESD MUON
+    ESDTrack->SetInverseBendingMomentum(inverseBendingMomentum);
+    ESDTrack->SetThetaX(TMath::ATan(nonBendingSlope));
+    ESDTrack->SetThetaY(TMath::ATan(bendingSlope));
+    ESDTrack->SetZ(zRec);
+    ESDTrack->SetBendingCoor(yRec);
+    ESDTrack->SetNonBendingCoor(xRec);
+    ESDTrack->SetChi2(fitFmin);
+    ESDTrack->SetNHit(nTrackHits);
+    ESDTrack->SetMatchTrigger(matchTrigger);
+    ESDTrack->SetChi2MatchTrigger(chi2MatchTrigger);
 
-	// setting data member of ESD MUON
-	ESDTrack->SetInverseBendingMomentum(fInverseBendingMomentum);
-	ESDTrack->SetThetaX(TMath::ATan(nonBendingSlope));
-	ESDTrack->SetThetaY(TMath::ATan(bendingSlope));
-	ESDTrack->SetZ(fZRec);
-	ESDTrack->SetBendingCoor(fYRec);
-	ESDTrack->SetNonBendingCoor(fXRec);
-	ESDTrack->SetChi2(fitfmin);
-	ESDTrack->SetNHit(ntrackhits);
-      }
-    // -------------------- trigger tracks-------------
-      if (irectracks < ntrectracks) { 
-	rectriggertrack = (AliMUONTriggerTrack*) recTrigTracksArray->At(irectracks);
-	if (ifirst) {
-	  ifirst = false;
-	  trigPat = rectriggertrack->GetGTPattern();
-	}
+    // storing ESD MUON Track into ESD Event 
+    if (nRecTracks != 0)  
+      event->AddMuonTrack(ESDTrack);
+  } // end loop tracks
 
-	x11 = rectriggertrack->GetY11();
-	y11 = rectriggertrack->GetY11();
-	thetaX = rectriggertrack->GetThetax();
-	thetaY = rectriggertrack->GetThetay();
+  // add global trigger pattern
+  if (nRecTracks != 0)  
+    event->SetTrigger(trigPat);
 
-	// setting data member of ESD MUON trigger
-	ESDTrack->SetThetaX11(thetaX);
-	ESDTrack->SetThetaY11(thetaY);
-	ESDTrack->SetX11(x11);
-	ESDTrack->SetY11(y11);
-      }
-      // storing ESD MUON Track into ESD Event & reset muondata
-      if (ntrectracks+ntrectracks != 0)  
-	event->AddMuonTrack(ESDTrack);
-    } // end loop tracks
+  // reset muondata
+  fMUONData->ResetRecTracks();
+  fMUONData->ResetRecTriggerTracks();
 
-    //    if (ntrectracks+ntrectracks != 0)  
-      //  event->SetTrigger(trigPat);
-      // Waiting for STEER update
-    fMUONData->ResetRecTracks();
-    fMUONData->ResetRecTriggerTracks();
-
-    //} // end loop on event  
-    fLoader->UnloadTracks(); 
+  //} // end loop on event  
+  fLoader->UnloadTracks(); 
+  delete ESDTrack;
 }
 

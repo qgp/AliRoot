@@ -60,9 +60,7 @@ class AliMUON : public  AliDetector {
     virtual void       ResetTrigger()                {GetMUONData()->ResetTrigger();}
     virtual void       ResetRawClusters()            {GetMUONData()->ResetRawClusters();}
     virtual void       SetSplitLevel(Int_t SplitLevel)     {fSplitLevel=SplitLevel;}
-    // Cluster Finding
-    virtual void   Digits2Reco();
-    virtual void   FindClusters();
+
     // Digitisation 
     virtual AliDigitizer* CreateDigitizer(AliRunDigitizer* manager) const;
     virtual void   SDigits2Digits();      
@@ -85,8 +83,7 @@ class AliMUON : public  AliDetector {
 					AliSegmentation *segmentation);
     virtual void   SetResponseModel(Int_t id, AliMUONResponse *response);
     virtual void   SetNsec(Int_t id, Int_t nsec);
-    // Set Reconstruction Model
-    virtual void   SetReconstructionModel(Int_t id, AliMUONClusterFinderVS *reconstruction);
+
     // Set Merger/Digitizer
     virtual void   SetMerger(AliMUONMerger* merger);
     virtual AliMUONMerger* Merger();
@@ -104,8 +101,6 @@ class AliMUON : public  AliDetector {
     virtual Float_t  GetMaxDestepGas() const;
     virtual Float_t  GetMaxDestepAlu() const;
    
-    // get Trigger answer
-    void   Trigger(Int_t nev);
     // Return reference to Chamber #id
     virtual AliMUONChamber& Chamber(Int_t id)
       {return *((AliMUONChamber *) (*fChambers)[id]);}
@@ -120,10 +115,9 @@ class AliMUON : public  AliDetector {
 				     Int_t icluster);
     // Copy Operator
     AliMUON& operator = (const AliMUON& rhs);
-    
+ 
     // Reconstruct fct for AliModule
     virtual void Reconstruct() const;
-
     
     // ESD filling for AliModule
     virtual void FillESD(AliESD* ) const;
@@ -152,10 +146,9 @@ class AliMUON : public  AliDetector {
     Int_t fMaxIterPad;        // Maximum pad index
     Int_t fCurIterPad;        // Current pad index
     // Background eent for event mixing
-    Text_t *fFileName;           // ! File with background hits
     AliMUONMerger *fMerger;   // ! pointer to merger
     
-    ClassDef(AliMUON,3)  // MUON Detector base class
+    ClassDef(AliMUON,4)  // MUON Detector base class
 };
 #endif
 
