@@ -32,6 +32,7 @@ AliESDv0::AliESDv0() : TObject() {
   //--------------------------------------------------------------------
   fPdgCode=kK0Short;
   fEffMass=0.497672;
+  fDcaDaughters = 0.;
   fChi2=1.e+33;
   fPos[0]=fPos[1]=fPos[2]=0.;
   fPosCov[0]=fPosCov[1]=fPosCov[2]=fPosCov[3]=fPosCov[4]=fPosCov[5]=0.;
