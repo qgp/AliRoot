@@ -278,6 +278,7 @@ Int_t AliPHOSLoader::LoadRecPoints(Option_t* opt)
 Int_t  AliPHOSLoader::LoadTracks(Option_t* opt)
 {
  //Loads Tracks: Open File, Reads Tree and posts, Read Data and Posts
+ Info("LoadTracks","opt = %s",opt);
  if (fTracksLoaded)
   {
     Warning("LoadTracks","Tracks are already loaded");
@@ -301,12 +302,18 @@ Int_t  AliPHOSLoader::LoadTracks(Option_t* opt)
     return res;
   }
 
- res = PostTracker();
- if (res)
-  {
-    Error("LoadTacks","Error occured while reading Tracker");
-    return res;
-  }
+  Info("LoadTracks","                                         ");
+  Info("LoadTracks","*****************************************");
+  Info("LoadTracks","REMINDER: PostTracker temorarly commented");
+  Info("LoadTracks","*****************************************");
+  Info("LoadTracks","                                         ");
+// res = PostTracker();
+// if (res)
+//  {
+//    Error("LoadTacks","Error occured while reading Tracker");
+//    return res;
+//  }
+
  fTracksLoaded = kTRUE;
  return 0;
 }
@@ -743,6 +750,8 @@ Int_t AliPHOSLoader::LoadRecParticles(Option_t* opt)
  //reads RecParticles from tree to to array and puts it in detector data folder (ReadRecParticles)
  
  //if Tracks File is Opened and the option of the track
+ 
+ Info("LoadRecParticles","opt = %s",opt);
  if (fRecParticlesLoaded) 
   {
    Warning("LoadRecParticles","Reconstructed Particles already loaded");

@@ -17,6 +17,9 @@
 
 /*
 $Log$
+Revision 1.81.2.8  2002/11/26 16:32:46  hristov
+Merging NewIO with v3-09-04
+
 Revision 1.81.2.7  2002/11/22 14:19:50  hristov
 Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
 
@@ -713,9 +716,6 @@ void AliRun::FinishRun()
   // Clean detector information
   Info("FinishRun"," fGenerator->FinishRun()");
   fGenerator->FinishRun();
-
-  Info("FinishRun"," fRunLoader->CleanFolders()");
-  fRunLoader->CleanFolders();
 }
 
 //_______________________________________________________________________
@@ -1128,7 +1128,6 @@ void AliRun::BeginEvent()
 
   
   //Set the next event in Run Loader -> Cleans trees (TreeK and all trees in detectors),
-  Info("BeginEvent","EventNr is %d",fEventNrInRun);
   fRunLoader->SetEventNumber(++fEventNrInRun);// sets new files, cleans the previous event stuff, if necessary, etc.,  
   Info("BeginEvent","EventNr is %d",fEventNrInRun);
      

@@ -513,12 +513,22 @@ void  AliPHOSPIDv1::Exec(Option_t * option)
      Error("Exec","Could not obtain the Loader object !"); 
      return ;
    } 
-
-  runget->GetEvent(0);
-
   
-  gime->LoadRecPoints();
-  gime->LoadRecParticles("update");//this loads Tracks autoamtically (because rec part are stored in track file)
+  Int_t retval  = runget->GetEvent(0);
+  if (retval)
+   {
+     Error("Exec","Error returned by RunLoader::GetEvent");
+     return;
+   }
+
+  retval = gime->LoadRecParticles("update");//this loads Tracks autoamtically (because rec part are stored in track file)
+  if (retval)
+   {
+     Error("Exec","Error returned by LoadRecParticles");
+     return;
+   }
+  if (gime->TreeT() == 0x0) gime->LoadTracks();
+  
   
 
   Int_t nevents = runget->GetNumberOfEvents();       //(Int_t) gAlice->TreeE()->GetEntries() ;
@@ -541,8 +551,8 @@ void  AliPHOSPIDv1::Exec(Option_t * option)
   if(strstr(option,"tim")){
     gBenchmark->Stop("PHOSPID");
     Info("Exec", "took %f seconds for PID %f seconds per event", 
-	 gBenchmark->GetCpuTime("PHOSPID"),  
-	 gBenchmark->GetCpuTime("PHOSPID")/nevents) ;
+          gBenchmark->GetCpuTime("PHOSPID"),  
+          gBenchmark->GetCpuTime("PHOSPID")/nevents) ;
   } 
 }
 //____________________________________________________________________________
@@ -571,6 +581,17 @@ void  AliPHOSPIDv1::MakeRecParticles(){
   TObjArray * cpvRecPoints = gime->CpvRecPoints() ; 
   TClonesArray * trackSegments = gime->TrackSegments() ; 
   TClonesArray * recParticles  = gime->RecParticles() ; 
+  if (trackSegments == 0x0)
+   {
+     Error("MakeRecParticles","Can not get array with track segments from loader");
+     return;
+   }
+  if (trackSegments == 0x0)
+   {
+     Error("MakeRecParticles","Can not get array with reconstructed particles from loader");
+     return;
+   }
+
   recParticles->Clear();
  
 
@@ -595,12 +616,10 @@ void  AliPHOSPIDv1::MakeRecParticles(){
       cpv = (AliPHOSRecPoint *)   cpvRecPoints->At(ts->GetCpvIndex()) ;
     
     // Now set type (reconstructed) of the particle
-
     // Choose the cluster energy range
-    
     // YK: check if (emc != 0) !!!
     if (!emc) {
-      Fatal("MakeRecParticles", "-> emc(%d) = %d", ts->GetEmcIndex(), emc ) ;
+      Fatal("MakeRecParticles", "-> emc(%d) = %d", ts->GetEmcIndex(), emc );
     }
     Float_t    e = emc->GetEnergy() ;   
     Int_t cluster = GetClusterOption(e) ;// Gives value to cluster that defines the energy range parameter to be used in de RCPV, TOF and used in the PCA.

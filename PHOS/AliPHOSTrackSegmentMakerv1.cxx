@@ -445,13 +445,16 @@ void  AliPHOSTrackSegmentMakerv1::Exec(Option_t * option)
     fTrackSegmentsInRun += gime->TrackSegments()->GetEntriesFast() ; 
 
   }
-
+  
   if(strstr(option,"tim")){
     gBenchmark->Stop("PHOSTSMaker");
     Info("Exec", "took %f seconds for making TS %f seconds per event", 
-	 gBenchmark->GetCpuTime("PHOSTSMaker"), gBenchmark->GetCpuTime("PHOSTSMaker")/nevents) ;
-  }
-    
+          gBenchmark->GetCpuTime("PHOSTSMaker"), 
+          gBenchmark->GetCpuTime("PHOSTSMaker")/nevents) ;
+   }
+
+  gime->UnloadRecPoints();
+  gime->UnloadTracks();
 }
 
 //____________________________________________________________________________

@@ -130,7 +130,11 @@ Float_t  AliPHOSClusterizerv1::Calibrate(Int_t amp, Int_t absId) const
 void AliPHOSClusterizerv1::Exec(Option_t * option)
 {
   // Steering method
-  cout<<"AliPHOSClusterizerv1::Exec: \n\n\nSTART\n\n";
+  Info("Exec","                                                ");
+  Info("Exec","           *************************************");
+  Info("Exec","           Point Reconstruction (Clusterization)");
+  Info("Exec","           *************************************");
+  Info("Exec","                                                ");
   Init();
 
   if(strstr(option,"tim"))
@@ -154,10 +158,22 @@ void AliPHOSClusterizerv1::Exec(Option_t * option)
    }
 
   gime->LoadRecPoints("update");
-  if(gime->BranchExists("RecPoints"))
+  if (gime->TreeR())  
    {
-     Error("Exec","Branch with Reconstructed Points already exists");
-     return ;
+    if(gime->BranchExists("RecPoints"))
+     {
+       Error("Exec","Branch with Reconstructed Points already exists");
+       return ;
+     }
+   }
+  else
+   {
+     gime->MakeTree("R");
+     if (gime->TreeR() == 0x0)
+      {
+        Error("Exec","Can not create tree for RecPoints");
+        return;
+      }
    }
   
   Int_t nevents = runLoader->GetNumberOfEvents() ;
@@ -165,7 +181,7 @@ void AliPHOSClusterizerv1::Exec(Option_t * option)
   
   for(ievent = 0; ievent < nevents; ievent++)
    {
-    cout<<"AliPHOSClusterizerv1::Exec Starting event "<<ievent<<endl;
+    Info("Exec","Starting event %d",ievent);
     runLoader->GetEvent(ievent);
     if(ievent == 0)
      {
@@ -1032,7 +1048,7 @@ void AliPHOSClusterizerv1::PrintRecPoints(Option_t * option)
   message += gAlice->GetEvNumber() ; 
   message += "\n       Found " ; 
   message += emcRecPoints->GetEntriesFast() ; 
-  message += "EMC RecPoints and " ;
+  message += " EMC RecPoints and " ;
   message += cpvRecPoints->GetEntriesFast() ; 
   message += " CPV RecPoints \n" ; 
  

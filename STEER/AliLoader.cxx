@@ -35,38 +35,38 @@ ClassImp(AliLoader)
  
 /*****************************************************************************/ 
 
-AliLoader::AliLoader()
+AliLoader::AliLoader():
+ fDetectorName(""),
+ fEventFolder(0x0),
+ fDataFolder(0x0),
+ fDetectorDataFolder(0x0),
+ fModuleFolder(0x0),
+ fTasksFolder(0x0),
+ fQAFolder(0x0)
  {
-//default constructor   
+//default constructor
 
-   fDetectorName = "";
-   
-   fEventFolder = 0x0;
-   fDataFolder = 0x0;
-   fDetectorDataFolder = 0x0;
-   
-   fModuleFolder = 0x0;
-   fQAFolder = 0x0;
-   fTasksFolder = 0x0;
-   
-   fModuleFolder = 0x0;
-   fDataFolder = 0x0;
-   fDetectorDataFolder = 0x0;
-   fTasksFolder = 0x0;
-   fQAFolder = 0x0;
  }
 /******************************************************************/
 
-AliLoader::AliLoader(const Char_t* detname,const Char_t* eventfoldername)
- {
+AliLoader::AliLoader(const Char_t* detname,const Char_t* eventfoldername):
+ fDetectorName(""),
+ fEventFolder(0x0),
+ fDataFolder(0x0),
+ fDetectorDataFolder(0x0),
+ fModuleFolder(0x0),
+ fTasksFolder(0x0),
+ fQAFolder(0x0)
+{
   //ctor
    Info("AliLoader(const Char_t* detname,const Char_t* eventfoldername)",
         "detname = %s eventfoldername = %s",detname,eventfoldername);
 
    //try to find folder eventfoldername in top alice folder
    //safe because GetTopFolder will abort in case of failure
-   fEventFolder = dynamic_cast<TFolder*>(GetTopFolder()->FindObject(eventfoldername));
-   if (!fEventFolder)
+   TObject* fobj = GetTopFolder()->FindObject(eventfoldername);
+   fEventFolder = (fobj)?dynamic_cast<TFolder*>(fobj):0x0;//in case FindObject returns NULL dynamic cast cause seg. fault
+   if (fEventFolder == 0x0)
     {
       Fatal("AliLoader","Can not find event folder %s. Aborting",eventfoldername);
     }
@@ -76,16 +76,17 @@ AliLoader::AliLoader(const Char_t* detname,const Char_t* eventfoldername)
 
    InitDefaults();
    //fileoption's don't need to initialized because default TString ctor does it correctly
-   
-   fModuleFolder = 0x0;
-   fDataFolder = 0x0;
-   fDetectorDataFolder = 0x0;
-   fTasksFolder = 0x0;
-   fQAFolder = 0x0;
  }
 /*****************************************************************************/ 
 
-AliLoader::AliLoader(const Char_t * detname,TFolder* eventfolder)
+AliLoader::AliLoader(const Char_t * detname,TFolder* eventfolder):
+ fDetectorName(""),
+ fEventFolder(0x0),
+ fDataFolder(0x0),
+ fDetectorDataFolder(0x0),
+ fModuleFolder(0x0),
+ fTasksFolder(0x0),
+ fQAFolder(0x0)
 {
 
    fEventFolder = eventfolder;
@@ -106,17 +107,17 @@ AliLoader::~AliLoader()
 
 void AliLoader::ResetDataInfo()
 {
-  fDataInfo[kHits].fFile = 0x0;
-  fDataInfo[kSDigits].fFile = 0x0;
-  fDataInfo[kDigits].fFile = 0x0;
-  fDataInfo[kRecPoints].fFile = 0x0;
-  fDataInfo[kTracks].fFile = 0x0;
+  fDataInfo[kHits].File() = 0x0;
+  fDataInfo[kSDigits].File() = 0x0;
+  fDataInfo[kDigits].File() = 0x0;
+  fDataInfo[kRecPoints].File() = 0x0;
+  fDataInfo[kTracks].File() = 0x0;
    
-  fDataInfo[kHits].fDirectory = 0x0;
-  fDataInfo[kSDigits].fDirectory = 0x0;
-  fDataInfo[kDigits].fDirectory = 0x0;
-  fDataInfo[kRecPoints].fDirectory = 0x0;
-  fDataInfo[kTracks].fDirectory = 0x0;
+  fDataInfo[kHits].Directory() = 0x0;
+  fDataInfo[kSDigits].Directory() = 0x0;
+  fDataInfo[kDigits].Directory() = 0x0;
+  fDataInfo[kRecPoints].Directory() = 0x0;
+  fDataInfo[kTracks].Directory() = 0x0;
  
 }
 /*****************************************************************************/ 
@@ -147,6 +148,7 @@ void AliLoader::InitDefaults()
 
 Int_t AliLoader::LoadData(EDataTypes dt,Option_t* opt)
  {
+  Info("LoadData","name=%s, data type = %s, option = %s",GetName(),DataName(dt).Data(),opt);
   if (Tree(dt))
    {
     TString sopt(opt);
@@ -778,7 +780,7 @@ Int_t AliLoader::OpenDataFile(const TString& filename,TFile*& file,TDirectory*& 
          file = 0x0;
        }
    }
-
+  
   file = (TFile *)(gROOT->GetListOfFiles()->FindObject(filename));
   if (file)
    {
@@ -809,7 +811,7 @@ Int_t AliLoader::OpenDataFile(const TString& filename,TFile*& file,TDirectory*& 
      Error("OpenDataFile","Can not find Run-Loader in folder");
      return 2;
    }
-  Int_t evno = rg->GetEventNumber(); 
+  Int_t evno = rg->GetEventNumber();
   
   dir = ChangeDir(file,evno);
   if (dir == 0x0)
@@ -1019,12 +1021,12 @@ TDirectory* AliLoader::ChangeDir(TFile* file, Int_t eventno)
 //in case of success returns the pointer to directory
 //else NULL
  
- if (!file)
+ if (file == 0x0)
   {
     ::Error("AliLoader::ChangeDir","File is null");
     return 0x0;
   }
- if (!file->IsOpen())
+ if (file->IsOpen() == kFALSE)
   {
     ::Error("AliLoader::ChangeDir","File is not opened");
     return 0x0;
@@ -1776,9 +1778,11 @@ void AliLoader::SetTracksFileOption(Option_t* newopt)
   SetFileOption(kTracks,newopt);
 }
 /*****************************************************************************/ 
-
+/*****************************************************************************/ 
+/*****************************************************************************/ 
 
 ClassImp(AliLoaderDataInfo)
+
 AliLoaderDataInfo::AliLoaderDataInfo():
  fFileName(0),
  fFile(0x0),
@@ -1788,4 +1792,16 @@ AliLoaderDataInfo::AliLoaderDataInfo():
  fName(0)
 {
   
+}
+/*****************************************************************************/ 
+
+AliLoaderDataInfo::AliLoaderDataInfo
+     (const char* filename, const char* contname, const char* name):
+ fFileName(filename),
+ fFile(0x0),
+ fDirectory(0x0),
+ fFileOption(0),
+ fContainerName(contname),
+ fName(name)
+{
 }

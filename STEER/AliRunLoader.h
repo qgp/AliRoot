@@ -16,6 +16,7 @@
 #include <TNamed.h>
 #include <TFile.h>
 #include "AliConfig.h"
+#include "AliLoader.h"
 
 class TString;
 class TFolder;
@@ -46,7 +47,6 @@ class AliRunLoader: public TNamed
                               const char* eventfoldername = AliConfig::fgkDefaultEventFolderName,
 	          Option_t* option = "READ");
 
-    
     Int_t       GetEventNumber() const {return fCurrentEvent;}
 
     Int_t       GetEvent(Int_t evno);//sets the event number and reloads data in folders properly
@@ -70,8 +70,8 @@ class AliRunLoader: public TNamed
     void        UnloadgAlice();
     void        UnloadTrackRefs();
     
-    void        SetKineFileName(const TString& fname){fKineFileName = fname;}
-    void        SetTrackRefsFileName(const TString& fname){fTrackRefsFileName = fname;}
+    void        SetKineFileName(const TString& fname){fKineData.FileName() = fname;}
+    void        SetTrackRefsFileName(const TString& fname){fTrackRefsData.FileName() = fname;}
     
     TTree*      TreeE() const; //returns the tree from folder; shortcut method
     AliHeader*  GetHeader() const;
@@ -132,31 +132,36 @@ class AliRunLoader: public TNamed
     
     
   protected:
+    /**********************************************/
+    /************    PROTECTED      ***************/
+    /*********        D A T A          ************/
+    /**********************************************/
+
     TObjArray     *fLoaders;          //  List of Detectors
     TFolder       *fEventFolder;      //!top folder for this run
     
     Int_t          fCurrentEvent;//!Number of current event
     
-    TFile         *fGAFile;//!
-    AliHeader     *fHeader;//!
-    AliStack      *fStack;//!
+    TFile         *fGAFile;//!  pointer to main file with AliRun and Run Loader -> galice.root 
+    AliHeader     *fHeader;//!  pointer to header
+    AliStack      *fStack; //!  pointer to stack
     
-//    AliLoaderDataInfo *fKine;//data connected to kinematics data
-//    AliLoaderDataInfo *fRefsFile;//data connected to track reference data
+    AliLoaderDataInfo fKineData;//data connected to kinematics data
+    AliLoaderDataInfo fTrackRefsData;//data connected to track reference data
     
-    TFile*         fKineFile;    //!pointer to file with kinematics
-    TDirectory*    fKineDir;     //!pointer to Dir with current event in Kine File
-    TString        fKineFileName;//name of file with hits
-
-    TFile*         fTrackRefsFile;    //!pointer to file with kinematics
-    TDirectory*    fTrackRefsDir;     //!pointer to Dir with current event in Kine File
-    TString        fTrackRefsFileName;//name of file with hits
+        
     
-    Int_t          fNEventsPerFile;
+    Int_t          fNEventsPerFile;  //defines number of events stored per one file
     
     static const TString   fgkDefaultKineFileName;//default file name with kinamatics
     static const TString   fgkDefaultTrackRefsFileName;//default file name with kinamatics
-    
+
+
+    /*********************************************/
+    /************    PROTECTED      **************/
+    /*********     M E T H O D S       ***********/
+    /*********************************************/
+
     void           SetGAliceFile(TFile* gafile);//sets the pointer to gAlice file
     Int_t          PostKinematics();
     Int_t          PostTrackRefs();
@@ -166,6 +171,7 @@ class AliRunLoader: public TNamed
     Int_t          OpenDataFile(const TString& filename,TFile*& file,TDirectory*& dir,Option_t* opt);
     void           SetUnixDir(const TString& udirname);
     const TString  SetFileOffset(const TString& fname);//adds the proper number before .root
+
   private:
     void  GetListOfDetectors(const char * namelist,TObjArray& pointerarray) const;
 
@@ -173,6 +179,7 @@ class AliRunLoader: public TNamed
     void  Clean(const TString& name);
     
     Int_t SetEvent();
+
   public:
   /******************************************/
   /*****   Public S T A T I C Stuff   *******/

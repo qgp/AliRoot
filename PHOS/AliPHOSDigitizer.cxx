@@ -374,8 +374,11 @@ Int_t AliPHOSDigitizer::DigitizeEnergy(Float_t energy, Int_t absId)
 void AliPHOSDigitizer::Exec(Option_t *option) 
 { 
   // Managing method
-
-  Info("Exec","\n\n    DIGITIZATION    \n\n");
+  Info("Exec","                    ");
+  Info("Exec","********************");
+  Info("Exec","    DIGITIZATION    ");
+  Info("Exec","********************");
+  Info("Exec","                    ");
   
   if(strcmp(GetName(), "") == 0 )   
     Init() ;
@@ -614,7 +617,7 @@ Bool_t AliPHOSDigitizer::Init()
   fEmcCrystals = geom->GetNModules() *  geom->GetNCristalsInModule() ;
   
   // Post Digits to the white board
-  gime->LoadDigits();
+  gime->LoadDigits("recreate");
   
   // Post Digitizer to the white board
   gime->PostDigitizer(this) ;

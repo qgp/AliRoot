@@ -89,19 +89,35 @@ void Config()
         int     nParticles = atoi(gSystem->Getenv("CONFIG_NPARTICLES"));
     } else
     {
-        int     nParticles = 100;
+        int     nParticles = 30;
     }
-    AliGenHIJINGpara *gener = new AliGenHIJINGpara(nParticles);
-
-    gener->SetMomentumRange(0, 999);
-    gener->SetPhiRange(0, 360);
+//    AliGenHIJINGpara *gener = new AliGenHIJINGpara(nParticles);
+//    gener->SetMomentumRange(0, 999);
+//    gener->SetPhiRange(0, 360);
     // Set pseudorapidity range from -8 to 8.
-    Float_t thmin = EtaToTheta(1.);   // theta min. <---> eta max
-    Float_t thmax = EtaToTheta(-1);  // theta max. <---> eta min 
-    gener->SetThetaRange(thmin,thmax);
-    gener->SetOrigin(0, 0, 0);  //vertex position
-    gener->SetSigma(0, 0, 0);   //Sigma in (X,Y,Z) (cm) on IP position
-    gener->Init();
+//    Float_t thmin = EtaToTheta(1.);   // theta min. <---> eta max
+//    Float_t thmax = EtaToTheta(-1);  // theta max. <---> eta min 
+//    gener->SetThetaRange(thmin,thmax);
+//    gener->SetOrigin(0, 0, 0);  //vertex position
+//    gener->SetSigma(0, 0, 0);   //Sigma in (X,Y,Z) (cm) on IP position
+//    gener->Init();
+
+  AliGenBox *gener = new AliGenBox(nParticles);
+  gener->SetPart(22);
+  gener->SetPtRange(0.0, 10.00);
+  gener->SetPhiRange(220, 320);
+  // Set pseudorapidity range from -8 to 8.
+  Float_t thmin = EtaToTheta(0.12);   // 220 theta min. <---> eta max
+  Float_t thmax = EtaToTheta(-0.12);  // 320 theta max. <---> eta min 
+ 
+  gener->SetThetaRange(thmin, thmax);
+  gener->SetOrigin(0, 0, 0);  //vertex position
+  gener->SetSigma(0, 0, 0);   //Sigma in (X,Y,Z) (cm) on IP position
+  gener->Init();
+
+
+
+
     // 
     // Activate this line if you want the vertex smearing to happen
     // track by track

@@ -13,31 +13,57 @@ class AliRunLoader;
 class AliDigitizer;
 class TDirectory;
 
-
 //this was supposed to be struct, but Root I/O does not support C structures
 //thus it is looking like this
+//__________________________________________
+////////////////////////////////////////////
+//                                        //
+//  class AliLoaderDataInfo               //
+//                                        //
+//  Container of all data needed for full //
+//  description of each data type         //
+//  (Hits, Kine, ...)                     //
+//                                        //
+////////////////////////////////////////////
 class AliLoaderDataInfo
  {
   public:
    AliLoaderDataInfo();
+   AliLoaderDataInfo(const char* filename, const char* contname, const char* name);
    virtual ~AliLoaderDataInfo(){}
    
+   TString&     FileName(){return fFileName;}
+   TFile*&      File(){return fFile;}
+   TDirectory*& Directory(){return fDirectory;}
+   TString&     FileOption(){return fFileOption;}
+   TString&     ContainerName(){return fContainerName;}
+   TString&     Name(){return fName;}
+      
    TString      fFileName; //name of the file 
    TFile*       fFile; //! pointer to file 
    TDirectory*  fDirectory; //!pointer to TDirectory
    TString      fFileOption; //!file option while opened 
    TString      fContainerName;//Name of the container (usually tree)
-   TString      fName;
+   TString      fName; //Name of the data the the object describes
+
+  public:
    ClassDef(AliLoaderDataInfo,1)
  };
 
+
+/////////////////////////////////////////////////////////////////////
+//                                                                 //
+//  class AliLooader                                               //
+//                                                                 //
+//  Base class for Loaders.                                        //
+//  Loader provides base I/O fascilities for "standard" data.      //
+//  Each detector has a laoder data member                         //
+//  loader is accessible via folder structure as well              //
+//                                                                 //
+/////////////////////////////////////////////////////////////////////
+
 class AliLoader: public TNamed
  {
-//base class for loaders
-//loaders is common for reading data for all detectors
-//Each detector has a getter data member
-//getter is accessible via folder structure as well
-
    public:
     AliLoader();
     AliLoader(const Char_t *detname,const Char_t *eventfoldername); //contructor with name of the top folder of the tree
@@ -262,11 +288,6 @@ class AliLoader: public TNamed
 
     TString       fDetectorName;//detector name that this loader belongs to
     
-    AliLoaderDataInfo fDataInfo[kNDataTypes]; // array with data type information (file name, pointer to file...)
-
-//these variables were introduced because if TFile is created with "recreated" stored option is "CREATE"
-//and we need to remeber this (Max events per file functionality)
-
     TFolder*      fEventFolder; //! Folder with data that changes from event to event, even in single run
     TFolder*      fDataFolder;  //!  Folder with data (hits, sdigits, etc, grouped in folders named like detectors
     TFolder*      fDetectorDataFolder;//!Folder that contains the detector data
@@ -275,6 +296,12 @@ class AliLoader: public TNamed
     TFolder*      fTasksFolder;       //!Folder that contains the Tasks (sdigitizer, digitizer, reconstructioner)
     TFolder*      fQAFolder;          //!Folder that contains the QA objects
     
+ // file option varible was introduced because if TFile is created with "recreated" 
+ // stored option is "CREATE" and we need to remeber "recreate" for
+ // Max events per file functionality
+    AliLoaderDataInfo fDataInfo[kNDataTypes]; // array with data type information (file name, pointer to file...)
+
+
     static const TString   fgkDefaultHitsContainerName;//default name of conatiner (TREE) for hits
     static const TString   fgkDefaultDigitsContainerName;//default name of conatiner (TREE) for digits
     static const TString   fgkDefaultSDigitsContainerName;//default name of conatiner (TREE) for Sdigits
@@ -299,7 +326,7 @@ class AliLoader: public TNamed
    public:
     static TDirectory*    ChangeDir(TFile* file, Int_t eventno); //changes the root directory in "file" to directory corresponing to eventno
     static Bool_t         TestFileOption(Option_t* opt);//checks is file is created from scratch
-    const TString SetFileOffset(const TString& fname);//adds the proper number before .root exttension suffix
+    const TString SetFileOffset(const TString& fname);//adds the proper number before .root extension suffix
 
     ClassDef(AliLoader,1)
  };

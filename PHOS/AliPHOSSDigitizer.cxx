@@ -125,6 +125,12 @@ void AliPHOSSDigitizer::InitParameters()
 void AliPHOSSDigitizer::Exec(Option_t *option) 
 { 
   // Collects all hits in the same active volume into digit
+  Info("Exec","                         ");
+  Info("Exec","           **************");
+  Info("Exec","           S DIGITIZATION");
+  Info("Exec","           **************");
+  Info("Exec","                         ");
+
   if( strcmp(GetName(), "") == 0 ) Init() ;
   
   if (strstr(option, "print") ) 
@@ -178,7 +184,6 @@ void AliPHOSSDigitizer::Exec(Option_t *option)
 
   Int_t nevents = runget->GetNumberOfEvents(); 
   Int_t ievent ;
-  Info("Exec"," S DIGITIZATION:\n\n");
   for(ievent = 0; ievent < nevents; ievent++)
    {
     runget->GetEvent(ievent);
@@ -408,7 +413,7 @@ void AliPHOSSDigitizer::PrintSDigits(Option_t * option)
     }
   }
   delete tempo ; 
-  Info("PrintSDigits", message.Data() ) ;
+  Info("PrintSDigits", message.Data() );
 }
 
 //____________________________________________________________________________ 
