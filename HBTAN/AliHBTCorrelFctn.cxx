@@ -341,7 +341,7 @@ void AliHBTITSSepVsQInvCorrelFctn::GetValues(AliHBTPair* pair, Double_t& x, Doub
 //  Info("Pass","rphi %f z %f",fMin,fMax);
 //  Info("Pass","P1: %f %f %f", x1,y1,z1);
 //  Info("Pass","P2: %f %f %f", x2,y2,z2);
-  x = 2.0*pair->GetKStar();
+  x = 2.0*pair->GetQInv();
   z = TMath::Abs(z1-z2);
   y = TMath::Hypot(x1-x2,y1-y2);
   
@@ -484,6 +484,10 @@ void AliHBTITSSepVsTwoKStarSideCorrelFctn::GetValues(AliHBTPair* pair, Double_t&
 //  Info("Pass","rphi %f z %f",fMin,fMax);
 //  Info("Pass","P1: %f %f %f", x1,y1,z1);
 //  Info("Pass","P2: %f %f %f", x2,y2,z2);
+  if ( (pair->GetKStarSide()*pair->GetQSideLCMS()) < 0 )
+   {
+     Info("","GetKStarSide() GetQSideLCMS()",pair->GetKStarSide(),pair->GetQSideLCMS());
+   }
   x = 2.0*pair->GetKStarSide();
   z = TMath::Abs(z1-z2);
   y = TMath::Hypot(x1-x2,y1-y2);
