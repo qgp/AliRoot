@@ -13,48 +13,9 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.8.2.3  2002/11/22 14:19:39  hristov
-Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
+/* $Id$ */
 
-Revision 1.8.2.2  2002/05/31 15:07:51  hristov
-Merged with v3-08-02
-
-Revision 1.8.2.1  2002/05/31 09:37:57  hristov
-First set of changes done by Piotr
-
-Revision 1.11  2002/10/23 07:24:56  alibrary
-Introducing Riostream.h
-
-Revision 1.10  2002/03/13 07:55:04  jchudoba
-Correction of the errourness last commit.
-
-Revision 1.8  2002/02/13 09:03:24  jchudoba
-Remove some deletes from dtor, those objects are deleted earlier in Exec() method (where they are created)
-
-Revision 1.7  2001/11/22 11:15:41  jchudoba
-Proper deletion of arrays (thanks to Rene Brun)
-
-Revision 1.6  2001/11/02 12:55:45  jchudoba
-cleanup of the code, add const to Get methods
-
-Revision 1.4  2001/10/18 14:44:09  jchudoba
-Define constant MAXTRACKS for maximum number of tracks associated with 1 digit
-
-Revision 1.3  2001/10/04 20:01:54  jchudoba
-changes for TTask implementation, some other small editing
-
-Revision 1.2  2001/07/28 10:46:04  hristov
-AliRunDigitizer.h included; typos corrected
-
-Revision 1.1  2001/07/27 15:41:01  jchudoba
-merging/digitization classes
-
-*/
-#include <TTree.h> 
-#include <TObjArray.h>
-#include <TFile.h>
+#include <Riostream.h>
 #include <TDirectory.h>
 #include <TPDGCode.h>
 
@@ -67,9 +28,13 @@ merging/digitization classes
 #include "AliMUONChamber.h"
 #include "AliMUONHitMapA1.h"
 #include "AliMUON.h"
-#include "AliMUONHit.h"
-#include "AliMUONPadHit.h"
+#include "AliMUONChamber.h"
+#include "AliMUONConstants.h"
 #include "AliMUONDigit.h"
+#include "AliMUONDigitizer.h"
+#include "AliMUONHit.h"
+#include "AliMUONHitMapA1.h"
+#include "AliMUONPadHit.h"
 #include "AliMUONTransientDigit.h"
 #include "AliRun.h"
 #include "AliRunDigitizer.h"
@@ -343,8 +308,8 @@ void AliMUONDigitizer::Exec(Option_t* option)
 //
 //  Digit Response (noise, threshold, saturation, ...)
       AliMUONResponse * response = iChamber->ResponseModel();
-      q = response->DigitResponse(q);
-           
+      q = response->DigitResponse(q,address);
+	    
       if (!q) continue;
            
       fDigits[0] = address->PadX();

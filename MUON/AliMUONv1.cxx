@@ -45,6 +45,7 @@ AliMUONv1::AliMUONv1() : AliMUON()
 {
 // Constructor
     fChambers = 0;
+    fStations = 0;
 }
  
 //___________________________________________
@@ -52,7 +53,12 @@ AliMUONv1::AliMUONv1(const char *name, const char *title)
        : AliMUON(name,title)
 {
 // Constructor
-    AliMUONFactory::Build(this, title);
+    // By default include all stations
+    fStations = new Int_t[5];
+    for (Int_t i=0; i<5; i++) fStations[i] = 1;
+
+    AliMUONFactory factory;
+    factory.Build(this, title);
 }
 
 //___________________________________________
@@ -117,9 +123,8 @@ void AliMUONv1::CreateGeometry()
      
 
      AliMUONChamber *iChamber, *iChamber1, *iChamber2;
-     Int_t stations[5] = {1, 1, 1, 1, 1};
-     
-     if (stations[0]) {
+
+     if (fStations[0]) {
 	 
 //********************************************************************
 //                            Station 1                             **
@@ -278,7 +283,7 @@ void AliMUONv1::CreateGeometry()
 // 		    idrotm[1101],"ONLY");
 //      }
      }
-     if (stations[1]) {
+     if (fStations[1]) {
 	 
 //********************************************************************
 //                            Station 2                             **
@@ -532,7 +537,7 @@ void AliMUONv1::CreateGeometry()
      Float_t xxmax = (bFrameLength - nulocLength)/2.; 
      Int_t index=0;
      
-     if (stations[2]) {
+     if (fStations[2]) {
 	 
 //********************************************************************
 //                            Station 3                             **
@@ -813,7 +818,7 @@ void AliMUONv1::CreateGeometry()
      }
      }
      
- if (stations[3]) {
+ if (fStations[3]) {
 
 //********************************************************************
 //                            Station 4                             **
@@ -1020,7 +1025,7 @@ void AliMUONv1::CreateGeometry()
 
  }
 
- if (stations[4]) {
+ if (fStations[4]) {
      
 
 //********************************************************************
@@ -1892,7 +1897,6 @@ void AliMUONv1::Init()
    
    //
    // Set the chamber (sensitive region) GEANT identifier
-
    ((AliMUONChamber*)(*fChambers)[0])->SetGid(gMC->VolId("S01G"));
    ((AliMUONChamber*)(*fChambers)[1])->SetGid(gMC->VolId("S02G"));
 
@@ -1926,6 +1930,20 @@ void AliMUONv1::Init()
 }
 
 //___________________________________________
+Int_t  AliMUONv1::GetChamberId(Int_t volId) const
+{
+// Check if the volume with specified  volId is a sensitive volume (gas) 
+// of some chamber and returns the chamber number;
+// if not sensitive volume - return 0.
+// ---
+
+  for (Int_t i = 1; i <= AliMUONConstants::NCh(); i++)
+    if (volId==((AliMUONChamber*)(*fChambers)[i-1])->GetGid()) return i;
+
+  return 0;
+}
+
+//___________________________________________
 void AliMUONv1::StepManager()
 {
   Int_t          copy, id;
@@ -1950,16 +1968,12 @@ void AliMUONv1::StepManager()
   //
   // Only gas gap inside chamber
   // Tag chambers and record hits when track enters 
-  idvol=-1;
   id=gMC->CurrentVolID(copy);
-  
-    for (Int_t i = 1; i <= AliMUONConstants::NCh(); i++) {
-      if(id==((AliMUONChamber*)(*fChambers)[i-1])->GetGid()){ 
-	  vol[0] = i; 
-	  idvol  = i-1;
-      }
-    }
-    if (idvol == -1) return;
+  vol[0] = GetChamberId(id);
+  idvol = vol[0] -1;
+
+  if (idvol == -1) return;
+
   //
   // Get current particle id (ipart), track position (pos)  and momentum (mom) 
   gMC->TrackPosition(pos);

@@ -13,27 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.5  2000/11/21 13:47:55  gosset
-All Mathieson parameters (Sqrt(K3), K2 and K4) set in one function,
-SetSqrtKx3AndDeriveKx2Kx4 or SetSqrtKx3AndDeriveKx2Kx4,
-for each cathode plane
-
-Revision 1.4  2000/10/25 10:41:52  morsch
-IntPH(..): Protec Log against random numbers equal to 0.
-
-Revision 1.3  2000/07/03 11:54:57  morsch
-AliMUONSegmentation and AliMUONHitMap have been replaced by AliSegmentation and AliHitMap in STEER
-The methods GetPadIxy and GetPadXxy of AliMUONSegmentation have changed name to GetPadI and GetPadC.
-
-Revision 1.2  2000/06/15 07:58:48  morsch
-Code from MUON-dev joined
-
-Revision 1.1.2.1  2000/06/09 21:33:35  morsch
-AliMUONResponse code  from  AliMUONSegResV0.cxx
-
-*/
+/* $Id$ */
 
 #include "AliMUONResponseV0.h"
 #include "AliSegmentation.h"
@@ -112,7 +92,7 @@ Float_t AliMUONResponseV0::IntXY(AliSegmentation * segmentation)
 		      fKy4*(TMath::ATan(uy2)-TMath::ATan(uy1)));
 }
 
-Int_t  AliMUONResponseV0::DigitResponse(Int_t digit)
+Int_t  AliMUONResponseV0::DigitResponse(Int_t digit, AliMUONTransientDigit* where)
 {
     // add white noise and do zero-suppression and signal truncation
 //     Float_t meanNoise = gRandom->Gaus(1, 0.2);

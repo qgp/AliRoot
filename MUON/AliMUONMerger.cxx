@@ -13,47 +13,8 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.8.2.3  2002/11/22 14:19:43  hristov
-Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
+/* $Id$ */
 
-Revision 1.8.2.2  2002/05/31 15:07:51  hristov
-Merged with v3-08-02
-
-
-Revision 1.8.2.1  2002/05/31 09:37:57  hristov
-First set of changes done by Piotr
-
-Revision 1.9  2002/03/13 07:04:11  jchudoba
-Connect only MUON branches when reading the event to speed up digitisation.
-
-Revision 1.8  2002/02/22 12:14:21  morsch
-Validate pad hit before digitization.
-
-Revision 1.7  2001/11/22 11:15:41  jchudoba
-Proper deletion of arrays (thanks to Rene Brun)
-
-Revision 1.6  2001/11/02 12:55:45  jchudoba
-cleanup of the code, add const to Get methods
-
-Revision 1.5  2001/10/31 16:35:07  jchudoba
-some functionality move to AliMUONTransientDigit class
-
-Revision 1.4  2001/03/20 13:36:11  egangler
-TFile memory leak and "too many files open" problem solved (?):
-the backgroud file is open only once forever, and not once for each event.
-
-Revision 1.3  2001/03/05 23:57:44  morsch
-Writing of digit tree moved to macro.
-
-Revision 1.2  2001/03/05 08:40:25  morsch
-Method SortTracks(..) imported from AliMUON.
-
-Revision 1.1  2001/02/02 14:11:53  morsch
-AliMUONMerger prototype to be called by the merge manager.
-
-*/
 #include <Riostream.h> 
 #include <TTree.h> 
 #include <TObjArray.h>
@@ -61,15 +22,15 @@ AliMUONMerger prototype to be called by the merge manager.
 #include <TDirectory.h>
 #include <TPDGCode.h>
 
-#include "AliMUONMerger.h"
-#include "AliMUONConstants.h"
-#include "AliMUONChamber.h"
 #include "AliHitMap.h"
-#include "AliMUONHitMapA1.h"
 #include "AliMUON.h"
-#include "AliMUONHit.h"
-#include "AliMUONPadHit.h"
+#include "AliMUONChamber.h"
+#include "AliMUONConstants.h"
 #include "AliMUONDigit.h"
+#include "AliMUONHit.h"
+#include "AliMUONHitMapA1.h"
+#include "AliMUONMerger.h"
+#include "AliMUONPadHit.h"
 #include "AliMUONTransientDigit.h"
 #include "AliRun.h"
 
@@ -91,6 +52,7 @@ AliMUONMerger::AliMUONMerger()
     fHitMap     = 0;
     fList       = 0;
     fBgrFile    = 0;
+    fDebug      = 0;
 }
 
 //------------------------------------------------------------------------
@@ -381,7 +343,7 @@ void AliMUONMerger::Digitise()
 //
 //  Digit Response (noise, threshold, saturation, ...)
 	    AliMUONResponse * response = iChamber->ResponseModel();
-	    q = response->DigitResponse(q);
+	    q = response->DigitResponse(q,address);
 	    
 	    if (!q) continue;
 	    
@@ -395,12 +357,15 @@ void AliMUONMerger::Digitise()
 	    Int_t nptracks = address->GetNTracks();
 
 	    if (nptracks > kMAXTRACKS) {
-		printf("\n Attention - nptracks > kMAXTRACKS %d \n", nptracks);
+	        if (fDebug>0)
+		  printf("\n Attention - nptracks > kMAXTRACKS %d \n", nptracks);
 		nptracks = kMAXTRACKS;
 	    }
 	    if (nptracks > 2) {
-		printf("Attention - nptracks > 2  %d \n",nptracks);
-		printf("cat,ich,ix,iy,q %d %d %d %d %d \n",icat,ich,fDigits[0],fDigits[1],q);
+	        if (fDebug>0) {
+		  printf("Attention - nptracks > 2  %d \n",nptracks);
+		  printf("cat,ich,ix,iy,q %d %d %d %d %d \n",icat,ich,fDigits[0],fDigits[1],q);
+		}
 	    }
 	    for (Int_t tr = 0; tr < nptracks; tr++) {
 		tracks[tr]   = address->GetTrack(tr);

@@ -13,21 +13,14 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.2  2000/06/15 07:58:48  morsch
-Code from MUON-dev joined
+/* $Id$ */
 
-Revision 1.1.2.1  2000/06/09 22:02:14  morsch
-Was before in DataStructures.cxx
-
-*/
 #include "AliMUONHit.h"
 
 ClassImp(AliMUONHit)
  
 //___________________________________________
-    AliMUONHit::AliMUONHit(Int_t shunt, Int_t track, Int_t *vol, Float_t *hits):
+AliMUONHit::AliMUONHit(Int_t shunt, Int_t track, Int_t *vol, Float_t *hits):
 	AliHit(shunt, track)
 {
 // Constructor
@@ -48,6 +41,26 @@ ClassImp(AliMUONHit)
     fPz        = hits[13];
     fAge       = hits[14];
 }
+//___________________________________________
+AliMUONHit::AliMUONHit(Int_t shunt, Int_t track, Int_t iChamber, Int_t idpart, Float_t X, Float_t Y, Float_t Z, Float_t tof, Float_t momentum, Float_t theta, Float_t phi, Float_t length, Float_t destep):
+	AliHit(shunt, track)
+{
+// Constructor
+    fChamber   = iChamber;
+    fParticle  = idpart;
+    fX         = X;
+    fY         = Y;
+    fZ         = Z;
+    fTheta     = theta;
+    fPhi       = phi;
+    fTlength   = length;
+    fEloss     = destep;
+    fPHfirst   = 0;
+    fPHlast    = 0;
+    fPTot      = momentum;
+    fAge       = tof;
+}
+
 
 
 

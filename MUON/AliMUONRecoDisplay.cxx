@@ -13,56 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.7.8.1  2002/05/31 09:37:57  hristov
-First set of changes done by Piotr
-
-Revision 1.8  2002/10/23 07:24:56  alibrary
-Introducing Riostream.h
-
-Revision 1.7  2001/05/16 14:57:17  alibrary
-New files for folders and Stack
-
-Revision 1.6  2001/01/26 21:50:43  morsch
-Use access functions to AliMUONHit member data.
-
-Revision 1.5  2001/01/26 20:00:53  hristov
-Major upgrade of AliRoot code
-
-Revision 1.4  2000/12/21 22:14:38  morsch
-Clean-up of coding rule violations.
-
-Revision 1.3  2000/12/21 17:51:54  morsch
-RN3 violations corrected
-
-Revision 1.2  2000/11/23 10:09:39  gosset
-Bug correction in AliMUONRecoDisplay.
-Copyright, $Log$
-Copyright, Revision 1.7.8.1  2002/05/31 09:37:57  hristov
-Copyright, First set of changes done by Piotr
-Copyright,
-Copyright, Revision 1.8  2002/10/23 07:24:56  alibrary
-Copyright, Introducing Riostream.h
-Copyright,
-Copyright, Revision 1.7  2001/05/16 14:57:17  alibrary
-Copyright, New files for folders and Stack
-Copyright,
-Copyright, Revision 1.6  2001/01/26 21:50:43  morsch
-Copyright, Use access functions to AliMUONHit member data.
-Copyright,
-Copyright, Revision 1.5  2001/01/26 20:00:53  hristov
-Copyright, Major upgrade of AliRoot code
-Copyright,
-Copyright, Revision 1.4  2000/12/21 22:14:38  morsch
-Copyright, Clean-up of coding rule violations.
-Copyright,
-Copyright, Revision 1.3  2000/12/21 17:51:54  morsch
-Copyright, RN3 violations corrected
-Copyright,, $Id$, comments at the right place for automatic documentation,
-in AliMUONRecoEvent and AliMUONRecoDisplay
-
-*/
+/* $Id$ */
 
 //Authors: Mihaela Gheata, Andrei Gheata 09/10/00
 //////////////////////////////////////////////////////////////////////

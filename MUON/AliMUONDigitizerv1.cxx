@@ -18,6 +18,8 @@
 #include "AliMUONTransientDigit.h"
 #include "AliRun.h"
 #include "AliRunDigitizer.h"
+#include "AliRunLoader.h"
+#include "AliLoader.h"
 
 ClassImp(AliMUONDigitizerv1)
 
@@ -183,8 +185,17 @@ void AliMUONDigitizerv1::Exec(Option_t* option)
 	<<" module MUON not found in the input file"<<endl;
     return;
   }
+
+  //Loaders
+
+  AliRunLoader *rl, *orl; //input and output loaders
+  AliLoader *gime, *ogime;
+  orl = AliRunLoader::GetRunLoader(fManager->GetOutputFolderName());
+  ogime = orl->GetLoader("MUONLoader");
+ 
+
   // New branch for MUON digit in the tree of digits
-  pMUON->MakeBranchInTreeD(fManager->GetTreeD());
+  pMUON->MakeBranchInTreeD(ogime->TreeD());
 
   // Array of pointer of the AliMUONHitMapA1:
   //  two HitMaps per chamber, or one HitMap per cahtode plane
@@ -205,7 +216,12 @@ void AliMUONDigitizerv1::Exec(Option_t* option)
       // Connect MUON Hit branch
       if (inputFile > 0 ) fSignal = kFALSE;
       TBranch *branchHits = 0;
-      TTree *treeH = fManager->GetInputTreeH(inputFile);
+
+      rl = AliRunLoader::GetRunLoader(fManager->GetInputFolderName(inputFile));
+      gime = rl->GetLoader("MUONLoader");
+
+
+      TTree *treeH = gime->TreeH();
       if (GetDebug()>2) {
 	cerr<<"AliMUONDigitizerv1::Exec inputFile is "<<inputFile<<" "<<endl;
 	cerr<<"AliMUONDigitizerv1::Exec treeH, fHits "<<treeH<<" "<<fHits<<endl;
@@ -333,7 +349,7 @@ void AliMUONDigitizerv1::Exec(Option_t* option)
 	if (GetDebug()>2) cerr<<"AliMUONDigitzerv1::Exex TransientDigit to Digit"<<endl;
 	if ( digits[2] == icat ) pMUON->AddDigits(ich,tracks,charges,digits);
       }
-      fManager->GetTreeD()->Fill();
+      ogime->TreeD()->Fill();
       pMUON->ResetDigits();  //   
     } // end loop cathode
     fTDList->Delete();  
@@ -347,8 +363,8 @@ void AliMUONDigitizerv1::Exec(Option_t* option)
     
     if (GetDebug()>2) 
       cerr<<"AliMUONDigitizer::Exec: writing the TreeD: "
-	  <<fManager->GetTreeD()->GetName()<<endl;
-    fManager->GetTreeD()->Write(0,TObject::kOverwrite);
+	  <<ogime->TreeD()->GetName()<<endl;
+    ogime->TreeD()->Write(0,TObject::kOverwrite);
     delete [] fHitMap;
     delete fTDList;
     

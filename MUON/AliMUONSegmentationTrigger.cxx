@@ -13,55 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.8  2002/10/23 07:24:56  alibrary
-Introducing Riostream.h
-
-Revision 1.7  2001/05/16 14:57:17  alibrary
-New files for folders and Stack
-
-Revision 1.6  2000/11/12 17:17:03  pcrochet
-BuildGeometry of AliMUON for trigger chambers delegated to AliMUONSegmentationTriggerX (same strategy as for tracking chambers)
-
-Revision 1.5  2000/10/02 16:58:29  egangler
-Cleaning of the code :
--> coding conventions
--> void Streamers
--> some useless includes removed or replaced by "class" statement
-
-Revision 1.4  2000/06/29 12:34:09  morsch
-AliMUONSegmentation class has been made independent of AliMUONChamber. This makes
-it usable with any other geometry class. The link to the object to which it belongs is
-established via an index. This assumes that there exists a global geometry manager
-from which the pointer to the parent object can be obtained (in our case gAlice).
-
-Revision 1.3  2000/06/26 10:00:14  pcrochet
-global variables removed, problem with HP compiler solved (PH)
-
-Revision 1.2  2000/06/15 07:58:48  morsch
-Code from MUON-dev joined
-
-Revision 1.1.2.1  2000/06/09 21:47:24  morsch
-Code from AliMUONSegResTrigger.cxx
-
-*/
-
-/*
-old Log:
-AliMUONSegResTrigger.cxx,v $
-Revision 1.1.2.3  2000/04/26 12:32:39  morsch
-Mods by P. Crochet:
-- adapted to the new Trigger chamber geometry
-- method SetZScale removed
-
-Revision 1.1.2.2  2000/02/21 16:13:33  morsch
-Full cluster simulation activated by uncommenting corresponding lines in IntXY()
-
-Revision 1.1.2.1  2000/02/17 14:32:40  morsch
-Draft version from P. Crochet
-
-*/
+/* $Id$ */
 
 #include "AliMUONSegmentationTrigger.h"
 #include "AliMUONTriggerConstants.h"
@@ -82,7 +34,7 @@ void AliMUONSegmentationTrigger::Init(Int_t chamber)
   AliMUON *pMUON  = (AliMUON *) gAlice->GetModule("MUON");
   AliMUONChamber* iChamber=&(pMUON->Chamber(chamber));
 
-  if(pMUON->GetDebug()) cout << ClassName() << ": Initialize Trigger Chamber Module Geometry " << "\n";    
+  if(pMUON->GetDebug()>1) printf("%s: Initialize Trigger Chamber Module Geometry\n",ClassName());
 
   Float_t zPos=iChamber->Z();
   Float_t z1Pos=1603.5;
@@ -98,7 +50,7 @@ void AliMUONSegmentationTrigger::Init(Int_t chamber)
   Float_t z1pm=z1PosPlus/z1PosMinus;
   Float_t z1mp=z1PosMinus/z1PosPlus;
 
-  if(pMUON->GetDebug()) cout << ClassName() << ": fZscale = " << fZscale << "\n";
+  if(pMUON->GetDebug()>1) printf("%s: fZscale = %f \n",ClassName(),fZscale);
   
 // calculate yCmin and fYcmax 
   Int_t i;  
@@ -200,8 +152,6 @@ void AliMUONSegmentationTrigger::Init(Int_t chamber)
 // Set parent chamber number
   fChamber=&(pMUON->Chamber(chamber));
   fId=chamber;
-
-  if(pMUON->GetDebug()) cout << ClassName() << ": ---------------------------------------------------- \n";   
 
 }
 

@@ -52,7 +52,8 @@ AliMUONv0::AliMUONv0(const char *name, const char *title)
        : AliMUON(name,title)
 {
 // Constructor
-    AliMUONFactory::Build(this, "default");
+    AliMUONFactory factory;
+    factory.Build(this, title);
 }
 
 void AliMUONv0::CreateGeometry()
