@@ -18,6 +18,9 @@
 
 /*
 $Log$
+Revision 1.1  2003/05/09 09:18:11  hristov
+Adding TPHIC
+
 */
 
 // Event generator of two-photon processes

@@ -50,8 +50,6 @@ int xargc=0;
   extern "C" int __mb_cur_max=0; 
 #endif 
 
-int gcbank_[4000000];
-
 //_____________________________________________________________________________
 int main(int argc, char **argv)
 {
@@ -74,12 +72,21 @@ int main(int argc, char **argv)
     
   // Start interactive geant
   
-  TRint *theApp = new TRint("aliroot", &argc, argv, 0, 0);
+  TRint *theApp = new TRint("aliroot", &argc, argv);
   
   // --- Start the event loop ---
   theApp->Run();
   
   return(0);
 }
+#define ffinit ffinit_
+#define ffkey ffkey_
+#define ffgo ffgo_
 
+extern "C" {
+
+void ffinit_() {}
+void ffkey_() {}
+void ffgo_() {}
+}
 
