@@ -1,3 +1,27 @@
+/**************************************************************************
+ * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+ *                                                                        *
+ * Author: The ALICE Off-line Project.                                    *
+ * Contributors are mentioned in the code where appropriate.              *
+ *                                                                        *
+ * Permission to use, copy, modify and distribute this software and its   *
+ * documentation strictly for non-commercial purposes is hereby granted   *
+ * without fee, provided that the above copyright notice appears in all   *
+ * copies and that both the copyright notice and this permission notice   *
+ * appear in the supporting documentation. The authors make no claims     *
+ * about the suitability of this software for any purpose. It is          *
+ * provided "as is" without express or implied warranty.                  *
+ **************************************************************************/
+/* $Id:  */
+
+/* $Log:
+ */
+//*-- Author: Boris Polichtchouk, IHEP
+//////////////////////////////////////////////////////////////////////////////
+//  Clusterization class for IHEP reconstruction.
+// Performs clusterization (collects neighbouring active cells)
+// It differs from AliPHOSClusterizerv1 in neighbour definition only
+
 // --- ROOT system ---
 #include "TBenchmark.h"
 #include "TROOT.h"
@@ -6,7 +30,7 @@
 
 // --- AliRoot header files ---
 #include "AliPHOSClusterizerv2.h"
-#include "AliPHOSLoader.h"
+#include "AliPHOSGetter.h"
 #include "TFolder.h"
 #include "AliPHOSEvalRecPoint.h"
 #include "AliPHOSRecCpvManager.h"
@@ -14,27 +38,34 @@
 
 ClassImp(AliPHOSClusterizerv2)
 
+//____________________________________________________________________________
 AliPHOSClusterizerv2::AliPHOSClusterizerv2() : AliPHOSClusterizerv1() 
 {}
 
+//____________________________________________________________________________
 AliPHOSClusterizerv2::AliPHOSClusterizerv2(const char * headerFile, const char * name):
 AliPHOSClusterizerv1(headerFile,name)
 {}
 
+//____________________________________________________________________________
+AliPHOSClusterizerv2::AliPHOSClusterizerv2(const AliPHOSClusterizerv2 & clu):
+AliPHOSClusterizerv1(clu)
+{}
+
+//____________________________________________________________________________
 void AliPHOSClusterizerv2::GetNumberOfClustersFound(int* numb) const
 {
-  AliPHOSLoader* gime = dynamic_cast<AliPHOSLoader*>(fRunLoader->GetLoader("PHOSLoader"));
-  if (gime == 0x0)
-   {
-     Error("GetNumberOfClustersFound","Can not get PHOS Loader");
-     return;
-   }
+  // Returns the number of found EMC and CPV rec.points
+
+  AliPHOSGetter * gime = AliPHOSGetter::Instance() ;   
   numb[0] = gime->EmcRecPoints()->GetEntries();  
   numb[1] = gime->CpvRecPoints()->GetEntries();  
 }
 
+//____________________________________________________________________________
 void AliPHOSClusterizerv2::Exec(Option_t* option)
 {
+  // Steering method
 
   if(strstr(option,"tim"))
     gBenchmark->Start("PHOSClusterizer"); 
@@ -42,41 +73,23 @@ void AliPHOSClusterizerv2::Exec(Option_t* option)
   if(strstr(option,"print"))
     Print("") ; 
 
-  AliPHOSLoader* gime = dynamic_cast<AliPHOSLoader*>(fRunLoader->GetLoader("PHOSLoader"));
-  if (gime == 0x0)
-   {
-     Error("Exec","Can not get PHOS Loader");
-     return;
-   }
+  AliPHOSGetter * gime = AliPHOSGetter::Instance() ; 
 
-  TFolder* storage = gime->GetDetectorDataFolder();
+  TFolder* wPoolF =  gime->PhosLoader()->GetDetectorDataFolder();
   
-//  TFolder* wPoolF = storage->AddFolder("SmP","SmartRecPoints for PHOS");
-//I find the construction above completely unnacessary. Who cares whether data will be
-//in a special folder for them. Maybe it give more clear view in graphic mode, but who watches
-//on it during reconstruction?
-//Piotr.Skowronski@cern.ch
-
-  TFolder* wPoolF = storage;
-    
-
   TObjArray* wPool = new TObjArray(400);
   wPool->SetName("SmartPoints");
   wPoolF->Add(wPool);
   wPoolF->Add(this);
 
-  fRunLoader->LoadDigits("read");
-  fRunLoader->LoadHeader();
-  
-  Int_t nevents = (Int_t) fRunLoader->TreeE()->GetEntries() ;
+  Int_t nevents = gime->MaxEvent() ;
   Int_t ievent ;
 
-  
   for(ievent = 0; ievent<nevents; ievent++) {
     
-    fRunLoader->GetEvent(ievent);
-
-    cout<<" MakeClusters invoked..";
+    gime->Event(ievent,"D") ;
+    
+    Info("Exec", "MakeClusters invoked..") ;
     MakeClusters() ;
     Info("Exec", "MakeClusters done.") ;
 
@@ -93,7 +106,7 @@ void AliPHOSClusterizerv2::Exec(Option_t* option)
     Int_t iPoint; //loop variable
 
     for(iPoint=0; iPoint<gime->CpvRecPoints()->GetEntriesFast(); iPoint++) {
-      rp = new AliPHOSEvalRecPoint(iPoint,AliPHOSEvalRecPoint::cpv);
+      rp = new AliPHOSEvalRecPoint(iPoint, kTRUE);
       rp->MakeJob();
     }
 
@@ -126,7 +139,7 @@ void AliPHOSClusterizerv2::Exec(Option_t* option)
     wPoolF->Add(recEmc);
 
     for(iPoint=0; iPoint<gime->EmcRecPoints()->GetEntriesFast(); iPoint++) {
-      rp = new AliPHOSEvalRecPoint(iPoint,(Bool_t)AliPHOSEvalRecPoint::emc);
+      rp = new AliPHOSEvalRecPoint(iPoint, kFALSE);
       rp->MakeJob();
     }
 
@@ -171,7 +184,8 @@ void AliPHOSClusterizerv2::Exec(Option_t* option)
     Info("Exec","took %f seconds for Clusterizing", gBenchmark->GetCpuTime("PHOSClusterizer") ) ;
   }
 }
-//---------------------------------------------------------------------------------
+
+//____________________________________________________________________________
 Int_t AliPHOSClusterizerv2::AreNeighbours(AliPHOSDigit* d1, AliPHOSDigit* d2) const
 {
   // Points are neighbours if they have common edge.
@@ -185,13 +199,7 @@ Int_t AliPHOSClusterizerv2::AreNeighbours(AliPHOSDigit* d1, AliPHOSDigit* d2) co
   // The order of d1 and d2 is important: first (d1) should be a digit already in a cluster 
   // which is compared to a digit (d2)  not yet in a cluster  
 
-  AliPHOSLoader* gime = dynamic_cast<AliPHOSLoader*>(fRunLoader->GetLoader("PHOSLoader"));
-  if (gime == 0x0)
-   {
-     Error("AreNeighbours","Can not get PHOS Loader");
-     return -1;
-   }
-  const AliPHOSGeometry * geom = gime->PHOSGeometry();
+  const AliPHOSGeometry * geom = AliPHOSGetter::Instance()->PHOSGeometry();
 
   Int_t rv = 0 ; 
 
