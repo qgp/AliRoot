@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.2  2003/04/14 14:23:44  morsch
+Correction in Binaries().
+
 Revision 1.1  2003/04/10 08:48:13  morsch
 First commit.
 

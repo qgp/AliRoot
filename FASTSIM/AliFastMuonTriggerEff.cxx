@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.2  2003/01/21 10:49:17  morsch
+Corrected path for vettotpara.root
+
 Revision 1.1  2003/01/06 10:13:09  morsch
 First commit.
 

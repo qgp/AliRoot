@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.1  2003/01/06 10:13:09  morsch
+First commit.
+
 */
 
 #include "AliFastMuonTrackingRes.h"

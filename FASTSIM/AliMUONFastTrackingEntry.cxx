@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.1  2003/01/07 08:41:02  morsch
+First commit.
+
 */
 
 #include "AliMUONFastTrackingEntry.h"

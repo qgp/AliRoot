@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.2  2003/01/08 10:29:33  morsch
+Path to data file changed.
+
 Revision 1.1  2003/01/06 10:13:33  morsch
 First commit.
 
