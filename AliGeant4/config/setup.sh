@@ -141,8 +141,6 @@ fi
 # Alice Geant4 install directory
 #
 export AG4_INSTALL=$ALICE_ROOT/AliGeant4
-export G3TOG4=1
-export G3G4_NO_REFLECTION=1
 
 # Set variables depending on other variables
 # if opacs is selected then select also visualize
@@ -283,8 +281,8 @@ fi
 # ==================================
 #
 
-if [ -d $LHCXX_BASE/CLHEP/1.7.0.0 ]; then
-  export CLHEP_BASE_DIR=$LHCXX_BASE/CLHEP/1.7.0.0
+if [ -d $LHCXX_BASE/CLHEP/1.8.0.0 ]; then
+  export CLHEP_BASE_DIR=$LHCXX_BASE/CLHEP/1.8.0.0
 else
   echo "WARNING: CLHEP has not been found in the default path."
   if [ "$VERBOSE" = "YES" ]; then
@@ -410,8 +408,8 @@ if [ $AG4_VISUALIZE ]; then
   export G4VIS_USE_OPENGLX=1
   export G4VIS_USE_OPENGLXM=1
   #export OGLHOME=/usr/local
+  export OGLHOME=/export/alice/tools
   #export OGLLIBS="-L$OGLHOME/lib -lMesaGLU -lMesaGL"
-  export OGLHOME=/usr
   export OGLLIBS="-L$OGLHOME/lib -lGLU -lGL"
   if [ "$SYSTEM" = "HP-UX" ]; then
     export OGLLIBS="-L/usr/lib $OGLLIBS"

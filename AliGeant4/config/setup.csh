@@ -141,8 +141,6 @@ endif
 # Alice Geant4 install directory
 #
 setenv AG4_INSTALL $ALICE_ROOT/AliGeant4
-setenv G3TOG4 1
-setenv G3G4_NO_REFLECTION 1
 
 # Set variables depending on other variables
 # if opacs is selected then select also visualize
@@ -283,8 +281,8 @@ endif
 # ==================================
 #
 
-if ( -d $LHCXX_BASE/CLHEP/1.7.0.0 ) then
-  setenv CLHEP_BASE_DIR $LHCXX_BASE/CLHEP/1.7.0.0
+if ( -d $LHCXX_BASE/CLHEP/1.8.0.0 ) then
+  setenv CLHEP_BASE_DIR $LHCXX_BASE/CLHEP/1.8.0.0
 else
   echo "WARNING: CLHEP has not been found in the default path."
   if ( "$VERBOSE" == "YES" ) then
