@@ -173,7 +173,7 @@ void AliGenCocktailAfterBurner::Generate()
       fInternalStacks = new TObjArray(numberOfEvents + fNBgEvents); //Create array of internal stacks
       for(i=0;i<numberOfEvents + fNBgEvents;i++) 
        {	
-        stack = new AliStack(10000);
+        stack = new AliStack(100);
         stack->Reset();
         fInternalStacks->Add(stack);
        }
