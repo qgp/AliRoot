@@ -54,7 +54,7 @@
 #include "AliMUONDisplay.h"
 #include "AliMUONPoints.h"
 #include "TParticle.h"
-#include "AliMUONTriggerDecision.h"
+#include "AliMUONGlobalTrigger.h"
 #include "AliHeader.h"
 
 #include "AliMUONHit.h"
@@ -87,7 +87,7 @@ AliMUONDisplay::AliMUONDisplay()
 }
 
 //_____________________________________________________________________________
-AliMUONDisplay::AliMUONDisplay(Int_t size)
+AliMUONDisplay::AliMUONDisplay(Int_t size, AliLoader * loader)
 {
 // Create an event display object.
 // A canvas named "edisplay" is created with a vertical size in pixels
@@ -225,6 +225,12 @@ AliMUONDisplay::AliMUONDisplay(Int_t size)
     fButtons->SetEditable(kFALSE);
     fCanvas->Update();
     fNextCathode = kFALSE; 
+    fLoader = loader;
+    // initialize container
+    if(fLoader) 
+      fMUONData = new AliMUONData(fLoader,"MUON","MUON");
+    else
+      fMUONData =0x0;
 }
 
 AliMUONDisplay::AliMUONDisplay(const AliMUONDisplay & display):AliDisplay(display)
@@ -622,8 +628,12 @@ void AliMUONDisplay::DrawTitle(Option_t *option)
     Float_t dx   = xmax-xmin;
     Float_t dy   = ymax-ymin;
     
+    AliRunLoader * RunLoader;
+    if (fLoader)
+      RunLoader = fLoader->GetRunLoader();
+    else
+      RunLoader = 0x0;
 
-    AliRunLoader * RunLoader = AliRunLoader::GetRunLoader("MUONFolder");
 
     if (strlen(option) == 0) {
 	TPaveText *title = new TPaveText(xmin +0.01*dx, ymax-0.09*dy, xmin +0.5*dx, ymax-0.01*dy);
@@ -655,7 +665,7 @@ void AliMUONDisplay::DrawTitle(Option_t *option)
 void AliMUONDisplay::DrawView(Float_t theta, Float_t phi, Float_t psi)
 {
 //    Draw a view of MUON clusters
-    printf("\n Draw View");
+    printf("\n Draw View\n");
     
     gPad->SetCursor(kWatch);
     // gPad->SetFillColor(39);
@@ -781,18 +791,20 @@ void AliMUONDisplay::LoadDigits(Int_t chamber, Int_t cathode)
     AliMUONChamber*       iChamber;
     AliSegmentation*      segmentation;
     AliMUONResponse*      response;
+   
+    GetMUONData()->SetTreeAddress("D");
 
-    TClonesArray *muonDigits  = pMUON->GetMUONData()->Digits(chamber-1);
+    TClonesArray *muonDigits  = GetMUONData()->Digits(chamber-1);
     if (muonDigits == 0) return;
 
-//     gAlice->ResetDigits();
+    gAlice->ResetDigits();
     Int_t nent = 0;
  
-   if (pMUON->GetLoader()->TreeD()) {
-     nent = (Int_t) pMUON->GetLoader()->TreeD()->GetEntries();
+   if (GetLoader()->TreeD()) {
+     nent = (Int_t) GetLoader()->TreeD()->GetEntries();
      printf(" entries %d \n", nent);
      //     gAlice->TreeD()->GetEvent(nent-2+cathode-1);
-     pMUON->GetMUONData()->GetCathode(cathode-1);
+     GetMUONData()->GetCathode(cathode-1);
     }
     
     Int_t ndigits = muonDigits->GetEntriesFast();
@@ -894,14 +906,15 @@ void AliMUONDisplay::LoadCoG(Int_t chamber, Int_t /*cathode*/)
     AliMUON *pMUON  = (AliMUON*)gAlice->GetModule("MUON");
     AliMUONChamber*  iChamber;
     
-    TClonesArray *muonRawClusters  = pMUON->GetMUONData()->RawClusters(chamber-1);
+    GetMUONData()->SetTreeAddress("RC");
+    TClonesArray *muonRawClusters  = GetMUONData()->RawClusters(chamber-1);
 
     if (muonRawClusters == 0) return;
 
     Int_t nent = 0;
-    if (pMUON->GetMUONData()->TreeR()) {
-	nent=(Int_t) pMUON->GetMUONData()->TreeR()->GetEntries();
-	pMUON->GetMUONData()->TreeR()->GetEvent(0);
+    if (GetMUONData()->TreeR()) {
+	nent=(Int_t) GetMUONData()->TreeR()->GetEntries();
+	GetMUONData()->TreeR()->GetEvent(0);
     }
     
     Int_t nrawcl = muonRawClusters->GetEntriesFast();
@@ -917,7 +930,6 @@ void AliMUONDisplay::LoadCoG(Int_t chamber, Int_t /*cathode*/)
     points = new AliMUONPoints(nrawcl);
     for (Int_t iraw=0;iraw<nrawcl;iraw++) {
   	mRaw   = (AliMUONRawCluster*)muonRawClusters->UncheckedAt(iraw);
-	fRpoints->AddAt(points,iraw);
         points->SetMarkerColor(51);
         points->SetMarkerStyle(2);
         points->SetMarkerSize(1.);
@@ -926,13 +938,15 @@ void AliMUONDisplay::LoadCoG(Int_t chamber, Int_t /*cathode*/)
         points->SetTrackIndex(-1);
         points->SetDigitIndex(-1);
         points->SetPoint(iraw,mRaw->fX[0],mRaw->fY[0],zpos);
+	fRpoints->AddAt(points,iraw);
+	//	printf("%f and %f and %f\n",mRaw->fX[0],mRaw->fY[0],mRaw->fZ[0]);
     }
 }
 //___________________________________________
 void AliMUONDisplay::LoadHits(Int_t chamber)
 {
-// Read hits info and store x,y,z info in arrays fPhits
-// Loop on all detectors
+  // Read hits info and store x,y,z info in arrays fPhits
+  // Loop on all detectors
 
     if (chamber > 14) return;
     Int_t track;
@@ -947,21 +961,24 @@ void AliMUONDisplay::LoadHits(Int_t chamber)
     iChamber = &(pMUON->Chamber(chamber-1));
     Float_t zpos=iChamber->Z();
 
-    Int_t ntracks = (Int_t)pMUON->GetMUONData()->TreeH()->GetEntries(); //skowron
-    Int_t nthits  = 0;
-    for (track = 0; track < ntracks; track++) {
-	pMUON->GetMUONData()->ResetHits();
-	pMUON->GetMUONData()->GetTrack(track);//skowron
-	TClonesArray *muonHits  = pMUON->GetMUONData()->Hits();
+
+    if (GetMUONData()->TreeH()) {
+      GetMUONData()->SetTreeAddress("H");
+      Int_t ntracks = (Int_t)GetMUONData()->TreeH()->GetEntries(); //skowron
+      Int_t nthits  = 0;
+      for (track = 0; track < ntracks; track++) {
+	GetMUONData()->ResetHits();
+	GetMUONData()->GetTrack(track);//skowron
+	TClonesArray *muonHits  = GetMUONData()->Hits();
 	if (muonHits == 0) return;
 	nthits += muonHits->GetEntriesFast();
-    } 
-    if (fPhits == 0) fPhits = new TObjArray(nthits);
-    Int_t nhold=0;
-    for (track=0; track<ntracks;track++) {
-	pMUON->GetMUONData()->ResetHits();
-	pMUON->GetMUONData()->GetTrack(track);//skowron
-	TClonesArray *muonHits  = pMUON->GetMUONData()->Hits();
+      } 
+      if (fPhits == 0) fPhits = new TObjArray(nthits);
+      Int_t nhold=0;
+      for (track=0; track<ntracks;track++) {
+	GetMUONData()->ResetHits();
+	GetMUONData()->GetTrack(track);//skowron
+	TClonesArray *muonHits  = GetMUONData()->Hits();
 	if (muonHits == 0) return;
 	Int_t nhits = muonHits->GetEntriesFast();
 	if (nhits == 0) continue;
@@ -969,24 +986,26 @@ void AliMUONDisplay::LoadHits(Int_t chamber)
 	AliMUONPoints *points = 0;
 	Int_t npoints=1;
 	for (Int_t hit=0;hit<nhits;hit++) {
-            mHit = (AliMUONHit*)muonHits->UncheckedAt(hit);
-            Int_t nch  = mHit->Chamber();              // chamber number
-            if (nch != chamber) continue;
-	    //
-	    // Retrieve info and set the objects
-	    //
-	    points = new AliMUONPoints(npoints);
-	    fPhits->AddAt(points,nhold+hit);
-            points->SetMarkerColor(kRed);
-            points->SetMarkerStyle(5);
-            points->SetMarkerSize(1.);
-            points->SetParticle(mHit->Track());
-            points->SetHitIndex(hit);
-            points->SetTrackIndex(track);
-            points->SetDigitIndex(-1);
-	    points->SetPoint(0,mHit->X(),mHit->Y(),zpos);
+	  mHit = (AliMUONHit*)muonHits->UncheckedAt(hit);
+	  Int_t nch  = mHit->Chamber();              // chamber number
+	  if (nch != chamber) continue;
+	  //
+	  // Retrieve info and set the objects
+	  //
+	  points = new AliMUONPoints(npoints);
+	  fPhits->AddAt(points,nhold+hit);
+	  points->SetMarkerColor(kRed);
+	  points->SetMarkerStyle(5);
+	  points->SetMarkerSize(1.);
+	  points->SetParticle(mHit->Track());
+	  points->SetHitIndex(hit);
+	  points->SetTrackIndex(track);
+	  points->SetDigitIndex(-1);
+	  points->SetPoint(0,mHit->X(),mHit->Y(),zpos);
+	  //	    printf("%f and %f and %f\n",mHit->X(),mHit->Y(),mHit->Z());
 	}
 	nhold+=nhits;
+      }
     }
 }
 
@@ -1058,12 +1077,59 @@ void AliMUONDisplay::NextCathode()
 //_____________________________________________________________________________
 void AliMUONDisplay::Trigger()
 {
-  // returns Trigger Decision for current event
-  AliMUONTriggerDecision* decision= new AliMUONTriggerDecision(1);
-  decision->Trigger(); 
+
+  AliMUONGlobalTrigger* globalTrig;
+
+  GetMUONData()->SetTreeAddress("GLT");
+  GetMUONData()->GetTrigger();
+
+  globalTrig =  (AliMUONGlobalTrigger*)GetMUONData()->GlobalTrigger()->UncheckedAt(0);
+  if (globalTrig == 0) return;
+
+  printf("===================================================\n");
+  printf(" Global Trigger output       Low pt  High pt   All\n");
+
+  printf(" number of Single Plus      :\t");
+  printf("%i\t",globalTrig->SinglePlusLpt());
+  printf("%i\t",globalTrig->SinglePlusHpt());
+  printf("%i\t",globalTrig->SinglePlusApt());
+  printf("\n");
+
+  printf(" number of Single Minus     :\t");
+  printf("%i\t",globalTrig->SingleMinusLpt());
+  printf("%i\t",globalTrig->SingleMinusHpt());
+  printf("%i\t",globalTrig->SingleMinusApt());
+  printf("\n");
+
+  printf(" number of Single Undefined :\t"); 
+  printf("%i\t",globalTrig->SingleUndefLpt());
+  printf("%i\t",globalTrig->SingleUndefHpt());
+  printf("%i\t",globalTrig->SingleUndefApt());
+  printf("\n");
+
+  printf(" number of UnlikeSign pair  :\t"); 
+  printf("%i\t",globalTrig->PairUnlikeLpt());
+  printf("%i\t",globalTrig->PairUnlikeHpt());
+  printf("%i\t",globalTrig->PairUnlikeApt());
+  printf("\n");
+
+  printf(" number of LikeSign pair    :\t");  
+  printf("%i\t",globalTrig->PairLikeLpt());
+  printf("%i\t",globalTrig->PairLikeHpt());
+  printf("%i\t",globalTrig->PairLikeApt());
+  printf("\n");
+  printf("===================================================\n");
+  printf("\n");
+  
+
+ //  // returns Trigger Decision for current event
+//   AliMUONTriggerDecision* decision= new AliMUONTriggerDecision(GetLoader(),1);
+
+//   //  AliMUONTriggerDecision* decision= new AliMUONTriggerDecision(1);
+//   AliMUONData* muonData = decision->GetMUONData();
+//   muonData->SetTreeAddress("D");
+//   decision->Trigger(); 
 }
-
-
 //_____________________________________________________________________________
 void AliMUONDisplay::SetChamberAndCathode(Int_t chamber, Int_t cathode)
 {
@@ -1121,8 +1187,11 @@ void AliMUONDisplay::SetView(Float_t theta, Float_t phi, Float_t psi)
 //_____________________________________________________________________________
 void AliMUONDisplay::ShowNextEvent(Int_t delta)
 {
-
-  AliRunLoader * RunLoader = AliRunLoader::GetRunLoader("MUONFolder");
+  AliRunLoader * RunLoader;
+  if (fLoader)
+    RunLoader = fLoader->GetRunLoader();
+  else
+    RunLoader = 0x0;
     
 //  Display (current event_number + delta)
 //    delta =  1  shown next event
@@ -1182,8 +1251,8 @@ void AliMUONDisplay::ResetRpoints()
   // Reset array of points
   //
     if (fRpoints) {
-	fRpoints->Delete();
-	delete fRpoints;
+	fRpoints->Clear();
+	//	delete fRpoints;
 	fRpoints = 0;
     }
 }

@@ -15,7 +15,7 @@ SRCS         = AliMUONChamber.cxx AliMUONChamberTrigger.cxx \
                AliMUONSt2GeometryBuilder.cxx AliMUONSlatGeometryBuilder.cxx \
 	       AliMUONTriggerGeometryBuilder.cxx \
                AliMUONDisplay.cxx AliMUONPoints.cxx \
-               AliMUONClusterFinderVS.cxx \
+               AliMUONClusterReconstructor.cxx AliMUONClusterFinderVS.cxx \
                AliMUONHitMapA1.cxx \
 	       AliMUONHit.cxx AliMUONPadHit.cxx AliMUONDigit.cxx \
                AliMUONTransientDigit.cxx AliMUONRawCluster.cxx \
@@ -32,7 +32,7 @@ SRCS         = AliMUONChamber.cxx AliMUONChamberTrigger.cxx \
 	       AliMUONSegmentationSlatModule.cxx AliMUONSegmentationSlatModuleN.cxx \
 	       AliMUONSegmentationSlat.cxx AliMUONSegmentationSlatN.cxx \
 	       AliMUONRecoEvent.cxx AliMUONRecoDisplay.cxx \
-               AliMUONMerger.cxx AliMUONFactory.cxx AliMUONDigitizer.cxx AliMUONDigitizerv1.cxx \
+               AliMUONMerger.cxx AliMUONFactory.cxx AliMUONDigitizer.cxx AliMUONDigitizerv1.cxx AliMUONDigitizerv2.cxx AliMUONSDigitizerv1.cxx \
                AliMUONTrackK.cxx AliMUONClusterFinderAZ.cxx AliMUONPixel.cxx \
                AliMUONLoader.cxx AliMUONData.cxx 
 
@@ -42,13 +42,6 @@ SRCS     += AliMUONSt1Segmentation.cxx AliMUONSt1Response.cxx \
 	    AliMUONSt1IniReader.cxx AliMUONSt1Decoder.cxx \
 
 HDRS         =  $(SRCS:.cxx=.h) 
-
-EHDRS        =	$(ROOTSYS)/include/TF1.h \
-		$(ROOTSYS)/include/TH3.h \
-		$(ROOTSYS)/include/TMarker3DBox.h \
-		$(ROOTSYS)/include/TMatrix.h \
-		$(ROOTSYS)/include/TTree.h \
-                $(ROOTSYS)/include/TArrayF.h \
 
 DHDR:= MUONLinkDef.h
 
