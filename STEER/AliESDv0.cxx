@@ -35,6 +35,12 @@ AliESDv0::AliESDv0() : TObject() {
   fChi2=1.e+33;
   fPos[0]=fPos[1]=fPos[2]=0.;
   fPosCov[0]=fPosCov[1]=fPosCov[2]=fPosCov[3]=fPosCov[4]=fPosCov[5]=0.;
+  fNidx = -1;
+  fNmom[0]=fNmom[1]=fNmom[2]=0.;
+  fNmomCov[0]=fNmomCov[1]=fNmomCov[2]=fNmomCov[3]=fNmomCov[4]=fNmomCov[5]=0.;
+  fPidx = -1;
+  fPmom[0]=fPmom[1]=fPmom[2]=0.;
+  fPmomCov[0]=fPmomCov[1]=fPmomCov[2]=fPmomCov[3]=fPmomCov[4]=fPmomCov[5]=0.;
 }
 
 Double_t AliESDv0::ChangeMassHypothesis(Int_t code) {

@@ -34,6 +34,13 @@ AliESDcascade::AliESDcascade() : TObject() {
   fChi2=1.e+33;
   fPos[0]=fPos[1]=fPos[2]=0.;
   fPosCov[0]=fPosCov[1]=fPosCov[2]=fPosCov[3]=fPosCov[4]=fPosCov[5]=0.;
+  fV0idx[0]=fV0idx[1]=-1;
+  fV0mom[0][0]=fV0mom[0][1]=fV0mom[0][2]=0.;
+  fV0mom[1][0]=fV0mom[1][1]=fV0mom[1][2]=0.;
+  fV0momCov[0]=fV0momCov[1]=fV0momCov[2]=fV0momCov[3]=fV0momCov[4]=fV0momCov[5]=0.;
+  fBachIdx = -1;
+  fBachMom[0]=fBachMom[1]=fBachMom[2]=0.;
+  fBachMomCov[0]=fBachMomCov[1]=fBachMomCov[2]=fBachMomCov[3]=fBachMomCov[4]=fBachMomCov[5]=0.;
 }
 
 inline Double_t det(Double_t a00, Double_t a01, Double_t a10, Double_t a11){

@@ -139,7 +139,7 @@ void AliESDtrack::MakeMiniESDtrack() {
   fITSncls = 0;
   for (Int_t i=0; i<6; i++) fITSindex[i] = 0;
   fITSsignal = 0;
-  for (Int_t i=0; i<kSPECIES ; i++) fITSr[i];
+  for (Int_t i=0; i<kSPECIES ; i++) fITSr[i] = 0;
   fITSLabel = 0;
   fITSFakeRatio = 0;
 
