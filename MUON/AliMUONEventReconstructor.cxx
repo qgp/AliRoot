@@ -176,6 +176,7 @@ AliMUONEventReconstructor::~AliMUONEventReconstructor(void)
   }
 //  if (fEventTree) delete fEventTree;
   if (fRecoEvent) delete fRecoEvent;
+  if (fHitsForRecPtr) fHitsForRecPtr->Delete();
   delete fHitsForRecPtr; // Correct destruction of everything ???? or delete [] ????
   for (Int_t st = 0; st < kMaxMuonTrackingStations; st++)
     delete fSegmentsPtr[st]; // Correct destruction of everything ????
@@ -398,7 +399,7 @@ void AliMUONEventReconstructor::ResetHitsForRec(void)
   // To reset the array and the number of HitsForRec,
   // and also the number of HitsForRec
   // and the index of the first HitForRec per chamber
-  if (fHitsForRecPtr) fHitsForRecPtr->Clear();
+  if (fHitsForRecPtr) fHitsForRecPtr->Delete();
   fNHitsForRec = 0;
   for (Int_t ch = 0; ch < kMaxMuonTrackingChambers; ch++)
     fNHitsForRecPerChamber[ch] = fIndexOfFirstHitForRecPerChamber[ch] = 0;

@@ -291,16 +291,19 @@ Int_t AliITStrackerV2::Clusters2Tracks(AliESD *event) {
        if (besttrack->GetChi2()/besttrack->GetNumberOfClusters()>3.5){
 	 if ( (TMath::Abs(besttrack->GetD(GetX(),GetY()))>0.4) && fConstraint[fPass]) {
 	   CompressTrackHypothesys(fCurrentEsdTrack,0.0,0);
+	   delete besttrack;
 	   continue;
 	 }
 	 if ( (TMath::Abs(besttrack->GetZat(GetX()) -GetZ() )>0.4) && fConstraint[fPass]){
 	   CompressTrackHypothesys(fCurrentEsdTrack,0.0,0);
+	   delete besttrack;
 	   continue;
 	 }
        }
        
        //delete itsTracks.RemoveAt(i);
        t->fReconstructed = kTRUE;
+       delete besttrack;
        ntrk++;              
        
      }
@@ -1500,6 +1503,7 @@ AliITStrackV2 * AliITStrackerV2::GetBestHypothesys(Int_t esdindex, AliITStrackV2
     if ( (forwardtrack->GetChi2()/float(forwardtrack->GetNumberOfClusters()-track->fNSkipped-track->fNUsed))>6) 
       {
 	delete forwardtrack; 
+        delete backtrack;
 	delete array->RemoveAt(i);
 	continue;
       }
@@ -1523,6 +1527,7 @@ AliITStrackV2 * AliITStrackerV2::GetBestHypothesys(Int_t esdindex, AliITStrackV2
     //
     
     if (track->GetNumberOfClusters()>maxn){
+      delete besttrack;
       besttrack =  new AliITStrackV2(*forwardtrack);
       maxn      =  track->GetNumberOfClusters();
       minchi2   =  chi2;
@@ -1532,6 +1537,7 @@ AliITStrackV2 * AliITStrackerV2::GetBestHypothesys(Int_t esdindex, AliITStrackV2
     }   
     //
     if (chi2 < minchi2){
+      delete besttrack;
       besttrack = new AliITStrackV2(*forwardtrack);
       minchi2   = chi2;      
     }    
@@ -1541,6 +1547,7 @@ AliITStrackV2 * AliITStrackerV2::GetBestHypothesys(Int_t esdindex, AliITStrackV2
   //
   //
   if (!besttrack || besttrack->GetNumberOfClusters()<4) {
+    delete besttrack;
     return 0;
   }
 

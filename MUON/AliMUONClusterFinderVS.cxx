@@ -88,7 +88,7 @@ void AliMUONClusterFinderVS::ResetRawClusters()
 {
   // Reset tracks information
   fNRawClusters = 0;
-  if (fRawClusters) fRawClusters->Clear();
+  if (fRawClusters) fRawClusters->Delete();
 }
 //____________________________________________________________________________
 void AliMUONClusterFinderVS::Decluster(AliMUONRawCluster *cluster)

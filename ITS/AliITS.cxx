@@ -1811,6 +1811,7 @@ void AliITS::Reconstruct() const
     loader->WriteRecPoints("OVERWRITE");
   }
 
+  runLoader->UnloadKinematics();
   loader->UnloadRecPoints();
   loader->UnloadDigits();
 }
