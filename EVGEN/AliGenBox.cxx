@@ -15,6 +15,12 @@
 
 /*
 $Log$
+Revision 1.8  2003/01/14 10:50:18  alibrary
+Cleanup of STEER coding conventions
+
+Revision 1.7  2002/02/08 16:50:50  morsch
+Add name and title in constructor.
+
 Revision 1.6  2001/07/27 17:09:35  morsch
 Use local SetTrack, KeepTrack and SetHighWaterMark methods
 to delegate either to local stack or to stack owned by AliRun.
@@ -62,10 +68,11 @@ All coding rule violations except RS3 corrected (AM)
 //                                                               //
 ///////////////////////////////////////////////////////////////////
 
+#include "TPDGCode.h"
+
+#include "AliConst.h"
 #include "AliGenBox.h"
 #include "AliRun.h"
-#include "AliConst.h"
-#include "AliPDG.h"
 
 ClassImp(AliGenBox)
 

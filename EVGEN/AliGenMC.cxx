@@ -13,52 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.13  2002/10/14 14:55:35  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.5.4.2  2002/07/24 08:56:28  alibrary
-Updating EVGEN on TVirtulaMC
-
-Revision 1.12  2002/07/19 11:42:33  morsch
-Use CalcMass()
-
-Revision 1.11  2002/06/06 15:26:24  morsch
-Correct child-selection for kPhiKK
-
-Revision 1.10  2002/06/05 14:05:46  morsch
-Decayer option kPhiKK for forced phi->K+K- decay added.
-
-Revision 1.9  2002/05/30 14:58:29  morsch
-Add pointer to AliGeometry to handle geometrical acceptance. (G. MArtinez)
-
-Revision 1.8  2002/04/26 10:42:35  morsch
-Case kNoDecayHeavy added. (N. Carrer)
-
-Revision 1.7  2002/04/17 10:32:32  morsch
-Coding Rule violations corrected.
-
-Revision 1.6  2002/03/26 14:19:36  morsch
-Saver calculation of rapdity.
-
-Revision 1.5  2002/03/12 17:02:20  morsch
-Change in calculation of rapidity, include case in which numerically e == pz.
-
-Revision 1.4  2001/11/27 13:13:07  morsch
-Maximum lifetime for long-lived particles to be put on the stack is parameter.
-It can be set via SetMaximumLifetime(..).
-
-Revision 1.3  2001/10/16 08:48:56  morsch
-Common vertex related code moved to base class AliGenerator.
-
-Revision 1.2  2001/10/15 08:15:51  morsch
-Event vertex and vertex truncation setting moved into AliMC.
-
-Revision 1.1  2001/07/13 10:56:00  morsch
-AliGenMC base class for AliGenParam and AliGenPythia commonalities.
-
-*/
+/* $Id$ */
 
 // Base class for generators using external MC generators.
 // For example AliGenPythia using Pythia.
@@ -66,10 +21,11 @@ AliGenMC base class for AliGenParam and AliGenPythia commonalities.
 // decay products and particle selection.
 // andreas.morsch@cern.ch
 
-#include "AliGenMC.h"
-#include "AliPDG.h"
 #include <TMath.h>
+#include <TPDGCode.h>
 #include <TParticle.h>
+
+#include "AliGenMC.h"
 
  ClassImp(AliGenMC)
 
@@ -87,6 +43,8 @@ AliGenMC::AliGenMC()
     SetGeometryAcceptance();
     SetPdgCodeParticleforAcceptanceCut();
     SetNumberOfAcceptedParticles();
+    SetTarget();
+    SetProjectile();
 }
 
 AliGenMC::AliGenMC(Int_t npart)
@@ -107,6 +65,8 @@ AliGenMC::AliGenMC(Int_t npart)
     SetGeometryAcceptance();
     SetPdgCodeParticleforAcceptanceCut();
     SetNumberOfAcceptedParticles();
+    SetTarget();
+    SetProjectile();
 }
 
 AliGenMC::AliGenMC(const AliGenMC & mc)
@@ -149,6 +109,12 @@ void AliGenMC::Init()
     case kNoDecay:
     case kNoDecayHeavy:
 	break;
+    }
+
+    if (fZTarget != 0 && fAProjectile != 0) 
+    {
+	fDyBoost    = - 0.5 * TMath::Log(Double_t(fZProjectile) * Double_t(fATarget) / 
+					 (Double_t(fZTarget)    * Double_t(fAProjectile)));
     }
 }
 
@@ -332,6 +298,38 @@ Int_t AliGenMC::CheckPDGCode(Int_t pdgcode) const
   //non diffractive state -- return code unchanged
   return pdgcode;
 }
+
+void AliGenMC::Boost()
+{
+//
+// Boost cms into LHC lab frame
+//
+
+    Double_t beta  = TMath::TanH(fDyBoost);
+    Double_t gamma = 1./TMath::Sqrt(1.-beta*beta);
+    Double_t gb    = gamma * beta;
+
+    printf("\n Boosting particles to lab frame %f %f %f", fDyBoost, beta, gamma);
+    
+    Int_t i;
+    Int_t np = fParticles->GetEntriesFast();
+    for (i = 0; i < np; i++) 
+    {
+	TParticle* iparticle = (TParticle*) fParticles->At(i);
+
+	Double_t e   = iparticle->Energy();
+	Double_t px  = iparticle->Px();
+	Double_t py  = iparticle->Py();
+	Double_t pz  = iparticle->Pz();
+
+	Double_t eb  = gamma * e -      gb * pz;
+	Double_t pzb =   -gb * e +   gamma * pz;
+
+	iparticle->SetMomentum(px, py, pzb, eb);
+    }
+}
+
+
 	  
 AliGenMC& AliGenMC::operator=(const  AliGenMC& rhs)
 {

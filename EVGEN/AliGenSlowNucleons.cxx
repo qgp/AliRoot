@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.2  2003/03/25 09:55:24  morsch
+Numbers of slow nucleons either from model or user set.
+
 Revision 1.1  2003/03/24 16:49:23  morsch
 Slow nucleon generator and model.
 

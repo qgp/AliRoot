@@ -34,21 +34,7 @@
 //     Tiziano.Virgili@roma1.infn.it
 //======================================================================
 
-/*
-$Log$
-Revision 1.3  2002/10/14 14:55:35  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.1.6.1  2002/06/10 14:57:41  hristov
-Merged with v3-08-02
-
-Revision 1.2  2002/04/17 12:48:54  morsch
-const added.
-
-Revision 1.1  2001/12/04 18:06:39  morsch
-AliGenSTRANGElib.cxx first commit.
-
-*/
+/* $Id: */
 
 #include "TMath.h"
 #include "TRandom.h"

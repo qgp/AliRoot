@@ -15,6 +15,12 @@
 
 /*
 $Log$
+Revision 1.12  2003/01/14 10:50:18  alibrary
+Cleanup of STEER coding conventions
+
+Revision 1.11  2001/11/27 12:18:05  morsch
+Fully commented version by Bruno Espagnon.
+
 Revision 1.10  2001/03/27 11:14:54  morsch
 Weight calculation for correlated particles updated:
 - Decay probability is counted once if muons are decay products
@@ -51,14 +57,14 @@ Introduction of the Copyright and cvs Log
  andreas.morsch@cern.ch
 */
 
-
-#include "AliDimuCombinator.h" 
-#include "AliPDG.h" 
-#include "AliRun.h" 
-#include <TRandom.h>
 #include <TClonesArray.h>
 #include <TParticle.h>
+#include <TPDGCode.h> 
+#include <TRandom.h>
 #include <TTree.h>
+
+#include "AliDimuCombinator.h" 
+#include "AliRun.h" 
 
 //
 ClassImp(AliDimuCombinator)

@@ -13,39 +13,8 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.3.2.3  2002/11/22 14:19:31  hristov
-Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
+/* $Id$ */
 
-Revision 1.3.2.2  2002/05/31 10:26:37  hristov
-Changes from v3-08-02 merged with NewIO branch
-
-Revision 1.3.2.1  2002/05/31 09:37:55  hristov
-First set of changes done by Piotr
-
-Revision 1.6  2002/10/14 14:55:35  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.4.4.1  2002/06/10 14:57:41  hristov
-Merged with v3-08-02
-
-Revision 1.5  2002/04/26 10:37:23  morsch
-Method RewindEvent() added. (N. Carrer)
-
-Revision 1.4  2002/03/22 08:25:33  morsch
-TreeE connected correctly.
-
-Revision 1.3  2001/12/12 11:21:37  morsch
-Dummy copy constructor added.
-
-Revision 1.2  2001/11/12 14:31:00  morsch
-Memory leaks fixed. (M. Bondila)
-
-Revision 1.1  2001/11/09 09:11:24  morsch
-Realisation of AliGenReader that reads the kine tree (TreeK).
-
-*/
 #include <TFile.h>
 #include <TTree.h>
 #include <TParticle.h>

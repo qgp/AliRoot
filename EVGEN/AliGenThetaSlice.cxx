@@ -15,6 +15,12 @@
 
 /*
 $Log$
+Revision 1.2  2003/01/14 10:50:19  alibrary
+Cleanup of STEER coding conventions
+
+Revision 1.1  2002/03/11 10:56:06  morsch
+AliGenThetaSlice, first commit. (Jiri Chudoba)
+
 */
 ////////////////////////////////////////////////////////////////////////
 //
@@ -31,10 +37,11 @@ $Log$
 //
 ////////////////////////////////////////////////////////////////////////
 
+#include <TPDGCode.h>
+
+#include "AliConst.h"
 #include "AliGenThetaSlice.h"
 #include "AliRun.h"
-#include "AliConst.h"
-#include "AliPDG.h"
 
 ClassImp(AliGenThetaSlice)
 

@@ -15,6 +15,12 @@
 
 /*
 $Log$
+Revision 1.2  2003/01/14 10:50:18  alibrary
+Cleanup of STEER coding conventions
+
+Revision 1.1  2002/01/08 09:47:28  morsch
+HIJING parameterisation including baryons, first commit.
+
 */
 ///////////////////////////////////////////////////////////////////
 // Parameterisation of pi, K, n and p eta and pt distributions   //
@@ -24,14 +30,14 @@ $Log$
 //                                                               //
 ///////////////////////////////////////////////////////////////////
 
-#include "AliGenHIJINGparaBa.h"
-#include "AliGenEventHeader.h"
-#include "AliRun.h"
-#include "AliConst.h"
-#include "AliPDG.h"
-
-#include <TF1.h>
 #include <TArrayF.h>
+#include <TF1.h>
+#include <TPDGCode.h>
+
+#include "AliConst.h"
+#include "AliGenEventHeader.h"
+#include "AliGenHIJINGparaBa.h"
+#include "AliRun.h"
 
 ClassImp(AliGenHIJINGparaBa)
 

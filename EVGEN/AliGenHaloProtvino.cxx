@@ -24,11 +24,10 @@
 #include <stdlib.h>
 
 #include <TDatabasePDG.h>
+#include <TPDGCode.h>
 #include <TSystem.h>
-#include <TVirtualMC.h>
 
 #include "AliGenHaloProtvino.h"
-#include "AliPDG.h"
 #include "AliRun.h"
 
  ClassImp(AliGenHaloProtvino)

@@ -13,54 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.18  2002/11/07 09:13:42  morsch
-Use "Vogt" to label new distributions.
-
-Revision 1.17  2002/11/07 09:06:10  morsch
-J/Psi and Upsilon pt and y distributions from R. Vogt 2002 added.
-
-Revision 1.16  2002/10/14 14:55:35  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.14.6.1  2002/06/10 14:57:41  hristov
-Merged with v3-08-02
-
-Revision 1.15  2002/04/17 10:11:51  morsch
-Coding Rule violations corrected.
-
-Revision 1.14  2002/02/22 17:26:43  morsch
-Eta and omega added.
-
-Revision 1.13  2001/03/27 11:01:04  morsch
-Charm pt-distribution corrected. More realistic y-distribution for pi and K.
-
-Revision 1.12  2001/03/09 13:01:41  morsch
-- enum constants for paramterisation type (particle family) moved to AliGen*lib.h
-- use AliGenGSIlib::kUpsilon, AliGenPHOSlib::kEtaPrime to access the constants
-
-Revision 1.11  2000/11/30 07:12:50  alibrary
-Introducing new Rndm and QA classes
-
-Revision 1.10  2000/06/29 21:08:27  morsch
-All paramatrisation libraries derive from the pure virtual base class AliGenLib.
-This allows to pass a pointer to a library directly to AliGenParam and avoids the
-use of function pointers in Config.C.
-
-Revision 1.9  2000/06/14 15:20:56  morsch
-Include clean-up (IH)
-
-Revision 1.8  2000/06/09 20:32:11  morsch
-All coding rule violations except RS3 corrected
-
-Revision 1.7  2000/05/02 08:12:13  morsch
-Coding rule violations corrected.
-
-Revision 1.6  1999/09/29 09:24:14  fca
-Introduction of the Copyright and cvs Log
-
-*/
+/* $Id$ */
 
 // Library class for particle pt and y distributions used for 
 // muon spectrometer simulations.
@@ -211,44 +164,54 @@ Double_t AliGenMUONlib::PtJpsi( Double_t *px, Double_t *dummy)
 
 Double_t AliGenMUONlib::PtJpsiPbPb( Double_t *px, Double_t *dummy)
 {
-// J/Psi pT
+// J/Psi pT spectrum
 //
 // R. Vogt 2002
 // PbPb 5.5 TeV
 // MRST HO
 // mc = 1.4 GeV, pt-kick 1 GeV
 //
-
-    Float_t ptJpsi[100] = {
-        0.0000e-01,  4.5870e+01,  6.5200e+01,  7.1740e+01,  6.5090e+01,
-	5.5070e+01,  4.9420e+01,  3.9780e+01,  3.2390e+01,  2.8120e+01,
-	2.3870e+01,  1.9540e+01,  1.6510e+01,  1.4180e+01,  1.2050e+01,
-	1.0390e+01,  8.7970e+00,  7.8680e+00,  6.7710e+00,  5.9360e+00,
-	5.3460e+00,  4.5670e+00,  4.6500e+00,  3.9360e+00,  3.5070e+00,
-	3.2070e+00,  2.8310e+00,  2.6340e+00,  2.4900e+00,  2.2410e+00,
-	2.1090e+00,  1.9070e+00,  1.7360e+00,  1.6120e+00,  1.5450e+00,
-	1.4350e+00,  1.3890e+00,  1.2610e+00,  1.0880e+00,  1.0930e+00,
-	1.0680e+00,  9.2500e-01,  8.6790e-01,  8.1790e-01,  7.9770e-01,
-	7.4660e-01,  7.3110e-01,  6.5120e-01,  6.8140e-01,  5.7960e-01,
-	5.8210e-01,  5.4640e-01,  5.1700e-01,  5.0760e-01,  4.8280e-01,
-	4.5360e-01,  4.4910e-01,  4.2410e-01,  4.2100e-01,  3.9530e-01,
-	3.7220e-01,  3.4840e-01,  3.4550e-01,  3.3000e-01,  3.1670e-01,
-	3.1470e-01,  2.8920e-01,  2.7650e-01,  2.6860e-01,  2.5390e-01,
-	2.4190e-01,  2.5200e-01,  2.2960e-01,  2.2540e-01,  2.0950e-01,
-	2.0250e-01,  1.8720e-01,  1.8200e-01,  1.7860e-01,  1.8290e-01,
-	1.6970e-01,  1.7130e-01,  1.6310e-01,  1.5500e-01,  1.5100e-01,
-	1.5770e-01,  1.4240e-01,  1.4560e-01,  1.3330e-01,  1.4190e-01,
-	1.2010e-01,  1.2430e-01,  1.2430e-01,  1.1340e-01,  1.1840e-01,
-	1.1380e-01,  1.0330e-01,  1.0130e-01,  1.0390e-01,  9.5810e-02
+    Float_t x = px[0];
+    Float_t c[8] = {
+	-2.13098e+00, 9.46552e+00, -5.06799e+00, 1.27260e+00, 
+	-1.83806e-01, 1.55853e-02, -7.23241e-04, 1.42105e-05
     };
-    Float_t x = px[0] * px[0];
-    if (x  < 1.5 || x > 100) {
-	return 0.0;
+    
+    Double_t y;
+    if (x < 10.) {
+	Int_t j;
+	y = c[j = 7];
+	while (j > 0) y  = y * x +c[--j];
+	y = x * TMath::Exp(y);
     } else {
-	Float_t y =  Interpolate(x, ptJpsi, 0.5, 1., 100, 4);
-	return px[0] * y;
+	y = 0.;
     }
+    return y;
 }
+Double_t AliGenMUONlib::PtJpsiPP( Double_t *px, Double_t *dummy)
+{
+// J/Psi pT spectrum
+//
+// R. Vogt 2002
+// pp 14 TeV
+// MRST HO
+// mc = 1.4 GeV, pt-kick 1 GeV
+//
+    Float_t x = px[0];
+    Float_t c[4] = {8.47471e+00, -1.93567e+00, 1.50271e-01, -5.51212e-03};
+ 
+    Double_t y;
+    if (x < 10.) {
+	Int_t j;
+	y = c[j = 3];
+	while (j > 0) y  = y * x +c[--j];
+	y = x * TMath::Exp(y);
+    } else {
+	y = 0.;
+    }
+    return y;
+}
+
 //
 //               y-distribution
 //____________________________________________________________
@@ -280,24 +243,51 @@ Double_t AliGenMUONlib::YJpsiPbPb( Double_t *px, Double_t *dummy)
 // MRST HO
 // mc = 1.4 GeV, pt-kick 1 GeV
 //
+    Double_t c[5] = {-6.03425e+02, 4.98257e+02, -1.38794e+02, 1.62209e+01, -6.85955e-01};
+    Double_t x = TMath::Abs(px[0]);
+    Double_t y;
+    
+    if (x < 4.) {
+	y = 31.754;
+    } else if (x < 6) {
+	Int_t j;
+	y = c[j = 4];
+	while (j > 0) y  = y * x + c[--j];
+    } else {
+	y =0.;
+    }
+    
+    return y;
+}
 
-    Float_t yJpsi[62] = 
-	{
-	  0.3981E-03, 0.1169E-01, 0.6143E-01, 0.3554E+00, 0.1249E+01 
-	, 0.1677E+01, 0.3634E+01, 0.5414E+01, 0.8242E+01, 0.1102E+02
-	, 0.1353E+02, 0.1964E+02, 0.2357E+02, 0.2662E+02, 0.3023E+02 
-	, 0.3250E+02, 0.3137E+02, 0.3243E+02, 0.3120E+02, 0.3249E+02 
-	, 0.3166E+02, 0.3104E+02, 0.3203E+02, 0.3149E+02, 0.3117E+02 
-	, 0.3210E+02, 0.3170E+02, 0.3279E+02, 0.3079E+02, 0.3208E+02 
-	, 0.3218E+02, 0.3218E+02, 0.3208E+02, 0.3079E+02, 0.3279E+02 
-	, 0.3170E+02, 0.3210E+02, 0.3118E+02, 0.3149E+02, 0.3203E+02 
-	, 0.3104E+02, 0.3167E+02, 0.3250E+02, 0.3120E+02, 0.3243E+02 
-	, 0.3137E+02, 0.3250E+02, 0.3022E+02, 0.2662E+02, 0.2357E+02 
-	, 0.1964E+02, 0.1353E+02, 0.1102E+02, 0.8242E+01, 0.5414E+01 
-	, 0.3634E+01, 0.1677E+01, 0.1249E+01, 0.3554E+00, 0.6142E-01
-        , 0.1169E-01, 0.3981E-03};
+Double_t AliGenMUONlib::YJpsiPP( Double_t *px, Double_t *dummy)
+{
 
-    return Interpolate(px[0], yJpsi, -7.625, 0.25, 62, 2);
+//
+// J/Psi y
+//
+//
+// R. Vogt 2002
+// pp 14  TeV
+// MRST HO
+// mc = 1.4 GeV, pt-kick 1 GeV
+//
+
+    Double_t c[5] = {1.38532e+00, 1.00596e+02, -3.46378e+01, 3.94172e+00, -1.48319e-01};
+    Double_t x = TMath::Abs(px[0]);
+    Double_t y;
+    
+    if (x < 2.5) {
+	y = 96.455 - 0.8483 * x * x;
+    } else if (x < 7.9) {
+	Int_t j;
+	y = c[j = 4];
+	while (j > 0) y  = y * x + c[--j];
+    } else {
+	y =0.;
+    }
+    
+    return y;
 }
 
 //                 particle composition
@@ -336,37 +326,49 @@ Double_t AliGenMUONlib::PtUpsilonPbPb( Double_t *px, Double_t *dummy)
 // MRST HO
 // mc = 1.4 GeV, pt-kick 1 GeV
 //
-
-    Float_t ptUps[100] = 
-	{   
-	    0.0000e-01, -1.5290e-02,  2.6020e-01,  3.4220e-01,  3.3710e-01,
-	    3.1880e-01,  3.3420e-01,  2.7740e-01,  2.3730e-01,  2.0640e-01,
-	    1.7690e-01,  1.6190e-01,  1.4500e-01,  1.3310e-01,  1.1440e-01,
-	    1.0800e-01,  1.0210e-01,  8.4690e-02,  8.0050e-02,  7.0710e-02,
-	    6.4160e-02,  6.5200e-02,  6.6890e-02,  6.0600e-02,  5.4030e-02,
-	    5.1140e-02,  4.6120e-02,  4.4800e-02,  4.2490e-02,  4.1440e-02,
-	    4.0310e-02,  3.7110e-02,  3.5890e-02,  3.5420e-02,  3.0370e-02,
-	    2.9970e-02,  3.0770e-02,  2.6380e-02,  2.7740e-02,  2.6690e-02,
-	    2.4210e-02,  2.5200e-02,  2.3760e-02,  2.1370e-02,  2.2290e-02,
-	    2.2700e-02,  2.0110e-02,  1.9320e-02,  1.8830e-02,  1.9910e-02,
-	    1.9740e-02,  1.8460e-02,  1.8240e-02,  1.6740e-02,  1.6140e-02,
-	    1.7340e-02,  1.5950e-02,  1.5430e-02,  1.4780e-02,  1.2750e-02,
-	    1.4370e-02,  1.2810e-02,  1.2900e-02,  1.1070e-02,  1.1830e-02,
-	    1.1150e-02,  1.1260e-02,  1.1610e-02,  1.0700e-02,  1.1600e-02,
-	    1.0390e-02,  1.0280e-02,  1.0180e-02,  1.0030e-02,  9.6050e-03,
-	    8.8050e-03,  8.9680e-03,  9.0120e-03,  8.4110e-03,  8.6660e-03,
-	    8.3060e-03,  8.5850e-03,  8.2600e-03,  8.3800e-03,  8.4200e-03,
-	    7.5690e-03,  7.2100e-03,  7.1230e-03,  7.3350e-03,  7.1980e-03,
-	    6.7500e-03,  6.6190e-03,  6.3370e-03,  6.6270e-03,  6.8290e-03,
-	    6.0880e-03,  6.6310e-03,  6.0490e-03,  5.8900e-03,  5.6100e-03
-	};
-    Float_t x = px[0] * px[0];
-    if (x  < 1.5 || x > 100) {
-	return 0.0;
+    Float_t x = px[0];
+    Double_t c[8] = {
+	-1.03488e+01, 1.28065e+01, -6.60500e+00, 1.66140e+00,       
+	-2.34293e-01, 1.86925e-02, -7.80708e-04, 1.30610e-05
+    };
+    Double_t y;
+    if (x < 10.) {
+	Int_t j;
+	y = c[j = 7];
+	while (j > 0) y  = y * x +c[--j];
+	y = x * TMath::Exp(y);
     } else {
-	Float_t y =  Interpolate(x, ptUps, 0.5, 1., 100, 4);
-	return px[0] * y;
+	y = 0.;
     }
+    return y;
+}
+
+Double_t AliGenMUONlib::PtUpsilonPP( Double_t *px, Double_t *dummy)
+{
+
+//
+// Upsilon pT
+//
+//
+// R. Vogt 2002
+// pp 14 TeV
+// MRST HO
+// mc = 1.4 GeV, pt-kick 1 GeV
+//
+    Float_t x = px[0];
+    Double_t c[8] = {-7.93955e+00, 1.06306e+01, -5.21392e+00, 1.19703e+00,   
+		     -1.45718e-01, 8.95151e-03, -2.04806e-04, -1.13053e-06};
+    
+    Double_t y;
+    if (x < 10.) {
+	Int_t j;
+	y = c[j = 7];
+	while (j > 0) y  = y * x +c[--j];
+	y = x * TMath::Exp(y);
+    } else {
+	y = 0.;
+    }
+    return y;
 }
 
 //
@@ -402,24 +404,38 @@ Double_t AliGenMUONlib::YUpsilonPbPb( Double_t *px, Double_t *dummy)
 // mc = 1.4 GeV, pt-kick 1 GeV
 //
 
-    Float_t yUps[52] = 
-	{
-	    0.000000, 0.000065, 0.000767, 0.004332, 0.014790,
-	    0.029370, 0.052060, 0.077930, 0.122500, 0.135800,
-	    0.184000, 0.207900, 0.228300, 0.258500, 0.269500,
-	    0.288500, 0.316200, 0.304100, 0.315800, 0.323300,
-	    0.322400, 0.322600, 0.345500, 0.338100, 0.331900,
-	    0.343700, 0.343700, 0.331900, 0.338100, 0.345500,
-	    0.322600, 0.322400, 0.323300, 0.315800, 0.304100,
-	    0.316200, 0.288500, 0.269500, 0.258500, 0.228300,
-	    0.207900, 0.184000, 0.135800, 0.122500, 0.077930,
-	    0.052060, 0.029380, 0.014780, 0.004332, 0.000767,
-	    0.6479E-04, 0.1013E-06       
-	};
-    
+    Double_t c[7] = {3.40036e-01, -3.98882e-07, -4.48398e-03, 8.46411e-08, -6.10854e-04,
+		     -2.99753e-09, 1.28895e-05};
+        
+    Double_t x = px[0];
+    if (TMath::Abs(x) > 5.55) return 0.;
+    Int_t j;
+    Double_t y = c[j = 6];
+    while (j > 0) y  = y * x +c[--j];
+    return y;
+}
 
+Double_t AliGenMUONlib::YUpsilonPP( Double_t *px, Double_t *dummy)
+{
 
-    return Interpolate(px[0], yUps, -6.5, 0.25, 52, 2);
+//
+// Upsilon y
+//
+//
+// R. Vogt 2002
+// p p  14. TeV
+// MRST HO
+// mc = 1.4 GeV, pt-kick 1 GeV
+//
+    Double_t c[7] = {8.91936e-01, -6.46645e-07, -1.52774e-02, 4.28677e-08, -7.01517e-04, 
+		     -6.20539e-10, 1.29943e-05};
+                
+    Double_t x = px[0];
+    if (TMath::Abs(x) > 6.2) return 0.;
+    Int_t j;
+    Double_t y = c[j = 6];
+    while (j > 0) y  = y * x +c[--j];
+    return y;
 }
 
 //                 particle composition
@@ -618,15 +634,19 @@ GenFunc AliGenMUONlib::GetPt(Int_t param,  const char* tname) const
 	func=PtEta;
 	break;
     case kJpsi:
-	if (sname == "Vogt") {
+	if (sname == "Vogt" || sname == "Vogt PbPb") {
 	    func=PtJpsiPbPb;
+	} else if (sname == "Vogt pp") {
+	    func=PtJpsiPP;
 	} else {
 	    func=PtJpsi;
 	}
 	break;
     case kUpsilon:
-	if (sname == "Vogt") {
+	if (sname == "Vogt" || sname == "Vogt PbPb") {
 	    func=PtUpsilonPbPb;
+	} else if (sname == "Vogt pp") {
+	    func=PtUpsilonPP;
 	} else {
 	    func=PtUpsilon;
 	}
@@ -668,15 +688,20 @@ GenFunc AliGenMUONlib::GetY(Int_t param, const char* tname) const
 	func=YOmega;
 	break;
     case kJpsi:
-	if (sname == "Vogt") {
+	if (sname == "Vogt" || sname == "Vogt PbPb") {
 	    func=YJpsiPbPb;
+	} else if (sname == "Vogt pp"){
+	    func=YJpsiPP;
 	} else {
 	    func=YJpsi;
 	}
+	
 	break;
     case kUpsilon:
-	if (sname == "Vogt") {
+	if (sname == "Vogt" || sname == "Vogt PbPb") {
 	    func=YUpsilonPbPb;
+	} else if (sname == "Vogt pp") {
+	    func = YUpsilonPP;
 	} else {
 	    func=YUpsilon;
 	}

@@ -49,24 +49,23 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 
-#include "Riostream.h"
+#include <Riostream.h>
+#include <TCanvas.h>
+#include <TF1.h>
+#include <TF2.h>
+#include <TH1.h>
+#include <TH2.h>
+#include <TObjArray.h>
+#include <TPDGCode.h>
+#include <TParticle.h>
+#include <TROOT.h>
 
-#include "TROOT.h"
-#include "TCanvas.h"
-#include "TParticle.h"
-#include "TObjArray.h"
-#include "TF1.h"
-#include "TF2.h"
-#include "TH1.h"
-#include "TH2.h"
 
-#include "AliRun.h"
-#include "AliPDG.h"
-#include "AliGenerator.h"
-
-#include "AliGenGeVSim.h"
 #include "AliGeVSimParticle.h"
+#include "AliGenGeVSim.h"
 #include "AliGenGeVSimEventHeader.h"
+#include "AliGenerator.h"
+#include "AliRun.h"
 
 
 ClassImp(AliGenGeVSim);
@@ -84,6 +83,7 @@ AliGenGeVSim::AliGenGeVSim() : AliGenerator(-1) {
   //PH  InitFormula();
   for (Int_t i=0; i<4; i++)  
     fPtYFormula[i] = 0;
+  fPartTypes = 0;
 }
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -538,7 +538,7 @@ void AliGenGeVSim::SetFormula(Int_t pdg) {
       fPtYHist = (TH2D*)gROOT->FindObject(buff);
     }
 
-    if (!fPtYHist) Error(where, msg[4], pdg);
+    if (!fPtYHist) Error(where, msg[3], pdg);
   }
 
 }

@@ -15,6 +15,22 @@
 
 /*
 $Log$
+Revision 1.18  2003/03/24 16:38:40  morsch
+Bug corrected.
+
+Revision 1.17  2003/03/24 15:58:27  morsch
+FinishRun() implemented.
+
+Revision 1.16  2003/01/14 10:50:18  alibrary
+Cleanup of STEER coding conventions
+
+Revision 1.15  2003/01/07 14:13:22  morsch
+Communication between generators provising and requesting collision
+geometries.
+
+Revision 1.14  2002/02/08 16:50:50  morsch
+Add name and title in constructor.
+
 Revision 1.13  2001/10/21 18:35:56  hristov
 Several pointers were set to zero in the default constructors to avoid memory management problems
 
@@ -56,10 +72,13 @@ Introduction of the Copyright and cvs Log
 // Author: andreas.morsch@cern.ch 
 //
 
+#include <TList.h>
+#include <TObjArray.h>
+
 #include "AliGenCocktail.h"
 #include "AliGenCocktailEntry.h"
+#include "AliCollisionGeometry.h"
 #include "AliRun.h"
-#include <TList.h>
 
 ClassImp(AliGenCocktail)
 
@@ -129,18 +148,32 @@ AddGenerator(AliGenerator *Generator, char* Name, Float_t RateExp)
     }  
 }
 
+  void AliGenCocktail::FinishRun()
+{
+// Initialisation
+    TIter next(fEntries);
+    AliGenCocktailEntry *entry;
+    //
+    // Loop over generators and initialize
+    while((entry = (AliGenCocktailEntry*)next())) {
+	entry->Generator()->FinishRun();
+    }  
+}
+
  void AliGenCocktail::Generate()
 {
 //
 // Generate event 
     TIter next(fEntries);
-    AliGenCocktailEntry *entry;
-    AliGenCocktailEntry *e1;
-    AliGenCocktailEntry *e2;
+    AliGenCocktailEntry *entry = 0;
+    AliGenCocktailEntry *preventry = 0;
+    AliGenerator* gen = 0;
+
     TObjArray *partArray = gAlice->Particles();
     //
     // Loop over generators and generate events
     Int_t igen=0;
+    
     while((entry = (AliGenCocktailEntry*)next())) {
 	igen++;
 	if (igen ==1) {
@@ -148,27 +181,25 @@ AddGenerator(AliGenerator *Generator, char* Name, Float_t RateExp)
 	} else {
 	    entry->SetFirst((partArray->GetEntriesFast())+1);
 	}
+//
+//      Handle case in which current generator needs collision geometry from previous generator
+//
+	gen = entry->Generator();
+	if (gen->NeedsCollisionGeometry())
+	{
+	    if (preventry && preventry->Generator()->ProvidesCollisionGeometry())
+	    {
+		gen->SetCollisionGeometry(preventry->Generator()->CollisionGeometry());
+	    } else {
+		Fatal("Generate()", "No Collision Geometry Provided");
+	    }
+	}
+	
 	entry->Generator()->Generate();
 	entry->SetLast(partArray->GetEntriesFast());
+	preventry = entry;
     }  
     next.Reset();
-    while((entry = (AliGenCocktailEntry*)next())) {
-	entry->PrintInfo();
-    }
-    for (entry=FirstGenerator();
-	 entry;
-	 entry=NextGenerator()
-	) {
-	entry->PrintInfo();
-    }
-    for (FirstGeneratorPair(e1,e2);
-	 (e1&&e2);
-	 NextGeneratorPair(e1,e2)
-	){
-	printf("\n -----------------------------");
-	e1->PrintInfo();
-	e2->PrintInfo();
-    }
 }
 
 AliGenCocktailEntry *  AliGenCocktail::FirstGenerator()
