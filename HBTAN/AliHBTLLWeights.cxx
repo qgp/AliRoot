@@ -315,15 +315,23 @@ Double_t AliHBTLLWeights::GetWeight(AliHBTPair* partpair)
        FSI_MOM.P2X = part2->Px();
        FSI_MOM.P2Y = part2->Py();
        FSI_MOM.P2Z = part2->Pz();
-      
+
        //boost it to PRF
        ltran12();
-       boosttoprf();
+       //boosttoprf();
        
        //Set particle positions now so they are Gaussian in PRF
-       RandomPairDistances();
+
+       Double_t rxcm = fSigma*gRandom->Gaus();
+       Double_t rycm = fSigma*gRandom->Gaus();
+       Double_t rzcm = fSigma*gRandom->Gaus();
        
-       FSI_PRF.RPS= FSI_COOR.X2*FSI_COOR.X2 + FSI_COOR.Y2*FSI_COOR.Y2 +FSI_COOR.Z2*FSI_COOR.Z2;
+       FSI_PRF.X=rxcm*fgkWcons;
+       FSI_PRF.Y=rycm*fgkWcons;
+       FSI_PRF.Z=rzcm*fgkWcons;
+       FSI_PRF.T=0;
+       
+       FSI_PRF.RPS= rxcm*rxcm + rycm*rycm +rzcm*rzcm;
        FSI_PRF.RP=TMath::Sqrt(FSI_PRF.RPS);
        
        break;
