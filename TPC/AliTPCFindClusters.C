@@ -100,18 +100,19 @@ Int_t AliTPCFindClusters(Int_t N=-1)
       cerr<<"Looking for clusters...\n";
       {
 	// delete gAlice; gAlice=0;
-       AliTPCv2 tpc;
-       tpc.SetLoader(tpcl);
+       AliTPCv2 * tpc = new AliTPCv2();
+       tpc->SetLoader(tpcl);
        tpcl->LoadDigits("read");
        tpcl->LoadRecPoints("recreate");
 
-       tpc.SetParam(dig); timer.Start();
+       tpc->SetParam(dig); timer.Start();
        for (Int_t i=0;i<n;i++)
         {
          printf("Processing event %d\n",i);
-         tpc.Digits2Clusters(i);
+         tpc->Digits2Clusters(i);
          //AliTPCclusterer::Digits2Clusters(dig, out, i);
        }
+       delete tpc;
       }
       break;
    default:
