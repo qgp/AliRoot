@@ -15,11 +15,11 @@
 
 /* $Id$ */
 
-///////////////////////////////////////////////////////////////////
-//                                                               //
-//    Generate the final state of the interaction as the input   //
-//    to the MonteCarlo                                          //
-//
+//-----------------------------------------------------------------
+//    Generate the final state of the interaction as the input
+//    to the MonteCarlo
+//    Author: A.Morsch
+//-----------------------------------------------------------------
 //Begin_Html
 /*
 <img src="picts/AliGeneratorClass.gif">
@@ -34,8 +34,9 @@
 //End_Html
 //                                                               //
 ///////////////////////////////////////////////////////////////////
-#include "TGenerator.h"
+#include <TGenerator.h>
 
+#include "AliCollisionGeometry.h"
 #include "AliConfig.h"
 #include "AliGenerator.h"
 #include "AliRun.h"
@@ -71,15 +72,16 @@ AliGenerator::AliGenerator():
   fOsigma(3),
   fVertex(3),
   fEventVertex(0),
-  fStack(0)
+  fStack(0),
+  fCollisionGeometry(0)
 {
   //
   // Default constructor
   //
     if (gAlice) {
-      if (gAlice->GetDebug()>0)
-       printf("\n AliGenerator Default Constructor\n\n");
-       gAlice->SetGenerator(this);
+	if (gAlice->GetDebug()>0)
+	    printf("\n AliGenerator Default Constructor\n\n");
+	gAlice->SetGenerator(this);
     }
 
     SetThetaRange(); ResetBit(kThetaRange);
@@ -126,7 +128,8 @@ AliGenerator::AliGenerator(Int_t npart):
   fOsigma(3),
   fVertex(3),
   fEventVertex(0),
-  fStack(0)
+  fStack(0),
+  fCollisionGeometry(0)
 {
   //
   // Standard constructor
@@ -220,7 +223,10 @@ AliGenerator::~AliGenerator()
   //
   fOrigin.Set(0);
   fOsigma.Set(0);
-  delete fgMCEvGen;
+  if (fgMCEvGen) {
+    delete fgMCEvGen;
+    fgMCEvGen=0;
+  }
 }
 
 //_______________________________________________________________________
@@ -376,6 +382,9 @@ void  AliGenerator::SetTrack(Int_t done, Int_t parent, Int_t pdg,
                                Float_t tof, TMCProcess mech, Int_t &ntr,
                                Float_t weight, Int_t is)
 {
+  //
+  // Loads one track on the stack
+  //
 
   if (fStack)
     fStack->SetTrack(done, parent, pdg, pmom, vpos, polar, tof,
@@ -392,6 +401,9 @@ void  AliGenerator::SetTrack(Int_t done, Int_t parent, Int_t pdg,
                       Double_t polx, Double_t poly, Double_t polz,
                       TMCProcess mech, Int_t &ntr, Float_t weight, Int_t is)
 {
+  //
+  // Loads one track on the stack
+  //
   
   if (fStack)
      fStack->SetTrack(done, parent, pdg, px, py, pz, e, vx, vy, vz, tof,
@@ -405,6 +417,9 @@ void  AliGenerator::SetTrack(Int_t done, Int_t parent, Int_t pdg,
 //_______________________________________________________________________
 void AliGenerator:: KeepTrack(Int_t itrack)
 {
+  //
+  // Declare a track permanent on the stack
+  //
   if (fStack)
      fStack->KeepTrack(itrack);
   else 
@@ -415,6 +430,9 @@ void AliGenerator:: KeepTrack(Int_t itrack)
 //_______________________________________________________________________
 void AliGenerator:: SetHighWaterMark(Int_t nt)
 {
+  //
+  // Internal function to set the maximum index used in the stack
+  //
   if (fStack)
      fStack->SetHighWaterMark(nt);
   else 
