@@ -11,6 +11,7 @@
 //   Origin: Iouri Belikov, CERN, Jouri.Belikov@cern.ch 
 //-------------------------------------------------------
 #include "AliTracker.h"
+#include "AliConfig.h"
 #include "AliTPCtrack.h"
 #include "AliTPCClustersArray.h"
 
@@ -25,7 +26,8 @@ public:
    AliTPCtracker():AliTracker(),fkNIS(0),fkNOS(0) {
       fInnerSec=fOuterSec=0; fSeeds=0; 
    }
-   AliTPCtracker(const AliTPCParam *par, const char* evfoldname, Int_t eventn=0);
+   AliTPCtracker(const AliTPCParam *par, Int_t eventn=0, 
+                 const char* evfoldname  = AliConfig::fgkDefaultEventFolderName);
   ~AliTPCtracker();
 
    Int_t ReadSeeds(const TFile *in);

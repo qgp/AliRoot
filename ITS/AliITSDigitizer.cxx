@@ -15,6 +15,9 @@
  
 /*
 $Log$
+Revision 1.1.2.3  2002/11/22 14:19:34  hristov
+Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
+
 Revision 1.1.2.2  2002/06/06 14:23:56  hristov
 Merged with v3-08-02
 
@@ -165,22 +168,6 @@ Bool_t AliITSDigitizer::Init(){
     } // end if
     // fActive needs to be set to a default all kTRUE value
     for(Int_t i=0;i<fITS->GetITSgeom()->GetIndexMax();i++) fActive[i] = kTRUE;
-/*  This will not work from Init. ts is aways returned as zero.
-    TTree *ts;
-    if(fRoif>=0 && fRoiifile>=0 && fRoiifile<GetManager()->GetNinputs()){
-	ts = GetManager()->GetInputTreeS(fRoiifile);
-	if(!ts){
-	    if(!gAlice) ts = gAlice->TreeS();
-	    if(!ts){
-		cout <<"The TTree TreeS needed to set by region not found."
-		    " No region of interest cut will be applied."<< endl;
-		return fInit;
-	    } // end if
-	} // end if
-	cout << "calling SetByReionOfInterest ts="<< ts <<endl;
-	SetByRegionOfInterest(ts);
-    } // end if
-*/
     return fInit;
 }
 //______________________________________________________________________
@@ -254,14 +241,19 @@ void AliITSDigitizer::Exec(Option_t* opt){
     // Digitize
     fITS->MakeBranchInTreeD(outgime->TreeD());
 
+    for(ifiles=0; ifiles<nfiles; ifiles++ )
+     {
+       inRL =  AliRunLoader::GetRunLoader(fManager->GetInputFolderName(fl[ifiles]));
+       ingime = inRL->GetLoader(loadname);
+       if (ingime->TreeS() == 0x0) ingime->LoadSDigits();
+     }
+
     for(module=0; module<size; module++ )
      {
         if(fActive && fRoif!=0) if(!fActive[module]) continue;
         id = fITS->GetITSgeom()->GetModuleType(module);
         if(!all && !det[id]) continue;
         iDetType = fITS->DetType( id );
-
-
 
         sim      = (AliITSsimulation*)iDetType->GetSimulationModel();
         if(!sim) {
@@ -278,7 +270,6 @@ void AliITSDigitizer::Exec(Option_t* opt){
             
            inRL =  AliRunLoader::GetRunLoader(fManager->GetInputFolderName(fl[ifiles]));
            ingime = inRL->GetLoader(loadname);
-           ingime->LoadSDigits();
            
            TTree *treeS = ingime->TreeS();
            fITS->SetTreeAddress();
@@ -302,10 +293,6 @@ void AliITSDigitizer::Exec(Option_t* opt){
              {
                fActive[module] = lmod;
              } // end if
-            ingime->UnloadSDigits();
-            //cout << " fActive["<<module<<"]=";
-            //if(fActive[module]) cout << "kTRUE";
-            //else cout << "kFALSE";
         } // end for ifiles
 	//cout << " end ifiles loop" << endl;
         // Digitize current module sum(SDigits)->Digits
@@ -316,10 +303,15 @@ void AliITSDigitizer::Exec(Option_t* opt){
         fITS->ResetDigits();
     } // end for module
 
-    //cout << "end modules loop"<<endl;
-
     outgime->TreeD()->AutoSave();
     outgime->WriteDigits("OVERWRITE");
+    
+    for(ifiles=0; ifiles<nfiles; ifiles++ )
+     {
+       inRL =  AliRunLoader::GetRunLoader(fManager->GetInputFolderName(fl[ifiles]));
+       ingime = inRL->GetLoader(loadname);
+       ingime->UnloadSDigits();
+     }
 
     delete[] fl;
     sdig->Clear();

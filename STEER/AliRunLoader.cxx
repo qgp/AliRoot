@@ -478,6 +478,12 @@ void AliRunLoader::MakeTree(Option_t *option)
     
 Int_t AliRunLoader::LoadgAlice()
 {
+//Loads gAlice from file
+ if (GetAliRun())
+  {
+    Warning("LoadgAlice","AliRun is already in folder. Unload first.");
+    return 0;
+  }
  AliRun* alirun = dynamic_cast<AliRun*>(fGAFile->Get(fgkGAliceName));
  if (alirun == 0x0)
   {
@@ -495,7 +501,6 @@ Int_t AliRunLoader::LoadgAlice()
     gAlice = alirun;
   }
 
- GetEventFolder()->Add(alirun);
  return 0; 
 }
 /**************************************************************************/
@@ -538,6 +543,7 @@ Int_t AliRunLoader::LoadHeader()
 
 Int_t AliRunLoader::LoadKinematics(Option_t* option)
 {
+//Loads the kinematics 
  if (GetEventFolder() == 0x0)
   {
     Error("LoadKinematics","Event folder not specified yet");

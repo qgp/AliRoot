@@ -22,10 +22,12 @@ class TFile;
 class AliITStrackerV2 : public AliTracker {
 public:
   AliITStrackerV2():AliTracker(){}
-  AliITStrackerV2(const AliITSgeom *geom, const char* evfoldname = AliConfig::fgkDefaultEventFolderName, 
-                  Int_t event=0) throw (const Char_t *);
+  AliITStrackerV2(const AliITSgeom *geom, Int_t event=0,
+                  const char* evfoldname = AliConfig::fgkDefaultEventFolderName) 
+                  throw (const Char_t *);
   AliCluster *GetCluster(Int_t index) const;
   Int_t Clusters2Tracks();
+  Int_t Exec(Option_t* opt = "");
   Int_t PropagateBack();
   void SetupFirstPass(Int_t *flags, Double_t *cuts=0);
   void SetupSecondPass(Int_t *flags, Double_t *cuts=0);

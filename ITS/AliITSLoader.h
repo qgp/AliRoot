@@ -10,39 +10,36 @@
 class AliITSLoader: public AliLoader
  {
    public:
-    AliITSLoader();
+    AliITSLoader(){};
     AliITSLoader(const Char_t *name,const Char_t *topfoldername);
     AliITSLoader(const Char_t *name,TFolder *topfolder);
     
-    virtual ~AliITSLoader();//-----------------
+    virtual ~AliITSLoader(){UnloadRawClusters();}
 
     virtual Int_t  GetEvent();//changes to root directory
     virtual void   CleanFolders();
-    const TString& GetRawClustersContainerName() const{ return fRawClustersContainerName;}
-    virtual void   CleanRawClusters() {Clean(fRawClustersContainerName);}
-    Int_t          LoadRawClusters(Option_t* opt="");
-    virtual void   MakeTree(Option_t* opt);
+    const TString& GetRawClustersContainerName() { return fRawClustersInfo.ContainerName();}
+    virtual void   CleanRawClusters() {Clean(fRawClustersInfo);}
+    Int_t          LoadRawClusters(Option_t* opt=""){return LoadData(fRawClustersInfo,opt);}
+    void           MakeTree(Option_t* opt);
     virtual void   SetCompressionLevel(Int_t cl);
-    void           SetRawClustersFileName(const TString& fname){fRawClustersFileName = fname;}
+    void           SetRawClustersFileName(const TString& fname){fRawClustersInfo.FileName() = fname;}
     virtual Int_t  SetEvent();
-    TTree*         TreeC(); // returns a pointer to the tree of  RawClusters
+    TTree*         TreeC(){ return Tree(fRawClustersInfo);} // returns a pointer to the tree of  RawClusters
     void           UnloadRawClusters(){CleanRawClusters(); CloseRawClustersFile();}
-    virtual Int_t  WriteRawClusters(Option_t* opt="");
+    virtual Int_t  WriteRawClusters(Option_t* opt=""){return WriteData(fRawClustersInfo,opt);}
 
 
    protected:
 
     // METHODS
-    void           CloseRawClustersFile(){CloseDataFile(fRawClustersFile,fRawClustersDir);}
-    virtual void   MakeRawClustersContainer();
-    Int_t          OpenRawClustersFile(Option_t *opt);
-    Int_t          PostRawClusters();
+    void           CloseRawClustersFile(){CloseDataFile(fRawClustersInfo);}
+    virtual void   MakeRawClustersContainer() {AliLoader::MakeTree(fRawClustersInfo);}
+    Int_t          OpenRawClustersFile(Option_t *opt){return OpenDataFile(fRawClustersInfo,opt);}
+    Int_t          PostRawClusters(){return PostData(fRawClustersInfo);}
 
     // DATA
-    TString fRawClustersContainerName; //name of container (TREE) for raw clusters -  TreeC
-    TString fRawClustersFileName; //name of file with raw clusters
-    TFile* fRawClustersFile; //pointer to file with raw clusters
-    TDirectory* fRawClustersDir; //! pointer to Dir with current event raw data clusters
+    AliLoaderDataInfo fRawClustersInfo;
     static const TString fgkDefaultRawClustersContainerName;
 
    public:

@@ -169,6 +169,7 @@ class AliITS : public AliDetector {
     //=================== Reconstruction ===============================
     void MakeBranchR(const char *file, Option_t *opt=" ");
     void MakeBranchRF(const char *file){MakeBranchR(file,"Fast");}
+    void MakeBranchC();
     void SetTreeAddressR(TTree *treeR);
     void AddRecPoint(const AliITSRecPoint &p);
     void HitsToFastRecPoints(Int_t evNumber,Int_t bgrev,Int_t size,

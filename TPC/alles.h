@@ -19,11 +19,16 @@
 #include <TText.h>
 #include <TTree.h>
 #include <TBranch.h>
+#include <TError.h>
 
 
 //ALIROOT headers
 #include "TParticle.h"
 #include "AliRun.h"
+#include "AliRunLoader.h"
+#include "AliLoader.h"
+#include "AliStack.h"
+#include "AliHeader.h"
 
 //TPC headers
 #include "AliTPC.h"

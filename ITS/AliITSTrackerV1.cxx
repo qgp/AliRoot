@@ -15,6 +15,9 @@
  
 /*
 $Log$
+Revision 1.21.4.2  2002/11/22 14:19:35  hristov
+Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
+
 Revision 1.21.4.1  2002/05/31 09:37:56  hristov
 First set of changes done by Piotr
 
@@ -557,7 +560,7 @@ void AliITSTrackerV1::DoTracking(Int_t evNumber,Int_t minTr,Int_t maxTr,
     cf->cd();
     TString foldname(fITS->GetLoader()->GetEventFolder()->GetName());
     
-    AliTPCtracker *tracker = new AliTPCtracker(digp,foldname,evNumber);  
+    AliTPCtracker *tracker = new AliTPCtracker(digp,evNumber,foldname);  
 
     // Load clusters
     tracker->LoadInnerSectors();

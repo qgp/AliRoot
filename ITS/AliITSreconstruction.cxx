@@ -15,6 +15,9 @@
  
 /*
 $Log$
+Revision 1.3.4.4  2002/11/22 14:19:35  hristov
+Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
+
 Revision 1.3.4.3  2002/06/25 05:58:42  barbera
 Updated classes and macros to make the ITS data structures compatible with the new IO (from M. Masera)
 
@@ -166,6 +169,7 @@ Bool_t AliITSreconstruction::Init(){
     //   none.
     // Return:
     //    kTRUE if no errors initilizing this class occurse else kFALSE
+    Info("Init","");
     if (fRunLoader == 0x0)
      {
        Error("Init","Run Loader is NULL");
@@ -200,19 +204,16 @@ Bool_t AliITSreconstruction::Init(){
     fEnt  = gAlice->GetEventsPerRun();
 
     fLoader->LoadDigits("read");
-    fLoader->LoadRecPoints("update");
-    fITS->MakeTreeC();
+    fLoader->LoadRecPoints("recreate");
+    fLoader->LoadRawClusters("recreate");
+    if (fLoader->TreeR() == 0x0) fLoader->MakeTree("R");
+    fITS->MakeBranch("R");
+    fITS->MakeBranchC();
     fITS->SetTreeAddress();
-    /*
-    retcode = fRunLoader->GetEvent(fEnt0);
-    if(retcode != 0){
-      cerr << "Unable to load event 0 - aborting\n";
-      fInit = kFALSE;
-      return fInit;
-    }
-    */
-    // finished init.
     fInit = InitRec();
+
+    Info("Init","  Done\n\n\n");
+
     return fInit;
 }
 //______________________________________________________________________
@@ -228,18 +229,18 @@ Bool_t AliITSreconstruction::InitRec(){
 
     // SPD
     if(fDet[kSPD]){
+      Info("InitRec","SPD");
       idt = fITS->DetType(kSPD);
-      AliITSsegmentationSPD *segSPD = (AliITSsegmentationSPD*)
-                                             idt->GetSegmentationModel();
+      AliITSsegmentationSPD *segSPD = (AliITSsegmentationSPD*)idt->GetSegmentationModel();
       TClonesArray *digSPD = fITS->DigitsAddress(kSPD);
       TClonesArray *recpSPD = fITS->ClustersAddress(kSPD);
-      AliITSClusterFinderSPD *recSPD = new AliITSClusterFinderSPD(segSPD,
-                                                    digSPD,
-                                                    recpSPD);
+      Info("InitRec","idt = %#x; digSPD = %#x; recpSPD = %#x",idt,digSPD,recpSPD);
+      AliITSClusterFinderSPD *recSPD = new AliITSClusterFinderSPD(segSPD,digSPD,recpSPD);
       fITS->SetReconstructionModel(kSPD,recSPD);
     } // end if fDet[kSPD].
     // SDD
     if(fDet[kSDD]){
+      Info("InitRec","SDD");
       idt = fITS->DetType(kSDD);
       AliITSsegmentationSDD *segSDD = (AliITSsegmentationSDD*)
                                          idt->GetSegmentationModel();
@@ -254,6 +255,7 @@ Bool_t AliITSreconstruction::InitRec(){
     } // end if fDet[kSDD]
     // SSD
     if(fDet[kSSD]){
+      Info("InitRec","SSD");
       idt = fITS->DetType(kSSD);
       AliITSsegmentationSSD *segSSD = (AliITSsegmentationSSD*)
                                        idt->GetSegmentationModel();
@@ -262,7 +264,7 @@ Bool_t AliITSreconstruction::InitRec(){
                                                    digSSD);
       fITS->SetReconstructionModel(kSSD,recSSD);
     } // end if fDet[kSSD]
-
+    Info("InitRec","    Done\n");
     return kTRUE;
 }
 //______________________________________________________________________ 
@@ -296,14 +298,14 @@ void AliITSreconstruction::Exec(const Option_t *opt){
 
     for(evnt=0;evnt<fEnt;evnt++)
      {
+      Info("Exec","");
+      Info("Exec","Processing Event %d",evnt);
+      Info("Exec","");
 
       fRunLoader->GetEvent(evnt);
-      fLoader->LoadDigits("read");
-      fLoader->LoadRecPoints("update");
-      fITS->MakeTreeC();
-//      gAlice->SetEvent(evnt);
-      if(!fLoader->TreeR()) fLoader->MakeTree("R");
+      if (fLoader->TreeR() == 0x0) fLoader->MakeTree("R");
       fITS->MakeBranch("R");
+      if (fLoader->TreeC() == 0x0) fITS->MakeTreeC();
       fITS->SetTreeAddress();
       fITS->DigitsToRecPoints(evnt,0,lopt);
     } // end for evnt

@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.6.4.1  2002/11/22 14:19:50  hristov
+Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
+
 Revision 1.8  2002/10/29 14:26:49  hristov
 Code clean-up (F.Carminati)
 
@@ -182,8 +185,7 @@ AliMCQA::AliMCQA(Int_t ndets):
     (*fVolNames)[i]=new TNamed(gMC->VolName(i+1),mod->GetName());
   }
 
-  fQAHist->Add(new TH1F("hMCMcalls","Monte Carlo calls per module",
-			fNdets, -0.5, fNdets-0.5));
+  fQAHist->Add(new TH1F("hMCMcalls","Monte Carlo calls per module",fNdets, -0.5, fNdets-0.5));
   h = dynamic_cast<TH1F*>(dir->FindObject("hMCMcalls"));
    h->GetListOfFunctions()->Add(new TExec("ex","gAlice->GetMCQA()->AddModuleName()"));
 
@@ -203,27 +205,29 @@ void AliMCQA::Copy(AliMCQA &) const
 }
 
 //_______________________________________________________________________
-AliMCQA::~AliMCQA() {
+AliMCQA::~AliMCQA() 
+ {
+//destructor  
   gROOT->GetListOfBrowsables()->Remove(this);
+  //if program crashes here - it probobly means that 
+  //one of added browsables was deleted and not removed previously from that list
+  //skowron
+  
   if (fQAList) {
     fQAList->Delete();
     delete fQAList;
-    fQAList=0;
   }
   if (fQAHist) {
     fQAHist->Delete();
     delete fQAHist;
-    fQAHist=0;
   }
   if (fVolNames) {
     fVolNames->Delete();
     delete fVolNames;
-    fVolNames=0;
   }
   if (fModNames) {
     fModNames->Delete();
     delete fModNames;
-    fModNames=0;
   }
   delete [] fDetDone;
   delete fMPaveLabel;

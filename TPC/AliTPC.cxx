@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.53.2.6  2002/11/26 16:32:46  hristov
+Merging NewIO with v3-09-04
+
 Revision 1.53.2.5  2002/11/22 14:20:09  hristov
 Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
 
@@ -520,7 +523,7 @@ void AliTPC::Clusters2Tracks()
   //-----------------------------------------------------------------
   // This is a track finder.
   //-----------------------------------------------------------------
-  AliTPCtracker tracker(fTPCParam,fLoader->GetEventFolder()->GetName());
+  AliTPCtracker tracker(fTPCParam,0,fLoader->GetEventFolder()->GetName());
   tracker.Clusters2Tracks();
  }
 

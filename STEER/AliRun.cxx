@@ -17,6 +17,9 @@
 
 /*
 $Log$
+Revision 1.81.2.9  2002/11/27 17:33:10  hristov
+Merging NewIO with v3-09-04
+
 Revision 1.81.2.8  2002/11/26 16:32:46  hristov
 Merging NewIO with v3-09-04
 
@@ -486,6 +489,8 @@ AliRun::~AliRun()
   //
   // Default AliRun destructor
   //
+  gROOT->GetListOfBrowsables()->Remove(this);
+
   if (fRunLoader)
    {
     TFolder* evfold = fRunLoader->GetEventFolder();
@@ -1924,6 +1929,18 @@ void AliRun::SetRunLoader(AliRunLoader* rloader)
   if (evfold) evfoldname = evfold->GetName();
   else Warning("SetRunLoader","Did not get Event Folder from Run Loader");
   
+  if ( fRunLoader->GetAliRun() )
+   {//if alrun already exists in folder
+    if (fRunLoader->GetAliRun() != this )
+     {//and is different than this - crash
+       Fatal("AliRun","AliRun is already in Folder and it is not this object");
+       return;//pro forma
+     }//else do nothing
+   }
+  else
+   {
+     evfold->Add(this);//Post this AliRun to Folder
+   }
   
   TIter next(fModules);
   AliModule *module;

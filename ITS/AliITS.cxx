@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.66.2.5  2002/11/22 14:19:33  hristov
+Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
+
 Revision 1.66.2.4  2002/06/28 10:35:16  hristov
 Forward tracking adapted to the NewIO
 
@@ -1003,6 +1006,10 @@ void AliITS::FillModules(TTree *treeH, Int_t mask) {
     // Return:
     //      none.
 
+    if (treeH == 0x0)
+     {
+       Error("FillModules","Tree is NULL");
+     }
     Int_t lay,lad,det,index;
     AliITShit *itsHit=0;
     AliITSmodule *mod=0;
@@ -1157,7 +1164,14 @@ void AliITS::Hits2SDigits(){
     //      none.
 
 //    return; // Using Hits in place of the larger sDigits.
-    AliHeader *header=fLoader->GetRunLoader()->GetHeader(); // Get event number from this file.
+    AliRunLoader* rl = fLoader->GetRunLoader(); 
+    AliHeader *header=rl->GetHeader(); // Get event number from this file.
+    if (header == 0x0)
+     {
+       rl->LoadHeader();
+       header=rl->GetHeader();
+       if (header == 0x0) return;
+     }
     // Do the Hits to Digits operation. Use Standard input values.
     // Event number from file, no background hit merging , use size from
     // AliITSgeom class, option="All", input from this file only.
@@ -1551,22 +1565,25 @@ void AliITS::MakeTreeC(Option_t *option){
     Error("MakeTreeC","fLoader == 0x0");
     return;
   }
+  if (pITSLoader->TreeC() == 0x0) pITSLoader->MakeTree("C");
+  MakeBranchC();
+}
 
-  if(pITSLoader->LoadRawClusters("UPDATE")){
-    Error("MakeTreeC","problems in loading raw clusters");
+void AliITS::MakeBranchC()
+{
+//Makes barnches in treeC
+  AliITSLoader *pITSLoader = (AliITSLoader*)fLoader;    
+  if (pITSLoader == 0x0) 
+   {
+    Error("MakeTreeC","fLoader == 0x0");
     return;
-  }
-
-  if(pITSLoader->TreeC()) {
-    pITSLoader->CleanRawClusters();
-  }
-    
-  const char *optC = strstr(option,"C");
-    
-  if (optC && !pITSLoader->TreeC()) pITSLoader->MakeTree("C");
-  else return;
-
+   }
   TTree * TC = pITSLoader->TreeC();
+  if (TC == 0x0)
+   {
+     Error("MakeTreeC","Can not get TreeC from Loader");
+     return;
+   }
 
   Int_t buffersize = 4000;
   char branchname[30];
@@ -1576,18 +1593,29 @@ void AliITS::MakeTreeC(Option_t *option){
 
     // one branch for Clusters per type of detector
     Int_t i;   
-    for (i=0; i<kNTYPES ;i++) {
+    for (i=0; i<kNTYPES ;i++) 
+     {
         AliITSDetType *iDetType=DetType(i); 
         iDetType->GetClassNames(digclass,clclass);
         // clusters
-        if(!ClustersAddress(i)){
+        if(!ClustersAddress(i))
+         {
           fCtype->AddAt(new TClonesArray(clclass,1000),i);
-        }
+         }
         if (kNTYPES==3) sprintf(branchname,"%sClusters%s",GetName(),det[i]);
         else  sprintf(branchname,"%sClusters%d",GetName(),i+1);
-        if (fCtype   && TC) {
-      TC->Branch(branchname,&((*fCtype)[i]), buffersize);
-        } // end if fCtype && TC
+        if (fCtype  && TC) 
+         {
+           if (TC->GetBranch(branchname))
+            {
+              Warning("MakeBranchC","Branch %s alread exists in TreeC",branchname);
+            }
+           else
+            {
+              Info("MakeBranchC","Creating branch %s in TreeC",branchname);
+              TC->Branch(branchname,&((*fCtype)[i]), buffersize);
+            }
+         } // end if fCtype && TC
   } // end for i
 }
 
@@ -1813,8 +1841,6 @@ void AliITS::HitsToFastRecPoints(Int_t evNumber,Int_t bgrev,Int_t size,
     ClearModules();
     
     fLoader->WriteRecPoints("OVERWRITE");
-    // reset tree
-//    fLoader->TreeR()->Reset();
 }
 //______________________________________________________________________
 void AliITS::Digits2Reco(){
@@ -1892,11 +1918,7 @@ void AliITS::DigitsToRecPoints(Int_t evNumber,Int_t lastentry,Option_t *opt){
 
 
   pITSloader->WriteRecPoints("OVERWRITE");
-  // reset tree
-  fLoader->TreeR()->Reset();
-
   pITSloader->WriteRawClusters("OVERWRITE");
-  treeC->Reset();
 }
 //______________________________________________________________________
 void AliITS::ResetRecPoints(){

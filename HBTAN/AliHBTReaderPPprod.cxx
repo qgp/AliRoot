@@ -163,7 +163,7 @@ Int_t AliHBTReaderPPprod::Read(AliHBTRun* particles, AliHBTRun *tracks)
          AliTPCtrack *iotrack=0;
          
          fClustersFile->cd();
-         AliTPCtracker *tracker = new AliTPCtracker(TPCParam,"",currentEvent);
+         AliTPCtracker *tracker = new AliTPCtracker(TPCParam,currentEvent,"");
          if (!tracker) 
           {
             Error("AliHBTReaderPPprod::Read","Can't get a tracker !\n"); 

@@ -4,6 +4,12 @@ Int_t AliTPCHits2Digits(Int_t nevent=1)
   // new version by J.Belikov
 
   // Connect the Root Galice file containing Geometry, Kine and Hits
+  if (gAlice) 
+   { 
+     delete gAlice->GetRunLoader();
+     delete gAlice;//if everything was OK here it is already NULL
+     gAlice = 0x0;
+   }
 
   AliRunLoader *rl = AliRunLoader::Open("galice.root","Event","update");
   if (!rl) 
@@ -13,8 +19,6 @@ Int_t AliTPCHits2Digits(Int_t nevent=1)
    }
 
   // Get AliRun object from file or create it if not on file
-  if (gAlice) delete gAlice;
-  gAlice = 0x0;
 
   rl->LoadgAlice();
  
@@ -53,7 +57,7 @@ Int_t AliTPCHits2Digits(Int_t nevent=1)
     TPC->Hits2Digits(eventn);
   }
 
-  delete gAlice; gAlice=0;
+  delete rl;
 
   timer.Stop();
   timer.Print();

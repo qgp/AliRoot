@@ -70,7 +70,7 @@ Int_t AliBarrelReconstruction(Int_t n=1)
       cerr<<"Error occured while l"<<endl;
       return 1;
     }
-   AliKalmanTrack::SetConvConst(100/0.299792458/0.2/gAlice->Field()->Factor());
+   AliKalmanTrack::SetConvConst(1000/0.299792458/rl->GetAliRun()->Field()->SolenoidField());
    
    tpcl = (AliTPCLoader*)rl->GetLoader("TPCLoader");
    if (tpcl == 0x0)
@@ -92,6 +92,7 @@ Int_t AliBarrelReconstruction(Int_t n=1)
       cerr<<"Failed to get TPC tracks !\n";
       return 1;
      }
+
 //   cout<<"Stopping tracking on TPC\n";
 // ********** Sort and label TPC tracks *********** //
    if (TPCSortTracks(TPCtrkNameS,n)) {
@@ -175,7 +176,7 @@ Int_t TPCFindClusters(Int_t n)
     {
       printf("Processing event %d\n",i);
       tpc.Digits2Clusters(i);
-     //	 AliTPCclusterer::Digits2Clusters(dig, out, i);
+     //     AliTPCclusterer::Digits2Clusters(dig, out, i);
     }
    
    tpcl->UnloadDigits();
@@ -220,7 +221,7 @@ Int_t TPCFindTracks(Int_t n) {
      rl->GetEvent(i);
      printf("Processing event %d\n",i);
      
-     tracker = new AliTPCtracker(param, AliConfig::fgkDefaultEventFolderName.Data(),i);
+     tracker = new AliTPCtracker(param, i, AliConfig::fgkDefaultEventFolderName.Data());
      //Int_t rc=
      tracker->Clusters2Tracks();
      delete tracker;
@@ -374,7 +375,6 @@ Int_t ITSFindClusters(Int_t n)
    if (rl->TreeK() == 0x0) rl->LoadKinematics();
    if (rl->TreeE() == 0x0) rl->LoadHeader();
    
-   itsl->LoadRecPoints("recreate");
    itsl->LoadRawClusters("recreate");
    
    AliITS *ITS  = (AliITS*)gAlice->GetModule("ITS");
@@ -386,20 +386,31 @@ Int_t ITSFindClusters(Int_t n)
    {
 
      rl->GetEvent(ev);
-     //gAlice->TreeR()->Reset();   //reset reconstructed tree
-
-     if (itsl->TreeR() == 0x0) itsl->MakeTree("R");
+     TBranch *branch;
+     TTree *pTree;
      
-     TTree *pTree=itsl->TreeR();
-     TBranch *branch=pTree->GetBranch("ITSRecPoints");
+     if (itsl->LoadRecPoints("read"))
+      {
+        pTree=0x0;
+        branch=0x0;
+      }
+     else
+      {
+        pTree=itsl->TreeR();
+        branch=(pTree)?pTree->GetBranch("ITSRecPoints"):0x0;
+      }
 
-     if (!branch) {
+     if (branch== 0x0) {
        //if not reconstructed ITS branch do reconstruction 
-       cout<<"Did not get ITSRecPoints from TreeR\n";
-       itsl->LoadHits();
+       ::Info("AliBarrelReconstruction.C","Did not get ITSRecPoints from TreeR.");
+       ::Info("AliBarrelReconstruction.C","Making branch and Producing RecPoints");
+       itsl->SetRecPointsFileOption("recreate");
+       if (itsl->TreeR()==0x0) itsl->MakeTree("R");
+       
+       ITS->MakeBranch("RF");
        ITS->SetTreeAddress();
-       ITS->MakeBranch("RF",0);
-//       ITS->MakeBranch("R",0);
+       itsl->LoadHits();
+
        //////////////// Taken from ITSHitsToFastPoints.C ///////////////////////
        for (Int_t i=0;i<3;i++) { 
          ITS->SetSimulationModel(i,new AliITSsimulationFastPoints()); 
@@ -417,8 +428,6 @@ Int_t ITSFindClusters(Int_t n)
        ITS->SetTreeAddress();
      }
 
-
-     
      TClonesArray *clusters=new TClonesArray("AliITSclusterV2",10000);
 
      if (itsl->TreeC() == 0x0) itsl->MakeTree("C");
@@ -431,10 +440,13 @@ Int_t ITSFindClusters(Int_t n)
       
      if (itsl->TreeR() == 0x0) itsl->LoadRecPoints();
 
-     pTree=itsl->TreeR();
-     if (!pTree) { cerr<<"Can't get TreeR !\n"; return 1; }
-     branch=pTree->GetBranch("ITSRecPointsF");
-     if (!branch) { cerr<<"Can't get ITSRecPoints branch !\n"; return 1;}
+     if (branch == 0x0)
+      {//it means that we produced FastRecPoints above
+       pTree=itsl->TreeR();
+       if (!pTree) { cerr<<"Can't get TreeR !\n"; return 1; }
+       branch=pTree->GetBranch("ITSRecPointsF");
+       if (!branch) { cerr<<"Can't get Fast RecPoints branch named ITSRecPointsF  !\n"; return 1;}
+      } 
      TClonesArray *points=new TClonesArray("AliITSRecPoint",10000);
      branch->SetAddress(&points);
      
@@ -444,8 +456,14 @@ Int_t ITSFindClusters(Int_t n)
      AliITSgeom *geom=ITS->GetITSgeom();
      
      cout<<"\n\n Number of entries in TreeR = "<<nentr<<endl;
-     for (Int_t i=0; i<nentr; i++) {
-       if (!branch->GetEvent(i)) {cTree->Fill(); continue;}
+     for (Int_t i=0; i<nentr; i++) 
+      {
+       if (!branch->GetEvent(i)) 
+        {
+          cTree->Fill(); 
+          continue;
+        }
+       
        Int_t lay,lad,det; geom->GetModuleId(i,lay,lad,det);
        Float_t x,y,zshift; geom->GetTrans(lay,lad,det,x,y,zshift); 
        Double_t rot[9];    geom->GetRotMatrix(lay,lad,det,rot);
@@ -453,33 +471,40 @@ Int_t ITSFindClusters(Int_t n)
        Int_t ndet=(lad-1)*geom->GetNdetectors(lay) + (det-1);
        Int_t ncl=points->GetEntriesFast();
        nclusters+=ncl;
-       for (Int_t j=0; j<ncl; j++) {
-	 AliITSRecPoint *p=(AliITSRecPoint*)points->UncheckedAt(j);
-	 lp[0]=-p->GetX()-yshift; if (lay==1) lp[0]=-lp[0];
-	 lp[1]=p->GetZ()+zshift;
-	 lp[2]=p->GetSigmaX2();
-	 lp[3]=p->GetSigmaZ2();
-	 lp[4]=p->GetQ();
-	 lab[0]=p->GetLabel(0);
-	 lab[1]=p->GetLabel(1);
-	 lab[2]=p->GetLabel(2);
-	 lab[3]=ndet;
-	 
-	 Int_t label=lab[0];
-	 TParticle *part=(TParticle*)gAlice->Particle(label);
-	 label=-3;
-	 while (part->P() < 0.005) {
-	   Int_t m=part->GetFirstMother();
-	   if (m<0) {cerr<<"Primary momentum: "<<part->P()<<endl; break;}
-	   label=m;
-	   part=(TParticle*)gAlice->Particle(label);
-	 }
-	 if      (lab[1]<0) lab[1]=label;
-	 else if (lab[2]<0) lab[2]=label;
-	 else cerr<<"No empty labels !\n";
-	 
-	 new(cl[j]) AliITSclusterV2(lab,lp);
-       }
+
+       ::Info("AliBarrelReconstruction.C",
+              "i=%d lay=%d lad=%d det=%d NRP=%d",
+               i,   lay,   lad,   det,   ncl);
+
+       for (Int_t j=0; j<ncl; j++) 
+        {
+          AliITSRecPoint *p=(AliITSRecPoint*)points->UncheckedAt(j);
+          lp[0]=-p->GetX()-yshift; if (lay==1) lp[0]=-lp[0];
+          lp[1]=p->GetZ()+zshift;
+          lp[2]=p->GetSigmaX2();
+          lp[3]=p->GetSigmaZ2();
+          lp[4]=p->GetQ();
+          lab[0]=p->GetLabel(0);
+          lab[1]=p->GetLabel(1);
+          lab[2]=p->GetLabel(2);
+          lab[3]=ndet;
+     
+          Int_t label=lab[0];
+          if (label<0) continue;
+          TParticle *part=(TParticle*)rl->Stack()->Particle(label);
+          label=-3;
+          while (part->P() < 0.005) {
+            Int_t m=part->GetFirstMother();
+            if (m<0) {cerr<<"Primary momentum: "<<part->P()<<endl; break;}
+            label=m;
+            part=(TParticle*)gAlice->Particle(label);
+          }
+          if (lab[1]<0) lab[1]=label;
+          else if (lab[2]<0) lab[2]=label;
+               else cerr<<"No empty labels !\n";
+     
+          new(cl[j]) AliITSclusterV2(lab,lp);
+         }
        cTree->Fill(); clusters->Delete();
        points->Delete();
      }
@@ -489,7 +514,8 @@ Int_t ITSFindClusters(Int_t n)
      delete clusters; delete points;
 
    }
- 
+   itsl->UnloadRecPoints();
+   itsl->UnloadRawClusters();
    rl->UnloadKinematics();
 
    gBenchmark->Stop(name);
@@ -525,10 +551,11 @@ Int_t ITSFindTracks(const Char_t *inname2, Int_t n)
    if (!geom) { cerr<<"can't get ITS geometry !\n"; return 1;}
 
    itsl->LoadTracks("recreate");
+   itsl->LoadRawClusters("read");
    for (Int_t i=0;i<n;i++)
     {
       rl->GetEvent(i);
-      AliITStrackerV2 tracker(geom,AliConfig::fgkDefaultEventFolderName,i);
+      AliITStrackerV2 tracker(geom,i,AliConfig::fgkDefaultEventFolderName);
       rc=tracker.Clusters2Tracks();
     }
 

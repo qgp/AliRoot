@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.16.6.7  2002/11/26 16:32:46  hristov
+Merging NewIO with v3-09-04
+
 Revision 1.16.6.6  2002/11/22 14:19:50  hristov
 Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
 
@@ -257,10 +260,18 @@ MakeBranchInTree(TTree *tree, const char* name, const char *classname,
 //
 //
 // if (GetDebug()>1)
- printf("* MakeBranch * Making Branch %s \n",name);
- if (tree == 0x0) return 0x0;
+ Info("MakeBranch","Making Branch %s",name);
+ if (tree == 0x0) 
+  {
+   Error("MakeBranch","Making Branch %s Tree is NULL",name);
+   return 0x0;
+  }
  TBranch *branch = tree->GetBranch(name);
- if (branch) return branch;
+ if (branch) 
+  {  
+    Info("MakeBranch","Branch %s is already in tree.",name);
+    return branch;
+  }
     
  if (classname) 
   {
@@ -270,6 +281,7 @@ MakeBranchInTree(TTree *tree, const char* name, const char *classname,
   {
     branch = tree->Branch(name,address,size);
   }
+ Info("MakeBranch","Branch %s returning branch %#x",name,branch);
  return branch;
 }
 
@@ -515,11 +527,17 @@ void AliDetector::MakeBranchTR(Option_t *option)
 {
   //
   //
+  Info("MakeBranchTR","Making Track Refs. Branch for %s",GetName());
   TTree * tree = fLoader->GetRunLoader()->TreeTR();
   if (fTrackReferences && tree) 
    {
      MakeBranchInTree(tree, GetName(), &fTrackReferences, fBufferSize, 0) ;
-   }	  
+   }
+  else
+  {
+    Info("MakeBranchTR","FAILED for %s: tree=%#x fTrackReferences=%#x",
+         GetName(),tree,fTrackReferences);
+  }
 }
 
 //_______________________________________________________________________

@@ -38,7 +38,8 @@ class AliLoaderDataInfo
    TString&     FileOption(){return fFileOption;}
    TString&     ContainerName(){return fContainerName;}
    TString&     Name(){return fName;}
-      
+
+  private:
    TString      fFileName; //name of the file 
    TFile*       fFile; //! pointer to file 
    TDirectory*  fDirectory; //!pointer to TDirectory
@@ -50,10 +51,10 @@ class AliLoaderDataInfo
    ClassDef(AliLoaderDataInfo,1)
  };
 
-
+//___________________________________________________________________
 /////////////////////////////////////////////////////////////////////
 //                                                                 //
-//  class AliLooader                                               //
+//  class AliLoader                                                //
 //                                                                 //
 //  Base class for Loaders.                                        //
 //  Loader provides base I/O fascilities for "standard" data.      //
@@ -101,11 +102,11 @@ class AliLoader: public TNamed
     void           UnloadRecPoints(){CleanRecPoints();CloseRecPointsFile();}
     void           UnloadTracks(){CleanTracks();CloseTracksFile();}
 
-    virtual Int_t  ReloadHits();  //unload and load again Hits
-    virtual Int_t  ReloadSDigits(); //unload and load again 
-    virtual Int_t  ReloadDigits(); //unload and load again 
-    virtual Int_t  ReloadRecPoints(); //unload and load again 
-    virtual Int_t  ReloadTracks(); //unload and load again 
+    virtual Int_t  ReloadHits(){return ReloadData(kHits);}  //unload and load again Hits
+    virtual Int_t  ReloadSDigits(){return ReloadData(kSDigits);} //unload and load again 
+    virtual Int_t  ReloadDigits(){return ReloadData(kDigits);} //unload and load again 
+    virtual Int_t  ReloadRecPoints(){return ReloadData(kRecPoints);} //unload and load again 
+    virtual Int_t  ReloadTracks(){return ReloadData(kTracks);} //unload and load again 
     virtual Int_t  ReloadAll(); //unload and load again everything that was loaded 
     
   //these methods writes object from folder to proper file
@@ -166,20 +167,20 @@ class AliLoader: public TNamed
     virtual void   MakeRecPointsContainer();
     virtual void   MakeTracksContainer();
         
-    const TString& GetHitsContainerName() const { return fDataInfo[kHits].fContainerName;}
-    const TString& GetSDigitsContainerName() const { return fDataInfo[kSDigits].fContainerName;}
-    const TString& GetDigitsContainerName() const { return fDataInfo[kDigits].fContainerName;}
-    const TString& GetRecPointsContainerName() const { return fDataInfo[kRecPoints].fContainerName;}
-    const TString& GetTracksContainerName() const { return fDataInfo[kTracks].fContainerName;}
+    const TString& GetHitsContainerName() { return fDataInfo[kHits].ContainerName();}
+    const TString& GetSDigitsContainerName() { return fDataInfo[kSDigits].ContainerName();}
+    const TString& GetDigitsContainerName() { return fDataInfo[kDigits].ContainerName();}
+    const TString& GetRecPointsContainerName() { return fDataInfo[kRecPoints].ContainerName();}
+    const TString& GetTracksContainerName() { return fDataInfo[kTracks].ContainerName();}
 
     virtual void   CleanFolders();
     virtual void   CloseFiles();
     
-    TTree*         TreeH(); //returns the tree from folder; shortcut method
-    TTree*         TreeS(); //returns the tree from folder; shortcut method
-    TTree*         TreeD(); //returns the tree from folder; shortcut method
-    TTree*         TreeR(); //returns the tree from folder; shortcut method
-    TTree*         TreeT(); //returns the tree from folder; shortcut method
+    TTree*         TreeH(){return Tree(kHits);}      //returns the tree from folder; shortcut method
+    TTree*         TreeS(){return Tree(kSDigits);}   //returns the tree from folder; shortcut method
+    TTree*         TreeD(){return Tree(kDigits);}    //returns the tree from folder; shortcut method
+    TTree*         TreeR(){return Tree(kRecPoints);} //returns the tree from folder; shortcut method
+    TTree*         TreeT(){return Tree(kTracks);}    //returns the tree from folder; shortcut method
 
     virtual Int_t PostSDigitizer(TTask* sdzer);//adds it to Run SDigitizer
     virtual Int_t PostDigitizer(AliDigitizer* task);
@@ -197,11 +198,11 @@ class AliLoader: public TNamed
     virtual void  CleanReconstructioner();
     virtual void  CleanTracker();
 
-    void          SetHitsFileOption(Option_t* newopt);//Hits File Option in open
-    void          SetSDigitsFileOption(Option_t* newopt);//
-    void          SetDigitsFileOption(Option_t* newopt);//
-    void          SetRecPointsFileOption(Option_t* newopt);//
-    void          SetTracksFileOption(Option_t* newopt);//
+    void          SetHitsFileOption(Option_t* newopt){SetFileOption(kHits,newopt);}          //Sets Hits File Option in open
+    void          SetSDigitsFileOption(Option_t* newopt){SetFileOption(kSDigits,newopt);}    //Sets S. Digits File Option in open
+    void          SetDigitsFileOption(Option_t* newopt){SetFileOption(kDigits,newopt);}      //Sets Digits File Option in open
+    void          SetRecPointsFileOption(Option_t* newopt){SetFileOption(kRecPoints,newopt);}//Sets Rec Ponoints File Option in open
+    void          SetTracksFileOption(Option_t* newopt){SetFileOption(kTracks,newopt);}      //Sets Tracks File Option in open
     
     virtual void  SetCompressionLevel(Int_t cl);//Sets compression level in all the files
     void          SetDirName(TString& name);//sets the directory name for all the I/O environment
@@ -222,11 +223,16 @@ class AliLoader: public TNamed
     /*********************************************/
     enum EDataTypes{kHits,kSDigits,kDigits,kRecPoints,kTracks,kNDataTypes};
 
-    Int_t         LoadData(EDataTypes dt,Option_t* opt);
-    Int_t         PostData(EDataTypes dt);
-    Int_t         WriteData(EDataTypes dt,Option_t* opt);
-    Int_t         ReloadData(EDataTypes dt);
-    void          UnloadData(EDataTypes dt){Clean(dt);CloseDataFile(dt);}
+    Int_t         LoadData(EDataTypes dt,Option_t* opt){return LoadData(fDataInfo[dt],opt);}
+    Int_t         LoadData(AliLoaderDataInfo& di,Option_t* opt);
+    Int_t         PostData(EDataTypes dt){return PostData(fDataInfo[dt]);}
+    Int_t         PostData(AliLoaderDataInfo& di);
+    Int_t         WriteData(EDataTypes dt,Option_t* opt){return WriteData(fDataInfo[dt],opt);}
+    Int_t         WriteData(AliLoaderDataInfo& di,Option_t* opt);
+    Int_t         ReloadData(EDataTypes dt){return ReloadData(fDataInfo[dt]);}
+    Int_t         ReloadData(AliLoaderDataInfo& di);
+    void          UnloadData(EDataTypes dt){ UnloadData(fDataInfo[dt]);}
+    void          UnloadData(AliLoaderDataInfo& di){Clean(di);CloseDataFile(di);}
     //Opens hits file and jumps to directory cooresponding to current event.
     //If dir does not exists try to create it
     //opt is passed to TFile::Open
@@ -236,8 +242,9 @@ class AliLoader: public TNamed
     Int_t         OpenRecPointsFile(Option_t* opt){return OpenDataFile(kRecPoints,opt);}
     Int_t         OpenTracksFile(Option_t* opt){return OpenDataFile(kTracks,opt);}
     Int_t         OpenDataFile(const TString& filename,TFile*& file,TDirectory*& dir,Option_t* opt);
-    Int_t         OpenDataFile(EDataTypes dt,Option_t* opt)
-                    {return OpenDataFile(SetFileOffset(FileName(dt)),File(dt),Directory(dt),opt);}
+    Int_t         OpenDataFile(EDataTypes dt,Option_t* opt){return OpenDataFile(fDataInfo[dt],opt);}
+    Int_t         OpenDataFile(AliLoaderDataInfo& di,Option_t* opt)
+                    {return OpenDataFile(SetFileOffset(di.FileName()),di.File(),di.Directory(),opt);}
 
     void          CloseHitsFile(){CloseDataFile(kHits);}
     void          CloseSDigitsFile(){CloseDataFile(kSDigits);}
@@ -246,6 +253,7 @@ class AliLoader: public TNamed
     void          CloseTracksFile(){CloseDataFile(kTracks);}
     void          CloseDataFile(TFile*& file,TDirectory*& dir);
     void          CloseDataFile(EDataTypes dt){CloseDataFile(File(dt),Directory(dt));}
+    void          CloseDataFile(AliLoaderDataInfo& di){CloseDataFile(di.File(),di.Directory());}
     //reads data from the file and posts them into folder
     virtual Int_t PostHits(){return PostData(kHits);} 
     virtual Int_t PostSDigits(){return PostData(kSDigits);} 
@@ -260,9 +268,14 @@ class AliLoader: public TNamed
     
     void          Clean(const TString& name);
     void          Clean(EDataTypes dt){Clean(ContainerName(dt));}
-    TTree*        Tree(EDataTypes dt);
-    void          MakeTree(EDataTypes dt);
-    void          SetFileOption(EDataTypes dt,Option_t* newopt);
+    void          Clean(AliLoaderDataInfo& di){Clean(di.ContainerName());}
+    
+    TTree*        Tree(EDataTypes dt){return Tree(fDataInfo[dt]);}
+    TTree*        Tree(AliLoaderDataInfo& di);
+    void          MakeTree(EDataTypes dt){MakeTree(fDataInfo[dt]);}
+    void          MakeTree(AliLoaderDataInfo& di);
+    void          SetFileOption(EDataTypes dt,Option_t* newopt){SetFileOption(fDataInfo[dt],newopt);}
+    void          SetFileOption(AliLoaderDataInfo& di,Option_t* newopt);
 
     TString       GetUnixDir();
     TObject*      GetDetectorData(const char* name){return GetDetectorDataFolder()->FindObject(name);}
@@ -272,12 +285,12 @@ class AliLoader: public TNamed
     void InitDefaults();
     void ResetDataInfo();
 
-    TFile*&       File(EDataTypes dt){return fDataInfo[dt].fFile;}
-    TDirectory*&  Directory(EDataTypes dt){return fDataInfo[dt].fDirectory;}
-    TString&      FileName(EDataTypes dt){return fDataInfo[dt].fFileName;}
-    TString&      ContainerName(EDataTypes dt){return fDataInfo[dt].fContainerName;}
-    TString&      FileOption(EDataTypes dt){return fDataInfo[dt].fFileOption;}
-    TString&      DataName(EDataTypes dt){return fDataInfo[dt].fName;}
+    TFile*&       File(EDataTypes dt){return fDataInfo[dt].File();}
+    TDirectory*&  Directory(EDataTypes dt){return fDataInfo[dt].Directory();}
+    TString&      FileName(EDataTypes dt){return fDataInfo[dt].FileName();}
+    TString&      ContainerName(EDataTypes dt){return fDataInfo[dt].ContainerName();}
+    TString&      FileOption(EDataTypes dt){return fDataInfo[dt].FileOption();}
+    TString&      DataName(EDataTypes dt){return fDataInfo[dt].Name();}
     
 
 
@@ -314,7 +327,6 @@ class AliLoader: public TNamed
    private:
     //descendant classes should
     //use protected interface methods to access these folders
-    
 
     /**********************************************/
     /***********     P U B L I C     **************/

@@ -9,34 +9,90 @@
 
 Int_t AliITSFindTracksV2() {
    cerr<<"Looking for tracks...\n";
+   
+   if (gAlice) 
+    {
+      delete gAlice->GetRunLoader();
+      delete gAlice; 
+      gAlice=0;
+    }
+ 
+    AliRunLoader* rl = AliRunLoader::Open("galice.root");
+    if (rl == 0x0)
+     {
+      cerr<<"AliITSHits2DigitsDefault.C : Can not open session RL=NULL"
+           << endl;
+       return 3;
+     }
+     
+    Int_t retval = rl->LoadgAlice();
+    if (retval)
+     {
+       ::Error("AliITSHits2DigitsDefault.C","LoadgAlice returned error");
+       delete rl;
+       return 3;
+     }
+    retval = rl->LoadHeader();
+    if (retval)
+     {
+      ::Error("AliITSHits2DigitsDefault.C","LoadHeader returned error");
+      delete rl;
+      return 3;
+     }
+    gAlice=rl->GetAliRun();
+   
+    
+    AliITSLoader* itsloader = (AliITSLoader*)rl->GetLoader("ITSLoader");
+    if (itsloader == 0x0)
+     {
+      ::Error("AliITSHits2DigitsDefault.C","can not get ITS loader");
+      return 4;
+     }
 
-   TFile *out=TFile::Open("AliITStracksV2.root","new");
-   if (!out->IsOpen()) {cerr<<"Delete old AliITStracksV2.root !\n"; return 1;}
+    AliLoader* tpcloader = rl->GetLoader("TPCLoader");
+    if (tpcloader == 0x0)
+     {
+      cerr<<"AliITSHits2DigitsDefault.C : can not get TPC loader"
+           << endl;
+     }
 
-   TFile *in=TFile::Open("AliTPCtracks.root");
-   if (!in->IsOpen()) {cerr<<"Can't open AliTPCtracks.root !\n"; return 2;}
+   rl->GetEvent(0);
 
-   TFile *file=TFile::Open("AliITSclustersV2.root");
-   if (!file->IsOpen()) {cerr<<"Can't open AliITSclustersV2.root !\n";return 3;}
+   itsloader->LoadTracks("recreate");
+   tpcloader->LoadTracks("read"); 
+   itsloader->LoadRawClusters("read");
 
-   AliITSgeom *geom=(AliITSgeom*)file->Get("AliITSgeom");
+   AliITS* dITS = (AliITS*)gAlice->GetDetector("ITS");
+   if(!dITS)
+    {
+      ::Error("AliITSHits2DigitsDefault.C","Can not find ITS detector.");
+      return 6;
+    } // end if !fITS
+
+   AliITSgeom *geom = dITS->GetITSgeom();
+   if(geom == 0x0)
+    {
+      ::Error("AliITSHits2DigitsDefault.C","Can not get geometry from ITS detector.");
+      return 6;
+    } // end if !GetITSgeom()
+
 
    TStopwatch timer;
-   AliITStrackerV2 tracker(geom);
-
-   //Double_t xyz[]={0.,0.,0.}; tracker.SetVertex(xyz);  //primary vertex
-   //Int_t flag[]={1};                                   //some default flags
-   //flag[0]= 0; tracker.SetupFirstPass(flag);           //no constraint
-   //flag[0]=-1; tracker.SetupSecondPass(flag);          //skip second pass
-
-   Int_t rc=tracker.Clusters2Tracks(in,out);
+ 
+   for (Int_t i = 0;i < rl->GetNumberOfEvents(); i++)
+    {
+      AliITStrackerV2* tracker = new AliITStrackerV2(geom,i);
+      Int_t rc=tracker->Clusters2Tracks();
+      if (rc) 
+       {
+         ::Error("AliITSHits2DigitsDefault.C",
+                 "AliITStrackerV2::Clusters2Tracks returned errror for event %d",i);
+         delete tracker;
+         break;
+       }
+    }
    timer.Stop(); timer.Print();
-
-   delete geom; //Thanks to Mariana Bondila
-
-   file->Close();
-   in->Close();
-   out->Close();
-
+   delete tracker;
+   delete rl;
    return rc;
 }

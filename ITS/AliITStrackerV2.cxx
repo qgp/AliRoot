@@ -43,7 +43,7 @@ Int_t LAB=70201;
 AliITStrackerV2::AliITSlayer AliITStrackerV2::fLayers[kMaxLayer]; // ITS layers
 
 AliITStrackerV2::
-AliITStrackerV2(const AliITSgeom *geom, const char* evfoldname, Int_t eventn) throw (const Char_t *) :
+AliITStrackerV2(const AliITSgeom *geom,  Int_t eventn, const char* evfoldname) throw (const Char_t *) :
 AliTracker(), fEvFolderName(evfoldname)  {
   //--------------------------------------------------------------------
   //This is the AliITStracker constructor
@@ -167,7 +167,7 @@ Int_t AliITStrackerV2::Clusters2Tracks()
   AliRunLoader* rl = AliRunLoader::GetRunLoader(fEvFolderName);
   if (rl == 0x0)
    {
-     Error("AliTPCtracker","Can not get RL from specified folder %s",fEvFolderName.Data());
+     Error("Clusters2Tracks","Can not get RL from specified folder %s",fEvFolderName.Data());
      return 1;
    }
   rl->GetEvent(fEventN);
@@ -195,6 +195,7 @@ Int_t AliITStrackerV2::Clusters2Tracks()
     AliTPCtrack *itrack=new AliTPCtrack; 
     tpcTree->SetBranchAddress("tracks",&itrack);
     nentr=(Int_t)tpcTree->GetEntries();
+    Info("Clusters2Tracks","nentr = %d",nentr);
     for (Int_t i=0; i<nentr; i++) {
        tpcTree->GetEvent(i);
        AliITStrackV2 *t=0;
@@ -214,12 +215,14 @@ Int_t AliITStrackerV2::Clusters2Tracks()
        Double_t xk=52.,x,y,z; t->GetGlobalXYZat(xk,x,y,z);
        if (TMath::Abs(y)<7.77) t->PropagateTo(xk,0.19,24.); 
        t->PropagateTo(50.,0.001);
-
+       Info("Clusters2Tracks","Adding candidate %d",i);
        itsTracks.AddLast(t);
     }
     delete itrack;
   }
   itsTracks.Sort();
+
+  Info("Clusters2Tracks","size of itsTracks = %d",itsTracks.GetEntries());
 
 
   if (itsl->TreeT() == 0x0) itsl->MakeTree("T");
@@ -229,9 +232,14 @@ Int_t AliITStrackerV2::Clusters2Tracks()
   
   itsTree.Branch("tracks","AliITStrackV2",&otrack,32000,0);
 
-  for (fPass=0; fPass<2; fPass++) {
-     Int_t &constraint=fConstraint[fPass]; if (constraint<0) continue;
-     for (Int_t i=0; i<nentr; i++) {
+  for (fPass=0; fPass<2; fPass++) 
+   {
+     Info("Clusters2Tracks","  PASS%d",fPass);
+     Int_t &constraint=fConstraint[fPass]; 
+     if (constraint<0) continue;
+     for (Int_t i=0; i<nentr; i++) 
+      {
+       Info("Clusters2Tracks","  Prologating track %d",i);
        if (i%10==0) cerr<<nentr-i<<" \r";
        AliITStrackV2 *t=(AliITStrackV2*)itsTracks.UncheckedAt(i);
        if (t==0) continue;           //this track has been already tracked
@@ -247,9 +255,15 @@ cout<<tpcLabel<<" *****************\n";
        ResetTrackToFollow(*t);
        ResetBestTrack();
 
-       for (FollowProlongation(); fI<kMaxLayer; fI++) {
-          while (TakeNextProlongation()) FollowProlongation();
-       }
+       for (FollowProlongation(); fI<kMaxLayer; fI++) 
+        {
+//          Info("Clusters2Tracks","PASS%d track %d    fI = %d",fPass,i,fI);
+          while (TakeNextProlongation()) 
+           { 
+//             Info("Clusters2Tracks","Next Prolonagtion Taken");
+             FollowProlongation();
+           }
+        }
 
 #ifdef DEBUG
 cout<<fBestTrack.GetNumberOfClusters()<<" number of clusters\n\n";

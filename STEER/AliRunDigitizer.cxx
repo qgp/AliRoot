@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.13.4.4  2002/11/22 14:19:50  hristov
+Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
+
 Revision 1.13.4.3  2002/06/21 15:22:13  hristov
 RunDigitizer uses AliRunLoader for the output
 
@@ -327,10 +330,18 @@ void AliRunDigitizer::Digitize(Option_t* option)
 // If gAlice is already in memory, use it
   SetDebug(10);
   
-  
+  if (gAlice == 0x0)
+   {
+    if (!static_cast<AliStream*>(fInputStreams->At(0))->ImportgAlice()) 
+     {
+       Error("Digitize","Error occured while getting gAlice from Input 0");
+       return;
+     }
+   }
+    
   if (!InitGlobal()) //calls Init() for all (sub)digitizers
    {
-     cerr<<"False from InitGlobal"<<endl;
+     Error("Digitize","InitGlobal returned error");
      return;
    }
    
@@ -388,7 +399,7 @@ void AliRunDigitizer::SetOutputFile(TString fn)
 // the output will be to separate file, not to the signal file
 {
  //here should be protection to avoid setting the same file as any input 
-  cout<<"Calling AliRunDigitizer::SetOutputFile fn = "<<fn<<endl;
+  Info("SetOutputFile","Setting Output File Name %s ",fn.Data());
   fOutputFileName = fn;
   InitOutputGlobal();
 }
@@ -419,38 +430,31 @@ Bool_t AliRunDigitizer::InitOutputGlobal()
      {
        GetOutRunLoader()->AddLoader(loader);
      }
+ 
+    if (GetDebug()>2)  Info("InitOutputGlobal","file %s was opened.",fOutputFileName.Data());
    }
-  
-  if (GetDebug()>2) {
-    cerr<<"AliRunDigitizer::InitOutputGlobal(): file "<<fOutputFileName<<" was opened"<<endl;
-  }
-
-
   return kTRUE;
 }
-
-
 //_______________________________________________________________________
+
 void AliRunDigitizer::InitEvent()
 {
 //redirects output properly
   if (GetDebug()>2)
    {
-    cerr<<"AliRunDigitizer::InitEvent: fEvent = "<<fEvent<<endl;
-    cout<<"fOutputFileName "<<fOutputFileName<<endl;
+    Info("InitEvent","fEvent = %d",fEvent);
+    Info("InitEvent","fOutputFileName \"%s\"",fOutputFileName.Data());
    }
-
 // if fOutputFileName was not given, write output to signal directory
 }
-
 //_______________________________________________________________________
+
 void AliRunDigitizer::FinishEvent()
 {
 // called at the end of loop over digitizers
 
   Int_t i;
   
-
   if (GetOutRunLoader() == 0x0)
    {
      Error("FinishEvent","fOutRunLoader is null");
@@ -520,6 +524,7 @@ void AliRunDigitizer::FinishEvent()
    }
 }
 //_______________________________________________________________________
+
 void AliRunDigitizer::FinishGlobal()
 {
 // called at the end of Exec
@@ -650,11 +655,12 @@ const TString& AliRunDigitizer::GetInputFolderName(Int_t i) const
   return stream->GetFolderName();
 }
 //_______________________________________________________________________
+
 const char* AliRunDigitizer::GetOutputFolderName()
 {
   return GetOutRunLoader()->GetEventFolder()->GetName();
 }
-
+//_______________________________________________________________________
 
 AliRunLoader* AliRunDigitizer::GetOutRunLoader()
 {
@@ -669,6 +675,7 @@ AliRunLoader* AliRunDigitizer::GetOutRunLoader()
   return fOutRunLoader;
 }
 //_______________________________________________________________________
+
 TString AliRunDigitizer::GetInputFileName(const Int_t input, const Int_t order) const 
 {
 // returns file name of the order-th file in the input stream input

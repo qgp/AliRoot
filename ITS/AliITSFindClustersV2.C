@@ -1,77 +1,143 @@
-#ifndef __CINT__
-  #include <iostream.h>
+Int_t AliITSFindClustersV2(Char_t SlowOrFast='f')
+{
 
-  #include "AliRun.h"
-  #include "AliITS.h"
-  #include "AliITSgeom.h"
-  #include "AliITSRecPoint.h"
-  #include "AliITSclusterV2.h"
-
-  #include "TFile.h"
-  #include "TTree.h"
-  #include "TParticle.h"
-#endif
-
-Int_t AliITSFindClustersV2(Char_t SlowOrFast='f') {
 /****************************************************************
- *  This macro converts AliITSRecPoint(s) to AliITSclusterV2(s) *
- ****************************************************************/
-   cerr<<"AliITSRecPoint(s) -> AliITSclusterV2(s)...\n";
+*  This macro converts AliITSRecPoint(s) to AliITSclusterV2(s) *
+****************************************************************/
 
-   if (gAlice) {delete gAlice; gAlice=0;}
+    cerr<<"AliITSRecPoint(s) -> AliITSclusterV2(s)...\n";
+    
+    if (gAlice) 
+     {
+      delete gAlice->GetRunLoader();
+      delete gAlice; 
+      gAlice=0;
+     }
+ 
+    AliRunLoader* rl = AliRunLoader::Open("galice.root");
+    if (rl == 0x0)
+     {
+      cerr<<"AliITSHits2DigitsDefault.C : Can not open session RL=NULL"
+           << endl;
+       return 3;
+     }
+     
+    Int_t retval = rl->LoadgAlice();
+    if (retval)
+     {
+      cerr<<"AliITSHits2DigitsDefault.C : LoadgAlice returned error"
+           << endl;
+       delete rl;
+       return 3;
+     }
+    gAlice=rl->GetAliRun();
+    rl->LoadHeader();
+    retval = rl->LoadKinematics();
+    if (retval)
+     {
+      cerr<<"AliITSHits2DigitsDefault.C : LoadKinematics returned error"
+           << endl;
+       delete rl;
+       return 3;
+     }
+    
+    AliITSLoader* gime = (AliITSLoader*)rl->GetLoader("ITSLoader");
+    if (gime == 0x0)
+     {
+      cerr<<"AliITSHits2DigitsDefault.C : can not get ITS loader"
+           << endl;
+     }
 
-   TFile *in=TFile::Open("galice.root");
-   if (!in->IsOpen()) { cerr<<"Can't open galice.root !\n"; return 1; }
-
-   if (!(gAlice=(AliRun*)in->Get("gAlice"))) {
-      cerr<<"Can't find gAlice !\n";
-      return 2;
-   }
-   gAlice->GetEvent(0);
+   rl->GetEvent(0);
 
    AliITS *ITS  = (AliITS*)gAlice->GetModule("ITS");
-   if (!ITS) { cerr<<"Can't find the ITS !\n"; return 3; }
+   if (!ITS) { cerr<<"Can't find the ITS !\n"; delete rl; return 3; }
    AliITSgeom *geom=ITS->GetITSgeom();
  
-   TFile *out=TFile::Open("AliITSclustersV2.root","new");
-   if (!out->IsOpen()) {
-      cerr<<"Delete old AliITSclustersV2.root !\n"; 
-      return 4;
-   }
-   geom->Write();
-
    TClonesArray *clusters=new TClonesArray("AliITSclusterV2",10000);
-   TTree *cTree=new TTree("TreeC_ITS_0","ITS clusters");
-   cTree->Branch("Clusters",&clusters);
+  
+   gime->LoadRawClusters("recreate");
 
-   TTree *pTree=gAlice->TreeR();
-   if (!pTree) { cerr<<"Can't get TreeR !\n"; return 5; }
-   TBranch *branch = 0;
-   if (SlowOrFast=='f') {
-     branch = pTree->GetBranch("ITSRecPointsF");
-   }
-   else {
-     branch = pTree->GetBranch("ITSRecPoints");
-   }
-   if (!branch) { cerr<<"Can't get ITSRecPoints branch !\n"; return 6; }
-   TClonesArray *points=new TClonesArray("AliITSRecPoint",10000);
-   branch->SetAddress(&points);
+   if (SlowOrFast=='f') 
+    {
+       gime->SetRecPointsFileName("ITS.FastRecPoints.root");
+    }
+   if (gime->LoadRecPoints())
+    {
+      cerr<<"Load Rec Pints returned error !\n"; 
+      delete rl;
+      return 4;
+    }
 
-   TClonesArray &cl=*clusters;
-   Int_t nclusters=0;
-   Int_t nentr=(Int_t)branch->GetEntries();
+   TClonesArray *points = new TClonesArray("AliITSRecPoint",10000);
 
-   cerr<<"Number of entries: "<<nentr<<endl;
+   Float_t lp[5]; 
+   Int_t lab[6];
+   
+   Int_t iEvent;
+   for (iEvent = 0; iEvent< rl->GetNumberOfEvents() ; iEvent++) 
+    {
+     clusters->Clear();
+     points->Clear();
 
-   //   Float_t lp[5]; Int_t lab[6]; //Why can't it be inside a loop ?
-   Float_t * lp = new Float_t[5]; 
-   Int_t * lab = new Int_t[6];
+     rl->GetEvent(iEvent);
 
-   for (Int_t i=0; i<nentr; i++) {
+     TTree *cTree = gime->TreeC();
+     if (cTree == 0x0)  
+      {
+       gime->MakeTree("C");
+       cTree = gime->TreeC();
+      }
+   
+     cTree->Branch("Clusters",&clusters);
+     
+     TTree *pTree=gime->TreeR();
+     if (pTree == 0x0) 
+      {
+        cerr<<"Can not get TreeR !\n"; delete rl;return 5;
+      }
+     TBranch *branch = 0;
+     if (SlowOrFast=='f') {
+       branch = pTree->GetBranch("ITSRecPointsF");
+     }
+     else {
+       branch = pTree->GetBranch("ITSRecPoints");
+     }
+     if (!branch) 
+      { 
+       cerr<<"Can't get ITSRecPoints branch !\n"; 
+       delete rl;
+       return 6; 
+      }
+    
+     branch->SetAddress(&points);
+  
+     AliStack* stack = rl->Stack();
+     if (stack == 0x0)
+      {
+       cerr<<"AliITSHits2DigitsDefault.C : Can not get stack"
+           << endl;
+       delete rl;
+       return 3;
+      }
+
+     TClonesArray &cl=*clusters;
+     Int_t nclusters=0;
+     Int_t nentr=(Int_t)branch->GetEntries();
+
+     cerr<<"Number of entries: "<<nentr<<endl;
+
+     for (Int_t i=0; i<nentr; i++) 
+      {
        points->Clear();
        branch->GetEvent(i);
        Int_t ncl=points->GetEntriesFast(); if (ncl==0){cTree->Fill();continue;}
        Int_t lay,lad,det; geom->GetModuleId(i,lay,lad,det);
+       if ( (lay<0) || (lad<0) || (det<0))
+        {
+          ::Error("AliITSHits2DigitsDefault.C","No such a module %d",i);
+          continue;
+        }
        Float_t x,y,zshift; geom->GetTrans(lay,lad,det,x,y,zshift); 
        Double_t rot[9];    geom->GetRotMatrix(lay,lad,det,rot);
        Double_t yshift = x*rot[0] + y*rot[1];
@@ -82,7 +148,8 @@ Int_t AliITSFindClustersV2(Char_t SlowOrFast='f') {
        if(lay==4 || lay==3){kmip=280.;};
        if(lay==6 || lay==5){kmip=38.;};
 
-       for (Int_t j=0; j<ncl; j++) {
+       for (Int_t j=0; j<ncl; j++) 
+        {
           AliITSRecPoint *p=(AliITSRecPoint*)points->UncheckedAt(j);
           //Float_t lp[5];
           lp[0]=-p->GetX()-yshift; if (lay==1) lp[0]=-lp[0];
@@ -96,7 +163,9 @@ Int_t AliITSFindClustersV2(Char_t SlowOrFast='f') {
 
           Int_t label=lab[0];
           if (label>=0) {
-             TParticle *part=(TParticle*)gAlice->Particle(label);
+             TParticle *part=(TParticle*)stack->Particle(label);
+             if (part == 0x0)
+              cerr<<"Can not get particle with label "<<label<<endl;
              label=-3;
              while (part->P() < 0.005) {
                 Int_t m=part->GetFirstMother();
@@ -110,24 +179,17 @@ Int_t AliITSFindClustersV2(Char_t SlowOrFast='f') {
 	  }
 
           new(cl[j]) AliITSclusterV2(lab,lp);
-       }
-       cTree->Fill(); clusters->Delete();
-       points->Delete();
+        }
+       cTree->Fill(); 
+     }
+    gime->WriteRawClusters("OVERWRITE");
+    cerr<<"Number of clusters: "<<nclusters<<endl;
+    
    }
-   cTree->Write();
-
-   cerr<<"Number of clusters: "<<nclusters<<endl;
-
-   delete [] lp;
-   delete [] lab;
-
-   delete cTree; delete clusters; delete points;
-
-   delete gAlice; gAlice=0;
-
-   in->Close();
-   out->Close();
-
+   
+   delete clusters;
+   delete points;
+   delete rl;
    return 0;
 
 }

@@ -29,6 +29,12 @@ struct GoodTrackITS {
 
 Int_t AliITSComparisonV2(Int_t event=0) {
    cerr<<"Doing comparison...\n";
+   if (gAlice) 
+    {
+      delete gAlice->GetRunLoader();
+      delete gAlice; 
+      gAlice=0;
+    }
 
    const Int_t MAX=15000;
    Int_t good_tracks_its(GoodTrackITS *gt, const Int_t max, const Int_t event);

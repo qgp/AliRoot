@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.4.4.3  2002/11/22 14:19:50  hristov
+Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
+
 Revision 1.4.4.2  2002/06/18 10:18:32  hristov
 Important update (P.Skowronski)
 
@@ -95,6 +98,7 @@ AliStream::AliStream(const char* foldername,Option_t *option):
 AliStream::~AliStream()
 {
 // default dtor
+  delete AliRunLoader::GetRunLoader(fEventFolderName); //clear the eventuall session
   if (fFileNames) delete fFileNames;
 }
 //_______________________________________________________________________
@@ -217,6 +221,7 @@ Bool_t AliStream::ImportgAlice()
     currentloader = AliRunLoader::GetRunLoader(fEventFolderName);
    }
   currentloader->LoadgAlice();
+  gAlice = currentloader->GetAliRun();
   if (!gAlice)  return kFALSE;
   return kTRUE;
 }

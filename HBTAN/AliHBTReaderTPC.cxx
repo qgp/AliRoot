@@ -270,7 +270,7 @@ Int_t AliHBTReaderTPC::Read(AliHBTRun* particles, AliHBTRun *tracks)
          
          AliTPCtrack *iotrack=0;
          
-         AliTPCtracker *tracker = new AliTPCtracker(TPCParam,AliConfig::fgkDefaultEventFolderName,currentEvent);//create the tacker for this event
+         AliTPCtracker *tracker = new AliTPCtracker(TPCParam,currentEvent,AliConfig::fgkDefaultEventFolderName);//create the tacker for this event
          if (!tracker) //check if it has created succeffuly
           {//if not return with error
             Error("Read","Can't get a tracker !\n"); 

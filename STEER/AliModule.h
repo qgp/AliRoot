@@ -108,7 +108,7 @@ public:
   virtual AliLoader*  MakeLoader(const char* topfoldername);//skowron   
   virtual AliLoader*  GetLoader() const {return 0x0;} //skowron
   
-  virtual void        MakeBranchTR(Option_t *opt=" ", const char *file=0 ){}
+  virtual void        MakeBranchTR(Option_t *opt=" "){}
 
   virtual void        Paint(Option_t *) {}
   virtual void        ResetDigits() {}
