@@ -255,7 +255,7 @@ Int_t AliPHOSLoader::LoadDigits(Option_t* opt)
 Int_t AliPHOSLoader::LoadRecPoints(Option_t* opt) 
 { // -------------- RecPoints -------------------------------------------
   Int_t res;
-  //First call the AliLoader's method to send the TreeS to folder
+  //First call the AliLoader's method to send the TreeR to folder
   res = AliLoader::LoadRecPoints(opt);
   if (res)
    {//oops, error
@@ -605,23 +605,20 @@ void AliPHOSLoader::ReadTreeQA()
   
 }
 
+
 //____________________________________________________________________________ 
 Int_t AliPHOSLoader::ReadRecPoints()
 {
 //Creates and posts to folder an array container, 
-//connects branch in tree (if exists), and reads data to arry
-
-  TObject** cpvref = CpvRecPointsRef();
-  TObject** emcref = EmcRecPointsRef();
-
-  if ( cpvref == 0x0 || emcref == 0x0) 
-   {
-     MakeRecPointsArray();
-     cpvref = CpvRecPointsRef();
-     emcref = EmcRecPointsRef();
-   }
-
+//connects branch in tree (if exists), and reads data to array
+  
+  MakeRecPointsArray();
+  
+  TObjArray * cpva = 0x0 ; 
+  TObjArray * emca = 0x0 ; 
+  
   TTree * treeR = TreeR();
+ 
   if(treeR==0)
    {
      //May happen if file is truncated or new in LoadSDigits
@@ -630,6 +627,7 @@ Int_t AliPHOSLoader::ReadRecPoints()
 
   Int_t retval = 0;
   TBranch * emcbranch = treeR->GetBranch(fgkEmcRecPointsBranchName);
+
   if (emcbranch == 0x0)
    {
      Error("ReadRecPoints","Can not get branch with EMC Rec. Points named %s",fgkEmcRecPointsBranchName.Data());
@@ -637,7 +635,7 @@ Int_t AliPHOSLoader::ReadRecPoints()
    }
   else
    {
-     emcbranch->SetAddress(emcref) ;
+     emcbranch->SetAddress(&emca) ;
      emcbranch->GetEntry(0) ;
    }
   TBranch * cpvbranch = treeR->GetBranch(fgkCpvRecPointsBranchName);
@@ -648,13 +646,23 @@ Int_t AliPHOSLoader::ReadRecPoints()
    }
   else
    {
-     cpvbranch->SetAddress(cpvref);
+     cpvbranch->SetAddress(&cpva);
      cpvbranch->GetEntry(0) ;
    }
+
+  Int_t ii ; 
+  Int_t maxemc = emca->GetEntries() ; 
+  for ( ii= 0 ; ii < maxemc ; ii++ ) 
+    EmcRecPoints()->Add(emca->At(ii)) ;
+ 
+  Int_t maxcpv = cpva->GetEntries() ;
+  for ( ii= 0 ; ii < maxcpv ; ii++ )
+    CpvRecPoints()->Add(cpva->At(ii)) ; 
+
   return retval;
 }
-//____________________________________________________________________________ 
 
+//____________________________________________________________________________ 
 Int_t AliPHOSLoader::ReadTracks()
 {
 //Creates and posts to folder an array container, 
@@ -945,6 +953,7 @@ void AliPHOSLoader::MakeRecPointsArray()
 {
   if ( EmcRecPoints() == 0x0)
    {
+    if (GetDebug()>9) Info("MakeRecPointsArray","Making array for EMC");
     TObjArray* emc = new TObjArray(100) ;
     emc->SetName(fgkEmcRecPointsName) ;
     GetDetectorDataFolder()->Add(emc);
@@ -952,6 +961,7 @@ void AliPHOSLoader::MakeRecPointsArray()
 
   if ( CpvRecPoints() == 0x0)
    {
+    if (GetDebug()>9) Info("MakeRecPointsArray","Making array for CPV");
     TObjArray* cpv = new TObjArray(100) ;
     cpv->SetName(fgkCpvRecPointsName);
     GetDetectorDataFolder()->Add(cpv);

@@ -178,6 +178,8 @@ class AliPHOSLoader : public AliLoader {
 
   AliPHOSTrackSegmentMaker * TrackSegmentMaker ()  { return dynamic_cast<AliPHOSTrackSegmentMaker *>(Tracker()) ;}
   Int_t PostTrackSegmentMaker(TTask* segmaker){return PostTracker(segmaker);}
+  Int_t LoadTrackSegmentMaker(Option_t * opt="") {return LoadTracker(opt);}
+  Int_t WriteTrackSegmentMaker(Option_t * opt="") {return WriteTracker(opt);}
 
   
   void   SetDebug(Int_t level) {fDebug = level;} // Set debug level
