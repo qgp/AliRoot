@@ -255,8 +255,6 @@ AliRun::~AliRun()
   delete fDisplay;
   delete fGenerator;
   delete fLego;
-  
-  
   if (fModules) {
     fModules->Delete();
     delete fModules;
@@ -339,7 +337,7 @@ void AliRun::CleanDetectors()
 }
 
 //_______________________________________________________________________
-Int_t AliRun::DistancetoPrimitive(Int_t, Int_t)
+Int_t AliRun::DistancetoPrimitive(Int_t, Int_t) const
 {
   //
   // Return the distance from the mouse to the AliRun object
@@ -402,8 +400,6 @@ void AliRun::SetField(Int_t type, Int_t version, Float_t scale,
     Warning("SetField","Invalid map %d\n",version);
   }
 }
-//_____________________________________________________________________________
- 
 
 //_____________________________________________________________________________
 
@@ -541,6 +537,27 @@ void AliRun::EnergySummary()
   //  fEventEnergy.Set(0);
   //  fSummEnergy.Set(0);
   //  fSum2Energy.Set(0);
+}
+
+//_______________________________________________________________________
+void AliRun::Announce() const
+{
+  //
+  // Announce the current version of AliRoot
+  //
+  printf("%70s",
+	 "****************************************************************\n");
+  printf("%6s","*");printf("%64s","*\n");
+
+  printf("%6s","*");
+  printf("    You are running AliRoot version NewIO\n");
+
+  printf("%6s","*");
+  printf("    The cvs tag for the current program is $Name$\n");
+
+  printf("%6s","*");printf("%64s","*\n");
+  printf("%70s",
+	 "****************************************************************\n");
 }
 
 //_______________________________________________________________________
@@ -739,6 +756,9 @@ void AliRun::ResetGenerator(AliGenerator *generator)
 //_______________________________________________________________________
 void AliRun::SetTransPar(const char *filename)
 {
+  //
+  // Sets the file name for transport parameters
+  //
   fTransParName = filename;
 }
 
@@ -937,7 +957,7 @@ void AliRun::BeginEvent()
 }
 
 //_______________________________________________________________________
-TParticle* AliRun::Particle(Int_t i)
+TParticle* AliRun::Particle(Int_t i) const
 {
   if (fRunLoader)
    if (fRunLoader->Stack())
@@ -1016,6 +1036,7 @@ void AliRun::InitMC(const char *setup)
   //
   // Initialize the Alice setup
   //
+  Announce();
 
   if(fInitDone) {
     Warning("Init","Cannot initialise AliRun twice!\n");
@@ -1093,6 +1114,7 @@ void AliRun::InitMC(const char *setup)
 }
 
 //_______________________________________________________________________
+
 void AliRun::RunMC(Int_t nevent, const char *setup)
 {
   //
@@ -1174,7 +1196,6 @@ void AliRun::Tree2Tree(Option_t *option, const char *selected)
 
    AliDetector *detector = 0;
 
-   
    while((detector = dynamic_cast<AliDetector*>(next()))) {
      if (selected) 
        if (strcmp(detector->GetName(),selected)) continue;
@@ -1221,7 +1242,6 @@ void AliRun::Tree2Tree(Option_t *option, const char *selected)
      }   
    }
 }
-
 
 //_______________________________________________________________________
 void AliRun::RunLego(const char *setup, Int_t nc1, Float_t c1min,
@@ -1336,10 +1356,10 @@ void AliRun::SetTrack(Int_t done, Int_t parent, Int_t pdg, Float_t *pmom,
 
 //_______________________________________________________________________
 void AliRun::SetTrack(Int_t done, Int_t parent, Int_t pdg,
-  	  Double_t px, Double_t py, Double_t pz, Double_t e,
-                      Double_t vx, Double_t vy, Double_t vz, Double_t tof,
-                      Double_t polx, Double_t poly, Double_t polz,
-                      TMCProcess mech, Int_t &ntr, Float_t weight, Int_t is)
+  	              Double_t px, Double_t py, Double_t pz, Double_t e,
+  		      Double_t vx, Double_t vy, Double_t vz, Double_t tof,
+		      Double_t polx, Double_t poly, Double_t polz,
+		      TMCProcess mech, Int_t &ntr, Float_t weight, Int_t is)
 { 
   // Delegate to stack
   //
@@ -1638,7 +1658,8 @@ Int_t AliRun::GetNtrack() const {
 }
 //_______________________________________________________________________
 
-TObjArray* AliRun::Particles() {
+//_______________________________________________________________________
+TObjArray* AliRun::Particles() const {
   //
   // Returns pointer to Particles array
   //
@@ -1650,6 +1671,7 @@ TObjArray* AliRun::Particles() {
 
 //___________________________________________________________________________
 
+//_______________________________________________________________________
 void AliRun::SetGenEventHeader(AliGenEventHeader* header)
 {
   fRunLoader->GetHeader()->SetGenEventHeader(header);

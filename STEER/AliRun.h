@@ -12,6 +12,8 @@
 #include <TStopwatch.h>
 #include <TVirtualMCApplication.h>
 #include <TVirtualMC.h>
+#include <TError.h>
+
 class TBranch;
 class TBrowser;
 class TDatabasePDG;
@@ -21,7 +23,6 @@ class TList;
 class TParticle;
 class TRandom;
 class TTree;
-class TVirtualMC;
 
 #include "AliRunLoader.h"
 class AliDetector;
@@ -61,8 +62,8 @@ public:
    TObjArray     *Detectors() const {return fModules;}
    TObjArray     *Modules() const {return fModules;}
    Int_t          CurrentTrack() const;
-   AliDisplay    *Display() { return fDisplay;}
-   virtual  Int_t DistancetoPrimitive(Int_t px, Int_t py);
+   AliDisplay    *Display() const { return fDisplay;}
+   virtual  Int_t DistancetoPrimitive(Int_t px, Int_t py) const;
    virtual  void  DumpPart (Int_t i) const;
    virtual  void  DumpPStack () const;
    virtual AliMagF *Field() const {return fField;}
@@ -103,8 +104,8 @@ public:
    Bool_t         IsFolder() const {return kTRUE;}
    virtual AliLego* Lego() const {return fLego;}
 
-   TObjArray     *Particles();
-   TParticle     *Particle(Int_t i);
+   TObjArray     *Particles() const;
+   TParticle     *Particle(Int_t i) const;
    virtual  void  ResetDigits();
    virtual  void  ResetSDigits();
    virtual  void  ResetHits();
@@ -179,11 +180,19 @@ public:
    void SetRunLoader(AliRunLoader* rloader);
    AliRunLoader* GetRunLoader() const {return fRunLoader;}
 //   void SetEventFolderName(const char* eventfoldername);
+  virtual  void Announce() const;
+   
+  virtual  void  InitLoaders(); //prepares run (i.e. creates getters)
+  static void Deprecated(TObject *obj, const char *method,
+			 const char *replacement) {
+    if (obj)
+      ::Warning(Form("%s::%s", obj->ClassName(), method),
+		"method is depricated\nPlease use: %s", replacement);
+    else
+      ::Warning(method, "method is depricated\nPlease use: %s", replacement);
+  }
 protected:
   virtual  void  Tree2Tree(Option_t *option, const char *detector=0);
-
-  virtual  void  InitLoaders(); //prepares run (i.e. creates getters)
-
   Int_t          fRun;               //! Current run number
   Int_t          fEvent;             //! Current event number (from 1)
   Int_t          fEventNrInRun;      //! Current unique event number in run
