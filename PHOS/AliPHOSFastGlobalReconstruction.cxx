@@ -76,7 +76,7 @@ void AliPHOSFastGlobalReconstruction::FastReconstruction(Int_t event)
   TLorentzVector p,v;
   Int_t kf,ks,imom1,imom2,idaug1,idaug2;
 
-  gime->Event(event,"P") ;
+  gime->Event(event,"X") ;
   fParticles  ->Clear();
   fNParticles = 0;
   Int_t        nPrimaries = gime->NPrimaries();
