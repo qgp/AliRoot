@@ -195,7 +195,7 @@ Int_t AliITStrackerV2::Clusters2Tracks()
     AliTPCtrack *itrack=new AliTPCtrack; 
     tpcTree->SetBranchAddress("tracks",&itrack);
     nentr=(Int_t)tpcTree->GetEntries();
-    Info("Clusters2Tracks","nentr = %d",nentr);
+//    Info("Clusters2Tracks","nentr = %d",nentr);
     for (Int_t i=0; i<nentr; i++) {
        tpcTree->GetEvent(i);
        AliITStrackV2 *t=0;
@@ -215,14 +215,14 @@ Int_t AliITStrackerV2::Clusters2Tracks()
        Double_t xk=52.,x,y,z; t->GetGlobalXYZat(xk,x,y,z);
        if (TMath::Abs(y)<7.77) t->PropagateTo(xk,0.19,24.); 
        t->PropagateTo(50.,0.001);
-       Info("Clusters2Tracks","Adding candidate %d",i);
+//       Info("Clusters2Tracks","Adding candidate %d",i);
        itsTracks.AddLast(t);
     }
     delete itrack;
   }
   itsTracks.Sort();
 
-  Info("Clusters2Tracks","size of itsTracks = %d",itsTracks.GetEntries());
+//  Info("Clusters2Tracks","size of itsTracks = %d",itsTracks.GetEntries());
 
 
   if (itsl->TreeT() == 0x0) itsl->MakeTree("T");
@@ -234,12 +234,12 @@ Int_t AliITStrackerV2::Clusters2Tracks()
 
   for (fPass=0; fPass<2; fPass++) 
    {
-     Info("Clusters2Tracks","  PASS%d",fPass);
+//     Info("Clusters2Tracks","  PASS%d",fPass);
      Int_t &constraint=fConstraint[fPass]; 
      if (constraint<0) continue;
      for (Int_t i=0; i<nentr; i++) 
       {
-       Info("Clusters2Tracks","  Prologating track %d",i);
+//       Info("Clusters2Tracks","  Prologating track %d",i);
        if (i%10==0) cerr<<nentr-i<<" \r";
        AliITStrackV2 *t=(AliITStrackV2*)itsTracks.UncheckedAt(i);
        if (t==0) continue;           //this track has been already tracked
