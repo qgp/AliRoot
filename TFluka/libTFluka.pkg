@@ -1,6 +1,7 @@
-SRCS          =   \
-TFluka.cxx AliFluka.cxx
+SRCS:=  TFluka.cxx AliFluka.cxx
 
-HDRS:= $(SRCS:.cxx=.h) 
+HDRS:=  $(SRCS:.cxx=.h) 
 
-DHDR= TFlukaLinkDef.h
+DHDR:=  TFlukaLinkDef.h
+
+EINCLUDE:= STEER
