@@ -200,14 +200,16 @@ void AliEMCALGeometry::Init(void){
   
   fgInit = kTRUE; 
   
-  Info("Init", "geometry of EMCAL named %s is as follows:", name.Data());
-  printf( "Tower geometry pre-shower: %d x (%f mm Pb, %f mm Sc) \n", GetNPRLayers(), GetPRPbRadThick(), GetPRScintThick() ) ; 
-  printf( "               ECAL      : %d x (%f mm Pb, %f mm Sc) \n", GetNECLayers(), GetECPbRadThick(), GetECScintThick() ) ; 
-  if ( GetNHCLayers() > 0 )
-    printf( "               HCAL      : %d x (%f mm Pb, %f mm Sc) \n", GetNHCLayers(), GetHCCuRadThick(), GetHCScintThick() ) ; 
-  printf("Granularity: %d in eta and %d in phi\n", GetNZ(), GetNPhi()) ;
-  printf("Layout: phi = (%f, %f), eta = (%f, %f), y = %f\n",  
-	 GetArm1PhiMin(), GetArm1PhiMax(),GetArm1EtaMin(), GetArm1EtaMax(), GetIPDistance() ) ;    
+  if (gDebug) {
+    Info("Init", "geometry of EMCAL named %s is as follows:", name.Data());
+    printf( "Tower geometry pre-shower: %d x (%f mm Pb, %f mm Sc) \n", GetNPRLayers(), GetPRPbRadThick(), GetPRScintThick() ) ; 
+    printf( "               ECAL      : %d x (%f mm Pb, %f mm Sc) \n", GetNECLayers(), GetECPbRadThick(), GetECScintThick() ) ; 
+    if ( GetNHCLayers() > 0 )
+      printf( "               HCAL      : %d x (%f mm Pb, %f mm Sc) \n", GetNHCLayers(), GetHCCuRadThick(), GetHCScintThick() ) ; 
+    printf("Granularity: %d in eta and %d in phi\n", GetNZ(), GetNPhi()) ;
+    printf("Layout: phi = (%f, %f), eta = (%f, %f), y = %f\n",  
+	   GetArm1PhiMin(), GetArm1PhiMax(),GetArm1EtaMin(), GetArm1EtaMax(), GetIPDistance() ) ;    
+  }
 }
 
 //______________________________________________________________________
