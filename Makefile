@@ -56,7 +56,8 @@ endif
 #
 #                   Modules to build 
 
-# COMMENTED OUT FOR TEST PURPOSES
+# Uncomment to show some output
+#$(warning MAKECMDGOALS=$(MAKECMDGOALS))
 
 ALIROOTMODULES:= STEER PHOS TRD TPC ZDC MUON PMD FMD TOF ITS \
       CRT RICH START STRUCT EVGEN RALICE ALIFAST VZERO \
@@ -66,6 +67,11 @@ ALIROOTMODULES:= STEER PHOS TRD TPC ZDC MUON PMD FMD TOF ITS \
 CERNMODULES:= PDF PYTHIA PYTHIA6 HIJING MICROCERN HERWIG
 
 MODULES:=$(ALIROOTMODULES) $(CERNMODULES) 
+
+ifeq ($(findstring TFluka,$(MAKECMDGOALS)),TFluka)
+MODULES += TFluka
+endif
+
 
 ##################################################################
 
@@ -147,6 +153,9 @@ ifneq ($(findstring modules,$(MAKECMDGOALS)),modules)
 # 
 #                Include the modules
 -include $(patsubst %,%/module.mk,$(MODULES)) 
+
+#
+#
 #############################################################
 
 #############################################################
@@ -178,6 +187,7 @@ include build/dummy.d
 
 modules: $(patsubst %,%/module.mk,$(MODULES)) 	
 
+
 aliroot: $(BINPATH) $(ALLEXECS) alilibs bin
 
 alilibs: $(LIBPATH) $(ALLLIBS) lib modules
@@ -188,6 +198,7 @@ makedistr: $(MODULES)
 		Makefile create build/* 
 
 all: aliroot
+
 
 depend: $(INCLUDEFILES) 
 
