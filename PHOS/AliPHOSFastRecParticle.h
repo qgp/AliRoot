@@ -7,14 +7,15 @@
 
 //_________________________________________________________________________
 //  A  Particle modified by PHOS response and produced by AliPHOSvFast
+//  This is also a base class for AliPHOSRecParticle produced by AliPHOSPIDv1
+//  Defines the particle type
 //  To become a general class of AliRoot ?    
-//               
+//--               
 //*-- Author: Yves Schutz (SUBATECH)
 
 // --- ROOT system ---
 
 #include "TParticle.h"
-#include "TVector3.h"
 
 // --- Standard library ---
 
@@ -28,9 +29,8 @@ class AliPHOSFastRecParticle : public TParticle {
   
   AliPHOSFastRecParticle(const AliPHOSFastRecParticle & rp) ;  // ctor
   AliPHOSFastRecParticle(const TParticle & p) ;  // ctor
-  virtual ~AliPHOSFastRecParticle(){
-    // dtor
-  }
+  virtual ~AliPHOSFastRecParticle(){ } //dtor
+
   virtual Int_t DistancetoPrimitive(Int_t px, Int_t py) ; 
   virtual void Draw(Option_t *option) ;  
   virtual void ExecuteEvent(Int_t event, Int_t px, Int_t py) ;
@@ -45,99 +45,35 @@ class AliPHOSFastRecParticle : public TParticle {
     return fType ; 
   } 
   
-  void SetPIDBit(UInt_t fSet)
-    {
-      fType |= (1<<fSet) ; 
-    } 
+  void SetPIDBit(UInt_t fSet) {
+    // Set PID bit number fSet
+    fType |= (1<<fSet) ; 
+  } 
   
-  Bool_t TestPIDBit(UInt_t fTest){
-    if (fType & (1<<fTest) )
-      return  kTRUE ;	
-    else
-      return kFALSE ;
-  }
-  
-  Bool_t IsPhotonHiPu_LoEf()  {
-    Bool_t pid=kFALSE ;
-    if(TestPIDBit(8)&& //PCA
-       TestPIDBit(5)&& //TOF
-       TestPIDBit(2))  //RCPV
-      pid = kTRUE;
-    return pid ;
+  Bool_t TestPIDBit(UInt_t fTest) const {
+    // Check PID bit number fTest
+    if (fType & (1<<fTest) ) return  kTRUE ;	
+    else return kFALSE ;
   }
   
-  Bool_t IsPhotonMed_Pu_Ef(){
-    Bool_t pid=kFALSE ;
-    if(TestPIDBit(7)&& //PCA
-       TestPIDBit(4)&& //TOF
-       TestPIDBit(1))  //RCPV
-      pid = kTRUE ;
-    return pid ;
-  }
-  
-  Bool_t IsPhotonHiEf_LoPu()  {
-    Bool_t pid=kFALSE ;
-    if(TestPIDBit(6)&& //PCA
-       TestPIDBit(3)&& //TOF
-       TestPIDBit(0))  //RCPV
-      pid = kTRUE ;
-    return pid ;
-  }
-  Bool_t IsPhoton()  {
-    Bool_t pid=kFALSE ;
-    if(IsPhotonHiEf_LoPu()) pid = kTRUE ;
-    return pid ;
-  }
-  
-  Bool_t IsFastChargedHadron()  {
-    Bool_t pid=kFALSE ;
-    if(TestPIDBit(5)&&TestPIDBit(4)&&TestPIDBit(3)) //TOF
-      pid = kTRUE ;
-    return pid ;
-  }
-  Bool_t IsSlowChargedHadron()  {
-    Bool_t pid=kFALSE ;
-    if(TestPIDBit(1)||TestPIDBit(0)) //CPV
-      pid = kTRUE ;
-    return pid ;
-  }
-  Bool_t IsFastNeutralHadron()  {
-    Bool_t pid=kFALSE ;
-    if(TestPIDBit(5)&&TestPIDBit(4)&&TestPIDBit(3)&& //TOF
-       TestPIDBit(2)&&TestPIDBit(1)&&TestPIDBit(0))//RCPV
-      pid = kTRUE ;
-    return pid ;
-  }
-  Bool_t IsSlowNeutralHadron()  {
-    Bool_t pid=kFALSE ;
-    if(TestPIDBit(2)&&TestPIDBit(1)&&TestPIDBit(0))//RCPV
-      pid = kTRUE ;
-    return pid ;
-  }
+  Bool_t IsPhoton           (TString purity = "low") const;
+  Bool_t IsPi0              (TString purity = "low") const;
+  Bool_t IsElectron         (TString purity = "low") const;
+  Bool_t IsHardPhoton       () const;
+  Bool_t IsHardPi0          () const;
+  Bool_t IsHadron           () const;
+  Bool_t IsChargedHadron    () const;
+  Bool_t IsNeutralHadron    () const;
+  Bool_t IsFastChargedHadron() const;
+  Bool_t IsSlowChargedHadron() const;
+  Bool_t IsFastNeutralHadron() const;
+  Bool_t IsSlowNeutralHadron() const;
 
-  Bool_t IsFastChargedEM()  {
-    Bool_t pid=kFALSE ;
-    if((TestPIDBit(8)||TestPIDBit(7)||TestPIDBit(6))&&
-       TestPIDBit(5)&&TestPIDBit(4)&&TestPIDBit(3))//TOF
-      pid = kTRUE ;
-    return pid ;
-  }
-  
-  Bool_t IsSlowChargedEM()  {
-    Bool_t pid=kFALSE ;
-    if(TestPIDBit(8)||TestPIDBit(7)||TestPIDBit(6))
-      pid = kTRUE ;
-    return pid ;
-  }
-  
-  TString Name() ; 
+  TString Name() const ; 
   virtual void Paint(Option_t * option="");
-  virtual void Print(const char * opt) ; 
+  virtual void Print(Option_t * option="") const ; 
   
-  void SetType(Int_t type) { 
-    // sets the particle type 
-    fType = type ; 
-  }	    
+  void SetType(Int_t type) ;
   
   void SetIndexInList(Int_t val) { 
     // sets the value of the index in the list 
@@ -148,7 +84,6 @@ class AliPHOSFastRecParticle : public TParticle {
 		       kNEUTRALEMFAST, kNEUTRALHAFAST,  kNEUTRALEMSLOW, kNEUTRALHASLOW, 
 		       kCHARGEDEMFAST, kCHARGEDHAFAST,  kCHARGEDEMSLOW, kCHARGEDHASLOW } ; 
   
-  
   typedef TClonesArray  FastRecParticlesList ; 
   
  protected:
@@ -156,7 +91,6 @@ class AliPHOSFastRecParticle : public TParticle {
   Int_t fIndexInList ; // the index of this RecParticle in the list stored in TreeR (to be set by analysis)
   Int_t fType ;        // particle type obtained by "virtual" reconstruction
  private:
-
 
   ClassDef(AliPHOSFastRecParticle,2)  // Reconstructed Particle produced by the fast simulation 
 
