@@ -1,0 +1,49 @@
+==========================================================
+Please add  to this README file all information concerning 
+config files, simulation, digitalization, clusterization, 
+reconstruction and macro analysis
+
+==========================================================
+ How to run a MUON simulation 
+==========================================================
+aliroot
+root [0] gAlice->Run(10,"Config_MUON_test.C")
+
+10 single muon of 7 GeV/c in the MUON spectrometer acceptance will be
+simulated usign geant3. 
+Hit information in each tracking and trigger chamber will be store 
+in galice.root file
+
+
+============================================================
+ How to run MUON Digitalization
+============================================================
+To process the digitalization of hits the ALiRunDigitizer 
+framework is used:
+
+root [0] AliRunDigitizer   * manager = new AliRunDigitizer(1,1);
+root [1] manager->SetInputStream(0,"galice.root");
+root [2] AliMUONDigitizerv1* dMUON   = new AliMUONDigitizerv1(manager);
+root [3] manager->AddDigitizer(dMUON);
+root [4] manager->Exec("deb");
+
+============================================================
+ How to run MUONCheck macro
+============================================================
+To check the content of a root data file, the MUONCheck
+provides a ascii output on screen.
+
+To compile MUONCheck.C
+root [0] .includepath $ALICE_ROOT/STEER
+root [1] .includepath $ALICE_ROOT/MUON
+root [2] .L $ALICE_ROOT/MUON/MUONCheck.C++
+
+To print hits : (default file is galice.root if not MUONhits("toto.root""); )
+root [3] MUONhits()  
+
+To print digits : (default file is galice.root)
+root [4] MUONdigits()  
+
+===========================================================
+ Still working ..............
+===========================================================
