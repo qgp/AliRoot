@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.1.2.6  2002/10/07 13:40:22  iglez2
+First implementations of the PDG <--> Fluka Id conversion routines
+
 Revision 1.1.2.5  2002/09/26 16:26:03  iglez2
 Added verbosity
 Call to gAlice->Generator()->Generate()
@@ -158,9 +161,9 @@ Int_t TFluka::IdFromPDG(Int_t pdg) const
   // Return Geant3 code from PDG and pseudo ENDF code
   //
   for(Int_t i=0;i<fNPDGCodes;++i)
-    if(pdg==fPDGCode[i]) 
+    if(pdg==fPDGCode[i])
       return i;
-  return -99
+  return -99;
 }
 
 //_____________________________________________________________________________
