@@ -6,14 +6,14 @@
 /* $Id$ */
 
 //_________________________________________________________________________
-//  Base class for the clusterization algorithm (pure abstract)
+//  Base class for the clusterization algorithm 
 //*-- Author: Yves Schutz (SUBATECH) & Dmitri Peressounko (SUBATECH & Kurchatov Institute)
 // --- ROOT system ---
 
 #include "TTask.h" 
 
 // --- Standard library ---
-#include <iostream> 
+#include <iostream.h> 
 
 // --- AliRoot header files ---
 
@@ -26,6 +26,10 @@ public:
   AliPHOSClusterizer() ;        // default ctor
   AliPHOSClusterizer(const char * headerFile, const char * name) ;
   virtual ~AliPHOSClusterizer() ; // dtor
+
+  const TString GetHitsFileName() const { return fHitsFileName ; }
+  const TString GetSDigitsFileName() const { return fSDigitsFileName ; }
+  const TString GetDigitsFileName() const { return fDigitsFileName ; }
 
   virtual Float_t GetEmcClusteringThreshold()const {cout << "Not Defined" << endl ; return 0. ; }  
   virtual Float_t GetEmcLocalMaxCut()const {cout << "Not Defined" << endl ; return 0. ; } 
@@ -50,8 +54,17 @@ public:
   virtual void SetCpvLogWeight(Float_t w) {cout << "Not Defined" << endl ;  } 
   virtual void SetDigitsBranch(const char * title) {cout << "Not Defined" << endl ; }  
   virtual void SetRecPointsBranch(const char *title) {cout << "Not Defined" << endl ; } 
+  virtual void SetSplitFile(const TString splitFileName = "PHOS.RecData.root") ; 
   virtual void SetUnfolding(Bool_t toUnfold ){cout << "Not Defined" << endl ;}  
   virtual const char * Version() const {cout << "Not Defined" << endl ; return 0 ; }  
+
+protected:
+
+  TString fHitsFileName ;          // file name that contains the original hits
+  TString fSDigitsFileName ;       // file name that contains the original SDigits
+  TString fDigitsFileName ;        // file name that contains the original Digits
+  TFile * fSplitFile ;             //! file in which RecPoints will eventually be stored
+
 
   ClassDef(AliPHOSClusterizer,2)  // Clusterization algorithm class 
 

@@ -42,18 +42,21 @@ class AliPHOSPID : public TTask {
   //virtual void SetIdentificationMethod(char * option) = 0 ;
   //virtual void SetShowerProfileCut(char *  formula) = 0  ; 
   //virtual void SetDispersionCut(Float_t cut) = 0  ;   
-  virtual void SetCpvtoEmcDistanceCut(Float_t cut ) { cout << "AliPHOSPID::SetCpvtoEmcDistanceCut not defined " << endl ;}
-  virtual void SetTimeGate(Float_t gate) { cout << "AliPHOSPID::SetTimeGate not defined " << endl ; }
+  virtual void SetCpvtoEmcDistanceCut(Float_t Cluster_En, TString Eff_Pur,Float_t cut ) { cout << "AliPHOSPID::SetCpvtoEmcDistanceCut not defined " << endl ;}
+  virtual void SetTimeGate(Float_t Cluster_En, TString Eff_Pur, Float_t gate) { cout << "AliPHOSPID::SetTimeGate not defined " << endl ; }
   virtual void SetTrackSegmentsBranch(const char* title) { cout << "AliPHOSPID::Exec not define " << endl ; }
   virtual void SetRecParticlesBranch (const char* title) { cout << "AliPHOSPID::SetTecParticlesBranch not defined " << endl ; }
+  virtual void SetSplitFile(const TString splitFileName = "PHOS.RecData.root") const ; 
   virtual const char * Version() const { cout << "AliPHOSPID::Version not defined " << endl ; return 0 ; }  
   virtual void WriteRecParticles(Int_t event) { cout << "AliPHOSPID::WriteRecParticles not defined " << endl ; }
 
- private: 
+private: 
   virtual void Init() { cout << "AliPHOSPID::Init not define " << endl ; } 
 
- protected:
+protected:
 
+  TFile * fSplitFile ;             //! file in which RecParticles will eventually be stored
+  
   ClassDef(AliPHOSPID,1)  // Particle Identifier algorithm (base class)
 
 } ;
