@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.4  2003/04/08 10:34:43  morsch
+Call AliGenMC::Init().
+
 Revision 1.3  2003/04/08 10:23:03  morsch
 Rapidity shift calculated in AliGenMC::Init()
 

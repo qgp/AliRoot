@@ -24,6 +24,9 @@
 
 /*
 $Log$
+Revision 1.1  2003/03/15 14:48:34  morsch
+Classes imported from EVGEN
+
 Revision 1.1  2002/11/06 10:26:45  hristov
 Event generator for e+e- pair production (Yu.Kharlov)
 

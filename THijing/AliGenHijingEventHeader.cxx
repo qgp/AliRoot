@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.1  2003/03/15 14:45:57  morsch
+Classes imported from EVGEN
+
 Revision 1.1  2000/06/15 15:47:48  morsch
 Proposal for an event header class for generated events.
 
