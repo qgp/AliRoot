@@ -70,7 +70,6 @@ ClassImp(AliEMCALSDigitizer)
 {
   // ctor
   InitParameters() ; 
-  Init();
   fDefaultInit = kTRUE ; 
 }
 
@@ -80,8 +79,8 @@ AliEMCALSDigitizer::AliEMCALSDigitizer(const char * alirunFileName, const char *
   fEventFolderName(eventFolderName)
 {
   // ctor
-  InitParameters() ; 
   Init();
+  InitParameters() ; 
   fDefaultInit = kFALSE ; 
 }
 
@@ -189,7 +188,7 @@ void AliEMCALSDigitizer::Exec(Option_t *option)
     // Attention nPrim is the number of primaries tracked by Geant 
     // and this number could be different to the number of Primaries in TreeK;
     Int_t iprim ;
-    
+
     for ( iprim = 0 ; iprim < nPrim ; iprim++ ) { 
       //=========== Get the EMCAL branch from Hits Tree for the Primary iprim
       gime->Track(iprim) ;
@@ -281,7 +280,6 @@ void AliEMCALSDigitizer::Exec(Option_t *option)
 
     gime->WriteSDigits("OVERWRITE");
     
-    
     //NEXT - SDigitizer
 
     gime->WriteSDigitizer("OVERWRITE");
@@ -289,7 +287,7 @@ void AliEMCALSDigitizer::Exec(Option_t *option)
     if(strstr(option,"deb"))
       PrintSDigits(option) ;  
   }
-   
+
   Unload();
   
   gime->EmcalLoader()->GetSDigitsDataLoader()->GetBaseTaskLoader()->SetDoNotReload(kTRUE);
