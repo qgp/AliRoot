@@ -135,12 +135,13 @@ Int_t AliHBTReaderITSv2::GetNumberOfTrackEvents()
    }
   return (fTracks)?fTracks->GetNumberOfEvents():0;
  }
-
-
 /********************************************************************/
 /********************************************************************/
+
+ 
 Int_t AliHBTReaderITSv2::Read(AliHBTRun* particles, AliHBTRun *tracks)
 {
+//reads data
  Int_t Nevents = 0; //number of events found in given directory
  Int_t Ndirs; //number of the directories to be read
  Int_t Ntracks; //number of tracks in current event
@@ -156,7 +157,7 @@ Int_t AliHBTReaderITSv2::Read(AliHBTRun* particles, AliHBTRun *tracks)
  Float_t phi, lam, pt;//angles and transverse momentum
  Int_t label; //label of the current track
 
- AliITStrackV2 *iotrack= new AliITStrackV2(); //buffer track for reading data from tree
+ AliITStrackV2 *iotrack = 0x0; //buffer track for reading data from tree
 
  if (!particles) //check if an object is instatiated
   {
@@ -186,15 +187,16 @@ Int_t AliHBTReaderITSv2::Read(AliHBTRun* particles, AliHBTRun *tracks)
     if (filename.IsNull())
      {
        Error("Read","Can not get directory name");
-       return 4;
+       currentdir++;
+       continue;
      }
     filename = filename +"/"+ fFileName;
     AliRunLoader* rl = AliRunLoader::Open(filename);
     if( rl == 0x0)
      {
        Error("Read","Exiting due to problems with opening files.");
-       delete iotrack;
-       return i;
+       currentdir++;
+       continue;
      }
     
     rl->LoadHeader();
@@ -208,7 +210,6 @@ Int_t AliHBTReaderITSv2::Read(AliHBTRun* particles, AliHBTRun *tracks)
     if ((its == 0x0) || ( itsl== 0x0))
      {
        Error("Read","Can not found ITS in this run");
-       delete iotrack;
        delete rl;
        rl = 0x0;
        currentdir++;
@@ -218,15 +219,25 @@ Int_t AliHBTReaderITSv2::Read(AliHBTRun* particles, AliHBTRun *tracks)
  
     if (Nevents > 0)//check if tree E exists
      {
-      cout<<"________________________________________________________\n";
-      cout<<"Found "<<Nevents<<" event(s) in directory "<<GetDirName(currentdir)<<endl;
-      cout<<"Setting Magnetic Field: B="<<gAlice->Field()->SolenoidField()<<"T"<<endl;
-      AliKalmanTrack::SetConvConst(1000/0.299792458/gAlice->Field()->SolenoidField());
+      Info("Read","________________________________________________________");
+      Info("Read","Found %d event(s) in directory %s",Nevents,GetDirName(currentdir).Data());
+      Float_t mf;
+      if (fUseMagFFromRun)
+       {
+         mf = gAlice->Field()->SolenoidField();
+         Info("Read","Setting Magnetic Field from run: B=%fT",mf/10.);
+       }
+      else
+       {
+         Info("Read","Setting Own Magnetic Field: B=%fT",fMagneticField);
+         mf = fMagneticField*10.;
+       }
+      AliKalmanTrack::SetConvConst(1000/0.299792458/mf);
+      if (iotrack == 0x0) iotrack = new AliITStrackV2();
      }
     else
      {//if not return an error
        Error("Read","No events in this run");
-       delete iotrack;
        delete rl;
        rl = 0x0;
        currentdir++;
@@ -237,7 +248,6 @@ Int_t AliHBTReaderITSv2::Read(AliHBTRun* particles, AliHBTRun *tracks)
     if (!geom) 
      { 
        Error("Read","Can't get the ITS geometry!"); 
-       delete iotrack;
        delete rl;
        rl = 0x0;
        currentdir++;
@@ -284,7 +294,7 @@ Int_t AliHBTReaderITSv2::Read(AliHBTRun* particles, AliHBTRun *tracks)
           if(Pass(p->GetPdgCode())) continue; //check if we are intersted with particles of this type 
                                               //if not take next partilce
             
-          AliHBTParticle* part = new AliHBTParticle(*p);
+          AliHBTParticle* part = new AliHBTParticle(*p,i);
           if(Pass(part)) { delete part; continue;}//check if meets all criteria of any of our cuts
                                                   //if it does not delete it and take next good track
 
@@ -305,7 +315,7 @@ Int_t AliHBTReaderITSv2::Read(AliHBTRun* particles, AliHBTRun *tracks)
           Double_t mass = p->GetMass();
           Double_t tEtot = TMath::Sqrt( tpx*tpx + tpy*tpy + tpz*tpz + mass*mass);//total energy of the track
             
-          AliHBTParticle* track = new AliHBTParticle(p->GetPdgCode(), tpx, tpy , tpz, tEtot, 0., 0., 0., 0.);
+          AliHBTParticle* track = new AliHBTParticle(p->GetPdgCode(), i, tpx, tpy , tpz, tEtot, 0., 0., 0., 0.);
           if(Pass(track))//check if meets all criteria of any of our cuts
                          //if it does not delete it and take next good track
            { 

@@ -1,11 +1,21 @@
+//__________________________________________________________
+///////////////////////////////////////////////////////////////////
+//
+// class AliHBTEvent
+//
+// This class is container for paticles coming from one event
+//
+// Piotr.Skowronski@cern.ch 
+//
+///////////////////////////////////////////////////////////////////
+
+
 #include "AliHBTEvent.h"
 #include "AliHBTParticle.h"
 
 ClassImp(AliHBTEvent)
 
 const UInt_t AliHBTEvent::fgkInitEventSize = 100;
-
-
 
 /**************************************************************************/ 
  
@@ -62,16 +72,16 @@ void  AliHBTEvent:: AddParticle(AliHBTParticle* hbtpart)
  }
 
 /**************************************************************************/ 
-void  AliHBTEvent::AddParticle(TParticle* part)
+void  AliHBTEvent::AddParticle(TParticle* part, Int_t idx)
  {
-   AddParticle( new AliHBTParticle(*part) );
+   AddParticle( new AliHBTParticle(*part,idx) );
  }
 /**************************************************************************/ 
 void  AliHBTEvent::
-AddParticle(Int_t pdg, Double_t px, Double_t py, Double_t pz, Double_t etot,
+AddParticle(Int_t pdg, Int_t idx, Double_t px, Double_t py, Double_t pz, Double_t etot,
             Double_t vx, Double_t vy, Double_t vz, Double_t time)
  {
-   AddParticle(new  AliHBTParticle(pdg,px,py,pz,etot,vx,vy,vz,time) );
+   AddParticle(new  AliHBTParticle(pdg,idx,px,py,pz,etot,vx,vy,vz,time) );
  }
 /**************************************************************************/ 
 

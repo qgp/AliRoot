@@ -330,6 +330,7 @@ void AliHBTAnalysis::ProcessTracksAndParticles()
          for (Int_t k =j+1; k < partEvent->GetNumberOfParticles() ; k++)
           {
             part2= partEvent->GetParticle(k);
+            if (part1->GetUID() == part2->GetUID()) continue;
             partpair->SetParticles(part1,part2);
            
             track2= trackEvent->GetParticle(k);       
@@ -488,7 +489,9 @@ void AliHBTAnalysis::ProcessTracks()
         
          for (Int_t k =j+1; k < trackEvent->GetNumberOfParticles() ; k++)
           {
-           track2= trackEvent->GetParticle(k);       
+           track2= trackEvent->GetParticle(k);
+           if (track1->GetUID() == track2->GetUID()) continue;
+
            trackpair->SetParticles(track1,track2);
            if(fPairCut->Pass(trackpair)) //check pair cut
             { //do not meets crietria of the 
@@ -613,6 +616,7 @@ void AliHBTAnalysis::ProcessParticles()
          for (Int_t k =j+1; k < partEvent->GetNumberOfParticles() ; k++)
           {
             part2= partEvent->GetParticle(k);
+            if (part1->GetUID() == part2->GetUID()) continue; //this is the same particle but different incarnation (PID)
             partpair->SetParticles(part1,part2);
             
             if( fPairCut->Pass(partpair) ) //check pair cut
@@ -969,6 +973,8 @@ void AliHBTAnalysis::ProcessTracksAndParticlesNonIdentAnal()
          for (Int_t k = 0; k < partEvent2->GetNumberOfParticles() ; k++)
           {
             part2= partEvent2->GetParticle(k);
+            if (part1->GetUID() == part2->GetUID()) continue;//this is the same particle but with different PID
+
             partpair->SetParticles(part1,part2);
 
             track2= trackEvent2->GetParticle(k);
@@ -1121,17 +1127,18 @@ void AliHBTAnalysis::ProcessTracksNonIdentAnal()
          for (Int_t k = 0; k < trackEvent2->GetNumberOfParticles() ; k++)
           {
             track2= trackEvent2->GetParticle(k);
+            if (track1->GetUID() == track2->GetUID()) continue;//this is the same particle but with different PID
             trackpair->SetParticles(track1,track2);
 
 
             if( fPairCut->PassPairProp(trackpair)) //check pair cut
-              { //do not meets crietria of the pair cut
-                  continue; 
-              }
+             { //do not meets crietria of the pair cut
+               continue; 
+             }
             else
              {//meets criteria of the pair cut
-              UInt_t ii;
-              for(ii = 0;ii<fNTrackFunctions;ii++)
+               UInt_t ii;
+               for(ii = 0;ii<fNTrackFunctions;ii++)
                      fTrackFunctions[ii]->ProcessSameEventParticles(trackpair);
              }
            }
@@ -1247,6 +1254,7 @@ void AliHBTAnalysis::ProcessParticlesNonIdentAnal()
          for (Int_t k = 0; k < partEvent2->GetNumberOfParticles() ; k++)
           {
             part2= partEvent2->GetParticle(k);
+            if (part1->GetUID() == part2->GetUID()) continue;//this is the same particle but with different PID
             partpair->SetParticles(part1,part2);
 
             if(fPairCut->PassPairProp(partpair) ) //check pair cut

@@ -23,10 +23,11 @@ class AliHBTReaderITSv2: public AliHBTReader
     AliHBTEvent* GetTrackEvent(Int_t);//returns pointer to event with particles 
     Int_t GetNumberOfPartEvents();//returns number of particle events
     Int_t GetNumberOfTrackEvents();//returns number of track events
-	
+
+    void SetMagneticField(Float_t mf){fMagneticField=mf;}
+    void UseMagneticFieldFromRun(Bool_t flag = kTRUE){fUseMagFFromRun=flag;}
     
   protected:
- 
     
     AliHBTRun* fParticles; //!simulated particles
     AliHBTRun* fTracks; //!reconstructed tracks (particles)
@@ -35,9 +36,9 @@ class AliHBTReaderITSv2: public AliHBTReader
   
     Bool_t fIsRead;//!flag indicating if the data are already read
 
-  private:
-    
-  public:
+    Float_t    fMagneticField;//magnetic field value that was enforced while reading
+    Bool_t     fUseMagFFromRun;//flag indicating if using field specified in gAlice (kTRUE)
+                               // or enforece other defined by fMagneticField
     ClassDef(AliHBTReaderITSv2,1)
 };
 

@@ -1,7 +1,17 @@
 #ifndef ALIHBTEvent_H
 #define ALIHBTEvent_H
-//This class sters HBT perticles for one event
-//more info: http://alisoft.cern.ch/people/skowron/analyzer/index.html
+//__________________________________________________________
+///////////////////////////////////////////////////////////////////
+//
+// class AliHBTEvent
+//
+// This class is container for paticles coming from one event
+//
+// more info: http://alisoft.cern.ch/people/skowron/analyzer/index.html
+//
+// Piotr.Skowronski@cern.ch 
+//
+///////////////////////////////////////////////////////////////////
 
 #include <TObject.h>
 
@@ -18,8 +28,8 @@ class AliHBTEvent: public TObject
     AliHBTParticle* GetParticleSafely(Int_t n); //gets particle with index check
     
     void    AddParticle(AliHBTParticle*); //adds particle to the event
-    void    AddParticle(TParticle*); //adds particle to the event
-    void    AddParticle(Int_t pdg, Double_t px, Double_t py, Double_t pz, Double_t etot,
+    void    AddParticle(TParticle*, Int_t idx); //adds particle to the event
+    void    AddParticle(Int_t pdg, Int_t idx, Double_t px, Double_t py, Double_t pz, Double_t etot,
                         Double_t vx, Double_t vy, Double_t vz, Double_t time);
     
     Int_t   GetNumberOfParticles() const;
