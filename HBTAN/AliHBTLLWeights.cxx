@@ -1,10 +1,10 @@
 #include "AliHBTLLWeights.h"
-#include "AliPDG.h"
 #include "AliHBTPair.h"
 #include "AliHBTParticle.h"
 #include <TList.h>
 #include <TRandom.h>                                                                     
 #include <TMath.h>                                                                       
+#include <TPDGCode.h>
 
 /*******************************************************************/
 /******      ROUTINES    USED    FOR     COMMUNUCATION      ********/

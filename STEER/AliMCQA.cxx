@@ -17,6 +17,8 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
+// Quality Assurance class                                                   //
+// Provides standard histograms for every element of the detector            //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -31,12 +33,10 @@
 #include <TList.h>
 #include <TLorentzVector.h>
 #include <TMath.h>
-#include <TMath.h>
 #include <TObjArray.h>
 #include <TPad.h>
 #include <TPaveLabel.h>
 #include <TROOT.h>
-#include <TVirtualMC.h>
 
 #include "AliMCQA.h"
 #include "AliModule.h"
@@ -153,7 +153,8 @@ AliMCQA::AliMCQA(Int_t ndets):
     (*fVolNames)[i]=new TNamed(gMC->VolName(i+1),mod->GetName());
   }
 
-  fQAHist->Add(new TH1F("hMCMcalls","Monte Carlo calls per module",fNdets, -0.5, fNdets-0.5));
+  fQAHist->Add(new TH1F("hMCMcalls","Monte Carlo calls per module",
+			fNdets, -0.5, fNdets-0.5));
   h = dynamic_cast<TH1F*>(dir->FindObject("hMCMcalls"));
    h->GetListOfFunctions()->Add(new TExec("ex","gAlice->GetMCQA()->AddModuleName()"));
 
@@ -175,7 +176,9 @@ void AliMCQA::Copy(AliMCQA &) const
 //_______________________________________________________________________
 AliMCQA::~AliMCQA() 
  {
-//destructor  
+  //
+  // Destructor
+  //
   gROOT->GetListOfBrowsables()->Remove(this);
   //if program crashes here - it probobly means that 
   //one of added browsables was deleted and not removed previously from that list

@@ -13,17 +13,14 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.2  2000/11/30 07:12:49  alibrary
-Introducing new Rndm and QA classes
+/* $Id$ */
 
-Revision 1.1  2000/10/26 14:18:05  morsch
-Add new AliLegoGenerator classes:
-AliLegoGeneratorXYZ: carthesian binning
-AliLegoGeneratorEta: eta-phi binning
-
-*/
+//-------------------------------------------------------------------------
+//      Lego generator in x - y - z bins
+//    Uses geantino rays to check the material distributions and detector's
+//    geometry
+//    Author: A.Morsch 
+//-------------------------------------------------------------------------
 
 #include "AliLegoGeneratorXYZ.h"
 #include "AliRun.h"

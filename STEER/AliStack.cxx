@@ -14,6 +14,7 @@
  **************************************************************************/
 
 /* $Id$ */
+
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
 //  Particles stack class
@@ -116,6 +117,7 @@ AliStack::~AliStack()
     delete fParticles;
   }
   delete fParticleMap;
+  //PH???  delete fTreeK;
 }
 
 //
@@ -152,7 +154,8 @@ void AliStack::SetTrack(Int_t done, Int_t parent, Int_t pdg, Float_t *pmom,
   // used in the MC is not the same of the PDG database
   //
   Float_t mass = TDatabasePDG::Instance()->GetParticle(pdg)->Mass();
-  Float_t e=TMath::Sqrt(mass*mass+pmom[0]*pmom[0]+pmom[1]*pmom[1]+pmom[2]*pmom[2]);
+  Float_t e=TMath::Sqrt(mass*mass+pmom[0]*pmom[0]+
+			pmom[1]*pmom[1]+pmom[2]*pmom[2]);
   
 //    printf("Loading  mass %f ene %f No %d ip %d parent %d done %d pos %f %f %f mom %f %f %f kS %d m \n",
 //	   mass,e,fNtrack,pdg,parent,done,vpos[0],vpos[1],vpos[2],pmom[0],pmom[1],pmom[2],kS);
@@ -252,8 +255,8 @@ TParticle*  AliStack::GetNextTrack(Int_t& itrack)
 
   return track;
 }
-//_____________________________________________________________________________
 
+//_____________________________________________________________________________
 TParticle*  AliStack::GetPrimaryForTracking(Int_t i)
 {
   //
@@ -268,7 +271,6 @@ TParticle*  AliStack::GetPrimaryForTracking(Int_t i)
   else
     return 0;
 }      
-
 
 //_____________________________________________________________________________
 void AliStack::PurifyKine()

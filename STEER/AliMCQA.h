@@ -3,7 +3,7 @@
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
 
-/* $Id $ */
+/* $Id$ */
 
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
@@ -21,7 +21,7 @@ class AliMCQA : public TObject
 public:
   AliMCQA();
   AliMCQA(Int_t ndets);
-  AliMCQA(const AliMCQA &);
+  AliMCQA(const AliMCQA &qa);
   virtual ~AliMCQA();
   Bool_t  IsFolder() const {return kTRUE;}
   virtual  void  Browse(TBrowser *b);

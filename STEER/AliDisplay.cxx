@@ -13,70 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.17.4.3  2002/06/24 16:17:57  hristov
-The display works with many events
-
-Revision 1.17.4.2  2002/06/06 14:18:33  hristov
-Merged with v3-08-02
-
-Revision 1.17.4.1  2002/05/31 09:37:59  hristov
-First set of changes done by Piotr
-
-Revision 1.20  2002/10/29 14:26:49  hristov
-Code clean-up (F.Carminati)
-
-Revision 1.19  2002/10/14 14:57:32  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.17.6.1  2002/06/10 14:43:06  hristov
-Merged with v3-08-02
-
-Revision 1.18  2002/05/24 13:29:58  hristov
-AliTrackReference added, AliDisplay modified
-
-Revision 1.17  2001/10/21 18:38:44  hristov
-Several pointers were set to zero in the default constructors to avoid memory management problems
-
-Revision 1.16  2001/07/25 15:23:50  hristov
-Changes needed to run with Root 3.01 (R.Brun)
-
-Revision 1.15  2001/05/16 14:57:22  alibrary
-New files for folders and Stack
-
-Revision 1.14  2001/01/26 19:58:48  hristov
-Major upgrade of AliRoot code
-
-Revision 1.13  2000/12/21 15:30:18  fca
-Correcting coding convention violations
-
-Revision 1.12  2000/12/12 13:18:59  hristov
-Protection against FPE
-
-Revision 1.11  2000/11/30 07:12:48  alibrary
-Introducing new Rndm and QA classes
-
-Revision 1.10  2000/10/02 21:28:14  fca
-Removal of useless dependecies via forward declarations
-
-Revision 1.9  2000/07/13 16:19:09  fca
-Mainly coding conventions + some small bug fixes
-
-Revision 1.8  2000/07/11 18:24:59  fca
-Coding convention corrections + few minor bug fixes
-
-Revision 1.7  1999/11/10 07:37:06  fca
-Pads do not inherit editability from canvas any more
-
-Revision 1.6  1999/11/09 07:38:52  fca
-Changes for compatibility with version 2.23 of ROOT
-
-Revision 1.5  1999/09/29 09:24:29  fca
-Introduction of the Copyright and cvs Log
-
-*/
-
+/* $Id$ */
 
 //////////////////////////////////////////////////////////////////////////
 //                                                                      //
@@ -100,8 +37,6 @@ Introduction of the Copyright and cvs Log
 #include <TView.h>
 #include <TVirtualX.h>
 
-#include "AliRun.h"
-#include "AliStack.h"
 #include "AliDetector.h"
 #include "AliDisplay.h"
 #include "AliHeader.h"
@@ -446,7 +381,8 @@ void AliDisplay::ShowTrack(Int_t idx)
 }
 
 //----------------------------------------------------------------------------
-void AliDisplay::HideTrack(Int_t idx) {
+void AliDisplay::HideTrack(Int_t idx) const
+{
   //
   // Hide track on display
   //
@@ -882,6 +818,7 @@ void AliDisplay::LoadPoints()
     }
    next.Reset();
 
+   // load only wanted tracks
    if (fNTracksToDisplay>0)
     {
       Int_t nprim =  gAlice->Stack()->GetNprimary();

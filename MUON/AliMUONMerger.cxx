@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.8.2.3  2002/11/22 14:19:43  hristov
+Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
+
 Revision 1.8.2.2  2002/05/31 15:07:51  hristov
 Merged with v3-08-02
 
@@ -56,6 +59,7 @@ AliMUONMerger prototype to be called by the merge manager.
 #include <TObjArray.h>
 #include <TFile.h>
 #include <TDirectory.h>
+#include <TPDGCode.h>
 
 #include "AliMUONMerger.h"
 #include "AliMUONConstants.h"
@@ -68,7 +72,6 @@ AliMUONMerger prototype to be called by the merge manager.
 #include "AliMUONDigit.h"
 #include "AliMUONTransientDigit.h"
 #include "AliRun.h"
-#include "AliPDG.h"
 
 ClassImp(AliMUONMerger)
 

@@ -19,8 +19,7 @@
 
 // --- ROOT system ---
 
-#include "TString.h"
-#include "TFile.h"
+class TFile;
 
 // --- AliRoot header files ---
 
@@ -43,7 +42,7 @@ public:
     
 private:
 
-  Int_t fDEBUG;
+  Int_t fDEBUG;           // Debug flag
   
   ClassDef(AliTrackMapper,0)  // methods to create AliTrackMap
 };

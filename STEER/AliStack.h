@@ -6,12 +6,11 @@
 /* $Id$ */
 
 #include <TArrayI.h>
-#include <TMCProcess.h>
-#include <TObject.h>
-#include <TStopwatch.h>
 #include <TVirtualMCStack.h>
 
+
 #include "AliConfig.h"
+
 class AliHeader;
 class TClonesArray;
 class TFile;

@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.8.2.3  2002/11/22 14:19:39  hristov
+Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
+
 Revision 1.8.2.2  2002/05/31 15:07:51  hristov
 Merged with v3-08-02
 
@@ -53,6 +56,7 @@ merging/digitization classes
 #include <TObjArray.h>
 #include <TFile.h>
 #include <TDirectory.h>
+#include <TPDGCode.h>
 
 #include "AliRunLoader.h"
 #include "AliLoader.h"
@@ -68,7 +72,6 @@ merging/digitization classes
 #include "AliMUONDigit.h"
 #include "AliMUONTransientDigit.h"
 #include "AliRun.h"
-#include "AliPDG.h"
 #include "AliRunDigitizer.h"
 
 ClassImp(AliMUONDigitizer)

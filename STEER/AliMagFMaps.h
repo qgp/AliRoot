@@ -29,6 +29,8 @@ public:
     virtual void ReadField();
     virtual Float_t SolenoidField() const;
     virtual void    SetL3ConstField(Int_t flag = 0) {fL3Option = flag;}
+    virtual void    SetL3ConstField(Float_t bsol, Int_t flag = 0)
+	{fL3Option = flag; fSolenoidUser = bsol;}
     
     virtual AliMagFMaps & operator=(const AliMagFMaps &magf)
       {magf.Copy(*this); return *this;}
@@ -38,10 +40,10 @@ protected:
 
     AliFieldMap* fFieldMap[3];     // Field maps
     Float_t      fSolenoid;        // Solenoid field setting
+    Float_t      fSolenoidUser;    // User set solenoid field setting  
     Int_t        fL3Option;        // Option for field inside L3
     Int_t        fFieldRead;       // Field has been read in
-    ClassDef(AliMagFMaps,2)        // Class for all Alice MagField using three Maps with Constant Mesh
+    ClassDef(AliMagFMaps,3)        // Class for all Alice MagField using three Maps with Constant Mesh
 };
 
 #endif
-

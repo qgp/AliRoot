@@ -21,8 +21,8 @@ public:
   Int_t                 GetIndex() const {return fIndex;}
   TParticle            *GetParticle() const;
   virtual const Text_t *GetName() const;
-  virtual void          InspectParticle(); // *MENU*
-  virtual void          DumpParticle(); // *MENU*
+  virtual void          InspectParticle() const; // *MENU*
+  virtual void          DumpParticle() const; // *MENU*
   virtual Text_t       *GetObjectInfo(Int_t px, Int_t py) const;
   AliPoints &           operator=(const AliPoints &pts)
     {pts.Copy(*this); return (*this);}

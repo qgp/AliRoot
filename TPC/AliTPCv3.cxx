@@ -35,9 +35,9 @@
 #include <TLorentzVector.h>
 #include <TMath.h>
 #include <TVirtualMC.h>
+#include <TPDGCode.h>
 
 #include "AliConst.h"
-#include "AliPDG.h"
 #include "AliRun.h"
 #include "AliTPCDigitsArray.h"
 #include "AliTPCParam.h"

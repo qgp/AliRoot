@@ -13,18 +13,13 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.3  2002/10/29 14:26:49  hristov
-Code clean-up (F.Carminati)
+/* $Id$ */
 
-Revision 1.2  2002/10/23 07:43:00  alibrary
-Introducing some effective C++ suggestions
-
-Revision 1.1  2001/05/11 13:21:16  morsch
-Geom. volume data class. Can be used during lego run for debugging.
-
-*/
+//-----------------------------------------------------------------------
+//    Class to debug entry and exit from a volume
+//    Used by AliLego class
+//    Author: A.Morsch
+//-----------------------------------------------------------------------
 
 #include "AliDebugVolume.h"
 
@@ -71,6 +66,8 @@ Bool_t  AliDebugVolume::IsVEqual(const char* name, const Int_t copy) const
 //_______________________________________________________________________
 char*   AliDebugVolume::Status() const
 {
+  // Returns the status of the particle with respect to 
+  // the current volume (Undefined, Entering, Exiting) 
   char* tmp;
   tmp = "Undefined";
   if (fStatus == 1) tmp = "Entering";

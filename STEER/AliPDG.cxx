@@ -13,30 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.6  2002/10/17 16:26:39  hristov
-Definition of additional particles moved to VMC (I.Hrivnacova)
-
-Revision 1.5  2002/10/14 14:57:32  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.3.10.2  2002/10/14 09:45:57  hristov
-Updating VirtualMC to v3-09-02
-
-Revision 1.4  2002/09/16 08:22:36  morsch
-Add Upsilon(3S) to particle data base.
-
-Revision 1.3  2001/03/16 09:48:35  morsch
-Exclude pdg particle definitions. Done by root now by default from Pythia6 table.
-
-Revision 1.2  2001/01/31 14:32:42  morsch
-Some B mesons added
-
-Revision 1.1  2000/12/21 16:48:39  morsch
-AliPDG class, first commit.
-
-*/
+/* $Id$ */
 
 // Class to encapsulate the ALICE updates to TDatabasePDG.h
 // Can be used by TGeant3 and TGeant4
@@ -74,6 +51,21 @@ ClassImp(AliPDG)
   pdgDB->AddParticle("Upsilon(3S)","Upsilon(3S)",10.3552,kTRUE,
                      0,1,"Bottonium",200553);
 
+// QCD diffractive states
+  pdgDB->AddParticle("rho_diff0","rho_diff0",0,kTRUE,
+		     0,0,"QCD diffr. state",9900110);
+  pdgDB->AddParticle("pi_diffr+","pi_diffr+",0,kTRUE,
+		     0,1,"QCD diffr. state",9900210);
+  pdgDB->AddParticle("omega_di","omega_di",0,kTRUE,
+		     0,0,"QCD diffr. state",9900220);
+  pdgDB->AddParticle("phi_diff","phi_diff",0,kTRUE,
+		     0,0,"QCD diffr. state",9900330);
+  pdgDB->AddParticle("J/psi_di","J/psi_di",0,kTRUE,
+		     0,0,"QCD diffr. state",9900440);
+  pdgDB->AddParticle("n_diffr0","n_diffr0",0,kTRUE,
+		     0,0,"QCD diffr. state",9902110);
+  pdgDB->AddParticle("p_diffr+","p_diffr+",0,kTRUE,
+		     0,1,"QCD diffr. state",9902210);
 // Done by default now from Pythia6 table!
 //
 //

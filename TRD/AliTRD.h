@@ -9,10 +9,10 @@
 //  Manager and hits classes for set: TRD     //
 ////////////////////////////////////////////////
 
+#include <TLorentzVector.h>
 #include "AliDetector.h"
 
 class TFile;
-class TLorentzVector;
 
 class AliRun;
 class AliDigit;

@@ -40,7 +40,8 @@ protected:
     Int_t GetNInputStreams() const;
     void Copy(AliDigitizer &dig) const;
 
-    AliRunDigitizer *fManager;//!
+    AliRunDigitizer *fManager;   // Pointer to the Digitizer manager
+    
     ClassDef(AliDigitizer,1) // Base class for detector digitizers
 };
 

@@ -13,47 +13,13 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-////////////////////////////////////////////////////////////////////////
-//
+/* $Id$ */
+
+//----------------------------------------------------------------------
 //  Base Class for Detector specific Merging/Digitization   
-//                  
+//  Collaborates with AliRunDigitizer class                
 //  Author: Jiri Chudoba (CERN)
-//
-////////////////////////////////////////////////////////////////////////
-
-/*
-$Log$
-Revision 1.3.4.2  2002/10/09 09:23:55  hristov
-New task hierarchy, bug corrections, new development (P.Skowronski)
-
-Revision 1.3.4.1  2002/05/31 09:37:59  hristov
-First set of changes done by Piotr
-
-Revision 1.7  2002/10/29 14:26:49  hristov
-Code clean-up (F.Carminati)
-
-Revision 1.6  2002/10/22 15:02:15  alibrary
-Introducing Riostream.h
-
-Revision 1.5  2002/10/14 14:57:32  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.3.6.1  2002/07/24 10:08:13  alibrary
-Updating VirtualMC
-
-Revision 1.4  2002/07/17 07:29:53  jchudoba
-Add private method GetNInputStreams(). Do not use it, it's just a temporary fix the PHOS and EMCAL code.
-
-Revision 1.3  2001/11/14 14:50:33  jchudoba
-Pass custom name and title to the TTask base class
-
-Revision 1.2  2001/10/04 15:56:34  jchudoba
-TTask inheritance
-
-Revision 1.1  2001/07/27 13:02:06  jchudoba
-ABC for detector digits merging/digitization
-
-*/
+//----------------------------------------------------------------------
 
 // system includes
 #include <Riostream.h>
@@ -71,6 +37,9 @@ AliDigitizer::AliDigitizer(const Text_t* name, const Text_t* title):
   TTask(name,title),
   fManager(0)
 {
+  //
+  // Default ctor with name and title
+  //
 }
 
 //_______________________________________________________________________

@@ -27,9 +27,9 @@
 #include <TFile.h>
 #include <TTree.h>
 #include <TVirtualMC.h>
+#include <TPDGCode.h>
 
 #include "AliGenFLUKAsource.h"
-#include "AliPDG.h"
 
 #include "AliRun.h"
 

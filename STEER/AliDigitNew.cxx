@@ -13,18 +13,13 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.3  2002/10/29 14:26:49  hristov
-Code clean-up (F.Carminati)
+/* $Id$ */
 
-Revision 1.2  2000/02/14 11:44:29  fca
-New version from Y.Schutz
-
-Revision 1.1  1999/12/17 09:01:14  fca
-Y.Schutz new classes for reconstruction
-
-*/
+//-----------------------------------------------------------------------
+//    Proposal for a new digitisation abstract class
+//    Used by EMCAL, PHOS, PMD, TOF digitizers and/or rec. points
+//    Author:
+//-----------------------------------------------------------------------
 
 #include "AliDigitNew.h"
  

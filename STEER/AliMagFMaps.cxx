@@ -13,50 +13,18 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.5.4.1  2002/06/06 14:18:33  hristov
-Merged with v3-08-02
+/* $Id$ */
 
-Revision 1.9  2002/10/29 14:26:49  hristov
-Code clean-up (F.Carminati)
-
-Revision 1.8  2002/10/14 14:57:32  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.5.6.2  2002/08/01 15:35:30  alibrary
-Updating VirtualMC
-
-Revision 1.7  2002/08/01 12:34:48  morsch
-Initialize maps in first call to Field() after streaming in.
-
-Revision 1.6  2002/04/11 11:17:48  morsch
-ReadField() used in Constructor.
-
-Revision 1.5  2002/02/26 09:48:14  morsch
-Extra argument in constructor for l3 map choice.
-
-Revision 1.4  2002/02/22 14:00:20  morsch
-Protection against replication of fieldmap data in gAlice.
-
-Revision 1.3  2002/02/21 09:23:41  morsch
-Create dummy field map for L3 in case no detailed map is needed.
-
-Revision 1.2  2002/02/19 16:14:35  morsch
-Reading of 0.2 T solenoid field map enabled.
-
-Revision 1.1  2002/02/14 11:41:28  morsch
-Magnetic field map for ALICE for L3+muon spectrometer stored in 3 seperate
-root files.
-
-*/
-
-//
+//------------------------------------------------------------------------
+// Magnetic field composed by 3 maps: the L3 magnet, extended region, and
+// dipole magnet
+// Used in the configuration macros (macros/Config.C, etc.)
 // Author: Andreas Morsch <andreas.morsch@cern.ch>
-//
+//------------------------------------------------------------------------
 
 #include <TFile.h>
 #include <TSystem.h>
+#include <TVector.h>
 
 #include "AliFieldMap.h"
 #include "AliMagFMaps.h"
@@ -67,6 +35,7 @@ ClassImp(AliMagFMaps)
 //_______________________________________________________________________
 AliMagFMaps::AliMagFMaps():
   fSolenoid(0),
+  fSolenoidUser(0.),
   fL3Option(0),
   fFieldRead(0)
 {
@@ -82,6 +51,7 @@ AliMagFMaps::AliMagFMaps(const char *name, const char *title, const Int_t integ,
                          const Int_t l3):
   AliMagF(name,title,integ,factor,fmax),
   fSolenoid(0),
+  fSolenoidUser(0),
   fL3Option(l3),
   fFieldRead(0)
 {
@@ -92,7 +62,6 @@ AliMagFMaps::AliMagFMaps(const char *name, const char *title, const Int_t integ,
   fFieldMap[0]  = 0;
   fMap          = map;
   fL3Option     = l3;
-
   ReadField();
   fFieldRead = 1;
   //
@@ -138,78 +107,89 @@ void AliMagFMaps::ReadField()
   char* fname;
   TFile* file = 0;
   if (fMap == k2kG) {
-	if (fL3Option) {
-      fname = gSystem->ExpandPathName("$(ALICE_ROOT)/data/maps/L3B02.root");
+      if (fL3Option) {
+	  fSolenoid = 2.;
+	  fname = gSystem->ExpandPathName("$(ALICE_ROOT)/data/maps/L3B02.root");
+	  file = new TFile(fname);
+	  fFieldMap[0] = dynamic_cast<AliFieldMap*>(file->Get("L3B02"));
+	  file->Close();
+	  delete file;
+      }
+      fname = gSystem->ExpandPathName("$(ALICE_ROOT)/data/maps/DipB02.root");
       file = new TFile(fname);
-      fFieldMap[0] = dynamic_cast<AliFieldMap*>(file->Get("L3B02"));
+      fFieldMap[1] = dynamic_cast<AliFieldMap*>(file->Get("DipB02"));
+      file->Close();
+      delete file;;
+      
+      fname = gSystem->ExpandPathName("$(ALICE_ROOT)/data/maps/ExtB02.root");
+      file = new TFile(fname);
+      fFieldMap[2] = dynamic_cast<AliFieldMap*>(file->Get("ExtB02"));
       file->Close();
       delete file;
-	}
-	fname = gSystem->ExpandPathName("$(ALICE_ROOT)/data/maps/DipB02.root");
-	file = new TFile(fname);
-	fFieldMap[1] = dynamic_cast<AliFieldMap*>(file->Get("DipB02"));
-	file->Close();
-	delete file;;
-	
-	fname = gSystem->ExpandPathName("$(ALICE_ROOT)/data/maps/ExtB02.root");
-	file = new TFile(fname);
-	fFieldMap[2] = dynamic_cast<AliFieldMap*>(file->Get("ExtB02"));
-	file->Close();
-	delete file;
-	fSolenoid = 2.;
   } else if (fMap == k4kG) {
-	if (fL3Option) {
-      fname = gSystem->ExpandPathName("$(ALICE_ROOT)/data/maps/L3B04.root");
+      if (fL3Option) {
+	  fSolenoid = 4.;
+	  fname = gSystem->ExpandPathName("$(ALICE_ROOT)/data/maps/L3B04.root");
+	  file = new TFile(fname);
+	  fFieldMap[0] = dynamic_cast<AliFieldMap*>(file->Get("L3B04"));
+	  file->Close();
+	  delete file;
+      }
+      
+      fname = gSystem->ExpandPathName("$(ALICE_ROOT)/data/maps/DipB04.root");
       file = new TFile(fname);
-      fFieldMap[0] = dynamic_cast<AliFieldMap*>(file->Get("L3B04"));
+      fFieldMap[1] = dynamic_cast<AliFieldMap*>(file->Get("DipB04"));
       file->Close();
       delete file;
-	}
-	
-	fname = gSystem->ExpandPathName("$(ALICE_ROOT)/data/maps/DipB04.root");
-	file = new TFile(fname);
-	fFieldMap[1] = dynamic_cast<AliFieldMap*>(file->Get("DipB04"));
-	file->Close();
-	delete file;
-	
-	fname = gSystem->ExpandPathName("$(ALICE_ROOT)/data/maps/ExtB04.root");
-	file = new TFile(fname);
-	fFieldMap[2] = dynamic_cast<AliFieldMap*>(file->Get("ExtB04"));
-	file->Close();
-	delete file;
-	fSolenoid = 4.;
+      
+      fname = gSystem->ExpandPathName("$(ALICE_ROOT)/data/maps/ExtB04.root");
+      file = new TFile(fname);
+      fFieldMap[2] = dynamic_cast<AliFieldMap*>(file->Get("ExtB04"));
+      file->Close();
+      delete file;
   } else if (fMap == k5kG) {
-	if (fL3Option) {
-      fname = gSystem->ExpandPathName("$(ALICE_ROOT)/data/maps/L3B05.root");
+      if (fL3Option) {
+	  fSolenoid = 5.;
+      	  fname = gSystem->ExpandPathName("$(ALICE_ROOT)/data/maps/L3B05.root");
+	  file = new TFile(fname);
+	  fFieldMap[0] = dynamic_cast<AliFieldMap*>(file->Get("L3B05"));
+	  file->Close();
+	  delete file;
+      }
+      
+      fname = gSystem->ExpandPathName("$(ALICE_ROOT)/data/maps/DipB05.root");
       file = new TFile(fname);
-      fFieldMap[0] = dynamic_cast<AliFieldMap*>(file->Get("L3B05"));
+      fFieldMap[1] = dynamic_cast<AliFieldMap*>(file->Get("DipB05"));
       file->Close();
       delete file;
-	}
-	
-	fname = gSystem->ExpandPathName("$(ALICE_ROOT)/data/maps/DipB05.root");
-	file = new TFile(fname);
-	fFieldMap[1] = dynamic_cast<AliFieldMap*>(file->Get("DipB05"));
-	file->Close();
-	delete file;
-	
-	fname = gSystem->ExpandPathName("$(ALICE_ROOT)/data/maps/ExtB05.root");
-	file = new TFile(fname);
-	fFieldMap[2] = dynamic_cast<AliFieldMap*>(file->Get("ExtB05"));
-	file->Close();
-	delete file;
-	
-	fSolenoid = 5.;
+      
+      fname = gSystem->ExpandPathName("$(ALICE_ROOT)/data/maps/ExtB05.root");
+      file = new TFile(fname);
+      fFieldMap[2] = dynamic_cast<AliFieldMap*>(file->Get("ExtB05"));
+      file->Close();
+      delete file;
+      
   }
   
   if (!fL3Option) {
-    //
-    // Dummy L3 map
-	fFieldMap[0] = new AliFieldMap();
-	fFieldMap[0] -> SetLimits(-800., 800., -800., 800., -700., 700.);
+      //
+      // Dummy L3 map
+      fFieldMap[0] = new AliFieldMap();
+      fFieldMap[0] -> SetLimits(-800., 800., -800., 800., -700., 700.);
+      switch(fMap) {
+      case k2kG:
+	  fSolenoid = 2.;
+	  break;
+      case k4kG:
+	  fSolenoid = 4.;
+	  break;
+      case k5kG:
+	  fSolenoid = 5.;
+	  break;
+      }
+      fSolenoidUser = fSolenoid;
   }
 }
-
 
 //_______________________________________________________________________
 Float_t AliMagFMaps::SolenoidField() const
@@ -234,12 +214,12 @@ void AliMagFMaps::Field(Float_t *x, Float_t *b)
   b[0]=b[1]=b[2]=0;
   AliFieldMap* map = 0;
   if (fFieldMap[0]->Inside(x[0], x[1], x[2])) {
-    map = fFieldMap[0];
-    if (!fL3Option) {
+      map = fFieldMap[0];
+      if (!fL3Option) {
       //
       //     Constant L3 field, if this option was selected
       //
-	  b[2] = fSolenoid;
+	  b[2] = fSolenoidUser;
 	  return;
     }
   } else if (fFieldMap[1]->Inside(x[0], x[1], x[2])) {
@@ -254,44 +234,42 @@ void AliMagFMaps::Field(Float_t *x, Float_t *b)
     //This is the ZDC part
     Float_t rad2=x[0]*x[0]+x[1]*x[1];
     if(x[2]>kCORBEG2 && x[2]<kCOREND2){
-	  if(rad2<kCOR2RA2){
-        b[0] = kFCORN2;
-	  }
+	if(rad2<kCOR2RA2){
+	    b[0] = kFCORN2;
+	}
+    } else if(x[2]>kZ1BEG && x[2]<kZ1END){  
+	if(rad2<kZ1RA2){
+	    b[0] = -kG1*x[1];
+	    b[1] = -kG1*x[0];
+	}
+    } else if(x[2]>kZ2BEG && x[2]<kZ2END){
+	if(rad2<kZ2RA2){
+	    b[0] = kG1*x[1];
+	    b[1] = kG1*x[0];
+	}
     }
-    else if(x[2]>kZ1BEG && x[2]<kZ1END){  
-	  if(rad2<kZ1RA2){
-        b[0] = -kG1*x[1];
-        b[1] = -kG1*x[0];
-	  }
+    else if(x[2]>kZ3BEG && x[2]<kZ3END){
+	if(rad2<kZ3RA2){
+	    b[0] = kG1*x[1];
+	    b[1] = kG1*x[0];
+	}
     }
-    else if(x[2]>kZ2BEG && x[2]<kZ2END){  
-	  if(rad2<kZ2RA2){
-        b[0] = kG1*x[1];
-        b[1] = kG1*x[0];
-	  }
-    }
-    else if(x[2]>kZ3BEG && x[2]<kZ3END){  
-	  if(rad2<kZ3RA2){
-        b[0] = kG1*x[1];
-        b[1] = kG1*x[0];
-	  }
-    }
-    else if(x[2]>kZ4BEG && x[2]<kZ4END){  
-	  if(rad2<kZ4RA2){
-        b[0] = -kG1*x[1];
-        b[1] = -kG1*x[0];
-	  }
+    else if(x[2]>kZ4BEG && x[2]<kZ4END){
+	if(rad2<kZ4RA2){
+	    b[0] = -kG1*x[1];
+	    b[1] = -kG1*x[0];
+	}
     }
     else if(x[2]>kD1BEG && x[2]<kD1END){ 
-	  if(rad2<kD1RA2){
-        b[1] = -kFDIP;
-	  }
+	if(rad2<kD1RA2){
+	    b[1] = -kFDIP;
+	}
     }
     else if(x[2]>kD2BEG && x[2]<kD2END){
-	  if(((x[0]-kXCEN1D2)*(x[0]-kXCEN1D2)+(x[1]-kYCEN1D2)*(x[1]-kYCEN1D2))<kD2RA2
-	     || ((x[0]-kXCEN2D2)*(x[0]-kXCEN2D2)+(x[1]-kYCEN2D2)*(x[1]-kYCEN2D2))<kD2RA2){
-        b[1] = kFDIP;
-	  }
+	if(((x[0]-kXCEN1D2)*(x[0]-kXCEN1D2)+(x[1]-kYCEN1D2)*(x[1]-kYCEN1D2))<kD2RA2
+	   || ((x[0]-kXCEN2D2)*(x[0]-kXCEN2D2)+(x[1]-kYCEN2D2)*(x[1]-kYCEN2D2))<kD2RA2){
+	    b[1] = kFDIP;
+	}
     }
   }
   if(fFactor!=1) {

@@ -13,9 +13,11 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
+/* $Id$ */
+
 //-------------------------------------------------------------------------
 //               Implementation of the Cluster class
-//
+// that is the base for AliTPCcluster, AliITSclusterV2 and AliTRDcluster
 //      Origin: Iouri Belikov, CERN, Jouri.Belikov@cern.ch
 //-------------------------------------------------------------------------
 

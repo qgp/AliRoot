@@ -13,39 +13,14 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.5.8.1  2002/06/06 14:18:33  hristov
-Merged with v3-08-02
+/* $Id$ */
 
-Revision 1.8  2002/10/14 14:57:32  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.5.10.1  2002/06/10 14:43:06  hristov
-Merged with v3-08-02
-
-Revision 1.7  2002/05/07 16:44:04  morsch
-Correct initialization of origin[2]. (Thanks to Angela Badala)
-
-Revision 1.6  2002/05/03 12:18:24  morsch
-Print-out corrected.
-
-Revision 1.5  2001/05/16 14:57:22  alibrary
-New files for folders and Stack
-
-Revision 1.4  2001/01/12 09:23:17  morsch
-Correct order of phi and z.
-
-Revision 1.3  2000/11/30 07:12:49  alibrary
-Introducing new Rndm and QA classes
-
-Revision 1.2  2000/10/27 11:40:01  morsch
-Error in printouts corrected
-
-Revision 1.1  2000/10/27 08:13:02  morsch
-Lego generator for phi-z binning.
-
-*/
+//-------------------------------------------------------------------------
+//    Lego generator in Phi - Z bins
+//    Uses geantino rays to check the material distributions and detector's
+//    geometry
+//    Author: A.Morsch 
+//-------------------------------------------------------------------------
 
 #include "AliLegoGeneratorPhiZ.h"
 #include "AliRun.h"

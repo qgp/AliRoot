@@ -9,8 +9,7 @@
 // Author: Andreas Morsch <andreas.morsch@cern.ch>
 //
 #include <TNamed.h>
-#include <TVector.h>
-#include <TBuffer.h>
+class TVector;
 
 class AliFieldMap : public TNamed
 {
@@ -25,35 +24,35 @@ public:
     virtual AliFieldMap & operator=(const AliFieldMap &map);
 
     virtual void Field(Float_t *x, Float_t *b);
-    Float_t Bx(const Int_t ix, const Int_t iy, const Int_t iz) {
-	return (*fB)(3*(ix*(fZn*fYn)+iy*fZn+iz));
+    Float_t Bx(const Int_t ix, const Int_t iy, const Int_t iz) const{
+	return (*fB)(3*((ix*fYn+iy)*fZn+iz));
     }
-    Float_t By(const Int_t ix, const Int_t iy, const Int_t iz) {
-	return (*fB)(3*(ix*(fZn*fYn)+iy*fZn+iz)+1);
+    Float_t By(const Int_t ix, const Int_t iy, const Int_t iz) const{
+	return (*fB)(3*((ix*fYn+iy)*fZn+iz)+1);
     }
-    Float_t Bz(const Int_t ix, const Int_t iy, const Int_t iz) {
-	return (*fB)(3*(ix*(fZn*fYn)+iy*fZn+iz)+2);
+    Float_t Bz(const Int_t ix, const Int_t iy, const Int_t iz) const{
+	return (*fB)(3*((ix*fYn+iy)*fZn+iz)+2);
     }
 
-    Bool_t Inside(Float_t x, Float_t y, Float_t z) 
+    Bool_t Inside(Float_t x, Float_t y, Float_t z) const
 	{ return (x > fXbeg && x <= fXend &&
 		  y > fYbeg && y <= fYend &&
 		  z > fZbeg && z <= fZend);
 	}
-    Float_t Xmin()  {return fXbeg;}
-    Float_t Xmax()  {return fXend;}
-    Float_t DelX()  {return fXdel;}
-    Float_t DeliX() {return fXdeli;}
+    Float_t Xmin()  const {return fXbeg;}
+    Float_t Xmax()  const {return fXend;}
+    Float_t DelX()  const {return fXdel;}
+    Float_t DeliX() const {return fXdeli;}
     
-    Float_t Ymin()  {return fYbeg;}
-    Float_t Ymax()  {return fYend;}
-    Float_t DelY()  {return fYdel;}
-    Float_t DeliY() {return fYdeli;}
+    Float_t Ymin()  const {return fYbeg;}
+    Float_t Ymax()  const {return fYend;}
+    Float_t DelY()  const {return fYdel;}
+    Float_t DeliY() const {return fYdeli;}
     
-    Float_t Zmin()  {return fZbeg;}
-    Float_t Zmax()  {return fZend;}
-    Float_t DelZ()  {return fZdel;}
-    Float_t DeliZ() {return fZdeli;}
+    Float_t Zmin()  const {return fZbeg;}
+    Float_t Zmax()  const {return fZend;}
+    Float_t DelZ()  const {return fZdel;}
+    Float_t DeliZ() const {return fZdeli;}
     void    SetLimits(Float_t xmin, Float_t xmax, Float_t ymin, Float_t ymax,
 		      Float_t zmin, Float_t zmax)
 	{
@@ -61,8 +60,6 @@ public:
 	    fZbeg = zmin; fZend = zmax;
 	}
     void SetWriteEnable(Int_t flag = 1) {fWriteEnable = flag;}
- private:
-    void    ReadField();
  protected:
     
     Float_t    fXbeg;         // Start of mesh in x
@@ -83,6 +80,9 @@ public:
     Int_t      fWriteEnable;  // Enable flag for writing of field data.
     TVector*   fB;            // Field map
     
+ private:
+    void    ReadField();
+
     ClassDef(AliFieldMap,3)  //Class for Field Map
 };
 

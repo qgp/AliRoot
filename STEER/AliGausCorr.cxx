@@ -13,6 +13,8 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
+/* $Id$ */
+
 ////////////////////////////////////////////////////////////////////////
 // Class used to generate correlated gaussian numbers with mean
 // zero and known covariance matrix.
@@ -24,8 +26,8 @@
 
 #include <Riostream.h>
 #include <TArrayD.h>
-#include <TMatrixD.h>
 #include <TRandom.h>
+
 #include "AliGausCorr.h"
 
 ClassImp(AliGausCorr)
@@ -131,6 +133,7 @@ void AliGausCorr::PrintCv() const
 //_______________________________________________________________________
 AliGausCorr & AliGausCorr::operator=(const AliGausCorr & tgcorr)
 {
+  // Assignment operator
   if(&tgcorr != this && tgcorr.fSize!=fSize){
     if(fCv)delete fCv;
     fSize = tgcorr.fSize;

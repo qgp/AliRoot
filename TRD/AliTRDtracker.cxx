@@ -15,6 +15,9 @@
                                                       
 /*
 $Log$
+Revision 1.14.4.2  2002/11/22 14:20:12  hristov
+Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
+
 Revision 1.14.4.1  2002/06/03 09:55:04  hristov
 Merged with v3-08-02
 
@@ -79,7 +82,8 @@ Add the tracking code
 #include <TFile.h>
 #include <TBranch.h>
 #include <TTree.h>  
-#include <TObjArray.h> 
+#include <TObjArray.h>
+#include <TError.h>
 
 #include "AliTRDgeometry.h"
 #include "AliTRDparameter.h"
