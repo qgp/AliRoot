@@ -15,6 +15,12 @@
 
 /*
 $Log$
+Revision 1.40  2002/06/13 08:11:56  cblume
+Add the track references
+
+Revision 1.39  2002/06/12 09:54:35  cblume
+Update of tracking code provided by Sergei
+
 Revision 1.38  2002/03/28 14:59:07  cblume
 Coding conventions
 
@@ -156,12 +162,14 @@ Introduction of the Copyright and cvs Log
 #include <TFile.h>
 #include <TROOT.h>
 #include <TParticle.h>
+#include <TLorentzVector.h>
 
 #include "AliRun.h"
 #include "AliConst.h"
 #include "AliDigit.h"
 #include "AliMagF.h"
 #include "AliMC.h"                                                              
+#include "AliTrackReference.h"
  
 #include "AliTRD.h"
 #include "AliTRDhit.h"
@@ -303,37 +311,23 @@ AliTRD::~AliTRD()
 }
 
 //_____________________________________________________________________________
-void AliTRD::AddCluster(Float_t *pos, Int_t *digits, Int_t det, Float_t amp
-                       , Int_t *tracks, Float_t sigmaY2, Int_t iType)
+void AliTRD::AddCluster(Float_t *pos, Int_t det, Float_t amp
+                      , Int_t *tracks, Float_t *sig, Int_t iType)
 {
   //
   // Add a cluster for the TRD
   //
 
-  Int_t   pla = fGeometry->GetPlane(det);
-  Int_t   cha = fGeometry->GetChamber(det);
-  Int_t   sec = fGeometry->GetSector(det);
-
-  Float_t padRow  = pos[0]; 
-  Float_t padCol  = pos[1]; 
-  Float_t row0    = fGeometry->GetRow0(pla,cha,sec);
-  Float_t col0    = fGeometry->GetCol0(pla);
-  Float_t rowSize = fGeometry->GetRowPadSize(pla,cha,sec);
-  Float_t colSize = fGeometry->GetColPadSize(pla);
-
   AliTRDcluster *c = new AliTRDcluster();
 
   c->SetDetector(det);
   c->AddTrackIndex(tracks);
-
   c->SetQ(amp);
-
+  c->SetY(pos[0]);
+  c->SetZ(pos[1]);
+  c->SetSigmaY2(sig[0]);   
+  c->SetSigmaZ2(sig[1]);
   c->SetLocalTimeBin(((Int_t) pos[2]));
-  c->SetY(col0 + padCol * colSize);
-  c->SetZ(row0 + padRow * rowSize);
-  
-  c->SetSigmaY2((sigmaY2 + 1./12.) * colSize*colSize);   
-  c->SetSigmaZ2(rowSize * rowSize / 12.);
 
   switch (iType) {
   case 0:
@@ -354,6 +348,27 @@ void AliTRD::AddCluster(Float_t *pos, Int_t *digits, Int_t det, Float_t amp
   };
 
   fRecPoints->Add(c);
+
+}
+
+//_____________________________________________________________________________
+void  AliTRD::AddTrackReference(Int_t label, TLorentzVector p, TLorentzVector x)
+{
+  //
+  // Add a trackrefernce to the list
+  //
+
+  if (!fTrackReferences) {
+    Error("AddTrackReference","Container fTrackRefernce not active\n");
+    return;
+  }
+
+  Int_t nref = fTrackReferences->GetEntriesFast();
+  TClonesArray &lref = *fTrackReferences;
+  AliTrackReference * ref =  new(lref[nref]) AliTrackReference();
+  ref->SetMomentum(p[0],p[1],p[2]);
+  ref->SetPosition(x[0],x[1],x[2]);
+  ref->SetTrack(label);
 
 }
 

@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.28.6.1  2002/06/10 14:43:06  hristov
+Merged with v3-08-02
+
 Revision 1.28  2001/10/21 18:38:44  hristov
 Several pointers were set to zero in the default constructors to avoid memory management problems
 
@@ -127,7 +130,6 @@ Introduction of the Copyright and cvs Log
 #include "AliConst.h"
 #include "AliMC.h"
 #include "TH2.h"
-//#include "../geant3/TGeant3.h"
 #include "TString.h"
 #include "TClonesArray.h"
 

@@ -36,7 +36,7 @@ public:
   Float_t  GetPedestalParameter()const {return fA;}
   Float_t  GetCalibrationParameter()const{return fB;}
   char *   GetSDigitsBranch()const{return (char*) fSDigitsTitle.Data();}  
-
+  void     SetSplitFile(const TString splitFileName = "EMCAL.SDigits.root" ) ;
   virtual void Print(Option_t* option) const ;
 
   void     SetPedestalParameter(Float_t A){fA = A ;}
@@ -50,8 +50,10 @@ public:
 
 private:
   void     Init() ;
+  void     InitParameters() ; 
   void     PrintSDigits(Option_t * option) ;
   Int_t    Layer2TowerID(Int_t,Bool_t) ;
+
 private:
   Float_t fA ;              //Pedestal parameter
   Float_t fB ;              //Slope Digitizition parameters
@@ -59,6 +61,7 @@ private:
   // should be calculated independently for each layer as : 
   // LightYield*LightCollectionEfficiency*LightAttenuation*APDPhotoElectronEfficiency*APDGain
 
+  Bool_t fDefaultInit;      //! Says if the task was created by defaut ctor (only parameters are initialized)
   Int_t   fNevents ;        // Number of events to digitize
   Float_t fTowerPrimThreshold ;  // To store primary in Tower if Elos > threshold
   Float_t fPreShowerPrimThreshold ;  // To store primary if Pre Shower Elos > threshold
@@ -67,6 +70,7 @@ private:
   Bool_t         fIsInitialized ; 
   TClonesArray * fSDigits ; //! list of SDigits
   TClonesArray * fHits ;    //! 
+  TFile * fSplitFile ;      //! file in which SDigits will eventually be stored
 
   ClassDef(AliEMCALSDigitizer,2)  // description 
 

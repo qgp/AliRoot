@@ -38,6 +38,7 @@ public:
   virtual Int_t   AreNeighbours(AliEMCALDigit * d1, AliEMCALDigit * d2)const ; 
                                // Checks if digits are in neighbour cells 
 
+  const TString BranchName() const ; 
   virtual Float_t Calibrate(Int_t amp, Bool_t inpresho)const ;  // Tranforms Amp to energy 
 
   virtual void    GetNumberOfClustersFound(int * numb )const{  numb[0] = fNumberOfTowerClusters ; 
@@ -89,6 +90,7 @@ private:
   Bool_t  FindFit(AliEMCALTowerRecPoint * emcRP, AliEMCALDigit ** MaxAt, Float_t * maxAtEnergy, 
 		  Int_t NPar, Float_t * FitParametres) const; //Used in UnfoldClusters, calls TMinuit
   void Init() ;
+  void InitParameters() ;
 
   virtual void   MakeUnfolding() ;
   void           UnfoldCluster(AliEMCALTowerRecPoint * iniEmc,Int_t Nmax, 
@@ -97,6 +99,7 @@ private:
 
 private:
 
+  Bool_t  fDefaultInit;              //! Says if the task was created by defaut ctor (only parameters are initialized)
   TString fHeaderFileName ;          // name of the file which contains gAlice, Tree headers etc.
   TString fDigitsBranchTitle ;       // name of the file, where digits branch is stored
   TString fRecPointsBranchTitle ;    // name of the file, where RecPoints branchs are stored

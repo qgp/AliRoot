@@ -15,6 +15,12 @@
 
 /*
 $Log$
+Revision 1.12  2002/06/12 09:54:35  cblume
+Update of tracking code provided by Sergei
+
+Revision 1.11  2001/11/27 08:50:33  hristov
+BranchOld replaced by Branch
+
 Revision 1.10  2001/11/14 10:50:45  cblume
 Changes in digits IO. Add merging of summable digits
 
@@ -91,6 +97,7 @@ Add new TRD classes
 #include "AliTRDcluster.h"
 #include "AliTRDrecPoint.h"
 #include "AliTRDgeometry.h"
+#include "AliTRDparameter.h"
 
 ClassImp(AliTRDclusterizer)
 
@@ -107,6 +114,7 @@ AliTRDclusterizer::AliTRDclusterizer():TNamed()
   fTRD         = 0;
   fEvent       = 0;
   fVerbose     = 0;
+  fPar         = 0;
 
 }
 
@@ -123,6 +131,7 @@ AliTRDclusterizer::AliTRDclusterizer(const Text_t* name, const Text_t* title)
   fClusterTree = NULL;
   fEvent       = 0;
   fVerbose     = 0;
+  fPar         = 0;
 
 }
 
@@ -184,6 +193,7 @@ void AliTRDclusterizer::Copy(TObject &c)
   ((AliTRDclusterizer &) c).fClusterTree = NULL;
   ((AliTRDclusterizer &) c).fEvent       = 0;  
   ((AliTRDclusterizer &) c).fVerbose     = fVerbose;  
+  ((AliTRDclusterizer &) c).fPar         = 0;
 
 }
 

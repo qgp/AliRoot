@@ -15,6 +15,24 @@
 
 /*
 $Log$
+Revision 1.33.6.1  2002/06/10 15:28:58  hristov
+Merged with v3-08-02
+
+Revision 1.38  2002/04/30 08:30:40  cblume
+gAlice now only read by AliRunDigitizer. Therefore it is just deleted in AliTRDmerge.C
+
+Revision 1.37  2002/04/29 11:50:47  cblume
+Change initialization of gAlice in the merging case
+
+Revision 1.36  2002/04/12 12:13:23  cblume
+Add Jiris changes
+
+Revision 1.35  2002/03/28 14:59:07  cblume
+Coding conventions
+
+Revision 1.34  2002/03/25 20:00:44  cblume
+Introduce parameter class and regions of interest for merging
+
 Revision 1.38  2002/04/30 08:30:40  cblume
 gAlice now only read by AliRunDigitizer. Therefore it is just deleted in AliTRDmerge.C
 

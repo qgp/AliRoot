@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.6  2002/07/16 13:48:39  jchudoba
+Add methods to get access to names of files used in merging. Correct memory leak in dtor (thanks to Yves Schutz.)
+
 Revision 1.5  2002/04/09 13:38:47  jchudoba
 Add const to the filename argument
 
@@ -80,7 +83,10 @@ AliStream::AliStream(Option_t *option)
 AliStream::~AliStream()
 {
 // default dtor
-  if (fFileNames) delete fFileNames;
+  if (fFileNames) {
+    fFileNames->Delete();
+    delete fFileNames;
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -175,3 +181,16 @@ Bool_t AliStream::ImportgAlice()
   if (!gAlice)  return kFALSE;
   return kTRUE;
 }
+////////////////////////////////////////////////////////////////////////
+TString AliStream::GetFileName(const Int_t order) const
+// returns name of the order-th file
+// returns empty string if such file does not exist
+// first file in the input stream is 0
+{
+  TString fileName("");
+  if (order > fFileNames->GetLast()) return fileName;
+  TObjString *fileNameStored = dynamic_cast<TObjString*>(fFileNames->At(order));
+  if (fileNameStored) fileName = fileNameStored->GetString();
+  return fileName;
+}
+////////////////////////////////////////////////////////////////////////

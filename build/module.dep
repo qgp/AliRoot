@@ -31,3 +31,4 @@ THbtp/module.mk:	THbtp/libTHbtp.pkg
 HBTP/module.mk:		HBTP/libHBTP.pkg HBTP/libdummyHBTP.pkg
 HBTAN/module.mk:	HBTAN/libHBTAN.pkg
 MICROCERN/module.mk: MICROCERN/libmicrocern.pkg
+HERWIG/module.mk:    HERWIG/libherwig.pkg

@@ -15,6 +15,12 @@
 
 /*
 $Log$
+Revision 1.60  2002/06/12 14:56:56  kowal2
+Added track length to the reference hits
+
+Revision 1.59  2002/06/05 15:37:31  kowal2
+Added cross-talk from the wires beyond the first and the last rows
+
 Revision 1.58  2002/05/27 14:33:14  hristov
 The new class AliTrackReference used (M.Ivanov)
 
@@ -376,7 +382,7 @@ void AliTPC::AddHit(Int_t track, Int_t *vol, Float_t *hits)
    AddHit2(track,vol,hits);
 }
 
-void  AliTPC::AddTrackReference(Int_t lab, TLorentzVector p, TLorentzVector x){
+void  AliTPC::AddTrackReference(Int_t lab, TLorentzVector p, TLorentzVector x, Float_t length){
   //
   // add a trackrefernce to the list
   if (!fTrackReferences) {
@@ -389,6 +395,7 @@ void  AliTPC::AddTrackReference(Int_t lab, TLorentzVector p, TLorentzVector x){
   ref->SetMomentum(p[0],p[1],p[2]);
   ref->SetPosition(x[0],x[1],x[2]);
   ref->SetTrack(lab);
+  ref->SetLength(length);
 }
  
 //_____________________________________________________________________________
@@ -1860,7 +1867,7 @@ void AliTPC::Hits2DigitsSector(Int_t isec)
 
       Int_t nrows =fTPCParam->GetNRow(isec);
 
-      row= new TObjArray* [nrows];
+      row= new TObjArray* [nrows+2]; // 2 extra rows for cross talk
     
       MakeSector(isec,nrows,tH,ntracks,row);
 
@@ -1918,7 +1925,7 @@ void AliTPC::DigitizeRow(Int_t irow,Int_t isec,TObjArray **rows)
  
 
   Float_t zerosup = fTPCParam->GetZeroSup();
-  Int_t nrows =fTPCParam->GetNRow(isec);
+  //  Int_t nrows =fTPCParam->GetNRow(isec);
   fCurrentIndex[1]= isec;
   
 
@@ -1946,14 +1953,16 @@ void AliTPC::DigitizeRow(Int_t irow,Int_t isec,TObjArray **rows)
   //
   //calculate signal 
   //
-  Int_t row1 = TMath::Max(irow-fTPCParam->GetNCrossRows(),0);
-  Int_t row2 = TMath::Min(irow+fTPCParam->GetNCrossRows(),nrows-1);
+  //Int_t row1 = TMath::Max(irow-fTPCParam->GetNCrossRows(),0);
+  //Int_t row2 = TMath::Min(irow+fTPCParam->GetNCrossRows(),nrows-1);
+  Int_t row1=irow;
+  Int_t row2=irow+2; 
   for (Int_t row= row1;row<=row2;row++){
     Int_t nTracks= rows[row]->GetEntries();
     for (i1=0;i1<nTracks;i1++){
       fCurrentIndex[2]= row;
-      fCurrentIndex[3]=irow;
-      if (row==irow){
+      fCurrentIndex[3]=irow+1;
+      if (row==irow+1){
 	m2->Zero();  // clear single track signal matrix
 	Float_t trackLabel = GetSignal(rows[row],i1,m2,m1,indexRange); 
 	GetList(trackLabel,nofPads,m2,indexRange,pList);
@@ -2053,7 +2062,7 @@ Float_t AliTPC::GetSignal(TObjArray *p1, Int_t ntr,
   AliTPCFastVector &v = *tv;
   
   Float_t label = v(0);
-  Int_t centralPad = (fTPCParam->GetNPads(fCurrentIndex[1],fCurrentIndex[3])-1)/2;
+  Int_t centralPad = (fTPCParam->GetNPads(fCurrentIndex[1],fCurrentIndex[3]-1)-1)/2;
 
   Int_t nElectrons = (tv->GetNrows()-1)/4;
   indexRange[0]=9999; // min pad
@@ -2224,10 +2233,10 @@ void AliTPC::MakeSector(Int_t isec,Int_t nrows,TTree *TH,
   // of electrons, one AliTPCFastVectors per each track.
   //---------------------------------------------- 
     
-  Int_t *nofElectrons = new Int_t [nrows]; // electron counter for each row
-  AliTPCFastVector **tracks = new AliTPCFastVector* [nrows]; //pointers to the track vectors
+  Int_t *nofElectrons = new Int_t [nrows+2]; // electron counter for each row
+  AliTPCFastVector **tracks = new AliTPCFastVector* [nrows+2]; //pointers to the track vectors
 
-  for(i=0; i<nrows; i++){
+  for(i=0; i<nrows+2; i++){
     row[i] = new TObjArray;
     nofElectrons[i]=0;
     tracks[i]=0;
@@ -2274,7 +2283,7 @@ void AliTPC::MakeSector(Int_t isec,Int_t nrows,TTree *TH,
                           
            // store already filled fTrack
               
-	   for(i=0;i<nrows;i++){
+	   for(i=0;i<nrows+2;i++){
              if(previousTrack != -1){
 	       if(nofElectrons[i]>0){
                  AliTPCFastVector &v = *tracks[i];
@@ -2327,14 +2336,16 @@ void AliTPC::MakeSector(Int_t isec,Int_t nrows,TTree *TH,
 	  xyz[3]= (Float_t) (-gasgain*TMath::Log(rn)); 
 	  index[0]=1;
 	  
-	  TransportElectron(xyz,index); //MI change -august	  
+	  TransportElectron(xyz,index);    
 	  Int_t rowNumber;
-	  fTPCParam->GetPadRow(xyz,index); //MI change august
-	  rowNumber = index[2];
+	  fTPCParam->GetPadRow(xyz,index); 
+	  // row 0 - cross talk from the innermost row
+	  // row fNRow+1 cross talk from the outermost row
+	  rowNumber = index[2]+1; 
 	  //transform position to local digit coordinates
 	  //relative to nearest pad row 
-	  if ((rowNumber<0)||rowNumber>=fTPCParam->GetNRow(isec)) continue;
-  Float_t x1,y1;
+	  if ((rowNumber<0)||rowNumber>fTPCParam->GetNRow(isec)+1) continue;
+          Float_t x1,y1;
 	  if (isec <fTPCParam->GetNInnerSector()) {
 	    x1 = xyz[1]*fTPCParam->GetInnerPadPitchWidth();
 	    y1 = fTPCParam->GetYInner(rowNumber);
@@ -2343,9 +2354,7 @@ void AliTPC::MakeSector(Int_t isec,Int_t nrows,TTree *TH,
 	    x1=xyz[1]*fTPCParam->GetOuterPadPitchWidth();
 	    y1 = fTPCParam->GetYOuter(rowNumber);
 	  }
-
 	  // gain inefficiency at the wires edges - linear
-
 	  x1=TMath::Abs(x1);
 	  y1-=1.;
           if(x1>y1) xyz[3]*=TMath::Max(1.e-6,(y1-x1+1.));	
@@ -2378,7 +2387,7 @@ void AliTPC::MakeSector(Int_t isec,Int_t nrows,TTree *TH,
     //   store remaining track (the last one) if not empty
     //
 
-     for(i=0;i<nrows;i++){
+     for(i=0;i<nrows+2;i++){
        if(nofElectrons[i]>0){
           AliTPCFastVector &v = *tracks[i];
 	  v(0) = previousTrack;
@@ -2595,13 +2604,10 @@ void AliTPC::TransportElectron(Float_t *xyz, Int_t *index)
   // ExB
   
   if (fTPCParam->GetMWPCReadout()==kTRUE){
-    Float_t x1=xyz[0];
-    fTPCParam->Transform2to2NearestWire(xyz,index);
-    Float_t dx=xyz[0]-x1;
+    Float_t dx = fTPCParam->Transform2to2NearestWire(xyz,index);
     xyz[1]+=dx*(fTPCParam->GetOmegaTau());
   }
-  //add nonisochronity (not implemented yet)
-  
+  //add nonisochronity (not implemented yet)  
 }
   
 ClassImp(AliTPCdigit)

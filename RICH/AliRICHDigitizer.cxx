@@ -15,6 +15,9 @@
 
 /* 
    $Log$
+   Revision 1.3.6.1  2002/06/10 15:12:46  hristov
+   Merged with v3-08-02
+
    Revision 1.4  2002/05/28 07:53:10  morsch
    Wrong order of arguments in for-statement corrected.
 
@@ -27,7 +30,7 @@
    Revision 1.1  2001/11/02 15:37:26  hristov
    Digitizer class created. Code cleaning and bug fixes (J.Chudoba)
 */
-#include <iostream> 
+#include <iostream.h> 
 
 #include <TTree.h> 
 #include <TObjArray.h>

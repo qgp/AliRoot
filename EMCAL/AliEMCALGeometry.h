@@ -18,6 +18,7 @@
 #include "TString.h"
 #include "TObjArray.h"
 #include "TVector3.h"
+class TParticle ; 
 
 // --- AliRoot header files ---
 
@@ -44,6 +45,7 @@ class AliEMCALGeometry : public AliGeometry {
     };
     virtual void GetGlobal(const AliRecPoint *, TVector3 &, TMatrix &) const {}
     virtual void GetGlobal(const AliRecPoint *, TVector3 &) const {}
+    virtual Bool_t Impact(const TParticle * particle) const {return kTRUE;}
     // General
     Bool_t  IsInitialized(void) const { return fgInit ; }
     // Return EMCA geometrical parameters

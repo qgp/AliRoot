@@ -5,7 +5,7 @@ PLATFORM:= hpux
 # The compilers
 CXX           = aCC
 F77	      = f77
-CC	      = c89
+CC	      = cc
 
 # Global optimisation
 OPT           = -O
@@ -53,10 +53,8 @@ DEPENDFFLAGS = $(FFLAGS)
 LIBS          = $(ROOTLIBS)
 GLIBS         = $(ROOTLIBS) -L/usr/lib/X11R6 -lX11 
 
-#System libraries
-#SYSLIBS = -ldl -lbsd
+# System libraries
 
-#EXEFLAGS+= -lg2c
 
 
 

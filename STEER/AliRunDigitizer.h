@@ -61,6 +61,7 @@ public:
     fTreeDTPCBaseName = name;}
   TTree*    GetTreeDTPC() const {return fTreeDTPC;} 
   TTree*    GetTreeDTRD() const {return fTreeDTRD;} 
+  TTree*    GetTreeR() const {return fTreeR;} 
   void      Digitize(Option_t* option = 0);
   void      Exec(Option_t *option) {this->Digitize(option);}
   void      ExecuteTask(Option_t* option = 0);
@@ -89,6 +90,8 @@ public:
 // (index without mask)
   TParticle* GetParticle(Int_t i, Int_t input, Int_t event) const;
 
+// return TString with input file name  
+  TString GetInputFileName(const Int_t input, const Int_t order) const;
   
   Int_t     GetDebug() const {return fDebug;}
   void      SetDebug(Int_t level) {fDebug = level;}
@@ -109,6 +112,7 @@ private:
   TTree *           fTreeD;               //! output TreeD
   TTree *           fTreeDTPC;            //! output TreeD for TPC
   TTree *           fTreeDTRD;            //! output TreeD for TRD
+  TTree *           fTreeR;               //! output TreeR for ITS fast points
   Int_t             fNinputs;             // nr of input streams - can be taken from the TClonesArray dimension
   Int_t             fNinputsGiven;        // nr of input streams given by user
   TClonesArray *    fInputStreams;        // input streams

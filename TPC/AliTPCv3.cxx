@@ -1800,10 +1800,6 @@ void AliTPCv3::StepManager()
       if(TMath::Abs(charge) > 1.) pp *= (charge*charge);
     }
   
-  //Float_t random[1];
-  //gMC->Rndm(random,1); // good, old GRNDM from Geant3
-  //Double_t rnd = (Double_t)random[0];
-
   Double_t rnd = gMC->GetRandom()->Rndm();
   
   gMC->SetMaxStep(-TMath::Log(rnd)/pp);

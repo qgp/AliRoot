@@ -86,23 +86,8 @@ ClassImp(AliEMCALClusterizerv1)
 {
   // default ctor (to be used mainly by Streamer)
   
-  fNumberOfPreShoClusters = fNumberOfTowerClusters = 0 ; 
-  
-  fPreShoClusteringThreshold = 0.0;
-  fTowerClusteringThreshold  = 0.0;
-  
-  fTowerLocMaxCut  = 0.0 ;
-  fPreShoLocMaxCut = 0.0 ;
-  
-  fW0     = 0.0 ;
-  fW0CPV  = 0.0 ;
-
-  fTimeGate = 0.0 ; 
-
-  fToUnfold = 0 ;
-
-  fHeaderFileName = "" ;
-  fRecPointsInRun = 0 ;   
+  InitParameters() ; 
+  fDefaultInit = kTRUE ; 
 }
 
 //____________________________________________________________________________
@@ -111,40 +96,44 @@ AliEMCALClusterizerv1::AliEMCALClusterizerv1(const char* headerFile,const char* 
 {
   // ctor with the indication of the file where header Tree and digits Tree are stored
   
-
-  fNumberOfPreShoClusters = fNumberOfTowerClusters = 0 ; 
-
- 
-  
-  fPreShoClusteringThreshold  = 0.0001;
-  fTowerClusteringThreshold   = 0.2;   
-  
-  fTowerLocMaxCut  = 0.03 ;
-  fPreShoLocMaxCut = 0.03 ;
-  
-  fW0     = 4.5 ;
-  fW0CPV  = 4.0 ;
-
-  fTimeGate = 1.e-8 ; 
-  
-  fToUnfold = kFALSE ;
-  
-  fHeaderFileName     = GetTitle() ; 
-  fDigitsBranchTitle  = GetName() ;
-  
-  TString clusterizerName( GetName()) ; 
-  clusterizerName.Append(":") ; 
-  clusterizerName.Append(Version()) ; 
-  SetName(clusterizerName) ;
-  fRecPointsInRun          = 0 ; 
-
+  InitParameters() ; 
+  fDefaultInit = kFALSE ; 
   Init() ;
 
 }
 //____________________________________________________________________________
   AliEMCALClusterizerv1::~AliEMCALClusterizerv1()
 {
+  // dtor
+  // fDefaultInit = kTRUE if Clusterizer created by default ctor (to get just the parameters)
+  
+  if (!fDefaultInit) {
+    AliEMCALGetter * gime = AliEMCALGetter::GetInstance() ; 
+    
+    // remove the task from the folder list
+    gime->RemoveTask("C",GetName()) ;
+    
+    // remove the RecPoints from the folder list
+    TString name(GetName()) ; 
+    name.Remove(name.Index(":")) ; 
+    gime->RemoveObjects("D", name) ;  //  Digits
+    gime->RemoveObjects("RT", name) ; // TowerRecPoints
+    gime->RemoveObjects("RP", name) ; // PreShoRecPoints
+    
+    // Delete gAlice
+    gime->CloseFile() ; 
+    
+  }
 }
+
+//____________________________________________________________________________
+const TString AliEMCALClusterizerv1::BranchName() const 
+{  
+  TString branchName(GetName() ) ;
+  branchName.Remove(branchName.Index(Version())-1) ;
+  return branchName ;
+}
+
 //____________________________________________________________________________
 Float_t  AliEMCALClusterizerv1::Calibrate(Int_t amp, Bool_t inpresho) const
 {
@@ -377,6 +366,38 @@ void AliEMCALClusterizerv1::Init()
 }
 
 //____________________________________________________________________________
+void AliEMCALClusterizerv1::InitParameters()
+{
+  fNumberOfPreShoClusters = fNumberOfTowerClusters = 0 ; 
+
+ 
+  
+  fPreShoClusteringThreshold  = 0.0001;
+  fTowerClusteringThreshold   = 0.2;   
+  
+  fTowerLocMaxCut  = 0.03 ;
+  fPreShoLocMaxCut = 0.03 ;
+  
+  fW0     = 4.5 ;
+  fW0CPV  = 4.0 ;
+
+  fTimeGate = 1.e-8 ; 
+  
+  fToUnfold = kFALSE ;
+  
+  fHeaderFileName     = GetTitle() ; 
+  fDigitsBranchTitle  = GetName() ;
+  
+  TString clusterizerName( GetName()) ; 
+  if (clusterizerName.IsNull() ) 
+    clusterizerName = "Default" ; 
+  clusterizerName.Append(":") ; 
+  clusterizerName.Append(Version()) ; 
+  SetName(clusterizerName) ;
+  fRecPointsInRun          = 0 ; 
+}
+
+//____________________________________________________________________________
 Int_t AliEMCALClusterizerv1::AreNeighbours(AliEMCALDigit * d1, AliEMCALDigit * d2)const
 {
   // Gives the neighbourness of two digits = 0 are not neighbour but continue searching 
@@ -450,15 +471,17 @@ void AliEMCALClusterizerv1::WriteRecPoints(Int_t event)
   // Creates new branches with given title
   // fills and writes into TreeR.
 
-  TString branchName(GetName() ) ;
-  branchName.Remove(branchName.Index(Version())-1) ;
-
   AliEMCALGetter *gime = AliEMCALGetter::GetInstance() ; 
-  TObjArray * towerRecPoints = gime->TowerRecPoints(branchName) ; 
-  TObjArray * preshoRecPoints = gime->PreShowerRecPoints(branchName) ; 
-  TClonesArray * digits = gime->Digits(branchName) ; 
+  TObjArray * towerRecPoints = gime->TowerRecPoints(BranchName()) ; 
+  TObjArray * preshoRecPoints = gime->PreShowerRecPoints(BranchName()) ; 
+  TClonesArray * digits = gime->Digits(BranchName()) ; 
+  TTree * treeR ; 
 
-  Int_t index ;
+  if (!gAlice->TreeR() ) 
+    gAlice->MakeTree("R", fSplitFile);
+  treeR = gAlice->TreeR() ;
+    
+    Int_t index ;
   //Evaluate position, dispersion and other RecPoint properties...
   for(index = 0; index < towerRecPoints->GetEntries(); index++)
     (dynamic_cast<AliEMCALTowerRecPoint *>(towerRecPoints->At(index)))->EvalAll(fW0,digits) ;
@@ -470,7 +493,7 @@ void AliEMCALClusterizerv1::WriteRecPoints(Int_t event)
 
   towerRecPoints->Expand(towerRecPoints->GetEntriesFast()) ; 
 
-  //Now the same for CPV
+  //Now the same for pre shower
   for(index = 0; index < preshoRecPoints->GetEntries(); index++)
     (dynamic_cast<AliEMCALRecPoint *>(preshoRecPoints->At(index)))->EvalAll(fW0CPV,digits)  ;
 
@@ -482,65 +505,32 @@ void AliEMCALClusterizerv1::WriteRecPoints(Int_t event)
   preshoRecPoints->Expand(preshoRecPoints->GetEntriesFast()) ;
   
   //Make branches in TreeR for RecPoints and Clusterizer
-  char * filename = 0;
-  if(gSystem->Getenv("CONFIG_SPLIT_FILE")!=0){   //generating file name
-    filename = new char[strlen(gAlice->GetBaseFile())+20] ;
-    sprintf(filename,"%s/EMCAL.Reco.root",gAlice->GetBaseFile()) ;
-  }
-  
-  //Make new branches
-  TDirectory *cwd = gDirectory;
   
  
   Int_t bufferSize = 32000 ;    
   Int_t splitlevel = 0 ;
 
-  //First EMC
-  TBranch * emcBranch = gAlice->TreeR()->Branch("EMCALTowerRP","TObjArray",&towerRecPoints,bufferSize,splitlevel);
-  emcBranch->SetTitle(branchName);
-  if (filename) {
-    emcBranch->SetFile(filename);
-    TIter next( emcBranch->GetListOfBranches());
-    TBranch * sb ;
-    while ((sb=(TBranch*)next())) {
-      sb->SetFile(filename);
-    }   
+  //First Tower branch
+  TBranch * emcBranch = treeR->Branch("EMCALTowerRP","TObjArray",&towerRecPoints,bufferSize,splitlevel);
+  emcBranch->SetTitle(BranchName());
+
     
-    cwd->cd();
-  }
-    
-  //Now CPV branch
-  TBranch * cpvBranch = gAlice->TreeR()->Branch("EMCALPreShoRP","TObjArray",&preshoRecPoints,bufferSize,splitlevel);
-  cpvBranch->SetTitle(branchName);
-  if (filename) {
-    cpvBranch->SetFile(filename);
-    TIter next( cpvBranch->GetListOfBranches());
-    TBranch * sb;
-    while ((sb=(TBranch*)next())) {
-      sb->SetFile(filename);
-    }   
-    cwd->cd();
-  } 
+  //Now Pre Shower branch 
+  TBranch * cpvBranch = treeR->Branch("EMCALPreShoRP","TObjArray",&preshoRecPoints,bufferSize,splitlevel);
+  cpvBranch->SetTitle(BranchName());
+
     
   //And Finally  clusterizer branch
-  AliEMCALClusterizerv1 * cl = (AliEMCALClusterizerv1*)gime->Clusterizer(branchName) ;
-  TBranch * clusterizerBranch = gAlice->TreeR()->Branch("AliEMCALClusterizer","AliEMCALClusterizerv1",
+  AliEMCALClusterizerv1 * cl = (AliEMCALClusterizerv1*)gime->Clusterizer(BranchName()) ;
+  TBranch * clusterizerBranch = treeR->Branch("AliEMCALClusterizer","AliEMCALClusterizerv1",
 					      &cl,bufferSize,splitlevel);
-  clusterizerBranch->SetTitle(branchName);
-  if (filename) {
-    clusterizerBranch->SetFile(filename);
-    TIter next( clusterizerBranch->GetListOfBranches());
-    TBranch * sb ;
-    while ((sb=(TBranch*)next())) {
-      sb->SetFile(filename);
-    }   
-    cwd->cd();
-  }
+  clusterizerBranch->SetTitle(BranchName());
+
   emcBranch        ->Fill() ;
   cpvBranch        ->Fill() ;
   clusterizerBranch->Fill() ;
 
-  gAlice->TreeR()->Write(0,kOverwrite) ;  
+  treeR->AutoSave() ; //Write(0,kOverwrite) ;  
   
 }
 

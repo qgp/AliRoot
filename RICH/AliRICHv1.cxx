@@ -15,6 +15,9 @@
 
 /*
   $Log$
+  Revision 1.16.6.1  2002/06/10 15:12:46  hristov
+  Merged with v3-08-02
+
   Revision 1.16  2001/10/10 11:29:17  morsch
   Use segmentation v1 and wire sag as default. It does not work otherwise. Why ?
 
@@ -105,7 +108,6 @@
 #include "AliRun.h"
 #include "AliMC.h"
 #include "iostream.h"
-//#include "AliCallf77.h"
 #include "AliConst.h" 
 #include "AliPDG.h" 
 

@@ -15,6 +15,15 @@
 
 /*
 $Log$
+Revision 1.2.8.1  2002/06/10 15:28:58  hristov
+Merged with v3-08-02
+
+Revision 1.4  2002/03/28 15:44:55  cblume
+Remove const from GetIndex()
+
+Revision 1.3  2002/03/28 14:59:07  cblume
+Coding conventions
+
 Revision 1.4  2002/03/28 15:44:55  cblume
 Remove const from GetIndex()
 
