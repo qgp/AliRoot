@@ -31,12 +31,14 @@ class  AliPHOSPIDv1 : public AliPHOSPID {
  public:
   
   AliPHOSPIDv1() ;          // ctor            
-  AliPHOSPIDv1(const char* evFolderName, const char * tsBranch = "Default") ;
-   
+  AliPHOSPIDv1(const TString alirunFileNameFile, const TString eventFolderName = AliConfig::fgkDefaultEventFolderName) ;
+  AliPHOSPIDv1(AliPHOSPIDv1 & pid) ;          // cpy ctor            
+
   virtual ~AliPHOSPIDv1() ; // dtor
-
+  
   virtual void Exec(Option_t * option) ;
-
+  //  virtual char * GetRecParticlesBranch()const {return (char*) fRecParticlesTitle.Data() ;}      
+  //  virtual char * GetTrackSegmentsBranch()const{return (char*) fTrackSegmentsTitle.Data(); }
   virtual const Int_t GetRecParticlesInRun() const  {return fRecParticlesInRun ;}  
   
   virtual void Print(Option_t * option) const {}
@@ -45,23 +47,28 @@ class  AliPHOSPIDv1 : public AliPHOSPID {
   //Get files that contain the PCA
   const TString GetPrincipalFile( )const {return fFileName ;}
   const TString GetPrincipalFilePar( )const {return fFileNamePar ;}
-  
+
+  //To turn on or off the Pi0 analysis
+  const Bool_t GetPi0Analysis()const {return fPi0Analysis;}
+  void         SetPi0Analysis(Bool_t turnonoff){ fPi0Analysis = turnonoff; }
+
   // Set and Get all parameters necessary in the PID depending on the 
-  // custer energy and Purity-Efficiency point (possible options "HIGH 
-  // EFFICIENCY" "MEDIUM EFFICIENCY" "LOW EFFICIENCY" and 3 more options 
-  // changing EFFICIENCY by PURITY)
-  void SetCpvtoEmcDistanceCut(Float_t Cluster_En, TString Eff_Pur, Float_t cut)  ; 
-  void SetTimeGate(Float_t Cluster_En, TString Eff_Pur, Float_t gate)  ; 
+  // custer energy and Purity-Efficiency point 
+  void SetCpvtoEmcDistanceCutParameters(Float_t clusterEn, Int_t effpur, TString Axis,Float_t cut)  ; 
+  void SetTimeGate(Int_t effpur, Float_t gate)  ; 
  
-  const Double_t GetCpvtoEmcDistanceCut(const Float_t Cluster_En, const TString Eff_Pur) const ;
-  const Double_t GetTimeGate(const Float_t Cluster_En, const TString Eff_Pur)  const;
+  const Float_t GetCpvtoEmcDistanceCut(const Float_t e, const TString Axis ) const ;
+  const Double_t GetTimeGate(const Int_t effpur)  const;
  
-  void SetEllipseParameter(TString Param, Int_t i, Double_t par)  ;    
+  void SetEllipseParameter   (TString Param, Int_t i, Double_t par)  ;
+  void SetEllipseParameterPi0(TString Param, Int_t i, Double_t par)  ;
   const Double_t GetParameterToCalculateEllipse(const TString Param, const Int_t i) const  ;     
   const Double_t GetEllipseParameter(const TString Param, Float_t E) const;
+  const Double_t GetParameterToCalculatePi0Ellipse(const TString Param, const Int_t i) const  ;     
+  const Double_t GetEllipseParameterPi0(const TString Param, Float_t E) const;
   //Get and Set energy calibration parameters
   
-  void  SetCalibrationParameter(Int_t Param,Double_t param);
+  void  SetCalibrationParameter(Int_t Param,Double_t param) const ;
   const Double_t GetCalibrationParameter(const Int_t i) const;
   const Double_t GetCalibratedEnergy(const Float_t e)   const; //Calibrates energy.
   
@@ -69,6 +76,7 @@ class  AliPHOSPIDv1 : public AliPHOSPID {
   //  virtual void SetRecParticlesBranch (const char* title) { fRecParticlesTitle = title;} 
   virtual const char * Version() const { return "pid-v1" ; }  
   
+  AliPHOSPIDv1 & operator = (const AliPHOSPIDv1 & pid) { return *this ;} 
  private:
   
   const TString BranchName() const ; 
@@ -77,33 +85,45 @@ class  AliPHOSPIDv1 : public AliPHOSPID {
   void     MakeRecParticles(void ) ;
   // Relative Distance CPV-EMC
   const Float_t  GetDistance(AliPHOSEmcRecPoint * emc, AliPHOSRecPoint * cpv, Option_t * Axis)const ; 
-  const Int_t    GetPrincipalSign(const Double_t* P, const Int_t eff_pur, const Float_t E)const ; //Principal cut
+  const Int_t    GetCPVBit(AliPHOSEmcRecPoint * emc, AliPHOSRecPoint * cpv,const Int_t EffPur, const Float_t e) const;
+  const Int_t    GetPrincipalBit   (const Double_t* P, const Int_t effPur, const Float_t E)const ; //Principal cut
+  const Int_t    GetPrincipalPi0Bit(const Double_t* P, const Int_t effPur, const Float_t E)const ; //Principal cut
   TVector3 GetMomentumDirection(AliPHOSEmcRecPoint * emc, AliPHOSRecPoint * cpv)const ;
   void     PrintRecParticles(Option_t * option) ;
-  // Gives in wich cluster energy range is the event
-  const Int_t     GetClusterOption(const Float_t Cluster_En) const;
-  // Gives the Efficiency-Purity point.
-  const Int_t    GetEffPurOption(const TString Eff_Pur)const ;
-  virtual  void WriteRecParticles();
+  virtual  void WriteRecParticles(Int_t event) ; 
   void     SetParameters() ; //Fills the matrix of parameters
   
- 
+  void Unload(); 
 
  private:
 
   Bool_t                 fDefaultInit;        //! Says if the task was created by defaut ctor (only parameters are initialized)
-  TString    fFileName ;  // File that contains the Principal file for analysis
-  TString    fFileNamePar ;// File that contains the parameters for analysis
+  TString    fFileName ;     // File that contains the Principal file for analysis
+  TString    fFileNamePi0 ;  // File that contains the Pi0 Principal file for analysis
+  TString    fFileNamePar ;  // File that contains the parameters for analysis
+  
+  //  TString    fFrom ;              // name of Recpoints and TrackSegments 
+  //  TString    fHeaderFileName ;    // file name with event header
+  //  TString    fTrackSegmentsTitle; // branch name with track segments
+  //  TString    fRecPointsTitle ;    // branch name with rec points
+  //  TString    fRecParticlesTitle ; // branch name with rec particles
  
   Int_t                      fNEvent ;            //! current event number
+  //  AliPHOSClusterizer *       fClusterizer ;       //! clusterizer
+  //  AliPHOSTrackSegmentMaker * fTSMaker ;           //! track segment maker
 
+
+  Bool_t                     fPi0Analysis;        //! Pi0 analysis on or off  
   TPrincipal *               fPrincipal ;         //! TPrincipal from pca file 
+  TPrincipal *               fPrincipalPi0 ;      //! TPrincipal from Pi0 pca file 
   Double_t *                 fX ;                 //! Principal data 
   Double_t *                 fP ;                 //! Principal eigenvalues
+  Double_t *                 fPPi0 ;                 //! Principal Pi0 eigenvalues
+
   Int_t                      fRecParticlesInRun ; //! Total number of recparticles in one run
   TMatrixD *                 fParameters;         //! Matrix of identification Parameters
 
-  ClassDef( AliPHOSPIDv1,6)  // Particle identifier implementation version 1
+  ClassDef( AliPHOSPIDv1,7)  // Particle identifier implementation version 1
 
 };
 

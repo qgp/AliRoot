@@ -176,7 +176,21 @@ class AliPHOSGetter : public TObject {
   Int_t                 WriteTracks(Option_t* opt="") { return PhosLoader()->WriteTracks(opt) ; }
   Int_t                 WriteTracker(Option_t* opt=""){
     return  PhosLoader()->WriteTracker(opt) ; }
-//   //========== RecParticles ===========
+  //========== RecParticles ===========
+
+  TClonesArray *         RecParticles() ;
+  AliPHOSRecParticle *   RecPaticles(const Int_t index) { return static_cast<AliPHOSRecParticle *>(RecParticles()->At(index)) ;} 
+  TTree *               TreeP() const ;
+  AliPHOSPID * PIDTask() const { 
+    return dynamic_cast<AliPHOSPID*>(PhosLoader()->PIDTask()) ;}
+  TString               GetRecParticlesFileName() { return PhosLoader()->GetRecParticlesFileName() ; } 
+  Int_t                 LoadRecParticles(Option_t* opt="") { return PhosLoader()->LoadRecParticles(opt) ; }
+  Int_t                 LoadPIDTask(Option_t* opt=""){
+    return  PhosLoader()->LoadPIDTask(opt) ; }
+  Int_t                 WriteRecParticles(Option_t* opt="") { return PhosLoader()->WriteRecParticles(opt) ; }
+  Int_t                 WritePIDTask(Option_t* opt=""){
+    return  PhosLoader()->WritePIDTask(opt) ; }
+
 //   TClonesArray * RecParticles(const char * name = 0) { 
 //     return static_cast<TClonesArray*>(ReturnO("RecParticles", name)) ;   }
 //   const AliPHOSPID * PID(const char * name =0) const { 
@@ -207,11 +221,17 @@ class AliPHOSGetter : public TObject {
 //   const Bool_t PostTrackSegments(const char * name) const ;  
 //   const Bool_t PostRecParticles( const char * name) const ;  
 //   const Bool_t PostClusterizer( const char * name) const ;  
-  void PostClusterizer(AliPHOSClusterizer * clu) const{PhosLoader()->PostClusterizer(clu) ; }
-  void PostTrackSegmentMaker(AliPHOSTrackSegmentMaker * tr) const{PhosLoader()->PostTrackSegmentMaker(tr) ; }
-  void PostSDigitizer (AliPHOSSDigitizer * sdigitizer) const {PhosLoader()->PostSDigitizer(sdigitizer);}  
-//   const Bool_t PostSDigitizer ( const char * name, const char * file ) const ;  
-  void PostDigitizer (AliPHOSDigitizer * digitizer)    const {PhosLoader()->PostDigitizer(dynamic_cast<AliDigitizer *>(digitizer));}
+  void PostClusterizer(AliPHOSClusterizer * clu) 
+    const{PhosLoader()->PostClusterizer(clu) ; }
+  void PostPID(AliPHOSPID * pid) 
+    const{PhosLoader()->PostPID(pid) ; }
+  void PostTrackSegmentMaker(AliPHOSTrackSegmentMaker * tr) 
+    const{PhosLoader()->PostTrackSegmentMaker(tr) ; }
+  void PostSDigitizer (AliPHOSSDigitizer * sdigitizer) 
+    const {PhosLoader()->PostSDigitizer(sdigitizer);}    
+  void PostDigitizer (AliPHOSDigitizer * digitizer)    
+    const {PhosLoader()->PostDigitizer(dynamic_cast<AliDigitizer *>(digitizer));}
+//   const Bool_t PostSDigitizer ( const char * name, const char * file ) const ;
 //   const Bool_t PostDigitizer  ( const char * name) const ;  
 //   const Bool_t PostTrackSegmentMaker(AliPHOSTrackSegmentMaker * tsm) const ;  
 //   const Bool_t PostTrackSegmentMaker(const char * name ) const ;  
@@ -231,11 +251,14 @@ private:
 //   TObject * ReturnO(TString what, TString name=0, TString file=0) const ; 
 //   const TTask * ReturnT(TString what,TString name=0) const ; 
 //   void DefineBranchTitles(char* branch, char* branchTitle) ;
+
   Int_t ReadTreeD(void) ;
   Int_t ReadTreeH(void) ;
   Int_t ReadTreeR(void) ;
   Int_t ReadTreeT(void) ;
   Int_t ReadTreeS(void) ;
+  Int_t ReadTreeP(void) ;
+
 //   void ReadTreeQA(void) ;
   void ReadPrimaries(void) ;
 //   void CleanWhiteBoard(void) ;

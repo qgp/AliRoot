@@ -51,7 +51,8 @@ ClassImp(AliPHOSPID)
 
 
 //____________________________________________________________________________
-AliPHOSPID::AliPHOSPID(const char* headerFile, const char * name):TTask(name, headerFile)
+AliPHOSPID::AliPHOSPID(const TString alirunFileName, const TString eventFolderName)
+:TTask("PHOS"+AliConfig::fgkPIDTaskName, alirunFileName), fEventFolderName(eventFolderName)
 {
   // ctor
 }

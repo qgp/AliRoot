@@ -13,7 +13,9 @@
 
 // --- ROOT system ---
 
-#include "TTask.h" 
+#include "TTask.h"
+#include "AliConfig.h"
+
 class TFormula ;
 class TClonesArray ;
 
@@ -30,7 +32,7 @@ class AliPHOSPID : public TTask {
  public:
 
   AliPHOSPID() ;          // ctor            
-  AliPHOSPID(const char* evFolderName,const char * name) ;
+  AliPHOSPID (const TString alirunFileName, const TString eventFolderName = AliConfig::fgkDefaultEventFolderName) ;
   virtual ~AliPHOSPID() ; // dtor
 
   virtual void Exec(Option_t * option) { Warning("Exec", "not defined" ) ; }
@@ -45,6 +47,7 @@ private:
   virtual void Init() { Warning("Init", "not defined" ) ; } 
 
 protected:
+  TString fEventFolderName ;  // event folder name
 
   ClassDef(AliPHOSPID,2)  // Particle Identifier algorithm (base class)
 

@@ -189,7 +189,20 @@ TClonesArray * AliPHOSGetter::TrackSegments()
   }
   return rv ; 
 }
+//____________________________________________________________________________ 
+TClonesArray * AliPHOSGetter::RecParticles() 
+{
+  // asks the Loader to return the TrackSegments container 
 
+  TClonesArray * rv = 0 ; 
+  
+  rv = PhosLoader()->RecParticles() ; 
+  if (!rv) {
+    PhosLoader()->MakeRecParticlesArray() ;
+    rv = PhosLoader()->RecParticles() ; 
+  }
+  return rv ; 
+}
 //____________________________________________________________________________ 
 void AliPHOSGetter::Event(const Int_t event, const char* opt) 
 {
@@ -221,7 +234,7 @@ void AliPHOSGetter::Event(const Int_t event, const char* opt)
   
   rl->GetEvent(event) ;
 
-  if( strstr(opt,"P") || (strcmp(opt,"")==0) )
+  if( strstr(opt,"X") || (strcmp(opt,"")==0) )
     ReadPrimaries() ;
 
   if(strstr(opt,"H") )
@@ -235,7 +248,13 @@ void AliPHOSGetter::Event(const Int_t event, const char* opt)
 
   if( strstr(opt,"R") )
     ReadTreeR() ;
- 
+
+  if( strstr(opt,"T") )
+    ReadTreeT() ;
+
+  if( strstr(opt,"P") )
+    ReadTreeP() ;
+
 //   if( strstr(opt,"Q") )
 //     ReadTreeQA() ;
  
@@ -463,6 +482,20 @@ Int_t AliPHOSGetter::ReadTreeT()
   return TrackSegments()->GetEntries() ; 
 }
 //____________________________________________________________________________ 
+Int_t AliPHOSGetter::ReadTreeP()
+{
+  // Read the TrackSegments
+  
+  
+  // gets TreeT from the root file (PHOS.TrackSegments.root)
+  if ( !IsLoaded("P") ) {
+    PhosLoader()->LoadRecParticles("UPDATE") ;
+    SetLoaded("P") ; 
+  }
+
+  return RecParticles()->GetEntries() ; 
+}
+//____________________________________________________________________________ 
 Int_t AliPHOSGetter::ReadTreeS()
 {
   // Read the SDigits
@@ -578,6 +611,18 @@ TTree * AliPHOSGetter::TreeT() const
   if ( !rv ) {
     PhosLoader()->MakeTree("T");
     rv = PhosLoader()->TreeT() ;
+  } 
+  
+  return rv ; 
+}
+//____________________________________________________________________________ 
+TTree * AliPHOSGetter::TreeP() const 
+{
+  TTree * rv = 0 ; 
+  rv = PhosLoader()->TreeP() ; 
+  if ( !rv ) {
+    PhosLoader()->MakeTree("P");
+    rv = PhosLoader()->TreeP() ;
   } 
   
   return rv ; 

@@ -73,7 +73,8 @@ class AliPHOSLoader : public AliLoader {
   Int_t   LoadDigits(Option_t* opt=""); //reads Digits from disk and sends them to folder; array as well as tree
   Int_t   LoadRecPoints(Option_t* opt=""); //reads RecPoints from disk and sends them to folder; array as well as tree
   Int_t   LoadTracks(Option_t* opt="");  //reads Tracks from disk and sends them to folder; array as well as tree
-  
+  Int_t   LoadRecParticles(Option_t* opt="");
+ 
   void    UnloadRecParticles();
   void    UnloadTracks();
   
@@ -82,6 +83,7 @@ class AliPHOSLoader : public AliLoader {
   Int_t   PostDigits();
   Int_t   PostRecPoints();
   Int_t   PostTracks();
+  Int_t   PostRecParticles();
   
   void    CleanFolders();//cleans all the stuff loaded by this detector + calls AliLoader::Clean
 
@@ -93,10 +95,10 @@ class AliPHOSLoader : public AliLoader {
   void    CleanRecParticles();
 
 //up to now it is only here -> no definition about global/incremental tracking/PID
-  Int_t   LoadRecParticles(Option_t* opt="");//loads reconstructed particles
-  Int_t   WriteRecParticles(Option_t* opt="");//writes the reconstructed particles
-  Int_t   WritePID(Option_t* opt="");//writes the task for PID to file
-  Bool_t  PostPID  (AliPHOSPID * pid) const {return kTRUE;}
+ 
+//   Int_t   WriteRecParticles(Option_t* opt="");//writes the reconstructed particles
+//   Int_t   WritePID(Option_t* opt="");//writes the task for PID to file
+//   Bool_t  PostPID  (AliPHOSPID * pid) const {return kTRUE;}
 //  Bool_t  PostQA   (void) const ; //it was empty anyway
   
 /*******************************************************************/
@@ -159,7 +161,7 @@ class AliPHOSLoader : public AliLoader {
   /*********************************************/
   /************    T A S K S      **************/
   /*********************************************/
-  AliPHOSPID * PID(const char * name =0) const { MayNotUse("PID"); return 0x0 ;}
+  // 
   //  AliPHOSSDigitizer*  PHOSSDigitizer(TString name = AliConfig::fgkDefaultEventFolderName);
   //AliPHOSDigitizer*   PHOSDigitizer()  { return  dynamic_cast<AliPHOSDigitizer*>(Digitizer()) ;}
 
@@ -167,6 +169,12 @@ class AliPHOSLoader : public AliLoader {
   Int_t PostClusterizer(TTask* clust){return PostReconstructioner(clust);}
   Int_t LoadClusterizer(Option_t * opt="") {return LoadReconstructioner(opt);}
   Int_t WriteClusterizer(Option_t * opt="") {return WriteReconstructioner(opt);}
+
+  AliPHOSPID * PID (){return dynamic_cast<AliPHOSPID*>(PIDTask()) ;}
+  Int_t PostPID(TTask* pid){return PostPIDTask(pid);}
+  Int_t LoadPID(Option_t * opt="") {return LoadPIDTask(opt);}
+  Int_t WritePID(Option_t * opt="") {return WritePIDTask(opt);}
+
 
   AliPHOSTrackSegmentMaker * TrackSegmentMaker ()  { return dynamic_cast<AliPHOSTrackSegmentMaker *>(Tracker()) ;}
   Int_t PostTrackSegmentMaker(TTask* segmaker){return PostTracker(segmaker);}

@@ -129,12 +129,12 @@ Int_t AliPHOSLoader::SetEvent()
 //Cleans loaded stuff and and sets Files and Directories
 // do not post any data to folder/tasks
 
-  Bool_t tmp = fRecParticlesLoaded;
-  Bool_t checkreltracks = GetTracksDataLoader()->CheckReload();
-  if ( (checkreltracks)&& (fRecParticlesLoaded))
-   {
-    UnloadRecParticles();
-   }
+  //Bool_t tmp = fRecParticlesLoaded;
+  //  Bool_t checkreltracks = GetTracksDataLoader()->CheckReload();
+ //  if ( (checkreltracks)&& (fRecParticlesLoaded))
+//    {
+//     UnloadRecParticles();
+//    }
 
  Int_t retval = AliLoader::SetEvent();
   if (retval)
@@ -152,7 +152,7 @@ Int_t AliPHOSLoader::SetEvent()
   if (TrackSegments()) TrackSegments()->Clear();
   if (RecParticles()) RecParticles()->Clear();
    
-  fRecParticlesLoaded = tmp;
+  //fRecParticlesLoaded = tmp;
   return 0;
 }
 //____________________________________________________________________________ 
@@ -177,21 +177,22 @@ Int_t AliPHOSLoader::GetEvent()
   if (GetDigitsDataLoader()->GetBaseDataLoader()->IsLoaded()) ReadDigits();
   if (GetRecPointsDataLoader()->GetBaseDataLoader()->IsLoaded()) ReadRecPoints();
   if (GetTracksDataLoader()->GetBaseDataLoader()->IsLoaded()) ReadTracks();
-  
-  if (fRecParticlesLoaded) 
-   {//if yes
-    AliBaseLoader* tracktreeloader = GetTracksDataLoader()->GetBaseLoader(0);
-    if (tracktreeloader->IsLoaded() == kFALSE) //check if file is opened (tracks loaded)
-     {
-       retval = tracktreeloader->Load(fRecParticlesFileOption);//if not load the tracks (this method loads only tree, so not too much for us)
-       if (retval)
-        {
-         Error("GetEvent","Load Tracks returned error");
-         return retval;
-        }
-     }
-    return ReadRecParticles();//now we can 
-   }
+  if (GetRecParticlesDataLoader()->GetBaseDataLoader()->IsLoaded()) ReadRecParticles();
+
+//   if (fRecParticlesLoaded) 
+//    {//if yes
+//     AliBaseLoader* tracktreeloader = GetTracksDataLoader()->GetBaseLoader(0);
+//     if (tracktreeloader->IsLoaded() == kFALSE) //check if file is opened (tracks loaded)
+//      {
+//        retval = tracktreeloader->Load(fRecParticlesFileOption);//if not load the tracks (this method loads only tree, so not too much for us)
+//        if (retval)
+//         {
+//          Error("GetEvent","Load Tracks returned error");
+//          return retval;
+//         }
+//      }
+//     return ReadRecParticles();//now we can 
+//    }
 
 //Now, check if RecPart were loaded  
   return 0;
@@ -308,20 +309,42 @@ Int_t  AliPHOSLoader::LoadTracks(Option_t* opt)
    res = AliLoader::LoadTracks(opt);
    if (res)
     {//oops, error
-      Error("LoadTacks","AliLoader::LoadTacks returned error");
+      Error("LoadTracks","AliLoader::LoadTracks returned error");
       return res;
     }
   }
  res = ReadTracks();
  if (res)
   {
-    Error("LoadTacks","Error occured while reading Tracks");
+    Error("LoadTracks","Error occured while reading Tracks");
     return res;
   }
 
  fTracksLoaded = kTRUE;
  return 0;
 }
+
+//____________________________________________________________________________ 
+Int_t AliPHOSLoader::LoadRecParticles(Option_t* opt) 
+{ // -------------- RecPoints -------------------------------------------
+  Int_t res;
+  //First call the AliLoader's method to send the TreeS to folder
+  res = AliLoader::LoadRecParticles(opt);
+  if (res)
+   {//oops, error
+     Error("LoadRecParticles","AliLoader::LoadRecParticles returned error");
+     return res;
+   }
+
+  TFolder * phosFolder = GetDetectorDataFolder();
+  if ( phosFolder  == 0x0 ) 
+   {
+     Error("PostDigits","Can not get detector data folder");
+     return 1;
+   }
+  return ReadRecParticles();
+}
+
 //____________________________________________________________________________ 
 
 Int_t AliPHOSLoader::PostHits()
@@ -369,6 +392,19 @@ Int_t AliPHOSLoader::PostRecPoints()
      return reval;
    }
   return ReadRecPoints();
+}
+
+//____________________________________________________________________________ 
+
+Int_t AliPHOSLoader::PostRecParticles()
+{
+  Int_t reval = AliLoader::PostRecParticles();
+  if (reval)
+   {
+     Error("PostRecParticles","AliLoader::PostRecParticles  returned error");
+     return reval;
+   }
+  return ReadRecParticles();
 }
 //____________________________________________________________________________ 
 
@@ -685,11 +721,14 @@ Int_t AliPHOSLoader::ReadRecParticles()
   if ( recpartref == 0x0 )   
    {//Create and post array
     MakeRecParticlesArray();
-    recpartref = TracksRef();
+    //recpartref = TracksRef();
+    recpartref = RecParticlesRef();
    }
 
-  TTree * treeT = TreeT();
-  if(treeT==0)
+  //TTree * treeT = TreeT();
+  TTree * treeP = TreeP();
+  //if(treeT==0)
+  if(treeP==0)
    {
      //May happen if file is truncated or new in LoadSDigits, or the file is in update mode, 
      //but tracking was not performed yet for a current event
@@ -697,7 +736,8 @@ Int_t AliPHOSLoader::ReadRecParticles()
      return 0;
    }
   
-  TBranch * branch = treeT->GetBranch(fgkRecParticlesBranchName);
+  //TBranch * branch = treeT->GetBranch(fgkRecParticlesBranchName);
+  TBranch * branch = treeP->GetBranch(fgkRecParticlesBranchName);
   if (branch == 0) 
    {//easy, maybe just a new tree
     Error("ReadRecParticles"," Cannot find branch %s",fgkRecParticlesBranchName.Data()); 
@@ -709,76 +749,18 @@ Int_t AliPHOSLoader::ReadRecParticles()
   
   return 0;
 }
-//____________________________________________________________________________ 
 
-Int_t AliPHOSLoader::LoadRecParticles(Option_t* opt)
-{
- //load (reads and posts to folder) reconstructed particles
- //it looks like thet because we use the track file for storing rec particles
- //PID should be done in global level, anyway
- //skowron
- 
- //Load tracks (treeT)
- //reads RecParticles from tree to to array and puts it in detector data folder (ReadRecParticles)
- 
- //if Tracks File is Opened and the option of the track
- 
- if (GetDebug()) Info("LoadRecParticles","opt = %s",opt);
- if (fRecParticlesLoaded)
-  {
-   Warning("LoadRecParticles","Reconstructed Particles already loaded");
-   return 0;
-  }
-  
- fRecParticlesFileOption = opt;
- AliBaseLoader* tracktreeloader = GetTracksDataLoader()->GetBaseLoader(0);
- if( tracktreeloader->IsLoaded() && fTracksLoaded)//check the option if tracks were loaded by user with not writable option
-  if (GetTracksDataLoader()->IsFileWritable() == kFALSE)
-   {
-    //check if demended option is "writable" file
-    if (IsOptionWritable(fRecParticlesFileOption))
-     {
-       Error("LoadRecParticles",
-             "%s File (where Rec Particles for PHOS are stored) is opened and NOT \n\
-             \rwritable, while option demanded is writble.",GetTracksDataLoader()->GetFileName().Data());
-       return 5;
-     }
-   }
- Int_t retval = 0;
- if ( tracktreeloader->IsLoaded() == kFALSE )
-  {
-    retval = LoadTracks(opt);
-    if (retval)
-     {
-      Error("LoadRecParticles","Load Tracks returned error");
-      return retval;
-     }
-    fTracksLoaded = kFALSE; //tracks are loaded by us, not a user
-                            //thus tracks we can unload them if user asks to unload rec particles
-  }
-  
- retval = ReadRecParticles();
- if (retval) 
-  {
-   Error("LoadRecParticles","Error occured while reading");
-   return retval;
-  }
-
- fRecParticlesFileOption = opt;
- fRecParticlesLoaded = kTRUE;
- return 0;
-}
 //____________________________________________________________________________ 
-Int_t AliPHOSLoader::WriteRecParticles(Option_t* opt)
-{
- return WriteTracks(opt);
-}
-//____________________________________________________________________________ 
+// Int_t AliPHOSLoader::WriteRecParticles(Option_t* opt)
+// {
+//  return WriteTracks(opt);
+// }
+// //____________________________________________________________________________ 
 
-Int_t AliPHOSLoader::WritePID(Option_t* opt)
-{
- return 0;
-}
+// Int_t AliPHOSLoader::WritePID(Option_t* opt)
+// {
+//  return 0;
+// }
 /***************************************************************************************/
 
 AliPHOSGeometry* AliPHOSLoader::GetPHOSGeometry()
@@ -930,8 +912,13 @@ void AliPHOSLoader::CleanTracks()
 
 void AliPHOSLoader::CleanRecParticles()
  {
-   TClonesArray *arr = RecParticles();
-   if (arr) arr->Clear();
+ //   TClonesArray *arr = RecParticles();
+//    if (arr) arr->Clear();
+//   AliLoader::CleanRecParticles();
+   TClonesArray *recpar = RecParticles();
+   if (recpar) recpar->Clear();
+  
+ 
  }
 //____________________________________________________________________________ 
 
