@@ -80,7 +80,7 @@ gAlice->TrackingLimits(700, 2000);
 //*********************************************
      AliGenBox *gener = new AliGenBox(ntracks);
      gener->SetMomentumRange(33,34);
-     gener->SetPhiRange(-180,180);
+     gener->SetPhiRange(0,360);
      gener->SetThetaRange(2., 9.);
      gener->SetOrigin(0,0,0);   
      gener->SetVertexSmear(kPerTrack); 
@@ -145,7 +145,7 @@ gAlice->TrackingLimits(700, 2000);
      gener->SetTrigger(0);
      gener->SetSelectAll(1);
      gener->SetMomentumRange(0,9999);
-     gener->SetPhiRange(-180,180);
+     gener->SetPhiRange(0,360);
      gener->SetThetaRange(0.104,90.0);
 //     gener->SetFlavor(4);
      gener->SetOrigin(0., 0.0 ,0);
@@ -198,7 +198,7 @@ position
      AliGenParam *gener = new AliGenParam(ntracks, AliGenMUONlib::kUpsilon);
      gener->SetMomentumRange(0,999);
      gener->SetPtRange(0,999);
-     gener->SetPhiRange(-180, 180);
+     gener->SetPhiRange(0, 360);
      gener->SetYRange(2.5,9);
      gener->SetCutOnChild(1);
      gener->SetChildThetaRange(2.0,9);
