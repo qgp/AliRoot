@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.22.2.3  2003/07/15 09:58:03  hristov
+Corrected back-propagation (Yu.Belikov)
+
 Revision 1.22.2.2  2003/07/14 09:19:33  hristov
 TOF included in the combined PID (Yu.Belikov)
 
@@ -215,7 +218,8 @@ AliTPCtrack::AliTPCtrack(const AliTPCtrack& t) : AliKalmanTrack(t) {
   //
   //MI
   for (Int_t i=0;i<15;i++){
-    fClusterDensity[i] = t.fClusterDensity[i];
+    //PH   fClusterDensity[i] = t.fClusterDensity[i];
+    fClusterDensity[i] = 0;
   }
   //
   // for (Int_t i=0;i<200;i++){
