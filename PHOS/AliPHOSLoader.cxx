@@ -128,21 +128,28 @@ Int_t AliPHOSLoader::SetEvent()
 {
 //Cleans loaded stuff and and sets Files and Directories
 // do not post any data to folder/tasks
+  Info("SetEvent", "0") ; 
 
   Bool_t tmp = fRecParticlesLoaded;
+  Info("SetEvent", "01") ; 
   Bool_t checkreltracks = GetTracksDataLoader()->CheckReload();
   if ( (checkreltracks)&& (fRecParticlesLoaded))
    {
-     UnloadRecParticles();
+   Info("SetEvent", "02") ; 
+    UnloadRecParticles();
    }
 
-  Int_t retval = AliLoader::SetEvent();
+   Info("SetEvent", "03") ; 
+ Int_t retval = AliLoader::SetEvent();
+   Info("SetEvent", "04") ; 
   if (retval)
    {
      Error("SetEvent","AliLoader::SetEvent returned error");
      return retval;
    }
-   
+
+  Info("SetEvent", "1") ; 
+
   if (Hits()) Hits()->Clear();
   if (SDigits()) SDigits()->Clear();
   if (Digits()) Digits()->Clear();
@@ -608,7 +615,6 @@ Int_t AliPHOSLoader::ReadRecPoints()
   if(treeR==0)
    {
      //May happen if file is truncated or new in LoadSDigits
-     Warning("ReadRecPoints","There is no Tree with Rec Points");
      return 0;
    }
 

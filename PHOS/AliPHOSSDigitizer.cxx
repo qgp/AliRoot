@@ -226,7 +226,6 @@ void AliPHOSSDigitizer::Exec(Option_t *option)
 
     //Next - SDigitizer
 
-    Info("Exec", "name = %s", GetName()) ; 
     gime->WriteSDigitizer("OVERWRITE");
 
     if(strstr(option,"deb"))

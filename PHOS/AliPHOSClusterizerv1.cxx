@@ -135,12 +135,6 @@ Float_t  AliPHOSClusterizerv1::Calibrate(Int_t amp, Int_t absId) const
 void AliPHOSClusterizerv1::Exec(Option_t * option)
 {
   // Steering method
-  Info("Exec","                                                ");
-  Info("Exec","           *************************************");
-  Info("Exec","           Point Reconstruction (Clusterization)");
-  Info("Exec","           *************************************");
-  Info("Exec","                                                ");
-  Init();
 
   if(strstr(option,"tim"))
     gBenchmark->Start("PHOSClusterizer"); 
@@ -158,27 +152,34 @@ void AliPHOSClusterizerv1::Exec(Option_t * option)
    {
     Info("Exec","Starting event %d",ievent);
     gime->Event(ievent, "D");
-    if(ievent == 0)
-       GetCalibrationParameters() ;
+    Info("Exec","2Starting event %d",ievent);
+
+   //  if(ievent == 0)
+//        GetCalibrationParameters() ;
+//     Info("Exec","3Starting event %d",ievent);
+
+//     fNumberOfEmcClusters  = fNumberOfCpvClusters  = 0 ;
+//     Info("Exec","4Starting event %d",ievent);
     
-    fNumberOfEmcClusters  = fNumberOfCpvClusters  = 0 ;
-            
-    MakeClusters() ;
-    
-    if(fToUnfold)             
-      MakeUnfolding() ;
+//     Info("Exec","MakeClusters");
+//     MakeClusters() ;
+//     Info("Exec","5Starting event %d",ievent);
 
-    WriteRecPoints();
+//     if(fToUnfold)             
+//       MakeUnfolding() ;
 
-    if(strstr(option,"deb"))  
-      PrintRecPoints(option) ;
+//       Info("Exec","WRITE");
+//       WriteRecPoints();
 
-    //increment the total number of digits per run 
-    fRecPointsInRun += gime->EmcRecPoints()->GetEntriesFast() ;  
-    fRecPointsInRun += gime->CpvRecPoints()->GetEntriesFast() ;  
-   }
+//     if(strstr(option,"deb"))  
+//       PrintRecPoints(option) ;
+
+//     //increment the total number of digits per run 
+//     fRecPointsInRun += gime->EmcRecPoints()->GetEntriesFast() ;  
+//     fRecPointsInRun += gime->CpvRecPoints()->GetEntriesFast() ;  
+    }
   
-  Unload();
+//   Unload();
   
   if(strstr(option,"tim")){
     gBenchmark->Stop("PHOSClusterizer");

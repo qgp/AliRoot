@@ -56,7 +56,7 @@ private:
   Bool_t  fDefaultInit;     //! Says if the task was created by defaut ctor (only parameters are initialized)
   Int_t   fSDigitsInRun ;   //! Total number of sdigits in one run
   Bool_t  fInit ;           //! tells if initialisation wennt OK, will revent exec if not
-  TString fEventFolderName; //event folder name
+  TString fEventFolderName; // event folder name
   ClassDef(AliPHOSSDigitizer,1)  // description 
 
 };

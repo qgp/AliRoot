@@ -204,9 +204,10 @@ void AliPHOSGetter::Event(const Int_t event, const char* opt)
 
   // Loads the type of object(s) requested
   
+  Info("Event", "0") ; 
   rl->GetEvent(event) ;
 
-
+  Info("Event", "1") ; 
   if( strstr(opt,"P") || (strcmp(opt,"")==0) )
     ReadPrimaries() ;
 
@@ -215,13 +216,16 @@ void AliPHOSGetter::Event(const Int_t event, const char* opt)
 
   if(strstr(opt,"S") )
     ReadTreeS() ;
+  Info("Event", "2") ; 
 
   if( strstr(opt,"D") )
     ReadTreeD() ;
 
- //  if( strstr(opt,"R") )
-//     ReadTreeR() ;
-   
+  Info("Event", "3") ; 
+  if( strstr(opt,"R") )
+    ReadTreeR() ;
+    Info("Event", "4") ; 
+ 
 //   if( strstr(opt,"Q") )
 //     ReadTreeQA() ;
  
@@ -403,6 +407,7 @@ Int_t AliPHOSGetter::ReadTreeD()
     PhosLoader()->LoadDigits("UPDATE") ;
     SetLoaded("D") ; 
   } 
+  Info("ReadreeD", "entries = %d", Digits() ) ; 
   return Digits()->GetEntries() ; 
 }
 
