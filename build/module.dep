@@ -8,7 +8,7 @@ EVGEN/module.mk:	 EVGEN/libEVGEN.pkg
 FMD/module.mk:		 FMD/libFMD.pkg
 HIJING/module.mk:	 HIJING/libhijing.pkg HIJING/libdummyhijing.pkg
 ITS/module.mk:		 ITS/libITS.pkg
-MEVSIM/module.mk:	 MEVSIM/libMEVSIM.pkg MEVSIM/libdummyMEVSIM.pkg
+MEVSIM/module.mk:	 MEVSIM/libmevsim.pkg MEVSIM/libdummymevsim.pkg
 MUON/module.mk:		 MUON/libMUON.pkg
 PDF/module.mk:		 PDF/libpdf.pkg
 PHOS/module.mk:		 PHOS/libPHOS.pkg
