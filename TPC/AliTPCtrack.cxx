@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.22.2.2  2003/07/14 09:19:33  hristov
+TOF included in the combined PID (Yu.Belikov)
+
 Revision 1.22.2.1  2003/06/19 06:59:58  hristov
 Updated version of parallel tracking (M.Ivanov)
 
@@ -345,6 +348,15 @@ Int_t AliTPCtrack::GetProlongation(Double_t xk, Double_t &y, Double_t & z) const
   return 0;  
 }
 
+Double_t AliTPCtrack::GetYat(Double_t xk) const {
+//-----------------------------------------------------------------
+// This function calculates the Y-coordinate of a track at the plane x=xk.
+//-----------------------------------------------------------------
+    Double_t c1=fP4*fX - fP2, r1=TMath::Sqrt(1.- c1*c1);
+    Double_t c2=fP4*xk - fP2, r2=TMath::Sqrt(1.- c2*c2);
+    return fP0 + (xk-fX)*(c1+c2)/(r1+r2);
+}
+
 //_____________________________________________________________________________
 Int_t AliTPCtrack::PropagateTo(Double_t xk,Double_t x0,Double_t rho) {
   //-----------------------------------------------------------------
@@ -368,6 +380,7 @@ Int_t AliTPCtrack::PropagateTo(Double_t xk,Double_t x0,Double_t rho) {
   //
 
   //  if (TMath::Abs(fP4)<0.0000001){
+
   fP0    += dx*(c1+c2)/(r1+r2);
   fP1    += dx*(c1+c2)/(c1*r2 + c2*r1)*fP3;
   

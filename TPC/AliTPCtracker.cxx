@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.35.2.2  2003/07/14 09:19:33  hristov
+TOF included in the combined PID (Yu.Belikov)
+
 Revision 1.35.2.1  2003/07/11 10:53:01  hristov
 Inward refit for TPC and TRD in the ESD schema (T.Kuhr)
 
@@ -595,12 +598,8 @@ Int_t AliTPCtracker::FollowBackProlongation
   Int_t nr=fSectors->GetNRows();
   for (Int_t i=0; i<nr; i++) {
     Double_t x=fSectors->GetX(i), ymax=fSectors->GetMaxY(i);
-
-    //cout << i << "\t" << nc << "\t" << row << "\t" << track.GetNumberOfClusters() << endl;
-
-    if (!seed.PropagateTo(x)) return 0;
-
-    Double_t y=seed.GetY();
+    Double_t y=seed.GetYat(x);
+ 
     if (y > ymax) {
        s = (s+1) % fN;
        if (!seed.Rotate(fSectors->GetAlpha())) return 0;
@@ -608,6 +607,8 @@ Int_t AliTPCtracker::FollowBackProlongation
        s = (s-1+fN) % fN;
        if (!seed.Rotate(-fSectors->GetAlpha())) return 0;
     }
+
+    if (!seed.PropagateTo(x)) return 0;
 
     AliTPCcluster *cl=0;
     Int_t index=0;
@@ -624,10 +625,6 @@ Int_t AliTPCtracker::FollowBackProlongation
 
     Int_t accepted=seed.GetNumberOfClusters();
     if (row==i) {
-      
-      //if (fSectors == fInnerSec && row == 0)
-      //cout << "row == " << row << endl;
-
        //try to accept already found cluster
        AliTPCcluster *c=(AliTPCcluster*)GetCluster(idx);
        Double_t chi2;
@@ -1215,6 +1212,9 @@ Int_t AliTPCtracker::PropagateBack(AliESD *event) {
 
     if ( (status & AliESDtrack::kITSout) == 0 ) s.ResetCovariance();
 
+    s.ResetNWrong();
+    s.ResetNRotation();
+    
     Int_t nc=t.GetNumberOfClusters();
     s.SetNumber(nc); //set number of the cluster to start with
 
@@ -1231,9 +1231,12 @@ Int_t AliTPCtracker::PropagateBack(AliESD *event) {
     if (!s.Rotate(alpha)) continue;
     if (!FollowBackProlongation(s,t)) continue;
 
+    UseClusters(&s);
 
     //outer sectors
     fSectors=fOuterSec; fN=fkNOS;
+
+    nc=s.GetNumberOfClusters();
 
     alpha=s.GetAlpha() - fSectors->GetAlphaShift();
     if (alpha > 2.*TMath::Pi()) alpha -= 2.*TMath::Pi();
@@ -1252,7 +1255,7 @@ Int_t AliTPCtracker::PropagateBack(AliESD *event) {
     s.PropagateTo(fParam->GetOuterRadiusUp());
     s.CookdEdx();
     CookLabel(&s,0.1); //For comparison only
-    UseClusters(&s);
+    UseClusters(&s,nc);
     esd->UpdateTrackParams(&s,AliESDtrack::kTPCout);
     ntrk++;
   }

@@ -51,6 +51,7 @@ public:
   Double_t GetdEdx()  const {return fdEdx;}
   Double_t GetPIDsignal()  const {return GetdEdx();}
 
+  Double_t GetYat(Double_t x) const ;
   Double_t GetY()   const {return fP0;}
   Double_t GetZ()   const {return fP1;}
   Double_t GetSnp() const {return fX*fP4 - fP2;}
