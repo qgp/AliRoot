@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.2  2002/07/11 08:58:07  morsch
+Some corrections in the constructors. Init() moved to AliFluka.
+
 Revision 1.1  2002/07/05 13:10:07  morsch
 First commit of Fluka interface.
 
