@@ -279,6 +279,30 @@ TH1* AliHBTAvSeparVsQInvCorrelFctn::GetResult()
  return fRatio;
 }
 
+/*************************************************************************************/ 
+
+ClassImp(AliHBTAvSeparVsTwoKStarCorrelFctn)
+
+AliHBTAvSeparVsTwoKStarCorrelFctn::AliHBTAvSeparVsTwoKStarCorrelFctn(Int_t nXbins, Double_t maxXval, Double_t minXval,
+                                                             Int_t nYbins, Double_t maxYval, Double_t minYval):
+ AliHBTOnePairFctn2D(nXbins,maxXval,minXval,nYbins,maxYval,minYval)
+{
+ //ctor 
+ fWriteNumAndDen = kTRUE;//change default behaviour
+ Rename("avsepvsTwoKStar","Avarage Separation VS Q_{inv} Correlation Function");
+}
+
+
+TH1* AliHBTAvSeparVsTwoKStarCorrelFctn::GetResult()
+{  
+ //returns the scaled ratio
+ delete fRatio;
+ fRatio = GetRatio(Scale());
+ return fRatio;
+}
+
+
+
 
 /**************************************************************/
 /**************************************************************/
@@ -364,7 +388,7 @@ AliHBTITSSepVsTwoKStarCorrelFctn::AliHBTITSSepVsTwoKStarCorrelFctn(Int_t layer,I
 {
 //ctor
   fWriteNumAndDen = kTRUE;//change default behaviour
-  TString name("qinvvsitssep");
+  TString name("twokstarvsitssep");
   TString title("2K^{*} Vs sep on Layer ");
   name+=fLayer;
   title+=fLayer;
@@ -486,9 +510,11 @@ void AliHBTITSSepVsTwoKStarSideCorrelFctn::GetValues(AliHBTPair* pair, Double_t&
 //  Info("Pass","P2: %f %f %f", x2,y2,z2);
 
   x = 2.0*pair->GetKStarSide();
+  x = TMath::Abs(x);
   z = TMath::Abs(z1-z2);
   y = TMath::Hypot(x1-x2,y1-y2);
   
+  //  Info("Pass","P2: %f %f %f", x,y,z);
   
 }
 

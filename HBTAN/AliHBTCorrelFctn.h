@@ -197,6 +197,26 @@ class AliHBTAvSeparVsQInvCorrelFctn: public AliHBTOnePairFctn2D, public AliHBTCo
 };
 
 
+/*************************************************************************************/ 
+
+class AliHBTAvSeparVsTwoKStarCorrelFctn: public AliHBTOnePairFctn2D, public AliHBTCorrelFunction
+{
+//   Correlation Function of 2*KStar
+ public:
+   AliHBTAvSeparVsTwoKStarCorrelFctn(Int_t nXbins = 10, Double_t maxXval = 0.05, Double_t minXval = 0.,
+                           Int_t nYbins = 20, Double_t maxYval = 20, Double_t minYval = 0.0);
+   virtual ~AliHBTAvSeparVsTwoKStarCorrelFctn(){};
+   TH1* GetResult();
+ protected:
+   void GetValues(AliHBTPair* pair, Double_t& x, Double_t& y) const
+    {
+     y = pair->GetAvarageDistance();
+     x = 2.0*pair->GetKStar();
+    }
+ private:  
+    ClassDef(AliHBTAvSeparVsTwoKStarCorrelFctn,1)
+};
+
 
 /*************************************************************************************/
 

@@ -48,6 +48,7 @@
 
 #pragma link C++ class AliHBTAvSeparCorrelFctn+;
 #pragma link C++ class AliHBTAvSeparVsQInvCorrelFctn+;
+#pragma link C++ class AliHBTAvSeparVsTwoKStarCorrelFctn+;
 #pragma link C++ class AliHBTITSSepVsQInvCorrelFctn+;
 #pragma link C++ class AliHBTITSSepVsTwoKStarCorrelFctn+;
 #pragma link C++ class AliHBTITSSepVsTwoKStarSideCorrelFctn+;
