@@ -158,7 +158,7 @@ void MUONdigits(char * filename="galice.root")
   MUONLoader->UnloadDigits();
 }
 
-void MUONrawclusters(char * filename="galice.root") {
+void MUONrecpoints(char * filename="galice.root") {
 
   TClonesArray * ListOfRecPoints;
   
@@ -242,7 +242,7 @@ void MUONrawclusters(char * filename="galice.root") {
 	Float_t chi2_0 =  mRecPoint->fChi2[0];
 	Float_t chi2_1 =  mRecPoint->fChi2[1];
 
-	printf(">>> RecPoint %4d x %6.3f %6.3f y %6.3f %6.3f z %6.3f %6.3f Q0 %4d  Q1 %4d Track0 %4d Track1 %'d Track2 %4d Chi2 %6.3f %6.3f \n",
+	printf(">>> RecPoint %4d x %6.3f %6.3f y %6.3f %6.3f z %6.3f %6.3f Q0 %4d  Q1 %4d Hit %4d Track1 %4d Track2 %4d Chi2 %6.3f %6.3f \n",
 irecpoint, x0, x1, y0, y1, z0, z1, Q0, Q1, Track0, Track1, Track2, chi2_0, chi2_1);
       } // end recpoint loop
     } // end chamber loop
