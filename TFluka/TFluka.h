@@ -21,7 +21,7 @@
 class TFluka : public TVirtualMC {
   
  public:
-  TFluka(const char *title);
+  TFluka(const char *title, Int_t verbosity = 0);
   TFluka();
   virtual ~TFluka() {}
   
@@ -311,16 +311,24 @@ class TFluka : public TVirtualMC {
   //{printf("WARNING: ProcessRun not yet implemented !\n");}
   
 
+  //
   //New Getter and Setters
+  // ------------------------------------------------
+  //
+  // - Input file name
   TString GetInputFileName() const {return fInputFileName;}
   void SetInputFileName(const char* n) {fInputFileName = n;}
+  // - Verbosity level
+  Int_t GetVerbosityLevel() const {return fVerbosityLevel;}
+  void SetVerbosityLevel(Int_t l) {fVerbosityLevel = l;}
 
  private:
   TFluka(const TFluka &mc){}
   TFluka & operator=(const TFluka &) {return (*this);}
 
  protected:
-  TString fInputFileName;
+  Int_t   fVerbosityLevel; //Verbosity level (0 lowest - 3 highest)
+  TString fInputFileName; //Name of the input file (f.e. mu.inp)
   
   ClassDef(TFluka,1)  //C++ interface to Fluka montecarlo
 };
