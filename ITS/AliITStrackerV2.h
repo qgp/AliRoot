@@ -34,7 +34,7 @@ public:
   Int_t RefitInward(const TFile *in, TFile *out);
   Int_t RefitInward(TFile *inSeeds, const TFile *in, TFile *out);
   Int_t RefitInward(AliESD *event);
-  Bool_t RefitAt(Double_t x, AliITStrackV2 *seed, const AliITStrackV2 *t);
+  Bool_t RefitAt(Double_t xx, AliITStrackV2 *seed, const AliITStrackV2 *t);
   void SetupFirstPass(Int_t *flags, Double_t *cuts=0);
   void SetupSecondPass(Int_t *flags, Double_t *cuts=0);
 
