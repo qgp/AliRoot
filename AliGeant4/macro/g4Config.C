@@ -8,12 +8,6 @@ void Config()
   TFile *rootfile = new TFile("galice.root","recreate");
   rootfile->SetCompressionLevel(2);
 
-  // Set External decayer
-  AliDecayer* decayer = new AliDecayerPythia();
-  decayer->SetForceDecay(kAll);
-  decayer->Init();
-  gMC->SetExternalDecayer(decayer);
-
   // ============================= 
   // Geant4
   // ============================= 
@@ -31,6 +25,12 @@ void Config()
     if (!gInterpreter->IsLoaded("g4menu.C")) gROOT->LoadMacro("g4menu.C");
     gInterpreter->ProcessLine("CreateGeant4()");
   }  
+
+  // Set External decayer
+  AliDecayer* decayer = new AliDecayerPythia();
+  decayer->SetForceDecay(kAll);
+  decayer->Init();
+  gMC->SetExternalDecayer(decayer);
 
   // Physics process control
   gMC ->SetProcess("DCAY",1);
