@@ -178,10 +178,10 @@ Bool_t AliPHOSFastRecParticle::IsPhoton(TString purity) const
   if      (purity == "low"   ) photonLike = TestPIDBit(6);
   else if (purity == "medium") photonLike = TestPIDBit(7);
   else if (purity == "high"  ) photonLike = TestPIDBit(8);
-  else Error("IsPhoton","Wrong purity type: \'%s\'",purity.Data());
   if (photonLike                                   && //  photon by PCA
       (TestPIDBit(5)||TestPIDBit(4)||TestPIDBit(3))&& //  fast by TOF
-      (TestPIDBit(2)||TestPIDBit(1)||TestPIDBit(0)))  //  neutral by CPV
+      (TestPIDBit(2)||TestPIDBit(1)||TestPIDBit(0))&& //  neutral by CPV
+      !TestPIDBit(14))                              //  no charged track
     return kTRUE ;
   else
     return kFALSE;
@@ -201,7 +201,8 @@ Bool_t AliPHOSFastRecParticle::IsPi0(TString purity) const
   else Error("IsPi0","Wrong purity type: %s",purity.Data());
   if (pi0Like                                      && //  pi0 by PCA
       (TestPIDBit(5)||TestPIDBit(4)||TestPIDBit(3))&& //  fast by TOF
-      (TestPIDBit(2)||TestPIDBit(1)||TestPIDBit(0)))  //  neutral by CPV
+      (TestPIDBit(2)||TestPIDBit(1)||TestPIDBit(0))&& //  neutral by CPV
+      !TestPIDBit(14))                              //  no charged track
     return kTRUE ;
   else
     return kFALSE;
@@ -219,9 +220,33 @@ Bool_t AliPHOSFastRecParticle::IsElectron(TString purity) const
   else if (purity == "medium") photonLike = TestPIDBit(7);
   else if (purity == "high"  ) photonLike = TestPIDBit(8);
   else Error("IsElectron","Wrong purity type: %s",purity.Data());
+  
   if (photonLike                                   && //  photon by PCA
-      (TestPIDBit(5)||TestPIDBit(4)||TestPIDBit(3))&& //  fast by TOF
-     !(TestPIDBit(2)||TestPIDBit(1)||TestPIDBit(0)))  //  charged by CPV
+      (TestPIDBit(5)|| TestPIDBit(4)|| TestPIDBit(3))&& //  fast by TOF
+      (!TestPIDBit(2)||!TestPIDBit(1)||!TestPIDBit(0))&& //  charged by CPV
+      TestPIDBit(14))                                  //  no charged track
+    return kTRUE ;
+  else
+    return kFALSE;
+}
+
+//____________________________________________________________________________
+Bool_t AliPHOSFastRecParticle::IsEleCon(TString purity) const
+{
+  // Rec.Particle is an electron if it has a photon-like shape, fast and charged
+  // photon-like shape is defined with a purity "low", "medium" or "high"
+
+  purity.ToLower();
+  Bool_t photonLike = kFALSE;
+  if      (purity == "low"   ) photonLike = TestPIDBit(6);
+  else if (purity == "medium") photonLike = TestPIDBit(7);
+  else if (purity == "high"  ) photonLike = TestPIDBit(8);
+  else Error("IsElectron","Wrong purity type: %s",purity.Data());
+  
+  if (photonLike                                   && //  photon by PCA
+      (TestPIDBit(5)|| TestPIDBit(4)|| TestPIDBit(3))&& //  fast by TOF
+      (!TestPIDBit(2)||!TestPIDBit(1)||!TestPIDBit(0))&& //  charged by CPV
+      !TestPIDBit(14))                                  //  no charged track
     return kTRUE ;
   else
     return kFALSE;
@@ -232,7 +257,7 @@ Bool_t AliPHOSFastRecParticle::IsHardPhoton() const
 {
   // Rec.Particle is a hard photon (E > 30 GeV) if its second moment M2x
   // corresponds to photons
-  if (TestPIDBit(12))
+  if (TestPIDBit(12) && !TestPIDBit(14))
     return kTRUE;
   else
     return kFALSE;
@@ -243,7 +268,7 @@ Bool_t AliPHOSFastRecParticle::IsHardPi0() const
 {
   // Rec.Particle is a hard pi0 (E > 30 GeV) if its second moment M2x
   // corresponds to pi0
-  if (TestPIDBit(13))
+  if (TestPIDBit(13)&& !TestPIDBit(14))
     return kTRUE;
   else
     return kFALSE;
@@ -358,41 +383,41 @@ TString AliPHOSFastRecParticle::Name() const
   name = "Undefined particle" ;
   
   if      (IsPhoton("low"))
-    name = "Photon low purity ";
+    name = "Photon low purity, ";
   else if (IsPhoton("medium"))
-    name = "Photon medium purity";
+    name = "Photon medium purity, ";
   else if (IsPhoton("high"))
-    name = "Photon high purity ";
+    name = "Photon high purity, ";
 
   if      (IsPi0("low"))
-    name += "Pi0 low purity ";
+    name = "Pi0 low purity, ";
   else if (IsPi0("medium"))
-    name += "Pi0 medium purity ";
+    name = "Pi0 medium purity, ";
   else if (IsPi0("high"))
-    name += "Pi0 high purity ";
+    name = "Pi0 high purity, ";
 
   if      (IsElectron("low"))
-    name += "Electron low purity ";
+    name = "Electron low purity, ";
   else if (IsElectron("medium"))
-    name += "Electron medium purity ";
+    name = "Electron medium purity, ";
   else if (IsElectron("high"))
-    name += "Electron high purity ";
+    name = "Electron high purity, ";
 
   if     (IsHadron()) {
     name = "hadron";
     if      (IsChargedHadron()) {
-      name.Prepend("charged ");
+      name.Prepend("charged, ");
       if      (IsFastChargedHadron())
-	name.Prepend("fast ");
+	name.Prepend("fast, ");
       else if (IsSlowChargedHadron())
-	name.Prepend("slow ");
+	name.Prepend("slow, ");
     }
     else if (IsNeutralHadron()) {
-      name.Prepend("neutral ");
+      name.Prepend("neutral, ");
       if      (IsFastNeutralHadron())
-	name.Prepend("fast ");
+	name.Prepend("fast, ");
       else if (IsSlowNeutralHadron())
-	name.Prepend("slow ");
+	name.Prepend("slow, ");
     }
   }
 

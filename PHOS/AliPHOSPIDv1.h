@@ -21,7 +21,7 @@ class TPrincipal ;
 
 // --- AliRoot header files ---
 class AliPHOSEmcRecPoint ;
-class AliPHOSRecPoint ;
+class AliPHOSCpvRecPoint ;
 
 #include "AliPHOSPID.h"
 
@@ -30,7 +30,7 @@ class  AliPHOSPIDv1 : public AliPHOSPID {
 public:
   
   AliPHOSPIDv1() ;          // ctor   
-  AliPHOSPIDv1(const TString alirunFileNameFile, const TString eventFolderName = AliConfig::fgkDefaultEventFolderName) ;
+  AliPHOSPIDv1(const TString alirunFileNameFile, const TString eventFolderName = AliConfig::GetDefaultEventFolderName()) ;
   AliPHOSPIDv1(const AliPHOSPIDv1 & pid) ;          // cpy ctor            
   
   virtual ~AliPHOSPIDv1() ; // dtor
@@ -79,13 +79,14 @@ private:
   virtual void  Init() ;
   virtual void  InitParameters() ;
   void          MakeRecParticles(void ) ;
-  // Relative Distance CPV-EMC
-  Float_t GetDistance     (AliPHOSEmcRecPoint * emc, AliPHOSRecPoint * cpv, Option_t * axis)const ; 
-  Int_t   GetCPVBit       (AliPHOSEmcRecPoint * emc, AliPHOSRecPoint * cpv, Int_t EffPur, Float_t e) const;
+  void          MakePID(void ) ;
+ // Relative Distance CPV-EMC
+  Float_t GetDistance     (AliPHOSEmcRecPoint * emc, AliPHOSCpvRecPoint * cpv, Option_t * axis)const ; 
+  Int_t   GetCPVBit       (AliPHOSEmcRecPoint * emc, AliPHOSCpvRecPoint * cpv, Int_t EffPur, Float_t e) const;
   Int_t   GetPrincipalBit (TString particle, const Double_t* P, Int_t EffPur, Float_t e)const ; //Principal cut
   Int_t   GetHardPhotonBit(AliPHOSEmcRecPoint * emc) const;
   Int_t   GetHardPi0Bit   (AliPHOSEmcRecPoint * emc) const;
-  TVector3      GetMomentumDirection(AliPHOSEmcRecPoint * emc, AliPHOSRecPoint * cpv)const ;
+  TVector3      GetMomentumDirection(AliPHOSEmcRecPoint * emc, AliPHOSCpvRecPoint * cpv)const ;
   void          PrintRecParticles(Option_t * option) ;
   virtual void  WriteRecParticles() ; 
   void          SetParameters() ; //Fills the matrix of parameters

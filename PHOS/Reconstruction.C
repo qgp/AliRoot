@@ -31,43 +31,26 @@
 #include "AliPHOSGetter.h"
 #include "AliEMCALGetter.h"
 
-void reco(TString opt="TRE", TString name="all") 
+void reco(TString opt="TRVE", TString name="all") 
 {
   AliReconstruction rec ; 
   if ( !opt.Contains("T") )
     rec.SetRunTracking(kFALSE) ;
+
+  if ( !opt.Contains("V") ) 
+    rec.SetRunVertexFinder(kFALSE) ; 
+
   if ( opt.Contains("R") ) 
-    rec.SetRunReconstruction(name.Data()) ; 
+    rec.SetRunLocalReconstruction(name.Data()) ; 
   else 
-    rec.SetRunReconstruction("") ;
+    rec.SetRunLocalReconstruction("") ;
+ 
   if ( !opt.Contains("E") )
     rec.SetFillESD("") ; 
   else 
     rec.SetFillESD(name.Data()) ; 
+  
   rec.Run() ;
+ 
+}
 
-  if ( name.Contains("PHOS") ) {
-    cout << ">>>>>>>>>>>> PHOS " << endl ; 
-    AliPHOSGetter * gime = AliPHOSGetter::Instance("galice.root") ; 
-    Int_t event ; 
-    for (event = 0; event < gime->MaxEvent(); event++) {
-      cout << "event # " << event << endl ; 
-      gime->Event(event, "RPT") ; 
-      cout << "   EMC RecPoints  # " << gime->EmcRecPoints()->GetEntries() << endl ; 
-      cout << "   CPV RecPoints  # " << gime->CpvRecPoints()->GetEntries() << endl ; 
-      cout << "   Track Segments # " << gime->TrackSegments()->GetEntries() << endl ; 
-      cout << "   Rec Particles  # " << gime->RecParticles()->GetEntries() << endl ; 
-    }
-  } 
- if ( name.Contains("EMCAL") ) {
-    cout << ">>>>>>>>>>>> EMCAL " << endl ; 
-    AliEMCALGetter * gime = AliEMCALGetter::Instance("galice.root") ; 
-    Int_t event ; 
-    for (event = 0; event < gime->MaxEvent(); event++) {
-      cout << "event # " << event << endl ; 
-      gime->Event(event, "RP") ; 
-      cout << "       RecPoints  # " << gime->ECARecPoints()->GetEntries() << endl ; 
-      cout << "   Rec Particles  # " << gime->RecParticles()->GetEntries() << endl ; 
-    }
- } 
-}   

@@ -184,7 +184,7 @@ void  AliPHOSPIDv1::Exec(Option_t *option)
   // for the event range from fFirstEvent to fLastEvent.
   // This range is optionally set by SetEventRange().
   // if fLastEvent=-1 (by default), then process events until the end.
-
+  
   if(strstr(option,"tim"))
     gBenchmark->Start("PHOSPID");
   
@@ -208,6 +208,7 @@ void  AliPHOSPIDv1::Exec(Option_t *option)
     if(gime->TrackSegments() && //Skip events, where no track segments made
        gime->TrackSegments()->GetEntriesFast()) {
       MakeRecParticles() ;
+      MakePID() ; 
       WriteRecParticles();
       if(strstr(option,"deb"))
 	PrintRecParticles(option) ;
@@ -215,13 +216,14 @@ void  AliPHOSPIDv1::Exec(Option_t *option)
       fRecParticlesInRun += gime->RecParticles()->GetEntriesFast() ; 
     }
   }
+  if(strstr(option,"deb"))
+      PrintRecParticles(option);
   if(strstr(option,"tim")){
     gBenchmark->Stop("PHOSPID");
     Info("Exec", "took %f seconds for PID %f seconds per event", 
 	 gBenchmark->GetCpuTime("PHOSPID"),  
 	 gBenchmark->GetCpuTime("PHOSPID")/nEvents) ;
   }
- 
   Unload();
 }
 
@@ -388,7 +390,7 @@ Float_t  AliPHOSPIDv1::GetParameterToCalculateEllipse(TString particle, TString 
 
 
 //____________________________________________________________________________
-Float_t  AliPHOSPIDv1::GetDistance(AliPHOSEmcRecPoint * emc,AliPHOSRecPoint * cpv, Option_t *  axis)const
+Float_t  AliPHOSPIDv1::GetDistance(AliPHOSEmcRecPoint * emc,AliPHOSCpvRecPoint * cpv, Option_t *  axis)const
 {
   // Calculates the distance between the EMC RecPoint and the PPSD RecPoint
   
@@ -398,6 +400,7 @@ Float_t  AliPHOSPIDv1::GetDistance(AliPHOSEmcRecPoint * emc,AliPHOSRecPoint * cp
   if(cpv){
     emc->GetLocalPosition(vecEmc) ;
     cpv->GetLocalPosition(vecCpv) ; 
+    
     if(emc->GetPHOSMod() == cpv->GetPHOSMod()){      
       // Correct to difference in CPV and EMC position due to different distance to center.
       // we assume, that particle moves from center
@@ -415,7 +418,7 @@ Float_t  AliPHOSPIDv1::GetDistance(AliPHOSEmcRecPoint * emc,AliPHOSRecPoint * cp
   return 100000000 ;
 }
 //____________________________________________________________________________
-Int_t  AliPHOSPIDv1::GetCPVBit(AliPHOSEmcRecPoint * emc,AliPHOSRecPoint * cpv, Int_t effPur, Float_t e) const
+Int_t  AliPHOSPIDv1::GetCPVBit(AliPHOSEmcRecPoint * emc,AliPHOSCpvRecPoint * cpv, Int_t effPur, Float_t e) const
 {
   if(effPur>2 || effPur<0)
     Error("GetCPVBit","Invalid Efficiency-Purity choice %d",effPur);
@@ -425,7 +428,7 @@ Int_t  AliPHOSPIDv1::GetCPVBit(AliPHOSEmcRecPoint * emc,AliPHOSRecPoint * cpv, I
   
   Float_t deltaX = TMath::Abs(GetDistance(emc, cpv,  "X"));
   Float_t deltaZ = TMath::Abs(GetDistance(emc, cpv,  "Z"));
-       
+
   if((deltaX>sigX*(effPur+1))|(deltaZ>sigZ*(effPur+1)))
     return 1;//Neutral
   else
@@ -472,7 +475,7 @@ Int_t  AliPHOSPIDv1::GetHardPhotonBit(AliPHOSEmcRecPoint * emc) const
     TMath::Exp(-TMath::Power(e-GetParameterPhotonBoundary(1),2)/2.0/
 	        TMath::Power(GetParameterPhotonBoundary(2),2)) +
     GetParameterPhotonBoundary(3);
-  Info("GetHardPhotonBit","E=%f, m2x=%f, boundary=%f",e,m2x,m2xBoundary);
+  //Info("GetHardPhotonBit","E=%f, m2x=%f, boundary=%f",e,m2x,m2xBoundary);
   if (m2x < m2xBoundary)
     return 1;// A hard photon
   else
@@ -490,7 +493,7 @@ Int_t  AliPHOSPIDv1::GetHardPi0Bit(AliPHOSEmcRecPoint * emc) const
   Float_t m2x = emc->GetM2x();
   Float_t m2xBoundary = GetParameterPi0Boundary(0) +
                     e * GetParameterPi0Boundary(1);
-  Info("GetHardPi0Bit","E=%f, m2x=%f, boundary=%f",e,m2x,m2xBoundary);
+  //Info("GetHardPi0Bit","E=%f, m2x=%f, boundary=%f",e,m2x,m2xBoundary);
   if (m2x > m2xBoundary)
     return 1;// A hard pi0
   else
@@ -498,7 +501,7 @@ Int_t  AliPHOSPIDv1::GetHardPi0Bit(AliPHOSEmcRecPoint * emc) const
 }
 
 //____________________________________________________________________________
-TVector3 AliPHOSPIDv1::GetMomentumDirection(AliPHOSEmcRecPoint * emc, AliPHOSRecPoint * )const 
+TVector3 AliPHOSPIDv1::GetMomentumDirection(AliPHOSEmcRecPoint * emc, AliPHOSCpvRecPoint * )const 
 { 
   // Calculates the momentum direction:
   //   1. if only a EMC RecPoint, direction is given by IP and this RecPoint
@@ -524,6 +527,26 @@ TVector3 AliPHOSPIDv1::GetMomentumDirection(AliPHOSEmcRecPoint * emc, AliPHOSRec
   dir = dir - origin ;
 
   return dir ;  
+}
+
+//____________________________________________________________________________
+void  AliPHOSPIDv1::MakePID()
+{
+  // construct the PID weight from a Bayesian Method
+
+  Int_t index ;
+  Float_t pid1, pid2, pid3, pid4, pid5, pid6 ; 
+  pid1 = pid2 = pid3 = pid4 = pid5 = pid6 = 0 ;
+  Int_t nparticles = AliPHOSGetter::Instance()->RecParticles()->GetEntriesFast() ;
+  for(index = 0 ; index < nparticles ; index ++) {
+    AliPHOSRecParticle * recpar = AliPHOSGetter::Instance()->RecParticle(index) ;  
+    if (recpar->IsPhoton() || recpar->IsHardPhoton())  pid1++ ; 
+    else if (recpar->IsPi0() || recpar->IsHardPi0())   pid2++ ; 
+    else if (recpar->IsElectron())                     pid3++ ; 
+    else if (recpar->IsChargedHadron())                pid4++ ; 
+    else if (recpar->IsNeutralHadron())                pid5++ ; 
+    else if (recpar->IsEleCon())                       pid6++ ;  
+  }
 }
 
 //____________________________________________________________________________
@@ -556,10 +579,13 @@ void  AliPHOSPIDv1::MakeRecParticles()
     if(ts->GetEmcIndex()>=0)
       emc = (AliPHOSEmcRecPoint *) emcRecPoints->At(ts->GetEmcIndex()) ;
     
-    AliPHOSRecPoint    * cpv = 0 ;
+    AliPHOSCpvRecPoint * cpv = 0 ;
     if(ts->GetCpvIndex()>=0)
-      cpv = (AliPHOSRecPoint *)   cpvRecPoints->At(ts->GetCpvIndex()) ;
+      cpv = (AliPHOSCpvRecPoint *) cpvRecPoints->At(ts->GetCpvIndex()) ;
     
+    Int_t track = 0 ; 
+    track = ts->GetTrackIndex() ; 
+      
     // Now set type (reconstructed) of the particle
 
     // Choose the cluster energy range
@@ -604,7 +630,8 @@ void  AliPHOSPIDv1::MakeRecParticles()
       fPPi0[1]   =-100.0;
     }
     
-    Float_t time =emc->GetTime() ;
+    Float_t time = emc->GetTime() ;
+    rp->SetTof(time) ; 
     
     // Loop of Efficiency-Purity (the 3 points of purity or efficiency 
     // are taken into account to set the particle identification)
@@ -618,9 +645,9 @@ void  AliPHOSPIDv1::MakeRecParticles()
       
       // Looking the TOF. If TOF smaller than gate,  4th, 5th or 6th 
       // bit (depending on the efficiency-purity point )is set to 1             
-      if(time< (*fParameters)(2,effPur)) 
+      if(time< (*fParameters)(3,effPur)) 
 	rp->SetPIDBit(effPur+3) ;		    
-      
+  
       //Photon PCA
       //If we are inside the ellipse, 7th, 8th or 9th 
       // bit (depending on the efficiency-purity point )is set to 1 
@@ -638,6 +665,9 @@ void  AliPHOSPIDv1::MakeRecParticles()
     if(GetHardPi0Bit   (emc))
       rp->SetPIDBit(13) ;
     
+    if(track >= 0) 
+      rp->SetPIDBit(14) ; 
+
     //Set momentum, energy and other parameters 
     Float_t  encal = GetCalibratedEnergy(e);
     TVector3 dir   = GetMomentumDirection(emc,cpv) ; 
@@ -658,7 +688,6 @@ void  AliPHOSPIDv1::MakeRecParticles()
     TVector3 pos ; 
     geom->GetGlobal(erp, pos) ; 
     rp->SetPos(pos);
-
     index++ ; 
   }
 }
@@ -771,7 +800,7 @@ void  AliPHOSPIDv1::SetParameters()
 	   &(*fParameters)(i,0), &(*fParameters)(i,1), 
 	   &(*fParameters)(i,2), &(*fParameters)(i,3));
     i++;
-    //printf("line %d: %s",i,string);
+    //Info("SetParameters", "line %d: %s",i,string);
   }
   fclose(fd);
 }

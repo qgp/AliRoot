@@ -28,6 +28,7 @@
 
 // --- AliRoot header files ---
 #include "AliEMCALTrackSegmentMaker.h"
+#include "AliEMCALGetter.h"
 
 ClassImp( AliEMCALTrackSegmentMaker) 
 
@@ -41,8 +42,10 @@ ClassImp( AliEMCALTrackSegmentMaker)
 }
 
 //____________________________________________________________________________
-AliEMCALTrackSegmentMaker::AliEMCALTrackSegmentMaker(const TString alirunFileName, const TString eventFolderName):
-  TTask("EMCAL"+AliConfig::fgkTrackerTaskName, alirunFileName), fEventFolderName(eventFolderName)
+AliEMCALTrackSegmentMaker::AliEMCALTrackSegmentMaker(const TString alirunFileName,
+						     const TString eventFolderName):
+  TTask("EMCAL"+AliConfig::Instance()->GetTrackerTaskName(), alirunFileName),
+  fEventFolderName(eventFolderName)
 {
   // ctor
 
@@ -51,5 +54,7 @@ AliEMCALTrackSegmentMaker::AliEMCALTrackSegmentMaker(const TString alirunFileNam
 //____________________________________________________________________________
 AliEMCALTrackSegmentMaker::~AliEMCALTrackSegmentMaker()
 {
+ //Remove this from the parental task before destroying
+  AliEMCALGetter::Instance()->EmcalLoader()->CleanTracker();
 }
 

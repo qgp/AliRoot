@@ -40,22 +40,24 @@
 
 // --- ROOT system ---
 
-#include "TSystem.h"
-#include "TROOT.h"
+#include <TFile.h>
+#include <TROOT.h>
+#include <TSystem.h>
+#include <TParticle.h>
 
 
 // --- Standard library ---
 
 // --- AliRoot header files ---
-#include "AliPHOSGetter.h"
+#include "AliESD.h"
+#include "AliHeader.h"  
+#include "AliMC.h"
 #include "AliPHOS.h"
+#include "AliPHOSBeamTestEvent.h"
+#include "AliPHOSGetter.h"
+#include "AliPHOSLoader.h"
 #include "AliRunLoader.h"
 #include "AliStack.h"  
-#include "AliHeader.h"  
-#include "AliPHOSLoader.h"
-#include "AliPHOSBeamTestEvent.h"
-#include "AliMC.h"
-#include "AliESD.h"
 
 ClassImp(AliPHOSGetter)
   
@@ -94,7 +96,9 @@ AliPHOSGetter::AliPHOSGetter(const char* headerFile, const char* version, Option
   fBTE = 0 ; 
   fPrimaries = 0 ; 
   fLoadingStatus = "" ; 
-  fESDFileName = "AliESDs.root" ; 
+ 
+  fESDFileName = rl->GetFileName()  ; // this should be the galice.root file
+  fESDFileName.ReplaceAll("galice.root", "AliESDs.root") ;  
   fESDFile = 0 ; 
 }
 
@@ -353,7 +357,7 @@ AliPHOSGetter * AliPHOSGetter::Instance(const char* alirunFileName, const char* 
     }
     else {
       AliRunLoader * rl = AliRunLoader::GetRunLoader(fgPhosLoader->GetTitle()) ; 
-      if ( strstr(version, AliConfig::fgkDefaultEventFolderName) ) // false in case of merging
+      if ( strstr(version, AliConfig::GetDefaultEventFolderName()) ) // false in case of merging
 	delete rl ; 
       fgObjGetter = new AliPHOSGetter(alirunFileName, version, openingOption) ;      
     }
@@ -484,22 +488,28 @@ void AliPHOSGetter::ReadPrimaries()
 AliESD * AliPHOSGetter::ESD(Int_t event)
 {
   //Read the ESD
+
+  AliESD * esd = 0 ; 
   if (!fESDFile)
-    OpenESDFile() ; 
-  
+    if ( !OpenESDFile() ) 
+      return esd ; 
+
   TString esdEvent("ESD") ;  
   esdEvent+= event ; 
-  AliESD * esd = dynamic_cast<AliESD *>(fESDFile->Get(esdEvent)) ; 
+  esd = dynamic_cast<AliESD *>(fESDFile->Get(esdEvent)) ; 
   return esd ; 
 }
 
 //____________________________________________________________________________ 
-Bool_t AliPHOSGetter::OpenESDFile(TString name) 
+Bool_t AliPHOSGetter::OpenESDFile() 
 {
+  //Open the ESD file    
   Bool_t rv = kTRUE ; 
-  fESDFileName = name ; 
-  if (!fESDFile)
-    fESDFile = new TFile(fESDFileName) ;
+  if (!fESDFile) {
+    fESDFile = TFile::Open(fESDFileName) ;
+    if (!fESDFile ) 
+      return kFALSE ; 
+  }
   else if (fESDFile->IsOpen()) {
     fESDFile->Close() ; 
     fESDFile = TFile::Open(fESDFileName) ;
@@ -514,13 +524,13 @@ Int_t AliPHOSGetter::ReadTreeD()
 {
   // Read the Digits
   
-  
-  // gets TreeD from the root file (PHOS.SDigits.root)
-  if ( !IsLoaded("D") ) {
+  PhosLoader()->CleanDigits() ;    
+  // gets TreeD from the root file (PHOS.Digits.root)
+  // if ( !IsLoaded("D") ) {
     PhosLoader()->LoadDigits("UPDATE") ;
     PhosLoader()->LoadDigitizer("UPDATE") ;
-    SetLoaded("D") ; 
-  } 
+    //  SetLoaded("D") ; 
+    //} 
   return Digits()->GetEntries() ; 
 }
 
@@ -528,12 +538,12 @@ Int_t AliPHOSGetter::ReadTreeD()
 Int_t AliPHOSGetter::ReadTreeH()
 {
   // Read the Hits
-    
+  PhosLoader()->CleanHits() ;
   // gets TreeH from the root file (PHOS.Hit.root)
-  if ( !IsLoaded("H") ) {
+  //if ( !IsLoaded("H") ) {
     PhosLoader()->LoadHits("UPDATE") ;
-    SetLoaded("H") ; 
-  }  
+  //  SetLoaded("H") ; 
+  //}  
   return Hits()->GetEntries() ; 
 }
 
@@ -542,13 +552,13 @@ Int_t AliPHOSGetter::ReadTreeR()
 {
   // Read the RecPoints
   
-  
+  PhosLoader()->CleanRecPoints() ;
   // gets TreeR from the root file (PHOS.RecPoints.root)
-  if ( !IsLoaded("R") ) {
+  //if ( !IsLoaded("R") ) {
     PhosLoader()->LoadRecPoints("UPDATE") ;
     PhosLoader()->LoadClusterizer("UPDATE") ;
-    SetLoaded("R") ; 
-  }
+    //  SetLoaded("R") ; 
+    //}
 
   return EmcRecPoints()->GetEntries() ; 
 }
@@ -558,28 +568,29 @@ Int_t AliPHOSGetter::ReadTreeT()
 {
   // Read the TrackSegments
   
-  
+  PhosLoader()->CleanTracks() ; 
   // gets TreeT from the root file (PHOS.TrackSegments.root)
-  if ( !IsLoaded("T") ) {
+  //if ( !IsLoaded("T") ) {
     PhosLoader()->LoadTracks("UPDATE") ;
     PhosLoader()->LoadTrackSegmentMaker("UPDATE") ;
-    SetLoaded("T") ; 
-  }
+    //    SetLoaded("T") ; 
+    //}
 
   return TrackSegments()->GetEntries() ; 
 }
 //____________________________________________________________________________ 
 Int_t AliPHOSGetter::ReadTreeP()
 {
-  // Read the TrackSegments
+  // Read the RecParticles
   
-  
+  PhosLoader()->CleanRecParticles() ; 
+
   // gets TreeT from the root file (PHOS.TrackSegments.root)
-  if ( !IsLoaded("P") ) {
+  //  if ( !IsLoaded("P") ) {
     PhosLoader()->LoadRecParticles("UPDATE") ;
     PhosLoader()->LoadPID("UPDATE") ;
-    SetLoaded("P") ; 
-  }
+    //  SetLoaded("P") ; 
+    //}
 
   return RecParticles()->GetEntries() ; 
 }
@@ -588,13 +599,13 @@ Int_t AliPHOSGetter::ReadTreeS()
 {
   // Read the SDigits
   
-  
+  PhosLoader()->CleanSDigits() ; 
   // gets TreeS from the root file (PHOS.SDigits.root)
-  if ( !IsLoaded("S") ) {
+  //if ( !IsLoaded("S") ) {
     PhosLoader()->LoadSDigits("READ") ;
     PhosLoader()->LoadSDigitizer("READ") ;
-    SetLoaded("S") ; 
-  }
+    //  SetLoaded("S") ; 
+    //}
 
   return SDigits()->GetEntries() ; 
 }
@@ -764,7 +775,7 @@ Bool_t AliPHOSGetter::VersionExists(TString & opt) const
   if ( opt == "sdigits") {
     // add the version name to the root file name
     TString fileName( PhosLoader()->GetSDigitsFileName() ) ; 
-    if (version != AliConfig::fgkDefaultEventFolderName) // only if not the default folder name 
+    if (version != AliConfig::GetDefaultEventFolderName()) // only if not the default folder name 
       fileName = fileName.ReplaceAll(".root", "") + "_" + version + ".root" ;
     if ( !(gSystem->AccessPathName(fileName)) ) { 
       Warning("VersionExists", "The file %s already exists", fileName.Data()) ;
@@ -776,7 +787,7 @@ Bool_t AliPHOSGetter::VersionExists(TString & opt) const
   if ( opt == "digits") {
     // add the version name to the root file name
     TString fileName( PhosLoader()->GetDigitsFileName() ) ; 
-    if (version != AliConfig::fgkDefaultEventFolderName) // only if not the default folder name 
+    if (version != AliConfig::GetDefaultEventFolderName()) // only if not the default folder name 
       fileName = fileName.ReplaceAll(".root", "") + "_" + version + ".root" ;
     if ( !(gSystem->AccessPathName(fileName)) ) {
       Warning("VersionExists", "The file %s already exists", fileName.Data()) ;  

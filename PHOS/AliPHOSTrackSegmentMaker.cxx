@@ -22,15 +22,12 @@
 
 
 // --- ROOT system ---
-//#include "TGeometry.h"
-  //#include "TFile.h"
-  //#include "TTree.h"
 
 // --- Standard library ---
 
 // --- AliRoot header files ---
 #include "AliPHOSTrackSegmentMaker.h"
-  //#include "AliHeader.h" 
+#include "AliPHOSGetter.h"
 
 ClassImp( AliPHOSTrackSegmentMaker) 
 
@@ -45,8 +42,10 @@ ClassImp( AliPHOSTrackSegmentMaker)
 }
 
 //____________________________________________________________________________
-AliPHOSTrackSegmentMaker::AliPHOSTrackSegmentMaker(const TString alirunFileName, const TString eventFolderName):
-  TTask("PHOS"+AliConfig::fgkTrackerTaskName, alirunFileName), fEventFolderName(eventFolderName)
+AliPHOSTrackSegmentMaker::AliPHOSTrackSegmentMaker(const TString alirunFileName, 
+						   const TString eventFolderName):
+  TTask("PHOS"+AliConfig::Instance()->GetTrackerTaskName(), alirunFileName), 
+  fEventFolderName(eventFolderName)
 {
   // ctor
   fFirstEvent = 0 ; 
@@ -56,5 +55,7 @@ AliPHOSTrackSegmentMaker::AliPHOSTrackSegmentMaker(const TString alirunFileName,
 //____________________________________________________________________________
 AliPHOSTrackSegmentMaker::~AliPHOSTrackSegmentMaker()
 {
+ //Remove this from the parental task before destroying
+  AliPHOSGetter::Instance()->PhosLoader()->CleanTracker();
 }
 

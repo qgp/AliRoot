@@ -459,6 +459,19 @@ void AliPHOSGeometry::RelPosInAlice(Int_t id, TVector3 & pos ) const
 } 
 
 //____________________________________________________________________________
+void AliPHOSGeometry::RelPosToAbsId(const Int_t module, const Double_t x, const Double_t z, Int_t & AbsId) const
+{
+  // converts local PHOS-module (x, z) coordinates to absId 
+  Int_t relid[4] ;
+  relid[0] = module ;
+  relid[1] = 0 ;
+  relid[2] = static_cast<Int_t>(TMath::Ceil( x/ GetCellStep() + GetNPhi() / 2.) );
+  relid[3] = static_cast<Int_t>(TMath::Ceil(-z/ GetCellStep() + GetNZ()   / 2.) ) ;
+  
+  RelToAbsNumbering(relid,AbsId) ;
+}
+
+//____________________________________________________________________________
 void AliPHOSGeometry::RelPosInModule(const Int_t * relid, Float_t & x, Float_t & z) const 
 {
   // Converts the relative numbering into the local PHOS-module (x, z) coordinates
@@ -476,4 +489,32 @@ void AliPHOSGeometry::RelPosInModule(const Int_t * relid, Float_t & x, Float_t &
     x = - ( GetNumberOfCPVPadsPhi()/2. - row    - 0.5 ) * GetPadSizePhi()  ; // position of pad  with respect
     z = - ( GetNumberOfCPVPadsZ()  /2. - column - 0.5 ) * GetPadSizeZ()  ; // of center of PHOS module  
   }
+}
+
+//____________________________________________________________________________
+
+TVector3 AliPHOSGeometry::GetModuleCenter(char *det, Int_t module) const
+{
+  // Returns a position of the center of the CPV or EMC module
+  Float_t rDet = 0.;
+  if      (strcmp(det,"CPV") == 0) rDet  = GetIPtoCPVDistance   ();
+  else if (strcmp(det,"EMC") == 0) rDet  = GetIPtoCrystalSurface();
+  else Fatal("GetModuleCenter","Wrong detector name %s",det);
+
+  Float_t angle = GetPHOSAngle(module); // (40,20,0,-20,-40) degrees
+  angle *= TMath::Pi()/180;
+  angle += 3*TMath::Pi()/2.;
+  return TVector3(rDet*TMath::Cos(angle), rDet*TMath::Sin(angle), 0.);
+}
+
+//____________________________________________________________________________
+
+TVector3 AliPHOSGeometry::Global2Local(TVector3 globalPosition, Int_t module) const
+{
+  // Transforms a global position of the rec.point to the local coordinate system
+  Float_t angle = GetPHOSAngle(module); // (40,20,0,-20,-40) degrees
+  angle *= TMath::Pi()/180;
+  angle += 3*TMath::Pi()/2.;
+  globalPosition.RotateZ(-angle);
+  return TVector3(globalPosition.Y(),globalPosition.X(),globalPosition.Z());
 }

@@ -7,12 +7,13 @@
 
 //_________________________________________________________________________
 // Implementation version 1 of algorithm class to construct PHOS track segments
-// Associates EMC and PPSD clusters
+// Associates EMC and CPV lusters
 // Unfolds the EMC cluster   
 //                  
 //*-- Author: Dmitri Peressounko (RRC Ki & SUBATECH)
 
 // --- ROOT system ---
+#include <TVector3.h>
 
 // --- Standard library ---
 
@@ -20,15 +21,14 @@
 #include "AliPHOSTrackSegmentMaker.h"
 
 class AliPHOSEmcRecPoint ;
-class AliPHOSRecPoint ;
-
+class AliPHOSCpvRecPoint ;
 
 class  AliPHOSTrackSegmentMakerv1 : public AliPHOSTrackSegmentMaker {
 
 public:
 
   AliPHOSTrackSegmentMakerv1() ;                     
-  AliPHOSTrackSegmentMakerv1(const TString alirunFileNameFile, const TString eventFolderName = AliConfig::fgkDefaultEventFolderName);
+  AliPHOSTrackSegmentMakerv1(const TString alirunFileNameFile, const TString eventFolderName = AliConfig::GetDefaultEventFolderName());
   AliPHOSTrackSegmentMakerv1(const AliPHOSTrackSegmentMakerv1 & tsm) : AliPHOSTrackSegmentMaker(tsm) {
     // cpy ctor: no implementation yet
     // requested by the Coding Convention
@@ -43,7 +43,7 @@ public:
   virtual void   Exec(Option_t *option); // Does the job
           void   FillOneModule() ;       // Finds range in which RecPoints belonging current PHOS module are
 
-          void   MakeLinks() const;      //Evaluates distances(links) between EMC and PPSD
+          void   MakeLinks() const;      //Evaluates distances(links) between EMC and CPV
           void   MakePairs() ;           //Finds pairs(triplets) with smallest link
   virtual void   Print() const ;
   virtual void   SetMaxEmcCPVDistance(Float_t r){ fRcpv = r ;} //Maximal distance (in PHOS plane) 
@@ -64,7 +64,8 @@ public:
 private:
 
   const TString BranchName() const ; 
-  Float_t GetDistanceInPHOSPlane(AliPHOSEmcRecPoint * EmcClu , AliPHOSRecPoint * Ppsd , Bool_t & TooFar )const ; // see R0
+  Float_t GetDistanceInPHOSPlane(AliPHOSEmcRecPoint * EmcClu , AliPHOSCpvRecPoint * Cpv , Int_t & track ) const ; // see R0
+  TVector3 PropagateToPlane(Double_t *x, Double_t *p, char *det, Int_t module) const;
   void    Init() ;
   void    InitParameters() ;
   void    PrintTrackSegments(Option_t *option) ;

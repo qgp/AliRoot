@@ -40,21 +40,22 @@
 
 // --- ROOT system ---
 
-#include "TSystem.h"
-#include "TROOT.h"
+#include <TFile.h>
+#include <TROOT.h>
+#include <TSystem.h>
 
 
 // --- Standard library ---
 
 // --- AliRoot header files ---
 
-#include "AliEMCALGetter.h"
 #include "AliEMCAL.h"
+#include "AliEMCALGetter.h"
+#include "AliEMCALLoader.h"
+#include "AliHeader.h"  
+#include "AliMC.h"
 #include "AliRunLoader.h"
 #include "AliStack.h"  
-#include "AliHeader.h"  
-#include "AliEMCALLoader.h"
-#include "AliMC.h"
 
 ClassImp(AliEMCALGetter)
   
@@ -80,7 +81,7 @@ AliEMCALGetter::AliEMCALGetter(const char* headerFile, const char* version, Opti
       rl->LoadgAlice();
       gAlice = rl->GetAliRun(); // should be removed
     }
-  }
+  } 
   fgEmcalLoader = dynamic_cast<AliEMCALLoader*>(rl->GetLoader("EMCALLoader"));
   if ( !fgEmcalLoader ) 
     Error("AliEMCALGetter", "Could not find EMCALLoader") ; 
@@ -329,7 +330,7 @@ AliEMCALGetter * AliEMCALGetter::Instance(const char* alirunFileName, const char
     }
     else { 
       AliRunLoader * rl = AliRunLoader::GetRunLoader(fgEmcalLoader->GetTitle());
-      if ( strstr(version, AliConfig::fgkDefaultEventFolderName) ) // false in case of merging
+      if ( strstr(version, AliConfig::GetDefaultEventFolderName()) ) // false in case of merging
 	delete rl ; 
       fgObjGetter = new AliEMCALGetter(alirunFileName, version, openingOption) ;      
     }
@@ -459,13 +460,13 @@ Int_t AliEMCALGetter::ReadTreeD()
 {
   // Read the Digits
   
-  
-  // gets TreeD from the root file (EMCAL.SDigits.root)
-  if ( !IsLoaded("D") ) {
+   EmcalLoader()->CleanDigits() ; 
+  // gets TreeD from the root file (EMCAL.Digits.root)
+  //if ( !IsLoaded("D") ) {
     EmcalLoader()->LoadDigits("UPDATE") ;
     EmcalLoader()->LoadDigitizer("UPDATE") ;
-    SetLoaded("D") ; 
-  } 
+    //  SetLoaded("D") ; 
+    //} 
   return Digits()->GetEntries() ; 
 }
 
@@ -473,12 +474,12 @@ Int_t AliEMCALGetter::ReadTreeD()
 Int_t AliEMCALGetter::ReadTreeH()
 {
   // Read the Hits
-    
+  EmcalLoader()->CleanHits() ; 
   // gets TreeH from the root file (EMCAL.Hit.root)
-  if ( !IsLoaded("H") ) {
+  //if ( !IsLoaded("H") ) {
     EmcalLoader()->LoadHits("READ") ;
     SetLoaded("H") ; 
-  }  
+    //}  
   return Hits()->GetEntries() ; 
 }
 
@@ -486,14 +487,14 @@ Int_t AliEMCALGetter::ReadTreeH()
 Int_t AliEMCALGetter::ReadTreeR()
 {
   // Read the RecPoints
-  
-  
+
+   EmcalLoader()->CleanRecPoints() ; 
   // gets TreeR from the root file (EMCAL.RecPoints.root)
-  if ( !IsLoaded("R") ) {
+  //if ( !IsLoaded("R") ) {
     EmcalLoader()->LoadRecPoints("UPDATE") ;
     EmcalLoader()->LoadClusterizer("UPDATE") ;
-    SetLoaded("R") ; 
-  }
+    //  SetLoaded("R") ; 
+    //}
 
   return ECARecPoints()->GetEntries() ; 
 }
@@ -503,28 +504,28 @@ Int_t AliEMCALGetter::ReadTreeT()
 {
   // Read the TrackSegments
   
-  
+  EmcalLoader()->CleanTracks() ; 
   // gets TreeT from the root file (EMCAL.TrackSegments.root)
-  if ( !IsLoaded("T") ) {
+  //if ( !IsLoaded("T") ) {
     EmcalLoader()->LoadTracks("UPDATE") ;
     EmcalLoader()->LoadTrackSegmentMaker("UPDATE") ;
-    SetLoaded("T") ; 
-  }
+    //  SetLoaded("T") ; 
+    //}
 
   return TrackSegments()->GetEntries() ; 
 }
 //____________________________________________________________________________ 
 Int_t AliEMCALGetter::ReadTreeP()
 {
-  // Read the TrackSegments
+  // Read the RecParticles
   
-  
-  // gets TreeT from the root file (EMCAL.TrackSegments.root)
-  if ( !IsLoaded("P") ) {
+  EmcalLoader()->CleanRecParticles() ; 
+  // gets TreeP from the root file (EMCAL.RecParticles.root)
+  //  if ( !IsLoaded("P") ) {
     EmcalLoader()->LoadRecParticles("UPDATE") ;
     EmcalLoader()->LoadPID("UPDATE") ;
-    SetLoaded("P") ; 
-  }
+    //  SetLoaded("P") ; 
+    // }
 
   return RecParticles()->GetEntries() ; 
 }
@@ -533,13 +534,13 @@ Int_t AliEMCALGetter::ReadTreeS()
 {
   // Read the SDigits
   
-  
+  //  EmcalLoader()->CleanSDigits() ; 
   // gets TreeS from the root file (EMCAL.SDigits.root)
-   if ( !IsLoaded("S") ) {
+  // if ( !IsLoaded("S") ) {
     EmcalLoader()->LoadSDigits("READ") ;
     EmcalLoader()->LoadSDigitizer("READ") ;
-    SetLoaded("S") ; 
-  }
+    //  SetLoaded("S") ; 
+    //}
 
   return SDigits()->GetEntries() ; 
 }
@@ -710,7 +711,7 @@ Bool_t AliEMCALGetter::VersionExists(TString & opt) const
   if ( opt == "sdigits") {
     // add the version name to the root file name
     TString fileName( EmcalLoader()->GetSDigitsFileName() ) ; 
-    if (version != AliConfig::fgkDefaultEventFolderName) // only if not the default folder name 
+    if (version != AliConfig::GetDefaultEventFolderName()) // only if not the default folder name 
       fileName = fileName.ReplaceAll(".root", "") + "_" + version + ".root" ;
     if ( !(gSystem->AccessPathName(fileName)) ) { 
       Warning("VersionExists", "The file %s already exists", fileName.Data()) ;
@@ -722,7 +723,7 @@ Bool_t AliEMCALGetter::VersionExists(TString & opt) const
   if ( opt == "digits") {
     // add the version name to the root file name
     TString fileName( EmcalLoader()->GetDigitsFileName() ) ; 
-    if (version != AliConfig::fgkDefaultEventFolderName) // only if not the default folder name 
+    if (version != AliConfig::GetDefaultEventFolderName()) // only if not the default folder name 
       fileName = fileName.ReplaceAll(".root", "") + "_" + version + ".root" ;
     if ( !(gSystem->AccessPathName(fileName)) ) {
       Warning("VersionExists", "The file %s already exists", fileName.Data()) ;  

@@ -27,6 +27,7 @@
 
 // --- AliRoot header files ---
 #include "AliPHOSClusterizer.h"
+#include "AliPHOSGetter.h" 
 
 ClassImp(AliPHOSClusterizer)
 
@@ -41,8 +42,10 @@ ClassImp(AliPHOSClusterizer)
 }
 
 //____________________________________________________________________________
-AliPHOSClusterizer::AliPHOSClusterizer(const TString alirunFileName, const TString eventFolderName):
-  TTask("PHOS"+AliConfig::fgkReconstructionerTaskName, alirunFileName), fEventFolderName(eventFolderName)
+AliPHOSClusterizer::AliPHOSClusterizer(const TString alirunFileName, 
+				       const TString eventFolderName):
+  TTask("PHOS"+AliConfig::Instance()->GetReconstructionerTaskName(), 
+	alirunFileName), fEventFolderName(eventFolderName)
 {
   // ctor
  
@@ -55,6 +58,8 @@ AliPHOSClusterizer::~AliPHOSClusterizer()
 {
   // dtor
          
+ //Remove this from the parental task before destroying
+  AliPHOSGetter::Instance()->PhosLoader()->CleanReconstructioner();
 }
 
 

@@ -49,7 +49,8 @@ public:
   TFolder*              GetConstFolder(){return fConstFolder;}
 
   static const TString& GetModulesFolderName(){return fgkModuleFolderName;}
-  
+  static const TString& GetDefaultEventFolderName()
+    {return fgkDefaultEventFolderName;}
   TString               GetQATaskName() const; //returns path to QA tasks
   TString               GetDigitizerTaskName () const;
   TString               GetSDigitizerTaskName () const;

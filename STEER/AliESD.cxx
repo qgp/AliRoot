@@ -35,15 +35,20 @@ AliESD::AliESD():
   fMagneticField(0),
   fPrimaryVertex(),
   fTracks("AliESDtrack",15000),
-  fCaloTracks("AliESDCaloTrack",500),
   fMuonTracks("AliESDMuonTrack",30),
   fV0s("AliESDv0",200),
-  fCascades("AliESDcascade",20)
+  fCascades("AliESDcascade",20),
+  fPHOSParticles(0), 
+  fEMCALParticles(0), 
+  fFirstPHOSParticle(-1), 
+  fFirstEMCALParticle(-1)
 {
 }
 
 void AliESD::Print(Option_t *) const {
-  //Print header information of the event
+ //
+  // Print header information of the event
+  //
   Info("Print","ESD run information");
   printf("Event # %d Run # %d Trigger %ld Magnetic field %f \n",
 	 GetEventNumber(),
@@ -56,8 +61,9 @@ void AliESD::Print(Option_t *) const {
 	 fPrimaryVertex.GetZv(), fPrimaryVertex.GetZRes());
   printf("Event from reconstruction version %d \n",fRecoVersion);
   printf("Number of tracks: \n");
-  printf("                 charged   %d\n",GetNumberOfTracks());
-  printf("                 calo      %d\n", GetNumberOfCaloTracks());
+  printf("                 charged   %d\n",GetNumberOfTracks()-GetNumberOfPHOSParticles()-GetNumberOfEMCALParticles());
+  printf("                 phos      %d\n", GetNumberOfPHOSParticles());
+  printf("                 emcal     %d\n", GetNumberOfEMCALParticles());
   printf("                 muon      %d\n", GetNumberOfMuonTracks());
   printf("                 v0        %d\n", GetNumberOfV0s());
   printf("                 cascades  %d\n)", GetNumberOfCascades());

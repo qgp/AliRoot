@@ -32,6 +32,7 @@
 
 // --- AliRoot header files ---
 #include "AliEMCALPID.h"
+#include "AliEMCALGetter.h"
 
 ClassImp(AliEMCALPID)
 
@@ -46,8 +47,9 @@ ClassImp(AliEMCALPID)
 
 
 //____________________________________________________________________________
-AliEMCALPID::AliEMCALPID(const TString alirunFileName, const TString eventFolderName)
-:TTask("EMCAL"+AliConfig::fgkPIDTaskName, alirunFileName), fEventFolderName(eventFolderName)
+AliEMCALPID::AliEMCALPID(const TString alirunFileName, const TString eventFolderName):
+  TTask("EMCAL"+AliConfig::Instance()->GetPIDTaskName(), alirunFileName),
+  fEventFolderName(eventFolderName)
 {
   // ctor
   fFirstEvent = 0 ; 
@@ -58,5 +60,7 @@ AliEMCALPID::AliEMCALPID(const TString alirunFileName, const TString eventFolder
 AliEMCALPID::~AliEMCALPID()
 {
   // dtor
+  //Remove this from the parental task before destroying
+  AliEMCALGetter::Instance()->EmcalLoader()->CleanPIDTask();
         
 }

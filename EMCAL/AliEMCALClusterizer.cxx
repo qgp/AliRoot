@@ -30,8 +30,8 @@
 
 
 // --- AliRoot header files ---
-#include "AliRun.h" 
 #include "AliEMCALClusterizer.h"
+#include "AliEMCALGetter.h"
 
 ClassImp(AliEMCALClusterizer)
 
@@ -45,8 +45,10 @@ ClassImp(AliEMCALClusterizer)
 }
 
 //____________________________________________________________________________
-AliEMCALClusterizer::AliEMCALClusterizer(const TString alirunFileName, const TString eventFolderName):
-  TTask("EMCAL"+AliConfig::fgkReconstructionerTaskName, alirunFileName), fEventFolderName(eventFolderName)
+AliEMCALClusterizer::AliEMCALClusterizer(const TString alirunFileName, 
+					 const TString eventFolderName):
+  TTask("EMCAL"+AliConfig::Instance()->GetReconstructionerTaskName(), alirunFileName),
+ fEventFolderName(eventFolderName)
 {
   // ctor
   fFirstEvent = 0 ; 
@@ -57,5 +59,7 @@ AliEMCALClusterizer::AliEMCALClusterizer(const TString alirunFileName, const TSt
 AliEMCALClusterizer::~AliEMCALClusterizer()
 {
   // dtor
+ //Remove this from the parental task before destroying
+  AliEMCALGetter::Instance()->EmcalLoader()->CleanReconstructioner();
 }
 

@@ -77,6 +77,8 @@ public:
                                          // gets the position of element (pad or Xtal) relative to Alice
   Bool_t RelToAbsNumbering(const Int_t * RelId, Int_t & AbsId) const ;         
                                          // converts the absolute PHOS numbering to a relative 
+  void  RelPosToAbsId(const Int_t module, const Double_t x, const Double_t z, Int_t & AbsId) const; 
+                                         // converts local PHOS-module (x, z) coordinates to absId 
 
   Bool_t IsInitialized(void)                  const { return fgInit ; }  
                                                                        
@@ -117,6 +119,8 @@ public:
   Float_t GetCPVBoxSize(Int_t index)           const { return fGeometryCPV ->GetCPVBoxSize(index);        } 
   Float_t GetIPtoCPVDistance(void)             const { return  GetIPtoOuterCoverDistance() - 
 							       GetCPVBoxSize(1) - 1.0; }
+  TVector3 GetModuleCenter(char *det, Int_t module) const;
+  TVector3 Global2Local(TVector3 globalPosition, Int_t module) const;
 
   // Return PHOS' support geometry parameters
 

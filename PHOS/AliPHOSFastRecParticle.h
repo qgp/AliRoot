@@ -15,6 +15,7 @@
 
 // --- ROOT system ---
 
+class TClonesArray;
 #include "TParticle.h"
 
 // --- Standard library ---
@@ -68,11 +69,14 @@ class AliPHOSFastRecParticle : public TParticle {
   Bool_t IsSlowChargedHadron() const;
   Bool_t IsFastNeutralHadron() const;
   Bool_t IsSlowNeutralHadron() const;
+  Bool_t IsEleCon(TString purity = "low") const; 
 
   TString Name() const ; 
   virtual void Paint(Option_t * option="");
   virtual void Print() const ; 
   
+  void SetTof(Float_t tof) { fTof = tof ; } 
+  Float_t ToF() const { return fTof ; } 
   void SetType(Int_t type) ;
   
   void SetIndexInList(Int_t val) { 
@@ -80,7 +84,8 @@ class AliPHOSFastRecParticle : public TParticle {
     fIndexInList = val ; 
   }
   //This has to disappear
-  enum EParticleType { kUNDEFINED=-1, 
+  enum EParticleType { kTYPE = 8, 
+                       kUNDEFINED=-1, 
 		       kNEUTRALEMFAST, kNEUTRALHAFAST,  kNEUTRALEMSLOW, kNEUTRALHASLOW, 
 		       kCHARGEDEMFAST, kCHARGEDHAFAST,  kCHARGEDEMSLOW, kCHARGEDHASLOW } ; 
   
@@ -89,10 +94,11 @@ class AliPHOSFastRecParticle : public TParticle {
  protected:
 
   Int_t fIndexInList ; // the index of this RecParticle in the list stored in TreeR (to be set by analysis)
+  Float_t fTof ;       // time of fliht
   Int_t fType ;        // particle type obtained by "virtual" reconstruction
  private:
 
-  ClassDef(AliPHOSFastRecParticle,2)  // Reconstructed Particle produced by the fast simulation 
+  ClassDef(AliPHOSFastRecParticle,3)  // Reconstructed Particle produced by the fast simulation 
 
 };
 

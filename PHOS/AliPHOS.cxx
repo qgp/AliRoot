@@ -43,7 +43,10 @@ class TFile;
 #include "AliRun.h"
 #include "AliPHOSDigitizer.h"
 #include "AliPHOSSDigitizer.h"
-#include "AliPHOSReconstructioner.h"
+#include "AliPHOSClusterizerv1.h"
+#include "AliPHOSTrackSegmentMakerv1.h"
+#include "AliPHOSPIDv1.h"
+
 ClassImp(AliPHOS)
 //____________________________________________________________________________
 AliPHOS:: AliPHOS() : AliDetector()
@@ -377,16 +380,55 @@ void AliPHOS::CreateMaterials()
 //____________________________________________________________________________
 void AliPHOS::FillESD(AliESD* esd) const 
 {
-  // Fill the ESD with all RecParticles
-  AliPHOSGetter *gime = AliPHOSGetter::Instance( (fLoader->GetRunLoader()->GetFileName()).Data() ) ;
-  gime->Event(gime->EventNumber(), "P") ; 
-  TClonesArray *recParticles = gime->RecParticles();
-  Int_t nOfRecParticles = recParticles->GetEntries();
-  for (Int_t recpart=0; recpart<nOfRecParticles; recpart++) {
-    AliESDCaloTrack *ct = new AliESDCaloTrack((AliPHOSRecParticle*)recParticles->At(recpart));
-    esd->AddCaloTrack(ct);
-    delete ct;
+
+  // Called by AliReconstruct after Reconstruct() and global tracking and vertxing 
+  //Creates the tracksegments and Recparticles
+  AliRunLoader * runLoader = AliRunLoader::GetRunLoader() ; 
+  Int_t eventNumber = runLoader->GetEventNumber() ;
+
+  TString headerFile(runLoader->GetFileName()) ; 
+  TString branchName(runLoader->GetEventFolder()->GetName()) ;  
+
+  AliPHOSTrackSegmentMakerv1 tsm(headerFile, branchName);
+  tsm.SetESD(esd) ; 
+  AliPHOSPIDv1 pid(headerFile, branchName);
+
+  // do current event; the loop over events is done by AliReconstruction::Run()
+  tsm.SetEventRange(eventNumber, eventNumber) ; 
+  pid.SetEventRange(eventNumber, eventNumber) ; 
+  if ( GetDebug() ) {
+   tsm.ExecuteTask("deb all") ;
+   pid.ExecuteTask("deb all") ;
   }
+  else {
+    tsm.ExecuteTask("") ;
+    pid.ExecuteTask("") ;
+  }
+  
+  // Creates AliESDtrack from AliPHOSRecParticles 
+  AliPHOSGetter::Instance()->Event(eventNumber, "P") ; 
+  TClonesArray *recParticles = AliPHOSGetter::Instance()->RecParticles();
+  Int_t nOfRecParticles = recParticles->GetEntries();
+  esd->SetNumberOfPHOSParticles(nOfRecParticles) ; 
+  esd->SetFirstPHOSParticle(esd->GetNumberOfTracks()) ; 
+
+  for (Int_t recpart = 0 ; recpart < nOfRecParticles ; recpart++) {
+    AliPHOSRecParticle * rp = dynamic_cast<AliPHOSRecParticle*>(recParticles->At(recpart));
+    if (GetDebug()) 
+      rp->Print();
+    AliESDtrack * et = new AliESDtrack() ; 
+    // fills the ESDtrack
+    Double_t xyz[3];
+    for (Int_t ixyz=0; ixyz<3; ixyz++) 
+      xyz[ixyz] = rp->GetPos()[ixyz];
+    et->SetPHOSposition(xyz) ; 
+    et->SetPHOSsignal  (rp->Energy()) ; 
+    et->SetPHOSpid     (rp->GetPID()) ;
+    // add the track to the esd object
+    esd->AddTrack(et);
+    delete et;
+  }
+
 }       
 
 //____________________________________________________________________________
@@ -433,9 +475,22 @@ void AliPHOS::SetTreeAddress()
 //____________________________________________________________________________
 void AliPHOS::Reconstruct() const 
 { 
-  AliPHOSReconstructioner * rec = new AliPHOSReconstructioner((fLoader->GetRunLoader()->GetFileName()).Data()) ; 
-  rec->SetEventRange(0, -1) ; // do all the events  
-  rec->ExecuteTask() ; 
+  // method called by AliReconstruction; 
+  // Only the clusterization is performed,; the rest of the reconstruction is done in FillESD because the track
+  // segment maker needs access to the AliESD object to retrieve the tracks reconstructed by 
+  // the global tracking.
+ 
+  AliRunLoader * runLoader = AliRunLoader::GetRunLoader() ; 
+  
+  TString headerFile(runLoader->GetFileName()) ; 
+  TString branchName(runLoader->GetEventFolder()->GetName()) ;  
+  
+  AliPHOSClusterizerv1 clu(headerFile, branchName);
+  clu.SetEventRange(0, -1) ; // do all the events
+  if ( GetDebug() ) 
+    clu.ExecuteTask("deb all") ; 
+  else 
+    clu.ExecuteTask("") ;  
 }
 
 //____________________________________________________________________________

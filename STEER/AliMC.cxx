@@ -173,7 +173,7 @@ void  AliMC::InitGeometry()
 }
 
 //_______________________________________________________________________
-void  AliMC::GeneratePrimaries()
+void  AliMC::GeneratePrimaries() 
 { 
   //
   // Generate primary particles and fill them in the stack.
@@ -585,8 +585,6 @@ void AliMC::Init()
 
    //=================Create Materials and geometry
    gMC->Init();
-   gMC->DefineParticles();  //Create standard MC particles
-
    //Read the cuts for all materials
    ReadTransPar();
    //Build the special IMEDIA table
@@ -790,7 +788,7 @@ void AliMC::SetTransPar(const char *filename)
 }
 
 //_______________________________________________________________________
-void AliMC::Browse(TBrowser *b)
+void AliMC::Browse(TBrowser *b) const
 {
   //
   // Called when the item "Run" is clicked on the left pane
@@ -904,7 +902,7 @@ TObjArray* AliMC::Particles() const {
 //_______________________________________________________________________
 void AliMC::PushTrack(Int_t done, Int_t parent, Int_t pdg, Float_t *pmom,
                       Float_t *vpos, Float_t *polar, Float_t tof,
-                      TMCProcess mech, Int_t &ntr, Float_t weight, Int_t is)
+                      TMCProcess mech, Int_t &ntr, Float_t weight, Int_t is) const
 { 
 // Delegate to stack
 //
@@ -920,7 +918,7 @@ void AliMC::PushTrack(Int_t done, Int_t parent, Int_t pdg,
   	              Double_t px, Double_t py, Double_t pz, Double_t e,
   		      Double_t vx, Double_t vy, Double_t vz, Double_t tof,
 		      Double_t polx, Double_t poly, Double_t polz,
-		      TMCProcess mech, Int_t &ntr, Float_t weight, Int_t is)
+		      TMCProcess mech, Int_t &ntr, Float_t weight, Int_t is) const
 { 
   // Delegate to stack
   //
@@ -932,7 +930,7 @@ void AliMC::PushTrack(Int_t done, Int_t parent, Int_t pdg,
 }
 
 //_______________________________________________________________________
-void AliMC::SetHighWaterMark(Int_t nt)
+void AliMC::SetHighWaterMark(Int_t nt) const
 {
     //
     // Set high water mark for last track in event
@@ -943,7 +941,7 @@ void AliMC::SetHighWaterMark(Int_t nt)
 }
 
 //_______________________________________________________________________
-void AliMC::KeepTrack(Int_t track)
+void AliMC::KeepTrack(Int_t track) const
 { 
   //
   // Delegate to stack
@@ -955,7 +953,7 @@ void AliMC::KeepTrack(Int_t track)
 }
  
 //_______________________________________________________________________
-void AliMC::FlagTrack(Int_t track)
+void AliMC::FlagTrack(Int_t track) const
 {
   // Delegate to stack
   //
@@ -966,7 +964,7 @@ void AliMC::FlagTrack(Int_t track)
 }
 
 //_______________________________________________________________________
-void AliMC::SetCurrentTrack(Int_t track)
+void AliMC::SetCurrentTrack(Int_t track) const
 { 
   //
   // Set current track number

@@ -31,8 +31,16 @@
 // --- AliRoot header files ---
 #include "AliPHOSRecParticle.h"
 #include "AliPHOSGetter.h" 
+#include "AliPHOSGeometry.h" 
 
-ClassImp(AliPHOSRecParticle)
+//____________________________________________________________________________
+  AliPHOSRecParticle::AliPHOSRecParticle(): fPHOSTrackSegment(0)  ,  fDebug( kFALSE )
+{
+  // ctor
+  const Int_t nSPECIES = AliESDtrack::kSPECIESN;
+  for(Int_t i = 0; i<nSPECIES ; i++)
+    fPID[i]=0.;
+}
 
 
 //____________________________________________________________________________
@@ -65,7 +73,9 @@ ClassImp(AliPHOSRecParticle)
   fPolarTheta  = rp.fPolarTheta;
   fPolarPhi    = rp.fPolarPhi;
   fParticlePDG = rp.fParticlePDG; 
-  
+  const Int_t nSPECIES = AliESDtrack::kSPECIESN;
+  for(Int_t i = 0; i<nSPECIES ; i++)
+    fPID[i]=rp.fPID[i];
 }
 
 //____________________________________________________________________________
@@ -86,9 +96,53 @@ const Int_t AliPHOSRecParticle::GetNPrimariesToRecParticles() const
 }
 
 //____________________________________________________________________________
+const TParticle * AliPHOSRecParticle::GetPrimary() const  
+{
+  // Get the primary particle at the origine of the RecParticle and 
+  // which has deposited the largest energy in SDigits
+  AliPHOSGetter * gime = AliPHOSGetter::Instance() ; 
+  if (!gime) 
+    Error("GetPrimary", "Getter not yet instantiated") ; 
+  gime->Event(gime->EventNumber(), "SRTPX") ; 
+  if(GetNPrimaries() == 0)
+    return 0 ;
+  if(GetNPrimaries() == 1)
+    return GetPrimary(0) ;
+  Int_t AbsId = 0;
+  Int_t module ;
+  const AliPHOSGeometry * geom = gime->PHOSGeometry() ;
+   Double_t x,z ;
+  geom->ImpactOnEmc(static_cast<double>(Theta()),static_cast<double>(Phi()), module,z,x);
+  Int_t amp = 0 ;
+  Int_t iPrim=-1 ;
+  if(module != 0){
+    geom->RelPosToAbsId(module,x,z,AbsId) ;
+   TClonesArray * sdigits = gime->SDigits() ;
+   AliPHOSDigit * sdig ;
+    
+   for(Int_t i = 0 ; i < sdigits->GetEntriesFast() ; i++){
+     sdig = static_cast<AliPHOSDigit *>(sdigits->At(i)) ;
+     if((sdig->GetId() == AbsId)){
+       if((sdig->GetAmp() > amp) && (sdig->GetNprimary())){
+	 amp = sdig->GetAmp() ;
+	 iPrim = sdig->GetPrimary(1) ;
+       } 
+       // do not scan rest of list
+       if(sdig->GetId() > AbsId)
+	 continue ; 
+     }
+   }
+  }
+  if(iPrim >= 0)
+    return gime->Primary(iPrim) ;
+  else
+    return 0 ;
+} 
+  
+//____________________________________________________________________________
 const TParticle * AliPHOSRecParticle::GetPrimary(Int_t index) const  
 {
-  // Get the list of primary particles at the origine of the RecParticle
+  // Get one of the primary particles at the origine of the RecParticle
   if ( index > GetNPrimariesToRecParticles() ) { 
     if (fDebug) 
       Warning("GetPrimary", "AliPHOSRecParticle::GetPrimary -> %d is larger that the number of primaries %d", 
@@ -104,4 +158,51 @@ const TParticle * AliPHOSRecParticle::GetPrimary(Int_t index) const
     return gime->Primary(primaryindex) ;
    } 
   //  return 0 ; 
+}
+
+//____________________________________________________________________________
+const Double_t * AliPHOSRecParticle::GetPID()
+{
+  // Get the probability densities that this reconstructed particle
+  // has a type of i:
+  // i       particle types
+  // ----------------------
+  // 0       electron
+  // 1       muon
+  // 2       pi+-
+  // 3       K+-
+  // 4       p/pbar
+  // 5       photon
+  // 6       pi0 at high pt
+  // 7       neutron
+  // 8       K0L
+
+ 
+  if (IsElectron()     ) fPID[0] = 1.0;
+  if (IsChargedHadron()) {
+    fPID[1] = 0.25;
+    fPID[2] = 0.25;
+    fPID[3] = 0.25;
+    fPID[4] = 0.25;
+  }
+  if (IsFastChargedHadron()) {
+    fPID[1] = 0.33;
+    fPID[2] = 0.33;
+    fPID[3] = 0.33;
+    fPID[4] = 0.00;
+  }
+  if (IsSlowChargedHadron()) {
+    fPID[1] = 0.00;
+    fPID[2] = 0.00;
+    fPID[3] = 0.00;
+    fPID[4] = 1.00;
+  }
+
+  if (IsPhoton() || IsHardPhoton()) fPID[5] = 1.0;
+  if (IsHardPi0())                  fPID[6] = 1.0;
+  if (IsFastNeutralHadron())        fPID[7] = 1.0;
+  if (IsSlowNeutralHadron())        fPID[8] = 1.0;
+
+  if (IsEleCon()) fPID[9] = 1.0;
+  return fPID;
 }

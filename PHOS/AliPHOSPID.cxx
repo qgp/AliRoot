@@ -33,6 +33,7 @@
 // --- AliRoot header files ---
 #include "AliConfig.h"
 #include "AliPHOSPID.h"
+#include "AliPHOSGetter.h"
 
 ClassImp(AliPHOSPID)
 
@@ -47,8 +48,9 @@ ClassImp(AliPHOSPID)
 
 
 //____________________________________________________________________________
-AliPHOSPID::AliPHOSPID(const TString alirunFileName, const TString eventFolderName)
-:TTask("PHOS"+AliConfig::fgkPIDTaskName, alirunFileName), fEventFolderName(eventFolderName)
+AliPHOSPID::AliPHOSPID(const TString alirunFileName, const TString eventFolderName):
+  TTask("PHOS"+AliConfig::Instance()->GetPIDTaskName(), alirunFileName), 
+  fEventFolderName(eventFolderName)
 {
   // ctor
   fFirstEvent = 0 ; 
@@ -59,5 +61,7 @@ AliPHOSPID::AliPHOSPID(const TString alirunFileName, const TString eventFolderNa
 AliPHOSPID::~AliPHOSPID()
 {
   // dtor
+ //Remove this from the parental task before destroying
+  AliPHOSGetter::Instance()->PhosLoader()->CleanPIDTask();
 }
 

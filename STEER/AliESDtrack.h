@@ -3,15 +3,18 @@
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
 
+/* $Id$ */
+
 //-------------------------------------------------------------------------
 //                          Class AliESDtrack
 //   This is the class to deal with during the physical analysis of data
 //      
 //         Origin: Iouri Belikov, CERN, Jouri.Belikov@cern.ch 
 //-------------------------------------------------------------------------
-#include "TObject.h"
-#include <TBits.h>
 
+#include <TBits.h>
+#include <TObject.h>
+class TString ; 
 class AliKalmanTrack;
 
 class AliESDtrack : public TObject {
@@ -33,11 +36,11 @@ public:
   void GetExternalCovariance(Double_t cov[15]) const;
   Double_t GetIntegratedLength() const {return fTrackLength;}
   void GetIntegratedTimes(Double_t *times) const;
-  Float_t GetMass() const;
+  Double_t GetMass() const;
   Double_t GetP() const;
   void GetPxPyPz(Double_t *p) const;
   void GetXYZ(Double_t *r) const;
-  Int_t GetSign() const {return (fRp[4]<0) ? 1 : -1;} 
+  Int_t GetSign() const {return (fRp[4]>0) ? 1 : -1;} 
 
   void SetConstrainedTrackParams(AliKalmanTrack *t, Double_t chi2);
 
@@ -56,8 +59,8 @@ public:
   Double_t GetInnerAlpha() const {return fIalpha;}
   
   
-  void GetOuterPxPyPz(Double_t *p) const;
-  void GetOuterXYZ(Double_t *r) const;
+  void GetOuterPxPyPz(Double_t *p, TString det) const;
+  void GetOuterXYZ(Double_t *r, TString det) const;
 
   void SetITSpid(const Double_t *p);
   void SetITSChi2MIP(const Float_t *chi2mip);
@@ -75,7 +78,7 @@ public:
   Float_t GetTPCchi2() const {return fTPCchi2;}
   Int_t GetTPCclusters(Int_t *idx) const;
   Int_t GetTPCLabel() const {return fTPCLabel;}
-  const TBits& GetTPCClusterMap(){return fTPCClusterMap;}
+  const TBits& GetTPCClusterMap() const {return fTPCClusterMap;}
   
   void SetTRDpid(const Double_t *p);
   void GetTRDpid(Double_t *p) const;
@@ -94,18 +97,59 @@ public:
   void    GetTOFpid(Double_t *p) const;
   UInt_t  GetTOFcluster() const {return fTOFindex;}
   void  SetTOFcluster(UInt_t index) {fTOFindex=index;}
-  Bool_t IsOn(Int_t mask){ return (fFlags&mask)>0;}
+  
+  void    SetRICHsignal(Double_t beta) {fRICHsignal=beta;}
+  Float_t GetRICHsignal() const {return fRICHsignal;}
+  void    SetRICHpid(const Double_t *p);
+  void    GetRICHpid(Double_t *p) const;
+  
+  void SetPHOSposition(const Double_t *pos)  {
+    fPHOSpos[0] = pos[0]; fPHOSpos[1]=pos[1]; fPHOSpos[2]=pos[2];
+  }
+  void SetPHOSsignal(Double_t ene) {fPHOSsignal = ene; }
+  void SetPHOStof(Double_t tof) {fPHOStof = tof; }
+  void SetPHOSpid(const Double_t *p);
+  void GetPHOSposition(Double_t *pos) const {
+    pos[0]=fPHOSpos[0]; pos[1]=fPHOSpos[1]; pos[2]=fPHOSpos[2];
+  }
+  Float_t GetPHOSsignal() const {return fPHOSsignal;}
+  Float_t GetPHOStof() const {return fPHOStof;}
+  void GetPHOSpid(Double_t *p) const;  
+
+  void SetEMCALposition(const Double_t *pos)  {
+    fEMCALpos[0] = pos[0]; fEMCALpos[1]=pos[1]; fEMCALpos[2]=pos[2];
+  }
+  void SetEMCALsignal(Double_t ene) {fEMCALsignal = ene; }
+  void SetEMCALpid(const Double_t *p);
+  void GetEMCALposition(Double_t *pos) const {
+    pos[0]=fEMCALpos[0]; pos[1]=fEMCALpos[1]; pos[2]=fEMCALpos[2];
+  }
+  Float_t GetEMCALsignal() const {return fEMCALsignal;}
+  void GetEMCALpid(Double_t *p) const;  
+
+  Bool_t IsOn(Int_t mask) const {return (fFlags&mask)>0;}
+  Bool_t IsRICH()  const {return fFlags&kRICHpid;}
+  Bool_t IsPHOS()  const {return fFlags&kPHOSpid;}
+  Bool_t IsEMCAL() const {return fFlags&kEMCALpid;}
+
+  virtual void Print(Option_t * opt) const ; 
+
   enum {
     kITSin=0x0001,kITSout=0x0002,kITSrefit=0x0004,kITSpid=0x0008,
     kTPCin=0x0010,kTPCout=0x0020,kTPCrefit=0x0040,kTPCpid=0x0080,
     kTRDin=0x0100,kTRDout=0x0200,kTRDrefit=0x0400,kTRDpid=0x0800,
     kTOFin=0x1000,kTOFout=0x2000,kTOFrefit=0x4000,kTOFpid=0x8000,
-    kTRDStop=0x10000,
+    kPHOSpid=0x10000, kRICHpid=0x20000, kEMCALpid=0x40000, 
+    kTRDStop=0x20000000,
     kESDpid=0x40000000,
     kTIME=0x80000000
   }; 
-  enum {kSPECIES=5}; // Number of particle species recognized by the PID
-
+  enum {
+    kSPECIES=5, // Number of particle species recognized by the PID
+    kSPECIESN=10, //  Number of charged+neutral particle species recognized by the PHOS/EMCAL PID
+    kElectron=0, kMuon=1, kPion=2, kKaon=3, kProton=4, kPhoton=5, 
+    kPi0=6, kNeutron=7, kKaon0=8, kEleCon=9 // PHOS/EMCAL definition
+  };
 protected:
   ULong_t   fFlags;        // Reconstruction status flags 
   Int_t     fLabel;        // Track label
@@ -123,14 +167,29 @@ protected:
   Double_t fRc[15];  // external cov. matrix of the track parameters
 
 //Track parameters constrained to the primary vertex
-  Double_t fCalpha,fCx,fCp[5],fCc[15];
+  Double_t fCalpha;   // Track rotation angle
+  Double_t fCx;       // x-coordinate of the track reference plane
+  Double_t fCp[5];    // external track parameters
+  Double_t fCc[15];   // external cov. matrix of the track parameters
   Double_t fCchi2; //chi2 at the primary vertex
 
 //Track parameters at the inner wall of the TPC
-  Double_t fIalpha,fIx,fIp[5],fIc[15];
+  Double_t fIalpha;   // Track rotation angle
+  Double_t fIx;       // x-coordinate of the track reference plane
+  Double_t fIp[5];    // external track parameters
+  Double_t fIc[15];   // external cov. matrix of the track parameters
 
 //Track parameters at the radius of the PHOS
-  Double_t fOalpha,fOx,fOp[5],fOc[15];
+  Double_t fOalpha;   // Track rotation angle
+  Double_t fOx;       // x-coordinate of the track reference plane
+  Double_t fOp[5];    // external track parameters
+  Double_t fOc[15];   // external cov. matrix of the track parameters
+
+//Track parameters at the radius of the EMCAL
+  Double_t fXalpha;   // Track rotation angle
+  Double_t fXx;       // x-coordinate of the track reference plane
+  Double_t fXp[5];    // external track parameters
+  Double_t fXc[15];   // external cov. matrix of the track parameters
 
   // ITS related track information
   Float_t fITSchi2;        // chi2 in the ITS
@@ -149,6 +208,7 @@ protected:
   Float_t fTPCsignal;      // detector's PID signal
   Float_t fTPCr[kSPECIES]; // "detector response probabilities" (for the PID)
   Int_t   fTPCLabel;       // label according TPC
+
   // TRD related track information
   Float_t fTRDchi2;        // chi2 in the TRD
   Int_t   fTRDncls;        // number of clusters assigned in the TRD
@@ -163,9 +223,22 @@ protected:
   Float_t fTOFsignal;      // detector's PID signal
   Float_t fTOFr[kSPECIES]; // "detector response probabilities" (for the PID)
 
-  // HMPID related track information
+  // PHOS related track information 
+  Float_t fPHOSpos[3]; //position localised by PHOS in global coordinate system
+  Float_t fPHOSsignal; // energy measured by PHOS
+  Float_t fPHOStof;    // ToF  measured by PHOS
+  Float_t fPHOSr[kSPECIESN]; // PID information from PHOS
 
-  ClassDef(AliESDtrack,2)  //ESDtrack 
+  // EMCAL related track information 
+  Float_t fEMCALpos[3]; //position localised by EMCAL in global coordinate system
+  Float_t fEMCALsignal; // energy measured by EMCAL
+  Float_t fEMCALr[kSPECIESN]; // PID information from EMCAL
+
+  // HMPID related track information
+  Float_t fRICHsignal;     // detector's PID signal (beta for RICH)
+  Float_t fRICHr[kSPECIES];// "detector response probabilities" (for the PID)
+  	
+  ClassDef(AliESDtrack,6)  //ESDtrack 
 };
 
 #endif 

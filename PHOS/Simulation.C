@@ -50,33 +50,9 @@ void simu(Int_t nevents=1, TString opt="GSD", TString name="all")
     sim.SetMakeDigits(name.Data()) ;    
   //Merging
   if ( opt.Contains("M") )
-    sim.MergeWith("./bgrd/galice.root", 1) ;  
-  // to implement 
-  sim.Run(nevents) ;  
+    sim.MergeWith("bgrd/galice.root") ;  
+  //Region of Interest
+  sim.SetRegionOfInterest(kFALSE) ; 
 
-  if ( !opt.Contains("M") ) {
-    // Checking result
-    if ( name.Contains("PHOS") ) {
-      cout << ">>>>>>>>>>>> PHOS " << endl ; 
-      AliPHOSGetter * gime = AliPHOSGetter::Instance("galice.root") ;
-      Int_t event ; 
-      for (event = 0; event < gime->MaxEvent(); event++) {
-	cout << "event # " << event << endl ; 
-	gime->Event(event, "SD") ; 
-	cout << "  SDigits # " << gime->SDigits()->GetEntries() << endl ; 
-	cout << "   Digits # " << gime->Digits()->GetEntries() << endl ; 
-      }
-    }
-    if ( name.Contains("EMCAL") ) {
-      cout << ">>>>>>>>>>>> EMCAL " << endl ; 
-      AliEMCALGetter * gime = AliEMCALGetter::Instance("galice.root"); 
-      Int_t event ; 
-      for (event = 0; event < gime->MaxEvent(); event++) {
-	cout << "event # " << event << endl ; 
-	gime->Event(event, "SD") ; 
-	cout << "  SDigits # " << gime->SDigits()->GetEntries() << endl ; 
-	cout << "   Digits # " << gime->Digits()->GetEntries() << endl ; 
-      }
-    }
-  }
+  sim.Run(nevents) ;    
 }

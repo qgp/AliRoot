@@ -18,7 +18,6 @@
 #include  "AliESDVertex.h"
 #include  "AliESDtrack.h"
 #include  "AliESDMuonTrack.h"
-#include  "AliESDCaloTrack.h"
 #include  "AliESDv0.h"
 #include  "AliESDcascade.h"
 
@@ -27,7 +26,6 @@ public:
   AliESD();
   virtual ~AliESD() {
     fTracks.Delete();
-    fCaloTracks.Delete();
     fMuonTracks.Delete();
     fV0s.Delete();
     fCascades.Delete();
@@ -42,18 +40,12 @@ public:
   AliESDtrack *GetTrack(Int_t i) const {
     return (AliESDtrack *)fTracks.UncheckedAt(i);
   }
-  AliESDCaloTrack *GetCaloTrack(Int_t i) const {
-    return (AliESDCaloTrack *)fCaloTracks.UncheckedAt(i);
-  }
   AliESDMuonTrack *GetMuonTrack(Int_t i) const {
     return (AliESDMuonTrack *)fMuonTracks.UncheckedAt(i);
   }
 
   void AddTrack(const AliESDtrack *t) {
     new(fTracks[fTracks.GetEntriesFast()]) AliESDtrack(*t);
-  }
-  void AddCaloTrack(const AliESDCaloTrack *t) {
-    new(fCaloTracks[fCaloTracks.GetEntriesFast()]) AliESDCaloTrack(*t);
   }
   void AddMuonTrack(const AliESDMuonTrack *t) {
     new(fMuonTracks[fMuonTracks.GetEntriesFast()]) AliESDMuonTrack(*t);
@@ -83,10 +75,15 @@ public:
   Long_t GetTrigger() const {return fTrigger;}
   
   Int_t GetNumberOfTracks()     const {return fTracks.GetEntriesFast();}
-  Int_t GetNumberOfCaloTracks() const {return fCaloTracks.GetEntriesFast();}
   Int_t GetNumberOfMuonTracks() const {return fMuonTracks.GetEntriesFast();}
   Int_t GetNumberOfV0s()      const {return fV0s.GetEntriesFast();}
   Int_t GetNumberOfCascades() const {return fCascades.GetEntriesFast();}
+  Int_t GetNumberOfPHOSParticles() const {return fPHOSParticles;}
+  void  SetNumberOfPHOSParticles(Int_t part) { fPHOSParticles = part ; }
+  void  SetFirstPHOSParticle(Int_t index) { fFirstPHOSParticle = index ; } 
+  Int_t GetNumberOfEMCALParticles() const {return fEMCALParticles;}
+  void  SetNumberOfEMCALParticles(Int_t part) { fEMCALParticles = part ; }
+  void  SetFirstEMCALParticle(Int_t index) { fFirstEMCALParticle = index ; } 
 
   void  Print(Option_t *option="") const;
    
@@ -102,12 +99,15 @@ protected:
   AliESDVertex  fPrimaryVertex;  // Primary vertex
 
   TClonesArray  fTracks;         // ESD tracks
-  TClonesArray  fCaloTracks;     // Calorimeters' ESD tracks
   TClonesArray  fMuonTracks;     // MUON ESD tracks
   TClonesArray  fV0s;            // V0 vertices
   TClonesArray  fCascades;       // Cascade vertices
+  Int_t         fPHOSParticles;  // Number of PHOS particles (stored as fTracks)
+  Int_t         fEMCALParticles; // Number of EMCAL particles (stored as fTracks)
+  Int_t         fFirstPHOSParticle; // First PHOS particle in the fTracks list 
+  Int_t         fFirstEMCALParticle;// First EMCAL particle in the fTracks list 
   
-  ClassDef(AliESD,3)  //ESD class 
+  ClassDef(AliESD,4)  //ESD class 
                       //ver. 2: Magnetic Field Added; skowron
 };
 
