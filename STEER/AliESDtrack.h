@@ -20,6 +20,7 @@ class AliESDtrack : public TObject {
 public:
   AliESDtrack();
   virtual ~AliESDtrack() {}
+  void MakeMiniESDtrack();
   void SetStatus(ULong_t flags) {fFlags|=flags;}
   void ResetStatus(ULong_t flags) {fFlags&=~flags;}
   Bool_t UpdateTrackParams(AliKalmanTrack *t, ULong_t flags);

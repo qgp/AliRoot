@@ -91,7 +91,97 @@ fRICHsignal(-1)
   fITSLabel = 0;
   
 }
+//_______________________________________________________________________
+void AliESDtrack::MakeMiniESDtrack() {
+  // Reseting all the data members except
+  // fFlags: Reconstruction status flags 
+  // fLabel: Track label
+  // fR[kSPECIES]: combined "detector response probability"
+  // Running track parameters
+  // fRalpha: track rotation angle
+  // fRx: X-coordinate of the track reference plane 
+  // fRp[5]: external track parameters  
+  // fRc[15]: external cov. matrix of the track parameters
 
+  fTrackLength = 0;
+  for (Int_t i=0; i<kSPECIES; i++) fTrackTime[i] = 0;
+  fStopVertex = 0;
+
+
+  // Reset track parameters constrained to the primary vertex
+  fCalpha = 0;
+  fCx = 0;
+  for (Int_t i=0; i<5; i++) fCp[i] = 0;
+  for (Int_t i=0; i<15; i++) fCc[i] = 0;
+  fCchi2 = 0;
+
+  // Reset track parameters at the inner wall of the TPC
+  fIalpha = 0;
+  fIx = 0;
+  for (Int_t i=0; i<5; i++) fIp[i] = 0;
+  for (Int_t i=0; i<15; i++) fIc[i] = 0;
+
+  // Reset track parameters at the radius of the PHOS
+  fOalpha = 0;
+  fOx = 0;
+  for (Int_t i=0; i<5; i++) fOp[i] = 0;
+  for (Int_t i=0; i<15; i++) fOc[i] = 0;
+
+  //Reset rrack parameters at the radius of the EMCAL
+  fXalpha = 0;
+  fXx = 0;
+  for (Int_t i=0; i<5; i++) fXp[i] = 0;
+  for (Int_t i=0; i<15; i++) fXc[i] = 0;
+
+  // ITS related track information
+  fITSchi2 = 0;
+  for (Int_t i=0; i<6; i++) fITSchi2MIP[i] = 0;
+  fITSncls = 0;
+  for (Int_t i=0; i<6; i++) fITSindex[i] = 0;
+  fITSsignal = 0;
+  for (Int_t i=0; i<kSPECIES ; i++) fITSr[i];
+  fITSLabel = 0;
+  fITSFakeRatio = 0;
+
+  // TPC related track information
+  fTPCchi2 = 0;
+  fTPCncls = 0;
+  for (Int_t i=0; i<180; i++) fTPCindex[i] = 0;
+  fTPCClusterMap = 0;
+  fTPCsignal = 0;
+  for (Int_t i=0; i<kSPECIES; i++) fTPCr[i] = 0;
+  fTPCLabel = 0;
+
+  // TRD related track information
+  fTRDchi2 = 0;
+  fTRDncls = 0;
+  for (Int_t i=0; i<90; i++) fTRDindex[i] = 0;
+  fTRDsignal = 0;
+  for (Int_t i=0; i<kSPECIES; i++) fTRDr[i] = 0;
+  fTRDLabel = 0;
+
+  // TOF related track information
+  fTOFchi2 = 0;
+  fTOFindex = 0;
+  fTOFsignal = 0;
+  for (Int_t i=0; i<kSPECIES; i++) fTOFr[i] = 0;
+
+  // PHOS related track information 
+  for (Int_t i=0; i<3; i++) fPHOSpos[i] = 0;
+  fPHOSsignal = 0;
+  fPHOStof = 0;
+  for (Int_t i=0; i<kSPECIESN; i++) fPHOSr[i] = 0;
+
+  // EMCAL related track information 
+  for (Int_t i=0; i<3; i++) fEMCALpos[i] = 0;
+  fEMCALsignal = 0;
+  for (Int_t i=0; i<kSPECIESN; i++) fEMCALr[i] = 0;
+
+  // HMPID related track information
+  fRICHsignal = 0;
+  for (Int_t i=0; i<kSPECIES; i++) fRICHr[i] = 0;
+
+}
 //_______________________________________________________________________
 Double_t AliESDtrack::GetMass() const {
   // Returns the mass of the most probable particle type
