@@ -144,9 +144,9 @@ protected:
   TList        *fNodes;       //List of geometry nodes
   Int_t         fDebug;       //Debug flag
   Bool_t        fEnable;      //StepManager enabling flag
-  TClonesArray *fTrackReferences;     //!list of track references - for one primary track only -MI
+  TClonesArray *fTrackReferences;     //list of track references - for one primary track only -MI
   Int_t         fMaxIterTrackRef;     //!for track refernce iterator routines
   Int_t         fCurrentIterTrackRef; //!for track refernce iterator routines
-  ClassDef(AliModule,3)  //Base class for ALICE Modules
+  ClassDef(AliModule,4)  //Base class for ALICE Modules
 };
 #endif
