@@ -34,8 +34,9 @@ AliDetConstruction::AliDetConstruction()
   fDetSwitchVector.Add(new AliDetSwitch("FRAME",  3, 2, kStructure));
   fDetSwitchVector.Add(new AliDetSwitch("HALL",   1, 0, kStructure));
   fDetSwitchVector.Add(new AliDetSwitch("PIPE",   5, 0, kStructure));
-  fDetSwitchVector.Add(new AliDetSwitch("SHIL",   2, 1, kStructure));
-  fDetSwitchVector.Add(new AliDetSwitch("CASTOR", 2, 1));
+  fDetSwitchVector.Add(new AliDetSwitch("SHIL",   2, 2, kStructure));
+  fDetSwitchVector.Add(new AliDetSwitch("CRT",    1, 0));
+  fDetSwitchVector.Add(new AliDetSwitch("EMCAL",  2, 1));
   fDetSwitchVector.Add(new AliDetSwitch("FMD",    2, 1));
   fDetSwitchVector.Add(new AliDetSwitch("ITS",    7, 5));
   fDetSwitchVector.Add(new AliDetSwitch("MUON",   2, 1));
