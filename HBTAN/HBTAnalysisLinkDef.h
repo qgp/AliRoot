@@ -180,5 +180,8 @@
 
 #pragma link C++ class AliHBTAnalysisStavinskyMixing+;
 
+#pragma link C++ class AliHBTMonSplittingQosl+;
+#pragma link C++ class AliHBTMonSplittingDptDthetaDphi+;
+
 //#pragma link C++ class AliHBTGoComPair+;
 #endif
