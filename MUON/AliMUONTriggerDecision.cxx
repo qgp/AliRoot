@@ -1203,29 +1203,25 @@ void AliMUONTriggerDecision::PrintBitPatYInput(Int_t icirc){
   Int_t idCircuit=triggerCircuit->GetIdCircuit();
   Int_t nStrip=triggerCircuit->GetNstripY();
 
-  cout << "---------------------------------------------------------------" << "\n";
-  cout << "                            ";
+  printf("---------------------------------------------------------------\n");
+  printf("                            ");
   for (istrip=nStrip-1; istrip>=0; istrip--) {
-    if (istrip>9) { cout << istrip-10*Int_t(istrip/10);}
-    if (istrip<10) { cout << istrip;}
+    if (istrip>9)  printf("%i",istrip-10*Int_t(istrip/10));
+    if (istrip<10) printf("%i",istrip);
   }
-  cout << "\n YMC11                      ";
-  for (istrip=nStrip-1; istrip>=0; istrip--) {
-    cout << fYbit11[icirc][istrip]; 
-  }
-  cout << "\n YMC12                      ";
-  for (istrip=nStrip-1; istrip>=0; istrip--) {
-    cout << fYbit12[icirc][istrip]; 
-  }
-  cout << "\n YMC21                      ";
-  for (istrip=nStrip-1; istrip>=0; istrip--) {
-    cout << fYbit21[icirc][istrip]; 
-  }
-  cout << "\n YMC22                      ";
-  for (istrip=nStrip-1; istrip>=0; istrip--) {
-    cout << fYbit22[icirc][istrip]; 
-  }
-  cout << "\n";
+  printf("\n YMC11                      ");
+  for (istrip=nStrip-1; istrip>=0; istrip--) 
+    printf("%i",fYbit11[icirc][istrip]); 
+  printf("\n YMC12                      ");
+  for (istrip=nStrip-1; istrip>=0; istrip--)
+    printf("%i",fYbit12[icirc][istrip]); 
+  printf("\n YMC21                      ");
+  for (istrip=nStrip-1; istrip>=0; istrip--)
+    printf("%i",fYbit21[icirc][istrip]); 
+  printf("\n YMC22                      ");
+  for (istrip=nStrip-1; istrip>=0; istrip--)
+    printf("%i",fYbit22[icirc][istrip]); 
+  printf("\n");
 // tmp
   printf("---------------------------------------------------------------");
   printf("\n upper part of circuit %i",idCircuit);
