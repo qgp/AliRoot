@@ -15,7 +15,6 @@
 
 /*
 $Log$
-
 Revision 1.19  2002/07/19 07:31:40  kowal2
 Improvement in tracking by J. Belikov
 
