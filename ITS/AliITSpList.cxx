@@ -381,7 +381,8 @@ void AliITSpListItem::AddSignal(Int_t track,Int_t hit,Int_t module,
                  index,findex,module,fmodule);
     fTsignal += signal; // Keep track of sum signal.
 
-    for(i=0;i<fkSize;i++) if( track==fTrack[i] && hit==fHits[i] ){
+    //    for(i=0;i<fkSize;i++) if( track==fTrack[i] && hit==fHits[i] ){
+    for(i=0;i<fkSize;i++) if( track==fTrack[i]  ){
         fSignal[i] += signal;
         flg = kTRUE;
     } // end for i & if.

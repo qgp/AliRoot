@@ -443,7 +443,9 @@ Int_t GetRecCoor(TObject *ge, TClonesArray *ITSrec, Int_t mod, TH2F *h2, TH1F *h
         Float_t r=sqrt(gc[0]*gc[0]+gc[1]*gc[1]);
         cout<<"Global coor. + radius "<<gc[0]<<" "<<gc[1]<<" "<<gc[2]<<" ";
         cout<<r<<endl;
-        cout<<"Associated track "<<recp->GetLabel(0)<<endl;
+        cout<<"Associated tracks "<<recp->GetLabel(0)<<" ";
+	cout<<recp->GetLabel(1)<<" ";
+	cout<<recp->GetLabel(2)<<endl;
       }
       h2->Fill(gc[0],gc[1]);
       h1->Fill(gc[2]);

@@ -15,6 +15,9 @@
 /*
   $Id$
   $Log$
+  Revision 1.31  2003/05/19 14:44:41  masera
+  Fix to track labels associated to SDD rec-points
+
   Revision 1.30  2003/03/03 16:34:35  masera
   Corrections to comply with coding conventions
 
@@ -740,7 +743,7 @@ void AliITSClusterFinderSDD::ResolveClustersE(){
     nofClusters -= fNclusters;
     Int_t fNofMaps = fSegmentation->Npz();
     Int_t fNofAnodes = fNofMaps/2;
-    Int_t fMaxNofSamples = fSegmentation->Npx();
+//    Int_t fMaxNofSamples = fSegmentation->Npx();
     Int_t dummy=0;
     Double_t fTimeStep = fSegmentation->Dpx( dummy );
     Double_t fSddLength = fSegmentation->Dx();
@@ -764,10 +767,10 @@ void AliITSClusterFinderSDD::ResolveClustersE(){
         } // end if 
         Int_t xdim = tstop-tstart+3;
         Int_t zdim = astop-astart+3;
-        if(xdim > 50 || zdim > 30) { 
-	  Warning("ResolveClustersE","xdim: %d , zdim: %d ",xdim,zdim);
-	  continue;
-	}
+        if( xdim > 50 || zdim > 30 ) { 
+            Warning("ResolveClustersE","xdim: %d , zdim: %d ",xdim,zdim);
+            continue;
+        }
         Float_t *sp = new Float_t[ xdim*zdim+1 ];
         memset( sp, 0, sizeof(Float_t)*(xdim*zdim+1) );
         
@@ -823,22 +826,25 @@ void AliITSClusterFinderSDD::ResolveClustersE(){
             k1 = 1;
             for( i=0; i<npeak; i++ ){
                 peakAmp[i] = par[k1];
-                peakX[i] = par[k1+1];
-                peakZ[i] = par[k1+2];
-                tau[i] = par[k1+3];
-                sigma[i] = par[k1+4];
+                peakX[i]   = par[k1+1];
+                peakZ[i]   = par[k1+2];
+                tau[i]     = par[k1+3];
+                sigma[i]   = par[k1+4];
                 k1+=5;
             } // end for i
             // calculate parameter for new clusters
             for( i=0; i<npeak; i++ ){
                 AliITSRawClusterSDD clusterI( *clusterJ );
+            
                 Int_t newAnode = peakZ1[i]-1 + astart;
-                Int_t newiTime = peakX1[i]-1 + tstart;
-                Int_t shift = (Int_t)(fTimeCorr/fTimeStep + 0.5);
-                if( newiTime > shift && newiTime < (fMaxNofSamples-shift) ) 
-                    shift = 0;
-                Int_t peakpos = fMap->GetHitIndex( newAnode, newiTime+shift );
-                clusterI.SetPeakPos( peakpos );
+
+            //    Int_t newiTime = peakX1[i]-1 + tstart;
+            //    Int_t shift = (Int_t)(fTimeCorr/fTimeStep + 0.5);
+            //    if( newiTime > shift && newiTime < (fMaxNofSamples-shift) ) 
+            //        shift = 0;
+            //    Int_t peakpos = fMap->GetHitIndex( newAnode, newiTime+shift );
+            //    clusterI.SetPeakPos( peakpos );
+	    
                 clusterI.SetPeakAmpl( peakAmp1[i] );
                 Float_t newAnodef = peakZ[i] - 0.5 + astart;
                 Float_t newiTimef = peakX[i] - 1 + tstart;
@@ -851,6 +857,24 @@ void AliITSClusterFinderSDD::ResolveClustersE(){
                 //    newiTimef += (6./fDriftSpeed - newiTimef/3000.);
                 }else if( electronics == 2 )
                     newiTimef *= 0.99714;    // OLA
+                    
+                Int_t timeBin = (Int_t)(newiTimef/fTimeStep+0.5);    
+                Int_t peakpos = fMap->GetHitIndex( newAnode, timeBin );
+                if( peakpos < 0 ) { 
+                    for( Int_t ii=0; ii<3; ii++ ) {
+                        peakpos = fMap->GetHitIndex( newAnode, timeBin+ii );
+                        if( peakpos > 0 ) break;
+                        peakpos = fMap->GetHitIndex( newAnode, timeBin-ii );
+                        if( peakpos > 0 ) break;
+                    }
+                }
+                
+                if( peakpos < 0 ) { 
+             //      Warning( "ResolveClustersE", "Digit not found for cluster:\n" );
+             //      clusterI.PrintInfo(); 
+                   continue;
+                }
+                clusterI.SetPeakPos( peakpos );    
                 Float_t driftPath = fSddLength - newiTimef * fDriftSpeed;
                 Float_t sign = ( wing == 1 ) ? -1. : 1.;
                 clusterI.SetX( driftPath*sign * 0.0001 );        
@@ -860,15 +884,16 @@ void AliITSClusterFinderSDD::ResolveClustersE(){
                 clusterI.SetAsigma( sigma[i]*anodePitch );
                 clusterI.SetTsigma( tau[i]*fTimeStep );
                 clusterI.SetQ( integral[i] );
-                //    clusterI.PrintInfo();
+                
                 iTS->AddCluster( 1, &clusterI );
             } // end for i
             fClusters->RemoveAt( j );
             delete [] par;
         } else {  // something odd
-	  Warning("ResolveClustersE","--- Peak not found!!!!  minpeak=%d ,cluster peak= %f , module= %d",fMinPeak,clusterJ->PeakAmpl(),fModule); 
-	  clusterJ->PrintInfo();
-	  Warning("ResolveClustersE"," xdim= %d zdim= %d",xdim-2,zdim-2);
+            Warning( "ResolveClustersE","--- Peak not found!!!!  minpeak=%d ,cluster peak= %f , module= %d",
+                      fMinPeak, clusterJ->PeakAmpl(), fModule ); 
+            clusterJ->PrintInfo();
+            Warning( "ResolveClustersE"," xdim= %d zdim= %d", xdim-2, zdim-2 );
         }
         delete [] sp;
     } // cluster loop
@@ -1244,7 +1269,7 @@ void AliITSClusterFinderSDD::GetRecPoints(){
     const Float_t kconv = 1.0e-4; 
     const Float_t kRMSx = 38.0*kconv; // microns->cm ITS TDR Table 1.3
     const Float_t kRMSz = 28.0*kconv; // microns->cm ITS TDR Table 1.3
-    Int_t i,j;
+    Int_t i;
     Int_t ix, iz, idx=-1;
     AliITSdigitSDD *dig=0;
     Int_t ndigits=fDigits->GetEntriesFast();
@@ -1255,75 +1280,7 @@ void AliITSClusterFinderSDD::GetRecPoints(){
         if(idx>ndigits) Error("SDD: GetRecPoints","idx ndigits",idx,ndigits);
         // try peak neighbours - to be done 
         if(idx&&idx<= ndigits) dig =(AliITSdigitSDD*)fDigits->UncheckedAt(idx);
-	//// debug
-	//	cout<<"R.C. Anode = "<<clusterI->A()<<"; Time= "<<clusterI->T()<<endl;
-	fSegmentation->LocalToDet(clusterI->X(),clusterI->Z(),ix,iz);
-	//	cout<<"From R.C. coordinates- Anode: "<<iz<<" and time: "<<ix<<endl;
-	// end debug
-	Int_t trks[10];
-	Int_t notr=-1;
-	Int_t deger = 0;
-	if(!dig) {
-	  Warning("GetRecPoints","Cannot assign the track number\n");
-	}
-	else {
-	  fSegmentation->LocalToDet(clusterI->X(),clusterI->Z(),ix,iz);
-	  Int_t signal[30];
-	  for(Int_t kk=0;kk<9;kk++)trks[kk]=-2;
-	  AliITSdigitSDD * pdig = 0;
-	  for(Int_t itime=ix-1;itime<=ix+1;itime++){
-	    if(itime<0 || itime>=fSegmentation->Npx())continue;
-	    for(Int_t ianod=iz-1;ianod<=iz+1;ianod++){
-	      if(ianod<0 || ianod>=fSegmentation->Npz())continue;
-	      if(iz==(fSegmentation->Npz())/2 && ianod<iz)continue;
-	      if(iz==(fSegmentation->Npz())/2-1 && ianod>iz)continue;
-	      pdig = (AliITSdigitSDD*)fMap->GetHit(ianod,itime);
-	      if(pdig){
-		for(Int_t kk=0;kk<3;kk++){
-		  if(kk == 0 || (kk>0 && pdig->fTracks[kk]>=0)){
-		    notr++;
-		    trks[notr]=pdig->fTracks[kk];
-		    signal[notr]=pdig->fSignal;
-		  }
-		}
-	      }
-	    }
-	  } // for(itime....
-	  if((dig->fCoord1<(iz-1) || dig->fCoord1>(iz+1)) 
-	     && (dig->fCoord2<(ix-1) || dig->fCoord2>(ix+1)) 
-	     && dig->fTracks[0]>=-2){
-	    notr++;
-	    trks[notr]=dig->fTracks[0];
-	    signal[notr]=dig->fSignal;
-	  }
-	  for(Int_t ii=0; ii<notr;ii++){
-	    for(Int_t jj=ii+1; jj<=notr; jj++){
-	      if(trks[ii] == trks[jj]){
-		signal[ii]+=signal[jj];
-		signal[jj]=-100;
-		trks[jj]=-jj-100;
-		deger++;
-	      }
-	    }
-	  }
-	  Int_t ordtmp;
-	  for(Int_t ii=0; ii<notr;ii++){
-	    Int_t maxi = ii;
-	    for(Int_t jj=ii+1; jj<=notr; jj++){
-	      if(signal[jj]>signal[maxi])maxi=jj;
-	    }
-	    ordtmp = trks[ii];
-	    trks[ii]=trks[maxi];
-	    trks[maxi]=ordtmp;
-	    ordtmp = signal[ii];
-	    signal[ii]=signal[maxi];
-	    signal[maxi]=ordtmp;
-	  }
-	}
-	notr-=deger;
-	notr++;
-	/*
-	  if(!dig) {
+        if(!dig) {
             // try cog
             fSegmentation->GetPadIxz(clusterI->X(),clusterI->Z(),ix,iz);
             dig = (AliITSdigitSDD*)fMap->GetHit(iz-1,ix-1);
@@ -1332,43 +1289,17 @@ void AliITSClusterFinderSDD::GetRecPoints(){
             if (!dig) dig = (AliITSdigitSDD*)fMap->GetHit(iz-1,ix+1); 
             if (!dig) printf("SDD: cannot assign the track number!\n");
         } //  end if !dig
-	*/
         AliITSRecPoint rnew;
         rnew.SetX(clusterI->X());
         rnew.SetZ(clusterI->Z());
         rnew.SetQ(clusterI->Q());   // in KeV - should be ADC
-	//	cout<<"Cluster # "<<i<< " - X,Z,Q= "<<clusterI->X()<<" "<<clusterI->Z()<<" "<<clusterI->Q()<<"; Digit n= "<<idx<<endl;
         rnew.SetdEdX(kconvGeV*clusterI->Q());
         rnew.SetSigmaX2(kRMSx*kRMSx);
         rnew.SetSigmaZ2(kRMSz*kRMSz);
-	if(notr>3)notr=3;
-	if(notr>=0)for(j=0;j<notr;j++)rnew.fTracks[j]=trks[j];
-	/*     
-        if(dig){
-	  for(j=0;j<dig->GetNTracks();j++){
-	    if(j>0 && j%4==0)cout<<endl;
-	  }
-	  cout<<endl;
-	    rnew.fTracks[0] = dig->fTracks[0];
-	    cout<<"  "<<dig->fTracks[0]<<" assigned to rp 0 "<<rnew.fTracks[0]<<endl;
-	    rnew.fTracks[1] = -3;
-	    rnew.fTracks[2] = -3;
-	    j=1;
-	    while(rnew.fTracks[0]==dig->fTracks[j] &&
-		  j<dig->GetNTracks()) j++;
-	    if(j<dig->GetNTracks()){
-		rnew.fTracks[1] = dig->fTracks[j];
-		cout<<"  Digit "<<j<<" "<<dig->fTracks[j]<<" assigned to rp 1 "<<rnew.fTracks[1]<<endl;
-		while((rnew.fTracks[0]==dig->fTracks[j] || 
-		       rnew.fTracks[1]==dig->fTracks[j] )&& 
-		      j<dig->GetNTracks()) j++;
-		if(j<dig->GetNTracks()) {
-		  rnew.fTracks[2] = dig->fTracks[j];
-		  cout<<"  Digit "<<j<<" "<<dig->fTracks[j]<<" assigned to rp 2 "<<rnew.fTracks[2]<<endl;
-		}
-	    } // end if
-	} // end if
-	*/
+
+        if(dig) rnew.fTracks[0]=dig->fTracks[0];
+        if(dig) rnew.fTracks[1]=dig->fTracks[1];
+        if(dig) rnew.fTracks[2]=dig->fTracks[2];
 
         iTS->AddRecPoint(rnew);
     } // I clusters
