@@ -260,7 +260,7 @@ Bool_t AliPHOSRaw2Digits::StartRootFiles(void ){
 // //     fDigitsFile = new TFile("PHOS.Digits.root","recreate") ;
 // //     fDigitsFile->SetCompressionLevel(2) ;
 // //   }
-//   return kTRUE ;
+   return kTRUE ;
 }
 //____________________________________________________________________________ 
 Bool_t AliPHOSRaw2Digits::CloseRootFiles(void ){

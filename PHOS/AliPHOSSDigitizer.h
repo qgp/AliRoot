@@ -29,15 +29,15 @@ public:
   AliPHOSSDigitizer() ;          // ctor
   AliPHOSSDigitizer(const char * alirunFileName, const char * eventFolderName = AliConfig::fgkDefaultEventFolderName) ; 
   AliPHOSSDigitizer(const AliPHOSSDigitizer & sd) ; // cpy ctor
-  virtual ~AliPHOSSDigitizer() ; // dtor
+  virtual ~AliPHOSSDigitizer() {;} // dtor
 
-  Float_t  Calibrate(Int_t amp)const {return (amp - fA)/fB ; }
-  Int_t    Digitize(Float_t Energy)const { return (Int_t ) ( fA + Energy*fB); }
+  Float_t        Calibrate(Int_t amp)const {return (amp - fA)/fB ; }
+  Int_t          Digitize(Float_t Energy)const { return (Int_t ) ( fA + Energy*fB); }
   virtual void   Exec(Option_t *option); 
   const Int_t    GetSDigitsInRun() const {return fSDigitsInRun ;}  
-  virtual void Print() const ;
-  void   SetEventFolderName(TString name) { fEventFolderName = name ; }
-  void UseHitsFrom(const char * filename) {;}      
+  virtual void   Print() const ;
+  void           SetEventFolderName(TString name) { fEventFolderName = name ; }
+
   Bool_t operator == (const AliPHOSSDigitizer & sd) const ;
   AliPHOSSDigitizer & operator = (const AliPHOSSDigitizer & sd) {return *this ;}
   
@@ -53,9 +53,10 @@ private:
   Float_t fB ;              // Slope Digitizition parameters
   Float_t fPrimThreshold ;  // To store primari if Elos > threshold
   Bool_t  fDefaultInit;     //! Says if the task was created by defaut ctor (only parameters are initialized)
-  Int_t   fSDigitsInRun ;   //! Total number of sdigits in one run
-  Bool_t  fInit ;           //! tells if initialisation wennt OK, will revent exec if not
   TString fEventFolderName; // event folder name
+  Bool_t  fInit ;           //! tells if initialisation wennt OK, will revent exec if not
+  Int_t   fSDigitsInRun ;   //! Total number of sdigits in one run
+
   ClassDef(AliPHOSSDigitizer,2)  // description 
 
 };

@@ -100,11 +100,6 @@ AliPHOSSDigitizer::AliPHOSSDigitizer(const AliPHOSSDigitizer & sd) {
   fEventFolderName = sd.fEventFolderName;
 }
 
-//____________________________________________________________________________ 
-AliPHOSSDigitizer::~AliPHOSSDigitizer()
-{
-  // dtor
-}
 
 //____________________________________________________________________________ 
 void AliPHOSSDigitizer::Init()

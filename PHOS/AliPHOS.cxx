@@ -360,15 +360,6 @@ void AliPHOS::CreateMaterials()
 }
 
 //____________________________________________________________________________
-AliPHOSGeometry * AliPHOS::GetGeometry() const 
-{  
-  // gets the pointer to the AliPHOSGeometry unique instance 
-  
-  return AliPHOSGeometry::GetInstance(GetTitle(),"") ;  
-
-}
-
-//____________________________________________________________________________
 void AliPHOS::SetTreeAddress()
 { 
 
@@ -405,9 +396,7 @@ void AliPHOS::WriteQA()
   TString phosqafn(AliConfig::Instance()->GetQAFolderName()+"/"); //get name of QAaut folder relative to top event; skowron
   phosqafn+=GetName(); //hard wired string!!! add the detector name to the pathname; skowron 
   TFolder * alarmsF = (TFolder*)topfold->FindObjectAny(phosqafn); //get the folder
-// 4 lines above substitute the one below  
-//  TFolder * alarmsF = (TFolder*)gROOT->FindObjectAny("Folders/Run/Conditions/QA/PHOS") ; 
-  
+ 
   if (alarmsF == 0x0)
    {
      Error("WriteQA","Can not find folder with qa alarms");
@@ -422,6 +411,7 @@ void AliPHOS::WriteQA()
   //fTreeQA->Fill() ; 
 }
 
+//____________________________________________________________________________
 AliLoader* AliPHOS::MakeLoader(const char* topfoldername)
 {
 //different behaviour than standard (singleton getter)

@@ -26,11 +26,15 @@
 
 // --- ROOT system ---
 
+#include "TMath.h"
+
 // --- Standard library ---
 
 // --- AliRoot header files ---
 
 #include "AliPHOSDigit.h"
+
+
 
 
 ClassImp(AliPHOSDigit)
@@ -55,6 +59,7 @@ AliPHOSDigit::AliPHOSDigit(Int_t primary, Int_t id, Int_t digEnergy, Float_t tim
   fTime        = time ;
   fId          = id ;
   fIndexInList = index ; 
+  fPrimary = new Int_t[fNMaxPrimary] ;
   if( primary != -1){
     fNprimary    = 1 ; 
     fPrimary[0]  = primary ;
@@ -75,6 +80,7 @@ AliPHOSDigit::AliPHOSDigit(const AliPHOSDigit & digit)
   
 
   fNMaxPrimary = digit.fNMaxPrimary ;  
+  fPrimary = new Int_t[fNMaxPrimary] ;
   Int_t i ;
   for ( i = 0; i < fNMaxPrimary ; i++)
     fPrimary[i]  = digit.fPrimary[i] ;
@@ -89,7 +95,7 @@ AliPHOSDigit::AliPHOSDigit(const AliPHOSDigit & digit)
 AliPHOSDigit::~AliPHOSDigit() 
 {
   // Delete array of primiries if any
-  
+  delete [] fPrimary ;
 }
 
 //____________________________________________________________________________
@@ -182,6 +188,17 @@ AliPHOSDigit& AliPHOSDigit::operator+(AliPHOSDigit const & digit)
     }
   }
   
+  return *this ;
+}
+
+//____________________________________________________________________________
+AliPHOSDigit& AliPHOSDigit::operator*(Float_t factor) 
+{
+  // Multiplies the amplitude by a factor
+  
+  Float_t tempo = static_cast<Float_t>(fAmp) ; 
+  tempo *= factor ; 
+  fAmp = static_cast<Int_t>(TMath::Ceil(tempo)) ; 
   return *this ;
 }
 
