@@ -380,7 +380,7 @@ void AliMUONDigitizerv1::Exec(Option_t* option)
 	}
 	if (nptracks < kMAXTRACKS ) {
 	  for (Int_t i = nptracks; i < kMAXTRACKS; i++) {
-	    tracks[i]  = 0;
+	    tracks[i]  = -1;
 	    charges[i] = 0;
 	  }
 	}
