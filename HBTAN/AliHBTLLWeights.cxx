@@ -309,12 +309,12 @@ Double_t AliHBTLLWeights::GetWeight(AliHBTPair* partpair)
   FSI_COOR.X1 = part1->Vx()*kcmtoOneOverGeV;
   FSI_COOR.Y1 = part1->Vy()*kcmtoOneOverGeV;
   FSI_COOR.Z1 = part1->Vz()*kcmtoOneOverGeV;
-  FSI_COOR.T1 = part1->T();
+  FSI_COOR.T1 = part1->T()*kcmtoOneOverGeV;
 
   FSI_COOR.X2 = part2->Vx()*kcmtoOneOverGeV;
   FSI_COOR.Y2 = part2->Vy()*kcmtoOneOverGeV;
   FSI_COOR.Z2 = part2->Vz()*kcmtoOneOverGeV;
-  FSI_COOR.T2 = part2->T();
+  FSI_COOR.T2 = part2->T()*kcmtoOneOverGeV;
   
   ltran12();
 
