@@ -187,20 +187,25 @@ extern "C" {
       //STACK.tx [STACK.lstack] = BEAM.tinx;
       //STACK.ty [STACK.lstack] = BEAM.tiny;
       //STACK.tz [STACK.lstack] = BEAM.tinz;
-      STACK.tx [STACK.lstack] = particle->Px()/particle->P();
-      STACK.ty [STACK.lstack] = particle->Py()/particle->P();
-      STACK.tz [STACK.lstack] = particle->Pz()/particle->P();
-      
-      /*     tz (lstack) = sqrt ( oneone - tx(lstack)**2 - ty(lstack)**2 )
-       * Polarization cosines:
+      Double_t cosx = particle->Px()/particle->P();
+      Double_t cosy = particle->Py()/particle->P();
+      Double_t cosz = sqrt(oneone - cosx*cosx - cosy*cosy);
+      STACK.tx [STACK.lstack] = cosx;
+      STACK.ty [STACK.lstack] = cosy;
+      STACK.tz [STACK.lstack] = cosz;
+
+      /* Polarization cosines:
        */
       //STACK.txpol [STACK.lstack] = -twotwo;
       //STACK.typol [STACK.lstack] = +zerzer;
       //STACK.tzpol [STACK.lstack] = +zerzer;
       if (polarisation.Mag()) {
-	STACK.txpol [STACK.lstack] = polarisation.Px()/polarisation.Mag();
-	STACK.typol [STACK.lstack] = polarisation.Py()/polarisation.Mag();
-	STACK.tzpol [STACK.lstack] = polarisation.Pz()/polarisation.Mag();
+	Double_t cospolx = polarisation.Px()/polarisation.Mag();
+	Double_t cospoly = polarisation.Py()/polarisation.Mag();
+	Double_t cospolz = sqrt(oneone - cospolx*cospolx - cospoly*cospoly);
+	STACK.tx [STACK.lstack] = cospolx;
+	STACK.ty [STACK.lstack] = cospoly;
+	STACK.tz [STACK.lstack] = cospolz;
       }
       else {
 	STACK.txpol [STACK.lstack] = -twotwo;
