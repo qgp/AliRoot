@@ -49,6 +49,11 @@ Int_t ITSFindTracksV2(const char* fileNameTPCTracks,
 		      const char* fileNameITSClusters, 
 		      const char* fileNameITSTracks, 
 		      Int_t n, Int_t first);
+Int_t ITSRefitInward(Int_t nEvents=1, Int_t firstEvent=0,
+		     const char* fileNameClusters="its.clusters.root",
+		     const char* fileNameTracks="its.tracks.root",
+		     const char* fileNameTPCTracks="tpc.tracks.root",
+		     const char* fileNameRefittedTracks="its.refitted.tracks.root");
 
 ////////////////////////////////////////////////////////////////////////
 Int_t AliITSTrackingV2(Int_t nEvents, Int_t firstEvent,
@@ -158,6 +163,14 @@ Int_t ITSFindTracksV2(const char* fileNameTPCTracks,
   for (Int_t iEvent=first;iEvent<first+nEvents;iEvent++){
     cout<<"ITSFindTracks -- event "<<iEvent<<endl;
     tracker.SetEventNumber(iEvent);
+    //Double_t xyz[]={0.,0.,0.}, ers[]={0.,0.,0.01};//main vertex with errors
+    //tracker.SetVertex(xyz,ers);
+    //Int_t flag[]={1};                                 //some default flags
+    //flag[0]= 0; tracker.SetupFirstPass(flag);         //no constraint
+    //flag[0]=-1; tracker.SetupSecondPass(flag);        //skip second pass
+    //tracker.SetLastLayerToTrackTo(2);            //track down to the layer 2
+    Int_t mask[6]={0,0,0,0,0,0};               // allow to skip all layers
+    tracker.SetLayersNotToSkip(mask);
     rc=tracker.Clusters2Tracks(in,out);
   }
 
@@ -169,3 +182,42 @@ Int_t ITSFindTracksV2(const char* fileNameTPCTracks,
   return rc;
 }
 
+////////////////////////////////////////////////////////////////////////
+Int_t ITSRefitInward(Int_t nEvents, Int_t firstEvent,
+		     const char* fileNameClusters,
+		     const char* fileNameTracks,
+		     const char* fileNameTPCTracks,
+		     const char* fileNameRefittedTracks)
+{
+  Int_t rc = 0;
+  const Char_t *name="ITSRefitInward";
+  if (gDEBUG>1) cout<<name<<" starts"<<endl;
+  if (gDEBUG>1) gBenchmark->Start(name);
+  TFile *fileClusters = TFile::Open(fileNameClusters);
+  TFile *fileTracks = TFile::Open(fileNameTracks);
+  TFile *fileTPCTracks = TFile::Open(fileNameTPCTracks);
+  TFile *fileRefittedTracks = TFile::Open(fileNameRefittedTracks, "update");
+
+  AliITSgeom *geom=(AliITSgeom*)fileClusters->Get("AliITSgeom");
+  if (!geom) { cerr<<"can't get ITS geometry !\n"; return 1;}
+
+  AliITStrackerV2 tracker(geom);
+  for (Int_t iEvent = firstEvent; iEvent < firstEvent+nEvents; iEvent++){
+    if (gDEBUG > 2) cout<<"ITSRefitInward: event "<<iEvent<<endl;
+    tracker.SetEventNumber(iEvent);
+    fileClusters->cd();
+    rc = tracker.RefitInward(fileTPCTracks, fileTracks, fileRefittedTracks);
+    if (rc) return rc;
+  }
+
+  fileClusters->Close();
+  fileTracks->Close();
+  fileTPCTracks->Close();
+  fileRefittedTracks->Close();
+  delete fileClusters;
+  delete fileTracks;
+  delete fileTPCTracks;
+  delete fileRefittedTracks;
+  if (gDEBUG>1) gBenchmark->Show(name);
+  return rc;
+}

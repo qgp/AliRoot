@@ -44,7 +44,9 @@ public:
    Int_t PropagateBack(const TFile *in, TFile *out);
    Int_t PropagateBack(AliESD *event);
    Int_t PropagateBack(const TFile *in, const TFile *in2, TFile *out);
-   Int_t RefitInward(TFile *outTracks, TFile *inTracks);
+   Int_t RefitInward(AliESD *event);
+   Int_t RefitInward(TFile *inTracks, TFile *outTracks);
+   Int_t RefitInward(TFile *inSeeds, TFile *inTracks, TFile *outTracks);
 
    virtual void  CookLabel(AliKalmanTrack *t,Float_t wrong) const; 
 
@@ -63,6 +65,7 @@ public:
      operator int() const {return fN;}
      const AliTPCcluster *operator[](Int_t i) const {return fClusters[i];}
      const AliTPCcluster *GetUnsortedCluster(Int_t i) const {
+       if ((i < 0) || (i >= fN)) return NULL;
        return fClusterArray+i;
      }
      UInt_t GetIndex(Int_t i) const {return fIndex[i];}

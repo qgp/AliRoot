@@ -555,6 +555,7 @@ Int_t AliITStrackerV2::RefitInward(AliESD *event) {
     }
 
     ResetTrackToFollow(*t);
+    fTrackToFollow.ResetClusters();
 
     //Refitting...
     if (RefitAt(3.7, &fTrackToFollow, t)) {
@@ -573,7 +574,15 @@ Int_t AliITStrackerV2::RefitInward(AliESD *event) {
   return 0;
 }
 
-Int_t AliITStrackerV2::RefitInward(const TFile *inp, TFile *out) {
+Int_t AliITStrackerV2::RefitInward(const TFile *in, TFile *out) {
+  //--------------------------------------------------------------------
+  // This functions refits ITS tracks using the 
+  // "inward propagated" TPC tracks
+  //--------------------------------------------------------------------
+  return RefitInward(const_cast<TFile*>(in), out, out);
+}
+
+Int_t AliITStrackerV2::RefitInward(TFile *inSeeds, const TFile *inp, TFile *out) {
   //--------------------------------------------------------------------
   // This functions refits ITS tracks using the 
   // "inward propagated" TPC tracks
@@ -583,8 +592,13 @@ Int_t AliITStrackerV2::RefitInward(const TFile *inp, TFile *out) {
 
   if (LoadClusters()!=0) return 1;
 
-  if (!in->IsOpen()) {
+  if (!inSeeds->IsOpen()) {
     Error("RefitInward","file with inward TPC tracks is not open !\n");
+    return 2;
+  }
+
+  if (!in->IsOpen()) {
+    Error("RefitInward","file with ITS tracks is not open !\n");
     return 2;
   }
 
@@ -605,7 +619,7 @@ Int_t AliITStrackerV2::RefitInward(const TFile *inp, TFile *out) {
   TObjArray itsTracks(15000);
   {/* Read the ITS tracks */ 
     sprintf(tname,"TreeT_ITS_%d",GetEventNumber());
-    TTree *itsTree=(TTree*)out->Get(tname);
+    TTree *itsTree=(TTree*)in->Get(tname);
     if (!itsTree) {
       Error("RefitInward","can't get a tree with ITS tracks !\n");
       return 3;
@@ -632,17 +646,10 @@ Int_t AliITStrackerV2::RefitInward(const TFile *inp, TFile *out) {
     delete itrack;
   }
 
-  out->cd();
-  
-  //Create the output tree
-  sprintf(tname,"TreeT_ITSinward_%d",GetEventNumber());
-  TTree outTree(tname,"Tree with inward refitted ITS tracks");
-  AliITStrackV2 *otrack=0;
-  outTree.Branch("tracks","AliITStrackV2",&otrack,32000,0);
-
-  //Get the input tree
+  //Get the input seeds tree
+  inSeeds->cd();
   sprintf(tname,"tracksTPC_%d",GetEventNumber());
-  TTree *tpcTree=(TTree*)in->Get(tname);
+  TTree *tpcTree=(TTree*)inSeeds->Get(tname);
   if (!tpcTree) {
      Error("RefitInward","can't get a tree with TPC tracks !\n");
      return 3;
@@ -652,6 +659,13 @@ Int_t AliITStrackerV2::RefitInward(const TFile *inp, TFile *out) {
   Int_t ntpc=(Int_t)tpcTree->GetEntries();
 
   Info("RefitInward","Number of TPC tracks: %d\n",ntpc);
+
+  //Create the output tree
+  out->cd();
+  sprintf(tname,"TreeT_ITSinward_%d",GetEventNumber());
+  TTree outTree(tname,"Tree with inward refitted ITS tracks");
+  AliITStrackV2 *otrack=0;
+  outTree.Branch("tracks","AliITStrackV2",&otrack,32000,0);
 
   for (i=0; i<ntpc; i++) {
     tpcTree->GetEvent(i);
@@ -1248,8 +1262,12 @@ AliITStrackerV2::RefitAt(Double_t x,AliITStrackV2 *t,const AliITStrackV2 *c) {
            t->SetDetectorIndex(idet);
         }
         Double_t chi2=t->GetPredictedChi2(c);
-        if (chi2<maxchi2) { cl=c; maxchi2=chi2; }
-        else return kFALSE;
+        if (chi2<maxchi2) { 
+	  cl=c; 
+	  maxchi2=chi2; 
+	} else {
+	  return kFALSE;
+	}
      }
      /*
      if (cl==0)

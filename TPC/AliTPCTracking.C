@@ -80,6 +80,11 @@ Int_t TPCFindTracks(Int_t nEvents, Int_t firstEvent,
 Int_t TPCFindTracksMI(Int_t nEvents, Int_t firstEvent,
 		      TFile* fileClusters, TFile* fileTracks,
 		      AliTPCParam* paramTPC=0);
+Int_t TPCRefitInward(Int_t nEvents=1, Int_t firstEvent=0,
+		     const char* fileNameClusters="tpc.clusters.root",
+		     const char* fileNameTracks="tpc.tracks.root",
+		     const char* fileNameTRDTracks="trd.tracks.root",
+		     const char* fileNameRefittedTracks="tpc.refitted.tracks.root");
 
 void FindVertex(Int_t iEvent, Double_t *vertex);
 void PrintVertex(TArrayF &primaryVertex);
@@ -172,7 +177,7 @@ Int_t TPCFindClustersMI(Int_t nEvents, Int_t firstEvent,
   if (!paramTPC) paramTPC = AliTPC::LoadTPCParam(fileDigits);
   if (!paramTPC) return 1;
 
-  AliTPCclustererMI clusterer;
+  AliTPCclustererMI clusterer(paramTPC);
   for (Int_t iEvent = firstEvent; iEvent < firstEvent+nEvents; iEvent++){
     if (gDEBUG > 2) cout<<"TPCFindClustersMI: event "<<iEvent<<endl;
     char treeName[100];
@@ -251,6 +256,47 @@ Int_t TPCFindTracksMI(Int_t nEvents, Int_t firstEvent,
     AliTPCtrackerMI tracker(paramTPC, iEvent);
     rc = tracker.Clusters2Tracks(0, fileTracks);
   }
+  return rc;
+}
+
+////////////////////////////////////////////////////////////////////////
+Int_t TPCRefitInward(Int_t nEvents, Int_t firstEvent,
+		     const char* fileNameClusters,
+		     const char* fileNameTracks,
+		     const char* fileNameTRDTracks,
+		     const char* fileNameRefittedTracks)
+{
+  Int_t rc = 0;
+  const Char_t *name="TPCRefitInward";
+  if (gDEBUG>1) cout<<name<<" starts"<<endl;
+  if (gDEBUG>1) gBenchmark->Start(name);
+  TFile *fileClusters = TFile::Open(fileNameClusters);
+  TFile *fileTracks = TFile::Open(fileNameTracks);
+  TFile *fileTRDTracks = TFile::Open(fileNameTRDTracks);
+  TFile *fileRefittedTracks = TFile::Open(fileNameRefittedTracks, "recreate");
+
+  AliTPCParam* paramTPC = AliTPC::LoadTPCParam(fileClusters);
+  if (!paramTPC) return 1;
+
+  for (Int_t iEvent = firstEvent; iEvent < firstEvent+nEvents; iEvent++){
+    if (gDEBUG > 2) cout<<"TPCRefitInward: event "<<iEvent<<endl;
+    AliTPCtracker *tracker = new AliTPCtracker(paramTPC);
+    tracker->SetEventNumber(iEvent);
+    fileClusters->cd();
+    rc = tracker->RefitInward(fileTRDTracks, fileTracks, fileRefittedTracks);
+    delete tracker;
+    if (rc) return rc;
+  }
+
+  fileClusters->Close();
+  fileTracks->Close();
+  fileTRDTracks->Close();
+  fileRefittedTracks->Close();
+  delete fileClusters;
+  delete fileTracks;
+  delete fileTRDTracks;
+  delete fileRefittedTracks;
+  if (gDEBUG>1) gBenchmark->Show(name);
   return rc;
 }
 

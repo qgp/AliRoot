@@ -35,6 +35,7 @@ class AliTRDtracker : public AliTracker {
   ~AliTRDtracker(); 
 
   Int_t         Clusters2Tracks(const TFile *in, TFile *out);
+  Int_t         Clusters2Tracks(AliESD* event);
   Int_t         PropagateBack(const TFile *in, TFile *out);
   Int_t         PropagateBack(AliESD* event);
   //Int_t         Refit(const TFile *in, TFile *out);

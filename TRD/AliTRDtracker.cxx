@@ -15,6 +15,9 @@
                                                       
 /*
 $Log$
+Revision 1.27  2003/05/27 17:46:13  hristov
+TRD PID included in the ESD schema (T.Kuhr)
+
 Revision 1.26  2003/04/10 10:36:54  hristov
 Code for unified TPC/TRD tracking (S.Radomski)
 
@@ -566,6 +569,110 @@ Int_t AliTRDtracker::Clusters2Tracks(const TFile *inp, TFile *out)
   return 0;    
 }     
      
+//___________________________________________________________________
+Int_t AliTRDtracker::Clusters2Tracks(AliESD* event)
+{
+  //
+  // Finds tracks within the TRD. The ESD event is expected to contain seeds 
+  // at the outer part of the TRD. The seeds
+  // are found within the TRD if fAddTRDseeds is TRUE. 
+  // The tracks are propagated to the innermost time bin 
+  // of the TRD and the ESD event is updated
+  //
+
+  Int_t timeBins = fTrSec[0]->GetNumberOfTimeBins();
+  Float_t foundMin = fMinClustersInTrack * timeBins; 
+  Int_t nseed = 0;
+  Int_t found = 0;
+  Int_t innerTB = fTrSec[0]->GetInnerTimeBin();
+
+  Int_t n = event->GetNumberOfTracks();
+  for (Int_t i=0; i<n; i++) {
+    AliESDtrack* seed=event->GetTrack(i);
+    ULong_t status=seed->GetStatus();
+    if ( (status & AliESDtrack::kTRDout ) == 0 ) continue;
+    if ( (status & AliESDtrack::kTRDin) != 0 ) continue;
+    nseed++;
+
+    AliTRDtrack* seed2 = new AliTRDtrack(*seed);
+    seed2->ResetCovariance(); 
+    AliTRDtrack *pt = new AliTRDtrack(*seed2,seed2->GetAlpha());
+    AliTRDtrack &t=*pt; 
+    FollowProlongation(t, innerTB); 
+    if (t.GetNumberOfClusters() >= foundMin) {
+      UseClusters(&t);
+      CookLabel(pt, 1-fLabelFraction);
+      //      t.CookdEdx();
+    }
+    found++;
+//    cout<<found<<'\r';     
+
+    if(PropagateToTPC(t)) {
+      seed->UpdateTrackParams(pt, AliESDtrack::kTRDin);
+    }  
+    delete seed2;
+    delete pt;
+  }     
+
+  cout<<"Number of loaded seeds: "<<nseed<<endl;  
+  cout<<"Number of found tracks from loaded seeds: "<<found<<endl;
+
+  // after tracks from loaded seeds are found and the corresponding 
+  // clusters are used, look for additional seeds from TRD
+
+  if(fAddTRDseeds) { 
+    // Find tracks for the seeds in the TRD
+    Int_t timeBins = fTrSec[0]->GetNumberOfTimeBins();
+  
+    Int_t nSteps = (Int_t) (fSeedDepth / fSeedStep);
+    Int_t gap = (Int_t) (timeBins * fSeedGap);
+    Int_t step = (Int_t) (timeBins * fSeedStep);
+  
+    // make a first turn with tight cut on initial curvature
+    for(Int_t turn = 1; turn <= 2; turn++) {
+      if(turn == 2) {
+        nSteps = (Int_t) (fSeedDepth / (3*fSeedStep));
+        step = (Int_t) (timeBins * (3*fSeedStep));
+      }
+      for(Int_t i=0; i<nSteps; i++) {
+        Int_t outer=timeBins-1-i*step; 
+        Int_t inner=outer-gap;
+
+        nseed=fSeeds->GetEntriesFast();
+      
+        MakeSeeds(inner, outer, turn);
+      
+        nseed=fSeeds->GetEntriesFast();
+        printf("\n turn %d, step %d: number of seeds for TRD inward %d\n", 
+               turn, i, nseed); 
+              
+        for (Int_t i=0; i<nseed; i++) {   
+          AliTRDtrack *pt=(AliTRDtrack*)fSeeds->UncheckedAt(i), &t=*pt; 
+          FollowProlongation(t,innerTB); 
+          if (t.GetNumberOfClusters() >= foundMin) {
+            UseClusters(&t);
+            CookLabel(pt, 1-fLabelFraction);
+            t.CookdEdx();
+	    found++;
+//            cout<<found<<'\r';     
+            if(PropagateToTPC(t)) {
+	      AliESDtrack track;
+	      track.UpdateTrackParams(pt,AliESDtrack::kTRDin);
+	      event->AddTrack(&track);
+            }        
+          }
+          delete fSeeds->RemoveAt(i);
+          fNseeds--;
+        }
+      }
+    }
+  }
+  
+  cout<<"Total number of found tracks: "<<found<<endl;
+    
+  return 0;    
+}     
+     
   
 
 //_____________________________________________________________________________
@@ -833,7 +940,7 @@ Int_t AliTRDtracker::FollowProlongation(AliTRDtrack& t, Int_t rf)
   Int_t try_again=fMaxGap;
 
   Double_t alpha=t.GetAlpha();
-  TVector2::Phi_0_2pi(alpha);
+  alpha = TVector2::Phi_0_2pi(alpha);
 
   Int_t s=Int_t(alpha/AliTRDgeometry::GetAlpha())%AliTRDgeometry::kNsect;  
   Double_t rad_length, rho, x, dx, y, ymax, z;
@@ -1380,7 +1487,7 @@ Int_t AliTRDtracker::PropagateToTPC(AliTRDtrack& t)
   Int_t ns=Int_t(2*TMath::Pi()/AliTRDgeometry::GetAlpha()+0.5);     
 
   Double_t alpha=t.GetAlpha();
-  TVector2::Phi_0_2pi(alpha);
+  alpha = TVector2::Phi_0_2pi(alpha);
 
   Int_t s=Int_t(alpha/AliTRDgeometry::GetAlpha())%AliTRDgeometry::kNsect;  
 

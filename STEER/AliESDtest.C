@@ -74,6 +74,7 @@ Int_t AliESDtest(Int_t nev=1,
 
    //An instance of the TRD tracker
    AliTRDtracker trdTracker(trdcf);
+//   trdTracker.SetAddTRDseeds();
 
    //An instance of the TRD PID maker
    AliTRDPartID* trdPID = AliTRDPartID::GetFromFile();
@@ -95,31 +96,37 @@ Int_t AliESDtest(Int_t nev=1,
      itsTracker.SetEventNumber(i); 
      itsTracker.LoadClusters(itscf);
 
+     trdTracker.SetEventNumber(i);
+     trdcf->cd();
+     trdTracker.LoadClusters();
+
      rc+=tpcTracker.Clusters2Tracks(event);
 
      rc+=itsTracker.Clusters2Tracks(event);
 
      rc+=itsTracker.PropagateBack(event); 
-     itsTracker.UnloadClusters();
-
-     itsPID.MakePID(event);
      
      rc+=tpcTracker.PropagateBack(event);
-     tpcTracker.UnloadClusters();
-
-     tpcPID.MakePID(event);
-
-     trdTracker.SetEventNumber(i);
-     trdcf->cd();
-     trdTracker.LoadClusters();
 
      rc+=trdTracker.PropagateBack(event);
+
+     rc+=trdTracker.Clusters2Tracks(event);
      trdTracker.UnloadClusters();
 
      for (Int_t iTrack = 0; iTrack < event->GetNumberOfTracks(); iTrack++) {
        AliESDtrack* track = event->GetTrack(iTrack);
        trdPID->MakePID(track);
      }
+
+     rc+=tpcTracker.RefitInward(event);
+     tpcTracker.UnloadClusters();
+
+     tpcPID.MakePID(event);
+
+     rc+=itsTracker.RefitInward(event);
+     itsTracker.UnloadClusters();
+
+     itsPID.MakePID(event);
 
     //Here is the combined PID
      AliESDpid::MakePID(event);
