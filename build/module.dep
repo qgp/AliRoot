@@ -31,7 +31,7 @@ RALICE/module.mk:	 RALICE/libRALICE.pkg
 RAW/module.mk:           RAW/libRAW.pkg RAW/binraw2date.pkg RAW/binaddMiniHeader.pkg RAW/binprintMiniHeader.pkg
 RICH/module.mk:		 RICH/libRICH.pkg
 START/module.mk:	 START/libSTART.pkg
-STEER/module.mk:	 STEER/libSTEER.pkg
+STEER/module.mk:	 STEER/libSTEER.pkg STEER/libESD.pkg
 STRUCT/module.mk:	 STRUCT/libSTRUCT.pkg
 TEPEMGEN/module.mk:      TEPEMGEN/libTEPEMGEN.pkg
 TFluka/module.mk:        TFluka/libTFluka.pkg

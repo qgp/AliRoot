@@ -42,7 +42,6 @@
 #pragma link C++ class  AliSegmentation+;
 #pragma link C++ class  AliHitMap+;
 #pragma link C++ class  AliCluster+;
-#pragma link C++ class  AliKalmanTrack+;
 #pragma link C++ class  AliTracker+;
 #pragma link C++ class  AliRndm+;
 #pragma link C++ class  AliMCQA+;
@@ -64,15 +63,6 @@
 #pragma link C++ class  AliTaskLoader+;
 #pragma link C++ class  AliRunLoader+;
 #pragma link C++ class  AliTrackReference+;
-#pragma link C++ class  AliESD+;
-#pragma link C++ class  AliESDtrack+;
-#pragma link C++ class  AliESDCaloTrack+;
-#pragma link C++ class  AliESDMuonTrack+;
-#pragma link C++ class  AliESDHLTtrack+;
-#pragma link C++ class  AliESDv0+;
-#pragma link C++ class  AliESDcascade+;
-#pragma link C++ class  AliESDVertex+;
-#pragma link C++ class  AliESDpid+;
 #pragma link C++ class  AliTrackMap+;
 #pragma link C++ class  AliTrackMapper+;
 #pragma link C++ class  AliCollisionGeometry+;
