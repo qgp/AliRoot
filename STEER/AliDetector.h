@@ -71,8 +71,8 @@ protected:
   Int_t         fNhits;       //!Number of hits
   Int_t         fNdigits;     //!Number of digits
   Int_t         fBufferSize;  //!buffer size for Tree detector branches
-  TClonesArray *fHits;        //List of hits for one track only
-  TClonesArray *fDigits;      //List of digits for this detector
+  TClonesArray *fHits;        //!List of hits for one track only
+  TClonesArray *fDigits;      //!List of digits for this detector
   TObjArray    *fPoints;      //!Array of points for each track (all tracks in memory)
 
   AliLoader*  fLoader;//! pointer to getter for this module skowron
