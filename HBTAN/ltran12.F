@@ -149,7 +149,7 @@ C=====Just sets distance between particles
       IMPLICIT REAL*8 (A-H,O-Z)
       COMMON/FSI_PRF/PPX,PPY,PPZ,AK,AKS, ! momenta in PRF
      1               X,Y,Z,T,RP,RPS
-      RPS=R
-      RP=R*R
+      RP=R
+      RPS=R*R
       RETURN
       END

@@ -321,7 +321,7 @@ Double_t AliHBTLLWeights::GetWeight(AliHBTPair* partpair)
   //this must  be after ltran12 because it would overwrite what we set below
   if (fRandomPosition)
    {
-     Double_t rxcm = partpair->GetGammaToTransverse()*fSigma*gRandom->Gaus();
+     Double_t rxcm = fSigma*gRandom->Gaus();
      Double_t rycm = fSigma*gRandom->Gaus();
      Double_t rzcm = fSigma*gRandom->Gaus();
 
@@ -332,7 +332,9 @@ Double_t AliHBTLLWeights::GetWeight(AliHBTPair* partpair)
 
      Double_t rps=rxcm*rxcm+rycm*rycm+rzcm*rzcm;
      Double_t rp=TMath::Sqrt(rps);
-     setpdist(rp);
+//     setpdist(rp);
+     FSI_PRF.RP=rp;
+     FSI_PRF.RPS=rps;
    }
                
   fsiw();
