@@ -165,6 +165,8 @@ public:
    // End of MC Application
 
    TFile* InitTreeFile(Option_t *option, TString fileName);
+   void PrintTreeFile();
+   void CloseTreeFile(Option_t *option);
    TString GetTreeDFileName() const {return fTreeDFileName;}
    TString GetTreeSFileName() const {return fTreeSFileName;}
    TString GetTreeRFileName() const {return fTreeRFileName;}

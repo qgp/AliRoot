@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.82.4.2  2002/06/10 17:54:06  hristov
+Only one SetGenEventHeader function kept
+
 Revision 1.82.4.1  2002/06/10 14:43:06  hristov
 Merged with v3-08-02
 
@@ -2068,53 +2071,188 @@ TFile* AliRun::InitTreeFile(Option_t *option, TString fileName)
   //
   // create the file where one of the following trees will be saved
   // trees:   S,D,R
+  // WARNING: by default these trees are saved on the file on which
+  // hits are stored. If you divert one of these trees, you cannot restore
+  // it to the original file (usually galice.root) in the same aliroot session
+  Bool_t oS = (strstr(option,"S")!=0);
+  Bool_t oR = (strstr(option,"R")!=0);
+  Bool_t oD = (strstr(option,"D")!=0);
+  Int_t choice[3]; 
+  for (Int_t i=0; i<3; i++) choice[i] = 0;
+  if(oS)choice[0] = 1; 
+  if(oD)choice[1] = 1;
+  if(oR)choice[2] = 1;
+
+  TFile *ptr=0;
+
+  if(!(oS || oR || oD))return ptr;
+
+  Int_t active[3];
+  for (Int_t i=0; i<3; i++) active[i] = 0;
+  if(fTreeSFileName != "") active[0] = 1;
+  if(fTreeDFileName != "") active[1] = 1;
+  if(fTreeDFileName != "") active[2] = 1;
+
+  Bool_t alreadyopen1 = kFALSE;
+  Bool_t alreadyopen2 = kFALSE;
+
+  if(oS){
+    // if already active and same name with non-null ptr
+    if(active[0]==1 && fileName == fTreeSFileName && fTreeSFile){
+      Warning("InitTreeFile","File %s already opened",fTreeSFileName.Data());
+      ptr = fTreeSFile;
+    }
+    else {
+      // if already active with different name with non-null ptr
+      if(active[0]==1 && fileName != fTreeSFileName && fTreeSFile){
+        // close the active files and also the other possible files in option
+        CloseTreeFile(option);
+      }
+      fTreeSFileName = fileName;
+      alreadyopen1 = 
+        (active[1] == 1 && fTreeDFileName == fTreeSFileName && fTreeDFile);
+      alreadyopen2 =
+        (active[2] == 1 && fTreeRFileName == fTreeSFileName && fTreeRFile);
+      if(!(alreadyopen1 || alreadyopen2)){
+        ptr = InitFile(fileName);
+        fTreeSFile = ptr;
+      }
+      else {
+        if(alreadyopen1){fTreeSFile = fTreeDFile; ptr = fTreeSFile;}
+        if(alreadyopen2){fTreeSFile = fTreeRFile; ptr = fTreeSFile;}
+      }
+      if(choice[1] == 1) { fTreeDFileName = fileName; fTreeDFile = ptr;}
+      if(choice[2] == 1) { fTreeRFileName = fileName; fTreeRFile = ptr;}
+    }
+    return ptr;
+  }
+
+  if(oD){
+    // if already active and same name with non-null ptr
+    if(active[1]==1 && fileName == fTreeDFileName && fTreeDFile){
+      Warning("InitTreeFile","File %s already opened",fTreeDFileName.Data());
+      ptr = fTreeDFile;
+    }
+    else {
+      // if already active with different name with non-null ptr
+      if(active[1]==1 && fileName != fTreeDFileName && fTreeDFile){
+        // close the active files and also the other possible files in option
+        CloseTreeFile(option);
+      }
+      fTreeDFileName = fileName;
+      alreadyopen1 = 
+        (active[0] == 1 && fTreeSFileName == fTreeDFileName && fTreeSFile);
+      alreadyopen2 =
+        (active[2] == 1 && fTreeRFileName == fTreeDFileName && fTreeRFile);
+      if(!(alreadyopen1 || alreadyopen2)){
+        ptr = InitFile(fileName);
+        fTreeDFile = ptr;
+      }
+      else {
+        if(alreadyopen1){fTreeDFile = fTreeSFile; ptr = fTreeDFile;}
+        if(alreadyopen2){fTreeDFile = fTreeRFile; ptr = fTreeDFile;}
+      }
+      if(choice[2] == 1) { fTreeRFileName = fileName; fTreeRFile = ptr;}
+    }
+    return ptr;
+  }
+
+  if(oR){
+    // if already active and same name with non-null ptr
+    if(active[2]==1 && fileName == fTreeRFileName && fTreeRFile){
+      Warning("InitTreeFile","File %s already opened",fTreeRFileName.Data());
+      ptr = fTreeRFile;
+    }
+    else {
+      // if already active with different name with non-null ptr
+      if(active[2]==1 && fileName != fTreeRFileName && fTreeRFile){
+        // close the active files and also the other possible files in option
+        CloseTreeFile(option);
+      }
+      fTreeRFileName = fileName;
+      alreadyopen1 = 
+        (active[1] == 1 && fTreeDFileName == fTreeRFileName && fTreeDFile);
+      alreadyopen2 =
+        (active[0]== 1 && fTreeSFileName == fTreeRFileName && fTreeSFile);
+      if(!(alreadyopen1 || alreadyopen2)){
+        ptr = InitFile(fileName);
+        fTreeRFile = ptr;
+      }
+      else {
+        if(alreadyopen1){fTreeRFile = fTreeDFile; ptr = fTreeRFile;}
+        if(alreadyopen2){fTreeRFile = fTreeSFile; ptr = fTreeRFile;}
+      }
+    }
+    return ptr;
+  }
+
+}
+
+//___________________________________________________________________________
+void AliRun::PrintTreeFile()
+{
+  //
+  // prints the file names and pointer associated to S,D,R trees
+  //
+  cout<<"===================================================\n";
+  TFile *file = fTreeE->GetCurrentFile();
+  TString curfilname="";
+  if(file)curfilname=(TString)file->GetName();
+  cout<<" Current tree file name: "<<curfilname<<endl;
+  cout<<"Pointer: "<<file<<endl;
+  cout<<" Tree S File name: "<<fTreeSFileName<<endl;
+  cout<<"Pointer: "<<fTreeSFile<<endl<<endl;
+  cout<<" Tree D File name: "<<fTreeDFileName<<endl;
+  cout<<"Pointer: "<<fTreeDFile<<endl<<endl;
+  cout<<" Tree R File name: "<<fTreeRFileName<<endl;
+  cout<<"Pointer: "<<fTreeRFile<<endl<<endl;
+  cout<<"===================================================\n";
+}
+//___________________________________________________________________________
+void AliRun::CloseTreeFile(Option_t *option)
+{
+  // 
+  // closes the file containing the tree specified in option
+  // (S,D,R)
   //
   Bool_t oS = (strstr(option,"S")!=0);
   Bool_t oR = (strstr(option,"R")!=0);
   Bool_t oD = (strstr(option,"D")!=0);
   Bool_t none = !(oS || oR || oD);
-  TFile *ptr=0;
-  if(none){
-    Warning("InitTreeFile","wrong option - nothing done\n");
-  } else {
-    if (oS){
-      fTreeSFileName=fileName;
-      if (fTreeSFile) {
-        if (fTreeSFile->IsOpen()) {
-          Warning("InitTreeSFile","File already opened");
-        }
-      } else {
-        fTreeSFile = InitFile(fileName);
+  if(none)return;
+  if(oS){
+    fTreeSFileName = "";
+    if(fTreeSFile){
+      if(!((fTreeSFile == fTreeDFile) || (fTreeSFile == fTreeRFile)) &&
+           fTreeSFile->IsOpen()){
+        fTreeSFile->Close();
+        delete fTreeSFile;
       }
-      ptr = fTreeSFile;
     }
-    if (oD){
-      fTreeDFileName=fileName;
-      if(oS)fTreeDFile = fTreeSFile;
-      if (fTreeDFile) {
-        if (fTreeDFile->IsOpen()) {
-          Warning("InitTreeDFile","File already opened");
-        }
-      } else {
-        fTreeDFile = InitFile(fileName);
-      }
-      ptr = fTreeDFile;
-    }
-    if (oR){
-      fTreeRFileName=fileName;
-      if(oS)fTreeRFile = fTreeSFile;
-      if(oD)fTreeRFile = fTreeDFile;
-      if (fTreeRFile) {
-        if (fTreeRFile->IsOpen()) {
-          Warning("InitTreeRFile","File already opened");
-        }
-      } else {
-        fTreeRFile = InitFile(fileName);
-      }
-      ptr = fTreeRFile;
-    }
+    fTreeSFile = 0;
   }
-  return ptr;
+  if(oD){
+    fTreeDFileName = "";
+    if(fTreeDFile){
+      if(!((fTreeDFile == fTreeRFile) || (fTreeDFile == fTreeSFile)) &&
+         fTreeDFile->IsOpen()){
+        fTreeDFile->Close();
+        delete fTreeDFile;
+      }
+    }
+    fTreeDFile = 0;
+  }
+  if(oR){
+    fTreeRFileName = "";
+    if(fTreeRFile){
+      if(!((fTreeRFile == fTreeSFile) || (fTreeRFile == fTreeDFile)) &&
+         fTreeRFile->IsOpen()){
+        fTreeRFile->Close();
+        delete fTreeRFile;
+      }
+    }
+    fTreeRFile = 0;
+  }
 }
 
 //___________________________________________________________________________

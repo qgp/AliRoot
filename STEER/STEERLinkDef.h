@@ -16,7 +16,7 @@
 
 #pragma link C++ typedef AliMC;
 #pragma link C++ typedef AliMCProcess;
-#pragma link C++ typedef AliPDG;
+#pragma link C++ class  AliPDG+;
 
 #pragma link C++ class  AliGenerator+;
 #pragma link C++ class  AliRun-;
@@ -61,6 +61,8 @@
 #pragma link C++ class  AliESD+;
 #pragma link C++ class  AliESDTrack+;
 #pragma link C++ class  AliESDVertex+;
+#pragma link C++ class  AliTrackMap+;
+#pragma link C++ class  AliTrackMapper+;
 
 #endif
 

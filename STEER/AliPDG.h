@@ -6,5 +6,14 @@
 /* $Id$ */
 
 #include "TPDGCode.h"
+#include "TObject.h"
+
+class AliPDG : public TObject {
+public:
+    static void AddParticlesToPdgDataBase();
+ private:
+    ClassDef(AliPDG,1)  // PDG database related information
+};
+
 
 #endif //ALI_PDG__H
