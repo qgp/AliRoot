@@ -55,6 +55,7 @@
 #pragma link C++ class  AliMUONMerger+;
 #pragma link C++ class  AliMUONFactory+;
 #pragma link C++ class  AliMUONDigitizer+;
+#pragma link C++ class  AliMUONDigitizerv1+;
 #pragma link C++ class  AliMUONTrackK+;
 #pragma link C++ class  AliMUONPixel+;
 #pragma link C++ class  AliMUONClusterFinderAZ+;
@@ -65,6 +66,7 @@
 #pragma link C++ class  AliMUONSt1SpecialMotif+;
 #pragma link C++ class  AliMUONSt1ResponseParameter+;
 #pragma link C++ class  AliMUONSt1ResponseRule+;
+>>>>>>> 1.31
 
 #include "MUONLinkDefMapping.h"
 
