@@ -139,7 +139,7 @@ endif
 	  $(MUTE)TMPDIR=/tmp/@MODULE@$$$$.`date +%M%S` ; \
 	  export TMPDIR; mkdir $$TMPDIR ; cd $$TMPDIR ; \
 	  find $(CURDIR)/@MODULE@/tgt_$(ALICE_TARGET) -name '*.o' -exec ln -s {} . \; ;\
-      rm -f $@ ;\
+      rm -f $(CURDIR)/$@ ;\
 	  $(SHLD) $(SOFLAGS) $(@PACKAGE@ELIBSDIR) $(@PACKAGE@ELIBS) -o $(CURDIR)/$@ $(notdir $(@PACKAGE@O) $(@PACKAGE@DO)) $(SHLIB) ;\
       cd $(CURDIR) ; rm -rf $$TMPDIR
 	  $(MUTE)chmod a-w $@
@@ -148,7 +148,7 @@ $(@PACKAGE@BIN):$(@PACKAGE@O) $(@PACKAGE@DO) @MODULE@/module.mk
 ifndef ALIQUIET
 	  @echo "***** Making executable $@ *****"
 endif
-	  $(MUTE)$(LD) $(LDFLAGS) $(@PACKAGE@O) $(@PACKAGE@DO) $(BINLIBDIRS) $(LIBS) $(@PACKAGE@ELIBSDIR) $(@PACKAGE@ELIBS) $(EXEFLAGS) -o $@ 
+	  $(MUTE)$(LD) $(LDFLAGS) $(@PACKAGE@O) $(@PACKAGE@DO) $(BINLIBDIRS) $(LIBS) $(@PACKAGE@ELIBS) $(EXEFLAGS) -o $@ 
 
 $(@PACKAGE@DS): $(@PACKAGE@CINTHDRS) $(@PACKAGE@DH) @MODULE@/module.mk
 ifndef ALIQUIET
