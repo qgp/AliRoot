@@ -1,7 +1,7 @@
 SRCS          = AliITS.cxx AliITSv1.cxx AliITSv5.cxx \
 	        AliITSv5symm.cxx AliITSv5asymm.cxx \
       	    	AliITSvPPRcoarseasymm.cxx AliITSvPPRcoarsesymm.cxx\
-      	 	AliITSvPPRasymm.cxx AliITSvPPRsymm.cxx\
+      	 	AliITSvPPRasymm.cxx AliITSvPPRsymm.cxx AliITSvPPRasymmFMD.cxx\
       		AliITShit.cxx AliITSDetType.cxx \
 		AliITSgeom.cxx AliITSgeomMatrix.cxx \
 	        AliITSgeomSPD.cxx AliITSgeomSDD.cxx \
@@ -35,7 +35,9 @@ SRCS          = AliITS.cxx AliITSv1.cxx AliITSv5.cxx \
                 AliITSPid.cxx AliITStrackV2Pid.cxx AliCascadeVertex.cxx \
                 AliCascadeVertexer.cxx  AliITSneuralTrack.cxx \
                 AliITSneuralTracker.cxx AliITSglobalRecPoint.cxx \
-                AliITSsDigitize.cxx AliITSDigitizer.cxx AliITSreconstruction.cxx \
+                AliITSsDigitize.cxx AliITSDigitizer.cxx \
+	        AliITSreconstruction.cxx \
+	        AliITSFindClustersV2.cxx \
 	        AliITSRiemannFit.cxx \
 		AliITSFDigitizer.cxx
 #		AliITSAlignmentTrack.cxx AliITSAlignmentModule.cxx \

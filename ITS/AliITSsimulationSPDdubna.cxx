@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.7  2002/09/09 17:23:28  nilsen
+Minor changes in support of changes to AliITSdigitS?D class'.
+
 Revision 1.6  2002/08/21 22:09:58  nilsen
 Updated SPD simulation with difusion effects. ReWritten Hit to SDigits
 code.
@@ -704,7 +707,8 @@ void AliITSsimulationSPDdubna::HitToSDigitOld(AliITSmodule *mod, Int_t module,
 			                       // expect module to be an 
 			                       // integer
 			    UpdateMapSignal(kz-1,kx-1,
-					    mod->GetHitTrackIndex(hit),
+//					    mod->GetHitTrackIndex(hit),
+                             ((AliITShit*)(mod->GetHit(hit)))->GetTrack(),
 					    hit,fModule,dXCharge,pList);
 			}      // dXCharge > 1 e-
 		    }       // jx loop
@@ -730,7 +734,7 @@ void AliITSsimulationSPDdubna::ChargeToSignal(AliITSpList *pList){
     Float_t  electronics;
 //    Float_t  phys; 
     Double_t sig;
-    const Int_t    nmaxtrk=3;
+    const Int_t    nmaxtrk=AliITSdigitSPD::GetNTracks();
     static AliITSdigitSPD dig;
 
     for(Int_t iz=0; iz<fNPixelsZ; iz++){
@@ -753,7 +757,7 @@ void AliITSsimulationSPDdubna::ChargeToSignal(AliITSpList *pList){
 		digits[2] = 1; */
 		for(j=0;j<nmaxtrk;j++){
 //		    charges[j] = 0.0;
-		    if (pList->GetTrack(iz,ix,0)) {
+		    if (j<pList->GetNEnteries()) {
 			dig.fTracks[j] = pList->GetTrack(iz,ix,j);
 			dig.fHits[j]   = pList->GetHit(iz,ix,j);
 			/*
@@ -761,8 +765,8 @@ void AliITSsimulationSPDdubna::ChargeToSignal(AliITSpList *pList){
 			hits[j]   = pList->GetHit(iz,ix,j);
 			*/
 		    }else { // Default values
-			dig.fTracks[j] = pList->GetTrack(iz,ix,j);
-			dig.fHits[j]   = pList->GetHit(iz,ix,j);
+			dig.fTracks[j] = -3;
+			dig.fHits[j]   = -1;
 /*			tracks[j] = -2; //noise
 			hits[j]   = -1;  */
 		    } // end if pList

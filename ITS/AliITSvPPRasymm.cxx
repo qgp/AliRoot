@@ -15,8 +15,8 @@
 
 /*
 $Log$
-Revision 1.53.6.2  2002/07/24 09:27:50  alibrary
-Updating on VirtualMC
+Revision 1.58  2002/10/02 17:56:34  barbera
+Bug in copy 37 of volume I570 corrected (thanks to J. Belikov)
 
 Revision 1.57  2002/06/12 18:57:25  nilsen
 Added TrackReference hits for ITS Mother volume at request of TRD and TOF.
@@ -62,7 +62,7 @@ Revision 1.44  2001/05/31 19:24:47  barbera
 Default values of SPD detector and chip thickness set to 200 microns as defined by the Technical Board
 
 Revision 1.43  2001/05/30 16:15:47  fca
-Correct comparison wiht TGeant3::Class() introduced. Thanks to I.Hrivnacova
+Correct comparison wiht AliGeant3::Class() introduced. Thanks to I.Hrivnacova
 
 Revision 1.42  2001/05/30 15:55:35  hristov
 Strings compared instead of pointers
@@ -27852,7 +27852,7 @@ void AliITSvPPRasymm::CreateGeometry(){
   gMC->Gspos("I570",34,"IT56",21.7497,40.1899,-0.27,idrotm[549],"ONLY");
   gMC->Gspos("I570",35,"IT56",14.7884,43.0772,-0.27,idrotm[550],"ONLY");
   gMC->Gspos("I570",36,"IT56",7.5216,45.0744,-0.27,idrotm[551],"ONLY");
-  gMC->Gspos("I570",37,"IT56",-0.27,45.545,-0.27,0,"ONLY");
+  gMC->Gspos("I570",37,"IT56",0.,45.545,-0.27,0,"ONLY");
   gMC->Gspos("I570",38,"IT56",-7.5216,45.0744,-0.27,idrotm[552],"ONLY");
   gMC->Gspos("I570",1,"IT56",-14.7884,43.0772,-0.27,idrotm[553],"ONLY");
   gMC->Gspos("I570",2,"IT56",-21.7497,40.1899,-0.27,idrotm[620],"ONLY");
@@ -29045,7 +29045,7 @@ void AliITSvPPRasymm::InitAliITSgeom(){
 //     Based on the geometry tree defined in Geant 3.21, this
 // routine initilizes the Class AliITSgeom from the Geant 3.21 ITS geometry
 // sturture.
-//    if(gMC->IsA()!=TGeant3::Class()) {
+//    if(gMC->IsA()!=AliGeant3::Class()) {
   if(strcmp(gMC->GetName(),"TGeant3")) {
 	Error("InitAliITSgeom",
 		"Wrong Monte Carlo. InitAliITSgeom uses TGeant3 calls");

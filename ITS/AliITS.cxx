@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.73  2002/09/09 17:14:25  nilsen
+Update of documentation to reflect changes in AliITSdigitS?D classes.
+
 Revision 1.72  2002/06/10 17:28:55  nilsen
 Added new FillModules routine and cleaned up the old one.
 
@@ -1543,9 +1546,11 @@ void AliITS::AddSimDigit(Int_t id,Float_t phys,Int_t *digits,Int_t *tracks,
     //      Float_t phys    Physics indicator. See AliITSdigits.h
     //      Int_t *digits   Integer array containing the digits info. See 
     //                      AliITSdigit.h
-    //      Int_t *tracks   Integer array [3] containing the track numbers that
-    //                      contributed to this digit.
-    //      Int_t *hits     Integer array [3] containing the hit numbers that
+    //      Int_t *tracks   Integer array [AliITSdigitS?D::GetNTracks()] 
+    //                      containing the track numbers that contributed to
+    //                      this digit.
+    //      Int_t *hits     Integer array [AliITSdigitS?D::GetNTracks()]
+    //                      containing the hit numbers, from AliITSmodule, that
     //                      contributed to this digit.
     //      Float_t *charge Floating point array of the signals contributed
     //                      to this digit by each track.
