@@ -19,7 +19,7 @@
   #include <TText.h>
   #include <TBenchmark.h>
   #include <TStyle.h>
-  #include <TKey.h>
+  #include <TFile.h>
   #include <TROOT.h>
 
   #include "AliStack.h"
@@ -190,18 +190,20 @@ Int_t AliCascadeComparison(Int_t code=3312, const Char_t *dir=".") {
          return 5;
       }
    }
-   TKey *key=0;
-   TIter next(ef->GetListOfKeys());
-
+   AliESD* event = new AliESD;
+   TTree* esdTree = (TTree*) ef->Get("esdTree");
+   if (!esdTree) {
+      ::Error("AliCascadeComparison.C", "no ESD tree found");
+      return 6;
+   }
+   esdTree->SetBranchAddress("ESD", &event);
 
 
    //******* Loop over events *********
    Int_t e=0;
-   while ((key=(TKey*)next())!=0) {
+   while (esdTree->GetEvent(e)) {
       cout<<endl<<endl<<"********* Processing event number: "<<e<<"*******\n";
  
-      AliESD *event=(AliESD*)key->ReadObj();
-
       Int_t nentr=event->GetNumberOfCascades();
       allfound+=nentr;
 
@@ -296,7 +298,7 @@ Int_t AliCascadeComparison(Int_t code=3312, const Char_t *dir=".") {
          AliTrackReference *bref=(AliTrackReference*)brefs->UncheckedAt(i);
          AliTrackReference *nref=(AliTrackReference*)nrefs->UncheckedAt(i);
          AliTrackReference *pref=(AliTrackReference*)prefs->UncheckedAt(i);
-         Int_t pdg=(Int_t)bref->GetLength();  //this is the cascade's PDG !
+         Int_t pdg=(Int_t)nref->GetLength();  //this is the cascade's PDG !
          if (code!=pdg) continue;
          ng++;
          pxg=bref->Px()+nref->Px()+pref->Px(); 
@@ -315,10 +317,10 @@ Int_t AliCascadeComparison(Int_t code=3312, const Char_t *dir=".") {
       brefs->Clear();
       prefs->Clear();
       nrefs->Clear();
-      delete event;
 
    } //**** End of the loop over events
 
+   delete event;
    ef->Close();
 
    delete csTree;
