@@ -179,12 +179,6 @@ void AliPHOSPIDv1::InitParameters()
   fRecParticlesInRun = 0 ; 
   fNEvent            = 0 ;            
   fRecParticlesInRun = 0 ;
-  TString pidName( GetName()) ;
-  if (pidName.IsNull() ) 
-    pidName = "Default" ; 
-  pidName.Append(":") ; 
-  pidName.Append(Version()) ; 
-  SetName(pidName) ;
   SetParameters() ; // fill the parameters matrix from parameters file
 }
 
