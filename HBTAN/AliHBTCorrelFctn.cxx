@@ -277,3 +277,75 @@ TH1* AliHBTAvSeparVsQInvCorrelFctn::GetResult()
  return fRatio;
 }
 
+/**************************************************************/
+/**************************************************************/
+/**************************************************************/
+
+
+ClassImp(AliHBTQOutQSideFctn)
+
+
+AliHBTQOutQSideFctn::AliHBTQOutQSideFctn(Int_t nxbins, Double_t maxXval, Double_t minXval,
+                                         Int_t nybins, Double_t maxYval, Double_t minYval):
+ AliHBTOnePairFctn2D(nxbins,maxXval,minXval,nybins,maxYval,minYval)
+{
+  //ctor
+ fWriteNumAndDen = kTRUE;//change default behaviour
+ Rename("wqoutqsidecf","Q_{out} Q_{side} Correlation Function 2D");
+}    
+/**************************************************************/
+
+TH1* AliHBTQOutQSideFctn::GetResult()
+{
+ //returns the scaled ratio
+ delete fRatio;
+ fRatio = GetRatio(Scale());
+ return fRatio;
+}
+/**************************************************************/
+/**************************************************************/
+
+ClassImp(AliHBTQOutQLongFctn)
+
+AliHBTQOutQLongFctn::AliHBTQOutQLongFctn(Int_t nxbins, Double_t maxXval, Double_t minXval,
+                                                         Int_t nybins, Double_t maxYval, Double_t minYval):
+ AliHBTOnePairFctn2D(nxbins,maxXval,minXval,nybins,maxYval,minYval)
+{
+  //ctor
+ fWriteNumAndDen = kTRUE;//change default behaviour
+ Rename("qoutqlongcf","Q_{out} Q_{long} Correlation Function 2D");
+}    
+
+
+/**************************************************************/
+
+TH1* AliHBTQOutQLongFctn::GetResult()
+{
+ //returns the scaled ratio
+ delete fRatio;
+ fRatio = GetRatio(Scale());
+ return fRatio;
+}
+/**************************************************************/
+/**************************************************************/
+/**************************************************************/
+
+ClassImp(AliHBTQSideQLongFctn)
+
+/**************************************************************/
+AliHBTQSideQLongFctn::AliHBTQSideQLongFctn(Int_t nxbins, Double_t maxXval, Double_t minXval,
+                                                         Int_t nybins, Double_t maxYval, Double_t minYval):
+ AliHBTOnePairFctn2D(nxbins,maxXval,minXval,nybins,maxYval,minYval)
+{
+  //ctor
+ fWriteNumAndDen = kTRUE;//change default behaviour
+ Rename("qsideqlongcf","Q_{side} Q_{long} Correlation Function 2D");
+}    
+
+TH1* AliHBTQSideQLongFctn::GetResult()
+{
+ //returns the scaled ratio
+ delete fRatio;
+ fRatio = GetRatio(Scale());
+ return fRatio;
+}
