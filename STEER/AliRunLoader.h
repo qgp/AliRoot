@@ -200,12 +200,14 @@ class AliRunLoader: public TNamed
     static AliRunLoader* GetRunLoader(){return fgRunLoader;}
 
 //    static AliRunDigitizer* GetRunDigitizer();
-//  Tasks are supposed to be singletons, that is why static
+//  Tasks are supposed to be singletons, that is why following methods are static
     static TTask*           GetRunDigitizer();        //
     static TTask*           GetRunSDigitizer();       //
     static TTask*           GetRunReconstructioner(); //
     static TTask*           GetRunTracker();          //
-    static TTask*           GetRunQATask();           // 
+    static TTask*           GetRunPIDTask();          // 
+    static TTask*           GetRunQATask();           //
+     
     static const TString   fgkRunLoaderName;
     static const TString   fgkHeaderContainerName;    //default name of the kinematics container (TREE) name - TreeE
     static const TString   fgkKineContainerName;      //default name of the kinematics container (TREE) name - TreeK

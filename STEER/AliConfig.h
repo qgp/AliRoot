@@ -83,6 +83,7 @@ private:
   TString               GetSDigitizerTaskName () const;
   TString               GetReconstructionerTaskName () const;
   TString               GetTrackerTaskName () const;
+  TString               GetPIDTaskName () const;
   
   
   const TString&        GetQAFolderName() const; //returns path to folder with QA output
@@ -105,6 +106,7 @@ private:
   static const TString  fgkQATaskName;
   static const TString  fgkReconstructionerTaskName;
   static const TString  fgkTrackerTaskName;
+  static const TString  fgkPIDTaskName;
   
   static const TString  fgkCalibrationFolderName;
   static const TString  fgkAligmentFolderName;

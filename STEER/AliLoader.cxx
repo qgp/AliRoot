@@ -32,6 +32,7 @@ const TString AliLoader::fgkDefaultDigitsContainerName = "TreeD";
 const TString AliLoader::fgkDefaultSDigitsContainerName = "TreeS";
 const TString AliLoader::fgkDefaultRecPointsContainerName = "TreeR";
 const TString AliLoader::fgkDefaultTracksContainerName = "TreeT";
+const TString AliLoader::fgkDefaultRecParticlesContainerName = "TreeP";
 const TString AliLoader::fgkLoaderBaseName("Loader");
 
 ClassImp(AliLoader)
@@ -155,7 +156,12 @@ void AliLoader::InitDefaults()
   dl->SetBaseTaskLoader(tl);
   fDataLoaders->AddAt(dl,kTracks);
   
-  
+  // R E C O N S T R U C T E D   P O I N T S aka C L U S T E R S 
+  dl = new AliDataLoader(fDetectorName + ".RecParticles.root",fgkDefaultRecParticlesContainerName, "Reconstructed Particles");
+  tl = new AliTaskLoader(fDetectorName + AliConfig::Instance()->GetPIDTaskName(),
+                                        dl,AliRunLoader::GetRunPIDTask(),kTRUE);
+  dl->SetBaseTaskLoader(tl);
+  fDataLoaders->AddAt(dl,kRecParticles);
 
  }
 /*****************************************************************************/ 
@@ -316,6 +322,21 @@ TTask* AliLoader::Reconstructioner()
 }
 /*****************************************************************************/ 
 
+TTask* AliLoader::Tracker()
+{
+//returns tracker
+  return dynamic_cast<TTask*>(GetTracksDataLoader()->GetBaseTaskLoader()->Task());
+}
+
+/*****************************************************************************/ 
+TTask* AliLoader::PIDTask()
+{
+//returns tracker
+  return dynamic_cast<TTask*>(GetRecParticlesDataLoader()->GetBaseTaskLoader()->Task());
+}
+
+/*****************************************************************************/ 
+
 TTask* AliLoader::QAtask(const char* name)
 {
   TTask* qat = AliRunLoader::GetRunQATask();
@@ -349,16 +370,6 @@ TTask* AliLoader::QAtask(const char* name)
   Error("QAtask","Can not find sub-task with name starting with %s in task %s",name,dqat->GetName());
   return 0x0;   
 }
-
-/*****************************************************************************/ 
-
-TTask* AliLoader::Tracker()
-{
-//returns tracker
-  return dynamic_cast<TTask*>(GetTracksDataLoader()->GetBaseTaskLoader()->Task());
-}
-
-/*****************************************************************************/ 
 /*****************************************************************************/ 
 
 TDirectory* AliLoader::ChangeDir(TFile* file, Int_t eventno)
@@ -380,7 +391,7 @@ TDirectory* AliLoader::ChangeDir(TFile* file, Int_t eventno)
 
  TString dirname("Event");
  dirname+=eventno;
- if (AliLoader::fgDebug) 
+ if (AliLoader::fgDebug > 1) 
    ::Info("AliLoader::ChangeDir","Changing Dir to %s in file %s.",dirname.Data(),file->GetName());
 
  Bool_t result;
@@ -389,7 +400,7 @@ TDirectory* AliLoader::ChangeDir(TFile* file, Int_t eventno)
 
  if (dir == 0x0)
   {
-    if (AliLoader::fgDebug)
+    if (AliLoader::fgDebug > 1)
      ::Info("AliLoader::ChangeDir","Can not find directory %s in file %s, creating...",
             dirname.Data(),file->GetName());
     
@@ -449,12 +460,14 @@ void AliLoader::MakeTree(Option_t *option)
   const char *oS = strstr(option,"S");
   const char *oR = strstr(option,"R");
   const char *oT = strstr(option,"T");
+  const char *oP = strstr(option,"P");
   
   if (oH) MakeHitsContainer();
   if (oD) MakeDigitsContainer();
   if (oS) MakeSDigitsContainer();
   if (oR) MakeRecPointsContainer();
   if (oT) MakeTracksContainer();
+  if (oP) MakeRecParticlesContainer();
  }
 
 /*****************************************************************************/ 
@@ -496,6 +509,12 @@ Int_t AliLoader::PostReconstructioner(TTask* task)
 Int_t AliLoader::PostTracker(TTask* task)
  {
   return GetTracksDataLoader()->GetBaseTaskLoader()->Post(task);
+ }
+/*****************************************************************************/ 
+
+Int_t AliLoader::PostPIDTask(TTask* task)
+ {
+  return GetRecParticlesDataLoader()->GetBaseTaskLoader()->Post(task);
  }
 /*****************************************************************************/ 
 
@@ -550,6 +569,17 @@ TObject** AliLoader::TrackerRef()
       return 0x0;
     }
    return rrec->GetListOfTasks()->GetObjectRef(Tracker());
+}
+/*****************************************************************************/ 
+
+TObject** AliLoader::PIDTaskRef()
+{
+  TTask* rrec = AliRunLoader::GetRunPIDTask();
+  if (rrec == 0x0)
+   {
+     return 0x0;
+   }
+  return rrec->GetListOfTasks()->GetObjectRef(PIDTask());
 }
 
 /*****************************************************************************/ 
@@ -630,6 +660,22 @@ void AliLoader::CleanTracker()
    Info("CleanTracker","Attempting to delete Tracker %X",
          task->GetListOfTasks()->Remove(Tracker()));
   delete task->GetListOfTasks()->Remove(Tracker()); //TTList::Remove does not delete object
+}
+/*****************************************************************************/ 
+
+void AliLoader::CleanPIDTask()
+{
+//removes and deletes detector Reconstructioner from Run Reconstructioner
+  TTask* task = AliRunLoader::GetRunPIDTask();
+  if (task == 0x0)
+   {
+     Error("CleanPIDTask","Can not get Run PID Task from folder. Can not clean");
+     return;
+   }
+
+  if (GetDebug()) 
+   Info("CleanPIDTask","Attempting to delete PID Task");
+  delete task->GetListOfTasks()->Remove(PIDTask()); //TTList::Remove does not delete object
 }
 /*****************************************************************************/ 
 

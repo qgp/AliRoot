@@ -1304,6 +1304,15 @@ TTask* AliRunLoader::GetRunTracker()
 }
 /*****************************************************************************/ 
 
+TTask* AliRunLoader::GetRunPIDTask()
+{
+//returns Tracker Task from folder
+ TFolder* topf = AliConfig::Instance()->GetTaskFolder();
+ TObject* obj = topf->FindObjectAny(AliConfig::Instance()->GetPIDTaskName());
+ return (obj)?dynamic_cast<TTask*>(obj):0x0;
+}
+/*****************************************************************************/ 
+
 TTask* AliRunLoader::GetRunQATask()
 {
 //returns Quality Assurance Task from folder

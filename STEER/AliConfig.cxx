@@ -48,6 +48,7 @@ enum
   kDetTaskDigitizer,
   kDetTaskRecontructioner,
   kDetTaskTracker,
+  kDetTaskPID,
   kDetTaskLast
  };
 
@@ -84,7 +85,7 @@ const TString AliConfig::fgkDigitizerTaskName("Digitizer");
 const TString AliConfig::fgkSDigitizerTaskName("SDigitizer");
 const TString AliConfig::fgkReconstructionerTaskName("Reconstructioner");
 const TString AliConfig::fgkTrackerTaskName("Tracker");
-
+const TString AliConfig::fgkPIDTaskName("PIDTask");//;=) PIDer???
 const TString AliConfig::fgkQATaskName("QAtask");
 
 //3rd level folder
@@ -192,6 +193,8 @@ AliConfig::AliConfig(const char *name, const char *title):
   fTaskFolder->Add(re); 
   TTask * tr = new TTask(fgkTrackerTaskName,"Alice Tracker");
   fTaskFolder->Add(tr);
+  TTask * pid = new TTask(fgkPIDTaskName,"Alice Particle Identification Task");
+  fTaskFolder->Add(pid);
   fDetectorTask    =  new TString[kDetTaskLast+1];
   
   fDetectorTask[kDetTaskQA] = fgkQATaskName;
@@ -199,6 +202,7 @@ AliConfig::AliConfig(const char *name, const char *title):
   fDetectorTask[kDetTaskDigitizer] =  fgkDigitizerTaskName;
   fDetectorTask[kDetTaskRecontructioner] = fgkReconstructionerTaskName;
   fDetectorTask[kDetTaskTracker] = fgkTrackerTaskName;
+  fDetectorTask[kDetTaskPID] = fgkPIDTaskName;
   fDetectorTask[kDetTaskLast] = "";
 
   fInstance=this;
@@ -651,18 +655,21 @@ TString AliConfig::GetQATaskName() const
   return fDetectorTask[kDetTaskQA];
  }
 /*****************************************************************************/
+ 
 TString AliConfig::GetDigitizerTaskName() const
  {
  //returns task name
   return fDetectorTask[kDetTaskDigitizer];
  }
 /*****************************************************************************/
+ 
 TString AliConfig::GetSDigitizerTaskName() const
  {
  //returns task name
   return fDetectorTask[kDetTaskSDigitizer];
  }
 /*****************************************************************************/
+
 TString AliConfig::GetReconstructionerTaskName() const
  {
  //returns task name
@@ -675,7 +682,13 @@ TString AliConfig::GetTrackerTaskName() const
  //returns task name
   return fDetectorTask[kDetTaskTracker];
  }
+/*****************************************************************************/
 
+TString AliConfig::GetPIDTaskName() const
+ {
+ //returns task name
+  return fDetectorTask[kDetTaskPID];
+ }
 /*****************************************************************************/
 
 const TString& AliConfig::GetQAFolderName() const
@@ -683,13 +696,14 @@ const TString& AliConfig::GetQAFolderName() const
 //returns pathname of folder with QA output relative to Top Alice Folder
   return fDetectorFolder[kDetFolderQA];
 }
+/*****************************************************************************/
 
 const TString& AliConfig::GetDataFolderName()
 {
 //returns name of data folder path relative to event folder
  return fgkDataFolderName;
 }
-
+/*****************************************************************************/
 
 Int_t AliConfig::AddSubFolder(TFolder* topfolder, const char* infoler, 
                      const char* newfoldname, const char* newfoldtitle)
