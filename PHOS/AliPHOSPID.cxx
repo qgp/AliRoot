@@ -33,13 +33,10 @@
 #include "TTree.h"
  
 // --- Standard library ---
-#include <stdlib.h>
-
 
 // --- AliRoot header files ---
 #include "AliRun.h" 
 #include "AliPHOSPID.h"
-#include "AliHeader.h" 
 
 ClassImp(AliPHOSPID)
 
@@ -47,6 +44,7 @@ ClassImp(AliPHOSPID)
   AliPHOSPID::AliPHOSPID():TTask("","")
 {
   // ctor
+  fEventFolderName = "" ; 
 }
 
 

@@ -29,10 +29,8 @@
 
 
 // --- AliRoot header files ---
-#include "AliHeader.h"
 #include "AliPHOSRecParticle.h"
-#include "AliPHOSLoader.h" 
-#include "AliStack.h" 
+#include "AliPHOSGetter.h" 
 #include "TParticle.h"
 
 ClassImp(AliPHOSRecParticle)
@@ -73,19 +71,7 @@ ClassImp(AliPHOSRecParticle)
 //____________________________________________________________________________
 const Int_t AliPHOSRecParticle::GetNPrimaries() const  
 { 
-Error("GetNPrimaries","ERROR ERROR  AliPHOSRecParticle::GetNPrimaries() const\n");
-Error("GetNPrimaries","Container class tries to get global pointers\n");
-Error("GetNPrimaries","See the code PLEASE!!!\n");
-Error("GetNPrimaries","Returning  -1  !!!!!!!!!!!!!!!!!!!\n");
-
-//This case is symmetric to getting geometry from hit
-//Piotr Skowronski
-return -1;
-
-//original:
-//  AliHeader *h = gAlice->GetHeader();
-//  return  h->GetNprimary(); 
- // return  gAlice->GetNtrack(); 
+  return -1;
 }
 
 //____________________________________________________________________________
@@ -93,53 +79,28 @@ const Int_t AliPHOSRecParticle::GetNPrimariesToRecParticles() const
 { 
 
   Int_t rv = 0 ;
-  AliRunLoader* runget = AliRunLoader::GetRunLoader(AliConfig::fgkDefaultEventFolderName);
-  if(runget == 0x0) 
-   {
-     Error("Init","Can not find run getter in event folder \"%s\"",GetTitle());
-     return 0;
-   }
-  
-  AliPHOSLoader* gime = dynamic_cast<AliPHOSLoader*>(runget->GetLoader("PHOSLoader"));
-  if ( gime == 0 ) 
-   {
-     Error("Init","Could not obtain the Loader object !"); 
-     return 0;
-   } 
-  Int_t emcRPindex = ((AliPHOSTrackSegment*)gime->TrackSegments()->At(GetPHOSTSIndex()))->GetEmcIndex();
-  ((AliPHOSEmcRecPoint*)gime->EmcRecPoints()->At(emcRPindex))->GetPrimaries(rv) ; 
+  AliPHOSGetter * gime = AliPHOSGetter::Instance() ; 
+  Int_t emcRPindex = dynamic_cast<AliPHOSTrackSegment*>(gime->TrackSegments()->At(GetPHOSTSIndex()))->GetEmcIndex();
+  dynamic_cast<AliPHOSEmcRecPoint*>(gime->EmcRecPoints()->At(emcRPindex))->GetPrimaries(rv) ; 
   return rv ; 
 }
 
 //____________________________________________________________________________
 const TParticle * AliPHOSRecParticle::GetPrimary(Int_t index) const  
 {
-  if ( index > GetNPrimariesToRecParticles() ) 
-   { 
-     if (fDebug) 
-       cout << "WARNING : AliPHOSRecParticle::GetPrimary -> " << index << " is larger that the number of primaries " 
-	   <<  GetNPrimaries() << endl ;
+  if ( index > GetNPrimariesToRecParticles() ) { 
+    if (fDebug) 
+      Warning("GetPrimary", "AliPHOSRecParticle::GetPrimary -> %d is larger that the number of primaries %d", 
+	      index, GetNPrimaries()) ;
     return 0 ; 
-   } 
-  else 
-   { 
+  } 
+  else { 
     Int_t dummy ; 
-    AliRunLoader* runget = AliRunLoader::GetRunLoader(AliConfig::fgkDefaultEventFolderName);
-    if(runget == 0x0) 
-     {
-       Error("Init","Can not find run getter in event folder \"%s\"",AliConfig::fgkDefaultEventFolderName.Data());
-       return 0;
-     }
-  
-    AliPHOSLoader* gime = dynamic_cast<AliPHOSLoader*>(runget->GetLoader("PHOSLoader"));
-    if ( gime == 0 ) 
-      {
-       Error("Init","Could not obtain the Loader object !"); 
-       return 0;
-      } 
-    Int_t emcRPindex = ((AliPHOSTrackSegment*)gime->TrackSegments()->At(GetPHOSTSIndex()))->GetEmcIndex();
-    Int_t primaryindex = ((AliPHOSEmcRecPoint*)gime->EmcRecPoints()->At(emcRPindex))->GetPrimaries(dummy)[index] ; 
-    return runget->Stack()->Particle(primaryindex) ;
+    AliPHOSGetter * gime = AliPHOSGetter::Instance() ; 
+
+    Int_t emcRPindex = dynamic_cast<AliPHOSTrackSegment*>(gime->TrackSegments()->At(GetPHOSTSIndex()))->GetEmcIndex();
+    Int_t primaryindex = dynamic_cast<AliPHOSEmcRecPoint*>(gime->EmcRecPoints()->At(emcRPindex))->GetPrimaries(dummy)[index] ; 
+    return gime->Primary(primaryindex) ;
    } 
   return 0 ; 
 }

@@ -27,10 +27,8 @@
 #include "TTree.h"
 
 // --- Standard library ---
-#include <stdlib.h>   
 
 // --- AliRoot header files ---
-#include "AliRun.h" 
 #include "AliPHOSTrackSegmentMaker.h"
 #include "AliHeader.h" 
 

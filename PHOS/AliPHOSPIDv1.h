@@ -31,7 +31,7 @@ public:
   
   AliPHOSPIDv1() ;          // ctor   
   AliPHOSPIDv1(const TString alirunFileNameFile, const TString eventFolderName = AliConfig::fgkDefaultEventFolderName) ;
-  AliPHOSPIDv1(AliPHOSPIDv1 & pid) ;          // cpy ctor            
+  AliPHOSPIDv1(const AliPHOSPIDv1 & pid) ;          // cpy ctor            
   
   virtual ~AliPHOSPIDv1() ; // dtor
   
