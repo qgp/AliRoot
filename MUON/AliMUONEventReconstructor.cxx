@@ -692,9 +692,32 @@ void AliMUONEventReconstructor::AddHitsForRecFromRawClusters(TTree* TR)
   Int_t iclus, nclus, nTRentries;
   TClonesArray *rawclusters;
   if (fPrintLevel >= 1) cout << "enter AddHitsForRecFromRawClusters" << endl;
-  AliMUON *pMUON  = (AliMUON*) gAlice->GetModule("MUON"); // necessary ????
+
+  TString evfoldname = AliConfig::fgkDefaultEventFolderName;//to be interfaced properly
+  AliRunLoader* rl = AliRunLoader::GetRunLoader(evfoldname);
+  if (rl == 0x0)
+   {
+     Error("MakeEventToBeReconstructed",
+           "Can not find Run Loader in Event Folder named %s.",
+           evfoldname.Data());
+     return;
+   }
+  AliLoader* gime = rl->GetLoader("MUONLoader");
+  if (gime == 0x0)
+   {
+     Error("MakeEventToBeReconstructed","Can not get MUON Loader from Run Loader.");
+     return;
+   }
+   // Loading AliRun master
+  rl->LoadgAlice();
+  gAlice = rl->GetAliRun();
+
+  // Loading MUON subsystem
+  AliMUON * pMUON = (AliMUON *) gAlice->GetDetector("MUON");
+
+  //  AliMUON *pMUON  = (AliMUON*) gAlice->GetModule("MUON"); // necessary ????
   // Security on MUON ????
-  pMUON->ResetRawClusters();
+  //pMUON->ResetRawClusters();
   nTRentries = Int_t(TR->GetEntries());
   if (nTRentries != 1) {
     cout << "Error in AliMUONEventReconstructor::AddHitsForRecFromRawClusters"
@@ -702,7 +725,7 @@ void AliMUONEventReconstructor::AddHitsForRecFromRawClusters(TTree* TR)
     cout << "nTRentries = " << nTRentries << " not equal to 1" << endl;
     exit(0);
   }
-  TR->GetEvent(0); // only one entry
+  gime->TreeR()->GetEvent(0); // only one entry  
   // Loop over tracking chambers
   for (Int_t ch = 0; ch < kMaxMuonTrackingChambers; ch++) {
     // number of HitsForRec to 0 for the chamber
@@ -1437,11 +1460,11 @@ void AliMUONEventReconstructor::EventDump(void)
   np = gAlice->GetNtrack();
   printf(" **** number of generated particles: %d  \n", np);
   
-  for (Int_t iPart = 0; iPart < np; iPart++) {
-    p = gAlice->Particle(iPart);
-    printf(" particle %d: type= %d px= %f py= %f pz= %f pdg= %d\n",
-	   iPart, p->GetPdgCode(), p->Px(), p->Py(), p->Pz(), p->GetPdgCode());    
-  }
+//    for (Int_t iPart = 0; iPart < np; iPart++) {
+//      p = gAlice->Particle(iPart);
+//      printf(" particle %d: type= %d px= %f py= %f pz= %f pdg= %d\n",
+//  	   iPart, p->GetPdgCode(), p->Px(), p->Py(), p->Pz(), p->GetPdgCode());    
+//    }
   return;
 }
 
