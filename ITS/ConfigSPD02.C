@@ -82,6 +82,7 @@ void Config(){
 
     Int_t   iHALL  =  0;
     Int_t   iITS   =  1;
+    rl->CdGAFile();
     //=================== Alice BODY parameters =============================
     AliBODY *BODY = new AliBODY("BODY", "Alice envelop");
 
