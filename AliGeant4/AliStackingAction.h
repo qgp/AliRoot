@@ -43,6 +43,7 @@ class AliStackingAction : public G4UserStackingAction,
   private:
     // data members
     G4int               fStage;          //stage number
+    G4TrackStack*       fPrimaryStack;   //stack of primary tracks
     TG4TrackingAction*  fTrackingAction; //AliTrackingAction
 };
 

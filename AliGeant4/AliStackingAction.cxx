@@ -25,11 +25,12 @@
 
 //_____________________________________________________________________________
 AliStackingAction::AliStackingAction()
-  : AliVerbose("stackingAction",1),
+  : AliVerbose("stackingAction"),
     fStage(0), 
     fTrackingAction(0)
 {
 // 
+  fPrimaryStack = new G4TrackStack();
 }
 
 //_____________________________________________________________________________
@@ -42,6 +43,7 @@ AliStackingAction::AliStackingAction(const AliStackingAction& right)
 //_____________________________________________________________________________
 AliStackingAction::~AliStackingAction() {
 // 
+  delete fPrimaryStack;
 }
 
 // operators
@@ -70,6 +72,9 @@ AliStackingAction::ClassifyNewTrack(const G4Track* track)
   G4ClassificationOfNewTrack classification;
   if (fStage == 0) { 
     // move all primaries to PrimaryStack
+    G4Track* nonconstTrack = (G4Track*)track;
+    G4StackedTrack* newTrack = new G4StackedTrack(nonconstTrack);
+    fPrimaryStack->PushToStack(newTrack);  
     classification = fPostpone;
 
     // save primary particle info
@@ -115,10 +120,19 @@ void AliStackingAction::NewStage()
            << " has been started." << G4endl;
   }
 
-  if (stackManager->GetNUrgentTrack() == 0 &&
-      stackManager->GetNPostponedTrack() != 0 ) {
-      
-      stackManager->TransferOneStackedTrack(fPostpone, fUrgent);
+  G4int nofUrgent = stackManager->GetNUrgentTrack();
+  if (nofUrgent == 0)
+  {
+    G4int nofPrimary = fPrimaryStack->GetNTrack();
+    if (nofPrimary>0)
+    { 
+       G4StackedTrack* stackedTrack
+         = fPrimaryStack->PopFromStack();
+       G4Track* primaryTrack
+         = stackedTrack->GetTrack();
+       delete stackedTrack;
+       stackManager->PushOneTrack(primaryTrack);
+     }
   }
 }
     
@@ -130,6 +144,8 @@ void AliStackingAction::PrepareNewEvent()
 
   fStage = 0;
   fTrackingAction = TG4TrackingAction::Instance();
+  //stackManager->ClearPostponeStack();
+  stackManager->ResetPostponeStack();
 }
 
 
