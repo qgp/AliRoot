@@ -18,12 +18,12 @@
 #include <TH2D.h>
 #include <TH3D.h>
 
-#include "AliHBTPairCut.h"
+#include "AliAODPairCut.h"
 #include "AliHBTPair.h"
 
 
 class AliHBTAnalysis;
-class AliHBTParticleCut;
+class AliVAODParticleCut;
 
 class AliHBTFunction: public TNamed
 {
@@ -47,13 +47,13 @@ class AliHBTFunction: public TNamed
     void Rename(const Char_t * name); //renames the function and histograms ==title is the same that name
     void Rename(const Char_t * name, const Char_t * title); //renames and retitle the function and histograms
     
-    void SetPairCut(AliHBTPairCut* cut);
+    void SetPairCut(AliAODPairCut* cut);
     
     virtual AliHBTPair* CheckPair(AliHBTPair* pair);
     void  SetWriteNumAndDen(Bool_t flag = kFALSE){fWriteNumAndDen = flag;}
   protected:
     virtual void BuildHistos() = 0;//builds default histograms
-    AliHBTPairCut*   fPairCut;     //pair cut
+    AliAODPairCut*   fPairCut;     //pair cut
     Bool_t           fWriteNumAndDen; //flag indicating whether numerator and denominator should be writted together with a result
     ClassDef(AliHBTFunction,3)
 };
@@ -61,15 +61,19 @@ class AliHBTFunction: public TNamed
 inline AliHBTPair* AliHBTFunction::CheckPair(AliHBTPair* pair)
 {
   //check if pair and both particles meets the cut criteria
-  if(fPairCut->Pass(pair)) //if the pair is BAD
-   {//it is BAD 
-    pair = pair->GetSwapedPair();
-    if(pair)
-     if(fPairCut->Pass(pair)) //so try reverse combination
-       { 
-        return 0x0;//it is BAD as well - so return
-       }
-   }
+  if(fPairCut->Rejected(pair)) return 0x0; //if the pair is BAD
+
+//   It is not allowed to change the order here beacause analysis enforce the order
+
+//   {//it is BAD 
+//    pair = pair->GetSwappedPair();
+//    if(pair)
+//     if(fPairCut->Rejected(pair)) //so try reverse combination
+//       { 
+//        return 0x0;//it is BAD as well - so return
+//       }
+//   }
+
   return pair; 
 }
 
@@ -405,7 +409,7 @@ class AliHBTOnePairFctn1D: public AliHBTOnePairFctn, public AliHBTFunction1D
   
  protected:
   //retruns velue to be histogrammed
-  virtual Double_t GetValue(AliHBTPair* pair) = 0; 
+  virtual Double_t GetValue(AliHBTPair* pair) const = 0; 
   ClassDef(AliHBTOnePairFctn1D,2)
 };
 /******************************************************************/
@@ -447,7 +451,7 @@ class AliHBTOnePairFctn2D: public AliHBTOnePairFctn, public AliHBTFunction2D
   void Init(){InitFunction();}
   const char* Name(){return GetName();}
  protected:
-  virtual void GetValues(AliHBTPair* pair, Double_t& x, Double_t& y) = 0;
+  virtual void GetValues(AliHBTPair* pair, Double_t& x, Double_t& y) const = 0;
   ClassDef(AliHBTOnePairFctn2D,2)
 };
 /******************************************************************/
@@ -491,7 +495,7 @@ class AliHBTOnePairFctn3D: public AliHBTOnePairFctn, public AliHBTFunction3D
   void Init(){InitFunction();}
   const char* Name(){return GetName();}
  protected:
-  virtual void GetValues(AliHBTPair* pair, Double_t& x, Double_t& y, Double_t& z) = 0;
+  virtual void GetValues(AliHBTPair* pair, Double_t& x, Double_t& y, Double_t& z) const = 0;
  ClassDef(AliHBTOnePairFctn3D,2)
 };
 /******************************************************************/
@@ -529,7 +533,7 @@ class AliHBTTwoPairFctn1D: public AliHBTTwoPairFctn, public AliHBTFunction1D
   const char* Name(){return GetName();}
   
  protected:
-  virtual Double_t GetValue(AliHBTPair* trackpair, AliHBTPair* partpair) = 0;
+  virtual Double_t GetValue(AliHBTPair* trackpair, AliHBTPair* partpair) const = 0;
 
   ClassDef(AliHBTTwoPairFctn1D,2)
 };
@@ -574,7 +578,7 @@ class AliHBTTwoPairFctn2D: public AliHBTTwoPairFctn, public AliHBTFunction2D
   const char* Name(){return GetName();}
 
  protected:
-  virtual void GetValues(AliHBTPair* trackpair, AliHBTPair* partpair, Double_t& x, Double_t& y) = 0;
+  virtual void GetValues(AliHBTPair* trackpair, AliHBTPair* partpair, Double_t& x, Double_t& y) const = 0;
 
   ClassDef(AliHBTTwoPairFctn2D,2)
 };
@@ -621,7 +625,7 @@ class AliHBTTwoPairFctn3D: public AliHBTTwoPairFctn, public AliHBTFunction3D
   const char* Name(){return GetName();}
 
  protected:
-  virtual void GetValues(AliHBTPair* trackpair, AliHBTPair* partpair, Double_t& x, Double_t& y, Double_t& z) = 0;
+  virtual void GetValues(AliHBTPair* trackpair, AliHBTPair* partpair, Double_t& x, Double_t& y, Double_t& z) const = 0;
 
   ClassDef(AliHBTTwoPairFctn3D,2)
 };

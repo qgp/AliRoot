@@ -13,6 +13,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include "AliReader.h"
+#include "AliTrackPoints.h"
 #include <TString.h>
 class TFile;
 class AliRunLoader;
@@ -51,16 +52,27 @@ class AliReaderESD: public AliReader
     void          SetNumberOfTrackPoints(Int_t n = 5,Float_t dr = 30.0) {fNTrackPoints = n; fdR = dr;}
     Int_t         GetNumberOfTrackPoints() const {return fNTrackPoints;}
     void          SetClusterMap(Bool_t flag = kTRUE){fClusterMap = flag;}
+    void          SetITSTrackPoints(Bool_t flag, AliTrackPoints::ETypes type)
+                                   {fITSTrackPoints = flag; fITSTrackPointsType = type;}
+    void          MustTPC(Bool_t flag){fMustTPC = flag;}
 
-    
+    void          SetReadCentralBarrel(Bool_t flag){fReadCentralBarrel = flag;}
+    void          SetReadMuon(Bool_t flag){fReadMuon = flag;}
+    void          SetReadPHOS(Bool_t flag){fReadPHOS = flag;}
+
     enum ESpecies {kESDElectron = 0, kESDMuon, kESDPion, kESDKaon, kESDProton, kNSpecies};
     static Int_t  GetSpeciesPdgCode(ESpecies spec);
     
     Int_t         ReadESD(AliESD* esd);
-    
+    Int_t         ReadESDCentral(AliESD* esd);
+    Int_t         ReadESDMuon(AliESD* esd);
+    Int_t         ReadESDPHOS(AliESD* /*esd*/){return 0;}
+
   protected:
-    Int_t         ReadNext();
-    TFile*        OpenFile(Int_t evno);//opens files to be read for given event
+    virtual Int_t         ReadNext();
+ 
+    virtual TFile*        OpenFile(Int_t evno);//opens files to be read for given event
+
     Bool_t        CheckTrack(AliESDtrack* t) const;
     
     TString       fESDFileName;//name of the file with tracks
@@ -77,6 +89,18 @@ class AliReaderESD: public AliReader
     
     Bool_t        fClusterMap;//Flag indicating if Claster Map should be created for each track
                               //Claster map is needed for Anti-Splitting Cut
+
+    
+    Bool_t        fITSTrackPoints; //Flag indicalting if track positions in ITS are to be read
+                                  //currently we use only position at first pixels wich are
+	              //used by anti-merging cut in non-id analysis
+    AliTrackPoints::ETypes  fITSTrackPointsType;//defines the way track points are calculated
+    
+    Bool_t        fMustTPC;// must be reconstructed in TPC -> reject tracks reconstructed ITS stand alone
+
+    Bool_t        fReadCentralBarrel; // Flag for reading ESD central track 
+    Bool_t        fReadMuon;// Flag for reading ESD Muon track 
+    Bool_t        fReadPHOS;// Flag for reading ESD Phos 
 
     //Cut Parameters specific to TPC tracks
         

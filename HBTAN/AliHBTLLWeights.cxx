@@ -83,7 +83,7 @@
 //=====================================================================
 //  At the beginning of calculation user should call FSIINI,
 //  which reads LL, NS, ITEST (and eventually ICH, IQS, ISI, I3C)
-//  and initializes various parameters.
+//  and ializes various parameters.
 //  In particular the constants in
 //    COMMON/FSI_CONS/PI,PI2,SPI,DR,W
 //  may be useful for the user:
@@ -164,11 +164,13 @@ extern "C" void type_of_call setpdist(Double_t& r);
 /**************************************************************/
 
 #include "AliHBTPair.h"
-#include "AliHBTParticle.h"
+#include "AliVAODParticle.h"
 #include "WLedCOMMONS.h"
 #include <TRandom.h>   
 #include <TMath.h>     
 #include <TPDGCode.h>
+#include <TParticlePDG.h>
+#include <TDatabasePDG.h>
 
 
 ClassImp(AliHBTLLWeights)  
@@ -263,8 +265,8 @@ Double_t AliHBTLLWeights::GetWeight(const AliHBTPair* partpair)
   static const Double_t kcmtofm = 1.e13;
   static const Double_t kcmtoOneOverGeV = kcmtofm*fgkWcons;  
   
-  AliHBTParticle *part1 = partpair->Particle1();
-  AliHBTParticle *part2 = partpair->Particle2();
+  AliVAODParticle *part1 = partpair->Particle1();
+  AliVAODParticle *part2 = partpair->Particle2();
 
   if ( (part1 == 0x0) || (part2 == 0x0))
    {
@@ -272,6 +274,8 @@ Double_t AliHBTLLWeights::GetWeight(const AliHBTPair* partpair)
      return 0.0;
    }
 
+  if ( fPID1 != part1->GetPdgCode() ) return 1.0; 
+  if ( fPID2 != part2->GetPdgCode() ) return 1.0; 
 
 //takes a lot of time
   if ( (part1->Px() == part2->Px()) && 
@@ -357,6 +361,8 @@ void AliHBTLLWeights::Init()
      Fatal("Init","Particles types are not set");
      return;//pro forma
    }
+  
+  
   FSI_NS.LL = GetPairCode(fPID1,fPID2);
        
   if (FSI_NS.LL == 0) 
@@ -364,6 +370,8 @@ void AliHBTLLWeights::Init()
      Fatal("Init","Particles types are not supported");
      return;//pro forma
    }
+
+  Info("Init","Setting PIDs %d %d. LL Code is %d",fPID1,fPID2,FSI_NS.LL);
 
 
   TParticlePDG* tpart1 = TDatabasePDG::Instance()->GetParticle(fPID1);

@@ -294,18 +294,18 @@ Int_t AliHBTReaderTPC::ReadNext()
 
        if (label < 0) continue;
        
-       if (CheckTrack(iotrack)) continue;
+       if (CheckTrack(iotrack)) continue;//Checks the cuts on track parameters cov. mtx etc
        
        TParticle *p = (TParticle*)stack->Particle(label);
 
        if(p == 0x0) continue; //if returned pointer is NULL
        if(p->GetPDG() == 0x0) continue; //if particle has crezy PDG code (not known to our database)
 
-       if(Pass(p->GetPdgCode())) continue; //check if we are intersted with particles of this type 
+       if(Rejected(p->GetPdgCode())) continue; //check if we are intersted with particles of this type 
                                    //if not take next partilce
 
        AliHBTParticle* part = new AliHBTParticle(*p,i);
-       if(Pass(part)) { delete part; continue;}//check if meets all criteria of any of our cuts
+       if(Rejected(part)) { delete part; continue;}//check if meets all criteria of any of our cuts
                                                //if it does not delete it and take next good track
 
 //       iotrack->PropagateTo(3.,0.0028,65.19);
@@ -328,7 +328,7 @@ Int_t AliHBTReaderTPC::ReadNext()
        Double_t tEtot = TMath::Sqrt( tpx*tpx + tpy*tpy + tpz*tpz + mass*mass);//total energy of the track
 
        AliHBTParticle* track = new AliHBTParticle(p->GetPdgCode(),i, tpx, tpy , tpz, tEtot, 0., 0., 0., 0.);
-       if(Pass(track))//check if meets all criteria of any of our cuts
+       if(Rejected(track))//check if meets all criteria of any of our cuts
                     //if it does not delete it and take next good track
         { 
           delete track;
@@ -376,7 +376,7 @@ Int_t AliHBTReaderTPC::OpenNextSession()
      return 1;
    }
   filename = filename +"/"+ fFileName;
-  fRunLoader = AliRunLoader::Open(filename,AliConfig::fgkDefaultEventFolderName);
+  fRunLoader = AliRunLoader::Open(filename,AliConfig::GetDefaultEventFolderName());
   if( fRunLoader == 0x0)
    {
      DoOpenError("Can not open session.");
@@ -461,7 +461,7 @@ Bool_t AliHBTReaderTPC::CheckTrack(AliTPCtrack* t) const
   if ( (chisqpercl < fNChi2PerClustMin) || (chisqpercl > fNChi2PerClustMax) ) return kTRUE;
   
   Double_t cc[15];
-  t->GetCovariance(cc);
+  t->GetExternalCovariance(cc);
 
   if ( (cc[0]  < fC00Min) || (cc[0]  > fC00Max) ) return kTRUE;
   if ( (cc[2]  < fC11Min) || (cc[2]  > fC11Max) ) return kTRUE;

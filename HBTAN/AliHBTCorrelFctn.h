@@ -4,9 +4,9 @@
 //////////////////////////////////////////////////////////////////////////////
 //
 // class AliHBTQInvCorrelFctn
-// class AliHBTQOutCMSLCCorrelFctn
-// class AliHBTQLongCMSLCCorrelFctn
-// class AliHBTQSideCMSLCCorrelFctn
+// class AliHBTQOutLCMSCorrelFctn
+// class AliHBTQLongLCMSCorrelFctn
+// class AliHBTQSideLCMSCorrelFctn
 // class AliHBTInvMassCorrelFctn
 // class AliHBTTwoKStarCorrelFctn
 //
@@ -32,55 +32,106 @@ class AliHBTQInvCorrelFctn: public AliHBTOnePairFctn1D, public AliHBTCorrelFunct
    virtual ~AliHBTQInvCorrelFctn(){};
    TH1* GetResult();
  protected:
-   Double_t GetValue(AliHBTPair * pair){return pair->GetQInv();}
+   Double_t GetValue(AliHBTPair * pair) const {return pair->GetQInv();}
  private:  
    ClassDef(AliHBTQInvCorrelFctn,2)
  
 };
+/*************************************************************/
+
+class AliHBTOutSideLongFctn: public AliHBTOnePairFctn3D, public AliHBTCorrelFunction
+{
+
+  public:
+    AliHBTOutSideLongFctn(Int_t nXbins = 100, Double_t maxXval = 0.15, Double_t minXval = 0.0,
+                          Int_t nYbins = 100, Double_t maxYval = 0.15, Double_t minYval = 0.0,
+	      Int_t nZbins = 100, Double_t maxZval = 0.15, Double_t minZval = 0.0);
+    virtual  ~AliHBTOutSideLongFctn(){}
+
+    TH1* GetResult();
+    void UseAbsoluteValues(Bool_t flag){fAbs = flag;}
+ 
+  protected:
+    void GetValues(AliHBTPair* pair, Double_t& x, Double_t& y, Double_t& z) const;
+    
+    Bool_t fAbs;//flag indicating if absolute values of qout, qside and qlong should be histogrammed
+  ClassDef(AliHBTOutSideLongFctn,1)
+};
+
 /*************************************************************************************/ 
 
-class AliHBTQOutCMSLCCorrelFctn: public AliHBTOnePairFctn1D, public AliHBTCorrelFunction
+class AliHBTQOutLCMSCorrelFctn: public AliHBTOnePairFctn1D, public AliHBTCorrelFunction
 {
-//Q OutCMSLCaraint Correlation Function
+//Q OutLCMSaraint Correlation Function
 //1D two particle function 
  public:
-   AliHBTQOutCMSLCCorrelFctn(Int_t nbins = 100, Double_t maxXval = 0.15, Double_t minXval = 0.0);
-   virtual ~AliHBTQOutCMSLCCorrelFctn(){};
+   AliHBTQOutLCMSCorrelFctn(Int_t nbins = 100, Double_t maxXval = 0.15, Double_t minXval = 0.0);
+   virtual ~AliHBTQOutLCMSCorrelFctn(){};
    TH1* GetResult();
  protected:
-   Double_t GetValue(AliHBTPair * pair){return pair->GetQOutCMSLC();}
+   Double_t GetValue(AliHBTPair * pair) const {return pair->GetQOutLCMS();}
  private:  
-    ClassDef(AliHBTQOutCMSLCCorrelFctn,2)
+    ClassDef(AliHBTQOutLCMSCorrelFctn,2)
 };
 /*************************************************************************************/ 
 
-class AliHBTQLongCMSLCCorrelFctn: public AliHBTOnePairFctn1D, public AliHBTCorrelFunction
+class AliHBTQLongLCMSCorrelFctn: public AliHBTOnePairFctn1D, public AliHBTCorrelFunction
 {
-//Q LongCMSLCaraint Correlation Function
+//Q LongLCMSaraint Correlation Function
 //1D two particle function 
  public:
-   AliHBTQLongCMSLCCorrelFctn(Int_t nbins = 100, Double_t maxXval = 0.15, Double_t minXval = 0.0);
-   virtual ~AliHBTQLongCMSLCCorrelFctn(){};
+   AliHBTQLongLCMSCorrelFctn(Int_t nbins = 100, Double_t maxXval = 0.15, Double_t minXval = 0.0);
+   virtual ~AliHBTQLongLCMSCorrelFctn(){};
    TH1* GetResult();
  protected:
-   Double_t GetValue(AliHBTPair * pair){return pair->GetQLongCMSLC();}
+   Double_t GetValue(AliHBTPair * pair) const {return pair->GetQLongLCMS();}
  private:  
-    ClassDef(AliHBTQLongCMSLCCorrelFctn,2)
+    ClassDef(AliHBTQLongLCMSCorrelFctn,2)
 };
 /*************************************************************************************/ 
 
-class AliHBTQSideCMSLCCorrelFctn: public AliHBTOnePairFctn1D, public AliHBTCorrelFunction
+class AliHBTQtLCMSCorrelFctn: public AliHBTOnePairFctn1D, public AliHBTCorrelFunction
 {
-//Q SideCMSLCaraint Correlation Function
+//Q LongLCMSaraint Correlation Function
 //1D two particle function 
  public:
-   AliHBTQSideCMSLCCorrelFctn(Int_t nbins = 100, Double_t maxXval = 0.15, Double_t minXval = 0.0);
-   virtual ~AliHBTQSideCMSLCCorrelFctn(){}
+   AliHBTQtLCMSCorrelFctn(Int_t nbins = 100, Double_t maxXval = 0.15, Double_t minXval = 0.0);
+   virtual ~AliHBTQtLCMSCorrelFctn(){};
    TH1* GetResult();
  protected:
-   Double_t GetValue(AliHBTPair * pair){return pair->GetQSideCMSLC();}
+   Double_t GetValue(AliHBTPair * pair) const {return pair->GetQtLCMS();}
  private:  
-    ClassDef(AliHBTQSideCMSLCCorrelFctn,2)
+    ClassDef(AliHBTQtLCMSCorrelFctn,2)
+};
+/*************************************************************************************/ 
+
+class AliHBTQSideLCMSCorrelFctn: public AliHBTOnePairFctn1D, public AliHBTCorrelFunction
+{
+//Q SideLCMSaraint Correlation Function
+//1D two particle function 
+ public:
+   AliHBTQSideLCMSCorrelFctn(Int_t nbins = 100, Double_t maxXval = 0.15, Double_t minXval = 0.0);
+   virtual ~AliHBTQSideLCMSCorrelFctn(){}
+   TH1* GetResult();
+ protected:
+   Double_t GetValue(AliHBTPair * pair) const {return pair->GetQSideLCMS();}
+ private:  
+    ClassDef(AliHBTQSideLCMSCorrelFctn,2)
+};
+/*************************************************************************************/ 
+
+class AliHBTQtCorrelFctn: public AliHBTOnePairFctn1D, public AliHBTCorrelFunction
+{
+//Q Longaraint Correlation Function
+//1D two particle function 
+ public:
+   AliHBTQtCorrelFctn(Int_t nbins = 100, Double_t maxXval = 0.15, Double_t minXval = 0.0);
+   virtual ~AliHBTQtCorrelFctn(){};
+   TH1* GetResult();
+ protected:
+   Double_t GetValue(AliHBTPair * pair) const {return pair->GetQt();}
+ private:  
+    ClassDef(AliHBTQtCorrelFctn,1)
 };
 /*************************************************************************************/ 
 
@@ -92,7 +143,7 @@ class AliHBTInvMassCorrelFctn: public AliHBTOnePairFctn1D
    virtual ~AliHBTInvMassCorrelFctn(){};
    TH1* GetResult();
  protected:
-   Double_t GetValue(AliHBTPair * pair) { return pair->GetInvMass();}
+   Double_t GetValue(AliHBTPair * pair) const { return pair->GetInvMass();}
  private:  
     ClassDef(AliHBTInvMassCorrelFctn,1)
 };
@@ -107,9 +158,24 @@ class AliHBTTwoKStarCorrelFctn: public AliHBTOnePairFctn1D, public AliHBTCorrelF
    virtual ~AliHBTTwoKStarCorrelFctn(){};
    TH1* GetResult();
  protected:
-   Double_t GetValue(AliHBTPair * pair) { return 2.0*pair->GetKStar();}
+   Double_t GetValue(AliHBTPair * pair) const { return 2.0*pair->GetKStar();}
  private:  
     ClassDef(AliHBTTwoKStarCorrelFctn,2)
+};
+
+/*************************************************************************************/ 
+
+class AliHBTAvSeparCorrelFctn: public AliHBTOnePairFctn1D, public AliHBTCorrelFunction
+{
+//   Correlation Function of 2*KStar
+ public:
+   AliHBTAvSeparCorrelFctn(Int_t nbins = 200, Double_t maxXval = 30, Double_t minXval = 0.0);
+   virtual ~AliHBTAvSeparCorrelFctn(){};
+   TH1* GetResult();
+ protected:
+   Double_t GetValue(AliHBTPair * pair) const { return pair->GetAvarageDistance();}
+ private:  
+    ClassDef(AliHBTAvSeparCorrelFctn,2)
 };
 
 #endif

@@ -12,8 +12,6 @@
 
 #include <TString.h>
 #include <TNamed.h>
-#include <TTree.h>
-#include <TObjArray.h>
 #include "AliESD.h"
 #include "AliITStrackV2.h"
 

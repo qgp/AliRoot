@@ -51,9 +51,9 @@ class AliHBTCorrectQInvCorrelFctn: public AliHBTOnePairFctn1D
   protected:
     virtual void BuildHistos(Int_t nbins, Float_t max, Float_t min);
     Double_t GetCoulombCorrection(AliHBTPair* /*pair*/){return 1.0;}
-    Double_t GetValue(AliHBTPair * pair){return pair->GetQInv();}
+    Double_t GetValue(AliHBTPair * pair) const {return pair->GetQInv();}
     void Smear(AliHBTPair* pair,AliHBTPair& smeared);
-    void Smear(AliHBTParticle* part, AliHBTParticle* smeared);
+    void Smear(AliVAODParticle* part, AliVAODParticle* smeared);
     Double_t GetModelValue(Double_t qinv);
 
     //Our ideal numerator 

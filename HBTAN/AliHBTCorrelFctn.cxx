@@ -3,9 +3,9 @@
 //////////////////////////////////////////////////////////////////////////////
 //
 // class AliHBTQInvCorrelFctn
-// class AliHBTQOutCMSLCCorrelFctn
-// class AliHBTQLongCMSLCCorrelFctn
-// class AliHBTQSideCMSLCCorrelFctn
+// class AliHBTQOutLCMSCorrelFctn
+// class AliHBTQLongLCMSCorrelFctn
+// class AliHBTQSideLCMSCorrelFctn
 // class AliHBTInvMassCorrelFctn
 // class AliHBTTwoKStarCorrelFctn
 //
@@ -44,9 +44,49 @@ TH1* AliHBTQInvCorrelFctn::GetResult()
 /*************************************************************************************/ 
 /*************************************************************************************/ 
 
-ClassImp(AliHBTQOutCMSLCCorrelFctn)
+ClassImp(AliHBTOutSideLongFctn)
+
+AliHBTOutSideLongFctn::AliHBTOutSideLongFctn(Int_t nXbins, Double_t maxXval, Double_t minXval,
+                                                   Int_t nYbins, Double_t maxYval, Double_t minYval,
+                                                   Int_t nZbins, Double_t maxZval, Double_t minZval):
+ AliHBTOnePairFctn3D(nXbins,maxXval,minXval,nYbins,maxYval,minYval,nZbins,maxZval,minZval),
+ fAbs(kTRUE)
+{
+//ctor
+  fWriteNumAndDen = kTRUE;//change default behaviour
+  Rename("qoslcf","Q_{out}-Q_{side}-Q_{long} Correlation Fctn");
+}
+/*************************************************************************************/ 
+
+TH1* AliHBTOutSideLongFctn::GetResult()
+{
+ //returns the scaled ratio
+ delete fRatio;
+ fRatio = GetRatio(Scale());
+ return fRatio;
+}
+
+void AliHBTOutSideLongFctn::GetValues(AliHBTPair* pair, Double_t& x, Double_t& y, Double_t& z) const
+{ 
+  //calculates values of that function
+  //qout qside and qlong
+  
+  x=pair->GetQOutLCMS(); 
+  y=pair->GetQSideLCMS(); 
+  z=pair->GetQLongLCMS();
+  if (fAbs)
+   {
+     x = TMath::Abs(x);
+     y = TMath::Abs(y);
+     z = TMath::Abs(z);
+   }
+} 
+
+/*************************************************************************************/ 
+
+ClassImp(AliHBTQOutLCMSCorrelFctn)
     
-AliHBTQOutCMSLCCorrelFctn::AliHBTQOutCMSLCCorrelFctn(Int_t nbins, Double_t maxXval, Double_t minXval):
+AliHBTQOutLCMSCorrelFctn::AliHBTQOutLCMSCorrelFctn(Int_t nbins, Double_t maxXval, Double_t minXval):
  AliHBTOnePairFctn1D(nbins,maxXval,minXval)
 {
   //ctor
@@ -55,7 +95,7 @@ AliHBTQOutCMSLCCorrelFctn::AliHBTQOutCMSLCCorrelFctn(Int_t nbins, Double_t maxXv
 }
 /*************************************************************************************/ 
     
-TH1* AliHBTQOutCMSLCCorrelFctn::GetResult()
+TH1* AliHBTQOutLCMSCorrelFctn::GetResult()
 {
  //returns the scaled ratio
  delete fRatio;
@@ -66,9 +106,9 @@ TH1* AliHBTQOutCMSLCCorrelFctn::GetResult()
 /*************************************************************************************/ 
 /*************************************************************************************/ 
 
-ClassImp(AliHBTQLongCMSLCCorrelFctn)
+ClassImp(AliHBTQLongLCMSCorrelFctn)
     
-AliHBTQLongCMSLCCorrelFctn::AliHBTQLongCMSLCCorrelFctn(Int_t nbins, Double_t maxXval, Double_t minXval):
+AliHBTQLongLCMSCorrelFctn::AliHBTQLongLCMSCorrelFctn(Int_t nbins, Double_t maxXval, Double_t minXval):
  AliHBTOnePairFctn1D(nbins,maxXval,minXval)
 {
   //ctor
@@ -77,7 +117,7 @@ AliHBTQLongCMSLCCorrelFctn::AliHBTQLongCMSLCCorrelFctn(Int_t nbins, Double_t max
 }
 /*************************************************************************************/ 
     
-TH1* AliHBTQLongCMSLCCorrelFctn::GetResult()
+TH1* AliHBTQLongLCMSCorrelFctn::GetResult()
 {
  //returns the scaled ratio
  delete fRatio;
@@ -88,9 +128,9 @@ TH1* AliHBTQLongCMSLCCorrelFctn::GetResult()
 /*************************************************************************************/ 
 /*************************************************************************************/ 
 
-ClassImp(AliHBTQSideCMSLCCorrelFctn)
+ClassImp(AliHBTQSideLCMSCorrelFctn)
     
-AliHBTQSideCMSLCCorrelFctn::AliHBTQSideCMSLCCorrelFctn(Int_t nbins, Double_t maxXval, Double_t minXval):
+AliHBTQSideLCMSCorrelFctn::AliHBTQSideLCMSCorrelFctn(Int_t nbins, Double_t maxXval, Double_t minXval):
  AliHBTOnePairFctn1D(nbins,maxXval,minXval)
 {
  //ctor
@@ -99,7 +139,7 @@ AliHBTQSideCMSLCCorrelFctn::AliHBTQSideCMSLCCorrelFctn(Int_t nbins, Double_t max
 }
 /*************************************************************************************/ 
     
-TH1* AliHBTQSideCMSLCCorrelFctn::GetResult()
+TH1* AliHBTQSideLCMSCorrelFctn::GetResult()
 {
  //returns the scaled ratio
  delete fRatio;
@@ -108,6 +148,48 @@ TH1* AliHBTQSideCMSLCCorrelFctn::GetResult()
 }
 
 
+/*************************************************************************************/ 
+/*************************************************************************************/ 
+/*************************************************************************************/ 
+ClassImp(AliHBTQtLCMSCorrelFctn)
+    
+AliHBTQtLCMSCorrelFctn::AliHBTQtLCMSCorrelFctn(Int_t nbins, Double_t maxXval, Double_t minXval):
+ AliHBTOnePairFctn1D(nbins,maxXval,minXval)
+{
+  //ctor
+ fWriteNumAndDen = kTRUE;//change default behaviour
+ Rename("Qtcf","Q_{t}(LCMS) Correlation Function");
+}
+/*************************************************************************************/ 
+    
+TH1* AliHBTQtLCMSCorrelFctn::GetResult()
+{
+ //returns the scaled ratio
+ delete fRatio;
+ fRatio = GetRatio(Scale());
+ return fRatio;
+}
+/*************************************************************************************/ 
+/*************************************************************************************/ 
+/*************************************************************************************/ 
+ClassImp(AliHBTQtCorrelFctn)
+    
+AliHBTQtCorrelFctn::AliHBTQtCorrelFctn(Int_t nbins, Double_t maxXval, Double_t minXval):
+ AliHBTOnePairFctn1D(nbins,maxXval,minXval)
+{
+  //ctor
+ fWriteNumAndDen = kTRUE;//change default behaviour
+ Rename("qtcf","Q_{t} Correlation Function");
+}
+/*************************************************************************************/ 
+    
+TH1* AliHBTQtCorrelFctn::GetResult()
+{
+ //returns the scaled ratio
+ delete fRatio;
+ fRatio = GetRatio(Scale());
+ return fRatio;
+}
 /*************************************************************************************/ 
 /*************************************************************************************/ 
 /*************************************************************************************/ 
@@ -144,6 +226,29 @@ AliHBTTwoKStarCorrelFctn::AliHBTTwoKStarCorrelFctn(Int_t nbins, Double_t maxXval
 /*************************************************************************************/ 
 
 TH1* AliHBTTwoKStarCorrelFctn::GetResult()
+{  
+ //returns the scaled ratio
+ delete fRatio;
+ fRatio = GetRatio(Scale());
+ return fRatio;
+}
+
+/*************************************************************************************/ 
+/*************************************************************************************/ 
+/*************************************************************************************/ 
+ClassImp(AliHBTAvSeparCorrelFctn)
+
+AliHBTAvSeparCorrelFctn::AliHBTAvSeparCorrelFctn(Int_t nbins, Double_t maxXval, Double_t minXval):
+ AliHBTOnePairFctn1D(nbins,maxXval,minXval)
+{
+ //ctor 
+ fWriteNumAndDen = kTRUE;//change default behaviour
+ Rename("avsepcf","Avarage separation Correlation Function");
+}
+
+/*************************************************************************************/ 
+
+TH1* AliHBTAvSeparCorrelFctn::GetResult()
 {  
  //returns the scaled ratio
  delete fRatio;

@@ -9,7 +9,6 @@
 
 #include "AliHBTWeightsPID.h"
 #include "AliHBTPair.h"
-#include "AliHBTParticle.h"
 #include <TRandom.h>
 #include <TMath.h>
 #include <TH1.h>
@@ -117,8 +116,8 @@ AliHBTWeightsPID* AliHBTWeightsPID::Instance()
 Double_t AliHBTWeightsPID::GetWeightPID(const AliHBTPair* trackpair)
 {
   //Calculates the weight of "trackpair"
-  AliHBTParticle *track1 = trackpair->Particle1();
-  AliHBTParticle *track2 = trackpair->Particle2();
+  AliVAODParticle *track1 = trackpair->Particle1();
+  AliVAODParticle *track2 = trackpair->Particle2();
     
   Double_t pt1=track1->Pt();
   Double_t eta1=track1->Eta();

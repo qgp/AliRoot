@@ -4,26 +4,49 @@
 //
 // class AliReader
 //
-// Reader Base class (reads particles and tracks and
-// puts it to the AliAODRun objects
+// Reader Base class 
+// Reads particles and tracks and
+// puts them to the AliAOD objects and eventually, if needed, buffers AliAODs in AliAODRun(s)
+//
+// User loops over events calling method Next. In case of success this method returns 0.
+// In case of error or if there is no more events to read, non-0 value is returned
+//
+// Reading can be rewound to the beginning using method Rewind.
+//
+// Tracks are read to the fEventRec (contains reconstructed tracks) 
+// and fEventSim (corresponding MC simulated data) data members,
+// that are of the type AliAOD. 
+//
+// If a given reader has ability of reading both, reconstructed and simulated data, 
+// these are structured in AODs so a "n'th" simulated particle 
+// (the one stored in the fEventSim at slot n) 
+// corresponds to the n'th reconstructed track (the one stored in the fEventRec at slot n).
+//
+// The same reconstructed track can be present more than ones in the AOD,
+// but with a different PID. In this case
+// pointer to the corresponding MC simulated particles is also present more than ones.
+// This situation happens if you want to read all particles 
+// with PID probability of being , e.g.,  pion higher than 60%
+// and being kaon higher than 40%. Than, if a given track has probability Ppid(pi)=52% and Ppid(K)=48% 
+// than it is read twise.
 //
 // Provides functionality for both buffering and non-buffering reading
 // This can be switched on/off via method SetEventBuffering(bool)
 // The main method that inheriting classes need to implement is ReadNext()
 // that read next event in queue.
+//
 // The others are:
 // Bool_t  ReadsRec() const; specifies if reader is able to read simulated particles
 // Bool_t  ReadsSim() const; specifies if reader is able to read reconstructed tracks
 // void    Rewind(); rewind reading to the beginning
 //
-// reading of next event is triggered via method Next()
-//
 // This class provides full functionality for reading from many sources
-// User can provide TObjArray of TObjString (SetDirs method or via parameter 
-// in constructor) which desribes paths of directories to search data in.
+// User can provide TObjArray of TObjStrings (SetDirs method or via parameter 
+// in the constructor) which desribes paths of directories to search data in.
 // If none specified current directory is searched.
-//
+// 
 // Piotr.Skowronski@cern.ch
+//
 ///////////////////////////////////////////////////////////////////////////
 
 #include <TString.h>
@@ -32,6 +55,8 @@
 #include <TClass.h>
 #include <TRandom.h>
 #include <TH1.h>
+
+#include <TGliteXmlEventlist.h>
 
 #include "AliAODParticleCut.h"
 #include "AliAOD.h"
@@ -43,6 +68,7 @@ ClassImp(AliReader)
 /*************************************************************************************/
 
 AliReader::AliReader():
+ fEventList(0x0),
  fCuts(new TObjArray()),
  fDirs(0x0),
  fCurrentEvent(0),
@@ -64,6 +90,7 @@ AliReader::AliReader():
 /*************************************************************************************/
 
 AliReader::AliReader(TObjArray* dirs):
+ fEventList(0x0),
  fCuts(new TObjArray()),
  fDirs(dirs),
  fCurrentEvent(0),
@@ -85,6 +112,7 @@ AliReader::AliReader(TObjArray* dirs):
 /*************************************************************************************/
 AliReader::AliReader(const AliReader& in):
  TNamed(in),
+ fEventList((in.fEventList)?(TGliteXmlEventlist*)in.fEventList->Clone():0x0),
  fCuts((in.fCuts)?(TObjArray*)in.fCuts->Clone():0x0),
  fDirs((in.fDirs)?(TObjArray*)in.fDirs->Clone():0x0),
  fCurrentEvent(0),
@@ -115,6 +143,7 @@ AliReader::~AliReader()
  delete fEventSim;
  delete fEventRec;
  delete fTrackCounter;
+ delete fEventList;
 }
 /*************************************************************************************/
 
@@ -148,7 +177,7 @@ Int_t AliReader::Next()
 //moves to next event
 
   //if asked to read up to event nb. fLast, and it is overcome, report no more events
-  if ((fNEventsRead > fLast) && (fLast > 0) ) return kTRUE;
+  if ((fNEventsRead >= fLast) && (fLast > 0) ) return kTRUE;
   
   if (fTrackCounter == 0x0)//create Track Counter
    {
@@ -323,13 +352,13 @@ Int_t AliReader::Read(AliAODRun* particles, AliAODRun *tracks)
 }      
 /*************************************************************************************/
 
-Bool_t AliReader::Pass(AliVAODParticle* p)
+Bool_t AliReader::Rejected(AliVAODParticle* p)
 {
  //Method examines whether particle meets all cut and particle type criteria
   
    if(p==0x0)//of corse we not pass NULL pointers
     {
-     Warning("Pass()","No Pasaran! We never accept NULL pointers");
+     Warning("Rejected()","No Pasaran! We never accept NULL pointers");
      return kTRUE;
     }
    //if no particle is specified, we pass all particles
@@ -338,14 +367,14 @@ Bool_t AliReader::Pass(AliVAODParticle* p)
   for(Int_t i=0; i<fCuts->GetEntriesFast(); i++)   
    {
      AliAODParticleCut &cut = *((AliAODParticleCut*)fCuts->At(i));
-     if(!cut.Pass(p)) return kFALSE;  //accepted
+     if(!cut.Rejected(p)) return kFALSE;  //accepted
    }
    
   return kTRUE;//not accepted
 }
 /*************************************************************************************/
 
-Bool_t  AliReader::Pass(Int_t pid)
+Bool_t  AliReader::Rejected(Int_t pid)
 {
 //this method checks if any of existing cuts accepts this pid particles
 //or any cuts accepts all particles
@@ -365,28 +394,38 @@ Bool_t  AliReader::Pass(Int_t pid)
 }
 /*************************************************************************************/
 
-TString& AliReader::GetDirName(Int_t entry)
+TString AliReader::GetDirName(Int_t entry)
 {
 //returns directory name of next one to read
-  TString* retval;//return value
+  TString  retval;//return value
   if (fDirs ==  0x0)
-   {
-     retval = new TString(".");
-     return *retval;
-   }
-
-  if ( (entry>fDirs->GetEntries()) || (entry<0))//if out of bounds return empty string
-   {                                            //note that entry==0 is accepted even if array is empty (size=0)
-     Error("GetDirName","Name out of bounds");
-     retval = new TString();
-     return *retval;
-   }
-
-  if (fDirs->GetEntries() == 0)
    { 
-     retval = new TString(".");
-     return *retval;
+     if (entry == 0)
+      {
+       retval = ".";
+       return retval;
+      }
+     else
+      {
+       return retval;
+      }  
    }
+  
+  
+  if ( (entry >= fDirs->GetEntries()) || (entry < 0))//if out of bounds return empty string
+   {                                            //note that entry==0 is accepted even if array is empty (size=0)
+    if ( (fDirs->GetEntries() == 0) && (entry == 0) )
+      { 
+        retval = ".";
+        return retval;
+      }
+     if (AliVAODParticle::GetDebug() > 0)
+      {
+        Warning("GetDirName","Index %d out of bounds",entry);
+      }
+     return retval;
+   }
+
 
   TClass *objclass = fDirs->At(entry)->IsA();
   TClass *stringclass = TObjString::Class();
@@ -396,11 +435,11 @@ TString& AliReader::GetDirName(Int_t entry)
   if(dir == 0x0)
    {
      Error("GetDirName","Object in TObjArray is not a TObjString or its descendant");
-     retval = new TString();
-     return *retval;
+     return retval;
    }
   if (gDebug > 0) Info("GetDirName","Returned ok %s",dir->String().Data());
-  return dir->String();
+  retval = dir->String();
+  return retval;
 }
 /*************************************************************************************/
 
@@ -410,13 +449,26 @@ void AliReader::Blend()
   //is used to check if some distributions (of many particle properties) 
   //depend on the order of particles
   //(tracking gives particles Pt sorted)
-  
-  if (fEventSim == 0x0) return;
-  
-  for (Int_t i = 2; i < fEventSim->GetNumberOfParticles(); i++)
+  Int_t npart = 0;
+
+  if (fEventSim ) 
+   {
+     npart = fEventSim->GetNumberOfParticles();
+    } 
+  else 
+    if (fEventRec ) 
+     {
+        npart = fEventRec->GetNumberOfParticles();
+     }
+    else
+     {
+       return;
+     }
+  for (Int_t i = 2;  i < npart; i++)
    {
      Int_t with = gRandom->Integer(i);
-     fEventSim->SwapParticles(i,with);
+//     Info("Blend","%d %d",i, with);
+     if (fEventSim) fEventSim->SwapParticles(i,with);
      if (fEventRec) fEventRec->SwapParticles(i,with);
    }
 }

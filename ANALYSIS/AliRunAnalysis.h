@@ -31,6 +31,10 @@ class AliRunAnalysis: public TTask
     void          SetReader(AliReader* reader){fReader = reader;}
     
     const char*   GetName(){return "RunAnalysis";}
+    void          EventCutOnRec(Bool_t flag){fCutOnRec = flag;}
+    void          EventCutOnSim(Bool_t flag){fCutOnSim = flag;}
+    void          SetEventCut(AliEventCut* evcut);
+    void          SetOwner(Bool_t owner=kTRUE){fAnalysies.SetOwner(owner);}
     
   protected:
     TObjArray     fAnalysies;//arry with analysies
@@ -41,7 +45,7 @@ class AliRunAnalysis: public TTask
     Bool_t        fCutOnSim;//flag indicating that event cut is performed on simulated particles 
     Bool_t        fCutOnRec;//flag indicating that event cut is performed on reconstructed tracks
     
-    Bool_t        Pass(AliAOD* recevent, AliAOD* simevent);
+    Bool_t        Rejected(AliAOD* recevent, AliAOD* simevent);
     
   private:
     void SetName(const char *){}//change SetName to be private

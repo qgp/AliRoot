@@ -1,3 +1,4 @@
+#include "AliTrackPoints.h"
 //_________________________________
 ////////////////////////////////////////////////////////////
 //                                                        //
@@ -17,13 +18,14 @@
 #include <TMath.h>
 
 #include "AliESDtrack.h"
-#include "AliTrackPoints.h"
 #include "AliTPCtrack.h"
 #include "AliTrackReference.h"
+#include "AliITStrackV2.h"
 
 ClassImp(AliTrackPoints)
 
 Int_t AliTrackPoints::fgDebug = 0;
+
 AliTrackPoints::AliTrackPoints():
  fN(0),
  fX(0x0),
@@ -34,6 +36,40 @@ AliTrackPoints::AliTrackPoints():
 }
 /***************************************************************/
 
+AliTrackPoints::AliTrackPoints(AliTrackPoints::ETypes type, AliESDtrack* track, Float_t mf):
+ fN(0),
+ fX(0x0),
+ fY(0x0),
+ fZ(0x0)
+{
+  //constructor 
+  //tupe -  what kind of track points should be calculated
+  //mf - magnetic field in [kG] = [T]*10.0
+  switch (type)
+   {
+     case kITS:
+       fN = 6;
+       fX = new Float_t[fN];
+       fY = new Float_t[fN];
+       fZ = new Float_t[fN];
+       MakeITSPoints(track);
+       break;
+
+     case kITSInnerFromVertexOuterFromTPC:
+       fN = 6;
+       fX = new Float_t[fN];
+       fY = new Float_t[fN];
+       fZ = new Float_t[fN];
+       MakeITSPointsInnerFromVertexOuterFromTPC(track,mf);
+       break;
+
+     default:
+       Info("AliTrackPoints","Not recognized type");
+   }
+   
+}
+/***************************************************************/
+
 AliTrackPoints::AliTrackPoints(Int_t n, AliESDtrack* track, Float_t mf, Float_t dr, Float_t r0):
  fN(n),
  fX(new Float_t[fN]),
@@ -41,7 +77,7 @@ AliTrackPoints::AliTrackPoints(Int_t n, AliESDtrack* track, Float_t mf, Float_t 
  fZ(new Float_t[fN])
 {
   //constructor
-  //mf - magnetic field in kG - needed to calculated curvature out of Pt
+  //mf - magnetic field in kG - needed to calculate curvature out of Pt
   //r0 - starting radius
   //dr - calculate points every dr cm, default every 30cm
   if (track == 0x0)
@@ -131,6 +167,16 @@ AliTrackPoints::AliTrackPoints(Int_t n, AliTPCtrack* track, Float_t dr, Float_t 
   Double_t c=track->GetC();
   MakePoints(dr,r0,x,par,c,alpha);
 }  
+/***************************************************************/
+
+AliTrackPoints::~AliTrackPoints()
+{
+  //destructor
+  delete [] fX;
+  delete [] fY;
+  delete [] fZ;
+}
+/***************************************************************/
 
 void AliTrackPoints::MakePoints( Float_t dr, Float_t r0, Double_t x, Double_t* par, Double_t c, Double_t alpha)
 {
@@ -235,13 +281,66 @@ void AliTrackPoints::MakePoints( Float_t dr, Float_t r0, Double_t x, Double_t* p
 }
 /***************************************************************/
 
-AliTrackPoints::~AliTrackPoints()
+void AliTrackPoints::MakeITSPoints(AliESDtrack* track)
 {
-  //destructor
-  delete [] fX;
-  delete [] fY;
-  delete [] fZ;
+//Calculates points in ITS
+// z=R*Pz/Pt
+ AliITStrackV2 itstrack(*track,kTRUE);
+ Double_t x,y,z;
+ static const Double_t r[6] = {4.0, 7.0, 14.9, 23.8, 39.1, 43.6};
+ for (Int_t i = 0; i < 6; i++)
+  {
+    itstrack.GetGlobalXYZat(r[i],x,y,z);
+    fX[i] = x;
+    fY[i] = y;
+    fZ[i] = z;
+//    Info("MakeITSPoints","X %f Y %f Z %f R asked %f R obtained %f",
+//             fX[i],fY[i],fZ[i],r[i],TMath::Hypot(fX[i],fY[i]));
+  }   
+ 
 }
+
+/***************************************************************/
+void AliTrackPoints::MakeITSPointsInnerFromVertexOuterFromTPC(AliESDtrack* track, Float_t mf)
+{
+//makes trackpoints for ITS  
+//for 3 inner layers calculates out of the vector at vertex
+//for 3 outer ---------------//------------------ at inner TPC  
+
+ static const Double_t r[6] = {4.0, 7.0, 14.9, 23.8, 39.1, 43.6};
+ AliITStrackV2 itstrack(*track,kTRUE);
+ Double_t x,y,z;
+ for (Int_t i = 0; i < 3; i++)
+  {
+    itstrack.GetGlobalXYZat(r[i],x,y,z);
+    fX[i] = x;
+    fY[i] = y;
+    fZ[i] = z;
+    if ( GetDebug() > 2 )
+      {
+         Info("MakeITSPoints","X %f Y %f Z %f R asked %f R obtained %f",
+                fX[i],fY[i],fZ[i],r[i],TMath::Hypot(fX[i],fY[i]));
+      }
+  }   
+ 
+ for (Int_t i = 3; i < 6; i++)
+  {
+    Float_t ax,ay,az;
+    AliTrackPoints tmptp(1,track,mf,0,r[i]);
+    tmptp.PositionAt(0,ax,ay,az);
+    fX[i] = ax;
+    fY[i] = ay;
+    fZ[i] = az;
+    if ( GetDebug() > 2 )
+     {
+       Info("MakeITSPoints","X %f Y %f Z %f R asked %f R obtained %f",
+                fX[i],fY[i],fZ[i],r[i],TMath::Hypot(fX[i],fY[i]));
+     }
+  }
+ 
+}
+    
+
 /***************************************************************/
 
 void AliTrackPoints::PositionAt(Int_t n, Float_t &x,Float_t &y,Float_t &z)
@@ -260,6 +359,18 @@ void AliTrackPoints::PositionAt(Int_t n, Float_t &x,Float_t &y,Float_t &z)
     {
       Info("AliTrackPoints","n %d; X %f; Y %f; Z %f",n,x,y,z);
     }
+}
+/***************************************************************/
+
+void AliTrackPoints::Move(Float_t x, Float_t y, Float_t z)
+{
+//Moves all points about vector
+ for (Int_t i = 0; i<fN; i++)
+   {
+     fX[i]+=x;
+     fY[i]+=y;
+     fZ[i]+=z;
+   }   
 }
 /***************************************************************/
 
@@ -332,9 +443,8 @@ Double_t AliTrackPoints::AvarageDistance(const AliTrackPoints& tr)
 
 
 
-void AliTrackPoints::TestESD(Int_t entr,const char* fname )
+void AliTrackPoints::Testesd(Int_t entr,const char* fname )
 {
-//Tests creation of track points for ESD tracks
   delete gAlice;
   gAlice = 0x0;
   AliRunLoader* rl = AliRunLoader::Open();
@@ -459,9 +569,8 @@ void AliTrackPoints::TestESD(Int_t entr,const char* fname )
 /***************************************************************/
 /***************************************************************/
 
-void AliTrackPoints::TestTPC(Int_t entr)
+void AliTrackPoints::Testtpc(Int_t entr)
 {
-//Tests creation of track points for TPC tracks
   delete gAlice;
   gAlice = 0x0;
   AliRunLoader* rl = AliRunLoader::Open();
@@ -587,3 +696,4 @@ void AliTrackPoints::TestTPC(Int_t entr)
   
   delete rl;
 }
+

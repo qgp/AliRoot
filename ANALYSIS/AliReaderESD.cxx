@@ -19,10 +19,13 @@
 #include <TParticle.h>
 #include <TH1.h>
 
+#include <TGliteXmlEventlist.h>
+
 #include <AliRun.h>
 #include <AliRunLoader.h>
 #include <AliStack.h>
 #include <AliESDtrack.h>
+#include <AliKalmanTrack.h>
 #include <AliESD.h>
 
 #include "AliAnalysis.h"
@@ -30,7 +33,6 @@
 #include "AliAOD.h"
 #include "AliAODParticle.h"
 #include "AliAODParticleCut.h"
-#include "AliTrackPoints.h"
 #include "AliClusterMap.h"
 
 ClassImp(AliReaderESD)
@@ -47,6 +49,12 @@ AliReaderESD::AliReaderESD(const Char_t* esdfilename, const Char_t* galfilename)
  fNTrackPoints(0),
  fdR(0.0),
  fClusterMap(kFALSE),
+ fITSTrackPoints(kFALSE),
+ fITSTrackPointsType(AliTrackPoints::kITS),
+ fMustTPC(kFALSE),
+ fReadCentralBarrel(kTRUE),
+ fReadMuon(kFALSE),
+ fReadPHOS(kFALSE),
  fNTPCClustMin(0),
  fNTPCClustMax(150),
  fTPCChi2PerClustMin(0.0),
@@ -94,6 +102,12 @@ AliReaderESD::AliReaderESD(TObjArray* dirs,const Char_t* esdfilename, const Char
  fNTrackPoints(0),
  fdR(0.0),
  fClusterMap(kFALSE),
+ fITSTrackPoints(kFALSE),
+ fITSTrackPointsType(AliTrackPoints::kITS),
+ fMustTPC(kFALSE),
+ fReadCentralBarrel(kTRUE),
+ fReadMuon(kFALSE),
+ fReadPHOS(kFALSE),
  fNTPCClustMin(0),
  fNTPCClustMax(150),
  fTPCChi2PerClustMin(0.0),
@@ -130,10 +144,11 @@ AliReaderESD::AliReaderESD(TObjArray* dirs,const Char_t* esdfilename, const Char
 AliReaderESD::~AliReaderESD()
 {
  //desctructor
-  delete fRunLoader;
-  delete fKeyIterator;
-  delete fFile;
+    delete fRunLoader;
+    delete fKeyIterator;
+    delete fFile;
 }
+
 /**********************************************************/
 Int_t AliReaderESD::ReadNext()
 {
@@ -150,89 +165,67 @@ Int_t AliReaderESD::ReadNext()
   fEventRec->Reset();
         
   do  //do{}while; is OK even if 0 dirs specified. In that case we try to read from "./"
-   {
-     if (fFile == 0x0)
-      {
-       fFile = OpenFile(fCurrentDir);//rl is opened here
-       if (fFile == 0x0)
-         {
-           Error("ReadNext","Cannot get fFile for dir no. %d",fCurrentDir);
-           fCurrentDir++;
-           continue;
-         }
-       fCurrentEvent = 0;
-       fKeyIterator = new TIter(fFile->GetListOfKeys());  
-//       fFile->Dump();
-//       fFile->GetListOfKeys()->Print();
-      } 
-     TKey* key = (TKey*)fKeyIterator->Next();
-     if (key == 0x0)
-      {
-        if (AliVAODParticle::GetDebug() > 2 )
-          {
-            Info("ReadNext","No more keys.");
-          }
-        fCurrentDir++;
-        delete fKeyIterator;
-        fKeyIterator = 0x0;
-        delete fFile;//we have to assume there is no more ESD objects in the fFile
-        fFile = 0x0;
-        delete fRunLoader;
-        fRunLoader = 0x0;
-        continue;
-      }
-     //try to read
-     
-     
-//     TObject* esdobj = key->ReadObj();
-//     if (esdobj == 0x0)
-//      {
-//        if (AliVAODParticle::GetDebug() > 2 )
-//          {
-//            Info("ReadNext","Key read NULL. Key Name is %s",key->GetName());
-//            key->Dump();
-//          }
-//        continue;
-//      }
-//     esdobj->Dump();
-//     AliESD* esd = dynamic_cast<AliESD*>(esdobj);
-     
+    {
+      if (fFile == 0x0)
+       {
+         fFile = OpenFile(fCurrentDir);//rl is opened here
+         if (fFile == 0x0)
+           {
+             Error("ReadNext","Cannot get fFile for dir no. %d",fCurrentDir);
+             fCurrentDir++;
+             continue;
+           }
+         fCurrentEvent = 0;
+       }
      TString esdname = "ESD";
      esdname+=fCurrentEvent;
      AliESD* esd = dynamic_cast<AliESD*>(fFile->Get(esdname));
      if (esd == 0x0)
       {
-//        if (AliVAODParticle::GetDebug() > 2 )
-//          {
-//            Info("ReadNext","This key is not an AliESD object %s",key->GetName());
-//          }
         if (AliVAODParticle::GetDebug() > 2 )
           {
             Info("ReadNext","Can not find AliESD object named %s",esdname.Data());
           }
         fCurrentDir++;
-        delete fKeyIterator;
-        fKeyIterator = 0x0;
         delete fFile;//we have to assume there is no more ESD objects in the fFile
         fFile = 0x0;
         delete fRunLoader;
         fRunLoader = 0x0;
         continue;
       }
-     
-     ReadESD(esd);
+      ReadESD(esd);
       
-     fCurrentEvent++;
-     fNEventsRead++;
-     delete esd;
-     return 0;//success -> read one event
-   }while(fCurrentDir < GetNumberOfDirs());//end of loop over directories specified in fDirs Obj Array  
+      fCurrentEvent++;
+      fNEventsRead++;
+      delete esd;
+      return 0;//success -> read one event
+    }while(fCurrentDir < GetNumberOfDirs());//end of loop over directories specified in fDirs Obj Array  
    
   return 1; //no more directories to read
 }
-/**********************************************************/
 
+/**********************************************************/
 Int_t AliReaderESD::ReadESD(AliESD* esd)
+{
+//Reads esd data
+  if (esd == 0x0)
+   {
+     Error("ReadESD","ESD is NULL");
+     return 1;
+   }
+  
+  // seperate each method
+  if (fReadCentralBarrel) ReadESDCentral(esd);
+
+  if (fReadMuon) ReadESDMuon(esd);
+
+  if (fReadPHOS) ReadESDPHOS(esd);
+
+  return 1;
+}
+
+/**********************************************************/
+Int_t AliReaderESD::ReadESDCentral(AliESD* esd)
 {
   //****** Tentative particle type "concentrations"
   static const Double_t concentr[5]={0.05, 0., 0.85, 0.10, 0.05};
@@ -243,11 +236,6 @@ Int_t AliReaderESD::ReadESD(AliESD* esd)
   Double_t pos[3];//position
   Double_t vertexpos[3];//vertex position
   //Reads one ESD
-  if (esd == 0x0)
-   {
-     Error("ReadESD","ESD is NULL");
-     return 1;
-   }
 
   TDatabasePDG* pdgdb = TDatabasePDG::Instance();
   if (pdgdb == 0x0)
@@ -256,14 +244,20 @@ Int_t AliReaderESD::ReadESD(AliESD* esd)
      return 1;
    }
    
-  Float_t mf = esd->GetMagneticField(); 
+  Float_t mf = esd->GetMagneticField()/10.; //AliESD::GetMagnField returns mf in kG
 
-  if ( (mf == 0.0) && (fNTrackPoints > 0) )
+  if ( (mf == 0.0) && ((fNTrackPoints > 0) || fITSTrackPoints) )
    {
       Error("ReadESD","Magnetic Field is 0 and Track Points Demended. Skipping to next event.");
-      return 1;
+
    }
 
+  if (fITSTrackPoints)
+   {
+     Info("ReadESD","Magnetic Field is %f",mf);
+     AliKalmanTrack::SetMagneticField(mf);
+   }
+ 
   AliStack* stack = 0x0;
   if (fReadSim && fRunLoader)
    {
@@ -310,6 +304,16 @@ Int_t AliReaderESD::ReadESD(AliESD* esd)
         continue;
       }
 
+     if (fMustTPC)
+      {
+       if ((esdtrack->GetStatus() & AliESDtrack::kTPCin) == kFALSE)
+        {
+          if (AliVAODParticle::GetDebug() > 2) 
+            Info("ReadNext","Particle skipped: Was not reconstructed in TPC.");
+          continue;
+        }
+      }     
+
      if ((esdtrack->GetStatus() & AliESDtrack::kESDpid) == kFALSE) 
       {
         if (AliVAODParticle::GetDebug() > 2) 
@@ -348,12 +352,16 @@ Int_t AliReaderESD::ReadESD(AliESD* esd)
            Error("ReadNext","Can not find track with such label.");
            continue;
          }
-        if(Pass(p->GetPdgCode())) 
+         
+        if (fCheckParticlePID)
          {
-           if ( AliVAODParticle::GetDebug() > 5 )
-             Info("ReadNext","Simulated Particle PID (%d) did not pass the cut.",p->GetPdgCode());
-           continue; //check if we are intersted with particles of this type 
-         }
+           if(Rejected(p->GetPdgCode())) 
+            {
+              if ( AliVAODParticle::GetDebug() > 5 )
+                Info("ReadNext","Simulated Particle PID (%d) did not pass the cut.",p->GetPdgCode());
+              continue; //check if we are intersted with particles of this type 
+            }
+         }  
 //           if(p->GetPdgCode()<0) charge = -1;
         particle = new AliAODParticle(*p,i);
 
@@ -397,7 +405,15 @@ Int_t AliReaderESD::ReadESD(AliESD* esd)
       AliTrackPoints* tpts = 0x0;
       if (fNTrackPoints > 0) 
        {
-         tpts = new AliTrackPoints(fNTrackPoints,esdtrack,mf,fdR);
+         tpts = new AliTrackPoints(fNTrackPoints,esdtrack,mf*10.0,fdR);
+//         tpts->Move(-vertexpos[0],-vertexpos[1],-vertexpos[2]);
+       }
+
+      AliTrackPoints* itstpts = 0x0;
+      if (fITSTrackPoints) 
+       {
+         itstpts = new AliTrackPoints(fITSTrackPointsType,esdtrack,mf*10.0);
+//         itstpts->Move(-vertexpos[0],-vertexpos[1],-vertexpos[2]);
        }
 
       AliClusterMap* cmap = 0x0; 
@@ -442,7 +458,7 @@ Int_t AliReaderESD::ReadESD(AliESD* esd)
            continue;
          }
 
-        if(Pass(pdgcode)) 
+        if(Rejected(pdgcode)) 
          {
            if ( AliVAODParticle::GetDebug() > 5 )
              Info("ReadNext","PID (%d) did not pass the cut.",pdgcode);
@@ -463,7 +479,7 @@ Int_t AliReaderESD::ReadESD(AliESD* esd)
            track->SetPIDprobability(charge*GetSpeciesPdgCode( (ESpecies)k ),w[k]);
          }
 
-        if(Pass(track))//check if meets all criteria of any of our cuts
+        if(Rejected(track))//check if meets all criteria of any of our cuts
                        //if it does not delete it and take next good track
          { 
            if ( AliVAODParticle::GetDebug() > 4 )
@@ -475,7 +491,12 @@ Int_t AliReaderESD::ReadESD(AliESD* esd)
         //Single Particle cuts on cluster map and track points rather do not have sense
         if (tpts)
          {
-           track->SetTrackPoints(tpts); 
+           track->SetTPCTrackPoints(tpts);
+         }
+         
+        if (itstpts)
+         {
+           track->SetITSTrackPoints(itstpts); 
          }
 
         if (cmap) 
@@ -500,14 +521,115 @@ Int_t AliReaderESD::ReadESD(AliESD* esd)
       {
         delete particle;//particle was not stored in event
         delete tpts;
+        delete itstpts;
         delete cmap;
       }
+     else
+      {
+        if ( fReadSim && stack  )
+         {
+           if (particle->P() < 0.00001)
+            {
+              Info("ReadNext","###################################");
+              Info("ReadNext","###################################");
+              Info("ReadNext","Track Label %d",esdtrack->GetLabel());
+              TParticle *p = stack->Particle(esdtrack->GetLabel());
+              Info("ReadNext","");
+              p->Print();
+              Info("ReadNext","");
+              particle->Print();
+            }
+         }   
+      } 
 
    }//for (Int_t i = 0;i<ntr; i++)  -- loop over tracks
 
   Info("ReadNext","Read %d tracks and %d particles from event %d (event %d in dir %d).",
          fEventRec->GetNumberOfParticles(), fEventSim->GetNumberOfParticles(),
          fNEventsRead,fCurrentEvent,fCurrentDir);
+  fTrackCounter->Fill(fEventRec->GetNumberOfParticles());
+  
+  /******************************************************/
+  /******     Setting glevet properties     *************/
+  /******************************************************/
+    
+  if (fEventRec->GetNumberOfParticles() > 0)
+   {
+     fEventRec->SetPrimaryVertex(vertexpos[0],vertexpos[1],vertexpos[2]);
+   }
+  return 0;
+}
+
+/**********************************************************/
+Int_t AliReaderESD::ReadESDMuon(AliESD* esd)
+{
+
+  Double_t vertexpos[3];//vertex position, assuming no secondary decay
+
+  const AliESDVertex* vertex = esd->GetVertex();
+
+  if (vertex == 0x0) {
+    Info("ReadESD","ESD returned NULL pointer to vertex - assuming (0.0,0.0,0.0)");
+    vertexpos[0] = 0.0;
+    vertexpos[1] = 0.0;
+    vertexpos[2] = 0.0;
+  } else {
+    vertex->GetXYZ(vertexpos);
+  }
+
+ Int_t nTracks = (Int_t)esd->GetNumberOfMuonTracks() ;
+
+ if (AliVAODParticle::GetDebug() > 0) {
+   Info("ReadESD","Reading Event %d",fCurrentEvent);
+   Info("ReadESD","Found %d tracks.",nTracks);
+ }
+ // settings
+  Float_t Chi2Cut = 100.;
+  Float_t PtCutMin = 1.;
+  Float_t PtCutMax = 10000.;
+  Float_t muonMass = 0.105658389;
+  Int_t pdgcode = -13;
+  Double_t thetaX, thetaY, pYZ;
+  Double_t pxRec1, pyRec1, pzRec1, E1;
+  Int_t charge;
+
+  Int_t ntrackhits;
+  Double_t fitfmin;
+
+  TLorentzVector fV1;
+  fEventRec->Reset();
+  for (Int_t iTrack = 0; iTrack <  nTracks;  iTrack++) {
+
+      AliESDMuonTrack* muonTrack = esd->GetMuonTrack(iTrack);
+
+      thetaX = muonTrack->GetThetaX();
+      thetaY = muonTrack->GetThetaY();
+
+      pYZ     =  1./TMath::Abs(muonTrack->GetInverseBendingMomentum());
+      pzRec1  = - pYZ / TMath::Sqrt(1.0 + TMath::Tan(thetaY)*TMath::Tan(thetaX));
+      pxRec1  = pzRec1 * TMath::Tan(thetaX);
+      pyRec1  = pzRec1 * TMath::Tan(thetaY);
+      charge = Int_t(TMath::Sign(1.,muonTrack->GetInverseBendingMomentum()));
+      E1 = TMath::Sqrt(muonMass * muonMass + pxRec1 * pxRec1 + pyRec1 * pyRec1 + pzRec1 * pzRec1);
+      fV1.SetPxPyPzE(pxRec1, pyRec1, pzRec1, E1);
+
+      ntrackhits = muonTrack->GetNHit();
+      fitfmin    = muonTrack->GetChi2();
+
+      // transverse momentum
+      Float_t pt1 = fV1.Pt();
+
+      // chi2 per d.o.f.
+      Float_t ch1 =  fitfmin / (2.0 * ntrackhits - 5);
+
+      if ((ch1 < Chi2Cut) && (pt1 > PtCutMin) && (pt1 < PtCutMax)) {
+	AliAODParticle* track = new AliAODParticle(pdgcode*charge,1,iTrack, 
+                                                   pxRec1, pyRec1,pzRec1, E1,
+                                                   vertexpos[0], vertexpos[1], vertexpos[2], 0.);
+        fEventRec->AddParticle(track);
+      }
+ 
+  }
   fTrackCounter->Fill(fEventRec->GetNumberOfParticles());
   return 0;
 }
@@ -517,29 +639,55 @@ Int_t AliReaderESD::ReadESD(AliESD* esd)
 void AliReaderESD::Rewind()
 {
   //rewinds reading 
-  delete fKeyIterator;
+  //  delete fKeyIterator;
   delete fFile;
   fFile = 0x0;
-  fKeyIterator = 0x0;
+  // fKeyIterator = 0x0;
   delete fRunLoader;
   fRunLoader = 0x0;
   fCurrentDir = 0;
   fNEventsRead = 0;
+  if (fEventList) fEventList->Reset(); 
   if (fTrackCounter) fTrackCounter->Reset();
 }
 /**********************************************************/
 
 TFile* AliReaderESD::OpenFile(Int_t n)
 {
-//opens fFile with kine tree
-
+//opens fFile with  tree
+ if (fEventList)
+  { 
+    if (fCurrentDir > n)
+     {
+       fEventList->Reset();
+       fCurrentDir = 0;
+     }
+    
+    while (fCurrentDir < n)
+     {
+       fEventList->Next();
+       fCurrentDir++;
+     }
+    fEventList->Next();
+  }
+ 
  const TString& dirname = GetDirName(n);
  if (dirname == "")
   {
    Error("OpenFiles","Can not get directory name");
    return 0x0;
   }
- TString filename = dirname +"/"+ fESDFileName;
+ TString filename;
+ 
+ if (fEventList)
+  {
+    filename = fEventList->GetURL(fESDFileName);
+  }
+ else
+  {
+    filename = dirname +"/"+ fESDFileName;
+  }
+ Info("OpenFile","%s ==> %s",fESDFileName.Data(),filename.Data()); 
  TFile *ret = TFile::Open(filename.Data()); 
 
  if ( ret == 0x0)
@@ -555,7 +703,19 @@ TFile* AliReaderESD::OpenFile(Int_t n)
  
  if (fReadSim )
   {
-   fRunLoader = AliRunLoader::Open(dirname +"/"+ fGAlFileName);
+    TString gafilename;
+    if (fEventList)
+     {
+       gafilename = fEventList->GetURL(fGAlFileName);
+     }
+    else
+     {
+       gafilename = dirname +"/"+ fGAlFileName;
+     }
+   Info("OpenFile","%s ==> %s",fGAlFileName.Data(),gafilename.Data()); 
+
+   fRunLoader = AliRunLoader::Open(gafilename);
+   
    if (fRunLoader == 0x0)
     {
       Error("OpenFiles","Can't get RunLoader for directory %s",dirname.Data());
@@ -564,6 +724,14 @@ TFile* AliReaderESD::OpenFile(Int_t n)
     }
     
    fRunLoader->LoadHeader();
+   
+   if (fEventList)
+    {
+      TString kinefilename = fEventList->GetURL("Kinematics.root");
+      fRunLoader->SetKineFileName(kinefilename);
+      Info("OpenFile","%s ==> %s","Kinematics.root",kinefilename.Data()); 
+    } 
+   
    if (fRunLoader->LoadKinematics())
     {
       Error("Next","Error occured while loading kinematics.");

@@ -3,14 +3,14 @@
 
 /////////////////////////////////////////////////////////////////////////////
 // 
-// class AliHBTQInvDistributionVsKtFctn;    //QInvCMSLC   Distribution Vs   Kt
-// class AliHBTQOutDistributionVsKtFctn;    //QOutCMSLC   Distribution Vs   Kt
-// class AliHBTQSideDistributionVsKtFctn;   //QSideCMSLC  Distribution Vs   Kt
-// class AliHBTQLongDistributionVsKtFctn;   //QLongCMSLC  Distribution Vs   Kt
+// class AliHBTQInvDistributionVsKtFctn;    //QInvLCMS   Distribution Vs   Kt
+// class AliHBTQOutDistributionVsKtFctn;    //QOutLCMS   Distribution Vs   Kt
+// class AliHBTQSideDistributionVsKtFctn;   //QSideLCMS  Distribution Vs   Kt
+// class AliHBTQLongDistributionVsKtFctn;   //QLongLCMS  Distribution Vs   Kt
 
-// class AliHBTQOutDistributionVsQInvFctn;    //QOutCMSLC   Distribution Vs   QInv
-// class AliHBTQSideDistributionVsQInvFctn;   //QSideCMSLC  Distribution Vs   QInv
-// class AliHBTQLongDistributionVsQInvFctn;   //QLongCMSLC  Distribution Vs   QInv
+// class AliHBTQOutDistributionVsQInvFctn;    //QOutLCMS   Distribution Vs   QInv
+// class AliHBTQSideDistributionVsQInvFctn;   //QSideLCMS  Distribution Vs   QInv
+// class AliHBTQLongDistributionVsQInvFctn;   //QLongLCMS  Distribution Vs   QInv
 // class AliHBTPtDiffDistributionVsQInvFctn;
 //
 // added by Zbigniew.Chajecki@cern.ch
@@ -18,16 +18,16 @@
 //
 /////////////////////////////////////////////////////////////////////////////
 
-class AliHBTQInvDistributionVsKtFctn;    //QInvCMSLC   Distribution Vs   Kt
-class AliHBTQOutDistributionVsKtFctn;    //QOutCMSLC   Distribution Vs   Kt
-class AliHBTQSideDistributionVsKtFctn;   //QSideCMSLC  Distribution Vs   Kt
-class AliHBTQLongDistributionVsKtFctn;   //QLongCMSLC  Distribution Vs   Kt
+class AliHBTQInvDistributionVsKtFctn;    //QInvLCMS   Distribution Vs   Kt
+class AliHBTQOutDistributionVsKtFctn;    //QOutLCMS   Distribution Vs   Kt
+class AliHBTQSideDistributionVsKtFctn;   //QSideLCMS  Distribution Vs   Kt
+class AliHBTQLongDistributionVsKtFctn;   //QLongLCMS  Distribution Vs   Kt
 
-class AliHBTQOutDistributionVsQInvFctn;    //QOutCMSLC   Distribution Vs   QInv
-class AliHBTQSideDistributionVsQInvFctn;   //QSideCMSLC  Distribution Vs   QInv
-class AliHBTQLongDistributionVsQInvFctn;   //QLongCMSLC  Distribution Vs   QInv
+class AliHBTQOutDistributionVsQInvFctn;    //QOutLCMS   Distribution Vs   QInv
+class AliHBTQSideDistributionVsQInvFctn;   //QSideLCMS  Distribution Vs   QInv
+class AliHBTQLongDistributionVsQInvFctn;   //QLongLCMS  Distribution Vs   QInv
 class AliHBTPtDiffDistributionVsQInvFctn;
-
+class AliHBTRStarDistribution;
 #include "AliHBTFunction.h"
 
 /***********************************************************************/
@@ -38,10 +38,10 @@ class AliHBTQOutDistributionVsKtFctn: public AliHBTOnePairFctn2D
    AliHBTQOutDistributionVsKtFctn(Int_t nXbins = 200, Double_t maxXval = 1., Double_t minXval = 0.0, 
                              Int_t nYbins = 500, Double_t maxYval = .15, Double_t minYval =-0.15);
    virtual ~AliHBTQOutDistributionVsKtFctn(){}
-   TH1* GetResult(){return GetNumerator();}
-   void GetValues(AliHBTPair* partpair, Double_t& x, Double_t& y)
+   TH1* GetResult(){return this->GetNumerator();}
+   void GetValues(AliHBTPair* partpair, Double_t& x, Double_t& y) const
     {
-     y = partpair->GetQOutCMSLC();
+     y = partpair->GetQOutLCMS();
      x = partpair->GetKt();
     }
   protected:
@@ -55,10 +55,10 @@ class AliHBTQSideDistributionVsKtFctn: public AliHBTOnePairFctn2D
    AliHBTQSideDistributionVsKtFctn(Int_t nXbins = 200, Double_t maxXval = 1.2, Double_t minXval = -0.1, 
                              Int_t nYbins = 500, Double_t maxYval = 1.2, Double_t minYval =-1.2);
    virtual ~AliHBTQSideDistributionVsKtFctn(){}
-   TH1* GetResult(){return GetNumerator();}
-   void GetValues(AliHBTPair* partpair, Double_t& x, Double_t& y)
+   TH1* GetResult(){return this->GetNumerator();}
+   void GetValues(AliHBTPair* partpair, Double_t& x, Double_t& y) const
     {
-     y = partpair->GetQSideCMSLC();
+     y = partpair->GetQSideLCMS();
      x = partpair->GetKt();
     }
   protected:
@@ -73,10 +73,10 @@ class AliHBTQLongDistributionVsKtFctn: public AliHBTOnePairFctn2D
    AliHBTQLongDistributionVsKtFctn(Int_t nXbins = 200, Double_t maxXval = 1.2, Double_t minXval = -0.1, 
                              Int_t nYbins = 500, Double_t maxYval = 1.2, Double_t minYval =-1.2);
    virtual ~AliHBTQLongDistributionVsKtFctn(){}
-   TH1* GetResult(){return GetNumerator();}
-   void GetValues(AliHBTPair* partpair, Double_t& x, Double_t& y)
+   TH1* GetResult(){return this->GetNumerator();}
+   void GetValues(AliHBTPair* partpair, Double_t& x, Double_t& y) const
     {
-     y = partpair->GetQLongCMSLC();
+     y = partpair->GetQLongLCMS();
      x = partpair->GetKt();
     }
   protected:
@@ -91,8 +91,8 @@ class AliHBTQInvDistributionVsKtFctn: public AliHBTOnePairFctn2D
    AliHBTQInvDistributionVsKtFctn(Int_t nXbins = 200, Double_t maxXval = 1.2, Double_t minXval = -0.1, 
                              Int_t nYbins = 500, Double_t maxYval = 1.2, Double_t minYval =-1.2);
    virtual ~AliHBTQInvDistributionVsKtFctn(){}
-   TH1* GetResult(){return GetNumerator();}
-   void GetValues(AliHBTPair* partpair, Double_t& x, Double_t& y)
+   TH1* GetResult(){return this->GetNumerator();}
+   void GetValues(AliHBTPair* partpair, Double_t& x, Double_t& y) const
     {
      y = partpair->GetQInv();
      x = partpair->GetKt();
@@ -109,10 +109,10 @@ class AliHBTQOutDistributionVsQInvFctn: public AliHBTOnePairFctn2D
    AliHBTQOutDistributionVsQInvFctn(Int_t nXbins = 200, Double_t maxXval = 1., Double_t minXval = 0.0, 
                              Int_t nYbins = 500, Double_t maxYval = .15, Double_t minYval =-0.15);
    virtual ~AliHBTQOutDistributionVsQInvFctn(){}
-   TH1* GetResult(){return GetNumerator();}
-   void GetValues(AliHBTPair* partpair, Double_t& x, Double_t& y)
+   TH1* GetResult(){return this->GetNumerator();}
+   void GetValues(AliHBTPair* partpair, Double_t& x, Double_t& y) const
     {
-     y = partpair->GetQOutCMSLC();
+     y = partpair->GetQOutLCMS();
      x = partpair->GetQInv();
     }
   protected:
@@ -126,10 +126,10 @@ class AliHBTQSideDistributionVsQInvFctn: public AliHBTOnePairFctn2D
    AliHBTQSideDistributionVsQInvFctn(Int_t nXbins = 200, Double_t maxXval = 1.2, Double_t minXval = -0.1, 
                              Int_t nYbins = 500, Double_t maxYval = 1.2, Double_t minYval =-1.2);
    virtual ~AliHBTQSideDistributionVsQInvFctn(){}
-   TH1* GetResult(){return GetNumerator();}
-   void GetValues(AliHBTPair* partpair, Double_t& x, Double_t& y)
+   TH1* GetResult(){return this->GetNumerator();}
+   void GetValues(AliHBTPair* partpair, Double_t& x, Double_t& y) const
     {
-     y = partpair->GetQSideCMSLC();
+     y = partpair->GetQSideLCMS();
      x = partpair->GetQInv();
     }
   protected:
@@ -144,10 +144,10 @@ class AliHBTQLongDistributionVsQInvFctn: public AliHBTOnePairFctn2D
    AliHBTQLongDistributionVsQInvFctn(Int_t nXbins = 200, Double_t maxXval = 1.2, Double_t minXval = -0.1, 
                              Int_t nYbins = 500, Double_t maxYval = 1.2, Double_t minYval =-1.2);
    virtual ~AliHBTQLongDistributionVsQInvFctn(){}
-   TH1* GetResult(){return GetNumerator();}
-   void GetValues(AliHBTPair* partpair, Double_t& x, Double_t& y)
+   TH1* GetResult(){return this->GetNumerator();}
+   void GetValues(AliHBTPair* partpair, Double_t& x, Double_t& y) const
     {
-     y = partpair->GetQLongCMSLC();
+     y = partpair->GetQLongLCMS();
      x = partpair->GetQInv();
     }
   protected:
@@ -161,8 +161,8 @@ class AliHBTPtDiffDistributionVsQInvFctn: public AliHBTOnePairFctn2D
    AliHBTPtDiffDistributionVsQInvFctn(Int_t nXbins = 800, Double_t maxXval = 4.0, Double_t minXval = 0., 
                              Int_t nYbins = 500, Double_t maxYval = 0.1, Double_t minYval =-0.1);
    virtual ~AliHBTPtDiffDistributionVsQInvFctn(){}
-   TH1* GetResult(){return GetNumerator();}
-   void GetValues(AliHBTPair* partpair, Double_t& x, Double_t& y)
+   TH1* GetResult(){return this->GetNumerator();}
+   void GetValues(AliHBTPair* partpair, Double_t& x, Double_t& y) const
     {
      y = partpair->Particle1()->Pt() - partpair->Particle2()->Pt();
      x = partpair->GetQInv();
@@ -173,4 +173,39 @@ class AliHBTPtDiffDistributionVsQInvFctn: public AliHBTOnePairFctn2D
 /***********************************************************************/
 /***********************************************************************/
 
+class AliHBTRStarDistribution: public AliHBTOnePairFctn1D
+{
+  public:
+    AliHBTRStarDistribution(Int_t nXbins = 500, Double_t maxXval = 5e-11, Double_t minXval = 0.);
+    virtual ~AliHBTRStarDistribution(){}
+    TH1* GetResult(){return this->GetNumerator();}
+  protected:
+    Double_t GetValue(AliHBTPair* partpair) const
+    {
+      return partpair->GetRStar();
+    }
+   
+  private:
+   ClassDef(AliHBTRStarDistribution,1)
+};
+
+/***********************************************************************/
+/***********************************************************************/
+
+class AliHBTRDistribution: public AliHBTOnePairFctn1D
+{
+  public:
+    AliHBTRDistribution(Int_t nXbins = 500, Double_t maxXval = 5e-11, Double_t minXval = 0.);
+    virtual ~AliHBTRDistribution(){}
+    TH1* GetResult(){return this->GetNumerator();}
+  protected:
+    Double_t GetValue(AliHBTPair* partpair) const
+    {
+      return partpair->GetR();
+    }
+   
+  private:
+   ClassDef(AliHBTRDistribution,1)
+};
 #endif
+

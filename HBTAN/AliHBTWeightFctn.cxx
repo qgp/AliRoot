@@ -32,7 +32,7 @@ void  AliHBTWeightQInvFctn::ProcessSameEventParticles(AliHBTPair* trackpair, Ali
 {
   //process particles from same events (fills numerator)
   trackpair = CheckPair(trackpair);
-  partpair  = CheckPair(partpair);
+//  partpair  = CheckPair(partpair);
   if ( trackpair && partpair)     
   {
 //    Double_t weightPID=1.;
@@ -52,7 +52,7 @@ void  AliHBTWeightQInvFctn::ProcessDiffEventParticles(AliHBTPair* trackpair, Ali
 {
   // Fills the denominator using mixed pairs
   trackpair = CheckPair(trackpair);
-  partpair  = CheckPair(partpair);
+//  partpair  = CheckPair(partpair);
   if ( trackpair && partpair)  
   {
      fDenominator->Fill(trackpair->GetQInv());
@@ -89,7 +89,7 @@ void AliHBTWeightQOutFctn::ProcessSameEventParticles(AliHBTPair* trackpair, AliH
 {
   //process particles from same events (fills numerator)  
   trackpair = CheckPair(trackpair);
-  partpair  = CheckPair(partpair);
+//  partpair  = CheckPair(partpair);
   if ( trackpair && partpair)     
   {
 //    Double_t weightPID=1.;
@@ -100,7 +100,7 @@ void AliHBTWeightQOutFctn::ProcessSameEventParticles(AliHBTPair* trackpair, AliH
          weight=partpair->GetWeight();
       }   
 //    Double_t weight=weightHBT*weightPID;
-    fNumerator->Fill(trackpair->GetQOutCMSLC(),weight);
+    fNumerator->Fill(trackpair->GetQOutLCMS(),weight);
   }
 } 
 /****************************************************************/
@@ -109,10 +109,10 @@ void AliHBTWeightQOutFctn::ProcessDiffEventParticles(AliHBTPair* trackpair, AliH
 {
   //process particles from diff events (fills denominator)
   trackpair = CheckPair(trackpair);
-  partpair  = CheckPair(partpair);
+//  partpair  = CheckPair(partpair);
   if ( trackpair && partpair)  
   {
-     fDenominator->Fill(trackpair->GetQOutCMSLC());
+     fDenominator->Fill(trackpair->GetQOutLCMS());
   }
 }
 /**************************************************************/
@@ -143,7 +143,7 @@ void AliHBTWeightQLongFctn::ProcessSameEventParticles(AliHBTPair* trackpair, Ali
 {
  //process particles from same events (fills numerator)
   trackpair = CheckPair(trackpair);
-  partpair  = CheckPair(partpair);
+//  partpair  = CheckPair(partpair);
   if ( trackpair && partpair)     
   {
 //    Double_t weightPID=1.;
@@ -154,7 +154,7 @@ void AliHBTWeightQLongFctn::ProcessSameEventParticles(AliHBTPair* trackpair, Ali
          weight=partpair->GetWeight();
       }   
 //    Double_t weight=weightHBT*weightPID;
-    fNumerator->Fill(trackpair->GetQLongCMSLC(),weight);
+    fNumerator->Fill(trackpair->GetQLongLCMS(),weight);
   }
 } 
 /****************************************************************/
@@ -163,10 +163,10 @@ void AliHBTWeightQLongFctn::ProcessDiffEventParticles(AliHBTPair* trackpair, Ali
 {
   //process particles from diff events (fills denominator)
   trackpair = CheckPair(trackpair);
-  partpair  = CheckPair(partpair);
+//  partpair  = CheckPair(partpair);
   if ( trackpair && partpair)  
   {
-     fDenominator->Fill(trackpair->GetQLongCMSLC());
+     fDenominator->Fill(trackpair->GetQLongLCMS());
   }
 }
 /**************************************************************/
@@ -198,7 +198,7 @@ void AliHBTWeightQSideFctn::ProcessSameEventParticles(AliHBTPair* trackpair, Ali
 {
   //process particles from same events (fills numerator)
   trackpair = CheckPair(trackpair);
-  partpair  = CheckPair(partpair);
+//  partpair  = CheckPair(partpair);
   if ( trackpair && partpair)     
   {
 //    Double_t weightPID=1.;
@@ -209,7 +209,7 @@ void AliHBTWeightQSideFctn::ProcessSameEventParticles(AliHBTPair* trackpair, Ali
          weight=partpair->GetWeight();
       }   
 //    Double_t weight=weightHBT*weightPID;
-    fNumerator->Fill(trackpair->GetQSideCMSLC(),weight);
+    fNumerator->Fill(trackpair->GetQSideLCMS(),weight);
   }
 } 
 /****************************************************************/
@@ -218,10 +218,10 @@ void  AliHBTWeightQSideFctn::ProcessDiffEventParticles(AliHBTPair* trackpair, Al
 {
   //process particles from diff events (fills denominator)
   trackpair = CheckPair(trackpair);
-  partpair  = CheckPair(partpair);
+//  partpair  = CheckPair(partpair);
   if ( trackpair && partpair)  
   {
-     fDenominator->Fill(trackpair->GetQSideCMSLC());
+     fDenominator->Fill(trackpair->GetQSideLCMS());
   }
 }
 /**************************************************************/
@@ -253,7 +253,7 @@ void AliHBTWeightTwoKStarFctn::ProcessSameEventParticles(AliHBTPair* trackpair, 
 {
   //process particles from same events (fills numerator)
   trackpair = CheckPair(trackpair);
-  partpair  = CheckPair(partpair);
+//  partpair  = CheckPair(partpair);
   if ( trackpair && partpair)     
   {
 //    Double_t weightPID=1.;
@@ -273,7 +273,7 @@ void  AliHBTWeightTwoKStarFctn::ProcessDiffEventParticles(AliHBTPair* trackpair,
 {
   //process particles from diff events (fills denominator)
   trackpair = CheckPair(trackpair);
-  partpair  = CheckPair(partpair);
+//  partpair  = CheckPair(partpair);
   if ( trackpair && partpair)  
   {
      fDenominator->Fill(2.0*(trackpair->GetKStar()));
@@ -310,7 +310,7 @@ void AliHBTWeightQOutQSideFctn::ProcessSameEventParticles(AliHBTPair* trackpair,
 {
   //process particles from same events (fills numerator)
   trackpair = CheckPair(trackpair);
-  partpair  = CheckPair(partpair);
+//  partpair  = CheckPair(partpair);
   if ( trackpair && partpair)     
   {
 //    Double_t weightPID=1.;
@@ -321,7 +321,7 @@ void AliHBTWeightQOutQSideFctn::ProcessSameEventParticles(AliHBTPair* trackpair,
          weight=partpair->GetWeight();
       }   
 //    Double_t weight=weightHBT*weightPID;
-    fNumerator->Fill(trackpair->GetQOutCMSLC(),trackpair->GetQSideCMSLC(),weight);
+    fNumerator->Fill(trackpair->GetQOutLCMS(),trackpair->GetQSideLCMS(),weight);
   }
 } 
 /****************************************************************/
@@ -330,10 +330,10 @@ void AliHBTWeightQOutQSideFctn::ProcessDiffEventParticles(AliHBTPair* trackpair,
 {
   //process particles from diff events (fills denominator)
   trackpair = CheckPair(trackpair);
-  partpair  = CheckPair(partpair);
+//  partpair  = CheckPair(partpair);
   if ( trackpair && partpair)  
   {
-     fDenominator->Fill(trackpair->GetQOutCMSLC(),trackpair->GetQSideCMSLC());
+     fDenominator->Fill(trackpair->GetQOutLCMS(),trackpair->GetQSideLCMS());
   }
 }
 /**************************************************************/
@@ -367,7 +367,7 @@ void AliHBTWeightQOutQLongFctn::ProcessSameEventParticles(AliHBTPair* trackpair,
 {
   //process particles from same events (fills numerator)
   trackpair = CheckPair(trackpair);
-  partpair  = CheckPair(partpair);
+//  partpair  = CheckPair(partpair);
   if ( trackpair && partpair)     
   {
 //    Double_t weightPID=1.;
@@ -378,7 +378,7 @@ void AliHBTWeightQOutQLongFctn::ProcessSameEventParticles(AliHBTPair* trackpair,
          weight=partpair->GetWeight();
       }   
 //    Double_t weight=weightHBT*weightPID;
-    fNumerator->Fill(trackpair->GetQOutCMSLC(),trackpair->GetQLongCMSLC(),weight);
+    fNumerator->Fill(trackpair->GetQOutLCMS(),trackpair->GetQLongLCMS(),weight);
   }
 } 
 /****************************************************************/
@@ -387,10 +387,10 @@ void AliHBTWeightQOutQLongFctn::ProcessDiffEventParticles(AliHBTPair* trackpair,
 {
   //process particles from diff events (fills denominator)
   trackpair = CheckPair(trackpair);
-  partpair  = CheckPair(partpair);
+//  partpair  = CheckPair(partpair);
   if ( trackpair && partpair)  
   {
-     fDenominator->Fill(trackpair->GetQOutCMSLC(),trackpair->GetQLongCMSLC());
+     fDenominator->Fill(trackpair->GetQOutLCMS(),trackpair->GetQLongLCMS());
   }
 }
 /**************************************************************/
@@ -424,7 +424,7 @@ void AliHBTWeightQSideQLongFctn::ProcessSameEventParticles(AliHBTPair* trackpair
 {
   //process particles from same events (fills numerator)
   trackpair = CheckPair(trackpair);
-  partpair  = CheckPair(partpair);
+//  partpair  = CheckPair(partpair);
   if ( trackpair && partpair)     
   {
 //    Double_t weightPID=1.;
@@ -435,7 +435,7 @@ void AliHBTWeightQSideQLongFctn::ProcessSameEventParticles(AliHBTPair* trackpair
          weight=partpair->GetWeight();
       }   
 //    Double_t weight=weightHBT*weightPID;
-    fNumerator->Fill(trackpair->GetQSideCMSLC(),trackpair->GetQLongCMSLC(),weight);
+    fNumerator->Fill(trackpair->GetQSideLCMS(),trackpair->GetQLongLCMS(),weight);
   }
 } 
 /****************************************************************/
@@ -444,10 +444,10 @@ void AliHBTWeightQSideQLongFctn::ProcessDiffEventParticles(AliHBTPair* trackpair
 {
   //process particles from diff events (fills denominator)
   trackpair = CheckPair(trackpair);
-  partpair  = CheckPair(partpair);
+//  partpair  = CheckPair(partpair);
   if ( trackpair && partpair)  
   {
-     fDenominator->Fill(trackpair->GetQSideCMSLC(),trackpair->GetQLongCMSLC());
+     fDenominator->Fill(trackpair->GetQSideLCMS(),trackpair->GetQLongLCMS());
   }
 }
 /**************************************************************/
@@ -459,3 +459,69 @@ TH1* AliHBTWeightQSideQLongFctn::GetResult()
  fRatio = GetRatio(Scale());
  return fRatio;
 }
+/*************************************************************/
+/*************************************************************/
+/*************************************************************/ 
+
+ClassImp(AliHBTWeightQOutSQideQLongFctn)
+
+AliHBTWeightQOutSQideQLongFctn::AliHBTWeightQOutSQideQLongFctn(Int_t nXbins, Double_t maxXval, Double_t minXval,
+                                                   Int_t nYbins, Double_t maxYval, Double_t minYval,
+                                                   Int_t nZbins, Double_t maxZval, Double_t minZval):
+ AliHBTTwoPairFctn3D(nXbins,maxXval,minXval,nYbins,maxYval,minYval,nZbins,maxZval,minZval)
+{
+  //ctor
+  fWriteNumAndDen = kTRUE;//change default behaviour
+  Rename("wqoslcf","Q_{out}-Q_{side}-Q_{long} Weight Correlation Fctn");
+}
+/*************************************************************/
+
+void AliHBTWeightQOutSQideQLongFctn::ProcessSameEventParticles(AliHBTPair* trackpair, AliHBTPair* partpair)
+{
+//Fills numerator
+  //process particles from same events (fills numerator)
+  trackpair = CheckPair(trackpair);
+//  partpair  = CheckPair(partpair);
+  if ( trackpair && partpair)     
+  {
+//    Double_t weightPID=1.;
+    Double_t weight = 1.0;
+    if ( ( trackpair->Particle1()->GetPdgCode() == partpair->Particle1()->GetPdgCode()) &&
+         ( trackpair->Particle2()->GetPdgCode() == partpair->Particle2()->GetPdgCode())    )
+      {   
+         weight=partpair->GetWeight();//here we take weight from the particle pair
+      }   
+//    Double_t weight=weightHBT*weightPID;
+    Double_t out = TMath::Abs(trackpair->GetQOutLCMS());
+    Double_t side = TMath::Abs(trackpair->GetQSideLCMS());
+    Double_t lon = TMath::Abs(trackpair->GetQLongLCMS());
+    
+    fNumerator->Fill(out,side,lon,weight);//here we fill in q's corresponding to track pair 
+                                          //weight calculated for the simulated one
+  }
+}
+/*************************************************************/
+
+void AliHBTWeightQOutSQideQLongFctn::ProcessDiffEventParticles(AliHBTPair* trackpair, AliHBTPair* partpair)
+{
+  //process particles from diff events (fills denominator)
+  trackpair = CheckPair(trackpair);
+//  partpair  = CheckPair(partpair);
+  if ( trackpair && partpair)  
+   {
+     Double_t out = TMath::Abs(trackpair->GetQOutLCMS());
+     Double_t side = TMath::Abs(trackpair->GetQSideLCMS());
+     Double_t lon = TMath::Abs(trackpair->GetQLongLCMS());
+   
+     fDenominator->Fill(out,side,lon);
+   }
+}
+/*************************************************************/
+
+TH1* AliHBTWeightQOutSQideQLongFctn::GetResult()
+{
+ //returns the scaled ratio
+ delete fRatio;
+ fRatio = GetRatio(Scale());
+ return fRatio;
+}                    
