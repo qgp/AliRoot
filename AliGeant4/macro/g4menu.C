@@ -1,6 +1,10 @@
 // $Id$
+//
+// Root macro that opens a mini GUI for running aliroot with Geant4.
+// It also provides functions for instantiating Geant4 VirtualMC (TGeant4) and
+// switching to Geant4 UI. 
 
-#include <iostream.h>
+#include <iostream>
 
 void g4menu()
 {
@@ -9,7 +13,7 @@ void g4menu()
   gInterpreter->ProcessLine("g4libs()");
 
   // load AliRoot core libraries
-  gInterpreter->ProcessLine("steerlibs()");
+  // gInterpreter->ProcessLine("steerlibs()");
 
   // menu
   TControlBar* menu = new TControlBar("vertical","Alice Geant4 menu");
@@ -18,7 +22,6 @@ void g4menu()
   menu->AddButton("Geant4UI", "StartGeant4UI()","Go to Geant4 Interactive session");
   menu->AddButton("Init",     "gAlice->Init()", "Initialize AliRun");
   menu->AddButton("Run",      "gAlice->Run()",  "Process Alice run");
-  menu->AddButton("Run Lego", "gAlice->RunLego()", "Process special lego run");
   gROOT->SaveContext();
   menu->Show();
 }
@@ -26,9 +29,10 @@ void g4menu()
 void CreateGeant4()
 {
   if (!gMC) {
-    // TG4RunConfiguration for Geant4
-    TG4RunConfiguration* runConfiguration 
-      = new TG4RunConfiguration();
+  
+     // AliRoot run configuration for Geant4
+    AliRunConfiguration* runConfiguration 
+      = new AliRunConfiguration();
   
     // TGeant4
     TGeant4* geant4
@@ -61,4 +65,3 @@ void StartGeant4UI()
     cout << "Monte Carlo has not been yet created." << endl;
   }       
 }  
-
