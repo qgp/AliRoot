@@ -18,4 +18,6 @@
 # define PASSCHARD(string) string, strlen(string) 
 # define PASSCHARL(string) 
 #endif
+#define DEFCHARA   DEFCHARD DEFCHARL
+#define PASSCHARA(string)  PASSCHARD(string) PASSCHARL(string)
 #endif //ROOT_TCallf77
