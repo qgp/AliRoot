@@ -678,16 +678,18 @@ ClassImp(AliBaseLoader)
 
 AliBaseLoader::AliBaseLoader():
  fIsLoaded(kFALSE),
+ fStoreInTopOfFile(kFALSE),
  fDoNotReload(kFALSE),
  fDataLoader(0x0)
 {
 }
 /*****************************************************************************/ 
 
-AliBaseLoader::AliBaseLoader(const TString& name,  AliDataLoader* dl):
+AliBaseLoader::AliBaseLoader(const TString& name,  AliDataLoader* dl, Bool_t storeontop):
  TNamed(name,name+" Base Loader"),
  fIsLoaded(kFALSE),
- fDoNotReload(kFALSE),
+ fStoreInTopOfFile(storeontop),
+ fDoNotReload(storeontop),//if stored on top of file - this object is loaded ones pe
  fDataLoader(dl)
 {
 }
@@ -752,13 +754,13 @@ Int_t AliBaseLoader::Post()
 {
 //Posts data container to proper folders
 
-  if ( GetDataLoader()->GetDirectory() == 0x0)
+  if ( GetDirectory() == 0x0)
    {
      Error("Post","%s directory is NULL. Load before.",GetDataLoader()->GetName());
      return 2; 
    }
   
-  TObject* data = GetDataLoader()->GetFromDirectory(fName);
+  TObject* data = GetFromDirectory(fName);
   if(data)
    {
      //if such an obejct already exists - remove it first
@@ -824,7 +826,7 @@ Int_t AliBaseLoader::WriteData(Option_t* opt)
    }
   
   //check if file is opened
-  if (GetDataLoader()->GetDirectory() == 0x0)
+  if (GetDirectory() == 0x0)
    { 
      //if not try to open
      GetDataLoader()->SetFileOption("UPDATE");
@@ -845,7 +847,7 @@ Int_t AliBaseLoader::WriteData(Option_t* opt)
   GetDataLoader()->cd(); //set the proper directory active
 
   //see if hits container already exists in this (root) directory
-  TObject* obj = GetDataLoader()->GetFromDirectory(GetName());
+  TObject* obj = GetFromDirectory(GetName());
   if (obj)
    { //if they exist, see if option OVERWRITE is used
      const char *oOverWrite = strstr(opt,"OVERWRITE");
@@ -859,10 +861,10 @@ Int_t AliBaseLoader::WriteData(Option_t* opt)
   if (GetDebug()) Info("WriteData","DataName = %s, opt = %s, data object name = %s",
                    GetName(),opt,data->GetName());
   if (GetDebug()) Info("WriteData","File Name = %s, Directory Name = %s Directory's File Name = %s",
-                   GetDataLoader()->GetFile()->GetName(),GetDataLoader()->GetDirectory()->GetName(),
-                   GetDataLoader()->GetDirectory()->GetFile()->GetName());
+                   GetDataLoader()->GetFile()->GetName(),GetDirectory()->GetName(),
+                   GetDirectory()->GetFile()->GetName());
   
-  if (GetDebug()) Info("WriteData","Writing tree");
+  if (GetDebug()) Info("WriteData","Writing data");
   data->Write(0,TObject::kOverwrite);
 
   fIsLoaded = kTRUE;  // Just to ensure flag is on. Object can be posted manually to folder structure, not using loader.
@@ -921,6 +923,12 @@ Int_t AliBaseLoader::GetDebug() const
  return (Int_t)AliLoader::fgDebug;
 }
 
+TDirectory* AliBaseLoader::GetDirectory()
+{
+ // returnd TDirectory where data are to be saved
+ //if fStoreInTopOfFile flag is true - returns pointer to file
+  return (fStoreInTopOfFile)?GetDataLoader()->GetFile():GetDataLoader()->GetDirectory();
+}
 /*****************************************************************************/ 
 /*****************************************************************************/ 
 /*****************************************************************************/ 
@@ -934,8 +942,8 @@ Int_t AliBaseLoader::GetDebug() const
 
 ClassImp(AliObjectLoader)
 
-AliObjectLoader::AliObjectLoader(const TString& name, AliDataLoader* dl):
- AliBaseLoader(name,dl)
+AliObjectLoader::AliObjectLoader(const TString& name, AliDataLoader* dl, Bool_t storeontop):
+ AliBaseLoader(name,dl,storeontop)
 {
 //constructor
 }
@@ -982,8 +990,8 @@ TObject* AliObjectLoader::Get() const
 
 ClassImp(AliTreeLoader)
 
-AliTreeLoader::AliTreeLoader(const TString& name, AliDataLoader* dl):
- AliObjectLoader(name,dl)
+AliTreeLoader::AliTreeLoader(const TString& name, AliDataLoader* dl,Bool_t storeontop):
+ AliObjectLoader(name,dl,storeontop)
 {
 //constructor
 }
@@ -1007,7 +1015,7 @@ Int_t AliTreeLoader::WriteData(Option_t* opt)
    }
   
   //check if file is opened
-  if (GetDataLoader()->GetDirectory() == 0x0)
+  if (GetDirectory() == 0x0)
    { 
      //if not try to open
      GetDataLoader()->SetFileOption("UPDATE");
@@ -1028,7 +1036,7 @@ Int_t AliTreeLoader::WriteData(Option_t* opt)
   GetDataLoader()->cd(); //set the proper directory active
 
   //see if hits container already exists in this (root) directory
-  TObject* obj = GetDataLoader()->GetFromDirectory(GetName());
+  TObject* obj = GetFromDirectory(GetName());
   if (obj)
    { //if they exist, see if option OVERWRITE is used
      const char *oOverWrite = strstr(opt,"OVERWRITE");
@@ -1042,12 +1050,12 @@ Int_t AliTreeLoader::WriteData(Option_t* opt)
   if (GetDebug()) Info("WriteData","DataName = %s, opt = %s, data object name = %s",
                    GetName(),opt,data->GetName());
   if (GetDebug()) Info("WriteData","File Name = %s, Directory Name = %s Directory's File Name = %s",
-                   GetDataLoader()->GetFile()->GetName(),GetDataLoader()->GetDirectory()->GetName(),
-                   GetDataLoader()->GetDirectory()->GetFile()->GetName());
+                   GetDataLoader()->GetFile()->GetName(),GetDirectory()->GetName(),
+                   GetDirectory()->GetFile()->GetName());
   
   //if a data object is a tree set the directory
   TTree* tree = dynamic_cast<TTree*>(data);
-  if (tree) tree->SetDirectory(GetDataLoader()->GetDirectory()); //forces setting the directory to this directory (we changed dir few lines above)
+  if (tree) tree->SetDirectory(GetDirectory()); //forces setting the directory to this directory (we changed dir few lines above)
   
   if (GetDebug()) Info("WriteData","Writing tree");
   data->Write(0,TObject::kOverwrite);
@@ -1098,8 +1106,8 @@ void AliTreeLoader::MakeTree()
 
 ClassImp(AliTaskLoader)
 
-AliTaskLoader::AliTaskLoader(const TString& name, AliDataLoader* dl, TTask* parentaltask):
- AliBaseLoader(name,dl),
+AliTaskLoader::AliTaskLoader(const TString& name, AliDataLoader* dl, TTask* parentaltask, Bool_t storeontop):
+ AliBaseLoader(name,dl,storeontop),
  fParentalTask(parentaltask)
 {
 //constructor

@@ -393,20 +393,14 @@ Int_t AliPHOSLoader::ReadHits()
 // Reads the first entry of PHOS branch in hit tree TreeH()
 // Reads data from TreeH and stores it in TClonesArray that sits in DetectorDataFolder
 //
-  TClonesArray* hits;
   TObject** hitref = HitsRef();
-    
   if(hitref == 0x0)
    {
-     hits = new TClonesArray("AliPHOSHit",1000);
-     hits->SetName(fgkHitsName);
-     GetDetectorDataFolder()->Add(hits);
+     MakeHitsArray();
      hitref = HitsRef();
    }
-  else
-   {
-     hits = dynamic_cast<TClonesArray*>(*hitref);
-   }
+
+  TClonesArray* hits = dynamic_cast<TClonesArray*>(*hitref);
 
   TTree* treeh = TreeH();
   
@@ -463,19 +457,12 @@ Int_t AliPHOSLoader::ReadSDigits()
 // Read the data
 
   TObject** sdref = SDigitsRef();
-  TClonesArray* sdigits;
-    
   if(sdref == 0x0)
    {
-     sdigits = new TClonesArray("AliPHOSDigit",1);
-     sdigits->SetName(fgkSDigitsName);
-     GetDetectorDataFolder()->Add(sdigits);
+     MakeSDigitsArray();
      sdref = SDigitsRef();
    }
-  else
-   {
-    sdigits = dynamic_cast<TClonesArray*>(*sdref);
-   }
+   
   TTree * treeS = TreeS();
   if(treeS==0)
    {
@@ -505,20 +492,13 @@ Int_t AliPHOSLoader::ReadDigits()
 // connect to tree if available
 // Read the data
   
-  TClonesArray* digits;
   TObject** dref = DigitsRef();
-
   if(dref == 0x0)
    {//if there is not array in folder, create it and put it there
-     digits = new TClonesArray("AliPHOSDigit",1000);
-     digits->SetName(fgkDigitsName);
-     GetDetectorDataFolder()->Add(digits);
+     MakeDigitsArray();
      dref = DigitsRef();
    }
-  else
-   {
-    digits = dynamic_cast<TClonesArray*>(*dref);
-   }
+
   TTree * treeD = TreeD();
   if(treeD==0)
    {
@@ -615,23 +595,13 @@ Int_t AliPHOSLoader::ReadRecPoints()
 //connects branch in tree (if exists), and reads data to arry
 
   TObject** cpvref = CpvRecPointsRef();
-  TObjArray * cpv;
-  if ( cpvref == 0x0 )   
-   {
-    cpv = new TObjArray(100) ;
-    cpv->SetName(fgkCpvRecPointsName);
-    GetDetectorDataFolder()->Add(cpv);
-    cpvref = DigitsRef();
-   }
-
   TObject** emcref = EmcRecPointsRef();
 
-  if ( emcref == 0x0 ) 
+  if ( cpvref == 0x0 || emcref == 0x0) 
    {
-    TObjArray * emc = new TObjArray(100) ;
-    emc->SetName(fgkEmcRecPointsName) ;
-    GetDetectorDataFolder()->Add(emc);
-    emcref = DigitsRef();
+     MakeRecPointsArray();
+     cpvref = CpvRecPointsRef();
+     emcref = EmcRecPointsRef();
    }
 
   TTree * treeR = TreeR();
@@ -675,12 +645,9 @@ Int_t AliPHOSLoader::ReadTracks()
 //connects branch in tree (if exists), and reads data to arry
 
   TObject** trkref = TracksRef();
-  
   if ( trkref == 0x0 )   
    {//Create and post array
-    TClonesArray * ts = new TClonesArray("AliPHOSTrackSegment",100) ;
-    ts->SetName(fgkTracksName);
-    GetDetectorDataFolder()->Add(ts);
+    MakeTrackSegmentsArray();
     trkref = TracksRef();
    }
 
@@ -717,9 +684,7 @@ Int_t AliPHOSLoader::ReadRecParticles()
   
   if ( recpartref == 0x0 )   
    {//Create and post array
-    TClonesArray * rp = new TClonesArray("AliPHOSRecParticle",100) ;
-    rp->SetName(fgkRecParticlesName);
-    GetDetectorDataFolder()->Add(rp);
+    MakeRecParticlesArray();
     recpartref = TracksRef();
    }
 
@@ -995,4 +960,63 @@ AliPHOSSDigitizer*  AliPHOSLoader::PHOSSDigitizer()
 { 
 //return PHOS SDigitizer
  return  dynamic_cast<AliPHOSSDigitizer*>(SDigitizer()) ;
+}
+
+void AliPHOSLoader::MakeHitsArray()
+{
+  if (Hits()) return;
+  TClonesArray* hits = new TClonesArray("AliPHOSHit",1000);
+  hits->SetName(fgkHitsName);
+  GetDetectorDataFolder()->Add(hits);
+}
+
+void AliPHOSLoader::MakeSDigitsArray()
+{
+  if ( SDigits()) return;
+  TClonesArray* sdigits = new TClonesArray("AliPHOSDigit",1);
+  sdigits->SetName(fgkSDigitsName);
+  GetDetectorDataFolder()->Add(sdigits);
+}
+
+void AliPHOSLoader::MakeDigitsArray()
+{
+  if ( Digits()) return;
+  TClonesArray* digits = new TClonesArray("AliPHOSDigit",1);
+  digits->SetName(fgkDigitsName);
+  GetDetectorDataFolder()->Add(digits);
+  
+}
+
+void AliPHOSLoader::MakeRecPointsArray()
+{
+  if ( EmcRecPoints() == 0x0)
+   {
+    TObjArray* emc = new TObjArray(100) ;
+    emc->SetName(fgkEmcRecPointsName) ;
+    GetDetectorDataFolder()->Add(emc);
+   }
+
+  if ( CpvRecPoints() == 0x0)
+   {
+    TObjArray* cpv = new TObjArray(100) ;
+    cpv->SetName(fgkCpvRecPointsName);
+    GetDetectorDataFolder()->Add(cpv);
+   }
+}
+
+void AliPHOSLoader::MakeTrackSegmentsArray()
+{
+  if ( TrackSegments()) return;
+  TClonesArray * ts = new TClonesArray("AliPHOSTrackSegment",100) ;
+  ts->SetName(fgkTracksName);
+  GetDetectorDataFolder()->Add(ts);
+
+}
+
+void AliPHOSLoader::MakeRecParticlesArray()
+{
+  if ( RecParticles()) return;
+  TClonesArray * rp = new TClonesArray("AliPHOSRecParticle",100) ;
+  rp->SetName(fgkRecParticlesName);
+  GetDetectorDataFolder()->Add(rp);
 }

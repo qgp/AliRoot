@@ -128,20 +128,21 @@ void AliLoader::InitDefaults()
   // S U M M A B L E   D I G I T S
   dl = new AliDataLoader(fDetectorName + ".SDigits.root",fgkDefaultSDigitsContainerName, "Summable Digits");
   AliTaskLoader* tl = new AliTaskLoader(fDetectorName + AliConfig::Instance()->GetSDigitizerTaskName(),
-                                        dl,AliRunLoader::GetRunSDigitizer());
+                                        dl,AliRunLoader::GetRunSDigitizer(),kTRUE);
   dl->SetBaseTaskLoader(tl);
   fDataLoaders->AddAt(dl,kSDigits);
 
   // D I G I T S  
   dl = new AliDataLoader(fDetectorName + ".Digits.root",fgkDefaultDigitsContainerName, "Digits");
   tl = new AliTaskLoader(fDetectorName + AliConfig::Instance()->GetDigitizerTaskName(),
-                                        dl,AliRunLoader::GetRunDigitizer());
+                                        dl,AliRunLoader::GetRunDigitizer(),kTRUE);
   dl->SetBaseTaskLoader(tl);
   fDataLoaders->AddAt(dl,kDigits);
   
+  // R E C O N S T R U C T E D   P O I T S aka C L A S T E R S 
   dl = new AliDataLoader(fDetectorName + ".RecPoints.root",fgkDefaultRecPointsContainerName, "Reconstructed Points");
   tl = new AliTaskLoader(fDetectorName + AliConfig::Instance()->GetReconstructionerTaskName(),
-                                        dl,AliRunLoader::GetRunReconstructioner());
+                                        dl,AliRunLoader::GetRunReconstructioner(),kTRUE);
   dl->SetBaseTaskLoader(tl);
   fDataLoaders->AddAt(dl,kRecPoints);
   

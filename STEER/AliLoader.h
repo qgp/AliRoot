@@ -96,10 +96,10 @@ class AliLoader: public TNamed
     virtual Int_t  PostReconstructioner(TTask* task);
     virtual Int_t  PostTracker(TTask* task);
     
-    virtual Int_t  WriteSDigitizer(Option_t* opt=""){return GetSDigitsDataLoader()->GetBaseTaskLoader()->Write(opt);}
-    virtual Int_t  WriteDigitizer(Option_t* opt=""){return GetDigitsDataLoader()->GetBaseTaskLoader()->Write(opt);}
-    virtual Int_t  WriteReconstructioner(Option_t* opt=""){return GetRecPointsDataLoader()->GetBaseTaskLoader()->Write(opt);}
-    virtual Int_t  WriteTracker(Option_t* opt=""){return GetTracksDataLoader()->GetBaseTaskLoader()->Write(opt);}
+    virtual Int_t  WriteSDigitizer(Option_t* opt=""){return GetSDigitsDataLoader()->GetBaseTaskLoader()->WriteData(opt);}
+    virtual Int_t  WriteDigitizer(Option_t* opt=""){return GetDigitsDataLoader()->GetBaseTaskLoader()->WriteData(opt);}
+    virtual Int_t  WriteReconstructioner(Option_t* opt=""){return GetRecPointsDataLoader()->GetBaseTaskLoader()->WriteData(opt);}
+    virtual Int_t  WriteTracker(Option_t* opt=""){return GetTracksDataLoader()->GetBaseTaskLoader()->WriteData(opt);}
 
     TTree*         TreeH(){return GetHitsDataLoader()->Tree();}      //returns the tree from folder; shortcut method
     TTree*         TreeS(){return GetSDigitsDataLoader()->Tree();}   //returns the tree from folder; shortcut method

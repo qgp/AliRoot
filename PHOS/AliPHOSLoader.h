@@ -132,23 +132,29 @@ class AliPHOSLoader : public AliLoader {
   /****   H i t s  ****/
   TClonesArray*  Hits(void);
   const AliPHOSHit*    Hit(Int_t index);
+  void MakeHitsArray();
   /****   S D i g i t s  ****/ 
   TClonesArray*  SDigits();
   const AliPHOSDigit*  SDigit(Int_t index);
+  void MakeSDigitsArray();
   /****  D i g i t s  ****/
   TClonesArray*   Digits();
   const AliPHOSDigit *  Digit(Int_t index);
+  void MakeDigitsArray();
   /****  R e c P o i n t s  ****/
   TObjArray * EmcRecPoints();
   TObjArray * CpvRecPoints();
   const AliPHOSEmcRecPoint * EmcRecPoint(Int_t index) ;
   const AliPHOSCpvRecPoint * CpvRecPoint(Int_t index) ;
+  void MakeRecPointsArray();
   /****   T r a c k S e g m e n t s ****/
   TClonesArray * TrackSegments();
   const AliPHOSTrackSegment * TrackSegment(Int_t index);
+  void MakeTrackSegmentsArray();
   /****  R e c P a r t ic l e s   ****/
   TClonesArray * RecParticles() ;
   const AliPHOSRecParticle * RecParticle(Int_t index);
+  void MakeRecParticlesArray();
 
   /*********************************************/
   /************    T A S K S      **************/

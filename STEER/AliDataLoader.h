@@ -54,7 +54,7 @@ class AliDataLoader: public TNamed
    void               UnloadAll();
    void               CleanAll();
    const TString&     GetFileName() const {return fFileName;}
-   const TFile*       GetFile() const {return fFile;}
+   TFile*             GetFile() const {return fFile;}
    TDirectory*        GetDirectory() const {return fDirectory;}
    const TString&     GetFileOption() const {return fFileOption;}
    const Int_t&       GetCompressionLevel() const {return fCompressionLevel;}
@@ -70,7 +70,7 @@ class AliDataLoader: public TNamed
    TFolder*           GetEventFolder();
    TFolder*           GetFolder() const {return fFolder;}
    
-   TObject*           GetFromDirectory(const char *name){return (fDirectory)?fDirectory->Get(name):0x0;}
+//   TObject*           GetFromDirectory(const char *name){return (fDirectory)?fDirectory->Get(name):0x0;}
    void               SetFileNameSuffix(const TString& suffix);//adds the suffix before ".root", 
                                                                //e.g. TPC.Digits.root -> TPC.DigitsMerged.root
                                                                //made on Jiri Chudoba demand
@@ -134,7 +134,7 @@ class AliBaseLoader: public TNamed
 {
   public:
     AliBaseLoader();
-    AliBaseLoader(const TString& name, AliDataLoader* dl);
+    AliBaseLoader(const TString& name, AliDataLoader* dl, Bool_t storeontop = kFALSE);
     
     virtual ~AliBaseLoader(){};
      
@@ -151,6 +151,8 @@ class AliBaseLoader: public TNamed
     void               SetEventFolder(TFolder* ef){;}
     void               SetDoNotReload(Bool_t flag){fDoNotReload = flag;}
     Bool_t             DoNotReload() const {return fDoNotReload;}
+    TDirectory*        GetDirectory();//returns pointer to directory where data are stored. 
+    TObject*           GetFromDirectory(const char *name){return (GetDirectory())?GetDirectory()->Get(name):0x0;}    
    protected:
     
     virtual Int_t      AddToBoard(TObject* obj) = 0;//add to white board - board can be TTask or TFolder
@@ -160,6 +162,7 @@ class AliBaseLoader: public TNamed
     Int_t              GetDebug() const;
 
     Bool_t             fIsLoaded;    //!  flag indicating if data are loaded
+    Bool_t             fStoreInTopOfFile;// if true, data are stored in top of file ->Indicates fDoNotReload == kTRUE
 
    private:
     Bool_t             fDoNotReload; //! if this flag is on object is not reloaded while GetEvent is called.
@@ -184,7 +187,7 @@ class AliObjectLoader: public AliBaseLoader
  {
    public:
      AliObjectLoader(){};
-     AliObjectLoader(const TString& name, AliDataLoader* dl);
+     AliObjectLoader(const TString& name, AliDataLoader* dl, Bool_t storeontop = kFALSE);
      virtual          ~AliObjectLoader(){};
      TObject*          Get() const;
 
@@ -209,7 +212,7 @@ class AliTreeLoader: public AliObjectLoader
  {
    public:
      AliTreeLoader(){};
-     AliTreeLoader(const TString& name, AliDataLoader* dl);
+     AliTreeLoader(const TString& name, AliDataLoader* dl, Bool_t storeontop = kFALSE);
      virtual ~AliTreeLoader(){};
      
      virtual TTree*     Tree() const {return dynamic_cast<TTree*>(Get());}
@@ -231,7 +234,7 @@ class AliTaskLoader: public AliBaseLoader
  {
   public:
     AliTaskLoader():fParentalTask(0x0){};
-    AliTaskLoader(const TString& name, AliDataLoader* dl, TTask* parentaltask);
+    AliTaskLoader(const TString& name, AliDataLoader* dl, TTask* parentaltask, Bool_t storeontop = kFALSE);
     virtual ~AliTaskLoader(){};
     
     TObject*           Get() const; 
