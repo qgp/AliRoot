@@ -26,6 +26,7 @@
 #include <TFile.h>
 #include "AliConfig.h"
 #include "AliLoader.h"
+#include "AliDataLoader.h"
 
 class TString;
 class TFolder;
@@ -35,10 +36,10 @@ class TTask;
 class TParticle;
 
 class AliRun;
-#include "AliLoader.h"
+class AliLoader;
 class AliDetector;
 class AliHeader;
-#include "AliStack.h"
+class AliStack;
 class AliRunDigitizer;
 
 
@@ -58,8 +59,7 @@ class AliRunLoader: public TNamed
 
     Int_t       GetEventNumber() const {return fCurrentEvent;}
 
-    Int_t       GetEvent(const Int_t evno, const char * opt= "HSDRP");//sets the event number and reloads data in folders properly, 
-                                                             //with the possibility to select which kind of data to laod
+    Int_t       GetEvent(Int_t evno);//sets the event number and reloads data in folders properly
     Int_t       GetNextEvent(){return GetEvent(fCurrentEvent+1);}//gets next event 
     Int_t       SetEventNumber(Int_t evno); //cleans folders and sets the root dirs in files (do not reload data)
     Int_t       SetNextEvent(){return SetEventNumber(fCurrentEvent+1);}
@@ -80,16 +80,14 @@ class AliRunLoader: public TNamed
     void        UnloadgAlice();
     void        UnloadTrackRefs();
     
-    void        SetKineFileName(const TString& fname){fKineData.FileName() = fname;}
-    TString&    GetKineFileName() {return fKineData.FileName() ; } const 
-    void        SetTrackRefsFileName(const TString& fname){fTrackRefsData.FileName() = fname;}
+    void        SetKineFileName(const TString& fname){fKineDataLoader->SetFileName(fname);}
+    void        SetTrackRefsFileName(const TString& fname){fTrackRefsDataLoader->SetFileName(fname);}
     
     TTree*      TreeE() const; //returns the tree from folder; shortcut method
     AliHeader*  GetHeader() const;
     
     AliStack*   Stack() const {return fStack;}
-    Int_t       GetNtrack() const { return Stack()->GetNtrack() ; } 
-    TParticle * Particle(const Int_t i) const { return  Stack()->Particle(i) ; } 
+    
     TTree*      TreeK() const; //returns the tree from folder; shortcut method
     TTree*      TreeTR() const; //returns the tree from folder; shortcut method    
     
@@ -143,7 +141,7 @@ class AliRunLoader: public TNamed
                                                                //made on Jiri Chudoba demand
     TString     GetFileName() const;//returns name of galice file
     const TObjArray* GetArrayOfLoaders() const {return fLoaders;}
-    Int_t GetDebug() const {return (Int_t)AliLoader::fgDebug;}
+    Int_t GetDebug() const {return (Int_t)AliLoader::AliLoader::fgDebug;}
     void cd(){fgRunLoader = this;}
 
   protected:
@@ -161,8 +159,8 @@ class AliRunLoader: public TNamed
     AliHeader     *fHeader;//!  pointer to header
     AliStack      *fStack; //!  pointer to stack
     
-    AliLoaderDataInfo fKineData;//data connected to kinematics data
-    AliLoaderDataInfo fTrackRefsData;//data connected to track reference data
+    AliDataLoader*fKineDataLoader;// kinematics data loader
+    AliDataLoader*fTrackRefsDataLoader;//track reference data loader
     
     Int_t          fNEventsPerFile;  //defines number of events stored per one file
     
@@ -176,8 +174,6 @@ class AliRunLoader: public TNamed
     /*********************************************/
 
     void           SetGAliceFile(TFile* gafile);//sets the pointer to gAlice file
-    Int_t          PostKinematics();
-    Int_t          PostTrackRefs();
     Int_t          OpenKineFile(Option_t* opt);
     Int_t          OpenTrackRefsFile(Option_t* opt);
 

@@ -125,10 +125,10 @@ class AliPHOSGetter : public TObject {
   TString             GetSDigitsFileName() { return PhosLoader()->GetSDigitsFileName() ; }  
   Int_t               LoadSDigits(Option_t* opt="") { return PhosLoader()->LoadSDigits(opt) ; }
   Int_t               LoadSDigitizer(const TString name = AliConfig::fgkDefaultEventFolderName, Option_t* opt=""){
-    return  PhosLoader()->LoadSDigitizer(name, opt) ; }
+    return  PhosLoader()->LoadSDigitizer(opt) ; }
   Int_t               WriteSDigits(Option_t* opt="") { return PhosLoader()->WriteSDigits(opt) ; }
   Int_t               WriteSDigitizer(const TString name = AliConfig::fgkDefaultEventFolderName, Option_t* opt=""){
-    return  PhosLoader()->WriteSDigitizer(name, opt) ; }
+    return  PhosLoader()->WriteSDigitizer(opt) ; }
   
   //========== Digits ================
   TClonesArray * Digits() ;
@@ -139,10 +139,10 @@ class AliPHOSGetter : public TObject {
   TString             GetDigitsFileName() { return PhosLoader()->GetDigitsFileName() ; }  
   Int_t               LoadDigits(Option_t* opt="") { return PhosLoader()->LoadDigits(opt) ; }
   Int_t               LoadDigitizer(const TString name = AliConfig::fgkDefaultEventFolderName, Option_t* opt=""){
-    return  PhosLoader()->LoadDigitizer(name, opt) ; }
+    return  PhosLoader()->LoadDigitizer(opt) ; }
   Int_t               WriteDigits(Option_t* opt="") { return PhosLoader()->WriteDigits(opt) ; }
   Int_t               WriteDigitizer(const TString name = AliConfig::fgkDefaultEventFolderName, Option_t* opt=""){
-    return  PhosLoader()->WriteDigitizer(name, opt) ; }
+    return  PhosLoader()->WriteDigitizer( opt) ; }
   
   //========== RecPoints =============
   //   TObjArray *                EmcRecPoints(const char * name = 0) {

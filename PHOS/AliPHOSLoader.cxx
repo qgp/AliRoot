@@ -60,6 +60,7 @@
 
 #include "AliRun.h"
 #include "AliConfig.h"
+#include "AliDataLoader.h"
 #include "AliPHOSLoader.h"
 #include "AliPHOS.h"
 #include "AliPHOSDigitizer.h"
@@ -114,6 +115,7 @@ AliPHOSLoader::~AliPHOSLoader()
   Clean(fgkTracksName);
   Clean(fgkRecParticlesName);
 }
+//____________________________________________________________________________ 
 
 void AliPHOSLoader::CleanFolders()
  {
@@ -124,13 +126,16 @@ void AliPHOSLoader::CleanFolders()
 
 Int_t AliPHOSLoader::SetEvent()
 {
+//Cleans loaded stuff and and sets Files and Directories
+// do not post any data to folder/tasks
+
   Bool_t tmp = fRecParticlesLoaded;
-  Bool_t checkreltracks = CheckReload(File(kTracks),FileName(kTracks));
+  Bool_t checkreltracks = GetTracksDataLoader()->CheckReload();
   if ( (checkreltracks)&& (fRecParticlesLoaded))
    {
      UnloadRecParticles();
-     fRecParticlesLoaded = kFALSE;
    }
+
   Int_t retval = AliLoader::SetEvent();
   if (retval)
    {
@@ -159,9 +164,10 @@ Int_t AliPHOSLoader::GetEvent()
 
   if (fRecParticlesLoaded) 
    {//if yes
-    if (File(kTracks) == 0x0) //check if file is opened
+    AliBaseLoader* tracktreeloader = GetTracksDataLoader()->GetBaseLoader(0);
+    if (tracktreeloader->IsLoaded() == kFALSE) //check if file is opened (tracks loaded)
      {
-       retval = LoadTracks(fRecParticlesFileOption);//if not load the tracks (this method loads only tree, so not too much for us)
+       retval = tracktreeloader->Load(fRecParticlesFileOption);//if not load the tracks (this method loads only tree, so not too much for us)
        if (retval)
         {
          Error("GetEvent","Load Tracks returned error");
@@ -170,7 +176,6 @@ Int_t AliPHOSLoader::GetEvent()
      }
     return ReadRecParticles();//now we can 
    }
-
 
 //Now, check if RecPart were loaded  
   return 0;
@@ -218,7 +223,6 @@ Int_t AliPHOSLoader::LoadHits(Option_t* opt)
 
   //read the data from tree in folder and send it to folder
   res = ReadHits();
-
   return 0;
 }
 
@@ -283,7 +287,7 @@ Int_t  AliPHOSLoader::LoadTracks(Option_t* opt)
   }
  Int_t res;
   //First call the AliLoader's method to send the TreeS to folder
- if (File(kTracks) == 0x0) 
+ if (GetTracksDataLoader()->GetBaseLoader(0)->IsLoaded() == kFALSE) 
   {//tracks can be loaded by LoadRecPoints
    res = AliLoader::LoadTracks(opt);
    if (res)
@@ -739,27 +743,28 @@ Int_t AliPHOSLoader::LoadRecParticles(Option_t* opt)
  //if Tracks File is Opened and the option of the track
  
  if (GetDebug()) Info("LoadRecParticles","opt = %s",opt);
- if (fRecParticlesLoaded) 
+ if (fRecParticlesLoaded)
   {
    Warning("LoadRecParticles","Reconstructed Particles already loaded");
    return 0;
   }
   
  fRecParticlesFileOption = opt;
- if( File(kTracks) && fTracksLoaded)//check the option if tracks were loaded by user with not writable option
-  if (File(kTracks)->IsWritable() == kFALSE)
+ AliBaseLoader* tracktreeloader = GetTracksDataLoader()->GetBaseLoader(0);
+ if( tracktreeloader->IsLoaded() && fTracksLoaded)//check the option if tracks were loaded by user with not writable option
+  if (GetTracksDataLoader()->IsFileWritable() == kFALSE)
    {
     //check if demended option is "writable" file
     if (IsOptionWritable(fRecParticlesFileOption))
      {
        Error("LoadRecParticles",
              "%s File (where Rec Particles for PHOS are stored) is opened and NOT \n\
-             \rwritable, while option demanded is writble.",File(kTracks)->GetName());
+             \rwritable, while option demanded is writble.",GetTracksDataLoader()->GetFileName().Data());
        return 5;
      }
    }
  Int_t retval = 0;
- if ( File(kTracks) == 0x0 )
+ if ( tracktreeloader->IsLoaded() == kFALSE )
   {
     retval = LoadTracks(opt);
     if (retval)
@@ -942,16 +947,6 @@ void AliPHOSLoader::CleanTracks()
 }
 //____________________________________________________________________________ 
 
-Bool_t AliPHOSLoader::IsOptionWritable(const TString& opt)
-{
-  if (opt.CompareTo("recreate",TString::kIgnoreCase)) return kTRUE;
-  if (opt.CompareTo("new",TString::kIgnoreCase)) return kTRUE;
-  if (opt.CompareTo("create",TString::kIgnoreCase)) return kTRUE;
-  if (opt.CompareTo("update",TString::kIgnoreCase)) return kTRUE;
-  return kFALSE;
-}
-//____________________________________________________________________________ 
-
 void AliPHOSLoader::CleanRecParticles()
  {
    TClonesArray *arr = RecParticles();
@@ -977,4 +972,17 @@ void AliPHOSLoader::ReadCalibrationDB(const char * database,const char * filenam
   fcdb = dynamic_cast<AliPHOSCalibrationDB *>(file->Get("AliPHOSCalibrationDB")) ;
   if(!fcdb)
     Error ("ReadCalibrationDB", "No database %s in file %s", database, filename) ;
+}
+//____________________________________________________________________________ 
+
+AliPHOSSDigitizer*  AliPHOSLoader::PHOSSDigitizer(TString name) 
+{ 
+//returns task named "name" from SDigitzer 
+ AliTaskLoader* sdloader = dynamic_cast<AliTaskLoader*>(GetSDigitsDataLoader()->GetBaseLoader(name));
+ if (sdloader == 0x0)
+  {
+    Error("PHOSSDigitizer","Can not find Task Loader responsible for %s.",name.Data());
+    return 0x0;
+  }
+ return dynamic_cast<AliPHOSSDigitizer*>(sdloader->Task());
 }

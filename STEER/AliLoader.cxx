@@ -48,6 +48,7 @@ ClassImp(AliLoader)
 /*****************************************************************************/ 
 
 AliLoader::AliLoader():
+ fDataLoaders(0x0),
  fDetectorName(""),
  fEventFolder(0x0),
  fDataFolder(0x0),
@@ -62,6 +63,7 @@ AliLoader::AliLoader():
 /******************************************************************/
 
 AliLoader::AliLoader(const Char_t* detname,const Char_t* eventfoldername):
+ fDataLoaders(new TObjArray(kNDataTypes)),
  fDetectorName(""),
  fEventFolder(0x0),
  fDataFolder(0x0),
@@ -76,23 +78,21 @@ AliLoader::AliLoader(const Char_t* detname,const Char_t* eventfoldername):
 
    //try to find folder eventfoldername in top alice folder
    //safe because GetTopFolder will abort in case of failure
-   TObject* fobj = GetTopFolder()->FindObject(eventfoldername);
-   fEventFolder = (fobj)?dynamic_cast<TFolder*>(fobj):0x0;//in case FindObject returns NULL dynamic cast cause seg. fault
-   if (fEventFolder == 0x0)
-    {
-      Fatal("AliLoader","Can not find event folder %s. Aborting",eventfoldername);
-    }
 
    fDetectorName = detname;
    fName = fDetectorName+"Loader";
-
    InitDefaults();
-   //fileoption's don't need to initialized because default TString ctor does it correctly
+
+   TObject* fobj = GetTopFolder()->FindObject(eventfoldername);
+   fEventFolder = (fobj)?dynamic_cast<TFolder*>(fobj):0x0;//in case FindObject returns NULL dynamic cast cause seg. fault
+   SetEventFolder(fEventFolder);
+   
  }
 /*****************************************************************************/ 
 
 AliLoader::AliLoader(const Char_t * detname,TFolder* eventfolder):
- fDetectorName(""),
+ fDataLoaders(new TObjArray(kNDataTypes)),
+ fDetectorName(detname),
  fEventFolder(0x0),
  fDataFolder(0x0),
  fDetectorDataFolder(0x0),
@@ -100,739 +100,90 @@ AliLoader::AliLoader(const Char_t * detname,TFolder* eventfolder):
  fTasksFolder(0x0),
  fQAFolder(0x0)
 {
-
-   fEventFolder = eventfolder;
+//constructor
    fDetectorName = detname;
    fName = fDetectorName+"Loader";
-
    InitDefaults();
+   SetEventFolder(eventfolder);
    //fileoption's don't need to initialized because default TString ctor does it correctly
 }
 /*****************************************************************************/ 
 
 AliLoader::~AliLoader()
 {
-  CleanFolders();
-  CloseFiles();
-}
-/*****************************************************************************/ 
-
-void AliLoader::ResetDataInfo()
-{
-  fDataInfo[kHits].File() = 0x0;
-  fDataInfo[kSDigits].File() = 0x0;
-  fDataInfo[kDigits].File() = 0x0;
-  fDataInfo[kRecPoints].File() = 0x0;
-  fDataInfo[kTracks].File() = 0x0;
-   
-  fDataInfo[kHits].Directory() = 0x0;
-  fDataInfo[kSDigits].Directory() = 0x0;
-  fDataInfo[kDigits].Directory() = 0x0;
-  fDataInfo[kRecPoints].Directory() = 0x0;
-  fDataInfo[kTracks].Directory() = 0x0;
- 
+//detructor
+  if (fDataLoaders) fDataLoaders->SetOwner();
+  delete fDataLoaders;
 }
 /*****************************************************************************/ 
 
 void AliLoader::InitDefaults()
 {
-
-  fDataInfo[kHits].FileName() = fDetectorName + ".Hits.root";
-  fDataInfo[kSDigits].FileName() = fDetectorName + ".SDigits.root";
-  fDataInfo[kDigits].FileName() = fDetectorName + ".Digits.root";
-  fDataInfo[kRecPoints].FileName() = fDetectorName + ".RecPoints.root";
-  fDataInfo[kTracks].FileName() = fDetectorName + ".Tracks.root";
+  AliDataLoader* dl;
+  dl = new AliDataLoader(fDetectorName + ".Hits.root",fgkDefaultHitsContainerName, "Hits" );
+  fDataLoaders->AddAt(dl,kHits);
   
-  fDataInfo[kHits].ContainerName() = fgkDefaultHitsContainerName;
-  fDataInfo[kSDigits].ContainerName() = fgkDefaultSDigitsContainerName;
-  fDataInfo[kDigits].ContainerName() = fgkDefaultDigitsContainerName;
-  fDataInfo[kRecPoints].ContainerName() = fgkDefaultRecPointsContainerName;
-  fDataInfo[kTracks].ContainerName() = fgkDefaultTracksContainerName;
-
-  fDataInfo[kHits].Name() = "Hits";
-  fDataInfo[kSDigits].Name() = "Summable Digits";
-  fDataInfo[kDigits].Name() = "Digits";
-  fDataInfo[kRecPoints].Name() = "Reconstructed Points";
-  fDataInfo[kTracks].Name() = "Tracks";
-
+  dl = new AliDataLoader(fDetectorName + ".SDigits.root",fgkDefaultSDigitsContainerName, "Summable Digits");
+  fDataLoaders->AddAt(dl,kSDigits);
+  
+  dl = new AliDataLoader(fDetectorName + ".Digits.root",fgkDefaultDigitsContainerName, "Digits");
+  fDataLoaders->AddAt(dl,kDigits);
+  
+  dl = new AliDataLoader(fDetectorName + ".RecPoints.root",fgkDefaultRecPointsContainerName, "Reconstructed Points");
+  fDataLoaders->AddAt(dl,kRecPoints);
+  
+  dl = new AliDataLoader(fDetectorName + ".Tracks.root",fgkDefaultTracksContainerName, "Tracks");
+  fDataLoaders->AddAt(dl,kTracks);
+  
 }
 /*****************************************************************************/ 
 
-Int_t AliLoader::LoadData(AliLoaderDataInfo& di,Option_t* opt)
+AliDataLoader* AliLoader::GetDataLoader(const char* name)
 {
-  if (GetDebug()) Info("LoadData","name=%s, data type = %s, option = %s",GetName(),di.Name().Data(),opt);
-  if (Tree(di))
-   {
-      Warning("LoadData","Data <<%s>> are already loaded. Use ReloadData to force reload. Nothing done",di.Name().Data());
-      return 0;
-   }
-    //else force option was used
-  SetFileOption(di,opt);
-
-  Int_t retval;
-  retval = OpenDataFile(di,opt);
-  if (retval) 
-   {
-    Error("LoadData","Error occured while opening <<%s>> file",di.Name().Data());
-    return retval;
-   }
-
-  //if file is recreated there is no sense to search for data to post and get Error message
-  if (AliLoader::TestFileOption(opt) == kFALSE)
-   {
-     MakeTree(di);
-    return 0;
-   }
-
-  retval = PostData(di);
-  if (retval)
-   {
-    Error("LoadData","Error occured while posting %s from file to folder",di.Name().Data());
-    return retval;
-   }
-
-  return 0;
- 
-}
-
-/*****************************************************************************/ 
-
-Int_t AliLoader::LoadSDigitizer(const TString name, Option_t* opt)
-{
-  if (SDigitizer(name))
-   {
-     Warning("LoadSDigitizer","%s S. Digitzier Task already exists",GetDetectorName().Data());
-     Warning("LoadSDigitizer","Clean it first to load one from a file. Nothing done");
-     return 0;
-   }
-  TTask* rsd = AliRunLoader::GetRunSDigitizer();
-  if (rsd == 0x0)
-   {
-     Error("LoadSDigitizer","Can not get RunSDigitizer from folder. Can not load");
-     return 1;
-   }
-  
-  Int_t retval; //returned value
-  if (File(kSDigits)  == 0x0)
-   {
-      retval = OpenSDigitsFile(opt);
-      if (retval) 
-       {
-         Error("LoadSDigitizer","Error occured while opening Summable Digits file");
-         return retval;
-       }
-   }
-  //test if there is sense to look for data in file
-  //if it is recreates
-  if (AliLoader::TestFileOption(opt) == kFALSE) return 0;
-  
-  retval = PostSDigitizer(name);      
-  if (retval) 
-   {
-    Error("LoadSDigits","Error occured while posting SDigits from file to folder");
-    return retval;
-   }
-  return 0;
-
+//returns Data Loader with specified name
+  return dynamic_cast<AliDataLoader*>(fDataLoaders->FindObject(name));
 }
 /*****************************************************************************/ 
-
-Int_t AliLoader::LoadDigitizer(const TString name, Option_t* opt)
-{
-  if (Digitizer(name))
-   {
-     Warning("LoadDigitizer","%s Digitzier Task already exists",GetDetectorName().Data());
-     Warning("LoadDigitizer","Clean it first to load one from a file. Nothing done");
-     return 0;
-   }
-  TTask* rsd = AliRunLoader::GetRunDigitizer();
-  if (rsd == 0x0)
-   {
-     Error("LoadDigitizer","Can not get RunDigitizer from folder. Can not load");
-     return 1;
-   }
-  
-  Int_t retval; //returned value
-  if (File(kDigits)  == 0x0)
-   {
-      retval = OpenDigitsFile(opt);
-      if (retval) 
-       {
-         Error("LoadDigitizer","Error occured while opening Digits file");
-         return retval;
-       }
-   }
-  //test if there is sense to look for data in file
-  //if it is recreates
-  if (AliLoader::TestFileOption(opt) == kFALSE) return 0;
-  
-  retval = PostDigitizer(name);
-  if (retval) 
-   {
-    Error("LoadDigitizer","Error occured while posting Digitizer from file to task");
-    return retval;
-   }
-  return 0;
-
-}
-/*****************************************************************************/ 
-
-Int_t AliLoader::LoadReconstructioner(const TString name, Option_t* opt)
-{
-   if (Reconstructioner(name))
-   {
-     Warning("LoadReconstructioner","%s Reconstructioner Task already exists",GetDetectorName().Data());
-     Warning("LoadReconstructioner","Clean it first to load one from a file. Nothing done");
-     return 0;
-   }
-  TTask* rsd = AliRunLoader::GetRunReconstructioner();
-  if (rsd == 0x0)
-   {
-     Error("LoadReconstructioner","Can not get Run Reconstructioner from folder. Can not load");
-     return 1;
-   }
-  
-  Int_t retval; //returned value
-  if (File(kRecPoints)  == 0x0)
-   {
-      retval = OpenRecPointsFile(opt);
-      if (retval) 
-       {
-         Error("LoadReconstructioner","Error occured while opening Reconstructed Points file");
-         return retval;
-       }
-   }
-  //test if there is sense to look for data in file
-  //if it is recreates
-  if (AliLoader::TestFileOption(opt) == kFALSE) return 0;
-  
-  retval = PostReconstructioner(name);
-  if (retval) 
-   {
-    Error("LoadReconstructioner","Error occured while posting Reconstructioner from file to Task");
-    return retval;
-   }
-  return 0;
-
-}
-/*****************************************************************************/ 
-
-Int_t AliLoader::LoadTracker(const TString name, Option_t* opt)
-{
-   if (Tracker(name))
-   {
-     Warning("LoadTracker","%s Tracker Task already exists",GetDetectorName().Data());
-     Warning("LoadTracker","Clean it first to load one from a file. Nothing done");
-     return 0;
-   }
-  TTask* rsd = AliRunLoader::GetRunReconstructioner();
-  if (rsd == 0x0)
-   {
-     Error("LoadReconstructioner","Can not get Run Reconstructioner from folder. Can not load");
-     return 1;
-   }
-  
-  Int_t retval; //returned value
-  if (File(kRecPoints)  == 0x0)
-   {
-      retval = OpenRecPointsFile(opt);
-      if (retval) 
-       {
-         Error("LoadReconstructioner","Error occured while opening Reconstructed Points file");
-         return retval;
-       }
-   }
-  //test if there is sense to look for data in file
-  //if it is recreates
-  if (AliLoader::TestFileOption(opt) == kFALSE) return 0;
-  
-  retval = PostReconstructioner(name);
-  if (retval) 
-   {
-    Error("LoadReconstructioner","Error occured while posting Reconstructioner from file to Task");
-    return retval;
-   }
-  return 0;
-}
-
-/*****************************************************************************/ 
-
 
 Int_t AliLoader::SetEvent()
 {
  //basically the same that GetEvent but do not post data to folders
-   CleanFolders();
-   
-   AliRunLoader* rg = GetRunLoader();
-   if (rg == 0x0)
-    {
-      Error("SetEvent","Can not get RunGettr");
-      return 1;
-    }
-   Int_t evno = rg->GetEventNumber();
-   
-   if(File(kHits))
-    {
-      if (CheckReload(File(kHits),FileName(kHits)))
-       {
-         UnloadHits();
-         if (GetDebug()) Info("SetEvent","Reloading new file for hits. file opt is %s",FileOption(kHits).Data());
-         OpenHitsFile(FileOption(kHits));
-       }
-      Directory(kHits) = ChangeDir(File(kHits),evno);
-      if (Directory(kHits) == 0x0)
-        {
-          Error("SetEvent","Can not chage directory to file %s",File(kHits)->GetName());
-          return 1;
-        }
-    }
-
-   if(File(kSDigits))
-    {
-      if (CheckReload(File(kSDigits),FileName(kSDigits)))
-       {
-         UnloadSDigits();
-         if (GetDebug()) Info("SetEvent","Reloading new file for sdigits. file opt is %s",FileOption(kSDigits).Data());
-         OpenSDigitsFile(FileOption(kSDigits));
-       }
-
-      Directory(kSDigits) = ChangeDir(File(kSDigits),evno);
-      if (Directory(kSDigits) == 0x0)
-        {
-          Error("SetEvent","Can not chage directory to file %s",File(kSDigits)->GetName());
-          return 1;
-        }
-    }
-   
-   if(File(kDigits))
-    {
-      if (CheckReload(File(kDigits),FileName(kDigits)))
-       {
-         UnloadDigits();
-         OpenDigitsFile(FileOption(kDigits));
-       }
-    
-      Directory(kDigits) = ChangeDir(File(kDigits),evno);
-      if (Directory(kDigits) == 0x0)
-        {
-          Error("SetEvent","Can not chage directory to file %s",File(kDigits)->GetName());
-          return 1;
-        }
-    }
-   
-   if(File(kRecPoints))
-    {
-      if (CheckReload(File(kRecPoints),FileName(kRecPoints)))
-       {
-         UnloadRecPoints();
-         OpenRecPointsFile(FileOption(kRecPoints));
-       }
-    
-      Directory(kRecPoints) = ChangeDir(File(kRecPoints),evno);
-      if (Directory(kRecPoints) == 0x0)
-        {
-          Error("SetEvent","Can not chage directory to file %s",File(kRecPoints)->GetName());
-          return 1;
-        }
-    }
-
-   if(File(kTracks))
-    {
-      if (CheckReload(File(kTracks),FileName(kTracks)))
-       {
-         UnloadTracks();
-         OpenTracksFile(FileOption(kTracks));
-       }
-
-      Directory(kTracks) = ChangeDir(File(kTracks),evno);
-      if (Directory(kTracks) == 0x0)
-        {
-          Error("SetEvent","Can not chage directory to file %s",File(kTracks)->GetName());
-          return 1;
-        }
-    }
-  return 0;
- 
+ TIter next(fDataLoaders);
+ AliDataLoader* dl;
+ while ((dl = (AliDataLoader*)next()))
+  {
+    dl->SetEvent();
+  }
+ return 0;
 }
 /******************************************************************/
 
-Int_t AliLoader::GetEvent(const char * opt)
- {
+Int_t AliLoader::GetEvent()
+{
  //changes to proper root  directory and tries to load data from files to folders
- // 
+ // event number is defined in RunLoader
  // 
  //returns:
  //     0  - in case of no error
  //     1  - event not found
  //     
-   
-   
-   if (SetEvent())
-    {
-      Error("GetEvent","Set Event returned error");
-      return 1;
-    }
-   
-   if( strstr(opt,"H") )
-     if(File(kHits)) 
-       PostHits();
-   if( strstr(opt,"S") )
-     if(File(kSDigits)) 
-       PostSDigits();
-   if( strstr(opt,"D") )
-     if(File(kDigits)) 
-       PostDigits();
-   if( strstr(opt,"R") ) {
-     if(File(kRecPoints)) 
-       PostRecPoints();
-     if(File(kTracks)) 
-       PostTracks();
-   }
-   return 0;
  
- }
-/******************************************************************/
+ Int_t retval;   
+ TIter next(fDataLoaders);
+ AliDataLoader* dl;
+ while ((dl = (AliDataLoader*)next()))
+  {
+    retval = dl->GetEvent();
+    if (retval)
+     {
+       Error("GetEvent","Error occured while GetEvent for %s",dl->GetName());
+       return retval;
+     }
+  }
 
-Int_t AliLoader::WriteData(AliLoaderDataInfo& di,Option_t* opt)
-{
-//Writes data defined by di object
-//opt might be "OVERWRITE" in case of forcing overwriting
-
-  TObject *data = GetDetectorDataFolder()->FindObject(di.ContainerName());
-  if(data == 0x0)
-   {//did not get, nothing to write
-     Warning("WriteData","%s tree named %s not found in folder %s.\nNothing to write. Returning",
-              di.Name().Data(),di.ContainerName().Data(), 
-              GetDataFolder()->FindFullPathName(GetDetectorDataFolder()->GetName()));
-     return 0;
-   }
-  
-  //check if file is opened
-  if (di.Directory() == 0x0)
-   { 
-     //if not try to open
-     SetFileOption(di,"UPDATE");
-     if (OpenDataFile(di,"UPDATE"))
-      {  
-        //oops, can not open the file, give an error message and return error code
-        Error("WriteData","Can not open hits file. %s ARE NOT WRITTEN",di.Name().Data());
-        return 1;
-      }
-   }
-
-  if (di.File()->IsWritable() == kFALSE)
-   {
-     Error("WriteData","File %s is not writable",di.File()->GetName());
-     return 2;
-   }
-  
-  di.Directory()->cd(); //set the proper directory active
-
-  //see if hits container already exists in this (root) directory
-  TObject* obj = di.Directory()->Get(di.ContainerName());
-  if (obj)
-   { //if they exist, see if option OVERWRITE is used
-     const char *oOverWrite = strstr(opt,"OVERWRITE");
-     if(!oOverWrite)
-      {//if it is not used -  give an error message and return an error code
-        Error("WriteData","Tree already exisists. Use option \"OVERWRITE\" to overwrite previous data");
-        return 3;
-      }
-   }
-  
-  if (GetDebug()) Info("WriteData","name = %s, DataName = %s, opt = %s, data object name = %s",
-                   GetName(),di.Name().Data(),opt,data->GetName());
-  if (GetDebug()) Info("WriteData","File Name = %s, Directory Name = %s Directory's File Name = %s",
-                   di.File()->GetName(),di.Directory()->GetName(),
-                   di.Directory()->GetFile()->GetName());
-  
-  //if a data object is a tree set the directory
-  TTree* tree = dynamic_cast<TTree*>(data);
-  if (tree) tree->SetDirectory(di.Directory()); //forces setting the directory to this directory (we changed dir few lines above)
-  
-  if (GetDebug()) Info("WriteData","Writing tree");
-  data->Write(0,TObject::kOverwrite);
-  return 0;
- 
+ return 0;
 }
-/*****************************************************************************/ 
 
-Int_t  AliLoader::WriteSDigitizer(const TString name, Option_t* opt)
-{
-//Writes SDigitizer to detector Summbale Digits file/current event ROOT directory
-//Reads it from "ROOT://fgkTopFolderName/fgkTasksFolderName/fgkSDigitizerTaskName/fDetName/'fDetName+SDigitizer'
-//  TTask *sdgzer = SDigitizer();
-  
-  TTask* sder = SDigitizer(name); 
-  if (sder == 0x0)
-   {
-     Warning("WriteSDigitizer","Can not get SDigitizer. Nothing to write");
-     return 0;
-   }
-  if (Directory(kSDigits) == 0x0)
-   { 
-     //if not open, try to open
-     SetSDigitsFileOption("UPDATE");
-     if (OpenSDigitsFile("UPDATE"))
-      {  
-        //oops, can not open the file, give an error message and return error code
-        Error("WriteSDigitizer","Can not open sdigits file. SDIGITIZER IS NOT WRITTEN");
-        return 1;
-      }
-   }
-  if (File(kSDigits)->IsWritable() == kFALSE)
-   {
-     Error("WriteSDigits","File %s is not writable",File(kSDigits)->GetName());
-     return 2;
-   }
-  //TString name(fDetectorName + AliConfig::Instance()->GetSDigitizerTaskName());
-  //TString name(AliConfig::Instance()->GetSDigitizerTaskName());
-  
-  TObject* task = Directory(kSDigits)->Get(name);
-  if (task)
-   { //if they exist, see if option OVERWRITE is used
-     const char *oOverWrite = strstr(opt,"OVERWRITE");
-     if(!oOverWrite)
-      {//if it is not used -  give an error message and return an error code
-        Error("WriteSDigits","Tree already exisists. Use option \"OVERWRITE\" to overwrite previous data");
-        return 3;
-      }
-   }
-  if (GetDebug()) Info("WriteSDigitizer",
-       "name = %s, opt = %s, File(kSDigits) = %s, Sum. digitizer = %s",
-       GetName(),opt,File(kSDigits)->GetName(),name.Data());
-
-  Directory(kSDigits)->cd();
-  sder->Write(0,TObject::kOverwrite);
-  return 0;
-}
-/*****************************************************************************/ 
-
-Int_t  AliLoader::WriteDigitizer(const TString name, Option_t* opt)
-{
-//Writes Digitizer to detector "Digits file"/"current event ROOT directory"
-//Reads it from "ROOT://fgkTopFolderName/fgkTasksFolderName/fgkDigitizerTaskName/fDetName/'fDetName+Digitizer'
-  TTask* sder = Digitizer(name); 
-  if (sder == 0x0)
-   {
-     Warning("WriteDigitizer","Can not get Digitizer. Nothing to write");
-     return 0;
-   }
-  if (Directory(kDigits) == 0x0)
-   { 
-     //if not open, try to open
-     SetDigitsFileOption("UPDATE");
-     if (OpenDigitsFile("UPDATE"))
-      {  
-        //oops, can not open the file, give an error message and return error code
-        Error("WriteDigitizer","Can not open digits file. SDIGITIZER IS NOT WRITTEN");
-        return 1;
-      }
-   }
-  if (File(kDigits)->IsWritable() == kFALSE)
-   {
-     Error("WriteDigits","File %s is not writable",File(kDigits)->GetName());
-     return 2;
-   }
-  //TString name(fDetectorName + AliConfig::Instance()->GetDigitizerTaskName());
-
-  TObject* task = Directory(kDigits)->Get(name);
-  if (task)
-   { //if they exist, see if option OVERWRITE is used
-     const char *oOverWrite = strstr(opt,"OVERWRITE");
-     if(!oOverWrite)
-      {//if it is not used -  give an error message and return an error code
-        Error("WriteDigits","Task already exisists in file. Use option \"OVERWRITE\" to overwrite previous data");
-        return 3;
-      }
-   }
-  if (GetDebug()) Info("WriteDigitizer",
-       "name = %s, opt = %s, File(kDigits) = %s, Directory(kDigits) =%s, Digitizer = %s",
-       GetName(),opt,File(kDigits)->GetName(),Directory(kDigits)->GetName(),name.Data());
-
-  Directory(kDigits)->cd();
-  sder->Write(0,TObject::kOverwrite);
-  return 0;
-}
-/*****************************************************************************/ 
-Int_t  AliLoader::WriteReconstructioner(Option_t* opt)
-{
-//Writes Tracker to detector "RecPoint file"/"current event ROOT directory"
-//Reads it from "ROOT://fgkTopFolderName/fgkTasksFolderName/fgkTrackerTaskName/fDetName/'fDetName+Tracker'
-//Writes Digitizer to detector "Digits file"/"current event ROOT directory"
-//Reads it from "ROOT://fgkTopFolderName/fgkTasksFolderName/fgkDigitizerTaskName/fDetName/'fDetName+Digitizer'
-  TTask* sder = Reconstructioner(); 
-  if (sder == 0x0)
-   {
-     Warning("WriteReconstructioner","Can not get Reconstructioner. Nothing to write");
-     return 0;
-   }
-  if (Directory(kRecPoints) == 0x0)
-   { 
-     //if not open, try to open
-     SetRecPointsFileOption("UPDATE");
-     if (OpenRecPointsFile("UPDATE"))
-      {  
-        //oops, can not open the file, give an error message and return error code
-        Error("WriteReconstructioner","Can not open digits file. RECONSTRUCTIONER IS NOT WRITTEN");
-        return 1;
-      }
-   }
-  if (File(kRecPoints)->IsWritable() == kFALSE)
-   {
-     Error("WriteReconstructioner","File %s is not writable",File(kRecPoints)->GetName());
-     return 2;
-   }
-  TString name(fDetectorName + AliConfig::Instance()->GetReconstructionerTaskName());
-
-  TObject* task = Directory(kRecPoints)->Get(name);
-  if (task)
-   { //if they exist, see if option OVERWRITE is used
-     const char *oOverWrite = strstr(opt,"OVERWRITE");
-     if(!oOverWrite)
-      {//if it is not used -  give an error message and return an error code
-        Error("WriteReconstructioner","Task already exisists in file. Use option \"OVERWRITE\" to overwrite previous data");
-        return 3;
-      }
-   }
-
-  if (GetDebug()) 
-   Info("WriteReconstructioner",
-        "name = %s, opt = %s, File(kRecPoints) = %s, Directory(kRecPoints) =%s, Reconstructioner = %s",
-         GetName(),opt,File(kRecPoints)->GetName(),Directory(kRecPoints)->GetName(),name.Data());
-
-  Directory(kRecPoints)->cd();
-  sder->Write(0,TObject::kOverwrite);
-  return 0;
-}
-/*****************************************************************************/ 
-
-Int_t  AliLoader::WriteTracker(Option_t* opt)
-{
-//Writes Tracker to detector "Tracks file"/"current event ROOT directory"
-//Reads it from "ROOT://fgkTopFolderName/fgkTasksFolderName/fgkTrackerTaskName/fDetName/'fDetName+Tracker'
-
-  TTask* sder = Tracker(); 
-  if (sder == 0x0)
-   {
-     Warning("WriteTracker","Can not get Tracker. Nothing to write");
-     return 0;
-   }
-  if (Directory(kTracks) == 0x0)
-   { 
-     //if not open, try to open
-     SetTracksFileOption("UPDATE");
-     if (OpenTracksFile("UPDATE"))
-      {  
-        //oops, can not open the file, give an error message and return error code
-        Error("WriteTracker","Can not open Tracks file. STracker IS NOT WRITTEN");
-        return 1;
-      }
-   }
-  if (File(kTracks)->IsWritable() == kFALSE)
-   {
-     Error("WriteTracks","File %s is not writable",File(kTracks)->GetName());
-     return 2;
-   }
-  TString name(fDetectorName + AliConfig::Instance()->GetTrackerTaskName());
-
-  TObject* task = Directory(kTracks)->Get(name);
-  if (task)
-   { //if they exist, see if option OVERWRITE is used
-     const char *oOverWrite = strstr(opt,"OVERWRITE");
-     if(!oOverWrite)
-      {//if it is not used -  give an error message and return an error code
-        Error("WriteTracks","Task already exisists in file. Use option \"OVERWRITE\" to overwrite previous data");
-        return 3;
-      }
-   }
-
-  if (GetDebug()) 
-   Info("WriteTracker",
-        "name = %s, opt = %s, File(kTracks) = %s, Directory(kTracks) =%s, Reconstructioner = %s",
-         GetName(),opt,File(kTracks)->GetName(),Directory(kTracks)->GetName(),name.Data());
-
-  Directory(kTracks)->cd();
-  sder->Write(0,TObject::kOverwrite);
-  return 0;
-}
-/*****************************************************************************/ 
-
-Int_t AliLoader::OpenDataFile(const TString& filename,TFile*& file,TDirectory*& dir,Option_t* opt,Int_t cl)
-{
-//Opens file named 'filename', and assigns pointer to it to 'file'
-//jumps to directory corresponding to current event and stores the pointer to it in 'dir'
-//option 'opt' is passed to TFile::Open
-  if (file)
-   {
-     if(file->IsOpen() == kTRUE)
-       {
-         //Warning("OpenDataFile>"," File %s already opened. First close it.",file->GetName());
-         return 0;
-       }
-     else
-       {
-         Warning("OpenDataFile","Pointer to file %s is not null, but file is not opened",
-                file->GetName());
-         delete file;
-         file = 0x0;
-       }
-   }
-  
-  file = (TFile *)(gROOT->GetListOfFiles()->FindObject(filename));
-  if (file)
-   {
-     if(file->IsOpen() == kTRUE)
-       {
-         Warning("OpenDataFile","File %s already opened by sombody else. First close it.",
-                 file->GetName());
-         return 0;
-       }
-   }
-  
-  file = TFile::Open(filename,opt);//open the file
-  if (file == 0x0)
-   {//file is null
-     Error("OpenDataFile","Can not open file %s",filename.Data());
-     return 1;
-   }
-  if (file->IsOpen() == kFALSE)
-   {//file is null
-     Error("OpenDataFile","Can not open file %s",filename.Data());
-     return 1;
-   }
-
-  file->SetCompressionLevel(cl);
-  
-  AliRunLoader* rg = GetRunLoader();
-  if (rg == 0x0)
-   {
-     Error("OpenDataFile","Can not find Run-Loader in folder");
-     return 2;
-   }
-  Int_t evno = rg->GetEventNumber();
-  
-  dir = ChangeDir(file,evno);
-  if (dir == 0x0)
-   {
-     Error("OpenDataFile","Can not chage directory in file %s.",file->GetName());
-     return 3; 
-   }
-
-  return 0;
-}
-/******************************************************************/
-
-void  AliLoader::CloseDataFile(TFile*& file,TDirectory*& dir)
-{
-//deletes file and sets pointers to 0x0
-  if (file)
-   {
-    delete file;
-    file = 0x0;
-   }
-  dir = 0x0;
-}
 /******************************************************************/
 
 TFolder* AliLoader::GetTopFolder()
@@ -851,7 +202,7 @@ TFolder* AliLoader::GetEventFolder()
 /******************************************************************/
 TFolder* AliLoader::GetDataFolder()
 {
-//returns the folder speciofic to given detector e.g. /Folders/Event/Data/TPC/
+//returns the folder speciofic to given detector e.g. /Folders/Event/Data/
  if (!fDataFolder)
   {
    fDataFolder =  dynamic_cast<TFolder*>(GetEventFolder()->FindObject(AliConfig::fgkDataFolderName));
@@ -920,7 +271,7 @@ TFolder* AliLoader::GetQAFolder()
   
 }
 /*****************************************************************************/ 
-TTask* AliLoader::SDigitizer(const TString name )
+TTask* AliLoader::SDigitizer()
 {
 //returns SDigitizer task for this detector
 
@@ -929,13 +280,13 @@ TTask* AliLoader::SDigitizer(const TString name )
     {
       return 0x0;
     }
-   //TString name(fDetectorName + AliConfig::Instance()->GetSDigitizerTaskName());
-   TObject* obj = rsd->GetListOfTasks()->FindObject(name);
-   return (obj)?dynamic_cast<TTask*>(obj):0x0;
+  TString name(fDetectorName + AliConfig::Instance()->GetSDigitizerTaskName());
+  TObject* obj = rsd->GetListOfTasks()->FindObject(name);
+  return (obj)?dynamic_cast<TTask*>(obj):0x0;
 }
 /*****************************************************************************/ 
 
-AliDigitizer* AliLoader::Digitizer(const TString name)
+AliDigitizer* AliLoader::Digitizer()
 {
 //returns Digitizer task for this detector
   TTask* rd = AliRunLoader::GetRunDigitizer();
@@ -943,13 +294,13 @@ AliDigitizer* AliLoader::Digitizer(const TString name)
     {
       return 0x0;
     }
-   //TString name(fDetectorName + AliConfig::Instance()->GetDigitizerTaskName());
+  TString name(fDetectorName + AliConfig::Instance()->GetDigitizerTaskName());
   TObject* obj = rd->GetListOfTasks()->FindObject(name);
   return (obj)?dynamic_cast<AliDigitizer*>(obj):0x0;
 }
 /*****************************************************************************/ 
 
-TTask* AliLoader::Reconstructioner(const TString name)
+TTask* AliLoader::Reconstructioner()
 {
 //returns Recontructioner (Cluster Finder, Cluster Maker, 
 //or whatever you want to call it) task for this detector
@@ -958,7 +309,7 @@ TTask* AliLoader::Reconstructioner(const TString name)
     {
       return 0x0;
     }
-  //TString name(fDetectorName + AliConfig::Instance()->GetReconstructionerTaskName());
+  TString name(fDetectorName + AliConfig::Instance()->GetReconstructionerTaskName());
   TObject* obj = rrec->GetListOfTasks()->FindObject(name);
   return (obj)?dynamic_cast<TTask*>(obj):0x0;
 }
@@ -1000,14 +351,14 @@ TTask* AliLoader::QAtask(const char* name)
 
 /*****************************************************************************/ 
 
-TTask* AliLoader::Tracker(const TString name)
+TTask* AliLoader::Tracker()
 {
   TTask* tracker = AliRunLoader::GetRunTracker();
   if (tracker == 0x0)
     {
       return 0x0;
     }
-  //TString name(fDetectorName + AliConfig::Instance()->GetTrackerTaskName());
+  TString name(fDetectorName + AliConfig::Instance()->GetTrackerTaskName());
   TObject* obj = tracker->GetListOfTasks()->FindObject(name);
   return (obj)?dynamic_cast<TTask*>(obj):0x0;
 }
@@ -1110,283 +461,98 @@ void AliLoader::MakeTree(Option_t *option)
   if (oR) MakeRecPointsContainer();
   if (oT) MakeTracksContainer();
  }
-/*****************************************************************************/ 
-
-void AliLoader::MakeTree(AliLoaderDataInfo& di)
-{
-//this virtual method creates the tree for hits in the file
-  if (Tree(di)) return;//tree already made 
-  if (GetDebug()) Info("MakeTree","name = %s, Making %s Tree named %s.",
-        GetName(),di.Name().Data(),di.ContainerName().Data());
-   
-  TTree* tree = new TTree(di.ContainerName(), di.Name() + "Container"); //make a tree
-  if (tree == 0x0)
-   {
-     Error("MakeTree","Can not create %s Container for %s",di.Name().Data(),GetName());
-     return;
-   }
-  tree->SetAutoSave(1000000000); //no autosave
-  GetDetectorDataFolder()->Add(tree);
-  WriteData(di,"OVERWRITE");//write tree to the file
-}
 
 /*****************************************************************************/ 
-
-void AliLoader::MakeHitsContainer()
-{
-//this virtual method creates the tree for hits in the file
-  MakeTree(kHits);
-}
-
-/*****************************************************************************/ 
-
-void AliLoader::MakeSDigitsContainer()
+Int_t  AliLoader::WriteHits(Option_t* opt)
  {
-//Make standard container for Summable Dogits
-//if some detector needs other container - 
-//overload this method in detector specific loader i.e. AliTPCLoader
-  MakeTree(kSDigits);
- }
-
-/*****************************************************************************/ 
-
-void AliLoader::MakeDigitsContainer()
- {
-//Make standard container for digits
-//if some detector needs other container - 
-//overload this method in detector specific loader i.e. AliTPCLoader
-
-//this virtual method creates the tree for hits in the file
-  MakeTree(kDigits);
+   Info("WriteHits","opt = %s",opt);
+   AliDataLoader* dl = GetHitsDataLoader();
+   Int_t ret = dl->WriteData(opt);
+   Info("WriteHits","ret = %d",ret);
+   return ret;
  }
 /*****************************************************************************/ 
 
-void AliLoader::MakeRecPointsContainer()
+Int_t AliLoader::WriteSDigits(Option_t* opt)
  {
-//Make standard container for RecPoints (Clusters)
-//if some detector needs other container - 
-//overload this method in detector specific loader i.e. AliTPCLoader
+   Info("WriteHits","opt = %s",opt);
+   AliDataLoader* dl = GetSDigitsDataLoader();
+   Int_t ret = dl->WriteData(opt);
+   Info("WriteHits","ret = %d",ret);
+   return ret;
+ }
+ 
+/*****************************************************************************/ 
 
-//this virtual method creates the tree for hits in the file
-  MakeTree(kRecPoints);
+Int_t AliLoader::PostSDigitizer()
+ {
+  Error("PostSDigitizer","!!!!!!!!!!!!!!!!!!!!!!");
+  Error("PostSDigitizer","!!!!!DO NOT USE!!!!!!!");
+  Error("PostSDigitizer","!!!!!!!!!!!!!!!!!!!!!!");
+  return 1;
  }
 /*****************************************************************************/ 
 
-void AliLoader::MakeTracksContainer()
- {
-//Make standard container for tracks
-//if some detector needs other container - 
-//overload this method in detector specific loader i.e. AliTPCLoader
-  MakeTree(kTracks);
- }
-/*****************************************************************************/ 
-
-Int_t AliLoader::PostData(AliLoaderDataInfo& di)
-{
-//Posts the SDigits container to proper folder
-//  Warning("PostSDigits","Called");
-
-  TDirectory *dir = di.Directory();
-  if ( dir == 0x0)
-   {
-     Error("PostData","%s Directory is NULL. Load %s before.",
-           di.Name().Data(),di.Name().Data());
-     return 2; 
-   }
-  
-  TObject* tree = dir->Get(di.ContainerName());
-  if(tree)
-   {
-     //if such an obejct already exists - remove it first
-     TObject* obj = GetDetectorDataFolder()->FindObject(di.ContainerName());
-     if (tree == obj)
-      {
-        if (GetDebug()) Info("PostData","This object is already in folder.");
-        return 0;
-      }
-     if (obj)
-      {
-        Warning("PostData","Object named %s already exitsts in %s data folder. Removing it",
-                 di.ContainerName().Data(), fDetectorName.Data());
-        Clean(di);
-      }
-     GetDetectorDataFolder()->Add(tree);
-     return 0;
-   }
-  else
-   {
-    Warning("PostData","Can not find %s in file %s",
-             di.ContainerName().Data(),di.File()->GetName());
-   }
-  return 0;
-}
-/*****************************************************************************/ 
-
-Int_t AliLoader::PostSDigitizer(const TString name)
- {
-  
-   if (Directory(kSDigits) == 0x0)
-    {
-     Error("PostSDigitizer","SDigitsDir is Null. Probobly SDigits not loaded");
-     return 1;
-    }
-   
-   //TString name(fDetectorName + AliConfig::Instance()->GetSDigitizerTaskName());
-   TTask* sdigitizer = dynamic_cast<TTask*>(Directory(kSDigits)->Get(name));
-   
-   if (sdigitizer == 0x0)
-    {
-     Error("PostSDigitizer","Can not find SDigitizer named %s in file %s for event %d",
-           name.Data(),File(kSDigits)->GetName(),GetRunLoader()->GetEventNumber());
-     return 2;
-    }
-  
-   return PostSDigitizer(sdigitizer);
-
- }
-/*****************************************************************************/ 
 Int_t AliLoader::PostSDigitizer(TTask* sdzer)
 {
-//adds it to Run SDigitizer
-  TTask* rsd = AliRunLoader::GetRunSDigitizer();
-  if (rsd == 0x0)
-   {
-     Error("PostSDigitizer","Can not get RunSDigitizer from folder. Can not post");
-     return 1;
-   }
-  if (GetDebug()) Info("PostSDigitizer","Adding S Digitizer named %s.",sdzer->GetName());
-  rsd->Add(sdzer);
-  return 0;
+  Error("PostSDigitizer(TTask*)","!!!!!!!!!!!!!!!!!!!!!!");
+  Error("PostSDigitizer(TTask*)","!!!!!DO NOT USE!!!!!!!");
+  Error("PostSDigitizer(TTask*)","!!!!!!!!!!!!!!!!!!!!!!");
+  return 1;
 }
-
 /*****************************************************************************/ 
 
-Int_t AliLoader::PostDigitizer(const TString name)
+Int_t AliLoader::PostDigitizer()
  {
-   if (Directory(kDigits) == 0x0)
-    {
-     Error("PostDigitizer","Directory(kDigits) is Null. Probobly Digits not loaded");
-     return 1;
-    }
-   
-   // TString name(fDetectorName + AliConfig::Instance()->GetDigitizerTaskName());
-   TObject* obj = Directory(kDigits)->Get(name);
-   if (obj == 0x0)
-    {
-     Error("PostDigitizer","Can not find object named % in file %s for event %d",
-           name.Data(),File(kSDigits)->GetName(),GetRunLoader()->GetEventNumber());
-     return 2;
-    }
-
-   AliDigitizer* digitizer = dynamic_cast<AliDigitizer*>(obj);
-   if (digitizer == 0x0)
-    {
-     Error("PostDigitizer","Can not find Digitizer named % in file %s for event %d",
-           name.Data(),File(kSDigits)->GetName(),GetRunLoader()->GetEventNumber());
-     return 2;
-    }
-   return PostDigitizer(digitizer);
+  Error("PostDigitizer","!!!!!!!!!!!!!!!!!!!!!!");
+  Error("PostDigitizer","!!!!!DO NOT USE!!!!!!!");
+  Error("PostDigitizer","!!!!!!!!!!!!!!!!!!!!!!");
+  return 1;
  }
 /*****************************************************************************/ 
 
 Int_t AliLoader::PostDigitizer(AliDigitizer* task)
  {
- //adds it to Run Digitizer
-  TTask* rsd = AliRunLoader::GetRunDigitizer();
-  if (rsd == 0x0)
-   {
-     Error("PostDigitizer","Can not get RunDigitizer from folder. Can not post");
-     return 1;
-   }
-  rsd->Add(task);
-  return 0;
+  Error("PostSDigitizer(TTask*)","!!!!!!!!!!!!!!!!!!!!!!");
+  Error("PostSDigitizer(TTask*)","!!!!!DO NOT USE!!!!!!!");
+  Error("PostSDigitizer(TTask*)","!!!!!!!!!!!!!!!!!!!!!!");
+  return 1;
  }
 /*****************************************************************************/ 
 
-Int_t AliLoader::PostReconstructioner(const TString name)
+Int_t AliLoader::PostReconstructioner()
  {
-   if ( Directory(kRecPoints) == 0x0)
-    {
-     Error("PostReconstructioner","RecPointsDir is Null. Probobly RecPoints not loaded");
-     return 1;
-    }
-   
-   //TString name(fDetectorName + AliConfig::Instance()->GetReconstructionerTaskName());
-   TTask* task = dynamic_cast<TTask*>(Directory(kRecPoints)->Get(name));
-   
-   if (task == 0x0)
-    {
-     Error("PostReconstructioner","Can not find Reconstructioner named %s in file %s for event %d",
-           name.Data(),File(kRecPoints)->GetName(),GetRunLoader()->GetEventNumber());
-     return 2;
-    }
-  
-   return PostReconstructioner(task);
+  Error("PostReconstructioner","!!!!!!!!!!!!!!!!!!!!!!");
+  Error("PostReconstructioner","!!!!!DO NOT USE!!!!!!!");
+  Error("PostReconstructioner","!!!!!!!!!!!!!!!!!!!!!!");
+  return 1;
  }
 /*****************************************************************************/ 
 
 Int_t AliLoader::PostReconstructioner(TTask* task)
  {
-   //adds it to Run Reconstructioner
-  TTask* rrec = AliRunLoader::GetRunReconstructioner();
-  if (rrec == 0x0)
-   {
-     Error("PostReconstructioner","Can not get RunReconstructioner from folder. Can not post");
-     return 1;
-   }
-  if (rrec->GetListOfTasks()->FindObject(task->GetName()))
-   {
-     Error("PostReconstructioner",
-           "There already exists sub task named %s in Run Reconstructioner",task->GetName());
-     return 2;
-   }
-  rrec->Add(task);
-  return 0;
+  Error("PostReconstructioner(TTask*)","!!!!!!!!!!!!!!!!!!!!!!");
+  Error("PostReconstructioner(TTask*)","!!!!!DO NOT USE!!!!!!!");
+  Error("PostReconstructioner(TTask*)","!!!!!!!!!!!!!!!!!!!!!!");
+  return 1;
  }
 /*****************************************************************************/ 
 
-Int_t AliLoader::PostTracker(const TString name)
+Int_t AliLoader::PostTracker()
  {
-   if (Directory(kTracks) == 0x0)
-    {
-     Error("PostTracker","Directory(kTracks) is Null. Probobly Tracks or Tracker not loaded");
-     return 1;
-    }
-   
-   //TString name(fDetectorName + AliConfig::Instance()->GetTrackerTaskName());
-   TObject* obj = Directory(kTracks)->Get(name);
-   if (obj == 0x0)
-    {
-     Error("PostTracker","Can not find object named %s in file %s for event %d",
-           name.Data(),File(kTracks)->GetName(),GetRunLoader()->GetEventNumber());
-     return 2;
-    }
-
-   TTask* task = dynamic_cast<TTask*>(obj);
-   if (task == 0x0)
-    {
-     Error("PostTracker","Can not find Tracker named %s in file %s for event %d",
-           name.Data(),File(kTracks)->GetName(),GetRunLoader()->GetEventNumber());
-     return 2;
-    }
-
-   return PostTracker(task);
+  Error("PostTracker","!!!!!!!!!!!!!!!!!!!!!!");
+  Error("PostTracker","!!!!!DO NOT USE!!!!!!!");
+  Error("PostTracker","!!!!!!!!!!!!!!!!!!!!!!");
+  return 1;
  }
 /*****************************************************************************/ 
 
 Int_t AliLoader::PostTracker(TTask* task)
  {
-  //adds it to Run Tracker
-  TTask* runtracker = AliRunLoader::GetRunTracker();
-  if (runtracker == 0x0)
-   {
-     Error("PostTracker","Can not get RunTracker from folder. Can not post");
-     return 1;
-   }
-  
-  runtracker->Add(task);
-  return 0;
-
+  Error("PostTracker(TTask*)","!!!!!!!!!!!!!!!!!!!!!!");
+  Error("PostTracker(TTask*)","!!!!!DO NOT USE!!!!!!!");
+  Error("PostTracker(TTask*)","!!!!!!!!!!!!!!!!!!!!!!");
+  return 1;
  }
 /*****************************************************************************/ 
 
@@ -1418,9 +584,7 @@ TObject** AliLoader::DigitizerRef()
   {
     return 0x0;
   }
- //return rd->GetListOfTasks()->GetObjectRef(Digitizer()) ;
- Fatal("DigitizerRef", "Check where this is needed") ; 
- return 0 ; 
+ return rd->GetListOfTasks()->GetObjectRef(Digitizer()) ;
 }
 /*****************************************************************************/ 
 
@@ -1431,9 +595,7 @@ TObject** AliLoader::ReconstructionerRef()
    {
      return 0x0;
    }
-  //return rrec->GetListOfTasks()->GetObjectRef(Reconstructioner());
-  Fatal("DigitizerRef", "Check where this is needed") ; 
-  return 0 ; 
+  return rrec->GetListOfTasks()->GetObjectRef(Reconstructioner());
 }
 /*****************************************************************************/ 
 
@@ -1444,45 +606,26 @@ TObject** AliLoader::TrackerRef()
     {
       return 0x0;
     }
-   //return rrec->GetListOfTasks()->GetObjectRef(Tracker());
-   Fatal("DigitizerRef", "Check where this is needed") ; 
-   return 0 ; 
+   return rrec->GetListOfTasks()->GetObjectRef(Tracker());
 }
 
 /*****************************************************************************/ 
 void AliLoader::CleanFolders()
  {
  //Cleans all posted objects == removes from folders and deletes them
- 
-  if (GetDebug()) Info("CleanFolders","name = %s Hits",GetName());
-  CleanHits();
-  if (GetDebug()) Info("CleanFolders","name = %s SDigits",GetName());
-  CleanSDigits();
-  if (GetDebug()) Info("CleanFolders","name = %s Digits",GetName());
-  CleanDigits();
-  if (GetDebug()) Info("CleanFolders","name = %s RecPoints",GetName());
-  CleanRecPoints();
-  if (GetDebug()) Info("CleanFolders","name = %s Tracks",GetName());
-  CleanTracks();
-  if (GetDebug()) Info("CleanFolders","name = %s Done",GetName());
-  
+   TIter next(fDataLoaders);
+   AliDataLoader* dl;
+   while ((dl = (AliDataLoader*)next()))
+    { 
+      if (GetDebug()) Info("CleanFolders","name = %s cleaning",dl->GetName());
+      dl->Clean();
+    }
  }
 /*****************************************************************************/ 
 
-void AliLoader::Clean(const TString& name)
-{
-  TObject* obj = GetDetectorDataFolder()->FindObject(name);
-  if(obj)
-   { 
-     if (GetDebug()) 
-       Info("Clean(const TString&)","name=%s, cleaning %s.",GetName(),name.Data());
-     GetDetectorDataFolder()->Remove(obj);
-     delete obj;
-   }
-}
 /*****************************************************************************/ 
 
-void AliLoader::CleanSDigitizer(const TString name)
+void AliLoader::CleanSDigitizer()
 {
 //removes and deletes detector task from Run Task
   TTask* task = AliRunLoader::GetRunSDigitizer();
@@ -1493,11 +636,11 @@ void AliLoader::CleanSDigitizer(const TString name)
    }
 
   if (GetDebug()) Info("CleanSDigitizer","Attempting to delete S Digitizer");
-  delete task->GetListOfTasks()->Remove(SDigitizer(name)); //TTList::Remove does not delete object
+  delete task->GetListOfTasks()->Remove(SDigitizer()); //TTList::Remove does not delete object
 }
 /*****************************************************************************/ 
 
-void AliLoader::CleanDigitizer(const TString name)
+void AliLoader::CleanDigitizer()
 {
 //removes and deletes detector task from Run Task
   TTask* task = AliRunLoader::GetRunDigitizer();
@@ -1509,12 +652,12 @@ void AliLoader::CleanDigitizer(const TString name)
 
   if (GetDebug()) 
    Info("CleanDigitizer","Attempting to delete Digitizer %X",
-         task->GetListOfTasks()->Remove(Digitizer(name)));
-  delete task->GetListOfTasks()->Remove(Digitizer(name)); //TTList::Remove does not delete object
+         task->GetListOfTasks()->Remove(Digitizer()));
+  delete task->GetListOfTasks()->Remove(Digitizer()); //TTList::Remove does not delete object
 }
 /*****************************************************************************/ 
 
-void AliLoader::CleanReconstructioner(const TString name)
+void AliLoader::CleanReconstructioner()
 {
 //removes and deletes detector Reconstructioner from Run Reconstructioner
   TTask* task = AliRunLoader::GetRunReconstructioner();
@@ -1526,11 +669,11 @@ void AliLoader::CleanReconstructioner(const TString name)
 
   if (GetDebug()) 
    Info("CleanReconstructioner","Attempting to delete Reconstructioner");
-  delete task->GetListOfTasks()->Remove(Reconstructioner(name)); //TTList::Remove does not delete object
+  delete task->GetListOfTasks()->Remove(Reconstructioner()); //TTList::Remove does not delete object
 }
 /*****************************************************************************/ 
 
-void AliLoader::CleanTracker(const TString name)
+void AliLoader::CleanTracker()
 {
 //removes and deletes detector tracker from Run Tracker
   TTask* task = AliRunLoader::GetRunTracker();
@@ -1542,50 +685,38 @@ void AliLoader::CleanTracker(const TString name)
 
   if (GetDebug()) 
    Info("CleanTracker","Attempting to delete Tracker %X",
-         task->GetListOfTasks()->Remove(Tracker(name)));
-  delete task->GetListOfTasks()->Remove(Tracker(name)); //TTList::Remove does not delete object
+         task->GetListOfTasks()->Remove(Tracker()));
+  delete task->GetListOfTasks()->Remove(Tracker()); //TTList::Remove does not delete object
 }
-/*****************************************************************************/ 
-
-TTree* AliLoader::Tree(AliLoaderDataInfo& di)
-{
-  //Get a data container from the detector data folder
-  TObject* obj = GetDetectorDataFolder()->FindObject(di.ContainerName());
-  return (obj)?dynamic_cast<TTree*>(obj):0x0;
-}
-/*****************************************************************************/ 
-
-void AliLoader::SetCompressionLevel(Int_t cl)
-{
-//Sets compression level in all opened files
- for (Int_t i = 0; i < kNDataTypes; i++)
-  SetCompressionLevel(fDataInfo[i],cl);
-}
-/*****************************************************************************/ 
-
-Int_t  AliLoader::ReloadData(AliLoaderDataInfo& di)
- {
-  //Unloads and loads data again
-   if ( di.File() == 0x0 ) return 0;
-   UnloadData(di);
-   return LoadData(di,di.FileOption());
- }
 /*****************************************************************************/ 
 
 Int_t AliLoader::ReloadAll()
 {
-  return ( ReloadHits() && ReloadSDigits() && ReloadDigits() &&
-           ReloadRecPoints() && ReloadTracks() );
+ TIter next(fDataLoaders);
+ AliDataLoader* dl;
+ 
+ while((dl = (AliDataLoader*)next()))
+  {
+   Int_t err = dl->Reload();
+   if (err)
+    {
+      Error("ReloadAll","Reload returned error for %s",dl->GetName());
+      return err;
+    }
+  }
+ return 0;
 }
 /*****************************************************************************/ 
 
 void AliLoader::CloseFiles()
 {
- CloseHitsFile();
- CloseSDigitsFile();
- CloseDigitsFile();
- CloseRecPointsFile();
- CloseTracksFile();
+//close files for data loaders
+ TIter next(fDataLoaders);
+ AliDataLoader* dl;
+ while((dl = (AliDataLoader*)next()))
+  {
+   dl->CloseFile();
+  }
 }
 /*****************************************************************************/ 
 
@@ -1596,8 +727,18 @@ Int_t  AliLoader::SetEventFolder(TFolder* eventfolder)
     Error("SetEventFolder","Stupid joke. Argument is NULL");
     return 1;
   }
+
  fEventFolder = eventfolder;
+ TIter next(fDataLoaders);
+ AliDataLoader* dl;
  
+ while((dl = (AliDataLoader*)next()))
+  {
+    dl->SetEventFolder(fEventFolder);
+  }
+ 
+ Register();//skowron: does exist case where only event is needed to be set, regstration is not necessary?
+  
  return 0;
 }//sets the event folder
 /*****************************************************************************/ 
@@ -1617,6 +758,12 @@ Int_t AliLoader::Register()
     Error("SetEventFolder","Can not create tasks and/or folders for %s. Event folder name is %s",
           fDetectorName.Data(),fEventFolder->GetName());
     return retval;
+  }
+ 
+ for (Int_t i = 0; i<fDataLoaders->GetEntries();i++)
+  {
+    AliDataLoader* dataloader = (AliDataLoader*)fDataLoaders->At(i);
+    if (dataloader) dataloader->SetFolder(GetDetectorDataFolder());
   }
  return 0;
 }
@@ -1644,32 +791,15 @@ Bool_t  AliLoader::TestFileOption(Option_t* opt)
 /*****************************************************************************/ 
 void  AliLoader::SetDirName(TString& dirname)
 {
-  
-  FileName(kHits) = dirname + "/" + FileName(kHits);
-  FileName(kSDigits) = dirname + "/" + FileName(kSDigits);
-  FileName(kDigits) = dirname + "/" + FileName(kDigits);
-  FileName(kRecPoints) = dirname + "/" + FileName(kRecPoints);
-  FileName(kTracks) = dirname + "/" + FileName(kTracks);
+//adds "dirname/" to each file 
+  TIter next(fDataLoaders);
+  AliDataLoader* dl;
+  while((dl = (AliDataLoader*)next()))
+   {
+    dl->SetDirName(dirname);
+   }
 }
 
-/*****************************************************************************/ 
-const TString AliLoader::SetFileOffset(const TString& fname)
-{
-
-//return fname;
-  Long_t offset = (Long_t)GetRunLoader()->GetFileOffset();
-  if (offset < 1) return fname;
-
-  TString soffset;
-  soffset += offset;//automatic conversion to string
-  TString dotroot(".root");
-  const TString& offfsetdotroot = offset + dotroot;
-  TString out = fname;
-  out = out.ReplaceAll(dotroot,offfsetdotroot);
-  if (GetDebug()) Info("SetFileOffset","in=%s  out=%s.",fname.Data(),out.Data());
-  return out;
-
-}
 /*****************************************************************************/ 
 
 void AliLoader::SetDigitsFileNameSuffix(const TString& suffix)
@@ -1677,83 +807,58 @@ void AliLoader::SetDigitsFileNameSuffix(const TString& suffix)
   //adds the suffix before ".root", 
   //e.g. TPC.Digits.root -> TPC.DigitsMerged.root
   //made on Jiri Chudoba demand
-  if (GetDebug()) 
-   Info("SetDigitsFileNameSuffix","suffix=%s",suffix.Data());
-  if (GetDebug()) 
-   Info("SetDigitsFileNameSuffix","   Digits File Name before: %s",FileName(kDigits).Data());
-   
-  TString dotroot(".root");
-  const TString& suffixdotroot = suffix + dotroot;
-  FileName(kDigits) = FileName(kDigits).ReplaceAll(dotroot,suffixdotroot);
-  if (GetDebug()) 
-    Info("SetDigitsFileNameSuffix","                    after : %s",FileName(kDigits).Data());
+  GetDigitsDataLoader()->SetFileNameSuffix(suffix);
 }
 /*****************************************************************************/ 
 
-Bool_t AliLoader::CheckReload(const TFile* file, const TString& basefilename)
-{
-//checks if we have to reload given file
- if (file == 0x0) return kFALSE;
- TString tmp = SetFileOffset(basefilename);
- if (tmp.CompareTo(file->GetName())) return kTRUE;  //file must be reloaded
- return  kFALSE;
-}
-/*****************************************************************************/ 
-
-void AliLoader::SetFileOption(AliLoaderDataInfo& di, Option_t* newopt)
-{
-  //sets file option for data defined by di
-  if (di.FileOption().CompareTo(newopt) == 0) return;
-  di.FileOption() = newopt;
-  ReloadData(di);
-}
-/*****************************************************************************/ 
-
-void AliLoader::SetCompressionLevel(AliLoaderDataInfo& di,Int_t cl)
+void AliLoader::SetCompressionLevel(Int_t cl)
 {
 //sets comression level for data defined by di
-  di.CompressionLevel() = cl;
-  if (di.File()) di.File()->SetCompressionLevel(cl);
+  TIter next(fDataLoaders);
+  AliDataLoader* dl;
+  while((dl = (AliDataLoader*)next()))
+   {
+     dl->SetCompressionLevel(cl);
+   }
 }
-
-/*****************************************************************************/ 
-/*****************************************************************************/ 
 /*****************************************************************************/ 
 
-ClassImp(AliLoaderDataInfo)
-//__________________________________________
-////////////////////////////////////////////
-//                                        //
-//  class AliLoaderDataInfo               //
-//                                        //
-//  Container of all data needed for full //
-//  description of each data type         //
-//  (Hits, Kine, ...)                     //
-//                                        //
-////////////////////////////////////////////
-
-
-AliLoaderDataInfo::AliLoaderDataInfo():
- fFileName(0),
- fFile(0x0),
- fDirectory(0x0),
- fFileOption(0),
- fContainerName(0),
- fName(0),
- fCompressionLevel(2)
+void AliLoader::Clean()
 {
-  
+//Cleans all data loaders
+  TIter next(fDataLoaders);
+  AliDataLoader* dl;
+  while((dl = (AliDataLoader*)next()))
+   {
+     dl->Clean();
+   }
 }
+/*****************************************************************************/
+
+void AliLoader::Clean(const TString& name)
+{
+  TObject* obj = GetDetectorDataFolder()->FindObject(name);
+  if(obj)
+   {
+     if (GetDebug())
+       Info("Clean(const TString&)","name=%s, cleaning %s.",GetName(),name.Data());
+     GetDetectorDataFolder()->Remove(obj);
+     delete obj;
+   }
+}
+
 /*****************************************************************************/ 
 
-AliLoaderDataInfo::AliLoaderDataInfo
-     (const char* filename, const char* contname, const char* name):
- fFileName(filename),
- fFile(0x0),
- fDirectory(0x0),
- fFileOption(0),
- fContainerName(contname),
- fName(name),
- fCompressionLevel(2)
+Bool_t AliLoader::IsOptionWritable(const TString& opt)
 {
+  if (opt.CompareTo("recreate",TString::kIgnoreCase)) return kTRUE;
+  if (opt.CompareTo("new",TString::kIgnoreCase)) return kTRUE;
+  if (opt.CompareTo("create",TString::kIgnoreCase)) return kTRUE;
+  if (opt.CompareTo("update",TString::kIgnoreCase)) return kTRUE;
+  return kFALSE;
 }
+
+/*****************************************************************************/ 
+/*****************************************************************************/ 
+/*****************************************************************************/ 
+

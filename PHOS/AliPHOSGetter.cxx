@@ -52,9 +52,7 @@
 
 #include "TSystem.h"
 #include "TFile.h"
-// #include "TTree.h"
 #include "TROOT.h"
-// #include "TObjString.h"
 // #include "TFolder.h"
 // #include "TParticle.h"
 
@@ -66,6 +64,7 @@
 #include "AliPHOSGetter.h"
 #include "AliRunLoader.h"
 #include "AliRun.h"  
+#include "AliStack.h"
 #include "AliPHOSLoader.h"
 // #include "AliPHOS.h"
 // #include "AliPHOSDigitizer.h"
@@ -85,7 +84,6 @@ AliPHOSGetter * AliPHOSGetter::fgObjGetter = 0 ;
 AliPHOSLoader * AliPHOSGetter::fgPhosLoader = 0;
 Int_t AliPHOSGetter::fgDebug = 0;
 
-//  TFile * AliPHOSGetter::fgFile = 0 ; 
 
 //____________________________________________________________________________ 
 AliPHOSGetter::AliPHOSGetter(const char* headerFile, const char* version, Option_t * openingOption)
@@ -166,7 +164,7 @@ void AliPHOSGetter::Event(const Int_t event, const char* opt)
 
   // Loads the type of object(s) requested
   
-  rl->GetEvent(event, opt) ; 
+  rl->GetEvent(event) ; 
 
   if( strstr(opt,"P") || (strcmp(opt,"")==0) )
     ReadPrimaries() ;
@@ -272,7 +270,18 @@ Int_t AliPHOSGetter::MaxEvent() const
 TParticle * AliPHOSGetter::Primary(Int_t index) const
 {
   AliRunLoader * rl = AliRunLoader::GetRunLoader(PhosLoader()->GetTitle());
-  return rl->Particle(index) ; 
+  if (rl == 0x0)
+   {
+     Error("Primary","Can not get Run Loader from folder %s",PhosLoader()->GetTitle());
+     return 0x0;
+   }
+  AliStack* stack = rl->Stack();
+  if (stack == 0x0)
+   {
+     Error("Primary","Can not get Stack from Run Loader.");
+     return 0x0;
+   }
+  return stack->Particle(index);
 } 
 
 //____________________________________________________________________________ 
@@ -328,8 +337,15 @@ void AliPHOSGetter::ReadPrimaries()
   // gets kine tree from the root file (Kinematics.root)
   if ( ! rl->TreeK() )  // load treeK the first time
     rl->LoadKinematics() ;
+
+  AliStack* stack = rl->Stack();
+  if (stack == 0x0)
+   {
+     Error("ReadPrimaries","Can not get Stack from Run Loader.");
+     return;
+   }
   
-  fNPrimaries = rl->GetNtrack() ; 
+  fNPrimaries = stack->GetNtrack() ; 
 
   if (fgDebug) 
     Info( "ReadTreeK", "Found %d particles in event # %d", fNPrimaries, EventNumber() ) ; 
@@ -419,7 +435,14 @@ TParticle * AliPHOSGetter::Secondary(const TParticle* p, const Int_t index) cons
   if(p) {
   Int_t daughterIndex = p->GetDaughter(index-1) ; 
   AliRunLoader * rl = AliRunLoader::GetRunLoader(PhosLoader()->GetTitle());
-  return  rl->Particle(daughterIndex) ; 
+  AliStack* stack = rl->Stack();
+  if (stack == 0x0)
+   {
+     Error("Primary","Can not get Stack from Run Loader.");
+     return 0x0;
+   }
+  
+  return  stack->Particle(daughterIndex) ; 
   }
   else
     return 0 ;

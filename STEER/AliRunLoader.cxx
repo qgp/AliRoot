@@ -1,5 +1,8 @@
 #include "AliRunLoader.h"
-
+//_____________________________________
+/////////////////////////////////////////////////////////////////////////////////////
+//
+// class AliRunLoader
 //
 //This class aims to be the only one interface for manging data
 //It stores Loaders for all modules which knows the filenames 
@@ -11,14 +14,15 @@
 //logical place for putting the Loader specific to the given detector is detector itself
 // but, to load detector one need to load gAlice, and by the way all other detectors
 // with their geometrieces and so on. 
-// So, if one need to open TPC clusters there is no principal nedd to read everything
+// So, if one need to open TPC clusters there is no principal need to read everything
 //
 // When RunLoader is read from the file it does not connect to the folder structure
 // it must be connected (mounted) manualy in the macro or class code. 
 // Default event folder is defined by AliConfig::fgkDefaultEventFolderName
-// but can be mounted elsewhere. Usefull specially in merging, when more than 
+// but can be mounted elsewhere. Usefull specially in merging, when more than session 
+// needs to be loaded
 //
-
+//////////////////////////////////////////////////////////////////////////////////////
 /**************************************************************************/
 
 #include <TString.h>
@@ -39,8 +43,6 @@
 #include "TObjArray.h"
 #include "AliDetector.h"
 #include "AliRunDigitizer.h"
-
-TDirectory * gKineDir = 0x0;
 
 ClassImp(AliRunLoader)
 
@@ -65,8 +67,8 @@ AliRunLoader::AliRunLoader():
  fGAFile(0x0),
  fHeader(0x0),
  fStack(0x0),
- fKineData(),
- fTrackRefsData(),
+ fKineDataLoader(0x0),
+ fTrackRefsDataLoader(0x0),
  fNEventsPerFile(1)
 {
   AliConfig::Instance();//force to build the folder structure
@@ -81,8 +83,8 @@ AliRunLoader::AliRunLoader(const char* eventfoldername):
  fGAFile(0x0),
  fHeader(0x0),
  fStack(0x0),
- fKineData(fgkDefaultKineFileName,fgkKineContainerName,"Kinematics"),
- fTrackRefsData(fgkDefaultTrackRefsFileName,fgkTrackRefsContainerName,"Track References"),
+ fKineDataLoader(new AliDataLoader(fgkDefaultKineFileName,fgkKineContainerName,"Kinematics")),
+ fTrackRefsDataLoader(new AliDataLoader(fgkDefaultTrackRefsFileName,fgkTrackRefsContainerName,"Track References")),
  fNEventsPerFile(1)
 {
 //ctor
@@ -92,24 +94,25 @@ AliRunLoader::AliRunLoader(const char* eventfoldername):
 
 AliRunLoader::~AliRunLoader()
 {
-  
+
   UnloadHeader();
-  UnloadKinematics();
-  UnloadTrackRefs();
   UnloadgAlice();
   
   if(fLoaders) {
     fLoaders->SetOwner();
     delete fLoaders;
   }
-
+  
+  delete fKineDataLoader;
+  delete fTrackRefsDataLoader;
+  
+  
   RemoveEventFolder();
+  
   //fEventFolder is deleted by the way of removing - TopAliceFolder owns it
   delete fHeader;
   delete fStack;
   delete fGAFile;
-  delete fKineData.File();
-  delete fTrackRefsData.File();
 }
 /**************************************************************************/
 
@@ -137,7 +140,7 @@ AliRunLoader::AliRunLoader(TFolder* topfolder):TNamed(fgkRunLoaderName,fgkRunLoa
 }
 /**************************************************************************/
 
-Int_t AliRunLoader::GetEvent(const Int_t evno,  const char* opt)
+Int_t AliRunLoader::GetEvent(Int_t evno)
 {
 //Gets event number evno
 //Reloads all data properly
@@ -155,13 +158,17 @@ Int_t AliRunLoader::GetEvent(const Int_t evno,  const char* opt)
      return 3;
    }
   
-  if (GetDebug()) Info("GetEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-  if (GetDebug()) Info("GetEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-  if (GetDebug()) Info("GetEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-  if (GetDebug()) Info("GetEvent","          GETTING EVENT  %d",evno);
-  if (GetDebug()) Info("GetEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-  if (GetDebug()) Info("GetEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-  if (GetDebug()) Info("GetEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+  if (GetDebug()) 
+   {
+     Info("GetEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+     Info("GetEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+     Info("GetEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+     Info("GetEvent","          GETTING EVENT  %d",evno);
+     Info("GetEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+     Info("GetEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+     Info("GetEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+   }
+   
   fCurrentEvent = evno;
 
   Int_t retval;
@@ -196,30 +203,29 @@ Int_t AliRunLoader::GetEvent(const Int_t evno,  const char* opt)
    }
    
   //Post Track References
-  if (fTrackRefsData.File()) 
+  retval = fTrackRefsDataLoader->GetEvent();
+  if (retval)
    {
-    retval = PostTrackRefs();
+     Error("GetEvent","Error occured while GetEvent for Track References. Event %d",evno);
+     return 2;
    }
 
   //Read Kinematics if loaded
-  if (fKineData.File()) 
-   {
-    retval = PostKinematics();
-    if (fStack) fStack->GetEvent();
-   }
-  
+  fKineDataLoader->GetEvent();
   if (retval)
    {
-     Error("GetEvent","Error occured while posting kinematics. Event %d",evno);
+     Error("GetEvent","Error occured while GetEvent for Kinematics. Event %d",evno);
      return 2;
    }
+
+  if (fStack && fKineDataLoader->GetBaseLoader(0)->IsLoaded()) fStack->GetEvent();
   
   //Trigger data reloading in all loaders 
   TIter next(fLoaders);
   AliLoader *loader;
   while((loader = (AliLoader*)next())) 
    {
-     retval = loader->GetEvent(opt);
+     retval = loader->GetEvent();
      if (retval)
       {
        Error("GetEvent","Error occured while getting event for %s. Event %d.",
@@ -230,6 +236,40 @@ Int_t AliRunLoader::GetEvent(const Int_t evno,  const char* opt)
   return 0;
 }
 /**************************************************************************/
+Int_t AliRunLoader::SetEvent()
+{
+ //if kinematocs was loaded Cleans folder data
+ //change 
+  Int_t retval;
+  
+  retval = fKineDataLoader->SetEvent();
+  if (retval)
+   {
+     Error("SetEvent","SetEvent for Kinamtics Data Loader retutned error.");
+     return retval;
+   }
+  retval = fTrackRefsDataLoader->SetEvent(); 
+  if (retval)
+   {
+     Error("SetEvent","SetEvent for Track References Data Loader retutned error.");
+     return retval;
+   }
+
+  TIter next(fLoaders);
+  AliLoader *loader;
+  while((loader = (AliLoader*)next())) 
+   {
+     retval = loader->SetEvent();
+     if (retval)
+      {
+        Error("SetEvent","SetEvent for %s Data Loader retutned error.",loader->GetName());
+        return retval;
+      }
+   }
+
+  return 0;
+}
+/**************************************************************************/
 
 Int_t AliRunLoader::SetEventNumber(Int_t evno)
 {
@@ -237,65 +277,6 @@ Int_t AliRunLoader::SetEventNumber(Int_t evno)
   if (fCurrentEvent == evno) return 0;
   fCurrentEvent = evno;
   return SetEvent();
-}
-/**************************************************************************/
-Int_t AliRunLoader::SetEvent()
-{
- //if kinematocs was loaded Cleans folder data
- //change 
-
-  TString tmp;
-  
-  //KINEMATICS
-  if (TreeK()) CleanKinematics();
-  if (fKineData.File())//if kinematics was loaded
-   { 
-     tmp = SetFileOffset(fKineData.FileName());
-     if (tmp.CompareTo(fKineData.File()->GetName()) != 0) //check if we have to change the file
-      { 
-        if (GetDebug()) Info("SetEvent"," Reloading Kine: ev number %d Old filename: %s  option: %s new filename: %s",
-              fCurrentEvent,fKineData.File()->GetName(),fKineData.FileOption().Data(),tmp.Data());
-        
-        UnloadKinematics();
-        OpenKineFile(fKineData.FileOption());
-      }
-     //change directory to new event
-     fKineData.Directory() = AliLoader::ChangeDir(fKineData.File(),fCurrentEvent);
-     if (fKineData.Directory() == 0x0)
-      {
-        Error("SetEvent","Can not change to root directory in file %s",fKineData.File()->GetName());
-        return 1;
-      }
-   }
-  
-  //TRACK REFERNCES
-  if (TreeTR()) CleanTrackRefs();
-  if (fTrackRefsData.File())
-   {  
-     tmp = SetFileOffset(fTrackRefsData.FileName());
-     if (tmp.CompareTo(fTrackRefsData.File()->GetName()) != 0)
-      { 
-        UnloadTrackRefs();
-        OpenTrackRefsFile(fTrackRefsData.FileOption());
-      }
-
-     fTrackRefsData.Directory() = AliLoader::ChangeDir(fTrackRefsData.File(),fCurrentEvent);
-     if (fTrackRefsData.Directory() == 0x0)
-      {
-        Error("SetEvent","Can not change to root directory in file %s",fTrackRefsData.File()->GetName());
-        return 2;
-      }
-   }
-
-  
-  TIter next(fLoaders);
-  AliLoader *loader;
-  while((loader = (AliLoader*)next())) 
-   {
-     loader->SetEvent();
-   }
-
-  return 0;
 }
 
 /**************************************************************************/
@@ -324,7 +305,7 @@ AliRunLoader* AliRunLoader::Open
     TFolder* fold = dynamic_cast<TFolder*>(obj);
     if (fold == 0x0)
      {
-      ::Error("AliRunLoader::Open","Such a object already exists in top alice folder and it is not a folder.");
+      ::Error("AliRunLoader::Open","Such a obejct already exists in top alice folder and it is not a folder.");
       return 0x0;
      }
     
@@ -501,19 +482,15 @@ void AliRunLoader::MakeTree(Option_t *option)
   const char *oK = strstr(option,"K"); //Kine  
   const char *oE = strstr(option,"E"); //Header
 
-  TTree* tree;
-
   if(oK && !TreeK())
    { 
-     if (fKineData.Directory() == 0x0)
+     if (fKineDataLoader->GetBaseLoader(0)->IsLoaded() == kFALSE)
       {
         Error("MakeTree(\"K\")","Load Kinematics first");
       }
      else
       {
-        fKineData.Directory()->cd();
-        tree = new TTree(fgkKineContainerName,"Kinematics");
-        GetEventFolder()->Add(tree);
+        fKineDataLoader->MakeTree();
         MakeStack();
         fStack->ConnectTree();
         WriteKinematics("OVERWRITE");
@@ -521,9 +498,9 @@ void AliRunLoader::MakeTree(Option_t *option)
    }
   
   if(oE && !TreeE())
-   {
+   { 
      fGAFile->cd();
-     tree = new TTree(fgkHeaderContainerName,"Tree with Headers");
+     TTree* tree = new TTree(fgkHeaderContainerName,"Tree with Headers");
      GetEventFolder()->Add(tree);
      MakeHeader();
      WriteHeader("OVERWRITE");
@@ -556,9 +533,8 @@ Int_t AliRunLoader::LoadgAlice()
  alirun->SetRunLoader(this);
  if (gAlice)
   {
-    if ( GetDebug() ) 
-      Warning("LoadgAlice","gAlice already exists. Putting retrieved object in folder named %s",
-	      GetEventFolder()->GetName());
+    Warning("LoadgAlice","gAlice already exists. Putting retrived object in folder named %s",
+             GetEventFolder()->GetName());
   }
  else
   {
@@ -596,13 +572,14 @@ Int_t AliRunLoader::LoadHeader()
   }
 
  TTree* tree = dynamic_cast<TTree*>(fGAFile->Get(fgkHeaderContainerName));
- if (tree == TreeE()) return 0;
  if (tree == 0x0)
   {
     Fatal("LoadHaeder","Can not find header tree named %s in file %s",
            fgkHeaderContainerName.Data(),fGAFile->GetName());
     return 2;
   }
+
+ if (tree == TreeE()) return 0;
 
  CleanHeader();
  GetEventFolder()->Add(tree);
@@ -615,38 +592,17 @@ Int_t AliRunLoader::LoadHeader()
 Int_t AliRunLoader::LoadKinematics(Option_t* option)
 {
 //Loads the kinematics 
- if (TreeK())
-  {
-     Warning("LoadKinematics","Kinematics is already loaded. Use ReloadKinematics to force reload. Nothing done");
-     return 0;
-  }
-
- if (GetEventFolder() == 0x0)
-  {
-    Error("LoadKinematics","Event folder not specified yet");
-    return 1;
-  }
- Int_t retval = OpenKineFile(option);
+ Int_t retval = fKineDataLoader->GetBaseLoader(0)->Load(option);
  if (retval)
-   {
-    Error("LoadKinematics","Error occured while opening Kine file");
+  {
+    Error("LoadKinematics","Error occured while loading kinamatics tree.");
     return retval;
-   }
-
- fKineData.FileOption() = option;
-  
- if (AliLoader::TestFileOption(option) == kFALSE) return 0;
- 
- retval = PostKinematics();
- if (retval)
-   {//propagate error up 
-    Error("LoadKinematics","PostKinematics returned error");
-    return retval;
-   }
+  }
  if (fStack) fStack->GetEvent();
  return 0;
 }
 /**************************************************************************/
+
 Int_t AliRunLoader::OpenDataFile(const TString& filename,TFile*& file,TDirectory*& dir,Option_t* opt,Int_t cl)
 {
 //Opens File with kinematics
@@ -696,66 +652,6 @@ Int_t AliRunLoader::OpenDataFile(const TString& filename,TFile*& file,TDirectory
     return 3;
   }
  return 0; 
-}
-/**************************************************************************/
-
-Int_t AliRunLoader::PostKinematics()
-{
-  //takes the kine container from file and puts it in the folder
-  
-  if (GetDebug()) Info("PostKinematics","Posting Kinematics");
-  
-  if (fKineData.Directory() == 0x0)
-   {
-     Error("PostKinematics","Kinematics Directory is NULL. LoadKinematics before.");
-     return 2; 
-   }
-
-  TObject* tree = fKineData.Directory()->Get(fgkKineContainerName);
-  if (tree == TreeK()) return 0; //protection in case in folder is the same obj
-  if(tree)
-   {
-     //if such an object already exists - remove it first
-     CleanKinematics();//if kine tree already is in folder
-     GetEventFolder()->Add(tree);
-     return 0;
-   }
-  else
-   {
-    Warning("PostKinematics","Can not find Kinematics Contaioner object <%s> in file %s",
-             fgkKineContainerName.Data(),fKineData.File()->GetName());
-    return 1;
-   }
-}
-/**************************************************************************/
-
-Int_t AliRunLoader::PostTrackRefs()
-{
-  //takes the kine container from file and puts it in the folder
-  
-  if (GetDebug()) Info("PostTrackRefs","Posting TrackRefs");
-  
-  if (fTrackRefsData.Directory() == 0x0)
-   {
-     Error("PostTrackRefs","TrackRefs Directory is NULL. LoadTrackRefs before.");
-     return 2; 
-   }
-
-  TObject* tree = fTrackRefsData.Directory()->Get(fgkTrackRefsContainerName);
-  if (tree == TreeTR()) return 0; //protection in case in folder is the same obj
-  if(tree)
-   {
-     //if such an object already exists - remove it first
-     CleanTrackRefs();//if kine tree already is in folder
-     GetEventFolder()->Add(tree);
-     return 0;
-   }
-  else
-   {
-    Warning("PostTrackRefs","Can not find TrackRefs Contaioner object <%s> in file %s",
-             fgkTrackRefsContainerName.Data(),fTrackRefsData.File()->GetName());
-    return 1;
-   }
 }
 /**************************************************************************/
 
@@ -819,7 +715,7 @@ Int_t AliRunLoader::WriteHeader(Option_t* opt)
   TTree* tree = TreeE();
   if ( tree == 0x0)
    {
-     Warning("WriteHeader","Can not find Header in Folder");
+     Warning("WriteHeader","Can not find Header Tree in Folder");
      return 0;
    } 
   if (fGAFile->IsWritable() == kFALSE)
@@ -841,7 +737,6 @@ Int_t AliRunLoader::WriteHeader(Option_t* opt)
   fGAFile->cd();
   tree->SetDirectory(fGAFile);
   tree->Write(0,TObject::kOverwrite);
-  fGAFile->Write(0,TObject::kOverwrite);
 
   if (GetDebug()) Info("WriteHeader","WRITTEN\n\n");
   
@@ -859,111 +754,18 @@ Int_t AliRunLoader::WriteAliRun(Option_t* opt)
 
 Int_t AliRunLoader::WriteKinematics(Option_t* opt)
 {
-
-  if(TreeK() == 0x0)
-   {//did not get, nothing to write
-     Warning("WriteKinematics","Kinematics object named %s not found in folder %s.\nNothing to write. Returning",
-              fgkKineContainerName.Data(), GetEventFolder()->GetName());
-     return 0;
-   }
-  
-  //check if file is opened
-  if (fKineData.Directory() == 0x0)
-   { 
-     //if not open, try to open
-     if (OpenKineFile("UPDATE"))
-      {  
-        //oops, can not open the file, give an error message and return error code
-        Error("WriteKinematics","Can not open Kine file. Kinematics is NOT WRITTEN");
-        return 1;
-      }
-   }
-
-  if (fKineData.File()->IsWritable() == kFALSE)
-   {
-     Error("WriteKinematics","File %s is not writable",fKineData.File()->GetName());
-     return 1;
-   }
-  
-  //see if hits container already exists in this (root) directory
-  TObject* tree = fKineData.Directory()->Get(fgkKineContainerName);
-  if (tree)
-   { //if they exist, see if option OVERWRITE is used
-     TString tmp(opt);
-     if(tmp.Contains("OVERWRITE",TString::kIgnoreCase) == 0)
-      {//if it is not used -  give an error message and return an error code
-        Error("WriteKinematics","Tree already exisists. Use option \"OVERWRITE\" to overwrite previous data");
-        return 3;
-      }
-   }
-
-  if (GetDebug()) Info("WriteKinematics","name=%s opt=%s fKineData.File() =%s fKineData.Directory()=%s TreeK=%s",
-                         GetName(),opt,fKineData.File()->GetName(),fKineData.Directory()->GetName(),TreeK()->GetName());
-  
-  fKineData.Directory()->cd();
-  TreeK()->SetDirectory(fKineData.Directory()); //forces setting the directory to this directory (we changed dir few lines above)
-  
-  if (GetDebug()) Info("WriteKinematics","Writing tree");
-  TreeK()->Write(0,TObject::kOverwrite);
-  return 0;
-   
+  return fKineDataLoader->GetBaseLoader(0)->WriteData(opt);
 }
 /**************************************************************************/
 Int_t AliRunLoader::WriteTrackRefs(Option_t* opt)
 {
-  if(TreeTR() == 0x0)
-   {//did not get, nothing to write
-     Warning("WriteTrackRefs","TrackRefs object named %s not found in folder %s.\nNothing to write. Returning",
-              fgkTrackRefsContainerName.Data(), GetEventFolder()->GetName());
-     return 0;
-   }
-  
-  //check if file is opened
-  if (fTrackRefsData.Directory() == 0x0)
-   { 
-     //if not open, try to open
-     if (OpenTrackRefsFile("UPDATE"))
-      {  
-        //oops, can not open the file, give an error message and return error code
-        Error("WriteTrackRefs","Can not open TrackRefs file. TrackRefs is NOT WRITTEN");
-        return 1;
-      }
-   }
-
-  if (fTrackRefsData.File()->IsWritable() == kFALSE)
-   {
-     Error("WriteTrackRefs","File %s is not writable",fTrackRefsData.File()->GetName());
-     return 1;
-   }
-  
-  //see if hits container already exists in this (root) directory
-  TObject* tree = fTrackRefsData.Directory()->Get(fgkTrackRefsContainerName);
-  if (tree)
-   { //if they exist, see if option OVERWRITE is used
-     TString tmp(opt);
-     if(tmp.Contains("OVERWRITE",TString::kIgnoreCase) == 0)
-      {//if it is not used -  give an error message and return an error code
-        Error("WriteTrackRefs","Tree already exisists. Use option \"OVERWRITE\" to overwrite previous data");
-        return 3;
-      }
-   }
-  
-  if (GetDebug()) Info("WriteTrackRefs","name=%s opt=%s fTrackRefsData.File()=%s fTrackRefsData.Directory()=%s TreeTR()=%s",
-                         GetName(),opt,fTrackRefsData.File()->GetName(),fTrackRefsData.Directory()->GetName(),TreeTR()->GetName());
-  
-  fTrackRefsData.Directory()->cd();
-  TreeTR()->SetDirectory(fTrackRefsData.Directory()); //forces setting the directory to this directory (we changed dir few lines above)
-  
-  if (GetDebug()) Info("WriteTrackRefs","Writing tree");
-  TreeTR()->Write(0,TObject::kOverwrite);
-
-  return 0;
-  
+  return fTrackRefsDataLoader->GetBaseLoader(0)->WriteData(opt);
 }
 /**************************************************************************/
 
 Int_t AliRunLoader::WriteHits(Option_t* opt)
 {
+//Calls WriteHits for all loaders
   Int_t res;
   Int_t result = 0;
   TIter next(fLoaders);
@@ -973,7 +775,7 @@ Int_t AliRunLoader::WriteHits(Option_t* opt)
      res = loader->WriteHits(opt);
      if (res)
       {
-        Error("WriteHits","Failed to write hits for %s.",loader->GetDetectorName().Data());
+        Error("WriteHits","Failed to write hits for %s (%d)",loader->GetDetectorName().Data(),res);
         result = 1;
       }
    }
@@ -1082,7 +884,7 @@ Int_t AliRunLoader::SetEventFolderName(const TString& name)
      TFolder* fold = dynamic_cast<TFolder*>(obj);
      if (fold == 0x0)
       {
-       Error("SetTopFolderName","Such a object already exists in top alice folder and it is not a folder.");
+       Error("SetTopFolderName","Such a obejct already exists in top alice folder and it is not a folder.");
        return 2;
       }
      //folder which was found is our folder
@@ -1103,9 +905,15 @@ Int_t AliRunLoader::SetEventFolderName(const TString& name)
      fEventFolder->SetName(name);
      return 0;
    }
+
+  if (fKineDataLoader == 0x0)
+    fKineDataLoader = new AliDataLoader(fgkDefaultKineFileName,fgkKineContainerName,"Kinematics");
+
+  if ( fTrackRefsDataLoader == 0x0)
+    fTrackRefsDataLoader = new AliDataLoader(fgkDefaultTrackRefsFileName,fgkTrackRefsContainerName,"Track References");
    
   //build the event folder structure
-  if (GetDebug()) Info("SetEventFolderName","Creting new event folder named %s",name.Data());
+  if (GetDebug()) Info("SetEventFolderName","Creating new event folder named %s",name.Data());
   fEventFolder = AliConfig::Instance()->BuildEventFolder(name,"Event Folder");
   fEventFolder->Add(this);//put myself to the folder to accessible for all
   
@@ -1115,8 +923,12 @@ Int_t AliRunLoader::SetEventFolderName(const TString& name)
   while((loader = (AliLoader*)next()))
    {
      loader->SetEventFolder(fEventFolder);
-     loader->Register();
    }
+  
+  fKineDataLoader->SetEventFolder(GetEventFolder());
+  fTrackRefsDataLoader->SetEventFolder(GetEventFolder());
+  fKineDataLoader->SetFolder(GetEventFolder());
+  fTrackRefsDataLoader->SetFolder(GetEventFolder());
   
   fEventFolder->SetOwner();
   return 0;
@@ -1133,6 +945,7 @@ void AliRunLoader::AddLoader(AliLoader* loader)
    }
   if (fEventFolder) loader->SetEventFolder(fEventFolder); //if event folder is already defined, 
                                                           //pass information to the Loader
+  	                  
   fLoaders->Add(loader);//add the Loader to the array
  }
 /**************************************************************************/
@@ -1223,7 +1036,7 @@ Int_t AliRunLoader::LoadHits(Option_t* detectors,Option_t* opt)
   TObjArray* loaders;
   TObjArray arr;
 
-  const char* oAll = strstr(detectors,"all");
+  char* oAll = strstr(detectors,"all");
   if (oAll)
    {
      if (GetDebug()) Info("LoadHits","Option is All");
@@ -1257,7 +1070,7 @@ Int_t AliRunLoader::LoadSDigits(Option_t* detectors,Option_t* opt)
   TObjArray* loaders;
   TObjArray arr;
 
-  const char* oAll = strstr(detectors,"all");
+  char* oAll = strstr(detectors,"all");
   if (oAll)
    {
      loaders = fLoaders;
@@ -1286,7 +1099,7 @@ Int_t AliRunLoader::LoadDigits(Option_t* detectors,Option_t* opt)
   TObjArray* Loaders;
   TObjArray arr;
 
-  const char* oAll = strstr(detectors,"all");
+  char* oAll = strstr(detectors,"all");
   if (oAll)
    {
      Loaders = fLoaders;
@@ -1315,7 +1128,7 @@ Int_t AliRunLoader::LoadRecPoints(Option_t* detectors,Option_t* opt)
   TObjArray* Loaders;
   TObjArray arr;
 
-  const char* oAll = strstr(detectors,"all");
+  char* oAll = strstr(detectors,"all");
   if (oAll)
    {
      Loaders = fLoaders;
@@ -1344,7 +1157,7 @@ Int_t AliRunLoader::LoadTracks(Option_t* detectors,Option_t* opt)
   TObjArray* Loaders;
   TObjArray arr;
 
-  const char* oAll = strstr(detectors,"all");
+  char* oAll = strstr(detectors,"all");
   if (oAll)
    {
      Loaders = fLoaders;
@@ -1511,16 +1324,14 @@ void AliRunLoader::SetCompressionLevel(Int_t cl)
 void AliRunLoader::SetKineComprLevel(Int_t cl)
 {
 //Sets comression level in Kine File
-  fKineData.CompressionLevel() = cl;
-  if (fKineData.File()) fKineData.File()->SetCompressionLevel(cl);
+  fKineDataLoader->SetCompressionLevel(cl);
 }
 /**************************************************************************/
 
 void AliRunLoader::SetTrackRefsComprLevel(Int_t cl)
 {
 //Sets comression level in Track Refences File
-  fTrackRefsData.CompressionLevel() = cl;
-  if (fTrackRefsData.File()) fTrackRefsData.File()->SetCompressionLevel(cl);
+  fTrackRefsDataLoader->SetCompressionLevel(cl);
 }
 /**************************************************************************/
 
@@ -1536,19 +1347,13 @@ void AliRunLoader::UnloadHeader()
 
 void AliRunLoader::UnloadKinematics()
 {
- CleanKinematics();//removes from folder and deletes
- delete fKineData.File();//closes Kine file
- fKineData.File() = 0x0;
- fKineData.Directory() = 0x0;
+ fKineDataLoader->GetBaseLoader(0)->Unload();
 }
 /**************************************************************************/
 
 void AliRunLoader::UnloadTrackRefs()
 {
- CleanTrackRefs();//removes from folder and deletes
- delete fTrackRefsData.File();//closes TrackRefs file
- fTrackRefsData.File() = 0x0;
- fTrackRefsData.Directory() = 0x0;
+ fTrackRefsDataLoader->GetBaseLoader(0)->Unload();
 }
 /**************************************************************************/
 
@@ -1568,10 +1373,7 @@ void AliRunLoader::UnloadgAlice()
 void  AliRunLoader::MakeTrackRefsContainer()
 {
 // Makes a tree for Track References
-  if (TreeTR()) return;
-  TTree* tree = new TTree(fgkTrackRefsContainerName,"Tree with Track References");
-  GetEventFolder()->Add(tree);
-  WriteTrackRefs("OVERWRITE");
+  fTrackRefsDataLoader->MakeTree();
 }
 /**************************************************************************/
 
@@ -1579,36 +1381,7 @@ Int_t AliRunLoader::LoadTrackRefs(Option_t* option)
 {
 //Load track references from file (opens file and posts tree to folder)
 
- if (TreeTR())
-  {
-     Warning("LoadTrackRefs","Track References are already loaded. Use ReloadTrackRefs to force reload. Nothing done");
-     return 0;
-  }
-
- if (GetEventFolder() == 0x0)
-  {
-    Error("LoadTrackRefs","Event folder not specified yet");
-    return 1;
-  }
- Int_t retval = OpenTrackRefsFile(option);
- if (retval)
-   {
-    Error("LoadTrackRefs","Error occured while opening Kine file");
-    return retval;
-   }
- 
- fTrackRefsData.FileOption() = option;
- 
- if (AliLoader::TestFileOption(option) == kFALSE) return 0;
-
- retval = PostTrackRefs();
- 
- if (retval)
-  {//propagate error up 
-    Error("LoadTrackRefs","PostTrackRefs returned error");
-    return retval;
-  }
- return 0;
+ return fKineDataLoader->GetBaseLoader(0)->Load(option);
 }
 /**************************************************************************/
 
@@ -1617,9 +1390,9 @@ void  AliRunLoader::SetDirName(TString& dirname)
 //sets directory name 
   if (dirname.IsNull()) return;
   
-  fTrackRefsData.FileName() = dirname + "/" + fTrackRefsData.FileName();
-  fKineData.FileName() = dirname + "/" + fKineData.FileName();
-
+  fKineDataLoader->SetDirName(dirname);
+  fTrackRefsDataLoader->SetDirName(dirname);
+  
   TIter next(fLoaders);
   AliLoader *loader;
   while((loader = (AliLoader*)next()))
@@ -1628,25 +1401,6 @@ void  AliRunLoader::SetDirName(TString& dirname)
    }
 
 }
-/*****************************************************************************/ 
-
-Int_t AliRunLoader::OpenKineFile(Option_t* opt)
- {
- //Opens file with kinematics
-   return OpenDataFile(SetFileOffset(fKineData.FileName()),
-                       fKineData.File(),fKineData.Directory(),
-	   opt,fKineData.CompressionLevel());
- }
-/*****************************************************************************/ 
-
-Int_t AliRunLoader::OpenTrackRefsFile(Option_t* opt)
- {
-  //opens file with Track References
-   
-   return OpenDataFile(SetFileOffset(fTrackRefsData.FileName()),
-                       fTrackRefsData.File(),fTrackRefsData.Directory(),
-	   opt,fTrackRefsData.CompressionLevel());
- }
 /*****************************************************************************/ 
 
 Int_t AliRunLoader::GetFileOffset() const
@@ -1693,8 +1447,6 @@ TString AliRunLoader::GetFileName() const
  result = fGAFile->GetName();
  return result;
 }
-
-
 
 /*****************************************************************************/ 
 /*****************************************************************************/ 
