@@ -21,19 +21,19 @@ Int_t AliITStestV2(Char_t SlowOrFast='s') {
    delete rl;
 
 
-   if (SlowOrFast=='f') {
-      //cerr<<"Fast AliITSRecPoint(s) !\n";
-      //gROOT->LoadMacro("$(ALICE_ROOT)/ITS/AliITSHits2FastRecPoints.C");
-      //AliITSHits2FastRecPoints();
-   } else {
-      cerr<<"Slow AliITSRecPoint(s) !\n";
-      gROOT->LoadMacro("$(ALICE_ROOT)/ITS/AliITSHits2SDigits.C");
-      AliITSHits2SDigits();
-      gROOT->LoadMacro("$(ALICE_ROOT)/ITS/AliITSSDigits2Digits.C");
-      AliITSSDigits2Digits();
-      //gROOT->LoadMacro("$(ALICE_ROOT)/ITS/AliITSDigits2RecPoints.C");
-      //AliITSDigits2RecPoints();
-   }
+  
+   cerr<<"Fast AliITSRecPoint(s) !\n";
+   gROOT->LoadMacro("$(ALICE_ROOT)/ITS/AliITSHits2FastRecPoints.C");
+   AliITSHits2FastRecPoints();
+  
+   cerr<<"Slow AliITSRecPoint(s) !\n";
+   gROOT->LoadMacro("$(ALICE_ROOT)/ITS/AliITSHits2SDigits.C");
+   AliITSHits2SDigits();
+   gROOT->LoadMacro("$(ALICE_ROOT)/ITS/AliITSSDigits2Digits.C");
+   AliITSSDigits2Digits();
+   gROOT->LoadMacro("$(ALICE_ROOT)/ITS/AliITSDigits2RecPoints.C");
+   AliITSDigits2RecPoints();
+
    gROOT->LoadMacro("$(ALICE_ROOT)/ITS/AliITSFindClustersV2.C");
    if (rc=AliITSFindClustersV2(SlowOrFast)) return rc;
 
