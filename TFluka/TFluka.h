@@ -154,12 +154,12 @@ class TFluka : public TVirtualMC {
     {printf("WARNING: Xsec not yet implemented !\n"); return -1.;}
   
   // particle table usage         
-  virtual Int_t   IdFromPDG(Int_t id) const
-    {printf("WARNING: IdFromPDG not yet implemented !\n"); return -1;}  
-  virtual Int_t   PDGFromId(Int_t pdg) const
-    {printf("WARNING: PDGFromId not yet implemented !\n"); return -1;}  
-  virtual void    DefineParticles()
-    {printf("WARNING: DefineParticles not yet implemented !\n");}     
+  virtual Int_t   IdFromPDG(Int_t id) const;
+    //{printf("WARNING: IdFromPDG not yet implemented !\n"); return -1;}  
+  virtual Int_t   PDGFromId(Int_t pdg) const;
+    //{printf("WARNING: PDGFromId not yet implemented !\n"); return -1;}  
+  virtual void    DefineParticles();
+    //{printf("WARNING: DefineParticles not yet implemented !\n");}     
   
   //
   // methods for step management
@@ -330,6 +330,14 @@ class TFluka : public TVirtualMC {
   Int_t   fVerbosityLevel; //Verbosity level (0 lowest - 3 highest)
   TString fInputFileName; //Name of the input file (f.e. mu.inp)
   
+
+
+
+  enum {kMaxParticles = 100};
+  Int_t fNPDGCodes;               // Number of PDG codes known by FLUKA
+  Int_t fPDGCode[kMaxParticles];  // Translation table of PDG codes
+
+
   ClassDef(TFluka,1)  //C++ interface to Fluka montecarlo
 };
 
