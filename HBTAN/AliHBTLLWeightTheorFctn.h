@@ -20,10 +20,9 @@ class AliHBTLLWeightTheorQInvFctn: public AliHBTOnePairFctn1D
 
   public:
   AliHBTLLWeightTheorQInvFctn(Int_t nbins = 100, Double_t maxXval = 0.15, Double_t minXval = 0.0);
-  
-  virtual  ~AliHBTLLWeightTheorQInvFctn(){};
-  TH1* GetResult(); 
+  virtual  ~AliHBTLLWeightTheorQInvFctn(){}
 
+  TH1* GetResult(); 
   void   ProcessSameEventParticles(AliHBTPair* partpair);
       
   Double_t GetValue(AliHBTPair* partpair)
