@@ -232,16 +232,20 @@ fi
 if [ "$SYSTEM" = "Linux" ]; then
   # check compiler version
   COMPILER="g++"
-  ${COMPILER} -v 2> /tmp/g4compiler
-  if [ "`cat /tmp/g4compiler | grep 2.96 `" != "" ]; then
+  TMPFILE=`mktemp -u /tmp/g4compiler.XXXXXX`
+  ${COMPILER} -v 2> ${TMPFILE}
+  if [ "`cat ${TMPFILE} | grep 2.96 `" != "" ]; then
     echo "WARNING: Found version of 'g++' (2.96.XXX) is known to be buggy!"
   fi   
-  if [ "`cat /tmp/g4compiler | grep egcs `" != "" ]; then
+  if [ "`cat ${TMPFILE} | grep egcs `" != "" ]; then
     export G4SYSTEM="Linux-egcs"
   else   
     export G4SYSTEM="Linux-g++"
   fi 
-  rm /tmp/g4compiler
+  if [ "`cat ${TMPFILE} | grep 3.1 `" != "" ]; then
+    export GCC3=1
+  fi  
+  rm ${TMPFILE}
 fi
 if [ "$SYSTEM" = "OSF1" ]; then
   export G4SYSTEM="DEC-cxx"
@@ -406,8 +410,8 @@ if [ $AG4_VISUALIZE ]; then
   export G4VIS_USE_OPENGLX=1
   export G4VIS_USE_OPENGLXM=1
   #export OGLHOME=/usr/local
-  export OGLHOME=/export/alice/tools
   #export OGLLIBS="-L$OGLHOME/lib -lMesaGLU -lMesaGL"
+  export OGLHOME=/usr
   export OGLLIBS="-L$OGLHOME/lib -lGLU -lGL"
   if [ "$SYSTEM" = "HP-UX" ]; then
     export OGLLIBS="-L/usr/lib $OGLLIBS"

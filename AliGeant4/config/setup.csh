@@ -232,16 +232,20 @@ endif
 if ( $SYSTEM == "Linux" ) then
   # check compiler version
   set COMPILER = "g++"
-  ${COMPILER} -v >& /tmp/g4compiler
-  if ( "`cat /tmp/g4compiler | grep 2.96 `" != "" ) then
+  set TMPFILE = `mktemp -u /tmp/g4compiler.XXXXXX`
+  ${COMPILER} -v >& ${TMPFILE}
+  if ( "`cat ${TMPFILE} | grep 2.96 `" != "" ) then
     echo "WARNING: Found version of 'g++' (2.96.XXX) is known to be buggy!"
   endif   
-  if ( "`cat /tmp/g4compiler | grep egcs `" != "" ) then
+  if ( "`cat ${TMPFILE} | grep egcs `" != "" ) then
     setenv G4SYSTEM "Linux-egcs"
   else   
     setenv G4SYSTEM "Linux-g++"
   endif  
-  rm /tmp/g4compiler
+  if ( "`cat ${TMPFILE} | grep 3.1 `" != "" ) then
+    setenv GCC3 1
+  endif
+  rm ${TMPFILE}
 endif
 if ( $SYSTEM == "OSF1" ) then
   setenv G4SYSTEM "DEC-cxx"
@@ -406,8 +410,8 @@ if ( "$?AG4_VISUALIZE" == 1 ) then
   setenv G4VIS_USE_OPENGLX           1
   setenv G4VIS_USE_OPENGLXM          1
   #setenv OGLHOME /usr/local
-  setenv OGLHOME /export/alice/tools
   #setenv OGLLIBS "-L$OGLHOME/lib -lMesaGLU -lMesaGL"
+  setenv OGLHOME /usr
   setenv OGLLIBS "-L$OGLHOME/lib -lGLU -lGL"
   if ( $SYSTEM == "HP-UX" ) then
     setenv OGLLIBS "-L/usr/lib ${OGLLIBS}"
