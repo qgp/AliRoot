@@ -46,7 +46,8 @@ ClassImp(AliPHOSDigit)
 
   fIndexInList = -1 ; 
   fNprimary    = 0 ;  
-  fNMaxPrimary = 5 ; 
+  fNMaxPrimary = 5 ;
+  fPrimary = 0;
 }
 
 //____________________________________________________________________________

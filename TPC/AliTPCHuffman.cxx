@@ -22,12 +22,11 @@
 //The class AliTPCHNode represents a node of the Huffman tree, while
 //the class AliTPCHTable represents a compression table
 
-
 #include <TObjArray.h>
-#include "Riostream.h"
-#include "TMath.h"
-#include "AliTPCHuffman.h"
+#include <Riostream.h>
+#include <TMath.h>
 #include "AliTPCBuffer160.h"
+#include "AliTPCHuffman.h"
 
 ClassImp(AliTPCHNode)
 
@@ -272,11 +271,30 @@ Int_t AliTPCHTable::SetFrequency(const Int_t Val){
 
 //////////////////////////////////////////////////////////////////////////////
 
+Int_t AliTPCHTable::NormalizeFrequencies(){
+  //This method normalized the frequencies
+  //Frequencies normalization
+  Double_t sum=0.;
+  for (Int_t i=0; i< fSize; i++) {
+    sum+=fCode[i];
+  }//end for 
+  if (fVerbose){
+    cout<<"Frequency sum: "<<sum<<endl;
+  }//end if
+  if(sum!=0.){
+    for (Int_t i=0; i< fSize; i++) {
+      fCode[i]/=sum;
+      if ((fCode[i]!=0.) && (fCode[i]<10e-20))cout<<"Frequency value very small !!! "<<fCode[i]<<endl;
+    }//end for 
+  }
+  return 0;
+}
+//////////////////////////////////////////////////////////////////////////////
 Int_t AliTPCHTable::StoreFrequencies(const char *fname)const{
   //It stores the frequencies in a text file
   ofstream ftxt(fname);  
   for (Int_t i=0;i<fSize;i++){
-    ftxt<<(ULong_t)fCode[i]<<endl;
+    ftxt<<fCode[i]<<endl;
   }
   ftxt.close();
   return 0;

@@ -367,7 +367,7 @@ void AliITShit::GetPositionL(Float_t &x,Float_t &y,Float_t &z,Float_t &tof){
 }
 //______________________________________________________________________
 void AliITShit::GetPositionL0(Double_t &x,Double_t &y,Double_t &z,
-                             Double_t &tof){
+			      Double_t &tof){
 ////////////////////////////////////////////////////////////////////////
 //     Returns the initial position and time of flight of this hit in the local
 // coordinates of this module, and in the units of the Monte Carlo.
@@ -379,16 +379,16 @@ void AliITShit::GetPositionL0(Double_t &x,Double_t &y,Double_t &z,
     g[1] = fy0;
     g[2] = fz0;
     if(gm) {
-	gm->GtoL(fLayer,fLadder,fDet,g,l);
-	x = l[0];
-	y = l[1];
-	z = l[2];
+      gm->GtoL(fLayer,fLadder,fDet,g,l);
+      x = l[0];
+      y = l[1];
+      z = l[2];
     } else {
-	Error("AliITShit","NULL pointer to the geometry! return smth else",gm);
-	// AliITSv7 - SDD case
-	x=fx0;
-	y=fy0;
-	z=fz0;
+      Error("AliITShit","NULL pointer to the geometry! return smth else",gm);
+      // AliITSv7 - SDD case
+      x=fx0;
+      y=fy0;
+      z=fz0;
     }
     tof = ft0;
     return;

@@ -13,9 +13,8 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-*/
+/* $Id$ */
+
 #include <Riostream.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -512,26 +511,22 @@ void AliITSvSPD02::InitAliITSgeom(){
     for(typ=1;typ<=ltypess;typ++){
 	for(j=0;j<ndeep;j++) lnam[j] = itsGeomTreeNames[typ-1][j];
 	for(j=0;j<ndeep;j++) lnum[j] = itsGeomTreeCopys[typ-1][j];
-	switch (typ){
-	case 1: case 2: // layers 1 and 2 are a bit special
-	    lad = 1;
-	    det = 1;
-	    for(cpy=1;cpy<=itsGeomTreeCopys[typ-1][2];cpy++){
-		lnum[2] = cpy;
-		lay = cpy;
-		if(cpy>2 && typ==1) lay = cpy +1;
-		if(typ==2) lay = 3;
-		mod = lay-1;
-		ig->GetGeometry(ndeep,lnam,lnum,t,r,idshape,npar,natt,
-				par,att,imat,imed);
-		fITSgeom->CreatMatrix(mod,lay,lad,det,kSPD,t,r);
-		if(!(fITSgeom->IsShapeDefined((Int_t)kSPD)))
-		    fITSgeom->ReSetShape(kSPD,
-                                         new AliITSgeomSPD425Short(npar,par));
-	    } // end for det
-	    break;
-	} // end switch
-    } // end for lay
+	lad = 1;
+	det = 1;
+	for(cpy=1;cpy<=itsGeomTreeCopys[typ-1][2];cpy++){
+	    lnum[2] = cpy;
+	    lay = cpy;
+	    if(cpy>2 && typ==1) lay = cpy +1;
+	    if(typ==2) lay = 3;
+	    mod = lay-1;
+	    ig->GetGeometry(ndeep,lnam,lnum,t,r,idshape,npar,natt,par,att,
+			    imat,imed);
+	    fITSgeom->CreatMatrix(mod,lay,lad,det,kSPD,t,r);
+	    if(!(fITSgeom->IsShapeDefined((Int_t)kSPD)))
+		fITSgeom->ReSetShape(kSPD,
+				     new AliITSgeomSPD425Short(npar,par));
+	} // end for cpy
+    } // end for typ
     return;
 }
 //______________________________________________________________________
@@ -611,6 +606,14 @@ void AliITSvSPD02::SetDefaults(){
     else iDetType->ClassNames("AliITSdigitSPD","AliITSRawClusterSPD");
 //    SetSimulationModel(kSPD,new AliITSsimulationSPD(seg0,resp0));
 //    iDetType->ReconstructionModel(new AliITSClusterFinderSPD());
+
+    SetResponseModel(kSDD,new AliITSresponseSDD());
+    SetSegmentationModel(kSDD,new AliITSsegmentationSDD());
+    DetType(kSDD)->ClassNames("AliITSdigitSDD","AliITSRawClusterSDD");
+
+    SetResponseModel(kSSD,new AliITSresponseSSD());
+    SetSegmentationModel(kSSD,new AliITSsegmentationSSD());
+    DetType(kSSD)->ClassNames("AliITSdigitSSD","AliITSRawClusterSSD");
 
     if(kNTYPES>3){
 	Warning("SetDefaults",

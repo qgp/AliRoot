@@ -175,8 +175,7 @@ class AliITShit : public AliHit {
 	 Float_t xf,yf,zf,tf;GetPositionL(xf,yf,zf,tf);x=xf,y=yf;z=zf;t=tf;}
     // Returns particle 3 initial position and the time of flight at this hit
     // in local coordinates.
-    virtual void GetPositionL0(Double_t &x,Double_t &y,Double_t &z,
-			       Double_t &tof);
+    virtual void GetPositionL0(Double_t &x,Double_t &y,Double_t &z,Double_t &t);
     virtual Float_t GetXL();
     // Returns particle X position at this hit in local coordinates.
     virtual Float_t GetYL();

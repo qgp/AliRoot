@@ -13,7 +13,63 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/* $Id$ */
+/*
+$Log$
+Revision 1.20  2003/05/27 17:46:13  hristov
+TRD PID included in the ESD schema (T.Kuhr)
+
+Revision 1.19  2003/05/22 10:46:46  hristov
+Using access methods instead of data members
+
+Revision 1.18  2003/04/10 10:36:54  hristov
+Code for unified TPC/TRD tracking (S.Radomski)
+
+Revision 1.17  2003/02/19 09:02:28  hristov
+Track time measurement (S.Radomski)
+
+Revision 1.16  2003/02/10 14:06:10  cblume
+Add tracking without tilted pads as option
+
+Revision 1.15  2003/01/27 16:34:49  cblume
+Update of tracking by Sergei and Chuncheng
+
+Revision 1.14  2002/11/07 15:52:09  cblume
+Update of tracking code for tilted pads
+
+Revision 1.13  2002/10/22 15:53:08  alibrary
+Introducing Riostream.h
+
+Revision 1.12  2002/10/14 14:57:44  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.8.10.2  2002/07/24 10:09:31  alibrary
+Updating VirtualMC
+
+RRevision 1.11  2002/06/13 12:09:58  hristov
+Minor corrections
+
+Revision 1.10  2002/06/12 09:54:35  cblume
+Update of tracking code provided by Sergei
+
+Revision 1.8  2001/05/30 12:17:47  hristov
+Loop variables declared once
+
+Revision 1.7  2001/05/28 17:07:58  hristov
+Last minute changes; ExB correction in AliTRDclusterizerV1; taking into account of material in G10 TEC frames and material between TEC planes (C.Blume,S.Sedykh)
+
+Revision 1.4  2000/12/08 16:07:02  cblume
+Update of the tracking by Sergei
+
+Revision 1.3  2000/10/15 23:40:01  cblume
+Remove AliTRDconst
+
+Revision 1.2  2000/10/06 16:49:46  cblume
+Made Getters const
+
+Revision 1.1.2.1  2000/09/22 14:47:52  cblume
+Add the tracking code
+
+*/                                                        
 
 #include <Riostream.h>
 #include <TObject.h>   
@@ -22,6 +78,7 @@
 #include "AliTRDcluster.h" 
 #include "AliTRDtrack.h"
 #include "../TPC/AliTPCtrack.h" 
+#include "AliESDtrack.h" 
 
 
 ClassImp(AliTRDtrack)
@@ -171,6 +228,62 @@ AliTRDtrack::AliTRDtrack(const AliKalmanTrack& t, Double_t alpha)
   }
 }              
 //_____________________________________________________________________________
+AliTRDtrack::AliTRDtrack(const AliESDtrack& t) 
+           :AliKalmanTrack() {
+  //
+  // Constructor from AliESDtrack
+  //
+
+  SetLabel(t.GetLabel());
+  SetChi2(0.);
+  SetMass(t.GetMass());
+  SetNumberOfClusters(0); 
+  // WARNING: cluster indices are NOT copied !!!
+
+  fdEdx=0;
+
+  fLhElectron = 0.0;
+  fNWrong = 0;
+  fNRotate = 0;
+
+  fAlpha = t.GetAlpha();
+  if      (fAlpha < -TMath::Pi()) fAlpha += 2*TMath::Pi();
+  else if (fAlpha >= TMath::Pi()) fAlpha -= 2*TMath::Pi();
+
+  Double_t x, p[5]; t.GetExternalParameters(x,p);
+
+  fX=x;
+
+  x = GetConvConst();  
+
+  fY=p[0];
+  fZ=p[1];
+  fT=p[3];
+  fC=p[4]/x;
+  fE=fC*fX - p[2];   
+
+  //Conversion of the covariance matrix
+  Double_t c[15]; t.GetExternalCovariance(c);
+
+  c[10]/=x; c[11]/=x; c[12]/=x; c[13]/=x; c[14]/=x*x;
+
+  Double_t c22=fX*fX*c[14] - 2*fX*c[12] + c[5];
+  Double_t c32=fX*c[13] - c[8];
+  Double_t c20=fX*c[10] - c[3], c21=fX*c[11] - c[4], c42=fX*c[14] - c[12];
+
+  fCyy=c[0 ];
+  fCzy=c[1 ];   fCzz=c[2 ];
+  fCey=c20;     fCez=c21;     fCee=c22;
+  fCty=c[6 ];   fCtz=c[7 ];   fCte=c32;   fCtt=c[9 ];
+  fCcy=c[10];   fCcz=c[11];   fCce=c42;   fCct=c[13]; fCcc=c[14];  
+
+  // Initialization [SR, GSI, 18.02.2003]
+  for(Int_t i=0; i<kMAX_CLUSTERS_PER_TRACK; i++) {
+    fdQdl[i] = 0;
+    fIndex[i] = 0;
+  }
+}              
+//_____________________________________________________________________________
 
 void  AliTRDtrack::GetBarrelTrack(AliBarrelTrack *track) {
   //
@@ -185,10 +298,12 @@ void  AliTRDtrack::GetBarrelTrack(AliBarrelTrack *track) {
   track->SetNClusters(GetNumberOfClusters(), GetChi2());
   track->SetNWrongClusters(fNWrong);
   track->SetNRotate(fNRotate);
-  track->SetTime(fIntegratedTime, fIntegratedLength);
+  Double_t times[10];
+  GetIntegratedTimes(times);
+  track->SetTime(times, GetIntegratedLength());
 
-  track->SetMass(fMass);
-  track->SetdEdX(fdEdx);
+  track->SetMass(GetMass());
+  track->SetdEdX(GetdEdx());
 
   GetExternalParameters(xr, vec);
   track->SetStateVector(vec);
@@ -393,7 +508,6 @@ Int_t AliTRDtrack::Update(const AliTRDcluster *c, Double_t chisq, UInt_t index, 
 {
   // Assignes found cluster to the track and updates track information
 
-
   Bool_t fNoTilt = kTRUE;
   if(TMath::Abs(h01) > 0.003) fNoTilt = kFALSE;
 
@@ -484,6 +598,7 @@ Int_t AliTRDtrack::Update(const AliTRDcluster *c, Double_t chisq, UInt_t index, 
   SetNumberOfClusters(n+1);
 
   SetChi2(GetChi2()+chisq);
+  //  cerr<<"in update: fIndex["<<fN<<"] = "<<index<<endl;
 
   return 1;     
 }                     
@@ -503,12 +618,6 @@ Int_t AliTRDtrack::Rotate(Double_t alpha)
   Double_t x1=fX, y1=fY;
   Double_t ca=cos(alpha), sa=sin(alpha);
   Double_t r1=fC*fX - fE;
-
-  if (TMath::Abs(r1) >= 0.99999) {
-    Int_t n=GetNumberOfClusters(); 
-    if (n>4) cerr<<n<<" AliTRDtrack warning: Rotation failed !\n";
-    return 0;
-  }
 
   fX = x1*ca + y1*sa;
   fY =-x1*sa + y1*ca;

@@ -43,8 +43,10 @@ SRCS          = AliITS.cxx AliITSv1.cxx AliITSv5.cxx AliITSvSPD02.cxx \
 	        AliITSFindClustersV2.cxx \
 	        AliITSRiemannFit.cxx \
 		AliITSFDigitizer.cxx \
-		AliITSDDLRawData.cxx
-#PH                 AliITSclustererV2.cxx \
+		AliITSDDLRawData.cxx AliITSpidESD.cxx \
+		AliITSRawStream.cxx AliITSRawStreamSPD.cxx \
+		AliITSRawStreamSDD.cxx AliITSRawStreamSSD.cxx
+
 #		AliITSAlignmentTrack.cxx AliITSAlignmentModule.cxx \
 
 HDRS:=  $(SRCS:.cxx=.h)

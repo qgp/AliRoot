@@ -214,7 +214,7 @@ Float_t  AliTPCParam::GetOuterAngleShift() const
 } 
 
 
-Int_t AliTPCParam::GetIndex(Int_t sector, Int_t row)
+Int_t AliTPCParam::GetIndex(Int_t sector, Int_t row) const
 {
   //
   //give index of the given sector and pad row 

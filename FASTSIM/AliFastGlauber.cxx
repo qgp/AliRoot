@@ -13,15 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.2  2003/04/14 14:23:44  morsch
-Correction in Binaries().
-
-Revision 1.1  2003/04/10 08:48:13  morsch
-First commit.
-
-*/
+/* $Id$ */
 
 // from AliRoot
 #include "AliFastGlauber.h"
@@ -319,7 +311,7 @@ Double_t AliFastGlauber::WSgeo(Double_t* x, Double_t* par)
 Double_t AliFastGlauber::WSbinary(Double_t* x, Double_t* par)
 {
 //
-//  Geometrical Cross-Section
+//  Number of binary collisions
 //
     Double_t b     = x[0];
     Double_t sigma = par[0];
@@ -332,7 +324,7 @@ Double_t AliFastGlauber::WSbinary(Double_t* x, Double_t* par)
 Double_t AliFastGlauber::WSN(Double_t* x, Double_t* par)
 {
 //
-//  Geometrical Cross-Section
+//  Number of hard processes per event
 //
     Double_t b     = x[0];
     Double_t y     = fWSbinary->Eval(b)/fWSgeo->Eval(b);
@@ -395,6 +387,36 @@ void AliFastGlauber::GetRandom(Float_t& b, Float_t& p, Float_t& mult)
 	p = 1.-TMath::Exp(-mu);
 	mult = 6000./fWSN->Eval(1.) * mu;
 }
+
+void AliFastGlauber::GetRandom(Int_t& bin, Bool_t& hard)
+{
+    //
+    // Gives back a random impact parameter bin, and hard trigger decission
+    //
+	Float_t b  = fWSgeo->GetRandom();
+	Float_t mu = fWSN->Eval(b) * fSigmaHard;
+	Float_t p  = 1.-TMath::Exp(-mu);
+	if (b < 5.) {
+	    bin = 1;
+	} else if (b <  8.6) {
+	    bin = 2;
+	} else if (b < 11.2) {
+	    bin = 3;
+	} else if (b < 13.2) {
+	    bin = 4;
+	} else if (b < 15.0) {
+	    bin = 5;
+	} else {
+	    bin = 6;
+	}
+	
+	hard = kFALSE;
+	
+	Float_t r = gRandom->Rndm();
+	
+	if (r < p) hard = kTRUE;
+}
+
 
 Float_t  AliFastGlauber::GetRandomImpactParameter(Float_t bmin, Float_t bmax)
 {

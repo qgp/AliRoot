@@ -25,8 +25,8 @@ class TGenerator;
 
 
 
-typedef enum { kNoSmear, kPerEvent, kPerTrack } VertexSmear_t;
-typedef enum { kExternal, kInternal}            VertexSource_t;
+typedef enum { kNoSmear, kPerEvent, kPerTrack }  VertexSmear_t;
+typedef enum { kExternal, kInternal, kContainer} VertexSource_t;
 
 
 class AliGenerator : public TNamed, public AliRndm
@@ -44,7 +44,7 @@ class AliGenerator : public TNamed, public AliRndm
     virtual void SetSigma(Float_t sx, Float_t sy, Float_t sz);
     virtual void SetMomentumRange(Float_t pmin=0, Float_t pmax=1.e10);
     virtual void SetPtRange(Float_t ptmin=0, Float_t ptmax=1.e10);
-    virtual void SetPhiRange(Float_t phimin=-180., Float_t phimax=180);
+    virtual void SetPhiRange(Float_t phimin = 0., Float_t phimax = 360.);
     virtual void SetYRange(Float_t ymin=-100, Float_t ymax=100);
     virtual void SetVRange(Float_t vxmin, Float_t vxmax,
 			   Float_t vymin, Float_t vymax,
@@ -58,13 +58,14 @@ class AliGenerator : public TNamed, public AliRndm
     virtual void SetAnalog(Int_t flag=1) {fAnalog=flag;}	
     virtual void SetVertexSmear(VertexSmear_t smear) {fVertexSmear = smear;}
     virtual void SetCutVertexZ(Float_t cut=999999.) {fCutVertexZ = cut;}
-    virtual void SetVertexSource(VertexSource_t) {fVertexSource = kInternal;}    
+    virtual void SetVertexSource(VertexSource_t source = kInternal) {fVertexSource = source;}
+    virtual void SetVertex(Float_t vx, Float_t vy, Float_t vz)
+	{fVertex[0] = vx; fVertex[1] = vy; fVertex[2] = vz;}
     virtual void SetTrackingFlag(Int_t flag=1) {fTrackIt=flag;}
     void Vertex();
     void VertexExternal();
     virtual void VertexInternal();
-    virtual void FinishRun(){;}
-    
+    virtual void FinishRun();
     virtual void SetMC(TGenerator *theMC) 
 	{if (!fgMCEvGen) fgMCEvGen =theMC;}
 
@@ -123,7 +124,6 @@ class AliGenerator : public TNamed, public AliRndm
     TArrayF     fOrigin;     // Origin of event
     TArrayF     fOsigma;     // Sigma of the Origin of event
     TArrayF     fVertex;     //! Vertex of current event
-    TArrayF     fEventVertex;   //!The current event vertex
 
     AliStack*   fStack;      //! Local pointer to stack
     AliCollisionGeometry* fCollisionGeometry; //!Collision geometry

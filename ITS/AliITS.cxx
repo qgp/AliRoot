@@ -844,9 +844,10 @@ void AliITS::MakeBranchS(const char *fl){
 
     // only one branch for SDigits.
     sprintf(branchname,"%s",GetName());
-    if (fSDigits == 0x0)  fSDigits  = new TClonesArray("AliITSpListItem",1000);
+    
 
     if(fSDigits && fLoader->TreeS()){
+        if (fSDigits == 0x0)  fSDigits  = new TClonesArray("AliITSpListItem",1000);
         MakeBranchInTree(fLoader->TreeS(),branchname,&fSDigits,buffersize,fl);
     } // end if
 }
@@ -862,7 +863,7 @@ void AliITS::SetTreeAddressS(TTree *treeS){
     char branchname[30];
 
     if(!treeS) return;
-    if (fSDigits == 0x0)  fSDigits  = new TClonesArray("AliITSpListItem",1000);
+    if (fSDigits == 0x0)  fSDigits = new TClonesArray("AliITSpListItem",1000);
     TBranch *branch;
     sprintf(branchname,"%s",GetName());
     branch = treeS->GetBranch(branchname);
@@ -892,6 +893,7 @@ void AliITS::MakeBranchInTreeD(TTree *treeD,const char *file){
     for (i=0; i<kNTYPES ;i++) {
         DetType(i)->GetClassNames(digclass,clclass);
         // digits
+        if (fDtype == 0x0) fDtype = new TObjArray(fNDetTypes);
         if(!(fDtype->At(i))) fDtype->AddAt(new TClonesArray(digclass,1000),i);
         else ResetDigits(i);
     } // end for i
@@ -899,8 +901,7 @@ void AliITS::MakeBranchInTreeD(TTree *treeD,const char *file){
         if (kNTYPES==3) sprintf(branchname,"%sDigits%s",GetName(),det[i]);
         else  sprintf(branchname,"%sDigits%d",GetName(),i+1);      
         if (fDtype && treeD) {
-            MakeBranchInTree(treeD, 
-                             branchname, &((*fDtype)[i]),buffersize,file);
+            MakeBranchInTree(treeD, branchname, &((*fDtype)[i]),buffersize,file);
         } // end if
     } // end for i
 }
@@ -924,6 +925,7 @@ void AliITS::SetTreeAddressD(TTree *treeD){
     for (i=0; i<kNTYPES; i++) {
         DetType(i)->GetClassNames(digclass,clclass);
         // digits
+        if (fDtype == 0x0) fDtype = new TObjArray(fNDetTypes);
         if(!(fDtype->At(i))) fDtype->AddAt(new TClonesArray(digclass,1000),i);
         else ResetDigits(i);
         if (kNTYPES==3) sprintf(branchname,"%sDigits%s",GetName(),det[i]);
@@ -1373,12 +1375,13 @@ void AliITS::MakeBranchC()
   char clclass[40];
 
     // one branch for Clusters per type of detector
-    Int_t i;   
-    for (i=0; i<kNTYPES ;i++) 
-     {
+  Int_t i;   
+  for (i=0; i<kNTYPES ;i++) 
+    {
         AliITSDetType *iDetType=DetType(i); 
         iDetType->GetClassNames(digclass,clclass);
         // clusters
+        if (fCtype == 0x0) fCtype  = new TObjArray(fNDetTypes);
         if(!ClustersAddress(i))
          {
           fCtype->AddAt(new TClonesArray(clclass,1000),i);
@@ -1431,6 +1434,7 @@ void AliITS::GetTreeC(Int_t event){
       AliITSDetType *iDetType=DetType(i); 
       iDetType->GetClassNames(digclass,clclass);
       // clusters
+      if (fCtype == 0x0) fCtype  = new TObjArray(fNDetTypes);
       if(!fCtype->At(i)) fCtype->AddAt(new TClonesArray(clclass,1000),i);
       if(kNTYPES==3) sprintf(branchname,"%sClusters%s",GetName(),det[i]);
       else  sprintf(branchname,"%sClusters%d",GetName(),i+1);
@@ -1515,9 +1519,10 @@ void AliITS::MakeBranchR(const char *file, Option_t *opt){
       sprintf(branchname,"%sRecPoints",GetName());
     }
     
-    if (fRecPoints == 0x0) fRecPoints = new TClonesArray("AliITSRecPoint",1000);
+    
 
     if (fRecPoints && fLoader->TreeR()) {
+        if (fRecPoints == 0x0) fRecPoints = new TClonesArray("AliITSRecPoint",1000);
         MakeBranchInTree(fLoader->TreeR(),branchname,&fRecPoints,buffsz,file);
     } // end if
 }

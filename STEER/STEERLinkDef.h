@@ -64,13 +64,15 @@
 #pragma link C++ class  AliRunLoader+;
 #pragma link C++ class  AliTrackReference+;
 #pragma link C++ class  AliESD+;
-#pragma link C++ class  AliESDTrack+;
-#pragma link C++ class  AliESDVertex+;
+#pragma link C++ class  AliESDtrack+;
+#pragma link C++ class  AliESDvertex+;
+#pragma link C++ class  AliESDpid+;
 #pragma link C++ class  AliTrackMap+;
 #pragma link C++ class  AliTrackMapper+;
 #pragma link C++ class  AliCollisionGeometry+;
 #pragma link C++ class  AliMemoryWatcher+;
 #pragma link C++ class  AliBarrelTrack+;
+#pragma link C++ class  AliRawReader+;
 #endif
 
 

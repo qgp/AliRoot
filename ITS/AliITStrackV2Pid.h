@@ -19,8 +19,9 @@ public:
     Int_t   fGcode,fGlab,fFound;
 
     Float_t fQ1,fQ2,fQ3,fQ4,fQ5,fQ6;
-
-  ClassDef(AliITStrackV2Pid,1)  // ITS trackV2 PID
+    Float_t fD,fZ;
+    
+  ClassDef(AliITStrackV2Pid,2)  // ITS trackV2 PID
 };
 
 #endif

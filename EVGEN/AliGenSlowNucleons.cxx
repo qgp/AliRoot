@@ -13,15 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.2  2003/03/25 09:55:24  morsch
-Numbers of slow nucleons either from model or user set.
-
-Revision 1.1  2003/03/24 16:49:23  morsch
-Slow nucleon generator and model.
-
-*/
+/* $Id$ */
 
 /*
   Generator for slow nucluons in pA interactions. 
@@ -32,6 +24,7 @@ Slow nucleon generator and model.
 #include <TDatabasePDG.h>
 #include <TPDGCode.h>
 #include <TH2F.h>
+#include <TCanvas.h>
 
 #include "AliCollisionGeometry.h"
 #include "AliGenSlowNucleons.h"
@@ -80,14 +73,20 @@ void AliGenSlowNucleons::Init()
     fMomentum = fCMS/2. * fZTarget / fATarget;
     fBeta     = fMomentum / TMath::Sqrt(kMass * kMass + fMomentum * fMomentum);
     if (fDebug) {
-	fDebugHist = new TH2F("DebugHist", "N_heavy vs nu", 50, 0., 50., 50, 0., 50.);
+	fDebugHist1 = new TH2F("DebugHist1", "nu vs N_slow", 100, 0., 100., 20, 0., 20.);
+	fDebugHist2 = new TH2F("DebugHist2", "b  vs N_slow", 100, 0., 100., 15, 0., 15.);
     }
 }
 
 void AliGenSlowNucleons::FinishRun()
 {
     if (fDebug) {
-	fDebugHist->Draw();
+	TCanvas *c = new TCanvas("c","Canvas 1",400,10,600,700);
+	c->Divide(2,1);
+	c->cd(1);
+	fDebugHist1->Draw();
+	c->cd(2);
+	fDebugHist2->Draw();
     }
 }
 
@@ -100,8 +99,6 @@ void AliGenSlowNucleons::Generate()
   //
   // Communication with Gray Particle Model 
   // 
-    Int_t ngp, ngn, nbp, nbn;
-
     if (fCollisionGeometry) {
 	Float_t b   = fCollisionGeometry->ImpactParameter();
 	Int_t  nn   = fCollisionGeometry->NN();
@@ -109,10 +106,11 @@ void AliGenSlowNucleons::Generate()
 	Int_t  nnw  = fCollisionGeometry->NNw();
 	Int_t  nwnw = fCollisionGeometry->NwNw();
 
-	fSlowNucleonModel->GetNumberOfSlowNucleons(fCollisionGeometry, ngp, ngn, nbp, nbn);
+	fSlowNucleonModel->GetNumberOfSlowNucleons(fCollisionGeometry, fNgp, fNgn, fNbp, fNbn);
 	if (fDebug) {
 	    printf("Nucleons %d %d %d %d \n", fNgp, fNgn, fNbp, fNbn);
-	    fDebugHist->Fill(Float_t(fNgp + fNgn + fNbp + fNbn), fCollisionGeometry->NwN(), 1.);
+	    fDebugHist1->Fill(Float_t(fNgp + fNgn + fNbp + fNbn), fCollisionGeometry->NwN(), 1.);
+	    fDebugHist2->Fill(Float_t(fNgp + fNgn + fNbp + fNbn), b, 1.);
 	    printf("AliGenSlowNucleons: Impact parameter from Collision Geometry %f %d %d %d %d\n", 
 		   b, nn, nwn, nnw, nwnw);
 	}
@@ -122,8 +120,13 @@ void AliGenSlowNucleons::Generate()
     Float_t p[3];
     Float_t origin[3] = {0., 0., 0.};
     Float_t polar [3] = {0., 0., 0.};    
-    Int_t nt, i;
+    Int_t nt, i, j;
     Int_t kf;
+    
+    if(fVertexSmear == kPerEvent) {
+	Vertex();
+	for (j=0; j < 3; j++) origin[j] = fVertex[j];
+    } // if kPerEvent
 //
 //  Gray protons
 //

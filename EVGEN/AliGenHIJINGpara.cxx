@@ -291,16 +291,8 @@ void AliGenHIJINGpara::Generate()
     for (j=0;j<3;j++) origin[j]=fOrigin[j];
 
     if(fVertexSmear == kPerEvent) {
-	Float_t dv[3];
-	dv[2] = 1.e10;
-	while(TMath::Abs(dv[2]) > fCutVertexZ*fOsigma[2]) {
-	    Rndm(random,6);
-	    for (j=0; j < 3; j++) {
-		dv[j] = fOsigma[j]*TMath::Cos(2*random[2*j]*TMath::Pi())*
-		    TMath::Sqrt(-2*TMath::Log(random[2*j+1]));
-	    }
-	}
-	for (j=0; j < 3; j++) origin[j] += dv[j];
+	Vertex();
+	for (j=0; j < 3; j++) origin[j] = fVertex[j];
     } // if kPerEvent
     TArrayF eventVertex;
     eventVertex.Set(3);
