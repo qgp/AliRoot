@@ -844,7 +844,7 @@ Int_t AliBaseLoader::WriteData(Option_t* opt)
      return 2;
    }
   
-  GetDataLoader()->cd(); //set the proper directory active
+  GetDirectory()->cd(); //set the proper directory active
 
   //see if hits container already exists in this (root) directory
   TObject* obj = GetFromDirectory(GetName());
@@ -1033,7 +1033,7 @@ Int_t AliTreeLoader::WriteData(Option_t* opt)
      return 2;
    }
   
-  GetDataLoader()->cd(); //set the proper directory active
+  GetDirectory()->cd(); //set the proper directory active
 
   //see if hits container already exists in this (root) directory
   TObject* obj = GetFromDirectory(GetName());
