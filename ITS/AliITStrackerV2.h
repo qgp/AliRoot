@@ -22,17 +22,25 @@ class TFile;
 class AliITStrackerV2 : public AliTracker {
 public:
   AliITStrackerV2():AliTracker(){}
+
   AliITStrackerV2(const AliITSgeom *geom, Int_t event=0,
-                  const char* evfoldname = AliConfig::fgkDefaultEventFolderName) 
-                  throw (const Char_t *);
+                  const char* evfoldname = AliConfig::fgkDefaultEventFolderName);
+
   AliCluster *GetCluster(Int_t index) const;
-  Int_t Clusters2Tracks();
-  Int_t PropagateBack();
+  Int_t LoadClusters();
+  void UnloadClusters();
+  Int_t Clusters2Tracks();//
+  Int_t PropagateBack();//
+  Int_t RefitInward();//
+
   void SetupFirstPass(Int_t *flags, Double_t *cuts=0);
   void SetupSecondPass(Int_t *flags, Double_t *cuts=0);
-  Bool_t RefitAt(Double_t x, AliITStrackV2 *t, Int_t *index);
-  Int_t LoadClusters(){return 0;}
-  void UnloadClusters(){}
+  //PH  Bool_t RefitAt(Double_t x, AliITStrackV2 *t, Int_t *index);
+
+  void SetLastLayerToTrackTo(Int_t l=0) {fLastLayerToTrackTo=l;} 
+  void SetLayersNotToSkip(Int_t *l);
+
+  void UseClusters(const AliKalmanTrack *t, Int_t from=0) const;
 
   class AliITSdetector {
   public:
@@ -52,16 +60,21 @@ public:
     AliITSlayer(Double_t r, Double_t p, Double_t z, Int_t nl, Int_t nd);
    ~AliITSlayer();
     Int_t InsertCluster(AliITSclusterV2 *c);
+    void ResetClusters();
     void SelectClusters(Double_t zmi,Double_t zma,Double_t ymi,Double_t yma);
     const AliITSclusterV2 *GetNextCluster(Int_t &ci);
     void *operator new(size_t s, AliITSlayer *p) {return p;}
+    void ResetRoad();
+    Double_t GetRoad() const {return fRoad;}
     Double_t GetR() const {return fR;}
     AliITSclusterV2 *GetCluster(Int_t i) const {return fClusters[i];} 
     AliITSdetector &GetDetector(Int_t n) const { return fDetectors[n]; }
     Int_t FindDetectorIndex(Double_t phi, Double_t z) const;
-    Double_t GetThickness(Double_t y, Double_t z) const;
+    Double_t GetThickness(Double_t y, Double_t z, Double_t &x0) const;
     Int_t InRoad() const ;
     Int_t GetNumberOfClusters() const {return fN;}
+    Int_t GetNladders() const {return fNladders;}
+    Int_t GetNdetectors() const {return fNdetectors;}
   private:
     Double_t fR;                // mean radius of this layer
     Double_t fPhiOffset;        // offset of the first detector in Phi
@@ -75,6 +88,7 @@ public:
     Double_t fYmin;      //   of  the
     Double_t fYmax;      //   "window"
     Int_t fI;            // index of the current cluster within the "window"
+    Double_t fRoad;      // road defined by the cluster density
     Int_t FindClusterIndex(Double_t z) const;
   };
 
@@ -83,6 +97,7 @@ private:
   Double_t GetEffectiveThickness(Double_t y, Double_t z) const;
   void  FollowProlongation();
   Int_t TakeNextProlongation();
+  Bool_t RefitAt(Double_t x, const AliITStrackV2 *t, AliITStrackV2 *tt);
   void ResetBestTrack() {
      fBestTrack.~AliITStrackV2();
      new(&fBestTrack) AliITStrackV2(fTrackToFollow);
@@ -91,7 +106,6 @@ private:
      fTrackToFollow.~AliITStrackV2();
      new(&fTrackToFollow) AliITStrackV2(t);
   }
-  Int_t fEventN;                         //event number
   Int_t fI;                              // index of the current layer
   static AliITSlayer fLayers[kMaxLayer]; // ITS layers
   AliITStrackV2 fTracks[kMaxLayer];      // track estimations at the ITS layers
@@ -100,6 +114,11 @@ private:
   Int_t fPass;                           // current pass through the data 
   Int_t fConstraint[2];                  // constraint flags
   TString fEvFolderName;  //event folder name
+
+  Int_t fLayersNotToSkip[kMaxLayer];     // layer masks
+  Int_t fLastLayerToTrackTo;             // the innermost layer to track to
+
+  ClassDef(AliITStrackerV2,2)   //ITS tracker V2
 };
 
 

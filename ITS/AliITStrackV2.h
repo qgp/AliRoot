@@ -32,17 +32,17 @@
 class AliTPCtrack;
 
 //_____________________________________________________________________________
-class AliITStrackV2  : public AliKalmanTrack {
+class AliITStrackV2 : public AliKalmanTrack {
 public:
-  AliITStrackV2():AliKalmanTrack(){}
+  AliITStrackV2();
   AliITStrackV2(const AliTPCtrack& t) throw (const Char_t *);
   AliITStrackV2(const AliITStrackV2& t);
-  Int_t PropagateToVertex(Double_t d=1.2e-3*3., Double_t x0=36.66);
+  Int_t PropagateToVertex(Double_t d=0., Double_t x0=0.);
   Int_t Propagate(Double_t alpha, Double_t xr);
   Int_t CorrectForMaterial(Double_t d, Double_t x0=21.82);
   Int_t PropagateTo(Double_t xr, Double_t d, Double_t x0=21.82);
   Int_t Update(const AliCluster* cl,Double_t chi2,UInt_t i);
-  Int_t Improve(Double_t x0,Double_t yv,Double_t zv);
+  Int_t Improve(Double_t x0,Double_t xyz[3],Double_t ers[3]);
   void SetdEdx(Double_t dedx) {fdEdx=dedx;}
   void SetSampledEdx(Float_t q, Int_t i);
   void CookdEdx(Double_t low=0., Double_t up=0.51);
@@ -61,7 +61,8 @@ public:
   Double_t GetZ()    const {return fP1;}
   Double_t GetSnp()  const {return fP2;}
   Double_t GetTgl()  const {return fP3;}
-  Double_t Get1Pt()  const {return fP4*GetConvConst();}
+  Double_t
+    Get1Pt() const { return (1e-9*TMath::Abs(fP4)/fP4 + fP4)*GetConvConst(); }
   Double_t GetD(Double_t x=0, Double_t y=0) const;
   Double_t GetSigmaY2() const {return fC00;}
   Double_t GetSigmaZ2() const {return fC11;}
@@ -71,8 +72,6 @@ public:
   Int_t GetClusterIndex(Int_t i) const {return fIndex[i];}
   Int_t GetGlobalXYZat(Double_t r,Double_t &x,Double_t &y,Double_t &z) const;
   Double_t GetPredictedChi2(const AliCluster *cluster) const;
-  Double_t 
-  GetPredictedChi2(const AliCluster *cluster, Double_t *m, Double_t x0) const;
   Int_t Invariant() const;
  
 private:
@@ -97,7 +96,7 @@ private:
 
   Float_t fdEdxSample[4];   // array of dE/dx samples b.b.
 
-  ClassDef(AliITStrackV2,1)   //ITS reconstructed track
+  ClassDef(AliITStrackV2,2)   //ITS reconstructed track
 };
 
 inline 

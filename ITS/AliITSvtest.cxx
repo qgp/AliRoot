@@ -29,13 +29,6 @@
 #include <Riostream.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#include <TBRIK.h>
-#include <TCanvas.h>
-#include <TClonesArray.h>
-#include <TFile.h>    // only required for Tracking function?
-#include <TGeometry.h>
-#include <TLorentzVector.h>
 #include <TMath.h>
 #include <TNode.h>
 #include <TObjArray.h>
@@ -44,7 +37,7 @@
 #include <TTUBE.h>
 #include <TVirtualMC.h>
 
-#include "AliITS.h"
+#include "AliRun.h"
 #include "AliITSGeant3Geometry.h"
 #include "AliITSgeom.h"
 #include "AliITSgeomSDD.h"

@@ -13,30 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
  
-/*
-$Log$
-Revision 1.2.2.2  2002/06/25 05:54:31  barbera
-Unused variable commented out
-
-Revision 1.2.2.1  2002/06/06 14:23:57  hristov
-Merged with v3-08-02
-
-Revision 1.4  2002/10/22 14:45:42  alibrary
-Introducing Riostream.h
-
-Revision 1.3  2002/10/14 14:57:03  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.2.4.1  2002/06/10 17:51:15  hristov
-Merged with v3-08-02
-
-Revision 1.2  2002/05/19 18:17:03  hristov
-Changes needed by ICC/IFC compiler (Intel)
-
-Revision 1.1  2002/03/28 16:25:26  nilsen
-New TTask method for creating SDigits from Hits.
-
-*/
+/* $Id$ */
 
 #include <Riostream.h>
  

@@ -31,7 +31,6 @@
 //                                                                          //
 //////////////////////////////////////////////////////////////////////////////
 // See AliITSvPPRsymm::StepManager().
-
 #include <Riostream.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,12 +51,9 @@
 #include <TTUBS.h>
 #include <TVirtualMC.h>
 
+#include "AliRun.h"
+#include "AliMagF.h"
 #include "AliConst.h"
-#include "AliITS.h"
-#include "AliITSClusterFinderSDD.h"
-#include "AliITSClusterFinderSPD.h"
-#include "AliITSClusterFinderSSD.h"
-#include "AliITSDetType.h"
 #include "AliITSGeant3Geometry.h"
 #include "AliITSgeom.h"
 #include "AliITSgeomSDD.h"

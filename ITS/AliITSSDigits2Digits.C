@@ -1,4 +1,3 @@
-void writeAR(TFile * fin, TFile *fou);
 void AliITSSD2D(TString inFile, TString outFile);
 
 void AliITSSDigits2Digits(TString inFile= "galice.root", TString outFile = "")

@@ -1,9 +1,23 @@
+/****************************************************************
+*  This macro converts AliITSRecPoint(s) to AliITSclusterV2(s)  *
+*           Origin: I.Belikov, CERN, Jouri.Belikov@cern.ch      *
+*****************************************************************/
+
+#ifndef __CINT__
+  #include <Riostream.h>
+
+  #include "AliRun.h"
+  #include "AliRunLoader.h"
+  #include "AliLoader.h"
+  #include "AliITS.h"
+  #include "AliITSgeom.h"
+  #include "AliITSclustererV2.h"
+
+  #include "TStopwatch.h"
+#endif
+
 Int_t AliITSFindClustersV2(Char_t SlowOrFast='f')
 {
-
-/****************************************************************
-*  This macro converts AliITSRecPoint(s) to AliITSclusterV2(s) *
-****************************************************************/
 
     cerr<<"AliITSRecPoint(s) -> AliITSclusterV2(s)...\n";
     

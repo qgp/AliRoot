@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.4  2003/04/08 08:16:50  morsch
+AliTrackReference constructor without passing pointer to VMC.
+
 Revision 1.3  2003/03/21 14:34:10  nilsen
 Removed warning from part of code not properly implimneted yet.
 

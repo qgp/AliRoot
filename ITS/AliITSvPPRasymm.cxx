@@ -29,7 +29,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 // See AliITSvPPRasymm::StepManager().
-
 #include <Riostream.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,13 +49,14 @@
 #include <TTUBS.h>
 #include <TVirtualMC.h>
 
+#include "AliRun.h"
+#include "AliMagF.h"
 #include "AliConst.h"
-#include "AliITS.h"
-#include "AliITSClusterFinderSDD.h"
-#include "AliITSClusterFinderSPD.h"
-#include "AliITSClusterFinderSSD.h"
-#include "AliITSDetType.h"
 #include "AliITSGeant3Geometry.h"
+#include "AliTrackReference.h"
+#include "AliITShit.h"
+#include "AliITS.h"
+#include "AliITSvPPRasymm.h"
 #include "AliITSgeom.h"
 #include "AliITSgeomSDD.h"
 #include "AliITSgeomSPD.h"
@@ -28896,7 +28896,7 @@ void AliITSvPPRasymm::InitAliITSgeom(){
     Int_t    npar,natt,idshape,imat,imed;
     AliITSGeant3Geometry *ig = new AliITSGeant3Geometry();
     Int_t mod,lay,lad,det,i,j,k;
-    Char_t names[nlayers][ndeep][4];
+    Char_t names[nlayers][ndeep][5];
     Int_t itsGeomTreeCopys[nlayers][ndeep];
     if(fMinorVersion == 1){ // Option A
     Char_t *namesA[nlayers][ndeep] = {
@@ -28913,7 +28913,8 @@ void AliITSvPPRasymm::InitAliITSgeom(){
 					      {1,1,1,1,34,22, 1,0,0},// lay=5
 					      {1,1,1,1,38,25, 1,0,0}};//lay=6
     for(i=0;i<nlayers;i++)for(j=0;j<ndeep;j++){
-	for(k=0;k<4;k++) names[i][j][k] = namesA[i][j][k];
+      //PH	for(k=0;k<4;k++) names[i][j][k] = namesA[i][j][k];
+	strcpy(names[i][j], namesA[i][j]);
 	itsGeomTreeCopys[i][j] = itsGeomTreeCopysA[i][j];
     } // end for i,j
     }else if(fMinorVersion == 2){ // Option B
@@ -28931,7 +28932,8 @@ void AliITSvPPRasymm::InitAliITSgeom(){
 					      {1,1,1,1,34,22, 1,0,0},// lay=5
 					      {1,1,1,1,38,25, 1,0,0}};//lay=6
     for(i=0;i<nlayers;i++)for(j=0;j<ndeep;j++){
-	for(k=0;k<4;k++) names[i][j][k] = namesB[i][j][k];
+      //PH	for(k=0;k<4;k++) names[i][j][k] = namesB[i][j][k];
+	strcpy(names[i][j], namesB[i][j]);
 	itsGeomTreeCopys[i][j] = itsGeomTreeCopysB[i][j];
     } // end for i,j
     } // end if fMinorVersion
@@ -29195,16 +29197,10 @@ void AliITSvPPRasymm::StepManager(){
     static Int_t stat0=0;
     if((id=gMC->CurrentVolID(copy) == fIDMother)&&
        (gMC->IsTrackEntering()||gMC->IsTrackExiting())){
-	gMC->TrackPosition(position); // Get Position
-	gMC->TrackMomentum(momentum); // Get Momentum
 	copy = fTrackReferences->GetEntriesFast();
 	TClonesArray &lTR = *fTrackReferences;
 	// Fill TrackReference structure with this new TrackReference.
-	AliTrackReference *tr = new(lTR[copy]) AliTrackReference();
-	tr->SetTrack(gAlice->CurrentTrack());
-	tr->SetPosition(position.X(),position.Y(),position.Z());
-	tr->SetMomentum(momentum.Px(),momentum.Py(),momentum.Pz());
-	tr->SetLength(gMC->TrackLength());
+	new(lTR[copy]) AliTrackReference(gAlice->CurrentTrack());
     } // if Outer ITS mother Volume
     if(!(this->IsActive())){
 	return;

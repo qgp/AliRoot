@@ -1,4 +1,3 @@
-
 void AliITSHits2FastRecPoints (Int_t evNumber1=0,Int_t evNumber2=0, TString inFile = "galice.root", Int_t nsignal=25, Int_t size=-1) 
 {
   /////////////////////////////////////////////////////////////////////////
@@ -105,3 +104,4 @@ void AliITSHits2FastRecPoints (Int_t evNumber1=0,Int_t evNumber2=0, TString inFi
 
   delete rl;
 }
+

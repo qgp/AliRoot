@@ -13,19 +13,8 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.5  2002/10/14 14:57:00  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
+/* $Id$ */
 
-Revision 1.3.12.1  2002/10/14 13:14:08  hristov
-Updating VirtualMC to v3-09-02
-
-Revision 1.4  2002/09/09 17:28:02  nilsen
-Added class iostreamer funcionality and Print and Read functions. cleaned
-up files.
-
-*/
 ////////////////////////////////////////////////
 //  Reconstructed point class for set:ITS     //
 ////////////////////////////////////////////////
@@ -52,7 +41,7 @@ void AliITSRecPoint::Print(ostream *os){
     Int_t fmt;
 #endif
 #else
-#if defined __ICC
+#if defined __ICC || defined __ECC
     ios::fmtflags fmt;
 #else
     Int_t fmt;

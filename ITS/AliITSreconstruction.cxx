@@ -13,50 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
  
-/*
-$Log$
-Revision 1.3.4.4  2002/11/22 14:19:35  hristov
-Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
-
-Revision 1.3.4.3  2002/06/25 05:58:42  barbera
-Updated classes and macros to make the ITS data structures compatible with the new IO (from M. Masera)
-
-Revision 1.3.4.2  2002/06/06 14:23:57  hristov
-Merged with v3-08-02
-
-Revision 1.3.4.1  2002/05/31 09:37:56  hristov
-First set of changes done by Piotr
-
-Revision 1.7  2002/10/14 14:57:00  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.3.6.2  2002/10/14 13:14:08  hristov
-Updating VirtualMC to v3-09-02
-
-Revision 1.6  2002/09/09 17:30:02  nilsen
-Added new creator which passes a pointer to type AliRun. Can now use either
-gAlice or a local instance of AliRun.
-
-Revision 1.5  2002/05/13 14:27:57  hristov
-TreeC created once per event (M.Masera)
-
-Revision 1.4  2002/05/10 22:31:30  nilsen
-Changes by Massimo Masera to allow Recpoints and Clusters to be written
-to separate files.
-
-Revision 1.3  2002/02/06 13:52:27  barbera
-gAlice deletion corrected (from M. Masera)
-
-Revision 1.2  2002/01/31 18:52:09  nilsen
-Minor change to allow the use of files that are already open. grun.C macro
-that also does ITS digitizationa and Reconstruction all in one go.
-
-Revision 1.1  2002/01/30 22:20:22  nilsen
-New TTask based method to do Digits To clusters. Works with files of multiple
-events in the file. Macro added to show how to use. Also the changes made
-in the nessesary complilation files.
-
-*/
+/* $Id$ */
 
 #include <TROOT.h>
 #include <TFile.h>

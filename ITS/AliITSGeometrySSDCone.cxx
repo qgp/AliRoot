@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.4  2003/04/22 20:41:08  nilsen
+Finished geometry objects defninistions, and fixed bugs in SSD cone geometry.
+
 Revision 1.3  2003/04/17 22:29:23  nilsen
 Geometry bug fixes and the like. Work still progressing.
 

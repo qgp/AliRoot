@@ -25,7 +25,6 @@
 // Created October 7 2000.
 //
 ///////////////////////////////////////////////////////////////////////////////
-
 #include <Riostream.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,7 +43,8 @@
 #include <TTUBE.h>
 #include <TVirtualMC.h>
 
-#include "AliITS.h"
+#include "AliRun.h"
+#include "AliITShit.h"
 #include "AliITSGeant3Geometry.h"
 #include "AliITSgeom.h"
 #include "AliITSgeomSDD.h"

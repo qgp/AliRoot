@@ -12,32 +12,8 @@
  * about the suitability of this software for any purpose. It is          *
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
-/*
-  $Id$
-  $Log$
-  Revision 1.38  2002/10/22 14:45:43  alibrary
-  Introducing Riostream.h
 
-  Revision 1.37  2002/10/14 14:57:07  hristov
-  Merging the VirtualMC branch to the main development branch (HEAD)
-
-  Revision 1.32.4.4  2002/10/14 13:14:08  hristov
-  Updating VirtualMC to v3-09-02
-
-  Revision 1.36  2002/09/11 10:32:41  hristov
-  Use new for arrays with variable size
-
-  Revision 1.35  2002/09/09 17:23:28  nilsen
-  Minor changes in support of changes to AliITSdigitS?D class'.
-
-  Revision 1.34  2002/06/07 16:32:28  nilsen
-  Latest SDD changes to speed up the SDD simulation code.
-
-  Revision 1.33  2002/04/24 22:02:31  nilsen
-  New SDigits and Digits routines, and related changes,  (including new
-  noise values).
-
- */
+/* $Id$ */
 
 #include <Riostream.h>
 #include <stdlib.h>

@@ -13,58 +13,8 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
  
-/*
-$Log$
-Revision 1.21.4.2  2002/11/22 14:19:35  hristov
-Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
+/* $Id$ */
 
-Revision 1.21.4.1  2002/05/31 09:37:56  hristov
-First set of changes done by Piotr
-
-Revision 1.27  2002/10/31 10:17:40  hristov
-Corrected usage of AliKalmanTrack::SetConvConst (Alpha)
-
-Revision 1.26  2002/10/25 18:44:33  barbera
-Unnecessary print-out removed
-
-Revision 1.25  2002/10/24 17:12:58  barbera
-ITS tracking V1 integrated with the last version of ITS PID
-
-Revision 1.24  2002/10/23 14:28:38  barbera
-Fixes added to get into account the new magnetic field conversion factor automatically
-
-Revision 1.23  2002/10/22 18:29:34  barbera
-Tracking V1 ported to the HEAD
-
-Revision 1.22  2002/10/22 14:45:36  alibrary
-Introducing Riostream.h
-
-Revision 1.21  2002/02/05 09:12:26  hristov
-Small mods for gcc 3.02
-
-Revision 1.20  2001/11/21 14:47:45  barbera
-Some unuseful print-out commented out
-
-Revision 1.19  2001/11/21 10:49:07  barbera
-Bug correction suggested by Rene done
-
-Revision 1.18  2001/11/20 15:46:17  barbera
-Point coordinated are calculated in cylindrical reference frame once and for all at the beginning of tracking V1
-
-Revision 1.10.2.1  2001/10/24 07:26:04  hristov
-All the changes from the head are merged with the release
-
-Revision 1.14  2001/10/24 07:19:57  hristov
-Some pointer correctly initialised in one of the constructors
-
-Revision 1.13  2001/10/21 19:17:12  hristov
-Several pointers were set to zero in the default constructors to avoid memory management problems
-
-Revision 1.12  2001/10/19 21:32:35  nilsen
-Minor changes to remove compliation warning on gcc 2.92.2 compiler, and
-cleanded up a little bit of code.
-
-*/
 // The purpose of this class is to permorm the ITS tracking. The 
 // constructor has the task to inizialize some private members. The method 
 // DoTracking is written to be called by a macro. It gets the event number,
@@ -561,10 +511,13 @@ void AliITSTrackerV1::DoTracking(Int_t evNumber,Int_t minTr,Int_t maxTr,
     TString foldname(fITS->GetLoader()->GetEventFolder()->GetName());
     
     AliTPCtracker *tracker = new AliTPCtracker(digp,evNumber,foldname);  
+    //PH    AliTPCtracker *tracker = new AliTPCtracker(digp);            //I.B.
+    //PH    tracker->SetEventNumber(evNumber);                           //I.B.
 
     // Load clusters
-    tracker->LoadInnerSectors();
-    tracker->LoadOuterSectors();
+    //tracker->LoadInnerSectors(); //I.B.
+    //tracker->LoadOuterSectors(); //I.B.  
+    tracker->LoadClusters();       //I.B.
 
     // Load tracks
     TFile *tf=TFile::Open("AliTPCtracksSorted.root");  

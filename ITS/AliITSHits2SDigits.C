@@ -52,9 +52,9 @@ Int_t AliITSHits2SDigits(TString  filename = "galice.root")
      }
     AliITS *ITS = (AliITS*)gAlice->GetDetector("ITS");      
     if (!ITS) {
-       cerr<<"AliITSHits2DigitsDefault.C : AliITS object not found on file"
-           << endl;
-       return 3;
+	cerr<<"AliITSHits2DigitsDefault.C : AliITS object not found on file"
+	    << endl;
+	return 3;
     }  // end if !ITS
     if(!(ITS->GetITSgeom())){
        cerr << " AliITSgeom not found. Can't digitize with out it." << endl;

@@ -30,12 +30,7 @@
 // strongly encouraged to uses AliITSv5.
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-
 #include <Riostream.h> 
-#include <TCanvas.h>
-#include <TClonesArray.h>
-#include <TFile.h>    // only required for Tracking function?
-#include <TGeometry.h>
 #include <TMath.h>
 #include <TNode.h>
 #include <TObjArray.h>
@@ -43,7 +38,10 @@
 #include <TTUBE.h>
 #include <TVector.h>
 #include <TVirtualMC.h>
+#include <TGeometry.h>
 
+
+#include "AliMagF.h"
 #include "AliConst.h"
 #include "AliITShit.h"
 #include "AliITSvPPRcoarsesymm.h"

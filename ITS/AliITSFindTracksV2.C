@@ -1,13 +1,13 @@
 #ifndef __CINT__
-  #include <iostream.h>
-  #include "AliITSgeom.h"
-  #include "AliITStrackerV2.h"
-
+  #include "Riostream.h"
   #include "TFile.h"
   #include "TStopwatch.h"
+
+  #include "AliITSgeom.h"
+  #include "AliITStrackerV2.h"
 #endif
 
-Int_t AliITSFindTracksV2() {
+Int_t AliITSFindTracksV2(Int_t nev=1) {  //number of events to process
    cerr<<"Looking for tracks...\n";
    
    if (gAlice) 

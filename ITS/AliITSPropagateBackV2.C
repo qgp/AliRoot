@@ -1,12 +1,13 @@
 #ifndef __CINT__
-  #include <iostream.h>
+  #include <Riostream.h>
+  #include "AliITSgeom.h"
   #include "AliITStrackerV2.h"
 
   #include "TFile.h"
   #include "TStopwatch.h"
 #endif
 
-Int_t AliITSPropagateBackV2() {
+Int_t AliITSPropagateBackV2(Int_t nev=1) {
    cerr<<"Propagating tracks back through the ITS...\n";
 
    TFile *in=TFile::Open("AliITStracksV2.root");
@@ -22,9 +23,14 @@ Int_t AliITSPropagateBackV2() {
    }
    AliITSgeom *geom=(AliITSgeom*)file->Get("AliITSgeom");
 
+   Int_t rc=0;
    TStopwatch timer;
    AliITStrackerV2 tracker(geom);
-   Int_t rc=tracker.PropagateBack(in,out);
+   for (Int_t i=0; i<nev; i++) {
+     cerr<<"Processing event number : "<<i<<endl;
+     tracker.SetEventNumber(i);
+     rc=tracker.PropagateBack(in,out);
+   }
    timer.Stop(); timer.Print();
 
    file->Close();

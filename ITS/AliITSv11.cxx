@@ -15,6 +15,10 @@
 
 /*
 $Log$
+Revision 1.7  2003/03/25 23:27:19  nilsen
+ITS new Geometry files. Not yet ready for uses, committed to allow additional
+development.
+
 Revision 1.6  2003/02/10 17:03:52  nilsen
 New version and structure of ITS V11 geometry. Work still in progress.
 

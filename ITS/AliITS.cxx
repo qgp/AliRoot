@@ -225,15 +225,32 @@ AliITS::~AliITS(){
     // Return:
     //      none.
 
-    delete fHits;
-    delete fSDigits;
-    delete fDigits;
-    delete fRecPoints;
-    if(fIdName!=0) delete[] fIdName;  // Array of TStrings
-    if(fIdSens!=0) delete[] fIdSens;
-    if(fITSmodules!=0) {
+    if (fHits) {
+      fHits->Delete();
+      delete fHits;
+      fHits=0;
+    }
+    if (fSDigits) {
+      fSDigits->Delete();
+      delete fSDigits;
+      fSDigits=0;
+    }
+    if (fDigits) {
+      fDigits->Delete();
+      delete fDigits;
+      fDigits=0;
+    }
+    if (fRecPoints) {
+      fRecPoints->Delete();
+      delete fRecPoints;
+      fRecPoints=0;
+    }
+    delete[] fIdName;  // Array of TStrings
+    delete[] fIdSens;
+    if(fITSmodules) {
         this->ClearModules();
         delete fITSmodules;
+	fITSmodules = 0;
     }// end if fITSmodules!=0
 
     if(fDtype) {
@@ -244,12 +261,14 @@ AliITS::~AliITS(){
     if (fCtype) {
         fCtype->Delete();
         delete fCtype;
+	fCtype = 0;
     } // end if fCtype
     delete [] fNctype;
 
     if (fDetTypes) {
         fDetTypes->Delete();
         delete fDetTypes;
+	fDetTypes = 0;
     } // end if fDetTypes
 
 

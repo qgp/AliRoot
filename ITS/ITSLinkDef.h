@@ -23,6 +23,31 @@
 #pragma link C++ class  AliITSvPPRasymm+;
 #pragma link C++ class  AliITSvPPRsymm+;
 #pragma link C++ class  AliITSvPPRasymmFMD+;
+#pragma link C++ class  AliITSvSPD02+;
+#pragma link C++ class  AliITSv11+;
+//
+#pragma link C++ class  AliITSBaseGeometry+;
+#pragma link C++ class  AliITSBaseVolParams+;
+#pragma link C++ class  AliITSBoxData+;
+#pragma link C++ class  AliITSTrapezoid1Data+;
+#pragma link C++ class  AliITSTrapezoid2Data+;
+#pragma link C++ class  AliITSTrapezoidData+;
+#pragma link C++ class  AliITSTrapezoidTwistedData+;
+#pragma link C++ class  AliITSTubeData+;
+#pragma link C++ class  AliITSTubeSegData+;
+#pragma link C++ class  AliITSTubeCutData+;
+#pragma link C++ class  AliITSTubeEllipticalData+;
+#pragma link C++ class  AliITSTubeHyperbolicData+;
+#pragma link C++ class  AliITSConeData+;
+#pragma link C++ class  AliITSConeSegData+;
+#pragma link C++ class  AliITSPConeData+;
+#pragma link C++ class  AliITSSphereData+;
+#pragma link C++ class  AliITSParallelpipedData+;
+#pragma link C++ class  AliITSPGonData+;
+#pragma link C++ class  AliITSGeometryITSV+;
+#pragma link C++ class  AliITSGeometrySSDCone+;
+#pragma link C++ class  AliITSGeometrySDDCone+;
+//
 #pragma link C++ class  AliITShit+;
 #pragma link C++ class  AliITSdigit+;
 #pragma link C++ class  AliITSdigitSPD+;
@@ -125,6 +150,7 @@
 // This class will always be for ITS only
 #pragma link C++ class  AliITSvtest+;
 
+//PH #pragma link C++ class AliITSclustererV2+;
 #pragma link C++ class AliITSclusterV2+;
 #pragma link C++ class AliITStrackV2+;
 #pragma link C++ class AliITStrackerV2+;
@@ -134,6 +160,12 @@
 #pragma link C++ class  AliCascadeVertexer+;
 
 #pragma link C++ class  AliITSVertex+;
+#pragma link C++ class  AliITSVertexer+;
+#pragma link C++ class  AliITSVertexerIons+;
+#pragma link C++ class  AliITSVertexerPPZ+;
+#pragma link C++ class  AliITSStrLine+;
+#pragma link C++ class  AliITSVertexerTracks+;
+
 // Classes for neural tracking
 #pragma link C++ class AliITSglobalRecPoint+;
 #pragma link C++ class AliITSneuron+;
@@ -145,5 +177,7 @@
 #pragma link C++ class AliITSDigitizer+;
 #pragma link C++ class AliITSFDigitizer+;
 #pragma link C++ class AliITSFindClustersV2+;
+// Raw data
+#pragma link C++ class AliITSDDLRawData+;
 #pragma link C++ class AliITSLoader+;
 #endif

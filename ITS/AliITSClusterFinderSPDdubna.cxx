@@ -13,36 +13,13 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.6  2002/10/22 14:45:33  alibrary
-Introducing Riostream.h
+/* $Id$ */
 
-Revision 1.5  2002/10/14 14:57:00  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.2.8.1  2002/08/28 15:06:50  alibrary
-Updating to v3-09-01
-
-Revision 1.4  2002/08/22 13:18:46  nilsen
-Added = operator and copy constructor in an attempt to fix complilation
-problems found by Yves Schutz.
-
-Revision 1.3  2002/08/21 22:04:27  nilsen
-Added data member to SPD cluters and made related modifications to the
-SPD Cluster finders. Generaly cleanded up some of the code.
-
-Revision 1.2  2001/06/14 14:33:53  barbera
-New version from B. Batyunya to get the Dubna model work with the present HEAD
-
-Revision 1.15  2001/05/01 22:37:44  nilsen
-Added a dummy argument to FindRawClusters. Argument used for SSD version.
-
-Revision 1.14  2001/03/05 14:48:46  nilsen
-Fixed a reoccuring bug. Array sizes must be declare const.
-
-*/
-
+//  Cluster Finder for
+//  Silicon
+//  Pixel
+//  developed by the Dubna group
+//
 #include <Riostream.h>
 #include "AliITSClusterFinderSPDdubna.h"
 #include "AliITSMapA1.h"
@@ -51,7 +28,6 @@ Fixed a reoccuring bug. Array sizes must be declare const.
 #include "AliITSRawCluster.h"
 #include "AliITSRecPoint.h"
 #include "AliITSsegmentation.h"
-#include "AliITSresponse.h"
 #include "AliRun.h"
 
 //#define DEBUG
@@ -269,13 +245,13 @@ void AliITSClusterFinderSPDdubna::TracksInCluster(){
     // get number of clusters for this module
     Int_t nofClusters = fClusters->GetEntriesFast();
     Int_t i, ix, iz, jx, jz, xstart, xstop, zstart, zstop, nclx, nclz;
-    const Int_t trmax = 100;
-    Int_t cltracks[trmax], itr, tracki, ii, is, js, ie, ntr, tr0, tr1, tr2;
+    const Int_t kTrmax = 100;
+    Int_t cltracks[kTrmax], itr, tracki, ii, is, js, ie, ntr, tr0, tr1, tr2;
 
     nofClusters -= fNclusters;
     for(i=0; i<nofClusters; i++) { 
 	ii = 0;
-	memset(cltracks,-1,sizeof(int)*trmax);
+	memset(cltracks,-1,sizeof(int)*kTrmax);
 	tr0=tr1=tr2=-1;
 	AliITSRawClusterSPD *clusterI = (AliITSRawClusterSPD*) fClusters->At(i);
 	nclx = clusterI->NclX();
@@ -304,15 +280,15 @@ void AliITSClusterFinderSPDdubna::TracksInCluster(){
 		} // end for itr
 	    } // ix pixel
 	}  // iz pixel
-	for(is=0; is<trmax; is++) { 
+	for(is=0; is<kTrmax; is++) { 
 	    if(cltracks[is]<0) continue;
-	    for(js=is+1; js<trmax; js++) { 
+	    for(js=is+1; js<kTrmax; js++) { 
 		if(cltracks[js]<0) continue;
 		if(cltracks[js]==cltracks[is]) cltracks[js]=-5;
 	    } // end for js
 	} // end for is
 	ntr = 0;
-	for(ie=0; ie<trmax; ie++) { 
+	for(ie=0; ie<kTrmax; ie++) { 
 	    if(cltracks[ie] >= 0) {
 		ntr=ntr+1;
 		if(ntr==1) tr0=cltracks[ie];

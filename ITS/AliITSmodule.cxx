@@ -13,71 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.9.8.1  2002/06/06 14:23:57  hristov
-Merged with v3-08-02
-
-Revision 1.14  2002/10/14 14:57:00  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.10.4.2  2002/07/24 09:27:50  alibrary
-Updating on VirtualMC
-
-Revision 1.13  2002/06/12 18:59:47  nilsen
-Added Starting track location to hit class and related changes to modules.
-This is at present still fully backwards compatible since starting hits
-are still written to the file. When aliroot v4.0 will be released, this
-backwards compatiblity will be broken by removing the enterence hit, and making
-the nessesary changes to module at that time.
-
-Revision 1.12  2002/06/10 17:31:03  nilsen
-Replaced TArrayI expansion with Root version.
-
-Revision 1.11  2002/06/04 18:43:15  nilsen
-Fix to avoid divide by zero problem in MedianHitG and MedianHitL for track
-that enter and exit the same side of a detector sensitive volume. Needed
-for Fast simulation. Thanks to Nicola Carrer.
-
-Revision 1.10  2002/03/15 17:21:54  nilsen
-Removed zero-ing of fModules variable in constructors.
-
-Revision 1.9  2000/10/04 19:46:39  barbera
-Corrected by F. Carminati for v3.04
-
-Revision 1.8  2000/10/02 16:32:57  barbera
-Forward declarations added and formatting
-
-Revision 1.3.4.8  2000/10/02 15:55:26  barbera
-Forward declarations added and formatting
-
-Revision 1.7  2000/09/22 12:36:38  nilsen
-Minor changes to improve compilation and create less NOISE.
-
-Revision 1.6  2000/07/10 16:07:18  fca
-Release version of ITS code
-
-Revision 1.3.4.2  2000/03/02 21:42:29  nilsen 
-Linked AliDetector::fDigit to AliITSmodule::fDigitsM and AliITS::fITSRecPoints
-to AliITSmodule::fRecPointsM. Renamed AliITSmodule::fPointsM to fRecPointsM.
-Removed the deletion of fDigitsM from the distructor since it is only a copy
-of what is in AliDetector. Fixed a bug in the functions LineSegmentL and
-LineSegmentG. Added two new versions of LineSegmentL and LineSegmentG to
-additionaly return track number from the hit. Removed FastPoint function,
-haven't found anywere it was used, also it had very many problems, should
-just call FastPointSPD... .
-
-Revision 1.3.4.1  2000/01/12 19:03:32  nilsen
-This is the version of the files after the merging done in December 1999.
-See the ReadMe110100.txt file for details
-
-Revision 1.3  1999/10/04 15:20:12  fca
-Correct syntax accepted by g++ but not standard for static members, remove minor warnings
-
-Revision 1.2  1999/09/29 09:24:20  fca
-Introduction of the Copyright and cvs Log
-
-*/
+/* $Id$ */
 
 #include <TArrayI.h>
 
@@ -129,10 +65,9 @@ AliITSmodule::~AliITSmodule() {
     // we must first destroy all of it's members.
 
     if(fHitsM){
-	for(Int_t i=0;i<fHitsM->GetEntriesFast();i++) 
-	    delete ((AliITShit *)(fHitsM->At(i)));
-	// must delete each object in the TObjArray.
-	delete fHitsM;
+      fHitsM->Delete();
+      delete fHitsM;
+      fHitsM = 0;
     } // end if
     delete fTrackIndex;
     delete fHitIndex;
@@ -355,10 +290,7 @@ Bool_t AliITSmodule::MedianHitG(AliITShit *h1,AliITShit *h2,
    h1->GetPositionG(x1l,y1l,z1l);
    h2->GetPositionG(x2l,y2l,z2l);
 
-   // Modified by N.Carrer. In very rare occasions the track may be just
-   // tangent to the module. Therefore the entrance and exit points have the
-   // same y.
-   if( (y2l-y1l) != 0.0 ) {
+   if((y2l*y1l)<0.) {
      xMl = (-y1l / (y2l-y1l))*(x2l-x1l) + x1l;
      zMl = (-y1l / (y2l-y1l))*(z2l-z1l) + z1l;
    } else {
@@ -403,10 +335,7 @@ void AliITSmodule::MedianHitG(Int_t index,
    y2l = l[1];
    z2l = l[2];
 
-   // Modified by N.Carrer. In very rare occasions the track may be just
-   // tangent to the module. Therefore the entrance and exit points have the
-   // same y.
-   if( (y2l-y1l) != 0.0 ) {
+   if((y2l*y1l)<0.) {
      xMl = (-y1l / (y2l-y1l))*(x2l-x1l) + x1l;
      zMl = (-y1l / (y2l-y1l))*(z2l-z1l) + z1l;
    } else {
@@ -434,10 +363,7 @@ Bool_t AliITSmodule::MedianHitL( AliITShit *itsHit1,
    itsHit2->GetPositionL(x2l,y2l,z2l);
 
    yMl = 0.0;
-   // Modified by N.Carrer. In very rare occasions the track may be just
-   // tangent to the module. Therefore the entrance and exit points have the
-   // same y.
-   if( (y2l-y1l) != 0.0 ) {
+   if((y2l*y1l)<0.) {
      xMl = (-y1l / (y2l-y1l))*(x2l-x1l) + x1l;
      zMl = (-y1l / (y2l-y1l))*(z2l-z1l) + z1l;	     
    } else {

@@ -8,7 +8,7 @@
  ****************************************************************************/
 
 #ifndef __CINT__
-  #include <iostream.h>
+  #include <Riostream.h>
   #include <fstream.h>
 
   #include "TH1.h"
@@ -21,6 +21,7 @@
   #include "TText.h"
   #include "TParticle.h"
   #include "TStopwatch.h"
+  #include "TPDGCode.h"
 
   #include "AliRun.h"
   #include "AliPDG.h"
