@@ -21,6 +21,8 @@
 
 #include "TG4ModularPhysicsList.h"
 
+ClassImp(AliRunConfiguration)
+
 //_____________________________________________________________________________
 AliRunConfiguration::AliRunConfiguration()
   : TG4VRunConfiguration()
