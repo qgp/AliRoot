@@ -360,6 +360,15 @@ void AliPHOS::CreateMaterials()
 }
 
 //____________________________________________________________________________
+AliPHOSGeometry * AliPHOS::GetGeometry() const 
+{  
+  // gets the pointer to the AliPHOSGeometry unique instance 
+  
+  return AliPHOSGeometry::GetInstance(GetTitle(),"") ;  
+
+}
+
+//____________________________________________________________________________
 void AliPHOS::SetTreeAddress()
 { 
 
