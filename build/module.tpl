@@ -255,7 +255,7 @@ check-@PACKAGE@: $(@PACKAGE@CHECKS)
 @PACKAGE@/check/%.i : @PACKAGE@/%.cxx
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	$(MUTE)$(CXX) -E $(@PACKAGE@DEFINE) $(@PACKAGE@INC) $< > $@ $(@PACKAGE@CXXFLAGS)
-	cd $(dir $@) ; $(IRST_INSTALLDIR)/rules/ALICE/patch4alice.prl $(notdir $@)
+	@cd $(dir $@) ; $(IRST_INSTALLDIR)/rules/ALICE/patch4alice.prl $(notdir $@)
 
 # IRST coding rule check
 @PACKAGE@/check/%.viol : @PACKAGE@/check/%.i
