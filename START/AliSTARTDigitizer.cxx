@@ -102,7 +102,6 @@ void AliSTARTDigitizer::Exec(Option_t* option)
   Int_t hit, nhits;
   Int_t CountEr[13],CountEl[13];							//!!!
   Int_t volume,pmt,tr,tl,sumRight;
-  char nameDigits[20];
   Float_t timediff,timeav;
   Float_t besttimeright,besttimeleft,meanTime;
   Int_t  bestRightADC,bestLeftADC;

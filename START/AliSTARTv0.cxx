@@ -42,7 +42,6 @@
 #include "AliRun.h"
 #include "AliSTARThit.h"
 #include "AliSTARTv0.h"
-//#include "TGeant3.h"
 
 ClassImp(AliSTARTv0)
 

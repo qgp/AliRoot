@@ -26,7 +26,6 @@
 #include "AliSTARTdigit.h"
 #include "AliSTARThit.h"
 #include "AliSTARTvertex.h"
-//#include "TTree.h"
 
 ClassImp(AliSTARTvertex)
 
@@ -85,9 +84,7 @@ void AliSTARTvertex::Reconstruct(Int_t evNumber=1)
       }
   sprintf(nameTR,"START_R_%d",evNumber);
   printf("%s\n",nameTR);
-  //  TDirectory *wd = gDirectory;
-    fvertex->Write(nameTR);
-    //  wd->cd();
+  fvertex->Write(nameTR);
 }
 
 

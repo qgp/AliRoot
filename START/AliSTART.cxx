@@ -97,7 +97,10 @@ AliSTART::AliSTART(const char *name, const char *title)
 
 //_____________________________________________________________________________
 AliSTART::~AliSTART() {
-
+  if (fHits) {
+    fHits->Delete();
+    delete fHits;
+  }
   if (fPhotons) {
     fPhotons->Delete();
     delete fPhotons;
@@ -211,7 +214,6 @@ void AliSTART::MakeBranch(Option_t* option)
      MakeBranchInTree (fLoader->TreeH(), branchname, &fPhotons, 50000, 0);
   } 
 
-  
   if (cD) {
     digits = new AliSTARTdigit();
     MakeBranchInTree(fLoader->TreeD(), branchname, "AliSTARTdigit", digits, buffersize, 1, 0);
