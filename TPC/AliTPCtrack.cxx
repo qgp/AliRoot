@@ -15,9 +15,6 @@
 
 /*
 $Log$
-Revision 1.22  2003/05/22 13:48:21  hristov
-First implementation of ESD classes (Yu.Belikov)
-
 Revision 1.21  2003/05/22 10:46:46  hristov
 Using access methods instead of data members
 
@@ -206,26 +203,7 @@ AliTPCtrack::AliTPCtrack(const AliTPCtrack& t) : AliKalmanTrack(t) {
 
   Int_t n=GetNumberOfClusters();
   for (Int_t i=0; i<n; i++) fIndex[i]=t.fIndex[i];
-  //
-  //MI
-  for (Int_t i=0;i<15;i++){
-    fClusterDensity[i] = t.fClusterDensity[i];
-  }
-  //
-  // for (Int_t i=0;i<200;i++){
-  //  fClusterIndex[i] = t.fClusterIndex[i];
-  //}
-
-  fSdEdx      = t.fSdEdx;
-  fNFoundable = t.fNFoundable;
-  fBConstrain = t.fBConstrain;
-  fLastPoint  = t.fLastPoint;
-  fFirstPoint = t.fFirstPoint;
-  fRemoval    = t.fRemoval ;
-  fTrackType  = t.fTrackType;
-  fLab2       = t.fLab2;
 }
-
 //_____________________________________________________________________________
 
 void  AliTPCtrack::GetBarrelTrack(AliBarrelTrack *track) {
@@ -259,7 +237,6 @@ void  AliTPCtrack::GetBarrelTrack(AliBarrelTrack *track) {
   track->SetCovarianceMatrix(cov);
 
 }
-
 //_____________________________________________________________________________
 Int_t AliTPCtrack::Compare(const TObject *o) const {
   //-----------------------------------------------------------------
@@ -317,31 +294,6 @@ Double_t AliTPCtrack::GetPredictedChi2(const AliCluster *c) const
   return (dy*r00*dy + 2*r01*dy*dz + dz*r11*dz)/det;
 }
 
-
-
-Int_t AliTPCtrack::GetProlongation(Double_t xk, Double_t &y, Double_t & z) const
-{
-  //-----------------------------------------------------------------
-  // This function find proloncation of a track to a reference plane x=xk.
-  // doesn't change internal state of the track
-  //-----------------------------------------------------------------
-  
-  Double_t x1=fX, x2=x1+(xk-x1), dx=x2-x1;
-  //  Double_t y1=fP0, z1=fP1; 
-  if (TMath::Abs(fP4*xk - fP2) >= 0.999) {   
-    return 0;
-  }
-
-  Double_t c1=fP4*x1 - fP2, r1=sqrt(1.- c1*c1);
-  Double_t c2=fP4*x2 - fP2, r2=sqrt(1.- c2*c2);
-  
-  y = fP0;
-  z = fP1;
-  y += dx*(c1+c2)/(r1+r2);
-  z += dx*(c1+c2)/(c1*r2 + c2*r1)*fP3;
-  return 0;  
-}
-
 //_____________________________________________________________________________
 Int_t AliTPCtrack::PropagateTo(Double_t xk,Double_t x0,Double_t rho) {
   //-----------------------------------------------------------------
@@ -362,25 +314,10 @@ Int_t AliTPCtrack::PropagateTo(Double_t xk,Double_t x0,Double_t rho) {
   Double_t x1=fX, x2=x1+(xk-x1), dx=x2-x1, y1=fP0, z1=fP1;
   Double_t c1=fP4*x1 - fP2, r1=sqrt(1.- c1*c1);
   Double_t c2=fP4*x2 - fP2, r2=sqrt(1.- c2*c2);
-  //
-
-  //  if (TMath::Abs(fP4)<0.0000001){
-  fP0    += dx*(c1+c2)/(r1+r2);
-  fP1    += dx*(c1+c2)/(c1*r2 + c2*r1)*fP3;
   
-  // }
-  /*
-  else{
-    Double_t p0 = fP0    + dx*(c1+c2)/(r1+r2);
-    Double_t p1 =  fP1   + dx*(c1+c2)/(c1*r2 + c2*r1)*fP3;
-    fP0     = fP0 + (TMath::Sqrt(1-(fP4*fX-fP2)*(fP4*fX-fP2)) - TMath::Sqrt(1-(fP4*xk-fP2)*(fP4*xk-fP2)))/fP4;
-    fP1     = fP1 - fP3*(TMath::ASin(fP4*fX-fP2) - TMath::ASin(fP4*xk-fP2))/fP4;
-    //    if (TMath::Abs(fP4)>0.001){
-    //  printf("%f\t%f\t%f\n",p0,fP0,p0-fP0);
-    //  printf("%f\t%f\t%f\n",p1,fP1,p1-fP1);
-    // }
-  }
-  */
+  fP0 += dx*(c1+c2)/(r1+r2);
+  fP1 += dx*(c1+c2)/(c1*r2 + c2*r1)*fP3;
+
   //f = F - 1
   Double_t rr=r1+r2, cc=c1+c2, xx=x1+x2;
   Double_t f02=-dx*(2*rr + cc*(c1/r1 + c2/r2))/(rr*rr);
@@ -431,12 +368,10 @@ Int_t AliTPCtrack::PropagateTo(Double_t xk,Double_t x0,Double_t rho) {
   fC44 += xz*xz*theta2;
 
   //Energy losses************************
-  
   Double_t dE=0.153e-3/beta2*(log(5940*beta2/(1-beta2)) - beta2)*d*rho;
   if (x1 < x2) dE=-dE;
   cc=fP4;
   fP4*=(1.- sqrt(p2+GetMass()*GetMass())/p2*dE);
-  //fP4-= fP4*sqrt(p2+GetMass()*GetMass())/p2*dE;
   fP2+=fX*(fP4-cc);
 
   // Integrated Time [SR, GSI, 17.02.2003]
@@ -445,6 +380,7 @@ Int_t AliTPCtrack::PropagateTo(Double_t xk,Double_t x0,Double_t rho) {
     AddTimeStep(TMath::Sqrt(l2));
   }
   //
+
   return 1;
 }
 
@@ -607,94 +543,6 @@ void AliTPCtrack::ResetCovariance() {
 
 }
 
-
-Double_t AliTPCtrack::GetD(Double_t x, Double_t y) const {
-  //------------------------------------------------------------------
-  // This function calculates the transverse impact parameter
-  // with respect to a point with global coordinates (x,y)
-  //------------------------------------------------------------------
-  //Double_t xt=fX, yt=fP0;
-
-  Double_t sn=TMath::Sin(fAlpha), cs=TMath::Cos(fAlpha);
-  Double_t a = x*cs + y*sn;
-  y = -x*sn + y*cs; x=a;
-  //
-  Double_t r  = TMath::Abs(1/fP4);
-  Double_t x0 = TMath::Abs(fP2*r);
-  Double_t y0 = fP0;
-  y0= fP0+TMath::Sqrt(1-(fP4*fX-fP2)*(fP4*fX-fP2))/fP4;
-  
-  Double_t  delta = TMath::Sqrt((x-x0)*(x-x0)+(y-y0)*(y-y0));  
-  //  Double_t  delta = TMath::Sqrt(TMath::Abs(x*x-2*x0*x+x0*x0+ y*y-2*y*y0+y0*y0));
-  delta -= TMath::Abs(r);
-  return delta;
-  
-}
-
-void AliTPCtrack::GetCircle(Double_t &x0, Double_t &y0, Double_t &r0)
-{
-  //
-  // get global circle parameters
-  r0  =  1/fP4;
-  x0  =  fP2*r0;
-  y0  =  fP0+TMath::Sqrt(1-(fP4*fX-fP2)*(fP4*fX-fP2))/fP4;
-  //
-  Double_t rrr = TMath::Sqrt((x0-fX)*(x0-fX)+(y0-fP0)*(y0-fP0));
-  if (TMath::Abs(TMath::Abs(r0)-rrr)>0.1){
-    printf ("problem\n");
-  }
-  //
-  Double_t sn =  TMath::Sin(-fAlpha), cs=TMath::Cos(-fAlpha);
-  Double_t a = x0*cs + y0*sn;
-  y0 = -x0*sn + y0*cs; x0=a;
-  r0 = TMath::Abs(r0);
- 
-}
-
-
-/*
-Double_t AliTPCtrack::GetD(Double_t x, Double_t y) const {
-  //------------------------------------------------------------------
-  // This function calculates the transverse impact parameter
-  // with respect to a point with global coordinates (x,y)
-  //------------------------------------------------------------------
-  Double_t xt=fX, yt=fP0;
-
-  Double_t sn=TMath::Sin(fAlpha), cs=TMath::Cos(fAlpha);
-  Double_t a = x*cs + y*sn;
-  y = -x*sn + y*cs; x=a;
-  xt-=x; yt-=y;
-
-  sn=fP4*xt - fP2; cs=fP4*yt + TMath::Sqrt(1.- fP2*fP2);
-  a=2*(xt*fP2 - yt*TMath::Sqrt(1.- fP2*fP2))-fP4*(xt*xt + yt*yt);
-  if (fP4<0) a=-a;
-  return a/(1 + TMath::Sqrt(sn*sn + cs*cs));
-}
-*/
-
-
-
-Float_t AliTPCtrack::Density(Int_t row0, Int_t row1)
-{
-  //
-  // calculate cluster density
-  Int_t good  = 0;
-  Int_t found = 0;
-  //  if (row0<fFirstPoint) row0 = fFirstPoint;
-  if (row1>fLastPoint) row1 = fLastPoint;
-
-  
-  for (Int_t i=row0;i<=row1;i++){ 
-    //    Int_t index = fClusterIndex[i];
-    Int_t index = fIndex[i];
-    if (index!=-1)  good++;
-    if (index>0)    found++;
-  }
-  Float_t density=0;
-  if (good>0) density = Float_t(found)/Float_t(good);
-  return density;
-}
-
 ////////////////////////////////////////////////////////////////////////
 Double_t AliTPCtrack::Phi() const {
 //
@@ -706,3 +554,4 @@ Double_t AliTPCtrack::Phi() const {
   return phi;
 }
 ////////////////////////////////////////////////////////////////////////
+

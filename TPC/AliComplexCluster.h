@@ -48,9 +48,7 @@ class AliTPCTrackerPoint  {
   Short_t   fTZ;        // current prolongation in Z  in cm - 10 mum prec.
   Short_t   fTY;        // current prolongation in Y  in cm - 10 mum prec.
   Char_t   fTAngleZ;   // angle 
-  Char_t   fTAngleY;   // angle 
-  UChar_t  fSigmaZ;   // shape  Z - normalised shape - normaliziation 1 - precision 2 percent
-  UChar_t  fSigmaY;   // shape  Y - normalised shape - normaliziation 1 - precision 2 percent
+  Char_t   fTAngleY;   // angle
  public:
   AliTPCTrackerPoint(){fTX=0; fTY=0; fTZ=0; fTAngleZ=0; fTAngleY=0;}
   inline Float_t  GetX() {return (fTX*0.01);}
@@ -64,10 +62,6 @@ class AliTPCTrackerPoint  {
   void     SetZ(Float_t z){ fTZ = Short_t(TMath::Nint(z*100.));} 
   void     SetAngleZ(Float_t anglez) {fTAngleZ = Char_t(TMath::Nint(anglez*50.));}
   void     SetAngleY(Float_t angley) {fTAngleY = Char_t(TMath::Nint(angley*50.));}
-  inline Float_t  GetSigmaZ() {return (fSigmaZ*0.02);}
-  inline Float_t  GetSigmaY() {return (fSigmaY*0.02);}  
-  void     SetSigmaZ(Float_t sigmaz) {fSigmaZ = UChar_t(TMath::Nint(sigmaz*50.));}
-  void     SetSigmaY(Float_t sigmay) {fSigmaY = UChar_t(TMath::Nint(sigmay*50.));}
   //
  public:
   ClassDef(AliTPCTrackerPoint,1)  
@@ -130,10 +124,10 @@ class AliTPCExactPoint : public TObject{
 class AliTPCTrackPoint: public TObject{
  public:
   AliTPCTrackPoint(){ fIsShared = kFALSE;}
-  // AliTPCClusterPoint & GetCPoint(){return fCPoint;}
+  AliTPCClusterPoint & GetCPoint(){return fCPoint;}
   AliTPCTrackerPoint & GetTPoint(){return fTPoint;}
  public:
-  //  AliTPCClusterPoint fCPoint;
+  AliTPCClusterPoint fCPoint;
   AliTPCTrackerPoint fTPoint;
   Bool_t fIsShared;  // indicate sharing of the point between several tracks
   ClassDef(AliTPCTrackPoint,1)  

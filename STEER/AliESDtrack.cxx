@@ -166,7 +166,7 @@ Int_t AliESDtrack::GetITSclusters(UInt_t *idx) const {
 }
 
 //_______________________________________________________________________
-Int_t AliESDtrack::GetTPCclusters(Int_t *idx) const {
+Int_t AliESDtrack::GetTPCclusters(UInt_t *idx) const {
   //---------------------------------------------------------------------
   // This function returns indices of the assgined ITS clusters 
   //---------------------------------------------------------------------

@@ -5,7 +5,8 @@ enum PprRun_t
     kHijing_cent1, kHijing_cent2, 
     kHijing_per1,  kHijing_per2, kHijing_per3, kHijing_per4,  kHijing_per5,
     kHijing_jj25,  kHijing_jj50, kHijing_jj75, kHijing_jj100, kHijing_jj200, 
-    kHijing_gj25,  kHijing_gj50, kHijing_gj75, kHijing_gj100, kHijing_gj200
+    kHijing_gj25,  kHijing_gj50, kHijing_gj75, kHijing_gj100, kHijing_gj200,
+    kHijing_pA
 };
 
 enum PprGeo_t 
@@ -414,7 +415,7 @@ void Config()
     if (iEMCAL)
     {
         //=================== EMCAL parameters ============================
-        AliEMCAL *EMCAL = new AliEMCALv1("EMCAL", "EMCALArch1a");
+        AliEMCAL *EMCAL = new AliEMCALv1("EMCAL", "G56_2_55_19");
     }
 
      if (iCRT)
@@ -448,7 +449,7 @@ AliGenerator* GeneratorFactory(PprRun_t run) {
 	comment = comment.Append(":HIJINGparam test 50 particles");
 	AliGenHIJINGpara *gener = new AliGenHIJINGpara(50);
 	gener->SetMomentumRange(0, 999999.);
-	gener->SetPhiRange(-180., 180.);
+	gener->SetPhiRange(0., 360.);
 	// Set pseudorapidity range from -8 to 8.
 	Float_t thmin = EtaToTheta(8);   // theta min. <---> eta max
 	Float_t thmax = EtaToTheta(-8);  // theta max. <---> eta min 
@@ -458,7 +459,7 @@ AliGenerator* GeneratorFactory(PprRun_t run) {
 	comment = comment.Append(":HIJINGparam N=8000");
 	AliGenHIJINGpara *gener = new AliGenHIJINGpara(86030);
 	gener->SetMomentumRange(0, 999999.);
-	gener->SetPhiRange(-180., 180.);
+	gener->SetPhiRange(0., 360.);
 	// Set pseudorapidity range from -8 to 8.
 	Float_t thmin = EtaToTheta(8);   // theta min. <---> eta max
 	Float_t thmax = EtaToTheta(-8);  // theta max. <---> eta min 
@@ -468,7 +469,7 @@ AliGenerator* GeneratorFactory(PprRun_t run) {
 	comment = comment.Append("HIJINGparam N=4000");
 	AliGenHIJINGpara *gener = new AliGenHIJINGpara(43015);
 	gener->SetMomentumRange(0, 999999.);
-	gener->SetPhiRange(-180., 180.);
+	gener->SetPhiRange(0., 360.);
 	// Set pseudorapidity range from -8 to 8.
 	Float_t thmin = EtaToTheta(8);   // theta min. <---> eta max
 	Float_t thmax = EtaToTheta(-8);  // theta max. <---> eta min 
@@ -478,7 +479,7 @@ AliGenerator* GeneratorFactory(PprRun_t run) {
 	comment = comment.Append("HIJINGparam N=2000");
 	AliGenHIJINGpara *gener = new AliGenHIJINGpara(21507);
 	gener->SetMomentumRange(0, 999999.);
-	gener->SetPhiRange(-180., 180.);
+	gener->SetPhiRange(0., 360.);
 	// Set pseudorapidity range from -8 to 8.
 	Float_t thmin = EtaToTheta(8);   // theta min. <---> eta max
 	Float_t thmax = EtaToTheta(-8);  // theta max. <---> eta min 
@@ -675,6 +676,44 @@ AliGenerator* GeneratorFactory(PprRun_t run) {
 	gener->SetSimpleJets(!isw);
 	gener->SetJetEtaRange(-0.12, 0.12);
         gener->SetJetPhiRange(220., 320.);
+	break;
+    case kHijing_pA:
+	comment = comment.Append("HIJING pA");
+
+	AliGenCocktail *gener  = new AliGenCocktail();
+//	gener->SetTrackingFlag(0);
+	gener->SetOrigin(0, 0, 0);    // vertex position
+	gener->SetSigma(0, 0, 5.3);   // Sigma in (X,Y,Z) (cm) on IP position
+	gener->SetCutVertexZ(1.);     // Truncate at 1 sigma
+	gener->SetVertexSmear(kPerEvent); 
+	AliGenHijing   *hijing = new AliGenHijing(-1);
+// centre of mass energy 
+	hijing->SetEnergyCMS(TMath::Sqrt(82./208.) * 14000.);
+// impact parameter range
+	hijing->SetImpactParameterRange(0., 15.);
+// reference frame
+	hijing->SetReferenceFrame("CMS");
+	hijing->SetBoostLHC(1);
+// projectile
+	hijing->SetProjectile("P", 1, 1);
+	hijing->SetTarget    ("A", 208, 82);
+// tell hijing to keep the full parent child chain
+	hijing->KeepFullEvent();
+// enable jet quenching
+	hijing->SetJetQuenching(0);
+// enable shadowing
+	hijing->SetShadowing(1);
+// Don't track spectators
+	hijing->SetSpectators(0);
+// kinematic selection
+	hijing->SetSelectAll(0);
+//
+	AliGenSlowNucleons*  gray    = new AliGenSlowNucleons(1);
+	AliSlowNucleonModel* model   = new AliSlowNucleonModelExp();
+	gray->SetSlowNucleonModel(model);
+	gray->SetDebug(1);
+	gener->AddGenerator(hijing,"Hijing pPb", 1);
+	gener->AddGenerator(gray,  "Gray Particles",1);
 	break;
     }
     return gener;
