@@ -14,6 +14,7 @@
 // MUON includes
 #include "AliMUON.h"
 #include "AliMUONHit.h"
+#include "AliMUONConstants.h"
 #include "AliMUONDigit.h"
 #include "AliMUONRawCluster.h"
 
@@ -42,7 +43,7 @@ void MUONhits(char * filename="galice.root")
   nevents = RunLoader->GetNumberOfEvents();
 
   for(ievent=0; ievent<nevents; ievent++) {  // Event loop
-    printf(">>> event %d \n",ievent);
+    printf(">>> Event %d \n",ievent);
 
     // Getting event ievent
     gAlice->GetEvent(ievent); 
@@ -50,7 +51,7 @@ void MUONhits(char * filename="galice.root")
     Int_t itrack, ntracks;
     ntracks = (Int_t) (MUONLoader->TreeH())->GetEntries();
     for (itrack=0; itrack<ntracks; itrack++) { // Track loop
-      printf(">>>  track %d \n",itrack);
+      printf(">>> Track %d \n",itrack);
 
       //Getting List of Hits of Track itrack
       (MUONLoader->TreeH())->GetEvent(itrack); 
@@ -70,7 +71,7 @@ void MUONhits(char * filename="galice.root")
   	Float_t theta  = mHit->Theta();
   	Float_t phi    = mHit->Phi();
   	Float_t momentum = mHit->Momentum();
-  	printf(">>> Hit %2d Chamber %2d Track %4d x %5.3f y %5.3f z %7.3f elos %g theta %5.3f phi %5.3f momentum %5.3f\n",
+  	printf(">>> Hit %2d Chamber %2d Track %4d x %6.3f y %6.3f z %7.3f elos %g theta %6.3f phi %5.3f momentum %5.3f\n",
 	       ihit, Nch,hittrack,x,y,z,elos,theta,phi, momentum);
       }
     } // end track loop
@@ -107,12 +108,12 @@ void MUONdigits(char * filename="galice.root")
   
 
   for(ievent=0; ievent<nevents; ievent++) {
-    printf(">>> event %d \n",ievent);
+    printf(">>> Event %d \n",ievent);
     RunLoader->GetEvent(ievent);
   
     // Addressing
     Int_t ichamber, nchambers;
-    nchambers=14;
+    nchambers = AliMUONConstants::NCh(); ;
     pMUON->SetTreeAddress(); 
     char branchname[30];    
    //for( ichamber=0; ichamber<nchambers; ichamber++) {
@@ -125,13 +126,13 @@ void MUONdigits(char * filename="galice.root")
     ncathodes=2;
     //Loop on cathodes 
     for(icathode=0; icathode<ncathodes; icathode++) {
-      printf(">>>  cathode %d\n",icathode);
+      printf(">>> Cathode %d\n",icathode);
       MUONLoader->TreeD()->GetEvent(icathode);
       // Loop on chambers
       for( ichamber=0; ichamber<nchambers; ichamber++) {
-	printf(">>>   chamber %d\n",ichamber);
-	sprintf(branchname,"MUONDigits%d",ichamber+1);
-	printf(">>>  branchname %s\n",branchname);
+	printf(">>> Chamber %d\n",ichamber);
+	//	sprintf(branchname,"MUONDigits%d",ichamber+1);
+	//printf(">>>  branchname %s\n",branchname);
 	ListOfDigits = (TClonesArray *) pMUON->Dchambers()->At(ichamber);
 	
 	Int_t idigit, ndigits;
@@ -145,12 +146,108 @@ void MUONdigits(char * filename="galice.root")
 	  Int_t Signal = mDigit->Signal();   // Physics Signal
 	  Int_t Hit    = mDigit->Hit();      // iHit
 	  Int_t Cathode= mDigit->Cathode();  // Cathode
-	    
-	  printf(">>> >> digit %d cathode %d hit %d PadX %d PadY %d Signal %d \n",idigit, Cathode,Hit, PadX, PadY, Signal);
+	  Int_t Track0 = mDigit->Track(0);
+	  Int_t Track1 = mDigit->Track(1); 
+	  Int_t Track2 = mDigit->Track(2);
+	  
+	  printf(">>> Digit %4d cathode %1d hit %4d PadX %3d PadY %3d Signal %4d Track0 %4d Track1 %'d Track2 %4d \n",idigit, Cathode,Hit, PadX, PadY, Signal, Track0, Track1, Track2);
 	} // end digit loop
       } // end chamber loop
     } // end cathode loop
   }  // end event loop
-  MUONLoader->UnloadHits();
+  MUONLoader->UnloadDigits();
 }
 
+void MUONrawclusters(char * filename="galice.root") {
+
+  TClonesArray * ListOfRecPoints;
+  
+  // Creating Run Loader and openning file containing Hits
+  AliRunLoader * RunLoader = AliRunLoader::Open(filename,"MUONFolder","READ");
+  if (RunLoader ==0x0) {
+    printf(">>> Error : Error Opening %s file \n",filename);
+    return;
+  }
+
+  // Loading AliRun master
+  RunLoader->LoadgAlice();
+  gAlice = RunLoader->GetAliRun();
+ // Getting Module MUON  
+  AliMUON *pMUON  = (AliMUON *) gAlice->GetDetector("MUON");
+
+  AliLoader * MUONLoader = RunLoader->GetLoader("MUONLoader");
+  MUONLoader->LoadRecPoints("READ");
+
+  Int_t ievent, nevents;
+  nevents = RunLoader->GetNumberOfEvents();
+
+  AliMUONRawCluster * mRecPoint;
+  
+
+  for(ievent=0; ievent<nevents; ievent++) {
+    printf(">>> Event %d \n",ievent);
+    RunLoader->GetEvent(ievent);
+  
+    // Addressing
+    Int_t ichamber, nchambers;
+    nchambers = AliMUONConstants::NTrackingCh();
+    pMUON->SetTreeAddress(); 
+    char branchname[30];    
+ 
+    MUONLoader->TreeR()->GetEvent(0);
+    // Loop on chambers
+    for( ichamber=0; ichamber<nchambers; ichamber++) {
+      printf(">>> Chamber %d\n",ichamber);
+      sprintf(branchname,"MUONRawClusters%d",ichamber+1);
+      //printf(">>>  branchname %s\n",branchname);
+      ListOfRecPoints = (TClonesArray *) pMUON->RawClusters()->At(ichamber);
+      
+      Int_t irecpoint, nrecpoints;
+      
+      nrecpoints = (Int_t) ListOfRecPoints->GetEntriesFast();
+      
+      for(irecpoint=0; irecpoint<nrecpoints; irecpoint++) {
+	mRecPoint = static_cast<AliMUONRawCluster*>(ListOfRecPoints->At(irecpoint));
+//     Int_t       fTracks[3];        //labels of overlapped tracks
+//     Int_t       fQ[2]  ;           // Q of cluster (in ADC counts)     
+//     Float_t     fX[2]  ;           // X of cluster
+//     Float_t     fY[2]  ;           // Y of cluster
+//     Float_t     fZ[2]  ;           // Z of cluster
+//     Int_t       fPeakSignal[2];    // Peak signal 
+//     Int_t       fIndexMap[50][2];  // indeces of digits
+//     Int_t       fOffsetMap[50][2]; // Emmanuel special
+//     Float_t     fContMap[50][2];   // Contribution from digit
+//     Int_t       fPhysicsMap[50];   // Distinguish signal and background contr.
+//     Int_t       fMultiplicity[2];  // Cluster multiplicity
+//     Int_t       fNcluster[2];      // Number of clusters
+//     Int_t       fClusterType;      // Cluster type
+//     Float_t     fChi2[2];          // Chi**2 of fit
+//     Int_t       fGhost;            // 0 if not a ghost or ghost problem solved
+//                                    // >0 if ghost problem remains because
+//                                    // 1 both (true and ghost) satify 
+//                                    //   charge chi2 compatibility
+//                                    // 2 none give satisfactory chi2
+
+	Int_t Track0 = mRecPoint->fTracks[0];
+	Int_t Track1 = mRecPoint->fTracks[1]; 
+	Int_t Track2 = mRecPoint->fTracks[2];
+	Int_t Q0 = mRecPoint->fQ[0];
+	Int_t Q1 = mRecPoint->fQ[1];
+	Float_t x0 = mRecPoint->fX[0];
+	Float_t x1 = mRecPoint->fX[1];
+	Float_t y0 = mRecPoint->fY[0];
+	Float_t y1 = mRecPoint->fY[1];
+	Float_t z0 = mRecPoint->fZ[0];
+	Float_t z1 = mRecPoint->fZ[1];
+	Float_t chi2_0 =  mRecPoint->fChi2[0];
+	Float_t chi2_1 =  mRecPoint->fChi2[1];
+
+	printf(">>> RecPoint %4d x %6.3f %6.3f y %6.3f %6.3f z %6.3f %6.3f Q0 %4d  Q1 %4d Track0 %4d Track1 %'d Track2 %4d Chi2 %6.3f %6.3f \n",
+irecpoint, x0, x1, y0, y1, z0, z1, Q0, Q1, Track0, Track1, Track2, chi2_0, chi2_1);
+      } // end recpoint loop
+    } // end chamber loop
+  }  // end event loop
+  MUONLoader->UnloadRecPoints();
+
+
+}
