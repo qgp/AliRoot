@@ -80,7 +80,7 @@
 
 // --- Standard library ---
 
-#include <iostream>
+#include <Riostream.h>
 #include <fstream>
 #include <iomanip>
 
