@@ -66,26 +66,30 @@ void AliHBTWriteInternFormat(Option_t* datatype, Option_t* processopt="TracksAnd
   Int_t ITSv2 = strcmp(datatype,"ITSv2");
   Int_t ESD    = strcmp(datatype,"ESD");
   Int_t intern = strcmp(datatype,"Intern");
-
+  Bool_t multcheck = kFALSE;
   if(!kine)
    {
     reader = new AliHBTReaderKineTree();
     processopt="Particles"; //this reader by definition reads only simulated particles
+    multcheck = kTRUE;
    }
   else if(!TPC)
    {
     cout<<"AliHBTWriteInternFormat.C: Creating Reader TPC .....\n";
     reader = new AliHBTReaderTPC();
+    multcheck = kTRUE;
     cout<<"AliHBTWriteInternFormat.C: ..... Created\n";
    }
   else if(!ITSv1)
    {
     reader = new AliHBTReaderITSv1();
+    multcheck = kTRUE;
    }
   else if(!ITSv2)
    {
     cout<<"AliHBTWriteInternFormat.C: Creating Reader ITSv2 .....\n";
     reader = new AliHBTReaderITSv2();
+    multcheck = kTRUE;
     cout<<"AliHBTWriteInternFormat.C: ..... Created\n";
    }
   else if(!ESD)
@@ -121,7 +125,7 @@ void AliHBTWriteInternFormat(Option_t* datatype, Option_t* processopt="TracksAnd
    reader->SetDirs(dirs);
 
    cout<<"AliHBTWriteInternFormat.C:   P R O C S E S S I N G .....\n\n";
-   AliHBTReaderInternal::Write(reader,outfile);
+   AliHBTReaderInternal::Write(reader,outfile,multcheck);
    cout<<"\n\nAliHBTWriteInternFormat.C:   F I N I S H E D\n";
    
    if (dirs) delete dirs;

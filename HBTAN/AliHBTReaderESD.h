@@ -33,7 +33,8 @@ class AliHBTReaderESD: public AliHBTReader
     Int_t        GetNumberOfPartEvents();//returns number of particle events
     Int_t        GetNumberOfTrackEvents();//returns number of track events
     
-    enum {kESDElectron = 0, kESDMuon, kESDPion, kESDKaon, kESDProton, kNSpecies};
+    enum ESpecies {kESDElectron = 0, kESDMuon, kESDPion, kESDKaon, kESDProton, kNSpecies};
+    static Int_t GetSpeciesPdgCode(ESpecies spec);//skowron
   protected:
       
     TFile*       OpenFile(Int_t evno);//opens files to be read for given event

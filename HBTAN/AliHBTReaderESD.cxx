@@ -1,13 +1,14 @@
 #include "AliHBTReaderESD.h"
 
-#include <AliESDtrack.h>
-#include <AliESD.h>
-
+#include <TPDGCode.h>
 #include <TString.h>
 #include <TObjString.h>
 #include <TTree.h>
 #include <TFile.h>
 #include <TParticle.h>
+
+#include <AliESDtrack.h>
+#include <AliESD.h>
 
 #include "AliHBTRun.h"
 #include "AliHBTEvent.h"
@@ -219,7 +220,7 @@ Int_t AliHBTReaderESD::Read(AliHBTRun* particles, AliHBTRun *tracks)
                 msg+="\n    ";
                 msg+=s;
                 msg+="(";
-                msg+=AliESDtrack::GetSpeciesPdgCode((AliESDtrack::ESpecies)s);
+                msg+=GetSpeciesPdgCode((ESpecies)s);
                 msg+="): ";
                 msg+=w[s];
                 msg+=" (";
@@ -233,7 +234,7 @@ Int_t AliHBTReaderESD::Read(AliHBTRun* particles, AliHBTRun *tracks)
            {
              if (w[s] == 0.0) continue;
 
-             Int_t pdgcode = AliESDtrack::GetSpeciesPdgCode((AliESDtrack::ESpecies)s);
+             Int_t pdgcode = GetSpeciesPdgCode((ESpecies)s);
              if(Pass(pdgcode)) continue; //check if we are intersted with particles of this type 
 
              Double_t mass = pdgdb->GetParticle(pdgcode)->Mass();
@@ -247,7 +248,7 @@ Int_t AliHBTReaderESD::Read(AliHBTRun* particles, AliHBTRun *tracks)
               {
                 if (k == s) continue;
                 if (w[k] == 0.0) continue;
-                track->SetPIDprobability(AliESDtrack::GetSpeciesPdgCode( (AliESDtrack::ESpecies)k ),w[k]);
+                track->SetPIDprobability(GetSpeciesPdgCode( (ESpecies)k ),w[k]);
               }
              if(Pass(track))//check if meets all criteria of any of our cuts
                             //if it does not delete it and take next good track
@@ -299,4 +300,33 @@ TFile* AliHBTReaderESD::OpenFile(Int_t n)
   }
  
  return ret;
+}
+/**********************************************************/
+
+Int_t AliHBTReaderESD::GetSpeciesPdgCode(ESpecies spec)//skowron
+{
+  //returns pdg code from the PID index
+  //ask jura about charge
+  switch (spec)
+   {
+     case kESDElectron:
+       return kPositron;
+       break;
+     case kESDMuon:
+       return kMuonPlus;
+       break;
+     case kESDPion:
+       return kPiPlus;
+       break;
+     case kESDKaon:
+       return kKPlus;
+       break;
+     case kESDProton:
+       return kProton;
+       break;
+     default:
+       ::Warning("GetSpeciesPdgCode","Specie with number %d is not defined.",(Int_t)spec);
+       break;
+   }
+  return 0;
 }

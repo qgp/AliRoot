@@ -23,7 +23,7 @@ class AliHBTReaderInternal: public AliHBTReader
     virtual ~AliHBTReaderInternal();
     
     Int_t Read(AliHBTRun* particles, AliHBTRun *tracks);//reads tracks and particles and puts them in runs
-    static Int_t Write(AliHBTReader* reader,const char* outfile = "data.root");//reads tracks from runs and writes them to file
+    static Int_t Write(AliHBTReader* reader,const char* outfile = "data.root", Bool_t multcheck = kFALSE);//reads tracks from runs and writes them to file
     
     AliHBTEvent* GetParticleEvent(Int_t);//returns pointer to event with particles
     AliHBTEvent* GetTrackEvent(Int_t);//returns pointer to event with particles 

@@ -344,9 +344,14 @@ Int_t AliHBTReaderInternal::OpenFile(TFile*& aFile,Int_t event)
 }
 /********************************************************************/
 
-Int_t AliHBTReaderInternal::Write(AliHBTReader* reader,const char* outfile)
+Int_t AliHBTReaderInternal::Write(AliHBTReader* reader,const char* outfile, Bool_t multcheck)
  {
   //reads tracks from reader and writes runs to file
+  //reader - provides data for writing in internal format
+  //name of output file
+  //multcheck - switches of checking if particle was stored with other incarnation
+  // usefull e.g. when using kine data, where all particles have 100% pid prob.and saves a lot of time
+  
   Int_t i,j;
   
   ::Info("AliHBTReaderInternal::Write","________________________________________________________");
@@ -408,14 +413,17 @@ Int_t AliHBTReaderInternal::Write(AliHBTReader* reader,const char* outfile)
          for ( j = 0; j< trackev->GetNumberOfParticles();j++)
           {
             const AliHBTParticle& t = *(trackev->GetParticle(j));
-            if (FindIndex(tbuffer,t.GetUID())) 
-            {
-              if (AliHBTParticle::GetDebug()>4)
-               { 
-                ::Info("Write","Track with Event UID %d already stored",t.GetUID());
+            if (multcheck)
+             {
+              if (FindIndex(tbuffer,t.GetUID())) 
+               {
+                 if (AliHBTParticle::GetDebug()>4)
+                  { 
+                   ::Info("Write","Track with Event UID %d already stored",t.GetUID());
+                  }
+                 continue; //not to write the same particles with other incarnations
                }
-              continue; //not to write the same particles with other incarnations
-            }
+             }
             new (tracks[counter++]) AliHBTParticle(t);
           }
          ::Info("AliHBTReaderInternal::Write","    Tracks: %d",tracks.GetEntries());
@@ -424,20 +432,23 @@ Int_t AliHBTReaderInternal::Write(AliHBTReader* reader,const char* outfile)
       counter = 0;
       if (part && (i<=np))
        {
-        ::Warning("AliHBTReaderInternal::Write","Find index switched off!!!");
+//        ::Warning("AliHBTReaderInternal::Write","Find index switched off!!!");
 
         AliHBTEvent* partev = reader->GetParticleEvent(i);
         for ( j = 0; j< partev->GetNumberOfParticles();j++)
          {
            const AliHBTParticle& part= *(partev->GetParticle(j));
-//           if (FindIndex(pbuffer,part.GetUID())) 
-//            {
-//              if (AliHBTParticle::GetDebug()>4)
-//               { 
-//                ::Info("Write","Particle with Event UID %d already stored",part.GetUID());
-//               }
-//              continue; //not to write the same particles with other incarnations
-//            }
+            if (multcheck)
+             {
+              if (FindIndex(pbuffer,part.GetUID())) 
+               {
+                 if (AliHBTParticle::GetDebug()>4)
+                  { 
+                   ::Info("Write","Particle with Event UID %d already stored",part.GetUID());
+                  }
+                 continue; //not to write the same particles with other incarnations
+               }
+             } 
            new (particles[counter++]) AliHBTParticle(part);
          }
          ::Info("AliHBTReaderInternal::Write","    Particles: %d",particles.GetEntries());
