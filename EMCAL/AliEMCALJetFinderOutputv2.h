@@ -1,5 +1,5 @@
-#ifndef ALIEMCALJETFINDEROUTPUT_H
-#define ALIEMCALJETFINDEROUTPUT_H
+#ifndef ALIEMCALJETFINDEROUTPUTv2_H
+#define ALIEMCALJETFINDEROUTPUTv2_H
 
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  *  *  * See cxx source for full Copyright notice     */
@@ -22,12 +22,12 @@
 #include "AliEMCALJet.h"
 #include "AliEMCALJetFinderTypes.h"
 
-class AliEMCALJetFinderOutput : public TObject
+class AliEMCALJetFinderOutputv2 : public TObject
 {
 		
 	public:
-		AliEMCALJetFinderOutput();
-		~AliEMCALJetFinderOutput();
+		AliEMCALJetFinderOutputv2();
+		~AliEMCALJetFinderOutputv2();
 		void Reset(AliEMCALJetFinderResetType_t resettype);
 		void AddJet(AliEMCALJet *jet); 
 		void AddParton(AliEMCALParton *parton);
@@ -54,6 +54,6 @@ class AliEMCALJetFinderOutput : public TObject
                 Int_t           fDebug;			// Debug level
 		Bool_t 		fInitialised;		// stores whether or not the arrays have been initialised
 		
-	ClassDef(AliEMCALJetFinderOutput,1)
+	ClassDef(AliEMCALJetFinderOutputv2,1)
 };
 #endif

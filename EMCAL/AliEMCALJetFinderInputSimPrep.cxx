@@ -14,7 +14,14 @@
  **************************************************************************/
 
 
-/* $Id$ */
+/*
+ 
+$Log$
+Revision 1.1.1.1  2003/05/29 18:56:43  horner
+Initial import - Mark
+
+ 
+*/
 
 //_________________________________________________________________________
 //  Class for JetFinder Input preparation from simulated data 
@@ -92,15 +99,7 @@ if (fDebug > 1) Info("Reset","Beginning Reset");
 		fTrackType = kCharged;
 		fInputObject.Reset(resettype);
 		break;
-	case kResetPartons:
-	  Warning("FillFromFile", "kResetPartons not implemented") ; 
-	  break;
-	case kResetParticles:
-	  Warning("FillFromFile", "kResetParticles not implemented") ; 
-	  break;
-	case kResetJets:
-	  Warning("FillFromFile", "kResetJets not implemented") ; 
-	  break;
+
 	}// end switch
 
 }
@@ -125,9 +124,13 @@ if (fDebug > 1) Info("FillFromFile","Beginning FillFromFile");
 	   file.Close();
 	   return -1;
    }*/
-   AliEMCALGetter *gime = AliEMCALGetter::Instance(filename->Data());
-   gime->Event(EventNumber) ;
- 
+   AliEMCALGetter *gime = AliEMCALGetter::GetInstance(filename->Data());
+   if (gAlice->GetEvent(EventNumber) < 0){
+	   Error("FillFromFile","Could not open event in FillFromFile");
+	   //gime->CloseFile();
+	   return -1;
+   }
+   
    if (	fEMCALType == kHits ||
 	fEMCALType == kTimeCut )  FillHits();
    if ( fTrackType != kNoTracks  )  FillTracks();	
@@ -149,11 +152,11 @@ if (fDebug > 1) Info("FillHits","Beginning FillHits");
     AliEMCALHit *mHit;
     AliEMCAL* pEMCAL = (AliEMCAL*) gAlice->GetModule("EMCAL");
     Info("AliEMCALJetFinderInputSimPrep","Title of the geometry is %s",pEMCAL->GetTitle());
-    AliEMCALGeometry* geom =  AliEMCALGetter::Instance()->EMCALGeometry();
+    AliEMCALGeometry* geom =  AliEMCALGeometry::GetInstance(pEMCAL->GetTitle(),"");
 //    Float_t samplingF = geom->GetSampling();
     Float_t samplingF = 11.6;
     Info("AliEMCALJetFinderInputSimPrep","Sampling fraction is %f",samplingF);  
-    TTree *treeH = AliEMCALGetter::Instance()->TreeH();
+    TTree *treeH = gAlice->TreeH();
     Int_t ntracks = (Int_t) treeH->GetEntries();
 //
 //   Loop over tracks
@@ -281,8 +284,8 @@ void AliEMCALJetFinderInputSimPrep::FillTracks()	// Fill from particles simulati
 	   break;
 	   case kEM:   // All Electromagnetic particles
 		if (MPart->GetPdgCode() == kElectron  ||
-                    MPart->GetPdgCode() == kMuonPlus  || 
                     MPart->GetPdgCode() == kMuonMinus ||
+                    MPart->GetPdgCode() == kMuonPlus  ||
 		    MPart->GetPdgCode() == kPositron ){
 		      if (fDebug > 5) Info("FillTracks","Storing electron or positron");
 	 	      if (fSmearType == kSmear ||
@@ -324,8 +327,8 @@ void AliEMCALJetFinderInputSimPrep::FillTracks()	// Fill from particles simulati
 	   case kHadron: //All hadrons
 		if (MPart->GetPdgCode() != kElectron  &&
                     MPart->GetPdgCode() != kPositron  &&
-                    MPart->GetPdgCode() != kMuonPlus  &&
                     MPart->GetPdgCode() != kMuonMinus &&
+                    MPart->GetPdgCode() != kMuonPlus  &&
                     MPart->GetPdgCode() != kGamma ) 
 		{
 			if (fDebug > 5) Info("FillTracks","Storing hadron");
@@ -347,9 +350,9 @@ void AliEMCALJetFinderInputSimPrep::FillTracks()	// Fill from particles simulati
 	   case kChargedHadron:  // only charged hadrons
 		if (MPart->GetPdgCode() != kElectron  &&
                     MPart->GetPdgCode() != kPositron  &&
-                    MPart->GetPdgCode() != kGamma     &&
-                    MPart->GetPdgCode() != kMuonPlus  &&
                     MPart->GetPdgCode() != kMuonMinus &&
+                    MPart->GetPdgCode() != kMuonPlus  &&
+                    MPart->GetPdgCode() != kGamma     &&
 		    pdgP->Charge() 	!= 0   	   ){
 			if (fDebug > 5) Info("FillTracks","Storing charged hadron");
 		       	if (fSmearType == kSmear ||
@@ -443,8 +446,10 @@ if (fDebug > 1) Info("FillParticles","Beginning FillParticles");
 		fInputObject.AddParticle(MPart);
 	   break;
 	   case kEM:   // All Electromagnetic particles
-		if (MPart->GetPdgCode() == kElectron ||
-		    MPart->GetPdgCode() == kPositron ||
+		if (MPart->GetPdgCode() == kElectron  ||
+		    MPart->GetPdgCode() == kPositron  ||
+		    MPart->GetPdgCode() == kMuonPlus  ||
+		    MPart->GetPdgCode() == kMuonMinus ||
 		    MPart->GetPdgCode() == kGamma){
 			if (fDebug > 5) Info("FillParticles","Storing electromagnetic particle");
 			fInputObject.AddParticle(MPart);
@@ -463,8 +468,10 @@ if (fDebug > 1) Info("FillParticles","Beginning FillParticles");
 		}
 	   break;
 	   case kHadron: //All hadrons
-		if (MPart->GetPdgCode() != kElectron &&
-                    MPart->GetPdgCode() != kPositron &&
+		if (MPart->GetPdgCode() != kElectron  &&
+                    MPart->GetPdgCode() != kPositron  &&
+                    MPart->GetPdgCode() != kMuonPlus  &&
+                    MPart->GetPdgCode() != kMuonMinus &&
                     MPart->GetPdgCode() != kGamma ) 
 		{
 
@@ -473,9 +480,11 @@ if (fDebug > 1) Info("FillParticles","Beginning FillParticles");
 		}
 	   break;
 	   case kChargedHadron:  // only charged hadrons
-		if (MPart->GetPdgCode() != kElectron &&
-                    MPart->GetPdgCode() != kPositron &&
-                    MPart->GetPdgCode() != kGamma    &&
+		if (MPart->GetPdgCode() != kElectron  &&
+                    MPart->GetPdgCode() != kPositron  &&
+                    MPart->GetPdgCode() != kMuonPlus  &&
+                    MPart->GetPdgCode() != kMuonMinus &&
+                    MPart->GetPdgCode() != kGamma     &&
 		    pdgP->Charge() 	!= 0   	   ){
 		if (fDebug > 5) Info("FillParticles","Storing charged hadron");
 	               fInputObject.AddParticle(MPart);

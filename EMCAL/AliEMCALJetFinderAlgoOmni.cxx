@@ -17,7 +17,14 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/* $Id$ */
+/*
+ 
+$Log$
+
+
+
+*/
+
 
 //*--Author: Sarah Blyth (LBL)
 //*--Based on UA1 jet algorithm from LUND JETSET called from EMC-erj
@@ -30,7 +37,6 @@
 #include "AliEMCALJetFinderAlgoUA1Unit.h"
 #include "AliEMCALGeometry.h"
 #include "AliEMCAL.h"
-#include "AliEMCALGetter.h"
 #include "AliEMCALDigit.h"
 #include "TParticle.h"
 #include "AliRun.h"
@@ -50,7 +56,7 @@ if (fDebug>0) Info("AliEMCALJetFinderAlgoOmni","Beginning Default Constructor");
   fESeed             = 5.0;       //Default value
   fConeRad           = 0.3;       //Default value
   fJetEMin           = 10.0;      //Default value
-  fEtMin             = 0.28;      //Default value
+  fEtMin             = 0.0;      //Default value
   fMinMove           = 0.05;      //From original UA1 JetFinder
   fMaxMove           = 0.15;      //From original UA1 JetFinder
   fBGMaxMove         = 0.035;     //From original UA1 JetFinder
@@ -135,15 +141,14 @@ if (fDebug>0) Info("AliEMCALJetFinderAlgoOmni","Beginning Default Constructor");
  void AliEMCALJetFinderAlgoOmni::FillUnitArray(AliEMCALJetFinderAlgoUA1FillUnitFlagType_t flag)
    {
      if (fDebug>1) Info("FillUnitArray","Beginning FillUnitArray");
-     //     AliEMCAL* pEMCAL = (AliEMCAL*) gAlice->GetModule("EMCAL");
+     AliEMCAL* pEMCAL = (AliEMCAL*) gAlice->GetModule("EMCAL");
 
          //   if (pEMCAL){ 
          //	     AliEMCALGeometry* geom =  AliEMCALGeometry::GetInstance(pEMCAL->GetTitle(), "");
          //     }else
          //    {
-     //AliEMCALGeometry* geom =  AliEMCALGeometry::GetInstance("EMCAL_5655_21", "");
-     AliEMCALGeometry* geom = AliEMCALGetter::Instance()->EMCALGeometry() ; 
-       //    }
+     AliEMCALGeometry* geom =  AliEMCALGeometry::GetInstance("EMCAL_5655_21", "");
+        //    }
          
      AliEMCALJetFinderAlgoUA1FillUnitFlagType_t option = flag;
      Int_t         numTracks, numDigits;
@@ -170,17 +175,20 @@ if (fDebug>0) Info("AliEMCALJetFinderAlgoOmni","Beginning Default Constructor");
 	     Float_t unitEnergy = fUnit[towerID-1].GetUnitEnergy(); 
 	     Float_t unitEnergyNoCuts = fUnitNoCuts[towerID-1].GetUnitEnergy();
 
-	     /*
-	     //OLD WAY:   	     //Do Hadron Correction
+	     
+	     //OLD WAY:   //Do Hadron Correction
               if(fHadCorr != 0)
 	       {
 		 Double_t   fullP = myPart->P();
 		 Double_t   hCEnergy = fHadCorr->GetEnergy(fullP, (Double_t)eta);
 		 unitEnergy -= hCEnergy*TMath::Sin(myPart->Theta());
+		 unitEnergyNoCuts -= hCEnergy*TMath::Sin(myPart->Theta());
 		 fUnit[towerID-1].SetUnitEnergy(unitEnergy);
+		 fUnitNoCuts[towerID-1].SetUnitEnergy(unitEnergyNoCuts);
 	       } //end Hadron Correction loop 
-	     */	     
-            
+	      
+    
+	     /*
 	      //Do Hadron Correction with propagate phi for the track
 	      if(fHadCorr != 0)
 		{
@@ -218,6 +226,7 @@ if (fDebug>0) Info("AliEMCALJetFinderAlgoOmni","Beginning Default Constructor");
 		      fUnitNoCuts[towerID2-1].SetUnitEnergy(unitEnergy2NoCuts);
 		    }//end if for towerID2
 		}//end Hadron Correction loop
+	     */
 
 	      fUnitNoCuts[towerID-1].SetUnitEnergy(unitEnergyNoCuts + pT);
 	     //Do Pt cut on tracks

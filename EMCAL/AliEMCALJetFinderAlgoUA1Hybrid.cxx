@@ -19,7 +19,18 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/* $Id$ */
+/*
+ 
+$Log$
+Revision 1.3  2003/06/18 17:00:25  horner
+Cleaned up more cout statements - Mark
+
+Revision 1.2  2003/06/18 00:20:07  horner
+Removed cout statement - Mark
+
+
+*/
+
 
 //*--Author: Sarah Blyth (LBL)
 //*--Based on UA1 jet algorithm from LUND JETSET called from EMC-erj
@@ -32,7 +43,6 @@
 #include "AliEMCALJetFinderAlgoUA1Unit.h"
 #include "AliEMCALGeometry.h"
 #include "AliEMCAL.h"
-#include "AliEMCALGetter.h"
 #include "AliEMCALDigit.h"
 #include "TParticle.h"
 #include "AliRun.h"
@@ -133,16 +143,14 @@ if (fDebug>0) Info("AliEMCALJetFinderAlgoUA1Hybrid","Beginning Default Construct
  void AliEMCALJetFinderAlgoUA1Hybrid::FillUnitArray(AliEMCALJetFinderAlgoUA1FillUnitFlagType_t flag)
    {
      if (fDebug>1) Info("FillUnitArray","Beginning FillUnitArray");
-     //AliEMCAL* pEMCAL = (AliEMCAL*) gAlice->GetModule("EMCAL");
+     AliEMCAL* pEMCAL = (AliEMCAL*) gAlice->GetModule("EMCAL");
 
          //   if (pEMCAL){ 
          //	     AliEMCALGeometry* geom =  AliEMCALGeometry::GetInstance(pEMCAL->GetTitle(), "");
          //     }else
          //    {
-     //AliEMCALGeometry* geom =  AliEMCALGeometry::GetInstance("EMCAL_5655_21", "");
-     AliEMCALGeometry* geom = AliEMCALGetter::Instance()->EMCALGeometry() ; 
-	  
-     //    }
+     AliEMCALGeometry* geom =  AliEMCALGeometry::GetInstance("EMCAL_5655_21", "");
+        //    }
          
      AliEMCALJetFinderAlgoUA1FillUnitFlagType_t option = flag;
      Int_t         numTracks, numDigits;

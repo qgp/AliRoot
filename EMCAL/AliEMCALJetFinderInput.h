@@ -58,6 +58,6 @@ class AliEMCALJetFinderInput : public TObject
 		Int_t		fDebug;		// This is the debug value 
 		Bool_t		fInitialised;	// Stores whether or not the arrays have been initialised 
 		
-	ClassDef(AliEMCALJetFinderInput,2)
+	ClassDef(AliEMCALJetFinderInput,1)
 };
 #endif

@@ -35,13 +35,13 @@ $Log$
 //.....................
 #include "AliEMCALJet.h"
 #include "AliEMCALParton.h"
-#include "AliEMCALJetFinderOutput.h"
+#include "AliEMCALJetFinderOutputv2.h"
 #include "AliEMCALJetFinderInput.h"
 
-ClassImp(AliEMCALJetFinderOutput)
+ClassImp(AliEMCALJetFinderOutputv2)
 
 //________________________________________________________________________
-AliEMCALJetFinderOutput::AliEMCALJetFinderOutput(){ 
+AliEMCALJetFinderOutputv2::AliEMCALJetFinderOutputv2(){ 
 	fNMaxJets=10;
 	fNMaxParticles=2000;
 	fNMaxPartons=4;
@@ -51,24 +51,24 @@ AliEMCALJetFinderOutput::AliEMCALJetFinderOutput(){
 	fNParticles=0;
 								
 
-if (fDebug>0) Info("AliEMCALJetFinderOutput","Beginning Constructor");
+if (fDebug>0) Info("AliEMCALJetFinderOutputv2","Beginning Constructor");
 
 } //________________________________________________________________________
-void AliEMCALJetFinderOutput::InitArrays()
+void AliEMCALJetFinderOutputv2::InitArrays()
 {
 	
-if (fDebug>1) Info("AliEMCALJetFinderOutput","Beginning InitArrays");
+if (fDebug>1) Info("AliEMCALJetFinderOutputv2","Beginning InitArrays");
 
 }
 
 //_______________________________________________________________________
-AliEMCALJetFinderOutput::~AliEMCALJetFinderOutput()
+AliEMCALJetFinderOutputv2::~AliEMCALJetFinderOutputv2()
 {
-if (fDebug>0) Info("~AliEMCALJetFinderOutput","Beginning Destructor");
+if (fDebug>0) Info("~AliEMCALJetFinderOutputv2","Beginning Destructor");
 }
 
 //_______________________________________________________________________
-void AliEMCALJetFinderOutput::Reset(AliEMCALJetFinderResetType_t resettype)
+void AliEMCALJetFinderOutputv2::Reset(AliEMCALJetFinderResetType_t resettype)
 {
 if (fDebug>1) Info("Reset","Beginning Reset");
 if (!fInitialised) InitArrays();
@@ -89,7 +89,7 @@ if (!fInitialised) InitArrays();
  }
 }
 //________________________________________________________________________
-void AliEMCALJetFinderOutput::AddJet(AliEMCALJet* jet)
+void AliEMCALJetFinderOutputv2::AddJet(AliEMCALJet* jet)
 {
 if (fDebug>1) Info("AddJet","Beginning AddJet");
 if (!fInitialised) InitArrays();
@@ -107,7 +107,7 @@ if (!fInitialised) InitArrays();
 
 
 //_______________________________________________________________________
-void AliEMCALJetFinderOutput::AddParton(AliEMCALParton* parton)
+void AliEMCALJetFinderOutputv2::AddParton(AliEMCALParton* parton)
 {
 if (fDebug>1) Info("AddParton","Beginning AddParton");
 if (!fInitialised) InitArrays();
@@ -123,7 +123,7 @@ if (!fInitialised) InitArrays();
 }
 
 //_______________________________________________________________________
-void AliEMCALJetFinderOutput::AddParticle(TParticle* particle)
+void AliEMCALJetFinderOutputv2::AddParticle(TParticle* particle)
 {
 if (fDebug>1) Info("AddParticle","Beginning AddParticle");
 if (!fInitialised) InitArrays();
@@ -138,7 +138,7 @@ if (!fInitialised) InitArrays();
 }
 
 //______________________________________________________________________
-AliEMCALJet* AliEMCALJetFinderOutput::GetJet(Int_t jetID)
+AliEMCALJet* AliEMCALJetFinderOutputv2::GetJet(Int_t jetID)
 {
 if (fDebug>1) Info("GetJet","Beginning GetJet");
 	
@@ -148,7 +148,7 @@ if (fDebug>1) Info("GetJet","Beginning GetJet");
 }
 
 //______________________________________________________________________
-AliEMCALParton* AliEMCALJetFinderOutput::GetParton(Int_t partonID)
+AliEMCALParton* AliEMCALJetFinderOutputv2::GetParton(Int_t partonID)
 {
 if (fDebug>1) Info("GetParton","Beginning GetParton");
 
@@ -157,7 +157,7 @@ if (fDebug>1) Info("GetParton","Beginning GetParton");
 }
 
 //______________________________________________________________________
-TParticle* AliEMCALJetFinderOutput::GetParticle(Int_t particleID)
+TParticle* AliEMCALJetFinderOutputv2::GetParticle(Int_t particleID)
 {
 if (fDebug>1) Info("GetParticle","Beginning GetParticle");
 

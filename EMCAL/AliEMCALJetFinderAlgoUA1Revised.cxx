@@ -17,7 +17,12 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/* $Id$ */
+/*
+ 
+$Log$
+
+*/
+
 
 //*--Author: Sarah Blyth (LBL)
 //*--Based on UA1 jet algorithm from LUND JETSET called from EMC-erj
@@ -30,7 +35,6 @@
 #include "AliEMCALJetFinderAlgoUA1Unit.h"
 #include "AliEMCALGeometry.h"
 #include "AliEMCAL.h"
-#include "AliEMCALGetter.h"
 #include "AliEMCALDigit.h"
 #include "TParticle.h"
 #include "AliRun.h"
@@ -131,15 +135,13 @@ if (fDebug>0) Info("AliEMCALJetFinderAlgoUA1Revised","Beginning Default Construc
  void AliEMCALJetFinderAlgoUA1Revised::FillUnitArray(AliEMCALJetFinderAlgoUA1FillUnitFlagType_t flag)
    {
      if (fDebug>1) Info("FillUnitArray","Beginning FillUnitArray");
-     //AliEMCAL* pEMCAL = (AliEMCAL*) gAlice->GetModule("EMCAL");
+     AliEMCAL* pEMCAL = (AliEMCAL*) gAlice->GetModule("EMCAL");
 
          //   if (pEMCAL){ 
          //	     AliEMCALGeometry* geom =  AliEMCALGeometry::GetInstance(pEMCAL->GetTitle(), "");
          //     }else
          //    {
-     //AliEMCALGeometry* geom =  AliEMCALGeometry::GetInstance("EMCAL_5655_21", "");
-     AliEMCALGeometry* geom = AliEMCALGetter::Instance()->EMCALGeometry() ; 
-
+     AliEMCALGeometry* geom =  AliEMCALGeometry::GetInstance("EMCAL_5655_21", "");
         //    }
          
      AliEMCALJetFinderAlgoUA1FillUnitFlagType_t option = flag;

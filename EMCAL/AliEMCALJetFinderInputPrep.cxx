@@ -13,7 +13,14 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/* $Id$ */
+/*
+ 
+$Log$
+Revision 1.1.1.1  2003/05/29 18:56:38  horner
+Initial import - Mark
+
+ 
+*/
 
 //_________________________________________________________________________
 //  Base Class for JetFinder Input Preparation
@@ -71,15 +78,6 @@ if (fDebug > 1) Info("Reset","Beginning Reset");
 		case kResetAll:
 			fInputObject.Reset(kResetAll);
 			break;
-	        case kResetPartons:
-		  Warning("FillFromFile", "kResetPartons not implemented") ; 
-		  break;
-	       case kResetParticles:
-		 Warning("FillFromFile", "kResetParticles not implemented") ; 
-		 break;
-	       case kResetJets:
-		 Warning("FillFromFile", "kResetJets not implemented") ; 
-		 break;
 	}// end switch
 
 }

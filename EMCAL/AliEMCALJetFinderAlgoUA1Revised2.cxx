@@ -17,7 +17,12 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/* $Id$ */
+/*
+ 
+$Log$
+
+*/
+
 
 //*--Author: Sarah Blyth (LBL)
 //*--Based on UA1 jet algorithm from LUND JETSET called from EMC-erj

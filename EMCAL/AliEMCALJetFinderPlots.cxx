@@ -463,4 +463,28 @@ if (fOutput->GetNJets()>1)
   }
 }
 
+/*
+	
+	//============================== CASE 2 ============================================
+
+	TH1F				*hFragmFcn2;	// ("hFragmFcn2","Fragmentation Function",100,0,1);
+	TH1F				*hPartonFragmFcn2;// ("hFragmFcn2","Parton Fragmentation Function",100,0,1);
+	TH1F				*hPartonJT2;	// ("hPartonJT2","Track Momentum Perpendicular to Parton Axis",100,0.,10.);
+	TH1F				*hPartonPL2;	// ("hPartonPL2","Track Momentum Parallel to Parton Axis ",100,0.,100.);
+	TH1F				*hJetJT2;	// ("hJetJT2","Track Momentum Perpendicular to Jet Axis",100,0.,10.);
+	TH1F				*hJetPL2;	// ("hJetPL2","Track Momentum Parallel to Jet Axis ",100,0.,100.);
+	TH1F				*hJetEt2;	// ("hJetEt2","E_{T}^{reco}",250,0.,250.);
+	TH1F				*hJetEta2;	// ("hJetEta2","#eta_{jet}^{reco}",180,-0.9,0.9);
+	TH1F				*hJetPhi2;	// ("hJetPhi2","#phi_{jet}^{reco}",62,0.,3.1);
+	TH1F				*hPartonEta2;	// ("hPartonEta2","#eta_{Parton}",180,-0.9,0.9);
+	TH1F				*hPartonPhi2;	// ("hPartonPhi2","#phi_{Parton}",62,0.,3.1);
+	TH1F				*hEtaDiff2;	// ("hEtaDiff2","#eta_{jet}^{reco}-#eta_{jet}^{input}",100,-0.5,0.5);
+	TH1F				*hPhiDiff2;	// ("hPhiDiff2","#phi_{jet}^{reco}-#phi_{jet}^{input}",100,-0.5,0.5);
+	TH2F				*hEtaPhiSpread2;	// ("hEtaPhiSpread2","#eta - #phi Distribution 
+							//of Reconstructed Jets",192,-0.7,0.7,288,pi/3,pi);
+	TH1F				*hNJets2;	// ("hNJets2","N Reconstructed jets",11,-0.5,10.5);
+	TH1F				*hJetEtSecond2; //("hJetEtSecond2","E_{T}^{reco}",250,0.,250.); 
+	TH1F				*hJetEtRatio2;  //("hJetEtRatio2","Ratio of Second Highest to Highest",100,0,1);
+	TH1F 				*hEtaPhiDist2;  //("hEtaPhiDist2","Angular Distance Between First and Second",100,0,3);
+*/
 
