@@ -453,8 +453,13 @@ Int_t AliITStrackerSA::FindTracks(AliESD* event){
       AliITSclusterV2* cl = (AliITSclusterV2*)layer.GetCluster(ncl);
       if(cl==0) continue;
       if(cl->IsUsed()==1) continue;
+      if (cl->GetQ()<=0) continue;
+      
       fPhic = fTable->GetPhiCluster(0,ncl);
       fLambdac = fTable->GetLambdaCluster(0,ncl);
+
+      if (TMath::Abs(fLambdac)>0.26*TMath::Pi()) continue;
+
       fPhiEstimate = fPhic;
       AliITStrackSA* trs = new AliITStrackSA();      
       fPoint1[0]=primaryVertex[0];
