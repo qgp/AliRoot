@@ -142,6 +142,47 @@ AliHBTMonThetaDistributionVsPtFctn(Int_t nXbins, Double_t maxXval, Double_t minX
  Rename("ThetaDistVsPt","Theta vs. Pt");
 }
 /******************************************************************/
+
+ClassImp(AliHBTMonVxDistributionFctn)
+
+AliHBTMonVxDistributionFctn::
+AliHBTMonVxDistributionFctn(Int_t nbins, Double_t maxXval, Double_t minXval):
+                        AliHBTMonOneParticleFctn1D(nbins,maxXval,minXval)
+{
+  Rename("Vx","X of Vertex");
+}
+/******************************************************************/
+
+ClassImp(AliHBTMonVyDistributionFctn)
+
+AliHBTMonVyDistributionFctn::
+AliHBTMonVyDistributionFctn(Int_t nbins, Double_t maxXval, Double_t minXval):
+                        AliHBTMonOneParticleFctn1D(nbins,maxXval,minXval)
+{
+  Rename("Vy","Y of Vertex");
+}
+/******************************************************************/
+
+ClassImp(AliHBTMonVzDistributionFctn)
+
+AliHBTMonVzDistributionFctn::
+AliHBTMonVzDistributionFctn(Int_t nbins, Double_t maxXval, Double_t minXval):
+                        AliHBTMonOneParticleFctn1D(nbins,maxXval,minXval)
+{
+  Rename("Vz","Z of Vertex");
+}
+/******************************************************************/
+ClassImp(AliHBTMonRDistributionFctn)
+
+AliHBTMonRDistributionFctn::
+AliHBTMonRDistributionFctn(Int_t nbins, Double_t maxXval, Double_t minXval):
+                        AliHBTMonOneParticleFctn1D(nbins,maxXval,minXval)
+{
+  Rename("VertexDistanceFromCenter","Distance of Particle Vertex From Center");
+}
+
+
+/******************************************************************/
 /******************************************************************/
 
 

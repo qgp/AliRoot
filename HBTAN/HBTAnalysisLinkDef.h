@@ -112,6 +112,10 @@
 #pragma link C++ class AliHBTMonPtDistributionFctn+;
 #pragma link C++ class AliHBTMonPhiDistributionFctn+;
 #pragma link C++ class AliHBTMonThetaDistributionFctn+;
+#pragma link C++ class AliHBTMonVxDistributionFctn+;
+#pragma link C++ class AliHBTMonVyDistributionFctn+;
+#pragma link C++ class AliHBTMonVzDistributionFctn+;
+#pragma link C++ class AliHBTMonRDistributionFctn+;
 
 #pragma link C++ class AliHBTMonPxDistributionVsPtFctn+;
 #pragma link C++ class AliHBTMonPyDistributionVsPtFctn+;

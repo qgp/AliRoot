@@ -14,6 +14,11 @@ class AliHBTMonPDistributionFctn;
 class AliHBTMonPDistributionVsPtFctn;
 class AliHBTMonPtDistributionFctn;
 
+class AliHBTMonVxDistributionFctn;
+class AliHBTMonVyDistributionFctn;
+class AliHBTMonVzDistributionFctn;
+class AliHBTMonRDistributionFctn;
+
 #include "AliHBTMonitorFunction.h"
 /***********************************************************************/
 /***********************************************************************/
@@ -221,7 +226,7 @@ class AliHBTMonPhiDistributionVsPtFctn: public AliHBTMonOneParticleFctn2D
 
 /***********************************************************************/
 class AliHBTMonThetaDistributionVsPtFctn: public AliHBTMonOneParticleFctn2D
- {
+{
   public: 
    AliHBTMonThetaDistributionVsPtFctn(Int_t nXbins = 200, Double_t maxXval = 1.4, Double_t minXval = -0.1, 
                              Int_t nYbins = 200, Double_t maxYval = 3.14, Double_t minYval =0.0);
@@ -233,13 +238,56 @@ class AliHBTMonThetaDistributionVsPtFctn: public AliHBTMonOneParticleFctn2D
       y = partparticle->Theta();
     }
    TH1* GetResult(){return fResult;} 
-  protected:
-  private:
-  public:
+ protected:
+ private:
    ClassDef(AliHBTMonThetaDistributionVsPtFctn,1)
  };
 
 /***********************************************************************/
+class AliHBTMonVxDistributionFctn: public AliHBTMonOneParticleFctn1D
+{
+ public:
+   AliHBTMonVxDistributionFctn(Int_t nbins = 200, Double_t maxXval = 500, Double_t minXval = -500);
+   virtual ~AliHBTMonVxDistributionFctn(){};
+   TH1* GetResult(){return fResult;}
+ protected:
+   Double_t GetValue(AliHBTParticle * particle) { return particle->Vx();}
+   ClassDef(AliHBTMonVxDistributionFctn,1)
+};
+/***********************************************************************/
+class AliHBTMonVyDistributionFctn: public AliHBTMonOneParticleFctn1D
+{
+ public:
+   AliHBTMonVyDistributionFctn(Int_t nbins = 200, Double_t maxXval = 500, Double_t minXval = -500);
+   virtual ~AliHBTMonVyDistributionFctn(){};
+   TH1* GetResult(){return fResult;}
+ protected:
+   Double_t GetValue(AliHBTParticle * particle) { return particle->Vy();}
+   ClassDef(AliHBTMonVyDistributionFctn,1)
+};
+/***********************************************************************/
+class AliHBTMonVzDistributionFctn: public AliHBTMonOneParticleFctn1D
+{
+ public:
+   AliHBTMonVzDistributionFctn(Int_t nbins = 200, Double_t maxXval = 300, Double_t minXval = -300);
+   virtual ~AliHBTMonVzDistributionFctn(){};
+   TH1* GetResult(){return fResult;}
+ protected:
+   Double_t GetValue(AliHBTParticle * particle) { return particle->Vz();}
+   ClassDef(AliHBTMonVzDistributionFctn,1)
+};
+/***********************************************************************/
+class AliHBTMonRDistributionFctn: public AliHBTMonOneParticleFctn1D
+{
+ public:
+   AliHBTMonRDistributionFctn(Int_t nbins = 200, Double_t maxXval = 500, Double_t minXval = -500);
+   virtual ~AliHBTMonRDistributionFctn(){};
+   TH1* GetResult(){return fResult;}
+ protected:
+   Double_t GetValue(AliHBTParticle * p) { return TMath::Sqrt(p->Vx()*p->Vx() + p->Vy()*p->Vy() + p->Vz()*p->Vz());}
+   ClassDef(AliHBTMonRDistributionFctn,1)
+};
+
 /***********************************************************************/
 /***********************************************************************/
 /***********************************************************************/
