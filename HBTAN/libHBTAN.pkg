@@ -10,7 +10,8 @@ AliHBTTwoTrackEffFctn.cxx       AliHBTReaderInternal.cxx\
 AliHBTQResolutionFctns.cxx      AliHBTQDistributionFctns.cxx    \
 AliHBTLLWeights.cxx             AliHBTLLWeightFctn.cxx\
 AliHBTMonDistributionFctns.cxx     AliHBTMonResolutionFctns.cxx \
-AliHBTLLWeightsPID.cxx AliHBTLLWeightTheorFctn.cxx
+AliHBTLLWeightsPID.cxx AliHBTLLWeightTheorFctn.cxx \
+AliHBTReaderTOFpid.cxx
 
 FSRCS   = fsiini.F  fsiw.F  led_bldata.F  ltran12.F
 
@@ -18,6 +19,6 @@ HDRS:= $(SRCS:.cxx=.h)
 
 DHDR= HBTAnalysisLinkDef.h
 
-EINCLUDE:= TPC CONTAINERS ITS
+EINCLUDE:= TPC CONTAINERS ITS TOF
 
 
