@@ -122,7 +122,7 @@ AliMUONTriggerDecision::~AliMUONTriggerDecision()
 {
 // Destructor
   if (fTriggerCircuit){
-    fTriggerCircuit->Delete();
+    fTriggerCircuit->Clear();// Sets pointers to 0 since it is not the owner
     delete fTriggerCircuit;
   } 
   if (fMUONData)

@@ -113,7 +113,7 @@ AliMUONClusterReconstructor & AliMUONClusterReconstructor::operator=(const AliMU
 AliMUONClusterReconstructor::~AliMUONClusterReconstructor(void)
 {
   if (fChambers){
-    fChambers->Delete();
+    fChambers->Clear(); // Sets pointers to 0 since it is not the owner
     delete fChambers;
   } 
   if (fMUONData)
