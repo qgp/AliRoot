@@ -168,11 +168,31 @@ Int_t AliReaderAOD::ReadRecAndSim()
      }
 
     Int_t npart = fRecBuffer->GetNumberOfParticles();
+    
+    if (npart != fSimBuffer->GetNumberOfParticles())
+     {
+       Error("ReadRecAndSim","There is different number of simulated and reconstructed particles!",
+                              fSimBuffer->GetNumberOfParticles(),npart);
+       return 1;
+     } 
     for (Int_t i = 0; i < npart; i++)
      {
        AliVAODParticle* prec = fRecBuffer->GetParticle(i);
-       if (Rejected(prec)) continue;//we make cuts only on simulated data
-
+       AliVAODParticle* psim = fSimBuffer->GetParticle(i);
+       
+       if (prec == 0x0)
+        {
+          Error("ReadRecAndSim","Reconstructed Particle is NULL !!!");
+          continue;
+        }
+       if (psim == 0x0)
+        {
+          Error("ReadRecAndSim","Simulated Particle is NULL !!!");
+          continue;
+        }
+       
+       if (Rejected(prec)) continue;//we make cuts only on reconstructed data
+       
        fEventRec->AddParticle(prec);
        fEventSim->AddParticle( fSimBuffer->GetParticle(i));
      }
