@@ -230,12 +230,12 @@ Int_t AliConfig::AddSubTask(const char *taskname, const char* name,const char* t
 //Create new task named 'name' and titled 'title' 
 //as a subtask of the task named 'taskname'
 
-   if (AliLoader::AliLoader::fgDebug) Info("AddSubTask","Try to get folder named %s",taskname);
+   if (AliLoader::fgDebug) Info("AddSubTask","Try to get folder named %s",taskname);
    TObject* obj = fTopFolder->FindObject(taskname);
    TTask * task = (obj)?dynamic_cast<TTask*>(obj):0x0;
    if (task)
      {
-      if (AliLoader::AliLoader::fgDebug) Info("AddSubTask","          Got");
+      if (AliLoader::fgDebug) Info("AddSubTask","          Got");
       TTask * subtask = static_cast<TTask*>(task->GetListOfTasks()->FindObject(name));
       if (!subtask) 
         {
@@ -292,7 +292,7 @@ void AliConfig::Add(AliModule* obj,const char* eventfolder)
   
   TString path(eventfolder);
   path = path + "/" + fgkModuleFolderName;
-  if (AliLoader::AliLoader::fgDebug)
+  if (AliLoader::fgDebug)
     Info("Add(AliModule*)","module name = %s, Ev. Fold. Name is %s.",
          obj->GetName(),eventfolder);
   AddInFolder(path, obj);
@@ -335,7 +335,7 @@ Int_t AliConfig::AddDetector(const char* evntfoldername,const char *name, const 
 
 void  AliConfig::Add(AliDetector * obj,const char* eventfolder)
 {
-  if (AliLoader::AliLoader::fgDebug) 
+  if (AliLoader::fgDebug) 
     Info("Add(AliDetector*)","detector name = %s, Ev. Fold. Name is %s.",
         obj->GetName(),eventfolder);
 

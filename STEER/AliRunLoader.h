@@ -35,7 +35,7 @@ class TTask;
 class TParticle;
 
 class AliRun;
-class AliLoader;
+#include "AliLoader.h"
 class AliDetector;
 class AliHeader;
 #include "AliStack.h"
@@ -143,7 +143,7 @@ class AliRunLoader: public TNamed
                                                                //made on Jiri Chudoba demand
     TString     GetFileName() const;//returns name of galice file
     const TObjArray* GetArrayOfLoaders() const {return fLoaders;}
-    Int_t GetDebug() const {return (Int_t)AliLoader::AliLoader::fgDebug;}
+    Int_t GetDebug() const {return (Int_t)AliLoader::fgDebug;}
     void cd(){fgRunLoader = this;}
 
   protected:
