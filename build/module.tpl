@@ -246,3 +246,32 @@ ifndef ALIQUIET
 endif
 		@(if [ ! -d '$(dir $@)' ]; then echo "***** Making directory $(dir $@) *****"; mkdir -p $(dir $@); fi;)
 		@share/alibtool depend "$(@PACKAGE@DEFINE) $(@PACKAGE@ELIBSDIR) $(@PACKAGE@INC) $(DEPINC) $<" > $@
+
+@PACKAGE@CHECKS := $(patsubst %.cxx,@PACKAGE@/check/%.viol,$(SRCS))
+
+check-@PACKAGE@: $(@PACKAGE@CHECKS)
+
+# IRST coding rule check 
+@PACKAGE@/check/%.i : @PACKAGE@/%.cxx
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	$(MUTE)$(CXX) -E $(@PACKAGE@DEFINE) $(@PACKAGE@INC) $< > $@ $(@PACKAGE@CXXFLAGS)
+
+# IRST coding rule check
+@PACKAGE@/check/%.viol : @PACKAGE@/check/%.i
+	@$(CODE_CHECK) $< ./ > $@
+
+#PREPROC       = $(patsubst %.viol,%.i,$(CHECKS))
+#
+#REVENGS       = $(patsubst %.viol,%.ii,$(CHECKS))
+#
+#.SECONDARY: $(REVENGS) $(PREPROC)
+#
+#reveng:		check/classDiagram.dot
+#
+#check/classDiagram.dot:	$(PREPROC)
+#	@$(REV_ENG) $^
+#	@-mv classDiagram.dot $@
+#
+#revdisp:	reveng
+#	@$(IRST_INSTALLDIR)/scripts/revEngInterface.sh check/classDiagram.dot
+

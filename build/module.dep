@@ -8,7 +8,7 @@ EVGEN/module.mk:	 EVGEN/libEVGEN.pkg
 FMD/module.mk:		 FMD/libFMD.pkg
 HIJING/module.mk:	 HIJING/libhijing.pkg HIJING/libdummyhijing.pkg
 ITS/module.mk:		 ITS/libITS.pkg
-MEVSIM/module.mk:	 MEVSIM/libmevsim.pkg MEVSIM/libdummymevsim.pkg
+MEVSIM/module.mk:	 MEVSIM/libMEVSIM.pkg MEVSIM/libdummyMEVSIM.pkg
 MUON/module.mk:		 MUON/libMUON.pkg
 PDF/module.mk:		 PDF/libpdf.pkg
 PHOS/module.mk:		 PHOS/libPHOS.pkg
@@ -21,7 +21,7 @@ START/module.mk:	 START/libSTART.pkg
 STEER/module.mk:	 STEER/libSTEER.pkg
 STRUCT/module.mk:	 STRUCT/libSTRUCT.pkg
 THijing/module.mk:	 THijing/libTHijing.pkg
-TMEVSIM/module.mk:	 TMEVSIM/libTMevSim.pkg
+TMEVSIM/module.mk:	 TMEVSIM/libTMEVSIM.pkg
 TOF/module.mk:		 TOF/libTOF.pkg
 TPC/module.mk:		 TPC/libTPC.pkg
 TRD/module.mk:		 TRD/libTRD.pkg
