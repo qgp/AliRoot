@@ -294,7 +294,7 @@ AliHBTITSSepVsQInvCorrelFctn::AliHBTITSSepVsQInvCorrelFctn(Int_t layer,Int_t nXb
 //ctor
   fWriteNumAndDen = kTRUE;//change default behaviour
   TString name("qinvvsitssep");
-  TString title("Q_{inv} Vs sep on Layer ");
+  TString title("2K^{*} Vs sep on Layer ");
   name+=fLayer;
   title+=fLayer;
   Rename(name,title);
@@ -341,7 +341,7 @@ void AliHBTITSSepVsQInvCorrelFctn::GetValues(AliHBTPair* pair, Double_t& x, Doub
 //  Info("Pass","rphi %f z %f",fMin,fMax);
 //  Info("Pass","P1: %f %f %f", x1,y1,z1);
 //  Info("Pass","P2: %f %f %f", x2,y2,z2);
-  x = pair->GetQInv();
+  x = 2.0*pair->GetKStar();
   z = TMath::Abs(z1-z2);
   y = TMath::Hypot(x1-x2,y1-y2);
   
