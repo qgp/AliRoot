@@ -191,7 +191,7 @@ TBranch* AliDetector::MakeBranchInTree(TTree *tree, const char* name,
   } 
  else 
   {
-    branch = tree->Branch(name,address,size);
+    branch = tree->Bronch(name, "TClonesArray", address, size, splitlevel);
   }
  if(GetDebug()) Info("MakeBranch","Branch %s returning branch %#x",name,branch);
  return branch;
