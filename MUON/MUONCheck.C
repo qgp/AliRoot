@@ -58,7 +58,7 @@ void MUONhits(char * filename="galice.root")
 
       Int_t ihit, nhits;
       nhits = (Int_t) ListOfHits->GetEntriesFast();
-      AliMUONHit* mHit;// = (AliMUONHit *) MUON->FirstHit(itrack);
+      AliMUONHit* mHit;
       for(ihit=0; ihit<nhits; ihit++) {
 	mHit = static_cast<AliMUONHit*>(ListOfHits->At(ihit));
   	Int_t Nch      = mHit->Chamber();  // chamber number
