@@ -15,11 +15,8 @@
 
 /*
 $Log$
-Revision 1.13.6.1  2002/06/10 17:51:15  hristov
-Merged with v3-08-02
-
-Revision 1.14  2002/05/19 18:17:03  hristov
-Changes needed by ICC/IFC compiler (Intel)
+Revision 1.18  2002/08/07 18:37:53  nilsen
+Removed endl from print function. should be supplied by user as wanted.
 
 Revision 1.17  2002/06/20 09:10:14  hristov
 Data member ft0 initialized
@@ -620,8 +617,8 @@ void AliITShit::Print(ostream *os){
     *os << fLayer << " " << fLadder << " " << fDet << " ";;
     *os << fPx << " " << fPy << " " << fPz << " ";
     *os << fDestep << " " << fTof;
-    *os << " " << fx0 << " " << fy0 << " " << fz0 << " ";
-    *os << endl;
+    *os << " " << fx0 << " " << fy0 << " " << fz0;
+//    *os << " " << endl;
     os->flags(fmt); // reset back to old formating.
     return;
 }

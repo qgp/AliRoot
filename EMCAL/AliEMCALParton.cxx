@@ -16,6 +16,9 @@
 /* $Id:  */
 /*
   $Log$
+  Revision 1.1  2002/08/21 10:29:29  schutz
+  New classes (by Renan)
+
 */
 
 //*-- Author: Renan Cabrera (Creighton U.)

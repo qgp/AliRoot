@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.19.4.1  2002/06/10 14:43:06  hristov
+Merged with v3-08-02
+
 Revision 1.21  2002/05/28 14:24:57  hristov
 Correct warning messages
 
@@ -456,6 +459,7 @@ void AliStack::PurifyKine()
    AliModule *detector;
    while((detector = (AliModule*)nextmod())) {
      detector->RemapTrackHitIDs(map.GetArray());
+     detector->RemapTrackReferencesIDs(map.GetArray());
    }
   
    // Now the output bit, from fHgwmk to nkeep we write everything and we erase

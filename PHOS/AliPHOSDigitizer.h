@@ -30,7 +30,7 @@ class AliPHOSDigitizer: public AliDigitizer {
 
 public:
   AliPHOSDigitizer() ;          // ctor
-  AliPHOSDigitizer(const char *headerFile, const char * name = "Default") ; 
+  AliPHOSDigitizer(const char *headerFile, const char * name = "Default", const Bool_t toSplit = kFALSE ) ; 
   AliPHOSDigitizer(AliRunDigitizer * ard) ;
   AliPHOSDigitizer(const AliPHOSDigitizer & dtizer) 
                   {( (AliPHOSDigitizer &)dtizer ).Copy(*this) ;} 
@@ -64,18 +64,13 @@ public:
   void   SetNEMCchannels(Int_t n)      { fNADCemc = n; }
   void   SetEMCchannel(Float_t width)  { fADCchanelEmc = width; }
   void   SetEMCpedestal(Float_t ped)   { fADCpedestalEmc = ped ; }  
+  void   SetTimeResolution(Float_t res){ fTimeResolution = res ; }  
 
   //General
   const Int_t   GetDigitsInRun()  const { return fDigitsInRun ;}  
-  const TString GetHitsFileName() const { return fHitsFileName ; }
-  const TString GetSDigitsFileName() const { return fSDigitsFileName ; }
-
   void    MixWith(const char* HeaderFile) ; // Add another one file to mix
   void    Print(Option_t* option)const ;
-  void    Reset() ;   //restarts starts event processing from 0 event(s)
-  void    SetSplitFile(const TString splitFileName = "PHOS.Digits.root") ;
-  void    SetSDigitsBranch(const char* file) ;
-
+ 
   AliPHOSDigitizer & operator = (const AliPHOSDigitizer & rvalue)  {
     // assignement operator requested by coding convention but not needed
     abort() ;
@@ -96,9 +91,9 @@ private:
 
 private:
 
-  TString fHitsFileName ;           // file name that contains the original hits
-  TString fSDigitsFileName ;        // file name that contains the original SDigits
   Bool_t  fDefaultInit;             //! Says if the task was created by defaut ctor (only parameters are initialized)
+  Int_t fDigitsInRun ;              //! Total number of digits in one run
+
   Int_t   fEmcCrystals ;            // Number of EMC crystalls in the given geometry
 
   Float_t fPinNoise ;               // Electronics noise in EMC
@@ -107,7 +102,6 @@ private:
   Float_t fCPVNoise ;               // Noise in CPV
   Float_t fCPVDigitThreshold  ;     // Threshold for storing digits in CPV
 
-  Int_t fDigitsInRun ;              //! Total number of digits in one run
 
   Float_t fTimeResolution ;         // Time resolution of FEE electronics
   Float_t fTimeThreshold ;          // Threshold to start timing for given crystall
@@ -120,7 +114,9 @@ private:
   Float_t fADCchanelCpv ;           // width of one ADC channel in CPV 'popugais'
   Float_t fADCpedestalCpv ;         // 
   Int_t   fNADCcpv ;                // number of channels in CPV ADC
-  TFile * fSplitFile ;             //! file in which Digits will eventually be stored
+
+  Bool_t  fToSplit ;                //! Do we work in the split mode
+  TFile * fSplitFile ;              //! file in which Digits will eventually be stored
 
 
   ClassDef(AliPHOSDigitizer,1)  // description 

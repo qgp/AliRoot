@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.18  2002/08/26 13:51:17  hristov
+Remaping of track references at the end of each primary particle (M.Ivanov)
+
 Revision 1.17  2002/05/24 13:29:58  hristov
 AliTrackReference added, AliDisplay modified
 
@@ -303,6 +306,25 @@ void AliDetector::FinishRun()
   //
 }
 
+
+
+void AliDetector::RemapTrackReferencesIDs(Int_t *map)
+{
+  // 
+  //remaping track reference
+  //called at finish primary
+  if (!fTrackReferences) return;
+  for (Int_t i=0;i<fTrackReferences->GetEntries();i++){
+    AliTrackReference * ref = (AliTrackReference*) fTrackReferences->UncheckedAt(i);
+    if (ref) {
+      Int_t newID = map[ref->GetTrack()];
+      if (newID>=0) ref->SetTrack(newID);
+      else ref->SetTrack(-1);
+      
+    }
+  }
+}
+
 //_____________________________________________________________________________
 AliHit* AliDetector::FirstHit(Int_t track)
 {
@@ -569,6 +591,15 @@ void AliDetector::SetTreeAddress()
     branch = treeD->GetBranch(branchname);
     if (branch) branch->SetAddress(&fDigits);
   }
+
+  // Branch address for tr  tree
+  TTree *treeTR = gAlice->TreeTR();
+  if (treeTR && fTrackReferences) {
+    branch = treeTR->GetBranch(branchname);
+    if (branch) branch->SetAddress(&fTrackReferences);
+  }
+
+
 }
 
  

@@ -32,10 +32,9 @@ class TFile;
 #include "TFolder.h" 
 
 // --- Standard library ---
-
 #include <strstream.h>
-// --- AliRoot header files ---
 
+// --- AliRoot header files ---
 #include "AliPHOS.h"
 #include "AliMC.h"
 #include "AliRun.h"
@@ -47,7 +46,7 @@ ClassImp(AliPHOS)
 //____________________________________________________________________________
 AliPHOS:: AliPHOS() : AliDetector()
 {
-  // Create folder and task hierarchy
+  // Default ctor
   fName="PHOS";
   fQATask = 0;
   fTreeQA = 0;
@@ -56,17 +55,16 @@ AliPHOS:: AliPHOS() : AliDetector()
 //____________________________________________________________________________
 AliPHOS::AliPHOS(const char* name, const char* title): AliDetector(name, title) 
 {
+  //   ctor : title is used to identify the layout
+  
   fQATask = 0;
   fTreeQA = 0;
 }
 
-
 //____________________________________________________________________________
 AliPHOS::~AliPHOS() 
 {  
-  // remove the alice folder and alice QA task that PHOS creates instead of AliRun
-
-  //  delete fTreeQA ; 
+  
 }
 
 //____________________________________________________________________________
@@ -359,6 +357,7 @@ void AliPHOS::CreateMaterials()
   gMC->Gstpar(idtmed[715], "STRA",2.) ;
 
 }
+
 //____________________________________________________________________________
 AliPHOSGeometry * AliPHOS::GetGeometry() const 
 {  
@@ -371,10 +370,6 @@ AliPHOSGeometry * AliPHOS::GetGeometry() const
 //____________________________________________________________________________
 void AliPHOS::SetTreeAddress()
 { 
-
-
-  // TBranch *branch;
-  //  AliDetector::SetTreeAddress();
 
   TBranch *branch;
   char branchname[20];

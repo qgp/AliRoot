@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.18  2002/08/21 22:11:13  nilsen
+Debug output now settable via a DEBUG flag.
+
 Revision 1.17  2002/07/16 17:00:17  barbera
 Fixes added to make the slow simulation running with the current HEAD (from M. Masera)
 
@@ -59,6 +62,7 @@ are developed.
 #include "AliITSsegmentationSPD.h"
 #include "AliITSresponseSPD.h"
 
+//#define DEBUG
 
 ClassImp(AliITSsimulationSPD)
 ////////////////////////////////////////////////////////////////////////
@@ -254,8 +258,11 @@ void AliITSsimulationSPD::DigitiseModule(AliITSmodule *mod, Int_t dummy0,
 //______________________________________________________________________
 void AliITSsimulationSPD::SDigitsToDigits(Int_t module,AliITSpList *pList) {
     // sum digits to Digits.
-//    cout << "Entering AliITSsimulatinSPD::SDigitsToDigits for module=";
-//    cout << module << endl;
+
+#ifdef DEBUG
+    cout << "Entering AliITSsimulatinSPD::SDigitsToDigits for module=";
+    cout << module << endl;
+#endif
     fModule = module;
 
     // noise setting
@@ -599,10 +606,12 @@ void AliITSsimulationSPD::CreateDigit(Int_t module,AliITSpList *pList) {
 		} // end for j1
 		Float_t phys = 0;
 		aliITS->AddSimDigit(0,phys,digits,tracks,hits,charges);
-//		cout << " CreateSPDDigit mod=" << fModule << " r,c=" << r;
-//		cout <<","<<c<< " sig=" << fpList->GetSignalOnly(r,c);
-//		cout << " noise=" << fpList->GetNoise(r,c);
-//		cout << " Msig="<< signal << " Thres=" << GetThreshold()<<endl;
+#ifdef DEBUG
+		cout << " CreateSPDDigit mod=" << fModule << " r,c=" << r;
+		cout <<","<<c<< " sig=" << fpList->GetSignalOnly(r,c);
+		cout << " noise=" << fpList->GetNoise(r,c);
+		cout << " Msig="<< signal << " Thres=" << GetThreshold()<<endl;
+#endif
 	    } // end if of threshold condition
 	} // for c
     }// end do on pixels
@@ -700,10 +709,12 @@ void AliITSsimulationSPD::WriteSDigits(AliITSpList *pList){
     for(i=0;i<ni;i++)for(j=0;j<nj;j++){
 	if(pList->GetSignalOnly(i,j)>0.0){
 	    aliITS->AddSumDigit(*(pList->GetpListItem(i,j)));
-//	    cout << "pListSPD: " << *(pList->GetpListItem(i,j)) << endl;
-//	    cout << " CreateSPDSDigit mod=" << fModule << " r,c=";
-//	    cout << i  <<","<< j << " sig=" << fpList->GetSignalOnly(i,j);
-//	    cout << " noise=" << fpList->GetNoise(i,j) <<endl;
+#ifdef DEBUG
+	    cout << "pListSPD: " << *(pList->GetpListItem(i,j)) << endl;
+	    cout << " CreateSPDSDigit mod=" << fModule << " r,c=";
+	    cout << i  <<","<< j << " sig=" << fpList->GetSignalOnly(i,j);
+	    cout << " noise=" << fpList->GetNoise(i,j) <<endl;
+#endif
 	} // end if
     } // end for i,j
     return;
