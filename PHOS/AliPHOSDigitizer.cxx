@@ -15,6 +15,7 @@
 
 /* $Id$ */
 
+
 //_________________________________________________________________________
 //*-- Author :  Dmitri Peressounko (SUBATECH & Kurchatov Institute) 
 //////////////////////////////////////////////////////////////////////////////
@@ -695,6 +696,20 @@ Float_t AliPHOSDigitizer::TimeOfNoise(void) const
   return 1. ;
 
 }
+void AliPHOSDigitizer::Unload() 
+{  
+  
+  Int_t i ; 
+  for(i = 1 ; i < fInput ; i++){
+    TString tempo(fEventNames[i]) ; 
+    tempo += i ;
+    AliPHOSGetter * gime = AliPHOSGetter::Instance(fInputFileNames[i], tempo) ; 
+    gime->PhosLoader()->UnloadSDigits() ; 
+  }
+  
+  AliPHOSGetter * gime = AliPHOSGetter::Instance(GetTitle(), GetName()) ; 
+  gime->PhosLoader()->UnloadDigits() ; 
+}
 
 //____________________________________________________________________________
 void AliPHOSDigitizer::WriteDigits(Int_t event)
@@ -720,4 +735,7 @@ void AliPHOSDigitizer::WriteDigits(Int_t event)
   
   gime->WriteDigits("OVERWRITE");
   gime->WriteDigitizer(GetName(), "OVERWRITE");
+
+  Unload() ; 
+
 }
