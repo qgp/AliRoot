@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.9.4.2  2003/06/23 10:06:13  hristov
+Updated information about the overlapping clusters (M.Ivanov)
+
 Revision 1.9.4.1  2003/06/19 06:59:58  hristov
 Updated version of parallel tracking (M.Ivanov)
 
@@ -1127,8 +1130,8 @@ Int_t AliTPCtrackerMI::FollowToNextCluster(AliTPCseed & t, Int_t nr) {
     meany/=accept;
     meanz/=accept;    
   }
-  Float_t corz=TMath::Max(1.,meanz);
-  Float_t cory=TMath::Max(1.,meany);
+  Float_t corz=TMath::Max((Float_t)1.,meanz);
+  Float_t cory=TMath::Max((Float_t)1.,meany);
   //  
 
 
