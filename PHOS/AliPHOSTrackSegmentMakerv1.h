@@ -28,13 +28,12 @@ class  AliPHOSTrackSegmentMakerv1 : public AliPHOSTrackSegmentMaker {
 public:
 
   AliPHOSTrackSegmentMakerv1() ;                     
-  AliPHOSTrackSegmentMakerv1(const char* evFoldName, const char* name = "Default");
+  AliPHOSTrackSegmentMakerv1(const TString alirunFileNameFile, const TString eventFolderName = AliConfig::fgkDefaultEventFolderName);
   AliPHOSTrackSegmentMakerv1(const AliPHOSTrackSegmentMakerv1 & tsm) {
     // cpy ctor: no implementation yet
     // requested by the Coding Convention
     Fatal("cpy ctor", "not implemented") ;
-}
-   
+  }
   virtual ~ AliPHOSTrackSegmentMakerv1() ; // dtor
   
   //  virtual char*  GetRecPointsBranch    (void)const{return (char*)fRecPointsBranchTitle.Data() ;}
@@ -60,7 +59,7 @@ public:
     Fatal("operator =", "not implemented") ;
     return *this ; 
   }
-
+  void Unload() ;
 
 private:
 

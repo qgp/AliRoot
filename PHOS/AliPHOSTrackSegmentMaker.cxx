@@ -41,10 +41,12 @@ ClassImp( AliPHOSTrackSegmentMaker)
   AliPHOSTrackSegmentMaker:: AliPHOSTrackSegmentMaker() : TTask("","")
 {
   // ctor
+  fEventFolderName = "" ; 
 }
 
 //____________________________________________________________________________
-AliPHOSTrackSegmentMaker::AliPHOSTrackSegmentMaker(const char * evFoldName, const char * name): TTask(name, evFoldName)
+AliPHOSTrackSegmentMaker::AliPHOSTrackSegmentMaker(const TString alirunFileName, const TString eventFolderName):
+  TTask("PHOS"+AliConfig::fgkTrackerTaskName, alirunFileName), fEventFolderName(eventFolderName)
 {
   // ctor
 }
@@ -54,4 +56,3 @@ AliPHOSTrackSegmentMaker::~AliPHOSTrackSegmentMaker()
 {
 }
 
-// //____________________________________________________________________________

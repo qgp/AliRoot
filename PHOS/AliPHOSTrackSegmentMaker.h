@@ -14,6 +14,7 @@
 
 // --- ROOT system ---
 #include "TTask.h"
+#include "AliConfig.h"
 class TFile ; 
 
 // --- Standard library ---
@@ -29,9 +30,9 @@ class  AliPHOSTrackSegmentMaker : public TTask {
 
 public:
 
-  AliPHOSTrackSegmentMaker() ;                     
-  AliPHOSTrackSegmentMaker(const char* evFoldName, const char* name);
-  
+  AliPHOSTrackSegmentMaker();
+  AliPHOSTrackSegmentMaker(const TString alirunFileName, const TString eventFolderName = AliConfig::fgkDefaultEventFolderName) ;                     
+  AliPHOSTrackSegmentMaker(const AliPHOSTrackSegmentMaker & tsmaker) { ; } 
   virtual ~ AliPHOSTrackSegmentMaker() ;
 
   virtual void    Exec(Option_t * option){Warning("Exec", "Not Defined" ) ; } 
@@ -45,12 +46,12 @@ public:
   //  virtual void SetMaxEmcCpvDistance(Float_t r) {Warning("SetMaxEmcCpvDistance", "Not Defined" ) ; return 0 ; } 
   //  virtual void SetRecPointsBranch(const char * title){Warning("SetRecPointsBranch", "Not Defined" ) ; } 
   //  virtual void SetTrackSegmentsBranch(const char * title){Warning("SetTrackSegmentsBranch", "Not Defined" ) ; } 
-  //  virtual void SetSplitFile(const TString splitFileName = "PHOS.RecData.root") const ; 
-  virtual const char * Version() const {Warning("Version", "Not Defined" ) ; return 0 ; }   
+  //  virtual const char * Version() const {Warning("Version", "Not Defined" ) ; return 0 ; }   
   virtual void WriteTrackSegments(Int_t event){Warning("WriteTrackSegments", "Not Defined" ) ; } 
   
 protected:
-  
+  TString fEventFolderName ;  // event folder name
+
   ClassDef( AliPHOSTrackSegmentMaker,2)    // Algorithm class to make PHOS track segments (Base Class)
 };
 

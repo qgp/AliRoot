@@ -163,12 +163,19 @@ class AliPHOSGetter : public TObject {
   Int_t                 WriteClusterizer(Option_t* opt=""){
     return  PhosLoader()->WriteClusterizer(opt) ; }
 
-//   //========== TrackSegments ==========
-//   TClonesArray * TrackSegments(const char * name = 0) { 
-//     return static_cast<TClonesArray*>(ReturnO("TrackSegments", name)) ;   }
-//   const AliPHOSTrackSegmentMaker * TrackSegmentMaker (const char * name =0) const { 
-//     return (const AliPHOSTrackSegmentMaker*)(ReturnT("TrackSegmentMaker", name)) ;   }
-  
+  //========== TrackSegments   TClonesArray * TrackSegments(const char * name = 0) { 
+  TClonesArray *           TrackSegments() ;
+  AliPHOSTrackSegment *  TrackSegments(const Int_t index) { return static_cast<AliPHOSTrackSegment *>(TrackSegments()->At(index)) ;} 
+  TTree *               TreeT() const ;
+  AliPHOSTrackSegmentMaker * TrackSegmentMaker() const { 
+    return dynamic_cast<AliPHOSTrackSegmentMaker*>(PhosLoader()->TrackSegmentMaker()) ;}
+  TString               GetTracksFileName() { return PhosLoader()->GetTracksFileName() ; } 
+  Int_t                 LoadTracks(Option_t* opt="") { return PhosLoader()->LoadTracks(opt) ; }
+  Int_t                 LoadTracker(Option_t* opt=""){
+    return  PhosLoader()->LoadTracker(opt) ; }
+  Int_t                 WriteTracks(Option_t* opt="") { return PhosLoader()->WriteTracks(opt) ; }
+  Int_t                 WriteTracker(Option_t* opt=""){
+    return  PhosLoader()->WriteTracker(opt) ; }
 //   //========== RecParticles ===========
 //   TClonesArray * RecParticles(const char * name = 0) { 
 //     return static_cast<TClonesArray*>(ReturnO("RecParticles", name)) ;   }
@@ -200,7 +207,8 @@ class AliPHOSGetter : public TObject {
 //   const Bool_t PostTrackSegments(const char * name) const ;  
 //   const Bool_t PostRecParticles( const char * name) const ;  
 //   const Bool_t PostClusterizer( const char * name) const ;  
-  void PostClusterizer(AliPHOSClusterizer * clu) const{PhosLoader()->PostClusterizer(clu) ; }  
+  void PostClusterizer(AliPHOSClusterizer * clu) const{PhosLoader()->PostClusterizer(clu) ; }
+  void PostTrackSegmentMaker(AliPHOSTrackSegmentMaker * tr) const{PhosLoader()->PostTrackSegmentMaker(tr) ; }
   void PostSDigitizer (AliPHOSSDigitizer * sdigitizer) const {PhosLoader()->PostSDigitizer(sdigitizer);}  
 //   const Bool_t PostSDigitizer ( const char * name, const char * file ) const ;  
   void PostDigitizer (AliPHOSDigitizer * digitizer)    const {PhosLoader()->PostDigitizer(dynamic_cast<AliDigitizer *>(digitizer));}
@@ -226,6 +234,7 @@ private:
   Int_t ReadTreeD(void) ;
   Int_t ReadTreeH(void) ;
   Int_t ReadTreeR(void) ;
+  Int_t ReadTreeT(void) ;
   Int_t ReadTreeS(void) ;
 //   void ReadTreeQA(void) ;
   void ReadPrimaries(void) ;

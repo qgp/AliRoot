@@ -67,6 +67,7 @@
 #include "TBenchmark.h"
 
 // --- Standard library ---
+//#include <iostream.h> 
 
 // --- AliRoot header files ---
 #include "AliRunLoader.h"
@@ -120,15 +121,15 @@ const TString AliPHOSClusterizerv1::BranchName() const
  
 //____________________________________________________________________________
 Float_t  AliPHOSClusterizerv1::Calibrate(Int_t amp, Int_t absId) const
-{ //To be replased later by the method, reading individual parameters from the database
-  if(fCalibrationDB)
-    return fCalibrationDB->Calibrate(amp,absId) ;
-  else{ //simulation
+{ //To be replaced later by the method, reading individual parameters from the database
+//   if(fCalibrationDB)
+//     return fCalibrationDB->Calibrate(amp,absId) ;
+//   else{ //simulation
     if(absId <= fEmcCrystals) //calibrate as EMC 
       return fADCpedestalEmc + amp*fADCchanelEmc ;        
     else //calibrate as CPV
       return fADCpedestalCpv+ amp*fADCchanelCpv ;       
-  }
+    //  }
 }
 
 //____________________________________________________________________________
@@ -150,36 +151,29 @@ void AliPHOSClusterizerv1::Exec(Option_t * option)
   
   for(ievent = 0; ievent < nevents; ievent++)
    {
-    Info("Exec","Starting event %d",ievent);
     gime->Event(ievent, "D");
-    Info("Exec","2Starting event %d",ievent);
 
    //  if(ievent == 0)
-//        GetCalibrationParameters() ;
-//     Info("Exec","3Starting event %d",ievent);
+       GetCalibrationParameters() ;
 
-//     fNumberOfEmcClusters  = fNumberOfCpvClusters  = 0 ;
-//     Info("Exec","4Starting event %d",ievent);
+    fNumberOfEmcClusters  = fNumberOfCpvClusters  = 0 ;
     
-//     Info("Exec","MakeClusters");
-//     MakeClusters() ;
-//     Info("Exec","5Starting event %d",ievent);
+    MakeClusters() ;
 
-//     if(fToUnfold)             
-//       MakeUnfolding() ;
+    if(fToUnfold)             
+      MakeUnfolding() ;
 
-//       Info("Exec","WRITE");
-//       WriteRecPoints();
+      WriteRecPoints();
 
-//     if(strstr(option,"deb"))  
-//       PrintRecPoints(option) ;
+    if(strstr(option,"deb"))  
+      PrintRecPoints(option) ;
 
-//     //increment the total number of digits per run 
-//     fRecPointsInRun += gime->EmcRecPoints()->GetEntriesFast() ;  
-//     fRecPointsInRun += gime->CpvRecPoints()->GetEntriesFast() ;  
+    //increment the total number of digits per run 
+    fRecPointsInRun += gime->EmcRecPoints()->GetEntriesFast() ;  
+    fRecPointsInRun += gime->CpvRecPoints()->GetEntriesFast() ;  
     }
   
-//   Unload();
+  Unload();
   
   if(strstr(option,"tim")){
     gBenchmark->Stop("PHOSClusterizer");
@@ -188,7 +182,7 @@ void AliPHOSClusterizerv1::Exec(Option_t * option)
 	 gBenchmark->GetCpuTime("PHOSClusterizer")/nevents ) ; 
   }
 
-  Info("Exec","\n\n        AliPHOSClusterizerv1::Exec: FINISHED\n\n");
+  //Info("Exec","\n\n        AliPHOSClusterizerv1::Exec: FINISHED\n\n");
  
 }
 
@@ -331,10 +325,9 @@ void AliPHOSClusterizerv1::Init()
   if(!gMinuit) 
     gMinuit = new TMinuit(100);
 
-  if ( !gime->Clusterizer() ) 
-   {
+  if ( !gime->Clusterizer() ) {
     gime->PostClusterizer(this);
-   }
+  }
 
 }
 
@@ -528,6 +521,8 @@ void AliPHOSClusterizerv1::MakeClusters()
   Bool_t notremoved = kTRUE ;
 
   while ( (digit = dynamic_cast<AliPHOSDigit *>( nextdigit()) ) ) { // scan over the list of digitsC
+    
+
     AliPHOSRecPoint * clu = 0 ; 
 
     TArrayI clusterdigitslist(1500) ;   

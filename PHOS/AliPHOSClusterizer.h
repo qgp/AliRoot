@@ -27,7 +27,6 @@ public:
   AliPHOSClusterizer(const TString alirunFileName, const TString eventFolderName = AliConfig::fgkDefaultEventFolderName) ;
   AliPHOSClusterizer(const AliPHOSClusterizer & clusterizer) { ; }
   virtual ~AliPHOSClusterizer() ; // dtor
-  TString fEventFolderName ;  // event folder name
   virtual Float_t GetEmcClusteringThreshold()const {Warning("GetEmcClusteringThreshold", "Not Defined" ) ; return 0. ; }  
   virtual Float_t GetEmcLocalMaxCut()const {Warning("GetEmcLocalMaxCut", "Not Defined" ) ; return 0. ; } 
   virtual Float_t GetEmcLogWeight()const {Warning("GetEmcLogWeight", "Not Defined" ) ; return 0. ; } 
@@ -58,6 +57,7 @@ public:
   virtual const char * Version() const {Warning("Version", "Not Defined" ) ; return 0 ; }  
 
 protected:
+  TString fEventFolderName ;  // event folder name
 
 
   ClassDef(AliPHOSClusterizer,2)  // Clusterization algorithm class 

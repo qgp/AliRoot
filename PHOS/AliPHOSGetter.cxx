@@ -176,6 +176,21 @@ TObjArray * AliPHOSGetter::EmcRecPoints()
 }
 
 //____________________________________________________________________________ 
+TClonesArray * AliPHOSGetter::TrackSegments() 
+{
+  // asks the Loader to return the TrackSegments container 
+
+  TClonesArray * rv = 0 ; 
+  
+  rv = PhosLoader()->TrackSegments() ; 
+  if (!rv) {
+    PhosLoader()->MakeTrackSegmentsArray() ;
+    rv = PhosLoader()->TrackSegments() ; 
+  }
+  return rv ; 
+}
+
+//____________________________________________________________________________ 
 void AliPHOSGetter::Event(const Int_t event, const char* opt) 
 {
   // Reads the content of all Tree's S, D and R
@@ -204,10 +219,8 @@ void AliPHOSGetter::Event(const Int_t event, const char* opt)
 
   // Loads the type of object(s) requested
   
-  Info("Event", "0") ; 
   rl->GetEvent(event) ;
 
-  Info("Event", "1") ; 
   if( strstr(opt,"P") || (strcmp(opt,"")==0) )
     ReadPrimaries() ;
 
@@ -216,15 +229,12 @@ void AliPHOSGetter::Event(const Int_t event, const char* opt)
 
   if(strstr(opt,"S") )
     ReadTreeS() ;
-  Info("Event", "2") ; 
 
   if( strstr(opt,"D") )
     ReadTreeD() ;
 
-  Info("Event", "3") ; 
   if( strstr(opt,"R") )
     ReadTreeR() ;
-    Info("Event", "4") ; 
  
 //   if( strstr(opt,"Q") )
 //     ReadTreeQA() ;
@@ -407,7 +417,6 @@ Int_t AliPHOSGetter::ReadTreeD()
     PhosLoader()->LoadDigits("UPDATE") ;
     SetLoaded("D") ; 
   } 
-  Info("ReadreeD", "entries = %d", Digits() ) ; 
   return Digits()->GetEntries() ; 
 }
 
@@ -437,6 +446,21 @@ Int_t AliPHOSGetter::ReadTreeR()
   }
 
   return EmcRecPoints()->GetEntries() ; 
+}
+
+//____________________________________________________________________________ 
+Int_t AliPHOSGetter::ReadTreeT()
+{
+  // Read the TrackSegments
+  
+  
+  // gets TreeT from the root file (PHOS.TrackSegments.root)
+  if ( !IsLoaded("T") ) {
+    PhosLoader()->LoadTracks("UPDATE") ;
+    SetLoaded("T") ; 
+  }
+
+  return TrackSegments()->GetEntries() ; 
 }
 //____________________________________________________________________________ 
 Int_t AliPHOSGetter::ReadTreeS()
@@ -544,7 +568,22 @@ TTree * AliPHOSGetter::TreeR() const
   } 
   
   return rv ; 
-}//____________________________________________________________________________ 
+}
+
+//____________________________________________________________________________ 
+TTree * AliPHOSGetter::TreeT() const 
+{
+  TTree * rv = 0 ; 
+  rv = PhosLoader()->TreeT() ; 
+  if ( !rv ) {
+    PhosLoader()->MakeTree("T");
+    rv = PhosLoader()->TreeT() ;
+  } 
+  
+  return rv ; 
+}
+
+//____________________________________________________________________________ 
 TTree * AliPHOSGetter::TreeS() const 
 {
   TTree * rv = 0 ; 

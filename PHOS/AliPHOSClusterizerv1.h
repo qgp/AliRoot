@@ -33,7 +33,11 @@ public:
   
   AliPHOSClusterizerv1() ;         
   AliPHOSClusterizerv1(const TString alirunFileNameFile, const TString eventFolderName = AliConfig::fgkDefaultEventFolderName);
-
+  AliPHOSClusterizerv1(const AliPHOSClusterizerv1 & clu) {
+    // cpy ctor: no implementation yet
+    // requested by the Coding Convention
+    Fatal("cpy ctor", "not implemented") ;
+  }
   virtual ~AliPHOSClusterizerv1()  ;
   
   virtual Int_t   AreNeighbours(AliPHOSDigit * d1, AliPHOSDigit * d2)const ; 
