@@ -110,7 +110,7 @@ AliSimulation::AliSimulation(const char* configFileName,
   fGAliceFileName("galice.root"),
   fBkgrdFileNames(NULL),
   fUseBkgrdVertex(kTRUE),
-  fRegionOfInterest(kTRUE)
+  fRegionOfInterest(kFALSE)
 {
 // create simulation object with default parameters
 
