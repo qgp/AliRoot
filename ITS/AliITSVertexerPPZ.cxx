@@ -239,7 +239,12 @@ AliITSVertex* AliITSVertexerPPZ::FindVertexForCurrentEvent(Int_t evnumber){
     fITS->ResetRecPoints();
   }
   if(firipixe>1){
-    rmszav=TMath::Sqrt(zave2/(firipixe-1)-zave*zave/firipixe/(firipixe-1));
+    Float_t rmszav2 = zave2/(firipixe-1)-zave*zave/firipixe/(firipixe-1);
+    if (rmszav2 <0) {
+      Warning("FindVertexForCurrentEvent","Negative squared RMS %f, set to 0", rmszav2);
+      rmszav2=0;
+    }
+    rmszav=TMath::Sqrt(rmszav2);
     zave=zave/firipixe;
     if(fDebug>1)cout<<"++++++++++++++++++++++++++++++++++++++++++++++++++++++\n Number of firing pixels: "<<firipixe<<endl;
   }
