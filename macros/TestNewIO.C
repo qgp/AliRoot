@@ -63,10 +63,10 @@ Int_t TestNewIO(Int_t n = 5,Char_t SlowOrFast='s')
       delete gAlice;//if everything was OK here it is already NULL
       gAlice = 0x0;
     }
-//    AliRunLoader* rl =AliRunLoader::Open("galice.root","EVENTFOLDER");
-//    AliPHOSReconstructioner r("EVENTFOLDER");
-//    r.ExecuteTask("deb");
-//    delete rl;
+   AliRunLoader* rl =AliRunLoader::Open("galice.root","EVENTFOLDER");
+   AliPHOSReconstructioner r("EVENTFOLDER");
+   r.ExecuteTask("deb");
+   delete rl;
 
    gROOT->LoadMacro("$(ALICE_ROOT)/TPC/AliTPCComparison.C");
    if (rc=AliTPCComparison()) return rc;
