@@ -68,7 +68,7 @@ ClassImp(AliPHOSSDigitizer)
 
            
 //____________________________________________________________________________ 
-  AliPHOSSDigitizer::AliPHOSSDigitizer():TTask("","") 
+  AliPHOSSDigitizer::AliPHOSSDigitizer():TTask("","")
 {
   // ctor
   InitParameters() ;
@@ -77,8 +77,10 @@ ClassImp(AliPHOSSDigitizer)
 
 //____________________________________________________________________________ 
 AliPHOSSDigitizer::AliPHOSSDigitizer(const char * alirunFileName, const char * eventFolderName):
-TTask(eventFolderName, alirunFileName)
+  TTask("PHOS"+AliConfig::fgkSDigitizerTaskName, alirunFileName),
+  fEventFolderName(eventFolderName)
 {
+
   // ctor
   InitParameters() ; 
   Init();
@@ -95,13 +97,13 @@ AliPHOSSDigitizer::AliPHOSSDigitizer(const AliPHOSSDigitizer & sd) {
   fSDigitsInRun  = sd.fSDigitsInRun ;
   SetName(sd.GetName()) ; 
   SetTitle(sd.GetTitle()) ; 
+  fEventFolderName = sd.fEventFolderName;
 }
 
 //____________________________________________________________________________ 
 AliPHOSSDigitizer::~AliPHOSSDigitizer()
 {
   // dtor
-  
 }
 
 //____________________________________________________________________________ 
@@ -110,21 +112,25 @@ void AliPHOSSDigitizer::Init()
   // Uses the getter to access the required files
   
   fInit = kTRUE ; 
-  AliPHOSGetter * gime = AliPHOSGetter::Instance(GetTitle(), GetName()) ;  
+  
+  Info("Init","EFN=%s",fEventFolderName.Data());
+  AliPHOSGetter * gime = AliPHOSGetter::Instance(GetTitle(), fEventFolderName.Data());  
   if ( gime == 0 ) {
-    Fatal("Init" ,"Could not obtain the Getter object for file %s and event %s !", GetTitle(), GetName()) ;  
+    Fatal("Init" ,"Could not obtain the Getter object for file %s and event %s !", GetTitle(), fEventFolderName.Data()) ;  
     return ;
   } 
   
   TString opt("SDigits") ; 
   if(gime->VersionExists(opt) ) { 
-    Error( "Init", "Give a version name different from %s", GetName() ) ;
+    Error( "Init", "Give a version name different from %s", fEventFolderName.Data() ) ;
     fInit = kFALSE ; 
   }
   else
     Info("Init", "name = %s\n", gime->GetSDigitsFileName().Data()) ; 
 
-  gime->PostSDigitizer(this) ; 
+  gime->PostSDigitizer(this);
+  gime->PhosLoader()->GetSDigitsDataLoader()->GetBaseTaskLoader()->SetDoNotReload(kTRUE);
+  
 }
 
 //____________________________________________________________________________ 
@@ -151,18 +157,24 @@ void AliPHOSSDigitizer::Exec(Option_t *option)
     gBenchmark->Start("PHOSSDigitizer");
   
   AliPHOSGetter * gime = AliPHOSGetter::Instance() ;
-  
+
+  //switch off reloading of this task while getting event
   if (!fInit) { // to prevent overwrite existing file
-    Error( "Exec", "Give a version name different from %s", GetName() ) ;
+    Error( "Exec", "Give a version name different from %s", fEventFolderName.Data() ) ;
     return ;
   }
+
+  gime->PhosLoader()->GetSDigitsDataLoader()->GetBaseTaskLoader()->SetDoNotReload(kTRUE);
 
   Int_t nevents = gime->MaxEvent() ; 
   Int_t ievent ;
   for(ievent = 0; ievent < nevents; ievent++){
+
     gime->Event(ievent,"H") ;
+
     TTree * treeS = gime->TreeS(); 
     if ( !treeS ) {
+      Info("Exec","Calling LoadSDigits(\"RECREATE\")");
       gime->LoadSDigits("RECREATE");
       treeS = gime->TreeS() ; 
     }
@@ -175,6 +187,7 @@ void AliPHOSSDigitizer::Exec(Option_t *option)
     // Attention nPrim is the number of primaries tracked by Geant 
     // and this number could be different to the number of Primaries in TreeK;
     Int_t iprim ;
+
     for (iprim = 0 ; iprim < nPrim ; iprim ++) { 
       //=========== Get the PHOS branch from Hits Tree for the Primary iprim
       gime->Track(iprim) ;
@@ -209,6 +222,7 @@ void AliPHOSSDigitizer::Exec(Option_t *option)
     }
 
     //Now write SDigits
+
     
     //First list of sdigits
 
@@ -216,17 +230,20 @@ void AliPHOSSDigitizer::Exec(Option_t *option)
     TBranch * sdigitsBranch = treeS->Branch("PHOS",&sdigits,bufferSize);
 
     sdigitsBranch->Fill() ;
+
     gime->WriteSDigits("OVERWRITE");
 
     //Next - SDigitizer
-    gime->WriteSDigitizer(GetName(), "OVERWRITE");
-    
+
+    gime->WriteSDigitizer(fEventFolderName.Data(), "OVERWRITE");
     
     if(strstr(option,"deb"))
       PrintSDigits(option) ;
   }
   
   Unload();
+
+  gime->PhosLoader()->GetSDigitsDataLoader()->GetBaseTaskLoader()->SetDoNotReload(kTRUE);
   
   if(strstr(option,"tim")){
     gBenchmark->Stop("PHOSSDigitizer");
@@ -272,7 +289,7 @@ void AliPHOSSDigitizer::Print(Option_t* option)const
   message += "                                 B = %f\n" ;
   message += "   Threshold for Primary assignment= %f\n" ; 
   message += "---------------------------------------------------\n" ;
-  Info("Print", message.Data(),  GetName(),  GetName(), fA, fB, fPrimThreshold ) ;
+  Info("Print", message.Data(),  GetName(),  fEventFolderName.Data(), fA, fB, fPrimThreshold ) ;
   
 }
 
@@ -351,7 +368,7 @@ void AliPHOSSDigitizer::PrintSDigits(Option_t * option)
       }    
     }
   }
-  delete tempo ; 
+  delete []tempo ; 
   Info("PrintSDigits", message.Data() ) ;
 }
 

@@ -142,6 +142,15 @@ Int_t AliPHOSLoader::SetEvent()
      Error("SetEvent","AliLoader::SetEvent returned error");
      return retval;
    }
+   
+  if (Hits()) Hits()->Clear();
+  if (SDigits()) SDigits()->Clear();
+  if (Digits()) Digits()->Clear();
+  if (EmcRecPoints()) EmcRecPoints()->Clear();
+  if (CpvRecPoints()) CpvRecPoints()->Clear();
+  if (TrackSegments()) TrackSegments()->Clear();
+  if (RecParticles()) RecParticles()->Clear();
+   
   fRecParticlesLoaded = tmp;
   return 0;
 }
@@ -161,7 +170,13 @@ Int_t AliPHOSLoader::GetEvent()
      Error("GetEvent","AliLoader::GetEvent returned error");
      return retval;
    }
-
+  
+  if (GetHitsDataLoader()->GetBaseDataLoader()->IsLoaded()) ReadHits();
+  if (GetSDigitsDataLoader()->GetBaseDataLoader()->IsLoaded()) ReadSDigits();
+  if (GetDigitsDataLoader()->GetBaseDataLoader()->IsLoaded()) ReadDigits();
+  if (GetRecPointsDataLoader()->GetBaseDataLoader()->IsLoaded()) ReadRecPoints();
+  if (GetTracksDataLoader()->GetBaseDataLoader()->IsLoaded()) ReadTracks();
+  
   if (fRecParticlesLoaded) 
    {//if yes
     AliBaseLoader* tracktreeloader = GetTracksDataLoader()->GetBaseLoader(0);
@@ -313,7 +328,7 @@ Int_t AliPHOSLoader::PostHits()
   Int_t reval = AliLoader::PostHits();
   if (reval)
    {
-     Error("","AliLoader::  returned error");
+     Error("PostHits","AliLoader::  returned error");
      return reval;
    }
   return ReadHits();
@@ -408,6 +423,7 @@ Int_t AliPHOSLoader::ReadHits()
     return 1;
   }
   
+  if (GetDebug()) Info("ReadHits","Reading Hits");
   
   if (hitsbranch->GetEntries() > 1)
    {
@@ -975,14 +991,8 @@ void AliPHOSLoader::ReadCalibrationDB(const char * database,const char * filenam
 }
 //____________________________________________________________________________ 
 
-AliPHOSSDigitizer*  AliPHOSLoader::PHOSSDigitizer(TString name) 
+AliPHOSSDigitizer*  AliPHOSLoader::PHOSSDigitizer() 
 { 
-//returns task named "name" from SDigitzer 
- AliTaskLoader* sdloader = dynamic_cast<AliTaskLoader*>(GetSDigitsDataLoader()->GetBaseLoader(name));
- if (sdloader == 0x0)
-  {
-    Error("PHOSSDigitizer","Can not find Task Loader responsible for %s.",name.Data());
-    return 0x0;
-  }
- return dynamic_cast<AliPHOSSDigitizer*>(sdloader->Task());
+//return PHOS SDigitizer
+ return  dynamic_cast<AliPHOSSDigitizer*>(SDigitizer()) ;
 }

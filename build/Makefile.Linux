@@ -2,11 +2,11 @@ PLATFORM:=linux
 
 # The compilers
 CXX           = g++ 
-F77	      = g77
-CC	      = gcc
+F77           = g77
+CC            = gcc
 
 # Global optimisation
-OPT           = -O -g
+OPT           = -g
 
 CXXOPTS       = $(OPT) -Wall -fPIC -pipe
 COPT	      = $(OPT)

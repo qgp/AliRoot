@@ -154,7 +154,7 @@ class AliPHOSLoader : public AliLoader {
   /************    T A S K S      **************/
   /*********************************************/
   AliPHOSPID * PID(const char * name =0) const { MayNotUse("PID"); return 0x0 ;}
-  AliPHOSSDigitizer*  PHOSSDigitizer(TString name = AliConfig::fgkDefaultEventFolderName);
+  AliPHOSSDigitizer*  PHOSSDigitizer();
   AliPHOSDigitizer*   PHOSDigitizer()  { return  dynamic_cast<AliPHOSDigitizer*>(Digitizer()) ;}
   AliPHOSClusterizer* Clusterizer ()  {return dynamic_cast<AliPHOSClusterizer*>(Reconstructioner()) ;}
   AliPHOSTrackSegmentMaker * TrackSegmentMaker ()  { return dynamic_cast<AliPHOSTrackSegmentMaker *>(Tracker()) ;}

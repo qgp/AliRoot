@@ -9,7 +9,7 @@ F77	      = g77
 CC	      = gcc
 
 # Global optimisation
-OPT           = -O -g
+OPT           = -g
 
 # Shared library suffix
 SL	      = so

@@ -120,33 +120,38 @@ TTask("AliPHOSReconstructioner",evFoldName)
      return;  
    }
   
+  TString galicefn = rl->GetFileName();
   TString method("AliPHOSReconstructioner::AliPHOSReconstructioner(");
   method = (((method + evFoldName)+",")+branchName)+"): ";
   
   fSDigitsBranch= branchName; 
   
+  //P.Skowronski remark
+  // Tasks has default fixed names
+  // other tasks can be added, even runtime
+  // with arbitrary name. See AliDataLoader::
   cout<<"\n\n\n";
   cout<<method<<"\n\nCreating SDigitizer\n";
-  fSDigitizer  = new AliPHOSSDigitizer(GetTitle(),"PHOSSDigitizer");
+  fSDigitizer  = new AliPHOSSDigitizer(galicefn,GetTitle());
   Add(fSDigitizer);
   gime->PostSDigitizer(fSDigitizer);
 
   fDigitsBranch=branchName ;
   cout<<"\n\n\n";
   cout<<method<<"\n\nCreating Digitizer\n";
-  fDigitizer   = new AliPHOSDigitizer(GetTitle(),"PHOSDigitizer") ;
+  fDigitizer   = new AliPHOSDigitizer(galicefn,GetTitle()) ;
   Add(fDigitizer) ;
   gime->PostDigitizer(fDigitizer);
 
   fRecPointBranch=branchName ; 
   cout<<"\n\n\n";
   cout<<method<<"Creating Clusterizer\n";
-  fClusterizer = new AliPHOSClusterizerv1(GetTitle(),"PHOSReconstructioner");
+  fClusterizer = new AliPHOSClusterizerv1(galicefn,GetTitle());
   Add(fClusterizer);
   gime->PostReconstructioner(fClusterizer);
   
   fTSBranch=branchName ; 
-  fTSMaker     = new AliPHOSTrackSegmentMakerv1(GetTitle(),"PHOSTracker");
+  fTSMaker     = new AliPHOSTrackSegmentMakerv1(galicefn,GetTitle());
   Add(fTSMaker) ;
   gime->PostTracker(fTSMaker);
 
@@ -154,7 +159,7 @@ TTask("AliPHOSReconstructioner",evFoldName)
   fRecPartBranch=branchName ; 
   cout<<"\n\n\n";
   cout<<method<<"Creating PID\n";
-  fPID         = new AliPHOSPIDv1(GetTitle(),"PHOSPID");
+  fPID         = new AliPHOSPIDv1(galicefn,GetTitle());
   Add(fPID);
   cout<<"\nFINISHED \n\n"<<method;
   

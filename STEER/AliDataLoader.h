@@ -134,7 +134,6 @@ class AliBaseLoader: public TNamed
 {
   public:
     AliBaseLoader();
-    AliBaseLoader(const TString& name);
     AliBaseLoader(const TString& name, AliDataLoader* dl);
     
     virtual ~AliBaseLoader(){};
@@ -150,6 +149,8 @@ class AliBaseLoader: public TNamed
     Bool_t             IsLoaded()const{return fIsLoaded;}
     void               SetDataLoader(AliDataLoader* dl){fDataLoader = dl;}
     void               SetEventFolder(TFolder* ef){;}
+    void               SetDoNotReload(Bool_t flag){fDoNotReload = flag;}
+    Bool_t             DoNotReload() const {return fDoNotReload;}
    protected:
     
     virtual Int_t      AddToBoard(TObject* obj) = 0;//add to white board - board can be TTask or TFolder
@@ -158,11 +159,15 @@ class AliBaseLoader: public TNamed
     AliDataLoader*     GetDataLoader() const;
     Int_t              GetDebug() const;
 
-    Bool_t             fIsLoaded;   //!  flag indicating if data are loaded
-//    TFolder*           fEventFolder;//!
-    
+    Bool_t             fIsLoaded;    //!  flag indicating if data are loaded
+
    private:
-    AliDataLoader*     fDataLoader;//! pointer to Data Loader this Base Loader belongs to
+    Bool_t             fDoNotReload; //! if this flag is on object is not reloaded while GetEvent is called.
+                                     //Specially important for tasks. Task loops over events while producing data, 
+	                 //and has a base loader which writes it to file every processed event.
+	                 //If this flag is not on, while taking next event, loader deletes task
+	                 // and tries to get new one from file
+    AliDataLoader*     fDataLoader;  //! pointer to Data Loader this Base Loader belongs to
 
  ClassDef(AliBaseLoader,1)    
 };

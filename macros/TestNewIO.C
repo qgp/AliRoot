@@ -1,15 +1,16 @@
-void TestNewIO(Int_t n = 5,Char_t SlowOrFast='s')
+Int_t TestNewIO(Int_t n = 5,Char_t SlowOrFast='s')
 {
    Int_t rc=0;
    
-   AliLoader::fgkDebug = kFALSE;//set it to kTRUE for debug print-out
-
+   AliLoader::SetDebug(kTRUE);//set it to kTRUE for debug print-out
+   gAlice->SetDebug(100);
    /**********************************************/
    /************ G E N E R A T I O N *************/
    /**********************************************/
       
    gROOT->LoadMacro("$(ALICE_ROOT)/macros/grun.C");
    grun(n);
+
 
    /**********************************************/
    /******************* T P C ********************/
@@ -72,6 +73,7 @@ void TestNewIO(Int_t n = 5,Char_t SlowOrFast='s')
    
    gROOT->LoadMacro("$(ALICE_ROOT)/ITS/AliITSComparisonV2.C");
    if (rc=AliITSComparisonV2()) return rc;
+
 
 
    ::Info("NewIO test","Everything seems to be OK");   

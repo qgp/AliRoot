@@ -31,8 +31,7 @@ class AliPHOSDigitizer: public AliDigitizer {
 
 public:
   AliPHOSDigitizer() ;          // ctor
-  AliPHOSDigitizer(const TString alirunFileNameFile, 
-		   const TString eventFolderName = AliConfig::fgkDefaultEventFolderName) ; 
+  AliPHOSDigitizer(const TString alirunFileNameFile, const TString eventFolderName = AliConfig::fgkDefaultEventFolderName) ; 
   AliPHOSDigitizer(const AliPHOSDigitizer & dtizer) ;
   AliPHOSDigitizer(AliRunDigitizer * manager) ;
   virtual ~AliPHOSDigitizer() ;       
@@ -100,7 +99,7 @@ private:
   Bool_t  fInit ;                   //! To avoid overwriting existing files
 
   Int_t   fInput ;                  // Number of files to merge
-  TString * fInputFileNames ;       //[fInput] List of file names to merge
+  TString * fInputFileNames ;       //[fInput] List of file names to merge 
   TString * fEventNames ;           //[fInput] List of event names to merge
 
   Int_t   fEmcCrystals ;            // Number of EMC crystalls in the given geometry
@@ -124,7 +123,8 @@ private:
   Float_t fADCpedestalCpv ;         // value of the CPV ADC pedestal in CPV units
   Int_t   fNADCcpv ;                // number of channels in CPV ADC
 
-
+  TString fEventFolderName;         // skowron: name of EFN to read data from in stand alone mode
+  
   ClassDef(AliPHOSDigitizer,1)  // description 
 
 };

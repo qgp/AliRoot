@@ -106,7 +106,7 @@ AliPHOSGetter::AliPHOSGetter(const char* headerFile, const char* version, Option
   if ( !fgPhosLoader ) 
     Error("AliPHOSGetter", "Could not find PHOSLoader") ; 
   else 
-    fgPhosLoader->SetTitle(version) ; 
+    fgPhosLoader->SetTitle(version);
   
   
   // initialize data members
@@ -166,6 +166,7 @@ void AliPHOSGetter::Event(const Int_t event, const char* opt)
   
   rl->GetEvent(event) ; 
 
+
   if( strstr(opt,"P") || (strcmp(opt,"")==0) )
     ReadPrimaries() ;
 
@@ -209,7 +210,8 @@ AliPHOSGetter * AliPHOSGetter::Instance(const char* alirunFileName, const char* 
   // Creates and returns the pointer of the unique instance
   // Must be called only when the environment has changed
   
-
+  //::Info("Instance","alirunFileName=%s version=%s openingOption=%s",alirunFileName,version,openingOption);
+  
   if(!fgObjGetter){ // first time the getter is called 
     fgObjGetter = new AliPHOSGetter(alirunFileName, version, openingOption) ;
   }

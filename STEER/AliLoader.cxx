@@ -291,29 +291,15 @@ TFolder* AliLoader::GetQAFolder()
 TTask* AliLoader::SDigitizer()
 {
 //returns SDigitizer task for this detector
+  return GetSDigitsDataLoader()->GetBaseTaskLoader()->Task();
 
-  TTask* rsd = AliRunLoader::GetRunSDigitizer();
-   if (rsd == 0x0)
-    {
-      return 0x0;
-    }
-  TString name(fDetectorName + AliConfig::Instance()->GetSDigitizerTaskName());
-  TObject* obj = rsd->GetListOfTasks()->FindObject(name);
-  return (obj)?dynamic_cast<TTask*>(obj):0x0;
 }
 /*****************************************************************************/ 
 
 AliDigitizer* AliLoader::Digitizer()
 {
 //returns Digitizer task for this detector
-  TTask* rd = AliRunLoader::GetRunDigitizer();
-   if (rd == 0x0)
-    {
-      return 0x0;
-    }
-  TString name(fDetectorName + AliConfig::Instance()->GetDigitizerTaskName());
-  TObject* obj = rd->GetListOfTasks()->FindObject(name);
-  return (obj)?dynamic_cast<AliDigitizer*>(obj):0x0;
+  return dynamic_cast<AliDigitizer*>(GetDigitsDataLoader()->GetBaseTaskLoader()->Task());
 }
 /*****************************************************************************/ 
 
@@ -321,14 +307,7 @@ TTask* AliLoader::Reconstructioner()
 {
 //returns Recontructioner (Cluster Finder, Cluster Maker, 
 //or whatever you want to call it) task for this detector
-  TTask* rrec = AliRunLoader::GetRunReconstructioner();
-  if (rrec == 0x0)
-    {
-      return 0x0;
-    }
-  TString name(fDetectorName + AliConfig::Instance()->GetReconstructionerTaskName());
-  TObject* obj = rrec->GetListOfTasks()->FindObject(name);
-  return (obj)?dynamic_cast<TTask*>(obj):0x0;
+  return GetRecPointsDataLoader()->GetBaseTaskLoader()->Task();
 }
 /*****************************************************************************/ 
 
@@ -370,14 +349,8 @@ TTask* AliLoader::QAtask(const char* name)
 
 TTask* AliLoader::Tracker()
 {
-  TTask* tracker = AliRunLoader::GetRunTracker();
-  if (tracker == 0x0)
-    {
-      return 0x0;
-    }
-  TString name(fDetectorName + AliConfig::Instance()->GetTrackerTaskName());
-  TObject* obj = tracker->GetListOfTasks()->FindObject(name);
-  return (obj)?dynamic_cast<TTask*>(obj):0x0;
+//returns tracker
+  return dynamic_cast<TTask*>(GetTracksDataLoader()->GetBaseTaskLoader()->Task());
 }
 
 /*****************************************************************************/ 
@@ -482,20 +455,16 @@ void AliLoader::MakeTree(Option_t *option)
 /*****************************************************************************/ 
 Int_t  AliLoader::WriteHits(Option_t* opt)
  {
-   Info("WriteHits","opt = %s",opt);
    AliDataLoader* dl = GetHitsDataLoader();
    Int_t ret = dl->WriteData(opt);
-   Info("WriteHits","ret = %d",ret);
    return ret;
  }
 /*****************************************************************************/ 
 
 Int_t AliLoader::WriteSDigits(Option_t* opt)
  {
-   Info("WriteHits","opt = %s",opt);
    AliDataLoader* dl = GetSDigitsDataLoader();
    Int_t ret = dl->WriteData(opt);
-   Info("WriteHits","ret = %d",ret);
    return ret;
  }
  

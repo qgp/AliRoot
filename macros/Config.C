@@ -89,7 +89,7 @@ void Config()
         int     nParticles = atoi(gSystem->Getenv("CONFIG_NPARTICLES"));
     } else
     {
-        int     nParticles = 10;
+        int     nParticles = 30;
     }
     AliGenCocktail *gener = new AliGenCocktail();
     gener->SetPhiRange(220, 320);
@@ -104,10 +104,10 @@ void Config()
     hijingparam->SetMomentumRange(0.2, 999);
     gener->AddGenerator(hijingparam,"HIJING PARAM",1);
 
-    AliGenBox *genbox = new AliGenBox(nParticles);
-    genbox->SetPart(22);
-    genbox->SetPtRange(0.3, 10.00);
-    gener->AddGenerator(genbox,"GENBOX GAMMA for PHOS",1);
+//    AliGenBox *genbox = new AliGenBox(nParticles);
+//    genbox->SetPart(22);
+//    genbox->SetPtRange(0.3, 10.00);
+//    gener->AddGenerator(genbox,"GENBOX GAMMA for PHOS",1);
     gener->Init();
 
 

@@ -106,7 +106,12 @@ Int_t  AliDataLoader::SetEvent()
  
  Int_t evno = rl->GetEventNumber();
 
- CleanAll();
+ TIter next(fBaseLoaders);
+ AliBaseLoader* bl;
+ while ((bl = (AliBaseLoader*)next()))
+  {
+    if (bl->DoNotReload() == kFALSE) bl->Clean();
+  }
 
  if(fFile)
   {
@@ -155,7 +160,7 @@ Int_t  AliDataLoader::GetEvent()
     {
      if (bl->IsLoaded())
       {
-        bl->Post();
+        if (bl->DoNotReload() == kFALSE) bl->Post();
       }
     } 
   }
@@ -291,7 +296,8 @@ Int_t AliDataLoader::Reload()
 Int_t AliDataLoader::WriteData(Option_t* opt)
 {
 //Writes primary data ==  first BaseLoader
-  Info("WriteData","Writing %s container for %s data. Option is %s.",
+  if (GetDebug())
+   Info("WriteData","Writing %s container for %s data. Option is %s.",
           GetBaseLoader(0)->GetName(),GetName(),opt);
   return GetBaseLoader(0)->WriteData(opt);
 }
@@ -401,7 +407,7 @@ void AliDataLoader::CleanAll()
   AliBaseLoader* bl;
   while ((bl = (AliBaseLoader*)next()))
    {
-     bl->Clean();
+      bl->Clean();
    }
 }
 /*****************************************************************************/ 
@@ -672,6 +678,7 @@ ClassImp(AliBaseLoader)
 
 AliBaseLoader::AliBaseLoader():
  fIsLoaded(kFALSE),
+ fDoNotReload(kFALSE),
  fDataLoader(0x0)
 {
 }
@@ -680,6 +687,7 @@ AliBaseLoader::AliBaseLoader():
 AliBaseLoader::AliBaseLoader(const TString& name,  AliDataLoader* dl):
  TNamed(name,name+" Base Loader"),
  fIsLoaded(kFALSE),
+ fDoNotReload(kFALSE),
  fDataLoader(dl)
 {
 }
@@ -856,6 +864,9 @@ Int_t AliBaseLoader::WriteData(Option_t* opt)
   
   if (GetDebug()) Info("WriteData","Writing tree");
   data->Write(0,TObject::kOverwrite);
+
+  fIsLoaded = kTRUE;  // Just to ensure flag is on. Object can be posted manually to folder structure, not using loader.
+
   return 0;
  
 }
@@ -1040,6 +1051,9 @@ Int_t AliTreeLoader::WriteData(Option_t* opt)
   
   if (GetDebug()) Info("WriteData","Writing tree");
   data->Write(0,TObject::kOverwrite);
+
+  fIsLoaded = kTRUE;  // Just to ensure flag is on. Object can be posted manually to folder structure, not using loader.
+  
   return 0;
  
 }

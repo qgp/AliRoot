@@ -95,7 +95,8 @@ ClassImp(AliPHOSDigitizer)
 
 //____________________________________________________________________________ 
 AliPHOSDigitizer::AliPHOSDigitizer(const TString alirunFileName, const TString eventFolderName):
-  AliDigitizer(eventFolderName,alirunFileName)  
+  AliDigitizer("PHOS"+AliConfig::fgkDigitizerTaskName, alirunFileName),
+  fEventFolderName(eventFolderName)
 {
   // ctor
 
@@ -125,10 +126,13 @@ AliPHOSDigitizer::AliPHOSDigitizer(const AliPHOSDigitizer & d)
   fADCchanelCpv      = d.fADCchanelCpv ;
   fADCpedestalCpv    = d.fADCpedestalCpv ;
   fNADCcpv           = d.fNADCcpv ; 
+  fEventFolderName   = d.fEventFolderName;
 }
 
 //____________________________________________________________________________ 
-AliPHOSDigitizer::AliPHOSDigitizer(AliRunDigitizer * rd):AliDigitizer(rd)
+AliPHOSDigitizer::AliPHOSDigitizer(AliRunDigitizer * rd):
+ AliDigitizer(rd,"PHOS"+AliConfig::fgkDigitizerTaskName),
+ fEventFolderName(0)
 {
   // ctor
   fManager = rd ; 
@@ -160,7 +164,8 @@ void AliPHOSDigitizer::Digitize(const Int_t event)
   // This design avoids scanning over the list of digits to add 
   // contribution to new SDigits only.
 
-  AliPHOSGetter * gime = AliPHOSGetter::Instance(GetTitle(), GetName()) ; 
+  AliPHOSGetter * gime = AliPHOSGetter::Instance(GetTitle(), fEventFolderName) ; 
+
   
   TTree * treeD = gime->TreeD();
   if ( !treeD ) {
@@ -183,12 +188,12 @@ void AliPHOSDigitizer::Digitize(const Int_t event)
   digits->Expand(nCPV) ;
 
   // get first the sdigitizer from the tasks list 
-  if ( !gime->SDigitizer(GetName())) 
-    gime->LoadSDigitizer(GetName());
-  AliPHOSSDigitizer * sDigitizer = gime->SDigitizer(GetName()); 
+  if ( !gime->SDigitizer("whatever")) 
+    gime->LoadSDigitizer(fEventFolderName);
+  AliPHOSSDigitizer * sDigitizer = gime->SDigitizer("whatever");
 
   if ( !sDigitizer )
-    Fatal("Digitize", "SDigitizer with name %s %s not found", GetName(), GetTitle() ) ; 
+    Fatal("Digitize", "SDigitizer with name %s %s not found", fEventFolderName.Data(), GetTitle() ) ; 
 
   //take all the inputs to add together and load the SDigits
   TObjArray * sdigArray = new TObjArray(fInput) ;
@@ -395,7 +400,7 @@ void AliPHOSDigitizer::Exec(Option_t *option)
   // Does the job
 
   if (!fInit) { // to prevent overwrite existing file
-    Error( "Exec", "Give a version name different from %s", GetName() ) ;
+    Error( "Exec", "Give a version name different from %s", fEventFolderName.Data() ) ;
     return ;
   }   
 
@@ -470,9 +475,9 @@ Bool_t AliPHOSDigitizer::Init()
 {
   // Makes all memory allocations
   fInit = kTRUE ; 
-  AliPHOSGetter * gime = AliPHOSGetter::Instance(GetTitle(), GetName()) ; 
+  AliPHOSGetter * gime = AliPHOSGetter::Instance(GetTitle(), fEventFolderName) ; 
   if ( gime == 0 ) {
-    Fatal("Init" ,"Could not obtain the Getter object for file %s and event %s !", GetTitle(), GetName()) ;  
+    Fatal("Init" ,"Could not obtain the Getter object for file %s and event %s !", GetTitle(), fEventFolderName.Data()) ;  
     return kFALSE;
   } 
   
@@ -482,7 +487,7 @@ Bool_t AliPHOSDigitizer::Init()
   
   TString opt("Digits") ; 
   if(gime->VersionExists(opt) ) { 
-    Error( "Init", "Give a version name different from %s", GetName() ) ;
+    Error( "Init", "Give a version name different from %s", fEventFolderName.Data() ) ;
     fInit = kFALSE ; 
   }
   //else 
@@ -499,13 +504,17 @@ Bool_t AliPHOSDigitizer::Init()
   fInputFileNames  = new TString[fInput] ; 
   fEventNames      = new TString[fInput] ; 
   fInputFileNames[0] = GetTitle() ; 
-  fEventNames[0]     = GetName() ; 
+  fEventNames[0]     = fEventFolderName.Data() ; 
   Int_t index ; 
   for (index = 1 ; index < fInput ; index++) {
     fInputFileNames[index] = dynamic_cast<AliStream*>(fManager->GetInputStream(index))->GetFileName(0); 
     TString tempo = fManager->GetInputFolderName(index) ;
     fEventNames[index] = tempo.Remove(tempo.Length()-1) ; // strip of the stream number added bt fManager 
   }
+
+  //to prevent cleaning of this object while GetEvent is called
+  gime->PhosLoader()->GetDigitsDataLoader()->GetBaseTaskLoader()->SetDoNotReload(kTRUE);
+
   return fInit ; 
 }
 
@@ -548,7 +557,7 @@ void AliPHOSDigitizer::MixWith(const TString alirunFileName, const TString event
   // However only Sdigits with the same name (i.e. constructed with the same SDigitizer)
   // can be mixed.
 
-  if( strcmp(GetName(), "") == 0 )
+  if( strcmp(fEventFolderName, "") == 0 )
     Init() ;
 
   if(fManager){
@@ -589,9 +598,9 @@ void AliPHOSDigitizer::MixWith(const TString alirunFileName, const TString event
 void AliPHOSDigitizer::Print(Option_t* option)const 
 {
   // Print Digitizer's parameters
-  if( strcmp(GetName(), "") != 0 ){
+  if( strcmp(fEventFolderName.Data(), "") != 0 ){
 
-    Info("Print", "\n------------------- %s -------------", GetName() ) ; 
+    Info("Print", "\n------------------- %s -------------", fEventFolderName.Data() ) ; 
     
     Int_t nStreams ; 
     if (fManager) 
@@ -609,7 +618,7 @@ void AliPHOSDigitizer::Print(Option_t* option)const
 	  fileName = fileName.ReplaceAll(".root", "") + "_" + fEventNames[index]  + ".root" ;
 	printf ("Adding SDigits from %s %s\n", fInputFileNames[index].Data(), fileName.Data()) ; 
     }
-    AliPHOSGetter * gime = AliPHOSGetter::Instance(GetTitle(), GetName()) ; 
+    AliPHOSGetter * gime = AliPHOSGetter::Instance(GetTitle(), fEventFolderName) ; 
     printf("\nWriting digits to %s", gime->GetDigitsFileName().Data()) ;
     
     printf("\nWith following parameters:\n") ;
@@ -629,7 +638,7 @@ void AliPHOSDigitizer::Print(Option_t* option)const
 {
   // Print a table of digits
   
-  AliPHOSGetter * gime = AliPHOSGetter::Instance(GetTitle(), GetName()) ; 
+  AliPHOSGetter * gime = AliPHOSGetter::Instance(GetTitle(), fEventFolderName) ; 
   TClonesArray * digits = gime->Digits() ; 
   
   TString message ; 
@@ -707,7 +716,7 @@ void AliPHOSDigitizer::Unload()
     gime->PhosLoader()->UnloadSDigits() ; 
   }
   
-  AliPHOSGetter * gime = AliPHOSGetter::Instance(GetTitle(), GetName()) ; 
+  AliPHOSGetter * gime = AliPHOSGetter::Instance(GetTitle(), fEventFolderName) ; 
   gime->PhosLoader()->UnloadDigits() ; 
 }
 
@@ -723,18 +732,18 @@ void AliPHOSDigitizer::WriteDigits(Int_t event)
   //      and branch "AliPHOSDigitizer", with the same title to keep all the parameters
   //      and names of files, from which digits are made.
 
-  AliPHOSGetter * gime = AliPHOSGetter::Instance(GetTitle(), GetName()) ; 
+  AliPHOSGetter * gime = AliPHOSGetter::Instance(GetTitle(), fEventFolderName) ; 
   const TClonesArray * digits = gime->Digits() ; 
   TTree * treeD = gime->TreeD();
 
   // -- create Digits branch
   Int_t bufferSize = 32000 ;    
   TBranch * digitsBranch = treeD->Branch("PHOS",&digits,bufferSize);
-  digitsBranch->SetTitle(GetName());
+  digitsBranch->SetTitle(fEventFolderName);
   digitsBranch->Fill() ;
   
   gime->WriteDigits("OVERWRITE");
-  gime->WriteDigitizer(GetName(), "OVERWRITE");
+  gime->WriteDigitizer(fEventFolderName, "OVERWRITE");
 
   Unload() ; 
 

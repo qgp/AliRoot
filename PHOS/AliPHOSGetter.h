@@ -121,14 +121,14 @@ class AliPHOSGetter : public TObject {
   AliPHOSDigit *      SDigit(const Int_t index) { return static_cast<AliPHOSDigit *>(SDigits()->At(index)) ;} 
   TTree *             TreeS() const { return fgPhosLoader->TreeS() ; }
   AliPHOSSDigitizer * SDigitizer(TString name = AliConfig::fgkDefaultEventFolderName ) const { 
-    return dynamic_cast<AliPHOSSDigitizer *>(PhosLoader()->PHOSSDigitizer(name)) ;} 
+    return dynamic_cast<AliPHOSSDigitizer *>(PhosLoader()->PHOSSDigitizer()) ;} 
   TString             GetSDigitsFileName() { return PhosLoader()->GetSDigitsFileName() ; }  
   Int_t               LoadSDigits(Option_t* opt="") { return PhosLoader()->LoadSDigits(opt) ; }
   Int_t               LoadSDigitizer(const TString name = AliConfig::fgkDefaultEventFolderName, Option_t* opt=""){
     return  PhosLoader()->LoadSDigitizer(opt) ; }
   Int_t               WriteSDigits(Option_t* opt="") { return PhosLoader()->WriteSDigits(opt) ; }
   Int_t               WriteSDigitizer(const TString name = AliConfig::fgkDefaultEventFolderName, Option_t* opt=""){
-    return  PhosLoader()->WriteSDigitizer(opt) ; }
+                        return  PhosLoader()->WriteSDigitizer(opt) ; }
   
   //========== Digits ================
   TClonesArray * Digits() ;
@@ -192,7 +192,7 @@ class AliPHOSGetter : public TObject {
 //   const Bool_t PostRecParticles( const char * name) const ;  
 //   const Bool_t PostClusterizer( const char * name) const ;  
 //   const Bool_t PostClusterizer(AliPHOSClusterizer * clu) const ;  
-  void PostSDigitizer (AliPHOSSDigitizer * sdigitizer) const {PhosLoader()->PostSDigitizer(dynamic_cast<TTask *>(sdigitizer));}  
+  void PostSDigitizer (AliPHOSSDigitizer * sdigitizer) const {PhosLoader()->PostSDigitizer(sdigitizer);}  
 //   const Bool_t PostSDigitizer ( const char * name, const char * file ) const ;  
   void PostDigitizer (AliPHOSDigitizer * digitizer)    const {PhosLoader()->PostDigitizer(dynamic_cast<AliDigitizer *>(digitizer));}
 //   const Bool_t PostDigitizer  ( const char * name) const ;  
