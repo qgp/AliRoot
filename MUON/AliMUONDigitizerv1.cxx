@@ -188,11 +188,15 @@ void AliMUONDigitizerv1::Exec(Option_t* option)
     return;  // RunDigitizer is not working.  
   }
   gime         = runloader->GetLoader("MUONLoader");
-  if (gime->TreeH()==0x0) gime->LoadHits("READ");
+  if (gime->TreeH()==0x0) {
+     Info("Digitize","TreeH is not loaded yet. Loading...");
+     gime->LoadHits("READ");
+     Info("Digitize","Now treeH is %#x. MUONLoader is %#x",gime->TreeH(),gime);
+  }
 
   if (GetDebug()>2) cerr<<"AliMUONDigitizerv1::Digitize() loaders"<<endl;
 
-  runloader->LoadgAlice();
+   if (runloader->GetAliRun() == 0x0) runloader->LoadgAlice();
   gAlice = runloader->GetAliRun();
 
   // Getting Module MUON  
@@ -211,12 +215,13 @@ void AliMUONDigitizerv1::Exec(Option_t* option)
        (Int_t(TMath::Log10(currentevent)) == TMath::Log10(currentevent) ) )
     cout <<"ALiMUONDigitizerv1::Digitize() Event Number is "<< currentevent <<endl;
 
-  //// Output file option of managaer in not operational yet. 
-  //  AliRunLoader *  runloaderout  = AliRunLoader::GetRunLoader(fManager->GetOutputFolderName());
-  //AliLoader * gimeout         = runloaderout->GetLoader("MUONLoader"); 
+  // Output file for digits 
+  AliRunLoader *  runloaderout  = AliRunLoader::GetRunLoader(fManager->GetOutputFolderName());
+  AliLoader * gimeout         = runloaderout->GetLoader("MUONLoader"); 
   // New branch per chamber for MUON digit in the tree of digits
-  if (gime->TreeD() == 0x0) gime->MakeDigitsContainer();
-  pMUON->MakeBranchInTreeD(gime->TreeD());
+  if (gime->TreeD() == 0x0) gimeout->MakeDigitsContainer();
+  TTree* treeD = gimeout->TreeD();
+  pMUON->MakeBranchInTreeD(treeD);
 
   // Array of pointer of the AliMUONHitMapA1:
   //  two HitMaps per chamber, or one HitMap per cahtode plane
@@ -242,16 +247,21 @@ void AliMUONDigitizerv1::Exec(Option_t* option)
       // Connect MUON Hit branch
       if (inputFile > 0 ) {
 	fSignal = kFALSE;
-	runloader    = AliRunLoader::GetRunLoader(fManager->GetInputFolderName(inputFile));
-	if (runloader == 0x0) {
-	  cerr<<"AliMUONDigitizerv1::Digitize() RunLoader for inputFile "<<inputFile<< " not found !!! "<<endl;
-	}
-	gime         = runloader->GetLoader("MUONLoader");
-	if (gime->TreeH() == 0x0) gime->LoadHits("READ");
+         runloader    = AliRunLoader::GetRunLoader(fManager->GetInputFolderName(inputFile));
+         if (runloader == 0x0) {
+           cerr<<"AliMUONDigitizerv1::Digitize() RunLoader for inputFile "<<inputFile<< " not found !!! "<<endl;
+         }
+         gime  = runloader->GetLoader("MUONLoader");
+         if (gime->TreeH() == 0x0) gime->LoadHits("READ");	
       }
 
       // Setting the address of fHits list
       TTree *treeH = gime->TreeH();
+      if (treeH == 0x0) {
+	Error("Digitize","Can not get TreeH from input %d",inputFile);
+	Info("Digitize","Now treeH is %#x. MUONLoader is %#x",gime->TreeH(),gime);
+	return;
+      }
       if (GetDebug()>2) {
 	cerr<<"AliMUONDigitizerv1::Exec inputFile is "<<inputFile<<" "<<endl;
 	cerr<<"AliMUONDigitizerv1::Exec treeH, fHits "<<treeH<<" "<<fHits<<endl;
@@ -380,7 +390,7 @@ void AliMUONDigitizerv1::Exec(Option_t* option)
 	if ( digits[2] == icat ) pMUON->AddDigits(ich,tracks,charges,digits);
       }
       // Filling list of digits per chamber for a given cathode.
-      gime->TreeD()->Fill();
+      treeD->Fill();
       pMUON->ResetDigits();    
     } // end loop cathode
     fTDList->Delete();  
@@ -394,9 +404,9 @@ void AliMUONDigitizerv1::Exec(Option_t* option)
     
     if (GetDebug()>2) 
       cerr<<"AliMUONDigitizer::Exec: writing the TreeD: "
-	  <<gime->TreeD()->GetName()<<endl;
+	  <<treeD->GetName()<<endl;
 
-    gime->WriteDigits("OVERWRITE");
+    gimeout->WriteDigits("OVERWRITE");
     delete [] fHitMap;
     delete fTDList;
     
