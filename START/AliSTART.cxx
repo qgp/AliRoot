@@ -49,21 +49,19 @@
 #include <TVirtualMC.h>
 #include <AliESD.h>
 
-#include "AliLog.h"
-#include "AliMC.h"
 #include "AliLoader.h"
 #include "AliRun.h"
-
 #include "AliSTART.h"
 #include "AliSTARTLoader.h"
 #include "AliSTARTdigit.h"
 #include "AliSTARThit.h"
+#include "AliSTARThitPhoton.h"
+#include "AliMC.h"
 #include "AliSTARTDigitizer.h"
-#include "AliSTARTRawData.h"
 
 ClassImp(AliSTART)
 
-  //static  AliSTARTdigit *digits; 
+static  AliSTARTdigit *digits; 
 
 //_____________________________________________________________________________
 AliSTART::AliSTART()
@@ -74,6 +72,7 @@ AliSTART::AliSTART()
   fIshunt   = 1;
   fHits     = 0;
   fDigits   = 0;
+  fPhotons  = 0;
 }
  
 //_____________________________________________________________________________
@@ -89,8 +88,13 @@ AliSTART::AliSTART(const char *name, const char *title)
   // Initialise Hit array
   fHits       = new TClonesArray("AliSTARThit",  405);
   gAlice->GetMCApp()->AddHitList(fHits);
+
+  fPhotons  = new TClonesArray("AliSTARThitPhoton", 10000);
+  gAlice->GetMCApp()->AddHitList (fPhotons);
+  if (GetDebug()>2) cout<<" Debug "<<endl;
   fIshunt     =  1;
   fIdSens   =  0;
+  fNPhotons =  0;
   SetMarkerColor(kRed);
 }
 
@@ -99,6 +103,10 @@ AliSTART::~AliSTART() {
   if (fHits) {
     fHits->Delete();
     delete fHits;
+  }
+  if (fPhotons) {
+    fPhotons->Delete();
+    delete fPhotons;
   }
 }
  
@@ -112,6 +120,14 @@ void AliSTART::AddHit(Int_t track, Int_t *vol, Float_t *hits)
   new(lhits[fNhits++]) AliSTARThit(fIshunt,track,vol,hits);
 }
 
+//_____________________________________________________________________________
+void AliSTART::AddHitPhoton(Int_t track, Int_t *vol, Float_t *hits)
+{
+  //  Add a START hit of photons
+  
+  TClonesArray &lhits = *fPhotons;
+  new(lhits[fNPhotons++]) AliSTARThitPhoton(fIshunt,track,vol,hits);
+}
 
 //_____________________________________________________________________________
 
@@ -186,17 +202,28 @@ void AliSTART::MakeBranch(Option_t* option)
   // Specific START branches
   //
   // Create Tree branches for the START.
+  Int_t buffersize = 4000;
   char branchname[20];
   sprintf(branchname,"%s",GetName());
 
+
+  const char *cD = strstr(option,"D");
   const char *cH = strstr(option,"H");
   
   if (cH && fLoader->TreeH())
   {
+     if (fPhotons == 0x0) fPhotons  = new TClonesArray("AliSTARThitPhoton", 10000);
+     sprintf (branchname, "%shitPhoton", GetName());
+     MakeBranchInTree (fLoader->TreeH(), branchname, &fPhotons, 50000, 0);
      if (fHits == 0x0) fHits  = new TClonesArray("AliSTARThit",  405);
   } 
   
   AliDetector::MakeBranch(option);
+
+  if (cD) {
+    digits = new AliSTARTdigit();
+    MakeBranchInTree(fLoader->TreeD(), branchname, "AliSTARTdigit", digits, buffersize, 1, 0);
+  } 
 }    
 
 //_____________________________________________________________________________
@@ -204,17 +231,24 @@ void AliSTART::ResetHits()
 {
   AliDetector::ResetHits();
   
+  fNPhotons = 0;
+  if (fPhotons)  fPhotons->Clear();
 }
 
 //_____________________________________________________________________________
 void AliSTART::SetTreeAddress()
 {
-
+  TBranch  *branch;
   TTree    *treeH;
+ 
+  
   treeH = TreeH();
   
   if (treeH)
     {
+      if (fPhotons == 0x0) fPhotons  = new TClonesArray("AliSTARThitPhoton", 10000);
+      branch = treeH->GetBranch("STARThitPhoton");
+      if (branch)  branch->SetAddress(&fPhotons);
       if (fHits == 0x0) fHits  = new TClonesArray("AliSTARThit",  405);
     }
     
@@ -225,8 +259,7 @@ void AliSTART::SetTreeAddress()
 //______________________________________________________________________
 AliLoader* AliSTART::MakeLoader(const char* topfoldername)
 { 
-
-  AliDebug(2,Form(" Creating AliSTARTLoader "));
+  Info("MakeLoader", "Creating AliSTARTLoader. Top folder is %s.", topfoldername);
   fLoader = new AliSTARTLoader(GetName(), topfoldername);
   return fLoader;
 }
@@ -235,23 +268,4 @@ AliLoader* AliSTART::MakeLoader(const char* topfoldername)
 AliDigitizer* AliSTART::CreateDigitizer(AliRunDigitizer* manager) const
 {
   return new AliSTARTDigitizer(manager);
-}
-//____________________________________________________________________________
-void AliSTART::Digits2Raw()
-{
-//
-// Starting from the START digits, writes the Raw Data objects
-//
-  AliSTARTLoader* pStartLoader = (AliSTARTLoader*)fLoader;
-  pStartLoader ->LoadDigits();
-  AliSTARTdigit* fDigits=pStartLoader->Digits();
-  AliSTARTRawData rawWriter;
-  rawWriter.SetVerbose(0);
-
-  AliDebug(2,Form(" Formatting raw data for START "));
-  
-  rawWriter.RawDataSTART (fDigits);
-
-   pStartLoader->UnloadDigits();
-
 }

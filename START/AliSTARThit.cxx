@@ -77,8 +77,9 @@ AliSTARThit::AliSTARThit(Int_t shunt, Int_t track, Int_t *vol, Float_t *hits):
    fX=hits[0];
    fY=hits[1];
    fZ=hits[2];
-   fEtot=hits[3];
-   fParticle=Int_t (hits[4]);
-   fTime=hits[5];
+   fEdep=hits[3];
+   fEtot=hits[4];
+   fParticle=Int_t (hits[5]);
+   fTime=hits[6];
 }
  

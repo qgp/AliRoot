@@ -18,6 +18,7 @@ public:
   Int_t Volume() const {return fVolume;}
   Int_t Pmt() const {return fPmt;}
   Float_t Particle() const {return fParticle;} 
+  Float_t Edep() const {return fEdep;}
   Float_t Etot() const {return fEtot;}
   Float_t Time() const {return fTime;}
 
@@ -25,6 +26,7 @@ private:
   Int_t      fVolume;   //T0 arm mark
   Int_t      fPmt;      //PMT number in the arm  
   Int_t      fParticle; //Primary particle ID
+  Float_t    fEdep;     //Energy deposition
   Float_t    fEtot;     //Energy of primary particle at the entrance to radiator 
   Float_t    fTime;     //Primary particle TOF 
  

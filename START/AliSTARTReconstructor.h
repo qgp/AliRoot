@@ -7,13 +7,15 @@
 
 #include "AliReconstructor.h"
 
+
 class AliSTARTReconstructor: public AliReconstructor {
 public:
   AliSTARTReconstructor(): AliReconstructor() {};
   virtual ~AliSTARTReconstructor() {};
-  virtual void         Reconstruct(/*AliRunLoader* runLoader*/) ;
-   virtual void         FillESD(AliRunLoader* runLoader, AliESD* esd) const;
- 
+
+  virtual void         Reconstruct(AliRunLoader* runLoader) const;
+  virtual void         FillESD(AliRunLoader* runLoader, AliESD* esd) const;
+
   ClassDef(AliSTARTReconstructor, 0)   // class for the START reconstruction
 };
 
