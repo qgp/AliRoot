@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.38  2002/05/30 14:59:12  morsch
+Check geometrical acceptance. (G. Martinez)
+
 Revision 1.37  2002/04/17 10:20:44  morsch
 Coding Rule violations corrected.
 
@@ -423,6 +426,11 @@ void AliGenParam::Generate()
 //
 // select decay particles
 	      Int_t np=fDecayer->ImportParticles(particles);
+
+	      //  Selecting  GeometryAcceptance for particles fPdgCodeParticleforAcceptanceCut;
+	      if (fGeometryAcceptance) 
+		if (!CheckAcceptanceGeometry(np,particles)) continue;
+	      
 	      Int_t ncsel=0;
 	      Int_t* pFlag      = new Int_t[np];
 	      Int_t* pParent    = new Int_t[np];
@@ -523,6 +531,7 @@ void AliGenParam::Generate()
 			  } else {
 			      iparent = -1;
 			  }
+			 
 			  SetTrack(fTrackIt*trackIt[i], iparent, kf,
 					   pc, och, polar,
 					   0, kPDecay, nt, wgtch);

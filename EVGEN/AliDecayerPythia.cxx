@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.12  2002/06/05 14:05:46  morsch
+Decayer option kPhiKK for forced phi->K+K- decay added.
+
 Revision 1.11  2002/04/26 10:32:59  morsch
 Option kNoDecayHeavy added.
 
@@ -151,7 +154,7 @@ void AliDecayerPythia::ForceDecay()
 {
 // Force a particle decay mode
     Decay_t decay=fDecay;
-    
+    fPythia->SetMSTJ(21,2);
     if (decay == kNoDecayHeavy) return;
 
 //
@@ -247,11 +250,16 @@ void AliDecayerPythia::ForceDecay()
     case kHadronicD:
 	ForceHadronicD();
 	break;
+    case kPhiKK:
+	ForceParticleDecay(333,321,2); // Phi->K+K-
+	break;
     case kOmega:
 	ForceOmega();
     case kAll:
 	break;
     case kNoDecay:
+	fPythia->SetMSTJ(21,0);
+	break;
     case kNoDecayHeavy:
 	break;
     }

@@ -15,6 +15,10 @@
 
 /*
 $Log$
+Revision 1.2  2002/07/19 11:43:10  morsch
+- Write full stack.
+- Use SetTrack passing energy.
+
 Revision 1.1  2002/07/16 11:33:26  morsch
 First commit.
 

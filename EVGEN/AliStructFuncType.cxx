@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.1  2002/07/22 10:19:12  morsch
+Interface to pdfset and structa added.
+
 */
 
 

@@ -15,6 +15,15 @@
 
 /*
 $Log$
+Revision 1.60  2002/07/19 14:49:03  morsch
+Typo corrected.
+
+Revision 1.59  2002/07/19 14:35:36  morsch
+Count total number of trials. Print mean Q, x1, x2.
+
+Revision 1.58  2002/07/17 10:04:09  morsch
+SetYHard method added.
+
 Revision 1.57  2002/05/22 13:22:53  morsch
 Process kPyMbNonDiffr added.
 
@@ -218,6 +227,7 @@ AliGenPythia::AliGenPythia(Int_t npart)
     SetStrucFunc();
     SetForceDecay();
     SetPtHard();
+    SetYHard();
     SetEnergyCMS();
     fDecayer = new AliDecayerPythia();
     // Set random number generator 
@@ -272,7 +282,10 @@ void AliGenPythia::Init()
 
 
     fPythia->SetCKIN(3,fPtHardMin);
-    fPythia->SetCKIN(4,fPtHardMax);    
+    fPythia->SetCKIN(4,fPtHardMax);
+    fPythia->SetCKIN(7,fYHardMin);
+    fPythia->SetCKIN(8,fYHardMax);
+    
     if (fNucA1 > 0 && fNucA2 > 0) fPythia->SetNuclei(fNucA1, fNucA2);  
     // Fragmentation?
     if (fFragmentation) {
@@ -332,6 +345,14 @@ void AliGenPythia::Init()
     case kPyDirectGamma:
 	break;
     }
+//
+//  This counts the total number of calls to Pyevnt() per run.
+    fTrialsRun = 0;
+    fQ         = 0.;
+    fX1        = 0.;
+    fX2        = 0.;    
+    fNev       = 0 ;
+//    
     AliGenMC::Init();
 }
 
@@ -394,7 +415,7 @@ void AliGenPythia::Generate()
 	    pSelected[i] =  0;
 	    trackIt[i]   =  0;
 	}
-	// printf("\n **************************************************%d\n",np);
+
 	Int_t nc = 0;        // Total n. of selected particles
 	Int_t nParents = 0;  // Selected parents
 	Int_t nTkbles = 0;   // Trackable particles
@@ -426,7 +447,6 @@ void AliGenPythia::Generate()
 		    TParticle *  mother = (TParticle *) fParticles->At(ipa);
 		    kfMo = TMath::Abs(mother->GetPdgCode());
 		}
-//		printf("\n particle (all)  %d %d %d", i, pSelected[i], kf);
 		// What to keep in Stack?
 		Bool_t flavorOK = kFALSE;
 		Bool_t selectOK = kFALSE;
@@ -560,6 +580,12 @@ void AliGenPythia::Generate()
 	    if (jev >= fNpart || fNpart == -1) {
 		fKineBias=Float_t(fNpart)/Float_t(fTrials);
 		printf("\n Trials: %i %i %i\n",fTrials, fNpart, jev);
+
+		fQ  += fPythia->GetVINT(51);
+		fX1 += fPythia->GetVINT(41);
+		fX2 += fPythia->GetVINT(42);
+		fTrialsRun += fTrials;
+		fNev++;
 		MakeHeader();
 		break;
 	    }
@@ -600,17 +626,15 @@ Int_t  AliGenPythia::GenerateMB()
 	kf = CheckPDGCode(iparticle->GetPdgCode());
 	Int_t ks = iparticle->GetStatusCode();
 	Int_t km = iparticle->GetFirstMother();
-//	printf("\n Particle: %d %d %d", i, kf, ks);
-	
 	if ((ks == 1  && kf!=0 && KinematicSelection(iparticle, 0)) ||
 	    (ks != 1) ||
 	    (fProcess == kPyJets && ks == 21 && km == 0 && i>1)) {
 	    nc++;
 	    if (ks == 1) trackIt = 1;
 	    Int_t ipa = iparticle->GetFirstMother()-1;
-
+	    
 	    iparent = (ipa > -1) ? pParent[ipa] : -1;
-
+	    
 //
 // store track information
 	    p[0] = iparticle->Px();
@@ -621,7 +645,7 @@ Int_t  AliGenPythia::GenerateMB()
 	    origin[2] = fOrigin[2]+iparticle->Vz()/10.;
 	    Float_t tof=kconv*iparticle->T();
 	    SetTrack(fTrackIt*trackIt, iparent, kf, p, origin, polar,
-			 tof, kPPrimary, nt, 1., ks);
+		     tof, kPPrimary, nt, 1., ks);
 	    KeepTrack(nt);
 	    pParent[i] = nt;
 	} // select particle
@@ -638,6 +662,13 @@ void AliGenPythia::FinishRun()
 {
 // Print x-section summary
     fPythia->Pystat(1);
+    fQ  /= fNev;
+    fX1 /= fNev;
+    fX2 /= fNev;    
+    printf("\nTotal number of Pyevnt() calls %d\n", fTrialsRun);
+    printf("\nMean Q, x1, x2: %f %f %f\n", fQ, fX1, fX2);
+    
+
 }
 
 void AliGenPythia::AdjustWeights()

@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.1  2002/07/15 13:12:33  morsch
+Library class for parton quenching calculations.
+
 */
 
 
