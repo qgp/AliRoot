@@ -3,7 +3,7 @@
 
 ClassImp(AliHBTEvent)
 
-const UInt_t AliHBTEvent::fgkInitEventSize = 10000;
+const UInt_t AliHBTEvent::fgkInitEventSize = 100;
 
 
 
