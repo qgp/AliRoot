@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.22.2.1  2003/06/19 06:59:58  hristov
+Updated version of parallel tracking (M.Ivanov)
+
 Revision 1.22  2003/05/22 13:48:21  hristov
 First implementation of ESD classes (Yu.Belikov)
 
@@ -181,7 +184,7 @@ AliTPCtrack::AliTPCtrack(const AliESDtrack& t) : AliKalmanTrack() {
   fC30=c[6 ];   fC31=c[7 ];   fC32=c32;   fC33=c[9 ];
   fC40=c[10];   fC41=c[11];   fC42=c42;   fC43=c[13]; fC44=c[14];
 
-  if (t.GetStatus()&AliESDtrack::kTIME == 0) return;
+  if ((t.GetStatus()&AliESDtrack::kTIME) == 0) return;
   StartTimeIntegral();
   Double_t times[10]; t.GetIntegratedTimes(times); SetIntegratedTimes(times);
   SetIntegratedLength(t.GetIntegratedLength());

@@ -15,6 +15,9 @@
                                                       
 /*
 $Log$
+Revision 1.27.2.1  2003/07/11 10:53:01  hristov
+Inward refit for TPC and TRD in the ESD schema (T.Kuhr)
+
 Revision 1.27  2003/05/27 17:46:13  hristov
 TRD PID included in the ESD schema (T.Kuhr)
 
@@ -904,8 +907,13 @@ Int_t AliTRDtracker::PropagateBack(AliESD* event) {
       // Propagate to outer reference plane [SR, GSI, 18.02.2003]
 //      track->PropagateTo(364.8);  why?
       
-      seed->UpdateTrackParams(track, AliESDtrack::kTRDout);
-      found++;
+      //seed->UpdateTrackParams(track, AliESDtrack::kTRDout);
+      //found++;
+    }
+
+    if (track->PropagateTo(376.)) { //Propagation to the TOF (I.Belikov)
+       seed->UpdateTrackParams(track, AliESDtrack::kTRDout);
+       found++;
     }
 
   }

@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.35.2.1  2003/07/11 10:53:01  hristov
+Inward refit for TPC and TRD in the ESD schema (T.Kuhr)
+
 Revision 1.35  2003/05/23 10:08:51  hristov
 SetLabel replaced by SetNumber (Yu.Belikov)
 
@@ -1210,8 +1213,7 @@ Int_t AliTPCtracker::PropagateBack(AliESD *event) {
     const AliTPCtrack t(*esd);
     AliTPCseed s(t,t.GetAlpha());
 
-    if (status==AliESDtrack::kTPCin) s.ResetCovariance();
-    else if ( (status & AliESDtrack::kITSout) == 0 ) continue;
+    if ( (status & AliESDtrack::kITSout) == 0 ) s.ResetCovariance();
 
     Int_t nc=t.GetNumberOfClusters();
     s.SetNumber(nc); //set number of the cluster to start with

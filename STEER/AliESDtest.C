@@ -11,9 +11,10 @@
 // Origin: Iouri Belikov, CERN, Jouri.Belikov@cern.ch
 //********************************************************************
 
-#ifndef __CINT__
+#if !defined(__CINT__) || defined(__MAKECINT__)
   #include <Riostream.h>
   #include "TFile.h"
+  #include "TSystem.h"
   #include "TStopwatch.h"
 
   #include "AliESD.h"
@@ -26,12 +27,18 @@
   #include "AliTRDtracker.h"
   #include "AliTRDPartID.h"
   #include "AliITSpidESD.h"
+  #include "AliTOFpidESD.h"
 #endif
 
+extern TSystem *gSystem;
+
 Int_t AliESDtest(Int_t nev=1, 
-		 const char* fileNameITSClusters = "its.clusters.root",
-		 const char* fileNameTPCClusters = "tpc.clusters.root",
-		 const char* fileNameTRDClusters = "trd.clusters.root") { 
+		 const char* fileNameITSClusters = "AliITSclustersV2.root",
+		 const char* fileNameTPCClusters = "AliTPCclusters.root",
+		 const char* fileNameTRDClusters = "AliTRDclusters.root",
+                 const char* fileNameTOFClusters = "galice.root") { 
+
+   gSystem->Load("libgeant321");
 
    //File with the TPC clusters
    TFile *tpccf=TFile::Open(fileNameTPCClusters);
@@ -46,7 +53,7 @@ Int_t AliESDtest(Int_t nev=1,
    AliTPCtracker tpcTracker(par);
 
    //An instance of the TPC PID maker
-   Double_t parTPC[]={47.,0.1,3.};
+   Double_t parTPC[]={47.,0.10,10.};
    AliTPCpidESD tpcPID(parTPC);
 
    //File with the ITS clusters
@@ -62,7 +69,7 @@ Int_t AliESDtest(Int_t nev=1,
    AliITStrackerV2 itsTracker(geom);
    
    //An instance of the ITS PID maker
-   Double_t parITS[]={34.,0.12,3.};
+   Double_t parITS[]={34.,0.15,10.};
    AliITSpidESD itsPID(parITS);
 
    //File with the TRD clusters
@@ -74,11 +81,30 @@ Int_t AliESDtest(Int_t nev=1,
 
    //An instance of the TRD tracker
    AliTRDtracker trdTracker(trdcf);
-//   trdTracker.SetAddTRDseeds();
-
+/*
    //An instance of the TRD PID maker
-   AliTRDPartID* trdPID = AliTRDPartID::GetFromFile();
-   if (!trdPID) return 7;
+   TFile* pidFile = TFile::Open("pid.root");
+   if (!pidFile->IsOpen()) {
+     cerr << "Can't get pid.root !\n";
+     return 7;
+   }
+   AliTRDPartID* trdPID = (AliTRDPartID*) pidFile->Get("AliTRDPartID");
+   if (!trdPID) {
+     cerr << "Can't get PID object !\n";
+     return 8;
+   }
+*/
+
+   //File with the TOF clusters
+   TFile *tofcf=TFile::Open(fileNameTOFClusters);
+   if (!tofcf->IsOpen()) {
+      cerr<<"Can't open "<<fileNameTOFClusters<<" !\n"; 
+      return 6;
+   }
+   //Instance of the TOF PID maker
+   Double_t parTOF[]={130.,5.};
+   AliTOFpidESD tofPID(parTOF);
+ 
 
    TFile *ef=TFile::Open("AliESDs.root","RECREATE");
    if (!ef->IsOpen()) {cerr<<"Can't AliESDs.root !\n"; return 1;}
@@ -96,37 +122,37 @@ Int_t AliESDtest(Int_t nev=1,
      itsTracker.SetEventNumber(i); 
      itsTracker.LoadClusters(itscf);
 
-     trdTracker.SetEventNumber(i);
-     trdcf->cd();
-     trdTracker.LoadClusters();
-
      rc+=tpcTracker.Clusters2Tracks(event);
 
      rc+=itsTracker.Clusters2Tracks(event);
 
      rc+=itsTracker.PropagateBack(event); 
+     itsTracker.UnloadClusters();
+
+     //itsPID.MakePID(event);
      
      rc+=tpcTracker.PropagateBack(event);
-
-     rc+=trdTracker.PropagateBack(event);
-
-     rc+=trdTracker.Clusters2Tracks(event);
-     trdTracker.UnloadClusters();
-
-     for (Int_t iTrack = 0; iTrack < event->GetNumberOfTracks(); iTrack++) {
-       AliESDtrack* track = event->GetTrack(iTrack);
-       trdPID->MakePID(track);
-     }
-
-     rc+=tpcTracker.RefitInward(event);
      tpcTracker.UnloadClusters();
 
      tpcPID.MakePID(event);
 
-     rc+=itsTracker.RefitInward(event);
-     itsTracker.UnloadClusters();
+     trdTracker.SetEventNumber(i);
+     trdcf->cd();
+     trdTracker.LoadClusters();
 
-     itsPID.MakePID(event);
+     rc+=trdTracker.PropagateBack(event);
+     trdTracker.UnloadClusters();
+/*
+     for (Int_t iTrack = 0; iTrack < event->GetNumberOfTracks(); iTrack++) {
+       AliESDtrack* track = event->GetTrack(iTrack);
+       trdPID->MakePID(track);
+     }
+*/
+
+     tofPID.SetEventNumber(i);
+     tofPID.LoadClusters(tofcf);
+     tofPID.MakePID(event);
+     tofPID.UnloadClusters();
 
     //Here is the combined PID
      AliESDpid::MakePID(event);
@@ -144,6 +170,7 @@ Int_t AliESDtest(Int_t nev=1,
    }
    timer.Stop(); timer.Print();
 
+   //pidFile->Close();
    trdcf->Close();
    delete geom;
    itscf->Close();

@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.20  2003/05/27 17:46:13  hristov
+TRD PID included in the ESD schema (T.Kuhr)
+
 Revision 1.19  2003/05/22 10:46:46  hristov
 Using access methods instead of data members
 
@@ -279,6 +282,12 @@ AliTRDtrack::AliTRDtrack(const AliESDtrack& t)
     fdQdl[i] = 0;
     fIndex[i] = 0;
   }
+
+  if ((t.GetStatus()&AliESDtrack::kTIME) == 0) return;
+  StartTimeIntegral();
+  Double_t times[10]; t.GetIntegratedTimes(times); SetIntegratedTimes(times);
+  SetIntegratedLength(t.GetIntegratedLength());
+
 }              
 //_____________________________________________________________________________
 
