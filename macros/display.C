@@ -21,9 +21,9 @@ void display (const char *filename="galice.root",Int_t nevent=0, Int_t * tracks=
    if(file){
      cout<<"galice.root is already open \n";
    }
-   else {
-     rl = AliRunLoader::Open();
-   }
+
+   
+   rl = AliRunLoader::Open(filename,"DISPLAYED EVENT");
    
    if (rl == 0x0)
     {
