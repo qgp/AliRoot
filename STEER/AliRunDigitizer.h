@@ -127,7 +127,8 @@ private:
 
 //  AliStream*        fOutputStream;
   AliRunLoader*     fOutRunLoader;        //!
-  
+  Bool_t            fOutputInitialized;   //indicates if outout was initialized 
+                                          // 
   AliMergeCombi *   fCombi;               // pointer to the combination object
   TArrayI           fCombination;         //! combination of events from
   TString           fCombinationFileName; // fn with combinations (used

@@ -69,7 +69,8 @@ AliRunLoader::AliRunLoader():
  fStack(0x0),
  fKineDataLoader(0x0),
  fTrackRefsDataLoader(0x0),
- fNEventsPerFile(1)
+ fNEventsPerFile(1),
+ fUnixDirName(".")
 {
   AliConfig::Instance();//force to build the folder structure
 }
@@ -85,7 +86,8 @@ AliRunLoader::AliRunLoader(const char* eventfoldername):
  fStack(0x0),
  fKineDataLoader(new AliDataLoader(fgkDefaultKineFileName,fgkKineContainerName,"Kinematics")),
  fTrackRefsDataLoader(new AliDataLoader(fgkDefaultTrackRefsFileName,fgkTrackRefsContainerName,"Track References")),
- fNEventsPerFile(1)
+ fNEventsPerFile(1),
+ fUnixDirName(".")
 {
 //ctor
   SetEventFolderName(eventfoldername);
@@ -192,7 +194,7 @@ Int_t AliRunLoader::GetEvent(Int_t evno)
    }
   else
    {
-     Warning("GetEvent","Did not found stack in header");
+     Warning("GetEvent","Stack not found in header");
    }
   
   retval = SetEvent();
@@ -456,8 +458,15 @@ void AliRunLoader::MakeHeader()
         branch->SetAddress(&fHeader);
         tree->GetEvent(fCurrentEvent);
         fStack = fHeader->Stack(); //should be safe - if we created Stack, header returns pointer to the same object
-        fStack->SetEventFolderName(fEventFolder->GetName());
-        if (TreeK()) fStack->GetEvent();
+        if (fStack)
+         {
+           fStack->SetEventFolderName(fEventFolder->GetName());
+           if (TreeK()) fStack->GetEvent();
+         }
+        else
+        {
+          if (GetDebug()) Info("MakeHeader","Haeder do not have a stack.");
+        }
       }
    } 
   if (GetDebug()) Info("MakeHeader","Exiting MakeHeader method");
@@ -943,9 +952,9 @@ void AliRunLoader::AddLoader(AliLoader* loader)
      Error("AddLoader","Parameter is NULL");
      return;
    }
+  loader->SetDirName(fUnixDirName);
   if (fEventFolder) loader->SetEventFolder(fEventFolder); //if event folder is already defined, 
                                                           //pass information to the Loader
-  	                  
   fLoaders->Add(loader);//add the Loader to the array
  }
 /**************************************************************************/
@@ -1390,7 +1399,7 @@ void  AliRunLoader::SetDirName(TString& dirname)
 {
 //sets directory name 
   if (dirname.IsNull()) return;
-  
+  fUnixDirName = dirname;
   fKineDataLoader->SetDirName(dirname);
   fTrackRefsDataLoader->SetDirName(dirname);
   

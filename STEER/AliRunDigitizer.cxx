@@ -107,6 +107,7 @@
 #include "AliRun.h"
 #include "AliRunDigitizer.h"
 #include "AliStream.h"
+#include "AliHeader.h"
 
 ClassImp(AliRunDigitizer)
 
@@ -127,6 +128,7 @@ AliRunDigitizer::AliRunDigitizer():
  fNinputsGiven(0),
  fInputStreams(0x0),
  fOutRunLoader(0x0),
+ fOutputInitialized(kFALSE),
  fCombi(0),
  fCombination(0),
  fCombinationFileName(0),
@@ -152,6 +154,7 @@ AliRunDigitizer::AliRunDigitizer(Int_t nInputStreams, Int_t sperb):
  fNinputsGiven(0),
  fInputStreams(new TClonesArray("AliStream",nInputStreams)),
  fOutRunLoader(0x0),
+ fOutputInitialized(kFALSE),
  fCombi(new AliMergeCombi(nInputStreams,sperb)),
  fCombination(kMaxStreamsToMerge),
  fCombinationFileName(0),
@@ -198,6 +201,7 @@ AliRunDigitizer::AliRunDigitizer(const AliRunDigitizer& dig):
  fNinputsGiven(0),
  fInputStreams(0x0),
  fOutRunLoader(0x0),
+ fOutputInitialized(kFALSE),
  fCombi(0),
  fCombination(0),
  fCombinationFileName(0),
@@ -279,13 +283,16 @@ void AliRunDigitizer::Digitize(Option_t* option)
 // loop until there is anything on the input in case fNrOfEventsToWrite < 0
   while ((eventsCreated++ < fNrOfEventsToWrite) || (fNrOfEventsToWrite < 0)) 
    {
-     
-    if (!ConnectInputTrees()) break;
-    InitEvent();
-    ExecuteTasks(option);// loop over all registered digitizers and let them do the work
-    CleanTasks();
-    FinishEvent();
-  }
+      if (!ConnectInputTrees()) break;
+      InitEvent();//this must be after call of Connect Input tress.
+      if (fOutRunLoader)
+       {
+         fOutRunLoader->SetEventNumber(eventsCreated-1);
+       }
+      ExecuteTasks(option);// loop over all registered digitizers and let them do the work
+      FinishEvent();
+      CleanTasks();
+   }
   FinishGlobal();
 }
 
@@ -307,7 +314,8 @@ Bool_t AliRunDigitizer::ConnectInputTrees()
       Error("ConnectInputTrees","Only delta 0 or 1 is implemented");
       return kFALSE;
      }
-  }
+   }
+
   return kTRUE;
 }
 
@@ -315,7 +323,7 @@ Bool_t AliRunDigitizer::ConnectInputTrees()
 Bool_t AliRunDigitizer::InitGlobal()
 {
 // called once before Digitize() is called, initialize digitizers and output
-
+  fOutputInitialized = kFALSE;
   TList* subTasks = this->GetListOfTasks();
   if (subTasks) {
     TIter next(subTasks);
@@ -333,17 +341,16 @@ void AliRunDigitizer::SetOutputFile(TString fn)
  //here should be protection to avoid setting the same file as any input 
   Info("SetOutputFile","Setting Output File Name %s ",fn.Data());
   fOutputFileName = fn;
-  InitOutputGlobal();
+//  InitOutputGlobal();
 }
 
 //_______________________________________________________________________
 Bool_t AliRunDigitizer::InitOutputGlobal()
 {
 // Creates the output file, called by InitEvent()
-
+//Needs to be called after all inputs are opened  
+  if (fOutputInitialized) return kTRUE;
   
-//  fOutputStream = new AliStream(fgkDefOutFolderName,"recreate");
-//  fOutputStream->AddFile(fOutputFileName);
   if ( !fOutputFileName.IsNull())
    {
     fOutRunLoader = AliRunLoader::Open(fOutputFileName,fgkDefOutFolderName,"recreate");
@@ -355,18 +362,29 @@ Bool_t AliRunDigitizer::InitOutputGlobal()
      }
     Info("InitOutputGlobal", " 1 %s = ", GetInputFolderName(0).Data()) ; 
     AliRunLoader* inrl = AliRunLoader::GetRunLoader(GetInputFolderName(0));
-	 Info("InitOutputGlobal", " 2 %d = ", inrl) ; 
-    const TObjArray* inloaders = inrl->GetArrayOfLoaders();
+    if (inrl == 0x0)
+     {
+       Error("InitOutputGlobal","Can not get Run Loader Input 0. Maybe yet not initialized?");
+       return kFALSE;
+     }
+    Info("InitOutputGlobal", " 2 %#x = ", inrl) ; 
 
+    //Copy all detector loaders from input 0 to output
+    const TObjArray* inloaders = inrl->GetArrayOfLoaders();
     TIter next(inloaders);
     AliLoader *loader;
     while((loader = (AliLoader*)next()))
      {
-       GetOutRunLoader()->AddLoader(loader);
+       AliLoader* cloneloader = (AliLoader*)loader->Clone();
+       cloneloader->Register(fOutRunLoader->GetEventFolder());//creates folders for this loader in Output Folder Structure
+       GetOutRunLoader()->AddLoader(cloneloader);//adds a loader for output
      }
- 
+
+    fOutRunLoader->MakeTree("E");
+    
     if (GetDebug()>2)  Info("InitOutputGlobal","file %s was opened.",fOutputFileName.Data());
    }
+  fOutputInitialized = kTRUE; 
   return kTRUE;
 }
 //_______________________________________________________________________
@@ -379,6 +397,8 @@ void AliRunDigitizer::InitEvent()
     Info("InitEvent","fEvent = %d",fEvent);
     Info("InitEvent","fOutputFileName \"%s\"",fOutputFileName.Data());
    }
+  if (fOutputInitialized == kFALSE) InitOutputGlobal();
+  
 // if fOutputFileName was not given, write output to signal directory
 }
 //_______________________________________________________________________
@@ -387,7 +407,6 @@ void AliRunDigitizer::FinishEvent()
 {
 // called at the end of loop over digitizers
 
-  Int_t i;
   
   if (GetOutRunLoader() == 0x0)
    {
@@ -398,63 +417,32 @@ void AliRunDigitizer::FinishEvent()
   fEvent++;
   fNrOfEventsWritten++;
   
+  if (fOutRunLoader)
+  {
+     AliRunLoader* inrl = AliRunLoader::GetRunLoader(GetInputFolderName(0));
+     AliHeader* outheader = fOutRunLoader->GetHeader();
+     AliHeader* inheader = inrl->GetHeader();
+     if (inheader == 0x0)
+     {
+       inrl->LoadHeader();
+       inheader = inrl->GetHeader();
+       if (inheader == 0x0) Fatal("FinishEvent","Can not get header from input 0");
+     }
+     
+     outheader->SetNprimary(inheader->GetNprimary());
+     outheader->SetNtrack(inheader->GetNtrack());
+     outheader->SetEvent(inheader->GetEvent());
+     outheader->SetEventNrInRun(inheader->GetEventNrInRun());
+     outheader->SetNvertex(inheader->GetNvertex());
+     fOutRunLoader->TreeE()->Fill();
+  }
+      
   if (fCopyTreesFromInput > -1) 
    {
+    //this is sensless since no information would be coherent in case of merging
+    //
     cout<<"Copy trees from input: Copy or link files manually"<<endl;
     return;
-    
-    i = fCopyTreesFromInput;
-
-    TFolder* outfolder = GetOutRunLoader()->GetEventFolder();
-    if (outfolder == 0x0)
-     {
-       Error("FinishEvent","Can not get Event Folder");
-       return;
-     }
-    
-    AliStream* instream = (AliStream*)fInputStreams->At(fCopyTreesFromInput);
-    AliRunLoader* inRL = AliRunLoader::GetRunLoader(instream->GetFolderName());
-    
-    inRL->LoadKinematics("read");
-    outfolder->Add( inRL->TreeK() );
-    GetOutRunLoader()->WriteKinematics("OVERWRITE");
-    inRL->UnloadKinematics();
-    GetOutRunLoader()->UnloadKinematics();
-    
-    inRL->LoadTrackRefs("read");
-    outfolder->Add( inRL->TreeTR() );
-    GetOutRunLoader()->WriteTrackRefs("OVERWRITE");
-    inRL->UnloadTrackRefs();
-    GetOutRunLoader()->UnloadTrackRefs();
-    
-    const TObjArray* inloaders = inRL->GetArrayOfLoaders();
-    const TObjArray* outloaders = GetOutRunLoader()->GetArrayOfLoaders();
-    
-    TIter next(inloaders);
-    AliLoader *inloader;
-    while((inloader = (AliLoader*)next()))
-     {
-       //find detector loader in out RL corresponding to inloader
-       AliLoader* outloader =  dynamic_cast<AliLoader*>(outloaders->FindObject(inloader->GetName()));
-       if (outloader == 0x0)
-        {
-          Warning("FinishEvent","Can not find %s in out Out Run Loader");
-          continue;
-        }
-       
-       inloader->LoadHits("read");//load hits in read mode for input
-       outfolder = outloader->GetDetectorDataFolder();//get folder for detector data
-       outfolder->Add(inloader->TreeH());//put in out folder tree from in
-       outloader->WriteHits("OVERWRITE");//write out 
-
-       inloader->UnloadHits();
-       outloader->UnloadHits();
-       
-     }
-
-//    outfolder->Add( inRL->TreeH() );
-//    GetOutRunLoader()->WriteKine("OVERWRITE");
-      
    }
 }
 //_______________________________________________________________________
@@ -470,25 +458,26 @@ void AliRunDigitizer::FinishGlobal()
      return;
    }
   GetOutRunLoader()->CdGAFile();
-  
   this->Write(0,TObject::kOverwrite);
-   
-  if (fCopyTreesFromInput > -1) 
+  if (fOutRunLoader)
    {
-    TFolder* outfolder = GetOutRunLoader()->GetEventFolder();
-    if (outfolder == 0x0)
+     fOutRunLoader->WriteHeader("OVERWRITE");
+     fOutRunLoader->WriteRunLoader("OVERWRITE");
+     TFolder* outfolder = fOutRunLoader->GetEventFolder();
+     if (outfolder == 0x0)
      {
        Error("FinishEvent","Can not get Event Folder");
        return;
      }    
-    AliStream* instream = (AliStream*)fInputStreams->At(fCopyTreesFromInput);
-    AliRunLoader* inRN = AliRunLoader::GetRunLoader(instream->GetFolderName());
-    
-    outfolder->Add ( inRN->GetAliRun() );
-    GetOutRunLoader()->WriteAliRun();
-
-    outfolder->Add ( inRN->TreeE() );
-    GetOutRunLoader()->WriteHeader();
+  
+     AliRunLoader* inRN = AliRunLoader::GetRunLoader(GetInputFolderName(0));
+     outfolder->Add(inRN->GetAliRun());
+     fOutRunLoader->WriteAliRun("OVERWRITE");
+   }
+   
+  if (fCopyTreesFromInput > -1) 
+   {
+     //copy files manually
    }
 }
 //_______________________________________________________________________
@@ -605,7 +594,7 @@ AliRunLoader* AliRunDigitizer::GetOutRunLoader()
     cout<<"Output file name is empty. Using Input 0 for output\n";
     return AliRunLoader::GetRunLoader(GetInputFolderName(0));
    }
-  InitOutputGlobal();
+//  InitOutputGlobal();
   return fOutRunLoader;
 }
 //_______________________________________________________________________

@@ -159,11 +159,11 @@ class AliRunLoader: public TNamed
     AliHeader     *fHeader;//!  pointer to header
     AliStack      *fStack; //!  pointer to stack
     
-    AliDataLoader*fKineDataLoader;// kinematics data loader
-    AliDataLoader*fTrackRefsDataLoader;//track reference data loader
+    AliDataLoader *fKineDataLoader;// kinematics data loader
+    AliDataLoader *fTrackRefsDataLoader;//track reference data loader
     
     Int_t          fNEventsPerFile;  //defines number of events stored per one file
-    
+    TString        fUnixDirName;    //! name of unix path to directory that contains event
     static const TString   fgkDefaultKineFileName;//default file name with kinamatics
     static const TString   fgkDefaultTrackRefsFileName;//default file name with kinamatics
 
