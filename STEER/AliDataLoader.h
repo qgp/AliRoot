@@ -165,7 +165,7 @@ class AliBaseLoader: public TNamed
     Bool_t             fStoreInTopOfFile;// if true, data are stored in top of file ->Indicates fDoNotReload == kTRUE
 
    private:
-    Bool_t             fDoNotReload; //! if this flag is on object is not reloaded while GetEvent is called.
+    Bool_t             fDoNotReload; // if this flag is on object is not reloaded while GetEvent is called.
                                      //Specially important for tasks. Task loops over events while producing data, 
 	                 //and has a base loader which writes it to file every processed event.
 	                 //If this flag is not on, while taking next event, loader deletes task
