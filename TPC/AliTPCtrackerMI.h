@@ -298,6 +298,8 @@ private:
    //   TObjArray * fTrackPointPool;        // ! pool with track points
    //   TObjArray * fSeedPool;              //! pool with seeds
    const AliTPCParam *fParam;          //pointer to the parameters
+
+   ClassDef(AliTPCtrackerMI,1) //TPC tracker for parallel trcking
 };
 
 #endif
