@@ -20,12 +20,12 @@
 #include <TDatabasePDG.h>
 #include <TLorentzVector.h>
 #include <TMCProcess.h>
+#include <TPDGCode.h>
 #include <TRandom.h>
 #include <TVector3.h>
 
 #include "AliConst.h"
 #include "AliGenZDC.h"
-#include "AliPDG.h"
 #include "AliRun.h"
  
 ClassImp(AliGenZDC)

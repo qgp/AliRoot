@@ -91,8 +91,8 @@ AliZDCv2::AliZDCv2(const char *name, const char *title)
   fMedSensZP  = 0;
   fMedSensZEM = 0;
   fMedSensGR  = 0;
-//  fMedSensPI  = 0;
-//  fMedSensTDI = 0;
+  fMedSensPI  = 0;
+  fMedSensTDI = 0;
 
   
   // Parameters for light tables
@@ -150,7 +150,7 @@ AliZDCv2::AliZDCv2(const char *name, const char *title)
 void AliZDCv2::CreateGeometry()
 {
   //
-  // Create the geometry for the Zero Degree Calorimeter version 1
+  // Create the geometry for the Zero Degree Calorimeter version 2
   //* Initialize COMMON block ZDC_CGEOM
   //*
 
@@ -170,13 +170,15 @@ void AliZDCv2::CreateBeamLine()
   
   // -- Mother of the ZDCs (Vacuum PCON)
   
+  zd1 = 2092.;
+  
   conpar[0] = 0.;
   conpar[1] = 360.;
   conpar[2] = 2.;
-  conpar[3] = 2000.;
+  conpar[3] = zd1;
   conpar[4] = 0.;
   conpar[5] = 55.;
-  conpar[6] = 13060.;
+  conpar[6] = 13500.;
   conpar[7] = 0.;
   conpar[8] = 55.;
   gMC->Gsvolu("ZDC ", "PCON", idtmed[11], conpar, 9);
@@ -184,12 +186,11 @@ void AliZDCv2::CreateBeamLine()
 
   // -- FIRST SECTION OF THE BEAM PIPE (from compensator dipole to 
   //    	the beginning of D1) 
-  
-  zd1 = 2000.;
-  
+    
   tubpar[0] = 6.3/2.;
   tubpar[1] = 6.7/2.;
-  tubpar[2] = 3838.3/2.;
+  // From beginning of ZDC volumes to beginning of D1
+  tubpar[2] = (5838.3-zd1)/2.;
   gMC->Gsvolu("QT01", "TUBE", idtmed[7], tubpar, 3);
   gMC->Gspos("QT01", 1, "ZDC ", 0., 0., tubpar[2] + zd1, 0, "ONLY");
   
@@ -403,7 +404,7 @@ void AliZDCv2::CreateBeamLine()
   gMC->Gspos("QT16", 1, "QT14", 7.7, 0., 0., 0, "ONLY");
   
   
-  //-- BEAM PIPE BETWEEN END OF CONICAL PIPE AND BEGINNING OF D2
+  //-- BEAM PIPE BETWEEN END OF CONICAL PIPE AND BEGINNING OF D2 
   
   tubpar[0] = 6.4/2.;
   tubpar[1] = 6.8/2.;
@@ -428,14 +429,15 @@ void AliZDCv2::CreateBeamLine()
              0., tubpar[2] + zd1, im2, "ONLY");
 	       
   // -- BEAM PIPE ON THE OTHER SIDE OF I.P. TILL THE EM ZDC 
-
+  // -- 25 Mar 2003 -> This seem to be no longer needed
+  /*
   Float_t zb = -800.;	 	// End of QBPM (from AliPIPEv0.cxx)
   tubpar[0] = 8.0/2.;
   tubpar[1] = 8.2/2.;
   tubpar[2] = (1050+zb)/2.;	// From the end of QBPM to z=1050.
   gMC->Gsvolu("QT19", "TUBE", idtmed[7], tubpar, 3);
   gMC->Gspos("QT19", 1, "ALIC", 0., 0., zb - tubpar[2], 0, "ONLY");
-
+  */
   
   // --  END OF BEAM PIPE VOLUME DEFINITION.  
   // ----------------------------------------------------------------
@@ -524,11 +526,17 @@ void AliZDCv2::CreateBeamLine()
   tubpar[2] = 550./2.;
   gMC->Gsvolu("YMQ ", "TUBE", idtmed[7], tubpar, 3);
   
-  gMC->Gspos("MQX ", 1, "ZDC ", 0., 0., tubpar[2] + zq + 883.5,  0, "ONLY");
-  gMC->Gspos("YMQ ", 1, "ZDC ", 0., 0., tubpar[2] + zq + 883.5,  0, "ONLY");
+  /*gMC->Gspos("MQX ", 1, "ZDC ", 0., 0., tubpar[2] + zq + 883.5,  0, "ONLY");
+  gMC->Gspos("YMQ ", 1, "ZDC ", 0., 0., tubpar[2] + zq + 883.5,  0, "ONLY");*/
+  // --- LHC optics v6.4
+  gMC->Gspos("MQX ", 1, "ZDC ", 0., 0., tubpar[2] + zq + 908.5,  0, "ONLY");
+  gMC->Gspos("YMQ ", 1, "ZDC ", 0., 0., tubpar[2] + zq + 908.5,  0, "ONLY");
   
-  gMC->Gspos("MQX ", 2, "ZDC ", 0., 0., tubpar[2] + zq + 1533.5, 0, "ONLY");
-  gMC->Gspos("YMQ ", 2, "ZDC ", 0., 0., tubpar[2] + zq + 1533.5, 0, "ONLY");
+  /*gMC->Gspos("MQX ", 2, "ZDC ", 0., 0., tubpar[2] + zq + 1533.5, 0, "ONLY");
+  gMC->Gspos("YMQ ", 2, "ZDC ", 0., 0., tubpar[2] + zq + 1533.5, 0, "ONLY");*/
+  // --- LHC optics v6.4
+  gMC->Gspos("MQX ", 2, "ZDC ", 0., 0., tubpar[2] + zq + 1558.5, 0, "ONLY");
+  gMC->Gspos("YMQ ", 2, "ZDC ", 0., 0., tubpar[2] + zq + 1558.5, 0, "ONLY");
   
   // -- SEPARATOR DIPOLE D1 
   
@@ -563,6 +571,8 @@ void AliZDCv2::CreateBeamLine()
   
   // -- DIPOLE D2 
   
+  //zd2 = 12147.6;
+  // --- LHC optics v6.4
   zd2 = 12147.6;
   
   // --  GAP (VACUUM WITH MAGNETIC FIELD) 
@@ -1076,8 +1086,8 @@ void AliZDCv2::CreateMaterials()
   fMedSensF1  = idtmed[3];  // Sensitive volume: fibres type 1
   fMedSensF2  = idtmed[4];  // Sensitive volume: fibres type 2
   fMedSensZEM = idtmed[5];  // Sensitive volume: ZEM passive material
-//  fMedSensTDI = idtmed[6];  // Sensitive volume: TDI Cu shield
-//  fMedSensPI  = idtmed[7];  // Sensitive volume: beam pipes
+  fMedSensTDI = idtmed[6];  // Sensitive volume: TDI Cu shield
+  fMedSensPI  = idtmed[7];  // Sensitive volume: beam pipes
   fMedSensGR  = idtmed[12]; // Sensitive volume: air into the grooves
 } 
 
@@ -1181,30 +1191,29 @@ void AliZDCv2::StepManager()
 
   for (j=0;j<10;j++) hits[j]=0;
 
+  // --- This part is for no shower developement in beam pipe and TDI
+  // If particle interacts with beam pipe or TDI -> return
+  if((gMC->GetMedium() == fMedSensPI) || (gMC->GetMedium() == fMedSensTDI)){ 
+  // If option NoShower is set -> StopTrack
+    if(fNoShower==1) {
+      if(gMC->GetMedium() == fMedSensPI) {
+        knamed = gMC->CurrentVolName();
+        if((!strncmp(knamed,"MQ",2)) || (!strncmp(knamed,"YM",2)))  fpLostIT += 1;
+        if((!strncmp(knamed,"MD1",3))|| (!strncmp(knamed,"YD1",2))) fpLostD1 += 1;
+      }
+      else if(gMC->GetMedium() == fMedSensTDI) fpLostTDI += 1;
+      gMC->StopTrack();
+      printf("\n      # of p lost in Inner Triplet = %d\n",fpLostIT);
+      printf("\n      # of p lost in D1  = %d\n",fpLostD1);
+      printf("\n      # of p lost in TDI = %d\n\n",fpLostTDI);
+    }
+    return;
+  }
+
   if((gMC->GetMedium() == fMedSensZN) || (gMC->GetMedium() == fMedSensZP) ||
      (gMC->GetMedium() == fMedSensGR) || (gMC->GetMedium() == fMedSensF1) ||
      (gMC->GetMedium() == fMedSensF2) || (gMC->GetMedium() == fMedSensZEM)){
 
-//   --- This part is for no shower developement in beam pipe and TDI
-//     (gMC->GetMedium() == fMedSensPI) || (gMC->GetMedium() == fMedSensTDI)){
-       
-  // If particle interacts with beam pipe -> return
-//    if((gMC->GetMedium() == fMedSensPI) || (gMC->GetMedium() == fMedSensTDI)){ 
-      // If option NoShower is set -> StopTrack
-//      if(fNoShower==1) {
-//	if(gMC->GetMedium() == fMedSensPI) {
-//          knamed = gMC->CurrentVolName();
-//          if((!strncmp(knamed,"MQ",2)) || (!strncmp(knamed,"YM",2)))  fpLostIT += 1;
-//          if((!strncmp(knamed,"MD1",3))|| (!strncmp(knamed,"YD1",2))) fpLostD1 += 1;
-//	}
-//	if(gMC->GetMedium() == fMedSensTDI) fpLostTDI += 1;
-//        gMC->StopTrack();
-//	printf("\n	# of p lost in Inner Triplet = %d\n",fpLostIT);
-//	printf("\n	# of p lost in D1  = %d\n",fpLostD1);
-//	printf("\n	# of p lost in TDI = %d\n",fpLostTDI);
-//      }
-//      return;
-//    }
   
   //Particle coordinates 
     gMC->TrackPosition(s);
@@ -1302,9 +1311,9 @@ void AliZDCv2::StepManager()
 	AddHit(gAlice->CurrentTrack(), vol, hits);
 	
 	if(fNoShower==1){
-//	  fpDetected += 1;
+	  fpDetected += 1;
 	  gMC->StopTrack();
-//	  printf("\n	# of detected p = %d\n",fpDetected);
+	  printf("\n	# of detected p = %d\n\n",fpDetected);
 	  return;
 	}
       }
