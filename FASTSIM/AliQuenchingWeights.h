@@ -50,12 +50,12 @@ class AliQuenchingWeights : public TObject {
 			Int_t ipart,Double_t R,Double_t wc,Double_t e=1.e10);
 
   //multiple soft scattering approximation
-  Int_t InitMult(const Char_t *contall="$(ALICE_ROOT)/FASTSIM/data/cont_mult.all",
-                 const Char_t *discall="$(ALICE_ROOT)/FASTSIM/data/disc_mult.all"); 
+  Int_t InitMult(const Char_t *contall="$(ALICE_ROOT)/FASTSIM/data/cont_mult.dat",
+                 const Char_t *discall="$(ALICE_ROOT)/FASTSIM/data/disc_mult.dat"); 
 
   //single hard scattering approximation
-  Int_t InitSingleHard(const Char_t *contall="$(ALICE_ROOT)/FASTSIM/data/cont_lin.all",
-                       const Char_t *discall="$(ALICE_ROOT)/FASTSIM/data/disc_lin.all"); 
+  Int_t InitSingleHard(const Char_t *contall="$(ALICE_ROOT)/FASTSIM/data/cont_lin.dat",
+                       const Char_t *discall="$(ALICE_ROOT)/FASTSIM/data/disc_lin.dat"); 
 
   Int_t CalcMult(Int_t ipart, Double_t rrrr,Double_t xxxx,
                  Double_t &continuous,Double_t &discrete) const;

@@ -230,7 +230,7 @@ C   wc=0.5*q*L^2 and w is the energy radiated. The output values are
 C   the continuous and discrete (prefactor of the delta function) parts
 C   of the quenching weights.
 C	
-C   In order to use this routine, the files cont.all and disc.all need to be
+C   In order to use this routine, the files cont.dat and disc.dat need to be
 C   in the working directory. 
 C
 C   An initialization of the tables is needed by doing call initmult before
@@ -334,7 +334,7 @@ C-------------------------------------------------------------------
       REAL*8           xxg(400), dag(34), cag(34,261), rrrg(34)
       COMMON /dataglu/    xxg, dag, cag, rrrg
 *
-      OPEN(UNIT=20,FILE='contnew.all',STATUS='OLD',ERR=90)
+      OPEN(UNIT=20,FILE='contnew.dat',STATUS='OLD',ERR=90)
       do 110 nn=1,261
       read (20,*) xxq(nn), caq(1,nn), caq(2,nn), caq(3,nn),
      +     caq(4,nn), caq(5,nn), caq(6,nn), caq(7,nn), caq(8,nn),
@@ -365,7 +365,7 @@ C-------------------------------------------------------------------
  111     continue
       close(20)
 *
-      OPEN(UNIT=21,FILE='discnew.all',STATUS='OLD',ERR=91)
+      OPEN(UNIT=21,FILE='discnew.dat',STATUS='OLD',ERR=91)
       do 112 nn=1,34
       read (21,*) rrr(nn), daq(nn)
  112     continue
@@ -402,11 +402,11 @@ Int_t AliQuenchingWeights::CalcMult(Int_t ipart, Double_t rrrr,Double_t xxxx,
 
   //read-in data before first call
   if(!fTablesLoaded){
-    Error("CalcMult","Tables are not loaded.");
+    Fatal("CalcMult","Tables are not loaded.");
     return -1;
   }
   if(!fMultSoft){
-    Error("CalcMult","Tables are not loaded for Multiple Scattering.");
+    Fatal("CalcMult","Tables are not loaded for Multiple Scattering.");
     return -1;
   }
 
@@ -584,7 +584,7 @@ C   wc=0.5*mu^2*L and w is the energy radiated. The output values are
 C   the continuous and discrete (prefactor of the delta function) parts
 C   of the quenching weights.
 C
-C   In order to use this routine, the files contlin.all and disclin.all 
+C   In order to use this routine, the files contlin.dat and disclin.dat 
 C   need to be in the working directory.
 C
 C   An initialization of the tables is needed by doing call initlin before
@@ -663,7 +663,7 @@ C-------------------------------------------------------------------
       REAL*8           xxlg(400), dalg(30), calg(30,261), rrrlg(30)
       COMMON /datalinglu/    xxlg, dalg, calg, rrrlg
 *
-      OPEN(UNIT=20,FILE='contlin.all',STATUS='OLD',ERR=90)
+      OPEN(UNIT=20,FILE='contlin.dat',STATUS='OLD',ERR=90)
       do 110 nn=1,261
       read (20,*) xxlq(nn), calq(1,nn), calq(2,nn), calq(3,nn),
      +     calq(4,nn), calq(5,nn), calq(6,nn), calq(7,nn), calq(8,nn),
@@ -692,7 +692,7 @@ C-------------------------------------------------------------------
  111     continue
       close(20)
 *
-      OPEN(UNIT=21,FILE='disclin.all',STATUS='OLD',ERR=91)
+      OPEN(UNIT=21,FILE='disclin.dat',STATUS='OLD',ERR=91)
       do 112 nn=1,30
       read (21,*) rrr(nn), dalq(nn)
  112     continue
