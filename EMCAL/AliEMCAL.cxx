@@ -36,7 +36,7 @@ class TFile;
 
 // --- AliRoot header files ---
 #include "AliEMCAL.h"
-#include "AliMC.h"
+#include "TVirtualMC.h"
 #include "AliRun.h"
 #include "AliMagF.h"
 #include "AliEMCALGeometry.h"

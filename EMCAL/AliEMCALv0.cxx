@@ -50,7 +50,7 @@
 #include "AliEMCALGeometry.h"
 #include "AliConst.h"
 #include "AliRun.h"
-#include "AliMC.h"
+#include "TVirtualMC.h"
 
 ClassImp(AliEMCALv0)
 

@@ -110,7 +110,7 @@
 
 #include "AliRun.h"
 
-#include "AliMC.h"
+#include "TVirtualMC.h"
 
 
 

@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.19.2.2  2002/11/22 14:19:30  hristov
+Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
+
 Revision 1.26  2002/10/14 14:55:35  hristov
 Merging the VirtualMC branch to the main development branch (HEAD)
 
@@ -137,7 +140,7 @@ Revision 1.3  2002/01/18 05:07:56  morsch
 #include "AliEMCAL.h"
 #include "AliHeader.h"
 #include "AliPDG.h"
-#include "AliMC.h"
+#include "TVirtualMC.h"
 
 // Interface to FORTRAN
 #include "Ecommon.h"
