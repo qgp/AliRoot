@@ -15,6 +15,9 @@
  
 /*
 $Log$
+Revision 1.1.2.4  2002/12/11 10:00:15  hristov
+Merging with v3-09-04 (P.Skowronski)
+
 Revision 1.1.2.3  2002/11/22 14:19:34  hristov
 Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
 
@@ -305,6 +308,7 @@ void AliITSDigitizer::Exec(Option_t* opt){
 
     outgime->TreeD()->AutoSave();
     outgime->WriteDigits("OVERWRITE");
+    outgime->UnloadDigits();
     
     for(ifiles=0; ifiles<nfiles; ifiles++ )
      {
