@@ -151,6 +151,12 @@
 #pragma link C++ class AliHBTLLWeightTwoKStarFctn+;
 #pragma link C++ class AliHBTLLWeightTheorQInvFctn+;
 #pragma link C++ class AliHBTLLWeightsPID+;
+#pragma link C++ class AliHBTPositionRandomizer+;
+#pragma link C++ class AliHBTRndm+;
+#pragma link C++ class AliHBTRndmGaussBall+;
+#pragma link C++ class AliHBTRndmCyllSurf+;
+#pragma link C++ class AliHBTMonVyDistributionVsVxFctn+;
+#pragma link C++ class AliHBTMonRtDistributionVsVzFctn+;
 //#pragma link C++ class AliHBTGoComPair+;
 //#pragma link C++ class AliHBTCorrectQ3DCorrelFctn+;
 //#pragma link C++ class AliHBTCorrectQInvCorrelFctn+;
