@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.2.2.1  2002/07/24 08:49:41  alibrary
+Adding TFluka to VirtualMC
+
 Revision 1.2  2002/07/11 08:58:07  morsch
 Some corrections in the constructors. Init() moved to AliFluka.
 
@@ -32,7 +35,7 @@ ClassImp(AliFluka)
 
 void AliFluka::Init()
 {
-    printf("TFluka::Init \n\n");
+    printf("AliFluka::Init \n\n");
 }
 
 
@@ -41,7 +44,7 @@ void AliFluka::ProcessRun(Int_t nevent)
   //
   // Process the run
   //
-    printf("TFluka::ProcessRun \n\n");
+    printf("AliFluka::ProcessRun \n\n");
     
     Int_t todo = TMath::Abs(nevent);
     for (Int_t i=0; i<todo; i++) {
@@ -59,7 +62,7 @@ void AliFluka::ProcessEvent()
   //
   // Process one event
   //
-    printf("TFluka::ProcessEvent \n\n");
+    printf("AliFluka::ProcessEvent \n\n");
     gAlice->Generator()->Generate();
 
 //
