@@ -123,55 +123,7 @@ AliStack::~AliStack()
 //
 
 //_____________________________________________________________________________
-void AliStack::SetTrack(Int_t done, Int_t parent, Int_t pdg, Float_t *pmom,
-		      Float_t *vpos, Float_t *polar, Float_t tof,
-		      TMCProcess mech, Int_t &ntr, Float_t weight, Int_t is)
-{ 
-  //
-  // Load a track on the stack
-  //
-  // done     0 if the track has to be transported
-  //          1 if not
-  // parent   identifier of the parent track. -1 for a primary
-  // pdg    particle code
-  // pmom     momentum GeV/c
-  // vpos     position 
-  // polar    polarisation 
-  // tof      time of flight in seconds
-  // mecha    production mechanism
-  // ntr      on output the number of the track stored
-  //
-
-  //  const Float_t tlife=0;
-  
-  //
-  // Here we get the static mass
-  // For MC is ok, but a more sophisticated method could be necessary
-  // if the calculated mass is required
-  // also, this method is potentially dangerous if the mass
-  // used in the MC is not the same of the PDG database
-  //
-    TParticlePDG* pmc =  TDatabasePDG::Instance()->GetParticle(pdg);
-    if (pmc) {
-	Float_t mass = TDatabasePDG::Instance()->GetParticle(pdg)->Mass();
-	Float_t e=TMath::Sqrt(mass*mass+pmom[0]*pmom[0]+
-			      pmom[1]*pmom[1]+pmom[2]*pmom[2]);
-	
-//    printf("Loading  mass %f ene %f No %d ip %d parent %d done %d pos %f %f %f mom %f %f %f kS %d m \n",
-//	   mass,e,fNtrack,pdg,parent,done,vpos[0],vpos[1],vpos[2],pmom[0],pmom[1],pmom[2],kS);
-  
-
-	SetTrack(done, parent, pdg, pmom[0], pmom[1], pmom[2], e,
-		 vpos[0], vpos[1], vpos[2], tof, polar[0], polar[1], polar[2],
-		 mech, ntr, weight, is);
-    } else {
-	Warning("SetTrack", "Particle type %d not defined in PDG Database !\n", pdg);
-	Warning("SetTrack", "Particle skipped !\n");
-    }
-}
-
-//_____________________________________________________________________________
-void AliStack::SetTrack(Int_t done, Int_t parent, Int_t pdg,
+void AliStack::PushTrack(Int_t done, Int_t parent, Int_t pdg,
   	              Double_t px, Double_t py, Double_t pz, Double_t e,
   		      Double_t vx, Double_t vy, Double_t vz, Double_t tof,
 		      Double_t polx, Double_t poly, Double_t polz,
@@ -242,7 +194,71 @@ void AliStack::SetTrack(Int_t done, Int_t parent, Int_t pdg,
 }
 
 //_____________________________________________________________________________
-TParticle*  AliStack::GetNextTrack(Int_t& itrack)
+void AliStack::SetTrack(Int_t done, Int_t parent, Int_t pdg, Float_t *pmom,
+		      Float_t *vpos, Float_t *polar, Float_t tof,
+		      TMCProcess mech, Int_t &ntr, Float_t weight, Int_t is)
+{
+  //
+  // Load a track on the stack
+  //
+  // done     0 if the track has to be transported
+  //          1 if not
+  // parent   identifier of the parent track. -1 for a primary
+  // pdg    particle code
+  // pmom     momentum GeV/c
+  // vpos     position 
+  // polar    polarisation 
+  // tof      time of flight in seconds
+  // mecha    production mechanism
+  // ntr      on output the number of the track stored
+  //
+  
+  //  const Float_t tlife=0;
+
+  //
+  // Here we get the static mass
+  // For MC is ok, but a more sophisticated method could be necessary
+  // if the calculated mass is required
+  // also, this method is potentially dangerous if the mass
+  // used in the MC is not the same of the PDG database
+  //
+    TParticlePDG* pmc =  TDatabasePDG::Instance()->GetParticle(pdg);
+    if (pmc) {
+	Float_t mass = TDatabasePDG::Instance()->GetParticle(pdg)->Mass();
+	Float_t e=TMath::Sqrt(mass*mass+pmom[0]*pmom[0]+
+			      pmom[1]*pmom[1]+pmom[2]*pmom[2]);
+
+//    printf("Loading  mass %f ene %f No %d ip %d parent %d done %d pos %f %f %f mom %f %f %f kS %d m \n",
+//	   mass,e,fNtrack,pdg,parent,done,vpos[0],vpos[1],vpos[2],pmom[0],pmom[1],pmom[2],kS);
+  
+
+	PushTrack(done, parent, pdg, pmom[0], pmom[1], pmom[2], e,
+		 vpos[0], vpos[1], vpos[2], tof, polar[0], polar[1], polar[2],
+		 mech, ntr, weight, is);
+    } else {
+	Warning("SetTrack", "Particle type %d not defined in PDG Database !\n", pdg);
+	Warning("SetTrack", "Particle skipped !\n");
+    }
+  }
+  
+//_____________________________________________________________________________
+void AliStack::SetTrack(Int_t done, Int_t parent, Int_t pdg,
+  	              Double_t px, Double_t py, Double_t pz, Double_t e,
+  		      Double_t vx, Double_t vy, Double_t vz, Double_t tof,
+		      Double_t polx, Double_t poly, Double_t polz,
+		      TMCProcess mech, Int_t &ntr, Double_t weight, Int_t is)
+{ 
+  //
+  // Old name function (now PushTrack()), kept for backward compatibility.
+  //
+
+  PushTrack(done, parent, pdg, px, py, pz, e, vx, vy, vz, tof, polx, poly, polz,
+	    mech, ntr, weight, is);
+
+}
+
+//_____________________________________________________________________________
+TParticle*  AliStack::PopNextTrack(Int_t& itrack)
 {
   //
   // Returns next track from stack of particles
@@ -255,65 +271,15 @@ TParticle*  AliStack::GetNextTrack(Int_t& itrack)
     itrack = fCurrent;
     track->SetBit(kDoneBit);
   }
-  else
+  else 
     itrack = -1;
-  
+
   fCurrentTrack = track;
   return track;
 }
 
-/*
 //_____________________________________________________________________________
-void  AliStack::GetNextTrack(Int_t& itrack, Int_t& pdg,     
-  	                     Double_t& px, Double_t& py, Double_t& pz, Double_t& e,
-  		             Double_t& vx, Double_t& vy, Double_t& vz, Double_t& tof,
-		             Double_t& polx, Double_t& poly, Double_t& polz) 
-{
-  //
-  // Return next track from stack of particles
-  //
-  
-
-  TParticle* track = GetNextParticle();
-//    cout << "GetNextTrack():" << fCurrent << fNprimary << endl;
-
-  if (track) {
-    itrack = fCurrent;
-    pdg = track->GetPdgCode();
-    px = track->Px();
-    py = track->Py(); 
-    pz = track->Pz();
-    e  = track->Energy();
-    vx = track->Vx();
-    vy = track->Vy();
-    vz = track->Vz();
-    tof = track->T();
-    TVector3 pol;
-    track->GetPolarisation(pol);
-    polx = pol.X();
-    poly = pol.Y();
-    polz = pol.Z();
-    track->SetBit(kDoneBit);
-//      cout << "Filled params" << endl;
-  }
-  else 
-    itrack = -1;
-
-  //
-  // stop and start timer when we start a primary track
-  Int_t nprimaries = fNprimary;
-  if (fCurrent >= nprimaries) return;
-  if (fCurrent < nprimaries-1) { 
-    fTimer.Stop();
-    track=(TParticle*) fParticleMap->At(fCurrent+1);
-    //    track->SetProcessTime(fTimer.CpuTime());
-  }
-  fTimer.Start();
-}
-
-*/
-//_____________________________________________________________________________
-TParticle*  AliStack::GetPrimaryForTracking(Int_t i)
+TParticle*  AliStack::PopPrimaryForTracking(Int_t i)
 {
   //
   // Returns i-th primary particle if it is flagged to be tracked,
@@ -672,7 +638,7 @@ Int_t AliStack::TreeKEntry(Int_t id) const
 }
 
 //_____________________________________________________________________________
-Int_t AliStack::CurrentTrackParent() const
+Int_t AliStack::GetCurrentParentTrackNumber() const
 {
   //
   // Return number of the parent of the current track
@@ -683,7 +649,8 @@ Int_t AliStack::CurrentTrackParent() const
   if (current) 
     return current->GetFirstMother();
   else {
-    Warning("CurrentTrackParent", "Current track not found in the stack");
+    Warning("GetCurrentParentTrackNumber", 
+            "Current track not found in the stack");
     return -1;
   }  
 }

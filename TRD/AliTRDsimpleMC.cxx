@@ -15,6 +15,9 @@
  
 /*
 $Log$
+Revision 1.6  2003/03/25 12:59:51  cblume
+Update of simple generator
+
 Revision 1.5  2003/01/07 09:03:52  alibrary
 New TrackMomentum and Position without LorentzVectors
 
@@ -85,7 +88,7 @@ AliTRDsimpleMC::AliTRDsimpleMC()
 
 //_____________________________________________________________________________
 AliTRDsimpleMC::AliTRDsimpleMC(const char *name, const char *title)
-               :TVirtualMC(name,title)
+               :TVirtualMC(name,title,kFALSE)
 {                       
   //
   // AliTRDsimpleMC default constructor
