@@ -19,6 +19,9 @@ class AliHBTMonVyDistributionFctn;
 class AliHBTMonVzDistributionFctn;
 class AliHBTMonRDistributionFctn;
 
+class AliHBTMonVyDistributionVsVxFctn;
+class AliHBTMonRtDistributionVsVzFctn;
+
 #include "AliHBTMonitorFunction.h"
 /***********************************************************************/
 /***********************************************************************/
@@ -289,6 +292,43 @@ class AliHBTMonRDistributionFctn: public AliHBTMonOneParticleFctn1D
 };
 
 /***********************************************************************/
+class AliHBTMonVyDistributionVsVxFctn: public AliHBTMonOneParticleFctn2D
+{
+  public: 
+   AliHBTMonVyDistributionVsVxFctn(Int_t nXbins = 200, Double_t maxXval = 10.0, Double_t minXval = -10.0, 
+                                   Int_t nYbins = 200, Double_t maxYval = 10.0, Double_t minYval =-10.0);
+   virtual ~AliHBTMonVyDistributionVsVxFctn(){}
+
+   void GetValues(AliHBTParticle* partparticle,  Double_t& x, Double_t& y)
+    {
+      x = partparticle->Vx();
+      y = partparticle->Vy();
+    }
+   TH1* GetResult(){return fResult;} 
+ protected:
+ private:
+   ClassDef(AliHBTMonVyDistributionVsVxFctn,1)
+ };
+
+
+class AliHBTMonRtDistributionVsVzFctn: public AliHBTMonOneParticleFctn2D
+{
+  public: 
+   AliHBTMonRtDistributionVsVzFctn(Int_t nXbins = 200, Double_t maxXval = 10.0, Double_t minXval = -10.0, 
+                                   Int_t nYbins = 100, Double_t maxYval = 10.0, Double_t minYval = 0.0);
+   virtual ~AliHBTMonRtDistributionVsVzFctn(){}
+ 
+   void GetValues(AliHBTParticle* partparticle,  Double_t& x, Double_t& y)
+    {
+      x = partparticle->Vz();
+      y = TMath::Hypot(partparticle->Vx(),partparticle->Vy());
+    }
+   TH1* GetResult(){return fResult;}
+ protected:
+ private:
+   ClassDef(AliHBTMonRtDistributionVsVzFctn,1)
+ };
+
 /***********************************************************************/
 /***********************************************************************/
 /***********************************************************************/
