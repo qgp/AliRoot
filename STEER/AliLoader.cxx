@@ -180,7 +180,7 @@ Int_t AliLoader::LoadData(AliLoaderDataInfo& di,Option_t* opt)
   //if file is recreated there is no sense to search for data to post and get Error message
   if (AliLoader::TestFileOption(opt) == kFALSE)
    {
-    MakeTree(di);
+     MakeTree(di);
     return 0;
    }
 
@@ -197,9 +197,9 @@ Int_t AliLoader::LoadData(AliLoaderDataInfo& di,Option_t* opt)
 
 /*****************************************************************************/ 
 
-Int_t AliLoader::LoadSDigitizer(Option_t* opt)
+Int_t AliLoader::LoadSDigitizer(const TString name, Option_t* opt)
 {
-  if (SDigitizer())
+  if (SDigitizer(name))
    {
      Warning("LoadSDigitizer","%s S. Digitzier Task already exists",GetDetectorName().Data());
      Warning("LoadSDigitizer","Clean it first to load one from a file. Nothing done");
@@ -226,7 +226,7 @@ Int_t AliLoader::LoadSDigitizer(Option_t* opt)
   //if it is recreates
   if (AliLoader::TestFileOption(opt) == kFALSE) return 0;
   
-  retval = PostSDigitizer();      
+  retval = PostSDigitizer(name);      
   if (retval) 
    {
     Error("LoadSDigits","Error occured while posting SDigits from file to folder");
@@ -237,9 +237,9 @@ Int_t AliLoader::LoadSDigitizer(Option_t* opt)
 }
 /*****************************************************************************/ 
 
-Int_t AliLoader::LoadDigitizer(Option_t* opt)
+Int_t AliLoader::LoadDigitizer(const TString name, Option_t* opt)
 {
-  if (Digitizer())
+  if (Digitizer(name))
    {
      Warning("LoadDigitizer","%s Digitzier Task already exists",GetDetectorName().Data());
      Warning("LoadDigitizer","Clean it first to load one from a file. Nothing done");
@@ -266,7 +266,7 @@ Int_t AliLoader::LoadDigitizer(Option_t* opt)
   //if it is recreates
   if (AliLoader::TestFileOption(opt) == kFALSE) return 0;
   
-  retval = PostDigitizer();
+  retval = PostDigitizer(name);
   if (retval) 
    {
     Error("LoadDigitizer","Error occured while posting Digitizer from file to task");
@@ -277,9 +277,9 @@ Int_t AliLoader::LoadDigitizer(Option_t* opt)
 }
 /*****************************************************************************/ 
 
-Int_t AliLoader::LoadReconstructioner(Option_t* opt)
+Int_t AliLoader::LoadReconstructioner(const TString name, Option_t* opt)
 {
-   if (Reconstructioner())
+   if (Reconstructioner(name))
    {
      Warning("LoadReconstructioner","%s Reconstructioner Task already exists",GetDetectorName().Data());
      Warning("LoadReconstructioner","Clean it first to load one from a file. Nothing done");
@@ -306,7 +306,7 @@ Int_t AliLoader::LoadReconstructioner(Option_t* opt)
   //if it is recreates
   if (AliLoader::TestFileOption(opt) == kFALSE) return 0;
   
-  retval = PostReconstructioner();
+  retval = PostReconstructioner(name);
   if (retval) 
    {
     Error("LoadReconstructioner","Error occured while posting Reconstructioner from file to Task");
@@ -317,9 +317,9 @@ Int_t AliLoader::LoadReconstructioner(Option_t* opt)
 }
 /*****************************************************************************/ 
 
-Int_t AliLoader::LoadTracker(Option_t* opt)
+Int_t AliLoader::LoadTracker(const TString name, Option_t* opt)
 {
-   if (Tracker())
+   if (Tracker(name))
    {
      Warning("LoadTracker","%s Tracker Task already exists",GetDetectorName().Data());
      Warning("LoadTracker","Clean it first to load one from a file. Nothing done");
@@ -346,7 +346,7 @@ Int_t AliLoader::LoadTracker(Option_t* opt)
   //if it is recreates
   if (AliLoader::TestFileOption(opt) == kFALSE) return 0;
   
-  retval = PostReconstructioner();
+  retval = PostReconstructioner(name);
   if (retval) 
    {
     Error("LoadReconstructioner","Error occured while posting Reconstructioner from file to Task");
@@ -456,7 +456,7 @@ Int_t AliLoader::SetEvent()
 }
 /******************************************************************/
 
-Int_t AliLoader::GetEvent()
+Int_t AliLoader::GetEvent(const char * opt)
  {
  //changes to proper root  directory and tries to load data from files to folders
  // 
@@ -473,12 +473,21 @@ Int_t AliLoader::GetEvent()
       return 1;
     }
    
-   if(File(kHits)) PostHits();
-   if(File(kSDigits)) PostSDigits();
-   if(File(kDigits)) PostDigits();
-   if(File(kRecPoints)) PostRecPoints();
-   if(File(kTracks)) PostTracks();
- 
+   if( strstr(opt,"H") )
+     if(File(kHits)) 
+       PostHits();
+   if( strstr(opt,"S") )
+     if(File(kSDigits)) 
+       PostSDigits();
+   if( strstr(opt,"D") )
+     if(File(kDigits)) 
+       PostDigits();
+   if( strstr(opt,"R") ) {
+     if(File(kRecPoints)) 
+       PostRecPoints();
+     if(File(kTracks)) 
+       PostTracks();
+   }
    return 0;
  
  }
@@ -548,13 +557,13 @@ Int_t AliLoader::WriteData(AliLoaderDataInfo& di,Option_t* opt)
 }
 /*****************************************************************************/ 
 
-Int_t  AliLoader::WriteSDigitizer(Option_t* opt)
+Int_t  AliLoader::WriteSDigitizer(const TString name, Option_t* opt)
 {
 //Writes SDigitizer to detector Summbale Digits file/current event ROOT directory
 //Reads it from "ROOT://fgkTopFolderName/fgkTasksFolderName/fgkSDigitizerTaskName/fDetName/'fDetName+SDigitizer'
 //  TTask *sdgzer = SDigitizer();
   
-  TTask* sder = SDigitizer(); 
+  TTask* sder = SDigitizer(name); 
   if (sder == 0x0)
    {
      Warning("WriteSDigitizer","Can not get SDigitizer. Nothing to write");
@@ -576,8 +585,9 @@ Int_t  AliLoader::WriteSDigitizer(Option_t* opt)
      Error("WriteSDigits","File %s is not writable",File(kSDigits)->GetName());
      return 2;
    }
-  TString name(fDetectorName + AliConfig::Instance()->GetSDigitizerTaskName());
-
+  //TString name(fDetectorName + AliConfig::Instance()->GetSDigitizerTaskName());
+  //TString name(AliConfig::Instance()->GetSDigitizerTaskName());
+  
   TObject* task = Directory(kSDigits)->Get(name);
   if (task)
    { //if they exist, see if option OVERWRITE is used
@@ -598,11 +608,11 @@ Int_t  AliLoader::WriteSDigitizer(Option_t* opt)
 }
 /*****************************************************************************/ 
 
-Int_t  AliLoader::WriteDigitizer(Option_t* opt)
+Int_t  AliLoader::WriteDigitizer(const TString name, Option_t* opt)
 {
 //Writes Digitizer to detector "Digits file"/"current event ROOT directory"
 //Reads it from "ROOT://fgkTopFolderName/fgkTasksFolderName/fgkDigitizerTaskName/fDetName/'fDetName+Digitizer'
-  TTask* sder = Digitizer(); 
+  TTask* sder = Digitizer(name); 
   if (sder == 0x0)
    {
      Warning("WriteDigitizer","Can not get Digitizer. Nothing to write");
@@ -624,7 +634,7 @@ Int_t  AliLoader::WriteDigitizer(Option_t* opt)
      Error("WriteDigits","File %s is not writable",File(kDigits)->GetName());
      return 2;
    }
-  TString name(fDetectorName + AliConfig::Instance()->GetDigitizerTaskName());
+  //TString name(fDetectorName + AliConfig::Instance()->GetDigitizerTaskName());
 
   TObject* task = Directory(kDigits)->Get(name);
   if (task)
@@ -757,7 +767,7 @@ Int_t AliLoader::OpenDataFile(const TString& filename,TFile*& file,TDirectory*& 
    {
      if(file->IsOpen() == kTRUE)
        {
-         Warning("OpenDataFile>"," File %s already opened. First close it.",file->GetName());
+         //Warning("OpenDataFile>"," File %s already opened. First close it.",file->GetName());
          return 0;
        }
      else
@@ -910,7 +920,7 @@ TFolder* AliLoader::GetQAFolder()
   
 }
 /*****************************************************************************/ 
-TTask* AliLoader::SDigitizer()
+TTask* AliLoader::SDigitizer(const TString name )
 {
 //returns SDigitizer task for this detector
 
@@ -919,13 +929,13 @@ TTask* AliLoader::SDigitizer()
     {
       return 0x0;
     }
-  TString name(fDetectorName + AliConfig::Instance()->GetSDigitizerTaskName());
-  TObject* obj = rsd->GetListOfTasks()->FindObject(name);
-  return (obj)?dynamic_cast<TTask*>(obj):0x0;
+   //TString name(fDetectorName + AliConfig::Instance()->GetSDigitizerTaskName());
+   TObject* obj = rsd->GetListOfTasks()->FindObject(name);
+   return (obj)?dynamic_cast<TTask*>(obj):0x0;
 }
 /*****************************************************************************/ 
 
-AliDigitizer* AliLoader::Digitizer()
+AliDigitizer* AliLoader::Digitizer(const TString name)
 {
 //returns Digitizer task for this detector
   TTask* rd = AliRunLoader::GetRunDigitizer();
@@ -933,13 +943,13 @@ AliDigitizer* AliLoader::Digitizer()
     {
       return 0x0;
     }
-  TString name(fDetectorName + AliConfig::Instance()->GetDigitizerTaskName());
+   //TString name(fDetectorName + AliConfig::Instance()->GetDigitizerTaskName());
   TObject* obj = rd->GetListOfTasks()->FindObject(name);
   return (obj)?dynamic_cast<AliDigitizer*>(obj):0x0;
 }
 /*****************************************************************************/ 
 
-TTask* AliLoader::Reconstructioner()
+TTask* AliLoader::Reconstructioner(const TString name)
 {
 //returns Recontructioner (Cluster Finder, Cluster Maker, 
 //or whatever you want to call it) task for this detector
@@ -948,7 +958,7 @@ TTask* AliLoader::Reconstructioner()
     {
       return 0x0;
     }
-  TString name(fDetectorName + AliConfig::Instance()->GetReconstructionerTaskName());
+  //TString name(fDetectorName + AliConfig::Instance()->GetReconstructionerTaskName());
   TObject* obj = rrec->GetListOfTasks()->FindObject(name);
   return (obj)?dynamic_cast<TTask*>(obj):0x0;
 }
@@ -990,14 +1000,14 @@ TTask* AliLoader::QAtask(const char* name)
 
 /*****************************************************************************/ 
 
-TTask* AliLoader::Tracker()
+TTask* AliLoader::Tracker(const TString name)
 {
   TTask* tracker = AliRunLoader::GetRunTracker();
   if (tracker == 0x0)
     {
       return 0x0;
     }
-  TString name(fDetectorName + AliConfig::Instance()->GetTrackerTaskName());
+  //TString name(fDetectorName + AliConfig::Instance()->GetTrackerTaskName());
   TObject* obj = tracker->GetListOfTasks()->FindObject(name);
   return (obj)?dynamic_cast<TTask*>(obj):0x0;
 }
@@ -1183,7 +1193,7 @@ Int_t AliLoader::PostData(AliLoaderDataInfo& di)
            di.Name().Data(),di.Name().Data());
      return 2; 
    }
-
+  
   TObject* tree = dir->Get(di.ContainerName());
   if(tree)
    {
@@ -1212,7 +1222,7 @@ Int_t AliLoader::PostData(AliLoaderDataInfo& di)
 }
 /*****************************************************************************/ 
 
-Int_t AliLoader::PostSDigitizer()
+Int_t AliLoader::PostSDigitizer(const TString name)
  {
   
    if (Directory(kSDigits) == 0x0)
@@ -1221,7 +1231,7 @@ Int_t AliLoader::PostSDigitizer()
      return 1;
     }
    
-   TString name(fDetectorName + AliConfig::Instance()->GetSDigitizerTaskName());
+   //TString name(fDetectorName + AliConfig::Instance()->GetSDigitizerTaskName());
    TTask* sdigitizer = dynamic_cast<TTask*>(Directory(kSDigits)->Get(name));
    
    if (sdigitizer == 0x0)
@@ -1251,7 +1261,7 @@ Int_t AliLoader::PostSDigitizer(TTask* sdzer)
 
 /*****************************************************************************/ 
 
-Int_t AliLoader::PostDigitizer()
+Int_t AliLoader::PostDigitizer(const TString name)
  {
    if (Directory(kDigits) == 0x0)
     {
@@ -1259,7 +1269,7 @@ Int_t AliLoader::PostDigitizer()
      return 1;
     }
    
-   TString name(fDetectorName + AliConfig::Instance()->GetDigitizerTaskName());
+   // TString name(fDetectorName + AliConfig::Instance()->GetDigitizerTaskName());
    TObject* obj = Directory(kDigits)->Get(name);
    if (obj == 0x0)
     {
@@ -1293,7 +1303,7 @@ Int_t AliLoader::PostDigitizer(AliDigitizer* task)
  }
 /*****************************************************************************/ 
 
-Int_t AliLoader::PostReconstructioner()
+Int_t AliLoader::PostReconstructioner(const TString name)
  {
    if ( Directory(kRecPoints) == 0x0)
     {
@@ -1301,7 +1311,7 @@ Int_t AliLoader::PostReconstructioner()
      return 1;
     }
    
-   TString name(fDetectorName + AliConfig::Instance()->GetReconstructionerTaskName());
+   //TString name(fDetectorName + AliConfig::Instance()->GetReconstructionerTaskName());
    TTask* task = dynamic_cast<TTask*>(Directory(kRecPoints)->Get(name));
    
    if (task == 0x0)
@@ -1335,7 +1345,7 @@ Int_t AliLoader::PostReconstructioner(TTask* task)
  }
 /*****************************************************************************/ 
 
-Int_t AliLoader::PostTracker()
+Int_t AliLoader::PostTracker(const TString name)
  {
    if (Directory(kTracks) == 0x0)
     {
@@ -1343,7 +1353,7 @@ Int_t AliLoader::PostTracker()
      return 1;
     }
    
-   TString name(fDetectorName + AliConfig::Instance()->GetTrackerTaskName());
+   //TString name(fDetectorName + AliConfig::Instance()->GetTrackerTaskName());
    TObject* obj = Directory(kTracks)->Get(name);
    if (obj == 0x0)
     {
@@ -1408,7 +1418,9 @@ TObject** AliLoader::DigitizerRef()
   {
     return 0x0;
   }
- return rd->GetListOfTasks()->GetObjectRef(Digitizer()) ;
+ //return rd->GetListOfTasks()->GetObjectRef(Digitizer()) ;
+ Fatal("DigitizerRef", "Check where this is needed") ; 
+ return 0 ; 
 }
 /*****************************************************************************/ 
 
@@ -1419,7 +1431,9 @@ TObject** AliLoader::ReconstructionerRef()
    {
      return 0x0;
    }
-  return rrec->GetListOfTasks()->GetObjectRef(Reconstructioner());
+  //return rrec->GetListOfTasks()->GetObjectRef(Reconstructioner());
+  Fatal("DigitizerRef", "Check where this is needed") ; 
+  return 0 ; 
 }
 /*****************************************************************************/ 
 
@@ -1430,7 +1444,9 @@ TObject** AliLoader::TrackerRef()
     {
       return 0x0;
     }
-   return rrec->GetListOfTasks()->GetObjectRef(Tracker());
+   //return rrec->GetListOfTasks()->GetObjectRef(Tracker());
+   Fatal("DigitizerRef", "Check where this is needed") ; 
+   return 0 ; 
 }
 
 /*****************************************************************************/ 
@@ -1466,7 +1482,7 @@ void AliLoader::Clean(const TString& name)
 }
 /*****************************************************************************/ 
 
-void AliLoader::CleanSDigitizer()
+void AliLoader::CleanSDigitizer(const TString name)
 {
 //removes and deletes detector task from Run Task
   TTask* task = AliRunLoader::GetRunSDigitizer();
@@ -1477,11 +1493,11 @@ void AliLoader::CleanSDigitizer()
    }
 
   if (GetDebug()) Info("CleanSDigitizer","Attempting to delete S Digitizer");
-  delete task->GetListOfTasks()->Remove(SDigitizer()); //TTList::Remove does not delete object
+  delete task->GetListOfTasks()->Remove(SDigitizer(name)); //TTList::Remove does not delete object
 }
 /*****************************************************************************/ 
 
-void AliLoader::CleanDigitizer()
+void AliLoader::CleanDigitizer(const TString name)
 {
 //removes and deletes detector task from Run Task
   TTask* task = AliRunLoader::GetRunDigitizer();
@@ -1493,12 +1509,12 @@ void AliLoader::CleanDigitizer()
 
   if (GetDebug()) 
    Info("CleanDigitizer","Attempting to delete Digitizer %X",
-         task->GetListOfTasks()->Remove(Digitizer()));
-  delete task->GetListOfTasks()->Remove(Digitizer()); //TTList::Remove does not delete object
+         task->GetListOfTasks()->Remove(Digitizer(name)));
+  delete task->GetListOfTasks()->Remove(Digitizer(name)); //TTList::Remove does not delete object
 }
 /*****************************************************************************/ 
 
-void AliLoader::CleanReconstructioner()
+void AliLoader::CleanReconstructioner(const TString name)
 {
 //removes and deletes detector Reconstructioner from Run Reconstructioner
   TTask* task = AliRunLoader::GetRunReconstructioner();
@@ -1510,11 +1526,11 @@ void AliLoader::CleanReconstructioner()
 
   if (GetDebug()) 
    Info("CleanReconstructioner","Attempting to delete Reconstructioner");
-  delete task->GetListOfTasks()->Remove(Reconstructioner()); //TTList::Remove does not delete object
+  delete task->GetListOfTasks()->Remove(Reconstructioner(name)); //TTList::Remove does not delete object
 }
 /*****************************************************************************/ 
 
-void AliLoader::CleanTracker()
+void AliLoader::CleanTracker(const TString name)
 {
 //removes and deletes detector tracker from Run Tracker
   TTask* task = AliRunLoader::GetRunTracker();
@@ -1526,8 +1542,8 @@ void AliLoader::CleanTracker()
 
   if (GetDebug()) 
    Info("CleanTracker","Attempting to delete Tracker %X",
-         task->GetListOfTasks()->Remove(Tracker()));
-  delete task->GetListOfTasks()->Remove(Tracker()); //TTList::Remove does not delete object
+         task->GetListOfTasks()->Remove(Tracker(name)));
+  delete task->GetListOfTasks()->Remove(Tracker(name)); //TTList::Remove does not delete object
 }
 /*****************************************************************************/ 
 

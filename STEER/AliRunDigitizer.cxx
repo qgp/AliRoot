@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.13.4.5  2002/12/11 10:00:34  hristov
+Merging with v3-09-04 (P.Skowronski)
+
 Revision 1.13.4.4  2002/11/22 14:19:50  hristov
 Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
 
@@ -311,13 +314,19 @@ void AliRunDigitizer::AddDigitizer(AliDigitizer *digitizer)
   this->Add(digitizer);
 }
 //_______________________________________________________________________
-void AliRunDigitizer::SetInputStream(Int_t i, const char *inputFile)
+void AliRunDigitizer::SetInputStream(Int_t i, const char *inputFile, TString foldername)
 {
   if (i > fInputStreams->GetLast()) {
     Error("SetInputStream","Input stream number too high");
     return;
   }
-  static_cast<AliStream*>(fInputStreams->At(i))->AddFile(inputFile);
+  AliStream * stream = static_cast<AliStream*>(fInputStreams->At(i)) ; 
+  if ( !foldername.IsNull() ) {
+    if ( i > 0 ) 
+      foldername += i ; // foldername should stay unchanged for the default output 
+    stream->SetFolderName(foldername) ;
+  } 
+  stream->AddFile(inputFile);
 }
 
 //_______________________________________________________________________
@@ -421,7 +430,9 @@ Bool_t AliRunDigitizer::InitOutputGlobal()
        Error("InitOutputGlobal","Can not open ooutput");
        return kFALSE;
      }
+    Info("InitOutputGlobal", " 1 %s = ", GetInputFolderName(0).Data()) ; 
     AliRunLoader* inrl = AliRunLoader::GetRunLoader(GetInputFolderName(0));
+	 Info("InitOutputGlobal", " 2 %d = ", inrl) ; 
     const TObjArray* inloaders = inrl->GetArrayOfLoaders();
 
     TIter next(inloaders);

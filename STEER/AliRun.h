@@ -11,6 +11,7 @@
 #include <TMCProcess.h>
 #include <TStopwatch.h>
 #include <TVirtualMCApplication.h>
+#include <TVirtualMC.h>
 class TBranch;
 class TBrowser;
 class TDatabasePDG;

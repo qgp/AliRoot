@@ -137,7 +137,7 @@ AliRunLoader::AliRunLoader(TFolder* topfolder):TNamed(fgkRunLoaderName,fgkRunLoa
 }
 /**************************************************************************/
 
-Int_t AliRunLoader::GetEvent(Int_t evno)
+Int_t AliRunLoader::GetEvent(const Int_t evno,  const char* opt)
 {
 //Gets event number evno
 //Reloads all data properly
@@ -219,7 +219,7 @@ Int_t AliRunLoader::GetEvent(Int_t evno)
   AliLoader *loader;
   while((loader = (AliLoader*)next())) 
    {
-     retval = loader->GetEvent();
+     retval = loader->GetEvent(opt);
      if (retval)
       {
        Error("GetEvent","Error occured while getting event for %s. Event %d.",
@@ -324,7 +324,7 @@ AliRunLoader* AliRunLoader::Open
     TFolder* fold = dynamic_cast<TFolder*>(obj);
     if (fold == 0x0)
      {
-      ::Error("AliRunLoader::Open","Such a obejct already exists in top alice folder and it is not a folder.");
+      ::Error("AliRunLoader::Open","Such a object already exists in top alice folder and it is not a folder.");
       return 0x0;
      }
     
@@ -555,8 +555,9 @@ Int_t AliRunLoader::LoadgAlice()
  alirun->SetRunLoader(this);
  if (gAlice)
   {
-    Warning("LoadgAlice","gAlice already exists. Putting retrived object in folder named %s",
-             GetEventFolder()->GetName());
+    if ( GetDebug() ) 
+      Warning("LoadgAlice","gAlice already exists. Putting retrieved object in folder named %s",
+	      GetEventFolder()->GetName());
   }
  else
   {
@@ -713,7 +714,7 @@ Int_t AliRunLoader::PostKinematics()
   if (tree == TreeK()) return 0; //protection in case in folder is the same obj
   if(tree)
    {
-     //if such an obejct already exists - remove it first
+     //if such an object already exists - remove it first
      CleanKinematics();//if kine tree already is in folder
      GetEventFolder()->Add(tree);
      return 0;
@@ -743,7 +744,7 @@ Int_t AliRunLoader::PostTrackRefs()
   if (tree == TreeTR()) return 0; //protection in case in folder is the same obj
   if(tree)
    {
-     //if such an obejct already exists - remove it first
+     //if such an object already exists - remove it first
      CleanTrackRefs();//if kine tree already is in folder
      GetEventFolder()->Add(tree);
      return 0;
@@ -1080,7 +1081,7 @@ Int_t AliRunLoader::SetEventFolderName(const TString& name)
      TFolder* fold = dynamic_cast<TFolder*>(obj);
      if (fold == 0x0)
       {
-       Error("SetTopFolderName","Such a obejct already exists in top alice folder and it is not a folder.");
+       Error("SetTopFolderName","Such a object already exists in top alice folder and it is not a folder.");
        return 2;
       }
      //folder which was found is our folder
@@ -1221,7 +1222,7 @@ Int_t AliRunLoader::LoadHits(Option_t* detectors,Option_t* opt)
   TObjArray* loaders;
   TObjArray arr;
 
-  char* oAll = strstr(detectors,"all");
+  const char* oAll = strstr(detectors,"all");
   if (oAll)
    {
      if (GetDebug()) Info("LoadHits","Option is All");
@@ -1255,7 +1256,7 @@ Int_t AliRunLoader::LoadSDigits(Option_t* detectors,Option_t* opt)
   TObjArray* loaders;
   TObjArray arr;
 
-  char* oAll = strstr(detectors,"all");
+  const char* oAll = strstr(detectors,"all");
   if (oAll)
    {
      loaders = fLoaders;
@@ -1284,7 +1285,7 @@ Int_t AliRunLoader::LoadDigits(Option_t* detectors,Option_t* opt)
   TObjArray* Loaders;
   TObjArray arr;
 
-  char* oAll = strstr(detectors,"all");
+  const char* oAll = strstr(detectors,"all");
   if (oAll)
    {
      Loaders = fLoaders;
@@ -1313,7 +1314,7 @@ Int_t AliRunLoader::LoadRecPoints(Option_t* detectors,Option_t* opt)
   TObjArray* Loaders;
   TObjArray arr;
 
-  char* oAll = strstr(detectors,"all");
+  const char* oAll = strstr(detectors,"all");
   if (oAll)
    {
      Loaders = fLoaders;
@@ -1342,7 +1343,7 @@ Int_t AliRunLoader::LoadTracks(Option_t* detectors,Option_t* opt)
   TObjArray* Loaders;
   TObjArray arr;
 
-  char* oAll = strstr(detectors,"all");
+  const char* oAll = strstr(detectors,"all");
   if (oAll)
    {
      Loaders = fLoaders;
@@ -1691,6 +1692,8 @@ TString AliRunLoader::GetFileName() const
  result = fGAFile->GetName();
  return result;
 }
+
+
 
 /*****************************************************************************/ 
 /*****************************************************************************/ 

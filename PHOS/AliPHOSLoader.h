@@ -1,5 +1,5 @@
-#ifndef ALIPHOSGETTER_H
-#define ALIPHOSGETTER_H
+#ifndef ALIPHOSLOADER_H
+#define ALIPHOSLOADER_H
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
 
@@ -41,11 +41,11 @@ class TTask ;
 #include "AliPHOSTrackSegment.h"
 #include "AliPHOSRecParticle.h"
 class AliPHOSGeometry ;
-class AliPHOSDigitizer ;
-class AliPHOSSDigitizer ;
-class AliPHOSClusterizer ;
-class AliPHOSTrackSegmentMaker ;
-class AliPHOSPID ;
+#include "AliPHOSDigitizer.h"
+#include "AliPHOSSDigitizer.h"
+#include "AliPHOSClusterizer.h"
+#include "AliPHOSTrackSegmentMaker.h"
+#include "AliPHOSPID.h"
 class AliPHOSCalibrationDB ;
 
 
@@ -153,11 +153,11 @@ class AliPHOSLoader : public AliLoader {
   /*********************************************/
   /************    T A S K S      **************/
   /*********************************************/
-  AliPHOSPID * PID(const char * name =0) const { MayNotUse("PID"); return 0x0;}
-  AliPHOSSDigitizer*  PHOSSDigitizer() { return (AliPHOSSDigitizer*)SDigitizer();}
-  AliPHOSDigitizer*   PHOSDigitizer() { return (AliPHOSDigitizer*)Digitizer();}
-  AliPHOSClusterizer* Clusterizer ()  {return (AliPHOSClusterizer*)Reconstructioner();}
-  AliPHOSTrackSegmentMaker * TrackSegmentMaker () { return (AliPHOSTrackSegmentMaker*)Tracker() ;}
+  AliPHOSPID * PID(const char * name =0) const { MayNotUse("PID"); return 0x0 ;}
+  AliPHOSSDigitizer*  PHOSSDigitizer(TString name = AliConfig::fgkDefaultEventFolderName) { return dynamic_cast<AliPHOSSDigitizer*>(SDigitizer(name)) ;}
+  AliPHOSDigitizer*   PHOSDigitizer()  { return  dynamic_cast<AliPHOSDigitizer*>(Digitizer()) ;}
+  AliPHOSClusterizer* Clusterizer ()  {return dynamic_cast<AliPHOSClusterizer*>(Reconstructioner()) ;}
+  AliPHOSTrackSegmentMaker * TrackSegmentMaker ()  { return dynamic_cast<AliPHOSTrackSegmentMaker *>(Tracker()) ;}
   
   Int_t PostClusterizer(TTask* clust){return PostReconstructioner(clust);}
   Int_t PostTrackSegmentMaker(TTask* segmaker){return PostTracker(segmaker);}
@@ -317,4 +317,4 @@ inline const AliPHOSRecParticle* AliPHOSLoader::RecParticle(Int_t index)
 inline TObjArray *  AliPHOSLoader::Alarms()
 { return (TObjArray*)(GetQAFolder()->FindObject(fDetectorName));}
 
-#endif // AliPHOSGETTER_H
+#endif // AliPHOSLOADER_H

@@ -217,7 +217,6 @@ Int_t AliPHOSLoader::LoadHits(Option_t* opt)
    }
 
   //read the data from tree in folder and send it to folder
-  cout<<"AliPHOSLoader::LoadHits: Calling AliLoader::ReadHits()\n";
   res = ReadHits();
 
   return 0;
@@ -394,14 +393,14 @@ Int_t AliPHOSLoader::ReadHits()
   
   if(treeh == 0)
    {
-    Error("ReadTreeH"," Cannot read TreeH from folder");
+    Error("ReadHits"," Cannot read TreeH from folder");
     return 1;
   }
   
   TBranch * hitsbranch = treeh->GetBranch(fDetectorName);
   if (hitsbranch == 0) 
    {
-    Error("ReadTreeH"," Cannot find branch PHOS"); 
+    Error("ReadHits"," Cannot find branch PHOS"); 
     return 1;
   }
   
@@ -461,14 +460,14 @@ Int_t AliPHOSLoader::ReadSDigits()
   if(treeS==0)
    {
      //May happen if file is truncated or new in LoadSDigits
-     Error("ReadSDigits","There is no SDigit Tree");
+     //Error("ReadSDigits","There is no SDigit Tree");
      return 0;
    }
   
   TBranch * branch = treeS->GetBranch(fDetectorName);
   if (branch == 0) 
    {//easy, maybe just a new tree
-    Error("ReadSDigits"," Cannot find branch PHOS"); 
+    //Error("ReadSDigits"," Cannot find branch PHOS"); 
     return 0;
   }
     
@@ -504,14 +503,14 @@ Int_t AliPHOSLoader::ReadDigits()
   if(treeD==0)
    {
      //May happen if file is truncated or new in LoadSDigits
-     Error("ReadDigits","There is no Digit Tree");
+     //Error("ReadDigits","There is no Digit Tree");
      return 0;
    }
 
   TBranch * branch = treeD->GetBranch(fDetectorName);
   if (branch == 0) 
    {//easy, maybe just a new tree
-    Error("ReadDigits"," Cannot find branch ",fDetectorName.Data()); 
+    //Error("ReadDigits"," Cannot find branch ",fDetectorName.Data()); 
     return 0;
    }
   

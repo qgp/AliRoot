@@ -72,7 +72,7 @@ class AliLoader: public TNamed
 
     virtual ~AliLoader();//----------------- 
  
-    virtual Int_t  GetEvent();//changes to root directory
+    virtual Int_t  GetEvent(const char * opt = "HSDRP");//changes to root directory
                              //relies on the event number defined in gAlice
     virtual Int_t  SetEvent();//basically the same that GetEvent but do not post data to folders
     virtual void   MakeTree(Option_t* opt);
@@ -91,10 +91,10 @@ class AliLoader: public TNamed
     Int_t          LoadRecPoints(Option_t* opt=""){return LoadData(kRecPoints,opt);}
     Int_t          LoadTracks(Option_t* opt=""){return LoadData(kTracks,opt);}
     
-    Int_t          LoadSDigitizer(Option_t* opt="");
-    Int_t          LoadDigitizer(Option_t* opt="");
-    Int_t          LoadReconstructioner(Option_t* opt="");
-    Int_t          LoadTracker(Option_t* opt="");
+    Int_t          LoadSDigitizer(const TString name = AliConfig::fgkDefaultEventFolderName, Option_t* opt="");
+    Int_t          LoadDigitizer(const TString name = AliConfig::fgkDefaultEventFolderName, Option_t* opt="");
+    Int_t          LoadReconstructioner(const TString name = AliConfig::fgkDefaultEventFolderName, Option_t* opt="");
+    Int_t          LoadTracker(const TString name = AliConfig::fgkDefaultEventFolderName, Option_t* opt="");
 
     void           UnloadHits(){CleanHits();CloseHitsFile();}
     void           UnloadSDigits(){CleanSDigits();CloseSDigitsFile();}
@@ -117,8 +117,8 @@ class AliLoader: public TNamed
     virtual Int_t  WriteTracks(Option_t* opt=""){return WriteData(kTracks,opt);}
     virtual void   Write(Option_t* opt="all"){}
     
-    virtual Int_t  WriteSDigitizer(Option_t* opt="");
-    virtual Int_t  WriteDigitizer(Option_t* opt="");
+    virtual Int_t  WriteSDigitizer(const TString name = AliConfig::fgkDefaultEventFolderName, Option_t* opt="");
+    virtual Int_t  WriteDigitizer(const TString name = AliConfig::fgkDefaultEventFolderName, Option_t* opt="");
     virtual Int_t  WriteReconstructioner(Option_t* opt="");
     virtual Int_t  WriteTracker(Option_t* opt="");
     
@@ -150,10 +150,10 @@ class AliLoader: public TNamed
     TFolder*       GetTasksFolder();
     TFolder*       GetQAFolder();
     
-    TTask*         SDigitizer();//return detector SDigitizer()
-    AliDigitizer*  Digitizer();
-    TTask*         Reconstructioner();
-    TTask*         Tracker();
+    TTask*         SDigitizer(const TString name = AliConfig::fgkDefaultEventFolderName);//return detector SDigitizer()
+    AliDigitizer*  Digitizer(const TString name = AliConfig::fgkDefaultEventFolderName);
+    TTask*         Reconstructioner(const TString name = AliConfig::fgkDefaultEventFolderName);
+    TTask*         Tracker(const TString name = AliConfig::fgkDefaultEventFolderName);
     TTask*         QAtask(const char* name = 0x0);
 
     TObject**      SDigitizerRef();
@@ -193,10 +193,10 @@ class AliLoader: public TNamed
     virtual void  CleanRecPoints(){Clean(kRecPoints);}
     virtual void  CleanTracks()   {Clean(kTracks);}
     
-    virtual void  CleanSDigitizer();
-    virtual void  CleanDigitizer();
-    virtual void  CleanReconstructioner();
-    virtual void  CleanTracker();
+    virtual void  CleanSDigitizer(const TString name = AliConfig::fgkDefaultEventFolderName);
+    virtual void  CleanDigitizer(const TString name = AliConfig::fgkDefaultEventFolderName);
+    virtual void  CleanReconstructioner(const TString name = AliConfig::fgkDefaultEventFolderName);
+    virtual void  CleanTracker(const TString name = AliConfig::fgkDefaultEventFolderName);
 
     virtual void  SetHitsFileOption(Option_t* newopt){SetFileOption(kHits,newopt);}          //Sets Hits File Option in open
     virtual void  SetSDigitsFileOption(Option_t* newopt){SetFileOption(kSDigits,newopt);}    //Sets S. Digits File Option in open
@@ -262,10 +262,10 @@ class AliLoader: public TNamed
     virtual Int_t PostRecPoints(){return PostData(kRecPoints);} 
     virtual Int_t PostTracks(){return PostData(kTracks);} 
 
-    virtual Int_t PostSDigitizer();//gets SDigitizer from file and adds it to Run SDigitizer
-    virtual Int_t PostDigitizer();//gets Digitizer from file and adds it to Run Digitizer
-    virtual Int_t PostReconstructioner();//gets Reconstructioner from file and adds it to Run Reconstructioner
-    virtual Int_t PostTracker();//gets tracker from file and adds it to Run Tracker
+    virtual Int_t PostSDigitizer(const TString name = AliConfig::fgkDefaultEventFolderName); //gets SDigitizer from file and adds it to Run SDigitizer
+    virtual Int_t PostDigitizer(const TString name = AliConfig::fgkDefaultEventFolderName);//gets Digitizer from file and adds it to Run Digitizer
+    virtual Int_t PostReconstructioner(const TString name = AliConfig::fgkDefaultEventFolderName);//gets Reconstructioner from file and adds it to Run Reconstructioner
+    virtual Int_t PostTracker(const TString name = AliConfig::fgkDefaultEventFolderName);//gets tracker from file and adds it to Run Tracker
     
     void          Clean(const TString& name);
     void          Clean(EDataTypes dt){Clean(ContainerName(dt));}

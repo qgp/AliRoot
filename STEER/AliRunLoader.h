@@ -38,7 +38,7 @@ class AliRun;
 class AliLoader;
 class AliDetector;
 class AliHeader;
-class AliStack;
+#include "AliStack.h"
 class AliRunDigitizer;
 
 
@@ -58,7 +58,8 @@ class AliRunLoader: public TNamed
 
     Int_t       GetEventNumber() const {return fCurrentEvent;}
 
-    Int_t       GetEvent(Int_t evno);//sets the event number and reloads data in folders properly
+    Int_t       GetEvent(const Int_t evno, const char * opt= "HSDRP");//sets the event number and reloads data in folders properly, 
+                                                             //with the possibility to select which kind of data to laod
     Int_t       GetNextEvent(){return GetEvent(fCurrentEvent+1);}//gets next event 
     Int_t       SetEventNumber(Int_t evno); //cleans folders and sets the root dirs in files (do not reload data)
     Int_t       SetNextEvent(){return SetEventNumber(fCurrentEvent+1);}
@@ -80,13 +81,15 @@ class AliRunLoader: public TNamed
     void        UnloadTrackRefs();
     
     void        SetKineFileName(const TString& fname){fKineData.FileName() = fname;}
+    TString&    GetKineFileName() {return fKineData.FileName() ; } const 
     void        SetTrackRefsFileName(const TString& fname){fTrackRefsData.FileName() = fname;}
     
     TTree*      TreeE() const; //returns the tree from folder; shortcut method
     AliHeader*  GetHeader() const;
     
     AliStack*   Stack() const {return fStack;}
-    
+    Int_t       GetNtrack() const { return Stack()->GetNtrack() ; } 
+    TParticle * Particle(const Int_t i) const { return  Stack()->Particle(i) ; } 
     TTree*      TreeK() const; //returns the tree from folder; shortcut method
     TTree*      TreeTR() const; //returns the tree from folder; shortcut method    
     

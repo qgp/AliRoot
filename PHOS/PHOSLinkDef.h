@@ -57,4 +57,5 @@
 #pragma link C++ class AliPHOSBeamTestEvent+;
 #pragma link C++ class AliPHOSCalibrationDB+;
 #pragma link C++ class AliPHOSConTableDB+;
+#pragma link C++ class AliPHOSGetter+;
 #endif

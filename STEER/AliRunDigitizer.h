@@ -17,14 +17,14 @@
 
 #include "TArrayI.h"
 #include "TTask.h"
-class TClonesArray;
+#include "TClonesArray.h"
 class TFile;
 class TParticle;
 class TTree;
 
 // --- AliRoot header files ---
 
-class AliStream;
+#include "AliStream.h" 
 class AliDigitizer;
 class AliMergeCombi;
 class AliRunLoader;
@@ -52,7 +52,7 @@ public:
   void      SetOutputDir(TString dn) {fOutputDirName = dn;}
   TString   GetOutputDir() const {return fOutputDirName;}
   
-  void      SetInputStream(Int_t stream, const char *inputName);
+  void      SetInputStream(Int_t stream, const char *inputName, TString foldername = "");
   
   void      SetFirstOutputEventNr(Int_t i) {fEvent = i;}
   void      SetNrOfEventsToWrite(Int_t i) {fNrOfEventsToWrite = i;}
@@ -86,6 +86,7 @@ public:
 // which was merged to create output event event
   Int_t GetInputEventNumber(Int_t event, Int_t input) const;
   
+  AliStream * GetInputStream(const Int_t index) const { return dynamic_cast<AliStream *>(fInputStreams->At(index)) ; }
 // return pointer to particle with index i (index with mask)
   TParticle* GetParticle(Int_t i, Int_t event) const;
 
