@@ -470,19 +470,7 @@ Double_t AliAODPair::GetGammaToLCMS()
 Double_t AliAODPair::GetGammaToTransverse()
 {
   //calculates gamma factor of the boost to LCMS
-  CalculateSums();
-  
-  Double_t cosphi=fPxSum/(2.0*GetKt());  // cos(phi)
-  Double_t sinphi=fPySum/(2.0*GetKt()); // sin(phi)
-
-//      ROTATE(part1Px,part1Py,SPHI,CPHI,part1Px,part1Py);//ROT8
-//      ROTATE(part2Px,part2Py,SPHI,CPHI,part2Px,part2Py);//ROT8
-  Double_t part1Px = fPart1->Px()*cosphi + fPart1->Py()*sinphi;
-
-  Double_t part2Px = fPart2->Px()*cosphi + fPart2->Py()*sinphi;
-  
-  Double_t pxsum = part1Px + part2Px;
-  Double_t beta = pxsum/fESum;
+  Double_t beta = 2.0*GetKt() / GetMt();
   Double_t gamma = 1.0/TMath::Sqrt(1.0 - beta*beta);
 
   return gamma;
