@@ -383,7 +383,7 @@ AliEMCAL * AliEMCALGetter:: EMCAL() const
   loader = EmcalLoader();
 
   if (loader != oldloader ) {
-    AliEMCAL * emcal = dynamic_cast<AliEMCAL*>(loader->GetModulesFolder()->FindObject("EMCAL")) ;  
+    emcal = dynamic_cast<AliEMCAL*>(loader->GetModulesFolder()->FindObject("EMCAL")) ;  
     oldloader = loader;
   }
   if (!emcal) 
