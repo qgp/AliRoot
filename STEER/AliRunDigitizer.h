@@ -29,7 +29,7 @@ class AliDigitizer;
 class AliMergeCombi;
 class AliRunLoader;
 
-const Int_t kMaxStreamsToMerge = 4;
+static const Int_t kMaxStreamsToMerge = 4;
 
 class AliRunDigitizer: public TTask {
 
@@ -57,7 +57,7 @@ public:
   void      SetFirstOutputEventNr(Int_t i) {fEvent = i;}
   void      SetNrOfEventsToWrite(Int_t i) {fNrOfEventsToWrite = i;}
   void      SetCopyTreesFromInput(Int_t i) {fCopyTreesFromInput = i;}
-  Int_t     GetCopyTreesFromInput() {return fCopyTreesFromInput;}
+  Int_t     GetCopyTreesFromInput() const {return fCopyTreesFromInput;}
   Int_t     GetOutputEventNr() const {return fEvent;}
   void      SetCombinationFileName(TString fn) {fCombinationFileName = fn;} 
   TString   GetCombinationFileName() const {return fCombinationFileName;}
@@ -136,9 +136,8 @@ private:
 
   AliRunLoader*     GetOutRunLoader();
   
-  static const TString fgkDefOutFolderName;
-  static const TString fgkBaseInFolderName;
-  
+  static const TString fgkDefOutFolderName;//default name for output foler 
+  static const TString fgkBaseInFolderName;//default name for input foler
   ClassDef(AliRunDigitizer,4)
 };
 

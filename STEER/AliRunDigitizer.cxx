@@ -13,87 +13,7 @@
 * provided "as is" without express or implied warranty.                  *
 **************************************************************************/
 
-/*
-$Log$
-Revision 1.13.4.5  2002/12/11 10:00:34  hristov
-Merging with v3-09-04 (P.Skowronski)
-
-Revision 1.13.4.4  2002/11/22 14:19:50  hristov
-Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
-
-Revision 1.13.4.3  2002/06/21 15:22:13  hristov
-RunDigitizer uses AliRunLoader for the output
-
-Revision 1.13.4.2  2002/06/18 10:18:32  hristov
-Important update (P.Skowronski)
-
-Revision 1.13.4.1  2002/05/31 09:37:59  hristov
-First set of changes done by Piotr
-
-Revision 1.22  2002/10/29 14:26:49  hristov
-Code clean-up (F.Carminati)
-
-Revision 1.21  2002/10/22 15:02:15  alibrary
-Introducing Riostream.h
-
-Revision 1.20  2002/10/14 14:57:32  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.13.6.2  2002/07/24 10:08:13  alibrary
-Updating VirtualMC
-
-Revision 1.19  2002/07/19 12:46:05  hristov
-Write file instead of closing it
-
-Revision 1.18  2002/07/17 08:59:39  jchudoba
-Do not delete subtasks when AliRunDigitizer is deleted. Owner should delete them itself.
-
-Revision 1.17  2002/07/16 13:47:53  jchudoba
-Add methods to get access to names of files used in merging.
-
-Revision 1.16  2002/06/07 09:18:47  jchudoba
-Changes to enable merging of ITS fast rec points. Although this class should be responsible for a creation of digits only, other solutions would be more complicated.
-
-Revision 1.15  2002/04/09 13:38:47  jchudoba
-Add const to the filename argument
-
-Revision 1.14  2002/04/04 09:28:04  jchudoba
-Change default names of TPC trees. Use update instead of recreate for the output file. Overwrite the AliRunDigitizer object in the output if it exists.
-
-Revision 1.13  2002/02/13 09:03:32  jchudoba
-Pass option to subtasks. Delete input TTrees. Use gAlice from memory if it is present (user must delete the default one created by aliroot if he/she wants to use gAlice from the input file!). Add new data member to store name of the special TPC TTrees.
-
-Revision 1.12  2001/12/10 16:40:52  jchudoba
-Import gAlice from the signal file before InitGlobal() to allow detectors to use it during initialization
-
-Revision 1.11  2001/12/03 07:10:13  jchudoba
-Default ctor cannot create new objects, create dummy default ctor which leaves object in not well defined state - to be used only by root for I/O
-
-Revision 1.10  2001/11/15 11:07:25  jchudoba
-Set to zero new pointers to TPC and TRD special trees in the default ctor. Add const to all Get functions. Remove unused constant, rename constant according coding rules.
-
-Revision 1.9  2001/11/15 09:00:11  jchudoba
-Add special treatment for TPC and TRD, they use different trees than other detectors
-
-Revision 1.8  2001/10/21 18:38:43  hristov
-Several pointers were set to zero in the default constructors to avoid memory management problems
-
-Revision 1.7  2001/10/04 15:56:07  jchudoba
-TTask inheritance
-
-Revision 1.4  2001/09/19 06:23:50  jchudoba
-Move some tasks to AliStream and AliMergeCombi classes
-
-Revision 1.3  2001/07/30 14:04:18  jchudoba
-correct bug in the initialization
-
-Revision 1.2  2001/07/28 10:44:32  hristov
-Loop variable declared once; typos corrected
-
-Revision 1.1  2001/07/27 12:59:00  jchudoba
-Manager class for merging/digitization
-
-*/
+/* $Id$ */
 
 //_______________________________________________________________________
 //
@@ -176,13 +96,11 @@ Manager class for merging/digitization
 
 #include "TFile.h"
 #include "TList.h"
-#include "TParticle.h"
 #include "TTree.h"
 
 // AliROOT includes
 
 #include "AliDigitizer.h"
-#include "AliHeader.h"
 #include "AliMergeCombi.h"
 #include "AliRunLoader.h"
 #include "AliLoader.h"
@@ -316,6 +234,9 @@ void AliRunDigitizer::AddDigitizer(AliDigitizer *digitizer)
 //_______________________________________________________________________
 void AliRunDigitizer::SetInputStream(Int_t i, const char *inputFile, TString foldername)
 {
+//
+// Sets the name of the input file
+//
   if (i > fInputStreams->GetLast()) {
     Error("SetInputStream","Input stream number too high");
     return;
@@ -397,7 +318,9 @@ Bool_t AliRunDigitizer::InitGlobal()
 
   TList* subTasks = this->GetListOfTasks();
   if (subTasks) {
-    subTasks->ForEach(AliDigitizer,Init)();
+    TIter next(subTasks);
+    while (AliDigitizer * dig = (AliDigitizer *) next())
+     dig->Init();
   }
   return kTRUE;
 }
@@ -405,8 +328,8 @@ Bool_t AliRunDigitizer::InitGlobal()
 //_______________________________________________________________________
 
 void AliRunDigitizer::SetOutputFile(TString fn)
-// the output will be to separate file, not to the signal file
 {
+// the output will be to separate file, not to the signal file
  //here should be protection to avoid setting the same file as any input 
   Info("SetOutputFile","Setting Output File Name %s ",fn.Data());
   fOutputFileName = fn;
