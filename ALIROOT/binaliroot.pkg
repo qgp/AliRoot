@@ -5,7 +5,7 @@ ELIBSDIR:= $(ALICE)/geant3/lib/tgt_$(ALICE_TARGET)
 
 ELIBS:= MUON TPC ITS PMD TRD FMD TOF PHOS CRT RICH ZDC VZERO STRUCT \
 START EVGEN STEER CONTAINERS pythia6 AliPythia6 pdf THijing hijing TMEVSIM \
-mevsim THbtp HBTP THerwig herwig TEPEMGEN EPEMGEN FASTSIM microcern
+mevsim THbtp HBTP THerwig herwig TEPEMGEN EPEMGEN FASTSIM EMCAL microcern
 # EMCAL
 # The two variables below are used for the creation of profile target.
 # ARLIBS stands for ARchive LIBrarieS and for each module one wants to profile
