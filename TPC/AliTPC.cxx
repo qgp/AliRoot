@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.53.2.5  2002/11/22 14:20:09  hristov
+Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
+
 
 Revision 1.53.2.1  2002/05/31 09:38:00  hristov
 First set of changes done by Piotr
@@ -2401,6 +2404,7 @@ void AliTPC::MakeBranch(Option_t* option)
   //
   // Create Tree branches for the TPC.
   //
+  Info("MakeBranch","");
   Int_t buffersize = 4000;
   char branchname[10];
   sprintf(branchname,"%s",GetName());
@@ -2409,10 +2413,10 @@ void AliTPC::MakeBranch(Option_t* option)
 
   const char *d = strstr(option,"D");
 
-  if (fDigits   && gAlice->TreeD() && d) {
-      MakeBranchInTree(gAlice->TreeD(), 
-                       branchname, &fDigits, buffersize, 0);
-  }	
+  if (fDigits   && gAlice->TreeD() && d) 
+   {
+      MakeBranchInTree(gAlice->TreeD(), branchname, &fDigits, buffersize, 0);
+   }	
 
   if (fHitType>1) MakeBranch2(option,0); // MI change 14.09.2000
 }
@@ -2437,7 +2441,6 @@ void AliTPC::SetSecAL(Int_t sec)
   //-----------------------------------------------------------------
   // Origin: Marek Kowalski  IFJ, Krakow, Marek.Kowalski@ifj.edu.pl
   //-----------------------------------------------------------------
-
   fSecAL = sec;
 }
 
@@ -2451,7 +2454,6 @@ void AliTPC::SetSecAU(Int_t sec)
   //-----------------------------------------------------------------
   // Origin: Marek Kowalski  IFJ, Krakow, Marek.Kowalski@ifj.edu.pl
   //-----------------------------------------------------------------
-
   fSecAU = sec;
 }
 
@@ -2612,7 +2614,6 @@ AliHit(shunt,track)
   fQ          = hits[3];
 }
  
-
 //________________________________________________________________________
 // Additional code because of the AliTPCTrackHitsV2
 
@@ -2622,6 +2623,7 @@ void AliTPC::MakeBranch2(Option_t *option,const char *file)
   // Create a new branch in the current Root Tree
   // The branch of fHits is automatically split
   // MI change 14.09.2000
+  Info("MakeBranch2","");
   if (fHitType<2) return;
   char branchname[10];
   sprintf(branchname,"%s2",GetName());  
@@ -2629,60 +2631,19 @@ void AliTPC::MakeBranch2(Option_t *option,const char *file)
   // Get the pointer to the header
   const char *cH = strstr(option,"H");
   //
-  if (fTrackHits   && TreeH() && cH && fHitType&4) {    
-    //    AliObjectBranch * branch = new AliObjectBranch(branchname,"AliTPCTrackHitsV2",&fTrackHits, 
-    //            gAlice->TreeH(),fBufferSize,99);
-    //TBranch * branch = 
-    TreeH()->Branch(branchname,"AliTPCTrackHitsV2",&fTrackHits, 
-    						   fBufferSize,99);
+  if (fTrackHits   && TreeH() && cH && fHitType&4) 
+   {
+    Info("MakeBranch2","Making branch for Type 4 Hits");
+    TreeH()->Branch(branchname,"AliTPCTrackHitsV2",&fTrackHits,fBufferSize,99);
+   }	
 
-    // gAlice->TreeH()->GetListOfBranches()->Add(branch);
-    if (GetDebug()>1) 
-      printf("* AliDetector::MakeBranch * Making Branch %s for trackhits\n",branchname);
-    const char folder [] = "RunMC/Event/Data";
-    if (GetDebug())
-      printf("%15s: Publishing %s to %s\n",ClassName(),branchname,folder);
-    Publish(folder,&fTrackHits,branchname);
-    if (file) {
-        TBranch *b = TreeH()->GetBranch(branchname);
-        TDirectory *wd = gDirectory;
-        b->SetFile(file);
-        TIter next( b->GetListOfBranches());
-        while ((b=(TBranch*)next())) {
-	  b->SetFile(file);
-        }
-        wd->cd(); 
-        if (GetDebug()>1) 
-	      cout << "Diverting branch " << branchname << " to file " << file << endl;  
-    }
-  }	
-
-  if (fTrackHitsOld   && TreeH() && cH && fHitType&2) {    
+  if (fTrackHitsOld   && TreeH() && cH && fHitType&2) 
+   {    
+    Info("MakeBranch2","Making branch for Type 2 Hits");
     AliObjectBranch * branch = new AliObjectBranch(branchname,"AliTPCTrackHits",&fTrackHitsOld, 
                                                    TreeH(),fBufferSize,99);
-    //TBranch * branch = gAlice->TreeH()->Branch(branchname,"AliTPCTrackHitsV2",&fTrackHits, 
-    //    						   fBufferSize,99);
-
     TreeH()->GetListOfBranches()->Add(branch);
-    if (GetDebug()>1) 
-      printf("* AliDetector::MakeBranch * Making Branch %s for trackhits\n",branchname);
-    const char folder [] = "RunMC/Event/Data";
-    if (GetDebug())
-      printf("%15s: Publishing %s to %s\n",ClassName(),branchname,folder);
-    Publish(folder,&fTrackHitsOld,branchname);
-    if (file) {
-        TBranch *b = TreeH()->GetBranch(branchname);
-        TDirectory *wd = gDirectory;
-        b->SetFile(file);
-        TIter next( b->GetListOfBranches());
-        while ((b=(TBranch*)next())) {
-	  b->SetFile(file);
-        }
-        wd->cd(); 
-        if (GetDebug()>1) 
-	      cout << "Diverting branch " << branchname << " to file " << file << endl;  
-    }
-  }	
+   }	
 }
 
 void AliTPC::SetTreeAddress()
@@ -2696,8 +2657,7 @@ void AliTPC::SetTreeAddress2()
   //
   // Set branch address for the TrackHits Tree
   // 
-  cout<<"#########################################"<<endl;
-  cout<<"AliTPC::SetTreeAddress2()"<<endl;
+  Info("SetTreeAddress2","");
   
   TBranch *branch;
   char branchname[20];

@@ -151,7 +151,6 @@ Int_t AliHBTReaderTPC::Read(AliHBTRun* particles, AliHBTRun *tracks)
  //reurns 0 if everything is OK
  //
   Info("Read","");
-  Int_t i; //iterator and some temprary values
   Int_t Nevents = 0;
   Int_t totalNevents = 0;
 
@@ -205,7 +204,7 @@ Int_t AliHBTReaderTPC::Read(AliHBTRun* particles, AliHBTRun *tracks)
     
     if ( tpcl== 0x0)
      {
-       Error("Read","Exiting due to problems with opening files. Errorcode %d",i);
+       Error("Read","Exiting due to problems with opening files.");
        currentdir++;
        continue;
      }
@@ -280,7 +279,7 @@ Int_t AliHBTReaderTPC::Read(AliHBTRun* particles, AliHBTRun *tracks)
          tracker->LoadInnerSectors();
          tracker->LoadOuterSectors();
    
-         for (i=0; i<NTPCtracks; i++) //loop over all tpc tracks
+         for (Int_t i=0; i<NTPCtracks; i++) //loop over all tpc tracks
           {
             iotrack=new AliTPCtrack;   //create new tracks
             trackbranch->SetAddress(&iotrack); //tell the branch ehere to put track data from tree(file)
@@ -303,7 +302,7 @@ Int_t AliHBTReaderTPC::Read(AliHBTRun* particles, AliHBTRun *tracks)
 
          rl->Stack()->Particles();
          
-         for (i=0; i<NTPCtracks; i++) //loop over all good tracks
+         for (Int_t i=0; i<NTPCtracks; i++) //loop over all good tracks
           { 
             iotrack = (AliTPCtrack*)tarray->At(i);
             label = iotrack->GetLabel();

@@ -92,6 +92,7 @@ First version of CRT
 #include <TLorentzVector.h>
 
 #include "AliRun.h"
+#include "AliMC.h"
 #include "AliMagF.h"
 #include "AliConst.h"
 #include "AliPDG.h"

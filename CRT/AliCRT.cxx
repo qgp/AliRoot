@@ -66,7 +66,9 @@ First version of CRT
 
 #include <TTree.h>
 
+#include "AliMC.h"
 #include "AliRun.h"
+#include "AliLoader.h"
 #include "AliMagF.h"
 
 #include "AliCRT.h"
@@ -349,7 +351,7 @@ void AliCRT::SetTreeAddress()
   sprintf(branchname,"%s",GetName());
   
   // Branch address for hit tree
-  TTree *treeH = gAlice->TreeH();
+  TTree *treeH = fLoader->TreeH();
   if (treeH && fHits) {
     branch = treeH->GetBranch(branchname);
     if (branch) branch->SetAddress(&fHits);

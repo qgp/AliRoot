@@ -8,9 +8,6 @@
 //Responsible: Piotr.Skowronski@cern.ch
 #include <AliLoader.h>
 
-//standard library includes
-#include <Riostream.h>
-
 //Root includes
 #include <TROOT.h>
 #include <TFolder.h>
@@ -18,6 +15,7 @@
 #include <TTree.h>
 #include <TTask.h>
 #include <TString.h>
+#include <TError.h>
 
 //AliRoot includes
 #include <AliRun.h>
@@ -62,8 +60,8 @@ AliLoader::AliLoader()
 AliLoader::AliLoader(const Char_t* detname,const Char_t* eventfoldername)
  {
   //ctor
-   cout<<"AliLoader::AliLoader(const Char_t* detname = "
-       <<detname<<",const Char_t* eventfoldername = "<<eventfoldername<<")"<<endl;
+   Info("AliLoader(const Char_t* detname,const Char_t* eventfoldername)",
+        "detname = %s eventfoldername = %s",detname,eventfoldername);
 
    //try to find folder eventfoldername in top alice folder
    //safe because GetTopFolder will abort in case of failure
@@ -98,13 +96,14 @@ AliLoader::AliLoader(const Char_t * detname,TFolder* eventfolder)
    //fileoption's don't need to initialized because default TString ctor does it correctly
 }
 /*****************************************************************************/ 
+
 AliLoader::~AliLoader()
 {
   CleanFolders();
   CloseFiles();
 }
-
 /*****************************************************************************/ 
+
 void AliLoader::ResetDataInfo()
 {
   fDataInfo[kHits].fFile = 0x0;
@@ -120,6 +119,7 @@ void AliLoader::ResetDataInfo()
   fDataInfo[kTracks].fDirectory = 0x0;
  
 }
+/*****************************************************************************/ 
 
 void AliLoader::InitDefaults()
 {
@@ -143,6 +143,7 @@ void AliLoader::InitDefaults()
   fDataInfo[kTracks].fName = "Tracks";
 
 }
+/*****************************************************************************/ 
 
 Int_t AliLoader::LoadData(EDataTypes dt,Option_t* opt)
  {
@@ -407,7 +408,7 @@ Int_t AliLoader::SetEvent()
       if (CheckReload(File(kSDigits),FileName(kSDigits)))
        {
          UnloadSDigits();
-         cout<<"AliLoader::SetEvent: Reloading new file for sdigits. file opt is "<<FileOption(kSDigits)<<endl;
+         Info("SetEvent","Reloading new file for sdigits. file opt is %s",FileOption(kSDigits).Data());
          OpenSDigitsFile(FileOption(kSDigits));
        }
 
@@ -543,18 +544,17 @@ Int_t AliLoader::WriteData(EDataTypes dt,Option_t* opt)
       }
    }
   
-  cout<<GetName()<<"::WriteData("<<DataName(dt)<<",opt="<<opt
-                 <<") data object name = "<<data->GetName()
-                 <<"  File Name = "<<File(dt)->GetName()
-                 <<". Directory Name = "<<Directory(dt)->GetName()
-                 <<". Directory File Name = "<<Directory(dt)->GetFile()->GetName()
-                 <<endl;
+  Info("WriteData","name = %s, DataName = %s, opt = %s, data object name = %s",
+                   GetName(),DataName(dt).Data(),opt,data->GetName());
+  Info("WriteData","File Name = %s, Directory Name = %s Directory's File Name = %s",
+                   File(dt)->GetName(),Directory(dt)->GetName(),
+                   Directory(dt)->GetFile()->GetName());
 
   data->SetDirectory(Directory(dt)); //forces setting the directory to this directory (we changed dir few lines above)
   
-  cout<<"Writing tree"<<endl;
+  Info("WriteData","Writing tree");
   data->Write(0,TObject::kOverwrite);
-  cout<<"Writing File"<<endl;
+  Info("WriteData","Writing File");
   File(dt)->Write(0,TObject::kOverwrite);
   return 0;
 
@@ -600,9 +600,9 @@ Int_t  AliLoader::WriteSDigitizer(Option_t* opt)
         return 3;
       }
    }
-
-  cout<<GetName()<<"::WriteSDigitizer(opt="<<opt<<")  File(kSDigits) = "<<File(kSDigits)->GetName()
-                 <<" Sum. digitizer = "<<name<<endl;
+  Info("WriteSDigitizer",
+       "name = %s, opt = %s, File(kSDigits) = %s, Sum. digitizer = %s",
+       GetName(),opt,File(kSDigits)->GetName(),name.Data());
 
   Directory(kSDigits)->cd();
   sder->Write(0,TObject::kOverwrite);
@@ -648,8 +648,9 @@ Int_t  AliLoader::WriteDigitizer(Option_t* opt)
         return 3;
       }
    }
-  cout<<GetName()<<"::WriteDigitizer(opt="<<opt<<")  File(kDigits) = "<<File(kDigits)->GetName()
-                 <<" Directory(kDigits) = "<<Directory(kDigits)->GetName()<<" digitizer = "<<name<<endl;
+  Info("WriteDigitizer",
+       "name = %s, opt = %s, File(kDigits) = %s, Directory(kDigits) =%s, Digitizer = %s",
+       GetName(),opt,File(kDigits)->GetName(),Directory(kDigits)->GetName(),name.Data());
 
   Directory(kDigits)->cd();
   sder->Write(0,TObject::kOverwrite);
@@ -696,8 +697,10 @@ Int_t  AliLoader::WriteReconstructioner(Option_t* opt)
         return 3;
       }
    }
-  cout<<GetName()<<"::WriteReconstructioner(opt="<<opt<<")  File(kRecPoints) = "<<File(kRecPoints)->GetName()
-                 <<" fRecPoints = "<<Directory(kRecPoints)->GetName()<<" Reconstructioner = "<<name<<endl;
+
+  Info("WriteReconstructioner",
+       "name = %s, opt = %s, File(kRecPoints) = %s, Directory(kRecPoints) =%s, Reconstructioner = %s",
+       GetName(),opt,File(kRecPoints)->GetName(),Directory(kRecPoints)->GetName(),name.Data());
 
   Directory(kRecPoints)->cd();
   sder->Write(0,TObject::kOverwrite);
@@ -744,8 +747,10 @@ Int_t  AliLoader::WriteTracker(Option_t* opt)
         return 3;
       }
    }
-  cout<<GetName()<<"::WriteTracker(opt="<<opt<<")  File(kTracks) = "<<File(kTracks)->GetName()
-                 <<" Directory(kTracks) = "<<Directory(kTracks)->GetName()<<" Tracker = "<<sder->GetName()<<endl;
+
+  Info("WriteTracker",
+       "name = %s, opt = %s, File(kTracks) = %s, Directory(kTracks) =%s, Reconstructioner = %s",
+       GetName(),opt,File(kTracks)->GetName(),Directory(kTracks)->GetName(),name.Data());
 
   Directory(kTracks)->cd();
   sder->Write(0,TObject::kOverwrite);
@@ -846,7 +851,6 @@ TFolder* AliLoader::GetEventFolder()
 TFolder* AliLoader::GetDataFolder()
 {
 //returns the folder speciofic to given detector e.g. /Folders/Event/Data/TPC/
-// cout<<"AliLoader::GetDataFolder()"<<endl;
  if (!fDataFolder)
   {
    fDataFolder =  dynamic_cast<TFolder*>(GetEventFolder()->FindObject(AliConfig::fgkDataFolderName));
@@ -925,8 +929,7 @@ TTask* AliLoader::SDigitizer()
     }
   TString name(fDetectorName + AliConfig::Instance()->GetSDigitizerTaskName());
   TObject* obj = rsd->GetListOfTasks()->FindObject(name);
-  cout<<"AliLoader::SDigitizer() name: "<<name<<"  "<<obj<<endl;
-  return dynamic_cast<TTask*>(rsd->GetListOfTasks()->FindObject(name));
+  return (obj)?dynamic_cast<TTask*>(obj):0x0;
 }
 /*****************************************************************************/ 
 
@@ -939,7 +942,8 @@ AliDigitizer* AliLoader::Digitizer()
       return 0x0;
     }
   TString name(fDetectorName + AliConfig::Instance()->GetDigitizerTaskName());
-  return dynamic_cast<AliDigitizer*>(rd->GetListOfTasks()->FindObject(name));
+  TObject* obj = rd->GetListOfTasks()->FindObject(name);
+  return (obj)?dynamic_cast<AliDigitizer*>(obj):0x0;
 }
 /*****************************************************************************/ 
 
@@ -953,7 +957,8 @@ TTask* AliLoader::Reconstructioner()
       return 0x0;
     }
   TString name(fDetectorName + AliConfig::Instance()->GetReconstructionerTaskName());
-  return dynamic_cast<TTask*>(rrec->GetListOfTasks()->FindObject(name));
+  TObject* obj = rrec->GetListOfTasks()->FindObject(name);
+  return (obj)?dynamic_cast<TTask*>(obj):0x0;
 }
 /*****************************************************************************/ 
 
@@ -1016,18 +1021,18 @@ TDirectory* AliLoader::ChangeDir(TFile* file, Int_t eventno)
  
  if (!file)
   {
-    cerr<<"Error <AliLoader::ChangeDir>: File is null"<<endl;
+    ::Error("AliLoader::ChangeDir","File is null");
     return 0x0;
   }
  if (!file->IsOpen())
   {
-    cerr<<"Error <AliLoader::ChangeDir>: File is not opened"<<endl;
+    ::Error("AliLoader::ChangeDir","File is not opened");
     return 0x0;
   }
 
  TString dirname("Event");
  dirname+=eventno;
- cout<<" AliLoader::ChangeDir Changing Dir to "<<dirname<<" in file "<<file->GetName()<<endl;
+ ::Info("AliLoader::ChangeDir","Changing Dir to %s in file %s.",dirname.Data(),file->GetName());
 
  Bool_t result;
  
@@ -1035,16 +1040,21 @@ TDirectory* AliLoader::ChangeDir(TFile* file, Int_t eventno)
 
  if (dir == 0x0)
   {
-    cerr<<"Warning <AliLoader::ChangeDir>: "<<
-          "Can not find directory "<<dirname<<
-          " in file "<<file->GetName()<<", creating..."<<endl;
-
+    ::Info("AliLoader::ChangeDir","Can not find directory %s in file %s, creating...",
+            dirname.Data(),file->GetName());
+    
+    if (file->IsWritable() == kFALSE)
+     {
+       ::Error("AliLoader::ChangeDir","Can not create directory. File %s in not writable.",
+                file->GetName());
+       return 0x0;
+     }
             
     TDirectory* newdir = file->mkdir(dirname);
     if (newdir == 0x0)
      {
-       cerr<<"Error <AliLoader::ChangeDir>: Can not create new directory in file "
-            <<file->GetName()<<". Probably file is read only"<<endl;
+       ::Error("AliLoader::ChangeDir","Failed to create new directory in file %s.",
+               file->GetName());
        return 0x0;
      }
     result = file->cd(dirname);
@@ -1099,7 +1109,8 @@ void AliLoader::MakeTree(EDataTypes dt)
 {
 //this virtual method creates the tree for hits in the file
   if (Tree(dt)) return;//tree already made 
-  cout<<GetName()<<"::MakeTree: Making "<<DataName(dt)<<" Tree named "<<ContainerName(dt)<<endl;
+  Info("MakeTree","name = %s, Making %s Tree named %s.",
+        GetName(),DataName(dt).Data(),ContainerName(dt).Data());
    
   TTree* tree = new TTree(ContainerName(dt), DataName(dt) + "Container"); //make a tree
   if (tree == 0x0)
@@ -1234,7 +1245,7 @@ Int_t AliLoader::PostSDigitizer(TTask* sdzer)
      Error("PostSDigitizer","Can not get RunSDigitizer from folder. Can not post");
      return 1;
    }
-  cout<<" \nAdding S Digitizer named "<<sdzer->GetName()<<endl<<endl;
+  Info("PostSDigitizer","Adding S Digitizer named %s.",sdzer->GetName());
   rsd->Add(sdzer);
   return 0;
 }
@@ -1446,7 +1457,8 @@ void AliLoader::Clean(const TString& name)
 {
   TObject* obj = GetDetectorDataFolder()->FindObject(name);
   if(obj)
-   {
+   { 
+     Info("Clean(const TString&)","name=%s, cleaning %s.",GetName(),name.Data());
      GetDetectorDataFolder()->Remove(obj);
      delete obj;
    }
@@ -1633,7 +1645,7 @@ Int_t  AliLoader::SetEventFolder(TFolder* eventfolder)
 Int_t AliLoader::Register()
 {
 //triggers creation of subfolders for a given detector
- cout<<"AliLoader<"<<GetName()<<">::Register()\n";
+ Info("Register","Name is %s.",GetName());
  if (fEventFolder == 0x0)
   {
     Error("Register","Event folder is not set");
@@ -1694,7 +1706,7 @@ const TString AliLoader::SetFileOffset(const TString& fname)
   const TString& offfsetdotroot = offset + dotroot;
   TString out = fname;
   out = out.ReplaceAll(dotroot,offfsetdotroot);
-  cout<<"AliLoader::SetFileOffset: in="<<fname<<" out="<<out<<endl;
+  Info("SetFileOffset","in=%s  out=%s.",fname.Data(),out.Data());
   return out;
 
 }
@@ -1705,12 +1717,12 @@ void AliLoader::SetDigitsFileNameSuffix(const TString& suffix)
   //adds the suffix before ".root", 
   //e.g. TPC.Digits.root -> TPC.DigitsMerged.root
   //made on Jiri Chudoba demand
-  cout<<"AliLoader::SetDigitsFileNameSuffix(\""<<suffix<<"\")\n";
-  cout<<"Digits File Name before: "<<FileName(kDigits)<<endl;
+  Info("SetDigitsFileNameSuffix","suffix=%s",suffix.Data());
+  Info("SetDigitsFileNameSuffix","   Digits File Name before: %s",FileName(kDigits).Data());
   TString dotroot(".root");
   const TString& suffixdotroot = suffix + dotroot;
   FileName(kDigits) = FileName(kDigits).ReplaceAll(dotroot,suffixdotroot);
-  cout<<"                 after: "<<FileName(kDigits)<<endl;
+  Info("SetDigitsFileNameSuffix","                    after : %s",FileName(kDigits).Data());
 }
 /*****************************************************************************/ 
 

@@ -51,11 +51,11 @@ First version, generation of cosmic muons on the surface
 /////////////////////////////////////////////////////////////////////////////
 
 #include <Riostream.h>
-#include "TMCProcess.h"
 
 #include "AliRun.h"
 #include "AliConst.h"
 #include "AliPDG.h"
+#include "AliMCProcess.h"
 
 #include "AliGenCRT.h"
 

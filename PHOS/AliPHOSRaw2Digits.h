@@ -27,7 +27,7 @@ class AliPHOSRaw2Digits : public TTask {
 
 public:
   AliPHOSRaw2Digits() ;          // ctor
-  AliPHOSRaw2Digits(const char * inputFileName) ;         
+  AliPHOSRaw2Digits(const char * inputFileName) ;
   virtual ~AliPHOSRaw2Digits() ; // dtor
 
   void Exec(Option_t *option) ;

@@ -29,6 +29,7 @@
 #include <TBranch.h>
 #include <TGeometry.h>
 #include <TTask.h>
+#include <TError.h>
 
 #include "AliRun.h"
 #include "AliConfig.h"
@@ -258,10 +259,8 @@ Int_t AliRunLoader::SetEvent()
      if (tmp.CompareTo(fKineFile->GetName()) != 0)
       { 
         Option_t* opt = fKineFile->GetOption();
-        cout<<" Reloading Kine: ev number "<<fCurrentEvent
-            <<" old filename: "<<fKineFile->GetName()
-            <<" option: "<<opt
-            <<" new filename: "<<tmp<<endl;
+        Info("SetEvent"," Reloading Kine: ev number %d Old filename: %s  option: %s new filename: %s",
+              fCurrentEvent,fKineFile->GetName(),opt,tmp.Data());
         
         UnloadKinematics();
         OpenKineFile(opt);
@@ -296,10 +295,10 @@ Int_t AliRunLoader::SetEvent()
 
   
   TIter next(fLoaders);
-  AliLoader *Loader;
-  while((Loader = (AliLoader*)next())) 
+  AliLoader *loader;
+  while((loader = (AliLoader*)next())) 
    {
-     Loader->SetEvent();
+     loader->SetEvent();
    }
 
   return 0;
@@ -314,23 +313,20 @@ AliRunLoader* AliRunLoader::Open
 //returns the pointer to run Loader which can be further used for accessing data 
 //in case of error returns NULL
  
- cout<<"\n\n\nNew I/O strcture: See more info:"<<endl;
- cout<<"http://alisoft.cern.ch/people/skowron/codedoc/split/index.html"<<endl;
- cout<<"\n\n\n"<<endl;
+ static const TString webaddress("http://alisoft.cern.ch/people/skowron/codedoc/split/index.html");
+ ::Info("AliRunLoader::Open","\n\n\nNew I/O strcture: See more info:\n %s\n\n\n",webaddress.Data());
  
  AliRunLoader* result = 0x0;
  TFile * gAliceFile = TFile::Open(filename,option);//open a file
  if (!gAliceFile) 
   {//null pointer returned
-    cerr<<"ERROR <AliRunLoader::Open>"
-        <<"Can not open file "<<filename<<endl;
+    ::Error("AliRunLoader::Open","Can not open file %s.",filename);
     return 0x0;
   }
   
  if (gAliceFile->IsOpen() == kFALSE)
   {//pointer to valid object returned but file is not opened
-    cerr<<"ERROR <AliRunLoader::Open>"
-        <<"Can not open file "<<filename<<endl;
+    ::Error("AliRunLoader::Open","Can not open file %s.",filename);
     return 0x0;
   }
  
@@ -338,22 +334,19 @@ AliRunLoader* AliRunLoader::Open
  //else create new AliRunLoader
  if ( AliLoader::TestFileOption(option) )
   { 
-    cout<<"Reading RL from file"<<endl;
+    ::Info("AliRunLoader::Open","Reading RL from file");
     
     result = dynamic_cast<AliRunLoader*>(gAliceFile->Get(fgkRunLoaderName));//get the run Loader from the file
     if (result == 0x0)
      {//didn't get
-       cerr<<"ERROR <AliRunLoader::Open>"
-           <<"Can not find run-Loader in file "<<filename<<endl;
+       ::Error("AliRunLoader::Open","Can not find run-Loader in file %s.",filename);
        delete gAliceFile;//close the file
        return 0x0;
      }
     Int_t tmp = result->SetEventFolderName(eventfoldername);//mount a event folder   
     if (tmp)//if SetEvent  returned error
      {
-       cerr<<"ERROR <AliRunLoader::Open>"
-           <<"Can not mount event in folder "
-           <<eventfoldername<<endl;
+       ::Error("AliRunLoader::Open","Can not mount event in folder %s.",eventfoldername);
        delete result; //delete run-Loader
        delete gAliceFile;//close the file
        return 0x0;
@@ -361,7 +354,7 @@ AliRunLoader* AliRunLoader::Open
   }
  else
   {
-    cout<<"Creating new AliRunLoader. Folder name is "<<eventfoldername<<endl;
+    ::Info("AliRunLoader::Open","Creating new AliRunLoader. Folder name is %s",eventfoldername);
     result = new AliRunLoader(eventfoldername);
   }
  
@@ -377,7 +370,7 @@ AliRunLoader* AliRunLoader::Open
   }
  else dirname = fname.Remove(nsl);//slash found
  
- cout<<"Dir name is : "<<dirname<<endl;
+ ::Info("AliRunLoader::Open","Dir name is : %s",dirname.Data());
  result->SetDirName(dirname); 
  result->SetGAliceFile(gAliceFile);//set the pointer to gAliceFile
  return result;
@@ -403,26 +396,26 @@ Int_t AliRunLoader::GetNumberOfEvents()
 void AliRunLoader::MakeHeader()
 {
  //Makes header and connects it to header tree (if it exists)
-  cout<<"Make Header\n";
+  Info("MakeHeader","");
   if(fHeader == 0x0)
    {
-     cout<<"Creating new Header Object\n";
+     Info("MakeHeader","Creating new Header Object");
      fHeader= new AliHeader();
    }
   TTree* tree = TreeE();
   if (tree)
    {
-     cout<<"Got Tree from folder\n";
+     Info("MakeHeader","Got Tree from folder.");
      TBranch* branch = tree->GetBranch(fgkHeaderBranchName);
      if (branch == 0x0)
       {
-        cout<<"Creating new branch \n";
+        Info("MakeHeader","Creating new branch");
         branch = tree->Branch(fgkHeaderBranchName, "AliHeader", &fHeader, 4000, 0);
         branch->SetAutoDelete(kFALSE);
       }
      else
       {
-        cout<<"Got Branch from Tree \n";
+        Info("MakeHeader","Got Branch from Tree");
         branch->SetAddress(&fHeader);
         tree->GetEvent(fCurrentEvent);
         fStack = fHeader->Stack(); //should be safe - if we created Stack, header returns pointer to the same object
@@ -430,7 +423,7 @@ void AliRunLoader::MakeHeader()
         if (TreeK()) fStack->GetEvent();
       }
    } 
-  cout<<"Exiting MakeHeader \n";
+  Info("MakeHeader","Exiting MakeHeader method");
 }
 /**************************************************************************/
 
@@ -632,7 +625,7 @@ Int_t AliRunLoader::PostKinematics()
 {
   //takes the kine container from file and puts it in the folder
   
-  cout<<"Posting Kinematics\n";
+  Info("PostKinematics","Posting Kinematics");
   
   if (fKineDir == 0x0)
    {
@@ -661,7 +654,7 @@ Int_t AliRunLoader::PostTrackRefs()
 {
   //takes the kine container from file and puts it in the folder
   
-  cout<<"Posting TrackRefs\n";
+  Info("PostTrackRefs","Posting TrackRefs");
   
   if (fTrackRefsDir == 0x0)
    {
@@ -709,7 +702,8 @@ TTree* AliRunLoader::TreeK() const
 TTree* AliRunLoader::TreeTR() const
 {
  //returns the tree from folder; shortcut method
- return dynamic_cast<TTree*>(GetEventFolder()->FindObject(fgkTrackRefsContainerName));
+ TObject* obj = GetEventFolder()->FindObject(fgkTrackRefsContainerName);
+ return (obj)?dynamic_cast<TTree*>(obj):0x0;
 }
 
 /**************************************************************************/
@@ -737,7 +731,7 @@ Int_t AliRunLoader::WriteGeometry(Option_t* opt)
 
 Int_t AliRunLoader::WriteHeader(Option_t* opt)
 {
-  cout<<"\n\n\nWRITING HEADER\n\n\n";
+  Info("WriteHeader","\n\n\nWRITING HEADER\n\n\n");
   
   TTree* tree = TreeE();
   if ( tree == 0x0)
@@ -766,7 +760,7 @@ Int_t AliRunLoader::WriteHeader(Option_t* opt)
   tree->Write(0,TObject::kOverwrite);
   fGAFile->Write(0,TObject::kOverwrite);
 
-  cout<<"WRITTEN\n\n";
+  Info("WriteHeader","WRITTEN\n\n");
   
   return 0;
 }
@@ -820,15 +814,15 @@ Int_t AliRunLoader::WriteKinematics(Option_t* opt)
       }
    }
   
-  cout<<GetName()<<"::WriteKinematics(opt="<<opt<<")  fKineFile = " <<fKineFile->GetName()
-      <<" fKineDir = " <<fKineDir->GetName()<<" kine tree = "<<TreeK()->GetName()<<endl;
+  Info("WriteKinematics","name=%s opt=%s fKineFile =%s fKineDir=%s TreeK=%s",
+                         GetName(),opt,fKineFile->GetName(),fKineDir->GetName(),TreeK()->GetName());
   
   fKineDir->cd();
   TreeK()->SetDirectory(fKineDir); //forces setting the directory to this directory (we changed dir few lines above)
   
-  cout<<"Writing tree"<<endl;
+  Info("WriteKinematics","Writing tree");
   TreeK()->Write(0,TObject::kOverwrite);
-  cout<<"Writing Kinematics File"<<endl;
+  Info("WriteKinematics","Writing Kinematics File");
   fKineFile->Write(0,TObject::kOverwrite);
 
   return 0;
@@ -874,15 +868,15 @@ Int_t AliRunLoader::WriteTrackRefs(Option_t* opt)
       }
    }
   
-  cout<<GetName()<<"::WriteTrackRefs(opt="<<opt<<")  fTrackRefsFile = " <<fTrackRefsFile->GetName()
-       <<" fTrackRefsDir = " <<fTrackRefsDir->GetName()<<" TreeTR() tree = "<<TreeTR()->GetName()<<endl;
+  Info("WriteTrackRefs","name=%s opt=%s fTrackRefsFile=%s fTrackRefsDir=%s TreeTR()=%s",
+                         GetName(),opt,fTrackRefsFile->GetName(),fTrackRefsDir->GetName(),TreeTR()->GetName());
   
   fTrackRefsDir->cd();
   TreeTR()->SetDirectory(fTrackRefsDir); //forces setting the directory to this directory (we changed dir few lines above)
   
-  cout<<"Writing tree"<<endl;
+  Info("WriteTrackRefs","Writing tree");
   TreeTR()->Write(0,TObject::kOverwrite);
-  cout<<"Writing Track Referenced File"<<endl;
+  Info("WriteTrackRefs","Writing Track Referenced File");
   fTrackRefsFile->Write(0,TObject::kOverwrite);
 
   return 0;
@@ -1031,7 +1025,7 @@ Int_t AliRunLoader::SetEventFolderName(const TString& name)
    }
    
   //build the event folder structure
-  cout<<"AliRunLoader::SetEventFolderName Creting new event folder named "<<name<<endl;
+  Info("SetEventFolderName","Creting new event folder named %s",name.Data());
   fEventFolder = AliConfig::Instance()->BuildEventFolder(name,"Event Folder");
   fEventFolder->Add(this);//put myself to the folder to accessible for all
   
@@ -1072,8 +1066,8 @@ void AliRunLoader::AddLoader(AliDetector* det)
 
    if (get) 
     {
+      Info("AddLoader","Detector: %s   Loader : %s",det->GetName(),get->GetName());
       AddLoader(get);
-      cout<<"AliRunLoader::AddLoader Detector: "<<det->GetName()<<" Loader :"<<get->GetName()<<endl;
     }
  }
 
@@ -1091,7 +1085,7 @@ AliLoader* AliRunLoader::GetLoader(AliDetector* det) const
  if(det == 0x0) return 0x0;
  TString getname(det->GetName());
  getname+="Loader";
- cout<<"AliRunLoader::GetLoader(AliDetector* det): loader name is "<<getname<<endl;
+ Info("GetLoader(AliDetector* det)"," Loader name is %s",getname.Data());
  return GetLoader(getname);
 }
 
@@ -1145,14 +1139,14 @@ Int_t AliRunLoader::LoadHits(Option_t* detectors,Option_t* opt)
 {
 //LoadHits in selected detectors i.e. detectors="ITS TPC TRD" or "all"
 
-  cout<<"Loading Hits\n";
+  Info("LoadHits","Loading Hits");
   TObjArray* loaders;
   TObjArray arr;
 
   char* oAll = strstr(detectors,"all");
   if (oAll)
    {
-     cout<<"All"<<endl;
+     Info("LoadHits","Option is All");
      loaders = fLoaders;
    }
   else
@@ -1161,17 +1155,16 @@ Int_t AliRunLoader::LoadHits(Option_t* detectors,Option_t* opt)
      loaders = &arr;//get the pointer array
    }   
 
-  cout<<"For detectors. All is "<<loaders->GetEntries()<<endl;
+  Info("LoadHits","For detectors. Number of detectors chosen for loading %d",loaders->GetEntries());
   
   TIter next(loaders);
   AliLoader *loader;
   while((loader = (AliLoader*)next())) 
    {
-    cout<<" "<<loader->GetName();
+    Info("LoadHits","    Calling LoadHits(%s) for %s",opt,loader->GetName());
     loader->LoadHits(opt);
    }
-  cout<<endl;
-
+  Info("LoadHits","Done");
   return 0;
 } 
 
@@ -1187,7 +1180,6 @@ Int_t AliRunLoader::LoadSDigits(Option_t* detectors,Option_t* opt)
   char* oAll = strstr(detectors,"all");
   if (oAll)
    {
-     cout<<"All"<<endl;
      loaders = fLoaders;
    }
   else
@@ -1217,7 +1209,6 @@ Int_t AliRunLoader::LoadDigits(Option_t* detectors,Option_t* opt)
   char* oAll = strstr(detectors,"all");
   if (oAll)
    {
-     cout<<"All"<<endl;
      Loaders = fLoaders;
    }
   else
@@ -1235,7 +1226,6 @@ Int_t AliRunLoader::LoadDigits(Option_t* detectors,Option_t* opt)
   return 0;
 } 
 
-
 /**************************************************************************/
 
 Int_t AliRunLoader::LoadRecPoints(Option_t* detectors,Option_t* opt)
@@ -1248,7 +1238,6 @@ Int_t AliRunLoader::LoadRecPoints(Option_t* detectors,Option_t* opt)
   char* oAll = strstr(detectors,"all");
   if (oAll)
    {
-     cout<<"All"<<endl;
      Loaders = fLoaders;
    }
   else
@@ -1278,7 +1267,6 @@ Int_t AliRunLoader::LoadTracks(Option_t* detectors,Option_t* opt)
   char* oAll = strstr(detectors,"all");
   if (oAll)
    {
-     cout<<"All"<<endl;
      Loaders = fLoaders;
    }
   else
@@ -1340,7 +1328,6 @@ void AliRunLoader::GetListOfDetectors(const char * namelist,TObjArray& pointerar
       //I am aware that is a little complicated. I don't know the number of spaces between detector names
       //so I read the string, than I find where it starts (strstr) and move the pointer about length of a string
       //If there is a better way, please write me (Piotr.Skowronski@cern.ch)
-      cout<<"Buff"<<endl;
       //construct the Loader name
       TString getname(buff);
       getname+="Loader";
@@ -1366,6 +1353,7 @@ void AliRunLoader::Clean(const TString& name)
   TObject* obj = GetEventFolder()->FindObject(name);
   if(obj)
    {
+     Info("Clean(const TString&)","name=%s, cleaning %s.",GetName(),name.Data());
      GetEventFolder()->Remove(obj);
      delete obj;
    }
@@ -1416,7 +1404,7 @@ TTask* AliRunLoader::GetRunQATask()
  TFolder* topf = AliConfig::Instance()->GetTaskFolder();
  if (topf == 0x0)
   {
-    cerr<<"Error <AliRunLoader::GetRunQATask>: Can not get task folder from AliConfig\n";
+    ::Error("AliRunLoader::GetRunQATask","Can not get task folder from AliConfig");
     return 0x0;
   }
  TObject* obj = topf->FindObjectAny(AliConfig::Instance()->GetQATaskName());

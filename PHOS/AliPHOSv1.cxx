@@ -271,7 +271,7 @@ void AliPHOSv1::FinishEvent()
     }
   } 
 
-  AliDetector::FinishEvent(); //must be last->Cleans event folders //skowron
+  AliDetector::FinishEvent(); 
 }
 //____________________________________________________________________________
 void AliPHOSv1::StepManager(void)

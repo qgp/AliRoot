@@ -24,6 +24,9 @@
 
 /*
 $Log$
+Revision 1.1  2002/11/06 10:26:45  hristov
+Event generator for e+e- pair production (Yu.Kharlov)
+
 */
 
 // Event generator of single e+e- pair production in ultraperipheral PbPb collisions

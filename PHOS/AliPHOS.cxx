@@ -429,7 +429,6 @@ AliLoader* AliPHOS::MakeLoader(const char* topfoldername)
 {
 //different behaviour than standard (singleton getter)
 // --> to be discussed and made eventually coherent
- cout<<"AliPHOS::MakeLoader";
  fLoader = new AliPHOSLoader(GetName(),topfoldername);
  return fLoader;
 }

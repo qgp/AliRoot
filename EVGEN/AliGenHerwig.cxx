@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.4  2002/10/14 14:55:35  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
 Revision 1.2.2.3  2002/10/11 10:40:46  hristov
 Default case added
 

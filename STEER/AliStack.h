@@ -34,15 +34,17 @@ class AliStack : public TVirtualMCStack
     // methods
 
     virtual void  SetTrack(Int_t done, Int_t parent, Int_t pdg, 
-  	              Float_t *pmom, Float_t *vpos, Float_t *polar, 
-                      Float_t tof, TMCProcess mech, Int_t &ntr,
-                      Float_t weight, Int_t is);
+                           Float_t *pmom, Float_t *vpos, Float_t *polar, 
+                           Float_t tof, TMCProcess mech, Int_t &ntr,
+                           Float_t weight, Int_t is);
+
     virtual void  SetTrack(Int_t done, Int_t parent, Int_t pdg,
-  	              Double_t px, Double_t py, Double_t pz, Double_t e,
-  		      Double_t vx, Double_t vy, Double_t vz, Double_t tof,
-                                           Double_t polx, Double_t poly, Double_t polz,
-		      TMCProcess mech, Int_t &ntr, Double_t weight,
-		      Int_t is);
+                           Double_t px, Double_t py, Double_t pz, Double_t e,
+                           Double_t vx, Double_t vy, Double_t vz, Double_t tof,
+                           Double_t polx, Double_t poly, Double_t polz,
+                           TMCProcess mech, Int_t &ntr, Double_t weight,
+                           Int_t is);
+
     virtual TParticle* GetNextTrack(Int_t& track);
     virtual TParticle* GetPrimaryForTracking(Int_t i);    
 
@@ -90,7 +92,7 @@ class AliStack : public TVirtualMCStack
     TObjArray     *fParticleMap;       //! Map of particles in the supporting TClonesArray
     TArrayI        fParticleFileMap;   //  Map for particle ids 
     TParticle     *fParticleBuffer;    //! Pointer to current particle for writing
-    TTree         *fTreeK;             //! Particle stack  
+    TTree         *fTreeK;             //! Particle stack
     Int_t          fNtrack;            //  Number of tracks
     Int_t          fNprimary;          //  Number of primaries
     Int_t          fCurrent;           //! Last track returned from the stack

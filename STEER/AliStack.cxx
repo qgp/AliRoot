@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.18.2.4  2002/11/22 14:19:50  hristov
+Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
+
 Revision 1.18.2.3  2002/06/24 16:17:09  hristov
 First reset and then begin event
 
@@ -339,58 +342,8 @@ TParticle*  AliStack::GetNextTrack(Int_t& itrack)
 
   return track;
 }
-
-/*
 //_____________________________________________________________________________
-void  AliStack::GetNextTrack(Int_t& itrack, Int_t& pdg,     
-  	                     Double_t& px, Double_t& py, Double_t& pz, Double_t& e,
-  		             Double_t& vx, Double_t& vy, Double_t& vz, Double_t& tof,
-		             Double_t& polx, Double_t& poly, Double_t& polz) 
-{
-  //
-  // Return next track from stack of particles
-  //
-  
 
-  TParticle* track = GetNextParticle();
-//    cout << "GetNextTrack():" << fCurrent << fNprimary << endl;
-
-  if (track) {
-    itrack = fCurrent;
-    pdg = track->GetPdgCode();
-    px = track->Px();
-    py = track->Py(); 
-    pz = track->Pz();
-    e  = track->Energy();
-    vx = track->Vx();
-    vy = track->Vy();
-    vz = track->Vz();
-    tof = track->T();
-    TVector3 pol;
-    track->GetPolarisation(pol);
-    polx = pol.X();
-    poly = pol.Y();
-    polz = pol.Z();
-    track->SetBit(kDoneBit);
-//      cout << "Filled params" << endl;
-  }
-  else 
-    itrack = -1;
-
-  //
-  // stop and start timer when we start a primary track
-  Int_t nprimaries = fNprimary;
-  if (fCurrent >= nprimaries) return;
-  if (fCurrent < nprimaries-1) { 
-    fTimer.Stop();
-    track=(TParticle*) fParticleMap->At(fCurrent+1);
-    //    track->SetProcessTime(fTimer.CpuTime());
-  }
-  fTimer.Start();
-}
-
-*/
-//_____________________________________________________________________________
 TParticle*  AliStack::GetPrimaryForTracking(Int_t i)
 {
   //
@@ -606,11 +559,9 @@ void AliStack::FinishEvent()
       // To be removed later and replaced with break.
        if(!allFilled) allFilled = kTRUE;
      } 
-//    cout << "Nof particles: " << fNtrack << endl;
-//Reset();   
 } 
-
 //_____________________________________________________________________________
+
 void AliStack::FlagTrack(Int_t track)
 {
   //
@@ -786,8 +737,7 @@ void AliStack::DumpPStack ()
 
   Int_t i;
 
-  printf(
-	 "\n\n=======================================================================\n");
+  printf("\n\n=======================================================================\n");
   for (i=0;i<fNtrack;i++) 
     {
       TParticle* particle = Particle(i);
@@ -799,8 +749,7 @@ void AliStack::DumpPStack ()
         Warning("DumpPStack", "No particle with id %d.", i); 
     }	 
 
-  printf(
-	 "\n=======================================================================\n\n");
+  printf("\n=======================================================================\n\n");
   
   // print  particle file map
   printf("\nParticle file map: \n");
@@ -875,8 +824,6 @@ TParticle* AliStack::GetNextParticle()
       particle = dynamic_cast<TParticle*>(fParticleMap->At(i));
       if ((particle) && (!particle->TestBit(kDoneBit))) {
 	  fCurrent=i;    
-	  //cout << "GetNextParticle() - secondary " 
-	  // << fNtrack << " " << fHgwmk << " " << fCurrent << endl;
 	  return particle;
       }   
   }    
@@ -886,99 +833,15 @@ TParticle* AliStack::GetNextParticle()
       fCurrent = fCurrentPrimary;    
       particle = dynamic_cast<TParticle*>(fParticleMap->At(fCurrentPrimary--));
       if ((particle) && (!particle->TestBit(kDoneBit))) {
-	  //cout << "GetNextParticle() - primary " 
-	  //   << fNtrack << " " << fHgwmk << " " << fCurrent << endl;
 	  return particle;
       } 
   }
   
   // nothing to be tracked
   fCurrent = -1;
-    //cout << "GetNextParticle() - none  " 
-    //   << fNtrack << " " << fHgwmk << " " << fCurrent << endl;
   return particle;  
 }
 //__________________________________________________________________________________________
-
-void AliStack::ConnectTree()
-{
-//
-//  Creates branch for writing particles
-//
-  Info("ConnectTree","Connecting TreeK");
-  if (fTreeK == 0x0)
-   {
-    if (TreeK() == 0x0)
-     Fatal("ConnectTree","Parameter is NULL");//we don't like such a jokes
-    return;
-   }
-
- //  Create a branch for particles   
-  Info("ConnectTree","Tree name is %s",fTreeK->GetName());
-  if (fTreeK->GetDirectory())
-    Info("ConnectTree","and dir is %s",fTreeK->GetDirectory()->GetName());
-  else
-    Info("ConnectTree","DIR IS NOT SET !!!!!!!!!!!!!");
-  
-  TBranch *branch=fTreeK->GetBranch(AliRunLoader::fgkKineBranchName);
-  if(branch == 0x0)
-   {
-    branch = fTreeK->Branch(AliRunLoader::fgkKineBranchName, "TParticle", &fParticleBuffer, 4000);
-    Info("ConnectTree","Creating Branch in Tree");
-   }  
-  else
-   {
-    Info("ConnectTree","Branch Found in Tree");
-    branch->SetAddress(&fParticleBuffer);
-   }
-  if (branch->GetDirectory())
-    Info("ConnectTree","Branch Dir Name is %s",branch->GetDirectory()->GetName());
-  else
-    Warning("ConnectTree","Branch Dir is NOT SET");
-    Warning("ConnectTree","########################\n\n");
-}
-//__________________________________________________________________________________________
-
-
-void AliStack::BeginEvent()
-{
-// start a new event
- fNprimary = 0;
- fNtrack = 0;
-
- if(TreeK())
-  {
-   TreeK()->Reset();
-  }
-}
-
-//_____________________________________________________________________________
-void AliStack::FinishRun()
-{
-// Clean TreeK information
-}
-
-//_____________________________________________________________________________
-Bool_t AliStack::GetEvent()
-{
-//
-// Get new event from TreeK
-
-    // Reset/Create the particle stack
-    fTreeK = 0x0;
-
-    if (TreeK() == 0x0) //forces connecting
-     {
-      Error("GetEvent","cannot find Kine Tree for current event\n");
-      return kFALSE;
-     }
-      
-    Int_t size = (Int_t)TreeK()->GetEntries();
-    ResetArrays(size);
-    return kTRUE;
-}
-
-//----------------------------------------------------------------------
 
 TTree* AliStack::TreeK()
 {
@@ -1007,6 +870,84 @@ TTree* AliStack::TreeK()
    }
   return fTreeK;//never reached
 }
+//__________________________________________________________________________________________
+
+void AliStack::ConnectTree()
+{
+//
+//  Creates branch for writing particles
+//
+  Info("ConnectTree","Connecting TreeK");
+  if (fTreeK == 0x0)
+   {
+    if (TreeK() == 0x0)
+     {
+      Fatal("ConnectTree","Parameter is NULL");//we don't like such a jokes
+      return;
+     }
+    return;//in this case TreeK() calls back this method (ConnectTree) 
+           //tree after setting fTreeK, the rest was already executed
+           //it is safe to return now
+   }
+
+ //  Create a branch for particles   
+  Info("ConnectTree","Tree name is %s",fTreeK->GetName());
+  if (fTreeK->GetDirectory())
+    Info("ConnectTree","and dir is %s",fTreeK->GetDirectory()->GetName());
+  else
+    Warning("ConnectTree","DIR IS NOT SET !!!");
+  
+  TBranch *branch=fTreeK->GetBranch(AliRunLoader::fgkKineBranchName);
+  if(branch == 0x0)
+   {
+    branch = fTreeK->Branch(AliRunLoader::fgkKineBranchName, "TParticle", &fParticleBuffer, 4000);
+    Info("ConnectTree","Creating Branch in Tree");
+   }  
+  else
+   {
+    Info("ConnectTree","Branch Found in Tree");
+    branch->SetAddress(&fParticleBuffer);
+   }
+  if (branch->GetDirectory())
+    Info("ConnectTree","Branch Dir Name is %s",branch->GetDirectory()->GetName());
+  else
+    Warning("ConnectTree","Branch Dir is NOT SET");
+}
+//__________________________________________________________________________________________
+
+
+void AliStack::BeginEvent()
+{
+// start a new event
+ Reset();
+}
+
+//_____________________________________________________________________________
+void AliStack::FinishRun()
+{
+// Clean TreeK information
+}
+//_____________________________________________________________________________
+
+Bool_t AliStack::GetEvent()
+{
+//
+// Get new event from TreeK
+
+    // Reset/Create the particle stack
+    fTreeK = 0x0;
+
+    if (TreeK() == 0x0) //forces connecting
+     {
+      Error("GetEvent","cannot find Kine Tree for current event\n");
+      return kFALSE;
+     }
+      
+    Int_t size = (Int_t)TreeK()->GetEntries();
+    ResetArrays(size);
+    return kTRUE;
+}
+//_____________________________________________________________________________
 
 void AliStack::SetEventFolderName(const char* foldname)
 {

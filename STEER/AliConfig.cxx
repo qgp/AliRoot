@@ -23,6 +23,9 @@
 
 /*
 $Log$
+Revision 1.3.6.4  2002/11/22 14:19:50  hristov
+Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
+
 Revision 1.3.6.3  2002/10/09 09:23:55  hristov
 New task hierarchy, bug corrections, new development (P.Skowronski)
 
@@ -271,11 +274,12 @@ Int_t AliConfig::AddSubTask(const char *taskname, const char* name,const char* t
 //Create new task named 'name' and titled 'title' 
 //as a subtask of the task named 'taskname'
 
-   cout<<"AliConfig::AddSubTask Try to get folder named "<<taskname<<endl;
-   TTask * task = dynamic_cast<TTask *>(fTopFolder->FindObject(taskname));
+   Info("AddSubTask","Try to get folder named %s",taskname);
+   TObject* obj = fTopFolder->FindObject(taskname);
+   TTask * task = (obj)?dynamic_cast<TTask*>(obj):0x0;
    if (task)
      {
-      cout<<"AliConfig::AddSubTask          Got"<<endl;
+      Info("AddSubTask","          Got");
       TTask * subtask = static_cast<TTask*>(task->GetListOfTasks()->FindObject(name));
       if (!subtask) 
         {
@@ -332,8 +336,8 @@ void AliConfig::Add(AliModule* obj,const char* eventfolder)
   
   TString path(eventfolder);
   path = path + "/" + fgkModuleFolderName;
-  cout<<"AliConfig::Add(AliModule* "<<obj->GetName()
-      <<",const char* efn="<<eventfolder<<")\n";
+  Info("Add(AliModule*)","module name = %s, Ev. Fold. Name is %s.",
+        obj->GetName(),eventfolder);
   AddInFolder(path, obj);
 }
 //____________________________________________________________________________
@@ -348,12 +352,6 @@ Int_t AliConfig::AddDetector(TFolder* evntfolder, const char *name, const char* 
     Error("AddDetector","CreateDetectorFolders returned error for detector %s",name);
     return retval;
   }
-// retval = CreateDetectorTasks(name,title);
-// if (retval)
-//  {
-//    Error("AddDetector","CreateDetectorTasks returned error for detector %s",name);
-//    return retval;
-//  }
  return 0; 
 }
 //____________________________________________________________________________
@@ -380,8 +378,11 @@ Int_t AliConfig::AddDetector(const char* evntfoldername,const char *name, const 
 
 void  AliConfig::Add(AliDetector * obj,const char* eventfolder)
 {
-  cout<<"AliConfig::Add("<<obj->GetName()<<")\n";
-  TFolder* evfolder = dynamic_cast<TFolder*>(GetTopFolder()->FindObject(eventfolder));
+  Info("Add(AliDetector*)","detector name = %s, Ev. Fold. Name is %s.",
+        obj->GetName(),eventfolder);
+
+  TObject* foundobj = GetTopFolder()->FindObject(eventfolder);
+  TFolder* evfolder = (foundobj)?dynamic_cast<TFolder*>(foundobj):0x0;
   if (evfolder == 0x0)
    {
      Fatal("Add(AliDetector * obj,const char* eventfolder)",
@@ -488,7 +489,7 @@ void    AliConfig::Add (char *list)
   
   while (token != NULL)
     {
-      cout << "Configuring " << token << ": ";
+      Info("Add(char *list)","Configuring token=%s",token);
       
       TObject *obj;
       TIter   next (dirlist);
@@ -535,11 +536,11 @@ void    AliConfig::Add (char *list)
       
       if (strlen(found.Data())) 
         {
-          cout << found << " => OK" << endl;
+          Info("Add(char *list)","found=%s  => OK",found.Data());
         } 
       else 
         {
-          cout << " => FAILED." << endl;
+          Error("Add(char *list)"," => FAILED.");
           exit(1); 
         }   	    
       

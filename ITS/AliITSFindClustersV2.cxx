@@ -15,6 +15,9 @@
  
 /*
 $Log$
+Revision 1.3  2002/10/14 14:57:00  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
 Revision 1.2.2.1  2002/10/14 13:14:08  hristov
 Updating VirtualMC to v3-09-02
 

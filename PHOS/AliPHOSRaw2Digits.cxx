@@ -49,6 +49,7 @@
 #include "AliPHOSv1.h"
 #include "../EVGEN/AliGenBox.h"
 #include "AliRun.h"
+#include "AliLoader.h"
 
 ClassImp(AliPHOSRaw2Digits)
   
@@ -132,7 +133,6 @@ Bool_t AliPHOSRaw2Digits::Init(void){
     return kTRUE;
 
   //Create PHOS
-  new AliPHOSv1("PHOS","GPS2") ;
 
   //Set Magnetic field
   gAlice->SetField(0,2);  
@@ -154,11 +154,14 @@ Bool_t AliPHOSRaw2Digits::Init(void){
     outname.ToLower() ;
     outname.ReplaceAll(".fz",".root") ;
   }
-  TFile *rootfile = new TFile(outname,"recreate");
-  rootfile->SetCompressionLevel(2);
+  
+  AliRunLoader* rl = AliRunLoader::Open(outname,AliConfig::fgkDefaultEventFolderName,"recreate");
+  rl->SetCompressionLevel(2);
+
+  new AliPHOSv1("PHOS","GPS2") ;
 
   // Create the Root Trees
-  gAlice->MakeTree("E") ;
+  rl->MakeTree("E");
 
   //Make container for digits
   fDigits = new TClonesArray("AliPHOSDigit",1000) ;
@@ -167,7 +170,7 @@ Bool_t AliPHOSRaw2Digits::Init(void){
   fPHOSHeader = new  AliPHOSBeamTestEvent() ;
   Int_t splitlevel = 0 ;
   Int_t bufferSize = 32000 ;    
-  TBranch * headerBranch = gAlice->TreeE()->Branch("AliPHOSBeamTestEvent", 
+  TBranch * headerBranch = rl->TreeE()->Branch("AliPHOSBeamTestEvent", 
 						   "AliPHOSBeamTestEvent", 
 						   &fPHOSHeader,bufferSize,splitlevel);
   headerBranch->SetName("AliPHOSBeamTestEvent") ;

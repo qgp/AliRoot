@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.3  2002/11/07 09:07:07  hristov
+Adding FASTSIM code (lost during the merge with VMC)
+
 Revision 1.1  2002/09/20 13:32:51  morsch
 Base classes for fast simulation. First commit.
 

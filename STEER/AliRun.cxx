@@ -17,6 +17,9 @@
 
 /*
 $Log$
+Revision 1.81.2.7  2002/11/22 14:19:50  hristov
+Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
+
 Revision 1.81.2.6  2002/10/09 09:23:55  hristov
 New task hierarchy, bug corrections, new development (P.Skowronski)
 
@@ -303,7 +306,9 @@ Introduction of the Copyright and cvs Log
 #include <TFolder.h>
 #include <TKey.h>
 #include <TNode.h>
-#include "TParticle.h"
+#include <TParticle.h>
+#include <TRandom3.h>
+
 #include "AliRun.h"
 #include "AliDisplay.h"
 #include "AliMC.h"
@@ -312,7 +317,6 @@ Introduction of the Copyright and cvs Log
 #include "AliMagFCM.h"
 #include "AliMagFDM.h"
 #include "AliHit.h"
-#include "TRandom3.h"
 #include "AliMCQA.h"
 #include "AliGenerator.h"
 #include "AliLegoGenerator.h"
@@ -578,11 +582,6 @@ void AliRun::CleanDetectors()
   //
   // Clean Detectors at the end of event
   //
-  TIter next(fModules);
-  AliModule *detector;
-  while((detector = dynamic_cast<AliModule*>(next()))) {
-    detector->FinishEvent();
-  }
   fRunLoader->CleanDetectors();
 }
 
@@ -678,8 +677,10 @@ void AliRun::FinishRun()
   // Called at the end of the run.
   //
   
+  
   if(fLego) 
    {
+    Info("FinishRun"," Finish Lego");
     fRunLoader->CdGAFile();
     fLego->FinishRun();
    }
@@ -688,12 +689,15 @@ void AliRun::FinishRun()
   TIter next(fModules);
   AliModule *detector;
   while((detector = dynamic_cast<AliModule*>(next()))) {
+    Info("FinishRun"," %s->FinishRun()",detector->GetName());
     detector->FinishRun();
   }
   
   //Output energy summary tables
+  Info("FinishRun"," EnergySummary()");
   EnergySummary();
-
+  
+  Info("FinishRun"," fRunLoader->WriteHeader(OVERWRITE)");
   fRunLoader->WriteHeader("OVERWRITE");
   
   // Write AliRun info and all detectors parameters
@@ -703,11 +707,14 @@ void AliRun::FinishRun()
   fRunLoader->Write(0,TObject::kOverwrite);//write RunLoader itself
   
   // Clean tree information
+  Info("FinishRun"," fRunLoader->Stack()->FinishRun()");
   fRunLoader->Stack()->FinishRun();
 
   // Clean detector information
+  Info("FinishRun"," fGenerator->FinishRun()");
   fGenerator->FinishRun();
 
+  Info("FinishRun"," fRunLoader->CleanFolders()");
   fRunLoader->CleanFolders();
 }
 
@@ -1114,26 +1121,46 @@ void AliRun::BeginEvent()
   Info("BeginEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
   Info("BeginEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
     
+  /*******************************/    
+  /*   Clean after eventual      */
+  /*   previous event            */
+  /*******************************/    
+
+  
+  //Set the next event in Run Loader -> Cleans trees (TreeK and all trees in detectors),
+  Info("BeginEvent","EventNr is %d",fEventNrInRun);
+  fRunLoader->SetEventNumber(++fEventNrInRun);// sets new files, cleans the previous event stuff, if necessary, etc.,  
+  Info("BeginEvent","EventNr is %d",fEventNrInRun);
+     
   fEventEnergy.Reset();  
     // Clean detector information
-  CleanDetectors();
-  fRunLoader->Stack()->Reset();
-  fRunLoader->MakeTree("K");//for assurance
-  fRunLoader->Stack()->BeginEvent();//this resets the pointer to 
+  
+  if (fRunLoader->Stack())
+    fRunLoader->Stack()->Reset();//clean stack -> tree is unloaded
+  else
+    fRunLoader->MakeStack();//or make a new one
+    
+  Info("BeginEvent","  fRunLoader->MakeTree(K)");
+  fRunLoader->MakeTree("K");
+  Info("BeginEvent","  gMC->SetStack(fRunLoader->Stack())");
   gMC->SetStack(fRunLoader->Stack());//Was in InitMC - but was moved here 
                                      //because we don't have guarantee that 
                                      //stack pointer is not going to change from event to event
 	                 //since it bellobgs to header and is obtained via RunLoader
   //
-  //  Reset all Detectors & kinematics & trees
+  //  Reset all Detectors & kinematics & make/reset trees
   //
-
-  fRunLoader->MakeTrackRefsContainer();//for insurance
-  ResetHits();
-  fRunLoader->MakeTree("H");//for insurance
     
   fRunLoader->GetHeader()->Reset(fRun,fEvent,fEventNrInRun);
   fRunLoader->WriteKinematics("OVERWRITE");
+
+  Info("BeginEvent","  fRunLoader->MakeTrackRefsContainer()");
+  fRunLoader->MakeTrackRefsContainer();//for insurance
+
+  Info("BeginEvent","  ResetHits()");
+  ResetHits();
+  Info("BeginEvent","  fRunLoader->MakeTree(H)");
+  fRunLoader->MakeTree("H");
 
   //
   if(fLego) 
@@ -1147,8 +1174,11 @@ void AliRun::BeginEvent()
   AliModule *detector;
   while((detector = (AliModule*)next()))
    {
-    detector->MakeBranch("H"); //skowron
+    Info("BeginEvent","  %s->MakeBranch(H)",detector->GetName());
+    detector->MakeBranch("H"); 
+    Info("BeginEvent","  %s->MakeBranchTR()",detector->GetName());
     detector->MakeBranchTR();
+    Info("BeginEvent","  %s->SetTreeAddress()",detector->GetName());
     detector->SetTreeAddress();
    }
 }
@@ -1244,11 +1274,15 @@ void AliRun::InitMC(const char *setup)
 
   // Register MC in configuration 
   AliConfig::Instance()->Add(gMC);
-  fRunLoader->LoadKinematics("RECREATE");
-  fRunLoader->MakeTree("KE");
-  
+
   InitLoaders();
-  fRunLoader->LoadHits("all","recreate");// all getters (detectors) recreate file for hits
+
+  fRunLoader->MakeTree("E");
+  fRunLoader->LoadKinematics("RECREATE");
+  fRunLoader->LoadTrackRefs("RECREATE");
+  fRunLoader->LoadHits("all","RECREATE");
+  
+  
   fRunLoader->CdGAFile();
 
   gMC->DefineParticles();  //Create standard MC particles
@@ -1265,16 +1299,17 @@ void AliRun::InitMC(const char *setup)
   // Added also after in case of interactive initialisation of modules
   fNdets = fModules->GetLast()+1;
 
-   TIter next(fModules);
-   AliModule *detector;
-   while((detector = dynamic_cast<AliModule*>(next()))) {
-      detector->SetTreeAddress();
-      objlast = gDirectory->GetList()->Last();
+  TIter next(fModules);
+  AliModule *detector;
+  while((detector = dynamic_cast<AliModule*>(next()))) 
+   {
+     objlast = gDirectory->GetList()->Last();
       
-      // Add Detector histograms in Detector list of histograms
-      if (objlast) objfirst = gDirectory->GetList()->After(objlast);
-      else         objfirst = gDirectory->GetList()->First();
-      while (objfirst) {
+     // Add Detector histograms in Detector list of histograms
+     if (objlast) objfirst = gDirectory->GetList()->After(objlast);
+     else         objfirst = gDirectory->GetList()->First();
+     while (objfirst) 
+      {
         detector->Histograms()->Add(objfirst);
         objfirst = gDirectory->GetList()->After(objfirst);
       }
@@ -1301,6 +1336,7 @@ void AliRun::InitMC(const char *setup)
    //
    // Save stuff at the beginning of the file to avoid file corruption
    Write();
+   fEventNrInRun = -1; //important - we start Begin event from increasing current number in run
 }
 
 //_______________________________________________________________________
@@ -1590,14 +1626,14 @@ void  AliRun::ConstructGeometry()
     TStopwatch stw;
     TIter next(fModules);
     AliModule *detector;
-    printf("Geometry creation:\n");
+    Info("ConstructGeometry","Geometry creation:");
     while((detector = dynamic_cast<AliModule*>(next()))) {
       stw.Start();
       // Initialise detector materials and geometry
       detector->CreateMaterials();
       detector->CreateGeometry();
       printf("%10s R:%.2fs C:%.2fs\n",
-	     detector->GetName(),stw.RealTime(),stw.CpuTime());
+             detector->GetName(),stw.RealTime(),stw.CpuTime());
     }
 }
 
@@ -1737,6 +1773,12 @@ void AliRun::FinishEvent()
   //
   if(fLego) fLego->FinishEvent();
 
+  TIter next(fModules);
+  AliModule *detector;
+  while((detector = dynamic_cast<AliModule*>(next()))) {
+    detector->FinishEvent();
+  }
+
   //Update the energy deposit tables
   Int_t i;
   for(i=0;i<fEventEnergy.GetSize();i++) 
@@ -1775,9 +1817,6 @@ void AliRun::FinishEvent()
   fRunLoader->WriteKinematics("OVERWRITE");
   fRunLoader->WriteTrackRefs("OVERWRITE");
   fRunLoader->WriteHits("OVERWRITE");
-  
-  fRunLoader->SetNextEvent();
-  ++fEventNrInRun;
 
   Info("FinishEvent","<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
   Info("FinishEvent","<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");

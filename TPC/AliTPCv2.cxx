@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.40.4.2  2002/11/22 14:20:11  hristov
+Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
+
 Revision 1.40.4.1  2002/06/06 14:21:19  hristov
 Merged with v3-08-02
 
@@ -230,14 +233,14 @@ void AliTPCv2::CreateGeometry()
   
   // --------------------------------------------------- 
   //        sector specification check 
-  // --------------------------------------------------- 
+  // ---------------------------------------------------
   if (fSecAL >= 0) {
     ifl1 = 0;
     
     for (i = 0; i < 6; ++i) {
       if (fSecLows[i] >= 0 && fSecLows[i] < 2*nInnerSector) {
-	ifl1 = 1;
-	printf("%s: *** SECTOR %d selected\n",ClassName(),fSecLows[i]);
+       ifl1 = 1;
+       printf("%s: *** SECTOR %d selected\n",ClassName(),fSecLows[i]);
       }
     }
 

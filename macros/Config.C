@@ -33,7 +33,7 @@ void Config()
            return;
          }
         rl->SetCompressionLevel(2);
-        
+        rl->SetNumberOfEventsPerFile(3);
         gAlice->SetRunLoader(rl);
     }
 
@@ -133,7 +133,7 @@ void Config()
     Int_t   iEMCAL =  0;
     Int_t   iCRT   =  0;
     Int_t   iVZERO =  0;
-
+    rl->CdGAFile();
     //=================== Alice BODY parameters =============================
     AliBODY *BODY = new AliBODY("BODY", "Alice envelop");
 
@@ -259,7 +259,7 @@ void Config()
     // ITSgeometry.tme) in a format understandable to the CAD system EUCLID.
     // The default (=0) means that you dont want to use this facility.
     //
-	ITS->SetEUCLID(0);  
+     ITS->SetEUCLID(0);  
     }
 
     if (iTPC)
@@ -285,9 +285,8 @@ void Config()
         AliTPC *TPC = new AliTPCv2("TPC", "Default");
 
         // All sectors included 
-        TPC->SetSecAL(-1);
         TPC->SetSecAU(-1);
-
+        TPC->SetSecAL(-1);
     }
 
 

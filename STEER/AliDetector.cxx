@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.16.6.6  2002/11/22 14:19:50  hristov
+Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
+
 Revision 1.16.6.5  2002/10/09 09:23:55  hristov
 New task hierarchy, bug corrections, new development (P.Skowronski)
 
@@ -304,10 +307,6 @@ void AliDetector::FinishRun()
   //
   // Procedure called at the end of a run.
   //
- if (GetLoader())
-  {
-    GetLoader()->CloseFiles();
-  }
 }
 //_______________________________________________________________________
 

@@ -46,11 +46,11 @@
 
 #include "AliVZEROv2.h"
 #include "AliRun.h"
+#include "AliLoader.h"
 #include "AliMagF.h"
+#include "AliMC.h"
 #include "AliVZEROhit.h"
 #include "AliVZEROdigit.h"
-#include <Riostream.h>
-#include <Riostream.h>
 
 #include <TGeant3.h>
 #include <stdlib.h>
@@ -1161,15 +1161,15 @@ void AliVZEROv2::MakeBranch(Option_t *option)
   
   const char *H = strstr(option,"H");
   
-  if (fHits   && gAlice->TreeH() && H) {
-    gAlice->TreeH()->Branch(branchname,&fHits, fBufferSize);
+  if (fHits   && TreeH() && H) {
+    TreeH()->Branch(branchname,&fHits, fBufferSize);
     printf("* AliDetector::MakeBranch * Making Branch %s for hits\n",branchname);
   }     
 
   const char *D = strstr(option,"D");
   //
-  if (fDigits   && gAlice->TreeD() && D) {
-    gAlice->TreeD()->Branch(branchname,&fDigits, fBufferSize);
+  if (fDigits   && fLoader->TreeD() && D) {
+    fLoader->TreeD()->Branch(branchname,&fDigits, fBufferSize);
     printf("* AliDetector::MakeBranch * Making Branch %s for digits\n",branchname);
   }  
    

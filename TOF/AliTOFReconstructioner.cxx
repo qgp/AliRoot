@@ -53,8 +53,12 @@
 // this line has to be commented till TPC will provide fPx fPy fPz and fL in
 // AliTPChit class or somewhere
 // #include "../TPC/AliTPC.h"
+#include "AliHeader.h"
 #include "AliRun.h"
+#include "AliRunLoader.h"
+#include "AliLoader.h"
 #include "AliDetector.h"
+#include "AliMC.h"
 
 #include "TTask.h"
 #include "TBenchmark.h"
@@ -71,7 +75,6 @@
 #include "TFolder.h"
 #include "TNtuple.h"
 #include <stdlib.h>
-#include <Riostream.h>
 #include <Riostream.h>
 
 ClassImp(AliTOFReconstructioner)
@@ -311,32 +314,59 @@ void AliTOFReconstructioner::Exec(const char* datafile, Option_t *option)
   // 
   gBenchmark->Start("TOFReconstruction");
 
-  TFile *file = TFile::Open(datafile);
-
+  
+  AliRunLoader *rl = AliRunLoader::Open(datafile);
+  if (rl == 0x0)
+   {
+     Error("Exec","Can not open session for file %s",datafile);
+     return;
+   }
   // Get AliRun object from file or create it if not on file
-  gAlice = (AliRun*)file->Get("gAlice");
+  rl->LoadgAlice();
+  gAlice = rl->GetAliRun();
 
   AliTOF* TOF = (AliTOF *) gAlice->GetDetector ("TOF");
   AliDetector* TPC = gAlice->GetDetector("TPC");
 
   if (!TOF) {
     Error("AliTOFReconstructioner","TOF not found");
+    delete rl;
     return;
   }
   if (!TPC) {
     Error("AliTOFReconstructioner","TPC Detector not found");
+    delete rl;
     return;
   }
+  AliLoader* tpcloader = rl->GetLoader("TPCLoader");
+  if (tpcloader == 0x0)
+   {
+    Error("AliTOFReconstructioner","Can not get TPC Loader from Run Loader.");
+    delete rl;
+    return;
+   }
 
+  AliLoader* tofloader = rl->GetLoader("TOFLoader");
+  if (tofloader == 0x0)
+   {
+    Error("AliTOFReconstructioner","Can not get TOF Loader from Run Loader.");
+    delete rl;
+    return;
+   }
+  
   if (fEdgeTails) ftail = new TF1("tail",TimeWithTailR,-2,2,3);
-
-  if (fNevents == 0) fNevents = (Int_t) gAlice->TreeE()->GetEntries();
+  
+  if (fNevents == 0) fNevents = rl->GetNumberOfEvents();
   // You have to set the number of event with the ad hoc setter
   // see testrecon.C
-
+  if (rl->GetHeader() == 0x0) rl->LoadHeader();
+  
+  tofloader->LoadHits();
+  tpcloader->LoadHits(); 
+  
   for (Int_t ievent = 0; ievent < fNevents; ievent++) { // start loop on events
-
-    Int_t nparticles=gAlice->GetEvent(ievent);
+    rl->GetEvent(ievent);
+    Int_t nparticles= rl->GetHeader()->GetNtrack();
     if (nparticles <= 0) return;
 
     TClonesArray* tofhits=0;
@@ -345,7 +375,7 @@ void AliTOFReconstructioner::Exec(const char* datafile, Option_t *option)
     if (TOF) tofhits = TOF->Hits();
     if (TPC) tpchits = TPC->Hits();
 
-    TTree *TH = gAlice->TreeH();
+    TTree *TH = tofloader->TreeH();
     if (!TH) return;
     Int_t ntracks    = (Int_t) (TH->GetEntries()); // primary tracks
     cout << "number of primary tracked tracks in current event " << ntracks << endl; // number of primary tracked tracks
