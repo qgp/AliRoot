@@ -1,9 +1,14 @@
+# Sources
 SRCS:=  TFluka.cxx AliFluka.cxx
+FSRCS:= FLUKA_input.f
 
+# Headers
 HDRS:=  $(SRCS:.cxx=.h) 
 
+# ROOT Dictionary
 DHDR:=  TFlukaLinkDef.h
 
-#EINCLUDE:= STEER
+# Extra includes and libraries
+#EINCLUDE:=
 ELIBSDIR:= $(FLUPRO)
 ELIBS   := flukahp
