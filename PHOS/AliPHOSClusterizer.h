@@ -39,7 +39,7 @@ public:
   virtual const char *  GetDigitsBranch() const{Warning("GetDigitsBranch", "Not Defined" ) ; return 0 ; }   ;
 
   virtual void MakeClusters() {Warning("MakeClusters", "Not Defined" ) ; } 
-  virtual void Print(Option_t * option)const {Warning("Print", "Not Defined" ) ; } 
+  virtual void Print()const {Warning("Print", "Not Defined" ) ; } 
 
   virtual void SetEmcClusteringThreshold(Float_t cluth) {Warning("SetEmcClusteringThreshold", "Not Defined" ) ; } 
   virtual void SetEmcLocalMaxCut(Float_t cut) {Warning("SetEmcLocalMaxCut", "Not Defined" ) ; } 
@@ -51,7 +51,9 @@ public:
   virtual void SetCpvLogWeight(Float_t w) {Warning("SetCpvLogWeight", "Not Defined" ) ;  } 
   virtual void SetDigitsBranch(const char * title) {Warning("SetDigitsBranch", "Not Defined" ) ; }  
   virtual void SetRecPointsBranch(const char *title) {Warning("SetRecPointsBranch", "Not Defined" ) ; } 
-  virtual void SetUnfolding(Bool_t toUnfold ){Warning("SetUnfolding", "Not Defined" ) ;}  
+  virtual void SetUnfolding(Bool_t toUnfold ){Warning("SetUnfolding", "Not Defined" ) ;}
+  void   SetEventFolderName(TString name) { fEventFolderName = name ; }
+
   AliPHOSClusterizer & operator = (const AliPHOSClusterizer & rvalue)  {return *this ;} 
  
   virtual const char * Version() const {Warning("Version", "Not Defined" ) ; return 0 ; }  
@@ -60,7 +62,7 @@ protected:
   TString fEventFolderName ;  // event folder name
 
 
-  ClassDef(AliPHOSClusterizer,2)  // Clusterization algorithm class 
+  ClassDef(AliPHOSClusterizer,3)  // Clusterization algorithm class 
 
 } ;
 

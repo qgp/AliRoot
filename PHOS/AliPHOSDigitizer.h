@@ -64,13 +64,14 @@ public:
   void   SetNEMCchannels(Int_t n)      { fNADCemc = n; }
   void   SetEMCchannel(Float_t width)  { fADCchanelEmc = width; }
   void   SetEMCpedestal(Float_t ped)   { fADCpedestalEmc = ped ; }  
+  void   SetEventFolderName(TString name) { fEventFolderName = name ; }
   void   SetTimeResolution(Float_t res){ fTimeResolution = res ; }  
 
   //General
   const Int_t   GetDigitsInRun()  const { return fDigitsInRun ;}  
   void    MixWith(const TString alirunFileName, 
 		  const TString eventFolderName = AliConfig::fgkDefaultEventFolderName) ; // Add another one file to mix
-  void    Print(Option_t* option)const ;
+  void    Print()const ;
  
   AliPHOSDigitizer & operator = (const AliPHOSDigitizer & rvalue)  {
     // assignement operator requested by coding convention but not needed
@@ -125,7 +126,7 @@ private:
 
   TString fEventFolderName;         // skowron: name of EFN to read data from in stand alone mode
   
-  ClassDef(AliPHOSDigitizer,1)  // description 
+  ClassDef(AliPHOSDigitizer,2)  // description 
 
 };
 

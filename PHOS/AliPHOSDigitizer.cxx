@@ -402,7 +402,7 @@ void AliPHOSDigitizer::Exec(Option_t *option)
   }   
 
   if (strstr(option,"print")) {
-    Print("");
+    Print();
     return ; 
   }
   
@@ -592,12 +592,12 @@ void AliPHOSDigitizer::MixWith(const TString alirunFileName, const TString event
 }
 
 //__________________________________________________________________
-void AliPHOSDigitizer::Print(Option_t* option)const 
+void AliPHOSDigitizer::Print()const 
 {
   // Print Digitizer's parameters
+  Info("Print", "\n------------------- %s -------------", GetName() ) ; 
   if( strcmp(fEventFolderName.Data(), "") != 0 ){
-
-    Info("Print", "\n------------------- %s -------------", fEventFolderName.Data() ) ; 
+    printf(" Writing Digits to branch with title  %s\n", fEventFolderName.Data()) ;
     
     Int_t nStreams ; 
     if (fManager) 

@@ -141,7 +141,7 @@ void AliPHOSClusterizerv1::Exec(Option_t * option)
     gBenchmark->Start("PHOSClusterizer"); 
   
   if(strstr(option,"print"))
-    Print("") ; 
+    Print() ; 
 
   AliPHOSGetter * gime = AliPHOSGetter::Instance() ; 
   
@@ -921,7 +921,7 @@ void AliPHOSClusterizerv1::UnfoldingChiSquare(Int_t & nPar, Double_t * Grad, Dou
 }
 
 //____________________________________________________________________________
-void AliPHOSClusterizerv1::Print(Option_t * option)const
+void AliPHOSClusterizerv1::Print()const
 {
   // Print clusterizer parameters
 

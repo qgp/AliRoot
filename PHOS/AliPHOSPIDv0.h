@@ -38,7 +38,7 @@ public:
   virtual const Int_t GetRecParticlesInRun() const  {return fRecParticlesInRun ;}  
 
   virtual void PlotDispersionCuts()const ;
-  virtual void Print(Option_t * option)const ; 
+  virtual void Print()const ; 
   virtual void SetIdentificationMethod(char * option = "CPV DISP" ){fIDOptions = option ;} 
   virtual void SetShowerProfileCut(char * formula = "0.35*0.35 - (x-1.386)*(x-1.386) - 1.707*1.707*(y-1.008)*(y-1.008)") ;
   virtual void SetDispersionCut(Float_t cut){fDispersion = cut ; } 

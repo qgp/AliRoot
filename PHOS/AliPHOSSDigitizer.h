@@ -34,10 +34,9 @@ public:
   Float_t  Calibrate(Int_t amp)const {return (amp - fA)/fB ; }
   Int_t    Digitize(Float_t Energy)const { return (Int_t ) ( fA + Energy*fB); }
   virtual void   Exec(Option_t *option); 
-  const char *   GetSDigitsBranch()const{return GetName();}  
   const Int_t    GetSDigitsInRun() const {return fSDigitsInRun ;}  
-  virtual void Print(Option_t* option) const ;
-  void SetSDigitsBranch(const char * title ) ;
+  virtual void Print() const ;
+  void   SetEventFolderName(TString name) { fEventFolderName = name ; }
   void UseHitsFrom(const char * filename) {;}      
   Bool_t operator == (const AliPHOSSDigitizer & sd) const ;
   AliPHOSSDigitizer & operator = (const AliPHOSSDigitizer & sd) {return *this ;}
@@ -57,7 +56,7 @@ private:
   Int_t   fSDigitsInRun ;   //! Total number of sdigits in one run
   Bool_t  fInit ;           //! tells if initialisation wennt OK, will revent exec if not
   TString fEventFolderName; // event folder name
-  ClassDef(AliPHOSSDigitizer,1)  // description 
+  ClassDef(AliPHOSSDigitizer,2)  // description 
 
 };
 

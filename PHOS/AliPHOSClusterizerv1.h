@@ -60,7 +60,7 @@ public:
 
   void    Exec(Option_t *option);                // Does the job
 
-  virtual void Print(Option_t * option)const ;
+  void Print()const ;
 
   virtual void SetEmcClusteringThreshold(Float_t cluth)  { fEmcClusteringThreshold = cluth ; }
   virtual void SetEmcLocalMaxCut(Float_t cut)            { fEmcLocMaxCut = cut ; }
@@ -127,7 +127,7 @@ private:
   Int_t fRecPointsInRun ;            //! Total number of recpoints in one run
   Float_t fEmcTimeGate ;             // Maximum time difference between the digits in ont EMC cluster
     
-  ClassDef(AliPHOSClusterizerv1,2)   // Clusterizer implementation version 1
+  ClassDef(AliPHOSClusterizerv1,3)   // Clusterizer implementation version 1
 
 };
 

@@ -175,7 +175,6 @@ void  AliPHOSTrackSegmentMakerv1::Init()
   AliPHOSGetter* gime = AliPHOSGetter::Instance(GetTitle(), fEventFolderName.Data());
   
   fLinkUpArray  = new TClonesArray("AliPHOSLink", 1000); 
-  
   if ( !gime->TrackSegmentMaker() ) {
     gime->PostTrackSegmentMaker(this);
   }
@@ -319,7 +318,7 @@ void  AliPHOSTrackSegmentMakerv1::Exec(Option_t * option)
     gBenchmark->Start("PHOSTSMaker");
  
   if(strstr(option,"print")) {
-    Print("") ; 
+    Print() ; 
     return ; 
   }
   
@@ -383,7 +382,7 @@ void AliPHOSTrackSegmentMakerv1::Unload()
 }
 
 //____________________________________________________________________________
-void AliPHOSTrackSegmentMakerv1::Print(Option_t * option)const
+void AliPHOSTrackSegmentMakerv1::Print()const
 {
   //  Print TrackSegmentMaker parameters
 
@@ -419,13 +418,14 @@ void AliPHOSTrackSegmentMakerv1::WriteTrackSegments(Int_t event)
   TTree * treeT = gime->TreeT();
  
   //First TS
-  Int_t bufferSize = 32000 ;    
-  Int_t splitlevel = 0 ;
-  TBranch * tsBranch = treeT->Branch("PHOSTS","TClonesArray",&trackSegments,bufferSize,splitlevel);
+  Int_t bufferSize = 32000 ; 
+  //   Int_t splitlevel = 0 ; 
+  //   TBranch * tsBranch = treeT->Branch("PHOSTS","TClonesArray",&trackSegments,bufferSize,splitlevel);
+  TBranch * tsBranch = treeT->Branch("PHOSTS",&trackSegments,bufferSize);
   tsBranch->Fill() ;  
 
-  gime->WriteTracker("OVERWRITE");
   gime->WriteTracks("OVERWRITE");
+  gime->WriteTrackSegmentMaker("OVERWRITE");
 }
 
 

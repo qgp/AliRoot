@@ -45,7 +45,7 @@ public:
 
           void   MakeLinks() const;      //Evaluates distances(links) between EMC and PPSD
           void   MakePairs() ;           //Finds pairs(triplets) with smallest link
-  virtual void   Print(Option_t * option) const ;
+  virtual void   Print() const ;
   virtual void   SetMaxEmcCPVDistance(Float_t r){ fRcpv = r ;} //Maximal distance (in PHOS plane) 
                                                                //between EMCrp and CPVrp
   virtual void   SetMaxEmcTPCDistance(Float_t r){ fRtpc = r ;} //Maximal distance (in PHOS plane) 
@@ -87,7 +87,7 @@ private:
   Int_t fModule ;      //! number of module being processed
   Int_t fTrackSegmentsInRun ; //! Total number of track segments in one run
 
-  ClassDef( AliPHOSTrackSegmentMakerv1,2)  // Implementation version 1 of algorithm class to make PHOS track segments 
+  ClassDef( AliPHOSTrackSegmentMakerv1,3)  // Implementation version 1 of algorithm class to make PHOS track segments 
 
  };
 

@@ -40,7 +40,9 @@ public:
   //  virtual char*   GetTrackSegmentsBranch ()const{Warning(" GetTrackSegmentsBranch", "Not Defined" ) ; return 0 ; } 
   virtual const Int_t GetTrackSegmentsInRun()  const {Warning("GetTrackSegmentsInRun", "Not Defined" ) ; return 0 ; } 
 
-  virtual void    Print(Option_t * option)const {Warning("Print", "Not Defined" ) ; }  
+  virtual void    Print()const {Warning("Print", "Not Defined" ) ; }
+  void   SetEventFolderName(TString name) { fEventFolderName = name ; }
+
   //  virtual void Set...   // method to choose recPoints: along z only, along x ...???
   //  virtual void SetChoosingAlgirithm(){Warning("SetChoosingAlgirithm", "Not Defined" ) ; return 0 ; } 
   //  virtual void SetMaxEmcCpvDistance(Float_t r) {Warning("SetMaxEmcCpvDistance", "Not Defined" ) ; return 0 ; } 
@@ -52,7 +54,7 @@ public:
 protected:
   TString fEventFolderName ;  // event folder name
 
-  ClassDef( AliPHOSTrackSegmentMaker,2)    // Algorithm class to make PHOS track segments (Base Class)
+  ClassDef( AliPHOSTrackSegmentMaker,3)    // Algorithm class to make PHOS track segments (Base Class)
 };
 
 #endif // ALIPHOSTRACKSEGMENTMAKER_H

@@ -166,7 +166,7 @@ void AliPHOSPIDv1::Init()
   if ( gime == 0 ) 
     Fatal("Init", "Could not obtain the Getter object !" ) ;  
   
-  if ( !gime->PIDTask() ) {
+  if ( !gime->PID() ) {
     gime->PostPID(this) ;
   }
   
@@ -596,7 +596,7 @@ void  AliPHOSPIDv1::SetParameters()
 	   &(*fParameters)(i,0), &(*fParameters)(i,1), 
 	   &(*fParameters)(i,2), &(*fParameters)(i,3));
     i++;
-    printf("line %d: %s",i,string);
+    //printf("line %d: %s",i,string);
   }
   fclose(fd);
 }
@@ -613,7 +613,7 @@ void  AliPHOSPIDv1::Exec(Option_t * option)
     gBenchmark->Start("PHOSPID");
   
   if(strstr(option,"print")) {
-    Print("") ; 
+    Print() ; 
     return ; 
   }
 
@@ -786,12 +786,12 @@ void  AliPHOSPIDv1::MakeRecParticles()
 }
   
 //____________________________________________________________________________
-void  AliPHOSPIDv1::Print()
+void  AliPHOSPIDv1::Print() const
 {
   // Print the parameters used for the particle type identification
 
   TString message ; 
-    message  = "\n=============== AliPHOSPID1 ================\n" ;
+    message  = "\n=============== AliPHOSPIDv1 ================\n" ;
     message += "Making PID\n";
     message += "    Pricipal analysis file from 0.5 to 100 %s\n" ; 
     message += "    Name of parameters file     %s\n" ;
@@ -816,21 +816,16 @@ void  AliPHOSPIDv1::WriteRecParticles(Int_t event)
   TTree * treeP =  gime->TreeP();
   
   //First rp
-  Int_t bufferSize = 32000 ;    
+  Int_t bufferSize = 32000 ;
+//   Int_t splitlevel = 0 ; 
+//   TBranch * rpBranch = treeP->Branch("PHOSRP","TClonesArray",&recParticles,bufferSize,splitlevel);
   TBranch * rpBranch = treeP->Branch("PHOSRP",&recParticles,bufferSize);
   rpBranch->SetTitle(BranchName());
-
-  //second, pid
-  Int_t splitlevel = 0 ; 
-  AliPHOSPIDv1 * pid = this ;
-  TBranch * pidBranch = treeP->Branch("PHOSPIDTask","AliPHOSPIDv1",&pid,bufferSize,splitlevel);
-  pidBranch->SetTitle(BranchName());
   
   rpBranch->Fill() ;
-  pidBranch->Fill() ; 
-  
+ 
   gime->WriteRecParticles("OVERWRITE");
-  gime->WritePIDTask("OVERWRITE");
+  gime->WritePID("OVERWRITE");
 }
 
 //____________________________________________________________________________

@@ -168,7 +168,7 @@ void  AliPHOSPIDv0::Exec(Option_t * option)
     gBenchmark->Start("PHOSPID");
   
   if(strstr(option,"print")) {
-    Print("") ; 
+    Print() ; 
     return ; 
   }
 
@@ -339,11 +339,11 @@ void  AliPHOSPIDv0::MakeRecParticles(){
 }
 
 //____________________________________________________________________________
-void  AliPHOSPIDv0:: Print(Option_t * option) const
+void  AliPHOSPIDv0:: Print() const
 {
   // Print the parameters used for the particle type identification
   TString message ; 
-  message  = "=============== AliPHOSPID1 ================\n" ;
+  message  = "=============== AliPHOSPIDv0 ================\n" ;
   message += "Making PID\n" ;
   message += "    Headers file:               %s\n" ; 
   message += "    RecPoints branch title:     %s\n" ;

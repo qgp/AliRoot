@@ -146,7 +146,7 @@ void AliPHOSSDigitizer::Exec(Option_t *option)
   // Collects all hits in the same active volume into digit
   
   if (strstr(option, "print") ) {
-    Print("") ; 
+    Print() ; 
     return ; 
   }
 
@@ -244,43 +244,15 @@ void AliPHOSSDigitizer::Exec(Option_t *option)
 }
 
 //__________________________________________________________________
-void AliPHOSSDigitizer::SetSDigitsBranch(const char * title )
-{
- //  // Setting title to branch SDigits 
-
-//   TString stitle(title) ;
-
-//   // check if branch with title already exists
-//   TBranch * sdigitsBranch    = 
-//     static_cast<TBranch*>(gAlice->TreeS()->GetListOfBranches()->FindObject("PHOS")) ; 
-//   TBranch * sdigitizerBranch =  
-//     static_cast<TBranch*>(gAlice->TreeS()->GetListOfBranches()->FindObject("AliPHOSSDigitizer")) ;
-//   const char * sdigitsTitle    = sdigitsBranch ->GetTitle() ;  
-//   const char * sdigitizerTitle = sdigitizerBranch ->GetTitle() ;
-//   if ( stitle.CompareTo(sdigitsTitle)==0 || stitle.CompareTo(sdigitizerTitle)==0 ){
-//     Error("SetSDigitsBranch", "Cannot overwrite existing branch with title %s", title) ;
-//     return ;
-//   }
-  
-//   Info("SetSDigitsBranch", "-> Changing SDigits file from %s to %s", GetName(), title) ;
-
-//   SetName(title) ; 
-    
-}
-
-
-//__________________________________________________________________
-void AliPHOSSDigitizer::Print(Option_t* option)const
+void AliPHOSSDigitizer::Print()const
 {
   // Prints parameters of SDigitizer
-  TString message ; 
-  message  = "\n------------------- %s -------------\n" ;  
-  message += "   Writing SDigits to branch with title  %s\n" ;
-  message += "   with digitization parameters  A = %f\n" ; 
-  message += "                                 B = %f\n" ;
-  message += "   Threshold for Primary assignment= %f\n" ; 
-  message += "---------------------------------------------------\n" ;
-  Info("Print", message.Data(),  GetName(),  fEventFolderName.Data(), fA, fB, fPrimThreshold ) ;
+  Info("Print", "\n------------------- %s -------------", GetName() ) ; 
+  printf("   Writing SDigits to branch with title  %s\n", fEventFolderName.Data()) ;
+  printf("   with digitization parameters  A = %f\n", fA) ; 
+  printf("                                 B = %f\n", fB) ;
+  printf("   Threshold for Primary assignment= %f\n", fPrimThreshold)  ; 
+  printf("---------------------------------------------------\n") ;
   
 }
 

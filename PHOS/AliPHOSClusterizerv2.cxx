@@ -71,7 +71,7 @@ void AliPHOSClusterizerv2::Exec(Option_t* option)
     gBenchmark->Start("PHOSClusterizer"); 
   
   if(strstr(option,"print"))
-    Print("") ; 
+    Print() ; 
 
   AliPHOSGetter * gime = AliPHOSGetter::Instance() ; 
 

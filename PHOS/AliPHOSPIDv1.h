@@ -67,8 +67,7 @@ public:
   void SetParameterPhotonBoundary(Int_t i, Float_t param);
   void SetParameterPi0Boundary   (Int_t i, Float_t param);
 
-  virtual void Print(Option_t * option) const {}
-  void         Print() ; 
+  void Print() const ; 
 
   virtual const char * Version() const { return "pid-v1" ; }  
 
@@ -108,7 +107,7 @@ private:
   TMatrix    *fParameters;               //! Matrix of identification Parameters
 
 
-  ClassDef( AliPHOSPIDv1,8)  // Particle identifier implementation version 1
+  ClassDef( AliPHOSPIDv1,9)  // Particle identifier implementation version 1
 
 };
 
