@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.19.2.3  2002/11/22 14:19:31  hristov
+Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
+
 Revision 1.24  2002/10/21 09:20:51  alibrary
 Introduce Riostream.h and remove unused variables
 
@@ -146,7 +149,7 @@ void AliGenExtFile::Generate()
   Float_t origin[3] = {0,0,0};
   Float_t p[3];
   Float_t random[6];
-  Int_t i, j, nt;
+  Int_t i = 0, j, nt;
   //
   for (j=0;j<3;j++) origin[j]=fOrigin[j];
   if(fVertexSmear == kPerTrack) {
@@ -170,7 +173,7 @@ void AliGenExtFile::Generate()
     //
     // The selction criterium for the external file generator is as follows:
     //
-    // 1) All tracs are subjects to the cuts defined by AliGenerator, i.e.
+    // 1) All tracks are subjects to the cuts defined by AliGenerator, i.e.
     //    fThetaMin, fThetaMax, fPhiMin, fPhiMax, fPMin, fPMax, fPtMin, fPtMax,
     //    fYMin, fYMax.
     //    If the particle does not satisfy these cuts, it is not put on the
@@ -178,12 +181,13 @@ void AliGenExtFile::Generate()
     // 2) If fCutOnChild and some specific child is selected (e.g. if
     //    fForceDecay==kSemiElectronic) the event is rejected if NOT EVEN ONE
     //    child falls into the child-cuts.
+    TParticle* iparticle = 0x0;
+    
     if(fCutOnChild) {
       // Count the selected children
       Int_t nSelected = 0;
-
-      for (i = 0; i < nTracks; i++) {
-	TParticle* iparticle = fReader->NextParticle();
+      while ( (iparticle=fReader->NextParticle()) ) {
+	 ;
 	Int_t kf = CheckPDGCode(iparticle->GetPdgCode());
 	kf = TMath::Abs(kf);
 	if (ChildSelected(kf) && KinematicSelection(iparticle, 1)) {
@@ -197,46 +201,45 @@ void AliGenExtFile::Generate()
     //
     // Stack filling loop
     //
-    for (i = 0; i < nTracks; i++) {
-
-      TParticle* iparticle = fReader->NextParticle();
-      if (!KinematicSelection(iparticle,0)) {
-	Double_t  pz   = iparticle->Pz();
-	Double_t  e    = iparticle->Energy();
-	Double_t  y;
-	if ((e-pz) == 0) {
-	  y = 20.;
-	} else if ((e+pz) == 0.) {
-	  y = -20.;
-	} else {
-	  y = 0.5*TMath::Log((e+pz)/(e-pz));	  
-	}
-	printf("\n Not selected %d %f %f %f %f %f", i,
-	       iparticle->Theta(),
-	       iparticle->Phi(),
-	       iparticle->P(),
-	       iparticle->Pt(),
-	       y);
-	delete iparticle;
-	continue;
-      }
+    while ( (iparticle=fReader->NextParticle()) ) {
+      if (! KinematicSelection(iparticle,0) ) 
+       {
+         Double_t  pz   = iparticle->Pz();
+         Double_t  e    = iparticle->Energy();
+         Double_t  y;
+         if ((e-pz) == 0) 
+          {
+            y = 20.;
+          } 
+         else if ((e+pz) == 0.) 
+          {
+            y = -20.;
+          } 
+         else 
+          {
+            y = 0.5*TMath::Log((e+pz)/(e-pz));	  
+          }
+         //printf("\n Not selected %d %f %f %f %f %f", i,iparticle->Theta(),iparticle->Phi(),
+         //           iparticle->P(),iparticle->Pt(),y);
+//         delete iparticle;
+         continue;
+       }
       p[0] = iparticle->Px();
       p[1] = iparticle->Py();
       p[2] = iparticle->Pz();
       Int_t idpart = iparticle->GetPdgCode();
-      if(fVertexSmear==kPerTrack) {
-	  Rndm(random,6);
-	  for (j = 0; j < 3; j++) {
-	      origin[j]=fOrigin[j]
-		  +fOsigma[j]*TMath::Cos(2*random[2*j]*TMath::Pi())*
-		  TMath::Sqrt(-2*TMath::Log(random[2*j+1]));
-	  }
+      if(fVertexSmear==kPerTrack) 
+       {
+         Rndm(random,6);
+         for (j = 0; j < 3; j++) {
+            origin[j]=fOrigin[j]+
+                      fOsigma[j]*TMath::Cos(2*random[2*j]*TMath::Pi())*
+                        TMath::Sqrt(-2*TMath::Log(random[2*j+1]));
+         }
       }
       Int_t decayed = iparticle->GetFirstDaughter();
-      Int_t doTracking = fTrackIt && (decayed < 0) &&
-	                 (TMath::Abs(idpart) > 10);
-      // printf("*** pdg, first daughter, trk = %d, %d, %d\n",
-      //   idpart,decayed, doTracking);
+      Int_t doTracking = fTrackIt && (decayed < 0) && (TMath::Abs(idpart) > 10);
+      //printf("*** pdg, first daughter, trk = %d, %d, %d\n",idpart,decayed, doTracking);
       SetTrack(doTracking,-1,idpart,p,origin,polar,0,kPPrimary,nt);
       KeepTrack(nt);
     } // track loop
