@@ -156,9 +156,36 @@ void AliHBTQInvResolVsKtFctn::GetValues(AliHBTPair* trackpair, AliHBTPair* partp
  x = partpair->GetKt();
 }
 
+
 /******************************************************************/
 /******************************************************************/
 /******************************************************************/
+
+ClassImp( AliHBTTwoKStarResolVsKtFctn )
+
+AliHBTTwoKStarResolVsKtFctn::
+AliHBTTwoKStarResolVsKtFctn(Int_t nXbins, Double_t maxXval, Double_t minXval, 
+                        Int_t nYbins, Double_t maxYval, Double_t minYval):
+                           AliHBTTwoPairFctn2D(nXbins,maxXval,minXval,nYbins,maxYval,minYval)
+{
+//ctor
+ Rename("TwoKStarResolVsKt","2K^{*} Resolution vs. K_{t}");
+}
+/******************************************************************/
+
+void AliHBTTwoKStarResolVsKtFctn::GetValues(AliHBTPair* trackpair, AliHBTPair* partpair, Double_t& x, Double_t& y) const
+{
+ //returns values of the function
+ y = 2.0*(partpair->GetKStar() - trackpair->GetKStar());
+ x = partpair->GetKt();
+}
+
+
+/******************************************************************/
+/******************************************************************/
+/******************************************************************/
+
+
 ClassImp( AliHBTQOutResolVsKtFctn )
 
 AliHBTQOutResolVsKtFctn::

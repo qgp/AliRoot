@@ -134,6 +134,19 @@ class AliHBTQInvResolVsKtFctn: public AliHBTTwoPairFctn2D
  };
 /***********************************************************************/
 /***********************************************************************/
+class AliHBTTwoKStarResolVsKtFctn: public AliHBTTwoPairFctn2D
+ {
+  public: 
+   AliHBTTwoKStarResolVsKtFctn(Int_t nXbins = 200, Double_t maxXval = 1., Double_t minXval = 0.0, 
+                             Int_t nYbins = 500, Double_t maxYval = .05, Double_t minYval =-0.05);
+   virtual ~AliHBTTwoKStarResolVsKtFctn(){};
+
+   void GetValues(AliHBTPair* trackpair, AliHBTPair* partpair, Double_t& x, Double_t& y) const;
+   TH1* GetResult(){return this->fNumerator;} 
+   ClassDef(AliHBTTwoKStarResolVsKtFctn,1)
+ };
+/***********************************************************************/
+/***********************************************************************/
 class AliHBTQOutResolVsKtFctn: public AliHBTTwoPairFctn2D
  {
   public: 
