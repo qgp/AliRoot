@@ -78,7 +78,6 @@ void Config(){
     //gener->SetVertexSmear(perTrack); 
     // Field (L3 0.4 T)
     //AliMagFMaps* field = new AliMagFMaps("Maps","Maps", 2, 1., 10., 1);
-    rootfile->cd();
     //gAlice->SetField(field);
 
     Int_t   iHALL  =  0;
