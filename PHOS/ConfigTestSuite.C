@@ -14,7 +14,7 @@ void Config()
     // Theta range given through pseudorapidity limits 22/6/2001
 
     // Set Random Number seed
-  AliLoader::SetDebug(5) ; 
+    // AliLoader::SetDebug(5) ; 
     gRandom->SetSeed(12345);
 
 
@@ -112,7 +112,7 @@ void Config()
 //     gener->Init();
 
     AliGenBox *gener = new AliGenBox(1);
-    gener->SetMomentumRange(50,51.);
+    gener->SetMomentumRange(10,11.);
     gener->SetPhiRange(270.5,270.7);
     gener->SetThetaRange(90.5,90.7);
 
