@@ -163,14 +163,10 @@ Int_t AliLoader::LoadData(AliLoaderDataInfo& di,Option_t* opt)
   if (GetDebug()) Info("LoadData","name=%s, data type = %s, option = %s",GetName(),di.Name().Data(),opt);
   if (Tree(di))
    {
-    TString sopt(opt);
-    if( sopt.Contains("force",TString::kIgnoreCase) != 0)
-     {
-       Warning("LoadData","Data <<%s>> are already loaded. Use FORCE option to force reload. Nothing done",di.Name().Data());
-       return 0;
-     }
-    //else force option was used
+      Warning("LoadData","Data <<%s>> are already loaded. Use ReloadData to force reload. Nothing done",di.Name().Data());
+      return 0;
    }
+    //else force option was used
   SetFileOption(di,opt);
 
   Int_t retval;
@@ -1174,6 +1170,7 @@ void AliLoader::MakeTracksContainer()
   MakeTree(kTracks);
  }
 /*****************************************************************************/ 
+
 Int_t AliLoader::PostData(AliLoaderDataInfo& di)
 {
 //Posts the SDigits container to proper folder
@@ -1192,6 +1189,11 @@ Int_t AliLoader::PostData(AliLoaderDataInfo& di)
    {
      //if such an obejct already exists - remove it first
      TObject* obj = GetDetectorDataFolder()->FindObject(di.ContainerName());
+     if (tree == obj)
+      {
+        if (GetDebug()) Info("PostData","This object is already in folder.");
+        return 0;
+      }
      if (obj)
       {
         Warning("PostData","Object named %s already exitsts in %s data folder. Removing it",
@@ -1208,8 +1210,6 @@ Int_t AliLoader::PostData(AliLoaderDataInfo& di)
    }
   return 0;
 }
-
-
 /*****************************************************************************/ 
 
 Int_t AliLoader::PostSDigitizer()
@@ -1312,7 +1312,6 @@ Int_t AliLoader::PostReconstructioner()
     }
   
    return PostReconstructioner(task);
-
  }
 /*****************************************************************************/ 
 
