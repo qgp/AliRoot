@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.1.2.2  2002/09/18 14:34:44  iglez2
+Revised version with all pure virtual methods implemented
+
 Revision 1.1.2.1  2002/07/24 08:49:41  alibrary
 Adding TFluka to VirtualMC
 
@@ -26,7 +29,8 @@ First commit of Fluka interface.
 #include <iostream.h>
 
 #include "TFluka.h"
-#include "TCallf77.h"
+#include "TCallf77.h" //For the fortran calls
+#include "Fdblprc.h"  //(DBLPRC) fluka common
 
 
 #define METHODDEBUG
@@ -79,6 +83,11 @@ void TFluka::Init() {
 #ifdef METHODDEBUG
   cout << "==> TFluka::Init() constructor called." << endl;
 #endif
+
+  cout << "\t* Changing lfdrtr = (" << (GLOBAL.lfdrtr?'T':'F')
+       << ") in fluka..." << endl;
+  GLOBAL.lfdrtr = true;
+
   cout << "\t* Calling flukam..." << endl;
   flukam(0);
 
