@@ -1,8 +1,0 @@
-SRCS:= AliPMD.cxx AliPMDv0.cxx AliPMDv1.cxx AliPMDRecPoint.cxx
-       
-
-HDRS:= $(SRCS:.cxx=.h) 
-
-EHDRS:=$(ROOTSYS)/include/TClonesArray.h 
-
-DHDR:=PMDLinkDef.h
