@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.16  2003/03/26 13:30:35  morsch
+SetTrackIsExiting, SetTrackIsEntering, SetTrackIsInside added.
+
 Revision 1.15  2003/02/18 16:12:17  morsch
 Protect  mpdgha against negative argument.
 

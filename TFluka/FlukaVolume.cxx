@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.1  2002/12/06 12:29:26  morsch
+Transient store for volume information.
+
 */
 
 //
