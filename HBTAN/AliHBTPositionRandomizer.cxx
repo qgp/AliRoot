@@ -16,12 +16,16 @@
 
 ClassImp(AliHBTPositionRandomizer)
 
+const Int_t AliHBTPositionRandomizer::fgkNumberOfPids = 10;
+
 /*********************************************************************/
 
 AliHBTPositionRandomizer::AliHBTPositionRandomizer():
  fReader(0x0),
- fRandomizer(0x0),
- fModel(0),
+ fDefaultRandomizer(0x0),
+ fRandomizers(0x0),
+ fNPid(0),
+ fPids(0x0),
  fAddToExistingPos(kFALSE),
  fOnlyParticlesFromVertex(kFALSE),
  fRandomizeTracks(kFALSE),
@@ -35,8 +39,9 @@ AliHBTPositionRandomizer::AliHBTPositionRandomizer():
 
 AliHBTPositionRandomizer::AliHBTPositionRandomizer(AliReader* reader):
  fReader(reader),
- fRandomizer(new AliHBTRndmGaussBall(8.0,0.0,0.0)),
- fModel(0),
+ fRandomizers(new TObjArray(fgkNumberOfPids)),
+ fNPid(1),
+ fPids(new Int_t[fgkNumberOfPids]),
  fAddToExistingPos(kFALSE),
  fOnlyParticlesFromVertex(kFALSE),
  fRandomizeTracks(kFALSE),
@@ -45,14 +50,16 @@ AliHBTPositionRandomizer::AliHBTPositionRandomizer(AliReader* reader):
  fVZ(0.0)
 {
 //constructor
+ fRandomizers->AddAt(new AliHBTRndmGaussBall(8.0,0.0,0.0),0);
 } 
 /*********************************************************************/
 
 AliHBTPositionRandomizer::AliHBTPositionRandomizer(const AliHBTPositionRandomizer& in):
  AliReader(in),
  fReader(),
- fRandomizer(0x0),
- fModel(0),
+ fRandomizers(0x0),
+ fNPid(0),
+ fPids(0x0),
  fAddToExistingPos(kFALSE),
  fOnlyParticlesFromVertex(kFALSE),
  fRandomizeTracks(kFALSE),
@@ -68,7 +75,8 @@ AliHBTPositionRandomizer::~AliHBTPositionRandomizer()
 {
   //dtor
   delete fReader;
-  delete fRandomizer;
+  delete fRandomizers;
+  delete [] fPids;
 }
 /*********************************************************************/
 AliHBTPositionRandomizer& AliHBTPositionRandomizer::operator=(const AliHBTPositionRandomizer& in)
@@ -130,7 +138,8 @@ void AliHBTPositionRandomizer::Randomize(AliAOD* event) const
    {
      AliVAODParticle* p = event->GetParticle(i);
      Double_t x,y,z,t=0.0;
-     fRandomizer->Randomize(x,y,z,t,p);
+     AliHBTRndm* r = GetRandomizer(p->GetPdgCode());
+     r->Randomize(x,y,z,t,p);
      
      Double_t nx = x*kfmtocm;
      Double_t ny = y*kfmtocm;
@@ -150,26 +159,78 @@ void AliHBTPositionRandomizer::Randomize(AliAOD* event) const
 }
 /*********************************************************************/
 
-void AliHBTPositionRandomizer::SetGaussianBall(Double_t r, Double_t meantime, Double_t sigmatime)
+AliHBTRndm* AliHBTPositionRandomizer::GetRandomizer(Int_t pdg) const
 {
- //Sets Gaussian Ball Model
-  SetGaussianBall(r,r,r,meantime,sigmatime);
+  //returns randomizer for a given pdg 
+  Int_t idx = GetRandomizerIndex(pdg);//in most of cases 
+  if (idx < 0) idx = 0;//if not found return a default one
+  return (AliHBTRndm*)fRandomizers->At(idx);
+}
+/*********************************************************************/
+Int_t AliHBTPositionRandomizer::GetRandomizerIndex(Int_t pdg) const
+{
+  //returns randomizer index for a given pdg 
+
+  if (pdg == 0) return 0;
+  
+  for (Int_t i=1; i < fNPid; i++)
+   {
+     if (fPids[i] == pdg) 
+      return i;
+   }
+   
+  return -1;
 }
 /*********************************************************************/
 
-void AliHBTPositionRandomizer::SetGaussianBall(Double_t rx, Double_t ry, Double_t rz, Double_t meantime, Double_t sigmatime)
+void AliHBTPositionRandomizer::SetRandomizer(Int_t pid, AliHBTRndm* rndm)
 {
- //Sets Gaussian Ball Model
-  delete fRandomizer;
-  fRandomizer = new AliHBTRndmGaussBall(rx,ry,rz,meantime,sigmatime);
+ //sets the randomizer for a given particle type
+  if (rndm == 0x0)
+   {
+     Error("SetRandomizer","Randomizer is null");
+     return;
+   }
+   
+  Int_t idx = GetRandomizerIndex(pid);
+  if (idx >= 0) 
+   {
+     delete fRandomizers->At(idx);
+     fRandomizers->AddAt(rndm,idx);
+   }  
+  
+  if (fNPid == fgkNumberOfPids)
+   {
+     Error("SetRandomizer","There is no more space in the array");
+     return;
+   }
+
+  fPids[fNPid] = pid;
+  fRandomizers->AddAt(rndm,fNPid);
+  fNPid++;
 }
 /*********************************************************************/
 
-void AliHBTPositionRandomizer::SetCyllinderSurface(Double_t r, Double_t l)
+void AliHBTPositionRandomizer::SetGaussianBall(Int_t pid, Double_t r, Double_t meantime, Double_t sigmatime)
+{
+ //Sets Gaussian Ball Model
+  SetGaussianBall(pid,r,r,r,meantime,sigmatime);
+}
+/*********************************************************************/
+
+void AliHBTPositionRandomizer::SetGaussianBall(Int_t pid, Double_t rx, Double_t ry, Double_t rz, Double_t meantime, Double_t sigmatime)
+{
+ //Sets Gaussian Ball Model
+  AliHBTRndm* rndm = new AliHBTRndmGaussBall(rx,ry,rz,meantime,sigmatime);
+  SetRandomizer(pid,rndm);
+}
+/*********************************************************************/
+
+void AliHBTPositionRandomizer::SetCyllinderSurface(Int_t pid, Double_t r, Double_t l)
 {
  //Sets Cylinder Surface Model
-  delete fRandomizer;
-  fRandomizer = new  AliHBTRndmCyllSurf(r,l);
+  AliHBTRndm* rndm = new  AliHBTRndmCyllSurf(r,l);
+  SetRandomizer(pid,rndm);
 }
 /*********************************************************************/
 
@@ -182,10 +243,11 @@ void AliHBTPositionRandomizer::SetEventVertex(Double_t x, Double_t y,Double_t z)
 }
 
 
-void AliHBTPositionRandomizer::SetEllipse(Double_t rx, Double_t ryz)
+void AliHBTPositionRandomizer::SetEllipse(Int_t pid, Double_t rx, Double_t ryz)
 {
-   delete fRandomizer;
-   fRandomizer = new AliHBTRndmEllipse(rx,ryz);
+//sets the ellipse randomization for the given pid
+  AliHBTRndm* rndm = new AliHBTRndmEllipse(rx,ryz);
+  SetRandomizer(pid,rndm);   
 }
 
 /*********************************************************************/
