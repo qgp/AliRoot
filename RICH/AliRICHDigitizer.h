@@ -20,7 +20,7 @@ public:
         
   void     Exec(Option_t* option=0);                //virtual
   Bool_t   Init();                                  //virtual
-  Bool_t   GetDebug() const {return ((gAlice) ? gAlice->GetDebug() : kFALSE);}
+  Bool_t   GetDebug() const {return gAlice->GetDebug();}
   AliRICH* Rich()     const {return fRich;}
 protected:
   AliRICH* fRich; //pointer to main RICH object

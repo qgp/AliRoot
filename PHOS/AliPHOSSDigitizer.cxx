@@ -70,7 +70,7 @@ ClassImp(AliPHOSSDigitizer)
   AliPHOSSDigitizer::AliPHOSSDigitizer():TTask("","")
 {
   // ctor
-  fFirstEvent = fLastEvent  = 0 ;  
+  InitParameters() ;
   fDefaultInit = kTRUE ; 
 }
 
@@ -81,7 +81,6 @@ AliPHOSSDigitizer::AliPHOSSDigitizer(const char * alirunFileName, const char * e
 {
 
   // ctor
-  fFirstEvent = fLastEvent  = 0 ; // runs one event by defaut  
   InitParameters() ; 
   Init();
   fDefaultInit = kFALSE ; 
@@ -93,8 +92,6 @@ AliPHOSSDigitizer::AliPHOSSDigitizer(const AliPHOSSDigitizer & sd)
 {
   //cpy ctor 
 
-  fFirstEvent    = sd.fFirstEvent ; 
-  fLastEvent     = sd.fLastEvent ;
   fA             = sd.fA ;
   fB             = sd.fB ;
   fPrimThreshold = sd.fPrimThreshold ;
@@ -144,6 +141,7 @@ void AliPHOSSDigitizer::InitParameters()
   fB             = 10000000.;
   fPrimThreshold = 0.01 ;
   fSDigitsInRun  = 0 ;
+  SetEventRange(0,-1) ;
 }
 
 //____________________________________________________________________________
@@ -165,7 +163,7 @@ void AliPHOSSDigitizer::Exec(Option_t *option)
   if(strstr(option,"tim"))
     gBenchmark->Start("PHOSSDigitizer");
   
-  AliPHOSGetter * gime = AliPHOSGetter::Instance(GetTitle()) ;
+  AliPHOSGetter * gime = AliPHOSGetter::Instance() ;
 
   //switch off reloading of this task while getting event
   if (!fInit) { // to prevent overwrite existing file
@@ -173,15 +171,18 @@ void AliPHOSSDigitizer::Exec(Option_t *option)
     return ;
   }
 
+
   if (fLastEvent == -1) 
     fLastEvent = gime->MaxEvent() - 1 ;
   else 
-    fLastEvent = TMath::Min(fFirstEvent, gime->MaxEvent()); // only ine event at the time 
+    fLastEvent = TMath::Min(fLastEvent,gime->MaxEvent());
   Int_t nEvents   = fLastEvent - fFirstEvent + 1;
   
   Int_t ievent ;
   for (ievent = fFirstEvent; ievent <= fLastEvent; ievent++) {
+
     gime->Event(ievent,"H") ;
+
     TTree * treeS = gime->TreeS(); 
     TClonesArray * hits = gime->Hits() ;
     TClonesArray * sdigits = gime->SDigits() ;
@@ -305,7 +306,7 @@ void AliPHOSSDigitizer::PrintSDigits(Option_t * option)
       digit = dynamic_cast<AliPHOSDigit *>( sdigits->At(index) ) ;
       //  if(digit->GetNprimary() == 0) 
       // 	continue;
-      printf("%6d  %8d    %6.5e %4d      %2d :\n",
+      printf("%6d  %8d    %6.5e %4d      %2d :",
   	      digit->GetId(), digit->GetAmp(), digit->GetTime(), digit->GetIndexInList(), digit->GetNprimary()) ;  
       Int_t iprimary;
       for (iprimary=0; iprimary<digit->GetNprimary(); iprimary++) {

@@ -69,10 +69,6 @@ AliHBTFunction::AliHBTFunction(const AliHBTFunction & source):
 AliHBTFunction::~AliHBTFunction()
 {
 //destructor  
-  if (AliHBTParticle::GetDebug() > 1)
-   {
-     Info("~AliHBTFunction","Deleting %s",GetName());
-   }
   delete fPairCut;
 }
 /******************************************************************/
@@ -121,7 +117,6 @@ TH1* AliHBTFunction::GetRatio(Double_t normfactor)
     }
    TString str = fName + " ratio";
    TH1 *result = (TH1*)GetNumerator()->Clone(str.Data());
-   result->SetDirectory(0x0);
    
    result->SetTitle(str.Data());
    
@@ -206,37 +201,14 @@ void AliHBTFunction::InitFunction()
 {
 //Iniotializes fctn.: Resets histograms
 //In case histograms are not created in ctor, builds with default parameters
-  if (AliHBTParticle::GetDebug()>1) Info("InitFunction","%s",GetName());
+  Info("InitFunction","%s",GetName());
   if ( !(GetNumerator()&&GetDenominator()) ) BuildHistos();
   GetNumerator()->Reset();
   GetDenominator()->Reset();
 
   GetNumerator()->SetDirectory(0x0);
   GetDenominator()->SetDirectory(0x0);
-  if (AliHBTParticle::GetDebug()>1) Info("InitFunction","Done");
-}
-/******************************************************************/
-/******************************************************************/
-/******************************************************************/
-ClassImp(AliHBTCorrelFunction)
-//____________________________________________
-//////////////////////////////////////////////
-//
-// class AliHBTCorrelFunction
-// 
-// Base class for correlation fuctions, that is which returns ratio.
-// Stores pointer the created ratio histogram and deletes it when function is deleted
-// created in order to evoid memory leak 
-//
-////////////////////////////////////////////////////////
-AliHBTCorrelFunction& AliHBTCorrelFunction::operator=(const AliHBTCorrelFunction& in)
-{
- //assigment operator
-  if (&in == this) return *this;
-  delete fRatio;
-  fRatio=(in.fRatio)?(TH1*)in.fRatio->Clone():0x0;
-  fRatio->SetDirectory(0x0);
-  return *this;
+  Info("InitFunction","Done");
 }
 
 /******************************************************************/

@@ -34,7 +34,6 @@ class AliTPCtrack;
 
 //_____________________________________________________________________________
 class AliITStrackV2 : public AliKalmanTrack {
-  friend class AliITStrackerV2;
 public:
   AliITStrackV2();
   AliITStrackV2(const AliTPCtrack& t) throw (const Char_t *);

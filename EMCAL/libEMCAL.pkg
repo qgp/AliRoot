@@ -23,6 +23,7 @@ AliEMCALJet.cxx \
 AliEMCALFast.cxx \
 AliEMCALTick.cxx \
 AliEMCALRecPoint.cxx \
+AliEMCALTowerRecPoint.cxx \
 AliEMCALClusterizer.cxx \
 AliEMCALClusterizerv1.cxx \
 AliEMCALHadronCorrection.cxx \

@@ -27,12 +27,11 @@
 
 #include "AliKalmanTrack.h"
 #include "AliITSVertexer.h"
-#include "AliESD.h"
 
 #include <TObjArray.h>
 
 class TTree; 
-class AliESDVertex; 
+class AliITSVertex; 
 
 class AliITSVertexerTracks : public AliITSVertexer {
   
@@ -40,39 +39,33 @@ class AliITSVertexerTracks : public AliITSVertexer {
   // default constructor
   AliITSVertexerTracks();  
   // standard constructor     
-  AliITSVertexerTracks(TFile *inFile,TFile *outFile,
-		       Double_t field=0.4,Int_t fEv=0,Int_t lEv=0,
-		       Double_t xStart=0.,Double_t yStart=0.);
-  // alternative constructor
   AliITSVertexerTracks(Double_t field, TString fn,
-		       Double_t xStart=0,Double_t yStart=0); 
+                      Double_t xStart=0,Double_t yStart=0,Int_t useThFr=0); 
   // destructor
-  ~AliITSVertexerTracks();
+  virtual ~AliITSVertexerTracks() {}
   // return vertex from the set of tracks in the tree
-  AliESDVertex* VertexOnTheFly(TTree &trkTree);
+  AliITSVertex *VertexOnTheFly(TTree &trkTree);
   // computes the vertex for the current event
-  virtual AliESDVertex* FindVertexForCurrentEvent(Int_t evnumb);
-  // computes the vertex for the current event using the ESD
-  AliESDVertex*         FindVertexForCurrentEvent(AliESD *esdEvent);
+  virtual AliITSVertex*    FindVertexForCurrentEvent(Int_t evnumb);
   // computes the vertex for each event and stores it on file
   virtual void  FindVertices();
-  // computes the vertex for each event and stores it in the ESD
-  void FindVerticesESD();
   virtual void  PrintStatus() const;
+  // computes the vertex for the current event    
   void  SetField(Double_t field) const
     { AliKalmanTrack::SetConvConst(100./0.299792458/field); return; }
-  void  SetMinTracks(Int_t n=2) { fMinTracks = n; return; }
-  void  SetSkipTracks(Int_t n,Int_t *skipped); 
+  void  SetMinTracks(Int_t n=3) { fMinTracks = n; return; }
+  void  SetSkipTracks(Int_t n,Int_t *skipped);
+  void  SetUseThrustFrame(Int_t utf=0) { fUseThrustFrame = utf; return; } 
   void  SetVtxStart(Double_t x=0,Double_t y=0) 
     { fNominalPos[0]=x; fNominalPos[1]=y; return; }
   
  private:
-  TFile    *fInFile;          // input file (with tracks)
-  TFile    *fOutFile;         // output file for vertices
   Double_t  fInitPos[3];      // vertex position after vertex finder
   Double_t  fNominalPos[2];   // initial knowledge on vertex position
   Int_t     fMinTracks;       // minimum number of tracks
   Double_t  fMaxChi2PerTrack; // maximum contribition to the chi2 
+  Int_t     fUseThrustFrame;  // if !=0 vertex is given in thrust ref. frame 
+  Double_t  fPhiThrust;       // thrust direction
   TObjArray fTrkArray;        // array with tracks to be processed
   Int_t     *fTrksToSkip;     // tracks to be skipped for find and fit 
   Int_t     fNTrksToSkip;     // number of tracks to be skipped 
@@ -80,6 +73,9 @@ class AliITSVertexerTracks : public AliITSVertexer {
   Bool_t   CheckField() const; 
   void     ComputeMaxChi2PerTrack(Int_t nTracks);
   Int_t    PrepareTracks(TTree &trkTree);
+  void     SetPhiThrust(Double_t phi=0.) { fPhiThrust=phi; return; } 
+  Double_t SumPl(TTree &momTree,Double_t phi) const;
+  void     ThrustFinderXY();
   void     TooFewTracks();
   void     VertexFinder();
   void     VertexFitter();

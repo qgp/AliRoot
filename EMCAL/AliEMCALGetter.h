@@ -37,6 +37,7 @@ class AliEMCAL ;
 class AliEMCALGeometry ; 
 class AliEMCALClusterizer ; 
 class AliEMCALRecPoint ; 
+class AliEMCALTowerRecPoint ; 
 class AliEMCALTrackSegmentMaker ;
 class AliEMCALTrackSegment ; 
 class AliEMCALPID ; 
@@ -132,7 +133,7 @@ class AliEMCALGetter : public TObject {
   
   //========== RecPoints =============
   TObjArray *             ECARecPoints() const;
-  AliEMCALRecPoint * ECARecPoint(Int_t index) const{ return static_cast<AliEMCALRecPoint *>(ECARecPoints()->At(index)) ;}    
+  AliEMCALTowerRecPoint * ECARecPoint(Int_t index) const{ return static_cast<AliEMCALTowerRecPoint *>(ECARecPoints()->At(index)) ;}    
   TTree *                 TreeR() const ;
   AliEMCALClusterizer *   Clusterizer()  ;
   TString                 GetRecPointsFileName() const { return EmcalLoader()->GetRecPointsFileName() ; } 
@@ -158,7 +159,7 @@ class AliEMCALGetter : public TObject {
   //========== RecParticles ===========
 
   TClonesArray *         RecParticles() const ;
-  AliEMCALRecParticle *  RecParticle(Int_t index) const { return static_cast<AliEMCALRecParticle *>(RecParticles()->At(index)) ;} 
+  AliEMCALRecParticle *   RecPaticles(Int_t index) const { return static_cast<AliEMCALRecParticle *>(RecParticles()->At(index)) ;} 
   TTree *               TreeP() const ;
   AliEMCALPID * PID() ;
   TString               GetRecParticlesFileName() const { return EmcalLoader()->GetRecParticlesFileName() ; } 
@@ -184,7 +185,7 @@ class AliEMCALGetter : public TObject {
 
   TString Version() const  { return EmcalLoader()->GetTitle() ; } 
   AliEMCALLoader * EmcalLoader() const { return  fgEmcalLoader ; }
-  void Reset() ;  
+  void Reset() {fgEmcalLoader = 0; fgObjGetter = 0; }
 
 private:
   
@@ -222,7 +223,7 @@ private:
   enum EDataTypes{kHits,kSDigits,kDigits,kRecPoints,kTracks,kNDataTypes};
 
 
-  ClassDef(AliEMCALGetter,3)  // Algorithm class that provides methods to retrieve objects from a list knowing the index 
+  ClassDef(AliEMCALGetter,2)  // Algorithm class that provides methods to retrieve objects from a list knowing the index 
 
 };
 

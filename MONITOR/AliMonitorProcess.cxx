@@ -306,15 +306,14 @@ Bool_t AliMonitorProcess::CheckForNewFile()
 #if ROOT_VERSION_CODE <= 199169   // 3.10/01
   TGridResult* result = fGrid->Ls();
 #else
+//  Grid_ResultHandle_t handle = fGrid->OpenDir(fAlienDir);
   TDatime datime;
-  char dirName[256];
-  sprintf(dirName, "%s/adc-%d", fAlienDir.Data(), datime.GetDate());
   char findName[256];
-  sprintf(findName, "*.root");
-  Grid_ResultHandle_t handle = fGrid->Find(dirName, findName);
+  sprintf(findName, "*_%d_*.root", datime.GetDate());
+  Grid_ResultHandle_t handle = fGrid->Find(fAlienDir, findName);
   if (!handle) {
     Error("CheckForNewFile", "could not open alien directory %s", 
-	  dirName);
+	  fAlienDir.Data());
     return kFALSE;
   }
   TGridResult* result = fGrid->CreateGridResult(handle);
@@ -357,7 +356,7 @@ Bool_t AliMonitorProcess::CheckForNewFile()
   result = fGrid->GetPhysicalFileNames(fLogicalFileName.Data());
   fFileName = result->Next();
 #else
-  fileName = dirName + ("/" + fLogicalFileName);
+  fileName = fAlienDir + "/" + fLogicalFileName;
   handle = fGrid->GetPhysicalFileNames(fileName.Data());
   if (!handle) {
     Error("CheckForNewFile", "could not get physical file names for %s", 
@@ -574,7 +573,6 @@ Bool_t AliMonitorProcess::ReconstructTPC(AliRawReader* rawReader)
     tracker.Clusters2Tracks();
     tracker.WriteTracks();
     tracker.UnloadClusters();
-    tpcLoader->WriteTracks("OVERWRITE");
   }
 
   tpcLoader->UnloadRecPoints();
@@ -847,7 +845,7 @@ Bool_t AliMonitorProcess::ReconstructHLTHough(
       if(track->GetNHits() < 20) continue;
       ft->SortTrackClusters(track);
       ft->FitHelix(track);
-      track->UpdateToFirstPoint();
+      ft->UpdateTrack(track);
     }
   delete ft;
         

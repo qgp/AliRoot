@@ -23,7 +23,7 @@
 #include <Riostream.h>
 
 /*************************************************************************************/ 
-class AliHBTQInvCorrelFctn: public AliHBTOnePairFctn1D, public AliHBTCorrelFunction
+class AliHBTQInvCorrelFctn: public AliHBTOnePairFctn1D
 {
 //Q Invaraint Correlation Function
 //1D two particle function 
@@ -34,12 +34,12 @@ class AliHBTQInvCorrelFctn: public AliHBTOnePairFctn1D, public AliHBTCorrelFunct
  protected:
    Double_t GetValue(AliHBTPair * pair){return pair->GetQInv();}
  private:  
-   ClassDef(AliHBTQInvCorrelFctn,2)
+   ClassDef(AliHBTQInvCorrelFctn,1)
  
 };
 /*************************************************************************************/ 
 
-class AliHBTQOutCMSLCCorrelFctn: public AliHBTOnePairFctn1D, public AliHBTCorrelFunction
+class AliHBTQOutCMSLCCorrelFctn: public AliHBTOnePairFctn1D
 {
 //Q OutCMSLCaraint Correlation Function
 //1D two particle function 
@@ -50,11 +50,11 @@ class AliHBTQOutCMSLCCorrelFctn: public AliHBTOnePairFctn1D, public AliHBTCorrel
  protected:
    Double_t GetValue(AliHBTPair * pair){return pair->GetQOutCMSLC();}
  private:  
-    ClassDef(AliHBTQOutCMSLCCorrelFctn,2)
+    ClassDef(AliHBTQOutCMSLCCorrelFctn,1)
 };
 /*************************************************************************************/ 
 
-class AliHBTQLongCMSLCCorrelFctn: public AliHBTOnePairFctn1D, public AliHBTCorrelFunction
+class AliHBTQLongCMSLCCorrelFctn: public AliHBTOnePairFctn1D
 {
 //Q LongCMSLCaraint Correlation Function
 //1D two particle function 
@@ -65,11 +65,11 @@ class AliHBTQLongCMSLCCorrelFctn: public AliHBTOnePairFctn1D, public AliHBTCorre
  protected:
    Double_t GetValue(AliHBTPair * pair){return pair->GetQLongCMSLC();}
  private:  
-    ClassDef(AliHBTQLongCMSLCCorrelFctn,2)
+    ClassDef(AliHBTQLongCMSLCCorrelFctn,1)
 };
 /*************************************************************************************/ 
 
-class AliHBTQSideCMSLCCorrelFctn: public AliHBTOnePairFctn1D, public AliHBTCorrelFunction
+class AliHBTQSideCMSLCCorrelFctn: public AliHBTOnePairFctn1D
 {
 //Q SideCMSLCaraint Correlation Function
 //1D two particle function 
@@ -80,7 +80,7 @@ class AliHBTQSideCMSLCCorrelFctn: public AliHBTOnePairFctn1D, public AliHBTCorre
  protected:
    Double_t GetValue(AliHBTPair * pair){return pair->GetQSideCMSLC();}
  private:  
-    ClassDef(AliHBTQSideCMSLCCorrelFctn,2)
+    ClassDef(AliHBTQSideCMSLCCorrelFctn,1)
 };
 /*************************************************************************************/ 
 
@@ -99,7 +99,7 @@ class AliHBTInvMassCorrelFctn: public AliHBTOnePairFctn1D
 
 /*************************************************************************************/ 
 
-class AliHBTTwoKStarCorrelFctn: public AliHBTOnePairFctn1D, public AliHBTCorrelFunction
+class AliHBTTwoKStarCorrelFctn: public AliHBTOnePairFctn1D
 {
 //   Correlation Function of 2*KStar
  public:
@@ -109,7 +109,7 @@ class AliHBTTwoKStarCorrelFctn: public AliHBTOnePairFctn1D, public AliHBTCorrelF
  protected:
    Double_t GetValue(AliHBTPair * pair) { return 2.0*pair->GetKStar();}
  private:  
-    ClassDef(AliHBTTwoKStarCorrelFctn,2)
+    ClassDef(AliHBTTwoKStarCorrelFctn,1)
 };
 
 #endif

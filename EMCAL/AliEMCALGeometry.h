@@ -95,6 +95,8 @@ public:
   	// for a given eta and phi in the EMCAL it returns the tower index.
   Int_t TowerIndexFromEtaPhi(Float_t eta,Float_t phi) const;
   	// for a given eta and phi in the EMCAL it returns the pretower index.
+  Int_t PreTowerIndexFromEtaPhi(Float_t eta,Float_t phi) const;
+  	// Returns theta and phi (degree) for a given EMCAL cell indicated by relid or absid
   void PosInAlice(const Int_t *relid, Float_t &theta, Float_t &phi) const ;
   void PosInAlice(Int_t absid, Float_t &theta, Float_t &phi) const ;
   Bool_t AbsToRelNumbering(Int_t AbsId, Int_t *relid) const;
@@ -133,7 +135,7 @@ private:
   Int_t   fNPhi;			// Number of Towers in the Phi Direction
   Float_t fSampling;			// Sampling factor
   
-  ClassDef(AliEMCALGeometry,8) // EMCAL geometry class 
+  ClassDef(AliEMCALGeometry,7) // EMCAL geometry class 
     
     };
 

@@ -112,16 +112,10 @@ the AliITS class.
 #include "AliITSDigitizer.h"
 #include "AliITSclustererV2.h"
 #include "AliITStrackerV2.h"
-#include "AliITStrackerSA.h"
 #include "AliITSpidESD.h"
 #include "AliV0vertexer.h"
-#include "AliITSVertexerPPZ.h"
-#include "AliITSVertexerFast.h"
-#include "AliITSVertexerZ.h"
-#include "AliITSVertexerIons.h"
 #include "AliCascadeVertexer.h"
 #include "AliESD.h"
-#include "AliRun.h"
 
 ClassImp(AliITS)
 
@@ -169,7 +163,6 @@ AliITS::AliITS() : AliDetector() {
     fNRecPoints = 0;
 
     SetMarkerColor(kRed);
-    SelectVertexer(" ");
 }
 //______________________________________________________________________
 AliITS::AliITS(const char *name, const char *title):AliDetector(name,title){
@@ -228,7 +221,7 @@ AliITS::AliITS(const char *name, const char *title):AliDetector(name,title){
     } // end for i
 
     SetMarkerColor(kRed);
-    SelectVertexer(" ");
+
 }
 //______________________________________________________________________
 AliITS::~AliITS(){
@@ -737,7 +730,7 @@ void AliITS::InitModules(Int_t size,Int_t &nmodules){
 }
 //______________________________________________________________________
 void AliITS::FillModules(Int_t evnt,Int_t bgrev,Int_t nmodules,
-                         Option_t *option, const char *filename){
+                         Option_t *option,Text_t *filename){
     // fill the modules with the sorted by module hits; add hits from
     // background if option=Add.
     // Inputs:
@@ -1094,7 +1087,7 @@ void AliITS::Hits2Digits(){
 }
 //______________________________________________________________________
 void AliITS::HitsToSDigits(Int_t evNumber,Int_t bgrev,Int_t size,
-                          Option_t *option, Option_t *opt, const char *filename){
+                          Option_t *option, Option_t *opt,Text_t *filename){
     // keep galice.root for signal and name differently the file for 
     // background when add! otherwise the track info for signal will be lost !
     // the condition below will disappear when the geom class will be
@@ -1119,7 +1112,7 @@ void AliITS::HitsToSDigits(Int_t evNumber,Int_t bgrev,Int_t size,
 }
 //______________________________________________________________________
 void AliITS::HitsToPreDigits(Int_t evNumber,Int_t bgrev,Int_t size,
-                          Option_t *option, Option_t *opt, const char *filename){
+                          Option_t *option, Option_t *opt,Text_t *filename){
     //   Keep galice.root for signal and name differently the file for 
     // background when add! otherwise the track info for signal will be lost !
     // the condition below will disappear when the geom class will be
@@ -1183,7 +1176,7 @@ void AliITS::HitsToPreDigits(Int_t evNumber,Int_t bgrev,Int_t size,
 }
 //______________________________________________________________________
 void AliITS::HitsToDigits(Int_t evNumber,Int_t bgrev,Int_t size,
-                          Option_t *option, Option_t *opt, const char *filename){
+                          Option_t *option, Option_t *opt,Text_t *filename){
     //   Keep galice.root for signal and name differently the file for 
     // background when add! otherwise the track info for signal will be lost !
     // the condition below will disappear when the geom class will be
@@ -1612,7 +1605,7 @@ void AliITS::AddRecPoint(const AliITSRecPoint &r){
 }
 //______________________________________________________________________
 void AliITS::HitsToFastRecPoints(Int_t evNumber,Int_t bgrev,Int_t size,
-                                  Option_t *opt0,Option_t *opt1, const char *flnm){
+                                  Option_t *opt0,Option_t *opt1,Text_t *flnm){
     // keep galice.root for signal and name differently the file for 
     // background when add! otherwise the track info for signal will be lost !
     // the condition below will disappear when the geom class will be
@@ -1819,29 +1812,7 @@ AliTracker* AliITS::CreateTracker() const
 {
 // create an ITS tracker
 
-  return new AliITStrackerSA(GetITSgeom());
-}
-//_____________________________________________________________________________
-AliVertexer* AliITS::CreateVertexer() const
-{
-  // create a ITS vertexer
-
-  if(fSelectedVertexer.Contains("ions") || fSelectedVertexer.Contains("IONS")){
-    Info("CreateVertexer","a AliITSVertexerIons object has been selected\n");
-    return new AliITSVertexerIons("null");
-  }
-  if(fSelectedVertexer.Contains("smear") || fSelectedVertexer.Contains("SMEAR")){
-    Double_t smear[3]={0.005,0.005,0.01};
-    Info("CreateVertexer","a AliITSVertexerFast object has been selected\n"); 
-    return new AliITSVertexerFast(smear);
-  }
-  if(fSelectedVertexer.Contains("ppz") || fSelectedVertexer.Contains("PPZ")){
-    Info("CreateVertexer","a AliITSVertexerPPZ object has been selected\n");
-    return new AliITSVertexerPPZ("null");
-  }
-  // by default an AliITSVertexerZ object is instatiated
-  Info("CreateVertexer","a AliITSVertexerZ object has been selected\n");
-  return new AliITSVertexerZ("null");
+  return new AliITStrackerV2(GetITSgeom());
 }
 
 //_____________________________________________________________________________
@@ -1864,8 +1835,7 @@ void AliITS::FillESD(AliESD* esd) const
   };
   AliV0vertexer vtxer(cuts);
   Double_t vtx[3], cvtx[6];
-  esd->GetVertex()->GetXYZ(vtx);
-  esd->GetVertex()->GetSigmaXYZ(cvtx);
+  esd->GetVertex(vtx, cvtx);
   vtxer.SetVertex(vtx);
   vtxer.Tracks2V0vertices(esd);
 

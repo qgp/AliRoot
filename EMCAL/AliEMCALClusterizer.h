@@ -14,7 +14,6 @@
 // --- ROOT system ---
 
 #include "TTask.h" 
-#include "AliConfig.h"
 
 // --- Standard library ---
 
@@ -26,7 +25,7 @@ public:
 
   AliEMCALClusterizer() ;        // default ctor
   AliEMCALClusterizer(const TString alirunFileName, const TString eventFolderName = AliConfig::fgkDefaultEventFolderName) ;
-  virtual ~AliEMCALClusterizer() ; // dtorEM
+  virtual ~AliEMCALClusterizer() ; // dtor
 
   virtual Float_t GetTowerClusteringThreshold()const {Warning("GetTowerClusteringThreshold", "Not Defined") ; return 0. ; }
   virtual Float_t GetTowerLocalMaxCut()const {Warning("GetTowerLocalMaxCut", "Not Defined") ; return 0. ; }

@@ -23,6 +23,8 @@
 // -0.7 to 0.7 in eta 
 // Number of Modules and Layers may be controlled by 
 // the name of the instance defined               
+// EMCALArch2x has more modules along both phi and eta
+// EMCALArchxa has less Layers in the Radial Direction
 //*-- Author: Sahal Yacoob (LBL / UCT)
 //     and  : Yves Schutz (SUBATECH)
 //     and  : Jennifer Klay (LBL)
@@ -164,10 +166,9 @@ Int_t AliEMCALGeometry::TowerIndex(Int_t ieta,Int_t iphi) const {
   //   Int_t index // Tower index number 
   
   if ( (ieta <= 0 || ieta>GetNEta()) || 
-       (iphi <= 0 || iphi>GetNPhi())) {
-    Error("TowerIndex", "Unexpected parameters eta = %d phi = %d!", ieta, iphi) ; 
-    return -1;
-  }
+       (iphi <= 0 || iphi>GetNPhi())) 
+    Fatal("TowerIndex", "Unexpected parameters eta = %d phi = %d!", ieta, iphi) ; 
+  
   return ( (iphi - 1)*GetNEta() + ieta ); 
 }
 
@@ -186,13 +187,9 @@ void AliEMCALGeometry::TowerIndexes(Int_t index,Int_t &ieta,Int_t &iphi) const {
   if ( IsInECA(index) ) { // ECAL index
     nindex = index ;
   }
-  else {
-    Error("TowerIndexes", "Unexpected Id number!") ;
-    ieta = -1;
-    iphi = -1;
-    return;
-  }   
-
+  else 
+    Fatal("TowerIndexes", "Unexpected Id number!") ;
+   
   if (nindex%GetNZ()) 
     iphi = nindex / GetNZ() + 1 ; 
   else 
@@ -262,20 +259,36 @@ Int_t AliEMCALGeometry::TowerIndexFromEtaPhi(Float_t eta,Float_t phi) const {
 }
 
 //______________________________________________________________________
+Int_t AliEMCALGeometry::PreTowerIndexFromEtaPhi(Float_t eta,Float_t phi) const {
+    // returns the pretower index number based on the eta and phi of the tower.
+    // Inputs:
+    //   Float_t eta  // eta of center of tower in pseudorapidity
+    //   Float_t phi  // phi of center of tower in degrees
+    // Outputs:
+    //   none.
+    // Returned
+    //   Int_t index // PreTower index number [fNZ*fNPhi-2*fNZ*fNPhi]
+
+    return GetNEta()*GetNPhi()+TowerIndexFromEtaPhi(eta,phi);
+}
+
+//______________________________________________________________________
 Bool_t AliEMCALGeometry::AbsToRelNumbering(Int_t AbsId, Int_t *relid) const {
     // Converts the absolute numbering into the following array/
-    //  relid[0] = Row number inside EMCAL
-    //  relid[1] = Column number inside EMCAL
+    //  relid[0] = EMCAL Arm number 1:1 
+    //  relid[1] = Row number inside EMCAL
+    //  relid[2] = Column number inside EMCAL
     // Input:
     //   Int_t AbsId // Tower index number [1-2*fNZ*fNPhi]
     // Outputs:
-    //   Int_t *relid // array of 2. Described above.
+    //   Int_t *relid // array of 3. Discribed above.
     Bool_t rv  = kTRUE ;
     Int_t ieta=0,iphi=0,index=AbsId;
 
     TowerIndexes(index,ieta,iphi);
-    relid[0] = ieta;
-    relid[1] = iphi;
+    relid[0] = 1;
+    relid[1] = ieta;
+    relid[2] = iphi;
 
     return rv;
 }
@@ -285,8 +298,8 @@ void AliEMCALGeometry::PosInAlice(const Int_t *relid, Float_t &theta, Float_t &p
 {
   // Converts the relative numbering into the local EMCAL-module (x, z)
   // coordinates
-  Int_t ieta = relid[0]; // offset along x axis
-  Int_t iphi = relid[1]; // offset along z axis
+  Int_t ieta = relid[1]; // offset along x axis
+  Int_t iphi = relid[2]; // offset along z axis
   Int_t index;
   Float_t eta;
   
@@ -312,10 +325,11 @@ void AliEMCALGeometry::PosInAlice(Int_t absid, Float_t &theta, Float_t &phi) con
 {
   // Converts the relative numbering into the local EMCAL-module (x, z)
   // coordinates
-  Int_t relid[2] ; 
+  
+  Int_t relid[3] ; 
   AbsToRelNumbering(absid, relid) ;
-  Int_t ieta = relid[0]; // offset along x axis
-  Int_t iphi = relid[1]; // offset along z axis
+  Int_t ieta = relid[1]; // offset along x axis
+  Int_t iphi = relid[2]; // offset along z axis
   Int_t index;
   Float_t eta;
   
@@ -327,10 +341,8 @@ void AliEMCALGeometry::PosInAlice(Int_t absid, Float_t &theta, Float_t &phi) con
   Float_t d = 0. ; 
   if (IsInECA(absid))
     d = GetIP2ECASection() - GetIPDistance() ; 
-  else {
-    Error("PosInAlice", "Unexpected id # %d!", absid) ; 
-    return;
-  }
+  else 
+    Fatal("PosInAlice", "Unexpected id # %d!", absid) ; 
 
   Float_t correction = 1 + d/GetIPDistance() ; 
   Float_t tantheta = TMath::Tan(theta) * correction ; 
@@ -355,8 +367,8 @@ void AliEMCALGeometry::XYZFromIndex(const Int_t *relid,Float_t &x,Float_t &y, Fl
     
     Float_t eta,theta, phi,cylradius=0. ;
     
-    Int_t ieta = relid[0]; // offset along x axis
-    Int_t iphi = relid[1]; // offset along z axis.
+    Int_t ieta   = relid[1]; // offset along x axis
+    Int_t iphi = relid[2]; // offset along z axis.
     Int_t index;
     
     index = TowerIndex(ieta,iphi);
@@ -391,10 +403,8 @@ void AliEMCALGeometry::XYZFromIndex(Int_t absid,  TVector3 &v) const {
     
     if ( IsInECA(absid) ) 
       cylradius = GetIP2ECASection() ;
-    else {
-      Error("XYZFromIndex", "Unexpected Tower section") ;
-      return;
-    }
+    else 
+      Fatal("XYZFromIndex", "Unexpected Tower section") ;  
 
     Double_t  kDeg2Rad = TMath::DegToRad() ; 
     v.SetX(cylradius * TMath::Cos(phi * kDeg2Rad ) );
@@ -403,3 +413,26 @@ void AliEMCALGeometry::XYZFromIndex(Int_t absid,  TVector3 &v) const {
  
  return;
 } 
+
+//______________________________________________________________________
+/*
+Boot_t AliEMCALGeometry::AreNeighbours(Int_t index1,Int_t index2) const {
+    // Returns kTRUE if the two towers are neighbours or not, including
+    // diagonals. Both indexes are required to be either towers or preshower.
+    // Inputs:
+    //   Int_t index1  // index of tower 1
+    //   Int_t index2  // index of tower 2
+    // Outputs:
+    //   none.
+    // Returned
+    //   Boot_t kTRUE if the towers are neighbours otherwise false.
+    Boot_t anb = kFALSE;
+    Int_t ieta1 = 0, ieta2 = 0, iphi1 = 0, iphi2 = 0;
+
+    TowerIndexes(index1,ieta1,iphi1);
+    TowerIndexes(index2,ieta2,iphi2);
+    if((ieta1>=ieta2-1 && ieta1<=ieta2+1) && (iphi1>=iphi2-1 &&iphi1<=iphi2+1))
+                                                                 anb = kTRUE;
+    return anb;
+}
+ */

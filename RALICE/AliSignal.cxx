@@ -835,7 +835,7 @@ void AliSignal::ResetLink(TObject* obj)
  }
 }
 ///////////////////////////////////////////////////////////////////////////
-TObject* AliSignal::Clone(const char* name)
+TObject* AliSignal::Clone(char* name)
 {
 // Make a deep copy of the current object and provide the pointer to the copy.
 // This memberfunction enables automatic creation of new objects of the

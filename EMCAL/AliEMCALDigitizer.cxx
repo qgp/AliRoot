@@ -163,7 +163,7 @@ void AliEMCALDigitizer::Digitize(Int_t event)
   Int_t ReadEvent = event ; 
   if (fManager) 
     ReadEvent = dynamic_cast<AliStream*>(fManager->GetInputStream(0))->GetCurrentEventNumber() ; 
-  Info("Digitize", "Adding event %d from input stream 0 %s %s", ReadEvent, GetTitle(), fEventFolderName.Data()) ; 
+  Info("Digitize", "Adding event %d from input stream 0", ReadEvent) ; 
   gime->Event(ReadEvent, "S") ;
   TClonesArray * digits = gime->Digits() ; 
   digits->Clear() ;
@@ -194,7 +194,7 @@ void AliEMCALDigitizer::Digitize(Int_t event)
     AliEMCALGetter * gime = AliEMCALGetter::Instance(fInputFileNames[i], tempo) ; 
     if (fManager) 
       ReadEvent = dynamic_cast<AliStream*>(fManager->GetInputStream(i))->GetCurrentEventNumber() ; 
-    Info("Digitize", "Adding event %d from input stream %d %s %s", ReadEvent, i, fInputFileNames[i].Data(), tempo.Data()) ; 
+    Info("Digitize", "Adding event %d from input stream %d", ReadEvent, i) ; 
     gime->Event(ReadEvent,"S");
     sdigArray->AddAt(gime->SDigits(), i) ;
   }
@@ -354,7 +354,7 @@ void AliEMCALDigitizer::Exec(Option_t *option)
   if(strstr(option,"tim"))
     gBenchmark->Start("EMCALDigitizer");
   
-  AliEMCALGetter * gime = AliEMCALGetter::Instance(GetTitle()) ;
+  AliEMCALGetter * gime = AliEMCALGetter::Instance() ;
    
   if (fLastEvent == -1) 
     fLastEvent = gime->MaxEvent() - 1 ;
@@ -458,14 +458,14 @@ Bool_t AliEMCALDigitizer::Init()
 void AliEMCALDigitizer::InitParameters()
 {
   fMeanPhotonElectron = 18200 ; // electrons per GeV
-  fPinNoise           = 0.003 ; // noise equivalent GeV (random choice)
+  fPinNoise           = 0.1 ; // noise equivalent GeV (random choice)
   if (fPinNoise == 0. ) 
     Warning("InitParameters", "No noise added\n") ; 
   fDigitThreshold     = fPinNoise * 3; //2 sigma
   fTimeResolution     = 1.0e-9 ;
   fTimeSignalLength   = 1.0e-9 ;
 
-  fADCchannelEC    = 0.00305;                     // width of one ADC channel in GeV - HG fix so that we see 200 GeV gammas
+  fADCchannelEC    = 0.00050;                     // width of one ADC channel in GeV
   fADCpedestalEC   = 0.005 ;                       // GeV
   fNADCEC          = (Int_t) TMath::Power(2,16) ;  // number of channels in Tower ADC
 

@@ -30,7 +30,6 @@
 #include <TDatabasePDG.h>
 #include <TLorentzVector.h>
 #include <TVirtualMC.h>
-#include <TROOT.h>
 
 #include <TF1.h>
 #include <TCanvas.h>
@@ -171,7 +170,6 @@ void AliGenParam::Init()
     
     if (fPtPara) fPtPara->Delete();
     fPtPara = new TF1(name, fPtParaFunc, fPtMin, fPtMax,0);
-    gROOT->GetListOfFunctions()->Remove(fPtPara);
 //  Set representation precision to 10 MeV
     Int_t npx= Int_t((fPtMax - fPtMin) / fDeltaPt);
     
@@ -180,8 +178,6 @@ void AliGenParam::Init()
     sprintf(name, "y-parameterisation  for %s", GetName());
     if (fYPara) fYPara->Delete();
     fYPara  = new TF1(name, fYParaFunc, fYMin, fYMax, 0);
-    gROOT->GetListOfFunctions()->Remove(fYPara);
-
     
     sprintf(name, "pt-for-%s", GetName());
     TF1 ptPara(name ,fPtParaFunc, 0, 15, 0);

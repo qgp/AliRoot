@@ -83,7 +83,7 @@ public:
   AliPHOSGeometry * PHOSGeometry() const ; 
   
   //========== Methods to read something from file ==========
-  void   Event(Int_t event, const char * opt = "HSDRTP") ;    
+  void   Event(Int_t event, const char * opt = "HSDRP") ;    
   void   Track(Int_t itrack) ;
   
   //-----------------now getter's data--------------------------------------
@@ -144,7 +144,7 @@ public:
   
   //========== TrackSegments   TClonesArray * TrackSegments(const char * name = 0) { 
   TClonesArray *           TrackSegments() ;
-  AliPHOSTrackSegment *  TrackSegment(Int_t index) { return static_cast<AliPHOSTrackSegment *>(TrackSegments()->At(index)) ;} 
+  AliPHOSTrackSegment *  TrackSegments(Int_t index) { return static_cast<AliPHOSTrackSegment *>(TrackSegments()->At(index)) ;} 
   TTree *               TreeT() const ;
   AliPHOSTrackSegmentMaker * TrackSegmentMaker() ;
   TString               GetTracksFileName() const { return PhosLoader()->GetTracksFileName() ; } 
@@ -157,7 +157,7 @@ public:
   
   //========== RecParticles ===========
   TClonesArray *         RecParticles() ;
-  AliPHOSRecParticle *   RecParticle(Int_t index) { return static_cast<AliPHOSRecParticle *>(RecParticles()->At(index)) ;} 
+  AliPHOSRecParticle *   RecPaticles(Int_t index) { return static_cast<AliPHOSRecParticle *>(RecParticles()->At(index)) ;} 
   TTree *               TreeP() const ;
   AliPHOSPID * PID() ;
   TString               GetRecParticlesFileName() const { return PhosLoader()->GetRecParticlesFileName() ; } 
@@ -182,7 +182,7 @@ public:
   
   TString Version() const  { return PhosLoader()->GetTitle() ; } 
   AliPHOSLoader * PhosLoader() const { return  fgPhosLoader ; }
-  void Reset() ;
+  void Reset() {fgPhosLoader = 0; fgObjGetter = 0; }
   
   AliESD * ESD(Int_t event = 0) ;
   Bool_t OpenESDFile(TString name = "AliESDs.root") ;

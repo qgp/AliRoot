@@ -143,8 +143,6 @@ void AliTOFDigitizer::Exec(Option_t* option)
   // free used memory for Hit Map in current event
   delete fhitMap;
   fSDigitsArray->Delete();
-  delete fSDigitsArray;
-
   treeD->Fill();
  
   outgime->WriteDigits("OVERWRITE");
@@ -324,11 +322,11 @@ void AliTOFDigitizer::ReadSDigit(Int_t inputFile )
       } // if (hitMap->TestHit(vol) != kEmpty)
       
     } // for (Int_t k=0; k<ndig; k++)
-    sdigitsDummyContainer->Delete();
 
   } // end loop on entries
 
-  delete sdigitsDummyContainer;
+  sdigitsDummyContainer->Delete();
+  sdigitsDummyContainer=0;
 
 }
 

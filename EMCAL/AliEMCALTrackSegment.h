@@ -18,7 +18,7 @@ class TClonesArray ;
 // --- Standard library ---
 
 // --- AliRoot header files ---
-#include "AliEMCALRecPoint.h" 
+#include "AliEMCALTowerRecPoint.h" 
 class AliEMCALRecPoint ; 
 
 class AliEMCALTrackSegment : public TObject  {
@@ -26,7 +26,7 @@ class AliEMCALTrackSegment : public TObject  {
 public:
 
   AliEMCALTrackSegment() {} 
-  AliEMCALTrackSegment(AliEMCALRecPoint * ec) ; 
+  AliEMCALTrackSegment(AliEMCALTowerRecPoint * ec) ; 
   AliEMCALTrackSegment(const AliEMCALTrackSegment & ts) ;  // ctor                   
   virtual ~AliEMCALTrackSegment() {  } 
 
@@ -44,7 +44,7 @@ public:
   Int_t fECARecPoint ; // The EC reconstructed point index in array stored in TreeR/EMCALECRP
   Int_t fIndexInList ; // The index of this TrackSegment in the list stored in TreeR (to be set by analysis)
   
-  ClassDef(AliEMCALTrackSegment,2)  // Track segment in EMCAL
+  ClassDef(AliEMCALTrackSegment,1)  // Track segment in EMCAL
 
 };
 

@@ -11,6 +11,7 @@
 //*-- Author: Yves Schutz (SUBATECH) 
 //*--         Dmitri Peressounko (SUBATECH & Kurchatov Institute)
 
+  //#include <stdlib.h>
 
 // --- ROOT system ---
 
@@ -30,7 +31,7 @@ class AliEMCALReconstructioner : public TTask {
 public:
 
   AliEMCALReconstructioner() ; //ctor            
-  AliEMCALReconstructioner(const char * headerFile, const char * branchName = "Default");
+  AliEMCALReconstructioner(const char * headreFile, const char * branchName = "Default");
   AliEMCALReconstructioner(const AliEMCALReconstructioner & rec) : TTask(rec) {
     // cpy ctor: 
     // requested by the Coding Convention
@@ -42,11 +43,19 @@ public:
   virtual void Exec(Option_t *) ;
   void Clusters2Tracks(Int_t ievent, AliESD *event);
 
+  AliEMCALDigitizer         * GetDigitizer()  const { return fDigitizer   ; }
   AliEMCALClusterizer       * GetClusterizer()const { return fClusterizer ; }
   AliEMCALPID               * GetPID()        const { return fPID;          }
-  void SetEventRange(Int_t first=0, Int_t last=-1) ; 
+  AliEMCALSDigitizer        * GetSDigitizer() const { return fSDigitizer  ; }
 
   void Print()const ;
+  
+  //  void SetBranchTitle(const char* branch,const char * title) ;
+  //            // Sets the branch titles to separate different reconstruction flows 
+  //
+  //  void StartFrom(char * module = "SDigitizer",char * title = "Default") ;
+  //            // From wich step reconstruction begins, 
+  //            // title to be set to all reconstructed branches
 
   AliEMCALReconstructioner & operator = (const AliEMCALReconstructioner & /*rvalue*/)  {
     // assignement operator requested by coding convention but not needed
@@ -54,21 +63,25 @@ public:
     return *this ; 
   }
   
+
 private:
   void Init() ;  
 
 private:
   
+  TString  fDigitsBranch ;      // Title of digits branch
   TString  fRecPointBranch ;    // Title of RecPoints branch   
   TString  fRecPartBranch ;     // Title of RecParticles branch 
+  TString  fSDigitsBranch ;     // Title of SDigits branch      
 
 
+  AliEMCALDigitizer         * fDigitizer ;   //! Pointer to AliEMCALDigitizer
   AliEMCALClusterizer       * fClusterizer ; //! Pointer to AliEMCALClusterizer
   AliEMCALPID               * fPID ;         //! Pointer to AliEMCALPID
-  Bool_t  fIsInitialized ; // kTRUE if reconstructioner is initialized
-  Int_t   fFirstEvent;        // first event to process
-  Int_t   fLastEvent;         // last  event to process
+  AliEMCALSDigitizer        * fSDigitizer ;  //! Pointer to AliEMCALSDigitizer
 
+  Bool_t   fIsInitialized ; // kTRUE if reconstructioner is initialized
+ 
   ClassDef(AliEMCALReconstructioner,1)  // Reconstruction algorithm class (Base Class)
 
 }; 

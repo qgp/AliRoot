@@ -29,8 +29,8 @@
   // --- Standard library ---
   
   // --- AliRoot header files ---
-#include "AliGenerator.h"
 #include "AliEMCALPIDv1.h"
+#include "AliEMCALTrackSegment.h"
 #include "AliEMCALRecParticle.h"
 #include "AliEMCALGetter.h"
   
@@ -80,47 +80,6 @@ const TString AliEMCALPIDv1::BranchName() const
 }
  
 //____________________________________________________________________________
-Float_t  AliEMCALPIDv1::GetCalibratedEnergy(Float_t e) const
-{
-//      It calibrates Energy depending on the recpoint energy.
-//      The energy of the reconstructed cluster is corrected with 
-//      the formula A + B* E  + C* E^2, whose parameters where obtained 
-//      through the study of the reconstructed energy distribution of 
-//      monoenergetic photons.
- 
-  //Float_t p[]={0.,0.,0.};
-  //for (Int_t i=0; i<3; i++) p[i] = GetParameterCalibration(i);
-  Float_t enerec = e ; // p[0] +  p[1]*e + p[2]*e*e;
-  return enerec ;
-
-}
-//____________________________________________________________________________
-TVector3 AliEMCALPIDv1::GetMomentumDirection(AliEMCALRecPoint * emc)const 
-{ 
-  // Calculates the momentum direction:
-  // direction is given by IP and this RecPoint
-  
-
-  TVector3 dir(0,0,0) ; 
-  TVector3 emcglobalpos ;
-  // TMatrix  dummy ;
-  
-  emc->GetGlobalPosition(emcglobalpos) ;
-  
-
-  dir = emcglobalpos ;  
-  // dir.SetMag(1.) ; Removed to avoid warings !!!!!!!!!!!!!! TO BE REVISED
-
-  //account correction to the position of IP
-  Float_t xo,yo,zo ; //Coordinates of the origin
-  gAlice->Generator()->GetOrigin(xo,yo,zo) ;
-  TVector3 origin(xo,yo,zo);
-  dir = dir - origin ;
-
-  return dir ;  
-}
-
-//____________________________________________________________________________
 void AliEMCALPIDv1::Init()
 {
   // Make all memory allocations that are not possible in default constructor
@@ -155,7 +114,7 @@ void  AliEMCALPIDv1::Exec(Option_t * option)
     Print("") ; 
     return ; 
   }
-  AliEMCALGetter * gime = AliEMCALGetter::Instance(GetTitle()) ; 
+  AliEMCALGetter * gime = AliEMCALGetter::Instance() ; 
 
   if (fLastEvent == -1) 
     fLastEvent = gime->MaxEvent() - 1 ;
@@ -167,14 +126,16 @@ void  AliEMCALPIDv1::Exec(Option_t * option)
 
 
   for (ievent = fFirstEvent; ievent <= fLastEvent; ievent++) {
-    gime->Event(ievent,"R") ;
-    MakeRecParticles() ;
-    WriteRecParticles();
-    if(strstr(option,"deb"))
-      PrintRecParticles(option) ;
-    //increment the total number of rec particles per run 
-    fRecParticlesInRun += gime->RecParticles()->GetEntriesFast() ; 
-    
+    gime->Event(ievent,"TR") ;
+    if(gime->TrackSegments() && //Skip events, where no track segments made
+       gime->TrackSegments()->GetEntriesFast()) {   
+      MakeRecParticles() ;
+      WriteRecParticles();
+      if(strstr(option,"deb"))
+	PrintRecParticles(option) ;
+      //increment the total number of rec particles per run 
+      fRecParticlesInRun += gime->RecParticles()->GetEntriesFast() ; 
+    }
   }
   if(strstr(option,"tim")){
     gBenchmark->Stop("EMCALPID");
@@ -193,26 +154,37 @@ void  AliEMCALPIDv1::MakeRecParticles(){
   
   AliEMCALGetter * gime = AliEMCALGetter::Instance() ; 
   TObjArray * aECARecPoints = gime->ECARecPoints() ; 
-  if ( !aECARecPoints ) {
+  TClonesArray * trackSegments = gime->TrackSegments() ; 
+  if ( !aECARecPoints || !trackSegments ) {
     Fatal("MakeRecParticles", "RecPoints or TrackSegments not found !") ;  
   }
   TClonesArray * recParticles  = gime->RecParticles() ; 
   recParticles->Clear();
 
-  TIter next(aECARecPoints) ; 
-  AliEMCALRecPoint * eca ; 
+  TIter next(trackSegments) ; 
+  AliEMCALTrackSegment * ts ; 
   Int_t index = 0 ; 
   AliEMCALRecParticle * rp ; 
-  while ( (eca = (AliEMCALRecPoint *)next()) ) {
+  while ( (ts = (AliEMCALTrackSegment *)next()) ) {
     
     new( (*recParticles)[index] ) AliEMCALRecParticle() ;
     rp = (AliEMCALRecParticle *)recParticles->At(index) ; 
-    rp->SetRecPoint(index) ;
+    rp->SetTrackSegment(index) ;
     rp->SetIndexInList(index) ;
     	
+    AliEMCALTowerRecPoint * eca = 0 ;
+    if(ts->GetECAIndex()>=0)
+      eca = dynamic_cast<AliEMCALTowerRecPoint *>(aECARecPoints->At(ts->GetECAIndex())) ;
+
     // Now set type (reconstructed) of the particle
 
     // Choose the cluster energy range
+    
+    if (!eca) {
+      Fatal("MakeRecParticles", "-> emcal(%d) = %d", ts->GetECAIndex(), eca ) ;
+    }
+
+    Float_t    e = eca->GetEnergy() ;   
     
     Float_t  lambda[2] ;
     eca->GetElipsAxis(lambda) ;
@@ -230,13 +202,13 @@ void  AliEMCALPIDv1::MakeRecParticles(){
       emaxdtotal=eca->GetMaximalEnergy()/eca->GetEnergy(); 
     }
     
-    //    Float_t time = eca->GetTime() ;
+    //    Float_t time = ecal->GetTime() ;
       
     //Set momentum, energy and other parameters 
-    Float_t  encal = GetCalibratedEnergy(eca->GetEnergy());
-    TVector3 dir   = GetMomentumDirection(eca) ; 
-    // dir.SetMag(encal) ;Removed to avoid warings !!!!!!!!!!!!!! TO BE REVISED
-    rp->SetMomentum(dir.X(),dir.Y(),dir.Z(),encal) ;
+    Float_t  enca = e;
+    TVector3 dir(0., 0., 0.) ; 
+    dir.SetMag(enca) ;
+    rp->SetMomentum(dir.X(),dir.Y(),dir.Z(),enca) ;
     rp->SetCalcMass(0);
     rp->Name(); //If photon sets the particle pdg name to gamma
     rp->SetProductionVertex(0,0,0,0);
@@ -245,14 +217,6 @@ void  AliEMCALPIDv1::MakeRecParticles(){
     rp->SetFirstDaughter(-1);
     rp->SetLastDaughter(-1);
     rp->SetPolarisation(0,0,0);
-    //Set the position in global coordinate system from the RecPoint
-    //AliEMCALGeometry * geom = gime->EMCALGeometry() ; 
-    //AliEMCALTowerRecPoint  * erp = gime->ECARecPoint(rp->GetEMCALRPIndex()) ; 
-    TVector3 pos ; 
-    //geom->GetGlobal(erp, pos) ; !!!!!!!!!! to check 
-    rp->SetPos(pos);
-
-
     index++ ; 
   }
   

@@ -40,8 +40,6 @@ ClassImp( AliPHOSTrackSegmentMaker)
 {
   // ctor
   fEventFolderName = "" ; 
-  fFirstEvent = 0 ; 
-  fLastEvent  = -1 ; 
 }
 
 //____________________________________________________________________________
@@ -49,8 +47,6 @@ AliPHOSTrackSegmentMaker::AliPHOSTrackSegmentMaker(const TString alirunFileName,
   TTask("PHOS"+AliConfig::fgkTrackerTaskName, alirunFileName), fEventFolderName(eventFolderName)
 {
   // ctor
-  fFirstEvent = 0 ; 
-  fLastEvent  = -1 ; 
 }
 
 //____________________________________________________________________________

@@ -35,14 +35,12 @@ class TFile;
 
 // --- AliRoot header files ---
 #include "AliMagF.h"
-#include "AliESDCaloTrack.h" 
-#include "AliESD.h"
 #include "AliEMCAL.h"
-#include "AliEMCALGetter.h"
+#include "AliEMCALGeometry.h"
+#include "AliEMCALLoader.h"
 #include "AliRun.h"
 #include "AliEMCALSDigitizer.h"
 #include "AliEMCALDigitizer.h"
-#include "AliEMCALReconstructioner.h"
 
 ClassImp(AliEMCAL)
 //____________________________________________________________________________
@@ -64,18 +62,6 @@ AliEMCAL::AliEMCAL(const char* name, const char* title): AliDetector(name,title)
 AliEMCAL::~AliEMCAL()
 {
 
-}
-
-//____________________________________________________________________________
-void AliEMCAL::Copy(AliEMCAL & emcal)
-{
-  TObject::Copy(emcal) ; 
-}
-
-//____________________________________________________________________________
-AliDigitizer* AliEMCAL::CreateDigitizer(AliRunDigitizer* manager) const
-{
-  return new AliEMCALDigitizer(manager);
 }
 
 //____________________________________________________________________________
@@ -158,47 +144,14 @@ void AliEMCAL::CreateMaterials()
 }
 
 //____________________________________________________________________________
-void AliEMCAL::FillESD(AliESD* esd) const 
-{
-  // Fill the ESD with all RecParticles
-  AliEMCALGetter *gime = AliEMCALGetter::Instance( (fLoader->GetRunLoader()->GetFileName()).Data() );
-  gime->Event(gime->EventNumber(), "P") ; 
-  TClonesArray *recParticles = gime->RecParticles();
-  Int_t nOfRecParticles = recParticles->GetEntries();
-  for (Int_t recpart=0; recpart<nOfRecParticles; recpart++) {
-    AliESDCaloTrack *ct = new AliESDCaloTrack((AliEMCALRecParticle*)recParticles->At(recpart));
-    esd->AddCaloTrack(ct);
-    delete ct;
-  }
-}       
+AliEMCALGeometry * AliEMCAL::GetGeometry() const 
+{  
+  // gets the pointer to the AliEMCALGeometry unique instance 
 
-
-//____________________________________________________________________________
-void AliEMCAL::Hits2SDigits()  
-{ 
-// create summable digits
-
-  AliEMCALSDigitizer* emcalDigitizer = 
-    new AliEMCALSDigitizer(fLoader->GetRunLoader()->GetFileName().Data()) ;
-  emcalDigitizer->SetEventRange(0, -1) ; // do all the events
-  emcalDigitizer->ExecuteTask() ;
-}
-
-//____________________________________________________________________________
-void AliEMCAL::Reconstruct() const 
-{ 
-  AliEMCALReconstructioner * rec = new AliEMCALReconstructioner((fLoader->GetRunLoader()->GetFileName()).Data()) ; 
-  rec->SetEventRange(0, -1) ; // do all the events  
-  rec->ExecuteTask() ; 
-}
-
-//____________________________________________________________________________
-AliLoader* AliEMCAL::MakeLoader(const char* topfoldername)
-{
-//different behaviour than standard (singleton getter)
-// --> to be discussed and made eventually coherent
- fLoader = new AliEMCALLoader(GetName(),topfoldername);
- return fLoader;
+  if (fGeom) 
+    return fGeom ; 
+  else 
+    return AliEMCALGeometry::GetInstance(GetTitle(),"") ;  
 }
 
 //____________________________________________________________________________
@@ -226,7 +179,27 @@ void AliEMCAL::SetTreeAddress()
   }
 }
 
+//____________________________________________________________________________
+AliLoader* AliEMCAL::MakeLoader(const char* topfoldername)
+{
+//different behaviour than standard (singleton getter)
+// --> to be discussed and made eventually coherent
+ fLoader = new AliEMCALLoader(GetName(),topfoldername);
+ return fLoader;
+}
 
+//____________________________________________________________________________
+void AliEMCAL::Hits2SDigits()  
+{ 
+// create summable digits
 
+  AliEMCALSDigitizer* emcalDigitizer = 
+    new AliEMCALSDigitizer(fLoader->GetRunLoader()->GetFileName().Data());
+  emcalDigitizer->ExecuteTask();
+}
 
-
+//____________________________________________________________________________
+AliDigitizer* AliEMCAL::CreateDigitizer(AliRunDigitizer* manager) const
+{
+  return new AliEMCALDigitizer(manager);
+}

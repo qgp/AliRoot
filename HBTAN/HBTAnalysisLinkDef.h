@@ -13,8 +13,6 @@
 #pragma link C++ class AliHBTFunction+;
 #pragma link C++ class AliHBTMonitorFunction+;
 
-#pragma link C++ class AliHBTCorrelFunction+;
-
 #pragma link C++ class AliHBTFunction1D+;
 #pragma link C++ class AliHBTFunction2D+;
 #pragma link C++ class AliHBTFunction3D+;
@@ -192,6 +190,5 @@
 #pragma link C++ class AliHBTRndmCyllSurf+;
 #pragma link C++ class AliHBTMonVyDistributionVsVxFctn+;
 #pragma link C++ class AliHBTMonRtDistributionVsVzFctn+;
-#pragma link C++ class AliHBTFits+;
 //#pragma link C++ class AliHBTGoComPair+;
 #endif

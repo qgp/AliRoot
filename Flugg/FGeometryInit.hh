@@ -72,7 +72,6 @@ public:
   void  BuildMediaMap();
   void  SetMediumFromName(const char* volName, int med, int volid);
     //G4int GetRegionFromName(const char* volName) const;
-  int GetLastMaterialIndex() const;
   G4int GetMedium(int) const;
   int CurrentVolID(int ir, int& copyNo);
   int CurrentVolOffID(int ir, int off, int& copyNo);

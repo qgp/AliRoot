@@ -12,6 +12,7 @@
 #include <TObjArray.h> // used in inline function GetModule.
 #include <TBranch.h>   // used in inline function SetHitsAddressBranch
 
+#include "AliRun.h"
 #include "AliLoader.h"
 #include "AliDetector.h"
 #include "AliITSDetType.h"
@@ -33,7 +34,6 @@ class AliITSdigit;
 class AliITSRecPoint;
 class AliITSRawCluster;
 class AliITSmodule;
-class AliVertexer;
 
 const Int_t kNTYPES=3;
 
@@ -107,7 +107,7 @@ class AliITS : public AliDetector {
     virtual void InitModules(Int_t size,Int_t &nmodules);  
     virtual void FillModules(TTree *treeH, Int_t mask = 0);
     virtual void FillModules(Int_t evnt,Int_t bgrev,Int_t nmodules,
-			     Option_t *opt, const char *filename);
+			     Option_t *opt,Text_t *filename);
     virtual void ClearModules();
 
     //===================== Digitisation ===============================
@@ -116,7 +116,7 @@ class AliITS : public AliDetector {
     TClonesArray * GetSDigits() { return fSDigits; }
     void MakeBranchInTreeD(TTree *treeD,const char *file=0);
     void MakeBranchD(const char *file){
-	MakeBranchInTreeD(GetLoader()->TreeD(),file);}
+	MakeBranchInTreeD(gAlice->TreeD(),file);}
     void SetTreeAddressD(TTree *treeD);
     void Hits2SDigits(); // Turn hits into SDigits
     void Hits2PreDigits(); // Turn hits into SDigits
@@ -127,13 +127,13 @@ class AliITS : public AliDetector {
     //------------------ Internal functions ----------------------------
     // Standard Hits To SDigits function
     void HitsToSDigits(Int_t evNumber,Int_t bgrev,Int_t size,
-                 Option_t *add, Option_t *det, const char *filename);
+                 Option_t *add, Option_t *det, Text_t *filename);
     // Standard Hits To SDigits function
     void HitsToPreDigits(Int_t evNumber,Int_t bgrev,Int_t size,
-                 Option_t *add, Option_t *det, const char *filename);
+                 Option_t *add, Option_t *det, Text_t *filename);
     // Standard Hits To Digits function
     void HitsToDigits(Int_t evNumber,Int_t bgrev,Int_t size,
-                 Option_t *add, Option_t *det, const char *filename);
+                 Option_t *add, Option_t *det, Text_t *filename);
     void ResetSDigits();                  // Resets the Summable digits.
     void ResetDigits();                   // depending on how the
     void ResetDigits(Int_t branch);       // tree will be filled only
@@ -147,7 +147,6 @@ class AliITS : public AliDetector {
     Int_t        *Ndtype() {return fNdtype;}
     TClonesArray *DigitsAddress(Int_t id)
 	{return ((TClonesArray *) (*fDtype)[id]);}
-    void SelectVertexer(TString sel=" "){fSelectedVertexer = sel;}
 
     //===================== Raw Data IO ================================
     // Write digits into raw data format
@@ -175,7 +174,7 @@ class AliITS : public AliDetector {
     void SetTreeAddressR(TTree *treeR);
     void AddRecPoint(const AliITSRecPoint &p);
     void HitsToFastRecPoints(Int_t evNumber,Int_t bgrev,Int_t size,
-                 Option_t *add, Option_t *det, const char *filename);
+                 Option_t *add, Option_t *det, Text_t *filename);
     void Digits2Reco();
     void DigitsToRecPoints(Int_t evNumber,Int_t lastEntry,Option_t *det);
     void ResetRecPoints();
@@ -184,7 +183,6 @@ class AliITS : public AliDetector {
 
     virtual void Reconstruct() const;
     virtual AliTracker* CreateTracker() const;
-    virtual AliVertexer* CreateVertexer() const;
     virtual void FillESD(AliESD* esd) const;
      
  protected:
@@ -212,9 +210,8 @@ class AliITS : public AliDetector {
 
     TClonesArray *fRecPoints;  //! List of reconstructed points
     Int_t         fNRecPoints; // Number of rec points
-    TString fSelectedVertexer; // Vertexer selected in CreateVertexer
 
-    ClassDef(AliITS,4) // Base class for ITS
+    ClassDef(AliITS,3) // Base class for ITS
 };
 
 #endif

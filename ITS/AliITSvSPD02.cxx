@@ -76,18 +76,16 @@ AliITSvSPD02::AliITSvSPD02() {
     fGeomDetIn    = kFALSE; // Don't Read .det file
     fMajorVersion = IsVersion();
     fMinorVersion = -1;
-    fGeomNumber   = 2002; // default value
     for(i=0;i<60;i++) fRead[i] = '\0';
     for(i=0;i<60;i++) fWrite[i] = '\0';
     for(i=0;i<60;i++) fEuclidGeomDet[i] = '\0';
 }
 //______________________________________________________________________
-AliITSvSPD02::AliITSvSPD02(const char *title,Int_t gn) : AliITS("ITS", title){
+AliITSvSPD02::AliITSvSPD02(const char *title) : AliITS("ITS", title){
     ////////////////////////////////////////////////////////////////////////
     //    Standard constructor for the ITS SPD testbeam 2002 version 1.
     // Inputs:
     //    const char *title    title for this ITS geometry.
-    //    Int_t      gn        Geometry version number (year) default 2002.
     // Outputs:
     //    none.
     // Return:
@@ -95,7 +93,6 @@ AliITSvSPD02::AliITSvSPD02(const char *title,Int_t gn) : AliITS("ITS", title){
     ////////////////////////////////////////////////////////////////////////
     Int_t i;
 
-    fGeomNumber = gn;
     fIdN = 2;
     fIdName = new TString[fIdN];
     fIdName[0] = "IMBS";
@@ -163,38 +160,6 @@ AliITSvSPD02::~AliITSvSPD02() {
 }
 //______________________________________________________________________
 void AliITSvSPD02::BuildGeometry(){
-    ////////////////////////////////////////////////////////////////////////
-    //    Geometry builder for the ITS SPD test beam 2002 version 1.
-    //    ALIC    ALICE Mother Volume
-    //     |- ITSV     ITS Mother Volume
-    //         |- IDET       Detector under Test
-    //         |   |- ITS0       SPD Si Chip
-    //         |   |  |- ITST      SPD Sensitivve Volume
-    //         |   |- IPC0 *5    Readout chip
-    //         |- ITEL *4    SPD Telescope
-    //             |- IMB0       SPD Si Chip
-    //             |   |- IMBS     SPD Sensitive volume
-    //             |- ICMB       Chip MiniBus.
-    // Inputs:
-    //    none.
-    // Outputs:
-    //    none.
-    // Return:
-    //    none.
-    ////////////////////////////////////////////////////////////////////////
-    // Get the top alice volume.
-
-    switch (fGeomNumber){
-    case 2002:
-        BuildGeometry2002();
-        break;
-    default:
-        BuildGeometry2002();
-        break;
-    } // end switch
-}
-//______________________________________________________________________
-void AliITSvSPD02::BuildGeometry2002(){
     ////////////////////////////////////////////////////////////////////////
     //    Geometry builder for the ITS SPD test beam 2002 version 1.
     //    ALIC    ALICE Mother Volume
@@ -349,37 +314,6 @@ void AliITSvSPD02::CreateGeometry(){
     // Return:
     //    none.
     ////////////////////////////////////////////////////////////////////////
-
-    switch (fGeomNumber){
-    case 2002:
-        CreateGeometry2002();
-        break;
-    default:
-        CreateGeometry2002();
-        break;
-    } // end switch
-}
-//______________________________________________________________________
-void AliITSvSPD02::CreateGeometry2002(){
-    ////////////////////////////////////////////////////////////////////////
-    //  This routine defines and Creates the geometry for version 1 of the ITS.
-    //    ALIC    ALICE Mother Volume
-    //     |- ITSV     ITS Mother Volume
-    //         |- IDET       Detector under Test
-    //         |   |- ITS0       SPD Si Chip
-    //         |   |  |- ITST      SPD Sensitivve Volume
-    //         |   |- IPC0 *5    Readout chip
-    //         |- ITEL *4    SPD Telescope
-    //             |- IMB0       SPD Si Chip
-    //             |   |- IMBS     SPD Sensitive volume
-    //             |- ICMB       Chip MiniBus.
-    // Inputs:
-    //    none.
-    // Outputs:
-    //    none.
-    // Return:
-    //    none.
-    ////////////////////////////////////////////////////////////////////////
     Float_t data[49];
     // Define media off-set
     Int_t *idtmed = fIdtmed->GetArray()+1; // array of media indexes
@@ -492,37 +426,6 @@ void AliITSvSPD02::CreateMaterials(){
     // Return:
     //    none.
     /////////////////////////////////////////////////////////////////////////
-
-    switch (fGeomNumber){
-    case 2002:
-        CreateMaterials2002();
-        break;
-    default:
-        CreateMaterials2002();
-        break;
-    } // end switch
-}
-//______________________________________________________________________
-void AliITSvSPD02::CreateMaterials2002(){
-    ////////////////////////////////////////////////////////////////////////
-    //
-    // Create ITS SPD test beam materials
-    //     This function defines the default materials used in the Geant
-    // Monte Carlo simulations for the geometries AliITSv1, AliITSv3,
-    // AliITSvSPD02.
-    // In general it is automatically replaced by
-    // the CreatMaterials routine defined in AliITSv?. Should the function
-    // CreateMaterials not exist for the geometry version you are using this
-    // one is used. See the definition found in AliITSv5 or the other routine
-    // for a complete definition.
-    //
-    // Inputs:
-    //    none.
-    // Outputs:
-    //    none.
-    // Return:
-    //    none.
-    /////////////////////////////////////////////////////////////////////////
     Float_t tmaxfdSi = 0.1; // Degree
     Float_t stemaxSi = 0.0075; // cm
     Float_t deemaxSi = 0.1; // Fraction of particle's energy 0<deemax<=1
@@ -576,7 +479,7 @@ void AliITSvSPD02::InitAliITSgeom(){
     Int_t mod,typ,lay,lad,det,cpy,i,j,k;
     Char_t names[kltypess][kndeep][4];
     Int_t itsGeomTreeCopys[kltypess][kndeep];
-    const char *namesA[kltypess][kndeep] = {
+    Char_t *namesA[kltypess][kndeep] = {
      {"ALIC","ITSV","ITEL","IMB0","IMBS"}, // lay=1
      {"ALIC","ITSV","IDET","ITS0","ITST"}};// Test SPD
     Int_t itsGeomTreeCopysA[kltypess][kndeep]= {{1,1,4,1,1},// lay=1

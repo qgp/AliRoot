@@ -79,7 +79,7 @@ ClassImp(AliTOFReconstructionerV2)
 }
            
 //____________________________________________________________________________ 
-AliTOFReconstructionerV2::AliTOFReconstructionerV2(const char* tpcBackTracks, const char* tofDigits):TTask("AliTOFReconstructionerV2","") 
+AliTOFReconstructionerV2::AliTOFReconstructionerV2(char* tpcBackTracks, char* tofDigits):TTask("AliTOFReconstructionerV2","") 
 {
   //
   // par ctor
@@ -942,7 +942,7 @@ void AliTOFReconstructionerV2::Comparison(Int_t* rtIndex)
 
 
   Int_t nEvent = 0;
-  const char *datafile = "galice.root";
+  Char_t *datafile = "galice.root";
   
   AliRunLoader *rl = AliRunLoader::Open(datafile);
   if (rl == 0x0)

@@ -35,15 +35,14 @@ class TFile;
 
 // --- AliRoot header files ---
 #include "AliMagF.h"
-#include "AliESDCaloTrack.h" 
-#include "AliESD.h"
 #include "AliPHOS.h"
-#include "AliPHOSGetter.h"
+#include "AliPHOSGeometry.h"
+#include "AliPHOSLoader.h"
 #include "AliPHOSQAChecker.h"
 #include "AliRun.h"
 #include "AliPHOSDigitizer.h"
 #include "AliPHOSSDigitizer.h"
-#include "AliPHOSReconstructioner.h"
+
 ClassImp(AliPHOS)
 //____________________________________________________________________________
 AliPHOS:: AliPHOS() : AliDetector()
@@ -75,12 +74,6 @@ void AliPHOS::Copy(AliPHOS & phos)
   TObject::Copy(phos) ; 
   //  fQATask = AliPHOSQAChecker::Copy(*(phos.fQATask)) ; 
   phos.fTreeQA = fTreeQA->CloneTree() ; 
-}
-
-//____________________________________________________________________________
-AliDigitizer* AliPHOS::CreateDigitizer(AliRunDigitizer* manager) const
-{
-  return new AliPHOSDigitizer(manager);
 }
 
 //____________________________________________________________________________
@@ -375,38 +368,12 @@ void AliPHOS::CreateMaterials()
 }
 
 //____________________________________________________________________________
-void AliPHOS::FillESD(AliESD* esd) const 
-{
-  // Fill the ESD with all RecParticles
-  AliPHOSGetter *gime = AliPHOSGetter::Instance( (fLoader->GetRunLoader()->GetFileName()).Data() ) ;
-  gime->Event(gime->EventNumber(), "P") ; 
-  TClonesArray *recParticles = gime->RecParticles();
-  Int_t nOfRecParticles = recParticles->GetEntries();
-  for (Int_t recpart=0; recpart<nOfRecParticles; recpart++) {
-    AliESDCaloTrack *ct = new AliESDCaloTrack((AliPHOSRecParticle*)recParticles->At(recpart));
-    esd->AddCaloTrack(ct);
-    delete ct;
-  }
-}       
+AliPHOSGeometry * AliPHOS::GetGeometry() const 
+{  
+  // gets the pointer to the AliPHOSGeometry unique instance 
+  
+  return AliPHOSGeometry::GetInstance(GetTitle(),"") ;  
 
-//____________________________________________________________________________
-void AliPHOS::Hits2SDigits()  
-{ 
-// create summable digits
-
-  AliPHOSSDigitizer* phosDigitizer = 
-    new AliPHOSSDigitizer(fLoader->GetRunLoader()->GetFileName().Data()) ;
-  phosDigitizer->SetEventRange(0, -1) ; // do all the events
-  phosDigitizer->ExecuteTask("all") ;
-}
-
-//____________________________________________________________________________
-AliLoader* AliPHOS::MakeLoader(const char* topfoldername)
-{
-//different behaviour than standard (singleton getter)
-// --> to be discussed and made eventually coherent
- fLoader = new AliPHOSLoader(GetName(),topfoldername);
- return fLoader;
 }
 
 //____________________________________________________________________________
@@ -428,14 +395,6 @@ void AliPHOS::SetTreeAddress()
        branch->SetAddress(&fHits);
      }
   }
-}
-
-//____________________________________________________________________________
-void AliPHOS::Reconstruct() const 
-{ 
-  AliPHOSReconstructioner * rec = new AliPHOSReconstructioner((fLoader->GetRunLoader()->GetFileName()).Data()) ; 
-  rec->SetEventRange(0, -1) ; // do all the events  
-  rec->ExecuteTask() ; 
 }
 
 //____________________________________________________________________________
@@ -467,4 +426,30 @@ void AliPHOS::WriteQA()
   alarmsBranch->Fill() ; 
 
   //fTreeQA->Fill() ; 
+}
+
+//____________________________________________________________________________
+AliLoader* AliPHOS::MakeLoader(const char* topfoldername)
+{
+//different behaviour than standard (singleton getter)
+// --> to be discussed and made eventually coherent
+ fLoader = new AliPHOSLoader(GetName(),topfoldername);
+ return fLoader;
+}
+
+
+//____________________________________________________________________________
+void AliPHOS::Hits2SDigits()  
+{ 
+// create summable digits
+
+  AliPHOSSDigitizer* phosDigitizer = 
+    new AliPHOSSDigitizer(fLoader->GetRunLoader()->GetFileName().Data());
+  phosDigitizer->ExecuteTask("all");
+}
+
+//____________________________________________________________________________
+AliDigitizer* AliPHOS::CreateDigitizer(AliRunDigitizer* manager) const
+{
+  return new AliPHOSDigitizer(manager);
 }

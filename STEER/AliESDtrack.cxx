@@ -74,10 +74,6 @@ fTOFsignal(-1)
   for (i=0; i<6; i++)  { fITSindex[i]=0; }
   for (i=0; i<180; i++){ fTPCindex[i]=0; }
   for (i=0; i<90; i++) { fTRDindex[i]=0; }
-  fTPCLabel = 0;
-  fTRDLabel = 0;
-  fITSLabel = 0;
-
 }
 
 //_______________________________________________________________________
@@ -122,11 +118,9 @@ Bool_t AliESDtrack::UpdateTrackParams(AliKalmanTrack *t, ULong_t flags) {
     fITSchi2=t->GetChi2();
     for (Int_t i=0;i<fITSncls;i++) fITSindex[i]=t->GetClusterIndex(i);
     fITSsignal=t->GetPIDsignal();
-    fITSLabel = t->GetLabel();
     break;
     
   case kTPCin: case kTPCrefit:
-    fTPCLabel = t->GetLabel();
     fIalpha=fRalpha;
     fIx=fRx;
     {
@@ -142,8 +136,7 @@ Bool_t AliESDtrack::UpdateTrackParams(AliKalmanTrack *t, ULong_t flags) {
      {//prevrow must be declared in separate namespace, otherwise compiler cries:
       //"jump to case label crosses initialization of `Int_t prevrow'"
        Int_t prevrow = -1;
-       //       for (Int_t i=0;i<fTPCncls;i++) 
-       for (Int_t i=0;i<160;i++) 
+       for (Int_t i=0;i<fTPCncls;i++) 
         {
           fTPCindex[i]=t->GetClusterIndex(i);
 
@@ -198,16 +191,15 @@ Bool_t AliESDtrack::UpdateTrackParams(AliKalmanTrack *t, ULong_t flags) {
 
   case kTRDout:
     { //requested by the PHOS  ("temporary solution")
-      Double_t r=460.;
-      if (t->PropagateTo(r,30.,0.)) {  
-         fOalpha=t->GetAlpha();
-         t->GetExternalParameters(fOx,fOp);
-         t->GetExternalCovariance(fOc);
-      }
+      Double_t r=474.;
+      t->PropagateTo(r,30.,0.);  
+      fOalpha=fRalpha;
+      fOx=fRx;
+      Int_t i;
+      for (i=0; i<5; i++) fOp[i]=fRp[i];
+      for (i=0; i<15;i++) fOc[i]=fRc[i];
     }
   case kTRDin: case kTRDrefit:
-    fTRDLabel = t->GetLabel();
-
     fTRDncls=t->GetNumberOfClusters();
     fTRDchi2=t->GetChi2();
     for (Int_t i=0;i<fTRDncls;i++) fTRDindex[i]=t->GetClusterIndex(i);
@@ -321,7 +313,6 @@ void AliESDtrack::GetInnerPxPyPz(Double_t *p) const {
   // This function returns the global track momentum components
   // af the entrance of the TPC
   //---------------------------------------------------------------------
-  if (fIx==0) {p[0]=p[1]=p[2]=0.; return;}
   Double_t phi=TMath::ASin(fIp[2]) + fIalpha;
   Double_t pt=1./TMath::Abs(fIp[4]);
   p[0]=pt*TMath::Cos(phi); p[1]=pt*TMath::Sin(phi); p[2]=pt*fIp[3]; 
@@ -332,7 +323,6 @@ void AliESDtrack::GetInnerXYZ(Double_t *xyz) const {
   // This function returns the global track position
   // af the entrance of the TPC
   //---------------------------------------------------------------------
-  if (fIx==0) {xyz[0]=xyz[1]=xyz[2]=0.; return;}
   Double_t phi=TMath::ATan2(fIp[0],fIx) + fIalpha;
   Double_t r=TMath::Sqrt(fIx*fIx + fIp[0]*fIp[0]);
   xyz[0]=r*TMath::Cos(phi); xyz[1]=r*TMath::Sin(phi); xyz[2]=fIp[1]; 
@@ -362,7 +352,6 @@ void AliESDtrack::GetOuterPxPyPz(Double_t *p) const {
   // This function returns the global track momentum components
   // af the radius of the PHOS
   //---------------------------------------------------------------------
-  if (fOx==0) {p[0]=p[1]=p[2]=0.; return;}
   Double_t phi=TMath::ASin(fOp[2]) + fOalpha;
   Double_t pt=1./TMath::Abs(fOp[4]);
   p[0]=pt*TMath::Cos(phi); p[1]=pt*TMath::Sin(phi); p[2]=pt*fOp[3]; 
@@ -373,7 +362,6 @@ void AliESDtrack::GetOuterXYZ(Double_t *xyz) const {
   // This function returns the global track position
   // af the radius of the PHOS
   //---------------------------------------------------------------------
-  if (fOx==0) {xyz[0]=xyz[1]=xyz[2]=0.; return;}
   Double_t phi=TMath::ATan2(fOp[0],fOx) + fOalpha;
   Double_t r=TMath::Sqrt(fOx*fOx + fOp[0]*fOp[0]);
   xyz[0]=r*TMath::Cos(phi); xyz[1]=r*TMath::Sin(phi); xyz[2]=fOp[1]; 

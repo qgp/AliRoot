@@ -33,7 +33,7 @@
 ClassImp(AliEMCALTrackSegment)
 
 //____________________________________________________________________________
-AliEMCALTrackSegment::AliEMCALTrackSegment( AliEMCALRecPoint * eca)
+AliEMCALTrackSegment::AliEMCALTrackSegment( AliEMCALTowerRecPoint * eca)
 {
   // ctor
   if( eca )   

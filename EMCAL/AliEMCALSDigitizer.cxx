@@ -67,7 +67,7 @@ ClassImp(AliEMCALSDigitizer)
   AliEMCALSDigitizer::AliEMCALSDigitizer():TTask("","") 
 {
   // ctor
-  fFirstEvent = fLastEvent  = 0 ;  
+  InitParameters() ; 
   fDefaultInit = kTRUE ; 
 }
 
@@ -77,7 +77,6 @@ AliEMCALSDigitizer::AliEMCALSDigitizer(const char * alirunFileName, const char *
   fEventFolderName(eventFolderName)
 {
   // ctor
-  fFirstEvent = fLastEvent  = 0 ; // runs one event by defaut  
   Init();
   InitParameters() ; 
   fDefaultInit = kFALSE ; 
@@ -88,8 +87,6 @@ AliEMCALSDigitizer::AliEMCALSDigitizer(const char * alirunFileName, const char *
 AliEMCALSDigitizer::AliEMCALSDigitizer(const AliEMCALSDigitizer & sd) : TTask(sd) {
   //cpy ctor 
 
-  fFirstEvent    = sd.fFirstEvent ; 
-  fLastEvent     = sd.fLastEvent ;
   fA             = sd.fA ;
   fB             = sd.fB ;
   fECPrimThreshold  = sd.fECPrimThreshold ;
@@ -146,10 +143,11 @@ void AliEMCALSDigitizer::InitParameters()
   AliEMCALGetter * gime = AliEMCALGetter::Instance() ;
   const AliEMCALGeometry * geom = gime->EMCALGeometry() ; 
   if (geom->GetSampling() == 0.) {
-    Fatal("InitParameters", "Sampling factor not set !") ; 
+    printf("InitParameters: Sampling factor not set !") ; 
+    abort() ;
   }
-//   else
-//     Info("InitParameters", "Sampling factor set to %f", geom->GetSampling()) ; 
+  else
+    printf("InitParameters: Sampling factor set to %f\n", geom->GetSampling()) ; 
   
   // this threshold corresponds approximately to 100 MeV
   fECPrimThreshold     = 100E-3;
@@ -167,7 +165,7 @@ void AliEMCALSDigitizer::Exec(Option_t *option)
   if(strstr(option,"tim"))
     gBenchmark->Start("EMCALSDigitizer");
 
-  AliEMCALGetter * gime = AliEMCALGetter::Instance(GetTitle()) ;
+  AliEMCALGetter * gime = AliEMCALGetter::Instance() ;
  
   //switch off reloading of this task while getting event
   if (!fInit) { // to prevent overwrite existing file
@@ -175,15 +173,11 @@ void AliEMCALSDigitizer::Exec(Option_t *option)
     return ;
     }
 
-  if (fLastEvent == -1) 
-    fLastEvent = gime->MaxEvent() - 1 ;
-  else 
-    fLastEvent = TMath::Min(fFirstEvent, gime->MaxEvent()); // only ine event at the time
-  Int_t nEvents   = fLastEvent - fFirstEvent + 1;
-
+  Int_t nevents = gime->MaxEvent() ; 
   Int_t ievent ;   
-  for (ievent = fFirstEvent; ievent <= fLastEvent; ievent++) {
+  for(ievent = 0; ievent < nevents; ievent++){     
     gime->Event(ievent,"H") ;  
+
     TTree * treeS = gime->TreeS(); 
     TClonesArray * hits = gime->Hits() ; 
     TClonesArray * sdigits = gime->SDigits() ;
@@ -282,7 +276,7 @@ void AliEMCALSDigitizer::Exec(Option_t *option)
   if(strstr(option,"tim")){
     gBenchmark->Stop("EMCALSDigitizer"); 
     printf("Exec: took %f seconds for SDigitizing %f seconds per event", 
-	 gBenchmark->GetCpuTime("EMCALSDigitizer"), gBenchmark->GetCpuTime("EMCALSDigitizer")/nEvents ) ; 
+	 gBenchmark->GetCpuTime("EMCALSDigitizer"), gBenchmark->GetCpuTime("EMCALSDigitizer") ) ; 
   }
 }
 

@@ -1,29 +1,38 @@
 #ifndef ALIITSVERTEXER_H
 #define ALIITSVERTEXER_H
 
-#include<AliVertexer.h>
+#include<TObject.h>
 
 ///////////////////////////////////////////////////////////////////
 //                                                               //
-// Base class for primary vertex reconstruction  for ITS         //
+// Base class for primary vertex reconstruction                  //
 //                                                               //
 ///////////////////////////////////////////////////////////////////
 
+class TFile;
 class TString;
-class TClonesArray;
+class TTRee;
+class AliITSVertex;
 
 
-class AliITSVertexer : public AliVertexer {
+class AliITSVertexer : public TObject {
 
  public:
     // default constructor
     AliITSVertexer();   
     // standard constructor     
     AliITSVertexer(TString filename); 
-    virtual void SetUseV2Clusters(Bool_t v2c){fUseV2Clusters = v2c;}
+    // destructor
+    virtual ~AliITSVertexer(); 
+    // computes the vertex for the current event
+    virtual AliITSVertex* FindVertexForCurrentEvent(Int_t evnumb)=0; 
+    // computes the vetex for each event and stores it on file
+    virtual void FindVertices()= 0;
+    virtual void PrintStatus() const = 0;
+    virtual void SetDebug(Int_t debug = 0){fDebug = debug;}
+    virtual void SetFirstEvent(Int_t ev){fFirstEvent = ev;}
+    virtual void SetLastEvent(Int_t ev){fLastEvent = ev;}
     virtual void WriteCurrentVertex();
-    virtual void Clusters2RecPoints(const TClonesArray *clusters, Int_t idx, TClonesArray *points);
- 
 
  
  protected:
@@ -32,9 +41,14 @@ class AliITSVertexer : public AliVertexer {
     AliITSVertexer(const AliITSVertexer& vtxr);
     // assignment operator (NO assignment allowed)
     AliITSVertexer& operator=(const AliITSVertexer& /* vtxr */);
-    Bool_t fUseV2Clusters;   // true if V2 clusters are used
 
-  ClassDef(AliITSVertexer,2);
+    AliITSVertex *fCurrentVertex;  //! pointer to the vertex of the current
+                                   //  event
+    Int_t fFirstEvent;          // First event to be processed by FindVertices
+    Int_t fLastEvent;           // Last event to be processed by FindVertices 
+    Int_t fDebug;               //! debug flag - verbose printing if >0
+
+  ClassDef(AliITSVertexer,1);
 };
 
 #endif

@@ -1408,7 +1408,7 @@ Int_t AliEMCALJetFinder
 
 
 
-void AliEMCALJetFinder::SaveBackgroundEvent(const char *name)
+void AliEMCALJetFinder::SaveBackgroundEvent(Char_t *name)
 {
 // Saves the eta-phi lego and the tracklist and name of file with BG events
 //
@@ -1632,19 +1632,19 @@ void hf1(Int_t& , Float_t& , Float_t& )
     ;
 }
 
-void AliEMCALJetFinder::DrawLego(const char *opt) 
+void AliEMCALJetFinder::DrawLego(Char_t *opt) 
 {
 // Draw lego
 	if(fLego) fLego->Draw(opt);
 }
 
-void  AliEMCALJetFinder::DrawLegoBackground(const char *opt) 
+void  AliEMCALJetFinder::DrawLegoBackground(Char_t *opt) 
 {
 // Draw background lego
 	if(fLegoB) fLegoB->Draw(opt);
 }
 
-void AliEMCALJetFinder::DrawLegoEMCAL(const char *opt) 
+void AliEMCALJetFinder::DrawLegoEMCAL(Char_t *opt) 
 {
 // Draw EMCAL Lego
 	if(fhLegoEMCAL) fhLegoEMCAL->Draw(opt);
@@ -1763,7 +1763,7 @@ void AliEMCALJetFinder::DrawLegos()
   int1, int2, int3, int4, int1 - (int2 + int3 - int4));
 }
 
-const Char_t* AliEMCALJetFinder::GetFileNameForParameters(const char* dir)
+const Char_t* AliEMCALJetFinder::GetFileNameForParameters(Char_t* dir)
 {
 // Get paramters from a file	
   static TString tmp;

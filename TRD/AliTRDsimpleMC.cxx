@@ -348,7 +348,7 @@ const char *AliTRDsimpleMC::CurrentVolName() const
   // Check for the current volume
   //
 
-  const char *volName = "UA00";
+  Char_t *volName = "UA00";
 
   // Drift region
   if      ((fTrackX-fX0) <  AliTRDgeometry::DrThick()) {

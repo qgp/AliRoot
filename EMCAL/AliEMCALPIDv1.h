@@ -21,6 +21,7 @@ class TPrincipal ;
 // --- Standard library ---
 
 // --- AliRoot header files ---
+class AliEMCALEmcRecPoint ;
 class AliEMCALRecPoint ;
 
 #include "AliEMCALPID.h"
@@ -38,9 +39,7 @@ class  AliEMCALPIDv1 : public AliEMCALPID {
   virtual void Exec(Option_t * option) ;
 
   virtual const Int_t GetRecParticlesInRun() const  {return fRecParticlesInRun ;}  
-  Float_t  GetCalibratedEnergy    (Float_t e)                 const;
-  TVector3 GetMomentumDirection(AliEMCALRecPoint * emc)const ;
-
+  
   virtual void Print(Option_t * option) const ;
  
   //To turn on or off the Pi0 analysis
@@ -59,7 +58,7 @@ class  AliEMCALPIDv1 : public AliEMCALPID {
 
   void Print() const ; 
 
-  virtual const char * Version() const { return "pid-v1" ; }  
+  virtual char * Version() const { return "pid-v1" ; }  
 
   AliEMCALPIDv1 & operator = (const AliEMCALPIDv1 & /*pid*/) { return *this ;} 
 
@@ -72,7 +71,7 @@ class  AliEMCALPIDv1 : public AliEMCALPID {
   Bool_t  fPi0Analysis;        //! Pi0 analysis on or off  
   Int_t   fRecParticlesInRun ; //! Total number of recparticles in one run
 
-  ClassDef( AliEMCALPIDv1,8)  // Particle identifier implementation version 1
+  ClassDef( AliEMCALPIDv1,7)  // Particle identifier implementation version 1
 
 };
 
