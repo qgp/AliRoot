@@ -6,16 +6,11 @@
 /aliDet/switchOn ITS1
 
 # switch off modules with errors
-/aliDet/switchOff CASTOR
-#/aliDet/switchOff ZDC
-#/aliDet/switchOff PMD
+/aliDet/switchOff EMCAL
+/aliDet/switchOff CRT
 
 # switch off modules with MANY
-/aliDet/switchOff TRD
-/aliDet/switchOn  MUON
 /aliDet/switchOff MAG
-/aliDet/switchOn  PIPE
-/aliDet/switchOn  SHIL
 
 /aliDet/list
 /aliRun/initialize
