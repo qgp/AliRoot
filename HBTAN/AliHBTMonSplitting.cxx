@@ -8,7 +8,6 @@ AliHBTMonSplittingQosl::AliHBTMonSplittingQosl(Int_t nXbins, Double_t maxXval, D
  AliHBTTwoPairFctn3D(nXbins,maxXval,minXval,nYbins,maxYval,minYval,nZbins,maxZval,minZval)
 {
   //ctor
-  fWriteNumAndDen = kTRUE;//change default behaviour
   Rename("splitosl","Q_{out}-Q_{side}-Q_{long} Splitting Monitoring Function");
 }
 
@@ -37,8 +36,7 @@ AliHBTMonSplittingDptDthetaDphi::AliHBTMonSplittingDptDthetaDphi(Int_t nXbins, D
  AliHBTTwoPairFctn3D(nXbins,maxXval,minXval,nYbins,maxYval,minYval,nZbins,maxZval,minZval)
 {
   //ctor
-  fWriteNumAndDen = kTRUE;//change default behaviour
-  Rename("splitosl","Q_{out}-Q_{side}-Q_{long} Splitting Monitoring Function");
+  Rename("splitdpdthedphi","\\Deltap_{t}-\\Delta\\theta-\\Delta\\phi Splitting Monitoring Function");
 }
 
 void   AliHBTMonSplittingDptDthetaDphi::ProcessSameEventParticles(AliHBTPair* trackpair, AliHBTPair* partpair)
