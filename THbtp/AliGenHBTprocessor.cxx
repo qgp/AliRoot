@@ -270,8 +270,8 @@ void AliGenHBTprocessor::Init()
    thbtp->SetPxRange(fPxMin,fPxMax);
    thbtp->SetPyRange(fPyMin,fPyMax);
    thbtp->SetPzRange(fPzMin,fPzMax);
-   thbtp->SetPhiRange(fPhiMin*180./((Float_t)TMath::Pi())+180.0, //casting is because if fPhiMin = 180.0 then
-                      fPhiMax*180./((Float_t)TMath::Pi())+180.0);//TMath::Pi() != TMath::Pi()*fPhiMin/180.0,
+   thbtp->SetPhiRange(fPhiMin*180./((Float_t)TMath::Pi()), //casting is because if fPhiMin = 180.0 then
+                      fPhiMax*180./((Float_t)TMath::Pi()));//TMath::Pi() != TMath::Pi()*fPhiMin/180.0,
    thbtp->SetEtaRange(fEtaMin,fEtaMax);
    thbtp->SetNPtBins(fNPtBins);
    thbtp->SetNPhiBins(fNPhiBins);
@@ -302,12 +302,12 @@ void AliGenHBTprocessor::Generate()
     {
       Fatal("Generate()","AliGenHBTprocessor needs AliGenCocktailAfterBurner to be main generator");
     }
-   if (cab->GetNumberOfEvents() <2)
-    {
-      Fatal("Generate()",
-            "HBT Processor needs more than 1 event to work properly,\
-             but there is only %d set", cab->GetNumberOfEvents());
-    }
+//   if (cab->GetNumberOfEvents() <2)
+//    {
+//      Fatal("Generate()",
+//            "HBT Processor needs more than 1 event to work properly,\
+//             but there is only %d set", cab->GetNumberOfEvents());
+//    }
   
   
    fHBTprocessor->Initialize(); //reset all fields of common blocks 
