@@ -1,7 +1,5 @@
 SRCS:=aliroot.cxx
 
-FSRCS:= # loadmod.F ludata.F pydata.F
-
 ELIBSDIR:= $(ALICE)/geant3/lib/tgt_$(ALICE_TARGET)
 
 ELIBS:= MUON TPC PMD TRD FMD TOF ITS PHOS CRT RICH ZDC EMCAL STRUCT \
