@@ -1,7 +1,0 @@
-SRCS= TEpEmGen.cxx AliGenEpEmv1.cxx
-
-HDRS= TEpEmGen.h AliGenEpEmv1.h
-
-DHDR:=TEPEMGENLinkDef.h
-
-EXPORT:=TEpEmGen.h
