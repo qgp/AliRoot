@@ -160,13 +160,17 @@ class AliPHOSLoader : public AliLoader {
   /************    T A S K S      **************/
   /*********************************************/
   AliPHOSPID * PID(const char * name =0) const { MayNotUse("PID"); return 0x0 ;}
-  AliPHOSSDigitizer*  PHOSSDigitizer();
-  AliPHOSDigitizer*   PHOSDigitizer()  { return  dynamic_cast<AliPHOSDigitizer*>(Digitizer()) ;}
+  //  AliPHOSSDigitizer*  PHOSSDigitizer(TString name = AliConfig::fgkDefaultEventFolderName);
+  //AliPHOSDigitizer*   PHOSDigitizer()  { return  dynamic_cast<AliPHOSDigitizer*>(Digitizer()) ;}
+
   AliPHOSClusterizer* Clusterizer ()  {return dynamic_cast<AliPHOSClusterizer*>(Reconstructioner()) ;}
-  AliPHOSTrackSegmentMaker * TrackSegmentMaker ()  { return dynamic_cast<AliPHOSTrackSegmentMaker *>(Tracker()) ;}
-  
   Int_t PostClusterizer(TTask* clust){return PostReconstructioner(clust);}
+  Int_t LoadClusterizer(Option_t * opt="") {return LoadReconstructioner(opt);}
+  Int_t WriteClusterizer(Option_t * opt="") {return WriteReconstructioner(opt);}
+
+  AliPHOSTrackSegmentMaker * TrackSegmentMaker ()  { return dynamic_cast<AliPHOSTrackSegmentMaker *>(Tracker()) ;}
   Int_t PostTrackSegmentMaker(TTask* segmaker){return PostTracker(segmaker);}
+
   
   void   SetDebug(Int_t level) {fDebug = level;} // Set debug level
   void   SetBranchTitle(const TString& btitle);

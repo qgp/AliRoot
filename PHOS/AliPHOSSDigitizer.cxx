@@ -113,7 +113,6 @@ void AliPHOSSDigitizer::Init()
   
   fInit = kTRUE ; 
   
-  Info("Init","EFN=%s",fEventFolderName.Data());
   AliPHOSGetter * gime = AliPHOSGetter::Instance(GetTitle(), fEventFolderName.Data());  
   if ( gime == 0 ) {
     Fatal("Init" ,"Could not obtain the Getter object for file %s and event %s !", GetTitle(), fEventFolderName.Data()) ;  
@@ -125,8 +124,6 @@ void AliPHOSSDigitizer::Init()
     Error( "Init", "Give a version name different from %s", fEventFolderName.Data() ) ;
     fInit = kFALSE ; 
   }
-  else
-    Info("Init", "name = %s\n", gime->GetSDigitsFileName().Data()) ; 
 
   gime->PostSDigitizer(this);
   gime->PhosLoader()->GetSDigitsDataLoader()->GetBaseTaskLoader()->SetDoNotReload(kTRUE);
@@ -164,7 +161,7 @@ void AliPHOSSDigitizer::Exec(Option_t *option)
     return ;
   }
 
-  gime->PhosLoader()->GetSDigitsDataLoader()->GetBaseTaskLoader()->SetDoNotReload(kTRUE);
+  //gime->PhosLoader()->GetSDigitsDataLoader()->GetBaseTaskLoader()->SetDoNotReload(kTRUE);
 
   Int_t nevents = gime->MaxEvent() ; 
   Int_t ievent ;
@@ -173,11 +170,6 @@ void AliPHOSSDigitizer::Exec(Option_t *option)
     gime->Event(ievent,"H") ;
 
     TTree * treeS = gime->TreeS(); 
-    if ( !treeS ) {
-      Info("Exec","Calling LoadSDigits(\"RECREATE\")");
-      gime->LoadSDigits("RECREATE");
-      treeS = gime->TreeS() ; 
-    }
     TClonesArray * hits = gime->Hits() ;
     TClonesArray * sdigits = gime->SDigits() ;
     sdigits->Clear();
@@ -235,8 +227,9 @@ void AliPHOSSDigitizer::Exec(Option_t *option)
 
     //Next - SDigitizer
 
-    gime->WriteSDigitizer(fEventFolderName.Data(), "OVERWRITE");
-    
+    Info("Exec", "name = %s", GetName()) ; 
+    gime->WriteSDigitizer("OVERWRITE");
+
     if(strstr(option,"deb"))
       PrintSDigits(option) ;
   }

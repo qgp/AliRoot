@@ -78,6 +78,9 @@ class AliPHOSGetter : public TObject {
   static void Print() ; 
   
 //   //=========== General information about run ==============
+  Bool_t IsLoaded(const TString tree) const { return fLoadingStatus.Contains(tree) ; } 
+  void   SetLoaded(const TString tree) { fLoadingStatus += tree ; } 
+
   Int_t  MaxEvent() const ; 
   Int_t  EventNumber() const ; 
   Bool_t VersionExists(TString & opt) const ; 
@@ -114,46 +117,52 @@ class AliPHOSGetter : public TObject {
 //   TTree *               TreeH(TString filename="") ; 
   TClonesArray *  Hits(void)  ; 
   AliPHOSHit *    Hit(const Int_t index) { return dynamic_cast<AliPHOSHit*>(Hits()->At(index) );}
-  TTree *         TreeH() const { return fgPhosLoader->TreeH() ; }
+  TTree *         TreeH() const ; 
   
   //=========== SDigits ==============
   TClonesArray *      SDigits() ;  
   AliPHOSDigit *      SDigit(const Int_t index) { return static_cast<AliPHOSDigit *>(SDigits()->At(index)) ;} 
-  TTree *             TreeS() const { return fgPhosLoader->TreeS() ; }
-  AliPHOSSDigitizer * SDigitizer(TString name = AliConfig::fgkDefaultEventFolderName ) const { 
-    return dynamic_cast<AliPHOSSDigitizer *>(PhosLoader()->PHOSSDigitizer()) ;} 
+  TTree *             TreeS() const ; 
+  AliPHOSSDigitizer * SDigitizer() const { 
+    return dynamic_cast<AliPHOSSDigitizer *>(PhosLoader()->SDigitizer()) ;} 
+
   TString             GetSDigitsFileName() { return PhosLoader()->GetSDigitsFileName() ; }  
   Int_t               LoadSDigits(Option_t* opt="") { return PhosLoader()->LoadSDigits(opt) ; }
-  Int_t               LoadSDigitizer(const TString name = AliConfig::fgkDefaultEventFolderName, Option_t* opt=""){
-    return  PhosLoader()->LoadSDigitizer(opt) ; }
+  Int_t               LoadSDigitizer(Option_t* opt=""){ return  PhosLoader()->LoadSDigitizer(opt) ; }
   Int_t               WriteSDigits(Option_t* opt="") { return PhosLoader()->WriteSDigits(opt) ; }
-  Int_t               WriteSDigitizer(const TString name = AliConfig::fgkDefaultEventFolderName, Option_t* opt=""){
-                        return  PhosLoader()->WriteSDigitizer(opt) ; }
+  Int_t               WriteSDigitizer(Option_t* opt=""){
+    return  PhosLoader()->WriteSDigitizer(opt) ; }
   
   //========== Digits ================
   TClonesArray * Digits() ;
   AliPHOSDigit * Digit(const Int_t index) { return static_cast<AliPHOSDigit *>(Digits()->At(index)) ;} 
-  TTree *        TreeD() const { return fgPhosLoader->TreeD() ; }
-  //   const TTask *           Digitizer(const char * name = 0) const { 
-  //     return ReturnT("Digitizer", name) ;   }
+  TTree *        TreeD() const ; 
+  AliPHOSDigitizer * Digitizer() const { 
+       return dynamic_cast<AliPHOSDigitizer *>(PhosLoader()->Digitizer()) ; }
   TString             GetDigitsFileName() { return PhosLoader()->GetDigitsFileName() ; }  
   Int_t               LoadDigits(Option_t* opt="") { return PhosLoader()->LoadDigits(opt) ; }
-  Int_t               LoadDigitizer(const TString name = AliConfig::fgkDefaultEventFolderName, Option_t* opt=""){
+  Int_t               LoadDigitizer(Option_t* opt=""){
     return  PhosLoader()->LoadDigitizer(opt) ; }
   Int_t               WriteDigits(Option_t* opt="") { return PhosLoader()->WriteDigits(opt) ; }
-  Int_t               WriteDigitizer(const TString name = AliConfig::fgkDefaultEventFolderName, Option_t* opt=""){
-    return  PhosLoader()->WriteDigitizer( opt) ; }
+  Int_t               WriteDigitizer(Option_t* opt=""){
+    return  PhosLoader()->WriteDigitizer(opt) ; }
   
   //========== RecPoints =============
-  //   TObjArray *                EmcRecPoints(const char * name = 0) {
-//     return dynamic_cast<TObjArray*>(ReturnO("EmcRecPoints", name)) ;   }
-//   //const AliPHOSEmcRecPoint *  EmcRecPoint(Int_t index) { return static_cast<const AliPHOSEmcRecPoint *>(EmcRecPoints()->At(index)) ;} !!! why no such method ?
-//   TObjArray *                CpvRecPoints(const char * name = 0) { 
-//     return dynamic_cast<TObjArray*>(ReturnO("CpvRecPoints", name)) ;   }    
+  TObjArray *           EmcRecPoints() ;
+  AliPHOSEmcRecPoint *  EmcRecPoint(const Int_t index) { return static_cast<AliPHOSEmcRecPoint *>(EmcRecPoints()->At(index)) ;} 
+  TObjArray *           CpvRecPoints() ; 
+  AliPHOSCpvRecPoint *  CpvRecPoint(const Int_t index) { return static_cast<AliPHOSCpvRecPoint *>(CpvRecPoints()->At(index)) ;} 
+  TTree *               TreeR() const { return PhosLoader()->TreeR() ; }
 //   const AliPHOSClusterizer * Clusterizer (const char * name =0) const { 
-//     return (const AliPHOSClusterizer*)(ReturnT("Clusterizer", name)) ;   // here static or dynamic cast does not work ! why ?
-//   }
-  
+//     return (const AliPHOSClusterizer*)(ReturnT("Clusterizer", name)) ;}
+  TString               GetRecPointsFileName() { return PhosLoader()->GetRecPointsFileName() ; } 
+  Int_t                 LoadRecPoints(Option_t* opt="") { return PhosLoader()->LoadRecPoints(opt) ; }
+  Int_t                 LoadClusterizer(Option_t* opt=""){
+    return  PhosLoader()->LoadClusterizer(opt) ; }
+  Int_t                 WriteRecPoints(Option_t* opt="") { return PhosLoader()->WriteRecPoints(opt) ; }
+  Int_t                 WriteClusterizer(Option_t* opt=""){
+    return  PhosLoader()->WriteClusterizer(opt) ; }
+
 //   //========== TrackSegments ==========
 //   TClonesArray * TrackSegments(const char * name = 0) { 
 //     return static_cast<TClonesArray*>(ReturnO("TrackSegments", name)) ;   }
@@ -202,7 +211,7 @@ class AliPHOSGetter : public TObject {
 //   const Bool_t PostPID  (const char * name ) const ;  
 //   const Bool_t PostQA   (void) const ;
 
-  TString Version() const  { return fgPhosLoader->GetTitle() ; } 
+  TString Version() const  { return PhosLoader()->GetTitle() ; } 
   AliPHOSLoader * PhosLoader() const { return  fgPhosLoader ; }
   
 private:
@@ -214,7 +223,7 @@ private:
 //   TObject * ReturnO(TString what, TString name=0, TString file=0) const ; 
 //   const TTask * ReturnT(TString what,TString name=0) const ; 
 //   void DefineBranchTitles(char* branch, char* branchTitle) ;
-//   Int_t ReadTreeD(const Int_t event) ;
+  Int_t ReadTreeD(void) ;
   Int_t ReadTreeH(void) ;
 //   Int_t ReadTreeR(const Int_t event) ;
   Int_t ReadTreeS(void) ;
@@ -262,7 +271,8 @@ private:
 //   Bool_t         fFailed ;            //! set if file not opend or galice not found
   static Int_t          fgDebug ;             //! Debug level
 //   AliRun *       fAlice ;             //! needed to read TreeK if in an other file than fHeaderFile
-  Int_t          fNPrimaries ;        //! # of primaries  
+  TString           fLoadingStatus ;     //! tells which trees are loaded
+  Int_t             fNPrimaries ;        //! # of primaries  
   TClonesArray *    fPrimaries ;         //! list of lists of primaries
 //   TFolder *      fModuleFolder ;      //!Folder that contains the modules 
 //   TFolder *      fPrimariesFolder ;   //!Folder that contains the Primary Particles 

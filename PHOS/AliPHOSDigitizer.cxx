@@ -90,13 +90,15 @@ ClassImp(AliPHOSDigitizer)
   InitParameters() ; 
   fDefaultInit = kTRUE ;
   fManager = 0 ;                     // We work in the standalong mode
-
- }
+  fInputFileNames = 0 ; 
+  fEventNames = 0 ; 
+  fEventFolderName = "" ; 
+}
 
 //____________________________________________________________________________ 
 AliPHOSDigitizer::AliPHOSDigitizer(const TString alirunFileName, const TString eventFolderName):
   AliDigitizer("PHOS"+AliConfig::fgkDigitizerTaskName, alirunFileName),
-  fEventFolderName(eventFolderName)
+  fInputFileNames(0), fEventNames(0), fEventFolderName(eventFolderName)
 {
   // ctor
 
@@ -167,12 +169,7 @@ void AliPHOSDigitizer::Digitize(const Int_t event)
   AliPHOSGetter * gime = AliPHOSGetter::Instance(GetTitle(), fEventFolderName) ; 
 
   
-  TTree * treeD = gime->TreeD();
-  if ( !treeD ) {
-    gime->PhosLoader()->LoadDigits("RECREATE");
-    treeD = gime->TreeD();
-  }
-
+  //TTree * treeD = gime->TreeD();
   TClonesArray * digits = gime->Digits() ; 
   digits->Clear() ;
 
@@ -188,16 +185,16 @@ void AliPHOSDigitizer::Digitize(const Int_t event)
   digits->Expand(nCPV) ;
 
   // get first the sdigitizer from the tasks list 
-  if ( !gime->SDigitizer("whatever")) 
-    gime->LoadSDigitizer(fEventFolderName);
-  AliPHOSSDigitizer * sDigitizer = gime->SDigitizer("whatever");
+  if ( !gime->SDigitizer() ) 
+    gime->LoadSDigitizer();
+  AliPHOSSDigitizer * sDigitizer = gime->SDigitizer(); 
 
   if ( !sDigitizer )
     Fatal("Digitize", "SDigitizer with name %s %s not found", fEventFolderName.Data(), GetTitle() ) ; 
 
   //take all the inputs to add together and load the SDigits
   TObjArray * sdigArray = new TObjArray(fInput) ;
-  gime->Event(event,"S");
+  //gime->Event(event,"S");
   sdigArray->AddAt(gime->SDigits(), 0) ;
   Int_t i ;
   for(i = 1 ; i < fInput ; i++){
@@ -419,14 +416,14 @@ void AliPHOSDigitizer::Exec(Option_t *option)
   
   AliPHOSGetter * gime = AliPHOSGetter::Instance() ;
   
-  nevents=gime->MaxEvent() ;
+  nevents = gime->MaxEvent() ;
   
   Int_t ievent ;
 
   for(ievent = 0; ievent < nevents; ievent++){
  
     gime->Event(ievent,"S") ;
- 
+
     Digitize(ievent) ; //Add prepared SDigits to digits and add the noise
 
     WriteDigits(ievent) ;
@@ -705,6 +702,8 @@ Float_t AliPHOSDigitizer::TimeOfNoise(void) const
   return 1. ;
 
 }
+
+//__________________________________________________________________
 void AliPHOSDigitizer::Unload() 
 {  
   
@@ -743,7 +742,7 @@ void AliPHOSDigitizer::WriteDigits(Int_t event)
   digitsBranch->Fill() ;
   
   gime->WriteDigits("OVERWRITE");
-  gime->WriteDigitizer(fEventFolderName, "OVERWRITE");
+  gime->WriteDigitizer("OVERWRITE");
 
   Unload() ; 
 

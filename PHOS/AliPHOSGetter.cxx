@@ -52,7 +52,9 @@
 
 #include "TSystem.h"
 #include "TFile.h"
+// #include "TTree.h"
 #include "TROOT.h"
+// #include "TObjString.h"
 // #include "TFolder.h"
 // #include "TParticle.h"
 
@@ -63,8 +65,7 @@
 // #include "AliConfig.h"
 #include "AliPHOSGetter.h"
 #include "AliRunLoader.h"
-#include "AliRun.h"  
-#include "AliStack.h"
+#include "AliStack.h"  
 #include "AliPHOSLoader.h"
 // #include "AliPHOS.h"
 // #include "AliPHOSDigitizer.h"
@@ -84,6 +85,7 @@ AliPHOSGetter * AliPHOSGetter::fgObjGetter = 0 ;
 AliPHOSLoader * AliPHOSGetter::fgPhosLoader = 0;
 Int_t AliPHOSGetter::fgDebug = 0;
 
+//  TFile * AliPHOSGetter::fgFile = 0 ; 
 
 //____________________________________________________________________________ 
 AliPHOSGetter::AliPHOSGetter(const char* headerFile, const char* version, Option_t * openingOption)
@@ -113,6 +115,7 @@ AliPHOSGetter::AliPHOSGetter(const char* headerFile, const char* version, Option
   SetDebug(0) ; 
   fBTE = 0 ; 
   fPrimaries = 0 ; 
+  fLoadingStatus = "" ; 
 }
 
 //____________________________________________________________________________ 
@@ -128,11 +131,34 @@ AliPHOSGetter::~AliPHOSGetter()
 }
 
 //____________________________________________________________________________ 
+TObjArray * AliPHOSGetter::CpvRecPoints() 
+{
+  // asks the Loader to return the Digits container 
+
+  return PhosLoader()->CpvRecPoints() ; 
+}
+
+//____________________________________________________________________________ 
 TClonesArray * AliPHOSGetter::Digits() 
 {
   // asks the Loader to return the Digits container 
 
-  return PhosLoader()->Digits() ; 
+  TClonesArray * rv = 0 ; 
+  rv = PhosLoader()->Digits() ; 
+
+  if( !rv ) {
+    PhosLoader()->MakeDigitsArray() ; 
+    rv = PhosLoader()->Digits() ;
+  }
+  return rv ; 
+}
+
+//____________________________________________________________________________ 
+TObjArray * AliPHOSGetter::EmcRecPoints() 
+{
+  // asks the Loader to return the Digits container 
+
+  return PhosLoader()->EmcRecPoints() ; 
 }
 
 //____________________________________________________________________________ 
@@ -164,7 +190,7 @@ void AliPHOSGetter::Event(const Int_t event, const char* opt)
 
   // Loads the type of object(s) requested
   
-  rl->GetEvent(event) ; 
+  rl->GetEvent(event) ;
 
 
   if( strstr(opt,"P") || (strcmp(opt,"")==0) )
@@ -176,8 +202,8 @@ void AliPHOSGetter::Event(const Int_t event, const char* opt)
   if(strstr(opt,"S") )
     ReadTreeS() ;
 
-//   if( strstr(opt,"D") )
-//     ReadTreeD() ;
+  if( strstr(opt,"D") )
+    ReadTreeD() ;
 
 //   if( strstr(opt,"R") )
 //     ReadTreeR() ;
@@ -201,7 +227,14 @@ Int_t AliPHOSGetter::EventNumber() const
 {
   // asks the loader to return  the Hits container 
   
-  return PhosLoader()->Hits() ; 
+  TClonesArray * rv = 0 ; 
+  
+  rv = PhosLoader()->Hits() ; 
+  if ( !rv ) {
+    PhosLoader()->LoadHits("read"); 
+    rv = PhosLoader()->Hits() ; 
+  }
+  return rv ; 
 }
 
 //____________________________________________________________________________ 
@@ -272,18 +305,7 @@ Int_t AliPHOSGetter::MaxEvent() const
 TParticle * AliPHOSGetter::Primary(Int_t index) const
 {
   AliRunLoader * rl = AliRunLoader::GetRunLoader(PhosLoader()->GetTitle());
-  if (rl == 0x0)
-   {
-     Error("Primary","Can not get Run Loader from folder %s",PhosLoader()->GetTitle());
-     return 0x0;
-   }
-  AliStack* stack = rl->Stack();
-  if (stack == 0x0)
-   {
-     Error("Primary","Can not get Stack from Run Loader.");
-     return 0x0;
-   }
-  return stack->Particle(index);
+  return rl->Stack()->Particle(index) ; 
 } 
 
 //____________________________________________________________________________ 
@@ -339,15 +361,8 @@ void AliPHOSGetter::ReadPrimaries()
   // gets kine tree from the root file (Kinematics.root)
   if ( ! rl->TreeK() )  // load treeK the first time
     rl->LoadKinematics() ;
-
-  AliStack* stack = rl->Stack();
-  if (stack == 0x0)
-   {
-     Error("ReadPrimaries","Can not get Stack from Run Loader.");
-     return;
-   }
   
-  fNPrimaries = stack->GetNtrack() ; 
+  fNPrimaries = rl->Stack()->GetNtrack() ; 
 
   if (fgDebug) 
     Info( "ReadTreeK", "Found %d particles in event # %d", fNPrimaries, EventNumber() ) ; 
@@ -364,42 +379,30 @@ void AliPHOSGetter::ReadPrimaries()
 }
 
 //____________________________________________________________________________ 
+Int_t AliPHOSGetter::ReadTreeD()
+{
+  // Read the Digits
+  
+  
+  // gets TreeD from the root file (PHOS.SDigits.root)
+  if ( !IsLoaded("D") ) {
+    PhosLoader()->LoadDigits("UPDATE") ;
+    SetLoaded("D") ; 
+  } 
+  return PhosLoader()->Digits()->GetEntries() ; 
+}
+
+//____________________________________________________________________________ 
 Int_t AliPHOSGetter::ReadTreeH()
 {
   // Read the Hits
     
   // gets TreeH from the root file (PHOS.Hit.root)
-  if ( ! TreeH() )  // load treeH the first time
+  if ( !IsLoaded("H") ) {
     PhosLoader()->LoadHits("UPDATE") ;
- 
-  // first time create the container
-
-  TClonesArray * hits = Hits() ; 
-  if ( hits ) 
-    hits->Clear() ; 
-
-  TBranch * phosbranch = static_cast<TBranch*>(TreeH()->GetBranch("PHOS")) ;
-  if (phosbranch->GetEntries() > 1 ) {
-    TClonesArray * tempo =  new TClonesArray("AliPHOSHit",1000) ; 
-    phosbranch->SetAddress(&tempo) ;
-    Int_t index = 0 ; 
-    Int_t i = 0 ;
-    for (i = 0 ; i < phosbranch->GetEntries() ; i++) {
-      phosbranch->GetEntry(i) ;
-      Int_t j = 0 ; 
-      for ( j = 0 ; j < tempo->GetEntries() ; j++) { 
-	const AliPHOSHit * hit = static_cast<const AliPHOSHit *>(tempo->At(j)) ; 
-	new((*hits)[index]) AliPHOSHit( *hit ) ;
-	index++ ; 
-      }
-    }
-    delete tempo ; 
-  }
-  else {
-    phosbranch->SetAddress(&hits) ;
-    phosbranch->GetEntry(0) ;
-  }
-  return hits->GetEntries() ; 
+    SetLoaded("H") ; 
+  }  
+  return PhosLoader()->Hits()->GetEntries() ; 
 }
 
 //____________________________________________________________________________ 
@@ -409,19 +412,27 @@ Int_t AliPHOSGetter::ReadTreeS()
   
   
   // gets TreeS from the root file (PHOS.SDigits.root)
-  if ( ! TreeS() )  // load treeS the first time
-    PhosLoader()->LoadSDigits() ;
+  if ( !IsLoaded("S") ) {
+    PhosLoader()->LoadSDigits("UPDATE") ;
+    SetLoaded("S") ; 
+  }
 
-  return PhosLoader()->SDigits()->GetEntries() ; 
+  return SDigits()->GetEntries() ; 
 }
-
 
 //____________________________________________________________________________ 
 TClonesArray * AliPHOSGetter::SDigits() 
 {
-  // asks the Loader to return the SDigits container
- 
-  return PhosLoader()->SDigits() ; 
+  // asks the Loader to return the Digits container 
+
+  TClonesArray * rv = 0 ; 
+  
+  rv = PhosLoader()->SDigits() ; 
+  if (!rv) {
+    PhosLoader()->MakeSDigitsArray() ;
+    rv = PhosLoader()->SDigits() ; 
+  }
+  return rv ; 
 }
 
 //____________________________________________________________________________ 
@@ -437,14 +448,7 @@ TParticle * AliPHOSGetter::Secondary(const TParticle* p, const Int_t index) cons
   if(p) {
   Int_t daughterIndex = p->GetDaughter(index-1) ; 
   AliRunLoader * rl = AliRunLoader::GetRunLoader(PhosLoader()->GetTitle());
-  AliStack* stack = rl->Stack();
-  if (stack == 0x0)
-   {
-     Error("Primary","Can not get Stack from Run Loader.");
-     return 0x0;
-   }
-  
-  return  stack->Particle(daughterIndex) ; 
+  return  rl->GetAliRun()->Particle(daughterIndex) ; 
   }
   else
     return 0 ;
@@ -468,6 +472,44 @@ void AliPHOSGetter::Track(const Int_t itrack)
   TBranch * phosbranch = dynamic_cast<TBranch*>(TreeH()->GetBranch("PHOS")) ; 
   phosbranch->SetAddress(&hits) ;
   phosbranch->GetEntry(itrack) ;
+}
+
+//____________________________________________________________________________ 
+TTree * AliPHOSGetter::TreeD() const 
+{
+  TTree * rv = 0 ; 
+  rv = PhosLoader()->TreeD() ; 
+  if ( !rv ) {
+    PhosLoader()->MakeTree("D");
+    rv = PhosLoader()->TreeD() ;
+  } 
+  
+  return rv ; 
+}
+
+//____________________________________________________________________________ 
+TTree * AliPHOSGetter::TreeH() const 
+{
+  TTree * rv = 0 ; 
+  rv = PhosLoader()->TreeH() ; 
+  if ( !rv ) {
+    PhosLoader()->MakeTree("H");
+    rv = PhosLoader()->TreeH() ;
+  } 
+  
+  return rv ; 
+}
+//____________________________________________________________________________ 
+TTree * AliPHOSGetter::TreeS() const 
+{
+  TTree * rv = 0 ; 
+  rv = PhosLoader()->TreeS() ; 
+  if ( !rv ) {
+    PhosLoader()->MakeTree("S");
+    rv = PhosLoader()->TreeS() ;
+  } 
+  
+  return rv ; 
 }
 
 //____________________________________________________________________________ 
@@ -554,3 +596,4 @@ Bool_t AliPHOSGetter::VersionExists(TString & opt) const
   return rv ;
 
 }
+

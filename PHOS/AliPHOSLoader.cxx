@@ -956,12 +956,13 @@ void AliPHOSLoader::ReadCalibrationDB(const char * database,const char * filenam
 }
 //____________________________________________________________________________ 
 
-AliPHOSSDigitizer*  AliPHOSLoader::PHOSSDigitizer() 
-{ 
-//return PHOS SDigitizer
- return  dynamic_cast<AliPHOSSDigitizer*>(SDigitizer()) ;
-}
+// AliPHOSSDigitizer*  AliPHOSLoader::PHOSSDigitizer() 
+// { 
+// //return PHOS SDigitizer
+//  return  dynamic_cast<AliPHOSSDigitizer*>(SDigitizer()) ;
+// }
 
+//____________________________________________________________________________ 
 void AliPHOSLoader::MakeHitsArray()
 {
   if (Hits()) return;
@@ -970,6 +971,7 @@ void AliPHOSLoader::MakeHitsArray()
   GetDetectorDataFolder()->Add(hits);
 }
 
+//____________________________________________________________________________ 
 void AliPHOSLoader::MakeSDigitsArray()
 {
   if ( SDigits()) return;
@@ -978,6 +980,7 @@ void AliPHOSLoader::MakeSDigitsArray()
   GetDetectorDataFolder()->Add(sdigits);
 }
 
+//____________________________________________________________________________ 
 void AliPHOSLoader::MakeDigitsArray()
 {
   if ( Digits()) return;
@@ -987,6 +990,7 @@ void AliPHOSLoader::MakeDigitsArray()
   
 }
 
+//____________________________________________________________________________ 
 void AliPHOSLoader::MakeRecPointsArray()
 {
   if ( EmcRecPoints() == 0x0)
@@ -1004,6 +1008,7 @@ void AliPHOSLoader::MakeRecPointsArray()
    }
 }
 
+//____________________________________________________________________________ 
 void AliPHOSLoader::MakeTrackSegmentsArray()
 {
   if ( TrackSegments()) return;
@@ -1013,6 +1018,7 @@ void AliPHOSLoader::MakeTrackSegmentsArray()
 
 }
 
+//____________________________________________________________________________ 
 void AliPHOSLoader::MakeRecParticlesArray()
 {
   if ( RecParticles()) return;

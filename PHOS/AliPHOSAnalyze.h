@@ -25,6 +25,7 @@ class TH2F ;
 class AliPHOSv1 ;
 class AliPHOSGeometry ;
 class AliPHOSLoader ;
+class AliRunLoader ; 
 
 class AliPHOSAnalyze : public TObject {
 
