@@ -629,32 +629,28 @@ void AliPHOSDigitizer::Print()const
   AliPHOSGetter * gime = AliPHOSGetter::Instance(GetTitle(), fEventFolderName) ; 
   TClonesArray * digits = gime->Digits() ; 
   
-  TString message ; 
-  message  = "\nevent " ;
-  message += gAlice->GetEvNumber() ;
-  message += "\n       Number of entries in Digits list " ;  
-  message += digits->GetEntriesFast()  ;  
-  char * tempo = new char[8192]; 
+  Info("PrintDigits", "%d", digits->GetEntriesFast()) ; 
+  printf("\nevent %d", gAlice->GetEvNumber()) ;
+  printf("\n       Number of entries in Digits list %d", digits->GetEntriesFast() )  ;  
+
  
   if(strstr(option,"all")||strstr(option,"EMC")){  
     //loop over digits
     AliPHOSDigit * digit;
-    message += "\nEMC digits (with primaries):\n"  ;
-    message += "\n   Id  Amplitude    Time          Index Nprim: Primaries list \n" ;    
+    printf("\nEMC digits (with primaries):\n")  ;
+    printf("\n   Id  Amplitude    Time          Index Nprim: Primaries list \n") ;    
     Int_t maxEmc = gime->PHOSGeometry()->GetNModules()*gime->PHOSGeometry()->GetNCristalsInModule() ;
     Int_t index ;
     for (index = 0 ; (index < digits->GetEntriesFast()) && 
-	   (((AliPHOSDigit * )  digits->At(index))->GetId() <= maxEmc) ; index++) {
+	   (dynamic_cast<AliPHOSDigit *>(digits->At(index))->GetId() <= maxEmc) ; index++) {
       digit = (AliPHOSDigit * )  digits->At(index) ;
       if(digit->GetNprimary() == 0) 
 	continue;
-      sprintf(tempo, "\n%6d  %8d    %6.5e %4d      %2d :",
+      printf("\n%6d  %8d    %6.5e %4d      %2d :",
 	      digit->GetId(), digit->GetAmp(), digit->GetTime(), digit->GetIndexInList(), digit->GetNprimary()) ;  
-      message += tempo ; 
       Int_t iprimary;
       for (iprimary=0; iprimary<digit->GetNprimary(); iprimary++) {
-	sprintf(tempo, "%d ",digit->GetPrimary(iprimary+1) ) ; 
-	message += tempo ; 
+	printf("%d ",digit->GetPrimary(iprimary+1) ) ; 
       }    
     }
   }
@@ -663,27 +659,23 @@ void AliPHOSDigitizer::Print()const
     
     //loop over CPV digits
     AliPHOSDigit * digit;
-    message += "\nCPV digits:\n" ;
-    message += "\n   Id  Amplitude    Index Nprim: Primaries list \n" ;    
-
+    printf("\nCPV digits (with primaries):\n")  ;
+    printf("\n   Id  Amplitude    Time          Index Nprim: Primaries list \n") ;    
     Int_t maxEmc = gime->PHOSGeometry()->GetNModules()*gime->PHOSGeometry()->GetNCristalsInModule() ;
     Int_t index ;
     for (index = 0 ; index < digits->GetEntriesFast(); index++) {
       digit = (AliPHOSDigit * )  digits->At(index) ;
       if(digit->GetId() > maxEmc){
-	sprintf(tempo, "\n%6d  %8d    %4d      %2d :",
+	printf("\n%6d  %8d    %4d      %2d :",
 		digit->GetId(), digit->GetAmp(), digit->GetIndexInList(), digit->GetNprimary()) ;  
-	message += tempo ; 
 	Int_t iprimary;
 	for (iprimary=0; iprimary<digit->GetNprimary(); iprimary++) {
-	  sprintf(tempo, "%d ",digit->GetPrimary(iprimary+1) ) ; 
-	  message += tempo ; 
+	  printf("%d ",digit->GetPrimary(iprimary+1) ) ; 
 	}    
       }
     }
   }
-  delete tempo ; 
-  Info("Print", message.Data() ) ; 
+
 }
 
 //__________________________________________________________________
