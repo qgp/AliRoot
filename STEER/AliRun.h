@@ -226,7 +226,7 @@ protected:
 private:
   void Copy(AliRun &arun) const;
 
-  ClassDef(AliRun,7)      //Supervisor class for all Alice detectors
+  ClassDef(AliRun,8)      //Supervisor class for all Alice detectors
 };
  
 R__EXTERN  AliRun *gAlice;
