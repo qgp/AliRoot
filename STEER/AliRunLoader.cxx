@@ -922,7 +922,7 @@ Int_t AliRunLoader::SetEventFolderName(const TString& name)
   AliLoader *loader;
   while((loader = (AliLoader*)next()))
    {
-     loader->SetEventFolder(fEventFolder);
+     loader->Register(fEventFolder);//build folder structure for this detector
    }
   
   fKineDataLoader->SetEventFolder(GetEventFolder());
@@ -1291,6 +1291,7 @@ TTask* AliRunLoader::GetRunTracker()
  return (obj)?dynamic_cast<TTask*>(obj):0x0;
 }
 /*****************************************************************************/ 
+
 TTask* AliRunLoader::GetRunQATask()
 {
 //returns Quality Assurance Task from folder

@@ -335,7 +335,7 @@ void AliRun::CleanDetectors()
   //
   // Clean Detectors at the end of event
   //
-  fRunLoader->CleanDetectors();
+   fRunLoader->CleanDetectors();
 }
 
 //_______________________________________________________________________
@@ -354,6 +354,7 @@ void AliRun::DumpPart (Int_t i) const
   //
   // Dumps particle i in the stack
   //
+   if (fRunLoader->Stack())
     fRunLoader->Stack()->DumpPart(i);
 }
 
@@ -363,6 +364,7 @@ void AliRun::DumpPStack () const
   //
   // Dumps the particle stack
   //
+   if (fRunLoader->Stack())
     fRunLoader->Stack()->DumpPStack();
 }
 

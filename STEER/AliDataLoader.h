@@ -77,7 +77,8 @@ class AliDataLoader: public TNamed
    const TString      SetFileOffset(const TString& fname);//adds the proper number before .root extension suffix
    void               SetDirName(TString& dirname);
 
-   enum EStdBasicLoaders {kData = 0,kTask,kQA,kQATask};
+   void               AddBaseLoader(AliBaseLoader* bl);
+   enum EStdBasicLoaders {kData = 0,kTask,kQA,kQATask};//standard basic loaders identifiers
 
    AliBaseLoader*     GetBaseLoader(const TString& name) const;
    AliBaseLoader*     GetBaseLoader(Int_t n) const;
@@ -86,6 +87,10 @@ class AliDataLoader: public TNamed
    AliBaseLoader*     GetBaseQALoader();
    AliTaskLoader*     GetBaseQATaskLoader();
    
+   void               SetBaseDataLoader(AliBaseLoader* bl);
+   void               SetBaseTaskLoader(AliTaskLoader* bl);
+   void               SetBaseQALoader(AliBaseLoader* bl);
+   void               SetBaseQATaskLoader(AliTaskLoader* bl);
    
    Bool_t             CheckReload();//checks if we have to reload given file
    Bool_t             IsFileWritable() const;
@@ -93,7 +98,7 @@ class AliDataLoader: public TNamed
    Bool_t             IsOptionContrary(const TString& option) const;
   protected:
    Int_t              GetDebug() const;
-   AliRunLoader*      GetRunLoader();//gets the run-getter from event folder
+   AliRunLoader*      GetRunLoader();//gets the run-loader from event folder
 
   private:
       
@@ -224,12 +229,13 @@ class AliTaskLoader: public AliBaseLoader
     AliTaskLoader(const TString& name, AliDataLoader* dl, TTask* parentaltask);
     virtual ~AliTaskLoader(){};
     
+    TObject*           Get() const; 
     virtual TTask*     Task() const {return dynamic_cast<TTask*>(Get());}
 
   protected:
     Int_t              AddToBoard(TObject* obj);
     void               RemoveFromBoard(TObject* obj);
-    TTask*             GetParentalTask();
+    TTask*             GetParentalTask() const;
 
   private:
     TTask*             fParentalTask;

@@ -1,14 +1,32 @@
 #include <AliDataLoader.h>
 //__________________________________________
-////////////////////////////////////////////
-//                                        //
-//  class AliDataLoader                   //
-//                                        //
-//  Container of all data needed for full //
-//  description of each data type         //
-//  (Hits, Kine, ...)                     //
-//                                        //
-////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                         //
+//  class AliDataLoader                                                                    //
+//                                                                                         //
+//  Container of all data needed for full                                                  //
+//  description of each data type                                                          //
+//  (Hits, Kine, ...)                                                                      //
+//                                                                                         //
+//  Each data loader has a basic standard setup of BaseLoaders                             //
+//  which can be identuified by indexes (defined by EStdBasicLoaders)                      //
+//  Data managed by these standard base loaders has fixed naming convention                //
+//  e.g. - tree with hits is always named TreeH                                            //
+//                     (defined in AliLoader::fgkDefaultHitsContainerName)                 //
+//       - task DtectorName+Name defined                                                   //
+//                                                                                         //
+//  EStdBasicLoaders   idx     Object Type        Description                              //
+//      kData           0    TTree or TObject     main data itself (hits,digits,...)       //
+//      kTask           1        TTask            object producing main data               //
+//      kQA             2        TTree                quality assurance tree               //
+//      kQATask         3        TTask            task producing QA object                 //
+//                                                                                         //
+//                                                                                         //
+//  User can define and add more basic loaders even Run Time.                              //
+//  Caution: in order to save information about added base loader                          //
+//  user must rewrite Run Loader to galice.file, overwriting old setup                     //
+//                                                                                         //
+/////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <TROOT.h>
 #include <TFile.h>
@@ -44,7 +62,7 @@ AliDataLoader::AliDataLoader(const char* filename, const char* contname, const c
  fDirectory(0x0),
  fFileOption(0),
  fCompressionLevel(2),
- fBaseLoaders(new TObjArray(1)),
+ fBaseLoaders(new TObjArray(4)),
  fHasTask(kFALSE),
  fTaskName(),
  fParentalTask(0x0),
@@ -64,7 +82,8 @@ AliDataLoader::AliDataLoader(const char* filename, const char* contname, const c
     bl = new AliTreeLoader(contname,this);
   else 
     bl = new AliObjectLoader(contname,this);
-  fBaseLoaders->AddAt(bl,0);
+  fBaseLoaders->AddAt(bl,kData);
+  
 }
 /*****************************************************************************/ 
 
@@ -501,6 +520,33 @@ Bool_t AliDataLoader::IsOptionContrary(const TString& option) const
   return kFALSE;
 }
 /*****************************************************************************/ 
+void AliDataLoader::AddBaseLoader(AliBaseLoader* bl)
+{
+//Adds a base loader to lits of base loaders managed by this data loader
+//Managed data/task will be stored in proper root directory,
+//and posted to 
+// - in case of tree/object - data folder connected with detector associated with this data loader
+// - in case of task - parental task which defined in this AliTaskLoader 
+
+ if (bl == 0x0)
+  {
+    Warning("AddBaseLoader","Pointer is null.");
+    return;
+  }
+ 
+ TObject* obj = fBaseLoaders->FindObject(bl->GetName());
+ if (obj)
+  {
+    Error("AddBaseLoader","Can not add this base loader.");
+    Error("AddBaseLoader","There exists already base loader which manages data named %s for this detector.");
+    return;
+  }
+ 
+ 
+ fBaseLoaders->Add(bl);
+}
+
+/*****************************************************************************/ 
 
 AliBaseLoader* AliDataLoader::GetBaseLoader(const TString& name) const
 {
@@ -543,24 +589,73 @@ void  AliDataLoader::SetDirName(TString& dirname)
   if (GetDebug()) Info("SetDirName","FileName after %s",fFileName.Data());
 }
 /*****************************************************************************/ 
-AliObjectLoader*   AliDataLoader::GetBaseDataLoader()
+AliObjectLoader* AliDataLoader::GetBaseDataLoader()
 {
  return dynamic_cast<AliObjectLoader*>(GetBaseLoader(kData));
 }
 /*****************************************************************************/ 
-AliTaskLoader*     AliDataLoader::GetBaseTaskLoader()
+AliTaskLoader* AliDataLoader::GetBaseTaskLoader()
 {
  return dynamic_cast<AliTaskLoader*>(GetBaseLoader(kTask));
 }
 /*****************************************************************************/ 
-AliBaseLoader*     AliDataLoader::GetBaseQALoader()
+AliBaseLoader* AliDataLoader::GetBaseQALoader()
 {
   return GetBaseLoader(kQA);
 }
 /*****************************************************************************/ 
-AliTaskLoader*     AliDataLoader::GetBaseQATaskLoader()
+AliTaskLoader* AliDataLoader::GetBaseQATaskLoader()
 {
+//returns pointer to QA base loader
  return dynamic_cast<AliTaskLoader*>(GetBaseLoader(kQATask));
+}
+/*****************************************************************************/ 
+void AliDataLoader::SetBaseDataLoader(AliBaseLoader* bl)
+{
+//sets data base loader
+  if (bl == 0x0)
+   {
+     Error("SetBaseDataLoader","Parameter is null");
+     return;
+   }
+  if (GetBaseDataLoader()) delete GetBaseDataLoader();
+  fBaseLoaders->AddAt(bl,kData);
+}
+/*****************************************************************************/ 
+void AliDataLoader::SetBaseTaskLoader(AliTaskLoader* bl)
+{
+//sets Task base loader
+  if (bl == 0x0)
+   {
+     Error("SetBaseTaskLoader","Parameter is null");
+     return;
+   }
+  if (GetBaseTaskLoader()) delete GetBaseTaskLoader();
+  fBaseLoaders->AddAt(bl,kTask);
+}
+/*****************************************************************************/ 
+void AliDataLoader::SetBaseQALoader(AliBaseLoader* bl)
+{
+//sets QA base loader
+  if (bl == 0x0)
+   {
+     Error("SetBaseQALoader","Parameter is null");
+     return;
+   }
+  if (GetBaseQALoader()) delete GetBaseQALoader();
+  fBaseLoaders->AddAt(bl,kQA);
+}
+/*****************************************************************************/ 
+void AliDataLoader::SetBaseQATaskLoader(AliTaskLoader* bl)
+{
+//sets QA Task base loader
+  if (bl == 0x0)
+   {
+     Error("SetBaseQATaskLoader","Parameter is null");
+     return;
+   }
+  if (GetBaseQATaskLoader()) delete GetBaseQATaskLoader();
+  fBaseLoaders->AddAt(bl,kQATask);
 }
 
 /*****************************************************************************/ 
@@ -687,13 +782,13 @@ Int_t AliBaseLoader::Post(TObject* data)
 //Posts data container to proper folders
  if (data == 0x0)
   {
-    Error("PostData","Pointer to object is NULL");
+    Error("Post","Pointer to object is NULL");
     return 1;
   }
  TObject* obj = Get();
  if (data == obj)
   {
-    if (GetDebug()) Info("PostData","This object is already in folder.");
+    if (GetDebug()) Warning("Post","This object was already posted.");
     return 0;
   }
  if (obj)
@@ -1006,7 +1101,7 @@ void AliTaskLoader::RemoveFromBoard(TObject* obj)
 Int_t AliTaskLoader::AddToBoard(TObject* obj)
 {
   TTask* task = dynamic_cast<TTask*>(obj);
-  if (task)
+  if (task == 0x0)
    {
      Error("AddToBoard","To TTask board can be added only tasks.");
      return 1;
@@ -1015,16 +1110,21 @@ Int_t AliTaskLoader::AddToBoard(TObject* obj)
   return 0;
 }
 
+TObject* AliTaskLoader::Get() const
+{
+  return (GetParentalTask()) ? GetParentalTask()->GetListOfTasks()->FindObject(GetName()) : 0x0;
+}
+
 /*****************************************************************************/ 
 
-TTask* AliTaskLoader::GetParentalTask()
+TTask* AliTaskLoader::GetParentalTask() const
 {
 //returns parental tasks for this task
   if (fParentalTask) return fParentalTask;
 
-  Error("GetParentalTask","!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-  Error("GetParentalTask","Don't Foget to Implement SKOWRON");
-  Error("GetParentalTask","!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+//  Error("GetParentalTask","!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+//  Error("GetParentalTask","Don't Foget to Implement SKOWRON");
+//  Error("GetParentalTask","!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
   return 0x0;
 }
 

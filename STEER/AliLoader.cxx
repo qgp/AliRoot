@@ -119,21 +119,38 @@ AliLoader::~AliLoader()
 
 void AliLoader::InitDefaults()
 {
+  // H I T S 
   AliDataLoader* dl;
   dl = new AliDataLoader(fDetectorName + ".Hits.root",fgkDefaultHitsContainerName, "Hits" );
   fDataLoaders->AddAt(dl,kHits);
   
-  dl = new AliDataLoader(fDetectorName + ".SDigits.root",fgkDefaultSDigitsContainerName, "Summable Digits");
-  fDataLoaders->AddAt(dl,kSDigits);
   
+  // S U M M A B L E   D I G I T S
+  dl = new AliDataLoader(fDetectorName + ".SDigits.root",fgkDefaultSDigitsContainerName, "Summable Digits");
+  AliTaskLoader* tl = new AliTaskLoader(fDetectorName + AliConfig::Instance()->GetSDigitizerTaskName(),
+                                        dl,AliRunLoader::GetRunSDigitizer());
+  dl->SetBaseTaskLoader(tl);
+  fDataLoaders->AddAt(dl,kSDigits);
+
+  // D I G I T S  
   dl = new AliDataLoader(fDetectorName + ".Digits.root",fgkDefaultDigitsContainerName, "Digits");
+  tl = new AliTaskLoader(fDetectorName + AliConfig::Instance()->GetDigitizerTaskName(),
+                                        dl,AliRunLoader::GetRunDigitizer());
+  dl->SetBaseTaskLoader(tl);
   fDataLoaders->AddAt(dl,kDigits);
   
   dl = new AliDataLoader(fDetectorName + ".RecPoints.root",fgkDefaultRecPointsContainerName, "Reconstructed Points");
+  tl = new AliTaskLoader(fDetectorName + AliConfig::Instance()->GetReconstructionerTaskName(),
+                                        dl,AliRunLoader::GetRunReconstructioner());
+  dl->SetBaseTaskLoader(tl);
   fDataLoaders->AddAt(dl,kRecPoints);
   
   dl = new AliDataLoader(fDetectorName + ".Tracks.root",fgkDefaultTracksContainerName, "Tracks");
   fDataLoaders->AddAt(dl,kTracks);
+  tl = new AliTaskLoader(fDetectorName + AliConfig::Instance()->GetTrackerTaskName(),
+                                        dl,AliRunLoader::GetRunTracker());
+  dl->SetBaseTaskLoader(tl);
+  
   
 }
 /*****************************************************************************/ 
@@ -484,75 +501,27 @@ Int_t AliLoader::WriteSDigits(Option_t* opt)
  
 /*****************************************************************************/ 
 
-Int_t AliLoader::PostSDigitizer()
- {
-  Error("PostSDigitizer","!!!!!!!!!!!!!!!!!!!!!!");
-  Error("PostSDigitizer","!!!!!DO NOT USE!!!!!!!");
-  Error("PostSDigitizer","!!!!!!!!!!!!!!!!!!!!!!");
-  return 1;
- }
-/*****************************************************************************/ 
-
 Int_t AliLoader::PostSDigitizer(TTask* sdzer)
 {
-  Error("PostSDigitizer(TTask*)","!!!!!!!!!!!!!!!!!!!!!!");
-  Error("PostSDigitizer(TTask*)","!!!!!DO NOT USE!!!!!!!");
-  Error("PostSDigitizer(TTask*)","!!!!!!!!!!!!!!!!!!!!!!");
-  return 1;
+  return GetSDigitsDataLoader()->GetBaseTaskLoader()->Post(sdzer);
 }
-/*****************************************************************************/ 
-
-Int_t AliLoader::PostDigitizer()
- {
-  Error("PostDigitizer","!!!!!!!!!!!!!!!!!!!!!!");
-  Error("PostDigitizer","!!!!!DO NOT USE!!!!!!!");
-  Error("PostDigitizer","!!!!!!!!!!!!!!!!!!!!!!");
-  return 1;
- }
 /*****************************************************************************/ 
 
 Int_t AliLoader::PostDigitizer(AliDigitizer* task)
  {
-  Error("PostSDigitizer(TTask*)","!!!!!!!!!!!!!!!!!!!!!!");
-  Error("PostSDigitizer(TTask*)","!!!!!DO NOT USE!!!!!!!");
-  Error("PostSDigitizer(TTask*)","!!!!!!!!!!!!!!!!!!!!!!");
-  return 1;
- }
-/*****************************************************************************/ 
-
-Int_t AliLoader::PostReconstructioner()
- {
-  Error("PostReconstructioner","!!!!!!!!!!!!!!!!!!!!!!");
-  Error("PostReconstructioner","!!!!!DO NOT USE!!!!!!!");
-  Error("PostReconstructioner","!!!!!!!!!!!!!!!!!!!!!!");
-  return 1;
+  return GetDigitsDataLoader()->GetBaseTaskLoader()->Post(task);
  }
 /*****************************************************************************/ 
 
 Int_t AliLoader::PostReconstructioner(TTask* task)
  {
-  Error("PostReconstructioner(TTask*)","!!!!!!!!!!!!!!!!!!!!!!");
-  Error("PostReconstructioner(TTask*)","!!!!!DO NOT USE!!!!!!!");
-  Error("PostReconstructioner(TTask*)","!!!!!!!!!!!!!!!!!!!!!!");
-  return 1;
- }
-/*****************************************************************************/ 
-
-Int_t AliLoader::PostTracker()
- {
-  Error("PostTracker","!!!!!!!!!!!!!!!!!!!!!!");
-  Error("PostTracker","!!!!!DO NOT USE!!!!!!!");
-  Error("PostTracker","!!!!!!!!!!!!!!!!!!!!!!");
-  return 1;
+  return GetRecPointsDataLoader()->GetBaseTaskLoader()->Post(task);
  }
 /*****************************************************************************/ 
 
 Int_t AliLoader::PostTracker(TTask* task)
  {
-  Error("PostTracker(TTask*)","!!!!!!!!!!!!!!!!!!!!!!");
-  Error("PostTracker(TTask*)","!!!!!DO NOT USE!!!!!!!");
-  Error("PostTracker(TTask*)","!!!!!!!!!!!!!!!!!!!!!!");
-  return 1;
+  return GetTracksDataLoader()->GetBaseTaskLoader()->Post(task);
  }
 /*****************************************************************************/ 
 
@@ -735,36 +704,36 @@ Int_t  AliLoader::SetEventFolder(TFolder* eventfolder)
  while((dl = (AliDataLoader*)next()))
   {
     dl->SetEventFolder(fEventFolder);
+    dl->SetFolder(GetDetectorDataFolder()); //Must exists - ensure register is called before
   }
- 
- Register();//skowron: does exist case where only event is needed to be set, regstration is not necessary?
-  
+
  return 0;
 }//sets the event folder
 /*****************************************************************************/ 
 
-Int_t AliLoader::Register()
+Int_t AliLoader::Register(TFolder* eventFolder)
 {
 //triggers creation of subfolders for a given detector
+//this method is called when session is read from disk
+//
+//warning: AliDetector in constructor (not default) calls
+//creation of folder structure as well (some detectors needs folders 
+//alrady in constructors)
+
  if (GetDebug()) Info("Register","Name is %s.",GetName());
- if (fEventFolder == 0x0)
+ if (eventFolder == 0x0)
   {
-    Error("Register","Event folder is not set");
+    Error("Register","Event folder is not set.");
     return 1;
   }
- Int_t retval = AliConfig::Instance()->AddDetector(fEventFolder,fDetectorName,fDetectorName);
+ Int_t retval = AliConfig::Instance()->AddDetector(eventFolder,fDetectorName,fDetectorName);
  if(retval)
   {
     Error("SetEventFolder","Can not create tasks and/or folders for %s. Event folder name is %s",
-          fDetectorName.Data(),fEventFolder->GetName());
+          fDetectorName.Data(),eventFolder->GetName());
     return retval;
   }
- 
- for (Int_t i = 0; i<fDataLoaders->GetEntries();i++)
-  {
-    AliDataLoader* dataloader = (AliDataLoader*)fDataLoaders->At(i);
-    if (dataloader) dataloader->SetFolder(GetDetectorDataFolder());
-  }
+ SetEventFolder(eventFolder);
  return 0;
 }
 /*****************************************************************************/ 

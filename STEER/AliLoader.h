@@ -60,7 +60,7 @@ class AliLoader: public TNamed
         
     
     Int_t          SetEventFolder(TFolder* eventfolder);//sets the event folder
-    Int_t          Register();//triggers creation of subfolders for a given detector
+    Int_t          Register(TFolder* eventFolder);//triggers creation of subfolders for a given detector
       
     TFolder*       GetTopFolder();  //returns top aliroot folder
     TFolder*       GetEventFolder();//returns the folder that event is sitting
@@ -96,10 +96,10 @@ class AliLoader: public TNamed
     virtual Int_t  PostReconstructioner(TTask* task);
     virtual Int_t  PostTracker(TTask* task);
     
-    virtual Int_t  WriteSDigitizer(Option_t* opt=""){Error("WriteSDigitizer","DO NOT FORGET TO IMPLEMENT");return 1;}
-    virtual Int_t  WriteDigitizer(Option_t* opt=""){Error("WriteDigitizer","DO NOT FORGET TO IMPLEMENT");return 1;}
-    virtual Int_t  WriteReconstructioner(Option_t* opt=""){Error("WriteReconstructioner","DO NOT FORGET TO IMPLEMENT");return 1;}
-    virtual Int_t  WriteTracker(Option_t* opt=""){Error("WriteTracker","DO NOT FORGET TO IMPLEMENT");return 1;}
+    virtual Int_t  WriteSDigitizer(Option_t* opt=""){return GetSDigitsDataLoader()->GetBaseTaskLoader()->Write(opt);}
+    virtual Int_t  WriteDigitizer(Option_t* opt=""){return GetDigitsDataLoader()->GetBaseTaskLoader()->Write(opt);}
+    virtual Int_t  WriteReconstructioner(Option_t* opt=""){return GetRecPointsDataLoader()->GetBaseTaskLoader()->Write(opt);}
+    virtual Int_t  WriteTracker(Option_t* opt=""){return GetTracksDataLoader()->GetBaseTaskLoader()->Write(opt);}
 
     TTree*         TreeH(){return GetHitsDataLoader()->Tree();}      //returns the tree from folder; shortcut method
     TTree*         TreeS(){return GetSDigitsDataLoader()->Tree();}   //returns the tree from folder; shortcut method
@@ -113,10 +113,10 @@ class AliLoader: public TNamed
     Int_t          LoadRecPoints(Option_t* opt=""){return GetRecPointsDataLoader()->Load(opt);}
     Int_t          LoadTracks(Option_t* opt=""){return GetTracksDataLoader()->Load(opt);}
     
-    Int_t          LoadSDigitizer(Option_t* opt=""){Error("LoadSDigitizer","DO NOT FORGET TO IMPLEMENT");return 1;}
-    Int_t          LoadDigitizer(Option_t* opt=""){Error("LoadDigitizer","DO NOT FORGET TO IMPLEMENT");return 1;}
-    Int_t          LoadReconstructioner(Option_t* opt=""){Error("LoadReconstructioner","DO NOT FORGET TO IMPLEMENT");return 1;}
-    Int_t          LoadTracker(Option_t* opt=""){Error("LoadTracker","DO NOT FORGET TO IMPLEMENT");return 1;}
+    Int_t          LoadSDigitizer(Option_t* opt=""){return GetSDigitsDataLoader()->GetBaseTaskLoader()->Load(opt);}
+    Int_t          LoadDigitizer(Option_t* opt=""){return GetDigitsDataLoader()->GetBaseTaskLoader()->Load(opt);}
+    Int_t          LoadReconstructioner(Option_t* opt=""){return GetRecPointsDataLoader()->GetBaseTaskLoader()->Load(opt);}
+    Int_t          LoadTracker(Option_t* opt=""){return GetTracksDataLoader()->GetBaseTaskLoader()->Load(opt);}
 
     void           UnloadHits(){GetHitsDataLoader()->Unload();}
     void           UnloadSDigits(){GetSDigitsDataLoader()->Unload();}
@@ -200,10 +200,6 @@ class AliLoader: public TNamed
     //opt is passed to TFile::Open
     //reads data from the file and posts them into folder
 
-    virtual Int_t PostSDigitizer();//gets SDigitizer from file and adds it to Run SDigitizer
-    virtual Int_t PostDigitizer();//gets Digitizer from file and adds it to Run Digitizer
-    virtual Int_t PostReconstructioner();//gets Reconstructioner from file and adds it to Run Reconstructioner
-    virtual Int_t PostTracker();//gets tracker from file and adds it to Run Tracker
 
     virtual Int_t PostHits(){return GetHitsDataLoader()->GetBaseLoader(0)->Load();}
     virtual Int_t PostSDigits(){return GetSDigitsDataLoader()->GetBaseLoader(0)->Load();}
