@@ -103,6 +103,7 @@ AliKalmanTrack(t) {
   fC40=c[10]/x; fC41=c[11]/x; fC42=c[12]/x; fC43=c[13]/x; fC44=c[14]/x/x;
 
   for(Int_t i=0; i<6; i++) {fDy[i]=0; fDz[i]=0; fSigmaY[i]=0; fSigmaZ[i]=0;}
+  for(Int_t i=0; i<4; i++) fdEdxSample[i]=0;  
   //
   if (!Invariant()) throw "AliITStrackV2: conversion failed !\n";
 
@@ -155,6 +156,7 @@ AliKalmanTrack() {
   fReconstructed = kFALSE;
   fNSkipped =0;
   for(Int_t i=0; i<6; i++) {fDy[i]=0; fDz[i]=0; fSigmaY[i]=0; fSigmaZ[i]=0;; fChi2MIP[i]=0;}
+  for(Int_t i=0; i<4; i++) fdEdxSample[i]=0;
   //if (!Invariant()) throw "AliITStrackV2: conversion failed !\n";
   SetFakeRatio(t.GetITSFakeRatio());
 }
