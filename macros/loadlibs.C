@@ -17,7 +17,6 @@ void loadlibs ()
   gSystem->Load("libTMevSim");
   gSystem->Load("libEVGEN");
 
-  gSystem->Load("libminicern");
   gSystem->Load("libPhysics");
 
   gSystem->Load("libCONTAINERS");
