@@ -174,7 +174,7 @@ geant3->SetCUTS(cut,cut, cut, cut, cut, cut,  cut,  cut, cut,  cut, tofmax);
 // MRS_G
 // CTEQ_2pM
 // CTEQ_4M
-     gener->SetStrucFunc(kGRVHO);
+     gener->SetStrucFunc(kGRV_HO);
 // Select corection for nuclear structure functions
 //     gener->SetNuclei(208,208);
 //

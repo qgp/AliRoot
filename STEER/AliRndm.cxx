@@ -32,16 +32,17 @@ ClassImp(AliRndm)
 
 //_______________________________________________________________________
 AliRndm::AliRndm():
-  fRandom(gRandom)
+  fRandom(0)
 {
   // 
   // Default ctor
   //
+  SetRandom();
 }
 
 //_______________________________________________________________________
 AliRndm::AliRndm(const AliRndm& rn):
-  fRandom(gRandom)
+  fRandom(0)
 {
   //
   // Copy constructor
@@ -78,13 +79,13 @@ void AliRndm::ReadRandom(const char *filename)
   // Reads saved random generator status from filename
   //
   char *fntmp = gSystem->ExpandPathName(filename);
-  TFile *file = new TFile(fntmp,"read");
+  TFile *file = new TFile(fntmp,"r");
   delete [] fntmp;
   if(!file) {
     printf("AliRndm:: Could not open file %s\n",filename);
   } else {
     if(!fRandom) fRandom = new TRandom();
-    fRandom->Read(fRandom->GetName());
+    fRandom->Read("Random");
     file->Close();
     delete file;
   }
@@ -97,7 +98,7 @@ void AliRndm::WriteRandom(const char *filename) const
   // Writes random generator status to filename
   //
   char *fntmp = gSystem->ExpandPathName(filename);
-  TFile *file = new TFile(fntmp,"update");
+  TFile *file = new TFile(fntmp,"new");
   delete [] fntmp;
   if(!file) {
     printf("AliRndm:: Could not open file %s\n",filename);

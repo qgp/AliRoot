@@ -21,10 +21,6 @@
 class AliMUONSt1ResponseParameter : public TNamed 
 {
   public:
-   typedef enum {kNone,kValue,kGauss,kFile} TMode;
-   typedef struct {Double_t mean; Double_t sigma;} TGaussParam;
-
-  public:
     AliMUONSt1ResponseParameter();
     AliMUONSt1ResponseParameter(const TString& name,const TString& title);
     virtual ~AliMUONSt1ResponseParameter();
@@ -44,12 +40,12 @@ class AliMUONSt1ResponseParameter : public TNamed
     Int_t ApplyStickyBits(Int_t base) const;
     Bool_t HasPedestal() const {return fPedestalMode != kNone;}
     Bool_t GetState() const {return fState;}
-        
  private:
     static const Int_t fgkNofChannels=64;
+    typedef enum {kNone,kValue,kGauss,kFile} TMode;
+    typedef struct {Double_t mean; Double_t sigma;} TGaussParam;
     typedef union {
-      //Double_t values[fgkNofChannels];
-      Double_t values[64];
+      Double_t values[fgkNofChannels];
       Double_t value;
       TGaussParam gauss;
     } TParam;

@@ -15,12 +15,6 @@
 
 /*
 $Log$
-Revision 1.41  2003/04/23 15:19:48  cblume
-Fix bug in absorbtion length of photons
-
-Revision 1.40  2003/04/08 08:14:53  morsch
-AddTrackReference moved to AliModule.
-
 Revision 1.39  2003/02/11 16:54:07  hristov
 Updated AliTrackReference class (S.Radomski)
 
@@ -339,37 +333,27 @@ void AliTRDv1::CreateTRhit(Int_t det)
       // Take the absorbtion in the entrance window into account
       Double_t muMy = fTR->GetMuMy(energyMeV);
       sigma = muMy * fFoilDensity;
-      if (sigma > 0.0) {
-        absLength = gRandom->Exp(1.0/sigma);
-        if (absLength < AliTRDgeometry::MyThick()) continue;
-      }
-      else {
-        continue;
-      }
+      absLength = gRandom->Exp(sigma);
+      if (absLength < AliTRDgeometry::MyThick()) continue;
 
       // The absorbtion cross sections in the drift gas
       if (fGasMix == 1) {
         // Gas-mixture (Xe/CO2)
         Double_t muXe = fTR->GetMuXe(energyMeV);
         Double_t muCO = fTR->GetMuCO(energyMeV);
-        sigma = (0.85 * muXe + 0.15 * muCO) * fGasDensity * fTR->GetTemp();
+        sigma = (0.85 * muXe + 0.15 * muCO) * fGasDensity;
       }
       else {
         // Gas-mixture (Xe/Isobutane) 
         Double_t muXe = fTR->GetMuXe(energyMeV);
         Double_t muBu = fTR->GetMuBu(energyMeV);
-        sigma = (0.97 * muXe + 0.03 * muBu) * fGasDensity * fTR->GetTemp();
+        sigma = (0.97 * muXe + 0.03 * muBu) * fGasDensity;
       }
 
       // The distance after which the energy of the TR photon
       // is deposited.
-      if (sigma > 0.0) {
-        absLength = gRandom->Exp(1.0/sigma);
-        if (absLength > AliTRDgeometry::DrThick()) continue;
-      }
-      else {
-        continue;
-      }
+      absLength = gRandom->Exp(sigma);
+      if (absLength > AliTRDgeometry::DrThick()) continue;
 
       // The position of the absorbtion
       Float_t posHit[3];

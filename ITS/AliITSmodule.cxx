@@ -15,9 +15,6 @@
 
 /*
 $Log$
-Revision 1.15  2003/03/21 13:58:14  masera
-Fix to avoid out-of-detector fast rec points (problem occurring for tracks entering and exiting the same side of a sensitive volume)
-
 Revision 1.14  2002/10/14 14:57:00  hristov
 Merging the VirtualMC branch to the main development branch (HEAD)
 
@@ -129,9 +126,10 @@ AliITSmodule::~AliITSmodule() {
     // we must first destroy all of it's members.
 
     if(fHitsM){
-      fHitsM->Delete();
-      delete fHitsM;
-      fHitsM = 0;
+	for(Int_t i=0;i<fHitsM->GetEntriesFast();i++) 
+	    delete ((AliITShit *)(fHitsM->At(i)));
+	// must delete each object in the TObjArray.
+	delete fHitsM;
     } // end if
     delete fTrackIndex;
     delete fHitIndex;

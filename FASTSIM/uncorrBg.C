@@ -31,11 +31,11 @@ void uncorrBg(Int_t nev = 1000000, Double_t bmin = 0., Double_t bmax = 5.)
     Float_t dpt       = 0.1;   // GeV
 //    
 //  For b = 0
-//  (factor 1.28 to scale from 10% most central to b=0)
+//  (factor 1.35 to scale from 10% most central to b=0)
 //    
-    Float_t scaleC0 = 1.28 * ptUp / dpt;
-    Float_t scaleB0 = 1.28 * ptUp / dpt;
-    Float_t scaleD0 = 1.28 * etar * ptUp / 1.35; // scaled by 1.35 to match ALICE-INT-2002-6
+    Float_t scaleC0 = 1.35 * ptUp / dpt;
+    Float_t scaleB0 = 1.35 * ptUp / dpt;
+    Float_t scaleD0 = 1.35 * etar * ptUp / 1.35; // scaled by 1.35 to match ALICE-INT-2002-6
     
 //
 //
@@ -74,28 +74,31 @@ void uncorrBg(Int_t nev = 1000000, Double_t bmin = 0., Double_t bmax = 5.)
 //
 //  Heavy Flavors
 //
+    f = new TFile("HVQinc.root");
+    TH1F* ptBB = (TH1F*) f->Get("hPtCorra");
+    TH1F* ptCC = (TH1F*) f->Get("hpta");   
     
-    TF1*  ptBBLf = new TF1("ptBBLf", "[0] * x / (1. + (x/[1])**2)**[2]", 0., 2.);
-    ptBBLf->SetParameter(0, 1.4651e-02);
-    ptBBLf->SetParameter(1, 9.3409e-01);
-    ptBBLf->SetParameter(2, 1.3583e+00);
+    TF1*  ptBBLf = new TF1("ptBBLf", "[0] * x / (1. + (x/[1])**2)**[2]", 0., 3.);
+    ptBBLf->SetParameter(0, 4.46695e-03);
+    ptBBLf->SetParameter(1, 1.60242e+00);
+    ptBBLf->SetParameter(2, 2.24948e+00);
 
-    TF1*  ptBBHf = new TF1("ptBBHf", "[0] * x / (1. + (x/[1])**2)**[2]", 2., ptUp);
-    ptBBHf->SetParameter(0, 7.7122e-03);
-    ptBBHf->SetParameter(1, 2.38);
-    ptBBHf->SetParameter(2, 3.32);
+    TF1*  ptBBHf = new TF1("ptBBHf", "[0] * x / (1. + (x/[1])**2)**[2]", 3., ptUp);
+    ptBBHf->SetParameter(0, 2.59961e-03);
+    ptBBHf->SetParameter(1, 2.41);
+    ptBBHf->SetParameter(2, 3.075);
 
     TF1*  ptCCHf = new TF1("ptCCHf", "[0] * x / (1. + (x/[1])**2)**([2] + [3] * x)", 1.5, ptUp);
-    ptCCHf->SetParameter(0, 8.6675e-01);
-    ptCCHf->SetParameter(1, 8.1384e-01);
-    ptCCHf->SetParameter(2, 2.8933e+00);
-    ptCCHf->SetParameter(3, 1.4865e-02);
+    ptCCHf->SetParameter(0, 6.72360e-01);
+    ptCCHf->SetParameter(1, 7.06043e-01);
+    ptCCHf->SetParameter(2, 2.74240e+00);
+    ptCCHf->SetParameter(3, 8.45018e-03);
 
     TF1*  ptCCLf = new TF1("ptCCLf", "[0] * x / (1. + (x/[1])**2)**([2] + [3] * x)", 0., 1.5);
-    ptCCLf->SetParameter(0, 2.4899e+00);
-    ptCCLf->SetParameter(1, 3.8394e-01);
-    ptCCLf->SetParameter(2, 1.5505e+00);
-    ptCCLf->SetParameter(3, 2.4679e-01);
+    ptCCLf->SetParameter(0, 1.40260e+00);
+    ptCCLf->SetParameter(1, 3.75762e-01);
+    ptCCLf->SetParameter(2, 1.54345e+00);
+    ptCCLf->SetParameter(3, 2.49806e-01);
     
     TF1*  ptBf = new TF1("ptBf", "[0] * x / (1. + (x/[1])**2)**[2]", 0., ptUp);
     ptBf->SetParameter(0, 1.e5 * 0.7 * 1.125);
@@ -104,6 +107,7 @@ void uncorrBg(Int_t nev = 1000000, Double_t bmin = 0., Double_t bmax = 5.)
 //
 //  pi/K -> mu
 //
+    f->Close();
     f = new TFile("$(ALICE_ROOT)/FASTSIM/data/pikmu.root");
     TH2F*  etaptPiK = (TH2F*) f->Get("etaptH");
     TAxis* etaAxis  = etaptPiK->GetXaxis();
@@ -179,12 +183,12 @@ void uncorrBg(Int_t nev = 1000000, Double_t bmin = 0., Double_t bmax = 5.)
 	}
 
 
-	if (pT1 > 2.) {
+	if (pT1 > 3.) {
 	    wgtB1 = ptBBHf->Eval(pT1) * scaleB;
 	} else {
 	    wgtB1 = ptBBLf->Eval(pT1) * scaleB;
 	}
-	if (pT2 > 2.) {
+	if (pT2 > 3.) {
 	    wgtB2 = ptBBHf->Eval(pT2) * scaleB;
 	} else {
 	    wgtB2 = ptBBLf->Eval(pT2) * scaleB;
@@ -226,7 +230,7 @@ void uncorrBg(Int_t nev = 1000000, Double_t bmin = 0., Double_t bmax = 5.)
 	acc->SetCharge(-1);
 	Float_t eff2  = eff->Evaluate(pT2, theta2, phid2);
 	Float_t acc2  = acc->Evaluate(pT2, theta2, phid2);
-	Float_t tri2  = trigeff->Evaluate(-1, pT2, theta2, phid2);
+	Float_t tri2  = trigeff->Evaluate(1, pT2, theta2, phid2);
 
 	Float_t effA   = eff1 * eff2 * acc1 * acc2 * tri1 * tri2;
 

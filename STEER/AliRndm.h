@@ -13,19 +13,21 @@
 
 #include <TRandom.h>
 
+static TRandom *sRandom;
+
 class AliRndm 
 {
 public:
   AliRndm();
   AliRndm(const AliRndm &rnd);
-  virtual ~AliRndm() {fRandom=0;}
+  virtual ~AliRndm() {fRandom=sRandom=0;}
   AliRndm & operator=(const AliRndm& rn) 
     {rn.Copy(*this); return (*this);}
   
   // Random number generator bit
   virtual void SetRandom(TRandom *ran=0)
-  {if(ran) fRandom=ran;
-  else fRandom=gRandom;}
+  {if(ran) fRandom=sRandom=ran;
+  else fRandom=sRandom=gRandom;}
 
   virtual TRandom* GetRandom() const {return fRandom;}
   virtual void Rndm(Float_t* array, const Int_t size) const; 

@@ -176,8 +176,8 @@ AliPHOSDigit& AliPHOSDigit::operator+(AliPHOSDigit const & digit)
       else{
 	for(Int_t index = fNprimary-1 ; index >=0 ; index--){ //move old primaries	
 	  if(fPrimary[index]>-1){
-	    toAdd-- ;
 	    fPrimary[fNprimary+toAdd]=fPrimary[index] ;
+	    toAdd-- ;
 	  }
 	}
 	//copy new primaries

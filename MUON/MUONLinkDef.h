@@ -5,6 +5,7 @@
 #pragma link C++ class  AliMUON+;
 #pragma link C++ class  AliMUONv0+;
 #pragma link C++ class  AliMUONv1+;
+#pragma link C++ class  AliMUONv3+;
 #pragma link C++ class  AliMUONHit+;
 #pragma link C++ class  AliMUONPadHit+;
 #pragma link C++ class  AliMUONDigit+;
@@ -58,6 +59,8 @@
 #pragma link C++ class  AliMUONTrackK+;
 #pragma link C++ class  AliMUONPixel+;
 #pragma link C++ class  AliMUONClusterFinderAZ+;
+
+#ifdef USE_MUON_MAPPING
 #pragma link C++ class  AliMUONv2+;
 #pragma link C++ class  AliMUONSt1Segmentation+;
 #pragma link C++ class  AliMUONSt1Response+;
@@ -65,8 +68,6 @@
 #pragma link C++ class  AliMUONSt1SpecialMotif+;
 #pragma link C++ class  AliMUONSt1ResponseParameter+;
 #pragma link C++ class  AliMUONSt1ResponseRule+;
-
-#include "MUONLinkDefMapping.h"
-
 #endif
 
+#endif

@@ -15,13 +15,6 @@
 
 /*
 $Log$
-Revision 1.41  2003/05/02 15:09:38  hristov
-Code for MUON Station1 (I.Hrivnacova)
-
-Revision 1.40  2003/01/28 13:21:06  morsch
-Improved response simulation for station 1.
-(M. Mac Cormick, I. Hrivnacova, D. Guez)
-
 Revision 1.39  2003/01/14 10:50:19  alibrary
 Cleanup of STEER coding conventions
 
@@ -209,10 +202,7 @@ AliMUONv1::AliMUONv1() : AliMUON()
 // Constructor
     fChambers = 0;
     fStations = 0;
-    fStepManagerVersionOld = kFALSE;
-    fStepMaxInActiveGas = 0.6;
 }
-
  
 //___________________________________________
 AliMUONv1::AliMUONv1(const char *name, const char *title)
@@ -225,9 +215,6 @@ AliMUONv1::AliMUONv1(const char *name, const char *title)
 
     AliMUONFactory factory;
     factory.Build(this, title);
-
-    fStepManagerVersionOld = kFALSE;
-    fStepMaxInActiveGas = 0.6;
 }
 
 //___________________________________________
@@ -2097,84 +2084,9 @@ void AliMUONv1::Init()
    //cp
 
 }
+
 //___________________________________________
 void AliMUONv1::StepManager()
-{
-  if (fStepManagerVersionOld) {
-    StepManagerOld();
-    return;
-  }
-  // Volume id
-  Int_t   copy, id;
-  Int_t   idvol;
-  Int_t   iChamber=0;
-  // Particule id, pos and mom vectors, 
-  // theta, phi angles with respect the normal of the chamber, 
-  // spatial step, delta_energy and time of flight
-  Int_t          ipart;
-  TLorentzVector pos, mom;
-  Float_t        theta, phi, tof;
-  Float_t        destep, step;
-  const  Float_t kBig = 1.e10;
-
-  // Only charged tracks
-  if( !(gMC->TrackCharge()) ) return; 
-
-  // Only gas gap inside chamber
-  // Tag chambers and record hits when track enters 
-  idvol=-1;
-  id=gMC->CurrentVolID(copy);
-  for (Int_t i = 1; i <= AliMUONConstants::NCh(); i++) {
-    if(id==((AliMUONChamber*)(*fChambers)[i-1])->GetGid()) {
-      iChamber = i;
-      idvol  = i-1;
-    }
-  }
-  if (idvol == -1) return;
-
-
-  // record hits when track enters ...
-  if( gMC->IsTrackEntering()) gMC->SetMaxStep(fStepMaxInActiveGas);  
-
-  if (gMC->TrackStep() > 0.) {
-    // Get current particle id (ipart), track position (pos)  and momentum (mom)
-    gMC->TrackPosition(pos);
-    gMC->TrackMomentum(mom);
-    ipart    = gMC->TrackPid();
-    theta    = mom.Theta()*kRaddeg;     // theta of track
-    phi      = mom.Phi()  *kRaddeg;     // phi of the track
-    tof      = gMC->TrackTime();        // Time of flight
-    //
-    // momentum loss and steplength in last step
-    destep = gMC->Edep();
-    step   = gMC->TrackStep();
-    //new hit
-    AddHit(fIshunt, gAlice->CurrentTrack(), iChamber, ipart, 
-	   pos.X(), pos.Y(), pos.Z(), tof, mom.P(), 
-	   theta, phi, step, destep);
-  }
-  // Track left chamber ...
-  if( gMC->IsTrackExiting() || gMC->IsTrackStop() || gMC->IsTrackDisappeared()){
-    gMC->SetMaxStep(kBig);
-  }
-    
-}
-
-Int_t  AliMUONv1::GetChamberId(Int_t volId) const
-{
-// Check if the volume with specified  volId is a sensitive volume (gas) 
-// of some chamber and returns the chamber number;
-// if not sensitive volume - return 0.
-// ---
-
-  for (Int_t i = 1; i <= AliMUONConstants::NCh(); i++)
-    if (volId==((AliMUONChamber*)(*fChambers)[i-1])->GetGid()) return i;
-
-  return 0;
-}
-
-//___________________________________________
-void AliMUONv1::StepManagerOld()
 {
   Int_t          copy, id;
   static Int_t   idvol;
@@ -2198,12 +2110,16 @@ void AliMUONv1::StepManagerOld()
   //
   // Only gas gap inside chamber
   // Tag chambers and record hits when track enters 
+  idvol=-1;
   id=gMC->CurrentVolID(copy);
-  vol[0] = GetChamberId(id);
-  idvol = vol[0] -1;
-
-  if (idvol == -1) return;
-
+  
+    for (Int_t i = 1; i <= AliMUONConstants::NCh(); i++) {
+      if(id==((AliMUONChamber*)(*fChambers)[i-1])->GetGid()){ 
+	  vol[0] = i; 
+	  idvol  = i-1;
+      }
+    }
+    if (idvol == -1) return;
   //
   // Get current particle id (ipart), track position (pos)  and momentum (mom) 
   gMC->TrackPosition(pos);
