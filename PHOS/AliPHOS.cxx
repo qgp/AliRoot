@@ -383,12 +383,8 @@ void AliPHOS::SetTreeAddress()
     if (branch) 
      { 
        if (fHits == 0x0) fHits= new TClonesArray("AliPHOSHit",1000);
-       Info("SetTreeAddress","<%s> Setting Hits Address",GetName());
+       //Info("SetTreeAddress","<%s> Setting Hits Address",GetName());
        branch->SetAddress(&fHits);
-     }
-    else
-     {
-       Warning("SetTreeAddress","<%s> Failed",GetName());
      }
   }
 }
