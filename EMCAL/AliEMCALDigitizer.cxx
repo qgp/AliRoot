@@ -141,8 +141,6 @@ AliEMCALDigitizer::AliEMCALDigitizer(AliRunDigitizer * rd):
   AliEMCALDigitizer::~AliEMCALDigitizer()
 {
   // dtor
-  AliEMCALGetter * gime =AliEMCALGetter::Instance(GetTitle(),fEventFolderName);
-  gime->EmcalLoader()->CleanDigitizer();
   delete [] fInputFileNames ; 
   delete [] fEventNames ; 
 
@@ -356,6 +354,9 @@ void AliEMCALDigitizer::Exec(Option_t *option)
   
   AliEMCALGetter * gime = AliEMCALGetter::Instance(GetTitle()) ;
    
+  // Post Digitizer to the white board
+  gime->PostDigitizer(this) ;
+
   if (fLastEvent == -1) 
     fLastEvent = gime->MaxEvent() - 1 ;
   else if (fManager) 
@@ -380,6 +381,8 @@ void AliEMCALDigitizer::Exec(Option_t *option)
     fDigitsInRun += gime->Digits()->GetEntriesFast() ;  
   }
   
+  gime->EmcalLoader()->CleanDigitizer() ;
+
   if(strstr(option,"tim")){
     gBenchmark->Stop("EMCALDigitizer");
     printf("Exec: took %f seconds for Digitizing %f seconds per event", 
@@ -426,8 +429,6 @@ Bool_t AliEMCALDigitizer::Init()
     fInit = kFALSE ; 
   }
 
-  // Post Digitizer to the white board
-  gime->PostDigitizer(this) ;
   
   fFirstEvent = 0 ; 
   fLastEvent = fFirstEvent ; 

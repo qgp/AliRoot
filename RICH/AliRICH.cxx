@@ -107,13 +107,17 @@ AliRICH::~AliRICH()
   if(GetDebug()) Info("dtor","Start.");
 
   if(fpParam)    delete fpParam;
-  if(fChambers)  delete fChambers;
+  if(fChambers)  {
+    fChambers->Delete();
+    delete fChambers;
+    fChambers=0;
+  }
   
   if(fHits)      delete fHits;
   if(fSdigits)   delete fSdigits;
   if(fDigits)    delete fDigits;
-  if(fDigitsNew) {fDigitsNew->Delete();   delete fDigitsNew;}
-  if(fClusters)  {fClusters->Delete();    delete fClusters;}
+  if(fDigitsNew) delete fDigitsNew;
+  if(fClusters)  delete fClusters;
   if(fRecos)     delete fRecos;
   if(GetDebug()) Info("dtor","Stop.");    
 }//AliRICH::~AliRICH()
