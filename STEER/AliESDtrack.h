@@ -14,7 +14,6 @@
 
 #include <TBits.h>
 #include <TObject.h>
-class TString ; 
 class AliKalmanTrack;
 
 class AliESDtrack : public TObject {
@@ -59,8 +58,10 @@ public:
   Double_t GetInnerAlpha() const {return fIalpha;}
   
   
-  void GetOuterPxPyPz(Double_t *p, TString det) const;
-  void GetOuterXYZ(Double_t *r, TString det) const;
+  void GetOuterPxPyPzPHOS(Double_t *p) const;
+  void GetOuterPxPyPzEMCAL(Double_t *p) const;
+  void GetOuterXYZPHOS(Double_t *r) const;
+  void GetOuterXYZEMCAL(Double_t *r) const;
 
   void SetITSpid(const Double_t *p);
   void SetITSChi2MIP(const Float_t *chi2mip);
