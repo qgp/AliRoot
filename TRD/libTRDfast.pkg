@@ -1,7 +1,0 @@
-SRCS= AliTRDclusterizerV0.cxx
-
-HDRS= $(SRCS:.cxx=.h)                
-
-DHDR= TRDfastLinkDef.h
-
-EINCLUDE= RAW
