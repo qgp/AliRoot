@@ -3,11 +3,15 @@
   #include <fstream.h>
 
   #include "AliRun.h"
+  #include "AliRunLoader.h"
+  #include "AliLoader.h"
+  #include "AliITSLoader.h"
   #include "AliITS.h"
   #include "AliITSgeom.h"
   #include "AliITStrackerV2.h"
   #include "AliITStrackV2.h"
   #include "AliITSclusterV2.h"
+  #include "AliMagF.h"
 
   #include "TFile.h"
   #include "TTree.h"
@@ -35,16 +39,38 @@ Int_t AliITSComparisonV2(Int_t event=0) {
       delete gAlice; 
       gAlice=0;
     }
-
+   
+   AliRunLoader *rl = AliRunLoader::Open("galice.root");
+   if (!rl) 
+     {
+       cerr<<"AliITSComparisonV2.C :Can't start sesion !\n";
+       return 1;
+     }
+   rl->LoadgAlice();
+   if (rl->GetAliRun()) 
+    AliKalmanTrack::SetConvConst(1000/0.299792458/rl->GetAliRun()->Field()->SolenoidField());
+   else
+    {
+       cerr<<"AliITSComparisonV2.C :Can't get AliRun !\n";
+       return 1;
+    }
+   rl->UnloadgAlice();
+    
+   AliITSLoader* itsl = (AliITSLoader*)rl->GetLoader("ITSLoader");
+   if (itsl == 0x0)
+     {
+       cerr<<"AliITSComparisonV2.C : Can not find TPCLoader\n";
+       delete rl;
+       return 3;
+     }
+   
    const Int_t MAX=15000;
-   Int_t good_tracks_its(GoodTrackITS *gt, const Int_t max, const Int_t event);
+   Int_t good_tracks_its(GoodTrackITS *gt, const Int_t max, const char* evfoldname = AliConfig::fgkDefaultEventFolderName);//declaration only
 
    Int_t nentr=0; TObjArray tarray(2000);
    {/* Load tracks */ 
-     TFile *tf=TFile::Open("AliITStracksV2.root");
-     if (!tf->IsOpen()) {cerr<<"Can't open AliITStracksV2.root !\n"; return 3;}
-     char tname[100]; sprintf(tname,"TreeT_ITS_%d",event);
-     TTree *tracktree=(TTree*)tf->Get(tname);
+     itsl->LoadTracks();
+     TTree *tracktree=itsl->TreeT();
      if (!tracktree) {cerr<<"Can't get a tree with ITS tracks !\n"; return 4;}
      TBranch *tbranch=tracktree->GetBranch("tracks");
      nentr=(Int_t)tracktree->GetEntries();
@@ -53,16 +79,8 @@ Int_t AliITSComparisonV2(Int_t event=0) {
         tbranch->SetAddress(&iotrack);
         tracktree->GetEvent(i);
         tarray.AddLast(iotrack);
-        /*if (itsLabel != 1234) continue;
-        Int_t nc=iotrack->GetNumberOfClusters();
-        for (Int_t k=0; k<nc; k++) {
-          Int_t index=iotrack->GetClusterIndex(k);
-          AliITSclusterV2 *c=tracker.GetCluster(index);
-          cout<<c->GetLabel(0)<<' '<<c->GetLabel(1)<<' '<<c->GetLabel(2)<<endl;
-	}*/
      }
-     delete tracktree; //Thanks to Mariana Bondila
-     tf->Close();
+     itsl->UnloadTracks();
    }
 
    /* Generate a list of "good" tracks */
@@ -84,7 +102,7 @@ Int_t AliITSComparisonV2(Int_t event=0) {
       if (!in.eof()) cerr<<"Read error (good_tracks_its) !\n";
    } else {
       cerr<<"Marking good tracks (this will take a while)...\n";
-      ngood=good_tracks_its(gt,MAX,event);
+      ngood=good_tracks_its(gt,MAX,AliConfig::fgkDefaultEventFolderName);
       ofstream out("good_tracks_its");
       if (out) {
 	for (Int_t ngd=0; ngd<ngood; ngd++)
@@ -236,23 +254,37 @@ Int_t AliITSComparisonV2(Int_t event=0) {
    return 0;
 }
 
-Int_t good_tracks_its(GoodTrackITS *gt, const Int_t max, const Int_t event) {
-   if (gAlice) {delete gAlice; gAlice=0;}
+Int_t good_tracks_its(GoodTrackITS *gt, const Int_t max, const char* evfoldname) {
 
-   TFile *file=TFile::Open("galice.root");
-   if (!file->IsOpen()) {cerr<<"Can't open galice.root !\n"; exit(4);}
-   if (!(gAlice=(AliRun*)file->Get("gAlice"))) {
-     cerr<<"gAlice have not been found on galice.root !\n";
-     exit(5);
-   }
+   Int_t nt=0;
 
-   Int_t np=gAlice->GetEvent(event);
+   AliRunLoader* rl = AliRunLoader::GetRunLoader(evfoldname);
+   if (rl == 0x0)
+    {
+      ::Fatal("AliTPCComparison.C::good_tracks_its",
+              "Can not find Run Loader in Folder Named %s",
+              evfoldname);
+    }
+
+   AliITSLoader* itsl = (AliITSLoader*)rl->GetLoader("ITSLoader");
+   if (itsl == 0x0)
+     {
+       cerr<<"AliITSComparisonV2.C : Can not find TPCLoader\n";
+       delete rl;
+       return 3;
+     }
+   
+   rl->LoadgAlice();
+   rl->LoadHeader();
+   Int_t np = rl->GetHeader()->GetNtrack();
+
+
 
    Int_t *good=new Int_t[np];
    Int_t k;
    for (k=0; k<np; k++) good[k]=0;
 
-   AliITS *ITS=(AliITS*)gAlice->GetDetector("ITS");
+   AliITS *ITS=(AliITS*)rl->GetAliRun()->GetDetector("ITS");
    if (!ITS) {
       cerr<<"can't get ITS !\n"; exit(8);
    }
@@ -261,12 +293,8 @@ Int_t good_tracks_its(GoodTrackITS *gt, const Int_t max, const Int_t event) {
       cerr<<"can't get ITS geometry !\n"; exit(9);
    }
 
-   TFile *cf=TFile::Open("AliITSclustersV2.root");
-   if (!cf->IsOpen()){
-      cerr<<"Can't open AliITSclustersV2.root !\n"; exit(6);
-   }
-   char cname[100]; sprintf(cname,"TreeC_ITS_%d",event);
-   TTree *cTree=(TTree*)cf->Get(cname);
+   itsl->LoadRawClusters();
+   TTree *cTree=itsl->TreeC();
    if (!cTree) {
       cerr<<"Can't get cTree !\n"; exit(7);
    }
@@ -297,19 +325,28 @@ Int_t good_tracks_its(GoodTrackITS *gt, const Int_t max, const Int_t event) {
      }
    }
    clusters->Delete(); delete clusters;
-   delete cTree; //Thanks to Mariana Bondila
-   cf->Close();
-
+   itsl->UnloadRawClusters();
+   
    ifstream in("good_tracks_tpc");
    if (!in) {
      cerr<<"can't get good_tracks_tpc !\n"; exit(11);
    }
+   
+   rl->LoadKinematics();
+   AliStack* stack = rl->Stack();
    Int_t nt=0;
    Double_t px,py,pz,x,y,z;
    Int_t code,lab;
    while (in>>lab>>code>>px>>py>>pz>>x>>y>>z) {
       if (good[lab] != 0x3F) continue;
-      TParticle *p = (TParticle*)gAlice->Particle(lab);
+      TParticle *p = (TParticle*)stack->Particle(lab);
+      if (p == 0x0)
+       {
+         cerr<<"Can not get particle "<<lab<<endl;
+         nt++;
+         if (nt==max) {cerr<<"Too many good tracks !\n"; break;}
+         continue;
+       }
       gt[nt].lab=lab;
       gt[nt].code=p->GetPdgCode();
 //**** px py pz - in global coordinate system
@@ -321,8 +358,9 @@ Int_t good_tracks_its(GoodTrackITS *gt, const Int_t max, const Int_t event) {
 
    delete[] good;
 
-   delete gAlice; gAlice=0;
-   file->Close();
+   rl->UnloadKinematics();
+   rl->UnloadHeader();
+   rl->UnloadgAlice();
 
    return nt;
 }

@@ -77,8 +77,6 @@ Int_t AliITSFindClustersV2(Char_t SlowOrFast='f')
    Int_t iEvent;
    for (iEvent = 0; iEvent< rl->GetNumberOfEvents() ; iEvent++) 
     {
-     clusters->Clear();
-     points->Clear();
 
      rl->GetEvent(iEvent);
 
@@ -130,6 +128,7 @@ Int_t AliITSFindClustersV2(Char_t SlowOrFast='f')
      for (Int_t i=0; i<nentr; i++) 
       {
        points->Clear();
+       clusters->Clear();
        branch->GetEvent(i);
        Int_t ncl=points->GetEntriesFast(); if (ncl==0){cTree->Fill();continue;}
        Int_t lay,lad,det; geom->GetModuleId(i,lay,lad,det);
@@ -181,6 +180,7 @@ Int_t AliITSFindClustersV2(Char_t SlowOrFast='f')
           new(cl[j]) AliITSclusterV2(lab,lp);
         }
        cTree->Fill(); 
+//       clusters->Delete(); points->Delete();
      }
     gime->WriteRawClusters("OVERWRITE");
     cerr<<"Number of clusters: "<<nclusters<<endl;

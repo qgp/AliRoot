@@ -12,6 +12,7 @@
   #include "alles.h"
   #include "AliTPCtracker.h"
   #include "AliRunLoader.h"
+  #include "AliMagF.h"
 #endif
 
 struct GoodTrackTPC {
@@ -37,16 +38,27 @@ Int_t AliTPCComparison(Int_t event=0) {
 
    gBenchmark->Start("AliTPCComparison");
 
-   AliRunLoader *rl = AliRunLoader::Open("galice.root","Event","update");
+   AliRunLoader *rl = AliRunLoader::Open("galice.root");
    if (!rl) 
      {
        cerr<<"Can't start sesion !\n";
        return 1;
      }
+
+   rl->LoadgAlice();
+   if (rl->GetAliRun()) 
+    AliKalmanTrack::SetConvConst(1000/0.299792458/rl->GetAliRun()->Field()->SolenoidField());
+   else
+    {
+       cerr<<"AliTPCComparison.C :Can't get AliRun !\n";
+       return 1;
+    }
+   rl->UnloadgAlice();
+  
    AliLoader * tpcl = rl->GetLoader("TPCLoader");
    if (tpcl == 0x0)
      {
-       cerr<<"AliTPCHits2Digits.C : Can not find TPCLoader\n";
+       cerr<<"AliTPCComparison.C : Can not find TPCLoader\n";
        delete rl;
        return 3;
      }
@@ -437,20 +449,30 @@ Int_t good_tracks_tpc(GoodTrackTPC *gt, const Int_t max, const char* evfoldname)
    }
 
    rl->LoadKinematics();
+   AliStack* stack = rl->Stack();
    /** select tracks which are "good" enough **/
    for (i=0; i<np; i++) {
       if ((good[i]&0x5000) != 0x5000)
       if ((good[i]&0x2800) != 0x2800) continue;
       if ((good[i]&0x7FF ) < good_number) continue;
 
-      TParticle *p = (TParticle*)gAlice->Particle(i);
-
+      TParticle *p = (TParticle*)stack->Particle(i);
+      if (p == 0x0)
+       {
+         cerr<<"Can not get particle "<<i<<endl;
+         continue;
+       }
       if (p->Pt()<0.100) continue;
       if (TMath::Abs(p->Pz()/p->Pt())>0.999) continue;
 
       Int_t j=p->GetFirstMother();
       if (j>=0) {
-        TParticle *pp = (TParticle*)gAlice->Particle(j);
+        TParticle *pp = (TParticle*)stack->Particle(j);
+        if (pp == 0x0)
+         {
+           cerr<<"Can not get particle "<<j<<endl;
+           continue;
+         }
         if (pp->GetFirstMother()>=0) continue;//only one decay is allowed
       }
 

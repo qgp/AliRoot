@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.66.2.6  2002/12/11 10:00:15  hristov
+Merging with v3-09-04 (P.Skowronski)
+
 Revision 1.66.2.5  2002/11/22 14:19:33  hristov
 Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
 
@@ -1176,6 +1179,7 @@ void AliITS::Hits2SDigits(){
     // Event number from file, no background hit merging , use size from
     // AliITSgeom class, option="All", input from this file only.
     HitsToSDigits(header->GetEvent(),0,-1," ",fOpt," ");
+    
 }
 //______________________________________________________________________
 void AliITS::Hits2PreDigits(){
@@ -1354,6 +1358,7 @@ void AliITS::HitsToPreDigits(Int_t evNumber,Int_t bgrev,Int_t size,
 
     fLoader->TreeS()->GetEntries();
     fLoader->TreeS()->AutoSave();
+    fLoader->WriteSDigits("OVERWRITE");
     // reset tree
     fLoader->TreeS()->Reset();
 }
