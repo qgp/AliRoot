@@ -260,7 +260,7 @@ check-@PACKAGE@: $(@PACKAGE@CHECKS)
 # IRST coding rule check
 @PACKAGE@/check/%.viol : @PACKAGE@/check/%.i
 	@cd @PACKAGE@ ; [ -r @PACKAGE@ ] || ln -s ../@PACKAGE@ @PACKAGE@
-	-@$(CODE_CHECK) $< ./@PACKAGE@ > $@
+	-@echo $@ ; $(CODE_CHECK) $< ./@PACKAGE@ > $@
 
 @PACKAGE@PREPROC       = $(patsubst %.viol,%.i,$(@PACKAGE@CHECKS))
 
@@ -270,10 +270,13 @@ check-@PACKAGE@: $(@PACKAGE@CHECKS)
 
 reveng-@PACKAGE@:		@PACKAGE@/check/classDiagram.dot
 
-@PACKAGE@/check/classDiagram.dot:	$(PREPROC)
+@PACKAGE@/check/classDiagram.dot:	$(@PACKAGE@PREPROC)
 	@$(REV_ENG) $^
 	@-mv classDiagram.dot $@
 
 revdisp-@PACKAGE@:	reveng-@PACKAGE@
-	@$(IRST_INSTALLDIR)/scripts/revEngInterface.sh @PACKAGE@/check/classDiagram.dot
+	@echo revdisp for @PACKAGE@
+	@cd @PACKAGE@/check ; \
+      $(IRST_INSTALLDIR)/webreveng/create-class-diagram-pages.sh
+	@sed -e "s/\@PACKAGE\@/@PACKAGE@/g" < $(ALICE_ROOT)/build/HomePage.html > @PACKAGE@/check/HomePage.html
 

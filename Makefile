@@ -16,11 +16,10 @@ endif
 # IRST coding rule check
 IRST_INSTALLDIR=$(ALICE)/local/IRST
 CLASSPATH=$(IRST_INSTALLDIR)
+export CLASSPATH IRST_INSTALLDIR
 CODE_CHECK=java rules.ALICE.ALICERuleChecker
 REV_ENG=$(IRST_INSTALLDIR)/scripts/revEng.sh
-# This is to avoid a problem with the declaration of .SECONDARY in the 
-# GeneralMacros
-CHECKS = none
+
 
 include build/Makefile.config
 ################################################################## 
@@ -248,7 +247,13 @@ endif
 
 clean-aliroot:   $(patsubst %,%/module.mk,$(ALIROOTMODULES)) $(patsubst %,clean-%,$(ALIROOTMODULES))
 
-check:			$(patsubst %,%/module.mk,$(ALIROOTMODULES)) $(patsubst %,check-%,$(ALIROOTMODULES))
+CHECKMODULES := $(filter-out HBTP,$(filter-out MEVSIM,$(ALIROOTMODULES)))
+
+check-all:			$(patsubst %,%/module.mk,$(CHECKMODULES)) $(patsubst %,check-%,$(CHECKMODULES))
+
+reveng-all:			$(patsubst %,%/module.mk,$(CHECKMODULES)) $(patsubst %,reveng-%,$(CHECKMODULES))
+
+revdisp-all:		$(patsubst %,%/module.mk,$(CHECKMODULES)) $(patsubst %,revdisp-%,$(CHECKMODULES))
 
 clean-dicts:
 ifndef ALIQUIET
