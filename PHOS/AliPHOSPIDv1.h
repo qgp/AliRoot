@@ -70,7 +70,7 @@ public:
   
  private:
 
-  const TString AliPHOSPIDv1::BranchName() const ; 
+  const TString BranchName() const ; 
   virtual void Init() ;
   void     MakeRecParticles(void ) ;
   Float_t  GetDistance(AliPHOSEmcRecPoint * emc, AliPHOSRecPoint * cpv, Option_t * Axis)const ; // Relative Distance CPV-EMC
