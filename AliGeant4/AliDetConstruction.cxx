@@ -260,7 +260,7 @@ void AliDetConstruction::GenerateXMLGeometry() const
   //                       "v4", world->GetLogicalVolume());
 
   // generate volumes tree
-  xml.GenerateSection(detName, detVersion, "today", "Generated from Geant4",
+  xml.GenerateSection("v6", detName, detVersion, "today", "Generated from Geant4",
                       topName, world->GetLogicalVolume());
   xml.CloseFile();
   
