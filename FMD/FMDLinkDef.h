@@ -11,12 +11,11 @@
 #pragma link C++ class  AliFMD+;
 #pragma link C++ class  AliFMDv0+;
 #pragma link C++ class  AliFMDv1+;
+#pragma link C++ class  AliFMDv2+;
 #pragma link C++ class  AliFMDhit+;
 #pragma link C++ class  AliFMDdigit+;
 #pragma link C++ class  AliFMDReconstruction+;
 #pragma link C++ class  AliFMDReconstParticles+;
-#pragma link C++ class  AliFMDMerger+;
 #pragma link C++ class  AliFMDDigitizer+;
-#pragma link C++ class  AliFMDSDigitizer+;
 
 #endif

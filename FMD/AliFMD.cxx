@@ -12,9 +12,6 @@
  * about the suitability of this software for any purpose. It is          *
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
-
-/* $Id$ */
-
  //////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 //  Forward Multiplicity Detector based on Silicon plates                    //
@@ -44,25 +41,25 @@
 #include <Riostream.h>
 #include <stdlib.h>
 
-#include <TClonesArray.h>
-#include <TFile.h>
-#include <TGeometry.h>
-#include <TLorentzVector.h>
 #include <TMath.h>
-#include <TNode.h>
+#include <TGeometry.h>
 #include <TTUBE.h>
 #include <TTree.h>
-#include <TVirtualMC.h>
+#include <TNode.h>
+#include <TFile.h>
+#include <TClonesArray.h>
+#include <TLorentzVector.h>
 
-#include "AliDetector.h"
-#include "AliFMDReconstParticles.h"
-#include "AliFMDReconstruction.h"
-#include "AliFMDdigit.h"
-#include "AliFMDhit.h"
 #include "AliFMDv1.h"
-#include "AliLoader.h"
-#include "AliMagF.h"
 #include "AliRun.h"
+#include "AliDetector.h"
+#include <TBranch.h>
+#include "AliMagF.h"
+#include "AliFMDhit.h"
+#include "AliFMDdigit.h"
+#include "AliFMDReconstruction.h"
+#include "AliFMDReconstParticles.h"
+#include "AliLoader.h"
 
 ClassImp (AliFMD)
   //_____________________________________________________________________________
@@ -74,7 +71,6 @@ AliFMD::AliFMD ():AliDetector ()
   fIshunt = 0;
   fHits     = 0;
   fDigits   = 0;
-  fSDigits  = 0;
   fReconParticles=0; 
 }
 
@@ -91,7 +87,6 @@ AliDetector (name, title)
   fHits = new TClonesArray ("AliFMDhit", 1000);
   // Digits for each Si disk
   fDigits = new TClonesArray ("AliFMDdigit", 1000);
-  fSDigits = new TClonesArray ("AliFMDdigit", 1000);
   fReconParticles=new TClonesArray("AliFMDReconstParticles",1000); 
   gAlice->AddHitList (fHits);
 
@@ -120,12 +115,6 @@ AliFMD::~AliFMD ()
       delete fDigits;
       fDigits = 0;
     }
-  if (fSDigits)
-    {
-      fSDigits->Delete ();
-      delete fSDigits;
-      fSDigits = 0;
-    }
   if (fReconParticles)
     {
       fReconParticles->Delete ();
@@ -152,15 +141,6 @@ void AliFMD::AddDigit (Int_t * digits)
 
 
   TClonesArray & ldigits = *fDigits;
-  new (ldigits[fNdigits++]) AliFMDdigit (digits);
-
-}
-//_____________________________________________________________________________
-void AliFMD::AddSDigit (Int_t * digits)
-{
-  // add a real digit - as coming from data
-
-  TClonesArray & ldigits = *fSDigits;
   new (ldigits[fNdigits++]) AliFMDdigit (digits);
 
 }
@@ -237,6 +217,7 @@ void AliFMD::ResetDigits ()
 }
 
 //-------------------------------------------------------------------------
+
 void  AliFMD::Init ()
 {
   //
@@ -264,8 +245,10 @@ void  AliFMD::Init ()
     fIdSens2 = gMC->VolId ("GRN2");	//Si sensetive volume
     fIdSens3 = gMC->VolId ("GRN3");	//Si sensetive volume
     fIdSens4 = gMC->VolId ("GRN4");	//Si sensetive volume
+    fIdSens5 = gMC->VolId ("GRN5");	//Si sensetive volume
 
 }
+
 //---------------------------------------------------------------------
 void AliFMD::MakeBranch (Option_t * option)
 {
@@ -277,16 +260,17 @@ void AliFMD::MakeBranch (Option_t * option)
   AliDetector::MakeBranch (option);
   const char *cD = strstr(option,"D");
   const char *cR = strstr(option,"R");
-  const char *cS = strstr(option,"S");
   
-  if (cS){
-    MakeBranchInTree(fLoader->TreeS(), branchname,&fSDigits, kBufferSize, 0);
-  }
   if (cD){
-    MakeBranchInTree(fLoader->TreeD(), branchname,&fDigits, kBufferSize, 0);
+
+    MakeBranchInTree(fLoader->TreeD(), 
+		     branchname,&fDigits, 
+    		     kBufferSize, 0);
   }
   if (cR){
-    MakeBranchInTree(fLoader->TreeR(), branchname,&fReconParticles, kBufferSize, 0);
+    MakeBranchInTree(fLoader->TreeR(), 
+		     branchname,&fReconParticles,
+    		     kBufferSize, 0);
   }
   
 }
@@ -312,16 +296,8 @@ void AliFMD::SetTreeAddress ()
 	}
 
     }
-  if (fSDigits)
-    //  fSDigits->Clear ();
 
-  if (fLoader->TreeS () && fSDigits)
-    {
-      branch = fLoader->TreeS ()->GetBranch ("FMD");
-      if (branch)
-	branch->SetAddress (&fSDigits);
-    }
-
+ 
   if (fLoader->TreeR() && fReconParticles) 
     {
       branch = fLoader->TreeR()->GetBranch("FMD"); 
@@ -334,7 +310,7 @@ void AliFMD::SetTreeAddress ()
 void AliFMD::SetRingsSi1(Int_t ringsSi1)
 {
   //  fRingsSi1=ringsSi1;
-  fRingsSi1=256;
+  fRingsSi1=768;
 }
 void AliFMD::SetSectorsSi1(Int_t sectorsSi1)
 {
@@ -342,48 +318,13 @@ void AliFMD::SetSectorsSi1(Int_t sectorsSi1)
 }
 void AliFMD::SetRingsSi2(Int_t ringsSi2)
 {
-  fRingsSi2=128;
+  fRingsSi2=384;
 }
 void AliFMD::SetSectorsSi2(Int_t sectorsSi2)
 {
   fSectorsSi2=40;
 }
 
-//---------------------------------------------------------------------
-/*
-void AliFMD::SDigits2Digits() 
-{
-  cout<<"AliFMD::SDigits2Digits"<<endl; 
-    if (!fMerger) {
-      fMerger = new AliFMDMerger();
-    }
-    
-    fMerger ->SetRingsSi1(fRingsSi1);
-    fMerger->SetRingsSi2(fRingsSi2);
-    fMerger ->SetSectorsSi1(fSectorsSi1);
-    fMerger ->SetSectorsSi2(fSectorsSi2);
-     
-    fMerger->Init();
-    cout<<"AliFMD::SDigits2Digits Init"<<endl; 
-    fMerger->Digitise();
-    cout<<"AliFMD::SDigits2Digits Digitise() "<<endl; 
- 
-
-    }
-
-    //---------------------------------------------------------------------
-void   AliFMD::SetMerger(AliFMDMerger* merger)
-{
-// Set pointer to merger
-    fMerger = merger;
-}
-
-AliFMDMerger*  AliFMD::Merger()
-{
-// Return pointer to merger
-    return fMerger;
-}
-*/
 //---------------------------------------------------------------------
 
 
@@ -401,33 +342,12 @@ AliFMD::Eta2Radius (Float_t eta, Float_t zDisk, Float_t * radius)
     printf ("%s: eta %f radius %f\n", ClassName (), eta, rad);
 }
 
-//---------------------------------------------------------------------
-
-void AliFMD::Hits2SDigits ()
-{
-
-  //#ifdef DEBUG
-  cout<<"ALiFMD::Hits2SDigits> start...\n";
-  //#endif
-  
-  char * fileSDigits = "FMD.SDigits.root";
-  char * fileHeader = 0;
-  AliFMDSDigitizer * sd = new AliFMDSDigitizer(fileHeader,fileSDigits) ;
-  sd->SetRingsSi1(fRingsSi1);
-  sd->SetRingsSi2(fRingsSi2);
-  sd->SetSectorsSi1(fSectorsSi1);
-  sd->SetSectorsSi2(fSectorsSi2);
-  //  sd->SetEventNumber(fEvNrSig);
-  sd->Exec("") ;
-  
-  delete sd ;
-  
-}
 //-----------------------------------------------------------------------
 
 void AliFMD::Digits2Reco()
 {
-  AliFMDReconstruction * reconstruction =  new AliFMDReconstruction(fLoader->GetRunLoader());
+  AliFMDReconstruction * reconstruction =
+    new AliFMDReconstruction(fLoader->GetRunLoader()) ;
   reconstruction->Exec("");
   delete  reconstruction;
 }
@@ -438,12 +358,16 @@ void AliFMD::MakeBranchInTreeD(TTree *treeD, const char *file)
     //
     // Create TreeD branches for the MUON.
     //
+
     const Int_t kBufferSize = 4000;
     char branchname[20];
+    
+
     sprintf(branchname,"%s",GetName());	
-    if(treeD)
-     {
-       MakeBranchInTree(treeD,  branchname,&fDigits, kBufferSize, file);
-     }
+    if(treeD){
+    MakeBranchInTree(treeD, 
+		     branchname,&fDigits, 
+    		     kBufferSize, file);
+    }
 }
 

@@ -16,33 +16,10 @@
 //Fast fixes to be able to compile with new Folder and I/O structure
 //To be implemented correctly by the responsible person
 
-/*
-$Log$
-Revision 1.3.4.1  2002/05/31 09:37:55  hristov
-First set of changes done by Piotr
+//PH 20/05/2003 It seems this class is obsolete and not used anymore
 
-Revision 1.4  2002/10/23 07:40:37  alibrary
-Introducing Riostream.h
+/* $Id$ */
 
-Revision 1.3  2001/10/21 18:36:31  hristov
-Several pointers were set to zero in the default constructors to avoid memory management problems
-
-Revision 1.2  2001/09/24 16:41:15  hristov
-New version of FMD code (A.Maevskaia)
-
-Revision 1.1  2001/05/29 12:01:06  hristov
-Last minute changes and new code for event mixing and reconstruction (A.Maevskaia)
-
-Revision 1.3  2001/03/05 23:57:44  morsch
-Writing of digit tree moved to macro.
-
-Revision 1.2  2001/03/05 08:40:25  morsch
-Method SortTracks(..) imported from AliMUON.
-
-Revision 1.1  2001/02/02 14:11:53  morsch
-AliMUONMerger prototype to be called by the merge manager.
-
-*/
 #include "AliFMDMerger.h"
 
 
