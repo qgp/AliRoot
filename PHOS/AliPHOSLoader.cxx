@@ -302,17 +302,17 @@ Int_t  AliPHOSLoader::LoadTracks(Option_t* opt)
     return res;
   }
 
-  Info("LoadTracks","                                         ");
-  Info("LoadTracks","*****************************************");
-  Info("LoadTracks","REMINDER: PostTracker temorarly commented");
-  Info("LoadTracks","*****************************************");
-  Info("LoadTracks","                                         ");
-// res = PostTracker();
-// if (res)
-//  {
-//    Error("LoadTacks","Error occured while reading Tracker");
-//    return res;
-//  }
+//  Info("LoadTracks","                                         ");
+//  Info("LoadTracks","*****************************************");
+//  Info("LoadTracks","REMINDER: PostTracker temorarly commented");
+//  Info("LoadTracks","*****************************************");
+//  Info("LoadTracks","                                         ");
+ res = PostTracker();
+ if (res)
+  {
+    Error("LoadTacks","Error occured while reading Tracker");
+    return res;
+  }
 
  fTracksLoaded = kTRUE;
  return 0;

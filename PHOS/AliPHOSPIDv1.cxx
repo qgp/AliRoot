@@ -521,12 +521,21 @@ void  AliPHOSPIDv1::Exec(Option_t * option)
      return;
    }
 
+  retval = gime->LoadRecPoints();
+  if (retval)
+   {
+     Error("Exec","Error returned by LoadRecPoints");
+     return;
+   }
+
+
   retval = gime->LoadRecParticles("update");//this loads Tracks autoamtically (because rec part are stored in track file)
   if (retval)
    {
      Error("Exec","Error returned by LoadRecParticles");
      return;
    }
+   
   if (gime->TreeT() == 0x0) gime->LoadTracks();
   
   

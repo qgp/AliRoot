@@ -146,7 +146,7 @@ TTask("AliPHOSReconstructioner",evFoldName)
   gime->PostReconstructioner(fClusterizer);
   
   fTSBranch=branchName ; 
-  fTSMaker     = new AliPHOSTrackSegmentMakerv1(GetTitle(),fTSBranch.Data());
+  fTSMaker     = new AliPHOSTrackSegmentMakerv1(GetTitle(),"PHOSTracker");
   Add(fTSMaker) ;
   gime->PostTracker(fTSMaker);
 
