@@ -1,5 +1,5 @@
-#ifndef ALIEMCALGETTER_H
-#define ALIEMCALGETTER_H
+#ifndef ALIEMCALLOADER_H
+#define ALIEMCALLOADER_H
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
 
@@ -26,22 +26,27 @@ class TTask ;
 
 // --- Standard library ---
 #include <stdlib.h>
-#include <iostream.h>
+#include <Riostream.h>
 
 // --- AliRoot header files ---
 
 #include "AliRun.h"
 #include "AliLoader.h"
 #include "AliRunLoader.h"
-#include "AliRun.h"
-#include "AliEMCALv1.h"
-#include "AliEMCALHit.h"
+#include "AliEMCAL.h" 
+#include "AliEMCALHit.h" 
 #include "AliEMCALDigit.h"
+#include "AliEMCALRecPoint.h"
+#include "AliEMCALRecPoint.h"
+#include "AliEMCALTrackSegment.h"
+#include "AliEMCALRecParticle.h"
+class AliEMCALGeometry ;
 #include "AliEMCALDigitizer.h"
 #include "AliEMCALSDigitizer.h"
-#include "AliEMCALTowerRecPoint.h"
-class AliEMCALGeometry ;
-class AliEMCALClusterizerv1 ;
+#include "AliEMCALClusterizer.h"
+#include "AliEMCALTrackSegmentMaker.h"
+#include "AliEMCALPID.h"
+class AliEMCALCalibrationDB ;
 
 
 //
@@ -58,19 +63,43 @@ class AliEMCALLoader : public AliLoader {
 
   // assignement operator requested by coding convention, but not needed
   AliEMCALLoader & operator = (const AliEMCALLoader & ) {return *this;}
-  Int_t  PostHits(); 
-  Int_t  PostSDigits();
-  Int_t  PostDigits();
-  Int_t  PostRecPoints();
-  Int_t  PostTracks();  //previous PostTrackSegments
+
+  Int_t   GetEvent();//extends the method on EMCAL RecPart posting
+  Int_t   SetEvent();//extends the method on EMCAL RecPart posting
+  
+  Bool_t  BranchExists(const TString& recName);
+  Int_t   LoadHits(Option_t* opt=""); //reads  from disk and sends them to folder; array as well as tree
+  Int_t   LoadSDigits(Option_t* opt="");
+  Int_t   LoadDigits(Option_t* opt=""); //reads Digits from disk and sends them to folder; array as well as tree
+  Int_t   LoadRecPoints(Option_t* opt=""); //reads RecPoints from disk and sends them to folder; array as well as tree
+  Int_t   LoadTracks(Option_t* opt="");  //reads Tracks from disk and sends them to folder; array as well as tree
+  Int_t   LoadRecParticles(Option_t* opt="");
  
-  void   CleanFolders();//cleans all the stuff loaded by this detector + calls AliLoader::Clean
+  void    UnloadRecParticles();
+  void    UnloadTracks();
+  
+  Int_t   PostHits();  //Posts the 
+  Int_t   PostSDigits();
+  Int_t   PostDigits();
+  Int_t   PostRecPoints();
+  Int_t   PostTracks();
+  Int_t   PostRecParticles();
+  
+  void    CleanFolders();//cleans all the stuff loaded by this detector + calls AliLoader::Clean
+
+  void    CleanHits();
+  void    CleanSDigits();
+  void    CleanDigits();
+  void    CleanRecPoints();
+  void    CleanTracks();
+  void    CleanRecParticles();
 
 //up to now it is only here -> no definition about global/incremental tracking/PID
-  Int_t   LoadRecParticles(Option_t* opt="");//loads reconstructed particles
-  Int_t   WriteRecParticles(Option_t* opt="");//writes the reconstructed particles
-  Int_t   WritePID(Option_t* opt="");//writes the task for PID to file
-  Bool_t  PostQA   (void) const ;
+ 
+//   Int_t   WriteRecParticles(Option_t* opt="");//writes the reconstructed particles
+//   Int_t   WritePID(Option_t* opt="");//writes the task for PID to file
+//   Bool_t  PostPID  (AliEMCALPID * pid) const {return kTRUE;}
+//  Bool_t  PostQA   (void) const ; //it was empty anyway
   
 /*******************************************************************/
 /*******************************************************************/
@@ -79,9 +108,9 @@ class AliEMCALLoader : public AliLoader {
   TObject** HitsRef(){return GetDetectorDataRef(Hits());}
   TObject** SDigitsRef(){return GetDetectorDataRef(SDigits());}
   TObject** DigitsRef(){return GetDetectorDataRef(Digits());}
-  TObject** EmcRecPointsRef(){return GetDetectorDataRef(EmcRecPoints());}
-  TObject** CpvRecPointsRef(){return GetDetectorDataRef(CpvRecPoints());}
+  TObject** RecPointsRef(){return GetDetectorDataRef(RecPoints());}
   TObject** TracksRef(){return GetDetectorDataRef(TrackSegments());}
+  TObject** RecParticlesRef(){return GetDetectorDataRef(RecParticles());}
   TObject** AlarmsRef(){return GetDetectorDataRef(Alarms());}
   void   Track(Int_t itrack) ;
 
@@ -104,37 +133,65 @@ class AliEMCALLoader : public AliLoader {
   /****   H i t s  ****/
   TClonesArray*  Hits(void);
   const AliEMCALHit*    Hit(Int_t index);
+  void MakeHitsArray();
   /****   S D i g i t s  ****/ 
   TClonesArray*  SDigits();
   const AliEMCALDigit*  SDigit(Int_t index);
+  void MakeSDigitsArray();
   /****  D i g i t s  ****/
   TClonesArray*   Digits();
   const AliEMCALDigit *  Digit(Int_t index);
+  void MakeDigitsArray();
   /****  R e c P o i n t s  ****/
-  TObjArray * EmcRecPoints();
-  TObjArray * CpvRecPoints();
-  const AliEMCALEmcRecPoint * EmcRecPoint(Int_t index) ;
-  const AliEMCALCpvRecPoint * CpvRecPoint(Int_t index) ;
+  TObjArray * RecPoints();
+  const AliEMCALRecPoint * RecPoint(Int_t index) ;
+  void MakeRecPointsArray();
   /****   T r a c k S e g m e n t s ****/
   TClonesArray * TrackSegments();
   const AliEMCALTrackSegment * TrackSegment(Int_t index);
+  void MakeTrackSegmentsArray();
   /****  R e c P a r t ic l e s   ****/
   TClonesArray * RecParticles() ;
   const AliEMCALRecParticle * RecParticle(Int_t index);
+  void MakeRecParticlesArray();
 
   /*********************************************/
   /************    T A S K S      **************/
   /*********************************************/
-  AliEMCALPID * PID(const char * name =0) const { MayNotUse("PID"); return 0x0;  }
-  AliEMCALSDigitizer*  EMCALSDigitizer() { return (AliEMCALSDigitizer*)SDigitizer();}
-  AliEMCALDigitizer*   EMCALDigitizer() {  return (AliEMCALDigitizer*)Digitizer();}
-  AliEMCALClusterizer* Clusterizer ()  {return (AliEMCALClusterizer*)Reconstructioner();}
-  AliEMCALTrackSegmentMaker * TrackSegmentMaker () { return (AliEMCALTrackSegmentMaker*)Tracker() ;}
-  
+  // 
+  //  AliEMCALSDigitizer*  EMCALSDigitizer(TString name = AliConfig::fgkDefaultEventFolderName);
+  //AliEMCALDigitizer*   EMCALDigitizer()  { return  dynamic_cast<AliEMCALDigitizer*>(Digitizer()) ;}
+
+  AliEMCALClusterizer* Clusterizer ()  {return dynamic_cast<AliEMCALClusterizer*>(Reconstructioner()) ;}
   Int_t PostClusterizer(TTask* clust){return PostReconstructioner(clust);}
+  Int_t LoadClusterizer(Option_t * opt="") {return LoadReconstructioner(opt);}
+  Int_t WriteClusterizer(Option_t * opt="") {return WriteReconstructioner(opt);}
+
+  AliEMCALPID * PID (){return dynamic_cast<AliEMCALPID*>(PIDTask()) ;}
+  Int_t PostPID(TTask* pid){return PostPIDTask(pid);}
+  Int_t LoadPID(Option_t * opt="") {return LoadPIDTask(opt);}
+  Int_t WritePID(Option_t * opt="") {return WritePIDTask(opt);}
+
+
+  AliEMCALTrackSegmentMaker * TrackSegmentMaker ()  { return dynamic_cast<AliEMCALTrackSegmentMaker *>(Tracker()) ;}
   Int_t PostTrackSegmentMaker(TTask* segmaker){return PostTracker(segmaker);}
+  Int_t LoadTrackSegmentMaker(Option_t * opt="") {return LoadTracker(opt);}
+  Int_t WriteTrackSegmentMaker(Option_t * opt="") {return WriteTracker(opt);}
+
   
   void   SetDebug(Int_t level) {fDebug = level;} // Set debug level
+  void   SetBranchTitle(const TString& btitle);
+  
+  AliEMCALCalibrationDB * CalibrationDB(){return  fcdb; }
+  void ReadCalibrationDB(const char * name, const char * filename);
+  
+protected:
+  TString fBranchTitle;            //Title of the branch
+  Bool_t  fRecParticlesLoaded;     //Flag signing if Reconstructed Particles are loaded
+  Bool_t  fTracksLoaded;           //Flag signing if Tracks are loaded
+  TString fRecParticlesFileOption; //Loading Option for Reconstructed Particles
+  AliEMCALCalibrationDB * fcdb ;       //!
+
 private:
 
   Int_t ReadHits();
@@ -145,24 +202,20 @@ private:
   Int_t ReadRecParticles();
   
   void  ReadTreeQA() ;
-
- private:
-
-  Int_t          fDebug ;             // Debug level
+  Int_t  fDebug ;             // Debug level
  
  public:
 
   static const TString fgkHitsName;//Name for TClonesArray with hits from one event
   static const TString fgkSDigitsName;//Name for TClonesArray 
   static const TString fgkDigitsName;//Name for TClonesArray 
-  static const TString fgkEmcRecPointsName;//Name for TClonesArray 
-  static const TString fgkCpvRecPointsName;//Name for TClonesArray 
+  static const TString fgkRecPointsName;//Name for TClonesArray 
   static const TString fgkTracksName;//Name for TClonesArray 
-  static const TString fgkReconstrParticles;//Name for TClonesArray
+  static const TString fgkRecParticlesName;//Name for TClonesArray
 
-  static const TString fgkEmcRecPointsBranchName;//Name for TClonesArray 
-  static const TString fgkCpvRecPointsBranchName;//Name for TClonesArray 
-  
+  static const TString fgkRecPointsBranchName;//Name for branch
+  static const TString fgkTrackSegmentsBranchName;//Name for branch
+  static const TString fgkRecParticlesBranchName;//Name for branch
   
   ClassDef(AliEMCALLoader,2)  // Algorithm class that provides methods to retrieve objects from a list knowing the index 
 
@@ -215,34 +268,20 @@ inline const AliEMCALDigit*  AliEMCALLoader::Digit(Int_t index)
     return (const AliEMCALDigit*) tcarr->At(index);
   return 0x0; 
 }
+
 /******************************************************************************/
 
-inline TObjArray * AliEMCALLoader::EmcRecPoints()
+inline TObjArray * AliEMCALLoader::RecPoints()
 {
- return dynamic_cast<TObjArray*>(GetDetectorData(fgkEmcRecPointsName));
+ return dynamic_cast<TObjArray*>(GetDetectorData(fgkRecPointsName));
 }
 /******************************************************************************/
 
-inline const AliEMCALEmcRecPoint * AliEMCALLoader::EmcRecPoint(Int_t index)
+inline const AliEMCALRecPoint * AliEMCALLoader::RecPoint(Int_t index)
 {
-  TObjArray* tcarr = EmcRecPoints();
+  TObjArray* tcarr = RecPoints();
   if (tcarr)
-    return (const AliEMCALEmcRecPoint*) tcarr->At(index);
-  return 0x0; 
-}
-/******************************************************************************/
-
-inline TObjArray * AliEMCALLoader::CpvRecPoints()
-{
- return dynamic_cast<TObjArray*>(GetDetectorData(fgkCpvRecPointsName));
-}
-/******************************************************************************/
-
-inline const AliEMCALCpvRecPoint * AliEMCALLoader::CpvRecPoint(Int_t index)
-{
-  TObjArray* tcarr = CpvRecPoints();
-  if (tcarr)
-    return (const AliEMCALCpvRecPoint*) tcarr->At(index);
+    return (const AliEMCALRecPoint*) tcarr->At(index);
   return 0x0; 
 }
 /******************************************************************************/
@@ -264,7 +303,7 @@ inline const AliEMCALTrackSegment * AliEMCALLoader::TrackSegment(Int_t index)
 
 inline TClonesArray * AliEMCALLoader::RecParticles() 
 {
- return dynamic_cast<TClonesArray*>(GetDetectorData(fgkReconstrParticles)); 
+ return dynamic_cast<TClonesArray*>(GetDetectorData(fgkRecParticlesName)); 
 }
 /******************************************************************************/
 
@@ -277,6 +316,6 @@ inline const AliEMCALRecParticle* AliEMCALLoader::RecParticle(Int_t index)
 }
 /******************************************************************************/
 inline TObjArray *  AliEMCALLoader::Alarms()
-{ return (TObjArray*)(GetQAFolder()->FindObject(*fDetectorName));}
+{ return (TObjArray*)(GetQAFolder()->FindObject(fDetectorName));}
 
-#endif // AliEMCALGETTER_H
+#endif // AliEMCALLOADER_H

@@ -27,20 +27,21 @@
 
 // --- ROOT system ---
 class TFile;
-#include "TBranch.h" 
-#include "TClonesArray.h" 
-#include "TTree.h" 
+#include <TFolder.h> 
+#include <TROOT.h>
+#include <TTree.h>
+#include <TVirtualMC.h> 
 
 // --- Standard library ---
 #include <Rstrstream.h>
 
 // --- AliRoot header files ---
-#include "AliEMCAL.h"
-#include "TVirtualMC.h"
-#include "AliRun.h"
 #include "AliMagF.h"
+#include "AliEMCAL.h"
 #include "AliEMCALGeometry.h"
+#include "AliEMCALLoader.h"
 //#include "AliEMCALQAChecker.h" 
+#include "AliRun.h"
 
 ClassImp(AliEMCAL)
 //____________________________________________________________________________
@@ -50,6 +51,7 @@ AliEMCAL::AliEMCAL():AliDetector()
   fName="EMCAL";
   //fQATask = 0;
   fTreeQA = 0;
+  fGeom = 0 ; 
 }
 
 //____________________________________________________________________________
@@ -93,6 +95,9 @@ void AliEMCAL::CreateMaterials()
   AliMaterial(3, "Al$", 26.98, 13., 2.7, 8.9, 999., 0, 0) ;
   // ---         Absorption length is ignored ^
 
+  // --- Copper ---
+  AliMaterial(4, "Cu$", 63.546, 29, 8.96, 1.43, 14.8, 0, 0) ; 
+  // ---         Absorption length is ignored ^
 
 
   // DEFINITION OF THE TRACKING MEDIA
@@ -108,7 +113,7 @@ void AliEMCAL::CreateMaterials()
   AliMedium(0, "Air          $", 0, 0,
 	     isxfld, sxmgmx, 10.0, 1.0, 0.1, 0.1, 10.0, 0, 0) ;
 
-  // The Lead                                                                       -> idtmed[1600]
+  // The Lead                                                                      -> idtmed[1600]
  
   AliMedium(1, "Lead      $", 1, 0,
 	     isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, 0, 0) ;
@@ -118,10 +123,13 @@ void AliEMCAL::CreateMaterials()
   AliMedium(2, "CPV scint.   $", 2, 1,
             isxfld, sxmgmx, 10.0, 0.001, 0.1, 0.001, 0.001, 0, 0) ;
 
-  // Various Aluminium parts made of Al                                             -> idtmed[1602]
+  // Various Aluminium parts made of Al                                            -> idtmed[1602]
   AliMedium(3, "Al parts     $", 3, 0,
              isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.001, 0.001, 0, 0) ;
 
+  // Copper for HCal (post shower)                                                 -> idtmed[1603]
+  AliMedium(4, "Copper       $", 4, 0,
+             isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.001, 0.001, 0, 0) ;
 
 
 
@@ -138,11 +146,18 @@ void AliEMCAL::CreateMaterials()
   gMC->Gstpar(idtmed[1600], "DCUTE",0.00001) ;
   gMC->Gstpar(idtmed[1600], "DCUTM",0.00001) ;
 
-// --- and in aluminium parts ---
+// --- in aluminium parts ---
   gMC->Gstpar(idtmed[1602], "LOSS",3.) ;
   gMC->Gstpar(idtmed[1602], "DRAY",1.) ;
   gMC->Gstpar(idtmed[1602], "DCUTE",0.00001) ;
   gMC->Gstpar(idtmed[1602], "DCUTM",0.00001) ;
+
+// --- in copper parts ---
+  gMC->Gstpar(idtmed[1603], "LOSS",3.) ;
+  gMC->Gstpar(idtmed[1603], "DRAY",1.) ;
+  gMC->Gstpar(idtmed[1603], "DCUTE",0.00001) ;
+  gMC->Gstpar(idtmed[1603], "DCUTM",0.00001) ;
+
 
 
 // --- and finally thresholds for photons and electrons in the scintillator ---
@@ -157,9 +172,11 @@ void AliEMCAL::CreateMaterials()
 AliEMCALGeometry * AliEMCAL::GetGeometry() const 
 {  
   // gets the pointer to the AliEMCALGeometry unique instance 
-  
-  return AliEMCALGeometry::GetInstance(GetTitle(),"") ;  
 
+  if (fGeom) 
+    return fGeom ; 
+  else 
+    return AliEMCALGeometry::GetInstance(GetTitle(),"") ;  
 }
 
 //____________________________________________________________________________
@@ -171,31 +188,57 @@ void AliEMCAL::SetTreeAddress()
   sprintf(branchname,"%s",GetName());
   
   // Branch address for hit tree
-  TTree *treeH = gAlice->TreeH();
-  if (treeH && fHits) {
+  TTree *treeH = TreeH();
+  if (treeH) {
     branch = treeH->GetBranch(branchname);
-    if (branch) branch->SetAddress(&fHits);
+    if (branch) 
+      { 
+	if (fHits == 0x0) fHits= new TClonesArray("AliEMCALHit",1000);
+	Info("SetTreeAddress","<%s> Setting Hits Address",GetName());
+	branch->SetAddress(&fHits);
+      }
+    else
+      {
+	Warning("SetTreeAddress","<%s> Failed",GetName());
+      }
   }
 }
-
 //____________________________________________________________________________
 void AliEMCAL::WriteQA()
 {
-
+  
   // Make TreeQA in the output file. 
-
+  
   if(fTreeQA == 0)
     fTreeQA = new TTree("TreeQA", "QA Alarms") ;    
   // Create Alarms branches
-//   Int_t bufferSize = 32000 ;    
-//   Int_t splitlevel = 0 ; 
-//   TFolder * alarmsF = (TFolder*)gROOT->FindObjectAny("Folders/Run/Conditions/QA/PHOS") ; 
-//   TString branchName(alarmsF->GetName());  
-//   TBranch * alarmsBranch = fTreeQA->Branch(branchName,"TFolder", &alarmsF, bufferSize, splitlevel);
-//   TString branchTitle = branchName + " QA alarms" ; 
-//   alarmsBranch->SetTitle(branchTitle);
-//   alarmsBranch->Fill() ; 
-
-  //fTreeQA->Fill() ; 
+  Int_t bufferSize = 32000 ;    
+  Int_t splitlevel = 0 ; 
+  
+  TFolder* topfold = GetLoader()->GetTopFolder(); //get top aliroot folder; skowron
+  TString emcalqafn(AliConfig::Instance()->GetQAFolderName()+"/"); //get name of QAaut folder relative to top event; skowron
+  emcalqafn+=GetName(); //hard wired string!!! add the detector name to the pathname; skowron 
+  TFolder * alarmsF = (TFolder*)topfold->FindObjectAny(emcalqafn); //get the folder
+  
+  if (alarmsF == 0x0)
+    {
+      Error("WriteQA","Can not find folder with qa alarms");
+      return;
+    }
+  TString branchName(alarmsF->GetName());
+  TBranch * alarmsBranch = fTreeQA->Branch(branchName,"TFolder", &alarmsF, bufferSize, splitlevel);
+  TString branchTitle = branchName + " QA alarms" ; 
+  alarmsBranch->SetTitle(branchTitle);
+  alarmsBranch->Fill() ; 
+  
+  //fTreeQA
 }
 
+//____________________________________________________________________________
+AliLoader* AliEMCAL::MakeLoader(const char* topfoldername)
+{
+//different behaviour than standard (singleton getter)
+// --> to be discussed and made eventually coherent
+ fLoader = new AliEMCALLoader(GetName(),topfoldername);
+ return fLoader;
+}

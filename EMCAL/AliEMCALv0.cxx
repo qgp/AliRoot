@@ -50,7 +50,6 @@
 #include "AliEMCALGeometry.h"
 #include "AliConst.h"
 #include "AliRun.h"
-#include "TVirtualMC.h"
 
 ClassImp(AliEMCALv0)
 
@@ -93,8 +92,51 @@ void AliEMCALv0::BuildGeometry()
 //______________________________________________________________________
 void AliEMCALv0::CreateGeometry()
 {
-    // Create the EMCAL geometry for Geant
-
+  // Create the EMCAL geometry for Geant
+  // Geometry of a tower
+  //|-----------------------------------------------------| XEN1
+  //| |                                                 | |
+  //| |    Al thickness = GetAlFrontThickness()         | |
+  //| |                                                 | |
+  //| |                                                 | |
+  //| |                                                 | |
+  //|  -------------------------------------------------  |
+  //| |    Air Gap = GetGap2Active()                    | |
+  //| |                                                 | |
+  //|  -------------------------------------------------  |
+  //| |    XU0 : XPST (PreShower e = GetPRScintThick() )| |
+  //|  -------------------------------------------------  |
+  //| |    XU0 : XPBX (PreShower e = GetPRPbRadThick() )| |
+  //|  -------------------------------------------------  |
+  //| |    XU0 : XPST (PreShower e = GetPEScintThick() )| |
+  //|  -------------------------------------------------  |
+  //| |    XU0 : XPBX (PreShower e = GetPRPbRadThick() )| |
+  //|  -------------------------------------------------  |
+  //|    etc ..... GetNPRLayers() times                   |
+  //|  -------------------------------------------------  |
+  //| |    XU1 : XPST (ECAL e = GetECScintThick() )     | |
+  //|  -------------------------------------------------  |
+  //| |    XU1 : XPBX (ECAL e = GetECPbRadThick() )     | |
+  //|  -------------------------------------------------  |
+  //| |    XU1 : XPST (ECAL e = GetECScintThick()       | |
+  //|  -------------------------------------------------  |
+  //| |    XU1 : XPBX (ECAL e = GetECPbRadThick() )     | |
+  //|  -------------------------------------------------  |
+  //|    etc ..... GetNECLayers() times                   |
+  //|  -------------------------------------------------  |
+  //| |    XU1 : XPST (ECAL e = GetHCScintThick() )     | |
+  //|  -------------------------------------------------  |
+  //| |    XU1 : XPBX (ECAL e = GetHCPbRadThick() )     | |
+  //|  -------------------------------------------------  |
+  //| |    XU1 : XPST (ECAL e = GetHCScintThick()       | |
+  //|  -------------------------------------------------  |
+  //| |    XU1 : XPBX (ECAL e = GetHCPbRadThick() )     | |
+  //|  -------------------------------------------------  |
+  //|    etc ..... GetNHCLayers() times                   |
+  //|  -------------------------------------------------  |
+  //| |    XU10 : XPST (HCAL e = GetHCScintThick() )    | |
+  //|-----------------------------------------------------|
+ 
     Float_t etamin,etamax;
     Float_t *dum=0;
 
@@ -107,136 +149,228 @@ void AliEMCALv0::CreateGeometry()
     // Get pointer to the array containing media indices
     Int_t *idtmed = fIdtmed->GetArray() - 1599 ;
 
-    // Create an Envelope within which to place the Detector 
-    Float_t envelopA[5];
-    envelopA[0] = geom->GetEnvelop(0);     // rmin
-    envelopA[1] = geom->GetEnvelop(1);     // rmax
-    envelopA[2] = geom->GetEnvelop(2)/2.0; // dz
-    envelopA[3] = geom->GetArm1PhiMin();   // minimun phi angle
-    envelopA[4] = geom->GetArm1PhiMax();   // maximun phi angle
-
-    // create XEN1
-    gMC->Gsvolu("XEN1", "TUBS ", idtmed[1599], envelopA, 5) ; //filled with air
     Int_t idrotm = 1;
     AliMatrix(idrotm, 90.0, 0., 90.0, 90.0, 0.0, 0.0) ;
 
-    // Position the EMCAL Mother Volume in Alice  
+
+
+    // Create the EMCAL Mother Volume (a polygone) within which to place the Detector and named XEN1 
+
+    Float_t envelopA[10];
+    envelopA[0] = geom->GetArm1PhiMin();                         // minimum phi angle
+    envelopA[1] = geom->GetArm1PhiMax() - geom->GetArm1PhiMin(); // angular range in phi
+    envelopA[2] = geom->GetNPhi();                               // number of sections in phi
+    envelopA[3] = 2;                                             // 2 z coordinates
+    envelopA[4] = geom->ZFromEtaR(geom->GetEnvelop(1),
+				   geom->GetArm1EtaMin());       // z coordinate 1
+    envelopA[5] = geom->GetEnvelop(0) ;                          // rmin at z1
+    envelopA[6] = geom->GetEnvelop(1) ;                          // rmax at z1
+    envelopA[7] = geom->ZFromEtaR(geom->GetEnvelop(1),
+				  geom->GetArm1EtaMax());        // z coordinate 2
+    envelopA[8] = envelopA[5] ;                                  // radii are the same.
+    envelopA[9] = envelopA[6] ;                                  // radii are the same.
+
+    gMC->Gsvolu("XEN1", "PGON ", idtmed[1599], envelopA, 10) ;   // Polygone filled with air 
+
+    // Position the EMCAL Mother Volume (XEN1) in Alice (ALIC)  
+
     gMC->Gspos("XEN1", 1, "ALIC", 0.0, 0.0, 0.0, idrotm, "ONLY") ;
+    
+    if (gDebug==2) 
+      Info("CreateGeometry","rXEN1 = %f, %f\n", envelopA[5], envelopA[6]); 
 
-    //  
-    TString label = "XU0";
+    // Create mini-envelopes which will contain the PreShower scintillator-Lead-scintillator-lead  
+   
+    if (gDebug==2) 
+      Info("CreateGeometry","XU0 = %f, %f\n", envelopA[5], envelopA[6]); 
 
-    //rmin Start mini envelopes after the aluminium layer
-    envelopA[0] = geom->GetEnvelop(0) + geom->GetGap2Active() + 
-	          geom->GetAlFrontThickness();
+    // Create mini-envelopes which will contain the Tower scintillator-radiator-scintillator-radiator 
+    
+    TString label ;
 
-    //rmax larger for first two layers (preshower);
-    Float_t tseg = geom->GetPreSintThick()+geom->GetPbRadThick();
-    envelopA[1] = envelopA[0] + 2.0*tseg;
-    envelopA[2] = geom->GetEnvelop(2)/2.0; // dz
-    envelopA[3] = geom->GetArm1PhiMin();   // minimun phi angle
-    envelopA[4] = geom->GetArm1PhiMax();   // maximun phi angle
+    envelopA[5] = envelopA[5] + geom->GetGap2Active() // we are at the first scintllator
+      + geom->GetAlFrontThickness();                  // rmin at z1
+    envelopA[6] = envelopA[5] ;
 
-    //filled with air
-    gMC->Gsvolu(label.Data(), "TUBS ", idtmed[1599], envelopA, 5);
 
-    // Place XU0 in to XEN1
-    gMC->Gspos(label.Data(), 1, "XEN1", 0.0, 0.0, 0.0, idrotm, "ONLY");
+    Int_t i ; 
 
-    tseg = geom->GetFullSintThick()+geom->GetPbRadThick();
-    for (int i = 1; i < ((geom->GetNLayers()-1)/2) + 1 ; i++ ){
+    Int_t nLayers = geom->GetNPRLayers() + geom->GetNECLayers() + geom->GetNHCLayers() ;
+
+    for (i = 0; i < nLayers/2 ; i++ ){
 	label = "XU" ;
 	label += i ;
-	envelopA[0] = envelopA[1]; //rmin
-	envelopA[1] = envelopA[0] + 2.0*tseg;  //rmax
+	Float_t tseg ; 
+	if (i == 0 ) 
+	  tseg = 2 *(geom->GetPRScintThick()+geom->GetPRPbRadThick()); // thickness of 2 * scintillator+Pb in pre shower
+	else if ( i <= geom->GetNECLayers()/2) 
+	  tseg = 2* (geom->GetECScintThick()+geom->GetECPbRadThick()); // thickness of 2 * scintillator+Pb in E Cal
+	else 
+	  tseg = 2* (geom->GetHCScintThick()+geom->GetHCCuRadThick()); // thickness of 2 * scintillator+Cu in H Cal 
+	envelopA[5] = envelopA[6] ;                                   // rmin at z1
+	envelopA[4] = geom->ZFromEtaR(envelopA[5] + tseg,
+				      geom->GetArm1EtaMin());         // z coordinate 1
+	envelopA[7] = geom->ZFromEtaR(envelopA[5] + tseg,
+				      geom->GetArm1EtaMax());         // z coordinate 2
+	envelopA[6] = envelopA[5] + tseg ;                            // rmax at z1
+	envelopA[8] = envelopA[5] ;                                   // radii are the same.
+	envelopA[9] = envelopA[6] ;                                   // radii are the same.
+ 
+	gMC->Gsvolu(label.Data(), "PGON", idtmed[1599], envelopA, 10);// Polygone filled with air 
 
-	//filled with air
-	gMC->Gsvolu(label.Data(), "TUBS ", idtmed[1599], envelopA, 5);
+	// Position XUi in XEN1
+	
 	gMC->Gspos(label.Data(), 1, "XEN1", 0.0, 0.0, 0.0, idrotm, "ONLY") ;
-    } // end  i
 
+	if (gDebug == 2)
+	  Info("CreateGeometry","XU%d = %f, %f\n", i, envelopA[5], envelopA[6]); 
+
+    } // end  i
+ 
+  
+    // Create one mini-envelope which will contain the last Tower scintillator (XU(nlayers-1)/2)
+
+    label = "XU" ;
+    label += i ;
+    envelopA[5] = envelopA[6] ;                                   // rmin at z1
+    envelopA[4] = geom->ZFromEtaR(envelopA[5],
+				  geom->GetArm1EtaMin());         // z coordinate 1
+    envelopA[7] = geom->ZFromEtaR(envelopA[5],
+				  geom->GetArm1EtaMax());         // z coordinate 2
+    if (geom->GetNHCLayers() == 0)                                // last scintillator is in ECAL
+      envelopA[6] = envelopA[5] + geom->GetECScintThick() ;       // rmax at z1
+    else                                                          // last scintillator is in HCAL
+      envelopA[6] = envelopA[5] + geom->GetECScintThick() ;       // rmax at z1
+    envelopA[8] = envelopA[5] ;                                   // radii are the same.
+    envelopA[9] = envelopA[6] ;                                   // radii are the same.
+
+    gMC->Gsvolu(label.Data(), "PGON", idtmed[1599], envelopA, 10); // Polygone filled with air
+
+    // Position the last minienvelope in XEN1
+  
+    gMC->Gspos(label.Data(), 1, "XEN1", 0.0, 0.0, 0.0, idrotm, "ONLY") ;
+  
+    if(gDebug == 2) 
+      Info("CreateGeometry","XEN%d = %f, %f\n", i, envelopA[5], envelopA[6]); 
+  
     // Create the shapes of active material (LEAD/Aluminium/Scintillator)
     // to be placed
     Float_t envelopB[10]; // First Layer of Aluminium
     Float_t envelopC[10]; // Scintillator Layers
     Float_t envelopD[10]; // Lead Layers
 
-    //starting position in Phi
-    envelopC[0] = envelopD[0] =  envelopB[0] = geom->GetArm1PhiMin();
+    envelopC[0] = envelopD[0] = envelopB[0] = envelopA[0] ;  // starting position in Phi
+    envelopC[1] = envelopD[1] = envelopB[1] = envelopA[1] ;  // angular range in phi          
+    envelopC[2] = envelopD[2] = envelopB[2] = envelopA[2] ;  // number of sections in Phi
+    envelopD[3] = envelopC[3] = envelopB[3] = envelopA[3] ;  // 2 z coordinates
 
-    // Angular size of the Detector in Phi
-    envelopB[1] = geom->GetArm1PhiMax() - geom->GetArm1PhiMin();
-    envelopC[1] = envelopD[1] = envelopB[1];
+    Float_t dist = geom->GetEnvelop(0) + geom->GetAlFrontThickness() + geom->GetGap2Active() ; 
+    envelopB[4] = geom->ZFromEtaR(dist,
+				  geom->GetArm1EtaMin());   // z co-ordinate 1
+    envelopB[5] = geom->GetEnvelop(0) ;                     // rmin at z1
+    envelopB[6] = envelopB[5] + geom->GetAlFrontThickness();// rmax at z1
+    envelopB[7] = geom->ZFromEtaR(dist,
+				  geom->GetArm1EtaMax());   // z co-ordinate 2
+    envelopB[8] = envelopB[5] ;                             // radii are the same.
+    envelopB[9] = envelopB[6] ;                             // radii are the same.
 
-    // Number of Section in Phi
-    envelopC[2] = envelopD[2] = envelopB[2] = geom->GetNPhi();
+    // Define active volumes completely
+    
+    gMC->Gsvolu("XALU", "PGON", idtmed[1602], envelopB, 10); // PGON filled with Al
+    
+    gMC->Gspos("XALU", 1, "XEN1", 0.0, 0.0, 0.0 , idrotm, "ONLY") ; // Position Aluminium Layer in XEN1
 
-    // each section will be passed 2 z coordinates    
-    envelopD[3] = envelopC[3] = envelopB[3] = 2;
-    envelopB[4] = geom->ZFromEtaR(geom->GetEnvelop(0)+geom->GetGap2Active(),
-				   geom->GetArm1EtaMin());// z co-ordinate 1
-    envelopB[5] = geom->GetEnvelop(0) + geom->GetGap2Active(); //rmin at z1
-    envelopB[6] = envelopB[5] + geom->GetAlFrontThickness();//rmax at z1
-    envelopD[6] = envelopB[6];
-    envelopB[7] = geom->ZFromEtaR(geom->GetEnvelop(0)+geom->GetGap2Active(),
-				  geom->GetArm1EtaMax()); // z co-ordinate 2
-    envelopB[8] = envelopB[5] ; //
-    envelopB[9] = envelopB[6] ; // radii are the same.
+    gMC->Gsvolu("XPST", "PGON", idtmed[1601], dum, 0);      // PGON filled with Scintillator (shape to be defined by GSPOSP)
+  
+    gMC->Gsvolu("XPBX", "PGON", idtmed[1600], dum, 0);      // PGON filled with Lead (shape to be defined by GSPOSP)
+  
+    gMC->Gsvolu("XCUX", "PGON", idtmed[1603], dum, 0);      // PGON filled with Copper (shape to be defined by GSPOSP)
 
-    // filled shapes wit hactive material 
+    gMC->Gsdvn("XPHI", "XPST", geom->GetNPhi(), 2);         // Divide eta section of scintillators into phi segments.
+ 
+    // Position alternatively scintillator and  Lead Layers in XUi.
 
-    // Define Aluminium volume completely
-    gMC->Gsvolu("XALU", "PGON", idtmed[1602], envelopB, 10);
+    envelopD[6] = envelopB[6] + geom->GetGap2Active() ;// gap between Al layer and XU0
+    
+    for (int i = 0; i < nLayers; i++ ){
+      label = "XU" ;
+      label += static_cast<Int_t> (i/2)  ; // we will place two layers (i = one layer) in each mini envelope)	
 
-    // The polystyrene layers will be defined when placed 
-    gMC->Gsvolu("XPST", "PGON", idtmed[1601], dum, 0);
-    gMC->Gsvolu("XPBX", "PGON", idtmed[1600], dum, 0);//  as will the lead layers
+      Float_t scthick ; // scintillator thickness 
+      if ( i <  geom->GetNPRLayers() ) // its a preshower
+	scthick = geom->GetPRScintThick() ;
+      else if( i < geom->GetNPRLayers() + geom->GetNECLayers() ) // its an EMCAL section
+	scthick = geom->GetECScintThick() ;
+      else  // its an HCAL section
+	scthick = geom->GetHCScintThick() ;
 
-    //  Dividind eta polystyrene divisions into phi segments.
-    gMC->Gsdvn("XPHI", "XPST", geom->GetNPhi(), 2);
+      envelopC[5] = envelopD[6] ;           //rmin
+      envelopC[6] = envelopC[5] + scthick ; //rmax
+      envelopC[8] = envelopC[5] ;           //rmin
+      envelopC[9] = envelopC[6] ;           //rmax
 
-    // Position Aluminium Layer in the Envelope 
-    gMC->Gspos("XALU", 1, "XEN1", 0.0, 0.0, 0.0 , idrotm, "ONLY") ;
 
-    // The loop below places the scintillator in Lead Layers alternately.
-    for (int i = 0; i < geom->GetNLayers() ; i++ ){
-	label = "XU" ;
-        label += (int) i/2  ; // we will place two layers (i = one layer) in each mini envelope)	
-        envelopC[5] = envelopD[6] ; //rmin
-	envelopC[6] = envelopD[6] + ((i > 1)  ? geom->GetFullSintThick() : 
-				     geom->GetPreSintThick());//rmax larger for first two layers (preshower)
-	envelopC[8] = envelopD[6] ; //rmin
-	envelopC[9] = envelopD[6] + ((i > 1 ) ? geom->GetFullSintThick() :
-				     geom->GetPreSintThick());//rmax larger for first two layers (preshower)
-	for (int j =0; j < (geom->GetNEta()) ; j++){
+      //	envelopC[6] = envelopD[6] + ((i > 1)  ? geom->GetFullSintThick() : geom->GetPreSintThick());//rmax larger for first two layers (preshower)
+      //	envelopC[9] = envelopD[6] + ((i > 1 ) ? geom->GetFullSintThick() :geom->GetPreSintThick());//rmax larger for first two layers (preshower)
+
+      if(gDebug == 2 ) 
+	Info("CreateGeometry", "volume = %s, name = XPST thickness = %f deb = %f/%f fin = %f/%f", label.Data(), scthick, envelopC[5], envelopC[8], envelopC[6], envelopC[9]) ; 
+
+      for (int j =0; j < (geom->GetNEta()) ; j++){
+	etamin = geom->GetArm1EtaMin()+
+	  (j*geom->GetDeltaEta());
+	etamax = geom->GetArm1EtaMin()+
+	  ((j+1)*geom->GetDeltaEta());
+	envelopC[4] = geom->ZFromEtaR(envelopC[5],etamin); //z begin  
+	envelopC[7] = geom->ZFromEtaR(envelopC[5],etamax);// z end 
+	
+	gMC->Gsposp("XPST",1+j+i*(geom->GetNEta()), label.Data(), 
+		    0.0, 0.0, 0.0 , idrotm, "ONLY", envelopC, 10); // Position and define layer
+      } // end for j
+      
+      if (i < nLayers){ 
+	Float_t radthick ; // radiator thickness 
+	TString radname ;  // radiator name
+	if ( i <= 1 ) { // its a preshower
+	  radthick =  geom->GetPRPbRadThick();
+	  radname  =  "XPBX" ; 
+	}
+	else if( i <= geom->GetNECLayers()) {// its an EMCAL section
+	  radthick = geom->GetECPbRadThick();
+	  radname  =  "XPBX" ; 
+	}
+	else {  // its an HCAL section
+	  radthick = geom->GetHCCuRadThick();
+	  radname  =  "XCUX" ; 
+	}
+
+	if ( i < nLayers -1 ) { // except for the last XU which contains only one scintillator layer 
+
+	  envelopD[5] = envelopC[6] ; //rmin
+	  envelopD[8] = envelopD[5] ; //rmin
+	  envelopD[6] = envelopD[5] + radthick ; // rmax
+	  //  envelopD[6] = envelopC[6] + geom->GetPbRadThick();  //rmax
+	  envelopD[9] = envelopD[6] ; //rmax
+	  // envelopD[9] = envelopC[6] + geom->GetPbRadThick();  //rmax
+	  
+	  if(gDebug == 2 ) 
+	    Info("CreateGeometry", "volume = %s, name = %s thickness = %f deb = %f/%f fin = %f/%f", label.Data(), radname.Data(), radthick, envelopD[5], envelopD[8], envelopD[6], envelopD[9]) ; 
+
+	  for (int j =0; j < (geom->GetNEta()) ; j++){
 	    etamin = geom->GetArm1EtaMin()+
-		(j*geom->GetDeltaEta());
+	      (j*geom->GetDeltaEta());
 	    etamax = geom->GetArm1EtaMin()+
-		((j+1)*geom->GetDeltaEta());
-	    envelopC[4] = geom->ZFromEtaR(envelopD[6],etamin); //z begin  
-	    envelopC[7] = geom->ZFromEtaR(envelopD[6],etamax);// z end 
-	    gMC->Gsposp("XPST",1+j+i*(geom->GetNEta()), label.Data(), // should be used but there's a weird crash above i = 18, 
-			0.0, 0.0, 0.0 , idrotm, "ONLY", envelopC, 10); // Position and define layer
-	} // end for j
-
-	if (i < (geom->GetNLayers()-1)){
-	    envelopD[5] = envelopC[6] ; //rmin
-	    envelopD[6] = envelopC[6] + geom->GetPbRadThick();  //rmax
-	    envelopD[8] = envelopC[6] ; //rmin
-	    envelopD[9] = envelopC[6] + geom->GetPbRadThick();  //rmax
-	    for (int j =0; j < (geom->GetNEta()) ; j++){
-		etamin = geom->GetArm1EtaMin()+
-		    (j*geom->GetDeltaEta());
-		etamax = geom->GetArm1EtaMin()+
-		    ((j+1)*geom->GetDeltaEta());
-		envelopD[4] = geom->ZFromEtaR(envelopC[6],etamin);//z begin  
-		envelopD[7] = geom->ZFromEtaR(envelopC[6],etamax);// z end
-
-		// Position and Define Layer
-		gMC->Gsposp("XPBX",1+ j+i*(geom->GetNEta()), label.Data(), 
-			    0.0, 0.0, 0.0 , idrotm, "ONLY", envelopD, 10);
-	    } // end for j
-	} // end if i
+	      ((j+1)*geom->GetDeltaEta());
+	    envelopD[4] = geom->ZFromEtaR(envelopD[5],etamin);//z begin  
+	    envelopD[7] = geom->ZFromEtaR(envelopD[5],etamax);// z end
+	    
+	    // Position and Define Layer
+	    
+	    gMC->Gsposp(radname.Data(),1+j+i*(geom->GetNEta()), label.Data(), 
+			0.0, 0.0, 0.0 , idrotm, "ONLY", envelopD, 10);
+	  } // end for j
+	} // if not last layer
+      } // end if i
     }  // for i
 }
 
@@ -247,7 +381,7 @@ void AliEMCALv0::Init(void)
   
   if(fDebug) { 
     TString message("\n") ; 
-    message += "*****************************************" ;
+    message += "*****************************************\n" ;
     
     // Here the EMCAL initialisation code (if any!)
     
@@ -256,7 +390,7 @@ void AliEMCALv0::Init(void)
     if (geom!=0) {   
       message += "AliEMCAL " ; 
       message += Version() ; 
-      message += "EMCAL geometry intialized for " ; 
+      message += "EMCAL geometry initialized for " ; 
       message += geom->GetName()  ;
     }
     else {
@@ -264,7 +398,7 @@ void AliEMCALv0::Init(void)
       message += Version() ;  
       message += "EMCAL geometry initialization failed !" ; 
     }
-    message += "*****************************************" ;
+    message += "\n*****************************************" ;
     Info("Init", message.Data() ) ; 
   }
 }

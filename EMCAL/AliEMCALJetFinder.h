@@ -10,6 +10,7 @@
 
 #include <TTask.h>
 #include "AliEMCALJet.h"
+#include <TString.h>
 
 class TClonesArray;
 class TH2F;
@@ -29,6 +30,7 @@ class AliEMCALJetFinder : public TTask {
 		      Float_t min_move, Float_t max_move, Int_t mode,
 		      Float_t prec_bg, Int_t ierror);
     virtual void  Find();
+    virtual void  FindChargedJet();
     virtual void  FindTracksInJetCone();
     virtual void  Test();
     virtual void  BuildTrackFlagTable();
@@ -44,7 +46,10 @@ class AliEMCALJetFinder : public TTask {
     virtual void SetPtCut(Float_t par = 1.);
     virtual void SetMomentumSmearing(Bool_t flag = kFALSE) {fSmear = flag;}
     virtual void SetEfficiencySim(Bool_t flag = kFALSE)    {fEffic = flag;}
-    virtual void SetSamplingFraction(Float_t par = 12.9) {fSamplingF = par;}
+    virtual void SetSamplingFraction(Float_t par) {fSamplingF = par;}
+    virtual void SetEnergyWeightingFlag(Bool_t flag) {fWeightingMethod = flag;}
+    virtual void SetEMCALWeight(Float_t par) {fEMCALWeight = par;}
+    virtual void SetTrackWeight(Float_t par) {fTrackWeight = par;}
     virtual void SetIncludeK0andN(Bool_t flag = kFALSE) {fK0N = flag;}
     // Correction of hadronic energy
     virtual void SetHadronCorrector(AliEMCALHadronCorrection* corr)
@@ -59,7 +64,7 @@ class AliEMCALJetFinder : public TTask {
     void SetParametersForBgSubtraction
     (Int_t mode=0, Float_t minMove=0.05, Float_t maxMove=0.15, Float_t precBg=0.035);
     //    virtual void Print(Option_t* option="") const;    // *MENU*
-
+    void  SetRandomBg(Bool_t flag) {fRandomBg = flag;}
     Bool_t GetWriteKey() {return fWrite;}
   //AliEMCALJet* GetJetT() {return fJetT[0];}
     AliEMCALJet* GetJetT(Int_t n = 0) {return fJetT[n];}
@@ -77,6 +82,7 @@ class AliEMCALJetFinder : public TTask {
     TH2F*   GetLego()  {return fLego;}
     TH2F*   GetLegoB() {return fLegoB;}
     TH2F*   GetLegoEMCAL() {return fhLegoEMCAL;}
+    TH2F*   GetLegoTracks() {return fhLegoTracks;}
     TH2F*   GethEff() {return fhEff;}
     TH1F*   GetCellEt() {return fhCellEt;}
     TH1F*   GetCellEMCALEt() {return fhCellEMCALEt;}
@@ -84,11 +90,14 @@ class AliEMCALJetFinder : public TTask {
     TH1F*   GetTrackPtBcut() {return fhTrackPtBcut;}
     TList*  GetHistsList() {return fHistsList;}
     Int_t   GetNChTpc() {return fNChTpc;}
+    Bool_t  GetEnergyWeightingFlag() {return fWeightingMethod ;}
+    Float_t GetEMCALWeight() {return fEMCALWeight;}
+    Float_t GetTrackWeight() {return fTrackWeight;}
     void    DrawLego(Char_t *opt="lego");         // *MENU*
     void    DrawLegoEMCAL(Char_t *opt="lego");    // *MENU*
     void    DrawLegos();                          // *MENU*
+    void    DrawLegoBackground(Char_t *opt="lego"); // *MENU*
     Bool_t  IsThisPartonsOrDiQuark(Int_t pdg);
-    TString &GetPythiaParticleName(Int_t kf);     
     // I/O
     virtual void SetOutputFileName(char* name) {fOutFileName = name;}
     virtual void FillFromHits(Int_t flag = 0);
@@ -98,20 +107,29 @@ class AliEMCALJetFinder : public TTask {
     virtual void FillFromParticles();
     virtual void FillFromPartons();
 
-    virtual void SaveBackgroundEvent();
+    virtual void SaveBackgroundEvent(Char_t *name="");
     virtual void InitFromBackground();
     virtual void AddJet(const AliEMCALJet& jet);
     virtual void WriteJets();
     virtual void ResetJets();
     virtual TClonesArray* Jets() {return fJets;}
+    const Char_t* GetNameOfVariant();
+
+    virtual Bool_t  IsFolder() const;
+    virtual void Browse(TBrowser* b);
  private:
     virtual void BookLego();
+    Float_t WeightedJetEnergy(Float_t eta, Float_t phi);
+    Float_t EMCALConeEnergy(Float_t eta, Float_t phi);
+    Float_t TrackConeEnergy(Float_t eta, Float_t phi);
+    Float_t HCConeEnergy(Float_t eta, Float_t phi);
     virtual void DumpLego();
     virtual void ResetMap();
     virtual Float_t PropagatePhi(Float_t pt, Float_t charge, Bool_t& curls);
     virtual void RearrangeParticlesMemory(Int_t npart);
  protected:
     Bool_t                         fWrite;           // Key for writing
+    Bool_t                         fWeightingMethod; // Key for writing
     TClonesArray*                  fJets;            //! List of Jets
     TH2F*                          fLego;            //! Lego Histo
     TH2F*                          fLegoB;           //! Lego Histo Backg
@@ -124,6 +142,7 @@ class AliEMCALJetFinder : public TTask {
     TH1F*                          fhTrackPt;        //! Pt distr. for charge particles
     TH1F*                          fhTrackPtBcut;    //! Pt distr. for charge particles + cut due to magnetic field
     TH1F*                          fhChPartMultInTpc;//! Ch. part. multiplicity in TPC acceptance
+    TH1F*                          fhSinTheta;       //! sin(theta)
     TCanvas*                       fC1;              //! first canvas for drawing
     TList*                         fHistsList;       //! List of hists - 4-mar-2002
     AliEMCALJet*                   fJetT[10];        //! Jet temporary storage
@@ -183,7 +202,13 @@ class AliEMCALJetFinder : public TTask {
     TFile*                         fInFile;          //! Output file
     Int_t                          fEvent;           //! Processed event
 
-    ClassDef(AliEMCALJetFinder,2)        // JetFinder for EMCAL
+ public:
+    TString fBGFileName;
+    Float_t			   fEMCALWeight;
+    Float_t			   fTrackWeight;
+    Bool_t                         fRandomBg;        //  Flag for Random Background 
+
+    ClassDef(AliEMCALJetFinder,3)                    // JetFinder for EMCAL
 }
 ;
 #endif // ALIEMCALJetFinder_H
