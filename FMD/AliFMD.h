@@ -7,19 +7,18 @@
 //  Manager and hits classes for set:Si-FMD     //
 ////////////////////////////////////////////////
  
-#include "TBranch.h"
 #include "AliDetector.h"
-
+#include "TBranch.h"
 class TClonesArray;
-class AliFMD : public AliDetector {
+ class AliFMD : public AliDetector {
  
 public:
   AliFMD();
   AliFMD(const char *name, const char *title);
   virtual       ~AliFMD(); 
-  virtual void   AddHit(Int_t track, Int_t * vol, Float_t * hits);
-  virtual void   AddDigit(Int_t* digits);
-  virtual void   BuildGeometry();
+  virtual void   AddHit(Int_t, Int_t*, Float_t*);
+  virtual void   AddDigit(Int_t*);
+   virtual void   BuildGeometry();
   virtual void   CreateGeometry() {}
   virtual void   CreateMaterials()=0; 
   virtual Int_t  DistanceToPrimitive(Int_t px, Int_t py);
@@ -39,12 +38,12 @@ public:
   virtual void SetSectorsSi2(Int_t sectorsSi2=40);
    
   void SetEventNumber(Int_t i)     {fEvNrSig = i;}
-  void  Eta2Radius(Float_t eta, Float_t zDisk, Float_t * radius);
-  void Digits2Reco(); 
-  virtual void SetHitsAddressBranch(TBranch *b){b->SetAddress(&fHits);}
-  
+  void  Eta2Radius(Float_t, Float_t, Float_t*);
+   void Digits2Reco(); 
+ 
    // Digitisation
-  TClonesArray *ReconParticles() const {return fReconParticles;}   
+   TClonesArray *ReconParticles() const {return fReconParticles;}   
+  virtual void SetHitsAddressBranch(TBranch *b){b->SetAddress(&fHits);}
 
  protected:
   Int_t fIdSens1;     //Si sensetive volume
@@ -61,7 +60,7 @@ public:
   Int_t   fNevents ;        // Number of events to digitize
   Int_t fEvNrSig;                 // signal     event number
 
-  TClonesArray *fReconParticles; // list of reconstructed particles
+  TClonesArray *fReconParticles;
 
  ClassDef(AliFMD,5)  //Class for the FMD detector
 };
