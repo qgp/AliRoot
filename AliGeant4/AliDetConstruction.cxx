@@ -186,7 +186,6 @@ void AliDetConstruction::CheckDetDependencies()
 // Checks modules dependencies.
 // ---
 
-  CheckDependence("MUON", "DIPO");
   CheckDependence("TOF", "FRAME");
   CheckDependence("TRD", "FRAME");
   CheckDependence("ZDC", "PIPE");
