@@ -58,4 +58,5 @@
 #pragma link C++ class AliPHOSCalibrationDB+;
 #pragma link C++ class AliPHOSConTableDB+;
 #pragma link C++ class AliPHOSGetter+;
+#pragma link C++ class AliPHOSFastGlobalReconstruction+;
 #endif
