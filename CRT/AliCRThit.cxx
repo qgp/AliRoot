@@ -14,7 +14,10 @@
  **************************************************************************/
 
 /*
-$Log: 
+$Log$
+Revision 1.2  2002/07/25 21:27:22  gamez
+Variables renamed to avoid floating exceptions
+
 
 */
 
@@ -30,17 +33,17 @@ AliCRThit::AliCRThit(const AliCRThit & hit)
    //
 
   fnmou = hit.fnmou;
-  fmtyp  = hit.fmtyp;
-  fxpit     = hit.fxpit;
-  fypit   = hit.fypit;
-  fzpit = hit.fzpit;
-  fpxug    = hit.fpxug;
-  fpyug     = hit.fpyug;
-  fpzug     = hit.fpzug;
-  flay   = hit.flay;
-  fxver    = hit.fxver;
-  fyver     = hit.fyver;
-  fzver     = hit.fzver;
+  fId   = hit.fId;
+  fX    = hit.fX;
+  fY    = hit.fY;
+  fZ    = hit.fZ;
+  fpxug = hit.fpxug;
+  fpyug = hit.fpyug;
+  fpzug = hit.fpzug;
+  flay  = hit.flay;
+  fxver = hit.fxver;
+  fyver = hit.fyver;
+  fzver = hit.fzver;
 }
  
 //______________________________________________________________________________
@@ -52,16 +55,16 @@ AliCRThit::AliCRThit(Int_t shunt, Int_t track, Int_t *vol,
 //
 
   fnmou = hits[0];
-  fmtyp  = hits[1];
-  fxpit     = hits[2];
-  fypit   = hits[3];
-  fzpit   = hits[4];
-  fpxug    = hits[5];
-  fpyug     = hits[6];
-  fpzug     = hits[7];
-  flay   = hits[8];
-  fxver    = hits[9];
-  fyver     = hits[10];
-  fzver     = hits[11];
+  fId   = hits[1];
+  fX    = hits[2];
+  fY    = hits[3];
+  fZ    = hits[4];
+  fpxug = hits[5];
+  fpyug = hits[6];
+  fpzug = hits[7];
+  flay  = hits[8];
+  fxver = hits[9];
+  fyver = hits[10];
+  fzver = hits[11];
 }
 
