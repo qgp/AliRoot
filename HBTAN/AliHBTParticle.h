@@ -1,312 +1,127 @@
-//Simplified TParticle class
-#include "AliHBTParticle.h"
-#include <TParticle.h>
-#include <TClass.h>
+#ifndef ALIHBTPARTICLE
+#define ALIHBTPARTICLE
 
-ClassImp(AliHBTParticle)
+//Ali HBT Particle: simplified class TParticle
+//Simplified in order to minimize the size of object
+//  - we want to keep a lot of such a objects in memory
 
-Int_t AliHBTParticle::fgDebug = 0;
-//______________________________________________________________________________
-AliHBTParticle::AliHBTParticle():  
- fPdgIdx(0), fIdxInEvent(0),fNPids(0),fPids(0x0),fPidProb(0x0),
- fCalcMass(0),fPx(0), fPy(0),fPz(0),fE(0), fVx(0), fVy(0),fVz(0),fVt(0)
-{//empty particle
-}
-//______________________________________________________________________________
+#include <TObject.h>
+#include <TLorentzVector.h>
+#include <TMath.h>
+#include <TDatabasePDG.h>
 
-AliHBTParticle::AliHBTParticle(Int_t pdg, Int_t idx,
-               Double_t px, Double_t py, Double_t pz, Double_t etot,
-               Double_t vx, Double_t vy, Double_t vz, Double_t time):  
-  fPdgIdx(0), fIdxInEvent(0),fNPids(0),fPids(0x0),fPidProb(0x0),
-  fCalcMass(0), 
-  fPx(px), fPy(py),fPz(pz),fE(etot), 
-  fVx(vx), fVy(vy),fVz(vz),fVt(time)
+class TParticle;
+
+class AliHBTParticle : public TObject
 {
-//mormal constructor
-  SetPdgCode(pdg);
-  if (GetPDG()) {
-     fCalcMass    = GetPDG()->Mass();
-  } else {
-     Double_t a2 = fE*fE -fPx*fPx -fPy*fPy -fPz*fPz;
-     if (a2 >= 0) fCalcMass =  TMath::Sqrt(a2);
-     else         fCalcMass = -TMath::Sqrt(-a2);
-  }
-}
-//______________________________________________________________________________
 
-AliHBTParticle::AliHBTParticle(Int_t pdg, Float_t prob, Int_t idx, 
-                               Double_t px, Double_t py, Double_t pz, Double_t etot,
-                               Double_t vx, Double_t vy, Double_t vz, Double_t time):
-  fPdgIdx(0), fIdxInEvent(0),fNPids(0),fPids(0x0),fPidProb(0x0),
-  fCalcMass(0), 
-  fPx(px), fPy(py),fPz(pz),fE(etot), 
-  fVx(vx), fVy(vy),fVz(vz),fVt(time)
-{
-//mormal constructor
-  SetPdgCode(pdg,prob);
-  if (GetPDG()) {
-     fCalcMass    = GetPDG()->Mass();
-  } else {
-     Double_t a2 = fE*fE -fPx*fPx -fPy*fPy -fPz*fPz;
-     if (a2 >= 0) fCalcMass =  TMath::Sqrt(a2);
-     else         fCalcMass = -TMath::Sqrt(-a2);
-  }
-}
-//______________________________________________________________________________
-AliHBTParticle::AliHBTParticle(const AliHBTParticle& in):
-   fPdgIdx(in.fPdgIdx), fIdxInEvent(in.fIdxInEvent),
-   fNPids(in.fNPids),fPids(new Int_t[fNPids]),fPidProb(new Float_t[fNPids]),
-   fCalcMass(in.GetCalcMass()),
-   fPx(in.Px()),fPy(in.Py()),fPz(in.Pz()),fE(in.Energy()), 
-   fVx(in.Vx()),fVy(in.Vy()),fVz(in.Vz()),fVt(in.T())
-{
- //Copy constructor
- for(Int_t i = 0; i<fNPids; i++)
-  {
-    fPids[i] =  in.fPids[i];
-    fPidProb[i] = in.fPidProb[i];
-  }
-}
+public:
+                                // ****** constructors and destructor
+  AliHBTParticle();
+  AliHBTParticle(const AliHBTParticle& in); 
+ 
+  AliHBTParticle(Int_t pdg, Int_t idx, Double_t px, Double_t py, Double_t pz, Double_t etot,
+                 Double_t vx, Double_t vy, Double_t vz, Double_t time);
 
-//______________________________________________________________________________
-AliHBTParticle::AliHBTParticle(const TParticle &p,Int_t idx):
-   fPdgIdx(0), fIdxInEvent(idx),
-   fNPids(0),fPids(0x0),fPidProb(0x0),
-   fCalcMass(p.GetCalcMass()),
-   fPx(p.Px()),fPy(p.Py()),fPz(p.Pz()),fE(p.Energy()), 
-   fVx(p.Vx()),fVy(p.Vy()),fVz(p.Vz()),fVt(p.T())
-{
- //all copied in the initialization
- SetPdgCode(p.GetPdgCode());
-}
-//______________________________________________________________________________
+  AliHBTParticle(Int_t pdg, Float_t prob, Int_t idx, Double_t px, Double_t py, Double_t pz, Double_t etot,
+                 Double_t vx, Double_t vy, Double_t vz, Double_t time);
 
-void AliHBTParticle::SetPdgCode(Int_t pdg,Float_t prob)
-{
-  SetPIDprobability(pdg,prob);
-  fPdgIdx = GetPidSlot(pdg);
-}
+  AliHBTParticle(const TParticle& p,Int_t idx);
 
-//______________________________________________________________________________
-void AliHBTParticle::SetPIDprobability(Int_t pdg, Float_t prob)
-{
-//Sets another pdg code and corresponding probabilty
-//Ids are set in decreasing order
-//Check if total prbaility is not ivercoming unity is performed
-//in case, warning is printed
-  if (fgDebug) Info("SetPIDprobability","Setting PID %d prob %f",pdg,prob);
+  virtual ~AliHBTParticle(){};
 
-  Float_t totprob = 0.0;//sums up probabilities
-  Int_t idx = GetPidSlot(pdg);
-  Int_t i;
-  if (idx > -1) 
-   {
-     fPidProb[idx] = prob;
-     for (i = 0; i < fNPids;i++) totprob+=fPidProb[i];
-     if (totprob > 1.0)
-       {
-         Warning("SetPIDprobability","Total probability greater than UNITY: %f",totprob);
-       }
-     if (fgDebug) 
-      {
-        Info("SetPIDprobability","Current Total probability: %f",totprob);
-      }
-     return;
-   }
+  void           SetPIDprobability(Int_t pdg, Float_t prob = 1.0);
+  Float_t        GetPIDprobability(Int_t pdg);
+  
+  Int_t          GetPdgCode      () const { return (fPids)?fPids[fPdgIdx]:0;}
+  Int_t          GetPid          () const { return GetPdgCode();}
+  Float_t        GetPidProb      () const { return (fPidProb)?fPidProb[fPdgIdx]:0;}
+  
+  Int_t          GetUID          () const { return fIdxInEvent;}
     
-  Int_t currentpid = GetPdgCode();
-  fNPids++;
-  Float_t* aPidProbNew = new Float_t[fNPids];
-  Int_t* aPidsNew = new Int_t[fNPids];
+  void           SetPdgCode(Int_t pdg, Float_t prob = 1.0);
+  Double_t       GetCalcMass     () const { return fCalcMass; }
+  Double_t       GetMass         ()       { return (GetPDG())?GetPDG()->Mass():-1.;}
+
+  TParticlePDG*  GetPDG          (){return TDatabasePDG::Instance()->GetParticle(GetPdgCode());}
+
+  Int_t          Beauty          ()  { return GetPDG()->Beauty(); }
+  Int_t          Charm           ()  { return GetPDG()->Charm(); }
+  Int_t          Strangeness     ()  { return GetPDG()->Strangeness();}
+  void ProductionVertex(TLorentzVector &v) { v.SetXYZT(fVx,fVy,fVz,fVt);}
+
+
+  Double_t         Vx    () const { return fVx;}
+  Double_t         Vy    () const { return fVy;}
+  Double_t         Vz    () const { return fVz;}
+  Double_t         T     () const { return fVt;}
+
+  Double_t         Px    () const { return fPx; } //X coordinate of the momentum
+  Double_t         Py    () const { return fPy; } //Y coordinate of the momentum
+  Double_t         Pz    () const { return fPz; } //Z coordinate of the momentum
+  Double_t         P     () const                 //momentum
+    { return TMath::Sqrt(fPx*fPx+fPy*fPy+fPz*fPz); }
   
-  for (i = 0; i < fNPids-1;i++)//find a slot
-   {
-     if ( fPidProb[i] > prob)
-      {
-        if (fgDebug>4) Info("SetPID","Copying entry %d",i);
-        aPidProbNew[i] = fPidProb[i];
-        aPidsNew[i] = fPids[i];
-        totprob+=fPidProb[i];
-      }
-     else break;
-   }
-
-  if (fgDebug>4) Info("SetPID","Setting new PID on entry %d",i);
-  aPidProbNew[i] = prob;
-  aPidsNew[i] = pdg;
-  totprob+=prob;
+  void Momentum(TLorentzVector &v) { v.SetPxPyPzE(fPx,fPy,fPz,fE);}
+    
+  Double_t         Pt    () const  //transverse momentum
+    { return TMath::Sqrt(fPx*fPx+fPy*fPy); }
+  Double_t         Energy() const { return fE; }
   
+                                   //Pseudo Rapidity
+  Double_t         Eta   () const { if (P() != fPz) return 0.5*TMath::Log((P()+fPz)/(P()-fPz)); 
+                                    else return 1.e30;}
 
-  for (Int_t j = fNPids-1; j > i ;i--)//copy rest of old araays 
-   {
-     if (fgDebug>4) Info("SetPID","Copying from old entry %d to new entry %d",j-1,j);
-     aPidProbNew[j] = fPidProb[j-1];
-     aPidsNew[j] = fPids[j-1];
-     totprob+=fPidProb[j-1];
-   }
+                                   //Rapidity
+  Double_t         Y     () const { if (fE  != fPz) return 0.5*TMath::Log((fE+fPz)/(fE-fPz));
+                                    else return 1.e30;}
 
-  if (totprob > 1.0)
-   {
-     Warning("SetId","Total probability is greater than 1 !!!");
-     Print();
-   }
-  delete [] fPidProb;
-  delete [] fPids;
+  Double_t         Phi   () const { return kPI+TMath::ATan2(-fPy,-fPx); }
+
+  Double_t         Theta () const { return (fPz==0)?kPI/2:TMath::ACos(fPz/P()); }
+
+                                // setters
+
+
+  void           SetMomentum(Double_t px, Double_t py, Double_t pz, Double_t e)
+                             {fPx=px; fPy=py; fPz=pz; fE=e;}
+  void           SetMomentum(const TLorentzVector& p)
+                             {SetMomentum(p.Px(),p.Py(),p.Pz(),p.Energy());}
+
+  void           SetProductionVertex(Double_t vx, Double_t vy, Double_t vz, Double_t t)
+                             {fVx=vx; fVy=vy; fVz=vz; fVt=t;}
+  void           SetProductionVertex(const TLorentzVector& v)
+                             {SetProductionVertex(v.X(),v.Y(),v.Z(),v.T());}
+  const Char_t*  GetName() const; 
+  void           Print() const;
+
+  static void    SetDebug(Int_t dbg=1){fgDebug=dbg;}
+  static Int_t   GetDebug(){return fgDebug;}
+  static Int_t   fgDebug; //debug printout level
   
-  fPidProb = aPidProbNew;
-  fPids = aPidsNew;
-  
-  fPdgIdx = GetPidSlot(currentpid);
-  if (fPdgIdx == -1) fPdgIdx = 0;
-}
-//______________________________________________________________________________
+protected:
+  Int_t          GetPidSlot(Int_t pdg) const;//returns position of the given PID in fPids (and fPidProb) array.
 
-Float_t AliHBTParticle::GetPIDprobability(Int_t pdg)
-{
-  Int_t idx = GetPidSlot(pdg);
-  if (idx < 0) return 0.0;//such pid was not specified for this particle
-  return fPidProb[idx];
-}
-//______________________________________________________________________________
+private:
+  Char_t         fPdgIdx;               // index of PDG code of the particle in fPids
+  Int_t          fIdxInEvent;           // index of a particle: the same particle can appear in the event
+                                        //  many times with different pid's. Idx allows to check that they are the same particles
+  Int_t          fNPids;                // number of non-zero proboble Pids
+  Int_t         *fPids;                 // [fNPids] Array with PIDs
+  Float_t       *fPidProb;              // [fNPids] PIDs probabilities
+  Double_t       fCalcMass;             // Calculated mass
 
-const Char_t* AliHBTParticle::GetName() const 
-{
-   static char def[4] = "XXX";
-   const TParticlePDG *ap = TDatabasePDG::Instance()->GetParticle(GetPdgCode());
-   if (ap) return ap->GetName();
-   else    return def;
-}
+  Double_t       fPx;                   // x component of momentum
+  Double_t       fPy;                   // y component of momentum
+  Double_t       fPz;                   // z component of momentum
+  Double_t       fE;                    // Energy
 
+  Double_t       fVx;                   // x of production vertex
+  Double_t       fVy;                   // y of production vertex
+  Double_t       fVz;                   // z of production vertex
+  Double_t       fVt;                   // t of production vertex
 
-//______________________________________________________________________________
-Int_t AliHBTParticle::GetPidSlot(Int_t pdg) const
-{
- //returns position of the given PID in fPids (and fPidProb) array.
- if (fPids == 0x0) return -1;
- for (Int_t i = 0; i< fNPids; i++)
-  {
-   if (fPids[i] == pdg) return i;
-  }
- return -1;
-}
+  ClassDef(AliHBTParticle,2)  // TParticle vertex particle information
+};
 
-//______________________________________________________________________________
-void AliHBTParticle::Print() const
-{
-//prints information about particle
-  printf("____________________________________________________\n");
-  printf("Idx: %d  PID: %d  Name",fIdxInEvent,GetPdgCode());
-  TParticlePDG *pdgp = TDatabasePDG::Instance()->GetParticle(GetPdgCode());
-  if (pdgp)
-   {
-     printf("%s Mass %f\n",pdgp->GetName(),pdgp->Mass());
-   }
-  else
-   {
-     printf("Not known\n");
-   }
-  
-  printf("Px: %+f Py: %+f Pz: %+f E: %+f Calculated Mass: %f\nVx: %+f Vy: %+f Vz: %+f T: %+f\n",
-          Px(),Py(),Pz(),Energy(),GetCalcMass(),Vx(),Vy(),Vz(),T());
-
-  for (Int_t i = 0; i < fNPids; i++)
-   {
-     printf("# %d  PID: %d  Probability %f name ",i,fPids[i],fPidProb[i]);
-     const TParticlePDG *ap = TDatabasePDG::Instance()->GetParticle(fPids[i]);
-     if (ap)
-      {
-        printf("%s Mass %f\n",ap->GetName(),ap->Mass());
-      }
-     else
-      {
-        printf("Not known\n");
-      }
-   }
-}
-
-//______________________________________________________________________________
-
-//void AliHBTParticle::Streamer(TBuffer &b)
-//{
-//     // Stream all objects in the array to or from the I/O buffer.
-//   UInt_t R__s, R__c;
-//   Int_t i;
-//   if (b.IsReading()) 
-//    {
-//      delete [] fPids;
-//      delete [] fPidProb;
-//      
-//      Version_t v = b.ReadVersion(&R__s, &R__c);
-//      if (v == 1)
-//       {
-//         AliHBTParticle::Class()->ReadBuffer(b, this);
-//      }
-//      else
-//       {
-//        TObject::Streamer(b);
-//       b >> fPdgIdx;
-//       b >> fIdxInEvent;
-//       
-//       b >> fNPids;
-//       Int_t* fPids = new Int_t[fNPids];
-//        Float_t* fPidProb = new Float_t[fNPids];
-//        for (i = 0;i<fNPids;i++) 
-//         {
-//           b >> fPids[i];
-//         }
-//        for (i = 0;i<fNPids;i++) 
-//        {
-//          b >> fPidProb[i];
-//         }
-//        b >> fCalcMass;
-//
-//        b >> fPx;
-//       b >> fPy;
-//       b >> fPz;
-//        b >> fE;
-//
-//       b >> fVx;
-//        b >> fVy;
-//        b >> fVz;
-//       b >> fVt;
-//       Info("Streamer","Read data");
-//        Print();
-//       }
-//
-//      b.CheckByteCount(R__s, R__c,AliHBTParticle::IsA());
-//    } 
-//  else 
-//   {
-//     R__c = b.WriteVersion(AliHBTParticle::IsA(), kTRUE);
-//     TObject::Streamer(b);
-//     Info("Streamer","Read data");
-//     Print();
-//
-//     b << fPdgIdx;
-//     b << fIdxInEvent;
-//     b << fNPids;
-//     for (i = 0;i<fNPids;i++) 
-//      {
-//        b << fPids[i];
-//      }
-//      {
-//      {
-//     for (i = 0;i<fNPids;i++) 
-//     {
-//        b << fPidProb[i];
-//      }
-//     b << fCalcMass;
-//
-//     b << fPx;
-//     b << fPy;
-//     b << fPz;
-//     b << fE;
-//
-//     b << fVx;
-//     b << fVy;
-//     b << fVz;
-//     b << fVt;
-//
-//    b.SetByteCount(R__c, kTRUE);
-//   }
-//}
+#endif
