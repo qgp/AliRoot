@@ -9,16 +9,14 @@ reconstruction and macro analysis
 aliroot
 root [0] gAlice->Run(10,"Config_MUON_test.C")
 
-10 single muon of 7 GeV/c in the MUON spectrometer acceptance will be
-simulated usign geant3. 
-Hit information in each tracking and trigger chamber will be store 
-in galice.root file
-
+10 single muon of 7 GeV/c in the MUON spectrometer 
+acceptance will be simulated using geant3. 
+Hit information will be store in the root file
 
 ============================================================
  How to run MUON Digitalization
 ============================================================
-To process the digitalization of hits the ALiRunDigitizer 
+To process the digitalization of hits the AliRunDigitizer 
 framework is used:
 
 root [0] AliRunDigitizer   * manager = new AliRunDigitizer(1,1);
@@ -26,6 +24,7 @@ root [1] manager->SetInputStream(0,"galice.root");
 root [2] AliMUONDigitizerv1* dMUON   = new AliMUONDigitizerv1(manager);
 root [3] manager->AddDigitizer(dMUON);
 root [4] manager->Exec("deb");
+
 
 ============================================================
  How to run MUONCheck macro
@@ -43,6 +42,10 @@ root [3] MUONhits()
 
 To print digits : (default file is galice.root)
 root [4] MUONdigits()  
+
+To print rawcluster : (default file is galice.root)
+root [5] MUONrecpoints()
+
 
 ===========================================================
  Still working ..............
