@@ -7,7 +7,7 @@
 # IRST coding rule check
 export IRST_INSTALLDIR=$(ALICE)/local/IRST
 export CLASSPATH=$(IRST_INSTALLDIR)
-CODE_CHECK=java rules.RuleChecker
+CODE_CHECK=java rules.ALICE.ALICERuleChecker
 REV_ENG=$(IRST_INSTALLDIR)/scripts/revEng.sh
 # This is to avoid a problem with the declaration of .SECONDARY in the 
 # GeneralMacros
@@ -63,11 +63,6 @@ tgt_$(ALICE_TARGET)/%.o : %.F
 # Needed binary directories
 LIBDIR = $(ALICE_ROOT)/lib/tgt_$(ALICE_TARGET)
 BINDIR = $(ALICE_ROOT)/bin/tgt_$(ALICE_TARGET)
-
-#PH ???
-ifndef G3INSTALL
-  G3INSTALL = $(ALICE_ROOT)/../geant3
-endif  
 
 
 # Current Version

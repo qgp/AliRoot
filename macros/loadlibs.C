@@ -5,6 +5,7 @@ void loadlibs ()
   // libraries required by EVGEN
   // (commented libraries are already loaded in prevoius sequence)
 
+  gSystem->Load("libmicrocern");
   gSystem->Load("libSTEER");
   gSystem->Load("libEG"); 
   gSystem->Load("libEGPythia6");
