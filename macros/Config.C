@@ -95,7 +95,7 @@ void Config()
     gener->SetPhiRange(220, 320);
     // Set pseudorapidity range from -8 to 8.
     Float_t thmin = EtaToTheta(0.12);   // theta min. <---> eta max
-    Float_t thmax = EtaToTheta(-0/12);  // theta max. <---> eta min 
+    Float_t thmax = EtaToTheta(-0.12);  // theta max. <---> eta min 
     gener->SetThetaRange(thmin,thmax);
     gener->SetOrigin(0, 0, 0);  //vertex position
     gener->SetSigma(0, 0, 0);   //Sigma in (X,Y,Z) (cm) on IP position
