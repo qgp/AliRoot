@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.39  2002/09/16 08:21:16  morsch
+Use TDatabasePDG::Instance();
+
 Revision 1.38  2002/05/30 14:59:12  morsch
 Check geometrical acceptance. (G. Martinez)
 
@@ -340,8 +343,7 @@ void AliGenParam::Generate()
   //
   if(!particles) particles = new TClonesArray("TParticle",1000);
   
-  static TDatabasePDG *pDataBase = new TDatabasePDG();
-  if(!pDataBase) pDataBase = new TDatabasePDG();
+  TDatabasePDG *pDataBase = TDatabasePDG::Instance();
   //
   Float_t random[6];
  
@@ -430,7 +432,6 @@ void AliGenParam::Generate()
 	      //  Selecting  GeometryAcceptance for particles fPdgCodeParticleforAcceptanceCut;
 	      if (fGeometryAcceptance) 
 		if (!CheckAcceptanceGeometry(np,particles)) continue;
-	      
 	      Int_t ncsel=0;
 	      Int_t* pFlag      = new Int_t[np];
 	      Int_t* pParent    = new Int_t[np];

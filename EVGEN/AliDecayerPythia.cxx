@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.13  2002/09/16 10:40:48  morsch
+Use correct pdg codes for Upsilon(2S) = 100553 and Upsilon(3S) = 200553.
+
 Revision 1.12  2002/06/05 14:05:46  morsch
 Decayer option kPhiKK for forced phi->K+K- decay added.
 
@@ -138,7 +141,7 @@ void AliDecayerPythia::Decay(Int_t idpart, TLorentzVector* p)
     
     Lu1Ent(0, idpart, energy, theta, phi);
     fPythia->GetPrimaries();
-//    fPythia->Pylist(1);
+    fPythia->Pylist(1);
     
 }
 
@@ -185,8 +188,8 @@ void AliDecayerPythia::ForceDecay()
 	ForceParticleDecay(  443,13,2); // J/Psi
 	ForceParticleDecay(20443,13,2); // Psi'
 	ForceParticleDecay(  553,13,2); // Upsilon
-	ForceParticleDecay(20553,13,2); // Upsilon'
-	ForceParticleDecay(30553,13,2); // Upsilon''
+	ForceParticleDecay(100553,13,2); // Upsilon'
+	ForceParticleDecay(200553,13,2); // Upsilon''
 	break;
     case kSemiElectronic:
 	ForceParticleDecay(  411,11,1); // D+/-     
@@ -211,7 +214,8 @@ void AliDecayerPythia::ForceDecay()
 	ForceParticleDecay(  443,11,2); // J/Psi
 	ForceParticleDecay(30443,11,2); // Psi'
 	ForceParticleDecay(  553,11,2); // Upsilon
-	ForceParticleDecay(30553,11,2); // Upsilon'
+	ForceParticleDecay(100553,11,2); // Upsilon'
+	ForceParticleDecay(200553,11,2); // Upsilon''
 	break;
     case kBJpsiDiMuon:
 	ForceParticleDecay(  511,443,1); // B0     
