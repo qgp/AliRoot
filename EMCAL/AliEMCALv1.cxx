@@ -61,7 +61,6 @@ AliEMCALv1::AliEMCALv1(const char *name, const char *title):
 
     fNhits = 0;
     fIshunt     =  2; // All hits are associated with particles entering the calorimeter
-    fTimeCut = 30e-09;
 }
 
 //______________________________________________________________________
@@ -126,7 +125,7 @@ void AliEMCALv1::StepManager(void){
   if(gMC->CurrentVolID(copy) == gMC->VolId("XPHI") ) { // We are in a Scintillator Layer 
     Float_t depositedEnergy ; 
     
-    if( ((depositedEnergy = gMC->Edep()) > 0.)  && (gMC->TrackTime() < fTimeCut)){// Track is inside a scintillator and deposits some energy
+    if( (depositedEnergy = gMC->Edep()) > 0.){// Track is inside a scintillator and deposits some energy
        if (fCurPrimary==-1) 
 	fCurPrimary=gAlice->GetMCApp()->GetPrimary(tracknumber);
 
@@ -190,7 +189,7 @@ void AliEMCALv1::StepManager(void){
       if (gMC->TrackCharge()!=0) { // Check
 	  Float_t BirkC1_mod = 0;
 	if (fBirkC0==1){ // Apply correction for higher charge states
-	  if (TMath::Abs(gMC->TrackCharge())>=2)
+	  if (abs(gMC->TrackCharge())>=2)
 	    BirkC1_mod=fBirkC1*7.2/12.6;
 	  else
 	    BirkC1_mod=fBirkC1;

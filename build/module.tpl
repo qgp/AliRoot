@@ -34,7 +34,11 @@ endif
 endif
 
 ifndef PACKDCXXFLAGS
-@PACKAGE@DCXXFLAGS:=$(CXXFLAGSNO)
+ifeq ($(PLATFORM),linuxicc)
+@PACKAGE@DCXXFLAGS:=$(filter-out -O%,$(CXXFLAGS)) -O0
+else
+@PACKAGE@DCXXFLAGS:=$(filter-out -O%,$(CXXFLAGS))
+endif
 else
 @PACKAGE@DCXXFLAGS:=$(PACKDCXXFLAGS)
 endif
@@ -58,7 +62,6 @@ endif
 @PACKAGE@INC:=$(patsubst %,-I%,$(EINCLUDE)) -I@MODULE@
 
 @PACKAGE@ELIBS:=$(patsubst %,-l%,$(ELIBS))
-@PACKAGE@ELIBSDEP:=$(patsubst %,lib/tgt_$(ALICE_TARGET)/lib%.$(SOEXT),$(ELIBS))
 @PACKAGE@ELIBSDIR:=$(patsubst %,-L%,$(ELIBSDIR))
 
 #c sources and headers
@@ -157,7 +160,7 @@ else
 @PACKAGE@LIB := $(@PACKAGE@LIB)
 endif
 
-# include all dependence files
+# include all dependency files
 INCLUDEFILES +=$(@PACKAGE@DEP)
 
 EXPORTFILES += $(@PACKAGE@EXPORTDEST)
@@ -173,7 +176,7 @@ $(@PACKAGE@EXPORTDEST): $(EXPORTDIR)/%.h: @MODULE@/%.h
 ifndef ALIQUIET
 	  @echo "***** Copying file $^ to $@ *****"
 endif
-	  @[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	  @[ -d $(dir $@) ] || mkdir $(dir $@)
 	  @cp $^ $@	
 endif
 
@@ -222,7 +225,7 @@ endif
 	  $(MUTE)chmod a-w $@
 
 
-$(@PACKAGE@BIN):$(@PACKAGE@O) $(@PACKAGE@DO) @MODULE@/module.mk $(@PACKAGE@ELIBSDEP)
+$(@PACKAGE@BIN):$(@PACKAGE@O) $(@PACKAGE@DO) @MODULE@/module.mk
 ifndef ALIQUIET
 	  @echo "***** Making executable $@ *****"
 endif
@@ -260,6 +263,13 @@ endif
 depend-@PACKAGE@: $(@PACKAGE@DEP)
 
 # determination of object files
+$(MODDIRO)/%.o: $(MODDIRO)/%.cxx $(MODDIRO)/%.d 
+ifndef ALIQUIET
+	@echo "***** Compiling $< *****";
+endif
+	@(if [ ! -d '$(dir $@)' ]; then echo "***** Making directory $(dir $@) *****"; mkdir -p $(dir $@); fi;)
+	$(MUTE)$(CXX) $(@PACKAGE@DEFINE) -c $(@PACKAGE@INC)   $< -o $@ $(@PACKAGE@CXXFLAGS)
+
 $(MODDIRO)/%.o: $(MODDIR)/%.cxx $(MODDIRO)/%.d 
 ifndef ALIQUIET
 	@echo "***** Compiling $< *****";
@@ -290,39 +300,35 @@ endif
 
 $(@PACKAGE@DDEP): $(@PACKAGE@DS)
 ifndef ALIQUIET
-		@echo "***** Making dependences for $< *****";
+		@echo "***** Making dependencies for $< *****";
 endif
 		@(if [ ! -d '$(dir $@)' ]; then echo "***** Making directory $(dir $@) *****"; mkdir -p $(dir $@); fi;)
 		@share/alibtool depend "$(@PACKAGE@ELIBSDIR) $(@PACKAGE@INC) $(DEPINC)  $<" > $@
 
 $(MODDIRO)/%.d: $(MODDIRS)/%.cxx
 ifndef ALIQUIET
-		@echo "***** Making dependences for $< *****";
+		@echo "***** Making dependencies for $< *****";
 endif
 		@(if [ ! -d '$(dir $@)' ]; then echo "***** Making directory $(dir $@) *****"; mkdir -p $(dir $@); fi;)
 		@share/alibtool depend "$(@PACKAGE@DEFINE) $(@PACKAGE@ELIBSDIR) $(@PACKAGE@INC) $(DEPINC)  $<" > $@
 $(MODDIRO)/%.d: $(MODDIRS)/%.f
 ifndef ALIQUIET
-		@echo "***** Making dependences for $< *****";
+		@echo "***** Making dependencies for $< *****";
 endif
 		@(if [ ! -d '$(dir $@)' ]; then echo "***** Making directory $(dir $@) *****"; mkdir -p $(dir $@); fi;)
 		@share/alibtool dependF "$(@PACKAGE@ELIBSDIR) $(@PACKAGE@INC) $(DEPINC)  $<" > $@
 $(MODDIRO)/%.d: $(MODDIRS)/%.F
 ifndef ALIQUIET
-		@echo "***** Making dependences for $< *****";
+		@echo "***** Making dependencies for $< *****";
 endif
 		@(if [ ! -d '$(dir $@)' ]; then echo "***** Making directory $(dir $@) *****"; mkdir -p $(dir $@); fi;)
 		$(MUTE)share/alibtool dependF "$(@PACKAGE@ELIBSDIR) $(@PACKAGE@INC) $(DEPINC)  $<" > $@
 $(MODDIRO)/%.d: $(MODDIRS)/%.c
 ifndef ALIQUIET
-		@echo "***** Making dependences for $< *****";
+		@echo "***** Making dependencies for $< *****";
 endif
 		@(if [ ! -d '$(dir $@)' ]; then echo "***** Making directory $(dir $@) *****"; mkdir -p $(dir $@); fi;)
 		@share/alibtool depend "$(@PACKAGE@DEFINE) $(@PACKAGE@ELIBSDIR) $(@PACKAGE@INC) $(DEPINC) $<" > $@
-
-.PRECIOUS: $(patsubst %.cxx,$(MODDIRO)/%.d,$(SRCS))
-.PRECIOUS: $(patsubst %.c,$(MODDIRO)/%.d,$(CSRCS))
-.PRECIOUS: $(patsubst %.F,$(MODDIRO)/%.d,$(patsubst %.f,$(MODDIRO)/%.d,$(FSRCS)))
 
 @PACKAGE@CHECKS := $(patsubst %.cxx,@MODULE@/check/%.viol,$(SRCS))
 
