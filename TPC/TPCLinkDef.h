@@ -45,7 +45,6 @@
 
 
 #pragma link C++ class AliTPCClusterFinder+;
-#pragma link C++ class AliH2F+;
 
 #pragma link C++ class AliTPCTrackHits+;
 #pragma link C++ class AliTPCTrackHitsV2+;

@@ -13,7 +13,29 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/* $Id$ */
+/*
+$Log$
+Revision 1.4  2000/10/05 16:04:21  kowal2
+Forward declarations
+
+Revision 1.3  2000/06/30 12:07:49  kowal2
+Updated from the TPC-PreRelease branch
+
+Revision 1.2.4.2  2000/06/26 07:39:42  kowal2
+Changes to obey the coding rules
+
+Revision 1.2.4.1  2000/06/25 08:38:41  kowal2
+Splitted from AliTPCtracking
+
+Revision 1.2  2000/04/17 09:37:33  kowal2
+removed obsolete AliTPCDigitsDisplay.C
+
+Revision 1.1.4.2  2000/04/10 11:32:37  kowal2
+
+"ROOT"-based class with some extra functionality
+
+*/
+//
 
 //----------------------------------------------------------------------------
 //  Author:   Marian Ivanov
@@ -26,6 +48,7 @@
 #include "TClonesArray.h"
 #include "AliTPC.h"
 #include "TRandom.h"
+#include "AliTPCClusterFinder.h"
 
 
 ClassImp(AliH2F)
@@ -67,11 +90,15 @@ AliH2F & AliH2F::operator = (const AliH2F & his)
 
 TClonesArray * AliH2F::FindPeaks(Float_t threshold, Float_t noise)
 {
-
-  //
-  // not implemented
-  //
-  return 0;
+  //find peaks and write it in form of AliTPCcluster to array
+    
+  //firstly we need to create object for cluster finding
+  //and fill it with contents of histogram
+  AliTPCClusterFinder cfinder;
+  cfinder.SetThreshold(threshold);
+  cfinder.SetNoise(noise);
+  cfinder.GetHisto(this);
+  return cfinder.FindPeaks3();
 }
 
 void AliH2F::ClearSpectrum()
