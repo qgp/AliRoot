@@ -2,6 +2,16 @@
 
 ClassImp(AliHBTMonSplittingQosl)
 
+AliHBTMonSplittingQosl::AliHBTMonSplittingQosl(Int_t nXbins, Double_t maxXval, Double_t minXval,
+                                               Int_t nYbins, Double_t maxYval, Double_t minYval,
+                                                Int_t nZbins, Double_t maxZval, Double_t minZval):
+ AliHBTTwoPairFctn3D(nXbins,maxXval,minXval,nYbins,maxYval,minYval,nZbins,maxZval,minZval)
+{
+  //ctor
+  fWriteNumAndDen = kTRUE;//change default behaviour
+  Rename("splitosl","Q_{out}-Q_{side}-Q_{long} Splitting Monitoring Function");
+}
+
 void   AliHBTMonSplittingQosl::ProcessSameEventParticles(AliHBTPair* trackpair, AliHBTPair* partpair)
 {
   AliVAODParticle* p1 = partpair->Particle1();
@@ -20,6 +30,16 @@ void   AliHBTMonSplittingQosl::ProcessSameEventParticles(AliHBTPair* trackpair, 
 }
 
 ClassImp(AliHBTMonSplittingDptDthetaDphi)
+
+AliHBTMonSplittingDptDthetaDphi::AliHBTMonSplittingDptDthetaDphi(Int_t nXbins, Double_t maxXval, Double_t minXval,
+                                               Int_t nYbins, Double_t maxYval, Double_t minYval,
+                                                Int_t nZbins, Double_t maxZval, Double_t minZval):
+ AliHBTTwoPairFctn3D(nXbins,maxXval,minXval,nYbins,maxYval,minYval,nZbins,maxZval,minZval)
+{
+  //ctor
+  fWriteNumAndDen = kTRUE;//change default behaviour
+  Rename("splitosl","Q_{out}-Q_{side}-Q_{long} Splitting Monitoring Function");
+}
 
 void   AliHBTMonSplittingDptDthetaDphi::ProcessSameEventParticles(AliHBTPair* trackpair, AliHBTPair* partpair)
 {
