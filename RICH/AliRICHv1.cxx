@@ -37,7 +37,6 @@
 #include "AliRICHSegmentationV1.h"
 #include "AliRICHv1.h"
 #include "AliRun.h"
-#include "AliSegmentation.h"
 
 ClassImp(AliRICHv1)
     

@@ -13,39 +13,8 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/* 
-   $Log$
-   Revision 1.3.4.2  2002/05/31 16:19:52  hristov
-   Merged with v3-08-02
+/* $Id$ */
 
-   Revision 1.3.4.1  2002/05/31 09:37:59  hristov
-   First set of changes done by Piotr
-
-   Revision 1.8  2002/10/29 14:32:21  morsch
-   ResetDigits put to the right place (J. Barbosa)
-
-   Revision 1.5  2002/07/09 13:11:26  hristov
-   Old style include files needed on HP (aCC)
-
-   Revision 1.4  2002/05/28 07:53:10  morsch
-   Wrong order of arguments in for-statement corrected.
-
-   Revision 1.3  2001/12/05 14:53:34  hristov
-   Destructor corRevision 1.60  2002/10/22 16:28:21  alibrary
-  Introducing Riostream.h
-
-  Revision 1.59  2002/10/14 14:57:31  hristov
-  Merging the VirtualMC branch to the main development branch (HEAD)
-
-  Revision 1.58.6.1  2002/06/10 15:12:46  hristov
-  Merged with v3-08-02rected
-
-   Revision 1.2  2001/11/07 14:50:31  hristov
-   Minor correction of the Log part
-
-   Revision 1.1  2001/11/02 15:37:26  hristov
-   Digitizer class created. Code cleaning and bug fixes (J.Chudoba)
-*/
 //Piotr.Skowronski@cern.ch :
 //Corrections applied in order to compile (only) with new I/O and folder structure
 //To be implemented correctly by responsible
@@ -406,6 +375,7 @@ void AliRICHDigitizer::Exec(Option_t* option)
   pRICH->ResetDigits(); /// ??? should it be here???
   
   outgime->WriteDigits("OVERWRITE");
+
   delete [] fHitMap;
   delete fTDList;
 

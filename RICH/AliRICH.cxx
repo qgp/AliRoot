@@ -15,7 +15,6 @@
 
 /* $Id$ */
 
-
 ////////////////////////////////////////////////
 //  Manager and hits classes for set:RICH     //
 ////////////////////////////////////////////////
@@ -35,17 +34,14 @@
 #include <TObjArray.h>
 #include <TObject.h>
 #include <TParticle.h>
+#include <TPDGCode.h>
 #include <TRandom.h> 
 #include <TStyle.h>
 #include <TTUBE.h>
 #include <TTree.h>
 #include <TVector.h>
-#include <TVirtualMC.h>
-
 #include "AliConst.h"
-#include "AliLoader.h"
 #include "AliMagF.h"
-#include "AliPDG.h"
 #include "AliPoints.h"
 #include "AliRICH.h"
 #include "AliRICHCerenkov.h"
@@ -82,7 +78,6 @@ ClassImp(AliRICH)
 AliRICH::AliRICH()
 {
 // Default ctor should not contain any new operators
-   cout<<ClassName()<<"::named ctor(sName,sTitle)>\n"; // no way to control it as ctor is called before call to SetDebugXXXX()
 
     fIshunt     = 0;
     fHits       = 0;

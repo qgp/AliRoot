@@ -13,69 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-  $Log$
-  Revision 1.17.4.1  2002/05/31 09:37:59  hristov
-  First set of changes done by Piotr
-
-  Revision 1.19  2002/11/04 08:59:20  morsch
-  Correct orientation of modules. (J. Barbosa)
-
-  Revision 1.18  2002/10/29 14:24:19  morsch
-  Minor corrections on the display (adc counts readable, ...).
-  (J. Barbosa)
-
-  Revision 1.17  2001/10/23 13:03:35  hristov
-  The access to several data members was changed from public to protected. The digitisation was adapted to the multi-event case (J.Chudoba)
-
-  Revision 1.16  2001/10/21 18:31:24  hristov
-  Several pointers were set to zero in the default constructors to avoid memory management problems
-
-  Revision 1.15  2001/10/09 07:34:09  hristov
-  Modifications needed by Root.03.01.06 (J.Chudoba)
-
-  Revision 1.14  2001/05/16 14:57:20  alibrary
-  New files for folders and Stack
-
-  Revision 1.13  2001/05/10 12:35:16  jbarbosa
-  Removed hit display, added rec. ring properties.
-
-  Revision 1.12  2001/03/14 18:15:03  jbarbosa
-  Changes to adapt to new IO.
-  Removed verbose output.
-
-  Revision 1.11  2001/02/27 15:21:34  jbarbosa
-  Transition to SDigits.
-
-  Revision 1.10  2001/02/13 20:18:48  jbarbosa
-  Corrected some more positioning of points. Changes in LoadDigits to accomodate the new IO.
-
-  Revision 1.9  2000/11/01 15:33:11  jbarbosa
-  Updated to handle both reconstruction algorithms.
-
-  Revision 1.8  2000/10/03 21:44:09  morsch
-  Use AliSegmentation and AliHit abstract base classes.
-
-  Revision 1.7  2000/10/02 21:28:12  fca
-  Removal of useless dependecies via forward declarations
-
-  Revision 1.6  2000/10/02 15:46:38  jbarbosa
-  Fixed forward declarations.
-
-  Revision 1.5  2000/06/30 16:49:34  dibari
-  Different call for ring drawing.
-
-  Revision 1.4  2000/06/12 15:21:08  jbarbosa
-  Cleaned up version.
-
-  Revision 1.3  2000/06/09 14:52:08  jbarbosa
-  New tentative ellipse drawing routine
-
-  Revision 1.1  2000/04/19 13:07:45  morsch
-  Digits, clusters and reconstruction results added.
-
-*/
-
+/* $Id$ */
 
 //////////////////////////////////////////////////////////////////////////
 //                                                                      //
@@ -714,14 +652,14 @@ void AliRICHDisplay::DrawView(Float_t theta, Float_t phi, Float_t psi)
    
    //add clusters to the pad
    DrawClusters();
-   //DrawHits();
+   DrawHits();
    //DrawCerenkovs();
    if (gAlice->TreeR())
      {
        //printf("Calling DrawCoG\n");
-       DrawCoG();
+	 DrawCoG();
        //printf("Calling DrawRecHits\n");
-       DrawRecHits();
+	 DrawRecHits();
      }
    /*for (Int_t i=0;i<7;i++)
      LoadRecHits(i,1);*/
@@ -1132,8 +1070,7 @@ void AliRICHDisplay::LoadHits(Int_t chamber)
 	    points->SetHitIndex(hit);
             points->SetTrackIndex(track);
             points->SetDigitIndex(-1);
-            points->SetPoint(hit,mHit->X(), mHit->Y(), mHit->Z());
-	    //printf("Y position: %f\n", mHit->Y());
+            points->SetPoint(0,mHit->X(), mHit->Y(), mHit->Z());
 	    npoints++;
 	}
     }
