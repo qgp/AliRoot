@@ -14,9 +14,11 @@ ClassImp(AliHBTCorrFitFctn)
 AliHBTCorrFitFctn::AliHBTCorrFitFctn():
  AliHBTOnePairFctn1D(),
  fNtuple(0x0),
- fNPairsFitArea(1000000),
+ fNPairsFitArea(0),
+ fNMaxPairsFitArea(3000000),
  fFitRangeMax(0.05),
- fNPairsNormArea(1000000),
+ fNPairsNormArea(0),
+ fNMaxPairsNormArea(1000000),
  fNormRangeMin(0.05),
  fNormRangeMax(0.1)
 {
@@ -29,9 +31,11 @@ AliHBTCorrFitFctn::AliHBTCorrFitFctn():
 AliHBTCorrFitFctn::AliHBTCorrFitFctn(Int_t  fit, Int_t  norm):
  AliHBTOnePairFctn1D(100,0.1,0.0),
  fNtuple(new TNtuple("pair", "pair", "px1:py1:pz1:e1:px2:py2:pz2:e2")),
- fNPairsFitArea(fit),
+ fNPairsFitArea(0),
+ fNMaxPairsFitArea(fit),
  fFitRangeMax(0.05),
- fNPairsNormArea(norm),
+ fNPairsNormArea(0),
+ fNMaxPairsNormArea(norm),
  fNormRangeMin(0.05),
  fNormRangeMax(0.1)
 {
@@ -60,18 +64,27 @@ void  AliHBTCorrFitFctn::ProcessDiffEventParticles(AliHBTPair* trackpair)
 
   Bool_t fill = kFALSE;
 
-  if ( (q < fFitRangeMax) && (fNPairsFitArea < fNPairsFitArea))
-    {
-      fNPairsFitArea++;
-      fill = kTRUE;
-    }
-
-  if ( (q > fNormRangeMin) && (q < fNormRangeMax) && (fNPairsNormArea < fNPairsNormArea) )
-    {
-      fNPairsNormArea++;
-      fill = kTRUE;
-    }
-
+  if ( q < fFitRangeMax )
+   {
+    if (fNPairsFitArea < fNMaxPairsFitArea)
+     {
+       fNPairsFitArea++;
+       fill = kTRUE;
+     }
+    else
+     {
+       Info("ProcessDiffEventParticles","Fit area already full");
+     } 
+   }
+   
+  if ( (q > fNormRangeMin) && (q < fNormRangeMax) )
+   { 
+    if  ( fNPairsNormArea < fNMaxPairsNormArea) 
+     {
+       fNPairsNormArea++;
+       fill = kTRUE;
+     }
+   }
   if (fill)
    {  
      const AliVAODParticle& p1 = *(trackpair->Particle1());

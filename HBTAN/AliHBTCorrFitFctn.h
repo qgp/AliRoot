@@ -1,5 +1,6 @@
 #ifndef ALIHBTCORRFITFCTN_H
 #define ALIHBTCORRFITFCTN_H
+
 //____________________________________________________________
 ///////////////////////////////////////////////////////////////
 //                                                           //
@@ -25,7 +26,7 @@ class AliHBTCorrFitFctn: public AliHBTOnePairFctn1D
    TH1* GetResult();
    void WriteFunction();
 
-   void SetMaxNumberOfPairs(Int_t  fit, Int_t  norm){fNPairsFitArea = fit; fNPairsNormArea = norm;}
+   void SetMaxNumberOfPairs(Int_t  fit, Int_t  norm){fNMaxPairsFitArea = fit; fNMaxPairsNormArea = norm;}
    void SetFitRange(Float_t max) {fFitRangeMax = max;}
    void SetNormalizationRange(Float_t min, Float_t max) { fNormRangeMin = min; fNormRangeMax= max;}
  protected:
@@ -33,10 +34,12 @@ class AliHBTCorrFitFctn: public AliHBTOnePairFctn1D
    
    TNtuple* fNtuple;//ntuple for storig pairs
 
-   Int_t    fNPairsFitArea;//number of pairs in fitting area
+   Int_t    fNPairsFitArea;//current number of pairs in fitting area
+   Int_t    fNMaxPairsFitArea;//current number of pairs in fitting area
    Float_t  fFitRangeMax;
    
    Int_t    fNPairsNormArea;//number of pairs in normalization area
+   Int_t    fNMaxPairsNormArea;//number of pairs in normalization area
    Float_t  fNormRangeMin;
    Float_t  fNormRangeMax;
   public:
