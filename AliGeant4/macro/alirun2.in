@@ -6,6 +6,7 @@
 /aliRun/initialize
 
 /mcVerbose/eventAction 0
+/mcVerbose/runAction 0
 /aliRun/lego 
 
 /mcControl/rootMacro lego
