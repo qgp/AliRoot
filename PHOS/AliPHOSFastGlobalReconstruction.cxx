@@ -48,7 +48,7 @@ AliPHOSFastGlobalReconstruction::AliPHOSFastGlobalReconstruction(const char* hea
   // create an instance of the PHOS getter,
   // create an array or reconstructed particles.
 
-  gime = AliPHOSGetter::GetInstance(headerFile);
+  gime = AliPHOSGetter::Instance(headerFile);
   fGenerator = gAlice->Generator();
   fParticles = new TClonesArray("TParticle",100);
   fNParticles = 0;
