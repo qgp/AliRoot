@@ -6,6 +6,7 @@
 #include <TObjArray.h>
 #include <TPDGCode.h>
 #include <TTree.h> 
+#include <TMath.h>
 
 #include "AliMUON.h"
 #include "AliMUONChamber.h"
@@ -178,24 +179,41 @@ void AliMUONDigitizerv1::Exec(Option_t* option)
   if (GetDebug()>2) cerr<<"AliMUONDigitizerv1::Digitize() starts"<<endl;
   fTDList = new TObjArray;
 
-  // Getting Module MUON
-  AliMUON *pMUON  = (AliMUON *) gAlice->GetModule("MUON");
+  //Loaders (We assume input0 to be the output too)
+  AliRunLoader * runloader;    // Input   loader
+  AliLoader    * gime; 
+ 
+  runloader    = AliRunLoader::GetRunLoader(fManager->GetInputFolderName(0));
+  if (runloader == 0x0) {
+    cerr<<"AliMUONDigitizerv1::Digitize() opening file "<<fManager->GetInputFileName(0,0)<<endl;
+    runloader = AliRunLoader::Open(fManager->GetInputFileName(0,0), fManager->GetInputFolderName(0),"UPDATE");
+  }
+  gime         = runloader->GetLoader("MUONLoader");
+  gime->LoadHits("READ");
+  if (GetDebug()>2) cerr<<"AliMUONDigitizerv1::Digitize() loaders"<<endl;
+
+  runloader->LoadgAlice();
+  gAlice = runloader->GetAliRun();
+
+  // Getting Module MUON  
+  AliMUON *pMUON  = (AliMUON *) gAlice->GetDetector("MUON");
   if (!pMUON) {
     cerr<<"AliMUONDigitizerv1::Digitize Error:"
 	<<" module MUON not found in the input file"<<endl;
     return;
-  }
+  } 
 
-  //Loaders
-
-  AliRunLoader *rl, *orl; //input and output loaders
-  AliLoader *gime, *ogime;
-  orl = AliRunLoader::GetRunLoader(fManager->GetOutputFolderName());
-  ogime = orl->GetLoader("MUONLoader");
- 
+  // Loading Event
+  Int_t currentevent = fManager->GetOutputEventNr();
+  
+  if (GetDebug()>2) cerr<<"AliMUONDigitizerv1::Digitize() Event Number is "<<currentevent <<endl;
+  if ( (currentevent<10)                                                 || 
+       (Int_t(TMath::Log10(currentevent)) == TMath::Log10(currentevent) ) )
+    cout <<"ALiMUONDigitizerv1::Digitize() Event Number is "<< currentevent <<endl;
 
   // New branch for MUON digit in the tree of digits
-  pMUON->MakeBranchInTreeD(ogime->TreeD());
+  gime->MakeDigitsContainer();
+  pMUON->MakeBranchInTreeD(gime->TreeD());
 
   // Array of pointer of the AliMUONHitMapA1:
   //  two HitMaps per chamber, or one HitMap per cahtode plane
@@ -213,14 +231,23 @@ void AliMUONDigitizerv1::Exec(Option_t* option)
 // Loop over files to merge and to digitize
     fSignal = kTRUE;
     for (Int_t inputFile=0; inputFile<fManager->GetNinputs(); inputFile++) {
-      // Connect MUON Hit branch
-      if (inputFile > 0 ) fSignal = kFALSE;
+      if (GetDebug()>2) cerr<<"AliMUONDigitizerv1::Digitize() Input File is "<<inputFile<<endl;
+
+      // Hits Branch
       TBranch *branchHits = 0;
 
-      rl = AliRunLoader::GetRunLoader(fManager->GetInputFolderName(inputFile));
-      gime = rl->GetLoader("MUONLoader");
+      // Connect MUON Hit branch
+      if (inputFile > 0 ) {
+	fSignal = kFALSE;
+	runloader    = AliRunLoader::GetRunLoader(fManager->GetInputFolderName(inputFile));
+	if (runloader == 0x0) {
+	  cerr<<"AliMUONDigitizerv1::Digitize() RunLoader for inputFile "<<inputFile<< " not found !!! "<<endl;
+	}
+	gime         = runloader->GetLoader("MUONLoader");
+	gime->LoadHits("READ");
+      }
 
-
+      // Setting the address of fHits list
       TTree *treeH = gime->TreeH();
       if (GetDebug()>2) {
 	cerr<<"AliMUONDigitizerv1::Exec inputFile is "<<inputFile<<" "<<endl;
@@ -237,6 +264,7 @@ void AliMUONDigitizerv1::Exec(Option_t* option)
       }
       if (GetDebug()>2) cerr<<"AliMUONDigitizerv1::Exec branchHits = "<<branchHits<<endl;
 
+
       fMask = fManager->GetMask(inputFile);
       //
       // Loop over tracks
@@ -245,7 +273,7 @@ void AliMUONDigitizerv1::Exec(Option_t* option)
       for (itrack = 0; itrack < ntracks; itrack++) {
 	if (GetDebug()>2) cerr<<"AliMUONDigitizerv1::Exec itrack = "<<itrack<<endl;
 	fHits->Clear();
-	branchHits->GetEntry(itrack);
+	treeH->GetEvent(itrack);
 	//
 	//  Loop over hits
 	Int_t ihit, ichamber;
@@ -287,6 +315,18 @@ void AliMUONDigitizerv1::Exec(Option_t* option)
     } // end file loop
     if (GetDebug()>2) cerr<<"AliMUONDigitizer::Exec End of hits, track and file loops"<<endl;
 
+
+    // Redefining input0 which is the output file
+    runloader    = AliRunLoader::GetRunLoader(fManager->GetInputFolderName(0));
+    gime         = runloader->GetLoader("MUONLoader");   
+
+    // Getting Module MUON  
+    pMUON  = (AliMUON *) gAlice->GetDetector("MUON");
+    if (!pMUON) {
+      cerr<<"AliMUONDigitizerv1::Digitize Error:"
+	  <<" module MUON not found in the input file"<<endl;
+      return;
+    } 
 
     // Loop on cathodes
     Int_t icat;
@@ -346,10 +386,10 @@ void AliMUONDigitizerv1::Exec(Option_t* option)
 	}
 	
 	// fill digits
-	if (GetDebug()>2) cerr<<"AliMUONDigitzerv1::Exex TransientDigit to Digit"<<endl;
+	if (GetDebug()>3) cerr<<"AliMUONDigitzerv1::Exex TransientDigit to Digit"<<endl;
 	if ( digits[2] == icat ) pMUON->AddDigits(ich,tracks,charges,digits);
       }
-      ogime->TreeD()->Fill();
+      gime->TreeD()->Fill();
       pMUON->ResetDigits();  //   
     } // end loop cathode
     fTDList->Delete();  
@@ -363,8 +403,8 @@ void AliMUONDigitizerv1::Exec(Option_t* option)
     
     if (GetDebug()>2) 
       cerr<<"AliMUONDigitizer::Exec: writing the TreeD: "
-	  <<ogime->TreeD()->GetName()<<endl;
-    ogime->TreeD()->Write(0,TObject::kOverwrite);
+	  <<gime->TreeD()->GetName()<<endl;
+    gime->TreeD()->Write(0,TObject::kOverwrite);
     delete [] fHitMap;
     delete fTDList;
     
