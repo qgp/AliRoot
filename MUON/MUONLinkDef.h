@@ -66,7 +66,6 @@
 #pragma link C++ class  AliMUONSt1SpecialMotif+;
 #pragma link C++ class  AliMUONSt1ResponseParameter+;
 #pragma link C++ class  AliMUONSt1ResponseRule+;
->>>>>>> 1.31
 
 #include "MUONLinkDefMapping.h"
 
