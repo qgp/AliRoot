@@ -8,7 +8,6 @@
 #include <TArrayI.h>
 #include <TVirtualMCStack.h>
 
-
 #include "AliConfig.h"
 
 class AliHeader;
@@ -45,6 +44,7 @@ class AliStack : public TVirtualMCStack
                            Int_t is);
 
     virtual TParticle* GetNextTrack(Int_t& track);
+    virtual TParticle* GetCurrentTrack() {return fCurrentTrack;}
     virtual TParticle* GetPrimaryForTracking(Int_t i);    
 
     void  ConnectTree();
@@ -92,7 +92,8 @@ class AliStack : public TVirtualMCStack
     TObjArray     *fParticleMap;       //! Map of particles in the supporting TClonesArray
     TArrayI        fParticleFileMap;   //  Map for particle ids 
     TParticle     *fParticleBuffer;    //! Pointer to current particle for writing
-    TTree         *fTreeK;             //! Particle stack
+    TParticle     *fCurrentTrack;      //! Pointer to particle currently transported
+    TTree         *fTreeK;             //! Particle stack  
     Int_t          fNtrack;            //  Number of tracks
     Int_t          fNprimary;          //  Number of primaries
     Int_t          fCurrent;           //! Last track returned from the stack
@@ -101,7 +102,7 @@ class AliStack : public TVirtualMCStack
     Int_t          fLoadPoint;         //! Next free position in the particle buffer
     
     TString        fEventFolderName;   //! Folder name where event is mounted
-    ClassDef(AliStack,3) //Particles stack
+    ClassDef(AliStack,4) //Particles stack
 };
 
 // inline
