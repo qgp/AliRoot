@@ -20,9 +20,6 @@
 /*
  
 $Log$
-Revision 1.2.2.1  2003/07/22 21:46:32  mhorner
-Initial Import
-
 
 
 
@@ -144,7 +141,7 @@ if (fDebug>0) Info("AliEMCALJetFinderAlgoOmni","Beginning Default Constructor");
  void AliEMCALJetFinderAlgoOmni::FillUnitArray(AliEMCALJetFinderAlgoUA1FillUnitFlagType_t flag)
    {
      if (fDebug>1) Info("FillUnitArray","Beginning FillUnitArray");
-     //AliEMCAL* pEMCAL = (AliEMCAL*) gAlice->GetModule("EMCAL");
+     AliEMCAL* pEMCAL = (AliEMCAL*) gAlice->GetModule("EMCAL");
 
          //   if (pEMCAL){ 
          //	     AliEMCALGeometry* geom =  AliEMCALGeometry::GetInstance(pEMCAL->GetTitle(), "");
@@ -469,7 +466,7 @@ if (fDebug>0) Info("AliEMCALJetFinderAlgoOmni","Beginning Default Constructor");
    {
      //Stores the resulting jet information in appropriate storage structure (TO BE DECIDED!!!!)
      if (fDebug>1) Info("StoreJetInfo","Storing Jet Information");
-    
+     AliEMCALGeometry* geom =  AliEMCALGeometry::GetInstance("EMCAL_5655_21", "");
      //Store:
      //fJetESum is the final jet energy (background has been subtracted)
      //fJetEta is the final jet Eta
@@ -487,8 +484,12 @@ if (fDebug>0) Info("AliEMCALJetFinderAlgoOmni","Beginning Default Constructor");
       cout<<"The jet phi is ---->" <<fJetPhi <<endl;
 
      Int_t             numberTracks = fInputPointer->GetNTracks();
+     Int_t  	       numberDigits = fInputPointer->GetNDigits();
+     AliEMCALDigit     *myD;
      TParticle         *myP;
      Int_t             numTracksInCone = 0;
+     Float_t           trackEnergy = 0.0;
+     Float_t           emcalEnergy = 0.0;
 
      for(Int_t counter=0; counter<numberTracks; counter++)
        {
@@ -518,6 +519,8 @@ if (fDebug>0) Info("AliEMCALJetFinderAlgoOmni","Beginning Default Constructor");
 	 if(rad<=fConeRad)
 	   {
 	     pTArray[index] = myP->Pt();
+	     //Calculate track contribution within jetcone
+	     if(myP->Pt() >= fPtCut) trackEnergy += myP->Pt();
 	     etaArray[index] = eta;
 	     phiArray[index] = phi;
 	     pdgArray[index] = myP->GetPdgCode();
@@ -525,7 +528,30 @@ if (fDebug>0) Info("AliEMCALJetFinderAlgoOmni","Beginning Default Constructor");
 	   }//end if
        }//end for
 
+     //Loop over digits to find EMCal contribution within jetcone
+     for(Int_t counter3=0; counter3<numberDigits; counter3++)
+       {
+	 myD = fInputPointer->GetDigit(counter3);
+	 //GET DIGIT ETA, PHI so that can check if inside R!
+	 Float_t eta = 0.0;
+	 Float_t phi = 0.0;
+	 Int_t ID = myD->GetId();
+	 geom->EtaPhiFromIndex(ID, eta, phi);
+	 Float_t deta = fJetEta-eta;
+	 Float_t dphi = fJetPhi -phi;
+	 Float_t rad = TMath::Sqrt( (deta*deta) + (dphi*dphi));
+	 if(rad<=fConeRad)
+	   {
+	 Int_t amplitude = myD->GetAmp();     //Gets the integer valued amplitude of the digit
+	 Float_t amp = (Float_t)amplitude;        //Need to typecast to Float_t before doing real energy conversion
+	 Float_t digitEnergy = amp/10000000.0;    //Factor of 10 million needed to convert!
+	 emcalEnergy += digitEnergy;
+	   }//end if
+       }//end count3 for
+
      fJet.SetTrackList(numTracksInCone,pTArray, etaArray, phiArray, pdgArray);
+     fJet.SetEMCALEnergy(emcalEnergy);
+     fJet.SetTrackEnergy(trackEnergy);
      fOutputObject.AddJet(&fJet);
      delete[] pTArray;
      delete[] etaArray;
