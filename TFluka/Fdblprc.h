@@ -1,3 +1,7 @@
+#ifndef FDBLPRC_H
+#define FDBLPRC_H 1
+
+#include "Rtypes.h"
 #include "cfortran.h"
 extern "C" {
 //*$ create dblprc.add
@@ -369,3 +373,5 @@ typedef struct {
 #define GLOBAL COMMON_BLOCK(GLOBAL,global)
 COMMON_BLOCK_DEF(globalCommon,GLOBAL);
 }
+
+#endif
