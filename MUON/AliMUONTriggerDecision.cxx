@@ -21,6 +21,8 @@
 #include "AliMUONHitMapA1.h"
 #include "AliRun.h"
 #include "AliMUON.h"
+#include "AliRunLoader.h"
+#include "AliLoader.h"
 #include "AliSegmentation.h"
 #include "AliMUONResponse.h"
 #include "AliMUONChamber.h"
@@ -189,32 +191,24 @@ void AliMUONTriggerDecision::SetBit(){
 // 3) remove soft background
 // 4) set the bit patterns
 
-  AliMUON *pMUON  = (AliMUON*)gAlice->GetModule("MUON");  
+
+  AliMUON *pMUON  = (AliMUON*)gAlice->GetDetector("MUON");  
   AliMUONTriggerCircuit* triggerCircuit;
+  AliRunLoader * rl = AliRunLoader::GetRunLoader();
+  AliLoader * gime  = rl->GetLoader("MUONLoader");
 
   for (Int_t chamber=11; chamber<15; chamber++){
     for (Int_t cathode=1; cathode<3; cathode++){
       
-      AliMUONChamber*   iChamber;
+      AliMUONChamber*   iChamber = &(pMUON->Chamber(chamber-1));
       AliSegmentation*  segmentation;
-      
-      TClonesArray *muonDigits  = pMUON->DigitsAddress(chamber-1);
-      if (muonDigits == 0) return;
-      
-      gAlice->ResetDigits();
-      Int_t nent = 0;
-      
-      if (gAlice->TreeD()) {
-	nent = (Int_t) gAlice->TreeD()->GetEntries();
-	//printf(" entries %d \n", nent);
-	//     gAlice->TreeD()->GetEvent(nent-2+cathode-1);
-	gAlice->TreeD()->GetEvent(cathode-1);
-      }
-      
+      gime->TreeD()->GetEvent(cathode-1);
+      TClonesArray *muonDigits = pMUON->DigitsAddress(chamber-1);
       Int_t ndigits = muonDigits->GetEntriesFast();
-      if (ndigits == 0) return;
+//      printf("\n 1 Found %d digits in %p %d \n ", ndigits, muonDigits,chamber-1);
+//    if (ndigits == 0) return;
       
-      iChamber = &(pMUON->Chamber(chamber-1));
+//      iChamber = &(pMUON->Chamber(chamber-1));
       segmentation=iChamber->SegmentationModel(cathode);
       AliMUONDigit  *mdig;
       
@@ -223,6 +217,7 @@ void AliMUONTriggerDecision::SetBit(){
 // get the center of the pad Id 
   	Int_t ix=mdig->PadX();
   	Int_t iy=mdig->PadY();
+
 // get the sum of the coded charge 
 // see coding convention in AliMUONChamberTrigger::DisIntegration 	
 	Int_t sumCharge=0;
@@ -230,7 +225,7 @@ void AliMUONTriggerDecision::SetBit(){
 	  sumCharge=sumCharge+mdig->TrackCharge(icharge);
 	}
 // apply condition on soft background	
-	Int_t testCharge=sumCharge-(Int_t(sumCharge/10))*10;
+	Int_t testCharge=sumCharge-(Int_t(sumCharge/10))*10;	
 	if(sumCharge<=10||testCharge>0) {	  
 // code pad
 	  Int_t code=TMath::Abs(ix)*100+iy;
@@ -328,6 +323,7 @@ void AliMUONTriggerDecision::SetBit(){
 	  } // if cathode
 	}  // remove soft background
       }   // end loop on digit
+      pMUON->ResetDigits();
     }    // end loop on cathode
   }     // end loop on chamber
 }  

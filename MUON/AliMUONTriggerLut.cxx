@@ -135,10 +135,12 @@ void AliMUONTriggerLut::GetLutOutput(Int_t circuit, Int_t xstrip, Int_t idev,
   if ((binc & mask)!=0) lutApt[0]=lutApt[1]=1;
 
 // get back to the first file
+/* no need for this with NewIO
   TTree *tK = gAlice->TreeK();
   TFile *file1 = 0;
   if (tK) file1 = tK->GetCurrentFile();
   file1->cd();
+*/
 }
 
 //----------------------------------------------------------------------

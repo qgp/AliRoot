@@ -40,6 +40,18 @@ root [1] MUONrawclusters("galice.root",0,2);
 First event and last event are given by hand, but this will change.
 
 ============================================================
+ How to run MUON Trigger
+============================================================
+root [0].L $ALICE_ROOT/MUON/MUONtrigger.C
+root [1] MUONtrigger("galice.root",0,9); 
+>> IMPORTANT NOTE: in the present version, one can only have either
+>> rawclusters or trigger information written in MUON.RecPoints.root
+>> but not both of them i.e. running MUONtrigger after MUONrawclusters
+>> will erase rawclusters from TreeR and vice versa.
+
+First event and last event are given by hand, but this will change.
+
+============================================================
  How to run MUON Tracking reconstruction
 ============================================================
 
@@ -70,6 +82,8 @@ root [4] MUONdigits()
 To print rawcluster : (default file is galice.root)
 root [5] MUONrecpoints()
 
+To print trigger : (default file is galice.root)
+root [5] MUONTestTrigger()
 
 ===========================================================
  Still working ..............

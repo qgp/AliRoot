@@ -24,6 +24,8 @@
 #include "AliMUONConstants.h"
 #include "AliMUONDigit.h"
 #include "AliMUONRawCluster.h"
+#include "AliMUONGlobalTrigger.h"
+#include "AliMUONLocalTrigger.h"
 
 void MUONkine(char * filename="galice.root")
 {
@@ -281,6 +283,100 @@ irecpoint, x0, x1, y0, y1, z0, z1, Q0, Q1, Track0, Track1, Track2, chi2_0, chi2_
     } // end chamber loop
   }  // end event loop
   MUONLoader->UnloadRecPoints();
-
-
 }
+
+void MUONTestTrigger (char * filename="galice.root"){
+// reads and dumps trigger objects from MUON.RecPoints.root
+  TClonesArray * globalTrigger;
+  TClonesArray * localTrigger;
+  
+  // Creating Run Loader and openning file containing Hits
+  AliRunLoader * RunLoader = AliRunLoader::Open(filename,"MUONFolder","READ");
+  if (RunLoader ==0x0) {
+      printf(">>> Error : Error Opening %s file \n",filename);
+      return;
+  }
+  
+  // Loading AliRun master
+  RunLoader->LoadgAlice();
+  gAlice = RunLoader->GetAliRun();
+  // Getting Module MUON  
+  AliMUON *pMUON  = (AliMUON *) gAlice->GetDetector("MUON");
+  
+  AliLoader * MUONLoader = RunLoader->GetLoader("MUONLoader");
+  MUONLoader->LoadRecPoints("READ");
+  
+  Int_t ievent, nevents;
+  nevents = RunLoader->GetNumberOfEvents();
+  
+  AliMUONGlobalTrigger *gloTrg;
+  AliMUONLocalTrigger *locTrg;
+  
+  for (ievent=0; ievent<nevents; ievent++) {
+      RunLoader->GetEvent(ievent);
+      
+      pMUON->SetTreeAddress(); 
+      MUONLoader->TreeR()->GetEvent(0);
+      
+      globalTrigger = (TClonesArray *) pMUON->GlobalTrigger();
+      localTrigger = (TClonesArray *) pMUON->LocalTrigger();
+      
+      Int_t nglobals = (Int_t) globalTrigger->GetEntriesFast(); // should be 1
+      Int_t nlocals  = (Int_t) localTrigger->GetEntriesFast(); // up to 234
+      printf("###################################################\n");
+      cout << " event " << ievent 
+	   << " nglobals nlocals: " << nglobals << " " << nlocals << "\n"; 
+      
+      for (Int_t iglobal=0; iglobal<nglobals; iglobal++) { // Global Trigger
+	  gloTrg = static_cast<AliMUONGlobalTrigger*>(globalTrigger->At(iglobal));
+	  
+	  printf("===================================================\n");
+	  printf(" Global Trigger output       Low pt  High pt   All\n");
+	  printf(" number of Single Plus      :\t");
+	  printf("%i\t%i\t%i\t",gloTrg->SinglePlusLpt(),
+		 gloTrg->SinglePlusHpt(),gloTrg->SinglePlusApt());
+	  printf("\n");
+	  printf(" number of Single Minus     :\t");
+	  printf("%i\t%i\t%i\t",gloTrg->SingleMinusLpt(),
+		 gloTrg->SingleMinusHpt(),gloTrg->SingleMinusApt());
+	  printf("\n");
+	  printf(" number of Single Undefined :\t"); 
+	  printf("%i\t%i\t%i\t",gloTrg->SingleUndefLpt(),
+		 gloTrg->SingleUndefHpt(),gloTrg->SingleUndefApt());
+	  printf("\n");
+	  printf(" number of UnlikeSign pair  :\t"); 
+	  printf("%i\t%i\t%i\t",gloTrg->PairUnlikeLpt(),
+		 gloTrg->PairUnlikeHpt(),gloTrg->PairUnlikeApt());
+	  printf("\n");
+	  printf(" number of LikeSign pair    :\t");  
+	  printf("%i\t%i\t%i\t",gloTrg->PairLikeLpt(),
+		 gloTrg->PairLikeHpt(),gloTrg->PairLikeApt());
+	  printf("\n");
+	  printf("===================================================\n");
+	  
+      } // end of loop on Global Trigger
+      
+      for (Int_t ilocal=0; ilocal<nlocals; ilocal++) { // Local Trigger
+	  cout << " >>> Output for Local Trigger " << ilocal << "\n";
+	  
+	  locTrg = static_cast<AliMUONLocalTrigger*>(localTrigger->At(ilocal));
+	  
+	  cout << "Circuit StripX Dev StripY: " 
+	       << locTrg->LoCircuit() << " " 
+	       << locTrg->LoStripX() << " " 
+	       << locTrg->LoDev() << " " 
+	       << locTrg->LoStripY() 
+	       << "\n";
+	  cout << "Lpt Hpt Apt: "     
+	       << locTrg->LoLpt() << " "   
+	       << locTrg->LoHpt() << " "  
+	       << locTrg->LoApt() << "\n";
+	  
+      } // end of loop on Local Trigger
+  } // end loop on event  
+} 
+
+
+
+
+

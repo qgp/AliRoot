@@ -14,6 +14,9 @@
  **************************************************************************/
 /*
 $Log$
+Revision 1.56.4.6  2003/06/11 16:45:07  martinez
+NewIO in Digits2Reco
+
 Revision 1.56.4.5  2003/05/16 14:40:24  martinez
 New IO in AliMUON
 
@@ -889,6 +892,7 @@ void AliMUON::Trigger(Int_t nev){
   decision->Trigger();   
   decision->GetGlobalTrigger(singlePlus, singleMinus, singleUndef,
 			     pairUnlike, pairLike);
+
 // add a local trigger in the list 
   AddGlobalTrigger(singlePlus, singleMinus, singleUndef, pairUnlike, pairLike);
   Int_t i;
@@ -910,14 +914,17 @@ void AliMUON::Trigger(Int_t nev){
 	  AddLocalTrigger(localtr);  // add a local trigger in the list
       }
   }
+
   delete decision;
 
   fLoader->TreeR()->Fill();
+//  char hname[30];
+//  sprintf(hname,"TreeR%d",nev);
+//  fLoader->TreeR()->Write(hname,TObject::kOverwrite);
+//  fLoader->TreeR()->Reset();
+  fLoader->WriteRecPoints("OVERWRITE");
   ResetTrigger();
-  char hname[30];
-  sprintf(hname,"TreeR%d",nev);
-  fLoader->TreeR()->Write(hname,TObject::kOverwrite);
-  fLoader->TreeR()->Reset();
+  
   printf("\n End of trigger for event %d", nev);
 }
 
@@ -928,7 +935,7 @@ void AliMUON::Digits2Reco()
   FindClusters();
   Int_t nev = gAlice->GetHeader()->GetEvent();
   fLoader->TreeR()->Fill();
-  char hname[30];
+  // char hname[30];
   // sprintf(hname,"TreeR%d", nev);
   //fLoader->TreeR()->Write(hname);
   //fLoader->TreeR()->Reset();
