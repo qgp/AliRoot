@@ -67,14 +67,14 @@ AliHBTCorrectedCorrelFctn::AliHBTCorrectedCorrelFctn():
   fDPtOverPtB(3.98063e-05),
   fDPtOverPtAlpha(-2.78008),
   fDPtOverPtC(5.07594e-04),
-  fThetaA(5.87693e-04),
-  fThetaB(2.16488e-06),
-  fThetaAlpha(-3.10218e+00),
-  fThetaC(-1.79892e-05),
-  fPhiA(-1.68773e-02),
-  fPhiB(1.78440e-02),
-  fPhiAlpha(-5.26559e-02),
-  fPhiC(2.00940e-04)
+  fThetaA(-1.68773e-02),
+  fThetaB(1.78440e-02),
+  fThetaAlpha(-5.26559e-02),
+  fThetaC(2.00940e-04),
+  fPhiA(5.87693e-04),
+  fPhiB(2.16488e-06),
+  fPhiAlpha(-3.10218e+00),
+  fPhiC(-1.79892e-05)
 {
   //ctor
 }
@@ -98,8 +98,8 @@ void AliHBTCorrectedCorrelFctn::Smear(AliVAODParticle* part, AliVAODParticle* sm
   
   Double_t sigmapt = fDPtOverPtA + fDPtOverPtB*TMath::Power(pt,fDPtOverPtAlpha) + fDPtOverPtC*pt;
   Double_t dPtDivPt = gRandom->Gaus(0.0,sigmapt);
-  Double_t dphi = gRandom->Gaus(0.0,fPhiA+fPhiB*TMath::Power(pt,fPhiAlpha) + fPhiC*pt);
-  Double_t dtheta = gRandom->Gaus(0.0,fPhiA+fPhiB*TMath::Power(pt,fThetaAlpha) +fThetaC*pt);
+  Double_t dphi =     gRandom->Gaus(0.0, fPhiA   +   fPhiB*TMath::Power(pt,fPhiAlpha)   + fPhiC*pt);
+  Double_t dtheta =   gRandom->Gaus(0.0, fThetaA + fThetaB*TMath::Power(pt,fThetaAlpha) + fThetaC*pt);
   
   Double_t smearedPx = part->Px()*(1.0+dPtDivPt) - part->Py()*dphi;
 //  fourmom.setX(px*(1.0+dPtDivPt) - py*dphi);

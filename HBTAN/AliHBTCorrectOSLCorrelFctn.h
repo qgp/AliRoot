@@ -45,6 +45,10 @@ class AliHBTCorrectOSLCorrelFctn: public AliHBTOnePairFctn3D, public AliHBTCorre
    
    Double_t GetModelValue(Double_t qout, Double_t qside, Double_t qlong) const;
    
+   void     SetMeasHistos(TH3F* n, TH3F* d){fMeasNumer = n; fMeasDenom = d;}
+   void     SetIdealHistos(TH3F* n, TH3F* d){fNumerator = n; fDenominator = d;}
+   void     SetSmearedHistos(TH3F* n, TH3F* d){fSmearedNumer = n; fSmearedDenom = d;}
+   
    
   protected:
 
