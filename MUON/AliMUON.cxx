@@ -12,6 +12,109 @@
  * about the suitability of this software for any purpose. It is          *
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
+/*
+$Log$
+Revision 1.60  2003/05/13 17:04:22  martinez
+Adding new AddHit function
+
+Revision 1.59  2002/11/21 17:01:56  alibrary
+Removing AliMCProcess and AliMC
+
+Revision 1.58  2002/10/21 09:01:33  alibrary
+Getting rid of unused variable
+
+Revision 1.57  2002/10/14 14:57:29  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.56.6.2  2002/07/24 10:07:20  alibrary
+Updating VirtualMC
+
+Revision 1.56.6.1  2002/06/10 15:10:14  hristov
+Merged with v3-08-02
+
+Revision 1.56  2001/11/22 11:26:28  jchudoba
+Proper deletion of arrays, deletion of unused variables (thanks to Rene Brun)
+
+Revision 1.55  2001/09/07 08:38:30  hristov
+Pointers initialised to 0 in the default constructors
+
+Revision 1.54  2001/08/30 09:52:12  hristov
+The operator[] is replaced by At() or AddAt() in case of TObjArray.
+
+Revision 1.53  2001/07/20 10:03:13  morsch
+Changes needed to work with Root 3.01 (substitute lhs [] operator). (Jiri Chudoba)
+
+Revision 1.52  2001/06/14 13:49:22  hristov
+Write a TreeD in SDigits2Digits method (needed to be compatible with alirun script)
+
+Revision 1.51  2001/05/31 10:19:52  morsch
+Fix for new AliRun::RunReco().
+
+Revision 1.50  2001/05/16 14:57:17  alibrary
+New files for folders and Stack
+
+Revision 1.49  2001/03/12 17:45:48  hristov
+Changes needed on Sun with CC 5.0
+
+Revision 1.48  2001/03/06 00:01:36  morsch
+Add  Digits2Reco() and FindClusters()
+Adapt call of cluster finder to new STEER.
+
+Revision 1.47  2001/03/05 08:38:36  morsch
+Digitization related methods moved to AliMUONMerger.
+
+Revision 1.46  2001/01/26 21:34:59  morsch
+Use access functions for AliMUONHit, AliMUONDigit and AliMUONPadHit data members.
+
+Revision 1.45  2001/01/26 20:00:49  hristov
+Major upgrade of AliRoot code
+
+Revision 1.44  2001/01/25 17:39:09  morsch
+Pass size of fNdch and fNrawch to CINT.
+
+Revision 1.43  2001/01/23 18:58:19  hristov
+Initialisation of some pointers
+
+Revision 1.42  2001/01/17 20:53:40  hristov
+Destructors corrected to avoid memory leaks
+
+Revision 1.41  2000/12/21 22:12:40  morsch
+Clean-up of coding rule violations,
+
+Revision 1.40  2000/11/29 20:32:26  gosset
+Digitize:
+1. correction for array index out of bounds
+2. one printout commented
+
+Revision 1.39  2000/11/12 17:17:03  pcrochet
+BuildGeometry of AliMUON for trigger chambers delegated to AliMUONSegmentationTriggerX (same strategy as for tracking chambers)
+
+Revision 1.38  2000/11/06 09:20:43  morsch
+AliMUON delegates part of BuildGeometry() to AliMUONSegmentation using the
+Draw() method. This avoids code and parameter replication.
+
+Revision 1.37  2000/10/26 09:53:37  pcrochet
+put back trigger chambers in the display (there was a problem in buildgeometry)
+
+Revision 1.36  2000/10/25 19:51:18  morsch
+Correct x-position of chambers.
+
+Revision 1.35  2000/10/24 19:46:21  morsch
+BuildGeometry updated for slats in station 3-4.
+
+Revision 1.34  2000/10/18 11:42:06  morsch
+- AliMUONRawCluster contains z-position.
+- Some clean-up of useless print statements during initialisations.
+
+Revision 1.33  2000/10/09 14:01:57  morsch
+Unused variables removed.
+
+Revision 1.32  2000/10/06 09:08:10  morsch
+Built geometry includes slat geometry for event display.
+
+Revision 1.31  2000/10/02 21:28:08  fca
+Removal of useless dependecies via forward declarations
+>>>>>>> 1.60
 
 /* $Id$ */
 
@@ -65,7 +168,8 @@
 #include "AliMUONTransientDigit.h"
 #include "AliMUONTriggerCircuit.h"
 #include "AliMUONTriggerDecision.h"
-#include "AliRun.h"
+#include "AliRun.h"	
+
 
 // Defaults parameters for Z positions of chambers
 // taken from values for "stations" in AliMUON::AliMUON
@@ -290,7 +394,19 @@ void AliMUON::AddHit(Int_t track, Int_t *vol, Float_t *hits)
   new(lhits[fNhits++]) AliMUONHit(fIshunt,track,vol,hits);
 }
 //___________________________________________
-void AliMUON::AddPadHit(Int_t *clhits)
+void AliMUON::AddHit(Int_t fIshunt, Int_t track, Int_t iChamber, 
+	      Int_t idpart, Float_t X, Float_t Y, Float_t Z, 
+	      Float_t tof, Float_t momentum, Float_t theta, 
+	      Float_t phi, Float_t length, Float_t destep)
+{
+  TClonesArray &lhits = *fHits;
+  new(lhits[fNhits++]) AliMUONHit(fIshunt, track, iChamber, 
+	       idpart, X, Y, Z, 
+	       tof, momentum, theta, 
+	       phi, length, destep);
+}
+//___________________________________________
+void AliMUON::AddPadHit(Int_t *clhits)  // To be removed
 {
    TClonesArray &lclusters = *fPadHits;
    new(lclusters[fNPadHits++]) AliMUONPadHit(clhits);
@@ -376,6 +492,7 @@ void AliMUON::MakeBranch(Option_t* option)
      {
       MakeBranchInTree(TreeH(), branchname, &fPadHits, kBufferSize, 0);
      }
+
     
     if (cD) {
       //
@@ -700,6 +817,7 @@ void AliMUON::SDigits2Digits()
 }
 
 //___________________________________________
+// To be removed
 void AliMUON::MakePadHits(Float_t xhit,Float_t yhit, Float_t zhit,
 			  Float_t eloss, Float_t tof,  Int_t idvol)
 {
@@ -983,7 +1101,7 @@ void AliMUON::Streamer(TBuffer &R__b)
 
 AliMUONPadHit* AliMUON::FirstPad(AliMUONHit*  hit, TClonesArray *clusters) 
 {
-//
+// to be removed
     // Initialise the pad iterator
     // Return the address of the first padhit for hit
     TClonesArray *theClusters = clusters;
@@ -999,6 +1117,7 @@ AliMUONPadHit* AliMUON::FirstPad(AliMUONHit*  hit, TClonesArray *clusters)
 
 AliMUONPadHit* AliMUON::NextPad(TClonesArray *clusters) 
 {
+  // To be removed
 // Get next pad (in iterator) 
 //
     AliMUON::fCurIterPad++;
