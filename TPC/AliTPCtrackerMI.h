@@ -119,13 +119,8 @@ public:
    Int_t ReadSeeds(const TFile *in);
    Int_t  LoadClusters();
    void   UnloadClusters();
-   Int_t LoadClusters2();
-   Int_t UnloadClusters2();
-
    Int_t LoadInnerSectors();
    Int_t LoadOuterSectors();
-   Int_t LoadInnerSectors2();
-   Int_t LoadOuterSectors2();
    //
    
    AliCluster * GetCluster (int) const {return 0;}
@@ -281,7 +276,7 @@ private:
    void SumTracks(TObjArray *arr1,TObjArray *arr2);
    void PrepareForBackProlongation(TObjArray * arr);
    void SetSampledEdx(AliTPCseed *t, Float_t q, Int_t i) {;}
-   Int_t UpdateTrack(AliTPCseed *t, Bool_t debug = kFALSE); //update trackinfo
+   Int_t UpdateTrack(AliTPCseed *t, Bool_t accept, Bool_t debug = kFALSE); //update trackinfo
 
    //   Int_t FollowBackProlongation(AliTPCseed &s, const AliTPCtrack &t);
 

@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.9.4.1  2003/06/19 06:59:58  hristov
+Updated version of parallel tracking (M.Ivanov)
+
 Revision 1.9  2003/03/19 17:14:11  hristov
 Load/UnloadClusters added to the base class and the derived classes changed correspondingly. Possibility to give 2 input files for ITS and TPC tracks in PropagateBack. TRD tracker uses fEventN from the base class (T.Kuhr)
 
@@ -73,11 +76,12 @@ AliTPCclusterTracks::AliTPCclusterTracks(){
   fDistance[2]=1000;
 }
 
-Int_t AliTPCtrackerMI::UpdateTrack(AliTPCseed * track, Bool_t debug){
+Int_t AliTPCtrackerMI::UpdateTrack(AliTPCseed * track, Bool_t accept, Bool_t debug){
 
   AliTPCclusterMI* c =track->fCurrentCluster;
-  UInt_t i = track->fCurrentClusterIndex1;
+  if (!accept) track->fCurrentClusterIndex1 |=0x8000;  //sign not accepted clusters
 
+  UInt_t i = track->fCurrentClusterIndex1;
 
   Int_t sec=(i&0xff000000)>>24; 
   Int_t row = (i&0x00ff0000)>>16;
@@ -90,6 +94,7 @@ Int_t AliTPCtrackerMI::UpdateTrack(AliTPCseed * track, Bool_t debug){
   track->fFirstPoint = row;
   if ( track->fLastPoint<row) track->fLastPoint =row;
   track->fClusterPointer[track->fRow] = c;
+  
   //
 
   Float_t angle2 = track->GetSnp()*track->GetSnp();
@@ -136,6 +141,7 @@ Int_t AliTPCtrackerMI::UpdateTrack(AliTPCseed * track, Bool_t debug){
   track->fErrorZ2 *= 1.3;   
   track->fErrorZ2 += 0.005;      
     //}
+  if (!accept) return 0;
   return track->Update(c,chi2,i);
 
 }
@@ -606,20 +612,7 @@ Double_t AliTPCtrackerMI::f3(Double_t x1,Double_t y1,
   return (z1 - z2)/sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2));
 }
 
-
 Int_t  AliTPCtrackerMI::LoadClusters()
-{
-  //
-  // load clusters to the memory
-  Int_t j=Int_t(fClustersArray.GetTree()->GetEntries());
-  for (Int_t i=0; i<j; i++) {
-    fClustersArray.LoadEntry(i);  
-  }
-  return 0;
-}
-
-
-Int_t  AliTPCtrackerMI::LoadClusters2()
 {
   //
   // load clusters to the memory
@@ -668,18 +661,7 @@ Int_t  AliTPCtrackerMI::LoadClusters2()
 }
 
 
-
-void  AliTPCtrackerMI::UnloadClusters()
-{
-  //
-  // load clusters to the memory
-  Int_t j=Int_t(fClustersArray.GetTree()->GetEntries());
-  for (Int_t i=0; i<j; i++) {
-    fClustersArray.ClearSegment(i);
-  }
-}
-
-Int_t AliTPCtrackerMI::UnloadClusters2()
+void AliTPCtrackerMI::UnloadClusters()
 {
   //
   // unload clusters from the memory
@@ -704,72 +686,12 @@ Int_t AliTPCtrackerMI::UnloadClusters2()
       }
     }
 
-  return 0;
+  return ;
 }
 
 
 //_____________________________________________________________________________
 Int_t AliTPCtrackerMI::LoadOuterSectors() {
-  //-----------------------------------------------------------------
-  // This function fills outer TPC sectors with clusters.
-  //-----------------------------------------------------------------
-  UInt_t index;
-  //Int_t j=Int_t(fClustersArray.GetTree()->GetEntries());
-  Int_t j = ((AliTPCParam*)fParam)->GetNRowsTotal();
-  for (Int_t i=0; i<j; i++) {
-    //  AliSegmentID *s=fClustersArray.LoadEntry(i);
-    AliSegmentID *s= const_cast<AliSegmentID*>(fClustersArray.At(i));
-    if (!s) continue;
-    Int_t sec,row;
-    AliTPCParam *par=(AliTPCParam*)fClustersArray.GetParam();
-    par->AdjustSectorRow(s->GetID(),sec,row);
-    if (sec<fkNIS*2) continue;
-    AliTPCClustersRow *clrow=fClustersArray.GetRow(sec,row);
-    Int_t ncl=clrow->GetArray()->GetEntriesFast();
-    while (ncl--) {
-      AliTPCclusterMI *c=(AliTPCclusterMI*)(*clrow)[ncl];
-      index=(((sec<<8)+row)<<16)+ncl;
-      fOuterSec[(sec-fkNIS*2)%fkNOS][row].InsertCluster(c,index);
-    }
-  }  
-  fN=fkNOS;
-  fSectors=fOuterSec;
-  return 0;
-}
-
-
-//_____________________________________________________________________________
-Int_t AliTPCtrackerMI::LoadInnerSectors() {
-  //-----------------------------------------------------------------
-  // This function fills inner TPC sectors with clusters.
-  //-----------------------------------------------------------------
-  UInt_t index;
-  //Int_t j=Int_t(fClustersArray.GetTree()->GetEntries());
-  Int_t j = ((AliTPCParam*)fParam)->GetNRowsTotal();
-  for (Int_t i=0; i<j; i++) {
-    //   AliSegmentID *s=fClustersArray.LoadEntry(i);
-    AliSegmentID *s=const_cast<AliSegmentID*>(fClustersArray.At(i));
-    if (!s) continue;
-    Int_t sec,row;
-    AliTPCParam *par=(AliTPCParam*)fClustersArray.GetParam();
-    par->AdjustSectorRow(s->GetID(),sec,row);
-    if (sec>=fkNIS*2) continue;
-    AliTPCClustersRow *clrow=fClustersArray.GetRow(sec,row);
-    Int_t ncl=clrow->GetArray()->GetEntriesFast();
-    while (ncl--) {
-      AliTPCclusterMI *c=(AliTPCclusterMI*)(*clrow)[ncl];
-      index=(((sec<<8)+row)<<16)+ncl;
-      fInnerSec[sec%fkNIS][row].InsertCluster(c,index);
-    }
-  }
-
-  fN=fkNIS;
-  fSectors=fInnerSec;
-  return 0;
-}
-
-//_____________________________________________________________________________
-Int_t AliTPCtrackerMI::LoadOuterSectors2() {
   //-----------------------------------------------------------------
   // This function fills outer TPC sectors with clusters.
   //-----------------------------------------------------------------
@@ -801,7 +723,7 @@ Int_t AliTPCtrackerMI::LoadOuterSectors2() {
 
 
 //_____________________________________________________________________________
-Int_t  AliTPCtrackerMI::LoadInnerSectors2() {
+Int_t  AliTPCtrackerMI::LoadInnerSectors() {
   //-----------------------------------------------------------------
   // This function fills inner TPC sectors with clusters.
   //-----------------------------------------------------------------
@@ -845,8 +767,8 @@ AliTPCclusterMI *AliTPCtrackerMI::GetClusterMI2(Int_t index) const {
   AliTPCClustersRow *clrow=((AliTPCtrackerMI *) this)->fClustersArray.GetRow(sec,row);
   if (!clrow) return 0;
   if (clrow->GetArray()->GetEntriesFast()<=ncl) return 0;
-  AliTPCclusterMI * cl = (AliTPCclusterMI*)(*clrow)[ncl];
-  AliTPCclusterMI * cl2 = GetClusterMI2(index);
+  //  AliTPCclusterMI * cl = (AliTPCclusterMI*)(*clrow)[ncl];
+  //AliTPCclusterMI * cl2 = GetClusterMI2(index);
 
   return (AliTPCclusterMI*)(*clrow)[ncl];      
 }
@@ -966,23 +888,24 @@ Int_t AliTPCtrackerMI::FollowToNext(AliTPCseed& t, Int_t nr) {
     Double_t rdistancez = TMath::Abs(t.fCurrentCluster->GetZ()-t.GetZ());
     
     Double_t rdistance  = rdistancey/sdistancey+rdistancez/sdistancez;
+    Bool_t accept =kTRUE;
 
     //    printf("\t%f\t%f\t%f\n",rdistancey/sdistancey,rdistancez/sdistancez,rdistance);
     if ( (rdistancey>1) || (rdistancez>1)) return 0;
-    if (rdistance>5) return 0;
+    if (rdistance>6) return kFALSE;
         
     
     if ((rdistancey/sdistancey>3 || rdistancez/sdistancez>3) && t.fCurrentCluster->GetType()==0)  
-	return 0;  //suspisiouce - will be changed
+	accept = kFALSE;  //suspisiouce - will be changed
 
     if ((rdistancey/sdistancey>2.5 || rdistancez/sdistancez>2.5) && t.fCurrentCluster->GetType()>0)  
 	// strict cut on overlaped cluster
-	return 0;  //suspisiouce - will be changed
+	accept = kFALSE;  //suspisiouce - will be changed
 
     if ( (rdistancey/sdistancey>1 || rdistancez/sdistancez>2.5 ) 
 	 && t.fCurrentCluster->GetType()<0){
       t.fNFoundable--;
-      return 0;
+      accept = kFALSE ;
     }
     if (t.fCurrentCluster->IsUsed()){
       //
@@ -991,7 +914,7 @@ Int_t AliTPCtrackerMI::FollowToNext(AliTPCseed& t, Int_t nr) {
       t.fErrorY2*=2;
       t.fNShared++;
     }
-    UpdateTrack(&t);
+    UpdateTrack(&t,accept);
 
   } else {    
     
@@ -1189,13 +1112,32 @@ Int_t AliTPCtrackerMI::FollowToNextCluster(AliTPCseed & t, Int_t nr) {
   // This function tries to find a track prolongation to next pad row
   //-----------------------------------------------------------------
 
-  //  AliTPCRow &krow=fSectors[t.fRelativeSector][nr];
-  //Double_t y=t.GetY();
-  
+  //update error according neighborhoud
+  Float_t meanz =0;
+  Float_t meany =0;
+  Int_t accept=0;
+  for (Int_t di=1;di<4;di++){
+    AliTPCclusterMI * cl = t.fClusterPointer[t.fRow];
+    if (cl) accept++;
+    AliTPCTrackPoint * point = t.GetTrackPoint(di);
+    meany+= point->GetTPoint().GetSigmaY();
+    meanz+= point->GetTPoint().GetSigmaZ();
+  }
+  if (accept>0){
+    meany/=accept;
+    meanz/=accept;    
+  }
+  Float_t corz=TMath::Max(1.,meanz);
+  Float_t cory=TMath::Max(1.,meany);
+  //  
+
+
   if (t.fCurrentCluster) {
     Double_t sy2=ErrY2(&t,t.fCurrentCluster);
     Double_t sz2=ErrZ2(&t,t.fCurrentCluster);
-
+    sy2*=cory;
+    sz2*=corz;
+    //
     Double_t rdistancey = TMath::Abs(t.fCurrentCluster->GetY()-t.GetY());
     Double_t rdistancez = TMath::Abs(t.fCurrentCluster->GetZ()-t.GetZ());
     if ( (rdistancey>1) || (rdistancez>1)) return 0;
@@ -1204,20 +1146,21 @@ Int_t AliTPCtrackerMI::FollowToNextCluster(AliTPCseed & t, Int_t nr) {
     Double_t sdistancez = TMath::Sqrt(sz2+t.GetSigmaZ2());    
     Double_t rdistance  = rdistancey/sdistancey+rdistancez/sdistancez;
     //    printf("\t%f\t%f\t%f\n",rdistancey/sdistancey,rdistancez/sdistancez,rdistance);
-   
-    if (rdistance>5) return 0;
+    Bool_t accept = kTRUE;
+    
+    if (rdistance>5) return kFALSE;
     
     if ((rdistancey/sdistancey>3 || rdistancez/sdistancez>3) && t.fCurrentCluster->GetType()==0)  
-	return 0;  //suspisiouce - will be changed
+	accept = kFALSE;  //suspisiouce - will be changed
 
     if ((rdistancey/sdistancey>2.5 || rdistancez/sdistancez>2.5) && t.fCurrentCluster->GetType()>0)  
 	// strict cut on overlaped cluster
-	return 0;  //suspisiouce - will be changed
+	accept = kFALSE;  //suspisiouce - will be changed
 
     if ( (rdistancey/sdistancey>2 || rdistancez/sdistancez>2.5 ||t.fCurrentCluster->GetQ()<70 ) 
 	 && t.fCurrentCluster->GetType()<0){
       t.fNFoundable--;    
-      return 0;
+      accept = kFALSE;
     }
     if (t.fCurrentCluster->IsUsed()){
       //
@@ -1226,7 +1169,7 @@ Int_t AliTPCtrackerMI::FollowToNextCluster(AliTPCseed & t, Int_t nr) {
       t.fErrorY2*=2;
       t.fNShared++;
     }
-    UpdateTrack(&t);
+    UpdateTrack(&t,accept);
    
   } else {
   }
@@ -1532,7 +1475,7 @@ void AliTPCtrackerMI::RemoveUsed(TObjArray * arr, Float_t factor1,  Float_t fact
     BuildDensity(pt);
     for (Int_t i=0; i<160; i++) {
       Int_t index=pt->GetClusterIndex2(i);
-      if (index<0) continue;
+      if (index<0 || index&0x8000) continue;
       //      AliTPCclusterMI *c=(AliTPCclusterMI*)GetClusterMI(index); 
       AliTPCclusterMI *c= pt->fClusterPointer[i]; 
       if (!c) continue;
@@ -1554,7 +1497,7 @@ void AliTPCtrackerMI::RemoveUsed(TObjArray * arr, Float_t factor1,  Float_t fact
     BuildDensity(pt);
     for (Int_t i=0; i<160; i++) {
       Int_t index=pt->GetClusterIndex2(i);
-      if (index<0) continue;
+      if (index<0 || index&0x8000) continue;
       //      AliTPCclusterMI *c=(AliTPCclusterMI*)GetClusterMI(index); 
       AliTPCclusterMI *c= pt->fClusterPointer[i]; 
       if (!c) continue;
@@ -1566,7 +1509,7 @@ void AliTPCtrackerMI::RemoveUsed(TObjArray * arr, Float_t factor1,  Float_t fact
       good++;
       for (Int_t i=0; i<160; i++) {
 	Int_t index=pt->GetClusterIndex2(i);
-	if (index<0) continue;
+	if (index<0 || index&0x8000 ) continue;
 	//	AliTPCclusterMI *c=(AliTPCclusterMI*)GetClusterMI(index);  
 	AliTPCclusterMI *c= pt->fClusterPointer[i];  
 
@@ -1591,7 +1534,7 @@ void AliTPCtrackerMI::RemoveUsed(TObjArray * arr, Float_t factor1,  Float_t fact
     BuildDensity(pt);
     for (Int_t i=0; i<160; i++) {
       Int_t index=pt->GetClusterIndex2(i);
-      if (index<0) continue;
+      if (index<0 || index&0x8000) continue;
       //      AliTPCclusterMI *c=(AliTPCclusterMI*)GetClusterMI(index);
       AliTPCclusterMI *c= pt->fClusterPointer[i];
       if (!c) continue;
@@ -2401,20 +2344,20 @@ Int_t AliTPCtrackerMI::Clusters2Tracks(const TFile *inp, TFile *out) {
   TStopwatch timer;
   
   printf("Loading clusters \n");
-  LoadClusters2();
+  LoadClusters();
   printf("Time for loading clusters: \t");timer.Print();timer.Start();
 
   //LoadClusters();
   //printf("Time for loading clusters: \t");timer.Print();timer.Start();
 
   printf("Loading outer sectors\n");
-  LoadOuterSectors2();
+  LoadOuterSectors();
   printf("Time for loading outer sectors: \t");timer.Print();timer.Start();
   //LoadOuterSectors();
   //printf("Time for loading outer sectors: \t");timer.Print();timer.Start();
 
   printf("Loading inner sectors\n");
-  LoadInnerSectors2();
+  LoadInnerSectors();
   printf("Time for loading inner sectors: \t");timer.Print();timer.Start();
   //LoadInnerSectors();
   //printf("Time for loading inner sectors: \t");timer.Print();timer.Start();
@@ -2492,7 +2435,7 @@ Int_t AliTPCtrackerMI::Clusters2Tracks(const TFile *inp, TFile *out) {
   cerr<<"Number of found tracks : "<<"\t"<<found<<endl;  
   savedir->cd();
 
-  UnloadClusters2();
+  UnloadClusters();
   printf("Time for unloading cluster: \t"); timer.Print();timer.Start();
   
   return 0;
@@ -2783,6 +2726,7 @@ void AliTPCtrackerMI::CookLabel(AliTPCseed *t, Float_t wrong) const {
      
      Int_t index=t->GetClusterIndex2(i);
      if (index<=0) continue; 
+     if (index&0x8000) continue;
      //     
      //clusters[current]=GetClusterMI(index);
      clusters[current]=t->fClusterPointer[i];     
@@ -3178,12 +3122,14 @@ void AliTPCseed::CookdEdx(Double_t low, Double_t up) {
   for (Int_t of =0; of<4; of++){    
     for (Int_t i=of;i<160;i+=4)
       {
+	Int_t index = fIndex[i];
+	if (index<0||index&0x8000) continue;
+
 	//AliTPCTrackPoint * point = (AliTPCTrackPoint *) arr.At(i);
 	AliTPCTrackPoint * point = GetTrackPoint(i);
 	AliTPCTrackPoint * pointm = GetTrackPoint(i-1);
 	AliTPCTrackPoint * pointp = 0;
 	if (i<159) pointp = GetTrackPoint(i+1);
-
 
 	if (point==0) continue;
 	AliTPCclusterMI * cl = fClusterPointer[i];
