@@ -49,8 +49,7 @@ ClassImp(AliHBTOutSideLongFctn)
 AliHBTOutSideLongFctn::AliHBTOutSideLongFctn(Int_t nXbins, Double_t maxXval, Double_t minXval,
                                                    Int_t nYbins, Double_t maxYval, Double_t minYval,
                                                    Int_t nZbins, Double_t maxZval, Double_t minZval):
- AliHBTOnePairFctn3D(nXbins,maxXval,minXval,nYbins,maxYval,minYval,nZbins,maxZval,minZval),
- fAbs(kTRUE)
+ AliHBTOnePairFctn3D(nXbins,maxXval,minXval,nYbins,maxYval,minYval,nZbins,maxZval,minZval)
 {
 //ctor
   fWriteNumAndDen = kTRUE;//change default behaviour
