@@ -37,8 +37,6 @@
 #include <TStyle.h>
 
 
-#include "malloc.h"
-
 
 ClassImp(AliRICHDetect)
 //___________________________________________
