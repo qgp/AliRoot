@@ -27,7 +27,6 @@ public:
                   throw (const Char_t *);
   AliCluster *GetCluster(Int_t index) const;
   Int_t Clusters2Tracks();
-  Int_t Exec(Option_t* opt = "");
   Int_t PropagateBack();
   void SetupFirstPass(Int_t *flags, Double_t *cuts=0);
   void SetupSecondPass(Int_t *flags, Double_t *cuts=0);
