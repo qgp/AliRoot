@@ -13,8 +13,12 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/* $Id$ */
-
+/*
+ $Id$ 
+*/
+/*
+ $Log$
+*/
 #include <TArrayI.h>
 
 #include <stdlib.h>
@@ -78,20 +82,18 @@ AliITSmodule::AliITSmodule(const AliITSmodule &source){
 ////////////////////////////////////////////////////////////////////////
 //     Copy Constructor 
 ////////////////////////////////////////////////////////////////////////
-  printf("AliITSmodule error: AliITSmodule class has not to be copied! Exit.\n");
+  Error("AliITSmodule","AliITSmodule class has not to be copied! Exit.");
   exit(1);
 }
-
 //_____________________________________________________________________________
 AliITSmodule& AliITSmodule::operator=(const AliITSmodule &source){
 ////////////////////////////////////////////////////////////////////////
 //    Assignment operator 
 ////////////////////////////////////////////////////////////////////////
-  printf("AliITSmodule error: AliITSmodule class has not to be copied! Exit.\n");
+  Error("AliITSmodule","AliITSmodule class has not to be copied! Exit.");
   exit(1);
   return *this; // fake return neded on Sun
-} 
-
+}
 //_________________________________________________________________________
 // 
 // Hits management
@@ -165,26 +167,23 @@ Bool_t AliITSmodule::LineSegmentL(Int_t hitindex,Double_t &a,Double_t &b,
 				  Double_t &c,Double_t &d,
 				  Double_t &e,Double_t &f,Double_t &de){
   // line segment
-    static Int_t hitindex0;
-    AliITShit *h0,*h1;
+    AliITShit *h1;
+    Double_t t;
 
     if(hitindex>= fHitsM->GetEntriesFast()) return kFALSE;
 
     h1 = (AliITShit *) (fHitsM->At(hitindex));
     if(h1->StatusEntering()){ // if track entering volume, get index for next
 	                      // step
-	hitindex0 = hitindex;
 	return kFALSE;
     } // end if StatusEntering()
     // else stepping
-    h0 = (AliITShit *) (fHitsM->At(hitindex0));
     de = h1->GetIonization();
-    h0->GetPositionL(a,c,e);
+    h1->GetPositionL0(a,c,e,t);
     h1->GetPositionL(b,d,f);
     b = b - a;
     d = d - c;
     f = f - e;
-    hitindex0 = hitindex;
     return kTRUE;
 }
 //___________________________________________________________________________
@@ -192,26 +191,23 @@ Bool_t AliITSmodule::LineSegmentG(Int_t hitindex,Double_t &a,Double_t &b,
 				  Double_t &c,Double_t &d,
 				  Double_t &e,Double_t &f,Double_t &de){
   // line segment
-    static Int_t hitindex0;
-    AliITShit *h0,*h1;
+    AliITShit *h1;
+    Double_t t;
 
     if(hitindex>= fHitsM->GetEntriesFast()) return kFALSE;
 
     h1 = (AliITShit *) (fHitsM->At(hitindex));
     if(h1->StatusEntering()){ // if track entering volume, get index for next
 	                      // step
-	hitindex0 = hitindex;
 	return kFALSE;
     } // end if StatusEntering()
     // else stepping
-    h0 = (AliITShit *) (fHitsM->At(hitindex0));
     de = h1->GetIonization();
-    h0->GetPositionG(a,c,e);
+    h1->GetPositionG0(a,c,e,t);
     h1->GetPositionG(b,d,f);
     b = b - a;
     d = d - c;
     f = f - e;
-    hitindex0 = hitindex;
     return kTRUE;
 }
 //___________________________________________________________________________
@@ -220,27 +216,24 @@ Bool_t AliITSmodule::LineSegmentL(Int_t hitindex,Double_t &a,Double_t &b,
 				  Double_t &e,Double_t &f,
 				  Double_t &de,Int_t &track){
   // line segmente
-    static Int_t hitindex0;
-    AliITShit *h0,*h1;
+    AliITShit *h1;
+    Double_t t;
 
     if(hitindex>= fHitsM->GetEntriesFast()) return kFALSE;
 
     h1 = (AliITShit *) (fHitsM->At(hitindex));
     if(h1->StatusEntering()){ // if track entering volume, get index for next
 	                      // step
-	hitindex0 = hitindex;
 	track = h1->GetTrack();
 	return kFALSE;
     } // end if StatusEntering()
     // else stepping
-    h0 = (AliITShit *) (fHitsM->At(hitindex0));
     de = h1->GetIonization();
-    h0->GetPositionL(a,c,e);
+    h1->GetPositionL0(a,c,e,t);
     h1->GetPositionL(b,d,f);
     b = b - a;
     d = d - c;
     f = f - e;
-    hitindex0 = hitindex;
     track = h1->GetTrack();
     return kTRUE;
 }
@@ -250,27 +243,24 @@ Bool_t AliITSmodule::LineSegmentG(Int_t hitindex,Double_t &a,Double_t &b,
 				  Double_t &e,Double_t &f,
 				  Double_t &de,Int_t &track){
   // line segment
-    static Int_t hitindex0;
-    AliITShit *h0,*h1;
+    AliITShit *h1;
+    Double_t t;
 
     if(hitindex>= fHitsM->GetEntriesFast()) return kFALSE;
 
     h1 = (AliITShit *) (fHitsM->At(hitindex));
     if(h1->StatusEntering()){ // if track entering volume, get index for next
 	                      // step
-	hitindex0 = hitindex;
 	track = h1->GetTrack();
 	return kFALSE;
     } // end if StatusEntering()
     // else stepping
-    h0 = (AliITShit *) (fHitsM->At(hitindex0));
     de = h1->GetIonization();
-    h0->GetPositionG(a,c,e);
+    h1->GetPositionG0(a,c,e,t);
     h1->GetPositionG(b,d,f);
     b = b - a;
     d = d - c;
     f = f - e;
-    hitindex0 = hitindex;
     track = h1->GetTrack();
     return kTRUE;
 }

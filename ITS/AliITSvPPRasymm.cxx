@@ -13,8 +13,12 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/* $Id$ */
-
+/* 
+ $Id$ 
+*/
+/*
+ $Log$
+*/
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
 //  Inner Traking System version PPR  asymmetric                             //
@@ -34,17 +38,17 @@
 #include <stdlib.h>
 
 #include <TBRIK.h>
-#include <TCanvas.h>
+//#include <TCanvas.h>
 #include <TClonesArray.h>
-#include <TFile.h>    // only required for Tracking function?
+//#include <TFile.h>    // only required for Tracking function?
 #include <TGeometry.h>
 #include <TLorentzVector.h>
 #include <TMath.h>
 #include <TNode.h>
-#include <TObjArray.h>
-#include <TObjString.h>
+//#include <TObjArray.h>
+//#include <TObjString.h>
 #include <TPCON.h>
-#include <TSystem.h>
+//#include <TSystem.h>
 #include <TTUBE.h>
 #include <TTUBS.h>
 #include <TVirtualMC.h>
@@ -72,11 +76,7 @@
 #include "AliITSsimulationSPD.h"
 #include "AliITSsimulationSSD.h"
 #include "AliITSvPPRasymm.h"
-#include "AliMagF.h"
-#include "AliRun.h"
-#include "AliTrackReference.h"
 
-//AliITSvPPRasymm its("its","test");
 
 ClassImp(AliITSvPPRasymm)
  
@@ -29205,9 +29205,8 @@ void AliITSvPPRasymm::StepManager(){
     if(!(this->IsActive())){
 	return;
     } // end if !Active volume.
-    Int_t   copy1,copy2;  
-//    Float_t hits[8];
-    Int_t   vol[5];
+    Int_t copy1,copy2;
+    Int_t vol[5];
     TClonesArray &lhits = *fHits;
     //
     // Track status
@@ -29283,23 +29282,13 @@ void AliITSvPPRasymm::StepManager(){
     //
     gMC->TrackPosition(position);
     gMC->TrackMomentum(momentum);
-/*
-    hits[0]=position[0];
-    hits[1]=position[1];
-    hits[2]=position[2];
-    hits[3]=momentum[0];
-    hits[4]=momentum[1];
-    hits[5]=momentum[2];
-    hits[6]=gMC->Edep();
-    hits[7]=gMC->TrackTime();
-*/
     vol[4] = stat0;
     if(gMC->IsTrackEntering()){
 	position0 = position;
 	stat0 = vol[3];
+	return;
     } // end if IsEntering
     // Fill hit structure with this new hit.
-//    new(lhits[fNhits++]) AliITShit(fIshunt,gAlice->CurrentTrack(),vol,hits);
     new(lhits[fNhits++]) AliITShit(fIshunt,gAlice->CurrentTrack(),vol,
 				   gMC->Edep(),gMC->TrackTime(),position,
 				   position0,momentum);
