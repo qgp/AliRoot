@@ -36,8 +36,8 @@
 // t2.SetCharge(0);
 // t2.SetMass(1.115);
 //
-// t1.Info();
-// t2.Info();
+// t1.Data();
+// t2.Data();
 //
 // Float_t pi=acos(-1.);
 // Float_t thcms=0.2*pi; // decay theta angle in cms
@@ -136,6 +136,7 @@ AliTrack::AliTrack(AliTrack& t)
  fChi2=t.GetChi2();
  fNdf=t.GetNdf();
  fUserId=t.GetId();
+ fCode=t.GetParticleCode();
  fNdec=t.GetNdecay();
  fNsig=t.GetNsignals();
  fNmasses=t.GetNMassHypotheses();
@@ -195,6 +196,7 @@ void AliTrack::Reset()
  fChi2=0;
  fNdf=0;
  fUserId=0;
+ fCode=0;
  fNdec=0;
  fNsig=0;
  fNmasses=0;
@@ -266,13 +268,13 @@ void AliTrack::SetCharge(Float_t q)
  fQ=q;
 }
 ///////////////////////////////////////////////////////////////////////////
-void AliTrack::Info(TString f)
+void AliTrack::Data(TString f)
 {
 // Provide track information within the coordinate frame f
  Double_t m=GetMass();
  Double_t dm=GetResultError();
- cout << " *AliTrack::Info* Id : " << fUserId << " Mass : " << m
-      << " error : " << dm << " Charge : " << fQ
+ cout << " *AliTrack::Data* Id : " << fUserId << " Code : " << fCode
+      << " Mass : " << m << " error : " << dm << " Charge : " << fQ
       << " Momentum : " << GetMomentum() << " Nmass hyp. : " << fNmasses
       << " Ntracks : " << fNdec << " Nsignals : " << fNsig << endl;
  for (Int_t i=0; i<fNmasses; i++)
@@ -281,14 +283,14 @@ void AliTrack::Info(TString f)
        << " error : " << fDmasses->At(i) << " prob. : " << fPmasses->At(i)
        << endl;
  }
- Ali4Vector::Info(f); 
+ Ali4Vector::Data(f); 
 } 
 ///////////////////////////////////////////////////////////////////////////
 void AliTrack::List(TString f)
 {
 // Provide current track and decay level 1 information within coordinate frame f
 
- Info(f); // Information of the current track
+ Data(f); // Information of the current track
 
  // Decay products of this track
  AliTrack* td; 
@@ -298,7 +300,7 @@ void AliTrack::List(TString f)
   if (td)
   {
    cout << "  ---Level 1 sec. track no. " << id << endl;
-   td->Info(f); 
+   td->Data(f); 
   }
   else
   {
@@ -311,12 +313,12 @@ void AliTrack::ListAll(TString f)
 {
 // Provide complete track and decay information within the coordinate frame f
 
- Info(f); // Information of the current track
- cout << " Begin-point :"; fBegin.Info(f);
- cout << " End-point   :"; fEnd.Info(f);
+ Data(f); // Information of the current track
+ cout << " Begin-point :"; fBegin.Data(f);
+ cout << " End-point   :"; fEnd.Data(f);
  for (Int_t is=1; is<=GetNsignals(); is++)
  {
-  ((AliSignal*)GetSignal(is))->Info(f);
+  ((AliSignal*)GetSignal(is))->Data(f);
  }
 
  AliTrack* t=this;
@@ -333,10 +335,10 @@ void AliTrack::Dump(AliTrack* t,Int_t n,TString f)
   if (td)
   {
    cout << "  ---Level " << n << " sec. track no. " << id << endl;
-   td->Info(f); 
+   td->Data(f); 
    for (Int_t is=1; is<=td->GetNsignals(); is++)
    {
-    ((AliSignal*)td->GetSignal(is))->Info(f);
+    ((AliSignal*)td->GetSignal(is))->Data(f);
    }
 
    // Go for next decay level of this decay track recursively
@@ -932,13 +934,13 @@ AliPosition AliTrack::GetImpactPoint(TString q)
 ///////////////////////////////////////////////////////////////////////////
 void AliTrack::SetId(Int_t id)
 {
-// Set a user defined identifier for this track.
+// Set a user defined unique identifier for this track.
  fUserId=id;
 }
 ///////////////////////////////////////////////////////////////////////////
 Int_t AliTrack::GetId()
 {
-// Provide the user defined identifier of this track.
+// Provide the user defined unique identifier of this track.
  return fUserId;
 }
 ///////////////////////////////////////////////////////////////////////////
@@ -990,5 +992,17 @@ Int_t AliTrack::GetNdf()
 {
 // Provide the number of degrees of freedom for the track fit.
  return fNdf;
+}
+///////////////////////////////////////////////////////////////////////////
+void AliTrack::SetParticleCode(Int_t code)
+{
+// Set the user defined particle id code (e.g. the PDF convention).
+ fCode=code;
+}
+///////////////////////////////////////////////////////////////////////////
+Int_t AliTrack::GetParticleCode()
+{
+// Provide the user defined particle id code.
+ return fCode;
 }
 ///////////////////////////////////////////////////////////////////////////

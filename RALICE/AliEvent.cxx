@@ -157,7 +157,7 @@
 //        jx=v2.GetJet(2);
 //        evt.AddJet(jx,0); 
 // 
-//        evt.Info("sph");
+//        evt.Data("sph");
 //        v1.ListAll();
 //        v2.List("cyl");
 //
@@ -166,7 +166,7 @@
 //        Float_t loc[3];
 //        evt.GetPosition(loc,"sph");
 //        AliPosition r=v1.GetPosition();
-//        r.Info(); 
+//        r.Data(); 
 //        Int_t nt=v2.GetNtracks();
 //        AliTrack* tv=v2.GetTrack(1); // Access track number 1 of Vertex v2
 //
@@ -189,7 +189,7 @@
 // Note : All quantities are in GeV, GeV/c or GeV/c**2
 //
 //--- Author: Nick van Eijndhoven 27-may-2001 UU-SAP Utrecht
-//- Modified: NvE $Date: 2002/04/26 11:23:37 $ UU-SAP Utrecht
+//- Modified: NvE $Date: 2003/02/03 13:19:44 $ UU-SAP Utrecht
 ///////////////////////////////////////////////////////////////////////////
 
 #include "AliEvent.h"
@@ -206,9 +206,11 @@ AliEvent::AliEvent()
  fAproj=0;
  fZproj=0;
  fPnucProj=0;
+ fIdProj=0;
  fAtarg=0;
  fZtarg=0;
  fPnucTarg=0;
+ fIdTarg=0;
  fNcals=0;
  fCalorimeters=0;
  fCalCopy=0;
@@ -225,9 +227,11 @@ AliEvent::AliEvent(Int_t n): AliVertex(n)
  fAproj=0;
  fZproj=0;
  fPnucProj=0;
+ fIdProj=0;
  fAtarg=0;
  fZtarg=0;
  fPnucTarg=0;
+ fIdTarg=0;
  fNcals=0;
  fCalorimeters=0;
  fCalCopy=0;
@@ -255,9 +259,11 @@ void AliEvent::Reset()
  fAproj=0;
  fZproj=0;
  fPnucProj=0;
+ fIdProj=0;
  fAtarg=0;
  fZtarg=0;
  fPnucTarg=0;
+ fIdTarg=0;
 
  fNcals=0;
  if (fCalorimeters)
@@ -334,12 +340,14 @@ Int_t AliEvent::GetEventNumber()
  return fEvent;
 }
 ///////////////////////////////////////////////////////////////////////////
-void AliEvent::SetProjectile(Int_t a,Int_t z,Double_t pnuc)
+void AliEvent::SetProjectile(Int_t a,Int_t z,Double_t pnuc,Int_t id)
 {
-// Set the projectile A, Z and momentum value per nucleon.
+// Set the projectile A, Z, momentum per nucleon and user defined particle ID.
+// By default the particle ID is set to zero.
  fAproj=a;
  fZproj=z;
  fPnucProj=pnuc;
+ fIdProj=id;
 }
 ///////////////////////////////////////////////////////////////////////////
 Int_t AliEvent::GetProjectileA()
@@ -360,12 +368,20 @@ Double_t AliEvent::GetProjectilePnuc()
  return fPnucProj;
 }
 ///////////////////////////////////////////////////////////////////////////
-void AliEvent::SetTarget(Int_t a,Int_t z,Double_t pnuc)
+Int_t AliEvent::GetProjectileId()
 {
-// Set the target A, Z and momentum value per nucleon.
+// Provide the user defined particle ID of the projectile.
+ return fIdProj;
+}
+///////////////////////////////////////////////////////////////////////////
+void AliEvent::SetTarget(Int_t a,Int_t z,Double_t pnuc,Int_t id)
+{
+// Set the target A, Z, momentum per nucleon and user defined particle ID.
+// By default the particle ID is set to zero.
  fAtarg=a;
  fZtarg=z;
  fPnucTarg=pnuc;
+ fIdTarg=id;
 }
 ///////////////////////////////////////////////////////////////////////////
 Int_t AliEvent::GetTargetA()
@@ -386,35 +402,26 @@ Double_t AliEvent::GetTargetPnuc()
  return fPnucTarg;
 }
 ///////////////////////////////////////////////////////////////////////////
-void AliEvent::HeaderInfo()
+Int_t AliEvent::GetTargetId()
 {
-// Provide event header information
- Int_t date=fDaytime.GetDate();
- Int_t time=fDaytime.GetTime();
-
- Int_t year=date/10000;
- Int_t month=(date%10000)/100;
- Int_t day=date%100;
- Int_t hh=time/10000;
- Int_t mm=(time%10000)/100;
- Int_t ss=time%100;
-
- char* c[12]={"jan","feb","mar","apr","may","jun",
-              "jul","aug","sep","oct","nov","dec"};
-
- cout << " *AliEvent::Info* Run : " << fRun << " Event : " << fEvent;
- cout.fill('0');
- cout << " Date : " << setw(2) << day << "-" << c[month-1] << "-" << year
-      << " Time : " << setw(2) << hh << ":" << setw(2) << mm << ":" << setw(2) << ss;
- cout.fill(' ');
- cout << " Ncalorimeters : " << fNcals << endl;
+// Provide the user defined particle ID of the target.
+ return fIdTarg;
 }
 ///////////////////////////////////////////////////////////////////////////
-void AliEvent::Info(TString f)
+void AliEvent::HeaderData()
+{
+// Provide event header information
+ cout << " *AliEvent::Data* Run : " << fRun << " Event : " << fEvent
+      << " Date : " << fDaytime.AsString() << endl;
+
+ ShowCalorimeters();
+}
+///////////////////////////////////////////////////////////////////////////
+void AliEvent::Data(TString f)
 {
 // Provide event information within the coordinate frame f
- HeaderInfo();
- AliVertex::Info(f);
+ HeaderData();
+ AliVertex::Data(f);
 } 
 ///////////////////////////////////////////////////////////////////////////
 Int_t AliEvent::GetNcalorimeters()
@@ -526,6 +533,24 @@ AliCalorimeter* AliEvent::GetCalorimeter(TString name)
   }
 
   return 0; // No matching name found
+ }
+}
+///////////////////////////////////////////////////////////////////////////
+void AliEvent::ShowCalorimeters()
+{
+// Provide an overview of the available calorimeter systems.
+ if (fNcals>0)
+ {
+  cout << " The following " << fNcals << " calorimeter systems are available :" << endl; 
+  for (Int_t i=1; i<=fNcals; i++)
+  {
+   AliCalorimeter* cal=GetCalorimeter(i);
+   if (cal) cout << " Calorimeter number : " << i << " Name : " << cal->GetName() << endl;
+  }
+ }
+ else
+ {
+  cout << " No calorimeters present for this event." << endl;
  }
 }
 ///////////////////////////////////////////////////////////////////////////
