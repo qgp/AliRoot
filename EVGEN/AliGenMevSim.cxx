@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.3  2001/07/27 17:24:28  morsch
+Some bugs corrected. ( Piotr Skowronski)
+
 Revision 1.2  2001/03/28 07:31:48  hristov
 Loop variables declared only once (HP,Sun)
 
@@ -96,7 +99,8 @@ void AliGenMevSim::Init()
   if (TestBit(kPtRange))  mevsim->SetPtCutRange(fPtMin, fPtMax);
   
   if (TestBit(kPhiRange)) // from radians to 0 - 360 deg
-    mevsim->SetPhiCutRange( fPhiMin * 180 / TMath::Pi() , fPhiMax * 180 / TMath::Pi() );
+    mevsim->SetPhiCutRange( fPhiMin*180/((Float_t)TMath::Pi()) + 180.0,//cast to float is because if fPhiMin=-Pi
+                            fPhiMax*180/((Float_t)TMath::Pi()) + 180.0 );//passed value is non 0 and negative (but smaall)
   
   if (TestBit(kThetaRange)) // from theta to eta
   {
