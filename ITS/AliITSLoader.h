@@ -2,6 +2,7 @@
 #define ALIITSGETTER_H
 
 #include <AliLoader.h>
+#include <AliITSVertex.h>
 
 class AliITSLoader: public AliLoader
  {
@@ -21,6 +22,16 @@ class AliITSLoader: public AliLoader
     TTree*         TreeC(){ return fRawClustersDataLoader.Tree();} // returns a pointer to the tree of  RawClusters
     void           UnloadRawClusters(){fRawClustersDataLoader.GetBaseLoader(0)->Unload();}
     virtual Int_t  WriteRawClusters(Option_t* opt=""){return fRawClustersDataLoader.GetBaseLoader(0)->WriteData(opt);}
+
+    //Vertices
+    virtual void   CleanVertices() {fVertexDataLoader.GetBaseLoader(0)->Clean();}
+    Int_t          LoadVertices(Option_t* opt=""){return fVertexDataLoader.GetBaseLoader(0)->Load(opt);}
+    void           SetVerticesFileName(const TString& fname){fVertexDataLoader.SetFileName(fname);}
+    void           UnloadVertices(){fVertexDataLoader.GetBaseLoader(0)->Unload();}
+    virtual Int_t  WriteVertices(Option_t* opt=""){return fVertexDataLoader.GetBaseLoader(0)->WriteData(opt);}
+    virtual Int_t PostVertex(AliITSVertex *ptr){return fVertexDataLoader.GetBaseLoader(0)->Post(ptr);}
+    //    virtual void SetVerticesContName(const char *name){fVertexDataLoader.GetBaseLoader(0)->SetName(name);}
+    AliITSVertex *GetVertex(){return static_cast <AliITSVertex*>(fVertexDataLoader.GetBaseLoader(0)->Get());}
 
     //Back Propagated Tracks
 
@@ -48,8 +59,11 @@ class AliITSLoader: public AliLoader
     AliDataLoader fBackTracksDataLoader;
     static const TString fgkDefaultBackTracksContainerName;
 
+    AliDataLoader fVertexDataLoader;
+    static const TString fgkDefaultVerticesContainerName;
+
    public:
-     ClassDef(AliITSLoader,1)
+     ClassDef(AliITSLoader,2)
  };
  
 #endif

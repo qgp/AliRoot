@@ -6,6 +6,7 @@
 
 const TString AliITSLoader::fgkDefaultRawClustersContainerName = "TreeC";
 const TString AliITSLoader::fgkDefaultBackTracksContainerName = "TreeB";
+const TString AliITSLoader::fgkDefaultVerticesContainerName = "Vertex";
 
 ClassImp(AliITSLoader)
 
@@ -13,7 +14,8 @@ ClassImp(AliITSLoader)
 AliITSLoader::AliITSLoader(const Char_t *name,const Char_t *topfoldername):
  AliLoader(name,topfoldername),
  fRawClustersDataLoader(fDetectorName + ".RawCl.root",fgkDefaultRawClustersContainerName,"Raw Clusters"),
- fBackTracksDataLoader(fDetectorName + ".BackTracks.root",fgkDefaultBackTracksContainerName,"Back Propagated Tracks")
+ fBackTracksDataLoader(fDetectorName + ".BackTracks.root",fgkDefaultBackTracksContainerName,"Back Propagated Tracks"),
+  fVertexDataLoader(fDetectorName + ".Vertex.root",fgkDefaultVerticesContainerName,"Primary Vertices","O")
 {
 //ctor   
    fDataLoaders->Add(&fRawClustersDataLoader);
@@ -23,22 +25,32 @@ AliITSLoader::AliITSLoader(const Char_t *name,const Char_t *topfoldername):
    fDataLoaders->Add(&fBackTracksDataLoader);
    fBackTracksDataLoader.SetEventFolder(fEventFolder);
    fBackTracksDataLoader.SetFolder(GetDetectorDataFolder());
+
+   fDataLoaders->Add(&fVertexDataLoader);
+   fVertexDataLoader.SetEventFolder(fEventFolder);
+   fVertexDataLoader.SetFolder(GetDetectorDataFolder());
    
 }
 /*****************************************************************************/ 
 
 AliITSLoader::AliITSLoader(const Char_t *name,TFolder *topfolder):
  AliLoader(name,topfolder),
- fRawClustersDataLoader(fDetectorName + ".RawCl.root",fgkDefaultRawClustersContainerName,"Raw Clusters")
+ fRawClustersDataLoader(fDetectorName + ".RawCl.root",fgkDefaultRawClustersContainerName,"Raw Clusters"),
+ fBackTracksDataLoader(fDetectorName + ".BackTracks.root",fgkDefaultBackTracksContainerName,"Back Propagated Tracks"),
+  fVertexDataLoader(fDetectorName + ".Vertex.root",fgkDefaultVerticesContainerName,"Primary Vertices","O")
 {
 //ctor   
    fDataLoaders->Add(&fRawClustersDataLoader);
    fRawClustersDataLoader.SetEventFolder(fEventFolder);
    fRawClustersDataLoader.SetFolder(GetDetectorDataFolder());
 
-   fDataLoaders->Add(&fRawClustersDataLoader);
-   fRawClustersDataLoader.SetEventFolder(fEventFolder);
-   fRawClustersDataLoader.SetFolder(GetDetectorDataFolder());
+   fDataLoaders->Add(&fBackTracksDataLoader);
+   fBackTracksDataLoader.SetEventFolder(fEventFolder);
+   fBackTracksDataLoader.SetFolder(GetDetectorDataFolder());
+
+   fDataLoaders->Add(&fVertexDataLoader);
+   fVertexDataLoader.SetEventFolder(fEventFolder);
+   fVertexDataLoader.SetFolder(GetDetectorDataFolder());
 
 }
 /*****************************************************************************/ 
@@ -50,6 +62,10 @@ AliITSLoader::~AliITSLoader()
 
   UnloadBackTracks();
   fDataLoaders->Remove(&fBackTracksDataLoader);
+
+  UnloadVertices();
+  fDataLoaders->Remove(&fVertexDataLoader);
+
 }
 
 void AliITSLoader::MakeTree(Option_t *opt){
