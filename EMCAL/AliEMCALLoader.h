@@ -188,7 +188,7 @@ class AliEMCALLoader : public AliLoader {
   void   SetBranchTitle(const TString& btitle);
   
   AliEMCALCalibrationDB * CalibrationDB(){return  fcdb; }
-  void ReadCalibrationDB(const char * name, const char * filename);
+  //void ReadCalibrationDB(const char * name, const char * filename);
   
 protected:
   TString fBranchTitle;            //Title of the branch
