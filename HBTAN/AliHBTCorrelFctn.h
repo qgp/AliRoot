@@ -254,8 +254,8 @@ class AliHBTQSideQLongFctn: public AliHBTOnePairFctn2D, public AliHBTCorrelFunct
  protected:
    void GetValues(AliHBTPair* pair, Double_t& x, Double_t& y) const
     {
-     y = pair->GetQSideLCMS();
-     x = pair->GetQLongLCMS();
+     y = pair->GetQLongLCMS();
+     x = pair->GetQSideLCMS();
     }
   ClassDef(AliHBTQSideQLongFctn,1)
  

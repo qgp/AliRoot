@@ -291,7 +291,7 @@ AliHBTQOutQSideFctn::AliHBTQOutQSideFctn(Int_t nxbins, Double_t maxXval, Double_
 {
   //ctor
  fWriteNumAndDen = kTRUE;//change default behaviour
- Rename("wqoutqsidecf","Q_{out} Q_{side} Correlation Function 2D");
+ Rename("qoutqsidecf","Q_{out} Q_{side} Correlation Function 2D");
 }    
 /**************************************************************/
 
