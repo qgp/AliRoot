@@ -14,7 +14,7 @@
 // with AliRunConfiguration instead of TG4RunConfiguration.
 
 
-void Config(Bool_t interactiveSetup = false)
+void Config(Bool_t interactiveSetup = true)
 {
   // ============================= 
   // Geant4
@@ -26,10 +26,14 @@ void Config(Bool_t interactiveSetup = false)
     // load dynamically only if executable was not linked
     // with geant4 libraries
 
-    // load Geant4 and AliRoot steer libraries
+    // Load Geant4 and AliRoot steer libraries
     if (!gInterpreter->IsLoaded("$ALICE/geant4_vmc/examples/macro/g4libs.C")) 
       gROOT->LoadMacro("$ALICE/geant4_vmc/examples/macro/g4libs.C");
     gInterpreter->ProcessLine("g4libs()");
+
+    // Load AliGeant4 library
+    //
+    gSystem->Load("libAliGeant4.so");
   }
 
   // Create AliGeant4 VMC 
@@ -54,5 +58,5 @@ void Config(Bool_t interactiveSetup = false)
   // ============================= 
 
   gROOT->LoadMacro("g4ConfigCommon.C");
-  ConfigCommon(true);
+  ConfigCommon(interactiveSetup);
 }
