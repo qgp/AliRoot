@@ -14,6 +14,9 @@
  **************************************************************************/
 /*
 $Log$
+Revision 1.56.4.4  2003/05/14 15:24:08  martinez
+Merging with NewIO: New AddHit function
+
 Revision 1.60  2003/05/13 17:04:22  martinez
 Adding new AddHit function
 
@@ -114,7 +117,7 @@ Built geometry includes slat geometry for event display.
 
 Revision 1.31  2000/10/02 21:28:08  fca
 Removal of useless dependecies via forward declarations
->>>>>>> 1.60
+*/
 
 /* $Id$ */
 
@@ -515,7 +518,7 @@ void AliMUON::MakeBranch(Option_t* option)
       //     
       // one branch for raw clusters per chamber
       //  
-      printf("Make Branch - TreeR address %p\n",gAlice->TreeR());
+      printf("Make Branch - TreeR address %p\n",fLoader->TreeR());
       
       Int_t i;
 
@@ -558,8 +561,8 @@ void AliMUON::SetTreeAddress()
 
   TBranch *branch;
   TTree *treeH = TreeH();
-  TTree *treeD = gAlice->TreeD();
-  TTree *treeR = gAlice->TreeR();
+  TTree *treeD = fLoader->TreeD();
+  TTree *treeR = fLoader->TreeR();
 
   if (treeH) {
     if (fPadHits) {
@@ -811,9 +814,9 @@ void AliMUON::SDigits2Digits()
     fMerger->Init();
     fMerger->Digitise();
     char hname[30];
-    sprintf(hname,"TreeD%d",gAlice->GetHeader()->GetEvent());
-    gAlice->TreeD()->Write(hname,TObject::kOverwrite);
-    gAlice->TreeD()->Reset();
+    //    sprintf(hname,"TreeD%d",fLoader->GetHeader()->GetEvent());
+    fLoader->TreeD()->Write(hname,TObject::kOverwrite);
+    fLoader->TreeD()->Reset();
 }
 
 //___________________________________________
@@ -906,12 +909,12 @@ void AliMUON::Trigger(Int_t nev){
   }
   delete decision;
 
-  gAlice->TreeR()->Fill();
+  fLoader->TreeR()->Fill();
   ResetTrigger();
   char hname[30];
   sprintf(hname,"TreeR%d",nev);
-  gAlice->TreeR()->Write(hname,TObject::kOverwrite);
-  gAlice->TreeR()->Reset();
+  fLoader->TreeR()->Write(hname,TObject::kOverwrite);
+  fLoader->TreeR()->Reset();
   printf("\n End of trigger for event %d", nev);
 }
 
@@ -921,11 +924,11 @@ void AliMUON::Digits2Reco()
 {
   FindClusters();
   Int_t nev = gAlice->GetHeader()->GetEvent();
-  gAlice->TreeR()->Fill();
+  fLoader->TreeR()->Fill();
   char hname[30];
   sprintf(hname,"TreeR%d", nev);
-  gAlice->TreeR()->Write(hname);
-  gAlice->TreeR()->Reset();
+  fLoader->TreeR()->Write(hname);
+  fLoader->TreeR()->Reset();
   ResetRawClusters();        
   printf("\n End of cluster finding for event %d", nev);
 }
@@ -950,7 +953,7 @@ void AliMUON::FindClusters()
 	AliMUONClusterFinderVS* rec = iChamber->ReconstructionModel();
     
 	gAlice->ResetDigits();
-	gAlice->TreeD()->GetEvent(0);
+	fLoader->TreeD()->GetEvent(0);
 	TClonesArray *muonDigits = this->DigitsAddress(ich);
 	ndig=muonDigits->GetEntriesFast();
 	printf("\n 1 Found %d digits in %p %d", ndig, muonDigits,ich);
@@ -962,7 +965,7 @@ void AliMUON::FindClusters()
 		new(lhits1[n++]) AliMUONDigit(*digit);
 	}
 	gAlice->ResetDigits();
-	gAlice->TreeD()->GetEvent(1);
+	fLoader->TreeD()->GetEvent(1);
 	muonDigits  = this->DigitsAddress(ich);
 	ndig=muonDigits->GetEntriesFast();
 	printf("\n 2 Found %d digits in %p %d", ndig, muonDigits, ich);
@@ -1136,7 +1139,7 @@ AliMUONRawCluster *AliMUON::RawCluster(Int_t ichamber, Int_t icathod, Int_t iclu
 //  Obsolete ??
     TClonesArray *muonRawCluster  = RawClustAddress(ichamber);
     ResetRawClusters();
-    TTree *treeR = gAlice->TreeR();
+    TTree *treeR = fLoader->TreeR();
     Int_t nent=(Int_t)treeR->GetEntries();
     treeR->GetEvent(nent-2+icathod-1);
     //treeR->GetEvent(icathod);
