@@ -16,7 +16,6 @@ class TFile;
 class TObjArray;
 class TTree;
 class TNtuple;
-class TMath;
 
 class AliLoader;
 class AliRunLoader;
