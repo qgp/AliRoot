@@ -1,9 +1,10 @@
 # Sources
-SRCS:=  TFluka.cxx AliFluka.cxx
+SRCS:=  TFluka.cxx AliFluka.cxx \
+	source.cxx
 FSRCS:= FLUKA_input.f
 
 # Headers
-HDRS:=  $(SRCS:.cxx=.h) 
+HDRS:=  $(filter-out source.h,$(SRCS:.cxx=.h) )
 
 # ROOT Dictionary
 DHDR:=  TFlukaLinkDef.h
