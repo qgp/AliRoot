@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.2.6.2  2002/11/22 14:20:12  hristov
+Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
+
 Revision 1.2.6.1  2002/06/03 09:55:04  hristov
 Merged with v3-08-02
 
@@ -226,7 +229,7 @@ Bool_t AliTRDpidLQ::AssignLikelihood(AliTRDtrack *t)
   TH1F   *hTmpPi;
 
   t->SetLikelihoodElectron(-1.);
-  if (isnan(t->GetP())) return kFALSE;
+  if (TMath::IsNaN(t->GetP())) return kFALSE;
   Float_t mom = t->GetP();
 
   // Calculate the total charge in each plane
@@ -340,7 +343,7 @@ Bool_t AliTRDpidLQ::CreateHistograms(const Int_t   nmom
 
 //   Bool_t status = kTRUE;
 
-//   if (isnan(t->GetP())) return kFALSE;
+//   if (TMath::IsNaN(t->GetP())) return kFALSE;
 
 //   Float_t        mom     = t->GetP();
 //   Int_t          ipid    = MCpid(t);
@@ -376,7 +379,7 @@ Bool_t AliTRDpidLQ::FillSpectra(const AliTRDtrack *t)
 
   const Int_t kNpla = AliTRDgeometry::Nplan();
 
-  if (isnan(t->GetP())) return kFALSE;
+  if (TMath::IsNaN(t->GetP())) return kFALSE;
 
   Float_t * charge = new Float_t[kNpla];
   Int_t   * nCluster = new Int_t[kNpla];
@@ -414,7 +417,7 @@ Int_t AliTRDpidLQ::GetIndex(const AliTRDtrack *t)
   // Returns the histogram index
   //
 
-  if (isnan(t->GetP())) return -1;
+  if (TMath::IsNaN(t->GetP())) return -1;
   Float_t mom  = t->GetP();
   Int_t   ipid = MCpid(t);
 
