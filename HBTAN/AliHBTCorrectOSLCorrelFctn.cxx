@@ -95,8 +95,8 @@ void AliHBTCorrectOSLCorrelFctn::BuildHistos(Int_t nxbins, Float_t xmax, Float_t
   TString numstr = fName + " Smeared Numerator";  //title and name of the numerator histogram
   TString denstr = fName + " Smeared Denominator";//title and name of the denominator histogram
   
-  fSmearedNumer = new TH3F(numstr.Data(),numstr.Data(),nxbins,xmax,xmin,nybins,ymax,ymin,nzbins,zmax,zmin);
-  fSmearedDenom = new TH3F(denstr.Data(),denstr.Data(),nxbins,xmax,xmin,nybins,ymax,ymin,nzbins,zmax,zmin);
+  fSmearedNumer = new TH3F(numstr.Data(),numstr.Data(),nxbins,xmin,xmax,nybins,ymin,ymax,nzbins,zmin,zmax);
+  fSmearedDenom = new TH3F(denstr.Data(),denstr.Data(),nxbins,xmin,xmax,nybins,ymin,ymax,nzbins,zmin,zmax);
   fSmearedNumer->Sumw2();
   fSmearedDenom->Sumw2();
   
@@ -105,8 +105,8 @@ void AliHBTCorrectOSLCorrelFctn::BuildHistos(Int_t nxbins, Float_t xmax, Float_t
      numstr = fName + " Measured Numerator";  //title and name of the numerator histogram
      denstr = fName + " Measured Denominator";//title and name of the denominator histogram
     
-     fMeasNumer = new TH3F(numstr.Data(),numstr.Data(),nxbins,xmax,xmin,nybins,ymax,ymin,nzbins,zmax,zmin);
-     fMeasDenom = new TH3F(denstr.Data(),denstr.Data(),nxbins,xmax,xmin,nybins,ymax,ymin,nzbins,zmax,zmin);
+     fMeasNumer = new TH3F(numstr.Data(),numstr.Data(),nxbins,xmin,xmax,nybins,ymin,ymax,nzbins,zmin,zmax);
+     fMeasDenom = new TH3F(denstr.Data(),denstr.Data(),nxbins,xmin,xmax,nybins,ymin,ymax,nzbins,zmin,zmax);
      fMeasNumer->Sumw2();
      fMeasDenom->Sumw2();
    }
@@ -131,7 +131,7 @@ void AliHBTCorrectOSLCorrelFctn::Init()
      Int_t nzbins = fNumerator->GetNbinsZ();
      Float_t zmax = fNumerator->GetZaxis()->GetXmax();
      Float_t zmin = fNumerator->GetZaxis()->GetXmin();
-     BuildHistos(nxbins, xmax, xmin,nybins, ymax, ymin,nzbins, zmax, zmin);
+     BuildHistos(nxbins,xmax,xmin, nybins,ymax,ymin, nzbins,zmax,zmin);
    }
    
   fSmearedNumer->Reset();
