@@ -305,14 +305,22 @@ class TFluka : public TVirtualMC {
     {printf("WARNING: FinishGeometry not yet implemented !\n");}
   virtual void BuildPhysics()
     {printf("WARNING: BuildPhysics not yet implemented !\n");}
-  virtual void ProcessEvent()
-    {printf("WARNING: ProcessEvent not yet implemented !\n");}
-  virtual void ProcessRun(Int_t nevent)
-    {printf("WARNING: ProcessRun not yet implemented !\n");}
+  virtual void ProcessEvent();
+  //{printf("WARNING: ProcessEvent not yet implemented !\n");}
+  virtual void ProcessRun(Int_t nevent);
+  //{printf("WARNING: ProcessRun not yet implemented !\n");}
   
+
+  //New Getter and Setters
+  TString GetInputFileName() const {return fInputFileName;}
+  void SetInputFileName(const char* n) {fInputFileName = n;}
+
  private:
   TFluka(const TFluka &mc){}
   TFluka & operator=(const TFluka &) {return (*this);}
+
+ protected:
+  TString fInputFileName;
   
   ClassDef(TFluka,1)  //C++ interface to Fluka montecarlo
 };
