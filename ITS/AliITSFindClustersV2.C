@@ -127,7 +127,7 @@ Int_t AliITSFindClustersV2(Char_t SlowOrFast='f')
      AliStack* stack = rl->Stack();
      if (stack == 0x0)
       {
-       cerr<<"AliITSHits2DigitsDefault.C : Can not get stack"
+       cerr<<"AliITSFindClustersV2.C : Can not get stack"
            << endl;
        delete rl;
        return 3;
@@ -148,7 +148,7 @@ Int_t AliITSFindClustersV2(Char_t SlowOrFast='f')
        Int_t lay,lad,det; geom->GetModuleId(i,lay,lad,det);
        if ( (lay<0) || (lad<0) || (det<0))
         {
-          ::Error("AliITSHits2DigitsDefault.C","No such a module %d",i);
+          ::Error("AliITSFindClustersV2.C","No such a module %d",i);
           continue;
         }
        Float_t x,y,zshift; geom->GetTrans(lay,lad,det,x,y,zshift); 
