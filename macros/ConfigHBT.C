@@ -1,10 +1,5 @@
 void Config()
 {
-    // 7-DEC-2000 09:00
-    // Switch on Transition Radiation simulation. 6/12/00 18:00
-    // iZDC=1  7/12/00 09:00
-    // ThetaRange is (0., 180.). It was (0.28,179.72) 7/12/00 09:00
-
     // Set Random Number seed
     // gRandom->SetSeed(12345);
 
@@ -240,7 +235,7 @@ void Config()
     {
         //=================== SHIL parameters ============================
 
-        AliSHIL *SHIL = new AliSHILv0("SHIL", "Shielding");
+        AliSHIL *SHIL = new AliSHILv2("SHIL", "Shielding");
     }
 
 
