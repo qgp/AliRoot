@@ -62,8 +62,7 @@ AliPMD::AliPMD()
   //
   fIshunt = 0;
 
-  // Always make the TClonesArray, otherwise the automatic streamer gets angry
-  fRecPoints  = new TClonesArray("AliPMDRecPoint",10000); 
+  fRecPoints  = 0;
 
 }
  
