@@ -552,7 +552,7 @@ Int_t AliRunLoader::LoadgAlice()
   {
     gAlice = alirun;
   }
-
+ SetDetectorAddresses();//calls SetTreeAddress for all detectors
  return 0; 
 }
 /**************************************************************************/

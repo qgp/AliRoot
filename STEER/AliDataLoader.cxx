@@ -480,7 +480,9 @@ void AliDataLoader::SetCompressionLevel(Int_t cl)
 
 Int_t AliDataLoader::GetDebug() const 
 { 
- return (Int_t)AliLoader::fgDebug;
+  //it is not inline bacause AliLoader.h includes AliDataLoaer.h 
+  //and there is circular depenedence
+ return AliLoader::GetDebug();
 }
 /*****************************************************************************/ 
 
@@ -580,19 +582,19 @@ TTree* AliDataLoader::Tree() const
 
 void  AliDataLoader::SetDirName(TString& dirname)
 {
-  if (GetDebug()) Info("SetDirName","FileName before %s",fFileName.Data());
+  if (GetDebug()>9) Info("SetDirName","FileName before %s",fFileName.Data());
 
   Int_t n = fFileName.Last('/');
 
-  if (GetDebug()) Info("SetDirName","Slash found on pos %d",n);
+  if (GetDebug()>9) Info("SetDirName","Slash found on pos %d",n);
 
-  if (n > 0) fFileName = fFileName.Remove(0,n);
+  if (n > 0) fFileName = fFileName.Remove(0,n+1);
 
-  if (GetDebug()) Info("SetDirName","Core FileName %s",fFileName.Data());
+  if (GetDebug()>9) Info("SetDirName","Core FileName %s",fFileName.Data());
 
   fFileName = dirname + "/" + fFileName;
 
-  if (GetDebug()) Info("SetDirName","FileName after %s",fFileName.Data());
+  if (GetDebug()>9) Info("SetDirName","FileName after %s",fFileName.Data());
 }
 /*****************************************************************************/ 
 AliObjectLoader* AliDataLoader::GetBaseDataLoader()
@@ -1120,6 +1122,7 @@ void AliTaskLoader::RemoveFromBoard(TObject* obj)
   GetParentalTask()->GetListOfTasks()->Remove(obj);
 }
 /*****************************************************************************/ 
+
 Int_t AliTaskLoader::AddToBoard(TObject* obj)
 {
   TTask* task = dynamic_cast<TTask*>(obj);
@@ -1131,23 +1134,18 @@ Int_t AliTaskLoader::AddToBoard(TObject* obj)
   GetParentalTask()->Add(task);
   return 0;
 }
+/*****************************************************************************/ 
 
 TObject* AliTaskLoader::Get() const
 {
   return (GetParentalTask()) ? GetParentalTask()->GetListOfTasks()->FindObject(GetName()) : 0x0;
 }
-
 /*****************************************************************************/ 
 
 TTask* AliTaskLoader::GetParentalTask() const
 {
 //returns parental tasks for this task
-  if (fParentalTask) return fParentalTask;
-
-//  Error("GetParentalTask","!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-//  Error("GetParentalTask","Don't Foget to Implement SKOWRON");
-//  Error("GetParentalTask","!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-  return 0x0;
+  return fParentalTask;
 }
 
 /*****************************************************************************/ 

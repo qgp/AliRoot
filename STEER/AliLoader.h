@@ -82,9 +82,9 @@ class AliLoader: public TNamed
     TObject**      ReconstructionerRef();
     TObject**      TrackerRef();
     
-    virtual void   MakeHitsContainer(){GetHitsDataLoader()->MakeTree();}
-    virtual void   MakeSDigitsContainer(){GetSDigitsDataLoader()->MakeTree();}
-    virtual void   MakeDigitsContainer(){GetDigitsDataLoader()->MakeTree();}
+    virtual void   MakeHitsContainer(){GetHitsDataLoader()->MakeTree();SetTAddrInDet();}
+    virtual void   MakeSDigitsContainer(){GetSDigitsDataLoader()->MakeTree();SetTAddrInDet();}
+    virtual void   MakeDigitsContainer(){GetDigitsDataLoader()->MakeTree();SetTAddrInDet();}
     virtual void   MakeRecPointsContainer(){GetRecPointsDataLoader()->MakeTree();}
     virtual void   MakeTracksContainer(){GetTracksDataLoader()->MakeTree();}
         
@@ -107,9 +107,9 @@ class AliLoader: public TNamed
     TTree*         TreeR(){return GetRecPointsDataLoader()->Tree();} //returns the tree from folder; shortcut method
     TTree*         TreeT(){return GetTracksDataLoader()->Tree();}    //returns the tree from folder; shortcut method
 
-    Int_t          LoadHits(Option_t* opt=""){return GetHitsDataLoader()->Load(opt);}
-    Int_t          LoadSDigits(Option_t* opt=""){return GetSDigitsDataLoader()->Load(opt);}
-    Int_t          LoadDigits(Option_t* opt=""){return GetDigitsDataLoader()->Load(opt);}
+    Int_t          LoadHits(Option_t* opt=""){return GetHitsDataLoader()->Load(opt);SetTAddrInDet();}
+    Int_t          LoadSDigits(Option_t* opt=""){return GetSDigitsDataLoader()->Load(opt);SetTAddrInDet();}
+    Int_t          LoadDigits(Option_t* opt=""){return GetDigitsDataLoader()->Load(opt);SetTAddrInDet();}
     Int_t          LoadRecPoints(Option_t* opt=""){return GetRecPointsDataLoader()->Load(opt);}
     Int_t          LoadTracks(Option_t* opt=""){return GetTracksDataLoader()->Load(opt);}
     
@@ -185,15 +185,13 @@ class AliLoader: public TNamed
     void          SetDigitsFileNameSuffix(const TString& suffix);//adds the suffix before ".root", 
                                                           //e.g. TPC.Digits.root -> TPC.DigitsMerged.root
                                                               //made on Jiri Chudoba demand
-    Int_t GetDebug() const {return (Int_t)fgDebug;}
-    
    protected:
 
     /*********************************************/
     /************    PROTECTED      **************/
     /*********     M E T H O D S       ***********/
     /*********************************************/
-    enum EDataTypes{kHits = 0,kSDigits,kDigits,kRecPoints,kTracks,kNDataTypes};
+    enum EDataTypes{kHits = 0,kSDigits,kDigits,kRecPoints,kTracks,kRecParticles,kNDataTypes};
 
     //Opens hits file and jumps to directory cooresponding to current event.
     //If dir does not exists try to create it
@@ -217,7 +215,8 @@ class AliLoader: public TNamed
     
     void InitDefaults();
     void ResetDataInfo();
-
+    
+    void SetTAddrInDet();//Call SetTreeAddress for corresponding detector
 
     /**********************************************/
     /************    PROTECTED      ***************/
@@ -238,11 +237,9 @@ class AliLoader: public TNamed
     TFolder*      fTasksFolder;       //!Folder that contains the Tasks (sdigitizer, digitizer, reconstructioner)
     TFolder*      fQAFolder;          //!Folder that contains the QA objects
     
- // file option varible was introduced because if TFile is created with "recreated" 
- // stored option is "CREATE" and we need to remeber "recreate" for
+ // file option varible was introduced because if TFile is created with "recreate" 
+ // stored option in TFile is "CREATE". We need to remeber "recreate" for
  // Max events per file functionality
-
-
 
     static const TString   fgkDefaultHitsContainerName;//default name of conatiner (TREE) for hits
     static const TString   fgkDefaultDigitsContainerName;//default name of conatiner (TREE) for digits
@@ -268,8 +265,9 @@ class AliLoader: public TNamed
     static Bool_t      TestFileOption(Option_t* opt);//checks is file is created from scratch
     static Bool_t      IsOptionWritable(const TString& opt);
     
-    static void        SetDebug(Bool_t deb = kTRUE){fgDebug = deb;}//Sets debugging information
-    static Bool_t      fgDebug; //debug flag for loaders
+    static Int_t GetDebug() {return fgDebug;}
+    static void        SetDebug(Int_t deb = 1){fgDebug = deb;}//Sets debugging information
+    static Int_t      fgDebug; //debug flag for loaders
 
     ClassDef(AliLoader,2)
  };

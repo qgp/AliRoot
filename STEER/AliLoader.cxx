@@ -6,6 +6,7 @@
 //
 //Author: Alice Offline Group http://alisoft.cern.ch
 //Responsible: Piotr.Skowronski@cern.ch
+//
 #include <AliLoader.h>
 
 //Root includes
@@ -22,8 +23,9 @@
 #include <AliRunLoader.h>
 #include <AliRunDigitizer.h>
 #include <AliDigitizer.h>
+#include <AliDetector.h>
 
-Bool_t  AliLoader::fgDebug = kFALSE;
+Int_t  AliLoader::fgDebug = 0;
 
 const TString AliLoader::fgkDefaultHitsContainerName("TreeH");
 const TString AliLoader::fgkDefaultDigitsContainerName = "TreeD";
@@ -139,21 +141,23 @@ void AliLoader::InitDefaults()
   dl->SetBaseTaskLoader(tl);
   fDataLoaders->AddAt(dl,kDigits);
   
-  // R E C O N S T R U C T E D   P O I T S aka C L A S T E R S 
+  // R E C O N S T R U C T E D   P O I N T S aka C L U S T E R S 
   dl = new AliDataLoader(fDetectorName + ".RecPoints.root",fgkDefaultRecPointsContainerName, "Reconstructed Points");
   tl = new AliTaskLoader(fDetectorName + AliConfig::Instance()->GetReconstructionerTaskName(),
                                         dl,AliRunLoader::GetRunReconstructioner(),kTRUE);
   dl->SetBaseTaskLoader(tl);
   fDataLoaders->AddAt(dl,kRecPoints);
   
+  // T R A C K S
   dl = new AliDataLoader(fDetectorName + ".Tracks.root",fgkDefaultTracksContainerName, "Tracks");
-  fDataLoaders->AddAt(dl,kTracks);
   tl = new AliTaskLoader(fDetectorName + AliConfig::Instance()->GetTrackerTaskName(),
-                                        dl,AliRunLoader::GetRunTracker());
+                                        dl,AliRunLoader::GetRunTracker(),kTRUE);
   dl->SetBaseTaskLoader(tl);
+  fDataLoaders->AddAt(dl,kTracks);
   
   
-}
+
+ }
 /*****************************************************************************/ 
 
 AliDataLoader* AliLoader::GetDataLoader(const char* name)
@@ -796,7 +800,19 @@ Bool_t AliLoader::IsOptionWritable(const TString& opt)
   if (opt.CompareTo("update",TString::kIgnoreCase)) return kTRUE;
   return kFALSE;
 }
+/*****************************************************************************/ 
 
+void AliLoader::SetTAddrInDet()
+{
+  //calls SetTreeAddress for corresponding detector
+  AliRunLoader* rl = GetRunLoader();   
+  if (rl == 0x0) return;
+  AliRun* ar = rl->GetAliRun();
+  if (ar == 0x0) return;
+  AliDetector* det = ar->GetDetector(fDetectorName);  
+  if (det == 0x0) return;
+  det->SetTreeAddress();
+}
 /*****************************************************************************/ 
 /*****************************************************************************/ 
 /*****************************************************************************/ 
