@@ -1,15 +1,22 @@
+//
+// Macro for checking aliroot output and associated files contents
+// Gines Martinez, Subatech June 2003
+//
 
 // ROOT includes
 #include "TBranch.h"
 #include "TClonesArray.h"
 #include "TFile.h"
 #include "TH1.h"
+#include "TParticle.h"
 #include "TTree.h"
 
 // STEER includes
 #include "AliRun.h"
 #include "AliRunLoader.h"
+#include "AliHeader.h"
 #include "AliLoader.h"
+#include "AliStack.h"
 
 // MUON includes
 #include "AliMUON.h"
@@ -17,6 +24,36 @@
 #include "AliMUONConstants.h"
 #include "AliMUONDigit.h"
 #include "AliMUONRawCluster.h"
+
+void MUONkine(char * filename="galice.root")
+{
+  TClonesArray * ListOfParticles = new TClonesArray("TParticle",1000);
+  TParticle * particle = new TParticle();
+  // Creating Run Loader and openning file containing Hits
+  AliRunLoader * RunLoader = AliRunLoader::Open(filename,"MUONFolder","READ");
+  if (RunLoader ==0x0) {
+    printf(">>> Error : Error Opening %s file \n",filename);
+    return;
+  }
+  RunLoader->LoadKinematics("READ");
+  Int_t ievent, nevents;
+  nevents = RunLoader->GetNumberOfEvents();
+
+  for(ievent=0; ievent<nevents; ievent++) {  // Event loop
+    Int_t iparticle, nparticles;
+    // Getting event ievent
+    RunLoader->GetEvent(ievent); 
+    RunLoader->TreeK()->GetBranch("Particles")->SetAddress(&particle);
+    nparticles = RunLoader->TreeK()->GetEntries();
+    printf(">>> Event %d, Number of particles is %d \n",ievent, nparticles);
+    for(iparticle=0; iparticle<nparticles; iparticle++) {
+      RunLoader->TreeK()->GetEvent(iparticle);
+      particle->Print("");
+    }
+  }
+  RunLoader->UnloadKinematics();
+}
+
 
 void MUONhits(char * filename="galice.root")
 {
@@ -30,12 +67,7 @@ void MUONhits(char * filename="galice.root")
     return;
   }
 
-  // Loading AliRun master
-  RunLoader->LoadgAlice();
-  gAlice = RunLoader->GetAliRun();
-
   // Loading MUON subsystem
-  AliMUON * MUON = (AliMUON *) gAlice->GetDetector("MUON");
   AliLoader * MUONLoader = RunLoader->GetLoader("MUONLoader");
   MUONLoader->LoadHits("READ");
 
@@ -46,7 +78,8 @@ void MUONhits(char * filename="galice.root")
     printf(">>> Event %d \n",ievent);
 
     // Getting event ievent
-    gAlice->GetEvent(ievent); 
+    RunLoader->GetEvent(ievent); 
+    MUONLoader->TreeH()->GetBranch("MUON")->SetAddress(&ListOfHits);
 
     Int_t itrack, ntracks;
     ntracks = (Int_t) (MUONLoader->TreeH())->GetEntries();
@@ -55,10 +88,10 @@ void MUONhits(char * filename="galice.root")
 
       //Getting List of Hits of Track itrack
       (MUONLoader->TreeH())->GetEvent(itrack); 
-      ListOfHits = MUON->Hits();
 
       Int_t ihit, nhits;
       nhits = (Int_t) ListOfHits->GetEntriesFast();
+      printf(">>> Number of hits  %d \n",nhits);
       AliMUONHit* mHit;
       for(ihit=0; ihit<nhits; ihit++) {
 	mHit = static_cast<AliMUONHit*>(ListOfHits->At(ihit));
@@ -74,10 +107,10 @@ void MUONhits(char * filename="galice.root")
   	printf(">>> Hit %2d Chamber %2d Track %4d x %6.3f y %6.3f z %7.3f elos %g theta %6.3f phi %5.3f momentum %5.3f\n",
 	       ihit, Nch,hittrack,x,y,z,elos,theta,phi, momentum);
       }
+      ListOfHits->Clear();
     } // end track loop
   }  // end event loop
   MUONLoader->UnloadHits();
-  RunLoader->UnloadgAlice();
 }
 
 
