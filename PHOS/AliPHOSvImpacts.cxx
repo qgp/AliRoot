@@ -29,17 +29,17 @@
 
 // --- ROOT system ---
 
-#include "TTree.h"
+#include <TTree.h>
+#include <TVirtualMC.h>
 
 // --- Standard library ---
 
 // --- AliRoot header files ---
 
-#include "AliRun.h"
-#include "AliMC.h"
-#include "AliPHOSvImpacts.h"
 #include "AliPHOSGeometry.h"
 #include "AliPHOSImpact.h"
+#include "AliPHOSvImpacts.h"
+#include "AliRun.h"
 
 ClassImp(AliPHOSvImpacts)
 

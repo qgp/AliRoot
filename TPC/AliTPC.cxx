@@ -13,197 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.53.2.6  2002/11/26 16:32:46  hristov
-Merging NewIO with v3-09-04
-
-Revision 1.53.2.5  2002/11/22 14:20:09  hristov
-Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
-
-
-Revision 1.53.2.1  2002/05/31 09:38:00  hristov
-First set of changes done by Piotr
-
-Revision 1.64  2002/10/23 07:17:33  alibrary
-Introducing Riostream.h
-
-Revision 1.63  2002/10/14 14:57:42  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.54.4.3  2002/10/11 08:34:48  hristov
-Updating VirtualMC to v3-09-02
-
-Revision 1.62  2002/09/23 09:22:56  hristov
-The address of the TrackReferences is set (M.Ivanov)
-
-Revision 1.61  2002/09/10 07:06:42  kowal2
-Corrected for the memory leak. Thanks to J. Chudoba and M. Ivanov
-
-Revision 1.60  2002/06/12 14:56:56  kowal2
-Added track length to the reference hits
-
-Revision 1.59  2002/06/05 15:37:31  kowal2
-Added cross-talk from the wires beyond the first and the last rows
-
-Revision 1.58  2002/05/27 14:33:14  hristov
-The new class AliTrackReference used (M.Ivanov)
-
-Revision 1.57  2002/05/07 17:23:11  kowal2
-Linear gain inefficiency instead of the step one at the wire edges.
-
-Revision 1.56  2002/04/04 16:26:33  kowal2
-Digits (Sdigits) go to separate files now.
-
-Revision 1.55  2002/03/29 06:57:45  kowal2
-Restored backward compatibility to use the hits from Dec. 2000 production.
-
-Revision 1.54  2002/03/18 17:59:13  kowal2
-Chnges in the pad geometry - 3 pad lengths introduced.
-
-Revision 1.53  2002/02/25 11:02:56  kowal2
-Changes towards speeding up the code. Thanks to Marian Ivanov.
-
-Revision 1.52  2002/02/18 09:26:09  kowal2
-Removed compiler warning
-
-Revision 1.51  2002/01/21 17:13:21  kowal2
-New track hits using root containers. Setting active sectors added.
-
-Revision 1.50  2001/12/06 14:16:19  kowal2
-meaningfull printouts
-
-Revision 1.49  2001/11/30 11:55:37  hristov
-Noise table created in Hits2SDigits (M.Ivanov)
-
-Revision 1.48  2001/11/24 16:10:21  kowal2
-Faster algorithms.
-
-Revision 1.47  2001/11/19 10:25:34  kowal2
-Nearest integer instead of integer when converting to ADC counts
-
-Revision 1.46  2001/11/07 06:47:12  kowal2
-Removed printouts
-
-Revision 1.45  2001/11/03 13:33:48  kowal2
-Updated algorithms in Hits2SDigits, SDigits2Digits,
-Hits2ExactClusters.
-Added method Merge
-
-Revision 1.44  2001/08/30 09:28:48  hristov
-TTree names are explicitly set via SetName(name) and then Write() is called
-
-Revision 1.43  2001/07/28 12:02:54  hristov
-Branch split level set to 99
-
-Revision 1.42  2001/07/28 11:38:52  hristov
-Loop variable declared once
-
-Revision 1.41  2001/07/28 10:53:50  hristov
-Digitisation done according to the general scheme (M.Ivanov)
-
-Revision 1.40  2001/07/27 13:03:14  hristov
-Default Branch split level set to 99
-
-Revision 1.39  2001/07/26 09:09:34  kowal2
-Hits2Reco method added
-
-Revision 1.38  2001/07/20 14:32:43  kowal2
-Processing of many events possible now
-
-Revision 1.37  2001/06/12 07:17:18  kowal2
-Hits2SDigits method implemented (summable digits)
-
-Revision 1.36  2001/05/16 14:57:25  alibrary
-New files for folders and Stack
-
-Revision 1.35  2001/05/08 16:02:22  kowal2
-Updated material specifications
-
-Revision 1.34  2001/05/08 15:00:15  hristov
-Corrections for tracking in arbitrary magnenetic field. Changes towards a concept of global Alice track. Back propagation of reconstructed tracks (Yu.Belikov)
-
-Revision 1.33  2001/04/03 12:40:43  kowal2
-Removed printouts
-
-Revision 1.32  2001/03/12 17:47:36  hristov
-Changes needed on Sun with CC 5.0
-
-Revision 1.31  2001/03/12 08:21:50  kowal2
-Corrected C++ bug in the material definitions
-
-Revision 1.30  2001/03/01 17:34:47  kowal2
-Correction due to the accuracy problem
-
-Revision 1.29  2001/02/28 16:34:40  kowal2
-Protection against nonphysical values of the avalanche size,
-10**6 is the maximum
-
-Revision 1.28  2001/01/26 19:57:19  hristov
-Major upgrade of AliRoot code
-
-Revision 1.27  2001/01/13 17:29:33  kowal2
-Sun compiler correction
-
-Revision 1.26  2001/01/10 07:59:43  kowal2
-Corrections to load points from the noncompressed hits.
-
-Revision 1.25  2000/11/02 07:25:31  kowal2
-Changes due to the new hit structure.
-Memory leak removed.
-
-Revision 1.24  2000/10/05 16:06:09  kowal2
-Forward declarations. Changes due to a new class AliComplexCluster.
-
-Revision 1.23  2000/10/02 21:28:18  fca
-Removal of useless dependecies via forward declarations
-
-Revision 1.22  2000/07/10 20:57:39  hristov
-Update of TPC code and macros by M.Kowalski
-
-Revision 1.19.2.4  2000/06/26 07:39:42  kowal2
-Changes to obey the coding rules
-
-Revision 1.19.2.3  2000/06/25 08:38:41  kowal2
-Splitted from AliTPCtracking
-
-Revision 1.19.2.2  2000/06/16 12:59:28  kowal2
-Changed parameter settings
-
-Revision 1.19.2.1  2000/06/09 07:15:07  kowal2
-
-Defaults loaded automatically (hard-wired)
-Optional parameters can be set via macro called in the constructor
-
-Revision 1.19  2000/04/18 19:00:59  fca
-Small bug fixes to TPC files
-
-Revision 1.18  2000/04/17 09:37:33  kowal2
-removed obsolete AliTPCDigitsDisplay.C
-
-Revision 1.17.2.2  2000/04/10 08:15:12  kowal2
-
-New, experimental data structure from M. Ivanov
-New tracking algorithm
-Different pad geometry for different sectors
-Digitization rewritten
-
-Revision 1.17.2.1  2000/04/10 07:56:53  kowal2
-Not used anymore - removed
-
-Revision 1.17  2000/01/19 17:17:30  fca
-Introducing a list of lists of hits -- more hits allowed for detector now
-
-Revision 1.16  1999/11/05 09:29:23  fca
-Accept only signals > 0
-
-Revision 1.15  1999/10/08 06:26:53  fca
-Removed ClustersIndex - not used anymore
-
-Revision 1.14  1999/09/29 09:24:33  fca
-Introduction of the Copyright and cvs Log
-
-*/
+/* $Id$ */
 
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
@@ -222,51 +32,50 @@ Introduction of the Copyright and cvs Log
 ///////////////////////////////////////////////////////////////////////////////
 
 //
-#include "AliTPC.h"
 
 #include <Riostream.h>
 #include <stdlib.h>
 
-#include <TMath.h>
-#include <TRandom.h>
-#include <TVector.h>
-#include <TMatrix.h>
+#include <TFile.h>  
 #include <TGeometry.h>
+#include <TInterpreter.h>
+#include <TMath.h>
+#include <TMatrix.h>
 #include <TNode.h>
-#include <TTUBS.h>
 #include <TObjectTable.h>
 #include <TParticle.h>
-#include <TFile.h>  
-#include <TTree.h>
 #include <TROOT.h>
+#include <TRandom.h>
 #include <TSystem.h>     
-#include <TInterpreter.h>
+#include <TTUBS.h>
+#include <TTree.h>
+#include <TVector.h>
+#include <TVirtualMC.h>
 
+#include "AliArrayBranch.h"
+#include "AliClusters.h"
+#include "AliComplexCluster.h"
+#include "AliDigits.h"
+#include "AliMagF.h"
+#include "AliPoints.h"
 #include "AliRun.h"
 #include "AliRunLoader.h"
-#include "AliMC.h"
-#include "AliMagF.h"
-#include "AliTrackReference.h"
-#include "AliDigits.h"
 #include "AliSimDigits.h"
-#include "AliPoints.h"
-#include "AliComplexCluster.h"
-#include "AliClusters.h"
-#include "AliArrayBranch.h"
-
-#include "AliTPCLoader.h"
 #include "AliTPC.h"
-#include "AliTPCParamSR.h"
+#include "AliTPC.h"
+#include "AliTPCClustersArray.h"
+#include "AliTPCClustersRow.h"
+#include "AliTPCDigitsArray.h"
+#include "AliTPCLoader.h"
 #include "AliTPCPRF2D.h"
+#include "AliTPCParamSR.h"
 #include "AliTPCRF1D.h"
 #include "AliTPCTrackHits.h"
 #include "AliTPCTrackHitsV2.h"
-#include "AliTPCClustersRow.h"
-#include "AliTPCClustersArray.h"
-#include "AliTPCDigitsArray.h"
 #include "AliTPCcluster.h"
 #include "AliTPCclusterer.h"
 #include "AliTPCtracker.h"
+#include "AliTrackReference.h"
 
 
 ClassImp(AliTPC) 

@@ -13,98 +13,21 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.18.2.1  2002/05/31 10:39:22  hristov
-Changes from v3-08-02 merged with NewIO branch
-
-Revision 1.24  2002/10/22 15:02:47  alibrary
-Introducing Riostream.h
-
-Revision 1.23  2002/10/14 14:57:39  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.19.4.2  2002/10/11 08:04:28  hristov
-Updating VirtualMC to v3-09-02
-
-Revision 1.22  2002/09/02 15:29:20  morsch
-Gsbool calls to resolve MANY added (I.  Hrivnacova).
-
-Revision 1.19.4.1  2002/06/10 15:13:48  hristov
-Merged with v3-08-02
-
-Revision 1.21  2002/05/11 19:14:44  morsch
-PCONE QBEU had last z defined twice.
-
-Revision 1.20  2002/05/02 12:36:43  morsch
-New version of beam-pipe geometry. Ref. AL502206PL
-(used in production readiness report).
-
-Revision 1.19  2002/03/25 12:34:40  morsch
-Obsolete support rollers removed.
-
-Revision 1.18  2002/02/01 18:02:41  morsch
-Material of beam pipe between inner Be piece and forward detectors
-can be set by SetPipeMaterial(mat), mat = kInox, kAlu, kBe ...
-
-Revision 1.17  2001/09/24 13:11:50  morsch
-Ion pump and bellows moved out by 15 cm to make space for forward
-detectors.
-
-Revision 1.16  2001/05/16 14:57:22  alibrary
-New files for folders and Stack
-
-Revision 1.15  2001/05/02 11:50:18  morsch
-New layout of the non-absorber side provided by Y. Viyogi. Not the final design
-but the prsent most realistic.
-
-Revision 1.14  2001/01/20 16:56:33  morsch
-Put air in connecting tubes and flanges of vacuum pump.
-
-Revision 1.13  2001/01/20 16:35:27  morsch
-Increase mother volume for bellows.
-
-Revision 1.12  2000/12/21 16:41:06  morsch
-Coding convention clean-up (RS3)
-
-Revision 1.11  2000/11/28 16:06:57  morsch
-Undulated beam-pipe replaced by Al-Be (40,60) pipe 1.5 mm thick.
-
-Revision 1.10  2000/11/24 13:00:37  morsch
-- Geometry and materials imported from euclid output
-- include comments
-- better struturing of volume tree
-- improved version of flange close to front absorber
-- more realistic pump materials
-- undulated beam pipe imported from v3.
-
-Revision 1.9  2000/10/02 21:28:15  fca
-Removal of useless dependecies via forward declarations
-
-Revision 1.8  2000/06/11 12:37:01  morsch
-Coding rule violations corrected
-
-Revision 1.7  2000/02/23 16:25:24  fca
-AliVMC and AliGeant3 classes introduced
-ReadEuclid moved from AliRun to AliModule
-
-Revision 1.6  1999/09/29 09:24:30  fca
-Introduction of the Copyright and cvs Log
-
-*/
+/* $Id$ */
 
 ////////////////////////////////////////////////
 //  Beam pipe class                            /
 ////////////////////////////////////////////////
 
-#include "AliPIPEv0.h"
-#include "AliRun.h"
+#include <Riostream.h>
+
+#include <TSystem.h>
+#include <TVirtualMC.h>
+
 #include "AliConst.h"
 #include "AliMagF.h"
-#include "AliMC.h"
-#include "TSystem.h"
-
-#include <Riostream.h>
+#include "AliPIPEv0.h"
+#include "AliRun.h"
  
 ClassImp(AliPIPEv0)
  

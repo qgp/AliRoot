@@ -13,6 +13,8 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
+/* $Id$ */
+
 // 
 // Container class for AliGenerator and AfterBurners 
 // (which are AliGenerators as well) through recursion.
@@ -27,14 +29,17 @@
 //             debug -> gDebug,
 //             fNEvents replaced with gAlice->GetEventsPerRun()
 //
+
+
+#include <Riostream.h>
+
+#include <TList.h>
+#include <TObjArray.h>
+#include <TParticle.h>
+
 #include "AliGenCocktailAfterBurner.h"
 #include "AliGenCocktailEntry.h"
-
 #include "AliStack.h"
-#include <TObjArray.h>
-#include <TList.h>
-#include <TParticle.h>
-#include <Riostream.h>
 
 
 ClassImp(AliGenCocktailAfterBurner)
@@ -301,7 +306,7 @@ void AliGenCocktailAfterBurner::SetTracks(Int_t stackno)
     Int_t parent; 
     Int_t pdg;
     Double_t px, py, pz, e, vx, vy, vz, tof, polx, poly, polz;
-    AliMCProcess mech;
+    TMCProcess mech;
     Int_t ntr;
     Float_t weight;
     TVector3 pol;
@@ -342,10 +347,10 @@ void AliGenCocktailAfterBurner::SetTracks(Int_t stackno)
 /*********************************************************************/ 
 /*********************************************************************/ 
 
-AliMCProcess AliGenCocktailAfterBurner::IntToMCProcess(Int_t no)
+TMCProcess AliGenCocktailAfterBurner::IntToMCProcess(Int_t no)
 {
- //Mothod used to convert uniqueID (integer) to AliMCProcess type
-    const AliMCProcess kMCprocesses[kMaxMCProcess] = 
+ //Mothod used to convert uniqueID (integer) to TMCProcess type
+    const TMCProcess kMCprocesses[kMaxMCProcess] = 
     {
      kPNoProcess, kPMultipleScattering, kPEnergyLoss, kPMagneticFieldL, 
      kPDecay, kPPair, kPCompton, kPPhotoelectric, kPBrem, kPDeltaRay,

@@ -12,6 +12,9 @@
  * about the suitability of this software for any purpose. It is          *
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
+
+/* $Id$ */
+
  /////////////////////////////////////////////////////////////////////
 //                                                                 //
 // Forward Multiplicity detector based on Silicon version 0        //
@@ -25,22 +28,22 @@
 //                                                                  //
 //////////////////////////////////////////////////////////////////////
 
-#include <TMath.h>
-#include <TGeometry.h>
-#include <TTUBE.h>
-#include <TNode.h>
-#include <TLorentzVector.h>
-#include "AliFMDv0.h"
-#include "AliRun.h"
-#include "AliMC.h"
 #include <Riostream.h>
-#include <Riostream.h>
-#include "AliRndm.h"
-#include "AliMagF.h"
-#include "AliFMDhit.h"
 #include <stdlib.h>
 
-//class TGeant3;
+#include <TGeometry.h>
+#include <TLorentzVector.h>
+#include <TMath.h>
+#include <TNode.h>
+#include <TTUBE.h>
+#include <TVirtualMC.h>
+
+#include "AliFMDhit.h"
+#include "AliFMDv0.h"
+#include "AliMagF.h"
+#include "AliRndm.h"
+#include "AliRun.h"
+
 ClassImp(AliFMDv0)
 
 //--------------------------------------------------------------------
@@ -212,10 +215,9 @@ void AliFMDv0::DrawDetector()
 // Draw a shaded view of the Forward multiplicity detector version 0
 //
 
-AliMC* pMC = AliMC::GetMC();
 
 //Set ALIC mother transparent
-pMC->Gsatt("ALIC","SEEN",0);
+gMC->Gsatt("ALIC","SEEN",0);
 //
 //Set volumes visible
 gMC->Gsatt("FMD0","SEEN",1);
@@ -240,7 +242,6 @@ void AliFMDv0::Init()
 {
 // Initialises version 0 of the Forward Multiplicity Detector
 //
-AliMC* gMC=AliMC::GetMC();
 AliFMD::Init();
 fIdSens1=gMC->VolId("GRN1");
 fIdSens2=gMC->VolId("GRN2");

@@ -1,11 +1,3 @@
-//Description:
-//This class is responsible for creating folder structure
-//All stuff of aliroot sits in one folder with name defined by fgkTopFolderName
-//data wich do not very trough event to event are sitting in directly in "top folder"
-//all data which changes from event to event are sitting in one folder (which has more subfolders)
-//Idea is to have more than one event in folder structure which allows usage of standard procedures
-//in merging
-
 /**************************************************************************
  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  *                                                                        *
@@ -21,65 +13,30 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.3.6.4  2002/11/22 14:19:50  hristov
-Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
+/* $Id$ */
 
-Revision 1.3.6.3  2002/10/09 09:23:55  hristov
-New task hierarchy, bug corrections, new development (P.Skowronski)
-
-Revision 1.3.6.2  2002/06/06 14:18:33  hristov
-Merged with v3-08-02
-
-Revision 1.3.6.1  2002/05/31 09:37:59  hristov
-First set of changes done by Piotr
-
-Revision 1.9  2002/10/29 14:59:45  alibrary
-Some more code cleanup
-
-Revision 1.8  2002/10/29 14:26:49  hristov
-Code clean-up (F.Carminati)
-
-Revision 1.7  2002/10/23 07:43:00  alibrary
-Introducing some effective C++ suggestions
-
-Revision 1.6  2002/10/22 15:02:15  alibrary
-Introducing Riostream.h
-
-Revision 1.5  2002/10/14 14:57:32  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.3.8.1  2002/06/10 14:43:06  hristov
-Merged with v3-08-02
-
-Revision 1.4  2002/05/27 14:26:59  hristov
-New folder for track references added
-
-Revision 1.3  2001/10/04 15:30:56  hristov
-Changes to accommodate the set of PHOS folders and tasks (Y.Schutz)
-
-Revision 1.2  2001/05/21 17:22:50  buncic
-Fixed problem with missing AliConfig while reading galice.root
-
-Revision 1.1  2001/05/16 14:57:22  alibrary
-New files for folders and Stack
-
-*/
-
-//Add(AliDetector*) calls Add(AliModule*) as AliDetector is a AliModule as well
-// and should be listed in module list
+//  Description:
+//  This class is responsible for creating folder structure
+//  All stuff of aliroot sits in one folder with name defined by
+//  fgkTopFolderName data wich do not very trough event to event are
+//  sitting in directly in "top folder" all data which changes from
+//  event to event are sitting in one folder (which has more subfolders)
+//  Idea is to have more than one event in folder structure which allows
+//  usage of standard procedures in merging
+//  Add(AliDetector*) calls Add(AliModule*) as AliDetector is a AliModule
+//  as well and should be listed in module list
 
 #include <Riostream.h>
 
-#include <TROOT.h>
-#include <TSystem.h>
-#include <TInterpreter.h>
 #include <TDatabasePDG.h>
 #include <TFolder.h>
-#include <TTask.h>
+#include <TInterpreter.h>
 #include <TObjString.h>
+#include <TROOT.h>
 #include <TString.h>
+#include <TSystem.h>
+#include <TTask.h>
+#include <TVirtualMC.h>
 
 #include "AliConfig.h"
 #include "AliDetector.h"
@@ -317,7 +274,7 @@ void    AliConfig::Add (AliGenerator * obj,const char* eventfolder)
 }
 
 //____________________________________________________________________________
-void AliConfig::Add (AliMC * obj,const char* eventfolder)
+void AliConfig::Add (TVirtualMC * obj,const char* eventfolder)
 {
   TString path(eventfolder);
   path = path + "/" + fgkMCFolderName;

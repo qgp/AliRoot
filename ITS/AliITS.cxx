@@ -13,258 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.66.2.6  2002/12/11 10:00:15  hristov
-Merging with v3-09-04 (P.Skowronski)
-
-Revision 1.66.2.5  2002/11/22 14:19:33  hristov
-Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
-
-Revision 1.66.2.4  2002/06/28 10:35:16  hristov
-Forward tracking adapted to the NewIO
-
-Revision 1.66.2.3  2002/06/25 05:58:41  barbera
-Updated classes and macros to make the ITS data structures compatible with the new IO (from M. Masera)
-
-Revision 1.66.2.2  2002/06/06 14:23:56  hristov
-Merged with v3-08-02
-
-Revision 1.66.2.1  2002/05/31 09:37:56  hristov
-First set of changes done by Piotr
-
-Revision 1.75  2002/10/22 14:45:25  alibrary
-Introducing Riostream.h
-
-Revision 1.74  2002/10/14 14:57:00  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.67.4.3  2002/10/14 13:14:07  hristov
-Updating VirtualMC to v3-09-02
-
-Revision 1.73  2002/09/09 17:14:25  nilsen
-Update of documentation to reflect changes in AliITSdigitS?D classes.
-
-Revision 1.72  2002/06/10 17:28:55  nilsen
-Added new FillModules routine and cleaned up the old one.
-
-Revision 1.71  2002/05/13 14:27:56  hristov
-TreeC created once per event (M.Masera)
-
-Revision 1.70  2002/05/10 22:28:30  nilsen
-Changes by Massimo Masera to allow the TTree of clusters to be written to a
-file otherthan the one with digits in it.
-
-Revision 1.69  2002/05/05 21:06:55  nilsen
-Added GetSimulationMoel, and fixed up SetDefaultSimulation to do the
-proper initilization when a simulation has already been defined.
-
-Revision 1.68  2002/05/02 18:51:53  nilsen
-AliITS.h
-   Method MakeBranchR has now a second argument, with a default value:
-       Option_t *opt=" ". Opt="Fast" is to create a separate branch
-       for fast points in TreeR
-   New method MakeBranchRF: it a separate branch in TreeR for Fast Points
-
-AliITS.cxx
-1) TTree->Write() replaced with TTree->AutoSave for TreeS, TreeD and
-   TreeR
-2) Changes in MakeBranchR to allow the creation of a special branch
-   for fast points
-
-Revision 1.67  2002/03/15 17:22:51  nilsen
-Intoduced SDigits2Digits and SDigitsToDigits functions.
-
-Revision 1.66  2001/11/28 01:35:45  nilsen
-Using standard constructors instead of default constructors for Clusterfinder,
-Response, and FastSimulator.
-
-Revision 1.65  2001/11/27 16:27:28  nilsen
-Adding AliITSDigitizer class to do merging and digitization . Based on the
-TTask method. AliITSDigitizer class added to the Makefile and ITSLinkDef.h
-file. The following files required minor changes. AliITS, added functions
-SetHitsAddressBranch, MakeBranchInTreeD and modified MakeBranchD.
-AliITSsimulationSDD.cxx needed a Tree indepenent way of returning back to
-the original Root Directory in function Compress1D. Now it uses gDirectory.
-
-Revision 1.64  2001/11/19 16:17:02  nilsen
-Applyed fixes to bugs found by Rene Brun. With many thanks. Some additonal
-bugs found by Rene require more work to fix. Will be fixed soon.
-
-Revision 1.63  2001/10/24 21:16:34  nilsen
-Removed some dead code and improved comments/documntation.
-
-Revision 1.62  2001/10/21 19:23:21  nilsen
-Added function to allow to limit which detectors to digitize and reconstruct.
-The default is All. This change makes no changes to any root file.
-
-Revision 1.61  2001/10/11 15:26:07  mariana
-Correct HitsToFastRecPoints
-
-Revision 1.60  2001/10/04 22:38:10  nilsen
-Changes made to support PreDigits (SDigits) plus other helpful changes.
-
-Revision 1.59  2001/08/30 09:56:18  hristov
-The operator[] is replaced by At() or AddAt() in case of TObjArray.
-
-Revision 1.58  2001/07/26 15:05:29  hristov
-Use global gRandom generator (M.Ivanov)
-
-Revision 1.57  2001/07/24 14:26:11  mariana
-Introduce the function Digits2Reco() and write the defaults for simulation and reconstruction
-
-Revision 1.56  2001/07/05 12:49:49  mariana
-Temporary patches required by root.v3.01.05
-
-Revision 1.55  2001/06/14 14:59:00  barbera
-Tracking V1 decoupled from AliITS
-
-Revision 1.54  2001/05/31 20:37:56  barbera
-Bari/Salerno model set as defaault SPD simulation
-
-Revision 1.53  2001/05/31 18:52:24 barbera 
-Bari model becomes the default
-
-Revision 1.53  2001/05/30 07:52:24  hristov
-TPC and CONTAINERS included in the search path
-
-Revision 1.52  2001/05/30 06:04:58  hristov
-Changes made to be consitant with changes in TPC tracking classes (B.Nilsen)
-
-Revision 1.51  2001/05/16 14:57:15  alibrary
-New files for folders and Stack
-
-Revision 1.50  2001/05/11 09:15:21  barbera
-Corrected to make fast point creation working with PPR geometry
-
-Revision 1.49  2001/05/11 07:37:49  hristov
-Legacy lines commented
-
-Revision 1.48  2001/05/10 18:14:25  barbera
-A typo corrected
-
-Revision 1.47  2001/05/10 17:55:59  barbera
-Modified to create rec points also for PPR geometries
-
-Revision 1.46  2001/05/10 00:05:28  nilsen
-Allowed for HitsToDigits function to work with versions 5, 7, 8, and 9. This
-should probably be cleaned up to only check to make sure that fITSgeom has
-been properly defined.
-
-Revision 1.45  2001/05/01 22:35:48  nilsen
-Remove/commented a number of cout<< statements. and made change needed by
-SSD code.
-
-Revision 1.44  2001/04/26 22:44:01  nilsen
-Removed dependence on layer 5/6 in AliITS::HitsToDigits. This will be
-done properly in AliITSv???.cxx via SetDefaults.
-
-Revision 1.43  2001/04/26 13:22:52  barbera
-TMatrix and TVector elimininated to speed up the code
-
-Revision 1.42  2001/04/25 21:55:12  barbera
-Updated version to be compatible with actual verion of STEER and TPC
-
-Revision 1.41  2001/04/21 15:16:51  barbera
-Updated with the new SSD reconstruction code
-
-Revision 1.40  2001/03/17 15:07:06  mariana
-Update SDD response parameters
-
-Revision 1.39  2001/03/12 17:45:32  hristov
-Changes needed on Sun with CC 5.0
-
-Revision 1.38  2001/03/07 14:04:51  barbera
-Some vector dimensions increased to cope with full events
-
-Revision 1.37  2001/03/07 12:36:35  barbera
-A change added in the tracking part to manage delta rays
-
-Revision 1.36  2001/03/02 19:44:11  barbera
- modified to taking into account new version tracking v1
-
-Revision 1.35  2001/02/28 18:16:46  mariana
-Make the code compatible with the new AliRun
-
-Revision 1.34  2001/02/11 15:51:39  mariana
-Set protection in MakeBranch
-
-Revision 1.33  2001/02/10 22:26:39  mariana
-Move the initialization of the containers for raw clusters in MakeTreeC()
-
-Revision 1.32  2001/02/08 23:55:31  nilsen
-Removed fMajor/MinorVersion variables in favor of variables in derived classes.
-Set arrays char *det[3] = {"SPD","SDD","SSD"} as const.
-
-Revision 1.31  2001/02/02 23:57:28  nilsen
-Added include file that are no londer included in AliITSgeom.h
-
-Revision 1.30  2001/01/30 09:23:13  hristov
-Streamers removed (R.Brun)
-
-Revision 1.29  2001/01/26 20:01:09  hristov
-Major upgrade of AliRoot code
-
-Revision 1.28  2000/12/18 14:02:00  barbera
-new version of the ITS tracking to take into account the new TPC track parametrization
-
-Revision 1.27  2000/12/08 13:49:27  barbera
-Hidden declaration in a for loop removed to be compliant with HP-UX compiler
-
-Revision 1.26  2000/11/27 13:12:13  barbera
-New version containing the files for tracking
-
-Revision 1.25  2000/11/12 22:38:05  barbera
-Added header file for the SPD Bari model
-
-Revision 1.24  2000/10/09 22:18:12  barbera
-Bug fixes from MAriana to le AliITStest.C run correctly
-
-Revision 1.23  2000/10/05 20:47:42  nilsen
-fixed dependencies of include files. Tryed but failed to get a root automaticly
-generates streamer function to work. Modified SetDefaults.
-
-Revision 1.9.2.15  2000/10/04 16:56:40  nilsen
-Needed to include stdlib.h
-
-Revision 1.22  2000/10/04 19:45:52  barbera
-Corrected by F. Carminati for v3.04
-
-Revision 1.21  2000/10/02 21:28:08  fca
-Removal of useless dependecies via forward declarations
-
-Revision 1.20  2000/10/02 16:31:39  barbera
-General code clean-up
-
-Revision 1.9.2.14  2000/10/02 15:43:51  barbera
-General code clean-up (e.g., printf -> cout)
-
-Revision 1.19  2000/09/22 12:13:25  nilsen
-Patches and updates for fixes to this and other routines.
-
-Revision 1.18  2000/07/12 05:32:20  fca
-Correcting several syntax problem with static members
-
-Revision 1.17  2000/07/10 16:07:18  fca
-Release version of ITS code
-
-Revision 1.9.2.3  2000/02/02 13:42:09  barbera
-fixed AliITS.cxx for new AliRun structure. Added ITS hits list to list of hits which will have their track numbers updated
-
-Revision 1.9.2.2  2000/01/23 03:03:13  nilsen
-//fixed FillModule. Removed fi(fabs(xl)<dx....
-
-Revision 1.9.2.1  2000/01/12 19:03:32  nilsen
-This is the version of the files after the merging done in December 1999.
-See the ReadMe110100.txt file for details
-
-Revision 1.9  1999/11/14 14:33:25  fca
-Correct problems with distructors and pointers, thanks to I.Hrivnacova
-
-Revision 1.8  1999/09/29 09:24:19  fca
-Introduction of the Copyright and cvs Log
-
-*/
+/* $Id$ */
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -315,45 +64,46 @@ the AliITS class.
 // futher information.
 //
 ///////////////////////////////////////////////////////////////////////////////
+
 #include <Riostream.h>
 #include <stdlib.h>
-#include <TMath.h>
-#include <TRandom.h>
+
 #include <TBranch.h>
-#include <TVector.h>
 #include <TClonesArray.h>
-#include <TROOT.h>
-#include <TObjectTable.h>
 #include <TFile.h>
-#include <TTree.h>
+#include <TMath.h>
+#include <TObjectTable.h>
+#include <TROOT.h>
+#include <TRandom.h>
 #include <TString.h>
+#include <TTree.h>
+#include <TVector.h>
+#include <TVirtualMC.h>
 
-#include "AliMC.h"
-#include "AliHeader.h"
 #include "AliConfig.h"
-
+#include "AliHeader.h"
 #include "AliITS.h"
-#include "AliITSDetType.h"
-#include "AliITSresponseSPD.h"
-#include "AliITSresponseSDD.h"
-#include "AliITSresponseSSD.h"
-#include "AliITSsegmentationSPD.h"
-#include "AliITSsegmentationSDD.h"
-#include "AliITSsegmentationSSD.h"
-#include "AliITSsimulationSPD.h"
-#include "AliITSsimulationSDD.h"
-#include "AliITSsimulationSSD.h"
-#include "AliITSClusterFinderSPD.h"
 #include "AliITSClusterFinderSDD.h"
+#include "AliITSClusterFinderSPD.h"
 #include "AliITSClusterFinderSSD.h"
-#include "AliITShit.h"
-#include "AliITSgeom.h"
+#include "AliITSDetType.h"
 #include "AliITSLoader.h"
-#include "AliITSpList.h"
-#include "AliITSdigit.h"
-#include "AliITSmodule.h"
-#include "AliITSRecPoint.h"
 #include "AliITSRawCluster.h"
+#include "AliITSRecPoint.h"
+#include "AliITSdigit.h"
+#include "AliITSgeom.h"
+#include "AliITShit.h"
+#include "AliITSmodule.h"
+#include "AliITSpList.h"
+#include "AliITSresponseSDD.h"
+#include "AliITSresponseSPD.h"
+#include "AliITSresponseSSD.h"
+#include "AliITSsegmentationSDD.h"
+#include "AliITSsegmentationSPD.h"
+#include "AliITSsegmentationSSD.h"
+#include "AliITSsimulationSDD.h"
+#include "AliITSsimulationSPD.h"
+#include "AliITSsimulationSSD.h"
 
 ClassImp(AliITS)
 

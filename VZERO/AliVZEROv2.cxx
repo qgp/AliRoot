@@ -24,40 +24,37 @@
 //                                                                  //
 //////////////////////////////////////////////////////////////////////
 
-#include <TMath.h>
-#include <TGeometry.h>
-#include <TTRD2.h>
-#include <TCONE.h>
-#include <TPGON.h>
-#include <TPCON.h>
-#include <TSPHE.h>
-#include <TTRAP.h>
-#include <TTUBS.h>
-#include <TTUBE.h>
+#include <Riostream.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include <TBRIK.h>
 #include <TBox.h>
-
-#include <TShape.h>
-#include <TNode.h>
+#include <TCONE.h>
 #include <TClonesArray.h>
+#include <TGeant3.h>
+#include <TGeometry.h>
 #include <TH1.h>
-#include <string.h>
-#include <Riostream.h>
+#include <TLorentzVector.h>
+#include <TMath.h>
+#include <TNode.h>
+#include <TObjectTable.h>
+#include <TPCON.h>
+#include <TPGON.h>
+#include <TSPHE.h>
+#include <TShape.h>
+#include <TTRAP.h>
+#include <TTRD2.h>
+#include <TTUBE.h>
+#include <TTUBS.h>
+#include <TVirtualMC.h>
 
-#include "AliVZEROv2.h"
-#include "AliRun.h"
 #include "AliLoader.h"
 #include "AliMagF.h"
-#include "AliMC.h"
-#include "AliVZEROhit.h"
+#include "AliRun.h"
 #include "AliVZEROdigit.h"
-
-#include <TGeant3.h>
-#include <stdlib.h>
-#include "TObjectTable.h"
-
-#include "AliConst.h"
-#include "TLorentzVector.h"
+#include "AliVZEROhit.h"
+#include "AliVZEROv2.h"
 
 ClassImp(AliVZEROv2)
 

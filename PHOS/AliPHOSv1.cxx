@@ -32,11 +32,12 @@
 
 // --- ROOT system ---
 
-#include "TBRIK.h"
-#include "TNode.h"
-#include "TRandom.h"
-#include "TTree.h"
-#include "TParticle.h"
+#include <TBRIK.h>
+#include <TNode.h>
+#include <TParticle.h>
+#include <TRandom.h>
+#include <TTree.h>
+#include <TVirtualMC.h>
 
 // --- Standard library ---
 
@@ -45,16 +46,15 @@
 
 // --- AliRoot header files ---
 
-#include "AliPHOSv1.h"
-#include "AliPHOSHit.h"
-#include "AliPHOSCPVDigit.h"
-#include "AliRun.h"
 #include "AliConst.h"
-#include "AliMC.h"
+#include "AliPHOSCPVDigit.h"
 #include "AliPHOSGeometry.h"
-#include "AliPHOSQAIntCheckable.h"
+#include "AliPHOSHit.h"
 #include "AliPHOSQAFloatCheckable.h"
+#include "AliPHOSQAIntCheckable.h"
 #include "AliPHOSQAMeanChecker.h"
+#include "AliPHOSv1.h"
+#include "AliRun.h"
 
 ClassImp(AliPHOSv1)
 

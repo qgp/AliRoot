@@ -12,7 +12,6 @@
 #ifndef TFLUKA_H
 #define TFLUKA_H
 
-#include "AliMC.h"
 #include "AliMCProcess.h"
 
 #include <TArrayI.h>

@@ -13,98 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.28.4.1  2002/05/31 09:38:00  hristov
-First set of changes done by Piotr
-
-Revision 1.32  2002/10/22 15:35:30  alibrary
-Introducing Riostream.h
-
-Revision 1.31  2002/10/14 14:57:44  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.28.6.2  2002/07/24 10:10:13  alibrary
-Updating VirtualMC
-
-Revision 1.28.6.1  2002/06/10 15:29:36  hristov
-Merged with v3-08-02
-
-Revision 1.30  2002/06/07 10:19:23  coppedis
-TreeS, TreeD and TreeR for ZDC can be written in a separate file
-
-Revision 1.29  2002/06/04 08:17:04  coppedis
-Reconstruction method improved
-
-Revision 1.28  2002/02/04 09:18:08  coppedis
-Merging and reconstruction code review
-
-Revision 1.26.2.2  2001/11/12 18:41:44  hristov
-All the changes from the head are merged to the release
-
-Revision 1.27  2001/10/21 18:27:45  hristov
-Several pointers were set to zero in the default constructors to avoid memory management problems
-
-Revision 1.26  2001/10/04 14:30:28  coppedis
-Event merging for ZDC
-
-Revision 1.25  2001/10/04 14:24:15  coppedis
-Event merging for ZDC
-
-Revision 1.24  2001/09/26 16:03:41  coppedis
-Merging implemented
-
-Revision 1.23  2001/05/15 13:44:57  coppedis
-Changes in AddHit method
-
-Revision 1.22  2001/05/14 09:53:32  coppedis
-Adding functions ZMin and ZMax
-
-Revision 1.21  2001/04/20 10:05:02  coppedis
-Minor changes
-
-Revision 1.20  2001/03/26 13:39:20  coppedis
-Comment prints
-
-Revision 1.19  2001/03/26 09:10:23  coppedis
-Corrected bug in constructor (fIshunt has to be =1)
-
-Revision 1.18  2001/03/20 08:21:55  coppedis
-ZDC needs PIPE, ABSO, DIPO and SHIL
-
-Revision 1.17  2001/03/16 16:18:03  coppedis
-Correction for superposition of ZDC volumes with MUON arm one
-
-Revision 1.16  2001/03/15 16:01:11  coppedis
-Code review
-
-Revision 1.15  2001/01/26 19:56:27  hristov
-Major upgrade of AliRoot code
-
-Revision 1.14  2000/12/12 13:17:01  coppedis
-Minor corrections suggested by P. Hristov
-
-Revision 1.12  2000/12/01 08:19:01  coppedis
-Adding a message error if ZDC is constructed without DIPO
-
-Revision 1.11  2000/11/30 17:21:03  coppedis
-Introduce hit array fStHits reset only at the end of the event (for digitization)
-
-Revision 1.10  2000/11/22 11:32:58  coppedis
-Major code revision
-
-Revision 1.9  2000/10/02 21:28:20  fca
-Removal of useless dependecies via forward declarations
-
-Revision 1.8  2000/07/10 13:58:01  fca
-New version of ZDC from E.Scomparin & C.Oppedisano
-
-Revision 1.7  2000/01/19 17:17:40  fca
-
-Revision 1.6  1999/09/29 09:24:35  fca
-Introduction of the Copyright and cvs Log
-
-*/
+/* $Id$ */
 
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
@@ -120,28 +29,27 @@ Introduction of the Copyright and cvs Log
 
 // --- ROOT system
 #include <TBRIK.h>
-#include <TNode.h>
-#include <TGeometry.h>
-#include <TFile.h>
-#include <TTree.h>
 #include <TDirectory.h>
 #include <TF1.h>
+#include <TFile.h>
+#include <TGeometry.h>
+#include <TNode.h>
+#include <TTree.h>
+#include <TVirtualMC.h>
 
 // --- AliRoot header files
+#include "AliDetector.h"
 #include "AliZDC.h"
+#include "AliZDCDigit.h"
 #include "AliZDCHit.h"
 #include "AliZDCMergedHit.h"
 #include "AliZDCMerger.h"
-#include "AliZDCDigit.h"
 #include "AliZDCReco.h"
-#include "AliDetector.h"
-//#include "AliCallf77.h"
 
 #include "AliConst.h"
-#include "AliMC.h"
-#include "AliRun.h"
 #include "AliHeader.h"
 #include "AliLoader.h"
+#include "AliRun.h"
 
  
 ClassImp(AliZDC)

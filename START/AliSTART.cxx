@@ -13,87 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.23.6.1  2002/05/31 09:37:59  hristov
-First set of changes done by Piotr
-
-Revision 1.26  2002/10/22 15:40:19  alibrary
-Introducing Riostream.h
-
-Revision 1.25  2002/10/14 14:57:32  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.23.8.1  2002/07/24 09:50:10  alibrary
-Updating VirtualMC
-
-Revision 1.24  2002/07/23 11:48:05  alla
-new Digits structure
-
-Revision 1.23  2001/09/19 18:41:45  alla
-Asimmetric START geometry
-
-Revision 1.22  2001/07/27 13:03:12  hristov
-Default Branch split level set to 99
-
-Revision 1.21  2001/06/27 16:06:59  hristov
-Rotation matrix in BuildGeometry has been changed to rotx999
-
-Revision 1.20.2.1  2001/06/27 10:51:15  alla
-Rotation matrix in BuildGeometry has benn changed to rotx999
-
-Revision 1.20  2001/05/16 14:57:21  alibrary
-New files for folders and Stack
-
-Revision 1.19  2001/04/04 12:10:18  alla
-changes according Coding Convension
-
-Revision 1.18  2001/03/12 17:46:43  hristov
-Changes needed on Sun with CC 5.0
-
-Revision 1.17  2001/01/26 19:59:53  hristov
-Major upgrade of AliRoot code
-
-Revision 1.16  2001/01/17 10:56:08  hristov
-Corrections to destructors
-
-Revision 1.15  2001/01/01 13:10:42  hristov
-Local definition of digits removed
-
-Revision 1.14  2000/12/22 16:17:15  hristov
-Updated  START code from Alla
-
-Revision 1.13  2000/12/18 11:39:41  alibrary
-Quick fix to avoid crash in display waiting for new version
-
-Revision 1.12  2000/12/04 08:48:19  alibrary
-Fixing problems in the HEAD
-
-Revision 1.11  2000/10/13 13:14:08  hristov
-Bug fixes and code cleaning
-
-Revision 1.10  2000/10/02 21:28:13  fca
-Removal of useless dependecies via forward declarations
-
-Revision 1.9  2000/07/13 16:41:29  fca
-New START corrected for coding conventions
-
-Revision 1.8  2000/03/27 17:24:25  alla
-Modifing geometry
-
-Revision 1.6  2000/01/21 15:45:23  fca
-New Version from Alla
-
-Revision 1.5  2000/01/19 17:17:15  fca
-Introducing a list of lists of hits -- more hits allowed for detector now
-
-Revision 1.4  1999/11/12 15:04:00  fca
-Modifications from A.Maevskaya
-
-Revision 1.3  1999/09/29 09:24:29  fca
-Introduction of the Copyright and cvs Log
-
-*/
+/* $Id$ */
 
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
@@ -118,21 +38,20 @@ Introduction of the Copyright and cvs Log
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <Riostream.h>
-#include <Riostream.h>
 
-#include "TMath.h"
-#include "TTUBE.h"
-#include "TNode.h"
-#include "TRandom.h"
-#include "TGeometry.h"
-#include "TFile.h"
-#include "TParticle.h"
+#include <TFile.h>
+#include <TGeometry.h>
+#include <TMath.h>
+#include <TNode.h>
+#include <TParticle.h>
+#include <TRandom.h>
+#include <TTUBE.h>
+#include <TVirtualMC.h>
 
-#include "AliRun.h"
 #include "AliLoader.h"
+#include "AliRun.h"
 #include "AliSTART.h"
 #include "AliSTARTdigit.h"
-#include "AliMC.h"
 #include "AliSTARThit.h"
 #include "AliSTARThitPhoton.h"
 #include "AliSTARTvertex.h"

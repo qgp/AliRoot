@@ -27,23 +27,21 @@
 //                                                                  //
 //////////////////////////////////////////////////////////////////////
 
-#include <TMath.h>
-#include <TGeometry.h>
-#include <TTUBE.h>
-#include <TNode.h>
-#include <TLorentzVector.h>
-
-#include "AliSTARTv1.h"
-#include "AliRun.h"
-#include "AliMC.h"
-#include "AliMagF.h"
-#include "AliSTARThit.h"
-
 #include <Riostream.h>
-#include <Riostream.h>
-
-//#include "TGeant3.h"
 #include <stdlib.h>
+
+#include <TGeometry.h>
+#include <TLorentzVector.h>
+#include <TMath.h>
+#include <TNode.h>
+#include <TTUBE.h>
+#include <TVirtualMC.h>
+
+#include "AliMagF.h"
+#include "AliRun.h"
+#include "AliSTARThit.h"
+#include "AliSTARTv1.h"
+//#include "TGeant3.h"
 
 ClassImp(AliSTARTv1)
 

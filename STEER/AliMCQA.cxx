@@ -13,39 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.6.4.1  2002/11/22 14:19:50  hristov
-Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
-
-Revision 1.8  2002/10/29 14:26:49  hristov
-Code clean-up (F.Carminati)
-
-Revision 1.7  2002/10/14 14:57:32  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.6.6.1  2002/10/12 21:41:00  hristov
-Remove the object from the list of browsables
-
-Revision 1.6  2001/12/05 08:31:25  hristov
-Destructor corrected, thanks to R.Brun
-
-Revision 1.5  2001/01/26 19:58:48  hristov
-Major upgrade of AliRoot code
-
-Revision 1.4  2001/01/17 10:50:50  hristov
-Corrections to destructors
-
-Revision 1.3  2000/12/18 14:16:31  alibrary
-HP compatibility fix
-
-Revision 1.2  2000/12/18 11:33:48  alibrary
-New call frequence histograms per module and volume
-
-Revision 1.1  2000/11/30 07:12:48  alibrary
-Introducing new Rndm and QA classes
-
-*/
+/* $Id$ */
 
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
@@ -55,24 +23,24 @@ Introducing new Rndm and QA classes
 
 #include <strings.h>
 
-#include "TObjArray.h"
-#include "TH1.h"
-#include "TList.h"
-#include "TROOT.h"
-#include "TBrowser.h"
-#include "TMath.h"
-#include "TLorentzVector.h"
-#include "TDatabasePDG.h"
-#include "TMath.h"
-#include "TPad.h"
-#include "TExec.h"
-#include "TPaveLabel.h"
-#include "TCanvas.h"
+#include <TBrowser.h>
+#include <TCanvas.h>
+#include <TDatabasePDG.h>
+#include <TExec.h>
+#include <TH1.h>
+#include <TList.h>
+#include <TLorentzVector.h>
+#include <TMath.h>
+#include <TMath.h>
+#include <TObjArray.h>
+#include <TPad.h>
+#include <TPaveLabel.h>
+#include <TROOT.h>
+#include <TVirtualMC.h>
 
 #include "AliMCQA.h"
-#include "AliRun.h"
 #include "AliModule.h"
-#include "AliMC.h"
+#include "AliRun.h"
 
 ClassImp(AliMCQA)
 

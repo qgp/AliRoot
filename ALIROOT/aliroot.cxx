@@ -13,46 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-
-Revision 1.10.4.1  2002/11/22 14:19:27  hristov
-Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
-
-Revision 1.12  2002/10/14 14:55:33  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.10.6.1  2002/08/28 15:06:49  alibrary
-Updating to v3-09-01
-
-Revision 1.11  2002/08/18 20:20:48  hristov
-InitGui removed (J.Chudoba)
-
-Revision 1.10  2002/02/18 14:26:14  hristov
-#include <AliConfig.h> removed
-
-Revision 1.9  2002/01/09 17:05:03  morsch
-Increase memory allocated for ZEBRA.
-
-Revision 1.8  2001/10/04 15:32:36  hristov
-Instantiation of AliConfig removed
-
-Revision 1.7  2001/05/22 11:39:48  buncic
-Restored proper name for top level AliRoot folder.
-
-Revision 1.6  2001/05/21 17:22:50  buncic
-Fixed problem with missing AliConfig while reading galice.root
-
-Revision 1.5  2001/05/16 14:57:07  alibrary
-New files for folders and Stack
-
-Revision 1.4  2000/12/20 08:39:37  fca
-Support for Cerenkov and process list in Virtual MC
-
-Revision 1.3  1999/09/29 09:24:07  fca
-Introduction of the Copyright and cvs Log
-
-*/
+/* $Id$ */
 
 //////////////////////////////////////////////////////////////////////////
 //                                                                      //

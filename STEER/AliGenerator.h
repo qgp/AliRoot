@@ -12,21 +12,19 @@
 //                                                       //
 ///////////////////////////////////////////////////////////
 
-#include "TLorentzVector.h"
-#include "TArrayF.h"
-#include "AliRndm.h"
-#include "AliMCProcess.h"
+#include <TArrayF.h>
+#include <TLorentzVector.h>
+#include <TMCProcess.h>
 class TGenerator;
-class AliStack;
 
+#include "AliRndm.h"
+class AliStack;
 
 typedef enum { kNoSmear, kPerEvent, kPerTrack } VertexSmear_t;
 typedef enum { kExternal, kInternal}            VertexSource_t;
 
-
 class AliGenerator : public TNamed, public AliRndm
 {
-
  public:
     AliGenerator();
     AliGenerator(Int_t npart);
@@ -78,13 +76,13 @@ class AliGenerator : public TNamed, public AliRndm
  protected:
     virtual  void  SetTrack(Int_t done, Int_t parent, Int_t pdg,
                                Float_t *pmom, Float_t *vpos, Float_t *polar,
-                               Float_t tof, AliMCProcess mech, Int_t &ntr,
+                               Float_t tof, TMCProcess mech, Int_t &ntr,
                                Float_t weight = 1, Int_t is = 0);
     virtual  void  SetTrack(Int_t done, Int_t parent, Int_t pdg,
                       Double_t px, Double_t py, Double_t pz, Double_t e,
                       Double_t vx, Double_t vy, Double_t vz, Double_t tof,
                       Double_t polx, Double_t poly, Double_t polz,
-                      AliMCProcess mech, Int_t &ntr, Float_t weight = 1, Int_t is = 0);
+                      TMCProcess mech, Int_t &ntr, Float_t weight = 1, Int_t is = 0);
     virtual void   KeepTrack(Int_t itrack); 
     virtual void   SetHighWaterMark(Int_t nt);
     

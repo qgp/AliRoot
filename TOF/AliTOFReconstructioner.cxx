@@ -13,6 +13,8 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
+/* $Id$ */
+
 //_________________________________________________________________________
 // Manager class for TOF reconstruction.
 // 
@@ -32,50 +34,50 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 
+#include <Riostream.h>
+#include <stdlib.h>
+
+#include <TBenchmark.h>
+#include <TClonesArray.h>
+#include <TF1.h>
+#include <TF2.h>
+#include <TFile.h>
+#include <TFolder.h>
+#include <TGeant3.h>
+#include <TNtuple.h>
+#include <TParticle.h>
+#include <TROOT.h>
+#include <TSystem.h>
+#include <TTask.h>
+#include <TTree.h>
+#include <TVirtualMC.h>
 
 #include "AliConst.h"
+#include "AliDetector.h"
+#include "AliHeader.h"
+#include "AliLoader.h"
 #include "AliRun.h"
+#include "AliRun.h"
+#include "AliRunLoader.h"
+#include "AliTOF.h"
 #include "AliTOFConstants.h"
 #include "AliTOFHitMap.h"
-#include "AliTOFSDigit.h"
-#include "AliTOFhit.h"
-#include "AliTOFRecHit.h"
 #include "AliTOFPad.h"
+#include "AliTOFRecHit.h"
+#include "AliTOFReconstructioner.h"
+#include "AliTOFSDigit.h"
 #include "AliTOFTrack.h"
-#include "AliTOF.h"
+#include "AliTOFhit.h"
 #include "AliTOFv1.h"
 #include "AliTOFv2.h"
 #include "AliTOFv2FHoles.h"
 #include "AliTOFv3.h"
 #include "AliTOFv4.h"
 #include "AliTOFv4T0.h"
-#include "AliTOFReconstructioner.h"
-// this line has to be commented till TPC will provide fPx fPy fPz and fL in
-// AliTPChit class or somewhere
-// #include "../TPC/AliTPC.h"
-#include "AliHeader.h"
-#include "AliRun.h"
-#include "AliRunLoader.h"
-#include "AliLoader.h"
-#include "AliDetector.h"
-#include "AliMC.h"
 
-#include "TTask.h"
-#include "TBenchmark.h"
-#include "TTree.h"
-#include "TSystem.h"
-#include "TFile.h"
-#include "TParticle.h"
-#include <TClonesArray.h>
-#include "TGeant3.h"
-#include "TVirtualMC.h"
-#include <TF1.h>
-#include <TF2.h>
-#include "TROOT.h"
-#include "TFolder.h"
-#include "TNtuple.h"
-#include <stdlib.h>
-#include <Riostream.h>
+// #include "../TPC/AliTPC.h"
+// AliTPChit class or somewhere
+// this line has to be commented till TPC will provide fPx fPy fPz and fL in
 
 ClassImp(AliTOFReconstructioner)
 

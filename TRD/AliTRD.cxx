@@ -13,160 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.36.4.3  2002/06/24 09:21:29  cblume
-New IO for TRD
-
-Revision 1.36.4.2  2002/06/03 09:55:03  hristov
-Merged with v3-08-02
-
-
-Revision 1.36.4.1  2002/05/31 09:38:00  hristov
-First set of changes done by Piotr
-
-Revision 1.38  2002/03/28 14:59:07  cblume
-Coding conventions
-
-Revision 1.37  2002/03/25 20:01:49  cblume
-Introduce parameter class
-
-Revision 1.42  2002/10/22 15:53:08  alibrary
-Introducing Riostream.h
-
-Revision 1.41  2002/10/14 14:57:43  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.36.6.2  2002/07/24 10:09:30  alibrary
-Updating VirtualMC
-
-Revision 1.40  2002/06/13 08:11:56  cblume
-Add the track references
-
-Revision 1.39  2002/06/12 09:54:35  cblume
-Update of tracking code provided by Sergei
-
-Revision 1.38  2002/03/28 14:59:07  cblume
-Coding conventions
-
-Revision 1.37  2002/03/25 20:01:49  cblume
-Introduce parameter class
-
-Revision 1.36  2002/02/11 14:25:27  cblume
-Geometry update, compressed hit structure
-
-Revision 1.35  2001/11/14 12:08:44  cblume
-Remove unneccessary header files
-
-Revision 1.34  2001/11/14 10:50:45  cblume
-Changes in digits IO. Add merging of summable digits
-
-Revision 1.33  2001/11/06 17:19:41  cblume
-Add detailed geometry and simple simulator
-
-Revision 1.32  2001/10/08 06:57:33  hristov
-Branches for  TRD digits are created only during the digitisation
-
-Revision 1.31  2001/08/30 09:30:30  hristov
-The split level of branches is set to 99
-
-Revision 1.30  2001/05/28 17:07:58  hristov
-Last minute changes; ExB correction in AliTRDclusterizerV1; taking into account of material in G10 TEC frames and material between TEC planes (C.Blume,S.Sedykh)
-
-Revision 1.29  2001/05/21 16:45:47  hristov
-Last minute changes (C.Blume)
-
-Revision 1.28  2001/05/16 14:57:27  alibrary
-New files for folders and Stack
-
-Revision 1.27  2001/05/08 07:05:02  hristov
-Loop variable declared once (HP, Sun)
-
-Revision 1.26  2001/05/07 08:03:22  cblume
-Generate also hits in the amplification region
-
-Revision 1.25  2001/03/13 09:30:35  cblume
-Update of digitization. Moved digit branch definition to AliTRD
-
-Revision 1.24  2001/01/26 19:56:49  hristov
-Major upgrade of AliRoot code
-
-Revision 1.23  2000/11/01 14:53:20  cblume
-Merge with TRD-develop
-
-Revision 1.17.2.6  2000/10/15 23:29:08  cblume
-Introduced more detailed geometry for the display
-
-Revision 1.17.2.5  2000/10/06 16:49:46  cblume
-Made Getters const
-
-Revision 1.17.2.4  2000/10/04 16:34:57  cblume
-Replace include files by forward declarations
-
-Revision 1.17.2.3  2000/09/22 14:45:17  cblume
-Included changes for the tracking
-
-Revision 1.17.2.2  2000/09/18 13:25:13  cblume
-Included LoadPoints() method to display the TR photons
-
-Revision 1.22  2000/10/02 21:28:19  fca
-Removal of useless dependecies via forward declarations
-
-Revision 1.21  2000/06/09 11:10:07  cblume
-Compiler warnings and coding conventions, next round
-
-Revision 1.20  2000/06/08 18:32:57  cblume
-Make code compliant to coding conventions
-
-Revision 1.19  2000/06/07 16:25:37  cblume
-Try to remove compiler warnings on Sun and HP
-
-Revision 1.18  2000/05/08 16:17:27  cblume
-Merge TRD-develop
-
-Revision 1.21  2000/06/09 11:10:07  cblume
-Compiler warnings and coding conventions, next round
-
-Revision 1.20  2000/06/08 18:32:57  cblume
-Make code compliant to coding conventions
-
-Revision 1.19  2000/06/07 16:25:37  cblume
-Try to remove compiler warnings on Sun and HP
-
-Revision 1.18  2000/05/08 16:17:27  cblume
-Merge TRD-develop
-
-Revision 1.17.2.1  2000/05/08 14:28:59  cblume
-Introduced SetPHOShole() and SetRICHhole(). AliTRDrecPoint container is now a TObjArray
-
-Revision 1.17  2000/02/28 19:10:26  cblume
-Include the new TRD classes
-
-Revision 1.16.2.2  2000/02/28 17:53:24  cblume
-Introduce TRD geometry classes
-
-Revision 1.16.2.1  2000/02/28 17:04:19  cblume
-Include functions and data members for AliTRDrecPoint
-
-Revision 1.16  2000/01/19 17:17:35  fca
-Introducing a list of lists of hits -- more hits allowed for detector now
-
-Revision 1.15  1999/11/02 17:04:25  fca
-Small syntax change for HP compiler
-
-Revision 1.14  1999/11/02 16:57:02  fca
-Avoid non ansi warnings on HP compilers
-
-Revision 1.13  1999/11/02 16:35:56  fca
-New version of TRD introduced
-
-Revision 1.12  1999/11/01 20:41:51  fca
-Added protections against using the wrong version of FRAME
-
-Revision 1.11  1999/09/29 09:24:34  fca
-Introduction of the Copyright and cvs Log
-
-*/
+/* $Id$ */
 
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
@@ -179,36 +26,35 @@ Introduction of the Copyright and cvs Log
 #include <stdlib.h>
 #include <Riostream.h>
 
+#include <TFile.h>
+#include <TGeometry.h>
+#include <TLorentzVector.h>
 #include <TMath.h>
 #include <TNode.h>
-#include <TGeometry.h>
-#include <TTree.h>                                                              
 #include <TPGON.h> 
-#include <TFile.h>
-#include <TROOT.h>
 #include <TParticle.h>
-#include <TLorentzVector.h>
-
-#include "AliRun.h"
+#include <TROOT.h>
+#include <TTree.h>
+#include <TVirtualMC.h>
+ 
 #include "AliConst.h"
 #include "AliDigit.h"
-#include "AliMagF.h"
-#include "AliMC.h"                                                              
 #include "AliLoader.h"
-#include "AliTrackReference.h"
- 
+#include "AliMagF.h"
+#include "AliRun.h"
 #include "AliTRD.h"
-#include "AliTRDhit.h"
-#include "AliTRDpoints.h"
+#include "AliTRDcluster.h"
+#include "AliTRDclusterizer.h"
 #include "AliTRDdigit.h"
 #include "AliTRDdigitizer.h"
-#include "AliTRDclusterizer.h"
-#include "AliTRDgeometryHole.h"
-#include "AliTRDgeometryFull.h"
-#include "AliTRDrecPoint.h"
-#include "AliTRDcluster.h"
 #include "AliTRDdigitsManager.h"
+#include "AliTRDgeometryFull.h"
+#include "AliTRDgeometryHole.h"
+#include "AliTRDhit.h"
+#include "AliTRDpoints.h"
+#include "AliTRDrecPoint.h"
 #include "AliTRDtrackHits.h"  
+#include "AliTrackReference.h"
 
 ClassImp(AliTRD)
  

@@ -68,5 +68,7 @@ private:
   double* fTIME;
   TStopwatch* fTimer;
   bool fDisabled;
+
+  ClassDef(AliPHOSMemoryWatcher,1)
 } ;
 #endif

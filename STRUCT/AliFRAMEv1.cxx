@@ -13,34 +13,17 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.10  2000/10/02 21:28:15  fca
-Removal of useless dependecies via forward declarations
-
-Revision 1.9  2000/06/11 12:35:02  morsch
-Coding rule violations corrected
-
-Revision 1.8  2000/02/23 16:25:24  fca
-AliVMC and AliGeant3 classes introduced
-ReadEuclid moved from AliRun to AliModule
-
-Revision 1.7  1999/11/01 20:42:42  fca
-FRAME version 1 is now the symmetric one.
-
-Revision 1.6  1999/09/29 09:24:30  fca
-Introduction of the Copyright and cvs Log
-
-*/
+/* $Id$ */
 
 ////////////////////////////////////////////////
 //  space frame class                            /
 ////////////////////////////////////////////////
 
+#include <TSystem.h>
+#include <TVirtualMC.h>
+
 #include "AliFRAMEv1.h"
 #include "AliRun.h"
-#include "AliMC.h"
-#include "TSystem.h"
  
 ClassImp(AliFRAMEv1)
  

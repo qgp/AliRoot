@@ -13,6 +13,8 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
+/* $Id$ */
+
 //_________________________________________________________________________
 // This is a TTask that constructs SDigits out of Hits
 // A Summable Digits is the "sum" of all hits in a pad
@@ -23,37 +25,37 @@
 // Use case: see AliTOFhits2sdigits.C macro in the CVS
 //////////////////////////////////////////////////////////////////////////////
 
-#include "TBenchmark.h"
-#include "TTask.h"
-#include "TTree.h"
-#include "TSystem.h"
-#include "TParticle.h"
-#include "TH1.h"
-#include "TFile.h"
 
-#include "AliRunLoader.h"
-#include "AliLoader.h"
-#include "TROOT.h"
-#include "TFolder.h"
-#include <TF1.h>
-#include <stdlib.h>
 #include <Riostream.h>
+#include <stdlib.h>
 
+#include <TBenchmark.h>
+#include <TF1.h>
+#include <TFile.h>
+#include <TFolder.h>
+#include <TH1.h>
+#include <TParticle.h>
+#include <TROOT.h>
+#include <TSystem.h>
+#include <TTask.h>
+#include <TTree.h>
+#include <TVirtualMC.h>
+
+#include "AliDetector.h"
+#include "AliLoader.h"
+#include "AliRun.h"
+#include "AliRunLoader.h"
+#include "AliTOF.h"
+#include "AliTOFConstants.h"
 #include "AliTOFHitMap.h"
 #include "AliTOFSDigit.h"
-#include "AliTOFConstants.h"
+#include "AliTOFSDigitizer.h"
 #include "AliTOFhit.h"
 #include "AliTOFhitT0.h"
-#include "AliTOF.h"
 #include "AliTOFv1.h"
 #include "AliTOFv2.h"
 #include "AliTOFv3.h"
 #include "AliTOFv4.h"
-#include "AliTOFSDigitizer.h"
-#include "AliRun.h"
-#include "AliDetector.h"
-#include "AliMC.h"
-
 
 ClassImp(AliTOFSDigitizer)
 

@@ -13,22 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
  
-/*
-$Log$
-Revision 1.3  2002/10/14 14:57:44  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.1.8.1  2002/07/24 10:09:31  alibrary
-Updating VirtualMC
-
-Revision 1.2  2002/06/12 09:54:35  cblume
-Update of tracking code provided by Sergei
-
-Revision 1.1  2001/11/06 17:19:41  cblume
-Add detailed geometry and simple simulator
-                                                          
-*/
- 
+/* $Id$ */
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
 //  Simple TRD Monte Carlo class                                             //
@@ -40,16 +25,15 @@ Add detailed geometry and simple simulator
 #include <TLorentzVector.h>
  
 #include "AliRun.h"
-
-#include "AliTRDsimpleMC.h"
 #include "AliTRDgeometry.h"
-#include "AliTRDv1.h"
 #include "AliTRDparameter.h"
+#include "AliTRDsimpleMC.h"
+#include "AliTRDv1.h"
  
 ClassImp(AliTRDsimpleMC)
  
 //_____________________________________________________________________________
-AliTRDsimpleMC::AliTRDsimpleMC():AliMC()
+AliTRDsimpleMC::AliTRDsimpleMC():TVirtualMC()
 {                       
   //
   // AliTRDsimpleMC default constructor
@@ -79,7 +63,7 @@ AliTRDsimpleMC::AliTRDsimpleMC():AliMC()
 
 //_____________________________________________________________________________
 AliTRDsimpleMC::AliTRDsimpleMC(const char *name, const char *title)
-               :AliMC(name,title)
+               :TVirtualMC(name,title)
 {                       
   //
   // AliTRDsimpleMC default constructor
@@ -263,6 +247,19 @@ void AliTRDsimpleMC::TrackPosition(TLorentzVector& position) const
 }
 
 //_____________________________________________________________________________
+void AliTRDsimpleMC::TrackPosition(Double_t &x, Double_t &y, Double_t &z) const
+{
+  //
+  // Track Position
+  //
+
+  x = fTrackX;
+  y = fTrackY;
+  z = fTrackZ;
+
+}
+
+//_____________________________________________________________________________
 void AliTRDsimpleMC::TrackMomentum(TLorentzVector& momentum) const
 {
   //
@@ -273,6 +270,21 @@ void AliTRDsimpleMC::TrackMomentum(TLorentzVector& momentum) const
   momentum[1] = fTrackPy;
   momentum[2] = fTrackPz;
   momentum[3] = fTrackEtot;
+
+}
+
+//_____________________________________________________________________________
+void AliTRDsimpleMC::TrackMomentum(Double_t &px, Double_t &py,
+				   Double_t &pz, Double_t &et) const
+{
+  //
+  // Track Momentum
+  //
+
+  px = fTrackPx;
+  py = fTrackPy;
+  pz = fTrackPz;
+  et = fTrackEtot;
 
 }
 

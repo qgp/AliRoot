@@ -127,6 +127,8 @@ private:
 	
 	AliITSglobalRecPoint *fInner; // inner point 
 	AliITSglobalRecPoint *fOuter; // outer point
+
+	ClassDef(AliITSneuron, 1)
 };
 
 	

@@ -13,34 +13,14 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.6  2002/10/29 09:53:40  morsch
-Constants start with k. Warnings corrected.
+/* $Id$ */
 
-Revision 1.5  2002/10/14 14:57:39  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
+#include <TVirtualMC.h>
 
-Revision 1.3.2.2  2002/10/11 08:04:28  hristov
-Updating VirtualMC to v3-09-02
-
-Revision 1.4  2002/09/02 15:32:15  morsch
-Gsbool calls to resolve MANY added (I. Hrivnacova)
-
-Revision 1.3  2002/07/25 10:00:08  morsch
-par4 size increased.
-
-Revision 1.2  2002/07/15 08:16:35  morsch
-New shield geometry.
-
-*/
-
-
-#include "AliSHILv2.h"
-#include "AliRun.h"
-#include "AliMC.h"
-#include "AliConst.h"
 #include "AliALIFE.h"
+#include "AliConst.h"
+#include "AliRun.h"
+#include "AliSHILv2.h"
 
 ClassImp(AliSHILv2)
  

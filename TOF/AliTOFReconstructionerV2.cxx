@@ -13,45 +13,46 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
+/* $Id$ */
+
 //_________________________________________________________________________
 // This is a TTask for reconstruction V2 in TOF
 // Description of the algorithm
 //-- Author: F. Pierella | pierella@bo.infn.it
 //////////////////////////////////////////////////////////////////////////////
 
-#include "TBenchmark.h"
-#include "TFile.h"
-#include "TFolder.h"
-#include "TParticle.h"
-#include "TTask.h"
-#include "TTree.h"
-#include "TClonesArray.h"
-#include "TROOT.h"
-#include "TSystem.h"
+
+#include <Riostream.h>
 #include <stdlib.h>
-#include <Riostream.h>
-#include <Riostream.h>
-#include "TGeant3.h"
-#include "TVirtualMC.h"
 
-#include "AliDetector.h"
-#include "AliMC.h"
-#include "AliRun.h"
-#include "AliTOF.h"
-#include "AliTOFDigitMap.h"
-#include "AliTOFHitMap.h"
-#include "AliTOFhitT0.h"
-#include "AliTOFdigit.h"
-#include "AliTOFConstants.h"
-#include "AliTOFReconstructionerV2.h"
-#include "AliTOFTrackV2.h"
-#include "AliHeader.h"
-#include "AliRunLoader.h"
-#include "AliLoader.h"
+#include <TBenchmark.h>
+#include <TClonesArray.h>
+#include <TFile.h>
+#include <TFolder.h>
+#include <TGeant3.h>
+#include <TParticle.h>
+#include <TROOT.h>
+#include <TSystem.h>
+#include <TTask.h>
+#include <TTree.h>
+#include <TVirtualMC.h>
 
-#include "AliKalmanTrack.h"
 #include "../TPC/AliTPCtrack.h"
 #include "../TRD/AliTRDtrack.h"
+#include "AliDetector.h"
+#include "AliHeader.h"
+#include "AliKalmanTrack.h"
+#include "AliLoader.h"
+#include "AliRun.h"
+#include "AliRunLoader.h"
+#include "AliTOF.h"
+#include "AliTOFConstants.h"
+#include "AliTOFDigitMap.h"
+#include "AliTOFHitMap.h"
+#include "AliTOFReconstructionerV2.h"
+#include "AliTOFTrackV2.h"
+#include "AliTOFdigit.h"
+#include "AliTOFhitT0.h"
 
 ClassImp(AliTOFReconstructionerV2)
 

@@ -13,28 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.4.2.2  2002/06/06 14:21:19  hristov
-Merged with v3-08-02
-
-$Log$
-Revision 1.10  2002/10/14 14:57:43  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.5.4.1  2002/06/10 15:26:12  hristov
-Merged with v3-08-02
-
-Revision 1.9  2002/05/13 09:53:08  hristov
-Some frequent problems corrected: arrays with variable size have to be defined via the operator new, default values for the arguments have to be  used only in the header files, etc.
-
-Revision 1.8  2002/05/08 18:21:40  kowal2
-Now the code is blind to the binning used for pulls, efficiencies etc.
-
-Revision 1.7  2002/04/10 16:30:07  kowal2
-logs added
-
-*/
+/* $Id$ */
 
 
 /**************************************************************************
@@ -65,6 +44,7 @@ logs added
  *  Origin: Andrea Dainese, Padova - e-mail: andrea.dainese@pd.infn.it    *
  *                                                                        *
  **************************************************************************/
+
 #include <TChain.h>
 #include <TF1.h>
 #include <TGraph.h>
@@ -74,6 +54,7 @@ logs added
 #include <TMatrixD.h>
 #include <TNtuple.h>
 #include <TSystem.h>
+
 #include "alles.h"
 #include "AliGausCorr.h"
 #include "AliKalmanTrack.h"

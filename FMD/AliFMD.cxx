@@ -12,6 +12,9 @@
  * about the suitability of this software for any purpose. It is          *
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
+
+/* $Id$ */
+
  //////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 //  Forward Multiplicity Detector based on Silicon plates                    //
@@ -37,29 +40,29 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #define DEBUG
-#include <TMath.h>
-#include <TGeometry.h>
-#include <TTUBE.h>
-#include <TTree.h>
-#include <TNode.h>
-#include <TFile.h>
 
-#include <TClonesArray.h>
-#include <TLorentzVector.h>
-#include "AliFMDv1.h"
-#include "AliRun.h"
-#include "AliLoader.h"
-#include "AliMC.h"
-#include "AliDetector.h"
 #include <Riostream.h>
-#include <Riostream.h>
-#include "AliMagF.h"
-#include "AliFMDhit.h"
-#include "AliFMDdigit.h"
-#include "AliFMDReconstruction.h"
-#include "AliFMDReconstParticles.h"
 #include <stdlib.h>
 
+#include <TClonesArray.h>
+#include <TFile.h>
+#include <TGeometry.h>
+#include <TLorentzVector.h>
+#include <TMath.h>
+#include <TNode.h>
+#include <TTUBE.h>
+#include <TTree.h>
+#include <TVirtualMC.h>
+
+#include "AliDetector.h"
+#include "AliFMDReconstParticles.h"
+#include "AliFMDReconstruction.h"
+#include "AliFMDdigit.h"
+#include "AliFMDhit.h"
+#include "AliFMDv1.h"
+#include "AliLoader.h"
+#include "AliMagF.h"
+#include "AliRun.h"
 
 ClassImp (AliFMD)
   //_____________________________________________________________________________
@@ -239,7 +242,6 @@ void  AliFMD::Init ()
   //
   // Initialis the FMD after it has been built
   Int_t i;
-  AliMC *pMC = AliMC::GetMC ();
   //
   if (fDebug)
     {
@@ -258,10 +260,10 @@ void  AliFMD::Init ()
     }
   //
   //
-    fIdSens1 = pMC->VolId ("GRN1");	//Si sensetive volume
-    fIdSens2 = pMC->VolId ("GRN2");	//Si sensetive volume
-    fIdSens3 = pMC->VolId ("GRN3");	//Si sensetive volume
-    fIdSens4 = pMC->VolId ("GRN4");	//Si sensetive volume
+    fIdSens1 = gMC->VolId ("GRN1");	//Si sensetive volume
+    fIdSens2 = gMC->VolId ("GRN2");	//Si sensetive volume
+    fIdSens3 = gMC->VolId ("GRN3");	//Si sensetive volume
+    fIdSens4 = gMC->VolId ("GRN4");	//Si sensetive volume
 
 }
 //---------------------------------------------------------------------

@@ -5,9 +5,10 @@
 
 /* $Id$ */
 
-#include <TClonesArray.h>
 #include <TArrayF.h>
 #include <TArrayI.h>
+#include <TClonesArray.h>
+#include <TMCProcess.h>
 #include <TStopwatch.h>
 #include <TVirtualMCApplication.h>
 class TBranch;
@@ -19,9 +20,8 @@ class TList;
 class TParticle;
 class TRandom;
 class TTree;
+class TVirtualMC;
 
-#include "AliMC.h"
-#include "AliMCProcess.h"
 #include "AliRunLoader.h"
 class AliDetector;
 class AliDisplay;
@@ -126,13 +126,13 @@ public:
    virtual  void  SetField(AliMagF* magField);
    virtual  void  SetTrack(Int_t done, Int_t parent, Int_t pdg, 
 			   Float_t *pmom, Float_t *vpos, Float_t *polar, 
-			   Float_t tof, AliMCProcess mech, Int_t &ntr,
+			   Float_t tof, TMCProcess mech, Int_t &ntr,
 			   Float_t weight = 1, Int_t is = 0);
    virtual  void  SetTrack(Int_t done, Int_t parent, Int_t pdg,
 			   Double_t px, Double_t py, Double_t pz, Double_t e,
 			   Double_t vx, Double_t vy, Double_t vz, Double_t tof,
 			   Double_t polx, Double_t poly, Double_t polz,
-			   AliMCProcess mech, Int_t &ntr, Float_t weight=1,
+			   TMCProcess mech, Int_t &ntr, Float_t weight=1,
 			   Int_t is = 0);
    virtual  void  SetHighWaterMark(const Int_t nt);
    
@@ -193,7 +193,7 @@ protected:
   AliDisplay    *fDisplay;           //! Pointer to event display
   TStopwatch     fTimer;             //  Timer object
   AliMagF       *fField;             //  Magnetic Field Map
-  AliMC         *fMC;                //! Pointer to MonteCarlo object
+  TVirtualMC    *fMC;                //! Pointer to MonteCarlo object
   TArrayI       *fImedia;            //! Array of correspondence between media and detectors
   Int_t          fNdets;             //  Number of detectors
   Float_t        fTrRmax;            //  Maximum radius for tracking

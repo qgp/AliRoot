@@ -26,23 +26,23 @@
 
 // --- ROOT system ---
  
-#include "TBRIK.h"
-#include "TNode.h"
-#include "TParticle.h"
-#include "TTree.h"
-#include "TGeometry.h"
-#include "TFile.h"
+#include <TBRIK.h>
+#include <TFile.h>
+#include <TGeometry.h>
+#include <TNode.h>
+#include <TParticle.h>
+#include <TTree.h>
+#include <TVirtualMC.h>
 
 // --- Standard library ---
 
 // --- AliRoot header files ---
+#include "AliConst.h"
 #include "AliPHOSFastRecParticle.h"
 #include "AliPHOSGeometry.h"
-#include "AliPHOSvFast.h"
 #include "AliPHOSLoader.h"
+#include "AliPHOSvFast.h"
 #include "AliRun.h"
-#include "AliConst.h"
-#include "AliMC.h"
 
 ClassImp(AliPHOSvFast)
 

@@ -11,14 +11,15 @@
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
  
-#include "AliMC.h"
-#include "AliMCProcess.h"
+#include <TMCProcess.h>
+#include <TVirtualMC.h>
+
 #include "AliDecayer.h"
 
 class AliTRDv1;
 class AliTRDparameter;
  
-class AliTRDsimpleMC : public AliMC {
+class AliTRDsimpleMC : public TVirtualMC {
  
  public:     
 
@@ -168,6 +169,9 @@ class AliTRDsimpleMC : public AliMC {
   // Dynamic properties
   virtual void          TrackPosition(TLorentzVector& position) const;
   virtual void          TrackMomentum(TLorentzVector& momentum) const;
+  virtual void          TrackPosition(Double_t&, Double_t&, Double_t&) const;
+  virtual void          TrackMomentum(Double_t&, Double_t&, 
+				      Double_t&, Double_t&) const;
   virtual Double_t      TrackStep() const                                                 { return fTrackStep; };
   virtual Double_t      TrackLength() const                                               { return 0.0; };
   virtual Double_t      TrackTime() const                                                 { return 0.0; };
@@ -194,7 +198,7 @@ class AliTRDsimpleMC : public AliMC {
   virtual void          GetSecondary(Int_t isec, Int_t& particleId, 
                                      TLorentzVector& position, 
                                      TLorentzVector& momentum)                            { };
-  virtual AliMCProcess  ProdProcess(Int_t isec) const                                     { return kPNoProcess; }; 
+  virtual TMCProcess  ProdProcess(Int_t isec) const                                     { return kPNoProcess; }; 
   virtual Int_t         StepProcesses(TArrayI &proc) const                                { return 0; };
 
   //

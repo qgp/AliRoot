@@ -13,22 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.3  2002/10/23 06:47:56  alibrary
-Introducing Riostream.h
-
-Revision 1.2  2002/10/14 14:55:34  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.1.2.1  2002/10/10 14:40:31  hristov
-Updating VirtualMC to v3-09-02
-
-Revision 1.1  2002/10/07 11:22:53  gamez
-First version, stand alone detector
-
-
-*/
+/* $Id$ */
 
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
@@ -62,19 +47,18 @@ First version, stand alone detector
 
 #include <Riostream.h>
 
-#include <TGeometry.h>
 #include <TBRIK.h>
-#include <TNode.h>
+#include <TGeometry.h>
 #include <TLorentzVector.h>
+#include <TNode.h>
+#include <TVirtualMC.h>
 
-#include "AliRun.h"
-#include "AliMC.h"
-#include "AliMagF.h"
-#include "AliConst.h"
-#include "AliPDG.h"
-
-#include "AliCRTv1.h"
 #include "AliCRTConstants.h"
+#include "AliCRTv1.h"
+#include "AliConst.h"
+#include "AliMagF.h"
+#include "AliPDG.h"
+#include "AliRun.h"
 
 ClassImp(AliCRTv1)
  

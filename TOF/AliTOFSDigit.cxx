@@ -13,6 +13,7 @@
  * provided "as is" without express or implied warranty.                  * 
  **************************************************************************/
 
+/* $Id$ */
 
 //_________________________________________________________________________
 //  TOF sdigit: member variables 
@@ -29,14 +30,14 @@
 //*-- Authors: F. Pierella, A. Seganti, D. Vicinanza
 
 #include <Riostream.h>
-#include "TArrayF.h"
-#include "TArrayI.h"
+#include <TArrayF.h>
+#include <TArrayI.h>
+#include <TVirtualMC.h>
 
-#include "AliTOF.h"
-#include "AliTOFSDigit.h"
-#include "AliTOFConstants.h"
 #include "AliRun.h"
-#include "AliMC.h"
+#include "AliTOF.h"
+#include "AliTOFConstants.h"
+#include "AliTOFSDigit.h"
 
 ClassImp(AliTOFSDigit)
 

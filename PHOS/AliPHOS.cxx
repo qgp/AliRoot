@@ -27,21 +27,21 @@
 
 // --- ROOT system ---
 class TFile;
-#include "TROOT.h"
-#include "TTree.h"
-#include "TFolder.h" 
+#include <TFolder.h> 
+#include <TROOT.h>
+#include <TTree.h>
+#include <TVirtualMC.h> 
 
 // --- Standard library ---
 #include <Riostream.h>
 
 // --- AliRoot header files ---
-#include "AliPHOS.h"
-#include "AliMC.h"
-#include "AliRun.h"
 #include "AliMagF.h"
+#include "AliPHOS.h"
 #include "AliPHOSGeometry.h"
+#include "AliPHOSLoader.h"
 #include "AliPHOSQAChecker.h"
- #include "AliPHOSLoader.h"
+#include "AliRun.h"
 
 ClassImp(AliPHOS)
 //____________________________________________________________________________

@@ -13,9 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-*/
+/* $Id$ */
 
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
@@ -27,13 +25,12 @@ $Log$
 #include <stdlib.h> 
 
 #include <TMath.h>
+#include <TVirtualMC.h>
 
-#include "AliRun.h"
-#include "AliMC.h"
 #include "AliConst.h"
-
-#include "AliTRDv2.h"
+#include "AliRun.h"
 #include "AliTRDgeometryDetail.h"
+#include "AliTRDv2.h"
 
 ClassImp(AliTRDv2)
  

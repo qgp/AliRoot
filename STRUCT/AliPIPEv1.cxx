@@ -13,15 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.7  2000/06/11 12:37:25  morsch
-Coding rule violations corrected
-
-Revision 1.6  1999/09/29 09:24:30  fca
-Introduction of the Copyright and cvs Log
-
-*/
+/* $Id$ */
 
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
@@ -35,10 +27,11 @@ Introduction of the Copyright and cvs Log
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
+#include <TVirtualMC.h>
+
+#include "AliMagF.h"
 #include "AliPIPEv1.h"
 #include "AliRun.h"
-#include "AliMagF.h"
-#include "AliMC.h"
  
 ClassImp(AliPIPEv1)
  

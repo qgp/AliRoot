@@ -13,222 +13,57 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-  $Log$
-  Revision 1.58.4.1  2002/05/31 09:37:58  hristov
-  First set of changes done by Piotr
-
-  Revision 1.63  2002/11/04 09:02:52  morsch
-  Further corrcetions on Fresnel and Grid losses.
-
-  Revision 1.62  2002/10/31 08:44:04  morsch
-  Problems with rotated RICH solved:
-  Detector response (fresnel reflection, grid absorption ...) has to be
-  determined using local coordinates.
-
-  Revision 1.61  2002/10/29 15:00:08  morsch
-  - Diagnostics updated.
-  - RecHits structure synchronized.
-  - Digitizer method using AliRICHDigitizer.
-  (J. Barbosa)
-
-  
-  Revision 1.60  2002/10/22 16:28:21  alibrary
-  Introducing Riostream.h
-
-  Revision 1.59  2002/10/14 14:57:31  hristov
-  Merging the VirtualMC branch to the main development branch (HEAD)
-
-  Revision 1.58.6.1  2002/06/10 15:12:46  hristov
-  Merged with v3-08-02
-
-  Revision 1.58  2001/11/14 09:49:37  dibari
-  Use debug methods
-
-  Revision 1.57  2001/11/09 17:29:31  dibari
-  Setters fro models moved to header
-
-  Revision 1.56  2001/11/02 15:37:25  hristov
-  Digitizer class created. Code cleaning and bug fixes (J.Chudoba)
-
-  Revision 1.55  2001/10/23 13:03:35  hristov
-  The access to several data members was changed from public to protected. The digitisation was adapted to the multi-event case (J.Chudoba)
-
-  Revision 1.54  2001/09/07 08:38:10  hristov
-  Pointers initialised to 0 in the default constructors
-
-  Revision 1.53  2001/08/30 09:51:23  hristov
-  The operator[] is replaced by At() or AddAt() in case of TObjArray.
-
-  Revision 1.52  2001/05/16 14:57:20  alibrary
-  New files for folders and Stack
-
-  Revision 1.51  2001/05/14 10:18:55  hristov
-  Default arguments declared once
-
-  Revision 1.50  2001/05/10 14:44:16  jbarbosa
-  Corrected some overlaps (thanks I. Hrivnacovna).
-
-  Revision 1.49  2001/05/10 12:23:49  jbarbosa
-  Repositioned the RICH modules.
-  Eliminated magic numbers.
-  Incorporated diagnostics (from macros).
-
-  Revision 1.48  2001/03/15 10:35:00  jbarbosa
-  Corrected bug in MakeBranch (was using a different version of STEER)
-
-  Revision 1.47  2001/03/14 18:13:56  jbarbosa
-  Several changes to adapt to new IO.
-  Removed digitising function, using AliRICHMerger::Digitise from now on.
-
-  Revision 1.46  2001/03/12 17:46:33  hristov
-  Changes needed on Sun with CC 5.0
-
-  Revision 1.45  2001/02/27 22:11:46  jbarbosa
-  Testing TreeS, removing of output.
-
-  Revision 1.44  2001/02/27 15:19:12  jbarbosa
-  Transition to SDigits.
-
-  Revision 1.43  2001/02/23 17:19:06  jbarbosa
-  Corrected photocathode definition in BuildGeometry().
-
-  Revision 1.42  2001/02/13 20:07:23  jbarbosa
-  Parametrised definition of photcathode dimensions. New spacers. New data members in AliRICHHit to store particle momentum
-  when entering the freon. Corrected calls to particle stack.
-
-  Revision 1.41  2001/01/26 20:00:20  hristov
-  Major upgrade of AliRoot code
-
-  Revision 1.40  2001/01/24 20:58:03  jbarbosa
-  Enhanced BuildGeometry. Now the photocathodes are drawn.
-
-  Revision 1.39  2001/01/22 21:40:24  jbarbosa
-  Removing magic numbers
-
-  Revision 1.37  2000/12/20 14:07:25  jbarbosa
-  Removed dependencies on TGeant3 (thanks to F. Carminati and I. Hrivnacova)
-
-  Revision 1.36  2000/12/18 17:45:54  jbarbosa
-  Cleaned up PadHits object.
-
-  Revision 1.35  2000/12/15 16:49:40  jbarbosa
-  Geometry and materials updates (wire supports, pcbs, backplane supports, frame).
-
-  Revision 1.34  2000/11/10 18:12:12  jbarbosa
-  Bug fix for AliRICHCerenkov (thanks to P. Hristov)
-
-  Revision 1.33  2000/11/02 10:09:01  jbarbosa
-  Minor bug correction (some pointers were not initialised in the default constructor)
-
-  Revision 1.32  2000/11/01 15:32:55  jbarbosa
-  Updated to handle both reconstruction algorithms.
-
-  Revision 1.31  2000/10/26 20:18:33  jbarbosa
-  Supports for methane and freon vessels
-
-  Revision 1.30  2000/10/24 13:19:12  jbarbosa
-  Geometry updates.
-
-  Revision 1.29  2000/10/19 19:39:25  jbarbosa
-  Some more changes to geometry. Further correction of digitisation "per part. type"
-
-  Revision 1.28  2000/10/17 20:50:57  jbarbosa
-  Inversed digtise by particle type (now, only the selected particle type is not digitsed).
-  Corrected several geometry minor bugs.
-  Added new parameter (opaque quartz thickness).
-
-  Revision 1.27  2000/10/11 10:33:55  jbarbosa
-  Corrected bug introduced by earlier revisions  (CerenkovData array cannot be reset to zero on wach call of StepManager)
-
-  Revision 1.26  2000/10/03 21:44:08  morsch
-  Use AliSegmentation and AliHit abstract base classes.
-
-  Revision 1.25  2000/10/02 21:28:12  fca
-  Removal of useless dependecies via forward declarations
-
-  Revision 1.24  2000/10/02 15:43:17  jbarbosa
-  Fixed forward declarations.
-  Fixed honeycomb density.
-  Fixed cerenkov storing.
-  New electronics.
-
-  Revision 1.23  2000/09/13 10:42:14  hristov
-  Minor corrections for HP, DEC and Sun; strings.h included
-
-  Revision 1.22  2000/09/12 18:11:13  fca
-  zero hits area before using
-
-  Revision 1.21  2000/07/21 10:21:07  morsch
-  fNrawch   = 0; and  fNrechits = 0; in the default constructor.
-
-  Revision 1.20  2000/07/10 15:28:39  fca
-  Correction of the inheritance scheme
-
-  Revision 1.19  2000/06/30 16:29:51  dibari
-  Added kDebugLevel variable to control output size on demand
-
-  Revision 1.18  2000/06/12 15:15:46  jbarbosa
-  Cleaned up version.
-
-  Revision 1.17  2000/06/09 14:58:37  jbarbosa
-  New digitisation per particle type
-
-  Revision 1.16  2000/04/19 12:55:43  morsch
-  Newly structured and updated version (JB, AM)
-
-*/
+/* $Id$ */
 
 
 ////////////////////////////////////////////////
 //  Manager and hits classes for set:RICH     //
 ////////////////////////////////////////////////
 
-#include <TBRIK.h>
-#include <TTUBE.h>
-#include <TNode.h> 
-#include <TRandom.h> 
-#include <TObject.h>
-#include <TVector.h>
-#include <TObjArray.h>
-#include <TArrayF.h>
-#include <TFile.h>
-#include <TParticle.h>
-#include <TGeometry.h>
-#include <TTree.h>
-#include <TH1.h>
-#include <TH2.h>
-#include <TCanvas.h>
-#include <TStyle.h>
-#include <TF1.h>
-
 #include <Riostream.h>
 #include <strings.h>
 
+#include <TArrayF.h>
+#include <TBRIK.h>
+#include <TCanvas.h>
+#include <TF1.h>
+#include <TFile.h>
+#include <TGeometry.h>
+#include <TH1.h>
+#include <TH2.h>
+#include <TNode.h> 
+#include <TObjArray.h>
+#include <TObject.h>
+#include <TParticle.h>
+#include <TRandom.h> 
+#include <TStyle.h>
+#include <TTUBE.h>
+#include <TTree.h>
+#include <TVector.h>
+#include <TVirtualMC.h>
+
+#include "AliConst.h"
+#include "AliLoader.h"
+#include "AliMagF.h"
+#include "AliPDG.h"
+#include "AliPoints.h"
 #include "AliRICH.h"
-#include "AliSegmentation.h"
-#include "AliRICHSegmentationV0.h"
-#include "AliRICHHit.h"
 #include "AliRICHCerenkov.h"
-#include "AliRICHSDigit.h"
+#include "AliRICHClusterFinder.h"
 #include "AliRICHDigit.h"
-#include "AliRICHTransientDigit.h"
+#include "AliRICHDigitizer.h"
+#include "AliRICHHit.h"
+#include "AliRICHHitMapA1.h"
+#include "AliRICHMerger.h"
 #include "AliRICHRawCluster.h"
 #include "AliRICHRecHit1D.h"
 #include "AliRICHRecHit3D.h"
-#include "AliRICHHitMapA1.h"
-#include "AliRICHClusterFinder.h"
-#include "AliRICHMerger.h"
-#include "AliRICHDigitizer.h"
+#include "AliRICHSDigit.h"
+#include "AliRICHSegmentationV0.h"
+#include "AliRICHTransientDigit.h"
 #include "AliRun.h"
-#include "AliLoader.h"
 #include "AliRunDigitizer.h"
-#include "AliMC.h"
-#include "AliMagF.h"
-#include "AliConst.h"
-#include "AliPDG.h"
-#include "AliPoints.h"
-
+#include "AliSegmentation.h"
 
 
 static Int_t sMaxIterPad=0;    // Static variables for the pad-hit iterator routines

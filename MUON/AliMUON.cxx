@@ -12,272 +12,60 @@
  * about the suitability of this software for any purpose. It is          *
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
-/*
-$Log$
-Revision 1.56.4.1  2002/05/31 09:37:57  hristov
-First set of changes done by Piotr
 
-Revision 1.58  2002/10/21 09:01:33  alibrary
-Getting rid of unused variable
-
-Revision 1.57  2002/10/14 14:57:29  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.56.6.2  2002/07/24 10:07:20  alibrary
-Updating VirtualMC
-
-Revision 1.56.6.1  2002/06/10 15:10:14  hristov
-Merged with v3-08-02
-
-Revision 1.56  2001/11/22 11:26:28  jchudoba
-Proper deletion of arrays, deletion of unused variables (thanks to Rene Brun)
-
-Revision 1.55  2001/09/07 08:38:30  hristov
-Pointers initialised to 0 in the default constructors
-
-Revision 1.54  2001/08/30 09:52:12  hristov
-The operator[] is replaced by At() or AddAt() in case of TObjArray.
-
-Revision 1.53  2001/07/20 10:03:13  morsch
-Changes needed to work with Root 3.01 (substitute lhs [] operator). (Jiri Chudoba)
-
-Revision 1.52  2001/06/14 13:49:22  hristov
-Write a TreeD in SDigits2Digits method (needed to be compatible with alirun script)
-
-Revision 1.51  2001/05/31 10:19:52  morsch
-Fix for new AliRun::RunReco().
-
-Revision 1.50  2001/05/16 14:57:17  alibrary
-New files for folders and Stack
-
-Revision 1.49  2001/03/12 17:45:48  hristov
-Changes needed on Sun with CC 5.0
-
-Revision 1.48  2001/03/06 00:01:36  morsch
-Add  Digits2Reco() and FindClusters()
-Adapt call of cluster finder to new STEER.
-
-Revision 1.47  2001/03/05 08:38:36  morsch
-Digitization related methods moved to AliMUONMerger.
-
-Revision 1.46  2001/01/26 21:34:59  morsch
-Use access functions for AliMUONHit, AliMUONDigit and AliMUONPadHit data members.
-
-Revision 1.45  2001/01/26 20:00:49  hristov
-Major upgrade of AliRoot code
-
-Revision 1.44  2001/01/25 17:39:09  morsch
-Pass size of fNdch and fNrawch to CINT.
-
-Revision 1.43  2001/01/23 18:58:19  hristov
-Initialisation of some pointers
-
-Revision 1.42  2001/01/17 20:53:40  hristov
-Destructors corrected to avoid memory leaks
-
-Revision 1.41  2000/12/21 22:12:40  morsch
-Clean-up of coding rule violations,
-
-Revision 1.40  2000/11/29 20:32:26  gosset
-Digitize:
-1. correction for array index out of bounds
-2. one printout commented
-
-Revision 1.39  2000/11/12 17:17:03  pcrochet
-BuildGeometry of AliMUON for trigger chambers delegated to AliMUONSegmentationTriggerX (same strategy as for tracking chambers)
-
-Revision 1.38  2000/11/06 09:20:43  morsch
-AliMUON delegates part of BuildGeometry() to AliMUONSegmentation using the
-Draw() method. This avoids code and parameter replication.
-
-Revision 1.37  2000/10/26 09:53:37  pcrochet
-put back trigger chambers in the display (there was a problem in buildgeometry)
-
-Revision 1.36  2000/10/25 19:51:18  morsch
-Correct x-position of chambers.
-
-Revision 1.35  2000/10/24 19:46:21  morsch
-BuildGeometry updated for slats in station 3-4.
-
-Revision 1.34  2000/10/18 11:42:06  morsch
-- AliMUONRawCluster contains z-position.
-- Some clean-up of useless print statements during initialisations.
-
-Revision 1.33  2000/10/09 14:01:57  morsch
-Unused variables removed.
-
-Revision 1.32  2000/10/06 09:08:10  morsch
-Built geometry includes slat geometry for event display.
-
-Revision 1.31  2000/10/02 21:28:08  fca
-Removal of useless dependecies via forward declarations
-
-Revision 1.30  2000/10/02 16:58:29  egangler
-Cleaning of the code :
--> coding conventions
--> void Streamers
--> some useless includes removed or replaced by "class" statement
-
-Revision 1.29  2000/07/28 13:49:38  morsch
-SetAcceptance defines inner and outer chamber radii according to angular acceptance.
-Can be used for simple acceptance studies.
-
-Revision 1.28  2000/07/22 16:43:15  morsch
-Same comment as before, but now done correctly I hope (sorry it's Saturday evening)
-
-Revision 1.27  2000/07/22 16:36:50  morsch
-Change order of indices in creation (new) of xhit and yhit
-
-Revision 1.26  2000/07/03 11:54:57  morsch
-AliMUONSegmentation and AliMUONHitMap have been replaced by AliSegmentation and AliHitMap in STEER
-The methods GetPadIxy and GetPadXxy of AliMUONSegmentation have changed name to GetPadI and GetPadC.
-
-Revision 1.25  2000/06/29 12:34:09  morsch
-AliMUONSegmentation class has been made independent of AliMUONChamber. This makes
-it usable with any other geometry class. The link to the object to which it belongs is
-established via an index. This assumes that there exists a global geometry manager
-from which the pointer to the parent object can be obtained (in our case gAlice).
-
-Revision 1.24  2000/06/28 15:16:35  morsch
-(1) Client code adapted to new method signatures in AliMUONSegmentation (see comments there)
-to allow development of slat-muon chamber simulation and reconstruction code in the MUON
-framework. The changes should have no side effects (mostly dummy arguments).
-(2) Hit disintegration uses 3-dim hit coordinates to allow simulation
-of chambers with overlapping modules (MakePadHits, Disintegration).
-
-Revision 1.23  2000/06/28 12:19:17  morsch
-More consequent seperation of global input data services (AliMUONClusterInput singleton) and the
-cluster and hit reconstruction algorithms in AliMUONClusterFindRawinderVS.
-AliMUONClusterFinderVS becomes the base class for clustering and hit reconstruction.
-It requires two cathode planes. Small modifications in the code will make it usable for
-one cathode plane and, hence, more general (for test beam data).
-AliMUONClusterFinder is now obsolete.
-
-Revision 1.22  2000/06/28 08:06:10  morsch
-Avoid global variables in AliMUONClusterFinderVS by seperating the input data for the fit from the
-algorithmic part of the class. Input data resides inside the AliMUONClusterInput singleton.
-It also naturally takes care of the TMinuit instance.
-
-Revision 1.21  2000/06/27 08:54:41  morsch
-Problems with on constant array sizes (in hitMap, nmuon, xhit, yhit) corrected.
-
-Revision 1.20  2000/06/26 14:02:38  morsch
-Add class AliMUONConstants with MUON specific constants using static memeber data and access methods.
-
-Revision 1.19  2000/06/22 13:40:51  morsch
-scope problem on HP, "i" declared once
-pow changed to TMath::Power (PH, AM)
-
-Revision 1.18  2000/06/15 07:58:48  morsch
-Code from MUON-dev joined
-
-Revision 1.14.4.17  2000/06/14 14:36:46  morsch
-- add TriggerCircuit (PC)
-- add GlobalTrigger and LocalTrigger and specific methods (PC)
-
-Revision 1.14.4.16  2000/06/09 21:20:28  morsch
-Most coding rule violations corrected
-
-Revision 1.14.4.15  2000/05/02 09:54:32  morsch
-RULE RN17 violations corrected
-
-Revision 1.14.4.12  2000/04/26 12:25:02  morsch
-Code revised by P. Crochet:
-- Z position of TriggerChamber changed according to A.Tournaire Priv.Comm.
-- ToF included in the method MakePadHits
-- inner radius of flange between beam shielding and trigger corrected
-- Trigger global volume updated (according to the new geometry)
-
-Revision 1.14.4.11  2000/04/19 19:42:08  morsch
-Some changes of variable names curing viols and methods concerning
-correlated clusters removed.
-
-Revision 1.14.4.10  2000/03/22 16:44:07  gosset
-Memory leak suppressed in function Digitise:
-p_adr->Delete() instead of Clear (I.Chevrot and A.Baldisseri)
-
-Revision 1.14.4.9  2000/03/20 18:15:25  morsch
-Positions of trigger chambers corrected (P.C.)
-
-Revision 1.14.4.8  2000/02/21 15:38:01  morsch
-Call to AddHitList introduced to make this version compatible with head.
-
-Revision 1.14.4.7  2000/02/20 07:45:53  morsch
-Bugs in Trigger part of BuildGeomemetry corrected (P.C)
-
-Revision 1.14.4.6  2000/02/17 14:28:54  morsch
-Trigger included into initialization and digitization
-
-Revision 1.14.4.5  2000/02/15 10:02:58  morsch
-Log messages of previous revisions added
-
-Revision 1.14.4.2  2000/02/04 10:57:34  gosset
-Z position of the chambers:
-it was the Z position of the stations;
-it is now really the Z position of the chambers.
-   !!!! WARNING: THE CALLS TO "AliMUONChamber::SetZPOS"
-   !!!!                   AND "AliMUONChamber::ZPosition"
-   !!!! HAVE TO BE CHANGED TO "AliMUONChamber::"SetZ"
-   !!!!                   AND "AliMUONChamber::Z"
-
-Revision 1.14.4.3  2000/02/04 16:19:04  gosset
-Correction for mis-spelling of NCH 
-
-Revision 1.14.4.4  2000/02/15 09:43:38  morsch
-Log message added
-
-*/
+/* $Id$ */
 
 
 ///////////////////////////////////////////////
 //  Manager and hits classes for set:MUON     //
 ////////////////////////////////////////////////
 
-#include <TTUBE.h>
+#include "Riostream.h"
+
+#include <AliPDG.h>
 #include <TBRIK.h>
-#include <TRotMatrix.h>
+#include <TCanvas.h>
+#include <TDirectory.h>
+#include <TFile.h>
 #include <TGeometry.h>
-#include <TNode.h> 
-#include <TTree.h> 
-#include <TRandom.h> 
-#include <TObject.h>
-#include <TVector.h>
-#include <TObjArray.h>
 #include <TMinuit.h>
+#include <TNode.h> 
+#include <TNtuple.h>
+#include <TObjArray.h>
+#include <TObject.h>
+#include <TObjectTable.h>
+#include <TPad.h>
 #include <TParticle.h>
 #include <TROOT.h>
-#include <TFile.h>
-#include <TNtuple.h>
-#include <TCanvas.h>
-#include <TPad.h>
-#include <TDirectory.h>
-#include <TObjectTable.h>
-#include <AliPDG.h>
+#include <TRandom.h> 
+#include <TRotMatrix.h>
 #include <TTUBE.h>
+#include <TTUBE.h>
+#include <TTree.h> 
+#include <TVector.h>
+#include <TVirtualMC.h>
 
-#include "AliMUON.h"
-#include "AliMUONHit.h"
-#include "AliMUONPadHit.h"
-#include "AliMUONDigit.h"
-#include "AliMUONTransientDigit.h"
-#include "AliMUONRawCluster.h"
-#include "AliMUONLocalTrigger.h"
-#include "AliMUONGlobalTrigger.h"
-#include "AliMUONTriggerCircuit.h"
+#include "AliConst.h" 
+#include "AliHeader.h"
 #include "AliHitMap.h"
-#include "AliMUONHitMapA1.h"
+#include "AliLoader.h"
+#include "AliMUON.h"
 #include "AliMUONChamberTrigger.h"
-#include "AliMUONConstants.h"
 #include "AliMUONClusterFinderVS.h"
+#include "AliMUONClusterInput.h"
+#include "AliMUONConstants.h"
+#include "AliMUONDigit.h"
+#include "AliMUONGlobalTrigger.h"
+#include "AliMUONHit.h"
+#include "AliMUONHitMapA1.h"
+#include "AliMUONLocalTrigger.h"
+#include "AliMUONMerger.h"	
+#include "AliMUONPadHit.h"
+#include "AliMUONRawCluster.h"
+#include "AliMUONTransientDigit.h"
+#include "AliMUONTriggerCircuit.h"
 #include "AliMUONTriggerDecision.h"
 #include "AliRun.h"
-#include "AliHeader.h"
-#include "AliMC.h"
-#include "AliMUONClusterInput.h"
-#include "AliMUONMerger.h"	
-#include "Riostream.h"
-#include "AliConst.h" 
-#include "AliLoader.h"
 
 // Defaults parameters for Z positions of chambers
 // taken from values for "stations" in AliMUON::AliMUON

@@ -26,16 +26,16 @@
 ///////////////////////////////////////////////////////////////////////////
 
 #include <Riostream.h>
-#include <Riostream.h>
 
-#include "TMath.h"
-#include "TTUBE.h"
-#include "TNode.h"
-#include "TGeometry.h"
+#include <TGeometry.h>
+#include <TMath.h>
+#include <TNode.h>
+#include <TTUBE.h>
+#include <TVirtualMC.h>
+
 #include "AliRun.h"
 #include "AliVZERO.h"
 #include "AliVZEROdigit.h"
-#include "AliMC.h"
 #include "AliVZEROhit.h"
 
 ClassImp(AliVZERO)

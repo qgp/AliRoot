@@ -13,6 +13,8 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
+/* $Id$ */
+
 //_________________________________________________________________________
 // This is a TTask that constructs SDigits out of Hits
 // A Summable Digits is the sum of all hits in a cell
@@ -21,37 +23,31 @@
 //-- Author: Alla Maevskaia(INR)
 //////////////////////////////////////////////////////////////////////////////
 
-// --- ROOT system ---
-#include "TTask.h"
-#include "TTree.h"
-#include "TSystem.h"
-#include "TFile.h"
 // --- Standard library ---
+#include <Riostream.h>
+#include <stdlib.h>
+
+// --- ROOT system ---
+#include <TFile.h>
+#include <TFolder.h>
+#include <TROOT.h>
+#include <TSystem.h>
+#include <TTask.h>
+#include <TTree.h>
+#include <TVirtualMC.h>
 
 // --- AliRoot header files ---
-#include "AliRunLoader.h"
-#include "AliLoader.h"
-#include "AliStack.h"
-
+#include "AliConfig.h"
+#include "AliDetector.h"
+#include "AliFMD.h"
+#include "AliFMDSDigitizer.h"
 #include "AliFMDdigit.h"
 #include "AliFMDhit.h"
-#include "AliFMD.h"
 #include "AliFMDv1.h"
-#include "AliFMDSDigitizer.h"
+#include "AliLoader.h"
 #include "AliRun.h"
-#include "AliDetector.h"
-#include "AliMC.h"
-#include "AliConfig.h"
-
-#include "TFile.h"
-#include "TTask.h"
-#include "TTree.h"
-#include "TSystem.h"
-#include "TROOT.h"
-#include "TFolder.h"
-#include <stdlib.h>
-#include <Riostream.h>
-#include <Riostream.h>
+#include "AliRunLoader.h"
+#include "AliStack.h"
 
 ClassImp(AliFMDSDigitizer)
 

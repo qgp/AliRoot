@@ -13,7 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-
+/* $Id$ */
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -46,17 +46,17 @@
 #include <Riostream.h>
 #include <stdlib.h>
 
-#include "AliTOFv2FHoles.h"
-#include "TBRIK.h"
-#include "TGeometry.h"
-#include "TNode.h"
+#include <TBRIK.h>
+#include <TGeometry.h>
 #include <TLorentzVector.h>
-#include "TObject.h"
-#include "AliRun.h"
-#include "AliMC.h"
-#include "AliMagF.h"
-#include "AliConst.h"
+#include <TNode.h>
+#include <TObject.h>
+#include <TVirtualMC.h>
 
+#include "AliConst.h"
+#include "AliMagF.h"
+#include "AliRun.h"
+#include "AliTOFv2FHoles.h"
  
 ClassImp(AliTOFv2FHoles)
  
@@ -844,10 +844,9 @@ void AliTOFv2FHoles::DrawDetectorModules()
 // Draw a shaded view of the TOF detector version 2
 //
  
- AliMC* pMC = AliMC::GetMC();
  
 //Set ALIC mother transparent
- pMC->Gsatt("ALIC","SEEN",0);
+ gMC->Gsatt("ALIC","SEEN",0);
 
 //
 //Set volumes visible
@@ -917,10 +916,9 @@ void AliTOFv2FHoles::DrawDetectorStrips()
 // Draw a shaded view of the TOF strips for version 2
 //
  
- AliMC* pMC = AliMC::GetMC();
  
 //Set ALIC mother transparent
- pMC->Gsatt("ALIC","SEEN",0);
+ gMC->Gsatt("ALIC","SEEN",0);
 
 //
 //Set volumes visible 

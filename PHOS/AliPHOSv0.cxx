@@ -24,15 +24,15 @@
 
 // --- ROOT system ---
 
-#include "TBRIK.h"
-#include "TTRD1.h"
-#include "TNode.h"
-#include "TRandom.h"
-#include "TGeometry.h"
-#include "TFolder.h"
-#include "TROOT.h"
-#include "TTree.h"
-
+#include <TBRIK.h>
+#include <TFolder.h>
+#include <TGeometry.h>
+#include <TNode.h>
+#include <TROOT.h>
+#include <TRandom.h>
+#include <TTRD1.h>
+#include <TTree.h>
+#include <TVirtualMC.h>
 
 // --- Standard library ---
 
@@ -41,12 +41,11 @@
 
 // --- AliRoot header files ---
 
-#include "AliPHOSv0.h"
-#include "AliRun.h"
 #include "AliConst.h"
-#include "AliMC.h"
 #include "AliPHOSGeometry.h"
 #include "AliPHOSLoader.h"
+#include "AliPHOSv0.h"
+#include "AliRun.h"
 
 ClassImp(AliPHOSv0)
 
