@@ -35,6 +35,11 @@ public:
   Double_t GetAlpha() const {return fRalpha;}
   void GetExternalParameters(Double_t &x, Double_t p[5]) const;
   void GetExternalCovariance(Double_t cov[15]) const;
+
+  Bool_t GetExternalParametersAt(Double_t x, Double_t p[5]) const;
+  Bool_t GetPxPyPzAt(Double_t x, Double_t p[3]) const;
+  Bool_t GetXYZAt(Double_t x, Double_t r[3]) const;
+
   Double_t GetIntegratedLength() const {return fTrackLength;}
   void GetIntegratedTimes(Double_t *times) const;
   Double_t GetMass() const;

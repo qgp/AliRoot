@@ -27,6 +27,52 @@
 
 ClassImp(AliESDtrack)
 
+Bool_t Local2GlobalMomentum(Double_t p[3],Double_t alpha) {
+  //----------------------------------------------------------------
+  // This function performs local->global transformation of the
+  // track momentum.
+  // When called, the arguments are:
+  //    p[0] = 1/pt of the track;
+  //    p[1] = sine of local azim. angle of the track momentum;
+  //    p[2] = tangent of the track momentum dip angle;
+  //   alpha - rotation angle. 
+  // The result is returned as:
+  //    p[0] = px
+  //    p[1] = py
+  //    p[2] = pz
+  // Results for (nearly) straight tracks are meaningless !
+  //----------------------------------------------------------------
+  if (TMath::Abs(p[0])<=0)        return kFALSE;
+  if (TMath::Abs(p[1])> 0.999999) return kFALSE;
+
+  Double_t pt=1./TMath::Abs(p[0]);
+  Double_t cs=TMath::Cos(alpha), sn=TMath::Sin(alpha);
+  Double_t r=TMath::Sqrt(1 - p[1]*p[1]);
+  p[0]=pt*(r*cs - p[1]*sn); p[1]=pt*(p[1]*cs + r*sn); p[2]=pt*p[2];
+
+  return kTRUE;
+}
+
+Bool_t Local2GlobalPosition(Double_t r[3],Double_t alpha) {
+  //----------------------------------------------------------------
+  // This function performs local->global transformation of the
+  // track position.
+  // When called, the arguments are:
+  //    r[0] = local x
+  //    r[1] = local y
+  //    r[2] = local z
+  //   alpha - rotation angle. 
+  // The result is returned as:
+  //    r[0] = global x
+  //    r[1] = global y
+  //    r[2] = global z
+  //----------------------------------------------------------------
+  Double_t cs=TMath::Cos(alpha), sn=TMath::Sin(alpha), x=r[0];
+  r[0]=x*cs - r[1]*sn; r[1]=x*sn + r[1]*cs;
+
+  return kTRUE;
+}
+
 //_______________________________________________________________________
 AliESDtrack::AliESDtrack() : 
 fFlags(0),
@@ -762,3 +808,57 @@ void AliESDtrack::Print(Option_t *) const {
     printf("\n           signal = %f\n", GetEMCALsignal()) ;
   }
 } 
+
+//_______________________________________________________________________
+Bool_t AliESDtrack::GetExternalParametersAt(Double_t x, Double_t p[5]) const {
+  //---------------------------------------------------------------------
+  // This function returns external representation of the track parameters
+  // at the position given by the first argument 
+  //---------------------------------------------------------------------
+  Double_t dx=x-fRx;
+  Double_t f1=fRp[2], f2=f1 + dx*fRp[4]/AliKalmanTrack::GetConvConst();
+
+  if (TMath::Abs(f2) >= 0.9999) return kFALSE;
+  
+  Double_t r1=TMath::Sqrt(1.- f1*f1), r2=TMath::Sqrt(1.- f2*f2);
+  p[0] = fRp[0] + dx*(f1+f2)/(r1+r2);
+  p[1] = fRp[1] + dx*(f1+f2)/(f1*r2 + f2*r1)*fRp[3];
+  p[2] = f2;
+  p[3] = fRp[3];
+  p[4] = fRp[4];
+
+  return kTRUE;
+}
+
+//_______________________________________________________________________
+Bool_t AliESDtrack::GetPxPyPzAt(Double_t x,Double_t *p) const {
+  //---------------------------------------------------------------------
+  // This function returns the global track momentum components
+  // at the position "x" using the helix track approximation
+  //---------------------------------------------------------------------
+  p[0]=fRp[4]; 
+  p[1]=fRp[2]+(x-fRx)*fRp[4]/AliKalmanTrack::GetConvConst(); 
+  p[2]=fRp[3];
+  return Local2GlobalMomentum(p,fRalpha);
+}
+
+//_______________________________________________________________________
+Bool_t AliESDtrack::GetXYZAt(Double_t x, Double_t *r) const {
+  //---------------------------------------------------------------------
+  // This function returns the global track position
+  // af the radius "x" using the helix track approximation
+  //---------------------------------------------------------------------
+  Double_t dx=x-fRx;
+  Double_t f1=fRp[2], f2=f1 + dx*fRp[4]/AliKalmanTrack::GetConvConst();
+
+  if (TMath::Abs(f2) >= 0.9999) return kFALSE;
+  
+  Double_t r1=TMath::Sqrt(1.- f1*f1), r2=TMath::Sqrt(1.- f2*f2);
+  r[0] = x;
+  r[1] = fRp[0] + dx*(f1+f2)/(r1+r2);
+  if ((TMath::Abs(f1)+TMath::Abs(f2))>0)
+    r[2] = fRp[1] + dx*(f1+f2)/(f1*r2 + f2*r1)*fRp[3];
+  else
+    r[2] = fRp[1] + dx*2/(r2 + r1)*fRp[3];
+  return Local2GlobalPosition(r,fRalpha);
+}
