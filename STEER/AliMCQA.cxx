@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.6  2001/12/05 08:31:25  hristov
+Destructor corrected, thanks to R.Brun
+
 Revision 1.5  2001/01/26 19:58:48  hristov
 Major upgrade of AliRoot code
 
@@ -159,6 +162,7 @@ AliMCQA::AliMCQA(Int_t ndets) : fMPaveLabel(0),fVPaveLabel(0)
 //_____________________________________________________________________________
 
 AliMCQA::~AliMCQA() {
+  gROOT->GetListOfBrowsables()->Remove(this);
   if (fQAList) {
     fQAList->Delete();
     delete fQAList;
