@@ -45,19 +45,17 @@
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <Riostream.h>
 
 #include <TBRIK.h>
 #include <TGeometry.h>
 #include <TLorentzVector.h>
 #include <TNode.h>
-#include <TVirtualMC.h>
+#include <TPDGCode.h>
 
 #include "AliCRTConstants.h"
 #include "AliCRTv1.h"
 #include "AliConst.h"
 #include "AliMagF.h"
-#include "AliPDG.h"
 #include "AliRun.h"
 
 ClassImp(AliCRTv1)

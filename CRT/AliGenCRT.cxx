@@ -38,10 +38,11 @@
 #include <Riostream.h>
 
 #include <TMCProcess.h>
+#include <TPDGCode.h>
+
 
 #include "AliConst.h"
 #include "AliGenCRT.h"
-#include "AliPDG.h"
 #include "AliRun.h"
 
 ClassImp(AliGenCRT)
