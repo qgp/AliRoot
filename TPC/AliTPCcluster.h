@@ -11,7 +11,6 @@
 //   Origin: Iouri Belikov, CERN, Jouri.Belikov@cern.ch 
 //-------------------------------------------------------
 
-#include "TMath.h"
 #include "AliCluster.h"
 
 //_____________________________________________________________________________
@@ -23,7 +22,7 @@ public:
   void SetQ(Float_t q) {fQ=q;}
 
   Int_t IsUsed() const {return (fQ<0) ? 1 : 0;}
-  Float_t GetQ() const {return TMath::Abs(fQ);}
+  Float_t GetQ() const {return fQ;}
 
 private:
   Float_t   fQ ;       //Q of cluster (in ADC counts)

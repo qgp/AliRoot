@@ -13,23 +13,23 @@
 // Segmentation for MUON station 1 using the external 
 // mapping package
 
-#include "AliMpPad.h"
-#include "AliMpPlaneType.h"
+#include <MPad.h>
+#include <MPlaneType.h>
 
 #include "AliSegmentation.h"
 
 class TObjArray;
 
-class AliMpPlane;
-class AliMpPlaneSegmentation;
-class AliMpVPadIterator;
+class MPlane;
+class MPlaneSegmentation;
+class MVPadIterator;
 
 class AliMUONChamber;
 
 class AliMUONSt1Segmentation : public AliSegmentation 
 {
   public:
-    AliMUONSt1Segmentation(const AliMpPlaneType planeType);
+    AliMUONSt1Segmentation(const MPlaneType planeType);
     AliMUONSt1Segmentation(const AliMUONSt1Segmentation& rhs);
     AliMUONSt1Segmentation();
     
@@ -139,7 +139,7 @@ class AliMUONSt1Segmentation : public AliSegmentation
     AliMUONSt1Segmentation& operator=(const AliMUONSt1Segmentation & rhs);
 
     // methods
-    void UpdateCurrentPadValues(const AliMpPad& pad);
+    void UpdateCurrentPadValues(const MPad& pad);
   
     // constants
     static const Float_t  fgkWireD;     // default wire pitch
@@ -150,9 +150,9 @@ class AliMUONSt1Segmentation : public AliSegmentation
 
     // From mapping
     //
-    AliMpPlane*             fPlane;            //  plane (from mapping)
-    AliMpPlaneSegmentation* fPlaneSegmentation;//  plane segmantation (from mapping)
-    AliMpVPadIterator*      fPlaneIterator;    // ! iterator over pads
+    MPlane*             fPlane;            //  plane (from mapping)
+    MPlaneSegmentation* fPlaneSegmentation;//  plane segmantation (from mapping)
+    MVPadIterator*      fPlaneIterator;    // ! iterator over pads
 
     // Wire pitch
     //

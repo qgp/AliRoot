@@ -9,8 +9,6 @@
 
 ClassImp(TIsajet)
 
-static TRandom * sRandom;
-
 /**************************************************************************/
 
 TIsajet::TIsajet() : TGenerator("Isajet", "Isajet")

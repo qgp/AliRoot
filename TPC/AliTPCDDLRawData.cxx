@@ -14,7 +14,6 @@
  **************************************************************************/
 /* $Id$ */
 
-
 //This class conteins all the methods to create raw data 
 //as par a given DDL.
 //It produces DDL with both compressed and uncompressed format.
@@ -35,13 +34,11 @@ ClassImp(AliTPCDDLRawData)
 
 AliTPCDDLRawData::AliTPCDDLRawData(const AliTPCDDLRawData &source){
   // Copy Constructor
-  fVerbose=source.fVerbose;
   return;
 }
 
 AliTPCDDLRawData& AliTPCDDLRawData::operator=(const AliTPCDDLRawData &source){
   //Assigment operator
-  fVerbose=source.fVerbose;
   return *this;
 }
 
@@ -195,7 +192,7 @@ Int_t AliTPCDDLRawData::RawDataCompDecompress(Int_t LDCsNumber,Int_t Comp){
 #else
     f.open(filename,ios::in);
 #endif
-    if(!f){cout<<"BE CAREFUL!! There isn't enough data to generate "<<LDCsNumber<<" slices"<<endl;break;}
+    if(!f){cout<<"File doesn't exist \n";exit(1);}
     cout<<filename<<"  "<<dest<<endl;
     ofstream fdest;
 #ifndef __DECCXX
@@ -210,7 +207,6 @@ Int_t AliTPCDDLRawData::RawDataCompDecompress(Int_t LDCsNumber,Int_t Comp){
     //here the Mini Header is read
     while( (f.read((char*)(miniHeader),sizeof(ULong_t)*3)) ){
       size=miniHeader[0];
-      // cout<<"Data size:"<<size<<endl;
       //Int_t dim=sizeof(ULong_t)+sizeof(Int_t)*5;
       //cout<<" Sec "<<SecNumber<<" SubSector "<<SubSector<<" size "<<size<<endl;
       //open the temporay File
@@ -229,10 +225,8 @@ Int_t AliTPCDDLRawData::RawDataCompDecompress(Int_t LDCsNumber,Int_t Comp){
       fo.close();
       //The temp file is compressed or decompressed
       AliTPCCompression *util = new AliTPCCompression();
-      util->SetVerbose(0);
-      if(!Comp){
+      if(!Comp)
 	util->CompressDataOptTables(kNumTables,temp,"TempCompDecomp");
-      }
       else
 	util->DecompressDataOptTables(kNumTables,temp,"TempCompDecomp");
       delete util;
@@ -253,10 +247,11 @@ Int_t AliTPCDDLRawData::RawDataCompDecompress(Int_t LDCsNumber,Int_t Comp){
 	flag=1;
       else
 	flag=0;
-      ULong_t aux=0x0;
-      flag<<=8;
+      ULong_t aux=0xFFFF;
+      aux<<=16;
       aux|=flag;
-      miniHeader[2]=miniHeader[2]|aux;
+      aux|=0xFF;
+      miniHeader[2]=miniHeader[2]&aux;
       fdest.write((char*)(miniHeader),sizeof(ULong_t)*3);
       //The compressem temp file is copied into the output file fdest
       for(ULong_t j=0;j<size;j++){
@@ -277,7 +272,7 @@ Int_t AliTPCDDLRawData::RawDataCompDecompress(Int_t LDCsNumber,Int_t Comp){
 /////////////////////////////////////////////////////////////////////////////////
 void AliTPCDDLRawData::RawDataAltro()const{
   //This method is used to build the Altro format from AliTPCDDL.dat
-  //It is used to debug the code and creates the tables used in the compresseion phase
+  //It is used to debug the code and create the tables used in the compresseion phase
   Int_t offset=1;
   ifstream f;
 #ifndef __DECCXX
@@ -390,14 +385,14 @@ void AliTPCDDLRawData::RawDataAltroDecode(Int_t LDCsNumber,Int_t Comp){
 #else
     f.open(filename,ios::in);
 #endif
-    if(!f){cout<<"BE CAREFUL!! There isn't enough data to generate "<<LDCsNumber<<" slices"<<endl;break;}
+    if(!f){cout<<"The file doesn't exist"<<endl;exit(1);}
     //loop over the DDL block 
     //Each block contains a Mini Header followed by raw data (ALTRO FORMAT)
     //The number of block is ceil(216/LDCsNumber)
     ULong_t miniHeader[3];
     //here the Mini Header is read
-    //cout<<filename<<endl;
     while( (f.read((char*)(miniHeader),sizeof(ULong_t)*3)) ){
+      //cout<<"Mini header dimension "<<miniHeader[0]<<endl;
       Int_t car=0;
       size=miniHeader[0];
       for(ULong_t j=0;j<size;j++){

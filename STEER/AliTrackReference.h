@@ -6,14 +6,14 @@
 /* $Id$ */
 
 #include "TObject.h"
-#include "TMath.h"
+#include "TVirtualMC.h"
 
 class AliTrackReference : public TObject {
 
 public:
 
   AliTrackReference();
-  AliTrackReference(Int_t label);
+  AliTrackReference(Int_t label, TVirtualMC *vMC);
   virtual ~AliTrackReference() {}
 
   virtual Int_t GetTrack() const {return fTrack;}
@@ -37,15 +37,6 @@ public:
   virtual Float_t P() const {return TMath::Sqrt(fPx*fPx+fPy*fPy+fPz*fPz);}
   virtual void SetPosition(Float_t x, Float_t y, Float_t z){fX=x; fY=y; fZ=z;}
   virtual void SetMomentum(Float_t px, Float_t py, Float_t pz){fPx=px; fPy=py; fPz=pz;}
-
-  // Methods to get position of the track reference in 
-  // in the TPC/TRD/TOF Tracking coordinate system
-
-  virtual Float_t PhiPos() const {return TMath::Pi()+TMath::ATan2(-fY, -fX);}
-  virtual Float_t Alpha() const 
-    {return TMath::Pi()*(20*((((Int_t)(PhiPos()*180/TMath::Pi()))/20))+10)/180.;}
-  virtual Float_t LocalX() const {return fX*TMath::Cos(-Alpha()) - fY*TMath::Sin(-Alpha());}
-  virtual Float_t LocalY() const {return fX*TMath::Sin(-Alpha()) + fY*TMath::Cos(-Alpha());}
 
 
 protected:

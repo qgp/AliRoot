@@ -15,12 +15,6 @@
                                                       
 /*
 $Log$
-Revision 1.26  2003/04/10 10:36:54  hristov
-Code for unified TPC/TRD tracking (S.Radomski)
-
-Revision 1.25  2003/03/19 17:14:11  hristov
-Load/UnloadClusters added to the base class and the derived classes changed correspondingly. Possibility to give 2 input files for ITS and TPC tracks in PropagateBack. TRD tracker uses fEventN from the base class (T.Kuhr)
-
 Revision 1.24  2003/02/19 09:02:28  hristov
 Track time measurement (S.Radomski)
 
@@ -101,7 +95,6 @@ Add the tracking code
 #include "AliTRDgeometryDetail.h"
 #include "AliTRDcluster.h" 
 #include "AliTRDtrack.h"
-#include "AliTRDPartID.h"
 #include "../TPC/AliTPCtrack.h"
 
 #include "AliTRDtracker.h"
@@ -133,12 +126,9 @@ ClassImp(AliTRDtracker)
 
   const  Double_t    AliTRDtracker::fMaxChi2            = 12.; 
 
-const Int_t AliTRDtracker::kFirstPlane = 5;
-const Int_t AliTRDtracker::kLastPlane = 17;
-
 
 //____________________________________________________________________
-AliTRDtracker::AliTRDtracker(const TFile *geomfile):AliTracker()
+AliTRDtracker::AliTRDtracker(const TFile *geomfile)
 {
   // 
   //  Main constructor
@@ -158,10 +148,10 @@ AliTRDtracker::AliTRDtracker(const TFile *geomfile):AliTracker()
   }
   else {
     in->cd();  
-//    in->ls();
+    in->ls();
     fGeom = (AliTRDgeometry*) in->Get("TRDgeometry");
     fPar  = (AliTRDparameter*) in->Get("TRDparameter");
-//    fGeom->Dump();
+    fGeom->Dump();
   }
 
   if(fGeom) {
@@ -223,15 +213,6 @@ AliTRDtracker::AliTRDtracker(const TFile *geomfile):AliTracker()
 
   fVocal = kFALSE;
 
-
-  // Barrel Tracks [SR, 03.04.2003]
-
-  fBarrelFile = 0;
-  fBarrelTree = 0;
-  fBarrelArray = 0;
-  fBarrelTrack = 0;
-
-  savedir->cd();
 }   
 
 //___________________________________________________________________
@@ -247,106 +228,6 @@ AliTRDtracker::~AliTRDtracker()
     delete fTrSec[geom_s];
   }
 }   
-
-//_____________________________________________________________________
-
-void AliTRDtracker::SetBarrelTree(const char *mode) {
-  //
-  //
-  //
-
-  if (!IsStoringBarrel()) return;
-
-  TDirectory *sav = gDirectory;
-  if (!fBarrelFile) fBarrelFile = new TFile("AliBarrelTracks.root", "UPDATE");
-
-  char buff[40];
-  sprintf(buff,  "BarrelTRD_%d_%s", GetEventNumber(), mode);
-
-  fBarrelFile->cd();
-  fBarrelTree = new TTree(buff, "Barrel TPC tracks");
-  
-  Int_t nRefs = kLastPlane - kFirstPlane + 1;
-
-  if (!fBarrelArray) fBarrelArray = new TClonesArray("AliBarrelTrack", nRefs);
-  for(Int_t i=0; i<nRefs; i++) new((*fBarrelArray)[i]) AliBarrelTrack();
-  
-  fBarrelTree->Branch("tracks", &fBarrelArray);
-  sav->cd();
-}
-  
-//_____________________________________________________________________
-
-void AliTRDtracker::StoreBarrelTrack(AliTRDtrack *ps, Int_t refPlane, Int_t isIn) {
-  //
-  //
-  //
-  
-  if (!IsStoringBarrel()) return;
-  
-  static Int_t nClusters;
-  static Int_t nWrong;
-  static Double_t chi2;
-  static Int_t index;
-  static Bool_t wasLast = kTRUE;
-  
-  Int_t newClusters, newWrong;
-  Double_t newChi2;
-  
-  if (wasLast) {   
- 
-    fBarrelArray->Clear();
-    nClusters = nWrong = 0;
-    chi2 = 0.0;
-    index = 0;
-    wasLast = kFALSE;
-  }
-  
-  fBarrelTrack = (AliBarrelTrack*)(*fBarrelArray)[index++];
-  ps->GetBarrelTrack(fBarrelTrack);
-  
-  newClusters = ps->GetNumberOfClusters() - nClusters; 
-  newWrong = ps->GetNWrong() - nWrong;
-  newChi2 = ps->GetChi2() - chi2;
-  
-  nClusters =  ps->GetNumberOfClusters();
-  nWrong = ps->GetNWrong();
-  chi2 = ps->GetChi2();  
-
-  if (refPlane != kLastPlane) {
-    fBarrelTrack->SetNClusters(newClusters, newChi2);
-    fBarrelTrack->SetNWrongClusters(newWrong);
-  } else {
-    wasLast = kTRUE;
-  } 
-
-  fBarrelTrack->SetRefPlane(refPlane, isIn);
-}
-
-//_____________________________________________________________________
-
-Bool_t AliTRDtracker::AdjustSector(AliTRDtrack *track) {
-  //
-  // Rotates the track when necessary
-  //
-
-  Double_t alpha = AliTRDgeometry::GetAlpha(); 
-  Double_t y = track->GetY();
-  Double_t ymax = track->GetX()*TMath::Tan(0.5*alpha);
-
-  Int_t ns = AliTRDgeometry::kNsect;
-  //Int_t s=Int_t(track->GetAlpha()/alpha)%ns; 
-
-  if (y > ymax) {
-    //s = (s+1) % ns;
-    if (!track->Rotate(alpha)) return kFALSE;
-  } else if (y <-ymax) {
-    //s = (s-1+ns) % ns;                           
-    if (!track->Rotate(-alpha)) return kFALSE;   
-  } 
-
-  return kTRUE;
-}
 
 //_____________________________________________________________________
 inline Double_t f1trd(Double_t x1,Double_t y1,
@@ -649,14 +530,12 @@ Int_t AliTRDtracker::PropagateBack(const TFile *inp, TFile *out) {
   AliTRDtrack *otrack_trd=0;
   trdTree.Branch("tracks","AliTRDtrack",&otrack_trd,32000,0);   
      
-  if (IsStoringBarrel()) SetBarrelTree("back");
-  out->cd();
-
   Int_t found=0;  
+
   Int_t nseed=fSeeds->GetEntriesFast();
 
   //  Float_t foundMin = fMinClustersInTrack * fTimeBinsPerPlane * fGeom->Nplan(); 
-  Float_t foundMin = 40;
+  Float_t foundMin = 0;
 
   Int_t outermost_tb  = fTrSec[0]->GetOuterTimeBin();
 
@@ -664,12 +543,6 @@ Int_t AliTRDtracker::PropagateBack(const TFile *inp, TFile *out) {
 
     AliTRDtrack *ps=(AliTRDtrack*)fSeeds->UncheckedAt(i), &s=*ps;
     Int_t expectedClr = FollowBackProlongation(s);
-
-    if (IsStoringBarrel()) {
-      StoreBarrelTrack(ps, kLastPlane, kTrackBack);
-      fBarrelTree->Fill();        
-    }
-
     Int_t foundClr = s.GetNumberOfClusters();
     Int_t last_tb = fTrSec[0]->GetLayerNumber(s.GetX());
 
@@ -734,77 +607,17 @@ Int_t AliTRDtracker::PropagateBack(const TFile *inp, TFile *out) {
     }
   }
   
-  
-  out->cd();
   tofTree1.Write(); 
   tofTree2.Write(); 
   phosTree.Write(); 
   richTree.Write(); 
   trdTree.Write(); 
 
-  if (IsStoringBarrel()) { // [SR, 03.04.2003]
-    fBarrelFile->cd();
-    fBarrelTree->Write();
-    fBarrelFile->Flush();
-  }
-
   savedir->cd();  
   cerr<<"Number of seeds: "<<nseed<<endl;  
   cerr<<"Number of back propagated TRD tracks: "<<found<<endl;
 
   UnloadEvent();
-
-  return 0;
-
-}
-
-//_____________________________________________________________________________
-Int_t AliTRDtracker::PropagateBack(AliESD* event) {
-  //
-  // Gets seeds from ESD event. The seeds are AliTPCtrack's found and
-  // backpropagated by the TPC tracker. Each seed is first propagated 
-  // to the TRD, and then its prolongation is searched in the TRD.
-  // If sufficiently long continuation of the track is found in the TRD
-  // the track is updated, otherwise it's stored as originaly defined 
-  // by the TPC tracker.   
-  //  
-
-  Int_t found=0;  
-  Float_t foundMin = 40;
-
-  Int_t n = event->GetNumberOfTracks();
-  for (Int_t i=0; i<n; i++) {
-    AliESDtrack* seed=event->GetTrack(i);
-    ULong_t status=seed->GetStatus();
-    if ( (status & AliESDtrack::kTPCout ) == 0 ) continue;
-    if ( (status & AliESDtrack::kTRDout) != 0 ) continue;
-
-    Int_t lbl = seed->GetLabel();
-    AliTRDtrack *track = new AliTRDtrack(*seed);
-    track->SetSeedLabel(lbl);
-    fNseeds++;
-
-    Int_t expectedClr = FollowBackProlongation(*track);
-
-    Int_t foundClr = track->GetNumberOfClusters();
-    if (foundClr >= foundMin) {
-      if(foundClr >= 2) {
-	track->CookdEdx(); 
-//	CookLabel(track, 1-fLabelFraction);
-	UseClusters(track);
-      }
-      
-      // Propagate to outer reference plane [SR, GSI, 18.02.2003]
-//      track->PropagateTo(364.8);  why?
-      
-      seed->UpdateTrackParams(track, AliESDtrack::kTRDout);
-      found++;
-    }
-
-  }
-  
-  cerr<<"Number of seeds: "<<fNseeds<<endl;  
-  cerr<<"Number of back propagated TRD tracks: "<<found<<endl;
 
   return 0;
 
@@ -833,9 +646,12 @@ Int_t AliTRDtracker::FollowProlongation(AliTRDtrack& t, Int_t rf)
   Int_t try_again=fMaxGap;
 
   Double_t alpha=t.GetAlpha();
-  TVector2::Phi_0_2pi(alpha);
+
+  if (alpha > 2.*TMath::Pi()) alpha -= 2.*TMath::Pi();
+  if (alpha < 0.            ) alpha += 2.*TMath::Pi();
 
   Int_t s=Int_t(alpha/AliTRDgeometry::GetAlpha())%AliTRDgeometry::kNsect;  
+
   Double_t rad_length, rho, x, dx, y, ymax, z;
 
   Int_t expectedNumberOfClusters = 0;
@@ -1053,15 +869,22 @@ Int_t AliTRDtracker::FollowBackProlongation(AliTRDtrack& t)
   Float_t  wSigmaC2, wSigmaTgl2, wSigmaY2, wSigmaZ2;
 
   Int_t trackIndex = t.GetLabel();  
+
+  Int_t ns=Int_t(2*TMath::Pi()/AliTRDgeometry::GetAlpha()+0.5);     
+
   Int_t try_again=fMaxGap;
 
   Double_t alpha=t.GetAlpha();
-  TVector2::Phi_0_2pi(alpha);
 
-  Int_t s;
+  if (alpha > 2.*TMath::Pi()) alpha -= 2.*TMath::Pi();
+  if (alpha < 0.            ) alpha += 2.*TMath::Pi();
+
+  Int_t s=Int_t(alpha/AliTRDgeometry::GetAlpha())%AliTRDgeometry::kNsect;  
 
   Int_t outerTB = fTrSec[0]->GetOuterTimeBin();
-  Double_t rad_length, rho, x, dx, y, ymax = 0, z;
+
+  Double_t rad_length, rho, x, dx, y, ymax, z;
+
   Bool_t lookForCluster;
 
   Int_t expectedNumberOfClusters = 0;
@@ -1069,63 +892,55 @@ Int_t AliTRDtracker::FollowBackProlongation(AliTRDtrack& t)
 
   alpha=AliTRDgeometry::GetAlpha();  // note: change in meaning
 
-  Int_t nRefPlane = kFirstPlane;
-  Bool_t isNewLayer = kFALSE; 
 
-  Double_t chi2;
-  Double_t minDY;
+  for (Int_t nr=fTrSec[0]->GetLayerNumber(t.GetX()); nr<outerTB; nr++) { 
 
-  for (Int_t nr=fTrSec[0]->GetLayerNumber(t.GetX()); nr<outerTB+1; nr++) { 
-    
-    y = t.GetY(); 
-    z = t.GetZ();
+    y = t.GetY(); z = t.GetZ();
 
     // first propagate to the outer surface of the current time bin 
 
-    s = t.GetSector();
     fTrSec[s]->GetLayer(nr)->GetPropagationParameters(y,z,dx,rho,rad_length,lookForCluster);
-    x = fTrSec[s]->GetLayer(nr)->GetX()+dx/2; 
-    y = t.GetY(); 
-    z = t.GetZ();
+    x = fTrSec[s]->GetLayer(nr)->GetX()+dx/2; y = t.GetY(); z = t.GetZ();
 
     if(!t.PropagateTo(x,rad_length,rho)) break;
-    if (!AdjustSector(&t)) break;
-    s = t.GetSector();
-    if (!t.PropagateTo(x,rad_length,rho)) break;
 
     y = t.GetY();
-    z = t.GetZ();
+    ymax = x*TMath::Tan(0.5*alpha);
 
-    // Barrel Tracks [SR, 04.04.2003]
-
-    s = t.GetSector();
-    if (fTrSec[s]->GetLayer(nr)->IsSensitive() != 
-        fTrSec[s]->GetLayer(nr+1)->IsSensitive() ) {
-
-//      if (IsStoringBarrel()) StoreBarrelTrack(&t, nRefPlane++, kTrackBack);
-    }
-
-    if (fTrSec[s]->GetLayer(nr-1)->IsSensitive() && 
-          ! fTrSec[s]->GetLayer(nr)->IsSensitive()) {
-      isNewLayer = kTRUE;
-    } else {isNewLayer = kFALSE;}
-
-    y = t.GetY();
-    z = t.GetZ();
+    if (y > ymax) {
+      s = (s+1) % ns;
+      if (!t.Rotate(alpha)) break;
+      if(!t.PropagateTo(x,rad_length,rho)) break;
+    } else if (y <-ymax) {
+      s = (s-1+ns) % ns;                           
+      if (!t.Rotate(-alpha)) break;   
+      if(!t.PropagateTo(x,rad_length,rho)) break;
+    } 
+    y = t.GetY(); z = t.GetZ();
 
     // now propagate to the middle plane of the next time bin 
     fTrSec[s]->GetLayer(nr+1)->GetPropagationParameters(y,z,dx,rho,rad_length,lookForCluster);
 
-    x = fTrSec[s]->GetLayer(nr+1)->GetX(); 
-      if(!t.PropagateTo(x,rad_length,rho)) break;
-    if (!AdjustSector(&t)) break;
-    s = t.GetSector();
-      if(!t.PropagateTo(x,rad_length,rho)) break;
+    x = fTrSec[s]->GetLayer(nr+1)->GetX(); y = t.GetY(); z = t.GetZ();
+
+    if(!t.PropagateTo(x,rad_length,rho)) break;
 
     y = t.GetY();
-    z = t.GetZ();
+
+    ymax = x*TMath::Tan(0.5*alpha);
 
     if(fVocal) printf("nr+1=%d, x %f, z %f, y %f, ymax %f\n",nr+1,x,z,y,ymax);
+
+    if (y > ymax) {
+      s = (s+1) % ns;
+      if (!t.Rotate(alpha)) break;
+      if(!t.PropagateTo(x,rad_length,rho)) break;
+    } else if (y <-ymax) {
+      s = (s-1+ns) % ns;              
+      if (!t.Rotate(-alpha)) break;   
+      if(!t.PropagateTo(x,rad_length,rho)) break;
+    } 
+
     //    printf("label %d, pl %d, lookForCluster %d \n",
     //     trackIndex, nr+1, lookForCluster);
 
@@ -1168,17 +983,6 @@ Int_t AliTRDtracker::FollowBackProlongation(AliTRDtrack& t)
 
       Double_t max_chi2=fMaxChi2;
 
-      if (isNewLayer) { 
-        road = 3 * road;
-        //sz2 = 3 * sz2;
-        max_chi2 = 10 * fMaxChi2;
-      }
-      
-      if (nRefPlane == kFirstPlane) max_chi2 = 20 * fMaxChi2; 
-      if (nRefPlane == kFirstPlane+2) max_chi2 = 15 * fMaxChi2;
-      if (t.GetNRotate() > 0) max_chi2 = 3 * max_chi2;
-      
-
       wYclosest = 12345678;
       wYcorrect = 12345678;
       wZclosest = 12345678;
@@ -1187,15 +991,14 @@ Int_t AliTRDtracker::FollowBackProlongation(AliTRDtrack& t)
 
       // Find the closest correct cluster for debugging purposes
       if (time_bin) {
-        minDY = 1000000;
+        Float_t minDY = 1000000;
         for (Int_t i=0; i<time_bin; i++) {
           AliTRDcluster* c=(AliTRDcluster*)(time_bin[i]);
           if((c->GetLabel(0) != trackIndex) &&
              (c->GetLabel(1) != trackIndex) &&
              (c->GetLabel(2) != trackIndex)) continue;
           if(TMath::Abs(c->GetY() - y) > minDY) continue;
-          //minDY = TMath::Abs(c->GetY() - y);
-          minDY = c->GetY() - y;
+          minDY = TMath::Abs(c->GetY() - y);
           wYcorrect = c->GetY();
           wZcorrect = c->GetZ();
 
@@ -1211,21 +1014,16 @@ Int_t AliTRDtracker::FollowBackProlongation(AliTRDtrack& t)
         for (Int_t i=time_bin.Find(y-road); i<time_bin; i++) {
           AliTRDcluster* c=(AliTRDcluster*)(time_bin[i]);
           if (c->GetY() > y+road) break;
-          if (c->IsUsed() > 0) continue;
+	  //          if (c->IsUsed() > 0) continue;
           if((c->GetZ()-z)*(c->GetZ()-z) > 3 * sz2) continue;
 
           Double_t h01 = GetTiltFactor(c);
-          chi2=t.GetPredictedChi2(c,h01);
+          Double_t chi2=t.GetPredictedChi2(c,h01);
           
           if (chi2 > max_chi2) continue;
           max_chi2=chi2;
           cl=c;
           index=time_bin.GetIndex(i);
-
-          //check is correct
-          if((c->GetLabel(0) != trackIndex) &&
-             (c->GetLabel(1) != trackIndex) &&
-             (c->GetLabel(2) != trackIndex)) t.AddNWrong();
         }               
 	
         if(!cl) {
@@ -1234,11 +1032,11 @@ Int_t AliTRDtracker::FollowBackProlongation(AliTRDtrack& t)
             AliTRDcluster* c=(AliTRDcluster*)(time_bin[i]);
             
             if (c->GetY() > y+road) break;
-            if (c->IsUsed() > 0) continue;
+	    //            if (c->IsUsed() > 0) continue;
             if((c->GetZ()-z)*(c->GetZ()-z) > 2.25 * 12 * sz2) continue;
             
             Double_t h01 = GetTiltFactor(c);
-            chi2=t.GetPredictedChi2(c,h01);
+            Double_t chi2=t.GetPredictedChi2(c,h01);
             
             if (chi2 > max_chi2) continue;
             max_chi2=chi2;
@@ -1261,14 +1059,7 @@ Int_t AliTRDtracker::FollowBackProlongation(AliTRDtrack& t)
         else {
           if (try_again==0) break; 
           try_again--;
-          
-          //if (minDY < 1000000 && isNewLayer) 
-            //cout << "\t" << nRefPlane << "\t" << "\t" << t.GetNRotate() <<  "\t" << 
-            //  road << "\t" << minDY << "\t" << chi2 << "\t" << wChi2 << "\t" << max_chi2 << endl;
-                                                                     
         }
-
-        isNewLayer = kFALSE;
 
         /*
         if((((Int_t) wTB)%15 == 0) || (((Int_t) wTB)%15 == 14)) {
@@ -1299,8 +1090,6 @@ Int_t AliTRDtracker::FollowBackProlongation(AliTRDtrack& t)
     }  
   }
   return expectedNumberOfClusters;
-
-
 }         
 
 //___________________________________________________________________
@@ -1380,7 +1169,9 @@ Int_t AliTRDtracker::PropagateToTPC(AliTRDtrack& t)
   Int_t ns=Int_t(2*TMath::Pi()/AliTRDgeometry::GetAlpha()+0.5);     
 
   Double_t alpha=t.GetAlpha();
-  TVector2::Phi_0_2pi(alpha);
+
+  if (alpha > 2.*TMath::Pi()) alpha -= 2.*TMath::Pi();
+  if (alpha < 0.            ) alpha += 2.*TMath::Pi();
 
   Int_t s=Int_t(alpha/AliTRDgeometry::GetAlpha())%AliTRDgeometry::kNsect;  
 
@@ -1390,34 +1181,48 @@ Int_t AliTRDtracker::PropagateToTPC(AliTRDtrack& t)
   x = t.GetX();
 
   alpha=AliTRDgeometry::GetAlpha();  // note: change in meaning
+
   Int_t plTPC = fTrSec[0]->GetLayerNumber(246.055);
 
   for (Int_t nr=fTrSec[0]->GetLayerNumber(x); nr>plTPC; nr--) { 
 
-    y = t.GetY(); 
-    z = t.GetZ();
+    y = t.GetY(); z = t.GetZ();
 
     // first propagate to the outer surface of the current time bin 
     fTrSec[s]->GetLayer(nr)->GetPropagationParameters(y,z,dx,rho,rad_length,lookForCluster);
-    x = fTrSec[s]->GetLayer(nr)->GetX()-dx/2; 
-    
+    x = fTrSec[s]->GetLayer(nr)->GetX()-dx/2; y = t.GetY(); z = t.GetZ();
     if(!t.PropagateTo(x,rad_length,rho)) return 0;
-    AdjustSector(&t);
+    y = t.GetY();
+    ymax = x*TMath::Tan(0.5*alpha);
+    if (y > ymax) {
+      s = (s+1) % ns;
+      if (!t.Rotate(alpha)) return 0;
+    } else if (y <-ymax) {
+      s = (s-1+ns) % ns;                           
+      if (!t.Rotate(-alpha)) return 0;   
+    } 
     if(!t.PropagateTo(x,rad_length,rho)) return 0;
 
-    y = t.GetY(); 
-    z = t.GetZ();
+    y = t.GetY(); z = t.GetZ();
 
     // now propagate to the middle plane of the next time bin 
     fTrSec[s]->GetLayer(nr-1)->GetPropagationParameters(y,z,dx,rho,rad_length,lookForCluster);
-    x = fTrSec[s]->GetLayer(nr-1)->GetX(); 
-    
+    x = fTrSec[s]->GetLayer(nr-1)->GetX(); y = t.GetY(); z = t.GetZ();
     if(!t.PropagateTo(x,rad_length,rho)) return 0;
-    AdjustSector(&t);
+    y = t.GetY();
+    ymax = x*TMath::Tan(0.5*alpha);
+    if (y > ymax) {
+      s = (s+1) % ns;
+      if (!t.Rotate(alpha)) return 0;
+    } else if (y <-ymax) {
+      s = (s-1+ns) % ns;                           
+      if (!t.Rotate(-alpha)) return 0;   
+    } 
     if(!t.PropagateTo(x,rad_length,rho)) return 0;
   }
   return 1;
 }         
+
 
 //_____________________________________________________________________________
 void AliTRDtracker::LoadEvent()

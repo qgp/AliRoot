@@ -13,9 +13,7 @@
 //namespace AliITSreco {    
    const Int_t kMaxClusterPerLayer=7000*10;
    const Int_t kMaxDetectorPerLayer=1000;
-
-   const Int_t kLayersNotToSkip[]={1,1,1,1,1,1};
-   const Int_t kLastLayerToTrackTo=0;
+   const Int_t kLayersToSkip=0;
 
    const Int_t kMaxLayer=6;
    const Double_t kSigmaY2[kMaxLayer]={

@@ -1,5 +1,7 @@
 #include "AliHBTReaderTPC.h"
- 
+
+#include <Riostream.h>
+//#include <Riostream.h>
 #include <TTree.h>
 #include <TFile.h>
 #include <TParticle.h>
@@ -8,6 +10,7 @@
 #include <AliMagF.h>
 #include <AliTPCtrack.h>
 #include <AliTPCParam.h>
+#include <AliTPCtracker.h>
 
 #include "AliHBTRun.h"
 #include "AliHBTEvent.h"
@@ -16,29 +19,17 @@
 
 
 ClassImp(AliHBTReaderTPC)
-//______________________________________________
-//
-// class AliHBTReaderTPC
-//
 //reader for TPC tracking
-//needs galice.root, AliTPCtracks.root
+//needs galice.root, AliTPCtracks.root, AliTPCclusters.root, good_tracks_tpc 
 //
 //more info: http://alisoft.cern.ch/people/skowron/analyzer/index.html
 //Piotr.Skowronski@cern.ch
-//
 
-
-AliHBTReaderTPC:: AliHBTReaderTPC(const Char_t* trackfilename,
-                                  const Char_t* clusterfilename,
-                                  const Char_t* galicefilename):
- fParticles(new AliHBTRun()),
- fTracks(new AliHBTRun()),
- fTrackFileName(trackfilename),
- fClusterFileName(clusterfilename),
- fGAliceFileName(galicefilename),
- fIsRead(kFALSE),
- fMagneticField(0.4),
- fUseMagFFromRun(kTRUE)
+AliHBTReaderTPC::
+ AliHBTReaderTPC(const Char_t* trackfilename,const Char_t* clusterfilename,
+                 const Char_t* galicefilename):
+                 fTrackFileName(trackfilename),fClusterFileName(clusterfilename),
+                 fGAliceFileName(galicefilename)
 {
   //constructor, 
   //Defaults:
@@ -46,24 +37,19 @@ AliHBTReaderTPC:: AliHBTReaderTPC(const Char_t* trackfilename,
   //  clusterfilename = "AliTPCclusters.root"
   //  galicefilename = ""  - this means: Do not open gAlice file - 
   //                         just leave the global pointer untached
-  //this class is not supposed to be written, that is why I let myself and user
-  //for comfort of having default constructor which allocates dynamic memmory
-  //in case it is going to be written, it should be changed
   
+  fParticles = new AliHBTRun();
+  fTracks    = new AliHBTRun();
+  fIsRead = kFALSE;
 }
 /********************************************************************/
-AliHBTReaderTPC::AliHBTReaderTPC(TObjArray* dirs,
+AliHBTReaderTPC::
+AliHBTReaderTPC(TObjArray* dirs,
                   const Char_t* trackfilename, const Char_t* clusterfilename,
                   const Char_t* galicefilename):
- AliHBTReader(dirs), 
- fParticles(new AliHBTRun()),
- fTracks(new AliHBTRun()),
- fTrackFileName(trackfilename),
- fClusterFileName(clusterfilename),
- fGAliceFileName(galicefilename),
- fIsRead(kFALSE),
- fMagneticField(0.4),
- fUseMagFFromRun(kTRUE)
+                  AliHBTReader(dirs), fTrackFileName(trackfilename),
+                  fClusterFileName(clusterfilename),fGAliceFileName(galicefilename)
+
 {
   //constructor, 
   //Defaults:
@@ -71,6 +57,11 @@ AliHBTReaderTPC::AliHBTReaderTPC(TObjArray* dirs,
   //  clusterfilename = "AliTPCclusters.root"
   //  galicefilename = ""  - this means: Do not open gAlice file - 
   //                         just leave the global pointer untached
+  
+  fParticles = new AliHBTRun();
+  fTracks    = new AliHBTRun();
+  fIsRead = kFALSE;
+  
 }
 /********************************************************************/
 
@@ -94,7 +85,6 @@ AliHBTEvent* AliHBTReaderTPC::GetParticleEvent(Int_t n)
    return fParticles->GetEvent(n);
  }
 /********************************************************************/
-
 AliHBTEvent* AliHBTReaderTPC::GetTrackEvent(Int_t n)
  {
  //returns Nth event with reconstructed tracks
@@ -140,7 +130,7 @@ Int_t AliHBTReaderTPC::Read(AliHBTRun* particles, AliHBTRun *tracks)
  //reads data and puts put to the particles and tracks objects
  //reurns 0 if everything is OK
  //
-  Info("Read","");
+  cout<<"AliHBTReaderTPC::Read()"<<endl;
   Int_t i; //iterator and some temprary values
   Int_t Nevents = 0;
   Int_t totalNevents = 0;
@@ -189,20 +179,10 @@ Int_t AliHBTReaderTPC::Read(AliHBTRun* particles, AliHBTRun *tracks)
     if (gAlice->TreeE())//check if tree E exists
      {
       Nevents = (Int_t)gAlice->TreeE()->GetEntries();//if yes get number of events in gAlice
-      Info("Read","________________________________________________________");
-      Info("Read","Found %d event(s) in directory %s",Nevents,GetDirName(currentdir).Data());
-      Float_t mf;
-      if (fUseMagFFromRun)
-       {
-         mf = gAlice->Field()->SolenoidField();
-         Info("Read","Setting Magnetic Field from run: B=%fT",mf/10.);
-       }
-      else
-       {
-         Info("Read","Setting Own Magnetic Field: B=%fT",fMagneticField);
-         mf = fMagneticField*10.;
-       }
-      AliKalmanTrack::SetConvConst(1000/0.299792458/mf);
+      cout<<"________________________________________________________\n";
+      cout<<"Found "<<Nevents<<" event(s) in directory "<<GetDirName(currentdir)<<endl;
+      cout<<"Setting Magnetic Field: B="<<gAlice->Field()->SolenoidField()<<"T"<<endl;
+      AliKalmanTrack::SetConvConst(1000/0.299792458/gAlice->Field()->SolenoidField());
      }
     else
      {//if not return an error
@@ -211,11 +191,11 @@ Int_t AliHBTReaderTPC::Read(AliHBTRun* particles, AliHBTRun *tracks)
        continue;
      }
   
-    aGAliceFile->cd();//set cluster file active 
-    AliTPCParam *TPCParam= (AliTPCParam*)aGAliceFile->Get("75x40_100x60_150x60");
+    aClustersFile->cd();//set cluster file active 
+    AliTPCParam *TPCParam= (AliTPCParam*)aClustersFile->Get("75x40_100x60_150x60");
     if (!TPCParam) 
       { 
-       TPCParam= (AliTPCParam*)aGAliceFile->Get("75x40_100x60");
+       TPCParam= (AliTPCParam*)aClustersFile->Get("75x40_100x60");
        if (!TPCParam) 
         { 
           Error("Read","TPC parameters have not been found !\n");
@@ -227,7 +207,7 @@ Int_t AliHBTReaderTPC::Read(AliHBTRun* particles, AliHBTRun *tracks)
   
     for(Int_t currentEvent =0; currentEvent<Nevents;currentEvent++)//loop over all events
      {
-       Info("Read","Reading Event %d",currentEvent);
+       cout<<"Reading Event "<<currentEvent<<endl;
        /**************************************/
         /**************************************/
          /**************************************/ 
@@ -253,24 +233,39 @@ Int_t AliHBTReaderTPC::Read(AliHBTRun* particles, AliHBTRun *tracks)
             continue;
           }
          Int_t NTPCtracks=(Int_t)tracktree->GetEntries();//get number of TPC tracks 
-         Info("Read","Found %d TPC tracks.",NTPCtracks);
+         cout<<"Found "<<NTPCtracks<<" TPC tracks.\n";
          //Copy tracks to array
          
          AliTPCtrack *iotrack=0;
          
-//         aClustersFile->cd();//set cluster file active 
+         aClustersFile->cd();//set cluster file active 
+         //AliTPCtracker *tracker = new AliTPCtracker(TPCParam,currentEvent);//create the tacker for this event
+         AliTPCtracker *tracker = new AliTPCtracker(TPCParam); //I.B.
+         tracker->SetEventNumber(currentEvent);                //I.B.
+         if (!tracker) //check if it has created succeffuly
+          {//if not return with error
+            Error("Read","Can't get a tracker !\n"); 
+            continue;
+          }
+         //tracker->LoadInnerSectors(); //I.B.
+         //tracker->LoadOuterSectors(); //I.B.
+         tracker->LoadClusters();       //I.B.
    
          for (i=0; i<NTPCtracks; i++) //loop over all tpc tracks
           {
             iotrack=new AliTPCtrack;   //create new tracks
             trackbranch->SetAddress(&iotrack); //tell the branch ehere to put track data from tree(file)
             tracktree->GetEvent(i); //stream track i to the iotrack
+            tracker->CookLabel(iotrack,0.1); //calculate (cook) the label of the tpc track
+                                             //which is the label of corresponding simulated particle 
             tarray->AddLast(iotrack); //put the track in the array
           }
          
          aTracksFile->Delete(treename);//delete tree from memmory (and leave untached on disk)- we do not need it any more
          aTracksFile->Delete("tracks");//delete branch from memmory
+         delete tracker; //delete tracker
          
+         tracker = 0x0;
          trackbranch = 0x0;
          tracktree = 0x0;
    
@@ -288,9 +283,8 @@ Int_t AliHBTReaderTPC::Read(AliHBTRun* particles, AliHBTRun *tracks)
           { 
             iotrack = (AliTPCtrack*)tarray->At(i);
             label = iotrack->GetLabel();
-            
+
             if (label < 0) continue;
-            
             
             TParticle *p = (TParticle*)gAlice->Particle(label);
             
@@ -299,6 +293,7 @@ Int_t AliHBTReaderTPC::Read(AliHBTRun* particles, AliHBTRun *tracks)
 	    
             if(Pass(p->GetPdgCode())) continue; //check if we are intersted with particles of this type 
                                         //if not take next partilce
+            
             AliHBTParticle* part = new AliHBTParticle(*p);
             if(Pass(part)) { delete part; continue;}//check if meets all criteria of any of our cuts
                                                     //if it does not delete it and take next good track
@@ -329,6 +324,7 @@ Int_t AliHBTReaderTPC::Read(AliHBTRun* particles, AliHBTRun *tracks)
              }
             particles->AddParticle(totalNevents,part);//put track and particle on the run
             tracks->AddParticle(totalNevents,track);
+
           }
          tarray->Clear(); //clear the array
          
@@ -337,6 +333,7 @@ Int_t AliHBTReaderTPC::Read(AliHBTRun* particles, AliHBTRun *tracks)
       /**************************************/  
      totalNevents++;
     }
+  
     //save environment (resouces) --
     //clean your place after the work
     CloseFiles(aTracksFile,aClustersFile,aGAliceFile); 
@@ -375,8 +372,7 @@ Int_t AliHBTReaderTPC::OpenFiles
        Error("OpenFiles","Can't open file with tacks named %s",filename.Data());
        return 1;
      }
-
-/*  
+  
    filename = dirname +"/"+ fClusterFileName;
    aClustersFile = TFile::Open(filename.Data());
    if ( aClustersFile == 0x0 )
@@ -389,7 +385,7 @@ Int_t AliHBTReaderTPC::OpenFiles
       Error("OpenFiles","Can't open file with TPC clusters named %s",filename.Data());
       return 2;
     }
-*/
+
    filename = dirname +"/"+ fGAliceFileName;
    agAliceFile = TFile::Open(filename.Data());
    if ( agAliceFile== 0x0)
@@ -421,10 +417,9 @@ void AliHBTReaderTPC::CloseFiles(TFile*& tracksFile, TFile*& clustersFile, TFile
   tracksFile->Close();
   delete tracksFile;
   tracksFile = 0x0;
-
-//  clustersFile->Close();
-//  delete clustersFile;
-//  clustersFile = 0x0;
+  clustersFile->Close();
+  delete clustersFile;
+  clustersFile = 0x0;
 
   delete gAlice;
   gAlice = 0;

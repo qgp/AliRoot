@@ -8,8 +8,7 @@ AliFastMuonTrackingEff.cxx \
 AliFastMuonTrackingRes.cxx \
 AliFastMuonTriggerEff.cxx \
 AliMUONFastTracking.cxx \
-AliMUONFastTrackingEntry.cxx \
-AliFastGlauber.cxx
+AliMUONFastTrackingEntry.cxx
 
 
 HDRS:= $(SRCS:.cxx=.h) 

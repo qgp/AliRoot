@@ -34,16 +34,12 @@
 ///////////////////////////////////////////////////////////////////////////////
 #include <TNode.h>
 #include <TObjArray.h>
-#include <TClonesArray.h>
-#include <TTree.h>
 #include <TSystem.h>
-#include <TDirectory.h>
 
 #include "AliModule.h"
 #include "AliRun.h"
 #include "AliMagF.h"
 #include "AliConfig.h"
-#include "AliTrackReference.h"
 
 ClassImp(AliModule)
  
@@ -59,10 +55,7 @@ AliModule::AliModule():
   fHistograms(0),
   fNodes(0),
   fDebug(0),
-  fEnable(1),
-  fTrackReferences(0),
-  fMaxIterTrackRef(0),
-  fCurrentIterTrackRef(0)
+  fEnable(1)
 {
   //
   // Default constructor for the AliModule class
@@ -82,10 +75,7 @@ AliModule::AliModule(const char* name,const char *title):
   fHistograms(new TList()),
   fNodes(new TList()),
   fDebug(0),
-  fEnable(1),
-  fTrackReferences(new TClonesArray("AliTrackReference", 100)),
-  fMaxIterTrackRef(0),
-  fCurrentIterTrackRef(0)
+  fEnable(1)
 {
   //
   // Normal constructor invoked by all Modules.
@@ -131,10 +121,7 @@ AliModule::AliModule(const AliModule &mod):
   fHistograms(0),
   fNodes(0),
   fDebug(0),
-  fEnable(0),
-  fTrackReferences(0),
-  fMaxIterTrackRef(0),
-  fCurrentIterTrackRef(0)
+  fEnable(0)
 {
   //
   // Copy constructor
@@ -149,29 +136,12 @@ AliModule::~AliModule()
   // Destructor
   //
 
-  // Remove this Module from the list of Modules
-  if (gAlice) {
-    TObjArray * modules = gAlice->Modules();
-    if (modules) modules->Remove(this);
-  }
   // Delete ROOT geometry
   if(fNodes) {
     fNodes->Clear();
     delete fNodes;
-    fNodes = 0;
   }
-  // Delete histograms
-  if(fHistograms) {
-    fHistograms->Clear();
-    delete fHistograms;
-    fHistograms = 0;
-  }
-  // Delete track references
-  if (fTrackReferences) {
-    fTrackReferences->Delete();
-    delete fTrackReferences;
-    fTrackReferences     = 0;
-  }
+  //
   // Delete TArray objects
   delete fIdtmed;
   delete fIdmate;
@@ -657,137 +627,5 @@ void AliModule::ReadEuclidMedia(const char* filnam)
  L20:
   Warning("ReadEuclidMedia","reading error or premature end of file\n");
 } 
-
-//_______________________________________________________________________
-void AliModule::RemapTrackReferencesIDs(Int_t *map)
-{
-  // 
-  // Remapping track reference
-  // Called at finish primary
-  //
-  if (!fTrackReferences) return;
-  for (Int_t i=0;i<fTrackReferences->GetEntries();i++){
-    AliTrackReference * ref = dynamic_cast<AliTrackReference*>(fTrackReferences->UncheckedAt(i));
-    if (ref) {
-      Int_t newID = map[ref->GetTrack()];
-      if (newID>=0) ref->SetTrack(newID);
-      else ref->SetTrack(-1);
-      
-    }
-  }
-}
-
-
-//_______________________________________________________________________
-AliTrackReference* AliModule::FirstTrackReference(Int_t track)
-{
-  //
-  // Initialise the hit iterator
-  // Return the address of the first hit for track
-  // If track>=0 the track is read from disk
-  // while if track<0 the first hit of the current
-  // track is returned
-  // 
-  if(track>=0) {
-    gAlice->ResetTrackReferences();
-    gAlice->TreeTR()->GetEvent(track);
-  }
-  //
-  fMaxIterTrackRef     = fTrackReferences->GetEntriesFast();
-  fCurrentIterTrackRef = 0;
-  if(fMaxIterTrackRef) return dynamic_cast<AliTrackReference*>(fTrackReferences->UncheckedAt(0));
-  else            return 0;
-}
-
-//_______________________________________________________________________
-AliTrackReference* AliModule::NextTrackReference()
-{
-  //
-  // Return the next hit for the current track
-  //
-  if(fMaxIterTrackRef) {
-    if(++fCurrentIterTrackRef<fMaxIterTrackRef) 
-      return dynamic_cast<AliTrackReference*>(fTrackReferences->UncheckedAt(fCurrentIterTrackRef));
-    else        
-      return 0;
-  } else {
-    printf("* AliDetector::NextTrackReference * TrackReference  Iterator called without calling FistTrackReference before\n");
-    return 0;
-  }
-}
-
-
-//_______________________________________________________________________
-void AliModule::ResetTrackReferences()
-{
-  //
-  // Reset number of hits and the hits array
-  //
-  fMaxIterTrackRef   = 0;
-  if (fTrackReferences)   fTrackReferences->Clear();
-}
  
  
-
-void AliModule::SetTreeAddress()
-{
-  //
-  // Set branch address for the Hits and Digits Trees
-  //
-    TBranch *branch;
-    char branchname[20];
-    sprintf(branchname,"%s",GetName());
-    // Branch address for track reference tree
-    TTree *treeTR = gAlice->TreeTR();
-    if (treeTR && fTrackReferences) {
-	branch = treeTR->GetBranch(branchname);
-	if (branch) branch->SetAddress(&fTrackReferences);
-    }
-}
-
-void  AliModule::AddTrackReference(Int_t label){
-  //
-  // add a trackrefernce to the list
-  if (!fTrackReferences) {
-    cerr<<"Container trackrefernce not active\n";
-    return;
-  }
-  Int_t nref = fTrackReferences->GetEntriesFast();
-  TClonesArray &lref = *fTrackReferences;
-  new(lref[nref]) AliTrackReference(label);
-}
-
-
-void AliModule::MakeBranchTR(Option_t *option, const char *file)
-{ 
-    //
-    // Makes branch in treeTR
-    //  
-    char name[10];
-    sprintf(name,"%s",GetName());
-
-    if (GetDebug()>1)
-	printf("* MakeBranch * Making Branch %s \n",name);
-    
-    TDirectory *cwd = gDirectory;
-    TBranch *branch = 0;
-    TTree* tree = gAlice->TreeTR();
-    if (tree) {
-	branch = tree->Branch(name, &fTrackReferences, 1600);
-	if (file) {
-	    char * outFile = new char[strlen(gAlice->GetBaseFile())+strlen(file)+2];
-	    sprintf(outFile,"%s/%s",gAlice->GetBaseFile(),file);
-	    branch->SetFile(outFile);
-	    TIter next( branch->GetListOfBranches());
-	    while ((branch=dynamic_cast<TBranch*>(next()))) {
-		branch->SetFile(outFile);
-	    } 
-	    delete outFile;
-	    
-	    cwd->cd();
-	    
-	    if (GetDebug()>1)
-		printf("* MakeBranch * Diverting Branch %s to file %s\n",name,file);
-	}
-    }
-}

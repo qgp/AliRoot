@@ -15,15 +15,6 @@
 
 /*
 $Log$
-Revision 1.19  2003/05/22 10:46:46  hristov
-Using access methods instead of data members
-
-Revision 1.18  2003/04/10 10:36:54  hristov
-Code for unified TPC/TRD tracking (S.Radomski)
-
-Revision 1.17  2003/02/19 09:02:28  hristov
-Track time measurement (S.Radomski)
-
 Revision 1.16  2003/02/10 14:06:10  cblume
 Add tracking without tilted pads as option
 
@@ -75,7 +66,6 @@ Add the tracking code
 #include "AliTRDcluster.h" 
 #include "AliTRDtrack.h"
 #include "../TPC/AliTPCtrack.h" 
-#include "AliESDtrack.h" 
 
 
 ClassImp(AliTRDtrack)
@@ -112,8 +102,6 @@ AliTRDtrack::AliTRDtrack(const AliTRDcluster *c, UInt_t index,
   fdEdx=0.;
 
   fLhElectron = 0.0;
-  fNWrong = 0;
-  fNRotate = 0;
 
   Double_t q = TMath::Abs(c->GetQ());
   Double_t s = fX*fC - fE, t=fT;
@@ -141,8 +129,6 @@ AliTRDtrack::AliTRDtrack(const AliTRDtrack& t) : AliKalmanTrack(t) {
   fdEdx=t.fdEdx;
 
   fLhElectron = 0.0;
-  fNWrong = t.fNWrong;
-  fNRotate = t.fNRotate;
 
   fAlpha=t.fAlpha;
   fX=t.fX;
@@ -184,8 +170,6 @@ AliTRDtrack::AliTRDtrack(const AliKalmanTrack& t, Double_t alpha)
   fdEdx=0;
 
   fLhElectron = 0.0;
-  fNWrong = 0;
-  fNRotate = 0;
 
   fAlpha = alpha;
   if      (fAlpha < -TMath::Pi()) fAlpha += 2*TMath::Pi();
@@ -224,90 +208,7 @@ AliTRDtrack::AliTRDtrack(const AliKalmanTrack& t, Double_t alpha)
     fIndex[i] = 0;
   }
 }              
-//_____________________________________________________________________________
-AliTRDtrack::AliTRDtrack(const AliESDtrack& t) 
-           :AliKalmanTrack() {
-  //
-  // Constructor from AliESDtrack
-  //
 
-  SetLabel(t.GetLabel());
-  SetChi2(0.);
-  SetMass(t.GetMass());
-  SetNumberOfClusters(0); 
-  // WARNING: cluster indices are NOT copied !!!
-
-  fdEdx=0;
-
-  fLhElectron = 0.0;
-  fNWrong = 0;
-  fNRotate = 0;
-
-  fAlpha = t.GetAlpha();
-  if      (fAlpha < -TMath::Pi()) fAlpha += 2*TMath::Pi();
-  else if (fAlpha >= TMath::Pi()) fAlpha -= 2*TMath::Pi();
-
-  Double_t x, p[5]; t.GetExternalParameters(x,p);
-
-  fX=x;
-
-  x = GetConvConst();  
-
-  fY=p[0];
-  fZ=p[1];
-  fT=p[3];
-  fC=p[4]/x;
-  fE=fC*fX - p[2];   
-
-  //Conversion of the covariance matrix
-  Double_t c[15]; t.GetExternalCovariance(c);
-
-  c[10]/=x; c[11]/=x; c[12]/=x; c[13]/=x; c[14]/=x*x;
-
-  Double_t c22=fX*fX*c[14] - 2*fX*c[12] + c[5];
-  Double_t c32=fX*c[13] - c[8];
-  Double_t c20=fX*c[10] - c[3], c21=fX*c[11] - c[4], c42=fX*c[14] - c[12];
-
-  fCyy=c[0 ];
-  fCzy=c[1 ];   fCzz=c[2 ];
-  fCey=c20;     fCez=c21;     fCee=c22;
-  fCty=c[6 ];   fCtz=c[7 ];   fCte=c32;   fCtt=c[9 ];
-  fCcy=c[10];   fCcz=c[11];   fCce=c42;   fCct=c[13]; fCcc=c[14];  
-
-  // Initialization [SR, GSI, 18.02.2003]
-  for(Int_t i=0; i<kMAX_CLUSTERS_PER_TRACK; i++) {
-    fdQdl[i] = 0;
-    fIndex[i] = 0;
-  }
-}              
-//_____________________________________________________________________________
-
-void  AliTRDtrack::GetBarrelTrack(AliBarrelTrack *track) {
-  //
-  //
-  //
-  
-  if (!track) return;
-  Double_t xr, vec[5], cov[15];
-
-  track->SetLabel(GetLabel());
-  track->SetX(fX, fAlpha);
-  track->SetNClusters(GetNumberOfClusters(), GetChi2());
-  track->SetNWrongClusters(fNWrong);
-  track->SetNRotate(fNRotate);
-  Double_t times[10];
-  GetIntegratedTimes(times);
-  track->SetTime(times, GetIntegratedLength());
-
-  track->SetMass(GetMass());
-  track->SetdEdX(GetdEdx());
-
-  GetExternalParameters(xr, vec);
-  track->SetStateVector(vec);
-
-  GetExternalCovariance(cov);
-  track->SetCovarianceMatrix(cov);
-}
 //____________________________________________________________________________
 void AliTRDtrack::GetExternalParameters(Double_t& xr, Double_t x[5]) const {
   //
@@ -410,12 +311,9 @@ Int_t AliTRDtrack::PropagateTo(Double_t xk,Double_t x0,Double_t rho)
   // Propagates a track of particle with mass=pm to a reference plane 
   // defined by x=xk through media of density=rho and radiationLength=x0
 
-  if (xk == fX) return 1;
-
   if (TMath::Abs(fC*xk - fE) >= 0.99999) {
     Int_t n=GetNumberOfClusters();
-    if (n>4) cerr << n << " AliTRDtrack: Propagation failed, \tPt = " 
-                  << GetPt() << "\t" << GetLabel() << "\t" << GetMass() << endl;
+    if (n>4) cerr<<n<<" AliTRDtrack warning: Propagation failed !\n";
     return 0;
   }
 
@@ -534,7 +432,7 @@ Int_t AliTRDtrack::Update(const AliTRDcluster *c, Double_t chisq, UInt_t index, 
     fY += k00*dy + k01*dz;
     fZ += k10*dy + k11*dz;
     fE  = eta;
-    //fT += k30*dy + k31*dz;
+    fT += k30*dy + k31*dz;
     fC  = cur;
   }
   else {
@@ -564,7 +462,7 @@ Int_t AliTRDtrack::Update(const AliTRDcluster *c, Double_t chisq, UInt_t index, 
     fY += k00*dy + k01*dz;
     fZ += k10*dy + k11*dz;
     fE  = eta;
-    //fT += k30*dy + k31*dz;
+    fT += k30*dy + k31*dz;
     fC  = cur;
     
     k01+=h01*k00;
@@ -605,8 +503,6 @@ Int_t AliTRDtrack::Update(const AliTRDcluster *c, Double_t chisq, UInt_t index, 
 Int_t AliTRDtrack::Rotate(Double_t alpha)
 {
   // Rotates track parameters in R*phi plane
-  
-  fNRotate++;
 
   fAlpha += alpha;
   if (fAlpha<-TMath::Pi()) fAlpha += 2*TMath::Pi();

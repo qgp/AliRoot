@@ -15,9 +15,6 @@
 
 /*
 $Log$
-Revision 1.76  2002/11/21 23:05:27  alibrary
-Removing AliMC and AliMCProcess
-
 Revision 1.75  2002/10/22 14:45:25  alibrary
 Introducing Riostream.h
 
@@ -458,49 +455,36 @@ AliITS::~AliITS(){
     // Return:
     //      none.
 
-  if (fHits) {
-    fHits->Delete();
-    delete fHits;
-    fHits=0;
-  }
-  if (fSDigits) {
-    fSDigits->Delete();
-    delete fSDigits;
-    fSDigits=0;
-  }
+    delete fHits; fHits=0;
+    delete fSDigits; fSDigits=0;
 //    delete fDigits; fDigits=0;
-  if (fRecPoints) {
-    fRecPoints->Delete();
-    delete fRecPoints;
-    fRecPoints=0;
-  }
-  delete[] fIdName;  // Array of TStrings
-  delete[] fIdSens;
-  if(fITSmodules) {
+    delete fRecPoints; fRecPoints=0;
+    if(fIdName!=0) delete[] fIdName;  // Array of TStrings
+    if(fIdSens!=0) delete[] fIdSens;
+    if(fITSmodules!=0) {
 	this->ClearModules();
 	delete fITSmodules;
-	fITSmodules = 0;
-  }// end if fITSmodules!=0
+    }// end if fITSmodules!=0
 
-  if(fDtype) {
-    fDtype->Delete();
-    delete fDtype;
-  } // end if fDtype
-  delete [] fNdtype;
-  if (fCtype) {
-    fCtype->Delete();
-    delete fCtype;
-  } // end if fCtype
-  delete [] fNctype;
+    if(fDtype) {
+	fDtype->Delete();
+	delete fDtype;
+    } // end if fDtype
+    delete [] fNdtype;
+    if (fCtype) {
+	fCtype->Delete();
+	delete fCtype;
+    } // end if fCtype
+    delete [] fNctype;
 
-  if (fDetTypes) {
-    fDetTypes->Delete();
-    delete fDetTypes;
-  } // end if fDetTypes
+    if (fDetTypes) {
+	fDetTypes->Delete();
+	delete fDetTypes;
+    } // end if fDetTypes
 
-  if (fTreeC) delete fTreeC;
+    if (fTreeC) delete fTreeC;
 
-  if (fITSgeom) delete fITSgeom;
+    if (fITSgeom) delete fITSgeom;
 }
 //______________________________________________________________________
 AliITS::AliITS(AliITS &source){

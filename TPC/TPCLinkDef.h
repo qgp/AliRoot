@@ -44,6 +44,8 @@
 #pragma link C++ class AliTPCDigitsArray+;
 
 
+#pragma link C++ class AliH2F+;
+
 #pragma link C++ class AliTPCTrackHits+;
 #pragma link C++ class AliTPCTrackHitsV2+;
 
@@ -82,7 +84,6 @@
 #pragma link C++ class  AliTPCKalmanSegment+;
 
 #pragma link C++ class  AliTPCPid+;
-#pragma link C++ class  AliTPCpidESD+;
 #pragma link C++ class  AliTPCtrackPid+;
 
 

@@ -26,25 +26,25 @@
 ////////////////////////////////////////////////////////////////////////
 
 #if !defined(__CINT__) || defined(__MAKECINT__)
-#include "Riostream.h"
+#include "iostream.h"
 #include "TTree.h"
 #include "TBranch.h"
 #include "TDirectory.h"
 #include "TFile.h"
 #include "AliRun.h"
 #include "TParticle.h"
-#include "AliTPCDigitsArray.h"
+#include "TPC/AliTPCDigitsArray.h"
 #include "AliHeader.h"
 #include "TGeometry.h"
 #include "TObjArray.h"
 #include "TString.h"
-#include "AliITS.h"
-#include "AliTPC.h"
-#include "AliPHOSSDigitizer.h"
-#include "AliTRDdigitizer.h"
+#include "ITS/AliITS.h"
+#include "TPC/AliTPC.h"
+#include "PHOS/AliPHOSSDigitizer.h"
+#include "TRD/AliTRDdigitizer.h"
 #include "TStopwatch.h"
-#include "AliTRDparameter.h"
-#include "AliTOFSDigitizer.h"
+#include "TRD/AliTRDparameter.h"
+#include "TOF/AliTOFSDigitizer.h"
 #endif
 
 TFile* Init(TString fileNameSDigits, TString fileNameHits);

@@ -14,14 +14,10 @@
 #include "AliTPCtrack.h"
 #include "AliTPCreco.h"
 #include "AliTPCcluster.h"
-#include "AliBarrelTrack.h"
 
 class TFile;
-class TTree;
-class TBranch;
 class AliTPCParam;
 class TObjArray;
-class AliESD;
 
 class AliTPCtracker : public AliTracker {
 public:
@@ -35,14 +31,11 @@ public:
    Int_t ReadSeeds(const TFile *in);
 
    Int_t LoadClusters();
-   Int_t LoadClusters(const TFile *cf);
    void UnloadClusters();
 
    AliCluster *GetCluster(Int_t index) const;
    Int_t Clusters2Tracks(const TFile *in, TFile *out);
-   Int_t Clusters2Tracks(AliESD *event);
    Int_t PropagateBack(const TFile *in, TFile *out);
-   Int_t PropagateBack(AliESD *event);
    Int_t PropagateBack(const TFile *in, const TFile *in2, TFile *out);
    Int_t RefitInward(TFile *outTracks, TFile *inTracks);
 
@@ -173,19 +166,6 @@ private:
    
    AliTPCParam *fParam;      //! TPC parameters for outer reference plane [SR, GSI, 18.02.2003]
    TObjArray *fSeeds;        //array of track seeds
-
-   // [SR, 01.04.2003]
-   void SetBarrelTree(const char *mode);
-   void StoreBarrelTrack(AliTPCtrack *ps, Int_t refPlane, Int_t isIn);
-
-   // [SR, 01.04.2003]
-   TFile *fBarrelFile;             // file with "barrel" tracks
-   TTree *fBarrelTree;             // tree with "barrel" tracks
-   TBranch *fBarrelBranch;
-   TClonesArray *fBarrelArray;
-   AliBarrelTrack *fBarrelTrack;
-
-  ClassDef(AliTPCtracker,1)   // Time Projection Chamber tracker
 };
 
 #endif

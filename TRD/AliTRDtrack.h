@@ -7,13 +7,8 @@
 #include <AliKalmanTrack.h>
 #include <TMath.h>
 
-#include "AliBarrelTrack.h"
-#include "AliTRDgeometry.h"
-#include "TVector2.h"
-
 class AliTRDcluster;
 class AliTPCtrack;
-class AliESDtrack;
 
 const unsigned kMAX_CLUSTERS_PER_TRACK=210; 
 
@@ -28,23 +23,17 @@ public:
                const Double_t cc[15], Double_t xr, Double_t alpha);  
    AliTRDtrack(const AliTRDtrack& t);    
    AliTRDtrack(const AliKalmanTrack& t, Double_t alpha); 
-   AliTRDtrack(const AliESDtrack& t);    
 
    Int_t    Compare(const TObject *o) const;
    void     CookdEdx(Double_t low=0.05, Double_t up=0.70);   
 
    Double_t GetAlpha() const {return fAlpha;}
-   Int_t    GetSector() const {
-     //if (fabs(fAlpha) < AliTRDgeometry::GetAlpha()/2) return 0;
-     return Int_t(TVector2::Phi_0_2pi(fAlpha)/AliTRDgeometry::GetAlpha())%AliTRDgeometry::kNsect;}
-
    Double_t GetC()     const {return fC;}
    Int_t    GetClusterIndex(Int_t i) const {return fIndex[i];}    
    Float_t  GetClusterdQdl(Int_t i) const {return fdQdl[i];}    
 
    void     GetCovariance(Double_t cov[15]) const;  
    Double_t GetdEdx()  const {return fdEdx;}
-   Double_t GetPIDsignal()  const {return GetdEdx();}
    Double_t GetEta()   const {return fE;}
 
    void     GetExternalCovariance(Double_t cov[15]) const ;   
@@ -89,15 +78,6 @@ public:
    Int_t    Update(const AliTRDcluster* c, Double_t chi2, UInt_t i, 
                    Double_t h01);
 
-  //
-  void GetBarrelTrack(AliBarrelTrack *track);
-  void AddNWrong() {fNWrong++;}
-  
-  Int_t GetNWrong() const {return fNWrong;}
-  Int_t GetNRotate() const {return fNRotate;}
-  //
-
-
 protected:
 
    Int_t    fSeedLab;     // track label taken from seeding  
@@ -124,8 +104,6 @@ protected:
                                              // for track angles    
                            
    Float_t fLhElectron;    // Likelihood to be an electron    
-   Int_t fNWrong;    // number of wrong clusters
-   Int_t fNRotate;
 
    ClassDef(AliTRDtrack,2) // TRD reconstructed tracks
 

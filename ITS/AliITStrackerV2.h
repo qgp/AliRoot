@@ -13,7 +13,6 @@
 #include "AliITStrackV2.h"
 
 class AliITSclusterV2;
-class AliESD;
 class AliITSgeom;
 class TFile;
 
@@ -25,20 +24,12 @@ public:
   AliITStrackerV2(const AliITSgeom *geom);
   AliCluster *GetCluster(Int_t index) const;
   Int_t LoadClusters();
-  Int_t LoadClusters(const TFile *cf);
   void UnloadClusters();
   Int_t Clusters2Tracks(const TFile *in, TFile *out);
-  Int_t Clusters2Tracks(AliESD *event);
   Int_t PropagateBack(const TFile *in, TFile *out);
-  Int_t PropagateBack(AliESD *event);
   Int_t RefitInward(const TFile *in, TFile *out);
-  Int_t RefitInward(AliESD *event);
-  Bool_t RefitAt(Double_t x, AliITStrackV2 *seed, const AliITStrackV2 *t);
   void SetupFirstPass(Int_t *flags, Double_t *cuts=0);
   void SetupSecondPass(Int_t *flags, Double_t *cuts=0);
-
-  void SetLastLayerToTrackTo(Int_t l=0) {fLastLayerToTrackTo=l;} 
-  void SetLayersNotToSkip(Int_t *l);
 
   void UseClusters(const AliKalmanTrack *t, Int_t from=0) const;
 
@@ -97,6 +88,7 @@ private:
   Double_t GetEffectiveThickness(Double_t y, Double_t z) const;
   void  FollowProlongation();
   Int_t TakeNextProlongation();
+  Bool_t RefitAt(Double_t x, const AliITStrackV2 *t, AliITStrackV2 *tt);
   void ResetBestTrack() {
      fBestTrack.~AliITStrackV2();
      new(&fBestTrack) AliITStrackV2(fTrackToFollow);
@@ -112,9 +104,6 @@ private:
   AliITStrackV2 fTrackToFollow;          // followed track
   Int_t fPass;                           // current pass through the data 
   Int_t fConstraint[2];                  // constraint flags
-
-  Int_t fLayersNotToSkip[kMaxLayer];     // layer masks
-  Int_t fLastLayerToTrackTo;             // the innermost layer to track to
 
   ClassDef(AliITStrackerV2,1)   //ITS tracker V2
 };

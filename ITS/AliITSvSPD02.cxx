@@ -15,9 +15,6 @@
 
 /*
 $Log$
-Revision 1.3  2003/03/21 14:34:10  nilsen
-Removed warning from part of code not properly implimneted yet.
-
 Revision 1.2  2003/02/12 10:39:05  hristov
 Updated AliTrackReference class (S.Radomski)
 
@@ -693,7 +690,7 @@ void AliITSvSPD02::StepManager(){
 	copy = fTrackReferences->GetEntriesFast();
 	TClonesArray &lTR = *fTrackReferences;
 	// Fill TrackReference structure with this new TrackReference.
-	new(lTR[copy]) AliTrackReference(gAlice->CurrentTrack());
+	new(lTR[copy]) AliTrackReference(gAlice->CurrentTrack(),gMC);
     } // if Outer ITS mother Volume
     if(!(this->IsActive())){
 	return;

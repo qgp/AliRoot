@@ -15,15 +15,6 @@
 
 /*
 $Log$
-Revision 1.21  2003/05/22 10:46:46  hristov
-Using access methods instead of data members
-
-Revision 1.20  2003/04/10 10:36:54  hristov
-Code for unified TPC/TRD tracking (S.Radomski)
-
-Revision 1.19  2003/03/03 16:56:53  hristov
-Corrections to obey coding conventions
-
 Revision 1.18  2003/02/19 08:57:04  hristov
 Control^M removed
 
@@ -64,8 +55,6 @@ Logs added
 
 #include "AliTPCtrack.h"
 #include "AliCluster.h"
-#include "AliBarrelTrack.h"
-#include "AliESDtrack.h"
 
 ClassImp(AliTPCtrack)
 
@@ -74,7 +63,6 @@ AliTPCtrack::AliTPCtrack(): AliKalmanTrack()
 {
   fX = fP0 = fP1 = fP2 = fP3 = fP3 = fP4 = 0.0;
   fAlpha = fdEdx = 0.0;
-  fNWrong = fNRotation = fNumber = 0;  // [SR, 01.04.2003]
 }
 
 //_________________________________________________________________________
@@ -142,49 +130,6 @@ AliKalmanTrack(t) {
 }
 
 //_____________________________________________________________________________
-AliTPCtrack::AliTPCtrack(const AliESDtrack& t) : AliKalmanTrack() {
-  //-----------------------------------------------------------------
-  // Conversion AliESDtrack -> AliTPCtrack.
-  //-----------------------------------------------------------------
-  SetNumberOfClusters(t.GetTPCclusters(fIndex));
-  SetLabel(t.GetLabel());
-  SetMass(t.GetMass());
-
-  fdEdx  = t.GetTPCsignal();
-  fAlpha = t.GetAlpha();
-  if      (fAlpha < -TMath::Pi()) fAlpha += 2*TMath::Pi();
-  else if (fAlpha >= TMath::Pi()) fAlpha -= 2*TMath::Pi();
-
-  //Conversion of the track parameters
-  Double_t x,p[5]; t.GetExternalParameters(x,p);
-  fX=x;    x=GetConvConst();
-  fP0=p[0];
-  fP1=p[1];
-  fP3=p[3];
-  fP4=p[4]/x;
-  fP2=fP4*fX - p[2];
-
-  //Conversion of the covariance matrix
-  Double_t c[15]; t.GetExternalCovariance(c);
-  c[10]/=x; c[11]/=x; c[12]/=x; c[13]/=x; c[14]/=x*x;
-
-  Double_t c22=fX*fX*c[14] - 2*fX*c[12] + c[5];
-  Double_t c32=fX*c[13] - c[8];
-  Double_t c20=fX*c[10] - c[3], c21=fX*c[11] - c[4], c42=fX*c[14] - c[12];
-
-  fC00=c[0 ];
-  fC10=c[1 ];   fC11=c[2 ];
-  fC20=c20;     fC21=c21;     fC22=c22;
-  fC30=c[6 ];   fC31=c[7 ];   fC32=c32;   fC33=c[9 ];
-  fC40=c[10];   fC41=c[11];   fC42=c42;   fC43=c[13]; fC44=c[14];
-
-  if (t.GetStatus()&AliESDtrack::kTIME == 0) return;
-  StartTimeIntegral();
-  Double_t times[10]; t.GetIntegratedTimes(times); SetIntegratedTimes(times);
-  SetIntegratedLength(t.GetIntegratedLength());
-}
-
-//_____________________________________________________________________________
 AliTPCtrack::AliTPCtrack(const AliTPCtrack& t) : AliKalmanTrack(t) {
   //-----------------------------------------------------------------
   // This is a track copy constructor.
@@ -204,39 +149,7 @@ AliTPCtrack::AliTPCtrack(const AliTPCtrack& t) : AliKalmanTrack(t) {
   Int_t n=GetNumberOfClusters();
   for (Int_t i=0; i<n; i++) fIndex[i]=t.fIndex[i];
 }
-//_____________________________________________________________________________
 
-void  AliTPCtrack::GetBarrelTrack(AliBarrelTrack *track) {
-  //
-  // Create a Barrel Track out of this track
-  // Current track is propagated to the reference plane
-  // by the tracker
-  //
-  // [SR, 01.04.2003]
-  
-  if (!track) return;
-  Double_t xr, vec[5], cov[15];
-
-  track->SetLabel(GetLabel());
-  track->SetX(fX, fAlpha);
-  track->SetNClusters(GetNumberOfClusters(), GetChi2());
-  Double_t times[10];
-  GetIntegratedTimes(times);
-  track->SetTime(times, GetIntegratedLength());
-
-  track->SetMass(GetMass());
-  track->SetdEdX(GetdEdx());
-
-  track->SetNWrongClusters(fNWrong);
-  track->SetNRotate(fNRotation);
-
-  GetExternalParameters(xr, vec);
-  track->SetStateVector(vec);
-  
-  GetExternalCovariance(cov);
-  track->SetCovarianceMatrix(cov);
-
-}
 //_____________________________________________________________________________
 Int_t AliTPCtrack::Compare(const TObject *o) const {
   //-----------------------------------------------------------------
@@ -402,14 +315,6 @@ Int_t AliTPCtrack::Update(const AliCluster *c, Double_t chisq, UInt_t index) {
   //-----------------------------------------------------------------
   // This function associates a cluster with this track.
   //-----------------------------------------------------------------
-
-  // update the number of wrong SR[20.03.2003]
-  Int_t absLabel = TMath::Abs(GetLabel());
-  if ( (c->GetLabel(0) != absLabel) && 
-       (c->GetLabel(0) != absLabel) &&
-       (c->GetLabel(0) != absLabel)) fNWrong++;
-  //
-
   Double_t r00=c->GetSigmaY2(), r01=0., r11=c->GetSigmaZ2();
   r00+=fC00; r01+=fC10; r11+=fC11;
   Double_t det=r00*r11 - r01*r01;
@@ -468,9 +373,6 @@ Int_t AliTPCtrack::Rotate(Double_t alpha)
   //-----------------------------------------------------------------
   // This function rotates this track.
   //-----------------------------------------------------------------
-
-  if (alpha != 0) fNRotation++;  // [SR, 01.04.2003]
-
   fAlpha += alpha;
   if (fAlpha<-TMath::Pi()) fAlpha += 2*TMath::Pi();
   if (fAlpha>=TMath::Pi()) fAlpha -= 2*TMath::Pi();

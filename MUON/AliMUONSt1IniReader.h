@@ -25,13 +25,16 @@
 #include <utility>
 #include <fstream>
 
-#include "AliMUONSt1Types.h"
+using std::string;
+using std::vector;
+using std::multimap;
+using std::ifstream;
+using std::pair;
 
 class AliMUONSt1IniReader
 {
   public:
     enum TType {kUndef,kChapter,kValue};
-
     typedef pair<string,string> TValuePair;
     typedef vector<TValuePair> TValueList;
     typedef pair<string,TValueList> TChapter;

@@ -25,17 +25,16 @@
 ////////////////////////////////////////////////////////////////////////
 
 #if !defined(__CINT__) || defined(__MAKECINT__)
-#include <Riostream.h>
-#include "AliRun.h"
-#include "AliRunDigitizer.h"
-#include "AliITSDigitizer.h"
-#include "AliITSFDigitizer.h"
-#include "AliTPCDigitizer.h"
-#include "AliTRDdigitizer.h"
-#include "AliPHOSDigitizer.h"
-#include "AliMUONDigitizer.h"
-#include "AliRICHDigitizer.h"
-#include <TStopwatch.h>
+#include "iostream.h"
+#include "STEER/AliRun.h"
+#include "STEER/AliRunDigitizer.h"
+#include "ITS/AliITSDigitizer.h"
+#include "TPC/AliTPCDigitizer.h"
+#include "TRD/AliTRDdigitizer.h"
+#include "PHOS/AliPHOSDigitizer.h"
+#include "MUON/AliMUONDigitizer.h"
+#include "RICH/AliRICHDigitizer.h"
+#include "TStopwatch.h"
 #endif
 
 #include "AliHits2SDigits.C"
@@ -43,7 +42,7 @@
 void AliCopyN(TString inputFile, TString outputFile);
 
 Int_t AliSDigits2Digits(TString fileNameDigits="digits.root", 
-			TString fileNameSDigits="sdigits.root", 
+			TString fileNameSDigits="rfio:sdigits.root", 
 			Int_t nEvents = 1, Int_t iITS = 0, Int_t iTPC = 0,
 			Int_t iTRD = 0,  Int_t iPHOS = 0, Int_t iMUON = 0,
 			Int_t iRICH = 0, Int_t iCopy = 1)
@@ -77,7 +76,6 @@ Int_t AliSDigits2Digits(TString fileNameDigits="digits.root",
   timer.Stop(); 
   timer.Print();
   delete manager;
-  return 0;
 }
 
 

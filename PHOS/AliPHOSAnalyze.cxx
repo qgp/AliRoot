@@ -120,7 +120,7 @@ AliPHOSAnalyze::~AliPHOSAnalyze()
 
 }
 //____________________________________________________________________________
-void AliPHOSAnalyze::DrawRecon(Int_t Nevent,Int_t Nmod,const char * what,const char* branchTitle){
+void AliPHOSAnalyze::DrawRecon(Int_t Nevent,Int_t Nmod,const char * branchName,const char* branchTitle){
   //Draws pimary particles and reconstructed 
   //digits, RecPoints, RecPartices etc 
   //for event Nevent in the module Nmod.
@@ -176,7 +176,7 @@ void AliPHOSAnalyze::DrawRecon(Int_t Nevent,Int_t Nmod,const char * what,const c
     recPhot->Delete() ;
   recPhot = new TH2F("recPhot","RecParticles with primary Photon",nx,-x,x,nz,-z,z);
   
-  if(strstr(what,"P") || strstr(what,"p")){ 
+  
   //Plot Primary Particles
   const TParticle * primary ;
   Int_t iPrimary ;
@@ -209,11 +209,8 @@ void AliPHOSAnalyze::DrawRecon(Int_t Nevent,Int_t Nmod,const char * what,const c
 //         }
 //       }
     }  
-    phot->Draw("box") ;
-  }
 
   
-  if(strstr(what,"S") || strstr(what,"s")){
   Int_t iSDigit ;
   AliPHOSDigit * sdigit ;
   const TClonesArray * sdigits = gime->SDigits() ;
@@ -240,10 +237,7 @@ void AliPHOSAnalyze::DrawRecon(Int_t Nevent,Int_t Nmod,const char * what,const c
   message  = "Number of EMC + CPV SDigits per module: \n" ;
   message += "%d %d %d %d %d\n"; 
   Info("DrawRecon", message.Data(), nsdig[0], nsdig[1], nsdig[2], nsdig[3], nsdig[4] ) ;
-  emcSdigits->Draw("box") ;
-  }
 
-  if(strstr(what,"D") || strstr(what,"d")){
   //Plot digits
   Int_t iDigit ;
   AliPHOSDigit * digit ;
@@ -265,11 +259,8 @@ void AliPHOSAnalyze::DrawRecon(Int_t Nevent,Int_t Nmod,const char * what,const c
 	}
       }
   }
-  emcDigits->SetLineColor(5) ;
-  emcDigits->Draw("boxsame") ;
-  }
   
-  if(strstr(what,"R") || strstr(what,"r")){
+  
   //Plot RecPoints
   Int_t irecp ;
   TVector3 pos ;
@@ -348,14 +339,15 @@ void AliPHOSAnalyze::DrawRecon(Int_t Nevent,Int_t Nmod,const char * what,const c
       }
 
   }
+  
   //Plot made histograms
+  emcSdigits->Draw("box") ;
+  emcDigits->SetLineColor(5) ;
+  emcDigits->Draw("boxsame") ;
   emcRecPoints->SetLineColor(2) ;
   emcRecPoints->Draw("boxsame") ;
   cpvSdigits->SetLineColor(1) ;
   cpvSdigits->Draw("boxsame") ;
-  }  
-
-
   
 }
 //____________________________________________________________________________
