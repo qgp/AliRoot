@@ -9,7 +9,8 @@
 /aliDet/switchOn ITS1
 
 # switch off modules with errors
-/aliDet/switchOff CASTOR
+/aliDet/switchOff EMCAL
+/aliDet/switchOff CRT
 #/aliDet/switchOff ZDC
 #/aliDet/switchOff PMD
 
