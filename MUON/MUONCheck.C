@@ -79,3 +79,78 @@ void MUONhits(char * filename="galice.root")
   RunLoader->UnloadgAlice();
 }
 
+
+void MUONdigits(char * filename="galice.root")
+{
+  TClonesArray * ListOfDigits;
+
+  // Creating Run Loader and openning file containing Hits
+  AliRunLoader * RunLoader = AliRunLoader::Open(filename,"MUONFolder","READ");
+  if (RunLoader ==0x0) {
+    printf(">>> Error : Error Opening %s file \n",filename);
+    return;
+  }
+
+  // Loading AliRun master
+  RunLoader->LoadgAlice();
+  gAlice = RunLoader->GetAliRun();
+ // Getting Module MUON  
+  AliMUON *pMUON  = (AliMUON *) gAlice->GetDetector("MUON");
+
+  AliLoader * MUONLoader = RunLoader->GetLoader("MUONLoader");
+  MUONLoader->LoadDigits("READ");
+
+  Int_t ievent, nevents;
+  nevents = RunLoader->GetNumberOfEvents();
+
+  AliMUONDigit * mDigit;
+  
+
+  for(ievent=0; ievent<nevents; ievent++) {
+    printf(">>> event %d \n",ievent);
+    RunLoader->GetEvent(ievent);
+  
+    // Addressing
+    Int_t ichamber, nchambers;
+    nchambers=14;
+    pMUON->SetTreeAddress(); 
+    char branchname[30];    
+   //for( ichamber=0; ichamber<nchambers; ichamber++) {
+    // sprintf(branchname,"MUONDigits%d",ichamber+1);
+    //(MUONLoader->TreeD()->GetBranch(branchname))->SetAddress(&((*pMUON->Dchambers())[ichamber]));
+    //}
+   
+
+    Int_t icathode, ncathodes;
+    ncathodes=2;
+    //Loop on cathodes 
+    for(icathode=0; icathode<ncathodes; icathode++) {
+      printf(">>>  cathode %d\n",icathode);
+      MUONLoader->TreeD()->GetEvent(icathode);
+      // Loop on chambers
+      for( ichamber=0; ichamber<nchambers; ichamber++) {
+	printf(">>>   chamber %d\n",ichamber);
+	sprintf(branchname,"MUONDigits%d",ichamber+1);
+	printf(">>>  branchname %s\n",branchname);
+	ListOfDigits = (TClonesArray *) pMUON->Dchambers()->At(ichamber);
+	
+	Int_t idigit, ndigits;
+
+	ndigits = (Int_t) ListOfDigits->GetEntriesFast();
+	
+	for(idigit=0; idigit<ndigits; idigit++) {
+	  mDigit = static_cast<AliMUONDigit*>(ListOfDigits->At(idigit));
+	  Int_t PadX   = mDigit->PadX();     // Pad X number
+	  Int_t PadY   = mDigit->PadY();     // Pad Y number
+	  Int_t Signal = mDigit->Signal();   // Physics Signal
+	  Int_t Hit    = mDigit->Hit();      // iHit
+	  Int_t Cathode= mDigit->Cathode();  // Cathode
+	    
+	  printf(">>> >> digit %d cathode %d hit %d PadX %d PadY %d Signal %d \n",idigit, Cathode,Hit, PadX, PadY, Signal);
+	} // end digit loop
+      } // end chamber loop
+    } // end cathode loop
+  }  // end event loop
+  MUONLoader->UnloadHits();
+}
+
