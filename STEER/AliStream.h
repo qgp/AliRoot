@@ -36,9 +36,10 @@ public:
   Bool_t     OpenNextFile();//returns kFALSE in case of failure
   Bool_t     ImportgAlice();
   void       ChangeMode(Option_t* option);     // reset READ or UPDATE mode
-
+ 
   const TString& GetFolderName() const{return fEventFolderName;}
-  
+  Int_t GetNInputFiles() const {return fFileNames->GetLast()+1;}
+  TString GetFileName(const Int_t order) const;
 private:  
   Int_t      fLastEventSerialNr;
   Int_t      fLastEventNr;

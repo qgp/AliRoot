@@ -15,6 +15,12 @@
 
 /*
 $Log$
+Revision 1.2  2002/10/30 13:39:06  hristov
+Missing initialization added (Alpha)
+
+Revision 1.1  2002/01/08 09:59:34  morsch
+Readers for EMCAL primary particle input.
+
 */
 
 #include <TFile.h>
@@ -75,7 +81,7 @@ void AliGenReaderEcalJets::Init()
 Int_t AliGenReaderEcalJets::NextEvent() 
 {
 // Read the next event  
-    Int_t nTracks, nread;
+    Int_t nTracks=0, nread=0;
     
     TFile* pFile = fTreeNtuple->GetCurrentFile();
     pFile->cd();

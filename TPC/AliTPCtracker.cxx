@@ -15,11 +15,29 @@
 
 /*
 $Log$
+Revision 1.16.2.3  2002/06/28 10:35:00  hristov
+Forward tracking adapted to the NewIO
+
 Revision 1.16.2.2  2002/06/06 14:21:19  hristov
 Merged with v3-08-02
 
 Revision 1.16.2.1  2002/05/31 09:38:00  hristov
 First set of changes done by Piotr
+
+Revision 1.22  2002/10/23 07:17:34  alibrary
+Introducing Riostream.h
+
+Revision 1.21  2002/10/21 16:49:46  hristov
+Replacing the old sorting by the Root one (M.Ivanov)
+
+Revision 1.20  2002/10/14 14:57:43  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.17.4.3  2002/10/11 08:34:48  hristov
+Updating VirtualMC to v3-09-02
+
+Revision 1.19  2002/07/19 07:31:40  kowal2
+Improvement in tracking by J. Belikov
 
 Revision 1.18  2002/05/13 07:33:52  kowal2
 Added protection in Int_t AliTPCtracker::AliTPCRow::Find(Double_t y) const
@@ -79,9 +97,9 @@ Splitted from AliTPCtracking
 #include <TObjArray.h>
 #include <TFile.h>
 #include <TTree.h>
-#include <iostream.h>
 #include <AliRunLoader.h>
 #include <AliLoader.h>
+#include <Riostream.h>
 
 #include "AliTPCtracker.h"
 #include "AliTPCcluster.h"
@@ -390,7 +408,8 @@ Int_t AliTPCtracker::FollowProlongation(AliTPCseed& t, Int_t rf) {
     }
     if (cl) {
       Float_t l=fSectors->GetPadPitchWidth();
-      t.SetSampledEdx(cl->GetQ()/l,t.GetNumberOfClusters());
+      Float_t corr=1.; if (nr>63) corr=0.67; // new (third) pad response !
+      t.SetSampledEdx(cl->GetQ()/l*corr,t.GetNumberOfClusters());
       if (!t.Update(cl,maxchi2,index)) {
          if (!tryAgain--) return 0;
       } else tryAgain=kSKIP;
@@ -497,7 +516,8 @@ Int_t AliTPCtracker::FollowBackProlongation
 
     if (cl) {
       Float_t l=fSectors->GetPadPitchWidth();
-      seed.SetSampledEdx(cl->GetQ()/l,seed.GetNumberOfClusters());
+      Float_t corr=1.; if (i>63) corr=0.67; // new (third) pad response !
+      seed.SetSampledEdx(cl->GetQ()/l*corr,seed.GetNumberOfClusters());
       seed.Update(cl,maxchi2,index);
     }
 
@@ -575,7 +595,8 @@ void AliTPCtracker::MakeSeeds(Int_t i1, Int_t i2) {
 
         Double_t sy1=kr1[is]->GetSigmaY2(), sz1=kr1[is]->GetSigmaZ2();
         Double_t sy2=kcl->GetSigmaY2(),     sz2=kcl->GetSigmaZ2();
-       Double_t sy3=400*3./12., sy=0.1, sz=0.1;
+	//Double_t sy3=400*3./12., sy=0.1, sz=0.1;
+        Double_t sy3=25000*x[4]*x[4]+0.1, sy=0.1, sz=0.1;
 
        Double_t f40=(f1(x1,y1+sy,x2,y2,x3,y3)-x[4])/sy;
        Double_t f42=(f1(x1,y1,x2,y2+sy,x3,y3)-x[4])/sy;
@@ -1021,7 +1042,9 @@ void AliTPCtracker::AliTPCSector::Setup(const AliTPCParam *par, Int_t f) {
      fAlpha=par->GetInnerAngle();
      fAlphaShift=par->GetInnerAngleShift();
      fPadPitchWidth=par->GetInnerPadPitchWidth();
-     fPadPitchLength=par->GetInnerPadPitchLength();
+     f1PadPitchLength=par->GetInnerPadPitchLength();
+     f2PadPitchLength=f1PadPitchLength;
+
      fN=par->GetNRowLow();
 //     cout<<"par->GetNRowLow() = "<<par->GetNRowLow()<<"  fN = "<<fN<<endl;
      fRow=new AliTPCRow[fN];
@@ -1080,35 +1103,29 @@ void AliTPCtracker::AliTPCseed::CookdEdx(Double_t low, Double_t up) {
   //-----------------------------------------------------------------
   Int_t i;
   Int_t nc=GetNumberOfClusters();
-
-  Int_t swap;//stupid sorting
-  do {
-    swap=0;
-    for (i=0; i<nc-1; i++) {
-      if (fdEdxSample[i]<=fdEdxSample[i+1]) continue;
-      Float_t tmp=fdEdxSample[i];
-      fdEdxSample[i]=fdEdxSample[i+1]; fdEdxSample[i+1]=tmp;
-      swap++;
-    }
-  } while (swap);
+  Int_t * index = new Int_t[nc];
+  TMath::Sort(nc, fdEdxSample,index,kFALSE);
 
   Int_t nl=Int_t(low*nc), nu=Int_t(up*nc);
   Float_t dedx=0;
-  for (i=nl; i<=nu; i++) dedx += fdEdxSample[i];
+  for (i=nl; i<=nu; i++) dedx += fdEdxSample[index[i]];
   dedx /= (nu-nl+1);
   SetdEdx(dedx);
+
+  delete [] index;
 
   //Very rough PID
   Double_t p=TMath::Sqrt((1.+ GetTgl()*GetTgl())/(Get1Pt()*Get1Pt()));
 
+  Double_t log1=TMath::Log(p+0.45), log2=TMath::Log(p+0.12);
   if (p<0.6) {
-    if (dedx < 39.+ 12./(p+0.25)/(p+0.25)) { SetMass(0.13957); return;}
-    if (dedx < 39.+ 12./p/p) { SetMass(0.49368); return;}
+    if (dedx < 34 + 30/(p+0.45)/(p+0.45) + 24*log1) {SetMass(0.13957); return;}
+    if (dedx < 34 + 30/(p+0.12)/(p+0.12) + 24*log2) {SetMass(0.49368); return;}
     SetMass(0.93827); return;
   }
 
   if (p<1.2) {
-    if (dedx < 39.+ 12./(p+0.25)/(p+0.25)) { SetMass(0.13957); return;}
+    if (dedx < 34 + 30/(p+0.12)/(p+0.12) + 24*log2) {SetMass(0.13957); return;}
     SetMass(0.93827); return;
   }
 

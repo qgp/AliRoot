@@ -12,21 +12,21 @@
  * about the suitability of this software for any purpose. It is          *
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
-/* $Id$ */
 
+/* $Id$ */
 /* $Log:
    1 October 2000. Yuri Kharlov:
      AreNeighbours()
      PPSD upper layer is considered if number of layers>1
-
    18 October 2000. Yuri Kharlov:
      AliEMCALClusterizerv1()
      CPV clusterizing parameters added
-
      MakeClusters()
      After first PPSD digit remove EMC digits only once
 */
 //*-- Author: Yves Schutz (SUBATECH)  & Dmitri Peressounko (SUBATECH & Kurchatov Institute)
+//  August 2002 Yves Schutz: clone PHOS as closely as possible and intoduction
+//                           of new  IO (à la PHOS)
 //////////////////////////////////////////////////////////////////////////////
 //  Clusterization class. Performs clusterization (collects neighbouring active cells) and 
 //  unfolds the clusters having several local maxima.  
@@ -66,8 +66,6 @@
 
 // --- Standard library ---
 
-#include <iostream.h>
-#include <iomanip.h>
 
 // --- AliRoot header files ---
 
@@ -77,6 +75,7 @@
 #include "AliEMCALTowerRecPoint.h"
 #include "AliEMCAL.h"
 #include "AliEMCALGetter.h"
+#include "AliEMCALGeometry.h"
 #include "AliRun.h"
 
 ClassImp(AliEMCALClusterizerv1)
@@ -86,74 +85,48 @@ ClassImp(AliEMCALClusterizerv1)
 {
   // default ctor (to be used mainly by Streamer)
   
-  fNumberOfPreShoClusters = fNumberOfTowerClusters = 0 ; 
-  
-  fPreShoClusteringThreshold = 0.0;
-  fTowerClusteringThreshold  = 0.0;
-  
-  fTowerLocMaxCut  = 0.0 ;
-  fPreShoLocMaxCut = 0.0 ;
-  
-  fW0     = 0.0 ;
-  fW0CPV  = 0.0 ;
-
-  fTimeGate = 0.0 ; 
-
-  fToUnfold = 0 ;
-
-  fHeaderFileName = "" ;
-  fRecPointsInRun = 0 ;   
+  InitParameters() ; 
+  fDefaultInit = kTRUE ; 
 }
 
 //____________________________________________________________________________
-AliEMCALClusterizerv1::AliEMCALClusterizerv1(const char* headerFile,const char* name)
-:AliEMCALClusterizer(headerFile, name)
+AliEMCALClusterizerv1::AliEMCALClusterizerv1(const char* headerFile, const char* name, const Bool_t toSplit)
+:AliEMCALClusterizer(headerFile, name, toSplit)
 {
   // ctor with the indication of the file where header Tree and digits Tree are stored
   
-
-  fNumberOfPreShoClusters = fNumberOfTowerClusters = 0 ; 
-
- 
-  
-  fPreShoClusteringThreshold  = 0.0001;
-  fTowerClusteringThreshold   = 0.2;   
-  
-  fTowerLocMaxCut  = 0.03 ;
-  fPreShoLocMaxCut = 0.03 ;
-  
-  fW0     = 4.5 ;
-  fW0CPV  = 4.0 ;
-
-  fTimeGate = 1.e-8 ; 
-  
-  fToUnfold = kFALSE ;
-  
-  fHeaderFileName     = GetTitle() ; 
-  fDigitsBranchTitle  = GetName() ;
-  
-  TString clusterizerName( GetName()) ; 
-  clusterizerName.Append(":") ; 
-  clusterizerName.Append(Version()) ; 
-  SetName(clusterizerName) ;
-  fRecPointsInRun          = 0 ; 
-
+  InitParameters() ; 
   Init() ;
+  fDefaultInit = kFALSE ; 
 
 }
+
 //____________________________________________________________________________
   AliEMCALClusterizerv1::~AliEMCALClusterizerv1()
 {
+  // dtor
+  fSplitFile = 0 ; 
+  
 }
+
+//____________________________________________________________________________
+const TString AliEMCALClusterizerv1::BranchName() const 
+{ 
+  TString branchName(GetName() ) ;
+  branchName.Remove(branchName.Index(Version())-1) ;
+  return branchName ;
+}
+
 //____________________________________________________________________________
 Float_t  AliEMCALClusterizerv1::Calibrate(Int_t amp, Bool_t inpresho) const
 {
+  //To be replased later by the method, reading individual parameters from the database
   if ( inpresho ) // calibrate as pre shower
-     return -fADCpedestalPreSho + amp * fADCchannelPreSho ; 
-
+    return -fADCpedestalPreSho + amp * fADCchannelPreSho ; 
   else //calibrate as tower 
     return -fADCpedestalTower + amp * fADCchannelTower ;                
 }
+
 //____________________________________________________________________________
 void AliEMCALClusterizerv1::Exec(Option_t * option)
 {
@@ -168,47 +141,21 @@ void AliEMCALClusterizerv1::Exec(Option_t * option)
   if(strstr(option,"print"))
     Print("") ; 
 
-  gAlice->GetEvent(0) ;
-  
- //check, if the branch with name of this" already exits?
-  TObjArray * lob = (TObjArray*)gAlice->TreeR()->GetListOfBranches() ;
-  TIter next(lob) ; 
-  TBranch * branch = 0 ;  
-  Bool_t emcaltowerfound = kFALSE, emcalpreshofound = kFALSE, clusterizerfound = kFALSE ; 
-
-  TString branchname = GetName() ;
-  branchname.Remove(branchname.Index(Version())-1) ;
-  
-  while ( (branch = (TBranch*)next()) && (!emcaltowerfound || !emcalpreshofound || !clusterizerfound) ) {
-    if ( (strcmp(branch->GetName(), "EMCALTowerRP")==0) && (strcmp(branch->GetTitle(), branchname.Data())==0) ) 
-      emcaltowerfound = kTRUE ;
-    
-    else if ( (strcmp(branch->GetName(), "EMCALPreShoRP")==0) && (strcmp(branch->GetTitle(), branchname.Data())==0) ) 
-      emcalpreshofound = kTRUE ;
-   
-    else if ((strcmp(branch->GetName(), "AliEMCALClusterizer")==0) && (strcmp(branch->GetTitle(), GetName())==0) ) 
-      clusterizerfound = kTRUE ; 
-  }
-
-  if ( emcalpreshofound || emcaltowerfound || clusterizerfound ) {
-    cerr << "WARNING: AliEMCALClusterizer::Exec -> Tower(PreSho)RecPoints and/or Clusterizer branch with name " 
-	 << branchname.Data() << " already exits" << endl ;
-    return ; 
-  }       
-
   AliEMCALGetter * gime = AliEMCALGetter::GetInstance() ;
-  Int_t nevents = (Int_t) gAlice->TreeE()->GetEntries() ;
+  if(gime->BranchExists("RecPoints"))
+    return ;
+  Int_t nevents = gime->MaxEvent() ;
   Int_t ievent ;
 
   for(ievent = 0; ievent < nevents; ievent++){
+
+    gime->Event(ievent,"D") ;
 
     if(ievent == 0)
       GetCalibrationParameters() ;
 
     fNumberOfTowerClusters = fNumberOfPreShoClusters = 0 ;
-   
-    gime->Event(ievent,"D") ;
-        
+           
     MakeClusters() ;
     
     if(fToUnfold)
@@ -226,16 +173,14 @@ void AliEMCALClusterizerv1::Exec(Option_t * option)
   
   if(strstr(option,"tim")){
     gBenchmark->Stop("EMCALClusterizer");
-    cout << "AliEMCALClusterizer:" << endl ;
-    cout << "  took " << gBenchmark->GetCpuTime("EMCALClusterizer") << " seconds for Clusterizing " 
-	 <<  gBenchmark->GetCpuTime("EMCALClusterizer")/nevents << " seconds per event " << endl ;
-    cout << endl ;
+    Info("Exec", "took %f seconds for Clusterizing %f seconds per event", 
+	 gBenchmark->GetCpuTime("EMCALClusterizer"), gBenchmark->GetCpuTime("EMCALClusterizer")/nevents ) ;
   }
   
 }
 
 //____________________________________________________________________________
-Bool_t AliEMCALClusterizerv1::FindFit(AliEMCALTowerRecPoint * emcRP, int * maxAt, Float_t * maxAtEnergy,
+Bool_t AliEMCALClusterizerv1::FindFit(AliEMCALTowerRecPoint * emcRP, AliEMCALDigit ** maxAt, Float_t * maxAtEnergy,
 				    Int_t nPar, Float_t * fitparameters) const
 { 
   // Calls TMinuit to fit the energy distribution of a cluster with several maxima 
@@ -250,7 +195,6 @@ Bool_t AliEMCALClusterizerv1::FindFit(AliEMCALTowerRecPoint * emcRP, int * maxAt
   gMinuit->SetPrintLevel(-1) ;           // No Printout
   gMinuit->SetFCN(AliEMCALClusterizerv1::UnfoldingChiSquare) ;  
                                          // To set the address of the minimization function 
-
   TList * toMinuit = new TList();
   toMinuit->AddAt(emcRP,0) ;
   toMinuit->AddAt(digits,1) ;
@@ -269,7 +213,7 @@ Bool_t AliEMCALClusterizerv1::FindFit(AliEMCALTowerRecPoint * emcRP, int * maxAt
   AliEMCALGeometry * geom = gime->EMCALGeometry() ; 
 
   for(iDigit = 0; iDigit < nDigits; iDigit++){
-    digit = (AliEMCALDigit *) maxAt[iDigit]; 
+    digit = maxAt[iDigit]; 
 
     Int_t relid[4] ;
     Float_t x = 0.;
@@ -282,19 +226,19 @@ Bool_t AliEMCALClusterizerv1::FindFit(AliEMCALTowerRecPoint * emcRP, int * maxAt
     gMinuit->mnparm(index, "x",  x, 0.1, 0, 0, ierflg) ;
     index++ ;   
     if(ierflg != 0){ 
-      cout << "EMCAL Unfolding>  Unable to set initial value for fit procedure : x = " << x << endl ;
+      Error("FindFit", "EMCAL Unfolding  Unable to set initial value for fit procedure : x = %f",  x ) ;
       return kFALSE;
     }
     gMinuit->mnparm(index, "z",  z, 0.1, 0, 0, ierflg) ;
     index++ ;   
     if(ierflg != 0){
-      cout << "EMCAL Unfolding>  Unable to set initial value for fit procedure : z = " << z << endl ;
+       Error("FindFit", "EMCAL Unfolding  Unable to set initial value for fit procedure : z = %f", z) ;
       return kFALSE;
     }
     gMinuit->mnparm(index, "Energy",  energy , 0.05*energy, 0., 4.*energy, ierflg) ;
     index++ ;   
     if(ierflg != 0){
-      cout << "EMCAL Unfolding>  Unable to set initial value for fit procedure : energy = " << energy << endl ;      
+     Error("FindFit", "EMCAL Unfolding  Unable to set initial value for fit procedure : energy = %f", energy) ;      
       return kFALSE;
     }
   }
@@ -312,7 +256,7 @@ Bool_t AliEMCALClusterizerv1::FindFit(AliEMCALTowerRecPoint * emcRP, int * maxAt
   gMinuit->mnexcm("MIGRAD", &p0, 0, ierflg) ;    // minimize 
 
   if(ierflg == 4){  // Minimum not found   
-    cout << "EMCAL Unfolding>  Fit not converged, cluster abandoned "<< endl ;      
+    Error("FindFit", "EMCAL Unfolding  Fit not converged, cluster abandoned " ) ;      
     return kFALSE ;
   }            
   for(index = 0; index < nPar; index++){
@@ -331,18 +275,15 @@ Bool_t AliEMCALClusterizerv1::FindFit(AliEMCALTowerRecPoint * emcRP, int * maxAt
 void AliEMCALClusterizerv1::GetCalibrationParameters() 
 {
   AliEMCALGetter * gime = AliEMCALGetter::GetInstance() ;
-  TString branchname = GetName() ;
-  branchname.Remove(branchname.Index(Version())-1) ;
-
-  AliEMCALDigitizer * dig = gime->Digitizer(branchname) ;
+  const AliEMCALDigitizer * dig = gime->Digitizer(BranchName()) ;
 
   fADCchannelTower   = dig->GetTowerchannel() ;
   fADCpedestalTower  = dig->GetTowerpedestal();
 
   fADCchannelPreSho  = dig->GetPreShochannel() ;
   fADCpedestalPreSho = dig->GetPreShopedestal() ; 
-
 }
+
 //____________________________________________________________________________
 void AliEMCALClusterizerv1::Init()
 {
@@ -355,25 +296,69 @@ void AliEMCALClusterizerv1::Init()
   TString branchname = GetName() ;
   branchname.Remove(branchname.Index(Version())-1) ;
 
-  AliEMCALGetter * gime = AliEMCALGetter::GetInstance(GetTitle(), branchname, "update") ; 
+  AliEMCALGetter * gime = AliEMCALGetter::GetInstance(GetTitle(), branchname.Data(), fToSplit ) ; 
   if ( gime == 0 ) {
-    cerr << "ERROR: AliEMCALClusterizerv1::Init -> Could not obtain the Getter object !" << endl ; 
+    Error("Init", "Could not obtain the Getter object !" ) ; 
     return ;
   } 
-    
+
+  fSplitFile = 0 ;
+  if(fToSplit){
+    // construct the name of the file as /path/EMCAL.SDigits.root
+    //First - extract full path if necessary
+    TString fileName(GetTitle()) ;
+    Ssiz_t islash = fileName.Last('/') ;
+    if(islash<fileName.Length())
+      fileName.Remove(islash+1,fileName.Length()) ;
+    else
+      fileName="" ;
+    // Next - append the file name 
+    fileName+="EMCAL.RecData." ;
+    if((strcmp(branchname.Data(),"Default")!=0)&&(strcmp(branchname.Data(),"")!=0)){
+      fileName+=branchname ;
+      fileName+="." ;
+    }
+    fileName+="root" ;
+    // Finally - check if the file already opened or open the file
+    fSplitFile = static_cast<TFile*>(gROOT->GetFile(fileName.Data()));   
+    if(!fSplitFile)
+      fSplitFile =  TFile::Open(fileName.Data(),"update") ;
+  }
+
   const AliEMCALGeometry * geom = gime->EMCALGeometry() ;
   fNTowers = geom->GetNZ() *  geom->GetNPhi() ;
-
   if(!gMinuit) 
     gMinuit = new TMinuit(100) ;
 
   gime->PostClusterizer(this) ;
-  // create a folder on the white board 
   gime->PostRecPoints(branchname ) ;
+ 
+}
 
-  gime->PostDigits(branchname) ;
-  gime->PostDigitizer(branchname) ;
+//____________________________________________________________________________
+void AliEMCALClusterizerv1::InitParameters()
+{
+  fNumberOfPreShoClusters = fNumberOfTowerClusters = 0 ;   
+  fPreShoClusteringThreshold  = 0.0001;
+  fTowerClusteringThreshold   = 0.2;    
+  fTowerLocMaxCut  = 0.03 ;
+  fPreShoLocMaxCut = 0.03 ;
   
+  fW0     = 4.5 ;
+  fW0CPV  = 4.0 ;
+
+  fTimeGate = 1.e-8 ; 
+  
+  fToUnfold = kFALSE ;
+  
+  TString clusterizerName( GetName()) ; 
+  if (clusterizerName.IsNull() ) 
+    clusterizerName = "Default" ; 
+  clusterizerName.Append(":") ; 
+  clusterizerName.Append(Version()) ; 
+  SetName(clusterizerName) ;
+  fRecPointsInRun          = 0 ; 
+
 }
 
 //____________________________________________________________________________
@@ -414,12 +399,9 @@ Int_t AliEMCALClusterizerv1::AreNeighbours(AliEMCALDigit * d1, AliEMCALDigit * d
     
     if( (relid1[0] < relid2[0]) || (relid1[1] != relid2[1]) )  
       rv=2 ;
-
   }
-
   return rv ; 
 }
-
 
 //____________________________________________________________________________
 Bool_t AliEMCALClusterizerv1::IsInTower(AliEMCALDigit * digit) const
@@ -450,30 +432,43 @@ void AliEMCALClusterizerv1::WriteRecPoints(Int_t event)
   // Creates new branches with given title
   // fills and writes into TreeR.
 
-  TString branchName(GetName() ) ;
-  branchName.Remove(branchName.Index(Version())-1) ;
-
   AliEMCALGetter *gime = AliEMCALGetter::GetInstance() ; 
-  TObjArray * towerRecPoints = gime->TowerRecPoints(branchName) ; 
-  TObjArray * preshoRecPoints = gime->PreShowerRecPoints(branchName) ; 
-  TClonesArray * digits = gime->Digits(branchName) ; 
+  TObjArray * towerRecPoints = gime->TowerRecPoints() ; 
+  TObjArray * preshoRecPoints = gime->PreShowerRecPoints() ; 
+  TClonesArray * digits = gime->Digits() ; 
+  TTree * treeR ; 
+  
+  if(fToSplit){
+    if(!fSplitFile)
+      return ;
+    fSplitFile->cd() ;
+    TString name("TreeR") ;
+    name += event ; 
+    treeR = dynamic_cast<TTree*>(fSplitFile->Get(name)); 
+  }
+  else{
+    treeR = gAlice->TreeR();
+  }
 
+  if(!treeR){
+    gAlice->MakeTree("R", fSplitFile);
+    treeR = gAlice->TreeR() ;
+  }
+ 
   Int_t index ;
   //Evaluate position, dispersion and other RecPoint properties...
   for(index = 0; index < towerRecPoints->GetEntries(); index++)
     (dynamic_cast<AliEMCALTowerRecPoint *>(towerRecPoints->At(index)))->EvalAll(fW0,digits) ;
-
+  
   towerRecPoints->Sort() ;
 
   for(index = 0; index < towerRecPoints->GetEntries(); index++)
     (dynamic_cast<AliEMCALTowerRecPoint *>(towerRecPoints->At(index)))->SetIndexInList(index) ;
 
   towerRecPoints->Expand(towerRecPoints->GetEntriesFast()) ; 
-
-  //Now the same for CPV
+  //Now the same for pre shower
   for(index = 0; index < preshoRecPoints->GetEntries(); index++)
     (dynamic_cast<AliEMCALRecPoint *>(preshoRecPoints->At(index)))->EvalAll(fW0CPV,digits)  ;
-
   preshoRecPoints->Sort() ;
 
   for(index = 0; index < preshoRecPoints->GetEntries(); index++)
@@ -481,67 +476,30 @@ void AliEMCALClusterizerv1::WriteRecPoints(Int_t event)
 
   preshoRecPoints->Expand(preshoRecPoints->GetEntriesFast()) ;
   
-  //Make branches in TreeR for RecPoints and Clusterizer
-  char * filename = 0;
-  if(gSystem->Getenv("CONFIG_SPLIT_FILE")!=0){   //generating file name
-    filename = new char[strlen(gAlice->GetBaseFile())+20] ;
-    sprintf(filename,"%s/EMCAL.Reco.root",gAlice->GetBaseFile()) ;
-  }
-  
-  //Make new branches
-  TDirectory *cwd = gDirectory;
-  
- 
   Int_t bufferSize = 32000 ;    
-  Int_t splitlevel = 0 ;
+  Int_t splitlevel = 0 ; 
 
-  //First EMC
-  TBranch * emcBranch = gAlice->TreeR()->Branch("EMCALTowerRP","TObjArray",&towerRecPoints,bufferSize,splitlevel);
-  emcBranch->SetTitle(branchName);
-  if (filename) {
-    emcBranch->SetFile(filename);
-    TIter next( emcBranch->GetListOfBranches());
-    TBranch * sb ;
-    while ((sb=(TBranch*)next())) {
-      sb->SetFile(filename);
-    }   
-    
-    cwd->cd();
-  }
-    
-  //Now CPV branch
-  TBranch * cpvBranch = gAlice->TreeR()->Branch("EMCALPreShoRP","TObjArray",&preshoRecPoints,bufferSize,splitlevel);
-  cpvBranch->SetTitle(branchName);
-  if (filename) {
-    cpvBranch->SetFile(filename);
-    TIter next( cpvBranch->GetListOfBranches());
-    TBranch * sb;
-    while ((sb=(TBranch*)next())) {
-      sb->SetFile(filename);
-    }   
-    cwd->cd();
-  } 
+  //First Tower branch
+  TBranch * towerBranch = treeR->Branch("EMCALTowerRP","TObjArray",&towerRecPoints,bufferSize,splitlevel);
+  towerBranch->SetTitle(BranchName());
+  
+  //Now Pre Shower branch 
+  TBranch * preshoBranch = treeR->Branch("EMCALPreShoRP","TObjArray",&preshoRecPoints,bufferSize,splitlevel);
+  preshoBranch->SetTitle(BranchName());
     
   //And Finally  clusterizer branch
-  AliEMCALClusterizerv1 * cl = (AliEMCALClusterizerv1*)gime->Clusterizer(branchName) ;
-  TBranch * clusterizerBranch = gAlice->TreeR()->Branch("AliEMCALClusterizer","AliEMCALClusterizerv1",
+  AliEMCALClusterizerv1 * cl = (AliEMCALClusterizerv1*)gime->Clusterizer(BranchName()) ;
+  TBranch * clusterizerBranch = treeR->Branch("AliEMCALClusterizer","AliEMCALClusterizerv1",
 					      &cl,bufferSize,splitlevel);
-  clusterizerBranch->SetTitle(branchName);
-  if (filename) {
-    clusterizerBranch->SetFile(filename);
-    TIter next( clusterizerBranch->GetListOfBranches());
-    TBranch * sb ;
-    while ((sb=(TBranch*)next())) {
-      sb->SetFile(filename);
-    }   
-    cwd->cd();
-  }
-  emcBranch        ->Fill() ;
-  cpvBranch        ->Fill() ;
+  clusterizerBranch->SetTitle(BranchName());
+
+  towerBranch        ->Fill() ;
+  preshoBranch        ->Fill() ;
   clusterizerBranch->Fill() ;
 
-  gAlice->TreeR()->Write(0,kOverwrite) ;  
-  
+  treeR->AutoSave() ; //Write(0,kOverwrite) ;  
+  if(gAlice->TreeR()!=treeR)
+    treeR->Delete(); 
 }
 
 //____________________________________________________________________________
@@ -549,18 +507,18 @@ void AliEMCALClusterizerv1::MakeClusters()
 {
   // Steering method to construct the clusters stored in a list of Reconstructed Points
   // A cluster is defined as a list of neighbour digits
-  
-  TString branchName(GetName()) ; 
-  branchName.Remove(branchName.Index(Version())-1) ; 
-  
+    
   AliEMCALGetter * gime = AliEMCALGetter::GetInstance() ; 
   
-  TObjArray * towerRecPoints  = gime->TowerRecPoints(branchName) ; 
-  TObjArray * preshoRecPoints = gime->PreShowerRecPoints(branchName) ; 
+  TObjArray * towerRecPoints  = gime->TowerRecPoints(BranchName()) ; 
+  TObjArray * preshoRecPoints = gime->PreShowerRecPoints(BranchName()) ; 
   towerRecPoints->Delete() ;
   preshoRecPoints->Delete() ;
   
-  TClonesArray * digits = gime->Digits(branchName) ; 
+  TClonesArray * digits = gime->Digits() ; 
+  if ( !digits ) {
+    Fatal("MakeClusters -> Digits with name %s not found", GetName() ) ; 
+  } 
   TClonesArray * digitsC =  dynamic_cast<TClonesArray*>(digits->Clone()) ;
   
   
@@ -575,7 +533,6 @@ void AliEMCALClusterizerv1::MakeClusters()
     
     TArrayI clusterdigitslist(1500) ;   
     Int_t index ;
- 
     if (( IsInTower (digit)  && Calibrate(digit->GetAmp(),digit->IsInPreShower()) > fTowerClusteringThreshold  ) || 
         ( IsInPreShower (digit) && Calibrate(digit->GetAmp(),digit->IsInPreShower()) > fPreShoClusteringThreshold  ) ) {
       
@@ -650,103 +607,17 @@ void AliEMCALClusterizerv1::MakeClusters()
 	
       endofloop: ;
 	nextdigit.Reset() ; 
-	
       } // loop over cluster     
-      
-    } // energy theshold  
-    
-    
-  } // while digit
-  
+    } // energy theshold     
+  } // while digit  
   delete digitsC ;
-  
 }
 
 //____________________________________________________________________________
 void AliEMCALClusterizerv1::MakeUnfolding()
 {
   Fatal("AliEMCALClusterizerv1::MakeUnfolding", "--> Unfolding not implemented") ;
-  
-//   // Unfolds clusters using the shape of an ElectroMagnetic shower
-//   // Performs unfolding of all EMC/CPV clusters
-
-//   AliEMCALGetter * gime = AliEMCALGetter::GetInstance() ; 
-  
-//   const AliEMCALGeometry * geom = gime->EMCALGeometry() ;
-//   TObjArray * emcRecPoints = gime->TowerRecPoints() ; 
-//   TObjArray * cpvRecPoints = gime->PreShoRecPoints() ; 
-//   TClonesArray * digits = gime->Digits() ; 
-  
-//   // Unfold first EMC clusters 
-//   if(fNumberOfTowerClusters > 0){
-
-//     Int_t nModulesToUnfold = geom->GetNModules() ; 
-
-//     Int_t numberofNotUnfolded = fNumberOfTowerClusters ; 
-//     Int_t index ;   
-//     for(index = 0 ; index < numberofNotUnfolded ; index++){
-      
-//       AliEMCALTowerRecPoint * emcRecPoint = (AliEMCALTowerRecPoint *) emcRecPoints->At(index) ;
-//       if(emcRecPoint->GetEMCALMod()> nModulesToUnfold)
-// 	break ;
-      
-//       Int_t nMultipl = emcRecPoint->GetMultiplicity() ; 
-//       Int_t * maxAt = new Int_t[nMultipl] ;
-//       Float_t * maxAtEnergy = new Float_t[nMultipl] ;
-//       Int_t nMax = emcRecPoint->GetNumberOfLocalMax(maxAt, maxAtEnergy,fTowerLocMaxCut,digits) ;
-      
-//       if( nMax > 1 ) {     // if cluster is very flat (no pronounced maximum) then nMax = 0       
-// 	UnfoldCluster(emcRecPoint, nMax, maxAt, maxAtEnergy) ;
-// 	emcRecPoints->Remove(emcRecPoint); 
-// 	emcRecPoints->Compress() ;
-// 	index-- ;
-// 	fNumberOfTowerClusters -- ;
-// 	numberofNotUnfolded-- ;
-//       }
-      
-//       delete[] maxAt ; 
-//       delete[] maxAtEnergy ; 
-//     }
-//   } 
-//   // Unfolding of EMC clusters finished
-
-
-//   // Unfold now CPV clusters
-//   if(fNumberOfPreShoClusters > 0){
-    
-//     Int_t nModulesToUnfold = geom->GetNModules() ;
-
-//     Int_t numberofPreShoNotUnfolded = fNumberOfPreShoClusters ;     
-//     Int_t index ;   
-//     for(index = 0 ; index < numberofPreShoNotUnfolded ; index++){
-      
-//       AliEMCALRecPoint * recPoint = (AliEMCALRecPoint *) cpvRecPoints->At(index) ;
-
-//       if(recPoint->GetEMCALMod()> nModulesToUnfold)
-// 	break ;
-      
-//       AliEMCALTowerRecPoint * emcRecPoint = (AliEMCALTowerRecPoint*) recPoint ; 
-      
-//       Int_t nMultipl = emcRecPoint->GetMultiplicity() ; 
-//       Int_t * maxAt = new Int_t[nMultipl] ;
-//       Float_t * maxAtEnergy = new Float_t[nMultipl] ;
-//       Int_t nMax = emcRecPoint->GetNumberOfLocalMax(maxAt, maxAtEnergy,fPreShoLocMaxCut,digits) ;
-      
-//       if( nMax > 1 ) {     // if cluster is very flat (no pronounced maximum) then nMax = 0       
-// 	UnfoldCluster(emcRecPoint, nMax, maxAt, maxAtEnergy) ;
-// 	cpvRecPoints->Remove(emcRecPoint); 
-// 	cpvRecPoints->Compress() ;
-// 	index-- ;
-// 	numberofPreShoNotUnfolded-- ;
-// 	fNumberOfPreShoClusters-- ;
-//       }
-      
-//       delete[] maxAt ; 
-//       delete[] maxAtEnergy ; 
-//     } 
-//   }
-//   //Unfolding of PreSho clusters finished
-  
+ 
 }
 
 //____________________________________________________________________________
@@ -764,112 +635,13 @@ Double_t  AliEMCALClusterizerv1::ShowerShape(Double_t r)
 //____________________________________________________________________________
 void  AliEMCALClusterizerv1::UnfoldCluster(AliEMCALTowerRecPoint * iniTower, 
 						 Int_t nMax, 
-						 int * maxAt, 
+						 AliEMCALDigit ** maxAt, 
 						 Float_t * maxAtEnergy)
 {
   // Performs the unfolding of a cluster with nMax overlapping showers 
   
-  Fatal("AliEMCALClusterizerv1::UnfoldCluster", "--> Unfolding not implemented") ;
+  Fatal("UnfoldCluster", "--> Unfolding not implemented") ;
 
- //  AliEMCALGetter * gime = AliEMCALGetter::GetInstance() ; 
-//   const AliEMCALGeometry * geom = gime->EMCALGeometry() ;
-//   const TClonesArray * digits = gime->Digits() ; 
-//   TObjArray * emcRecPoints = gime->TowerRecPoints() ; 
-//   TObjArray * cpvRecPoints = gime->PreShoRecPoints() ; 
-
-//   Int_t nPar = 3 * nMax ;
-//   Float_t * fitparameters = new Float_t[nPar] ;
-
-//   Bool_t rv = FindFit(iniTower, maxAt, maxAtEnergy, nPar, fitparameters) ;
-//   if( !rv ) {
-//     // Fit failed, return and remove cluster
-//     delete[] fitparameters ; 
-//     return ;
-//   }
-
-//   // create ufolded rec points and fill them with new energy lists
-//   // First calculate energy deposited in each sell in accordance with fit (without fluctuations): efit[]
-//   // and later correct this number in acordance with actual energy deposition
-
-//   Int_t nDigits = iniTower->GetMultiplicity() ;  
-//   Float_t * efit = new Float_t[nDigits] ;
-//   Float_t xDigit=0.,zDigit=0.,distance=0. ;
-//   Float_t xpar=0.,zpar=0.,epar=0.  ;
-//   Int_t relid[4] ;
-//   AliEMCALDigit * digit = 0 ;
-//   Int_t * emcDigits = iniTower->GetDigitsList() ;
-
-//   Int_t iparam ;
-//   Int_t iDigit ;
-//   for(iDigit = 0 ; iDigit < nDigits ; iDigit ++){
-//     digit = (AliEMCALDigit*) digits->At(emcDigits[iDigit] ) ;   
-//     geom->AbsToRelNumbering(digit->GetId(), relid) ;
-//     geom->RelPosInModule(relid, xDigit, zDigit) ;
-//     efit[iDigit] = 0;
-
-//     iparam = 0 ;    
-//     while(iparam < nPar ){
-//       xpar = fitparameters[iparam] ;
-//       zpar = fitparameters[iparam+1] ;
-//       epar = fitparameters[iparam+2] ;
-//       iparam += 3 ;
-//       distance = (xDigit - xpar) * (xDigit - xpar) + (zDigit - zpar) * (zDigit - zpar)  ;
-//       distance =  TMath::Sqrt(distance) ;
-//       efit[iDigit] += epar * ShowerShape(distance) ;
-//     }
-//   }
-  
-
-//   // Now create new RecPoints and fill energy lists with efit corrected to fluctuations
-//   // so that energy deposited in each cell is distributed betwin new clusters proportionally
-//   // to its contribution to efit
-
-//   Float_t * emcEnergies = iniTower->GetEnergiesList() ;
-//   Float_t ratio ;
-
-//   iparam = 0 ;
-//   while(iparam < nPar ){
-//     xpar = fitparameters[iparam] ;
-//     zpar = fitparameters[iparam+1] ;
-//     epar = fitparameters[iparam+2] ;
-//     iparam += 3 ;    
-    
-//     AliEMCALTowerRecPoint * emcRP = 0 ;  
-
-//     if(iniTower->IsTower()){ //create new entries in fTowerRecPoints...
-      
-//       if(fNumberOfTowerClusters >= emcRecPoints->GetSize())
-// 	emcRecPoints->Expand(2*fNumberOfTowerClusters) ;
-      
-//       (*emcRecPoints)[fNumberOfTowerClusters] = new AliEMCALTowerRecPoint("") ;
-//       emcRP = (AliEMCALTowerRecPoint *) emcRecPoints->At(fNumberOfTowerClusters);
-//       fNumberOfTowerClusters++ ;
-//     }
-//     else{//create new entries in fPreShoRecPoints
-//       if(fNumberOfPreShoClusters >= cpvRecPoints->GetSize())
-// 	cpvRecPoints->Expand(2*fNumberOfPreShoClusters) ;
-      
-//       (*cpvRecPoints)[fNumberOfPreShoClusters] = new AliEMCALPreShoRecPoint("") ;
-//       emcRP = (AliEMCALTowerRecPoint *) cpvRecPoints->At(fNumberOfPreShoClusters);
-//       fNumberOfPreShoClusters++ ;
-//     }
-    
-//     Float_t eDigit ;
-//     for(iDigit = 0 ; iDigit < nDigits ; iDigit ++){
-//       digit = (AliEMCALDigit*) digits->At( emcDigits[iDigit] ) ; 
-//       geom->AbsToRelNumbering(digit->GetId(), relid) ;
-//       geom->RelPosInModule(relid, xDigit, zDigit) ;
-//       distance = (xDigit - xpar) * (xDigit - xpar) + (zDigit - zpar) * (zDigit - zpar)  ;
-//       distance =  TMath::Sqrt(distance) ;
-//       ratio = epar * ShowerShape(distance) / efit[iDigit] ; 
-//       eDigit = emcEnergies[iDigit] * ratio ;
-//       emcRP->AddDigit( *digit, eDigit ) ;
-//     }	
-//   }
- 
-//   delete[] fitparameters ; 
-//   delete[] efit ; 
-  
 }
 
 //_____________________________________________________________________________
@@ -877,136 +649,57 @@ void AliEMCALClusterizerv1::UnfoldingChiSquare(Int_t & nPar, Double_t * Grad, Do
 {
   // Calculates the Chi square for the cluster unfolding minimization
   // Number of parameters, Gradient, Chi squared, parameters, what to do
-
-  abort() ; 
- //  Fatal("AliEMCALClusterizerv1::UnfoldingChiSquare","-->Unfolding not implemented") ;
-
-//   TList * toMinuit = (TList*) gMinuit->GetObjectFit() ;
-
-//   AliEMCALTowerRecPoint * emcRP = (AliEMCALTowerRecPoint*) toMinuit->At(0)  ;
-//   TClonesArray * digits = (TClonesArray*)toMinuit->At(1)  ;
-
-
   
-//   //  AliEMCALTowerRecPoint * emcRP = (AliEMCALTowerRecPoint *) gMinuit->GetObjectFit() ; // TowerRecPoint to fit
-
-//   Int_t * emcDigits     = emcRP->GetDigitsList() ;
-
-//   Int_t nOdigits = emcRP->GetDigitsMultiplicity() ; 
-
-//   Float_t * emcEnergies = emcRP->GetEnergiesList() ;
-
-//   const AliEMCALGeometry * geom = AliEMCALGetter::GetInstance()->EMCALGeometry() ; 
-//   fret = 0. ;     
-//   Int_t iparam ;
-
-//   if(iflag == 2)
-//     for(iparam = 0 ; iparam < nPar ; iparam++)    
-//       Grad[iparam] = 0 ; // Will evaluate gradient
-  
-//   Double_t efit ;    
-
-//   AliEMCALDigit * digit ;
-//   Int_t iDigit ;
-
-//   for( iDigit = 0 ; iDigit < nOdigits ; iDigit++) {
-
-//     digit = (AliEMCALDigit*) digits->At( emcDigits[iDigit] ) ; 
-
-//     Int_t relid[4] ;
-//     Float_t xDigit ;
-//     Float_t zDigit ;
-
-//     geom->AbsToRelNumbering(digit->GetId(), relid) ;
-
-//     geom->RelPosInModule(relid, xDigit, zDigit) ;
-
-//      if(iflag == 2){  // calculate gradient
-//        Int_t iParam = 0 ;
-//        efit = 0 ;
-//        while(iParam < nPar ){
-// 	 Double_t distance = (xDigit - x[iParam]) * (xDigit - x[iParam]) ;
-// 	 iParam++ ; 
-// 	 distance += (zDigit - x[iParam]) * (zDigit - x[iParam]) ; 
-// 	 distance = TMath::Sqrt( distance ) ; 
-// 	 iParam++ ; 	 
-// 	 efit += x[iParam] * ShowerShape(distance) ;
-// 	 iParam++ ;
-//        }
-//        Double_t sum = 2. * (efit - emcEnergies[iDigit]) / emcEnergies[iDigit] ; // Here we assume, that sigma = sqrt(E) 
-//        iParam = 0 ;
-//        while(iParam < nPar ){
-// 	 Double_t xpar = x[iParam] ;
-// 	 Double_t zpar = x[iParam+1] ;
-// 	 Double_t epar = x[iParam+2] ;
-// 	 Double_t dr = TMath::Sqrt( (xDigit - xpar) * (xDigit - xpar) + (zDigit - zpar) * (zDigit - zpar) );
-// 	 Double_t shape = sum * ShowerShape(dr) ;
-// 	 Double_t r4 = dr*dr*dr*dr ;
-// 	 Double_t r295 = TMath::Power(dr,2.95) ;
-// 	 Double_t deriv =-4. * dr*dr * ( 2.32 / ( (2.32 + 0.26 * r4) * (2.32 + 0.26 * r4) ) +
-// 					 0.0316 * (1. + 0.0171 * r295) / ( ( 1. + 0.0652 * r295) * (1. + 0.0652 * r295) ) ) ;
-	 
-// 	 Grad[iParam] += epar * shape * deriv * (xpar - xDigit) ;  // Derivative over x    
-// 	 iParam++ ; 
-// 	 Grad[iParam] += epar * shape * deriv * (zpar - zDigit) ;  // Derivative over z         
-// 	 iParam++ ; 
-// 	 Grad[iParam] += shape ;                                  // Derivative over energy     	
-// 	 iParam++ ; 
-//        }
-//      }
-//      efit = 0;
-//      iparam = 0 ;
-
-//      while(iparam < nPar ){
-//        Double_t xpar = x[iparam] ;
-//        Double_t zpar = x[iparam+1] ;
-//        Double_t epar = x[iparam+2] ;
-//        iparam += 3 ;
-//        Double_t distance = (xDigit - xpar) * (xDigit - xpar) + (zDigit - zpar) * (zDigit - zpar)  ;
-//        distance =  TMath::Sqrt(distance) ;
-//        efit += epar * ShowerShape(distance) ;
-//      }
-
-//      fret += (efit-emcEnergies[iDigit])*(efit-emcEnergies[iDigit])/emcEnergies[iDigit] ; 
-//      // Here we assume, that sigma = sqrt(E)
-//   }
-
+  ::Fatal("UnfoldingChiSquare","Unfolding not implemented") ;
 }
-
 //____________________________________________________________________________
 void AliEMCALClusterizerv1::Print(Option_t * option)const
 {
   // Print clusterizer parameters
 
+  TString message("\n") ; 
+  
   if( strcmp(GetName(), "") !=0 ){
     
     // Print parameters
  
     TString taskName(GetName()) ; 
     taskName.ReplaceAll(Version(), "") ;
-
-    cout << "---------------"<< taskName.Data() << " " << GetTitle()<< "-----------" << endl 
-	 << "Clusterizing digits from the file: " << fHeaderFileName.Data() << endl 
-	 << "                           Branch: " << fDigitsBranchTitle.Data() << endl 
-	 << endl 
-	 << "                       EMC Clustering threshold = " << fTowerClusteringThreshold << endl
-	 << "                       EMC Local Maximum cut    = " << fTowerLocMaxCut << endl
-	 << "                       EMC Logarothmic weight   = " << fW0 << endl
-	 << endl
-	 << "                       CPV Clustering threshold = " << fPreShoClusteringThreshold << endl
-	 << "                       CPV Local Maximum cut    = " << fPreShoLocMaxCut << endl
-       << "                       CPV Logarothmic weight   = " << fW0CPV << endl
-	 << endl ;
-    if(fToUnfold)
-      cout << " Unfolding on " << endl ;
-    else
-      cout << " Unfolding off " << endl ;
     
-    cout << "------------------------------------------------------------------" <<endl ;
+    message += "--------------- " ; 
+    message += taskName.Data() ; 
+    message += " " ; 
+    message += GetTitle() ; 
+    message += "-----------\n" ;  
+    message += "Clusterizing digits from the file: " ; 
+    message += taskName.Data() ;  
+    message += "\n                           Branch: " ; 
+    message += GetName() ;  
+    message += "\n                       EMC Clustering threshold = " ; 
+    message += fTowerClusteringThreshold ; 
+    message += "\n                       EMC Local Maximum cut    = " ;
+    message += fTowerLocMaxCut ; 
+    message += "\n                       EMC Logarothmic weight   = " ;
+    message += fW0 ;
+    message += "\n                       CPV Clustering threshold = " ; 
+    message += fPreShoClusteringThreshold ;
+    message += "\n                       CPV Local Maximum cut    = " ;
+    message += fPreShoLocMaxCut ;
+    message += "\n                       CPV Logarothmic weight   = " ; 
+    message += fW0CPV ;
+    if(fToUnfold)
+      message +="\nUnfolding on\n" ;
+    else
+      message += "\nUnfolding off\n";
+    
+    message += "------------------------------------------------------------------" ; 
   }
   else
-    cout << " AliEMCALClusterizerv1 not initialized " << endl ;
+    message += "AliEMCALClusterizerv1 not initialized " ;
+  
+  Info("Print", message.Data() ) ; 
 }
+
 //____________________________________________________________________________
 void AliEMCALClusterizerv1::PrintRecPoints(Option_t * option)
 {
@@ -1015,17 +708,25 @@ void AliEMCALClusterizerv1::PrintRecPoints(Option_t * option)
   TObjArray * towerRecPoints = AliEMCALGetter::GetInstance()->TowerRecPoints() ; 
   TObjArray * preshoRecPoints = AliEMCALGetter::GetInstance()->PreShowerRecPoints() ; 
 
-  cout << "AliEMCALClusterizerv1: : event "<<gAlice->GetEvNumber() << endl ;
-  cout << "       Found "<< towerRecPoints->GetEntriesFast() << " TOWER Rec Points and " 
-	   << preshoRecPoints->GetEntriesFast() << " PRE SHOWER RecPoints" << endl ;
+  TString message("\n")  ;
+
+  message += "event " ; 
+  message += gAlice->GetEvNumber() ;
+  message += "\n       Found " ; 
+  message += towerRecPoints->GetEntriesFast() ; 
+  message += " TOWER Rec Points and " ;
+  message += preshoRecPoints->GetEntriesFast() ; 
+  message += " PRE SHOWER RecPoints\n" ;
 
   fRecPointsInRun +=  towerRecPoints->GetEntriesFast() ; 
   fRecPointsInRun +=  preshoRecPoints->GetEntriesFast() ; 
 
+  char * tempo = new char[8192]; 
+  
   if(strstr(option,"all")) {
 
-    cout << "Tower clusters " << endl ;
-    cout << " Index  Ene(MeV)   Multi  Module     phi     r  theta    Lambda 1   Lambda 2  # of prim  Primaries list "      <<  endl;      
+    message += "Tower clusters\n" ;
+    message += "Index    Ene(MeV) Multi Module     phi     r   theta  Lambda 1 Lambda 2  # of prim  Primaries list\n" ;      
     
     Int_t index ;
     for (index = 0 ; index < towerRecPoints->GetEntries() ; index++) {
@@ -1037,29 +738,23 @@ void AliEMCALClusterizerv1::PrintRecPoints(Option_t * option)
       Int_t * primaries; 
       Int_t nprimaries;
       primaries = rp->GetPrimaries(nprimaries);
-
-      cout << setw(4) << rp->GetIndexInList() << "   " 
-	   << setw(7) << setprecision(3) << rp->GetEnergy() << "      "
-	   << setw(3) << rp->GetMultiplicity() << "      " 
-	   << setw(1) << rp->GetEMCALArm() << "     " 
-	   << setw(5) << setprecision(4) << globalpos.X() << "  " 
-	   << setw(5) << setprecision(4) << globalpos.Y() << "  " 
-	   << setw(5) << setprecision(4) << globalpos.Z() << "     "
-	   << setw(4) << setprecision(2) << lambda[0]  << "  "
-	   << setw(4) << setprecision(2) << lambda[1]  << "  "
-	   << setw(2) << nprimaries << "  " ;
+      sprintf(tempo, "\n%6d  %8.2f  %3d     %2d     %4.1f    %4.1f %4.1f %4f  %4f    %2d     : ", 
+	      rp->GetIndexInList(), rp->GetEnergy(), rp->GetMultiplicity(), rp->GetEMCALArm(), 
+	      globalpos.X(), globalpos.Y(), globalpos.Z(), lambda[0], lambda[1], nprimaries) ; 
+      message += tempo ; 
      
-      for (Int_t iprimary=0; iprimary<nprimaries; iprimary++)
-	cout << setw(4) <<   primaries[iprimary] << "  "  ;
-      cout << endl ;  	 
+      for (Int_t iprimary=0; iprimary<nprimaries; iprimary++) {
+	sprintf(tempo, "%d ", primaries[iprimary] ) ; 
+	message += tempo ;
+      } 
     }
 
     //Now plot Pre shower recPoints
 
-    cout << "-----------------------------------------------------------------------"<<endl ;
+    message += "\n-----------------------------------------------------------------------\n" ;
 
-    cout << "PreShower clusters " << endl ;
-    cout << " Index  Ene(MeV)   Multi  Module     phi     r  theta    Lambda 1   Lambda 2  # of prim  Primaries list "      <<  endl;      
+    message += "PreShower clusters\n" ;
+    message += "Index    Ene(MeV) Multi Module     phi     r   theta  Lambda 1 Lambda 2  # of prim  Primaries list\n" ;      
     
     for (index = 0 ; index < preshoRecPoints->GetEntries() ; index++) {
       AliEMCALTowerRecPoint * rp = dynamic_cast<AliEMCALTowerRecPoint *>(preshoRecPoints->At(index)) ; 
@@ -1067,27 +762,23 @@ void AliEMCALClusterizerv1::PrintRecPoints(Option_t * option)
       rp->GetGlobalPosition(globalpos);
       Float_t lambda[2]; 
       rp->GetElipsAxis(lambda);
-      Int_t * primaries; 
+      Int_t * primaries;
       Int_t nprimaries;
       primaries = rp->GetPrimaries(nprimaries);
-
-      cout << setw(4) << rp->GetIndexInList() << "   " 
-	   << setw(7) << setprecision(3) << rp->GetEnergy() << "      "
-	   << setw(3) << rp->GetMultiplicity() << "      " 
-	   << setw(1) << rp->GetEMCALArm() << "     " 
-	   << setw(5) << setprecision(4) << globalpos.X() << "  " 
-	   << setw(5) << setprecision(4) << globalpos.Y() << "  " 
-	   << setw(5) << setprecision(4) << globalpos.Z() << "     "
-	   << setw(4) << setprecision(2) << lambda[0]  << "  "
-	   << setw(4) << setprecision(2) << lambda[1]  << "  "
-	   << setw(2) << nprimaries << "  " ;
-     
-      for (Int_t iprimary=0; iprimary<nprimaries; iprimary++)
-	cout << setw(4) <<   primaries[iprimary] << "  "  ;
-      cout << endl ;  	 
+      sprintf(tempo, "\n%6d  %8.2f  %3d     %2d     %4.1f    %4.1f %4.1f %4f  %4f    %2d     : ", 
+	      rp->GetIndexInList(), rp->GetEnergy(), rp->GetMultiplicity(), rp->GetEMCALArm(), 
+	      globalpos.X(), globalpos.Y(), globalpos.Z(), lambda[0], lambda[1], nprimaries) ; 
+      message += tempo ; 
+  
+      for (Int_t iprimary=0; iprimary<nprimaries; iprimary++) {
+	sprintf(tempo, "%d ", primaries[iprimary] ) ; 
+	message += tempo ;
+      }  	 
     }
 
-    cout << "-----------------------------------------------------------------------"<<endl ;
+    message += "\n-----------------------------------------------------------------------" ;
   }
+  delete tempo ; 
+  Info("PrintRecPoints", message.Data() ) ; 
+  
 }
-

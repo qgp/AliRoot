@@ -26,8 +26,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <strstream.h>
-#include <iostream.h>
+#include <Rstrstream.h>
+#include <Riostream.h>
 
 // --- ROOT system ---
 #include <TLorentzVector.h>
@@ -37,7 +37,7 @@
 #include "AliRun.h"
 #include "AliConst.h"
 #include "AliEMCALGeometry.h"
-#include "AliEMCALLoader.h"
+#include "AliEMCALGetter.h"
 
 ClassImp(AliEMCALHit)
 
@@ -105,8 +105,7 @@ const Bool_t AliEMCALHit::IsInPreShower() const
 {
   Bool_t rv = kFALSE ;
   
-  const AliEMCALGeometry * geom = AliEMCALLoader::GetEMCALGeometry() ;
-  
+  const AliEMCALGeometry * geom = AliEMCALGetter::GetInstance()->EMCALGeometry() ;
   if((GetId()/geom->GetNPhi()) < (2*geom->GetNZ())) 
     rv = kTRUE; 
   return rv; 

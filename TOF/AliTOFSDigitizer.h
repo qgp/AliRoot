@@ -25,6 +25,7 @@ public:
   virtual ~AliTOFSDigitizer() ; // dtor
 
   virtual void  Exec(Option_t *verboseOption, Option_t *allEvents="noAll"); 
+  void SetSDigitsFile(char * file ) {;}
   
   void InitParameters();
   virtual void PrintParameters() const ;

@@ -64,7 +64,8 @@ Int_t AliSDigits2Digits(TString output="out/galice.root",
   
   manager->SetOutputFile(output);
   manager->SetNrOfEventsToWrite(nEvents);
-  if (iITS) AliITSDigitizer *dITS  = new AliITSDigitizer(manager);
+  if (iITS == 1) AliITSDigitizer *dITS  = new AliITSDigitizer(manager);
+  if (iITS == 2) AliITSFDigitizer *dITS  = new AliITSFDigitizer(manager);
   if (iTPC) AliTPCDigitizer *dTPC  = new AliTPCDigitizer(manager);
   if (iTRD) AliTRDdigitizer *dTRD  = new AliTRDdigitizer(manager);
   if (iPHOS) AliPHOSDigitizer *dPHOS  = new AliPHOSDigitizer(manager);

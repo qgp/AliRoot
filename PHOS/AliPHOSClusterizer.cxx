@@ -28,13 +28,11 @@
 #include "TTree.h"
 
 // --- Standard library ---
-#include <iostream.h>
 #include <stdlib.h>   
 
 // --- AliRoot header files ---
 #include "AliRun.h" 
 #include "AliPHOSClusterizer.h"
-
 #include "AliRunLoader.h"
 #include "AliHeader.h" 
 #include "AliPHOSSDigitizer.h"
@@ -61,5 +59,4 @@ AliPHOSClusterizer::~AliPHOSClusterizer()
 {
   // dtor
 }
-
 

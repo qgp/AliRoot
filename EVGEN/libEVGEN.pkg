@@ -1,3 +1,4 @@
+FSRCS= PartEloss/integralgauss.f  PartEloss/read.f PartEloss/readca3.f
 SRCS          = AliGenHIJINGpara.cxx AliGenBox.cxx AliGenFixed.cxx \
 		AliGenCocktail.cxx AliGenFLUKAsource.cxx \
 		AliGenLib.cxx \
@@ -9,7 +10,7 @@ SRCS          = AliGenHIJINGpara.cxx AliGenBox.cxx AliGenFixed.cxx \
 		AliGenGSIlib.cxx AliGenPMDlib.cxx\
 	        AliGenHijing.cxx \
 		AliGenHijingEventHeader.cxx AliGenPythiaEventHeader.cxx \
-		AliDecayer.cxx AliDecayerPythia.cxx \
+		AliDecayerPythia.cxx \
                 AliGenMevSim.cxx AliMevSimParticle.cxx AliMevSimConfig.cxx \
 	        AliGenMC.cxx AliGenCocktailAfterBurner.cxx \
                 AliGenHBTprocessor.cxx \
@@ -17,7 +18,10 @@ SRCS          = AliGenHIJINGpara.cxx AliGenBox.cxx AliGenFixed.cxx \
                 AliGenReaderEcalHijing.cxx AliGenReaderEcalJets.cxx\
 		AliGenHIJINGparaBa.cxx AliGeVSimParticle.cxx AliGenGeVSim.cxx\
 		AliGenThetaSlice.cxx AliGenSTRANGElib.cxx AliGenBeamGas.cxx\
-		AliGenAfterBurnerFlow.cxx
+		AliGenAfterBurnerFlow.cxx \
+		AliPartonicEnergyLoss.cxx AliGenHerwig.cxx \
+		AliStructFuncType.cxx AliGenGrayParticles.cxx \
+        AliGenGeVSimEventHeader.cxx AliGenEpEmv1.cxx
 
 # Headerfiles for this particular package (Path respect to own directory)
 HDRS= $(SRCS:.cxx=.h) 
@@ -30,6 +34,7 @@ $(ALICE_ROOT)/include/TMevSimConverter.h\
 $(ALICE_ROOT)/include/THBTprocessor.h\
 $(ALICE_ROOT)/include/MevSimCommon.h\
 $(ALICE_ROOT)/include/HBTprocCOMMON.h\
+$(ALICE_ROOT)/include/TEpEmGen.h\
 $(ROOTSYS)/include/TF1.h\
 $(ROOTSYS)/include/TChain.h\
 $(ROOTSYS)/include/TParticle.h

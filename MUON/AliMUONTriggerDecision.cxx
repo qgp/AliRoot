@@ -14,6 +14,12 @@
  **************************************************************************/
 /*
 $Log$
+Revision 1.10  2002/10/23 07:24:56  alibrary
+Introducing Riostream.h
+
+Revision 1.9  2001/03/23 17:31:32  pcrochet
+correct access to digits in SetBit()
+
 Revision 1.8  2001/03/20 16:13:01  pcrochet
 bug fixed in the rejection of soft background (thanks to FM)
 
@@ -80,7 +86,7 @@ Author and responsible for the code: Philippe Crochet
 #include <TGraph.h> 
 #include <TPostScript.h> 
 #include <TMinuit.h> 
-#include <iostream.h> 
+#include <Riostream.h> 
 
 //----------------------------------------------------------------------
 ClassImp(AliMUONTriggerDecision)

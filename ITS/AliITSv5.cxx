@@ -15,6 +15,21 @@
 
 /*
 $Log$
+Revision 1.37  2002/10/22 14:45:47  alibrary
+Introducing Riostream.h
+
+Revision 1.36  2002/10/14 14:57:08  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.35.10.2  2002/08/30 15:45:54  alibrary
+Adding geant4vmc support
+
+Revision 1.35.10.1  2002/06/10 17:51:15  hristov
+Merged with v3-08-02
+
+Revision 1.35  2001/05/30 16:15:47  fca
+Correct comparison wiht AliGeant3::Class() introduced. Thanks to I.Hrivnacova
+
 Revision 1.34  2001/05/30 15:55:35  hristov
 Strings compared instead of pointers
 
@@ -95,8 +110,7 @@ Introduction of the Copyright and cvs Log
 // Created September 17 1999.
 //
 ///////////////////////////////////////////////////////////////////////////////
-#include <iostream.h>
-#include <iomanip.h>
+#include <Riostream.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <TMath.h>
@@ -114,7 +128,6 @@ Introduction of the Copyright and cvs Log
 
 #include "AliMC.h"
 #include "AliRun.h"
-#include "AliGeant3.h"
 #include "AliITShit.h"
 #include "AliITSGeant3Geometry.h"
 #include "AliITS.h"
@@ -643,7 +656,8 @@ void AliITSv5::InitAliITSgeom(){
 //     Based on the geometry tree defined in Geant 3.21, this
 // routine initilizes the Class AliITSgeom from the Geant 3.21 ITS geometry
 // sturture.
-    if(gMC->IsA()!=AliGeant3::Class()) {
+//    if(gMC->IsA()!=TGeant3::Class()) {
+    if(strcmp(gMC->GetName(),"TGeant3")) {
 	Error("InitAliITSgeom",
 		"Wrong Monte Carlo. InitAliITSgeom uses TGeant3 calls");
 	return;

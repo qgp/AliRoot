@@ -27,7 +27,7 @@ class AliTOFMerger;
 #include "TObject.h"
 #include "TTree.h" 
 #include "AliDetector.h"
-#include <iostream.h>
+#include <Riostream.h>
 #include "AliTOFMerger.h"
 #include "AliTOFSDigitizer.h"
 
@@ -56,7 +56,7 @@ public:
   virtual void    CreateMaterials();
   virtual void    Init();
 //  virtual void    MakeBranch(Option_t* option, const char *file=0);
-  virtual void    MakeBranch(Option_t *opt=" ",const char *file=0);
+  virtual void    MakeBranch(Option_t *opt=" ");
   virtual void    Makehits(Bool_t hits=1);
   virtual void    FinishEvent();
   virtual Int_t   IsVersion() const =0;
@@ -92,7 +92,7 @@ protected:
   TFolder* fFGeom ;       //  Folder that holds the Geometry definition
   TTask*   fDTask ;       //  TOF Digitizer container
   TTask*   fReTask;       //  TOF Reconstructioner container
-  TClonesArray* fSDigits; //! List of summable digits
+  TClonesArray* fSDigits; //!  List of summable digits
   Int_t    fNSDigits;           //! Number of sdigits
   TClonesArray* fReconParticles; // List of reconstructed particles
   AliTOFMerger *fMerger;   // ! pointer to merger

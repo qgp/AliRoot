@@ -1,7 +1,5 @@
 #include "AliHBTReaderTPC.h"
 
-#include <iostream.h>
-//#include <fstream.h>
 #include <TTree.h>
 #include <TFile.h>
 #include <TParticle.h>
@@ -21,8 +19,12 @@
 
 
 ClassImp(AliHBTReaderTPC)
+//______________________________________________
+//
+// class AliHBTReaderTPC
+//
 //reader for TPC tracking
-//needs galice.root, AliTPCtracks.root, AliTPCclusters.root, good_tracks_tpc 
+//needs galice.root, AliTPCtracks.root, AliTPCclusters.root
 //
 //more info: http://alisoft.cern.ch/people/skowron/analyzer/index.html
 //Piotr.Skowronski@cern.ch
@@ -62,7 +64,6 @@ AliHBTReaderTPC::AliHBTReaderTPC(TObjArray* dirs, const Char_t* galicefilename):
   fParticles = new AliHBTRun();
   fTracks    = new AliHBTRun();
   fIsRead = kFALSE;
-  
 }
 /********************************************************************/
 
@@ -91,6 +92,7 @@ AliHBTEvent* AliHBTReaderTPC::GetParticleEvent(Int_t n)
    return (fParticles)?fParticles->GetEvent(n):0x0;
  }
 /********************************************************************/
+
 AliHBTEvent* AliHBTReaderTPC::GetTrackEvent(Int_t n)
  {
  //returns Nth event with reconstructed tracks
@@ -148,8 +150,7 @@ Int_t AliHBTReaderTPC::Read(AliHBTRun* particles, AliHBTRun *tracks)
  //reads data and puts put to the particles and tracks objects
  //reurns 0 if everything is OK
  //
-  cout<<"AliHBTReaderTPC::Read()"<<endl;
-  
+  Info("Read","");
   Int_t i; //iterator and some temprary values
   Int_t Nevents = 0;
   Int_t totalNevents = 0;
@@ -204,9 +205,7 @@ Int_t AliHBTReaderTPC::Read(AliHBTRun* particles, AliHBTRun *tracks)
     
     if ( tpcl== 0x0)
      {
-       Error("Read","Can not found TPC in this run");
-       delete rl;
-       rl = 0x0;
+       Error("Read","Exiting due to problems with opening files. Errorcode %d",i);
        currentdir++;
        continue;
      }
@@ -214,22 +213,21 @@ Int_t AliHBTReaderTPC::Read(AliHBTRun* particles, AliHBTRun *tracks)
  
     if (Nevents > 0)//check if tree E exists
      {
-      cout<<"________________________________________________________\n";
-      cout<<"Found "<<Nevents<<" event(s) in directory "<<GetDirName(currentdir)<<endl;
-      cout<<"Setting Magnetic Field. Factor is "<<gAlice->Field()->Factor()<<endl;
+      Info("Read","________________________________________________________");
+      Info("Read","Found %d event(s) in directory %s",Nevents,GetDirName(currentdir).Data());
       rl->LoadgAlice();
-      AliKalmanTrack::SetConvConst(100/0.299792458/0.2/rl->GetAliRun()->Field()->Factor());
+      Info("Read","Setting Magnetic Field: B=%fT",rl->GetAliRun()->Field()->SolenoidField());
+      AliKalmanTrack::SetConvConst(1000/0.299792458/rl->GetAliRun()->Field()->SolenoidField());
       rl->UnloadgAlice();
      }
     else
      {//if not return an error
        Error("Read","Can not find Header tree (TreeE) in gAlice");
-       delete tarray;
-       delete rl;
-       return 1;
+       currentdir++;
+       continue;
      }
     
-    rl->CdGAFile();
+   rl->CdGAFile();
    AliTPCParam *TPCParam= (AliTPCParam*)gDirectory->Get("75x40_100x60");
    
    if (!TPCParam) 
@@ -249,7 +247,7 @@ Int_t AliHBTReaderTPC::Read(AliHBTRun* particles, AliHBTRun *tracks)
   
     for(Int_t currentEvent =0; currentEvent<Nevents;currentEvent++)//loop over all events
      {
-       cout<<"Reading Event "<<currentEvent<<endl;
+       Info("Read","Reading Event %d",currentEvent);
        /**************************************/
         /**************************************/
          /**************************************/ 
@@ -265,10 +263,10 @@ Int_t AliHBTReaderTPC::Read(AliHBTRun* particles, AliHBTRun *tracks)
          if (!trackbranch) ////check if we got the branch
           {//if not return with error
             Error("Read","Can't get a branch with TPC tracks !\n"); 
-            return 2;
+            continue;
           }
          Int_t NTPCtracks=(Int_t)tracktree->GetEntries();//get number of TPC tracks 
-         cout<<"Found "<<NTPCtracks<<" TPC tracks.\n";
+         Info("Read","Found %d TPC tracks.",NTPCtracks);
          //Copy tracks to array
          
          AliTPCtrack *iotrack=0;
@@ -277,7 +275,7 @@ Int_t AliHBTReaderTPC::Read(AliHBTRun* particles, AliHBTRun *tracks)
          if (!tracker) //check if it has created succeffuly
           {//if not return with error
             Error("Read","Can't get a tracker !\n"); 
-            return 3;
+            continue;
           }
          tracker->LoadInnerSectors();
          tracker->LoadOuterSectors();
@@ -323,7 +321,6 @@ Int_t AliHBTReaderTPC::Read(AliHBTRun* particles, AliHBTRun *tracks)
             AliHBTParticle* part = new AliHBTParticle(*p);
             if(Pass(part)) { delete part; continue;}//check if meets all criteria of any of our cuts
                                                     //if it does not delete it and take next good track
-         
          
             iotrack->PropagateToVertex();
 

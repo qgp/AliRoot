@@ -6,8 +6,26 @@
 /* $Id$ */
 /* 
  * $Log$
+ * Revision 1.4.6.2  2002/10/09 09:23:55  hristov
+ * New task hierarchy, bug corrections, new development (P.Skowronski)
+ *
  * Revision 1.4.6.1  2002/05/31 09:37:59  hristov
  * First set of changes done by Piotr
+ *
+ * Revision 1.8  2002/10/29 14:59:45  alibrary
+ * Some more code cleanup
+ *
+ * Revision 1.7  2002/10/29 14:26:49  hristov
+ * Code clean-up (F.Carminati)
+ *
+ * Revision 1.6  2002/10/22 15:02:15  alibrary
+ * Introducing Riostream.h
+ *
+ * Revision 1.5  2002/10/14 14:57:32  hristov
+ * Merging the VirtualMC branch to the main development branch (HEAD)
+ *
+ * Revision 1.4.8.1  2002/06/10 14:43:06  hristov
+ * Merged with v3-08-02
  *
  * Revision 1.4  2001/10/05 12:11:40  hristov
  * iostream.h used instead of iostream (HP)
@@ -23,30 +41,23 @@
  * 
  */
 
-#include <iostream.h>
-#include <TFolder.h>
-#include <TList.h>
-#include <TInterpreter.h>
-#include <TROOT.h>
-#include <TSystem.h>
-#include <TDatabasePDG.h>
-class TString ; 
+#include "AliMC.h"
+
+class TDatabasePDG;
+class TFolder;
+class TString;
+
+class AliConfig;
+class AliDetector;
 class AliGenerator;
 class AliModule;
-class AliDetector;
-class AliMC;
-class AliConfig;
 class AliTasks;
 
 class AliConfig : public TNamed {
   
 public:
   
-  AliConfig(){ 
-    // ctor: this is a singleton, the ctor should never be called but cint needs it as public
-    cerr << "ERROR: AliConfig is a singleton default ctor not callable" << endl ;
-    abort() ; 
-  } 
+  AliConfig();
   
   virtual ~ AliConfig (); 
 
@@ -69,8 +80,7 @@ public:
   
 private:
   AliConfig(const char * name, const char * title );
-  AliConfig(TFolder* top){};
-
+  AliConfig(const AliConfig&);
 
   void          AddInFolder (const char * dir, TObject *obj);
   Int_t         AddSubTask(const char *taskname, const char* name, const char* title);
@@ -139,11 +149,8 @@ private:
   static const TString  fgkFieldFolderName;
   static const TString  fgkGeneratorsFolderName;
   static const TString  fgkVirtualMCFolderName;
-   
   
-  
-  
-  ClassDef(AliConfig,1) //Configuration class for AliRun
+  ClassDef(AliConfig,2) //Configuration class for AliRun
 };				// end class AliConfig
 
 #endif

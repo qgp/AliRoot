@@ -20,8 +20,9 @@ void readVertex(Int_t evNumber=1)
   }
   char nameTD[8],nameTR[8];
 
-  TH1F *hVertex = new TH1F("hVertex","Z position of vertex",100,-350,350);
-  TH1F *hRealVertex = new TH1F("hRealVertex","Z position of vertex",100,-350,350);
+  TH1F *hVertex = new TH1F("hVertex","Z position of vertex",100,-100,100);
+  TH1F *hRealVertex = new TH1F("hRealVertex","Z position of vertex",
+			       100,-100,100);
   
   digits = new AliSTARTdigit();
   vertex = new AliSTARTvertex();
@@ -47,7 +48,7 @@ void readVertex(Int_t evNumber=1)
     hRealVertex->Fill(zRealVertex);
        
   }
-    Hfile = new TFile("figs.root","UPDATE","Histograms for START Vertex");
+    Hfile = new TFile("figs.root","RECREATE","Histograms for START Vertex");
    printf("Writting histograms to root file \n");
    Hfile->cd();
 

@@ -30,13 +30,13 @@ public:
   AliPHOSvImpacts(const AliPHOSvImpacts & phos) {
     // cpy ctor: no implementation yet
     // requested by the Coding Convention
-    abort() ; 
+    Fatal("cpy ctor", "not implemented") ;
   }
   virtual ~AliPHOSvImpacts(void) ;
 
   virtual void   AddImpact(char* detector, Int_t shunt, Int_t primary, Int_t track,
 			   Int_t module, Int_t pid, TLorentzVector p, Float_t *xyz) ;
-  virtual void   MakeBranch(Option_t *opt=" ", const char *file=0) ;
+  virtual void   MakeBranch(Option_t *opt=" ");
   virtual void   ResetHits();
   virtual Int_t  IsVersion(void) const {
     // Gives the version number 
@@ -50,7 +50,7 @@ public:
 
   AliPHOSvImpacts & operator = (const AliPHOSvImpacts & rvalue)  {
     // assignement operator requested by coding convention but not needed
-    abort() ;
+    Fatal("operator =", "not implemented") ;
     return *this ; 
   }
 

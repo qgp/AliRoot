@@ -1,8 +1,8 @@
 
 #include "AliHBTReaderITSv2.h"
 
-#include <iostream.h>
-#include <fstream.h>
+#include <Riostream.h>
+#include <Riostream.h>
 #include <TString.h>
 #include <TObjString.h>
 #include <TTree.h>
@@ -211,6 +211,7 @@ Int_t AliHBTReaderITSv2::Read(AliHBTRun* particles, AliHBTRun *tracks)
        delete iotrack;
        delete rl;
        rl = 0x0;
+       currentdir++;
        continue;
      }
     Nevents = rl->GetNumberOfEvents();
@@ -219,8 +220,8 @@ Int_t AliHBTReaderITSv2::Read(AliHBTRun* particles, AliHBTRun *tracks)
      {
       cout<<"________________________________________________________\n";
       cout<<"Found "<<Nevents<<" event(s) in directory "<<GetDirName(currentdir)<<endl;
-      cout<<"Setting Magnetic Field. Factor is "<<gAlice->Field()->Factor()<<endl;
-      AliKalmanTrack::SetConvConst(100/0.299792458/0.2/gAlice->Field()->Factor());  
+      cout<<"Setting Magnetic Field: B="<<gAlice->Field()->SolenoidField()<<"T"<<endl;
+      AliKalmanTrack::SetConvConst(1000/0.299792458/gAlice->Field()->SolenoidField());
      }
     else
      {//if not return an error
@@ -228,6 +229,7 @@ Int_t AliHBTReaderITSv2::Read(AliHBTRun* particles, AliHBTRun *tracks)
        delete iotrack;
        delete rl;
        rl = 0x0;
+       currentdir++;
        continue;
      }
     
@@ -238,6 +240,7 @@ Int_t AliHBTReaderITSv2::Read(AliHBTRun* particles, AliHBTRun *tracks)
        delete iotrack;
        delete rl;
        rl = 0x0;
+       currentdir++;
        continue;
      }
 
@@ -248,12 +251,11 @@ Int_t AliHBTReaderITSv2::Read(AliHBTRun* particles, AliHBTRun *tracks)
        cout<<"Reading Event "<<currentEvent<<endl;
        rl->GetEvent(currentEvent);
        tracktree=itsl->TreeT();
+       
        if (!tracktree) 
          {
            Error("Read","Can't get a tree with ITS tracks"); 
-           delete iotrack;
-           delete rl;
-           return 4;
+           continue;
          }
        TBranch *tbranch=tracktree->GetBranch("tracks");
        Ntracks=(Int_t)tracktree->GetEntries();

@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.66.2.4  2002/06/28 10:35:16  hristov
+Forward tracking adapted to the NewIO
+
 Revision 1.66.2.3  2002/06/25 05:58:41  barbera
 Updated classes and macros to make the ITS data structures compatible with the new IO (from M. Masera)
 
@@ -23,6 +26,21 @@ Merged with v3-08-02
 
 Revision 1.66.2.1  2002/05/31 09:37:56  hristov
 First set of changes done by Piotr
+
+Revision 1.75  2002/10/22 14:45:25  alibrary
+Introducing Riostream.h
+
+Revision 1.74  2002/10/14 14:57:00  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.67.4.3  2002/10/14 13:14:07  hristov
+Updating VirtualMC to v3-09-02
+
+Revision 1.73  2002/09/09 17:14:25  nilsen
+Update of documentation to reflect changes in AliITSdigitS?D classes.
+
+Revision 1.72  2002/06/10 17:28:55  nilsen
+Added new FillModules routine and cleaned up the old one.
 
 Revision 1.71  2002/05/13 14:27:56  hristov
 TreeC created once per event (M.Masera)
@@ -203,7 +221,6 @@ generates streamer function to work. Modified SetDefaults.
 Revision 1.9.2.15  2000/10/04 16:56:40  nilsen
 Needed to include stdlib.h
 
-=======
 Revision 1.22  2000/10/04 19:45:52  barbera
 Corrected by F. Carminati for v3.04
 
@@ -242,6 +259,7 @@ Revision 1.8  1999/09/29 09:24:19  fca
 Introduction of the Copyright and cvs Log
 
 */
+
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -291,9 +309,7 @@ the AliITS class.
 // futher information.
 //
 ///////////////////////////////////////////////////////////////////////////////
-#include <iostream.h>
-#include <iomanip.h>
-#include <fstream.h>
+#include <Riostream.h>
 #include <stdlib.h>
 #include <TMath.h>
 #include <TRandom.h>
@@ -431,9 +447,9 @@ AliITS::AliITS(const char *name, const char *title):AliDetector(name,title){
 
     Int_t i;
     for(i=0;i<fNDetTypes;i++) {
-	fDetTypes->AddAt(new AliITSDetType(),i); 
-	fNdtype[i] = 0;
-	fNctype[i] = 0;
+        fDetTypes->AddAt(new AliITSDetType(),i); 
+        fNdtype[i] = 0;
+        fNctype[i] = 0;
     } // end for i
 
     SetMarkerColor(kRed);
@@ -460,24 +476,24 @@ AliITS::~AliITS(){
     if(fIdName!=0) delete[] fIdName;  // Array of TStrings
     if(fIdSens!=0) delete[] fIdSens;
     if(fITSmodules!=0) {
-	this->ClearModules();
-	delete fITSmodules;
+        this->ClearModules();
+        delete fITSmodules;
     }// end if fITSmodules!=0
 
     if(fDtype) {
-	fDtype->Delete();
-	delete fDtype;
+        fDtype->Delete();
+        delete fDtype;
     } // end if fDtype
     delete [] fNdtype;
     if (fCtype) {
-	fCtype->Delete();
-	delete fCtype;
+        fCtype->Delete();
+        delete fCtype;
     } // end if fCtype
     delete [] fNctype;
 
     if (fDetTypes) {
-	fDetTypes->Delete();
-	delete fDetTypes;
+        fDetTypes->Delete();
+        delete fDetTypes;
     } // end if fDetTypes
 
 
@@ -496,7 +512,7 @@ AliITS::AliITS(AliITS &source){
 
     if(this==&source) return;
     Error("Copy constructor",
-	  "You are not allowed to make a copy of the AliITS");
+          "You are not allowed to make a copy of the AliITS");
     exit(1);
 }
 //______________________________________________________________________
@@ -569,52 +585,52 @@ void AliITS::SetDefaults(){
     //SPD
     iDetType=DetType(0); 
     if (!iDetType->GetSegmentationModel()) {
-	AliITSsegmentationSPD *seg0=new AliITSsegmentationSPD(fITSgeom);
-	SetSegmentationModel(0,seg0); 
+        AliITSsegmentationSPD *seg0=new AliITSsegmentationSPD(fITSgeom);
+        SetSegmentationModel(0,seg0); 
     } // end if
     if (!iDetType->GetResponseModel()) {
-	SetResponseModel(0,new AliITSresponseSPD()); 
+        SetResponseModel(0,new AliITSresponseSPD()); 
     } // end if
     // set digit and raw cluster classes to be used
 
     const char *kData0=(iDetType->GetResponseModel())->DataType();
     if (strstr(kData0,"real")) {
-	iDetType->ClassNames("AliITSdigit","AliITSRawClusterSPD");
+        iDetType->ClassNames("AliITSdigit","AliITSRawClusterSPD");
     } else iDetType->ClassNames("AliITSdigitSPD","AliITSRawClusterSPD");
 
     // SDD
     iDetType=DetType(1); 
     if (!iDetType->GetResponseModel()) {
-	SetResponseModel(1,new AliITSresponseSDD("simulated")); 
+        SetResponseModel(1,new AliITSresponseSDD("simulated")); 
     } // end if
     AliITSresponse *resp1=iDetType->GetResponseModel();
     if (!iDetType->GetSegmentationModel()) {
-	AliITSsegmentationSDD *seg1=new AliITSsegmentationSDD(fITSgeom,resp1);
-	SetSegmentationModel(1,seg1); 
+        AliITSsegmentationSDD *seg1=new AliITSsegmentationSDD(fITSgeom,resp1);
+        SetSegmentationModel(1,seg1); 
     } // end if
     const char *kData1=(iDetType->GetResponseModel())->DataType();
     const char *kopt=iDetType->GetResponseModel()->ZeroSuppOption();
     if((!strstr(kopt,"2D"))&&(!strstr(kopt,"1D")) || strstr(kData1,"real") ){
-	iDetType->ClassNames("AliITSdigit","AliITSRawClusterSDD");
+        iDetType->ClassNames("AliITSdigit","AliITSRawClusterSDD");
     } else iDetType->ClassNames("AliITSdigitSDD","AliITSRawClusterSDD");
 
     // SSD
     iDetType=DetType(2); 
     if (!iDetType->GetSegmentationModel()) {
-	AliITSsegmentationSSD *seg2=new AliITSsegmentationSSD(fITSgeom);
-	SetSegmentationModel(2,seg2); 
+        AliITSsegmentationSSD *seg2=new AliITSsegmentationSSD(fITSgeom);
+        SetSegmentationModel(2,seg2); 
     } // end if
     if (!iDetType->GetResponseModel()) {
-	SetResponseModel(2,new AliITSresponseSSD("simulated"));
+        SetResponseModel(2,new AliITSresponseSSD("simulated"));
     } // end if
     const char *kData2=(iDetType->GetResponseModel())->DataType();
     if (strstr(kData2,"real")) {
-	iDetType->ClassNames("AliITSdigit","AliITSRawClusterSSD");
+        iDetType->ClassNames("AliITSdigit","AliITSRawClusterSSD");
     } else iDetType->ClassNames("AliITSdigitSSD","AliITSRawClusterSSD");
 
     if (kNTYPES>3) {
-	Warning("SetDefaults",
-		"Only the three basic detector types are initialized!");
+        Warning("SetDefaults",
+                "Only the three basic detector types are initialized!");
     }  // end if
 }
 //______________________________________________________________________
@@ -632,53 +648,53 @@ void AliITS::SetDefaultSimulation(){
     iDetType=DetType(0);
     sim = iDetType->GetSimulationModel();
     if (!sim) {
-	AliITSsegmentation *seg0=
-	    (AliITSsegmentation*)iDetType->GetSegmentationModel();
-	AliITSresponse *res0 = (AliITSresponse*)iDetType->GetResponseModel();
-	AliITSsimulationSPD *sim0=new AliITSsimulationSPD(seg0,res0);
-	SetSimulationModel(0,sim0);
+        AliITSsegmentation *seg0=
+            (AliITSsegmentation*)iDetType->GetSegmentationModel();
+        AliITSresponse *res0 = (AliITSresponse*)iDetType->GetResponseModel();
+        AliITSsimulationSPD *sim0=new AliITSsimulationSPD(seg0,res0);
+        SetSimulationModel(0,sim0);
     }else{ // simulation exists, make sure it is set up properly.
-	((AliITSsimulationSPD*)sim)->Init(
-	    (AliITSsegmentationSPD*) iDetType->GetSegmentationModel(),
-	    (AliITSresponseSPD*) iDetType->GetResponseModel());
-//	if(sim->GetResponseModel()==0) sim->SetResponseModel(
-//	    (AliITSresponse*)iDetType->GetResponseModel());
-//	if(sim->GetSegmentationModel()==0) sim->SetSegmentationModel(
-//	    (AliITSsegmentation*)iDetType->GetSegmentationModel());
+        ((AliITSsimulationSPD*)sim)->Init(
+            (AliITSsegmentationSPD*) iDetType->GetSegmentationModel(),
+            (AliITSresponseSPD*) iDetType->GetResponseModel());
+//        if(sim->GetResponseModel()==0) sim->SetResponseModel(
+//            (AliITSresponse*)iDetType->GetResponseModel());
+//        if(sim->GetSegmentationModel()==0) sim->SetSegmentationModel(
+//            (AliITSsegmentation*)iDetType->GetSegmentationModel());
     } // end if
     iDetType=DetType(1);
     sim = iDetType->GetSimulationModel();
     if (!sim) {
-	AliITSsegmentation *seg1=
-	    (AliITSsegmentation*)iDetType->GetSegmentationModel();
-	AliITSresponse *res1 = (AliITSresponse*)iDetType->GetResponseModel();
-	AliITSsimulationSDD *sim1=new AliITSsimulationSDD(seg1,res1);
-	SetSimulationModel(1,sim1);
+        AliITSsegmentation *seg1=
+            (AliITSsegmentation*)iDetType->GetSegmentationModel();
+        AliITSresponse *res1 = (AliITSresponse*)iDetType->GetResponseModel();
+        AliITSsimulationSDD *sim1=new AliITSsimulationSDD(seg1,res1);
+        SetSimulationModel(1,sim1);
     }else{ // simulation exists, make sure it is set up properly.
-	((AliITSsimulationSDD*)sim)->Init(
-	    (AliITSsegmentationSDD*) iDetType->GetSegmentationModel(),
-	    (AliITSresponseSDD*) iDetType->GetResponseModel());
-//	if(sim->GetResponseModel()==0) sim->SetResponseModel(
-//	    (AliITSresponse*)iDetType->GetResponseModel());
-//	if(sim->GetSegmentationModel()==0) sim->SetSegmentationModel(
-//	    (AliITSsegmentation*)iDetType->GetSegmentationModel());
+        ((AliITSsimulationSDD*)sim)->Init(
+            (AliITSsegmentationSDD*) iDetType->GetSegmentationModel(),
+            (AliITSresponseSDD*) iDetType->GetResponseModel());
+//        if(sim->GetResponseModel()==0) sim->SetResponseModel(
+//            (AliITSresponse*)iDetType->GetResponseModel());
+//        if(sim->GetSegmentationModel()==0) sim->SetSegmentationModel(
+//            (AliITSsegmentation*)iDetType->GetSegmentationModel());
     } //end if
     iDetType=DetType(2);
     sim = iDetType->GetSimulationModel();
     if (!sim) {
-	AliITSsegmentation *seg2=
-	    (AliITSsegmentation*)iDetType->GetSegmentationModel();
-	AliITSresponse *res2 = (AliITSresponse*)iDetType->GetResponseModel();
-	AliITSsimulationSSD *sim2=new AliITSsimulationSSD(seg2,res2);
-	SetSimulationModel(2,sim2);
+        AliITSsegmentation *seg2=
+            (AliITSsegmentation*)iDetType->GetSegmentationModel();
+        AliITSresponse *res2 = (AliITSresponse*)iDetType->GetResponseModel();
+        AliITSsimulationSSD *sim2=new AliITSsimulationSSD(seg2,res2);
+        SetSimulationModel(2,sim2);
     }else{ // simulation exists, make sure it is set up properly.
-	((AliITSsimulationSSD*)sim)->Init(
-	    (AliITSsegmentationSSD*) iDetType->GetSegmentationModel(),
-	    (AliITSresponseSSD*) iDetType->GetResponseModel());
-//	if(sim->GetResponseModel()==0) sim->SetResponseModel(
-//	    (AliITSresponse*)iDetType->GetResponseModel());
-//	if(sim->GetSegmentationModel()==0) sim->SetSegmentationModel(
-//	    (AliITSsegmentation*)iDetType->GetSegmentationModel());
+        ((AliITSsimulationSSD*)sim)->Init(
+            (AliITSsegmentationSSD*) iDetType->GetSegmentationModel(),
+            (AliITSresponseSSD*) iDetType->GetResponseModel());
+//        if(sim->GetResponseModel()==0) sim->SetResponseModel(
+//            (AliITSresponse*)iDetType->GetResponseModel());
+//        if(sim->GetSegmentationModel()==0) sim->SetSegmentationModel(
+//            (AliITSsegmentation*)iDetType->GetSegmentationModel());
     } // end if
 }
 //______________________________________________________________________
@@ -697,40 +713,40 @@ void AliITS::SetDefaultClusterFinders(){
     // SPD
     iDetType=DetType(0);
     if (!iDetType->GetReconstructionModel()) {
-	AliITSsegmentation *seg0 =
-	    (AliITSsegmentation*)iDetType->GetSegmentationModel();
-	TClonesArray *dig0=DigitsAddress(0);
-	TClonesArray *recp0=ClustersAddress(0);
-	AliITSClusterFinderSPD *rec0 = new AliITSClusterFinderSPD(seg0,dig0,
-								  recp0);
-	SetReconstructionModel(0,rec0);
+        AliITSsegmentation *seg0 =
+            (AliITSsegmentation*)iDetType->GetSegmentationModel();
+        TClonesArray *dig0=DigitsAddress(0);
+        TClonesArray *recp0=ClustersAddress(0);
+        AliITSClusterFinderSPD *rec0 = new AliITSClusterFinderSPD(seg0,dig0,
+                                                                  recp0);
+        SetReconstructionModel(0,rec0);
     } // end if
 
     // SDD
     iDetType=DetType(1);
     if (!iDetType->GetReconstructionModel()) {
-	AliITSsegmentation *seg1 =
-	    (AliITSsegmentation*)iDetType->GetSegmentationModel();
-	AliITSresponse *res1 = (AliITSresponse*)iDetType->GetResponseModel();
-	TClonesArray *dig1=DigitsAddress(1);
-	TClonesArray *recp1=ClustersAddress(1);
-	AliITSClusterFinderSDD *rec1 =
-	    new AliITSClusterFinderSDD(seg1,res1,dig1,recp1);
+        AliITSsegmentation *seg1 =
+            (AliITSsegmentation*)iDetType->GetSegmentationModel();
+        AliITSresponse *res1 = (AliITSresponse*)iDetType->GetResponseModel();
+        TClonesArray *dig1=DigitsAddress(1);
+        TClonesArray *recp1=ClustersAddress(1);
+        AliITSClusterFinderSDD *rec1 =
+            new AliITSClusterFinderSDD(seg1,res1,dig1,recp1);
       SetReconstructionModel(1,rec1);
     } // end if
 
     // SSD
     iDetType=DetType(2);
     if (!iDetType->GetReconstructionModel()) {
-	AliITSsegmentation *seg2=
-	    (AliITSsegmentation*)iDetType->GetSegmentationModel();
-	TClonesArray *dig2=DigitsAddress(2);
-	AliITSClusterFinderSSD *rec2= new AliITSClusterFinderSSD(seg2,dig2);
-	SetReconstructionModel(2,rec2);
+        AliITSsegmentation *seg2=
+            (AliITSsegmentation*)iDetType->GetSegmentationModel();
+        TClonesArray *dig2=DigitsAddress(2);
+        AliITSClusterFinderSSD *rec2= new AliITSClusterFinderSSD(seg2,dig2);
+        SetReconstructionModel(2,rec2);
     } // end if
 }
 //______________________________________________________________________
-void AliITS::MakeBranch(Option_t* option, const char *file){
+void AliITS::MakeBranch(Option_t* option){
     // Creates Tree branches for the ITS.
     // Inputs:
     //      Option_t *option    String of Tree types S,D, and/or R.
@@ -748,12 +764,12 @@ void AliITS::MakeBranch(Option_t* option, const char *file){
     Bool_t cRF = (strstr(option,"RF")!=0);
     if(cRF)cR = kFALSE;
 
-    AliDetector::MakeBranch(option,file);
+    AliDetector::MakeBranch(option);
 
-    if(cS) MakeBranchS(file);
-    if(cD) MakeBranchD(file);
-    if(cR) MakeBranchR(file);
-    if(cRF) MakeBranchRF(file);
+    if(cS) MakeBranchS(0);
+    if(cD) MakeBranchD(0);
+    if(cR) MakeBranchR(0);
+    if(cRF) MakeBranchRF(0);
 }
 //______________________________________________________________________
 void AliITS::SetTreeAddress(){
@@ -893,37 +909,37 @@ void AliITS::InitModules(Int_t size,Int_t &nmodules){
     //      none.
 
     if(fITSmodules){ 
-	fITSmodules->Delete();
-	delete fITSmodules;
+        fITSmodules->Delete();
+        delete fITSmodules;
     } // end fir fITSmoudles
 
     Int_t nl,indexMAX,index;
 
     if(size<=0){ // default to using data stored in AliITSgeom
-	if(fITSgeom==0) {
-	    Error("InitModules","fITSgeom not defined");
-	    return;
-	} // end if fITSgeom==0
-	nl = fITSgeom->GetNlayers();
-	indexMAX = fITSgeom->GetModuleIndex(nl,fITSgeom->GetNladders(nl),
-					    fITSgeom->GetNdetectors(nl))+1;
-	nmodules = indexMAX;
-	fITSmodules = new TObjArray(indexMAX);
-	for(index=0;index<indexMAX;index++){
-	    fITSmodules->AddAt( new AliITSmodule(index),index);
-	} // end for index
+        if(fITSgeom==0) {
+            Error("InitModules","fITSgeom not defined");
+            return;
+        } // end if fITSgeom==0
+        nl = fITSgeom->GetNlayers();
+        indexMAX = fITSgeom->GetModuleIndex(nl,fITSgeom->GetNladders(nl),
+                                            fITSgeom->GetNdetectors(nl))+1;
+        nmodules = indexMAX;
+        fITSmodules = new TObjArray(indexMAX);
+        for(index=0;index<indexMAX;index++){
+            fITSmodules->AddAt( new AliITSmodule(index),index);
+        } // end for index
     }else{
-	fITSmodules = new TObjArray(size);
-	for(index=0;index<size;index++) {
-	    fITSmodules->AddAt( new AliITSmodule(index),index);
-	} // end for index
+        fITSmodules = new TObjArray(size);
+        for(index=0;index<size;index++) {
+            fITSmodules->AddAt( new AliITSmodule(index),index);
+        } // end for index
 
         nmodules = size;
     } // end i size<=0
 }
 //______________________________________________________________________
 void AliITS::FillModules(Int_t evnt,Int_t bgrev,Int_t nmodules,
-			 Option_t *option,Text_t *filename){
+                         Option_t *option,Text_t *filename){
     // fill the modules with the sorted by module hits; add hits from
     // background if option=Add.
     // Inputs:
@@ -938,93 +954,86 @@ void AliITS::FillModules(Int_t evnt,Int_t bgrev,Int_t nmodules,
     //      none.
     // Return:
     //      none.
-    static TTree *trH1 = 0x0;                 //Tree with background hits
-    static TClonesArray *fHits2 = 0x0;        //List of hits for one track only
+    static TTree *trH1;                 //Tree with background hits
     static Bool_t first=kTRUE;
-    static TFile *file = 0x0;
+    static TFile *file;
     const char *addBgr = strstr(option,"Add");
 
     if (addBgr ) {
-	if(first) {
-	    file=new TFile(filename);
-	    fHits2     = new TClonesArray("AliITShit",1000  );
-	} // end if first
-	first=kFALSE;
-	file->cd();
-	file->ls();
-	// Get Hits Tree header from file
-	if(fHits2) fHits2->Clear();
-	if(trH1) trH1=0;
-    /*
-	char treeName[20];
-	sprintf(treeName,"TreeH%d",bgrev);
-	trH1 = (TTree*)gDirectory->Get(treeName);
-    */
-    trH1 = TreeH();
+        if(first) {
+            file=new TFile(filename);
+        } // end if first
+        first=kFALSE;
+        file->cd();
+        file->ls();
+        // Get Hits Tree header from file
+        if(trH1) delete trH1;
+        trH1=0;
 
-	if (!trH1) {
-	    Error("FillModules","cannot find Hits Tree for event:%d",bgrev);
-	} // end if !trH1
-	// Set branch addresses
-	TBranch *branch;
-	char branchname[20];
-	sprintf(branchname,"%s",GetName());
-	if (trH1 && fHits2) {
-	    branch = trH1->GetBranch(branchname);
-	    if (branch) branch->SetAddress(&fHits2);
-	} // end if trH1 && fHits
+        char treeName[20];
+        sprintf(treeName,"TreeH%d",bgrev);
+        trH1 = (TTree*)gDirectory->Get(treeName);
+        if (!trH1) {
+            Error("FillModules","cannot find Hits Tree for event:%d",bgrev);
+        } // end if !trH1
+        // Set branch addresses
     } // end if addBgr
 
-    TClonesArray *itsHits = this->Hits();
+    FillModules(fLoader->TreeH(),0); // fill from this file's tree.
+    
+    if (addBgr ) {
+        FillModules(trH1,10000000); // Default mask 10M.
+        TTree *fAli=fLoader->GetRunLoader()->TreeK();
+        TFile *fileAli=0;
+        if (fAli) fileAli =fAli->GetCurrentFile();
+        fileAli->cd();
+    } // end if add
+}
+//______________________________________________________________________
+void AliITS::FillModules(TTree *treeH, Int_t mask) {
+    // fill the modules with the sorted by module hits; 
+    // can be called many times to do a merging
+    // Inputs:
+    //      TTree *treeH  The tree containing the hits to be copied into
+    //                    the modules.
+    //      Int_t mask    The track number mask to indecate which file
+    //                    this hits came from.
+    // Outputs:
+    //      none.
+    // Return:
+    //      none.
+
     Int_t lay,lad,det,index;
     AliITShit *itsHit=0;
     AliITSmodule *mod=0;
-    TTree *iTH = TreeH();
-    Int_t ntracks =(Int_t) iTH->GetEntries();
-    Int_t t,h;
-    for(t=0; t<ntracks; t++){
-	gAlice->ResetHits();
-	iTH->GetEvent(t);
-	Int_t nhits = itsHits->GetEntriesFast();
-        if (!nhits) continue;
-	for(h=0; h<nhits; h++){
-	    itsHit = (AliITShit *)itsHits->UncheckedAt(h);
-	    itsHit->GetDetectorID(lay,lad,det);
-	    // temporarily index=det-1 !!!
-	    if(fITSgeom) index = fITSgeom->GetModuleIndex(lay,lad,det);
-	    else index=det-1;
-	    //
-	    mod = this->GetModule(index);
-	    mod->AddHit(itsHit,t,h);
-	} // end loop over hits 
+    char branchname[20];
+    sprintf(branchname,"%s",GetName());
+    TBranch *branch = treeH->GetBranch(branchname);
+    if (!branch) {
+        Error("FillModules","%s branch in TreeH not found",branchname);
+        return;
+    } // end if !branch
+    branch->SetAddress(&fHits);
+    Int_t nTracks =(Int_t) treeH->GetEntries();
+    Int_t iPrimTrack,h;
+    for(iPrimTrack=0; iPrimTrack<nTracks; iPrimTrack++){
+        ResetHits();
+        Int_t nBytes = treeH->GetEvent(iPrimTrack);
+        if (nBytes <= 0) continue;
+        Int_t nHits = fHits->GetEntriesFast();
+        for(h=0; h<nHits; h++){
+            itsHit = (AliITShit *)fHits->UncheckedAt(h);
+            itsHit->GetDetectorID(lay,lad,det);
+            if (fITSgeom) {
+                index = fITSgeom->GetModuleIndex(lay,lad,det);
+            } else {
+                index=det-1; // This should not be used.
+            } // end if [You must have fITSgeom for this to work!]
+            mod = GetModule(index);
+            itsHit->SetTrack(itsHit->GetTrack()+mask); // Set track mask.
+            mod->AddHit(itsHit,iPrimTrack,h);
+        } // end loop over hits 
     } // end loop over tracks
-
-    // open the file with background
-    
-    if (addBgr ) {
-	Int_t track,i;
-	ntracks =(Int_t)trH1->GetEntries();     
-	// Loop over tracks
-	for (track=0; track<ntracks; track++) {
-	    if (fHits2)       fHits2->Clear();
-	    trH1->GetEvent(track);
-	    //   Loop over hits
-	    for(i=0;i<fHits2->GetEntriesFast();++i) {
-		itsHit=(AliITShit*) (*fHits2)[i];
-		itsHit->GetDetectorID(lay,lad,det);
-		// temporarily index=det-1 !!!
-		if(fITSgeom) index = fITSgeom->GetModuleIndex(lay,lad,det);
-		else index=det-1;
-		//
-		mod = this->GetModule(index);
-		mod->AddHit(itsHit,track,i);
-	    }  // end loop over hits
-	} // end loop over tracks
-	TTree *fAli=fLoader->GetRunLoader()->TreeK();
-	TFile *fileAli=0;
-	if (fAli) fileAli =fAli->GetCurrentFile();
-	fileAli->cd();
-    } // end if add
 }
 //______________________________________________________________________
 void AliITS::ClearModules(){
@@ -1053,7 +1062,7 @@ void AliITS::MakeBranchS(const char *fl){
     // only one branch for SDigits.
     sprintf(branchname,"%s",GetName());
     if(fSDigits && fLoader->TreeS()){
-	MakeBranchInTree(fLoader->TreeS(),branchname,&fSDigits,buffersize,fl);
+        MakeBranchInTree(fLoader->TreeS(),branchname,&fSDigits,buffersize,fl);
     } // end if
 }
 //______________________________________________________________________
@@ -1095,18 +1104,18 @@ void AliITS::MakeBranchInTreeD(TTree *treeD,const char *file){
     char clclass[40];
     Int_t i;
     for (i=0; i<kNTYPES ;i++) {
-	DetType(i)->GetClassNames(digclass,clclass);
-	// digits
-	if(!(fDtype->At(i))) fDtype->AddAt(new TClonesArray(digclass,1000),i);
-	else ResetDigits(i);
+        DetType(i)->GetClassNames(digclass,clclass);
+        // digits
+        if(!(fDtype->At(i))) fDtype->AddAt(new TClonesArray(digclass,1000),i);
+        else ResetDigits(i);
     } // end for i
     for (i=0; i<kNTYPES ;i++) {
-	if (kNTYPES==3) sprintf(branchname,"%sDigits%s",GetName(),det[i]);
-	else  sprintf(branchname,"%sDigits%d",GetName(),i+1);      
-	if (fDtype && treeD) {
-	    MakeBranchInTree(treeD, 
-			     branchname, &((*fDtype)[i]),buffersize,file);
-	} // end if
+        if (kNTYPES==3) sprintf(branchname,"%sDigits%s",GetName(),det[i]);
+        else  sprintf(branchname,"%sDigits%d",GetName(),i+1);      
+        if (fDtype && treeD) {
+            MakeBranchInTree(treeD, 
+                             branchname, &((*fDtype)[i]),buffersize,file);
+        } // end if
     } // end for i
 }
 //______________________________________________________________________
@@ -1127,16 +1136,16 @@ void AliITS::SetTreeAddressD(TTree *treeD){
 
     if(!treeD) return;
     for (i=0; i<kNTYPES; i++) {
-	DetType(i)->GetClassNames(digclass,clclass);
-	// digits
-	if(!(fDtype->At(i))) fDtype->AddAt(new TClonesArray(digclass,1000),i);
-	else ResetDigits(i);
-	if (kNTYPES==3) sprintf(branchname,"%sDigits%s",GetName(),det[i]);
-	else  sprintf(branchname,"%sDigits%d",GetName(),i+1);
-	if (fDtype) {
-	    branch = treeD->GetBranch(branchname);
-	    if (branch) branch->SetAddress(&((*fDtype)[i]));
-	} // end if fDtype
+        DetType(i)->GetClassNames(digclass,clclass);
+        // digits
+        if(!(fDtype->At(i))) fDtype->AddAt(new TClonesArray(digclass,1000),i);
+        else ResetDigits(i);
+        if (kNTYPES==3) sprintf(branchname,"%sDigits%s",GetName(),det[i]);
+        else  sprintf(branchname,"%sDigits%d",GetName(),i+1);
+        if (fDtype) {
+            branch = treeD->GetBranch(branchname);
+            if (branch) branch->SetAddress(&((*fDtype)[i]));
+        } // end if fDtype
     } // end for i
 }
 //______________________________________________________________________
@@ -1182,7 +1191,7 @@ void AliITS::SDigitsToDigits(Option_t *opt){
 
     const char *all = strstr(opt,"All");
     const char *det[3] = {strstr(opt,"SPD"),strstr(opt,"SDD"),
-			  strstr(opt,"SSD")};
+                          strstr(opt,"SSD")};
     if( !det[0] && !det[1] && !det[2] ) all = "All";
     else all = 0;
     static Bool_t setDef=kTRUE;
@@ -1193,29 +1202,29 @@ void AliITS::SDigitsToDigits(Option_t *opt){
     AliITSDetType    *iDetType = 0;
     TTree            *trees    = fLoader->TreeS();
     if( !(trees && this->GetSDigits()) ){
-	Error("SDigits2Digits","Error: No trees or SDigits. Returning.");
-	return;
+        Error("SDigits2Digits","Error: No trees or SDigits. Returning.");
+        return;
     } // end if
     sprintf( name, "%s", this->GetName() );
     TBranch *brchSDigits = trees->GetBranch( name );
     
     Int_t id,module;
     for(module=0;module<geom->GetIndexMax();module++){
-	id       = geom->GetModuleType(module);
+        id       = geom->GetModuleType(module);
         if (!all && !det[id]) continue;
-	iDetType = DetType(id);
-	sim      = (AliITSsimulation*)iDetType->GetSimulationModel();
-	if (!sim) {
-	    Error("SDigit2Digits",
-		  "The simulation class was not instanciated!");
-	    exit(1);
-	} // end if !sim
-	sim->InitSimulationModule(module,gAlice->GetEvNumber());
+        iDetType = DetType(id);
+        sim      = (AliITSsimulation*)iDetType->GetSimulationModel();
+        if (!sim) {
+            Error("SDigit2Digits",
+                  "The simulation class was not instanciated!");
+            exit(1);
+        } // end if !sim
+        sim->InitSimulationModule(module,gAlice->GetEvNumber());
 //
-	// add summable digits to module
-	this->GetSDigits()->Clear();
-	brchSDigits->GetEvent(module);
-	sim->AddSDigitsToModule(GetSDigits(),0);
+        // add summable digits to module
+        this->GetSDigits()->Clear();
+        brchSDigits->GetEvent(module);
+        sim->AddSDigitsToModule(GetSDigits(),0);
 //
         // Digitise current module sum(SDigits)->Digits
         sim->FinishSDigitiseModule();
@@ -1248,7 +1257,7 @@ void AliITS::Hits2Digits(){
 }
 //______________________________________________________________________
 void AliITS::HitsToSDigits(Int_t evNumber,Int_t bgrev,Int_t size,
-			  Option_t *option, Option_t *opt,Text_t *filename){
+                          Option_t *option, Option_t *opt,Text_t *filename){
     // keep galice.root for signal and name differently the file for 
     // background when add! otherwise the track info for signal will be lost !
     // the condition below will disappear when the geom class will be
@@ -1273,7 +1282,7 @@ void AliITS::HitsToSDigits(Int_t evNumber,Int_t bgrev,Int_t size,
 }
 //______________________________________________________________________
 void AliITS::HitsToPreDigits(Int_t evNumber,Int_t bgrev,Int_t size,
-			  Option_t *option, Option_t *opt,Text_t *filename){
+                          Option_t *option, Option_t *opt,Text_t *filename){
     //   Keep galice.root for signal and name differently the file for 
     // background when add! otherwise the track info for signal will be lost !
     // the condition below will disappear when the geom class will be
@@ -1297,7 +1306,7 @@ void AliITS::HitsToPreDigits(Int_t evNumber,Int_t bgrev,Int_t size,
 
     const char *all = strstr(opt,"All");
     const char *det[3] = {strstr(opt,"SPD"),strstr(opt,"SDD"),
-			  strstr(opt,"SSD")};
+                          strstr(opt,"SSD")};
     static Bool_t setDef=kTRUE;
     if (setDef) SetDefaultSimulation();
     setDef=kFALSE;
@@ -1311,20 +1320,20 @@ void AliITS::HitsToPreDigits(Int_t evNumber,Int_t bgrev,Int_t size,
     AliITSmodule     *mod      = 0;
     Int_t id,module;
     for(module=0;module<geom->GetIndexMax();module++){
-	id       = geom->GetModuleType(module);
+        id       = geom->GetModuleType(module);
         if (!all && !det[id]) continue;
-	iDetType = DetType(id);
-	sim      = (AliITSsimulation*)iDetType->GetSimulationModel();
-	if (!sim) {
-	    Error("HitsToSDigits",
-		  "The simulation class was not instanciated!");
-	    exit(1);
-	} // end if !sim
-	mod      = (AliITSmodule *)fITSmodules->At(module);
-	sim->SDigitiseModule(mod,module,evNumber);
-	// fills all branches - wasted disk space
-	fLoader->TreeS()->Fill(); 
-	ResetSDigits();
+        iDetType = DetType(id);
+        sim      = (AliITSsimulation*)iDetType->GetSimulationModel();
+        if (!sim) {
+            Error("HitsToSDigits",
+                  "The simulation class was not instanciated!");
+            exit(1);
+        } // end if !sim
+        mod      = (AliITSmodule *)fITSmodules->At(module);
+        sim->SDigitiseModule(mod,module,evNumber);
+        // fills all branches - wasted disk space
+        fLoader->TreeS()->Fill(); 
+        ResetSDigits();
     } // end for module
 
     ClearModules();
@@ -1336,7 +1345,7 @@ void AliITS::HitsToPreDigits(Int_t evNumber,Int_t bgrev,Int_t size,
 }
 //______________________________________________________________________
 void AliITS::HitsToDigits(Int_t evNumber,Int_t bgrev,Int_t size,
-			  Option_t *option, Option_t *opt,Text_t *filename){
+                          Option_t *option, Option_t *opt,Text_t *filename){
     //   Keep galice.root for signal and name differently the file for 
     // background when add! otherwise the track info for signal will be lost !
     // the condition below will disappear when the geom class will be
@@ -1360,7 +1369,7 @@ void AliITS::HitsToDigits(Int_t evNumber,Int_t bgrev,Int_t size,
 
     const char *all = strstr(opt,"All");
     const char *det[3] = {strstr(opt,"SPD"),strstr(opt,"SDD"),
-			  strstr(opt,"SSD")};
+                          strstr(opt,"SSD")};
     static Bool_t setDef=kTRUE;
     if (setDef) SetDefaultSimulation();
     setDef=kFALSE;
@@ -1374,20 +1383,20 @@ void AliITS::HitsToDigits(Int_t evNumber,Int_t bgrev,Int_t size,
     AliITSmodule     *mod      = 0;
     Int_t id,module;
     for(module=0;module<geom->GetIndexMax();module++){
-	id       = geom->GetModuleType(module);
+        id       = geom->GetModuleType(module);
         if (!all && !det[id]) continue;
-	iDetType = DetType(id);
-	sim      = (AliITSsimulation*)iDetType->GetSimulationModel();
-	if (!sim) {
-	    Error("HitsToDigits",
-		  "The simulation class was not instanciated!");
-	    exit(1);
-	} // end if !sim
-	mod      = (AliITSmodule *)fITSmodules->At(module);
-	sim->DigitiseModule(mod,module,evNumber);
-	// fills all branches - wasted disk space
-	fLoader->TreeD()->Fill(); 
-	ResetDigits();
+        iDetType = DetType(id);
+        sim      = (AliITSsimulation*)iDetType->GetSimulationModel();
+        if (!sim) {
+            Error("HitsToDigits",
+                  "The simulation class was not instanciated!");
+            exit(1);
+        } // end if !sim
+        mod      = (AliITSmodule *)fITSmodules->At(module);
+        sim->DigitiseModule(mod,module,evNumber);
+        // fills all branches - wasted disk space
+        fLoader->TreeD()->Fill(); 
+        ResetDigits();
     } // end for module
 
     ClearModules();
@@ -1420,8 +1429,8 @@ void AliITS::ResetDigits(){
 
     Int_t i;
     for (i=0;i<kNTYPES;i++ ) {
-	if (fDtype->At(i))    ((TClonesArray*)fDtype->At(i))->Clear();
-	if (fNdtype)  fNdtype[i]=0;
+        if (fDtype->At(i))    ((TClonesArray*)fDtype->At(i))->Clear();
+        if (fNdtype)  fNdtype[i]=0;
     } // end for i
 }
 //______________________________________________________________________
@@ -1479,28 +1488,30 @@ void AliITS::AddSimDigit(Int_t id, AliITSdigit *d){
 
     switch(id){
     case 0:
-	new(ldigits[fNdtype[id]++]) AliITSdigitSPD(*((AliITSdigitSPD*)d));
-	break;
+        new(ldigits[fNdtype[id]++]) AliITSdigitSPD(*((AliITSdigitSPD*)d));
+        break;
     case 1:
-	new(ldigits[fNdtype[id]++]) AliITSdigitSDD(*((AliITSdigitSDD*)d));
-	break;
+        new(ldigits[fNdtype[id]++]) AliITSdigitSDD(*((AliITSdigitSDD*)d));
+        break;
     case 2:
-	new(ldigits[fNdtype[id]++]) AliITSdigitSSD(*((AliITSdigitSSD*)d));
-	break;
+        new(ldigits[fNdtype[id]++]) AliITSdigitSSD(*((AliITSdigitSSD*)d));
+        break;
     } // end switch id
 }
 //______________________________________________________________________
 void AliITS::AddSimDigit(Int_t id,Float_t phys,Int_t *digits,Int_t *tracks,
-			 Int_t *hits,Float_t *charges){
+                         Int_t *hits,Float_t *charges){
     //   Add a simulated digit to the list.
     // Inputs:
     //      Int_t id        Detector type number.
     //      Float_t phys    Physics indicator. See AliITSdigits.h
     //      Int_t *digits   Integer array containing the digits info. See 
     //                      AliITSdigit.h
-    //      Int_t *tracks   Integer array [3] containing the track numbers that
-    //                      contributed to this digit.
-    //      Int_t *hits     Integer array [3] containing the hit numbers that
+    //      Int_t *tracks   Integer array [AliITSdigitS?D::GetNTracks()] 
+    //                      containing the track numbers that contributed to
+    //                      this digit.
+    //      Int_t *hits     Integer array [AliITSdigitS?D::GetNTracks()]
+    //                      containing the hit numbers, from AliITSmodule, that
     //                      contributed to this digit.
     //      Float_t *charge Floating point array of the signals contributed
     //                      to this digit by each track.
@@ -1512,15 +1523,15 @@ void AliITS::AddSimDigit(Int_t id,Float_t phys,Int_t *digits,Int_t *tracks,
     TClonesArray &ldigits = *((TClonesArray*)fDtype->At(id));
     switch(id){
     case 0:
-	new(ldigits[fNdtype[id]++]) AliITSdigitSPD(digits,tracks,hits);
-	break;
+        new(ldigits[fNdtype[id]++]) AliITSdigitSPD(digits,tracks,hits);
+        break;
     case 1:
-	new(ldigits[fNdtype[id]++]) AliITSdigitSDD(phys,digits,tracks,
-						   hits,charges);
-	break;
+        new(ldigits[fNdtype[id]++]) AliITSdigitSDD(phys,digits,tracks,
+                                                   hits,charges);
+        break;
     case 2:
-	new(ldigits[fNdtype[id]++]) AliITSdigitSSD(digits,tracks,hits);
-	break;
+        new(ldigits[fNdtype[id]++]) AliITSdigitSSD(digits,tracks,hits);
+        break;
     } // end switch id
 }
 //______________________________________________________________________
@@ -1564,19 +1575,19 @@ void AliITS::MakeTreeC(Option_t *option){
   char clclass[40];
 
     // one branch for Clusters per type of detector
-  Int_t i;   
-  for (i=0; i<kNTYPES ;i++) {
-    AliITSDetType *iDetType=DetType(i); 
-    iDetType->GetClassNames(digclass,clclass);
-	// clusters
-    if(!ClustersAddress(i)){
-      fCtype->AddAt(new TClonesArray(clclass,1000),i);
-    }
-    if (kNTYPES==3) sprintf(branchname,"%sClusters%s",GetName(),det[i]);
-	else  sprintf(branchname,"%sClusters%d",GetName(),i+1);
-	if (fCtype   && TC) {
+    Int_t i;   
+    for (i=0; i<kNTYPES ;i++) {
+        AliITSDetType *iDetType=DetType(i); 
+        iDetType->GetClassNames(digclass,clclass);
+        // clusters
+        if(!ClustersAddress(i)){
+          fCtype->AddAt(new TClonesArray(clclass,1000),i);
+        }
+        if (kNTYPES==3) sprintf(branchname,"%sClusters%s",GetName(),det[i]);
+        else  sprintf(branchname,"%sClusters%d",GetName(),i+1);
+        if (fCtype   && TC) {
       TC->Branch(branchname,&((*fCtype)[i]), buffersize);
-	} // end if fCtype && TC
+        } // end if fCtype && TC
   } // end for i
 }
 
@@ -1605,9 +1616,9 @@ void AliITS::GetTreeC(Int_t event){
 
   if (TC) {
     Int_t i;
-	char digclass[40];
-	char clclass[40];
-	for (i=0; i<kNTYPES; i++) {
+        char digclass[40];
+        char clclass[40];
+        for (i=0; i<kNTYPES; i++) {
       AliITSDetType *iDetType=DetType(i); 
       iDetType->GetClassNames(digclass,clclass);
       // clusters
@@ -1615,12 +1626,12 @@ void AliITS::GetTreeC(Int_t event){
       if(kNTYPES==3) sprintf(branchname,"%sClusters%s",GetName(),det[i]);
       else  sprintf(branchname,"%sClusters%d",GetName(),i+1);
       if (fCtype) {
-		branch = TC->GetBranch(branchname);
+                branch = TC->GetBranch(branchname);
         if (branch) branch->SetAddress(&((*fCtype)[i]));
       } // end if fCtype
-	} // end for i
+        } // end for i
   } else {
-	Error("GetTreeC","cannot find Clusters Tree for event:%d",event);
+        Error("GetTreeC","cannot find Clusters Tree for event:%d",event);
   } // end if TC
 }
 //______________________________________________________________________
@@ -1639,14 +1650,14 @@ void AliITS::AddCluster(Int_t id, AliITSRawCluster *c){
 
     switch(id){
     case 0:
-	new(lc[fNctype[id]++]) AliITSRawClusterSPD(*((AliITSRawClusterSPD*)c));
-	break;
+        new(lc[fNctype[id]++]) AliITSRawClusterSPD(*((AliITSRawClusterSPD*)c));
+        break;
     case 1:
-	new(lc[fNctype[id]++]) AliITSRawClusterSDD(*((AliITSRawClusterSDD*)c));
-	break;
+        new(lc[fNctype[id]++]) AliITSRawClusterSDD(*((AliITSRawClusterSDD*)c));
+        break;
     case 2:
-	new(lc[fNctype[id]++]) AliITSRawClusterSSD(*((AliITSRawClusterSSD*)c));
-	break;
+        new(lc[fNctype[id]++]) AliITSRawClusterSSD(*((AliITSRawClusterSSD*)c));
+        break;
     } // end switch id
 }
 //______________________________________________________________________
@@ -1695,7 +1706,7 @@ void AliITS::MakeBranchR(const char *file, Option_t *opt){
       sprintf(branchname,"%sRecPoints",GetName());
     }
     if (fRecPoints && fLoader->TreeR()) {
-	MakeBranchInTree(fLoader->TreeR(),branchname,&fRecPoints,buffsz,file);
+        MakeBranchInTree(fLoader->TreeR(),branchname,&fRecPoints,buffsz,file);
     } // end if
 }
 //______________________________________________________________________
@@ -1764,7 +1775,7 @@ void AliITS::HitsToFastRecPoints(Int_t evNumber,Int_t bgrev,Int_t size,
 
     const char *all = strstr(opt1,"All");
     const char *det[3] ={strstr(opt1,"SPD"),strstr(opt1,"SDD"),
-			 strstr(opt1,"SSD")};
+                         strstr(opt1,"SSD")};
     Int_t nmodules;
     InitModules(size,nmodules);
     FillModules(evNumber,bgrev,nmodules,opt0,flnm);
@@ -1852,30 +1863,30 @@ void AliITS::DigitsToRecPoints(Int_t evNumber,Int_t lastentry,Option_t *opt){
   AliITSDetType      *iDetType = 0;
   Int_t id,module,first=0;
   for(module=0;module<geom->GetIndexMax();module++){
-	id       = geom->GetModuleType(module);
+        id       = geom->GetModuleType(module);
     if (!all && !det[id]) continue;
-	if(det[id]) first = geom->GetStartDet(id);
-	iDetType = DetType(id);
-	rec = (AliITSClusterFinder*)iDetType->GetReconstructionModel();
+        if(det[id]) first = geom->GetStartDet(id);
+        iDetType = DetType(id);
+        rec = (AliITSClusterFinder*)iDetType->GetReconstructionModel();
     TClonesArray *itsDigits  = this->DigitsAddress(id);
-	if (!rec) {
+        if (!rec) {
       Error("DigitsToRecPoints",
             "The reconstruction class was not instanciated!");
       exit(1);
-	} // end if !rec
-	this->ResetDigits();
+        } // end if !rec
+        this->ResetDigits();
     TTree *TD = pITSloader->TreeD();
-	if (all) {
+        if (all) {
       TD->GetEvent(lastentry+module);
     }
     else {
       TD->GetEvent(lastentry+(module-first));
     }
-	Int_t ndigits = itsDigits->GetEntriesFast();
-	if (ndigits) rec->FindRawClusters(module);
+        Int_t ndigits = itsDigits->GetEntriesFast();
+        if (ndigits) rec->FindRawClusters(module);
     pITSloader->TreeR()->Fill(); 
-	ResetRecPoints();
-	treeC->Fill();
+        ResetRecPoints();
+        treeC->Fill();
     ResetClusters();
   } // end for module
 
@@ -1911,3 +1922,5 @@ AliLoader* AliITS::MakeLoader(const char* topfoldername)
   return fLoader;
  
 }
+
+

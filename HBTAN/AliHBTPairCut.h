@@ -2,7 +2,7 @@
 //Class implemnts cut on the pair of particles
 //
 //more info: http://alisoft.cern.ch/people/skowron/analyzer/index.html
-
+ 
 #ifndef ALIHBTPAIRCUT_H
 #define ALIHBTPAIRCUT_H
 
@@ -16,13 +16,14 @@ enum AliHBTPairCutProperty
  {
   kHbtPairCutPropQInv, //Q invariant
   kHbtPairCutPropKt,
+  kHbtPairCutPropKStar,
   kHbtPairCutPropQSideCMSLC,
   kHbtPairCutPropQOutCMSLC,
   kHbtPairCutPropQLongCMSLC,
   kHbtPairCutPropNone
  };
 
-class AliHBTPairCut: public TObject
+class AliHBTPairCut: public TNamed
 {
   public:
     AliHBTPairCut();
@@ -42,6 +43,7 @@ class AliHBTPairCut: public TObject
     
     void SetQInvRange(Double_t min, Double_t max);
     void SetKtRange(Double_t min, Double_t max);
+    void SetKStarRange(Double_t min, Double_t max);
     void SetQOutCMSLRange(Double_t min, Double_t max);
     void SetQSideCMSLRange(Double_t min, Double_t max);
     void SetQLongCMSLRange(Double_t min, Double_t max);
@@ -50,18 +52,18 @@ class AliHBTPairCut: public TObject
     AliHBTParticleCut* GetSecondPartCut() const {return fSecondPartCut;}
     
   protected:
-    AliHBTParticleCut*      fFirstPartCut;
-    AliHBTParticleCut*      fSecondPartCut;
+    AliHBTParticleCut*      fFirstPartCut;//cut on first particle in pair
+    AliHBTParticleCut*      fSecondPartCut;//cut on second particle in pair
 
-    AliHbtBasePairCut** fCuts; //!
-    Int_t fNCuts;
+    AliHbtBasePairCut** fCuts; //! array of poiters to base cuts
+    Int_t fNCuts;//Number of cuts in fCuts array
        
        
     AliHbtBasePairCut* FindCut(AliHBTPairCutProperty);
   private:
     static const Int_t fkgMaxCuts;
   public:
-    ClassDef(AliHBTPairCut,1)
+    ClassDef(AliHBTPairCut,2)
  
 };
 /******************************************************************/
@@ -163,6 +165,17 @@ class AliHBTKtCut: public AliHbtBasePairCut
      ClassDef(AliHBTKtCut,1)
  };
 
+class AliHBTKStarCut: public AliHbtBasePairCut
+ {
+   public:
+    AliHBTKStarCut(Double_t min = 0.0, Double_t max = 0.0):AliHbtBasePairCut(min,max,kHbtPairCutPropKStar){}
+    virtual ~AliHBTKStarCut(){}
+   protected:
+    virtual Double_t  GetValue(AliHBTPair* pair){return pair->GetKStar();}
+   private:
+   public:
+     ClassDef(AliHBTKStarCut,1)
+ };
 
 class AliHBTQSideCMSLCCut: public AliHbtBasePairCut
  {

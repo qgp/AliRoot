@@ -46,7 +46,6 @@
 */             
 //*-- Author: Laurent Aphecetche(SUBATECH)
 // --- std system ---
-#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -108,7 +107,7 @@ void AliPHOSMemoryWatcher::watch(int x)
   }
   else {
     fDisabled=true;
-    cerr << "AliPHOSMemoryWatcher::watch : I'm full !" << endl;
+    Error("watch", "I'm full !" ) ;
   }
 }
 //_____________________________________________________________________________

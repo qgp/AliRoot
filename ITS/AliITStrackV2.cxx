@@ -23,7 +23,7 @@
 #include <TMatrixD.h>
 
 #include <TMath.h>
-#include <iostream.h>
+#include <Riostream.h>
 
 #include "AliCluster.h"
 #include "AliTPCtrack.h"
@@ -34,14 +34,13 @@ ClassImp(AliITStrackV2)
 const Int_t kWARN=5;
 
 //____________________________________________________________________________
-AliITStrackV2::AliITStrackV2(const AliTPCtrack& t) throw (const Char_t *) {
+AliITStrackV2::AliITStrackV2(const AliTPCtrack& t) throw (const Char_t *) :
+AliKalmanTrack(t) {
   //------------------------------------------------------------------
   //Conversion TPC track -> ITS track
   //------------------------------------------------------------------
-  SetLabel(t.GetLabel());
   SetChi2(0.);
   SetNumberOfClusters(0);
-  //SetConvConst(t.GetConvConst());
 
   fdEdx  = t.GetdEdx();
   SetMass(t.GetMass());
@@ -69,6 +68,7 @@ AliITStrackV2::AliITStrackV2(const AliTPCtrack& t) throw (const Char_t *) {
   fC40=c[10]/x; fC41=c[11]/x; fC42=c[12]/x; fC43=c[13]/x; fC44=c[14]/x/x;
 
   if (!Invariant()) throw "AliITStrackV2: conversion failed !\n";
+
 }
 
 //____________________________________________________________________________
@@ -271,7 +271,7 @@ Int_t AliITStrackV2::CorrectForMaterial(Double_t d, Double_t x0) {
   //Multiple scattering******************
   if (d!=0) {
     //Double_t theta2=14.1*14.1/(beta2*p2*1e6)*TMath::Abs(d);
-     Double_t theta2=1.0259e-6*14*14/28/(beta2*p2)*d*9.36*2.33;
+     Double_t theta2=1.0259e-6*14*14/28/(beta2*p2)*TMath::Abs(d)*9.36*2.33;
      fC22 += theta2*(1.- fP2*fP2)*(1. + fP3*fP3);
      fC33 += theta2*(1. + fP3*fP3)*(1. + fP3*fP3);
      fC43 += theta2*fP3*fP4*(1. + fP3*fP3);
@@ -596,12 +596,20 @@ Int_t AliITStrackV2::Propagate(Double_t alp,Double_t xk) {
   return 1;
 }
 
-Double_t AliITStrackV2::GetD() const {
+Double_t AliITStrackV2::GetD(Double_t x, Double_t y) const {
   //------------------------------------------------------------------
-  //This function calculates the transverse impact parameter
+  // This function calculates the transverse impact parameter
+  // with respect to a point with global coordinates (x,y)
   //------------------------------------------------------------------
-  Double_t sn=fP4*fX - fP2, cs=fP4*fP0 + TMath::Sqrt(1.- fP2*fP2);
-  Double_t a=2*(fX*fP2 - fP0*TMath::Sqrt(1.- fP2*fP2))-fP4*(fX*fX + fP0*fP0);
+  Double_t xt=fX, yt=fP0;
+
+  Double_t sn=TMath::Sin(fAlpha), cs=TMath::Cos(fAlpha);
+  Double_t a = x*cs + y*sn;
+  y = -x*sn + y*cs; x=a;
+  xt-=x; yt-=y;
+
+  sn=fP4*xt - fP2; cs=fP4*yt + TMath::Sqrt(1.- fP2*fP2);
+  a=2*(xt*fP2 - yt*TMath::Sqrt(1.- fP2*fP2))-fP4*(xt*xt + yt*yt);
   if (fP4<0) a=-a;
   return a/(1 + TMath::Sqrt(sn*sn + cs*cs));
 }

@@ -33,16 +33,16 @@ class AliPHOSPID : public TTask {
   AliPHOSPID(const char* evFolderName,const char * name) ;
   virtual ~AliPHOSPID() ; // dtor
 
-  virtual void Exec(Option_t * option) { cout << "AliPHOSPID::Exec not define " << endl ; }
-  virtual const Int_t GetRecParticlesInRun()  const { cout << "AliPHOSPID:::GetRecParticlesInRun not defined " << endl ; return 0 ;} 
-  virtual void Print(Option_t * option) const { cout << "AliPHOSPID::Print not defined " << endl ;}
-  virtual void SetCpvtoEmcDistanceCut(Float_t Cluster_En, TString Eff_Pur,Float_t cut ) { cout << "AliPHOSPID::SetCpvtoEmcDistanceCut not defined " << endl ;}
-  virtual void SetTimeGate(Float_t Cluster_En, TString Eff_Pur, Float_t gate) { cout << "AliPHOSPID::SetTimeGate not defined " << endl ; }
-  virtual const char * Version() const { cout << "AliPHOSPID::Version not defined " << endl ; return 0 ; }  
-  virtual void WriteRecParticles(Int_t event) { cout << "AliPHOSPID::WriteRecParticles not defined " << endl ; }
+  virtual void Exec(Option_t * option) { Warning("Exec", "not defined" ) ; }
+  virtual const Int_t GetRecParticlesInRun()  const { Warning("GetRecParticlesInRun", "not defined" ) ; return 0 ;} 
+  virtual void Print(Option_t * option) const { Warning("Print", "not defined" ) ;}
+  virtual void SetCpvtoEmcDistanceCut(Float_t Cluster_En, TString Eff_Pur,Float_t cut ) { Warning("SetCpvtoEmcDistanceCut", "not defined" ) ;}
+  virtual void SetTimeGate(Float_t Cluster_En, TString Eff_Pur, Float_t gate) { Warning("SetTimeGate", "not defined" ) ; }
+  virtual const char * Version() const { Warning("Version", "not defined" ) ; return 0 ; }  
+  virtual void WriteRecParticles(Int_t event) { Warning("WriteRecParticles", "not defined" ) ; }
 
 private: 
-  virtual void Init() { cout << "AliPHOSPID::Init not define " << endl ; } 
+  virtual void Init() { Warning("Init", "not defined" ) ; } 
 
 protected:
 

@@ -23,8 +23,26 @@
 
 /*
 $Log$
+Revision 1.3.4.2  2002/10/09 09:23:55  hristov
+New task hierarchy, bug corrections, new development (P.Skowronski)
+
 Revision 1.3.4.1  2002/05/31 09:37:59  hristov
 First set of changes done by Piotr
+
+Revision 1.7  2002/10/29 14:26:49  hristov
+Code clean-up (F.Carminati)
+
+Revision 1.6  2002/10/22 15:02:15  alibrary
+Introducing Riostream.h
+
+Revision 1.5  2002/10/14 14:57:32  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.3.6.1  2002/07/24 10:08:13  alibrary
+Updating VirtualMC
+
+Revision 1.4  2002/07/17 07:29:53  jchudoba
+Add private method GetNInputStreams(). Do not use it, it's just a temporary fix the PHOS and EMCAL code.
 
 Revision 1.3  2001/11/14 14:50:33  jchudoba
 Pass custom name and title to the TTask base class
@@ -38,7 +56,7 @@ ABC for detector digits merging/digitization
 */
 
 // system includes
-#include <iostream.h>
+#include <Riostream.h>
 
 // ROOT includes
 
@@ -48,26 +66,56 @@ ABC for detector digits merging/digitization
 
 ClassImp(AliDigitizer)
 
-AliDigitizer::AliDigitizer(const Text_t* name, const Text_t* title)
-  :TTask(name,title) 
+//_______________________________________________________________________
+AliDigitizer::AliDigitizer(const Text_t* name, const Text_t* title):
+  TTask(name,title),
+  fManager(0)
 {
-//
-// dummy default ctor with name and title
-//
-  fManager = 0x0;
 }
 
+//_______________________________________________________________________
+AliDigitizer::AliDigitizer(const AliDigitizer &dig):
+  TTask(dig.GetName(),dig.GetTitle()),
+  fManager(0)
+{
+  //
+  // Copy ctor with
+  //
+  dig.Copy(*this);
+}
+
+//_______________________________________________________________________
+void AliDigitizer::Copy(AliDigitizer &) const
+{
+  Fatal("Copy","Not yet implemented\n");
+}
+
+//_______________________________________________________________________
 AliDigitizer::AliDigitizer(AliRunDigitizer *manager, 
-                           const Text_t* name, const Text_t* title)
-  :TTask(name,title)
+                           const Text_t* name, const Text_t* title):
+  TTask(name,title),
+  fManager(manager)
 {
-//
-// ctor with name and title
-//
-  fManager = manager;
-  manager->AddDigitizer(this);
+  //
+  // ctor with name and title
+  //
+  fManager->AddDigitizer(this);
 }
 
+//_______________________________________________________________________
+AliDigitizer::~AliDigitizer() 
+{
+  delete fManager;
+}
 
-
-AliDigitizer::~AliDigitizer() {;}
+//_______________________________________________________________________
+Int_t AliDigitizer::GetNInputStreams() const
+{
+  //
+  // return number of input streams
+  //
+  Int_t nInputStreams = 0 ;
+  if (fManager)
+    nInputStreams = fManager->GetNinputs() ;
+  return nInputStreams ; 
+}

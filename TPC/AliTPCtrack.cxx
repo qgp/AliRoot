@@ -13,13 +13,33 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
+/*
+$Log$
+Revision 1.14  2002/10/23 13:45:00  hristov
+Fatal if no magnetic field set for the reconstruction (Y.Belikov)
+
+Revision 1.13  2002/10/23 07:17:34  alibrary
+Introducing Riostream.h
+
+Revision 1.12  2002/10/14 14:57:43  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.9.6.1  2002/10/11 08:34:48  hristov
+Updating VirtualMC to v3-09-02
+
+Revision 1.11  2002/07/19 07:34:42  kowal2
+Logs added
+
+*/
+
+
 //-----------------------------------------------------------------
 //           Implementation of the TPC track class
 //
 // Origin: Iouri Belikov, CERN, Jouri.Belikov@cern.ch
 //-----------------------------------------------------------------
 
-#include <iostream.h>
+#include <Riostream.h>
 
 #include "AliTPCtrack.h"
 #include "AliTPCcluster.h"
@@ -54,15 +74,13 @@ const Double_t cc[15], Double_t xref, Double_t alpha) : AliKalmanTrack() {
 }
 
 //_____________________________________________________________________________
-AliTPCtrack::AliTPCtrack(const AliKalmanTrack& t,Double_t alpha) {
+AliTPCtrack::AliTPCtrack(const AliKalmanTrack& t,Double_t alpha) :
+AliKalmanTrack(t) {
   //-----------------------------------------------------------------
   // Conversion AliKalmanTrack -> AliTPCtrack.
   //-----------------------------------------------------------------
-  SetLabel(t.GetLabel());
   SetChi2(0.);
-  SetMass(t.GetMass());
   SetNumberOfClusters(0);
-  //SetConvConst(t.GetConvConst());
 
   fdEdx  = 0.;
   fAlpha = alpha;
@@ -121,8 +139,10 @@ Int_t AliTPCtrack::Compare(const TObject *o) const {
   // This function compares tracks according to the their curvature
   //-----------------------------------------------------------------
   AliTPCtrack *t=(AliTPCtrack*)o;
-  Double_t co=TMath::Abs(t->Get1Pt());
-  Double_t c =TMath::Abs(Get1Pt());
+  //Double_t co=TMath::Abs(t->Get1Pt());
+  //Double_t c =TMath::Abs(Get1Pt());
+  Double_t co=t->GetSigmaY2()*t->GetSigmaZ2();
+  Double_t c =GetSigmaY2()*GetSigmaZ2();
   if (c>co) return 1;
   else if (c<co) return -1;
   return 0;
@@ -224,8 +244,8 @@ Int_t AliTPCtrack::PropagateTo(Double_t xk,Double_t x0,Double_t rho) {
   Double_t d=sqrt((x1-fX)*(x1-fX)+(y1-fP0)*(y1-fP0)+(z1-fP1)*(z1-fP1));
   Double_t p2=(1.+ GetTgl()*GetTgl())/(Get1Pt()*Get1Pt());
   Double_t beta2=p2/(p2 + GetMass()*GetMass());
-  Double_t theta2=14.1*14.1/(beta2*p2*1e6)*d/x0*rho;
-  //Double_t theta2=1.0259e-6*10*10/20/(beta2*p2)*d*rho;
+  //Double_t theta2=14.1*14.1/(beta2*p2*1e6)*d/x0*rho;
+  Double_t theta2=1.0259e-6*10*10/20/(beta2*p2)*d*rho;
 
   Double_t ey=fP4*fX - fP2, ez=fP3;
   Double_t xz=fP4*ez, zz1=ez*ez+1, xy=fP2+ey;

@@ -55,7 +55,7 @@ public:
   Float_t  GetDistance(AliPHOSEmcRecPoint * emc, AliPHOSRecPoint * cpv, Option_t * Axis)const ; // Relative Distance CPV-EMC
   TVector3 GetMomentumDirection(AliPHOSEmcRecPoint * emc, AliPHOSRecPoint * cpv)const ;
   void     PrintRecParticles(Option_t * option) ;
-  virtual void WriteRecParticles(Int_t event) ; 
+  virtual void WriteRecParticles(); 
 
  private:
 

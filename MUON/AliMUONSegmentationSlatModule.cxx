@@ -15,6 +15,12 @@
 
 /*
 $Log$
+Revision 1.12  2002/10/23 07:24:56  alibrary
+Introducing Riostream.h
+
+Revision 1.11  2001/11/28 16:34:01  morsch
+In DC, fNDiv, fDpxD set to 0.
+
 Revision 1.10  2001/05/16 14:57:17  alibrary
 New files for folders and Stack
 
@@ -59,7 +65,7 @@ Segmentation classes for bending and non bending plane slat modules (A. de Falco
 #include "AliRun.h"
 #include "AliMUON.h"
 #include <TMath.h>
-#include <iostream.h>
+#include <Riostream.h>
 
 #include "AliMUONSegmentationV01.h"
 

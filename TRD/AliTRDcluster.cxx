@@ -15,8 +15,17 @@
 
 /*
 $Log$
-Revision 1.5  2002/03/28 14:59:07  cblume
-Coding conventions
+Revision 1.4.8.1  2002/06/03 09:55:03  hristov
+Merged with v3-08-02
+
+Revision 1.7  2002/10/14 14:57:43  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.4.10.2  2002/07/24 10:09:30  alibrary
+Updating VirtualMC
+
+Revision 1.6  2002/06/12 09:54:35  cblume
+Update of tracking code provided by Sergei
 
 Revision 1.4  2001/05/07 08:08:05  cblume
 Update of TRD code
@@ -44,27 +53,7 @@ Add the tracking code
 ClassImp(AliTRDcluster)
  
 //_____________________________________________________________________________
-AliTRDcluster::AliTRDcluster() 
-{
-  //
-  // Default constructor
-  //
-
-  fDetector  = 0;
-  fTimeBin   = 0;
-  fTracks[0] = 0;
-  fTracks[1] = 0;
-  fTracks[2] = 0; 
-  fY         = 0;
-  fZ         = 0;
-  fQ         = 0;
-  fSigmaY2   = 0;
-  fSigmaZ2   = 0;
-
-}
-
-//_____________________________________________________________________________
-AliTRDcluster::AliTRDcluster(const AliTRDrecPoint &p)
+  AliTRDcluster::AliTRDcluster(const AliTRDrecPoint &p):AliCluster()
 {
   //
   // Constructor from AliTRDrecPoint
@@ -90,60 +79,26 @@ AliTRDcluster::AliTRDcluster(const AliTRDrecPoint &p)
 }
 
 //_____________________________________________________________________________
-AliTRDcluster::AliTRDcluster(const AliTRDcluster &c)
+AliTRDcluster::AliTRDcluster(const AliTRDcluster &c):AliCluster()
 {
   //
   // Copy constructor 
   //
 
-  ((AliTRDcluster &) c).Copy(*this);
+  fTracks[0]  = c.GetLabel(0);
+  fTracks[1]  = c.GetLabel(1);
+  fTracks[2]  = c.GetLabel(2);
+
+  fY          = c.GetY();
+  fZ          = c.GetZ();
+  fSigmaY2    = c.GetSigmaY2();
+  fSigmaZ2    = c.GetSigmaZ2();  
+
+  fDetector   = c.GetDetector();
+  fTimeBin    = c.GetLocalTimeBin();
+  fQ          = c.GetQ();
 
 }
-
-//_____________________________________________________________________________
-AliTRDcluster::~AliTRDcluster()
-{
-  //
-  // AliTRDcluster destructor
-  //
-
-}
-
-//_____________________________________________________________________________
-AliTRDcluster &AliTRDcluster::operator=(const AliTRDcluster &c)
-{
-  //
-  // Assignment operator
-  //
-
-  if (this != &c) ((AliTRDcluster &) c).Copy(*this);
-  return *this;
-
-}
-
-//_____________________________________________________________________________
-void AliTRDcluster::Copy(TObject &c)
-{
-  //
-  // Copy function
-  //
-
-  ((AliTRDcluster &) c).fDetector   = fDetector;
-  ((AliTRDcluster &) c).fTimeBin    = fTimeBin;
-
-  ((AliTRDcluster &) c).fTracks[0]  = fTracks[0];
-  ((AliTRDcluster &) c).fTracks[1]  = fTracks[1];
-  ((AliTRDcluster &) c).fTracks[2]  = fTracks[2];
-
-  ((AliTRDcluster &) c).fQ          = fQ;
-
-  ((AliTRDcluster &) c).fY          = fY;
-  ((AliTRDcluster &) c).fZ          = fZ;
-  ((AliTRDcluster &) c).fSigmaY2    = fSigmaY2;
-  ((AliTRDcluster &) c).fSigmaZ2    = fSigmaZ2;  
-
-}
-
 
 //_____________________________________________________________________________
 void AliTRDcluster::AddTrackIndex(Int_t *track)
@@ -166,7 +121,7 @@ void AliTRDcluster::AddTrackIndex(Int_t *track)
   for (i=0; i<kSize; i++) {
     entries[i][0]=-1;
     entries[i][1]=0;
-  }
+  }                                 
 
   for (Int_t k=0; k<kSize; k++) {
     index=track[k];
@@ -182,7 +137,7 @@ void AliTRDcluster::AddTrackIndex(Int_t *track)
         j++;
       }
     }
-  }
+  }             
 
   // sort by number of appearances and index value
   Int_t swap=1, tmp0, tmp1;
@@ -203,14 +158,12 @@ void AliTRDcluster::AddTrackIndex(Int_t *track)
         }
       }
     }
-  }
+  }               
 
   // set track indexes
-  for(i=0; i<3; i++) {
-    fTracks[i] = entries[i][0];
-  }
+  for(i=0; i<3; i++) SetLabel(entries[i][0],i);
 
   return;
 
-}
+}          
 

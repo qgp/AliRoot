@@ -15,6 +15,18 @@
 
 /*
 $Log$
+Revision 1.7.4.1  2002/06/03 09:55:04  hristov
+Merged with v3-08-02
+
+Revision 1.10  2002/10/14 14:57:44  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.7.6.2  2002/07/24 10:09:31  alibrary
+Updating VirtualMC
+
+Revision 1.9  2002/06/12 09:54:36  cblume
+Update of tracking code provided by Sergei
+
 Revision 1.8  2002/03/28 14:59:07  cblume
 Coding conventions
 
@@ -59,6 +71,7 @@ Add the tracking code
 #include "AliTRDcluster.h" 
 #include "AliTRDtimeBin.h" 
 #include "AliTRDtrackingSector.h" 
+#include "AliTRDparameter.h"
 
 ClassImp(AliTRDtrackingSector) 
 
@@ -101,6 +114,12 @@ void AliTRDtrackingSector::SetUp()
 
   fTimeBin = new AliTRDtimeBin[fN]; 
 
+  if (!fPar) {
+    fPar = new AliTRDparameter("TRDparameter","Standard TRD parameter");
+  }
+
+  fTimeBinSize = fPar->GetTimeBinSize();
+
 }
 
 //______________________________________________________
@@ -120,7 +139,7 @@ Double_t AliTRDtrackingSector::GetX(Int_t tb) const
     Int_t localTb = tbPerPlane - tb%tbPerPlane - 1;
 
     Int_t plane = tb/tbPerPlane;
-    Float_t t0 = fGeom->GetTime0(plane);
+    Float_t t0 = fPar->GetTime0(plane);
     Double_t x = t0 - (localTb + 0.5) * fTimeBinSize;
 
     return x;
@@ -136,8 +155,8 @@ Int_t AliTRDtrackingSector::GetTimeBinNumber(Double_t x) const
   // Returns the time bin number
   //
 
-  Float_t rOut = fGeom->GetTime0(AliTRDgeometry::Nplan()-1); 
-  Float_t rIn  = fGeom->GetTime0(0) - AliTRDgeometry::DrThick();
+  Float_t rOut = fPar->GetTime0(AliTRDgeometry::Nplan()-1); 
+  Float_t rIn  = fPar->GetTime0(0) - AliTRDgeometry::DrThick();
 
 
   if(x >= rOut) return fN-1;
@@ -145,11 +164,11 @@ Int_t AliTRDtrackingSector::GetTimeBinNumber(Double_t x) const
 
   Int_t plane;
   for (plane = AliTRDgeometry::Nplan()-1; plane >= 0; plane--) {
-    if(x > (fGeom->GetTime0(plane) - AliTRDgeometry::DrThick())) break;
+    if(x > (fPar->GetTime0(plane) - AliTRDgeometry::DrThick())) break;
   }  
  
   Int_t tbPerPlane = fN/AliTRDgeometry::Nplan();
-  Int_t localTb = Int_t((fGeom->GetTime0(plane)-x)/fTimeBinSize);
+  Int_t localTb = Int_t((fPar->GetTime0(plane)-x)/fTimeBinSize);
 
   if((localTb < 0) || (localTb >= tbPerPlane)) {
     printf("AliTRDtrackingSector::GetTimeBinNumber: \n");
@@ -207,13 +226,13 @@ Bool_t AliTRDtrackingSector::TECframe(Int_t tb, Double_t y, Double_t z) const
 
   for(Int_t iCha = 1; iCha < AliTRDgeometry::Ncham(); iCha++) {
 
-    fRow0 = fGeom->GetRow0(plane,iCha-1,0);
-    fRowPadSize = fGeom->GetRowPadSize(plane,iCha-1,0);
-    nPadRows = fGeom->GetRowMax(plane,iCha-1,0);
+    fRow0 = fPar->GetRow0(plane,iCha-1,0);
+    fRowPadSize = fPar->GetRowPadSize(plane,iCha-1,0);
+    nPadRows = fPar->GetRowMax(plane,iCha-1,0);
     zmin = fRow0 - fRowPadSize/2 + fRowPadSize * nPadRows;
 
-    fRow0 = fGeom->GetRow0(plane,iCha,0);
-    fRowPadSize = fGeom->GetRowPadSize(plane,iCha,0);
+    fRow0 = fPar->GetRow0(plane,iCha,0);
+    fRowPadSize = fPar->GetRowPadSize(plane,iCha,0);
     zmax = fRow0 - fRowPadSize/2;
 
     if((z > zmin) && (z < zmax)) return kTRUE;     

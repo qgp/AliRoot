@@ -15,7 +15,20 @@
 
 /*
 $Log$
+Revision 1.3.4.3  2002/06/18 10:19:24  hristov
+Merging done partially whithin AliRunDigitizer (P.Skowronski)
+
 Revision 1.3.4.2  2002/06/06 14:21:19  hristov
+Merged with v3-08-02
+
+$Log$
+Revision 1.8  2002/10/23 07:17:33  alibrary
+Introducing Riostream.h
+
+Revision 1.7  2002/10/14 14:57:42  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.3.6.1  2002/06/10 15:26:11  hristov
 Merged with v3-08-02
 
 Revision 1.6  2002/04/06 14:41:04  kowal2
@@ -23,15 +36,12 @@ Added #include<stdlib.h> and log
 
 */
 
-
-
-
 #include <stdlib.h>
 #include <TTree.h> 
 #include <TObjArray.h>
 #include <TFile.h>
 #include <TDirectory.h>
-#include <iostream.h>
+#include <Riostream.h>
 
 #include "AliTPCDigitizer.h"
 
@@ -341,7 +351,6 @@ void AliTPCDigitizer::ExecSave(Option_t* option)
   
   rl->LoadgAlice();
   AliRun* alirun = rl->GetAliRun();
-//  printf("TPC merging -1  -Tree %s\t%p\n",fManager->GetInputTreeH(0)->GetName(),fManager->GetInputTreeH(0)->GetListOfBranches()->At(3));
   
   AliTPC *pTPC  = (AliTPC *) alirun->GetModule("TPC");
   AliTPCParam * param = pTPC->GetParam();
@@ -352,12 +361,7 @@ void AliTPCDigitizer::ExecSave(Option_t* option)
   Int_t * masks = new Int_t[nInputs];
   for (Int_t i=0; i<nInputs;i++)
     masks[i]= fManager->GetMask(i);
-  //  Short_t **pdig= new Short_t*[nInputs];   //pointers to the expanded digits array
-  //Int_t **ptr=  new Int_t*[nInputs];       //pointers to teh expanded tracks array
 
-  //create digits array for given sectors
-  // make indexes
-//   printf("TPC merging -2  -Tree %s\t%p\n",fManager->GetInputTreeH(0)->GetName(),fManager->GetInputTreeH(0)->GetListOfBranches()->At(3));
   AliSimDigits ** digarr = new AliSimDigits*[nInputs]; 
   for (Int_t i1=0;i1<nInputs; i1++)
    {
@@ -367,22 +371,14 @@ void AliTPCDigitizer::ExecSave(Option_t* option)
     gime = rl->GetLoader("TPCLoader");
 
     TTree * treear =  gime->TreeS();
-  //  printf("TPC merging -2.7  -Tree %s\t%p\n",fManager->GetInputTreeH(0)->GetName(),fManager->GetInputTreeH(0)->GetListOfBranches()->At(3));
     TBranch * br = treear->GetBranch("fSegmentID");
     if (br) br->GetFile()->cd();
- //   printf("TPC merging -2.75  -Tree %s\t%p\n",fManager->GetInputTreeH(0)->GetName(),fManager->GetInputTreeH(0)->GetListOfBranches()->At(3));
-    //treear->BuildIndex("fSegmentID","fSegmentID");
     if (!treear) {      
       cerr<<" TPC -  not existing input = \n"<<i1<<" ";      
     } 
-//    printf("TPC merging -2.8  -Tree %s\t%p\n",fManager->GetInputTreeH(0)->GetName(),fManager->GetInputTreeH(0)->GetListOfBranches()->At(3));
-
-      treear->GetBranch("Segment")->SetAddress(&digarr[i1]);
-
-//     printf("TPC merging -2.9  -Tree %s\t%p\n",fManager->GetInputTreeH(0)->GetName(),fManager->GetInputTreeH(0)->GetListOfBranches()->At(3));
+    treear->GetBranch("Segment")->SetAddress(&digarr[i1]);
   }
   
-//  Stat_t nentries = fManager->GetInputTreeTPCS(0)->GetEntries();
   rl = AliRunLoader::GetRunLoader(fManager->GetInputFolderName(0));
   gime = rl->GetLoader("TPCLoader");
   Stat_t nentries = gime->TreeS()->GetEntries();
@@ -390,22 +386,15 @@ void AliTPCDigitizer::ExecSave(Option_t* option)
 
   //create branch's in TPC treeD
   AliSimDigits * digrow = new AliSimDigits;
-//  TTree * tree  = fManager->GetTreeDTPC();
   TTree * tree  = ogime->TreeD();
 
-  //if (tree->GetBranch("Segment") ) tree->GetBranch("Segment")->SetAddress(&digrow);
-  //else
   tree->Branch("Segment","AliSimDigits",&digrow);
-  //
-// printf("TPC merging -3  -Tree %s\t%p\n",fManager->GetInputTreeH(0)->GetName(),fManager->GetInputTreeH(0)->GetListOfBranches()->At(3));
   param->SetZeroSup(2);
 
   Int_t zerosup = param->GetZeroSup();
   //Loop over segments of the TPC
     
   for (Int_t n=0; n<nentries; n++) {
-  //    for (Int_t n=0; n<300; n++) {
-//    fManager->GetInputTreeTPCS(0)->GetEvent(n);      
     rl = AliRunLoader::GetRunLoader(fManager->GetInputFolderName(0));
     gime = rl->GetLoader("TPCLoader");
     gime->TreeS()->GetEvent(n);

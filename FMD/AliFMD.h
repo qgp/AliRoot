@@ -30,7 +30,7 @@ public:
   virtual Int_t  DistanceToPrimitive(Int_t px, Int_t py);
   virtual Int_t  IsVersion() const =0;
   virtual void   Init();
-  virtual void   MakeBranch(Option_t *opt=" ",const char *file=0);
+  virtual void   MakeBranch(Option_t *opt=" ");
   virtual void   MakeBranchInTreeD(TTree *treeD, const char *file=0);
   virtual void   SetTreeAddress();
   virtual void   ResetHits();
@@ -72,7 +72,7 @@ public:
   TClonesArray *fSDigits      ; // List of summable digits
   TClonesArray *fReconParticles;
 
- ClassDef(AliFMD,3)  //Class for the FMD detector
+ ClassDef(AliFMD,4)  //Class for the FMD detector
 };
 #endif // AliFMD_H
 

@@ -30,8 +30,6 @@
 
 // --- Standard library ---
 
-#include <iostream.h> 
-
 // --- AliRoot header files ---
 
  #include "AliGenerator.h"
@@ -610,7 +608,7 @@ Int_t AliEMCALTowerRecPoint::GetMultiplicityAtLevel(const Float_t H) const
 }
 
 //____________________________________________________________________________
-Int_t  AliEMCALTowerRecPoint::GetNumberOfLocalMax(Int_t *  maxAt, Float_t * maxAtEnergy,
+Int_t  AliEMCALTowerRecPoint::GetNumberOfLocalMax(AliEMCALDigit **  maxAt, Float_t * maxAtEnergy,
 					       Float_t locMaxCut,TClonesArray * digits) const
 { 
   // Calculates the number of local maxima in the cluster using fLocalMaxCut as the minimum
@@ -624,28 +622,28 @@ Int_t  AliEMCALTowerRecPoint::GetNumberOfLocalMax(Int_t *  maxAt, Float_t * maxA
   Int_t iDigit ;
 
   for(iDigit = 0; iDigit < fMulDigit; iDigit++)
-    maxAt[iDigit] = (Int_t) digits->At(fDigitsList[iDigit])  ;
+    maxAt[iDigit] = (AliEMCALDigit*) digits->At(fDigitsList[iDigit])  ;
 
   
   for(iDigit = 0 ; iDigit < fMulDigit; iDigit++) {   
-    if(maxAt[iDigit] != -1) {
-      digit = (AliEMCALDigit *) maxAt[iDigit] ;
+    if(maxAt[iDigit]) {
+      digit = maxAt[iDigit] ;
           
       for(iDigitN = 0; iDigitN < fMulDigit; iDigitN++) {	
 	digitN = (AliEMCALDigit *) digits->At(fDigitsList[iDigitN]) ; 
 	
 	if ( AreNeighbours(digit, digitN) ) {
 	  if (fEnergyList[iDigit] > fEnergyList[iDigitN] ) {    
-	    maxAt[iDigitN] = -1 ;
+	    maxAt[iDigitN] = 0 ;
 	    // but may be digit too is not local max ?
 	    if(fEnergyList[iDigit] < fEnergyList[iDigitN] + locMaxCut) 
-	      maxAt[iDigit] = -1 ;
+	      maxAt[iDigit] = 0 ;
 	  }
 	  else {
-	    maxAt[iDigit] = -1 ;
+	    maxAt[iDigit] = 0 ;
 	    // but may be digitN too is not local max ?
 	    if(fEnergyList[iDigit] > fEnergyList[iDigitN] - locMaxCut) 
-	      maxAt[iDigitN] = -1 ; 
+	      maxAt[iDigitN] = 0 ; 
 	  } 
 	} // if Areneighbours
       } // while digitN
@@ -654,7 +652,7 @@ Int_t  AliEMCALTowerRecPoint::GetNumberOfLocalMax(Int_t *  maxAt, Float_t * maxA
   
   iDigitN = 0 ;
   for(iDigit = 0; iDigit < fMulDigit; iDigit++) { 
-    if(maxAt[iDigit] != -1){
+    if(maxAt[iDigit] ){
       maxAt[iDigitN] = maxAt[iDigit] ;
       maxAtEnergy[iDigitN] = fEnergyList[iDigit] ;
       iDigitN++ ; 
@@ -681,27 +679,35 @@ void AliEMCALTowerRecPoint::Print(Option_t * option)
 {
   // Print the list of digits belonging to the cluster
   
-  cout << "AliEMCALTowerRecPoint: " << endl ;
+  TString message("\n") ; 
 
   Int_t iDigit;
-  cout << " digits # = " ;
-  for(iDigit=0; iDigit<fMulDigit; iDigit++)
-    cout << fDigitsList[iDigit] << "  " ;  
-  cout << endl ;
+  message += "digits # = " ;
+  for(iDigit=0; iDigit<fMulDigit; iDigit++) {
+    message += fDigitsList[iDigit] ; 
+    message += "  " ;
+  } 
   
-  cout << " Energies = " ;
-  for(iDigit=0; iDigit<fMulDigit; iDigit++) 
-    cout  << fEnergyList[iDigit] << "  ";
-  cout << endl ;
+  message += "\nEnergies = " ;
+  for(iDigit=0; iDigit<fMulDigit; iDigit++) { 
+    message += fEnergyList[iDigit] ; 
+    message += "  " ;
+  }
   
-  cout << " Primaries  " ;
-  for(iDigit = 0;iDigit < fMulTrack; iDigit++)
-    cout << fTracksList[iDigit] << " " << endl ;
-	
-  cout << "       Multiplicity    = " << fMulDigit  << endl ;
-  cout << "       Cluster Energy  = " << fAmp << endl ;
-  cout << "       Number of primaries " << fMulTrack << endl ;
-  cout << "       Stored at position " << GetIndexInList() << endl ; 
- 
+   message += "\nPrimaries  " ;
+   for(iDigit = 0;iDigit < fMulTrack; iDigit++) {
+     message += fTracksList[iDigit] ;
+     message += " " ;
+   }
+   message += "\n       Multiplicity    = " ; 
+   message += fMulDigit ;
+   message += "\n       Cluster Energy  = " ; 
+   message += fAmp ;
+   message += "\n       Number of primaries " ; 
+   message += fMulTrack ;
+   message += "\n       Stored at position " ;
+   message += GetIndexInList() ; 
+   
+   Info("Print", message.Data() ) ; 
 }
  

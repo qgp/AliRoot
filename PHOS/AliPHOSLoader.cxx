@@ -54,7 +54,7 @@
 #include "TParticle.h"
 
 // --- Standard library ---
-#include <iostream.h>
+#include <Riostream.h>
 
 // --- AliRoot header files ---
 
@@ -72,9 +72,9 @@
 #include "AliPHOSPID.h" 
 #include "AliPHOSPIDv1.h" 
 #include "AliPHOSGeometry.h"
+#include "AliPHOSCalibrationDB.h"
 
 ClassImp(AliPHOSLoader)
-  
 
 
 const TString AliPHOSLoader::fgkHitsName("HITS");//Name for TClonesArray with hits from one event
@@ -950,9 +950,31 @@ Bool_t AliPHOSLoader::IsOptionWritable(const TString& opt)
   if (opt.CompareTo("update",TString::kIgnoreCase)) return kTRUE;
   return kFALSE;
 }
+//____________________________________________________________________________ 
 
 void AliPHOSLoader::CleanRecParticles()
  {
    TClonesArray *arr = RecParticles();
    if (arr) arr->Clear();
  }
+//____________________________________________________________________________ 
+
+void AliPHOSLoader::ReadCalibrationDB(const char * database,const char * filename)
+{
+
+  if(fcdb && (strcmp(database,fcdb->GetTitle())==0))
+    return ;
+
+  TFile * file = gROOT->GetFile(filename) ;
+  if(!file)
+    file = TFile::Open(filename);
+  if(!file){
+    Error ("ReadCalibrationDB", "Cannot open file %s", filename) ;
+    return ;
+  }
+  if(fcdb)
+    fcdb->Delete() ;
+  fcdb = dynamic_cast<AliPHOSCalibrationDB *>(file->Get("AliPHOSCalibrationDB")) ;
+  if(!fcdb)
+    Error ("ReadCalibrationDB", "No database %s in file %s", database, filename) ;
+}

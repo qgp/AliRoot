@@ -1,6 +1,4 @@
 #include "AliTPCLoader.h"
-#include <TTree.h>
-#include <TFile.h>
 
 const TString AliTPCLoader::fgkDefaultHitsFileName      = "TPC.Hits.root";
 const TString AliTPCLoader::fgkDefaultSDigitsFileName   = "TPC.SDigits.root";
@@ -17,7 +15,7 @@ AliTPCLoader::AliTPCLoader()
 AliTPCLoader::AliTPCLoader(const Char_t *name,const Char_t *topfoldername)
  :AliLoader(name,topfoldername)
 {
-  cout<<"AliTPCLoader::AliTPCLoader: name = "<<name<<"; topfolder = "<<topfoldername<<endl;
+  Info("AliTPCLoader"," name = %s; topfolder = %s",name,topfoldername);
 }
 /*****************************************************************************/ 
 

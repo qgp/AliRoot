@@ -26,7 +26,7 @@ class TTask ;
 
 // --- Standard library ---
 #include <stdlib.h>
-#include <iostream.h>
+#include <Riostream.h>
 
 // --- AliRoot header files ---
 
@@ -46,6 +46,7 @@ class AliPHOSSDigitizer ;
 class AliPHOSClusterizer ;
 class AliPHOSTrackSegmentMaker ;
 class AliPHOSPID ;
+class AliPHOSCalibrationDB ;
 
 
 //
@@ -164,11 +165,16 @@ class AliPHOSLoader : public AliLoader {
   void   SetDebug(Int_t level) {fDebug = level;} // Set debug level
   void   SetBranchTitle(const TString& btitle);
   
+  AliPHOSCalibrationDB * CalibrationDB(){return  fcdb; }
+  void ReadCalibrationDB(const char * name, const char * filename);
+  
 protected:
-  TString fBranchTitle;
-  Bool_t  fRecParticlesLoaded;
-  Bool_t  fTracksLoaded;
-  TString fRecParticlesFileOption;
+  TString fBranchTitle;            //Title of the branch
+  Bool_t  fRecParticlesLoaded;     //Flag signing if Reconstructed Particles are loaded
+  Bool_t  fTracksLoaded;           //Flag signing if Tracks are loaded
+  TString fRecParticlesFileOption; //Loading Option for Reconstructed Particles
+  AliPHOSCalibrationDB * fcdb ;       //!
+
   Bool_t  IsOptionWritable(const TString& opt);
 private:
 

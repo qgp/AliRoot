@@ -5,48 +5,51 @@
 
 /* $Id$ */
 
-#include <TObject.h>
 #include <TArrayI.h>
+#include <TMCProcess.h>
+#include <TObject.h>
 #include <TStopwatch.h>
+#include <TVirtualMCStack.h>
 
-#include "AliMCProcess.h"
 #include "AliConfig.h"
-class TObjArray;
-class TClonesArray;
-class TParticle;
 class AliHeader;
+class TClonesArray;
 class TFile;
+class TObjArray;
+class TParticle;
 class TTree;
 class TString;
 
-
-class AliStack : public TNamed
+class AliStack : public TVirtualMCStack
 {
   public:
     // creators, destructors
     AliStack(Int_t size, const char* evfoldname = AliConfig::fgkDefaultEventFolderName);
     AliStack();
+    AliStack(const AliStack& st);
     virtual ~AliStack();
+    AliStack& operator=(const AliStack& st)
+      {st.Copy(*this); return(*this);}
 
     // methods
+
+    virtual void  SetTrack(Int_t done, Int_t parent, Int_t pdg, 
+  	              Float_t *pmom, Float_t *vpos, Float_t *polar, 
+                      Float_t tof, TMCProcess mech, Int_t &ntr,
+                      Float_t weight, Int_t is);
+    virtual void  SetTrack(Int_t done, Int_t parent, Int_t pdg,
+  	              Double_t px, Double_t py, Double_t pz, Double_t e,
+  		      Double_t vx, Double_t vy, Double_t vz, Double_t tof,
+                                           Double_t polx, Double_t poly, Double_t polz,
+		      TMCProcess mech, Int_t &ntr, Double_t weight,
+		      Int_t is);
+    virtual TParticle* GetNextTrack(Int_t& track);
+    virtual TParticle* GetPrimaryForTracking(Int_t i);    
+
     void  ConnectTree();
     void  BeginEvent();
     void  FinishRun();
     Bool_t GetEvent();
-    void  SetTrack(Int_t done, Int_t parent, Int_t pdg, 
-                   Float_t *pmom, Float_t *vpos, Float_t *polar, 
-                   Float_t tof, AliMCProcess mech, Int_t &ntr,
-                   Float_t weight = 1, Int_t is = 0);
-
-    void  SetTrack(Int_t done, Int_t parent, Int_t pdg,
-                   Double_t px, Double_t py, Double_t pz, Double_t e,
-                   Double_t vx, Double_t vy, Double_t vz, Double_t tof,
-                   Double_t polx, Double_t poly, Double_t polz,
-                   AliMCProcess mech, Int_t &ntr, Float_t weight = 1,
-                   Int_t is = 0);
-    void  GetNextTrack(Int_t &mtrack, Int_t &ipart, Float_t *pmom,
-                       Float_t &e, Float_t *vpos, Float_t *polar, Float_t &tof);
-
     void  PurifyKine();
     void  FinishEvent();
     void  FlagTrack(Int_t track);
@@ -58,17 +61,20 @@ class AliStack : public TNamed
 
     // set methods
     void  SetNtrack(Int_t ntrack);
-    void  SetCurrentTrack(Int_t track);                           
+    virtual void  SetCurrentTrack(Int_t track);                           
     void  SetHighWaterMark(Int_t hgwmk);    
     // get methods
-    Int_t       GetNtrack() const;
+    virtual Int_t GetNtrack() const;
     Int_t       GetNprimary() const;
-    Int_t       CurrentTrack() const;
+    virtual Int_t CurrentTrack() const;
     TObjArray*  Particles() const;
     TParticle*  Particle(Int_t id);
     Int_t       GetPrimary(Int_t id);
     TTree*      TreeK();
     void        SetEventFolderName(const char* foldname);
+    TParticle*  ParticleFromTreeK(Int_t id) const;
+    Int_t       TreeKEntry(Int_t id) const;
+    
   protected:
     // methods
     void  CleanParents();
@@ -77,6 +83,8 @@ class AliStack : public TNamed
     Bool_t KeepPhysics(TParticle* part);
     
   private:
+    void Copy(AliStack &st) const;
+
     // data members
     TClonesArray  *fParticles;         //! Pointer to list of particles
     TObjArray     *fParticleMap;       //! Map of particles in the supporting TClonesArray
@@ -89,9 +97,9 @@ class AliStack : public TNamed
     Int_t          fCurrentPrimary;    //! Last primary track returned from the stack
     Int_t          fHgwmk;             //! Last track purified
     Int_t          fLoadPoint;         //! Next free position in the particle buffer
-    TStopwatch     fTimer;             //! Timer object
+    
     TString        fEventFolderName;   //! Folder name where event is mounted
-    ClassDef(AliStack,2) //Particles stack
+    ClassDef(AliStack,3) //Particles stack
 };
 
 // inline

@@ -13,6 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
+
 /* $Id$ */
 
 //_________________________________________________________________________
@@ -143,12 +144,12 @@ void AliPHOSvImpacts::AddImpact( char* det, Int_t shunt, Int_t primary, Int_t tr
 }
 
 //____________________________________________________________________________
-void AliPHOSvImpacts::MakeBranch(Option_t *opt, const char *file)
+void AliPHOSvImpacts::MakeBranch(Option_t *opt)
 {  
   // Create new branch in the current Hits Root Tree containing
   // a list of PHOS impacts (exact values of track coming to detector)
 
-  AliDetector::MakeBranch(opt,file);
+  AliDetector::MakeBranch(opt);
   
   Int_t bufferSize = 32000 ;
   Int_t splitlevel = 0 ;

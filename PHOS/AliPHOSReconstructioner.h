@@ -31,11 +31,11 @@ class AliPHOSReconstructioner : public TTask {
 public:
 
   AliPHOSReconstructioner() ; //ctor            
-  AliPHOSReconstructioner(const char * headreFile, const char * branchName = "Default") ;
+  AliPHOSReconstructioner(const char * headreFile, const char * branchName = "Default");
   AliPHOSReconstructioner(const AliPHOSReconstructioner & rec) {
     // cpy ctor: 
     // requested by the Coding Convention
-    abort() ; 
+    Fatal("cpy ctor", "not implemented") ;
   }
    
   virtual ~AliPHOSReconstructioner() ;
@@ -59,7 +59,7 @@ public:
 
   AliPHOSReconstructioner & operator = (const AliPHOSReconstructioner & rvalue)  {
     // assignement operator requested by coding convention but not needed
-    abort() ;
+    Fatal("operator =", "not implementeyd") ;
     return *this ; 
   }
   

@@ -15,14 +15,30 @@
 
 /* 
    $Log$
+   Revision 1.3.4.2  2002/05/31 16:19:52  hristov
+   Merged with v3-08-02
+
    Revision 1.3.4.1  2002/05/31 09:37:59  hristov
    First set of changes done by Piotr
+
+   Revision 1.8  2002/10/29 14:32:21  morsch
+   ResetDigits put to the right place (J. Barbosa)
+
+   Revision 1.5  2002/07/09 13:11:26  hristov
+   Old style include files needed on HP (aCC)
 
    Revision 1.4  2002/05/28 07:53:10  morsch
    Wrong order of arguments in for-statement corrected.
 
    Revision 1.3  2001/12/05 14:53:34  hristov
-   Destructor corrected
+   Destructor corRevision 1.60  2002/10/22 16:28:21  alibrary
+  Introducing Riostream.h
+
+  Revision 1.59  2002/10/14 14:57:31  hristov
+  Merging the VirtualMC branch to the main development branch (HEAD)
+
+  Revision 1.58.6.1  2002/06/10 15:12:46  hristov
+  Merged with v3-08-02rected
 
    Revision 1.2  2001/11/07 14:50:31  hristov
    Minor correction of the Log part
@@ -34,7 +50,7 @@
 //Corrections applied in order to compile (only) with new I/O and folder structure
 //To be implemented correctly by responsible
 
-#include <iostream> 
+#include <Riostream.h> 
 
 #include <TTree.h> 
 #include <TObjArray.h>
@@ -261,36 +277,38 @@ void AliRICHDigitizer::Exec(Option_t* option)
       //
       //   Loop over hits
       for(Int_t i = 0; i < fHits->GetEntriesFast(); ++i) {
-      AliRICHHit* mHit = static_cast<AliRICHHit*>(fHits->At(i));
-      fNch = mHit->Chamber()-1;  // chamber number
-      if (fNch >= kNCH) {
-        cerr<<"AliRICHDigitizer: chamber nr. fNch out of range: "<<fNch<<endl;
-        cerr<<"               track: "<<fTrack<<endl;
-        continue;
-      }
-      iChamber = &(pRICH->Chamber(fNch));
-        
-      //
-      // Loop over pad hits
-      for (AliRICHSDigit* mPad=
-             (AliRICHSDigit*)pRICH->FirstPad(mHit,fSDigits);
-           mPad;
-           mPad=(AliRICHSDigit*)pRICH->NextPad(fSDigits))
-      {
-        Int_t iqpad    = mPad->QPad();       // charge per pad
-        fDigits[0]=mPad->PadX();
-        fDigits[1]=mPad->PadY();
-        fDigits[2]=iqpad;
-        fDigits[3]=iqpad;
-        fDigits[4]=mPad->HitNumber();
-              
-        // build the list of fired pads and update the info
-        if (Exists(mPad)) {
-          Update(mPad);
-        } else {
-          CreateNew(mPad);
-        }
-      } //end loop over clusters
+	AliRICHHit* mHit = static_cast<AliRICHHit*>(fHits->At(i));
+	fNch = mHit->Chamber()-1;  // chamber number
+	if (fNch >= kNCH) {
+	  cerr<<"AliRICHDigitizer: chamber nr. fNch out of range: "<<fNch<<endl;
+	  cerr<<"               track: "<<fTrack<<endl;
+	  continue;
+	}
+	iChamber = &(pRICH->Chamber(fNch));
+	  
+	//
+	// Loop over pad hits
+	for (AliRICHSDigit* mPad=
+	       (AliRICHSDigit*)pRICH->FirstPad(mHit,fSDigits);
+	     mPad;
+	     mPad=(AliRICHSDigit*)pRICH->NextPad(fSDigits))
+	{
+	  Int_t iqpad    = mPad->QPad();       // charge per pad
+	  fDigits[0]=mPad->PadX();
+	  fDigits[1]=mPad->PadY();
+	  fDigits[2]=iqpad;
+	  fDigits[3]=iqpad;
+	  fDigits[4]=mPad->HitNumber();
+		  
+	
+
+	  // build the list of fired pads and update the info
+	  if (Exists(mPad)) {
+	    Update(mPad);
+	  } else {
+	    CreateNew(mPad);
+	  }
+	} //end loop over clusters
       } // hit loop
     } // track loop
   } // end file loop
@@ -353,6 +371,7 @@ void AliRICHDigitizer::Exec(Option_t* option)
     for (Int_t tr=0;tr<nptracks;tr++) {
       tracks[tr]=transDigit->GetTrack(tr);
       charges[tr]=transDigit->GetCharge(tr);
+      //printf("%f \n",charges[tr]);
     }      //end loop over list of tracks for one pad
     if (nptracks < kMAXTRACKSPERRICHDIGIT ) {
       for (Int_t t=nptracks; t<kMAXTRACKSPERRICHDIGIT; t++) {
@@ -369,7 +388,7 @@ void AliRICHDigitizer::Exec(Option_t* option)
   }      
   outgime->TreeD()->Fill();
 
-  pRICH->ResetDigits();
+  //pRICH->ResetDigits();
   fTDList->Delete();    // or fTDList->Clear(); ???
   for(Int_t ii=0;ii<kNCH;++ii) {
     if (fHitMap[ii]) {

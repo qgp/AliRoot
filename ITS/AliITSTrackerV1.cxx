@@ -15,6 +15,27 @@
  
 /*
 $Log$
+Revision 1.21.4.1  2002/05/31 09:37:56  hristov
+First set of changes done by Piotr
+
+Revision 1.27  2002/10/31 10:17:40  hristov
+Corrected usage of AliKalmanTrack::SetConvConst (Alpha)
+
+Revision 1.26  2002/10/25 18:44:33  barbera
+Unnecessary print-out removed
+
+Revision 1.25  2002/10/24 17:12:58  barbera
+ITS tracking V1 integrated with the last version of ITS PID
+
+Revision 1.24  2002/10/23 14:28:38  barbera
+Fixes added to get into account the new magnetic field conversion factor automatically
+
+Revision 1.23  2002/10/22 18:29:34  barbera
+Tracking V1 ported to the HEAD
+
+Revision 1.22  2002/10/22 14:45:36  alibrary
+Introducing Riostream.h
+
 Revision 1.21  2002/02/05 09:12:26  hristov
 Small mods for gcc 3.02
 
@@ -41,7 +62,7 @@ Minor changes to remove compliation warning on gcc 2.92.2 compiler, and
 cleanded up a little bit of code.
 
 */
-//     The purpose of this class is to permorm the ITS tracking. The 
+// The purpose of this class is to permorm the ITS tracking. The 
 // constructor has the task to inizialize some private members. The method 
 // DoTracking is written to be called by a macro. It gets the event number,
 // the minimum and maximum order number of TPC tracks that are to be tracked
@@ -55,8 +76,8 @@ cleanded up a little bit of code.
 // imposition respectively. The authors thank Mariana Bondila to have help 
 // them to resolve some problems.  July-2000
 
-#include <iostream.h>
-#include <fstream.h>
+#include <Riostream.h>
+#include <Riostream.h>
 #include <TMath.h>
 #include <TBranch.h>
 #include <TVector.h>
@@ -83,6 +104,7 @@ cleanded up a little bit of code.
 #include "../TPC/AliTPCtracker.h"
 #include "AliITSTrackerV1.h"
 #include "AliITSVertex.h"
+#include "AliITSPid.h"
 
 ClassImp(AliITSTrackerV1)
  //______________________________________________________________________
@@ -228,8 +250,7 @@ AliITSTrackerV1::AliITSTrackerV1(AliITS* IITTSS, Int_t evnumber, Bool_t flag) {
 	fphidet[im1] = new Double_t[im2max];
     } // end for im1
 
-    //Float_t global[3],local[3];
-	 Double_t global[3],local[3];
+	Double_t global[3],local[3];
     Double_t pigre=TMath::Pi();
     Double_t xmin,ymin,xmax,ymax;
 
@@ -262,11 +283,8 @@ AliITSTrackerV1::AliITSTrackerV1(AliITS* IITTSS, Int_t evnumber, Bool_t flag) {
 /////////////// allocate memory and define vector fNRecPoints and matrices fRecCylR, fRecCylPhi, fRecCylZ /////////////
 	gAlice->GetEvent(evnumber);
   Int_t NumOfModules = g1->GetIndexMax();
-  //fRecCylR = new Float_t *[NumOfModules];
   fRecCylR = new Double_t *[NumOfModules];
-  //fRecCylPhi = new Float_t *[NumOfModules];
   fRecCylPhi = new Double_t *[NumOfModules]; 
-  //fRecCylZ = new Float_t *[NumOfModules];
   fRecCylZ = new Double_t *[NumOfModules];
   AliITSRecPoint *recp;
   fNRecPoints = new Int_t[NumOfModules];
@@ -276,11 +294,6 @@ AliITSTrackerV1::AliITSTrackerV1(AliITS* IITTSS, Int_t evnumber, Bool_t flag) {
         gAlice->TreeR()->GetEvent(module);		  
 		  frecPoints=fITS->RecPoints();
 		  Int_t nRecPoints=fNRecPoints[module]=frecPoints->GetEntries();
-		  /*
-		  fRecCylR[module] = new Float_t[nRecPoints];
-		  fRecCylPhi[module] = new Float_t[nRecPoints];
-		  fRecCylZ[module] = new Float_t[nRecPoints];
-		  */
 		  fRecCylR[module] = new Double_t[nRecPoints];
 		  fRecCylPhi[module] = new Double_t[nRecPoints];
 		  fRecCylZ[module] = new  Double_t[nRecPoints];		  
@@ -293,15 +306,10 @@ AliITSTrackerV1::AliITSTrackerV1(AliITS* IITTSS, Int_t evnumber, Bool_t flag) {
 	       local[1]=0.;
 	       local[2]= recp->GetZ();			 		
 			 g1->LtoG(module,local,global);
-			 /*
-			 Float_t r = TMath::Sqrt(global[0]*global[0]+global[1]*global[1]);                     // r hit
-			 Float_t phi = TMath::ATan2(global[1],global[0]); if(phi<0.) phi+=2.*TMath::Pi();      // phi hit			
-          Float_t z = global[2];                                                               // z hit
-			 */
 			                                                                 
 			 Double_t r = TMath::Sqrt(global[0]*global[0]+global[1]*global[1]);                     // r hit
 			 Double_t phi = TMath::ATan2(global[1],global[0]); if(phi<0.) phi+=2.*TMath::Pi();      // phi hit			
-          Double_t z = global[2];                                                                // z hit
+          	 Double_t z = global[2];                                                                // z hit
 			 																								             
 			 fRecCylR[module][ind]=r;
 			 fRecCylPhi[module][ind]=phi;
@@ -316,8 +324,9 @@ AliITSTrackerV1::AliITSTrackerV1(AliITS* IITTSS, Int_t evnumber, Bool_t flag) {
     ////////// gets magnetic field factor //////////////////////////////
 
     AliMagF * fieldPointer = gAlice->Field();
-    fFieldFactor = (Double_t)fieldPointer->Factor();
-    //cout<< " field factor = "<<fFieldFactor<<"\n"; getchar();
+   // fFieldFactor = (Double_t)fieldPointer->Factor();
+    fFieldFactor =(Double_t)fieldPointer-> SolenoidField()/10/.2;
+   // cout<< " field factor = "<<fFieldFactor<<"\n"; getchar();
 }
 //______________________________________________________________________
 AliITSTrackerV1::AliITSTrackerV1(const AliITSTrackerV1 &cobj) {
@@ -501,22 +510,12 @@ AliITSTrackerV1 &AliITSTrackerV1::operator=(AliITSTrackerV1 obj) {
 
 	AliITSgeom *g1 = fITS->GetITSgeom();  
    Int_t NumOfModules = g1->GetIndexMax();
-	/*
-  fRecCylR = new Float_t *[NumOfModules];
-  fRecCylPhi = new Float_t *[NumOfModules]; 
-  fRecCylZ = new Float_t *[NumOfModules];
-  */
   fRecCylR = new Double_t *[NumOfModules];
   fRecCylPhi = new Double_t *[NumOfModules]; 
   fRecCylZ = new Double_t *[NumOfModules];  
   fNRecPoints = new Int_t[NumOfModules];  
 	  for(Int_t module=0; module<NumOfModules; module++) {		  
 		  Int_t nRecPoints=fNRecPoints[module]=obj.fNRecPoints[module];
-		  /*
-		  fRecCylR[module] = new Float_t[nRecPoints];
-		  fRecCylPhi[module] = new Float_t[nRecPoints];
-		  fRecCylZ[module] = new Float_t[nRecPoints];
-		  */
 		  fRecCylR[module] = new Double_t[nRecPoints];
 		  fRecCylPhi[module] = new Double_t[nRecPoints];
 		  fRecCylZ[module] = new Double_t[nRecPoints];		  
@@ -547,11 +546,12 @@ void AliITSTrackerV1::DoTracking(Int_t evNumber,Int_t minTr,Int_t maxTr,
 
     gAlice->GetEvent(evNumber);  //modificato per gestire hbt
  
-    AliKalmanTrack *kkprov;
-    kkprov->SetConvConst(100/0.299792458/0.2/fFieldFactor);
+    AliKalmanTrack::SetConvConst(1000/0.299792458/gAlice->Field()->SolenoidField());
+   // cout<<" field = "<<gAlice->Field()->SolenoidField()<<endl;
+
 
     TFile *cf=TFile::Open("AliTPCclusters.root");  
-    AliTPCParam *digp= (AliTPCParam*)cf->Get("75x40_100x60");
+    AliTPCParam *digp= (AliTPCParam*)cf->Get("75x40_100x60_150x60");
     if (!digp) { cerr<<"TPC parameters have not been found !\n"; getchar();}
 
     cf->cd();
@@ -579,7 +579,8 @@ void AliITSTrackerV1::DoTracking(Int_t evNumber,Int_t minTr,Int_t maxTr,
     Int_t nentr=(Int_t)tracktree->GetEntries();
     Int_t kk;
 
-    AliTPCtrack *ioTrackTPC=0;    
+    AliITSRecPoint *recp;    // oggi
+	AliTPCtrack *ioTrackTPC=0;    
     for (kk=0; kk<nentr; kk++) {
 	ioTrackTPC=new AliTPCtrack; 
 	tbranch->SetAddress(&ioTrackTPC);
@@ -625,9 +626,11 @@ void AliITSTrackerV1::DoTracking(Int_t evNumber,Int_t minTr,Int_t maxTr,
 
     TTree tracktree1("TreeT","Tree with ITS tracks");
     AliITSIOTrack *ioTrack=0;
+	AliITSPid *pid=new AliITSPid(1000);  // oggi
+
     tracktree1.Branch("ITStracks","AliITSIOTrack",&ioTrack,32000,0);
   
-   TDatabasePDG * db = new TDatabasePDG;   
+    TDatabasePDG * db = new TDatabasePDG;   
   
     Int_t j;       
     for (j=minTr; j<=maxTr; j++) {     
@@ -637,40 +640,17 @@ void AliITSTrackerV1::DoTracking(Int_t evNumber,Int_t minTr,Int_t maxTr,
 	///   mass definition ////////////////////////
     Double_t mass=0.13956995;
 	 Int_t pcode=211;  // a pion by default
+	 
 	 if(realmass) {
-    Int_t TPClabel=TMath::Abs( track->GetLabel() );   
-	 TParticle *p = (TParticle*)gAlice->Particle(TPClabel);
-	  pcode=p->GetPdgCode();
-	 // Int_t mothercode=p->GetFirstMother();
-	 //if(mothercode>0 ) numofsecondaries++; else numofprimaries++;
+    	if(TMath::Abs(pcode)<20443) mass=db->GetParticle(pcode)->Mass();
 	 }
-	 //if(!pcode) pcode=211;	 
-	 if(TMath::Abs(pcode)<20443) mass=db->GetParticle(pcode)->Mass();	
+	 else {
+		 mass = track->GetMass();
+//		 cout << "Mass = " << mass << endl;
+	 }
+	 
 	
 	
-	///////////////////////////////////////////////
-  /*
-	//////   propagation to the end of TPC //////////////
-	Double_t xk=77.415;
-	track->PropagateTo(xk, 28.94, 1.204e-3,mass);	 //Ne    
-	xk -=0.01;
-	track->PropagateTo(xk, 44.77, 1.71,mass);	 //Tedlar
-	xk -=0.04;
-	track->PropagateTo(xk, 44.86, 1.45,mass);	 //kevlar
-	xk -=2.0;
-	track->PropagateTo(xk, 41.28, 0.029,mass);	 //Nomex	 
-	xk-=16;
-	track->PropagateTo(xk,36.2,1.98e-3,mass); //C02
-	xk -=0.01;
-	track->PropagateTo(xk, 24.01, 2.7,mass);	 //Al	 
-	xk -=0.01;
-	track->PropagateTo(xk, 44.77, 1.71,mass);	 //Tedlar
-	xk -=0.04;
-	track->PropagateTo(xk, 44.86, 1.45,mass);	 //kevlar
-	xk -=0.5;
-	track->PropagateTo(xk, 41.28, 0.029,mass);	 //Nomex
-    ////////////////////////////////////////////////////////////////////
-   */
 	 //   new propagation to the end of TPC
     Double_t xk=80.;
    // track->PropagateTo(xk,0.,0.); //Ne if it's still there   //attenzione funziona solo se modifica in TPC
@@ -705,8 +685,11 @@ void AliITSTrackerV1::DoTracking(Int_t evNumber,Int_t minTr,Int_t maxTr,
     track->PropagateTo(xk, 44.77, 1.71);  //Tedlar
     xk -=0.005;
     track->PropagateTo(xk, 24.01, 2.7);    //Al 
+    
 	////////////////////////////////////////////////////////////////////////////////////////////////////////  	
-	AliITSTrackV1 trackITS(*track);     
+	//AliITSTrackV1 trackITS(*track);
+	AliITSTrackV1 trackITS(*track, fFieldFactor);
+	//cout<<" fFieldFactor = "<<fFieldFactor<<"\n";      
 	trackITS.PutMass(mass);	  //new to add mass to track
 	if(fresult){ delete fresult; fresult=0;}   	 
 	fresult = new AliITSTrackV1(trackITS);	 
@@ -756,6 +739,7 @@ void AliITSTrackerV1::DoTracking(Int_t evNumber,Int_t minTr,Int_t maxTr,
 	list->AddLast(&trackITS);
   
 	fPtref=TMath::Abs( (trackITS).GetPt() );
+	//cout<<" fPtref = " <<fPtref<<"\n";
 	if(fPtref>1.0) fChi2max=40.;         
 	if(fPtref<=1.0) fChi2max=20.;
 	if(fPtref<0.4 ) fChi2max=100.;
@@ -806,7 +790,7 @@ void AliITSTrackerV1::DoTracking(Int_t evNumber,Int_t minTr,Int_t maxTr,
 	//propagation to vertex
 
 	Double_t rbeam=3.;
-    if((*fresult).DoNotCross(rbeam)) continue;  //no intersection with beampipe	
+	if((*fresult).DoNotCross(rbeam)) continue;  //no intersection with beampipe	
 	(*fresult).Propagation(rbeam);
 	Double_t c00,c10,c11,c20,c21,c22,c30,c31,c32,c33,c40,c41,c42,c43,c44;
 	(*fresult).GetCElements(c00,
@@ -845,6 +829,8 @@ void AliITSTrackerV1::DoTracking(Int_t evNumber,Int_t minTr,Int_t maxTr,
 	    Int_t charge;
 	    if(c>0.) charge=-1;  else charge=1;
 	    ioTrack->SetCharge(charge);
+		Double_t trackmass=(*fresult).GetMass();         // oggi
+		ioTrack->SetMass(trackmass);                     // oggi
 	    ioTrack->SetCovMatrix(c00,
 				  c10,c11,
 				  c20,c21,c22,
@@ -866,11 +852,15 @@ void AliITSTrackerV1::DoTracking(Int_t evNumber,Int_t minTr,Int_t maxTr,
 	    ioTrack->SetTPCLabel(lab);
 		 ioTrack->SetDz(dz);
 	    Int_t il;		
-	    for(il=0;il<6; il++){
+	    /*
+		for(il=0;il<6; il++){
 		ioTrack->SetIdPoint(il,(*fresult).GetIdPoint(il));
 		ioTrack->SetIdModule(il,(*fresult).GetIdModule(il));
 	    } // end for il
-	    tracktree1.Fill();
+	    */
+	    //tracktree1.Fill();
+		Float_t q[4]={-1.,-1.,-1.,-1.};
+	    Float_t  globaldedx=0.;	   
 	    for (il=0;il<6;il++) {
 		idpoint=(*fresult).GetIdPoint(il);
 		idmodule=(*fresult).GetIdModule(il);
@@ -878,7 +868,53 @@ void AliITSTrackerV1::DoTracking(Int_t evNumber,Int_t minTr,Int_t maxTr,
 		                                               
 		ioTrack->SetIdPoint(il,idpoint);
 		ioTrack->SetIdModule(il,idmodule);
-	    } // end for il	    
+		////  for q definition
+  	        if(il>1){
+	          if(idmodule>0.){			
+	            fITS->ResetRecPoints();
+	            gAlice->TreeR()->GetEvent(idmodule);
+	            recp=(AliITSRecPoint*)frecPoints->UncheckedAt(idpoint);
+	            q[il-2]=recp->GetQ()*(*fresult).Getfcor(il-2);
+	          }
+	        }				
+	    } // end for il	 
+		q[0]/=280.; q[1]/=280.;
+	    q[2]/=38.; q[3]/=38.;
+
+ // cout<<" q prima = "<<q[0]<<" "<<q[1]<<" "<<q[2]<<" "<<q[3]<<"\n"; getchar(); 
+     
+     Int_t swap;
+  do{
+    swap=0;   
+    for (il=0; il<3; il++) {
+      if (q[il]<=q[il+1]) continue;
+      Float_t tmp=q[il];
+      q[il]=q[il+1]; q[il+1]=tmp;
+      swap++;
+    }
+  } while(swap); 
+
+ 
+  // cout<<" q dopo = "<<q[0]<<" "<<q[1]<<" "<<q[2]<<" "<<q[3]<<"\n"; getchar();
+      
+    if(q[0]<0.) {
+      q[0]=q[1];
+      q[1]=q[2];
+      q[2]=q[3];
+      q[3]=-1.; 	    
+    } 
+ 
+  // cout<<" q  dopo if = "<<q[0]<<" "<<q[1]<<" "<<q[2]<<" "<<q[3]<<"\n"; getchar(); 
+     
+    globaldedx=(q[0]+q[1])/2.;
+    
+   // if(q[3]> 0.) globaldedx=(q[0]+q[1]+q[2]+q[3])/4.;
+   //      else    globaldedx=(q[0]+q[1]+q[2])/3.; 
+   
+    ioTrack->SetdEdx(globaldedx);
+    ioTrack->SetPid(pid->GetPcode(ioTrack));
+	    
+	    tracktree1.Fill();	       
 	} // end if on numOfCluster
 	//gObjectTable->Print();    // stampa memoria     
     }  //  end for (int j=minTr; j<=maxTr; j++)
@@ -894,6 +930,7 @@ void AliITSTrackerV1::DoTracking(Int_t evNumber,Int_t minTr,Int_t maxTr,
     tfile->ls();
     char hname[30];
     sprintf(hname,"TreeT%d",evNumber);
+	cout << "Number of saved ITS tracks " << tracktree1.GetEntries() << endl;
     tracktree1.Write(hname);
   
     TTree *fAli=gAlice->TreeK();
@@ -999,6 +1036,8 @@ void AliITSTrackerV1::RecursiveTracking(TList *trackITSlist) {
 	//       << " "<<(*trackITS)(1)<<"\n"; getchar();
 	if(outinters==-1) continue;
 	Int_t flaghit=0;
+	(*trackITS).SetLayer(layerfin);  // oggi
+	(*trackITS).Setfcor();           // oggi
 	if(outinters==0){
 	    TVector toucLad(9), toucDet(9);	 
 	    Int_t lycur=layerfin;
@@ -1196,7 +1235,7 @@ void AliITSTrackerV1::RecursiveTracking(TList *trackITSlist) {
 			continue;
 		    // cout<<" supero sigmaphi \n";      
 		    AliITSTrackV1 *newTrack = new AliITSTrackV1((*trackITS));
-		    (*newTrack).SetLayer((*trackITS).GetLayer()-1);
+		    //(*newTrack).SetLayer((*trackITS).GetLayer()-1);
 		    if (TMath::Abs(rTrack-cluster(0))/rTrack>1e-6) 
 			(*newTrack).Correct(Double_t(cluster(0)));	
 		    //cout<<" cluster(2) e(*newTrack).GetZ()="<<cluster(2)<<" "
@@ -1235,7 +1274,7 @@ void AliITSTrackerV1::RecursiveTracking(TList *trackITSlist) {
 	if(flaghit==0 || outinters==-2) {
 	    AliITSTrackV1 *newTrack = new AliITSTrackV1(*trackITS);
 	    (*newTrack).Setfnoclust();        	 
-	    (*newTrack).SetLayer((*trackITS).GetLayer()-1); 
+	    //(*newTrack).SetLayer((*trackITS).GetLayer()-1); 
 	    (*newTrack).AddMS(frl);  // add the multiple scattering matrix
 	                             // to the covariance matrix  
 	    (*newTrack).AddEL(frl,1.,0);

@@ -15,8 +15,17 @@
 
 /*
 $Log$
+Revision 1.3.2.2  2002/05/31 10:26:37  hristov
+Changes from v3-08-02 merged with NewIO branch
+
 Revision 1.3.2.1  2002/05/31 09:37:55  hristov
 First set of changes done by Piotr
+
+Revision 1.6  2002/10/14 14:55:35  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.4.4.1  2002/06/10 14:57:41  hristov
+Merged with v3-08-02
 
 Revision 1.5  2002/04/26 10:37:23  morsch
 Method RewindEvent() added. (N. Carrer)

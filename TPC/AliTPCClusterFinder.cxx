@@ -15,6 +15,12 @@
 
 /*
 $Log$
+Revision 1.8  2002/10/23 07:17:33  alibrary
+Introducing Riostream.h
+
+Revision 1.7  2002/02/05 09:12:26  hristov
+Small mods for gcc 3.02
+
 Revision 1.6  2001/10/21 19:07:24  hristov
 Several pointers were set to zero in the default constructors to avoid memory management problems
 
@@ -63,8 +69,8 @@ replacing AliClusterFinder
 #include "TMarker.h"
 #include "AliComplexCluster.h"
 #include "AliTPCClusterFinder.h"
-#include <fstream.h>
-#include <iostream.h>
+#include <Riostream.h>
+#include <Riostream.h>
 
 //direction constants possible direction in 8 different sectors
 //

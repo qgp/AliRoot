@@ -8,6 +8,8 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
+#pragma link C++ typedef AliDecayer;
+
 #pragma link C++ enum   Process_t;
 #pragma link C++ enum   Decay_t;
 #pragma link C++ enum   StrucFunc_t;
@@ -37,9 +39,9 @@
 #pragma link C++ class  AliGenPMDlib+;
 #pragma link C++ class  AliGenSTRANGElib+;
 #pragma link C++ class  AliGenHijingEventHeader+;
+#pragma link C++ class  AliGenHerwig+;
 #pragma link C++ class  AliGenPythiaEventHeader+;
 #pragma link C++ class  AliGenHijing+;
-#pragma link C++ class  AliDecayer+;
 #pragma link C++ class  AliDecayerPythia+;
 #pragma link C++ class  AliMevSimConfig+;
 #pragma link C++ class  AliMevSimParticle+;
@@ -52,9 +54,14 @@
 #pragma link C++ class  AliGenReaderEcalHijing++;
 #pragma link C++ class  AliGenReaderEcalJets++;
 #pragma link C++ class  AliGenGeVSim+;
+#pragma link C++ class  AliGenGeVSimEventHeader+;
 #pragma link C++ class  AliGeVSimParticle+;
 #pragma link C++ class  AliGenBeamGas+;
 #pragma link C++ class  AliGenAfterBurnerFlow+;
+#pragma link C++ class  AliPartonicEnergyLoss+;
+#pragma link C++ class  AliStructFuncType+;
+#pragma link C++ class  AliGenGrayParticles+;
+#pragma link C++ class  AliGenEpEmv1+;
 #endif
 
 

@@ -15,6 +15,8 @@
 
 /*
 $Log$
+Revision 1.17.4.2  2002/05/31 15:07:51  hristov
+Merged with v3-08-02
 
 Revision 1.17.4.1  2002/05/31 09:37:57  hristov
 First set of changes done by Piotr

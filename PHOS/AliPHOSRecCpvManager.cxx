@@ -23,8 +23,6 @@
 
 // --- Standard library ---
 
-#include <iostream.h>
-
 // --- AliRoot header files ---
 
 #include "AliPHOSRecCpvManager.h"
@@ -89,7 +87,7 @@ Float_t AliPHOSRecCpvManager::OneGamChi2(Float_t Ai, Float_t Ei, Float_t Etot, F
   Float_t dd = da/D;
   Gi = dd*(2.- dd*Const*(1.-2.*Ai/Etot));
 
-  cout<<" OneGamChi2 (Ai,Ei,Etot,&Gi,chi2) "<<Ai<<" "<<Ei<<" "<<Etot<<" "<<Gi<<" "<<da*da/D<<endl<<endl;
+  Info("OneGamChi2", " OneGamChi2 (Ai,Ei,Etot,&Gi,chi2) %f %f %f %f %f", Ai, Ei, Etot, Gi, da*da/D );
 
   return da*da/D;
 
@@ -121,7 +119,7 @@ void AliPHOSRecCpvManager::AG(Float_t Ei, Float_t Xi, Float_t Yi, Float_t& Ai, F
   Float_t CelZ = geom->GetPadSizeZ();
   Float_t CelY = geom->GetPadSizePhi();
 
-//  //    cout<<"CelZ: "<<CelZ<<" CelY: "<<CelY<<endl;
+//  //    Info("AG", "CelZ: %f CelY: %f", CelZ, CelY) ;
 
   Float_t dx = CelZ/2.;
   Float_t dy = CelY/2.;
@@ -160,7 +158,7 @@ Float_t AliPHOSRecCpvManager::Fcml(Float_t x, Float_t y)
     + TMath::ATan(x*y/(9*b*TMath::Sqrt((9*b)*(9*b) + x*x+y*y))); 
   
   Float_t Fcml = A*Fff/6.2831853071796;
-//    cout<<" Fcml: "<<Fcml<<endl;
+//    Info("Fcml", "Fcml: %f", Fcml) ;
   return Fcml;
 
 }

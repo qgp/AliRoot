@@ -16,9 +16,11 @@
 
 /*
 $Log$
+Revision 1.11  2002/10/14 14:55:35  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
 
-Revision 1.7.8.1  2002/05/31 09:37:55  hristov
-First set of changes done by Piotr
+Revision 1.7.10.1  2002/06/10 14:57:41  hristov
+Merged with v3-08-02
 
 Revision 1.10  2002/05/02 09:40:50  morsch
 Recover mods from Rev. 1.8

@@ -15,9 +15,17 @@
 
 /*
 $Log$
+Revision 1.40  2002/10/14 14:55:35  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
 
-Revision 1.36.4.1  2002/05/31 09:37:55  hristov
-First set of changes done by Piotr
+Revision 1.36.6.3  2002/10/10 16:40:08  hristov
+Updating VirtualMC to v3-09-02
+
+Revision 1.39  2002/09/16 08:21:16  morsch
+Use TDatabasePDG::Instance();
+
+Revision 1.38  2002/05/30 14:59:12  morsch
+Check geometrical acceptance. (G. Martinez)
 
 Revision 1.37  2002/04/17 10:20:44  morsch
 Coding Rule violations corrected.
@@ -341,8 +349,7 @@ void AliGenParam::Generate()
   //
   if(!particles) particles = new TClonesArray("TParticle",1000);
   
-  static TDatabasePDG *pDataBase = new TDatabasePDG();
-  if(!pDataBase) pDataBase = new TDatabasePDG();
+  TDatabasePDG *pDataBase = TDatabasePDG::Instance();
   //
   Float_t random[6];
  
@@ -427,6 +434,10 @@ void AliGenParam::Generate()
 //
 // select decay particles
 	      Int_t np=fDecayer->ImportParticles(particles);
+
+	      //  Selecting  GeometryAcceptance for particles fPdgCodeParticleforAcceptanceCut;
+	      if (fGeometryAcceptance) 
+		if (!CheckAcceptanceGeometry(np,particles)) continue;
 	      Int_t ncsel=0;
 	      Int_t* pFlag      = new Int_t[np];
 	      Int_t* pParent    = new Int_t[np];
@@ -527,6 +538,7 @@ void AliGenParam::Generate()
 			  } else {
 			      iparent = -1;
 			  }
+			 
 			  SetTrack(fTrackIt*trackIt[i], iparent, kf,
 					   pc, och, polar,
 					   0, kPDecay, nt, wgtch);

@@ -23,7 +23,7 @@
 #include "TClonesArray.h"    
 #include "AliTRDhit.h"    
 
-#include <iostream.h>
+#include <Riostream.h>
 
 
 ClassImp(AliTRDtrackHits)
@@ -45,6 +45,12 @@ Bool_t AliTRDtrackHits::First()
   //
   //set Current hit for the first hit
   //
+
+  if (fArray->GetSize()<=0) {
+    fCurrentHit->fStatus = kFALSE;
+    return kFALSE;
+  }
+
   AliTrackHitsParamV2 *param = (AliTrackHitsParamV2 *)fArray->At(0);
   if (!fHit) 
     fHit = new AliTRDhit;

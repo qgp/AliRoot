@@ -32,7 +32,7 @@ class TFile;
 #include "TFolder.h" 
 
 // --- Standard library ---
-#include <strstream.h>
+#include <Riostream.h>
 
 // --- AliRoot header files ---
 #include "AliPHOS.h"
@@ -382,12 +382,12 @@ void AliPHOS::SetTreeAddress()
     branch = treeH->GetBranch(branchname);
     if (branch) 
      { 
-       cout<<GetName()<<"::SetTreeAddress Setting"<<endl;
+       Info("SetTreeAddress","<%s> Setting Hits Address",GetName());
        branch->SetAddress(&fHits);
      }
     else
      {
-       cout<<GetName()<<"::SetTreeAddress Failed"<<endl;
+       Warning("SetTreeAddress","<%s> Failed",GetName());
      }
   }
 }

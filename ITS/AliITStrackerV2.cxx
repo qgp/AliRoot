@@ -22,7 +22,7 @@
 #include <TFile.h>
 #include <TTree.h>
 #include <TRandom.h>
-#include <iostream.h>
+#include <Riostream.h>
 
 #include "AliITSgeom.h"
 #include "AliITSRecPoint.h"
@@ -363,9 +363,8 @@ for (Int_t k=0; k<nc; k++) {
          Double_t r=layer.GetR();
          if (fI==2 || fI==4) {             
             Double_t rs=0.5*(fLayers[fI-1].GetR() + r);
-            Double_t ds=0.034; if (fI==4) ds=0.039;
-            Double_t dx0r=ds/21.82*2.33, dr=ds*2.33;
-            if (!fTrackToFollow.PropagateTo(rs,1*dx0r,dr)) throw "";
+            Double_t d=0.011; if (fI==4) d=0.0053;
+            if (!fTrackToFollow.PropagateTo(rs,-d)) throw "";
          }
 
          Double_t x,y,z;
@@ -754,12 +753,13 @@ FindDetectorIndex(Double_t phi, Double_t z) const {
   if      (dphi <  0) dphi += 2*TMath::Pi();
   else if (dphi >= 2*TMath::Pi()) dphi -= 2*TMath::Pi();
   Int_t np=Int_t(dphi*fNladders*0.5/TMath::Pi()+0.5);
+  if (np>=fNladders) np-=fNladders;
+  if (np<0)          np+=fNladders;
 
   Double_t dz=fZOffset-z;
   Int_t nz=Int_t(dz*(fNdetectors-1)*0.5/fZOffset+0.5);
-
-  if (np>=fNladders) np-=fNladders;
-  if (np<0)          np+=fNladders;
+  if (nz>=fNdetectors) return -1;
+  if (nz<0)            return -1;
 
 #ifdef DEBUG
 cout<<np<<' '<<nz<<endl;

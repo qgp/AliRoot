@@ -15,8 +15,23 @@
  
 /*
 $Log$
+Revision 1.1.2.2  2002/06/06 14:23:56  hristov
+Merged with v3-08-02
+
 Revision 1.1.2.1  2002/05/31 09:37:56  hristov
 First set of changes done by Piotr
+
+Revision 1.7  2002/10/25 18:54:22  barbera
+Various improvements and updates from B.S.Nilsen and T. Virgili
+
+Revision 1.6  2002/10/22 14:45:34  alibrary
+Introducing Riostream.h
+
+Revision 1.5  2002/10/14 14:57:00  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.3.4.1  2002/06/10 17:51:14  hristov
+Merged with v3-08-02
 
 Revision 1.4  2002/04/24 22:08:12  nilsen
 New ITS Digitizer/merger with two macros. One to make SDigits (old way) and
@@ -47,7 +62,7 @@ The SDigits are reading as TClonesArray of AliITSpListItem
 //To be implemented correctly by responsible
 
 #include <stdlib.h>
-#include <iostream.h>
+#include <Riostream.h>
 #include <TObjArray.h>
 #include <TTree.h>
 #include <TBranch.h>
@@ -128,8 +143,6 @@ Bool_t AliITSDigitizer::Init(){
     fInit = kTRUE; // Assume for now init will work.
     if(!gAlice) {
 	fITS      = 0;
-	fActive   = 0;
-	fRoif     = -1;
 	fRoiifile = 0;
 	fInit     = kFALSE;
 	Warning("Init","gAlice not found");
@@ -137,8 +150,6 @@ Bool_t AliITSDigitizer::Init(){
     } // end if
     fITS = (AliITS *)(gAlice->GetDetector("ITS"));
     if(!fITS){
-	fActive   = 0;
-	fRoif     = -1;
 	fRoiifile = 0;
 	fInit     = kFALSE;
 	Warning("Init","ITS not found");
@@ -147,8 +158,6 @@ Bool_t AliITSDigitizer::Init(){
 	//cout << "fRoif,fRoiifile="<<fRoif<<" "<<fRoiifile<<endl;
 	fActive = new Bool_t[fITS->GetITSgeom()->GetIndexMax()];
     } else{
-	fActive   = 0;
-	fRoif     = -1;
 	fRoiifile = 0;
 	fInit     = kFALSE;
 	Warning("Init","ITS geometry not found");
@@ -194,11 +203,10 @@ void AliITSDigitizer::Exec(Option_t* opt){
     AliITSDetType    *iDetType = 0;
     static Bool_t    setDef    = kTRUE;
 
-    if(!fInit)
-     {
-       Error("Exec","Init not succesfull, aborting.");
-       return;
-     } // end if
+    if(!fInit){
+	Error("Exec","Init not succesfull, aborting.");
+	return;
+    } // end if
 
     if( setDef ) fITS->SetDefaultSimulation();
     setDef = kFALSE;
@@ -254,6 +262,7 @@ void AliITSDigitizer::Exec(Option_t* opt){
         iDetType = fITS->DetType( id );
 
 
+
         sim      = (AliITSsimulation*)iDetType->GetSimulationModel();
         if(!sim) {
             Error( "Exec", "The simulation class was not instanciated!" );
@@ -265,7 +274,7 @@ void AliITSDigitizer::Exec(Option_t* opt){
 	//cout << "Module=" << module;
         for(ifiles=0; ifiles<nfiles; ifiles++ )
          {
-           if(fActive && fRoif!=0) if(!fActive[module]) continue;
+           if(fRoif!=0) if(!fActive[module]) continue;
             
            inRL =  AliRunLoader::GetRunLoader(fManager->GetInputFolderName(fl[ifiles]));
            ingime = inRL->GetLoader(loadname);
@@ -343,28 +352,29 @@ void AliITSDigitizer::SetByRegionOfInterest(TTree *ts){
     //cout << "Region of Interest ts="<<ts<<" brchSDigits="<<brchSDigits<<" sdig="<<sdig<<endl;
 
     if( brchSDigits ) {
-	brchSDigits->SetAddress( &sdig );
+      brchSDigits->SetAddress( &sdig );
     } else {
-	Error( "SetByRegionOfInterest","branch ITS not found in TreeS");
-	return;
+      Error( "SetByRegionOfInterest","branch ITS not found in TreeS");
+      return;
     } // end if brchSDigits
 
     nm = fITS->GetITSgeom()->GetIndexMax();
     for(m=0;m<nm;m++){
-	//cout << " fActive["<<m<<"]=";
-	fActive[m] = kFALSE; // Not active by default
-	sdig->Clear();
-	brchSDigits->GetEvent(m);
-	if(sdig->GetLast()>=0) for(i=0;i<sdig->GetLast();i++){
-	    // activate the necessary modules
-	    if(((AliITSpList*)sdig->At(m))->GetpListItem(i)->GetSignal()>0.0){ // Must have non zero signal.
-		fActive[m] = kTRUE;
-		break;
-	    } // end if
-	} // end if. end for i.
-	//cout << fActive[m];
-	//cout << endl;
+      //cout << " fActive["<<m<<"]=";
+      fActive[m] = kFALSE; // Not active by default
+      sdig->Clear();
+      brchSDigits->GetEvent(m);
+      if(sdig->GetLast()>=0) for(i=0;i<sdig->GetLast();i++){
+          // activate the necessary modules
+          if(((AliITSpList*)sdig->At(m))->GetpListItem(i)->GetSignal()>0.0){ // Must have non zero signal.
+            fActive[m] = kTRUE;
+            break;
+          } // end if
+      } // end if. end for i.
+      //cout << fActive[m];
+      //cout << endl;
     } // end for m
+    Info("AliITSDigitizer","Digitization by Region of Interest selected");
     sdig->Clear();
     delete sdig;
     return;

@@ -3,7 +3,10 @@ void Config()
 
   Int_t iField = 0;
 
-  new AliGeant3("C++ Interface to Geant3");
+  // libraries required by geant321
+  gSystem->Load("libgeant321");
+
+  new     TGeant3("C++ Interface to Geant3");
 
   // Create the output file
   TFile *rootfile = new TFile("TRD_test.root","recreate");
@@ -202,18 +205,6 @@ void Config()
     TRD->SetSensChamber(2);
     TRD->SetSensSector(13);
   
-    // Get the pointer to the geometry object
-    AliTRDgeometry *TRDgeometry = TRD->GetGeometry();
-
-    // The number of timebins
-    TRDgeometry->SetNTimeBin(15);
-
-    // The additional timebins before and after the drift region
-    //TRDgeometry->SetExpandTimeBin(10,5);
-
-    // Select the gas mixture (0: 97% Xe + 3% isobutane, 1: 90% Xe + 10% CO2)
-    TRD->SetGasMix(1);
-
     // Set to detailed display
     TRD->SetDisplayType(1);
 

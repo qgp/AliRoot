@@ -15,6 +15,12 @@
 
 /*
   $Log$
+  Revision 1.4  2002/10/29 17:00:45  schutz
+  removed iostream
+
+  Revision 1.3  2001/09/26 12:09:36  schutz
+  A new (final?) geometry developed
+
   Revision 1.2  2000/11/09 15:49:04  martinez
   Coding convention rules obeyed
 
@@ -33,8 +39,6 @@
 // --- ROOT system ---
 
 // --- Standard library ---
-
-#include <iostream.h>
 
 // --- AliRoot header files ---
 

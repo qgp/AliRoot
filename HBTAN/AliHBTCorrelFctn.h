@@ -3,7 +3,7 @@
 
 #include "AliHBTFunction.h"
 #include "AliHBTParticle.h"
-#include <iostream.h>
+#include <Riostream.h>
 //Set of functions:
 //   Q Invaraint Correlation Function
 //   Invariant Mass Function
@@ -69,7 +69,7 @@ class AliHBTQSideCMSLCCorrelFctn: public AliHBTOnePairFctn1D
  public:
    AliHBTQSideCMSLCCorrelFctn(Int_t nbins = 100, Double_t maxXval = 0.15, Double_t minXval = 0.0):
                         AliHBTOnePairFctn1D(nbins,maxXval,minXval){}
-   virtual ~AliHBTQSideCMSLCCorrelFctn(){};
+   virtual ~AliHBTQSideCMSLCCorrelFctn(){}
    TH1* GetResult();
  protected:
    Double_t GetValue(AliHBTPair * pair){return TMath::Abs(pair->GetQSideCMSLC());}
@@ -93,6 +93,21 @@ class AliHBTInvMassCorrelFctn: public AliHBTOnePairFctn1D
  
 };
 
+/*************************************************************************************/ 
+
+class AliHBTTwoKStarCorrelFctn: public AliHBTOnePairFctn1D
+{
+//   Correlation Function of 2*KStar
+ public:
+   AliHBTTwoKStarCorrelFctn(Int_t nbins = 200, Double_t maxXval = 0.15, Double_t minXval = 0.0);
+   virtual ~AliHBTTwoKStarCorrelFctn(){};
+   TH1* GetResult();
+ protected:
+   Double_t GetValue(AliHBTPair * pair) { return 2.0*pair->GetKStar();}
+  public:
+    ClassDef(AliHBTTwoKStarCorrelFctn,1)
+ 
+};
 
 
 #endif

@@ -49,10 +49,10 @@ class AliTPCtrackerParam {
   void  AnalyzedEdx(const Char_t *outName,Int_t pdg);
   void  AnalyzePulls(const Char_t *outName);
   void  CompareTPCtracks(const Char_t *galiceName="galice.root",
-                      const Char_t *trkGeaName="AliTPCtracksGeant.root",
-                      const Char_t *trkKalName="AliTPCtracksSorted.root",
-                      const Char_t *covmatName="CovMatrix.root",
-                      const Char_t *tpceffName="TPCeff.dat") const;
+			 const Char_t *trkGeaName="AliTPCtracksGeant.root",
+			 const Char_t *trkKalName="AliTPCtracksSorted.root",
+			 const Char_t *covmatName="CovMatrix.root",
+			 const Char_t *tpceffName="TPCeff.dat") const;
   void  DrawEffs(const Char_t *inName,Int_t pdg=211);
   void  DrawPulls(const Char_t *inName,Int_t pdg=211,Int_t par=0);
   void  MakeDataBase();
@@ -139,8 +139,7 @@ class AliTPCtrackerParam {
   Int_t    WritedEdx(const Char_t *outName,Int_t pdg);
   Int_t    WriteEffs(const Char_t *outName);
   Int_t    WritePulls(const Char_t *outName);
-  Int_t    WriteRegParams(const Char_t *outName,Int_t pdg);
-  
+  Int_t    WriteRegParams(const Char_t *outName,Int_t pdg);  
   
   ClassDef(AliTPCtrackerParam,1) // TPC tracking parameterization class
 };

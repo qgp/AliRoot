@@ -15,6 +15,12 @@
 
 /*
 $Log$
+Revision 1.5.6.1  2002/06/06 14:21:19  hristov
+Merged with v3-08-02
+
+Revision 1.7  2002/10/23 07:17:34  alibrary
+Introducing Riostream.h
+
 Revision 1.6  2002/03/18 17:59:13  kowal2
 Chnges in the pad geometry - 3 pad lengths introduced.
 
@@ -52,7 +58,7 @@ New Detector parameters handling class
 ///////////////////////////////////////////////////////////////////////
 
 
-#include <iostream.h>
+#include <Riostream.h>
 #include <TMath.h>
 #include <TClass.h>
 #include <AliTPCParamCR.h>

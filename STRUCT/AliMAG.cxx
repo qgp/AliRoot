@@ -15,6 +15,21 @@
 
 /*
 $Log$
+Revision 1.13  2002/11/06 15:20:32  hristov
+Corrected logics (I.Hrivnacova)
+
+Revision 1.12  2002/11/01 10:59:49  hristov
+Correcting geometry (corresponds to version 1.9)
+
+Revision 1.11  2002/10/17 16:33:07  hristov
+Corrected check of the MC type
+
+Revision 1.10  2002/10/17 16:14:05  hristov
+MAG geometry with resolved MANY (I.Hrivnacova)
+
+Revision 1.9  2001/05/16 14:57:22  alibrary
+New files for folders and Stack
+
 Revision 1.8  2000/10/02 21:28:15  fca
 Removal of useless dependecies via forward declarations
 
@@ -152,6 +167,7 @@ void AliMAG::CreateGeometry()
   par[8] = par[5];
   par[9] = par[6];
   gMC->Gsvolu("L3DO", "PGON", idtmed[334], par, 10);
+  gMC->Gsvolu("L3DX", "PGON", idtmed[334], par, 10);
   
   par[4] = 610.;
   par[5] = 0.;
@@ -160,17 +176,19 @@ void AliMAG::CreateGeometry()
   par[8] = par[5];
   par[9] = par[6];
   gMC->Gsvolu("L3FR", "PGON", idtmed[329], par, 10);
+  gMC->Gsvolu("L3FX", "PGON", idtmed[329], par, 10);
   
   // INNER LAYER 
   
   par[4] = 600.;
   par[7] = 610.;
   gMC->Gsvolu("L3IR", "PGON", idtmed[309], par, 10);
+  gMC->Gsvolu("L3IX", "PGON", idtmed[309], par, 10);
   
   //     DOOR OPENING 
   
   dpar[0] = 22.5;
-  dpar[1] = 360.;
+  dpar[1] = 360;
   dpar[2] = 8.;
   dpar[3] = 3.;
   dpar[4] = 610.;
@@ -183,6 +201,7 @@ void AliMAG::CreateGeometry()
   dpar[11] = dpar[5];
   dpar[12] = dpar[6] + 50.;
   gMC->Gsvolu("L3O1", "PGON", idtmed[314], dpar, 13);
+  gMC->Gsvolu("L3O3", "PGON", idtmed[314], dpar, 13);
   par[4] = 600.;
   par[5] = 0.;
   par[6] = 163.5;
@@ -190,20 +209,41 @@ void AliMAG::CreateGeometry()
   par[8] = 0.;
   par[9] = 163.5;
   gMC->Gsvolu("L3O2", "PGON", idtmed[314], par, 10);
+  gMC->Gsvolu("L3O4", "PGON", idtmed[314], par, 10);
   
   //     THE DOOR OPENING HAS TO BE PLACED WITH 'MANY' SINCE THE REGION 
   //     WILL CONTAIN A MUON CHAMBER, BEAM PIPE AND BEAM SHIELD 
   //     PLACED WITH 'ONLY'. 
   
-  gMC->Gspos("L3O1", 1, "L3FR", 0., 30., 0., 0, "MANY");
-  gMC->Gspos("L3O2", 1, "L3IR", 0., 30., 0., 0, "MANY");
-  
+  AliMatrix(idrotm[300], 90., 0., 90., 90., 180., 0.);
+
+  gMC->Gspos("L3DO", 1, "ALIC", 0., -30., 0., 0, "MANY");
   gMC->Gspos("L3FR", 1, "L3DO", 0., 0., 0., 0, "MANY");
   gMC->Gspos("L3IR", 1, "L3DO", 0., 0., 0., 0, "MANY");
   
-  gMC->Gspos("L3DO", 1, "ALIC", 0., -30., 0., 0, "MANY");
-  AliMatrix(idrotm[300], 90., 0., 90., 90., 180., 0.);
-  gMC->Gspos("L3DO", 2, "ALIC", 0., -30., 0., idrotm[300], "MANY");
+  gMC->Gspos("L3DX", 1, "ALIC", 0., -30., 0., idrotm[300], "MANY");
+  gMC->Gspos("L3FX", 1, "L3DX", 0., 0., 0., 0, "MANY");
+  gMC->Gspos("L3IX", 1, "L3DX", 0., 0., 0., 0, "MANY");
+
+  if(!strcmp(gMC->GetName(),"TGeant3")) {
+
+    gMC->Gspos("L3O1", 1, "L3FR", 0., 30., 0., 0, "MANY");
+    gMC->Gspos("L3O2", 1, "L3IR", 0., 30., 0., 0, "MANY");
+    gMC->Gspos("L3O3", 1, "L3FX", 0., 30., 0., 0, "MANY");
+    gMC->Gspos("L3O4", 1, "L3IX", 0., 30., 0., 0, "MANY");
+
+  }
+  else {
+    gMC->Gspos("L3O1", 1, "ALIC", 0., 0., 0., 0, "MANY");
+    gMC->Gspos("L3O2", 1, "ALIC", 0., 0., 0., 0, "MANY");
+    gMC->Gsbool("L3O1", "L3DO");
+    gMC->Gsbool("L3O2", "L3DO");
+  
+    gMC->Gspos("L3O3", 1, "ALIC", 0., 0., 0., idrotm[300], "MANY");
+    gMC->Gspos("L3O4", 1, "ALIC", 0., 0., 0., idrotm[300], "MANY");
+    gMC->Gsbool("L3O3", "L3DX");
+    gMC->Gsbool("L3O4", "L3DX");
+  }      
 }
 
 //_____________________________________________________________________________

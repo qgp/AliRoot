@@ -15,6 +15,12 @@
 
 /*
   $Log$
+  Revision 1.3  2002/10/29 17:00:46  schutz
+  removed iostream
+
+  Revision 1.2  2000/11/09 15:49:00  martinez
+  Coding convention rules obeyed
+
   Revision 1.1  2000/11/03 16:29:02  schutz
   PPSD geometry class to correct previous name-convetion rule violation
 
@@ -31,8 +37,6 @@
 // --- ROOT system ---
 
 // --- Standard library ---
-
-#include <iostream.h>
 
 // --- AliRoot header files ---
 

@@ -15,11 +15,24 @@
  
 /*
 $Log$
+Revision 1.3.4.3  2002/06/25 05:58:42  barbera
+Updated classes and macros to make the ITS data structures compatible with the new IO (from M. Masera)
+
 Revision 1.3.4.2  2002/06/06 14:23:57  hristov
 Merged with v3-08-02
 
 Revision 1.3.4.1  2002/05/31 09:37:56  hristov
 First set of changes done by Piotr
+
+Revision 1.7  2002/10/14 14:57:00  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.3.6.2  2002/10/14 13:14:08  hristov
+Updating VirtualMC to v3-09-02
+
+Revision 1.6  2002/09/09 17:30:02  nilsen
+Added new creator which passes a pointer to type AliRun. Can now use either
+gAlice or a local instance of AliRun.
 
 Revision 1.5  2002/05/13 14:27:57  hristov
 TreeC created once per event (M.Masera)
@@ -41,6 +54,7 @@ events in the file. Macro added to show how to use. Also the changes made
 in the nessesary complilation files.
 
 */
+
 #include <TROOT.h>
 #include <TFile.h>
 #include <TSeqCollection.h>
@@ -66,7 +80,15 @@ in the nessesary complilation files.
 ClassImp(AliITSreconstruction)
 
 //______________________________________________________________________
-AliITSreconstruction::AliITSreconstruction(){
+AliITSreconstruction::AliITSreconstruction():
+ fInit(kFALSE),
+ fEnt(0),
+ fEnt0(0),
+ fITS(0x0),
+ fDfArp(kFALSE),
+ fLoader(0x0),
+ fRunLoader(0x0)
+{
     // Default constructor.
     // Inputs:
     //  none.
@@ -74,18 +96,31 @@ AliITSreconstruction::AliITSreconstruction(){
     //   none.
     // Return:
     //    A zero-ed constructed AliITSreconstruction class.
-
-    fFilename = "";
-    fFile     = 0;
-    fFile2    = 0;
-    fITS      = 0;
     fDet[0] = fDet[1] = fDet[2] = kTRUE;
-    fInit     = kFALSE;
-    fRunLoader = 0x0;
-    fLoader = 0x0;
 }
 //______________________________________________________________________
-AliITSreconstruction::AliITSreconstruction(const char* filename){
+
+AliITSreconstruction::AliITSreconstruction(AliRunLoader *rl):
+ fInit(kFALSE),
+ fEnt(0),
+ fEnt0(0),
+ fITS(0x0),
+ fDfArp(kFALSE),
+ fLoader(0x0),
+ fRunLoader(rl)
+{
+  fDet[0] = fDet[1] = fDet[2] = kTRUE;
+}
+//______________________________________________________________________
+AliITSreconstruction::AliITSreconstruction(const char* filename):
+ fInit(kFALSE),
+ fEnt(0),
+ fEnt0(0),
+ fITS(0x0),
+ fDfArp(kFALSE),
+ fLoader(0x0),
+ fRunLoader(0x0)
+{
     // Standard constructor.
     // Inputs:
     //  const char* filename    filename containing the digits to be
@@ -98,11 +133,12 @@ AliITSreconstruction::AliITSreconstruction(const char* filename){
     // Return:
     //    A standardly constructed AliITSreconstruction class.
 
-    fFilename = filename;
-    fRunLoader = AliRunLoader::Open(fFilename);
+    fDet[0] = fDet[1] = fDet[2] = kTRUE;
+
+    fRunLoader = AliRunLoader::Open(filename);
     if (fRunLoader == 0x0)
      {
-       Error("AliITSreconstruction","Can not load the session");
+       Error("AliITSreconstruction","Can not load the session",filename);
        return;
      }
     fRunLoader->LoadgAlice();
@@ -114,23 +150,12 @@ AliITSreconstruction::AliITSreconstruction(const char* filename){
           return;
       } // end if !gAlice
 
-    Init();
 }
 //______________________________________________________________________
 AliITSreconstruction::~AliITSreconstruction(){
-    // Default constructor.
-    // Inputs:
-    //  none.
-    // Outputs:
-    //   none.
-    // Return:
     //    A destroyed AliITSreconstruction class.
-
-//    if(fFile) fFile->Close();
     delete fRunLoader;
-    fFile     = 0;
     fITS      = 0;
-    
 }
 //______________________________________________________________________
 Bool_t AliITSreconstruction::Init(){
@@ -141,12 +166,17 @@ Bool_t AliITSreconstruction::Init(){
     //   none.
     // Return:
     //    kTRUE if no errors initilizing this class occurse else kFALSE
-
+    if (fRunLoader == 0x0)
+     {
+       Error("Init","Run Loader is NULL");
+       return kFALSE;
+     }
+    fRunLoader->LoadgAlice();
     fRunLoader->LoadHeader();  
 
     fLoader = (AliITSLoader*) fRunLoader->GetLoader("ITSLoader");
     if(!fLoader) {
-      Error("AliITSreconstruction","ITA loader not found");
+      Error("Init","ITS loader not found");
       fInit = kFALSE;
     }
 
@@ -284,8 +314,3 @@ void AliITSreconstruction::SetOutputFile(TString filename){
   // containing digits. This obj is deleted by AliRun.
   Error("SetOutputFile","Use AliLoader::SetRecPointsFileName(TString&)instead");
 }
-
-
-
-
-

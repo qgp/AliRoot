@@ -3,32 +3,26 @@
 # delete eventual old files from the last run
 ./AliITSDeleteOldFiles.sh
 
-# run the hit generation
-aliroot -q -b "$ALICE_ROOT/macros/grun.C($1)"
-
-# digitize TPC
-aliroot -q -b "$ALICE_ROOT/TPC/AliTPCHits2Digits.C($1)"
-
-# prepare TPC tracks for matching with the ITS
-aliroot -q -b "$ALICE_ROOT/ITS/AliTPCTracking4ITS.C($1)"
+# do everything for the TPC
+aliroot -q -b "$ALICE_ROOT/TPC/AliTPCtest.C"
 
 # create summable digits for the ITS
 aliroot -q -b "$ALICE_ROOT/ITS/AliITSHits2SDigits.C"
 
-# go from summable digits to digits
+# go from summable digits to digits for the ITS
 aliroot -q -b "$ALICE_ROOT/ITS/AliITSSDigits2Digits.C"
 
 # create reconstructed points for the ITS
-aliroot -q -b "$ALICE_ROOT/ITS/AliITSDigits2RecPoints.C(0,$[$1-1])"
+aliroot -q -b "$ALICE_ROOT/ITS/AliITSDigits2RecPoints.C"
 
-# prepare for tracking
-aliroot -q -b "$ALICE_ROOT/ITS/AliITSTracksV1.C(0,$[$1-1])"
+# do the tracking V1
+aliroot -q -b "$ALICE_ROOT/ITS/AliITSTrackingV1.C"
 
-# do the tracking
-aliroot -q -b "$ALICE_ROOT/ITS/AliITSTrackingV1.C(0,$[$1-1])"
+# prepare results of tracking V1 for comparison
+aliroot -q -b "$ALICE_ROOT/ITS/AliITSStoreFindableTracks.C"
 
-# do the comparison
-aliroot -q -b "$ALICE_ROOT/ITS/AliITSComparisonV1.C(0,$[$1-1])"
+# do ITS tracking V1 comparison
+aliroot -q -b "$ALICE_ROOT/ITS/AliITSComparisonV1.C"
 
 #
 # after all of the above you can run AliITSPlotTracksV1.C macro under 

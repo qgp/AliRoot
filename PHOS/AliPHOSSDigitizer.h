@@ -27,7 +27,7 @@ public:
   AliPHOSSDigitizer() ;          // ctor
   AliPHOSSDigitizer(const char* eventfoldername,
                     const char* SdigitsTitle = "Default"); 
-  virtual ~AliPHOSSDigitizer(){} // dtor
+  virtual ~AliPHOSSDigitizer(); // dtor
 
   Float_t  Calibrate(Int_t amp)const {return (amp - fA)/fB ; }
   Int_t    Digitize(Float_t Energy)const { return (Int_t ) ( fA + Energy*fB); }
@@ -35,7 +35,6 @@ public:
 
   const char *   GetSDigitsBranch()const{return GetName();}  
   const Int_t    GetSDigitsInRun() const {return fSDigitsInRun ;}  
-
   virtual void Print(Option_t* option) const ;
   void SetSDigitsBranch(const char * title ) ;
   void UseHitsFrom(const char * filename) ;      

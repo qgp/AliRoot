@@ -15,6 +15,12 @@
 
 /*
 $Log$
+Revision 1.19  2002/10/23 07:24:56  alibrary
+Introducing Riostream.h
+
+Revision 1.18  2002/02/20 09:14:37  morsch
+Protection against numerical inprecission for hits on slat boundaries.
+
 Revision 1.17  2001/12/01 20:00:45  hristov
 New protections added
 
@@ -81,7 +87,7 @@ Segmentation class for chambers built out of slats.
 #include <TBRIK.h>
 #include <TNode.h>
 #include <TGeometry.h>
-#include <iostream.h>
+#include <Riostream.h>
 
 //___________________________________________
 ClassImp(AliMUONSegmentationSlat)

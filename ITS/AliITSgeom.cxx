@@ -15,7 +15,22 @@
 
 /*
 $Log$
+Revision 1.18.6.2  2002/06/28 16:46:31  hristov
+More protections
+
 Revision 1.18.6.1  2002/05/31 21:42:02  mariana
+Fix memory leak
+
+Revision 1.21  2002/10/22 14:45:38  alibrary
+Introducing Riostream.h
+
+Revision 1.20  2002/10/14 14:57:00  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.18.8.1  2002/07/24 09:27:50  alibrary
+Updating on VirtualMC
+
+Revision 1.19  2002/05/31 21:07:42  mariana
 Fix memory leak
 
 Revision 1.18  2001/08/24 21:06:37  nilsen
@@ -190,9 +205,7 @@ pixel coordinate system.
 // ITS volumes. See the example classes AliITSgeomSPD, AliITSgeomSDD,
 // and AliITSgeomSSD for a more detailed example.
 ////////////////////////////////////////////////////////////////////////
-#include <iostream.h>
-#include <fstream.h>
-#include <iomanip.h>
+#include <Riostream.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -300,6 +313,7 @@ AliITSgeom::~AliITSgeom(){
     // TObjArray fShape is, by default, handled by the TObjArray destructor.
 
    if(fGm!=0){
+     //for(Int_t i=0;i<fNlayers;i++) delete fGm->At(i);
       fGm->Delete();
       delete fGm;
    } // end if fGm!=0

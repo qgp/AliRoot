@@ -9,6 +9,8 @@
 
 class TFile;
 class AliRunLoader;
+class AliTRDparameter;
+
 ///////////////////////////////////////////////////////
 //  Finds and handles cluster                        //
 ///////////////////////////////////////////////////////
@@ -30,20 +32,23 @@ class AliTRDclusterizer : public TNamed {
   virtual Bool_t  OpenOutput();
   virtual Bool_t  MakeClusters() = 0;
   virtual Bool_t  WriteClusters(Int_t det);
+  virtual void     SetParameter(AliTRDparameter *par)      { fPar           = par; };
+  void     SetVerbose(Int_t v = 1)                 { fVerbose       = v;   };
 
-          void    SetVerbose(Int_t v = 1) { fVerbose = v; };
+  AliTRDparameter *GetParameter()                    const { return fPar;          };
 
  protected:
 
   AliRunLoader * fRunLoader;       //! Run Loader
   
-  TTree   *fClusterTree;           //! Tree with the cluster
-  AliTRD  *fTRD;                   //! The TRD object
+  TTree           *fClusterTree;   //! Tree with the cluster
+  AliTRD          *fTRD;           //! The TRD object
+  AliTRDparameter *fPar;           //  TRD digitization parameter object
 
-  Int_t    fEvent;                 //! Event number
-  Int_t    fVerbose;               //  Sets the verbose level
+  Int_t            fEvent;         //! Event number
+  Int_t            fVerbose;       //  Sets the verbose level
 
-  ClassDef(AliTRDclusterizer,2)    //  TRD-Cluster manager base class
+  ClassDef(AliTRDclusterizer,3)    //  TRD-Cluster manager base class
 
 };
 

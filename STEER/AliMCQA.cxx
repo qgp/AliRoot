@@ -15,6 +15,18 @@
 
 /*
 $Log$
+Revision 1.8  2002/10/29 14:26:49  hristov
+Code clean-up (F.Carminati)
+
+Revision 1.7  2002/10/14 14:57:32  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.6.6.1  2002/10/12 21:41:00  hristov
+Remove the object from the list of browsables
+
+Revision 1.6  2001/12/05 08:31:25  hristov
+Destructor corrected, thanks to R.Brun
+
 Revision 1.5  2001/01/26 19:58:48  hristov
 Major upgrade of AliRoot code
 
@@ -61,18 +73,56 @@ Introducing new Rndm and QA classes
 
 ClassImp(AliMCQA)
 
-
-//_____________________________________________________________________________
-AliMCQA::AliMCQA() : fQAList(0), fDetDone(0), fQAHist(0), fVolNames(0),
-		     fModNames(0),fMPaveLabel(0),fVPaveLabel(0)
+//_______________________________________________________________________
+AliMCQA::AliMCQA():
+  fNdets(0),
+  fNvolumes(0),
+  fQAList(0),
+  fOldId(0),
+  fDetDone(0),
+  fQAHist(0),
+  fVolNames(0),
+  fModNames(0),
+  fMPaveLabel(0),
+  fVPaveLabel(0)
 {
   //
   // Default constructor
   //
 }
 
-//_____________________________________________________________________________
-AliMCQA::AliMCQA(Int_t ndets) : fMPaveLabel(0),fVPaveLabel(0)
+//_______________________________________________________________________
+AliMCQA::AliMCQA(const AliMCQA &qa):
+  TObject(qa),
+  fNdets(0),
+  fNvolumes(0),
+  fQAList(0),
+  fOldId(0),
+  fDetDone(0),
+  fQAHist(0),
+  fVolNames(0),
+  fModNames(0),
+  fMPaveLabel(0),
+  fVPaveLabel(0)
+{
+  //
+  // Copy constructor
+  //
+  qa.Copy(*this);
+}
+
+//_______________________________________________________________________
+AliMCQA::AliMCQA(Int_t ndets):
+  fNdets(ndets),
+  fNvolumes(gMC->NofVolumes()),
+  fQAList(new TObjArray(ndets)),
+  fOldId(0),
+  fDetDone(new Int_t[ndets]),
+  fQAHist(new TObjArray(2)),
+  fVolNames(new TObjArray(fNvolumes)),
+  fModNames(new TObjArray(fNdets)),
+  fMPaveLabel(0),
+  fVPaveLabel(0)
 {
   //
   // Constructor, creates the list of lists of histograms
@@ -81,19 +131,15 @@ AliMCQA::AliMCQA(Int_t ndets) : fMPaveLabel(0),fVPaveLabel(0)
   TH1F* h;
   Int_t i;
   
-  fNdets=ndets;
-
-  fQAList = new TObjArray(ndets);
   TObjArray &hist = *fQAList;
 
   char title[100];
   //
   TObjArray &mods = *(gAlice->Modules());
-  AliModule *mod;
   TList *dir = gDirectory->GetList();
   for (i=0; i<ndets; i++) {
     hist[i] = list = new TList();
-    mod = (AliModule *) mods[i];
+    AliModule *mod = dynamic_cast<AliModule*>(mods[i]);
 
     // Energy Spectrum
     sprintf(title,"Spectrum entering: %s ",mod->GetName());
@@ -118,47 +164,47 @@ AliMCQA::AliMCQA(Int_t ndets) : fMPaveLabel(0),fVPaveLabel(0)
   //
   gROOT->GetListOfBrowsables()->Add(this,"AliMCQA");
 
-  fDetDone = new Int_t[fNdets];
-
   //
   // Global QA histograms
   //
-  fQAHist = new TObjArray(2);
-  fNvolumes=gMC->NofVolumes();
   
   fQAHist->Add(new TH1F("hMCVcalls","Monte Carlo calls per volume",
 			fNvolumes, 0.5, fNvolumes+0.5));
-  h = (TH1F*) dir->FindObject("hMCVcalls");
+  h = dynamic_cast<TH1F*>(dir->FindObject("hMCVcalls"));
   h->GetListOfFunctions()->Add(new TExec("ex","gAlice->GetMCQA()->AddVolumeName()"));
   dir->Remove(dir->FindObject("hMCVcalls"));
   //
   // Build list of volume names
   //
-  fVolNames=new TObjArray(fNvolumes);
   for(i=0;i<fNvolumes;++i) {
-    AliModule *mod = (AliModule*)
-      (*gAlice->Modules())[gAlice->DetFromMate(gMC->VolId2Mate(i+1))];
+    AliModule *mod = dynamic_cast<AliModule*>
+      ((*gAlice->Modules())[gAlice->DetFromMate(gMC->VolId2Mate(i+1))]);
     (*fVolNames)[i]=new TNamed(gMC->VolName(i+1),mod->GetName());
   }
 
   fQAHist->Add(new TH1F("hMCMcalls","Monte Carlo calls per module",
 			fNdets, -0.5, fNdets-0.5));
-  h = (TH1F*) dir->FindObject("hMCMcalls");
+  h = dynamic_cast<TH1F*>(dir->FindObject("hMCMcalls"));
    h->GetListOfFunctions()->Add(new TExec("ex","gAlice->GetMCQA()->AddModuleName()"));
 
   dir->Remove(dir->FindObject("hMCMcalls"));
   //
   // Build list of module names
   //
-  fModNames=new TObjArray(fNdets);
   for(i=0;i<fNdets;++i) 
     (*fModNames)[i]=
-      new TNamed(((AliModule *)(*gAlice->Modules())[i])->GetName(),"");
+      new TNamed((dynamic_cast<AliModule*>((*gAlice->Modules())[i]))->GetName(),"");
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
+void AliMCQA::Copy(AliMCQA &) const
+{
+  Fatal("Copy ctor","Not implemented!\n");
+}
 
+//_______________________________________________________________________
 AliMCQA::~AliMCQA() {
+  gROOT->GetListOfBrowsables()->Remove(this);
   if (fQAList) {
     fQAList->Delete();
     delete fQAList;
@@ -184,7 +230,7 @@ AliMCQA::~AliMCQA() {
   delete fVPaveLabel;
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliMCQA::Browse(TBrowser *b)
 {
   //
@@ -197,21 +243,21 @@ void AliMCQA::Browse(TBrowser *b)
   // Global histos first
   //
   TIter global(fQAHist);
-  while((hist = (TH1*)global())) 
+  while((hist = dynamic_cast<TH1*>(global())))
     b->Add(hist,hist->GetTitle());
   //
   // Module histograms now
   //
   TIter next(fQAList);
   TList *histos;
-  while((histos = (TList*)next())) {
+  while((histos = dynamic_cast<TList*>(next()))) {
     TIter next1(histos);
-    while((hist = (TH1*)next1())) 
+    while((hist = dynamic_cast<TH1*>(next1())))
       b->Add(hist,hist->GetTitle());
   }
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliMCQA::PreTrack()
 {
   //
@@ -221,7 +267,7 @@ void AliMCQA::PreTrack()
   for(Int_t i=0; i<fNdets; i++) fDetDone[i]=0;
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliMCQA::StepManager(Int_t id)
 {
   //
@@ -234,9 +280,9 @@ void AliMCQA::StepManager(Int_t id)
   //
 
 
-  static TH1F* mcvcalls = (TH1F*) fQAHist->FindObject("hMCVcalls");
+  static TH1F* mcvcalls = dynamic_cast<TH1F*>(fQAHist->FindObject("hMCVcalls"));
   mcvcalls->Fill(gMC->CurrentVolID(copy));
-  static TH1F* mcmcalls = (TH1F*) fQAHist->FindObject("hMCMcalls");
+  static TH1F* mcmcalls = dynamic_cast<TH1F*>(fQAHist->FindObject("hMCMcalls"));
   mcmcalls->Fill(id);
 
   //
@@ -283,26 +329,26 @@ void AliMCQA::StepManager(Int_t id)
     Double_t energy = TMath::Max(p[3]-mass,1.e-12);
     if(fOldId > -1) {
       if(!fDetDone[fOldId] && !gMC->IsNewTrack()) {
-	TList *histold = (TList*) (*fQAList)[fOldId];
-	hist = (TH1F*) histold->FindObject("hEnOut");
+	TList *histold = dynamic_cast<TList*>((*fQAList)[fOldId]);
+	hist = dynamic_cast<TH1F*>(histold->FindObject("hEnOut"));
 	hist->Fill(TMath::Log10(energy));
-	hist = (TH1F*) histold->FindObject("hZOut");
+	hist = dynamic_cast<TH1F*>(histold->FindObject("hZOut"));
 	hist->Fill(x[2]);
 	fDetDone[fOldId]=1;
       }
     }
     if(!fDetDone[id] && !gMC->IsNewTrack()) {
-      TList *histnew = (TList*) (*fQAList)[id];
-      hist = (TH1F*) histnew->FindObject("hEnIn");
+      TList *histnew = dynamic_cast<TList*>((*fQAList)[id]);
+      hist = dynamic_cast<TH1F*>(histnew->FindObject("hEnIn"));
       hist->Fill(TMath::Log10(energy));
-      hist = (TH1F*) histnew->FindObject("hZIn");
+      hist = dynamic_cast<TH1F*>(histnew->FindObject("hZIn"));
       hist->Fill(x[2]);
     }
     fOldId=id;
   }
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliMCQA::AddModuleName()
 {
   //
@@ -317,7 +363,7 @@ void AliMCQA::AddModuleName()
   }
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliMCQA::AddVolumeName()
 {
   //
@@ -332,7 +378,7 @@ void AliMCQA::AddVolumeName()
   }
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliMCQA::DrawPaveLabel(TPaveLabel *&pv)
 {
   //
@@ -353,14 +399,14 @@ void AliMCQA::DrawPaveLabel(TPaveLabel *&pv)
   pv->Draw();
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 Int_t AliMCQA::GetHBin(const char* hname)
 {
   //
   // Get the bin where the cursor is
   //
   TList *dir = gDirectory->GetList();
-  TH1 *h=(TH1*)dir->FindObject(hname);
+  TH1 *h=dynamic_cast<TH1*>(dir->FindObject(hname));
   
 
   int px = gPad->GetEventX();
@@ -370,7 +416,7 @@ Int_t AliMCQA::GetHBin(const char* hname)
   return h->GetXaxis()->FindBin(x);
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliMCQA::DrawModuleName()
 {
   //
@@ -382,7 +428,7 @@ void AliMCQA::DrawModuleName()
   Int_t binx = GetHBin("hMCMcalls");
   if(0<binx && binx<=fNdets) {
     char lab[15];
-    strcpy(lab,((TNamed*)(*fModNames)[binx-1])->GetName());
+    strcpy(lab,dynamic_cast<TNamed*>((*fModNames)[binx-1])->GetName());
     fMPaveLabel->SetLabel(lab);
   
     gPad->Modified();
@@ -390,7 +436,7 @@ void AliMCQA::DrawModuleName()
   }
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliMCQA::DrawVolumeName()
 {
   //
@@ -402,8 +448,8 @@ void AliMCQA::DrawVolumeName()
   Int_t binx = GetHBin("hMCVcalls");
   if(0<binx && binx<=fNvolumes) {
     char lab[20];
-    sprintf(lab,"%s: %s",((TNamed*)(*fVolNames)[binx-1])->GetName(),
-	    ((TNamed*)(*fVolNames)[binx-1])->GetTitle());
+    sprintf(lab,"%s: %s",dynamic_cast<TNamed*>((*fVolNames)[binx-1])->GetName(),
+	    dynamic_cast<TNamed*>((*fVolNames)[binx-1])->GetTitle());
     fVPaveLabel->SetLabel(lab);
     
     gPad->Modified();

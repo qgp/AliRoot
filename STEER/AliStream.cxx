@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.4.4.2  2002/06/18 10:18:32  hristov
+Important update (P.Skowronski)
+
 Revision 1.4.4.1  2002/05/31 09:37:59  hristov
 First set of changes done by Piotr
 
@@ -46,7 +49,7 @@ Class to manage input filenames, used by AliRunDigitizer
 //
 ////////////////////////////////////////////////////////////////////////
 
-#include <iostream.h>
+#include <Riostream.h>
 
 #include "TTree.h"
 #include "TROOT.h"
@@ -62,42 +65,48 @@ Class to manage input filenames, used by AliRunDigitizer
 
 ClassImp(AliStream)
 
-AliStream::AliStream()
+AliStream::AliStream():
+  fLastEventSerialNr(-1),
+  fLastEventNr(0),
+  fCurrentFileIndex(-1),
+  fEvents(0),
+  fMode(0),
+  fFileNames(0x0),
+  fEventFolderName(0)
 {
 // root requires default ctor, where no new objects can be created
 // do not use this ctor, it is supplied only for root needs
-  fEvents = 0;
-  fFileNames = 0;
 }
+//_______________________________________________________________________
 
-////////////////////////////////////////////////////////////////////////
-AliStream::AliStream(const char* foldername,Option_t *option):fEventFolderName(foldername)
+AliStream::AliStream(const char* foldername,Option_t *option):
+  fLastEventSerialNr(-1),
+  fLastEventNr(0),
+  fCurrentFileIndex(-1),
+  fEvents(0),
+  fMode(option),
+  fFileNames(new TObjArray(1)),
+  fEventFolderName(foldername)
 {
 // ctor
-  fLastEventSerialNr = -1;
-  fLastEventNr = 0;
-  fCurrentFileIndex = -1;
-  fEvents = 0;
-  fFileNames = new TObjArray(1);
-  fMode = option;
 }
+//_______________________________________________________________________
 
-////////////////////////////////////////////////////////////////////////
 AliStream::~AliStream()
 {
 // default dtor
   if (fFileNames) delete fFileNames;
 }
+//_______________________________________________________________________
 
-////////////////////////////////////////////////////////////////////////
 void AliStream::AddFile(const char *fileName)
 {
 // stores the name of the file
   TObjString *name = new TObjString(fileName);
   fFileNames->Add(name);
 }
+//_______________________________________________________________________
 
-////////////////////////////////////////////////////////////////////////
 Bool_t AliStream::NextEventInStream()
 {
 // returns kFALSE if no more events
@@ -110,8 +119,9 @@ Bool_t AliStream::NextEventInStream()
   AliRunLoader* currentloader = AliRunLoader::GetRunLoader(fEventFolderName);
   if (currentloader == 0x0) 
    {
-    cout<<"AliStream::NextEventInStream: Can not get RL from folder named "
-        <<fEventFolderName<<". Attempting to open next file\n";
+    Info("NextEventInStream",
+         "Can not get RL from folder named %s. Attempting to open next file",
+         fEventFolderName.Data());
     Int_t res = OpenNextFile();
     if ( res == 0) return kFALSE;
     currentloader = AliRunLoader::GetRunLoader(fEventFolderName);
@@ -121,12 +131,12 @@ Bool_t AliStream::NextEventInStream()
    {
     if (!OpenNextFile()) return kFALSE;
    }
-  cout<<"AliStream::NextEventInStream:  Trying to get event "<<fLastEventSerialNr+1<<endl;
+  Info("NextEventInStream","Trying to get event ",fLastEventSerialNr+1);
   currentloader->GetEvent(++fLastEventSerialNr);
   return kTRUE;
 }
+//_______________________________________________________________________
 
-////////////////////////////////////////////////////////////////////////
 void AliStream::ChangeMode(Option_t* option)
 // set the mode to READ or UPDATE, reopen file with the new mode
 // only change from UPDATE to READ have sense in the current scheme,
@@ -141,8 +151,8 @@ void AliStream::ChangeMode(Option_t* option)
     OpenNextFile();
   }
 }
+//_______________________________________________________________________
 
-////////////////////////////////////////////////////////////////////////
 Bool_t AliStream::OpenNextFile()
 {
   if (++fCurrentFileIndex > fFileNames->GetLast()) {
@@ -194,8 +204,8 @@ Bool_t AliStream::OpenNextFile()
   fLastEventSerialNr = -1;
   return kTRUE;
 }
+//_______________________________________________________________________
 
-////////////////////////////////////////////////////////////////////////
 Bool_t AliStream::ImportgAlice()
 {
   if (fFileNames->GetLast() < 0) return kFALSE;
@@ -210,3 +220,17 @@ Bool_t AliStream::ImportgAlice()
   if (!gAlice)  return kFALSE;
   return kTRUE;
 }
+
+//_______________________________________________________________________
+TString AliStream::GetFileName(const Int_t order) const
+// returns name of the order-th file
+// returns empty string if such file does not exist
+// first file in the input stream is 0
+{
+  TString fileName("");
+  if (order > fFileNames->GetLast()) return fileName;
+  TObjString *fileNameStored = dynamic_cast<TObjString*>(fFileNames->At(order));
+  if (fileNameStored) fileName = fileNameStored->GetString();
+  return fileName;
+}
+

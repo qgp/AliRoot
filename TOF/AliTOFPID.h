@@ -30,6 +30,14 @@ public:
   void          SetNEvents(Int_t Nevents) {fNevents = Nevents;}
   Int_t         GetNEvents() const {return fNevents;}
   void  SetDbg(Int_t dbgflag)                        {fdbg=dbgflag;}
+  // getter for pointers to cuts
+  TCutG*        GetElectronCut() const {return felectron;}
+  TCutG*        GetPionCut()     const {return fpion;}
+  TCutG*        GetKaonCut()     const {return fkaon;}
+  TCutG*        GetProtonCut()   const {return fproton;}
+
+  TFile *       GetFileCuts()    const {return fcut;}
+  TNtuple*      GetInputNtuple() const {return fNtuple;}
 
   Bool_t   operator == (const AliTOFPID & tofpid) const ;
 
@@ -49,7 +57,7 @@ private:
 
  protected:
 
-  ClassDef(AliTOFPID,1)  // Task class for TOF pid
+  ClassDef(AliTOFPID,0)  // Task class for TOF pid
 
 };
 

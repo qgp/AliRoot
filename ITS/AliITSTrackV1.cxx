@@ -4,7 +4,7 @@
 // The track is mainly caracterized by the state vector of elements (fX0, fX1, fX2, fX3, fX4) and the
 // corresponding covariance matrix of elements (C00, C10, ..... C44) that is triangular
 //
-#include <iostream.h>
+#include <Riostream.h>
 #include <TMath.h>
 #include <TVector.h>
 #include <TObjArray.h>
@@ -12,7 +12,7 @@
 #include "AliITSRad.h"
 #include "AliITSTrackV1.h"
 #include "AliGenerator.h"
-#include "AliMagF.h"
+//#include "AliMagF.h"
 
 
 ClassImp(AliITSTrackV1)
@@ -33,9 +33,12 @@ AliITSTrackV1::AliITSTrackV1() {
   fnoclust=0;
   fMass=0.13956995; //a pion by default
   fFieldFactor = 0.0;
-   
+  fdEdx = 0.;                          // oggi
+  Int_t ia=0;                          // oggi
+  for( ia=0; ia<4; ia++) fcor[ia]=0.;  // oggi
+  
 }
-AliITSTrackV1::AliITSTrackV1(const char *opt) {
+AliITSTrackV1::AliITSTrackV1(const char *opt, Double_t fieldfactor) {
 //Origin  A. Badala' and G.S. Pappalardo:  e-mail Angela.Badala@ct.infn.it, Giuseppe.S.Pappalardo@ct.infn.it 
 // default constructor   
  
@@ -54,12 +57,17 @@ AliITSTrackV1::AliITSTrackV1(const char *opt) {
   fd2.ResizeTo(6);
   ftgl2.ResizeTo(6); 
   fdtgl.ResizeTo(6);
-  fMass=0.13956995; //a pion by default 
+  fMass=0.13956995; //a pion by default
+  fdEdx = 0.;
+  Int_t ia=0;
+  for( ia=0; ia<4; ia++) fcor[ia]=0.;   
+
   
 //////////////////////////////////////// gets magnetic field factor ////////////////////////////////
 
-  AliMagF * fieldPointer = gAlice->Field();
-  fFieldFactor = (Double_t)fieldPointer->Factor();
+ // AliMagF * fieldPointer = gAlice->Field();
+  // fFieldFactor =(Double_t)fieldPointer-> SolenoidField()/10/.2;
+    fFieldFactor = fieldfactor;
   //cout<< " field factor = "<<fFieldFactor<<"\n"; getchar();
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -99,7 +107,11 @@ AliITSTrackV1::AliITSTrackV1(const AliITSTrackV1 &cobj) {
   fd2=cobj.fd2;
   ftgl2=cobj.ftgl2;
   fdtgl=cobj.fdtgl;
-  fnoclust=cobj.fnoclust;   
+  fnoclust=cobj.fnoclust; 
+  fdEdx = cobj.fdEdx;
+  Int_t ia=0;
+  for( ia=0; ia<4; ia++) fcor[ia]=cobj.fcor[ia];    
+
     
   fC00=cobj.fC00; fC10=cobj.fC10; fC11=cobj.fC11; fC20=cobj.fC20; fC21=cobj.fC21;
   fC22=cobj.fC22; fC30=cobj.fC30; fC31=cobj.fC31; fC32=cobj.fC32; fC33=cobj.fC33; 
@@ -115,16 +127,17 @@ AliITSTrackV1::AliITSTrackV1(const AliITSTrackV1 &cobj) {
  
 }
 
-AliITSTrackV1::AliITSTrackV1(AliTPCtrack &obj)
+AliITSTrackV1::AliITSTrackV1(AliTPCtrack &obj, Double_t fieldfactor)
 { 
 //Origin  A. Badala' and G.S. Pappalardo:  e-mail Angela.Badala@ct.infn.it, Giuseppe.S.Pappalardo@ct.infn.it 
 // special constructor to convert a TPC track into an ITS track
 
 //////////////////////////////////////// gets magnetic field factor ////////////////////////////////
 
-  AliMagF * fieldPointer = gAlice->Field();
-  fFieldFactor = (Double_t)fieldPointer->Factor();
-  //cout<< " field factor = "<<fFieldFactor<<"\n"; getchar();
+   // AliMagF * fieldPointer = gAlice->Field();
+  // fFieldFactor =(Double_t)fieldPointer-> SolenoidField()/10/.2;
+    fFieldFactor = fieldfactor;
+ // cout<< " field factor dentro alitrack = "<<fFieldFactor<<"\n";/* getchar();*/
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -154,7 +167,10 @@ AliITSTrackV1::AliITSTrackV1(AliTPCtrack &obj)
   }  
   flistCluster = new TObjArray; 
   fNumClustInTrack = 0;
-  fnoclust=0;        
+  fnoclust=0;
+  fdEdx = 0.;
+  Int_t ia=0;
+  for( ia=0; ia<4; ia++) fcor[ia]=0.;          
   LmTPC(); 
 
 }
@@ -349,7 +365,11 @@ AliITSTrackV1 &AliITSTrackV1::operator=(AliITSTrackV1 obj) {
   fC22=obj.fC22; fC30=obj.fC30; fC31=obj.fC31; fC32=obj.fC32; fC33=obj.fC33; 
   fC40=obj.fC40; fC41=obj.fC41; fC42=obj.fC42; fC43=obj.fC43; fC44=obj.fC44;
    
-  fMass=obj.fMass;   
+  fMass=obj.fMass; 
+  fdEdx = obj.fdEdx; 
+  Int_t ia=0;
+  for( ia=0; ia<4; ia++) fcor[ia]=obj.fcor[ia];   
+
   
   *fClusterInTrack = *obj.fClusterInTrack;
   Int_t i;

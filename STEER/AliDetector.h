@@ -19,16 +19,17 @@ public:
   // Creators - distructors
   AliDetector(const char* name, const char *title);
   AliDetector();
-  AliDetector(const AliDetector &det) {det.Copy(*this);}
+  AliDetector(const AliDetector &det);
   virtual ~AliDetector();
 
   // Inline functions
-          void  Copy(AliDetector &det) const;
+  void  Copy(AliDetector &det) const;
   virtual int   GetNdigits() const {return fNdigits;}
   virtual int   GetNhits()   const {return fNhits;}
   TClonesArray *Digits() const {return fDigits;}
   TClonesArray *Hits()   const {return fHits;}
   TClonesArray *TrackReferences()   const {return fTrackReferences;}
+  virtual void        RemapTrackReferencesIDs(Int_t *map); //remaping track references MI
 
   TObjArray    *Points() const {return fPoints;}
   Int_t         GetIshunt() const {return fIshunt;}
@@ -41,8 +42,8 @@ public:
   virtual void        Browse(TBrowser *b);
   virtual void        FinishRun();
   virtual void        LoadPoints(Int_t track);
-  virtual void        MakeBranch(Option_t *opt=" ", const char *file=0 );
-  virtual void        MakeBranchTR(Option_t *opt=" ", const char *file=0 );
+  virtual void        MakeBranch(Option_t *opt=" ");
+  virtual void        MakeBranchTR(Option_t *opt=" ");
   virtual void        ResetDigits();
   virtual void        ResetHits();
   virtual void        ResetTrackReferences();
@@ -80,6 +81,7 @@ protected:
   TClonesArray *fHits;        //List of hits for one track only
   TClonesArray *fDigits;      //List of digits for this detector
   TObjArray    *fPoints;      //!Array of points for each track (all tracks in memory)
+
   
   TClonesArray *fTrackReferences; //!list of track references - for one primary track only -MI
   Int_t         fMaxIterTrackRef; //!for track refernce iterator routines
@@ -87,6 +89,6 @@ protected:
 
   AliLoader*  fLoader;//! pointer to getter for this module skowron
 
-  ClassDef(AliDetector,1)  //Base class for ALICE detectors
+  ClassDef(AliDetector,3)  //Base class for ALICE detectors
 };
 #endif

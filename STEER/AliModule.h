@@ -5,12 +5,14 @@
 
 /* $Id$ */
 
-#include "TNamed.h"
+#include "Riostream.h"
+
 #include "TAttLine.h"
 #include "TAttMarker.h"
+#include "TNamed.h"
+
 #include "AliRndm.h"
 
-//#include <TSystem.h>
 class TClonesArray;
 class TBrowser;
 class TArrayI;
@@ -91,11 +93,13 @@ public:
   virtual void        FinishEvent() {}
   virtual void        FinishRun() {}
   virtual void        FinishPrimary() {}
-  virtual void        RemapTrackHitIDs(Int_t *map) {}
+  virtual void        RemapTrackHitIDs(Int_t *) {}
+  virtual void        RemapTrackReferencesIDs(Int_t *) {} //remaping track references MI
 
   //virtual void        Hits2Digits() {}
   virtual void        Init() {}
   virtual void        LoadPoints(Int_t ) {}
+
 
 
   virtual void        MakeBranch(Option_t *, const char *file=0 ) {}
@@ -124,10 +128,13 @@ public:
   virtual void        SetEuclidFile(char *material,char *geometry=0);
   virtual void ReadEuclid(const char *filnam, char *topvol);
   virtual void ReadEuclidMedia(const char *filnam);
-  AliModule& operator=(const AliModule &mod);
-  void Copy(AliModule &mod) const;
-  
+
+  AliModule& operator=(const AliModule &mod)
+    {mod.Copy(*this); return (*this);}
+ 
 protected:      
+  void Copy(AliModule &mod) const;
+
   // Data members
   
   TString       fEuclidMaterial;  //!Name of the Euclid file for materials (if any)
@@ -145,6 +152,6 @@ protected:
   Bool_t        fEnable;      //StepManager enabling flag
 
 
-  ClassDef(AliModule,2)  //Base class for ALICE Modules
+  ClassDef(AliModule,3)  //Base class for ALICE Modules
 };
 #endif

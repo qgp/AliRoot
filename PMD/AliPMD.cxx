@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.16  2002/01/23 09:36:52  morsch
+Don't use shunting if you don't want it !
+
 Revision 1.15  2001/05/16 14:57:19  alibrary
 New files for folders and Stack
 
@@ -85,6 +88,7 @@ Introduction of the Copyright and cvs Log
 #include "AliMC.h" 
 #include "AliConst.h" 
 #include "AliPMDRecPoint.h"
+#include "AliLoader.h" 
   
 ClassImp(AliPMD)
  
@@ -271,24 +275,23 @@ void AliPMD::AddRecPoint(const AliPMDRecPoint &p)
     new(lrecpoints[fNRecPoints++]) AliPMDRecPoint(p);
 }
 
-void AliPMD::MakeBranch(Option_t* option, const char *file)
+void AliPMD::MakeBranch(Option_t* option)
 {
     // Create Tree branches for the PMD
     
     const char *cR = strstr(option,"R");
     
-    AliDetector::MakeBranch(option,file);
+    AliDetector::MakeBranch(option);
 
     if (cR) {
-      printf("Make Branch - TreeR address %p\n",gAlice->TreeR());
+      printf("Make Branch - TreeR address %p\n",fLoader->TreeR());
     
       const Int_t kBufferSize = 4000;
       char branchname[30];
       
       sprintf(branchname,"%sRecPoints",GetName());
-      if (fRecPoints   && gAlice->TreeR()) {
-          MakeBranchInTree(gAlice->TreeR(), 
-                           branchname, &fRecPoints, kBufferSize, file);
+      if (fRecPoints   && fLoader->TreeR()) {
+          MakeBranchInTree(fLoader->TreeR(), branchname, &fRecPoints, kBufferSize,0);
       }
    }	
 }
@@ -301,7 +304,7 @@ void AliPMD::SetTreeAddress()
     AliDetector::SetTreeAddress();
 
     TBranch *branch;
-    TTree *treeR = gAlice->TreeR();
+    TTree *treeR = fLoader->TreeR();
 
     sprintf(branchname,"%s",GetName());
     if (treeR && fRecPoints) {

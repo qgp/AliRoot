@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.16.6.5  2002/10/09 09:23:55  hristov
+New task hierarchy, bug corrections, new development (P.Skowronski)
+
 Revision 1.16.6.4  2002/06/28 16:45:17  hristov
 Few minor corrections
 
@@ -26,6 +29,27 @@ Merged with v3-08-02
 
 Revision 1.16.6.1  2002/05/31 09:37:59  hristov
 First set of changes done by Piotr
+
+Revision 1.23  2002/10/29 14:26:49  hristov
+Code clean-up (F.Carminati)
+
+Revision 1.22  2002/10/23 07:43:00  alibrary
+Introducing some effective C++ suggestions
+
+Revision 1.21  2002/10/22 15:02:15  alibrary
+Introducing Riostream.h
+
+Revision 1.20  2002/10/14 14:57:32  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.16.8.3  2002/10/14 09:45:57  hristov
+Updating VirtualMC to v3-09-02
+
+Revision 1.19  2002/09/23 09:19:54  hristov
+FirsTrackReference updated (M.Ivanov)
+
+Revision 1.18  2002/08/26 13:51:17  hristov
+Remaping of track references at the end of each primary particle (M.Ivanov)
 
 Revision 1.17  2002/05/24 13:29:58  hristov
 AliTrackReference added, AliDisplay modified
@@ -87,22 +111,21 @@ Introduction of the Copyright and cvs Log
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <assert.h>
-#include <iostream.h>
 
-#include <TTree.h>
 #include <TBrowser.h>
 #include <TFile.h>
-#include <TROOT.h>
 #include <TFolder.h>
+#include <TROOT.h>
+#include <TTree.h>
+#include <Riostream.h>
 
 #include "AliConfig.h"
 #include "AliDetector.h"
-#include "AliRun.h"
 #include "AliHit.h"
 #include "AliPoints.h"
 #include "AliLoader.h"
+#include "AliRun.h"
 #include "AliTrackReference.h"
-
 
 // Static variables for the hit iterator routines
 static Int_t sMaxIterHit=0;
@@ -111,26 +134,60 @@ static Int_t sCurIterHit=0;
 
 ClassImp(AliDetector)
  
-//_____________________________________________________________________________
-AliDetector::AliDetector()
+//_______________________________________________________________________
+AliDetector::AliDetector():
+  fTimeGate(200.e-9),
+  fIshunt(0),
+  fNhits(0),
+  fNdigits(0),
+  fBufferSize(1600),
+  fHits(0),
+  fDigits(0),
+  fPoints(0),
+  fTrackReferences(0),
+  fMaxIterTrackRef(0),
+  fCurrentIterTrackRef(0),
+  fLoader(0x0)
 {
   //
   // Default constructor for the AliDetector class
   //
-  fNhits      = 0;
-  fNdigits    = 0;
-  fPoints     = 0;
-  fHits       = 0;
-  fTrackReferences =0;
-  fDigits     = 0;
-  fTimeGate   = 200.e-9;
-  fBufferSize = 16000;
-  fLoader     = 0x0; //skowron
-
 }
  
+//_______________________________________________________________________
+AliDetector::AliDetector(const AliDetector &det):
+  AliModule(det),
+  fTimeGate(200.e-9),
+  fIshunt(0),
+  fNhits(0),
+  fNdigits(0),
+  fBufferSize(1600),
+  fHits(0),
+  fDigits(0),
+  fPoints(0),
+  fTrackReferences(0),
+  fMaxIterTrackRef(0),
+  fCurrentIterTrackRef(0),
+  fLoader(0x0)
+{
+  det.Copy(*this);
+}
+
 //_____________________________________________________________________________
-AliDetector::AliDetector(const char* name,const char *title):AliModule(name,title)
+AliDetector::AliDetector(const char* name,const char *title):
+  AliModule(name,title),
+  fTimeGate(200.e-9),
+  fIshunt(0),
+  fNhits(0),
+  fNdigits(0),
+  fBufferSize(1600),
+  fHits(0),
+  fDigits(0),
+  fPoints(0),
+  fTrackReferences(new TClonesArray("AliTrackReference", 100)),
+  fMaxIterTrackRef(0),
+  fCurrentIterTrackRef(0),
+  fLoader(0x0)
 {
   //
   // Normal constructor invoked by all Detectors.
@@ -138,32 +195,15 @@ AliDetector::AliDetector(const char* name,const char *title):AliModule(name,titl
   // Add this Detector to the global list of Detectors in Run.
   //
 
-  fTimeGate   = 200.e-9;
   fActive     = kTRUE;
-  fNhits      = 0;
-  fHits       = 0;
-  fTrackReferences =0;
-  fDigits     = 0;
-  fNdigits    = 0;
-  fPoints     = 0;
-  fBufferSize = 16000;
-  fLoader     = 0x0; //skowron
-
   AliConfig::Instance()->Add(this);
-
-  fTrackReferences        = new TClonesArray("AliTrackReference", 100);
-  //if detector to want to create another track reference - than let's be free 
-  
 }
  
-//_____________________________________________________________________________
+//_______________________________________________________________________
 AliDetector::~AliDetector()
 {
   //
   // Destructor
-  //
-  fNhits      = 0;
-  fNdigits    = 0;
   //
   // Delete space point structure
   if (fPoints) {
@@ -185,7 +225,7 @@ AliDetector::~AliDetector()
 
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliDetector::Publish(const char *dir, void *address, const char *name)
 {
 //
@@ -195,8 +235,10 @@ void AliDetector::Publish(const char *dir, void *address, const char *name)
   MayNotUse("Publish");
 }
 
-//_____________________________________________________________________________
-TBranch* AliDetector::MakeBranchInTree(TTree *tree, const char* name, void* address, Int_t size,const char *file)
+//_______________________________________________________________________
+TBranch* AliDetector::MakeBranchInTree(TTree *tree, const char* name, 
+                                       void* address, Int_t size,
+                                       const char *file)
 { 
     return(MakeBranchInTree(tree,name,0,address,size,99,file));
 }
@@ -228,7 +270,7 @@ MakeBranchInTree(TTree *tree, const char* name, const char *classname,
  return branch;
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliDetector::Browse(TBrowser *b)
 {
   //
@@ -247,16 +289,16 @@ void AliDetector::Browse(TBrowser *b)
   }
 }
 
-//_____________________________________________________________________________
-void AliDetector::Copy(AliDetector &det) const
+//_______________________________________________________________________
+void AliDetector::Copy(AliDetector &) const
 {
   //
   // Copy *this onto det -- not implemented
   //
-  Fatal("Copy","Not implemented~\n");
+  Fatal("Copy","Not implemented\n");
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliDetector::FinishRun()
 {
   //
@@ -267,8 +309,27 @@ void AliDetector::FinishRun()
     GetLoader()->CloseFiles();
   }
 }
+//_______________________________________________________________________
 
-//_____________________________________________________________________________
+void AliDetector::RemapTrackReferencesIDs(Int_t *map)
+{
+  // 
+  // Remapping track reference
+  // Called at finish primary
+  //
+  if (!fTrackReferences) return;
+  for (Int_t i=0;i<fTrackReferences->GetEntries();i++){
+    AliTrackReference * ref = dynamic_cast<AliTrackReference*>(fTrackReferences->UncheckedAt(i));
+    if (ref) {
+      Int_t newID = map[ref->GetTrack()];
+      if (newID>=0) ref->SetTrack(newID);
+      else ref->SetTrack(-1);
+      
+    }
+  }
+}
+//_______________________________________________________________________
+
 AliHit* AliDetector::FirstHit(Int_t track)
 {
   //
@@ -285,7 +346,7 @@ AliHit* AliDetector::FirstHit(Int_t track)
   //
   sMaxIterHit=fHits->GetEntriesFast();
   sCurIterHit=0;
-  if(sMaxIterHit) return (AliHit*) fHits->UncheckedAt(0);
+  if(sMaxIterHit) return dynamic_cast<AliHit*>(fHits->UncheckedAt(0));
   else            return 0;
 }
 
@@ -312,8 +373,8 @@ AliTrackReference* AliDetector::FirstTrackReference(Int_t track)
    }
   //
   sMaxIterHit=fTrackReferences->GetEntriesFast();
-  sCurIterHit=0;
-  if(sMaxIterHit) return (AliTrackReference*) fTrackReferences->UncheckedAt(0);
+  fCurrentIterTrackRef = 0;
+  if(fMaxIterTrackRef) return dynamic_cast<AliTrackReference*>(fTrackReferences->UncheckedAt(0));
   else            return 0;
 }
 
@@ -327,7 +388,7 @@ AliHit* AliDetector::NextHit()
   //
   if(sMaxIterHit) {
     if(++sCurIterHit<sMaxIterHit) 
-      return (AliHit*) fHits->UncheckedAt(sCurIterHit);
+      return dynamic_cast<AliHit*>(fHits->UncheckedAt(sCurIterHit));
     else        
       return 0;
   } else {
@@ -335,7 +396,8 @@ AliHit* AliDetector::NextHit()
     return 0;
   }
 }
-//_____________________________________________________________________________
+
+//_______________________________________________________________________
 AliTrackReference* AliDetector::NextTrackReference()
 {
   //
@@ -343,7 +405,7 @@ AliTrackReference* AliDetector::NextTrackReference()
   //
   if(fMaxIterTrackRef) {
     if(++fCurrentIterTrackRef<fMaxIterTrackRef) 
-      return (AliTrackReference*) fTrackReferences->UncheckedAt(fCurrentIterTrackRef);
+      return dynamic_cast<AliTrackReference*>(fTrackReferences->UncheckedAt(fCurrentIterTrackRef));
     else        
       return 0;
   } else {
@@ -352,7 +414,7 @@ AliTrackReference* AliDetector::NextTrackReference()
   }
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliDetector::LoadPoints(Int_t)
 {
   //
@@ -389,9 +451,8 @@ void AliDetector::LoadPoints(Int_t)
   Int_t chunk=nhits/4+1;
   //
   // Loop over all the hits and store their position
-  for (Int_t hit=0;hit<nhits;hit++) 
-   {
-    ahit = (AliHit*)fHits->UncheckedAt(hit);
+  for (Int_t hit=0;hit<nhits;hit++) {
+    ahit = dynamic_cast<AliHit*>(fHits->UncheckedAt(hit));
     trk=ahit->GetTrack();
     assert(trk<=tracks);
     if(ntrk[trk]==limi[trk])
@@ -435,50 +496,34 @@ void AliDetector::LoadPoints(Int_t)
   delete [] limi;
 }
 
-//_____________________________________________________________________________
-void AliDetector::MakeBranch(Option_t *option, const char *file)
+//_______________________________________________________________________
+void AliDetector::MakeBranch(Option_t *option)
 {
   //
-  // Create a new branch in the current Root Tree
-  // The branch of fHits is automatically split
+  // Create a new branch for this detector in its treeH
   //
- 
-  cout<<GetName()<<"::MakeBranch"<<endl;
- 
-  char branchname[10];
-  sprintf(branchname,"%s",GetName());
-  //
-  // Get the pointer to the header
+
+  Info("MakeBranch"," for %s",GetName());
   const char *cH = strstr(option,"H");
-  //
+
   if (fHits && TreeH() && cH) 
    {
-     MakeBranchInTree(TreeH(), branchname, &fHits, fBufferSize, file);
+     MakeBranchInTree(TreeH(), GetName(), &fHits, fBufferSize, 0);
    }	
-  
-
 }
 //_____________________________________________________________________________
-void AliDetector::MakeBranchTR(Option_t *option, const char *file)
+void AliDetector::MakeBranchTR(Option_t *option)
 {
   //
-  // Create a new branch in the current Root Tree
-  // The branch of fHits is automatically split
-  //
- 
-  char branchname[10];
-  sprintf(branchname,"%s",GetName());
-  //
-  // Get the pointer to the header
-  const char *cTR = strstr(option,"T");
   //
   TTree * tree = fLoader->GetRunLoader()->TreeTR();
-  if (fTrackReferences && tree && cTR) {
-    MakeBranchInTree(tree, branchname, &fTrackReferences, fBufferSize, file) ;
-  }	  
+  if (fTrackReferences && tree) 
+   {
+     MakeBranchInTree(tree, GetName(), &fTrackReferences, fBufferSize, 0) ;
+   }	  
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliDetector::ResetDigits()
 {
   //
@@ -488,7 +533,7 @@ void AliDetector::ResetDigits()
   if (fDigits) fDigits->Clear();
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliDetector::ResetHits()
 {
   //
@@ -498,7 +543,7 @@ void AliDetector::ResetHits()
   if (fHits) fHits->Clear();
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliDetector::ResetTrackReferences()
 {
   //
@@ -508,8 +553,7 @@ void AliDetector::ResetTrackReferences()
   if (fTrackReferences)   fTrackReferences->Clear();
 }
 
-
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliDetector::ResetPoints()
 {
   //
@@ -522,74 +566,52 @@ void AliDetector::ResetPoints()
   }
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliDetector::SetTreeAddress()
 {
   //
   // Set branch address for the Hits and Digits Trees
   //
   TBranch *branch;
-  char branchname[20];
-  sprintf(branchname,"%s",GetName());
   //
   // Branch address for hit tree
-  cout<<"#########################################"<<endl;
   
   TTree *tree = TreeH();
   if (tree && fHits) {
-    branch = tree->GetBranch(branchname);
+    branch = tree->GetBranch(GetName());
     if (branch) 
      {
-       cout<<GetName()<<"::SetTreeAddress Setting for Hits"<<endl;
+       Info("SetTreeAddress","(%s) Setting for Hits",GetName());
        branch->SetAddress(&fHits);
      }
     else
      {
-       cout<<GetName()<<"::SetTreeAddress for Hits Failed"<<endl;
+       Warning("SetTreeAddress","(%s) Failed for Hits. Can not find branch in tree.",GetName());
      }
   }
   
   tree = TreeTR();
   if (tree && fTrackReferences) {
-    branch = tree->GetBranch(branchname);
+    branch = tree->GetBranch(GetName());
     if (branch) 
      {
-       cout<<GetName()<<"::SetTreeAddress Setting for TrackRefs"<<endl;
+       Info("SetTreeAddress","(%s) Setting for TrackRefs",GetName());
        branch->SetAddress(&fTrackReferences);
      }
     else
      {
-       cout<<GetName()<<"::SetTreeAddress for TrackRefs Failed"<<endl;
+       Warning("SetTreeAddress","(%s) Failed for Track Referneces. Can not find branch in tree.",GetName());
      }
   }
-  
   
   //
   // Branch address for digit tree
   TTree *treeD = fLoader->TreeD();
   if (treeD && fDigits) {
-    branch = treeD->GetBranch(branchname);
+    branch = treeD->GetBranch(GetName());
     if (branch) branch->SetAddress(&fDigits);
   }
 }
-/************************************************************/
-/*
-void AliDetector::Streamer(TBuffer &R__b)
- {
- // Stream an object of class AliDetector.
- // 
-   if (R__b.IsReading()) 
-    {
-      AliDetector::Class()->ReadBuffer(R__b, this);
-      AliConfig::Instance()->Add(this);
-      
-    } 
-   else 
-    {
-      AliDetector::Class()->WriteBuffer(R__b, this);
-    }
- }
-*/
 /************************************************************/
 
 void AliDetector::MakeTree(Option_t *option)

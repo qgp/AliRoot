@@ -15,6 +15,18 @@
 
 /*
 $Log$
+Revision 1.14.4.1  2002/05/31 10:39:22  hristov
+Changes from v3-08-02 merged with NewIO branch
+
+Revision 1.17  2002/10/14 14:57:39  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.14.6.2  2002/06/14 10:29:54  hristov
+Merged with v3-08-03
+
+Revision 1.16  2002/06/12 08:28:28  morsch
+HBMT positioning commented out.
+
 Revision 1.15  2002/05/28 08:47:38  morsch
 Reduces size of pillars to avoid overlap with DIPO.
 
@@ -307,27 +319,6 @@ void AliHALL::CreateGeometry()
 
   gMC->Gsvolu("HMBS", "PGON", idtmed[1956], ppgon, 10);
   gMC->Gspos("HMBS", 1, "ALIC", 0., 70., 0., 0, "ONLY");
-/*
-  ppgon[4] = -1800.;
-  ppgon[5] =     0.;
-  ppgon[6] =   150.;
-  ppgon[7] = -1300.;
-  ppgon[8] =     0.;
-  ppgon[9] =   150.;
-  gMC->Gsvolu("HMBT", "PGON", idtmed[1956], ppgon, 10);
-
-  ppgon[4] = -1800.;
-  ppgon[5] =     0.;
-  ppgon[6] =    10.;
-  ppgon[7] = -1300.;
-  ppgon[8] =     0.;
-  ppgon[9] =    10.;
-  gMC->Gsvolu("HMBU", "PGON", idtmed[1954], ppgon, 10);
-
-  gMC->Gspos("HMBU", 1, "HMBT", 0., -70., 0., 0, "ONLY");
-*/
-  gMC->Gspos("HMBT", 1, "ALIC", 0.,  70., 0., 0, "ONLY");
-  
 }
 
 //_____________________________________________________________________________

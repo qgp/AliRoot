@@ -1,3 +1,7 @@
+/****************************************************************************
+ *           Origin: I.Belikov, CERN, Jouri.Belikov@cern.ch                 *
+ ****************************************************************************/
+
 #ifndef __CINT__
   #include <iostream.h>
   #include "AliTPCParam.h"
@@ -7,7 +11,8 @@
   #include "TStopwatch.h"
 #endif
 
-Int_t AliTPCFindTracks(Int_t eventn=1) { 
+Int_t AliTPCFindTracks(Int_t eventn=1) {
+
    cerr<<"Looking for tracks...\n";
 
    TFile *out=TFile::Open("AliTPCtracks.root","new");

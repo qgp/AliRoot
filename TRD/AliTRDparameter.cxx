@@ -15,6 +15,27 @@
 
 /*
 $Log$
+Revision 1.5.4.1  2002/06/03 09:55:04  hristov
+Merged with v3-08-02
+
+Revision 1.10  2002/10/31 17:46:22  cblume
+New padplane (same number of columns in outer plane
+
+Revision 1.9  2002/10/28 13:02:51  cblume
+Bug fix in GetTiltingAngle()
+
+Revision 1.8  2002/10/14 14:57:44  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.5.6.3  2002/10/11 07:26:37  hristov
+Updating VirtualMC to v3-09-02
+
+Revision 1.7  2002/09/26 09:26:31  cblume
+Bug fix in LUT
+
+Revision 1.6  2002/06/12 09:54:35  cblume
+Update of tracking code provided by Sergei
+
 Revision 1.5  2002/04/30 08:30:40  cblume
 gAlice now only read by AliRunDigitizer. Therefore it is just deleted in AliTRDmerge.C
 
@@ -385,7 +406,8 @@ void AliTRDparameter::Init()
   fTimeCoupling   = 0.4;
 
   // The tilting angle for the readout pads
-  SetTiltingAngle(5.0);
+  //SetTiltingAngle(5.0);
+  SetTiltingAngle(0.0);
 
   // The magnetic field strength in Tesla
   //fField           = 0.2 * gAlice->Field()->Factor();
@@ -488,8 +510,8 @@ void AliTRDparameter::SetNRowPad()
                                  , { 16, 16, 12, 16, 16 }
                                  , { 16, 16, 12, 16, 16 }
                                  , { 16, 16, 12, 16, 16 }
-                                 , { 14, 16, 12, 16, 14 }
-                                 , { 13, 16, 12, 16, 13 } };
+                                 , { 16, 16, 12, 16, 16 }
+                                 , { 16, 16, 12, 16, 16 } };
 
   Float_t rpadW = AliTRDgeometry::RpadW();
 
@@ -1208,7 +1230,7 @@ void AliTRDparameter::FillLUT()
 
   for (Int_t iplan = 0; iplan < kNplan; iplan++) {
     for (Int_t ilut  = 0; ilut  < kNlut; ilut++) {
-      fLUT[iplan*kNplan+ilut] = lut[iplan][ilut];
+      fLUT[iplan*kNlut+ilut] = lut[iplan][ilut];
     }
   }
 
@@ -1232,7 +1254,7 @@ Float_t AliTRDparameter::GetTiltingAngle() const
   // Get the tilting angle for the readout pads
   //
 
-  return TMath::ATan(180.0/TMath::Pi() * fTiltingAngle);
+  return 180.0 / TMath::Pi() * TMath::ATan(fTiltingAngle);
 
 }
 
@@ -1331,6 +1353,7 @@ Double_t AliTRDparameter::LUTposition(Int_t iplane, Double_t ampL
   //
 
   const Int_t kNplan = AliTRDgeometry::kNplan;
+  const Int_t kNlut  = 128;
 
   Double_t pos;
   Double_t x = 0.0;
@@ -1367,7 +1390,7 @@ Double_t AliTRDparameter::LUTposition(Int_t iplane, Double_t ampL
     } 
     else {
       ix  = (Int_t) ((x - xmin) / xwid);
-      pos = side * fLUT[iplane*kNplan+ix];
+      pos = side * fLUT[iplane*kNlut+ix];
     }
        
   } 

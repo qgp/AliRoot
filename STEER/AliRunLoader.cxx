@@ -25,6 +25,7 @@
 #include <TFolder.h>
 #include <TFile.h>
 #include <TTree.h>
+#include <TROOT.h>
 #include <TBranch.h>
 #include <TGeometry.h>
 #include <TTask.h>
@@ -158,17 +159,18 @@ Int_t AliRunLoader::GetEvent(Int_t evno)
      return 3;
    }
   
-  cout<<">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
-  cout<<">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
-  cout<<">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
-  cout<<"          GETTING EVENT  "<<evno<<"             \n";
-  cout<<">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
-  cout<<">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
-  cout<<">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
+  Info("GetEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+  Info("GetEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+  Info("GetEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+  Info("GetEvent","          GETTING EVENT  %d",evno);
+  Info("GetEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+  Info("GetEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+  Info("GetEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
   fCurrentEvent = evno;
 
   Int_t retval;
-
+  
+  //Reload header (If header was loaded)
   if (GetHeader())
    {
      retval = TreeE()->GetEvent(fCurrentEvent);
@@ -178,8 +180,9 @@ Int_t AliRunLoader::GetEvent(Int_t evno)
         return 5;
       }
    }
+  //Reload stack (If header was loaded)
   if (TreeE()) fStack = GetHeader()->Stack();
-  
+  //Set event folder in stack (it does not mean that we read kinematics from file)
   if (fStack) 
    { 
      fStack->SetEventFolderName(fEventFolder->GetName());
@@ -195,12 +198,14 @@ Int_t AliRunLoader::GetEvent(Int_t evno)
      Error("GetEvent","Error occured while setting event %d",evno);
      return 1;
    }
-
+   
+  //Post Track References
   if (fTrackRefsFile) 
    {
     retval = PostTrackRefs();
    }
-   
+
+  //Read Kinematics if loaded
   if (fKineFile) 
    {
     retval = PostKinematics();
@@ -212,7 +217,8 @@ Int_t AliRunLoader::GetEvent(Int_t evno)
      Error("GetEvent","Error occured while posting kinematics. Event %d",evno);
      return 2;
    }
-
+  
+  //Trigger data reloading in all loaders 
   TIter next(fLoaders);
   AliLoader *loader;
   while((loader = (AliLoader*)next())) 
@@ -755,7 +761,7 @@ Int_t AliRunLoader::WriteHeader(Option_t* opt)
         return 3;
       }
    }
-  
+  fGAFile->cd();
   tree->SetDirectory(fGAFile);
   tree->Write(0,TObject::kOverwrite);
   fGAFile->Write(0,TObject::kOverwrite);
@@ -1464,7 +1470,7 @@ void AliRunLoader::UnloadgAlice()
 {
  if (gAlice == GetAliRun())
   {
-   cout<<"AliRunLoader::UnloadgAlice(): Set gAlice = 0x0\n";
+   Info("UnloadgAlice","Set gAlice = 0x0");
    gAlice = 0x0;//if gAlice is the same that in folder (to be deleted by the way of folder)
   }
  AliRun* alirun = GetAliRun();
@@ -1479,7 +1485,7 @@ void  AliRunLoader::MakeTrackRefsContainer()
   if (TreeTR()) return;
   TTree* tree = new TTree(fgkTrackRefsContainerName,"Tree with Track References");
   GetEventFolder()->Add(tree);
-  WriteTrackRefs();
+  WriteTrackRefs("OVERWRITE");
 }
 /**************************************************************************/
 
@@ -1561,7 +1567,7 @@ const TString AliRunLoader::SetFileOffset(const TString& fname)
   const TString& offfsetdotroot = offset + dotroot;
   TString out = fname;
   out = out.ReplaceAll(dotroot,offfsetdotroot);
-  cout<<"AliLoader::SetFileOffset: in="<<fname<<" out="<<out<<endl;
+  Info("SetFileOffset"," in=%s out=%s",fname.Data(),out.Data());
   return out;
 }
 

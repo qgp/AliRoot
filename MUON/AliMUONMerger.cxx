@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.8.2.2  2002/05/31 15:07:51  hristov
+Merged with v3-08-02
+
 
 Revision 1.8.2.1  2002/05/31 09:37:57  hristov
 First set of changes done by Piotr
@@ -48,7 +51,7 @@ Revision 1.1  2001/02/02 14:11:53  morsch
 AliMUONMerger prototype to be called by the merge manager.
 
 */
-#include <iostream.h> 
+#include <Riostream.h> 
 #include <TTree.h> 
 #include <TObjArray.h>
 #include <TFile.h>

@@ -16,7 +16,6 @@
 #include <AliITS.h>
 #include <AliITSgeom.h>
 #include <AliITSDetType.h>
-#include <AliITSLoader.h>
 #include <AliITSRecPoint.h>
 #include <AliITSdigit.h>
 #include <AliITShit.h>
@@ -30,7 +29,7 @@ void GetHitsCoor(TObject *its, Int_t mod, TObjArray & histos, Int_t subd,Bool_t 
 Int_t GetRecCoor(TObject *ge, TClonesArray *ITSrec, Int_t mod, TH2F *h2, TH1F *h1, Bool_t verb);
 void GetDigits(TObject *tmps,TObject *ge,TClonesArray *ITSdigits, Int_t subd, Int_t mod, Bool_t verbose, TObjArray & histos);
 
-Int_t AliITSGeoPlot (Int_t evesel=0, char *opt="All+Rec", char *filename="galice.root", Int_t isfastpoints = 0) {
+Int_t AliITSGeoPlot (Int_t evesel=0, char *opt="All+Rec", char *filename="galice.root",TString FileDigits="galice.root", TString FileRec="galice.root", Int_t isfastpoints = 0) {
   /*******************************************************************
    *  This macro displays geometrical information related to the
    *  hits, digits and rec points in ITS.
@@ -109,36 +108,30 @@ Int_t AliITSGeoPlot (Int_t evesel=0, char *opt="All+Rec", char *filename="galice
 #endif
   // Connect the Root input  file containing Geometry, Kine and Hits
   // galice.root file by default
+
   TFile *file = (TFile*)gROOT->GetListOfFiles()->FindObject(filename);
-  if (file) {file->Close(); delete file;}
-  AliRunLoader *rl = AliRunLoader::Open(filename,"Event","read");
-  if (!rl) 
-    {
-      cerr<<"Can't load RunLoader from "<<filename<<" !\n";
-      return -1;
-    }
+  if (!file) file = new TFile(filename);
+  file->ls();
 
   // Get AliRun object from file
 
-  if (gAlice) { delete gAlice; gAlice = 0;}
-  rl->LoadgAlice();
-  rl->LoadHeader();
-  rl->LoadKinematics();
-  gAlice = rl->GetAliRun();
   if (!gAlice) {
-	cerr << "AliITSSDigits2Digits2.C : AliRun object not found on file"
-         << endl;
-	return -1;
-  } // end if !gAlice
-
-
-
-
-  AliITSLoader * itsl = (AliITSLoader*)rl->GetLoader("ITSLoader");
-  itsl->LoadHits("READ");
-  itsl->LoadDigits("READ");
-  itsl->LoadRecPoints("READ");
-  Int_t nparticles = rl->GetEvent(evesel);
+    gAlice = (AliRun*)file->Get("gAlice");
+    if (gAlice && verbose)cout<<"AliRun object found on file "<<filename<<endl;
+    if(!gAlice){
+      cout<<"Can't access AliRun object on file "<<filename<<endl;
+      cout<<"Macro execution stopped!!!"<<endl;
+      retcode=-1;
+      return retcode;
+    }
+  }
+  if(!(FileDigits.Data() == filename)){
+    gAlice->SetTreeDFileName(FileDigits);
+  }
+  if(!(FileRec.Data() == filename)){
+    gAlice->SetTreeRFileName(FileRec);
+  }
+  Int_t nparticles = gAlice->GetEvent(evesel);
   if(verbose) {
     cout<<" "<<endl<<" "<<endl;
     cout<<"******* Event processing started   *******"<<endl;
@@ -148,13 +141,12 @@ Int_t AliITSGeoPlot (Int_t evesel=0, char *opt="All+Rec", char *filename="galice
   }
 
   // HITS
-  TTree *TH = itsl->TreeH();
+  TTree *TH = gAlice->TreeH();
   Stat_t ntracks = TH->GetEntries();
   if(verbose)cout<<"Number of primary tracks= "<<ntracks<<endl;
 
   // ITS
   AliITS *ITS  = (AliITS*)gAlice->GetModule("ITS");
-  ITS->SetTreeAddress();
   Int_t nmodules;
   ITS->InitModules(-1,nmodules);
   cout<<"Number of ITS modules= "<<nmodules<<endl;
@@ -162,21 +154,20 @@ Int_t AliITSGeoPlot (Int_t evesel=0, char *opt="All+Rec", char *filename="galice
   ITS->FillModules(0,0,nmodules," "," ");
   cout<<"ITS modules .... DONE!"<<endl;
 
-
   // DIGITS
-  TTree *TD = itsl->TreeD();
+  TTree *TD = gAlice->TreeD();
 
   //RECPOINTS
-  TTree *TR = itsl->TreeR();
+  TTree *TR = gAlice->TreeR();
   TClonesArray *ITSrec  = ITS->RecPoints();
   TBranch *branch = 0;
   if(userec && TR && ITSrec){
     if(isfastpoints==1){
-      branch = itsl->TreeR()->GetBranch("ITSRecPointsF");
+      branch = gAlice->TreeR()->GetBranch("ITSRecPointsF");
       cout<<"using fast points\n";
     }
     else {
-      branch = itsl->TreeR()->GetBranch("ITSRecPoints");
+      branch = gAlice->TreeR()->GetBranch("ITSRecPoints");
     }
     if(branch)branch->SetAddress(&ITSrec);
   }
@@ -572,23 +563,3 @@ void GetDigits(TObject *tmps,TObject *ge,TClonesArray *ITSdigits, Int_t subd, In
     } // loop on digits for this module
   } // if(ndigits>0....
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

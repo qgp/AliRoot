@@ -7,12 +7,11 @@
 
 #include <TPythia6.h>
 #include <AliRndm.h>
-
+#include <AliStructFuncType.h>
 typedef enum
 {kPyCharm, kPyBeauty, kPyCharmUnforced, kPyBeautyUnforced, kPyJpsi, kPyJpsiChi, kPyMb, kPyMbNonDiffr, kPyJets, kPyDirectGamma, kPyCharmPbMNR, kPyD0PbMNR, kPyBeautyPbMNR}
-
 Process_t;
-
+/*
 typedef enum
 {
     kDOSet1     = 1006,
@@ -29,7 +28,7 @@ typedef enum
     kGRVLO98    = 5012
 }
 StrucFunc_t;
-
+*/
 class AliPythia : public TPythia6, public AliRndm
 {
 
@@ -54,7 +53,7 @@ class AliPythia : public TPythia6, public AliRndm
     Float_t       fEcms;              // Centre of mass energy
     StrucFunc_t   fStrucFunc;         // Structure function
     Int_t         fDefMDCY[501];      //  ! Default decay switches per particle
-    Int_t         fDefMDME[2000];     //  ! Default decay switches per mode
+    Int_t         fDefMDME[2001];     //  ! Default decay switches per mode
     static AliPythia*    fgAliPythia; // Pointer to single instance
  private: 
     AliPythia();

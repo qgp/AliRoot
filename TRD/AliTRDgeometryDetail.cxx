@@ -15,6 +15,18 @@
 
 /*
 $Log$
+Revision 1.3.4.1  2002/06/03 09:55:04  hristov
+Merged with v3-08-02
+
+Revision 1.6  2002/10/14 14:57:43  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.3.6.2  2002/07/24 10:09:30  alibrary
+Updating VirtualMC
+
+Revision 1.5  2002/06/12 09:54:35  cblume
+Update of tracking code provided by Sergei
+
 Revision 1.4  2002/03/28 14:59:07  cblume
 Coding conventions
 
@@ -38,6 +50,7 @@ Add detailed geometry and simple simulator
 #include "AliMC.h"
 
 #include "AliTRDgeometryDetail.h"
+#include "AliTRDparameter.h"
 
 ClassImp(AliTRDgeometryDetail)
 
@@ -431,15 +444,17 @@ void AliTRDgeometryDetail::PositionReadout(Int_t ipla, Int_t icha)
 
   const Int_t   kNmcmChannel = 18;
 
-  Int_t nMCMrow = GetRowMax(ipla,icha,0);
-  Int_t nMCMcol = GetColMax(ipla) / kNmcmChannel;
+  AliTRDparameter *parameter = new AliTRDparameter();
+
+  Int_t nMCMrow = parameter->GetRowMax(ipla,icha,0);
+  Int_t nMCMcol = parameter->GetColMax(ipla) / kNmcmChannel;
 
   Float_t xSize = (GetChamberWidth(ipla)       - 2.*fgkCpadW) 
                 / ((Float_t) nMCMcol);
   Float_t ySize = (GetChamberLength(ipla,icha) - 2.*fgkRpadW) 
                 / ((Float_t) nMCMrow);
-  Float_t x0    = GetCol0(ipla);
-  Float_t y0    = GetRow0(ipla,icha,0);
+  Float_t x0    = parameter->GetCol0(ipla);
+  Float_t y0    = parameter->GetRow0(ipla,icha,0);
 
   Int_t iCopy = GetDetector(ipla,icha,0) * 1000;
   for (Int_t iMCMrow = 0; iMCMrow < nMCMrow; iMCMrow++) {
@@ -452,6 +467,8 @@ void AliTRDgeometryDetail::PositionReadout(Int_t ipla, Int_t icha)
       gMC->Gspos("UMCM",iCopy,"UTR1",xpos,ypos,zpos,0,"ONLY");    
     }
   }
+
+  delete parameter;
 
 }
 
@@ -503,12 +520,14 @@ void AliTRDgeometryDetail::PositionCooling(Int_t ipla, Int_t icha, Int_t idrotm)
   Float_t ypos;
   Float_t zpos;
 
+  AliTRDparameter *parameter = new AliTRDparameter();
+
   Int_t   iCopy   = GetDetector(ipla,icha,0) * 100;
-  Int_t   nMCMrow = GetRowMax(ipla,icha,0);
+  Int_t   nMCMrow = parameter->GetRowMax(ipla,icha,0);
 
   Float_t ySize   = (GetChamberLength(ipla,icha) - 2.*fgkRpadW) 
                   / ((Float_t) nMCMrow);
-  Float_t y0      = GetRow0(ipla,icha,0);
+  Float_t y0      = parameter->GetRow0(ipla,icha,0);
 
   // Position the cooling pipes
   for (Int_t iMCMrow = 0; iMCMrow < nMCMrow; iMCMrow++) {
@@ -524,5 +543,7 @@ void AliTRDgeometryDetail::PositionCooling(Int_t ipla, Int_t icha, Int_t idrotm)
                       ,idrotm,"ONLY",par,kNpar);
 
   }
+
+  delete parameter;
 
 }

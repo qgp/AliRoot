@@ -15,6 +15,21 @@
 
 /*
 $Log$
+Revision 1.7  2002/10/23 07:17:34  alibrary
+Introducing Riostream.h
+
+Revision 1.6  2002/10/14 14:57:43  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.4.6.1  2002/07/26 12:12:55  alibrary
+Updating VirtualMC
+
+Revision 1.5  2002/07/25 16:56:52  hristov
+fSize set to zero in Clear(). The size of the array is checked in First() (M.Ivanov)
+
+Revision 1.4  2002/03/01 10:19:06  hristov
+Additional protection (M.Ivanov)
+
 Revision 1.1  2002/01/21 17:14:21  kowal2
 New track hits using root containers.
 
@@ -62,7 +77,7 @@ New track hits using root containers.
 #include "TClonesArray.h"    
 #include "AliTPC.h"
 
-#include <iostream.h>
+#include <Riostream.h>
 
 
 
@@ -344,6 +359,7 @@ void AliTPCTrackHitsV2::Clear()
 {
   //
   //clear object  
+  fSize = 0;
   if (fArray){
     for (Int_t i=0;i<fArray->GetEntriesFast();i++){
       AliTrackHitsParamV2 * par = (AliTrackHitsParamV2 *)fArray->UncheckedAt(i);
@@ -618,6 +634,12 @@ Bool_t AliTPCTrackHitsV2::First()
   //
   //set Current hit for the first hit
   //
+
+  if (fArray->GetSize()<=0) {
+    fCurrentHit->fStatus = kFALSE;
+    return kFALSE;
+  }
+
   AliTrackHitsParamV2 *param = (AliTrackHitsParamV2 *)fArray->At(0);
   if (!fHit) fHit = new AliTPChit;
   if (!(param) ) {

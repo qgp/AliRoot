@@ -27,7 +27,6 @@
 
 // --- Standard library ---
 
-#include <iostream.h>
 // --- AliRoot header files ---
 #include "AliConfig.h"
 
@@ -170,7 +169,7 @@ ClassImp(AliPHOSQAChecker)
 {
   // print the checker and sub-checkers, if any, name.  
 
-  cout << "Checker : " << GetName() << endl ;  
+  Info("Print", "Checker : %s", GetName()) ;  
 
 }
 
@@ -178,7 +177,7 @@ ClassImp(AliPHOSQAChecker)
   void AliPHOSQAChecker::PrintAlarms()
 {
   // Prints the alarms of all attached checkables
-  cout << "Checker name : " << GetName() << endl ; 
+  Info("PrintAlarms", "Checker name : %s", GetName()) ; 
   if ( !(fCheckablesList->IsEmpty() ) ) {
     TIter next( fCheckablesList ) ; 
     AliPHOSQAVirtualCheckable * checkable ; 
@@ -192,9 +191,9 @@ ClassImp(AliPHOSQAChecker)
 {
   // Prints the checkables attached to this checker
   if ( fCheckablesList->IsEmpty() ) 
-    cout << "No checkables are checked by " << GetName() << endl ; 
+    Info("Status", "No checkables are checked by %s", GetName()) ; 
   else {
-    cout << "The following checkables are checked by " << GetName() << endl ; 
+    Info("Status", "The following checkables are checked by %s", GetName()) ; 
     TIter next(fCheckablesList) ; 
     AliPHOSQAVirtualCheckable * checkable ; 
     while ( (checkable = (AliPHOSQAVirtualCheckable*)next() ) ) 

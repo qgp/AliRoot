@@ -17,6 +17,9 @@
 
 /*
 $Log$
+Revision 1.81.2.6  2002/10/09 09:23:55  hristov
+New task hierarchy, bug corrections, new development (P.Skowronski)
+
 Revision 1.81.2.5  2002/06/28 16:45:17  hristov
 Few minor corrections
 
@@ -32,12 +35,30 @@ Merged with v3-08-02
 Revision 1.81.2.1  2002/05/31 09:37:59  hristov
 First set of changes done by Piotr
 
-Revision 1.82  2002/03/12 11:06:03  morsch
-Add particle status code to argument list of SetTrack(..).
+Revision 1.91  2002/10/29 14:26:49  hristov
+Code clean-up (F.Carminati)
+
+Revision 1.90  2002/10/22 15:02:15  alibrary
+Introducing Riostream.h
+
+Revision 1.89  2002/10/17 16:26:39  hristov
+Definition of additional particles moved to VMC (I.Hrivnacova)
+
+Revision 1.88  2002/10/14 14:57:32  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.82.4.3  2002/10/14 09:45:57  hristov
+Updating VirtualMC to v3-09-02
+
+Revision 1.82.4.2  2002/06/10 17:54:06  hristov
+Only one SetGenEventHeader function kept
+
+Revision 1.82.4.1  2002/06/10 14:43:06  hristov
+Merged with v3-08-02
 
 Revision 1.86  2002/05/28 14:24:57  hristov
 Correct warning messages
-
+ 
 Revision 1.85  2002/05/24 13:29:58  hristov
 AliTrackReference added, AliDisplay modified
 
@@ -267,7 +288,7 @@ Introduction of the Copyright and cvs Log
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <iostream.h>
+#include <Riostream.h>
  
 #include <TFile.h>
 #include <TRandom.h>
@@ -303,47 +324,119 @@ Introduction of the Copyright and cvs Log
 #include "AliLoader.h"
 #include "AliRunLoader.h"
 #include "AliDetector.h"
+#include "AliPDG.h"
 
 AliRun *gAlice;
 
 ClassImp(AliRun)
 
-//_____________________________________________________________________________
-AliRun::AliRun()
+//_______________________________________________________________________
+AliRun::AliRun():
+  fRun(0),
+  fEvent(0),
+  fEventNrInRun(0),
+  fEventsPerRun(0),
+  fDebug(0),
+  fModules(0),
+  fGeometry(0),
+  fDisplay(0),
+  fTimer(),
+  fField(0),
+  fMC(0),
+  fImedia(0),
+  fNdets(0),
+  fTrRmax(1.e10),
+  fTrZmax(1.e10),
+  fGenerator(0),
+  fInitDone(kFALSE),
+  fLego(0),
+  fPDGDB(0),  //Particle factory object
+  fHitLists(0),
+  fEventEnergy(0),
+  fSummEnergy(0),
+  fSum2Energy(0),
+  fConfigFunction("\0"),
+  fRandom(0),
+  fMCQA(0),
+  fTransParName("\0"),
+  fRunLoader(0x0)
 {
   //
   // Default constructor for AliRun
   //
-  fRun       = 0;
-  fEventNrInRun = 0;
-  fModules   = 0;
-  fGenerator = 0;
-  fGeometry  = 0;
-  fDisplay   = 0;
-  fField     = 0;
-  fMC        = 0;
-  fNdets     = 0;
-  fImedia    = 0;
-  fTrRmax    = 1.e10;
-  fTrZmax    = 1.e10;
-  fInitDone  = kFALSE;
-  fLego      = 0;
-  fPDGDB     = 0;        //Particle factory object!
-  fHitLists  = 0;
-  fConfigFunction    = "\0";
-  fRandom = 0;
-  fMCQA = 0;
-  fTransParName = "\0";
-  fBaseFileName = ".\0";
-  fDebug        = 0;
-  fRunLoader = 0x0;
   AliConfig::Instance();//skowron 29 Feb 2002
                         //ensures that the folder structure is build
 }
 
+//_______________________________________________________________________
+AliRun::AliRun(const AliRun& arun):
+  TVirtualMCApplication(arun),
+  fRun(0),
+  fEvent(0),
+  fEventNrInRun(0),
+  fEventsPerRun(0),
+  fDebug(0),
+  fModules(0),
+  fGeometry(0),
+  fDisplay(0),
+  fTimer(),
+  fField(0),
+  fMC(0),
+  fImedia(0),
+  fNdets(0),
+  fTrRmax(1.e10),
+  fTrZmax(1.e10),
+  fGenerator(0),
+  fInitDone(kFALSE),
+  fLego(0),
+  fPDGDB(0),  //Particle factory object
+  fHitLists(0),
+  fEventEnergy(0),
+  fSummEnergy(0),
+  fSum2Energy(0),
+  fConfigFunction("\0"),
+  fRandom(0),
+  fMCQA(0),
+  fTransParName("\0"),
+  fRunLoader(0x0)
+{
+  //
+  // Copy constructor for AliRun
+  //
+  arun.Copy(*this);
+}
+
 //_____________________________________________________________________________
-AliRun::AliRun(const char *name, const char *title)
-  : TNamed(name,title)
+AliRun::AliRun(const char *name, const char *title):
+  TVirtualMCApplication(name,title),
+  fRun(0),
+  fEvent(0),
+  fEventNrInRun(0),
+  fEventsPerRun(0),
+  fDebug(0),
+  fModules(new TObjArray(77)), // Support list for the Detectors
+  fGeometry(0),
+  fDisplay(0),
+  fTimer(),
+  fField(0),
+  fMC(gMC),
+  fImedia(new TArrayI(1000)),
+  fNdets(0),
+  fTrRmax(1.e10),
+  fTrZmax(1.e10),
+  fGenerator(0),
+  fInitDone(kFALSE),
+  fLego(0),
+  fPDGDB(TDatabasePDG::Instance()),        //Particle factory object!
+  fHitLists(new TList()),                  // Create HitLists list
+  fEventEnergy(0),
+  fSummEnergy(0),
+  fSum2Energy(0),
+  fConfigFunction("Config();"),
+  fRandom(new TRandom3()),
+  fMCQA(0),
+  fTransParName("\0"),
+  fRunLoader(0x0)
 {
   //
   //  Constructor for the main processor.
@@ -351,69 +444,36 @@ AliRun::AliRun(const char *name, const char *title)
   //  Creates the list of Detectors.
   //  Creates the list of particles.
   //
-  Int_t i;
-  
+
   gAlice     = this;
-  fTrRmax    = 1.e10;
-  fTrZmax    = 1.e10;
-  fGenerator = 0;
-  fInitDone  = kFALSE;
-  fLego      = 0;
-  fField     = 0;
-  fPDGDB     = TDatabasePDG::Instance();        //Particle factory object!
-  AliConfig::Instance()->Add(fPDGDB); 
-
-  fConfigFunction    = "Config();";
-
 
   // Set random number generator
-  gRandom = fRandom = new TRandom3();
+  gRandom = fRandom;
 
   if (gSystem->Getenv("CONFIG_SEED")) {
-     gRandom->SetSeed((UInt_t)atoi(gSystem->Getenv("CONFIG_SEED")));
+     gRandom->SetSeed(static_cast<UInt_t>(atoi(gSystem->Getenv("CONFIG_SEED"))));
   }
-  
+
+  // Add to list of browsable  
   gROOT->GetListOfBrowsables()->Add(this,name);
-  //
-  // Particle stack
-  // create the support list for the various Detectors
-  fModules = new TObjArray(77);
-  //
   // Create the TNode geometry for the event display
-  
   BuildSimpleGeometry();
   
-  fRun       = 0;
-//  fEvent     = 0;
-  fEventNrInRun = 0;
-  //
-  fDisplay = 0;
-  //
   // Create default mag field
   SetField();
-  //
-  fMC      = gMC;
-  //
+
   // Prepare the tracking medium lists
-  fImedia = new TArrayI(1000);
-  for(i=0;i<1000;i++) (*fImedia)[i]=-99;
-  //
-  // Make particles
+  for(Int_t i=0;i<1000;i++) (*fImedia)[i]=-99;
 
-  //
-  // Create HitLists list
-  fHitLists  = new TList();
-  //
+  // Add particle list to configuration
+  AliConfig::Instance()->Add(fPDGDB); 
+
+  // Set transport parameters
   SetTransPar();
-  fBaseFileName = ".\0";
-  //
-  fDebug        = 0;
-
-  fRunLoader = 0x0;
 }
 
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 AliRun::~AliRun()
 {
   //
@@ -450,27 +510,33 @@ AliRun::~AliRun()
   delete fMCQA;
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
+void AliRun::Copy(AliRun &) const
+{
+  Fatal("Copy","Not implemented!\n");
+}
+
+//_______________________________________________________________________
 void AliRun::AddHit(Int_t id, Int_t track, Int_t *vol, Float_t *hits) const
 {
   //
   //  Add a hit to detector id
   //
   TObjArray &dets = *fModules;
-  if(dets[id]) ((AliModule*) dets[id])->AddHit(track,vol,hits);
+  if(dets[id]) dynamic_cast<AliModule*>(dets[id])->AddHit(track,vol,hits);
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliRun::AddDigit(Int_t id, Int_t *tracks, Int_t *digits) const
 {
   //
   // Add digit to detector id
   //
   TObjArray &dets = *fModules;
-  if(dets[id]) ((AliModule*) dets[id])->AddDigit(tracks,digits);
+  if(dets[id]) dynamic_cast<AliModule*>(dets[id])->AddDigit(tracks,digits);
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliRun::Browse(TBrowser *b)
 {
   //
@@ -482,7 +548,7 @@ void AliRun::Browse(TBrowser *b)
   b->Add(fMCQA,"AliMCQA");
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliRun::Build()
 {
   //
@@ -491,7 +557,7 @@ void AliRun::Build()
   //
 }
  
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliRun::BuildSimpleGeometry()
 {
   //
@@ -506,7 +572,7 @@ void AliRun::BuildSimpleGeometry()
   new TNode("alice","alice","S_alice");
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliRun::CleanDetectors()
 {
   //
@@ -514,13 +580,13 @@ void AliRun::CleanDetectors()
   //
   TIter next(fModules);
   AliModule *detector;
-  while((detector = (AliModule*)next())) {
+  while((detector = dynamic_cast<AliModule*>(next()))) {
     detector->FinishEvent();
   }
   fRunLoader->CleanDetectors();
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 Int_t AliRun::DistancetoPrimitive(Int_t, Int_t)
 {
   //
@@ -530,7 +596,7 @@ Int_t AliRun::DistancetoPrimitive(Int_t, Int_t)
   return 9999;
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliRun::DumpPart (Int_t i) const
 {
   //
@@ -539,7 +605,7 @@ void AliRun::DumpPart (Int_t i) const
     fRunLoader->Stack()->DumpPart(i);
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliRun::DumpPStack () const
 {
   //
@@ -548,7 +614,7 @@ void AliRun::DumpPStack () const
     fRunLoader->Stack()->DumpPStack();
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void  AliRun::SetField(AliMagF* magField)
 {
     // Set Magnetic Field Map
@@ -556,7 +622,7 @@ void  AliRun::SetField(AliMagF* magField)
     fField->ReadField();
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliRun::SetField(Int_t type, Int_t version, Float_t scale,
 		      Float_t maxField, char* filename)
 {
@@ -582,130 +648,15 @@ void AliRun::SetField(Int_t type, Int_t version, Float_t scale,
     Warning("SetField","Invalid map %d\n",version);
   }
 }
+//_____________________________________________________________________________
  
-//_____________________________________________________________________________
-void AliRun::PreTrack()
-{
-     TObjArray &dets = *fModules;
-     AliModule *module;
 
-     for(Int_t i=0; i<=fNdets; i++)
-       if((module = (AliModule*)dets[i]))
-	 module->PreTrack();
-
-     fMCQA->PreTrack();
-}
-
-//_____________________________________________________________________________
-void AliRun::PostTrack()
-{
-     TObjArray &dets = *fModules;
-     AliModule *module;
-
-     for(Int_t i=0; i<=fNdets; i++)
-       if((module = (AliModule*)dets[i]))
-	 module->PostTrack();
-}
-
-//_____________________________________________________________________________
-void AliRun::FinishPrimary()
-{
-  //
-  // Called  at the end of each primary track
-  //
-  
-  //  static Int_t count=0;
-  //  const Int_t times=10;
-  // This primary is finished, purify stack
-  fRunLoader->Stack()->PurifyKine();
-
-  TIter next(fModules);
-  AliModule *detector;
-  while((detector = (AliModule*)next())) {
-    detector->FinishPrimary();
-    if(detector->GetLoader())
-     {
-       detector->GetLoader()->TreeH()->Fill();
-     }
-  }
-
-}
-
-//_____________________________________________________________________________
-void AliRun::BeginPrimary()
-{
-  //
-  // Called  at the beginning of each primary track
-  //
-  
-  // Reset Hits info
-  gAlice->ResetHits();
-  gAlice->ResetTrackReferences();
-}
-
-//_____________________________________________________________________________
-void AliRun::FinishEvent()
-{
-//
-// Called at the end of the event.
-//
-  
-  if(fLego) fLego->FinishEvent();
-
-  //Update the energy deposit tables
-  Int_t i;
-  for(i=0;i<fEventEnergy.GetSize();i++) {
-    fSummEnergy[i]+=fEventEnergy[i];
-    fSum2Energy[i]+=fEventEnergy[i]*fEventEnergy[i];
-  }
-
-  // Update Header information 
-  AliHeader* header = fRunLoader->GetHeader();
-  AliStack* stack = fRunLoader->Stack();
-  if ( (header == 0x0) || (stack == 0x0) )
-   {//check if we got header and stack. If not cry and exit aliroot
-    Fatal("AliRun","Can not get the stack or header from LOADER");
-    return;//never reached
-   }
-  header->SetNprimary(stack->GetNprimary());
-  header->SetNtrack(stack->GetNtrack());  
-  
-  // Write out the kinematics
-  stack->FinishEvent();
-   
-  // Write out the event Header information
-  TTree* treeE = fRunLoader->TreeE();
-  if (treeE) 
-   {
-      header->SetStack(stack);
-      treeE->Fill();
-   }
-  else
-   {
-    Error("FinishEvent","Can not get TreeE from RL");
-   }
-
-  fRunLoader->WriteKinematics("OVERWRITE");
-  fRunLoader->WriteTrackRefs("OVERWRITE");
-  fRunLoader->WriteHits("OVERWRITE");
-  
-  fRunLoader->SetNextEvent();
-  ++fEventNrInRun;
-  cout<<"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
-  cout<<"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
-  cout<<"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
-  cout<<"          FINISHING EVENT               \n";
-  cout<<"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
-  cout<<"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
-  cout<<"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
-  
-}
 //_____________________________________________________________________________
 
 void AliRun::InitLoaders()
 {
   //creates list of getters
-  cout<<"AliRun::InitLoaders(): ";
+  Info("InitLoaders","");
   TIter next(fModules);
   AliModule *mod;
   while((mod = (AliModule*)next()))
@@ -713,20 +664,18 @@ void AliRun::InitLoaders()
      AliDetector *det = dynamic_cast<AliDetector*>(mod);
      if (det) 
       {
+        Info("InitLoaders"," Adding %s ",det->GetName());
         fRunLoader->AddLoader(det);
-        cout<<" "<<det->GetName();
       }
    }
-  cout<<endl;
+  Info("InitLoaders","Done");
 }
-
 //_____________________________________________________________________________
+
 void AliRun::FinishRun()
 {
   //
   // Called at the end of the run.
-  //
-
   //
   
   if(fLego) 
@@ -735,6 +684,12 @@ void AliRun::FinishRun()
     fLego->FinishRun();
    }
   
+  // Clean detector information
+  TIter next(fModules);
+  AliModule *detector;
+  while((detector = dynamic_cast<AliModule*>(next()))) {
+    detector->FinishRun();
+  }
   
   //Output energy summary tables
   EnergySummary();
@@ -753,18 +708,10 @@ void AliRun::FinishRun()
   // Clean detector information
   fGenerator->FinishRun();
 
-  TIter next(fModules);
-  AliModule *detector;
-
-  while((detector = (AliModule*)next())) {
-    detector->FinishRun();
-  }
-  
   fRunLoader->CleanFolders();
-  
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliRun::FlagTrack(Int_t track)
 {
   // Delegate to stack
@@ -772,7 +719,7 @@ void AliRun::FlagTrack(Int_t track)
     fRunLoader->Stack()->FlagTrack(track);
 }
  
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliRun::EnergySummary()
 {
   //
@@ -801,7 +748,7 @@ void AliRun::EnergySummary()
 	} else 
 	  ed2=99;
 	fSummEnergy[ndep]=ed;
-	fSum2Energy[ndep]=TMath::Min((Float_t) 99.,TMath::Max(ed2,kzero));
+	fSum2Energy[ndep]=TMath::Min(static_cast<Float_t>(99.),TMath::Max(ed2,kzero));
 	edtot+=ed;
 	ndep++;
       }
@@ -838,25 +785,25 @@ void AliRun::EnergySummary()
   //  fSum2Energy.Set(0);
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 AliModule *AliRun::GetModule(const char *name) const
 {
   //
   // Return pointer to detector from name
   //
-  return (AliModule*)fModules->FindObject(name);
+  return dynamic_cast<AliModule*>(fModules->FindObject(name));
 }
  
-//_____________________________________________________________________________
+//_______________________________________________________________________
 AliDetector *AliRun::GetDetector(const char *name) const
 {
   //
   // Return pointer to detector from name
   //
-  return (AliDetector*)fModules->FindObject(name);
+  return dynamic_cast<AliDetector*>(fModules->FindObject(name));
 }
  
-//_____________________________________________________________________________
+//_______________________________________________________________________
 Int_t AliRun::GetModuleID(const char *name) const
 {
   //
@@ -868,7 +815,7 @@ Int_t AliRun::GetModuleID(const char *name) const
   return i;
 }
  
-//_____________________________________________________________________________
+//_______________________________________________________________________
 Int_t AliRun::GetEvent(Int_t event)
 {
 //
@@ -898,18 +845,26 @@ Int_t AliRun::GetEvent(Int_t event)
 /*****************************************/ 
 /****  P O S T    R E L O A D I N G   ****/
 /*****************************************/ 
+
+  // Set Trees branch addresses
+  TIter next(fModules);
+  AliModule *detector;
+  while((detector = dynamic_cast<AliModule*>(next()))) 
+   {
+     detector->SetTreeAddress();
+   }
  
   return fRunLoader->GetHeader()->GetNtrack();
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 TGeometry *AliRun::GetGeometry()
 {
   //
   // Import Alice geometry from current file
   // Return pointer to geometry object
   //
-  if (!fGeometry) fGeometry = (TGeometry*)gDirectory->Get("AliceGeom");
+  if (!fGeometry) fGeometry = dynamic_cast<TGeometry*>(gDirectory->Get("AliceGeom"));
   //
   // Unlink and relink nodes in detectors
   // This is bad and there must be a better way...
@@ -917,33 +872,21 @@ TGeometry *AliRun::GetGeometry()
   
   TIter next(fModules);
   AliModule *detector;
-  while((detector = (AliModule*)next())) 
-   {
-     TList *dnodes=detector->Nodes();
-     Int_t j;
-     TNode *node, *node1;
-     for ( j=0; j<dnodes->GetSize(); j++) 
-      {
-        node = (TNode*) dnodes->At(j);
-        node1 = fGeometry->GetNode(node->GetName());
-        dnodes->Remove(node);
-        dnodes->AddAt(node1,j);
-      }
-   }
+  while((detector = dynamic_cast<AliModule*>(next()))) {
+    TList *dnodes=detector->Nodes();
+    Int_t j;
+    TNode *node, *node1;
+    for ( j=0; j<dnodes->GetSize(); j++) {
+      node = dynamic_cast<TNode*>(dnodes->At(j));
+      node1 = fGeometry->GetNode(node->GetName());
+      dnodes->Remove(node);
+      dnodes->AddAt(node1,j);
+    }
+  }
   return fGeometry;
 }
 
-//_____________________________________________________________________________
-void AliRun::GetNextTrack(Int_t &mtrack, Int_t &ipart, Float_t *pmom,
-			  Float_t &e, Float_t *vpos, Float_t *polar,
-			  Float_t &tof)
-{
-  // Delegate to stack
-  //
-    fRunLoader->Stack()->GetNextTrack(mtrack, ipart, pmom, e, vpos, polar, tof);  
-}
-
-//_____________________________________________________________________________
+//_______________________________________________________________________
 Int_t AliRun::GetPrimary(Int_t track) const
 {
   //
@@ -952,94 +895,14 @@ Int_t AliRun::GetPrimary(Int_t track) const
     return fRunLoader->Stack()->GetPrimary(track);
 }
  
-//_____________________________________________________________________________
-void AliRun::InitMC(const char *setup)
-{
-  //
-  // Initialize the Alice setup
-  //
-
-  if(fInitDone) {
-    Warning("Init","Cannot initialise AliRun twice!\n");
-    return;
-  }
-
-//  cout<<" AliRun::InitMC before init macro fRunLoader = "<<fRunLoader<<endl;
-  gROOT->LoadMacro(setup);
-  gInterpreter->ProcessLine(fConfigFunction.Data());
-//  cout<<" AliRun::InitMC after init macro fRunLoader = "<<fRunLoader<<endl;
-  
-  InitLoaders();
-  
-  fRunLoader->LoadHits("all","recreate");// all getters (detectors) recreate file for hits
-
-  fRunLoader->CdGAFile();
-
-  gMC->DefineParticles();  //Create standard MC particles
-
-  TObject *objfirst, *objlast;
-
-  fNdets = fModules->GetLast()+1;
-
-  //
-  //=================Create Materials and geometry
-  gMC->Init();
-
-  // Added also after in case of interactive initialisation of modules
-  fNdets = fModules->GetLast()+1;
-
-  TIter next(fModules);
-  AliModule *detector;
-  while((detector = (AliModule*)next())) 
-   {
-     detector->SetTreeAddress();                          //<-------------------SetTree Address why here
-     objlast = gDirectory->GetList()->Last();
- 
-    // Add Detector histograms in Detector list of histograms
-    if (objlast) objfirst = gDirectory->GetList()->After(objlast);
-    else         objfirst = gDirectory->GetList()->First();
-    while (objfirst) 
-     {
-       detector->Histograms()->Add(objfirst);
-       objfirst = gDirectory->GetList()->After(objfirst);
-     }
-    }
-   ReadTransPar(); //Read the cuts for all materials
-   
-   MediaTable(); //Build the special IMEDIA table
-   
-   //Initialise geometry deposition table
-   fEventEnergy.Set(gMC->NofVolumes()+1);
-   fSummEnergy.Set(gMC->NofVolumes()+1);
-   fSum2Energy.Set(gMC->NofVolumes()+1);
-   
-   //Compute cross-sections
-   gMC->BuildPhysics();
-   
-   
-   //Write Geometry object to current file.
-   
-   fRunLoader->WriteGeometry();
-
-   fInitDone = kTRUE;
-
-   fMCQA = new AliMCQA(fNdets);
-
-// JCH note: the following line is useless, AliConfig instance is already
-// created in AliMC ctor. But it does not hurt.
-   AliConfig::Instance();
-   //
-   // Save stuff at the beginning of the file to avoid file corruption
-   Write();
-}
-
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliRun::MediaTable()
 {
   //
   // Built media table to get from the media number to
   // the detector id
   //
+
   Int_t kz, nz, idt, lz, i, k, ind;
   //  Int_t ibeg;
   TObjArray &dets = *gAlice->Detectors();
@@ -1048,10 +911,10 @@ void AliRun::MediaTable()
   // For all detectors
   for (kz=0;kz<fNdets;kz++) {
     // If detector is defined
-    if((det=(AliModule*) dets[kz])) {
+    if((det=dynamic_cast<AliModule*>(dets[kz]))) {
         TArrayI &idtmed = *(det->GetIdtmed()); 
         for(nz=0;nz<100;nz++) {
-             // Find max and min material number
+	// Find max and min material number
 	if((idt=idtmed[nz])) {
 	  det->LoMedium() = det->LoMedium() < idt ? det->LoMedium() : idt;
 	  det->HiMedium() = det->HiMedium() > idt ? det->HiMedium() : idt;
@@ -1079,7 +942,7 @@ void AliRun::MediaTable()
   for(i=0;i<(fNdets-1)/6+1;i++) {
     for(k=0;k< (6<fNdets-i*6?6:fNdets-i*6);k++) {
       ind=i*6+k;
-      det=(AliModule*)dets[ind];
+      det=dynamic_cast<AliModule*>(dets[ind]);
       if(det)
 	printf(" %6s: %3d -> %3d;",det->GetName(),det->LoMedium(),
 	       det->HiMedium());
@@ -1090,7 +953,7 @@ void AliRun::MediaTable()
   }
 }
 
-//____________________________________________________________________________
+//_______________________________________________________________________
 void AliRun::SetGenerator(AliGenerator *generator)
 {
   //
@@ -1099,7 +962,7 @@ void AliRun::SetGenerator(AliGenerator *generator)
   if(!fGenerator) fGenerator = generator;
 }
 
-//____________________________________________________________________________
+//_______________________________________________________________________
 void AliRun::ResetGenerator(AliGenerator *generator)
 {
   //
@@ -1115,19 +978,19 @@ void AliRun::ResetGenerator(AliGenerator *generator)
   fGenerator = generator;
 }
 
-//____________________________________________________________________________
-void AliRun::SetTransPar(char *filename)
+//_______________________________________________________________________
+void AliRun::SetTransPar(const char *filename)
 {
   fTransParName = filename;
 }
 
-//____________________________________________________________________________
-void AliRun::SetBaseFile(char *filename)
+//_______________________________________________________________________
+void AliRun::SetBaseFile(const char *filename)
 {
   fBaseFileName = filename;
 }
 
-//____________________________________________________________________________
+//_______________________________________________________________________
 void AliRun::ReadTransPar()
 {
   //
@@ -1236,45 +1099,39 @@ void AliRun::ReadTransPar()
     }
   }
 }
-
-
-
 //_____________________________________________________________________________
 
-//_____________________________________________________________________________
 void AliRun::BeginEvent()
 {
   //
-  //  Reset all Detectors & kinematics & trees
-  //
-  // Initialise event header
-  //
-
   // Clean-up previous event
   // Energy scores  
-  cout<<">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
-  cout<<">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
-  cout<<">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
-  cout<<"          BEGINNING EVENT               \n";
-  cout<<">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
-  cout<<">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
-  cout<<">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
+  Info("BeginEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+  Info("BeginEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+  Info("BeginEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+  Info("BeginEvent","          BEGINNING EVENT               ");
+  Info("BeginEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+  Info("BeginEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+  Info("BeginEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
     
   fEventEnergy.Reset();  
     // Clean detector information
   CleanDetectors();
   fRunLoader->Stack()->Reset();
-  fRunLoader->MakeTree("K");
+  fRunLoader->MakeTree("K");//for assurance
   fRunLoader->Stack()->BeginEvent();//this resets the pointer to 
-  fRunLoader->MakeTrackRefsContainer();
-  
-    // Reset stack info
-//  fRunLoader->CleanKinematics();
-  fRunLoader->MakeTrackRefsContainer();
+  gMC->SetStack(fRunLoader->Stack());//Was in InitMC - but was moved here 
+                                     //because we don't have guarantee that 
+                                     //stack pointer is not going to change from event to event
+	                 //since it bellobgs to header and is obtained via RunLoader
+  //
+  //  Reset all Detectors & kinematics & trees
+  //
 
+  fRunLoader->MakeTrackRefsContainer();//for insurance
   ResetHits();
-  fRunLoader->MakeTree("H");
-
+  fRunLoader->MakeTree("H");//for insurance
+    
   fRunLoader->GetHeader()->Reset(fRun,fEvent,fEventNrInRun);
   fRunLoader->WriteKinematics("OVERWRITE");
 
@@ -1285,16 +1142,27 @@ void AliRun::BeginEvent()
     return;
    }
 
-  //
+  //create new branches and SetAdresses
   TIter next(fModules);
   AliModule *detector;
   while((detector = (AliModule*)next()))
    {
     detector->MakeBranch("H"); //skowron
+    detector->MakeBranchTR();
     detector->SetTreeAddress();
    }
 }
-//_____________________________________________________________________________
+
+//_______________________________________________________________________
+TParticle* AliRun::Particle(Int_t i)
+{
+  if (fRunLoader)
+   if (fRunLoader->Stack())
+    return fRunLoader->Stack()->Particle(i);
+  return 0x0;   
+}
+
+//_______________________________________________________________________
 void AliRun::ResetDigits()
 {
   //
@@ -1302,12 +1170,12 @@ void AliRun::ResetDigits()
   //
   TIter next(fModules);
   AliModule *detector;
-  while((detector = (AliModule*)next())) {
+  while((detector = dynamic_cast<AliModule*>(next()))) {
      detector->ResetDigits();
   }
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliRun::ResetSDigits()
 {
   //
@@ -1315,12 +1183,12 @@ void AliRun::ResetSDigits()
   //
   TIter next(fModules);
   AliModule *detector;
-  while((detector = (AliModule*)next())) {
+  while((detector = dynamic_cast<AliModule*>(next()))) {
      detector->ResetSDigits();
   }
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliRun::ResetHits()
 {
   //
@@ -1328,12 +1196,12 @@ void AliRun::ResetHits()
   //
   TIter next(fModules);
   AliModule *detector;
-  while((detector = (AliModule*)next())) {
+  while((detector = dynamic_cast<AliModule*>(next()))) {
      detector->ResetHits();
   }
 }
+//_______________________________________________________________________
 
-//_____________________________________________________________________________
 void AliRun::ResetTrackReferences()
 {
   //
@@ -1341,14 +1209,12 @@ void AliRun::ResetTrackReferences()
   //
   TIter next(fModules);
   AliModule *detector;
-  while((detector = (AliModule*)next())) {
+  while((detector = dynamic_cast<AliModule*>(next()))) {
      detector->ResetTrackReferences();
   }
 }
+//_______________________________________________________________________
 
-
-
-//_____________________________________________________________________________
 void AliRun::ResetPoints()
 {
   //
@@ -1356,12 +1222,88 @@ void AliRun::ResetPoints()
   //
   TIter next(fModules);
   AliModule *detector;
-  while((detector = (AliModule*)next())) {
+  while((detector = dynamic_cast<AliModule*>(next()))) {
      detector->ResetPoints();
   }
 }
+//_______________________________________________________________________
 
-//_____________________________________________________________________________
+void AliRun::InitMC(const char *setup)
+{
+  //
+  // Initialize the Alice setup
+  //
+
+  if(fInitDone) {
+    Warning("Init","Cannot initialise AliRun twice!\n");
+    return;
+  }
+    
+  gROOT->LoadMacro(setup);
+  gInterpreter->ProcessLine(fConfigFunction.Data());
+
+  // Register MC in configuration 
+  AliConfig::Instance()->Add(gMC);
+  fRunLoader->LoadKinematics("RECREATE");
+  fRunLoader->MakeTree("KE");
+  
+  InitLoaders();
+  fRunLoader->LoadHits("all","recreate");// all getters (detectors) recreate file for hits
+  fRunLoader->CdGAFile();
+
+  gMC->DefineParticles();  //Create standard MC particles
+  AliPDG::AddParticlesToPdgDataBase();  
+
+  TObject *objfirst, *objlast;
+
+  fNdets = fModules->GetLast()+1;
+
+  //
+  //=================Create Materials and geometry
+  gMC->Init();
+
+  // Added also after in case of interactive initialisation of modules
+  fNdets = fModules->GetLast()+1;
+
+   TIter next(fModules);
+   AliModule *detector;
+   while((detector = dynamic_cast<AliModule*>(next()))) {
+      detector->SetTreeAddress();
+      objlast = gDirectory->GetList()->Last();
+      
+      // Add Detector histograms in Detector list of histograms
+      if (objlast) objfirst = gDirectory->GetList()->After(objlast);
+      else         objfirst = gDirectory->GetList()->First();
+      while (objfirst) {
+        detector->Histograms()->Add(objfirst);
+        objfirst = gDirectory->GetList()->After(objfirst);
+      }
+   }
+   ReadTransPar(); //Read the cuts for all materials
+   
+   MediaTable(); //Build the special IMEDIA table
+   
+   //Initialise geometry deposition table
+   fEventEnergy.Set(gMC->NofVolumes()+1);
+   fSummEnergy.Set(gMC->NofVolumes()+1);
+   fSum2Energy.Set(gMC->NofVolumes()+1);
+   
+   //Compute cross-sections
+   gMC->BuildPhysics();
+   
+   //Write Geometry object to current file.
+   fRunLoader->WriteGeometry();
+   
+   fInitDone = kTRUE;
+
+   fMCQA = new AliMCQA(fNdets);
+
+   //
+   // Save stuff at the beginning of the file to avoid file corruption
+   Write();
+}
+
+//_______________________________________________________________________
 void AliRun::RunMC(Int_t nevent, const char *setup)
 {
   //
@@ -1378,8 +1320,6 @@ void AliRun::RunMC(Int_t nevent, const char *setup)
   
   // Create the Root Tree with one branch per detector
   //Hits moved to begin event -> now we are crating separate tree for each event
-  fRunLoader->LoadKinematics("RECREATE");
-  fRunLoader->MakeTree("KE");//skowron
 
   gMC->ProcessRun(nevent);
 
@@ -1387,26 +1327,25 @@ void AliRun::RunMC(Int_t nevent, const char *setup)
   if(nevent>0) FinishRun();
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliRun::RunReco(const char *selected, Int_t first, Int_t last)
 {
   //
   // Main function to be called to reconstruct Alice event
   // 
-   if (gAlice->TreeE() == 0x0) fRunLoader->LoadHeader();
-   
-   cout << "Found "<< gAlice->TreeE()->GetEntries() << "events" << endl;
+   Int_t nev = fRunLoader->GetNumberOfEvents();
+   Info("RunReco","Found %d events",nev);
    Int_t nFirst = first;
-   Int_t nLast  = (last < 0)? (Int_t) gAlice->TreeE()->GetEntries() : last;
+   Int_t nLast  = (last < 0)? nev : last;
    
    for (Int_t nevent = nFirst; nevent <= nLast; nevent++) {
-     cout << "Processing event "<< nevent << endl;
+     Info("RunReco","Processing event %d",nevent);
      GetEvent(nevent);
      Digits2Reco(selected);
    }
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 
 void AliRun::Hits2Digits(const char *selected)
 {
@@ -1421,7 +1360,7 @@ void AliRun::Hits2Digits(const char *selected)
 }
 
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 
 void AliRun::Tree2Tree(Option_t *option, const char *selected)
 {
@@ -1447,8 +1386,8 @@ void AliRun::Tree2Tree(Option_t *option, const char *selected)
 
    AliDetector *detector = 0;
 
-   while((detector = (AliDetector*)next())) 
-    {
+   
+   while((detector = dynamic_cast<AliDetector*>(next()))) {
      if (selected) 
        if (strcmp(detector->GetName(),selected)) continue;
      if (detector->IsActive())
@@ -1459,7 +1398,7 @@ void AliRun::Tree2Tree(Option_t *option, const char *selected)
        
        if (oS) 
         {
-          cout << "Hits2SDigits: Processing " << detector->GetName() << "..." << endl;
+          Info("Tree2Tree","Processing Hits2SDigits for %s ...",detector->GetName());
           loader->LoadHits("read");
           if (loader->TreeS() == 0x0) loader->MakeTree("S");
           detector->MakeBranch(option);
@@ -1470,7 +1409,7 @@ void AliRun::Tree2Tree(Option_t *option, const char *selected)
         }  
        if (oD) 
         {
-          cout << "SDigits2Digits: Processing " << detector->GetName() << "..." << endl;
+          Info("Tree2Tree","Processing SDigits2Digits for %s ...",detector->GetName());
           loader->LoadSDigits("read");
           if (loader->TreeD() == 0x0) loader->MakeTree("D");
           detector->MakeBranch(option);
@@ -1481,7 +1420,7 @@ void AliRun::Tree2Tree(Option_t *option, const char *selected)
         } 
        if (oR) 
         {
-          cout << "Digits2Reco: Processing " << detector->GetName() << "..." << endl;
+          Info("Tree2Tree","Processing Digits2Reco for %s ...",detector->GetName());
           loader->LoadDigits("read");
           if (loader->TreeR() == 0x0) loader->MakeTree("R");
           detector->MakeBranch(option);
@@ -1496,7 +1435,7 @@ void AliRun::Tree2Tree(Option_t *option, const char *selected)
 }
 
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliRun::RunLego(const char *setup, Int_t nc1, Float_t c1min,
 		     Float_t c1max,Int_t nc2,Float_t c2min,Float_t c2max,
 		     Float_t rmin,Float_t rmax,Float_t zmax, AliLegoGenerator* gener)
@@ -1563,7 +1502,8 @@ void AliRun::RunLego(const char *setup, Int_t nc1, Float_t c1min,
   
   //Run Lego Object
 
-  gMC->ProcessRun(nc1*nc2+1);
+  //gMC->ProcessRun(nc1*nc2+1);
+  gMC->ProcessRun(nc1*nc2);
   
   // Create only the Root event Tree
   fRunLoader->MakeTree("E");
@@ -1576,7 +1516,7 @@ void AliRun::RunLego(const char *setup, Int_t nc1, Float_t c1min,
   delete fLego; fLego=0;
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliRun::SetConfigFunction(const char * config) 
 {
   //
@@ -1586,7 +1526,7 @@ void AliRun::SetConfigFunction(const char * config)
   fConfigFunction=config;
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliRun::SetCurrentTrack(Int_t track)
 { 
   //
@@ -1595,10 +1535,10 @@ void AliRun::SetCurrentTrack(Int_t track)
     fRunLoader->Stack()->SetCurrentTrack(track); 
 }
  
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliRun::SetTrack(Int_t done, Int_t parent, Int_t pdg, Float_t *pmom,
-		      Float_t *vpos, Float_t *polar, Float_t tof,
-		      AliMCProcess mech, Int_t &ntr, Float_t weight, Int_t is)
+                      Float_t *vpos, Float_t *polar, Float_t tof,
+                      AliMCProcess mech, Int_t &ntr, Float_t weight, Int_t is)
 { 
 // Delegate to stack
 //
@@ -1606,21 +1546,20 @@ void AliRun::SetTrack(Int_t done, Int_t parent, Int_t pdg, Float_t *pmom,
 		     mech, ntr, weight, is);
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliRun::SetTrack(Int_t done, Int_t parent, Int_t pdg,
-  	              Double_t px, Double_t py, Double_t pz, Double_t e,
-  		      Double_t vx, Double_t vy, Double_t vz, Double_t tof,
-		      Double_t polx, Double_t poly, Double_t polz,
-		      AliMCProcess mech, Int_t &ntr, Float_t weight, Int_t is)
+  	  Double_t px, Double_t py, Double_t pz, Double_t e,
+                      Double_t vx, Double_t vy, Double_t vz, Double_t tof,
+                      Double_t polx, Double_t poly, Double_t polz,
+                      AliMCProcess mech, Int_t &ntr, Float_t weight, Int_t is)
 { 
   // Delegate to stack
   //
-    fRunLoader->Stack()->SetTrack(done, parent, pdg, px, py, pz, e, vx, vy, vz, tof,
-		   polx, poly, polz, mech, ntr, weight, is);
-    
+  fRunLoader->Stack()->SetTrack(done, parent, pdg, px, py, pz, e, vx, vy, vz, tof,
+                                polx, poly, polz, mech, ntr, weight, is);
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliRun::SetHighWaterMark(const Int_t nt)
 {
     //
@@ -1628,7 +1567,7 @@ void AliRun::SetHighWaterMark(const Int_t nt)
     fRunLoader->Stack()->SetHighWaterMark(nt);
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
 void AliRun::KeepTrack(const Int_t track)
 { 
   //
@@ -1637,12 +1576,98 @@ void AliRun::KeepTrack(const Int_t track)
     fRunLoader->Stack()->KeepTrack(track);
 }
  
-//_____________________________________________________________________________
-void AliRun::StepManager(Int_t id) 
+// 
+// MC Application
+// 
+
+//_______________________________________________________________________
+void  AliRun::ConstructGeometry() 
+{
+  //
+  // Create modules, materials, geometry
+  //
+
+    TStopwatch stw;
+    TIter next(fModules);
+    AliModule *detector;
+    printf("Geometry creation:\n");
+    while((detector = dynamic_cast<AliModule*>(next()))) {
+      stw.Start();
+      // Initialise detector materials and geometry
+      detector->CreateMaterials();
+      detector->CreateGeometry();
+      printf("%10s R:%.2fs C:%.2fs\n",
+	     detector->GetName(),stw.RealTime(),stw.CpuTime());
+    }
+}
+
+//_______________________________________________________________________
+void  AliRun::InitGeometry()
+{ 
+  //
+  // Initialize detectors and display geometry
+  //
+
+   printf("Initialisation:\n");
+    TStopwatch stw;
+    TIter next(fModules);
+    AliModule *detector;
+    while((detector = dynamic_cast<AliModule*>(next()))) {
+      stw.Start();
+      // Initialise detector and display geometry
+      detector->Init();
+      detector->BuildGeometry();
+      printf("%10s R:%.2fs C:%.2fs\n",
+	     detector->GetName(),stw.RealTime(),stw.CpuTime());
+    }
+ 
+}
+//_______________________________________________________________________
+
+void  AliRun::GeneratePrimaries()
+{ 
+  //
+  // Generate primary particles and fill them in the stack.
+  //
+
+  Generator()->Generate();
+}
+//_______________________________________________________________________
+
+void AliRun::BeginPrimary()
+{
+  //
+  // Called  at the beginning of each primary track
+  //
+  
+  // Reset Hits info
+  gAlice->ResetHits();
+  gAlice->ResetTrackReferences();
+
+}
+
+//_______________________________________________________________________
+void AliRun::PreTrack()
+{
+     TObjArray &dets = *fModules;
+     AliModule *module;
+
+     for(Int_t i=0; i<=fNdets; i++)
+       if((module = dynamic_cast<AliModule*>(dets[i])))
+	 module->PreTrack();
+
+     fMCQA->PreTrack();
+}
+
+//_______________________________________________________________________
+void AliRun::Stepping() 
 {
   //
   // Called at every step during transport
   //
+
+  Int_t id = DetFromMate(gMC->GetMedium());
+  if (id < 0) return;
 
   //
   // --- If lego option, do it and leave 
@@ -1654,7 +1679,7 @@ void AliRun::StepManager(Int_t id)
     AddEnergyDeposit(gMC->CurrentVolID(copy),gMC->Edep());
   
     //Call the appropriate stepping routine;
-    AliModule *det = (AliModule*)fModules->At(id);
+    AliModule *det = dynamic_cast<AliModule*>(fModules->At(id));
     if(det && det->StepManagerIsEnabled()) {
       fMCQA->StepManager(id);
       det->StepManager();
@@ -1662,7 +1687,131 @@ void AliRun::StepManager(Int_t id)
   }
 }
 
-//_____________________________________________________________________________
+//_______________________________________________________________________
+void AliRun::PostTrack()
+{
+     TObjArray &dets = *fModules;
+     AliModule *module;
+
+     for(Int_t i=0; i<=fNdets; i++)
+       if((module = dynamic_cast<AliModule*>(dets[i])))
+	 module->PostTrack();
+}
+
+//_______________________________________________________________________
+void AliRun::FinishPrimary()
+{
+  //
+  // Called  at the end of each primary track
+  //
+  
+  //  static Int_t count=0;
+  //  const Int_t times=10;
+  // This primary is finished, purify stack
+  fRunLoader->Stack()->PurifyKine();
+
+  TIter next(fModules);
+  AliModule *detector;
+  while((detector = dynamic_cast<AliModule*>(next()))) {
+    detector->FinishPrimary();
+    if(detector->GetLoader())
+     {
+       detector->GetLoader()->TreeH()->Fill();
+     }
+  }
+
+  // Write out track references if any
+  if (fRunLoader->TreeTR()) 
+   {
+    fRunLoader->TreeTR()->Fill();
+   }
+}
+
+//_______________________________________________________________________
+void AliRun::FinishEvent()
+{
+  //
+  // Called at the end of the event.
+  //
+  
+  //
+  if(fLego) fLego->FinishEvent();
+
+  //Update the energy deposit tables
+  Int_t i;
+  for(i=0;i<fEventEnergy.GetSize();i++) 
+   {
+    fSummEnergy[i]+=fEventEnergy[i];
+    fSum2Energy[i]+=fEventEnergy[i]*fEventEnergy[i];
+   }
+
+  AliHeader* header = fRunLoader->GetHeader();
+  AliStack* stack = fRunLoader->Stack();
+  if ( (header == 0x0) || (stack == 0x0) )
+   {//check if we got header and stack. If not cry and exit aliroot
+    Fatal("AliRun","Can not get the stack or header from LOADER");
+    return;//never reached
+   }  
+  // Update Header information 
+  header->SetNprimary(stack->GetNprimary());
+  header->SetNtrack(stack->GetNtrack());  
+
+  
+  // Write out the kinematics
+  stack->FinishEvent();
+   
+  // Write out the event Header information
+  TTree* treeE = fRunLoader->TreeE();
+  if (treeE) 
+   {
+      header->SetStack(stack);
+      treeE->Fill();
+   }
+  else
+   {
+    Error("FinishEvent","Can not get TreeE from RL");
+   }
+  
+  fRunLoader->WriteKinematics("OVERWRITE");
+  fRunLoader->WriteTrackRefs("OVERWRITE");
+  fRunLoader->WriteHits("OVERWRITE");
+  
+  fRunLoader->SetNextEvent();
+  ++fEventNrInRun;
+
+  Info("FinishEvent","<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+  Info("FinishEvent","<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+  Info("FinishEvent","<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+  Info("FinishEvent","          FINISHING EVENT               ");
+  Info("FinishEvent","<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+  Info("FinishEvent","<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+  Info("FinishEvent","<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+  
+}
+
+//_______________________________________________________________________
+void AliRun::Field(const Double_t* x, Double_t *b) const
+{
+   Float_t xfloat[3];
+   for (Int_t i=0; i<3; i++) xfloat[i] = x[i]; 
+
+   if (Field()) {
+         Float_t bfloat[3];
+         Field()->Field(xfloat,bfloat);
+         for (Int_t j=0; j<3; j++) b[j] = bfloat[j]; 
+   } 
+   else {
+         printf("No mag field defined!\n");
+         b[0]=b[1]=b[2]=0.;
+   }
+
+}      
+
+// 
+// End of MC Application
+// 
+
+//_______________________________________________________________________
 void AliRun::Streamer(TBuffer &R__b)
 {
   // Stream an object of class AliRun.
@@ -1679,7 +1828,7 @@ void AliRun::Streamer(TBuffer &R__b)
 }
 
 
-//___________________________________________________________________________
+//_______________________________________________________________________
 Int_t AliRun::CurrentTrack() const {
   //
   // Returns current track
@@ -1687,34 +1836,30 @@ Int_t AliRun::CurrentTrack() const {
   return fRunLoader->Stack()->CurrentTrack();
 }
 
-//___________________________________________________________________________
+//_______________________________________________________________________
 Int_t AliRun::GetNtrack() const {
   //
   // Returns number of tracks in stack
   //
   return fRunLoader->Stack()->GetNtrack();
 }
+//_______________________________________________________________________
 
-//_____________________________________________________________________________
-TParticle* AliRun::Particle(Int_t i)
-{
-    return fRunLoader->Stack()->Particle(i);
-}
-
-//___________________________________________________________________________
 TObjArray* AliRun::Particles() {
   //
   // Returns pointer to Particles array
   //
-  return fRunLoader->Stack()->Particles();
+  if (fRunLoader)
+   if (fRunLoader->Stack())
+    return fRunLoader->Stack()->Particles();
+  return 0x0;
 }
 
 //___________________________________________________________________________
 
-////////////////////////////////////////////////////////////////////////
 void AliRun::SetGenEventHeader(AliGenEventHeader* header)
 {
-    fRunLoader->GetHeader()->SetGenEventHeader(header);
+  fRunLoader->GetHeader()->SetGenEventHeader(header);
 }
 
 //___________________________________________________________________________
@@ -1739,7 +1884,7 @@ void AliRun::SetRunLoader(AliRunLoader* rloader)
   TString evfoldname;
   TFolder* evfold = fRunLoader->GetEventFolder();
   if (evfold) evfoldname = evfold->GetName();
-  else cout<<"AliRun::SetRunLoader() did not get Event Folder from Run Loader\n";
+  else Warning("SetRunLoader","Did not get Event Folder from Run Loader");
   
   
   TIter next(fModules);
@@ -1757,9 +1902,8 @@ void AliRun::SetRunLoader(AliRunLoader* rloader)
          }
         else
          {
-           cout<<"Setting loader for detector "<<detector->GetName()<<endl;
+           Info("SetRunLoader","Setting loader for detector %s",detector->GetName());
            detector->SetLoader(loader);
-           
          }
       }
    }
@@ -1771,7 +1915,7 @@ void AliRun::AddModule(AliModule* mod)
   if (strlen(mod->GetName()) == 0) return;
   if (GetModuleID(mod->GetName()) >= 0) return;
   
-  cout<<"AliRun::AddModule("<<mod->GetName()<<")\n";
+  Info("AddModule","%s",mod->GetName());
   if (fRunLoader == 0x0) AliConfig::Instance()->Add(mod);
   else AliConfig::Instance()->Add(mod,fRunLoader->GetEventFolder()->GetName());
 

@@ -68,12 +68,9 @@
 
 // --- Standard library ---
 
-#include <iostream.h>
-#include <iomanip.h>
-
 // --- AliRoot header files ---
 #include "AliRunLoader.h"
-
+#include "AliPHOSCalibrationDB.h"
 #include "AliPHOSClusterizerv1.h"
 #include "AliPHOSCpvRecPoint.h"
 #include "AliPHOSDigit.h"
@@ -102,7 +99,6 @@ AliPHOSClusterizerv1::AliPHOSClusterizerv1(const char* evFolderName,const char* 
   
   InitParameters() ;
   fDefaultInit = kFALSE ; 
-
 }
 
 //____________________________________________________________________________
@@ -120,12 +116,14 @@ const TString AliPHOSClusterizerv1::BranchName() const
 //____________________________________________________________________________
 Float_t  AliPHOSClusterizerv1::Calibrate(Int_t amp, Int_t absId) const
 { //To be replased later by the method, reading individual parameters from the database
-
-  if(absId <= fEmcCrystals) //calibrate as EMC 
-    return fADCpedestalEmc + amp*fADCchanelEmc ;    
-   
-  else //Digitize as CPV
-    return fADCpedestalCpv+ amp*fADCchanelCpv ;       
+  if(fCalibrationDB)
+    return fCalibrationDB->Calibrate(amp,absId) ;
+  else{ //simulation
+    if(absId <= fEmcCrystals) //calibrate as EMC 
+      return fADCpedestalEmc + amp*fADCchanelEmc ;        
+    else //calibrate as CPV
+      return fADCpedestalCpv+ amp*fADCchanelCpv ;       
+  }
 }
 
 //____________________________________________________________________________
@@ -198,19 +196,18 @@ void AliPHOSClusterizerv1::Exec(Option_t * option)
   
   if(strstr(option,"tim")){
     gBenchmark->Stop("PHOSClusterizer");
-    cout << "AliPHOSClusterizer:" << endl ;
-    cout << "  took " << gBenchmark->GetCpuTime("PHOSClusterizer") << " seconds for Clusterizing " 
-         <<  gBenchmark->GetCpuTime("PHOSClusterizer")/nevents << " seconds per event " << endl ;
-    cout << endl ;
+    Info("Exec", "  took %f seconds for Clusterizing %f seconds per event \n",
+	 gBenchmark->GetCpuTime("PHOSClusterizer"), 
+	 gBenchmark->GetCpuTime("PHOSClusterizer")/nevents ) ; 
   }
 
-  cout<<"\n\nAliPHOSClusterizerv1::Exec: FINISHED\n\n";
+  Info("Exec","\n\n        AliPHOSClusterizerv1::Exec: FINISHED\n\n");
  
 }
 
 //____________________________________________________________________________
 Bool_t AliPHOSClusterizerv1::FindFit(AliPHOSEmcRecPoint * emcRP, AliPHOSDigit ** maxAt, Float_t * maxAtEnergy,
-                                    Int_t nPar, Float_t * fitparameters) const
+				    Int_t nPar, Float_t * fitparameters) const
 { 
   // Calls TMinuit to fit the energy distribution of a cluster with several maxima 
   // The initial values for fitting procedure are set equal to the positions of local maxima.
@@ -263,19 +260,19 @@ Bool_t AliPHOSClusterizerv1::FindFit(AliPHOSEmcRecPoint * emcRP, AliPHOSDigit **
     gMinuit->mnparm(index, "x",  x, 0.1, 0, 0, ierflg) ;
     index++ ;   
     if(ierflg != 0){ 
-      cout << "PHOS Unfolding>  Unable to set initial value for fit procedure : x = " << x << endl ;
+      Warning("FindFit", "PHOS Unfolding unable to set initial value for fit procedure : x = %f\n", x ) ;
       return kFALSE;
     }
     gMinuit->mnparm(index, "z",  z, 0.1, 0, 0, ierflg) ;
     index++ ;   
     if(ierflg != 0){
-      cout << "PHOS Unfolding>  Unable to set initial value for fit procedure : z = " << z << endl ;
+       Warning("FindFit", "PHOS Unfolding unable to set initial value for fit procedure : z =%f\n", z ) ;
       return kFALSE;
     }
     gMinuit->mnparm(index, "Energy",  energy , 0.05*energy, 0., 4.*energy, ierflg) ;
     index++ ;   
     if(ierflg != 0){
-      cout << "PHOS Unfolding>  Unable to set initial value for fit procedure : energy = " << energy << endl ;      
+      Warning("FindFit", "PHOS Unfolding unable to set initial value for fit procedure : energy = %f\n", energy ) ;      
       return kFALSE;
     }
   }
@@ -293,7 +290,7 @@ Bool_t AliPHOSClusterizerv1::FindFit(AliPHOSEmcRecPoint * emcRP, AliPHOSDigit **
   gMinuit->mnexcm("MIGRAD", &p0, 0, ierflg) ;    // minimize 
 
   if(ierflg == 4){  // Minimum not found   
-    cout << "PHOS Unfolding>  Fit not converged, cluster abandoned "<< endl ;      
+    Warning("FindFit", "PHOS Unfolding fit not converged, cluster abandoned\n" );      
     return kFALSE ;
   }            
   for(index = 0; index < nPar; index++){
@@ -317,15 +314,20 @@ void AliPHOSClusterizerv1::GetCalibrationParameters()
      Error("GetCalibrationParameters","Can not get PHOS Loader");
      return;
    }
-  
-  const AliPHOSDigitizer* dig = dynamic_cast<AliPHOSDigitizer*>(gime->Digitizer());
 
-  fADCchanelEmc   = dig->GetEMCchannel() ;
-  fADCpedestalEmc = dig->GetEMCpedestal();
-  
-  fADCchanelCpv   = dig->GetCPVchannel() ;
-  fADCpedestalCpv = dig->GetCPVpedestal() ; 
-  
+  const TTask * task = gime->Digitizer() ;
+  if(strcmp(task->IsA()->GetName(),"AliPHOSDigitizer")==0){
+    const AliPHOSDigitizer * dig = static_cast<const AliPHOSDigitizer *>(task) ;
+
+    fADCchanelEmc   = dig->GetEMCchannel() ;
+    fADCpedestalEmc = dig->GetEMCpedestal();
+    
+    fADCchanelCpv   = dig->GetCPVchannel() ;
+    fADCpedestalCpv = dig->GetCPVpedestal() ; 
+  }
+  else{
+    fCalibrationDB = gime->CalibrationDB();
+  }
 }
 
 //____________________________________________________________________________
@@ -342,7 +344,7 @@ void AliPHOSClusterizerv1::Init()
   AliPHOSLoader* gime = AliPHOSLoader::GetPHOSLoader(GetTitle());
 
   if ( gime == 0 ) {
-    cerr << "ERROR: AliPHOSClusterizerv1::Init -> Could not obtain the Loader object !" << endl ; 
+    Error("Init", "Could not obtain the Loader object !") ;  
     return ;
   } 
  
@@ -382,7 +384,7 @@ void AliPHOSClusterizerv1::InitParameters()
   fToUnfold                = kTRUE ;
     
   fRecPointsInRun          = 0 ;
-
+  fCalibrationDB = 0 ;
 }
 
 //____________________________________________________________________________
@@ -517,7 +519,6 @@ void AliPHOSClusterizerv1::WriteRecPoints()
   TBranch * cpvBranch = treeR->Branch("PHOSCpvRP","TObjArray",&cpvRecPoints,bufferSize,splitlevel);
   cpvBranch->SetTitle(BranchName());
     
-
   emcBranch        ->Fill() ;
   cpvBranch        ->Fill() ;
   
@@ -547,9 +548,7 @@ void AliPHOSClusterizerv1::MakeClusters()
   
   TClonesArray * digits = gime->Digits() ; 
    if ( !digits ) {
-    cerr << "ERROR:  AliPHOSClusterizerv1::MakeClusters -> Digits with name " 
-         << GetName() << " not found ! " << endl ; 
-    abort() ; 
+   Fatal("MakeClusters", "Digits with name %s not found !", BranchName().Data() ) ;  
   } 
   TClonesArray * digitsC =  (TClonesArray*)digits->Clone() ;
   
@@ -568,7 +567,6 @@ void AliPHOSClusterizerv1::MakeClusters()
 
     if (( IsInEmc (digit) && Calibrate(digit->GetAmp(),digit->GetId()) > fEmcClusteringThreshold  ) || 
         ( IsInCpv (digit) && Calibrate(digit->GetAmp(),digit->GetId()) > fCpvClusteringThreshold  ) ) {
-         
       Int_t iDigitInCluster = 0 ; 
       
       if  ( IsInEmc(digit) ) {   
@@ -757,9 +755,9 @@ Double_t  AliPHOSClusterizerv1::ShowerShape(Double_t r)
 
 //____________________________________________________________________________
 void  AliPHOSClusterizerv1::UnfoldCluster(AliPHOSEmcRecPoint * iniEmc, 
-                                                 Int_t nMax, 
-                                                 AliPHOSDigit ** maxAt, 
-                                                 Float_t * maxAtEnergy)
+                                          Int_t nMax, 
+                                          AliPHOSDigit ** maxAt, 
+                                          Float_t * maxAtEnergy)
 { 
   // Performs the unfolding of a cluster with nMax overlapping showers 
 
@@ -974,35 +972,45 @@ void AliPHOSClusterizerv1::Print(Option_t * option)const
 {
   // Print clusterizer parameters
 
-  if( strcmp(GetName(), "") !=0 ){
-    
+  TString message ; 
+  TString taskName(GetName()) ; 
+  taskName.ReplaceAll(Version(), "") ;
+  
+  if( strcmp(GetName(), "") !=0 ) {  
     // Print parameters
- 
-    TString taskName(GetName()) ; 
-    taskName.ReplaceAll(Version(), "") ;
-
-    cout << "---------------"<< taskName.Data() << " " << GetTitle()<< "-----------" << endl 
-         << "Clusterizing digits from the file: " << taskName.Data() << endl 
-         << "                           Branch: " << GetName() << endl 
-         << endl 
-         << "                       EMC Clustering threshold = " << fEmcClusteringThreshold << endl
-         << "                       EMC Local Maximum cut    = " << fEmcLocMaxCut << endl
-         << "                       EMC Logarothmic weight   = " << fW0 << endl
-         << endl
-         << "                       CPV Clustering threshold = " << fCpvClusteringThreshold << endl
-         << "                       CPV Local Maximum cut    = " << fCpvLocMaxCut << endl
-       << "                       CPV Logarothmic weight   = " << fW0CPV << endl
-         << endl ;
+    message  = "\n--------------- %s %s -----------\n" ; 
+    message += "Clusterizing digits from the file: %s\n" ;
+    message += "                           Branch: %s\n" ; 
+    message += "                       EMC Clustering threshold = %f\n" ; 
+    message += "                       EMC Local Maximum cut    = %f\n" ; 
+    message += "                       EMC Logarothmic weight   = %f\n" ;
+    message += "                       CPV Clustering threshold = %f\n" ;
+    message += "                       CPV Local Maximum cut    = %f\n" ;
+    message += "                       CPV Logarothmic weight   = %f\n" ;
     if(fToUnfold)
-      cout << " Unfolding on " << endl ;
+      message += " Unfolding on\n" ;
     else
-      cout << " Unfolding off " << endl ;
+      message += " Unfolding off\n" ;
     
-    cout << "------------------------------------------------------------------" <<endl ;
+    message += "------------------------------------------------------------------" ;
   }
-  else
-    cout << " AliPHOSClusterizerv1 not initialized " << endl ;
+  else 
+    message = " AliPHOSClusterizerv1 not initialized " ;
+  
+  Info("Print", message.Data(),  
+       taskName.Data(), 
+       GetTitle(),
+       taskName.Data(), 
+       GetName(), 
+       fEmcClusteringThreshold, 
+       fEmcLocMaxCut, 
+       fW0, 
+       fCpvClusteringThreshold, 
+       fCpvLocMaxCut, 
+       fW0CPV ) ; 
 }
+
+
 //____________________________________________________________________________
 void AliPHOSClusterizerv1::PrintRecPoints(Option_t * option)
 {
@@ -1018,17 +1026,24 @@ void AliPHOSClusterizerv1::PrintRecPoints(Option_t * option)
   TObjArray * emcRecPoints = gime->EmcRecPoints() ; 
   TObjArray * cpvRecPoints = gime->CpvRecPoints() ; 
 
-  cout << "AliPHOSClusterizerv1: : event "<<gAlice->GetEvNumber() << endl ;
-  cout << "       Found "<< emcRecPoints->GetEntriesFast() << " EMC Rec Points and " 
-           << cpvRecPoints->GetEntriesFast() << " CPV RecPoints" << endl ;
 
+  TString message ; 
+  message  = "\nevent " ;
+  message += gAlice->GetEvNumber() ; 
+  message += "\n       Found " ; 
+  message += emcRecPoints->GetEntriesFast() ; 
+  message += "EMC RecPoints and " ;
+  message += cpvRecPoints->GetEntriesFast() ; 
+  message += " CPV RecPoints \n" ; 
+ 
   fRecPointsInRun +=  emcRecPoints->GetEntriesFast() ; 
   fRecPointsInRun +=  cpvRecPoints->GetEntriesFast() ; 
-
+  
+  char * tempo = new char[8192]; 
+  
   if(strstr(option,"all")) {
-    cout << "EMC clusters " << endl ;
-    cout << " Index  Ene(MeV)   Multi  Module     X      Y      Z    Lambda 1   Lambda 2  # of prim  Primaries list "      <<  endl;      
-    
+    message += "\nEMC clusters\n" ;
+    message += "Index    Ene(MeV) Multi Module     X     Y   Z  Lambda 1 Lambda 2  # of prim  Primaries list\n" ;      
     Int_t index ;
     for (index = 0 ; index < emcRecPoints->GetEntries() ; index++) {
       AliPHOSEmcRecPoint * rp = (AliPHOSEmcRecPoint * )emcRecPoints->At(index) ; 
@@ -1039,57 +1054,40 @@ void AliPHOSClusterizerv1::PrintRecPoints(Option_t * option)
       Int_t * primaries; 
       Int_t nprimaries;
       primaries = rp->GetPrimaries(nprimaries);
-
-      cout << setw(4) << rp->GetIndexInList() << "   " 
-           << setw(7) << setprecision(3) << rp->GetEnergy() << "           " 
-           << setw(3) <<         rp->GetMultiplicity() << "  " 
-           << setw(1) <<              rp->GetPHOSMod() << "  " 
-           << setw(6) << setprecision(2) << locpos.X() << "  " 
-           << setw(6) << setprecision(2) << locpos.Y() << "  " 
-           << setw(6) << setprecision(2) << locpos.Z() << "  "
-           << setw(4) << setprecision(2) << lambda[0]  << "  "
-           << setw(4) << setprecision(2) << lambda[1]  << "  "
-           << setw(2) << nprimaries << "  " ;
-     
-      for (Int_t iprimary=0; iprimary<nprimaries; iprimary++)
-        cout << setw(4) <<   primaries[iprimary] << "  "  ;
-      cout << endl ;           
-    }
-
-    //Now plot CPV recPoints
-    cout << "EMC clusters " << endl ;
-    cout << "  Index    " 
-         << "  Multi    "
-          << "  Module   "  
-         << "    X      "
-         << "    Y      "
-         << "    Z      "
-         << " # of prim "
-         << " Primaries list "      <<  endl;      
-    
-    for (index = 0 ; index < cpvRecPoints->GetEntries() ; index++) {
-      AliPHOSRecPoint * rp = (AliPHOSRecPoint * )cpvRecPoints->At(index) ; 
-      cout << setw(6) << rp->GetIndexInList() << "     ";
-      cout << setw(6) << rp->GetPHOSMod()     << "        CPV     ";
+      sprintf(tempo, "\n%6d  %8.2f  %3d     %2d     %4.1f    %4.1f %4.1f %4f  %4f    %2d     : ", 
+	      rp->GetIndexInList(), rp->GetEnergy(), rp->GetMultiplicity(), rp->GetPHOSMod(), 
+	      locpos.X(), locpos.Y(), locpos.Z(), lambda[0], lambda[1], nprimaries) ; 
+      message += tempo ; 
       
-      TVector3  locpos;  
-      rp->GetLocalPosition(locpos);
-      cout << setw(6) <<  locpos.X()          << "     ";
-      cout << setw(6) <<  locpos.Y()          << "     ";
-      cout << setw(6) <<  locpos.Z()          << "     ";
+      for (Int_t iprimary=0; iprimary<nprimaries; iprimary++) {
+	sprintf(tempo, "%d ", primaries[iprimary] ) ; 
+	message += tempo ;
+      }
       
-      Int_t * primaries; 
-      Int_t nprimaries ; 
-      primaries = rp->GetPrimaries(nprimaries);
-      cout << setw(6) <<    nprimaries         << "     ";
-
-      for (Int_t iprimary=0; iprimary<nprimaries; iprimary++)
-        cout << setw(4)  <<  primaries[iprimary] << " ";
-      cout << endl;           
+      //Now plot CPV recPoints
+      message += "Index    Ene(MeV) Module     X     Y   Z  # of prim  Primaries list\n" ;      
+      for (index = 0 ; index < cpvRecPoints->GetEntries() ; index++) {
+	AliPHOSRecPoint * rp = (AliPHOSRecPoint * )cpvRecPoints->At(index) ; 
+	
+	TVector3  locpos;  
+	rp->GetLocalPosition(locpos);
+	
+	Int_t * primaries; 
+	Int_t nprimaries ; 
+	primaries = rp->GetPrimaries(nprimaries);
+	sprintf(tempo, "\n%6d  %8.2f  %2d     %4.1f    %4.1f %4.1f %2d     : ", 
+		rp->GetIndexInList(), rp->GetEnergy(), rp->GetPHOSMod(), 
+		locpos.X(), locpos.Y(), locpos.Z(), nprimaries) ; 
+	message += tempo ; 
+	primaries = rp->GetPrimaries(nprimaries);
+	for (Int_t iprimary=0; iprimary<nprimaries; iprimary++) {
+	  sprintf(tempo, "%d ", primaries[iprimary] ) ; 
+	  message += tempo ;
+	}
+      }
     }
-
-
-    cout << "-----------------------------------------------------------------------"<<endl ;
   }
+  delete tempo ; 
+  Info("Print", message.Data() ) ; 
 }
 

@@ -15,9 +15,26 @@
 
 /*
 $Log$
+Revision 1.63  2002/10/14 14:55:35  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
 
-Revision 1.51.2.1  2002/05/31 09:37:55  hristov
-First set of changes done by Piotr
+Revision 1.52.4.4  2002/10/10 16:40:08  hristov
+Updating VirtualMC to v3-09-02
+
+Revision 1.62  2002/09/24 10:00:01  morsch
+CheckTrigger() corrected.
+
+Revision 1.61  2002/07/30 09:52:38  morsch
+Call SetGammaPhiRange() and SetGammaEtaRange() in the constructor.
+
+Revision 1.60  2002/07/19 14:49:03  morsch
+Typo corrected.
+
+Revision 1.59  2002/07/19 14:35:36  morsch
+Count total number of trials. Print mean Q, x1, x2.
+
+Revision 1.58  2002/07/17 10:04:09  morsch
+SetYHard method added.
 
 Revision 1.57  2002/05/22 13:22:53  morsch
 Process kPyMbNonDiffr added.
@@ -204,6 +221,8 @@ AliGenPythia::AliGenPythia()
   SetEventListRange();
   SetJetPhiRange();
   SetJetEtaRange();
+  SetGammaPhiRange();
+  SetGammaEtaRange();
 }
 
 AliGenPythia::AliGenPythia(Int_t npart)
@@ -222,6 +241,7 @@ AliGenPythia::AliGenPythia(Int_t npart)
     SetStrucFunc();
     SetForceDecay();
     SetPtHard();
+    SetYHard();
     SetEnergyCMS();
     fDecayer = new AliDecayerPythia();
     // Set random number generator 
@@ -233,6 +253,8 @@ AliGenPythia::AliGenPythia(Int_t npart)
     SetEventListRange();
     SetJetPhiRange();
     SetJetEtaRange();
+    SetGammaPhiRange();
+    SetGammaEtaRange();
     // Options determining what to keep in the stack (Heavy flavour generation)
     fStackFillOpt = kFlavorSelection; // Keep particle with selected flavor
     fFeedDownOpt = kTRUE;             // allow feed down from higher family
@@ -276,7 +298,10 @@ void AliGenPythia::Init()
 
 
     fPythia->SetCKIN(3,fPtHardMin);
-    fPythia->SetCKIN(4,fPtHardMax);    
+    fPythia->SetCKIN(4,fPtHardMax);
+    fPythia->SetCKIN(7,fYHardMin);
+    fPythia->SetCKIN(8,fYHardMax);
+    
     if (fNucA1 > 0 && fNucA2 > 0) fPythia->SetNuclei(fNucA1, fNucA2);  
     // Fragmentation?
     if (fFragmentation) {
@@ -336,6 +361,14 @@ void AliGenPythia::Init()
     case kPyDirectGamma:
 	break;
     }
+//
+//  This counts the total number of calls to Pyevnt() per run.
+    fTrialsRun = 0;
+    fQ         = 0.;
+    fX1        = 0.;
+    fX2        = 0.;    
+    fNev       = 0 ;
+//    
     AliGenMC::Init();
 }
 
@@ -398,11 +431,12 @@ void AliGenPythia::Generate()
 	    pSelected[i] =  0;
 	    trackIt[i]   =  0;
 	}
-	// printf("\n **************************************************%d\n",np);
+
 	Int_t nc = 0;        // Total n. of selected particles
 	Int_t nParents = 0;  // Selected parents
 	Int_t nTkbles = 0;   // Trackable particles
-	if (fProcess != kPyMb && fProcess != kPyJets && fProcess != kPyDirectGamma &&
+	if (fProcess != kPyMb && fProcess != kPyJets && 
+	    fProcess != kPyDirectGamma &&
 	    fProcess != kPyMbNonDiffr) {
 	    
 	    for (i = 0; i<np; i++) {
@@ -430,7 +464,6 @@ void AliGenPythia::Generate()
 		    TParticle *  mother = (TParticle *) fParticles->At(ipa);
 		    kfMo = TMath::Abs(mother->GetPdgCode());
 		}
-//		printf("\n particle (all)  %d %d %d", i, pSelected[i], kf);
 		// What to keep in Stack?
 		Bool_t flavorOK = kFALSE;
 		Bool_t selectOK = kFALSE;
@@ -564,6 +597,12 @@ void AliGenPythia::Generate()
 	    if (jev >= fNpart || fNpart == -1) {
 		fKineBias=Float_t(fNpart)/Float_t(fTrials);
 		printf("\n Trials: %i %i %i\n",fTrials, fNpart, jev);
+
+		fQ  += fPythia->GetVINT(51);
+		fX1 += fPythia->GetVINT(41);
+		fX2 += fPythia->GetVINT(42);
+		fTrialsRun += fTrials;
+		fNev++;
 		MakeHeader();
 		break;
 	    }
@@ -604,17 +643,15 @@ Int_t  AliGenPythia::GenerateMB()
 	kf = CheckPDGCode(iparticle->GetPdgCode());
 	Int_t ks = iparticle->GetStatusCode();
 	Int_t km = iparticle->GetFirstMother();
-//	printf("\n Particle: %d %d %d", i, kf, ks);
-	
 	if ((ks == 1  && kf!=0 && KinematicSelection(iparticle, 0)) ||
 	    (ks != 1) ||
 	    (fProcess == kPyJets && ks == 21 && km == 0 && i>1)) {
 	    nc++;
 	    if (ks == 1) trackIt = 1;
 	    Int_t ipa = iparticle->GetFirstMother()-1;
-
+	    
 	    iparent = (ipa > -1) ? pParent[ipa] : -1;
-
+	    
 //
 // store track information
 	    p[0] = iparticle->Px();
@@ -625,7 +662,7 @@ Int_t  AliGenPythia::GenerateMB()
 	    origin[2] = fOrigin[2]+iparticle->Vz()/10.;
 	    Float_t tof=kconv*iparticle->T();
 	    SetTrack(fTrackIt*trackIt, iparent, kf, p, origin, polar,
-			 tof, kPPrimary, nt, 1., ks);
+		     tof, kPPrimary, nt, 1., ks);
 	    KeepTrack(nt);
 	    pParent[i] = nt;
 	} // select particle
@@ -642,6 +679,13 @@ void AliGenPythia::FinishRun()
 {
 // Print x-section summary
     fPythia->Pystat(1);
+    fQ  /= fNev;
+    fX1 /= fNev;
+    fX2 /= fNev;    
+    printf("\nTotal number of Pyevnt() calls %d\n", fTrialsRun);
+    printf("\nMean Q, x1, x2: %f %f %f\n", fQ, fX1, fX2);
+    
+
 }
 
 void AliGenPythia::AdjustWeights()
@@ -692,15 +736,17 @@ Bool_t AliGenPythia::CheckTrigger(TParticle* jet1, TParticle* jet2) const
 
     if (fProcess == kPyJets) {
 	//Check eta range first...
-	if ((eta[0] < fEtaMaxJet && eta[0] > fEtaMinJet) ||
-	    (eta[1] < fEtaMaxJet && eta[1] > fEtaMinJet))
+	if (
+	    ((eta[0] < fEtaMaxJet && eta[0] > fEtaMinJet)   &&
+	     (phi[0] < fPhiMaxJet && phi[0] > fPhiMinJet)) 
+	    
+	    ||
+	    
+	    ((eta[1] < fEtaMaxJet && eta[1] > fEtaMinJet)   &&
+	     (phi[1] < fPhiMaxJet && phi[1] > fPhiMinJet))
+	    )
 	{
-	    //Eta is okay, now check phi range
-	    if ((phi[0] < fPhiMaxJet && phi[0] > fPhiMinJet) ||
-		(phi[1] < fPhiMaxJet && phi[1] > fPhiMinJet))
-	    {
-		triggered = kTRUE;
-	    }
+	    triggered = kTRUE;
 	}
     } else {
 	Int_t ij = 0;
@@ -721,8 +767,6 @@ Bool_t AliGenPythia::CheckTrigger(TParticle* jet1, TParticle* jet2) const
 	    }
 	}
     }
-    
-    
     return triggered;
 }
 	  

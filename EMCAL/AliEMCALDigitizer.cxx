@@ -52,7 +52,10 @@
 //
 //*-- Author: Sahal Yacoob (LBL)
 // based on : AliEMCALDigitizer
-//_________________________________________________________________________________
+// Modif: 
+//  August 2002 Yves Schutz: clone PHOS as closely as possible and intoduction
+//                           of new  IO (à la PHOS)
+///_________________________________________________________________________________
 
 // --- ROOT system ---
 #include "TFile.h"
@@ -61,22 +64,24 @@
 #include "TROOT.h"
 #include "TFolder.h"
 #include "TObjString.h"
+#include "TGeometry.h"
 #include "TBenchmark.h"
+
 // --- Standard library ---
-#include <iomanip.h>
 
 // --- AliRoot header files ---
-
 #include "AliRun.h"
+#include "AliHeader.h"
+#include "AliStream.h"
+#include "AliRunDigitizer.h"
 #include "AliEMCALDigit.h"
-#include "AliEMCALHit.h"
-#include "AliEMCALTick.h"
-#include "AliEMCALv1.h"
+#include "AliEMCAL.h"
+#include "AliEMCALGetter.h"
 #include "AliEMCALDigitizer.h"
 #include "AliEMCALSDigitizer.h"
 #include "AliEMCALGeometry.h"
-#include "AliEMCALGetter.h"
-#include "AliRunDigitizer.h"
+#include "AliEMCALTick.h"
+
 ClassImp(AliEMCALDigitizer)
 
 
@@ -84,103 +89,43 @@ ClassImp(AliEMCALDigitizer)
   AliEMCALDigitizer::AliEMCALDigitizer()
 {
   // ctor
-
-  fSDigitizer = 0 ;
-  fNinputs = 0 ;
-  fPinNoise = 0.0 ;
-  fTowerDigitThreshold = 0.0 ;
-  fTimeResolution     = 0. ;
-  fTimeSignalLength   = 0. ;
-  fPreShowerDigitThreshold = 0. ;
-  fADCchannelTower = 0.0;      // width of one ADC channel in GeV
-  fADCpedestalTower = 0. ;      // pedestal of ADC
-  fNADCTower = 0;  // number of channels in Tower ADC
-
-  fADCchannelPreSho  = 0.0;          // width of one ADC channel in Pre Shower
-  fADCpedestalPreSho = 0.0 ;         // pedestal of ADC
-  fNADCPreSho = 0;      // number of channels in Pre Shower ADC
-  fTimeThreshold = 0.0; //Means 1 MeV in terms of SDigits amplitude
-  fManager = 0 ;
-
-
-
-}
-//____________________________________________________________________________ 
-Bool_t AliEMCALDigitizer::Init()
-{
-  // Makes all memory allocations
-
-  fSDigitizer = 0 ;
-  fNinputs = 1 ;
-  fPinNoise = 0.00001 ;
-  fTowerDigitThreshold = 0.001 ;
-  fTimeResolution     = 0.5e-9 ;
-  fTimeSignalLength   = 1.0e-9 ;
-  fPreShowerDigitThreshold = fTowerDigitThreshold/25. ;
-  fInitialized = kFALSE ;
-  fADCchannelTower = 0.000220;       // width of one ADC channel in GeV
-  fADCpedestalTower = 0.005 ;      // GeV
-  fNADCTower = (Int_t) TMath::Power(2,16) ;  // number of channels in Tower ADC
-
-  fADCchannelPreSho = 0.0000300;          // width of one ADC channel in Pre Shower
-  fADCpedestalPreSho = 0.005 ;         // 
-  fNADCPreSho = (Int_t) TMath::Power(2,12);      // number of channels in Pre ShowerADC
-
-  fTimeThreshold = 0.001*10000000 ; //Means 1 MeV in terms of SDigits amplitude
- 
-
-
-  if(fManager)
-    SetTitle("aliroot") ;
-  else if (strcmp(GetTitle(),"")==0) 
-    SetTitle("galice.root") ;
-  
-  if( strcmp(GetName(), "") == 0 )
-    SetName("Default") ;
-  
-  AliEMCALGetter * gime = AliEMCALGetter::GetInstance(GetTitle(), GetName(), "update") ; 
-  if ( gime == 0 ) {
-    cerr << "ERROR: AliEMCALDigitizer::Init -> Could not obtain the Getter object !" << endl ; 
-    return kFALSE;
-  } 
-  
-  //const AliEMCALGeometry * geom = gime->EMCALGeometry() ;
-  //fEmcCrystals = geom->GetNModules() *  geom->GetNCristalsInModule() ;
-  
-  // Post Digits to the white board
-  gime->PostDigits(GetName() ) ;   
-  
-  // Post Digitizer to the white board
-  gime->PostDigitizer(this) ;
-  
-  //Mark that we will use current header file
-  if(!fManager){
-    gime->PostSDigits(GetName(),GetTitle()) ;
-    gime->PostSDigitizer(GetName(),GetTitle()) ;
-  }
-  return kTRUE ;
-  
- 
-  
-}
-
-//____________________________________________________________________________ 
-AliEMCALDigitizer::AliEMCALDigitizer(const char *headerFile,const char *name)
-{
-  SetName(name) ;
-  SetTitle(headerFile) ;
+  InitParameters() ; 
+  fDefaultInit = kTRUE ; 
   fManager = 0 ;                     // We work in the standalong mode
-  Init() ;
-  
-
-  
+ 
 }
+
+//____________________________________________________________________________ 
+AliEMCALDigitizer::AliEMCALDigitizer(const char *headerFile, const char *name, const Bool_t toSplit)
+{
+  // ctor
+
+  SetTitle(headerFile) ;
+  SetName(name) ;
+  fManager = 0 ;                     // We work in the standalong mode
+  fSplitFile= 0 ; 
+  InitParameters() ; 
+  fToSplit = toSplit ;
+  Init() ;
+  fDefaultInit = kFALSE ; 
+}
+
 //____________________________________________________________________________ 
 AliEMCALDigitizer::AliEMCALDigitizer(AliRunDigitizer * ard):AliDigitizer(ard)
 {
   // ctor
-  SetName("");     //Will call init in the digitizing
-  SetTitle("aliroot") ;  
+  SetTitle(ard->GetInputFileName(0,0)) ;
+  InitParameters() ; 
+  fDefaultInit = kFALSE ; 
+  fSplitFile   = 0 ; 
+ 
+  if (ard->GetOutputFile()) {
+    SetName(ard->GetOutputFile().Data());
+    fToSplit = kTRUE ;
+  } else {
+    SetName("Default") ;
+    fToSplit = kFALSE ;
+  }
 }
 
 //____________________________________________________________________________ 
@@ -188,21 +133,12 @@ AliEMCALDigitizer::AliEMCALDigitizer(AliRunDigitizer * ard):AliDigitizer(ard)
 {
   // dtor
 
-}
-//____________________________________________________________________________
-void AliEMCALDigitizer::Reset() { 
-  //sets current event number to the first simulated event
-if( strcmp(GetName(), "") == 0 )
-  Init() ;
-
-      // Int_t inputs ;
-      // for(inputs = 0; inputs < fNinputs ;inputs++)
-      //  fIevent->AddAt(-1, inputs ) ;
-  
+    fSplitFile = 0 ; 
 }
 
 //____________________________________________________________________________
-void AliEMCALDigitizer::Digitize(const Int_t event) { 
+void AliEMCALDigitizer::Digitize(const Int_t event) 
+{ 
 
   // Makes the digitization of the collected summable digits
   // for this it first creates the array of all EMCAL modules
@@ -216,20 +152,19 @@ void AliEMCALDigitizer::Digitize(const Int_t event) {
   
   digits->Clear() ;
 
-    const AliEMCALGeometry *geom = gime->EMCALGeometry() ; 
-
-
+  const AliEMCALGeometry *geom = gime->EMCALGeometry() ; 
   //Making digits with noise, first EMC
   Int_t nEMC = 2*geom->GetNPhi()*geom->GetNZ();
+
   Int_t absID ;
   TString name      =  geom->GetName() ;
 
  // get first the sdigitizer from the tasks list (must have same name as the digitizer)
   const AliEMCALSDigitizer * sDigitizer = gime->SDigitizer(GetName()); 
   if ( !sDigitizer) {
-    cerr << "ERROR: AliEMCALDigitizer::Digitize -> SDigitizer with name " << GetName() << " not found " << endl ; 
-    abort() ; 
+    Fatal("Digitize", "SDigitizer with name %s not found", GetName() ); 
   }
+
 // loop through the sdigits posted to the White Board and add them to the noise
   TCollection * folderslist = gime->SDigitsFolder()->GetListOfFolders() ; 
   TIter next(folderslist) ; 
@@ -237,15 +172,15 @@ void AliEMCALDigitizer::Digitize(const Int_t event) {
   TClonesArray * sdigits = 0 ;
   Int_t input = 0 ;
   TObjArray * sdigArray = new TObjArray(2) ;
-  while ( (folder = (TFolder*)next()) ) 
+  while ( (folder = (TFolder*)next()) ) {
     if ( (sdigits = (TClonesArray*)folder->FindObject(GetName()) ) ) {
       TString fileName(folder->GetName()) ;
       fileName.ReplaceAll("_","/") ;
-      cout << "INFO: AliEMCALDigitizer::Digitize -> Adding SDigits " 
-	   << GetName() << " from " << fileName << endl ; 
+      //      Info("Digitize", "Adding SDigits %s from %s", GetName(), fileName) ; 
       sdigArray->AddAt(sdigits, input) ;
       input++ ;
     }
+  }
 
   //Find the first tower with signal
   Int_t nextSig = 200000 ; 
@@ -262,8 +197,8 @@ void AliEMCALDigitizer::Digitize(const Int_t event) {
   TArrayI index(input) ;
   index.Reset() ;  //Set all indexes to zero
 
-  AliEMCALDigit * digit = 0 ;
-  AliEMCALDigit * curSDigit = 0 ;
+  AliEMCALDigit * digit ;
+  AliEMCALDigit * curSDigit ;
 
   TClonesArray * ticks = new TClonesArray("AliEMCALTick",1000) ;
 
@@ -272,10 +207,10 @@ void AliEMCALDigitizer::Digitize(const Int_t event) {
     Float_t noise = gRandom->Gaus(0., fPinNoise); 
     new((*digits)[absID-1]) AliEMCALDigit( -1, -1, absID,sDigitizer->Digitize(noise), TimeOfNoise() ) ;
     //look if we have to add signal?
+    digit = (AliEMCALDigit *) digits->At(absID-1) ;
+ 
     if(absID==nextSig){
-      //Add SDigits from all inputs 
-      digit = (AliEMCALDigit *) digits->At(absID-1) ;
-      
+      //Add SDigits from all inputs    
       ticks->Clear() ;
       Int_t contrib = 0 ;
       Float_t a = digit->GetAmp() ;
@@ -286,7 +221,6 @@ void AliEMCALDigitizer::Digitize(const Int_t event) {
       new((*ticks)[contrib++]) AliEMCALTick(digit->GetTime()+fTimeSignalLength, -a, -b);
       
  // loop over input
-  
       for(i = 0; i< input ; i++){  //loop over (possible) merge sources
     	if(((TClonesArray *)sdigArray->At(i))->GetEntriesFast() > index[i] )
 	  curSDigit = (AliEMCALDigit*)((TClonesArray *)sdigArray->At(i))->At(index[i]) ; 	
@@ -317,7 +251,7 @@ void AliEMCALDigitizer::Digitize(const Int_t event) {
 	}
       }
 
-//calculate and set time
+      //calculate and set time
       Float_t time = FrontEdgeTime(ticks) ;
       digit->SetTime(time) ;
 
@@ -338,35 +272,34 @@ void AliEMCALDigitizer::Digitize(const Int_t event) {
   ticks->Delete() ;
   delete ticks ;
 
-
-
+  delete sdigArray ; //We should not delete its contents
 
   //remove digits below thresholds
   for(absID = 0; absID < nEMC/2 ; absID++){
-    if(sDigitizer->Calibrate(((AliEMCALDigit*)digits->At(absID))->GetAmp()) < fTowerDigitThreshold)
+    digit = dynamic_cast<AliEMCALDigit*>( digits->At(absID) ) ;
+    if(sDigitizer->Calibrate( digit->GetAmp() ) < fTowerDigitThreshold)
       digits->RemoveAt(absID) ;
     else
       digit->SetTime(gRandom->Gaus(digit->GetTime(),fTimeResolution) ) ;
   }
   
-  for(absID = nEMC/2; absID < nEMC ; absID++){
-    if(sDigitizer->Calibrate(((AliEMCALDigit*)digits->At(absID))->GetAmp()) < fPreShowerDigitThreshold)
-      digits->RemoveAt(absID) ;
-    else
-      digit->SetTime(gRandom->Gaus(digit->GetTime(),fTimeResolution) ) ;
-  }
+    
+    for(absID = nEMC/2; absID < nEMC ; absID++){
+      digit = dynamic_cast<AliEMCALDigit*>( digits->At(absID) ) ;
+      if(sDigitizer->Calibrate( digit->GetAmp() ) < fPreShowerDigitThreshold)
+	digits->RemoveAt(absID) ;
+      else
+	digit->SetTime(gRandom->Gaus(digit->GetTime(),fTimeResolution) ) ;
+    }
   
   digits->Compress() ;  
   
-  Int_t ndigits = digits->GetEntriesFast() ;
-  
+  Int_t ndigits = digits->GetEntriesFast() ; 
   digits->Expand(ndigits) ;
   
-  
   //Set indexes in list of digits
-  //Int_t i ;
- for (i = 0 ; i < ndigits ; i++) { 
-    AliEMCALDigit * digit = (AliEMCALDigit *) digits->At(i) ; 
+  for (i = 0 ; i < ndigits ; i++) { 
+    digit = dynamic_cast<AliEMCALDigit *>( digits->At(i) ) ; 
     digit->SetIndexInList(i) ; 
     Float_t energy = sDigitizer->Calibrate(digit->GetAmp()) ;
     digit->SetAmp(DigitizeEnergy(energy,digit->GetId()) ) ;
@@ -395,11 +328,12 @@ Int_t AliEMCALDigitizer::DigitizeEnergy(Float_t energy, Int_t absId)
 }
 
 //____________________________________________________________________________
-void AliEMCALDigitizer::Exec(Option_t *option) { 
+void AliEMCALDigitizer::Exec(Option_t *option) 
+{ 
   // Managing method
-if(strcmp(GetName(), "") == 0 )   
+
+  if(strcmp(GetName(), "") == 0 )   
     Init() ;
-  
   if (strstr(option,"print")) {
     Print("");
     return ; 
@@ -417,58 +351,56 @@ if(strcmp(GetName(), "") == 0 )
   if(fManager){
     treeD = fManager->GetTreeD() ;
     nevents = 1 ;    // Will process only one event
-  }
-  else {
-    gAlice->GetEvent(0) ;
-    nevents = (Int_t) gAlice->TreeE()->GetEntries() ;
-    treeD=gAlice->TreeD() ;
-  }
-  if(treeD == 0 ){
-    cerr << " AliEMCALDigitizer :: Can not find TreeD " << endl ;
-    return ;
-  }
-
-  //Check, if this branch already exits
-  TObjArray * lob = (TObjArray*)treeD->GetListOfBranches() ;
-  TIter next(lob) ; 
-  TBranch * branch = 0 ;  
-  Bool_t emcalfound = kFALSE, digitizerfound = kFALSE ; 
-  
-  while ( (branch = (TBranch*)next()) && (!emcalfound || !digitizerfound) ) {
-    if ( (strcmp(branch->GetName(), "EMCAL")==0) && 
-	 (strcmp(branch->GetTitle(), GetName())==0) ) 
-      emcalfound = kTRUE ;
     
-    else if ( (strcmp(branch->GetName(), "AliEMCALDigitizer")==0) && 
-	      (strcmp(branch->GetTitle(), GetName())==0) ) 
-      digitizerfound = kTRUE ; 
+    //Check, if this branch already exits
+    if (treeD) { 
+      TObjArray * lob = (TObjArray*)treeD->GetListOfBranches() ;
+      TIter next(lob) ; 
+      TBranch * branch = 0 ;  
+      Bool_t emcalfound = kFALSE, digitizerfound = kFALSE ; 
+      
+      while ( (branch = (TBranch*)next()) && (!emcalfound || !digitizerfound) ) {
+	if ( (strcmp(branch->GetName(), "EMCAL")==0) && 
+	     (strcmp(branch->GetTitle(), GetName())==0) ) 
+	  emcalfound = kTRUE ;
+	
+	else if ( (strcmp(branch->GetName(), "AliEMCALDigitizer")==0) && 
+		  (strcmp(branch->GetTitle(), GetName())==0) ) 
+	  digitizerfound = kTRUE ; 
+      }
+      
+      if ( emcalfound ) {
+	Error( "Exec", "Digits branch with name %s already exits", GetName() ) ;
+	return ; 
+      }   
+      if ( digitizerfound ) {
+	Error( "Exec", "Digitizer branch with name %s already exit", GetName() ) ;
+	       return ; 
+      }
+    }   
   }
-
-  if ( emcalfound ) {
-    cerr << "WARNING: AliEMCALDigitizer -> Digits branch with name " << GetName() 
-	 << " already exits" << endl ;
-    return ; 
-  }   
-  if ( digitizerfound ) {
-    cerr << "WARNING: AliEMCALDigitizer -> Digitizer branch with name " << GetName() 
-	 << " already exits" << endl ;
-    return ; 
-  }   
-
+  else { //EMCAL standalone
+    if(gime->BranchExists("Digits") ) 
+      return ;
+    nevents=gime->MaxEvent() ;
+  }
+  
   Int_t ievent ;
 
   for(ievent = 0; ievent < nevents; ievent++){
     
     if(fManager){
+
       Int_t input ;
       for(input = 0 ; input < fManager->GetNinputs(); input ++){
   	TTree * treeS = fManager->GetInputTreeS(input) ;
 	if(!treeS){
-	  cerr << "AliEMCALDigitizer -> No Input " << endl ;
+	  Error( "Exec", "No Input") ;
 	  return ;
 	}
 	gime->ReadTreeS(treeS,input) ;
       }
+
     }
     else 
       gime->Event(ievent,"S") ; 
@@ -486,183 +418,12 @@ if(strcmp(GetName(), "") == 0 )
   
   if(strstr(option,"tim")){
     gBenchmark->Stop("EMCALDigitizer");
-    cout << "AliEMCALDigitizer:" << endl ;
-    cout << "  took " << gBenchmark->GetCpuTime("EMCALDigitizer") << " seconds for Digitizing " 
-	 <<  gBenchmark->GetCpuTime("EMCALDigitizer")/nevents << " seconds per event " << endl ;
-    cout << endl ;
+    Info("Exec", "took %f seconds for Digitizing %f seconds per event", 
+	 gBenchmark->GetCpuTime("EMCALDigitizer"), gBenchmark->GetCpuTime("EMCALDigitizer")/nevents ) ;
   }
   
 }
 
-
-
-//__________________________________________________________________
-void AliEMCALDigitizer::MixWith(char* headerFile){
-  // Alows produce digits by superimposing background and signal event.
-  // It is assumed, that headers file with SIGNAL events is opened in 
-  // constructor, and now we set the BACKGROUND event, with which we 
-  // will mix. Thus we avoid writing (changing) huge and expencive 
-  // backgound files: all output will be writen into SIGNAL, i.e. 
-  // opened in constructor file. 
-  //
-  // One can open as many files to mix with as one wants.
-
-if( strcmp(GetName(), "") == 0 )
-    Init() ;
-  
- if(fManager){
-    cout << "Can not use this method under AliRunDigitizer " << endl ;
-    return ;
-  } // check if the specified SDigits do not already exist on the White Board:
-  // //Folders/RunMC/Event/Data/EMCAL/SDigits/headerFile/sdigitsname
-
-  TString path = "Folders/RunMC/Event/Data/EMCAL/SDigits" ; 
-  path += headerFile ; 
-  path += "/" ; 
-  path += GetName() ;
-  if ( gROOT->FindObjectAny(path.Data()) ) {
-    cerr << "WARNING: AliEMCALDigitizer::MixWith -> Entry already exists, do not add" << endl ;
-    return;
-  }
-
-  AliEMCALGetter * gime = AliEMCALGetter::GetInstance() ;
-  gime->PostSDigits(GetName(),headerFile) ;
-  
-  // check if the requested file is already open or exist and if SDigits Branch exist
-  TFile * file = (TFile*)gROOT->FindObject(headerFile); 
-  if ( !file ) { 
-    file = new TFile(headerFile, "READ") ; 
-    if (!file) { 
-      cerr << "ERROR: AliEMCALDigitizer::MixWith -> File " << headerFile << " does not exist!" << endl ; 
-      return ; 
-    }
-  }
-  
-}
- 
-//__________________________________________________________________
-void AliEMCALDigitizer::Print(Option_t* option)const {
-  if( strcmp(GetName(), "") != 0) {
-    
-    cout << "------------------- "<< GetName() << " -------------" << endl ;
-    cout << "Digitizing sDigits from file(s): " <<endl ;
-    
-  TCollection * folderslist = ((TFolder*)gROOT->FindObjectAny("Folders/RunMC/Event/Data/EMCAL/SDigits"))->GetListOfFolders() ; 
-    TIter next(folderslist) ; 
-    TFolder * folder = 0 ;
-    while ( (folder = (TFolder*)next()) ) 
-      if ( folder->FindObject(GetName())  ) 
-	{
-	cout << "Adding SDigits " << GetName() << " from " << folder->GetName() << endl ; 
-      cout << endl ;
-      cout << "Writing digits to " << GetTitle() << endl ;
-      
-      cout << endl ;
-      cout << "With following parameters: " << endl ;
-      cout << "     Electronics noise in EMC (fPinNoise) = " << fPinNoise << endl ;
-      cout << "  Threshold  in EMC  (fTowerDigitThreshold) = " << fTowerDigitThreshold  << endl;
-      cout << "  Threshold  in PreShower  (fPreShowerDigitThreshold) = " << fPreShowerDigitThreshold  << endl ; ;
-      cout << "---------------------------------------------------" << endl ;
-    }
-    else
-      cout << "AliEMCALDigitizer not initialized " << endl ;
-    }
-}
-
-//__________________________________________________________________
-void AliEMCALDigitizer::PrintDigits(Option_t * option){
-    
-  AliEMCALGetter * gime = AliEMCALGetter::GetInstance() ; 
-  TClonesArray * fDigits = gime->Digits() ;
-
-  cout << "AliEMCALDigitiser:"<< endl ;
-  cout << "       Number of entries in Digits list " << fDigits->GetEntriesFast() << endl ;
-  cout << endl ;
-  if(strstr(option,"all")){
-    
-    //loop over digits
-    AliEMCALDigit * digit;
-    cout << "Digit Id " << " Amplitude " <<  " Index "  <<  " Nprim " << " Primaries list " <<  endl;      
-    Int_t index ;
-    for (index = 0 ; index < fDigits->GetEntries() ; index++) {
-      digit = (AliEMCALDigit * )  fDigits->At(index) ;
-      cout << setw(8)  <<  digit->GetId() << " "  << 	setw(3)  <<  digit->GetAmp() <<   "  "  
-	   << setw(6)  <<  digit->GetIndexInList() << "  "   
-	   << setw(5)  <<  digit->GetNprimary() <<"  ";
-      
-      Int_t iprimary;
-      for (iprimary=0; iprimary<digit->GetNprimary(); iprimary++)
-	cout << setw(5)  <<  digit->GetPrimary(iprimary+1) << " ";
-      cout << endl;  	 
-    }
-    
-  }
-}
-//_________________________________________________________________________________________
-void AliEMCALDigitizer::WriteDigits(Int_t event)
-{
-
-  // Makes TreeD in the output file. 
-  // Check if branch already exists: 
-  //   if yes, exit without writing: ROOT TTree does not support overwriting/updating of 
-  //      already existing branches. 
-  //   else creates branch with Digits, named "EMCAL", title "...",
-  //      and branch "AliEMCALDigitizer", with the same title to keep all the parameters
-  //      and names of files, from which digits are made.
-
-  AliEMCALGetter * gime = AliEMCALGetter::GetInstance() ; 
-  const TClonesArray * digits = gime->Digits(GetName()) ; 
- TTree * treeD ;
-
-  if(fManager)
-    treeD = fManager->GetTreeD() ;
- else
-    treeD = gAlice->TreeD();
-  
-  // create new branches
-  // -- generate file name if necessary
-  char * file =0;
-  if(gSystem->Getenv("CONFIG_SPLIT_FILE")){ //generating file name
-    file = new char[strlen(gAlice->GetBaseFile())+20] ;
-    sprintf(file,"%s/EMCAL.Digits.root",gAlice->GetBaseFile()) ;
-  }
-
-  TDirectory *cwd = gDirectory;
-  // -- create Digits branch
-  Int_t bufferSize = 32000 ;    
-  TBranch * digitsBranch = treeD->Branch("EMCAL",&digits,bufferSize);
-  digitsBranch->SetTitle(GetName());
-  if (file) {
-    digitsBranch->SetFile(file);
-    TIter next( digitsBranch->GetListOfBranches());
-    TBranch * sbr ;
-    while ((sbr=(TBranch*)next())) {
-      sbr->SetFile(file);
-    }   
-    cwd->cd();
-  } 
-    
-  // -- Create Digitizer branch
-  Int_t splitlevel = 0 ;
-  AliEMCALDigitizer * d = gime->Digitizer(GetName()) ;
-  TBranch * digitizerBranch = treeD->Branch("AliEMCALDigitizer", "AliEMCALDigitizer", &d,bufferSize,splitlevel); 
-  digitizerBranch->SetTitle(GetName());
-  if (file) {
-    digitizerBranch->SetFile(file);
-    TIter next( digitizerBranch->GetListOfBranches());
-    TBranch * sbr;
-    while ((sbr=(TBranch*)next())) {
-      sbr->SetFile(file);
-    }   
-    cwd->cd();
-  }
-  
-  digitsBranch->Fill() ;      
-  digitizerBranch->Fill() ;
-
-  treeD->Write(0,kOverwrite) ;  
- 
-}
 //____________________________________________________________________________ 
 Float_t AliEMCALDigitizer::FrontEdgeTime(TClonesArray * ticks) 
 { // 
@@ -682,19 +443,255 @@ Float_t AliEMCALDigitizer::FrontEdgeTime(TClonesArray * ticks)
   }
   return time ;
 }
+
 //____________________________________________________________________________ 
+Bool_t AliEMCALDigitizer::Init()
+{
+  // Makes all memory allocations
+
+  if( strcmp(GetTitle(), "") == 0 )
+    SetTitle("galice.root") ;
+  
+  AliEMCALGetter * gime = AliEMCALGetter::GetInstance(GetTitle(), GetName(), fToSplit) ; 
+  if ( gime == 0 ) {
+    Error("Init", "Could not obtain the Getter object !" ) ; 
+    return kFALSE;
+  } 
+  
+  //const AliEMCALGeometry * geom = gime->EMCALGeometry() ;
+
+  //fEmcCrystals = geom->GetNModules() *  geom->GetNCristalsInModule() ;
+  
+  // Post Digits to the white board
+  gime->PostDigits(GetName() ) ;   
+  
+  // Post Digitizer to the white board
+  gime->PostDigitizer(this) ;
+ 
+  fSplitFile = 0 ;
+  if(fToSplit){
+    // construct the name of the file as /path/EMCAL.SDigits.root
+    //First - extract full path if necessary
+    TString digitsFileName(GetTitle()) ;
+    Ssiz_t islash = digitsFileName.Last('/') ;
+    if(islash<digitsFileName.Length())
+      digitsFileName.Remove(islash+1,digitsFileName.Length()) ;
+    else
+      digitsFileName="" ;
+    // Next - append the file name 
+    digitsFileName+="EMCAL.Digits." ;
+    if((strcmp(GetName(),"Default")!=0)&&(strcmp(GetName(),"")!=0)){
+      digitsFileName+=GetName() ;
+      digitsFileName+="." ;
+    }
+    digitsFileName+="root" ;
+    // Finally - check if the file already opened or open the file
+    fSplitFile = static_cast<TFile*>(gROOT->GetFile(digitsFileName.Data()));   
+    if(!fSplitFile)
+      fSplitFile =  TFile::Open(digitsFileName.Data(),"update") ;
+  }
+  
+  //Mark that we will use current header file
+  if(!fManager){
+    gime->PostSDigits(GetName(),GetTitle()) ;
+    gime->PostSDigitizer(GetName(),GetTitle()) ;
+  }
+  return kTRUE ;    
+}
+
+//____________________________________________________________________________ 
+void AliEMCALDigitizer::InitParameters()
+{
+  fPinNoise = 0.00001 ;
+  fTowerDigitThreshold = 0.001 ;
+  fTimeResolution     = 0.5e-9 ;
+  fTimeSignalLength   = 1.0e-9 ;
+  fPreShowerDigitThreshold = fTowerDigitThreshold/25. ;
+  fADCchannelTower = 0.000220;       // width of one ADC channel in GeV
+  fADCpedestalTower = 0.005 ;      // GeV
+  fNADCTower = (Int_t) TMath::Power(2,16) ;  // number of channels in Tower ADC
+
+  fADCchannelPreSho = 0.0000300;          // width of one ADC channel in Pre Shower
+  fADCpedestalPreSho = 0.005 ;         // 
+  fNADCPreSho = (Int_t) TMath::Power(2,12);      // number of channels in Pre ShowerADC
+
+  fTimeThreshold = 0.001*10000000 ; //Means 1 MeV in terms of SDigits amplitude
+ 
+}
+
+//__________________________________________________________________
+void AliEMCALDigitizer::MixWith(char* headerFile)
+{
+  // Allows to produce digits by superimposing background and signal event.
+  // It is assumed, that headers file with SIGNAL events is opened in 
+  // the constructor. 
+  // Sets the BACKGROUND event, with which the SIGNAL event is to be mixed 
+  // Thus we avoid writing (changing) huge and expensive 
+  // backgound files: all output will be writen into SIGNAL, i.e. 
+  // opened in constructor file. 
+  //
+  // One can open as many files to mix with as one needs.
+  // However only Sdigits with the same name (i.e. constructed with the same SDigitizer)
+  // can be mixed.
+
+  if( strcmp(GetName(), "") == 0 )
+    Init() ;
+  
+  if(fManager){
+    Error("MixWith", "Cannot use this method under AliRunDigitizer") ;
+    return ;
+  } 
+  
+  // check if the specified SDigits do not already exist on the White Board:
+  // //Folders/RunMC/Event/Data/EMCAL/SDigits/headerFile/sdigitsname
+
+  AliEMCALGetter * gime = AliEMCALGetter::GetInstance() ; 
+  TString path = gime->SDigitsFolder()->GetName() ; 
+
+  // before it was ???? "Folders/RunMC/Event/Data/EMCAL/SDigits" ; 
+  path += headerFile ; 
+  path += "/" ; 
+  path += GetName() ;
+  if ( gROOT->FindObjectAny(path.Data()) ) {
+    Error("MixWith", "Entry already exists, do not add" ) ;
+    return;
+  }
+
+  gime->PostSDigits(GetName(),headerFile) ;
+  
+  // check if the requested file is already open or exist and if SDigits Branch exist
+  TFile * file = (TFile*)gROOT->FindObject(headerFile); 
+  if ( !file ) { 
+    file = new TFile(headerFile, "READ") ; 
+    if (!file) { 
+      Error("MixWith", "File %s does not exist!", headerFile) ; 
+      return ; 
+    }
+  }
+  
+}
+
+//__________________________________________________________________
+void AliEMCALDigitizer::Print(Option_t* option)const {
+
+  TString message("\n") ; 
+
+  if( strcmp(GetName(), "") != 0) {
+    message += "------------------- " ; 
+    message += GetName() ; 
+    message += " -------------" ;
+    const Int_t nStreams = GetNInputStreams() ; 
+    if (nStreams) {
+      Int_t index = 0 ;  
+      for (index = 0 ; index < nStreams ; index++) {  
+	message += "\nAdding SDigits " ; 
+	message += GetName() ; 
+	message += " from " ; 
+	message += fManager->GetInputFileName(index, 0) ;
+      } 
+     
+      message += "\nWriting digits to " ; 
+      message += fManager->GetInputFileName(0, 0) ;   
+    } else { 
+      message += "\nWriting digits to " ;
+      message += GetTitle() ;
+    }       
+    message += "\nWith following parameters: " ;
+    message += "\n     Electronics noise in EMC (fPinNoise) = " ; 
+    message += fPinNoise ;
+    message += "\n  Threshold  in EMC  (fTowerDigitThreshold) = " ; 
+    message += fTowerDigitThreshold  ;
+    message += "\n  Threshold  in PreShower  (fPreShowerDigitThreshold) = " ;
+    message += fPreShowerDigitThreshold ;
+    message += "\n---------------------------------------------------"  ;
+  }
+  else
+    message += "\nAliEMCALDigitizer not initialized " ;
+
+  Info("Print", message.Data() ) ; 
+}
+
+//__________________________________________________________________
+void AliEMCALDigitizer::PrintDigits(Option_t * option){
+    
+  AliEMCALGetter * gime = AliEMCALGetter::GetInstance() ; 
+  TClonesArray * fDigits = gime->Digits() ;
+
+  TString message("\n") ; 
+  message += "       Number of entries in Digits list " ; 
+  message += fDigits->GetEntriesFast() ;
+
+  if(strstr(option,"all")){
+    
+    //loop over digits
+    AliEMCALDigit * digit;
+    message += "\n   Id  Amplitude    Time          Index Nprim: Primaries list \n" ;    
+    Int_t index ;
+    char * tempo = new char[8192]; 
+    for (index = 0 ; index < fDigits->GetEntries() ; index++) {
+      digit = (AliEMCALDigit * )  fDigits->At(index) ;
+      sprintf(tempo, "\n%6d  %8d    %6.5e %4d      %2d : ",
+	      digit->GetId(), digit->GetAmp(), digit->GetTime(), digit->GetIndexInList(), digit->GetNprimary()) ;  
+      message += tempo ; 
+      Int_t iprimary;
+      for (iprimary=0; iprimary<digit->GetNprimary(); iprimary++) {
+	sprintf(tempo, "%d ",digit->GetPrimary(iprimary+1) ) ; 
+	message += tempo ; 
+      }
+    }   
+    delete tempo ; 
+  }
+  Info("PrintDigits", message.Data() ) ; 
+}
+
+//__________________________________________________________________
 Float_t AliEMCALDigitizer::TimeOfNoise(void)
 {  // Calculates the time signal generated by noise
   //to be rewritten, now returns just big number
   return 1. ;
 
 }
-//____________________________________________________________________________
-void AliEMCALDigitizer::SetSDigitsBranch(const char* title)
-{
-  // we set title (comment) of the SDigits branch in the first! header file
-  if( strcmp(GetName(), "") == 0 )
-    Init() ;
 
-  AliEMCALGetter::GetInstance()->SDigits()->SetName(title) ; 
+//_________________________________________________________________________________________
+void AliEMCALDigitizer::WriteDigits(Int_t event)
+{
+
+  // Makes TreeD in the output file. 
+  // Check if branch already exists: 
+  //   if yes, exit without writing: ROOT TTree does not support overwriting/updating of 
+  //      already existing branches. 
+  //   else creates branch with Digits, named "EMCAL", title "...",
+  //      and branch "AliEMCALDigitizer", with the same title to keep all the parameters
+  //      and names of files, from which digits are made.
+
+  AliEMCALGetter * gime = AliEMCALGetter::GetInstance() ; 
+  const TClonesArray * digits = gime->Digits(GetName()) ; 
+ TTree * treeD ;
+
+ if(fManager)
+   treeD = fManager->GetTreeD() ;
+ else {
+   if ((gAlice->TreeD() == 0) || (fSplitFile)) // we should not create TreeD if it is already here 
+     gAlice->MakeTree("D", fSplitFile); // We overwrite TreeD in split file in the case of second reconstruction
+   if(fSplitFile)
+     fSplitFile->cd() ;
+   treeD = gAlice->TreeD();
+ }
+ 
+ // -- create Digits branch
+ Int_t bufferSize = 32000 ;    
+ TBranch * digitsBranch = treeD->Branch("EMCAL",&digits,bufferSize);
+ digitsBranch->SetTitle(GetName());
+ 
+ // -- Create Digitizer branch
+ Int_t splitlevel = 0 ;
+ const  AliEMCALDigitizer * d = gime->Digitizer(GetName()) ;
+ TBranch * digitizerBranch = treeD->Branch("AliEMCALDigitizer", "AliEMCALDigitizer", &d,bufferSize,splitlevel); 
+ digitizerBranch->SetTitle(GetName());
+ 
+ digitsBranch->Fill() ;
+ digitizerBranch->Fill() ; 
+ treeD->AutoSave() ;  
+ 
 }
+

@@ -141,6 +141,9 @@ class AliRunLoader: public TNamed
     AliHeader     *fHeader;//!
     AliStack      *fStack;//!
     
+//    AliLoaderDataInfo *fKine;//data connected to kinematics data
+//    AliLoaderDataInfo *fRefsFile;//data connected to track reference data
+    
     TFile*         fKineFile;    //!pointer to file with kinematics
     TDirectory*    fKineDir;     //!pointer to Dir with current event in Kine File
     TString        fKineFileName;//name of file with hits

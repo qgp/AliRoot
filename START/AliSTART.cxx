@@ -15,6 +15,21 @@
 
 /*
 $Log$
+Revision 1.23.6.1  2002/05/31 09:37:59  hristov
+First set of changes done by Piotr
+
+Revision 1.26  2002/10/22 15:40:19  alibrary
+Introducing Riostream.h
+
+Revision 1.25  2002/10/14 14:57:32  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.23.8.1  2002/07/24 09:50:10  alibrary
+Updating VirtualMC
+
+Revision 1.24  2002/07/23 11:48:05  alla
+new Digits structure
+
 Revision 1.23  2001/09/19 18:41:45  alla
 Asimmetric START geometry
 
@@ -102,8 +117,8 @@ Introduction of the Copyright and cvs Log
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <iostream.h>
-#include <fstream.h>
+#include <Riostream.h>
+#include <Riostream.h>
 
 #include "TMath.h"
 #include "TTUBE.h"
@@ -114,10 +129,12 @@ Introduction of the Copyright and cvs Log
 #include "TParticle.h"
 
 #include "AliRun.h"
+#include "AliLoader.h"
 #include "AliSTART.h"
 #include "AliSTARTdigit.h"
 #include "AliMC.h"
 #include "AliSTARThit.h"
+#include "AliSTARThitPhoton.h"
 #include "AliSTARTvertex.h"
 
 ClassImp(AliSTART)
@@ -133,6 +150,7 @@ AliSTART::AliSTART()
   fIshunt   = 1;
   fHits     = 0;
   fDigits   = 0;
+  fPhotons  = 0;
 }
  
 //_____________________________________________________________________________
@@ -148,17 +166,22 @@ AliSTART::AliSTART(const char *name, const char *title)
   // Initialise Hit array
   fHits       = new TClonesArray("AliSTARThit",  405);
   gAlice->AddHitList(fHits);
+
+  fPhotons  = new TClonesArray("AliSTARThitPhoton", 10000);
+  gAlice->AddHitList (fPhotons);
   
   fIshunt     =  1;
   fIdSens   =  0;
+  fNPhotons =  0;
   SetMarkerColor(kRed);
 }
 
 //_____________________________________________________________________________
 AliSTART::~AliSTART() {
-  if (fHits) {
-    fHits->Delete();
-    delete fHits;
+
+  if (fPhotons) {
+    fPhotons->Delete();
+    delete fPhotons;
   }
 }
  
@@ -170,6 +193,15 @@ void AliSTART::AddHit(Int_t track, Int_t *vol, Float_t *hits)
   //
   TClonesArray &lhits = *fHits;
   new(lhits[fNhits++]) AliSTARThit(fIshunt,track,vol,hits);
+}
+
+//_____________________________________________________________________________
+void AliSTART::AddHitPhoton(Int_t track, Int_t *vol, Float_t *hits)
+{
+  //  Add a START hit of photons
+  
+  TClonesArray &lhits = *fPhotons;
+  new(lhits[fNPhotons++]) AliSTARThitPhoton(fIshunt,track,vol,hits);
 }
 
 //_____________________________________________________________________________
@@ -239,159 +271,64 @@ void AliSTART::Init()
 }
 
 //---------------------------------------------------------------------------
-void AliSTART::MakeBranch(Option_t* option, const char *file)
+void AliSTART::MakeBranch(Option_t* option)
 {
   //
   // Specific START branches
   //
   // Create Tree branches for the START.
-  Int_t buffersize = 400;
-  char branchname[10];
+  Int_t buffersize = 4000;
+  char branchname[20];
   sprintf(branchname,"%s",GetName());
 
-  AliDetector::MakeBranch(option,file);
+  AliDetector::MakeBranch(option);
 
   const char *cD = strstr(option,"D");
+  const char *cH = strstr(option,"H");
+  
+  if (cH)
+  {
+     sprintf (branchname, "%shitPhoton", GetName());
+     MakeBranchInTree (fLoader->TreeH(), branchname, &fPhotons, 50000, 0);
+  } 
+
   
   if (cD) {
     digits = new AliSTARTdigit();
-    MakeBranchInTree(gAlice->TreeD(), 
-                     branchname, "AliSTARTdigit", digits, buffersize, 1, file);
+    MakeBranchInTree(fLoader->TreeD(), branchname, "AliSTARTdigit", digits, buffersize, 1, 0);
   } 
-/*
-  char *cR = strstr(option,"R");
-  
-  if (cR)   {  
-    MakeBranchInTree(gAlice->TreeR(), 
-                     branchname, "Int_t", &fZposit, buffersize, 1, file);
-  }
-  */
 }    
+
+//_____________________________________________________________________________
+void AliSTART::ResetHits()
+{
+  AliDetector::ResetHits();
+  
+  fNPhotons = 0;
+  if (fPhotons)  fPhotons->Clear();
+}
+
+//_____________________________________________________________________________
+void AliSTART::SetTreeAddress()
+{
+  TBranch  *branch;
+  TTree    *treeH;
+
+  AliDetector::SetTreeAddress();
+  treeH = TreeH();
+  
+  if (treeH)
+    if (fPhotons)
+    {
+       branch = treeH->GetBranch("STARThitPhoton");
+       if (branch)  branch->SetAddress(&fPhotons);
+    }
+}
+
 
 //_____________________________________________________________________________
 
 void AliSTART::Hit2digit(Int_t evnum) 
 {
-  //
-  // From hits to digits
-  //
-  Float_t x,y,e;
-  Int_t nbytes = 0;
-  Int_t hit;
-  Int_t nhits;
-  Int_t volume,pmt;
-  char nameTH[8],nameTD[8];
-  Float_t timediff,timeright,timeleft,timeav;
-  Float_t besttimeright,besttimeleft,meanTime;
-  Int_t channelWidth=10;
-
-  TParticle *particle;
-  AliSTARThit  *startHit;
-
-  Int_t buffersize=256;
-
-  digits= new AliSTARTdigit();
-  TBranch *bDig=0;
-
-  
- // Event ------------------------- LOOP  
- 
-    sprintf(nameTD,"TreeD%d",evnum);
-    TTree *td = new TTree(nameTD,"START");
-    bDig = td->Branch("START","AliSTARTdigit",&digits,buffersize);
-
-    besttimeright=9999.;
-    besttimeleft=9999.;
-    Int_t timeDiff=0;
-    Int_t timeAv=0;
-
-    Int_t nparticles = gAlice->GetEvent(evnum);
-    if (nparticles <= 0) return;
-    printf("\n nparticles %d\n",nparticles);
-    
-   
-    sprintf(nameTH,"TreeH%d",evnum);
-    printf("%s\n",nameTH);
-    TTree *th = TreeH();
-    Int_t ntracks    = (Int_t) th->GetEntries();
-    if (ntracks<=0) return;
-    // Start loop on tracks in the hits containers
-    for (Int_t track=0; track<ntracks;track++) {
-      gAlice->ResetHits();
-      nbytes += th->GetEvent(track);
-      particle=gAlice->Particle(track);
-      nhits =fHits->GetEntriesFast();
-      
-      for (hit=0;hit<nhits;hit++) {
-	startHit   = (AliSTARThit*)fHits->UncheckedAt(hit);
-	pmt=startHit->fPmt;
-	e=startHit->fEtot;
-	x=startHit->X();
-	y=startHit->Y();
-	volume = startHit->fVolume;
-	if(volume==1){
-	  timeright = startHit->fTime;
-	  if(timeright<besttimeright) {
-	    besttimeright=timeright;
-	  } //timeright
-	}//time for right shoulder
-	if(volume==2){            
-	  timeleft = startHit->fTime;
-	  //                printf("timeleft %f\n",timeleft);
-	  if(timeleft<besttimeleft) {
-	    besttimeleft=timeleft;
-	  } //timeleftbest
-	}//time for left shoulder
-      } //hit loop
-    } //track loop
-
-    //folding with experimental time distribution
-    Float_t besttimerightGaus=gRandom->Gaus(besttimeright,0.05);
-    Float_t besttimeleftGaus=gRandom->Gaus(besttimeleft,0.05);
-    timediff=besttimerightGaus-besttimeleftGaus;
-    meanTime=(besttimerightGaus+besttimeleftGaus)/2.;
-    if ( TMath::Abs(timediff)<2. && meanTime<3.) 
-     {
-       //we assume centre of bunch is 5ns after TTS signal
-       //TOF values are relative of the end of bunch
-       Float_t ppBunch=25;
-    
-       ppBunch=ppBunch-10/2;
-       Float_t t1=1000.*besttimeleftGaus;
-       Float_t t2=1000.*besttimerightGaus;
-       t1=t1/channelWidth+ppBunch; //time in ps to channelWidth
-       t2=t2/channelWidth+ppBunch; //time in ps to channelWidth
-     
-       timeav=(t1+t2)/2.;
-     
-       // Time to TDC signal
-       // 256 channels for timediff, range 1ns
-       
-       timediff=128+1000*timediff/channelWidth; // time in ps 
-
-       timeAv = (Int_t)(timeav);   // time (ps) channel numbres
-       timeDiff = (Int_t)(timediff); // time ( ps) channel numbres
-       digits->Set(timeAv,timeDiff);
-     }
-    else
-      {timeAv=999999; timeDiff=99999;}
-      
-    td->Fill();
-    printf("digits-> %d \n",digits->GetTime());
-    td->Write();
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
- 
 

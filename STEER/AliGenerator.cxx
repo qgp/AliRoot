@@ -15,11 +15,17 @@
 
 /*
 $Log$
+Revision 1.18.2.3  2002/10/09 09:23:55  hristov
+New task hierarchy, bug corrections, new development (P.Skowronski)
+
 Revision 1.18.2.2  2002/06/06 14:18:33  hristov
 Merged with v3-08-02
 
 Revision 1.18.2.1  2002/05/31 09:37:59  hristov
 First set of changes done by Piotr
+
+Revision 1.20  2002/10/29 14:26:49  hristov
+Code clean-up (F.Carminati)
 
 Revision 1.19  2002/03/12 11:06:03  morsch
 Add particle status code to argument list of SetTrack(..).
@@ -92,20 +98,44 @@ Introduction of the Copyright and cvs Log
 //End_Html
 //                                                               //
 ///////////////////////////////////////////////////////////////////
-
-#include "AliGenerator.h"
 #include "TGenerator.h"
-#include "AliRun.h"
-#include "AliConfig.h"
-#include "AliStack.h"
 
+#include "AliConfig.h"
+#include "AliGenerator.h"
+#include "AliRun.h"
+#include "AliStack.h"
 
 ClassImp(AliGenerator)
 
 TGenerator* AliGenerator::fgMCEvGen=0;
 
-//____________________________________________________________
-AliGenerator::AliGenerator()
+//_______________________________________________________________________
+AliGenerator::AliGenerator():
+  fThetaMin(0),
+  fThetaMax(0),
+  fPhiMin(0),
+  fPhiMax(0),
+  fPMin(0),
+  fPMax(0),
+  fPtMin(0),
+  fPtMax(0),
+  fYMin(0),
+  fYMax(0),
+  fVMin(3),
+  fVMax(3),
+  fNpart(0),
+  fParentWeight(0),
+  fChildWeight(0),
+  fAnalog(0),
+  fVertexSmear(kNoSmear),
+  fVertexSource(kExternal),
+  fCutVertexZ(0),
+  fTrackIt(0),
+  fOrigin(3),
+  fOsigma(3),
+  fVertex(3),
+  fEventVertex(0),
+  fStack(0)
 {
   //
   // Default constructor
@@ -126,24 +156,41 @@ AliGenerator::AliGenerator()
     SetCutVertexZ();
 
 
-    fOrigin.Set(3);
-    fOsigma.Set(3);
-    fVertex.Set(3);
-
     fOrigin[0]=fOrigin[1]=fOrigin[2]=0;
     fOsigma[0]=fOsigma[1]=fOsigma[2]=0;
     fVertex[0]=fVertex[1]=fVertex[2]=0;
 
-    fVMin.Set(3);
     fVMin[0]=fVMin[1]=fVMin[2]=0;
-    fVMax.Set(3);
     fVMax[0]=fVMax[1]=fVMax[2]=10000;
-    fStack = 0;
 }
 
-//____________________________________________________________
-AliGenerator::AliGenerator(Int_t npart)
-    : TNamed(" "," ")
+//_______________________________________________________________________
+AliGenerator::AliGenerator(Int_t npart):
+  fThetaMin(0),
+  fThetaMax(0),
+  fPhiMin(0),
+  fPhiMax(0),
+  fPMin(0),
+  fPMax(0),
+  fPtMin(0),
+  fPtMax(0),
+  fYMin(0),
+  fYMax(0),
+  fVMin(3),
+  fVMax(3),
+  fNpart(0),
+  fParentWeight(0),
+  fChildWeight(0),
+  fAnalog(0),
+  fVertexSmear(kNoSmear),
+  fVertexSource(kExternal),
+  fCutVertexZ(0),
+  fTrackIt(0),
+  fOrigin(3),
+  fOsigma(3),
+  fVertex(3),
+  fEventVertex(0),
+  fStack(0)
 {
   //
   // Standard constructor
@@ -162,27 +209,47 @@ AliGenerator::AliGenerator(Int_t npart)
     SetTrackingFlag();
     SetCutVertexZ();
 
-    fOrigin.Set(3);
-    fOsigma.Set(3);
-    fVertex.Set(3);
-
     fOrigin[0]=fOrigin[1]=fOrigin[2]=0;
     fOsigma[0]=fOsigma[1]=fOsigma[2]=0;
     fVertex[0]=fVertex[1]=fVertex[2]=0;
 
-    fVMin.Set(3);
     fVMin[0]=fVMin[1]=fVMin[2]=0;
-    fVMax.Set(3);
     fVMax[0]=fVMax[1]=fVMax[2]=10000;
 
     SetNumberParticles(npart);
 
     AliConfig::Instance()->Add(this);
-    fStack = 0;    
 }
 
-//____________________________________________________________
-AliGenerator::AliGenerator(const AliGenerator &gen) : TNamed(" "," ")
+//_______________________________________________________________________
+AliGenerator::AliGenerator(const AliGenerator &gen): 
+  TNamed(gen),
+  AliRndm(gen),
+  fThetaMin(0),
+  fThetaMax(0),
+  fPhiMin(0),
+  fPhiMax(0),
+  fPMin(0),
+  fPMax(0),
+  fPtMin(0),
+  fPtMax(0),
+  fYMin(0),
+  fYMax(0),
+  fVMin(3),
+  fVMax(3),
+  fNpart(0),
+  fParentWeight(0),
+  fChildWeight(0),
+  fAnalog(0),
+  fVertexSmear(kNoSmear),
+  fVertexSource(kExternal),
+  fCutVertexZ(0),
+  fTrackIt(0),
+  fOrigin(3),
+  fOsigma(3),
+  fVertex(3),
+  fEventVertex(0),
+  fStack(0)
 {
   //
   // Copy constructor
@@ -190,7 +257,7 @@ AliGenerator::AliGenerator(const AliGenerator &gen) : TNamed(" "," ")
   gen.Copy(*this);
 }
 
-//____________________________________________________________
+//_______________________________________________________________________
 AliGenerator & AliGenerator::operator=(const AliGenerator &gen)
 {
   //
@@ -200,7 +267,7 @@ AliGenerator & AliGenerator::operator=(const AliGenerator &gen)
   return (*this);
 }
 
-//____________________________________________________________
+//_______________________________________________________________________
 void AliGenerator::Copy(AliGenerator &/* gen */) const
 {
   //
@@ -209,7 +276,7 @@ void AliGenerator::Copy(AliGenerator &/* gen */) const
   Fatal("Copy","Not implemented!\n");
 }
 
-//____________________________________________________________
+//_______________________________________________________________________
 AliGenerator::~AliGenerator()
 {
   //
@@ -220,6 +287,7 @@ AliGenerator::~AliGenerator()
   delete fgMCEvGen;
 }
 
+//_______________________________________________________________________
 void AliGenerator::Init()
 {   
   //
@@ -340,7 +408,7 @@ void AliGenerator::Vertex()
     }
 }
 
-
+//_______________________________________________________________________
 void AliGenerator::VertexExternal()
 {
     // Dummy !!!!!!
@@ -351,6 +419,7 @@ void AliGenerator::VertexExternal()
     fVertex[0]=fVertex[1]=fVertex[2]=0;  
 }
 
+//_______________________________________________________________________
 void AliGenerator::VertexInternal()
 {
     // 
@@ -365,6 +434,7 @@ void AliGenerator::VertexInternal()
     }
 }
 
+//_______________________________________________________________________
 void  AliGenerator::SetTrack(Int_t done, Int_t parent, Int_t pdg,
                                Float_t *pmom, Float_t *vpos, Float_t *polar,
                                Float_t tof, AliMCProcess mech, Int_t &ntr,
@@ -378,6 +448,8 @@ void  AliGenerator::SetTrack(Int_t done, Int_t parent, Int_t pdg,
     gAlice->SetTrack(done, parent, pdg, pmom, vpos, polar, tof,
                      mech, ntr, weight, is);
 }
+
+//_______________________________________________________________________
 void  AliGenerator::SetTrack(Int_t done, Int_t parent, Int_t pdg,
                       Double_t px, Double_t py, Double_t pz, Double_t e,
                       Double_t vx, Double_t vy, Double_t vz, Double_t tof,
@@ -394,6 +466,7 @@ void  AliGenerator::SetTrack(Int_t done, Int_t parent, Int_t pdg,
 }
 
 
+//_______________________________________________________________________
 void AliGenerator:: KeepTrack(Int_t itrack)
 {
   if (fStack)
@@ -403,6 +476,7 @@ void AliGenerator:: KeepTrack(Int_t itrack)
    
 }
 
+//_______________________________________________________________________
 void AliGenerator:: SetHighWaterMark(Int_t nt)
 {
   if (fStack)

@@ -44,6 +44,7 @@ class AliPHOSFastRecParticle : public TParticle {
     // returns the type of the particle
     return fType ; 
   } 
+  
   void SetPIDBit(UInt_t fSet)
     {
       fType |= (1<<fSet) ; 

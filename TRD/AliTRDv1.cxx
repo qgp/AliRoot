@@ -15,6 +15,18 @@
 
 /*
 $Log$
+Revision 1.35  2002/10/14 14:57:44  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.33.6.2  2002/07/24 10:09:31  alibrary
+Updating VirtualMC
+
+Revision 1.34  2002/06/13 08:11:56  cblume
+Add the track references
+
+Revision 1.33  2002/02/20 14:01:40  hristov
+Compare a TString with a string, otherwise the conversion cannot be done on Sun
+
 Revision 1.32  2002/02/13 16:58:37  cblume
 Bug fix reported by Jiri. Make atoi input zero terminated in StepManager()
 
@@ -512,8 +524,7 @@ void AliTRDv1::StepManager()
   Int_t    qTot;
 
   Float_t  hits[3];
-  Float_t  moms[3];
-  Float_t  random[1];
+  Double_t  random[1];
   Float_t  charge;
   Float_t  aMass;
 
@@ -626,15 +637,12 @@ void AliTRDv1::StepManager()
 	// Special hits and TR photons only in the drift region
         if (drRegion) {
 
-          // Create some special hits with amplitude 0 at the entrance and
-          // exit of each chamber that contain the momentum components of the particle
+          // Create a track reference at the entrance and
+          // exit of each chamber that contain the 
+	  // momentum components of the particle
           if (gMC->IsTrackEntering() || gMC->IsTrackExiting()) {
             gMC->TrackMomentum(mom);
-            moms[0] = mom[0];
-            moms[1] = mom[1];
-            moms[2] = mom[2];
-            AddHit(gAlice->CurrentTrack(),det,moms,0,kTRUE);
-            AddHit(gAlice->CurrentTrack(),det,hits,0,kTRUE); 
+            AddTrackReference(gAlice->CurrentTrack(),mom,pos);
           }
 
           // Create the hits from TR photons
@@ -681,7 +689,7 @@ void AliTRDv1::StepManager()
       
           if (pp > 0) {
             do 
-              gMC->Rndm(random,1);
+            gMC->GetRandom()->RndmArray(1, random);
             while ((random[0] == 1.) || (random[0] == 0.));
             stepSize = - TMath::Log(random[0]) / pp; 
             gMC->SetMaxStep(stepSize);

@@ -1,4 +1,4 @@
-FSRCS= jet_finder_ua1.F
+FSRCS= jet_finder_ua1.F sgpdge.F
 
 SRCS= \
 AliEMCAL.cxx \
@@ -9,7 +9,7 @@ AliEMCALHit.cxx \
 AliEMCALDigit.cxx \
 AliEMCALSDigitizer.cxx \
 AliEMCALDigitizer.cxx \
-AliEMCALLoader.cxx \
+AliEMCALGetter.cxx \
 AliEMCALJetFinder.cxx \
 AliEMCALJet.cxx \
 AliEMCALFast.cxx \
@@ -20,7 +20,9 @@ AliEMCALClusterizer.cxx \
 AliEMCALClusterizerv1.cxx \
 AliEMCALHadronCorrection.cxx \
 AliEMCALHadronCorrectionv0.cxx \
-AliEMCALJetMicroDst.cxx
+AliEMCALJetMicroDst.cxx \
+AliEMCALParton.cxx \
+AliEMCALReconstructioner.cxx
 
 HDRS= $(SRCS:.cxx=.h) 
 

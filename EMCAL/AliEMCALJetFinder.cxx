@@ -15,6 +15,30 @@
 
 /*
 $Log$
+Revision 1.26  2002/10/14 14:55:35  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.20.4.3  2002/10/10 15:07:49  hristov
+Updating VirtualMC to v3-09-02
+
+Revision 1.25  2002/09/13 10:24:57  morsch
+idem
+
+Revision 1.24  2002/09/13 10:21:13  morsch
+No cast to AliMagFCM.
+
+Revision 1.23  2002/06/27 09:24:26  morsch
+Uncomment the TH1::AddDirectory statement.
+
+Revision 1.22  2002/05/22 13:48:43  morsch
+Pdg code added to track list.
+
+Revision 1.21  2002/04/27 07:43:08  morsch
+Calculation of fDphi corrected (Renan Cabrera)
+
+Revision 1.20  2002/03/12 01:06:23  pavlinov
+Testin output from generator
+
 Revision 1.19  2002/02/27 00:46:33  pavlinov
 Added method FillFromParticles()
 
@@ -80,6 +104,7 @@ Revision 1.3  2002/01/18 05:07:56  morsch
 
 #include <stdio.h>
 // From root ...
+#include <TROOT.h>
 #include <TClonesArray.h>
 #include <TTree.h>
 #include <TBranchElement.h>
@@ -88,12 +113,14 @@ Revision 1.3  2002/01/18 05:07:56  morsch
 #include <TH2.h>
 #include <TArrayF.h>
 #include <TCanvas.h>
+#include <TList.h>
 #include <TPad.h>
 #include <TPaveText.h>
 #include <TAxis.h>
 #include <TStyle.h>
 #include <TParticle.h>
 #include <TParticlePDG.h>
+#include <TPythia6Calls.h>
 
 // From AliRoot ...
 #include "AliEMCALJetFinder.h"
@@ -103,12 +130,14 @@ Revision 1.3  2002/01/18 05:07:56  morsch
 #include "AliEMCALDigit.h"
 #include "AliEMCALDigitizer.h"
 #include "AliEMCALHadronCorrection.h"
+#include "AliEMCALJetMicroDst.h"
 #include "AliRun.h"
 #include "AliMagF.h"
 #include "AliMagFCM.h"
 #include "AliEMCAL.h"
 #include "AliHeader.h"
 #include "AliPDG.h"
+#include "AliMC.h"
 
 // Interface to FORTRAN
 #include "Ecommon.h"
@@ -124,13 +153,19 @@ AliEMCALJetFinder::AliEMCALJetFinder()
     fNjets            = 0;
     fLego             = 0;
     fLegoB            = 0;
+
     fTrackList        = 0;
     fPtT              = 0;
     fEtaT             = 0;
     fPhiT             = 0;
+    fPdgT             = 0;
+    
+    fTrackListB       = 0;
     fPtB              = 0;
     fEtaB             = 0;
     fPhiB             = 0;
+    fPdgB             = 0;
+
     fHCorrection      = 0;
     fHadronCorrector  = 0;
 
@@ -157,14 +192,21 @@ AliEMCALJetFinder::AliEMCALJetFinder(const char* name, const char *title)
 	fEtaCell[i] = 0.;
         fPhiCell[i] = 0.;
     }
-    fLego = 0;
+    fLego       = 0;
+    fLegoB      = 0;
+
     fTrackList  = 0;
     fPtT        = 0;
     fEtaT       = 0;
     fPhiT       = 0;
+    fPdgT       = 0;
+
+    fTrackListB       = 0;
     fPtB        = 0;
     fEtaB       = 0;
     fPhiB       = 0;
+    fPdgB       = 0;
+
     fHCorrection      = 0;
     fHadronCorrector  = 0;
     fBackground       = 0;
@@ -208,16 +250,13 @@ AliEMCALJetFinder::~AliEMCALJetFinder()
     }
 }
 
-
-
-
 #ifndef WIN32
 # define jet_finder_ua1 jet_finder_ua1_
 # define hf1 hf1_
 # define type_of_call
 
 #else
-# define jet_finder_ua1 J
+# define jet_finder_ua1 JET_FINDER_UA1
 # define hf1 HF1
 # define type_of_call _stdcall
 #endif
@@ -230,8 +269,6 @@ jet_finder_ua1(Int_t& ncell, Int_t& ncell_tot,
 	       Float_t& prec_bg,  Int_t& ierror);
 
 extern "C" void type_of_call hf1(Int_t& id, Float_t& x, Float_t& wgt);
-
-
 
 
 void AliEMCALJetFinder::Init()
@@ -254,7 +291,7 @@ void AliEMCALJetFinder::Init()
     fPhiMax  = geom->GetArm1PhiMax()*TMath::Pi()/180.;
     fEtaMin  = geom->GetArm1EtaMin();
     fEtaMax  = geom->GetArm1EtaMax();
-    fDphi    = (fPhiMax-fPhiMin)/fNbinEta;
+    fDphi    = (fPhiMax-fPhiMin)/fNbinPhi;
     fDeta    = (fEtaMax-fEtaMin)/fNbinEta;
     fNtot    = fNbinPhi*fNbinEta;
 //
@@ -501,8 +538,11 @@ void AliEMCALJetFinder::BookLego()
 
 //
 //  Don't add histos to the current directory
+    if(fDebug) printf("\n AliEMCALJetFinder::BookLego() \n");
+ 
     TH2::AddDirectory(0);
     TH1::AddDirectory(0);
+    gROOT->cd();
 //    
 //  Signal map
     fLego = new TH2F("legoH","eta-phi",
@@ -510,7 +550,7 @@ void AliEMCALJetFinder::BookLego()
 			   fNbinPhi, fPhiMin, fPhiMax);
 //
 //  Background map
-    fLegoB = new TH2F("legoB","eta-phi",
+    fLegoB = new TH2F("legoB","eta-phi for BG event",
 			   fNbinEta, fEtaMin, fEtaMax, 
 			   fNbinPhi, fPhiMin, fPhiMax);
 
@@ -539,6 +579,12 @@ void AliEMCALJetFinder::BookLego()
     eTmp.GetSize()-1, eTmp.GetArray()); 
     fhTrackPtBcut = new TH1F("hTrackPtBcut","Ch.particles P_{T} + magnetic field cut",
     eTmp.GetSize()-1, eTmp.GetArray()); 
+
+    fhChPartMultInTpc = new TH1F("hChPartMultInTpc",
+    "Charge partilcle multiplicity in |%eta|<0.9", 2000, 0, 20000);
+
+            //! first canvas for drawing
+    fHistsList=AliEMCALJetMicroDst::MoveHistsToList("Hists from AliEMCALJetFinder", kTRUE);
 }
 
 void AliEMCALJetFinder::DumpLego()
@@ -593,6 +639,7 @@ void AliEMCALJetFinder::FillFromTracks(Int_t flag, Int_t ich)
 //
     if (fDebug >= 2)
     printf("\n AliEMCALJetFinder::FillFromTracks(%i,%i) ",flag,ich);
+    fNChTpc = 0;
 
     ResetMap();
     
@@ -602,7 +649,8 @@ void AliEMCALJetFinder::FillFromTracks(Int_t flag, Int_t ich)
 //
 // Access particle information    
     Int_t npart = (gAlice->GetHeader())->GetNprimary();
-    if (fDebug >= 2 || npart<=0) printf(" : npart %i\n", npart);
+    Int_t ntr   = (gAlice->GetHeader())->GetNtrack();
+    printf(" : #primary particles %i # tracks %i \n", npart, ntr);
  
 // Create track list
 //
@@ -614,16 +662,20 @@ void AliEMCALJetFinder::FillFromTracks(Int_t flag, Int_t ich)
     if (fPtT)       delete[] fPtT;
     if (fEtaT)      delete[] fEtaT;
     if (fPhiT)      delete[] fPhiT;
+    if (fPdgT)      delete[] fPdgT;
     
     fTrackList = new Int_t  [npart];
     fPtT       = new Float_t[npart];
     fEtaT      = new Float_t[npart];
     fPhiT      = new Float_t[npart];
+    fPdgT      = new Int_t[npart];
 
-    fNt        = npart;
+    fNt   = npart;
     fNtS  = 0;
     Float_t chTmp=0.0; // charge of current particle 
+    //    Int_t idGeant;
 
+    // this is for Pythia ??
     for (Int_t part = 0; part < npart; part++) {
 	TParticle *MPart = gAlice->Particle(part);
 	Int_t mpart   = MPart->GetPdgCode();
@@ -634,8 +686,12 @@ void AliEMCALJetFinder::FillFromTracks(Int_t flag, Int_t ich)
 	Float_t eta   = -100.;
 	if(pT > 0.001) eta   = MPart->Eta();
 	Float_t theta = MPart->Theta();	
+        if  (fDebug>=2) { 
+	   printf("ind %7i part %7i -> child1 %5i child2 %5i Status %5i\n", 
+           part, mpart, child1, MPart->GetLastDaughter(), MPart->GetStatusCode());
+        }
 	
-	if (fDebug > 1) {
+	if (fDebug >= 2) {
 	    if (part == 6 || part == 7)
 	    {
 		printf("\n Simulated Jet (pt, eta, phi): %d %f %f %f\n", 
@@ -652,6 +708,8 @@ void AliEMCALJetFinder::FillFromTracks(Int_t flag, Int_t ich)
 	fPtT[part]       = pT; // must be change after correction for resolution !!!
 	fEtaT[part]      = eta;
 	fPhiT[part]      = phi;
+	fPdgT[part]      = mpart;
+	
 
 	if (part < 2) continue;
 
@@ -677,17 +735,17 @@ void AliEMCALJetFinder::FillFromTracks(Int_t flag, Int_t ich)
 	if (TMath::Abs(mpart) <= 6         ||
 	    mpart == 21                    ||
 	    mpart == 92) continue;
+
+	if (TMath::Abs(eta)<=0.9) fNChTpc++;
+// final state only
+	if (child1 >= 0 && child1 < npart) continue;
 // acceptance cut
 	if (TMath::Abs(eta) > 0.7)         continue;
 //   Initial phi may be out of acceptance but track may 
 //   hit two the acceptance  - see variable curls
-//	if (phi*180./TMath::Pi() > 120.)   continue;
-// final state only
-	if (child1 >= 0 && child1 < npart) continue;
-	//        printf("ind %7i part %7i -> child1 %5i child2 %5i Status %5i\n", 
-        //part, mpart, child1, MPart->GetLastDaughter(), MPart->GetStatusCode());
+	if (phi*180./TMath::Pi() > 120.)   continue;
 //
-	if (fDebug > 1) 
+	if (fDebug >= 3) 
 	printf("\n=>nsel:%5d mpart %5d child1 %5d eta %6.2f phi %6.2f pT %6.2f ch %3.0f ",
 	part, mpart, child1, eta, phi, pT, chTmp);
 //
@@ -701,7 +759,7 @@ void AliEMCALJetFinder::FillFromTracks(Int_t flag, Int_t ich)
         // p changed - take into account when calculate pT,
 	// pz and so on ..  ?
             pT = (pw/p) * pT;
-            if(fDebug > 1) printf("\n Smearing : p %8.4f change to %8.4f ", p, pw);
+            if(fDebug >= 4) printf("\n Smearing : p %8.4f change to %8.4f ", p, pw);
             p  = pw;
 	}
 //
@@ -712,7 +770,7 @@ void AliEMCALJetFinder::FillFromTracks(Int_t flag, Int_t ich)
             eff = 0.95; // for testing 25-feb-2002
             if(fhEff) fhEff->Fill(p, eff);
 	    if (AliEMCALFast::RandomReject(eff)) {
-              if(fDebug > 1) printf(" reject due to unefficiency ");
+              if(fDebug >= 5) printf(" reject due to unefficiency ");
               continue;
             }
 	}
@@ -728,7 +786,7 @@ void AliEMCALJetFinder::FillFromTracks(Int_t flag, Int_t ich)
         // hadr. correction only for charge particle 
 	  dphi  = PropagatePhi(pT, chTmp, curls);
 	  phiHC = phi + dphi;
-	  if (fDebug >= 2) {
+	  if (fDebug >= 6) {
              printf("\n Delta phi %f pT %f ", dphi, pT);
 	     if (curls) printf("\n !! Track is curling");
           }
@@ -742,7 +800,7 @@ void AliEMCALJetFinder::FillFromTracks(Int_t flag, Int_t ich)
 	      dpH    = fHadronCorrector->GetEnergy(p, eta, 7);
               eTdpH  = dpH*TMath::Sin(theta);
 
-	      if (fDebug >= 2) printf(" phi %f phiHC %f eTcorr %f\n", 
+	      if (fDebug >= 7) printf(" phi %f phiHC %f eTcorr %f\n", 
 	      phi, phiHC, -eTdpH); // correction is negative
 	      fLego->Fill(eta, phiHC, -eTdpH);
               fhLegoHadrCorr->Fill(eta, phiHC, eTdpH);
@@ -756,7 +814,7 @@ void AliEMCALJetFinder::FillFromTracks(Int_t flag, Int_t ich)
 
         if(TMath::Abs(chTmp) ) { // charge particle
 	  if (pT > fPtCut && !curls) {
-	     if (fDebug >= 2) printf("Charge :  fLego->Fill(%5.2f, %5.2f, %6.2f)\n",
+	     if (fDebug >= 8) printf("Charge :  fLego->Fill(%5.2f, %5.2f, %6.2f)\n",
 				      eta , phi, pT); 
              fLego->Fill(eta, phi, pT);
              fhLegoTracks->Fill(eta, phi, pT); // 20-feb for checking
@@ -765,7 +823,7 @@ void AliEMCALJetFinder::FillFromTracks(Int_t flag, Int_t ich)
           }
 	} else if(ich==0 && fK0N) {
 	  // case of n, nbar and K0L
-	     if (fDebug >= 2) printf("Neutral :  fLego->Fill(%5.2f, %5.2f, %6.2f)\n",
+	     if (fDebug >= 9) printf("Neutral :  fLego->Fill(%5.2f, %5.2f, %6.2f)\n",
 				      eta , phi, pT); 
             fLego->Fill(eta, phi, pT);
 	    fTrackList[part] = 1;
@@ -800,7 +858,7 @@ void AliEMCALJetFinder::FillFromHits(Int_t flag)
 // Access hit information    
     AliEMCAL* pEMCAL = (AliEMCAL*) gAlice->GetModule("EMCAL");
     
-    TTree *treeH = pEMCAL->TreeH();
+    TTree *treeH = gAlice->TreeH();
     Int_t ntracks = (Int_t) treeH->GetEntries();
 //
 //   Loop over tracks
@@ -952,10 +1010,12 @@ void AliEMCALJetFinder::FillFromHitFlaggedTracks(Int_t flag)
     if (fPtT)       delete[] fPtT;   
     if (fEtaT)      delete[] fEtaT;    
     if (fPhiT)      delete[] fPhiT;   
+    if (fPdgT)      delete[] fPdgT;   
    
     fPtT       = new Float_t[ntracks];
     fEtaT      = new Float_t[ntracks];
     fPhiT      = new Float_t[ntracks];
+    fPdgT      = new Int_t[ntracks];
 
     fNt   = ntracks;
     fNtS  = 0;
@@ -970,7 +1030,8 @@ void AliEMCALJetFinder::FillFromHitFlaggedTracks(Int_t flag)
 	  fPtT[track]       = pT;
 	  fEtaT[track]      = eta;
 	  fPhiT[track]      = phi;
-
+	  fPdgT[track]      = MPart->GetPdgCode();
+	  
 	  if (track < 2) continue;	//Colliding particles?
 	  if (pT == 0 || pT < fPtCut) continue;
 	  fNtS++;
@@ -985,8 +1046,8 @@ void AliEMCALJetFinder::FillFromParticles()
 // 26-feb-2002 PAI - for checking all chain
 // Work on particles level; accept all particle (not neutrino )
     
-    if (fDebug >= 2)
-    printf("\n AliEMCALJetFinder::FillFromParticles()\n");
+    Double_t PX=0, PY=0, PZ=0, E=0; // checking conservation law 
+    fNChTpc = 0;
 
     ResetMap();
     if (!fLego) BookLego();
@@ -995,44 +1056,72 @@ void AliEMCALJetFinder::FillFromParticles()
 // Access particles information    
     Int_t npart = (gAlice->GetHeader())->GetNprimary();
     if (fDebug >= 2 || npart<=0) {
-       printf("\n AliEMCALJetFinder::FillFromPartons : npart %i\n", npart);
-       return;
+       printf(" AliEMCALJetFinder::FillFromParticles : npart %i\n", npart);
+       if(npart<=0) return;
     }
     fNt   = npart;
     fNtS  = 0;
     RearrangeParticlesMemory(npart);
  
 //  Go through the particles
-    Int_t mpart, child1;
-    Float_t pT, phi, eta;
+    Int_t mpart, child1, child2, geantPdg;
+    Float_t pT, phi, eta, e=0, px=0, py=0, pz=0;
     TParticle *MPart=0;
     for (Int_t part = 0; part < npart; part++) {
 
 	fTrackList[part] = 0;
-        if(part<8) continue; // skip initial parton configuration 
 
 	MPart   = gAlice->Particle(part);
 	mpart   = MPart->GetPdgCode();
 	child1  = MPart->GetFirstDaughter();
+	child2  = MPart->GetLastDaughter();
 	pT      = MPart->Pt();
 	phi     = MPart->Phi();
 	eta     = MPart->Eta();
+
+        px      = MPart->Px();
+        py      = MPart->Py();
+        pz      = MPart->Pz();
+        e       = MPart->Energy();
+
+// see pyedit in Pythia's text
+        geantPdg = mpart;
+//        Int_t kc = pycomp_(&mpart);
+//        TString name = GetPythiaParticleName(mpart);
+	//        printf(" mpart %6.6i;kc %6.6i -> gid %3.3i",mpart,kc,geantPdg);
+        //printf(" (%s)\n", name.Data());
+	if (IsThisPartonsOrDiQuark(mpart)) continue;
+        printf("%5i: %5i(%2i) px %5.1f py %5.1f pz %6.1f e %6.1f childs %5i,%5i \n", 
+        part, mpart, geantPdg, px, py, pz, e, child1, child2);
 	
 //  exclude partons (21 - gluon, 92 - string) 
-	if ((TMath::Abs(mpart) <= 6 || mpart == 21 ||mpart == 92)) continue;
+	
+
 // exclude neutrinous also ??
-	if (fDebug > 1 && pT>0.01) 
-	printf("\n part:%5d mpart %5d eta %8.2f phi %8.2f pT %8.2f ",
+	if (fDebug >= 11 && pT>0.01) 
+	printf("\n part:%5d mpart %5d eta %9.2f phi %9.2f pT %9.2f ",
 	part, mpart, eta, phi, pT);
 
 	fPtT[part]       = pT;
 	fEtaT[part]      = eta;
 	fPhiT[part]      = phi;
+	fPdgT[part]      = mpart;
+	
+// final state only
+ 	if (child1 >= 0 && child1 < npart) continue;
+
+	//        printf("%4i -> %5i(%3i) px %6.1f py %6.1f pz %7.1f e %8.2f child1 %5i %s\n", 
+	//        part, mpart, geantPdg, px, py, pz, e, child1, name.Data());
+        PX += px; 
+        PY += py; 
+        PZ += pz;
+        E  += e; 
+
+        
+	if (TMath::Abs(eta) <= 0.9) fNChTpc++;
 // acceptance cut
 	if (TMath::Abs(eta) > 0.7)         continue;
 	if (phi*180./TMath::Pi() > 120.)   continue;
-// final state only
- 	if (child1 >= 0 && child1 < npart) continue;
 //
         if(fK0N==0 ) { // exclude neutral hadrons
           if (mpart == kNeutron || mpart == kNeutronBar || mpart == kK0Long) continue; 
@@ -1041,7 +1130,10 @@ void AliEMCALJetFinder::FillFromParticles()
         fLego->Fill(eta, phi, pT);
 
     } // primary loop
+    printf("\n                PX %8.2f  PY %8.2f  PZ %8.2f  E %8.2f \n", 
+    PX, PY, PZ, E);
     DumpLego();
+    if(fhChPartMultInTpc) fhChPartMultInTpc->Fill(fNChTpc);
 }
 
 void AliEMCALJetFinder::FillFromPartons()
@@ -1117,7 +1209,7 @@ void AliEMCALJetFinder::BuildTrackFlagTable() {
 	fTrackList[i] = 0;
     }
     
-    TTree *treeH = pEMCAL->TreeH();
+    TTree *treeH = gAlice->TreeH();
     Int_t ntracks = (Int_t) treeH->GetEntries();
 //
 //   Loop over tracks
@@ -1217,18 +1309,24 @@ void AliEMCALJetFinder::SaveBackgroundEvent()
 {
 // Saves the eta-phi lego and the tracklist
 //
-    if (fLegoB) fLegoB->Reset();
-    
-    fLego->Copy(*fLegoB);
+    if (fLegoB) {
+       fLegoB->Reset();
+       (*fLegoB) = (*fLegoB) + (*fLego); 
+       if(fDebug) 
+       printf("\n AliEMCALJetFinder::SaveBackgroundEvent() (fLegoB) %f = %f(fLego) \n", 
+       fLegoB->Integral(), fLego->Integral()); 
+    }
     
     if (fPtB)        delete[] fPtB;   
     if (fEtaB)       delete[] fEtaB;    
     if (fPhiB)       delete[] fPhiB;   
+    if (fPdgB)       delete[] fPdgB;   
     if (fTrackListB) delete[] fTrackListB;   
    
     fPtB          = new Float_t[fNtS];
     fEtaB         = new Float_t[fNtS];
     fPhiB         = new Float_t[fNtS];
+    fPdgB         = new Int_t  [fNtS];
     fTrackListB   = new Int_t  [fNtS];
     
     fNtB = 0;
@@ -1238,20 +1336,30 @@ void AliEMCALJetFinder::SaveBackgroundEvent()
 	fPtB [fNtB]       = fPtT [i];
 	fEtaB[fNtB]       = fEtaT[i];
 	fPhiB[fNtB]       = fPhiT[i];
+	fPdgB[fNtB]       = fPdgT[i];
+
 	fTrackListB[fNtB] = 1;
 	fNtB++;
     }
     fBackground = 1;
+    printf(" fNtB %i => fNtS %i #particles %i \n", fNtB, fNtS, fNt); 
 }
 
 void AliEMCALJetFinder::InitFromBackground()
 {
 //
 //    
-    if (fDebug) printf("\n Initializing from Background");
+    if (fDebug) printf("\n AliEMCALJetFinder::InitFromBackground() ");
     
-    if (fLego) fLego->Reset(); 
-    fLegoB->Copy(*fLego);
+    if (fLego) {
+	fLego->Reset(); 
+	(*fLego) = (*fLego) + (*fLegoB);
+	if(fDebug) 
+	    printf("\n AliEMCALJetFinder::SaveBackgroundEvent() (fLego) %f = %f(fLegoB) \n", 
+		   fLego->Integral(), fLegoB->Integral()); 
+    } else {
+	printf(" => fLego undefined \n");
+    }
 }
 
     
@@ -1305,6 +1413,8 @@ void AliEMCALJetFinder::FindTracksInJetCone()
 	Float_t* ptT  = new Float_t[nT0];
 	Float_t* etaT = new Float_t[nT0];
 	Float_t* phiT = new Float_t[nT0];
+	Int_t*   pdgT = new Int_t[nT0];
+
 	Int_t iT = 0;
 	Int_t j;
 	
@@ -1321,10 +1431,12 @@ void AliEMCALJetFinder::FindTracksInJetCone()
 		    ptT [j+1]  = ptT [j];
 		    etaT[j+1]  = etaT[j];
 		    phiT[j+1]  = phiT[j];
+		    pdgT[j+1]  = pdgT[j];
 		}
 		ptT [index] = fPtT [part];
 		etaT[index] = fEtaT[part];
 		phiT[index] = fPhiT[part];
+		pdgT[index] = fPdgT[part];
 		iT++;
 	    } // particle associated
 	    if (iT > nT0) break;
@@ -1345,20 +1457,24 @@ void AliEMCALJetFinder::FindTracksInJetCone()
 			ptT [j+1]  = ptT [j];
 			etaT[j+1]  = etaT[j];
 			phiT[j+1]  = phiT[j];
+			pdgT[j+1]  = pdgT[j];
 		    }
 		    ptT [index] = fPtB [part];
 		    etaT[index] = fEtaB[part];
 		    phiT[index] = fPhiB[part];
+		    pdgT[index] = fPdgB[part];
 		    iT++;
 		} // particle associated
 		if (iT > nT0) break;
 	    } // particle loop
 	} // Background available ?
 
-	fJetT[nj]->SetTrackList(nT0, ptT, etaT, phiT);
+	fJetT[nj]->SetTrackList(nT0, ptT, etaT, phiT, pdgT);
 	delete[] ptT;
 	delete[] etaT;
 	delete[] phiT;
+	delete[] pdgT;
+	
     } // jet loop loop
 }
 
@@ -1369,7 +1485,7 @@ Float_t AliEMCALJetFinder::PropagatePhi(Float_t pt, Float_t charge, Bool_t& curl
   static Float_t b = 0.0, rEMCAL = -1.0;
   if(rEMCAL<0) {
 // Get field in kGS
-    b =  ((AliMagFCM*) gAlice->Field())->SolenoidField();
+    b =  gAlice->Field()->SolenoidField();
 // Get EMCAL radius in cm 
     rEMCAL = AliEMCALGeometry::GetInstance()->GetIPDistance();
     printf("\nMagnetic field %f rEMCAL %f ", b, rEMCAL);
@@ -1530,13 +1646,46 @@ void AliEMCALJetFinder::RearrangeParticlesMemory(Int_t npart)
     if (fPtT)       delete[] fPtT;
     if (fEtaT)      delete[] fEtaT;
     if (fPhiT)      delete[] fPhiT;
+    if (fPdgT)      delete[] fPdgT;
     
     if(npart>0) { 
        fTrackList = new Int_t  [npart];
        fPtT       = new Float_t[npart];
        fEtaT      = new Float_t[npart];
        fPhiT      = new Float_t[npart];
+       fPdgT      = new Int_t[npart];
     } else {
        printf("AliEMCALJetFinder::RearrangeParticlesMemory : npart = %d\n", npart);
     }
+}
+
+Bool_t AliEMCALJetFinder::IsThisPartonsOrDiQuark(Int_t pdg)
+{
+  Int_t absPdg = TMath::Abs(pdg);
+  if(absPdg<=6) return kTRUE; // quarks
+  if(pdg == 21) return kTRUE; // gluon 
+  if(pdg == 92) return kTRUE; // string 
+
+  // see p.51 of Pythia Manual
+  // Not include diquarks with c and b quark - 4-mar-2002
+  //                 ud_0,sd_0,su_0; dd_1,ud_1,uu_1;  sd_1,su_1,ss_1
+  static Int_t diquark[9]={2101,3101,3201, 1103,2103,2203,  3103,3203,3303};
+  for(Int_t i=0; i<9; i++) if(absPdg == diquark[i])  return kTRUE; // diquarks
+
+  return kFALSE;
+}
+
+TString &AliEMCALJetFinder::GetPythiaParticleName(Int_t kf)
+{// see subroutine PYNAME in PYTHIA
+  static TString sname;
+  char name[16];
+  pyname_(&kf, name, 16);
+  for(Int_t i=0; i<16; i++){
+    if(name[i] == ' ') {
+      name[i] = '\0';
+      break;
+    }
+  }
+  sname = name;
+  return sname; 
 }

@@ -22,8 +22,9 @@ SRCS          =    AliPHOS.cxx AliPHOSv0.cxx AliPHOSv1.cxx AliPHOSv2.cxx \
                  AliPHOSIhepAnalyze.cxx AliPHOSEvalRecPoint.cxx \
                  AliPHOSRecManager.cxx AliPHOSRecCpvManager.cxx AliPHOSRecEmcManager.cxx \
                  AliPHOSClusterizerv2.cxx AliPHOSPIDv1.cxx AliPHOSMemoryWatcher.cxx \
-                 AliPHOSLoader.cxx 
- 
+                 AliPHOSLoader.cxx AliPHOSRaw2Digits.cxx AliPHOSBeamTestEvent.cxx AliPHOSCalibrationDB.cxx \
+                 AliPHOSConTableDB.cxx
+
 HDRS:= $(SRCS:.cxx=.h) 
 
 EHDRS:=$(ROOTSYS)/include/TTree.h

@@ -15,6 +15,18 @@
 
 /*
 $Log$
+Revision 1.12  2002/10/14 14:55:33  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.10.6.1  2002/08/28 15:06:49  alibrary
+Updating to v3-09-01
+
+Revision 1.11  2002/08/18 20:20:48  hristov
+InitGui removed (J.Chudoba)
+
+Revision 1.10  2002/02/18 14:26:14  hristov
+#include <AliConfig.h> removed
+
 Revision 1.9  2002/01/09 17:05:03  morsch
 Increase memory allocated for ZEBRA.
 
@@ -74,11 +86,6 @@ int xargc=0;
 #endif 
 
 int gcbank_[4000000];
-
-//Initialise the Root environment
- extern void InitGui();
- VoidFuncPtr_t initfuncs[] = { InitGui, 0 };
- TROOT root("galice","The Alice/ROOT Interface", initfuncs);
 
 //_____________________________________________________________________________
 int main(int argc, char **argv)

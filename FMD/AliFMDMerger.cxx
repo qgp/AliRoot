@@ -18,6 +18,12 @@
 
 /*
 $Log$
+Revision 1.3.4.1  2002/05/31 09:37:55  hristov
+First set of changes done by Piotr
+
+Revision 1.4  2002/10/23 07:40:37  alibrary
+Introducing Riostream.h
+
 Revision 1.3  2001/10/21 18:36:31  hristov
 Several pointers were set to zero in the default constructors to avoid memory management problems
 
@@ -59,8 +65,8 @@ AliMUONMerger prototype to be called by the merge manager.
 #include "AliPDG.h"
 
 #include <stdlib.h>
-#include <iostream.h>
-#include <fstream.h>
+#include <Riostream.h>
+#include <Riostream.h>
 
 ClassImp(AliFMDMerger)
 

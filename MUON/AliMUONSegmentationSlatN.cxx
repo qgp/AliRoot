@@ -15,6 +15,12 @@
 
 /*
 $Log$
+Revision 1.5  2002/10/23 07:24:56  alibrary
+Introducing Riostream.h
+
+Revision 1.4  2001/01/26 21:25:48  morsch
+Empty default constructors and.
+
 Revision 1.3  2000/10/22 16:55:43  morsch
 Use only x-symmetry in global to local transformations and delegation.
 
@@ -32,7 +38,7 @@ Segmentation class for chambers built out of slats.
 #include "TArrayF.h"
 #include "TObjArray.h"
 #include <TMath.h>
-#include <iostream.h>
+#include <Riostream.h>
 
 //___________________________________________
 ClassImp(AliMUONSegmentationSlatN);

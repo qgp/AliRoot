@@ -15,8 +15,14 @@
 
 /*
 $Log$
+Revision 1.8.2.2  2002/05/31 15:07:51  hristov
+Merged with v3-08-02
+
 Revision 1.8.2.1  2002/05/31 09:37:57  hristov
 First set of changes done by Piotr
+
+Revision 1.11  2002/10/23 07:24:56  alibrary
+Introducing Riostream.h
 
 Revision 1.10  2002/03/13 07:55:04  jchudoba
 Correction of the errourness last commit.
@@ -47,10 +53,10 @@ merging/digitization classes
 #include <TObjArray.h>
 #include <TFile.h>
 #include <TDirectory.h>
-#include <iostream.h>
 
 #include "AliRunLoader.h"
 #include "AliLoader.h"
+#include <Riostream.h>
 
 #include "AliMUONDigitizer.h"
 #include "AliMUONConstants.h"

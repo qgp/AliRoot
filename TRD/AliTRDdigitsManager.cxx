@@ -15,8 +15,29 @@
 
 /*
 $Log$
+Revision 1.16.4.2  2002/06/24 09:21:29  cblume
+New IO for TRD
+
 Revision 1.16.4.1  2002/06/03 09:55:03  hristov
 Merged with v3-08-02
+
+Revision 1.20  2002/10/22 15:53:08  alibrary
+Introducing Riostream.h
+
+Revision 1.19  2002/10/14 14:57:43  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.16.6.2  2002/07/24 10:09:30  alibrary
+Updating VirtualMC
+
+Revision 1.16.6.1  2002/06/10 15:28:58  hristov
+Merged with v3-08-02
+
+Revision 1.18  2002/04/12 12:13:23  cblume
+Add Jiris changes
+
+Revision 1.17  2002/03/28 14:59:07  cblume
+Coding conventions
 
 Revision 1.18  2002/04/12 12:13:23  cblume
 Add Jiris changes
@@ -90,7 +111,7 @@ Add new class AliTRDdigitsManager
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <iostream.h>
+#include <Riostream.h>
  
 #include <TROOT.h>
 #include <TTree.h>                                                              
@@ -222,8 +243,6 @@ Short_t AliTRDdigitsManager::GetDigitAmp(Int_t row, Int_t col,Int_t time
 
 }
  
-
-
 //_____________________________________________________________________________
 Bool_t AliTRDdigitsManager::MakeBranch(TTree *tree)
 {

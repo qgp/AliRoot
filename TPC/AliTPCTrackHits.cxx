@@ -15,6 +15,21 @@
 
 /*
 $Log$
+Revision 1.7  2002/10/23 07:17:34  alibrary
+Introducing Riostream.h
+
+Revision 1.6  2002/10/14 14:57:43  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.4.10.1  2002/08/28 15:06:52  alibrary
+Updating to v3-09-01
+
+Revision 1.5  2002/08/25 15:54:29  kowal2
+Protection against overflows in TMath::Nint.
+
+Revision 1.4  2001/01/10 09:35:27  kowal2
+Changes to obey the coding rules.
+
 Revision 1.3  2000/11/02 10:22:50  kowal2
 Logs added
 
@@ -43,7 +58,7 @@ Logs added
 #include "AliTPCTrackHits.h"
 #include "AliTPC.h"
 
-#include <iostream.h>
+#include <Riostream.h>
 
 
 
@@ -412,7 +427,10 @@ void AliTPCTrackHits::AddHit(Int_t volumeID, Int_t trackID,
     ddz2*=ddz2;
     ratio = TMath::Sqrt(1.+ dfi2+ ddz2);  
   }
-  dl = fStep * Short_t(TMath::Nint(drhit*ratio/fStep));
+  //
+ 
+
+  dl = (TMath::Abs(drhit*ratio/fStep)<32000) ?  fStep * Short_t(TMath::Nint(drhit*ratio/fStep)):0;
   ddl = dl - drhit*ratio; 
   fTempInfo->fOldR += dl/ratio; 
 
@@ -488,7 +506,7 @@ Bool_t AliTPCTrackHits::FlushHitStack(Bool_t force)
       ratio = TMath::Sqrt(1.+ dfi2+ ddz2);  
     }
 
-    Double_t dl = fStep*(Short_t)TMath::Nint(dr*ratio/fStep);  
+    Double_t dl = (TMath::Abs(dr*ratio/fStep)<32000) ? fStep*(Short_t)TMath::Nint(dr*ratio/fStep):0;  
     dr = dl/ratio; 
     oldr+=dr;
     //calculate precission
@@ -521,7 +539,7 @@ Bool_t AliTPCTrackHits::FlushHitStack(Bool_t force)
     }
 
     info = (AliHitInfo*)(fHitsPosAndQ->At(fTempInfo->fParamIndex,i));
-    info->fHitDistance = Short_t(TMath::Nint(dl/fStep));
+    info->fHitDistance = (TMath::Abs(dl/fStep)<32000) ?Short_t(TMath::Nint(dl/fStep)):0;
     info->fCharge = Short_t(fTempInfo->fQStack[i]);
     /*
     cout<<"C2";

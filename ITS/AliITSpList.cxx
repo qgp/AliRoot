@@ -16,8 +16,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <iostream.h>
-#include <iomanip.h>
+#include <Riostream.h>
 #include <TObjArray.h>
 #include <TRandom.h>
 #include <TMath.h>
@@ -315,12 +314,13 @@ AliITSpListItem& AliITSpListItem::operator=(const AliITSpListItem &source){
     //    none.
     // Return:
     //    A copied AliITSpListItem object
+    Int_t i;
 
     if(this == &source) return *this;
 
     this->fmodule = source.fmodule;
     this->findex  = source.findex;
-    for(Int_t i=0;i<this->fkSize;i++){
+    for(i=0;i<this->fkSize;i++){
         this->fTrack[i]  = source.fTrack[i];
         this->fSignal[i] = source.fSignal[i];
         this->fHits[i]   = source.fHits[i];
@@ -328,7 +328,6 @@ AliITSpListItem& AliITSpListItem::operator=(const AliITSpListItem &source){
     this->fTsignal = source.fTsignal;
     this->fNoise   = source.fNoise;
     this->fSignalAfterElect   = source.fSignalAfterElect;
-
     return *this;
 }
 //______________________________________________________________________
@@ -370,6 +369,7 @@ void AliITSpListItem::AddSignal(Int_t track,Int_t hit,Int_t module,
         fSignal[i] += signal;
         flg = kTRUE;
     } // end for i & if.
+    //cout << "track="<<track<<endl;
     if(flg){ // resort arrays.  
         for(i=1;i<fkSize;i++){
             j = i;
@@ -383,6 +383,8 @@ void AliITSpListItem::AddSignal(Int_t track,Int_t hit,Int_t module,
                 fTrack[j]  = trk;
                 fHits[j]   = hts;
                 fSignal[j] = sig;
+		//cout << "#fTrack["<<j-1<<"]="<<fTrack[j-1]<< " fTrack["<<
+		// j<<"]="<<fTrack[j]<<endl;
                 j--;
             } // end while
         } // end if i
@@ -403,11 +405,17 @@ void AliITSpListItem::AddSignal(Int_t track,Int_t hit,Int_t module,
             fHits[i+1]   = hit;
             return; // put it in the right place, now exit.
         } //  end if
+	//cout << "$fTrack["<<i+1<<"]="<<fTrack[i+1]<< " fTrack["<<i<<"]="
+	//<<fTrack[i]<< " fHits["<<i+1<<"]="<<fHits[i+1]<< " fHits["<<i<<"]="
+	//<<fHits[i]<< " fSignal["<<i+1<<"]="<<fSignal[i+1]<< " fSignal["<<i
+	//<<"]="<<fSignal[i]<<endl;
     } // end if; end for i
     // Still haven't found the right place. Must be at top of list.
     fSignal[0] = signal;
     fTrack[0]  = track;
     fHits[0]   = hit;
+    //cout << "$fTrack["<<0<<"]="<<fTrack[0]<<" fHits["<<0<<"]="<<fHits[0]
+    //<<" fSignal["<<0<<"]="<<fSignal[0]<<endl;
     return;
 }
 //______________________________________________________________________

@@ -15,6 +15,21 @@
 
 /*
 $Log$
+Revision 1.28.6.1  2002/05/31 09:37:57  hristov
+First set of changes done by Piotr
+
+Revision 1.31  2002/10/23 07:24:56  alibrary
+Introducing Riostream.h
+
+Revision 1.30  2002/10/14 14:57:29  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.28.8.1  2002/10/11 06:56:47  hristov
+Updating VirtualMC to v3-09-02
+
+Revision 1.29  2002/09/20 13:32:26  cussonno
+Minor bugs in the definition of the bending impact parameter corrected (thanks to A. Zinchenko)
+
 Revision 1.28  2001/08/31 06:50:11  gosset
 Different handling of TreeR for track reconstruction from raw clusters
 
@@ -160,7 +175,7 @@ Addition of files for track reconstruction in C++
 //
 ////////////////////////////////////
 
-#include <iostream.h> // for cout
+#include <Riostream.h> // for cout
 #include <stdlib.h> // for exit()
 
 #include <TTree.h>
@@ -177,6 +192,8 @@ Addition of files for track reconstruction in C++
 #include "AliMagF.h"
 #include "AliRun.h" // for gAlice
 #include "AliConfig.h"
+#include "AliRunLoader.h"
+#include "AliLoader.h"
 //************* Defaults parameters for reconstruction
 static const Double_t kDefaultMinBendingMomentum = 3.0;
 static const Double_t kDefaultMaxBendingMomentum = 500.0;
@@ -526,36 +543,43 @@ void AliMUONEventReconstructor::MakeEventToBeReconstructed(void)
   // To make the list of hits to be reconstructed,
   // either from the GEANT hits or from the raw clusters
   // according to the parameter set for the reconstructor
+  TString evfoldname = AliConfig::fgkDefaultEventFolderName;//to be interfaced properly
+  
+  AliRunLoader* rl = AliRunLoader::GetRunLoader(evfoldname);
+  if (rl == 0x0)
+   {
+     Error("MakeEventToBeReconstructed",
+           "Can not find Run Loader in Event Folder named %s.",
+           evfoldname.Data());
+     return;
+   }
+  AliLoader* gime = rl->GetLoader("MUONLoader");
+  if (gime == 0x0)
+   {
+     Error("MakeEventToBeReconstructed","Can not get MUON Loader from Run Loader.");
+     return;
+   }
+  
   if (fPrintLevel >= 1) cout << "enter MakeEventToBeReconstructed" << endl;
   ResetHitsForRec();
   if (fRecGeantHits == 1) {
     // Reconstruction from GEANT hits
     // Back to the signal file
-    ((gAlice->TreeK())->GetCurrentFile())->cd();
-    // Signal hits
-    // AliMUON *MUON  = (AliMUON*) gAlice->GetModule("MUON"); // necessary ????
-    // Security on MUON ????
-    
- 
-      AliConfig* config = AliConfig::Instance();
-      TFolder* topfold = (TFolder*)config->GetTopFolder();
-      if (topfold == 0x0)
-       {
-         Error("Exec","Can not get Alice top folder");
-         return; 
-       }
-      TString fmdfoldname(config->GetDataFolderName()+"/"+"MUON");
-      TFolder* fmdfold = (TFolder*)topfold->FindObject(fmdfoldname);
-      if (fmdfold == 0x0)
-       {
-         Error("Exec","Can not get FMD folder");
-         return; 
-       }
-      TTree* treeH = dynamic_cast<TTree*>(fmdfold->FindObject("TreeH"));
+      TTree* treeH = gime->TreeH();
       if (treeH == 0x0)
        {
-         Error("Exec","Can not get TreeH");
-         return;
+         Int_t retval = gime->LoadHits();
+         if ( retval)
+          {
+            Error("MakeEventToBeReconstructed","Error occured while loading hits.");
+            return;
+          }
+         treeH = gime->TreeH();
+         if (treeH == 0x0)
+          {
+           Error("MakeEventToBeReconstructed","Can not get TreeH");
+           return;
+          }
        }
     
     AddHitsForRecFromGEANT(treeH);
@@ -571,7 +595,7 @@ void AliMUONEventReconstructor::MakeEventToBeReconstructed(void)
     // Security on MUON ????
     // TreeR assumed to be be "prepared" in calling function
     // by "MUON->GetTreeR(nev)" ????
-    TTree *treeR = gAlice->TreeR();
+    TTree *treeR = gime->TreeR();
     AddHitsForRecFromRawClusters(treeR);
     // No sorting: it is done automatically in the previous function
   }
@@ -933,7 +957,7 @@ void AliMUONEventReconstructor::MakeSegmentsPerStation(Int_t Station)
 	  (hit1Ptr->GetZ() - hit2Ptr->GetZ());
 	// absolute value of impact parameter
 	impactParam =
-	  TMath::Abs(hit1Ptr->GetBendingCoor() - hit2Ptr->GetZ() * bendingSlope);
+	  TMath::Abs(hit1Ptr->GetBendingCoor() - hit1Ptr->GetZ() * bendingSlope);
       }
       // check for distances not too large,
       // and impact parameter not too big if stations downstream of the dipole.

@@ -15,6 +15,24 @@
 
 /*
 $Log$
+Revision 1.18.2.1  2002/05/31 10:39:22  hristov
+Changes from v3-08-02 merged with NewIO branch
+
+Revision 1.24  2002/10/22 15:02:47  alibrary
+Introducing Riostream.h
+
+Revision 1.23  2002/10/14 14:57:39  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.19.4.2  2002/10/11 08:04:28  hristov
+Updating VirtualMC to v3-09-02
+
+Revision 1.22  2002/09/02 15:29:20  morsch
+Gsbool calls to resolve MANY added (I.  Hrivnacova).
+
+Revision 1.19.4.1  2002/06/10 15:13:48  hristov
+Merged with v3-08-02
+
 Revision 1.21  2002/05/11 19:14:44  morsch
 PCONE QBEU had last z defined twice.
 
@@ -86,7 +104,7 @@ Introduction of the Copyright and cvs Log
 #include "AliMC.h"
 #include "TSystem.h"
 
-#include <iostream.h>
+#include <Riostream.h>
  
 ClassImp(AliPIPEv0)
  
@@ -708,6 +726,9 @@ void AliPIPEv0::CreateGeometry()
 //    by rotating it to 180 deg. and make it invisible
 // 
     gMC->Gspos("QBPM",1,"ALIC",0,0,0,idrotm[2013], "ONLY");
+    gMC->Gsbool("QBPM", "L3DX");
+    gMC->Gsbool("QBPM", "L3O3");
+    gMC->Gsbool("QBPM", "L3O4");
 
 
 //

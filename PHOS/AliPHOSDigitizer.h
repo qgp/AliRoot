@@ -76,7 +76,7 @@ public:
  
   AliPHOSDigitizer & operator = (const AliPHOSDigitizer & rvalue)  {
     // assignement operator requested by coding convention but not needed
-    abort() ;
+    Fatal("operator =", "not implemented") ;
     return *this ; 
   }
 
@@ -117,6 +117,9 @@ private:
   Float_t fADCchanelCpv ;           // width of one ADC channel in CPV 'popugais'
   Float_t fADCpedestalCpv ;         // 
   Int_t   fNADCcpv ;                // number of channels in CPV ADC
+
+  Bool_t  fToSplit ;                //! Do we work in the split mode
+  TFile * fSplitFile ;              //! file in which Digits will eventually be stored
 
 
   ClassDef(AliPHOSDigitizer,1)  // description 

@@ -28,8 +28,7 @@
 //  Thanks to getters, one can set 
 //  parameters to reconstruction briks. The full set of parameters is saved in the 
 //  corresponding branch: e.g. parameters of clusterizer are stored in branch 
-//  TreeR::AliPHOSClusterizer with the same title as the branch containing the RecPoints. 
-//  TTree does not support overwriting, therefore one can not produce several 
+//  TreeR::AliPHOSClusterizer with the same title as the branch containing the RecPoints. //  TTree does not support overwriting, therefore one can not produce several 
 //  branches with the same names and titles - use different titles.
 //
 //  Use case: 
@@ -66,7 +65,6 @@
 #include "TFile.h"
 
 // --- Standard library ---
-#include <iostream.h>   
 
 // --- AliRoot header files ---
 #include "AliRun.h"
@@ -148,10 +146,7 @@ TTask("AliPHOSReconstructioner",evFoldName)
   gime->PostReconstructioner(fClusterizer);
   
   fTSBranch=branchName ; 
-  
-  cout<<"\n\n\n";
-  cout<<method<<"Creating Track Segmenter\n";
-  fTSMaker     = new AliPHOSTrackSegmentMakerv1(GetTitle(),"PHOSTracker");
+  fTSMaker     = new AliPHOSTrackSegmentMakerv1(GetTitle(),fTSBranch.Data());
   Add(fTSMaker) ;
   gime->PostTracker(fTSMaker);
 
@@ -209,40 +204,39 @@ void AliPHOSReconstructioner::Exec(Option_t *option)
 AliPHOSReconstructioner::~AliPHOSReconstructioner()
 {
   // Delete data members if any
-
 } 
 
 void AliPHOSReconstructioner::Print(Option_t * option)const {
   // Print reconstructioner data  
 
-  cout << "-----------------AliPHOSReconstructioner---------------" << endl ;
-  cout << " Reconstruction of the header file " <<GetTitle() << endl ;
-  cout << " with the following modules: " << endl ;
+  TString message ; 
+  message  = "-----------------AliPHOSReconstructioner---------------\n" ;
+  message += " Reconstruction of the header file %s\n" ;
+  message += " with the following modules:\n" ;
 
   if(fSDigitizer->IsActive()){
-    cout << "   (+)   " << fSDigitizer->GetName() << " to branch : " << fSDigitsBranch.Data() << endl ; 
-    cout << endl ;
+    message += "   (+)   %s to branch %s\n" ; 
   }
   if(fDigitizer->IsActive()){
-    cout << "   (+)   " << fDigitizer->GetName() << " to branch : " << fDigitsBranch.Data() << endl ;  
-    cout <<  endl ;
+    message += "   (+)   %s to branch %s\n" ; 
   }
   
   if(fClusterizer->IsActive()){
-    cout << "   (+)   " <<fClusterizer->GetName() << " to branch : " <<fRecPointBranch.Data()  << endl ;  
-    cout <<  endl ;
+    message += "   (+)   %s to branch %s\n" ;
   }
 
   if(fTSMaker->IsActive()){
-    cout << "   (+)   " << fTSMaker->GetName() << " to branch : " << fTSBranch.Data() << endl ;  
-    cout <<  endl ;
+    message += "   (+)   %s to branch %s\n" ; 
   }
-
 
   if(fPID->IsActive()){
-    cout << "   (+)   " << fPID->GetName() << " to branch : " <<fRecPartBranch.Data()  << endl ;  
-    cout <<  endl ;
+    message += "   (+)   %s to branch %s\n" ;  
   }
-
-
+  Info("Print", message.Data(), 
+       GetTitle(), 
+       fSDigitizer->GetName(), fSDigitsBranch.Data(), 
+       fDigitizer->GetName(), fDigitsBranch.Data() , 
+       fClusterizer->GetName(), fRecPointBranch.Data(), 
+       fTSMaker->GetName(), fTSBranch.Data() , 
+       fPID->GetName(), fRecPartBranch.Data() ) ; 
 }

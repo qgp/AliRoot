@@ -44,6 +44,8 @@ class AliGenPythia : public AliGenMC
     // select pt of hard scattering 
     virtual void    SetPtHard(Float_t ptmin = 0, Float_t ptmax = 1.e10)
 	{fPtHardMin = ptmin; fPtHardMax = ptmax; }
+    virtual void    SetYHard(Float_t ymin = -1.e10, Float_t ymax = 1.e10)
+	{fYHardMin = ymin; fYHardMax = ymax; }
     // set centre of mass energy
     virtual void    SetEnergyCMS(Float_t energy = 5500) {fEnergyCMS = energy;}
     // treat protons as inside nuclei
@@ -75,8 +77,25 @@ class AliGenPythia : public AliGenMC
     }
     
     // get cross section of process
-    virtual Float_t GetXsection() const {return fXsection;}      
-    virtual void    FinishRun();
+    virtual Float_t GetXsection() const {return fXsection;}
+    // Getters
+    virtual Process_t    GetProcess() {return fProcess;}
+    virtual StrucFunc_t  GetStrucFunc() {return fStrucFunc;}
+    virtual void         GetPtHard(Float_t& ptmin, Float_t& ptmax)
+	{ptmin = fPtHardMin; ptmax = fPtHardMax = ptmax;}
+    virtual Float_t      GetEnergyCMS() {return fEnergyCMS;}
+    virtual void         GetNuclei(Int_t&  a1, Int_t& a2)
+	{a1 = fNucA1; a2 = fNucA2;}
+    virtual void         GetJetEtaRange(Float_t& etamin, Float_t& etamax)
+	{etamin = fEtaMinJet; etamax = fEtaMaxJet;}
+    virtual void         GetJetPhiRange(Float_t& phimin, Float_t& phimax)
+	{phimin = fPhiMinJet*180./TMath::Pi(); phimax = fPhiMaxJet*180/TMath::Pi();}
+    virtual void         GetGammaEtaRange(Float_t& etamin, Float_t& etamax)
+	{etamin = fEtaMinGamma; etamax = fEtaMaxGamma;}
+    virtual void         GetGammaPhiRange(Float_t& phimin, Float_t& phimax)
+	{phimin = fPhiMinGamma*180./TMath::Pi(); phimax = fPhiMaxGamma*180./TMath::Pi();}
+    //
+    virtual void FinishRun();
     Bool_t CheckTrigger(TParticle* jet1, TParticle* jet2) const;
     
     // Assignment Operator
@@ -93,12 +112,19 @@ class AliGenPythia : public AliGenMC
     StrucFunc_t fStrucFunc;       //Structure Function
     Float_t     fEnergyCMS;       //Centre of mass energy
     Float_t     fKineBias;        //!Bias from kinematic selection
-    Int_t       fTrials;          //!Number of trials
+    Int_t       fTrials;          //!Number of trials for current event
+    Int_t       fTrialsRun;       //!Number of trials for run
+    Float_t     fQ;               //Mean Q
+    Float_t     fX1;              //Mean x1
+    Float_t     fX2;              //Mean x2
+    Int_t       fNev;             //Number of events 
     Int_t       fFlavorSelect;    //Heavy Flavor Selection
     Float_t     fXsection;        //Cross-section
     AliPythia   *fPythia;         //!Pythia 
     Float_t     fPtHardMin;       //lower pT-hard cut 
     Float_t     fPtHardMax;       //higher pT-hard cut
+    Float_t     fYHardMin;        //lower  y-hard cut 
+    Float_t     fYHardMax;        //higher y-hard cut
     Int_t       fNucA1;           //mass number nucleus side 1
     Int_t       fNucA2;           //mass number nucleus side 2
     Bool_t      fFullEvent;       //!Write Full event if true
@@ -130,9 +156,7 @@ class AliGenPythia : public AliGenMC
     // fCountMode = kCountTrackabless --> Only particles flagged for tracking
     //                                     are counted
     //
-
-    ClassDef(AliGenPythia,2) // AliGenerator interface to Pythia
-
+    ClassDef(AliGenPythia,3) // AliGenerator interface to Pythia
 };
 #endif
 

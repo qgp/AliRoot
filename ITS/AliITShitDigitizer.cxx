@@ -15,6 +15,12 @@
  
 /*
 $Log$
+Revision 1.1.4.1  2002/06/06 14:23:57  hristov
+Merged with v3-08-02
+
+Revision 1.2  2002/10/22 14:45:42  alibrary
+Introducing Riostream.h
+
 Revision 1.1  2002/03/15 17:25:54  nilsen
 Renaming of old hit based Digitizer to make room for new SDigit version.
 
@@ -29,7 +35,7 @@ the original Root Directory in function Compress1D. Now it uses gDirectory.
 */
 
 #include <stdlib.h>
-#include <iostream.h>
+#include <Riostream.h>
 #include <TObjArray.h>
 #include <TTree.h>
 #include <TBranch.h>

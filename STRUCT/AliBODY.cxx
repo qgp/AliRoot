@@ -15,6 +15,21 @@
 
 /*
 $Log$
+Revision 1.11  2002/10/14 14:57:39  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.8.12.1  2002/07/24 10:08:27  alibrary
+Updating VirtualMC
+
+Revision 1.10  2002/07/10 10:16:15  morsch
+Bigger volume for CRT.
+
+Revision 1.9  2002/06/20 15:33:13  morsch
+Larger BOX in case CRT is present.
+
+Revision 1.8  2000/10/02 21:28:15  fca
+Removal of useless dependecies via forward declarations
+
 Revision 1.7  2000/06/11 12:32:51  morsch
 Coding rule violations corrected
 
@@ -119,9 +134,19 @@ void AliBODY::CreateGeometry()
     dALIC[8]=0;
     dALIC[9]=2000;
     gMC->Gsvolu("ALIC","PGON",idtmed[1],dALIC,10);
+  } else if ( gAlice->GetModule("CRT")) {
+    //
+    // If the Cosmic Ray Trigger  is present we need a large box
+    // 
+    //
+    dALIC[0]=13000.;
+    dALIC[1]=5000.;
+    dALIC[2]=13000.;
+    gMC->Gsvolu("ALIC","BOX ",idtmed[1],dALIC,3);
+      
   } else {
     //
-    // If the ZDC is not present make just a BOX
+    // If the ZDC and CRT are not present make just a BOX
     //
     dALIC[0]=2000;
     dALIC[1]=2000;

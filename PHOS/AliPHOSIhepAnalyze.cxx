@@ -37,8 +37,6 @@
 
 // --- Standard library ---
 
-#include <iostream.h>
-
 // --- AliRoot header files ---
 
 #include "AliRunLoader.h"
@@ -114,14 +112,14 @@ void AliPHOSIhepAnalyze::AnalyzeCPV1(Int_t Nevents)
 
   const AliPHOSGeometry *  fGeom  = please->PHOSGeometry();
 
-  cout << "Start CPV Analysis-1. Resolutions, cluster multiplicity and lengths"<<endl;
+  Info("AnalyzeCPV1", "Start CPV Analysis-1. Resolutions, cluster multiplicity and lengths") ;
   for ( Int_t ievent=0; ievent<Nevents; ievent++) {  
     
     Int_t nTotalGen = 0;
     Int_t nChargedGen = 0;
 
     Int_t ntracks = gAlice->GetEvent(ievent);
-    cout<<" >>>>>>>Event "<<ievent<<".<<<<<<<"<<endl;
+    Info("AnalyzeCPV1", ">>>>>>>Event %d .<<<<<<<", ievent) ;
     
   /******************************************************************/
       TTree* treeH = please->TreeH();
@@ -134,7 +132,7 @@ void AliPHOSIhepAnalyze::AnalyzeCPV1(Int_t Nevents)
 
     // Get branch of CPV impacts
     if (! (branchCPVimpacts =treeH->GetBranch("PHOSCpvImpacts")) ) {
-      cout<<" Couldn't find branch PHOSCpvImpacts. Exit."<<endl;
+      Info("AnalyzeCPV1", "Couldn't find branch PHOSCpvImpacts. Exit.") ;
       return;
     }
  
@@ -241,10 +239,10 @@ void AliPHOSIhepAnalyze::AnalyzeCPV1(Int_t Nevents)
 	  gImpY = ygen;
 	}
       }
-      cout<<" Impact global (X,Z,Y) = "<<gImpX<<" "<<gImpZ<<" "<<gImpY<<endl;
-      cout<<" Impact local (X,Z) = "<<locImpX<<" "<<locImpZ<<endl;
-      cout<<" Reconstructed (X,Z) = "<<xrec<<" "<<zrec<<endl;
-      cout<<" dxmin "<<dxmin<<" dzmin "<<dzmin<<endl<<endl;
+      Info("AnalyzeCPV1", "Impact global (X,Z,Y) = %f %f %f", gImpX, gImpZ, gImpY);
+      Info("AnalyzeCPV1", "Impact local (X,Z) = %f %f", locImpX, locImpZ);
+      Info("AnalyzeCPV1", "Reconstructed (X,Z) = %f %f", xrec, zrec);
+      Info("AnalyzeCPV1", "dxmin %f dzmin %f", dxmin, dzmin);
       hDx  ->Fill(dxmin);
       hDz  ->Fill(dzmin);
 //        hDr  ->Fill(TMath::Sqrt(r2min));
@@ -254,9 +252,8 @@ void AliPHOSIhepAnalyze::AnalyzeCPV1(Int_t Nevents)
     }
     delete [] hitsPerModule;
 
-    cout<<"++++ Event "<<ievent<<": total "<<nTotalGen<<" impacts, "
-	<<nChargedGen<<" charged impacts and "<<please->CpvRecPoints()->GetEntries()
-	<<" rec. points."<<endl<<endl;
+    Info("AnalyzeCPV1", "++++ Event %d : total %d impacts, %d charged impacts and %d  rec. points.", 
+          ievent, nTotalGen, nChargedGen, please->CpvRecPoints()->GetEntries()) ;
   }
   // Save histograms
 
@@ -349,13 +346,14 @@ void AliPHOSIhepAnalyze::AnalyzeEMC1(Int_t Nevents)
 
   const AliPHOSGeometry *  fGeom  = please->PHOSGeometry();
 
-  cout << "Start EMC Analysis-1. Resolutions, cluster multiplicity and lengths"<<endl;
+  Info("AnalyzeCPV1", "Start EMC Analysis-1. Resolutions, cluster multiplicity and lengths");
   for ( Int_t ievent=0; ievent<Nevents; ievent++) {  
     
     Int_t nTotalGen = 0;
 
     Int_t ntracks = gAlice->GetEvent(ievent);
-    cout<<" >>>>>>>Event "<<ievent<<".<<<<<<<"<<endl;
+
+    Info("AnalyzeCPV1", " >>>>>>>Event %d .<<<<<<<", ievent) ;
 
     TTree* treeH = please->TreeH();
     if (treeH == 0x0)
@@ -364,9 +362,10 @@ void AliPHOSIhepAnalyze::AnalyzeEMC1(Int_t Nevents)
        return;
      }
 
+    
     // Get branch of EMC impacts
     if (! (branchEMCimpacts =treeH->GetBranch("PHOSEmcImpacts")) ) {
-      cout<<" Couldn't find branch PHOSEmcImpacts. Exit."<<endl;
+      Info("AnalyzeCPV1", " Couldn't find branch PHOSEmcImpacts. Exit.");
       return;
     }
  
@@ -467,10 +466,10 @@ void AliPHOSIhepAnalyze::AnalyzeEMC1(Int_t Nevents)
 	  gImpY = ygen;
 	}
       }
-      cout<<" Impact global (X,Z,Y) = "<<gImpX<<" "<<gImpZ<<" "<<gImpY<<endl;
-      cout<<" Impact local (X,Z) = "<<locImpX<<" "<<locImpZ<<endl;
-      cout<<" Reconstructed (X,Z) = "<<xrec<<" "<<zrec<<endl;
-      cout<<" dxmin "<<dxmin<<" dzmin "<<dzmin<<endl<<endl;
+      Info("AnalyzeCPV1", " Impact global (X,Z,Y) = %f %f %f", gImpX, gImpZ, gImpY);
+      Info("AnalyzeCPV1", " Impact local (X,Z) = %f %f", locImpX, locImpZ);
+      Info("AnalyzeCPV1", " Reconstructed (X,Z) = %f %f", xrec, zrec);
+      Info("AnalyzeCPV1", " dxmin %f dzmin %f", dxmin, dzmin) ;
       hDx  ->Fill(dxmin);
       hDz  ->Fill(dzmin);
 //        hDr  ->Fill(TMath::Sqrt(r2min));
@@ -480,8 +479,8 @@ void AliPHOSIhepAnalyze::AnalyzeEMC1(Int_t Nevents)
     }
     delete [] hitsPerModule;
 
-    cout<<"++++ Event "<<ievent<<": total "<<nTotalGen<<" impacts, "
-	<<please->EmcRecPoints()->GetEntriesFast()<<" Emc rec. points."<<endl<<endl;
+    Info("AnalyzeCPV1", "++++ Event %d : total  %d impacts,  %d Emc rec. points.", 
+	 ievent, nTotalGen, please->EmcRecPoints()->GetEntriesFast()) ; 
 
   }
   // Save histograms
@@ -597,7 +596,7 @@ void AliPHOSIhepAnalyze::AnalyzeCPV2(Int_t Nevents)
           
       for (Int_t itrack=0; itrack<ntracks; itrack++) {
 	branchCPVimpacts ->SetAddress(&fCpvImpacts);
-	cout<<" branchCPVimpacts ->SetAddress(&fCpvImpacts) OK."<<endl;
+	Info("AnalyzeCPV1", " branchCPVimpacts ->SetAddress(&fCpvImpacts) OK.");
 	branchCPVimpacts ->GetEntry(itrack,0);
 
 	for (Int_t iModule=0; iModule < nOfModules; iModule++) {
@@ -630,7 +629,7 @@ void AliPHOSIhepAnalyze::AnalyzeCPV2(Int_t Nevents)
   		Float_t dz = GenHit1->Z() - GenHit2->Z();
 		Float_t dr = TMath::Sqrt(dx*dx + dz*dz);
 		hDrij_cpv_g->Fill(dr);
-//      		cout<<"(dx dz dr): "<<dx<<" "<<dz<<" "<<endl;
+//      		Info("AnalyzeCPV1", "(dx dz dr): %f %f", dx, dz);
 	      }
 	  }
       }
@@ -669,7 +668,8 @@ void AliPHOSIhepAnalyze::AnalyzeCPV2(Int_t Nevents)
 	    }	
 	}
       
-      cout<<" Event "<<nev<<". Total of "<<ngen_cpv<<" hits, "<<nrec_cpv<<" rec.points."<<endl;
+      Info("AnalyzeCPV1", " Event %d . Total of %d hits, %d rec.points.", 
+	   nev, ngen_cpv, nrec_cpv) ; 
     
       delete [] hitsPerModule;
 
@@ -725,7 +725,8 @@ void AliPHOSIhepAnalyze::CpvSingle(Int_t nevents)
 	hNrpX->Fill(rpMultX);
 	hNrpZ->Fill(rpMultZ);
 	hChi2->Fill(((AliPHOSEvalRecPoint*)pt)->Chi2Dof());
-	cout<<"+++++ Event "<<ievent<<". (Mult,MultX,MultZ) = "<<rpMult<<" "<<rpMultX<<" "<<rpMultZ<<"+++++"<<endl;
+	Info("AnalyzeCPV1", "+++++ Event %d . (Mult,MultX,MultZ) = %d %d %d +++++", 
+	     ievent, rpMult, rpMultX, rpMultZ) ;
 
       }
 
@@ -822,7 +823,7 @@ void AliPHOSIhepAnalyze::HitsCPV(TClonesArray& hits, Int_t nev)
           
   for (Int_t itrack=0; itrack<ntracks; itrack++) {
     branchCPVimpacts ->SetAddress(&fCpvImpacts);
-    cout<<" branchCPVimpacts ->SetAddress(&fCpvImpacts) OK."<<endl;
+    Info("AnalyzeCPV1", " branchCPVimpacts ->SetAddress(&fCpvImpacts) OK.");
     branchCPVimpacts ->GetEntry(itrack,0);
 
     for (Int_t iModule=0; iModule < nOfModules; iModule++) {
@@ -852,35 +853,35 @@ void AliPHOSIhepAnalyze::HitsCPV(TClonesArray& hits, Int_t nev)
 
 //    Int_t ntracks = gAlice->GetEvent(ievent);
 //    Int_t nOfModules = fGeom->GetNModules();
-//    cout<<" Tracks: "<<ntracks<<"  Modules: "<<nOfModules<<endl;
+//    Info("AnalyzeCPV1", " Tracks: "<<ntracks<<"  Modules: "<<nOfModules);
 
 //    if (! (branchCPVimpacts =gAlice->TreeH()->GetBranch("PHOSCpvImpacts")) )  return;
 
 //    for (Int_t itrack=0; itrack<ntracks; itrack++) {
 //      branchCPVimpacts ->SetAddress(&fCpvImpacts);
-//      cout<<" branchCPVimpacts ->SetAddress(&fCpvImpacts) OK."<<endl;
+//      Info("AnalyzeCPV1", " branchCPVimpacts ->SetAddress(&fCpvImpacts) OK.");
 //      branchCPVimpacts ->GetEntry(itrack,0);
-//      cout<<" branchCPVimpacts ->GetEntry(itrack,0) OK."<<endl;
+//      Info("AnalyzeCPV1", " branchCPVimpacts ->GetEntry(itrack,0) OK.");
     
 //      for (Int_t iModule=0; iModule < nOfModules; iModule++) {
 //        impacts = (TClonesArray *)fCpvImpacts->At(iModule);
-//        cout<<" fCpvImpacts->At(iModule) OK."<<endl;
+//        Info("AnalyzeCPV1", " fCpvImpacts->At(iModule) OK.");
 //        // Do loop over impacts in the module
 //        for (Int_t iImpact=0; iImpact<impacts->GetEntries(); iImpact++) {
 //  	impact=(AliPHOSImpact*)impacts->At(iImpact);
 //  	impact->Print();
 //  	if(IsCharged(impact->GetPid()))
 //  	  {
-//  	    cout<<" Add charged hit..";
+//  	    Info("AnalyzeCPV1", " Add charged hit..";
 //  	    new(hits[hits.GetEntriesFast()]) AliPHOSImpact(*impact);
-//  	    cout<<"done."<<endl;
+//  	    Info("AnalyzeCPV1", "done.");
 //  	  }
 //        }
 //      }
 //      fCpvImpacts->Clear();
 //    }
 
-//    cout<<" PHOS event "<<ievent<<": "<<hits.GetEntries()<<" charged CPV hits."<<endl;
+//    Info("AnalyzeCPV1", " PHOS event "<<ievent<<": "<<hits.GetEntries()<<" charged CPV hits.");
 
 }
 
@@ -903,13 +904,13 @@ void AliPHOSIhepAnalyze::HitsCPV(TClonesArray& hits, Int_t nev)
 //  	}
 //      }
 
-//    cout<<" PHOS module "<<iModule<<": "<<hits->GetEntries()<<" charged CPV hits."<<endl;
+//    Info("AnalyzeCPV1", " PHOS module "<<iModule<<": "<<hits->GetEntries()<<" charged CPV hits.");
 //  }
 
 Bool_t AliPHOSIhepAnalyze::IsCharged(Int_t pdg_code)
 {
   // For HIJING
-  cout<<" pdg_code "<<pdg_code<<endl;
+  Info("AnalyzeCPV1", "pdg_code %d", pdg_code);
   if(pdg_code==211 || pdg_code==-211 || pdg_code==321 || pdg_code==-321 || pdg_code==11 || pdg_code==-11 || pdg_code==2212 || pdg_code==-2212) return kTRUE;
   else
     return kFALSE;

@@ -15,6 +15,15 @@
 
 /*
  $Log$
+ Revision 1.8.6.1  2002/06/06 14:23:56  hristov
+ Merged with v3-08-02
+
+ Revision 1.10  2002/10/14 14:57:00  hristov
+ Merging the VirtualMC branch to the main development branch (HEAD)
+
+ Revision 1.8.8.1  2002/06/10 17:51:14  hristov
+ Merged with v3-08-02
+
  Revision 1.9  2002/05/05 21:10:10  nilsen
  In Distructor, delete fResponse. Since AliITSDetType is supposed to own it
  it should delete it.

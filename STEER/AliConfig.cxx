@@ -23,11 +23,32 @@
 
 /*
 $Log$
+Revision 1.3.6.3  2002/10/09 09:23:55  hristov
+New task hierarchy, bug corrections, new development (P.Skowronski)
+
 Revision 1.3.6.2  2002/06/06 14:18:33  hristov
 Merged with v3-08-02
 
 Revision 1.3.6.1  2002/05/31 09:37:59  hristov
 First set of changes done by Piotr
+
+Revision 1.9  2002/10/29 14:59:45  alibrary
+Some more code cleanup
+
+Revision 1.8  2002/10/29 14:26:49  hristov
+Code clean-up (F.Carminati)
+
+Revision 1.7  2002/10/23 07:43:00  alibrary
+Introducing some effective C++ suggestions
+
+Revision 1.6  2002/10/22 15:02:15  alibrary
+Introducing Riostream.h
+
+Revision 1.5  2002/10/14 14:57:32  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.3.8.1  2002/06/10 14:43:06  hristov
+Merged with v3-08-02
 
 Revision 1.4  2002/05/27 14:26:59  hristov
 New folder for track references added
@@ -46,13 +67,20 @@ New files for folders and Stack
 //Add(AliDetector*) calls Add(AliModule*) as AliDetector is a AliModule as well
 // and should be listed in module list
 
+#include <Riostream.h>
+
+#include <TROOT.h>
+#include <TSystem.h>
+#include <TInterpreter.h>
+#include <TDatabasePDG.h>
+#include <TFolder.h>
+#include <TTask.h>
+#include <TObjString.h>
+#include <TString.h>
+
 #include "AliConfig.h"
 #include "AliDetector.h"
-#include "TObjString.h" 
-#include "TString.h"
-#include "TTask.h" 
 #include "AliGenerator.h" 
-#include "AliMC.h" 
 
 enum 
  {
@@ -73,7 +101,6 @@ enum
    kDetFolderLast
  };
 ClassImp(AliConfig)
-
 
 AliConfig* AliConfig::fInstance = 0;
 
@@ -124,24 +151,63 @@ AliConfig* AliConfig::Instance ()
   //
   // Instance method for singleton class
   //
-   if(fInstance == 0) {
+   if(fInstance == 0) 
+    {
      fInstance = new AliConfig (fgkTopFolderName,"Alice data exchange board");
     }
    return fInstance;
 }
 
-
-AliConfig::AliConfig(const char *name, const char *title)
+//____________________________________________________________________________
+AliConfig::AliConfig():
+  fTopFolder(0x0),
+  fTaskFolder(0x0),
+  fConstFolder(0x0),
+  fDetectorTask(0x0),
+  fDetectorFolder(0x0)
 {
   //
-  // Constructor
+  // Default constructor, mainly to keep coding conventions
   //
+  fInstance=0;//never mind, its going to exit in next step
+  Fatal("ctor","Constructor should not be called for a singleton\n");
+}
+//____________________________________________________________________________
+
+AliConfig::AliConfig(const AliConfig& conf):
+  fTopFolder(0x0),
+  fTaskFolder(0x0),
+  fConstFolder(0x0),
+  fDetectorTask(0x0),
+  fDetectorFolder(0x0)
+{
   //
-  fInstance=this;
-  SetName(name) ; 
-  SetTitle(title) ; 
-  
-  fDetectorFolder    =  new TString[kDetFolderLast+1];
+  // Copy constructor, mainly to keep coding conventions
+  //
+  fInstance=0;
+    
+  Fatal("copy ctor",
+   "Copy constructor should not be called for a singleton\n");
+}
+//____________________________________________________________________________
+
+AliConfig::AliConfig(const char *name, const char *title): 
+  TNamed(name,title), 
+  fTopFolder(gROOT->GetRootFolder()->AddFolder(name,title)),
+  fTaskFolder(fTopFolder->AddFolder(fgkTasksFolderName, "ALICE Tasks")),
+  fConstFolder(0x0),
+  fDetectorTask(0x0),
+  fDetectorFolder(new TString[kDetFolderLast+1])
+{
+// Constructor
+
+  //Main AliRoot Folder
+  if (fTopFolder == 0x0)
+   {
+     Fatal("AliConfig(const char*, const char*)","Can not create Top Alice Folder.");
+     return;//never reached
+   }
+  fTopFolder->SetOwner();
   
   fDetectorFolder[kDetFolderData] = fgkDataFolderName;
   fDetectorFolder[kDetFolderCalibration] = fgkConditionsFolderName+"/"+fgkCalibrationFolderName;
@@ -149,24 +215,13 @@ AliConfig::AliConfig(const char *name, const char *title)
   fDetectorFolder[kDetFolderQA] = fgkConditionsFolderName+"/"+fgkQAFolderName;
   fDetectorFolder[kDetFolderLast] = "";
   
-//Main AliRoot Folder
-  fTopFolder = gROOT->GetRootFolder()->AddFolder(name,title);
-  if (fTopFolder == 0x0)
-   {
-     Fatal("AliConfig(const char*, const char*)","Can not create Top Alice Folder.");
-     return;//never reached
-   }
-  fTopFolder->SetOwner();
   gROOT->GetListOfBrowsables()->Add(fTopFolder, name);
 
-  
   //Constants folder
   TFolder *fConstFolder = fTopFolder->AddFolder (fgkConstantsFolderName, "Constant parameters");
   fConstFolder->AddFolder("DatabasePDG", "PDG database");
   
-  
   // Add the tasks to //Folders
-  fTaskFolder = fTopFolder->AddFolder(fgkTasksFolderName, "ALICE Tasks");
   
   TTask * qa = new TTask(fgkQATaskName, "Alice QA tasks");
   fTaskFolder->Add(qa); 
@@ -187,8 +242,7 @@ AliConfig::AliConfig(const char *name, const char *title)
   fDetectorTask[kDetTaskTracker] = fgkTrackerTaskName;
   fDetectorTask[kDetTaskLast] = "";
 
-  fTopFolder->SetOwner();
-//  BuildEventFolder(fgkDefaultEventFolderName,"Folder with event");
+  fInstance=this;
 }
 
 //____________________________________________________________________________

@@ -7,11 +7,12 @@
 # IRST coding rule check
 export IRST_INSTALLDIR=$(ALICE)/local/IRST
 export CLASSPATH=$(IRST_INSTALLDIR)
-CODE_CHECK=java rules.RuleChecker
+CODE_CHECK=java rules.ALICE.ALICERuleChecker
 REV_ENG=$(IRST_INSTALLDIR)/scripts/revEng.sh
 # This is to avoid a problem with the declaration of .SECONDARY in the 
 # GeneralMacros
 CHECKS = none
+
 
 $(ALICE_ROOT)/include/%.h : %.h
 	@[ -d $(dir $@) ] || mkdir $(dir $@)
@@ -21,9 +22,9 @@ tgt_$(ALICE_TARGET)/%Cint.o : %Cint.cxx
 	@echo $*Cint.cxx
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 ifeq ($(CXXVERBOSE),)
-	@$(CXX) $(filter-out -O%, $(CXXFLAGS)) -c $*Cint.cxx -o tgt_$(ALICE_TARGET)/$*Cint.o
+	@$(CXX) $(filter-out -prof_gen, $(filter-out -O%, $(CXXFLAGS))) -O0 -c $*Cint.cxx -o tgt_$(ALICE_TARGET)/$*Cint.o
 else
-	$(CXX) $(filter-out -O%, $(CXXFLAGS)) -c $*Cint.cxx -o tgt_$(ALICE_TARGET)/$*Cint.o
+	$(CXX) $(filter-out -prof_gen, $(filter-out -O%, $(CXXFLAGS))) -O0 -c $*Cint.cxx -o tgt_$(ALICE_TARGET)/$*Cint.o
 endif
 
 tgt_$(ALICE_TARGET)/%.o : %.cxx
@@ -77,16 +78,19 @@ ROOTLIBS      = $(shell $(ROOTSYS)/bin/root-config --glibs) -lMinuit -lHtml
 ROOTLIBS      := $(filter-out -lNew,$(ROOTLIBS))
 ROOTLIBS      := $(filter-out -lThread,$(ROOTLIBS))
 ROOTLIBS      := $(filter-out -lpthread,$(ROOTLIBS))
+ROOTLIBS      += -lMC 
 
 # Alice libraries
 
-ALILIBS	      = -L$(LIBDIR) -lMUON -lTPC -lPMD -lTRD -lFMD -lTOF \
-                -lITS -lPHOS -lCASTOR -lRICH -lZDC -lSTRUCT \
-                -lTGeant3 -lSTART -lEVGEN -lSTEER -lCONTAINERS
+# without geant3
+ALILIBS	= -L$(LIBDIR) -L$(ALICE)/geant3/lib/tgt_Linux \
+  -lMUON -lTPC -lPMD -lTRD -lFMD -lTOF \
+  -lPHOS -lRICH -lZDC -lSTRUCT \
+	          -lSTART -lEVGEN -lSTEER -lCONTAINERS
+#-lEMCAL 
 
 # CERN Libraries 
 
-CLIBS         = -lminicern
-
+CLIBS         = -lmicrocern
 G3LIBS        = -lgeant321
 

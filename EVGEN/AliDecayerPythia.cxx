@@ -15,9 +15,20 @@
 
 /*
 $Log$
+Revision 1.15  2002/10/14 14:55:35  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
 
-Revision 1.10.4.1  2002/05/31 09:37:55  hristov
-First set of changes done by Piotr
+Revision 1.14  2002/10/11 10:05:18  morsch
+pdg code for psi' corrected.
+
+Revision 1.10.6.3  2002/10/10 16:40:08  hristov
+Updating VirtualMC to v3-09-02
+
+Revision 1.13  2002/09/16 10:40:48  morsch
+Use correct pdg codes for Upsilon(2S) = 100553 and Upsilon(3S) = 200553.
+
+Revision 1.12  2002/06/05 14:05:46  morsch
+Decayer option kPhiKK for forced phi->K+K- decay added.
 
 Revision 1.11  2002/04/26 10:32:59  morsch
 Option kNoDecayHeavy added.
@@ -139,7 +150,7 @@ void AliDecayerPythia::Decay(Int_t idpart, TLorentzVector* p)
     
     Lu1Ent(0, idpart, energy, theta, phi);
     fPythia->GetPrimaries();
-//    fPythia->Pylist(1);
+    fPythia->Pylist(1);
     
 }
 
@@ -155,7 +166,7 @@ void AliDecayerPythia::ForceDecay()
 {
 // Force a particle decay mode
     Decay_t decay=fDecay;
-    
+    fPythia->SetMSTJ(21,2);
     if (decay == kNoDecayHeavy) return;
 
 //
@@ -184,10 +195,10 @@ void AliDecayerPythia::ForceDecay()
 	ForceParticleDecay(  223,13,2); // omega
 	ForceParticleDecay(  333,13,2); // phi
 	ForceParticleDecay(  443,13,2); // J/Psi
-	ForceParticleDecay(20443,13,2); // Psi'
+	ForceParticleDecay(100443,13,2); // Psi'
 	ForceParticleDecay(  553,13,2); // Upsilon
-	ForceParticleDecay(20553,13,2); // Upsilon'
-	ForceParticleDecay(30553,13,2); // Upsilon''
+	ForceParticleDecay(100553,13,2); // Upsilon'
+	ForceParticleDecay(200553,13,2); // Upsilon''
 	break;
     case kSemiElectronic:
 	ForceParticleDecay(  411,11,1); // D+/-     
@@ -210,9 +221,10 @@ void AliDecayerPythia::ForceDecay()
 	ForceParticleDecay(  221,11,2); // eta
 	ForceParticleDecay(  223,11,2); // omega
 	ForceParticleDecay(  443,11,2); // J/Psi
-	ForceParticleDecay(30443,11,2); // Psi'
+	ForceParticleDecay(100443,11,2); // Psi'
 	ForceParticleDecay(  553,11,2); // Upsilon
-	ForceParticleDecay(30553,11,2); // Upsilon'
+	ForceParticleDecay(100553,11,2); // Upsilon'
+	ForceParticleDecay(200553,11,2); // Upsilon''
 	break;
     case kBJpsiDiMuon:
 	ForceParticleDecay(  511,443,1); // B0     
@@ -226,7 +238,7 @@ void AliDecayerPythia::ForceDecay()
 	ForceParticleDecay(  521,30443,1); // B+/-     
 	ForceParticleDecay(  531,30443,1); // B_s     
 	ForceParticleDecay( 5122,30443,1); // Lambda_b 
-	ForceParticleDecay(30443,13,2);    // Psi'   
+	ForceParticleDecay(100443,13,2);    // Psi'   
 	break;
     case kBJpsiDiElectron:
 	ForceParticleDecay(  511,443,1); // B0     
@@ -240,7 +252,7 @@ void AliDecayerPythia::ForceDecay()
 	ForceParticleDecay(  521,30443,1); // B+/-     
 	ForceParticleDecay(  531,30443,1); // B_s     
 	ForceParticleDecay( 5122,30443,1); // Lambda_b 
-	ForceParticleDecay(30443,11,2);    // Psi'   
+	ForceParticleDecay(100443,11,2);    // Psi'   
 	break;
     case kPiToMu:
 	ForceParticleDecay(211,13,1); // pi->mu     
@@ -251,11 +263,16 @@ void AliDecayerPythia::ForceDecay()
     case kHadronicD:
 	ForceHadronicD();
 	break;
+    case kPhiKK:
+	ForceParticleDecay(333,321,2); // Phi->K+K-
+	break;
     case kOmega:
 	ForceOmega();
     case kAll:
 	break;
     case kNoDecay:
+	fPythia->SetMSTJ(21,0);
+	break;
     case kNoDecayHeavy:
 	break;
     }

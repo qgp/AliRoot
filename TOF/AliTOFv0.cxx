@@ -15,6 +15,24 @@
 
 /*
 $Log$
+Revision 1.29  2002/10/22 14:26:28  alibrary
+Introducing Riostream.h
+
+Revision 1.28  2002/10/14 14:57:42  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.25.6.4  2002/10/11 10:56:40  hristov
+Updating VirtualMC to v3-09-02
+
+Revision 1.27  2002/07/24 16:13:56  vicinanz
+Fixed bub in BuildGeometry
+
+Revision 1.26  2002/05/08 13:24:50  vicinanz
+AliTOFanalyzeMatching.C macro added and minor changes to the AliTOF code
+
+Revision 1.25  2001/11/22 11:22:51  hristov
+Updated version of TOF digitization, N^2 problem solved (J.Chudoba)
+
 Revision 1.23  2001/09/27 10:39:20  vicinanz
 SDigitizer and Merger added
 
@@ -63,9 +81,7 @@ Introduction of the Copyright and cvs Log
 */
 
 ///////////////////////////////////////////////////////////////////////////////
-//                                                                           //
-//  Time Of Flight: design of C.Williams                                     //
-//									     //
+//
 //  This class contains the functions for version 0 of the Time Of Flight    //
 //  detector.                                                                //
 //
@@ -92,7 +108,7 @@ Introduction of the Copyright and cvs Log
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <iostream.h>
+#include <Riostream.h>
 #include <stdlib.h>
 
 #include "AliTOFv0.h"
@@ -147,10 +163,10 @@ void AliTOFv0::BuildGeometry()
   //
   TNode *node, *top;
   const int kColorTOF  = 27;
-
+  
   // Find top TNODE
   top = gAlice->GetGeometry()->GetNode("alice");
-
+  
   // Position the different copies
   const Float_t krTof  =(fRmax+fRmin)/2;
   const Float_t khTof  = fRmax-fRmin;
@@ -158,65 +174,69 @@ void AliTOFv0::BuildGeometry()
   const Float_t kPi   = TMath::Pi();
   const Float_t kangle = 2*kPi/kNTof;
   Float_t ang;
-
+  
+  // define offset for nodes
+  Float_t zOffsetC = fZtof - fZlenC*0.5;
+  Float_t zOffsetB = fZtof - fZlenC - fZlenB*0.5;
+  Float_t zOffsetA = 0.;
   // Define TOF basic volume
   
   char nodeName0[7], nodeName1[7], nodeName2[7]; 
   char nodeName3[7], nodeName4[7], rotMatNum[7];
-
+  
   new TBRIK("S_TOF_C","TOF box","void",
-            120*0.5,khTof*0.5,fZlenC*0.5);
+            fStripLn*0.5,khTof*0.5,fZlenC*0.5);
   new TBRIK("S_TOF_B","TOF box","void",
-            120*0.5,khTof*0.5,fZlenB*0.5);
+            fStripLn*0.5,khTof*0.5,fZlenB*0.5);
   new TBRIK("S_TOF_A","TOF box","void",
-            120*0.5,khTof*0.5,fZlenA*0.5);
-
+            fStripLn*0.5,khTof*0.5,fZlenA*0.5);
+  
   for (Int_t nodeNum=1;nodeNum<19;nodeNum++){
-     
-      if (nodeNum<10) {
-           sprintf(rotMatNum,"rot50%i",nodeNum);
-           sprintf(nodeName0,"FTO00%i",nodeNum);
-           sprintf(nodeName1,"FTO10%i",nodeNum);
-           sprintf(nodeName2,"FTO20%i",nodeNum);
-           sprintf(nodeName3,"FTO30%i",nodeNum);
-           sprintf(nodeName4,"FTO40%i",nodeNum);
-      }
-      if (nodeNum>9) {
-           sprintf(rotMatNum,"rot5%i",nodeNum);
-           sprintf(nodeName0,"FTO0%i",nodeNum);
-           sprintf(nodeName1,"FTO1%i",nodeNum);
-           sprintf(nodeName2,"FTO2%i",nodeNum);
-           sprintf(nodeName3,"FTO3%i",nodeNum);
-           sprintf(nodeName4,"FTO4%i",nodeNum);
-      }
- 
-      new TRotMatrix(rotMatNum,rotMatNum,90,-20*nodeNum,90,90-20*nodeNum,0,0);
-      ang = (4.5-nodeNum) * kangle;
-
-      top->cd();
-      node = new TNode(nodeName0,nodeName0,"S_TOF_C",krTof*TMath::Cos(ang),krTof*TMath::Sin(ang),299.15,rotMatNum);
-      node->SetLineColor(kColorTOF);
-      fNodes->Add(node); 
-
-      top->cd(); 
-      node = new TNode(nodeName1,nodeName1,"S_TOF_C",krTof*TMath::Cos(ang),krTof*TMath::Sin(ang),-299.15,rotMatNum);
-      node->SetLineColor(kColorTOF);
-      fNodes->Add(node); 
-
-      top->cd();
-      node = new TNode(nodeName2,nodeName2,"S_TOF_B",krTof*TMath::Cos(ang),krTof*TMath::Sin(ang),146.45,rotMatNum);
-      node->SetLineColor(kColorTOF);
-      fNodes->Add(node); 
-
-      top->cd();
-      node = new TNode(nodeName3,nodeName3,"S_TOF_B",krTof*TMath::Cos(ang),krTof*TMath::Sin(ang),-146.45,rotMatNum);
-      node->SetLineColor(kColorTOF);
-      fNodes->Add(node); 
-
-      top->cd();
-      node = new TNode(nodeName4,nodeName4,"S_TOF_A",krTof*TMath::Cos(ang),krTof*TMath::Sin(ang),0.,rotMatNum);
-      node->SetLineColor(kColorTOF);
-      fNodes->Add(node); 
+    
+    if (nodeNum<10) {
+      sprintf(rotMatNum,"rot50%i",nodeNum);
+      sprintf(nodeName0,"FTO00%i",nodeNum);
+      sprintf(nodeName1,"FTO10%i",nodeNum);
+      sprintf(nodeName2,"FTO20%i",nodeNum);
+      sprintf(nodeName3,"FTO30%i",nodeNum);
+      sprintf(nodeName4,"FTO40%i",nodeNum);
+    }
+    if (nodeNum>9) {
+      sprintf(rotMatNum,"rot5%i",nodeNum);
+      sprintf(nodeName0,"FTO0%i",nodeNum);
+      sprintf(nodeName1,"FTO1%i",nodeNum);
+      sprintf(nodeName2,"FTO2%i",nodeNum);
+      sprintf(nodeName3,"FTO3%i",nodeNum);
+      sprintf(nodeName4,"FTO4%i",nodeNum);
+    }
+    
+    new TRotMatrix(rotMatNum,rotMatNum,90,-20*nodeNum,90,90-20*nodeNum,0,0);
+    ang = (4.5-nodeNum) * kangle;
+    
+    top->cd();
+    node = new TNode(nodeName0,nodeName0,"S_TOF_C",krTof*TMath::Cos(ang),krTof*TMath::Sin(ang),zOffsetC,rotMatNum);
+    node->SetLineColor(kColorTOF);
+    fNodes->Add(node); 
+    
+    top->cd(); 
+    node = new TNode(nodeName1,nodeName1,"S_TOF_C",krTof*TMath::Cos(ang),krTof*TMath::Sin(ang),-zOffsetC,rotMatNum);
+    node->SetLineColor(kColorTOF);
+    fNodes->Add(node); 
+    
+    top->cd();
+    node = new TNode(nodeName2,nodeName2,"S_TOF_B",krTof*TMath::Cos(ang),krTof*TMath::Sin(ang),zOffsetB,rotMatNum);
+    node->SetLineColor(kColorTOF);
+    fNodes->Add(node); 
+    
+    top->cd();
+    node = new TNode(nodeName3,nodeName3,"S_TOF_B",krTof*TMath::Cos(ang),krTof*TMath::Sin(ang),-zOffsetB,rotMatNum);
+    node->SetLineColor(kColorTOF);
+    fNodes->Add(node); 
+    
+    top->cd();
+    node = new TNode(nodeName4,nodeName4,"S_TOF_A",krTof*TMath::Cos(ang),krTof*TMath::Sin(ang),zOffsetA,rotMatNum);
+    node->SetLineColor(kColorTOF);
+    fNodes->Add(node); 
   } // end loop on nodeNum
 }
 
@@ -479,7 +499,7 @@ void AliTOFv0::TOFpc(Float_t xtof, Float_t ytof, Float_t zlenC,
   
   Float_t t = zFLTC+zFLTB+zFLTA*0.5+ 2*db;//Half Width of Barrel
 
-  Float_t gap  = fGapA; //cm  distance between the strip axis
+  Float_t gap  = fGapA+0.5; //cm  updated distance between the strip axis
   Float_t zpos = 0;
   Float_t ang  = 0;
   Int_t i=1,j=1;
@@ -577,8 +597,10 @@ void AliTOFv0::TOFpc(Float_t xtof, Float_t ytof, Float_t zlenC,
      ang *= kRaddeg;
      AliMatrix (idrotm[nrot], 90., 0., 90.-ang,90.,ang, 270.);
      ang /= kRaddeg;
-     ycoor = -hTof*0.5+ kspace ; //2 cm over front plate
-     ycoor += (1-(upDown+1)/2)*gap;
+     Float_t deltaSpaceinB=-0.5; // [cm] to avoid overlaps with the end of freon frame
+     Float_t deltaGapinB=0.5;    // [cm] to avoid overlaps in between initial strips
+     ycoor = -hTof*0.5+ kspace+deltaSpaceinB ; //2 cm over front plate
+     ycoor += (1-(upDown+1)/2)*(gap+deltaGapinB);
      zcoor = zpos+(zFLTA*0.5+zFLTB*0.5+db); // Moves to the system of the modulus FLTB
      gMC->Gspos("FSTR",i, "FLTB", 0., ycoor, zcoor,idrotm[nrot], "ONLY");
 
@@ -592,6 +614,9 @@ void AliTOFv0::TOFpc(Float_t xtof, Float_t ytof, Float_t zlenC,
 
   ycoor = -hTof*0.5+ kspace ; //2 cm over front plate
   zpos = zpos - zSenStrip/TMath::Cos(ang);
+  // this avoid overlaps in between outer strips in plate B
+  Float_t deltaMovingUp=0.8;    // [cm]
+  Float_t deltaMovingDown=-0.5; // [cm]
 
   do {
      ang = atan(zpos/radius);
@@ -599,7 +624,8 @@ void AliTOFv0::TOFpc(Float_t xtof, Float_t ytof, Float_t zlenC,
      AliMatrix (idrotm[nrot], 90., 0., 90.-ang,90.,ang, 270.);
      ang /= kRaddeg;
      zcoor = zpos+(zFLTB/2+zFLTA/2+db);
-     gMC->Gspos("FSTR",i, "FLTB", 0., ycoor, zcoor,idrotm[nrot], "ONLY");
+     gMC->Gspos("FSTR",i, "FLTB", 0., ycoor+deltaMovingDown+deltaMovingUp, zcoor,idrotm[nrot], "ONLY");
+     deltaMovingUp+=0.8; // update delta moving toward the end of the plate
      zpos = zpos - zSenStrip/TMath::Cos(ang);
      printf("%f,  St. %2i, Pl.4 ",ang*kRaddeg,i); 
      printf("y = %f,  z = %f, zpos = %f \n",ycoor,zcoor,zpos);
@@ -616,7 +642,8 @@ void AliTOFv0::TOFpc(Float_t xtof, Float_t ytof, Float_t zlenC,
 
   nrot = 0;
   i=0;
-  ycoor= -hTof*0.5+kspace+gap;
+  Float_t deltaGap=-2.5; // [cm] update distance from strip center and plate
+  ycoor= -hTof*0.5+kspace+gap+deltaGap;
 
   do {
      i++;

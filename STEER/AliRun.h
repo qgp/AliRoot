@@ -5,48 +5,51 @@
 
 /* $Id$ */
 
-class TBrowser;
-class TList;
-class TTree;
-class TBranch;
-class TGeometry;
-class TDatabasePDG;
-class TRandom;
-class TParticle;
-class TFile;
-#include <TArrayI.h>
-#include "TClonesArray.h"
+#include <TClonesArray.h>
 #include <TArrayF.h>
+#include <TArrayI.h>
 #include <TStopwatch.h>
-#include "TNamed.h"
-#include "AliRunLoader.h"
+#include <TVirtualMCApplication.h>
+class TBranch;
+class TBrowser;
+class TDatabasePDG;
+class TFile;
+class TGeometry;
+class TList;
+class TParticle;
+class TRandom;
+class TTree;
 
-class AliDetector;
-class AliModule;
-class AliMagF;
-class AliMC;
-class AliLego;
-class AliDisplay;
-class AliLegoGenerator;
-class AliHeader;
-class AliGenerator;
-class AliLegoGenerator;
+#include "AliMC.h"
 #include "AliMCProcess.h"
-class AliMCQA;
-class AliStack;
+#include "AliRunLoader.h"
+class AliDetector;
+class AliDisplay;
 class AliGenEventHeader;
+class AliGenerator;
+class AliHeader;
+class AliLego;
+class AliLegoGenerator;
+class AliLegoGenerator;
+class AliMCQA;
+class AliMagF;
+class AliModule;
+class AliStack;
 
 
 enum {kKeepBit=1, kDaughtersBit=2, kDoneBit=4};
 
 
-class AliRun : public TNamed {
+class AliRun : public TVirtualMCApplication {
 public:
    // Creators - distructors
    AliRun();
    AliRun(const char *name, const char *title);
+   AliRun(const AliRun &arun);
    virtual ~AliRun();
 
+   AliRun& operator = (const AliRun &arun) 
+     {arun.Copy(*this); return (*this);}
    virtual  void  AddHit(Int_t id, Int_t track, Int_t *vol, Float_t *hits) const;
    virtual  void  AddDigit(Int_t id, Int_t *tracks, Int_t *digits) const;
    virtual  void  AddHitList(TCollection *hitList) {fHitLists->Add(hitList);}
@@ -62,11 +65,6 @@ public:
    virtual  void  DumpPart (Int_t i) const;
    virtual  void  DumpPStack () const;
    virtual AliMagF *Field() const {return fField;}
-   virtual  void  PreTrack();
-   virtual  void  PostTrack();
-   virtual  void  FinishPrimary();
-   virtual  void  BeginPrimary();
-   virtual  void  FinishEvent();
    virtual  void  FinishRun();
    virtual  void  FlagTrack(Int_t track);
    void           AddEnergyDeposit(Int_t id, Float_t edep) 
@@ -93,9 +91,6 @@ public:
     {return fConfigFunction.Data();}
    TGeometry     *GetGeometry();
    virtual  void  SetGenEventHeader(AliGenEventHeader* header);
-   virtual  void  GetNextTrack(Int_t &mtrack, Int_t &ipart, Float_t *pmom,
-			       Float_t &e, Float_t *vpos, Float_t *polar, 
-			       Float_t &tof);
    Int_t          GetNtrack() const;
    virtual  Int_t GetPrimary(Int_t track) const;
    virtual  void  Hits2Digits(const char *detector=0); 
@@ -109,14 +104,13 @@ public:
 
    TObjArray     *Particles();
    TParticle     *Particle(Int_t i);
-   virtual  void  BeginEvent();
    virtual  void  ResetDigits();
    virtual  void  ResetSDigits();
    virtual  void  ResetHits();
    virtual  void  ResetTrackReferences();
    virtual  void  ResetPoints();
-   virtual  void  SetTransPar(char *filename="$(ALICE_ROOT)/data/galice.cuts");
-   virtual  void  SetBaseFile(char *filename="galice.root");
+   virtual  void  SetTransPar(const char *filename="$(ALICE_ROOT)/data/galice.cuts");
+   virtual  void  SetBaseFile(const char *filename="galice.root");
    virtual  void  ReadTransPar();
    virtual  void  RunMC(Int_t nevent=1, const char *setup="Config.C");
    virtual  void  Run(Int_t nevent=1, const char *setup="Config.C") {RunMC(nevent,setup);}
@@ -128,7 +122,6 @@ public:
    virtual  void  SetCurrentTrack(Int_t track);                           
    virtual  void  SetDebug(const Int_t level=0) {fDebug = level;}
    virtual  void  SetDisplay(AliDisplay *display) {fDisplay = display;}
-   virtual  void  StepManager(Int_t id);
    virtual  void  SetField(Int_t type=2, Int_t version=1, Float_t scale=1, Float_t maxField=10, char*filename="$(ALICE_ROOT)/data/field01.dat");
    virtual  void  SetField(AliMagF* magField);
    virtual  void  SetTrack(Int_t done, Int_t parent, Int_t pdg, 
@@ -145,8 +138,6 @@ public:
    
    virtual  void  KeepTrack(const Int_t itra);
    virtual  void  MediaTable();
-   virtual  Float_t TrackingZmax() const {return fTrZmax;}
-   virtual  Float_t TrackingRmax() const {return fTrRmax;}
    virtual  void    TrackingLimits( Float_t rmax=1.e10, Float_t zmax=1.e10) {fTrRmax=rmax; fTrZmax=zmax;}
    virtual  Int_t   DetFromMate(Int_t i) const { return (*fImedia)[i];}
    virtual  AliGenerator* Generator() const {return fGenerator;}
@@ -154,8 +145,25 @@ public:
    virtual  void ResetGenerator(AliGenerator *generator);
    virtual  void EnergySummary();
    virtual  TDatabasePDG* PDGDB() const {return fPDGDB;}
-
    
+   // MC Application
+   //
+   virtual  void  ConstructGeometry();
+   virtual  void  InitGeometry();     
+   virtual  void  GeneratePrimaries();
+   virtual  void  BeginEvent();
+   virtual  void  BeginPrimary();
+   virtual  void  PreTrack();
+   virtual  void  Stepping();         
+   virtual  void  PostTrack();
+   virtual  void  FinishPrimary();
+   virtual  void  FinishEvent();
+   virtual  Double_t  TrackingZmax() const {return fTrZmax;}
+   virtual  Double_t  TrackingRmax() const {return fTrRmax;}
+   virtual  void Field(const Double_t* x, Double_t* b) const;
+
+   //
+   // End of MC Application
 
    TTree         *TreeE() {return (fRunLoader)?fRunLoader->TreeE():0x0;}
    TTree         *TreeK() {return (fRunLoader)?fRunLoader->TreeK():0x0;}
@@ -206,11 +214,9 @@ protected:
   
   AliRunLoader  *fRunLoader;         //!run getter - written as a separate object
 private:
+  void Copy(AliRun &arun) const;
 
-   AliRun(const AliRun &right) 
-     {}  
-   AliRun& operator = (const AliRun &) {return *this;}
-   ClassDef(AliRun,6)      //Supervisor class for all Alice detectors
+  ClassDef(AliRun,7)      //Supervisor class for all Alice detectors
 };
  
 R__EXTERN  AliRun *gAlice;

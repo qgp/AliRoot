@@ -15,6 +15,12 @@
 
 /*
 $Log$
+Revision 1.3  2002/10/14 14:55:35  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.2.6.1  2002/06/10 14:57:41  hristov
+Merged with v3-08-02
+
 Revision 1.2  2002/05/15 13:29:11  morsch
 Use fOsigma[2] for vertex smearing. Default is 2000 cm.
 

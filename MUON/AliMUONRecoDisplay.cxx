@@ -15,6 +15,12 @@
 
 /*
 $Log$
+Revision 1.7.8.1  2002/05/31 09:37:57  hristov
+First set of changes done by Piotr
+
+Revision 1.8  2002/10/23 07:24:56  alibrary
+Introducing Riostream.h
+
 Revision 1.7  2001/05/16 14:57:17  alibrary
 New files for folders and Stack
 
@@ -33,6 +39,12 @@ RN3 violations corrected
 Revision 1.2  2000/11/23 10:09:39  gosset
 Bug correction in AliMUONRecoDisplay.
 Copyright, $Log$
+Copyright, Revision 1.7.8.1  2002/05/31 09:37:57  hristov
+Copyright, First set of changes done by Piotr
+Copyright,
+Copyright, Revision 1.8  2002/10/23 07:24:56  alibrary
+Copyright, Introducing Riostream.h
+Copyright,
 Copyright, Revision 1.7  2001/05/16 14:57:17  alibrary
 Copyright, New files for folders and Stack
 Copyright,
@@ -81,18 +93,23 @@ in AliMUONRecoEvent and AliMUONRecoDisplay
 //                                                                  //
 //////////////////////////////////////////////////////////////////////
 
-#include <iostream.h>
+#include <Riostream.h>
+
+#include <TROOT.h>
+#include <TFolder.h>
+#include <TClonesArray.h>
+#include <TGeometry.h>
+#include <TSlider.h>
+#include <TGeometry.h>
+#include <TView.h>
+
 #include <AliRun.h>
 #include <AliConfig.h>
-#include <TClonesArray.h>
+#include <AliHeader.h>
+#include <AliPoints.h>
+
 #include "AliMUONRecoEvent.h"
 #include "AliMUONRecoDisplay.h"
-#include "AliHeader.h"
-#include <TROOT.h>
-#include <AliPoints.h>
-#include <TSlider.h>
-#include <TView.h>
-#include <TGeometry.h>
 
 ClassImp(AliMUONRecoDisplay)
 

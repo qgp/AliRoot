@@ -3,13 +3,15 @@
 
 
 #include <AliConfig.h>
+#include <TFolder.h>
+
 class TString;
 class TFile;
-class TFolder;
 class TTree;
 class TTask;
 class AliRunLoader;
 class AliDigitizer;
+class TDirectory;
 
 
 //this was supposed to be struct, but Root I/O does not support C structures
@@ -17,7 +19,7 @@ class AliDigitizer;
 class AliLoaderDataInfo
  {
   public:
-   AliLoaderDataInfo(){fFile=0x0;fDirectory=0x0;}
+   AliLoaderDataInfo();
    virtual ~AliLoaderDataInfo(){}
    
    TString      fFileName; //name of the file 

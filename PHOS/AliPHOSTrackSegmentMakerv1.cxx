@@ -12,9 +12,7 @@
  * about the suitability of this software for any purpose. It is          *
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
-
 /* $Id$ */
-
 //_________________________________________________________________________
 // Implementation version 1 of algorithm class to construct PHOS track segments
 // Track segment for PHOS is list of 
@@ -30,8 +28,7 @@
 //   new TrackSegment. 
 // If there is no CPV/PPSD RecPoint we make TrackSegment 
 // consisting from EMC alone. There is no TrackSegments without EMC RecPoint.
-//
-// In principle this class should be called from AliPHOSReconstructioner, but 
+//// In principle this class should be called from AliPHOSReconstructioner, but 
 // one can use it as well in standalone mode.
 // Use  case:
 //  root [0] AliPHOSTrackSegmentMakerv1 * t = new AliPHOSTrackSegmentMaker("galice.root", "tracksegmentsname", "recpointsname")
@@ -53,10 +50,8 @@
 #include "TTree.h"
 #include "TSystem.h"
 #include "TBenchmark.h"
-// --- Standard library ---
 
-#include <iostream.h>
-#include <iomanip.h>
+// --- Standard library ---
 
 // --- AliRoot header files ---
 
@@ -93,7 +88,6 @@ ClassImp( AliPHOSTrackSegmentMakerv1)
   fTrackSegmentsInRun       = 0 ; 
   Init() ;
   fDefaultInit = kFALSE ; 
-
 }
 
 //____________________________________________________________________________
@@ -101,11 +95,7 @@ ClassImp( AliPHOSTrackSegmentMakerv1)
 { 
   // dtor
   // fDefaultInit = kTRUE if TrackSegmentMaker created by default ctor (to get just the parameters)
-  
-  if (!fDefaultInit) 
-   {
-    delete fLinkUpArray  ;
-   }
+  if (!fDefaultInit)  delete fLinkUpArray ;
 }
 
 
@@ -458,14 +448,9 @@ void  AliPHOSTrackSegmentMakerv1::Exec(Option_t * option)
 
   if(strstr(option,"tim")){
     gBenchmark->Stop("PHOSTSMaker");
-    cout << "AliPHOSTSMaker:" << endl ;
-    cout << "  took " << gBenchmark->GetCpuTime("PHOSTSMaker") << " seconds for making TS " 
-        <<  gBenchmark->GetCpuTime("PHOSTSMaker")/nevents << " seconds per event " << endl;
-    cout << endl ;
+    Info("Exec", "took %f seconds for making TS %f seconds per event", 
+	 gBenchmark->GetCpuTime("PHOSTSMaker"), gBenchmark->GetCpuTime("PHOSTSMaker")/nevents) ;
   }
-  gime->UnloadTracks();
-  gime->UnloadRecPoints();
-  cout<<"\n  PHOS TRACKING  FINISHED \n\n\n";
     
 }
 
@@ -474,15 +459,17 @@ void AliPHOSTrackSegmentMakerv1::Print(Option_t * option)const
 {
   //  Print TrackSegmentMaker parameters
 
+  TString message("") ;
   if( strcmp(GetName(), "") != 0 ) {
-    cout <<  "======== AliPHOSTrackSegmentMakerv1 ========" << endl ;
-    cout <<  "Making Track segments "<< endl ;
-    cout <<  "with parameters: " << endl ;
-    cout <<  "    Maximal EMC - CPV (PPSD) distance (cm)" << fRcpv << endl ;
-    cout <<  "============================================" << endl ;
+    message = "\n======== AliPHOSTrackSegmentMakerv1 ========\n" ; 
+    message += "Making Track segments\n" ;
+    message += "with parameters:\n" ; 
+    message += "     Maximal EMC - CPV (PPSD) distance (cm) %f\n" ;
+    message += "============================================\n" ;
+    Info("Print", message.Data(),fRcpv) ;
   }
   else
-    cout << "AliPHOSTrackSegmentMakerv1 not initialized " << endl ;
+    Info("Print", "AliPHOSTrackSegmentMakerv1 not initialized ") ;
 }
 
 //____________________________________________________________________________
@@ -511,7 +498,6 @@ void AliPHOSTrackSegmentMakerv1::WriteTrackSegments(Int_t event)
     gime->MakeTree("T");
     treeT = gime->TreeT() ;
   }
-
   //First TS
   Int_t bufferSize = 32000 ;    
 
@@ -556,20 +542,26 @@ void AliPHOSTrackSegmentMakerv1::PrintTrackSegments(Option_t * option)
       }
    }
   
-  cout << "AliPHOSTrackSegmentMakerv1: event "<<runget->GetEventNumber()  << endl ;
-  cout << "       Found " << trackSegments->GetEntriesFast() << "  trackSegments " << endl ;
+  TString message ; 
+  message  = "\nevent " ;
+  message += gAlice->GetEvNumber() ; 
+  message += "\n      Found " ;
+  message += trackSegments->GetEntriesFast() ; 
+  message += " TrackSegments\n" ; 
   
   if(strstr(option,"all")) {  // printing found TS
-    cout << "TrackSegment # " << "    EMC RP#    " << "    CPV RP#    " << endl ; 
-    
+    message += "TrackSegment #  EMC RP#  CPV RP#\n" ; 
     Int_t index;
     for (index = 0 ; index <trackSegments->GetEntriesFast() ; index++) {
       AliPHOSTrackSegment * ts = (AliPHOSTrackSegment * )trackSegments->At(index) ; 
-      cout<<"   "<< setw(4) << ts->GetIndexInList() << "            " 
-         <<setw(4) << ts->GetEmcIndex()<< "            " 
-         <<setw(4) << ts->GetCpvIndex()<< "            " << endl ;
-    }       
-    
-    cout << "-------------------------------------------------------"<< endl ;
+
+      message += "\n" ; 
+      message += ts->GetIndexInList() ; 
+      message += " " ; 
+      message += ts->GetEmcIndex() ; 
+      message += " " ; 
+      message += ts->GetCpvIndex() ; 
+    }	
   }
+  Info("Print", message.Data() ) ; 
 }

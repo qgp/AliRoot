@@ -18,6 +18,16 @@ else
 @PACKAGE@CXXFLAGS:=$(PACKCXXFLAGS)
 endif
 
+ifndef PACKDCXXFLAGS
+ifeq ($(PLATFORM),linuxicc)
+@PACKAGE@DCXXFLAGS:=$(filter-out -O%,$(CXXFLAGS)) -O0
+else
+@PACKAGE@DCXXFLAGS:=$(filter-out -O%,$(CXXFLAGS))
+endif
+else
+@PACKAGE@DCXXFLAGS:=$(PACKCXXFLAGS)
+endif
+
 
 ifdef DHDR
 WITHDICT=YES
@@ -30,7 +40,9 @@ endif
 @PACKAGE@EXPORTDEST:=$(patsubst %,$(EXPORTDIR)/%,$(EXPORT))
 
 
-#Extra include,libs etc.
+#Extra include,libs, defines etc.
+
+@PACKAGE@DEFINE:=$(EDEFINE)
 
 @PACKAGE@INC:=$(patsubst %,-I%,$(EINCLUDE)) -I@MODULE@
 
@@ -134,40 +146,57 @@ $(@PACKAGE@LIB):$(@PACKAGE@O) $(@PACKAGE@DO) @MODULE@/module.mk
 ifndef ALIQUIET
 	  @echo "***** Linking library $@ *****"
 endif
-	  $(MUTE)$(SHLD) $(SOFLAGS) $(@PACKAGE@ELIBSDIR) $(@PACKAGE@ELIBS)  -o $@ $(@PACKAGE@O) $(@PACKAGE@DO) $(SHLIB)
- 
+	  $(MUTE)TMPDIR=/tmp/@MODULE@$$$$.`date +%M%S` ; \
+	  export TMPDIR; mkdir $$TMPDIR ; cd $$TMPDIR ; \
+	  find $(CURDIR)/@MODULE@/tgt_$(ALICE_TARGET) -name '*.o' -exec ln -s {} . \; ;\
+      rm -f $(CURDIR)/$@ ;\
+	  $(SHLD) $(SOFLAGS) -o $(CURDIR)/$@ $(notdir $(@PACKAGE@O) $(@PACKAGE@DO))  $(@PACKAGE@ELIBSDIR) $(@PACKAGE@ELIBS) $(SHLIB);\
+      cd $(CURDIR) ; rm -rf $$TMPDIR
+	  $(MUTE)chmod a-w $@
+
 $(@PACKAGE@BIN):$(@PACKAGE@O) $(@PACKAGE@DO) @MODULE@/module.mk
 ifndef ALIQUIET
 	  @echo "***** Making executable $@ *****"
 endif
-	  $(MUTE)$(LD) $(LDFLAGS) $(@PACKAGE@O) $(@PACKAGE@DO) $(BINLIBDIRS) $(LIBS) $(@PACKAGE@ELIBS) $(EXEFLAGS) -o $@ 
+	  $(MUTE)$(LD) $(LDFLAGS) $(@PACKAGE@O) $(@PACKAGE@DO) $(BINLIBDIRS) $(@PACKAGE@ELIBSDIR) $(@PACKAGE@ELIBS) $(LIBS) $(EXEFLAGS) -o $@ 
 
 $(@PACKAGE@DS): $(@PACKAGE@CINTHDRS) $(@PACKAGE@DH) @MODULE@/module.mk
 ifndef ALIQUIET
 	 @echo "***** Creating $@ *****";	
 endif
 	 @(if [ ! -d '$(dir $@)' ]; then echo "***** Making directory $(dir $@) *****"; mkdir -p $(dir $@); fi;)
-	 $(MUTE)rootcint -f $@ -c $(CINTFLAGS) $(@PACKAGE@INC) $(@PACKAGE@CINTHDRS) $(@PACKAGE@DH) 
+	 $(MUTE)rootcint -f $@ -c $(@PACKAGE@DEFINE) $(CINTFLAGS) $(@PACKAGE@INC) $(@PACKAGE@CINTHDRS) $(@PACKAGE@DH) 
 
 $(@PACKAGE@DO): $(@PACKAGE@DS)
 ifndef ALIQUIET
 		@echo "***** Compiling $< *****";
 endif
-		$(MUTE)$(CXX) -c $(@PACKAGE@INC)  -I$(ALICE_ROOT) $< -o $@ $(@PACKAGE@CXXFLAGS)
+		$(MUTE)$(CXX) -c $(@PACKAGE@INC)  -I$(ALICE_ROOT) $< -o $@ $(@PACKAGE@DCXXFLAGS)
 
 #Different targets for the module
 
+ifeq ($(TYPE),lib)
 all-@PACKAGE@: $(@PACKAGE@LIB)
+else
+all-@PACKAGE@: $(@PACKAGE@BIN)
+endif
 
 depend-@PACKAGE@: $(@PACKAGE@DEP)
 
 # determination of object files
+$(MODDIRO)/%.o: $(MODDIRO)/%.cxx $(MODDIRO)/%.d 
+ifndef ALIQUIET
+	@echo "***** Compiling $< *****";
+endif
+	@(if [ ! -d '$(dir $@)' ]; then echo "***** Making directory $(dir $@) *****"; mkdir -p $(dir $@); fi;)
+	$(MUTE)$(CXX) $(@PACKAGE@DEFINE) -c $(@PACKAGE@INC)   $< -o $@ $(@PACKAGE@CXXFLAGS)
+
 $(MODDIRO)/%.o: $(MODDIR)/%.cxx $(MODDIRO)/%.d 
 ifndef ALIQUIET
 	@echo "***** Compiling $< *****";
 endif
 	@(if [ ! -d '$(dir $@)' ]; then echo "***** Making directory $(dir $@) *****"; mkdir -p $(dir $@); fi;)
-	$(MUTE)$(CXX) -c $(@PACKAGE@INC)   $< -o $@ $(@PACKAGE@CXXFLAGS)
+	$(MUTE)$(CXX) $(@PACKAGE@DEFINE) -c $(@PACKAGE@INC)   $< -o $@ $(@PACKAGE@CXXFLAGS)
 
 $(MODDIRO)/%.o: $(MODDIR)/%.F $(MODDIRO)/%.d 
 ifndef ALIQUIET
@@ -188,7 +217,7 @@ ifndef ALIQUIET
 	@echo "***** Compiling $< *****";
 endif
 	@(if [ ! -d '$(dir $@)' ]; then echo "***** Making directory $(dir $@) *****"; mkdir -p $(dir $@); fi;)
-	$(MUTE)$(CC) -c  $(@PACKAGE@INC)  $< -o $@   $(@PACKAGE@CFLAGS)
+	$(MUTE)$(CC) $(@PACKAGE@DEFINE) -c  $(@PACKAGE@INC)  $< -o $@   $(@PACKAGE@CFLAGS)
 
 $(@PACKAGE@DDEP): $(@PACKAGE@DS)
 ifndef ALIQUIET
@@ -202,7 +231,7 @@ ifndef ALIQUIET
 		@echo "***** Making dependencies for $< *****";
 endif
 		@(if [ ! -d '$(dir $@)' ]; then echo "***** Making directory $(dir $@) *****"; mkdir -p $(dir $@); fi;)
-		@share/alibtool depend "$(@PACKAGE@ELIBSDIR) $(@PACKAGE@INC) $(DEPINC)  $<" > $@
+		@share/alibtool depend "$(@PACKAGE@DEFINE) $(@PACKAGE@ELIBSDIR) $(@PACKAGE@INC) $(DEPINC)  $<" > $@
 $(MODDIRO)/%.d: $(MODDIRS)/%.f
 ifndef ALIQUIET
 		@echo "***** Making dependencies for $< *****";
@@ -220,4 +249,38 @@ ifndef ALIQUIET
 		@echo "***** Making dependencies for $< *****";
 endif
 		@(if [ ! -d '$(dir $@)' ]; then echo "***** Making directory $(dir $@) *****"; mkdir -p $(dir $@); fi;)
-		@share/alibtool depend "$(@PACKAGE@ELIBSDIR) $(@PACKAGE@INC) $(DEPINC) $<" > $@
+		@share/alibtool depend "$(@PACKAGE@DEFINE) $(@PACKAGE@ELIBSDIR) $(@PACKAGE@INC) $(DEPINC) $<" > $@
+
+@PACKAGE@CHECKS := $(patsubst %.cxx,@PACKAGE@/check/%.viol,$(SRCS))
+
+check-@PACKAGE@: $(@PACKAGE@CHECKS)
+
+# IRST coding rule check 
+@PACKAGE@/check/%.i : @PACKAGE@/%.cxx
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	$(MUTE)$(CXX) -E $(@PACKAGE@DEFINE) $(@PACKAGE@INC) $< > $@ $(@PACKAGE@CXXFLAGS)
+	@cd $(dir $@) ; $(IRST_INSTALLDIR)/patch/patch4alice.prl $(notdir $@)
+
+# IRST coding rule check
+@PACKAGE@/check/%.viol : @PACKAGE@/check/%.i
+	@cd @PACKAGE@ ; [ -r @PACKAGE@ ] || ln -s ../@PACKAGE@ @PACKAGE@
+	-@echo $@ ; $(CODE_CHECK) $< ./@PACKAGE@ > $@
+
+@PACKAGE@PREPROC       = $(patsubst %.viol,%.i,$(@PACKAGE@CHECKS))
+
+@PACKAGE@REVENGS       = $(patsubst %.viol,%.ii,$(@PACKAGE@CHECKS))
+
+.SECONDARY: $(@PACKAGE@REVENGS) $(@PACKAGE@PREPROC)
+
+reveng-@PACKAGE@:		@PACKAGE@/check/classDiagram.dot
+
+@PACKAGE@/check/classDiagram.dot:	$(@PACKAGE@PREPROC)
+	@$(REV_ENG) $^
+	@-mv classDiagram.dot $@
+
+revdisp-@PACKAGE@:	reveng-@PACKAGE@
+	@echo revdisp for @PACKAGE@
+	@cd @PACKAGE@/check ; \
+      $(IRST_INSTALLDIR)/webreveng/create-class-diagram-pages.sh
+	@sed -e "s/\@PACKAGE\@/@PACKAGE@/g" < $(ALICE_ROOT)/build/HomePage.html > @PACKAGE@/check/HomePage.html
+

@@ -15,9 +15,21 @@
 
 /*
 $Log$
+Revision 1.7.4.2  2002/05/31 15:37:03  hristov
+Merged with v3-08-02
+
 
 Revision 1.7.4.1  2002/05/31 09:37:54  hristov
 First set of changes done by Piotr
+
+Revision 1.10  2002/10/23 07:26:21  alibrary
+Introducing Riostream.h
+
+Revision 1.9  2002/10/14 14:55:34  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.7.6.1  2002/06/10 15:00:53  hristov
+Merged with v3-08-02
 
 Revision 1.8  2002/04/04 16:38:52  kowal2
 Digits and Sdigits go to separate files
@@ -63,11 +75,12 @@ New data structure handling
 //  Alice segment manager object                                             //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-#include <iostream.h>
-#include "AliRun.h"
-#include  <TROOT.h>
+#include <Riostream.h>
 
 #include <TTree.h>
+#include <TROOT.h>
+#include "AliRun.h"
+
 #include "TClonesArray.h"
 #include "TDirectory.h"
 #include "AliArrayI.h"
@@ -306,8 +319,6 @@ void AliSegmentArray::MakeTree(char *file)
     }
   delete psegment;
 }              
-
-////////////////////////////////////////////////////////////////////////
 
 Bool_t  AliSegmentArray::MakeDictionary(Int_t size)
 {

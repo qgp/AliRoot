@@ -15,9 +15,14 @@
 
 /*
 $Log$
+Revision 1.24  2002/10/21 09:20:51  alibrary
+Introduce Riostream.h and remove unused variables
 
-Revision 1.19.2.1  2002/05/31 09:37:55  hristov
-First set of changes done by Piotr
+Revision 1.23  2002/10/14 14:55:35  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.20.4.1  2002/06/10 14:57:41  hristov
+Merged with v3-08-02
 
 Revision 1.22  2002/05/15 11:59:49  morsch
 CdEventFile() method added.
@@ -82,7 +87,7 @@ Introduction of the Copyright and cvs Log
 // Event generator that using an instance of type AliGenReader
 // reads particles from a file and applies cuts. 
 
-#include <iostream.h>
+#include <Riostream.h>
 
 #include "AliGenExtFile.h"
 #include "AliRun.h"

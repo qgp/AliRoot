@@ -14,6 +14,12 @@
  **************************************************************************/
 /*
 $Log$
+Revision 1.22  2002/10/23 07:24:56  alibrary
+Introducing Riostream.h
+
+Revision 1.21  2001/05/18 08:54:59  morsch
+Bug in decision on splitting corrected.
+
 Revision 1.20  2001/04/12 12:22:26  morsch
 - some numerical problems caused by pad staggering cured.
 - treatment of 1-2 and 2-1 ghosts
@@ -152,7 +158,7 @@ Revised and extended SplitByLocalMaxima method (Isabelle Chevrot):
 #include <TF1.h>
 
 #include <stdio.h>
-#include <iostream.h>
+#include <Riostream.h>
 
 //_____________________________________________________________________
 // This function is minimized in the double-Mathieson fit

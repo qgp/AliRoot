@@ -51,8 +51,8 @@
 #include "AliLoader.h"
 #include "AliMC.h"
 #include "AliDetector.h"
-#include <iostream.h>
-#include <fstream.h>
+#include <Riostream.h>
+#include <Riostream.h>
 #include "AliMagF.h"
 #include "AliFMDhit.h"
 #include "AliFMDdigit.h"
@@ -265,29 +265,26 @@ void  AliFMD::Init ()
 
 }
 //---------------------------------------------------------------------
-void AliFMD::MakeBranch (Option_t * option, const char *file)
+void AliFMD::MakeBranch (Option_t * option)
 {
   // Create Tree branches for the FMD.
   char branchname[10];
   const Int_t kBufferSize = 16000;
   sprintf (branchname, "%s", GetName ());
   
-  AliDetector::MakeBranch (option, file);
+  AliDetector::MakeBranch (option);
   const char *cD = strstr(option,"D");
   const char *cR = strstr(option,"R");
   const char *cS = strstr(option,"S");
   
   if (cS){
-
-    MakeBranchInTree(fLoader->TreeS(), branchname,&fSDigits, kBufferSize, file);
+    MakeBranchInTree(fLoader->TreeS(), branchname,&fSDigits, kBufferSize, 0);
   }
   if (cD){
-
-    MakeBranchInTree(fLoader->TreeD(), branchname,&fDigits, kBufferSize, file);
-    cout<<" tree "<<fLoader->TreeD()<<" "<<branchname<<" "<<&fDigits<<endl;
+    MakeBranchInTree(fLoader->TreeD(), branchname,&fDigits, kBufferSize, 0);
   }
   if (cR){
-    MakeBranchInTree(fLoader->TreeR(),  branchname,&fReconParticles, kBufferSize, file);
+    MakeBranchInTree(fLoader->TreeR(), branchname,&fReconParticles, kBufferSize, 0);
   }
   
 }

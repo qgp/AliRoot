@@ -19,19 +19,28 @@
 //  Base class for the clusterization algorithm (pure abstract)
 //*--
 //*-- Author: Yves Schutz  SUBATECH 
+// Modif: 
+//  August 2002 Yves Schutz: clone PHOS as closely as possible and intoduction
+//                           of new  IO (à la PHOS)
 //////////////////////////////////////////////////////////////////////////////
 
 // --- ROOT system ---
-
- 
+#include "TGeometry.h"
+#include "TDirectory.h"
+#include "TFile.h"
+#include "TTree.h" 
 
 // --- Standard library ---
-
-
+#include <Riostream.h>
+#include <stdlib.h>   
 
 // --- AliRoot header files ---
-
+#include "AliRun.h" 
 #include "AliEMCALClusterizer.h"
+#include "AliHeader.h" 
+#include "AliEMCALGetter.h"
+#include "AliEMCALSDigitizer.h"
+#include "AliEMCALDigitizer.h"
 
 ClassImp(AliEMCALClusterizer)
 
@@ -39,16 +48,26 @@ ClassImp(AliEMCALClusterizer)
   AliEMCALClusterizer::AliEMCALClusterizer():TTask("","")
 {
   // ctor
+  fSplitFile = 0 ;  
+  fToSplit  = kFALSE ;
+
 }
+
 //____________________________________________________________________________
-AliEMCALClusterizer::AliEMCALClusterizer(const char* headerFile, const char* name):
+AliEMCALClusterizer::AliEMCALClusterizer(const char* headerFile, const char* name, const Bool_t toSplit):
 TTask(name, headerFile)
 {
   // ctor
+  fToSplit  = toSplit ;
+  fSplitFile = 0 ;  
+
 }
 
 //____________________________________________________________________________
 AliEMCALClusterizer::~AliEMCALClusterizer()
 {
   // dtor
-}
+  
+  fSplitFile = 0 ;
+ }
+

@@ -6,8 +6,8 @@
 ////////////////////////////////////////////////
 //  Digits classes for all ITS detectors      //
 ////////////////////////////////////////////////
-#include <iostream.h>
-#include <fstream.h>
+#include <Riostream.h>
+#include <Riostream.h>
 #include <TObject.h>
 #include <TObjArray.h>
 
@@ -21,9 +21,12 @@ class AliITSdigit: public TObject  {
     AliITSdigit(const Int_t *digits);
     //Destructor
     virtual ~AliITSdigit() { }
-    //returns pointer to array of tracks
+    // returns the array size used to store Tracks and Hits
+    // virtual Int_t GetNTracks() {return 0;}
+    //returns pointer to array of tracks numbers
     virtual Int_t *GetTracks() {return 0;}
-    //returns pointer to array of hits
+    // returns pointer to array of hits numbers for this module (as given by
+    // AliITSmodule).
     virtual Int_t *GetHits() {return 0;}
     // returns track number kept in the array element i of fTracks 
     virtual Int_t GetTrack(Int_t i) const {return 0;}
@@ -58,6 +61,8 @@ class AliITSdigitSPD: public AliITSdigit {
     //standard creator with digits, tracks, and hits
     AliITSdigitSPD(const Int_t *digits,const Int_t *tracks,const Int_t *hits);
     virtual ~AliITSdigitSPD(){/*destructor*/}
+    // returns the array size used to store Tracks and Hits
+    static Int_t GetNTracks() {return fkSspd;}
     // returns pointer to the array of tracks which make this digit
     virtual Int_t *GetTracks() {return &fTracks[0];}
      //returns the pointer to the array of hits which made this digit
@@ -66,12 +71,12 @@ class AliITSdigitSPD: public AliITSdigit {
     virtual Int_t GetTrack(Int_t i) const {return fTracks[i];}
     // returns hit number kept in the array element i of fHits 
     virtual Int_t GetHit(Int_t i) const {return fHits[i];}
-    //copy the array trks[3] into fTracks
+    //copy the array trks[fkSspd] into fTracks
     virtual void SetTracks(const Int_t *trks){
-	for(Int_t i=0;i<3;i++) fTracks[i]=trks[i];}
-    //copy the array hits[3] into fHits
+	for(Int_t i=0;i<fkSspd;i++) fTracks[i]=trks[i];}
+    //copy the array hits[fkSspd] into fHits
     virtual void SetHits(const Int_t *hits){
-	for(Int_t i=0;i<3;i++) fHits[i]=hits[i];}
+	for(Int_t i=0;i<fkSspd;i++) fHits[i]=hits[i];}
     //set array element i of fTracks to trk.
     virtual void SetTrack(Int_t i,Int_t trk){fTracks[i]=trk;}
     //set array element i of fHits to hit.
@@ -79,19 +84,22 @@ class AliITSdigitSPD: public AliITSdigit {
     void Print(ostream *os); // Class ascii print function
     void Read(istream *os);  // Class ascii read function
 
+ private:
+    static const Int_t fkSspd = 10; // size of fTracks and fHits arrays
+    
  public:  
     // debugging  -- goes to the dictionary
-    Int_t fTracks[3]; // tracks making this digit 
-    Int_t fHits[3];   // hits associated to the tracks
-                      // 3 hits temporarily - it will be only 1
-    Int_t fSignalSPD; // Signal in electrons
+    Int_t fTracks[fkSspd]; //[fkSspd] tracks making this digit 
+    Int_t fHits[fkSspd];   //[fkSspd] hits associated to the tracks
+    Int_t fSignalSPD;   // Signal in electrons
 
-    ClassDef(AliITSdigitSPD,1)   // Simulated digit object for SPD
+    ClassDef(AliITSdigitSPD,2)   // Simulated digit object for SPD
 
 };
 // Input and output functions for standard C++ input/output.
 ostream &operator<<(ostream &os,AliITSdigitSPD &source);
 istream &operator>>(istream &os,AliITSdigitSPD &source);
+
 //______________________________________________________________________
 class AliITSdigitSDD: public AliITSdigit {
 
@@ -103,6 +111,8 @@ class AliITSdigitSDD: public AliITSdigit {
     AliITSdigitSDD( Float_t phys,const Int_t *digits,const Int_t *tracks,
 		    const Int_t *hits,const Float_t *charges);
     virtual ~AliITSdigitSDD(){/* destructor*/}
+    // returns the array size used to store Tracks and Hits
+    static Int_t GetNTracks() {return fkSsdd;}
     // returns pointer to the array of tracks which make this digit
     virtual Int_t *GetTracks() {return &fTracks[0];}
     // returns the pointer to the array of hits which made this digit
@@ -111,12 +121,12 @@ class AliITSdigitSDD: public AliITSdigit {
     virtual Int_t GetTrack(Int_t i) const {return fTracks[i];}
     // returns hit number kept in the array element i of fHits 
     virtual Int_t GetHit(Int_t i) const {return fHits[i];}
-    //copy the array trks[3] into fTracks
+    //copy the array trks[fkSsdd] into fTracks
     virtual void SetTracks(const Int_t *trks){
-	for(Int_t i=0;i<3;i++) fTracks[i]=trks[i];}
-    //copy the array hits[3] into fHits
+	for(Int_t i=0;i<fkSsdd;i++) fTracks[i]=trks[i];}
+    //copy the array hits[fkSsdd] into fHits
     virtual void SetHits(const Int_t *hits){
-	for(Int_t i=0;i<3;i++) fHits[i]=hits[i];}
+	for(Int_t i=0;i<fkSsdd;i++) fHits[i]=hits[i];}
     //set array element i of fTracks to trk.
     virtual void SetTrack(Int_t i,Int_t trk){fTracks[i]=trk;}
     //set array element i of fHits to hit.
@@ -124,15 +134,18 @@ class AliITSdigitSDD: public AliITSdigit {
     void Print(ostream *os); // Class ascii print function
     void Read(istream *os);  // Class ascii read function
 
+ private:
+    static const Int_t fkSsdd = 10; // size of fTracks and fHits arrays
+    
  public:
     // debugging  -- goes to the dictionary
-    Int_t   fTracks[3];   // tracks making this digit 
-    Int_t   fHits[3];     // hits associated to the tracks
-                          // 3 hits temporarily - it will be only 1
-    Float_t fTcharges[3]; // charge per track making this digit 
-    Float_t fPhysics;     // signal particles contribution to signal
+    Int_t   fTracks[fkSsdd];   //[fkSsdd] tracks making this digit 
+    Int_t   fHits[fkSsdd];     //[fkSsdd] hits associated to the tracks
+                            // 3 hits temporarily - it will be only 1
+    Float_t fTcharges[fkSsdd];   //[fkSsdd] charge per track making this digit 
+    Float_t fPhysics;       // signal particles contribution to signal
 
-    ClassDef(AliITSdigitSDD,1)   // Simulated digit object for SDD
+    ClassDef(AliITSdigitSDD,2)   // Simulated digit object for SDD
 
 };
 // Input and output functions for standard C++ input/output.
@@ -179,6 +192,8 @@ class AliITSdigitSSD: public AliITSdigit {
     //Standard constructor with digits, tracks, and hits
     AliITSdigitSSD(const Int_t *digits,const Int_t *tracks,const Int_t *hits);
     virtual ~AliITSdigitSSD(){/* destructor */}
+    // returns the array size used to store Tracks and Hits
+    static Int_t GetNTracks() {return fkSssd;}
     Int_t  GetSignal() const {/* returns signal*/return fSignal;}
     Int_t  GetStripNumber() const {/* returns strip number*/return fCoord2;}
     //returns 1  when side P and 0 when side N
@@ -191,12 +206,12 @@ class AliITSdigitSSD: public AliITSdigit {
     virtual Int_t GetTrack(Int_t i) const {return fTracks[i];}
     // returns hit number kept in the array element i of fHits 
     virtual Int_t GetHit(Int_t i) const {return fHits[i];}
-    //copy the array trks[3] into fTracks
+    //copy the array trks[fkSssd] into fTracks
     virtual void SetTracks(const Int_t *trks){
-	for(Int_t i=0;i<3;i++) fTracks[i]=trks[i];}
-    //copy the array hits[3] into fHits
+	for(Int_t i=0;i<fkSssd;i++) fTracks[i]=trks[i];}
+    //copy the array hits[fkSssd] into fHits
     virtual void SetHits(const Int_t *hits){
-	for(Int_t i=0;i<3;i++) fHits[i]=hits[i];}
+	for(Int_t i=0;i<fkSssd;i++) fHits[i]=hits[i];}
     //set array element i of fTracks to trk.
     virtual void SetTrack(Int_t i,Int_t trk){fTracks[i]=trk;}
     //set array element i of fHits to hit.
@@ -204,13 +219,16 @@ class AliITSdigitSSD: public AliITSdigit {
     void Print(ostream *os); // Class ascii print function
     void Read(istream *os);  // Class ascii read function
 
+ private:
+    static const Int_t fkSssd = 10; // size of fTracks and fHits arrays
+    
  public:
     // debugging  -- goes to the dictionary
-    Int_t fTracks[3]; // tracks making this digit 
-    Int_t fHits[3];   // hits associated to the tracks
-                      // 3 hits temporarily - it will be only 1
+    Int_t fTracks[fkSssd]; //[fkSssd] tracks making this digit 
+    Int_t fHits[fkSssd];   //[fkSssd] hits associated to the tracks
+                        // 3 hits temporarily - it will be only 1
     
-    ClassDef(AliITSdigitSSD,1)   // Simulated digit object for SSD
+    ClassDef(AliITSdigitSSD,2)   // Simulated digit object for SSD
 
 };
 // Input and output functions for standard C++ input/output.

@@ -15,6 +15,15 @@
 
 /*
 $Log$
+Revision 1.5  2002/10/14 14:57:37  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.3.6.1  2002/08/29 18:08:17  hristov
+Replace strcpy by assignment operator
+
+Revision 1.3  2001/10/31 15:56:54  morsch
+Correction in OnionCone.
+
 Revision 1.2  2000/10/10 06:40:25  hristov
 Bug fixes
 
@@ -216,7 +225,7 @@ void AliALIFE::Cone(Float_t rmin1, Float_t rmin2,
 		    nameCou, pos[0], pos[1], rmax1); 
 	} 
     }else {
-	strcpy(nameCou,fDefaultVolume1);
+      fDefaultVolume1 = nameCou;
     }
 
     
@@ -247,7 +256,7 @@ void AliALIFE::Cone(Float_t rmin1, Float_t rmin2,
 		    nameCin, pos[0], pos[1], rmin1); 
 	} 
     }else {
-	strcpy(nameCin,fDefaultVolume2);
+      fDefaultVolume2 = nameCin;
     }
 
 
@@ -318,7 +327,7 @@ void AliALIFE::OnionCone (Float_t* r1, Float_t* r2, Int_t nr,
 	    }
 	}
     } else {
-	strcpy(nameCin,fDefaultVolume1);
+      fDefaultVolume1 = nameCin;
     }
     
     
@@ -352,7 +361,7 @@ void AliALIFE::OnionCone (Float_t* r1, Float_t* r2, Int_t nr,
 			nameCou, pos[0], pos[1], r1[i]); 
 	    }
 	} else {
-	    strcpy(nameCou,fDefaultVolume1);
+	  fDefaultVolume1 = nameCou;
 	}
 	
 // Volumes

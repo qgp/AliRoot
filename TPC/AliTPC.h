@@ -65,7 +65,7 @@ public:
   
   virtual      ~AliTPC();
   virtual void  AddHit(Int_t a1, Int_t *a2, Float_t *a3);
-  virtual void  AddTrackReference(Int_t lab,  TLorentzVector p, TLorentzVector x);
+  virtual void  AddTrackReference(Int_t lab,  TLorentzVector p, TLorentzVector x,Float_t length);
   Int_t         DistancetoPrimitive(Int_t px, Int_t py);
   virtual void  BuildGeometry();
   virtual void  CreateGeometry() {}
@@ -88,7 +88,7 @@ public:
   virtual void  Clusters2Tracks();
 
   Int_t         GetNsectors()       {return fNsectors;}
-  virtual void  MakeBranch(Option_t *opt=" ", const char *file=0 );
+  virtual void  MakeBranch(Option_t *opt=" ");
   virtual void  ResetDigits();
   virtual void  SetSecAL(Int_t sec);
   virtual void  SetSecAU(Int_t sec);

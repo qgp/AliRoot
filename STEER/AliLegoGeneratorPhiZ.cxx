@@ -15,6 +15,15 @@
 
 /*
 $Log$
+Revision 1.5.8.1  2002/06/06 14:18:33  hristov
+Merged with v3-08-02
+
+Revision 1.8  2002/10/14 14:57:32  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.5.10.1  2002/06/10 14:43:06  hristov
+Merged with v3-08-02
+
 Revision 1.7  2002/05/07 16:44:04  morsch
 Correct initialization of origin[2]. (Thanks to Angela Badala)
 

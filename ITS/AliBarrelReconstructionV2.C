@@ -1,10 +1,10 @@
 /****************************************************************************
  * This macro is supposed to do reconstruction in the barrel ALICE trackers *
  * (Make sure you have TPC digits and ITS hits before using this macro !!!) *
- * It does the following steps (April 12, 2001):                            *
+ * It does the following steps (July 9, 2002,Dubna)                         *
  *                   1) TPC cluster finding                                 *
  *                   2) TPC track finding                                   *
- *                   3) ITS cluster finding V2 (via fast points !)          *
+ *                   3) ITS cluster finding V2                              *
  *                   4) ITS track finding V2                                *
  *                   5) ITS back track propagation V2                       *
  *                   6) TPC back track propagation                          *
@@ -115,7 +115,7 @@ Int_t TPCFindClusters(const Char_t *inname, const Char_t *outname, Int_t n) {
    TFile *out=TFile::Open(outname,"recreate");
    TFile *in =TFile::Open(inname);
 
-   AliTPCParam *param=(AliTPCParam *)in->Get("75x40_100x60");
+   AliTPCParam *param=(AliTPCParam *)in->Get("75x40_100x60_150x60");
    if (!param) {cerr<<"TPC parameters have not been found !\n"; return 1;}
    AliTPCv2 tpc;
    tpc.SetParam(param);
@@ -142,7 +142,7 @@ Int_t TPCFindTracks(const Char_t *inname, const Char_t *outname, Int_t n) {
    gBenchmark->Start(name);
    TFile *out=TFile::Open(outname,"recreate");
    TFile *in =TFile::Open(inname);
-   AliTPCParam *param=(AliTPCParam *)in->Get("75x40_100x60");
+   AliTPCParam *param=(AliTPCParam *)in->Get("75x40_100x60_150x60");
    if (!param) {cerr<<"TPC parameters have not been found !\n"; return 1;}
 
    //AliTPCtracker *tracker=new AliTPCtracker(param);
@@ -176,7 +176,7 @@ Int_t TPCSortTracks(const Char_t *inname, const Char_t *inname2, const Char_t * 
    TFile *in2 =TFile::Open(inname2);
 
 
-   AliTPCParam *param=(AliTPCParam *)in1->Get("75x40_100x60");
+   AliTPCParam *param=(AliTPCParam *)in1->Get("75x40_100x60_150x60");
    if (!param) {cerr<<"TPC parameters have not been found !\n"; return 1;}
 
    cout<<"TPCSortedtracks: nev ="<<eventn<<endl;
@@ -436,7 +436,7 @@ Int_t TPCPropagateBack(const Char_t *inname, const Char_t *outname) {
    cerr<<'\n'<<name<<"...\n";
    gBenchmark->Start(name);
 
-   AliTPCParam *param=(AliTPCParam *)gFile->Get("75x40_100x60");
+   AliTPCParam *param=(AliTPCParam *)gFile->Get("75x40_100x60_150x60");
    if (!param) {cerr<<"TPC parameters have not been found !\n"; return 1;}
    AliTPCtracker *tracker=new AliTPCtracker(param);
 

@@ -32,13 +32,14 @@
 // --- ROOT system ---
 
 // --- Standard library ---
-
-#include <iostream.h>
+#include <stdlib.h> 
 
 // --- AliRoot header files ---
 #include <TMath.h>
+
 // -- ALICE Headers.
 #include "AliConst.h"
+
 // --- EMCAL headers
 #include "AliEMCALGeometry.h"
 
@@ -56,29 +57,32 @@ void AliEMCALGeometry::Init(void){
     // Initializes the EMCAL parameters
 
     fgInit = kFALSE; // Assume failer untill proven otherwise.
-    if(!(  (strcmp( fName, "EMCALArch1a" ) == 0) |
-	   (strcmp( fName, "EMCALArch1b" ) == 0) | 
-	   (strcmp( fName, "EMCALArch2a" ) == 0) | 
-	   (strcmp( fName, "EMCALArch2b" ) == 0) )){
-	cout <<"Instance " << fName << " undefined" << endl;
+
+    TString name(GetName()) ; 
+		 
+    if( name != "EMCALArch1a" &&
+	name != "EMCALArch1b" && 
+	name != "EMCALArch2a" && 
+	name != "EMCALArch2b"  ){
+      Fatal("Init", "%s is not a known geometry (choose among EMCALArch1a, EMCALArch1b, EMCALArch2a and EMCALArch2b)",  name.Data()) ;  
     } // end if
     //
-    if (((strcmp( fName, "EMCALArch1a" ))    == 0) |
-	((strcmp( fName, "EMCALArch1b" ))    == 0)){
+    if ( name == "EMCALArch1a"  ||
+	 name == "EMCALArch1b" ) {
 	fNZ         = 96;
 	fNPhi       = 144;
     } // end if
-    if (((strcmp( fName, "EMCALArch2a" ))    == 0) |
-	((strcmp( fName, "EMCALArch2b" ))    == 0)){
+    if ( name == "EMCALArch2a"  ||
+	 name, "EMCALArch2b" ) {
 	fNZ         = 112;
 	fNPhi       = 168;
     } // end if
-    if (((strcmp( fName, "EMCALArch1a" ))    == 0) |
-	((strcmp( fName, "EMCALArch2a" ))    == 0)){
+    if ( name == "EMCALArch1a"  ||
+	 name == "EMCALArch2a" ) {
 	fNLayers    = 21;
     } // end if
-    if (((strcmp( fName, "EMCALArch1b" ))    == 0) |
-	((strcmp( fName, "EMCALArch2b" ))    == 0)){
+    if ( name == "EMCALArch1b"  ||
+	 name == "EMCALArch2b" ) {
 	fNLayers    = 25;
     } // end if
 
@@ -91,8 +95,8 @@ void AliEMCALGeometry::Init(void){
                                // preshower part of the calorimeter
     fFullShowerSintThick = 0.5; // cm, Thickness of the sintilator for the
                                 // full shower part of the calorimeter
-    fArm1PhiMin     =   0.0; // degrees, Starting EMCAL Phi position
-    fArm1PhiMax     = 120.0; // degrees, Ending EMCAL Phi position
+    fArm1PhiMin     =  60.0; // degrees, Starting EMCAL Phi position
+    fArm1PhiMax     = 180.0; // degrees, Ending EMCAL Phi position
     fArm1EtaMin     = -0.7; // pseudorapidity, Starting EMCAL Eta position
     fArm1EtaMax     = +0.7; // pseudorapidity, Ending EMCAL Eta position
     fIPDistance     = 454.0; // cm, Radial distance to inner surface of EMCAL
@@ -106,12 +110,14 @@ void AliEMCALGeometry::Init(void){
     fGap2Active     = 1.0;  // cm, Gap between 
     fgInit = kTRUE; 
 }
+
 //______________________________________________________________________
 AliEMCALGeometry *  AliEMCALGeometry::GetInstance(){ 
-    // Returns the pointer of the unique instance
-
-    return (AliEMCALGeometry *) fgGeom; 
+  // Returns the pointer of the unique instance
+  
+  return static_cast<AliEMCALGeometry *>( fgGeom ) ; 
 }
+
 //______________________________________________________________________
 AliEMCALGeometry* AliEMCALGeometry::GetInstance(const Text_t* name,
 						const Text_t* title){
@@ -131,16 +137,19 @@ AliEMCALGeometry* AliEMCALGeometry::GetInstance(const Text_t* name,
 	} // end if strcmp(name,"")
     }else{
 	if ( strcmp(fgGeom->GetName(), name) != 0 ) {
-	    cout << "AliEMCALGeometry <E> : current geometry is " 
-		 << fgGeom->GetName() << endl
-		 << "                      you cannot call     " << name 
-		 << endl; 
+	  TString message("\n") ; 
+	  message += "current geometry is " ;  
+	  message += fgGeom->GetName() ;
+	  message += "\n                      you cannot call     " ; 
+	  message += name ;  
+	  ::Info("GetGeometry", message.Data() ) ; 
 	}else{
-	    rv = (AliEMCALGeometry *) fgGeom; 
+	  rv = (AliEMCALGeometry *) fgGeom; 
 	} // end if
     }  // end if fgGeom
     return rv; 
 }
+
 //______________________________________________________________________
 Int_t AliEMCALGeometry::TowerIndex(Int_t ieta,Int_t iphi,Int_t ipre) const {
     // Returns the tower index number from the based on the Z and Phi
@@ -158,14 +167,25 @@ Int_t AliEMCALGeometry::TowerIndex(Int_t ieta,Int_t iphi,Int_t ipre) const {
 
     if((ieta<=0 || ieta>GetNEta()) || (iphi<=0 || iphi>GetNPhi()) ||
        (ipre<0 || ipre>1) ){
-	cout << "inputs out of range ieta=" << ieta << " [1-" << GetNEta();
-	cout << "] iphi=" << iphi << " [1-" << GetNPhi() << "] ipre=";
-	cout << ipre << "[0,1]. returning -1" << endl;
-	return -1;
+      TString message ("\n") ; 
+      message += "inputs out of range ieta= " ; 
+      message += ieta ; 
+      message += " [1-" ; 
+      message += GetNEta() ;
+      message += "] iphi= " ; 
+      message += iphi ; 
+      message += " [1-" ; 
+      message += GetNPhi() ; 
+      message += "] ipre= " ;
+      message += ipre ; 
+      message += "[0,1]. returning -1" ; 
+      Warning("TowerIndex", message.Data() ) ; 
+      return -1;
     } // end if
     index = iphi + GetNPhi()*(ieta-1) + ipre*(GetNPhi()*GetNEta());
     return index;
 }
+
 //______________________________________________________________________
 void AliEMCALGeometry::TowerIndexes(Int_t index,Int_t &ieta,Int_t &iphi,
 				    Int_t &ipre) const {
@@ -185,10 +205,15 @@ void AliEMCALGeometry::TowerIndexes(Int_t index,Int_t &ieta,Int_t &iphi,
 
     itowers = GetNEta()*GetNPhi();
     if(index<1 || index>2*itowers){
-	cout << "index=" << index <<" is out of range [1-";
-	cout << 2*itowers << "], returning -1 for all." << endl;
-	ieta = -1; iphi = -1; ipre = -1;
-	return ;
+      TString message("\n") ; 
+      message += "index= " ; 
+      message += index ; 
+      message += " is out of range [1-" ;
+      message += 2*itowers ; 
+      message += "], returning -1 for all." ;
+      Warning("TowerIndex", message.Data() ) ; 
+      ieta = -1; iphi = -1; ipre = -1;
+      return ;
     } // end if
     ipre = 0;
     if(index>itowers){ // pre shower indexs
@@ -199,6 +224,7 @@ void AliEMCALGeometry::TowerIndexes(Int_t index,Int_t &ieta,Int_t &iphi,
     iphi = index - GetNPhi()*(ieta-1);
     return;
 }
+
 //______________________________________________________________________
 void AliEMCALGeometry::EtaPhiFromIndex(Int_t index,Float_t &eta,Float_t &phi) const {
     // given the tower index number it returns the based on the eta and phi
@@ -220,6 +246,7 @@ void AliEMCALGeometry::EtaPhiFromIndex(Int_t index,Float_t &eta,Float_t &phi) co
     phid = GetArm1PhiMin() + dphi*((Float_t)iphi -0.5);//iphi range [1-fNphi].
     phi  = phid;
 }
+
 //______________________________________________________________________
 Int_t AliEMCALGeometry::TowerIndexFromEtaPhi(Float_t eta,Float_t phi) const {
     // returns the tower index number based on the eta and phi of the tower.
@@ -235,23 +262,39 @@ Int_t AliEMCALGeometry::TowerIndexFromEtaPhi(Float_t eta,Float_t phi) const {
     ieta = 1 + (Int_t)(((Float_t)GetNEta())*(eta-GetArm1EtaMin())/
 		  (GetArm1EtaMax() - GetArm1EtaMin()));
     if(ieta<=0 || ieta>GetNEta()){
-	cout << "TowerIndexFromEtaPhi:";
-	cout << "ieta = "<< ieta << " eta=" << eta << " is outside of EMCAL. etamin=";
-	cout << GetArm1EtaMin() << " to etamax=" << GetArm1EtaMax();
-	cout << " returning -1" << endl;
-	return -1;
+      TString message("\n") ; 
+      message += "ieta = " ; 
+      message += ieta ; 
+      message += " eta=" ; 
+      message += eta ; 
+      message += " is outside of EMCAL. etamin=" ;
+      message += GetArm1EtaMin() ;
+      message += " to etamax=" ; 
+      message += GetArm1EtaMax();
+      message += " returning -1";
+      Warning("TowerIndexFromEtaPhi", message.Data() ) ; 
+      return -1;
     } // end if
     iphi = 1 + (Int_t)(((Float_t)GetNPhi())*(phi-GetArm1PhiMin())/
 		  ((Float_t)(GetArm1PhiMax() - GetArm1PhiMin())));
     if(iphi<=0 || iphi>GetNPhi()){
-	cout << "TowerIndexFromEtaPhi:";
-	cout << "iphi=" << iphi << " phi=" << phi << " is outside of EMCAL.";
-	cout << " Phimin=" << GetArm1PhiMin() << " PhiMax=" << GetArm1PhiMax();
-	cout << " returning -1" << endl;
-	return -1;
+      TString message("\n") ; 
+      message += "iphi=" ; 
+      message += iphi ;  
+      message += "phi= " ; 
+      message += phi ; 
+      message += " is outside of EMCAL." ;
+      message += " Phimin=" ; 
+      message += GetArm1PhiMin() ; 
+      message += " PhiMax=" ; 
+      message += GetArm1PhiMax() ;
+      message += " returning -1" ;
+      Warning("TowerIndexFromEtaPhi", message.Data() ) ; 
+      return -1;
     } // end if
     return TowerIndex(ieta,iphi,0);
 }
+
 //______________________________________________________________________
 Int_t AliEMCALGeometry::PreTowerIndexFromEtaPhi(Float_t eta,Float_t phi) const {
     // returns the pretower index number based on the eta and phi of the tower.
@@ -265,6 +308,7 @@ Int_t AliEMCALGeometry::PreTowerIndexFromEtaPhi(Float_t eta,Float_t phi) const {
 
     return GetNEta()*GetNPhi()+TowerIndexFromEtaPhi(eta,phi);
 }
+
 //______________________________________________________________________
 Bool_t AliEMCALGeometry::AbsToRelNumbering(Int_t AbsId, Int_t *relid) const {
     // Converts the absolute numbering into the following array/
@@ -290,6 +334,7 @@ Bool_t AliEMCALGeometry::AbsToRelNumbering(Int_t AbsId, Int_t *relid) const {
 
     return rv;
 }
+
 //______________________________________________________________________
 void AliEMCALGeometry::PosInAlice(const Int_t *relid,Float_t &theta,
 				     Float_t &phi) const {
@@ -333,8 +378,6 @@ void AliEMCALGeometry::XYZFromIndex(const Int_t *relid,Float_t &x,Float_t &y, Fl
     index = TowerIndex(ieta,iphi,ipre);
     EtaPhiFromIndex(index,eta,phi);
     theta = 180.*(2.0*TMath::ATan(TMath::Exp(-eta)))/TMath::Pi();
-
- 
     
     kDeg2Rad = TMath::Pi() / static_cast<Double_t>(180) ; 
     cyl_radius = GetIPDistance()+ GetAirGap() ;

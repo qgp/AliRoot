@@ -15,6 +15,21 @@
 
 /*
 $Log$
+Revision 1.6  2002/10/17 16:26:39  hristov
+Definition of additional particles moved to VMC (I.Hrivnacova)
+
+Revision 1.5  2002/10/14 14:57:32  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.3.10.2  2002/10/14 09:45:57  hristov
+Updating VirtualMC to v3-09-02
+
+Revision 1.4  2002/09/16 08:22:36  morsch
+Add Upsilon(3S) to particle data base.
+
+Revision 1.3  2001/03/16 09:48:35  morsch
+Exclude pdg particle definitions. Done by root now by default from Pythia6 table.
+
 Revision 1.2  2001/01/31 14:32:42  morsch
 Some B mesons added
 
@@ -41,7 +56,7 @@ ClassImp(AliPDG)
 // Add particles to the PDG data base
 
     TDatabasePDG *pdgDB = TDatabasePDG::Instance();
-
+/*
     const Int_t kion=10000000;
     const Int_t kspe=50000000;
 
@@ -50,16 +65,21 @@ ClassImp(AliPDG)
     const Double_t kErg2Gev = 1/1.6021773349e-3;
     const Double_t khShGev = khSlash*kErg2Gev;
     const Double_t kYear2Sec = 3600*24*365.25;
+
+*/
 //
 // Bottom mesons
 // mass and life-time from PDG
 //
+  pdgDB->AddParticle("Upsilon(3S)","Upsilon(3S)",10.3552,kTRUE,
+                     0,1,"Bottonium",200553);
+
 // Done by default now from Pythia6 table!
 //
 //
 // Ions 
 //
-
+/*
   pdgDB->AddParticle("Deuteron","Deuteron",2*kAu2Gev+8.071e-3,kTRUE,
                      0,1,"Ion",kion+10020);
   pdgDB->AddParticle("Triton","Triton",3*kAu2Gev+14.931e-3,kFALSE,
@@ -74,7 +94,7 @@ ClassImp(AliPDG)
 		     0,0,"Special",kspe+50);
   pdgDB->AddParticle("FeedbackPhoton","FeedbackPhoton",0,kFALSE,
 		     0,0,"Special",kspe+51);
-
+*/
 }
 
 

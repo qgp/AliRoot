@@ -15,6 +15,16 @@
 
 /*
 $Log$
+Revision 1.4.2.2  2002/06/06 14:21:19  hristov
+Merged with v3-08-02
+
+$Log$
+Revision 1.10  2002/10/14 14:57:43  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.5.4.1  2002/06/10 15:26:12  hristov
+Merged with v3-08-02
+
 Revision 1.9  2002/05/13 09:53:08  hristov
 Some frequent problems corrected: arrays with variable size have to be defined via the operator new, default values for the arguments have to be  used only in the header files, etc.
 
@@ -69,12 +79,11 @@ logs added
 #include "AliKalmanTrack.h"
 #include "AliMagF.h"
 #include "AliMagFCM.h"
+#include "AliRunLoader.h"
+#include "AliTPCLoader.h"
 #include "AliTPCkineGrid.h"
 #include "AliTPCtrack.h"
 #include "AliTPCtrackerParam.h"
-#include "AliRunLoader.h"
-#include "AliTPCLoader.h"
-
 
 Double_t RegFunc(Double_t *x,Double_t *par) {
 // This is the function used to regularize the covariance matrix
@@ -169,12 +178,13 @@ Int_t AliTPCtrackerParam::BuildTPCtracks(const TFile *inp, TFile *out, Int_t n)
 /********************************************/
 
 
+//-----------------------------------------------------------------------------
+// This function creates the TPC parameterized tracks
+//-----------------------------------------------------------------------------
   TFile *fileDB=0;
   TTree *covTreePi[50];
   TTree *covTreeKa[50];
   TTree *covTreeEl[50];
-
-
 
   if(fSelAndSmear) {
     cerr<<"+++\n+++ Reading DataBase from:\n+++ "<<
@@ -206,9 +216,9 @@ Int_t AliTPCtrackerParam::BuildTPCtracks(const TFile *inp, TFile *out, Int_t n)
       covTreeEl[l] = (TTree*)fileDB->Get(str.Data());
     }
 
+
   } else cerr<<"\n ! Creating ALL TRUE tracks at TPC 1st hit !\n\n";
 
-  
   TFile *infile=(TFile*)inp;
   infile->cd();
 
@@ -353,7 +363,7 @@ Int_t AliTPCtrackerParam::BuildTPCtracks(const TFile *inp, TFile *out, Int_t n)
 
         // create AliTPCtrack object
         BuildTrack(alpha,xl,yl,zl,hPx,hPy,hPz,hPt,charge);
-       
+	
         if(fSelAndSmear) {
           bin = fDBgrid->GetBin(hPt,hEta);
           switch (pdg) {
@@ -676,29 +686,29 @@ void AliTPCtrackerParam::AnalyzePulls(const Char_t *outName) {
     // compute the sigma of the distributions
     for(Int_t i=0; i<nTotBins; i++) {
       if(hPulls0_[i].GetEntries()>1000) {
-       g->SetRange(-3.*hPulls0_[i].GetRMS(),3.*hPulls0_[i].GetRMS());
-       hPulls0_[i].Fit("g","R,Q,N");
-       pulls[0].SetParam(i,g->GetParameter(2));
+	g->SetRange(-3.*hPulls0_[i].GetRMS(),3.*hPulls0_[i].GetRMS());
+	hPulls0_[i].Fit("g","R,Q,N");
+	pulls[0].SetParam(i,g->GetParameter(2));
       } else pulls[0].SetParam(i,-1.);
       if(hPulls1_[i].GetEntries()>1000) {
-       g->SetRange(-3.*hPulls1_[i].GetRMS(),3.*hPulls1_[i].GetRMS());
-       hPulls1_[i].Fit("g","R,Q,N");
-       pulls[1].SetParam(i,g->GetParameter(2));
+	g->SetRange(-3.*hPulls1_[i].GetRMS(),3.*hPulls1_[i].GetRMS());
+	hPulls1_[i].Fit("g","R,Q,N");
+	pulls[1].SetParam(i,g->GetParameter(2));
       } else pulls[1].SetParam(i,-1.);
       if(hPulls2_[i].GetEntries()>1000) {
-       g->SetRange(-3.*hPulls2_[i].GetRMS(),3.*hPulls2_[i].GetRMS());
-       hPulls2_[i].Fit("g","R,Q,N");
-       pulls[2].SetParam(i,g->GetParameter(2));
+	g->SetRange(-3.*hPulls2_[i].GetRMS(),3.*hPulls2_[i].GetRMS());
+	hPulls2_[i].Fit("g","R,Q,N");
+	pulls[2].SetParam(i,g->GetParameter(2));
       } else pulls[2].SetParam(i,-1.);
       if(hPulls3_[i].GetEntries()>1000) {
-       g->SetRange(-3.*hPulls3_[i].GetRMS(),3.*hPulls3_[i].GetRMS());
-       hPulls3_[i].Fit("g","R,Q,N");
-       pulls[3].SetParam(i,g->GetParameter(2));
+	g->SetRange(-3.*hPulls3_[i].GetRMS(),3.*hPulls3_[i].GetRMS());
+	hPulls3_[i].Fit("g","R,Q,N");
+	pulls[3].SetParam(i,g->GetParameter(2));
       } else pulls[3].SetParam(i,-1.);
       if(hPulls4_[i].GetEntries()>1000) {
-       g->SetRange(-3.*hPulls4_[i].GetRMS(),3.*hPulls4_[i].GetRMS());
-       hPulls4_[i].Fit("g","R,Q,N");
-       pulls[4].SetParam(i,g->GetParameter(2));
+	g->SetRange(-3.*hPulls4_[i].GetRMS(),3.*hPulls4_[i].GetRMS());
+	hPulls4_[i].Fit("g","R,Q,N");
+	pulls[4].SetParam(i,g->GetParameter(2));
       } else pulls[4].SetParam(i,-1.);
     } // loop on bins
 
@@ -706,20 +716,20 @@ void AliTPCtrackerParam::AnalyzePulls(const Char_t *outName) {
     switch (part) {
     case 0: // pions
       for(Int_t i=0;i<5;i++) {
-       fPullsPi[i].~AliTPCkineGrid();
-       new(&fPullsPi[i]) AliTPCkineGrid(pulls[i]);
+	fPullsPi[i].~AliTPCkineGrid();
+	new(&fPullsPi[i]) AliTPCkineGrid(pulls[i]);
       }
       break;
     case 1: // kaons
       for(Int_t i=0;i<5;i++) {
-       fPullsKa[i].~AliTPCkineGrid();
-       new(&fPullsKa[i]) AliTPCkineGrid(pulls[i]);
+	fPullsKa[i].~AliTPCkineGrid();
+	new(&fPullsKa[i]) AliTPCkineGrid(pulls[i]);
       }
       break;
     case 2: // electrons
       for(Int_t i=0;i<5;i++) {
-       fPullsEl[i].~AliTPCkineGrid();
-       new(&fPullsEl[i]) AliTPCkineGrid(pulls[i]);
+	fPullsEl[i].~AliTPCkineGrid();
+	new(&fPullsEl[i]) AliTPCkineGrid(pulls[i]);
       }
       break;
     }
@@ -740,10 +750,10 @@ void AliTPCtrackerParam::AnalyzePulls(const Char_t *outName) {
 }
 //-----------------------------------------------------------------------------
 void AliTPCtrackerParam::BuildTrack(Double_t alpha,
-                                  Double_t x,Double_t y,Double_t z,
-                                  Double_t px,Double_t py,
-                                  Double_t pz,Double_t pt,
-                                  Int_t ch) {  
+		                    Double_t x,Double_t y,Double_t z,
+		                    Double_t px,Double_t py,
+		                    Double_t pz,Double_t pt,
+		                    Int_t ch) {  
 //-----------------------------------------------------------------------------
 // This function uses GEANT info to set true track parameters
 //-----------------------------------------------------------------------------
@@ -794,12 +804,11 @@ void AliTPCtrackerParam::BuildTrack(Double_t alpha,
   return;
 }
 //-----------------------------------------------------------------------------
-void AliTPCtrackerParam::CompareTPCtracks(
-                        const Char_t* galiceName,
-                        const Char_t* trkGeaName,
-                        const Char_t* trkKalName,
-                        const Char_t* covmatName,
-                        const Char_t* tpceffName) const {
+void AliTPCtrackerParam::CompareTPCtracks(const Char_t* galiceName,
+                                          const Char_t* trkGeaName,
+                                          const Char_t* trkKalName,
+                                          const Char_t* covmatName,
+                                          const Char_t* tpceffName) const {
 //-----------------------------------------------------------------------------
 // This function compares tracks from TPC Kalman Filter V2 with 
 // true tracks at TPC 1st hit. It gives:
@@ -1188,7 +1197,7 @@ void AliTPCtrackerParam::DrawEffs(const Char_t* inName,Int_t pdg) {
 }
 //-----------------------------------------------------------------------------
 void AliTPCtrackerParam::DrawPulls(const Char_t* inName,Int_t pdg,
-                               Int_t par) {
+				   Int_t par) {
 //-----------------------------------------------------------------------------
 // This function draws the pulls in the [pT,eta] bins
 //-----------------------------------------------------------------------------
@@ -1317,7 +1326,7 @@ Int_t AliTPCtrackerParam::GetBin(Double_t pt,Double_t eta) const {
 }
 //-----------------------------------------------------------------------------
 TMatrixD AliTPCtrackerParam::GetSmearingMatrix(Double_t* cc,Double_t pt,
-                                          Double_t eta) const {
+					       Double_t eta) const {
 //-----------------------------------------------------------------------------
 // This function stretches the covariance matrix according to the pulls
 //-----------------------------------------------------------------------------
@@ -1348,7 +1357,7 @@ TMatrixD AliTPCtrackerParam::GetSmearingMatrix(Double_t* cc,Double_t pt,
   }
 
   for(Int_t i=0;i<5;i++) stretchMat(i,i) = 
-                        TMath::Sqrt((fPulls+i)->GetValueAt(pt,eta)); 
+			   TMath::Sqrt((fPulls+i)->GetValueAt(pt,eta)); 
 
   TMatrixD mat(stretchMat,TMatrixD::kMult,covMat);
   TMatrixD covMatSmear(mat,TMatrixD::kMult,stretchMat);

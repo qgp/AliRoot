@@ -21,7 +21,7 @@
 #include <TFile.h>
 #include <TTree.h>
 #include <TObjArray.h>
-#include <iostream.h>
+#include <Riostream.h>
 
 #include "AliCascadeVertex.h"
 #include "AliCascadeVertexer.h"
@@ -41,7 +41,7 @@ AliCascadeVertexer::V0sTracks2CascadeVertices(const TFile *inp, TFile *out) {
 
    // Tree for vertices(V0's)
 
-   TTree *vtxTree=(TTree*)gDirectory->Get("TreeV");
+   TTree *vtxTree=(TTree*)gDirectory->Get("TreeV0");
    TBranch *branch=vtxTree->GetBranch("vertices");
    Int_t nentrV0=(Int_t)vtxTree->GetEntries();
    

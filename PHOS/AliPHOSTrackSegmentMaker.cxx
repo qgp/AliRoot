@@ -27,7 +27,6 @@
 #include "TTree.h"
 
 // --- Standard library ---
-#include <iostream.h>
 #include <stdlib.h>   
 
 // --- AliRoot header files ---
@@ -42,7 +41,6 @@ ClassImp( AliPHOSTrackSegmentMaker)
   AliPHOSTrackSegmentMaker:: AliPHOSTrackSegmentMaker() : TTask("","")
 {
   // ctor
-
 }
 
 //____________________________________________________________________________

@@ -9,15 +9,15 @@
 #include <AliLoader.h>
 
 //standard library includes
-#include <iostream.h>
+#include <Riostream.h>
 
 //Root includes
-#include <TString.h>
-#include <TFile.h>
+#include <TROOT.h>
 #include <TFolder.h>
-#include <TTree.h>
+#include <TFile.h>
 #include <TTree.h>
 #include <TTask.h>
+#include <TString.h>
 
 //AliRoot includes
 #include <AliRun.h>
@@ -391,7 +391,7 @@ Int_t AliLoader::SetEvent()
       if (CheckReload(File(kHits),FileName(kHits)))
        {
          UnloadHits();
-         cout<<"AliLoader::SetEvent: Reloading new file for hits. file opt is "<<FileOption(kHits)<<endl;
+         Info("SetEvent","Reloading new file for hits. file opt is %s",FileOption(kHits).Data());
          OpenHitsFile(FileOption(kHits));
        }
       Directory(kHits) = ChangeDir(File(kHits),evno);
@@ -473,7 +473,7 @@ Int_t AliLoader::SetEvent()
 
 Int_t AliLoader::GetEvent()
  {
- //changes to proper root directory and tries to load data from files to folders
+ //changes to proper root  directory and tries to load data from files to folders
  // 
  // 
  //returns:
@@ -1427,19 +1427,18 @@ void AliLoader::CleanFolders()
  {
  //Cleans all posted objects == removes from folders and deletes them
  
-//  cout<<"**********************************************"<<endl;
-//  cout<<"AliLoader::CleanFolders:"<<endl;
-//  cout<<"Before"<<endl;
-//  GetDetectorDataFolder()->ls();
-  
+  Info("CleanFolders","name = %s Hits",GetName());
   CleanHits();
+  Info("CleanFolders","name = %s SDigits",GetName());
   CleanSDigits();
+  Info("CleanFolders","name = %s Digits",GetName());
   CleanDigits();
+  Info("CleanFolders","name = %s RecPoints",GetName());
   CleanRecPoints();
+  Info("CleanFolders","name = %s Tracks",GetName());
   CleanTracks();
+  Info("CleanFolders","name = %s Done",GetName());
   
-//  cout<<endl<<endl<<"After"<<endl;
-//  GetDetectorDataFolder()->ls();
  }
 /*****************************************************************************/ 
 
@@ -1768,3 +1767,13 @@ void AliLoader::SetTracksFileOption(Option_t* newopt)
 
 
 ClassImp(AliLoaderDataInfo)
+AliLoaderDataInfo::AliLoaderDataInfo():
+ fFileName(0),
+ fFile(0x0),
+ fDirectory(0x0),
+ fFileOption(0),
+ fContainerName(0),
+ fName(0)
+{
+  
+}

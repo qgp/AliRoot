@@ -15,6 +15,12 @@
 
 /*
 $Log$
+Revision 1.3  2002/10/23 07:26:21  alibrary
+Introducing Riostream.h
+
+Revision 1.2  2002/02/04 14:47:22  hristov
+Corrections needed bu Root v3-02-07
+
 Revision 1.1  2000/11/01 16:01:22  kowal2
 Classes for handling the new hits structures
 
@@ -36,7 +42,7 @@ Classes for handling the new hits structures
 #include "TDataType.h"   
 
 #include "TROOT.h"
-#include "iostream.h"
+#include "Riostream.h"
 
 
 ClassImp(AliDataType)

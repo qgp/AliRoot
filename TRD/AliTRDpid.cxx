@@ -15,6 +15,18 @@
 
 /*
 $Log$
+Revision 1.6  2002/10/14 14:57:44  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.4.6.1  2002/07/24 10:09:30  alibrary
+Updating VirtualMC
+
+Revision 1.5  2002/06/12 09:54:35  cblume
+Update of tracking code provided by Sergei
+
+Revision 1.4  2001/11/19 08:44:08  cblume
+Fix bugs reported by Rene
+
 Revision 1.3  2001/11/14 10:50:46  cblume
 Changes in digits IO. Add merging of summable digits
 
@@ -361,7 +373,7 @@ Bool_t AliTRDpid::ReadCluster(const Char_t *name)
   printf("AliTRDpid::ReadCluster -- ");
   printf("Open file %s\n",name);
 
-  AliTRDtracker *tracker = new AliTRDtracker("dummy","dummy");
+  AliTRDtracker *tracker = new AliTRDtracker();
   tracker->ReadClusters(fClusterArray,name);
 
   if (!fClusterArray) {
@@ -458,7 +470,7 @@ Int_t AliTRDpid::MCpid(const AliTRDtrack *t)
   }
   
   // Loop through all clusters associated to this track
-  Int_t nCluster = t->GetNclusters();
+  Int_t nCluster = t->GetNumberOfClusters();
   for (Int_t iCluster = 0; iCluster < nCluster; iCluster++) {
 
     // Get a cluster
@@ -468,8 +480,8 @@ Int_t AliTRDpid::MCpid(const AliTRDtrack *t)
     } 
 
     // Get the first two MC track indices
-    Int_t track0 = cluster->GetTrackIndex(0);
-    Int_t track1 = cluster->GetTrackIndex(1);
+    Int_t track0 = cluster->GetLabel(0);
+    Int_t track1 = cluster->GetLabel(1);
 
     // Check on the track index to find the right primaries
     if ((track0 >  fPIDindexMin) && 
@@ -574,7 +586,7 @@ Int_t AliTRDpid::MCpid(const AliTRDtrack *t, Int_t *pdg
   }
 
   // Loop through all clusters associated to this track
-  Int_t nCluster = t->GetNclusters();
+  Int_t nCluster = t->GetNumberOfClusters();
   for (iCluster = 0; iCluster < nCluster; iCluster++) {
 
     // Get a cluster
@@ -586,7 +598,7 @@ Int_t AliTRDpid::MCpid(const AliTRDtrack *t, Int_t *pdg
     // Get the MC track indices
     for (iTrack = 0; iTrack < kNtrack; iTrack++) {
 
-      Int_t trackIndex = cluster->GetTrackIndex(iTrack);
+      Int_t trackIndex = cluster->GetLabel(iTrack);
       if (trackIndex >= 0) {
         particle = gAlice->Particle(trackIndex);
         Int_t  pdgCode = particle->GetPdgCode(); 
@@ -655,7 +667,7 @@ Bool_t AliTRDpid::SumCharge(const AliTRDtrack *t
   }
   
   // Loop through all clusters associated to this track
-  Int_t nClus = t->GetNclusters();
+  Int_t nClus = t->GetNumberOfClusters();
   for (Int_t iClus = 0; iClus < nClus; iClus++) {
 
     // Get a cluster

@@ -16,6 +16,15 @@
 
 /*
 $Log$
+Revision 1.4  2002/10/30 13:39:51  hristov
+Warnings cleaned up (Alpha)
+
+Revision 1.3  2002/10/21 09:20:51  alibrary
+Introduce Riostream.h and remove unused variables
+
+Revision 1.2  2001/11/12 14:31:00  morsch
+Memory leaks fixed. (M. Bondila)
+
 Revision 1.1  2001/11/09 09:10:46  morsch
 Realisation of AliGenReader that reads the old cwn event format.
 
@@ -86,7 +95,6 @@ Int_t AliGenReaderCwn::NextEvent()
 
     Int_t nentries = (Int_t) fTreeNtuple->GetEntries();
     if (fNcurrent < nentries) {
-	Int_t nb = (Int_t)fTreeNtuple->GetEvent(fNcurrent);
 	fNcurrent++;
 	
 	Int_t i5=fIhead[4];
@@ -100,9 +108,8 @@ Int_t AliGenReaderCwn::NextEvent()
 	}    
 	fNparticleMax = nTracks;
 	return nTracks;
-    } else {
-	return 0;
     }
+
     return 0;
 }
 
@@ -129,9 +136,7 @@ TParticle* AliGenReaderCwn::NextParticle()
     p[1] = prwn*TMath::Sin(fTheta)*TMath::Sin(fPhi);      
     p[2] = prwn*TMath::Cos(fTheta);
     p[3] = fE;
-    TParticle* particle = new TParticle(fIdpart, 0, -1, -1, -1, -1, p[0], p[1], p[2], p[3], 
-					0., 0., 0., 0.);
-    Int_t nb = (Int_t)fTreeNtuple->GetEvent(fNcurrent);
+    TParticle* particle = new TParticle(fIdpart, 0, -1, -1, -1, -1, p[0], p[1], p[2], p[3], 0., 0., 0., 0.);
     fNcurrent++;
     fNparticle++;
     return particle;

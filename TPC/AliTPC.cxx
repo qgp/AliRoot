@@ -14,8 +14,31 @@
  **************************************************************************/
 
 /*
+$Log$
+
 Revision 1.53.2.1  2002/05/31 09:38:00  hristov
 First set of changes done by Piotr
+
+Revision 1.64  2002/10/23 07:17:33  alibrary
+Introducing Riostream.h
+
+Revision 1.63  2002/10/14 14:57:42  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.54.4.3  2002/10/11 08:34:48  hristov
+Updating VirtualMC to v3-09-02
+
+Revision 1.62  2002/09/23 09:22:56  hristov
+The address of the TrackReferences is set (M.Ivanov)
+
+Revision 1.61  2002/09/10 07:06:42  kowal2
+Corrected for the memory leak. Thanks to J. Chudoba and M. Ivanov
+
+Revision 1.60  2002/06/12 14:56:56  kowal2
+Added track length to the reference hits
+
+Revision 1.59  2002/06/05 15:37:31  kowal2
+Added cross-talk from the wires beyond the first and the last rows
 
 Revision 1.58  2002/05/27 14:33:14  hristov
 The new class AliTrackReference used (M.Ivanov)
@@ -193,6 +216,10 @@ Introduction of the Copyright and cvs Log
 ///////////////////////////////////////////////////////////////////////////////
 
 //
+#include "AliTPC.h"
+
+#include <Riostream.h>
+#include <stdlib.h>
 
 #include <TMath.h>
 #include <TRandom.h>
@@ -202,43 +229,38 @@ Introduction of the Copyright and cvs Log
 #include <TNode.h>
 #include <TTUBS.h>
 #include <TObjectTable.h>
-#include "TParticle.h"
-#include "AliTPC.h"
+#include <TParticle.h>
 #include <TFile.h>  
+#include <TTree.h>
 #include <TROOT.h>
 #include <TSystem.h>     
+#include <TInterpreter.h>
+
 #include "AliRun.h"
-#include <iostream.h>
-#include <stdlib.h>
-#include <fstream.h>
+#include "AliRunLoader.h"
 #include "AliMC.h"
 #include "AliMagF.h"
 #include "AliTrackReference.h"
+#include "AliDigits.h"
+#include "AliSimDigits.h"
+#include "AliPoints.h"
+#include "AliComplexCluster.h"
+#include "AliClusters.h"
+#include "AliArrayBranch.h"
 
-
+#include "AliTPCLoader.h"
+#include "AliTPC.h"
 #include "AliTPCParamSR.h"
 #include "AliTPCPRF2D.h"
 #include "AliTPCRF1D.h"
-#include "AliDigits.h"
-#include "AliSimDigits.h"
 #include "AliTPCTrackHits.h"
 #include "AliTPCTrackHitsV2.h"
-#include "AliPoints.h"
-#include "AliArrayBranch.h"
-
-
-#include "AliTPCDigitsArray.h"
-#include "AliComplexCluster.h"
-#include "AliClusters.h"
 #include "AliTPCClustersRow.h"
 #include "AliTPCClustersArray.h"
-
+#include "AliTPCDigitsArray.h"
 #include "AliTPCcluster.h"
 #include "AliTPCclusterer.h"
 #include "AliTPCtracker.h"
-
-#include <TInterpreter.h>
-#include <TTree.h>
 
 
 ClassImp(AliTPC) 
@@ -262,7 +284,9 @@ AliTPCFastMatrix::AliTPCFastMatrix(Int_t row_lwb, Int_t row_upb, Int_t col_lwb, 
 class AliTPCFastVector : public TVector {
 public :
   AliTPCFastVector(Int_t size);
+  virtual ~AliTPCFastVector(){;}
   inline Float_t & UncheckedAt(Int_t index) const  {return  fElements[index];} //fast acces  
+  
 };
 
 AliTPCFastVector::AliTPCFastVector(Int_t size):TVector(size){
@@ -377,7 +401,7 @@ void AliTPC::AddHit(Int_t track, Int_t *vol, Float_t *hits)
    AddHit2(track,vol,hits);
 }
 
-void  AliTPC::AddTrackReference(Int_t lab, TLorentzVector p, TLorentzVector x){
+void  AliTPC::AddTrackReference(Int_t lab, TLorentzVector p, TLorentzVector x, Float_t length){
   //
   // add a trackrefernce to the list
   if (!fTrackReferences) {
@@ -390,6 +414,7 @@ void  AliTPC::AddTrackReference(Int_t lab, TLorentzVector p, TLorentzVector x){
   ref->SetMomentum(p[0],p[1],p[2]);
   ref->SetPosition(x[0],x[1],x[2]);
   ref->SetTrack(lab);
+  ref->SetLength(length);
 }
  
 //_____________________________________________________________________________
@@ -1632,9 +1657,7 @@ void AliTPC::Hits2Digits(Int_t eventnumber)
     cout<<"Sector "<<isec<<"is NOT active\n";
    }
 
-
   fLoader->WriteDigits("OVERWRITE"); 
-
 }
 
 
@@ -1709,12 +1732,9 @@ void AliTPC::Hits2SDigits2(Int_t eventnumber)
 //need to be redesign
  if(GetDigitsArray()) delete GetDigitsArray();
  SetDigitsArray(0x0);
- 
 }
-
-
-
 //__________________________________________________________________
+
 void AliTPC::Hits2SDigits()  
 { 
 
@@ -1768,9 +1788,8 @@ void AliTPC::Hits2SDigits()
   cout<<"Why method TPC::Hits2SDigits writes digits and not sdigits? skowron\n";
   fLoader->WriteDigits("OVERWRITE");
 }
-
-
 //_____________________________________________________________________________
+
 void AliTPC::Hits2DigitsSector(Int_t isec)
 {
   //-------------------------------------------------------------------
@@ -1811,7 +1830,7 @@ void AliTPC::Hits2DigitsSector(Int_t isec)
 
       Int_t nrows =fTPCParam->GetNRow(isec);
 
-      row= new TObjArray* [nrows];
+      row= new TObjArray* [nrows+2]; // 2 extra rows for cross talk
     
       MakeSector(isec,nrows,tH,ntracks,row);
 
@@ -1847,7 +1866,7 @@ void AliTPC::Hits2DigitsSector(Int_t isec)
    
        } // end of the sector digitization
 
-      for(i=0;i<nrows;i++){
+      for(i=0;i<nrows+2;i++){
         row[i]->Delete();  
         delete row[i];   
       }
@@ -1874,7 +1893,7 @@ void AliTPC::DigitizeRow(Int_t irow,Int_t isec,TObjArray **rows)
  
 
   Float_t zerosup = fTPCParam->GetZeroSup();
-  Int_t nrows =fTPCParam->GetNRow(isec);
+  //  Int_t nrows =fTPCParam->GetNRow(isec);
   fCurrentIndex[1]= isec;
   
 
@@ -1902,14 +1921,16 @@ void AliTPC::DigitizeRow(Int_t irow,Int_t isec,TObjArray **rows)
   //
   //calculate signal 
   //
-  Int_t row1 = TMath::Max(irow-fTPCParam->GetNCrossRows(),0);
-  Int_t row2 = TMath::Min(irow+fTPCParam->GetNCrossRows(),nrows-1);
+  //Int_t row1 = TMath::Max(irow-fTPCParam->GetNCrossRows(),0);
+  //Int_t row2 = TMath::Min(irow+fTPCParam->GetNCrossRows(),nrows-1);
+  Int_t row1=irow;
+  Int_t row2=irow+2; 
   for (Int_t row= row1;row<=row2;row++){
     Int_t nTracks= rows[row]->GetEntries();
     for (i1=0;i1<nTracks;i1++){
       fCurrentIndex[2]= row;
-      fCurrentIndex[3]=irow;
-      if (row==irow){
+      fCurrentIndex[3]=irow+1;
+      if (row==irow+1){
 	m2->Zero();  // clear single track signal matrix
 	Float_t trackLabel = GetSignal(rows[row],i1,m2,m1,indexRange); 
 	GetList(trackLabel,nofPads,m2,indexRange,pList);
@@ -2009,7 +2030,7 @@ Float_t AliTPC::GetSignal(TObjArray *p1, Int_t ntr,
   AliTPCFastVector &v = *tv;
   
   Float_t label = v(0);
-  Int_t centralPad = (fTPCParam->GetNPads(fCurrentIndex[1],fCurrentIndex[3])-1)/2;
+  Int_t centralPad = (fTPCParam->GetNPads(fCurrentIndex[1],fCurrentIndex[3]-1)-1)/2;
 
   Int_t nElectrons = (tv->GetNrows()-1)/4;
   indexRange[0]=9999; // min pad
@@ -2180,10 +2201,10 @@ void AliTPC::MakeSector(Int_t isec,Int_t nrows,TTree *TH,
   // of electrons, one AliTPCFastVectors per each track.
   //---------------------------------------------- 
     
-  Int_t *nofElectrons = new Int_t [nrows]; // electron counter for each row
-  AliTPCFastVector **tracks = new AliTPCFastVector* [nrows]; //pointers to the track vectors
+  Int_t *nofElectrons = new Int_t [nrows+2]; // electron counter for each row
+  AliTPCFastVector **tracks = new AliTPCFastVector* [nrows+2]; //pointers to the track vectors
 
-  for(i=0; i<nrows; i++){
+  for(i=0; i<nrows+2; i++){
     row[i] = new TObjArray;
     nofElectrons[i]=0;
     tracks[i]=0;
@@ -2230,7 +2251,7 @@ void AliTPC::MakeSector(Int_t isec,Int_t nrows,TTree *TH,
                           
            // store already filled fTrack
               
-	   for(i=0;i<nrows;i++){
+	   for(i=0;i<nrows+2;i++){
              if(previousTrack != -1){
 	       if(nofElectrons[i]>0){
                  AliTPCFastVector &v = *tracks[i];
@@ -2283,14 +2304,16 @@ void AliTPC::MakeSector(Int_t isec,Int_t nrows,TTree *TH,
 	  xyz[3]= (Float_t) (-gasgain*TMath::Log(rn)); 
 	  index[0]=1;
 	  
-	  TransportElectron(xyz,index); //MI change -august	  
+	  TransportElectron(xyz,index);    
 	  Int_t rowNumber;
-	  fTPCParam->GetPadRow(xyz,index); //MI change august
-	  rowNumber = index[2];
+	  fTPCParam->GetPadRow(xyz,index); 
+	  // row 0 - cross talk from the innermost row
+	  // row fNRow+1 cross talk from the outermost row
+	  rowNumber = index[2]+1; 
 	  //transform position to local digit coordinates
 	  //relative to nearest pad row 
-	  if ((rowNumber<0)||rowNumber>=fTPCParam->GetNRow(isec)) continue;
-  Float_t x1,y1;
+	  if ((rowNumber<0)||rowNumber>fTPCParam->GetNRow(isec)+1) continue;
+          Float_t x1,y1;
 	  if (isec <fTPCParam->GetNInnerSector()) {
 	    x1 = xyz[1]*fTPCParam->GetInnerPadPitchWidth();
 	    y1 = fTPCParam->GetYInner(rowNumber);
@@ -2299,9 +2322,7 @@ void AliTPC::MakeSector(Int_t isec,Int_t nrows,TTree *TH,
 	    x1=xyz[1]*fTPCParam->GetOuterPadPitchWidth();
 	    y1 = fTPCParam->GetYOuter(rowNumber);
 	  }
-
 	  // gain inefficiency at the wires edges - linear
-
 	  x1=TMath::Abs(x1);
 	  y1-=1.;
           if(x1>y1) xyz[3]*=TMath::Max(1.e-6,(y1-x1+1.));	
@@ -2334,7 +2355,7 @@ void AliTPC::MakeSector(Int_t isec,Int_t nrows,TTree *TH,
     //   store remaining track (the last one) if not empty
     //
 
-     for(i=0;i<nrows;i++){
+     for(i=0;i<nrows+2;i++){
        if(nofElectrons[i]>0){
           AliTPCFastVector &v = *tracks[i];
 	  v(0) = previousTrack;
@@ -2375,7 +2396,7 @@ void AliTPC::Init()
 }
 
 //_____________________________________________________________________________
-void AliTPC::MakeBranch(Option_t* option, const char *file)
+void AliTPC::MakeBranch(Option_t* option)
 {
   //
   // Create Tree branches for the TPC.
@@ -2384,16 +2405,16 @@ void AliTPC::MakeBranch(Option_t* option, const char *file)
   char branchname[10];
   sprintf(branchname,"%s",GetName());
 
-  AliDetector::MakeBranch(option,file);
+  AliDetector::MakeBranch(option);
 
   const char *d = strstr(option,"D");
 
   if (fDigits   && gAlice->TreeD() && d) {
       MakeBranchInTree(gAlice->TreeD(), 
-                       branchname, &fDigits, buffersize, file);
+                       branchname, &fDigits, buffersize, 0);
   }	
 
-  if (fHitType>1) MakeBranch2(option,file); // MI change 14.09.2000
+  if (fHitType>1) MakeBranch2(option,0); // MI change 14.09.2000
 }
  
 //_____________________________________________________________________________
@@ -2551,13 +2572,10 @@ void AliTPC::TransportElectron(Float_t *xyz, Int_t *index)
   // ExB
   
   if (fTPCParam->GetMWPCReadout()==kTRUE){
-    Float_t x1=xyz[0];
-    fTPCParam->Transform2to2NearestWire(xyz,index);
-    Float_t dx=xyz[0]-x1;
+    Float_t dx = fTPCParam->Transform2to2NearestWire(xyz,index);
     xyz[1]+=dx*(fTPCParam->GetOmegaTau());
   }
-  //add nonisochronity (not implemented yet)
-  
+  //add nonisochronity (not implemented yet)  
 }
   
 ClassImp(AliTPCdigit)
@@ -2704,6 +2722,13 @@ void AliTPC::SetTreeAddress2()
        cout<<"AliTPC::SetTreeAddress2 fHitType&2 Setting"<<endl;       
      }
     else cout<<"AliTPC::SetTreeAddress2 fHitType&2  Failed"<<endl;
+  }
+  //set address to TREETR
+
+  TTree *treeTR = TreeTR();
+  if (treeTR && fTrackReferences) {
+    branch = treeTR->GetBranch(GetName());
+    if (branch) branch->SetAddress(&fTrackReferences);
   }
 
 }

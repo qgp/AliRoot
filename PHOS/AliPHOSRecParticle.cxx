@@ -73,10 +73,10 @@ ClassImp(AliPHOSRecParticle)
 //____________________________________________________________________________
 const Int_t AliPHOSRecParticle::GetNPrimaries() const  
 { 
-cerr<<"ERROR ERROR  AliPHOSRecParticle::GetNPrimaries() const\n";
-cerr<<"Container class tries to get global pointers\n";
-cerr<<"See the code PLEASE!!!\n";
-cerr<<"Returning  -1  !!!!!!!!!!!!!!!!!!!\n";
+Error("GetNPrimaries","ERROR ERROR  AliPHOSRecParticle::GetNPrimaries() const\n");
+Error("GetNPrimaries","Container class tries to get global pointers\n");
+Error("GetNPrimaries","See the code PLEASE!!!\n");
+Error("GetNPrimaries","Returning  -1  !!!!!!!!!!!!!!!!!!!\n");
 
 //This case is symmetric to getting geometry from hit
 //Piotr Skowronski
@@ -143,4 +143,3 @@ const TParticle * AliPHOSRecParticle::GetPrimary(Int_t index) const
    } 
   return 0 ; 
 }
-

@@ -15,6 +15,12 @@
 
 /*
 $Log$
+Revision 1.3  2002/10/29 14:26:49  hristov
+Code clean-up (F.Carminati)
+
+Revision 1.2  2000/02/14 11:44:29  fca
+New version from Y.Schutz
+
 Revision 1.1  1999/12/17 09:01:14  fca
 Y.Schutz new classes for reconstruction
 
@@ -24,8 +30,15 @@ Y.Schutz new classes for reconstruction
  
 ClassImp(AliDigitNew)
 
-AliDigitNew::AliDigitNew()
+//_______________________________________________________________________
+AliDigitNew::AliDigitNew():
+  fAmp(0),
+  fId(0),
+  fIndexInList(0)
 {
+  //
+  // Default constructor
+  //
 }
 
 	 

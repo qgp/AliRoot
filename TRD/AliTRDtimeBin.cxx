@@ -15,6 +15,15 @@
 
 /*
 $Log$
+Revision 1.5.4.1  2002/06/03 09:55:04  hristov
+Merged with v3-08-02
+
+Revision 1.7  2002/10/14 14:57:44  hristov
+Merging the VirtualMC branch to the main development branch (HEAD)
+
+Revision 1.5.6.2  2002/07/24 10:09:31  alibrary
+Updating VirtualMC
+
 Revision 1.6  2002/03/28 14:59:07  cblume
 Coding conventions
 
