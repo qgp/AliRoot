@@ -50,8 +50,8 @@ fi
 if [ "`echo ${SHLIBVAR} | grep ${G4INSTALL}/lib/${G4SYSTEM} `" = "" ]; then
   SHLIBVAR="${SHLIBVAR}:${G4INSTALL}/lib/${G4SYSTEM}"
 fi
-if [ "`echo ${SHLIBVAR} | grep ${MCINSTALL}/lib/${G4SYSTEM} `" = "" ]; then
-  SHLIBVAR="${SHLIBVAR}:${MCINSTALL}/lib/${G4SYSTEM}"
+if [ "`echo ${SHLIBVAR} | grep ${MCINSTALL}/lib/tgt_${G4SYSTEM} `" = "" ]; then
+  SHLIBVAR="${SHLIBVAR}:${MCINSTALL}/lib/tgt_${G4SYSTEM}"
 fi
 if [ "`echo ${SHLIBVAR} | grep ${CLHEP_BASE_DIR}/lib `" = "" ]; then
   SHLIBVAR="${SHLIBVAR}:${CLHEP_BASE_DIR}/lib"
