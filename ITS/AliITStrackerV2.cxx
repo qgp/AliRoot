@@ -428,7 +428,6 @@ Int_t AliITStrackerV2::RefitInward() {
   TFile * out = 0x0;
 
   TFile *in=(TFile*)inp;
-  TDirectory *savedir=gDirectory; 
 
   if (LoadClusters()!=0) return 1;
 
