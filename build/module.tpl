@@ -18,6 +18,20 @@ else
 @PACKAGE@CXXFLAGS:=$(PACKCXXFLAGS)
 endif
 
+ifndef PACKSOFLAGS
+@PACKAGE@SOFLAGS:=$(SOFLAGS)
+else
+@PACKAGE@SOFLAGS:=$(PACKSOFLAGS)
+endif
+
+ifdef DYEXT
+ifndef PACKDYFLAGS
+@PACKAGE@DYFLAGS:=$(DYFLAGS)
+else
+@PACKAGE@DYFLAGS:=$(PACKDYFLAGS)
+endif
+endif
+
 ifndef PACKDCXXFLAGS
 ifeq ($(PLATFORM),linuxicc)
 @PACKAGE@DCXXFLAGS:=$(filter-out -O%,$(CXXFLAGS)) -O0
@@ -102,11 +116,19 @@ endif
 #The actual library file
 
 @PACKAGE@LIB:=$(LIBPATH)/lib@PACKAGE@.$(SOEXT)
+
+ifneq ($(DYEXT),)
+@PACKAGE@DLIB:=$(LIBPATH)/lib@PACKAGE@.$(DYEXT)
+endif
+
 @PACKAGE@ALIB:=$(LIBPATH)/lib@PACKAGE@.$(AEXT)
 
 #Add this to the modules libs
 @MODULE@LIBS += $(@PACKAGE@LIB)
 @MODULE@ALIBS += $(@PACKAGE@ALIB)
+ifneq ($(DYEXT),)
+@MODULE@DLIBS += $(@PACKAGE@DLIB)
+endif
 
 #The actual binary file
 
@@ -120,9 +142,18 @@ endif
 ifeq ($(TYPE),lib)
 ALLLIBS += $(@PACKAGE@LIB)
 ALLALIBS += $(@PACKAGE@ALIB)
+ifneq ($(DYEXT),)
+ALLLIBS += $(@PACKAGE@DLIB)
+endif
 BINLIBS += -l@PACKAGE@
 else
 ALLEXECS += $(@PACKAGE@BIN)
+endif
+
+ifeq ($(DYEXT),)
+@PACKAGE@LIB := $(@PACKAGE@LIB)
+else
+@PACKAGE@LIB := $(@PACKAGE@LIB)
 endif
 
 # include all dependency files
@@ -145,6 +176,8 @@ endif
 	  @cp $^ $@	
 endif
 
+#------------------------------------------------------------------------
+
 $(@PACKAGE@LIB):$(@PACKAGE@O) $(@PACKAGE@DO) @MODULE@/module.mk
 ifndef ALIQUIET
 	  @echo "***** Linking library $@ *****"
@@ -152,10 +185,26 @@ endif
 	  $(MUTE)TMPDIR=/tmp/@MODULE@$$$$.`date +%M%S` ; \
 	  export TMPDIR; mkdir $$TMPDIR ; cd $$TMPDIR ; \
 	  find $(CURDIR)/@MODULE@/tgt_$(ALICE_TARGET) -name '*.o' -exec ln -s {} . \; ;\
-      rm -f $(CURDIR)/$@ ;\
-	  $(SHLD) $(SOFLAGS) -o $(CURDIR)/$@ $(notdir $(@PACKAGE@O) $(@PACKAGE@DO))  $(@PACKAGE@ELIBSDIR) $(@PACKAGE@ELIBS) $(SHLIB);\
-      cd $(CURDIR) ; rm -rf $$TMPDIR
-	  $(MUTE)chmod a-w $@
+	  rm -f $(CURDIR)/$@ ;\
+	  $(SHLD) $(@PACKAGE@SOFLAGS) -o $(CURDIR)/$@ $(notdir $(@PACKAGE@O) $(@PACKAGE@DO))  $(@PACKAGE@ELIBSDIR) $(@PACKAGE@ELIBS) $(SHLIB);
+	  $(MUTE)chmod a-w $(CURDIR)/$@ ;\
+	  rm -rf $$TMPDIR
+
+ifneq ($(DYEXT),)
+$(@PACKAGE@DLIB):$(@PACKAGE@O) $(@PACKAGE@DO) @MODULE@/module.mk
+ifndef ALIQUIET
+	  @echo "***** Linking library $@ *****"
+endif
+	  $(MUTE)TMPDIR=/tmp/@MODULE@$$$$.`date +%M%S` ; \
+	  export TMPDIR; mkdir $$TMPDIR ; cd $$TMPDIR ; \
+	  find $(CURDIR)/@MODULE@/tgt_$(ALICE_TARGET) -name '*.o' -exec ln -s {} . \; ;\
+	  rm -f $(CURDIR)/$@ ;\
+	  $(DYLD) $(@PACKAGE@DYFLAGS) -o $(CURDIR)/$@ $(notdir $(@PACKAGE@O) $(@PACKAGE@DO))  $(@PACKAGE@ELIBSDIR) $(@PACKAGE@ELIBS) $(DYLIB);
+	  $(MUTE)chmod a-w $(CURDIR)/$@ ;\
+	  rm -rf $$TMPDIR
+endif
+
+#------------------------------------------------------------------------
 
 $(@PACKAGE@ALIB):$(@PACKAGE@O) $(@PACKAGE@DO) @MODULE@/module.mk
 ifndef ALIQUIET
@@ -165,7 +214,7 @@ endif
 	  export TMPDIR; mkdir $$TMPDIR ; cd $$TMPDIR ; \
 	  find $(CURDIR)/@MODULE@/tgt_$(ALICE_TARGET) -name '*.o' -exec ln -s {} . \; ;\
       rm -f $(CURDIR)/$@ ;\
-	  $(ALLD) $(ALFLAGS) $(CURDIR)/$@ $(notdir $(@PACKAGE@O) $(@PACKAGE@DO))  $(@PACKAGE@ELIBSDIR) $(@PACKAGE@ELIBS) $(ALLIB);\
+	  $(ALLD) $(ALFLAGS) $(CURDIR)/$@ $(notdir $(@PACKAGE@O)) $(notdir @PACKAGE@DO) $(ALLIB);\
       cd $(CURDIR) ; rm -rf $$TMPDIR
 	  $(MUTE)chmod a-w $@
 
@@ -197,6 +246,9 @@ endif
 
 ifeq ($(TYPE),lib)
 all-@PACKAGE@: $(@PACKAGE@LIB) $(@PACKAGE@ALIB)
+ifneq ($(DYEXT),)
+all-@PACKAGE@: $(@PACKAGE@DLIB)
+endif
 else
 all-@PACKAGE@: $(@PACKAGE@BIN)
 endif
