@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.7  2002/08/01 12:34:48  morsch
+Initialize maps in first call to Field() after streaming in.
+
 Revision 1.6  2002/04/11 11:17:48  morsch
 ReadField() used in Constructor.
 
@@ -97,6 +100,7 @@ void AliMagFMaps::ReadField()
 //  don't read twice
 //
     if (fFieldRead) return;
+    fFieldRead = 1;
 //    
     char* fname;
     TFile* file = 0;
@@ -193,6 +197,8 @@ void AliMagFMaps::Field(Float_t *x, Float_t *b)
   //
   // --- find the position in the grid ---
   
+  if (!fFieldRead) ReadField();
+    
   b[0]=b[1]=b[2]=0;
   AliFieldMap* map = 0;
   if (fFieldMap[0]->Inside(x[0], x[1], x[2])) {
@@ -261,8 +267,6 @@ void AliMagFMaps::Field(Float_t *x, Float_t *b)
       b[1]*=fFactor;
       b[2]*=fFactor;
   }
-  b[0]*=1.1;
-  
 }
 
 //________________________________________
@@ -279,4 +283,15 @@ AliMagFMaps & AliMagFMaps::operator =(const AliMagFMaps &magf)
 {
   magf.Copy(*this);
   return *this;
+}
+
+void AliMagFMaps::Streamer(TBuffer &R__b)
+{
+   // Stream an object of class AliMagFMaps.
+   if (R__b.IsReading()) {
+      AliMagFMaps::Class()->ReadBuffer(R__b, this);
+      fFieldRead = 0;
+   } else {
+      AliMagFMaps::Class()->WriteBuffer(R__b, this);
+   }
 }
