@@ -230,7 +230,7 @@ void AliFMDReconstruction::Exec()
 	   AliHeader *header = fRunLoader->GetHeader();
 	   AliGenEventHeader* genHeader = header->GenEventHeader();
 	   TArrayF *o = new TArrayF(3); 
-	   genHeader->PrimaryVertex(*o);
+	   if (genHeader) genHeader->PrimaryVertex(*o);
 	   Float_t zVertex=o->At(2);
  	   for (ivol=0; ivol<knumVolumes; ivol++)
 	     {

@@ -36,6 +36,8 @@ AliESD::AliESD():
   fPrimaryVertex(),
   fTracks("AliESDtrack",15000),
   fMuonTracks("AliESDMuonTrack",30),
+  fHLTConfMapTracks("AliESDHLTtrack",25000),
+  fHLTHoughTracks("AliESDHLTtrack",15000),
   fV0s("AliESDv0",200),
   fCascades("AliESDcascade",20),
   fPHOSParticles(0), 
@@ -65,6 +67,8 @@ void AliESD::Print(Option_t *) const {
   printf("                 phos      %d\n", GetNumberOfPHOSParticles());
   printf("                 emcal     %d\n", GetNumberOfEMCALParticles());
   printf("                 muon      %d\n", GetNumberOfMuonTracks());
+  printf("                 hlt CF    %d\n", GetNumberOfHLTConfMapTracks());
+  printf("                 hlt HT    %d\n", GetNumberOfHLTHoughTracks());
   printf("                 v0        %d\n", GetNumberOfV0s());
   printf("                 cascades  %d\n)", GetNumberOfCascades());
 }
