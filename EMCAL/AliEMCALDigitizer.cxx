@@ -401,14 +401,14 @@ void AliEMCALDigitizer::Exec(Option_t *option)
   for(ievent = 0; ievent < nevents; ievent++){
     
     gime->Event(ievent,"S") ; 
-    
+
     Digitize(ievent) ; //Add prepared SDigits to digits and add the noise
-    
+
     WriteDigits(ievent) ;
-    
+
     if(strstr(option,"deb"))
       PrintDigits(option);
-    
+
     //increment the total number of Digits per run 
     fDigitsInRun += gime->Digits()->GetEntriesFast() ;  
   }
@@ -462,7 +462,7 @@ Bool_t AliEMCALDigitizer::Init()
   // Post Digitizer to the white board
   gime->PostDigitizer(this) ;
  
-  if(!fManager)
+  if(fManager)
     fInput = fManager->GetNinputs() ; 
   else 
     fInput           = 1 ;
@@ -490,7 +490,7 @@ void AliEMCALDigitizer::InitParameters()
   fMeanPhotonElectron = 1250 ; // electrons per GeV
   
   Warning("InitParameters", "No noise added\n") ; 
-  fPinNoise           = 0. ; // 0.001 ; // noise equivalent GeV (random choice)
+  fPinNoise           = 0.001 ; // noise equivalent GeV (random choice)
   fDigitThreshold     = fPinNoise * 3; //2 sigma
   fTimeResolution     = 0.5e-9 ;
   fTimeSignalLength   = 1.0e-9 ;
@@ -603,34 +603,29 @@ void AliEMCALDigitizer::Print()const
 //__________________________________________________________________
 void AliEMCALDigitizer::PrintDigits(Option_t * option){
     
-  AliEMCALGetter * gime = AliEMCALGetter::Instance() ; 
-  TClonesArray * fDigits = gime->Digits() ;
-
-  TString message("\n") ; 
-  message += "       Number of entries in Digits list " ; 
-  message += fDigits->GetEntriesFast() ;
-
-  if(strstr(option,"all")){
-    
+  AliEMCALGetter * gime = AliEMCALGetter::Instance(GetTitle(), fEventFolderName) ; 
+  TClonesArray * digits = gime->Digits() ;
+  
+  Info("PrintDigits", "%d", digits->GetEntriesFast()) ; 
+  printf("\nevent %d", gAlice->GetEvNumber()) ;
+  printf("\n       Number of entries in Digits list %d", digits->GetEntriesFast() )  ;  
+  
+  if(strstr(option,"all")){  
     //loop over digits
     AliEMCALDigit * digit;
-    message += "\n   Id  Amplitude    Time          Index Nprim: Primaries list \n" ;    
+    printf("\nEMC digits (with primaries):\n")  ;
+    printf("\n   Id  Amplitude    Time          Index Nprim: Primaries list \n") ;    
     Int_t index ;
-    char * tempo = new char[8192]; 
-    for (index = 0 ; index < fDigits->GetEntries() ; index++) {
-      digit = (AliEMCALDigit * )  fDigits->At(index) ;
-      sprintf(tempo, "\n%6d  %8d    %6.5e %4d      %2d : ",
+    for (index = 0 ; index < digits->GetEntries() ; index++) {
+      digit = dynamic_cast<AliEMCALDigit *>(digits->At(index)) ;
+      printf("\n%6d  %8d    %6.5e %4d      %2d : ",
 	      digit->GetId(), digit->GetAmp(), digit->GetTime(), digit->GetIndexInList(), digit->GetNprimary()) ;  
-      message += tempo ; 
       Int_t iprimary;
       for (iprimary=0; iprimary<digit->GetNprimary(); iprimary++) {
-	sprintf(tempo, "%d ",digit->GetPrimary(iprimary+1) ) ; 
-	message += tempo ; 
+	printf("%d ",digit->GetPrimary(iprimary+1) ) ; 
       }
     }   
-    delete tempo ; 
   }
-  Info("PrintDigits", message.Data() ) ; 
 }
 
 //__________________________________________________________________
