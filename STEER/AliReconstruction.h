@@ -13,6 +13,7 @@ class AliLoader;
 class AliVertexer;
 class AliTracker;
 class AliESD;
+class AliReconstructor;
 class TFile;
 
 
@@ -72,6 +73,7 @@ private:
   AliTracker*    fTRDTracker;         //! tracker for TRD
   AliLoader*     fTOFLoader;          //! loader for TOF
   AliTracker*    fTOFTracker;         //! tracker for TOF
+  AliReconstructor* fHLTReconstructor; //! reconstructor for HLT
 
   ClassDef(AliReconstruction, 1)      // class for running the reconstruction
 };

@@ -69,6 +69,7 @@
 
 
 #include "AliReconstruction.h"
+#include "AliReconstructor.h"
 #include "AliRunLoader.h"
 #include "AliRun.h"
 #include "AliModule.h"
@@ -84,6 +85,7 @@
 #include <TArrayF.h>
 #include <TSystem.h>
 #include <TROOT.h>
+#include <TPluginManager.h>
 
 
 ClassImp(AliReconstruction)
@@ -111,7 +113,8 @@ AliReconstruction::AliReconstruction(const char* gAliceFilename,
   fTRDLoader(NULL),
   fTRDTracker(NULL),
   fTOFLoader(NULL),
-  fTOFTracker(NULL)
+  fTOFTracker(NULL),
+  fHLTReconstructor(NULL)
 {
 // create reconstruction object with default parameters
 
@@ -138,7 +141,8 @@ AliReconstruction::AliReconstruction(const AliReconstruction& rec) :
   fTRDLoader(NULL),
   fTRDTracker(NULL),
   fTOFLoader(NULL),
-  fTOFTracker(NULL)
+  fTOFTracker(NULL),
+  fHLTReconstructor(NULL)
 {
 // copy constructor
 
@@ -194,6 +198,26 @@ Bool_t AliReconstruction::Run()
     return kFALSE;
   }
   gAlice = aliRun;
+
+  // get the HLT reconstructor
+  if (!gROOT->GetClass("AliLevel3")) {
+    gSystem->Load("libAliL3Src.so");
+    gSystem->Load("libAliL3Misc.so");
+    gSystem->Load("libAliL3Hough.so");
+    gSystem->Load("libAliL3Comp.so");
+  }
+  TPluginManager* pluginManager = gROOT->GetPluginManager();
+  TPluginHandler* pluginHandler = 
+    pluginManager->FindHandler("AliReconstructor", "HLT");
+  if (!pluginHandler && gROOT->GetClass("AliHLTReconstructor")) {
+    Info("Run", "defining plugin for AliHLTReconstructor");
+    pluginManager->AddHandler("AliReconstructor", "HLT", "AliHLTReconstructor",
+			      "HLT", "AliHLTReconstructor()");
+    pluginHandler = pluginManager->FindHandler("AliReconstructor", "HLT");
+  }
+  if (pluginHandler && (pluginHandler->LoadPlugin() == 0)) {
+    fHLTReconstructor = (AliReconstructor*) pluginHandler->ExecPlugin(0);
+  }
 
   // local reconstruction
   if (!fRunReconstruction.IsNull()) {
@@ -314,6 +338,15 @@ Bool_t AliReconstruction::RunReconstruction(const TString& detectors)
       Info("RunReconstruction", "execution time for %s:", det->GetName());
       stopwatchDet.Print();
     }
+  }
+
+  if (IsSelected("HLT", detStr)) {
+    Info("RunReconstruction", "running reconstruction for HLT");
+    TStopwatch stopwatchDet;
+    stopwatchDet.Start();
+    fHLTReconstructor->Reconstruct(fRunLoader);
+    Info("RunReconstruction", "execution time for HLT:");
+    stopwatchDet.Print();
   }
 
   if ((detStr.CompareTo("ALL") != 0) && !detStr.IsNull()) {
@@ -549,6 +582,14 @@ Bool_t AliReconstruction::FillESD(AliESD*& esd, const TString& detectors)
     }
   }
 
+  if (IsSelected("HLT", detStr)) {
+    if (!ReadESD(esd, "HLT")) {
+      Info("FillESD", "filling ESD for HLT");
+      fHLTReconstructor->FillESD(fRunLoader, esd);
+      if (fCheckPointLevel > 2) WriteESD(esd, "HLT");
+    }
+  }
+
   if ((detStr.CompareTo("ALL") != 0) && !detStr.IsNull()) {
     Error("FillESD", "the following detectors were not found: %s", 
 	  detStr.Data());
@@ -687,6 +728,9 @@ Bool_t AliReconstruction::CreateTrackers()
 void AliReconstruction::CleanUp(TFile* file)
 {
 // delete trackers and the run loader and close and delete the file
+
+  delete fHLTReconstructor;
+  fHLTReconstructor = NULL;
 
   delete fITSVertexer;
   fITSVertexer = NULL;
