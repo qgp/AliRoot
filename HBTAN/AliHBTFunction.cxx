@@ -40,15 +40,17 @@
 
 ClassImp( AliHBTFunction )
 
-AliHBTFunction::AliHBTFunction()
+AliHBTFunction::AliHBTFunction():
+  fPairCut(new AliHBTEmptyPairCut())   //dummy cut
 {
 //Default constructor
-  fPairCut = new AliHBTEmptyPairCut(); //dummy cut
 }
 /******************************************************************/
-AliHBTFunction::AliHBTFunction(const char* name,const char* title):TNamed(name,title)
+AliHBTFunction::AliHBTFunction(const char* name,const char* title):
+  TNamed(name,title),
+  fPairCut(new AliHBTEmptyPairCut()) //dummy cut  
 {
-  fPairCut = new AliHBTEmptyPairCut(); //dummy cut
+//Constructor  
 }
 /******************************************************************/
 
@@ -59,7 +61,7 @@ AliHBTFunction::~AliHBTFunction()
 }
 /******************************************************************/
 
-void AliHBTFunction::Write()
+void AliHBTFunction::WriteFunction()
 {
 //writes result of the function to file
    if (GetNumerator()) GetNumerator()->Write();
@@ -162,7 +164,7 @@ void AliHBTFunction::Rename(const Char_t * name, const Char_t * title)
  }
 /******************************************************************/
 
-void AliHBTFunction::Init()
+void AliHBTFunction::InitFunction()
 {
 //Iniotializes fctn.: Resets histograms
 //In case histograms are not created in ctor, builds with default parameters
@@ -747,12 +749,14 @@ ClassImp( AliHBTOnePairFctn1D )
 AliHBTOnePairFctn1D::AliHBTOnePairFctn1D(Int_t nbins, Float_t maxXval, Float_t minXval):
  AliHBTFunction1D(nbins,maxXval,minXval)
 {
+  //constructor
 }
 /******************************************************************/
 
 AliHBTOnePairFctn1D::AliHBTOnePairFctn1D(const Char_t *name, const Char_t *title):
  AliHBTFunction1D(name,title)
 {
+
 }
 /******************************************************************/
 
@@ -760,6 +764,7 @@ AliHBTOnePairFctn1D::AliHBTOnePairFctn1D(const Char_t *name, const Char_t *title
                                          Int_t nbins, Float_t maxXval, Float_t minXval):
  AliHBTFunction1D(name,title,nbins,maxXval,minXval)
 {
+  //constructor
 }
 /******************************************************************/
 
@@ -800,6 +805,7 @@ ClassImp( AliHBTOnePairFctn2D )
 AliHBTOnePairFctn2D::AliHBTOnePairFctn2D(const Char_t *name, const Char_t *title):
  AliHBTFunction2D(name,title)
 {
+  //constructor
 }
 /******************************************************************/
 
@@ -807,6 +813,7 @@ AliHBTOnePairFctn2D::AliHBTOnePairFctn2D(Int_t nXbins, Double_t maxXval, Double_
                       Int_t nYbins, Double_t maxYval, Double_t minYval):
  AliHBTFunction2D(nXbins, maxXval, minXval, nYbins, maxYval, minYval)
 {
+  //constructor
 }
 /******************************************************************/
 
@@ -815,6 +822,7 @@ AliHBTOnePairFctn2D::AliHBTOnePairFctn2D(const Char_t *name, const Char_t *title
                       Int_t nYbins, Double_t maxYval, Double_t minYval):
  AliHBTFunction2D(name,title, nXbins, maxXval, minXval, nYbins, maxYval, minYval)
 {
+  //constructor
 }
 /******************************************************************/
 
@@ -865,6 +873,7 @@ ClassImp( AliHBTOnePairFctn3D)
 AliHBTOnePairFctn3D::AliHBTOnePairFctn3D(const Char_t *name, const Char_t *title):
  AliHBTFunction3D(name,title)
 {
+  //constructor
 }
 /******************************************************************/
 
@@ -873,6 +882,7 @@ AliHBTOnePairFctn3D::AliHBTOnePairFctn3D(Int_t nXbins, Double_t maxXval, Double_
                       Int_t nZbins, Double_t maxZval, Double_t minZval):
  AliHBTFunction3D(nXbins, maxXval, minXval, nYbins, maxYval, minYval, nZbins, maxZval, minZval)
 {
+  //constructor
 }
 /******************************************************************/
 
@@ -882,6 +892,7 @@ AliHBTOnePairFctn3D::AliHBTOnePairFctn3D(const Char_t *name, const Char_t *title
                       Int_t nZbins, Double_t maxZval, Double_t minZval):
  AliHBTFunction3D(name,title,nXbins, maxXval, minXval, nYbins, maxYval, minYval, nZbins, maxZval, minZval)
 {
+  //constructor
 }
 /******************************************************************/
 
@@ -935,12 +946,14 @@ ClassImp(AliHBTTwoPairFctn1D)
 AliHBTTwoPairFctn1D::AliHBTTwoPairFctn1D(Int_t nbins, Float_t maxXval, Float_t minXval):
  AliHBTFunction1D(nbins,maxXval,minXval)
 {
+  //constructor
 }
 /******************************************************************/
 
 AliHBTTwoPairFctn1D::AliHBTTwoPairFctn1D(const Char_t *name, const Char_t *title):
  AliHBTFunction1D(name,title)
 {
+  //constructor
 }
 /******************************************************************/
 
@@ -948,6 +961,7 @@ AliHBTTwoPairFctn1D::AliHBTTwoPairFctn1D(const Char_t *name, const Char_t *title
                                          Int_t nbins, Float_t maxXval, Float_t minXval):
  AliHBTFunction1D(name,title,nbins,maxXval,minXval)
 {
+  //constructor
 }
 /******************************************************************/
 
@@ -998,6 +1012,7 @@ ClassImp(AliHBTTwoPairFctn2D)
 AliHBTTwoPairFctn2D::AliHBTTwoPairFctn2D(const Char_t *name, const Char_t *title):
  AliHBTFunction2D(name,title)
 {
+  //constructor
 }
 /******************************************************************/
 
@@ -1005,6 +1020,7 @@ AliHBTTwoPairFctn2D::AliHBTTwoPairFctn2D(Int_t nXbins, Double_t maxXval, Double_
                       Int_t nYbins, Double_t maxYval, Double_t minYval):
  AliHBTFunction2D(nXbins, maxXval, minXval, nYbins, maxYval, minYval)
 {
+  //constructor
 }
 /******************************************************************/
 
@@ -1013,6 +1029,7 @@ AliHBTTwoPairFctn2D::AliHBTTwoPairFctn2D(const Char_t *name, const Char_t *title
                       Int_t nYbins, Double_t maxYval, Double_t minYval):
  AliHBTFunction2D(name,title,nXbins, maxXval, minXval, nYbins, maxYval, minYval)
 {
+  //constructor
 }
 /******************************************************************/
 
@@ -1066,6 +1083,7 @@ ClassImp(AliHBTTwoPairFctn3D)
 AliHBTTwoPairFctn3D::AliHBTTwoPairFctn3D(const Char_t *name, const Char_t *title):
  AliHBTFunction3D(name,title)
 {
+  //constructor
 }
 /******************************************************************/
 
@@ -1074,6 +1092,7 @@ AliHBTTwoPairFctn3D::AliHBTTwoPairFctn3D(Int_t nXbins, Double_t maxXval, Double_
                       Int_t nZbins, Double_t maxZval, Double_t minZval):
  AliHBTFunction3D(nXbins, maxXval, minXval, nYbins, maxYval, minYval, nZbins, maxZval, minZval)
 {
+  //constructor
 }
 /******************************************************************/
 
@@ -1083,6 +1102,7 @@ AliHBTTwoPairFctn3D::AliHBTTwoPairFctn3D(const Char_t *name, const Char_t *title
                       Int_t nZbins, Double_t maxZval, Double_t minZval):
  AliHBTFunction3D(name,title,nXbins, maxXval, minXval, nYbins, maxYval, minYval, nZbins, maxZval, minZval)
 {
+  //constructor
 }
 /******************************************************************/
 
@@ -1111,7 +1131,6 @@ void AliHBTTwoPairFctn3D::ProcessDiffEventParticles(AliHBTPair* trackpair, AliHB
    }
 
 }
-
 
 /******************************************************************/
 /******************************************************************/

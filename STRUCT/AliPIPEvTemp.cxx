@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.3  2001/05/16 14:57:22  alibrary
+New files for folders and Stack
+
 Revision 1.2  2001/05/02 12:01:33  morsch
 Obsolete version removed.
 
