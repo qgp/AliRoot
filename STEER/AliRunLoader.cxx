@@ -1036,7 +1036,7 @@ Int_t AliRunLoader::LoadHits(Option_t* detectors,Option_t* opt)
   TObjArray* loaders;
   TObjArray arr;
 
-  char* oAll = strstr(detectors,"all");
+  const char* oAll = strstr(detectors,"all");
   if (oAll)
    {
      if (GetDebug()) Info("LoadHits","Option is All");
@@ -1070,7 +1070,7 @@ Int_t AliRunLoader::LoadSDigits(Option_t* detectors,Option_t* opt)
   TObjArray* loaders;
   TObjArray arr;
 
-  char* oAll = strstr(detectors,"all");
+  const char* oAll = strstr(detectors,"all");
   if (oAll)
    {
      loaders = fLoaders;
@@ -1099,7 +1099,7 @@ Int_t AliRunLoader::LoadDigits(Option_t* detectors,Option_t* opt)
   TObjArray* Loaders;
   TObjArray arr;
 
-  char* oAll = strstr(detectors,"all");
+  const char* oAll = strstr(detectors,"all");
   if (oAll)
    {
      Loaders = fLoaders;
@@ -1128,7 +1128,7 @@ Int_t AliRunLoader::LoadRecPoints(Option_t* detectors,Option_t* opt)
   TObjArray* Loaders;
   TObjArray arr;
 
-  char* oAll = strstr(detectors,"all");
+  const char* oAll = strstr(detectors,"all");
   if (oAll)
    {
      Loaders = fLoaders;
@@ -1157,7 +1157,7 @@ Int_t AliRunLoader::LoadTracks(Option_t* detectors,Option_t* opt)
   TObjArray* Loaders;
   TObjArray arr;
 
-  char* oAll = strstr(detectors,"all");
+  const char* oAll = strstr(detectors,"all");
   if (oAll)
    {
      Loaders = fLoaders;
