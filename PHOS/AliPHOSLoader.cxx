@@ -94,14 +94,12 @@ const TString AliPHOSLoader::fgkRecParticlesBranchName("PHOSRP");//Name for bran
 AliPHOSLoader::AliPHOSLoader()
  {
   fDebug = 0;
-  fRecParticlesLoaded = kFALSE;
  }
 //____________________________________________________________________________ 
 AliPHOSLoader::AliPHOSLoader(const Char_t *detname,const Char_t *eventfoldername):
       AliLoader(detname,eventfoldername)
 {
   fDebug=0;
-  fRecParticlesLoaded = kFALSE;
 }
 //____________________________________________________________________________ 
 
@@ -277,50 +275,26 @@ Int_t  AliPHOSLoader::LoadTracks(Option_t* opt)
 {
  //Loads Tracks: Open File, Reads Tree and posts, Read Data and Posts
  if (GetDebug()) Info("LoadTracks","opt = %s",opt);
- if (fTracksLoaded)
-  {
-    Warning("LoadTracks","Tracks are already loaded");
-    return 0;
-  }
  Int_t res;
-  //First call the AliLoader's method to send the TreeS to folder
- if (GetTracksDataLoader()->GetBaseLoader(0)->IsLoaded() == kFALSE) 
-  {//tracks can be loaded by LoadRecPoints
-   res = AliLoader::LoadTracks(opt);
-   if (res)
-    {//oops, error
+ res = AliLoader::LoadTracks(opt);
+ if (res)
+   {//oops, error
       Error("LoadTracks","AliLoader::LoadTracks returned error");
       return res;
-    }
-  }
- res = ReadTracks();
- if (res)
-  {
-    Error("LoadTracks","Error occured while reading Tracks");
-    return res;
-  }
-
- fTracksLoaded = kTRUE;
- return 0;
+   }  
+ return ReadTracks();
 }
 
 //____________________________________________________________________________ 
 Int_t AliPHOSLoader::LoadRecParticles(Option_t* opt) 
 { // -------------- RecPoints -------------------------------------------
   Int_t res;
-  //First call the AliLoader's method to send the TreeS to folder
+  //First call the AliLoader's method to send the TreeT to folder
   res = AliLoader::LoadRecParticles(opt);
   if (res)
    {//oops, error
      Error("LoadRecParticles","AliLoader::LoadRecParticles returned error");
      return res;
-   }
-
-  TFolder * phosFolder = GetDetectorDataFolder();
-  if ( phosFolder  == 0x0 ) 
-   {
-     Error("PostDigits","Can not get detector data folder");
-     return 1;
    }
   return ReadRecParticles();
 }
@@ -536,23 +510,7 @@ Int_t AliPHOSLoader::ReadDigits()
 
   return 0;  
 }
-//____________________________________________________________________________ 
 
-void AliPHOSLoader::UnloadRecParticles()
-{
-  fRecParticlesLoaded = kFALSE;
-  CleanRecParticles();
-  if (fTracksLoaded == kFALSE) UnloadTracks();
-}
-//____________________________________________________________________________ 
-
-void AliPHOSLoader::UnloadTracks()
-{
- CleanTracks();//free the memory
- //in case RecPart are loaded we can not onload tree and close the file
- if (fRecParticlesLoaded == kFALSE) AliLoader::UnloadTracks();
- fTracksLoaded = kFALSE;//mark that nobody needs them
-}
 //____________________________________________________________________________ 
 
 void AliPHOSLoader::Track(Int_t itrack)

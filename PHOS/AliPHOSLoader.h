@@ -74,10 +74,7 @@ class AliPHOSLoader : public AliLoader {
   Int_t   LoadRecPoints(Option_t* opt=""); //reads RecPoints from disk and sends them to folder; array as well as tree
   Int_t   LoadTracks(Option_t* opt="");  //reads Tracks from disk and sends them to folder; array as well as tree
   Int_t   LoadRecParticles(Option_t* opt="");
- 
-  void    UnloadRecParticles();
-  void    UnloadTracks();
-  
+   
   Int_t   PostHits();  //Posts the 
   Int_t   PostSDigits();
   Int_t   PostDigits();
@@ -190,9 +187,6 @@ class AliPHOSLoader : public AliLoader {
   
 protected:
   TString fBranchTitle;            //Title of the branch
-  Bool_t  fRecParticlesLoaded;     //Flag signing if Reconstructed Particles are loaded
-  Bool_t  fTracksLoaded;           //Flag signing if Tracks are loaded
-  TString fRecParticlesFileOption; //Loading Option for Reconstructed Particles
   AliPHOSCalibrationDB * fcdb ;       //!
 
 private:
@@ -222,7 +216,7 @@ private:
   static const TString fgkTrackSegmentsBranchName;//Name for branch
   static const TString fgkRecParticlesBranchName;//Name for branch
   
-  ClassDef(AliPHOSLoader,2)  // Algorithm class that provides methods to retrieve objects from a list knowing the index 
+  ClassDef(AliPHOSLoader,3)  // Algorithm class that provides methods to retrieve objects from a list knowing the index 
 
 };
 
