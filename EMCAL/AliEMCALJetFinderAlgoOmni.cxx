@@ -20,6 +20,9 @@
 /*
  
 $Log$
+Revision 1.2.2.1  2003/07/22 21:46:32  mhorner
+Initial Import
+
 
 
 
@@ -141,7 +144,7 @@ if (fDebug>0) Info("AliEMCALJetFinderAlgoOmni","Beginning Default Constructor");
  void AliEMCALJetFinderAlgoOmni::FillUnitArray(AliEMCALJetFinderAlgoUA1FillUnitFlagType_t flag)
    {
      if (fDebug>1) Info("FillUnitArray","Beginning FillUnitArray");
-     AliEMCAL* pEMCAL = (AliEMCAL*) gAlice->GetModule("EMCAL");
+     //AliEMCAL* pEMCAL = (AliEMCAL*) gAlice->GetModule("EMCAL");
 
          //   if (pEMCAL){ 
          //	     AliEMCALGeometry* geom =  AliEMCALGeometry::GetInstance(pEMCAL->GetTitle(), "");

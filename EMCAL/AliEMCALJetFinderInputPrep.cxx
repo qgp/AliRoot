@@ -16,6 +16,9 @@
 /*
  
 $Log$
+Revision 1.2.2.1  2003/07/22 21:46:32  mhorner
+Initial Import
+
 Revision 1.1.1.1  2003/05/29 18:56:38  horner
 Initial import - Mark
 
@@ -78,6 +81,15 @@ if (fDebug > 1) Info("Reset","Beginning Reset");
 		case kResetAll:
 			fInputObject.Reset(kResetAll);
 			break;
+	case kResetPartons:
+	  Info("Reset", "kResetPartons case not implemented") ; 
+	  break ; 
+	case kResetParticles:
+	  Info("Reset", "kReseParticles  not implemented") ; 
+	  break ; 
+	case kResetJets:
+	  Info("Reset", "kResetJets case not implemented") ; 
+	  break ; 
 	}// end switch
 
 }
