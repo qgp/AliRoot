@@ -2,7 +2,7 @@
 # Example of special lego run with calling
 # macro lego.C from g4 and switching to root UI
 
-/aliDet/switchOn TPC
+/aliDet/switchOn TRD
 /aliRun/initialize
 
 /mcVerbose/eventAction 0
