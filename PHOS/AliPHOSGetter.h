@@ -84,8 +84,8 @@ class AliPHOSGetter : public TObject {
   Int_t  MaxEvent() const ; 
   Int_t  EventNumber() const ; 
   Bool_t VersionExists(TString & opt) const ; 
-//   const UShort_t EventPattern(void) ;
-//   const Float_t BeamEnergy(void) ;
+  UShort_t EventPattern(void) const ; 
+  Float_t  BeamEnergy(void) const ;
   
 //   //========== PHOSGeometry and PHOS ============= 
   AliPHOS *         PHOS() const  ;  
@@ -94,13 +94,6 @@ class AliPHOSGetter : public TObject {
 //   //========== Methods to read something from file ==========
   void   Event(const Int_t event, const char * opt = "HSDRP") ;    
   void   Track(const Int_t itrack) ;
-  //  void   ReadTreeS() ; //Method to be used when 
-//                                                 //digitizing is under the control ofAliRunDigizer, 
-                                                //which opens all files etc.
-//   //========== Alarms ======================
-//   TFolder * Alarms() const { return dynamic_cast<TFolder*>(ReturnO("Alarms", 0)) ; }
-//   const TObjArray *  Alarms(const char * name ) const { return dynamic_cast<const TObjArray*>(ReturnO("Alarms", name)) ; }
-//   const TTask * QATasks(const char * name = 0) const { return ReturnT("QATasks", name) ; }
   
 //   //-----------------now getter's data--------------------------------------
 // //  AliPHOSCalibrationDB * CalibrationDB(){return  fcdb; }
@@ -191,36 +184,8 @@ class AliPHOSGetter : public TObject {
   Int_t                 WritePIDTask(Option_t* opt=""){
     return  PhosLoader()->WritePIDTask(opt) ; }
 
-//   TClonesArray * RecParticles(const char * name = 0) { 
-//     return static_cast<TClonesArray*>(ReturnO("RecParticles", name)) ;   }
-//   const AliPHOSPID * PID(const char * name =0) const { 
-//     return (const AliPHOSPID*)(ReturnT("PID", name)) ; } // here static or dynamic cast does not work ! why ? 
-    
-//   //-----------------Auxiliary methods: cleaners-----------------
-//   void  RemoveTask(TString opt, TString name) const ;
-//   void  RemoveObjects(TString opt, TString name) const ;
-//   void  RemoveSDigits() const ;  
 
-//   //----------------Auxiliary methods: miscellana----------------
-//   void CloseFile() ;  
-//   const TFolder * Folder(const TString what) const ;
-//   const Bool_t HasFailed() const { return fFailed ; }
-//   void ListBranches(Int_t event=0) const ;
-//   void NewBranch(TString name, Int_t event = 0) ; 
-//   Bool_t NewFile(TString name) ;
-//   TFolder * SDigitsFolder() { return dynamic_cast<TFolder*>(fSDigitsFolder->FindObject("PHOS")) ; }  
-  void SetDebug(Int_t level) {fgDebug = level;} // Set debug level
-//   void SetRecParticlesTitle(const TString title) { fRecParticlesTitle = title ; }
-  
-//   //------------Auxiliary methods: Posters--------------------
-//   const Bool_t PostPrimaries(void ) const ;  
-//   const Bool_t PostHits(void ) const ;  
-//   const Bool_t PostSDigits(      const char * name,  const char * file = 0) const ;  
-//   const Bool_t PostDigits(       const char * name ) const ;  
-//   const Bool_t PostRecPoints(    const char * name ) const ;  
-//   const Bool_t PostTrackSegments(const char * name) const ;  
-//   const Bool_t PostRecParticles( const char * name) const ;  
-//   const Bool_t PostClusterizer( const char * name) const ;  
+  void SetDebug(Int_t level) {fgDebug = level;} // Set debug level 
   void PostClusterizer(AliPHOSClusterizer * clu) 
     const{PhosLoader()->PostClusterizer(clu) ; }
   void PostPID(AliPHOSPID * pid) 
@@ -231,13 +196,6 @@ class AliPHOSGetter : public TObject {
     const {PhosLoader()->PostSDigitizer(sdigitizer);}    
   void PostDigitizer (AliPHOSDigitizer * digitizer)    
     const {PhosLoader()->PostDigitizer(dynamic_cast<AliDigitizer *>(digitizer));}
-//   const Bool_t PostSDigitizer ( const char * name, const char * file ) const ;
-//   const Bool_t PostDigitizer  ( const char * name) const ;  
-//   const Bool_t PostTrackSegmentMaker(AliPHOSTrackSegmentMaker * tsm) const ;  
-//   const Bool_t PostTrackSegmentMaker(const char * name ) const ;  
-//   const Bool_t PostPID  (AliPHOSPID * pid) const ;  
-//   const Bool_t PostPID  (const char * name ) const ;  
-//   const Bool_t PostQA   (void) const ;
 
   TString Version() const  { return PhosLoader()->GetTitle() ; } 
   AliPHOSLoader * PhosLoader() const { return  fgPhosLoader ; }
@@ -248,10 +206,6 @@ private:
 		const char* version = AliConfig::fgkDefaultEventFolderName,
 		Option_t * openingOption = "READ") ;
 
-//   TObject * ReturnO(TString what, TString name=0, TString file=0) const ; 
-//   const TTask * ReturnT(TString what,TString name=0) const ; 
-//   void DefineBranchTitles(char* branch, char* branchTitle) ;
-
   Int_t ReadTreeD(void) ;
   Int_t ReadTreeH(void) ;
   Int_t ReadTreeR(void) ;
@@ -259,62 +213,20 @@ private:
   Int_t ReadTreeS(void) ;
   Int_t ReadTreeP(void) ;
 
-//   void ReadTreeQA(void) ;
+
   void ReadPrimaries(void) ;
-//   void CleanWhiteBoard(void) ;
-//   void CloseSplitFiles(void) ;
-//   void SetTitle(const char * title) ;
-
-//   TObject** PrimariesRef(void) const ;
-//   TObject** HitsRef(void) const ;
-//   TObject** SDigitsRef(const char * name, const char * file = 0 ) const;
-//   TObject** DigitsRef (const char * name)   const ;
-//   TObject** EmcRecPointsRef (const char * name) const ;
-//   TObject** CpvRecPointsRef (const char * name) const ;
-//   TObject** TrackSegmentsRef(const char * name)   const ;
-//   TObject** RecParticlesRef (const char * name)   const ;
-//   TObject** AlarmsRef (void)   const ;
-
-//   TObject** SDigitizerRef (const char * name) const ; 
-//   TObject** DigitizerRef  (const char * name) const ; 
-//   TObject** ClusterizerRef(const char * name) const ; 
-//   TObject** TSMakerRef    (const char * name) const ; 
-//   TObject** PIDRef        (const char * name) const ; 
 
 private:
 
 //   static TFile * fgFile;           //! 
-//   Bool_t         fToSplit ;              //! Do we work in the split mode
+
   AliPHOSBeamTestEvent * fBTE ;           //! Header if BeamTest Event
-//   TClonesArray *    fHits ;            //! list of hits
-//   TClonesArray *    fSDigits ;         //! list of SDigits
-//   TClonesArray *    fDigits ;          //! list of Digits
-//   TString        fHeaderFile ;           //! File in which gAlice lives
-//   TString        fBranchTitle ;          //!
-//   TString        fTrackSegmentsTitle ;   //! 
-//   TString        fTrackSegmentsFileName ;//! 
-//   TString        fRecPointsTitle ;       //!
-//   TString        fRecPointsFileName ;    //!
-//   TString        fRecParticlesTitle ;    //!
-//   TString        fRecParticlesFileName ; //!
-//   TString        fDigitsTitle ;          //! TDirectory tempo(gDirectory) 
-//   TString        fDigitsFileName ;       //! TDirectory tempo(gDirectory) 
-//   TString        fSDigitsTitle ;         //!
-//   Bool_t         fFailed ;            //! set if file not opend or galice not found
+
   static Int_t          fgDebug ;             //! Debug level
-//   AliRun *       fAlice ;             //! needed to read TreeK if in an other file than fHeaderFile
+
   TString           fLoadingStatus ;     //! tells which trees are loaded
   Int_t             fNPrimaries ;        //! # of primaries  
   TClonesArray *    fPrimaries ;         //! list of lists of primaries
-//   TFolder *      fModuleFolder ;      //!Folder that contains the modules 
-//   TFolder *      fPrimariesFolder ;   //!Folder that contains the Primary Particles 
-//   TFolder *      fHitsFolder ;        //!Folder that contains the Hits 
-//   TFolder *      fSDigitsFolder ;     //!Folder that contains the SDigits 
-//   TFolder *      fDigitsFolder ;      //!Folder that contains the Digits 
-//   TFolder *      fRecoFolder ;        //!Folder that contains the reconstructed objects (RecPoints, TrackSegments, RecParticles) 
-  
-//   TFolder *      fQAFolder ;          //!Folder that contains the QA objects  
-//   TFolder *      fTasksFolder ;       //!Folder that contains the Tasks (sdigitizer, digitizer, reconstructioner)
 
 //  AliPHOSCalibrationDB * fcdb ;       //!
    

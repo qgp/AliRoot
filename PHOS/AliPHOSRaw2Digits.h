@@ -27,11 +27,13 @@ class AliPHOSRaw2Digits : public TTask {
 
 public:
   AliPHOSRaw2Digits() ;          // ctor
-  AliPHOSRaw2Digits(const char * inputFileName) ;
+  AliPHOSRaw2Digits(const char * inputFileName) ;         
+  AliPHOSRaw2Digits(AliPHOSRaw2Digits & r2d) ;          // cpy ctor
   virtual ~AliPHOSRaw2Digits() ; // dtor
 
   void Exec(Option_t *option) ;
 
+  void SetBeamEnergy(Float_t energy){fBeamEnergy = energy ;}
   void SetInputFile(TString inname="Run_1234.fz"){fInName=inname ; }
   void SetDebugLevel(Int_t idebug=1){fDebug=idebug ;}
 
@@ -43,30 +45,38 @@ public:
   void SetTargetPosition(Double_t * pos)
     {for(Int_t i=0;i<3;i++)fTarget[i]=pos[i] ;}
   void SetConTableDB(AliPHOSConTableDB * ctdb){fctdb = ctdb ;}
+  void SetMaxEventsPerFile(Int_t nev=20000){fMaxPerFile = nev ;}
   void Print(Option_t *option="")const ;
-
+  AliPHOSRaw2Digits & operator = ( AliPHOSRaw2Digits & r2d ) { return *this ; } 
+  
 private:
-  void FinishRun() ;
+  Bool_t StartRootFiles(void) ;
+  Bool_t CloseRootFiles(void) ;
   Bool_t ProcessRawFile() ;
-  void Swab4(void *from, void *to, size_t nwords)  ;
-  void Swab2(void *from, void *to, size_t nwords)  ;
+  void Swab4(void *from, void *to, size_t nwords) const ;
+  void Swab2(void *from, void *to, size_t nwords) const ;
   Bool_t Init() ;
   void WriteDigits(void) ;
 
   TClonesArray * fDigits ;             //!list of final digits
-  AliPHOSBeamTestEvent * fPHOSHeader ; //!
+  AliPHOSBeamTestEvent * fPHOSHeader ; //!PHOSBeamTest header 
   AliPHOSConTableDB * fctdb ;          //!
   Double_t fTarget[3] ;                //!Position of the target
-  Int_t   fEvent ;         //
+  TFile * fHeaderFile ;                //!galice.root file
+  TFile * fDigitsFile ;                //!file with digits
+  Float_t fBeamEnergy ;    //BeamEnergy 
+  Int_t   fMaxPerFile ;    //!Maximal number  of events per root file
+  Int_t   fEvent ;         //Event number
   Int_t   fStatus ;        //status of input file: OK, not found etc.
   TString fInName ;        // FileName of the input file
   Bool_t  fDebug ;         //!
   Bool_t  fIsInitialized ; //!
+ 
   UInt_t  fMK1 ;     //!ZEBRA markers
-  UInt_t  fMK2 ;     //!
-  UInt_t  fMK3 ;     //!
-  UInt_t  fMK4 ;     //!
-  UInt_t  fCKW ;     //!
+  UInt_t  fMK2 ;     //!ZEBRA markers
+  UInt_t  fMK3 ;     //!ZEBRA markers
+  UInt_t  fMK4 ;     //!ZEBRA markers
+  UInt_t  fCKW ;     //!ZEBRA markers
 
   ClassDef(AliPHOSRaw2Digits,1)  // description 
 

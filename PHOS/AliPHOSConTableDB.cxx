@@ -16,9 +16,14 @@
 /* $Id$ */
 
 //_________________________________________________________________________
-// Short description  
+// Class provides correspondence between "raw numbers" i.e. number of crustall 
+// in prototype and PHOT AbsId numer, used in reconstruction.
+// First it calculates correspondence automatically, assuming, that 
+// prototype, having N raws and M columns is situated in the center 
+// of middle (third) PHOS module. Then this correspondence can be edited 
+// manually. One can convert Raw->AbsId and visa versa AbsId->RawId.
 //
-//*-- Author :  (SUBATECH) 
+//*-- Author :  D.Peressounko ("RRC Kurchatov Institute") 
 //////////////////////////////////////////////////////////////////////////////
 
 // --- ROOT system ---
@@ -37,6 +42,7 @@ ClassImp(AliPHOSConTableDB)
 //____________________________________________________________________________ 
   AliPHOSConTableDB::AliPHOSConTableDB():TNamed("AliPHOSConTableDB","Beamtest2002") 
 {
+//default constructor, nothing created.
   fNcrInProto = 0 ;
   fProtoRaws = 0 ;
   fProtoColumns = 0 ;
@@ -44,19 +50,39 @@ ClassImp(AliPHOSConTableDB)
   fColOffset = 0 ;
   fGeom = 0;
   fAbsIdMap = 0 ;
+  fRawIdMap = 0 ;
 }
 
 //____________________________________________________________________________ 
   AliPHOSConTableDB::AliPHOSConTableDB(const char * title):TNamed("AliPHOSConTableDB",title) 
 {
+ //Normally used constructor 
   fNcrInProto = 0 ;
   fProtoRaws = 0 ;
   fProtoColumns = 0 ;
   fRawOffset = 0 ;
   fColOffset = 0 ;
+  fAbsIdMap = 0 ;
+  fRawIdMap = 0 ;
 
-  fGeom = AliPHOSGeometry::GetInstance("GPS2","") ;
+  fGeom = AliPHOSGeometry::GetInstance("IHEP","") ;
 
+}
+
+//____________________________________________________________________________ 
+AliPHOSConTableDB::AliPHOSConTableDB(const AliPHOSConTableDB& cdb):TNamed(cdb.GetName(), cdb.GetTitle()) 
+{
+  //Copy constructor
+  
+  fProtoRaws=cdb.fProtoRaws ;        //  Parameters
+  fProtoColumns=cdb.fProtoColumns ;     //  used to calculate
+  fRawOffset=cdb.fRawOffset ;        //  correspondance
+  fColOffset=cdb.fColOffset ;        //  map
+  fNcrInProto=cdb.fNcrInProto ;       //Number of channels in prototype
+  fMinAbsId=cdb.fMinAbsId ;         //Minimal AbsId, corresponding to some prototype cristall.
+  fMaxAbsId=cdb.fMaxAbsId ;         //Maximal AbsId, corresponding to some prototype cristall
+  fAbsIdMap=new TArrayS(*(cdb.fAbsIdMap)) ;         //Map of correspondance between Raw and PHOS ID
+  fRawIdMap=new TArrayS(*(cdb.fRawIdMap)) ;         //Map of correspondance between AbsId and Raw
 }
 
 //____________________________________________________________________________ 
@@ -64,6 +90,8 @@ ClassImp(AliPHOSConTableDB)
 {
   if(fAbsIdMap)
     delete [] fAbsIdMap ;
+  if(fRawIdMap)
+    delete [] fRawIdMap ;
 }
 
 //____________________________________________________________________________ 
@@ -79,15 +107,22 @@ void  AliPHOSConTableDB::BuildDB(void)
   fRawOffset = (fGeom->GetNPhi() - fProtoRaws)/2 ;
   fColOffset = (fGeom->GetNZ() - fProtoColumns )/ 2 ;
   fAbsIdMap = new TArrayS(fNcrInProto) ;
-  for(Int_t raw =0; raw < fProtoRaws; raw ++){
+  fMinAbsId = fGeom->GetNCristalsInModule()*2 +
+    fRawOffset*fGeom->GetNZ()+fColOffset+1 ;
+  fMaxAbsId = fGeom->GetNCristalsInModule()*2 +
+    (fRawOffset + fProtoRaws)*fGeom->GetNZ()- 
+     fColOffset ;
+  fRawIdMap = new TArrayS(fMaxAbsId-fMinAbsId+1) ;
+  for(Int_t raw =0; raw < fProtoRaws ; raw ++){
     for(Int_t col = 0; col < fProtoColumns ; col ++){
-      Int_t rawId = col*fProtoRaws + raw ;
+      Int_t rawId = raw*fProtoColumns + col ;
       Int_t rel[4] = {3,0,0,0} ; //We assume, that we deal with third module
-      rel[2]=raw + fRawOffset ;
-      rel[3]=col + fColOffset ;
+      rel[2]=raw + fRawOffset+1 ;
+      rel[3]=col + fColOffset+1 ;
       Int_t absId ;
       fGeom->RelToAbsNumbering(rel,absId) ;
       fAbsIdMap->AddAt(static_cast<UInt_t>(absId),rawId) ;
+      fRawIdMap->AddAt(static_cast<UInt_t>(rawId),absId-fMinAbsId) ;
     }
   }
 
@@ -136,7 +171,17 @@ void AliPHOSConTableDB::PlotProtoMap(Option_t * opt)
 
 } 
 //____________________________________________________________________________ 
-Int_t AliPHOSConTableDB::Raw2AbsId(Int_t rawId){
+Int_t AliPHOSConTableDB::AbsId2Raw(Int_t absId)const{
+  //converts numbering of modules in PHOS into
+  //numbering in prototype
+  if(absId >= fMinAbsId && absId<=fMaxAbsId){    
+    return fRawIdMap->At(absId-fMinAbsId) ;
+  }
+  else
+    return -1 ;
+}
+//____________________________________________________________________________ 
+Int_t AliPHOSConTableDB::Raw2AbsId(Int_t rawId)const{
   //converts numbering of modules in prototipe into
   //numbering in PHOS
   if(rawId >= 0 && rawId<fNcrInProto)
@@ -146,6 +191,7 @@ Int_t AliPHOSConTableDB::Raw2AbsId(Int_t rawId){
 }
 //____________________________________________________________________________ 
 void AliPHOSConTableDB::Print(Option_t * option)const {
+//prints configuraion
 
   TString message ; 
   message  = " %s %s\n" ;
@@ -167,3 +213,21 @@ void AliPHOSConTableDB::Print(Option_t * option)const {
 
   Info("Print", message.Data(), fProtoColumns, fProtoRaws, fRawOffset, fGeom->GetNPhi(), fColOffset,fGeom->GetNZ() );   
 }
+//____________________________________________________________________________
+AliPHOSConTableDB& AliPHOSConTableDB::operator=(const AliPHOSConTableDB& cdb){
+//Operator for coding convetion
+  fGeom=cdb.fGeom ;   //! PHOS geometry class
+  fProtoRaws=cdb.fProtoRaws ;        //  Parameters
+  fProtoColumns=cdb.fProtoColumns ;     //  used to calculate
+  fRawOffset=cdb.fRawOffset ;        //  correspondance
+  fColOffset=cdb.fColOffset ;        //  map
+  fNcrInProto=cdb.fNcrInProto ;       //Number of channels in prototype
+  fMinAbsId=cdb.fMinAbsId ;         //Minimal AbsId, corresponding to some prototype cristall.
+  fMaxAbsId=cdb.fMaxAbsId ;         //Maximal AbsId, corresponding to some prototype cristall
+  fAbsIdMap=new TArrayS(*(cdb.fAbsIdMap)) ;         //Map of correspondance between Raw and PHOS ID
+  fRawIdMap=new TArrayS(*(cdb.fRawIdMap)) ;         //Map of correspondance between AbsId and Raw
+  return *this ;
+}
+
+
+

@@ -677,52 +677,25 @@ Bool_t AliPHOSGetter::VersionExists(TString & opt) const
     PhosLoader()->SetDigitsFileName(fileName) ;
   }
 
-
-//     else
-//       if(recName == "RecPoints"){
-//        tree = TreeR();
-//        dataname = fgkEmcRecPointsBranchName;
-//        zername = "AliPHOSClusterizer" ;
-//       }
-//       else
-//        if(recName == "TrackSegments"){
-//          tree = TreeT();
-//          dataname = GetDetectorName();
-//          zername = "AliPHOSTrackSegmentMaker";
-//        }        
-//        else
-//          if(recName == "RecParticles"){
-//            tree = TreeT();
-//            dataname = fgkRecParticlesBranchName;
-//            zername = "AliPHOSPID";
-//          }
-//          else
-//            return kFALSE ;
-
-  
-//   if(!tree ) 
-//     return kFALSE ;
-
-//   TObjArray * lob = static_cast<TObjArray*>(tree->GetListOfBranches()) ;
-//   TIter next(lob) ; 
-//   TBranch * branch = 0 ;  
-//   TString titleName(fBranchTitle);
-//   titleName+=":";
-
-//   while ((branch = (static_cast<TBranch*>(next())))) {
-//     TString branchName(branch->GetName() ) ; 
-//     TString branchTitle(branch->GetTitle() ) ;  
-//     if ( branchName.BeginsWith(dataname) && branchTitle.BeginsWith(fBranchTitle) ){  
-//       Warning("BranchExists","branch %s  with title  %s ",dataname.Data(),fBranchTitle.Data());
-//       return kTRUE ;
-//     }
-//     if ( branchName.BeginsWith(zername) &&  branchTitle.BeginsWith(titleName) ){
-//       Warning("BranchExists","branch AliPHOS... with title  %s ",branch->GetTitle());
-//       return kTRUE ; 
-//     }
-//   }
-
   return rv ;
 
 }
 
+//____________________________________________________________________________ 
+UShort_t AliPHOSGetter::EventPattern(void) const
+{
+  // Return the pattern (trigger bit register) of the beam-test event
+  if(fBTE)
+    return fBTE->GetPattern() ;
+  else
+    return 0 ;
+}
+//____________________________________________________________________________ 
+Float_t AliPHOSGetter::BeamEnergy(void) const
+{
+  // Return the beam energy of the beam-test event
+  if(fBTE)
+    return fBTE->GetBeamEnergy() ;
+  else
+    return 0 ;
+}
