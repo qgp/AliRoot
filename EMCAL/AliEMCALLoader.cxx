@@ -631,7 +631,7 @@ Int_t AliEMCALLoader::ReadRecPoints()
    }
 
   Int_t retval = 0;
-  TBranch * prebranch = treeR->GetBranch(fgkRecPREPointsBranchName);
+  TBranch * prebranch = treeR->GetBranch(fgkPRERecPointsBranchName);
 
   if (prebranch == 0x0)
    {
@@ -889,7 +889,7 @@ void AliEMCALLoader::CleanRecPoints()
 {
   AliLoader::CleanRecPoints();
   TObjArray* recpoints = PRERecPoints();
-  if (prerecpoints) prerecpoints->Clear();
+  if (recpoints) recpoints->Clear();
   recpoints = ECARecPoints();
   if (recpoints) recpoints->Clear();
   recpoints = HCARecPoints();
@@ -920,25 +920,25 @@ void AliEMCALLoader::CleanRecParticles()
  }
 //____________________________________________________________________________ 
 
-void AliEMCALLoader::ReadCalibrationDB(const char * database,const char * filename)
-{
+// void AliEMCALLoader::ReadCalibrationDB(const char * database,const char * filename)
+// {
 
-  if(fcdb && (strcmp(database,fcdb->GetTitle())==0))
-    return ;
+//   if(fcdb && (strcmp(database,fcdb->GetTitle())==0))
+//     return ;
 
-  TFile * file = gROOT->GetFile(filename) ;
-  if(!file)
-    file = TFile::Open(filename);
-  if(!file){
-    Error ("ReadCalibrationDB", "Cannot open file %s", filename) ;
-    return ;
-  }
-  if(fcdb)
-    fcdb->Delete() ;
-  fcdb = dynamic_cast<AliEMCALCalibrationDB *>(file->Get("AliEMCALCalibrationDB")) ;
-  if(!fcdb)
-    Error ("ReadCalibrationDB", "No database %s in file %s", database, filename) ;
-}
+//   TFile * file = gROOT->GetFile(filename) ;
+//   if(!file)
+//     file = TFile::Open(filename);
+//   if(!file){
+//     Error ("ReadCalibrationDB", "Cannot open file %s", filename) ;
+//     return ;
+//   }
+//   if(fcdb)
+//     fcdb->Delete() ;
+//   fcdb = dynamic_cast<AliEMCALCalibrationDB *>(file->Get("AliEMCALCalibrationDB")) ;
+//   if(!fcdb)
+//     Error ("ReadCalibrationDB", "No database %s in file %s", database, filename) ;
+// }
 //____________________________________________________________________________ 
 
 // AliEMCALSDigitizer*  AliEMCALLoader::EMCALSDigitizer() 
