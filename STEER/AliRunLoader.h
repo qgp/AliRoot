@@ -1,17 +1,26 @@
 #ifndef ALIRUNLoader_H
 #define ALIRUNLoader_H
 
-//This class aims to be the only one interface for manging data
-//It stores Loaders for all modules which knows the filenames 
-//of the data files to be stored.
-//It aims to substitude AliRun in automatic maging of data positioning
-//thus there won't be necessity of loading gAlice from file in order to 
-//get fast ccess to the data
-//
-//logical place for putting the Loader specific to the given detector is detector itself
-// but, to load detector one need to load gAlice, and by the way all other detectors
-// with their geometrieces and so on. 
-// So, if one need to open TPC clusters there is no principal nedd to read everything
+//___________________________________________________________________
+/////////////////////////////////////////////////////////////////////
+//                                                                 //
+//  class AliRunLoader                                             //
+//                                                                 //
+//  This class aims to be the only one interface for manging data  //
+//  It stores Loaders for all modules which knows the filenames    //
+//  of the data files to be stored.                                //
+//  It aims to substitude AliRun in automatic managing of data     //
+//  positioning thus there won't be necessity of loading gAlice    //
+//  from file in order to get fast access to the data              //
+//                                                                 //
+//  Logical place to put the specific Loader to the given          //
+//  detector is detector  itself (i.e ITSLoader in ITS).           //
+//  But, to load detector object one need to load gAlice, and      //
+//  by the way all other detectors with their geometrieces and     //
+//  so on. So, if one need to open TPC clusters there is no        //
+//  principal nedd to read everything.                             //
+//                                                                 //
+/////////////////////////////////////////////////////////////////////
 
 #include <TNamed.h>
 #include <TFile.h>
@@ -132,7 +141,8 @@ class AliRunLoader: public TNamed
     TString     GetFileName() const;//returns name of galice file
     const TObjArray* GetArrayOfLoaders() const {return fLoaders;}
     Int_t GetDebug() const {return (Int_t)AliLoader::AliLoader::fgDebug;}
-    
+    void cd(){fgRunLoader = this;}
+
   protected:
     /**********************************************/
     /************    PROTECTED      ***************/
@@ -150,8 +160,6 @@ class AliRunLoader: public TNamed
     
     AliLoaderDataInfo fKineData;//data connected to kinematics data
     AliLoaderDataInfo fTrackRefsData;//data connected to track reference data
-    
-        
     
     Int_t          fNEventsPerFile;  //defines number of events stored per one file
     
@@ -181,24 +189,27 @@ class AliRunLoader: public TNamed
     void  Clean(const TString& name);
     
     Int_t SetEvent();
+   
+    static AliRunLoader* fgRunLoader;
 
   public:
   /******************************************/
   /*****   Public S T A T I C Stuff   *******/
   /******************************************/
     static AliRunLoader* GetRunLoader(const char* eventfoldername);
+    static AliRunLoader* GetRunLoader(){return fgRunLoader;}
 
 //    static AliRunDigitizer* GetRunDigitizer();
-    static TTask*           GetRunDigitizer();
-    static TTask*           GetRunSDigitizer();
-    static TTask*           GetRunReconstructioner();
-    static TTask*           GetRunTracker();
-    static TTask*           GetRunQATask();
-    
+//  Tasks are supposed to be singletons, that is why static
+    static TTask*           GetRunDigitizer();        //
+    static TTask*           GetRunSDigitizer();       //
+    static TTask*           GetRunReconstructioner(); //
+    static TTask*           GetRunTracker();          //
+    static TTask*           GetRunQATask();           // 
     static const TString   fgkRunLoaderName;
-    static const TString   fgkHeaderContainerName;//default name of the kinematics container (TREE) name - TreeE
-    static const TString   fgkKineContainerName;//default name of the kinematics container (TREE) name - TreeK
-    static const TString   fgkTrackRefsContainerName;//default name of the track references container (TREE) name - TreeTR
+    static const TString   fgkHeaderContainerName;    //default name of the kinematics container (TREE) name - TreeE
+    static const TString   fgkKineContainerName;      //default name of the kinematics container (TREE) name - TreeK
+    static const TString   fgkTrackRefsContainerName; //default name of the track references container (TREE) name - TreeTR
     static const TString   fgkHeaderBranchName;
     static const TString   fgkKineBranchName;
     static const TString   fgkGAliceName;

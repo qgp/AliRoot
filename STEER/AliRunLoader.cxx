@@ -44,6 +44,8 @@ TDirectory * gKineDir = 0x0;
 
 ClassImp(AliRunLoader)
 
+AliRunLoader* AliRunLoader::fgRunLoader = 0x0;
+
 const TString AliRunLoader::fgkRunLoaderName("RunLoader");
 
 const TString AliRunLoader::fgkHeaderBranchName("Header");
