@@ -908,7 +908,7 @@ Int_t AliRunLoader::WriteSDigits(Option_t* opt)
      res = loader->WriteSDigits(opt);
      if (res)
       {
-        Error("WriteHits","Failed to write summable digits for %s.",loader->GetDetectorName().Data());
+        Error("WriteSDigits","Failed to write summable digits for %s.",loader->GetDetectorName().Data());
         result = 1;
       }
    }
@@ -927,7 +927,7 @@ Int_t AliRunLoader::WriteDigits(Option_t* opt)
      res = loader->WriteDigits(opt);
      if (res)
       {
-        Error("WriteHits","Failed to write digits for %s.",loader->GetDetectorName().Data());
+        Error("WriteDigits","Failed to write digits for %s.",loader->GetDetectorName().Data());
         result = 1;
       }
    }
@@ -946,7 +946,8 @@ Int_t AliRunLoader::WriteRecPoints(Option_t* opt)
      res = loader->WriteRecPoints(opt);
      if (res)
       {
-        Error("WriteHits","Failed to write Reconstructed Points for %s.",loader->GetDetectorName().Data());
+        Error("WriteRecPoints","Failed to write Reconstructed Points for %s.",
+              loader->GetDetectorName().Data());
         result = 1;
       }
    }
@@ -965,7 +966,8 @@ Int_t AliRunLoader::WriteTracks(Option_t* opt)
      res = loader->WriteTracks(opt);
      if (res)
       {
-        Error("WriteHits","Failed to write Tracks for %s.",loader->GetDetectorName().Data());
+        Error("WriteTracks","Failed to write Tracks for %s.",
+              loader->GetDetectorName().Data());
         result = 1;
       }
    }

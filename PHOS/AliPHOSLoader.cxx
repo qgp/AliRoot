@@ -535,7 +535,7 @@ void AliPHOSLoader::UnloadTracks()
  CleanTracks();//free the memory
  //in case RecPart are loaded we can not onload tree and close the file
  if (fRecParticlesLoaded == kFALSE) AliLoader::UnloadTracks();
- else fTracksLoaded = kFALSE;//just mark that nobody needs them
+ fTracksLoaded = kFALSE;//mark that nobody needs them
 }
 //____________________________________________________________________________ 
 

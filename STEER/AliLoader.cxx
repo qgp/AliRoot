@@ -475,11 +475,12 @@ Int_t AliLoader::GetEvent()
 /******************************************************************/
 Int_t AliLoader::WriteData(EDataTypes dt,Option_t* opt)
 {
-//assumes that data is tree
-  TTree *data = dynamic_cast<TTree*>(GetDetectorDataFolder()->FindObject(ContainerName(dt)));
+//Writes the data with internal code "dt"
+
+  TObject *data = GetDetectorDataFolder()->FindObject(ContainerName(dt));
   if(data == 0x0)
    {//did not get, nothing to write
-     Warning("WriteData","%s object named %s not found in folder %s.\nNothing to write. Returning",
+     Warning("WriteData","%s tree named %s not found in folder %s.\nNothing to write. Returning",
               DataName(dt).Data(),ContainerName(dt).Data(), 
               GetDataFolder()->FindFullPathName(GetDetectorDataFolder()->GetName()));
      return 0;
@@ -488,19 +489,19 @@ Int_t AliLoader::WriteData(EDataTypes dt,Option_t* opt)
   //check if file is opened
   if (Directory(dt) == 0x0)
    { 
-     //if not open, try to open
+     //if not try to open
      SetFileOption(dt,"UPDATE");
      if (OpenDataFile(dt,"UPDATE"))
       {  
         //oops, can not open the file, give an error message and return error code
-        Error("WriteHits","Can not open hits file. HITS ARE NOT WRITTEN");
+        Error("WriteData","Can not open hits file. %s ARE NOT WRITTEN",DataName(dt).Data());
         return 1;
       }
    }
 
   if (File(dt)->IsWritable() == kFALSE)
    {
-     Error("WriteHits","File %s is not writable",File(dt)->GetName());
+     Error("WriteData","File %s is not writable",File(dt)->GetName());
      return 2;
    }
   
@@ -523,8 +524,10 @@ Int_t AliLoader::WriteData(EDataTypes dt,Option_t* opt)
   Info("WriteData","File Name = %s, Directory Name = %s Directory's File Name = %s",
                    File(dt)->GetName(),Directory(dt)->GetName(),
                    Directory(dt)->GetFile()->GetName());
-
-  data->SetDirectory(Directory(dt)); //forces setting the directory to this directory (we changed dir few lines above)
+  
+  //if a data object is a tree set the directory
+  TTree* tree = dynamic_cast<TTree*>(data);
+  if (tree) tree->SetDirectory(Directory(dt)); //forces setting the directory to this directory (we changed dir few lines above)
   
   Info("WriteData","Writing tree");
   data->Write(0,TObject::kOverwrite);
@@ -1465,7 +1468,7 @@ void AliLoader::CleanDigitizer()
      return;
    }
 
-  Info("CleanDigitizer","Attempting to delete Digitizer %x",task->GetListOfTasks()->Remove(Digitizer()));
+  Info("CleanDigitizer","Attempting to delete Digitizer %X",task->GetListOfTasks()->Remove(Digitizer()));
   delete task->GetListOfTasks()->Remove(Digitizer()); //TTList::Remove does not delete object
 }
 /*****************************************************************************/ 
@@ -1495,7 +1498,7 @@ void AliLoader::CleanTracker()
      return;
    }
 
-  Info("CleanTracker","Attempting to delete Tracker %x",task->GetListOfTasks()->Remove(Tracker()));
+  Info("CleanTracker","Attempting to delete Tracker %X",task->GetListOfTasks()->Remove(Tracker()));
   delete task->GetListOfTasks()->Remove(Tracker()); //TTList::Remove does not delete object
 }
 /*****************************************************************************/ 
