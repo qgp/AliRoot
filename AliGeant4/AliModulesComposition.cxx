@@ -73,16 +73,16 @@ void AliModulesComposition::CreateMagneticField()
   
     case kMCApplicationField:
       fMagneticField = new TG4MagneticField();
-      G4cout << "kMCApplicationField" << endl;
+      G4cout << "kMCApplicationField" << G4endl;
       break;
 
     case kUniformField:
       fMagneticField = new TG4UniformMagneticField();
-      G4cout << "kUniformField" << endl;
+      G4cout << "kUniformField" << G4endl;
       break;
       
     case kNoField:
-      G4cout << "kNoField" << endl;
+      G4cout << "kNoField" << G4endl;
       ;;
   }  
 }

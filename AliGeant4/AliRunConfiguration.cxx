@@ -76,7 +76,7 @@ void AliRunConfiguration::CreateUserConfiguration()
 // the other user action classes. 
 // ---
 
-  cout << "AliRunConfiguration::CreateUserConfiguration()" << endl;
+  G4cout << "AliRunConfiguration::CreateUserConfiguration()" << G4endl;
 
   // create mandatory Geant4 classes
   fDetectorConstruction = new AliDetConstruction();
