@@ -17,7 +17,7 @@ HERWIG/module.mk:        HERWIG/libherwig.pkg
 HIJING/module.mk:	 HIJING/libhijing.pkg
 HLT/module.mk:           HLT/libAliL3Src.pkg  HLT/libAliL3Hough.pkg  HLT/libAliL3Misc.pkg  HLT/libAliL3Comp.pkg
 ITS/module.mk:		 ITS/libITS.pkg
-JETAN/module.mk:	 JETAN/libJETAN.pkg
+JETAN/module.mk:	 JETAN/libJETAN.pkg JETAN/libJetFinder.pkg  JETAN/libTkJetFinder.pkg
 LHC/module.mk:		 LHC/libLHC.pkg
 MEVSIM/module.mk:	 MEVSIM/libmevsim.pkg
 MICROCERN/module.mk:	 MICROCERN/libmicrocern.pkg
