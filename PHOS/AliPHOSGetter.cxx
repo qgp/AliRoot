@@ -131,6 +131,18 @@ AliPHOSGetter::~AliPHOSGetter()
 }
 
 //____________________________________________________________________________ 
+AliPHOSClusterizer * AliPHOSGetter::Clusterizer()
+{ 
+  AliPHOSClusterizer * rv ; 
+  rv =  dynamic_cast<AliPHOSClusterizer *>(PhosLoader()->Reconstructioner()) ;
+  if (!rv) {
+    Event(0, "R") ; 
+    rv =  dynamic_cast<AliPHOSClusterizer*>(PhosLoader()->Reconstructioner()) ;
+  }
+  return rv ; 
+}
+
+//____________________________________________________________________________ 
 TObjArray * AliPHOSGetter::CpvRecPoints() 
 {
   // asks the Loader to return the CPV RecPoints container 
@@ -161,6 +173,19 @@ TClonesArray * AliPHOSGetter::Digits()
 }
 
 //____________________________________________________________________________ 
+AliPHOSDigitizer * AliPHOSGetter::Digitizer() 
+{ 
+  AliPHOSDigitizer * rv ; 
+  rv =  dynamic_cast<AliPHOSDigitizer *>(PhosLoader()->Digitizer()) ;
+  if (!rv) {
+    Event(0, "D") ; 
+    rv =  dynamic_cast<AliPHOSDigitizer *>(PhosLoader()->Digitizer()) ;
+  }
+  return rv ; 
+}
+
+
+//____________________________________________________________________________ 
 TObjArray * AliPHOSGetter::EmcRecPoints() 
 {
   // asks the Loader to return the EMC RecPoints container 
@@ -189,6 +214,19 @@ TClonesArray * AliPHOSGetter::TrackSegments()
   }
   return rv ; 
 }
+
+//____________________________________________________________________________ 
+AliPHOSTrackSegmentMaker * AliPHOSGetter::TrackSegmentMaker() 
+{ 
+  AliPHOSTrackSegmentMaker * rv ; 
+  rv =  dynamic_cast<AliPHOSTrackSegmentMaker *>(PhosLoader()->TrackSegmentMaker()) ;
+  if (!rv) {
+    Event(0, "T") ; 
+    rv =  dynamic_cast<AliPHOSTrackSegmentMaker *>(PhosLoader()->TrackSegmentMaker()) ;
+  }
+  return rv ; 
+}
+
 //____________________________________________________________________________ 
 TClonesArray * AliPHOSGetter::RecParticles() 
 {
@@ -366,6 +404,20 @@ AliPHOS * AliPHOSGetter:: PHOS() const
   return phos ; 
 }  
 
+
+
+//____________________________________________________________________________ 
+AliPHOSPID * AliPHOSGetter::PID() 
+{ 
+  AliPHOSPID * rv ; 
+  rv =  dynamic_cast<AliPHOSPID *>(PhosLoader()->PIDTask()) ;
+  if (!rv) {
+    Event(0, "P") ; 
+    rv =  dynamic_cast<AliPHOSPID *>(PhosLoader()->PIDTask()) ;
+  }
+  return rv ; 
+}
+
 //____________________________________________________________________________ 
 AliPHOSGeometry * AliPHOSGetter::PHOSGeometry() const 
 {
@@ -434,6 +486,7 @@ Int_t AliPHOSGetter::ReadTreeD()
   // gets TreeD from the root file (PHOS.SDigits.root)
   if ( !IsLoaded("D") ) {
     PhosLoader()->LoadDigits("UPDATE") ;
+    PhosLoader()->LoadDigitizer("UPDATE") ;
     SetLoaded("D") ; 
   } 
   return Digits()->GetEntries() ; 
@@ -461,6 +514,7 @@ Int_t AliPHOSGetter::ReadTreeR()
   // gets TreeR from the root file (PHOS.RecPoints.root)
   if ( !IsLoaded("R") ) {
     PhosLoader()->LoadRecPoints("UPDATE") ;
+    PhosLoader()->LoadClusterizer("UPDATE") ;
     SetLoaded("R") ; 
   }
 
@@ -476,6 +530,7 @@ Int_t AliPHOSGetter::ReadTreeT()
   // gets TreeT from the root file (PHOS.TrackSegments.root)
   if ( !IsLoaded("T") ) {
     PhosLoader()->LoadTracks("UPDATE") ;
+    PhosLoader()->LoadTrackSegmentMaker("UPDATE") ;
     SetLoaded("T") ; 
   }
 
@@ -490,6 +545,7 @@ Int_t AliPHOSGetter::ReadTreeP()
   // gets TreeT from the root file (PHOS.TrackSegments.root)
   if ( !IsLoaded("P") ) {
     PhosLoader()->LoadRecParticles("UPDATE") ;
+    PhosLoader()->LoadPID("UPDATE") ;
     SetLoaded("P") ; 
   }
 
@@ -504,6 +560,7 @@ Int_t AliPHOSGetter::ReadTreeS()
   // gets TreeS from the root file (PHOS.SDigits.root)
   if ( !IsLoaded("S") ) {
     PhosLoader()->LoadSDigits("UPDATE") ;
+    PhosLoader()->LoadSDigitizer("UPDATE") ;
     SetLoaded("S") ; 
   }
 
@@ -521,6 +578,18 @@ TClonesArray * AliPHOSGetter::SDigits()
   if (!rv) {
     PhosLoader()->MakeSDigitsArray() ;
     rv = PhosLoader()->SDigits() ; 
+  }
+  return rv ; 
+}
+
+//____________________________________________________________________________ 
+AliPHOSSDigitizer * AliPHOSGetter::SDigitizer() 
+{ 
+  AliPHOSSDigitizer * rv ; 
+  rv =  dynamic_cast<AliPHOSSDigitizer *>(PhosLoader()->SDigitizer()) ;
+  if (!rv) {
+    Event(0, "S") ; 
+    rv =  dynamic_cast<AliPHOSSDigitizer *>(PhosLoader()->SDigitizer()) ;
   }
   return rv ; 
 }

@@ -116,8 +116,7 @@ class AliPHOSGetter : public TObject {
   TClonesArray *      SDigits() ;  
   AliPHOSDigit *      SDigit(const Int_t index) { return static_cast<AliPHOSDigit *>(SDigits()->At(index)) ;} 
   TTree *             TreeS() const ; 
-  AliPHOSSDigitizer * SDigitizer() const { 
-    return dynamic_cast<AliPHOSSDigitizer *>(PhosLoader()->SDigitizer()) ;} 
+  AliPHOSSDigitizer * SDigitizer() ;  
 
   TString             GetSDigitsFileName() { return PhosLoader()->GetSDigitsFileName() ; }  
   Int_t               LoadSDigits(Option_t* opt="") { return PhosLoader()->LoadSDigits(opt) ; }
@@ -130,8 +129,7 @@ class AliPHOSGetter : public TObject {
   TClonesArray * Digits() ;
   AliPHOSDigit * Digit(const Int_t index) { return static_cast<AliPHOSDigit *>(Digits()->At(index)) ;} 
   TTree *        TreeD() const ; 
-  AliPHOSDigitizer * Digitizer() const { 
-       return dynamic_cast<AliPHOSDigitizer *>(PhosLoader()->Digitizer()) ; }
+  AliPHOSDigitizer * Digitizer() ;
   TString             GetDigitsFileName() { return PhosLoader()->GetDigitsFileName() ; }  
   Int_t               LoadDigits(Option_t* opt="") { return PhosLoader()->LoadDigits(opt) ; }
   Int_t               LoadDigitizer(Option_t* opt=""){
@@ -146,8 +144,7 @@ class AliPHOSGetter : public TObject {
   TObjArray *           CpvRecPoints() ; 
   AliPHOSCpvRecPoint *  CpvRecPoint(const Int_t index) { return static_cast<AliPHOSCpvRecPoint *>(CpvRecPoints()->At(index)) ;} 
   TTree *               TreeR() const ;
-  AliPHOSClusterizer * Clusterizer() const { 
-    return dynamic_cast<AliPHOSClusterizer*>(PhosLoader()->Reconstructioner()) ;}
+  AliPHOSClusterizer * Clusterizer()  ;
   TString               GetRecPointsFileName() { return PhosLoader()->GetRecPointsFileName() ; } 
   Int_t                 LoadRecPoints(Option_t* opt="") { return PhosLoader()->LoadRecPoints(opt) ; }
   Int_t                 LoadClusterizer(Option_t* opt=""){
@@ -160,29 +157,27 @@ class AliPHOSGetter : public TObject {
   TClonesArray *           TrackSegments() ;
   AliPHOSTrackSegment *  TrackSegments(const Int_t index) { return static_cast<AliPHOSTrackSegment *>(TrackSegments()->At(index)) ;} 
   TTree *               TreeT() const ;
-  AliPHOSTrackSegmentMaker * TrackSegmentMaker() const { 
-    return dynamic_cast<AliPHOSTrackSegmentMaker*>(PhosLoader()->TrackSegmentMaker()) ;}
+  AliPHOSTrackSegmentMaker * TrackSegmentMaker() ;
   TString               GetTracksFileName() { return PhosLoader()->GetTracksFileName() ; } 
   Int_t                 LoadTracks(Option_t* opt="") { return PhosLoader()->LoadTracks(opt) ; }
-  Int_t                 LoadTracker(Option_t* opt=""){
-    return  PhosLoader()->LoadTracker(opt) ; }
+  Int_t                 LoadTrackSegementMaker(Option_t* opt=""){
+    return  PhosLoader()->LoadTrackSegmentMaker(opt) ; }
   Int_t                 WriteTracks(Option_t* opt="") { return PhosLoader()->WriteTracks(opt) ; }
-  Int_t                 WriteTracker(Option_t* opt=""){
+  Int_t                 WriteTrackSegmentMaker(Option_t* opt=""){
     return  PhosLoader()->WriteTracker(opt) ; }
   //========== RecParticles ===========
 
   TClonesArray *         RecParticles() ;
   AliPHOSRecParticle *   RecPaticles(const Int_t index) { return static_cast<AliPHOSRecParticle *>(RecParticles()->At(index)) ;} 
   TTree *               TreeP() const ;
-  AliPHOSPID * PIDTask() const { 
-    return dynamic_cast<AliPHOSPID*>(PhosLoader()->PIDTask()) ;}
+  AliPHOSPID * PID() ;
   TString               GetRecParticlesFileName() { return PhosLoader()->GetRecParticlesFileName() ; } 
   Int_t                 LoadRecParticles(Option_t* opt="") { return PhosLoader()->LoadRecParticles(opt) ; }
-  Int_t                 LoadPIDTask(Option_t* opt=""){
-    return  PhosLoader()->LoadPIDTask(opt) ; }
+  Int_t                 LoadPID(Option_t* opt=""){
+    return  PhosLoader()->LoadPID(opt) ; }
   Int_t                 WriteRecParticles(Option_t* opt="") { return PhosLoader()->WriteRecParticles(opt) ; }
-  Int_t                 WritePIDTask(Option_t* opt=""){
-    return  PhosLoader()->WritePIDTask(opt) ; }
+  Int_t                 WritePID(Option_t* opt=""){
+    return  PhosLoader()->WritePID(opt) ; }
 
 
   void SetDebug(Int_t level) {fgDebug = level;} // Set debug level 
