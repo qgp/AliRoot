@@ -14,6 +14,9 @@
  **************************************************************************/
 /*
 $Log$
+Revision 1.56.4.5  2003/05/16 14:40:24  martinez
+New IO in AliMUON
+
 Revision 1.56.4.4  2003/05/14 15:24:08  martinez
 Merging with NewIO: New AddHit function
 
@@ -560,7 +563,7 @@ void AliMUON::SetTreeAddress()
   AliDetector::SetTreeAddress();
 
   TBranch *branch;
-  TTree *treeH = TreeH();
+  TTree *treeH = fLoader->TreeH();
   TTree *treeD = fLoader->TreeD();
   TTree *treeR = fLoader->TreeR();
 
@@ -926,9 +929,10 @@ void AliMUON::Digits2Reco()
   Int_t nev = gAlice->GetHeader()->GetEvent();
   fLoader->TreeR()->Fill();
   char hname[30];
-  sprintf(hname,"TreeR%d", nev);
-  fLoader->TreeR()->Write(hname);
-  fLoader->TreeR()->Reset();
+  // sprintf(hname,"TreeR%d", nev);
+  //fLoader->TreeR()->Write(hname);
+  //fLoader->TreeR()->Reset();
+  fLoader->WriteRecPoints("OVERWRITE");
   ResetRawClusters();        
   printf("\n End of cluster finding for event %d", nev);
 }
@@ -943,20 +947,22 @@ void AliMUON::FindClusters()
     dig1 = new TClonesArray("AliMUONDigit",1000);
     dig2 = new TClonesArray("AliMUONDigit",1000);
     AliMUONDigit *digit;
-//
 // Loop on chambers and on cathode planes
 //
     ResetRawClusters();        
+    TClonesArray * muonDigits;
+
     for (Int_t ich = 0; ich < 10; ich++) {
       //PH	AliMUONChamber* iChamber = (AliMUONChamber*) (*fChambers)[ich];
 	AliMUONChamber* iChamber = (AliMUONChamber*) fChambers->At(ich);
 	AliMUONClusterFinderVS* rec = iChamber->ReconstructionModel();
     
-	gAlice->ResetDigits();
+	ResetDigits();
 	fLoader->TreeD()->GetEvent(0);
-	TClonesArray *muonDigits = this->DigitsAddress(ich);
+	//TClonesArray *
+	muonDigits = (TClonesArray *) Dchambers()->At(ich);
 	ndig=muonDigits->GetEntriesFast();
-	printf("\n 1 Found %d digits in %p %d", ndig, muonDigits,ich);
+	printf("\n 1 Found %d digits in %p chamber %d", ndig, muonDigits,ich);
 	TClonesArray &lhits1 = *dig1;
 	Int_t n = 0;
 	for (k = 0; k < ndig; k++) {
@@ -964,9 +970,10 @@ void AliMUON::FindClusters()
 	    if (rec->TestTrack(digit->Track(0)))
 		new(lhits1[n++]) AliMUONDigit(*digit);
 	}
-	gAlice->ResetDigits();
+	ResetDigits();
 	fLoader->TreeD()->GetEvent(1);
-	muonDigits  = this->DigitsAddress(ich);
+	//muonDigits  = this->DigitsAddress(ich);
+	muonDigits = (TClonesArray *) Dchambers()->At(ich);
 	ndig=muonDigits->GetEntriesFast();
 	printf("\n 2 Found %d digits in %p %d", ndig, muonDigits, ich);
 	TClonesArray &lhits2 = *dig2;
