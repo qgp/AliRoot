@@ -59,9 +59,9 @@ geant3: FORCE
 AliGeant4 AliFluka : FORCE
 	@DIR=$@; \
 	echo "Making dependencies in $$DIR" | $(PRETTY); \
-	${MAKE} -C $$DIR depend;\
+	${MAKE} -f Makefile.old -C $$DIR depend;\
 	echo "Making in $$DIR" | $(PRETTY); \
-	${MAKE} -C $$DIR
+	${MAKE} -f Makefile.old -C $$DIR
 
 cernlibs: pythia6 pdf hijing
 
