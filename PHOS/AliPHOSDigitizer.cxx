@@ -84,14 +84,15 @@ ClassImp(AliPHOSDigitizer)
 
 
 //____________________________________________________________________________ 
-  AliPHOSDigitizer::AliPHOSDigitizer():AliDigitizer("","") 
+  AliPHOSDigitizer::AliPHOSDigitizer():AliDigitizer("",""),
+				       fInput(0),
+				       fInputFileNames(0x0),
+				       fEventNames(0x0)
 {
   // ctor
   InitParameters() ; 
   fDefaultInit = kTRUE ;
   fManager = 0 ;                     // We work in the standalong mode
-  fInputFileNames = 0 ; 
-  fEventNames = 0 ; 
   fEventFolderName = "" ; 
 }
 
