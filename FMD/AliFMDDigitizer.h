@@ -1,3 +1,4 @@
+// -*- mode: c++ -*-
 #ifndef ALIFMDDIGITIZER_H
 #define ALIFMDDIGITIZER_H
 /* Copyright(c) 1998-2000, ALICE Experiment at CERN, All rights
@@ -160,11 +161,6 @@ protected:
 
 #endif
 //____________________________________________________________________
-//
-// Local Variables:
-//   mode: C++
-// End:
-//
 //
 // EOF
 //

@@ -1,3 +1,4 @@
+// -*- mode: C++ -*-
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights
  * reserved. 
  *
@@ -16,6 +17,19 @@
 
 class AliFMDPolygon : public TObject 
 {
+private:
+  enum {
+    kUnknown, 
+    kConvex, 
+    kConcave
+  };
+  mutable Int_t fState;
+  // List of coordinates 
+  TObjArray fVerticies;
+  // Force convexity check 
+  bool ConvexCheck() const;
+  // Check if a point is at the right-hand side of a segment 
+  bool IsOnLeftHand(const TVector2* c, size_t i1, size_t i2) const;
 public:
   // Construct a alipolygon with N sides
   AliFMDPolygon();
@@ -42,29 +56,10 @@ public:
   
   void Draw(const char* option="PL", const char* name=0) const;
 
-private:
-  enum {
-    kUnknown, 
-    kConvex, 
-    kConcave
-  };
-  mutable Int_t fState;
-  // List of coordinates 
-  TObjArray fVerticies;
-  // Force convexity check 
-  bool ConvexCheck() const;
-  // Check if a point is at the right-hand side of a segment 
-  bool IsOnLeftHand(const TVector2* c, size_t i1, size_t i2) const;
-
   ClassDef(AliFMDPolygon,1) // Polygon parameters
 };
 
 #endif
-//____________________________________________________________________
-//
-// Local Variables:
-//   mode: C++
-// End:
 //
 // EOF
 //

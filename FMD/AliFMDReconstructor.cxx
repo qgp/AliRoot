@@ -13,10 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/* $Id$ */
-
 //____________________________________________________________________
-//
 // This is a class that constructs ReconstParticles (reconstructed
 // particles) out of Digits
 //
@@ -70,7 +67,6 @@ AliFMDReconstructor::AliFMDReconstructor()
     fPedestal(0), 
     fPedestalWidth(0)
 {
-  // Make a new FMD reconstructor object - default CTOR.
   SetDeltaEta();
   SetDeltaPhi();
   SetThreshold();
@@ -80,48 +76,6 @@ AliFMDReconstructor::AliFMDReconstructor()
   fFMDLoader = 0;
   fRunLoader = 0;
   fFMD       = 0;
-}
-  
-
-//____________________________________________________________________
-AliFMDReconstructor::AliFMDReconstructor(const AliFMDReconstructor& other) 
-  : AliReconstructor(),
-    fAdcs(kMaxDetectors, kMaxRings, kMaxSectors, kMaxStrips),
-    fDeltaEta(0), 
-    fDeltaPhi(0), 
-    fThreshold(0),
-    fPedestal(0), 
-    fPedestalWidth(0)
-{
-  // Make a new FMD reconstructor object - default CTOR.
-  SetDeltaEta(other.fDeltaEta);
-  SetDeltaPhi(other.fDeltaPhi);
-  SetThreshold(other.fThreshold);
-  SetPedestal(other.fPedestal, other.fPedestalWidth);
-
-  // fParticles = new TClonesArray("AliFMDParticles", 1000);
-  fFMDLoader = other.fFMDLoader;
-  fRunLoader = other.fRunLoader;
-  fFMD       = other.fFMD;
-}
-  
-
-//____________________________________________________________________
-AliFMDReconstructor&
-AliFMDReconstructor::operator=(const AliFMDReconstructor& other) 
-{
-  // Make a new FMD reconstructor object - default CTOR.
-  SetDeltaEta(other.fDeltaEta);
-  SetDeltaPhi(other.fDeltaPhi);
-  SetThreshold(other.fThreshold);
-  SetPedestal(other.fPedestal, other.fPedestalWidth);
-
-  // fParticles = new TClonesArray("AliFMDParticles", 1000);
-  fFMDLoader = other.fFMDLoader;
-  fRunLoader = other.fRunLoader;
-  fFMD       = other.fFMD;
-
-  return *this;
 }
   
 //____________________________________________________________________
@@ -217,8 +171,6 @@ AliFMDReconstructor::ProcessEvent(Int_t event,
 				  AliRawReader* reader, 
 				  TClonesArray* digits) const
 {
-  // Process one event read from either a clones array or from a a raw
-  // data reader. 
   fRunLoader->GetEvent(event) ;
   //event z-vertex for correction eta-rad dependence      
   AliHeader *header            = fRunLoader->GetHeader();
@@ -292,7 +244,6 @@ AliFMDReconstructor::ProcessEvent(Int_t event,
 Bool_t
 AliFMDReconstructor::ReadAdcs(TClonesArray* digits) const
 {
-  // Read the ADC values from a clones array. 
   AliDebug(10, "Reading ADCs from Digits array");
   // read Digits, and reconstruct the particles
   if (!fFMDLoader->TreeD()->GetEvent(0)) return kFALSE;
@@ -313,7 +264,6 @@ AliFMDReconstructor::ReadAdcs(TClonesArray* digits) const
 Bool_t
 AliFMDReconstructor::ReadAdcs(AliRawReader* reader) const
 {
-  // Read the ADC values from a raw data reader. 
   AliDebug(10, "Reading ADCs from RawReader");
   // Reads the digits from a RAW data 
   fAdcs.Clear();
@@ -590,11 +540,7 @@ void
 AliFMDReconstructor::FillESD(AliRunLoader* /*fRunLoader*/, 
 			     AliESD* /*esd*/) const
 {
-  // nothing to be done
+// nothing to be done
 
 }
 
-//____________________________________________________________________
-//
-// EOF
-//

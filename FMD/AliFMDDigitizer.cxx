@@ -612,7 +612,6 @@ AliFMDSDigitizer::AliFMDSDigitizer(const Char_t* headerFile,
 
   // Add task to tasks folder 
   loader->PostSDigitizer(this);
-
 }
 
 //____________________________________________________________________

@@ -15,17 +15,15 @@
 
 /* $Id$ */
 
-//____________________________________________________________________
+//////////////////////////////////////////////////////////////////////////////
 //                                                                          
 // Concrete implementation of AliFMDSubDetector 
 //
 // This implements the geometry for FMD1 
 //
+//////////////////////////////////////////////////////////////////////////////
 #ifndef ALIFMD1_H
 # include "AliFMD1.h"
-#endif 
-#ifndef ALIFMDRING_H
-# include "AliFMDRing.h"
 #endif 
 #ifndef ROOT_TVirtualMC
 # include <TVirtualMC.h>
@@ -41,27 +39,16 @@ ClassImp(AliFMD1);
 //____________________________________________________________________
 AliFMD1::AliFMD1() 
   : AliFMDSubDetector(1) 
-{
-  // Default constructor for the FMD1 sub-detector 
-}
+{}
 
 //____________________________________________________________________
 AliFMD1::~AliFMD1() 
-{
-  // Destructor - does nothing 
-}
+{}
 
 //____________________________________________________________________
 void 
 AliFMD1::SetupGeometry(Int_t airId, Int_t kaptionId) 
 {
-  // Setup the FMD1 sub-detector geometry 
-  // 
-  // Parameters:
-  // 
-  //     airId         Id # of the Air medium 
-  //     kaptionId     Id # of the Aluminium medium 
-  // 
   fInnerHoneyLowR  = fInner->GetLowR() + 1;
   fInnerHoneyHighR = fInner->GetHighR() + 1;
   fOuterHoneyLowR  = 0;
@@ -88,15 +75,6 @@ void
 AliFMD1::Geometry(const char* mother, Int_t pbRotId, 
 		  Int_t idRotId, Double_t z) 
 {
-  // Position the FMD1 sub-detector volume 
-  // 
-  // Parameters 
-  //
-  //     mother     name of the mother volume 
-  //     pbRotId    Printboard roation matrix ID 
-  //     idRotId    Identity rotation matrix ID 
-  //     z          Z position (not really used here, but passed down)
-  //
   // The Z passed in isn't used. 
   z = fInnerZ + fDz;
   gMC->Gspos("FMD1", 1, mother, 0, 0, z, fRotationId);

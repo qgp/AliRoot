@@ -1,12 +1,9 @@
+// -*- mode: c++ -*- 
+//
+// 
 #ifndef ALIFMDRAWSTREAM_H
 #define ALIFMDRAWSTREAM_H
-/* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights
- * reserved. 
- *
- * Latest changes by Christian Holm Christensen <cholm@nbi.dk>
- *
- * See cxx source for full Copyright notice                               
- */
+
 #ifndef ALIALTRORAWSTREAM_H
 # include <AliAltroRawStream.h>
 #endif 
@@ -22,6 +19,15 @@
 // 
 class AliFMDRawStream : public AliAltroRawStream 
 {
+private:
+  UShort_t fSampleRate; // # of ALTRO samples per VA1_ALICE clock
+  // UChar_t* fMyData;
+  // Int_t    fMyPosition;
+  // Int_t    fMyCount;
+  // Int_t    fMyBunchLength;
+  Int_t    fPrevTime;
+protected:
+  // UShort_t Get10BitWord(UChar_t* buffer, Int_t position) const;
 public:
   AliFMDRawStream(AliRawReader* reader);
 
@@ -41,19 +47,7 @@ public:
   
   virtual Bool_t   Next();
   
-private:
-  UShort_t fSampleRate; // # of ALTRO samples per VA1_ALICE clock
-  Int_t    fPrevTime;   // Last time bin
-
   ClassDef(AliFMDRawStream, 0) // Read raw FMD Altro data 
 };
 
 #endif
-//____________________________________________________________________
-//
-// Local Variables:
-//   mode: C++
-// End:
-//
-// EOF
-//

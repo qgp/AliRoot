@@ -1,3 +1,4 @@
+// -*- mode: c++ -*- 
 #ifndef ALIFMDPARTICLES_H
 #define ALIFMDPARTICLES_H
 
@@ -58,11 +59,3 @@ protected:
   ClassDef(AliFMDParticles,2) // Reconstructed # or particles in a eta,phi region
 };
 #endif
-//____________________________________________________________________
-//
-// Local Variables:
-//   mode: C++
-// End:
-//
-// EOF
-//

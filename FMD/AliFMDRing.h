@@ -1,5 +1,4 @@
-#ifndef ALIFMDRING_H
-#define ALIFMDRING_H
+// -*- mode: c++ -*-
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights
  * reserved. 
  *
@@ -7,13 +6,8 @@
  *
  * See cxx source for full Copyright notice                               
  */
-//__________________________________________________________________
-//
-// Parameters of the FMD rings. 
-// 
-// This class is responsible to make the (common) rings of the three
-// sub-detectors. 
-//
+#ifndef ALIFMDRING_H
+#define ALIFMDRING_H
 #ifndef ALIFMDPOLYGON_H
 # include <AliFMDPolygon.h>
 #endif
@@ -29,14 +23,44 @@ class TList;
 
 
 //__________________________________________________________________
-class AliFMDRing : public TObject
+struct AliFMDRing : public TObject
 {
-public:
-  AliFMDRing(Char_t id='\0', Bool_t detailed=kTRUE);
-  AliFMDRing(const AliFMDRing& other);
-  AliFMDRing& operator=(const AliFMDRing& other);
-  virtual ~AliFMDRing();
+  Char_t   fId;			 // ID
+  Bool_t   fDetailed;
+  Int_t    fActiveId;		 // Active volume 
+  Int_t    fPrintboardBottomId;  // Print board bottom volume
+  Int_t    fPrintboardTopId;     // Print board top volume
+  Int_t    fRingId;		 // Ring volume
+  Int_t    fSectionId;		 // Section volumes 
+  Int_t    fStripId;		 // Strip volumes 
+  Int_t    fVirtualBackId;	 // Virtual Back volume
+  Int_t    fVirtualFrontId;	 // Virtual Front volume
 
+  Double_t fBondingWidth;	 // With of bonding pad on sensor
+  Double_t fWaferRadius;	 // Size of wafer the sensor was made from 
+  Double_t fSiThickness;	 // Thickness of sensor
+  Double_t fLowR;		 // Lower radius of ring
+  Double_t fHighR;		 // Upper radius of ring
+  Double_t fTheta;		 // Opening angle of the silicon wafers
+  Int_t    fNStrips;		 // Number of strips 
+  Double_t fRingDepth;           // How far the ring extends beyond
+				 // the z value given. 
+  Double_t fLegRadius;		 // Radius of support legs 
+  Double_t fLegLength;		 // Radius of support legs 
+  Double_t fLegOffset;		 // Radius of support legs 
+
+  Double_t fModuleSpacing;	 // Staggering offset 
+  Double_t fPrintboardThickness; // Thickness of print board
+
+  TArrayI    fRotations;	 // Array of rotations
+  TShape*    fShape;             // Shape used for event display
+  TObjArray* fRotMatricies;      // Matricies used for event display
+
+  AliFMDPolygon  fPolygon;		 // Polygon shape 
+public:
+  //----------------------------------------------------------------
+  AliFMDRing(Char_t id='\0', Bool_t detailed=kTRUE);
+  virtual ~AliFMDRing();
   void   Init();
   bool   IsWithin(size_t moduleNo, double x, double y) const;
   void   SetupCoordinates();  
@@ -91,55 +115,9 @@ public:
   void SetModuleSpacing(Double_t       spacing)	  { fModuleSpacing = spacing; }
   void SetPrintboardThickness(Double_t thickness) { fPrintboardThickness = thickness; }
 
-protected:
-  Char_t   fId;			 // ID
-  Bool_t   fDetailed;            // True if a detailed geometry is made
-  Int_t    fActiveId;		 // Active volume 
-  Int_t    fPrintboardBottomId;  // Print board bottom volume
-  Int_t    fPrintboardTopId;     // Print board top volume
-  Int_t    fRingId;		 // Ring volume
-  Int_t    fSectionId;		 // Section volumes 
-  Int_t    fStripId;		 // Strip volumes 
-  Int_t    fVirtualBackId;	 // Virtual Back volume
-  Int_t    fVirtualFrontId;	 // Virtual Front volume
-
-  Double_t fBondingWidth;	 // With of bonding pad on sensor
-  Double_t fWaferRadius;	 // Size of wafer the sensor was made from 
-  Double_t fSiThickness;	 // Thickness of sensor
-  Double_t fLowR;		 // Lower radius of ring
-  Double_t fHighR;		 // Upper radius of ring
-  Double_t fTheta;		 // Opening angle of the silicon wafers
-  Int_t    fNStrips;		 // Number of strips 
-  Double_t fRingDepth;           // How far the ring extends beyond
-				 // the z value given. 
-  Double_t fLegRadius;		 // Radius of support legs 
-  Double_t fLegLength;		 // Radius of support legs 
-  Double_t fLegOffset;		 // Radius of support legs 
-
-  Double_t fModuleSpacing;	 // Staggering offset 
-  Double_t fPrintboardThickness; // Thickness of print board
-
-  TArrayI    fRotations;	 // Array of rotations
-  TShape*    fShape;             // Shape used for event display
-  TObjArray* fRotMatricies;      // Matricies used for event display
-
-  AliFMDPolygon  fPolygon;		 // Polygon shape 
-
-  static const Char_t* fgkRingFormat;       // Format for Ring names 
-  static const Char_t* fgkVirtualFormat;    // Format for Virtual names
-  static const Char_t* fgkActiveFormat;     // Format for Active names 
-  static const Char_t* fgkSectorFormat;     // Format for Sector names 
-  static const Char_t* fgkStripFormat;      // Format for Strip names 
-  static const Char_t* fgkPrintboardFormat; // Format for Printboard names 
-
-  ClassDef(AliFMDRing, 1) // FMD Ring volume parameters 
+  ClassDef(AliFMDRing, 1) // Ring volume parameters 
 };
 #endif 
-//____________________________________________________________________
-//
-// Local Variables:
-//   mode: C++
-// End:
 //
 // EOF
 //

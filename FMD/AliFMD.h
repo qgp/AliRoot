@@ -1,3 +1,4 @@
+// -*- mode: c++ -*- 
 #ifndef ALIFMD_H
 #define ALIFMD_H
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights
@@ -8,10 +9,10 @@
  * See cxx source for full Copyright notice                               
  */
 
-//____________________________________________________________________
-//
-//  Manager class for the FMD - Base class.
-//
+////////////////////////////////////////////////
+//  Manager and hits classes for set:Si-FMD     //
+////////////////////////////////////////////////
+
 #ifndef ALIDETECTOR_H 
 # include <AliDetector.h>
 #endif
@@ -164,12 +165,52 @@ protected:
   ClassDef(AliFMD,8)     // Base class FMD entry point
 };
 
+//____________________________________________________________________
+class AliFMDv0 : public AliFMD 
+{
+public:
+  AliFMDv0() {}
+  AliFMDv0(const char *name, const char *title="Coarse geometry") 
+    : AliFMD(name, title, false)
+  {}
+  virtual ~AliFMDv0() 
+  {}
+
+  // Required member functions 
+  virtual Int_t  IsVersion() const {return 0;}
+  virtual void   StepManager() {}
+
+  ClassDef(AliFMDv0,1) // Coarse FMD geometry 
+};
+
+//____________________________________________________________________
+#ifndef ROOT_TLorentzVector
+# include <TLorentzVector.h>
+#endif
+ 
+class AliFMDv1 : public AliFMD 
+{
+public:
+  AliFMDv1() {}
+  AliFMDv1(const char *name, const char *title="Detailed geometry") 
+    : AliFMD(name, title, true) 
+  {}
+  virtual ~AliFMDv1() {}
+
+  // Required member functions 
+  virtual Int_t  IsVersion() const {return 1;}
+  virtual void   StepManager();
+protected:
+  Double_t   fCurrentDeltaE;        // The current accumelated energy loss
+  TLorentzVector fCurrentV;         // Current production vertex 
+  TLorentzVector fCurrentP;         // Current momentum vector 
+  Int_t          fCurrentPdg;       // Current PDG code 
+  
+  ClassDef(AliFMDv1,3)  // Detailed FMD geometry
+};
+
 #endif
 //____________________________________________________________________
-//
-// Local Variables:
-//   mode: C++
-// End:
 //
 // EOF
 //
