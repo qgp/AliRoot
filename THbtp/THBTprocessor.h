@@ -95,7 +95,7 @@ class THBTprocessor: public TGenerator
       
       virtual void SetNBins3DFineProjectMesh(Int_t n =3 ){ MESH.n_3d_fine_project=n;}
     
-    
+      void         DumpSettings();
     protected:
 
     private:
