@@ -31,7 +31,7 @@
 #include "AliPHOSGeometry.h"
 #include "AliPHOSDigit.h"
 #include "AliPHOSRecPoint.h"
-#include "AliPHOSLoader.h"
+#include "AliPHOSGetter.h"
 
 ClassImp(AliPHOSRecPoint)
 
@@ -42,8 +42,8 @@ AliPHOSRecPoint::AliPHOSRecPoint()
 {
   // ctor
 
-  fMaxTrack = 200 ;
-  fPHOSMod = 0;
+  fMaxTrack = 0 ;
+  fPHOSMod  = 0 ;
 
 }
 
@@ -53,7 +53,7 @@ AliPHOSRecPoint::AliPHOSRecPoint(const char * opt) : AliRecPoint(opt)
   // ctor
   
   fMaxTrack = 200 ;
-  fPHOSMod = 0;
+  fPHOSMod  = 0;
   
 }
 
@@ -171,11 +171,13 @@ break;
   }
 }
 //____________________________________________________________________________
-void AliPHOSRecPoint::EvalAll(Float_t logWeight,TClonesArray * digits) {
+void AliPHOSRecPoint::EvalAll(Float_t logWeight,TClonesArray * digits) 
+{
   //evaluates (if necessary) all RecPoint data members 
 
   EvalPrimaries(digits) ;
 }
+
 //____________________________________________________________________________
 void AliPHOSRecPoint::EvalPHOSMod(AliPHOSDigit * digit) 
 {
@@ -183,8 +185,8 @@ void AliPHOSRecPoint::EvalPHOSMod(AliPHOSDigit * digit)
 
   if( fPHOSMod == 0){
   Int_t relid[4] ; 
-  
-  AliPHOSGeometry * phosgeom = AliPHOSLoader::GetPHOSGeometry();
+ 
+  AliPHOSGeometry * phosgeom = (AliPHOSGetter::Instance())->PHOSGeometry();
 
   phosgeom->AbsToRelNumbering(digit->GetId(), relid) ;
   fPHOSMod = relid[0];
@@ -247,7 +249,7 @@ void AliPHOSRecPoint::GetGlobalPosition(TVector3 & gpos, TMatrix & gmat) const
 {
   // returns the position of the cluster in the global reference system of ALICE
   // and the uncertainty on this position
-  AliPHOSLoader::GetPHOSGeometry()->GetGlobal(this, gpos, gmat);
+  (AliPHOSGetter::Instance())->PHOSGeometry()->GetGlobal(this, gpos, gmat);
 }
 
 

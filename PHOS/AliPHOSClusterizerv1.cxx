@@ -70,16 +70,14 @@
 //#include <iostream.h> 
 
 // --- AliRoot header files ---
-#include "AliRunLoader.h"
-#include "AliPHOSCalibrationDB.h"
+#include "AliPHOSGetter.h"
 #include "AliPHOSClusterizerv1.h"
+#include "AliPHOSEmcRecPoint.h"
 #include "AliPHOSCpvRecPoint.h"
 #include "AliPHOSDigit.h"
 #include "AliPHOSDigitizer.h"
-#include "AliPHOSEmcRecPoint.h"
 #include "AliPHOS.h"
-#include "AliPHOSLoader.h"
-#include "AliPHOSGetter.h"
+#include "AliPHOSCalibrationDB.h"
 
 ClassImp(AliPHOSClusterizerv1)
   
@@ -121,15 +119,16 @@ const TString AliPHOSClusterizerv1::BranchName() const
  
 //____________________________________________________________________________
 Float_t  AliPHOSClusterizerv1::Calibrate(Int_t amp, Int_t absId) const
-{ //To be replaced later by the method, reading individual parameters from the database
-//   if(fCalibrationDB)
-//     return fCalibrationDB->Calibrate(amp,absId) ;
-//   else{ //simulation
-    if(absId <= fEmcCrystals) //calibrate as EMC 
-      return fADCpedestalEmc + amp*fADCchanelEmc ;        
-    else //calibrate as CPV
-      return fADCpedestalCpv+ amp*fADCchanelCpv ;       
-    //  }
+{  
+  //To be replaced later by the method, reading individual parameters from the database
+  //   if(fCalibrationDB)
+  //     return fCalibrationDB->Calibrate(amp,absId) ;
+  //   else{ //simulation
+  if(absId <= fEmcCrystals) //calibrate as EMC 
+    return fADCpedestalEmc + amp*fADCchanelEmc ;        
+  else //calibrate as CPV
+    return fADCpedestalCpv+ amp*fADCchanelCpv ;       
+  //  }
 }
 
 //____________________________________________________________________________
@@ -153,8 +152,7 @@ void AliPHOSClusterizerv1::Exec(Option_t * option)
    {
     gime->Event(ievent, "D");
 
-   //  if(ievent == 0)
-       GetCalibrationParameters() ;
+    GetCalibrationParameters() ;
 
     fNumberOfEmcClusters  = fNumberOfCpvClusters  = 0 ;
     
@@ -163,12 +161,12 @@ void AliPHOSClusterizerv1::Exec(Option_t * option)
     if(fToUnfold)             
       MakeUnfolding() ;
 
-      WriteRecPoints();
+    WriteRecPoints();
 
     if(strstr(option,"deb"))  
       PrintRecPoints(option) ;
 
-    //increment the total number of digits per run 
+    //increment the total number of recpoints per run 
     fRecPointsInRun += gime->EmcRecPoints()->GetEntriesFast() ;  
     fRecPointsInRun += gime->CpvRecPoints()->GetEntriesFast() ;  
     }
@@ -180,10 +178,7 @@ void AliPHOSClusterizerv1::Exec(Option_t * option)
     Info("Exec", "  took %f seconds for Clusterizing %f seconds per event \n",
 	 gBenchmark->GetCpuTime("PHOSClusterizer"), 
 	 gBenchmark->GetCpuTime("PHOSClusterizer")/nevents ) ; 
-  }
-
-  //Info("Exec","\n\n        AliPHOSClusterizerv1::Exec: FINISHED\n\n");
- 
+  } 
 }
 
 //____________________________________________________________________________
@@ -196,12 +191,6 @@ Bool_t AliPHOSClusterizerv1::FindFit(AliPHOSEmcRecPoint * emcRP, AliPHOSDigit **
 
   
   AliPHOSGetter * gime = AliPHOSGetter::Instance();
-  if (gime == 0x0)
-   {
-     Error("FindFit","Can not get PHOS Loader");
-     return kFALSE;
-   }
-
   TClonesArray * digits = gime->Digits(); 
   
 
@@ -292,18 +281,17 @@ void AliPHOSClusterizerv1::GetCalibrationParameters()
 
   AliPHOSGetter * gime = AliPHOSGetter::Instance();
 
-    if ( !gime->Digitizer() ) 
-      gime->LoadDigitizer();
-    AliPHOSDigitizer * dig = gime->Digitizer(); 
-    
-
-    fADCchanelEmc   = dig->GetEMCchannel() ;
-    fADCpedestalEmc = dig->GetEMCpedestal();
-    
-    fADCchanelCpv   = dig->GetCPVchannel() ;
-    fADCpedestalCpv = dig->GetCPVpedestal() ; 
-
-      //   fCalibrationDB = gime->CalibrationDB();
+  if ( !gime->Digitizer() ) 
+    gime->LoadDigitizer();
+  AliPHOSDigitizer * dig = gime->Digitizer(); 
+  
+  fADCchanelEmc   = dig->GetEMCchannel() ;
+  fADCpedestalEmc = dig->GetEMCpedestal();
+  
+  fADCchanelCpv   = dig->GetCPVchannel() ;
+  fADCpedestalCpv = dig->GetCPVpedestal() ; 
+  
+  //   fCalibrationDB = gime->CalibrationDB();
 }
 
 //____________________________________________________________________________
@@ -311,10 +299,6 @@ void AliPHOSClusterizerv1::Init()
 {
   // Make all memory allocations which can not be done in default constructor.
   // Attach the Clusterizer task to the list of PHOS tasks
-  
-
-//  TString branchname = GetName() ;
-//  branchname.Remove(branchname.Index(Version())-1) ;
    
   AliPHOSGetter* gime = AliPHOSGetter::Instance(GetTitle(), fEventFolderName.Data());
 
@@ -325,10 +309,8 @@ void AliPHOSClusterizerv1::Init()
   if(!gMinuit) 
     gMinuit = new TMinuit(100);
 
-  if ( !gime->Clusterizer() ) {
+  if ( !gime->Clusterizer() ) 
     gime->PostClusterizer(this);
-  }
-
 }
 
 //____________________________________________________________________________
