@@ -903,7 +903,7 @@ void AliRun::BeginEvent()
   //
     
   fRunLoader->GetHeader()->Reset(fRun,fEvent,fEventNrInRun);
-  fRunLoader->WriteKinematics("OVERWRITE");
+//  fRunLoader->WriteKinematics("OVERWRITE");  is there any reason to rewrite here since MakeTree does so
 
   if (GetDebug()) Info("BeginEvent","  fRunLoader->MakeTrackRefsContainer()");
   fRunLoader->MakeTrackRefsContainer();//for insurance
