@@ -14,6 +14,9 @@
  **************************************************************************/
 /*
 $Log$
+Revision 1.56.4.7  2003/06/24 14:08:27  pcrochet
+Trigger with NewIO
+
 Revision 1.56.4.6  2003/06/11 16:45:07  martinez
 NewIO in Digits2Reco
 
@@ -491,70 +494,83 @@ void AliMUON::MakeBranch(Option_t* option)
     char branchname[30];
     sprintf(branchname,"%sCluster",GetName());
     
-    AliDetector::MakeBranch(option);
     
     const char *cD = strstr(option,"D");
     const char *cR = strstr(option,"R");
     const char *cH = strstr(option,"H");
 
-    if (fPadHits   && TreeH() && cH) 
+    if (TreeH() && cH) 
      {
+      if (fPadHits == 0x0) fPadHits = new TClonesArray("AliMUONPadHit",10000);
       MakeBranchInTree(TreeH(), branchname, &fPadHits, kBufferSize, 0);
+      if (fHits == 0x0) fHits     = new TClonesArray("AliMUONHit",1000);
      }
-
+    //it must be under fHits creation
+    AliDetector::MakeBranch(option);
     
-    if (cD) {
+    if (cD  && fLoader->TreeD()) {
       //
       // one branch for digits per chamber
       // 
       Int_t i;
+      if (fDchambers  == 0x0) 
+        {
+          fDchambers = new TObjArray(AliMUONConstants::NCh());
+          for (Int_t i=0; i<AliMUONConstants::NCh() ;i++) {
+              fDchambers->AddAt(new TClonesArray("AliMUONDigit",10000),i); 
+          }
+        }
     
       for (i=0; i<AliMUONConstants::NCh() ;i++) 
        {
         sprintf(branchname,"%sDigits%d",GetName(),i+1);	
-        if (fDchambers   && fLoader->TreeD()) 
-         {
-           MakeBranchInTree(fLoader->TreeD(), branchname, &((*fDchambers)[i]), kBufferSize, 0);
-           printf("Making Branch %s for digits in chamber %d\n",branchname,i+1);
-         }
+        MakeBranchInTree(fLoader->TreeD(), branchname, &((*fDchambers)[i]), kBufferSize, 0);
+        printf("Making Branch %s for digits in chamber %d\n",branchname,i+1);
        }
     }
     
-    if (cR) {
+    if (cR  && fLoader->TreeR()) {
       //     
       // one branch for raw clusters per chamber
       //  
       printf("Make Branch - TreeR address %p\n",fLoader->TreeR());
       
       Int_t i;
+      if (fRawClusters == 0x0)
+      {
+        fRawClusters = new TObjArray(AliMUONConstants::NTrackingCh());
+        for (Int_t i=0; i<AliMUONConstants::NTrackingCh();i++) {
+            fRawClusters->AddAt(new TClonesArray("AliMUONRawCluster",10000),i); 
+        }
+      }
 
       for (i=0; i<AliMUONConstants::NTrackingCh() ;i++) 
        {
          sprintf(branchname,"%sRawClusters%d",GetName(),i+1);	
-         if (fRawClusters   && fLoader->TreeR()) 
-          {
-              MakeBranchInTree(fLoader->TreeR(), branchname, &((*fRawClusters)[i]), kBufferSize, 0);
-              printf("Making Branch %s for raw clusters in chamber %d\n",branchname,i+1);
-          }	
+         MakeBranchInTree(fLoader->TreeR(), branchname, &((*fRawClusters)[i]), kBufferSize, 0);
+         printf("Making Branch %s for raw clusters in chamber %d\n",branchname,i+1);
       }
       //
       // one branch for global trigger
       //
       sprintf(branchname,"%sGlobalTrigger",GetName());
-      if (fGlobalTrigger && fLoader->TreeR()) 
-       {  
-         MakeBranchInTree(fLoader->TreeR(), branchname, &fGlobalTrigger, kBufferSize, 0);
-         printf("Making Branch %s for Global Trigger\n",branchname);
-       }
+      
+      if (fGlobalTrigger == 0x0) {
+        fGlobalTrigger = new TClonesArray("AliMUONGlobalTrigger",1); 
+      }
+      MakeBranchInTree(fLoader->TreeR(), branchname, &fGlobalTrigger, kBufferSize, 0);
+      printf("Making Branch %s for Global Trigger\n",branchname);
       //
       // one branch for local trigger
       //  
       sprintf(branchname,"%sLocalTrigger",GetName());
-      if (fLocalTrigger && fLoader->TreeR()) 
-       {
-          MakeBranchInTree(fLoader->TreeR(), branchname, &fLocalTrigger, kBufferSize, 0);
-          printf("Making Branch %s for Local Trigger\n",branchname);
-       }
+      
+      if (fLocalTrigger == 0x0) {
+        fLocalTrigger  = new TClonesArray("AliMUONLocalTrigger",234);
+      }
+      
+      MakeBranchInTree(fLoader->TreeR(), branchname, &fLocalTrigger, kBufferSize, 0);
+      printf("Making Branch %s for Local Trigger\n",branchname);
    }
 }
 
@@ -563,7 +579,6 @@ void AliMUON::SetTreeAddress()
 {
   // Set branch address for the Hits and Digits Tree.
   char branchname[30];
-  AliDetector::SetTreeAddress();
 
   TBranch *branch;
   TTree *treeH = fLoader->TreeH();
@@ -571,16 +586,28 @@ void AliMUON::SetTreeAddress()
   TTree *treeR = fLoader->TreeR();
 
   if (treeH) {
+    if (fPadHits == 0x0) fPadHits = new TClonesArray("AliMUONPadHit",10000);
     if (fPadHits) {
       branch = treeH->GetBranch("MUONCluster");
       if (branch) branch->SetAddress(&fPadHits);
     }
+    if (fHits == 0x0) fHits     = new TClonesArray("AliMUONHit",1000);
   }
+  //it must be under fHits creation
+  AliDetector::SetTreeAddress();
 
   if (treeD) {
+      if (fDchambers == 0x0) 
+        {
+          fDchambers = new TObjArray(AliMUONConstants::NCh());
+          for (Int_t i=0; i<AliMUONConstants::NCh() ;i++) {
+              fDchambers->AddAt(new TClonesArray("AliMUONDigit",10000),i); 
+          }
+        }
       for (int i=0; i<AliMUONConstants::NCh(); i++) {
 	  sprintf(branchname,"%sDigits%d",GetName(),i+1);
-	  if (fDchambers) {
+                        
+                      if (fDchambers) {
 	      branch = treeD->GetBranch(branchname);
 	      if (branch) branch->SetAddress(&((*fDchambers)[i]));
 	  }
@@ -590,6 +617,14 @@ void AliMUON::SetTreeAddress()
   // printf("SetTreeAddress --- treeR address  %p \n",treeR);
 
   if (treeR) {
+      if (fRawClusters == 0x0)
+      {
+        fRawClusters = new TObjArray(AliMUONConstants::NTrackingCh());
+        for (Int_t i=0; i<AliMUONConstants::NTrackingCh();i++) {
+            fRawClusters->AddAt(new TClonesArray("AliMUONRawCluster",10000),i); 
+        }
+      }
+      
       for (int i=0; i<AliMUONConstants::NTrackingCh(); i++) {
 	  sprintf(branchname,"%sRawClusters%d",GetName(),i+1);
 	  if (fRawClusters) {
@@ -598,10 +633,19 @@ void AliMUON::SetTreeAddress()
 	  }
       }
 
+      if (fLocalTrigger == 0x0) {
+        fLocalTrigger  = new TClonesArray("AliMUONLocalTrigger",234);
+      }
+
       if (fLocalTrigger) {
 	branch = treeR->GetBranch("MUONLocalTrigger");
 	if (branch) branch->SetAddress(&fLocalTrigger);
       }
+      
+      if (fGlobalTrigger == 0x0) {
+        fGlobalTrigger = new TClonesArray("AliMUONGlobalTrigger",1); 
+      }
+      
       if (fGlobalTrigger) {
 	branch = treeR->GetBranch("MUONGlobalTrigger");
 	if (branch) branch->SetAddress(&fGlobalTrigger);

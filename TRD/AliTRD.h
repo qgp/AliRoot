@@ -117,7 +117,7 @@ class AliTRD : public AliDetector {
   AliTRDtrackHits     *fTrackHits;          //! Compressed hits for a given track 
   Int_t                fHitType;            //  Switch for the different hit data structures
 
-  ClassDef(AliTRD,5)                        //  Transition Radiation Detector base class
+  ClassDef(AliTRD,6)                        //  Transition Radiation Detector base class
 
 };
 

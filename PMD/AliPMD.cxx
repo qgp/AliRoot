@@ -241,19 +241,23 @@ void AliPMD::MakeBranch(Option_t* option)
     // Create Tree branches for the PMD
     
     const char *cR = strstr(option,"R");
+    const char *cH = strstr(option,"H");
+    if (cH && fLoader->TreeH() && (fHits == 0x0))
+      fHits   = new TClonesArray("AliPMDhit",  405);
     
     AliDetector::MakeBranch(option);
 
-    if (cR) {
+    if (cR  && fLoader->TreeR()) {
       printf("Make Branch - TreeR address %p\n",fLoader->TreeR());
     
       const Int_t kBufferSize = 4000;
       char branchname[30];
       
       sprintf(branchname,"%sRecPoints",GetName());
-      if (fRecPoints   && fLoader->TreeR()) {
-          MakeBranchInTree(fLoader->TreeR(), branchname, &fRecPoints, kBufferSize,0);
+      if (fRecPoints == 0x0) {
+        fRecPoints  = new TClonesArray("AliPMDRecPoint",10000); 
       }
+      MakeBranchInTree(fLoader->TreeR(), branchname, &fRecPoints, kBufferSize,0);
    }	
 }
 
@@ -262,15 +266,25 @@ void AliPMD::SetTreeAddress()
 {
   // Set branch address for the TreeR
     char branchname[30];
+    
+    if (fLoader->TreeH())
+      fHits   = new TClonesArray("AliPMDhit",  405);
+      
     AliDetector::SetTreeAddress();
 
     TBranch *branch;
     TTree *treeR = fLoader->TreeR();
 
     sprintf(branchname,"%s",GetName());
-    if (treeR && fRecPoints) {
-	branch = treeR->GetBranch(branchname);
-	if (branch) branch->SetAddress(&fRecPoints);
+    if (treeR) {
+       branch = treeR->GetBranch(branchname);
+       if (branch) 
+       {
+         if (fRecPoints == 0x0) {
+           fRecPoints  = new TClonesArray("AliPMDRecPoint",10000); 
+         }
+         branch->SetAddress(&fRecPoints);
+       }
     }
 }
 

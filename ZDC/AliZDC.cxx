@@ -244,15 +244,20 @@ Float_t AliZDC::ZMax(void) const
 
   char branchname[10];
   sprintf(branchname,"%s",GetName());
+
+  const char *cH = strstr(opt,"H");
+  
+  if (cH && fLoader->TreeH())
+   fHits   = new TClonesArray("AliZDCHit",1000); 
   
   AliDetector::MakeBranch(opt);
 
   const char *cS = strstr(opt,"S");
 
-  if (gAlice->TreeS() && cS) {
+  if (fLoader->TreeS() && cS) {
     if(fMergedHits!=0) fMergedHits->Clear();
     else fMergedHits = new TClonesArray ("AliZDCMergedHit",1000);
-    MakeBranchInTree(gAlice->TreeS(), 
+    MakeBranchInTree(fLoader->TreeS(), 
                      branchname, &fMergedHits, fBufferSize, file) ;
     printf("* AliZDC::MakeBranch    * Making Branch %s for SDigits\n\n",branchname);
   }
@@ -260,10 +265,10 @@ Float_t AliZDC::ZMax(void) const
     
   const char *cD = strstr(opt,"D");
 
-  if (gAlice->TreeD() && cD) {
+  if (fLoader->TreeD() && cD) {
     if(fDigits!=0) fDigits->Clear();
     else fDigits = new TClonesArray ("AliZDCDigit",1000);
-    MakeBranchInTree(gAlice->TreeD(), 
+    MakeBranchInTree(fLoader->TreeD(), 
                      branchname, &fDigits, fBufferSize, file) ;
     printf("* AliZDC::MakeBranch    * Making Branch %s for Digits\n\n",branchname);
   }
@@ -286,6 +291,7 @@ Float_t AliZDC::ZMax(void) const
   const Int_t kBufferSize = 4000;
   char  branchname[20];
   sprintf(branchname,"%s",GetName());
+  if (fMergedHits==0x0) fMergedHits = new TClonesArray("AliZDCMergedHit",1000);
   MakeBranchInTree(treeS, branchname, &fMergedHits, kBufferSize, file) ;
   printf("* AliZDC::MakeBranch    * Making Branch %s for SDigits\n\n",branchname);
 
@@ -297,6 +303,7 @@ Float_t AliZDC::ZMax(void) const
   const Int_t kBufferSize = 4000;
   char  branchname[20];
   sprintf(branchname,"%s",GetName());
+  if (fDigits == 0x0) fDigits = new TClonesArray("AliZDCDigit",1000);
   MakeBranchInTree(treeD, branchname, &fDigits, kBufferSize, file) ;
   printf("* AliZDC::MakeBranch    * Making Branch %s for Digits\n\n",branchname);
 

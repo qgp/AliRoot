@@ -88,9 +88,7 @@ AliTOF::AliTOF()
   fReconParticles = 0x0;
   fName="TOF";
   fMerger = 0x0;
-/* fp
-  CreateTOFFolders();
-*/
+  fTZero = kFALSE;
 }
  
 //_____________________________________________________________________________
@@ -113,9 +111,11 @@ AliTOF::AliTOF(const char *name, const char *title, Option_t *option)
 
   if (strstr(option,"tzero")){
     fHits   = new TClonesArray("AliTOFhitT0",  1000);
+    fTZero = kTRUE;
     cout << "tzero option requires AliTOFv4T0 as TOF version (check Your Config.C)" << endl;
   }else{
     fHits   = new TClonesArray("AliTOFhit",  1000);
+    fTZero = kFALSE;
   }
   gAlice->AddHitList(fHits);
   fIshunt  = 0;
@@ -314,6 +314,15 @@ void AliTOF::SetTreeAddress ()
 {
   // Set branch address for the Hits and Digits Tree.
   char branchname[30];
+  
+  if (fLoader->TreeH())
+   {
+     if (fHits == 0x0)
+      {
+        if (fTZero) fHits   = new TClonesArray("AliTOFhitT0", 1000);
+        else fHits   = new TClonesArray("AliTOFhit", 1000);
+      }
+   }
   AliDetector::SetTreeAddress ();
 
   TBranch *branch;
@@ -321,28 +330,29 @@ void AliTOF::SetTreeAddress ()
 
   if (treeD)
     {
-      if (fDigits)
-	{
-	  branch = treeD->GetBranch (branchname);
-	  if (branch)
-	    branch->SetAddress (&fDigits);
-	}
-
+      branch = treeD->GetBranch (branchname);
+      if (branch)
+       {
+         if (fDigits == 0x0) fDigits = new TClonesArray("AliTOFdigit",  1000); 
+         branch->SetAddress (&fDigits);
+       }
     }
-//  if (fSDigits)
-    //  fSDigits->Clear ();
 
-  if (fLoader->TreeS () && fSDigits)
+  if (fLoader->TreeS () )
     {
       branch = fLoader->TreeS ()->GetBranch ("TOF");
       if (branch)
+        if (fSDigits == 0x0) fSDigits = new TClonesArray("AliTOFSDigit",  1000);
         branch->SetAddress (&fSDigits);
     }
 
-  if (fLoader->TreeR() && fReconParticles) 
+  if (fLoader->TreeR() && fReconParticles) //I do not know where this array is created - skowron
     {
       branch = fLoader->TreeR()->GetBranch("TOF"); 
-      if (branch) branch->SetAddress(&fReconParticles) ;
+      if (branch) 
+       {
+         branch->SetAddress(&fReconParticles) ;
+       }
     }   
 }
 
@@ -597,6 +607,16 @@ void AliTOF::MakeBranch(Option_t* option)
  // Branch inside TreeH. Here we add the branches in 
  // TreeD, TreeS and TreeR.
  //
+  const char *oH = strstr(option,"H");
+  if (fLoader->TreeH() && oH)
+   {
+     if (fHits == 0x0)
+      {
+        if (fTZero) fHits   = new TClonesArray("AliTOFhitT0", 1000);
+        else fHits   = new TClonesArray("AliTOFhit", 1000);
+      }
+   }
+  
   AliDetector::MakeBranch(option);
 
   Int_t buffersize = 4000;
@@ -607,11 +627,13 @@ void AliTOF::MakeBranch(Option_t* option)
   const char *oS = strstr(option,"S");
   const char *oR = strstr(option,"R");
 
-  if (fDigits && fLoader->TreeD() && oD){
+  if (fLoader->TreeD() && oD){
+    if (fDigits == 0x0) fDigits = new TClonesArray("AliTOFdigit",  1000); 
     MakeBranchInTree(fLoader->TreeD(), branchname, &fDigits,buffersize, 0) ;
   }
 
-  if (fSDigits && fLoader->TreeS() && oS){
+  if (fLoader->TreeS() && oS){
+    if (fSDigits == 0x0) fSDigits = new TClonesArray("AliTOFSDigit",  1000);
     MakeBranchInTree(fLoader->TreeS(), branchname, &fSDigits,buffersize, 0) ;
   }
 

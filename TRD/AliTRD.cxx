@@ -1021,13 +1021,15 @@ void AliTRD::SetTreeAddress()
 
   Char_t branchname[15];
 
+  if ( fLoader->TreeH() && (fHits == 0x0))  fHits = new TClonesArray("AliTRDhit",405);
   AliDetector::SetTreeAddress();
 
   TBranch *branch;
-  TTree   *treeR = gAlice->TreeR();
+  TTree   *treeR = fLoader->TreeR();
 
   if (treeR) {
     sprintf(branchname,"%scluster",GetName());
+    if (fRecPoints == 0x0) fRecPoints  = new TObjArray(400);
     if (fRecPoints) {
       branch = treeR->GetBranch(branchname);
       if (branch) {

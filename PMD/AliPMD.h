@@ -45,10 +45,10 @@ public:
   virtual void  ResetHits();
   
  private:
-  TClonesArray* fRecPoints;   // List of reconstructed hits
+  TClonesArray* fRecPoints;   //! List of reconstructed hits
   Int_t         fNRecPoints;  // Number of reconstructed hits
   
-  ClassDef(AliPMD,1)  // Base Class for Photon Multiplicity Detector
+  ClassDef(AliPMD,2)  // Base Class for Photon Multiplicity Detector
 };
 
  

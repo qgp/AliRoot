@@ -378,10 +378,11 @@ void AliPHOS::SetTreeAddress()
   
   // Branch address for hit tree
   TTree *treeH = TreeH();
-  if (treeH && fHits) {
+  if (treeH) {
     branch = treeH->GetBranch(branchname);
     if (branch) 
      { 
+       if (fHits == 0x0) fHits= new TClonesArray("AliPHOSHit",1000);
        Info("SetTreeAddress","<%s> Setting Hits Address",GetName());
        branch->SetAddress(&fHits);
      }

@@ -46,12 +46,12 @@ public:
    
 protected:
    Int_t fIdSens;    // Sensetive Cherenkov radiator
-   Int_t	fNPhotons; 		// Number of photons plan to photokatod
+   Int_t	fNPhotons;   // Number of photons plan to photokatod
 
-   TClonesArray     *fPhotons;	// List of photons
+   TClonesArray     *fPhotons;   //! List of photons
 
 private:
-  ClassDef(AliSTART,2)  //Base class for the T0 aka START detector
+  ClassDef(AliSTART,3)  //Base class for the T0 aka START detector
 };
 
 //_____________________________________________________________________________

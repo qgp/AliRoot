@@ -77,6 +77,6 @@ protected:
 
   AliLoader*  fLoader;//! pointer to getter for this module skowron
 
-  ClassDef(AliDetector,3)  //Base class for ALICE detectors
+  ClassDef(AliDetector,4)  //Base class for ALICE detectors
 };
 #endif

@@ -162,7 +162,7 @@ public:
   Int_t      fCurrentNoise; //!index of the noise in  the noise table 
   Bool_t*    fActiveSectors; //!bool indicating which sectors are active
 
-  ClassDef(AliTPC,9)  // Time Projection Chamber class
+  ClassDef(AliTPC,10)  // Time Projection Chamber class
 };
 
 

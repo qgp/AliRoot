@@ -194,19 +194,19 @@ class AliITS : public AliDetector {
     Int_t         fNDetTypes;  // Number of detector types
     TObjArray    *fDetTypes;   // List of detector types
 
-    TClonesArray  *fSDigits;    // List of Summable digits.
+    TClonesArray  *fSDigits;    //! List of Summable digits.
     Int_t         fNSDigits;   // Number of Summable Digits.
 
-    TObjArray    *fDtype;      // List of digits
+    TObjArray    *fDtype;      //! List of digits
     Int_t        *fNdtype;     //[fNDetTypes] Num. of digits per type of det. 
 
-    TObjArray    *fCtype;      // List of clusters
+    TObjArray    *fCtype;      //! List of clusters
     Int_t        *fNctype;     //[fNDetTypes] Num. of clust. per type of det.
 
-    TClonesArray *fRecPoints;  // List of reconstructed points
+    TClonesArray *fRecPoints;  //! List of reconstructed points
     Int_t         fNRecPoints; // Number of rec points
 
-    ClassDef(AliITS,2) // Base class for ITS
+    ClassDef(AliITS,3) // Base class for ITS
 };
 
 #endif

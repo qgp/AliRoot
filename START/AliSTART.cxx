@@ -203,16 +203,19 @@ void AliSTART::MakeBranch(Option_t* option)
   char branchname[20];
   sprintf(branchname,"%s",GetName());
 
-  AliDetector::MakeBranch(option);
 
   const char *cD = strstr(option,"D");
   const char *cH = strstr(option,"H");
   
-  if (cH)
+  if (cH && fLoader->TreeH())
   {
+     if (fPhotons == 0x0) fPhotons  = new TClonesArray("AliSTARThitPhoton", 10000);
      sprintf (branchname, "%shitPhoton", GetName());
      MakeBranchInTree (fLoader->TreeH(), branchname, &fPhotons, 50000, 0);
+     if (fHits == 0x0) fHits  = new TClonesArray("AliSTARThit",  405);
   } 
+  
+  AliDetector::MakeBranch(option);
 
   if (cD) {
     digits = new AliSTARTdigit();
@@ -234,16 +237,20 @@ void AliSTART::SetTreeAddress()
 {
   TBranch  *branch;
   TTree    *treeH;
-
-  AliDetector::SetTreeAddress();
+ 
+  
   treeH = TreeH();
   
   if (treeH)
-    if (fPhotons)
     {
-       branch = treeH->GetBranch("STARThitPhoton");
-       if (branch)  branch->SetAddress(&fPhotons);
+      if (fPhotons == 0x0) fPhotons  = new TClonesArray("AliSTARThitPhoton", 10000);
+      branch = treeH->GetBranch("STARThitPhoton");
+      if (branch)  branch->SetAddress(&fPhotons);
+      if (fHits == 0x0) fHits  = new TClonesArray("AliSTARThit",  405);
     }
+    
+  AliDetector::SetTreeAddress();
+  
 }
 
 

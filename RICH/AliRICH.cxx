@@ -127,8 +127,8 @@ AliRICH::AliRICH(const char *name, const char *title)
    
     for (i=0; i<kNCH ;i++) {
       //PH	(*fDchambers)[i] = new TClonesArray("AliRICHDigit",10000); 
-	fDchambers->AddAt(new TClonesArray("AliRICHDigit",10000), i); 
-	fNdch[i]=0;
+       fDchambers->AddAt(new TClonesArray("AliRICHDigit",10000), i); 
+       fNdch[i]=0;
     }
 
     //fNrawch      = new Int_t[kNCH];
@@ -1692,7 +1692,6 @@ void AliRICH::MakeBranch(Option_t* option)
  const Int_t kBufferSize = 4000;
  char branchname[20];
       
- AliDetector::MakeBranch(option);
    
  const char *cH = strstr(option,"H");
  const char *cD = strstr(option,"D");
@@ -1700,75 +1699,93 @@ void AliRICH::MakeBranch(Option_t* option)
  const char *cS = strstr(option,"S");
 
 
- if (cH) {
+
+ if (cH  && TreeH()) {
   sprintf(branchname,"%sCerenkov",GetName());
-  if (fCerenkovs   && TreeH()) {
-    MakeBranchInTree(TreeH(),branchname, &fCerenkovs, kBufferSize, 0) ;
-  } 
+  if (fCerenkovs == 0x0) fCerenkovs  = new TClonesArray("AliRICHCerenkov",1000);
+  MakeBranchInTree(TreeH(),branchname, &fCerenkovs, kBufferSize, 0) ;
+
   sprintf(branchname,"%sSDigits",GetName());
-  if (fSDigits   && TreeH()) {
-    MakeBranchInTree(TreeH(),branchname, &fSDigits, kBufferSize, 0) ;
+  if (fSDigits == 0x0) fSDigits    = new TClonesArray("AliRICHSDigit",100000);
+  MakeBranchInTree(TreeH(),branchname, &fSDigits, kBufferSize, 0) ;
     //branch->SetAutoDelete(kFALSE);
     //printf("Making branch %sSDigits in TreeH\n",GetName());
-  }
- }   
+  if (fHits == 0x0) fHits       = new TClonesArray("AliRICHHit",1000  );
+
+  }   
+  //this is after cH because we need to guarantee that fHits array is created
+  AliDetector::MakeBranch(option);
       
- if (cS) {  
-  sprintf(branchname,"%sSDigits",GetName());
-  if (fSDigits   && fLoader->TreeS()) {
+  if (cS && fLoader->TreeS()) {  
+    sprintf(branchname,"%sSDigits",GetName());
+    if (fSDigits == 0x0) fSDigits    = new TClonesArray("AliRICHSDigit",100000);
     MakeBranchInTree(gAlice->TreeS(),branchname, &fSDigits, kBufferSize, 0) ;
   }
- }
    
- if (cD) {
+ if (cD && fLoader->TreeD()) 
+   {
     //
     // one branch for digits per chamber
     //
- Int_t i;
-    
- for (i=0; i<kNCH ;i++) 
-  {
-    sprintf(branchname,"%sDigits%d",GetName(),i+1);	
-    if (fDchambers   && fLoader->TreeD()) {
-     MakeBranchInTree(fLoader->TreeD(),branchname, &((*fDchambers)[i]), kBufferSize, 0) ;
-    }
-  }
- }
+    Int_t i;
+    if (fDchambers == 0x0) 
+      {
+         fDchambers = new TObjArray(kNCH);
+         for (i=0; i<kNCH ;i++) 
+           {
+             fDchambers->AddAt(new TClonesArray("AliRICHDigit",10000), i); 
+           }
+      }
+    for (i=0; i<kNCH ;i++) 
+      {
+        sprintf(branchname,"%sDigits%d",GetName(),i+1);	
+        MakeBranchInTree(fLoader->TreeD(),branchname, &((*fDchambers)[i]), kBufferSize, 0);
+      }
+   }
 
- if (cR) 
+ if (cR && gAlice->TreeR()) 
   {
     //
     // one branch for raw clusters per chamber
     //
     Int_t i;
+    if (fRawClusters == 0x0 ) 
+     {
+       fRawClusters = new TObjArray(kNCH);
+       for (i=0; i<kNCH ;i++) 
+         {
+           fRawClusters->AddAt(new TClonesArray("AliRICHRawCluster",10000), i); 
+         }
+     }
+     
+    if (fRecHits1D == 0x0) 
+     {
+        fRecHits1D = new TObjArray(kNCH);
+        for (i=0; i<kNCH ;i++) 
+         {
+          fRecHits1D->AddAt(new TClonesArray("AliRICHRecHit1D",1000), i);
+         }
+     }
 
+    if (fRecHits3D == 0x0) 
+     {
+        fRecHits3D = new TObjArray(kNCH);
+        for (i=0; i<kNCH ;i++) 
+         {
+          fRecHits3D->AddAt(new TClonesArray("AliRICHRecHit3D",1000), i);
+         }
+     }
+       
     for (i=0; i<kNCH ;i++) 
      {
        sprintf(branchname,"%sRawClusters%d",GetName(),i+1);      
-       if (fRawClusters && gAlice->TreeR()) 
-        {
-          MakeBranchInTree(gAlice->TreeR(),branchname, &((*fRawClusters)[i]), kBufferSize, 0) ;
-        }	  
-      }
-     //
-     // one branch for rec hits per chamber
-     // 
-    for (i=0; i<kNCH ;i++) 
-     {
-       sprintf(branchname,"%sRecHits1D%d",GetName(),i+1);    
-       if (fRecHits1D   && fLoader->TreeR()) 
-        {
-          MakeBranchInTree(fLoader->TreeR(),branchname, &((*fRecHits1D)[i]), kBufferSize, 0) ;
-        }	
-     }
-    for (i=0; i<kNCH ;i++) 
-     {
+       MakeBranchInTree(gAlice->TreeR(),branchname, &((*fRawClusters)[i]), kBufferSize, 0);
+       sprintf(branchname,"%sRecHits1D%d",GetName(),i+1);
+       MakeBranchInTree(fLoader->TreeR(),branchname, &((*fRecHits1D)[i]), kBufferSize, 0);
        sprintf(branchname,"%sRecHits3D%d",GetName(),i+1);  
-       if (fRecHits3D   && fLoader->TreeR()) {
-         MakeBranchInTree(fLoader->TreeR(),branchname, &((*fRecHits3D)[i]), kBufferSize, 0) ;
-      }	
-    }
-  }  
+       MakeBranchInTree(fLoader->TreeR(),branchname, &((*fRecHits3D)[i]), kBufferSize, 0);
+     }
+   }//if (cR && gAlice->TreeR())
 }
 
 //___________________________________________
@@ -1778,66 +1795,110 @@ void AliRICH::SetTreeAddress()
   char branchname[20];
   Int_t i;
 
-    AliDetector::SetTreeAddress();
     
-    TBranch *branch;
-    TTree *treeH = TreeH();
-    TTree *treeD = gAlice->TreeD();
-    TTree *treeR = gAlice->TreeR();
-    TTree *treeS = gAlice->TreeS();
+  TBranch *branch;
+  TTree *treeH = fLoader->TreeH();
+  TTree *treeD = fLoader->TreeD();
+  TTree *treeR = fLoader->TreeR();
+  TTree *treeS = fLoader->TreeS();
     
-    if (treeH) {
-      if (fCerenkovs) {
-	    branch = treeH->GetBranch("RICHCerenkov");
-	    if (branch) branch->SetAddress(&fCerenkovs);
-	}
-    if (fSDigits) {
-	branch = treeH->GetBranch("RICHSDigits");
-	if (branch) 
-	  {
-	    branch->SetAddress(&fSDigits);
-	    //printf("Setting sdigits branch address at %p in TreeH\n",&fSDigits);
-	  }
+  if (treeH) 
+   {
+     branch = treeH->GetBranch("RICHCerenkov");
+     if (branch) 
+      {
+        if (fCerenkovs == 0x0) fCerenkovs  = new TClonesArray("AliRICHCerenkov",1000); 
+        branch->SetAddress(&fCerenkovs);
       }
-    }
-    
-    if (treeS) {
-      if (fSDigits) {
-	branch = treeS->GetBranch("RICHSDigits");
-	if (branch) 
-	  {
-	    branch->SetAddress(&fSDigits);
-	    //printf("Setting sdigits branch address at %p in TreeS\n",&fSDigits);
-	  }
+       
+     branch = treeH->GetBranch("RICHSDigits");
+     if (branch) 
+      {
+        if (fSDigits == 0x0) fSDigits    = new TClonesArray("AliRICHSDigit",100000);
+        branch->SetAddress(&fSDigits);
+         //printf("Setting sdigits branch address at %p in TreeH\n",&fSDigits);
       }
+     if (fHits == 0x0) fHits       = new TClonesArray("AliRICHHit",1000  ); 
+    }
+ 
+   //this is after TreeH because we need to guarantee that fHits array is created
+   AliDetector::SetTreeAddress();
+    
+   if (treeS) {
+      branch = treeS->GetBranch("RICHSDigits");
+      if (branch) 
+        {
+          if (fSDigits == 0x0) fSDigits = new TClonesArray("AliRICHSDigit",100000);
+          branch->SetAddress(&fSDigits);
+          //printf("Setting sdigits branch address at %p in TreeS\n",&fSDigits);
+        }
     }
     
     
-    if (treeD) {
-	for (int i=0; i<kNCH; i++) {
-	    sprintf(branchname,"%sDigits%d",GetName(),i+1);
-	    if (fDchambers) {
-	      branch = treeD->GetBranch(branchname);
-	      if (branch) branch->SetAddress(&((*fDchambers)[i]));
-	    }
-	}
-    }
-  if (treeR) {
+   if (treeD) 
+    {
+      if (fDchambers == 0x0) 
+        {
+           fDchambers = new TObjArray(kNCH);
+           for (i=0; i<kNCH ;i++) 
+             {
+               fDchambers->AddAt(new TClonesArray("AliRICHDigit",10000), i); 
+             }
+        }
+      
       for (i=0; i<kNCH; i++) {
+        sprintf(branchname,"%sDigits%d",GetName(),i+1);
+        if (fDchambers) {
+           branch = treeD->GetBranch(branchname);
+           if (branch) branch->SetAddress(&((*fDchambers)[i]));
+        }
+      }
+    }
+    
+  if (treeR) {
+    
+    if (fRawClusters == 0x0 ) 
+     {
+       fRawClusters = new TObjArray(kNCH);
+       for (i=0; i<kNCH ;i++) 
+         {
+           fRawClusters->AddAt(new TClonesArray("AliRICHRawCluster",10000), i); 
+         }
+     }
+     
+    if (fRecHits1D == 0x0) 
+     {
+        fRecHits1D = new TObjArray(kNCH);
+        for (i=0; i<kNCH ;i++) 
+         {
+          fRecHits1D->AddAt(new TClonesArray("AliRICHRecHit1D",1000), i);
+         }
+     }
+
+    if (fRecHits3D == 0x0) 
+     {
+        fRecHits3D = new TObjArray(kNCH);
+        for (i=0; i<kNCH ;i++) 
+         {
+          fRecHits3D->AddAt(new TClonesArray("AliRICHRecHit3D",1000), i);
+         }
+     }
+    
+    for (i=0; i<kNCH; i++) {
 	  sprintf(branchname,"%sRawClusters%d",GetName(),i+1);
 	  if (fRawClusters) {
 	      branch = treeR->GetBranch(branchname);
 	      if (branch) branch->SetAddress(&((*fRawClusters)[i]));
 	  }
-      }
+    }
       
-      for (i=0; i<kNCH; i++) {
+    for (i=0; i<kNCH; i++) {
 	sprintf(branchname,"%sRecHits1D%d",GetName(),i+1);
 	if (fRecHits1D) {
 	  branch = treeR->GetBranch(branchname);
 	  if (branch) branch->SetAddress(&((*fRecHits1D)[i]));
 	  }
-      }
+     }
       
      for (i=0; i<kNCH; i++) {
 	sprintf(branchname,"%sRecHits3D%d",GetName(),i+1);

@@ -533,12 +533,15 @@ void AliITS::MakeBranch(Option_t* option){
     //      none.
     // Return:
     //      none.
+    Bool_t cH = (strstr(option,"H")!=0);
     Bool_t cS = (strstr(option,"S")!=0);
     Bool_t cD = (strstr(option,"D")!=0);
     Bool_t cR = (strstr(option,"R")!=0);
     Bool_t cRF = (strstr(option,"RF")!=0);
+    
     if(cRF)cR = kFALSE;
-
+    if(cH && (fHits == 0x0)) fHits  = new TClonesArray("AliITShit", 1560);
+    
     AliDetector::MakeBranch(option);
 
     if(cS) MakeBranchS(0);
@@ -558,7 +561,8 @@ void AliITS::SetTreeAddress(){
     TTree *treeS = fLoader->TreeS();
     TTree *treeD = fLoader->TreeD();
     TTree *treeR = fLoader->TreeR();
-
+    if (fLoader->TreeH() && (fHits == 0x0)) fHits = new TClonesArray("AliITShit", 1560);
+      
     AliDetector::SetTreeAddress();
 
     SetTreeAddressS(treeS);
@@ -840,6 +844,8 @@ void AliITS::MakeBranchS(const char *fl){
 
     // only one branch for SDigits.
     sprintf(branchname,"%s",GetName());
+    if (fSDigits == 0x0)  fSDigits  = new TClonesArray("AliITSpListItem",1000);
+
     if(fSDigits && fLoader->TreeS()){
         MakeBranchInTree(fLoader->TreeS(),branchname,&fSDigits,buffersize,fl);
     } // end if
@@ -856,6 +862,7 @@ void AliITS::SetTreeAddressS(TTree *treeS){
     char branchname[30];
 
     if(!treeS) return;
+    if (fSDigits == 0x0)  fSDigits  = new TClonesArray("AliITSpListItem",1000);
     TBranch *branch;
     sprintf(branchname,"%s",GetName());
     branch = treeS->GetBranch(branchname);
@@ -1507,6 +1514,9 @@ void AliITS::MakeBranchR(const char *file, Option_t *opt){
     } else {
       sprintf(branchname,"%sRecPoints",GetName());
     }
+    
+    if (fRecPoints == 0x0) fRecPoints = new TClonesArray("AliITSRecPoint",1000);
+
     if (fRecPoints && fLoader->TreeR()) {
         MakeBranchInTree(fLoader->TreeR(),branchname,&fRecPoints,buffsz,file);
     } // end if
@@ -1523,6 +1533,7 @@ void AliITS::SetTreeAddressR(TTree *treeR){
     char branchname[30];
 
     if(!treeR) return;
+    if (fRecPoints == 0x0) fRecPoints = new TClonesArray("AliITSRecPoint",1000);
     TBranch *branch;
     sprintf(branchname,"%sRecPoints",GetName());
     branch = treeR->GetBranch(branchname);

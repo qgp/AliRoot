@@ -1250,7 +1250,15 @@ void AliTPC::SDigits2Digits2(Int_t eventnumber)
   if (fLoader->TreeD() == 0x0) fLoader->MakeTree("D");
   
   AliSimDigits digarr, *dummy=&digarr;
-  t->GetBranch("Segment")->SetAddress(&dummy);
+  TBranch* sdb = t->GetBranch("Segment");
+  if (sdb == 0x0)
+   {
+     Error("SDigits2Digits2","Can not find branch with segments in TreeS.");
+     return;
+   }  
+
+  sdb->SetAddress(&dummy);
+      
   Stat_t nentries = t->GetEntries();
 
   // set zero suppression
@@ -2206,12 +2214,16 @@ void AliTPC::MakeBranch(Option_t* option)
   Int_t buffersize = 4000;
   char branchname[10];
   sprintf(branchname,"%s",GetName());
+  
+  const char *h = strstr(option,"H");
 
+  if ( h && (fHitType<=1) && (fHits == 0x0)) fHits = new TClonesArray("AliTPChit", 176);//skowron 20.06.03
+  
   AliDetector::MakeBranch(option);
 
   const char *d = strstr(option,"D");
-
-  if (fDigits   && gAlice->TreeD() && d) 
+ 
+  if (fDigits   && fLoader->TreeD() && d) 
    {
       MakeBranchInTree(gAlice->TreeD(), branchname, &fDigits, buffersize, 0);
    }	
@@ -2446,7 +2458,12 @@ void AliTPC::MakeBranch2(Option_t *option,const char *file)
 
 void AliTPC::SetTreeAddress()
 {
-  if (fHitType<=1) AliDetector::SetTreeAddress();
+//Sets tree address for hits  
+  if (fHitType<=1)
+   {
+     if (fHits == 0x0 ) fHits = new TClonesArray("AliTPChit", 176);//skowron 20.06.03
+     AliDetector::SetTreeAddress();
+   }
   if (fHitType>1) SetTreeAddress2();
 }
 

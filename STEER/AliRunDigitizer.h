@@ -139,7 +139,7 @@ private:
   
   static const TString fgkDefOutFolderName;//default name for output foler 
   static const TString fgkBaseInFolderName;//default name for input foler
-  ClassDef(AliRunDigitizer,4)
+  ClassDef(AliRunDigitizer,5)
 };
 
 #endif // ALIRUNDIGITIZER_H
