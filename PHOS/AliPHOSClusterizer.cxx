@@ -33,8 +33,8 @@
 // --- AliRoot header files ---
 #include "AliRun.h" 
 #include "AliPHOSClusterizer.h"
-#include "AliRunLoader.h"
 #include "AliHeader.h" 
+#include "AliPHOSGetter.h"
 #include "AliPHOSSDigitizer.h"
 #include "AliPHOSDigitizer.h"
 
@@ -44,19 +44,23 @@ ClassImp(AliPHOSClusterizer)
   AliPHOSClusterizer::AliPHOSClusterizer():TTask("","")
 {
   // ctor
-  fRunLoader = 0x0;
+
+  fEventFolderName = "" ; 
 }
 
 //____________________________________________________________________________
-AliPHOSClusterizer::AliPHOSClusterizer(const char* eventFolderName, const char* name):
-TTask(name, eventFolderName)
+AliPHOSClusterizer::AliPHOSClusterizer(const TString alirunFileName, const TString eventFolderName):
+  TTask("PHOS"+AliConfig::fgkReconstructionerTaskName, alirunFileName), fEventFolderName(eventFolderName)
 {
   // ctor
+ 
 }
 
 //____________________________________________________________________________
 AliPHOSClusterizer::~AliPHOSClusterizer()
 {
   // dtor
+         
 }
+
 

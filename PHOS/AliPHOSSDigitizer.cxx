@@ -161,7 +161,6 @@ void AliPHOSSDigitizer::Exec(Option_t *option)
     return ;
   }
 
-  //gime->PhosLoader()->GetSDigitsDataLoader()->GetBaseTaskLoader()->SetDoNotReload(kTRUE);
 
   Int_t nevents = gime->MaxEvent() ; 
   Int_t ievent ;

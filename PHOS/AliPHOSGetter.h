@@ -152,9 +152,9 @@ class AliPHOSGetter : public TObject {
   AliPHOSEmcRecPoint *  EmcRecPoint(const Int_t index) { return static_cast<AliPHOSEmcRecPoint *>(EmcRecPoints()->At(index)) ;} 
   TObjArray *           CpvRecPoints() ; 
   AliPHOSCpvRecPoint *  CpvRecPoint(const Int_t index) { return static_cast<AliPHOSCpvRecPoint *>(CpvRecPoints()->At(index)) ;} 
-  TTree *               TreeR() const { return PhosLoader()->TreeR() ; }
-//   const AliPHOSClusterizer * Clusterizer (const char * name =0) const { 
-//     return (const AliPHOSClusterizer*)(ReturnT("Clusterizer", name)) ;}
+  TTree *               TreeR() const ;
+  AliPHOSClusterizer * Clusterizer() const { 
+    return dynamic_cast<AliPHOSClusterizer*>(PhosLoader()->Reconstructioner()) ;}
   TString               GetRecPointsFileName() { return PhosLoader()->GetRecPointsFileName() ; } 
   Int_t                 LoadRecPoints(Option_t* opt="") { return PhosLoader()->LoadRecPoints(opt) ; }
   Int_t                 LoadClusterizer(Option_t* opt=""){
@@ -200,7 +200,7 @@ class AliPHOSGetter : public TObject {
 //   const Bool_t PostTrackSegments(const char * name) const ;  
 //   const Bool_t PostRecParticles( const char * name) const ;  
 //   const Bool_t PostClusterizer( const char * name) const ;  
-//   const Bool_t PostClusterizer(AliPHOSClusterizer * clu) const ;  
+  void PostClusterizer(AliPHOSClusterizer * clu) const{PhosLoader()->PostClusterizer(clu) ; }  
   void PostSDigitizer (AliPHOSSDigitizer * sdigitizer) const {PhosLoader()->PostSDigitizer(sdigitizer);}  
 //   const Bool_t PostSDigitizer ( const char * name, const char * file ) const ;  
   void PostDigitizer (AliPHOSDigitizer * digitizer)    const {PhosLoader()->PostDigitizer(dynamic_cast<AliDigitizer *>(digitizer));}
@@ -225,7 +225,7 @@ private:
 //   void DefineBranchTitles(char* branch, char* branchTitle) ;
   Int_t ReadTreeD(void) ;
   Int_t ReadTreeH(void) ;
-//   Int_t ReadTreeR(const Int_t event) ;
+  Int_t ReadTreeR(void) ;
   Int_t ReadTreeS(void) ;
 //   void ReadTreeQA(void) ;
   void ReadPrimaries(void) ;

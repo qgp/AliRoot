@@ -11,26 +11,23 @@
 // --- ROOT system ---
 
 #include "TTask.h" 
+#include "AliConfig.h"
+
+class TFile ; 
 
 // --- Standard library ---
-#include <iostream> 
 
 // --- AliRoot header files ---
-
-class AliRunLoader;
-//#include "AliPHOSDigit.h"
-
-
 
 class AliPHOSClusterizer : public TTask {
 
 public:
 
   AliPHOSClusterizer() ;        // default ctor
-  AliPHOSClusterizer(const char * eventFolderName, const char * name);
-
+  AliPHOSClusterizer(const TString alirunFileName, const TString eventFolderName = AliConfig::fgkDefaultEventFolderName) ;
+  AliPHOSClusterizer(const AliPHOSClusterizer & clusterizer) { ; }
   virtual ~AliPHOSClusterizer() ; // dtor
-
+  TString fEventFolderName ;  // event folder name
   virtual Float_t GetEmcClusteringThreshold()const {Warning("GetEmcClusteringThreshold", "Not Defined" ) ; return 0. ; }  
   virtual Float_t GetEmcLocalMaxCut()const {Warning("GetEmcLocalMaxCut", "Not Defined" ) ; return 0. ; } 
   virtual Float_t GetEmcLogWeight()const {Warning("GetEmcLogWeight", "Not Defined" ) ; return 0. ; } 
@@ -47,6 +44,7 @@ public:
 
   virtual void SetEmcClusteringThreshold(Float_t cluth) {Warning("SetEmcClusteringThreshold", "Not Defined" ) ; } 
   virtual void SetEmcLocalMaxCut(Float_t cut) {Warning("SetEmcLocalMaxCut", "Not Defined" ) ; } 
+    
   virtual void SetEmcLogWeight(Float_t w) {Warning("SetEmcLogWeight", "Not Defined" ) ; } 
   virtual void SetEmcTimeGate(Float_t gate) {Warning("SetEmcTimeGate", "Not Defined" ) ; } 
   virtual void SetCpvClusteringThreshold(Float_t cluth) {Warning("SetCpvClusteringThreshold", "Not Defined" ) ; } 
@@ -55,12 +53,15 @@ public:
   virtual void SetDigitsBranch(const char * title) {Warning("SetDigitsBranch", "Not Defined" ) ; }  
   virtual void SetRecPointsBranch(const char *title) {Warning("SetRecPointsBranch", "Not Defined" ) ; } 
   virtual void SetUnfolding(Bool_t toUnfold ){Warning("SetUnfolding", "Not Defined" ) ;}  
+  AliPHOSClusterizer & operator = (const AliPHOSClusterizer & rvalue)  {return *this ;} 
+ 
   virtual const char * Version() const {Warning("Version", "Not Defined" ) ; return 0 ; }  
 
 protected:
-  AliRunLoader* fRunLoader;//!
+
+
   ClassDef(AliPHOSClusterizer,2)  // Clusterization algorithm class 
 
-};
+} ;
 
 #endif // AliPHOSCLUSTERIZER_H

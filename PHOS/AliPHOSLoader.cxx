@@ -608,7 +608,7 @@ Int_t AliPHOSLoader::ReadRecPoints()
   if(treeR==0)
    {
      //May happen if file is truncated or new in LoadSDigits
-     Error("ReadRecPoints","There is no Tree with Rec Points");
+     Warning("ReadRecPoints","There is no Tree with Rec Points");
      return 0;
    }
 

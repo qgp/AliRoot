@@ -133,9 +133,16 @@ AliPHOSGetter::~AliPHOSGetter()
 //____________________________________________________________________________ 
 TObjArray * AliPHOSGetter::CpvRecPoints() 
 {
-  // asks the Loader to return the Digits container 
+  // asks the Loader to return the CPV RecPoints container 
 
-  return PhosLoader()->CpvRecPoints() ; 
+  TObjArray * rv = 0 ; 
+  
+  rv = PhosLoader()->CpvRecPoints() ; 
+  if (!rv) {
+    PhosLoader()->MakeRecPointsArray() ;
+    rv = PhosLoader()->CpvRecPoints() ; 
+  }
+  return rv ; 
 }
 
 //____________________________________________________________________________ 
@@ -156,9 +163,16 @@ TClonesArray * AliPHOSGetter::Digits()
 //____________________________________________________________________________ 
 TObjArray * AliPHOSGetter::EmcRecPoints() 
 {
-  // asks the Loader to return the Digits container 
+  // asks the Loader to return the EMC RecPoints container 
 
-  return PhosLoader()->EmcRecPoints() ; 
+  TObjArray * rv = 0 ; 
+  
+  rv = PhosLoader()->EmcRecPoints() ; 
+  if (!rv) {
+    PhosLoader()->MakeRecPointsArray() ;
+    rv = PhosLoader()->EmcRecPoints() ; 
+  }
+  return rv ; 
 }
 
 //____________________________________________________________________________ 
@@ -205,7 +219,7 @@ void AliPHOSGetter::Event(const Int_t event, const char* opt)
   if( strstr(opt,"D") )
     ReadTreeD() ;
 
-//   if( strstr(opt,"R") )
+ //  if( strstr(opt,"R") )
 //     ReadTreeR() ;
    
 //   if( strstr(opt,"Q") )
@@ -389,7 +403,7 @@ Int_t AliPHOSGetter::ReadTreeD()
     PhosLoader()->LoadDigits("UPDATE") ;
     SetLoaded("D") ; 
   } 
-  return PhosLoader()->Digits()->GetEntries() ; 
+  return Digits()->GetEntries() ; 
 }
 
 //____________________________________________________________________________ 
@@ -402,9 +416,23 @@ Int_t AliPHOSGetter::ReadTreeH()
     PhosLoader()->LoadHits("UPDATE") ;
     SetLoaded("H") ; 
   }  
-  return PhosLoader()->Hits()->GetEntries() ; 
+  return Hits()->GetEntries() ; 
 }
 
+//____________________________________________________________________________ 
+Int_t AliPHOSGetter::ReadTreeR()
+{
+  // Read the RecPoints
+  
+  
+  // gets TreeR from the root file (PHOS.RecPoints.root)
+  if ( !IsLoaded("R") ) {
+    PhosLoader()->LoadRecPoints("UPDATE") ;
+    SetLoaded("R") ; 
+  }
+
+  return EmcRecPoints()->GetEntries() ; 
+}
 //____________________________________________________________________________ 
 Int_t AliPHOSGetter::ReadTreeS()
 {
@@ -499,7 +527,19 @@ TTree * AliPHOSGetter::TreeH() const
   
   return rv ; 
 }
+
 //____________________________________________________________________________ 
+TTree * AliPHOSGetter::TreeR() const 
+{
+  TTree * rv = 0 ; 
+  rv = PhosLoader()->TreeR() ; 
+  if ( !rv ) {
+    PhosLoader()->MakeTree("R");
+    rv = PhosLoader()->TreeR() ;
+  } 
+  
+  return rv ; 
+}//____________________________________________________________________________ 
 TTree * AliPHOSGetter::TreeS() const 
 {
   TTree * rv = 0 ; 
