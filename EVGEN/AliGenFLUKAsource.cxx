@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.17  2003/01/14 10:50:18  alibrary
+Cleanup of STEER coding conventions
+
 Revision 1.16  2002/11/21 16:22:35  alibrary
 Removing AliMCProcess and AliMC
 
@@ -61,6 +64,7 @@ Introduction of the Copyright and cvs Log
 // Files can be chained. 
 // Author: andreas.morsch@cern.ch
 
+#include <RVersion.h>
 #include "TPDGCode.h"
 
 #include "AliGenFLUKAsource.h"
@@ -264,8 +268,11 @@ void AliGenFLUKAsource::Generate()
 	part=kIfluge[int(ifip)-1];	
 //
 // Calculate momentum from kinetic energy and mass of the particle
-	gMC->Gfpart(part, name, itrtyp,  
-		    amass, charge, tlife); 
+#if ROOT_VERSION_CODE > 197895
+        amass = gMC->ParticleMass(part);
+#else
+	amass = (TDatabasePDG::Instance())->GetParticle(part)->Mass();
+#endif
 	prwn=fEkin*sqrt(1. + 2.*amass/fEkin);
 
 

@@ -11,6 +11,7 @@
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
+#include <RVersion.h> 
 #include "TMCProcess.h"
 #include "TVirtualMC.h"
  
@@ -219,6 +220,16 @@ class AliTRDsimpleMC : public TVirtualMC {
     virtual void Gfpart(Int_t, char*, Int_t&, Float_t&, Float_t&, Float_t&) {} 
     virtual void Gspart(Int_t, const char*, Int_t, Double_t, Double_t, Double_t) {} 
 
+    // Dummy methods 
+#if ROOT_VERSION_CODE > 197895
+    virtual void DefineParticle(int, const char*, TMCParticleType, double, double, double){;}
+    virtual void DefineIon(const char*, int, int, int, double, double){;}
+    virtual TString  ParticleName(int) const {return "";}
+    virtual Double_t ParticleMass(int) const {return 0.;}
+    virtual Double_t ParticleCharge(int) const {return 0.;}
+    virtual Double_t ParticleLifeTime(int) const {return 0.;}
+    virtual TMCParticleType ParticleMCType(int) const {return (TMCParticleType) 0;}
+#endif
   // Control Methods
   virtual void          Init()                                                            { };
   virtual void          FinishGeometry()                                                  { };
