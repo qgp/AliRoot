@@ -15,8 +15,8 @@
 
 /*
 $Log$
-Revision 1.5.6.1  2002/06/10 15:28:58  hristov
-Merged with v3-08-02
+Revision 1.7  2002/09/26 09:26:31  cblume
+Bug fix in LUT
 
 Revision 1.6  2002/06/12 09:54:35  cblume
 Update of tracking code provided by Sergei
@@ -1215,7 +1215,7 @@ void AliTRDparameter::FillLUT()
 
   for (Int_t iplan = 0; iplan < kNplan; iplan++) {
     for (Int_t ilut  = 0; ilut  < kNlut; ilut++) {
-      fLUT[iplan*kNplan+ilut] = lut[iplan][ilut];
+      fLUT[iplan*kNlut+ilut] = lut[iplan][ilut];
     }
   }
 
@@ -1338,6 +1338,7 @@ Double_t AliTRDparameter::LUTposition(Int_t iplane, Double_t ampL
   //
 
   const Int_t kNplan = AliTRDgeometry::kNplan;
+  const Int_t kNlut  = 128;
 
   Double_t pos;
   Double_t x = 0.0;
@@ -1374,7 +1375,7 @@ Double_t AliTRDparameter::LUTposition(Int_t iplane, Double_t ampL
     } 
     else {
       ix  = (Int_t) ((x - xmin) / xwid);
-      pos = side * fLUT[iplane*kNplan+ix];
+      pos = side * fLUT[iplane*kNlut+ix];
     }
        
   } 

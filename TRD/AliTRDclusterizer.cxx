@@ -15,8 +15,8 @@
 
 /*
 $Log$
-Revision 1.12  2002/06/12 09:54:35  cblume
-Update of tracking code provided by Sergei
+Revision 1.13  2002/09/18 09:20:53  cblume
+Write the parameter class into the cluster file
 
 Revision 1.11  2001/11/27 08:50:33  hristov
 BranchOld replaced by Branch
@@ -364,6 +364,11 @@ Bool_t AliTRDclusterizer::WriteClusters(Int_t det)
 	  ,fClusterTree->GetName(),fEvent);
 
     fClusterTree->Write();
+
+    AliTRDgeometry *geo = fTRD->GetGeometry();
+    geo->SetName("TRDgeometry");
+    geo->Write();
+    fPar->Write();
      
     return kTRUE;  
 

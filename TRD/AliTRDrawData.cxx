@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.1  2002/09/13 14:33:52  cblume
+Add conversion class to produce fake raw data
+
 */
 
 ///////////////////////////////////////////////////////////////////////////////

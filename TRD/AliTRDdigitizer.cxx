@@ -15,23 +15,8 @@
 
 /*
 $Log$
-Revision 1.33.6.1  2002/06/10 15:28:58  hristov
-Merged with v3-08-02
-
-Revision 1.38  2002/04/30 08:30:40  cblume
-gAlice now only read by AliRunDigitizer. Therefore it is just deleted in AliTRDmerge.C
-
-Revision 1.37  2002/04/29 11:50:47  cblume
-Change initialization of gAlice in the merging case
-
-Revision 1.36  2002/04/12 12:13:23  cblume
-Add Jiris changes
-
-Revision 1.35  2002/03/28 14:59:07  cblume
-Coding conventions
-
-Revision 1.34  2002/03/25 20:00:44  cblume
-Introduce parameter class and regions of interest for merging
+Revision 1.39  2002/10/08 20:46:12  cblume
+Do coupling factors before noise is applied
 
 Revision 1.38  2002/04/30 08:30:40  cblume
 gAlice now only read by AliRunDigitizer. Therefore it is just deleted in AliTRDmerge.C
@@ -245,7 +230,9 @@ AliTRDdigitizer::AliTRDdigitizer()
   fSDigits            = kFALSE;
   fSDigitsScale       = 0.0;
   fMergeSignalOnly    = kFALSE;
-
+  fSimpleSim          = kFALSE;
+  fSimpleDet          = 0;
+ 
 }
 
 //_____________________________________________________________________________
@@ -269,7 +256,9 @@ AliTRDdigitizer::AliTRDdigitizer(const Text_t *name, const Text_t *title)
   fDebug              = 0;
   fSDigits            = kFALSE;
   fMergeSignalOnly    = kFALSE;
-
+  fSimpleSim          = kFALSE;
+  fSimpleDet          = 0;
+ 
   // For the summable digits
   fSDigitsScale       = 100.;
 
@@ -297,7 +286,9 @@ AliTRDdigitizer::AliTRDdigitizer(AliRunDigitizer *manager
   fDebug              = 0;
   fSDigits            = kFALSE;
   fMergeSignalOnly    = kFALSE;
-
+  fSimpleSim          = kFALSE;
+  fSimpleDet          = 0;
+ 
   // For the summable digits
   fSDigitsScale       = 100.;
 
@@ -324,6 +315,8 @@ AliTRDdigitizer::AliTRDdigitizer(AliRunDigitizer *manager)
   fDebug              = 0;
   fSDigits            = kFALSE;
   fMergeSignalOnly    = kFALSE;
+  fSimpleSim          = kFALSE;
+  fSimpleDet          = 0;
 
   // For the summable digits
   fSDigitsScale       = 100.;
@@ -409,7 +402,9 @@ void AliTRDdigitizer::Copy(TObject &d)
   ((AliTRDdigitizer &) d).fSDigits            = fSDigits;
   ((AliTRDdigitizer &) d).fSDigitsScale       = fSDigitsScale;
   ((AliTRDdigitizer &) d).fMergeSignalOnly    = fMergeSignalOnly;
-                                      
+  ((AliTRDdigitizer &) d).fSimpleSim          = fSimpleSim;
+  ((AliTRDdigitizer &) d).fSimpleDet          = fSimpleDet;
+                                       
 }
 
 //_____________________________________________________________________________
@@ -698,11 +693,14 @@ Bool_t AliTRDdigitizer::MakeDigits()
 
   // Get the number of entries in the hit tree
   // (Number of primary particles creating a hit somewhere)
-  Int_t nTrack = (Int_t) hitTree->GetEntries();
-  if (fDebug > 0) {
-    printf("<AliTRDdigitizer::MakeDigits> ");
-    printf("Found %d primary particles\n",nTrack);
-  } 
+  Int_t nTrack = 1;
+  if (!fSimpleSim) {
+    nTrack = (Int_t) hitTree->GetEntries();
+    if (fDebug > 0) {
+      printf("<AliTRDdigitizer::MakeDigits> ");
+      printf("Found %d primary particles\n",nTrack);
+    } 
+  }
 
   Int_t detectorOld = -1;
   Int_t countHits   =  0; 
@@ -710,8 +708,10 @@ Bool_t AliTRDdigitizer::MakeDigits()
   // Loop through all entries in the tree
   for (Int_t iTrack = 0; iTrack < nTrack; iTrack++) {
 
-    gAlice->ResetHits();
-    nBytes += hitTree->GetEvent(iTrack);
+    if (!fSimpleSim) {   
+      gAlice->ResetHits();
+      nBytes += hitTree->GetEvent(iTrack);
+    }
 
     // Loop through the TRD hits
     Int_t iHit = 0;
@@ -795,6 +795,14 @@ Bool_t AliTRDdigitizer::MakeDigits()
 	    }
             signals->Allocate(nRowMax,nColMax,nTimeTotal);
 	  }
+          else if (fSimpleSim) {
+            // Clear an old one for the simple simulation
+            if (fDebug > 1) {
+              printf("<AliTRDdigitizer::MakeDigits> ");
+              printf("Clear a old container ... ");
+            }
+            signals->Clear();
+          }
           else {
 	    // Expand an existing one
             if (fCompress) {
@@ -806,13 +814,15 @@ Bool_t AliTRDdigitizer::MakeDigits()
 	    }
 	  }
 	  // The same for the dictionary
-          for (iDict = 0; iDict < kNDict; iDict++) {       
-            dictionary[iDict] = fDigitsManager->GetDictionary(detector,iDict);
-            if (dictionary[iDict]->GetNtime() == 0) {
-              dictionary[iDict]->Allocate(nRowMax,nColMax,nTimeTotal);
-	    }
-            else {
-              if (fCompress) dictionary[iDict]->Expand();
+          if (!fSimpleSim) {       
+            for (iDict = 0; iDict < kNDict; iDict++) {       
+              dictionary[iDict] = fDigitsManager->GetDictionary(detector,iDict);
+              if (dictionary[iDict]->GetNtime() == 0) {
+                dictionary[iDict]->Allocate(nRowMax,nColMax,nTimeTotal);
+	      }
+              else {
+                if (fCompress) dictionary[iDict]->Expand();
+	      }
 	    }
           }      
           if (fDebug > 1) printf("done\n");
@@ -820,7 +830,14 @@ Bool_t AliTRDdigitizer::MakeDigits()
         }
 
         // Rotate the sectors on top of each other
-        fGeo->Rotate(detector,pos,rot);
+        if (fSimpleSim) {
+          rot[0] = pos[0];
+          rot[1] = pos[1];
+          rot[2] = pos[2];
+        }
+        else {
+          fGeo->Rotate(detector,pos,rot);
+	}
 
         // The driftlength. It is negative if the hit is in the 
         // amplification region.
@@ -957,7 +974,7 @@ Bool_t AliTRDdigitizer::MakeDigits()
 
               // Store the track index in the dictionary
               // Note: We store index+1 in order to allow the array to be compressed
-              if (signalOld[iPad] > 0) {
+              if ((signalOld[iPad] > 0) && (!fSimpleSim)) { 
                 for (iDict = 0; iDict < kNDict; iDict++) {
                   Int_t oldTrack = dictionary[iDict]->GetDataUnchecked(rowE
                                                                       ,colPos
@@ -989,13 +1006,22 @@ Bool_t AliTRDdigitizer::MakeDigits()
     printf("Finished analyzing %d hits\n",countHits);
   }
 
-  // The total conversion factor
-  Float_t convert = kEl2fC * fPar->GetPadCoupling() 
-                           * fPar->GetTimeCoupling() 
-                           * fPar->GetChipGain();
+  // The coupling factor
+  Float_t coupling = fPar->GetPadCoupling() 
+                   * fPar->GetTimeCoupling();
+
+  // The conversion factor
+  Float_t convert  = kEl2fC
+                   * fPar->GetChipGain();
 
   // Loop through all chambers to finalize the digits
-  for (Int_t iDet = 0; iDet < AliTRDgeometry::Ndet(); iDet++) {
+  Int_t iDetBeg = 0;
+  Int_t iDetEnd = AliTRDgeometry::Ndet();
+  if (fSimpleSim) {
+    iDetBeg = fSimpleDet;
+    iDetEnd = iDetBeg + 1;
+  }
+  for (Int_t iDet = iDetBeg; iDet < iDetEnd; iDet++) {
 
     Int_t plane       = fGeo->GetPlane(iDet);
     Int_t sector      = fGeo->GetSector(iDet);
@@ -1016,8 +1042,13 @@ Bool_t AliTRDdigitizer::MakeDigits()
     // Add a container for the digits of this detector
     digits = fDigitsManager->GetDigits(iDet);        
     // Allocate memory space for the digits buffer
-    digits->Allocate(nRowMax,nColMax,nTimeTotal);
-
+    if (digits->GetNtime() == 0) {
+      digits->Allocate(nRowMax,nColMax,nTimeTotal);
+    }
+    else if (fSimpleSim) {
+      digits->Clear();
+    }
+ 
     // Get the signal container
     signals = (AliTRDdataArrayF *) signalsArray->At(iDet);
     if (signals->GetNtime() == 0) {
@@ -1029,11 +1060,13 @@ Bool_t AliTRDdigitizer::MakeDigits()
       if (fCompress) signals->Expand();
     }
     // Create the missing dictionary containers
-    for (iDict = 0; iDict < kNDict; iDict++) {       
-      dictionary[iDict] = fDigitsManager->GetDictionary(iDet,iDict);
-      if (dictionary[iDict]->GetNtime() == 0) {
-        dictionary[iDict]->Allocate(nRowMax,nColMax,nTimeTotal);
-      }
+    if (!fSimpleSim) {    
+      for (iDict = 0; iDict < kNDict; iDict++) {       
+        dictionary[iDict] = fDigitsManager->GetDictionary(iDet,iDict);
+        if (dictionary[iDict]->GetNtime() == 0) {
+          dictionary[iDict]->Allocate(nRowMax,nColMax,nTimeTotal);
+        }
+      } 
     }
 
     Int_t nDigits = 0;
@@ -1063,6 +1096,8 @@ Bool_t AliTRDdigitizer::MakeDigits()
 
             for (iTime = 0; iTime < nTimeTotal; iTime++) {         
               Float_t signalAmp = signals->GetDataUnchecked(iRow,iCol,iTime);
+              // Pad and time coupling
+              signalAmp *= coupling;
               // Add the noise
               signalAmp  = TMath::Max((Double_t) gRandom->Gaus(signalAmp,fPar->GetNoise()),0.0);
               // Convert to mV
@@ -1106,39 +1141,49 @@ Bool_t AliTRDdigitizer::MakeDigits()
     }
 
     // Compress the arrays
-    digits->Compress(1,0);
-    for (iDict = 0; iDict < kNDict; iDict++) {
-      dictionary[iDict]->Compress(1,0);
+    if (!fSimpleSim) {  
+      digits->Compress(1,0);
+      for (iDict = 0; iDict < kNDict; iDict++) {
+        dictionary[iDict]->Compress(1,0);
+      }
+
+      totalSizeDigits += digits->GetSize();
+      totalSizeDict0  += dictionary[0]->GetSize();
+      totalSizeDict1  += dictionary[1]->GetSize();
+      totalSizeDict2  += dictionary[2]->GetSize();
+
+      Float_t nPixel = nRowMax * nColMax * nTimeMax;
+      if (fDebug > 0) {
+        printf("<AliTRDdigitizer::MakeDigits> ");
+        printf("Found %d digits in detector %d (%3.0f).\n"
+              ,nDigits,iDet
+              ,100.0 * ((Float_t) nDigits) / nPixel);
+      } 
+
+      if (fCompress) signals->Compress(1,0);
+
     }
-
-    totalSizeDigits += digits->GetSize();
-    totalSizeDict0  += dictionary[0]->GetSize();
-    totalSizeDict1  += dictionary[1]->GetSize();
-    totalSizeDict2  += dictionary[2]->GetSize();
-
-    Float_t nPixel = nRowMax * nColMax * nTimeMax;
-    if (fDebug > 0) {
-      printf("<AliTRDdigitizer::MakeDigits> ");
-      printf("Found %d digits in detector %d (%3.0f).\n"
-            ,nDigits,iDet
-            ,100.0 * ((Float_t) nDigits) / nPixel);
-    } 
-
-    if (fCompress) signals->Compress(1,0);
 
     delete [] inADC;
     delete [] outADC;
 
   }
 
+  if (signalsArray) {
+    delete signalsArray;
+    signalsArray = 0;
+  }
+
   if (fDebug > 0) {
     printf("<AliTRDdigitizer::MakeDigits> ");
     printf("Total number of analyzed hits = %d\n",countHits);
-    printf("<AliTRDdigitizer::MakeDigits> ");
-    printf("Total digits data size = %d, %d, %d, %d\n",totalSizeDigits
-                                                      ,totalSizeDict0
-                                                      ,totalSizeDict1
-                                                      ,totalSizeDict2);        
+    if (!fSimpleSim) {    
+      printf("<AliTRDdigitizer::MakeDigits> ");
+      printf("Total digits data size = %d, %d, %d, %d\n",totalSizeDigits
+                                                        ,totalSizeDict0
+                                                        ,totalSizeDict1
+                                                        ,totalSizeDict2);        
+    }
   }
 
   return kTRUE;
@@ -1198,7 +1243,8 @@ Bool_t AliTRDdigitizer::ConvertSDigits()
   Double_t padCoupling  = fPar->GetPadCoupling();
   Double_t timeCoupling = fPar->GetTimeCoupling();
   Double_t chipGain     = fPar->GetChipGain();
-  Double_t convert      = kEl2fC * padCoupling * timeCoupling * chipGain;;
+  Double_t coupling     = padCoupling * timeCoupling;
+  Double_t convert      = kEl2fC * chipGain;
   Double_t adcInRange   = fPar->GetADCinRange();
   Double_t adcOutRange  = fPar->GetADCoutRange();
   Int_t    adcThreshold = fPar->GetADCthreshold();
@@ -1243,6 +1289,8 @@ Bool_t AliTRDdigitizer::ConvertSDigits()
         for (iTime = 0; iTime < nTimeTotal; iTime++) {         
           Double_t signal = (Double_t) digitsIn->GetDataUnchecked(iRow,iCol,iTime);
           signal *= sDigitsScale;
+          // Pad and time coupling
+          signal *= coupling;
           // Add the noise
           signal  = TMath::Max((Double_t) gRandom->Gaus(signal,noise),0.0);
           // Convert to mV
@@ -1459,6 +1507,8 @@ Bool_t AliTRDdigitizer::CheckDetector(Int_t plane, Int_t chamber, Int_t sector)
   //
   // Checks whether a detector is enabled
   //
+
+  if (fSimpleSim) return kTRUE; 
 
   if ((fTRD->GetSensChamber() >=       0) &&
       (fTRD->GetSensChamber() != chamber)) return kFALSE;
