@@ -18,6 +18,8 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 
+#include <AliTrackPoints.h>
+
 ClassImp(AliHBTQInvCorrelFctn)
 
 //Corroleation function is created from dividing two histograms of QInvariant:
@@ -277,6 +279,75 @@ TH1* AliHBTAvSeparVsQInvCorrelFctn::GetResult()
  return fRatio;
 }
 
+
+/**************************************************************/
+/**************************************************************/
+/**************************************************************/
+ClassImp(AliHBTITSSepVsQInvCorrelFctn)
+
+AliHBTITSSepVsQInvCorrelFctn::AliHBTITSSepVsQInvCorrelFctn(Int_t layer,Int_t nXbins, Double_t maxXval, Double_t minXval,
+                                                   Int_t nYbins, Double_t maxYval, Double_t minYval,
+                                                   Int_t nZbins, Double_t maxZval, Double_t minZval):
+ AliHBTOnePairFctn3D(nXbins,maxXval,minXval,nYbins,maxYval,minYval,nZbins,maxZval,minZval),
+ fLayer(layer)
+{
+//ctor
+  fWriteNumAndDen = kTRUE;//change default behaviour
+  TString name("qinvvsitssep");
+  TString title("Q_{inv} Vs sep on Layer ");
+  name+=fLayer;
+  title+=fLayer;
+  Rename(name,title);
+}
+
+/**************************************************************/
+
+TH1* AliHBTITSSepVsQInvCorrelFctn::GetResult()
+{  
+ //returns the scaled ratio
+ delete fRatio;
+ fRatio = GetRatio(Scale());
+ return fRatio;
+}
+
+/**************************************************************/
+
+
+void AliHBTITSSepVsQInvCorrelFctn::GetValues(AliHBTPair* pair, Double_t& x, Double_t& y, Double_t& z) const
+{
+//returns values of the function for a pair
+
+  x = 10e5;
+  y = -1;
+  z = -1;  
+  
+  AliTrackPoints* tpts1 = pair->Particle1()->GetITSTrackPoints();
+  if ( tpts1 == 0x0)
+   {//it could be simulated pair
+     Warning("GetValues","Track 1 does not have ITS Track Points. Pair NOT Passed.");
+     return;
+   }
+
+  AliTrackPoints* tpts2 = pair->Particle2()->GetITSTrackPoints();
+  if ( tpts2 == 0x0)
+   {
+     Warning("GetValues","Track 2 does not have ITS Track Points. Pair NOT Passed.");
+     return;
+   }
+  Float_t  x1=0.0,y1=0.0,z1=0.0,x2=0.0,y2=0.0,z2=0.0;
+  tpts1->PositionAt(fLayer,x1,y1,z1);
+  tpts2->PositionAt(fLayer,x2,y2,z2);
+
+//  Info("Pass","rphi %f z %f",fMin,fMax);
+//  Info("Pass","P1: %f %f %f", x1,y1,z1);
+//  Info("Pass","P2: %f %f %f", x2,y2,z2);
+  x = pair->GetQInv();
+  z = TMath::Abs(z1-z2);
+  y = TMath::Hypot(x1-x2,y1-y2);
+  
+  
+}
+
 /**************************************************************/
 /**************************************************************/
 /**************************************************************/
@@ -349,3 +420,6 @@ TH1* AliHBTQSideQLongFctn::GetResult()
  fRatio = GetRatio(Scale());
  return fRatio;
 }
+
+
+
