@@ -611,6 +611,23 @@ Int_t AliStack::TreeKEntry(Int_t id) const
 }
 
 //_____________________________________________________________________________
+Int_t AliStack::CurrentTrackParent() const
+{
+  //
+  // Return number of the parent of the current track
+  //
+  
+  TParticle* current = (TParticle*)fParticleMap->At(fCurrent);
+
+  if (current) 
+    return current->GetFirstMother();
+  else {
+    Warning("CurrentTrackParent", "Current track not found in the stack");
+    return -1;
+  }  
+}
+ 
+//_____________________________________________________________________________
 Int_t AliStack::GetPrimary(Int_t id)
 {
   //
@@ -787,7 +804,7 @@ void AliStack::ConnectTree()
 //
 //  Creates branch for writing particles
 //
-  if (AliLoader::AliLoader::fgDebug) Info("ConnectTree","Connecting TreeK");
+  if (AliLoader::fgDebug) Info("ConnectTree","Connecting TreeK");
   if (fTreeK == 0x0)
    {
     if (TreeK() == 0x0)
@@ -802,12 +819,12 @@ void AliStack::ConnectTree()
 
  //  Create a branch for particles   
   
-  if (AliLoader::AliLoader::fgDebug) 
+  if (AliLoader::fgDebug) 
    Info("ConnectTree","Tree name is %s",fTreeK->GetName());
    
   if (fTreeK->GetDirectory())
    {
-     if (AliLoader::AliLoader::fgDebug)    
+     if (AliLoader::fgDebug)    
       Info("ConnectTree","and dir is %s",fTreeK->GetDirectory()->GetName());
    }    
   else
@@ -817,16 +834,16 @@ void AliStack::ConnectTree()
   if(branch == 0x0)
    {
     branch = fTreeK->Branch(AliRunLoader::fgkKineBranchName, "TParticle", &fParticleBuffer, 4000);
-    if (AliLoader::AliLoader::fgDebug) Info("ConnectTree","Creating Branch in Tree");
+    if (AliLoader::fgDebug) Info("ConnectTree","Creating Branch in Tree");
    }  
   else
    {
-    if (AliLoader::AliLoader::fgDebug) Info("ConnectTree","Branch Found in Tree");
+    if (AliLoader::fgDebug) Info("ConnectTree","Branch Found in Tree");
     branch->SetAddress(&fParticleBuffer);
    }
   if (branch->GetDirectory())
    {
-    if (AliLoader::AliLoader::fgDebug) 
+    if (AliLoader::fgDebug) 
       Info("ConnectTree","Branch Dir Name is %s",branch->GetDirectory()->GetName());
    } 
   else
