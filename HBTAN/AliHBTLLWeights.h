@@ -21,7 +21,7 @@ class AliHBTLLWeights: public AliHBTWeights
      
      void Set();
      
-     Double_t GetWeight(const AliHBTPair* partpair); //get weight calculated by Lednicky's algorithm
+     Double_t GetWeight(AliHBTPair* partpair); //get weight calculated by Lednicky's algorithm
 
      void Init(); //put the initial values in fortran commons fsiini, led_bldata
      void SetTest(Bool_t rtest = kTRUE);//Sets fTest member

@@ -259,7 +259,7 @@ void AliHBTLLWeights::Set()
 }
 /************************************************************/
 
-Double_t AliHBTLLWeights::GetWeight(const AliHBTPair* partpair)
+Double_t AliHBTLLWeights::GetWeight(AliHBTPair* partpair)
 {
 // calculates weight for a pair
   static const Double_t kcmtofm = 1.e13;
@@ -321,7 +321,7 @@ Double_t AliHBTLLWeights::GetWeight(const AliHBTPair* partpair)
   //this must  be after ltran12 because it would overwrite what we set below
   if (fRandomPosition)
    {
-     Double_t rxcm = fSigma*gRandom->Gaus();
+     Double_t rxcm = partpair->GetGammaToTransverse()*fSigma*gRandom->Gaus();
      Double_t rycm = fSigma*gRandom->Gaus();
      Double_t rzcm = fSigma*gRandom->Gaus();
 
