@@ -10,7 +10,7 @@ AliEMCALDigit.cxx \
 AliEMCALSDigitizer.cxx \
 AliEMCALDigitizer.cxx \
 AliEMCALGetter.cxx \
-#AliEMCALJetFinder.cxx \
+AliEMCALJetFinder.cxx \
 AliEMCALJet.cxx \
 AliEMCALFast.cxx \
 AliEMCALTick.cxx \
