@@ -42,6 +42,7 @@ public:
   AliTPCtrack(const AliTPCtrack& t);
   virtual ~AliTPCtrack() {}
   Int_t PropagateToVertex(Double_t x0=36.66,Double_t rho=1.2e-3);
+  Int_t GetProlongation(Double_t xr, Double_t &y, Double_t & z) const;  // MI adding
   Int_t Rotate(Double_t angle);
   void SetdEdx(Double_t dedx) {fdEdx=dedx;}
 
@@ -59,9 +60,10 @@ public:
 
   Double_t GetSigmaY2() const {return fC00;}
   Double_t GetSigmaZ2() const {return fC11;}
+  Double_t GetD(Double_t x=0, Double_t y=0) const;
 
-// Some methods useful for users. Implementation is not
-// optimized for speed but for minimal maintanance effort
+  // Some methods useful for users. Implementation is not
+  // optimized for speed but for minimal maintanance effort
   Double_t Phi() const;
   Double_t Theta() const {return TMath::Pi()/2.-TMath::ATan(GetTgl());}
   Double_t Px() const {return TMath::Cos(Phi())/TMath::Abs(Get1Pt());}
@@ -69,13 +71,14 @@ public:
   Double_t Pz() const {return GetTgl()/TMath::Abs(Get1Pt());}
   Double_t Pt() const {return 1./TMath::Abs(Get1Pt());}
   Double_t P() const {return TMath::Sqrt(Pt()*Pt()+Pz()*Pz());}
-
   Int_t Compare(const TObject *o) const;
 
   void GetExternalParameters(Double_t& xr, Double_t x[5]) const ;
   void GetExternalCovariance(Double_t cov[15]) const ;
+  void GetCircle(Double_t &x0, Double_t &y0, Double_t &r0);
 
-  // [SR, 01.04.2003]
+  Int_t GetClusterIndex(Int_t row) const {return fIndex[row];}
+  Int_t SetClusterIndex(Int_t row,Int_t index )  {return fIndex[row]=index;}
 
   void GetBarrelTrack(AliBarrelTrack *track);
 
@@ -89,7 +92,6 @@ public:
   void  SetNumber(Int_t n) {fNumber = n;} 
   //
 
-  Int_t GetClusterIndex(Int_t i) const {return fIndex[i];}
 
 //******** To be removed next release !!! **************
   Double_t GetEta() const {return fP2;}
@@ -107,7 +109,23 @@ public:
   Int_t PropagateTo(Double_t xr,Double_t x0=28.94,Double_t rho=0.9e-3);
   Int_t Update(const AliCluster* c, Double_t chi2, UInt_t i);
   void ResetCovariance();
-
+  // MI addition
+  Float_t fSdEdx;           // sigma of dedx
+  Float_t fDEDX[4];         // dedx according padrows
+  Float_t fSDEDX[4];        // sdedx according padrows
+  Int_t   fNCDEDX[4];       // number of clusters for dedx measurment
+  //
+  Int_t   fNFoundable;      //number of foundable clusters - dead zone taken to the account
+  Bool_t  fBConstrain;   // indicate seeding with vertex constrain
+  Float_t fClusterDensity[15]; //array with cluster densities 
+  Int_t   fLastPoint;     // last  cluster position     
+  Int_t   fFirstPoint;    // first cluster position
+  Int_t fRemoval;         // removal factor
+  Int_t fTrackType;       // track type - 0 - normal - 1 - kink -  2 -V0  3- double found
+  Int_t fLab2;            // index of corresponding track (kink, V0, double)
+  Int_t   fNShared;       // number of shared points
+  //
+  Float_t Density(Int_t row0, Int_t row1); //calculate cluster density
 protected: 
   Double_t fX;              // X-coordinate of this track (reference plane)
   Double_t fAlpha;          // Rotation angle the local (TPC sector)
@@ -126,14 +144,12 @@ protected:
   Double_t fC20, fC21, fC22;             // of the
   Double_t fC30, fC31, fC32, fC33;       // track
   Double_t fC40, fC41, fC42, fC43, fC44; // parameters
+ 
+  Int_t fIndex[kMaxRow];       // indices of associated clusters 
 
-  UInt_t fIndex[kMaxRow];       // indices of associated clusters 
-
-  //[SR, 01.04.2003]
   Int_t fNWrong;         // number of wrong clusters
   Int_t fNRotation;      // number of rotations
   Int_t fNumber;         // magic number used for number of clusters
-
   ClassDef(AliTPCtrack,1)   // Time Projection Chamber reconstructed tracks
 };
 
