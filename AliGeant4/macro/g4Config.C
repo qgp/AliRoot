@@ -140,6 +140,7 @@ void Config()
       //iZDC=0;
       //iPMD=0;
       //iITS=0;
+      iCRT = 0;
       
 // From G3 Config.C
 // Without any modification 
@@ -222,6 +223,7 @@ void Config()
     //
     //AliITS *ITS  = new AliITSv5asymm("ITS","Updates ITS TDR detailed version with asymmetric services");
     //
+/*
     AliITSvPPRasymm *ITS  = new AliITSvPPRasymm("ITS","New ITS PPR detailed version with asymmetric services");
     ITS->SetMinorVersion(2);					 // don't touch this parameter if you're not an ITS developer
     ITS->SetReadDet(kFALSE);					 // don't touch this parameter if you're not an ITS developer
@@ -249,9 +251,10 @@ void Config()
     // for reconstruction !):
     //                                                     
     //
-    //AliITSvPPRcoarseasymm *ITS  = new AliITSvPPRcoarseasymm("ITS","New ITS PPR coarse version with asymmetric services");
-    //ITS->SetRails(1);                // 1 --> rails in ; 0 --> rails out
-    //ITS->SetSupportMaterial(0);      // 0 --> Copper ; 1 --> Aluminum ; 2 --> Carbon
+*/
+    AliITSvPPRcoarseasymm *ITS  = new AliITSvPPRcoarseasymm("ITS","New ITS PPR coarse version with asymmetric services");
+    ITS->SetRails(1);                // 1 --> rails in ; 0 --> rails out
+    ITS->SetSupportMaterial(0);      // 0 --> Copper ; 1 --> Aluminum ; 2 --> Carbon
     //
     //AliITS *ITS  = new AliITSvPPRcoarsesymm("ITS","New ITS PPR coarse version with symmetric services");
     //ITS->SetRails(1);                // 1 --> rails in ; 0 --> rails out
