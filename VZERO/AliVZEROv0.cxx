@@ -759,8 +759,8 @@ void AliVZEROv0::BuildGeometry()
  
   parbox[0] =    0.;
   parbox[1] =  360.;
-  parbox[2] =    12;
-  parbox[3] =     2;
+  parbox[2] =   12.;
+  parbox[3] =    2.;
   parbox[4] =  -0.1/2.0;
   parbox[5] =  r0;
   parbox[6] =  r5;     
