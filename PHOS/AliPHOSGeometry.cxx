@@ -324,56 +324,29 @@ void AliPHOSGeometry::GetGlobal(const AliRecPoint* RecPoint, TVector3 & gpos) co
 }
 
 //____________________________________________________________________________
-void AliPHOSGeometry::ImpactOnEmc(Double_t theta, Double_t phi, Int_t & moduleNumber, Double_t & z, Double_t & x) const
+void AliPHOSGeometry::ImpactOnEmc(Double_t theta, Double_t phi, Int_t & ModuleNumber, Double_t & z, Double_t & x) const
 {
   // calculates the impact coordinates on PHOS of a neutral particle  
   // emitted in the direction theta and phi in the ALICE global coordinate system
 
   // searches for the PHOS EMC module
-
-  moduleNumber = 0 ; 
+  ModuleNumber = 0 ; 
   Double_t tm, tM, pm, pM ; 
   Int_t index = 1 ; 
-  while ( moduleNumber == 0 && index <= GetNModules() ) { 
+  while ( ModuleNumber == 0 && index <= GetNModules() ) { 
     EmcModuleCoverage(index, tm, tM, pm, pM) ; 
     if ( (theta >= tm && theta <= tM) && (phi >= pm && phi <= pM ) ) 
-      moduleNumber = index ; 
+      ModuleNumber = index ; 
     index++ ;    
   }
-  if ( moduleNumber != 0 ) {
-    Float_t phi0 =  GetPHOSAngle(moduleNumber) *  (TMath::Pi() / 180.) + 1.5 * TMath::Pi()  ;  
+  if ( ModuleNumber != 0 ) {
+    Float_t phi0 =  GetPHOSAngle(ModuleNumber) *  (TMath::Pi() / 180.) + 1.5 * TMath::Pi()  ;  
     Float_t y0  =  GetIPtoCrystalSurface()  ;   
     Double_t angle = phi - phi0; 
     x = y0 * TMath::Tan(angle) ; 
     angle = theta - TMath::Pi() / 2 ; 
     z = y0 * TMath::Tan(angle) ; 
   }
-}
-
-//____________________________________________________________________________
-void AliPHOSGeometry::ImpactOnEmc(TVector3 vec, Int_t & moduleNumber, Double_t & z, Double_t & x) const
-{
-  // calculates the impact coordinates on PHOS of a neutral particle  
-  // emitted in the direction theta and phi in the ALICE global coordinate system
-  // searches for the PHOS EMC module
-
-  TParticle p ; 
-  p.SetMomentum(vec.X(), vec.Y(), vec.Z(), 0.) ; 
-  
-  ImpactOnEmc(p, moduleNumber, z, x) ;
-}
-
-//____________________________________________________________________________
-void AliPHOSGeometry::ImpactOnEmc(TParticle p, Int_t & moduleNumber, Double_t & z, Double_t & x) const
-{
-  // calculates the impact coordinates on PHOS of a neutral particle  
-  // emitted in the direction theta and phi in the ALICE global coordinate system
-
-  // searches for the PHOS EMC module
-  Double_t theta = p.Theta() ; 
-  Double_t phi   = p.Phi() ; 
-
-  ImpactOnEmc(theta, phi, moduleNumber, z, x) ;
 }
 
 //____________________________________________________________________________
@@ -470,10 +443,10 @@ void AliPHOSGeometry::RelPosInModule(const Int_t * relid, Float_t & x, Float_t &
   
   if ( relid[1] == 0 ) { // its a PbW04 crystal
     x = - ( GetNPhi()/2. - row    + 0.5 ) *  GetCellStep() ; // position of Xtal with respect
-    z = - ( GetNZ()  /2. - column + 0.5 ) *  GetCellStep() ; // of center of PHOS module  
+    z =   ( GetNZ()  /2. - column + 0.5 ) *  GetCellStep() ; // of center of PHOS module  
   }  
   else  {    
     x = - ( GetNumberOfCPVPadsPhi()/2. - row    - 0.5 ) * GetPadSizePhi()  ; // position of pad  with respect
-    z = - ( GetNumberOfCPVPadsZ()  /2. - column - 0.5 ) * GetPadSizeZ()  ; // of center of PHOS module  
+    z =   ( GetNumberOfCPVPadsZ()  /2. - column - 0.5 ) * GetPadSizeZ()  ; // of center of PHOS module  
   }
 }

@@ -77,6 +77,7 @@ AliDigitizer::AliDigitizer(AliRunDigitizer *manager,
 //_______________________________________________________________________
 AliDigitizer::~AliDigitizer() 
 {
+  delete fManager;
 }
 
 //_______________________________________________________________________

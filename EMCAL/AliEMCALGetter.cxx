@@ -52,7 +52,6 @@
 #include "AliEMCAL.h"
 #include "AliRunLoader.h"
 #include "AliStack.h"  
-#include "AliHeader.h"  
 #include "AliEMCALLoader.h"
 #include "AliMC.h"
 
@@ -105,21 +104,6 @@ AliEMCALGetter::~AliEMCALGetter()
   // fBTE = 0 ; 
   fPrimaries->Delete() ; 
   delete fPrimaries ; 
-  fgObjGetter = 0; 
-}
-
-//____________________________________________________________________________ 
-void AliEMCALGetter::Reset()
-{
-  // resets things in case the getter is called consecutively with different files
-  // the EMCAL Loader is already deleted by the Run Loader
-
-  if (fPrimaries) { 
-    fPrimaries->Delete() ; 
-    delete fPrimaries ;
-  } 
-  fgEmcalLoader = 0; 
-  fgObjGetter = 0; 
 }
 
 //____________________________________________________________________________ 
@@ -232,6 +216,7 @@ void AliEMCALGetter::Event(Int_t event, const char* opt)
   }
 
   AliRunLoader * rl = AliRunLoader::GetRunLoader(EmcalLoader()->GetTitle());
+
   // checks if we are dealing with test-beam data
 //   TBranch * btb = rl->TreeE()->GetBranch("AliEMCALBeamTestEvent") ;
 //   if(btb){
@@ -327,12 +312,8 @@ AliEMCALGetter * AliEMCALGetter::Instance(const char* alirunFileName, const char
 	}
       }
     }
-    else { 
-      AliRunLoader * rl = AliRunLoader::GetRunLoader(fgEmcalLoader->GetTitle());
-      if ( strstr(version, AliConfig::fgkDefaultEventFolderName) ) // false in case of merging
-	delete rl ; 
+    else 
       fgObjGetter = new AliEMCALGetter(alirunFileName, version, openingOption) ;      
-    }
   }
   if (!fgObjGetter) 
     ::Error("AliEMCALGetter::Instance", "Failed to create the EMCAL Getter object") ;
@@ -440,9 +421,11 @@ void AliEMCALGetter::ReadPrimaries()
   if ( ! rl->TreeK() )  // load treeK the first time
     rl->LoadKinematics() ;
   
-  fNPrimaries = (rl->GetHeader())->GetNtrack(); 
+  fNPrimaries = rl->Stack()->GetNtrack() ; 
+
   if (fgDebug) 
     Info("ReadTreeK", "Found %d particles in event # %d", fNPrimaries, EventNumber() ) ; 
+
 
   // first time creates the container
   if ( Primaries() ) 
@@ -476,7 +459,7 @@ Int_t AliEMCALGetter::ReadTreeH()
     
   // gets TreeH from the root file (EMCAL.Hit.root)
   if ( !IsLoaded("H") ) {
-    EmcalLoader()->LoadHits("READ") ;
+    EmcalLoader()->LoadHits("UPDATE") ;
     SetLoaded("H") ; 
   }  
   return Hits()->GetEntries() ; 
@@ -535,9 +518,9 @@ Int_t AliEMCALGetter::ReadTreeS()
   
   
   // gets TreeS from the root file (EMCAL.SDigits.root)
-   if ( !IsLoaded("S") ) {
-    EmcalLoader()->LoadSDigits("READ") ;
-    EmcalLoader()->LoadSDigitizer("READ") ;
+  if ( !IsLoaded("S") ) {
+    EmcalLoader()->LoadSDigits("UPDATE") ;
+    EmcalLoader()->LoadSDigitizer("UPDATE") ;
     SetLoaded("S") ; 
   }
 

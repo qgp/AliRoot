@@ -120,10 +120,7 @@ Bool_t AliTRDclusterizer::Open(const Char_t *name, Int_t nEvent)
   //
   // Opens the AliROOT file. Output and input are in the same file
   //
-  TString evfoldname = AliConfig::fgkDefaultEventFolderName;
-  fRunLoader = AliRunLoader::GetRunLoader(evfoldname);
-  if (!fRunLoader)
-    fRunLoader = AliRunLoader::Open(name);
+  fRunLoader = AliRunLoader::Open(name);
   if (!fRunLoader)
    {
      Error("Open","Can not open session for file %s.",name);
@@ -163,7 +160,7 @@ Bool_t AliTRDclusterizer::OpenInput(Int_t nEvent)
   //
 
   // Connect the AliRoot file containing Geometry, Kine, and Hits
-  if (fRunLoader->GetAliRun() == 0x0) fRunLoader->LoadgAlice();
+  fRunLoader->LoadgAlice();
   gAlice = fRunLoader->GetAliRun();
 
   if (!(gAlice)) {
@@ -241,8 +238,9 @@ Bool_t AliTRDclusterizer::WriteClusters(Int_t det)
 
   if (det == -1) {
 
-    Info("WriteClusters","Writing the cluster tree %s for event %d."
-	 ,fClusterTree->GetName(),fEvent);
+    printf("AliTRDclusterizer::WriteClusters -- ");
+    printf("Writing the cluster tree %-18s for event %d.\n"
+	  ,fClusterTree->GetName(),fEvent);
     /*
     fClusterTree->Write();
     AliTRDgeometry *geo = fTRD->GetGeometry();

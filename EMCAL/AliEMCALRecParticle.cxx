@@ -81,8 +81,7 @@ const Int_t AliEMCALRecParticle::GetNPrimariesToRecParticles() const
   // Returns the number of primaries at the origine of a RecParticle
   Int_t rv = 0 ;
   AliEMCALGetter * gime = AliEMCALGetter::Instance() ; 
-  dynamic_cast<AliEMCALRecPoint*>(gime->ECARecPoints()->At(GetEMCALRPIndex()))->GetPrimaries(rv) ; 
-
+  dynamic_cast<AliEMCALTowerRecPoint*>(gime->ECARecPoints()->At(GetEMCALRPIndex()))->GetPrimaries(rv) ; 
   return rv ; 
 }
 
@@ -99,8 +98,7 @@ const TParticle * AliEMCALRecParticle::GetPrimary(Int_t index) const
   Int_t dummy ; 
   AliEMCALGetter * gime = AliEMCALGetter::Instance() ; 
 
-  Int_t primaryindex = dynamic_cast<AliEMCALRecPoint*>(gime->ECARecPoints()->At(GetEMCALRPIndex()))->GetPrimaries(dummy)[index] ; 
-
+  Int_t primaryindex = dynamic_cast<AliEMCALTowerRecPoint*>(gime->ECARecPoints()->At(GetEMCALRPIndex()))->GetPrimaries(dummy)[index] ; 
   return gime->Primary(primaryindex) ;
 }
 

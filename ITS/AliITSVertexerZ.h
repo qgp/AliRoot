@@ -11,7 +11,7 @@
 
 class TFile;
 class TString;
-class AliESDVertex;
+class AliITSVertex;
 class AliITS;
 class TH1F;
 
@@ -22,7 +22,7 @@ class AliITSVertexerZ : public AliITSVertexer {
   AliITSVertexerZ();
   AliITSVertexerZ(TString filename,Float_t x0=0., Float_t y0=0.);
   virtual ~AliITSVertexerZ();
-  virtual AliESDVertex* FindVertexForCurrentEvent(Int_t evnumb);
+  virtual AliITSVertex* FindVertexForCurrentEvent(Int_t evnumb);
   virtual void FindVertices();
   virtual void PrintStatus() const;
   void SetDiffPhiMax(Float_t pm = 0.01){fDiffPhiMax = pm;}

@@ -16,7 +16,6 @@
 #include "AliRICH.h"
 #include "AliRICHParam.h"
 #include "AliRICHChamber.h"
-#include "AliRICHClusterFinder.h"
 #include <TArrayF.h>
 #include <TGeometry.h>
 #include <TBRIK.h>
@@ -123,20 +122,15 @@ void AliRICH::Hits2SDigits()
 // Create a list of sdigits corresponding to list of hits. Every hit generates one or more sdigits.
 //   
   if(GetDebug()) Info("Hit2SDigits","Start.");
-
-  AliLoader * richLoader = GetLoader();
-  AliRunLoader * runLoader = GetLoader()->GetRunLoader();
-
   for(Int_t iEventN=0;iEventN<GetLoader()->GetRunLoader()->GetAliRun()->GetEventsPerRun();iEventN++){//events loop
-    runLoader->GetEvent(iEventN);
+    GetLoader()->GetRunLoader()->GetEvent(iEventN);
   
-    if (!richLoader->TreeH()) richLoader->LoadHits();
-    if (!runLoader->TreeE()) runLoader->LoadHeader(); 
-    if (!runLoader->TreeK()) runLoader->LoadKinematics();//from
-    if (!richLoader->TreeS()) richLoader->MakeTree("S"); MakeBranch("S");//to
+    if(!GetLoader()->TreeH()) GetLoader()->LoadHits();    GetLoader()->GetRunLoader()->LoadHeader(); 
+                                                          GetLoader()->GetRunLoader()->LoadKinematics();//from
+    if(!GetLoader()->TreeS()) GetLoader()->MakeTree("S"); MakeBranch("S");//to
           
     for(Int_t iPrimN=0;iPrimN<GetLoader()->TreeH()->GetEntries();iPrimN++){//prims loop
-      richLoader->TreeH()->GetEntry(iPrimN);
+      GetLoader()->TreeH()->GetEntry(iPrimN);
       for(Int_t iHitN=0;iHitN<Hits()->GetEntries();iHitN++){//hits loop 
         AliRICHhit *pHit=(AliRICHhit*)Hits()->At(iHitN);                
         TVector2 x2 = P()->ShiftToWirePos(C(pHit->C())->Glob2Loc(pHit->OutX3()));                
@@ -149,17 +143,15 @@ void AliRICH::Hits2SDigits()
           for(Int_t iPadX=iPadXmin;iPadX<=iPadXmax;iPadX++){
             Double_t padQdc=iTotQdc*P()->FracQdc(x2,iPadX,iPadY);
             if(padQdc>0.1) AddSDigit(pHit->C(),iPadX,iPadY,padQdc,
-              runLoader->Stack()->Particle(pHit->GetTrack())->GetPdgCode(),pHit->GetTrack());
+              GetLoader()->GetRunLoader()->Stack()->Particle(pHit->GetTrack())->GetPdgCode(),pHit->GetTrack());
           }//affected pads loop 
       }//hits loop
     }//prims loop
-    richLoader->TreeS()->Fill();
-    richLoader->WriteSDigits("OVERWRITE");
+    GetLoader()->TreeS()->Fill();
+    GetLoader()->WriteSDigits("OVERWRITE");
     ResetSDigits();
   }//events loop  
-  richLoader->UnloadHits();
-  runLoader->UnloadHeader();
-  runLoader->UnloadKinematics();
+  GetLoader()->UnloadHits(); GetLoader()->GetRunLoader()->UnloadHeader(); GetLoader()->GetRunLoader()->UnloadKinematics();
   GetLoader()->UnloadSDigits();  
   if(GetDebug()) Info("Hit2SDigits","Stop.");
 }//Hits2SDigits()
@@ -736,12 +728,3 @@ void AliRICH::GenerateFeedbacks(Int_t iChamber,Float_t eloss)
   }//feedbacks loop
 }//GenerateFeedbacks()
 //__________________________________________________________________________________________________
-
-void AliRICH::Reconstruct() const
-{
-// reconstruct clusters
-
-  AliRICHClusterFinder clusterer(const_cast<AliRICH*>(this));
-  clusterer.Exec();
-}
-

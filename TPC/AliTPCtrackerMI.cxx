@@ -348,7 +348,7 @@ void AliTPCtrackerMI::FillESD(TObjArray* arr)
       AliTPCseed *pt=(AliTPCseed*)arr->UncheckedAt(i);    
       if (!pt) continue; 
       pt->PropagateTo(fParam->GetInnerRadiusLow());
-      if ( (pt->GetNumberOfClusters()>70)&& (Float_t(pt->GetNumberOfClusters())/Float_t(pt->fNFoundable))>0.55) {
+      if (pt->GetNumberOfClusters()>70) {
 	AliESDtrack iotrack;
 	iotrack.UpdateTrackParams(pt,AliESDtrack::kTPCin);	
 	//iotrack.SetTPCindex(i);
@@ -1431,59 +1431,16 @@ Int_t AliTPCtrackerMI::FollowToNext(AliTPCseed& t, Int_t nr) {
   //-----------------------------------------------------------------
   //
   Double_t  x= GetXrow(nr), ymax=GetMaxY(nr);
-  AliTPCclusterMI *cl=0;
-  Int_t tpcindex= t.GetClusterIndex2(nr);
-  //
-  // update current shape info every 5 pad-row
-  //  if ( (nr%5==0) || t.GetNumberOfClusters()<2 || (t.fCurrentSigmaY2<0.0001) ){
-    GetShape(&t,nr);    
-    //}
-  //  
-  if (fIteration>0 && tpcindex>=-1){  //if we have already clusters 
-    //        
-    if (tpcindex==-1) return 0; //track in dead zone
-    if (tpcindex>0){     //
-      cl = t.fClusterPointer[nr];
-      if ( (cl==0) ) cl = GetClusterMI(tpcindex);
-      t.fCurrentClusterIndex1 = tpcindex; 
-    }
-    if (cl){      
-      Int_t relativesector = ((tpcindex&0xff000000)>>24)%18;  // if previously accepted cluster in different sector
-      Float_t angle = relativesector*fSectors->GetAlpha()+fSectors->GetAlphaShift();
-      //
-      if (angle<-TMath::Pi()) angle += 2*TMath::Pi();
-      if (angle>=TMath::Pi()) angle -= 2*TMath::Pi();
-      
-      if (TMath::Abs(angle-t.GetAlpha())>0.001){
-	Double_t rotation = angle-t.GetAlpha();
-	t.fRelativeSector= relativesector;
-	t.Rotate(rotation); 	
-      }
-      t.PropagateTo(x);
-      //
-      t.fCurrentCluster = cl; 
-      t.fRow = nr;
-      Int_t accept = AcceptCluster(&t,t.fCurrentCluster,1.);
-      if ((tpcindex&0x8000)==0) accept =0;
-      if (accept<3) { 
-	//if founded cluster is acceptible
-	if (cl->IsUsed(11)) {  // id cluster is shared inrease uncertainty
-	  t.fErrorY2 += 0.03;
-	  t.fErrorZ2 += 0.03; 
-	  t.fErrorY2 *= 3;
-	  t.fErrorZ2 *= 3; 
-	}
-	t.fNFoundable++;
-	UpdateTrack(&t,accept);
-	return 1;
-      }    
-    }
+
+  //  if (t.GetRadius()>x+10 ) return 0;
+  //  t.PropagateTo(x+0.02);
+  //t.PropagateTo(x+0.01);
+  if (!t.PropagateTo(x)) {
+    t.fRemoval = 10;
+    return 0;
   }
-  if (fIteration>1) return 0;  // not look for new cluster during refitting
   //
-  UInt_t index=0;
-  if (TMath::Abs(t.GetSnp())>0.95 || TMath::Abs(x*t.GetC()-t.GetEta())>0.95) return 0;
-  Double_t  y=t.GetYat(x);
+  Double_t  y=t.GetY(), z=t.GetZ();
   if (TMath::Abs(y)>ymax){
     if (y > ymax) {
       t.fRelativeSector= (t.fRelativeSector+1) % fN;
@@ -1494,16 +1451,33 @@ Int_t AliTPCtrackerMI::FollowToNext(AliTPCseed& t, Int_t nr) {
       if (!t.Rotate(-fSectors->GetAlpha())) 
 	return 0;
     }
-    //return 1;
+    //if (!t.PropagateTo(x)) {
+    //  return 0;
+    //}
+    return 1;
   }
   //
-  if (!t.PropagateTo(x)) {
-    if (fIteration==0) t.fRemoval = 10;
-    return 0;
+  // update current shape info every 3 pad-row
+  if ( (nr%5==0) || t.GetNumberOfClusters()<2 || (t.fCurrentSigmaY2<0.0001) ){
+    //t.fCurrentSigmaY = GetSigmaY(&t);
+    //t.fCurrentSigmaZ = GetSigmaZ(&t);
+    GetShape(&t,nr);    
   }
-  y=t.GetY(); 
-  Double_t z=t.GetZ();
-  //
+  //  
+  AliTPCclusterMI *cl=0;
+  UInt_t index=0;
+  
+  
+  //Int_t nr2 = nr;
+  if (t.GetClusterIndex2(nr)>0){ 
+    //
+    //cl = GetClusterMI(t.GetClusterIndex2(nr));
+    index = t.GetClusterIndex2(nr);    
+    cl = t.fClusterPointer[nr];
+    if ( (cl==0) && (index>0)) cl = GetClusterMI(index);
+    t.fCurrentClusterIndex1 = index; 
+  }
+  
   const AliTPCRow &krow=GetRow(t.fRelativeSector,nr);
   if ( (t.GetSigmaY2()<0) || t.GetSigmaZ2()<0) return 0;
   Double_t  roady  =1.;
@@ -1521,22 +1495,29 @@ Int_t AliTPCtrackerMI::FollowToNext(AliTPCseed& t, Int_t nr) {
 	return 0;
     }   
   //calculate 
+  if (cl){
+    t.fCurrentCluster = cl; 
+    t.fRow = nr;
+    Int_t accept = AcceptCluster(&t,t.fCurrentCluster,1.);
+    if (fIteration>0) accept =0;
+    if (accept<3) { 
+      //if founded cluster is acceptible
+      UpdateTrack(&t,accept);
+      return 1;
+    }    
+  }
+
   if (krow) {
     //    cl = krow.FindNearest2(y+10.,z,roady,roadz,index);    
     cl = krow.FindNearest2(y,z,roady,roadz,index);    
     if (cl) t.fCurrentClusterIndex1 = krow.GetIndex(index);       
   }  
+  //  t.fNoCluster++;
+
   if (cl) {
     t.fCurrentCluster = cl; 
     t.fRow = nr;
-    if (fIteration==2&&cl->IsUsed(10)) return 0; 
     Int_t accept = AcceptCluster(&t,t.fCurrentCluster,1.);
-    if (fIteration==2&&cl->IsUsed(11)) {
-      t.fErrorY2 += 0.03;
-      t.fErrorZ2 += 0.03; 
-      t.fErrorY2 *= 3;
-      t.fErrorZ2 *= 3; 
-    }
     /*    
     if (t.fCurrentCluster->IsUsed(10)){
       //
@@ -1798,8 +1779,7 @@ Int_t AliTPCtrackerMI::FollowProlongation(AliTPCseed& t, Int_t rf, Int_t step) {
     else
       fSectors = fOuterSec;
     if (FollowToNext(t,nr)==0) 
-      if (!t.IsActive()) 
-	return 0;
+      if (!t.IsActive()) return 0;
     
   }   
   return 1;
@@ -1842,10 +1822,11 @@ Int_t AliTPCtrackerMI::FollowBackProlongation(AliTPCseed& t, Int_t rf) {
   if (alpha < 0.            ) alpha += 2.*TMath::Pi();  
   t.fRelativeSector = Int_t(alpha/fSectors->GetAlpha()+0.0001)%fN;
     
-  Int_t first = t.fFirstPoint;
+  Int_t first = 0;
+  first = t.fFirstPoint+3;
   //
   if (first<0) first=0;
-  for (Int_t nr=first; nr<=rf; nr++) {
+  for (Int_t nr=first+1; nr<=rf; nr++) {
     //if ( (t.GetSnp()<0.9))
     if (nr<fInnerSec->GetNRows()) 
       fSectors = fInnerSec;
@@ -2434,24 +2415,20 @@ Int_t AliTPCtrackerMI::RefitInward(AliESD *event)
   fIteration=2;
   //PrepareForProlongation(fSeeds,1);
   PropagateForward2(fSeeds);
-  Int_t ntracks=0;
   Int_t nseed = fSeeds->GetEntriesFast();
   for (Int_t i=0;i<nseed;i++){
     AliTPCseed * seed = (AliTPCseed*) fSeeds->UncheckedAt(i);
-    if (!seed) continue;
     seed->PropagateTo(fParam->GetInnerRadiusLow());
     AliESDtrack *esd=event->GetTrack(i);
     seed->CookdEdx(0.02,0.6);
     CookLabel(seed,0.1); //For comparison only
-    if (seed->GetNumberOfClusters()>60){
-      esd->UpdateTrackParams(seed,AliESDtrack::kTPCrefit); 
-      ntracks++;
+    if (seed->GetNumberOfClusters()>20){
+      esd->UpdateTrackParams(seed,AliESDtrack::kTPCrefit);
     }
     else{
       //printf("problem\n");
     }
   }
-  Info("RefitInward","Number of refitted tracks %d",ntracks);
   fEvent =0;
   //WriteTracks();
   return 0;
@@ -2469,19 +2446,13 @@ Int_t AliTPCtrackerMI::PropagateBack(AliESD *event)
   ReadSeeds(event,0);
   PropagateBack(fSeeds);
   Int_t nseed = fSeeds->GetEntriesFast();
-  Int_t ntracks=0;
   for (Int_t i=0;i<nseed;i++){
     AliTPCseed * seed = (AliTPCseed*) fSeeds->UncheckedAt(i);
-    if (!seed) continue;
     AliESDtrack *esd=event->GetTrack(i);
     seed->CookdEdx(0.02,0.6);
     CookLabel(seed,0.1); //For comparison only
-    if (seed->GetNumberOfClusters()>60){
-      esd->UpdateTrackParams(seed,AliESDtrack::kTPCout);
-      ntracks++;
-    }
+    esd->UpdateTrackParams(seed,AliESDtrack::kTPCout);
   }
-  Info("PropagateBack","Number of back propagated tracks %d",ntracks);
   fEvent =0;
   //WriteTracks();
   return 0;
@@ -2513,10 +2484,10 @@ void AliTPCtrackerMI::ReadSeeds(AliESD *event, Int_t direction)
   if (fSeeds) 
     DeleteSeeds();
   if (!fSeeds){   
-    fSeeds = new TObjArray(nentr);
+    fSeeds = new TObjArray;
   }
-  UnsignClusters();
-  //  Int_t ntrk=0;  
+  
+  //  Int_t ntrk=0;
   for (Int_t i=0; i<nentr; i++) {
     AliESDtrack *esd=event->GetTrack(i);
     ULong_t status=esd->GetStatus();    
@@ -2524,21 +2495,6 @@ void AliTPCtrackerMI::ReadSeeds(AliESD *event, Int_t direction)
     AliTPCseed *seed = new AliTPCseed(t,t.GetAlpha());
     if ((status==AliESDtrack::kTPCin)&&(direction==1)) seed->ResetCovariance(); 
     if ( direction ==2 &&(status & AliESDtrack::kTRDrefit) == 0 ) seed->ResetCovariance();
-    if ( direction ==2 && ((status & AliESDtrack::kTPCout) == 0) ) {
-      fSeeds->AddAt(0,i);
-      delete seed;
-      continue;    
-    }
-    if ( direction ==2 &&(status & AliESDtrack::kTRDrefit) > 0 )  {
-      Double_t par0[5],par1[5],x;
-      esd->GetInnerExternalParameters(x,par0);
-      esd->GetExternalParameters(x,par1);
-      Double_t delta1 = TMath::Abs(par0[4]-par1[4])/(0.000000001+TMath::Abs(par0[4]+par1[4]));
-      Double_t delta2 = TMath::Abs(par0[3]-par1[3]);
-      //reset covariance if suspicious 
-      if ( (delta1>0.1) || (delta2>0.006))
-	seed->ResetCovariance();
-    }
 
     //
     //
@@ -2551,8 +2507,6 @@ void AliTPCtrackerMI::ReadSeeds(AliESD *event, Int_t direction)
     if (alpha < 0.            ) alpha += 2.*TMath::Pi();
     Int_t ns=Int_t(alpha/fSectors->GetAlpha())%fN;
     alpha =ns*fSectors->GetAlpha() + fSectors->GetAlphaShift();
-    if (alpha<-TMath::Pi()) alpha += 2*TMath::Pi();
-    if (alpha>=TMath::Pi()) alpha -= 2*TMath::Pi();
     alpha-=seed->GetAlpha();  
     if (!seed->Rotate(alpha)) {
       delete seed;
@@ -2571,26 +2525,8 @@ void AliTPCtrackerMI::ReadSeeds(AliESD *event, Int_t direction)
     //	seed = seed2;
     //  }
     //}
-    //
-    // sign clusters
-    for (Int_t irow=0;irow<160;irow++){
-      Int_t index = seed->GetClusterIndex2(irow);    
-      if (index>0){ 
-	//
-	AliTPCclusterMI * cl = GetClusterMI(index);
-	seed->fClusterPointer[irow] = cl;
-	if (cl){
-	  if ((index & 0x8000)==0){
-	    cl->Use(10);  // accepted cluster	  
-	  }else{
-	    cl->Use(6);   // close cluster not accepted
-	  }	
-      	}else{
-	   Info("ReadSeeds","Not found cluster");
-	}
-      }
-    }
-    fSeeds->AddAt(seed,i);
+    
+    fSeeds->AddLast(seed);
   }
 }
 
@@ -4497,10 +4433,14 @@ Int_t AliTPCtrackerMI::PropagateBack(TObjArray * arr)
       fSectors = fInnerSec;
       //FollowBackProlongation(*pt,fInnerSec->GetNRows()-1);
       //fSectors = fOuterSec;
-      FollowBackProlongation(*pt,fInnerSec->GetNRows()+fOuterSec->GetNRows()-1);     
-      //if (pt->GetNumberOfClusters()<(pt->fEsd->GetTPCclusters(0)) ){
+      FollowBackProlongation(*pt,fInnerSec->GetNRows()+fOuterSec->GetNRows()-1);
+     
+      //if (fDebug>1 && pt->GetNumberOfClusters()<20 && pt->GetLabel()>0 ){
       //	Error("PropagateBack","Not prolonged track %d",pt->GetLabel());
-      //	FollowBackProlongation(*pt2,fInnerSec->GetNRows()+fOuterSec->GetNRows()-1);
+      //	fSectors = fInnerSec;
+      //FollowBackProlongation(*pt2,fInnerSec->GetNRows()-1);
+      //fSectors = fOuterSec;
+      //FollowBackProlongation(*pt2,fInnerSec->GetNRows()+fOuterSec->GetNRows()-1);
       //}
     }      
   }
@@ -4514,12 +4454,16 @@ Int_t AliTPCtrackerMI::PropagateForward2(TObjArray * arr)
   // make forward propagation
   //
   Int_t nseed= arr->GetEntriesFast();
-  //
   for (Int_t i=0;i<nseed;i++){
     AliTPCseed *pt = (AliTPCseed*)arr->UncheckedAt(i);
     if (pt) { 
+      AliTPCseed *pt2 = new AliTPCseed(*pt);
       FollowProlongation(*pt,0);
-    }
+      if (pt->GetNumberOfClusters()<35 && pt->GetLabel()>0 ){
+	FollowProlongation(*pt2,0);
+      }
+      delete pt2;
+    }      
   }
   return 0;
 }
@@ -4529,7 +4473,7 @@ Int_t AliTPCtrackerMI::PropagateForward()
 {
   //
   // propagate track forward
-  //UnsignClusters();
+  UnsignClusters();
   Int_t nseed = fSeeds->GetEntriesFast();
   for (Int_t i=0;i<nseed;i++){
     AliTPCseed *pt = (AliTPCseed*)fSeeds->UncheckedAt(i);
@@ -4947,8 +4891,6 @@ AliTPCseed::AliTPCseed():AliTPCtrack(){
   fSeed1 =-1;
   fSeed2 =-1;
   fCurrentCluster =0;
-  fCurrentSigmaY2=0;
-  fCurrentSigmaZ2=0;
 }
 
 AliTPCseed::AliTPCseed(const AliTPCtrack &t):AliTPCtrack(t){
@@ -4963,7 +4905,7 @@ AliTPCseed::AliTPCseed(const AliTPCtrack &t):AliTPCtrack(t){
   for (Int_t i=0;i<160;i++) {
     fClusterPointer[i] = 0;
     Int_t index = t.GetClusterIndex(i);
-    if (index>=-1){ 
+    if (index>0) {
       SetClusterIndex2(i,index);
     }
     else{
@@ -4976,8 +4918,7 @@ AliTPCseed::AliTPCseed(const AliTPCtrack &t):AliTPCtrack(t){
   fSeed1 =-1;
   fSeed2 =-1;
   fCurrentCluster =0;
-  fCurrentSigmaY2=0;
-  fCurrentSigmaZ2=0;
+
 }
 
 AliTPCseed::AliTPCseed(const AliKalmanTrack &t, Double_t a):AliTPCtrack(t,a){
@@ -5003,9 +4944,6 @@ AliTPCseed::AliTPCseed(const AliKalmanTrack &t, Double_t a):AliTPCtrack(t,a){
   fSeed1 =-1;
   fSeed2 =-1;
   fCurrentCluster =0;
-  fCurrentSigmaY2=0;
-  fCurrentSigmaZ2=0;
-
 }
 
 AliTPCseed::AliTPCseed(UInt_t index, const Double_t xx[5], const Double_t cc[15], 
@@ -5032,8 +4970,7 @@ AliTPCseed::AliTPCseed(UInt_t index, const Double_t xx[5], const Double_t cc[15]
   fSeed1 =-1;
   fSeed2 =-1;
   fCurrentCluster =0;
-  fCurrentSigmaY2=0;
-  fCurrentSigmaZ2=0;
+
 }
 
 AliTPCseed::~AliTPCseed(){

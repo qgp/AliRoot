@@ -22,13 +22,7 @@
 #endif
 
 #include "TVirtualMCStack.h"
-//#include "TVirtualMCApplication.h"
-#ifndef WITH_ROOT
-#include "TFluka.h"
-#else
-#include "TFlukaGeo.h"
-#endif
-
+#include "TVirtualMCApplication.h"
 #include "TParticle.h"
 #include "TVector3.h"
 
@@ -100,7 +94,6 @@ extern "C" {
     Int_t  nprim  = cppstack->GetNprimary();
 //  Get the next particle from the stack
     particle  = cppstack->PopNextTrack(itrack);
-    ((TFluka*)fluka)->SetTrackIsNew(kTRUE);
 
 //  Is this a secondary not handled by Fluka, i.e. a particle added by user action ?
     lastParticleWasPrimary = particleIsPrimary;

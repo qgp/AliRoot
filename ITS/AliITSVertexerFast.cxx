@@ -15,7 +15,7 @@
 #include <Riostream.h>
 #include <TArrayF.h>
 #include <TRandom.h>
-#include "AliESDVertex.h"
+#include "AliITSVertex.h"
 #include <AliITSVertexerFast.h>
 #include "AliHeader.h"
 #include "AliGenEventHeader.h"
@@ -45,7 +45,6 @@ AliITSVertexerFast::AliITSVertexerFast(Double_t *smear):AliITSVertexer() {
   // Standard constructor
   fSmear = new Double_t[3];
   for(Int_t i=0;i<3;i++)fSmear[i]=smear[i];
-  Info("AliITSVertexerFast","Gaussian smaring of the generated vertex. Parameters %f12.5 , %f12.5 , %f12.5 \n",fSmear[0],fSmear[1],fSmear[2]);
 }
 
 //______________________________________________________________________
@@ -56,7 +55,7 @@ AliITSVertexerFast::~AliITSVertexerFast(){
 }
 
 //______________________________________________________________________
-AliESDVertex* AliITSVertexerFast::FindVertexForCurrentEvent(Int_t evnumb){
+AliITSVertex* AliITSVertexerFast::FindVertexForCurrentEvent(Int_t evnumb){
   // Defines the AliITSVertex for the current event
   fCurrentVertex = 0;
   AliRunLoader *rl =AliRunLoader::GetRunLoader();
@@ -74,7 +73,7 @@ AliESDVertex* AliITSVertexerFast::FindVertexForCurrentEvent(Int_t evnumb){
   }
   char name[30];
   sprintf(name,"Vertex_%d",evnumb);
-  fCurrentVertex = new AliESDVertex(vrtx,fSmear,name);
+  fCurrentVertex = new AliITSVertex(vrtx,fSmear,name);
   fCurrentVertex->SetTruePos(vrttrue);
   return fCurrentVertex;
 }

@@ -61,7 +61,7 @@
 // --- AliRoot header files ---
 #include "AliEMCALGetter.h"
 #include "AliEMCALClusterizerv1.h"
-#include "AliEMCALRecPoint.h"
+#include "AliEMCALTowerRecPoint.h"
 #include "AliEMCALDigit.h"
 #include "AliEMCALDigitizer.h"
 #include "AliEMCAL.h"
@@ -128,8 +128,9 @@ void AliEMCALClusterizerv1::Exec(Option_t * option)
   AliEMCALGetter * gime = AliEMCALGetter::Instance(GetTitle()) ;
 
   if (fLastEvent == -1) 
-    fLastEvent = gime->MaxEvent() - 1;
-
+    fLastEvent = gime->MaxEvent() - 1 ;
+  else 
+    fLastEvent = TMath::Min(fFirstEvent, gime->MaxEvent());
   Int_t nEvents   = fLastEvent - fFirstEvent + 1;
 
   Int_t ievent ;
@@ -164,7 +165,7 @@ void AliEMCALClusterizerv1::Exec(Option_t * option)
 }
 
 //____________________________________________________________________________
-Bool_t AliEMCALClusterizerv1::FindFit(AliEMCALRecPoint * emcRP, AliEMCALDigit ** maxAt, Float_t * maxAtEnergy,
+Bool_t AliEMCALClusterizerv1::FindFit(AliEMCALTowerRecPoint * emcRP, AliEMCALDigit ** maxAt, Float_t * maxAtEnergy,
 				    Int_t nPar, Float_t * fitparameters) const
 { 
   // Calls TMinuit to fit the energy distribution of a cluster with several maxima 
@@ -198,7 +199,7 @@ Bool_t AliEMCALClusterizerv1::FindFit(AliEMCALRecPoint * emcRP, AliEMCALDigit **
   for(iDigit = 0; iDigit < nDigits; iDigit++){
     digit = maxAt[iDigit]; 
 
-    Int_t relid[2] ;
+    Int_t relid[3] ;
     Float_t x = 0.;
     Float_t z = 0.;
     geom->AbsToRelNumbering(digit->GetId(), relid) ;
@@ -291,7 +292,7 @@ void AliEMCALClusterizerv1::InitParameters()
 { 
   // Initializes the parameters for the Clusterizer
   fNumberOfECAClusters = 0;
-  fECAClusteringThreshold   = 0.0135;  // must be adjusted according to the noise leve set by digitizer
+  fECAClusteringThreshold   = 0.0045;  // must be adjusted according to the noise leve set by digitizer
   fECALocMaxCut = 0.03 ;
   fECAW0     = 4.5 ;
   fTimeGate = 1.e-8 ; 
@@ -313,29 +314,36 @@ Int_t AliEMCALClusterizerv1::AreNeighbours(AliEMCALDigit * d1, AliEMCALDigit * d
 
   Int_t rv = 0 ; 
 
-  Int_t relid1[2] ; 
+  Int_t relid1[3] ; 
   geom->AbsToRelNumbering(d1->GetId(), relid1) ; 
 
-  Int_t relid2[2] ; 
+  Int_t relid2[3] ; 
   geom->AbsToRelNumbering(d2->GetId(), relid2) ; 
   
+  if ( (relid1[0] == relid2[0])){ // inside the same EMCAL Arm 
+    Int_t rowdiff = TMath::Abs( relid1[1] - relid2[1] ) ;  
+    Int_t coldiff = TMath::Abs( relid1[2] - relid2[2] ) ;  
+    
+    if (( coldiff <= 1 )  && ( rowdiff <= 1 )){
+      if(TMath::Abs(d1->GetTime() - d2->GetTime() ) < fTimeGate)
+        rv = 1 ; 
+    }
+    else {
+      if((relid2[1] > relid1[1]) && (relid2[2] > relid1[2]+1)) 
+	rv = 2; //  Difference in row numbers is too large to look further 
+    }
 
-  Int_t rowdiff = TMath::Abs( relid1[0] - relid2[0] ) ;  
-  Int_t coldiff = TMath::Abs( relid1[1] - relid2[1] ) ;  
-  
-  if (( coldiff <= 1 )  && ( rowdiff <= 1 )){
-    if(TMath::Abs(d1->GetTime() - d2->GetTime() ) < fTimeGate)
-      rv = 1 ; 
-  }
+  } 
   else {
-    if((relid2[0] > relid1[0]) && (relid2[1] > relid1[1]+1)) 
-      rv = 2; //  Difference in row numbers is too large to look further 
+    
+    if(relid1[0] < relid2[0])  
+      rv=0 ;
   }
- 
+
   if (gDebug == 2 ) 
-    printf("AreNeighbours: neighbours=%d, id1=%d, relid1=%d,%d \n id2=%d, relid2=%d,%d ", 
-	 rv, d1->GetId(), relid1[0], relid1[1],
-	 d2->GetId(), relid2[0], relid2[1]) ;   
+    printf("AreNeighbours: neighbours=%d, id1=%d, relid1=%d,%d,%d \n id2=%d, relid2=%d,%d,%d ", 
+	 rv, d1->GetId(), relid1[0], relid1[1], relid1[2],
+	 d2->GetId(), relid2[0], relid2[1], relid2[2]) ;   
   
   return rv ; 
 }
@@ -367,12 +375,12 @@ void AliEMCALClusterizerv1::WriteRecPoints()
 
   //Evaluate position, dispersion and other RecPoint properties for EC section
   for(index = 0; index < aECARecPoints->GetEntries(); index++)
-    (dynamic_cast<AliEMCALRecPoint *>(aECARecPoints->At(index)))->EvalAll(fECAW0,digits) ;
+    (dynamic_cast<AliEMCALTowerRecPoint *>(aECARecPoints->At(index)))->EvalAll(fECAW0,digits) ;
   
   aECARecPoints->Sort() ;
 
   for(index = 0; index < aECARecPoints->GetEntries(); index++)
-    (dynamic_cast<AliEMCALRecPoint *>(aECARecPoints->At(index)))->SetIndexInList(index) ;
+    (dynamic_cast<AliEMCALTowerRecPoint *>(aECARecPoints->At(index)))->SetIndexInList(index) ;
 
   aECARecPoints->Expand(aECARecPoints->GetEntriesFast()) ; 
   
@@ -426,7 +434,7 @@ void AliEMCALClusterizerv1::MakeClusters()
   while ( (digit = dynamic_cast<AliEMCALDigit *>(nextdigit())) ) { // scan over the list of digitsC
     AliEMCALRecPoint * clu = 0 ; 
     
-    TArrayI clusterECAdigitslist(50000);   
+    TArrayI clusterECAdigitslist(50);   
  
     Bool_t inECA = kFALSE;
     if( geom->IsInECA(digit->GetId()) ) {
@@ -445,9 +453,10 @@ void AliEMCALClusterizerv1::MakeClusters()
 	// start a new Tower RecPoint
 	if(fNumberOfECAClusters >= aECARecPoints->GetSize()) 
 	  aECARecPoints->Expand(2*fNumberOfECAClusters+1) ;
-	AliEMCALRecPoint * rp = new  AliEMCALRecPoint("") ; 
+	AliEMCALTowerRecPoint * rp = new  AliEMCALTowerRecPoint("") ; 
+	rp->SetECA() ; 
 	aECARecPoints->AddAt(rp, fNumberOfECAClusters) ;
-	clu = dynamic_cast<AliEMCALRecPoint *>(aECARecPoints->At(fNumberOfECAClusters)) ; 
+	clu = dynamic_cast<AliEMCALTowerRecPoint *>(aECARecPoints->At(fNumberOfECAClusters)) ; 
   	fNumberOfECAClusters++ ; 
 	clu->AddDigit(*digit, Calibrate(digit->GetAmp())) ; 
 	clusterECAdigitslist[iDigitInECACluster] = digit->GetIndexInList() ;	
@@ -512,7 +521,7 @@ Double_t  AliEMCALClusterizerv1::ShowerShape(Double_t r)
 }
 
 //____________________________________________________________________________
-void  AliEMCALClusterizerv1::UnfoldCluster(AliEMCALRecPoint * /*iniTower*/, 
+void  AliEMCALClusterizerv1::UnfoldCluster(AliEMCALTowerRecPoint * /*iniTower*/, 
 					   Int_t /*nMax*/, 
 					   AliEMCALDigit ** /*maxAt*/, 
 					   Float_t * /*maxAtEnergy*/) const
@@ -590,7 +599,7 @@ void AliEMCALClusterizerv1::PrintRecPoints(Option_t * option)
     printf("Index    Ene(GeV) Multi Module     phi     r   theta    X    Y      Z   Dispersion Lambda 1   Lambda 2  # of prim  Primaries list\n") ;      
     
     for (index = 0 ; index < aECARecPoints->GetEntries() ; index++) {
-      AliEMCALRecPoint * rp = dynamic_cast<AliEMCALRecPoint * >(aECARecPoints->At(index)) ; 
+      AliEMCALTowerRecPoint * rp = dynamic_cast<AliEMCALTowerRecPoint * >(aECARecPoints->At(index)) ; 
       TVector3  globalpos;  
       rp->GetGlobalPosition(globalpos);
       TVector3  localpos;  
@@ -600,8 +609,8 @@ void AliEMCALClusterizerv1::PrintRecPoints(Option_t * option)
       Int_t * primaries; 
       Int_t nprimaries;
       primaries = rp->GetPrimaries(nprimaries);
-      printf("\n%6d  %8.4f  %3d     %4.1f    %4.1f %4.1f  %4.1f %4.1f %4.1f    %4.1f   %4f  %4f    %2d     : ", 
-	     rp->GetIndexInList(), rp->GetEnergy(), rp->GetMultiplicity(),
+      printf("\n%6d  %8.4f  %3d     %2d     %4.1f    %4.1f %4.1f  %4.1f %4.1f %4.1f    %4.1f   %4f  %4f    %2d     : ", 
+	     rp->GetIndexInList(), rp->GetEnergy(), rp->GetMultiplicity(), rp->GetEMCALArm(), 
 	     globalpos.X(), globalpos.Y(), globalpos.Z(), localpos.X(), localpos.Y(), localpos.Z(), 
 	     rp->GetDispersion(), lambda[0], lambda[1], nprimaries) ; 
       for (Int_t iprimary=0; iprimary<nprimaries; iprimary++) {

@@ -385,7 +385,6 @@ void AliPHOS::FillESD(AliESD* esd) const
   for (Int_t recpart=0; recpart<nOfRecParticles; recpart++) {
     AliESDCaloTrack *ct = new AliESDCaloTrack((AliPHOSRecParticle*)recParticles->At(recpart));
     esd->AddCaloTrack(ct);
-    delete ct;
   }
 }       
 

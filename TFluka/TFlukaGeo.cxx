@@ -91,8 +91,7 @@ TFluka::TFluka(const char *title, Int_t verbosity, Bool_t isRootGeometrySupporte
    fVerbosityLevel(verbosity),
    sInputFileName(""),
    fTrackIsEntering(0),
-   fTrackIsExiting(0),
-   fTrackIsNew(0)
+   fTrackIsExiting(0)
 {
   // create geometry interface
   if (fVerbosityLevel >=3)
@@ -546,12 +545,12 @@ void TFluka::InitPhysics()
   Double_t fCut;
   Float_t fLastMaterial = fGeom->GetLastMaterialIndex();
   printf("   last FLUKA material is %g\n", fLastMaterial);
-
 // construct file names
-  TString sAliceCoreInp = getenv("ALICE_ROOT");
-  sAliceCoreInp +="/TFluka/input/";
-  TString sAliceTmp = "flukaMat.inp";
-  TString sAliceInp = GetInputFileName();
+  TString sAliceInp = getenv("ALICE_ROOT");
+  sAliceInp +="/TFluka/input/";
+  TString sAliceTmp ="./flukaMat.inp";
+  TString sAliceCoreInp = sAliceInp;
+  sAliceInp += GetInputFileName();
   sAliceCoreInp += GetCoreInputFileName();
   ifstream AliceCoreInp(sAliceCoreInp.Data());
   ifstream AliceFlukaMat(sAliceTmp.Data());
@@ -1967,7 +1966,7 @@ void TFluka::TrackPosition(TLorentzVector& position) const
 // TRACKR.ytrack = y-position of the last point
 // TRACKR.ztrack = z-position of the last point
   Int_t caller = GetCaller();
-  if (caller == 3 || caller == 6 || caller == 11 || caller == 12) { //bxdraw,endraw,usdraw
+  if (caller == 1 || caller == 3 || caller == 6 || caller == 11 || caller == 12) { //bxdraw,endraw,usdraw
     position.SetX(GetXsco());
     position.SetY(GetYsco());
     position.SetZ(GetZsco());
@@ -1999,7 +1998,7 @@ void TFluka::TrackPosition(Double_t& x, Double_t& y, Double_t& z) const
 // TRACKR.ytrack = y-position of the last point
 // TRACKR.ztrack = z-position of the last point
   Int_t caller = GetCaller();
-  if (caller == 3 || caller == 6 || caller == 11 || caller == 12) { //bxdraw,endraw,usdraw
+  if (caller == 1 || caller == 3 || caller == 6 || caller == 11 || caller == 12) { //bxdraw,endraw,usdraw
     x = GetXsco();
     y = GetYsco();
     z = GetZsco();
@@ -2090,7 +2089,7 @@ Double_t TFluka::TrackStep() const
 // Return the length in centimeters of the current step
 // TRACKR.ctrack = total curved path
   Int_t caller = GetCaller();
-  if (caller == 11 || caller==12 || caller == 3 || caller == 6) //bxdraw,endraw,usdraw
+  if (caller == 1 || caller == 3 || caller == 6) //bxdraw,endraw,usdraw
     return 0.0;
   else if (caller == 4) //mgdraw
     return TRACKR.ctrack;
@@ -2103,7 +2102,7 @@ Double_t TFluka::TrackLength() const
 {
 // TRACKR.cmtrck = cumulative curved path since particle birth
   Int_t caller = GetCaller();
-  if (caller == 11 || caller==12 || caller == 3 || caller == 4 || caller == 6) //bxdraw,endraw,mgdraw,usdraw
+  if (caller == 1 || caller == 3 || caller == 4 || caller == 6) //bxdraw,endraw,mgdraw,usdraw
     return TRACKR.cmtrck;
   else 
     return -1.0;
@@ -2115,7 +2114,7 @@ Double_t TFluka::TrackTime() const
 // Return the current time of flight of the track being transported
 // TRACKR.atrack = age of the particle
   Int_t caller = GetCaller();
-  if (caller == 11 || caller==12 || caller == 3 || caller == 4 || caller == 6) //bxdraw,endraw,mgdraw,usdraw
+  if (caller == 1 || caller == 3 || caller == 4 || caller == 6) //bxdraw,endraw,mgdraw,usdraw
     return TRACKR.atrack;
   else 
     return -1;
@@ -2133,10 +2132,6 @@ Double_t TFluka::Edep() const
 // if TRACKR.ntrack > 0, TRACKR.mtrack > 0:
 // -->energy loss distributed along the track
 // TRACKR.dtrack = energy deposition of the jth deposition even
-
-  // If coming from bxdraw we have 2 steps of 0 length and 0 edep
-  Int_t caller = GetCaller();
-  if (caller == 11 || caller==12) return 0.0;
   Double_t sum = 0;
   for ( Int_t j=0;j<TRACKR.mtrack;j++) {
     sum +=TRACKR.dtrack[j];  
@@ -2202,8 +2197,6 @@ Double_t TFluka::Etot() const
 //______________________________________________________________________________ 
 Bool_t   TFluka::IsNewTrack() const
 {
-// Return true for the first call of Stepping()
-/*
 // True if the track has positive cummulative length
   Int_t caller = GetCaller();
   if (caller != 2) { // not eedraw
@@ -2214,8 +2207,6 @@ Bool_t   TFluka::IsNewTrack() const
   }
   else
     return 0;
-*/    
-   return fTrackIsNew;
 }
 
 //______________________________________________________________________________ 
@@ -2227,7 +2218,7 @@ Bool_t   TFluka::IsTrackInside() const
 // it will be shortened to reach only the boundary.
 // Therefore IsTrackInside() is always true.
   Int_t caller = GetCaller();
-  if (caller == 11 || caller==12)  // bxdraw
+  if (caller == 1)  // bxdraw
     return 0;
   else
     return 1;
@@ -2607,13 +2598,6 @@ void TFluka::Gdtom(Double_t* xd, Double_t* xm, Int_t iflag)
 //
 // ---
    fGeom->Gdtom(xd,xm,iflag);   
-}
-//______________________________________________________________________________
-void TFluka::SetMreg(Int_t l) 
-{
-// Set current fluka region
-   fCurrentFlukaRegion = l;
-   fGeom->SetMreg(l);
 }
 
 // ===============================================================

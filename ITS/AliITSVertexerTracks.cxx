@@ -23,21 +23,18 @@
 //---- standard headers ----
 #include <Riostream.h>
 //---- Root headers --------
-#include <TKey.h>
 #include <TFile.h>
 #include <TTree.h>
 #include <TVector3.h>
 #include <TMatrixD.h>
-#include <TRandom.h>
+#include <TRandom.h> // TEMPORARY !!!!!!!
 //---- AliRoot headers -----
 #include <AliRun.h>
 #include "AliKalmanTrack.h"
 #include "AliITSStrLine.h"
 #include "AliITStrackV2.h"
-#include "AliESDVertex.h"
+#include "AliITSVertex.h"
 #include "AliITSVertexerTracks.h"
-#include "AliESD.h"
-#include "AliESDtrack.h"
 
 
 ClassImp(AliITSVertexerTracks)
@@ -48,62 +45,35 @@ AliITSVertexerTracks::AliITSVertexerTracks():AliITSVertexer() {
 //
 // Default constructor
 //
-  fInFile  = 0;
-  fOutFile = 0;
+
   SetVtxStart();
   SetMinTracks();
+  SetUseThrustFrame();
+  SetPhiThrust();
+  fTrksToSkip = 0;
+  fNTrksToSkip = 0;
+  for(Int_t i=0; i<3; i++)fInitPos[i] = 0.;
+}
+
+//----------------------------------------------------------------------------
+AliITSVertexerTracks::AliITSVertexerTracks(Double_t field, TString fn,
+					   Double_t xStart,Double_t yStart,
+					   Int_t useThFr)
+                                          :AliITSVertexer(fn) {
+//
+// Standard constructor
+//
+
+  SetField(field);
+  SetVtxStart(xStart,yStart);
+  SetMinTracks();
+  SetUseThrustFrame(useThFr);
+  SetPhiThrust();
   fTrksToSkip = 0;
   fNTrksToSkip = 0;
   for(Int_t i=0; i<3; i++)fInitPos[i] = 0.;
 }
 //----------------------------------------------------------------------------
-AliITSVertexerTracks::AliITSVertexerTracks(TFile *inFile,TFile *outFile,
-                                           Double_t field,
-                                           Int_t fEv,Int_t lEv,
-                                           Double_t xStart,Double_t yStart) {
-//
-// Standard constructor
-//
-  fCurrentVertex = 0;
-  fInFile  = inFile;
-  fOutFile = outFile;
-  SetFirstEvent(fEv);
-  SetLastEvent(lEv);
-  SetField(field);
-  SetVtxStart(xStart,yStart);
-  SetMinTracks();
-  fTrksToSkip = 0;
-  fNTrksToSkip = 0;
-  for(Int_t i=0; i<3; i++) fInitPos[i] = 0.;
-  SetDebug();
-}
-//----------------------------------------------------------------------------
-AliITSVertexerTracks::AliITSVertexerTracks(Double_t field, TString fn,
-					   Double_t xStart,Double_t yStart)
-                                          :AliITSVertexer(fn) {
-//
-// Alternative constructor
-//
-  fInFile  = 0;
-  fOutFile = 0;
-  SetField(field);
-  SetVtxStart(xStart,yStart);
-  SetMinTracks();
-  fTrksToSkip = 0;
-  fNTrksToSkip = 0;
-  for(Int_t i=0; i<3; i++) fInitPos[i] = 0.;
-}
-//-----------------------------------------------------------------------------
-AliITSVertexerTracks::~AliITSVertexerTracks() {
-  // Default Destructor
-  // The objects poited by the following pointers are not owned
-  // by this class and are not deleted
-
-  fCurrentVertex = 0;
-  fInFile        = 0;
-  fOutFile       = 0;
-}
-//-----------------------------------------------------------------------------
 Bool_t AliITSVertexerTracks::CheckField() const {
 //
 // Check if the conv. const. has been set
@@ -138,7 +108,6 @@ void AliITSVertexerTracks::FindVertices() {
   // Check if the conv. const. has been set
   if(!CheckField()) return;
 
-  TDirectory *curdir = 0;
 
   // loop over events
   for(Int_t ev=fFirstEvent; ev<=fLastEvent; ev++) {
@@ -152,67 +121,11 @@ void AliITSVertexerTracks::FindVertices() {
     }
 
     if(fDebug) fCurrentVertex->PrintStatus();
-
-    // write vertex to file
     TString vtxName = "Vertex_";
     vtxName += ev;
-    fCurrentVertex->SetName(vtxName.Data()); 
+    //    fCurrentVertex->SetName(vtxName.Data()); 
     fCurrentVertex->SetTitle("VertexerTracks");
-    //WriteCurrentVertex();
-    curdir = gDirectory;
-    fOutFile->cd();
-    fCurrentVertex->Write();
-    curdir->cd();
-    fCurrentVertex = 0;
-  } // loop over events
-
-  return;
-}
-//---------------------------------------------------------------------------
-void AliITSVertexerTracks::FindVerticesESD() {
-//
-// Vertices for all events from fFirstEvent to fLastEvent
-//
-
-  // Check if the conv. const. has been set
-  if(!CheckField()) return;
-
-  TDirectory *curdir = 0;
-
-  fInFile->cd();
-  TKey *key=0;
-  TIter next(fInFile->GetListOfKeys());
-  // loop on events in file
-  while ((key=(TKey*)next())!=0) {
-    AliESD *esdEvent=(AliESD*)key->ReadObj();
-    if(!esdEvent) { 
-      printf("AliITSVertexerTracks::FindVerticesESD(): not an ESD!\n"); 
-      return; 
-    }
-    Int_t ev = (Int_t)esdEvent->GetEventNumber();
-    if(ev<fFirstEvent || ev>fLastEvent) { delete esdEvent; continue; }
-    if(ev % 100 == 0 || fDebug) 
-      printf("--- Processing event %d of %d ---\n",ev,fLastEvent-fFirstEvent);
-
-    FindVertexForCurrentEvent(esdEvent);
-
-    if(!fCurrentVertex) {
-      printf("AliITSVertexerTracks::FindVertixesESD():\n no vertex for event %d\n",ev);
-      continue;
-    }
-
-    cout<<"VERTICE TROVATO\n";
-    if(fDebug) fCurrentVertex->PrintStatus();
-
-    // write the ESD to file
-    curdir = gDirectory;
-    Char_t ename[100];
-    sprintf(ename,"%d",ev);
-    fOutFile->cd();
-    esdEvent->Dump();
-    esdEvent->Write(ename,TObject::kOverwrite);
-    curdir->cd();
-    fCurrentVertex = 0;
+    WriteCurrentVertex();
   } // loop over events
 
   return;
@@ -281,11 +194,12 @@ void AliITSVertexerTracks::PrintStatus() const {
   printf(" Vertex position after vertex finder (%f, %f, %f)\n",fInitPos[0],fInitPos[1],fInitPos[2]);
   printf(" Number of tracks in array: %d\n",(Int_t)fTrkArray.GetEntriesFast());
   printf(" Minimum # tracks required in fit: %d\n",fMinTracks);
+  printf(" Using Thrust Frame: %d    fPhiThrust = %f\n",fUseThrustFrame,fPhiThrust);
 
   return;
 }
 //----------------------------------------------------------------------------
-AliESDVertex* AliITSVertexerTracks::FindVertexForCurrentEvent(Int_t evnumb) {
+AliITSVertex* AliITSVertexerTracks::FindVertexForCurrentEvent(Int_t evnumb) {
 //
 // Vertex for current event
 //
@@ -294,7 +208,8 @@ AliESDVertex* AliITSVertexerTracks::FindVertexForCurrentEvent(Int_t evnumb) {
   // get tree with tracks from input file
   TString treeName = "TreeT_ITS_";
   treeName += evnumb;
-  TTree *trkTree=(TTree*)fInFile->Get(treeName.Data());
+  //  TTree *trkTree=(TTree*)fInFile->Get(treeName.Data()); masera
+  TTree *trkTree=0;
   if(!trkTree) return fCurrentVertex;
 
 
@@ -309,61 +224,15 @@ AliESDVertex* AliITSVertexerTracks::FindVertexForCurrentEvent(Int_t evnumb) {
 
   // VERTEX FITTER
   ComputeMaxChi2PerTrack(nTrks);
+  if(fUseThrustFrame) ThrustFinderXY();
+  if(fDebug) printf(" thrust found: phi = %f\n",fPhiThrust);
   VertexFitter();
   if(fDebug) printf(" vertex fit completed\n");
 
-  return fCurrentVertex;
-}
-//----------------------------------------------------------------------------
-AliESDVertex* AliITSVertexerTracks::FindVertexForCurrentEvent(AliESD *esdEvent)
-{
-//
-// Vertex for current ESD event
-//
-  fCurrentVertex = 0;
-  Double_t vtx[3],cvtx[6];
-
-  // put tracks reco in ITS in a tree
-  Int_t entr = (Int_t)esdEvent->GetNumberOfTracks();
-  TTree *trkTree = new TTree("TreeT_ITS","its tracks");
-  AliITStrackV2 *itstrack = 0;
-  trkTree->Branch("tracks","AliITStrackV2",&itstrack,entr,0);
-
-  for(Int_t i=0; i<entr; i++) {
-    AliESDtrack *esdTrack = (AliESDtrack*)esdEvent->GetTrack(i);
-    if(!esdTrack->GetStatus()&AliESDtrack::kITSin)
-      { delete esdTrack; continue; }
-    itstrack = new AliITStrackV2(*esdTrack);
-    trkTree->Fill();
-    itstrack = 0;
-    delete esdTrack; 
-  }
-  delete itstrack;
-
-  // preselect tracks and propagate them to initial vertex position
-  Int_t nTrks = PrepareTracks(*trkTree);
-  delete trkTree;
-  if(fDebug) printf(" tracks prepared: %d\n",nTrks);
-  if(nTrks < fMinTracks) { TooFewTracks(); return fCurrentVertex; }
-
-  // Set initial vertex position from ESD
-  esdEvent->GetVertex()->GetXYZ(vtx);
-  SetVtxStart(vtx[0],vtx[1]);
-
-  // VERTEX FINDER
-  VertexFinder();
-
-  // VERTEX FITTER
-  ComputeMaxChi2PerTrack(nTrks);
-  VertexFitter();
-  if(fDebug) printf(" vertex fit completed\n");
-
-  // store vertex information in ESD
-  fCurrentVertex->GetXYZ(vtx);
-  fCurrentVertex->GetCovMatrix(cvtx);
-  esdEvent->SetVertex(fCurrentVertex);
-
-  cout<<"Vertex: "<<vtx[0]<<", "<<vtx[1]<<", "<<vtx[2]<<endl;
+  TString vtxName;
+  vtxName = "Vertex_";
+  vtxName += evnumb;
+  //  fCurrentVertex->SetName(vtxName.Data());
   return fCurrentVertex;
 }
 //---------------------------------------------------------------------------
@@ -376,13 +245,117 @@ void AliITSVertexerTracks::SetSkipTracks(Int_t n,Int_t *skipped) {
   for(Int_t i=0;i<n;i++) fTrksToSkip[i] = skipped[i]; 
   return; 
 }
+//----------------------------------------------------------------------------
+Double_t AliITSVertexerTracks::SumPl(TTree &momTree,Double_t phi) const {
+//
+// Function to be maximized for thrust determination
+//
+  TVector3 u(1.,1.,0);
+  u.SetMag(1.);
+  u.SetPhi(phi);
+  Double_t pl;
+
+  Double_t sum = 0.;
+
+  TVector3* mom=0;
+  momTree.SetBranchAddress("momenta",&mom);
+  Int_t entries = (Int_t)momTree.GetEntries();
+
+  for(Int_t i=0; i<entries; i++) {
+    momTree.GetEvent(i);
+    pl = mom->Dot(u);
+    if(pl>0.) sum += pl;
+  } 
+
+  delete mom;
+
+  return sum;
+}
+//---------------------------------------------------------------------------
+void AliITSVertexerTracks::ThrustFinderXY() {
+//
+// This function looks for the thrust direction, \vec{u}, in the (x,y) plane.
+// The following function is maximized:
+// \Sum_{\vec{p}\cdot\vec{u}} \vec{p}\cdot\vec{u} / \Sum |\vec{p}| 
+// where \vec{p} = (p_x,p_y)
+//
+  Double_t pt,alpha,phi;
+  Double_t totPt;
+
+  // tree for thrust determination
+  TVector3 *ioMom = new TVector3;
+  TTree *t = new TTree("Tree_Momenta","Tree with momenta");  
+  t->Branch("momenta","TVector3",&ioMom);
+  totPt     = 0.;
+
+  AliITStrackV2 *itstrack = 0; 
+  Int_t arrEntries = (Int_t)fTrkArray.GetEntries();
+
+  // loop on tracks
+  for(Int_t i=0; i<arrEntries; i++) {
+    itstrack = (AliITStrackV2*)fTrkArray.At(i);
+    // momentum of the track at the vertex
+    pt = 1./TMath::Abs(itstrack->Get1Pt());
+    alpha = itstrack->GetAlpha();
+    phi = alpha+TMath::ASin(itstrack->GetSnp());
+    ioMom->SetX(pt*TMath::Cos(phi)); 
+    ioMom->SetY(pt*TMath::Sin(phi));
+    ioMom->SetZ(0.);
+
+    totPt   += ioMom->Pt();
+    t->Fill();
+  } // end loop on tracks
+
+  Double_t tValue=0.,tPhi=0.;
+  Double_t maxSumPl = 0.;
+  Double_t thisSumPl;
+  Double_t dPhi;
+  Int_t nSteps,iStep;
+
+  phi = 0.;
+  nSteps = 100;
+  dPhi = 2.*TMath::Pi()/(Double_t)nSteps;
+
+  for(iStep=0; iStep<nSteps; iStep++) {
+    phi += dPhi;
+    thisSumPl = SumPl(*t,phi);
+    if(thisSumPl > maxSumPl) {
+      maxSumPl = thisSumPl;
+      tPhi = phi;
+    }
+  }
+
+  phi = tPhi-dPhi;
+  nSteps = 10;
+  dPhi /= 5.;
+
+  for(iStep=0; iStep<nSteps; iStep++) {
+    phi += dPhi;
+    thisSumPl = SumPl(*t,phi);
+    if(thisSumPl > maxSumPl) {
+      maxSumPl = thisSumPl;
+      tPhi = phi;
+    }
+  }
+
+  tValue = 2.*maxSumPl/totPt;
+  if(tPhi<0.) tPhi += 2.*TMath::Pi();
+  if(tPhi>2.*TMath::Pi()) tPhi -= 2.*TMath::Pi();
+
+  SetPhiThrust(tPhi);
+
+  delete t;
+  delete ioMom;
+
+  return;
+}
 //---------------------------------------------------------------------------
 void AliITSVertexerTracks::TooFewTracks() {
 //
 // When the number of tracks is < fMinTracks the vertex is set to (0,0,0)
 // and the number of tracks to -1
 //
-  fCurrentVertex = new AliESDVertex(0.,0.,-1);
+  fCurrentVertex = new AliITSVertex(0.,0.,-1);
   return;
 }
 //---------------------------------------------------------------------------
@@ -475,6 +448,7 @@ fInitPos[1] = fNominalPos[1]+gRandom->Gaus(0.,0.0100); // 100 micron gaussian sm
   return;
 
 }
+
 //---------------------------------------------------------------------------
 void AliITSVertexerTracks::VertexFitter() {
 //
@@ -531,7 +505,7 @@ void AliITSVertexerTracks::VertexFitter() {
       alpha = t->GetAlpha();
       xlStart = fInitPos[0]*TMath::Cos(alpha)+fInitPos[1]*TMath::Sin(alpha);
       t->PropagateTo(xlStart,0.,0.);   // to vtxSeed
-      rotAngle = alpha;
+      rotAngle = alpha-fPhiThrust;
       if(alpha<0.) rotAngle += 2.*TMath::Pi();
       cosRot = TMath::Cos(rotAngle);
       sinRot = TMath::Sin(rotAngle);
@@ -632,7 +606,7 @@ void AliITSVertexerTracks::VertexFitter() {
   covmatrix[5] = V(2,2);
   
   // store data in the vertex object
-  fCurrentVertex = new AliESDVertex(position,covmatrix,chi2,nUsedTrks);
+  fCurrentVertex = new AliITSVertex(fPhiThrust,position,covmatrix,chi2,nUsedTrks);
 
   if(fDebug) {
     printf(" VertexFitter(): finish\n");
@@ -643,7 +617,7 @@ void AliITSVertexerTracks::VertexFitter() {
   return;
 }
 //----------------------------------------------------------------------------
-AliESDVertex *AliITSVertexerTracks::VertexOnTheFly(TTree &trkTree) {
+AliITSVertex *AliITSVertexerTracks::VertexOnTheFly(TTree &trkTree) {
 //
 // Return vertex from tracks in trkTree
 //
@@ -659,6 +633,8 @@ AliESDVertex *AliITSVertexerTracks::VertexOnTheFly(TTree &trkTree) {
 
   // VERTEX FITTER
   ComputeMaxChi2PerTrack(nTrks);
+  if(fUseThrustFrame) ThrustFinderXY();
+  if(fDebug) printf(" thrust found: phi = %f\n",fPhiThrust);
   VertexFitter();
   if(fDebug) printf(" vertex fit completed\n");
 

@@ -95,7 +95,7 @@ Float_t  AliEMCALPIDv1::GetCalibratedEnergy(Float_t e) const
 
 }
 //____________________________________________________________________________
-TVector3 AliEMCALPIDv1::GetMomentumDirection(AliEMCALRecPoint * emc)const 
+TVector3 AliEMCALPIDv1::GetMomentumDirection(AliEMCALTowerRecPoint * emc)const 
 { 
   // Calculates the momentum direction:
   // direction is given by IP and this RecPoint
@@ -103,12 +103,13 @@ TVector3 AliEMCALPIDv1::GetMomentumDirection(AliEMCALRecPoint * emc)const
 
   TVector3 dir(0,0,0) ; 
   TVector3 emcglobalpos ;
-  // TMatrix  dummy ;
+  TMatrix  dummy ;
   
-  emc->GetGlobalPosition(emcglobalpos) ;
+  emc->GetGlobalPosition(emcglobalpos, dummy) ;
   
 
   dir = emcglobalpos ;  
+  dir.SetZ( -dir.Z() ) ;   // why ?  
   // dir.SetMag(1.) ; Removed to avoid warings !!!!!!!!!!!!!! TO BE REVISED
 
   //account correction to the position of IP
@@ -200,10 +201,10 @@ void  AliEMCALPIDv1::MakeRecParticles(){
   recParticles->Clear();
 
   TIter next(aECARecPoints) ; 
-  AliEMCALRecPoint * eca ; 
+  AliEMCALTowerRecPoint * eca ; 
   Int_t index = 0 ; 
   AliEMCALRecParticle * rp ; 
-  while ( (eca = (AliEMCALRecPoint *)next()) ) {
+  while ( (eca = (AliEMCALTowerRecPoint *)next()) ) {
     
     new( (*recParticles)[index] ) AliEMCALRecParticle() ;
     rp = (AliEMCALRecParticle *)recParticles->At(index) ; 

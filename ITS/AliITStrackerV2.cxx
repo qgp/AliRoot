@@ -21,8 +21,6 @@
 //     dEdx analysis by: Boris Batyunya, JINR, Boris.Batiounia@cern.ch
 //-------------------------------------------------------------------------
 
-#include <new>
-
 #include <TFile.h>
 #include <TTree.h>
 #include <TRandom.h>
@@ -218,12 +216,11 @@ Int_t AliITStrackerV2::Clusters2Tracks(AliESD *event) {
 
   itsTracks.Sort();
   Int_t nentr=itsTracks.GetEntriesFast();
-  fTrackHypothesys.Expand(nentr);
+
   Int_t ntrk=0;
   for (fPass=0; fPass<2; fPass++) {
      Int_t &constraint=fConstraint[fPass]; if (constraint<0) continue;
      for (Int_t i=0; i<nentr; i++) {
-       fCurrentEsdTrack = i;
        AliITStrackV2 *t=(AliITStrackV2*)itsTracks.UncheckedAt(i);
        if (t==0) continue;           //this track has been already tracked
        Int_t tpcLabel=t->GetLabel(); //save the TPC track label
@@ -232,51 +229,29 @@ Int_t AliITStrackerV2::Clusters2Tracks(AliESD *event) {
        ResetBestTrack();
 
        for (FollowProlongation(); fI<kMaxLayer; fI++) {
-	 while (TakeNextProlongation()) {
-	    FollowProlongation();
-	 }
+          while (TakeNextProlongation()) FollowProlongation();
        }
 
-       CompressTrackHypothesys(fCurrentEsdTrack,5);  //MI change
-
-       /*
        if (fBestTrack.GetNumberOfClusters() == 0) continue;
-       
+
        if (fConstraint[fPass]) {
-	 ResetTrackToFollow(*t);
-	 if (!RefitAt(3.7, &fTrackToFollow, &fBestTrack)) continue;
-	 ResetBestTrack();
-	 }
-       
+          ResetTrackToFollow(*t);
+          if (!RefitAt(3.7, &fTrackToFollow, &fBestTrack)) continue;
+          ResetBestTrack();
+       }
+
        fBestTrack.SetLabel(tpcLabel);
        fBestTrack.CookdEdx();
        CookLabel(&fBestTrack,0.); //For comparison only
        fBestTrack.UpdateESDtrack(AliESDtrack::kITSin);
-       //UseClusters(&fBestTrack);
+       UseClusters(&fBestTrack);
        delete itsTracks.RemoveAt(i);
        ntrk++;
-       */
-       AliITStrackV2 * besttrack = GetBestHypothesys(fCurrentEsdTrack,t);
-       if (!besttrack) continue;
-       besttrack->SetLabel(tpcLabel);
-       besttrack->CookdEdx();
-       CookLabel(besttrack,0.); //For comparison only
-       besttrack->UpdateESDtrack(AliESDtrack::kITSin);
-       delete itsTracks.RemoveAt(i);
-       ntrk++;              
-       
      }
   }
-  itsTracks.Delete();
-  //
-  Int_t entries = fTrackHypothesys.GetEntriesFast();
-  for (Int_t ientry=0;ientry<entries;ientry++){
-    TObjArray * array =(TObjArray*)fTrackHypothesys.UncheckedAt(ientry);
-    if (array) array->Delete();
-    delete fTrackHypothesys.RemoveAt(ientry); 
-  }
 
-  fTrackHypothesys.Delete();
+  itsTracks.Delete();
+
   Info("Clusters2Tracks","Number of prolonged tracks: %d\n",ntrk);
 
   return 0;
@@ -365,7 +340,7 @@ Int_t AliITStrackerV2::Clusters2Tracks(TTree *tpcTree, TTree *itsTree) {
        fBestTrack.CookdEdx();
        CookLabel(&fBestTrack,0.); //For comparison only
        itsTree->Fill();
-       //UseClusters(&fBestTrack);
+       UseClusters(&fBestTrack);
        delete itsTracks.RemoveAt(i);
      }
   }
@@ -425,7 +400,7 @@ Int_t AliITStrackerV2::PropagateBack(AliESD *event) {
         //fTrackToFollow.CookdEdx();
         CookLabel(&fTrackToFollow,0.); //For comparison only
         fTrackToFollow.UpdateESDtrack(AliESDtrack::kITSout);
-        //UseClusters(&fTrackToFollow);
+        UseClusters(&fTrackToFollow);
         ntrk++;
      }
      delete t;
@@ -452,7 +427,7 @@ Int_t AliITStrackerV2::RefitInward(AliESD *event) {
     if ((esd->GetStatus()&AliESDtrack::kITSout) == 0) continue;
     if (esd->GetStatus()&AliESDtrack::kITSrefit) continue;
     if (esd->GetStatus()&AliESDtrack::kTPCout)
-      if ((esd->GetStatus()&AliESDtrack::kTPCrefit)==0) continue;
+    if ((esd->GetStatus()&AliESDtrack::kTPCrefit)==0) continue;
 
     AliITStrackV2 *t=0;
     try {
@@ -473,14 +448,11 @@ Int_t AliITStrackerV2::RefitInward(AliESD *event) {
     ResetTrackToFollow(*t);
     fTrackToFollow.ResetClusters();
 
-    if ((esd->GetStatus()&AliESDtrack::kTPCin)==0)
-      fTrackToFollow.ResetCovariance();
-
     //Refitting...
     if (RefitAt(3.7, &fTrackToFollow, t)) {
        fTrackToFollow.SetLabel(t->GetLabel());
        fTrackToFollow.CookdEdx();
-       CookLabel(&fTrackToFollow,0.0); //For comparison only
+       CookLabel(&fTrackToFollow,0.); //For comparison only
 
        if (fTrackToFollow.PropagateTo(3.,0.0028,65.19)) {//The beam pipe    
          Double_t a=fTrackToFollow.GetAlpha();
@@ -499,7 +471,7 @@ Int_t AliITStrackerV2::RefitInward(AliESD *event) {
 
 	 if (fTrackToFollow.Propagate(fv+a,xv)) {
             fTrackToFollow.UpdateESDtrack(AliESDtrack::kITSrefit);
-            //UseClusters(&fTrackToFollow);
+            UseClusters(&fTrackToFollow);
             {
             AliITSclusterV2 c; c.SetY(yv); c.SetZ(GetZ());
             c.SetSigmaY2(GetSigmaY()*GetSigmaY());
@@ -535,7 +507,6 @@ void AliITStrackerV2::FollowProlongation() {
   //--------------------------------------------------------------------
   //This function finds a track prolongation 
   //--------------------------------------------------------------------
-  Int_t skipped=0;
   while (fI>fLastLayerToTrackTo) {
     Int_t i=fI-1;
 
@@ -611,31 +582,24 @@ void AliITStrackerV2::FollowProlongation() {
     fI--;
 
     //take another prolongation
-    if (!TakeNextProlongation()){ 
-      skipped++;
-      if (fLayersNotToSkip[fI]||skipped>1) return;
-    }
+    if (!TakeNextProlongation()) 
+       if (fLayersNotToSkip[fI]) return;
+
   } 
 
   //deal with the best track
   Int_t ncl=fTrackToFollow.GetNumberOfClusters();
   Int_t nclb=fBestTrack.GetNumberOfClusters();
-  if (ncl){
-    if ( (ncl>1) && (nclb>3) && ((fTrackToFollow.GetChi2()/ncl)<(2*fBestTrack.GetChi2()/(nclb))))
-      AddTrackHypothesys(new AliITStrackV2(fTrackToFollow), fCurrentEsdTrack);
-    else if (ncl>3) AddTrackHypothesys(new AliITStrackV2(fTrackToFollow), fCurrentEsdTrack);
-    if (ncl >= nclb) {
-      Double_t chi2=fTrackToFollow.GetChi2();
-      if (chi2/ncl < kChi2PerCluster) {        
-        if (ncl > nclb ) {
-	  ResetBestTrack();
+  if (ncl)
+  if (ncl >= nclb) {
+     Double_t chi2=fTrackToFollow.GetChi2();
+     if (chi2/ncl < kChi2PerCluster) {        
+        if (ncl > nclb || chi2 < fBestTrack.GetChi2()) {
+           ResetBestTrack();
         }
-	if ( (ncl == nclb) && chi2 < fBestTrack.GetChi2()) {
-	  ResetBestTrack();
-        }	
-      }
-    }
+     }
   }
+
 }
 
 Int_t AliITStrackerV2::TakeNextProlongation() {
@@ -1145,177 +1109,3 @@ void AliITStrackerV2::UseClusters(const AliKalmanTrack *t, Int_t from) const {
   if (c->GetSigmaZ2()>0.1) c->Use();
 
 }
-
-
-void AliITStrackerV2::AddTrackHypothesys(AliITStrackV2 * track, Int_t esdindex)
-{
-  //------------------------------------------------------------------
-  // add track to the list of hypothesys
-  //------------------------------------------------------------------
-
-  if (esdindex>=fTrackHypothesys.GetEntriesFast()) fTrackHypothesys.Expand(esdindex*2+10);
-  //
-  TObjArray * array = (TObjArray*) fTrackHypothesys.At(esdindex);
-  if (!array) {
-    array = new TObjArray(10);
-    fTrackHypothesys.AddAt(array,esdindex);
-  }
-  array->AddLast(track);
-}
-
-void AliITStrackerV2::CompressTrackHypothesys(Int_t esdindex, Int_t maxsize)
-{
-  //-------------------------------------------------------------------
-  // compress array of track hypothesys
-  // keep only maxsize best hypothesys
-  //-------------------------------------------------------------------
-  if (esdindex>fTrackHypothesys.GetEntriesFast()) return;
-  if (! (fTrackHypothesys.At(esdindex)) ) return;
-  TObjArray * array = (TObjArray*) fTrackHypothesys.At(esdindex);
-  Int_t entries = array->GetEntries();
-  if (entries<maxsize) return;
-  Float_t * chi2 = new Float_t[entries];
-  Int_t * index = new Int_t[entries];
-  Int_t current=0;
-  //
-  for (Int_t i=0;i<array->GetEntriesFast();i++){
-    AliITStrackV2 * track = (AliITStrackV2*)array->At(i);
-    if (track)
-      chi2[current] = track->GetNumberOfClusters()+0.001+track->GetChi2()/track->GetNumberOfClusters();
-    else
-      chi2[current] = 100000000;
-    current++;
-  }
-  TMath::Sort(current,chi2,index,kFALSE);
-  TObjArray * newarray = new TObjArray();
-  maxsize = TMath::Min(current, maxsize);
-  for (Int_t i=0;i<maxsize;i++){
-    newarray->AddLast(array->RemoveAt(index[i]));
-  }
-  array->Delete();
-  delete fTrackHypothesys.RemoveAt(esdindex);
-  fTrackHypothesys.AddAt(newarray,esdindex);
-
-  delete [] chi2;
-  delete [] index;
-
-}
-
-
-
-AliITStrackV2 * AliITStrackerV2::GetBestHypothesys(Int_t esdindex, AliITStrackV2 * original)
-{
-  //-------------------------------------------------------------
-  // try to find best hypothesy
-  // currently - minimal chi2 of track+backpropagated track+matching to the tpc track
-  //-------------------------------------------------------------
-  TObjArray * array = (TObjArray*) fTrackHypothesys.At(esdindex);
-  if (!array) return 0;
-  Int_t entries = array->GetEntriesFast();
-  if (!entries) return 0;  
-  Float_t minchi2 = 100000;
-  Int_t   maxn    = 2;
-  AliITStrackV2 * besttrack=0;
-  //
-  // calculate "weight of the cluster"
-  //
-  Int_t clusterindex[6][100];
-  Double_t clusterweight[6][100];
-  for (Int_t ilayer=0;ilayer<6;ilayer++)
-    for (Int_t icluster=0;icluster<100;icluster++){
-      clusterindex[ilayer][icluster]   = -1;
-      clusterweight[ilayer][icluster]  = 0;
-    }
-  //printf("%d\t%d\n",esdindex, entries);
-  //
-  Float_t sumchi2=0;
-  for (Int_t itrack=0;itrack<entries;itrack++){
-    AliITStrackV2 * track = (AliITStrackV2*)array->At(itrack);
-    if (!track) continue;
-    sumchi2 +=track->GetChi2();
-  }
-  for (Int_t itrack=0;itrack<entries;itrack++){
-    AliITStrackV2 * track = (AliITStrackV2*)array->At(itrack);
-    if (!track) continue;
-    for (Int_t icluster=0;icluster<track->GetNumberOfClusters();icluster++){     
-      Int_t tindex = track->GetClusterIndex(icluster);
-      Int_t ilayer = (tindex & 0xf0000000) >> 28;
-      if (tindex<0) continue;
-      Int_t cindex =0;
-      //
-      for (cindex=0;cindex<100;cindex++){
-	if (clusterindex[ilayer][cindex]<0) break;
-	if (clusterindex[ilayer][cindex]==tindex) break;
-      }
-      if (cindex>100) break;
-      if (clusterindex[ilayer][cindex]!=tindex) clusterindex[ilayer][cindex] = tindex;
-      clusterweight[ilayer][cindex]+= track->GetChi2()/sumchi2; 
-    }
-  }
-  //
-  for (Int_t i=0;i<entries;i++){
-    AliITStrackV2 * track = (AliITStrackV2*)array->At(i);
-    if (!track) continue;
-    AliITStrackV2 * backtrack = new AliITStrackV2(*track);
-    backtrack->ResetCovariance();
-    backtrack->ResetClusters();
-    Double_t x = original->GetX();
-    RefitAt(x,backtrack,track);
-    if (track->GetNumberOfClusters()<maxn) {
-      delete backtrack;
-      continue;
-    }
-    Double_t deltac   = backtrack->GetC()-original->GetC();
-    Double_t deltatgl = backtrack->GetTgl()-original->GetTgl();
-    Double_t poolc      = (deltac*deltac)/(original->fC44);
-    Double_t pooltgl    = (deltatgl*deltatgl)/(original->fC33);
-    Double_t chi2 = 0.5*(track->GetChi2()+backtrack->GetChi2())+poolc+pooltgl;
-    
-    if (track->GetNumberOfClusters()>maxn){
-      besttrack =  track;
-      maxn      =  track->GetNumberOfClusters();
-      minchi2   =  chi2;
-      delete backtrack;
-      continue;
-    }
-    if (chi2 < minchi2){
-      besttrack = track;
-      minchi2   = chi2;      
-    }    
-    delete backtrack;
-  }
-  //
-  //
-  AliITStrackV2 * track2 = new AliITStrackV2(*original);
-  
-  Int_t current=0;
-  for (Int_t icluster=0;icluster<besttrack->GetNumberOfClusters();icluster++){
-    Int_t index = besttrack->GetClusterIndex(icluster);
-    Int_t ilayer =  (index & 0xf0000000) >> 28;
-    AliITSclusterV2 *c = (AliITSclusterV2*)GetCluster(index);
-    if (!c) continue;
-    // 
-    if (ilayer>1){	
-      track2->fIndex[current] = index;	
-      track2->fN++;
-    }
-    for (Int_t icluster=0;icluster<100;icluster++){
-      // sign non "doubt" clusters as used
-      if (clusterindex[ilayer][icluster]!=index) continue;      
-      if (clusterweight[ilayer][icluster]>0.9){
-	if (ilayer<=1){
-	  track2->fIndex[current] = index;	
-	  track2->fN++;
-	}
-	current++;
-	if (c->IsUsed()) continue;
-	c->Use();
-      }
-    }
-  }  
-  //  besttrack = new AliITStrackV2(*original);
-  //RefitAt(3.7, besttrack, track2);
-  delete track2;
-  //
-  return besttrack;
-} 

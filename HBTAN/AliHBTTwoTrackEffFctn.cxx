@@ -37,15 +37,14 @@ AliHBTTwoTrackEffFctn::AliHBTTwoTrackEffFctn(Int_t nbins, Double_t maxval, Doubl
 TH1* AliHBTTwoTrackEffFctn::GetResult()
 {
 //returns ratio of numerator and denominator
- delete fRatio;
- fRatio = GetRatio(Scale());
- if(fRatio)
+ TH1* res = GetRatio(Scale());
+ if(res)
   {
-   fRatio->GetXaxis()->SetTitle("dP [GeV]");
-   fRatio->GetYaxis()->SetTitle("C(dP)");
-   fRatio->SetTitle("Double Track Resolution: dP Correlation Fctn.");
+   res->GetXaxis()->SetTitle("dP [GeV]");
+   res->GetYaxis()->SetTitle("C(dP)");
+   res->SetTitle("Double Track Resolution: dP Correlation Fctn.");
   }
- return fRatio;
+ return res;
 }
 /******************************************************************/
 /******************************************************************/

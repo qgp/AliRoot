@@ -192,7 +192,7 @@ Int_t AliTPCComparison(Float_t ptcutl=0.2, Float_t ptcuth=10., const Char_t *dir
       AliESDtrack *track=0;
       for (i=0; i<nentr; i++) {
           track=event->GetTrack(i);
-          tlab=track->GetTPCLabel();
+          tlab=track->GetLabel();
           if (lab==TMath::Abs(tlab)) break;
       }
       if (i==nentr) {
@@ -206,20 +206,20 @@ Int_t AliTPCComparison(Float_t ptcutl=0.2, Float_t ptcuth=10., const Char_t *dir
       AliESDtrack * mitrack;
       for (mi=0; mi<nentr; mi++) {
 	mitrack=event->GetTrack(mi);          
-	if (lab==TMath::Abs(mitrack->GetTPCLabel())) micount++;
+	if (lab==TMath::Abs(mitrack->GetLabel())) micount++;
       }
       if (micount>1) {
 	track_multifound[itrack_multifound]=lab;
 	track_multifound_n[itrack_multifound]=micount;
 	itrack_multifound++;
       }
-      if ((track->GetStatus()&AliESDtrack::kTPCrefit)==0) continue;
+      
       if (lab==tlab) hfound->Fill(ptg);
       else { 
 	track_fake[itrack_fake++]=lab;
 	hfake->Fill(ptg); 
       }
-      
+
       Double_t pxpypz[3]; track->GetInnerPxPyPz(pxpypz);
       Float_t phi=TMath::ATan2(pxpypz[1],pxpypz[0]);
       if (phi<-TMath::Pi()) phi+=2*TMath::Pi();
@@ -278,27 +278,21 @@ Int_t AliTPCComparison(Float_t ptcutl=0.2, Float_t ptcuth=10., const Char_t *dir
 
    TCanvas *c1=new TCanvas("c1","",0,0,700,850);
 
-   Int_t minc=33; 
-
    TPad *p1=new TPad("p1","",0,0.3,.5,.6); p1->Draw();
    p1->cd(); p1->SetFillColor(42); p1->SetFrameFillColor(10); 
-   hp->SetFillColor(4);  hp->SetXTitle("(mrad)"); 
-   if (hp->GetEntries()<minc) hp->Draw(); else hp->Fit("gaus"); c1->cd();
+   hp->SetFillColor(4);  hp->SetXTitle("(mrad)"); hp->Fit("gaus"); c1->cd();
 
    TPad *p2=new TPad("p2","",0.5,.3,1,.6); p2->Draw(); 
    p2->cd(); p2->SetFillColor(42); p2->SetFrameFillColor(10);
-   hl->SetXTitle("(mrad)");
-   if (hl->GetEntries()<minc) hl->Draw(); else hl->Fit("gaus"); c1->cd();
+   hl->SetXTitle("(mrad)"); hl->Fit("gaus"); c1->cd();
 
    TPad *p3=new TPad("p3","",0,0,0.5,0.3); p3->Draw();
    p3->cd(); p3->SetFillColor(42); p3->SetFrameFillColor(10); 
-   hpt->SetXTitle("(%)");
-   if (hpt->GetEntries()<minc) hpt->Draw(); else hpt->Fit("gaus"); c1->cd();
+   hpt->SetXTitle("(%)"); hpt->Fit("gaus"); c1->cd();
 
    TPad *p4=new TPad("p4","",0.5,0,1,0.3); p4->Draw();
    p4->cd(); p4->SetFillColor(42); p4->SetFrameFillColor(10);
-   hmpt->SetXTitle("(%)");
-   if (hmpt->GetEntries()<minc) hmpt->Draw(); else hmpt->Fit("gaus"); c1->cd();
+   hmpt->SetXTitle("(%)"); hmpt->Fit("gaus"); c1->cd();
 
    TPad *p5=new TPad("p5","",0,0.6,1,1); p5->Draw(); p5->cd(); 
    p5->SetFillColor(41); p5->SetFrameFillColor(10);
@@ -335,7 +329,7 @@ Int_t AliTPCComparison(Float_t ptcutl=0.2, Float_t ptcuth=10., const Char_t *dir
    p6->cd(); p6->SetFillColor(42); p6->SetFrameFillColor(10); 
    he->SetFillColor(2); he->SetFillStyle(3005);  
    he->SetXTitle("Arbitrary Units"); 
-   if (he->GetEntries()<minc) he->Draw(); else he->Fit("gaus"); c2->cd();
+   he->Fit("gaus"); c2->cd();
 
    TPad *p7=new TPad("p7","",0.,0.5,1.,1.); p7->Draw(); 
    p7->cd(); p7->SetFillColor(42); p7->SetFrameFillColor(10);
@@ -344,11 +338,6 @@ Int_t AliTPCComparison(Float_t ptcutl=0.2, Float_t ptcuth=10., const Char_t *dir
 
    gBenchmark->Stop("AliTPCComparison");
    gBenchmark->Show("AliTPCComparison");
-
-   TFile fc("AliTPCComparison.root","RECREATE");
-   c1->Write();
-   c2->Write();
-   fc.Close();
 
    delete rl;
    return 0;
@@ -455,7 +444,7 @@ good_tracks_tpc(GoodTrackTPC *gt, const Int_t max, const char* evfoldname) {
           if (!TD->GetEvent(i)) continue;
           Int_t sec,row;
           digp->AdjustSectorRow(digits->GetID(),sec,row);
-	  //PH          cerr<<sec<<' '<<row<<"                                     \r";
+          cerr<<sec<<' '<<row<<"                                     \r";
           digits->First();
           do { //Many thanks to J.Chudoba who noticed this
               Int_t it=digits->CurrentRow(), ip=digits->CurrentColumn();
@@ -537,7 +526,7 @@ good_tracks_tpc(GoodTrackTPC *gt, const Int_t max, const char* evfoldname) {
       gt[nt].x=0.; gt[nt].y=0.; gt[nt].z=0.;
       nt++;
       if (nt==max) {cerr<<"Too many good tracks !\n"; break;}
-      //      cerr<<np-i<<"                \r";
+      cerr<<np-i<<"                \r";
    }
    rl->UnloadKinematics();
 

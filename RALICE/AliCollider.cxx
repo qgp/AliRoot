@@ -13,7 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-// $Id: AliCollider.cxx,v 1.9 2004/01/12 08:23:22 nick Exp $
+// $Id: AliCollider.cxx,v 1.8 2003/12/18 09:28:06 nick Exp $
 
 ///////////////////////////////////////////////////////////////////////////
 // Class AliCollider
@@ -108,7 +108,7 @@
 //
 //
 //--- Author: Nick van Eijndhoven 22-nov-2002 Utrecht University
-//- Modified: NvE $Date: 2004/01/12 08:23:22 $ Utrecht University
+//- Modified: NvE $Date: 2003/12/18 09:28:06 $ Utrecht University
 ///////////////////////////////////////////////////////////////////////////
 
 #include "AliCollider.h"
@@ -573,7 +573,7 @@ void AliCollider::MakeEvent(Int_t npt,Int_t mlist,Int_t medit)
 
  Int_t kf=0;
  Float_t charge=0,mass=0;
- TString name;
+ char* name="";
 
  Int_t ntypes=4;
 
@@ -651,8 +651,8 @@ void AliCollider::MakeEvent(Int_t npt,Int_t mlist,Int_t medit)
    {
     kf=GetK(jpart,2);
     charge=Pychge(kf)/3.;
+    Pyname(kf,name);
     mass=GetP(jpart,5);
-    name=GetPyname(kf);
 
     // 3-momentum in GeV/c
     v[0]=GetP(jpart,1);
@@ -671,7 +671,7 @@ void AliCollider::MakeEvent(Int_t npt,Int_t mlist,Int_t medit)
     t.Reset();
     t.SetId(ntk);
     t.SetParticleCode(kf);
-    t.SetName(name.Data());
+    t.SetName(name);
     t.SetCharge(charge);
     t.SetMass(mass);
     t.Set3Momentum(p);
@@ -750,6 +750,8 @@ void AliCollider::MakeEvent(Int_t npt,Int_t mlist,Int_t medit)
  // Include the spectator tracks in the event structure.
  if (fNucl && specmode)
  {
+  Float_t pmass=0.938272;
+  Float_t nmass=0.93956533;
   v[0]=0;
   v[1]=0;
   v[2]=0;
@@ -770,15 +772,15 @@ void AliCollider::MakeEvent(Int_t npt,Int_t mlist,Int_t medit)
   {
    kf=2212; // Projectile spectator protons
    charge=Pychge(kf)/3.;
-   mass=GetPMAS(Pycomp(kf),1);
-   name=GetPyname(kf);
+   mass=pmass;
+   Pyname(kf,name);
    for (Int_t iprojp=1; iprojp<=zp; iprojp++)
    {
     nspec++;
     t.Reset();
     t.SetId(-nspec);
     t.SetParticleCode(kf);
-    t.SetName(name.Data());
+    t.SetName(name);
     t.SetTitle("Projectile spectator proton");
     t.SetCharge(charge);
     t.SetMass(mass);
@@ -790,15 +792,15 @@ void AliCollider::MakeEvent(Int_t npt,Int_t mlist,Int_t medit)
 
    kf=2112; // Projectile spectator neutrons
    charge=Pychge(kf)/3.;
-   mass=GetPMAS(Pycomp(kf),1);
-   name=GetPyname(kf);
+   mass=nmass;
+   Pyname(kf,name);
    for (Int_t iprojn=1; iprojn<=(ap-zp); iprojn++)
    {
     nspec++;
     t.Reset();
     t.SetId(-nspec);
     t.SetParticleCode(kf);
-    t.SetName(name.Data());
+    t.SetName(name);
     t.SetTitle("Projectile spectator neutron");
     t.SetCharge(charge);
     t.SetMass(mass);
@@ -813,15 +815,15 @@ void AliCollider::MakeEvent(Int_t npt,Int_t mlist,Int_t medit)
   {
    kf=2212; // Target spectator protons
    charge=Pychge(kf)/3.;
-   mass=GetPMAS(Pycomp(kf),1);
-   name=GetPyname(kf);
+   mass=pmass;
+   Pyname(kf,name);
    for (Int_t itargp=1; itargp<=zt; itargp++)
    {
     nspec++;
     t.Reset();
     t.SetId(-nspec);
     t.SetParticleCode(kf);
-    t.SetName(name.Data());
+    t.SetName(name);
     t.SetTitle("Target spectator proton");
     t.SetCharge(charge);
     t.SetMass(mass);
@@ -833,15 +835,15 @@ void AliCollider::MakeEvent(Int_t npt,Int_t mlist,Int_t medit)
 
    kf=2112; // Target spectator neutrons
    charge=Pychge(kf)/3.;
-   mass=GetPMAS(Pycomp(kf),1);
-   name=GetPyname(kf);
+   mass=nmass;
+   Pyname(kf,name);
    for (Int_t itargn=1; itargn<=(at-zt); itargn++)
    {
     nspec++;
     t.Reset();
     t.SetId(-nspec);
     t.SetParticleCode(kf);
-    t.SetName(name.Data());
+    t.SetName(name);
     t.SetTitle("Target spectator neutron");
     t.SetCharge(charge);
     t.SetMass(mass);
@@ -1064,26 +1066,5 @@ Float_t AliCollider::GetSpectatorPmin()
 {
 // Provide the minimal spectator momentum in GeV/c.
  return fSpecpmin;
-}
-///////////////////////////////////////////////////////////////////////////
-TString AliCollider::GetPyname(Int_t kf)
-{
-// Provide the correctly truncated Pythia particle name for PGD code kf
-//
-// The TPythia6::Pyname returned name is copied into a TString and truncated
-// at the first blank to prevent funny trailing characters due to incorrect
-// stripping of empty characters in TPythia6::Pyname.
-// The truncation at the first blank is allowed due to the Pythia convention
-// that particle names never contain blanks.
- char name[16];
- TString sname;
- Pyname(kf,name);
- sname=name[0];
- for (Int_t i=1; i<16; i++)
- {
-  if (name[i]==' ') break;
-  sname=sname+name[i];
- }
- return sname;
 }
 ///////////////////////////////////////////////////////////////////////////

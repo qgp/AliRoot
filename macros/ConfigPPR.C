@@ -1,9 +1,3 @@
-// One can use the configuration macro in compiled mode by
-// root [0] gSystem->Load("libgeant321");
-// root [0] gSystem->SetIncludePath("-I$ROOTSYS/include -I$ALICE_ROOT/include\
-//                   -I$ALICE_ROOT -I$ALICE/geant3/TGeant3");
-// root [0] .x grun.C(1,"ConfigPPR.C++")
-
 #if !defined(__CINT__) || defined(__MAKECINT__)
 #include <Riostream.h>
 #include <TRandom.h>
@@ -49,7 +43,7 @@
 #include "START/AliSTARTv1.h"
 #include "EMCAL/AliEMCALv1.h"
 #include "CRT/AliCRTv0.h"
-#include "VZERO/AliVZEROv2.h"
+#include "VZERO/AliVZEROv3.h"
 #endif
 
 enum PprRun_t 
@@ -60,33 +54,8 @@ enum PprRun_t
     kHijing_per1,  kHijing_per2, kHijing_per3, kHijing_per4,  kHijing_per5,
     kHijing_jj25,  kHijing_jj50, kHijing_jj75, kHijing_jj100, kHijing_jj200, 
     kHijing_gj25,  kHijing_gj50, kHijing_gj75, kHijing_gj100, kHijing_gj200,
-    kHijing_pA, kPythia6, 
-    kPythia6Jets20_24,   kPythia6Jets24_29,   kPythia6Jets29_35,
-    kPythia6Jets35_42,   kPythia6Jets42_50,   kPythia6Jets50_60,
-    kPythia6Jets60_72,   kPythia6Jets72_86,   kPythia6Jets86_104,
-    kPythia6Jets104_125, kPythia6Jets125_150, kPythia6Jets150_180,
-    kD0PbPb5500, kCharmSemiElPbPb5500, kBeautySemiElPbPb5500,
-    kD_TRD, kB_TRD, kJpsi_TRD,
-    kU_TRD, kPyJJ, kPyGJ, kRunMax
-};
-
-const char* pprRunName[kRunMax] = {
-    "test50",
-    "kParam_8000",   "kParam_4000",  "kParam_2000", 
-    "kHijing_cent1", "kHijing_cent2", 
-    "kHijing_per1",  "kHijing_per2", "kHijing_per3", "kHijing_per4",  
-    "kHijing_per5",
-    "kHijing_jj25",  "kHijing_jj50", "kHijing_jj75", "kHijing_jj100", 
-    "kHijing_jj200", 
-    "kHijing_gj25",  "kHijing_gj50", "kHijing_gj75", "kHijing_gj100", 
-    "kHijing_gj200", "kHijing_pA", "kPythia6", 
-    "kPythia6Jets20_24",   "kPythia6Jets24_29",   "kPythia6Jets29_35",
-    "kPythia6Jets35_42",   "kPythia6Jets42_50",   "kPythia6Jets50_60",
-    "kPythia6Jets60_72",   "kPythia6Jets72_86",   "kPythia6Jets86_104",
-    "kPythia6Jets104_125", "kPythia6Jets125_150", "kPythia6Jets150_180",
-    "kD0PbPb5500", "kCharmSemiElPbPb5500", "kBeautySemiElPbPb5500",
-    "kD_TRD", "kB_TRD", "kJpsi_TRD",
-    "kU_TRD", "kPyJJ", "kPyGJ"
+    kHijing_pA, kPythia6, kPythia6Jets, kD0PbPb5500, kD_TRD, kB_TRD, kJpsi_TRD,
+    kU_TRD, kPyJJ, kPyGJ
 };
 
 enum PprGeo_t 
@@ -111,7 +80,6 @@ static PprRun_t srun = kPythia6;
 static PprGeo_t sgeo = kHoles;
 static PprRad_t srad = kGluonRadiation;
 static PprMag_t smag = k5kG;
-static Int_t    sseed = 12345; //Set 0 to use the current time
 
 // Comment line 
 static TString  comment;
@@ -120,18 +88,14 @@ static TString  comment;
 Float_t EtaToTheta(Float_t arg);
 AliGenerator* GeneratorFactory(PprRun_t srun);
 AliGenHijing* HijingStandard();
-void ProcessEnvironmentVars();
 
 void Config()
 {
     // ThetaRange is (0., 180.). It was (0.28,179.72) 7/12/00 09:00
     // Theta range given through pseudorapidity limits 22/6/2001
 
-    // Get settings from environment variables
-    ProcessEnvironmentVars();
-
     // Set Random Number seed
-    gRandom->SetSeed(sseed);
+  gRandom->SetSeed(12345); //Set 0 to use the current time
     cout<<"Seed for random number generation= "<<gRandom->GetSeed()<<endl; 
 
 
@@ -161,21 +125,7 @@ void Config()
     // Set External decayer
     AliDecayer *decayer = new AliDecayerPythia();
 
-
-    switch (srun) {
-    case kD0PbPb5500:
-      decayer->SetForceDecay(kHadronicD);
-      break;
-    case kCharmSemiElPbPb5500:
-      decayer->SetForceDecay(kSemiElectronic);
-      break;
-    case kBeautySemiElPbPb5500:
-      decayer->SetForceDecay(kSemiElectronic);
-      break;
-    default:
-      decayer->SetForceDecay(kAll);
-      break;
-    }
+    decayer->SetForceDecay(kAll);
     decayer->Init();
     gMC->SetExternalDecayer(decayer);
     //
@@ -520,7 +470,7 @@ void Config()
      if (iVZERO)
     {
         //=================== CRT parameters ============================
-        AliVZERO *VZERO = new AliVZEROv2("VZERO", "normal VZERO");
+        AliVZERO *VZERO = new AliVZEROv3("VZERO", "normal VZERO");
     }
  
              
@@ -886,161 +836,9 @@ AliGenerator* GeneratorFactory(PprRun_t srun) {
 	gGener=gener;
       }
       break;
-    case kPythia6Jets20_24:
+    case kPythia6Jets:
       {
-        comment = comment.Append(":Pythia jets 20-24 GeV @ 5.5 TeV");
-        AliGenPythia * gener = new AliGenPythia(-1);
-	gener->SetEnergyCMS(5500.);//        Centre of mass energy
-	gener->SetProcess(kPyJets);//        Process type
-	gener->SetJetEtaRange(-0.5, 0.5);//  Final state kinematic cuts
-	gener->SetJetPhiRange(0., 360.);
-	gener->SetJetEtRange(10., 1000.);
-	gener->SetGluonRadiation(1,1);
-	//    gener->SetPtKick(0.);
-	//   Structure function
-	gener->SetStrucFunc(kCTEQ4L);
-	gener->SetPtHard(20., 24.);// Pt transfer of the hard scattering
-	gener->SetPycellParameters(2., 274, 432, 0., 4., 5., 1.0);
-	gener->SetForceDecay(kAll);//  Decay type (semielectronic, etc.)
-	gGener=gener;
-      }
-      break;
-    case kPythia6Jets24_29:
-      {
-        comment = comment.Append(":Pythia jets 24-29 GeV @ 5.5 TeV");
-        AliGenPythia * gener = new AliGenPythia(-1);
-	gener->SetEnergyCMS(5500.);//        Centre of mass energy
-	gener->SetProcess(kPyJets);//        Process type
-	gener->SetJetEtaRange(-0.5, 0.5);//  Final state kinematic cuts
-	gener->SetJetPhiRange(0., 360.);
-	gener->SetJetEtRange(10., 1000.);
-	gener->SetGluonRadiation(1,1);
-	//    gener->SetPtKick(0.);
-	//   Structure function
-	gener->SetStrucFunc(kCTEQ4L);
-	gener->SetPtHard(24., 29.);// Pt transfer of the hard scattering
-	gener->SetPycellParameters(2., 274, 432, 0., 4., 5., 1.0);
-	gener->SetForceDecay(kAll);//  Decay type (semielectronic, etc.)
-	gGener=gener;
-      }
-      break;
-    case kPythia6Jets29_35:
-      {
-        comment = comment.Append(":Pythia jets 29-35 GeV @ 5.5 TeV");
-        AliGenPythia * gener = new AliGenPythia(-1);
-	gener->SetEnergyCMS(5500.);//        Centre of mass energy
-	gener->SetProcess(kPyJets);//        Process type
-	gener->SetJetEtaRange(-0.5, 0.5);//  Final state kinematic cuts
-	gener->SetJetPhiRange(0., 360.);
-	gener->SetJetEtRange(10., 1000.);
-	gener->SetGluonRadiation(1,1);
-	//    gener->SetPtKick(0.);
-	//   Structure function
-	gener->SetStrucFunc(kCTEQ4L);
-	gener->SetPtHard(29., 35.);// Pt transfer of the hard scattering
-	gener->SetPycellParameters(2., 274, 432, 0., 4., 5., 1.0);
-	gener->SetForceDecay(kAll);//  Decay type (semielectronic, etc.)
-	gGener=gener;
-      }
-      break;
-    case kPythia6Jets35_42:
-      {
-        comment = comment.Append(":Pythia jets 35-42 GeV @ 5.5 TeV");
-        AliGenPythia * gener = new AliGenPythia(-1);
-	gener->SetEnergyCMS(5500.);//        Centre of mass energy
-	gener->SetProcess(kPyJets);//        Process type
-	gener->SetJetEtaRange(-0.5, 0.5);//  Final state kinematic cuts
-	gener->SetJetPhiRange(0., 360.);
-	gener->SetJetEtRange(10., 1000.);
-	gener->SetGluonRadiation(1,1);
-	//    gener->SetPtKick(0.);
-	//   Structure function
-	gener->SetStrucFunc(kCTEQ4L);
-	gener->SetPtHard(35., 42.);// Pt transfer of the hard scattering
-	gener->SetPycellParameters(2., 274, 432, 0., 4., 5., 1.0);
-	gener->SetForceDecay(kAll);//  Decay type (semielectronic, etc.)
-	gGener=gener;
-      }
-      break;
-    case kPythia6Jets42_50:
-      {
-        comment = comment.Append(":Pythia jets 42-50 GeV @ 5.5 TeV");
-        AliGenPythia * gener = new AliGenPythia(-1);
-	gener->SetEnergyCMS(5500.);//        Centre of mass energy
-	gener->SetProcess(kPyJets);//        Process type
-	gener->SetJetEtaRange(-0.5, 0.5);//  Final state kinematic cuts
-	gener->SetJetPhiRange(0., 360.);
-	gener->SetJetEtRange(10., 1000.);
-	gener->SetGluonRadiation(1,1);
-	//    gener->SetPtKick(0.);
-	//   Structure function
-	gener->SetStrucFunc(kCTEQ4L);
-	gener->SetPtHard(42., 50.);// Pt transfer of the hard scattering
-	gener->SetPycellParameters(2., 274, 432, 0., 4., 5., 1.0);
-	gener->SetForceDecay(kAll);//  Decay type (semielectronic, etc.)
-	gGener=gener;
-      }
-      break;
-    case kPythia6Jets50_60:
-      {
-        comment = comment.Append(":Pythia jets 50-60 GeV @ 5.5 TeV");
-        AliGenPythia * gener = new AliGenPythia(-1);
-	gener->SetEnergyCMS(5500.);//        Centre of mass energy
-	gener->SetProcess(kPyJets);//        Process type
-	gener->SetJetEtaRange(-0.5, 0.5);//  Final state kinematic cuts
-	gener->SetJetPhiRange(0., 360.);
-	gener->SetJetEtRange(10., 1000.);
-	gener->SetGluonRadiation(1,1);
-	//    gener->SetPtKick(0.);
-	//   Structure function
-	gener->SetStrucFunc(kCTEQ4L);
-	gener->SetPtHard(50., 60.);// Pt transfer of the hard scattering
-	gener->SetPycellParameters(2., 274, 432, 0., 4., 5., 1.0);
-	gener->SetForceDecay(kAll);//  Decay type (semielectronic, etc.)
-	gGener=gener;
-      }
-      break;
-    case kPythia6Jets60_72:
-      {
-        comment = comment.Append(":Pythia jets 60-72 GeV @ 5.5 TeV");
-        AliGenPythia * gener = new AliGenPythia(-1);
-	gener->SetEnergyCMS(5500.);//        Centre of mass energy
-	gener->SetProcess(kPyJets);//        Process type
-	gener->SetJetEtaRange(-0.5, 0.5);//  Final state kinematic cuts
-	gener->SetJetPhiRange(0., 360.);
-	gener->SetJetEtRange(10., 1000.);
-	gener->SetGluonRadiation(1,1);
-	//    gener->SetPtKick(0.);
-	//   Structure function
-	gener->SetStrucFunc(kCTEQ4L);
-	gener->SetPtHard(60., 72.);// Pt transfer of the hard scattering
-	gener->SetPycellParameters(2., 274, 432, 0., 4., 5., 1.0);
-	gener->SetForceDecay(kAll);//  Decay type (semielectronic, etc.)
-	gGener=gener;
-      }
-      break;
-    case kPythia6Jets72_86:
-      {
-        comment = comment.Append(":Pythia jets 72-86 GeV @ 5.5 TeV");
-        AliGenPythia * gener = new AliGenPythia(-1);
-	gener->SetEnergyCMS(5500.);//        Centre of mass energy
-	gener->SetProcess(kPyJets);//        Process type
-	gener->SetJetEtaRange(-0.5, 0.5);//  Final state kinematic cuts
-	gener->SetJetPhiRange(0., 360.);
-	gener->SetJetEtRange(10., 1000.);
-	gener->SetGluonRadiation(1,1);
-	//    gener->SetPtKick(0.);
-	//   Structure function
-	gener->SetStrucFunc(kCTEQ4L);
-	gener->SetPtHard(72., 86.);// Pt transfer of the hard scattering
-	gener->SetPycellParameters(2., 274, 432, 0., 4., 5., 1.0);
-	gener->SetForceDecay(kAll);//  Decay type (semielectronic, etc.)
-	gGener=gener;
-      }
-      break;
-    case kPythia6Jets86_104:
-      {
-        comment = comment.Append(":Pythia jets 86-104 GeV @ 5.5 TeV");
+        comment = comment.Append(":Pythia jets @ 5.5 TeV");
         AliGenPythia * gener = new AliGenPythia(-1);
 	gener->SetEnergyCMS(5500.);//        Centre of mass energy
 	gener->SetProcess(kPyJets);//        Process type
@@ -1057,63 +855,6 @@ AliGenerator* GeneratorFactory(PprRun_t srun) {
 	gGener=gener;
       }
       break;
-    case kPythia6Jets104_125:
-      {
-        comment = comment.Append(":Pythia jets 105-125 GeV @ 5.5 TeV");
-        AliGenPythia * gener = new AliGenPythia(-1);
-	gener->SetEnergyCMS(5500.);//        Centre of mass energy
-	gener->SetProcess(kPyJets);//        Process type
-	gener->SetJetEtaRange(-0.5, 0.5);//  Final state kinematic cuts
-	gener->SetJetPhiRange(0., 360.);
-	gener->SetJetEtRange(10., 1000.);
-	gener->SetGluonRadiation(1,1);
-	//    gener->SetPtKick(0.);
-	//   Structure function
-	gener->SetStrucFunc(kCTEQ4L);
-	gener->SetPtHard(104., 125.);// Pt transfer of the hard scattering
-	gener->SetPycellParameters(2., 274, 432, 0., 4., 5., 1.0);
-	gener->SetForceDecay(kAll);//  Decay type (semielectronic, etc.)
-	gGener=gener;
-      }
-      break;
-    case kPythia6Jets125_150:
-      {
-        comment = comment.Append(":Pythia jets 125-150 GeV @ 5.5 TeV");
-        AliGenPythia * gener = new AliGenPythia(-1);
-	gener->SetEnergyCMS(5500.);//        Centre of mass energy
-	gener->SetProcess(kPyJets);//        Process type
-	gener->SetJetEtaRange(-0.5, 0.5);//  Final state kinematic cuts
-	gener->SetJetPhiRange(0., 360.);
-	gener->SetJetEtRange(10., 1000.);
-	gener->SetGluonRadiation(1,1);
-	//    gener->SetPtKick(0.);
-	//   Structure function
-	gener->SetStrucFunc(kCTEQ4L);
-	gener->SetPtHard(125., 150.);// Pt transfer of the hard scattering
-	gener->SetPycellParameters(2., 274, 432, 0., 4., 5., 1.0);
-	gener->SetForceDecay(kAll);//  Decay type (semielectronic, etc.)
-	gGener=gener;
-      }
-      break;
-    case kPythia6Jets150_180:
-      {
-        comment = comment.Append(":Pythia jets 150-180 GeV @ 5.5 TeV");
-        AliGenPythia * gener = new AliGenPythia(-1);
-	gener->SetEnergyCMS(5500.);//        Centre of mass energy
-	gener->SetProcess(kPyJets);//        Process type
-	gener->SetJetEtaRange(-0.5, 0.5);//  Final state kinematic cuts
-	gener->SetJetPhiRange(0., 360.);
-	gener->SetJetEtRange(10., 1000.);
-	gener->SetGluonRadiation(1,1);
-	//    gener->SetPtKick(0.);
-	//   Structure function
-	gener->SetStrucFunc(kCTEQ4L);
-	gener->SetPtHard(150., 180.);// Pt transfer of the hard scattering
-	gener->SetPycellParameters(2., 274, 432, 0., 4., 5., 1.0);
-	gener->SetForceDecay(kAll);//  Decay type (semielectronic, etc.)
-	gGener=gener;
-      }
-      break;
     case kD0PbPb5500:
       {
 	comment = comment.Append(" D0 in Pb-Pb at 5.5 TeV");
@@ -1123,69 +864,30 @@ AliGenerator* GeneratorFactory(PprRun_t srun) {
 	gener->SetPtHard(2.1,-1.0);
 	gener->SetEnergyCMS(5500.);
 	gener->SetNuclei(208,208);
-	gener->SetForceDecay(kHadronicD);
-	gener->SetYRange(-2,2);
-	gener->SetFeedDownHigherFamily(kFALSE);
-	gener->SetStackFillOpt(AliGenPythia::kParentSelection);
-	gener->SetCountMode(AliGenPythia::kCountParents);
- 	gGener=gener;
-      }
-      break;
-    case kCharmSemiElPbPb5500:
-      {
-	comment = comment.Append(" Charm in Pb-Pb at 5.5 TeV");
-	AliGenPythia * gener = new AliGenPythia(10);
-	gener->SetProcess(kPyCharmPbPbMNR);
-	gener->SetStrucFunc(kCTEQ4L);
-	gener->SetPtHard(2.1,-1.0);
-	gener->SetEnergyCMS(5500.);
-	gener->SetNuclei(208,208);
-	gener->SetForceDecay(kSemiElectronic);
-	gener->SetYRange(-2,2);
-	gener->SetFeedDownHigherFamily(kFALSE);
-	gener->SetCountMode(AliGenPythia::kCountParents);
-	gGener=gener;
-      }
-      break;
-    case kBeautySemiElPbPb5500:
-      {
-	comment = comment.Append(" Beauty in Pb-Pb at 5.5 TeV");
-	AliGenPythia *gener = new AliGenPythia(10);
-	gener->SetProcess(kPyBeautyPbPbMNR);
-	gener->SetStrucFunc(kCTEQ4L);
-	gener->SetPtHard(2.75,-1.0);
-	gener->SetEnergyCMS(5500.);
-	gener->SetNuclei(208,208);
-	gener->SetForceDecay(kSemiElectronic);
-	gener->SetYRange(-2,2);
-	gener->SetFeedDownHigherFamily(kFALSE);
-	gener->SetCountMode(AliGenPythia::kCountParents);
 	gGener=gener;
       }
       break;
     case kD_TRD:
       {
-	comment = comment.Append(" Charm for TRD at 5.5 TeV");
+	comment = comment.Append(" D0 for TRD at 5.5 TeV");
 	AliGenPythia *gener = new AliGenPythia(1);
 	gener->SetCutOnChild(0);
 	gener->SetStrucFunc(kCTEQ4L);
 	gener->SetProcess(kPyCharm);
 	gener->SetPtHard(0.,-1);
 	gener->SetEnergyCMS(5500.);
-	gener->SetNuclei(208,208);
 	gGener=gener;
       }
       break;
     case kB_TRD:
       {
-	comment = comment.Append(" Beauty for TRD at 5.5 TeV");
+	comment = comment.Append(" B for TRD at 5.5 TeV");
 	AliGenPythia *gener = new AliGenPythia(1);
 	gener->SetCutOnChild(0);
 	gener->SetStrucFunc(kCTEQ4L);
 	gener->SetProcess(kPyBeauty);
 	gener->SetPtHard(0.,-1);
 	gener->SetEnergyCMS(5500.);
-	gener->SetNuclei(208,208);
 	gGener=gener;
       }
       break;
@@ -1244,7 +946,6 @@ AliGenerator* GeneratorFactory(PprRun_t srun) {
 	gGener=gener;
       }
       break;
-    default: break;
     }
     return gGener;
 }
@@ -1275,20 +976,4 @@ AliGenHijing* HijingStandard()
 }
 
 
-void ProcessEnvironmentVars()
-{
-    // Run type
-    if (gSystem->Getenv("CONFIG_RUN_TYPE")) {
-      for (Int_t iRun = 0; iRun < kRunMax; iRun++) {
-	if (strcmp(gSystem->Getenv("CONFIG_RUN_TYPE"), pprRunName[iRun])==0) {
-	  srun = (PprRun_t)iRun;
-	  cout<<"Run type set to "<<pprRunName[iRun]<<endl;
-	}
-      }
-    }
 
-    // Random Number seed
-    if (gSystem->Getenv("CONFIG_SEED")) {
-      sseed = atoi(gSystem->Getenv("CONFIG_SEED"));
-    }
-}

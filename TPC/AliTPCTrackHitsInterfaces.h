@@ -1,4 +1,3 @@
-#include <new>
 #include "AliClassInfo.h"
 #include "AliTPCTrackHits.h"
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *

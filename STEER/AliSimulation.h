@@ -27,9 +27,7 @@ public:
   void           SetRunSimulation(Bool_t run) {fRunSimulation = run;};
   void           SetMakeSDigits(const char* detectors) 
                    {fMakeSDigits = detectors;};
-  void           MergeWith(const char* fileName, Int_t nSignalPerBkgrd = 0);
-  void           SetUseBkgrdVertex(Bool_t useBkgrdVertex)
-                   {fUseBkgrdVertex = useBkgrdVertex;};
+  void           MergeWith(const char* fileName, Int_t nSignalPerBkgrd = 1);
   void           SetRegionOfInterest(Bool_t flag) {fRegionOfInterest = flag;};
   void           SetMakeDigits(const char* detectors)
                    {fMakeDigits = detectors;};
@@ -46,7 +44,6 @@ public:
 
 private:
   AliRunLoader*  LoadRun() const;
-  Int_t          GetNSignalPerBkgrd(Int_t nEvents = 0) const;
   Bool_t         IsSelected(TString detName, TString& detectors) const;
 
   Bool_t         fRunGeneration;      // generate prim. particles or not
@@ -60,7 +57,6 @@ private:
   TString        fConfigFileName;     // name of the config file
   TString        fGAliceFileName;     // name of the galice file
   TObjArray*     fBkgrdFileNames;     // names of background files for merging
-  Bool_t         fUseBkgrdVertex;     // use vertex from background in case of merging
   Bool_t         fRegionOfInterest;   // digitization in region of interest
 
   ClassDef(AliSimulation, 1)  // class for running generation, simulation and digitization

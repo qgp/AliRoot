@@ -15,10 +15,8 @@ class AliHBTPair;
 class AliHBTLLWeights: public AliHBTWeights
  {
    public:
-     AliHBTLLWeights();
      virtual ~AliHBTLLWeights(){;}
      static AliHBTLLWeights* Instance();
-     
      void Set();
      
      Double_t GetWeight(const AliHBTPair* partpair); //get weight calculated by Lednicky's algorithm
@@ -68,6 +66,7 @@ class AliHBTLLWeights: public AliHBTWeights
      static Int_t GetPairCode(const AliHBTPair* partpair);//calculate automatically internal code 
 
    private:
+     AliHBTLLWeights();
      AliHBTLLWeights(const AliHBTLLWeights &/*source*/);
      AliHBTLLWeights & operator=(const AliHBTLLWeights& /*source*/);
      
