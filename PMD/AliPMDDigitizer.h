@@ -14,7 +14,6 @@
 
 class TClonesArray;
 class TFile;
-class TMath;
 class TObjArray;
 class TParticle;
 class TTree;

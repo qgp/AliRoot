@@ -208,6 +208,8 @@ class AliTRDsimpleMC : public TVirtualMC {
   virtual TMCProcess    ProdProcess(Int_t ) const                                           { return kPNoProcess; };
   virtual Int_t         StepProcesses(TArrayI& ) const                                    { return 0; };
 
+  virtual Bool_t        SecondariesAreOrdered() const {return kTRUE;}
+
   //
   // Other (then geometry/step/run management) methods
   //
