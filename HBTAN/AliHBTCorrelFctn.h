@@ -218,6 +218,27 @@ class AliHBTITSSepVsQInvCorrelFctn: public AliHBTOnePairFctn3D, public AliHBTCor
     ClassDef(AliHBTITSSepVsQInvCorrelFctn,1)
 };
 
+
+/*************************************************************************************/
+
+class AliHBTITSSepVsTwoKStarCorrelFctn: public AliHBTOnePairFctn3D, public AliHBTCorrelFunction
+{
+//   Correlation Function of 2*KStar
+ public:
+   AliHBTITSSepVsTwoKStarCorrelFctn(Int_t layer = 0 ,Int_t nXbins = 10, Double_t maxXval = 0.05, Double_t minXval = 0.,
+                                Int_t nYbins = 10, Double_t maxYval = 1., Double_t minYval = 0.0,
+                                Int_t nZbins = 10, Double_t maxZval = 2., Double_t minZval = 0.0);
+   virtual ~AliHBTITSSepVsTwoKStarCorrelFctn(){};
+   TH1* GetResult();
+ protected:
+   void GetValues(AliHBTPair* pair, Double_t& x, Double_t& y, Double_t& z) const;
+
+   Int_t fLayer;//number of the layer
+
+ private:  
+    ClassDef(AliHBTITSSepVsTwoKStarCorrelFctn,1)
+};
+
 /*************************************************************************************/
 
 class AliHBTITSSepVsTwoKStarSideCorrelFctn: public AliHBTOnePairFctn3D, public AliHBTCorrelFunction
