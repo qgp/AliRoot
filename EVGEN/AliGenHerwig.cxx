@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.3  2002/07/26 15:32:24  hristov
+stream.h doesn't exest on Sun, removed from includes
+
 Revision 1.2  2002/07/19 11:43:10  morsch
 - Write full stack.
 - Use SetTrack passing energy.
@@ -30,7 +33,6 @@ First commit.
 // The main Herwig options are accessable for the user through this interface.
 // Uses the THerwig implementation of TGenerator.
 
-#include <stream.h>
 #include "AliGenHerwig.h"
 #include "AliRun.h"
 

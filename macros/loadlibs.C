@@ -35,6 +35,7 @@ void loadlibs ()
   gSystem->Load("libCRT");
   gSystem->Load("libSTART");
   gSystem->Load("libEMCAL");
+  gSystem->Load("libVZERO");
   gSystem->Load("libdummyherwig");
   gSystem->Load("libTHerwig");
 }
