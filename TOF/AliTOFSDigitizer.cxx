@@ -39,7 +39,6 @@
 #include <TSystem.h>
 #include <TTask.h>
 #include <TTree.h>
-#include <TVirtualMC.h>
 
 #include "AliDetector.h"
 #include "AliLoader.h"
@@ -260,14 +259,17 @@ void AliTOFSDigitizer::Exec(Option_t *verboseOption, Option_t *allEvents) {
     AliTOFHitMap *hitMap = new AliTOFHitMap(TOF->SDigits());
 
     // increase performances in terms of CPU time
-    TH->SetBranchStatus("*",0); // switch off all branches
-    TH->SetBranchStatus("TOF*",1); // switch on only TOF
+    //PH     TH->SetBranchStatus("*",0); // switch off all branches
+    //PH     TH->SetBranchStatus("TOF*",1); // switch on only TOF
+
+    TBranch * tofHitsBranch = TH->GetBranch("TOF");
 
     Int_t ntracks = static_cast<Int_t>(TH->GetEntries());
     for (Int_t track = 0; track < ntracks; track++)
     {
       gAlice->ResetHits();
-      TH->GetEvent(track);
+      //PH      TH->GetEvent(track);
+      tofHitsBranch->GetEvent(track);
       particle = gAlice->Particle(track);
       Int_t nhits = TOFhits->GetEntriesFast();
       // cleaning all hits of the same track in the same pad volume
@@ -455,6 +457,7 @@ void AliTOFSDigitizer::Exec(Option_t *verboseOption, Option_t *allEvents) {
 
   Print("");
 }
+
 //__________________________________________________________________
 void AliTOFSDigitizer::Print(Option_t* opt)const
 {

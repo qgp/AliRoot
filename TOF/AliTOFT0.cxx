@@ -13,7 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/* Id:$ */
+/* $Id$ */
 
 //_________________________________________________________________________
 // This is a TTask that made the calculation of the Time zero using TOF.

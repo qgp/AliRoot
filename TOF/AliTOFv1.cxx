@@ -817,7 +817,6 @@ void AliTOFv1::DrawDetectorModules()
 // Draw a shaded view of the TOF detector version 1
 //
  
- 
 //Set ALIC mother transparent
  gMC->Gsatt("ALIC","SEEN",0);
 
@@ -888,7 +887,6 @@ void AliTOFv1::DrawDetectorStrips()
 //
 // Draw a shaded view of the TOF strips for version 1
 //
- 
  
 //Set ALIC mother transparent
  gMC->Gsatt("ALIC","SEEN",0);

@@ -30,9 +30,8 @@
 //*-- Authors: F. Pierella, A. Seganti, D. Vicinanza
 
 #include <Riostream.h>
-#include <TArrayF.h>
-#include <TArrayI.h>
-#include <TVirtualMC.h>
+#include "TArrayF.h"
+#include "TArrayI.h"
 
 #include "AliRun.h"
 #include "AliTOF.h"

@@ -32,8 +32,6 @@
  
 #include <Riostream.h>
 
-#include <TVirtualMC.h>
-
 #include "AliRun.h"
 #include "AliTOF.h"
 #include "AliTOFdigit.h"
