@@ -25,7 +25,7 @@
 
 class AliHBTWeights;
 
-class AliHBTWeightQInvFctn: public AliHBTTwoPairFctn1D, public AliHBTCorrelFunction
+class AliHBTWeightQInvFctn: public AliHBTTwoPairFctn1D
 {
  public:
   AliHBTWeightQInvFctn(Int_t nbins = 100, Double_t maxXval = 0.15, Double_t minXval = 0.0);
@@ -38,11 +38,11 @@ class AliHBTWeightQInvFctn: public AliHBTTwoPairFctn1D, public AliHBTCorrelFunct
  protected:
   Double_t GetValue(AliHBTPair* trackpair, AliHBTPair* partpair)
     { return trackpair->GetQInv()-partpair->GetQInv();} //isn't use                                                                    
-  ClassDef(AliHBTWeightQInvFctn,2)
+  ClassDef(AliHBTWeightQInvFctn,1)
 };
 /*************************************************************************************/ 
 
-class AliHBTWeightQOutFctn: public AliHBTTwoPairFctn1D, public AliHBTCorrelFunction
+class AliHBTWeightQOutFctn: public AliHBTTwoPairFctn1D
 {
 
   //  friend class AliHBTOnePairFctn1D;
@@ -56,12 +56,12 @@ class AliHBTWeightQOutFctn: public AliHBTTwoPairFctn1D, public AliHBTCorrelFunct
  protected:
   Double_t GetValue(AliHBTPair* trackpair, AliHBTPair* partpair)         
     { return trackpair->GetQOutCMSLC()-partpair->GetQOutCMSLC();} //isn't use                                                                    
-  ClassDef(AliHBTWeightQOutFctn,2)
+  ClassDef(AliHBTWeightQOutFctn,1)
  
 };
 /*************************************************************************************/ 
   
-class AliHBTWeightQLongFctn: public AliHBTTwoPairFctn1D, public AliHBTCorrelFunction
+class AliHBTWeightQLongFctn: public AliHBTTwoPairFctn1D
 {
   //  friend class AliHBTOnePairFctn1D;
  public:
@@ -75,12 +75,12 @@ class AliHBTWeightQLongFctn: public AliHBTTwoPairFctn1D, public AliHBTCorrelFunc
   Double_t GetValue(AliHBTPair* trackpair, AliHBTPair* partpair)
     { return trackpair->GetQLongCMSLC()-partpair->GetQLongCMSLC();} //isn't used
 
-  ClassDef(AliHBTWeightQLongFctn,2)
+  ClassDef(AliHBTWeightQLongFctn,1)
  
 };
 /*************************************************************************************/ 
   
-class AliHBTWeightQSideFctn: public AliHBTTwoPairFctn1D, public AliHBTCorrelFunction
+class AliHBTWeightQSideFctn: public AliHBTTwoPairFctn1D
 {
   // friend class AliHBTOnePairFctn1D;
  public:
@@ -94,11 +94,11 @@ class AliHBTWeightQSideFctn: public AliHBTTwoPairFctn1D, public AliHBTCorrelFunc
   Double_t GetValue(AliHBTPair* trackpair, AliHBTPair* partpair)         
     { return trackpair->GetQLongCMSLC()-partpair->GetQLongCMSLC();} //isn't used
 
-  ClassDef(AliHBTWeightQSideFctn,2) 
+  ClassDef(AliHBTWeightQSideFctn,1) 
 };
 /*************************************************************************************/ 
   
-class AliHBTWeightTwoKStarFctn: public AliHBTTwoPairFctn1D, public AliHBTCorrelFunction
+class AliHBTWeightTwoKStarFctn: public AliHBTTwoPairFctn1D
 {
   // friend class AliHBTOnePairFctn1D;
  public:
@@ -111,12 +111,12 @@ class AliHBTWeightTwoKStarFctn: public AliHBTTwoPairFctn1D, public AliHBTCorrelF
  protected:
   Double_t GetValue(AliHBTPair* trackpair, AliHBTPair* partpair)         
     { return trackpair->GetKStar()-partpair->GetKStar();} //isn't used
-  ClassDef(AliHBTWeightTwoKStarFctn,2) 
+  ClassDef(AliHBTWeightTwoKStarFctn,1) 
 
 };
 /*************************************************************************************/ 
 
-class AliHBTWeightQOutQSideFctn: public AliHBTTwoPairFctn2D, public AliHBTCorrelFunction
+class AliHBTWeightQOutQSideFctn: public AliHBTTwoPairFctn2D
 {
 
   //  friend class AliHBTOnePairFctn1D;
@@ -130,12 +130,12 @@ class AliHBTWeightQOutQSideFctn: public AliHBTTwoPairFctn2D, public AliHBTCorrel
       
  protected:
   void GetValues(AliHBTPair* /*trackpair*/, AliHBTPair* /*partpair*/, Double_t& /*x*/, Double_t& /*y*/){}
-  ClassDef(AliHBTWeightQOutQSideFctn,2)
+  ClassDef(AliHBTWeightQOutQSideFctn,1)
  
 };
 /*************************************************************************************/ 
 
-class AliHBTWeightQOutQLongFctn: public AliHBTTwoPairFctn2D, public AliHBTCorrelFunction
+class AliHBTWeightQOutQLongFctn: public AliHBTTwoPairFctn2D
 {
 
   //  friend class AliHBTOnePairFctn1D;
@@ -149,13 +149,13 @@ class AliHBTWeightQOutQLongFctn: public AliHBTTwoPairFctn2D, public AliHBTCorrel
       
  protected:
   void GetValues(AliHBTPair* /*trackpair*/, AliHBTPair* /*partpair*/, Double_t& /*x*/, Double_t& /*y*/){}
-  ClassDef(AliHBTWeightQOutQLongFctn,2)
+  ClassDef(AliHBTWeightQOutQLongFctn,1)
  
 };
 
 /*************************************************************************************/ 
 
-class AliHBTWeightQSideQLongFctn: public AliHBTTwoPairFctn2D, public AliHBTCorrelFunction
+class AliHBTWeightQSideQLongFctn: public AliHBTTwoPairFctn2D
 {
 
   //  friend class AliHBTOnePairFctn1D;
@@ -169,7 +169,7 @@ class AliHBTWeightQSideQLongFctn: public AliHBTTwoPairFctn2D, public AliHBTCorre
       
  protected:
   void GetValues(AliHBTPair* /*trackpair*/, AliHBTPair* /*partpair*/, Double_t& /*x*/, Double_t& /*y*/){}
-  ClassDef(AliHBTWeightQSideQLongFctn,2)
+  ClassDef(AliHBTWeightQSideQLongFctn,1)
  
 };
 

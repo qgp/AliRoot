@@ -20,9 +20,6 @@
 /*
  
 $Log$
-Revision 1.8  2004/01/29 23:28:44  mhorner
-Jet Finder - hard coded geom parameters removed
-
 Revision 1.7  2004/01/21 22:27:47  mhorner
 Cleaning up coding conventions
 
@@ -68,9 +65,8 @@ ClassImp(AliEMCALJetFinderAlgoOmni)
   //Default constructor
 if (fDebug>0) Info("AliEMCALJetFinderAlgoOmni","Beginning Default Constructor");
 
-// AliEMCALGetter * gime = AliEMCALGetter::Instance() ;
-//  AliEMCALGeometry * geom = gime->EMCALGeometry();
-  AliEMCALGeometry * geom = AliEMCALGeometry::GetInstance("EMCAL_55_25","EMCAL");
+ AliEMCALGetter * gime = AliEMCALGetter::Instance() ;
+ AliEMCALGeometry * geom = gime->EMCALGeometry();
   fNumIter           = 0;
   fNumUnits          = geom->GetNTowers();     //Number of towers in EMCAL
   fESeed             = 5.0;       //Default value

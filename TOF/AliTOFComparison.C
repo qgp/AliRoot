@@ -138,9 +138,6 @@ Int_t AliTOFComparison() {
    TH1F *hfl=new TH1F("hfl","Probability of mismatching",30,-1,1);
    hfl->SetFillColor(1); hfl->SetFillStyle(3013); hfl->SetLineWidth(2);
 
-   TCanvas *c1=new TCanvas("c1","",0,0,600,900);
-   c1->Divide(1,2);
-
    TFile *ef=TFile::Open("AliESDs.root");
    if (!ef->IsOpen()) {cerr<<"Can't AliESDs.root !\n"; return 1;}
 
@@ -224,6 +221,9 @@ Int_t AliTOFComparison() {
      hgl->SetYTitle("Matching efficiency");
      hgl->SetXTitle("Tan(lambda)");
 
+     TCanvas *c1=new TCanvas("c1","",0,0,600,900);
+     c1->Divide(1,2);
+
      c1->cd(1);
 
      hgp->Draw();
@@ -244,10 +244,6 @@ Int_t AliTOFComparison() {
 
      break;
    }
-
-   TFile fc("AliTOFComparison.root","RECREATE");
-   c1->Write();
-   fc.Close();
 
    return 0;
 }
@@ -328,7 +324,7 @@ Int_t good_tracks_tof(GoodTrackTOF *gt, const Int_t max) {
       }
       if (TMath::Abs(p->Vx())>0.1) continue;
       if (TMath::Abs(p->Vy())>0.1) continue;
-      //      if (TMath::Abs(p->Vz())>0.1) continue;
+      if (TMath::Abs(p->Vz())>0.1) continue;
 
       gt[nt].lab=lab;
       gt[nt].code=p->GetPdgCode();

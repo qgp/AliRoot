@@ -22,7 +22,6 @@ class AliLoader;
 class AliTrackReference;
 class AliDigitizer;
 class AliRunDigitizer;
-class AliVertexer;
 class AliTracker;
 class AliESD;
 class AliRunLoader;
@@ -92,7 +91,6 @@ public:
   virtual void        Hits2Digits() {}
   virtual void        Digits2Reco() {}
   virtual void        Reconstruct() const {}
-  virtual AliVertexer* CreateVertexer() const {return NULL;}
   virtual AliTracker* CreateTracker() const {return NULL;}
   virtual void        FillESD(AliESD* /*esd*/) const {}
   virtual void        Digits2Raw() {}

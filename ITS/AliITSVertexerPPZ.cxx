@@ -95,7 +95,7 @@ void  AliITSVertexerPPZ::EvalZ(TH1F *hist,Int_t sepa, Int_t ncoinc, TArrayF *zva
   if(NbinNotZero==1){
     fZFound = curz;
     fZsig=0;
-    fCurrentVertex = new AliESDVertex(fZFound,fZsig,NbinNotZero);
+    fCurrentVertex = new AliITSVertex(fZFound,fZsig,NbinNotZero);
     return;
   }
   Float_t errsq = totst2/(N-1)-totst*totst/N/(N-1);
@@ -154,7 +154,7 @@ void  AliITSVertexerPPZ::EvalZ(TH1F *hist,Int_t sepa, Int_t ncoinc, TArrayF *zva
   if(N<1){fZFound=-110; fZsig=-110; return;}
   if(N==1){
     fZsig = 0;
-    fCurrentVertex = new AliESDVertex(fZFound,fZsig,N);
+    fCurrentVertex = new AliITSVertex(fZFound,fZsig,N);
     return;
   }
   errsq = (fZsig/(N-1)-fZFound*fZFound/N/(N-1))/N;
@@ -171,12 +171,12 @@ void  AliITSVertexerPPZ::EvalZ(TH1F *hist,Int_t sepa, Int_t ncoinc, TArrayF *zva
   fZFound*=fZsig;
   fZsig = TMath::Sqrt(fZsig);
   */
-  fCurrentVertex = new AliESDVertex(fZFound,fZsig,N);
+  fCurrentVertex = new AliITSVertex(fZFound,fZsig,N);
 }
 
 //______________________________________________________________________
-AliESDVertex* AliITSVertexerPPZ::FindVertexForCurrentEvent(Int_t evnumber){
-  // Defines the AliESDVertex for the current event
+AliITSVertex* AliITSVertexerPPZ::FindVertexForCurrentEvent(Int_t evnumber){
+  // Defines the AliITSVertex for the current event
   fCurrentVertex = 0;
   fZFound = -999;
   fZsig = -999;
@@ -195,31 +195,24 @@ AliESDVertex* AliITSVertexerPPZ::FindVertexForCurrentEvent(Int_t evnumber){
     Error("FindVertexForCurrentEvent","ITS geometry is not defined");
     return fCurrentVertex;
   }
-  TTree *tR=0;
-  TClonesArray *itsRec  = 0;
+  TTree *TR=0;
+  TClonesArray *ITSrec  = 0;
   Float_t lc[3]; for(Int_t ii=0; ii<3; ii++) lc[ii]=0.;
   Float_t gc[3]; for(Int_t ii=0; ii<3; ii++) gc[ii]=0.;
   Float_t lc2[3]; for(Int_t ii=0; ii<3; ii++) lc2[ii]=0.;
   Float_t gc2[3]; for(Int_t ii=0; ii<3; ii++) gc2[ii]=0.;
 
-  tR = ITSloader->TreeR();
-  if(!tR){
+  TR = ITSloader->TreeR();
+  if(!TR){
     Error("FindVertexForCurrentEvent","TreeR not found");
     return fCurrentVertex;
   }
-  itsRec  = fITS->RecPoints();  // uses slow points or fast points if slow are
+  ITSrec  = fITS->RecPoints();  // uses slow points or fast points if slow are
   // missing
-  TClonesArray dummy("AliITSclusterV2",10000), *clusters=&dummy;
-  TBranch *branch;
-  if(fUseV2Clusters){
-    branch = tR->GetBranch("Clusters");
-    branch->SetAddress(&clusters);
-  }
-  else {
-    branch = tR->GetBranch("ITSRecPoints");
-    if(!branch){ 
-      branch = tR->GetBranch("ITSRecPointsF");
-    }
+  TBranch *branch = TR->GetBranch("ITSRecPoints");
+  if(!branch){ 
+    branch = TR->GetBranch("ITSRecPointsF");
+    //   Warning("FindVertexForCurrentEvent","Using Fast points");
   }
   if(!branch){
    Error("FindVertexForCurrentEvent","branch for ITS rec points not found");
@@ -231,12 +224,9 @@ AliESDVertex* AliITSVertexerPPZ::FindVertexForCurrentEvent(Int_t evnumber){
   Int_t firipixe=0;
   for(Int_t module= fFirstL1; module<=fLastL1;module++){
     branch->GetEvent(module);
-    if(fUseV2Clusters){
-      Clusters2RecPoints(clusters,module,itsRec);
-    }
-    Int_t nrecp1 = itsRec->GetEntries();
+    Int_t nrecp1 = ITSrec->GetEntries();
     for(Int_t i=0; i<nrecp1;i++){
-      AliITSRecPoint *current = (AliITSRecPoint*)itsRec->At(i);
+      AliITSRecPoint *current = (AliITSRecPoint*)ITSrec->At(i);
       lc[0]=current->GetX();
       lc[2]=current->GetZ();
       geom->LtoG(module,lc,gc);
@@ -273,12 +263,9 @@ AliESDVertex* AliITSVertexerPPZ::FindVertexForCurrentEvent(Int_t evnumber){
   for(Int_t module= fFirstL1; module<=fLastL1;module++){
     if(fDebug>0)cout<<"processing module   "<<module<<"                  \r";
     branch->GetEvent(module);
-    if(fUseV2Clusters){
-      Clusters2RecPoints(clusters,module,itsRec);
-    }
-    Int_t nrecp1 = itsRec->GetEntries();
+    Int_t nrecp1 = ITSrec->GetEntries();
     TObjArray *poiL1 = new TObjArray(nrecp1);
-    for(Int_t i=0; i<nrecp1;i++)poiL1->AddAt(itsRec->At(i),i);
+    for(Int_t i=0; i<nrecp1;i++)poiL1->AddAt(ITSrec->At(i),i);
     fITS->ResetRecPoints();
     for(Int_t i=0; i<nrecp1;i++){
       AliITSRecPoint *current = (AliITSRecPoint*)poiL1->At(i);
@@ -293,12 +280,9 @@ AliESDVertex* AliITSVertexerPPZ::FindVertexForCurrentEvent(Int_t evnumber){
       if(fDebug>1)cout<<"module "<<module<<" "<<gc[0]<<" "<<gc[1]<<" "<<gc[2]<<" "<<phi1<<"     \n";
       for(Int_t modul2=fFirstL2; modul2<=fLastL2; modul2++){
 	branch->GetEvent(modul2);
-	if(fUseV2Clusters){
-	  Clusters2RecPoints(clusters,modul2,itsRec);
-	}
-	Int_t nrecp2 = itsRec->GetEntries();
+	Int_t nrecp2 = ITSrec->GetEntries();
 	for(Int_t j=0; j<nrecp2;j++){
-	  AliITSRecPoint *recp = (AliITSRecPoint*)itsRec->At(j);
+	  AliITSRecPoint *recp = (AliITSRecPoint*)ITSrec->At(j);
 	  lc2[0]=recp->GetX();
 	  lc2[2]=recp->GetZ();
 	  geom->LtoG(modul2,lc2,gc2);

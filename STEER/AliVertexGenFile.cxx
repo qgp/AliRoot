@@ -65,15 +65,13 @@ AliVertexGenFile::AliVertexGenFile(const char* fileName,
   TDirectory* dir = gDirectory;
 
   fFile = TFile::Open(fileName);
-  if (!fFile || !fFile->IsOpen()) {
+  if (!fFile) {
     Error("AliVertexGenFile", "could not open file %s", fileName);
-    delete fFile;
-    fFile = NULL;
     return;
   }
   fTree = (TTree*) fFile->Get("TE");
   if (!fTree) {
-    Error("AliVertexGenFile", "no header tree found in file %s", fileName);
+    Error("AliVertexGenFile", "not header tree found in file %s", fileName);
     dir->cd();
     return;
   }
@@ -88,7 +86,7 @@ AliVertexGenFile::~AliVertexGenFile()
 {
 // clean up
 
-  if (fFile) fFile->Close();
+  fFile->Close();
   delete fFile;
   delete fHeader;
 }
@@ -100,11 +98,6 @@ TVector3 AliVertexGenFile::GetVertex()
 // get the vertex from the event header tree
 
   Int_t entry = fEvent++ / fEventsPerEntry;
-  if (!fTree) {
-    Error("GetVertex", "no header tree");
-    return TVector3(0,0,0);
-  }
-
   if (fTree->GetEntry(entry) <= 0) {
     Error("GetVertex", "error loading entry %d", entry);
     return TVector3(0,0,0);

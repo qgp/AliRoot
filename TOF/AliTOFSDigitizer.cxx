@@ -90,17 +90,14 @@ AliTOFSDigitizer::AliTOFSDigitizer(const char* HeaderFile, Int_t evNumber1, Int_
   }
   
   // add Task to //root/Tasks folder
-  TString evfoldname = AliConfig::fgkDefaultEventFolderName;
-  fRunLoader = AliRunLoader::GetRunLoader(evfoldname);
-  if (!fRunLoader)
-    fRunLoader = AliRunLoader::Open(HeaderFile);//open session and mount on default event folder
+  fRunLoader = AliRunLoader::Open(HeaderFile);//open session and mount on default event folder
   if (fRunLoader == 0x0)
     {
       Fatal("AliTOFSDigitizer","Event is not loaded. Exiting");
       return;
     }
 
-  if (fRunLoader->TreeE() == 0x0) fRunLoader->LoadHeader();
+  fRunLoader->LoadHeader();
   
   if (evNumber1>=0) fEvent1 = evNumber1;
   else fEvent1=0;
@@ -211,7 +208,7 @@ void AliTOFSDigitizer::Exec(Option_t *verboseOption) {
 
   Bool_t thereIsNotASelection=(fSelectedSector==-1) && (fSelectedPlate==-1);
 
-  if (fRunLoader->GetAliRun() == 0x0) fRunLoader->LoadgAlice();
+  fRunLoader->LoadgAlice();
   gAlice = fRunLoader->GetAliRun();
 
   fRunLoader->LoadKinematics();
@@ -227,8 +224,8 @@ void AliTOFSDigitizer::Exec(Option_t *verboseOption) {
   fTOFLoader->LoadSDigits("recreate");
   
   for (Int_t iEvent=fEvent1; iEvent<fEvent2; iEvent++) {
-//     cout << "------------------- "<< GetName() << " ------------- \n";
-//     cout << "Sdigitizing event " << iEvent << endl;
+    cout << "------------------- "<< GetName() << " ------------- \n";
+    cout << "Sdigitizing event " << iEvent << endl;
 
     fRunLoader->GetEvent(iEvent);
 

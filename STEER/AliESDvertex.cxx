@@ -15,12 +15,40 @@
 
 /* $Id$ */
 
-#include "AliTPCtrackPid.h"
+/////////////////////////////////////////////////////////////////////////
+//                                                                     //
+//       Prototype ESD class                                           //
+//                                                                     //
+/////////////////////////////////////////////////////////////////////////
 
-ClassImp(AliTPCtrackPid)
+#include "Riostream.h"
 
-AliTPCtrackPid::AliTPCtrackPid()
+#include "AliESDvertex.h"
+
+ClassImp(AliESDvertex)
+
+//_______________________________________________________________________
+AliESDvertex::AliESDvertex():
+  fNPrimary(0),
+  fCoordinates(3),
+  fErrorMatrix(6),
+  fPrimaryTracks(0),
+  fEffectiveMass(0),
+  fEffectiveMassError(0)
 {
-    fWpi=fWk=fWp=0.;
-    fPcode=0; fMom=0.; fSignal=0;
+  cout << "ESDvertex def ctor" << endl;
 }
+
+//_______________________________________________________________________
+AliESDvertex::AliESDvertex(const AliESDvertex &esdv):
+  TObject(esdv),
+  fNPrimary(0),
+  fCoordinates(0),
+  fErrorMatrix(0),
+  fPrimaryTracks(0),
+  fEffectiveMass(0),
+  fEffectiveMassError(0)
+{
+}
+
+

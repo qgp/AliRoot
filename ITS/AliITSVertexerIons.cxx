@@ -19,7 +19,7 @@
 #include <TH1.h>
 #include <TF1.h>
 #include <TCanvas.h>
-#include <AliESDVertex.h>
+#include <AliITSVertex.h>
 #include <TObjArray.h>
 #include <TObject.h>
 #include <AliITSVertexerPPZ.h>
@@ -68,8 +68,8 @@ AliITSVertexerIons::~AliITSVertexerIons() {
 }
 
 //______________________________________________________________________
-AliESDVertex* AliITSVertexerIons::FindVertexForCurrentEvent(Int_t evnumber){
-  // Defines the AliESDVertex for the current event
+AliITSVertex* AliITSVertexerIons::FindVertexForCurrentEvent(Int_t evnumber){
+  // Defines the AliITSVertex for the current event
   fCurrentVertex = 0;
   Double_t position[3];
   Double_t resolution[3];
@@ -86,16 +86,6 @@ AliESDVertex* AliITSVertexerIons::FindVertexForCurrentEvent(Int_t evnumber){
   fITS->SetTreeAddress();
   AliITSgeom *g2 = fITS->GetITSgeom(); 
   TClonesArray  *recpoints = fITS->RecPoints();
-  TClonesArray dummy("AliITSclusterV2",10000), *clusters=&dummy;
-  TBranch *branch;
-  if(fUseV2Clusters){
-    branch = itsloader->TreeR()->GetBranch("Clusters");
-    branch->SetAddress(&clusters);
-  }
-  else {
-    branch = itsloader->TreeR()->GetBranch("ITSRecPoints");
-  }
-
   AliITSRecPoint *pnt;
 
   Int_t nopoints1 = 0;                                         
@@ -119,10 +109,7 @@ AliESDVertex* AliITSVertexerIons::FindVertexForCurrentEvent(Int_t evnumber){
   for(i=g2->GetStartSPD();i<=g2->GetLastSPD();i++) 
     {
       fITS->ResetRecPoints();
-      tr->GetEvent(i); 
-      if(fUseV2Clusters){
-	Clusters2RecPoints(clusters,i,recpoints);
-      }
+      tr->GetEvent(i);    
       npoints = recpoints->GetEntries();
       for (ipoint=0;ipoint<npoints;ipoint++) {
 	pnt = (AliITSRecPoint*)recpoints->UncheckedAt(ipoint);
@@ -142,10 +129,7 @@ AliESDVertex* AliITSVertexerIons::FindVertexForCurrentEvent(Int_t evnumber){
     }  
   
   nopoints1 = (Int_t)(hITSz1->GetEntries()); 
-  if (nopoints1 == 0) {
-    delete hITSz1;
-    return fCurrentVertex;
-  }         
+           
   aspar[0] = (mxpiu-mxmeno)/(mxpiu+mxmeno);
   aspar[1] = (mypiu-mymeno)/(mypiu+mymeno); 
    
@@ -226,9 +210,6 @@ AliESDVertex* AliITSVertexerIons::FindVertexForCurrentEvent(Int_t evnumber){
     {
       fITS->ResetRecPoints(); 
       itsloader->TreeR()->GetEvent(i);
-     if(fUseV2Clusters){
-	Clusters2RecPoints(clusters,i,recpoints);
-      }
       npoints = recpoints->GetEntries();
       for (ipoint=0;ipoint<npoints;ipoint++) {
                
@@ -281,12 +262,12 @@ AliESDVertex* AliITSVertexerIons::FindVertexForCurrentEvent(Int_t evnumber){
 	  snr[2]=-123;
 	  Char_t name[30];
 	  sprintf(name,"Vertex");
-	  fCurrentVertex = new AliESDVertex(position,resolution,snr,name);
+	  fCurrentVertex = new AliITSVertex(position,resolution,snr,name);
 	  return fCurrentVertex;*/
 
     Warning("FindVertexForCurrentEvent","AliITSVertexerIons finder is not reliable for low multiplicity events. Switching to AliITSVertexerPPZ with default parameters...\n");
     Warning("FindVertexForCurrentEvent","N rec points = %d - Threshold is %d",np1,fNpThreshold);
-    AliITSVertexerPPZ *dovert = new AliITSVertexerPPZ("null");
+    AliITSVertexerPPZ *dovert = new AliITSVertexerPPZ("default");
     fCurrentVertex =dovert->FindVertexForCurrentEvent(rl->GetEventNumber());
     delete dovert;
     return fCurrentVertex;
@@ -484,7 +465,7 @@ AliESDVertex* AliITSVertexerIons::FindVertexForCurrentEvent(Int_t evnumber){
   //  sprintf(name,"Vertex_%d",evnumber);
   if(fDebug>0)Info("FindVertexForCurrentEvent","Vertex found for event %d",evnumber);
   sprintf(name,"Vertex");
-  fCurrentVertex = new AliESDVertex(position,resolution,snr,name);
+  fCurrentVertex = new AliITSVertex(position,resolution,snr,name);
   return fCurrentVertex;
 }
 

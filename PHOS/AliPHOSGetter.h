@@ -182,7 +182,7 @@ public:
   
   TString Version() const  { return PhosLoader()->GetTitle() ; } 
   AliPHOSLoader * PhosLoader() const { return  fgPhosLoader ; }
-  void Reset() ;
+  void Reset() {fgPhosLoader = 0; fgObjGetter = 0; }
   
   AliESD * ESD(Int_t event = 0) ;
   Bool_t OpenESDFile(TString name = "AliESDs.root") ;

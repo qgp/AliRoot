@@ -130,37 +130,31 @@ void AliPMDDigitizer::OpengAliceFile(const char *file, Option_t *option)
   // Loads galice.root file and corresponding header, kinematics
   // hits and sdigits or digits depending on the option
   //
-
-  TString evfoldname = AliConfig::fgkDefaultEventFolderName;
-  fRunLoader = AliRunLoader::GetRunLoader(evfoldname);
-  if (!fRunLoader)
-    fRunLoader = AliRunLoader::Open(file,AliConfig::fgkDefaultEventFolderName,
-				    "UPDATE");
+  fRunLoader = AliRunLoader::Open(file,AliConfig::fgkDefaultEventFolderName,
+				  "UPDATE");
   
   if (!fRunLoader)
    {
      Error("Open","Can not open session for file %s.",file);
    }
   
-  if (!fRunLoader->GetAliRun()) fRunLoader->LoadgAlice();
-  if (!fRunLoader->TreeE()) fRunLoader->LoadHeader();
-  if (!fRunLoader->TreeK()) fRunLoader->LoadKinematics();
+  fRunLoader->LoadgAlice();
+  fRunLoader->LoadHeader();
+  fRunLoader->LoadKinematics();
 
   gAlice = fRunLoader->GetAliRun();
   
-  if (fDebug) {
-    if (gAlice)
-      {
-	printf("<AliPMDdigitizer::Open> ");
-	printf("AliRun object found on file.\n");
-      }
-    else
-      {
-	printf("<AliPMDdigitizer::Open> ");
-	printf("Could not find AliRun object.\n");
-      }
-  }
-  
+  if (gAlice)
+    {
+      printf("<AliPMDdigitizer::Open> ");
+      printf("AliRun object found on file.\n");
+    }
+  else
+    {
+      printf("<AliPMDdigitizer::Open> ");
+      printf("Could not find AliRun object.\n");
+    }
+
   fPMD  = (AliPMD*)gAlice->GetDetector("PMD");
   fPMDLoader = fRunLoader->GetLoader("PMDLoader");
   if (fPMDLoader == 0x0)
@@ -213,9 +207,9 @@ void AliPMDDigitizer::Hits2SDigits(Int_t ievt)
 
   ResetSDigit();
 
-  if (fDebug) printf("Event Number =  %d \n",ievt); 
+  printf("Event Number =  %d \n",ievt); 
   Int_t nparticles = fRunLoader->GetHeader()->GetNtrack();
-  if (fDebug) printf("Number of Particles = %d \n", nparticles);
+  printf("Number of Particles = %d \n", nparticles);
   fRunLoader->GetEvent(ievt);
   // ------------------------------------------------------- //
   // Pointer to specific detector hits.
@@ -224,7 +218,7 @@ void AliPMDDigitizer::Hits2SDigits(Int_t ievt)
   fTreeH = fPMDLoader->TreeH();
   
   Int_t ntracks    = (Int_t) fTreeH->GetEntries();
-  if (fDebug) printf("Number of Tracks in the TreeH = %d \n", ntracks);
+  printf("Number of Tracks in the TreeH = %d \n", ntracks);
 
   fTreeS = fPMDLoader->TreeS();
   if (fTreeS == 0x0)
@@ -445,10 +439,10 @@ void AliPMDDigitizer::Hits2Digits(Int_t ievt)
 
   ResetDigit();
 
-  if (fDebug) printf("Event Number =  %d \n",ievt); 
+  printf("Event Number =  %d \n",ievt); 
 
   Int_t nparticles = fRunLoader->GetHeader()->GetNtrack();
-  if (fDebug) printf("Number of Particles = %d \n", nparticles);
+  printf("Number of Particles = %d \n", nparticles);
   fRunLoader->GetEvent(ievt);
   // ------------------------------------------------------- //
   // Pointer to specific detector hits.
@@ -463,7 +457,7 @@ void AliPMDDigitizer::Hits2Digits(Int_t ievt)
     }
   fTreeH = fPMDLoader->TreeH();
   Int_t ntracks    = (Int_t) fTreeH->GetEntries();
-  if (fDebug) printf("Number of Tracks in the TreeH = %d \n", ntracks);
+  printf("Number of Tracks in the TreeH = %d \n", ntracks);
   fPMDLoader->LoadDigits("recreate");
   fTreeD = fPMDLoader->TreeD();
   if (fTreeD == 0x0)

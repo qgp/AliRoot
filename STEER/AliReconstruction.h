@@ -10,7 +10,6 @@
 
 class AliRunLoader;
 class AliLoader;
-class AliVertexer;
 class AliTracker;
 class AliESD;
 class TFile;
@@ -29,7 +28,6 @@ public:
 
   void           SetRunReconstruction(const char* detectors) {
     fRunReconstruction = detectors;};
-  void           SetRunVertexFinder(Bool_t run) {fRunVertexFinder = run;};
   void           SetRunTracking(Bool_t run) {fRunTracking = run;};
   void           SetFillESD(const char* detectors) {fFillESD = detectors;};
 
@@ -42,12 +40,10 @@ public:
 
 private:
   Bool_t         RunReconstruction(const TString& detectors);
-  Bool_t         RunVertexFinder(AliESD*& esd);
   Bool_t         RunTracking(AliESD*& esd);
   Bool_t         FillESD(AliESD*& esd, const TString& detectors);
 
   Bool_t         IsSelected(TString detName, TString& detectors) const;
-  Bool_t         CreateVertexer();
   Bool_t         CreateTrackers();
   void           CleanUp(TFile* file = NULL);
 
@@ -55,7 +51,6 @@ private:
   void           WriteESD(AliESD* esd, const char* recStep) const;
 
   TString        fRunReconstruction;  // run the reconstr. for these detectors
-  Bool_t         fRunVertexFinder;    // run the vertex finder
   Bool_t         fRunTracking;        // run the barrel tracking
   TString        fFillESD;            // fill ESD for these detectors
   TString        fGAliceFileName;     // name of the galice file
@@ -64,7 +59,6 @@ private:
 
   AliRunLoader*  fRunLoader;          //! current run loader object
   AliLoader*     fITSLoader;          //! loader for ITS
-  AliVertexer*   fITSVertexer;        //! vertexer for ITS
   AliTracker*    fITSTracker;         //! tracker for ITS
   AliLoader*     fTPCLoader;          //! loader for TPC
   AliTracker*    fTPCTracker;         //! tracker for TPC

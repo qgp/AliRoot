@@ -63,10 +63,7 @@ void  AliHBTWeightQInvFctn::ProcessDiffEventParticles(AliHBTPair* trackpair, Ali
 TH1* AliHBTWeightQInvFctn::GetResult()
 { 
 //returns ratio of numerator and denominator                                    
- //returns the scaled ratio
- delete fRatio;
- fRatio = GetRatio(Scale());
- return fRatio;
+ return GetRatio(Scale());                                                  
 }                    
                                                               
 /**************************************************************************************/
@@ -119,10 +116,8 @@ void AliHBTWeightQOutFctn::ProcessDiffEventParticles(AliHBTPair* trackpair, AliH
 
 TH1* AliHBTWeightQOutFctn::GetResult() 
 { 
- //returns the scaled ratio
- delete fRatio;
- fRatio = GetRatio(Scale());
- return fRatio;
+//returns ratio of numerator and denominator                                    
+ return GetRatio(Scale());                                                  
 }                    
                                                               
 /*************************************************************************************/ 
@@ -172,10 +167,8 @@ void AliHBTWeightQLongFctn::ProcessDiffEventParticles(AliHBTPair* trackpair, Ali
 /**************************************************************/
 TH1* AliHBTWeightQLongFctn::GetResult()
 { 
- //returns the scaled ratio
- delete fRatio;
- fRatio = GetRatio(Scale());
- return fRatio;
+//returns ratio of numerator and denominator                                    
+ return GetRatio(Scale());                                                  
 }                    
                                                               
 /*************************************************************************************/ 
@@ -228,10 +221,8 @@ void  AliHBTWeightQSideFctn::ProcessDiffEventParticles(AliHBTPair* trackpair, Al
 
 TH1* AliHBTWeightQSideFctn::GetResult() 
 { 
- //returns the scaled ratio
- delete fRatio;
- fRatio = GetRatio(Scale());
- return fRatio;
+//returns ratio of numerator and denominator                                    
+ return GetRatio(Scale());                                                  
 }                    
                                                               
 /*************************************************************************************/ 
@@ -283,10 +274,8 @@ void  AliHBTWeightTwoKStarFctn::ProcessDiffEventParticles(AliHBTPair* trackpair,
 TH1* AliHBTWeightTwoKStarFctn::GetResult() 
                                                                                
 { 
- //returns the scaled ratio
- delete fRatio;
- fRatio = GetRatio(Scale());
- return fRatio;
+//returns ratio of numerator and denominator                                    
+ return GetRatio(Scale());                                                  
 }                    
                                                               
 /*************************************************************************************/ 
@@ -340,10 +329,8 @@ void AliHBTWeightQOutQSideFctn::ProcessDiffEventParticles(AliHBTPair* trackpair,
 
 TH1* AliHBTWeightQOutQSideFctn::GetResult()
 {
- //returns the scaled ratio
- delete fRatio;
- fRatio = GetRatio(Scale());
- return fRatio;
+  //returns result
+  return GetRatio(Scale());
 }
 
 /*************************************************************************************/ 
@@ -397,10 +384,8 @@ void AliHBTWeightQOutQLongFctn::ProcessDiffEventParticles(AliHBTPair* trackpair,
 
 TH1* AliHBTWeightQOutQLongFctn::GetResult()
 {
- //returns the scaled ratio
- delete fRatio;
- fRatio = GetRatio(Scale());
- return fRatio;
+  //returns result
+  return GetRatio(Scale());
 }
 
 /*************************************************************************************/ 
@@ -454,8 +439,6 @@ void AliHBTWeightQSideQLongFctn::ProcessDiffEventParticles(AliHBTPair* trackpair
 
 TH1* AliHBTWeightQSideQLongFctn::GetResult()
 {
- //returns the scaled ratio
- delete fRatio;
- fRatio = GetRatio(Scale());
- return fRatio;
+  //returns result
+  return GetRatio(Scale());
 }

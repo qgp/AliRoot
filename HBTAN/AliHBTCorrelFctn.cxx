@@ -34,11 +34,8 @@ AliHBTQInvCorrelFctn::AliHBTQInvCorrelFctn(Int_t nbins, Double_t maxXval, Double
 /*************************************************************************************/ 
 
 TH1* AliHBTQInvCorrelFctn::GetResult()
-{
- //returns the scaled ratio
- delete fRatio;
- fRatio = GetRatio(Scale());
- return fRatio;
+{  
+ return GetRatio(Scale());
 }
 /*************************************************************************************/ 
 /*************************************************************************************/ 
@@ -57,10 +54,8 @@ AliHBTQOutCMSLCCorrelFctn::AliHBTQOutCMSLCCorrelFctn(Int_t nbins, Double_t maxXv
     
 TH1* AliHBTQOutCMSLCCorrelFctn::GetResult()
 {
- //returns the scaled ratio
- delete fRatio;
- fRatio = GetRatio(Scale());
- return fRatio;
+ //returns result of the function
+ return GetRatio(Scale());
 }
 /*************************************************************************************/ 
 /*************************************************************************************/ 
@@ -79,10 +74,8 @@ AliHBTQLongCMSLCCorrelFctn::AliHBTQLongCMSLCCorrelFctn(Int_t nbins, Double_t max
     
 TH1* AliHBTQLongCMSLCCorrelFctn::GetResult()
 {
- //returns the scaled ratio
- delete fRatio;
- fRatio = GetRatio(Scale());
- return fRatio;
+ //returns result of the function
+ return GetRatio(Scale());
 }
 /*************************************************************************************/ 
 /*************************************************************************************/ 
@@ -101,10 +94,8 @@ AliHBTQSideCMSLCCorrelFctn::AliHBTQSideCMSLCCorrelFctn(Int_t nbins, Double_t max
     
 TH1* AliHBTQSideCMSLCCorrelFctn::GetResult()
 {
- //returns the scaled ratio
- delete fRatio;
- fRatio = GetRatio(Scale());
- return fRatio;
+ //returns result
+ return GetRatio(Scale());
 }
 
 
@@ -125,7 +116,8 @@ AliHBTInvMassCorrelFctn::AliHBTInvMassCorrelFctn(Int_t nbins, Double_t maxXval, 
 TH1* AliHBTInvMassCorrelFctn::GetResult()
 {
  //returns result
- return GetNumerator();
+ TString name = fName + " Result";
+ return (TH1*)GetNumerator()->Clone(name.Data());
 }
 /*************************************************************************************/ 
 /*************************************************************************************/ 
@@ -145,10 +137,8 @@ AliHBTTwoKStarCorrelFctn::AliHBTTwoKStarCorrelFctn(Int_t nbins, Double_t maxXval
 
 TH1* AliHBTTwoKStarCorrelFctn::GetResult()
 {  
- //returns the scaled ratio
- delete fRatio;
- fRatio = GetRatio(Scale());
- return fRatio;
+ //returns result
+ return GetRatio(Scale());
 }
 
 /*************************************************************************************/ 
