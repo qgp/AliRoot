@@ -27,7 +27,7 @@ public:
   AliTOFReconstructionerV2(const AliTOFReconstructionerV2 & rec);
   virtual ~AliTOFReconstructionerV2() ; // dtor   
   Bool_t        BackPropagation(){return kTRUE;};
-  void          CreateNTuple() {}
+  //void          CreateNTuple();
   void          Comparison(Int_t* rtIndex); // for MC comparison
   virtual void  Exec(Option_t* option); // do the main work
   Int_t         GetDbgFlag()           const   {return fdbg;}
@@ -45,7 +45,7 @@ public:
   void          SetNDummyTracks(Int_t nDummyTracks){fNDummyTracks=nDummyTracks;}
   void          SetScaleSigmaFactor(Float_t factor){fScaleSigmaFactor=factor;}
   void          SetStep(Float_t step)        {fStep=step;}
-  Bool_t   operator == (const AliTOFReconstructionerV2 & tofrecv2) const {}
+  Bool_t   operator == (const AliTOFReconstructionerV2 & tofrecv2) const ;
 
 private:
 
