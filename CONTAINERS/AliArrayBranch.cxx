@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.2  2001/07/27 13:03:11  hristov
+Default Branch split level set to 99
+
 Revision 1.1  2000/11/01 16:01:22  kowal2
 Classes for handling the new hits structures
 
@@ -58,7 +61,7 @@ ClassImp(AliTree)
 
 
 
-Int_t AliArraySubBranch::GetEntryExport(Int_t entry, Int_t getall, AliObjectArray *list, Int_t nentries)
+  Int_t AliArraySubBranch::GetEntryExport(Int_t entry, Int_t /*getall*/, AliObjectArray *list, Int_t nentries)
 {
 //*-*-*-*-*-*Read all leaves of entry and return total number of bytes*-*-*
 //*-* export buffers to real objects in the AliObjectArray list.

@@ -16,6 +16,9 @@
 /*
 
 $Log$
+Revision 1.4.4.1  2002/11/22 14:19:29  hristov
+Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
+
 Revision 1.5  2002/10/23 07:26:21  alibrary
 Introducing Riostream.h
 
@@ -99,7 +102,8 @@ AliDigits::AliDigits()
   Invalidate();
 }
 
-AliDigits::AliDigits(const AliDigits& digits)
+AliDigits::AliDigits(const AliDigits& digits):
+  AliSegmentID(digits)
 {
   //
   //copy constructor

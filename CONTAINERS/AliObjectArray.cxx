@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.1  2000/11/01 16:01:26  kowal2
+Classes for handling the new hits structures
+
 */
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
@@ -62,7 +65,8 @@ AliObjectArray::AliObjectArray(const char * classname, Int_t buffersize):AliMemA
   SetClass(classname);
 }
 
-AliObjectArray::AliObjectArray(const AliObjectArray &arr)
+AliObjectArray::AliObjectArray(const AliObjectArray &arr):
+  AliMemArray(arr)
 {  
   //
   //

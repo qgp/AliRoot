@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.2.8.1  2002/11/22 14:19:29  hristov
+Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
+
 Revision 1.3  2002/10/23 07:26:21  alibrary
 Introducing Riostream.h
 
@@ -95,7 +98,8 @@ AliMemArray::AliMemArray(Int_t objectSize, Int_t buffersize)
   fBufferSize  =buffersize;
 }
 
-AliMemArray::AliMemArray(const AliMemArray & arr) 
+AliMemArray::AliMemArray(const AliMemArray & arr):
+  TObject(arr)
 {
   //
   //copy constructor

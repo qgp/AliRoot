@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.7.4.3  2002/11/22 14:19:29  hristov
+Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
+
 Revision 1.7.4.2  2002/05/31 15:37:03  hristov
 Merged with v3-08-02
 
@@ -134,14 +137,15 @@ AliSegmentArray::AliSegmentArray(Text_t *classname, Int_t n)
    }
 }
 
-AliSegmentArray::AliSegmentArray(const AliSegmentArray &segment)
+AliSegmentArray::AliSegmentArray(const AliSegmentArray &segment):
+  TNamed(segment)
 {
   //
   //copy constructor
   // to be later implemented
 }
 
-AliSegmentArray &AliSegmentArray::operator = (const AliSegmentArray & segment)
+AliSegmentArray &AliSegmentArray::operator = (const AliSegmentArray & /*segment*/)
 {
   //assignment operator
   //to be later implemented

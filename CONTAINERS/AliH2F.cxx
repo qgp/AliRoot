@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.1.2.1  2003/04/14 14:06:44  hristov
+Moving AliH2F from TPC to CONTAINERS
+
 Revision 1.4  2000/10/05 16:04:21  kowal2
 Forward declarations
 
@@ -46,9 +49,7 @@ Revision 1.1.4.2  2000/04/10 11:32:37  kowal2
 
 #include "AliH2F.h"
 #include "TClonesArray.h"
-#include "AliTPC.h"
 #include "TRandom.h"
-#include "AliTPCClusterFinder.h"
 
 
 ClassImp(AliH2F)
@@ -76,18 +77,20 @@ AliH2F::~AliH2F()
   //
 }
 
-AliH2F::AliH2F(const AliH2F &his) 
+AliH2F::AliH2F(const AliH2F &his) :
+  TH2F(his)
 {
   //
   
 }
 
-AliH2F & AliH2F::operator = (const AliH2F & his) 
+AliH2F & AliH2F::operator = (const AliH2F & /*his*/) 
 {
   //
   return *this;
 }
 
+/*
 TClonesArray * AliH2F::FindPeaks(Float_t threshold, Float_t noise)
 {
   //find peaks and write it in form of AliTPCcluster to array
@@ -100,6 +103,7 @@ TClonesArray * AliH2F::FindPeaks(Float_t threshold, Float_t noise)
   cfinder.GetHisto(this);
   return cfinder.FindPeaks3();
 }
+*/
 
 void AliH2F::ClearSpectrum()
 {
