@@ -15,6 +15,9 @@
 /*
   $Id$
   $Log$
+  Revision 1.32.4.2  2002/07/24 09:27:50  alibrary
+  Updating on VirtualMC
+
   Revision 1.34  2002/06/07 16:32:28  nilsen
   Latest SDD changes to speed up the SDD simulation code.
 
@@ -274,7 +277,7 @@ void AliITSsimulationSDD::Init(AliITSsegmentationSDD *seg,
     } // end if
 
     const char *kopt=fResponse->ZeroSuppOption();
-    if (strstr(fParam,"file") ) {
+    if (strstr(fParam.Data(),"file") ) {
         fD.Set(fNofMaps);
         fT1.Set(fNofMaps);
         if (strstr(kopt,"2D")) {
@@ -1317,7 +1320,7 @@ void AliITSsimulationSDD::Init2D(){
     // Albert W.) :
     // Read 2D zero-suppression parameters for SDD
 
-    if (!strstr(fParam,"file")) return;
+    if (!strstr(fParam.Data(),"file")) return;
 
     Int_t na,pos,tempTh;
     Float_t mu,sigma;
@@ -1455,7 +1458,7 @@ void AliITSsimulationSDD::Init1D(){
     // Torino people should give input
     // Read 1D zero-suppression parameters for SDD
 
-    if (!strstr(fParam,"file")) return;
+    if (!strstr(fParam.Data(),"file")) return;
 
     Int_t na,pos,tempTh;
     Float_t mu,sigma;
