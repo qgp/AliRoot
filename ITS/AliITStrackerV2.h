@@ -31,6 +31,8 @@ public:
   void SetupFirstPass(Int_t *flags, Double_t *cuts=0);
   void SetupSecondPass(Int_t *flags, Double_t *cuts=0);
   Bool_t RefitAt(Double_t x, AliITStrackV2 *t, Int_t *index);
+  Int_t LoadClusters(){return 0;}
+  void UnloadClusters(){}
 
   class AliITSdetector {
   public:

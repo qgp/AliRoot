@@ -13,22 +13,29 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
+/* $Id$ */
+
 //-------------------------------------------------------------------------
 //               Implementation of the AliTracker class
-//
-//          Origin: Iouri Belikov, CERN, Jouri.Belikov@cern.ch
+//  that is the base for AliTPCtracker, AliITStrackerV2 and AliTRDtracker    
+//        Origin: Iouri Belikov, CERN, Jouri.Belikov@cern.ch
 //-------------------------------------------------------------------------
+
 #include <TMath.h>
 
 #include "AliTracker.h"
 #include "AliCluster.h"
 #include "AliKalmanTrack.h"
+#include "AliRun.h"
+#include "AliMagF.h"
+
+#include "TFile.h"
+#include "TError.h"
+
+
+extern AliRun* gAlice;
 
 ClassImp(AliTracker)
-
-Double_t AliTracker::fX;
-Double_t AliTracker::fY;
-Double_t AliTracker::fZ;
 
 //__________________________________________________________________________
 void AliTracker::CookLabel(AliKalmanTrack *t, Float_t wrong) const {
@@ -87,4 +94,50 @@ void AliTracker::UseClusters(const AliKalmanTrack *t, Int_t from) const {
   }
 }
 
+////////////////////////////////////////////////////////////////////////
+Int_t AliTracker::SetFieldFactor() {
+//
+// Utility class to set the value of the magnetic field in the barrel
+// It supposes that the correct object gAlice is in the memory
+//
+   AliKalmanTrack::
+      SetConvConst(1000/0.299792458/gAlice->Field()->SolenoidField());
+   Double_t field=gAlice->Field()->SolenoidField();
+   ::Info("SetFieldFactor","Magnetic field in kGauss: %f\n",field);
+   return 0;
+}
+////////////////////////////////////////////////////////////////////////
+Int_t AliTracker::SetFieldFactor(TFile *file, Bool_t deletegAlice) {
+//
+// Utility class to set the value of the magnetic field in the barrel
+// gAlice object is read from the file, and optionally deleted
+// 
+  if (!(gAlice=(AliRun*)file->Get("gAlice"))) {
+   ::Warning
+   ("SetFieldFactor","gAlice has not been found in file %s\n",file->GetName());
+    return 1;
+  }   
+  Int_t rc = SetFieldFactor();
+  if (deletegAlice) {
+    delete gAlice;  
+    gAlice = 0;
+  }
+  return rc;
+}
+////////////////////////////////////////////////////////////////////////
+Int_t AliTracker::SetFieldFactor(const char* fileName, Bool_t closeFile) {
+//
+// Utility class to set the value of the magnetic field in the barrel
+// gAlice object is read from the file, the file is optionally closed
+// 
+   TFile *file=TFile::Open(fileName);
+   if (!file->IsOpen()) {
+      ::Warning("AliTracker::SetFieldFactor","Cannnot open %s !\n",fileName); 
+      return 1;
+   }
+   Int_t rc = SetFieldFactor(file, closeFile) ;
+   if (closeFile) file->Close();
+   return rc;
+}
+////////////////////////////////////////////////////////////////////////
 

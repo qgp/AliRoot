@@ -42,6 +42,8 @@ public:
    Int_t PropagateBack();
 
    virtual void  CookLabel(AliKalmanTrack *t,Float_t wrong) const; 
+   Int_t LoadClusters(){return 0;}
+   void UnloadClusters(){}
 
 public:
 //**************** Internal tracker class ********************** 

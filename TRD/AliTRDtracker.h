@@ -79,6 +79,8 @@ class AliTRDtracker : public AliTracker {
     return fTrSec[sec]->CookTimeBinIndex(plane,local_tb); }
   Double_t GetLayerNumber(Int_t sec, Double_t x) const {
     return fTrSec[sec]->GetLayerNumber(x); }
+  Int_t LoadClusters(){return 0;}
+  void UnloadClusters(){}
 
  public:
    class AliTRDpropagationLayer {
