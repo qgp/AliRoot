@@ -15,7 +15,7 @@ CXXOPTS       = $(OPT) +w -KPIC -features=rtti
 COPT	      = $(OPT) -KPIC -erroff=%none -DCERNLIB_SUN -DCERNLIB_BLDLIB -DCERNLIB_CZ
 FOPT	      = $(OPT) -KPIC
 CXXFLAGS      = $(CXXOPTS)
-CFLAGS	      = 
+CFLAGS	      = $(OPT)
 
 # rootcint flags
 CINTFLAGS     = $(filter-out -O +w -KPIC -features=rtti,$(CXXFLAGS))
