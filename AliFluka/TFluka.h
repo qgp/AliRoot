@@ -12,15 +12,15 @@
 #ifndef TFLUKA_H
 #define TFLUKA_H
 
-#include "AliMCProcess.h"
-
+#include "TMCProcess.h"
+#include "TVirtualMC.h"
 #include <TArrayI.h>
 
 class TG4GeometryManager;
 
 class AliDecayer;
 
-class TFluka: public AliMC
+class TFluka: public TVirtualMC
 {
   public:
     TFluka(const char* name, const char* title);
@@ -142,7 +142,9 @@ class TFluka: public AliMC
         // tracking particle 
         // dynamic properties
     virtual void    TrackPosition(TLorentzVector& position) const;
+    virtual void    TrackPosition(Double_t &x, Double_t &y, Double_t &z) const;
     virtual void    TrackMomentum(TLorentzVector& momentum) const;
+    virtual void    TrackMomentum(Double_t &px, Double_t &py, Double_t &pz, Double_t &etot) const;
     virtual void    TrackVertexPosition(TLorentzVector& position) const;
     virtual void    TrackVertexMomentum(TLorentzVector& momentum) const;
     virtual Float_t TrackStep() const;
@@ -169,7 +171,7 @@ class TFluka: public AliMC
     virtual Int_t NSecondaries() const;
     virtual void  GetSecondary(Int_t isec, Int_t& particleId, 
                     TLorentzVector& position, TLorentzVector& momentum);
-    virtual AliMCProcess ProdProcess(Int_t isec) const; 
+    virtual TMCProcess ProdProcess(Int_t isec) const; 
     virtual Int_t StepProcesses(TArrayI &proc) const;
   
     //

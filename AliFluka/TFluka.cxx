@@ -29,7 +29,7 @@
 #include "AliDecayer.h"
 
 TFluka::TFluka(const char* name, const char* title)
-  : AliMC(name, title)
+  : TVirtualMC(name, title)
 {
   // create geometry manager
   fGeometryManager = new TG4GeometryManager();
@@ -355,7 +355,47 @@ void TFluka::TrackPosition(TLorentzVector& position) const
   TG4Globals:: Warning("TFluka::TrackPosition(..) is not implemented."); 
 } 
 
+void TFluka::TrackPosition(Double_t &x, Double_t &y, Double_t &z) const
+{ 
+  TG4Globals:: Warning("TFluka::TrackPosition(..) is not implemented."); 
+} 
+
+void TFluka::TrackPosition(Double_t &x, Double_t &y, Double_t &z) const
+{ 
+  TG4Globals:: Warning("TFluka::TrackPosition(..) is not implemented."); 
+} 
+
+void TFluka::TrackPosition(Double_t &x, Double_t &y, Double_t &z) const
+{ 
+  TG4Globals:: Warning("TFluka::TrackPosition(..) is not implemented."); 
+} 
+
+void TFluka::TrackPosition(Double_t &x, Double_t &y, Double_t &z) const
+{ 
+  TG4Globals:: Warning("TFluka::TrackPosition(..) is not implemented."); 
+} 
+
 void TFluka::TrackMomentum(TLorentzVector& momentum) const
+{ 
+  TG4Globals:: Warning("TFluka::TrackMomentum(..) is not implemented."); 
+} 
+
+void TFluka::TrackMomentum(Double_t &px, Double_t &py, Double_t &pz, Double_t &etot) const
+{ 
+  TG4Globals:: Warning("TFluka::TrackMomentum(..) is not implemented."); 
+} 
+
+void TFluka::TrackMomentum(Double_t &px, Double_t &py, Double_t &pz, Double_t &etot) const
+{ 
+  TG4Globals:: Warning("TFluka::TrackMomentum(..) is not implemented."); 
+} 
+
+void TFluka::TrackMomentum(Double_t &px, Double_t &py, Double_t &pz, Double_t &etot) const
+{ 
+  TG4Globals:: Warning("TFluka::TrackMomentum(..) is not implemented."); 
+} 
+
+void TFluka::TrackMomentum(Double_t &px, Double_t &py, Double_t &pz, Double_t &etot) const
 { 
   TG4Globals:: Warning("TFluka::TrackMomentum(..) is not implemented."); 
 } 
@@ -478,7 +518,7 @@ void  TFluka::GetSecondary(Int_t isec, Int_t& particleId,
   TG4Globals:: Warning("TFluka::GetSecondary(..) is not implemented."); 
 } 
 
-AliMCProcess TFluka::ProdProcess(Int_t isec) const 
+TMCProcess TFluka::ProdProcess(Int_t isec) const 
 { 
   TG4Globals:: Warning("TFluka::ProdProcess(..) is not implemented."); 
   return kPNoProcess; 
