@@ -309,7 +309,7 @@ void AliGenMC::Boost()
     Double_t gamma = 1./TMath::Sqrt(1.-beta*beta);
     Double_t gb    = gamma * beta;
 
-    printf("\n Boosting particles to lab frame %f %f %f", fDyBoost, beta, gamma);
+    //    printf("\n Boosting particles to lab frame %f %f %f", fDyBoost, beta, gamma);
     
     Int_t i;
     Int_t np = fParticles->GetEntriesFast();

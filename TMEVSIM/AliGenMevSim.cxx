@@ -13,21 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.1  2003/03/15 14:49:39  morsch
-Classes imported from EVGEN
-
-Revision 1.3  2001/07/27 17:24:28  morsch
-Some bugs corrected. ( Piotr Skowronski)
-
-Revision 1.2  2001/03/28 07:31:48  hristov
-Loop variables declared only once (HP,Sun)
-
-Revision 1.1  2001/03/24 10:04:44  morsch
-MevSim interfaced through AliGenerator, first commit (Sylwester Radomski et al.)
-//Piotr Skowronski Line 104: fThetaMin-->fThetaMax
-*/
+/* $Id$ */
 
 //
 // Wrapper for MEVSIM generator.
@@ -45,6 +31,7 @@ MevSim interfaced through AliGenerator, first commit (Sylwester Radomski et al.)
 #include "AliGenMevSim.h"
 #include "AliRun.h"
 
+static TRandom * sRandom;
 
 ClassImp(AliGenMevSim)
 

@@ -7,6 +7,8 @@
 #include "TROOT.h"
 #include "TMath.h"
 
+static TRandom * sRandom;
+
 ClassImp(TIsajet)
 
 /**************************************************************************/

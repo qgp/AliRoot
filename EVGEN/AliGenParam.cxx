@@ -54,9 +54,6 @@ AliGenParam::AliGenParam()
     fParam  = 0;
     fAnalog = kAnalog;
     SetDeltaPt();
-//
-// Set random number generator   
-    sRandom = fRandom;
     fDecayer = 0;
 
 
@@ -78,9 +75,6 @@ AliGenParam::AliGenParam(Int_t npart, AliGenLib * Library,  Int_t param, char* t
     fAnalog = kAnalog;
     SetForceDecay();
     SetDeltaPt(); 
-//
-// Set random number generator   
-    sRandom = fRandom;
 }
 
 //____________________________________________________________
