@@ -291,7 +291,7 @@ Bool_t AliPHOSClusterizerv1::FindFit(AliPHOSEmcRecPoint * emcRP, AliPHOSDigit **
        Warning("FindFit", "PHOS Unfolding unable to set initial value for fit procedure : z =%f\n", z ) ;
       return kFALSE;
     }
-    gMinuit->mnparm(index, "Energy",  energy , 0.05*energy, 0., 4.*energy, ierflg) ;
+    gMinuit->mnparm(index, "Energy",  energy , 0.05*energy, 0., 10.*energy, ierflg) ;
     index++ ;   
     if(ierflg != 0){
       Warning("FindFit", "PHOS Unfolding unable to set initial value for fit procedure : energy = %f\n", energy ) ;      
@@ -822,10 +822,23 @@ Double_t  AliPHOSClusterizerv1::ShowerShape(Double_t r)
   // Shape of the shower (see PHOS TDR)
   // If you change this function, change also the gradient evaluation in ChiSquare()
 
-  Double_t r4    = r*r*r*r ;
-  Double_t r295  = TMath::Power(r, 2.95) ;
-  Double_t shape = TMath::Exp( -r4 * (1. / (2.32 + 0.26 * r4) + 0.0316 / (1 + 0.0652 * r295) ) ) ;
-  return shape ;
+  if(r<1.25){
+    Double_t shape = 8.20138e-01 + 3.80710e-03*r - 3.57294e-01*r*r + 
+      7.07477e-01*r*r*r - 5.32215e-01*r*r*r*r ;
+    return shape ;
+  }
+  else{
+    if(r<2.5){
+      Double_t shape = 1.07607e+01 - 2.22731e+01*r + 1.86230e+01*r*r - 
+	7.80707e+00*r*r*r + 1.63498e+00*r*r*r*r - 1.36557e-01*r*r*r*r*r ;
+      return shape ;
+    }
+    else{
+      Double_t shape = 
+	1.73888*TMath::Exp( - 1.92550*r*r*r*r/(1. + 0.616216*TMath::Power(r, 3.51068))  ) ;
+      return shape ;
+    }
+  }
 }
 
 //____________________________________________________________________________
@@ -931,6 +944,12 @@ void  AliPHOSClusterizerv1::UnfoldCluster(AliPHOSEmcRecPoint * iniEmc,
       distance =  TMath::Sqrt(distance) ;
       ratio = epar * ShowerShape(distance) / efit[iDigit] ; 
       eDigit = emcEnergies[iDigit] * ratio ;
+      if(eDigit < fPurifyThreshold){  //We should assign fluctuations to the closest RecPoint
+        if(ratio <= 0.5)
+	  continue ;  //This is not dominant contribution 
+        else
+          eDigit = emcEnergies[iDigit] ; //This is dominant (and the only one) contribution
+      }
       emcRP->AddDigit( *digit, eDigit ) ;
     }	
   }
@@ -965,11 +984,11 @@ void AliPHOSClusterizerv1::UnfoldingChiSquare(Int_t & nPar, Double_t * Grad, Dou
   fret = 0. ;     
   Int_t iparam ;
 
+
   if(iflag == 2)
     for(iparam = 0 ; iparam < nPar ; iparam++)    
       Grad[iparam] = 0 ; // Will evaluate gradient
   
-  Double_t efit ;    
 
   AliPHOSDigit * digit ;
   Int_t iDigit ;
@@ -986,61 +1005,63 @@ void AliPHOSClusterizerv1::UnfoldingChiSquare(Int_t & nPar, Double_t * Grad, Dou
 
     geom->RelPosInModule(relid, xDigit, zDigit) ;
 
-     if(iflag == 2){  // calculate gradient
-       Int_t iParam = 0 ;
-       efit = 0 ;
-       while(iParam < nPar ){
-	 Double_t distance = (xDigit - x[iParam]) * (xDigit - x[iParam]) ;
-	 iParam++ ; 
-	 distance += (zDigit - x[iParam]) * (zDigit - x[iParam]) ; 
-	 distance = TMath::Sqrt( distance ) ; 
-	 iParam++ ; 	 
-	 efit += x[iParam] * ShowerShape(distance) ;
-	 iParam++ ;
-       }
+    Double_t efit = 0 ;  //Sum of all fit functions in this digit    
+    iparam = 0 ;
+
+    while(iparam < nPar ){
+      Double_t xpar = x[iparam] ;
+      Double_t zpar = x[iparam+1] ;
+      Double_t epar = x[iparam+2] ;
+      iparam += 3 ;
+      Double_t distance = (xDigit - xpar) * (xDigit - xpar) + (zDigit - zpar) * (zDigit - zpar)  ;
+      distance =  TMath::Sqrt(distance) ;
+      efit += epar * ShowerShape(distance) ;
+    }
+
+    if(emcEnergies[iDigit] > 0) //for the case if rounding error
+      fret += (efit-emcEnergies[iDigit])*(efit-emcEnergies[iDigit])/
+              emcEnergies[iDigit] ; 
+     // Here we assume, that sigma = sqrt(E)
+
+    if(iflag == 2){  // calculate gradient
        Double_t sum=0 ;	
        if(emcEnergies[iDigit] > 0)
-        sum = 2. * (efit - emcEnergies[iDigit]) / emcEnergies[iDigit] ; 
-       // Here we assume, that sigma = sqrt(E) 
-       iParam = 0 ;
-       while(iParam < nPar ){
-	 Double_t xpar = x[iParam] ;
-	 Double_t zpar = x[iParam+1] ;
-	 Double_t epar = x[iParam+2] ;
+          sum = 2. * (efit - emcEnergies[iDigit]) / emcEnergies[iDigit] ; 
+      
+       iparam = 0 ;
+       while(iparam < nPar ){
+	 Double_t xpar = x[iparam] ;
+	 Double_t zpar = x[iparam+1] ;
+	 Double_t epar = x[iparam+2] ;
 	 Double_t dr = TMath::Sqrt( (xDigit - xpar) * (xDigit - xpar) + (zDigit - zpar) * (zDigit - zpar) );
-	 Double_t shape = sum * ShowerShape(dr) ;
-	 Double_t r4 = dr*dr*dr*dr ;
-	 Double_t r295 = TMath::Power(dr,2.95) ;
-	 Double_t deriv =-4. * dr*dr * ( 2.32 / ( (2.32 + 0.26 * r4) * (2.32 + 0.26 * r4) ) +
-					 0.0316 * (1. + 0.0171 * r295) / ( ( 1. + 0.0652 * r295) * (1. + 0.0652 * r295) ) ) ;
-	 
-	 Grad[iParam] += epar * shape * deriv * (xpar - xDigit) ;  // Derivative over x    
-	 iParam++ ; 
-	 Grad[iParam] += epar * shape * deriv * (zpar - zDigit) ;  // Derivative over z         
-	 iParam++ ; 
-	 Grad[iParam] += shape ;                                  // Derivative over energy     	
-	 iParam++ ; 
+         Double_t deriv ;
+         if(dr<1.25){
+           deriv = 3.80710e-03 - 7.14588e-01*dr + 2.122431*dr*dr - 2.128860*dr*dr*dr ; 
+         }
+         else{
+           if(dr<2.5){
+             deriv = - 22.2731 + 37.2460*dr - 23.42121*dr*dr + 6.53992*dr*dr*dr - 0.682785*dr*dr*dr*dr ;
+           }
+           else{
+             Double_t denom = (1. + 0.616216*TMath::Power(dr, 3.51068)) ;
+	     deriv = 1.73888*TMath::Exp( - 1.92550*dr*dr*dr*dr/denom  )*(
+	        -(7.702*dr*dr*dr*denom - 4.1655057533*TMath::Power(dr, 6.51068))/denom/denom)  ;
+           }
+         }
+
+         if(dr>0){
+	    Grad[iparam] += epar * sum * deriv * (xpar - xDigit)/dr ;  // Derivative over x
+	    iparam++ ; 
+	    Grad[iparam] += epar * sum * deriv * (zpar - zDigit)/dr ;  // Derivative over z         
+	    iparam++ ; 
+         }
+         else    //zero contibution to x and z   
+            iparam+=2 ;
+	 Grad[iparam] += sum*ShowerShape(dr) ;                    // Derivative over energy  
+	 iparam++ ; 
        }
      }
-     efit = 0;
-     iparam = 0 ;
-
-     while(iparam < nPar ){
-       Double_t xpar = x[iparam] ;
-       Double_t zpar = x[iparam+1] ;
-       Double_t epar = x[iparam+2] ;
-       iparam += 3 ;
-       Double_t distance = (xDigit - xpar) * (xDigit - xpar) + (zDigit - zpar) * (zDigit - zpar)  ;
-       distance =  TMath::Sqrt(distance) ;
-       efit += epar * ShowerShape(distance) ;
-     }
-
-     if(emcEnergies[iDigit] > 0) //for the case if rounding error
-       fret += (efit-emcEnergies[iDigit])*(efit-emcEnergies[iDigit])/
-               emcEnergies[iDigit] ; 
-     // Here we assume, that sigma = sqrt(E)
   }
-
 }
 
 //____________________________________________________________________________

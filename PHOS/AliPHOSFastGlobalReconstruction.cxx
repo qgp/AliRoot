@@ -67,39 +67,43 @@ AliPHOSFastGlobalReconstruction::~AliPHOSFastGlobalReconstruction()
 }
 
 //____________________________________________________________________________
-void AliPHOSFastGlobalReconstruction::FastReconstruction(Int_t event)
+void AliPHOSFastGlobalReconstruction::FastReconstruction(Int_t event, Bool_t cut, Double_t etacut,
+							 Double_t phicutmin, Double_t phicutmax)
 {
   // Perform a fast global reconstruction of event numbered "event".
   // Reconstructed particles will be stored into array recParticles
+  // If cut is set (cut = kTRUE), only particles within [-eta,eta] and 
+  // [phimin, phimax] are reconstructed. ->30.07.03 G.C.B.
 
   TParticle *primary;
   TLorentzVector p,v;
   Int_t kf,ks,imom1,imom2,idaug1,idaug2;
-
+  
   gime->Event(event,"P") ;
   fParticles  ->Clear();
   fNParticles = 0;
   Int_t        nPrimaries = gime->NPrimaries();
   TClonesArray *primaries = gime->Primaries();
-
+  
   for (Int_t iprim=0; iprim<nPrimaries; iprim++) {
     primary = (TParticle*)primaries->At(iprim);
     if ((strcmp(fGenerator->GetName(),"Pythia")    ==0 && primary->GetStatusCode() == 1) ||
 	(strcmp(fGenerator->GetName(),"HIJINGpara")==0 && primary->GetFirstMother()==-1) ||
 	(strcmp(fGenerator->GetName(),"Hijing")    ==0 && primary->GetStatusCode() == 3)) {
-      if (Detected(primary)) {
-	primary->Momentum(p);
-	primary->ProductionVertex(v);
-	kf     = primary->GetPdgCode();
-	ks     = primary->GetStatusCode();
-	imom1  = primary->GetFirstMother();
-	imom2  = primary->GetSecondMother();
-	idaug1 = primary->GetFirstDaughter();
-	idaug2 = primary->GetLastDaughter();
-	SmearMomentum(p);
-	new((*fParticles)[fNParticles]) TParticle(kf,ks,imom1,imom2,idaug1,idaug2,p,v);
-	fNParticles++;
-      }
+      if(cut&&(TMath::Abs(primary->Eta())<etacut)&&(primary->Phi()>phicutmin)&&(primary->Phi()<phicutmax))
+	if (Detected(primary)) {
+	  primary->Momentum(p);
+	  primary->ProductionVertex(v);
+	  kf     = primary->GetPdgCode();
+	  ks     = primary->GetStatusCode();
+	  imom1  = primary->GetFirstMother();
+	  imom2  = primary->GetSecondMother();
+	  idaug1 = primary->GetFirstDaughter();
+	  idaug2 = primary->GetLastDaughter();
+	  SmearMomentum(p);
+	  new((*fParticles)[fNParticles]) TParticle(kf,ks,imom1,imom2,idaug1,idaug2,p,v);
+	  fNParticles++;
+	}     
     }
   }
 }

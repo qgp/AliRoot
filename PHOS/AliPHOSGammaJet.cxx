@@ -27,7 +27,6 @@
 #include "TString.h"
 #include "TFile.h"
 #include "TLorentzVector.h"
-#include "TMatrixD.h"
 #include "TList.h"
 #include "TTree.h"
 #include "TNtuple.h"
@@ -35,10 +34,11 @@
 #include "TCanvas.h"
 #include "TPaveLabel.h"
 #include "TPad.h"
+#include "TArrayC.h"
 #include "AliRun.h"
 #include "AliPHOSGammaJet.h" 
 #include "AliPHOSGetter.h" 
-
+#include "../PYTHIA6/AliGenPythia.h" 
 ClassImp(AliPHOSGammaJet)
 
 //____________________________________________________________________________
@@ -47,27 +47,39 @@ AliPHOSGammaJet::AliPHOSGammaJet() : TTask()
   // ctor
   fAngleMaxParam.Set(4) ;
   fAngleMaxParam.Reset(0.);
-  fMatrixParam    = 0x0;
+  fEtaCut           = 0 ;
+  fFastRec          = 0 ;
+  fInvMassMaxCut    = 0 ;
+  fInvMassMinCut    = 0 ;
+  fJetJet           = 0 ;
+  fJetQuenching     = 0 ;
+  fJetRatioMaxCut   = 0 ;
+  fJetRatioMinCut   = 0 ;
+  fNEvent           = 0 ;
+  fNIter            = 0 ;
+  fMinDistance      = 0 ;
+  fOnlyCharged      = kFALSE ;
+  fOptFast          = kFALSE ;
+  fPhiMaxCut        = 0 ;
+  fPhiMinCut        = 0 ;
+  fRatioMaxCut      = 0 ;
+  fRatioMinCut      = 0 ;
   fScalarProductCut = 0;
-  fEtaCut         = 0 ;
-  fPhiMaxCut      = 0 ;
-  fPhiMinCut      = 0 ;
-  fPtEffCut       = 0 ;
-  fInvMassMaxCut  = 0 ;
-  fInvMassMinCut  = 0 ;
-  fRatioMaxCut    = 0 ;
-  fRatioMinCut    = 0 ;
-  fFastRec        = 0 ;
-  fOptFast        = kFALSE ;
               
   fOutputFile     = new TFile(gDirectory->GetName()) ;
+  fInputFileName  = gDirectory->GetName() ;
   fOutputFileName = gDirectory->GetName() ;
+  fHIJINGFileName = gDirectory->GetName() ;
+  fJetQuenchingFileName = gDirectory->GetName() ;
+  fHIJING        = 0 ;
   fPosParaA      = 0. ;                      
   fPosParaB      = 0. ;
-  fRan            = 0 ;                            
-  fResPara1       = 0. ;                       
-  fResPara2       = 0. ;                        
-  fResPara3       = 0. ;  
+  //fPyth1         = new AliGenPythia();
+  //fPyth2         = new AliGenPythia();
+  fRan           = 0 ;                            
+  fResPara1      = 0. ;                       
+  fResPara2      = 0. ;                        
+  fResPara3      = 0. ;  
         
   fListHistos     = new TObjArray(100) ;
   TList * list = gDirectory->GetListOfKeys() ; 
@@ -82,40 +94,72 @@ AliPHOSGammaJet::AliPHOSGammaJet() : TTask()
 }
 
 //____________________________________________________________________________
-AliPHOSGammaJet::AliPHOSGammaJet(const TString inputfilename) : TTask("GammaJet","Analysis of gamma-jet correlations")
+AliPHOSGammaJet::AliPHOSGammaJet(const TString inputfilename) : 
+  TTask("GammaJet","Analysis of gamma-jet correlations")
 {
   // ctor 
-  fFastRec = new AliPHOSFastGlobalReconstruction(inputfilename);  
-  AliPHOSGetter::GetInstance(inputfilename) ;
+  fInputFileName = inputfilename;
+  fJetQuenchingFileName = inputfilename;
+  fFastRec = new AliPHOSFastGlobalReconstruction(fInputFileName);  
+  AliPHOSGetter *  gime = AliPHOSGetter::GetInstance(fInputFileName) ;
+  fNEvent = gime->MaxEvent();
   InitParameters();
-  fListHistos = 0 ; 
+  fListHistos = 0 ;
+  //InitJetQuenching(fInputFileName,fJetQuenchingFileName);
+  //InitJetQuenching(fInputFileName, fPyth1);
+//    AliGenPythia* fPyth1 = (AliGenPythia*) gAlice->Generator();
+//    fPyth1->Init();
+//    fPyth2 = fPyth2;
+
+//    TFile *f1=new TFile(fInputFileName,"read");
+//    AliRun * alice1 = (AliRun*)(f1->Get("gAlice"));
+//    fPyth1 = (AliGenPythia*) alice1->Generator();
+//    fPyth1->Init();
+  
+//    TFile *f2=new TFile(fJetQuenchingFileName,"read");
+//    AliRun * alice2 = (AliRun*)(f2->Get("gAlice"));
+//    fPyth2 = (AliGenPythia*) alice2->Generator();
+//    fPyth2->Init();
+
+
 }
 
 //____________________________________________________________________________
 AliPHOSGammaJet::AliPHOSGammaJet(const AliPHOSGammaJet & gj) 
 {
   // cpy ctor
-  fAngleMaxParam  = gj.fAngleMaxParam;
-  fMatrixParam    = gj.fMatrixParam;
-  fScalarProductCut= gj.fScalarProductCut;
-  fEtaCut         = gj.fEtaCut ;
-  fInvMassMaxCut  = gj.fInvMassMaxCut ;
-  fInvMassMinCut  = gj.fInvMassMinCut ;
-  fPtEffCut       = gj.fPtEffCut ;
-  fFastRec        = gj.fFastRec ;
-  fOptFast        = gj.fOptFast ;
-  fOutputFile     = gj.fOutputFile ;
-  fOutputFileName = gj.fOutputFileName ;
-  fRatioMaxCut    = gj.fRatioMaxCut ;
-  fRatioMinCut    = gj.fRatioMinCut ;  
-  fResPara1       = gj.fResPara1 ;    
-  fResPara2       = gj.fResPara2 ; 
-  fResPara3       = gj.fResPara3 ; 
-  fPhiMaxCut      = gj.fPhiMaxCut  ;
-  fPhiMinCut      = gj.fPhiMinCut ;
-  fPosParaA       = gj.fPosParaA ;    
-  fPosParaB       = gj.fPosParaB ;  
-
+  fAngleMaxParam    = gj.fAngleMaxParam;
+  fScalarProductCut = gj.fScalarProductCut;
+  fEtaCut           = gj.fEtaCut ;
+  fInvMassMaxCut    = gj.fInvMassMaxCut ;
+  fInvMassMinCut    = gj.fInvMassMinCut ;
+  fFastRec          = gj.fFastRec ;
+  fMinDistance      = gj.fMinDistance ;
+  fOptFast          = gj.fOptFast ;
+  fOnlyCharged      = gj.fOnlyCharged ;
+  fOutputFile       = gj.fOutputFile ;
+  fInputFileName    = gj.fInputFileName ;
+  fOutputFileName   = gj.fOutputFileName ;
+  fHIJINGFileName   = gj.fHIJINGFileName ;
+  fHIJING           = gj.fHIJING ;
+  fJetQuenchingFileName = gj.fJetQuenchingFileName;
+  fRatioMaxCut      = gj.fRatioMaxCut ;
+  fRatioMinCut      = gj.fRatioMinCut ;
+  fJetJet           = gj.fJetJet;
+  fJetQuenching     = gj.fJetQuenching ;
+  fJetRatioMaxCut   = gj.fJetRatioMaxCut ;
+  fJetRatioMinCut   = gj.fJetRatioMinCut ;
+  fNEvent           = gj.fNEvent ;  
+  fNIter            = gj.fNIter ;
+  fResPara1         = gj.fResPara1 ;    
+  fResPara2         = gj.fResPara2 ; 
+  fResPara3         = gj.fResPara3 ; 
+  fPhiMaxCut        = gj.fPhiMaxCut  ;
+  fPhiMinCut        = gj.fPhiMinCut ;
+  fPosParaA         = gj.fPosParaA ;    
+  fPosParaB         = gj.fPosParaB ;  
+  //fPyth1             = gj.fPyth1 ;
+  //fPyth2             = gj.fPyth2 ;
   SetName(gj.GetName()) ; 
   SetTitle(gj.GetTitle()) ; 
 }
@@ -128,37 +172,49 @@ AliPHOSGammaJet::~AliPHOSGammaJet()
 }
 
 //____________________________________________________________________________
-void AliPHOSGammaJet::CreateParticleList(AliPHOSGetter * gime, TList & particleList) 
+void AliPHOSGammaJet::AddHIJINGToList(TList & particleList, const Int_t iEvent, const TLorentzVector gamma) 
 {
-  TParticle * particle = 0x0;
+  TParticle * particle = new TParticle();
+  
   TLorentzVector pPi0, pGamma1, pGamma2 ;
   Double_t angle = 0;
   
   Int_t n = -1; 
+  
+  AliPHOSFastGlobalReconstruction *fastRec = new AliPHOSFastGlobalReconstruction(fHIJINGFileName);  
+  AliPHOSGetter * gime = AliPHOSGetter::GetInstance(fHIJINGFileName) ; 
+  
+  Int_t nEvent = gime->MaxEvent() ;
+  Int_t iiEvent =   iEvent%nEvent;
+  
+  gime->Event(iiEvent, "P") ;
+  
+  if(fOptFast)
+    fastRec->FastReconstruction(iiEvent,kTRUE,fEtaCut,gamma.Phi()+fPhiMinCut,gamma.Phi()+fPhiMaxCut);
+  
+  //cout<<nparticles<<endl;
   Int_t  nparticles = gime->NPrimaries() ; 
   Int_t iParticle=0 ;
   if(fOptFast){
     for (iParticle=0 ; iParticle < nparticles ; iParticle++) {
       //Keep original partons
       particle = new TParticle(*(gime->Primary(iParticle))) ;
-      if((particle->GetStatusCode()== 21)){
-	particleList.Add(particle);
-	n++;
-      }
-      //Info("CreateParticleList","after parton");
-      //Keep Stable particles within eta range
-      
-      if((particle->GetStatusCode() == 1)&&(TMath::Abs(particle->Eta())<fEtaCut)){
+      //particle = (TParticle*)fAlice->Particle(iParticle) ;
+      if((particle->GetStatusCode() == 0)){
 	// Keep particles different from Pi0
-	if(particle->GetPdgCode() != 111){
-	  if(particle->GetPdgCode()==22){
-	    //Info("CreateParticleList","Photon0 before: %f", particle->Energy());
-	    MakePhoton(particle);
-	    //Info("CreateParticleList","Photon0 after: %f", particle->Energy());
-	  }
-	  particleList.Add(particle);
-	  n++;
-	} 
+	if(particle->Pt()>0.)
+	  if((particle->GetPdgCode() != 111)
+	     &&(TMath::Abs(particle->Eta())<fEtaCut)
+	     &&(particle->Phi()>gamma.Phi()+fPhiMinCut)
+	     &&(particle->Phi()<gamma.Phi()+fPhiMaxCut)){
+	    if(particle->GetPdgCode()==22){
+	      //Info("AddHIJINGToList","Photon0 before: %f", particle->Energy());
+	      MakePhoton(particle);
+	      //Info("AddHIJINGToList","Photon0 after: %f", particle->Energy());
+	    }
+	    particleList.Add(particle);
+	    n++;
+	  } 
 	//Decay Pi0 and keep it with different status name
 	//Keep decay photons
 	if(particle->GetPdgCode() == 111) {
@@ -175,13 +231,19 @@ void AliPHOSGammaJet::CreateParticleList(AliPHOSGetter * gime, TList & particleL
 	  //photon2->SetWeight(2);
 	  particle->SetStatusCode(2);
 	  
-	  //Info("CreateParticleList","Photon 1 and 2 before: %f  %f", photon1->Energy(), photon2->Energy());
+	  //Info("AddHIJINGToList","Photon 1 and 2 before: %f  %f", photon1->Energy(), photon2->Energy());
 	  MakePhoton(photon1);
 	  MakePhoton(photon2);
-	  //Info("CreateParticleList","Photon 1 and 2 after: %f  %f", photon1->Energy(), photon2->Energy());
-	  particleList.Add(particle);
-	  particleList.Add(photon1);
-	  particleList.Add(photon2);
+	  //Info("AddHIJINGToList","Photon 1 and 2 after: %f  %f", photon1->Energy(), photon2->Energy());
+	  //particleList.Add(particle);
+	  if((TMath::Abs(photon1->Eta())<fEtaCut)
+	     &&(photon1->Phi()>(gamma.Phi()+fPhiMinCut))
+	     &&(photon1->Phi()<(gamma.Phi()+fPhiMaxCut)))
+	    particleList.Add(photon1);
+	  if((TMath::Abs(photon2->Eta())<fEtaCut)
+	     &&(photon2->Phi()>(gamma.Phi()+fPhiMinCut))
+	     &&(photon2->Phi()<(gamma.Phi()+fPhiMaxCut)))
+	    particleList.Add(photon2);
 	  //photon1->Print();
 	  //photon2->Print();  
 	}//if pi0
@@ -190,155 +252,447 @@ void AliPHOSGammaJet::CreateParticleList(AliPHOSGetter * gime, TList & particleL
   }//optfast
   else{
     for (iParticle=0 ; iParticle < nparticles ; iParticle++) {
-      //Keep original partons
+      
+      //Keep Stable particles within eta range
       particle = new TParticle(*(gime->Primary(iParticle))) ;
-      if((particle->GetStatusCode()== 21)){
-	particleList.Add(particle);
-	n++;
-      }
+      //particle = (TParticle*)fAlice->Particle(iParticle) ;
+      //cout<<"Inside loop "<<particle<<endl;
+     
+      if(particle->Pt()>0.)
+	if((particle->GetStatusCode() == 0)
+	   &&(TMath::Abs(particle->Eta())<fEtaCut) 
+	   &&(particle->Phi()>(gamma.Phi()+fPhiMinCut))
+	   &&(particle->Phi()<(gamma.Phi()+fPhiMaxCut))){
+	  
+	  //cout<<" HIJ code "<<particle->GetStatusCode()<<"  "<<particle->GetName()<<" pt  "<<particle->Energy()
+	  //   <<" phi  "<<particle->Phi()<<endl;
+	   
+	   //cout<<"Inside if"<<endl;
+	   particleList.Add(particle);
+	   n++;
+	  //cout<<"Inside loop, end"<<endl;
+	}//final particle, etacut
+    }//for (iParticle<nParticle)
+  }// no optfast
+  //Info("AddHIJINGList","N %d",n);
+  
+}
+
+
+//____________________________________________________________________________
+void AliPHOSGammaJet::CreateParticleList(AliPHOSGetter * gime, TList & particleList, const Int_t idg) 
+{
+  //Info("CreateParticleList","Inside");
+  TParticle * particle = new TParticle();
+  TLorentzVector pPi0, pGamma1, pGamma2 ;
+  Double_t angle = 0, cellDistance = 0.;
+  
+  Int_t n = -1; 
+  Int_t  nparticles = gime->NPrimaries() ; 
+  Int_t iParticle=0 ;
+  if(fOptFast){
+    for (iParticle=0 ; iParticle < nparticles ; iParticle++) {
+      particle = new TParticle(*(gime->Primary(iParticle))) ;
+
+      //Info("CreateParticleList","after parton");
       //Keep Stable particles within eta range
       
-      if((particle->GetStatusCode() == 1)&&(TMath::Abs(particle->Eta())<fEtaCut)){
+      if((particle->GetStatusCode() == 1)&&(iParticle !=idg)){
+
+	// Keep particles different from Pi0
+	if((particle->GetPdgCode() != 111)&&(TMath::Abs(particle->Eta())<fEtaCut)){
+	  if(particle->GetPdgCode()==22){
+	    //Info("CreateParticleList","Photon0 before: %f", particle->Energy());
+	    MakePhoton(particle);
+	    //Info("CreateParticleList","Photon0 after: %f", particle->Energy());
+	  }
+	  particleList.Add(particle);
+	  n++;
+	} 
+	//Decay Pi0 and keep it with different status name
+	//Keep decay photons
+	if((particle->GetPdgCode() == 111) && (TMath::Abs(particle->Eta())<fEtaCut+2.)) {
+	  //cout<<"Pi0 "<<endl;
+	  
+	  particle->Momentum(pPi0);
+	  Pi0Decay(particle->GetMass(),pPi0,pGamma1,pGamma2,angle);
+
+	  cellDistance = angle*460; //cm
+	  if (cellDistance < fMinDistance) {
+	    n ++ ; 
+	    particleList.Add(particle);
+	  }// if cell<distance	
+	  else {
+	    n += 3 ; 
+	    dynamic_cast<TH2F*>(fListHistos->FindObject("AnglePair"))->Fill(pPi0.E(),angle);
+	    TParticle * photon1 = new TParticle(22,1,0,0,0,0,pGamma1.Px(),pGamma1.Py(),
+						pGamma1.Pz(),pGamma1.E(),0,0,0,0);
+	    TParticle * photon2 = new TParticle(22,1,0,0,0,0,pGamma2.Px(),pGamma2.Py(),
+						pGamma2.Pz(),pGamma2.E(),0,0,0,0);
+	    //photon1->SetWeight(1);
+	    //photon2->SetWeight(2);
+	    particle->SetStatusCode(2);
+	    
+	    //Info("CreateParticleList","Photon 1 and 2 before: %f  %f", photon1->Energy(), photon2->Energy());
+	    MakePhoton(particle);
+	    MakePhoton(photon1);
+	    MakePhoton(photon2);
+	    //Info("CreateParticleList","Photon 1 and 2 after: %f  %f", photon1->Energy(), photon2->Energy());
+	    particleList.Add(particle);
+	    particleList.Add(photon1);
+	    particleList.Add(photon2);
+	    //photon1->Print();
+	    //photon2->Print();  
+	  }//if angle > mindist
+	}//if pi0
+      }//final particle, etacut
+    }//for (iParticle<nParticle)
+  }//optfast
+  else{
+    for (iParticle=0 ; iParticle < nparticles ; iParticle++) {
+      particle = new TParticle(*(gime->Primary(iParticle))) ;
+      if(particle->GetStatusCode()==1)
+	
+      //Keep Stable particles within eta range 
+      if((particle->GetStatusCode() == 1)&&(TMath::Abs(particle->Eta())<fEtaCut)&&(iParticle !=idg)){
+	//cout<<" Creat code "<<particle->GetStatusCode()<<"  "<<particle->GetName()<<"  "<<particle->Energy()<<endl;
 	particleList.Add(particle);
 	n++;
+
       }//final particle, etacut
     }//for (iParticle<nParticle)
   }// no optfast
   //Info("CreateParticleList","N %d",n);
-
+  
 }
 //____________________________________________________________________________
 void AliPHOSGammaJet::Exec(Option_t *option) 
 {
   // does the job
   
-  MakeHistos() ; 
+  MakeHistos() ;  
+
   AliPHOSGetter * gime = AliPHOSGetter::GetInstance() ; 
-  Int_t nEvent1 = gime->MaxEvent() ;   
+
+  //Int_t nEvent1 = gime->MaxEvent() ;   
   //nEvent1=10 ;
   Int_t iEvent = 0 ; 
-  for ( iEvent = 0 ; iEvent < nEvent1 ; iEvent++) {
-    if (iEvent <= 100 || iEvent%10 == 0)
-      Info("Exec", "Event %d", iEvent) ;
-    
+  for ( iEvent = 0 ; iEvent < fNEvent ; iEvent++) {
+    //if (iEvent <= 100 || iEvent%10 == 0)
+    Info("Exec", "Event %d", iEvent) ;
+
+    fFastRec = new AliPHOSFastGlobalReconstruction(fInputFileName);
+    gime     = AliPHOSGetter::GetInstance(fInputFileName) ; 
+
     gime->Event(iEvent, "P") ; 
-    if(fOptFast)
-      fFastRec->FastReconstruction(iEvent);
-    
-    //Fill particle list       
-    TList particleList ; 
-    CreateParticleList(gime, particleList);
-    
-    TLorentzVector gamma,charge,pi0,neutral,any;
-    Int_t idg = -1;
-    
-    GetGammaJet(gime,particleList,gamma, idg);
+
+    Int_t idg = -1 ;
+    Bool_t isInPHOS = kFALSE;
    
-    Double_t ptg = gamma.Pt();
-        
-    if(ptg){
-      Info("Exec", "Gamma: %f", ptg) ;
+    TLorentzVector gamma = GetGammaJet(gime, isInPHOS, idg); 
 
+    if(isInPHOS){
+
+      //Make fast reconstruction of charged
+      if(fOptFast)
+	fFastRec->FastReconstruction(iEvent, kFALSE,0.,0.,0.);
+     
+      //Fill particle list
+      TList particleList ; 
+ 
+      //Info("Exec","Begin quenching");    
+      if(fJetQuenching)
+	MakeJetQuenching(gime,particleList,iEvent, gamma,idg);
+      //Info("Exec","End quenching") ;  
+      else 
+	CreateParticleList(gime, particleList, idg);
+
+      //cout<<"Gamma ?: phi "<<gamma.Phi()<<" theta "<<gamma.Theta()
+      //  <<" eta "<<gamma.Eta()<<" E "<<gamma.Energy()<<endl;
+
+      Double_t ptg = gamma.Pt();
       dynamic_cast<TH1F*>(fListHistos->FindObject("NGamma"))->Fill(ptg);
-
-        
-      GetAnyLeading(particleList,any, idg,gamma);
-      if(any.Pt()>0.){
-	dynamic_cast<TH2F*>(fListHistos->FindObject("PtGammaLeading"))->Fill(ptg,any.Pt());
-
-	Info("Exec", "Any Leading : %f", any.Pt()) ;
-	GetLeadingCharge(particleList,charge, idg,gamma);
-	Info("Exec", "Charge: %f", charge.Pt()) ;
-	GetLeadingPi0(particleList,pi0, idg,gamma);   
-	Info("Exec", "Pi0: %f", pi0.Pt()) ;
-	GetLeadingNeutral(particleList,neutral, idg,gamma);
-	TString type = "Any";
-	GetJet(particleList, gamma, any,type,idg);
-	Info("Exec", "Leading Any2 : %f", any.Pt()) ;
-	if((neutral.Pt()>charge.Pt())&&(neutral.Pt()>pi0.Pt()))
-	  dynamic_cast<TH2F*>(fListHistos->FindObject("PtGammaLeadingNeutral"))->Fill(ptg,neutral.Pt());
-
-	dynamic_cast<TH2F*>(fListHistos->FindObject("PtChargePi0LeadingBefore"))->Fill(charge.Pt(),pi0.Pt());
-
-	if(charge.Pt()> pi0.Pt()){
-	  Info("Exec", "Leading Charge: %f", charge.Pt()) ;
-	  dynamic_cast<TNtuple*>(fListHistos->FindObject("PtLeadingNT"))->Fill(ptg, charge.Pt(),pi0.Pt(), any.Pt()) ;
-	  dynamic_cast<TH2F*>(fListHistos->FindObject("PtChargePi0Leading"))->Fill(charge.Pt(),pi0.Pt());
-	  dynamic_cast<TH2F*>(fListHistos->FindObject("ChargeRatio"))->Fill(ptg,charge.Pt()/ptg);
-	  dynamic_cast<TH2F*>(fListHistos->FindObject("DeltaPhiCharge"))->Fill(ptg,charge.Phi()-gamma.Phi());
-	  dynamic_cast<TH2F*>(fListHistos->FindObject("PtGammaLeadingCharge"))->Fill(ptg,charge.Pt());
-	  type = "Charge";
-	  GetJet(particleList, gamma,charge,type,idg);
-	}
-	else if(pi0.Pt()> charge.Pt()){
-	  dynamic_cast<TNtuple*>(fListHistos->FindObject("PtLeadingNT"))->Fill(ptg, charge.Pt(),pi0.Pt(), any.Pt()) ;
-	  dynamic_cast<TH2F*>(fListHistos->FindObject("PtChargePi0Leading"))->Fill(charge.Pt(),pi0.Pt());
-	  Info("Exec", "Leading Neutral (pi0): %f", pi0.Pt()) ;
-	  dynamic_cast<TH2F*>(fListHistos->FindObject("Pi0Ratio"))->Fill(ptg,pi0.Pt()/ptg);
-	  dynamic_cast<TH2F*>(fListHistos->FindObject("PtGammaLeadingPi0"))->Fill(ptg,pi0.Pt());
-	  dynamic_cast<TH2F*>(fListHistos->FindObject("DeltaPhiPi0"))->Fill(ptg,pi0.Phi()-gamma.Phi());
-	  TString type = "Pi0";
-	  GetJet(particleList, gamma, pi0,type,idg);
-	}//pi0
-	else{
-	  Info("Exec", "Leading Neutral: %f", neutral.Pt()) ;
-	}//else
-	
-      }	
-      else{
-	//cout<<">>>>>>>>>>>>>>>>>>>>>>>>>>>EtaPhiGammaNoLeading"<<gamma.Eta()<<"  "<<gamma.Phi()<<endl;
-	dynamic_cast<TH2F*>(fListHistos->FindObject("EtaPhiGammaNoLeading"))->Fill(gamma.Eta(),gamma.Phi()); 
-      }
+      if(strstr(option,"deb"))
+	Info("Exec", "Gamma: %f", ptg) ; 
       
-    }//if ptg
+      if(fHIJING)
+	AddHIJINGToList(particleList, iEvent, gamma);
+     
+      if(fOnlyCharged){
+	TLorentzVector charge  = GetLeadingCharge(particleList,gamma);
+	Double_t ptch = charge.Pt();
+
+	if(ptch>0.){
+	  if(strstr(option,"deb"))
+	    Info("Exec", "Charge: %f", ptch) ;
+	  TString type = "Charge";
+
+	  dynamic_cast<TH2F*>(fListHistos->FindObject("ChargeRatio"))
+	    ->Fill(ptg,ptch/ptg);
+	  dynamic_cast<TH2F*>(fListHistos->FindObject("DeltaPhiCharge"))
+	    ->Fill(ptg,charge.Phi()-gamma.Phi());
+	  dynamic_cast<TH2F*>(fListHistos->FindObject("DeltaEtaCharge"))
+	    ->Fill(ptg,charge.Eta()-gamma.Eta());
+	  dynamic_cast<TH2F*>(fListHistos->FindObject("PtGammaLeadingCharge"))
+	    ->Fill(ptg,ptch);
+
+	  MakeJet(particleList, gamma, charge,type);
+	}
+      }//only charged
+      else{
+	TLorentzVector any = GetAnyLeading(particleList,gamma);
+	Double_t ptany = any.Pt();
+	if(strstr(option,"deb"))
+	  Info("Exec", "Any Leading 1: Pt = %f, Phi = %f", ptany,any.Phi()) ;
+	
+	dynamic_cast<TH2F*>(fListHistos->FindObject("PtGammaLeading"))
+	  ->Fill(ptg,ptany);
+	if(ptany>0.){
+	  
+	  TLorentzVector charge  = GetLeadingCharge(particleList,gamma);
+	  Double_t ptch = charge.Pt();
+	  if(strstr(option,"deb"))
+	    Info("Exec", "Charge: %f", ptch) ;
+	  
+	  
+	  TLorentzVector pi0     = GetLeadingPi0(particleList,gamma);  
+	  Double_t ptpi = pi0.Pt();
+	  if(strstr(option,"deb"))
+	    Info("Exec", "Pi0: %f", ptpi) ;
+	  
+	  
+	  //TLorentzVector neutral = GetLeadingNeutral(particleList, gamma);
+	  //Double_t ptne = neutral.Pt();	
+	  //if(strstr(option,"deb"))
+	  //  Info("Exec", "Neutral: %f", ptne) ;
+	  
+	  TString type = "Any";
+	  MakeJet(particleList, gamma, any,type);
+	  
+	  //if((ptne>ptch)&&(ptne>ptpi))
+	  //dynamic_cast<TH2F*>(fListHistos->FindObject("PtGammaLeadingNeutral"))
+	  //->Fill(ptg,neutral.Pt());
+	  
+	  dynamic_cast<TH2F*>(fListHistos->FindObject("PtChargePi0LeadingBefore"))
+	    ->Fill(ptch,ptpi);
+	  
+	  //Select leading and make jet
+	  if(ptch> ptpi){
+	    if(strstr(option,"deb"))
+	      Info("Exec", "Leading Charge: %f", ptch) ;
+	    dynamic_cast<TNtuple*>(fListHistos->FindObject("PtLeadingNT"))
+	      ->Fill(ptg, ptch,ptpi, ptany) ;
+	    dynamic_cast<TH2F*>(fListHistos->FindObject("PtChargePi0Leading"))
+	      ->Fill(ptch,ptpi);
+	    dynamic_cast<TH2F*>(fListHistos->FindObject("ChargeRatio"))
+	      ->Fill(ptg,ptch/ptg);
+	    dynamic_cast<TH2F*>(fListHistos->FindObject("DeltaPhiCharge"))
+	      ->Fill(ptg,charge.Phi()-gamma.Phi());
+	    dynamic_cast<TH2F*>(fListHistos->FindObject("DeltaEtaCharge"))
+	      ->Fill(ptg,charge.Eta()-gamma.Eta());
+	    dynamic_cast<TH2F*>(fListHistos->FindObject("PtGammaLeadingCharge"))
+	      ->Fill(ptg,ptch);
+	    type = "Charge";
+	    MakeJet(particleList, gamma,charge,type);
+	  }
+	  else if(ptpi> ptch){
+	    if(strstr(option,"deb"))
+	      Info("Exec", "Leading Pi0: %f", ptpi) ;
+	    dynamic_cast<TNtuple*>(fListHistos->FindObject("PtLeadingNT"))
+	      ->Fill(ptg, ptch,ptpi, ptany) ;
+	    dynamic_cast<TH2F*>(fListHistos->FindObject("PtChargePi0Leading"))
+	      ->Fill(ptch,ptpi);
+	    dynamic_cast<TH2F*>(fListHistos->FindObject("Pi0Ratio"))
+	      ->Fill(ptg,ptpi/ptg);
+	    dynamic_cast<TH2F*>(fListHistos->FindObject("PtGammaLeadingPi0"))
+	      ->Fill(ptg,ptch);
+	    dynamic_cast<TH2F*>(fListHistos->FindObject("DeltaPhiPi0"))
+	      ->Fill(ptg,pi0.Phi()-gamma.Phi());
+	    dynamic_cast<TH2F*>(fListHistos->FindObject("DeltaEtaPi0"))
+	      ->Fill(ptg,pi0.Eta()-gamma.Eta());
+	    TString type = "Pi0";
+	    MakeJet(particleList, gamma, pi0,type);
+	  }//pi0
+	  // 	else{
+	  // 	  if(strstr(option,"deb"))
+	  // 	    Info("Exec", "Leading Neutral: %f", neutral.Pt()) ;
+	  // 	}//else
+	  
+	}	
+	else{
+	  //<<"  "<<gamma.Phi()<<endl;
+	  dynamic_cast<TH2F*>(fListHistos->FindObject("EtaPhiGammaNoLeading"))
+	    ->Fill(gamma.Eta(),gamma.Phi()); 
+	}//any = 0
+      }// not only charged
+    }// is in PHOS
   }//loop: events
   
   fOutputFile->Write() ; 
   fOutputFile->cd();
   this->Write();
 }    
+//  //______________________________________________________________________________________
+//  void AliPHOSGammaJet::MakeJetQuenching(TList &particleList, const Int_t iEvent, TLorentzVector & gamma){
 
+//    TLorentzVector jet1(0,0,0,0) ;
+//    TLorentzVector jet2(0,0,0,0) ;
 
+//    AliPHOSGetter * gime = AliPHOSGetter::GetInstance(fInputFileName) ; 
+//    //jet1 = GetPythiaJet(fPyth1, gime, iEvent, gamma);
+//    cout<<"Jet   1: phi "<<jet1.Phi()<<" theta "<<jet1.Theta()<<" eta "<<jet1.Eta()<<" Pt "<<jet1.Pt()<<endl;
+//    cout<<"Gamma 1: Pt "<<gamma.Pt()<<" Phi "<<gamma.Phi()<<" jet - gamma "<<jet1.Phi()-gamma.Phi()<<endl;
+
+//    AliPHOSFastGlobalReconstruction *fastRec = new AliPHOSFastGlobalReconstruction(fJetQuenchingFileName);  
+//    AliPHOSGetter * gime2 = AliPHOSGetter::GetInstance(fJetQuenchingFileName) ; 
+ 
+//    Int_t iiEvent = iEvent;
+//    //Choose next event. If we are in the same file and in  last event, take the first one
+//    if(fJetQuenchingFileName == fInputFileName){
+//      iiEvent = iEvent + 1;
+//      if(iEvent == fNEvent -1){
+//        iiEvent = 0;
+//      }
+//    }
+
+//    //Set Fast Reconstruction
+//     if(fOptFast)
+//      fastRec->FastReconstruction(iiEvent, kFALSE,0.,0.,0.);
+
+//     Int_t idg = -1 ;
+//     Bool_t isInPHOS = kFALSE;
+//     TLorentzVector gamma2 = GetGammaJet(gime2, isInPHOS, idg); 
+   
+//     //Find second jet
+//     jet2 = GetPythiaJet(fPyth2,gime2,iiEvent, gamma2);
+//     //   Int_t i = -1;
+//  //    while(jet2.Phi()== 0 && jet2.Theta()==0 && jet2.Pt()==0){
+//  //      i++;
+//  //      jet2 = GetPythiaJet(fJetQuenchingFileName, i, gamma2);
+//  //    }
+//     cout<<"Jet   2: phi "<<jet2.Phi()<<" theta "<<jet2.Theta()<<" eta "<<jet2.Eta()<<" Pt "<<jet2.Pt()<<endl;
+//     cout<<"Gamma 2: Pt "<<gamma2.Pt()<<" Phi "<<gamma2.Phi()<<" jet - gamma "<<jet2.Phi()-gamma2.Phi()<<endl;
+
+//     //Set new prompt gamma (gamma+ gamma2nd event)
+
+//     Double_t pGamma1 = gamma.P();
+//     Double_t pGamma2 = jet2.P();
+//     Double_t px = gamma.Px()*(pGamma1+pGamma2)/pGamma1;
+//     Double_t py = gamma.Py()*(pGamma1+pGamma2)/pGamma1;
+//     Double_t pz = gamma.Pz()*(pGamma1+pGamma2)/pGamma1;
+//     Double_t e  = gamma.Energy()+jet2.Energy();
+//     gamma.SetPxPyPzE(px,py,pz,e);
+//     //cout<<"Gamma12: phi "<<gamma.Phi()<<" theta "<<gamma.Theta()<<" eta "<<gamma.Eta()<<" E "<<gamma.Energy()<<endl;
+
+//     //Transform second event and add it to the list
+//     TransformAddJetToList(gime2,particleList,jet1,jet2, gamma, idg);
+
+//  }
 //______________________________________________________________________________________
-void AliPHOSGammaJet::GetJetParticleListInCone(TList &particleList, TList &newparticlelist, TLorentzVector &jet,
-					       Double_t eta, Double_t phi ,Double_t cone, 
-					       Double_t ptcut, Int_t idg){
-  //cout<<"Create  "<<cone<<" "<<ptcut<<endl;
-  Double_t rad = 0;
-  Int_t iPrimary=-1;
-  TLorentzVector lv;
-  TParticle *particle = 0x0;
-  TIter next(&particleList);
-  while ( (particle = (TParticle*)next()) ) {
-    iPrimary++;  
-    //Info("GetJetParticleListInCone","particle %d",iPrimary);
-    
-    Int_t ksCode = particle->GetStatusCode();
-    if((ksCode == 1) &&  idg!= iPrimary){
-      
-      
-      rad = TMath::Sqrt(TMath::Power(particle->Eta()-eta,2)+
-			TMath::Power(particle->Phi()-phi,2));     
-      
-      if((rad<cone) && (ptcut<particle->Pt())){
-	newparticlelist.Add(particle);
-	particle->Momentum(lv);
-	jet+=lv;
-      }
-    }// status code 1, no gamma
-  }// while 
-  //cout<<"Create  end"<<cone<<" "<<ptcut<<endl;
+void AliPHOSGammaJet::MakeJetQuenching(AliPHOSGetter * gime,
+				       TList &particleList, 
+				       const Int_t iEvent, 
+				       TLorentzVector & gamma, 
+				       const Int_t idg){
+  
+
+  //Open cuts, now we don't wnat to reject nothing
+  Double_t etacut = GetEtaCut();
+  Double_t maxrat = GetRatioMaxCut();
+  Double_t minrat = GetRatioMinCut();
+  Double_t maxphi = GetPhiMaxCut();
+  Double_t minphi = GetPhiMinCut();
+  SetEtaCut(2.0);	
+  SetRatioCutRange(0.,2.);
+  SetPhiCutRange(2.5,4.);
+
+  TLorentzVector jet1(0,0,0,0);
+  TList newpl;
+  CreateParticleList(gime, particleList, idg);
+  TLorentzVector leading = GetAnyLeading(particleList,gamma);
+  SetJetParticleListInCone(particleList, newpl, jet1,leading,0.7, 0);
+
+  //cout<<"Lead   1: phi "<<leading.Phi()<<" theta "<<leading.Theta()
+  //    <<" eta "<<leading.Eta()<<" Pt "<<leading.Pt()<<endl;	
+  //cout<<"Jet   1: phi "<<jet1.Phi()<<" theta "<<jet1.Theta()
+  //    <<" eta "<<jet1.Eta()<<" Pt "<<jet1.Pt()<<endl;
+  //cout<<"Gamma 1: Pt "<<gamma.Pt()<<" Phi "<<gamma.Phi()
+  //    <<" Eta "<<gamma.Eta()<<" jet - gamma "<<jet1.Phi()-gamma.Phi()<<endl;
+
+  AliPHOSFastGlobalReconstruction *fastRec = new 
+    AliPHOSFastGlobalReconstruction(fJetQuenchingFileName);  
+  AliPHOSGetter * gime2 = AliPHOSGetter::GetInstance(fJetQuenchingFileName) ; 
+ 
+  Int_t iiEvent = iEvent;
+  //Choose next event. If we are in the same file and in  last event, 
+  //take the first one
+  if(fJetQuenchingFileName == fInputFileName){
+    iiEvent = iEvent + 1;
+    if(iEvent == fNEvent -1){
+      iiEvent = 0;
+    }
+  }
+
+  gime2->Event(iiEvent,"P");
+  
+  //Set Fast Reconstruction
+  if(fOptFast)
+    fastRec->FastReconstruction(iiEvent, kFALSE,0.,0.,0.);
+  
+  //Find second jet
+  
+  TList pl2;
+  Int_t idg2 = -1 ;
+  Bool_t isInPHOS = kFALSE;
+  TLorentzVector gamma2 = GetGammaJet(gime2, isInPHOS, idg2); 
+  CreateParticleList(gime2, pl2, idg2);
+  TLorentzVector leading2 = GetAnyLeading(pl2,gamma2);
+  TLorentzVector jet2(0,0,0,0);
+  TList newpl2;
+  SetJetParticleListInCone(pl2, newpl2, jet2,leading2,2.0, 0);
+
+  //cout<<"Lead   2: phi "<<leading2.Phi()<<" theta "<<leading2.Theta()
+  //    <<" eta "<<leading2.Eta()<<" Pt  "<<leading2.Pt()<<endl;
+  //cout<<"Jet   2: phi "<<jet2.Phi()<<" theta "<<jet2.Theta()
+  //    <<" eta "<<jet2.Eta()<<" Pt "<<jet2.Pt()<<endl;
+  //cout<<"Gamma 2: Pt "<<gamma2.Pt()<<" Phi "<<gamma2.Phi()
+  //    <<" Eta "<<gamma2.Eta()
+  //    <<" jet - gamma "<<jet2.Phi()-gamma2.Phi()<<endl;
+
+  //Set again the cuts
+
+  SetEtaCut(etacut);
+  SetRatioCutRange(minrat,maxrat);
+  SetPhiCutRange(minphi,maxphi);
+
+  //Set new prompt gamma (gamma+ gamma2nd event)
+  
+  Double_t pGamma1 = gamma.P();
+  Double_t pGamma2 = gamma2.P();
+  Double_t px = gamma.Px()*(pGamma1+pGamma2)/pGamma1;
+  Double_t py = gamma.Py()*(pGamma1+pGamma2)/pGamma1;
+  Double_t pz = gamma.Pz()*(pGamma1+pGamma2)/pGamma1;
+  Double_t e  = gamma.Energy()+gamma2.Energy();
+  gamma.SetPxPyPzE(px,py,pz,e);
+
+  //cout<<"Gamma12: phi "<<gamma.Phi()<<" theta "<<gamma.Theta()
+  //    <<" eta "<<gamma.Eta()<<" E "<<gamma.Energy()<<endl;
+  
+  //Transform second event and add it to the list
+  TransformAddJetToList(gime2,particleList,jet1,jet2);
+
 }
 
-//______________________________________________________________________________________
-void AliPHOSGammaJet::EraseParticlesAwayFromJet(TList &particleList, TLorentzVector &jet){
+//_____________________________________________________________________
+void AliPHOSGammaJet::EraseParticlesAwayFromJet(TList &particleList, 
+						TLorentzVector &jet){
  
   TLorentzVector newjet,lv;
   Int_t iPrimary=-1;
   TVector3 jetvect(0,0,0);
   TVector3 ivect(0,0,0);
 
-  TParticle *particle = 0x0;
+  TParticle *particle = new TParticle();
   TIter next(&particleList);
   while ( (particle = (TParticle*)next()) ) {
     iPrimary++;  
@@ -357,206 +711,346 @@ void AliPHOSGammaJet::EraseParticlesAwayFromJet(TList &particleList, TLorentzVec
 
 
 //____________________________________________________________________________
-void AliPHOSGammaJet::FillJetParticleHistos(TList &particleList, TLorentzVector &jet, Double_t ptg, Double_t phig,
-					    TString cone, TString ptcut, TString type, Double_t baseline){
+void AliPHOSGammaJet::FillJetParticleHistos(TList &particleList, 
+					    TLorentzVector &jet, 
+					    const TLorentzVector gamma,
+					    const TString cone, 
+					    const TString ptcut, 
+					    const TString type){
 
-  TParticle *particle = 0x0;
+  TParticle *particle = new TParticle();
   Int_t iPrimary=-1;
   TLorentzVector lv;
   TVector3 jetvect(0,0,0);
   TVector3 ivect(0,0,0);
- 
+
+  Double_t phig = gamma.Phi();
+  Double_t ptg = gamma.Pt();
+  Double_t etag = gamma.Eta();
+
+  Double_t ptjet  = jet.Pt() ;
+  
+
+  if(ptjet>0.){
+   
+    Double_t phijet = jet.Phi() ;
+    Double_t etajet = jet.Eta() ;
+  
+    //cout<<" phi gamma "<<phig<<" phi jet "<<phijet
+    //    <<" difference "<<phijet-phig<<endl;
+  
+    dynamic_cast<TH2F*>(fListHistos->FindObject("Jet"+type+"RatioCone"+cone+"Pt"+ptcut))
+      ->Fill(ptg,ptjet/ptg);
+    dynamic_cast<TH2F*>(fListHistos->FindObject("Jet"+type+"PhiCone"+cone+"Pt"+ptcut))
+      ->Fill(ptg,phijet-phig);
+    dynamic_cast<TH2F*>(fListHistos->FindObject("Jet"+type+"EtaCone"+cone+"Pt"+ptcut))
+      ->Fill(ptg,etajet-etag);
+    //cout<<" pt jet / pt g = "<<ptjet/ptg<<" pt jet = "<<ptjet<<" pt g = "<<ptg<<endl;
+    if((ptjet/ptg<fJetRatioMaxCut)&&(ptjet/ptg>fJetRatioMinCut)){
+      dynamic_cast<TH1F*>(fListHistos->FindObject("N"+type+"JetCone"+cone+"Pt"+ptcut))
+	->Fill(ptg);
+      
+      TIter next(&particleList);
+      while ( (particle = (TParticle*)next()) ) {
+	iPrimary++;  
+	particle->Momentum(lv);
+	
+	jetvect = jet.Vect();
+	ivect = lv.Vect();
+
+	dynamic_cast<TH2F*>(fListHistos->FindObject("JetFragmentCone"+cone+"Pt"+ptcut))->
+	  Fill(ptg,lv.Pt()/ptg);
+	if(particle->GetPDG(0)->Charge()!= 0){
+	  dynamic_cast<TH2F*>(fListHistos->FindObject("JetFragmentChCone"+cone+"Pt"+ptcut))->
+	    Fill(ptg,lv.Pt()/ptg);
+	  
+	  dynamic_cast<TH1F*>(fListHistos->FindObject("JetScalarChCone"+cone+"Pt"+ptcut))-> 
+	    Fill(jetvect.Dot(ivect)/(ivect.Mag()*jetvect.Mag()));
+	}
+	else
+	  dynamic_cast<TH1F*>(fListHistos->FindObject("JetScalarCone"+cone+"Pt"+ptcut))-> 
+	    Fill(jetvect.Dot(ivect)/(ivect.Mag()*jetvect.Mag()));
+	
+      }// while 
+    }//in jet ratio
+  }//ptjet >0.
+  //cout<<"end fill"<<endl;
+}
+
+
+//____________________________________________________________________________
+TLorentzVector AliPHOSGammaJet::GetAnyLeading(TList &particleList, const TLorentzVector gamma) 
+{
+  TParticle *particle = new TParticle();
+  TLorentzVector any(0,0,0,0);
+
+  Double_t ptmax = 0., pti = 0., phi = 0.;
+  Double_t ptg  = gamma.Pt();
+  Double_t phig = gamma.Phi();
+  Double_t etag = gamma.Eta();
+
+  Int_t iPrimary=-1, type = -1;
   TIter next(&particleList);
   while ( (particle = (TParticle*)next()) ) {
     iPrimary++;  
-    particle->Momentum(lv);
+    pti = particle->Pt(); 
+  
+    //cout<<pti<<"  "<<ptmax<<"  "<<iPrimary<<endl;   
+    //cout<<phi<<"  "<<phig<<endl;
     
-    jetvect = jet.Vect();
-    ivect = lv.Vect();
-    //Double_t scalar = jetvect.Dot(ivect)/(ivect.Mag()*jetvect.Mag());
-    //cout<<scalar<<" "<<ivect.Mag()<<" "<<jetvect.Mag()<< " "<<jetvect.Dot(ivect)<<endl;
-    dynamic_cast<TH1F*>(fListHistos->FindObject("JetPartitionCone"+cone+"Pt"+ptcut))->
-      Fill(lv.Pt()/ptg);
-    if(particle->GetPDG(0)->Charge()!= 0){
-      dynamic_cast<TH1F*>(fListHistos->FindObject("JetPartitionChCone"+cone+"Pt"+ptcut))->
-	Fill(lv.Pt()/ptg);
-      
-      dynamic_cast<TH1F*>(fListHistos->FindObject("JetScalarChCone"+cone+"Pt"+ptcut))-> 
-	Fill(jetvect.Dot(ivect)/(ivect.Mag()*jetvect.Mag()));
-    }
-    else
-      dynamic_cast<TH1F*>(fListHistos->FindObject("JetScalarCone"+cone+"Pt"+ptcut))-> 
-	Fill(jetvect.Dot(ivect)/(ivect.Mag()*jetvect.Mag()));
-    
-  }// while 
-
-  Double_t ptjet = jet.Pt();
-  Double_t phijet = jet.Phi();
-  if(ptjet>0.){
-    //cout<<"Jet"+type+"RatioCone"+cone+"Pt"+ptcut<<endl;
-    dynamic_cast<TH2F*>(fListHistos->FindObject("Jet"+type+"RatioCone"+cone+"Pt"+ptcut))->Fill(ptg,ptjet/ptg);
-    dynamic_cast<TH2F*>(fListHistos->FindObject("Jet"+type+"PhiCone"+cone+"Pt"+ptcut))->Fill(ptg,phijet-phig);
-    if(TMath::Abs(ptjet/ptg-baseline)<fPtEffCut){
-      //cout<<"NAnyJetCone"+cone+"Pt"+ptcut<<endl;
-      dynamic_cast<TH1F*>(fListHistos->FindObject("N"+type+"JetCone"+cone+"Pt"+ptcut))->Fill(ptg);
-    }
+//     if(particle->GetStatusCode()==1){
+    //cout<<" name "<<particle->GetName()<<"  "<<particle->Pt()
+    //   <<"  "<<ptmax<<endl;
+       //cout<<" phi gamma "<<phig<<" phi any "<<particle->Phi()
+       //   <<" difference "<<phig-particle->Phi()<<endl;
+//     }
+    if((pti> ptmax)&&(pti/ptg>fRatioMinCut)&&(pti/ptg<fRatioMaxCut)){
+      phi = particle->Phi();
+      if(((phi-phig)>fPhiMinCut)&&((phi-phig)<fPhiMaxCut))
+	{
+	  ptmax = pti;
+	  type = particle->GetPdgCode();
+	  particle->Momentum(any) ;
+	  //cout<<any<<endl;
+	}//phi cut  
+    }//ptmax 
+  }// while
+  if(any.Pt() > 0.){
+    dynamic_cast<TH2F*>(fListHistos->FindObject("AnyRatio"))->Fill(ptg,any.Pt()/ptg);
+    dynamic_cast<TH2F*>(fListHistos->FindObject("DeltaPhiAny"))->Fill(ptg,any.Phi()-phig);
+    dynamic_cast<TH2F*>(fListHistos->FindObject("DeltaEtaAny"))->Fill(ptg,any.Eta()-etag);
+    //Info("GetAnyLeading","type %d, E  %f", type,neutral->Pt());
   }
-  //cout<<"end fill"<<endl;
- }
+  //Info("GetAnyLeading","N %d",iPrimary);
+  return any;
+}
+
+
 //____________________________________________________________________________
-void AliPHOSGammaJet::GetJet(TList &particleList, TLorentzVector & gamma, TLorentzVector & leading, 
-			     TString & type,Int_t & idg) 
-
-{
-  // TLorentzVector cone03pt05, cone04pt05, cone05pt05, cone06pt05, lv;
-  //TLorentzVector cone03pt1, cone04pt1, cone05pt1, cone06pt1;
-  //TLorentzVector cone03pt0, cone04pt0, cone05pt0, cone06pt0;
-
-  //TParticle * particle = 0x0;
-  Double_t ptg = gamma.Pt();
-  Double_t phig = gamma.Phi();
-  //Double_t etag = gamma.Eta();
-  Double_t phi = leading.Phi();
-  Double_t eta = leading.Eta();
-  //Double_t  rad = 0.;
+void AliPHOSGammaJet::MakeJet(TList &particleList, const TLorentzVector gamma, 
+			      const TLorentzVector leading, 
+			      TString & type) {
 
   TList pl;
-  TLorentzVector jet0(0,0,0,0);
-
-  GetJetParticleListInCone(particleList, pl, jet0,eta, phi ,0.6, 0., idg);
+  TLorentzVector jet0(0,0,0,0);  
+  //Info("MakeJet","Before 1st SetJetParticlesListInCone");
+  SetJetParticleListInCone(particleList, pl, jet0,leading ,0.6, 0.);
+  //Info("MakeJet","After 1st SetJetParticlesListInCone");
   Float_t cone[]  = {0.3,0.4,0.5,0.6};
   Float_t ptcut[] = {0.0,0.5,1.0};
   TString scone[]  = {"03","04","05","06"};
   TString sptcut[] = {"0","05","1"};
-  // Double_t baseline[3][4];
-  
-  //baseline[0][0] = 0.950;  baseline[0][1] = 0.947; baseline[0][2] = 0.937;//cone 0.3
-  //baseline[1][0] = 0.965;  baseline[1][1] = 0.960; baseline[1][2] = 0.946;//cone 0.4
-  //baseline[2][0] = 0.974;  baseline[2][1] = 0.968; baseline[2][2] = 0.951;//cone 0.5
-  //baseline[3][0] = 0.981;  baseline[3][1] = 0.974; baseline[3][2] = 0.954;//cone 0.6
 
   for(Int_t icone = 0; icone<4; icone++){
     for(Int_t ipt = 0; ipt<3;ipt++){
       TList newpl;
       TLorentzVector jet(0,0,0,0);
-
-      GetJetParticleListInCone(pl, newpl, jet,eta, phi ,cone[icone], ptcut[ipt], idg);
-      EraseParticlesAwayFromJet(newpl,jet);
-     //  Double_t base = (*fMatrixParam)(icone,ipt);
-//       cout<<base<<endl;
-      FillJetParticleHistos(newpl, jet, ptg, phig,scone[icone],sptcut[ipt], type, (*fMatrixParam)(icone,ipt));
-     
+      //  Info("MakeJet","Before 2nd SetJetParticlesListInCone");
+      SetJetParticleListInCone(pl, newpl, jet,leading,cone[icone], ptcut[ipt]);
+      // Info("MakeJet","After 2nd SetJetParticlesListInCone");
+      //Info("MakeJet","Before Erase");
+      for(Int_t i = 0; i<fNIter;i++)
+	EraseParticlesAwayFromJet(newpl,jet);
+      //Info("MakeJet","After Erase");
+      //Info("MakeJet","Before Fill");
+      FillJetParticleHistos(newpl, jet, gamma,scone[icone],sptcut[ipt], type);
+      //Info("MakeJet","After Fill");
+      //newpl.Delete();
     }
   }
- 
-  //cout<<"End get jet"<<endl;
+  //pl.Delete();
 }
+
 //____________________________________________________________________________
-void AliPHOSGammaJet::GetGammaJet(AliPHOSGetter *gime, TList &particleList, TLorentzVector &gamma, 
-				  Int_t & id) 
+TLorentzVector AliPHOSGammaJet::GetGammaJet(AliPHOSGetter *gime, Bool_t & is, Int_t & idg) 
 {
-  TParticle *particle = 0x0;
+  TParticle *particle = new TParticle();
+  TLorentzVector gamma(0,0,0,0);
   Int_t module = -1;
   Double_t x = 0., z = 0.;
-
-  Int_t iPrimary=-1, idmotherg = -1;
+  Int_t idmotherg = -1;
+  idg = -1;
+  is = kFALSE;
+  TClonesArray * pr = gime->Primaries() ;
   
-  TIter next(&particleList);
-  while ( (particle = (TParticle*)next()) ) {
-    iPrimary++;  
-    Int_t ksCode = particle->GetStatusCode();
-    Int_t iMother= particle->GetMother(0);
-    
-    if (ksCode == 21 && iMother == -1)
-      if(particle->GetPdgCode()==22){
-	idmotherg = iPrimary;
-	//cout<<"idmother "<<idmotherg<<endl;
-      }
-    if(ksCode == 1){
+  if(!fJetJet){   
+    for(Int_t ipr = 0;ipr < pr->GetEntries() ; ipr ++ ){
+      particle = (TParticle *) pr->At(ipr) ;
+      Int_t ksCode = particle->GetStatusCode();
+      Int_t iMother= particle->GetMother(0);
       
-      if(idmotherg == particle->GetMother(0)){
-	const AliPHOSGeometry * geom = gime->PHOSGeometry() ;
-	geom->ImpactOnEmc(static_cast<double>(particle->Theta()),static_cast<double>(particle->Phi()), 
-			  module,z,x);
-	if(module != 0){
-	  particle->Momentum(gamma);
-	  id = iPrimary;
+      if (ksCode == 21 && iMother == -1){
+	if(particle->GetPdgCode()==22){
+	  idmotherg = ipr;
+	  //cout<<"idmother "<<idmotherg<<endl;
+// 	  cout<<"phi "<<particle->Phi()<<" theta "<<particle->Theta()<<" eta "<<particle->Eta()
+// 	      <<" E "<<particle->Energy()<<endl;
 	}
- 	break;
       }
-    }// kscode == 1
-  }// while
-}
-//____________________________________________________________________________
-// void AliPHOSGammaJet::GetGammaJet(AliPHOSGetter *gime, TLorentzVector &gamma, Int_t & idg, Int_t idparton) 
-// {
-//   TParticle *particle = 0x0;
-//   //Int_t module = -1;
-//   //Double_t x = 0., z = 0.;
-//   TParticle *hardParton1 = 0 , *hardParton2 = 0, *mothergamma = 0, *parton = 0;
-//   Float_t ptmax1=0, ptmax2=0;
-//   Int_t idmotherg = -1, id1 = -1, id2 = -2;
+      if(ksCode == 1){
+	if(idmotherg == particle->GetMother(0)){
+	  
+	  idg = ipr;
+	  if(fOptFast)
+	    MakePhoton(particle);
+	  particle->Momentum(gamma) ;
+	  //cout<<"particle "<<particle->Phi()<<" lv "<<gamma.Phi()<<endl;
+	  const AliPHOSGeometry * geom = gime->PHOSGeometry() ;
+	  geom->ImpactOnEmc(static_cast<double>(particle->Theta()),static_cast<double>(particle->Phi()), 
+			    module,z,x);
+	  if(module != 0)
+	    is = kTRUE;
+	  
+	  break;
+	}
+      }// kscode == 1
+    }// for
+  }
+  else{
 
-//   for (Int_t iPrimary = 0 ; iPrimary < nparticles ; iPrimary++) {
-//     particle = gAlice->Particle(iPrimary) ;
-//     Int_t ksCode = particle->GetStatusCode();
-//     Int_t iMother= particle->GetMother(0);
-//     Float_t pt   = particle->Pt();
-//     if (ksCode == 21 && iMother == -1) {
-     
-//       if      (pt > ptmax1) {
-// 	ptmax2 = ptmax1;
-// 	hardParton2 = hardParton1;
-// 	ptmax1 = pt;
-// 	hardParton1 = particle;
-// 	id1 = iPrimary;
-//       }
-//       else if (pt > ptmax2) {
-// 	ptmax2 = pt;
-// 	hardParton2 = particle;
-// 	id2 = iPrimary;
-//       }
-//     }
-//     if(hardParton1->GetPdgCode()==22){
-//       mothergamma = hardparton1;
-//       idmotherg = id1;
-//       parton = hardparton2;
-//     }
-//     else{
-//       mothergamma = hardparton2;
-//       idmotherg = id2;
-//       parton = hardparton1;
-//       if(hardParton2->GetPdgCode()!=22)
-// 	Info("GetGammaJet","No mother photon !!!!")
-//     }
-//     // if (ksCode == 21 && iMother == -1)
-// //       if(particle->GetPdgCode()==22){
-// // 	idmotherg = iPrimary;
-// // 	//cout<<"idmother "<<idmotherg<<endl;
-// //       }
-//     if(ksCode == 1){
-      
-//       if(idmotherg == particle->GetMother(0)){
-// 	Info("GetGammaJet","Mother %f, dougther %f",gammamother->Energy(),particle->Energy());
-// 	const AliPHOSGeometry * geom = gime->PHOSGeometry() ;
-// 	geom->ImpactOnEmc(static_cast<double>(particle->Theta()),static_cast<double>(particle->Phi()), 
-// 			  module,z,x);
-// 	if(module != 0){
-// 	  particle->Momentum(gamma);
-// 	  id = iPrimary;
-// 	}
-//  	//break;
-//       }
-//     }// kscode == 1
-//   }// while
-// }
+    TLorentzVector pPi0, pGamma1, pGamma2 ;
+    Double_t angle = 0, cellDistance = 0.;
+
+    for(Int_t ipr = 0;ipr < pr->GetEntries() ; ipr ++ ){
+      particle = (TParticle *) pr->At(ipr) ;
+      Int_t ksCode = particle->GetStatusCode();
+      Int_t ksPdg  = particle->GetPdgCode();
+      Double_t ksPt = particle->Pt();
+      Double_t ptmax = 0;
+      if((ksPt > 0.)&&(ksCode == 1)&&(ksPdg==111)){
+	if(TMath::Abs(particle->Eta())<fEtaCut+1.){
+	
+	  particle->Momentum(pPi0);
+	  //cout<<"Pi0 decay 1"<<endl;
+	  Pi0Decay(particle->GetMass(),pPi0,pGamma1,pGamma2,angle);
+	  //cout<<"Pi0 decay 2"<<endl;
+	  cellDistance = angle*460; //cm
+	  //cout<<"angle "<<angle<<" i "<<ipr<<endl;
+	  if (cellDistance < fMinDistance) {
+	    if(ksPt > ptmax){
+	      //cout<< "Pi0 "<<ipr<<endl;
+	      
+	      if(fOptFast){
+		//cout<<"Pi0 1 "<<endl;
+		MakePhoton(particle);
+		//cout<<"Pi0 2 "<<endl;
+	      }
+	      const AliPHOSGeometry * geom = gime->PHOSGeometry() ;
+	      geom->ImpactOnEmc(static_cast<double>(particle->Theta()),
+				static_cast<double>(particle->Phi()), 
+				module,z,x);
+	      if(module != 0) {
+		idg = ipr;
+		ptmax = ksPt;   
+		is = kTRUE;
+		particle->Momentum(gamma) ;
+	      }
+	    }//ksPt > ptmax
+	  }// if cell<distance
+	  else{
+	    //cout<< "Gamma "<<ipr<<endl;
+	    TParticle * photon1 = new TParticle(22,1,0,0,0,0,pGamma1.Px(),pGamma1.Py(),
+						pGamma1.Pz(),pGamma1.E(),0,0,0,0);
+	    TParticle * photon2 = new TParticle(22,1,0,0,0,0,pGamma2.Px(),pGamma2.Py(),
+						pGamma2.Pz(),pGamma2.E(),0,0,0,0);  
+	    if(fOptFast){
+	      //cout<<"Gamma 1 "<<endl;
+	      MakePhoton(photon1);
+	      //cout<<"Gamma 2 "<<endl;
+	      MakePhoton(photon2);
+	      //cout<<"Gamma 12 "<<endl;
+	    }
+	    //Photon1
+	    if(photon1->Pt() > ptmax){
+	      const AliPHOSGeometry * geom = gime->PHOSGeometry() ;
+	      geom->ImpactOnEmc(static_cast<double>(photon1->Theta()),
+				static_cast<double>(photon1->Phi()), 
+				module,z,x);
+	      if(module != 0) {
+		idg = ipr;
+		ptmax = photon1->Pt();   
+		is = kTRUE;
+		photon1->Momentum(gamma) ;
+	      }
+	    }//phton1 > ptmax
+	    
+	    //Photon2
+	    if(photon2->Pt() > ptmax){
+	      const AliPHOSGeometry * geom = gime->PHOSGeometry() ;
+	      geom->ImpactOnEmc(static_cast<double>(photon2->Theta()),
+				static_cast<double>(photon2->Phi()), 
+				module,z,x);
+	      if(module != 0) {
+		idg = ipr;
+		ptmax = photon2->Pt();   
+		is = kTRUE;
+		photon2->Momentum(gamma) ;
+	      }
+	    }//phton2 > ptmax
+	  }//cell<distance	
+	}//eta
+      }// kscode == 1
+    }// while
+  }
+  return gamma;
+}
+
+//  //____________________________________________________________________________
+//  TLorentzVector AliPHOSGammaJet::GetPythiaJet(AliGenPythia * pyth, AliPHOSGetter * gime, 
+//  					     const Int_t iEvent, const TLorentzVector gamma){
+
+//  //   TFile *f=new TFile(filename,"read");
+//  //   AliRun* gAlice = (AliRun*)(f->Get("gAlice"));
+//  //   AliGenPythia* pyth = (AliGenPythia*) gAlice->Generator();
+//  //   pyth->Init();
+
+
+//    cout<<"Get Event"<<endl;
+//    gime->Event(iEvent, "P");
+//    Int_t nJ = -1, nJT = -1;
+//    Float_t jets[4][10];
+//    cout<<"Rec Jet"<<endl;
+//    pyth->SetJetReconstructionMode(1);
+//    //cout<<"recons mode" <<endl; 
+//    cout<<"Load Jet"<<endl;
+//    pyth->LoadEvent();
+//    //cout<<"load event" <<endl;
+//    cout<<"Get Jet"<<endl;
+//    pyth->GetJets(nJ, nJT, jets);
+//    cout<<"NJets "<<nJT<<" nj "<<nJ<<endl;
+//    Int_t index = -1 ;
  
+//    for (Int_t i = 0; i<=nJT;i++){
+//      TLorentzVector jet(0,0,0,0);
+//      jet.SetPxPyPzE(jets[0][i],jets[1][i],jets[2][i],jets[3][i]);
+
+//      Double_t diff = jet.Phi()-gamma.Phi() ;
+//      Double_t rat  = jet.Pt()/gamma.Pt() ;
+//      //cout<<"Jet  pyth"<<i<< ": phi "<<jet.Phi()<<" theta "<<jet.Theta()<<" eta "<<jet.Eta()<<" Pt "<<jet.Pt()<<endl;
+//      //cout<<"Gamma: Pt "<<gamma.Pt()<<" Phi "<<gamma.Phi()<<" jet - gamma "<<diff<<" jet pt/ gamma pt "<<rat<<endl;
+    
+//      if((diff>fPhiMinCut) && (diff<fPhiMaxCut)){
+//        //cout<<"pasa phi "<<i<<"diff  "<<diff<<" > "<<fPhiMinCut<<" < "<<fPhiMaxCut<<endl;
+//        if((rat>fJetRatioMinCut) && (rat<fJetRatioMaxCut)){
+//  	//cout<<"pasa pt "<<i<<"rat  "<<rat<<" > "<<fJetRatioMinCut<<" < "<<fJetRatioMaxCut<<endl;
+//  	index = i;
+//        }
+//      }
+//    }
+//    //cout<<"INDEX "<<index<<endl;
+//    TLorentzVector jet(0,0,0,0);
+//    if(index != -1)
+//      jet.SetPxPyPzE(jets[0][index],jets[1][index],jets[2][index],jets[3][index]);
+    
+//    return jet;
+
+//  }
 //____________________________________________________________________________
-void AliPHOSGammaJet::GetLeadingCharge(TList &particleList, TLorentzVector &charge, Int_t & id,
-				       TLorentzVector & gamma) 
+TLorentzVector AliPHOSGammaJet::GetLeadingCharge(TList &particleList, 
+						 const TLorentzVector gamma) 
 {
-  TParticle *particle = 0x0;
-  
+  TParticle * particle = new TParticle();
+  TLorentzVector charge(0,0,0,0) ;
  
   Double_t ptmax = 0., pti = 0., phi = 0.;
   Double_t ptg = gamma.Pt();
@@ -568,31 +1062,39 @@ void AliPHOSGammaJet::GetLeadingCharge(TList &particleList, TLorentzVector &char
     iPrimary++;  
     Int_t ksCode = particle->GetStatusCode();
     
-    if((ksCode == 1)&&(id != iPrimary)
-       &&(particle->GetPDG(0)->Charge()!=0)){
-      pti = particle->Pt(); 
+    if(((ksCode == 1)||(ksCode == 0))&&(particle->GetPDG(0)->Charge()!=0)){
+      pti = particle->Pt();
+//        cout<<"pti "<<pti<<" ptg "<<ptg<<" pti/ptg "<<pti/ptg<<endl;
+//        cout<<"fRatioMinCut "<<fRatioMinCut
+//  	  <<" fRatioMaxCut "<<fRatioMaxCut<<endl;
+//        cout<<"fPhiMinCut "<<fPhiMinCut
+//  	  <<" fPhiMaxCut "<<fPhiMaxCut<<endl;
       if((pti> ptmax)&&(pti/ptg>fRatioMinCut)&&(pti/ptg<fRatioMaxCut)){
 	phi = particle->Phi();
+	//  cout<<"charge : phi "<<particle->Phi()<<" theta "<<particle->Theta()
+//  	    <<" eta "<<particle->Eta()<<" Pt "<<particle->Pt()<<endl;
 	if(((phi-phig)>fPhiMinCut)&&((phi-phig)<fPhiMaxCut)){
 	  ptmax = pti;
-	  particle->Momentum(charge);
+	  particle -> Momentum(charge);
 	}//phi cut  
       }//ptmax 
     }// kscode == 1
   }// while
-  if((ptmax != 0.0)){
-  dynamic_cast<TH2F*>(fListHistos->FindObject("ChargeRatioAll"))->Fill(ptg,charge.Pt()/ptg);
-  dynamic_cast<TH2F*>(fListHistos->FindObject("DeltaPhiChargeAll"))->Fill(ptg,charge.Phi()-phig);
+  if((charge.Pt() > 0.0)){
+    dynamic_cast<TH2F*>(fListHistos->FindObject("ChargeRatioAll"))->Fill(ptg,charge.Pt()/ptg);
+    dynamic_cast<TH2F*>(fListHistos->FindObject("DeltaPhiChargeAll"))->Fill(ptg,charge.Phi()-phig);
   }
+  //Info("GetLeadingCharge","N %d",iPrimary);
+  return charge ;
+
 }
 
 
 //____________________________________________________________________________
-void AliPHOSGammaJet::GetLeadingNeutral(TList &particleList, TLorentzVector &neutral, Int_t & id,
-					TLorentzVector & gamma) 
+TLorentzVector AliPHOSGammaJet::GetLeadingNeutral(TList &particleList,const TLorentzVector gamma) 
 {
-  TParticle *particle = 0x0;
-  
+  TParticle *particle = new TParticle();
+  TLorentzVector neutral(0,0,0,0);
  
   Double_t ptmax = 0., pti = 0., phi = 0.;
   Double_t ptg = gamma.Pt();
@@ -604,7 +1106,8 @@ void AliPHOSGammaJet::GetLeadingNeutral(TList &particleList, TLorentzVector &neu
     iPrimary++;  
     Int_t ksCode = particle->GetStatusCode();
     pti = particle->Pt(); 
-    if((ksCode == 1)&&(id != iPrimary)&&(particle->GetPDG(0)->Charge()==0)&&(particle->GetPdgCode()!=111)&&(pti>0.)){
+    if(((ksCode == 1)||(ksCode == 0))&&(particle->GetPDG(0)->Charge()==0)
+       &&(particle->GetPdgCode()!=111)&&(pti>0.)){
       pti = particle->Pt(); 
       if((pti> ptmax)&&(pti/ptg>fRatioMinCut)&&(pti/ptg<fRatioMaxCut)){
 	phi = particle->Phi();
@@ -616,287 +1119,168 @@ void AliPHOSGammaJet::GetLeadingNeutral(TList &particleList, TLorentzVector &neu
       }//ptmax 
     }// kscode == 1
   }// while
-  if(ptmax > 0.){
+  if(neutral.Pt() > 0.){
     //dynamic_cast<TH2F*>(fListHistos->FindObject("NeutralRatioAll"))->Fill(ptg,neutral.Pt()/ptg);
     //dynamic_cast<TH2F*>(fListHistos->FindObject("DeltaPhiNeutral"))->Fill(ptg,neutral.Phi()-phig);
-    Info("GetLeadingNeutral","type %d, E  %f", type,neutral.Pt());
+    //Info("GetLeadingNeutral","type %d, E  %f", type,neutral.Pt());
   }
+
+  return neutral;
+
 }
 
 //____________________________________________________________________________
-void AliPHOSGammaJet::GetAnyLeading(TList &particleList, TLorentzVector &any, Int_t & id,
-					TLorentzVector & gamma) 
+TLorentzVector AliPHOSGammaJet::GetLeadingPi0(TList &particleList, const TLorentzVector gamma) 
 {
-  TParticle *particle = 0x0;
+  const Float_t mpi0 = 0.1349766;
+  TParticle * particle = new TParticle();
+  TLorentzVector pi0(0,0,0,0) ;
   
- 
   Double_t ptmax = 0., pti = 0., phi = 0.;
   Double_t ptg = gamma.Pt();
   Double_t phig = gamma.Phi();
 
-  Int_t iPrimary=-1, type = -1;
-  TIter next(&particleList);
-  while ( (particle = (TParticle*)next()) ) {
-    iPrimary++;  
-    Int_t ksCode = particle->GetStatusCode();
-    pti = particle->Pt(); 
-   
-    if((ksCode == 1)&&(id != iPrimary)){
-      //cout<<pti<<"  "<<ptmax<<endl;   
-      if((pti> ptmax)&&(pti/ptg>fRatioMinCut)&&(pti/ptg<fRatioMaxCut)){
-	phi = particle->Phi();
-	if(((phi-phig)>fPhiMinCut)&&((phi-phig)<fPhiMaxCut))
-	{
-	  ptmax = pti;
-	  type = particle->GetPdgCode();
-	  particle->Momentum(any);
-	  }//phi cut  
-      }//ptmax 
-    }// kscode == 1
-  }// while
-  if(ptmax > 0.){
-    dynamic_cast<TH2F*>(fListHistos->FindObject("AnyRatio"))->Fill(ptg,any.Pt()/ptg);
-    dynamic_cast<TH2F*>(fListHistos->FindObject("DeltaPhiAny"))->Fill(ptg,any.Phi()-phig);
-    //Info("GetAnyLeading","type %d, E  %f", type,neutral.Pt());
-  }
-  //cout<<">>>>>>>>>>>>>>>>>ptmax   "<<ptmax<< " any.pt  "<<any.Pt()<<endl;
-}
-//____________________________________________________________________________
-void AliPHOSGammaJet::GetLeadingPi0(TList &particleList, TLorentzVector &pi0, Int_t & id, 
-				    TLorentzVector & gamma) 
-{
-  TParticle *particle = 0x0;
-  
-  Double_t ptmax = 0., pti = 0., phi = 0., arg = 0;
-  Double_t ptg = gamma.Pt();
-  Double_t phig = gamma.Phi();
-  const Float_t mpi0 = 0.1349766;
   Int_t iPrimary=-1;
-  if(!fOptFast){
   TIter next(&particleList);
-  while ( (particle = (TParticle*)next()) ) {
-    iPrimary++;  
-    Int_t ksCode = particle->GetStatusCode();
-    
-    //if((ksCode == 2))
-    if((ksCode == 1)&&(id != iPrimary)&&(particle->GetPdgCode() == 111))
-      {
-	pti = particle->Pt();
+
+  if(!fOptFast){
+    while ( (particle = (TParticle*)next()) ) {
+      iPrimary++;  
+      Int_t ksCode = particle->GetStatusCode();
+      
+      if(((ksCode == 1)||(ksCode == 0))&&(particle->GetPdgCode()==111)){
+	pti = particle->Pt(); 
 	if((pti> ptmax)&&(pti/ptg>fRatioMinCut)&&(pti/ptg<fRatioMaxCut)){
 	  phi = particle->Phi();
 	  if(((phi-phig)>fPhiMinCut)&&((phi-phig)<fPhiMaxCut)){
 	    ptmax = pti;
-	    particle->Momentum(pi0);
-	  }// phi cut
-	}// pt max
+	    particle -> Momentum(pi0);
+	  }//phi cut  
+	}//ptmax 
       }// kscode == 1
-  }// while
-  }//!optfast
+    }// while
+  }//no opt fast
+
   else{
+
     TLorentzVector gammai,gammaj;
-    Double_t angle = 0., e = 0., invmass = 0., anglecutmax = 0.0, anglecutmin = 0.0;
+    Double_t arg = 0., angle = 0., e = 0., invmass = 0., anglecutmax = 0.0, anglecutmin = 0.0;
     TIter next(&particleList);
     while ( (particle = (TParticle*)next()) ) {
       iPrimary++;	  
       Int_t ksCode = particle->GetStatusCode();
       Int_t ksPdg = particle->GetPdgCode();
-      if((ksCode == 1) && (iPrimary != id) && (ksPdg == 22)){
-	particle->Momentum(gammai);
-	
-	Int_t jPrimary=-1;
-	TIter next2(&particleList);
-	while ( (particle = (TParticle*)next2()) ) {
-	  jPrimary++;
-	  if(jPrimary>iPrimary){
-	    ksCode = particle->GetStatusCode();
-	    ksPdg = particle->GetPdgCode();
-	    if((ksCode == 1) && (iPrimary != id) && (ksPdg == 22)){
-	      particle->Momentum(gammaj);
-	      //Info("GetLeadingPi0","Egammai %f, Egammaj %f", gammai.Pt(),gammaj.Pt());
-	      angle = gammaj.Angle(gammai.Vect());
-	      //Info("GetLeadingPi0","Angle %f", angle);
-	      e = (gammai+gammaj).E();
-	      anglecutmax = fAngleMaxParam.At(0)*TMath::Exp(fAngleMaxParam.At(1)*e)
-		+fAngleMaxParam.At(2)+fAngleMaxParam.At(3)*e;
-	      //Info("GetLeadingPi0","Angle %f, max %f", angle,anglecutmax);
-	      arg = (e*e-2*mpi0*mpi0)/(e*e);
-	      //Info("GetLeadingPi0","Angle %f, cos min %f", angle,arg);
-	      if(arg>0.)
-	      anglecutmin = TMath::ACos(arg);
-	      else
-		anglecutmin= 100.;
-	      //Info("GetLeadingPi0","Angle %f, min %f", angle,anglecutmin);
-	      dynamic_cast<TH2F*>(fListHistos->FindObject("AngleAllPair")) ->Fill(e,angle);
-	      if((angle<anglecutmax)&&(angle>=anglecutmin)){
-		dynamic_cast<TH2F*>(fListHistos->FindObject("AngleAllPairCut")) ->Fill(e,angle);
-		invmass = (gammai+gammaj).M();
-		//Info("GetLeadingPi0","InvMass %f", invmass);
-		if((invmass>fInvMassMinCut) && (invmass<fInvMassMaxCut)){ 
-		  pti = (gammai+gammaj).Pt();
-		  phi = (gammai+gammaj).Phi();
-		  if(pti>ptmax && (pti/ptg>fRatioMinCut) && (pti/ptg<fRatioMaxCut)){
-		    if(((phi-phig)>fPhiMinCut)&&((phi-phig)<fPhiMaxCut)){
-		      //Info("GetLeadingPi0","Delta Phi %f", phi-phig);
-		      ptmax = pti;
-		      pi0 = gammai+gammaj;
-		    }//phi cut
-		  }//e12>el && (e12/eg>0.2 && e12/eg<1.)
-		}//(invmass>0.125) && (invmass<0.145)
-	      }//gammaj.Angle(gammai.Vect())<0.04
-	    }//(ksCode == 1)
-	  }
-	}//while
-	//	    cout<<"jPrimary "<<jPrimary<<endl;
-      }// if kscode 1
-    }//while		 
+      if(((ksCode == 1)||(ksCode == 0))) { 
+	if(ksPdg == 111){
+	  pti = particle->Pt();
+	  if((pti> ptmax)&&(pti/ptg>fRatioMinCut)&&(pti/ptg<fRatioMaxCut)){
+	    phi = particle->Phi();
+	    if(((phi-phig)>fPhiMinCut)&&((phi-phig)<fPhiMaxCut)){
+	      ptmax = pti;
+	      particle -> Momentum(pi0);
+	    }//phi cut
+	  }//ratio cut
+	}// pdg = 111
+	if(ksPdg == 22){
+	  particle->Momentum(gammai);
+	  
+	  Int_t jPrimary=-1;
+	  TIter next2(&particleList);
+	  while ( (particle = (TParticle*)next2()) ) {
+	    jPrimary++;
+	    if(jPrimary>iPrimary){
+	      ksCode = particle->GetStatusCode();
+	      ksPdg = particle->GetPdgCode();
+	      if(((ksCode == 1)||(ksCode == 0))){
+		if(ksPdg == 22){
+		  particle->Momentum(gammaj);
+		  //Info("GetLeadingPi0","Egammai %f, Egammaj %f", gammai.Pt(),gammaj.Pt());
+		  angle = gammaj.Angle(gammai.Vect());
+		  //Info("GetLeadingPi0","Angle %f", angle);
+		  e = (gammai+gammaj).E();
+		  anglecutmax = fAngleMaxParam.At(0)*TMath::Exp(fAngleMaxParam.At(1)*e)
+		    +fAngleMaxParam.At(2)+fAngleMaxParam.At(3)*e;
+		  //Info("GetLeadingPi0","Angle %f, max %f", angle,anglecutmax);
+		  arg = (e*e-2*mpi0*mpi0)/(e*e);
+		  //Info("GetLeadingPi0","Angle %f, cos min %f", angle,arg);
+		  if(arg>0.)
+		    anglecutmin = TMath::ACos(arg);
+		  else
+		    anglecutmin= 100.;
+		  //Info("GetLeadingPi0","Angle %f, min %f", angle,anglecutmin);
+		  dynamic_cast<TH2F*>(fListHistos->FindObject("AngleAllPair")) ->Fill(e,angle);
+		  if((angle<anglecutmax)&&(angle>=anglecutmin)){
+		    dynamic_cast<TH2F*>(fListHistos->FindObject("AngleAllPairCut")) ->Fill(e,angle);
+		    invmass = (gammai+gammaj).M();
+		    //Info("GetLeadingPi0","InvMass %f", invmass);
+		    if((invmass>fInvMassMinCut) && (invmass<fInvMassMaxCut)){ 
+		      pti = (gammai+gammaj).Pt();
+		      phi = (gammai+gammaj).Phi();
+		      if(pti>ptmax && (pti/ptg>fRatioMinCut) && (pti/ptg<fRatioMaxCut)){
+			if(((phi-phig)>fPhiMinCut)&&((phi-phig)<fPhiMaxCut)){
+			  //Info("GetLeadingPi0","Delta Phi %f", phi-phig);
+			  ptmax = pti;
+			  pi0 = gammai+gammaj;
+			}//phi cut
+		      }//e12>el && (e12/eg>0.2 && e12/eg<1.)
+		    }//(invmass>0.125) && (invmass<0.145)
+		  }//gammaj.Angle(gammai.Vect())<0.04
+		}//if pdg = 22
+	      }//(ksCode == 1)
+	    }
+	  }//while
+	  //	    cout<<"jPrimary "<<jPrimary<<endl;
+	}// if pdg = 22
+      }//if kscode 1
+    }//while		
   }//foptfast
-  if(ptmax != 0.0){
+  
+  if((pi0.Pt() > 0.0)){
     dynamic_cast<TH2F*>(fListHistos->FindObject("InvMassPair")) ->Fill(ptg,pi0.M());
     dynamic_cast<TH2F*>(fListHistos->FindObject("Pi0RatioAll"))->Fill(ptg,pi0.Pt()/ptg);
-    dynamic_cast<TH2F*>(fListHistos->FindObject("DeltaPhiPi0All"))->Fill(ptg,pi0.Phi()-phig);
+	dynamic_cast<TH2F*>(fListHistos->FindObject("DeltaPhiPi0All"))->Fill(ptg,pi0.Phi()-phig);
   }
+      
+  return pi0 ;
+  
 }
 
-//____________________________________________________________________________
-// void AliPHOSGammaJet::GetLeadingPi0(TList &particleList, TLorentzVector &pi0, Int_t & id, 
-// 				    TLorentzVector & gamma) 
-// {
-//   TParticle *particle = 0x0;
-  
-//   Double_t ptmax = 0., pti = 0., phi = 0.;
-//   Double_t ptg = gamma.Pt();
-//   Double_t phig = gamma.Phi();
-//   Int_t iPrimary=-1;
-//   TIter next(&particleList);
-
-//   if(!fOptFast){
-//     while ( (particle = (TParticle*)next()) ) {
-//       iPrimary++;  
-//       Int_t ksCode = particle->GetStatusCode();
-      
-//       //if((ksCode == 2))
-//       if((ksCode == 1)&&(id != iPrimary)&&(particle->GetPdgCode() == 111))
-// 	{
-// 	  pti = particle->Pt();
-// 	  if((pti> ptmax)&&(pti/ptg>fRatioMinCut)&&(pti/ptg<fRatioMaxCut)){
-// 	    phi = particle->Phi();
-// 	    if(((phi-phig)>fPhiMinCut)&&((phi-phig)<fPhiMaxCut)){
-// 	      ptmax = pti;
-// 	      particle->Momentum(pi0);
-// 	    }// phi cut
-// 	  }// pt max
-// 	}// kscode == 1
-//     }// while
-//   }//!foptfast
-//   else {
-//     TLorentzVector gammai;
-//     while ( (particle = (TParticle*)next()) ) {
-//       iPrimary++;  
-//       Int_t ksCode = particle->GetStatusCode();
-      
-//       //if((ksCode == 2))
-//       if((ksCode == 1)&&(id != iPrimary)&&(particle->GetPdgCode() == 22))
-// 	{
-// 	  GetPi0FromGamma(particleList, pi0, id, iPrimary,particle);
-// 	  pti = pi0.Pt();
-// 	  if((pti> ptmax)&&(pti/ptg>fRatioMinCut)&&(pti/ptg<fRatioMaxCut)){
-// 	    phi = particle->Phi();
-// 	    if(((phi-phig)>fPhiMinCut)&&((phi-phig)<fPhiMaxCut)){
-// 	      ptmax = pti;
-// 	      particle->Momentum(pi0);
-// 	    }// phi
-// 	  }//ptmax
-// 	}// kscode == 1
-//     }// while
-//   }//foptfast
-
-//   if(ptmax != 0.0){
-//     dynamic_cast<TH2F*>(fListHistos->FindObject("InvMassPair")) ->Fill(ptg,pi0.M());
-//     dynamic_cast<TH2F*>(fListHistos->FindObject("Pi0RatioAll"))->Fill(ptg,pi0.Pt()/ptg);
-//     dynamic_cast<TH2F*>(fListHistos->FindObject("DeltaPhiPi0All"))->Fill(ptg,pi0.Phi()-phig);
-//   }
-// }
-
-
-//____________________________________________________________________________
-// void AliPHOSGammaJet::GetPi0FromGamma(TList &particleList, TLorentzVector &pi0, const Int_t id, 
-// 				      const Int_t iPrimary, TParticle * particle) 
-// { 
-//   const Double_t mpi0 = 0.1349766;
-//   Double_t arg = 0., angle = 0., anglecutmax = 0., anglecutmin = 0., invmass = 0., e = 0.;
-//   TLorentzVector gammaj, gammai;
-//   Int_t jPrimary=-1;
-
-//   particle->Momentum(gammai);
-
-//   TIter next2(&particleList);
-//   while ( (particle = (TParticle*)next2()) ) {
-//     jPrimary++;
-//     if(jPrimary>iPrimary){
-//       Int_t ksCode = particle->GetStatusCode();
-//       Int_t ksPdg = particle->GetPdgCode();
-//       if((ksCode == 1) && (iPrimary != id) && (ksPdg == 22)){
-// 	particle->Momentum(gammaj);
-// 	//Info("GetLeadingPi0","Egammai %f, Egammaj %f", gammai.Pt(),gammaj.Pt());
-// 	angle = gammaj.Angle(gammai.Vect());
-// 	//Info("GetLeadingPi0","Angle %f", angle);
-// 	e = (gammai+gammaj).E();
-// 	anglecutmax = fAngleMaxParam.At(0)*TMath::Exp(fAngleMaxParam.At(1)*e)
-// 	  +fAngleMaxParam.At(2)+fAngleMaxParam.At(3)*e;
-// 	//Info("GetLeadingPi0","Angle %f, max %f", angle,anglecutmax);
-// 	arg = (e*e-2*mpi0*mpi0)/(e*e);
-// 	//Info("GetLeadingPi0","Angle %f, cos min %f", angle,arg);
-// 	if(arg>0.)
-// 	  anglecutmin = TMath::ACos(arg);
-// 	else
-// 	  anglecutmin= 100.;
-// 	//Info("GetLeadingPi0","Angle %f, min %f", angle,anglecutmin);
-// 	dynamic_cast<TH2F*>(fListHistos->FindObject("AngleAllPair")) ->Fill(e,angle);
-// 	if((angle<anglecutmax)&&(angle>=anglecutmin)){
-// 	  dynamic_cast<TH2F*>(fListHistos->FindObject("AngleAllPairCut")) ->Fill(e,angle);
-// 	  invmass = (gammai+gammaj).M();
-// 	  //Info("GetLeadingPi0","InvMass %f", invmass);
-// 	  if((invmass>fInvMassMinCut) && (invmass<fInvMassMaxCut)){ 
-// 	    pi0 = gammai+gammaj;
-// 	  }//(invmass>0.125) && (invmass<0.145)
-// 	}//gammaj.Angle(gammai.Vect())<0.04
-//       }//(ksCode == 1)
-//     }
-//   }//while
-// }
 //____________________________________________________________________________
 void AliPHOSGammaJet::InitParameters()
 {
   fAngleMaxParam.Set(4) ;
   fAngleMaxParam.AddAt(0.4,0);//={0.4,-0.25,0.025,-2e-4};
-  fAngleMaxParam.AddAt(-0.25,1);
-  fAngleMaxParam.AddAt(0.025,2);
-  fAngleMaxParam.AddAt(-2e-4,3);
-  fOutputFileName = "GammaJet.root";
-  fScalarProductCut=0.95;
+  fAngleMaxParam.AddAt(-0.25,1) ;
+  fAngleMaxParam.AddAt(0.025,2) ;
+  fAngleMaxParam.AddAt(-2e-4,3) ;
+  fOutputFileName = "GammaJet.root" ;
+  fHIJINGFileName = "galice.root" ;
+  fHIJING         = kFALSE ;
+  fNIter          = 1 ;
+  fMinDistance    = 3.6 ;
+  fScalarProductCut=0.95 ;
   fEtaCut         = 0.7 ;
-  fPhiMaxCut      = 3.4 ;
-  fPhiMinCut      = 2.9 ;
   fInvMassMaxCut  = 0.14 ;
   fInvMassMinCut  = 0.13 ;
-  fRatioMaxCut    = 1.0;
-  fRatioMinCut    = 0.2;
-  fPtEffCut       = 0.15;
+  fOnlyCharged      = kFALSE ;
+  fOptFast        = kFALSE ;
+  fPhiMaxCut      = 3.4 ;
+  fPhiMinCut      = 2.9 ;
+  fRatioMaxCut    = 1.0 ;
+  fRatioMinCut    = 0.05 ; // Optimum cut on pp is 0.13. In case of quenching
+                         // it will diminish to 0.5
+  fJetRatioMaxCut = 1.2 ;// To be changed with hijing
+  fJetRatioMinCut = 0.8 ; 
+  fJetJet         = kFALSE ;
+  fJetQuenching   = kFALSE ;
   fResPara1       = 0.0255 ;    // GeV
   fResPara2       = 0.0272 ; 
   fResPara3       = 0.0129 ; 
   
   fPosParaA      = 0.096 ;    // cm
   fPosParaB      = 0.229 ;  
+  
  
-  fOptFast        = kFALSE;
- 
-  fMatrixParam = new TMatrix(4,3) ;
-
-  (*fMatrixParam)(0,0) = 0.950;(*fMatrixParam)(0,1) = 0.947;(*fMatrixParam)(0,2) = 0.937;
-  (*fMatrixParam)(1,0) = 0.965;(*fMatrixParam)(1,1) = 0.960;(*fMatrixParam)(1,2) = 0.946;
-  (*fMatrixParam)(2,0) = 0.974;(*fMatrixParam)(2,1) = 0.968;(*fMatrixParam)(2,2) = 0.951;
-  (*fMatrixParam)(3,0) = 0.981;(*fMatrixParam)(3,1) = 0.974;(*fMatrixParam)(3,2) = 0.954;
 }
 
 //____________________________________________________________________________
@@ -937,19 +1321,19 @@ void AliPHOSGammaJet::MakeHistos()
   fListHistos->Add(nt) ;
 
   TH2F * hPtChargePi0Leading  = new TH2F
-    ("PtChargePi0Leading","Pt_{#leading charge} vs Pt_{pi0}",100,0,100,100,0,100); 
+    ("PtChargePi0Leading","Pt_{#leading charge} vs Pt_{pi0}",120,0,120,120,0,120); 
   hPtChargePi0Leading->SetYTitle("Pt_{charge}");
   hPtChargePi0Leading->SetXTitle("Pt_{pi0} (GeV/c)");
   fListHistos->Add(hPtChargePi0Leading) ; 
   
   TH2F * hPtChargePi0LeadingBefore  = new TH2F
-    ("PtChargePi0LeadingBefore","Pt_{#leading charge} vs Pt_{pi0}",100,0,100,100,0,100); 
+    ("PtChargePi0LeadingBefore","Pt_{#leading charge} vs Pt_{pi0}",120,0,120,120,0,120); 
   hPtChargePi0LeadingBefore->SetYTitle("Pt_{charge}");
   hPtChargePi0LeadingBefore->SetXTitle("Pt_{pi0} (GeV/c)");
   fListHistos->Add(hPtChargePi0LeadingBefore) ;
 
   TH2F * hPtGammaLeading  = new TH2F
-    ("PtGammaLeading","Pt_{#leading} vs Pt_{#gamma}",100,0,100,100,0,100); 
+    ("PtGammaLeading","Pt_{#leading} vs Pt_{#gamma}",120,0,120,120,0,120); 
   hPtGammaLeading->SetYTitle("Pt_{lead}");
   hPtGammaLeading->SetXTitle("Pt_{#gamma} (GeV/c)");
   fListHistos->Add(hPtGammaLeading) ; 
@@ -961,39 +1345,39 @@ void AliPHOSGammaJet::MakeHistos()
   fListHistos->Add(hEtaPhiGammaNoLeading) ; 
 
   TH2F * hPtGammaLeadingCharge  = new TH2F
-    ("PtGammaLeadingCharge","Pt_{#lead charge} vs Pt_{#gamma}",100,0,100,100,0,100); 
+    ("PtGammaLeadingCharge","Pt_{#lead charge} vs Pt_{#gamma}",120,0,120,120,0,120); 
   hPtGammaLeadingCharge->SetYTitle("Pt_{lead charge}");
   hPtGammaLeadingCharge->SetXTitle("Pt_{#gamma} (GeV/c)");
   fListHistos->Add(hPtGammaLeadingCharge) ; 
 
   TH2F * hPtGammaLeadingPi0  = new TH2F
-    ("PtGammaLeadingPi0","Pt_{#lead pi0} vs Pt_{#gamma}",100,0,100,100,0,100); 
+    ("PtGammaLeadingPi0","Pt_{#lead pi0} vs Pt_{#gamma}",120,0,120,120,0,120); 
   hPtGammaLeadingPi0->SetYTitle("Pt_{lead pi0}");
   hPtGammaLeadingPi0->SetXTitle("Pt_{#gamma} (GeV/c)");
   fListHistos->Add(hPtGammaLeadingPi0) ;
  
  TH2F * hPtGammaLeadingNeutral  = new TH2F
-    ("PtGammaLeadingNeutral","Pt_{#lead neutral} vs Pt_{#gamma}",100,0,100,100,0,100); 
+    ("PtGammaLeadingNeutral","Pt_{#lead neutral} vs Pt_{#gamma}",120,0,120,120,0,120); 
   hPtGammaLeadingNeutral->SetYTitle("Pt_{lead neutral}");
   hPtGammaLeadingNeutral->SetXTitle("Pt_{#gamma} (GeV/c)");
   fListHistos->Add(hPtGammaLeadingNeutral) ;
 
   //Histos ratio charged leading pt / gamma pt vs pt 
-
+ 
   TH2F * hChargeRatio  = new TH2F
-    ("ChargeRatio","Pt_{leading charge} /Pt_{#gamma} vs Pt_{#gamma}",100,0,100,100,0,1); 
+    ("ChargeRatio","Pt_{leading charge} /Pt_{#gamma} vs Pt_{#gamma}",120,0,120,120,0,1); 
   hChargeRatio->SetYTitle("Pt_{lead charge} /Pt_{#gamma}");
   hChargeRatio->SetXTitle("Pt_{#gamma} (GeV/c)");
   fListHistos->Add(hChargeRatio) ; 
 
   TH2F * hAnyRatio  = new TH2F
-    ("AnyRatio","Pt_{leading} /Pt_{#gamma} vs Pt_{#gamma}",100,0,100,100,0,1); 
+    ("AnyRatio","Pt_{leading} /Pt_{#gamma} vs Pt_{#gamma}",120,0,120,120,0,1); 
   hAnyRatio->SetYTitle("Pt_{lead charge} /Pt_{#gamma}");
   hAnyRatio->SetXTitle("Pt_{#gamma} (GeV/c)");
   fListHistos->Add(hAnyRatio) ; 
 
   TH2F * hPi0Ratio  = new TH2F
-    ("Pi0Ratio","Pt_{leading  #pi^{0}} /Pt_{#gamma} vs Pt_{#gamma}",100,0,100,100,0,1); 
+    ("Pi0Ratio","Pt_{leading  #pi^{0}} /Pt_{#gamma} vs Pt_{#gamma}",120,0,120,120,0,1); 
   hPi0Ratio->SetYTitle("Pt_{lead  #pi^{0}} /Pt_{#gamma}");
   hPi0Ratio->SetXTitle("Pt_{#gamma} (GeV/c)");
   fListHistos->Add(hPi0Ratio) ;
@@ -1001,51 +1385,68 @@ void AliPHOSGammaJet::MakeHistos()
   //Before chosing the leading 
 
   TH2F * hChargeRatioAll  = new TH2F
-    ("ChargeRatioAll","Pt_{leading charge} /Pt_{#gamma} vs Pt_{#gamma} No Cut",100,0,100,100,0,1); 
+    ("ChargeRatioAll","Pt_{leading charge} /Pt_{#gamma} vs Pt_{#gamma} No Cut",120,0,120,120,0,1); 
   hChargeRatioAll->SetYTitle("Pt_{lead charge} /Pt_{#gamma}");
   hChargeRatioAll->SetXTitle("Pt_{#gamma} (GeV/c)");
   fListHistos->Add(hChargeRatioAll) ;
 
   TH2F * hPi0RatioAll  = new TH2F
-    ("Pi0RatioAll","Pt_{leading  #pi^{0}} /Pt_{#gamma} vs Pt_{#gamma} No Cut",100,0,100,100,0,1); 
+    ("Pi0RatioAll","Pt_{leading  #pi^{0}} /Pt_{#gamma} vs Pt_{#gamma} No Cut",120,0,120,120,0,1); 
   hPi0RatioAll->SetYTitle("Pt_{lead  #pi^{0}} /Pt_{#gamma}");
   hPi0RatioAll->SetXTitle("Pt_{#gamma} (GeV/c)");
   fListHistos->Add(hPi0RatioAll) ; 
 
 
   TH2F * hDeltaPhiChargeAll  = new TH2F
-    ("DeltaPhiChargeAll","#phi_{#gamma} - #phi_{charge} vs Pt_{#gamma}",200,0,100,200,0,6.4); 
+    ("DeltaPhiChargeAll","#phi_{#gamma} - #phi_{charge} vs Pt_{#gamma}",200,0,120,200,0,6.4); 
   hDeltaPhiChargeAll->SetYTitle("#Delta #phi");
   hDeltaPhiChargeAll->SetXTitle("Pt_{#gamma} (GeV/c)");
   fListHistos->Add(hDeltaPhiChargeAll) ; 
 		 
   TH2F * hDeltaPhiPi0All  = new TH2F
-    ("DeltaPhiPi0All","#phi_{#gamma} - #phi_{ #pi^{0}} vs Pt_{#gamma}",200,0,100,200,0,6.4); 
+    ("DeltaPhiPi0All","#phi_{#gamma} - #phi_{ #pi^{0}} vs Pt_{#gamma}",200,0,120,200,0,6.4); 
   hDeltaPhiPi0All->SetYTitle("#Delta #phi");
   hDeltaPhiPi0All->SetXTitle("Pt_{#gamma} (GeV/c)");
   fListHistos->Add(hDeltaPhiPi0All) ; 
 
   TH2F * hDeltaPhiAny  = new TH2F
-    ("DeltaPhiAny","#phi_{#gamma} - #phi_{any} vs Pt_{#gamma}",200,0,100,200,0,6.4); 
+    ("DeltaPhiAny","#phi_{#gamma} - #phi_{any} vs Pt_{#gamma}",200,0,120,200,0,6.4); 
   hDeltaPhiAny->SetYTitle("#Delta #phi");
   hDeltaPhiAny->SetXTitle("Pt_{#gamma} (GeV/c)");
   fListHistos->Add(hDeltaPhiAny) ; 
 
   TH2F * hDeltaPhiCharge  = new TH2F
-    ("DeltaPhiCharge","#phi_{#gamma} - #phi_{charge} vs Pt_{#gamma}",200,0,100,200,0,6.4); 
+    ("DeltaPhiCharge","#phi_{#gamma} - #phi_{charge} vs Pt_{#gamma}",200,0,120,200,0,6.4); 
   hDeltaPhiCharge->SetYTitle("#Delta #phi");
   hDeltaPhiCharge->SetXTitle("Pt_{#gamma} (GeV/c)");
   fListHistos->Add(hDeltaPhiCharge) ; 
 		 
   TH2F * hDeltaPhiPi0  = new TH2F
-    ("DeltaPhiPi0","#phi_{#gamma} - #phi_{ #pi^{0}} vs Pt_{#gamma}",200,0,100,200,0,6.4); 
+    ("DeltaPhiPi0","#phi_{#gamma} - #phi_{ #pi^{0}} vs Pt_{#gamma}",200,0,120,200,0,6.4); 
   hDeltaPhiPi0->SetYTitle("#Delta #phi");
   hDeltaPhiPi0->SetXTitle("Pt_{#gamma} (GeV/c)");
   fListHistos->Add(hDeltaPhiPi0) ; 
 
+  TH2F * hDeltaEtaAny  = new TH2F
+    ("DeltaEtaAny","#eta_{#gamma} - #eta_{any} vs Pt_{#gamma}",200,0,120,200,-2,2); 
+  hDeltaEtaAny->SetYTitle("#Delta #eta");
+  hDeltaEtaAny->SetXTitle("Pt_{#gamma} (GeV/c)");
+  fListHistos->Add(hDeltaEtaAny) ; 
+
+  TH2F * hDeltaEtaCharge  = new TH2F
+    ("DeltaEtaCharge","#eta_{#gamma} - #eta_{charge} vs Pt_{#gamma}",200,0,120,200,-2,2); 
+  hDeltaEtaCharge->SetYTitle("#Delta #eta");
+  hDeltaEtaCharge->SetXTitle("Pt_{#gamma} (GeV/c)");
+  fListHistos->Add(hDeltaEtaCharge) ; 
+		 
+  TH2F * hDeltaEtaPi0  = new TH2F
+    ("DeltaEtaPi0","#eta_{#gamma} - #eta_{ #pi^{0}} vs Pt_{#gamma}",200,0,120,200,-2,2); 
+  hDeltaEtaPi0->SetYTitle("#Delta #eta");
+  hDeltaEtaPi0->SetXTitle("Pt_{#gamma} (GeV/c)");
+  fListHistos->Add(hDeltaEtaPi0) ; 
   if(fOptFast){
     TH2F * hPtmodPtnomod  = new TH2F
-      ("PtmodPtnomod","Ptmod(Ptnomod)",200,0,100,200,0,100); 
+      ("PtmodPtnomod","Ptmod(Ptnomod)",200,0,120,200,0,120); 
     hPtmodPtnomod ->SetYTitle("Pt mod (GeV/c)");
     hPtmodPtnomod ->SetXTitle("Pt no mod (GeV/c)");
     fListHistos->Add(hPtmodPtnomod ) ;
@@ -1069,13 +1470,13 @@ void AliPHOSGammaJet::MakeHistos()
     fListHistos->Add(hAnglePair) ; 
 
     TH2F * hAngleAllPair  = new TH2F
-      ("AngleAllPair","Angle between all #gamma pair vs Pt_{ #pi^{0}}",100,0,50,200,0,0.2); 
+      ("AngleAllPair","Angle between all #gamma pair vs Pt_{ #pi^{0}}",200,0,50,200,0,0.2); 
     hAngleAllPair->SetYTitle("Angle (rad)");
     hAngleAllPair->SetXTitle("E_{ #pi^{0}} (GeV/c)");
     fListHistos->Add(hAngleAllPair) ; 
 
     TH2F * hAngleAllPairCut  = new TH2F
-      ("AngleAllPairCut","Angle between all #gamma pair cut vs Pt_{ #pi^{0}}",100,0,50,200,0,0.2); 
+      ("AngleAllPairCut","Angle between all #gamma pair cut vs Pt_{ #pi^{0}}",200,0,50,200,0,0.2); 
     hAngleAllPairCut->SetYTitle("Angle (rad)");
     hAngleAllPairCut->SetXTitle("E_{ #pi^{0}} (GeV/c)");
     fListHistos->Add(hAngleAllPairCut) ; 
@@ -1083,1085 +1484,175 @@ void AliPHOSGammaJet::MakeHistos()
   }
 
   TH2F * hInvMassPair  = new TH2F
-    ("InvMassPair","Invariant Mass of #gamma pair vs Pt_{#gamma}",100,0,100,100,0.1,0.16); 
+    ("InvMassPair","Invariant Mass of #gamma pair vs Pt_{#gamma}",120,0,120,120,0.1,0.16); 
   hInvMassPair->SetYTitle("Invariant Mass (GeV/c^{2})");
   hInvMassPair->SetXTitle("Pt_{#gamma} (GeV/c)");
   fListHistos->Add(hInvMassPair) ; 
 
-  //Jet ratio
 
-  TH2F * hJetPi0RatioCone06Pt0  = new TH2F
-    ("JetPi0RatioCone06Pt0","Pt_{jet lead #pi^{0}}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.6, pt> 0. GeV/c",100,0,100,100,0,2); 
-  hJetPi0RatioCone06Pt0->SetYTitle("Pt_{jet lead #pi^{0}}/Pt_{#gamma}");
-  hJetPi0RatioCone06Pt0->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetPi0RatioCone06Pt0) ; 
- 
-  TH2F * hJetPi0RatioCone05Pt0  = new TH2F
-    ("JetPi0RatioCone05Pt0","Pt_{jet lead #pi^{0}}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0., pt> 0. GeV/c",100,0,100,100,0,2); 
-  hJetPi0RatioCone05Pt0->SetYTitle("Pt_{jet lead #pi^{0}}/Pt_{#gamma}");
-  hJetPi0RatioCone05Pt0->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetPi0RatioCone05Pt0) ; 
-  
-  TH2F * hJetPi0RatioCone04Pt0  = new TH2F
-    ("JetPi0RatioCone04Pt0","Pt_{jet lead #pi^{0}}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.4, pt> 0. GeV/c",100,0,100,100,0,2); 
-  hJetPi0RatioCone04Pt0->SetYTitle("Pt_{jet lead #pi^{0}}/Pt_{#gamma}");
-  hJetPi0RatioCone04Pt0->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetPi0RatioCone04Pt0) ; 
-  
-  TH2F * hJetPi0RatioCone03Pt0  = new TH2F
-    ("JetPi0RatioCone03Pt0","Pt_{jet lead #pi^{0}}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.3, pt> 0. GeV/c",100,0,100,100,0,2); 
-  hJetPi0RatioCone03Pt0->SetYTitle("Pt_{jet lead #pi^{0}}/Pt_{#gamma}");
-  hJetPi0RatioCone03Pt0->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetPi0RatioCone03Pt0) ; 
-
-
-  TH2F * hJetPi0RatioCone06Pt05  = new TH2F
-    ("JetPi0RatioCone06Pt05","Pt_{jet lead #pi^{0}}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.6, pt> 0.5 GeV/c",100,0,100,100,0,2); 
-  hJetPi0RatioCone06Pt05->SetYTitle("Pt_{jet lead #pi^{0}}/Pt_{#gamma}");
-  hJetPi0RatioCone06Pt05->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetPi0RatioCone06Pt05) ; 
- 
-  TH2F * hJetPi0RatioCone05Pt05  = new TH2F
-    ("JetPi0RatioCone05Pt05","Pt_{jet lead #pi^{0}}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.5, pt> 0.5 GeV/c",100,0,100,100,0,2); 
-  hJetPi0RatioCone05Pt05->SetYTitle("Pt_{jet lead #pi^{0}}/Pt_{#gamma}");
-  hJetPi0RatioCone05Pt05->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetPi0RatioCone05Pt05) ; 
-  
-  TH2F * hJetPi0RatioCone04Pt05  = new TH2F
-    ("JetPi0RatioCone04Pt05","Pt_{jet lead #pi^{0}}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.4, pt> 0.5 GeV/c",100,0,100,100,0,2); 
-  hJetPi0RatioCone04Pt05->SetYTitle("Pt_{jet lead #pi^{0}}/Pt_{#gamma}");
-  hJetPi0RatioCone04Pt05->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetPi0RatioCone04Pt05) ; 
-  
-  TH2F * hJetPi0RatioCone03Pt05  = new TH2F
-    ("JetPi0RatioCone03Pt05","Pt_{jet lead #pi^{0}}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.3, pt> 0.5 GeV/c",100,0,100,100,0,2); 
-  hJetPi0RatioCone03Pt05->SetYTitle("Pt_{jet lead #pi^{0}}/Pt_{#gamma}");
-  hJetPi0RatioCone03Pt05->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetPi0RatioCone03Pt05) ; 
-
-  TH2F * hJetPi0RatioCone06Pt1  = new TH2F
-    ("JetPi0RatioCone06Pt1","Pt_{jet lead #pi^{0}}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.6, pt> 1.0 GeV/c",100,0,100,100,0,2); 
-  hJetPi0RatioCone06Pt1->SetYTitle("Pt_{jet lead #pi^{0}}/Pt_{#gamma}");
-  hJetPi0RatioCone06Pt1->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetPi0RatioCone06Pt1) ; 
- 
-  TH2F * hJetPi0RatioCone05Pt1  = new TH2F
-    ("JetPi0RatioCone05Pt1","Pt_{jet lead #pi^{0}}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.5, pt> 1.0 GeV/c",100,0,100,100,0,2); 
-  hJetPi0RatioCone05Pt1->SetYTitle("Pt_{jet lead #pi^{0}}/Pt_{#gamma}");
-  hJetPi0RatioCone05Pt1->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetPi0RatioCone05Pt1) ; 
- 
-  TH2F * hJetPi0RatioCone04Pt1  = new TH2F
-    ("JetPi0RatioCone04Pt1","Pt_{jet lead #pi^{0}}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.4, pt> 1.0 GeV/c",100,0,100,100,0,2); 
-  hJetPi0RatioCone04Pt1->SetYTitle("Pt_{jet lead #pi^{0}}/Pt_{#gamma}");
-  hJetPi0RatioCone04Pt1->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetPi0RatioCone04Pt1) ; 
-  
-  TH2F * hJetPi0RatioCone03Pt1  = new TH2F
-    ("JetPi0RatioCone03Pt1","Pt_{jet lead #pi^{0}}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.3, pt> 1.0 GeV/c",100,0,100,100,0,2); 
-  hJetPi0RatioCone03Pt1->SetYTitle("Pt_{jet lead #pi^{0}}/Pt_{#gamma}");
-  hJetPi0RatioCone03Pt1->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetPi0RatioCone03Pt1) ;
-
-
-
-  TH2F * hJetAnyRatioCone06Pt0  = new TH2F
-    ("JetAnyRatioCone06Pt0","Pt_{jet any lead}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.6, pt> 0. GeV/c",100,0,100,100,0,2); 
-  hJetAnyRatioCone06Pt0->SetYTitle("Pt_{jet any lead}/Pt_{#gamma}");
-  hJetAnyRatioCone06Pt0->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetAnyRatioCone06Pt0) ; 
- 
-  TH2F * hJetAnyRatioCone05Pt0  = new TH2F
-    ("JetAnyRatioCone05Pt0","Pt_{jet any lead}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0., pt> 0. GeV/c",100,0,100,100,0,2); 
-  hJetAnyRatioCone05Pt0->SetYTitle("Pt_{jet any lead}/Pt_{#gamma}");
-  hJetAnyRatioCone05Pt0->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetAnyRatioCone05Pt0) ; 
-  
-  TH2F * hJetAnyRatioCone04Pt0  = new TH2F
-    ("JetAnyRatioCone04Pt0","Pt_{jet any lead}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.4, pt> 0. GeV/c",100,0,100,100,0,2); 
-  hJetAnyRatioCone04Pt0->SetYTitle("Pt_{jet any lead}/Pt_{#gamma}");
-  hJetAnyRatioCone04Pt0->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetAnyRatioCone04Pt0) ; 
-  
-  TH2F * hJetAnyRatioCone03Pt0  = new TH2F
-    ("JetAnyRatioCone03Pt0","Pt_{jet any lead}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.3, pt> 0. GeV/c",100,0,100,100,0,2); 
-  hJetAnyRatioCone03Pt0->SetYTitle("Pt_{jet any lead}/Pt_{#gamma}");
-  hJetAnyRatioCone03Pt0->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetAnyRatioCone03Pt0) ; 
-
-
-  TH2F * hJetAnyRatioCone06Pt05  = new TH2F
-    ("JetAnyRatioCone06Pt05","Pt_{jet any lead}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.6, pt> 0.5 GeV/c",100,0,100,100,0,2); 
-  hJetAnyRatioCone06Pt05->SetYTitle("Pt_{jet any lead}/Pt_{#gamma}");
-  hJetAnyRatioCone06Pt05->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetAnyRatioCone06Pt05) ; 
- 
-  TH2F * hJetAnyRatioCone05Pt05  = new TH2F
-    ("JetAnyRatioCone05Pt05","Pt_{jet any lead}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.5, pt> 0.5 GeV/c",100,0,100,100,0,2); 
-  hJetAnyRatioCone05Pt05->SetYTitle("Pt_{jet any lead}/Pt_{#gamma}");
-  hJetAnyRatioCone05Pt05->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetAnyRatioCone05Pt05) ; 
-  
-  TH2F * hJetAnyRatioCone04Pt05  = new TH2F
-    ("JetAnyRatioCone04Pt05","Pt_{jet any lead}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.4, pt> 0.5 GeV/c",100,0,100,100,0,2); 
-  hJetAnyRatioCone04Pt05->SetYTitle("Pt_{jet any lead}/Pt_{#gamma}");
-  hJetAnyRatioCone04Pt05->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetAnyRatioCone04Pt05) ; 
-  
-  TH2F * hJetAnyRatioCone03Pt05  = new TH2F
-    ("JetAnyRatioCone03Pt05","Pt_{jet any lead}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.3, pt> 0.5 GeV/c",100,0,100,100,0,2); 
-  hJetAnyRatioCone03Pt05->SetYTitle("Pt_{jet any lead}/Pt_{#gamma}");
-  hJetAnyRatioCone03Pt05->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetAnyRatioCone03Pt05) ; 
-
-  TH2F * hJetAnyRatioCone06Pt1  = new TH2F
-    ("JetAnyRatioCone06Pt1","Pt_{jet any lead}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.6, pt> 1.0 GeV/c",100,0,100,100,0,2); 
-  hJetAnyRatioCone06Pt1->SetYTitle("Pt_{jet any lead}/Pt_{#gamma}");
-  hJetAnyRatioCone06Pt1->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetAnyRatioCone06Pt1) ; 
- 
-  TH2F * hJetAnyRatioCone05Pt1  = new TH2F
-    ("JetAnyRatioCone05Pt1","Pt_{jet any lead}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.5, pt> 1.0 GeV/c",100,0,100,100,0,2); 
-  hJetAnyRatioCone05Pt1->SetYTitle("Pt_{jet any lead}/Pt_{#gamma}");
-  hJetAnyRatioCone05Pt1->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetAnyRatioCone05Pt1) ; 
- 
-  TH2F * hJetAnyRatioCone04Pt1  = new TH2F
-    ("JetAnyRatioCone04Pt1","Pt_{jet any lead}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.4, pt> 1.0 GeV/c",100,0,100,100,0,2); 
-  hJetAnyRatioCone04Pt1->SetYTitle("Pt_{jet any lead}/Pt_{#gamma}");
-  hJetAnyRatioCone04Pt1->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetAnyRatioCone04Pt1) ; 
-  
-  TH2F * hJetAnyRatioCone03Pt1  = new TH2F
-    ("JetAnyRatioCone03Pt1","Pt_{jet any lead}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.3, pt> 1.0 GeV/c",100,0,100,100,0,2); 
-  hJetAnyRatioCone03Pt1->SetYTitle("Pt_{jet any lead}/Pt_{#gamma}");
-  hJetAnyRatioCone03Pt1->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetAnyRatioCone03Pt1) ;
-
-
-  TH2F * hJetChargeRatioCone06Pt0  = new TH2F
-    ("JetChargeRatioCone06Pt0","Pt_{jet lead charge}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.6, pt> 0. GeV/c",100,0,100,100,0,2); 
-  hJetChargeRatioCone06Pt0->SetYTitle("Pt_{jet}/Pt_{#gamma}");
-  hJetChargeRatioCone06Pt0->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetChargeRatioCone06Pt0) ; 
- 
-  TH2F * hJetChargeRatioCone05Pt0  = new TH2F
-    ("JetChargeRatioCone05Pt0","Pt_{jet lead charge}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0., pt> 0. GeV/c",100,0,100,100,0,2); 
-  hJetChargeRatioCone05Pt0->SetYTitle("Pt_{jet}/Pt_{#gamma}");
-  hJetChargeRatioCone05Pt0->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetChargeRatioCone05Pt0) ; 
- 
-  TH2F * hJetChargeRatioCone04Pt0  = new TH2F
-    ("JetChargeRatioCone04Pt0","Pt_{jet lead charge}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.4, pt> 0. GeV/c",100,0,100,100,0,2); 
-  hJetChargeRatioCone04Pt0->SetYTitle("Pt_{jet}/Pt_{#gamma}");
-  hJetChargeRatioCone04Pt0->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetChargeRatioCone04Pt0) ; 
-  
-  TH2F * hJetChargeRatioCone03Pt0  = new TH2F
-    ("JetChargeRatioCone03Pt0","Pt_{jet lead charge}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.3, pt> 0. GeV/c",100,0,100,100,0,2); 
-  hJetChargeRatioCone03Pt0->SetYTitle("Pt_{jet}/Pt_{#gamma}");
-  hJetChargeRatioCone03Pt0->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetChargeRatioCone03Pt0) ; 
-
-
-  TH2F * hJetChargeRatioCone06Pt05  = new TH2F
-    ("JetChargeRatioCone06Pt05","Pt_{jet lead charge}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.6, pt> 0.5 GeV/c",100,0,100,100,0,2); 
-  hJetChargeRatioCone06Pt05->SetYTitle("Pt_{jet}/Pt_{#gamma}");
-  hJetChargeRatioCone06Pt05->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetChargeRatioCone06Pt05) ; 
- 
-  TH2F * hJetChargeRatioCone05Pt05  = new TH2F
-    ("JetChargeRatioCone05Pt05","Pt_{jet lead charge}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.5, pt> 0.5 GeV/c",100,0,100,100,0,2); 
-  hJetChargeRatioCone05Pt05->SetYTitle("Pt_{jet}/Pt_{#gamma}");
-  hJetChargeRatioCone05Pt05->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetChargeRatioCone05Pt05) ; 
- 
-  TH2F * hJetChargeRatioCone04Pt05  = new TH2F
-    ("JetChargeRatioCone04Pt05","Pt_{jet lead charge}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.4, pt> 0.5 GeV/c",100,0,100,100,0,2); 
-  hJetChargeRatioCone04Pt05->SetYTitle("Pt_{jet}/Pt_{#gamma}");
-  hJetChargeRatioCone04Pt05->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetChargeRatioCone04Pt05) ; 
-  
-  TH2F * hJetChargeRatioCone03Pt05  = new TH2F
-    ("JetChargeRatioCone03Pt05","Pt_{jet lead charge}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.3, pt> 0.5 GeV/c",100,0,100,100,0,2); 
-  hJetChargeRatioCone03Pt05->SetYTitle("Pt_{jet}/Pt_{#gamma}");
-  hJetChargeRatioCone03Pt05->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetChargeRatioCone03Pt05) ; 
-
-  TH2F * hJetChargeRatioCone06Pt1  = new TH2F
-    ("JetChargeRatioCone06Pt1","Pt_{jet lead charge}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.6, pt> 1.0 GeV/c",100,0,100,100,0,2); 
-  hJetChargeRatioCone06Pt1->SetYTitle("Pt_{jet}/Pt_{#gamma}");
-  hJetChargeRatioCone06Pt1->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetChargeRatioCone06Pt1) ; 
- 
-  TH2F * hJetChargeRatioCone05Pt1  = new TH2F
-    ("JetChargeRatioCone05Pt1","Pt_{jet lead charge}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.5, pt> 1.0 GeV/c",100,0,100,100,0,2); 
-  hJetChargeRatioCone05Pt1->SetYTitle("Pt_{jet}/Pt_{#gamma}");
-  hJetChargeRatioCone05Pt1->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetChargeRatioCone05Pt1) ; 
- 
-  TH2F * hJetChargeRatioCone04Pt1  = new TH2F
-    ("JetChargeRatioCone04Pt1","Pt_{jet lead charge}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.4, pt> 1.0 GeV/c",100,0,100,100,0,2); 
-  hJetChargeRatioCone04Pt1->SetYTitle("Pt_{jet}/Pt_{#gamma}");
-  hJetChargeRatioCone04Pt1->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetChargeRatioCone04Pt1) ; 
-  
-  TH2F * hJetChargeRatioCone03Pt1  = new TH2F
-    ("JetChargeRatioCone03Pt1","Pt_{jet lead charge}/Pt_{#gamma} vs Pt_{#gamma}, cone = 0.3, pt> 1.0 GeV/c",100,0,100,100,0,2); 
-  hJetChargeRatioCone03Pt1->SetYTitle("Pt_{jet}/Pt_{#gamma}");
-  hJetChargeRatioCone03Pt1->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetChargeRatioCone03Pt1) ;
-
-  //Jet delta phi
-
-  TH2F * hJetPi0PhiCone06Pt0  = new TH2F
-    ("JetPi0PhiCone06Pt0","#phi_{jet lead pi0}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.6, pt> 0.0 GeV/c",200,0,100,200,0,6.4); 
-  hJetPi0PhiCone06Pt0->SetYTitle("#Delta #phi_{jet lead pi0}");
-  hJetPi0PhiCone06Pt0->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetPi0PhiCone06Pt0) ; 
- 
-  TH2F * hJetPi0PhiCone05Pt0  = new TH2F
-    ("JetPi0PhiCone05Pt0","#phi_{jet lead pi0}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.5, pt> 0.0 GeV/c",200,0,100,200,0,6.4); 
-  hJetPi0PhiCone05Pt0->SetYTitle("#Delta #phi_{jet lead pi0}");
-  hJetPi0PhiCone05Pt0->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetPi0PhiCone05Pt0) ; 
- 
-  TH2F * hJetPi0PhiCone04Pt0  = new TH2F
-    ("JetPi0PhiCone04Pt0","#phi_{jet lead pi0}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.4, pt> 0.0 GeV/c",200,0,100,200,0,6.4); 
-  hJetPi0PhiCone04Pt0->SetYTitle("#Delta #phi_{jet lead pi0}");
-  hJetPi0PhiCone04Pt0->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetPi0PhiCone04Pt0) ; 
-  
-  TH2F * hJetPi0PhiCone03Pt0  = new TH2F
-    ("JetPi0PhiCone03Pt0","#phi_{jet lead pi0}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.3, pt> 0.0 GeV/c",200,0,100,200,0,6.4); 
-  hJetPi0PhiCone03Pt0->SetYTitle("#Delta #phi_{jet lead pi0}");
-  hJetPi0PhiCone03Pt0->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetPi0PhiCone03Pt0) ;
-
-  TH2F * hJetPi0PhiCone06Pt05  = new TH2F
-    ("JetPi0PhiCone06Pt05","#phi_{jet lead #pi^{0}}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.6, pt> 0.5 GeV/c",200,0,100,200,0,6.4); 
-  hJetPi0PhiCone06Pt05->SetYTitle("#Delta #phi_{jet lead #pi^{0}}");
-  hJetPi0PhiCone06Pt05->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetPi0PhiCone06Pt05) ; 
- 
-  TH2F * hJetPi0PhiCone05Pt05  = new TH2F
-    ("JetPi0PhiCone05Pt05","#phi_{jet lead #pi^{0}}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.5, pt> 0.5 GeV/c",200,0,100,200,0,6.4); 
-  hJetPi0PhiCone05Pt05->SetYTitle("#Delta #phi_{jet lead #pi^{0}}");
-  hJetPi0PhiCone05Pt05->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetPi0PhiCone05Pt05) ; 
- 
-  TH2F * hJetPi0PhiCone04Pt05  = new TH2F
-    ("JetPi0PhiCone04Pt05","#phi_{jet lead #pi^{0}}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.4, pt> 0.5 GeV/c",200,0,100,200,0,6.4); 
-  hJetPi0PhiCone04Pt05->SetYTitle("#Delta #phi_{jet lead #pi^{0}}");
-  hJetPi0PhiCone04Pt05->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetPi0PhiCone04Pt05) ; 
-  
-  TH2F * hJetPi0PhiCone03Pt05  = new TH2F
-    ("JetPi0PhiCone03Pt05","#phi_{jet lead #pi^{0}}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.3, pt> 0.5 GeV/c",200,0,100,200,0,6.4); 
-  hJetPi0PhiCone03Pt05->SetYTitle("#Delta #phi_{jet lead #pi^{0}}");
-  hJetPi0PhiCone03Pt05->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetPi0PhiCone03Pt05) ; 
-
-  TH2F * hJetPi0PhiCone06Pt1  = new TH2F
-    ("JetPi0PhiCone06Pt1","#phi_{jet lead #pi^{0}}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.6, pt> 1.0 GeV/c",200,0,100,200,0,6.4); 
-  hJetPi0PhiCone06Pt1->SetYTitle("#Delta #phi_{jet lead #pi^{0}}");
-  hJetPi0PhiCone06Pt1->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetPi0PhiCone06Pt1) ; 
- 
-  TH2F * hJetPi0PhiCone05Pt1  = new TH2F
-    ("JetPi0PhiCone05Pt1","#phi_{jet lead #pi^{0}}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.5, pt> 1.0 GeV/c",200,0,100,200,0,6.4); 
-  hJetPi0PhiCone05Pt1->SetYTitle("#Delta #phi_{jet lead #pi^{0}}");
-  hJetPi0PhiCone05Pt1->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetPi0PhiCone05Pt1) ; 
- 
-  TH2F * hJetPi0PhiCone04Pt1  = new TH2F
-    ("JetPi0PhiCone04Pt1","#phi_{jet lead #pi^{0}}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.4, pt> 1.0 GeV/c",200,0,100,200,0,6.4); 
-  hJetPi0PhiCone04Pt1->SetYTitle("#Delta #phi_{jet lead #pi^{0}}");
-  hJetPi0PhiCone04Pt1->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetPi0PhiCone04Pt1) ; 
-  
-  TH2F * hJetPi0PhiCone03Pt1  = new TH2F
-    ("JetPi0PhiCone03Pt1","#phi_{jet lead #pi^{0}}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.3, pt> 1.0 GeV/c",200,0,100,200,0,6.4); 
-  hJetPi0PhiCone03Pt1->SetYTitle("#Delta #phi_{jet lead #pi^{0}}");
-  hJetPi0PhiCone03Pt1->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetPi0PhiCone03Pt1) ;
-
-  TH2F * hJetChargePhiCone06Pt0  = new TH2F
-    ("JetChargePhiCone06Pt0","#phi_{jet lead ch}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.6, pt> 0.0 GeV/c",200,0,100,200,0,6.4); 
-  hJetChargePhiCone06Pt0->SetYTitle("#Delta #phi_{jet lead ch}");
-  hJetChargePhiCone06Pt0->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetChargePhiCone06Pt0) ; 
- 
-  TH2F * hJetChargePhiCone05Pt0  = new TH2F
-    ("JetChargePhiCone05Pt0","#phi_{jet lead ch}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.5, pt> 0.0 GeV/c",200,0,100,200,0,6.4); 
-  hJetChargePhiCone05Pt0->SetYTitle("#Delta #phi_{jet lead ch}");
-  hJetChargePhiCone05Pt0->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetChargePhiCone05Pt0) ; 
- 
-  TH2F * hJetChargePhiCone04Pt0  = new TH2F
-    ("JetChargePhiCone04Pt0","#phi_{jet lead ch}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.4, pt> 0.0 GeV/c",200,0,100,200,0,6.4); 
-  hJetChargePhiCone04Pt0->SetYTitle("#Delta #phi_{jet lead ch}");
-  hJetChargePhiCone04Pt0->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetChargePhiCone04Pt0) ; 
-  
-  TH2F * hJetChargePhiCone03Pt0  = new TH2F
-    ("JetChargePhiCone03Pt0","#phi_{jet lead ch}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.3, pt> 0.0 GeV/c",200,0,100,200,0,6.4); 
-  hJetChargePhiCone03Pt0->SetYTitle("#Delta #phi_{jet lead ch}");
-  hJetChargePhiCone03Pt0->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetChargePhiCone03Pt0) ;
-
-  TH2F * hJetChargePhiCone06Pt05  = new TH2F
-    ("JetChargePhiCone06Pt05","#phi_{jet lead charge}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.6, pt> 0.5 GeV/c",200,0,100,200,0,6.4); 
-  hJetChargePhiCone06Pt05->SetYTitle("#Delta #phi_{jet lead charge}");
-  hJetChargePhiCone06Pt05->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetChargePhiCone06Pt05) ; 
- 
-  TH2F * hJetChargePhiCone05Pt05  = new TH2F
-    ("JetChargePhiCone05Pt05","#phi_{jet lead charge}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.5, pt> 0.5 GeV/c",200,0,100,200,0,6.4); 
-  hJetChargePhiCone05Pt05->SetYTitle("#Delta #phi_{jet lead charge}");
-  hJetChargePhiCone05Pt05->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetChargePhiCone05Pt05) ; 
- 
-  TH2F * hJetChargePhiCone04Pt05  = new TH2F
-    ("JetChargePhiCone04Pt05","#phi_{jet lead charge}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.4, pt> 0.5 GeV/c",200,0,100,200,0,6.4); 
-  hJetChargePhiCone04Pt05->SetYTitle("#Delta #phi_{jet lead charge}");
-  hJetChargePhiCone04Pt05->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetChargePhiCone04Pt05) ; 
-  
-  TH2F * hJetChargePhiCone03Pt05  = new TH2F
-    ("JetChargePhiCone03Pt05","#phi_{jet lead charge}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.3, pt> 0.5 GeV/c",200,0,100,200,0,6.4); 
-  hJetChargePhiCone03Pt05->SetYTitle("#Delta #phi_{jet lead charge}");
-  hJetChargePhiCone03Pt05->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetChargePhiCone03Pt05) ; 
-
-  TH2F * hJetChargePhiCone06Pt1  = new TH2F
-    ("JetChargePhiCone06Pt1","#phi_{jet lead charge}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.6, pt> 1.0 GeV/c",200,0,100,200,0,6.4); 
-  hJetChargePhiCone06Pt1->SetYTitle("#Delta #phi_{jet lead charge}");
-  hJetChargePhiCone06Pt1->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetChargePhiCone06Pt1) ; 
- 
-  TH2F * hJetChargePhiCone05Pt1  = new TH2F
-    ("JetChargePhiCone05Pt1","#phi_{jet lead charge}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.5, pt> 1.0 GeV/c",200,0,100,200,0,6.4); 
-  hJetChargePhiCone05Pt1->SetYTitle("#Delta #phi_{jet lead charge}");
-  hJetChargePhiCone05Pt1->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetChargePhiCone05Pt1) ; 
- 
-  TH2F * hJetChargePhiCone04Pt1  = new TH2F
-    ("JetChargePhiCone04Pt1","#phi_{jet lead charge}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.4, pt> 1.0 GeV/c",200,0,100,200,0,6.4); 
-  hJetChargePhiCone04Pt1->SetYTitle("#Delta #phi_{jet lead charge}");
-  hJetChargePhiCone04Pt1->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetChargePhiCone04Pt1) ; 
-  
-  TH2F * hJetChargePhiCone03Pt1  = new TH2F
-    ("JetChargePhiCone03Pt1","#phi_{jet lead charge}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.3, pt> 1.0 GeV/c",200,0,100,200,0,6.4); 
-  hJetChargePhiCone03Pt1->SetYTitle("#Delta #phi_{jet lead charge}");
-  hJetChargePhiCone03Pt1->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetChargePhiCone03Pt1) ;
-
-
-
-  TH2F * hJetAnyPhiCone06Pt05  = new TH2F
-    ("JetAnyPhiCone06Pt05","#phi_{jet lead any}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.6, pt> 0.5 GeV/c",200,0,100,200,0,6.4); 
-  hJetAnyPhiCone06Pt05->SetYTitle("#Delta #phi_{jet lead any}");
-  hJetAnyPhiCone06Pt05->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetAnyPhiCone06Pt05) ; 
- 
-  TH2F * hJetAnyPhiCone05Pt05  = new TH2F
-    ("JetAnyPhiCone05Pt05","#phi_{jet lead any}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.5, pt> 0.5 GeV/c",200,0,100,200,0,6.4); 
-  hJetAnyPhiCone05Pt05->SetYTitle("#Delta #phi_{jet lead any}");
-  hJetAnyPhiCone05Pt05->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetAnyPhiCone05Pt05) ; 
- 
-  TH2F * hJetAnyPhiCone04Pt05  = new TH2F
-    ("JetAnyPhiCone04Pt05","#phi_{jet lead any}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.4, pt> 0.5 GeV/c",200,0,100,200,0,6.4); 
-  hJetAnyPhiCone04Pt05->SetYTitle("#Delta #phi_{jet lead any}");
-  hJetAnyPhiCone04Pt05->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetAnyPhiCone04Pt05) ; 
-  
-  TH2F * hJetAnyPhiCone03Pt05  = new TH2F
-    ("JetAnyPhiCone03Pt05","#phi_{jet lead any}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.3, pt> 0.5 GeV/c",200,0,100,200,0,6.4); 
-  hJetAnyPhiCone03Pt05->SetYTitle("#Delta #phi_{jet lead any}");
-  hJetAnyPhiCone03Pt05->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetAnyPhiCone03Pt05) ; 
-
-  TH2F * hJetAnyPhiCone06Pt0  = new TH2F
-    ("JetAnyPhiCone06Pt0","#phi_{jet lead any}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.6, pt> 0.0 GeV/c",200,0,100,200,0,6.4); 
-  hJetAnyPhiCone06Pt0->SetYTitle("#Delta #phi_{jet lead any}");
-  hJetAnyPhiCone06Pt0->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetAnyPhiCone06Pt0) ; 
- 
-  TH2F * hJetAnyPhiCone05Pt0  = new TH2F
-    ("JetAnyPhiCone05Pt0","#phi_{jet lead any}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.5, pt> 0.0 GeV/c",200,0,100,200,0,6.4); 
-  hJetAnyPhiCone05Pt0->SetYTitle("#Delta #phi_{jet lead any}");
-  hJetAnyPhiCone05Pt0->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetAnyPhiCone05Pt0) ; 
- 
-  TH2F * hJetAnyPhiCone04Pt0  = new TH2F
-    ("JetAnyPhiCone04Pt0","#phi_{jet lead any}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.4, pt> 0.0 GeV/c",200,0,100,200,0,6.4); 
-  hJetAnyPhiCone04Pt0->SetYTitle("#Delta #phi_{jet lead any}");
-  hJetAnyPhiCone04Pt0->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetAnyPhiCone04Pt0) ; 
-  
-  TH2F * hJetAnyPhiCone03Pt0  = new TH2F
-    ("JetAnyPhiCone03Pt0","#phi_{jet lead any}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.3, pt> 0.0 GeV/c",200,0,100,200,0,6.4); 
-  hJetAnyPhiCone03Pt0->SetYTitle("#Delta #phi_{jet lead any}");
-  hJetAnyPhiCone03Pt0->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetAnyPhiCone03Pt0) ;
-
-
-  TH2F * hJetAnyPhiCone06Pt1  = new TH2F
-    ("JetAnyPhiCone06Pt1","#phi_{jet lead any}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.6, pt> 1.0 GeV/c",200,0,100,200,0,6.4); 
-  hJetAnyPhiCone06Pt1->SetYTitle("#Delta #phi_{jet lead any}");
-  hJetAnyPhiCone06Pt1->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetAnyPhiCone06Pt1) ; 
- 
-  TH2F * hJetAnyPhiCone05Pt1  = new TH2F
-    ("JetAnyPhiCone05Pt1","#phi_{jet lead any}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.5, pt> 1.0 GeV/c",200,0,100,200,0,6.4); 
-  hJetAnyPhiCone05Pt1->SetYTitle("#Delta #phi_{jet lead any}");
-  hJetAnyPhiCone05Pt1->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetAnyPhiCone05Pt1) ; 
- 
-  TH2F * hJetAnyPhiCone04Pt1  = new TH2F
-    ("JetAnyPhiCone04Pt1","#phi_{jet lead any}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.4, pt> 1.0 GeV/c",200,0,100,200,0,6.4); 
-  hJetAnyPhiCone04Pt1->SetYTitle("#Delta #phi_{jet lead any}");
-  hJetAnyPhiCone04Pt1->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetAnyPhiCone04Pt1) ; 
-  
-  TH2F * hJetAnyPhiCone03Pt1  = new TH2F
-    ("JetAnyPhiCone03Pt1","#phi_{jet lead any}/#phi_{#gamma} vs Pt_{#gamma}, cone = 0.3, pt> 1.0 GeV/c",200,0,100,200,0,6.4); 
-  hJetAnyPhiCone03Pt1->SetYTitle("#Delta #phi_{jet lead any}");
-  hJetAnyPhiCone03Pt1->SetXTitle("Pt_{#gamma} (GeV/c)");
-  fListHistos->Add(hJetAnyPhiCone03Pt1) ;
-
-
-
-  //Count
+ //Count
 
   TH1F * hNGamma  = new TH1F
-    ("NGamma","Number of #gamma over PHOS",100,0,100); 
+    ("NGamma","Number of #gamma over PHOS",120,0,120); 
   hNGamma->SetYTitle("N");
   hNGamma->SetXTitle("Pt_{#gamma}(GeV/c)");
   hNGamma->Sumw2();
   fListHistos->Add(hNGamma) ; 
 
+  TH2F * hJetAnyRatio[4][3];
+  TH2F * hJetPi0Ratio[4][3];
+  TH2F * hJetChargeRatio[4][3];
+  TH2F * hJetAnyPhi[4][3];
+  TH2F * hJetPi0Phi[4][3];
+  TH2F * hJetChargePhi[4][3];
+  TH2F * hJetAnyEta[4][3];
+  TH2F * hJetPi0Eta[4][3];
+  TH2F * hJetChargeEta[4][3];
 
-  TH1F * hNChargeJetCone06Pt0  = new TH1F
-    ("NChargeJetCone06Pt0","Number of jets, cone = 0.6, pt> 0.  GeV/c",100,0,100); 
-  hNChargeJetCone06Pt0->SetYTitle("N");
-  hNChargeJetCone06Pt0->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNChargeJetCone06Pt0->Sumw2();
-  fListHistos->Add(hNChargeJetCone06Pt0) ; 
- 
-  TH1F * hNChargeJetCone05Pt0  = new TH1F
-    ("NChargeJetCone05Pt0","Number of jets, cone = 0.5, pt> 0.  GeV/c",100,0,100); 
-  hNChargeJetCone05Pt0->SetYTitle("N");
-  hNChargeJetCone05Pt0->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNChargeJetCone05Pt0->Sumw2();
-  fListHistos->Add(hNChargeJetCone05Pt0) ; 
- 
-  TH1F * hNChargeJetCone04Pt0  = new TH1F
-    ("NChargeJetCone04Pt0","Number of jets, cone = 0.4, pt> 0.  GeV/c",100,0,100); 
-  hNChargeJetCone04Pt0->SetYTitle("N");
-  hNChargeJetCone04Pt0->SetXTitle("Pt_{#gamma}(GeV/c)");
-hNChargeJetCone04Pt0->Sumw2();
-  fListHistos->Add(hNChargeJetCone04Pt0) ; 
-  
-  TH1F * hNChargeJetCone03Pt0  = new TH1F
-    ("NChargeJetCone03Pt0","Number of jets, cone = 0.3, pt> 0.  GeV/c",100,0,100); 
-  hNChargeJetCone03Pt0->SetYTitle("N");
-  hNChargeJetCone03Pt0->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNChargeJetCone03Pt0->Sumw2();
-  fListHistos->Add(hNChargeJetCone03Pt0) ; 
+  TH1F * hNCharge[4][3];
+  TH1F * hNAny[4][3];
+  TH1F * hNPi0[4][3];
+  TH2F * hJetFragment[4][3];
+  TH2F * hJetFragmentCh[4][3];
+  TH1F * hJetScalar[4][3];
+  TH1F * hJetScalarCh[4][3];
 
 
 
-  TH1F * hNChargeJetCone06Pt05  = new TH1F
-    ("NChargeJetCone06Pt05","Number of jets, cone = 0.6, pt> 0.5 GeV/c",100,0,100); 
-  hNChargeJetCone06Pt05->SetYTitle("N");
-  hNChargeJetCone06Pt05->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNChargeJetCone06Pt05->Sumw2();
-  fListHistos->Add(hNChargeJetCone06Pt05) ; 
- 
-  TH1F * hNChargeJetCone05Pt05  = new TH1F
-    ("NChargeJetCone05Pt05","Number of jets, cone = 0.5, pt> 0.5 GeV/c",100,0,100); 
-  hNChargeJetCone05Pt05->SetYTitle("N");
-  hNChargeJetCone05Pt05->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNChargeJetCone05Pt05->Sumw2();
-  fListHistos->Add(hNChargeJetCone05Pt05) ; 
- 
-  TH1F * hNChargeJetCone04Pt05  = new TH1F
-    ("NChargeJetCone04Pt05","Number of jets, cone = 0.4, pt> 0.5 GeV/c",100,0,100); 
-  hNChargeJetCone04Pt05->SetYTitle("N");
-  hNChargeJetCone04Pt05->SetXTitle("Pt_{#gamma}(GeV/c)");
-hNChargeJetCone04Pt05->Sumw2();
-  fListHistos->Add(hNChargeJetCone04Pt05) ; 
-  
-  TH1F * hNChargeJetCone03Pt05  = new TH1F
-    ("NChargeJetCone03Pt05","Number of jets, cone = 0.3, pt> 0.5 GeV/c",100,0,100); 
-  hNChargeJetCone03Pt05->SetYTitle("N");
-  hNChargeJetCone03Pt05->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNChargeJetCone03Pt05->Sumw2();
-  fListHistos->Add(hNChargeJetCone03Pt05) ; 
+  TString cone[]  = {"0.3","0.4","0.5","0.6"};
+  TString ptcut[] = {"0.0","0.5","1.0"};
+  TString scone[]  = {"03","04","05","06"};
+  TString sptcut[] = {"0","05","1"};
 
-  TH1F * hNChargeJetCone06Pt1  = new TH1F
-    ("NChargeJetCone06Pt1","Number of jets, cone = 0.6, pt> 1.0 GeV/c",100,0,100); 
-  hNChargeJetCone06Pt1->SetYTitle("N");
-  hNChargeJetCone06Pt1->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNChargeJetCone06Pt1->Sumw2();
-  fListHistos->Add(hNChargeJetCone06Pt1) ; 
- 
-  TH1F * hNChargeJetCone05Pt1  = new TH1F
-    ("NChargeJetCone05Pt1","Number of jets, cone = 0.5, pt> 1.0 GeV/c",100,0,100); 
-  hNChargeJetCone05Pt1->SetYTitle("N");
-  hNChargeJetCone05Pt1->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNChargeJetCone05Pt1->Sumw2();
-  fListHistos->Add(hNChargeJetCone05Pt1) ; 
- 
-  TH1F * hNChargeJetCone04Pt1  = new TH1F
-    ("NChargeJetCone04Pt1","Number of jets, cone = 0.4, pt> 1.0 GeV/c",100,0,100); 
-  hNChargeJetCone04Pt1->SetYTitle("N");
-  hNChargeJetCone04Pt1->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNChargeJetCone04Pt1->Sumw2();
-  fListHistos->Add(hNChargeJetCone04Pt1) ; 
-  
-  TH1F * hNChargeJetCone03Pt1  = new TH1F
-    ("NChargeJetCone03Pt1","Number of jets, cone = 0.3, pt> 1.0 GeV/c",100,0,100); 
-  hNChargeJetCone03Pt1->SetYTitle("N");
-  hNChargeJetCone03Pt1->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNChargeJetCone03Pt1->Sumw2();
-  fListHistos->Add(hNChargeJetCone03Pt1) ;
-
-
-  //Neutral
-
-  TH1F * hNPi0JetCone06Pt0  = new TH1F
-    ("NPi0JetCone06Pt0","Number of jets, cone = 0.6, pt> 0.  GeV/c",100,0,100); 
-  hNPi0JetCone06Pt0->SetYTitle("N");
-  hNPi0JetCone06Pt0->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNPi0JetCone06Pt0->Sumw2();
-  fListHistos->Add(hNPi0JetCone06Pt0) ; 
- 
-  TH1F * hNPi0JetCone05Pt0  = new TH1F
-    ("NPi0JetCone05Pt0","Number of jets, cone = 0.5, pt> 0.  GeV/c",100,0,100); 
-  hNPi0JetCone05Pt0->SetYTitle("N");
-  hNPi0JetCone05Pt0->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNPi0JetCone05Pt0->Sumw2();
-  fListHistos->Add(hNPi0JetCone05Pt0) ; 
- 
-  TH1F * hNPi0JetCone04Pt0  = new TH1F
-    ("NPi0JetCone04Pt0","Number of jets, cone = 0.4, pt> 0.  GeV/c",100,0,100); 
-  hNPi0JetCone04Pt0->SetYTitle("N");
-  hNPi0JetCone04Pt0->SetXTitle("Pt_{#gamma}(GeV/c)");
-hNPi0JetCone04Pt0->Sumw2();
-  fListHistos->Add(hNPi0JetCone04Pt0) ; 
-  
-  TH1F * hNPi0JetCone03Pt0  = new TH1F
-    ("NPi0JetCone03Pt0","Number of jets, cone = 0.3, pt> 0.  GeV/c",100,0,100); 
-  hNPi0JetCone03Pt0->SetYTitle("N");
-  hNPi0JetCone03Pt0->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNPi0JetCone03Pt0->Sumw2();
-  fListHistos->Add(hNPi0JetCone03Pt0) ; 
-
-
-  TH1F * hNPi0JetCone06Pt05  = new TH1F
-    ("NPi0JetCone06Pt05","Number of jets, cone = 0.6, pt> 0.5 GeV/c",100,0,100); 
-  hNPi0JetCone06Pt05->SetYTitle("N");
-  hNPi0JetCone06Pt05->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNPi0JetCone06Pt05->Sumw2();
-  fListHistos->Add(hNPi0JetCone06Pt05) ; 
- 
-  TH1F * hNPi0JetCone05Pt05  = new TH1F
-    ("NPi0JetCone05Pt05","Number of jets, cone = 0.5, pt> 0.5 GeV/c",100,0,100); 
-  hNPi0JetCone05Pt05->SetYTitle("N");
-  hNPi0JetCone05Pt05->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNPi0JetCone05Pt05->Sumw2();
-  fListHistos->Add(hNPi0JetCone05Pt05) ; 
- 
-  TH1F * hNPi0JetCone04Pt05  = new TH1F
-    ("NPi0JetCone04Pt05","Number of jets, cone = 0.4, pt> 0.5 GeV/c",100,0,100); 
-  hNPi0JetCone04Pt05->SetYTitle("N");
-  hNPi0JetCone04Pt05->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNPi0JetCone04Pt05->Sumw2();
-  fListHistos->Add(hNPi0JetCone04Pt05) ; 
-  
-  TH1F * hNPi0JetCone03Pt05  = new TH1F
-    ("NPi0JetCone03Pt05","Number of jets, cone = 0.3, pt> 0.5 GeV/c",100,0,100); 
-  hNPi0JetCone03Pt05->SetYTitle("N");
-  hNPi0JetCone03Pt05->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNPi0JetCone03Pt05->Sumw2();
-  fListHistos->Add(hNPi0JetCone03Pt05) ; 
-
-  TH1F * hNPi0JetCone06Pt1  = new TH1F
-    ("NPi0JetCone06Pt1","Number of jets, cone = 0.6, pt> 1.0 GeV/c",100,0,100); 
-  hNPi0JetCone06Pt1->SetYTitle("N");
-  hNPi0JetCone06Pt1->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNPi0JetCone06Pt1->Sumw2();
-  fListHistos->Add(hNPi0JetCone06Pt1) ; 
- 
-  TH1F * hNPi0JetCone05Pt1  = new TH1F
-    ("NPi0JetCone05Pt1","Number of jets, cone = 0.5, pt> 1.0 GeV/c",100,0,100); 
-  hNPi0JetCone05Pt1->SetYTitle("N");
-  hNPi0JetCone05Pt1->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNPi0JetCone05Pt1->Sumw2();
-  fListHistos->Add(hNPi0JetCone05Pt1) ; 
- 
-  TH1F * hNPi0JetCone04Pt1  = new TH1F
-    ("NPi0JetCone04Pt1","Number of jets, cone = 0.4, pt> 1.0 GeV/c",100,0,100); 
-  hNPi0JetCone04Pt1->SetYTitle("N");
-  hNPi0JetCone04Pt1->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNPi0JetCone04Pt1->Sumw2();
-  fListHistos->Add(hNPi0JetCone04Pt1) ; 
-  
-  TH1F * hNPi0JetCone03Pt1  = new TH1F
-    ("NPi0JetCone03Pt1","Number of jets, cone = 0.3, pt> 1.0 GeV/c",100,0,100); 
-  hNPi0JetCone03Pt1->SetYTitle("N");
-  hNPi0JetCone03Pt1->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNPi0JetCone03Pt1->Sumw2();
-  fListHistos->Add(hNPi0JetCone03Pt1) ;
-
-
-  //Any 
-
-  TH1F * hNAnyJetCone06Pt0  = new TH1F
-    ("NAnyJetCone06Pt0","Number of jets, cone = 0.6, pt> 0.  GeV/c",100,0,100); 
-  hNAnyJetCone06Pt0->SetYTitle("N");
-  hNAnyJetCone06Pt0->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNAnyJetCone06Pt0->Sumw2();
-  fListHistos->Add(hNAnyJetCone06Pt0) ; 
- 
-  TH1F * hNAnyJetCone05Pt0  = new TH1F
-    ("NAnyJetCone05Pt0","Number of jets, cone = 0.5, pt> 0.  GeV/c",100,0,100); 
-  hNAnyJetCone05Pt0->SetYTitle("N");
-  hNAnyJetCone05Pt0->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNAnyJetCone05Pt0->Sumw2();
-  fListHistos->Add(hNAnyJetCone05Pt0) ; 
- 
-  TH1F * hNAnyJetCone04Pt0  = new TH1F
-    ("NAnyJetCone04Pt0","Number of jets, cone = 0.4, pt> 0.  GeV/c",100,0,100); 
-  hNAnyJetCone04Pt0->SetYTitle("N");
-  hNAnyJetCone04Pt0->SetXTitle("Pt_{#gamma}(GeV/c)");
-hNAnyJetCone04Pt0->Sumw2();
-  fListHistos->Add(hNAnyJetCone04Pt0) ; 
-  
-  TH1F * hNAnyJetCone03Pt0  = new TH1F
-    ("NAnyJetCone03Pt0","Number of jets, cone = 0.3, pt> 0.  GeV/c",100,0,100); 
-  hNAnyJetCone03Pt0->SetYTitle("N");
-  hNAnyJetCone03Pt0->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNAnyJetCone03Pt0->Sumw2();
-  fListHistos->Add(hNAnyJetCone03Pt0) ; 
-
-
-  TH1F * hNAnyJetCone06Pt05  = new TH1F
-    ("NAnyJetCone06Pt05","Number of jets, cone = 0.6, pt> 0.5 GeV/c",100,0,100); 
-  hNAnyJetCone06Pt05->SetYTitle("N");
-  hNAnyJetCone06Pt05->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNAnyJetCone06Pt05->Sumw2();
-  fListHistos->Add(hNAnyJetCone06Pt05) ; 
- 
-  TH1F * hNAnyJetCone05Pt05  = new TH1F
-    ("NAnyJetCone05Pt05","Number of jets, cone = 0.5, pt> 0.5 GeV/c",100,0,100); 
-  hNAnyJetCone05Pt05->SetYTitle("N");
-  hNAnyJetCone05Pt05->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNAnyJetCone05Pt05->Sumw2();
-  fListHistos->Add(hNAnyJetCone05Pt05) ; 
- 
-  TH1F * hNAnyJetCone04Pt05  = new TH1F
-    ("NAnyJetCone04Pt05","Number of jets, cone = 0.4, pt> 0.5 GeV/c",100,0,100); 
-  hNAnyJetCone04Pt05->SetYTitle("N");
-  hNAnyJetCone04Pt05->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNAnyJetCone04Pt05->Sumw2();
-  fListHistos->Add(hNAnyJetCone04Pt05) ; 
-  
-  TH1F * hNAnyJetCone03Pt05  = new TH1F
-    ("NAnyJetCone03Pt05","Number of jets, cone = 0.3, pt> 0.5 GeV/c",100,0,100); 
-  hNAnyJetCone03Pt05->SetYTitle("N");
-  hNAnyJetCone03Pt05->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNAnyJetCone03Pt05->Sumw2();
-  fListHistos->Add(hNAnyJetCone03Pt05) ; 
-
-  TH1F * hNAnyJetCone06Pt1  = new TH1F
-    ("NAnyJetCone06Pt1","Number of jets, cone = 0.6, pt> 1.0 GeV/c",100,0,100); 
-  hNAnyJetCone06Pt1->SetYTitle("N");
-  hNAnyJetCone06Pt1->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNAnyJetCone06Pt1->Sumw2();
-  fListHistos->Add(hNAnyJetCone06Pt1) ; 
- 
-  TH1F * hNAnyJetCone05Pt1  = new TH1F
-    ("NAnyJetCone05Pt1","Number of jets, cone = 0.5, pt> 1.0 GeV/c",100,0,100); 
-  hNAnyJetCone05Pt1->SetYTitle("N");
-  hNAnyJetCone05Pt1->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNAnyJetCone05Pt1->Sumw2();
-  fListHistos->Add(hNAnyJetCone05Pt1) ; 
- 
-  TH1F * hNAnyJetCone04Pt1  = new TH1F
-    ("NAnyJetCone04Pt1","Number of jets, cone = 0.4, pt> 1.0 GeV/c",100,0,100); 
-  hNAnyJetCone04Pt1->SetYTitle("N");
-  hNAnyJetCone04Pt1->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNAnyJetCone04Pt1->Sumw2();
-  fListHistos->Add(hNAnyJetCone04Pt1) ; 
-  
-  TH1F * hNAnyJetCone03Pt1  = new TH1F
-    ("NAnyJetCone03Pt1","Number of jets, cone = 0.3, pt> 1.0 GeV/c",100,0,100); 
-  hNAnyJetCone03Pt1->SetYTitle("N");
-  hNAnyJetCone03Pt1->SetXTitle("Pt_{#gamma}(GeV/c)");
-  hNAnyJetCone03Pt1->Sumw2();
-  fListHistos->Add(hNAnyJetCone03Pt1) ;
-
-
-  //Partition
-  TH1F * hJetPartitionCone06Pt05  = new TH1F
-    ("JetPartitionCone06Pt05","x = Pt_{i}/Pt_{#gamma}, cone = 0.6, pt> 0.5 GeV/c",100,0,1); 
-  hJetPartitionCone06Pt05->SetYTitle("dN / dx");
-  hJetPartitionCone06Pt05->SetXTitle("x");
-  hJetPartitionCone06Pt05->Sumw2();
-  fListHistos->Add(hJetPartitionCone06Pt05) ; 
- 
-  TH1F * hJetPartitionCone05Pt05  = new TH1F
-    ("JetPartitionCone05Pt05","x = Pt_{i}/Pt_{#gamma}, cone = 0.5, pt> 0.5 GeV/c",100,0,1); 
-  hJetPartitionCone05Pt05->SetYTitle("dN / dx");
-  hJetPartitionCone05Pt05->SetXTitle("x");
-  hJetPartitionCone05Pt05->Sumw2();
-  fListHistos->Add(hJetPartitionCone05Pt05) ; 
- 
-  TH1F * hJetPartitionCone04Pt05  = new TH1F
-    ("JetPartitionCone04Pt05","x = Pt_{i}/Pt_{#gamma}, cone = 0.4, pt> 0.5 GeV/c",100,0,1); 
-  hJetPartitionCone04Pt05->SetYTitle("dN / dx");
-  hJetPartitionCone04Pt05->SetXTitle("x");
-  hJetPartitionCone04Pt05->Sumw2();
-  fListHistos->Add(hJetPartitionCone04Pt05) ; 
-  
- TH1F * hJetPartitionCone03Pt05  = new TH1F
-    ("JetPartitionCone03Pt05","x = Pt_{i}/Pt_{#gamma}, cone = 0.3, pt> 0.5 GeV/c",100,0,1); 
-  hJetPartitionCone03Pt05->SetYTitle("dN / dx");
-  hJetPartitionCone03Pt05->SetXTitle("x");
-  hJetPartitionCone03Pt05->Sumw2();
-  fListHistos->Add(hJetPartitionCone03Pt05) ; 
-
-
-  TH1F * hJetPartitionCone06Pt0  = new TH1F
-    ("JetPartitionCone06Pt0","x = Pt_{i}/Pt_{#gamma}, cone = 0.6, pt> 0. GeV/c",100,0,1); 
-  hJetPartitionCone06Pt0->SetYTitle("dN / dx");
-  hJetPartitionCone06Pt0->SetXTitle("x");
-  hJetPartitionCone06Pt0->Sumw2();
-  fListHistos->Add(hJetPartitionCone06Pt0) ; 
- 
-  TH1F * hJetPartitionCone05Pt0  = new TH1F
-    ("JetPartitionCone05Pt0","x = Pt_{i}/Pt_{#gamma}, cone = 0.5, pt> 0. GeV/c",100,0,1); 
-  hJetPartitionCone05Pt0->SetYTitle("dN / dx");
-  hJetPartitionCone05Pt0->SetXTitle("x");
-  hJetPartitionCone05Pt0->Sumw2();
-  fListHistos->Add(hJetPartitionCone05Pt0) ; 
- 
-  TH1F * hJetPartitionCone04Pt0  = new TH1F
-    ("JetPartitionCone04Pt0","x = Pt_{i}/Pt_{#gamma}, cone = 0.4, pt> 0. GeV/c",100,0,1); 
-  hJetPartitionCone04Pt0->SetYTitle("dN / dx");
-  hJetPartitionCone04Pt0->SetXTitle("x");
-  hJetPartitionCone04Pt0->Sumw2();
-  fListHistos->Add(hJetPartitionCone04Pt0) ; 
-  
-  TH1F * hJetPartitionCone03Pt0  = new TH1F
-    ("JetPartitionCone03Pt0","x = Pt_{i}/Pt_{#gamma}, cone = 0.3, pt> 0. GeV/c",100,0,1); 
-  hJetPartitionCone03Pt0->SetYTitle("dN / dx");
-  hJetPartitionCone03Pt0->SetXTitle("x");
-  hJetPartitionCone03Pt0->Sumw2();
-  fListHistos->Add(hJetPartitionCone03Pt0) ; 
-
-
-  TH1F * hJetPartitionCone06Pt1  = new TH1F
-    ("JetPartitionCone06Pt1","x = Pt_{i}/Pt_{#gamma}, cone = 0.6, pt> 1.0 GeV/c",100,0,1); 
-  hJetPartitionCone06Pt1->SetYTitle("dN / dx");
-  hJetPartitionCone06Pt1->SetXTitle("x");
-  hJetPartitionCone06Pt1->Sumw2();
-  fListHistos->Add(hJetPartitionCone06Pt1) ; 
- 
-  TH1F * hJetPartitionCone05Pt1  = new TH1F
-    ("JetPartitionCone05Pt1","x = Pt_{i}/Pt_{#gamma}, cone = 0.5, pt> 1.0 GeV/c",100,0,1); 
-  hJetPartitionCone05Pt1->SetYTitle("dN / dx");
-  hJetPartitionCone05Pt1->SetXTitle("x");
-  hJetPartitionCone05Pt1->Sumw2();
-  fListHistos->Add(hJetPartitionCone05Pt1) ; 
- 
-  TH1F * hJetPartitionCone04Pt1  = new TH1F
-    ("JetPartitionCone04Pt1","x = Pt_{i}/Pt_{#gamma}, cone = 0.4, pt> 1.0 GeV/c",100,0,1); 
-  hJetPartitionCone04Pt1->SetYTitle("dN / dx");
-  hJetPartitionCone04Pt1->SetXTitle("x");
-  hJetPartitionCone04Pt1->Sumw2();
-  fListHistos->Add(hJetPartitionCone04Pt1) ; 
-  
-  TH1F * hJetPartitionCone03Pt1  = new TH1F
-    ("JetPartitionCone03Pt1","x = Pt_{i}/Pt_{#gamma}, cone = 0.3, pt> 1.0 GeV/c",100,0,1); 
-  hJetPartitionCone03Pt1->SetYTitle("dN / dx");
-  hJetPartitionCone03Pt1->SetXTitle("x");
-  hJetPartitionCone03Pt1->Sumw2();
-  fListHistos->Add(hJetPartitionCone03Pt1) ;
-
-
-  //Partition, only charged
-  TH1F * hJetPartitionChCone06Pt05  = new TH1F
-    ("JetPartitionChCone06Pt05","x = Pt_{i}/Pt_{#gamma} charged, cone = 0.6, pt> 0.5 GeV/c",100,0,1); 
-  hJetPartitionChCone06Pt05->SetYTitle("dN / dx");
-  hJetPartitionChCone06Pt05->SetXTitle("x");
-  hJetPartitionChCone06Pt05->Sumw2();
-  fListHistos->Add(hJetPartitionChCone06Pt05) ; 
-  
-  TH1F * hJetPartitionChCone05Pt05  = new TH1F
-    ("JetPartitionChCone05Pt05","x = Pt_{i}/Pt_{#gamma} charged, cone = 0.5, pt> 0.5 GeV/c",100,0,1); 
-  hJetPartitionChCone05Pt05->SetYTitle("dN / dx");
-  hJetPartitionChCone05Pt05->SetXTitle("x");
-  hJetPartitionChCone05Pt05->Sumw2();
-  fListHistos->Add(hJetPartitionChCone05Pt05) ; 
-  
-  TH1F * hJetPartitionChCone04Pt05  = new TH1F
-    ("JetPartitionChCone04Pt05","x = Pt_{i}/Pt_{#gamma} charged, cone = 0.4, pt> 0.5 GeV/c",100,0,1); 
-  hJetPartitionChCone04Pt05->SetYTitle("dN / dx");
-  hJetPartitionChCone04Pt05->SetXTitle("x");
-  hJetPartitionChCone04Pt05->Sumw2();
-  fListHistos->Add(hJetPartitionChCone04Pt05) ; 
-  
-  TH1F * hJetPartitionChCone03Pt05  = new TH1F
-    ("JetPartitionChCone03Pt05","x = Pt_{i}/Pt_{#gamma} charged, cone = 0.3, pt> 0.5 GeV/c",100,0,1); 
-  hJetPartitionChCone03Pt05->SetYTitle("dN / dx");
-  hJetPartitionChCone03Pt05->SetXTitle("x");
-  hJetPartitionChCone03Pt05->Sumw2();
-  fListHistos->Add(hJetPartitionChCone03Pt05) ; 
-  
-
-  TH1F * hJetPartitionChCone06Pt0  = new TH1F
-    ("JetPartitionChCone06Pt0","x = Pt_{i}/Pt_{#gamma} charged, cone = 0.6, pt> 0. GeV/c",100,0,1); 
-  hJetPartitionChCone06Pt0->SetYTitle("dN / dx");
-  hJetPartitionChCone06Pt0->SetXTitle("x");
-  hJetPartitionChCone06Pt0->Sumw2();
-  fListHistos->Add(hJetPartitionChCone06Pt0) ; 
-  
-  TH1F * hJetPartitionChCone05Pt0  = new TH1F
-    ("JetPartitionChCone05Pt0","x = Pt_{i}/Pt_{#gamma} charged, cone = 0.5, pt> 0. GeV/c",100,0,1); 
-  hJetPartitionChCone05Pt0->SetYTitle("dN / dx");
-  hJetPartitionChCone05Pt0->SetXTitle("x");
-  hJetPartitionChCone05Pt0->Sumw2();
-  fListHistos->Add(hJetPartitionChCone05Pt0) ; 
-  
-  TH1F * hJetPartitionChCone04Pt0  = new TH1F
-    ("JetPartitionChCone04Pt0","x = Pt_{i}/Pt_{#gamma} charged, cone = 0.4, pt> 0. GeV/c",100,0,1); 
-  hJetPartitionChCone04Pt0->SetYTitle("dN / dx");
-  hJetPartitionChCone04Pt0->SetXTitle("x");
-  hJetPartitionChCone04Pt0->Sumw2();
-  fListHistos->Add(hJetPartitionChCone04Pt0) ; 
-  
-  TH1F * hJetPartitionChCone03Pt0  = new TH1F
-    ("JetPartitionChCone03Pt0","x = Pt_{i}/Pt_{#gamma} charged, cone = 0.3, pt> 0. GeV/c",100,0,1); 
-  hJetPartitionChCone03Pt0->SetYTitle("dN / dx");
-  hJetPartitionChCone03Pt0->SetXTitle("x");
-  hJetPartitionChCone03Pt0->Sumw2();
-  fListHistos->Add(hJetPartitionChCone03Pt0) ; 
-
-
-  TH1F * hJetPartitionChCone06Pt1  = new TH1F
-    ("JetPartitionChCone06Pt1","x = Pt_{i}/Pt_{#gamma} charged, cone = 0.6, pt> 1.0 GeV/c",100,0,1); 
-  hJetPartitionChCone06Pt1->SetYTitle("dN / dx");
-  hJetPartitionChCone06Pt1->SetXTitle("x");
-  hJetPartitionChCone06Pt1->Sumw2();
-  fListHistos->Add(hJetPartitionChCone06Pt1) ; 
-  
-  TH1F * hJetPartitionChCone05Pt1  = new TH1F
-    ("JetPartitionChCone05Pt1","x = Pt_{i}/Pt_{#gamma} charged, cone = 0.5, pt> 1.0 GeV/c",100,0,1); 
-  hJetPartitionChCone05Pt1->SetYTitle("dN / dx");
-  hJetPartitionChCone05Pt1->SetXTitle("x");
-  hJetPartitionChCone05Pt1->Sumw2();
-  fListHistos->Add(hJetPartitionChCone05Pt1) ; 
- 
-  TH1F * hJetPartitionChCone04Pt1  = new TH1F
-    ("JetPartitionChCone04Pt1","x = Pt_{i}/Pt_{#gamma} charged, cone = 0.4, pt> 1.0 GeV/c",100,0,1); 
-  hJetPartitionChCone04Pt1->SetYTitle("dN / dx");
-  hJetPartitionChCone04Pt1->SetXTitle("x");
-  hJetPartitionChCone04Pt1->Sumw2();
-  fListHistos->Add(hJetPartitionChCone04Pt1) ; 
-  
-  TH1F * hJetPartitionChCone03Pt1  = new TH1F
-    ("JetPartitionChCone03Pt1","x = Pt_{i}/Pt_{#gamma} charged, cone = 0.3, pt> 1.0 GeV/c",100,0,1); 
-  hJetPartitionChCone03Pt1->SetYTitle("dN / dx");
-  hJetPartitionChCone03Pt1->SetXTitle("x");
-  hJetPartitionChCone03Pt1->Sumw2();
-  fListHistos->Add(hJetPartitionChCone03Pt1) ;
-
-
-
-  //Scalar product jet vs particle of jet
-
- 
-  TH1F * hJetScalarChCone06Pt05  = new TH1F
-    ("JetScalarChCone06Pt05","Scalar product jet*particle, charged, cone = 0.6, pt> 0.5 GeV/c",100,0.8,1.); 
-  hJetScalarChCone06Pt05->SetYTitle("N");
-  hJetScalarChCone06Pt05->SetXTitle("Product");
-  hJetScalarChCone06Pt05->Sumw2();
-  fListHistos->Add(hJetScalarChCone06Pt05) ; 
-  
-  TH1F * hJetScalarChCone05Pt05  = new TH1F
-    ("JetScalarChCone05Pt05","Scalar product jet*particle, charged, cone = 0.5, pt> 0.5 GeV/c",100,0.8,1.); 
-  hJetScalarChCone05Pt05->SetYTitle("N");
-  hJetScalarChCone05Pt05->SetXTitle("Product");
-  hJetScalarChCone05Pt05->Sumw2();
-  fListHistos->Add(hJetScalarChCone05Pt05) ; 
-  
-  TH1F * hJetScalarChCone04Pt05  = new TH1F
-    ("JetScalarChCone04Pt05","Scalar product jet*particle, charged, cone = 0.4, pt> 0.5 GeV/c",100,0.8,1.); 
-  hJetScalarChCone04Pt05->SetYTitle("N");
-  hJetScalarChCone04Pt05->SetXTitle("Product");
-  hJetScalarChCone04Pt05->Sumw2();
-  fListHistos->Add(hJetScalarChCone04Pt05) ; 
-  
-  TH1F * hJetScalarChCone03Pt05  = new TH1F
-    ("JetScalarChCone03Pt05","Scalar product jet*particle, charged, cone = 0.3, pt> 0.5 GeV/c",100,0.8,1.); 
-  hJetScalarChCone03Pt05->SetYTitle("N");
-  hJetScalarChCone03Pt05->SetXTitle("Product");
-  hJetScalarChCone03Pt05->Sumw2();
-  fListHistos->Add(hJetScalarChCone03Pt05) ; 
-  
-
-  TH1F * hJetScalarChCone06Pt0  = new TH1F
-    ("JetScalarChCone06Pt0","Scalar product jet*particle, charged, cone = 0.6, pt> 0. GeV/c",100,0.8,1.); 
-  hJetScalarChCone06Pt0->SetYTitle("N");
-  hJetScalarChCone06Pt0->SetXTitle("Product");
-  hJetScalarChCone06Pt0->Sumw2();
-  fListHistos->Add(hJetScalarChCone06Pt0) ; 
-  
-  TH1F * hJetScalarChCone05Pt0  = new TH1F
-    ("JetScalarChCone05Pt0","Scalar product jet*particle, charged, cone = 0.5, pt> 0. GeV/c",100,0.8,1.); 
-  hJetScalarChCone05Pt0->SetYTitle("N");
-  hJetScalarChCone05Pt0->SetXTitle("Product");
-  hJetScalarChCone05Pt0->Sumw2();
-  fListHistos->Add(hJetScalarChCone05Pt0) ; 
-  
-  TH1F * hJetScalarChCone04Pt0  = new TH1F
-    ("JetScalarChCone04Pt0","Scalar product jet*particle, charged, cone = 0.4, pt> 0. GeV/c",100,0.8,1.); 
-  hJetScalarChCone04Pt0->SetYTitle("N");
-  hJetScalarChCone04Pt0->SetXTitle("Product");
-  hJetScalarChCone04Pt0->Sumw2();
-  fListHistos->Add(hJetScalarChCone04Pt0) ; 
-  
-  TH1F * hJetScalarChCone03Pt0  = new TH1F
-    ("JetScalarChCone03Pt0","Scalar product jet*particle, charged, cone = 0.3, pt> 0. GeV/c",100,0.8,1.); 
-  hJetScalarChCone03Pt0->SetYTitle("N");
-  hJetScalarChCone03Pt0->SetXTitle("Product");
-  hJetScalarChCone03Pt0->Sumw2();
-  fListHistos->Add(hJetScalarChCone03Pt0) ; 
-
-
-  TH1F * hJetScalarChCone06Pt1  = new TH1F
-    ("JetScalarChCone06Pt1","Scalar product jet*particle, charged, cone = 0.6, pt> 1.0 GeV/c",100,0.8,1.); 
-  hJetScalarChCone06Pt1->SetYTitle("N");
-  hJetScalarChCone06Pt1->SetXTitle("Product");
-  hJetScalarChCone06Pt1->Sumw2();
-  fListHistos->Add(hJetScalarChCone06Pt1) ; 
-  
-  TH1F * hJetScalarChCone05Pt1  = new TH1F
-    ("JetScalarChCone05Pt1","Scalar product jet*particle, charged, cone = 0.5, pt> 1.0 GeV/c",100,0.8,1.); 
-  hJetScalarChCone05Pt1->SetYTitle("N");
-  hJetScalarChCone05Pt1->SetXTitle("Product");
-  hJetScalarChCone05Pt1->Sumw2();
-  fListHistos->Add(hJetScalarChCone05Pt1) ; 
- 
-  TH1F * hJetScalarChCone04Pt1  = new TH1F
-    ("JetScalarChCone04Pt1","Scalar product jet*particle, charged, cone = 0.4, pt> 1.0 GeV/c",100,0.8,1.); 
-  hJetScalarChCone04Pt1->SetYTitle("N");
-  hJetScalarChCone04Pt1->SetXTitle("Product");
-  hJetScalarChCone04Pt1->Sumw2();
-  fListHistos->Add(hJetScalarChCone04Pt1) ; 
-  
-  TH1F * hJetScalarChCone03Pt1  = new TH1F
-    ("JetScalarChCone03Pt1","Scalar product jet*particle, charged, cone = 0.3, pt> 1.0 GeV/c",100,0.8,1.); 
-  hJetScalarChCone03Pt1->SetYTitle("N");
-  hJetScalarChCone03Pt1->SetXTitle("Product");
-  hJetScalarChCone03Pt1->Sumw2();
-  fListHistos->Add(hJetScalarChCone03Pt1) ;
-  
-  //Scalar, Not only charged
-  TH1F * hJetScalarCone06Pt05  = new TH1F
-    ("JetScalarCone06Pt05","Scalar product jet*particle, cone = 0.6, pt> 0.5 GeV/c",100,0.8,1.); 
-  hJetScalarCone06Pt05->SetYTitle("N");
-  hJetScalarCone06Pt05->SetXTitle("Product");
-  hJetScalarCone06Pt05->Sumw2();
-  fListHistos->Add(hJetScalarCone06Pt05) ; 
-  
-  TH1F * hJetScalarCone05Pt05  = new TH1F
-    ("JetScalarCone05Pt05","Scalar product jet*particle, cone = 0.5, pt> 0.5 GeV/c",100,0.8,1.); 
-  hJetScalarCone05Pt05->SetYTitle("N");
-  hJetScalarCone05Pt05->SetXTitle("Product");
-  hJetScalarCone05Pt05->Sumw2();
-  fListHistos->Add(hJetScalarCone05Pt05) ; 
-  
-  TH1F * hJetScalarCone04Pt05  = new TH1F
-    ("JetScalarCone04Pt05","Scalar product jet*particle, cone = 0.4, pt> 0.5 GeV/c",100,0.8,1.); 
-  hJetScalarCone04Pt05->SetYTitle("N");
-  hJetScalarCone04Pt05->SetXTitle("Product");
-  hJetScalarCone04Pt05->Sumw2();
-  fListHistos->Add(hJetScalarCone04Pt05) ; 
-  
-  TH1F * hJetScalarCone03Pt05  = new TH1F
-    ("JetScalarCone03Pt05","Scalar product jet*particle, cone = 0.3, pt> 0.5 GeV/c",100,0.8,1.); 
-  hJetScalarCone03Pt05->SetYTitle("N");
-  hJetScalarCone03Pt05->SetXTitle("Product");
-  hJetScalarCone03Pt05->Sumw2();
-  fListHistos->Add(hJetScalarCone03Pt05) ; 
-  
-
-  TH1F * hJetScalarCone06Pt0  = new TH1F
-    ("JetScalarCone06Pt0","Scalar product jet*particle, cone = 0.6, pt> 0. GeV/c",100,0.8,1.); 
-  hJetScalarCone06Pt0->SetYTitle("N");
-  hJetScalarCone06Pt0->SetXTitle("Product");
-  hJetScalarCone06Pt0->Sumw2();
-  fListHistos->Add(hJetScalarCone06Pt0) ; 
-  
-  TH1F * hJetScalarCone05Pt0  = new TH1F
-    ("JetScalarCone05Pt0","Scalar product jet*particle, cone = 0.5, pt> 0. GeV/c",100,0.8,1.); 
-  hJetScalarCone05Pt0->SetYTitle("N");
-  hJetScalarCone05Pt0->SetXTitle("Product");
-  hJetScalarCone05Pt0->Sumw2();
-  fListHistos->Add(hJetScalarCone05Pt0) ; 
-  
-  TH1F * hJetScalarCone04Pt0  = new TH1F
-    ("JetScalarCone04Pt0","Scalar product jet*particle, cone = 0.4, pt> 0. GeV/c",100,0.8,1.); 
-  hJetScalarCone04Pt0->SetYTitle("N");
-  hJetScalarCone04Pt0->SetXTitle("Product");
-  hJetScalarCone04Pt0->Sumw2();
-  fListHistos->Add(hJetScalarCone04Pt0) ; 
-  
-  TH1F * hJetScalarCone03Pt0  = new TH1F
-    ("JetScalarCone03Pt0","Scalar product jet*particle, cone = 0.3, pt> 0. GeV/c",100,0.8,1.); 
-  hJetScalarCone03Pt0->SetYTitle("N");
-  hJetScalarCone03Pt0->SetXTitle("Product");
-  hJetScalarCone03Pt0->Sumw2();
-  fListHistos->Add(hJetScalarCone03Pt0) ; 
-
-
-  TH1F * hJetScalarCone06Pt1  = new TH1F
-    ("JetScalarCone06Pt1","Scalar product jet*particle, cone = 0.6, pt> 1.0 GeV/c",100,0.8,1.); 
-  hJetScalarCone06Pt1->SetYTitle("N");
-  hJetScalarCone06Pt1->SetXTitle("Product");
-  hJetScalarCone06Pt1->Sumw2();
-  fListHistos->Add(hJetScalarCone06Pt1) ; 
-  
-  TH1F * hJetScalarCone05Pt1  = new TH1F
-    ("JetScalarCone05Pt1","Scalar product jet*particle, cone = 0.5, pt> 1.0 GeV/c",100,0.8,1.); 
-  hJetScalarCone05Pt1->SetYTitle("N");
-  hJetScalarCone05Pt1->SetXTitle("Product");
-  hJetScalarCone05Pt1->Sumw2();
-  fListHistos->Add(hJetScalarCone05Pt1) ; 
- 
-  TH1F * hJetScalarCone04Pt1  = new TH1F
-    ("JetScalarCone04Pt1","Scalar product jet*particle, cone = 0.4, pt> 1.0 GeV/c",100,0.8,1.); 
-  hJetScalarCone04Pt1->SetYTitle("N");
-  hJetScalarCone04Pt1->SetXTitle("Product");
-  hJetScalarCone04Pt1->Sumw2();
-  fListHistos->Add(hJetScalarCone04Pt1) ; 
-  
-  TH1F * hJetScalarCone03Pt1  = new TH1F
-    ("JetScalarCone03Pt1","Scalar product jet*particle, cone = 0.3, pt> 1.0 GeV/c",100,0.8,1.); 
-  hJetScalarCone03Pt1->SetYTitle("N");
-  hJetScalarCone03Pt1->SetXTitle("Product");
-  hJetScalarCone03Pt1->Sumw2();
-  fListHistos->Add(hJetScalarCone03Pt1) ;
-  
-  
+  for(Int_t icone = 0; icone<4; icone++){
+    for(Int_t ipt = 0; ipt<3;ipt++){
+      
+      //Jet Pt / Gamma Pt 
+      
+      
+      hJetPi0Ratio[icone][ipt]  = new TH2F
+	("JetPi0RatioCone"+scone[icone]+"Pt"+sptcut[ipt], 
+	 "Pt_{jet lead #pi^{0}}/Pt_{#gamma} vs Pt_{#gamma}, cone ="+cone[icone]+", pt>" +ptcut[ipt]+" GeV/c",120,0,120,120,0,2);
+      hJetPi0Ratio[icone][ipt]->SetYTitle("Pt_{jet lead #pi^{0}}/Pt_{#gamma}");
+      hJetPi0Ratio[icone][ipt]->SetXTitle("Pt_{#gamma} (GeV/c)");
+      fListHistos->Add(hJetPi0Ratio[icone][ipt]) ; 
+      
+      hJetChargeRatio[icone][ipt]  = new TH2F
+	("JetChargeRatioCone"+scone[icone]+"Pt"+sptcut[ipt],
+	 "Pt_{jet lead charge}/Pt_{#gamma} vs Pt_{#gamma}, cone ="+cone[icone]+", pt>" +ptcut[ipt]+" GeV/c",120,0,120,120,0,2);
+      hJetChargeRatio[icone][ipt]->SetYTitle("Pt_{jet lead charge}/Pt_{#gamma}");
+      hJetChargeRatio[icone][ipt]->SetXTitle("Pt_{#gamma} (GeV/c)");
+      fListHistos->Add(hJetChargeRatio[icone][ipt]) ; 
+      
+      hJetAnyRatio[icone][ipt]  = new TH2F
+      ("JetAnyRatioCone"+scone[icone]+"Pt"+sptcut[ipt],
+       "Pt_{jet any lead}/Pt_{#gamma} vs Pt_{#gamma}, cone ="+cone[icone]+", pt>" +ptcut[ipt]+" GeV/c",120,0,120,120,0,2);
+      hJetAnyRatio[icone][ipt]->SetYTitle("Pt_{jet lead any}/Pt_{#gamma}");
+      hJetAnyRatio[icone][ipt]->SetXTitle("Pt_{#gamma} (GeV/c)");
+      fListHistos->Add(hJetAnyRatio[icone][ipt]) ; 
+      
+      //Phi gamma - Phi jet
+      
+      
+      hJetPi0Phi[icone][ipt]  = new TH2F
+	("JetPi0PhiCone"+scone[icone]+"Pt"+sptcut[ipt],
+	 "#phi_{jet lead pi0}/#phi_{#gamma} vs Pt_{#gamma}, cone ="+cone[icone]+", pt>" +ptcut[ipt]+" GeV/c",120,0,120,120,1,4);
+      hJetPi0Phi[icone][ipt]->SetYTitle("#Delta #phi");
+      hJetPi0Phi[icone][ipt]->SetXTitle("Pt_{#gamma} (GeV/c)");
+      fListHistos->Add(hJetPi0Phi[icone][ipt]) ; 
+      
+      hJetChargePhi[icone][ipt]  = new TH2F
+	("JetChargePhiCone"+scone[icone]+"Pt"+sptcut[ipt],
+	 "#phi_{jet lead pi0}-#phi_{#gamma} vs Pt_{#gamma}, cone ="+cone[icone]+", pt>" +ptcut[ipt]+" GeV/c",120,0,120,120,1,4);
+      hJetChargePhi[icone][ipt]->SetYTitle("#Delta #phi");
+      hJetChargePhi[icone][ipt]->SetXTitle("Pt_{#gamma} (GeV/c)");
+      fListHistos->Add(hJetChargePhi[icone][ipt]) ; 
+      
+      hJetAnyPhi[icone][ipt]  = new TH2F
+	("JetAnyPhiCone"+scone[icone]+"Pt"+sptcut[ipt],
+	 "#phi_{jet lead any}-#phi_{#gamma} vs Pt_{#gamma}, cone ="+cone[icone]+", pt>" +ptcut[ipt]+" GeV/c",120,0,120,120,1,4);
+      hJetAnyPhi[icone][ipt]->SetYTitle("Pt_{jet lead any}/Pt_{#gamma}");
+      hJetAnyPhi[icone][ipt]->SetXTitle("#Delta #phi");
+      fListHistos->Add(hJetAnyPhi[icone][ipt]) ;
+      
+      //Eta jet
+      
+      hJetPi0Eta[icone][ipt]  = new TH2F
+	("JetPi0EtaCone"+scone[icone]+"Pt"+sptcut[ipt],
+	 "#eta_{jet lead pi0}/#eta_{#gamma} vs Pt_{#gamma}, cone ="+cone[icone]+", pt>" +ptcut[ipt]+" GeV/c",200,0,120,200,-2,2);
+      hJetPi0Eta[icone][ipt]->SetYTitle("#Delta #eta");
+      hJetPi0Eta[icone][ipt]->SetXTitle("Pt_{#gamma} (GeV/c)");
+      fListHistos->Add(hJetPi0Eta[icone][ipt]) ; 
+      
+      hJetChargeEta[icone][ipt]  = new TH2F
+	("JetChargeEtaCone"+scone[icone]+"Pt"+sptcut[ipt],
+	 "#eta_{jet lead pi0}-#eta_{#gamma} vs Pt_{#gamma}, cone ="+cone[icone]+", pt>" +ptcut[ipt]+" GeV/c",200,0,120,200,-2,2);
+      hJetChargeEta[icone][ipt]->SetYTitle("#Delta #eta");
+      hJetChargeEta[icone][ipt]->SetXTitle("Pt_{#gamma} (GeV/c)");
+      fListHistos->Add(hJetChargeEta[icone][ipt]) ; 
+      
+      hJetAnyEta[icone][ipt]  = new TH2F
+	("JetAnyEtaCone"+scone[icone]+"Pt"+sptcut[ipt],
+	 "#eta_{jet lead any}-#eta_{#gamma} vs Pt_{#gamma}, cone ="+cone[icone]+", pt>" +ptcut[ipt]+" GeV/c",200,0,100,200,-2,2);
+      hJetAnyEta[icone][ipt]->SetYTitle("Pt_{jet lead any}/Pt_{#gamma}");
+      hJetAnyEta[icone][ipt]->SetXTitle("#Delta #eta");
+      fListHistos->Add(hJetAnyEta[icone][ipt]) ;
+      
+      //Counts
+      
+      hNCharge[icone][ipt]  = new TH1F
+	("NChargeJetCone"+scone[icone]+"Pt"+sptcut[ipt],"Number of charged jets, cone ="+cone[icone]+", pt>" +ptcut[ipt]+" GeV/c",120,0,120); 
+      hNCharge[icone][ipt]->SetYTitle("N");
+      hNCharge[icone][ipt]->SetXTitle("Pt_{#gamma}(GeV/c)");
+      hNCharge[icone][ipt]->Sumw2();
+      fListHistos->Add(hNCharge[icone][ipt]) ; 
+      
+      hNPi0[icone][ipt]  = new TH1F
+	("NPi0JetCone"+scone[icone]+"Pt"+sptcut[ipt],"Number of neutral jets, cone ="+cone[icone]+", pt>" +ptcut[ipt]+" GeV/c",120,0,120); 
+      hNPi0[icone][ipt]->SetYTitle("N");
+      hNPi0[icone][ipt]->SetXTitle("Pt_{#gamma}(GeV/c)");
+      hNPi0[icone][ipt]->Sumw2();
+      fListHistos->Add(hNPi0[icone][ipt]) ; 
+      
+      hNAny[icone][ipt]  = new TH1F
+	("NAnyJetCone"+scone[icone]+"Pt"+sptcut[ipt],"Number of jets, cone ="+cone[icone]+", pt>" +ptcut[ipt]+" GeV/c",120,0,120); 
+      hNAny[icone][ipt]->SetYTitle("N");
+      hNAny[icone][ipt]->SetXTitle("Pt_{#gamma}(GeV/c)");
+      hNAny[icone][ipt]->Sumw2();
+      fListHistos->Add(hNAny[icone][ipt]) ; 
+      
+      hJetFragment[icone][ipt]  = new TH2F
+	("JetFragmentCone"+scone[icone]+"Pt"+sptcut[ipt],"x = Pt_{i}/Pt_{#gamma}, cone ="+cone[icone]+", pt>" +ptcut[ipt]+" GeV/c",
+	 120,0.,120.,120,0.,1.); 
+      hJetFragment[icone][ipt]->SetYTitle("dN / dx");
+      hJetFragment[icone][ipt]->SetXTitle("x");
+      hJetFragment[icone][ipt]->Sumw2();
+      fListHistos->Add(hJetFragment[icone][ipt]) ; 
+      
+      hJetFragmentCh[icone][ipt]  = new TH2F
+	("JetFragmentChCone"+scone[icone]+"Pt"+sptcut[ipt],"x = Pt_{i charged}/Pt_{#gamma}, cone ="+cone[icone]+", pt>" +
+	 ptcut[ipt]+" GeV/c",120,0.,120.,120,0.,1.); 
+      hJetFragmentCh[icone][ipt]->SetYTitle("dN / dx");
+      hJetFragmentCh[icone][ipt]->SetXTitle("x");
+      hJetFragmentCh[icone][ipt]->Sumw2();
+      fListHistos->Add(hJetFragmentCh[icone][ipt]) ;
+      
+      hJetScalar[icone][ipt]  = new TH1F
+	("JetScalarCone"+scone[icone]+"Pt"+sptcut[ipt],"Scalar product jet*particle, cone ="+cone[icone]+", pt>" +ptcut[ipt]+" GeV/c",100,0,1); 
+      hJetScalar[icone][ipt]->SetYTitle("N");
+      hJetScalar[icone][ipt]->SetXTitle("Product");
+      hJetScalar[icone][ipt]->Sumw2();
+      fListHistos->Add(hJetScalar[icone][ipt]) ; 
+      
+ hJetScalarCh[icone][ipt]  = new TH1F
+	("JetScalarChCone"+scone[icone]+"Pt"+sptcut[ipt],"Scalar product jet*particle(charged), cone ="+cone[icone]+", pt>" +ptcut[ipt]+" GeV/c",100,0,1); 
+      hJetScalarCh[icone][ipt]->SetYTitle("N");
+      hJetScalarCh[icone][ipt]->SetXTitle("Product");
+      hJetScalarCh[icone][ipt]->Sumw2();
+      fListHistos->Add(hJetScalarCh[icone][ipt]) ; 
+      
+    }//ipt
+  } //icone
 }
 
 //____________________________________________________________________________
@@ -2210,7 +1701,7 @@ void  AliPHOSGammaJet::MakePhoton(TParticle * particle)
   dynamic_cast<TH2F*>(fListHistos->FindObject("ThmodThnomod"))->Fill(theta,particle->Theta());  
   //}
 //else
-//  particle = 0x0;
+//  particle = new TParticle();
 }
 
 //____________________________________________________________________________
@@ -2355,18 +1846,97 @@ void AliPHOSGammaJet::Print(char * opt)
 {
   // Print 
   Info("Print", "%s %s", GetName(), GetTitle() ) ;
-  printf("Pt jet cut        : %f\n", fPtEffCut) ;
+ 
   printf("Scalar Product cut: %f\n", fScalarProductCut) ;
   printf("Eta cut           : %f\n", fEtaCut) ;
   printf("D phi max cut     : %f\n", fPhiMaxCut) ; 
   printf("D phi min cut     : %f\n", fPhiMinCut) ;
-  printf("Ratio max cut     : %f\n", fRatioMaxCut) ; 
-  printf("Ratio min cut     : %f\n", fRatioMinCut) ;
+  printf("Leading Ratio max cut     : %f\n", fRatioMaxCut) ; 
+  printf("Leading Ratio min cut     : %f\n", fRatioMinCut) ;
+  printf("Jet Ratio max cut     : %f\n", fJetRatioMaxCut) ; 
+  printf("Jet Ratio min cut     : %f\n", fJetRatioMinCut) ;
   printf("Fast recons       : %d\n", fOptFast);
   printf("Inv Mass max cut  : %f\n", fInvMassMaxCut) ; 
   printf("Inv Mass min cut  : %f\n", fInvMassMinCut) ; 
  
 } 
+
+
+//___________________________________________________________________
+void AliPHOSGammaJet::SetJetParticleListInCone(TList &particleList, 
+					       TList &newparticlelist, 
+					       TLorentzVector & jet,
+					       const TLorentzVector leading,
+					       const Double_t cone, 
+					       const Double_t ptcut){
+  //cout<<"Create  "<<cone<<" "<<ptcut<<endl;
+  Double_t rad = 0;
+  Double_t phi = leading.Phi();
+  Double_t eta = leading.Eta();
+  Int_t iPrimary=-1;
+  TLorentzVector lv;
+  TParticle *particle = new TParticle();
+  TIter next(&particleList);
+
+  if(!fOnlyCharged){
+    while ( (particle = (TParticle*)next()) ) {
+      iPrimary++;  
+      Int_t ksCode = particle->GetStatusCode();
+      if((ksCode == 1)||(ksCode == 0)){
+	//1 pythia
+	//0 HIJING
+	
+	rad = TMath::Sqrt(TMath::Power(particle->Eta()-eta,2)+
+			  TMath::Power(particle->Phi()-phi,2));     
+	
+	if((rad<cone) && (ptcut<particle->Pt())){
+	  //Info("SetJetParticleListInCone","particle %d",iPrimary);
+	  newparticlelist.Add(new TParticle(*particle));
+	  particle->Momentum(lv);
+	  jet+=lv;
+	}
+      }// status code 1, no gamma
+    }// while 
+  }//Not only charge
+  else{
+    while ( (particle = (TParticle*)next()) ) {
+      iPrimary++;  
+      Int_t ksCode = particle->GetStatusCode();
+      Double_t ksSign  = particle->GetPDG(0)->Charge();
+      if((ksSign!=0)&&((ksCode == 1)||(ksCode == 0))){
+	//1 pythia
+	//0 HIJING
+	
+	rad = TMath::Sqrt(TMath::Power(particle->Eta()-eta,2)+
+			  TMath::Power(particle->Phi()-phi,2));     
+	
+	if((rad<cone) && (ptcut<particle->Pt())){
+	  //Info("SetJetParticleListInCone","particle %d",iPrimary);
+	  newparticlelist.Add(new TParticle(*particle));
+	  particle->Momentum(lv);
+	  jet+=lv;
+	}
+      }// status code 1, no gamma
+    }// while 
+  }
+  //cout<<"Create  end "<<cone<<" "<<ptcut<<endl;
+}
+
+
+//  //_______________________________________________________________-
+//  void InitJetQuenching(const TString input, const TString quenching){
+  
+//    TFile *f1=new TFile(input,"read");
+//    AliRun* fAlice1 = (AliRun*)(f1->Get("gAlice"));
+//    AliGenPythia * fPyth1 = (AliGenPythia*) fAlice1->Generator();
+//    fPyth1->Init();
+  
+//    TFile *f2=new TFile(quenching,"read");
+//    AliRun* fAlice2 = (AliRun*)(f2->Get("gAlice"));
+//    AliGenPythia * fPyth2 = (AliGenPythia*) fAlice2->Generator();
+//    fPyth2->Init();
+
+//  }
 
 //____________________________________________________________________________
 Double_t AliPHOSGammaJet::SigmaE(Double_t energy)
@@ -2392,3 +1962,184 @@ Double_t AliPHOSGammaJet::SigmaP(Double_t energy)
 
   return sigma   ; // in cm  
 }
+
+
+//____________________________________________________________________________
+void AliPHOSGammaJet::TransformAddJetToList(AliPHOSGetter * gime, 
+					    TList & particleList, 
+					    const TLorentzVector jet1, 
+					    const TLorentzVector jet2) 
+{
+  TParticle * particle = new TParticle();
+  Int_t n = -1;
+  Int_t  nparticles = gime->NPrimaries() ; 
+  Int_t iParticle=0 ;
+  if(fOptFast){
+
+    TLorentzVector pPi0, pGamma1, pGamma2 ;
+    Double_t angle = 0, cellDistance = 0.;
+
+    for (iParticle=0 ; iParticle < nparticles ; iParticle++) {
+
+      particle = new TParticle(*(gime->Primary(iParticle))) ;
+      
+      if(particle->GetStatusCode() == 1){
+
+	// Keep particles different from Pi0
+	if((particle->GetPdgCode() != 111)&&(TMath::Abs(particle->Eta())<fEtaCut)){
+	  if(particle->GetPdgCode()==22){
+	    //Info("TransformAddJetToList","Photon0 before: %f", particle->Energy());
+	    MakePhoton(particle);
+	    //Info("TransformAddJetToList","Photon0 after: %f", particle->Energy());
+	  }
+	  TransformParticle(particle,jet1,jet2);
+	  particleList.Add(particle);
+	  n++;
+	} 
+
+	//Decay Pi0 and keep it with different status name
+	//Keep decay photons
+	if((particle->GetPdgCode() == 111) && (TMath::Abs(particle->Eta())<fEtaCut+2.)) {
+
+	  particle->Momentum(pPi0);
+	  Pi0Decay(particle->GetMass(),pPi0,pGamma1,pGamma2,angle);
+
+	  cellDistance = angle*460; //cm
+	  if (cellDistance < fMinDistance) {
+	    TransformParticle(particle,jet1,jet2);
+	    particleList.Add(particle);
+	    n ++ ; 
+	  }// if cell<distance	
+	  else {
+	    n += 3 ; 
+	    dynamic_cast<TH2F*>(fListHistos->FindObject("AnglePair"))->Fill(pPi0.E(),angle);
+
+	    TParticle * photon1 = new TParticle(22,1,0,0,0,0,pGamma1.Px(),pGamma1.Py(),
+						pGamma1.Pz(),pGamma1.E(),0,0,0,0);
+	    TParticle * photon2 = new TParticle(22,1,0,0,0,0,pGamma2.Px(),pGamma2.Py(),
+						pGamma2.Pz(),pGamma2.E(),0,0,0,0);
+	    //photon1->SetWeight(1);
+	    //photon2->SetWeight(2);
+	    particle->SetStatusCode(2);
+	    
+	    //Info("TransformAddJetToList","Photon 1 and 2 before: %f  %f", photon1->Energy(), photon2->Energy());
+	    MakePhoton(photon1);
+	    MakePhoton(photon2);
+	    //Info("TransformAddJetToList","Photon 1 and 2 after: %f  %f", photon1->Energy(), photon2->Energy());
+	    //particleList.Add(particle);
+	    if((TMath::Abs(photon1->Eta())<fEtaCut)){
+	      TransformParticle(photon1,jet1,jet2);
+	      particleList.Add(photon1);
+	    }
+	    if((TMath::Abs(photon2->Eta())<fEtaCut)){
+	      TransformParticle(photon2,jet1,jet2);
+	      particleList.Add(photon2);
+	    }
+	    //photon1->Print();
+	    //photon2->Print();
+	  }//if cell>distance
+	}//if pi0
+      }//final particle, etacut
+    }//for (iParticle<nParticle)
+  }//optfast
+  else{
+
+     //Test to Transform one jet into another
+     cout<<"Jet 1: phi "<<jet1.Phi()<<" theta "<<jet1.Theta()
+	 <<" eta "<<jet1.Eta()<<" Pt "<<jet1.Pt()<<" E "<<jet1.E()<<" Pz "<<jet1.Pz()<<endl;
+     cout<<"Jet 2: phi "<<jet2.Phi()<<" theta "<<jet2.Theta()
+	 <<" eta "<<jet2.Eta()<<" Pt "<<jet2.Pt()<<" E "<<jet2.E()<<" Pz "<<jet2.Pz()<<endl;
+     TParticle * jet22 = new TParticle();
+     jet22->SetMomentum(jet2);
+     TransformParticle(jet22,jet1,jet2);
+     cout<<"Jet2->1: phi "<<jet22->Phi()<<" theta "<<jet22->Theta()
+	 <<" eta "<<jet22->Eta()<<" Pt "<<jet22->Pt()<<" E "<<jet22->Energy()<<" Pz "<<jet22->Pz()<<endl;
+
+    for (iParticle=0 ; iParticle < nparticles ; iParticle++) {
+   
+      particle = new TParticle(*(gime->Primary(iParticle))) ;
+     
+      //cout<<"Inside loop "<<iParticle<<endl;
+      //Keep Stable particles within eta range
+      if((particle->GetStatusCode() == 1)&&(TMath::Abs(particle->Eta())<fEtaCut)){
+
+	//TransformParticle(particle,jet1,jet2);
+	//cout<<"Inside if"<<endl;
+	particleList.Add(particle);
+	n++;  
+	//cout<<"Inside loop, end"<<endl;
+      }//final particle
+    }//for (iParticle<nParticle)
+  }// no optfast
+  //Info("TransformAddJetToList","N %d E %f",n,e);
+
+}
+
+//____________________________________________________________________________
+void  AliPHOSGammaJet::TransformParticle(TParticle *particle, const TLorentzVector jet1, 
+					 const TLorentzVector jet2)
+{
+  //
+  // Perform Lorentz Transformation and Rotation
+  // Copy paste from AliGenPythiaJet 
+
+  //cout<<"Inside Transform "<<endl;
+  
+  Float_t px   =  particle->Px();
+  Float_t py   =  particle->Py();
+  Float_t pz   =  particle->Pz();
+  Float_t e    =  particle->Energy();
+  //
+  // 1 st Lorentz Transform
+  //
+  // Pz --> Pz' = 0
+  
+  Float_t betalorentz =jet2.Pz()/jet2.Energy();
+  //cout<<" b "<<betalorentz<<endl;
+  Float_t gammalorentz = 1./TMath::Sqrt(1. - betalorentz * betalorentz);
+  //cout<<"g "<<gammalorentz<<endl;
+  Float_t pzt =  gammalorentz * pz        - gammalorentz * betalorentz * e;
+  Float_t et  = -gammalorentz * betalorentz * pz + gammalorentz        * e;
+
+  cout<<"Pzt 1 "<<pzt<<" et 1"<<et<<endl;
+ 
+  //
+  // Phi Rotation
+  //
+  Float_t phi = jet1.Phi() - jet2.Phi();
+  //cout<<" phi12 "<<phi<<endl;
+  if(phi<0)
+    phi+=TMath::TwoPi();
+
+  Float_t pxt =   TMath::Cos(phi) * px -  TMath::Sin(phi) * py;
+  Float_t pyt =   TMath::Sin(phi) * px +  TMath::Cos(phi) * py;
+  //
+  //
+ 
+  particle->SetMomentum(pxt,pyt,pzt,et);
+
+  //
+  // 2 nd Lorentz Transform
+  //
+  // pz' = 0 --> pz''
+
+  Float_t px2   =  particle->Px();
+  Float_t py2   =  particle->Py();
+  Float_t pz2   =  particle->Pz();
+  Float_t e2    =  particle->Energy();
+
+  Float_t betalorentz2  =-jet2.Pz()/jet2.E();
+  //cout<<" b2 "<<betalorentz2<<endl;
+  Float_t gammalorentz2 = 1./TMath::Sqrt(1. - betalorentz2 * betalorentz2);
+  //cout<<" g2 "<< gammalorentz2<<endl;
+  Float_t pzt2 =  gammalorentz2 * pz2        - gammalorentz2 * betalorentz2 * e2;
+  Float_t et2  = -gammalorentz2 * betalorentz2 * pz2 + gammalorentz2        * e2;
+ 
+ particle->SetMomentum(px2,py2,pzt2,et2);
+ cout<<"Pzt 2 "<<pzt2<<" et 2 "<<et2<<endl;
+} 
+
+
+
+
+

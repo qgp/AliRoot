@@ -635,7 +635,6 @@ void  AliPHOSPIDv1::SetParameters()
 	   &(*fParameters)(i,0), &(*fParameters)(i,1), 
 	   &(*fParameters)(i,2), &(*fParameters)(i,3));
     i++;
-    printf("line %d: %s",i,string);
   }
   fclose(fd);
 }
@@ -933,13 +932,13 @@ TVector3 AliPHOSPIDv1::GetMomentumDirection(AliPHOSEmcRecPoint * emc, AliPHOSRec
 
   dir = emcglobalpos ;  
   dir.SetZ( -dir.Z() ) ;   // why ?  
-  dir.SetMag(1.) ;
 
   //account correction to the position of IP
   Float_t xo,yo,zo ; //Coordinates of the origin
   gAlice->Generator()->GetOrigin(xo,yo,zo) ;
   TVector3 origin(xo,yo,zo);
   dir = dir - origin ;
+  dir.SetMag(1.) ;
 
   return dir ;  
 }

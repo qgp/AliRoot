@@ -24,7 +24,7 @@ public:
   AliPHOSFastGlobalReconstruction() {};
   AliPHOSFastGlobalReconstruction(const char* headerFile);
   virtual ~AliPHOSFastGlobalReconstruction();
-  void FastReconstruction(Int_t event);
+  void FastReconstruction(Int_t event, Bool_t cut = kFALSE, Double_t etacut = -1, Double_t phicutmin = -1, Double_t phicutmax = -1);
   TClonesArray *GetRecParticles() const {return fParticles;}
 
 private:
