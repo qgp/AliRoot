@@ -341,9 +341,10 @@ void AliTOF::SetTreeAddress ()
   if (fLoader->TreeS () )
     {
       branch = fLoader->TreeS ()->GetBranch ("TOF");
-      if (branch)
+      if (branch) {
         if (fSDigits == 0x0) fSDigits = new TClonesArray("AliTOFSDigit",  1000);
         branch->SetAddress (&fSDigits);
+      }
     }
 
   if (fLoader->TreeR() && fReconParticles) //I do not know where this array is created - skowron
