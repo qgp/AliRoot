@@ -4,4 +4,6 @@ HDRS:=  $(SRCS:.cxx=.h)
 
 DHDR:=  TFlukaLinkDef.h
 
-EINCLUDE:= STEER
+#EINCLUDE:= STEER
+ELIBSDIR:= $(FLUPRO)
+ELIBS   := flukahp
