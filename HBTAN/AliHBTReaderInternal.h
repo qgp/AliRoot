@@ -36,9 +36,9 @@ class AliHBTReaderInternal: public AliHBTReader
     Bool_t     fIsRead;//!flag indicating if the data are already read    
     TString    fFileName;//name of the file with tracks
 
-    Int_t OpenFile(TFile*& aFile,Int_t event);//opens file to be read for given event 
-
- public:
-  ClassDef(AliHBTReaderInternal,1)
+    Int_t      OpenFile(TFile*& aFile,Int_t event);//opens file to be read for given event 
+    static Bool_t FindIndex(TClonesArray* arr,Int_t idx);
+    
+    ClassDef(AliHBTReaderInternal,1)
 };
 #endif 

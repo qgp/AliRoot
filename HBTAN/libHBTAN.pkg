@@ -5,6 +5,7 @@ AliHBTCorrelFctn.cxx  AliHBTPairCut.cxx \
 AliHBTEvent.cxx       AliHBTParticle.cxx       AliHBTRun.cxx \
 AliHBTFunction.cxx    AliHBTMonitorFunction.cxx   AliHBTParticleCut.cxx  \
 AliHBTReaderITSv1.cxx AliHBTReaderITSv2.cxx    AliHBTReaderKineTree.cxx \
+AliHBTReaderESD.cxx \
 AliHBTTwoTrackEffFctn.cxx       AliHBTReaderInternal.cxx\
 AliHBTQResolutionFctns.cxx      AliHBTQDistributionFctns.cxx    \
 AliHBTLLWeights.cxx             AliHBTLLWeightFctn.cxx\

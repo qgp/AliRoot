@@ -1,11 +1,13 @@
+#ifndef __MAKECINT__
+ #ifndef __CINT__
   #include "alles.h"
-  #include "/afs/cern.ch/user/s/skowron/aliroot/my/TPC/alles.h"
   #include "AliHBTAnalysis.h"
   #include "AliHBTReader.h"
   #include "AliHBTReaderKineTree.h"
   #include "AliHBTReaderITSv2.h"
   #include "AliHBTReaderITSv1.h"
   #include "AliHBTReaderTPC.h"
+  #include "AliHBTReaderESD.h"
   #include "AliHBTReaderInternal.h"
   #include "AliHBTParticleCut.h"
   #include "AliHBTEvent.h"
@@ -18,9 +20,12 @@
   #include "TObjString.h"
   #include "TString.h"
   #include "AliPDG.h"
+  #include "TPDGCode.h"
   #include "AliHBTMonDistributionFctns.h"
   #include "AliHBTMonResolutionFctns.h"
-  
+  #endif
+#endif
+ 
 void hbtanalysis(Option_t* datatype, Option_t* processopt="TracksAndParticles", 
                 Int_t first = -1,Int_t last = -1, 
                 char *outfile = "hbtanalysis.root")
@@ -68,10 +73,11 @@ void hbtanalysis(Option_t* datatype, Option_t* processopt="TracksAndParticles",
   AliHBTAnalysis * analysis = new AliHBTAnalysis();
   
   AliHBTReader* reader;
-  Int_t kine = strcmp(datatype,"Kine");
-  Int_t TPC = strcmp(datatype,"TPC");
-  Int_t ITSv1 = strcmp(datatype,"ITSv1");
-  Int_t ITSv2 = strcmp(datatype,"ITSv2");
+  Int_t kine   = strcmp(datatype,"Kine");
+  Int_t TPC    = strcmp(datatype,"TPC");
+  Int_t ITSv1  = strcmp(datatype,"ITSv1");
+  Int_t ITSv2  = strcmp(datatype,"ITSv2");
+  Int_t ESD    = strcmp(datatype,"ESD");
   Int_t intern = strcmp(datatype,"Intern");
   
   if(!kine)
@@ -93,7 +99,12 @@ void hbtanalysis(Option_t* datatype, Option_t* processopt="TracksAndParticles",
    }
   else if(!intern)
    {
-    reader = new AliHBTReaderInternal("ITS.root");
+    reader = new AliHBTReaderInternal("data.root");
+   }
+  else if(!ESD)
+   {
+    reader = new AliHBTReaderESD();
+    processopt="Tracks"; //this reader by definition reads only recontructed tracks
    }
   else
    {
@@ -123,6 +134,9 @@ void hbtanalysis(Option_t* datatype, Option_t* processopt="TracksAndParticles",
   AliHBTParticleCut* readerpartcut= new AliHBTParticleCut();
   readerpartcut->SetPtRange(0.0,1.5);
   readerpartcut->SetPID(kPiPlus);
+  readerpartcut->SetVxRange(-.1,.1);//select particles from vertex
+  readerpartcut->SetVyRange(-.1,.1);//select particles from vertex
+  readerpartcut->SetVzRange(-.3,.3);//select particles from vertex
   reader->AddParticleCut(readerpartcut);//read this particle type with this cut
   
   analysis->SetReader(reader);

@@ -180,7 +180,7 @@ Int_t AliHBTReaderTPC::Read(AliHBTRun* particles, AliHBTRun *tracks)
     
     if( (i=OpenFiles(aTracksFile,aClustersFile,aGAliceFile,currentdir)) )
      {
-       Error("Read","Exiting due to problems with opening files. Errorcode %d",i);
+       Error("Read","Skipping directory due to problems with opening files. Errorcode %d",i);
        currentdir++;
        continue;
      }

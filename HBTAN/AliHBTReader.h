@@ -6,11 +6,11 @@
 //Reader Base class (reads particles and tracks and
 //puts it to the AliHBTRun objects
 //Piotr.Skowronski@cern.ch
-
+class TObjArray;
+class TClonesArray;
 class AliHBTRun;
 class AliHBTEvent;
 class AliHBTParticleCut;
-class TObjArray;
 class AliHBTParticle;
 class TString;
 

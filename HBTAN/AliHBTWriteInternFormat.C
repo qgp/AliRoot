@@ -26,10 +26,11 @@ void AliHBTWriteInternFormat(Option_t* datatype, Option_t* processopt="TracksAnd
 //Anlyzes TPC recontructed tracks and simulated particles that corresponds to them
 
 //datatype defines type of data to be read
-//  Kine  - analyzes Kine Tree: simulated particles
-//  TPC   - analyzes TPC   tracking + particles corresponding to these tracks
-//  ITSv1 - analyzes ITSv1 ----------------------//--------------------------
-//  ITSv2 - analyzes ITSv2 ----------------------//--------------------------
+//  Kine  - reads Kine Tree: simulated particles
+//  TPC   - reads TPC   tracking + particles corresponding to these tracks
+//  ITSv1 - reads ITSv1 ----------------------//--------------------------
+//  ITSv2 - reads ITSv2 ----------------------//--------------------------
+//  ESD   - reads ESD tracks Event Summary Data
 
 //processopt defines option passed to AliHBTAnlysis::Process method
 // default: TracksAndParticles - process both recontructed tracks and sim. particles corresponding to them 
@@ -46,8 +47,8 @@ void AliHBTWriteInternFormat(Option_t* datatype, Option_t* processopt="TracksAnd
 //these names I use when analysis is done directly from CASTOR files via RFIO
 
   const char* basedir=".";
-  const char* serie="";
-  const char* field = "";
+  const char* serie=".";
+  const char* field = ".";
   cout<<"AliHBTWriteInternFormat.C: datatype is "<<datatype<<" dir is basedir"<<endl;
   // Dynamically link some shared libs                    
   
@@ -63,6 +64,7 @@ void AliHBTWriteInternFormat(Option_t* datatype, Option_t* processopt="TracksAnd
   Int_t TPC = strcmp(datatype,"TPC");
   Int_t ITSv1 = strcmp(datatype,"ITSv1");
   Int_t ITSv2 = strcmp(datatype,"ITSv2");
+  Int_t ESD    = strcmp(datatype,"ESD");
   Int_t intern = strcmp(datatype,"Intern");
 
   if(!kine)
@@ -73,7 +75,7 @@ void AliHBTWriteInternFormat(Option_t* datatype, Option_t* processopt="TracksAnd
   else if(!TPC)
    {
     cout<<"AliHBTWriteInternFormat.C: Creating Reader TPC .....\n";
-    reader = new AliHBTReaderTPC("tpc.tracks.root","tpc.clusters.root");
+    reader = new AliHBTReaderTPC();
     cout<<"AliHBTWriteInternFormat.C: ..... Created\n";
    }
   else if(!ITSv1)
@@ -83,12 +85,17 @@ void AliHBTWriteInternFormat(Option_t* datatype, Option_t* processopt="TracksAnd
   else if(!ITSv2)
    {
     cout<<"AliHBTWriteInternFormat.C: Creating Reader ITSv2 .....\n";
-    reader = new AliHBTReaderITSv2("its.tracksv2.root","its.clustersv2.root");
+    reader = new AliHBTReaderITSv2();
     cout<<"AliHBTWriteInternFormat.C: ..... Created\n";
+   }
+  else if(!ESD)
+   {
+    reader = new AliHBTReaderESD();
+    processopt="Tracks"; //this reader by definition reads only recontructed tracks
    }
   else if(!intern)
    {
-    reader = new AliHBTReaderInternal("TPC.root");
+    reader = new AliHBTReaderInternal("Kine.data.root");
    }
   else
    {
@@ -115,7 +122,7 @@ void AliHBTWriteInternFormat(Option_t* datatype, Option_t* processopt="TracksAnd
 
    cout<<"AliHBTWriteInternFormat.C:   P R O C S E S S I N G .....\n\n";
    AliHBTReaderInternal::Write(reader,outfile);
-   cout<<"\n\nAliHBTWriteInternFormat.C:   F I N I S H E D";
+   cout<<"\n\nAliHBTWriteInternFormat.C:   F I N I S H E D\n";
    
    if (dirs) delete dirs;
    delete reader;

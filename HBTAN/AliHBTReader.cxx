@@ -4,7 +4,6 @@
 #include <TObjString.h>
 #include <TObjArray.h>
 #include <TClass.h>
-#include <Riostream.h>
 
 #include "AliHBTParticleCut.h"
 
@@ -131,7 +130,7 @@ TString& AliHBTReader::GetDirName(Int_t entry)
       retval = new TString();
       return *retval;
     }
-   if (gDebug > 0) cout<<"Returned ok "<<dir->String().Data()<<endl;
+   if (gDebug > AliHBTParticle::GetDebug()) Info("Returned ok %s",dir->String().Data());
    return dir->String();
  }
 

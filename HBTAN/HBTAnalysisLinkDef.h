@@ -61,6 +61,10 @@
 #pragma link C++ class AliHBTVxCut+;
 #pragma link C++ class AliHBTVyCut+;
 #pragma link C++ class AliHBTVzCut+;
+#pragma link C++ class AliHBTPIDCut+;
+#pragma link C++ class AliHBTLogicalOperCut-;
+#pragma link C++ class AliHBTAndCut+;
+#pragma link C++ class AliHBTOrCut+;
 
 
 #pragma link C++ class AliHBTReader+;
@@ -70,6 +74,7 @@
 #pragma link C++ class AliHBTReaderPPprod+;
 #pragma link C++ class AliHBTReaderKineTree+;
 #pragma link C++ class AliHBTReaderInternal+;
+#pragma link C++ class AliHBTReaderESD+;
 
 #pragma link C++ class AliHBTQInvCorrelFctn+;
 #pragma link C++ class AliHBTTwoKStarCorrelFctn+;
@@ -112,6 +117,10 @@
 #pragma link C++ class AliHBTMonPtDistributionFctn+;
 #pragma link C++ class AliHBTMonPhiDistributionFctn+;
 #pragma link C++ class AliHBTMonThetaDistributionFctn+;
+#pragma link C++ class AliHBTMonVxDistributionFctn+;
+#pragma link C++ class AliHBTMonVyDistributionFctn+;
+#pragma link C++ class AliHBTMonVzDistributionFctn+;
+#pragma link C++ class AliHBTMonRDistributionFctn+;
 
 #pragma link C++ class AliHBTMonPxDistributionVsPtFctn+;
 #pragma link C++ class AliHBTMonPyDistributionVsPtFctn+;
@@ -136,6 +145,9 @@
 #pragma link C++ class AliHBTMonPhiResolutionVsPtFctn+;
 #pragma link C++ class AliHBTMonThetaResolutionVsPtFctn+;
 
+#pragma link C++ class AliHBTMonVyDistributionVsVxFctn+;
+#pragma link C++ class AliHBTMonRtDistributionVsVzFctn+;
+
 #pragma link C++ class AliHBTTwoTrackEffFctn+;
 #pragma link C++ class AliHBTTwoTrackEffFctn3D+;
 
@@ -147,6 +159,7 @@
 #pragma link C++ class AliHBTLLWeightTwoKStarFctn+;
 #pragma link C++ class AliHBTLLWeightTheorQInvFctn+;
 #pragma link C++ class AliHBTLLWeightsPID+;
+
 //#pragma link C++ class AliHBTGoComPair+;
 //#pragma link C++ class AliHBTCorrectQ3DCorrelFctn+;
 //#pragma link C++ class AliHBTCorrectQInvCorrelFctn+;

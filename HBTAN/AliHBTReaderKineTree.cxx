@@ -73,8 +73,7 @@ Int_t AliHBTReaderKineTree::GetNumberOfPartEvents()
 
 
 /**********************************************************/
-Int_t AliHBTReaderKineTree::
-Read(AliHBTRun* particles, AliHBTRun *tracks)
+Int_t AliHBTReaderKineTree::Read(AliHBTRun* particles, AliHBTRun *tracks)
  {
  cout<<"AliHBTReaderKineTree::Read()"<<endl;
  if (!particles) //check if an object is instatiated
@@ -102,6 +101,13 @@ Read(AliHBTRun* particles, AliHBTRun *tracks)
   { 
     cout<<"________________________________________________________\n";
     TFile* fileK = OpenFile(currentdir);
+    if (fileK == 0x0)
+     {
+       Error("Read","Cannot get File for dir no. %d",currentdir);
+       currentdir++;
+       continue;
+     }
+    
     TTree* treeE = (TTree*)fileK->Get("TE");
     if(treeE) 
      {

@@ -18,7 +18,7 @@ class AliHBTLLWeightQInvFctn: public AliHBTTwoPairFctn1D
   
   void   ProcessSameEventParticles(AliHBTPair* trackpair, AliHBTPair* partpair);
   void   ProcessDiffEventParticles(AliHBTPair* trackpair, AliHBTPair* partpair);
-  Double_t GetValue(AliHBTPair* trackpair, AliHBTPair* partpair) const
+  Double_t GetValue(AliHBTPair* trackpair, AliHBTPair* partpair)
     { return trackpair->GetQInv()-partpair->GetQInv();} //isn't use                                                                    
   ClassDef(AliHBTLLWeightQInvFctn,1)
 };
