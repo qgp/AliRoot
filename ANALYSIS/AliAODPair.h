@@ -278,7 +278,7 @@ void AliAODPair::CalculateKStarComp()
       double   temp  = gamma * (pE1 - beta * pz1);
 
       // rotate in transverse plane
-      fKStarSide = (-px1*fPySum + py1*fPxSum)/ptrans;
+      fKStarSide = -(-px1*fPySum + py1*fPxSum)/ptrans;
       fKStarOut  = ( px1*fPxSum + py1*fPySum)/ptrans;
  
       // go from LCMS to CMS
