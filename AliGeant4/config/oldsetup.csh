@@ -667,7 +667,7 @@ if ( "`echo ${SHLIBVAR} | grep ${CLHEP_BASE_DIR}/lib `" == "" ) then
   if ( "$VERBOSE" == "YES" ) then
     echo Adding ${CLHEP_BASE_DIR}/lib to the shared libraries path...
   endif
-  set SHLIBVAR="${SHLIBVAR}:${CLHEP_BASE_DIR}/lib"
+  set SHLIBVAR="${CLHEP_BASE_DIR}/lib:${SHLIBVAR}"
 endif
 
 setenv $SHLIBVARNAME $SHLIBVAR
