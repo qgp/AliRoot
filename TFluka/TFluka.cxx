@@ -15,6 +15,10 @@
 
 /*
 $Log$
+Revision 1.1.2.4  2002/09/26 13:22:23  iglez2
+Naive implementation of ProcessRun and ProcessEvent
+Opening/Closing of input file (fInputFileName) with FORTRAN unit 5 before/after the first call to flukam inside Init()
+
 Revision 1.1.2.3  2002/09/20 15:35:51  iglez2
 Modification of LFDRTR. Value is passed to FLUKA !!!
 
@@ -32,11 +36,11 @@ First commit of Fluka interface.
 #include <iostream.h>
 
 #include "TFluka.h"
-#include "TCallf77.h" //For the fortran calls
-#include "Fdblprc.h"  //(DBLPRC) fluka common
-#include "Fiounit.h"  //(IOUNIT) fluka common
-
-#define METHODDEBUG
+#include "TCallf77.h"      //For the fortran calls
+#include "Fdblprc.h"       //(DBLPRC) fluka common
+#include "Fiounit.h"       //(IOUNIT) fluka common
+#include "AliRun.h"        //For gAlice
+#include "AliGenerator.h"  //To generate the particles
 
 // Fluka methods that may be needed.
 #ifndef WIN32 
@@ -68,7 +72,9 @@ ClassImp(TFluka)
 // TFluka methods.
 //____________________________________________________________________________ 
 TFluka::TFluka()
-  :TVirtualMC(),fInputFileName("")
+  :TVirtualMC(),
+   fVerbosityLevel(0),
+   fInputFileName("")
 { 
   //
   // Default constructor
@@ -76,70 +82,68 @@ TFluka::TFluka()
 } 
  
 //____________________________________________________________________________ 
-TFluka::TFluka(const char *title)
-  :TVirtualMC("TFluka",title),fInputFileName("")
+TFluka::TFluka(const char *title, Int_t verbosity)
+  :TVirtualMC("TFluka",title),
+   fVerbosityLevel(verbosity),
+   fInputFileName("")
 {
-#ifdef METHODDEBUG
-  cout << "==> TFluka::TFluka(" << title << ") constructor called." << endl;
-#endif
-#ifdef METHODDEBUG
-  cout << "<== TFluka::TFluka(" << title << ") constructor called." << endl;
-#endif
+  if (fVerbosityLevel >=3)
+    cout << "==> TFluka::TFluka(" << title << ") constructor called." << endl;
+
+  if (fVerbosityLevel >=3)
+    cout << "<== TFluka::TFluka(" << title << ") constructor called." << endl;
 }
 
 //____________________________________________________________________________ 
 void TFluka::Init() {
-#ifdef METHODDEBUG
-  cout << "==> TFluka::Init() called." << endl;
-#endif
+  if (fVerbosityLevel >=3)
+    cout << "==> TFluka::Init() called." << endl;
 
-  cout << "\t* Changing lfdrtr = (" << (GLOBAL.lfdrtr?'T':'F')
-       << ") in fluka..." << endl;
+  if (fVerbosityLevel >=2)
+    cout << "\t* Changing lfdrtr = (" << (GLOBAL.lfdrtr?'T':'F')
+	 << ") in fluka..." << endl;
   GLOBAL.lfdrtr = true;
 
-  cout << "\t* Opening file " << fInputFileName << endl;
+  if (fVerbosityLevel >=2)
+    cout << "\t* Opening file " << fInputFileName << endl;
   const char* fname = fInputFileName;
   fluka_openinp(lunin, PASSCHARA(fname));
 
-  cout << "\t* Calling flukam..." << endl;
+  if (fVerbosityLevel >=2)
+    cout << "\t* Calling flukam..." << endl;
   flukam(0);
 
-  cout << "\t* Closing file " << fInputFileName << endl;
+  if (fVerbosityLevel >=2)
+    cout << "\t* Closing file " << fInputFileName << endl;
   fluka_closeinp(lunin);
 
-#ifdef METHODDEBUG
-  cout << "<== TFluka::Init() called." << endl;
-#endif
+  if (fVerbosityLevel >=3)
+    cout << "<== TFluka::Init() called." << endl;
 }
 
 //____________________________________________________________________________ 
 void TFluka::ProcessEvent() {
-#ifdef METHODDEBUG
-  cout << "==> TFluka::ProcessEvent() called." << endl;
-#endif
+  if (fVerbosityLevel >=3)
+    cout << "==> TFluka::ProcessEvent() called." << endl;
 
-  cout << "\t* GLOBAL.fdrtr = " << (GLOBAL.lfdrtr?'T':'F') << endl;
-  cout << "\t* Calling flukam again..." << endl;
-  flukam(0);
-
-#ifdef METHODDEBUG
-  cout << "<== TFluka::ProcessEvent() called." << endl;
-#endif
+  if (fVerbosityLevel >=3)
+    cout << "<== TFluka::ProcessEvent() called." << endl;
 }
 
 //____________________________________________________________________________ 
 void TFluka::ProcessRun(Int_t nevent) {
-#ifdef METHODDEBUG
-  cout << "==> TFluka::ProcessRun(" << nevent << ") called." 
-       << endl;
-#endif
+  if (fVerbosityLevel >=3)
+    cout << "==> TFluka::ProcessRun(" << nevent << ") called." 
+	 << endl;
 
-  cout << "\t* fdrtr = (" << (GLOBAL.lfdrtr?'T':'F') << endl;
-  cout << "\t* Calling flukam again..." << endl;
+  if (fVerbosityLevel >=2) {
+    cout << "\t* GLOBAL.fdrtr = " << (GLOBAL.lfdrtr?'T':'F') << endl;
+    cout << "\t* Calling flukam again..." << endl;
+  }
+  gAlice->Generator()->Generate();
   flukam(0);
 
-#ifdef METHODDEBUG
-  cout << "<== TFluka::ProcessRun(" << nevent << ") called." 
-       << endl;
-#endif
+  if (fVerbosityLevel >=3)
+    cout << "<== TFluka::ProcessRun(" << nevent << ") called." 
+	 << endl;
 }
