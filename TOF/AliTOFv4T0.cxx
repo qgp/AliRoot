@@ -93,6 +93,7 @@ AliTOFv4T0::AliTOFv4T0(const char *name, const char *title)
       cout << " TOF with Holes for PHOS " << endl;
       fTOFHoles=true;}      
   }
+  fTOFGeometry->SetHoles(fTOFHoles);
 } 
 
 //____________________________________________________________________________
