@@ -18,11 +18,12 @@ Int_t AliTPCFindClusters(Int_t N=-1)
    
    if (gAlice)
     {
-     delete gAlice;
-     gAlice = 0x0;
+      delete gAlice->GetRunLoader();
+      delete gAlice;//if everything was OK here it is already NULL
+      gAlice = 0x0;
     }
     
-   rl = AliRunLoader::Open("galice.root");
+   AliRunLoader* rl = AliRunLoader::Open("galice.root");
    if (rl == 0x0)
     {
       cerr<<"Can not open session"<<endl;

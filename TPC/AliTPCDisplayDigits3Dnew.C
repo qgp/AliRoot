@@ -148,7 +148,7 @@ Int_t AliTPCDisplayDigits3Dnew(Int_t eventn=0, Int_t noiseth=15, Bool_t sdigits=
        pmSignal->SetMarkerStyle(1);
        pmSignal->Draw();
        all0+=imarSignal;
-       cout<<"imarSignal ="<<imarSignal<<"   imarBgr ="<<imarBgr<<"   ncl ="<<ncl<<endl;
+//       cout<<"imarSignal ="<<imarSignal<<"   imarBgr ="<<imarBgr<<"   ncl ="<<ncl<<endl;
    }
    printf("%d\n",all0);
    

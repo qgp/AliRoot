@@ -19,7 +19,11 @@ Int_t AliITSDigits2RecPoints(TString filename="galice.root"){
     if (gClassTable->GetID("AliRun") < 0) {
      gROOT->LoadMacro("loadlibs.C");
      loadlibs();
-    } // end if
+    }else if (gAlice){
+      delete gAlice->GetRunLoader();
+      delete gAlice;
+      gAlice=0;
+     } // end if
 
     TStopwatch timer;
 #ifdef DEBUG

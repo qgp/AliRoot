@@ -17,6 +17,7 @@ Int_t AliTPCFindTracks(Int_t N=-1) {
 
    if (gAlice)
     {
+     delete gAlice->GetRunLoader();
      delete gAlice;
      gAlice = 0x0;
     }

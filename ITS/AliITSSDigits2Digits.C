@@ -9,8 +9,8 @@ void AliITSSDigits2Digits(TString inFile= "galice.root", TString outFile = "")
     TStopwatch timer;
     if(gAlice)
      {
-       AliRunLoader* rl = gAlice->GetAliRun();
-       delete rl;
+       delete gAlice->GetAliRun();
+       delete gAlice;
        gAlice = 0x0;
     } // end if gAlice
     cout << "Creating digits from summable digits for the ITS..." << endl;

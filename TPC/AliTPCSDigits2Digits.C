@@ -12,6 +12,13 @@ Int_t AliTPCSDigits2Digits(Int_t nevent=1)
   const char * inFile_old = "galice.root";
   const char * inFile_new = "galice.root";
 
+   if (gAlice)
+    {
+      delete gAlice->GetRunLoader();
+      delete gAlice;//if everything was OK here it is already NULL
+      gAlice = 0x0;
+    }
+
   TFile *file = (TFile*)gROOT->GetListOfFiles()->FindObject(inFile_old);
   if (file) {file->Close(); delete file;}
 
@@ -24,8 +31,6 @@ Int_t AliTPCSDigits2Digits(Int_t nevent=1)
 
   // Get AliRun object from file or create it if not on file
   //  if (gAlice) delete gAlice;
-  if (gAlice) delete gAlice;
-  gAlice = 0x0;
 
   rl->LoadgAlice();
 

@@ -20,6 +20,14 @@ Int_t AliTPCHits2SDigits(Int_t nevent=1)
 
   // Connect the Root Galice file containing Geometry, Kine and Hits
 
+  //it assures full cleaning of prevous session
+   if (gAlice)
+    {
+      delete gAlice->GetRunLoader();
+      delete gAlice;//if everything was OK here it is already NULL
+      gAlice = 0x0;
+    }
+
   AliRunLoader *rl = AliRunLoader::Open("galice.root","Event","update");
   if (!rl) 
    {
@@ -28,10 +36,6 @@ Int_t AliTPCHits2SDigits(Int_t nevent=1)
    }
 
   // Get AliRun object from file or create it if not on file
-  if (gAlice) delete gAlice;
-  gAlice = 0x0;
-  
-  cout<<"gAlice = "<<gAlice<<endl;
   
   rl->LoadgAlice();
  

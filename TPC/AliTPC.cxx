@@ -2216,7 +2216,7 @@ void AliTPC::MakeBranch(Option_t* option)
   //
   // Create Tree branches for the TPC.
   //
-  Info("MakeBranch","");
+  if(GetDebug()) Info("MakeBranch","");
   Int_t buffersize = 4000;
   char branchname[10];
   sprintf(branchname,"%s",GetName());
@@ -2435,7 +2435,7 @@ void AliTPC::MakeBranch2(Option_t *option,const char *file)
   // Create a new branch in the current Root Tree
   // The branch of fHits is automatically split
   // MI change 14.09.2000
-  Info("MakeBranch2","");
+  if(GetDebug()) Info("MakeBranch2","");
   if (fHitType<2) return;
   char branchname[10];
   sprintf(branchname,"%s2",GetName());  
@@ -2445,13 +2445,13 @@ void AliTPC::MakeBranch2(Option_t *option,const char *file)
   //
   if (fTrackHits   && TreeH() && cH && fHitType&4) 
    {
-    Info("MakeBranch2","Making branch for Type 4 Hits");
+    if(GetDebug()) Info("MakeBranch2","Making branch for Type 4 Hits");
     TreeH()->Branch(branchname,"AliTPCTrackHitsV2",&fTrackHits,fBufferSize,99);
    }	
 
   if (fTrackHitsOld   && TreeH() && cH && fHitType&2) 
    {    
-    Info("MakeBranch2","Making branch for Type 2 Hits");
+    if(GetDebug()) Info("MakeBranch2","Making branch for Type 2 Hits");
     AliObjectBranch * branch = new AliObjectBranch(branchname,"AliTPCTrackHits",&fTrackHitsOld, 
                                                    TreeH(),fBufferSize,99);
     TreeH()->GetListOfBranches()->Add(branch);
@@ -2469,7 +2469,7 @@ void AliTPC::SetTreeAddress2()
   //
   // Set branch address for the TrackHits Tree
   // 
-  Info("SetTreeAddress2","");
+  if(GetDebug()) Info("SetTreeAddress2","");
   
   TBranch *branch;
   char branchname[20];

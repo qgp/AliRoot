@@ -48,14 +48,15 @@ class AliTPCParam;
 AliRunLoader *rl = 0x0;
 AliTPCLoader *tpcl = 0x0;   
 AliTPCParam  *param = 0x0;
-
+Bool_t debug = kFALSE;
 Int_t AliBarrelReconstruction(Int_t n=1) 
  {
  
    if (gAlice)
     {
-     delete gAlice;
-     gAlice = 0x0;
+      delete gAlice->GetRunLoader();
+      delete gAlice;//if everything was OK here it is already NULL
+      gAlice = 0x0;
     }
     
    rl = AliRunLoader::Open("galice.root");
@@ -296,7 +297,7 @@ Int_t TPCSortTracks(const Char_t * outname,  Int_t eventn){
      
      //assign thacks GEANT labels
      cout<<"Running Tracker\n";
-     AliTPCtracker *tracker = new AliTPCtracker(param, AliConfig::fgkDefaultEventFolderName, event);
+     AliTPCtracker *tracker = new AliTPCtracker(param, event);
 
      cout<<"Load Sectors\n";
 
@@ -348,8 +349,6 @@ Int_t TPCSortTracks(const Char_t * outname,  Int_t eventn){
 Int_t ITSFindClusters(Int_t n) 
  {
    Int_t rc=0;
-   Float_t lp[5];
-   Int_t lab[4]; 
    const Char_t *name="ITSFindClusters";
    cerr<<'\n'<<name<<"...\n";
    gBenchmark->Start(name);
@@ -386,24 +385,29 @@ Int_t ITSFindClusters(Int_t n)
    {
 
      rl->GetEvent(ev);
-     TBranch *branch;
-     TTree *pTree;
+     TBranch *branch = 0x0;
+     TTree *pTree = 0x0;
      
-     if (itsl->LoadRecPoints("read"))
+     pTree=itsl->TreeR();
+     if (pTree == 0x0) 
       {
-        pTree=0x0;
-        branch=0x0;
-      }
-     else
-      {
+        itsl->LoadRecPoints("read");
         pTree=itsl->TreeR();
-        branch=(pTree)?pTree->GetBranch("ITSRecPoints"):0x0;
+        if (pTree == 0x0) 
+         {
+           ::Error("AliBarrelReonstruction.C::ITSFindClusters",
+                   "Can not get TreeR for event %d",ev);
+           return 1;
+         }
       }
+     
+     pTree=itsl->TreeR();
+     branch=(pTree)?pTree->GetBranch("ITSRecPoints"):0x0;
 
      if (branch== 0x0) {
        //if not reconstructed ITS branch do reconstruction 
-       ::Info("AliBarrelReconstruction.C","Did not get ITSRecPoints from TreeR.");
-       ::Info("AliBarrelReconstruction.C","Making branch and Producing RecPoints");
+       if (debug) ::Info("AliBarrelReconstruction.C","Did not get ITSRecPoints from TreeR.");
+       if (debug) ::Info("AliBarrelReconstruction.C","Making branch and Producing RecPoints");
        itsl->SetRecPointsFileOption("recreate");
        if (itsl->TreeR()==0x0) itsl->MakeTree("R");
        
@@ -472,12 +476,15 @@ Int_t ITSFindClusters(Int_t n)
        Int_t ncl=points->GetEntriesFast();
        nclusters+=ncl;
 
-       ::Info("AliBarrelReconstruction.C",
+       if (debug) ::Info("AliBarrelReconstruction.C",
               "i=%d lay=%d lad=%d det=%d NRP=%d",
                i,   lay,   lad,   det,   ncl);
 
        for (Int_t j=0; j<ncl; j++) 
-        {
+        { 
+          Float_t lp[5];
+          Int_t lab[4]; 
+
           AliITSRecPoint *p=(AliITSRecPoint*)points->UncheckedAt(j);
           lp[0]=-p->GetX()-yshift; if (lay==1) lp[0]=-lp[0];
           lp[1]=p->GetZ()+zshift;

@@ -18,9 +18,13 @@ Int_t AliITSHits2SDigits(TString  filename = "galice.root")
 
     // Dynamically link some shared libs
     if (gClassTable->GetID("AliRun") < 0) {
-       gROOT->LoadMacro("loadlibs.C");
-       loadlibs();
-    } // end if
+     gROOT->LoadMacro("loadlibs.C");
+     loadlibs();
+    } else if (gAlice){
+       delete gAlice->GetRunLoader();
+       delete gAlice;
+       gAlice=0;
+     }
 
     // Connect the Root Galice file containing Geometry, Kine and Hits
 

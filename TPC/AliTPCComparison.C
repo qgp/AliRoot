@@ -22,6 +22,8 @@ struct GoodTrackTPC {
   Float_t x,y,z;
 };
 
+Int_t good_tracks_tpc(GoodTrackTPC *gt, const Int_t max, const char* evfoldname);
+
 Int_t AliTPCComparison(Int_t event=0) {
 
    if (gAlice) 
@@ -38,7 +40,7 @@ Int_t AliTPCComparison(Int_t event=0) {
 
    gBenchmark->Start("AliTPCComparison");
 
-   AliRunLoader *rl = AliRunLoader::Open("galice.root");
+   AliRunLoader *rl = AliRunLoader::Open("galice.root","COMPARISON");
    if (!rl) 
      {
        cerr<<"Can't start sesion !\n";
@@ -104,7 +106,7 @@ Int_t AliTPCComparison(Int_t event=0) {
       if (!in.eof()) cerr<<"Read error (good_tracks_tpc) !\n";
    } else {
       cerr<<"Marking good tracks (this will take a while)...\n";
-      ngood=good_tracks_tpc(gt,MAX);
+      ngood=good_tracks_tpc(gt,MAX,"COMPARISON");
       ofstream out("good_tracks_tpc");
       if (out) {
          for (Int_t ngd=0; ngd<ngood; ngd++)            
