@@ -290,7 +290,7 @@ void Config()
 
     if (iCRT)
     {
-        //=================== CASTOR parameters ============================
+        //=================== CRT parameters ============================
 
         AliCRT *CRT = new AliCRTv0("CRT", "normal CRT");
     }

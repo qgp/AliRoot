@@ -8,7 +8,7 @@ void Config()
     // Set Random Number seed
     // gRandom->SetSeed(12345);
 
-    new     AliGeant3("C++ Interface to Geant3");
+    new     TGeant3("C++ Interface to Geant3");
 
     if (!gSystem->Getenv("CONFIG_FILE"))
     {
@@ -174,7 +174,7 @@ void Config()
      //Last number indicates the scale factor 
 
     Int_t   iABSO = 1;
-    Int_t   iCASTOR = 0;
+    Int_t   iCRT = 0;
     Int_t   iDIPO = 1;
     Int_t   iFMD = 0;
     Int_t   iFRAME = 1;
@@ -369,11 +369,11 @@ void Config()
         AliZDC *ZDC = new AliZDCv1("ZDC", "normal ZDC");
     }
 
-    if (iCASTOR)
+    if (iCRT)
     {
-        //=================== CASTOR parameters ============================
+        //=================== CRT parameters ============================
 
-        AliCASTOR *CASTOR = new AliCASTORv1("CASTOR", "normal CASTOR");
+        AliCRT *CRT = new AliCRTv1("CRT", "normal CRT");
     }
 
     if (iTRD)
