@@ -32,7 +32,7 @@ class AliPHOSClusterizerv1 : public AliPHOSClusterizer {
 public:
   
   AliPHOSClusterizerv1() ;         
-  AliPHOSClusterizerv1(const TString alirunFileNameFile, const TString eventFolderName = AliConfig::fgkDefaultEventFolderName);
+  AliPHOSClusterizerv1(const TString alirunFileNameFile, const TString eventFolderName = AliConfig::GetDefaultEventFolderName());
   AliPHOSClusterizerv1(const AliPHOSClusterizerv1 & clu) : AliPHOSClusterizer(clu) {
     // cpy ctor: no implementation yet
     // requested by the Coding Convention
@@ -56,7 +56,7 @@ public:
   virtual Float_t GetCpvLocalMaxCut()const        { return fCpvLocMaxCut;} 
   virtual Float_t GetCpvLogWeight()const          { return fW0CPV;}  
   virtual const char *  GetRecPointsBranch() const{ return GetName() ;}
-  virtual const Int_t GetRecPointsInRun() const   {return fRecPointsInRun ;} 
+  virtual Int_t   GetRecPointsInRun() const       {return fRecPointsInRun ;} 
 
   virtual void    Exec(Option_t *option);   // Does the job
 

@@ -175,6 +175,28 @@ void AliPHOSPIDv1::InitParameters()
   fRecParticlesInRun = 0 ;
   SetParameters() ; // fill the parameters matrix from parameters file
   SetEventRange(0,-1) ;
+
+  // response function parameters
+
+  fTphoton[0] = 0;
+  fTphoton[1] = 0;
+  fTphoton[2] = 0;
+  fTFphoton   = 0;
+
+  fTelectron[0] = 0;
+  fTelectron[1] = 0;
+  fTelectron[2] = 0;
+  fTFelectron   = 0;
+
+  fTchargedhadron[0] = 0;
+  fTchargedhadron[1] = 0;
+  fTchargedhadron[2] = 0;
+  fTFchargedhadron   = 0;
+
+  fTneutralhadron[0] = 0;
+  fTneutralhadron[1] = 0;
+  fTneutralhadron[2] = 0;
+  fTFneutralhadron   = 0;
 }
 
 //________________________________________________________________________

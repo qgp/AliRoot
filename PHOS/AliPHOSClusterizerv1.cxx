@@ -273,13 +273,12 @@ void AliPHOSClusterizerv1::GetCalibrationParameters()
   if ( !gime->Digitizer() ) 
     gime->LoadDigitizer();
   AliPHOSDigitizer * dig = gime->Digitizer(); 
-  
   fADCchanelEmc   = dig->GetEMCchannel() ;
   fADCpedestalEmc = dig->GetEMCpedestal();
   
   fADCchanelCpv   = dig->GetCPVchannel() ;
   fADCpedestalCpv = dig->GetCPVpedestal() ; 
-  
+
   //   fCalibrationDB = gime->CalibrationDB();
 }
 
@@ -439,12 +438,12 @@ void AliPHOSClusterizerv1::WriteRecPoints()
   
   //Now the same for CPV
   for(index = 0; index < cpvRecPoints->GetEntries(); index++)
-    dynamic_cast<AliPHOSRecPoint *>( cpvRecPoints->At(index) )->EvalAll(digits)  ;
+    dynamic_cast<AliPHOSCpvRecPoint *>( cpvRecPoints->At(index) )->EvalAll(fW0CPV,digits) ;
   
   cpvRecPoints->Sort() ;
   
   for(index = 0; index < cpvRecPoints->GetEntries(); index++)
-    dynamic_cast<AliPHOSRecPoint *>( cpvRecPoints->At(index) )->SetIndexInList(index) ;
+    dynamic_cast<AliPHOSCpvRecPoint *>( cpvRecPoints->At(index) )->SetIndexInList(index) ;
   
   cpvRecPoints->Expand(cpvRecPoints->GetEntriesFast()) ;
   
@@ -981,14 +980,14 @@ void AliPHOSClusterizerv1::PrintRecPoints(Option_t * option)
     printf("\n CPV clusters \n") ;
     printf("Index    Ene(MeV) Module     X     Y    Z  \n") ;      
     for (index = 0 ; index < cpvRecPoints->GetEntries() ; index++) {
-       AliPHOSRecPoint * rp = (AliPHOSRecPoint * )cpvRecPoints->At(index) ; 
-	
-       TVector3  locpos;  
-       rp->GetLocalPosition(locpos);
-	
-       printf("\n%6d  %8.2f  %2d     %4.1f    %4.1f %4.1f \n", 
-		rp->GetIndexInList(), rp->GetEnergy(), rp->GetPHOSMod(), 
-		locpos.X(), locpos.Y(), locpos.Z()) ; 
+      AliPHOSCpvRecPoint * rp = (AliPHOSCpvRecPoint * )cpvRecPoints->At(index) ; 
+      
+      TVector3  locpos;  
+      rp->GetLocalPosition(locpos);
+      
+      printf("\n%6d  %8.2f  %2d     %4.1f    %4.1f %4.1f \n", 
+	     rp->GetIndexInList(), rp->GetEnergy(), rp->GetPHOSMod(), 
+	     locpos.X(), locpos.Y(), locpos.Z()) ; 
     }
   }
 }

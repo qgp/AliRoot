@@ -17,6 +17,7 @@
 
 class TClonesArray;
 #include "TParticle.h"
+#include "AliESDtrack.h" 
 
 // --- Standard library ---
 
@@ -96,9 +97,11 @@ class AliPHOSFastRecParticle : public TParticle {
   Int_t fIndexInList ; // the index of this RecParticle in the list stored in TreeR (to be set by analysis)
   Float_t fTof ;       // time of fliht
   Int_t fType ;        // particle type obtained by "virtual" reconstruction
+  Double_t fPID[AliESDtrack::kSPECIESN] ; // PID probability densities
+
  private:
 
-  ClassDef(AliPHOSFastRecParticle,3)  // Reconstructed Particle produced by the fast simulation 
+  ClassDef(AliPHOSFastRecParticle,4)  // Reconstructed Particle produced by the fast simulation 
 
 };
 

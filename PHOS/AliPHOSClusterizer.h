@@ -24,7 +24,7 @@ class AliPHOSClusterizer : public TTask {
 public:
 
   AliPHOSClusterizer() ;        // default ctor
-  AliPHOSClusterizer(const TString alirunFileName, const TString eventFolderName = AliConfig::fgkDefaultEventFolderName) ;
+  AliPHOSClusterizer(const TString alirunFileName, const TString eventFolderName = AliConfig::GetDefaultEventFolderName()) ;
   AliPHOSClusterizer(const AliPHOSClusterizer & clusterizer) : TTask(clusterizer) { ; }
   virtual ~AliPHOSClusterizer() ; // dtor
   virtual Float_t GetEmcClusteringThreshold()const {Warning("GetEmcClusteringThreshold", "Not Defined" ) ; return 0. ; }  
@@ -34,7 +34,7 @@ public:
   virtual Float_t GetCpvClusteringThreshold()const {Warning("GetCpvClusteringThreshold", "Not Defined" ) ; return 0. ; } 
   virtual Float_t GetCpvLocalMaxCut()const {Warning("GetCpvLocalMaxCut", "Not Defined" ) ; return 0. ; } 
   virtual Float_t GetCpvLogWeight()const {Warning("GetCpvLogWeight", "Not Defined" ) ; return 0. ; } 
-  virtual const Int_t GetRecPointsInRun()  const {Warning("GetRecPointsInRun", "Not Defined" ) ; return 0 ; } 
+  virtual Int_t GetRecPointsInRun()  const {Warning("GetRecPointsInRun", "Not Defined" ) ; return 0 ; } 
 
   virtual void MakeClusters() {Warning("MakeClusters", "Not Defined" ) ; } 
   virtual void Print()const {Warning("Print", "Not Defined" ) ; } 
