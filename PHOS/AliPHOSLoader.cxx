@@ -88,6 +88,7 @@ const TString AliPHOSLoader::fgkRecParticlesName("RECPARTICLES");//Name for TClo
 
 const TString AliPHOSLoader::fgkEmcRecPointsBranchName("PHOSEmcRP");//Name for branch with EMC Reconstructed Points
 const TString AliPHOSLoader::fgkCpvRecPointsBranchName("PHOSCpvRP");//Name for branch with CPV Reconstructed Points
+const TString AliPHOSLoader::fgkTrackSegmentsBranchName("PHOSTS");//Name for branch with TrackSegments
 const TString AliPHOSLoader::fgkRecParticlesBranchName("PHOSRP");//Name for branch with Reconstructed Particles
 //____________________________________________________________________________ 
 AliPHOSLoader::AliPHOSLoader()
@@ -129,12 +130,6 @@ Int_t AliPHOSLoader::SetEvent()
 //Cleans loaded stuff and and sets Files and Directories
 // do not post any data to folder/tasks
 
-  //Bool_t tmp = fRecParticlesLoaded;
-  //  Bool_t checkreltracks = GetTracksDataLoader()->CheckReload();
- //  if ( (checkreltracks)&& (fRecParticlesLoaded))
-//    {
-//     UnloadRecParticles();
-//    }
 
  Int_t retval = AliLoader::SetEvent();
   if (retval)
@@ -152,7 +147,6 @@ Int_t AliPHOSLoader::SetEvent()
   if (TrackSegments()) TrackSegments()->Clear();
   if (RecParticles()) RecParticles()->Clear();
    
-  //fRecParticlesLoaded = tmp;
   return 0;
 }
 //____________________________________________________________________________ 
@@ -179,20 +173,6 @@ Int_t AliPHOSLoader::GetEvent()
   if (GetTracksDataLoader()->GetBaseDataLoader()->IsLoaded()) ReadTracks();
   if (GetRecParticlesDataLoader()->GetBaseDataLoader()->IsLoaded()) ReadRecParticles();
 
-//   if (fRecParticlesLoaded) 
-//    {//if yes
-//     AliBaseLoader* tracktreeloader = GetTracksDataLoader()->GetBaseLoader(0);
-//     if (tracktreeloader->IsLoaded() == kFALSE) //check if file is opened (tracks loaded)
-//      {
-//        retval = tracktreeloader->Load(fRecParticlesFileOption);//if not load the tracks (this method loads only tree, so not too much for us)
-//        if (retval)
-//         {
-//          Error("GetEvent","Load Tracks returned error");
-//          return retval;
-//         }
-//      }
-//     return ReadRecParticles();//now we can 
-//    }
 
 //Now, check if RecPart were loaded  
   return 0;
@@ -696,10 +676,10 @@ Int_t AliPHOSLoader::ReadTracks()
      return 0;
    }
   
-  TBranch * branch = treeT->GetBranch(fDetectorName);
+  TBranch * branch = treeT->GetBranch(fgkTrackSegmentsBranchName);
   if (branch == 0) 
    {//easy, maybe just a new tree
-    Error("ReadTracks"," Cannot find branch named %s",fDetectorName.Data());
+    Error("ReadTracks"," Cannot find branch named %s",fgkTrackSegmentsBranchName.Data());
     return 0;
   }
 
@@ -721,22 +701,19 @@ Int_t AliPHOSLoader::ReadRecParticles()
   if ( recpartref == 0x0 )   
    {//Create and post array
     MakeRecParticlesArray();
-    //recpartref = TracksRef();
     recpartref = RecParticlesRef();
    }
 
-  //TTree * treeT = TreeT();
   TTree * treeP = TreeP();
-  //if(treeT==0)
   if(treeP==0)
    {
-     //May happen if file is truncated or new in LoadSDigits, or the file is in update mode, 
+     //May happen if file is truncated or new in LoadSDigits, 
+     //or the file is in update mode, 
      //but tracking was not performed yet for a current event
-     Error("ReadRecParticles","There is no Tree with Tracks and Reconstructed Particles");
+     //     Error("ReadRecParticles","There is no Tree with Tracks and Reconstructed Particles");
      return 0;
    }
   
-  //TBranch * branch = treeT->GetBranch(fgkRecParticlesBranchName);
   TBranch * branch = treeP->GetBranch(fgkRecParticlesBranchName);
   if (branch == 0) 
    {//easy, maybe just a new tree
@@ -750,18 +727,6 @@ Int_t AliPHOSLoader::ReadRecParticles()
   return 0;
 }
 
-//____________________________________________________________________________ 
-// Int_t AliPHOSLoader::WriteRecParticles(Option_t* opt)
-// {
-//  return WriteTracks(opt);
-// }
-// //____________________________________________________________________________ 
-
-// Int_t AliPHOSLoader::WritePID(Option_t* opt)
-// {
-//  return 0;
-// }
-/***************************************************************************************/
 
 AliPHOSGeometry* AliPHOSLoader::GetPHOSGeometry()
 {
@@ -815,12 +780,12 @@ Bool_t AliPHOSLoader::BranchExists(const TString& recName)
       else
        if(recName == "TrackSegments"){
          tree = TreeT();
-         dataname = GetDetectorName();
+         dataname = fgkTrackSegmentsBranchName;
          zername = "AliPHOSTrackSegmentMaker";
        }        
        else
          if(recName == "RecParticles"){
-           tree = TreeT();
+           tree = TreeP();
            dataname = fgkRecParticlesBranchName;
            zername = "AliPHOSPID";
          }
@@ -912,9 +877,7 @@ void AliPHOSLoader::CleanTracks()
 
 void AliPHOSLoader::CleanRecParticles()
  {
- //   TClonesArray *arr = RecParticles();
-//    if (arr) arr->Clear();
-//   AliLoader::CleanRecParticles();
+
    TClonesArray *recpar = RecParticles();
    if (recpar) recpar->Clear();
   

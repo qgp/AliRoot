@@ -188,9 +188,7 @@ void AliPHOSPIDv1::Init()
 
 //   TString branchname(GetName()) ;
 //   branchname.Remove(branchname.Index(Version())-1) ;    
-  Info("Init"," %s \n \n \n ",fEventFolderName.Data());
-  Info("Init"," %s \n \n \n ",fEventFolderName.Data());
-  Info("Init"," %s \n \n \n ",fEventFolderName.Data());
+ 
   AliPHOSGetter * gime = AliPHOSGetter::Instance( GetTitle(), fEventFolderName.Data()) ; 
 
   //  gime->SetRecParticlesTitle(BranchName()) ;
@@ -916,7 +914,7 @@ void  AliPHOSPIDv1::WriteRecParticles(Int_t event)
   //second, pid
   Int_t splitlevel = 0 ; 
   AliPHOSPIDv1 * pid = this ;
-  TBranch * pidBranch = treeP->Branch("AliPHOSPID","AliPHOSPIDv1",&pid,bufferSize,splitlevel);
+  TBranch * pidBranch = treeP->Branch("PHOSPIDTask","AliPHOSPIDv1",&pid,bufferSize,splitlevel);
   pidBranch->SetTitle(BranchName());
   
   rpBranch->Fill() ;

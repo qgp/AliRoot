@@ -217,6 +217,7 @@ private:
 
   static const TString fgkEmcRecPointsBranchName;//Name for branch
   static const TString fgkCpvRecPointsBranchName;//Name for branch
+  static const TString fgkTrackSegmentsBranchName;//Name for branch
   static const TString fgkRecParticlesBranchName;//Name for branch
   
   ClassDef(AliPHOSLoader,2)  // Algorithm class that provides methods to retrieve objects from a list knowing the index 
