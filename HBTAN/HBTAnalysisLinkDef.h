@@ -43,6 +43,7 @@
 #pragma link C++ class AliHBTQtCorrelFctn+;
 
 #pragma link C++ class AliHBTAvSeparCorrelFctn+;
+#pragma link C++ class AliHBTAvSeparVsQInvCorrelFctn+;
 
 #pragma link C++ class AliHBTasCorrFctn+; //gg
 #pragma link C++ class AliHBTQOutasCorrFctn+;

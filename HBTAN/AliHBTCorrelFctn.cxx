@@ -257,3 +257,24 @@ TH1* AliHBTAvSeparCorrelFctn::GetResult()
 }
 
 /*************************************************************************************/ 
+
+ClassImp(AliHBTAvSeparVsQInvCorrelFctn)
+
+AliHBTAvSeparVsQInvCorrelFctn::AliHBTAvSeparVsQInvCorrelFctn(Int_t nXbins, Double_t maxXval, Double_t minXval,
+                                                             Int_t nYbins, Double_t maxYval, Double_t minYval):
+ AliHBTOnePairFctn2D(nXbins,maxXval,minXval,nYbins,maxYval,minYval)
+{
+ //ctor 
+ fWriteNumAndDen = kTRUE;//change default behaviour
+ Rename("avsepvsqinv","Avarage Separation VS Q_{inv} Correlation Function");
+}
+
+
+TH1* AliHBTAvSeparVsQInvCorrelFctn::GetResult()
+{  
+ //returns the scaled ratio
+ delete fRatio;
+ fRatio = GetRatio(Scale());
+ return fRatio;
+}
+
