@@ -8,6 +8,6 @@
 #include "TVirtualMC.h"
 
 typedef TVirtualMC  AliMC;
-typedef TMCGeomType AliMCGeomType;
 
 #endif //ALI_MC__H
+

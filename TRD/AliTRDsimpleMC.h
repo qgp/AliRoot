@@ -222,7 +222,7 @@ class AliTRDsimpleMC : public AliMC {
   virtual void          BuildPhysics()                                                    { };
   virtual void          ProcessEvent();
   virtual void          ProcessRun(Int_t nevent)                                          { };
-  virtual AliMCGeomType     GetMCGeomType() const { return kGeant3; }
+  //virtual AliMCGeomType     GetMCGeomType() const { return kGeant3; }
 
   // External Decayer
   virtual void          SetExternalDecayer(AliDecayer* decayer)                           { };
@@ -261,3 +261,4 @@ class AliTRDsimpleMC : public AliMC {
  
 };
 #endif                                                                          
+
