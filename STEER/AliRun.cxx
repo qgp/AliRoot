@@ -408,7 +408,7 @@ void AliRun::SetField(Int_t type, Int_t version, Float_t scale,
 void AliRun::InitLoaders()
 {
   //creates list of getters
-  Info("InitLoaders","");
+  if (GetDebug()) Info("InitLoaders","");
   TIter next(fModules);
   AliModule *mod;
   while((mod = (AliModule*)next()))
@@ -416,11 +416,11 @@ void AliRun::InitLoaders()
      AliDetector *det = dynamic_cast<AliDetector*>(mod);
      if (det) 
       {
-        Info("InitLoaders"," Adding %s ",det->GetName());
+        if (GetDebug()) Info("InitLoaders"," Adding %s ",det->GetName());
         fRunLoader->AddLoader(det);
       }
    }
-  Info("InitLoaders","Done");
+  if (GetDebug()) Info("InitLoaders","Done");
 }
 //_____________________________________________________________________________
 
@@ -433,7 +433,7 @@ void AliRun::FinishRun()
   
   if(fLego) 
    {
-    Info("FinishRun"," Finish Lego");
+    if (GetDebug()) Info("FinishRun"," Finish Lego");
     fRunLoader->CdGAFile();
     fLego->FinishRun();
    }
@@ -442,29 +442,28 @@ void AliRun::FinishRun()
   TIter next(fModules);
   AliModule *detector;
   while((detector = dynamic_cast<AliModule*>(next()))) {
-    Info("FinishRun"," %s->FinishRun()",detector->GetName());
+    if (GetDebug()) Info("FinishRun"," %s->FinishRun()",detector->GetName());
     detector->FinishRun();
   }
   
   //Output energy summary tables
-  Info("FinishRun"," EnergySummary()");
+  if (GetDebug()) Info("FinishRun"," EnergySummary()");
   EnergySummary();
   
-  Info("FinishRun"," fRunLoader->WriteHeader(OVERWRITE)");
+  if (GetDebug()) Info("FinishRun"," fRunLoader->WriteHeader(OVERWRITE)");
   fRunLoader->WriteHeader("OVERWRITE");
-  
-  // Write AliRun info and all detectors parameters
 
+  // Write AliRun info and all detectors parameters
   fRunLoader->CdGAFile();
   Write(0,TObject::kOverwrite);//write AliRun
   fRunLoader->Write(0,TObject::kOverwrite);//write RunLoader itself
   
   // Clean tree information
-  Info("FinishRun"," fRunLoader->Stack()->FinishRun()");
+  if (GetDebug()) Info("FinishRun"," fRunLoader->Stack()->FinishRun()");
   fRunLoader->Stack()->FinishRun();
 
   // Clean detector information
-  Info("FinishRun"," fGenerator->FinishRun()");
+  if (GetDebug()) Info("FinishRun"," fGenerator->FinishRun()");
   fGenerator->FinishRun();
 }
 
@@ -862,14 +861,17 @@ void AliRun::BeginEvent()
 {
   //
   // Clean-up previous event
-  // Energy scores  
-  Info("BeginEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-  Info("BeginEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-  Info("BeginEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-  Info("BeginEvent","          BEGINNING EVENT               ");
-  Info("BeginEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-  Info("BeginEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-  Info("BeginEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+  // Energy scores
+  if (GetDebug()) 
+   {
+     Info("BeginEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+     Info("BeginEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+     Info("BeginEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+     Info("BeginEvent","          BEGINNING EVENT               ");
+     Info("BeginEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+     Info("BeginEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+     Info("BeginEvent",">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+   }
     
   /*******************************/    
   /*   Clean after eventual      */
@@ -879,7 +881,7 @@ void AliRun::BeginEvent()
   
   //Set the next event in Run Loader -> Cleans trees (TreeK and all trees in detectors),
   fRunLoader->SetEventNumber(++fEventNrInRun);// sets new files, cleans the previous event stuff, if necessary, etc.,  
-  Info("BeginEvent","EventNr is %d",fEventNrInRun);
+  if (GetDebug()) Info("BeginEvent","EventNr is %d",fEventNrInRun);
      
   fEventEnergy.Reset();  
     // Clean detector information
@@ -889,9 +891,9 @@ void AliRun::BeginEvent()
   else
     fRunLoader->MakeStack();//or make a new one
     
-  Info("BeginEvent","  fRunLoader->MakeTree(K)");
+  if (GetDebug()) Info("BeginEvent","  fRunLoader->MakeTree(K)");
   fRunLoader->MakeTree("K");
-  Info("BeginEvent","  gMC->SetStack(fRunLoader->Stack())");
+  if (GetDebug()) Info("BeginEvent","  gMC->SetStack(fRunLoader->Stack())");
   gMC->SetStack(fRunLoader->Stack());//Was in InitMC - but was moved here 
                                      //because we don't have guarantee that 
                                      //stack pointer is not going to change from event to event
@@ -903,12 +905,12 @@ void AliRun::BeginEvent()
   fRunLoader->GetHeader()->Reset(fRun,fEvent,fEventNrInRun);
   fRunLoader->WriteKinematics("OVERWRITE");
 
-  Info("BeginEvent","  fRunLoader->MakeTrackRefsContainer()");
+  if (GetDebug()) Info("BeginEvent","  fRunLoader->MakeTrackRefsContainer()");
   fRunLoader->MakeTrackRefsContainer();//for insurance
 
-  Info("BeginEvent","  ResetHits()");
+  if (GetDebug()) Info("BeginEvent","  ResetHits()");
   ResetHits();
-  Info("BeginEvent","  fRunLoader->MakeTree(H)");
+  if (GetDebug()) Info("BeginEvent","  fRunLoader->MakeTree(H)");
   fRunLoader->MakeTree("H");
 
   //
@@ -923,11 +925,11 @@ void AliRun::BeginEvent()
   AliModule *detector;
   while((detector = (AliModule*)next()))
    {
-    Info("BeginEvent","  %s->MakeBranch(H)",detector->GetName());
+    if (GetDebug()) Info("BeginEvent","  %s->MakeBranch(H)",detector->GetName());
     detector->MakeBranch("H"); 
-    Info("BeginEvent","  %s->MakeBranchTR()",detector->GetName());
+    if (GetDebug()) Info("BeginEvent","  %s->MakeBranchTR()",detector->GetName());
     detector->MakeBranchTR();
-    Info("BeginEvent","  %s->SetTreeAddress()",detector->GetName());
+    if (GetDebug()) Info("BeginEvent","  %s->SetTreeAddress()",detector->GetName());
     detector->SetTreeAddress();
    }
 }
@@ -1098,7 +1100,6 @@ void AliRun::RunMC(Int_t nevent, const char *setup)
   // a positive number of events will cause the finish routine
   // to be called
   //
-
   fEventsPerRun = nevent;
   // check if initialisation has been done
   if (!fInitDone) InitMC(setup);
@@ -1119,12 +1120,12 @@ void AliRun::RunReco(const char *selected, Int_t first, Int_t last)
   // Main function to be called to reconstruct Alice event
   // 
    Int_t nev = fRunLoader->GetNumberOfEvents();
-   Info("RunReco","Found %d events",nev);
+   if (GetDebug()) Info("RunReco","Found %d events",nev);
    Int_t nFirst = first;
    Int_t nLast  = (last < 0)? nev : last;
    
    for (Int_t nevent = nFirst; nevent <= nLast; nevent++) {
-     Info("RunReco","Processing event %d",nevent);
+     if (GetDebug()) Info("RunReco","Processing event %d",nevent);
      GetEvent(nevent);
      Digits2Reco(selected);
    }
@@ -1183,7 +1184,7 @@ void AliRun::Tree2Tree(Option_t *option, const char *selected)
        
        if (oS) 
         {
-          Info("Tree2Tree","Processing Hits2SDigits for %s ...",detector->GetName());
+          if (GetDebug()) Info("Tree2Tree","Processing Hits2SDigits for %s ...",detector->GetName());
           loader->LoadHits("read");
           if (loader->TreeS() == 0x0) loader->MakeTree("S");
           detector->MakeBranch(option);
@@ -1194,7 +1195,7 @@ void AliRun::Tree2Tree(Option_t *option, const char *selected)
         }  
        if (oD) 
         {
-          Info("Tree2Tree","Processing SDigits2Digits for %s ...",detector->GetName());
+          if (GetDebug()) Info("Tree2Tree","Processing SDigits2Digits for %s ...",detector->GetName());
           loader->LoadSDigits("read");
           if (loader->TreeD() == 0x0) loader->MakeTree("D");
           detector->MakeBranch(option);
@@ -1205,7 +1206,7 @@ void AliRun::Tree2Tree(Option_t *option, const char *selected)
         } 
        if (oR) 
         {
-          Info("Tree2Tree","Processing Digits2Reco for %s ...",detector->GetName());
+          if (GetDebug()) Info("Tree2Tree","Processing Digits2Reco for %s ...",detector->GetName());
           loader->LoadDigits("read");
           if (loader->TreeR() == 0x0) loader->MakeTree("R");
           detector->MakeBranch(option);
@@ -1375,7 +1376,7 @@ void  AliRun::ConstructGeometry()
     TStopwatch stw;
     TIter next(fModules);
     AliModule *detector;
-    Info("ConstructGeometry","Geometry creation:");
+    if (GetDebug()) Info("ConstructGeometry","Geometry creation:");
     while((detector = dynamic_cast<AliModule*>(next()))) {
       stw.Start();
       // Initialise detector materials and geometry
@@ -1567,14 +1568,16 @@ void AliRun::FinishEvent()
   fRunLoader->WriteTrackRefs("OVERWRITE");
   fRunLoader->WriteHits("OVERWRITE");
 
-  Info("FinishEvent","<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
-  Info("FinishEvent","<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
-  Info("FinishEvent","<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
-  Info("FinishEvent","          FINISHING EVENT               ");
-  Info("FinishEvent","<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
-  Info("FinishEvent","<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
-  Info("FinishEvent","<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
-  
+  if (GetDebug()) 
+   { 
+     Info("FinishEvent","<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+     Info("FinishEvent","<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+     Info("FinishEvent","<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+     Info("FinishEvent","          FINISHING EVENT               ");
+     Info("FinishEvent","<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+     Info("FinishEvent","<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+     Info("FinishEvent","<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+   }
 }
 
 //_______________________________________________________________________
@@ -1702,7 +1705,7 @@ void AliRun::SetRunLoader(AliRunLoader* rloader)
          }
         else
          {
-           Info("SetRunLoader","Setting loader for detector %s",detector->GetName());
+           if (GetDebug()) Info("SetRunLoader","Setting loader for detector %s",detector->GetName());
            detector->SetLoader(loader);
          }
       }
@@ -1715,7 +1718,7 @@ void AliRun::AddModule(AliModule* mod)
   if (strlen(mod->GetName()) == 0) return;
   if (GetModuleID(mod->GetName()) >= 0) return;
   
-  Info("AddModule","%s",mod->GetName());
+  if (GetDebug()) Info("AddModule","%s",mod->GetName());
   if (fRunLoader == 0x0) AliConfig::Instance()->Add(mod);
   else AliConfig::Instance()->Add(mod,fRunLoader->GetEventFolder()->GetName());
 

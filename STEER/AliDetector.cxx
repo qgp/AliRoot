@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.16.6.8  2002/12/11 10:00:34  hristov
+Merging with v3-09-04 (P.Skowronski)
+
 Revision 1.16.6.7  2002/11/26 16:32:46  hristov
 Merging NewIO with v3-09-04
 
@@ -260,7 +263,7 @@ MakeBranchInTree(TTree *tree, const char* name, const char *classname,
 //
 //
 // if (GetDebug()>1)
- Info("MakeBranch","Making Branch %s",name);
+ if(GetDebug()) Info("MakeBranch","Making Branch %s",name);
  if (tree == 0x0) 
   {
    Error("MakeBranch","Making Branch %s Tree is NULL",name);
@@ -269,7 +272,7 @@ MakeBranchInTree(TTree *tree, const char* name, const char *classname,
  TBranch *branch = tree->GetBranch(name);
  if (branch) 
   {  
-    Info("MakeBranch","Branch %s is already in tree.",name);
+    if(GetDebug()) Info("MakeBranch","Branch %s is already in tree.",name);
     return branch;
   }
     
@@ -281,7 +284,7 @@ MakeBranchInTree(TTree *tree, const char* name, const char *classname,
   {
     branch = tree->Branch(name,address,size);
   }
- Info("MakeBranch","Branch %s returning branch %#x",name,branch);
+ if(GetDebug()) Info("MakeBranch","Branch %s returning branch %#x",name,branch);
  return branch;
 }
 
@@ -514,7 +517,7 @@ void AliDetector::MakeBranch(Option_t *option)
   // Create a new branch for this detector in its treeH
   //
 
-  Info("MakeBranch"," for %s",GetName());
+  if(GetDebug()) Info("MakeBranch"," for %s",GetName());
   const char *cH = strstr(option,"H");
 
   if (fHits && TreeH() && cH) 
@@ -527,7 +530,7 @@ void AliDetector::MakeBranchTR(Option_t *option)
 {
   //
   //
-  Info("MakeBranchTR","Making Track Refs. Branch for %s",GetName());
+  if(GetDebug()) Info("MakeBranchTR","Making Track Refs. Branch for %s",GetName());
   TTree * tree = fLoader->GetRunLoader()->TreeTR();
   if (fTrackReferences && tree) 
    {
@@ -535,7 +538,7 @@ void AliDetector::MakeBranchTR(Option_t *option)
    }
   else
   {
-    Info("MakeBranchTR","FAILED for %s: tree=%#x fTrackReferences=%#x",
+    if(GetDebug()) Info("MakeBranchTR","FAILED for %s: tree=%#x fTrackReferences=%#x",
          GetName(),tree,fTrackReferences);
   }
 }
@@ -598,7 +601,7 @@ void AliDetector::SetTreeAddress()
     branch = tree->GetBranch(GetName());
     if (branch) 
      {
-       Info("SetTreeAddress","(%s) Setting for Hits",GetName());
+       if(GetDebug()) Info("SetTreeAddress","(%s) Setting for Hits",GetName());
        branch->SetAddress(&fHits);
      }
     else
@@ -612,7 +615,7 @@ void AliDetector::SetTreeAddress()
     branch = tree->GetBranch(GetName());
     if (branch) 
      {
-       Info("SetTreeAddress","(%s) Setting for TrackRefs",GetName());
+       if(GetDebug()) Info("SetTreeAddress","(%s) Setting for TrackRefs",GetName());
        branch->SetAddress(&fTrackReferences);
      }
     else

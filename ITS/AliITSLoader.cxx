@@ -78,14 +78,18 @@ Int_t AliITSLoader::SetEvent() {
      if (CheckReload(fRawClustersInfo.File(),fRawClustersInfo.FileName()))
       {
         UnloadRawClusters();
-        Info("SetEvent","Reloading new file for Raw Clusters. file opt is %s",
+ 
+        if (GetDebug()) 
+         Info("SetEvent","Reloading new file for Raw Clusters. file opt is %s",
               fRawClustersInfo.FileOption().Data());
+ 
         OpenRawClustersFile(fRawClustersInfo.FileOption());
       }
      fRawClustersInfo.Directory() = ChangeDir(fRawClustersInfo.File(),evno);
      if (fRawClustersInfo.Directory() == 0x0)
         {
-          Error("SetEvent","Can not chage directory to file %s",fRawClustersInfo.File()->GetName());
+          Error("SetEvent","Can not chage directory to file %s",
+                fRawClustersInfo.File()->GetName());
           return 1;
         }
    }

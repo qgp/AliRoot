@@ -15,7 +15,8 @@ AliTPCLoader::AliTPCLoader()
 AliTPCLoader::AliTPCLoader(const Char_t *name,const Char_t *topfoldername)
  :AliLoader(name,topfoldername)
 {
-  Info("AliTPCLoader"," name = %s; topfolder = %s",name,topfoldername);
+  if (GetDebug()) 
+   Info("AliTPCLoader"," name = %s; topfolder = %s",name,topfoldername);
 }
 /*****************************************************************************/ 
 

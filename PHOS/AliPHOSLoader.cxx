@@ -276,7 +276,7 @@ Int_t AliPHOSLoader::LoadRecPoints(Option_t* opt)
 Int_t  AliPHOSLoader::LoadTracks(Option_t* opt)
 {
  //Loads Tracks: Open File, Reads Tree and posts, Read Data and Posts
- Info("LoadTracks","opt = %s",opt);
+ if (GetDebug()) Info("LoadTracks","opt = %s",opt);
  if (fTracksLoaded)
   {
     Warning("LoadTracks","Tracks are already loaded");
@@ -739,7 +739,7 @@ Int_t AliPHOSLoader::LoadRecParticles(Option_t* opt)
  
  //if Tracks File is Opened and the option of the track
  
- Info("LoadRecParticles","opt = %s",opt);
+ if (GetDebug()) Info("LoadRecParticles","opt = %s",opt);
  if (fRecParticlesLoaded) 
   {
    Warning("LoadRecParticles","Reconstructed Particles already loaded");
@@ -789,11 +789,13 @@ Int_t AliPHOSLoader::WriteRecParticles(Option_t* opt)
  return WriteTracks(opt);
 }
 //____________________________________________________________________________ 
+
 Int_t AliPHOSLoader::WritePID(Option_t* opt)
 {
  return 0;
 }
-/********************************************************************************************************/
+/***************************************************************************************/
+
 AliPHOSGeometry* AliPHOSLoader::GetPHOSGeometry()
 {
 //returns PHOS geometry from gAlice 
@@ -805,7 +807,8 @@ AliPHOSGeometry* AliPHOSLoader::GetPHOSGeometry()
   return 0x0;
  return phos->GetGeometry();
 }
-/********************************************************************************************************/
+/***************************************************************************************/
+
 AliPHOSLoader* AliPHOSLoader::GetPHOSLoader(const  char* eventfoldername)
 {
   AliRunLoader* rn  = AliRunLoader::GetRunLoader(eventfoldername);
@@ -817,7 +820,8 @@ AliPHOSLoader* AliPHOSLoader::GetPHOSLoader(const  char* eventfoldername)
    }
   return dynamic_cast<AliPHOSLoader*>(rn->GetLoader("PHOSLoader"));
 }
-/********************************************************************************************************/
+/***************************************************************************************/
+
 Bool_t AliPHOSLoader::BranchExists(const TString& recName)
  {
   if (fBranchTitle.IsNull()) return kFALSE;

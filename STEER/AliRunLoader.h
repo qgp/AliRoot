@@ -115,6 +115,8 @@ class AliRunLoader: public TNamed
     
     void        RemoveEventFolder(); //remove folder structure from top folder 
     void        SetCompressionLevel(Int_t cl);
+    void        SetKineComprLevel(Int_t cl);
+    void        SetTrackRefsComprLevel(Int_t cl);
 
     TFolder*    GetEventFolder() const {return fEventFolder;}
     void        CdGAFile();
@@ -129,7 +131,7 @@ class AliRunLoader: public TNamed
                                                                //made on Jiri Chudoba demand
 
     const TObjArray* GetArrayOfLoaders() const {return fLoaders;}
-    
+    Int_t GetDebug() const {return (Int_t)AliLoader::fgkDebug;}
     
   protected:
     /**********************************************/
@@ -168,7 +170,7 @@ class AliRunLoader: public TNamed
     Int_t          OpenKineFile(Option_t* opt);
     Int_t          OpenTrackRefsFile(Option_t* opt);
 
-    Int_t          OpenDataFile(const TString& filename,TFile*& file,TDirectory*& dir,Option_t* opt);
+    Int_t          OpenDataFile(const TString& filename,TFile*& file,TDirectory*& dir,Option_t* opt,Int_t cl);
     void           SetUnixDir(const TString& udirname);
     const TString  SetFileOffset(const TString& fname);//adds the proper number before .root
 

@@ -26,8 +26,6 @@
 //  Add(AliDetector*) calls Add(AliModule*) as AliDetector is a AliModule
 //  as well and should be listed in module list
 
-#include <Riostream.h>
-
 #include <TDatabasePDG.h>
 #include <TFolder.h>
 #include <TInterpreter.h>
@@ -41,6 +39,7 @@
 #include "AliConfig.h"
 #include "AliDetector.h"
 #include "AliGenerator.h" 
+#include "AliLoader.h"
 
 enum 
  {
@@ -231,12 +230,12 @@ Int_t AliConfig::AddSubTask(const char *taskname, const char* name,const char* t
 //Create new task named 'name' and titled 'title' 
 //as a subtask of the task named 'taskname'
 
-   Info("AddSubTask","Try to get folder named %s",taskname);
+   if (AliLoader::fgkDebug) Info("AddSubTask","Try to get folder named %s",taskname);
    TObject* obj = fTopFolder->FindObject(taskname);
    TTask * task = (obj)?dynamic_cast<TTask*>(obj):0x0;
    if (task)
      {
-      Info("AddSubTask","          Got");
+      if (AliLoader::fgkDebug) Info("AddSubTask","          Got");
       TTask * subtask = static_cast<TTask*>(task->GetListOfTasks()->FindObject(name));
       if (!subtask) 
         {
@@ -293,8 +292,9 @@ void AliConfig::Add(AliModule* obj,const char* eventfolder)
   
   TString path(eventfolder);
   path = path + "/" + fgkModuleFolderName;
-  Info("Add(AliModule*)","module name = %s, Ev. Fold. Name is %s.",
-        obj->GetName(),eventfolder);
+  if (AliLoader::fgkDebug)
+    Info("Add(AliModule*)","module name = %s, Ev. Fold. Name is %s.",
+         obj->GetName(),eventfolder);
   AddInFolder(path, obj);
 }
 //____________________________________________________________________________
@@ -335,7 +335,8 @@ Int_t AliConfig::AddDetector(const char* evntfoldername,const char *name, const 
 
 void  AliConfig::Add(AliDetector * obj,const char* eventfolder)
 {
-  Info("Add(AliDetector*)","detector name = %s, Ev. Fold. Name is %s.",
+  if (AliLoader::fgkDebug) 
+    Info("Add(AliDetector*)","detector name = %s, Ev. Fold. Name is %s.",
         obj->GetName(),eventfolder);
 
   TObject* foundobj = GetTopFolder()->FindObject(eventfolder);
@@ -445,7 +446,7 @@ void    AliConfig::Add (char *list)
   token = strtok (list, " ");
   
   while (token != NULL)
-    {
+    { 
       Info("Add(char *list)","Configuring token=%s",token);
       
       TObject *obj;

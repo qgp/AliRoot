@@ -38,7 +38,7 @@ class AliLoaderDataInfo
    TString&     FileOption(){return fFileOption;}
    TString&     ContainerName(){return fContainerName;}
    TString&     Name(){return fName;}
-
+   Int_t&       CompressionLevel(){return fCompressionLevel;}
   private:
    TString      fFileName; //name of the file 
    TFile*       fFile; //! pointer to file 
@@ -46,7 +46,7 @@ class AliLoaderDataInfo
    TString      fFileOption; //!file option while opened 
    TString      fContainerName;//Name of the container (usually tree)
    TString      fName; //Name of the data the the object describes
-
+   Int_t        fCompressionLevel; //Compression Level of File
   public:
    ClassDef(AliLoaderDataInfo,1)
  };
@@ -198,12 +198,13 @@ class AliLoader: public TNamed
     virtual void  CleanReconstructioner();
     virtual void  CleanTracker();
 
-    void          SetHitsFileOption(Option_t* newopt){SetFileOption(kHits,newopt);}          //Sets Hits File Option in open
-    void          SetSDigitsFileOption(Option_t* newopt){SetFileOption(kSDigits,newopt);}    //Sets S. Digits File Option in open
-    void          SetDigitsFileOption(Option_t* newopt){SetFileOption(kDigits,newopt);}      //Sets Digits File Option in open
-    void          SetRecPointsFileOption(Option_t* newopt){SetFileOption(kRecPoints,newopt);}//Sets Rec Ponoints File Option in open
-    void          SetTracksFileOption(Option_t* newopt){SetFileOption(kTracks,newopt);}      //Sets Tracks File Option in open
+    virtual void  SetHitsFileOption(Option_t* newopt){SetFileOption(kHits,newopt);}          //Sets Hits File Option in open
+    virtual void  SetSDigitsFileOption(Option_t* newopt){SetFileOption(kSDigits,newopt);}    //Sets S. Digits File Option in open
+    virtual void  SetDigitsFileOption(Option_t* newopt){SetFileOption(kDigits,newopt);}      //Sets Digits File Option in open
+    virtual void  SetRecPointsFileOption(Option_t* newopt){SetFileOption(kRecPoints,newopt);}//Sets Rec Ponoints File Option in open
+    virtual void  SetTracksFileOption(Option_t* newopt){SetFileOption(kTracks,newopt);}      //Sets Tracks File Option in open
     
+    virtual void  SetHitsComprLevel(Int_t cl){}
     virtual void  SetCompressionLevel(Int_t cl);//Sets compression level in all the files
     void          SetDirName(TString& name);//sets the directory name for all the I/O environment
     
@@ -213,7 +214,7 @@ class AliLoader: public TNamed
     void          SetDigitsFileNameSuffix(const TString& suffix);//adds the suffix before ".root", 
                                                           //e.g. TPC.Digits.root -> TPC.DigitsMerged.root
                                                               //made on Jiri Chudoba demand
-    
+    Int_t GetDebug() const {return (Int_t)fgkDebug;}
     
    protected:
 
@@ -241,10 +242,10 @@ class AliLoader: public TNamed
     Int_t         OpenDigitsFile(Option_t* opt){return OpenDataFile(kDigits,opt);}
     Int_t         OpenRecPointsFile(Option_t* opt){return OpenDataFile(kRecPoints,opt);}
     Int_t         OpenTracksFile(Option_t* opt){return OpenDataFile(kTracks,opt);}
-    Int_t         OpenDataFile(const TString& filename,TFile*& file,TDirectory*& dir,Option_t* opt);
+    Int_t         OpenDataFile(const TString& filename,TFile*& file,TDirectory*& dir,Option_t* opt,Int_t cl);
     Int_t         OpenDataFile(EDataTypes dt,Option_t* opt){return OpenDataFile(fDataInfo[dt],opt);}
     Int_t         OpenDataFile(AliLoaderDataInfo& di,Option_t* opt)
-                    {return OpenDataFile(SetFileOffset(di.FileName()),di.File(),di.Directory(),opt);}
+                    {return OpenDataFile(SetFileOffset(di.FileName()),di.File(),di.Directory(),opt,di.CompressionLevel());}
 
     void          CloseHitsFile(){CloseDataFile(kHits);}
     void          CloseSDigitsFile(){CloseDataFile(kSDigits);}
@@ -276,7 +277,9 @@ class AliLoader: public TNamed
     void          MakeTree(AliLoaderDataInfo& di);
     void          SetFileOption(EDataTypes dt,Option_t* newopt){SetFileOption(fDataInfo[dt],newopt);}
     void          SetFileOption(AliLoaderDataInfo& di,Option_t* newopt);
-
+    void          SetCompressionLevel(EDataTypes dt,Int_t cl){SetCompressionLevel(fDataInfo[dt],cl);}
+    void          SetCompressionLevel(AliLoaderDataInfo& di,Int_t cl);
+    
     TString       GetUnixDir();
     TObject*      GetDetectorData(const char* name){return GetDetectorDataFolder()->FindObject(name);}
     TObject**     GetDetectorDataRef(TObject* obj);
@@ -291,7 +294,7 @@ class AliLoader: public TNamed
     TString&      ContainerName(EDataTypes dt){return fDataInfo[dt].ContainerName();}
     TString&      FileOption(EDataTypes dt){return fDataInfo[dt].FileOption();}
     TString&      DataName(EDataTypes dt){return fDataInfo[dt].Name();}
-    
+    Int_t&        CompressionLevel(EDataTypes dt){return fDataInfo[dt].CompressionLevel();}
 
 
     /**********************************************/
@@ -321,7 +324,6 @@ class AliLoader: public TNamed
     static const TString   fgkDefaultRecPointsContainerName;//default name of conatiner (TREE) for Rec Points
     static const TString   fgkDefaultTracksContainerName;//default name of conatiner (TREE) for Tracks
     
-    
     static const TString   fgkLoaderBaseName;//base name of Loader: fDetectorName+fgkLoaderBaseName. i.e. PHOSLoader
     
    private:
@@ -339,6 +341,7 @@ class AliLoader: public TNamed
     static TDirectory*    ChangeDir(TFile* file, Int_t eventno); //changes the root directory in "file" to directory corresponing to eventno
     static Bool_t         TestFileOption(Option_t* opt);//checks is file is created from scratch
     const TString SetFileOffset(const TString& fname);//adds the proper number before .root extension suffix
+    static Bool_t    fgkDebug; //debug flag for loaders
 
     ClassDef(AliLoader,1)
  };

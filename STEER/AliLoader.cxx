@@ -23,6 +23,7 @@
 #include <AliRunDigitizer.h>
 #include <AliDigitizer.h>
 
+Bool_t  AliLoader::fgkDebug = kFALSE;
 
 const TString AliLoader::fgkDefaultHitsContainerName("TreeH");
 const TString AliLoader::fgkDefaultDigitsContainerName = "TreeD";
@@ -70,7 +71,7 @@ AliLoader::AliLoader(const Char_t* detname,const Char_t* eventfoldername):
  fQAFolder(0x0)
 {
   //ctor
-   Info("AliLoader(const Char_t* detname,const Char_t* eventfoldername)",
+   if (GetDebug()) Info("AliLoader(const Char_t* detname,const Char_t* eventfoldername)",
         "detname = %s eventfoldername = %s",detname,eventfoldername);
 
    //try to find folder eventfoldername in top alice folder
@@ -159,7 +160,7 @@ void AliLoader::InitDefaults()
 
 Int_t AliLoader::LoadData(AliLoaderDataInfo& di,Option_t* opt)
 {
-  Info("LoadData","name=%s, data type = %s, option = %s",GetName(),di.Name().Data(),opt);
+  if (GetDebug()) Info("LoadData","name=%s, data type = %s, option = %s",GetName(),di.Name().Data(),opt);
   if (Tree(di))
    {
     TString sopt(opt);
@@ -379,7 +380,7 @@ Int_t AliLoader::SetEvent()
       if (CheckReload(File(kHits),FileName(kHits)))
        {
          UnloadHits();
-         Info("SetEvent","Reloading new file for hits. file opt is %s",FileOption(kHits).Data());
+         if (GetDebug()) Info("SetEvent","Reloading new file for hits. file opt is %s",FileOption(kHits).Data());
          OpenHitsFile(FileOption(kHits));
        }
       Directory(kHits) = ChangeDir(File(kHits),evno);
@@ -395,7 +396,7 @@ Int_t AliLoader::SetEvent()
       if (CheckReload(File(kSDigits),FileName(kSDigits)))
        {
          UnloadSDigits();
-         Info("SetEvent","Reloading new file for sdigits. file opt is %s",FileOption(kSDigits).Data());
+         if (GetDebug()) Info("SetEvent","Reloading new file for sdigits. file opt is %s",FileOption(kSDigits).Data());
          OpenSDigitsFile(FileOption(kSDigits));
        }
 
@@ -486,8 +487,12 @@ Int_t AliLoader::GetEvent()
  
  }
 /******************************************************************/
+
 Int_t AliLoader::WriteData(AliLoaderDataInfo& di,Option_t* opt)
 {
+//Writes data defined by di object
+//opt might be "OVERWRITE" in case of forcing overwriting
+
   TObject *data = GetDetectorDataFolder()->FindObject(di.ContainerName());
   if(data == 0x0)
    {//did not get, nothing to write
@@ -530,9 +535,9 @@ Int_t AliLoader::WriteData(AliLoaderDataInfo& di,Option_t* opt)
       }
    }
   
-  Info("WriteData","name = %s, DataName = %s, opt = %s, data object name = %s",
+  if (GetDebug()) Info("WriteData","name = %s, DataName = %s, opt = %s, data object name = %s",
                    GetName(),di.Name().Data(),opt,data->GetName());
-  Info("WriteData","File Name = %s, Directory Name = %s Directory's File Name = %s",
+  if (GetDebug()) Info("WriteData","File Name = %s, Directory Name = %s Directory's File Name = %s",
                    di.File()->GetName(),di.Directory()->GetName(),
                    di.Directory()->GetFile()->GetName());
   
@@ -540,10 +545,8 @@ Int_t AliLoader::WriteData(AliLoaderDataInfo& di,Option_t* opt)
   TTree* tree = dynamic_cast<TTree*>(data);
   if (tree) tree->SetDirectory(di.Directory()); //forces setting the directory to this directory (we changed dir few lines above)
   
-  Info("WriteData","Writing tree");
+  if (GetDebug()) Info("WriteData","Writing tree");
   data->Write(0,TObject::kOverwrite);
-  Info("WriteData","Writing File");
-  di.File()->Write(0,TObject::kOverwrite);
   return 0;
  
 }
@@ -589,7 +592,7 @@ Int_t  AliLoader::WriteSDigitizer(Option_t* opt)
         return 3;
       }
    }
-  Info("WriteSDigitizer",
+  if (GetDebug()) Info("WriteSDigitizer",
        "name = %s, opt = %s, File(kSDigits) = %s, Sum. digitizer = %s",
        GetName(),opt,File(kSDigits)->GetName(),name.Data());
 
@@ -637,7 +640,7 @@ Int_t  AliLoader::WriteDigitizer(Option_t* opt)
         return 3;
       }
    }
-  Info("WriteDigitizer",
+  if (GetDebug()) Info("WriteDigitizer",
        "name = %s, opt = %s, File(kDigits) = %s, Directory(kDigits) =%s, Digitizer = %s",
        GetName(),opt,File(kDigits)->GetName(),Directory(kDigits)->GetName(),name.Data());
 
@@ -687,9 +690,10 @@ Int_t  AliLoader::WriteReconstructioner(Option_t* opt)
       }
    }
 
-  Info("WriteReconstructioner",
-       "name = %s, opt = %s, File(kRecPoints) = %s, Directory(kRecPoints) =%s, Reconstructioner = %s",
-       GetName(),opt,File(kRecPoints)->GetName(),Directory(kRecPoints)->GetName(),name.Data());
+  if (GetDebug()) 
+   Info("WriteReconstructioner",
+        "name = %s, opt = %s, File(kRecPoints) = %s, Directory(kRecPoints) =%s, Reconstructioner = %s",
+         GetName(),opt,File(kRecPoints)->GetName(),Directory(kRecPoints)->GetName(),name.Data());
 
   Directory(kRecPoints)->cd();
   sder->Write(0,TObject::kOverwrite);
@@ -737,9 +741,10 @@ Int_t  AliLoader::WriteTracker(Option_t* opt)
       }
    }
 
-  Info("WriteTracker",
-       "name = %s, opt = %s, File(kTracks) = %s, Directory(kTracks) =%s, Reconstructioner = %s",
-       GetName(),opt,File(kTracks)->GetName(),Directory(kTracks)->GetName(),name.Data());
+  if (GetDebug()) 
+   Info("WriteTracker",
+        "name = %s, opt = %s, File(kTracks) = %s, Directory(kTracks) =%s, Reconstructioner = %s",
+         GetName(),opt,File(kTracks)->GetName(),Directory(kTracks)->GetName(),name.Data());
 
   Directory(kTracks)->cd();
   sder->Write(0,TObject::kOverwrite);
@@ -747,7 +752,7 @@ Int_t  AliLoader::WriteTracker(Option_t* opt)
 }
 /*****************************************************************************/ 
 
-Int_t AliLoader::OpenDataFile(const TString& filename,TFile*& file,TDirectory*& dir,Option_t* opt)
+Int_t AliLoader::OpenDataFile(const TString& filename,TFile*& file,TDirectory*& dir,Option_t* opt,Int_t cl)
 {
 //Opens file named 'filename', and assigns pointer to it to 'file'
 //jumps to directory corresponding to current event and stores the pointer to it in 'dir'
@@ -791,7 +796,8 @@ Int_t AliLoader::OpenDataFile(const TString& filename,TFile*& file,TDirectory*& 
      return 1;
    }
 
-
+  file->SetCompressionLevel(cl);
+  
   AliRunLoader* rg = GetRunLoader();
   if (rg == 0x0)
    {
@@ -895,7 +901,8 @@ TFolder* AliLoader::GetQAFolder()
   //returns folder with Quality assurance 
   if (fQAFolder == 0x0)
    {
-     fQAFolder = dynamic_cast<TFolder*>(GetEventFolder()->FindObjectAny(AliConfig::Instance()->GetQAFolderName()));
+     TObject *obj = GetEventFolder()->FindObjectAny(AliConfig::Instance()->GetQAFolderName());
+     fQAFolder = (obj)?dynamic_cast<TFolder*>(obj):0x0;
 
      if (fQAFolder == 0x0)
       {
@@ -1021,7 +1028,8 @@ TDirectory* AliLoader::ChangeDir(TFile* file, Int_t eventno)
 
  TString dirname("Event");
  dirname+=eventno;
- ::Info("AliLoader::ChangeDir","Changing Dir to %s in file %s.",dirname.Data(),file->GetName());
+ if (AliLoader::fgkDebug) 
+   ::Info("AliLoader::ChangeDir","Changing Dir to %s in file %s.",dirname.Data(),file->GetName());
 
  Bool_t result;
  
@@ -1029,7 +1037,8 @@ TDirectory* AliLoader::ChangeDir(TFile* file, Int_t eventno)
 
  if (dir == 0x0)
   {
-    ::Info("AliLoader::ChangeDir","Can not find directory %s in file %s, creating...",
+    if (AliLoader::fgkDebug)
+     ::Info("AliLoader::ChangeDir","Can not find directory %s in file %s, creating...",
             dirname.Data(),file->GetName());
     
     if (file->IsWritable() == kFALSE)
@@ -1101,7 +1110,7 @@ void AliLoader::MakeTree(AliLoaderDataInfo& di)
 {
 //this virtual method creates the tree for hits in the file
   if (Tree(di)) return;//tree already made 
-  Info("MakeTree","name = %s, Making %s Tree named %s.",
+  if (GetDebug()) Info("MakeTree","name = %s, Making %s Tree named %s.",
         GetName(),di.Name().Data(),di.ContainerName().Data());
    
   TTree* tree = new TTree(di.ContainerName(), di.Name() + "Container"); //make a tree
@@ -1235,7 +1244,7 @@ Int_t AliLoader::PostSDigitizer(TTask* sdzer)
      Error("PostSDigitizer","Can not get RunSDigitizer from folder. Can not post");
      return 1;
    }
-  Info("PostSDigitizer","Adding S Digitizer named %s.",sdzer->GetName());
+  if (GetDebug()) Info("PostSDigitizer","Adding S Digitizer named %s.",sdzer->GetName());
   rsd->Add(sdzer);
   return 0;
 }
@@ -1318,7 +1327,8 @@ Int_t AliLoader::PostReconstructioner(TTask* task)
    }
   if (rrec->GetListOfTasks()->FindObject(task->GetName()))
    {
-     Error("PostReconstructioner","There already exists sub task named %s in Run Reconstructioner",task->GetName());
+     Error("PostReconstructioner",
+           "There already exists sub task named %s in Run Reconstructioner",task->GetName());
      return 2;
    }
   rrec->Add(task);
@@ -1429,17 +1439,17 @@ void AliLoader::CleanFolders()
  {
  //Cleans all posted objects == removes from folders and deletes them
  
-  Info("CleanFolders","name = %s Hits",GetName());
+  if (GetDebug()) Info("CleanFolders","name = %s Hits",GetName());
   CleanHits();
-  Info("CleanFolders","name = %s SDigits",GetName());
+  if (GetDebug()) Info("CleanFolders","name = %s SDigits",GetName());
   CleanSDigits();
-  Info("CleanFolders","name = %s Digits",GetName());
+  if (GetDebug()) Info("CleanFolders","name = %s Digits",GetName());
   CleanDigits();
-  Info("CleanFolders","name = %s RecPoints",GetName());
+  if (GetDebug()) Info("CleanFolders","name = %s RecPoints",GetName());
   CleanRecPoints();
-  Info("CleanFolders","name = %s Tracks",GetName());
+  if (GetDebug()) Info("CleanFolders","name = %s Tracks",GetName());
   CleanTracks();
-  Info("CleanFolders","name = %s Done",GetName());
+  if (GetDebug()) Info("CleanFolders","name = %s Done",GetName());
   
  }
 /*****************************************************************************/ 
@@ -1449,7 +1459,8 @@ void AliLoader::Clean(const TString& name)
   TObject* obj = GetDetectorDataFolder()->FindObject(name);
   if(obj)
    { 
-     Info("Clean(const TString&)","name=%s, cleaning %s.",GetName(),name.Data());
+     if (GetDebug()) 
+       Info("Clean(const TString&)","name=%s, cleaning %s.",GetName(),name.Data());
      GetDetectorDataFolder()->Remove(obj);
      delete obj;
    }
@@ -1466,7 +1477,7 @@ void AliLoader::CleanSDigitizer()
      return;
    }
 
-  Info("CleanSDigitizer","Attempting to delete S Digitizer");
+  if (GetDebug()) Info("CleanSDigitizer","Attempting to delete S Digitizer");
   delete task->GetListOfTasks()->Remove(SDigitizer()); //TTList::Remove does not delete object
 }
 /*****************************************************************************/ 
@@ -1481,7 +1492,9 @@ void AliLoader::CleanDigitizer()
      return;
    }
 
-  Info("CleanDigitizer","Attempting to delete Digitizer %X",task->GetListOfTasks()->Remove(Digitizer()));
+  if (GetDebug()) 
+   Info("CleanDigitizer","Attempting to delete Digitizer %X",
+         task->GetListOfTasks()->Remove(Digitizer()));
   delete task->GetListOfTasks()->Remove(Digitizer()); //TTList::Remove does not delete object
 }
 /*****************************************************************************/ 
@@ -1496,7 +1509,8 @@ void AliLoader::CleanReconstructioner()
      return;
    }
 
-  Info("CleanReconstructioner","Attempting to delete Reconstructioner");
+  if (GetDebug()) 
+   Info("CleanReconstructioner","Attempting to delete Reconstructioner");
   delete task->GetListOfTasks()->Remove(Reconstructioner()); //TTList::Remove does not delete object
 }
 /*****************************************************************************/ 
@@ -1511,7 +1525,9 @@ void AliLoader::CleanTracker()
      return;
    }
 
-  Info("CleanTracker","Attempting to delete Tracker %X",task->GetListOfTasks()->Remove(Tracker()));
+  if (GetDebug()) 
+   Info("CleanTracker","Attempting to delete Tracker %X",
+         task->GetListOfTasks()->Remove(Tracker()));
   delete task->GetListOfTasks()->Remove(Tracker()); //TTList::Remove does not delete object
 }
 /*****************************************************************************/ 
@@ -1527,11 +1543,8 @@ TTree* AliLoader::Tree(AliLoaderDataInfo& di)
 void AliLoader::SetCompressionLevel(Int_t cl)
 {
 //Sets compression level in all opened files
- if (File(kHits)) File(kHits)->SetCompressionLevel(cl);
- if (File(kSDigits)) File(kSDigits)->SetCompressionLevel(cl);
- if (File(kDigits)) File(kDigits)->SetCompressionLevel(cl);
- if (File(kRecPoints)) File(kRecPoints)->SetCompressionLevel(cl);
- if (File(kTracks)) File(kTracks)->SetCompressionLevel(cl);
+ for (Int_t i = 0; i < kNDataTypes; i++)
+  SetCompressionLevel(fDataInfo[i],cl);
 }
 /*****************************************************************************/ 
 
@@ -1577,7 +1590,7 @@ Int_t  AliLoader::SetEventFolder(TFolder* eventfolder)
 Int_t AliLoader::Register()
 {
 //triggers creation of subfolders for a given detector
- Info("Register","Name is %s.",GetName());
+ if (GetDebug()) Info("Register","Name is %s.",GetName());
  if (fEventFolder == 0x0)
   {
     Error("Register","Event folder is not set");
@@ -1638,7 +1651,7 @@ const TString AliLoader::SetFileOffset(const TString& fname)
   const TString& offfsetdotroot = offset + dotroot;
   TString out = fname;
   out = out.ReplaceAll(dotroot,offfsetdotroot);
-  Info("SetFileOffset","in=%s  out=%s.",fname.Data(),out.Data());
+  if (GetDebug()) Info("SetFileOffset","in=%s  out=%s.",fname.Data(),out.Data());
   return out;
 
 }
@@ -1649,12 +1662,16 @@ void AliLoader::SetDigitsFileNameSuffix(const TString& suffix)
   //adds the suffix before ".root", 
   //e.g. TPC.Digits.root -> TPC.DigitsMerged.root
   //made on Jiri Chudoba demand
-  Info("SetDigitsFileNameSuffix","suffix=%s",suffix.Data());
-  Info("SetDigitsFileNameSuffix","   Digits File Name before: %s",FileName(kDigits).Data());
+  if (GetDebug()) 
+   Info("SetDigitsFileNameSuffix","suffix=%s",suffix.Data());
+  if (GetDebug()) 
+   Info("SetDigitsFileNameSuffix","   Digits File Name before: %s",FileName(kDigits).Data());
+   
   TString dotroot(".root");
   const TString& suffixdotroot = suffix + dotroot;
   FileName(kDigits) = FileName(kDigits).ReplaceAll(dotroot,suffixdotroot);
-  Info("SetDigitsFileNameSuffix","                    after : %s",FileName(kDigits).Data());
+  if (GetDebug()) 
+    Info("SetDigitsFileNameSuffix","                    after : %s",FileName(kDigits).Data());
 }
 /*****************************************************************************/ 
 
@@ -1674,6 +1691,14 @@ void AliLoader::SetFileOption(AliLoaderDataInfo& di, Option_t* newopt)
   if (di.FileOption().CompareTo(newopt) == 0) return;
   di.FileOption() = newopt;
   ReloadData(di);
+}
+/*****************************************************************************/ 
+
+void AliLoader::SetCompressionLevel(AliLoaderDataInfo& di,Int_t cl)
+{
+//sets comression level for data defined by di
+  di.CompressionLevel() = cl;
+  if (di.File()) di.File()->SetCompressionLevel(cl);
 }
 
 /*****************************************************************************/ 
@@ -1699,7 +1724,8 @@ AliLoaderDataInfo::AliLoaderDataInfo():
  fDirectory(0x0),
  fFileOption(0),
  fContainerName(0),
- fName(0)
+ fName(0),
+ fCompressionLevel(2)
 {
   
 }
@@ -1712,6 +1738,7 @@ AliLoaderDataInfo::AliLoaderDataInfo
  fDirectory(0x0),
  fFileOption(0),
  fContainerName(contname),
- fName(name)
+ fName(name),
+ fCompressionLevel(2)
 {
 }
