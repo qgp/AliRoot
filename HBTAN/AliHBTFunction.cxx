@@ -40,15 +40,17 @@
 
 ClassImp( AliHBTFunction )
 
-AliHBTFunction::AliHBTFunction()
+AliHBTFunction::AliHBTFunction():
+  fPairCut(new AliHBTEmptyPairCut())   //dummy cut
 {
 //Default constructor
-  fPairCut = new AliHBTEmptyPairCut(); //dummy cut
 }
 /******************************************************************/
-AliHBTFunction::AliHBTFunction(const char* name,const char* title):TNamed(name,title)
+AliHBTFunction::AliHBTFunction(const char* name,const char* title):
+  TNamed(name,title),
+  fPairCut(new AliHBTEmptyPairCut()) //dummy cut  
 {
-  fPairCut = new AliHBTEmptyPairCut(); //dummy cut
+//Constructor  
 }
 /******************************************************************/
 
@@ -59,7 +61,7 @@ AliHBTFunction::~AliHBTFunction()
 }
 /******************************************************************/
 
-void AliHBTFunction::Write()
+void AliHBTFunction::WriteFunction()
 {
 //writes result of the function to file
    if (GetNumerator()) GetNumerator()->Write();
@@ -162,7 +164,7 @@ void AliHBTFunction::Rename(const Char_t * name, const Char_t * title)
  }
 /******************************************************************/
 
-void AliHBTFunction::Init()
+void AliHBTFunction::InitFunction()
 {
 //Iniotializes fctn.: Resets histograms
 //In case histograms are not created in ctor, builds with default parameters
@@ -343,7 +345,7 @@ Double_t AliHBTFunction1D::Scale(TH1D* num,TH1D* den)
 //                                                   //
 ///////////////////////////////////////////////////////
 
-ClassImp( AliHBTFunction1D )
+ClassImp( AliHBTFunction2D )
 
 const Int_t AliHBTFunction2D::fgkDefaultNBinsX = 200;//default number of Bins in X axis in histograms
 const Float_t AliHBTFunction2D::fgkDefaultMinX = 0.0;//Default min value of X axis in histograms
