@@ -47,3 +47,5 @@ AliEMCALPIDv1.cxx
 HDRS= $(SRCS:.cxx=.h) 
 
 DHDR:=EMCALLinkDef.h
+
+EINCLUDE:=PYTHIA6
