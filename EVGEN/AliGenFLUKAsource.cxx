@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.17.2.1  2003/11/05 13:20:26  hristov
+Corrections needed by Root v3-10-01
+
 Revision 1.17  2003/01/14 10:50:18  alibrary
 Cleanup of STEER coding conventions
 
@@ -66,6 +69,9 @@ Introduction of the Copyright and cvs Log
 
 #include <RVersion.h>
 #include "TPDGCode.h"
+#if ROOT_VERSION_CODE <= 197895
+#include "TDatabasePDG.h"
+#endif
 
 #include "AliGenFLUKAsource.h"
 #include "AliRun.h"
