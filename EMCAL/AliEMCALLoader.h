@@ -36,8 +36,7 @@ class TTask ;
 #include "AliEMCAL.h" 
 #include "AliEMCALHit.h" 
 #include "AliEMCALDigit.h"
-#include "AliEMCALRecPoint.h"
-#include "AliEMCALRecPoint.h"
+#include "AliEMCALTowerRecPoint.h"
 #include "AliEMCALTrackSegment.h"
 #include "AliEMCALRecParticle.h"
 class AliEMCALGeometry ;
@@ -108,7 +107,9 @@ class AliEMCALLoader : public AliLoader {
   TObject** HitsRef(){return GetDetectorDataRef(Hits());}
   TObject** SDigitsRef(){return GetDetectorDataRef(SDigits());}
   TObject** DigitsRef(){return GetDetectorDataRef(Digits());}
-  TObject** RecPointsRef(){return GetDetectorDataRef(RecPoints());}
+  TObject** PRERecPointsRef(){return GetDetectorDataRef(PRERecPoints());}
+  TObject** ECARecPointsRef(){return GetDetectorDataRef(ECARecPoints());}
+  TObject** HCARecPointsRef(){return GetDetectorDataRef(HCARecPoints());}
   TObject** TracksRef(){return GetDetectorDataRef(TrackSegments());}
   TObject** RecParticlesRef(){return GetDetectorDataRef(RecParticles());}
   TObject** AlarmsRef(){return GetDetectorDataRef(Alarms());}
@@ -143,8 +144,12 @@ class AliEMCALLoader : public AliLoader {
   const AliEMCALDigit *  Digit(Int_t index);
   void MakeDigitsArray();
   /****  R e c P o i n t s  ****/
-  TObjArray * RecPoints();
-  const AliEMCALRecPoint * RecPoint(Int_t index) ;
+  TObjArray * PRERecPoints();
+  TObjArray * ECARecPoints();
+  TObjArray * HCARecPoints();
+  const AliEMCALRecPoint * PRERecPoint(Int_t index) ;
+  const AliEMCALTowerRecPoint * ECARecPoint(Int_t index) ;
+  const AliEMCALTowerRecPoint * HCARecPoint(Int_t index) ;
   void MakeRecPointsArray();
   /****   T r a c k S e g m e n t s ****/
   TClonesArray * TrackSegments();
@@ -209,11 +214,15 @@ private:
   static const TString fgkHitsName;//Name for TClonesArray with hits from one event
   static const TString fgkSDigitsName;//Name for TClonesArray 
   static const TString fgkDigitsName;//Name for TClonesArray 
-  static const TString fgkRecPointsName;//Name for TClonesArray 
+  static const TString fgkPRERecPointsName;//Name for TClonesArray 
+  static const TString fgkECARecPointsName;//Name for TClonesArray 
+  static const TString fgkHCARecPointsName;//Name for TClonesArray 
   static const TString fgkTracksName;//Name for TClonesArray 
   static const TString fgkRecParticlesName;//Name for TClonesArray
 
-  static const TString fgkRecPointsBranchName;//Name for branch
+  static const TString fgkPRERecPointsBranchName;//Name for branch
+  static const TString fgkECARecPointsBranchName;//Name for branch
+  static const TString fgkHCARecPointsBranchName;//Name for branch
   static const TString fgkTrackSegmentsBranchName;//Name for branch
   static const TString fgkRecParticlesBranchName;//Name for branch
   
@@ -271,19 +280,54 @@ inline const AliEMCALDigit*  AliEMCALLoader::Digit(Int_t index)
 
 /******************************************************************************/
 
-inline TObjArray * AliEMCALLoader::RecPoints()
+inline TObjArray * AliEMCALLoader::PRERecPoints()
 {
- return dynamic_cast<TObjArray*>(GetDetectorData(fgkRecPointsName));
+ return dynamic_cast<TObjArray*>(GetDetectorData(fgkPRERecPointsName));
 }
 /******************************************************************************/
 
-inline const AliEMCALRecPoint * AliEMCALLoader::RecPoint(Int_t index)
+inline const AliEMCALRecPoint * AliEMCALLoader::PRERecPoint(Int_t index)
 {
-  TObjArray* tcarr = RecPoints();
+  TObjArray* tcarr = PRERecPoints();
   if (tcarr)
-    return (const AliEMCALRecPoint*) tcarr->At(index);
+    return dynamic_cast<const AliEMCALRecPoint*>(tcarr->At(index));
   return 0x0; 
 }
+
+/******************************************************************************/
+
+inline TObjArray * AliEMCALLoader::ECARecPoints()
+{
+ return dynamic_cast<TObjArray*>(GetDetectorData(fgkECARecPointsName));
+}
+
+/******************************************************************************/
+
+inline const AliEMCALTowerRecPoint * AliEMCALLoader::ECARecPoint(Int_t index)
+{
+  TObjArray* tcarr = ECARecPoints();
+  if (tcarr)
+    return dynamic_cast<const AliEMCALTowerRecPoint*>(tcarr->At(index));
+  return 0x0; 
+}
+
+/******************************************************************************/
+
+inline TObjArray * AliEMCALLoader::HCARecPoints()
+{
+ return dynamic_cast<TObjArray*>(GetDetectorData(fgkHCARecPointsName));
+}
+
+/******************************************************************************/
+
+inline const AliEMCALTowerRecPoint * AliEMCALLoader::HCARecPoint(Int_t index)
+{
+  TObjArray* tcarr = HCARecPoints();
+  if (tcarr)
+    return dynamic_cast<const AliEMCALTowerRecPoint*>(tcarr->At(index));
+  return 0x0; 
+}
+
 /******************************************************************************/
 
 inline TClonesArray * AliEMCALLoader::TrackSegments()

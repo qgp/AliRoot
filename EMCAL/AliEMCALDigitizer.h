@@ -44,10 +44,10 @@ public:
   const Float_t GetPinNoise()       const { return fPinNoise;}
   const Float_t GetSlope()          const { return fSlope; }
   const Float_t GetTimeResolution() const { return fTimeResolution ; }
-  const Float_t GetECchannel()      const { return fADCchannelEC ; }
-  const Float_t GetECpedestal()     const { return fADCpedestalEC ; }
-  const Float_t GetHCchannel()      const { return fADCchannelHC ; }
-  const Float_t GetHCpedestal()     const { return fADCpedestalHC ; }
+  const Float_t GetECAchannel()     const { return fADCchannelEC ; }
+  const Float_t GetECApedestal()    const { return fADCpedestalEC ; }
+  const Float_t GetHCAchannel()     const { return fADCchannelHC ; }
+  const Float_t GetHCApedestal()    const { return fADCpedestalHC ; }
   const Float_t GetPREchannel()     const { return fADCchannelPRE ; }
   const Float_t GetPREpedestal()    const { return fADCpedestalPRE ; }
 

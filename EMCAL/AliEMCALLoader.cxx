@@ -81,13 +81,15 @@ ClassImp(AliEMCALLoader)
 const TString AliEMCALLoader::fgkHitsName("HITS");//Name for TClonesArray with hits from one event
 const TString AliEMCALLoader::fgkSDigitsName("SDIGITS");//Name for TClonesArray 
 const TString AliEMCALLoader::fgkDigitsName("DIGITS");//Name for TClonesArray 
-const TString AliEMCALLoader::fgkRecPointsName("EMCRECPOINTS");//Name for TClonesArray 
-const TString AliEMCALLoader::fgkRecPointsName("CPVRECPOINTS");//Name for TClonesArray 
+const TString AliEMCALLoader::fgkPRERecPointsName("PRERECPOINTS");//Name for TClonesArray 
+const TString AliEMCALLoader::fgkECARecPointsName("ECARECPOINTS");//Name for TClonesArray 
+const TString AliEMCALLoader::fgkHCARecPointsName("HCARECPOINTS");//Name for TClonesArray 
 const TString AliEMCALLoader::fgkTracksName("TRACKS");//Name for TClonesArray 
 const TString AliEMCALLoader::fgkRecParticlesName("RECPARTICLES");//Name for TClonesArray
 
-const TString AliEMCALLoader::fgkRecPointsBranchName("EMCALEmcRP");//Name for branch with EMC Reconstructed Points
-const TString AliEMCALLoader::fgkRecPointsBranchName("EMCALCpvRP");//Name for branch with CPV Reconstructed Points
+const TString AliEMCALLoader::fgkPRERecPointsBranchName("EMCALPRERP");//Name for branch with PreShower Reconstructed Points
+const TString AliEMCALLoader::fgkECARecPointsBranchName("EMCALECARP");//Name for branch with ECA Reconstructed Points
+const TString AliEMCALLoader::fgkHCARecPointsBranchName("EMCALHCARP");//Name for branch with HCA Reconstructed Points
 const TString AliEMCALLoader::fgkTrackSegmentsBranchName("EMCALTS");//Name for branch with TrackSegments
 const TString AliEMCALLoader::fgkRecParticlesBranchName("EMCALRP");//Name for branch with Reconstructed Particles
 //____________________________________________________________________________ 
@@ -111,8 +113,9 @@ AliEMCALLoader::~AliEMCALLoader()
   Clean(fgkHitsName);
   Clean(fgkSDigitsName);
   Clean(fgkDigitsName);
-  Clean(fgkRecPointsName);
-  Clean(fgkRecPointsName);
+  Clean(fgkPRERecPointsName);
+  Clean(fgkECARecPointsName);
+  Clean(fgkHCARecPointsName);
   Clean(fgkTracksName);
   Clean(fgkRecParticlesName);
 }
@@ -142,8 +145,9 @@ Int_t AliEMCALLoader::SetEvent()
   if (Hits()) Hits()->Clear();
   if (SDigits()) SDigits()->Clear();
   if (Digits()) Digits()->Clear();
-  if (RecPoints()) RecPoints()->Clear();
-  if (RecPoints()) RecPoints()->Clear();
+  if (PRERecPoints()) PRERecPoints()->Clear();
+  if (ECARecPoints()) ECARecPoints()->Clear();
+  if (HCARecPoints()) HCARecPoints()->Clear();
   if (TrackSegments()) TrackSegments()->Clear();
   if (RecParticles()) RecParticles()->Clear();
    
@@ -266,7 +270,7 @@ Int_t AliEMCALLoader::LoadRecPoints(Option_t* opt)
   TFolder * emcalFolder = GetDetectorDataFolder();
   if ( emcalFolder  == 0x0 ) 
    {
-     Error("PostDigits","Can not get detector data folder");
+     Error("LoadRecPoints","Can not get detector data folder");
      return 1;
    }
   return ReadRecPoints();
@@ -614,9 +618,10 @@ Int_t AliEMCALLoader::ReadRecPoints()
   
   MakeRecPointsArray();
   
-  TObjArray * cpva = 0x0 ; 
-  TObjArray * emca = 0x0 ; 
-  
+  TObjArray * pre = 0x0 ; 
+  TObjArray * eca = 0x0 ; 
+  TObjArray * hca = 0x0 ; 
+
   TTree * treeR = TreeR();
  
   if(treeR==0)
@@ -626,39 +631,54 @@ Int_t AliEMCALLoader::ReadRecPoints()
    }
 
   Int_t retval = 0;
-  TBranch * emcbranch = treeR->GetBranch(fgkRecPointsBranchName);
+  TBranch * prebranch = treeR->GetBranch(fgkRecPREPointsBranchName);
 
-  if (emcbranch == 0x0)
+  if (prebranch == 0x0)
    {
-     Error("ReadRecPoints","Can not get branch with EMC Rec. Points named %s",fgkRecPointsBranchName.Data());
+     Error("ReadRecPoints","Can not get branch with PRE Rec. Points named %s",fgkPRERecPointsBranchName.Data());
      retval = 1;
    }
   else
    {
-     emcbranch->SetAddress(&emca) ;
-     emcbranch->GetEntry(0) ;
+     prebranch->SetAddress(&pre) ;
+     prebranch->GetEntry(0) ;
    }
-  TBranch * cpvbranch = treeR->GetBranch(fgkRecPointsBranchName);
-  if (cpvbranch == 0x0)
+  TBranch * ecabranch = treeR->GetBranch(fgkECARecPointsBranchName);
+  if (ecabranch == 0x0)
    {
-     Error("ReadRecPoints","Can not get branch with CPV Rec. Points named %s",fgkRecPointsBranchName.Data());
+     Error("ReadRecPoints","Can not get branch with ECA Rec. Points named %s",fgkECARecPointsBranchName.Data());
      retval = 2;
    }
   else
    {
-     cpvbranch->SetAddress(&cpva);
-     cpvbranch->GetEntry(0) ;
+     ecabranch->SetAddress(&eca);
+     ecabranch->GetEntry(0) ;
+   }
+  TBranch * hcabranch = treeR->GetBranch(fgkHCARecPointsBranchName);
+  if (hcabranch == 0x0)
+   {
+     Error("ReadRecPoints","Can not get branch with HCA Rec. Points named %s",fgkHCARecPointsBranchName.Data());
+     retval = 2;
+   }
+  else
+   {
+     hcabranch->SetAddress(&hca);
+     hcabranch->GetEntry(0) ;
    }
 
   Int_t ii ; 
-  Int_t maxemc = emca->GetEntries() ; 
-  for ( ii= 0 ; ii < maxemc ; ii++ ) 
-    RecPoints()->Add(emca->At(ii)) ;
+  Int_t maxpre = pre->GetEntries() ; 
+  for ( ii= 0 ; ii < maxpre ; ii++ ) 
+    PRERecPoints()->Add(pre->At(ii)) ;
  
-  Int_t maxcpv = cpva->GetEntries() ;
-  for ( ii= 0 ; ii < maxcpv ; ii++ )
-    RecPoints()->Add(cpva->At(ii)) ; 
-
+  Int_t maxeca = eca->GetEntries() ; 
+  for ( ii= 0 ; ii < maxeca ; ii++ ) 
+    ECARecPoints()->Add(eca->At(ii)) ;
+  
+  Int_t maxhca = hca->GetEntries() ; 
+  for ( ii= 0 ; ii < maxhca ; ii++ ) 
+    HCARecPoints()->Add(hca->At(ii)) ;
+ 
   return retval;
 }
 
@@ -767,38 +787,43 @@ Bool_t AliEMCALLoader::BranchExists(const TString& recName)
   if (fBranchTitle.IsNull()) return kFALSE;
   TString dataname, zername ;
   TTree* tree;
-  if(recName == "SDigits")
-   {
+  if(recName == "SDigits") {
     tree = TreeS();
     dataname = GetDetectorName();
     zername = "AliEMCALSDigitizer" ;
-   }
+  }
+  else if(recName == "Digits"){
+    tree = TreeD();
+    dataname = GetDetectorName();
+    zername = "AliEMCALDigitizer" ;
+  }
+  else if(recName == "PRERecPoints"){
+    tree = TreeR();
+    dataname = fgkPRERecPointsBranchName;
+    zername = "AliEMCALClusterizer" ;
+  }
+  else if(recName == "ECARecPoints"){
+    tree = TreeR();
+    dataname = fgkECARecPointsBranchName;
+    zername = "AliEMCALClusterizer" ;
+  }
+  else if(recName == "HCARecPoints"){
+    tree = TreeR();
+    dataname = fgkHCARecPointsBranchName;
+    zername = "AliEMCALClusterizer" ;
+  }
+  else if(recName == "TrackSegments"){
+    tree = TreeT();
+    dataname = fgkTrackSegmentsBranchName;
+    zername = "AliEMCALTrackSegmentMaker";
+  }        
+  else if(recName == "RecParticles"){
+    tree = TreeP();
+    dataname = fgkRecParticlesBranchName;
+    zername = "AliEMCALPID";
+  }
   else
-    if(recName == "Digits"){
-      tree = TreeD();
-      dataname = GetDetectorName();
-      zername = "AliEMCALDigitizer" ;
-    }
-    else
-      if(recName == "RecPoints"){
-       tree = TreeR();
-       dataname = fgkRecPointsBranchName;
-       zername = "AliEMCALClusterizer" ;
-      }
-      else
-       if(recName == "TrackSegments"){
-         tree = TreeT();
-         dataname = fgkTrackSegmentsBranchName;
-         zername = "AliEMCALTrackSegmentMaker";
-       }        
-       else
-         if(recName == "RecParticles"){
-           tree = TreeP();
-           dataname = fgkRecParticlesBranchName;
-           zername = "AliEMCALPID";
-         }
-         else
-           return kFALSE ;
+    return kFALSE ;
 
   
   if(!tree ) 
@@ -863,9 +888,11 @@ void AliEMCALLoader::CleanDigits()
 void AliEMCALLoader::CleanRecPoints()
 {
   AliLoader::CleanRecPoints();
-  TObjArray* recpoints = RecPoints();
+  TObjArray* recpoints = PRERecPoints();
+  if (prerecpoints) prerecpoints->Clear();
+  recpoints = ECARecPoints();
   if (recpoints) recpoints->Clear();
-  recpoints = RecPoints();
+  recpoints = HCARecPoints();
   if (recpoints) recpoints->Clear();
 }
 //____________________________________________________________________________ 
@@ -951,20 +978,26 @@ void AliEMCALLoader::MakeDigitsArray()
 //____________________________________________________________________________ 
 void AliEMCALLoader::MakeRecPointsArray()
 {
-  if ( RecPoints() == 0x0)
-   {
-    if (GetDebug()>9) Info("MakeRecPointsArray","Making array for EMC");
-    TObjArray* emc = new TObjArray(100) ;
-    emc->SetName(fgkRecPointsName) ;
-    GetDetectorDataFolder()->Add(emc);
+  if ( PRERecPoints() == 0x0) {
+    if (GetDebug()>9) 
+      Info("MakeRecPointsArray","Making array for PRE");
+    TObjArray* pre = new TObjArray(100) ;
+    pre->SetName(fgkPRERecPointsName) ;
+    GetDetectorDataFolder()->Add(pre);
+  }
+  if ( ECARecPoints() == 0x0) {
+    if (GetDebug()>9) 
+      Info("MakeRecPointsArray","Making array for ECA");
+    TObjArray* eca = new TObjArray(100) ;
+    eca->SetName(fgkECARecPointsName) ;
+    GetDetectorDataFolder()->Add(eca);
    }
-
-  if ( RecPoints() == 0x0)
-   {
-    if (GetDebug()>9) Info("MakeRecPointsArray","Making array for CPV");
-    TObjArray* cpv = new TObjArray(100) ;
-    cpv->SetName(fgkRecPointsName);
-    GetDetectorDataFolder()->Add(cpv);
+  if ( HCARecPoints() == 0x0) {
+    if (GetDebug()>9) 
+      Info("MakeRecPointsArray","Making array for HCA");
+    TObjArray* hca = new TObjArray(100) ;
+    hca->SetName(fgkHCARecPointsName) ;
+    GetDetectorDataFolder()->Add(hca);
    }
 }
 

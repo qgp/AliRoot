@@ -214,7 +214,7 @@ void AliEMCALSDigitizer::Exec(Option_t *option)
 					    -1               ,
 					    hit->GetId(), 
 					    Digitize(hit->GetEnergy()), hit->GetTime() ) ;
-	else if( geom->IsInECAL(hit->GetId()) )
+	else if( geom->IsInECA(hit->GetId()) )
 	  if( hit->GetEnergy() >  fECPrimThreshold )
 	    curSDigit =  new AliEMCALDigit( hit->GetPrimary(),
 					    hit->GetIparent(), hit->GetId(), 
@@ -224,7 +224,7 @@ void AliEMCALSDigitizer::Exec(Option_t *option)
 					    -1               ,
 					    hit->GetId(), 
 					    Digitize(hit->GetEnergy()), hit->GetTime() ) ;
-	else if( geom->IsInHCAL(hit->GetId()) )
+	else if( geom->IsInHCA(hit->GetId()) )
 	  if( hit->GetEnergy() >  fHCPrimThreshold )
 	    
 	    curSDigit =  new AliEMCALDigit( hit->GetPrimary(),

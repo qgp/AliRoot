@@ -299,11 +299,11 @@ void AliEMCALDigitizer::Digitize(const Int_t event)
     }
     // add the noise now
     
-    if (geom->IsInECAL(digit->GetId())) 
+    if (geom->IsInECA(digit->GetId())) 
       amp += TMath::Abs(gRandom->Gaus(0., fPinNoise)) ;
     else if (geom->IsInPRE(digit->GetId())) 
       amp += TMath::Abs(gRandom->Gaus(0., fPinNoise/100.)) ; // arbitrarely divide by 100, assuming that the gain of APD will be higher
-    else if (geom->IsInHCAL(digit->GetId())) 
+    else if (geom->IsInHCA(digit->GetId())) 
       amp += TMath::Abs(gRandom->Gaus(0., fPinNoise/10.)) ;  // arbitrarely divide by 10, assuming that the gain of APD will be higher
     digit->SetAmp(sDigitizer->Digitize(amp)) ;  
   }
@@ -318,11 +318,11 @@ void AliEMCALDigitizer::Digitize(const Int_t event)
     digit = dynamic_cast<AliEMCALDigit*>( digits->At(i) ) ;
     Float_t threshold = 0 ; 
 
-    if (geom->IsInECAL(digit->GetId())) 
+    if (geom->IsInECA(digit->GetId())) 
       threshold = fDigitThreshold ; 
     else  if (geom->IsInPRE(digit->GetId()))
       threshold = fDigitThreshold / 100. ; // arbitrary see before when noise is added
-    else  if (geom->IsInHCAL(digit->GetId()))
+    else  if (geom->IsInHCA(digit->GetId()))
       threshold = fDigitThreshold / 10. ; // arbitrary see before when noise is added    
 
     if(sDigitizer->Calibrate( digit->GetAmp() ) < threshold)
@@ -357,12 +357,12 @@ Int_t AliEMCALDigitizer::DigitizeEnergy(Float_t energy, Int_t absId)
     if(channel > fNADCPRE ) 
       channel =  fNADCPRE ;
   }
-  else if(geom->IsInECAL(absId)){  //digitize as ECAL section
+  else if(geom->IsInECA(absId)){  //digitize as ECAL section
     channel = static_cast<Int_t> (TMath::Ceil( (energy + fADCpedestalEC)/fADCchannelEC ))  ;
     if(channel > fNADCEC ) 
       channel =  fNADCEC ;
   } 
-  else if(geom->IsInHCAL(absId)){  //digitize as HCAL section
+  else if(geom->IsInHCA(absId)){  //digitize as HCAL section
     channel = static_cast<Int_t> (TMath::Ceil( (energy + fADCpedestalHC)/fADCchannelHC ))  ;
     if(channel > fNADCHC ) 
       channel =  fNADCHC ;
