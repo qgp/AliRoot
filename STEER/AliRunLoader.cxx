@@ -91,17 +91,16 @@ AliRunLoader::AliRunLoader(const char* eventfoldername):
 AliRunLoader::~AliRunLoader()
 {
   
-  if(fLoaders)
-   {
-    fLoaders->SetOwner();
-    delete fLoaders;
-   }
-
   UnloadHeader();
   UnloadKinematics();
   UnloadTrackRefs();
   UnloadgAlice();
   
+  if(fLoaders) {
+    fLoaders->SetOwner();
+    delete fLoaders;
+  }
+
   RemoveEventFolder();
   //fEventFolder is deleted by the way of removing - TopAliceFolder owns it
   delete fHeader;
