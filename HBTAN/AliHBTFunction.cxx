@@ -1,13 +1,14 @@
 #include "AliHBTFunction.h"
-//____________________
-//////////////////////////////////////////////////////////////////////
-//
+
+/* $Id: */
+
+//--------------------------------------------------------------------
 //AliHBTFunction
 //Author: Piotr Krzysztof Skowronski
 //Piotr.Skowronski@cern.ch
-/*Base classes for HBT functions
-
- OnePairFctn       unction                  TwoPairFctn
+//Base classes for HBT functions
+/*
+ OnePairFctn       Function                  TwoPairFctn
    | \    \        /  |   \                      /|\   
    |  \    \      /   |    \                    / | \    
    |   \    \   1D   2D    3D                  /  |  \    
@@ -19,19 +20,20 @@
    |       / \       \|    |    \        /  \     |  \     \              
    |      /   \      /\    |     \      /    \    |   \     |              
    |     /     \    /  \   |      \    /      \   |    \    |               
-   |    /       \  /    \  |       \  /        \  |     \   |                 
+   |    /       \  /    \  |       \  /        \  |     \   |
    |   /         \/      \ |        \/          \ |      \  |               
  OnePair1D   OnePair2D  OnePair3D  TwoPair1D  TwoPair2D TwoPair3D
-
 
 
  four particle functions are intendent to be resolution functions:
  it is mecessary to have simulated particle pair corresponding to given
  recontructed track pair in order to calculate function simualted value 
- and recontructed value to be further histogrammed
- 
+ and recontructed value, to be further histogrammed
 */
-/////////////////////////////////////////////////////////////////////// 
+//--------------------------------------------------------------------- 
+
+#include <TH2.h>
+#include <TH3.h>
 
 /******************************************************************/
 /******************************************************************/
@@ -40,6 +42,7 @@ ClassImp( AliHBTFunction )
 
 AliHBTFunction::AliHBTFunction()
 {
+//Default constructor
   fPairCut = new AliHBTEmptyPairCut(); //dummy cut
 }
 /******************************************************************/
@@ -50,22 +53,26 @@ AliHBTFunction::AliHBTFunction(const char* name,const char* title):TNamed(name,t
 /******************************************************************/
 
 AliHBTFunction::~AliHBTFunction()
- {
+{
+//destructor  
   delete fPairCut;
- }
+}
 /******************************************************************/
 
 void AliHBTFunction::Write()
- {
+{
+//writes result of the function to file
    if (GetNumerator()) GetNumerator()->Write();
    if (GetDenominator()) GetDenominator()->Write();
    TH1* res = GetResult();
    if (res) res->Write();
- }
+}
 /******************************************************************/
 
 TH1* AliHBTFunction::GetRatio(Double_t normfactor)
  {
+ //returns ratio of numerator and denominator
+ //
    if (gDebug>0) Info("GetRatio","Norm. Factor is %f for %s",normfactor,GetName());
    
    if (normfactor == 0.0)
@@ -192,7 +199,7 @@ AliHBTFunction1D::AliHBTFunction1D():
  fNumerator(0x0),
  fDenominator(0x0),
  fNBinsToScale(fgkDefaultNBinsToScale)
-{
+{//default constructor
 }
 /******************************************************************/
 
@@ -212,7 +219,7 @@ AliHBTFunction1D::AliHBTFunction1D(const Char_t *name, const Char_t *title):
  fNumerator(0x0),
  fDenominator(0x0),
  fNBinsToScale(fgkDefaultNBinsToScale)
-{
+{//constructor
 }
 /******************************************************************/
 AliHBTFunction1D::AliHBTFunction1D(const Char_t *name, const Char_t *title,
@@ -222,18 +229,21 @@ AliHBTFunction1D::AliHBTFunction1D(const Char_t *name, const Char_t *title,
  fDenominator(0x0),
  fNBinsToScale(fgkDefaultNBinsToScale)
 {
-   BuildHistos(nbins,maxXval,minXval);
+//constructor
+  BuildHistos(nbins,maxXval,minXval);
 }
 /******************************************************************/
 
 AliHBTFunction1D::~AliHBTFunction1D()
 {
+//destructor
   delete fNumerator;
   delete fDenominator;
 }
 /******************************************************************/
 void AliHBTFunction1D::BuildHistos()
 {
+//builds histograms with default settings
  BuildHistos(fgkDefaultNBins,fgkDefaultMax,fgkDefaultMin);
 }
 
@@ -241,6 +251,7 @@ void AliHBTFunction1D::BuildHistos()
 
 void AliHBTFunction1D::BuildHistos(Int_t nbins, Float_t max, Float_t min)
 {
+//builds numarator and denominator hitograms
   TString numstr = fName + " Numerator";  //title and name of the 
                                           //numerator histogram
   TString denstr = fName + " Denominator";//title and name of the 
@@ -293,24 +304,24 @@ Double_t AliHBTFunction1D::Scale(TH1D* num,TH1D* den)
 
   Double_t ratio;
   Double_t sum = 0;
-  Int_t N = 0;
+  Int_t n = 0;
   
   Int_t offset = nbins - fNBinsToScale - 1; 
-  UInt_t i;
-  for ( i = offset; i< nbins; i++)
+
+  for (UInt_t i = offset; i< nbins; i++)
    {
     if ( num->GetBinContent(i) > 0.0 )
      {
        ratio = den->GetBinContent(i)/num->GetBinContent(i);
        sum += ratio;
-       N++;
+       n++;
      }
    }
   
-  if(gDebug > 0) Info("Scale","sum=%f fNBinsToScale=%d N=%d",sum,fNBinsToScale,N);
+  if(gDebug > 0) Info("Scale","sum=%f fNBinsToScale=%d n=%d",sum,fNBinsToScale,n);
   
-  if (N == 0) return 0.0;
-  Double_t ret = sum/((Double_t)N);
+  if (n == 0) return 0.0;
+  Double_t ret = sum/((Double_t)n);
 
   if(gDebug > 0) Info("Scale","returning %f",ret);
   return ret;
@@ -406,6 +417,7 @@ void AliHBTFunction2D::BuildHistos()
 void AliHBTFunction2D::BuildHistos(Int_t nxbins, Float_t xmax, Float_t xmin,
                                    Int_t nybins, Float_t ymax, Float_t ymin)
 {
+  //Builds numerator and denominator histograms (2d-case)
  TString numstr = fName + " Numerator";  //title and name of the 
                                            //numerator histogram
  TString denstr = fName + " Denominator";//title and name of the 
@@ -432,6 +444,9 @@ void AliHBTFunction2D::SetNumberOfBinsToScale(UInt_t xn, UInt_t yn)
 
 Double_t AliHBTFunction2D::Scale()
 {
+  // Calculates the factor that should be used to scale 
+  // quatience of fNumerator and fDenominator to 1 at 
+  // given region
   if (gDebug>0) Info("Scale","Enetered Scale()");
   if(!fNumerator) 
    {
@@ -470,24 +485,23 @@ Double_t AliHBTFunction2D::Scale()
 
   Double_t ratio;
   Double_t sum = 0;
-  Int_t N = 0;
+  Int_t n = 0;
   
-  UInt_t i,j;
-  for ( j = offsetY; j< nbinsY; j++)
-    for ( i = offsetX; i< nbinsX; i++)
+  for (UInt_t j = offsetY; j< nbinsY; j++)
+    for (UInt_t i = offsetX; i< nbinsX; i++)
      {
       if ( fNumerator->GetBinContent(i,j) > 0.0 )
        {
          ratio = fDenominator->GetBinContent(i,j)/fNumerator->GetBinContent(i,j);
          sum += ratio;
-         N++;
+         n++;
        }
      }
   
-  if(gDebug > 0) Info("Scale","sum=%f fNBinsToScaleX=%d fNBinsToScaleY=%d N=%d",sum,fNBinsToScaleX,fNBinsToScaleY,N);
+  if(gDebug > 0) Info("Scale","sum=%f fNBinsToScaleX=%d fNBinsToScaleY=%d n=%d",sum,fNBinsToScaleX,fNBinsToScaleY,n);
   
-  if (N == 0) return 0.0;
-  Double_t ret = sum/((Double_t)N);
+  if (n == 0) return 0.0;
+  Double_t ret = sum/((Double_t)n);
 
   if(gDebug > 0) Info("Scale","returning %f",ret);
   return ret;
@@ -527,6 +541,28 @@ const UInt_t AliHBTFunction3D::fgkDefaultNBinsToScaleX = 30;//Default number of 
 const UInt_t AliHBTFunction3D::fgkDefaultNBinsToScaleY = 30;//Default number of bins used for scaling to tale
 const UInt_t AliHBTFunction3D::fgkDefaultNBinsToScaleZ = 30;//Default number of bins used for scaling to tale
 
+AliHBTFunction3D::AliHBTFunction3D():
+ fNumerator(0x0),
+ fDenominator(0x0),
+ fNBinsToScaleX(fgkDefaultNBinsToScaleX), 
+ fNBinsToScaleY(fgkDefaultNBinsToScaleY),
+ fNBinsToScaleZ(fgkDefaultNBinsToScaleZ)
+{
+ //constructor
+}
+/******************************************************************/
+
+AliHBTFunction3D::AliHBTFunction3D(const Char_t *name, const Char_t *title):
+ AliHBTFunction(name,title),
+ fNumerator(0x0),
+ fDenominator(0x0),
+ fNBinsToScaleX(fgkDefaultNBinsToScaleX), 
+ fNBinsToScaleY(fgkDefaultNBinsToScaleY),
+ fNBinsToScaleZ(fgkDefaultNBinsToScaleZ)
+{
+ //constructor
+}  
+/******************************************************************/
 
 AliHBTFunction3D::AliHBTFunction3D(Int_t nXbins, Double_t maxXval, Double_t minXval, 
                   Int_t nYbins, Double_t maxYval, Double_t minYval, 
@@ -537,8 +573,27 @@ AliHBTFunction3D::AliHBTFunction3D(Int_t nXbins, Double_t maxXval, Double_t minX
  fNBinsToScaleY(fgkDefaultNBinsToScaleY),
  fNBinsToScaleZ(fgkDefaultNBinsToScaleZ)
 {
+ //constructor
+ BuildHistos( nXbins,maxXval,minXval,nYbins,maxYval,minYval,nZbins,maxZval,minZval);
 }	  
 /******************************************************************/
+
+AliHBTFunction3D::AliHBTFunction3D(const Char_t *name, const Char_t *title,
+                 Int_t nXbins, Double_t maxXval, Double_t minXval, 
+                 Int_t nYbins, Double_t maxYval, Double_t minYval, 
+                 Int_t nZbins, Double_t maxZval, Double_t minZval):
+ AliHBTFunction(name,title),
+ fNumerator(0x0),
+ fDenominator(0x0),
+ fNBinsToScaleX(fgkDefaultNBinsToScaleX), 
+ fNBinsToScaleY(fgkDefaultNBinsToScaleY),
+ fNBinsToScaleZ(fgkDefaultNBinsToScaleZ)
+{
+ //constructor
+ BuildHistos( nXbins,maxXval,minXval,nYbins,maxYval,minYval,nZbins,maxZval,minZval);
+}	  
+/******************************************************************/
+
 
 AliHBTFunction3D::~AliHBTFunction3D()
 {
@@ -560,6 +615,7 @@ void AliHBTFunction3D::BuildHistos(Int_t nxbins, Float_t xmax, Float_t xmin,
                                    Int_t nybins, Float_t ymax, Float_t ymin,
 	               Int_t nzbins, Float_t zmax, Float_t zmin)
 {
+  //Builds numerator and denominator histograms (3d-case)
    TString numstr = fName + " Numerator";  //title and name of the 
                                            //numerator histogram
    TString denstr = fName + " Denominator";//title and name of the 
@@ -579,6 +635,9 @@ void AliHBTFunction3D::BuildHistos(Int_t nxbins, Float_t xmax, Float_t xmin,
 
 Double_t AliHBTFunction3D::Scale()
 {
+  // Calculates the factor that should be used to scale 
+  // quatience of fNumerator and fDenominator to 1 at 
+  // given volume
   if (gDebug>0) Info("Scale","Enetered Scale()");
   if(!fNumerator) 
    {
@@ -625,7 +684,7 @@ Double_t AliHBTFunction3D::Scale()
 
   Double_t ratio;
   Double_t sum = 0;
-  Int_t N = 0;
+  Int_t n = 0;
   
   for (UInt_t k = offsetZ; k<nbinsZ; k++)
     for (UInt_t j = offsetY; j<nbinsY; j++)
@@ -635,20 +694,29 @@ Double_t AliHBTFunction3D::Scale()
          {
            ratio = fDenominator->GetBinContent(i,j,k)/fNumerator->GetBinContent(i,j,k);
            sum += ratio;
-           N++;
+           n++;
          }
        }
   
   if(gDebug > 0) 
-    Info("Scale","sum=%f fNBinsToScaleX=%d fNBinsToScaleY=%d fNBinsToScaleZ=%d N=%d",
-          sum,fNBinsToScaleX,fNBinsToScaleY,fNBinsToScaleZ,N);
+    Info("Scale","sum=%f fNBinsToScaleX=%d fNBinsToScaleY=%d fNBinsToScaleZ=%d n=%d",
+          sum,fNBinsToScaleX,fNBinsToScaleY,fNBinsToScaleZ,n);
   
-  if (N == 0) return 0.0;
-  Double_t ret = sum/((Double_t)N);
+  if (n == 0) return 0.0;
+  Double_t ret = sum/((Double_t)n);
 
   if(gDebug > 0) Info("Scale","returning %f",ret);
   return ret;
 } 
+/******************************************************************/
+
+void AliHBTFunction3D::SetNumberOfBinsToScale(UInt_t xn, UInt_t yn,UInt_t zn)
+{
+//sets up the volume to be used for scaling to tail
+ fNBinsToScaleX = xn;
+ fNBinsToScaleY = yn;
+ fNBinsToScaleZ = zn;
+}
 
 /******************************************************************/
 /******************************************************************/
@@ -697,14 +765,14 @@ AliHBTOnePairFctn1D::AliHBTOnePairFctn1D(const Char_t *name, const Char_t *title
 
 void AliHBTOnePairFctn1D::ProcessSameEventParticles(AliHBTPair* pair)
 {
- //Fills the numerator
+ //Fills the numerator using pair from the same event
    pair = CheckPair(pair);
    if(pair) fNumerator->Fill(GetValue(pair));
 }
 /******************************************************************/
 void AliHBTOnePairFctn1D::ProcessDiffEventParticles(AliHBTPair* pair)
  {
-  //fills denumerator
+  //Fills the denumerator using mixed pairs
    pair = CheckPair(pair);
    if(pair) fDenominator->Fill(GetValue(pair));
   }
@@ -752,6 +820,7 @@ AliHBTOnePairFctn2D::AliHBTOnePairFctn2D(const Char_t *name, const Char_t *title
 
 void AliHBTOnePairFctn2D::ProcessSameEventParticles(AliHBTPair* pair)
 {
+  // Fills the numerator using pairs from the same event
   pair = CheckPair(pair);
   if(pair) 
    { 
@@ -764,6 +833,7 @@ void AliHBTOnePairFctn2D::ProcessSameEventParticles(AliHBTPair* pair)
 
 void AliHBTOnePairFctn2D::ProcessDiffEventParticles(AliHBTPair* pair)
 {
+  // Fills the denumerator using mixed pairs
   pair = CheckPair(pair);
   if(pair) 
    { 
@@ -883,6 +953,7 @@ AliHBTTwoPairFctn1D::AliHBTTwoPairFctn1D(const Char_t *name, const Char_t *title
 
 void AliHBTTwoPairFctn1D::ProcessSameEventParticles(AliHBTPair* trackpair, AliHBTPair* partpair)
 {
+  // Fills the numerator using pairs from the same event
   partpair  = CheckPair(partpair);
   if( partpair ) 
    { 
@@ -894,6 +965,7 @@ void AliHBTTwoPairFctn1D::ProcessSameEventParticles(AliHBTPair* trackpair, AliHB
 
 void AliHBTTwoPairFctn1D::ProcessDiffEventParticles(AliHBTPair* trackpair, AliHBTPair* partpair)
 {
+  // Fills the denumerator usin mixed pairs
   partpair  = CheckPair(partpair);
   if( partpair )
    { 
@@ -946,7 +1018,8 @@ AliHBTTwoPairFctn2D::AliHBTTwoPairFctn2D(const Char_t *name, const Char_t *title
 
 void AliHBTTwoPairFctn2D::ProcessSameEventParticles(AliHBTPair* trackpair, AliHBTPair* partpair)
 {
-  partpair  = CheckPair(partpair);
+//processes pair of particles coming from a same events (real pair)
+  partpair  = CheckPair(partpair);  //check cuts
   if( partpair ) 
    { 
      Double_t x,y;
@@ -958,6 +1031,7 @@ void AliHBTTwoPairFctn2D::ProcessSameEventParticles(AliHBTPair* trackpair, AliHB
 
 void AliHBTTwoPairFctn2D::ProcessDiffEventParticles(AliHBTPair* trackpair, AliHBTPair* partpair)
 {
+//processes pair of particles coming from a different events (mixed pair)
   partpair  = CheckPair(partpair);
   if( partpair ) 
    { 
@@ -965,7 +1039,6 @@ void AliHBTTwoPairFctn2D::ProcessDiffEventParticles(AliHBTPair* trackpair, AliHB
      GetValues(trackpair,partpair,x,y);
      fDenominator->Fill(x,y);
    }
-
 }
 
 /******************************************************************/
@@ -1015,6 +1088,7 @@ AliHBTTwoPairFctn3D::AliHBTTwoPairFctn3D(const Char_t *name, const Char_t *title
 
 void AliHBTTwoPairFctn3D::ProcessSameEventParticles(AliHBTPair* trackpair, AliHBTPair* partpair)
 {
+  // Fills th numerator using pairs from the same event
   partpair  = CheckPair(partpair);
   if( partpair ) 
    { 
@@ -1027,6 +1101,7 @@ void AliHBTTwoPairFctn3D::ProcessSameEventParticles(AliHBTPair* trackpair, AliHB
 
 void AliHBTTwoPairFctn3D::ProcessDiffEventParticles(AliHBTPair* trackpair, AliHBTPair* partpair)
 {
+  // Fills the denumerator using mixed pairs
   partpair  = CheckPair(partpair);
   if( partpair ) 
    { 

@@ -1,14 +1,7 @@
 #ifndef ALIHBTLLWEIGHTTHEORFCTN_H
 #define ALIHBTLLWEIGHTTHEORFCTN_H
-//Author: Ludmila Malinina, JINR (malinina@sunhe.jinr.ru)
+/* $Id$ */
 
-#include "AliHBTFunction.h"
-
-
-class AliHBTLLWeights;
-
-class AliHBTLLWeightTheorQInvFctn: public AliHBTOnePairFctn1D
-{
 //This function allows to obtain Q_inv correlation function with weights
 //calculated by Lednicky's alghorithm.
 //Numerator is filled with weighted events. Weights are attributed to simulated particles.
@@ -18,21 +11,25 @@ class AliHBTLLWeightTheorQInvFctn: public AliHBTOnePairFctn1D
 //this function is of class AliHBTOnePairFctn1D.
 //Author Ludmila Malinina JINR (malinina@sunhe.jinr.ru)
 
+#include "AliHBTFunction.h"
+
+class AliHBTLLWeights;
+
+class AliHBTLLWeightTheorQInvFctn: public AliHBTOnePairFctn1D
+{
+
   public:
-    AliHBTLLWeightTheorQInvFctn(Int_t nbins = 100, Double_t maxXval = 0.15, Double_t minXval = 0.0);
+  AliHBTLLWeightTheorQInvFctn(Int_t nbins = 100, Double_t maxXval = 0.15, Double_t minXval = 0.0);
   
-    virtual  ~AliHBTLLWeightTheorQInvFctn(){};
-    TH1* GetResult(); 
+  virtual  ~AliHBTLLWeightTheorQInvFctn(){};
+  TH1* GetResult(); 
 
-    void   ProcessSameEventParticles(AliHBTPair* partpair);
+  void   ProcessSameEventParticles(AliHBTPair* partpair);
       
-    Double_t GetValue(AliHBTPair* partpair){ return partpair->GetQInv();} //isn't used
+  Double_t GetValue(AliHBTPair* partpair)
+    { return partpair->GetQInv();} //isn't used
 
-  protected:
-
-  private:
-  public:
-     ClassDef(AliHBTLLWeightTheorQInvFctn,1)
+  ClassDef(AliHBTLLWeightTheorQInvFctn,1)
 };
   
 #endif
