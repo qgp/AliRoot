@@ -100,12 +100,16 @@ Int_t AliReaderAOD::ReadNext()
          fTree = 0x0;
          delete fFile;
          fFile = 0x0;
+         
+         delete fSimBuffer;
+         delete fRecBuffer;
+         
          fSimBuffer = 0x0;
          fRecBuffer = 0x0;
          fCurrentDir++;
          continue;
        }
-       
+      
       Info("ReadNext","Getting event %d",fCurrentEvent);
       fTree->GetEvent(fCurrentEvent);
       Info("ReadNext","Getting event %d Done",fCurrentEvent);
