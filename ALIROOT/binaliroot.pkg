@@ -3,6 +3,6 @@ SRCS:=aliroot.cxx
 ELIBSDIR:= $(ALICE)/geant3/lib/tgt_$(ALICE_TARGET)
 
 ELIBS:= MUON TPC PMD TRD FMD TOF ITS PHOS CRT RICH ZDC EMCAL STRUCT \
-START EVGEN STEER CONTAINERS EG pythia6 pdf THijing hijing TMevSim \
+START EVGEN STEER CONTAINERS pythia6 pdf THijing hijing TMevSim \
 mevsim THbtp HBTP THerwig herwig microcern geant321
 
