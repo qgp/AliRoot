@@ -1254,7 +1254,7 @@ AliGenerator* GeneratorFactory(PprRun_t srun) {
       {
 	comment = comment.Append(" Muon Cocktail Cent1");
 	AliGenMUONCocktail * gener = new AliGenMUONCocktail();
-	gener->SetPtRange(1.0,100.);       // Transverse momentum range   
+	gener->SetPtRange(0.0,100.);       // Transverse momentum range   
 	gener->SetPhiRange(0.,360.);    // Azimuthal angle range  
 	gener->SetYRange(-4.0,-2.4);
 	gener->SetMuonPtCut(0.8);
@@ -1269,7 +1269,7 @@ AliGenerator* GeneratorFactory(PprRun_t srun) {
       {
 	comment = comment.Append(" Muon Cocktail Per1");
 	AliGenMUONCocktail * gener = new AliGenMUONCocktail();
-	gener->SetPtRange(1.0,100.);       // Transverse momentum range   
+	gener->SetPtRange(0.0,100.);       // Transverse momentum range   
 	gener->SetPhiRange(0.,360.);    // Azimuthal angle range  
 	gener->SetYRange(-4.0,-2.4);
 	gener->SetMuonPtCut(0.8);
@@ -1284,7 +1284,7 @@ AliGenerator* GeneratorFactory(PprRun_t srun) {
       {
 	comment = comment.Append(" Muon Cocktail Per4");
 	AliGenMUONCocktail * gener = new AliGenMUONCocktail();
-	gener->SetPtRange(1.0,100.);       // Transverse momentum range   
+	gener->SetPtRange(0.0,100.);       // Transverse momentum range   
 	gener->SetPhiRange(0.,360.);    // Azimuthal angle range  
 	gener->SetYRange(-4.0,-2.4);
 	gener->SetMuonPtCut(0.8);
