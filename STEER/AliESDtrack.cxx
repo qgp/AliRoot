@@ -224,11 +224,7 @@ Bool_t AliESDtrack::UpdateTrackParams(AliKalmanTrack *t, ULong_t flags) {
          t->GetExternalParameters(fXx,fXp);
          t->GetExternalCovariance(fXc);
       }
-    }
-  case kTOFin: 
-    break;
-  case kTOFout: 
-    break;
+    } // don't put break here, it goes together with the next case
   case kTRDin: case kTRDrefit:
     fTRDLabel = t->GetLabel();
 
@@ -238,6 +234,10 @@ Bool_t AliESDtrack::UpdateTrackParams(AliKalmanTrack *t, ULong_t flags) {
     fTRDsignal=t->GetPIDsignal();
     break;
   case kTRDStop:
+    break;
+  case kTOFin: 
+    break;
+  case kTOFout: 
     break;
   default: 
     Error("UpdateTrackParams()","Wrong flag !\n");
