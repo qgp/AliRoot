@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.3  2002/07/25 10:00:08  morsch
+par4 size increased.
+
 Revision 1.2  2002/07/15 08:16:35  morsch
 New shield geometry.
 
