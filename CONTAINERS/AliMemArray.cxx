@@ -13,21 +13,8 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.2.8.1  2002/11/22 14:19:29  hristov
-Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
+/* $Id$ */
 
-Revision 1.3  2002/10/23 07:26:21  alibrary
-Introducing Riostream.h
-
-Revision 1.2  2001/01/10 09:33:56  kowal2
-Clear method modified to fix the problem with reading Tree.
-
-Revision 1.1  2000/11/01 16:01:26  kowal2
-Classes for handling the new hits structures
-
-*/
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
 //  AliMemArray                                                              //                      

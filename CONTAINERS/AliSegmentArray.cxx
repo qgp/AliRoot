@@ -13,65 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.7.4.3  2002/11/22 14:19:29  hristov
-Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
-
-Revision 1.7.4.2  2002/05/31 15:37:03  hristov
-Merged with v3-08-02
-
-
-Revision 1.7.4.1  2002/05/31 09:37:54  hristov
-First set of changes done by Piotr
-
-Revision 1.10  2002/10/23 07:26:21  alibrary
-Introducing Riostream.h
-
-Revision 1.9  2002/10/14 14:55:34  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.7.6.1  2002/06/10 15:00:53  hristov
-Merged with v3-08-02
-
-Revision 1.8  2002/04/04 16:38:52  kowal2
-Digits and Sdigits go to separate files
-
-Revision 1.7  2001/10/21 18:22:54  hristov
-BranchOld replaced by Branch. It works correctly with Root 2.02.xx
-
-Revision 1.6  2001/08/30 09:25:24  hristov
-The operator[] is replaced by At() or AddAt() in case of TObjArray. A temporary replacement of Branch with BranchOld is introduced
-
-Revision 1.5  2001/07/27 13:03:11  hristov
-Default Branch split level set to 99
-
-Revision 1.4  2001/06/07 18:23:52  buncic
-TPC branches now correctly diverted into Digits.TPS.root file
-
-Revision 1.3  2001/02/05 14:34:54  hristov
-Avoid deleting of Root class dictionary (R.Brun, M.Ivanov)
-
-Revision 1.2  2001/01/26 20:29:00  hristov
-Major upgrade of AliRoot code
-
-Revision 1.1  2000/11/01 15:57:13  kowal2
-Moved from the TPC directory
-
-Revision 1.3  2000/06/30 12:07:49  kowal2
-Updated from the TPC-PreRelease branch
-
-Revision 1.2.4.1  2000/06/25 08:38:41  kowal2
-Splitted from AliTPCtracking
-
-Revision 1.2  2000/04/17 09:37:33  kowal2
-removed obsolete AliTPCDigitsDisplay.C
-
-Revision 1.1.4.2  2000/04/10 11:39:36  kowal2
-
-New data structure handling
-
-*/
+/* $Id$ */
 
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
@@ -323,6 +265,7 @@ void AliSegmentArray::MakeTree(char *file)
     }
   delete psegment;
 }              
+
 
 Bool_t  AliSegmentArray::MakeDictionary(Int_t size)
 {

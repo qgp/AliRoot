@@ -13,15 +13,8 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.2  2001/07/27 13:03:11  hristov
-Default Branch split level set to 99
+/* $Id$ */
 
-Revision 1.1  2000/11/01 16:01:22  kowal2
-Classes for handling the new hits structures
-
-*/
 #include "TROOT.h"
 #include "AliArrayBranch.h"
 #include "TFile.h"

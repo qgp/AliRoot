@@ -50,6 +50,8 @@ public: \
    void  Dump();
    static int ImplFileLine();  
 
+//static int ImplFileLine(){return 0;}  
+
 #define LClassImp(name)  \
   void name::Dump() { \
      char parent[256]; \
