@@ -101,11 +101,22 @@ Int_t AliReaderAOD::ReadNext()
          delete fFile;
          fFile = 0x0;
          
+         if (fSimBuffer == fEventSim)//this is the case when no cut are applied 
+          {
+            fEventSim = 0x0;
+          }
+         if (fRecBuffer == fEventRec)
+          {
+            fEventRec = 0x0;
+          }
+          
          delete fSimBuffer;
          delete fRecBuffer;
          
          fSimBuffer = 0x0;
          fRecBuffer = 0x0;
+         
+         
          fCurrentDir++;
          continue;
        }
@@ -150,7 +161,7 @@ Int_t AliReaderAOD::ReadRecAndSim()
  Info("ReadRecAndSim","Found %d reconstructed tracks and %d simulated particles",
        fRecBuffer->GetNumberOfParticles(),fSimBuffer->GetNumberOfParticles());
 
- if (fCuts->GetEntriesFast() == 0x0)
+ if (fCuts->GetEntriesFast() == 0)
   {//if there is no cuts we return pointer to the buffer
     if (fEventRec != fRecBuffer)
      {
