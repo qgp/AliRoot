@@ -34,7 +34,11 @@ endif
 endif
 
 ifndef PACKDCXXFLAGS
-@PACKAGE@DCXXFLAGS:=$(CXXFLAGSNO)
+ifeq ($(PLATFORM),linuxicc)
+@PACKAGE@DCXXFLAGS:=$(filter-out -O%,$(CXXFLAGS)) -O0
+else
+@PACKAGE@DCXXFLAGS:=$(filter-out -O%,$(CXXFLAGS))
+endif
 else
 @PACKAGE@DCXXFLAGS:=$(PACKDCXXFLAGS)
 endif
@@ -259,6 +263,13 @@ endif
 depend-@PACKAGE@: $(@PACKAGE@DEP)
 
 # determination of object files
+$(MODDIRO)/%.o: $(MODDIRO)/%.cxx $(MODDIRO)/%.d 
+ifndef ALIQUIET
+	@echo "***** Compiling $< *****";
+endif
+	@(if [ ! -d '$(dir $@)' ]; then echo "***** Making directory $(dir $@) *****"; mkdir -p $(dir $@); fi;)
+	$(MUTE)$(CXX) $(@PACKAGE@DEFINE) -c $(@PACKAGE@INC)   $< -o $@ $(@PACKAGE@CXXFLAGS)
+
 $(MODDIRO)/%.o: $(MODDIR)/%.cxx $(MODDIRO)/%.d 
 ifndef ALIQUIET
 	@echo "***** Compiling $< *****";
