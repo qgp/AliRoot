@@ -34,4 +34,5 @@
 #pragma link C++ class AliEMCALFastRecParticle+;		
 #pragma link C++ class AliEMCALPID+;		
 #pragma link C++ class AliEMCALPIDv1+;		
+#pragma link C++ class AliEMCALLoader+;		
 #endif
