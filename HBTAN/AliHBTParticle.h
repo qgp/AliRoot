@@ -92,7 +92,7 @@ public:
                              {fVx=vx; fVy=vy; fVz=vz; fVt=t;}
   void           SetProductionVertex(const TLorentzVector& v)
                              {SetProductionVertex(v.X(),v.Y(),v.Z(),v.T());}
-  const Char_t*  GetName() const;
+  const Char_t*  GetName() const; 
   void           Print() const;
 
   static void    SetDebug(Int_t dbg=1){fgDebug=dbg;}
@@ -106,9 +106,9 @@ private:
   Char_t         fPdgIdx;               // index of PDG code of the particle in fPids
   Int_t          fIdxInEvent;           // index of a particle: the same particle can appear in the event
                                         //  many times with different pid's. Idx allows to check that they are the same particles
-  Char_t         fNPids;                // number of non-zero proboble Pids
-  Int_t         *fPids;                 //[fNPids]
-  Float_t       *fPidProb;              //[fNPids]
+  Int_t          fNPids;                // number of non-zero proboble Pids
+  Int_t         *fPids;                 // [fNPids] Array with PIDs
+  Float_t       *fPidProb;              // [fNPids] PIDs probabilities
   Double_t       fCalcMass;             // Calculated mass
 
   Double_t       fPx;                   // x component of momentum
@@ -121,7 +121,7 @@ private:
   Double_t       fVz;                   // z of production vertex
   Double_t       fVt;                   // t of production vertex
 
-  ClassDef(AliHBTParticle,1)  // TParticle vertex particle information
+  ClassDef(AliHBTParticle,2)  // TParticle vertex particle information
 };
 
 #endif
