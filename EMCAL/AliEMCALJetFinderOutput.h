@@ -54,6 +54,6 @@ class AliEMCALJetFinderOutput : public TObject
                 Int_t           fDebug;			// Debug level
 		Bool_t 		fInitialised;		// stores whether or not the arrays have been initialised
 		
-	ClassDef(AliEMCALJetFinderOutput,1)
+	ClassDef(AliEMCALJetFinderOutput,2)
 };
 #endif
