@@ -1,123 +1,128 @@
-Int_t AliITSHits2Digits(const char *inFile = "galice.root"){
-    ////////////////////////////////////////////////////////////////////
-    //      This macro will take hits from a galice.root file and 
-    // produce digits for the ITS using the settings for the detector 
-    // simulations defined in this file. It will measure the time 
-    // required to do so and the increase in the galice.root file. 
-    // There is only one input, that of the name of the root file 
-    // containing the hits and to which the digits will be written to. 
-    // This macro will process all of the events on the root file.
-    ////////////////////////////////////////////////////////////////////
+TFile* AccessFile(TString inFile="galice.root", TString acctype="R");
+void writeAR(TFile * fin, TFile *fou);
 
-    // Dynamically link some shared libs
-    if (gClassTable->GetID("AliRun") < 0) {
+Int_t AliITSHits2Digits(Int_t evNumber1=0,Int_t evNumber2=0, TString inFile = "galice.root", TString outFile="galice.root"){
+
+  // Dynamically link some shared libs
+  if (gClassTable->GetID("AliRun") < 0) {
 	gROOT->LoadMacro("loadlibs.C");
 	loadlibs();
-    } // end if
+  } // end if
 
-    // Connect the Root Galice file containing Geometry, Kine and Hits
+  // Connect the Root Galice file containing Geometry, Kine and Hits
+
+  TFile *file;
+  if(outFile.Data() == inFile.Data()){
+    file = AccessFile(inFile,"U");
+  }
+  else {
+    file = AccessFile(inFile);
+  }
   
-    TFile *file = (TFile*)gROOT->GetListOfFiles()->FindObject(inFile);
-    if (file) {file->Close(); delete file;}
-    cout << "AliITSHits2Digits" << endl;
-    file = new TFile(inFile,"UPDATE");
-    if (!file->IsOpen()) {
-	cerr<<"Can't open "<<inFile<<" !" << endl;
-	return 1;
-    } // end if !file
-    file->ls();
+  TFile *file2 = 0;  // possible output file for TreeD
 
-    // Get AliRun object from file or return if not on file
-    if (gAlice) delete gAlice;
-    gAlice = (AliRun*)file->Get("gAlice");
-    if (!gAlice) {
-	cerr << "AliITSITSHits2Digits.C : AliRun object not found on file"
-	    << endl;
-	return 2;
-    } // end if !gAlice
+  if(!(outFile.Data() == inFile.Data())){
+    // open output file and create TreeR on it
+    file2 = gAlice->InitTreeFile("D",outFile);
+  }
 
-    AliITS *ITS = (AliITS*)gAlice->GetDetector("ITS");      
-    if (!ITS) {
-	cerr<<"AliITSHits2Digits.C : AliITS object not found on file" 
+  AliITS *ITS = (AliITS*)gAlice->GetDetector("ITS");      
+  if (!ITS) {
+	cerr<<"AliITSHits2DigitsDefault.C : AliITS object not found on file"
 	    << endl;
 	return 3;
-    }  // end if !ITS
-    if(!(ITS->GetITSgeom())){
+  }  // end if !ITS
+  if(!(ITS->GetITSgeom())){
 	cerr << " AliITSgeom not found. Can't digitize with out it." << endl;
 	return 4;
-    } // end if
+  } // end if
 
-    // SPD
-    cout << "Changing from Default SPD simulation, and responce." << endl;
-    AliITSDetType *iDetType=ITS->DetType(0);
-    AliITSsegmentationSPD *seg0=(AliITSsegmentationSPD*)iDetType->
-	GetSegmentationModel();
-    AliITSresponseSPD *res0 = (AliITSresponseSPD*)iDetType->GetResponseModel();
-    AliITSsimulationSPD *sim0=new AliITSsimulationSPD(seg0,res0);
-    ITS->SetSimulationModel(0,sim0);
-    // test
-    cout << "SPD dimensions " << seg0->Dx() << " " << seg0->Dz() << endl;
-    cout << "SPD npixels " << seg0->Npz() << " " << seg0->Npx() << endl;
-    cout << "SPD pitches " << seg0->Dpz(0) << " " << seg0->Dpx(0) << endl;
-    // end test
+  TDatime *ct0 = new TDatime(2002,04,26,00,00,00);
+  TDatime ct = file->GetCreationDate();
 
-    // SDD
-    cout << "Changing from Default SDD simulation, and responce." << endl;
-    //Set response functions
-    Float_t baseline = 10.;
-    Float_t noise = 1.75;
-    // SDD compression param: 2 fDecrease, 2fTmin, 2fTmax or disable,
-    // 2 fTolerance
-    AliITSDetType *iDetType=ITS->DetType(1);
-    AliITSresponseSDD *res1 = (AliITSresponseSDD*)iDetType->GetResponseModel();
-    if (!res1) {
-	res1=new AliITSresponseSDD();
-	ITS->SetResponseModel(1,res1);
-    } // end if !res1
-    Float_t fCutAmp = baseline + 2.*noise;
-    Int_t cp[8]={0,0,fCutAmp,fCutAmp,0,0,0,0}; //1D
+  if(ct0->GetDate()>ct.GetDate()){
+	// For old files, must change SDD noise.
+    AliITSresponseSDD *resp1 = (AliITSresponseSDD*)ITS->DetType(1)->GetResponseModel();
+    resp1 = new AliITSresponseSDD();
+    ITS->SetResponseModel(1,resp1);
+    cout << "Changed response class for SDD: \n";
+    resp1->Print();
+  } // end if
+  TStopwatch timer;
+  timer.Start();
 
-    //res1->SetZeroSupp("2D");
-    res1->SetZeroSupp("1D");
-    res1->SetNoiseParam(noise,baseline);
-    res1->SetDo10to8(kTRUE);
-    res1->SetCompressParam(cp);
-    res1->SetMinVal(4);
-    res1->SetDiffCoeff(3.6,40.);
-    AliITSsegmentationSDD *seg1=(AliITSsegmentationSDD*)iDetType->
-	GetSegmentationModel();
-    if (!seg1) {
-	seg1 = new AliITSsegmentationSDD(ITS->GetITSgeom(),res1);
-	ITS->SetSegmentationModel(1,seg1);
-    } // end if !seg1
-    AliITSsimulationSDD *sim1 = new AliITSsimulationSDD(seg1,res1);
-    sim1->SetDoFFT(1);
-    sim1->SetCheckNoise(kFALSE);
-    ITS->SetSimulationModel(1,sim1);
+  for(Int_t nevent = evNumber1; nevent <= evNumber2; nevent++){
+    cout<<"Producing Digits for event n."<<nevent<<endl;
+    gAlice->GetEvent(nevent);
+    if(!gAlice->TreeD() && file2 == 0){ 
+      cout << "Having to create the Digits Tree." << endl;
+      gAlice->MakeTree("D");
+    } 
+    if(file2)gAlice->MakeTree("D",file2);
+    ITS->MakeBranch("D");
+    ITS->SetTreeAddress();   
+    ITS->Hits2Digits();
+  }
+  timer.Stop();
+  timer.Print();
 
-    // SSD
-    cout << "Changing from Default SSD simulation, and responce." << endl;
-    AliITSDetType *iDetType = ITS->DetType(2);
-    AliITSsegmentationSSD *seg2 = (AliITSsegmentationSSD*)iDetType->
-	GetSegmentationModel();
-    AliITSresponseSSD *res2 = (AliITSresponseSSD*)iDetType->GetResponseModel();
-    res2->SetSigmaSpread(3.,2.);
-    AliITSsimulationSSD *sim2 = new AliITSsimulationSSD(seg2,res2);
-    ITS->SetSimulationModel(2,sim2);
+  // write the AliRun object to the output file
+  if(file2)writeAR(file,file2);
 
-    cout << "Digitizing ITS..." << endl;
+  delete gAlice;   
+  gAlice=0;
+  file->Close();
+}
 
-    TStopwatch timer;
-    Long_t size0 = file->GetSize();
-    timer.Start();
-    gAlice->Hits2Digits("ITS");
-    timer.Stop(); timer.Print();
+//-------------------------------------------------------------------
+TFile * AccessFile(TString FileName, TString acctype){
 
-    file->Close();
-    Long_t size1 = file->GetSize();
-    cout << "File size before = " << size0 << " file size after = " << size1;
-    cout << "Increase in file size is " << size1-size0 << " Bytes" << endl;
-    delete file;
-    return 0;
-};
+  // Function used to open the input file and fetch the AliRun object
+
+  TFile *retfil = 0;
+  TFile *file = (TFile*)gROOT->GetListOfFiles()->FindObject(FileName);
+  if (file) {file->Close(); delete file; file = 0;}
+  if(acctype.Contains("U")){
+    file = new TFile(FileName,"update");
+  }
+  if(acctype.Contains("N") && !file){
+    file = new TFile(FileName,"recreate");
+  }
+  if(!file) file = new TFile(FileName);   // default readonly
+  if (!file->IsOpen()) {
+	cerr<<"Can't open "<<FileName<<" !" << endl;
+	return retfil;
+  } 
+
+  // Get AliRun object from file or return if not on file
+  if (gAlice) {delete gAlice; gAlice = 0;}
+  gAlice = (AliRun*)file->Get("gAlice");
+  if (!gAlice) {
+	cerr << "AliRun object not found on file"<< endl;
+	return retfil;
+  } 
+  return file;
+}
+
+//-------------------------------------------------------------------
+void writeAR(TFile * fin, TFile *fou) {
+  TDirectory *current = gDirectory;
+  TTree *Te;
+  TTree *TeNew;
+  AliHeader *alhe = new AliHeader();
+  Te = (TTree*)fin->Get("TE");
+  Te->SetBranchAddress("Header",&alhe);
+  Te->SetBranchStatus("*",1);
+  fou->cd();
+  TeNew = Te->CloneTree();
+  TeNew->Write(0,TObject::kOverwrite);
+  gAlice->Write(0,TObject::kOverwrite);
+  current->cd();
+  delete alhe;
+  cout<<"AliRun object written to file\n";
+}
+
+
+
+
 

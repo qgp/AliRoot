@@ -15,6 +15,16 @@
 
 /*
 $Log$
+Revision 1.17  2002/07/16 17:00:17  barbera
+Fixes added to make the slow simulation running with the current HEAD (from M. Masera)
+
+Revision 1.16  2002/06/19 16:02:22  hristov
+Division by zero corrected
+
+Revision 1.15  2002/03/15 17:32:14  nilsen
+Reintroduced SDigitization, and Digitization from SDigits, along with
+functions InitSimulationModule, and FinishSDigitizModule.
+
 Revision 1.14  2001/11/23 13:04:07  barbera
 Some protection added in case of high multiplicity
 
@@ -392,15 +402,14 @@ void AliITSsimulationSPD::ChargeSharing(Float_t x1l,Float_t z1l,Float_t x2l,
     npixel = 0;
     xa     = x1l;
     za     = z1l;
-    dx     = TMath::Abs(x1l-x2l);
-    if (dx == 0.) dx = 0.01;
-    dz     = TMath::Abs(z1l-z2l);
-    if (dz == 0.) dz = 0.01;    
+//    dx     = x1l-x2l;
+//    dz     = z1l-z2l;
+    dx     = x2l-x1l;
+    dz     = z2l-z1l;
     dtot   = TMath::Sqrt((dx*dx)+(dz*dz));   
-    dm     = (x2l - x1l) / (z2l - z1l);
-    if (dm == 0.) dm = 0.01; 
-    dirx   = (Int_t) ((x2l - x1l) / dx);
-    dirz   = (Int_t) ((z2l - z1l) / dz);
+    if (dtot==0.0) dtot = 0.01;
+    dirx   = (Int_t) TMath::Sign((Float_t)1,dx);
+    dirz   = (Int_t) TMath::Sign((Float_t)1,dz);
 
     // calculate the x coordinate of  the pixel in the next column    
     // and the z coordinate of  the pixel in the next row
@@ -423,11 +432,17 @@ void AliITSsimulationSPD::ChargeSharing(Float_t x1l,Float_t z1l,Float_t x2l,
     do{
 	// calculate the x coordinate of the intersection with the pixel
 	// in the next cell in row  direction
-	refm = (refn - z1l)*dm + x1l;
+      if(dz!=0)
+        refm = dx*((refn - z1l)/dz) + x1l;
+      else
+        refm = refr+dirx*xsize;
    
 	// calculate the z coordinate of the intersection with the pixel
 	// in the next cell in column direction
-	refc = (refr - x1l)/dm + z1l;
+      if (dx!=0)
+        refc = dz*((refr - x1l)/dx) + z1l;
+      else
+        refc = refn+dirz*zsize;
 
 	arefm = refm * dirx;
 	arefr = refr * dirx;

@@ -15,6 +15,9 @@
  
 /*
 $Log$
+Revision 1.1  2002/06/10 17:32:17  nilsen
+New Fastpoint merger added.
+
 */
 
 #include <stdlib.h>
