@@ -34,17 +34,10 @@
 // #include "AliRun.h"
 class AliPHOS ; 
 #include "AliPHOSHit.h"   
-// #include "AliPHOSDigit.h"
-// #include "AliPHOSEmcRecPoint.h"
-// #include "AliPHOSCpvRecPoint.h"
-// #include "AliPHOSTrackSegment.h"
-// #include "AliPHOSRecParticle.h"
+
 class AliPHOSGeometry ;
 #include "AliPHOSDigitizer.h"
 #include "AliPHOSSDigitizer.h" 
-// class AliPHOSClusterizer ;
-// class AliPHOSTrackSegmentMaker ;
-// class AliPHOSPID ;
 // //class AliPHOSCalibrationDB ;
 // class AliPHOSConTableDB ;
 class AliPHOSBeamTestEvent ;

@@ -52,29 +52,17 @@
 
 #include "TSystem.h"
 #include "TFile.h"
-// #include "TTree.h"
 #include "TROOT.h"
-// #include "TObjString.h"
-// #include "TFolder.h"
-// #include "TParticle.h"
+
 
 // --- Standard library ---
 
 // --- AliRoot header files ---
-// #include "AliRun.h"
-// #include "AliConfig.h"
+
 #include "AliPHOSGetter.h"
 #include "AliRunLoader.h"
 #include "AliStack.h"  
 #include "AliPHOSLoader.h"
-// #include "AliPHOS.h"
-// #include "AliPHOSDigitizer.h"
-// #include "AliPHOSSDigitizer.h"
-// #include "AliPHOSClusterizerv1.h"
-// #include "AliPHOSTrackSegmentMakerv1.h"
-// #include "AliPHOSTrackSegment.h"
-// #include "AliPHOSPIDv1.h" 
-// #include "AliPHOSGeometry.h"
 // #include "AliPHOSRaw2Digits.h"
 //#include "AliPHOSCalibrationDB.h"
 #include "AliPHOSBeamTestEvent.h"
