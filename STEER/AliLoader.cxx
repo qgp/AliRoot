@@ -191,16 +191,9 @@ Int_t AliLoader::LoadSDigitizer(Option_t* opt)
 {
   if (SDigitizer())
    {
-    TString sopt(opt);
-    if(sopt.Contains("force",TString::kIgnoreCase) != 0)
-     {
-       Warning("LoadSDigitizer","Digits are already loaded. Use FORCE option to force reload. Nothing done");
-       return 0;
-     }
-    else
-     { //else force option was used
-       CleanSDigitizer();
-     }
+     Warning("LoadSDigitizer","%s S. Digitzier Task already exists",GetDetectorName().Data());
+     Warning("LoadSDigitizer","Clean it first to load one from a file. Nothing done");
+     return 0;
    }
   TTask* rsd = AliRunLoader::GetRunSDigitizer();
   if (rsd == 0x0)
@@ -238,16 +231,9 @@ Int_t AliLoader::LoadDigitizer(Option_t* opt)
 {
   if (Digitizer())
    {
-    TString sopt(opt);
-    if(sopt.Contains("force",TString::kIgnoreCase) != 0)
-     {
-       Warning("LoadDigitizer","Digits are already loaded. Use FORCE option to force reload. Nothing done");
-       return 0;
-     }
-    else
-     { //else force option was used
-       CleanDigitizer();
-     }
+     Warning("LoadDigitizer","%s Digitzier Task already exists",GetDetectorName().Data());
+     Warning("LoadDigitizer","Clean it first to load one from a file. Nothing done");
+     return 0;
    }
   TTask* rsd = AliRunLoader::GetRunDigitizer();
   if (rsd == 0x0)
@@ -285,16 +271,9 @@ Int_t AliLoader::LoadReconstructioner(Option_t* opt)
 {
    if (Reconstructioner())
    {
-    TString sopt(opt);
-    if(sopt.Contains("force",TString::kIgnoreCase) != 0)
-     {
-       Warning("LoadReconstructioner","Reconstructioner is already loaded. Use FORCE option to force reload. Nothing done");
-       return 0;
-     }
-    else
-     { //else force option was used
-       CleanReconstructioner();
-     }
+     Warning("LoadReconstructioner","%s Reconstructioner Task already exists",GetDetectorName().Data());
+     Warning("LoadReconstructioner","Clean it first to load one from a file. Nothing done");
+     return 0;
    }
   TTask* rsd = AliRunLoader::GetRunReconstructioner();
   if (rsd == 0x0)
@@ -332,16 +311,9 @@ Int_t AliLoader::LoadTracker(Option_t* opt)
 {
    if (Tracker())
    {
-    TString sopt(opt);
-    if(sopt.Contains("force",TString::kIgnoreCase) != 0)
-     {
-       Warning("LoadTracker","Tracker is already loaded. Use FORCE option to force reload. Nothing done");
-       return 0;
-     }
-    else
-     { //else force option was used
-       CleanTracker();
-     }
+     Warning("LoadTracker","%s Tracker Task already exists",GetDetectorName().Data());
+     Warning("LoadTracker","Clean it first to load one from a file. Nothing done");
+     return 0;
    }
   TTask* rsd = AliRunLoader::GetRunReconstructioner();
   if (rsd == 0x0)
@@ -1478,6 +1450,7 @@ void AliLoader::CleanSDigitizer()
      return;
    }
 
+  Info("CleanSDigitizer","Attempting to delete S Digitizer");
   delete task->GetListOfTasks()->Remove(SDigitizer()); //TTList::Remove does not delete object
 }
 /*****************************************************************************/ 
@@ -1492,6 +1465,7 @@ void AliLoader::CleanDigitizer()
      return;
    }
 
+  Info("CleanDigitizer","Attempting to delete Digitizer %x",task->GetListOfTasks()->Remove(Digitizer()));
   delete task->GetListOfTasks()->Remove(Digitizer()); //TTList::Remove does not delete object
 }
 /*****************************************************************************/ 
@@ -1506,6 +1480,7 @@ void AliLoader::CleanReconstructioner()
      return;
    }
 
+  Info("CleanReconstructioner","Attempting to delete Reconstructioner");
   delete task->GetListOfTasks()->Remove(Reconstructioner()); //TTList::Remove does not delete object
 }
 /*****************************************************************************/ 
@@ -1520,10 +1495,11 @@ void AliLoader::CleanTracker()
      return;
    }
 
+  Info("CleanTracker","Attempting to delete Tracker %x",task->GetListOfTasks()->Remove(Tracker()));
   delete task->GetListOfTasks()->Remove(Tracker()); //TTList::Remove does not delete object
-
 }
 /*****************************************************************************/ 
+
 TTree* AliLoader::Tree(EDataTypes dt)
 {
   //Get a hits container from the detector data folder

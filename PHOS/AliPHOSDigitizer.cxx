@@ -178,7 +178,7 @@ void AliPHOSDigitizer::Digitize(TObjArray * sdigArray)
      gime->LoadSDigitizer();
      sDigitizer = dynamic_cast<AliPHOSSDigitizer*>(gime->SDigitizer());
      if ( !sDigitizer ) 
-       Fatal("Digitize","SDigitizer with name %s not found",GetName()); 
+       Fatal("Digitize","SDigitizer with name %s not found"); 
    }
    
   Info("Digitize"," OK. we have sdigitizer\n");   
@@ -524,7 +524,6 @@ void AliPHOSDigitizer::Exec(Option_t *option)
     Digitize(sdigArray) ; //Add prepared SDigits to digits and add the noise
     
     Info("Exec","Digitize() exited\n Writing data ....");
-    
     WriteDigits();   
     Info("Exec","Data Written");
 

@@ -269,8 +269,6 @@ Int_t AliPHOSLoader::LoadRecPoints(Option_t* opt)
      Error("PostDigits","Can not get detector data folder");
      return 1;
    }
-  PostReconstructioner();
-
   return ReadRecPoints();
 }
 //____________________________________________________________________________ 
@@ -299,18 +297,6 @@ Int_t  AliPHOSLoader::LoadTracks(Option_t* opt)
  if (res)
   {
     Error("LoadTacks","Error occured while reading Tracks");
-    return res;
-  }
-
-//  Info("LoadTracks","                                         ");
-//  Info("LoadTracks","*****************************************");
-//  Info("LoadTracks","REMINDER: PostTracker temorarly commented");
-//  Info("LoadTracks","*****************************************");
-//  Info("LoadTracks","                                         ");
- res = PostTracker();
- if (res)
-  {
-    Error("LoadTacks","Error occured while reading Tracker");
     return res;
   }
 
@@ -534,6 +520,7 @@ Int_t AliPHOSLoader::ReadDigits()
 
   return 0;  
 }
+//____________________________________________________________________________ 
 
 void AliPHOSLoader::UnloadRecParticles()
 {
@@ -541,6 +528,7 @@ void AliPHOSLoader::UnloadRecParticles()
   CleanRecParticles();
   if (fTracksLoaded == kFALSE) UnloadTracks();
 }
+//____________________________________________________________________________ 
 
 void AliPHOSLoader::UnloadTracks()
 {
@@ -549,8 +537,8 @@ void AliPHOSLoader::UnloadTracks()
  if (fRecParticlesLoaded == kFALSE) AliLoader::UnloadTracks();
  else fTracksLoaded = kFALSE;//just mark that nobody needs them
 }
-
 //____________________________________________________________________________ 
+
 void AliPHOSLoader::Track(Int_t itrack)
 {
 // Read the first entry of PHOS branch in hit tree gAlice->TreeH()

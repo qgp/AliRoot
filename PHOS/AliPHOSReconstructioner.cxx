@@ -198,6 +198,7 @@ void AliPHOSReconstructioner::Exec(Option_t *option)
     Add(fPID) ;
     
     fIsInitialized = kTRUE ;
+    
   }
 } 
 //____________________________________________________________________________
