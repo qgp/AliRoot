@@ -3,7 +3,7 @@
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
 
-/* $Id */
+/* $Id$ */
 
 /////////////////////////////////////////////////////////
 //  Manager and class for detector: FRAME  version 2    //
@@ -20,11 +20,12 @@ public:
   virtual void   CreateGeometry();
   virtual void   CreateMaterials();
   virtual void   Init();
+  virtual void   StepManager();
   virtual Int_t  IsVersion() const;
   virtual void   SetHoles(Int_t flag=0) {fHoles = flag;}
-  virtual Int_t  Holes() {return fHoles;}
- public:
-  Int_t  fHoles;
+  virtual Int_t  Holes() const {return fHoles;}
+ private:
+  Int_t  fHoles; // flag fHoles=0 => no holes, with holes otherwise
   
    ClassDef(AliFRAMEv2,2)  //Class for FRAME version 2
 };

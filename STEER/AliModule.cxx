@@ -34,16 +34,18 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <TNode.h>
+#include <TObjArray.h>
+#include <TClonesArray.h>
+#include <TTree.h>
 #include <TSystem.h>
-#include <TVirtualMC.h>
+#include <TDirectory.h>
 
 #include "AliConfig.h"
 #include "AliLoader.h"
 #include "AliMagF.h"
 #include "AliModule.h"
 #include "AliRun.h"
-
-
+#include "AliTrackReference.h"
 
 ClassImp(AliModule)
  
@@ -59,7 +61,10 @@ AliModule::AliModule():
   fHistograms(0),
   fNodes(0),
   fDebug(0),
-  fEnable(1)
+  fEnable(1),
+  fTrackReferences(0),
+  fMaxIterTrackRef(0),
+  fCurrentIterTrackRef(0)
 {
   //
   // Default constructor for the AliModule class
@@ -79,7 +84,10 @@ AliModule::AliModule(const char* name,const char *title):
   fHistograms(new TList()),
   fNodes(new TList()),
   fDebug(0),
-  fEnable(1)
+  fEnable(1),
+  fTrackReferences(new TClonesArray("AliTrackReference", 100)),
+  fMaxIterTrackRef(0),
+  fCurrentIterTrackRef(0)
 {
   //
   // Normal constructor invoked by all Modules.
@@ -124,7 +132,10 @@ AliModule::AliModule(const AliModule &mod):
   fHistograms(0),
   fNodes(0),
   fDebug(0),
-  fEnable(0)
+  fEnable(0),
+  fTrackReferences(0),
+  fMaxIterTrackRef(0),
+  fCurrentIterTrackRef(0)
 {
   //
   // Copy constructor
@@ -139,12 +150,29 @@ AliModule::~AliModule()
   // Destructor
   //
 
+  // Remove this Module from the list of Modules
+  if (gAlice) {
+    TObjArray * modules = gAlice->Modules();
+    if (modules) modules->Remove(this);
+  }
   // Delete ROOT geometry
   if(fNodes) {
     fNodes->Clear();
     delete fNodes;
+    fNodes = 0;
   }
-  //
+  // Delete histograms
+  if(fHistograms) {
+    fHistograms->Clear();
+    delete fHistograms;
+    fHistograms = 0;
+  }
+  // Delete track references
+  if (fTrackReferences) {
+    fTrackReferences->Delete();
+    delete fTrackReferences;
+    fTrackReferences     = 0;
+  }
   // Delete TArray objects
   delete fIdtmed;
   delete fIdmate;
@@ -178,7 +206,7 @@ void AliModule::Disable()
 }
 
 //_______________________________________________________________________
-Int_t AliModule::DistancetoPrimitive(Int_t, Int_t)
+Int_t AliModule::DistancetoPrimitive(Int_t, Int_t) const
 {
   //
   // Return distance from mouse pointer to object
@@ -230,7 +258,7 @@ void AliModule::AliMaterial(Int_t imat, const char* name, Float_t a,
 //_______________________________________________________________________
 void AliModule::AliGetMaterial(Int_t imat, char* name, Float_t &a, 
                                Float_t &z, Float_t &dens, Float_t &radl,
-                               Float_t &absl)
+                               Float_t &absl) const
 {
   //
   // Store the parameters for a material
@@ -335,6 +363,7 @@ void AliModule::AliMatrix(Int_t &nmat, Float_t theta1, Float_t phi1,
   gMC->Matrix(nmat, theta1, phi1, theta2, phi2, theta3, phi3); 
 } 
 
+//_______________________________________________________________________
 Float_t AliModule::ZMin() const
 {
   return -500;
@@ -630,6 +659,80 @@ void AliModule::ReadEuclidMedia(const char* filnam)
  L20:
   Warning("ReadEuclidMedia","reading error or premature end of file\n");
 } 
+
+//_______________________________________________________________________
+void AliModule::RemapTrackReferencesIDs(Int_t *map)
+{
+  // 
+  // Remapping track reference
+  // Called at finish primary
+  //
+  if (!fTrackReferences) return;
+  for (Int_t i=0;i<fTrackReferences->GetEntries();i++){
+    AliTrackReference * ref = dynamic_cast<AliTrackReference*>(fTrackReferences->UncheckedAt(i));
+    if (ref) {
+      Int_t newID = map[ref->GetTrack()];
+      if (newID>=0) ref->SetTrack(newID);
+      else ref->SetTrack(-1);
+      
+    }
+  }
+}
+
+
+//_______________________________________________________________________
+AliTrackReference* AliModule::FirstTrackReference(Int_t track)
+{
+  //
+  // Initialise the hit iterator
+  // Return the address of the first hit for track
+  // If track>=0 the track is read from disk
+  // while if track<0 the first hit of the current
+  // track is returned
+  // 
+  if(track>=0) 
+   {
+     AliRunLoader* rl = AliRunLoader::GetRunLoader();
+
+     rl->GetAliRun()->ResetTrackReferences();
+     rl->TreeTR()->GetEvent(track);
+     if (rl == 0x0)
+       Fatal("FirstTrackReference","AliRunLoader not initialized. Can not proceed");
+   }
+  //
+  fMaxIterTrackRef     = fTrackReferences->GetEntriesFast();
+  fCurrentIterTrackRef = 0;
+  if(fMaxIterTrackRef) return dynamic_cast<AliTrackReference*>(fTrackReferences->UncheckedAt(0));
+  else            return 0;
+}
+
+//_______________________________________________________________________
+AliTrackReference* AliModule::NextTrackReference()
+{
+  //
+  // Return the next hit for the current track
+  //
+  if(fMaxIterTrackRef) {
+    if(++fCurrentIterTrackRef<fMaxIterTrackRef) 
+      return dynamic_cast<AliTrackReference*>(fTrackReferences->UncheckedAt(fCurrentIterTrackRef));
+    else        
+      return 0;
+  } else {
+    printf("* AliModule::NextTrackReference * TrackReference  Iterator called without calling FistTrackReference before\n");
+    return 0;
+  }
+}
+
+
+//_______________________________________________________________________
+void AliModule::ResetTrackReferences()
+{
+  //
+  // Reset number of hits and the hits array
+  //
+  fMaxIterTrackRef   = 0;
+  if (fTrackReferences)   fTrackReferences->Clear();
+}
  
 //_____________________________________________________________________________
 
@@ -637,3 +740,88 @@ AliLoader*  AliModule::MakeLoader(const char* topfoldername)
  {
    return 0x0;
  }//skowron   
+ 
+//PH Merged with v3-09-08 |
+//                        V
+//_____________________________________________________________________________
+
+void AliModule::SetTreeAddress()
+{
+  //
+  // Set branch address for track reference Tree
+  //
+
+  TBranch *branch;
+
+  // Branch address for track reference tree
+  TTree *treeTR = TreeTR();
+
+  if (treeTR && fTrackReferences) {
+     branch = treeTR->GetBranch(GetName());
+    if (branch) 
+     {
+       if(GetDebug()) Info("SetTreeAddress","(%s) Setting for TrackRefs",GetName());
+       branch->SetAddress(&fTrackReferences);
+     }
+    else
+     {
+       Warning("SetTreeAddress","(%s) Failed for Track References. Can not find branch in tree.",GetName());
+     }
+  }
+}
+
+//_____________________________________________________________________________
+void  AliModule::AddTrackReference(Int_t label){
+  //
+  // add a trackrefernce to the list
+  if (!fTrackReferences) {
+    cerr<<"Container trackrefernce not active\n";
+    return;
+  }
+  Int_t nref = fTrackReferences->GetEntriesFast();
+  TClonesArray &lref = *fTrackReferences;
+  new(lref[nref]) AliTrackReference(label);
+}
+
+
+//_____________________________________________________________________________
+void AliModule::MakeBranchTR(Option_t *option)
+{ 
+    //
+    // Makes branch in treeTR
+    //  
+  if(GetDebug()) Info("MakeBranchTR","Making Track Refs. Branch for %s",GetName());
+  TTree * tree = TreeTR();
+  if (fTrackReferences && tree) 
+   {
+      TBranch *branch = tree->GetBranch(GetName());
+     if (branch) 
+       {  
+	 if(GetDebug()) Info("MakeBranch","Branch %s is already in tree.",GetName());
+	 return;
+       }
+  
+     branch = tree->Branch(GetName(),&fTrackReferences);
+   }
+  else
+    {
+      if(GetDebug()) 
+	Info("MakeBranchTR","FAILED for %s: tree=%#x fTrackReferences=%#x",
+	     GetName(),tree,fTrackReferences);
+    }
+}
+
+//_____________________________________________________________________________
+TTree* AliModule::TreeTR()
+{
+  AliRunLoader* rl = AliRunLoader::GetRunLoader();
+
+  if ( rl == 0x0)
+   {
+     Error("TreeTR","Can not get the run loader");
+     return 0x0;
+   }
+
+  TTree* tree = rl->TreeTR();
+  return tree;
+}

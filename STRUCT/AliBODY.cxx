@@ -150,7 +150,7 @@ void AliBODY::CreateMaterials()
 }
  
 //_____________________________________________________________________________
-void AliBODY::DrawModule()
+void AliBODY::DrawModule() const
 {
   //
   // Draw a view of the Alice outside box

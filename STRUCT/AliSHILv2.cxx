@@ -15,7 +15,11 @@
 
 /* $Id$ */
 
-#include <TVirtualMC.h>
+//-------------------------------------------------------------------------
+// MUON shielding class
+// Default version
+// Author: A.Morsch
+//-------------------------------------------------------------------------
 
 #include "AliALIFE.h"
 #include "AliConst.h"
@@ -597,15 +601,21 @@ void AliSHILv2::CreateGeometry()
 // begin Fluka
 //
   Float_t rf1[10], rf2[10];
-  rf1[0]=0.; rf2[0]=0.;
+  rf1[0]=0.;
   rf1[1] = cpar0[1];
+  rf1[2]=rf1[1]+0.15;
+  rf1[3]=rf1[2]+0.5;
+  rf1[4]=rf1[3]+0.1;
+  rf1[5]=par1[4];
+  rf1[6]=0.; //PH This has to be checked...
+
+  rf2[0]=0.;
   rf2[1] = cpar0[3];
-
-
-  rf1[2]=rf1[1]+0.15; rf1[3]=rf1[2]+0.5; rf1[4]=rf1[3]+0.1;
-  rf1[5]=par1[4]; 
-  rf2[2]=rf2[1]+0.15; rf2[3]=rf2[2]+0.5; rf2[4]=rf2[3]+0.1; 
+  rf2[2]=rf2[1]+0.15;
+  rf2[3]=rf2[2]+0.5;
+  rf2[4]=rf2[3]+0.1; 
   rf2[5]=par1[7];
+  rf2[6]=0.; //PH This has to be checked
   
   char* materialsA[7] 
       = {"VACUUM", "STEEL", "PIPEINSU", "STEEL", "AIR", "AIR"};
@@ -1427,18 +1437,18 @@ void AliSHILv2::CreateGeometry()
 // Magnet element 
 //
   tpar[0]=0.;
-  tpar[1]=kR43;
-  tpar[2]=50.;
+  tpar[1]= 40.;
+  tpar[2]=85.;
   gMC->Gsvolu("YAEM", "TUBE", idtmed[kAir], tpar, 3);
-  tpar[0]=kRAbs;
-  tpar[1]=kR43;
-  tpar[2]=50.;
+  tpar[0]=6.3/2.;
+  tpar[1]=40.;
+  tpar[2]=85.;
   gMC->Gsvolu("YFEM", "TUBE", idtmed[kFe], tpar, 3);
   gMC->Gspos("YFEM", 1, "YAEM", 0., 0., 0., 0, "ONLY"); 
 
 //
 
-  dz=kZvac12+50.;
+  dz=1921.6 + tpar[2];
   gMC->Gspos("YAEM", 1, "ALIC", 0., 0., dz, 0, "ONLY"); 
 
 
@@ -1534,7 +1544,7 @@ void AliSHILv2::CreateGeometry()
 //  
   tpar[0] = 50.;
   tpar[1] = 310.;
-  tpar[2] = (kZFilterOut - kZFilterIn) / 4.;
+  tpar[2] = (kZFilterOut - kZFilterIn) / 2.;
   gMC->Gsvolu("YFIM", "TUBE", idtmed[kFe+40], tpar, 3);
   dz = (kZFilterIn + kZFilterOut) / 2.;
   tpar[2] -= 10.;
@@ -1761,7 +1771,7 @@ void AliSHILv2::CreateGeometry()
 
       par0[27]  = -dz + kZch52;
       par0[28]  = 30.;
-      par0[29]  = 30.+(kZch52-kZConeE)*TMath::Tan(kThetaOpenPbO);
+      par0[29]  = 30.+(kZch52+4.-kZConeE)*TMath::Tan(kThetaOpenPbO);
 // end of cone
       par0[30]  = +dl;
       par0[31]  = 30.;

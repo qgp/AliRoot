@@ -428,6 +428,7 @@ AliRunLoader* AliRunLoader::Open
  
  result->SetDirName(dirname); 
  result->SetGAliceFile(gAliceFile);//set the pointer to gAliceFile
+ fgRunLoader = result; //PH get access from any place
  return result;
 }
 /**************************************************************************/

@@ -15,7 +15,11 @@
 
 /* $Id$ */
 
-#include <TVirtualMC.h>
+//-------------------------------------------------------------------------
+// MUON shielding class
+// Version producing Fluka output
+// Author: A.Morsch
+//-------------------------------------------------------------------------
 
 #include "AliALIFE.h"
 #include "AliConst.h"

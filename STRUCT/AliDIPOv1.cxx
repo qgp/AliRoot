@@ -165,7 +165,7 @@ void AliDIPOv1::CreateGeometry()
 }
 
 //_____________________________________________________________________________
-void AliDIPOv1::DrawModule()
+void AliDIPOv1::DrawModule() const
 {
   //
   // Draw a shaded view of the muon absorber

@@ -13,9 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-*/
+/* $Id$ */
 
 //                                                                           //
 //                                                                           //
@@ -23,7 +21,6 @@ $Log$
 
 #include "AliABSOvF.h"
 #include "AliRun.h"
-#include "AliMC.h"
 #include "AliConst.h"
 #include "AliALIFE.h"
 

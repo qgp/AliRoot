@@ -312,7 +312,7 @@ void AliPIPEv3::CreateGeometry()
 }
 
 //_____________________________________________________________________________
-void AliPIPEv3::DrawModule()
+void AliPIPEv3::DrawModule() const
 {  
   //
   // Draw a shaded view of the Beam Pipe

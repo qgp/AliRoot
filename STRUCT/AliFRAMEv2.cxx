@@ -15,12 +15,13 @@
 
 /* $Id$ */
 
-////////////////////////////////////////////////
-//  space frame class                            /
-///////////////////////////////////////////////
+//------------------------------------------------------------------------
+//  AliFRAMEv2.cxx
+//  symmetric space frame with possibility for holes
+//  Author: A.Morsch
+//------------------------------------------------------------------------
 
 #include <TSystem.h>
-#include <TVirtualMC.h>
 
 #include "AliFRAMEv2.h"
 #include "AliMagF.h"
@@ -103,7 +104,6 @@ void AliFRAMEv2::CreateGeometry()
   ppgon[2] =  18.;
   
   ppgon[3] =   2.;
-
   ppgon[4] = -376.;
   ppgon[5] =  280.;
   ppgon[6] =  421.;
@@ -116,6 +116,13 @@ void AliFRAMEv2::CreateGeometry()
 
 //  gMC->Gsvolu("B077", "TUBE", kAir, ptube, 3);
   gMC->Gspos("B077", 1, "ALIC", 0., 0., 0., 0, "ONLY");
+//
+// Reference plane for TRD
+//
+  ppgon[6] = ppgon[5] + 0.1;
+  ppgon[9] = ppgon[6];
+  gMC->Gsvolu("BREF", "PGON", kAir, ppgon, 10);
+  gMC->Gspos("BREF", 1, "B077", 0., 0., 0., 0, "ONLY");
 //
 //  The outer Frame
 //
@@ -469,8 +476,9 @@ void AliFRAMEv2::CreateGeometry()
   {
       gMC->Gsvolu(module[jmod], "TRD1", kAir, ptrd1, 4);
   }
-
-  Int_t mod[18] = {1, 1, 1, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 1, 1};
+// Position of Holes for PHOS (P) and RICH (R) starting at 6h
+//                 P  P  P  -  -  R  R  R  -  -  -  -  -  -  -  -  P  P
+  Int_t mod[18] = {1, 1, 1, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1};
   
   
   Float_t r      = 341.8;
@@ -779,15 +787,16 @@ void AliFRAMEv2::CreateGeometry()
   ptrap[8]  = ptrap[4];
   ptrap[9]  = ptrap[4];
   ptrap[10] = 0;
-  gMC->Gsvolu("B059", "TRAP", kSteel, ptrap, 11);
+//  gMC->Gsvolu("B059", "TRAP", kSteel, ptrap, 11);
   ptrap[0]  =  2.2;
   ptrap[4]  =  2.15;
   ptrap[5]  = ptrap[4];
   ptrap[7]  = ptrap[3];
   ptrap[8]  = ptrap[4];
   ptrap[9]  = ptrap[4];
-  gMC->Gsvolu("B062", "TRAP", kAir, ptrap, 11);
-  gMC->Gspos("B062", 1, "B059", 0.0, -0.3, 0., 0, "ONLY");
+  //gMC->Gsvolu("B062", "TRAP", kAir, ptrap, 11);
+  //gMC->Gspos("B062", 1, "B059", 0.0, 0., 0., 0, "ONLY");
+
 //
 // longitudinal bars (no TPC rails attached)
 // new specs: h x w x s = 60 x 60 x 3
@@ -968,7 +977,7 @@ void AliFRAMEv2::CreateGeometry()
 //___________________________________________
 void AliFRAMEv2::CreateMaterials()
 {
-
+  // Creates the materials
   Float_t epsil, stemax, tmaxfd, deemax, stmin;
   
   epsil  = 1.e-4;     // Tracking precision, 
@@ -1004,16 +1013,45 @@ void AliFRAMEv2::Init()
 	       " FRAME "
 	       "**************************************\n",ClassName());
     }
+//
+// The reference volume id
+    fRefVolumeId = gMC->VolId("BREF");
 }
 
 Int_t AliFRAMEv2::IsVersion() const 
 {
+  // Returns the version of the FRAME (1 if no holes, 0 otherwise) 
     Int_t version = 0;
     if (fHoles == 0) version = 1;
     return version;
 }
 
+void AliFRAMEv2::StepManager()
+{
+//
+// Stepmanager of AliFRAMEv2.cxx
+// Used for recording of reference tracks entering the spaceframe mother volume
+//
+  Int_t   copy, id;
+  
+  //
+  // Only charged tracks
+  if( !(gMC->TrackCharge()) ) return; 
+  //
+  // Only tracks entering mother volume
+  // 
 
+  id=gMC->CurrentVolID(copy);
+
+  if (id != fRefVolumeId)  return;
+  if(!gMC->IsTrackEntering()) return;
+  //
+  // Add the reference track
+  //
+  AddTrackReference(gAlice->CurrentTrack());
+}
+
+  
 
 
 

@@ -13,24 +13,13 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.5  2002/10/14 14:57:37  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
+/* $Id$ */
 
-Revision 1.3.6.1  2002/08/29 18:08:17  hristov
-Replace strcpy by assignment operator
-
-Revision 1.3  2001/10/31 15:56:54  morsch
-Correction in OnionCone.
-
-Revision 1.2  2000/10/10 06:40:25  hristov
-Bug fixes
-
-Revision 1.1  2000/07/26 15:10:57  morsch
-Helper class to write geometry in ALIFE format in parallel with Geant geometry definition.
-
-*/
+//----------------------------------------------------------------------
+// Helper class to write geometry in ALIFE format
+// in parallel with Geant geometry definition.
+// Author: A.Morsch
+//----------------------------------------------------------------------
 
 #include <AliALIFE.h>
 
@@ -203,6 +192,7 @@ void AliALIFE::Cone(Float_t rmin1, Float_t rmin2,
     
 //  outer radius
     d=zmax-zmin;
+    sprintf(nameCou, "C%4.4d", fNBodies++);
     if (rmax1 >= 0. && rmax2 >= 0.) {
 	if (rmax1!=rmax2) {
 	    if (rmax1 > rmax2) {
@@ -215,12 +205,10 @@ void AliALIFE::Cone(Float_t rmin1, Float_t rmin2,
 		r1=rmax2;
 		r2=rmax1;
 	    }
-	    sprintf(nameCou, "C%4.4d", fNBodies++);
 	    fprintf(fFile1,"%5s TRC%10.3f%10.3f%10.3f%10.3f%10.3f%10.3f\n",
 		    nameCou, pos[0], pos[1], pos[2], 0., 0., d); 
 	    fprintf(fFile1,"         %10.3f%10.3f\n",r1,r2);
 	} else {
-	    sprintf(nameCou, "C%4.4d", fNBodies++);
 	    fprintf(fFile1,"%5s ZCC%10.3f%10.3f%10.3f\n",
 		    nameCou, pos[0], pos[1], rmax1); 
 	} 
@@ -231,6 +219,7 @@ void AliALIFE::Cone(Float_t rmin1, Float_t rmin2,
     
     
 // inner radius
+    sprintf(nameCin, "C%4.4d", fNBodies++);
     if (rmin1 >= 0. && rmin2 >= 0.) {
 	if (rmin1!=rmin2) {
 	    if (rmin1 != 0 && rmin2 !=0) {
@@ -245,13 +234,11 @@ void AliALIFE::Cone(Float_t rmin1, Float_t rmin2,
 		    r2=rmin1;
 		    d=-d;
 		}
-		sprintf(nameCin, "C%4.4d", fNBodies++);
 		fprintf(fFile1,"%5s TRC%10.3f%10.3f%10.3f%10.3f%10.3f%10.3f\n",
 			nameCin, pos[0], pos[1], pos[2], 0., 0., d); 
 		fprintf(fFile1,"         %10.3f%10.3f\n",r1,r2);
 	    } 
 	} else {
-	    sprintf(nameCin, "C%4.4d", fNBodies++);
 	    fprintf(fFile1,"%5s ZCC%10.3f%10.3f%10.3f\n",
 		    nameCin, pos[0], pos[1], rmin1); 
 	} 

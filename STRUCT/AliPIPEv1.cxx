@@ -17,7 +17,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
-//  Beam pipe class                                                          //
+//  Beam pipe class. Test version                                            //
 //                                                                           //
 //Begin_Html
 /*
@@ -241,7 +241,7 @@ void AliPIPEv1::CreateGeometry()
 }
 
 //_____________________________________________________________________________
-void AliPIPEv1::DrawModule()
+void AliPIPEv1::DrawModule() const
 {
   //
   // Draw a shaded view of the Beam Pipe

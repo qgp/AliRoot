@@ -115,11 +115,11 @@ void AliDIPOv2::CreateSpectrometerDipole()
   tpar[11] = 527.34;
 
   tpar[12] = 150.8+kZDipole;
-  tpar[13] = 193.3;
+  tpar[13] = 182.4;
   tpar[14] = 527.34;
   //
-  tpar[15] = 250.55+kZDipole;
-  tpar[16] = 193.3;
+  tpar[15] = 260.55+kZDipole;
+  tpar[16] = 182.4;
   tpar[17] = 527.34;
 
 
@@ -637,7 +637,7 @@ void AliDIPOv2::CreateCompensatorDipole()
     Int_t *idtmed = fIdtmed->GetArray()-1799;
     Int_t idrotm[1899];
 //
-    Float_t pbox[3] = {62.5, 62.5, 170.};
+    Float_t pbox[3] = {63., 63., 170.};
     
 //  Mother volumes
     gMC->Gsvolu("DCM0", "BOX", idtmed[1814], pbox, 3);
@@ -763,7 +763,7 @@ void AliDIPOv2::CreateCompensatorDipole()
 }
 
 //_____________________________________________________________________________
-void AliDIPOv2::DrawModule()
+void AliDIPOv2::DrawModule() const
 {
   //
   // Draw a shaded view of the muon absorber

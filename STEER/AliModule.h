@@ -17,7 +17,9 @@ class TClonesArray;
 class TBrowser;
 class TArrayI;
 class TFile;
+class TTree;
 class AliLoader;
+class AliTrackReference;
 
 
 class AliModule : public TNamed , public TAttLine, public TAttMarker,
@@ -53,8 +55,8 @@ public:
 			   Float_t z, Float_t dens, Float_t radl,
 			   Float_t absl, Float_t *buf=0, Int_t nwbuf=0) const;
   virtual void AliGetMaterial(Int_t imat, char* name, Float_t &a, 
-                              Float_t &z, Float_t &dens, Float_t &radl,
-                              Float_t &absl);
+			      Float_t &z, Float_t &dens, Float_t &radl,
+			      Float_t &absl) const;
   virtual void AliMixture(Int_t imat, const char *name, Float_t *a,
                           Float_t *z, Float_t dens, Int_t nlmat,
                           Float_t *wmat) const;
@@ -86,17 +88,13 @@ public:
   virtual void        CreateGeometry() {}
   virtual void        CreateMaterials() {}
   virtual void        Disable();
-  virtual Int_t       DistancetoPrimitive(Int_t px, Int_t py);
+  virtual Int_t       DistancetoPrimitive(Int_t px, Int_t py) const;
   virtual void        Enable();
   virtual void        PreTrack(){}
   virtual void        PostTrack(){}
   virtual void        FinishEvent() {}
   virtual void        FinishRun() {}
   virtual void        FinishPrimary() {}
-  virtual void        RemapTrackHitIDs(Int_t *) {}
-  virtual void        RemapTrackReferencesIDs(Int_t *) {} //remaping track references MI
-
-  //virtual void        Hits2Digits() {}
   virtual void        Init() {}
   virtual void        LoadPoints(Int_t ) {}
 
@@ -108,27 +106,36 @@ public:
   virtual AliLoader*  MakeLoader(const char* topfoldername);//skowron   
   virtual AliLoader*  GetLoader() const {return 0x0;} //skowron
   
-  virtual void        MakeBranchTR(Option_t *opt=" "){}
 
   virtual void        Paint(Option_t *) {}
   virtual void        ResetDigits() {}
   virtual void        ResetSDigits() {}
   virtual void        ResetHits() {}
-  virtual void        ResetTrackReferences() {}
   virtual void        ResetPoints() {}
-  virtual void        SetTreeAddress() {}
+  virtual void        SetTreeAddress();
   virtual void        SetTimeGate(Float_t) {}
   virtual Float_t     GetTimeGate() const {return 1.e10;}
   virtual void        StepManager() {}
   virtual void        DisableStepManager() {fEnable = kFALSE;}
-  virtual Bool_t      StepManagerIsEnabled() {return fEnable;}
+  virtual Bool_t      StepManagerIsEnabled() const {return fEnable;}
   virtual void        SetBufferSize(Int_t) {}  
   virtual Float_t     ZMin() const;
   virtual Float_t     ZMax() const;
   virtual void        SetEuclidFile(char *material,char *geometry=0);
-  virtual void ReadEuclid(const char *filnam, char *topvol);
-  virtual void ReadEuclidMedia(const char *filnam);
-
+  virtual void        ReadEuclid(const char *filnam, char *topvol);
+  virtual void        ReadEuclidMedia(const char *filnam);
+// Track reference related
+  TClonesArray *TrackReferences()   const {return fTrackReferences;}
+  virtual void        RemapTrackHitIDs(Int_t *) {}
+  virtual void        RemapTrackReferencesIDs(Int_t *map); //remaping track references MI
+  virtual void        ResetTrackReferences();
+  virtual void        AddTrackReference(Int_t label);
+  virtual  AliTrackReference * FirstTrackReference(Int_t track);
+  virtual  AliTrackReference * NextTrackReference();
+  virtual void        MakeBranchTR(Option_t *opt=" ");
+  TTree* TreeTR();  //shorcut method for accessing treeTR from folder
+  
+//
   AliModule& operator=(const AliModule &mod)
     {mod.Copy(*this); return (*this);}
  
@@ -150,8 +157,9 @@ protected:
   TList        *fNodes;       //List of geometry nodes
   Int_t         fDebug;       //Debug flag
   Bool_t        fEnable;      //StepManager enabling flag
-
-
+  TClonesArray *fTrackReferences;     //list of track references - for one primary track only -MI
+  Int_t         fMaxIterTrackRef;     //!for track refernce iterator routines
+  Int_t         fCurrentIterTrackRef; //!for track refernce iterator routines
   ClassDef(AliModule,3)  //Base class for ALICE Modules
 };
 #endif
