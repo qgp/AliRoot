@@ -180,7 +180,8 @@ class AliRunLoader: public TNamed
     Int_t          OpenDataFile(const TString& filename,TFile*& file,TDirectory*& dir,Option_t* opt,Int_t cl);
     void           SetUnixDir(const TString& udirname);
     const TString  SetFileOffset(const TString& fname);//adds the proper number before .root
-
+    void           SetDetectorAddresses();
+        
   private:
     void  GetListOfDetectors(const char * namelist,TObjArray& pointerarray) const;
 

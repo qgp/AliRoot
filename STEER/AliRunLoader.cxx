@@ -235,6 +235,9 @@ Int_t AliRunLoader::GetEvent(Int_t evno)
        return 3;
       }
    }
+  
+  SetDetectorAddresses();
+  
   return 0;
 }
 /**************************************************************************/
@@ -1457,7 +1460,20 @@ TString AliRunLoader::GetFileName() const
  result = fGAFile->GetName();
  return result;
 }
+/*****************************************************************************/ 
 
+void AliRunLoader::SetDetectorAddresses()
+{
+ //calls SetTreeAddress for all detectors
+  if (GetAliRun()==0x0) return;
+  TIter next(GetAliRun()->Modules());
+  AliModule* mod;
+  while((mod = (AliModule*)next())) 
+   {
+     AliDetector* det = dynamic_cast<AliDetector*>(mod);
+     if (det) det->SetTreeAddress();
+   }
+}
 /*****************************************************************************/ 
 /*****************************************************************************/ 
 /*****************************************************************************/ 
