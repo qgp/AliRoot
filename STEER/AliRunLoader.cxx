@@ -450,7 +450,7 @@ void AliRunLoader::MakeTree(Option_t *option)
    { 
      if (fKineData.Directory() == 0x0)
       {
-        Error("MakeTree(\"K\")","LoadKinematics first");
+        Error("MakeTree(\"K\")","Load Kinematics first");
       }
      else
       {
@@ -686,13 +686,14 @@ Int_t AliRunLoader::PostTrackRefs()
 }
 /**************************************************************************/
 
-
 TTree* AliRunLoader::TreeE() const
 {
  //returns the tree from folder; shortcut method
- return dynamic_cast<TTree*>(fEventFolder->FindObject(fgkHeaderContainerName));
+ TObject *obj = fEventFolder->FindObject(fgkHeaderContainerName);
+ return (obj)?dynamic_cast<TTree*>(obj):0x0;
 }
 /**************************************************************************/
+
 AliHeader* AliRunLoader::GetHeader() const
 {
  return fHeader;
@@ -702,30 +703,32 @@ AliHeader* AliRunLoader::GetHeader() const
 TTree* AliRunLoader::TreeK() const
 {
  //returns the tree from folder; shortcut method
- return dynamic_cast<TTree*>(GetEventFolder()->FindObject(fgkKineContainerName));
+ TObject *obj = GetEventFolder()->FindObject(fgkKineContainerName);
+ return (obj)?dynamic_cast<TTree*>(obj):0x0;
 }
-
 /**************************************************************************/
+
 TTree* AliRunLoader::TreeTR() const
 {
  //returns the tree from folder; shortcut method
  TObject* obj = GetEventFolder()->FindObject(fgkTrackRefsContainerName);
  return (obj)?dynamic_cast<TTree*>(obj):0x0;
 }
-
 /**************************************************************************/
+
 AliRun* AliRunLoader::GetAliRun() const
 {
 //returns AliRun which sits in the folder
  if (fEventFolder == 0x0) return 0x0;
- return dynamic_cast<AliRun*>(fEventFolder->FindObject(fgkGAliceName));
+ TObject *obj = fEventFolder->FindObject(fgkGAliceName);
+ return (obj)?dynamic_cast<AliRun*>(obj):0x0;
 }
-
+/**************************************************************************/
 
 Int_t AliRunLoader::WriteGeometry(Option_t* opt)
 {
   fGAFile->cd();
-  TGeometry* geo = gAlice->GetGeometry();
+  TGeometry* geo = GetAliRun()->GetGeometry();
   if (geo == 0x0)
    {
      Error("WriteGeometry","Can not get geometry from gAlice");
