@@ -16,6 +16,7 @@
   #include "TFile.h"
   #include "TSystem.h"
   #include "TStopwatch.h"
+  #include "TGeant3.h"
 
   #include "AliESD.h"
   #include "AliESDpid.h"
@@ -39,6 +40,7 @@ Int_t AliESDtest(Int_t nev=1,
                  const char* fileNameTOFClusters = "galice.root") { 
 
    gSystem->Load("libgeant321");
+   new TGeant3("C++ Interface to Geant3");
 
    //File with the TPC clusters
    TFile *tpccf=TFile::Open(fileNameTPCClusters);

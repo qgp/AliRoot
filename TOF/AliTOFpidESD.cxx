@@ -38,7 +38,7 @@ ClassImp(AliTOFpidESD)
 
 static Int_t InitGeo() {
   //gSystem->Load("libgeant321");
-  new TGeant3("C++ Interface to Geant3");
+  //  new TGeant3("C++ Interface to Geant3");
 
   AliBODY *BODY = new AliBODY("BODY", "Alice envelop");
   BODY->CreateGeometry();
