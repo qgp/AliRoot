@@ -26,9 +26,9 @@ void g4menu()
 void CreateGeant4()
 {
   if (!gMC) {
-    // AliRunConfiguration for Geant4
-    AliRunConfiguration* runConfiguration 
-      = new AliRunConfiguration();
+    // TG4RunConfiguration for Geant4
+    TG4RunConfiguration* runConfiguration 
+      = new TG4RunConfiguration();
   
     // TGeant4
     TGeant4* geant4

@@ -57,13 +57,13 @@ ALIROOTMODULES:= STEER PHOS TRD TPC ZDC MUON PMD FMD TOF ITS \
 
 CERNMODULES:= PDF PYTHIA PYTHIA6 HIJING MICROCERN HERWIG
 
-MODULES:=$(ALIROOTMODULES) $(CERNMODULES)
+MODULES:=$(ALIROOTMODULES) $(CERNMODULES) 
 
 ##################################################################
 
 MODULES += ALIROOT 
 
-MODDIRS := MODULES
+MODDIRS := $(MODULES)
 
 #############################################################
 # 
@@ -138,7 +138,7 @@ ifneq ($(findstring modules,$(MAKECMDGOALS)),modules)
 #############################################################
 # 
 #                Include the modules
--include $(patsubst %,%/module.mk,$(MODULES))
+-include $(patsubst %,%/module.mk,$(MODULES)) 
 #############################################################
 
 #############################################################

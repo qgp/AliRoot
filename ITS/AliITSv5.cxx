@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.35.10.1  2002/06/10 17:51:15  hristov
+Merged with v3-08-02
+
 Revision 1.35  2001/05/30 16:15:47  fca
 Correct comparison wiht AliGeant3::Class() introduced. Thanks to I.Hrivnacova
 
@@ -117,7 +120,6 @@ Introduction of the Copyright and cvs Log
 
 #include "AliMC.h"
 #include "AliRun.h"
-#include "TGeant3.h"
 #include "AliITShit.h"
 #include "AliITSGeant3Geometry.h"
 #include "AliITS.h"
@@ -646,7 +648,8 @@ void AliITSv5::InitAliITSgeom(){
 //     Based on the geometry tree defined in Geant 3.21, this
 // routine initilizes the Class AliITSgeom from the Geant 3.21 ITS geometry
 // sturture.
-    if(gMC->IsA()!=TGeant3::Class()) {
+//    if(gMC->IsA()!=TGeant3::Class()) {
+    if(strcmp(gMC->GetName(),"TGeant3")) {
 	Error("InitAliITSgeom",
 		"Wrong Monte Carlo. InitAliITSgeom uses TGeant3 calls");
 	return;

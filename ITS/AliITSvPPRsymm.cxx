@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.38.6.1  2002/06/10 17:51:16  hristov
+Merged with v3-08-02
+
 Revision 1.39  2002/04/13 22:35:52  nilsen
 Now symm is derived from asymm. This minimizes duplicated code because
 only the geometry is different between asymm and symm.
@@ -246,7 +249,6 @@ Introduction of the Copyright and cvs Log
 #include "AliRun.h"
 #include "AliMagF.h"
 #include "AliConst.h"
-#include "TGeant3.h"
 #include "AliITSGeant3Geometry.h"
 #include "AliITShit.h"
 #include "AliITS.h"

@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.13.8.1  2002/06/10 17:51:17  hristov
+Merged with v3-08-02
+
 Revision 1.13  2001/10/01 19:34:09  nilsen
 Fixed a bug in asigning detector types in SetDefaults under SSD layer 6.
 
@@ -110,7 +113,6 @@ $Id$
 
 #include "AliMC.h"
 #include "AliRun.h"
-#include "TGeant3.h"
 #include "AliITSGeant3Geometry.h"
 #include "AliITShit.h"
 #include "AliITS.h"
@@ -256,7 +258,8 @@ void AliITSvtest::InitAliITSgeom(){
 //     Based on the geometry tree defined in Geant 3.21, this
 // routine initilizes the Class AliITSgeom from the Geant 3.21 ITS geometry
 // sturture.
-    if(gMC->IsA()!=TGeant3::Class()) {
+//    if(gMC->IsA()!=TGeant3::Class()) {
+  if(strcmp(gMC->GetName(),"TGeant3")) {
 	Error("InitAliITSgeom",
 		"Wrong Monte Carlo. InitAliITSgeom uses TGeant3 calls");
 	return;

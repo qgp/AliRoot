@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.53.6.2  2002/07/24 09:27:50  alibrary
+Updating on VirtualMC
+
 Revision 1.57  2002/06/12 18:57:25  nilsen
 Added TrackReference hits for ITS Mother volume at request of TRD and TOF.
 
@@ -216,7 +219,6 @@ New ITS detailed geometry to be used for the PPR
 #include "AliRun.h"
 #include "AliMagF.h"
 #include "AliConst.h"
-#include "TGeant3.h"
 #include "AliITSGeant3Geometry.h"
 #include "AliTrackReference.h"
 #include "AliITShit.h"
@@ -29043,7 +29045,8 @@ void AliITSvPPRasymm::InitAliITSgeom(){
 //     Based on the geometry tree defined in Geant 3.21, this
 // routine initilizes the Class AliITSgeom from the Geant 3.21 ITS geometry
 // sturture.
-    if(gMC->IsA()!=TGeant3::Class()) {
+//    if(gMC->IsA()!=TGeant3::Class()) {
+  if(strcmp(gMC->GetName(),"TGeant3")) {
 	Error("InitAliITSgeom",
 		"Wrong Monte Carlo. InitAliITSgeom uses TGeant3 calls");
 	return;
