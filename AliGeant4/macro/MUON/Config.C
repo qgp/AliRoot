@@ -1,6 +1,6 @@
 void Config(Int_t version)
 {
-  gSystem->Load("libminicern");
+  gSystem->Load("libmicrocern");
   gSystem->Load("libMUON");
 
   AliMUON *MUON = 0;
