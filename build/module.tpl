@@ -260,12 +260,12 @@ check-@PACKAGE@: $(@PACKAGE@CHECKS)
 @PACKAGE@/check/%.viol : @PACKAGE@/check/%.i
 	@$(CODE_CHECK) $< ./ > $@
 
-#PREPROC       = $(patsubst %.viol,%.i,$(CHECKS))
-#
-#REVENGS       = $(patsubst %.viol,%.ii,$(CHECKS))
-#
-#.SECONDARY: $(REVENGS) $(PREPROC)
-#
+@PACKAGE@PREPROC       = $(patsubst %.viol,%.i,$(@PACKAGE@CHECKS))
+
+@PACKAGE@REVENGS       = $(patsubst %.viol,%.ii,$(@PACKAGE@CHECKS))
+
+.SECONDARY: $(@PACKAGE@REVENGS) $(@PACKAGE@PREPROC)
+
 #reveng:		check/classDiagram.dot
 #
 #check/classDiagram.dot:	$(PREPROC)
