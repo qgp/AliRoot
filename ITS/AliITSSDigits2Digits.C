@@ -9,7 +9,7 @@ void AliITSSDigits2Digits(TString inFile= "galice.root", TString outFile = "")
     TStopwatch timer;
     if(gAlice)
      {
-       delete gAlice->GetAliRun();
+       delete gAlice->GetRunLoader();
        delete gAlice;
        gAlice = 0x0;
     } // end if gAlice
