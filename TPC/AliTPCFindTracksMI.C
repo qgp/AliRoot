@@ -1,0 +1,49 @@
+/****************************************************************************
+ *           Origin: I.Belikov, CERN, Jouri.Belikov@cern.ch                 *
+ ****************************************************************************/
+
+#ifndef __CINT__
+#include <iostream.h>
+#include "AliTPCParam.h"
+#include "AliTPCtrackerMI.h"
+#include "TFile.h"
+#include "TStopwatch.h"
+#include "AliRun.h"
+#include "AliMagF.h"
+#endif
+
+Int_t AliTPCFindTracks(Int_t eventn=1) { 
+   cerr<<"Looking for tracks...\n";
+   TFile f("galice.root");
+   gAlice = (AliRun*)f.Get("gAlice");
+   AliKalmanTrack::SetConvConst(1000/0.299792458/gAlice->Field()->SolenoidField());
+   TFile *out=TFile::Open("AliTPCtracks.root","new");
+   if (!out->IsOpen()) {cerr<<"Delete old AliTPCtracks.root !\n"; return 1;}
+
+   TFile *in=TFile::Open("AliTPCclusters.root");
+   if (!in->IsOpen()) {cerr<<"Can't open AliTPCclusters.root !\n"; return 2;}
+
+   AliTPCParam *par=(AliTPCParam*)in->Get("75x40_100x60_150x60");
+   if (!par) {cerr<<"Can't get TPC parameters !\n"; return 3;}
+ 
+   TStopwatch timer;
+  
+   Int_t rc=0;
+   for (Int_t i=0;i<eventn;i++){
+     printf("Processing event %d\n",i);
+     AliTPCtrackerMI *tracker = new AliTPCtrackerMI(par,i);
+     //delete tracker; 
+     //tracker = new AliTPCtrackerMI(par,i);
+     //Double_t xyz[]={0.,0.,0.}; tracker->SetVertex(xyz); //primary vertex
+     rc=tracker->Clusters2Tracks(0,out);
+     delete tracker;
+   }
+   timer.Stop(); timer.Print();
+ 
+   delete par; //Thanks to Mariana Bondila
+
+   in->Close();
+   out->Close();
+
+   return rc;
+}
