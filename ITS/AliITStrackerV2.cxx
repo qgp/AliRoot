@@ -1343,6 +1343,7 @@ void AliITStrackerV2::SortTrackHypothesys(Int_t esdindex, Float_t likelihoodleve
   fTrackHypothesys.AddAt(newarray,esdindex);
 
   delete [] chi2;
+  delete [] probability;
   delete [] index;
 
 }
