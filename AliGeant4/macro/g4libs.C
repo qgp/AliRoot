@@ -1,6 +1,8 @@
 // $Id$
+//
+// Root macro for loading Geant4, geant4_mc and AliGeant4 libraries.
 
-#include <iostream.h>
+#include <iostream>
 
 static Bool_t isGeant4 = false;
 static Bool_t isSteer = false;
@@ -20,6 +22,8 @@ void g4libs_global()
 // ---
   if (!isGeant4) {
 
+    cout << "Loading Geant4 global libraries ..." << endl;
+ 
     // CLHEP
     gSystem->Load("libCLHEP");
 
@@ -53,12 +57,12 @@ void g4libs_global()
 //    gSystem->Load("libG4OpenGL");
     gSystem->Load("libG4VRML");
     
-    // TGeant4, AliGeant4
-    gSystem->Load("libTGeant4");
+    // geant4mc, AliGeant4
+    gSystem->Load("libgeant4vmc");
     gSystem->Load("libAliGeant4");
     
     isGeant4 = true;
-    cout << "Geant4 global libraries have been loaded." << endl;
+    cout << "Loading Geant4 global libraries ... finished" << endl;
   }    
 }
 
@@ -70,6 +74,8 @@ void g4libs_granular()
 // ---
   if (!isGeant4) {
 
+    cout << "Loading Geant4 granular libraries ..." << endl;
+    
     // CLHEP
     gSystem->Load("libCLHEP");
 
@@ -175,15 +181,16 @@ void g4libs_granular()
     gSystem->Load("libG4modeling");
     gSystem->Load("libG4vis_management");
     gSystem->Load("libG4FR");                   
-//    gSystem->Load("libG4OpenGL");               
+    //gSystem->Load("libG4OpenGL");               
     gSystem->Load("libG4VRML");                 
     gSystem->Load("libG4RayTracer");                 
   
-    // TGeant4, AliGeant4
+    // geant4mc, AliGeant4
     gSystem->Load("libgeant4vmc");
+    gSystem->Load("libAliGeant4");
 
     isGeant4 = true;
-    cout << "Geant4 granular libraries have been loaded." << endl;
+    cout << "Loading Geant4 granular libraries ... finished" << endl;
   }
 }
 
@@ -207,8 +214,8 @@ void detlibs() {
 // ---
   if (!isDetector) {
 
-    gSystem->Load("libminicern");
-    // minicern required by MUON
+    gSystem->Load("libmicrocern");
+    // microcern required by MUON
     gSystem->Load("libSTRUCT");
     gSystem->Load("libFMD");
     gSystem->Load("libMUON");
@@ -220,7 +227,6 @@ void detlibs() {
     gSystem->Load("libTRD");
     gSystem->Load("libZDC");
     //gSystem->Load("libITS");
-    gSystem->Load("libCASTOR");
     gSystem->Load("libSTART");
     
     isDetector = true;
