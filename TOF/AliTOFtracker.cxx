@@ -364,6 +364,7 @@ void AliTOFtracker::MatchTracks( Bool_t mLastStep){
 
     if (nfound == 0 ) {
       fnunmatch++;
+      delete trackTOFin;
       continue;
     }
     
