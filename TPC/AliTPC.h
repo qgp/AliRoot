@@ -65,7 +65,6 @@ public:
   
   virtual      ~AliTPC();
   virtual void  AddHit(Int_t a1, Int_t *a2, Float_t *a3);
-  virtual void  AddTrackReference(Int_t lab,  TLorentzVector p, TLorentzVector x,Float_t length);
   Int_t         DistancetoPrimitive(Int_t px, Int_t py);
   virtual void  BuildGeometry();
   virtual void  CreateGeometry() {}
@@ -139,7 +138,11 @@ public:
    void    SetActiveSectors(Int_t * sectors, Int_t n);  //set active sectors
    Int_t GetHitType(){return fHitType;}
    void    SetActiveSectors(Int_t flag=0); //loop over al hits and set active only hitted sectors
-private:
+
+// static functions
+   static AliTPCParam* LoadTPCParam(TFile *file);  
+   
+ private:
   //
    Bool_t  TrackInVolume(Int_t id,Int_t track);  //return true if current track is in volume
   void SetDefaults();
@@ -159,7 +162,7 @@ private:
   Int_t      fCurrentNoise; //!index of the noise in  the noise table 
   Bool_t*    fActiveSectors; //!bool indicating which sectors are active
 
-  ClassDef(AliTPC,8)  // Time Projection Chamber class
+  ClassDef(AliTPC,9)  // Time Projection Chamber class
 };
 
 

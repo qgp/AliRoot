@@ -20,6 +20,7 @@
 class TFile;
 class AliTPCParam;
 class AliRunLoader;
+class AliTPCcluster;
 
 class AliTPCtracker : public AliTracker {
 public:

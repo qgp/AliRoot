@@ -13,28 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.3.4.3  2002/06/18 10:19:24  hristov
-Merging done partially whithin AliRunDigitizer (P.Skowronski)
-
-Revision 1.3.4.2  2002/06/06 14:21:19  hristov
-Merged with v3-08-02
-
-$Log$
-Revision 1.8  2002/10/23 07:17:33  alibrary
-Introducing Riostream.h
-
-Revision 1.7  2002/10/14 14:57:42  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.3.6.1  2002/06/10 15:26:11  hristov
-Merged with v3-08-02
-
-Revision 1.6  2002/04/06 14:41:04  kowal2
-Added #include<stdlib.h> and log
-
-*/
+/* $Id$ */
 
 #include <stdlib.h>
 #include <TTree.h> 
@@ -177,15 +156,11 @@ void AliTPCDigitizer::ExecFast(Option_t* option)
        }
       if (i1 == 0) nentries=treear->GetEntries();
     
-      if (treear->GetIndex()==0)  treear->BuildIndex("fSegmentID","fSegmentID");
-      if (!treear) 
-       {
-         cerr<<" TPC -  not existing input = \n"<<i1<<" ";      
-       }
+      if (treear->GetIndex()==0)  
+	treear->BuildIndex("fSegmentID","fSegmentID");
       treear->GetBranch("Segment")->SetAddress(&digarr[i1]);
     }
 
-  
 
   //create branch's in TPC treeD
   AliSimDigits * digrow = new AliSimDigits;

@@ -3,7 +3,7 @@
  ****************************************************************************/
 
 #ifndef __CINT__
-  #include <iostream.h>
+  #include <Riostream.h>
   #include "AliRun.h"
   #include "AliTPCv1.h"
   #include "AliTPCv2.h"

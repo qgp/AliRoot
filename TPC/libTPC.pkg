@@ -9,10 +9,14 @@ SRCS:=  AliTPCLoader.cxx\
         AliTPCClustersArray.cxx \
         AliTPCcluster.cxx AliTPCclusterer.cxx \
         AliTPCtrack.cxx AliTPCtracker.cxx \
-        AliTPCTrackHits.cxx\
-        AliTPCDigitizer.cxx\
-        AliTPCTrackHitsV2.cxx AliTPCtrackerParam.cxx AliTPCkineGrid.cxx
-
+	AliTPCTrackHits.cxx\
+	AliTPCDigitizer.cxx\
+	AliTPCTrackHitsV2.cxx AliTPCtrackerParam.cxx AliTPCkineGrid.cxx \
+	AliTPCclustererMI.cxx AliTPCclusterMI.cxx  AliTPCtrackerMI.cxx \
+	AliTPCpolyTrack.cxx \
+	AliTPCBuffer.cxx AliTPCBuffer160.cxx \
+	AliTPCCompression.cxx AliTPCDDLRawData.cxx \
+	AliTPCHuffman.cxx AliTPCPid.cxx AliTPCtrackPid.cxx
 HDRS:= $(SRCS:.cxx=.h)
 
 

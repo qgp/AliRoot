@@ -9,8 +9,6 @@
 #include <TTUBS.h>
 #include <TObjectTable.h>
 #include <Riostream.h>
-#include <Riostream.h>
-#include <TVirtualMC.h>
 #include <TFile.h>
 #include <TStyle.h>
 #include <TCanvas.h>
@@ -20,6 +18,8 @@
 #include <TTree.h>
 #include <TBranch.h>
 #include <TError.h>
+#include <TH1F.h>
+#include <TH2F.h>
 
 
 //ALIROOT headers
@@ -44,9 +44,7 @@
 #include "AliClusters.h"
 #include "AliTPCClustersRow.h"
 #include "AliTPCClustersArray.h"
-#include "AliTPCClusterFinder.h"
 #include "AliTPCcluster.h"
-
 #include "TMinuit.h"
 #include "AliTPC.h"
 #include "AliTPCv1.h"

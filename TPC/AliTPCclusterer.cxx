@@ -13,51 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.7.4.2  2002/06/06 14:21:19  hristov
-Merged with v3-08-02
-
-Revision 1.7.4.1  2002/05/31 09:38:00  hristov
-First set of changes done by Piotr
-
-Revision 1.11  2002/10/23 07:17:34  alibrary
-Introducing Riostream.h
-
-Revision 1.10  2002/10/14 14:57:43  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.7.6.1  2002/06/10 15:26:12  hristov
-Merged with v3-08-02
-
-Revision 1.9  2002/05/09 06:57:09  kowal2
-Protection against nonexisting input tree
-
-Revision 1.8  2002/03/29 06:57:45  kowal2
-Restored backward compatibility to use the hits from Dec. 2000 production.
-
-Revision 1.7  2001/10/21 19:04:55  hristov
-Several patches were done to adapt the barel reconstruction to the multi-event case. Some memory leaks were corrected. (Yu.Belikov)
-
-Revision 1.6  2001/08/30 09:28:48  hristov
-TTree names are explicitly set via SetName(name) and then Write() is called
-
-Revision 1.5  2001/07/20 14:32:44  kowal2
-Processing of many events possible now
-
-Revision 1.4  2001/04/17 08:06:27  hristov
-Possibility to define the magnetic field in the reconstruction (Yu.Belikov)
-
-Revision 1.3  2000/10/05 16:14:01  kowal2
-Forward declarations.
-
-Revision 1.2  2000/06/30 12:07:50  kowal2
-Updated from the TPC-PreRelease branch
-
-Revision 1.1.2.1  2000/06/25 08:53:55  kowal2
-Splitted from AliTPCtracking
-
-*/
+/* $Id$ */
 
 //-------------------------------------------------------
 //          Implementation of the TPC clusterer

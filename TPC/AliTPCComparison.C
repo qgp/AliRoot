@@ -476,6 +476,13 @@ Int_t good_tracks_tpc(GoodTrackTPC *gt, const Int_t max, const char* evfoldname)
            continue;
          }
         if (pp->GetFirstMother()>=0) continue;//only one decay is allowed
+	/*  for cascade hyperons only
+        Int_t jj=pp->GetFirstMother();
+        if (jj>=0) {
+          TParticle *ppp = (TParticle*)stack->Particle(jj);
+          if (ppp->GetFirstMother()>=0) continue;//two decays are allowed
+        }
+	*/
       }
 
       gt[nt].lab=i;

@@ -216,22 +216,6 @@ void AliTPC::AddHit(Int_t track, Int_t *vol, Float_t *hits)
    AddHit2(track,vol,hits);
 }
 
-void  AliTPC::AddTrackReference(Int_t lab, TLorentzVector p, TLorentzVector x, Float_t length){
-  //
-  // add a trackrefernce to the list
-  if (!fTrackReferences) {
-    cerr<<"Container trackrefernce not active\n";
-    return;
-  }
-  Int_t nref = fTrackReferences->GetEntriesFast();
-  TClonesArray &lref = *fTrackReferences;
-  AliTrackReference * ref =  new(lref[nref]) AliTrackReference;
-  ref->SetMomentum(p[0],p[1],p[2]);
-  ref->SetPosition(x[0],x[1],x[2]);
-  ref->SetTrack(lab);
-  ref->SetLength(length);
-}
- 
 //_____________________________________________________________________________
 void AliTPC::BuildGeometry()
 {
@@ -1564,6 +1548,8 @@ void AliTPC::Hits2SDigits()
 //  Int_t eventnumber = gAlice->GetEvNumber();
 //  AliRunLoader* rl = (AliRunLoader*)fLoader->GetEventFolder()->FindObject(AliRunLoader::fgkRunLoaderName);
 //  rl->GetEvent(eventnumber);
+// 12/05/2003 This method is obsolete and not used. It should be redesingned
+// M.Kowalski
 
   if (fLoader->TreeH() == 0x0)
    {
@@ -3021,6 +3007,7 @@ void AliTPC::Digits2Reco(Int_t firstevent,Int_t lastevent)
 
 
 }
+
 AliLoader* AliTPC::MakeLoader(const char* topfoldername)
 {
  cout<<"AliTPC::MakeLoader ";
@@ -3038,3 +3025,50 @@ AliLoader* AliTPC::MakeLoader(const char* topfoldername)
 
  return fLoader;
 }
+
+////////////////////////////////////////////////////////////////////////
+AliTPCParam* AliTPC::LoadTPCParam(TFile *file) {
+//
+// load TPC paarmeters from a given file or create new if the object
+// is not found there
+// 12/05/2003 This method should be moved to the AliTPCLoader
+// and one has to decide where to store the TPC parameters
+// M.Kowalski
+  char paramName[50];
+  sprintf(paramName,"75x40_100x60_150x60");
+  AliTPCParam *paramTPC=(AliTPCParam*)file->Get(paramName);
+  if (paramTPC) {
+    cout<<"TPC parameters "<<paramName<<" found."<<endl;
+  } else {
+    cerr<<"TPC parameters not found. Create new (they may be incorrect)."
+	<<endl;    
+    paramTPC = new AliTPCParamSR;
+  }
+  return paramTPC;
+
+// the older version of parameters can be accessed with this code.
+// In some cases, we have old parameters saved in the file but 
+// digits were created with new parameters, it can be distinguish 
+// by the name of TPC TreeD. The code here is just for the case 
+// we would need to compare with old data, uncomment it if needed.
+//
+//  char paramName[50];
+//  sprintf(paramName,"75x40_100x60");
+//  AliTPCParam *paramTPC=(AliTPCParam*)in->Get(paramName);
+//  if (paramTPC) {
+//    cout<<"TPC parameters "<<paramName<<" found."<<endl;
+//  } else {
+//    sprintf(paramName,"75x40_100x60_150x60");
+//    paramTPC=(AliTPCParam*)in->Get(paramName);
+//    if (paramTPC) {
+//	cout<<"TPC parameters "<<paramName<<" found."<<endl;
+//    } else {
+//	cerr<<"TPC parameters not found. Create new (they may be incorrect)."
+//	    <<endl;    
+//	paramTPC = new AliTPCParamSR;
+//    }
+//  }
+//  return paramTPC;
+
+}
+

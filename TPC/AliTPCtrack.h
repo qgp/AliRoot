@@ -32,17 +32,17 @@
 
 #include "AliTPCreco.h"
 
-class AliTPCClustersArray;
-class AliTPCcluster;
+class AliBarrelTrack;
 
 //_____________________________________________________________________________
 class AliTPCtrack : public AliKalmanTrack {
 public:
-  AliTPCtrack():AliKalmanTrack(){}
+  AliTPCtrack();
   AliTPCtrack(UInt_t index, const Double_t xx[5], 
               const Double_t cc[15], Double_t xr, Double_t alpha); 
   AliTPCtrack(const AliKalmanTrack& t, Double_t alpha);
   AliTPCtrack(const AliTPCtrack& t);
+  virtual ~AliTPCtrack() {}
   Int_t PropagateToVertex(Double_t x0=36.66,Double_t rho=1.2e-3);
   Int_t Rotate(Double_t angle);
   void SetdEdx(Double_t dedx) {fdEdx=dedx;}
@@ -61,10 +61,34 @@ public:
   Double_t GetSigmaY2() const {return fC00;}
   Double_t GetSigmaZ2() const {return fC11;}
 
+// Some methods useful for users. Implementation is not
+// optimized for speed but for minimal maintanance effort
+  Double_t Phi() const;
+  Double_t Theta() const {return TMath::Pi()/2.-TMath::ATan(GetTgl());}
+  Double_t Px() const {return TMath::Cos(Phi())/TMath::Abs(Get1Pt());}
+  Double_t Py() const {return TMath::Sin(Phi())/TMath::Abs(Get1Pt());}
+  Double_t Pz() const {return GetTgl()/TMath::Abs(Get1Pt());}
+  Double_t Pt() const {return 1./TMath::Abs(Get1Pt());}
+  Double_t P() const {return TMath::Sqrt(Pt()*Pt()+Pz()*Pz());}
+
   Int_t Compare(const TObject *o) const;
 
   void GetExternalParameters(Double_t& xr, Double_t x[5]) const ;
   void GetExternalCovariance(Double_t cov[15]) const ;
+
+  // [SR, 01.04.2003]
+
+  void GetBarrelTrack(AliBarrelTrack *track);
+
+  void ResetNWrong() {fNWrong = 0;}
+  void ResetNRotation() {fNRotation = 0;}
+  
+  Int_t GetNWrong() const {return fNWrong;}
+  Int_t GetNRotation() const {return fNRotation;}
+
+  Int_t GetNumber() const {return fNumber;}
+  void  SetNumber(Int_t n) {fNumber = n;} 
+  //
 
   Int_t GetClusterIndex(Int_t i) const {return fIndex[i];}
 
@@ -85,7 +109,7 @@ public:
   Int_t Update(const AliCluster* c, Double_t chi2, UInt_t i);
   void ResetCovariance();
 
-private: 
+protected: 
   Double_t fX;              // X-coordinate of this track (reference plane)
   Double_t fAlpha;          // Rotation angle the local (TPC sector)
                             // coordinate system and the global ALICE one.
@@ -105,6 +129,11 @@ private:
   Double_t fC40, fC41, fC42, fC43, fC44; // parameters
  
   UInt_t fIndex[kMaxRow];       // indices of associated clusters 
+
+  //[SR, 01.04.2003]
+  Int_t fNWrong;         // number of wrong clusters
+  Int_t fNRotation;      // number of rotations
+  Int_t fNumber;         // magic number used for number of clusters
 
   ClassDef(AliTPCtrack,1)   // Time Projection Chamber reconstructed tracks
 };

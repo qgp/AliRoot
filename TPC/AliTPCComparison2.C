@@ -93,12 +93,6 @@ Int_t AliTPCComparison2(Int_t firstev=0, Int_t eventn=1) {
     cout<<"================================================"<<endl;
     cout<<"Processing event "<<event<<endl;
     cout<<"================================================"<<endl;
-    if(kOLD){
-      cf->cd();
-      tracker = new AliTPCtracker(digp,event);
-      tracker->LoadInnerSectors();
-      tracker->LoadOuterSectors();
-    }
     
     char   tname[100];
     if (eventn==-1) {
@@ -120,7 +114,7 @@ Int_t AliTPCComparison2(Int_t firstev=0, Int_t eventn=1) {
       iotrack=new AliTPCtrack;
       tbranch->SetAddress(&iotrack);
       tracktree->GetEvent(i);
-      if(kOLD)tracker->CookLabel(iotrack,0.1);
+      //      if(kOLD)tracker->CookLabel(iotrack,0.1);
       tarray.AddLast(iotrack);
     }   
     eventptr[event+1] = nentr;  //store end of the event
@@ -396,7 +390,9 @@ Int_t good_tracks(GoodTrackTPC *gt, Int_t max, Int_t firstev, Int_t eventn) {
     cerr<<"gAlice have not been found on galice.root !\n";
     exit(5);
   }
-   
+
+  TFile *fdigit = TFile::Open("digits.root");
+  file->cd();
 
   AliTPC *TPC=(AliTPC*)gAlice->GetDetector("TPC");
   Int_t ver = TPC->IsVersion(); 
@@ -474,7 +470,8 @@ Int_t good_tracks(GoodTrackTPC *gt, Int_t max, Int_t firstev, Int_t eventn) {
     case 2:
       {
         sprintf(treeName,"TreeD_75x40_100x60_150x60_%d",event);  
-        TD=(TTree*)gDirectory->Get(treeName);
+        TD=(TTree*)fdigit->Get(treeName); // To be revised according to
+                                          // NewIO schema M.Kowalski
         TD->GetBranch("Segment")->SetAddress(&digits);
         count = new Int_t[np];
         Int_t i;
@@ -485,12 +482,15 @@ Int_t good_tracks(GoodTrackTPC *gt, Int_t max, Int_t firstev, Int_t eventn) {
           Int_t sec,row;
           digp->AdjustSectorRow(digits->GetID(),sec,row);
           digits->First();
+	  digits->ExpandTrackBuffer();
           do { //Many thanks to J.Chudoba who noticed this
             Int_t it=digits->CurrentRow(), ip=digits->CurrentColumn();
-            Short_t dig = digits->GetDigit(it,ip);
-            Int_t idx0=digits->GetTrackID(it,ip,0); 
-            Int_t idx1=digits->GetTrackID(it,ip,1);
-            Int_t idx2=digits->GetTrackID(it,ip,2);
+	    //            Short_t dig = digits->GetDigit(it,ip);
+            Short_t dig = digits->CurrentDigit();
+
+            Int_t idx0=digits->GetTrackIDFast(it,ip,0)-2; 
+            Int_t idx1=digits->GetTrackIDFast(it,ip,1)-2;
+            Int_t idx2=digits->GetTrackIDFast(it,ip,2)-2;
             if (idx0>=0 && dig>=zero && idx0<np ) count[idx0]+=1;   //background events - higher track ID's
             if (idx1>=0 && dig>=zero && idx1<np ) count[idx1]+=1;
             if (idx2>=0 && dig>=zero && idx2<np ) count[idx2]+=1;
@@ -611,6 +611,8 @@ Int_t FindPrimaries(Int_t nparticles){
   for(Int_t iprim = 0; iprim<nparticles; iprim++){   //loop on  tracks
 
     part = gAlice->Particle(iprim);
+    Double_t ptot=TMath::Sqrt(part->Px()*part->Px()+part->Py()*part->Py()+part->Pz()*part->Pz());
+    if (ptot<0.01) continue;
     char *xxx=strstr(part->GetName(),"XXX");
     if(xxx)continue;
 
@@ -622,7 +624,7 @@ Int_t FindPrimaries(Int_t nparticles){
 
     if(part->T()>timecut)continue;
 
-    Double_t ptot=TMath::Sqrt(part->Px()*part->Px()+part->Py()*part->Py()+part->Pz()*part->Pz());
+    //Double_t ptot=TMath::Sqrt(part->Px()*part->Px()+part->Py()*part->Py()+part->Pz()*part->Pz());
     if(ptot==(TMath::Abs(part->Pz())))continue; // no beam particles
 
     Bool_t prmch = kTRUE;   // candidate primary track
@@ -649,9 +651,4 @@ Int_t FindPrimaries(Int_t nparticles){
 
   return nprch1;
 }
-
-
-
-
-
 

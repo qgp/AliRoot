@@ -44,7 +44,6 @@
 #include "AliTPCTrackHitsV2.h"
 #include "AliTPCv2.h"
 
-
 ClassImp(AliTPCv2)
  
 //_____________________________________________________________________________
@@ -390,13 +389,13 @@ void AliTPCv2::CreateGeometry()
 
   dm[15]=250.6;
   dm[16]=258.;
-  dm[17]=275.5;
+  dm[17]=269.6;
 
   //
 
   dm[18]=253.6;
   dm[19]=258.;
-  dm[20]=275.5;
+  dm[20]=269.6;
 
   gMC->Gsvolu("TOFC","PCON",idtmed[4],dm,21);
 
@@ -431,7 +430,8 @@ void AliTPCv2::CreateGeometry()
   gMC->Gspos("TSA7",1,"TSA6",0.,0.,0.,0,"ONLY"); 
   gMC->Gspos("TSA6",1,"TOFC",0.,0.,0.,0,"ONLY");
 
-  // TOFC->TOIN
+  // TOFC->TOIN 
+  // TOFC overlaps with 
 
   gMC->Gspos("TOFC",1,"TOIN",0.,0.,0.,0,"ONLY");
 
@@ -1855,24 +1855,11 @@ void AliTPCv2::StepManager()
 
   id = gMC->CurrentVolID(copy); // current volume Id
 
-  if (gMC->IsTrackEntering() && ( (id == fIdLSec) || (id == fIdUSec))){
-    //    printf("track  %d entering volume %d\n",gAlice->CurrentTrack(),id);
-    TLorentzVector p;
-    TLorentzVector x;
-    gMC->TrackMomentum(p);
-    gMC->TrackPosition(x);
-    AddTrackReference(gAlice->CurrentTrack(),p,x,gMC->TrackLength());
-  }
+  if ( (gMC->IsTrackEntering() || gMC->IsTrackExiting()) &&
+       ((id == fIdLSec) || (id == fIdUSec)) ) {
 
-  if (gMC->IsTrackExiting() && ( (id == fIdLSec) || (id == fIdUSec))){
-    //    printf("track  %d exiting volume %d\n",gAlice->CurrentTrack(),id);
-    TLorentzVector p;
-    TLorentzVector x;
-    gMC->TrackMomentum(p);
-    gMC->TrackPosition(x);
-    AddTrackReference(gAlice->CurrentTrack(),p,x,gMC->TrackLength());
+    AddTrackReference(gAlice->CurrentTrack());
   }
-
 
   if(id == fIdLSec){
     vol[0] = copy-1; // lower sector number

@@ -20,6 +20,7 @@
 #pragma link C++ class  AliTPCtrack+;
 #pragma link C++ class  AliTPCtracker+;
 
+
 #pragma link C++ class  AliTPCParam+;
 #pragma link C++ class  AliTPCParamSR-;
 #pragma link C++ class  AliTPCParamCR-;
@@ -31,7 +32,6 @@
 
 #pragma link C++ class AliComplexCluster+;
 #pragma link C++ class AliDigitCluster+;
-#pragma link C++ class AliDifCluster+;
 #pragma link C++ class AliClusters+;
 #pragma link C++ class AliClustersArray+;
 
@@ -58,9 +58,36 @@
 #pragma link C++ class AliTPCclusterer-;
 #pragma link C++ class AliTPCDigitizer;
 #pragma link C++ class AliTPCtrackerParam; 
-#pragma link C++ class AliTPCkineGrid;
 
 #pragma link C++ class AliTPCLoader+;
+#pragma link C++ class AliTPCkineGrid;
+
+// points used in new cluster finder
+#pragma link C++ class  AliTPCExactPoint+;
+#pragma link C++ class  AliTPCTrackerPoint+;
+#pragma link C++ class  AliTPCClusterPoint+;
+#pragma link C++ class  AliTPCTrackPoint+;
+#pragma link C++ class  AliTPCTrackPointRef+;
+
+#pragma link C++ class  AliTPCclustererMI+;
+#pragma link C++ class  AliTPCclusterMI+;
+#pragma link C++ class  AliTPCclusterLMI+;
+#pragma link C++ class  AliTPCtrackerMI+;
+#pragma link C++ class  AliTPCseed+;
+#pragma link C++ class  AliTPCpolyTrack+;
+
+
+#pragma link C++ class  AliTPCBuffer+;
+#pragma link C++ class  AliTPCBuffer160+;
+#pragma link C++ class  AliTPCCompression+;
+#pragma link C++ class  AliTPCDDLRawData+;
+#pragma link C++ class  AliTPCHNode+;
+#pragma link C++ class  AliTPCHTable+;
+#pragma link C++ class  AliTPCKalmanSegment+;
+
+#pragma link C++ class  AliTPCPid+;
+#pragma link C++ class  AliTPCtrackPid+;
+
 
 
 #endif

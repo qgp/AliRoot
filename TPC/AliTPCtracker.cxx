@@ -13,83 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.16.2.4  2002/11/22 14:20:10  hristov
-Merging NewIO-01 with v3-09-04 (part one) (P.Skowronski)
-
-Revision 1.16.2.3  2002/06/28 10:35:00  hristov
-Forward tracking adapted to the NewIO
-
-Revision 1.16.2.2  2002/06/06 14:21:19  hristov
-Merged with v3-08-02
-
-Revision 1.16.2.1  2002/05/31 09:38:00  hristov
-First set of changes done by Piotr
-
-Revision 1.22  2002/10/23 07:17:34  alibrary
-Introducing Riostream.h
-
-Revision 1.21  2002/10/21 16:49:46  hristov
-Replacing the old sorting by the Root one (M.Ivanov)
-
-Revision 1.20  2002/10/14 14:57:43  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.17.4.3  2002/10/11 08:34:48  hristov
-Updating VirtualMC to v3-09-02
-
-Revision 1.19  2002/07/19 07:31:40  kowal2
-Improvement in tracking by J. Belikov
-
-Revision 1.18  2002/05/13 07:33:52  kowal2
-Added protection in Int_t AliTPCtracker::AliTPCRow::Find(Double_t y) const
-in the case of defined region of interests.
-
-Revision 1.17  2002/03/18 17:59:13  kowal2
-Chnges in the pad geometry - 3 pad lengths introduced.
-
-Revision 1.16  2001/11/08 16:39:03  hristov
-Additional protection (M.Masera)
-
-Revision 1.15  2001/11/08 16:36:33  hristov
-Updated V2 stream of tracking (Yu.Belikov). The new long waited features are: 1) Possibility to pass the primary vertex position to the trackers (both for the TPC and the ITS) 2) Possibility to specify the number of tracking passes together with applying (or not applying) the vertex constraint (ITS only) 3) Possibility to make some use of partial PID provided by the TPC when doing tracking in the ITS (ITS only) 4) V0 reconstruction with a helix minimisation of the DCA. (new macros: AliV0FindVertices.C and AliV0Comparison.C) 4a) ( Consequence of the 4) )  All the efficiencies and resolutions are from now on calculated including *secondary*particles* too. (Don't be surprised by the drop in efficiency etc)
-
-Revision 1.14  2001/10/21 19:04:55  hristov
-Several patches were done to adapt the barel reconstruction to the multi-event case. Some memory leaks were corrected. (Yu.Belikov)
-
-Revision 1.13  2001/07/23 12:01:30  hristov
-Initialisation added
-
-Revision 1.12  2001/07/20 14:32:44  kowal2
-Processing of many events possible now
-
-Revision 1.11  2001/05/23 08:50:10  hristov
-Weird inline removed
-
-Revision 1.10  2001/05/16 14:57:25  alibrary
-New files for folders and Stack
-
-Revision 1.9  2001/05/11 07:16:56  hristov
-Fix needed on Sun and Alpha
-
-Revision 1.8  2001/05/08 15:00:15  hristov
-Corrections for tracking in arbitrary magnenetic field. Changes towards a concept of global Alice track. Back propagation of reconstructed tracks (Yu.Belikov)
-
-Revision 1.5  2000/12/20 07:51:59  kowal2
-Changes suggested by Alessandra and Paolo to avoid overlapped
-data fields in encapsulated classes.
-
-Revision 1.4  2000/11/02 07:27:16  kowal2
-code corrections
-
-Revision 1.2  2000/06/30 12:07:50  kowal2
-Updated from the TPC-PreRelease branch
-
-Revision 1.1.2.1  2000/06/25 08:53:55  kowal2
-Splitted from AliTPCtracking
-
-*/
+/* $Id$ */
 
 //-------------------------------------------------------
 //          Implementation of the TPC tracker
@@ -108,6 +32,7 @@ Splitted from AliTPCtracking
 #include "AliTPCcluster.h"
 #include "AliTPCParam.h"
 #include "AliTPCClustersRow.h"
+#include "AliTPCcluster.h"
 
 //_____________________________________________________________________________
 AliTPCtracker::AliTPCtracker(const AliTPCParam *par, Int_t eventn, const char* evfoldname):

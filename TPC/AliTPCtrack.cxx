@@ -13,40 +13,29 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.14  2002/10/23 13:45:00  hristov
-Fatal if no magnetic field set for the reconstruction (Y.Belikov)
-
-Revision 1.13  2002/10/23 07:17:34  alibrary
-Introducing Riostream.h
-
-Revision 1.12  2002/10/14 14:57:43  hristov
-Merging the VirtualMC branch to the main development branch (HEAD)
-
-Revision 1.9.6.1  2002/10/11 08:34:48  hristov
-Updating VirtualMC to v3-09-02
-
-Revision 1.11  2002/07/19 07:34:42  kowal2
-Logs added
-
-*/
-
+/* $Id$ */
 
 //-----------------------------------------------------------------
 //           Implementation of the TPC track class
-//
-// Origin: Iouri Belikov, CERN, Jouri.Belikov@cern.ch
+//        This class is used by the AliTPCtracker class
+//      Origin: Iouri Belikov, CERN, Jouri.Belikov@cern.ch
 //-----------------------------------------------------------------
 
 #include <Riostream.h>
 
 #include "AliTPCtrack.h"
-#include "AliTPCcluster.h"
-#include "AliTPCClustersRow.h"
-#include "AliTPCClustersArray.h"
+#include "AliCluster.h"
+#include "AliBarrelTrack.h"
 
 ClassImp(AliTPCtrack)
+
+//_________________________________________________________________________
+AliTPCtrack::AliTPCtrack(): AliKalmanTrack() 
+{
+  fX = fP0 = fP1 = fP2 = fP3 = fP3 = fP4 = 0.0;
+  fAlpha = fdEdx = 0.0;
+  fNWrong = fNRotation = fNumber = 0;  // [SR, 01.04.2003]
+}
 
 //_________________________________________________________________________
 AliTPCtrack::AliTPCtrack(UInt_t index, const Double_t xx[5],
@@ -132,7 +121,37 @@ AliTPCtrack::AliTPCtrack(const AliTPCtrack& t) : AliKalmanTrack(t) {
   Int_t n=GetNumberOfClusters();
   for (Int_t i=0; i<n; i++) fIndex[i]=t.fIndex[i];
 }
+//_____________________________________________________________________________
 
+void  AliTPCtrack::GetBarrelTrack(AliBarrelTrack *track) {
+  //
+  // Create a Barrel Track out of this track
+  // Current track is propagated to the reference plane
+  // by the tracker
+  //
+  // [SR, 01.04.2003]
+  
+  if (!track) return;
+  Double_t xr, vec[5], cov[15];
+
+  track->SetLabel(GetLabel());
+  track->SetX(fX, fAlpha);
+  track->SetNClusters(GetNumberOfClusters(), GetChi2());
+  track->SetTime(fIntegratedTime, fIntegratedLength);
+
+  track->SetMass(fMass);
+  track->SetdEdX(fdEdx);
+
+  track->SetNWrongClusters(fNWrong);
+  track->SetNRotate(fNRotation);
+
+  GetExternalParameters(xr, vec);
+  track->SetStateVector(vec);
+  
+  GetExternalCovariance(cov);
+  track->SetCovarianceMatrix(cov);
+
+}
 //_____________________________________________________________________________
 Int_t AliTPCtrack::Compare(const TObject *o) const {
   //-----------------------------------------------------------------
@@ -195,11 +214,17 @@ Int_t AliTPCtrack::PropagateTo(Double_t xk,Double_t x0,Double_t rho) {
   //-----------------------------------------------------------------
   // This function propagates a track to a reference plane x=xk.
   //-----------------------------------------------------------------
-  if (TMath::Abs(fP4*xk - fP2) >= 0.99999) {
-    Int_t n=GetNumberOfClusters();
-    if (n>4) cerr<<n<<" AliTPCtrack warning: Propagation failed !\n";
+  if (TMath::Abs(fP4*xk - fP2) >= 0.9) {
+    //    Int_t n=GetNumberOfClusters();
+    //if (n>4) cerr<<n<<" AliTPCtrack warning: Propagation failed !\n";
     return 0;
   }
+  
+  // old position for time [SR, GSI 17.02.2003]
+  Double_t oldX = fX;
+  Double_t oldY = fP0;
+  Double_t oldZ = fP1;
+  //
 
   Double_t x1=fX, x2=x1+(xk-x1), dx=x2-x1, y1=fP0, z1=fP1;
   Double_t c1=fP4*x1 - fP2, r1=sqrt(1.- c1*c1);
@@ -264,6 +289,13 @@ Int_t AliTPCtrack::PropagateTo(Double_t xk,Double_t x0,Double_t rho) {
   fP4*=(1.- sqrt(p2+GetMass()*GetMass())/p2*dE);
   fP2+=fX*(fP4-cc);
 
+  // Integrated Time [SR, GSI, 17.02.2003]
+  if (IsStartedTimeIntegral()) {
+    Double_t l2 = (fX-oldX)*(fX-oldX)+(fP0-oldY)*(fP0-oldY)+(fP1-oldZ)*(fP1-oldZ);
+    AddTimeStep(TMath::Sqrt(l2));
+  }
+  //
+
   return 1;
 }
 
@@ -285,6 +317,14 @@ Int_t AliTPCtrack::Update(const AliCluster *c, Double_t chisq, UInt_t index) {
   //-----------------------------------------------------------------
   // This function associates a cluster with this track.
   //-----------------------------------------------------------------
+
+  // update the number of wrong SR[20.03.2003]
+  Int_t absLabel = TMath::Abs(GetLabel());
+  if ( (c->GetLabel(0) != absLabel) && 
+       (c->GetLabel(0) != absLabel) &&
+       (c->GetLabel(0) != absLabel)) fNWrong++;
+  //
+
   Double_t r00=c->GetSigmaY2(), r01=0., r11=c->GetSigmaZ2();
   r00+=fC00; r01+=fC10; r11+=fC11;
   Double_t det=r00*r11 - r01*r01;
@@ -298,9 +338,9 @@ Int_t AliTPCtrack::Update(const AliCluster *c, Double_t chisq, UInt_t index) {
 
   Double_t dy=c->GetY() - fP0, dz=c->GetZ() - fP1;
   Double_t cur=fP4 + k40*dy + k41*dz, eta=fP2 + k20*dy + k21*dz;
-  if (TMath::Abs(cur*fX-eta) >= 0.99999) {
-    Int_t n=GetNumberOfClusters();
-    if (n>4) cerr<<n<<" AliTPCtrack warning: Filtering failed !\n";
+  if (TMath::Abs(cur*fX-eta) >= 0.9) {
+    //    Int_t n=GetNumberOfClusters();
+    //if (n>4) cerr<<n<<" AliTPCtrack warning: Filtering failed !\n";
     return 0;
   }
 
@@ -343,6 +383,9 @@ Int_t AliTPCtrack::Rotate(Double_t alpha)
   //-----------------------------------------------------------------
   // This function rotates this track.
   //-----------------------------------------------------------------
+
+  if (alpha != 0) fNRotation++;  // [SR, 01.04.2003]
+
   fAlpha += alpha;
   if (fAlpha<-TMath::Pi()) fAlpha += 2*TMath::Pi();
   if (fAlpha>=TMath::Pi()) fAlpha -= 2*TMath::Pi();
@@ -414,3 +457,16 @@ void AliTPCtrack::ResetCovariance() {
   fC40=0.;  fC41=0.;  fC42=0.;  fC43=0.;  fC44*=10.;
 
 }
+
+////////////////////////////////////////////////////////////////////////
+Double_t AliTPCtrack::Phi() const {
+//
+//
+//
+  Double_t phi =  TMath::ASin(GetSnp()) + fAlpha;
+  if (phi<0) phi+=2*TMath::Pi();
+  if (phi>=2*TMath::Pi()) phi-=2*TMath::Pi();
+  return phi;
+}
+////////////////////////////////////////////////////////////////////////
+

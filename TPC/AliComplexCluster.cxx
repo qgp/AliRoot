@@ -13,13 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
-$Log$
-Revision 1.1  2000/10/05 16:17:27  kowal2
-New class replacing AliCluster
-
-
-*/
+/* $Id$ */
 
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
@@ -58,4 +52,10 @@ Bool_t AliComplexCluster::IsSortable() const
 }
 
 ClassImp(AliDigitCluster)
-ClassImp(AliDifCluster)
+ClassImp(AliTPCExactPoint)
+ClassImp(AliTPCClusterPoint)
+ClassImp(AliTPCTrackerPoint)
+ClassImp(AliTPCTrackPoint)
+ClassImp(AliTPCTrackPointRef)
+
+
