@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.61  2002/07/30 09:52:38  morsch
+Call SetGammaPhiRange() and SetGammaEtaRange() in the constructor.
+
 Revision 1.60  2002/07/19 14:49:03  morsch
 Typo corrected.
 
@@ -209,6 +212,8 @@ AliGenPythia::AliGenPythia()
   SetEventListRange();
   SetJetPhiRange();
   SetJetEtaRange();
+  SetGammaPhiRange();
+  SetGammaEtaRange();
 }
 
 AliGenPythia::AliGenPythia(Int_t npart)
@@ -239,6 +244,8 @@ AliGenPythia::AliGenPythia(Int_t npart)
     SetEventListRange();
     SetJetPhiRange();
     SetJetEtaRange();
+    SetGammaPhiRange();
+    SetGammaEtaRange();
     // Options determining what to keep in the stack (Heavy flavour generation)
     fStackFillOpt = kFlavorSelection; // Keep particle with selected flavor
     fFeedDownOpt = kTRUE;             // allow feed down from higher family
@@ -419,7 +426,8 @@ void AliGenPythia::Generate()
 	Int_t nc = 0;        // Total n. of selected particles
 	Int_t nParents = 0;  // Selected parents
 	Int_t nTkbles = 0;   // Trackable particles
-	if (fProcess != kPyMb && fProcess != kPyJets && fProcess != kPyDirectGamma &&
+	if (fProcess != kPyMb && fProcess != kPyJets && 
+	    fProcess != kPyDirectGamma &&
 	    fProcess != kPyMbNonDiffr) {
 	    
 	    for (i = 0; i<np; i++) {
@@ -748,8 +756,6 @@ Bool_t AliGenPythia::CheckTrigger(TParticle* jet1, TParticle* jet2) const
 	    }
 	}
     }
-    
-    
     return triggered;
 }
 	  

@@ -15,6 +15,12 @@
 
 /*
 $Log$
+Revision 1.11  2002/07/30 09:09:59  morsch
+Correction in initialization.
+
+Revision 1.10  2002/02/08 16:50:50  morsch
+Add name and title in constructor.
+
 Revision 1.9  2001/07/27 17:09:36  morsch
 Use local SetTrack, KeepTrack and SetHighWaterMark methods
 to delegate either to local stack or to stack owned by AliRun.
@@ -122,7 +128,7 @@ void AliGenScan::Generate()
   Float_t dx,dy,dz;
   
   //
-  if (fNy > 0) {
+  if (fNx > 0) {
       dx=(fXCmax-fXCmin)/fNx;
   } else {
       dx=1e10;
