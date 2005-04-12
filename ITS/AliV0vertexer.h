@@ -24,6 +24,7 @@ public:
   void SetVertex(Double_t *vtx) { fX=vtx[0]; fY=vtx[1]; fZ=vtx[2]; }
 
   Int_t Tracks2V0vertices(AliESD *event);
+  Int_t Tracks2V0vertices(AliESD *eventTr, AliESD *eventV0);
 
   Int_t Tracks2V0vertices(TTree *in, TTree *out);
   Double_t PropagateToDCA(AliITStrackV2 *nt, AliITStrackV2 *pt) const;

@@ -111,7 +111,7 @@ Int_t AliV0vertexer::Tracks2V0vertices(AliESD *event) {
 
         //if (cost < (5*fCPAmax-0.9-TMath::Sqrt(r2)*(fCPAmax-1))/4.1) continue;
          if (cost < fCPAmax) continue;
-
+	 vertex.SetDcaDaughters(dca);
          //vertex.ChangeMassHypothesis(); //default is Lambda0 
 
          event->AddV0(&vertex);
@@ -215,7 +215,7 @@ Int_t AliV0vertexer::Tracks2V0vertices(TTree *tTree, TTree *vTree) {
 
         //if (cost < (5*fCPAmax-0.9-TMath::Sqrt(r2)*(fCPAmax-1))/4.1) continue;
          if (cost < fCPAmax) continue;
-
+	 vertex.SetDcaDaughters(dca);
          //vertex.ChangeMassHypothesis(); //default is Lambda0 
 
          ioVertex=&vertex; vTree->Fill();
@@ -242,6 +242,119 @@ AliV0vertexer::PropagateToDCA(AliITStrackV2 *n, AliITStrackV2 *p) const {
 }
 
 
+//______________________________________________________________________
+Int_t AliV0vertexer::Tracks2V0vertices(AliESD *eventTr, AliESD *eventV0) {
+  //
+  // Reconstructs V0 vertices with some improvements
+  //
+  // gaudichet@to.infn.it
+
+  Int_t nentr = eventTr->GetNumberOfTracks();
+  TObjArray negtrks(nentr/2);
+  TObjArray postrks(nentr/2);
+  
+  //====================================
+  // record tracks
+  //====================================
+  Int_t nneg = 0, npos = 0;
+  Int_t i;
+  
+  for (i=0; i<nentr; i++) {
+
+    AliESDtrack *esd = eventTr->GetTrack(i);
+    AliITStrackV2 *iotrack = 0;
+    try {
+      iotrack = new AliITStrackV2(*esd);
+    }
+    catch (...) { continue; };
+
+    UInt_t status = esd->GetStatus();
+    if ((status&AliESDtrack::kITSrefit)==0)   //correction for the beam pipe
+      if (!iotrack->PropagateTo(3.,0.0023,65.19)) {
+	delete iotrack;
+	continue;
+      }
+
+    if (!iotrack->PropagateTo(2.5,0.,0.)) {
+      delete iotrack;
+      continue;
+    }
+
+    iotrack->PropagateTo(2.5,0.,0.);
+
+    Double_t impactParam = TMath::Abs(iotrack->GetD(fX,fY));
+
+    iotrack->SetLabel(i);  // now it is the index in array of ESD tracks
+    if (iotrack->Get1Pt() < 0.) {
+      if (impactParam<fDNmin) {
+	delete iotrack;
+	continue;
+      }
+      nneg++;
+      negtrks.AddLast(iotrack);
+    }
+    else {
+      if (impactParam<fDPmin) {
+	delete iotrack;
+	continue;
+      }
+      npos++; 
+      postrks.AddLast(iotrack);
+    }
+  };
+
+
+  //====================================
+  // v0 reco
+  //====================================
+  Double_t dca, cost, decayLen, pTot;
+  Double_t x,y,z, px,py,pz, p2, r2; 
+  Int_t  nTotalV0 = 0, nSelectV0 = 0;
+  for (i = 0; i < nneg; i++) {
+
+    AliITStrackV2 *ntrk = (AliITStrackV2 *)negtrks.UncheckedAt(i);
+
+      for (Int_t k=0; k<npos; k++) {
+
+	//if (ranGen.Rndm()>backgroundFilter) continue;
+	 nTotalV0++;
+
+         AliITStrackV2 *ptrk = (AliITStrackV2 *)postrks.UncheckedAt(k);
+         AliITStrackV2 nt(*ntrk), pt(*ptrk);
+
+         dca = nt.PropagateToDCA(&pt);
+         if (dca > fDCAmax) continue;
+
+	 AliV0vertex vertex(nt,pt);
+         //if (vertex.GetChi2() > fChi2max) continue;
+
+         vertex.GetXYZ(x,y,z); 
+         r2 = x*x + y*y; 
+	 if (r2 > fRmax*fRmax) continue;
+         if (r2 < fRmin*fRmin) continue;
+
+         vertex.GetPxPyPz(px,py,pz);
+         p2 = px*px+py*py+pz*pz;
+	 pTot = TMath::Sqrt(p2);
+	 decayLen = TMath::Sqrt((x-fX)*(x-fX) + (y-fY)*(y-fY) + (z-fZ)*(z-fZ));
+	 //if (decayLen<fRmin) continue;
+	 cost = ((x-fX)*px + (y-fY)*py + (z-fZ)*pz)/(pTot*decayLen);
+         if (cost < fCPAmax) continue;
+	 vertex.SetDcaDaughters(dca);
+
+         eventV0->AddV0(&vertex);
+         nSelectV0++;
+      }
+   }
+
+   Info("Tracks2V0vertices","Number of reconstructed V0 vertices:%i over %i",
+	nSelectV0,nTotalV0);
+
+   negtrks.Delete();
+   postrks.Delete();
+
+   return kTRUE;
+}
 
 
 
