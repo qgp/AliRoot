@@ -100,8 +100,11 @@ public:
   void  SetFirstPHOSParticle(Int_t index) { fFirstPHOSParticle = index ; } 
   Int_t GetNumberOfEMCALParticles() const {return fEMCALParticles;}
   void  SetNumberOfEMCALParticles(Int_t part) { fEMCALParticles = part ; }
-  void  SetFirstEMCALParticle(Int_t index) { fFirstEMCALParticle = index ; } 
-
+  void  SetFirstEMCALParticle(Int_t index) { fFirstEMCALParticle = index ; }
+ 
+  void  ResetV0s() { fV0s.Clear(); }
+  void  ResetCascades() { fCascades.Clear(); }
+  
   void  Print(Option_t *option="") const;
    
 protected:
