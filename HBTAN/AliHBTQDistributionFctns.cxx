@@ -142,6 +142,17 @@ AliHBTRDistribution::AliHBTRDistribution(Int_t nXbins, Double_t maxXval, Double_
  Rename("RDistribution","R (distance between creation points) distribution ");
 }
 
+/******************************************************************/
+/******************************************************************/
+
+ClassImp(AliHBTTimeDiffDistribution)
+
+AliHBTTimeDiffDistribution::AliHBTTimeDiffDistribution(Int_t nXbins, Double_t maxXval, Double_t minXval):
+  AliHBTOnePairFctn1D(nXbins,maxXval,minXval)
+{
+//ctor
+  Rename("TimeDiffDistribution","TimeDiff distribution");
+}
 
 /******************************************************************/
 /******************************************************************/

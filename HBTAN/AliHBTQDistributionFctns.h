@@ -207,5 +207,27 @@ class AliHBTRDistribution: public AliHBTOnePairFctn1D
   private:
    ClassDef(AliHBTRDistribution,1)
 };
+
+/***********************************************************************/
+/***********************************************************************/
+
+class AliHBTTimeDiffDistribution: public AliHBTOnePairFctn1D
+{
+ public:
+    AliHBTTimeDiffDistribution(Int_t nXbins = 200, Double_t maxXval = 10., Double_t minXval = -10.);
+    virtual ~AliHBTTimeDiffDistribution(){}
+    TH1* GetResult(){return this->GetNumerator();}
+  protected:
+   Double_t GetValue(AliHBTPair* partpair) const
+   {
+//      Info("TimeDiff of first particle","%lf",partpair->Particle1()->T());
+      return 1e13*(partpair->Particle1()->T()-partpair->Particle2()->T());
+    }
+
+  private:
+   ClassDef(AliHBTTimeDiffDistribution,1)
+};
+
+
 #endif
 

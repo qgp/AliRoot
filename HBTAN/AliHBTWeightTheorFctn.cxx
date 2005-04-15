@@ -26,6 +26,36 @@
 /*************************************************************/
 /*************************************************************/
 
+
+AliHBTWeightTheorTwoKStarFctn::AliHBTWeightTheorTwoKStarFctn(Int_t nbins, Double_t maxXval, Double_t minXval):
+  AliHBTOnePairFctn1D(nbins,maxXval,minXval)
+{
+  //ctor
+ fWriteNumAndDen = kTRUE;//change default behaviour
+ Rename("wkstartheorcf","2K* Weight Theoretical Correlation Function");
+}
+/**************************************************************/
+void  AliHBTWeightTheorTwoKStarFctn::ProcessSameEventParticles(AliHBTPair* partpair)
+{
+  //Processes Particles and tracks Same different event
+  partpair  = CheckPair(partpair);
+  if (partpair == 0x0) return;
+  Double_t weight = partpair->GetWeight();
+  fNumerator->Fill(2.*partpair->GetKStar(),weight);
+} 
+/**************************************************************/
+
+TH1* AliHBTWeightTheorTwoKStarFctn::GetResult() 
+{
+ //returns the scaled ratio
+ delete fRatio;
+ fRatio = GetRatio(Scale());
+ return fRatio;
+}                    
+
+/*************************************************************/
+
+
 ClassImp(AliHBTWeightTheorQInvFctn)  
 /*************************************************************/
 

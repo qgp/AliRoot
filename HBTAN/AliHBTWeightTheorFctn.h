@@ -21,6 +21,26 @@
 
 class AliHBTWeights;
 
+/*************************************************************/
+class AliHBTWeightTheorTwoKStarFctn: public AliHBTOnePairFctn1D, public AliHBTCorrelFunction
+{
+  public:
+    AliHBTWeightTheorTwoKStarFctn(Int_t nbins = 100, Double_t maxXval = 0.15, Double_t minXval = 0.0);
+    virtual  ~AliHBTWeightTheorTwoKStarFctn(){}
+
+    TH1*   GetResult(); 
+    void   ProcessSameEventParticles(AliHBTPair* partpair);
+
+  protected:
+    Double_t GetValue(AliHBTPair* partpair) const
+      { return 2.*partpair->GetKStar();} 
+
+    ClassDef(AliHBTWeightTheorTwoKStarFctn,2)
+};
+
+/*************************************************************/
+
+
 class AliHBTWeightTheorQInvFctn: public AliHBTOnePairFctn1D, public AliHBTCorrelFunction
 {
   public:

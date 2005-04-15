@@ -103,6 +103,7 @@
 #pragma link C++ class AliHBTPtDiffDistributionVsQInvFctn+;
 #pragma link C++ class AliHBTRStarDistribution+;
 #pragma link C++ class AliHBTRDistribution+;
+#pragma link C++ class AliHBTTimeDiffDistribution+;
 
 #pragma link C++ class AliHBTMonThetaDistributionFctn+;
 #pragma link C++ class AliHBTMonPhiDistributionFctn+;
@@ -173,6 +174,7 @@
 
 
 #pragma link C++ class AliHBTWeightTheorQInvFctn+;
+#pragma link C++ class AliHBTWeightTheorTwoKStarFctn+;
 #pragma link C++ class AliHBTWeightTheorQOutFctn+;
 #pragma link C++ class AliHBTWeightTheorQSideFctn+;
 #pragma link C++ class AliHBTWeightTheorQLongFctn+;
