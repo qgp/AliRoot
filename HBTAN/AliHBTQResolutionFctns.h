@@ -18,7 +18,8 @@
 ////////////////////////////////////////////////////////////////////
 
 
-class AliHBTKtResolVsQInvFctn;  //Kt Res   Vs   QInvLCMS 
+
+class AliHBTKStarResolVsKStarFctn;  //Kt Res   Vs   QInvLCMS 
 
 class AliHBTQOutResolVsQInvFctn;  //QOutLCMS  Res   Vs   QInvLCMS 
 class AliHBTQSideResolVsQInvFctn; //QSideLCMS Res   Vs   QInvLCMS 
@@ -45,6 +46,30 @@ class AliHBTQLongResolVsQLongFctn;//QLongLCMS Res   Vs   QLong
  
 #include "AliHBTFunction.h"
 /***********************************************************************/
+/***********************************************************************/
+
+
+/***********************************************************************/
+/***********************************************************************/
+
+class AliHBTKStarResolVsKStarFctn: public AliHBTTwoPairFctn2D
+ {
+  public: 
+   AliHBTKStarResolVsKStarFctn(Int_t nXbins = 200, Double_t maxXval = 0.2, Double_t minXval = 0.0, 
+                           Int_t nYbins = 500, Double_t maxYval = .15, Double_t minYval =-0.15);
+   
+   virtual ~AliHBTKStarResolVsKStarFctn(){}
+   
+   TH1* GetResult(){return this->fNumerator;}  
+   void GetValues(AliHBTPair* trackpair, AliHBTPair* partpair, Double_t& x, Double_t& y) const;
+   ClassDef(AliHBTKStarResolVsKStarFctn,1)
+ };
+
+
+/***********************************************************************/
+/***********************************************************************/
+
+
 /***********************************************************************/
 class AliHBTKtResolVsQInvFctn: public AliHBTTwoPairFctn2D
  {

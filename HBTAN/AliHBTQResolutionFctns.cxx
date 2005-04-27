@@ -18,6 +18,27 @@
 ////////////////////////////////////////////////////////////////////
 
 
+ClassImp( AliHBTKStarResolVsKStarFctn )
+AliHBTKStarResolVsKStarFctn::
+AliHBTKStarResolVsKStarFctn(Int_t nXbins, Double_t maxXval, Double_t minXval, 
+                        Int_t nYbins, Double_t maxYval, Double_t minYval):
+ AliHBTTwoPairFctn2D(nXbins,maxXval,minXval,nYbins,maxYval,minYval)
+{
+//ctor
+ Rename("KStarResolVsKStar","K* Resolution vs. K*");
+}
+/******************************************************************/
+
+void AliHBTKStarResolVsKStarFctn::GetValues(AliHBTPair* trackpair, AliHBTPair* partpair, Double_t& x, Double_t& y) const
+{
+//returns values of the functiion  
+  y = 2.0*(partpair->GetKStar() - trackpair->GetKStar());
+  x = 2.0*(partpair->GetKStar());
+}
+/******************************************************************/
+/******************************************************************/
+/******************************************************************/
+
 
 /******************************************************************/
 /******************************************************************/

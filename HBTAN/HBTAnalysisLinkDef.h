@@ -78,6 +78,7 @@
 
 #pragma link C++ class AliHBTQInvResolVsKtFctn+;
 #pragma link C++ class AliHBTTwoKStarResolVsKtFctn+;
+#pragma link C++ class AliHBTKStarResolVsKStarFctn+;
 #pragma link C++ class AliHBTQOutResolVsKtFctn+;
 #pragma link C++ class AliHBTQSideResolVsKtFctn+;
 #pragma link C++ class AliHBTQLongResolVsKtFctn+;
