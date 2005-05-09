@@ -160,7 +160,7 @@ void AliPHOSDigitizer::Digitize(Int_t event)
   // This design avoids scanning over the list of digits to add 
   // contribution to new SDigits only.
 
-  AliPHOSGetter * gime = AliPHOSGetter::Instance(GetTitle(), fEventFolderName) ; 
+  AliPHOSGetter * gime = AliPHOSGetter::Instance(GetTitle()) ; 
   Int_t ReadEvent = event ; 
   if (fManager) 
     ReadEvent = dynamic_cast<AliStream*>(fManager->GetInputStream(0))->GetCurrentEventNumber() ; 
@@ -732,13 +732,13 @@ void AliPHOSDigitizer::WriteDigits()
   //      and branch "AliPHOSDigitizer", with the same title to keep all the parameters
   //      and names of files, from which digits are made.
 
-  AliPHOSGetter * gime = AliPHOSGetter::Instance(GetTitle(), fEventFolderName) ; 
+  AliPHOSGetter * gime = AliPHOSGetter::Instance(GetTitle()) ; 
   const TClonesArray * digits = gime->Digits() ; 
   TTree * treeD = gime->TreeD();
 
   // -- create Digits branch
   Int_t bufferSize = 32000 ;    
-  TBranch * digitsBranch = treeD->Branch("PHOS",&digits,bufferSize);
+  TBranch * digitsBranch = treeD->Branch("PHOS","TClonesArray",&digits,bufferSize);
   digitsBranch->SetTitle(fEventFolderName);
   digitsBranch->Fill() ;
   
