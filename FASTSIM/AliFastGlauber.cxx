@@ -972,9 +972,22 @@ Double_t AliFastGlauber::HardCrossSection(Double_t b1, Double_t b2) const
 Double_t AliFastGlauber::FractionOfHardCrossSection(Double_t b1, Double_t b2) const
 {
   //
-  // Return raction of hard cross-section integrated from b1 to b2 
+  // Return fraction of hard cross-section integrated from b1 to b2 
   //
   return fgWSbinary->Integral(b1, b2)/fgWSbinary->Integral(0., 100.);
+}
+
+Double_t AliFastGlauber::NHard(Double_t b1, Double_t b2) const
+{
+  //
+  //  Number of binary hard collisions 
+  //  as a function of b (nucl/ex/0302016 eq. 19)
+  //
+  const Double_t kshard=HardCrossSection(b1,b2);
+  const Double_t ksgeo=CrossSection(b1,b2); 
+  if(ksgeo>0)
+    return kshard/ksgeo;
+  else return -1; 
 }
 
 Double_t AliFastGlauber::Binaries(Double_t b) const
@@ -1020,6 +1033,20 @@ Double_t AliFastGlauber::GetNumberOfCollisions(Double_t  b) const
   //
   if(b==0) b=1e-4;
   return (fgWStaa->Eval(b)*fSigmaNN);
+}
+
+Double_t AliFastGlauber::GetNumberOfCollisionsPerEvent(Double_t  b) const
+{
+  //
+  // Return the number of collisions per event (at least one collision)
+  // for impact parameter b
+  //
+    Double_t n = GetNumberOfCollisions(b);
+    if (n > 0.) {
+	return (n / (1. - TMath::Exp(- n)));
+    } else {
+	return (0.);
+    }
 }
 
 void AliFastGlauber::SimulateTrigger(Int_t n)
@@ -1381,7 +1408,7 @@ void AliFastGlauber::PlotBDistr(Int_t n)
   return;
 }
 
-void AliFastGlauber::PlotLengthDistr(Int_t n,Bool_t save,Char_t *fname)
+void AliFastGlauber::PlotLengthDistr(Int_t n,Bool_t save,const char *fname)
 {
   //
   // Plot length distribution
@@ -1408,7 +1435,7 @@ void AliFastGlauber::PlotLengthDistr(Int_t n,Bool_t save,Char_t *fname)
   return;
 }
 
-void AliFastGlauber::PlotLengthB2BDistr(Int_t n,Bool_t save,Char_t *fname)
+void AliFastGlauber::PlotLengthB2BDistr(Int_t n,Bool_t save,const char *fname)
 {
   //
   // Plot lengths back-to-back distributions
@@ -1596,8 +1623,27 @@ void AliFastGlauber::GetI0I1ForPythia(Int_t n,Double_t* phi,
   return;
 }
 
+void AliFastGlauber::GetI0I1ForPythiaAndXY(Int_t n,Double_t* phi,
+				      Double_t* integral0,Double_t* integral1,
+				      Double_t &x,Double_t& y,
+				      Double_t ellCut,Double_t b)
+{
+  //
+  // Returns I0 and I1 pairs for n partons with azimuthal angles phi[n] 
+  // from random b, x0, y0 and return x0,y0
+  //
+  Double_t x0,y0;
+  if(b<0.) GetRandomBHard(b);
+  GetRandomXY(x0,y0);
+  for(Int_t i=0; i<n; i++) 
+    CalculateI0I1(integral0[i],integral1[i],b,x0,y0,phi[i],ellCut);
+  x=x0;
+  y=y0;
+  return;
+}
+
 void AliFastGlauber::PlotI0I1Distr(Int_t n,Double_t ellCut,
-				   Bool_t save,Char_t *fname)
+				   Bool_t save,const char *fname)
 {
   //
   // Plot I0-I1 distribution
@@ -1679,7 +1725,7 @@ void AliFastGlauber::PlotI0I1Distr(Int_t n,Double_t ellCut,
 }
 
 void AliFastGlauber::PlotI0I1B2BDistr(Int_t n,Double_t ellCut,
-				      Bool_t save,Char_t *fname)
+				      Bool_t save,const char *fname)
 {
   //
   // Plot I0-I1 back-to-back distributions
