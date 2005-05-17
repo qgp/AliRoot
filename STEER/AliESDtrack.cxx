@@ -88,20 +88,27 @@ fIalpha(0),
 fIx(0),
 fOalpha(0),
 fOx(0),
+fXalpha(0),
+fXx(0),
 fITSchi2(0),
 fITSncls(0),
 fITSsignal(0),
+fITSLabel(0),
+fITSFakeRatio(0),
 fTPCchi2(0),
 fTPCncls(0),
 fTPCClusterMap(159),//number of padrows
 fTPCsignal(0),
+fTPCLabel(0),
 fTRDchi2(0),
 fTRDncls(0),
 fTRDsignal(0),
+fTRDLabel(0),
 fTOFchi2(0),
 fTOFindex(0),
 fTOFsignal(-1),
 fPHOSsignal(-1),
+fPHOStof(0),
 fEMCALsignal(-1),
 fRICHsignal(-1)
 {
@@ -127,14 +134,11 @@ fRICHsignal(-1)
   fPHOSpos[0]=fPHOSpos[1]=fPHOSpos[2]=0.;
   fEMCALpos[0]=fEMCALpos[1]=fEMCALpos[2]=0.;
   Int_t i;
-  for (i=0; i<5; i++)  { fRp[i]=0.; fCp[i]=0.; fIp[i]=0.; fOp[i]=0.;}
-  for (i=0; i<15; i++) { fRc[i]=0.; fCc[i]=0.; fIc[i]=0.; fOc[i]=0.;   }
-  for (i=0; i<6; i++)  { fITSindex[i]=0; }
+  for (i=0; i<5; i++)  { fRp[i]=0.; fCp[i]=0.; fIp[i]=0.; fOp[i]=0.; fXp[i]=0.;}
+  for (i=0; i<15; i++) { fRc[i]=0.; fCc[i]=0.; fIc[i]=0.; fOc[i]=0.; fXc[i]=0.;}
+  for (i=0; i<6; i++)  { fITSchi2MIP[i]=0; fITSindex[i]=0; }
   for (i=0; i<180; i++){ fTPCindex[i]=0; }
   for (i=0; i<90; i++) { fTRDindex[i]=0; }
-  fTPCLabel = 0;
-  fTRDLabel = 0;
-  fITSLabel = 0;
   
 }
 //_______________________________________________________________________
