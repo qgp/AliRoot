@@ -906,3 +906,26 @@ TH1* AliHBTPairPIDProbVsPtThetaPhiFctn::GetResult()
  return fRatio;
 }
 
+
+
+/******************************************************************/
+/******************************************************************/
+/******************************************************************/
+
+ClassImp(AliHBTMonPIDProbVsPtFctn)
+
+
+AliHBTMonPIDProbVsPtFctn::AliHBTMonPIDProbVsPtFctn(Int_t nbins, Double_t maxXval, Double_t minXval):
+ AliHBTMonOneParticleFctn1D(nbins,maxXval,minXval)
+{
+  //constructor
+  Rename("PidProbVsPt","PidProbVsPt");
+}
+
+void AliHBTMonPIDProbVsPtFctn::Process(AliVAODParticle* track)
+{
+//Fills 
+  Double_t weight = track->GetPidProb();
+  Double_t pt = track->Pt();
+  fResult->Fill(pt,weight);
+}

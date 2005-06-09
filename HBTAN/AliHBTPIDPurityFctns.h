@@ -222,6 +222,20 @@ class AliHBTPairPIDProbVsPtThetaPhiFctn: public AliHBTOnePairFctn3D, public AliH
     ClassDef(AliHBTPairPIDProbVsPtThetaPhiFctn,1)
 };
 
-
+/***********************************************************************/
+class AliHBTMonPIDProbVsPtFctn: public AliHBTMonOneParticleFctn1D
+ {
+  public:
+   AliHBTMonPIDProbVsPtFctn(Int_t nbins = 200, Double_t maxXval = 2.0, Double_t minXval = 0.0);
+   virtual ~AliHBTMonPIDProbVsPtFctn(){}
+   
+   void Process(AliVAODParticle* track);
+   
+   
+  protected:
+   Double_t GetValue(AliVAODParticle * particle) const { return particle->Pt();}
+   
+   ClassDef(AliHBTMonPIDProbVsPtFctn,1)
+ };
 
 #endif
