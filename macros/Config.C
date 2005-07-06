@@ -42,7 +42,7 @@
 #include "START/AliSTARTv1.h"
 #include "EMCAL/AliEMCALv1.h"
 #include "CRT/AliCRTv0.h"
-#include "VZERO/AliVZEROv3.h"
+#include "VZERO/AliVZEROv5.h"
 #endif
 
 Float_t EtaToTheta(Float_t arg);
@@ -420,7 +420,7 @@ void Config()
      if (iVZERO)
     {
         //=================== CRT parameters ============================
-        AliVZERO *VZERO = new AliVZEROv3("VZERO", "normal VZERO");
+        AliVZERO *VZERO = new AliVZEROv5("VZERO", "normal VZERO");
     }
 
      cout << "End of Config.C" << endl;

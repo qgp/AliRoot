@@ -156,7 +156,7 @@ AliHelix::AliHelix(Double_t x[3], Double_t p[3], Double_t charge, Double_t conve
 
 }
 
-void  AliHelix::GetMomentum(Double_t phase, Double_t p[4],Double_t conversion)
+void  AliHelix::GetMomentum(Double_t phase, Double_t p[4],Double_t conversion, Double_t *xr)
 {
   // return  momentum at given phase
   Double_t x[3],g[3],gg[3];
@@ -166,6 +166,9 @@ void  AliHelix::GetMomentum(Double_t phase, Double_t p[4],Double_t conversion)
   p[0] = fHelix[8]*g[0]/(mt*conversion);
   p[1] = fHelix[8]*g[1]/(mt*conversion);
   p[2] = fHelix[8]*g[2]/(mt*conversion);
+  if (xr){
+    xr[0] = x[0]; xr[1] = x[1]; xr[2] = x[2];
+  }
 }
 
 void   AliHelix::GetAngle(Double_t t1, AliHelix &h, Double_t t2, Double_t angle[3])
@@ -267,6 +270,26 @@ Int_t     AliHelix::GetClosestPhases(AliHelix &h, Double_t phase[2][2])
   return 1;
 }
 
+Double_t  AliHelix::GetPointAngle(AliHelix &h, Double_t phase[2], const Float_t * vertex)
+{
+  //
+  // get point angle bettwen two helixes
+  // 
+  Double_t r0[3],p0[4];
+  Double_t r1[3],p1[4];
+  GetMomentum(phase[0],p0,1,r0);
+  h.GetMomentum(phase[1],p1,1,r1);
+  //
+  Double_t r[3] = {(r0[0]+r1[0])*0.5-vertex[0],(r0[1]+r1[1])*0.5-vertex[1],(r0[2]+r1[2])*0.5-vertex[2]};
+  //intersection point - relative to the prim vertex
+  Double_t p[3] = { p0[0]+p1[0], p0[1]+p1[1],p0[2]+p1[2]};
+  // derivation vector
+  Double_t normr = TMath::Sqrt(r[0]*r[0]+r[1]*r[1]+r[2]*r[2]);
+  Double_t normp = TMath::Sqrt(p[0]*p[0]+p[1]*p[1]+p[2]*p[2]);   
+  Double_t pointAngle = (r[0]*p[0]+r[1]*p[1]+r[2]*p[2])/(normr*normp);
+  return pointAngle;
+}
+
 Double_t  AliHelix::GetPhase(Double_t x, Double_t y )
 			
 {
@@ -318,6 +341,11 @@ Int_t    AliHelix::GetRPHIintersections(AliHelix &h, Double_t phase[2][2], Doubl
   //  Double_t * c1 = &fHelix[6];
   //Double_t * c2 = &(h.fHelix[6]);
   //  Double_t  c1[3] = {fHelix[5],fHelix[0],fHelix[8]};
+
+  // PH initiaziation in case of return
+  phase[0][0]=phase[0][1]=phase[1][0]=phase[1][1]=0;
+  ri[0]=ri[1]=1000000;
+
   Double_t  c1[3] = {0,0,fHelix[8]};
   Double_t  c2[3] = {h.fHelix[5]-fHelix[5],h.fHelix[0]-fHelix[0],h.fHelix[8]};
 
@@ -332,9 +360,9 @@ Int_t    AliHelix::GetRPHIintersections(AliHelix &h, Double_t phase[2][2], Doubl
     x0[0] = (d+c1[2]-c2[2])*c2[0]/(2*d)+ fHelix[5];
     y0[0] = (d+c1[2]-c2[2])*c2[1]/(2*d)+ fHelix[0];
     //    return 0;
-    phase[0][0] = GetPhase(x0[0],y0[0]);
-    phase[0][1] = h.GetPhase(x0[0],y0[0]);
-    ri[0] = x0[0]*x0[0]+y0[0]*y0[0];
+    phase[1][0] = phase[0][0] = GetPhase(x0[0],y0[0]);
+    phase[1][1] = phase[0][1] = h.GetPhase(x0[0],y0[0]);
+    ri[1] = ri[0] = x0[0]*x0[0]+y0[0]*y0[0];
     return 1;
   }
   if ( (d+c2[2])<c1[2]){
@@ -342,12 +370,12 @@ Int_t    AliHelix::GetRPHIintersections(AliHelix &h, Double_t phase[2][2], Doubl
     //
     Double_t xx = c2[0]+ c2[0]*c2[2]/d+ fHelix[5];
     Double_t yy = c2[1]+ c2[1]*c2[2]/d+ fHelix[0]; 
-    phase[0][1] = h.GetPhase(xx,yy);
+    phase[1][1] = phase[0][1] = h.GetPhase(xx,yy);
     //
     Double_t xx2 = c2[0]*c1[2]/d+ fHelix[5];
     Double_t yy2 = c2[1]*c1[2]/d+ fHelix[0]; 
-    phase[0][0] = GetPhase(xx2,yy2);
-    ri[0] = xx*xx+yy*yy;
+    phase[1][0] = phase[0][0] = GetPhase(xx2,yy2);
+    ri[1] = ri[0] = xx*xx+yy*yy;
     return 1;
   }
 
@@ -356,12 +384,12 @@ Int_t    AliHelix::GetRPHIintersections(AliHelix &h, Double_t phase[2][2], Doubl
     //
     Double_t xx = -c2[0]*c1[2]/d+ fHelix[5];
     Double_t yy = -c2[1]*c1[2]/d+ fHelix[0]; 
-    phase[0][1] = GetPhase(xx,yy);
+    phase[1][1] = phase[0][1] = GetPhase(xx,yy);
     //
     Double_t xx2 = c2[0]- c2[0]*c2[2]/d+ fHelix[5];
     Double_t yy2 = c2[1]- c2[1]*c2[2]/d+ fHelix[0]; 
-    phase[0][0] = h.GetPhase(xx2,yy2);
-    ri[0] = xx*xx+yy*yy;
+    phase[1][0] = phase[0][0] = h.GetPhase(xx2,yy2);
+    ri[1] = ri[0] = xx*xx+yy*yy;
     return 1;
   }
 

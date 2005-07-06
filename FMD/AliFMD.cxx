@@ -123,7 +123,8 @@ ClassImp(AliFMD)
 
 //____________________________________________________________________
 AliFMD::AliFMD()
-  : fSDigits(0), 
+  : AliDetector(),
+    fSDigits(0), 
     fNsdigits(0),
     fDetailed(kTRUE),
     fSimulator(0)
@@ -813,6 +814,7 @@ AliFMD::Hits2Digits()
   
   /* AliDigitizer* dig =*/ CreateDigitizer(manager);
   manager->Exec("");
+  delete manager;
 }
 
 //____________________________________________________________________
@@ -824,6 +826,7 @@ AliFMD::Hits2SDigits()
   // 
   AliFMDSDigitizer* digitizer = new AliFMDSDigitizer("galice.root");
   digitizer->Exec("");
+  delete digitizer;
 }
 
   
