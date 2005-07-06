@@ -35,13 +35,14 @@ class AliTRD : public AliDetector {
 
           AliTRD    &operator=(const AliTRD &trd);
 
+  virtual void       AddHit(Int_t, Int_t*, Float_t*) { }; 
   virtual void       AddHit(Int_t track, Int_t det, Float_t *hits, Int_t q, Bool_t inDrift); 
   virtual void       BuildGeometry();
-  virtual void       Copy(TObject &trd);
+  virtual void       Copy(TObject &trd) const;
   virtual void       CreateGeometry();
   virtual void       CreateMaterials();
   virtual void       DrawModule() const;
-  Int_t              DistancetoPrimitive(Int_t px, Int_t py) const;
+  virtual Int_t      DistancetoPrimitive(Int_t px, Int_t py);
   virtual void       LoadPoints(Int_t track);    
   virtual void       Init();
   virtual Int_t      IsVersion() const = 0;
@@ -56,7 +57,6 @@ class AliTRD : public AliDetector {
   virtual void       SelectStepManager(Int_t t) = 0;
   virtual void       SetStepSize(Double_t s)    = 0;
 
-  virtual void       SetGasMix(Int_t imix = 0);
   virtual void       SetHits()             {};
   virtual void       SetPHOShole();
   virtual void       SetRICHhole();
@@ -64,6 +64,8 @@ class AliTRD : public AliDetector {
   virtual void       SetDisplayType(Int_t type = 0) { fDisplayType = type;  };
 
   AliTRDgeometry    *GetGeometry() const            { return fGeometry; };
+
+  virtual void       SetGasMix(Int_t )     {};
 
   virtual void       SetSensChamber(Int_t ichamber)              = 0;
   virtual void       SetSensPlane(Int_t iplane)                  = 0;
@@ -86,8 +88,6 @@ class AliTRD : public AliDetector {
 
  protected:
 
-  Int_t                fGasMix;             //  Gas mixture. 0: Xe/Isobutane 1: Xe/CO2
-
   AliTRDgeometry      *fGeometry;           //  The TRD geometry
 
   Float_t              fGasDensity;         //  The density of the drift gas
@@ -96,7 +96,7 @@ class AliTRD : public AliDetector {
   Int_t                fDrawTR;             //  Switches marking the TR photons in the display
   Int_t                fDisplayType;        //  Display type (0: normal, 1: detailed) 
 
-  ClassDef(AliTRD,7)                        //  Transition Radiation Detector base class
+  ClassDef(AliTRD,8)                        //  Transition Radiation Detector base class
 
 };
 
