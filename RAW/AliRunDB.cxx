@@ -40,7 +40,7 @@ ClassImp(AliRunDB)
 
 
 //______________________________________________________________________________
-AliRunDB::AliRunDB(const char* localFS, Bool_t rdbms, 
+AliRunDB::AliRunDB(const char* localFS, Bool_t rdbms,
 		   const char* alienHost, const char* alienDir) :
   fRunDB(NULL),
   fRDBMS(rdbms),
@@ -57,6 +57,12 @@ AliRunDB::AliRunDB(const char* localFS, Bool_t rdbms,
    // check that fs exists (crude check fails if fs is a file)
    gSystem->MakeDirectory(localFS);
 
+   // Put wide read-write permissions
+   if(gSystem->Chmod(localFS,1023)) {
+     Error("AliRunDB","can't set permissions for run DB directory");
+     return;
+   }
+
    strcpy(hostname, gSystem->HostName());
 
    char *s;
@@ -69,6 +75,12 @@ AliRunDB::AliRunDB(const char* localFS, Bool_t rdbms,
       fRunDB = new TFile(filename, "UPDATE");
    else
       fRunDB = new TFile(filename, "CREATE", Form("ALICE MDC%d Run DB", AliRawDB::kMDC));
+
+   // Put wide read-write permissions
+   if(gSystem->Chmod(filename,438)) {
+     Error("AliRunDB","can't set permissions for run DB file");
+     return;
+   }
 }
 
 //______________________________________________________________________________
@@ -172,6 +184,12 @@ void AliRunDB::UpdateAliEn(AliStats *stats)
 
    TGrid *g = TGrid::Connect(fAlienHost, "");
 
+   //Protection in case root is compiled without AliEn support
+   if(!g) {
+      Error("UpdateAliEn", "ROOT compiled without AliEn support");
+      return;
+   }
+
    TString lfn = fAlienDir;
    TDatime dt;
 
@@ -180,6 +198,7 @@ void AliRunDB::UpdateAliEn(AliStats *stats)
    lfn += dt.GetDate();
 
    // check if directory exists, if not create it
+#if ROOT_VERSION_CODE < ROOT_VERSION(5,0,0)
    Grid_ResultHandle_t res = 0;
    if (!(res = g->OpenDir(lfn))) {
       // directory does not exist, create it
@@ -189,18 +208,24 @@ void AliRunDB::UpdateAliEn(AliStats *stats)
       }
    }
    if (res) g->CloseResult(res);
+#else
+   Error("UpdateAliEn", "needs to be ported to new TGrid");
+#endif
 
    lfn += "/";
    lfn += gSystem->BaseName(stats->GetFileName());
 
+#if ROOT_VERSION_CODE < ROOT_VERSION(5,0,0)
    Int_t result = g->AddFile(lfn, stats->GetFileName(),
 			     (int)stats->GetFileSize());
-
    if (result == -1) {
       Error("UpdateAliEn", "error adding file to AliEn catalog");
       printf("AliEn: AddFile(%s, %s, %d)\n", lfn.Data(), stats->GetFileName(),
              (int)stats->GetFileSize());
    }
+#else
+   Error("UpdateAliEn", "needs to be ported to new TGrid");
+#endif
 
    delete g;
 }
