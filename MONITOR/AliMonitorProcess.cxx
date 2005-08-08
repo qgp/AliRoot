@@ -303,6 +303,7 @@ Bool_t AliMonitorProcess::CheckForNewFile()
 {
 // check whether a new file was registered in alien
 
+#if ROOT_VERSION_CODE < ROOT_VERSION(5,0,0)
 #if ROOT_VERSION_CODE <= 199169   // 3.10/01
   TGridResult* result = fGrid->Ls();
 #else
@@ -376,6 +377,9 @@ Bool_t AliMonitorProcess::CheckForNewFile()
   fFileName.ReplaceAll("castor:/", "rfio:/");
 #endif
   delete result;
+#else
+  Error("CheckForNewFile", "needs to be ported to new TGrid");
+#endif
 
   return kTRUE;
 }

@@ -1203,6 +1203,7 @@ void AliRunDB::UpdateAliEn(AliStats *stats)
    lfn += dt.GetDate();
 
    // check if directory exists, if not create it
+#if ROOT_VERSION_CODE < ROOT_VERSION(5,0,0)
    Grid_ResultHandle_t res = 0;
    if (!(res = g->OpenDir(lfn))) {
       // directory does not exist, create it
@@ -1212,10 +1213,14 @@ void AliRunDB::UpdateAliEn(AliStats *stats)
       }
    }
    if (res) g->CloseResult(res);
+#else
+   Error("UpdateAliEn", "needs to be ported to new TGrid");
+#endif
 
    lfn += "/";
    lfn += gSystem->BaseName(stats->GetFileName());
 
+#if ROOT_VERSION_CODE < ROOT_VERSION(5,0,0)
    Int_t result = g->AddFile(lfn, stats->GetFileName(),
 			     (int)stats->GetFileSize());
 
@@ -1224,6 +1229,9 @@ void AliRunDB::UpdateAliEn(AliStats *stats)
       printf("AliEn: AddFile(%s, %s, %d)\n", lfn.Data(), stats->GetFileName(),
              (int)stats->GetFileSize());
    }
+#else
+   Error("UpdateAliEn", "needs to be ported to new TGrid");
+#endif
 
    delete g;
 }
