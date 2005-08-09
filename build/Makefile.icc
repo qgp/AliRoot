@@ -27,7 +27,7 @@ CLIBFOPT      =
 # Common Fortran compilation flags
 FFLAGS = $(CLIBFOPT)  $(CLIBDEFS) $(FOPT)
 
-LD            = icc
+LD            = icpc
 LDFLAGS       = $(OPT) 
 
 SHLD	      = $(LD)
@@ -52,8 +52,9 @@ GLIBS         = $(LIBNOVER)
 #System libraries
 SYSLIBS =
 
-EXEFLAGS+= -L/usr/local/lib -lXt -L/opt/intel_fc_80/lib -lifport -lifcore
-
+EXEFLAGS+= -L/usr/local/lib -lXt \
+		-L$(shell which ifort | sed -e 's|bin/ifort|lib|') \
+		-lifport -lifcore
 
 
 
