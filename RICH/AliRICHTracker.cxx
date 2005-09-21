@@ -95,11 +95,13 @@ void AliRICHTracker::RecWithESD(AliESD *pESD)
       Double_t richPID[AliPID::kSPECIES];
       for (Int_t iPart=0;iPart<AliPID::kSPECIES;iPart++) {
         sigmaPID[iPart] = 0;
+	richPID[iPart] = 0;
         for(Int_t iphot=0;iphot<pRich->Clusters(iChamber)->GetEntries();iphot++) {
           recon.SetPhotonIndex(iphot);
           if(recon.GetPhotonFlag() == 2) {
-            Double_t sigma = AliRICHParam::SigmaSinglePhoton(iPart,pTrack->GetP(),recon.GetTrackTheta(),recon.GetPhiPoint()-recon.GetTrackPhi()).Mag();
-            sigmaPID[iPart] += 1/(sigma*sigma);
+            Double_t sigma2 = AliRICHParam::SigmaSinglePhoton(iPart,pTrack->GetP(),recon.GetTrackTheta(),recon.GetPhiPoint()-recon.GetTrackPhi()).Mag2();
+	    if (sigma2 >0)
+	      sigmaPID[iPart] += 1/sigma2;
           }
         }
 	if (sigmaPID[iPart]>0)
@@ -241,8 +243,8 @@ void AliRICHTracker::CalcProb(Double_t thetaCer,Double_t pmod, Double_t *sigmaPI
   if(totalHeight<1e-5) {for(Int_t iPart=0;iPart<AliPID::kSPECIES;iPart++)richPID[iPart]=1.0/AliPID::kSPECIES;return;}
   for(Int_t iPart=0;iPart<AliPID::kSPECIES;iPart++) richPID[iPart] = height[iPart]/totalHeight;
   Int_t iPartNear = TMath::LocMax(AliPID::kSPECIES,richPID);
-  if(TMath::Abs(thetaCer-thetaTh[iPartNear])/sigmaPID[iPartNear]>3) for(Int_t iPart=0;iPart<AliPID::kSPECIES;iPart++)richPID[iPart]=1.0/AliPID::kSPECIES;
-  //last line is to check if the nearest thetacerenkov to the teorethical one is within 3 sigma, otherwise no response (equal prob to every particle
+  if(TMath::Abs(thetaCer-thetaTh[iPartNear])/sigmaPID[iPartNear]>5) for(Int_t iPart=0;iPart<AliPID::kSPECIES;iPart++)richPID[iPart]=1.0/AliPID::kSPECIES;
+  //last line is to check if the nearest thetacerenkov to the teorethical one is within 5 sigma, otherwise no response (equal prob to every particle
 
 }//CalcProb
 //__________________________________________________________________________________________________
