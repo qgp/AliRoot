@@ -58,20 +58,6 @@
  */
 /** @} */
 
-/** @defgroup trigger MUON_mapping_trigger
- *  @ingroup mapping
- *  Category of classes for slats in mapping
- *  @{
- */
-/** @} */
-
-/** @defgroup management MUON_mapping_management
- *  @ingroup management
- *  Category of classes for management in mapping
- *  @{
- */
-/** @} */
-
 /** @defgroup graphics MUON_mapping_graphics
  *  @ingroup mapping
  *  Category of classes for visualization in mapping

@@ -32,6 +32,7 @@
 #include "AliMUONGeometryEnvelope.h"
 #include "AliMUONGeometryDetElement.h"
 #include "AliMUONGeometryStore.h"
+#include "AliMUONConstants.h"
 #include "AliMUONGeometryBuilder.h"
 #include "AliLog.h"
 
@@ -106,7 +107,7 @@ AliMUONGeometryEnvelopeStore::operator = (const AliMUONGeometryEnvelopeStore& rh
 
 //______________________________________________________________________________
 TGeoHMatrix 
-AliMUONGeometryEnvelopeStore::ConvertDETransform(const TGeoHMatrix& transform) const
+AliMUONGeometryEnvelopeStore::ConvertTransform(const TGeoHMatrix& transform) const
 {
 // Convert transformation into the reference frame
 
@@ -114,7 +115,8 @@ AliMUONGeometryEnvelopeStore::ConvertDETransform(const TGeoHMatrix& transform) c
     return transform;
   else  {
     return AliMUONGeometryBuilder::Multiply( fReferenceFrame.Inverse(),
-  				  	     transform );  
+  				  	     transform,
+    					     fReferenceFrame );  
   }			    
 }
 
@@ -154,7 +156,7 @@ Bool_t AliMUONGeometryEnvelopeStore::AlignEnvelope(
 
   // Apply frame transform
   TGeoHMatrix newTransform 
-    = ConvertDETransform(*(detElement->GetLocalTransformation()));
+    = ConvertTransform(*(detElement->GetLocalTransformation()));
 
   envelope->SetTransform(newTransform);
   

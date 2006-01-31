@@ -9,7 +9,7 @@
    base class for HLT components
  */
 
-#include <cerrno>
+#include <errno.h>
 #include "AliHLTLogging.h"
 #include "AliHLTDataTypes.h"
 #include "AliHLTDefinitions.h"

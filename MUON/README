@@ -23,37 +23,17 @@ reconstruction and macro analysis
 ==========================================================
  How to check that your aliroot is working well
 ==========================================================
-There is a script file AlirootRun_MUONtest.sh which 
+There is a script file AlirootRun_MUONtest.script which 
 allows for simulating, reconstructing and making the
 invariant analysis of the generated Upsilon (1S).
 The used configuration file is Config.C in MUON 
 directory.
-You have to type :
-source $ALICE_ROOT/MUON/AlirootRun_MUONtest.sh 
-The results of this test are saved in test_out/ directory
+There you have to type :
 
-==========================================================
- How to check that your aliroot is working VERY well
-==========================================================
-There is a script file AlirootRun_MUONlongtest.sh which
-allows for simulating, reconstructing and making the
--+invariant analysis of the generated Upsilon (1S).
-This script generates a large number of Upsilon (20k) 
-in order to access differential quantities. 
-The used configuration file is Config.C in MUON
-directory.
-One should really run this script to check if the MUON 
-code can process a large number of events WITHOUT errors,
-in particular before making important commits !!
+source $ALICE_ROOT/MUON/AlirootRun_MUONtest.script
 
-You have to type :
-$ALICE_ROOT/MUON/AlirootRun_MUONtestlong.sh
-The results of this test are saved in testlong_out/ directory
-and will be kept in CVS
-
-(NOTE: the macros performing the calculations/plots MUONefficiency.C 
-and MUONplotEfficiency.C are also able to handle J/Psi if 
-Config.C is modified accordingly )
+If you do not recover a few Upsilons in their mass region 
+in the file MUONmassPlot.root
 
 ==========================================================
  How to run a MUON generation
@@ -115,15 +95,6 @@ G3GUI()
 gAlice->Init("$ALICE_ROOT/MUON/Config.C");
 gGeoManager->GetMasterVolume()->Draw();
 
-
-============================================================
- How to check the overlap with the new Geometrical modeler
- ftp://root.cern.ch/root/doc/chapter16.pdf
- http://agenda.cern.ch/fullAgenda.php?ida=a05212
-============================================================
-gAlice->Init("$ALICE_ROOT/MUON/Config.C");
-gGeoManager->CheckOverlaps();
-gGeoManager->PrintOverlaps();
 
 ============================================================
  How to run MUONdisplay
@@ -226,10 +197,8 @@ MuonRec.SetRunVertexFinder(kFALSE);
 MuonRec.SetRunLocalReconstruction("MUON");
 MuonRec.SetRunTracking("");
 MuonRec.SetFillESD("MUON");
-MuonRec.SetOption("MUON", "VS"); // to use VS cluster finder
-// MuonRec.SetOption("MUON", "VS Original"); // to run VS and original track finder
-// MuonRec.SetOption("MUON", "Combi"); // to run combined cluster / track finder
-MMuonRec.Run();
+MuonRec.SetOption("MUON", "AZ Kalman"); // to use AZ clustering and Kalman filter
+MuonRec.Run();
 .q
 EOF
 

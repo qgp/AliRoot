@@ -8,9 +8,6 @@
 /* History of cvs commits:
  *
  * $Log$
- * Revision 1.56  2005/05/28 14:19:04  schutz
- * Compilation warnings fixed by T.P.
- *
  */
 
 //_________________________________________________________________________
@@ -20,14 +17,14 @@
 //*-- Author: Yves Schutz (SUBATECH), Gustavo Conesa.
 
 // --- ROOT system ---
-#include <TMatrixFfwd.h>
-
 class TVector3 ;
+class TMatrix ;
 class TPrincipal ;
 class TROOT ;
 class TTree ;
 class TCanvas ;
 class TFolder ;
+class TMatrixD ;
 class TFormula;
 // --- Standard library ---
 // --- AliRoot header files ---
@@ -146,7 +143,7 @@ private:
   Double_t   *fPPhoton ;                 //! Principal photon eigenvalues
   Double_t   *fPPi0 ;                    //! Principal pi0 eigenvalues
   Int_t       fRecParticlesInRun ;       //! Total number of recparticles in one run
-  TMatrixF    *fParameters;               //! Matrix of identification Parameters
+  TMatrix    *fParameters;               //! Matrix of identification Parameters
 
   //Initial pid population
   Double_t fInitPID[AliPID::kSPECIESN] ; // Initial population to do bayesian PID

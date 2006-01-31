@@ -18,7 +18,6 @@
 /* $Id$ */
 
 #include <TObject.h>
-#include "AliITSDetTypeSim.h"
 #include "AliITSpList.h"
 
 class AliITSresponse;
@@ -36,7 +35,7 @@ class AliITSsimulation : public TObject {
   public:
     AliITSsimulation(); // Default constructor
     // Standard constructor
-    AliITSsimulation(AliITSDetTypeSim *dettyp);
+    AliITSsimulation(AliITSsegmentation *seg,AliITSresponse *res);
     virtual ~AliITSsimulation(); // destructor
     // copy constructor. See detector specific implementation.
     AliITSsimulation(const AliITSsimulation &source);
@@ -67,14 +66,15 @@ class AliITSsimulation : public TObject {
     // digitizes module using the "fast" detector simulator.
     virtual void CreateFastRecPoints(AliITSmodule *,Int_t,
 				     TRandom *,TClonesArray* /*recp*/) {;}
-   // Return pointer to Response model
-    virtual AliITSresponse* GetResponseModel(Int_t mod = 0){return fDetType->GetResponseModel(mod);}
-   // set pointer to Response model
-    virtual void SetResponseModel(Int_t mod, AliITSresponse *res){fDetType->SetResponseModel(mod,res);}
-    // Return pointer to Segmentation object
-    virtual AliITSsegmentation* GetSegmentationModel(Int_t dt) = 0;
-    // set pointer to Segmentation object
-    virtual void SetSegmentationModel(Int_t dt,AliITSsegmentation *seg) = 0;
+    // Return pointer to Response model
+    virtual AliITSresponse* GetResponseModel(){return fResponse;}
+    // set pointer to Response model
+    virtual void SetResponseModel(AliITSresponse *res){fResponse = res;}
+    // Return pointer to Response model
+    virtual AliITSsegmentation* GetSegmentationModel(){return fSegmentation;}
+    // set pointer to Response model
+    virtual void SetSegmentationModel(AliITSsegmentation *seg){
+                                                        fSegmentation = seg;}
     virtual AliITSpList* GetMap(){return fpList;} // Returns fpList, the map.
     virtual void SetMap(AliITSpList *p){fpList = p;} // Sets fpList, the map.
     virtual void ClearMap(){fpList->ClearMap();} // Clear fpList, map.
@@ -88,16 +88,16 @@ class AliITSsimulation : public TObject {
     void SetNoDebug(){fDebug=0;}
     // Returns the debug flag value
     Bool_t GetDebug(Int_t level=1)const {return fDebug>=level;}
-    void SetDetType(AliITSDetTypeSim* dettyp) {fDetType=dettyp;}
 
  protected:
-    AliITSDetTypeSim    *fDetType;        //! Access resp and segm via this obj
+    AliITSresponse      *fResponse;       //! response
+    AliITSsegmentation  *fSegmentation;   //! segmentation 
     AliITSpList         *fpList;          //!
     Int_t                fModule;         //!
     Int_t                fEvent;          //!
     Int_t                fDebug;          //  debug flag
 
-  ClassDef(AliITSsimulation,4)  // Simulation base class 
+  ClassDef(AliITSsimulation,3)  // Simulation base class 
     
 };
 

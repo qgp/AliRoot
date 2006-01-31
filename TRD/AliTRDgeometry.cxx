@@ -31,8 +31,6 @@
 
 #include "AliRun.h"
 #include "AliTRD.h"
-#include "AliTRDcalibDB.h"
-#include "AliTRDCommonParam.h"
 
 ClassImp(AliTRDgeometry)
 
@@ -138,14 +136,6 @@ ClassImp(AliTRDgeometry)
   const Float_t AliTRDgeometry::fgkFeZpos  =  0.0322;
   const Float_t AliTRDgeometry::fgkCoZpos  =  0.97;
   const Float_t AliTRDgeometry::fgkWaZpos  =  0.99;
-  
-  const Double_t AliTRDgeometry::fgkTime0Base = Rmin() + CraHght() + CdrHght() + CamHght()/2.;
-  const Float_t  AliTRDgeometry::fgkTime0[6]  = { fgkTime0Base + 0 * (Cheight() + Cspace()), 
-                                                  fgkTime0Base + 1 * (Cheight() + Cspace()), 
-                                                  fgkTime0Base + 2 * (Cheight() + Cspace()), 
-                                                  fgkTime0Base + 3 * (Cheight() + Cspace()), 
-                                                  fgkTime0Base + 4 * (Cheight() + Cspace()), 
-                                                  fgkTime0Base + 5 * (Cheight() + Cspace()) };
 
 //_____________________________________________________________________________
 AliTRDgeometry::AliTRDgeometry():AliGeometry()
@@ -155,6 +145,7 @@ AliTRDgeometry::AliTRDgeometry():AliGeometry()
   //
 
   Init();
+
 }
 
 //_____________________________________________________________________________
@@ -163,6 +154,7 @@ AliTRDgeometry::~AliTRDgeometry()
   //
   // AliTRDgeometry destructor
   //
+
 }
 
 //_____________________________________________________________________________
@@ -262,7 +254,8 @@ void AliTRDgeometry::CreateGeometry(Int_t* )
 
 //_____________________________________________________________________________
 Bool_t AliTRDgeometry::Local2Global(Int_t idet, Double_t *local
-                                   , Double_t *global) const
+                                   , Double_t *global
+                                   , AliTRDparameter *par) const
 {
   //
   // Converts local pad-coordinates (row,col,time) into 
@@ -273,38 +266,36 @@ Bool_t AliTRDgeometry::Local2Global(Int_t idet, Double_t *local
   Int_t isect = GetSector(idet);     // Sector info  (0-17)
   Int_t iplan = GetPlane(idet);      // Plane info   (0-5)
 
-  return Local2Global(iplan,icham,isect,local,global);
+  return Local2Global(iplan,icham,isect,local,global,par);
 
 }
  
 //_____________________________________________________________________________
 Bool_t AliTRDgeometry::Local2Global(Int_t iplan, Int_t icham, Int_t isect
-                                  , Double_t *local, Double_t *global) const
+                                  , Double_t *local, Double_t *global
+                                  , AliTRDparameter *par) const
 {
   //
   // Converts local pad-coordinates (row,col,time) into 
   // global ALICE reference frame coordinates (x,y,z)
   //
 
-  AliTRDCommonParam* commonParam = AliTRDCommonParam::Instance();
-  if (!commonParam)
+  if (!par) {
+    Error("Local2Global","No parameter defined\n");
     return kFALSE;
+  }
 
-  AliTRDcalibDB* calibration = AliTRDcalibDB::Instance();
-  if (!calibration)
-    return kFALSE;  
-  
-  AliTRDpadPlane *padPlane = commonParam->GetPadPlane(iplan,icham);
+  AliTRDpadPlane *padPlane = par->GetPadPlane(iplan,icham);
 
   // calculate (x,y,z) position in rotated chamber
   Int_t    row       = ((Int_t) local[0]);
   Int_t    col       = ((Int_t) local[1]);
   Float_t  timeSlice = local[2] + 0.5;
-  Float_t  time0     = GetTime0(iplan);
+  Float_t  time0     = par->GetTime0(iplan);
 
   Double_t  rot[3];
-  rot[0] = time0 - (timeSlice - calibration->GetT0(iplan, icham, isect, col, row)) 
-      * calibration->GetVdrift(iplan, icham, isect, col, row)/calibration->GetSamplingFrequency();
+  rot[0] = time0 - (timeSlice - par->GetTimeBefore()) 
+         * par->GetDriftVelocity()/par->GetSamplingFrequency();
   rot[1] = padPlane->GetColPos(col) - 0.5 * padPlane->GetColSize(col);
   rot[2] = padPlane->GetRowPos(row) - 0.5 * padPlane->GetRowSize(row);
 
@@ -331,7 +322,7 @@ Bool_t AliTRDgeometry::Global2Local(Int_t mode, Double_t *local, Double_t *globa
   //
 
   if (!par) {
-    Error("Global2Local","No parameter defined\n");
+    Error("Local2Global","No parameter defined\n");
     return kFALSE;
   }
   
@@ -342,7 +333,7 @@ Bool_t AliTRDgeometry::Global2Local(Int_t mode, Double_t *local, Double_t *globa
   //
   //  Float_t  row0      = par->GetRow0(iplan,icham,isect);
   //Float_t  col0      = par->GetCol0(iplan);
-  //Float_t  time0     = GetTime0(iplan);
+  //Float_t  time0     = par->GetTime0(iplan);
   //
   // mode 1 to be implemented later
   // calculate (x,y,z) position in time bin pad row pad
@@ -359,7 +350,8 @@ Bool_t AliTRDgeometry::Global2Local(Int_t mode, Double_t *local, Double_t *globa
 }
 
 //_____________________________________________________________________________
-Bool_t AliTRDgeometry::Global2Detector(Double_t global[3], Int_t index[3])
+Bool_t AliTRDgeometry::Global2Detector(Double_t global[3], Int_t index[3]
+                                      , AliTRDparameter *par)
 {
   //  
   // input    = global position
@@ -378,9 +370,9 @@ Bool_t AliTRDgeometry::Global2Detector(Double_t global[3], Int_t index[3])
   //
   Float_t locx = global[0] * fRotA11[index[2]] + global[1] * fRotA12[index[2]];  
   index[0] = 0;
-  Float_t max = locx - GetTime0(0);
+  Float_t max = locx-par->GetTime0(0);
   for (Int_t iplane=1; iplane<fgkNplan;iplane++){
-    Float_t dist = TMath::Abs(locx - GetTime0(iplane));
+    Float_t dist = TMath::Abs(locx-par->GetTime0(iplane));
     if (dist < max){
       index[0] = iplane;
       max = dist;
@@ -432,7 +424,7 @@ Bool_t AliTRDgeometry::RotateBack(Int_t d, Double_t *rot, Double_t *pos) const
 }
 
 //_____________________________________________________________________________
-Int_t AliTRDgeometry::GetDetectorSec(Int_t p, Int_t c)
+Int_t AliTRDgeometry::GetDetectorSec(Int_t p, Int_t c) const
 {
   //
   // Convert plane / chamber into detector number for one single sector
@@ -443,7 +435,7 @@ Int_t AliTRDgeometry::GetDetectorSec(Int_t p, Int_t c)
 }
 
 //_____________________________________________________________________________
-Int_t AliTRDgeometry::GetDetector(Int_t p, Int_t c, Int_t s)
+Int_t AliTRDgeometry::GetDetector(Int_t p, Int_t c, Int_t s) const
 {
   //
   // Convert plane / chamber / sector into detector number

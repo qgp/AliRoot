@@ -17,14 +17,9 @@
 
 //____________________________________________________________________
 //                                                                          
-// Base class for caches of per-strip information.
-// This is used to index a strip. 
-// Data stored depends on derived class. 
-// This class provides some common infra-structure.
-// Derived classes sould define Reset, and operator(). 
+//
 //
 #include "AliFMDMap.h"		// ALIFMDMAP_H
-#include "AliLog.h"
 
 //____________________________________________________________________
 ClassImp(AliFMDMap)
@@ -83,12 +78,12 @@ AliFMDMap::CalcIndex(size_t det, Char_t ring, size_t sec, size_t str) const
   Int_t idx = CheckIndex(det, ring, sec, str);
   if (idx < 0) {
     size_t ringi = (ring == 'I' ||  ring == 'i' ? 0 : 1);
-    AliFatal(Form("CalcIndex", "Index (%d,'%c',%d,%d) out of bounds, "
-		  "in particular the %s index ", 
-		  det, ring, sec, str, 
-		  (det >= fMaxDetectors ? "Detector" : 
-		   (ringi >= fMaxRings ? "Ring" : 
-		    (sec >= fMaxSectors ? "Sector" : "Strip")))));
+    Fatal("CalcIndex", "Index (%d,'%c',%d,%d) out of bounds, "
+	  "in particular the %s index ", 
+	  det, ring, sec, str, 
+	  (det >= fMaxDetectors ? "Detector" : 
+	   (ringi >= fMaxRings ? "Ring" : 
+	    (sec >= fMaxSectors ? "Sector" : "Strip"))));
     return 0;
   }
   return size_t(idx);

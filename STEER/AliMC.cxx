@@ -27,6 +27,7 @@
 #include <TSystem.h>
 #include <TVirtualMC.h>
 #include <TGeoManager.h>
+#include "TGeant3.h"
 
  
 #include "AliLog.h"
@@ -643,9 +644,6 @@ void AliMC::Init()
    // Register MC in configuration 
    AliConfig::Instance()->Add(gMC);
 
-   // Export TGeo geometry
-   if (gGeoManager) gGeoManager->Export("geometry.root");
-
 }
 
 //_______________________________________________________________________
@@ -1103,5 +1101,6 @@ void AliMC::FixParticleDecaytime()
     //
     // Force decay time in transport code
     //
-    gMC->ForceDecayTime(t);
+    TGeant3 * geant = (TGeant3*) gMC;
+    geant->Gcphys()->sumlif = t / p.Beta() / p.Gamma();
 }

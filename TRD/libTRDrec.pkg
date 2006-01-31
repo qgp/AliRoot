@@ -6,6 +6,7 @@ SRCS= AliTRDpixel.cxx \
       AliTRDclusterizer.cxx \
       AliTRDclusterizerV1.cxx \
       AliTRDclusterCorrection.cxx \
+      AliTRDclusterizerMI.cxx \
       AliTRDtrack.cxx \
       AliTRDtracker.cxx \
       AliTRDpid.cxx \
@@ -13,7 +14,6 @@ SRCS= AliTRDpixel.cxx \
       AliTRDPartID.cxx \
       AliTRDpidESD.cxx \
       AliTRDprobdist.cxx \
-      AliTRDRecParam.cxx \
       AliTRDReconstructor.cxx
 
 HDRS= $(SRCS:.cxx=.h)                

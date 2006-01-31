@@ -12,7 +12,6 @@
 //
 //  Singleton class to handle various parameters (not geometry) of the
 //  FMD
-//  Should get ata fromm Conditions DB.
 //
 #ifndef ROOT_TNamed
 # include <TNamed.h>
@@ -50,7 +49,7 @@ public:
 protected:
   AliFMDParameters();
   virtual ~AliFMDParameters() {}
-  static AliFMDParameters* fgInstance; // Static singleton instance
+  static AliFMDParameters* fgInstance;
   
   const Float_t fSiDeDxMip;        // MIP dE/dx in Silicon
   UShort_t      fVA1MipRange;      // # MIPs the pre-amp can do    

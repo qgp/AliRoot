@@ -2,7 +2,7 @@
  * See cxx source for full Copyright notice                               */
 
 // $Id$
-// $MpId: AliMpPlaneType.h,v 1.5 2006/01/11 10:06:32 ivana Exp $
+// $MpId: AliMpPlaneType.h,v 1.4 2005/10/28 15:03:46 ivana Exp $
 
 /// \ingroup basic
 /// \enum AliMpPlaneType
@@ -12,10 +12,6 @@
  
 #ifndef ALI_MP_PLANE_TYPE_H
 #define ALI_MP_PLANE_TYPE_H
-
-#include <TString.h>
-
-#include "AliLog.h"
  
 enum AliMpPlaneType
 {
@@ -24,15 +20,16 @@ enum AliMpPlaneType
 };
 
 inline 
-TString PlaneTypeName(AliMpPlaneType planeType)
+const char* PlaneTypeName(AliMpPlaneType planeType)
 {
   switch ( planeType ) {
-    case kBendingPlane:    return "bp";  break;
-    case kNonBendingPlane: return "nbp"; break;
+    case kBendingPlane:
+      return "BendingPlane";
+      break;
+    case kNonBendingPlane:
+      return "NonBendingPlane";
+      break;
   }
-  
-  // Cannot reach this line
-  AliFatalGeneral("AliMpPlaneType.h", "Unknown plane type"); 
   return "invalidPlane";
 }       
 

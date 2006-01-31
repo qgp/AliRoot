@@ -24,6 +24,7 @@
 #include <sstream>
 
 #include <Riostream.h>
+#include <TObjArray.h>
 #include <TSystem.h>
 
 #include "AliLog.h"
@@ -31,8 +32,8 @@
 #include "AliMUONGeometryTransformer.h"
 #include "AliMUONGeometryModuleTransformer.h"
 #include "AliMUONGeometryDetElement.h"
+#include "AliMUONGeometryDEIndexing.h"
 #include "AliMUONGeometryStore.h"
-#include "AliMUONGeometryBuilder.h"
 
 
 ClassImp(AliMUONGeometryTransformer)
@@ -180,37 +181,26 @@ void AliMUONGeometryTransformer::FillData(
 // ---
 
   // Module Id
-  Int_t moduleId = AliMUONGeometryStore::GetModuleId(detElemId);
+  Int_t moduleId 
+    = AliMUONGeometryDEIndexing::GetModuleId(detElemId);
 
   // Compose path
   TString path = ComposePath(volName, copyNo);
   
   // Build the transformation from the parameters
-  TGeoHMatrix localTransform 
+  TGeoHMatrix transform 
     = GetTransform(x, y, z, a1, a2, a3, a4, a5, a6);
    
+  // Compose TGeoCombiTrans
+  TGeoCombiTrans newCombiTransform(transform);
+    
   // Get detection element store
   AliMUONGeometryStore* detElements = 
     GetModuleTransformer(moduleId)->GetDetElementStore();     
 
   // Add detection element
-  AliMUONGeometryDetElement* detElement
-    = new AliMUONGeometryDetElement(detElemId, path, localTransform);
-  detElements->Add(detElemId, detElement);
-  
-  // Compute global transformation
-  const AliMUONGeometryModuleTransformer* kModuleTransformer
-    = GetModuleTransformer(moduleId);
-  if ( ! kModuleTransformer ) {
-    AliFatal(Form("Module transformation not defined, detElemId %d",
-                  detElemId));
-  }  
-
-  TGeoHMatrix globalTransform 
-    = AliMUONGeometryBuilder::Multiply( 
-                                  *kModuleTransformer->GetTransformation(),
-				  localTransform );
-  detElement->SetGlobalTransformation(globalTransform);
+  detElements->Add(detElemId,
+     new AliMUONGeometryDetElement(detElemId, path, newCombiTransform)); 
 }		   
   
 //______________________________________________________________________________
@@ -560,7 +550,7 @@ AliMUONGeometryTransformer::GetModuleTransformerByDEId(Int_t detElemId,
 /// Return the geometry module specified by index
 
   // Get module index
-  Int_t index = AliMUONGeometryStore::GetModuleId(detElemId);
+  Int_t index = AliMUONGeometryDEIndexing::GetModuleId(detElemId);
 
   return GetModuleTransformer(index, warn);
 }    

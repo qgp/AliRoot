@@ -19,10 +19,7 @@
 //                                                                          
 // Concrete implementation of AliFMDDetector 
 //
-// This implements the geometry for FMD3.
-// This has 2 rings.
-// The support of the FMD3 is a carbon-fibre cone, attached to the ITS
-// support via flanges.  The cone also supports the beam-pipe.
+// This implements the geometry for FMD3
 //
 #include "AliFMD3.h"		// ALIFMD3_H 
 #include "AliLog.h"		// ALILOG_H
@@ -39,7 +36,6 @@ ClassImp(AliFMD3)
 AliFMD3::AliFMD3(AliFMDRing* inner, AliFMDRing* outer) 
   : AliFMDDetector(3, inner, outer)
 {
-  // Constructor. 
   SetInnerZ(-62.8);
   SetOuterZ(-75.2);
   SetNoseZ();
@@ -61,7 +57,6 @@ AliFMD3::AliFMD3(AliFMDRing* inner, AliFMDRing* outer)
 void
 AliFMD3::Init() 
 {
-  // Initialize 
   AliFMDDetector::Init();
   SetInnerHoneyHighR(GetOuterHoneyHighR());
   Double_t zdist   = fConeLength - fBackLength - fNoseLength;
@@ -81,16 +76,16 @@ AliFMD3::ConeR(Double_t z, Option_t* opt) const
 {
   // Calculate the cone radius at Z
   if (fAlpha < 0) {
-    AliWarning(Form("alpha not set: %lf", fAlpha));
+    Warning("ConeR", "alpha not set: %lf", fAlpha);
     return -1;
   }
   if (z > fNoseZ) {
-    AliWarning(Form("z=%lf is before start of cone %lf", z, fNoseZ));
+    Warning("ConeR", "z=%lf is before start of cone %lf", z, fNoseZ);
     return -1;
   }
   if (z < fOuterZ - fOuter->GetRingDepth() - fHoneycombThickness) {
-    AliWarning(Form("z=%lf is after end of cone %lf", z, 
-		    fOuterZ - fOuter->GetRingDepth() - fHoneycombThickness));
+    Warning("ConeR", "z=%lf is after end of cone %lf", z, 
+	    fOuterZ - fOuter->GetRingDepth() - fHoneycombThickness);
     return -1;
   }
   Double_t e = fBeamThickness / TMath::Cos(TMath::ATan(fAlpha));

@@ -26,12 +26,11 @@
 #include "AliTRDrawData.h"
 #include "AliTRDdigitsManager.h"
 #include "AliTRDgeometryFull.h"
+#include "AliTRDparameter.h"
 #include "AliTRDdataArrayI.h"
 #include "AliTRDRawStream.h"
 #include "AliRawDataHeader.h"
 #include "AliRawReader.h"
-#include "AliTRDCommonParam.h"
-#include "AliTRDcalibDB.h"
 
 ClassImp(AliTRDrawData)
 
@@ -133,24 +132,10 @@ Bool_t AliTRDrawData::Digits2Raw(TTree *digitsTree)
   }
 
   AliTRDgeometryFull *geo = new AliTRDgeometryFull();
+  AliTRDparameter    *par = new AliTRDparameter("TRDparameter"
+                                               ,"TRD parameter class");
   AliTRDdataArrayI   *digits;
 
-  AliTRDCommonParam* commonParam = AliTRDCommonParam::Instance();
-  if (!commonParam)
-  {
-    printf("<AliTRDrawData::Digits2Raw> ");
-    printf("Could not get common params\n");
-    return 0;
-  }
-  
-  AliTRDcalibDB* calibration = AliTRDcalibDB::Instance();
-  if (!calibration)
-  {
-    printf("<AliTRDdigitizer::Digits2Raw> ");
-    printf("Could not get calibration object\n");
-    return kFALSE;
-  }
-    
   // the event header
   AliRawDataHeader header;
 
@@ -176,9 +161,9 @@ Bool_t AliTRDrawData::Digits2Raw(TTree *digitsTree)
     Int_t cham      = geo->GetChamber(det);
     Int_t plan      = geo->GetPlane(det);
     Int_t sect      = geo->GetSector(det);
-    Int_t rowMax    = commonParam->GetRowMax(plan,cham,sect);
-    Int_t colMax    = commonParam->GetColMax(plan);
-    Int_t timeTotal = calibration->GetNumberOfTimeBins();
+    Int_t rowMax    = par->GetRowMax(plan,cham,sect);
+    Int_t colMax    = par->GetColMax(plan);
+    Int_t timeTotal = par->GetTimeTotal();
     Int_t bufferMax = rowMax*colMax*timeTotal;
     Int_t *buffer   = new Int_t[bufferMax];
 
@@ -304,6 +289,7 @@ Bool_t AliTRDrawData::Digits2Raw(TTree *digitsTree)
   }
 
   delete geo;
+  delete par;
   delete digitsManager;
 
   return kTRUE;
@@ -323,29 +309,15 @@ AliTRDdigitsManager* AliTRDrawData::Raw2Digits(AliRawReader* rawReader)
   AliTRDdataArrayI *track2    = 0; 
 
   AliTRDgeometryFull *geo = new AliTRDgeometryFull();
-
-  AliTRDCommonParam* commonParam = AliTRDCommonParam::Instance();
-  if (!commonParam)
-  {
-    printf("<AliTRDrawData::Raw2Digits> ");
-    printf("Could not get common params\n");
-    return 0;
-  }
-    
-  AliTRDcalibDB* calibration = AliTRDcalibDB::Instance();
-  if (!calibration)
-  {
-    printf("<AliTRDdigitizer::Raw2Digits> ");
-    printf("Could not get calibration object\n");
-    return 0;
-  }
+  AliTRDparameter    *par = new AliTRDparameter("TRDparameter"
+                                               ,"TRD parameter class");
 
   // Create the digits manager
   AliTRDdigitsManager* digitsManager = new AliTRDdigitsManager();
   digitsManager->SetDebug(fDebug);
   digitsManager->CreateArrays();
 
-  AliTRDRawStream input(rawReader);
+  AliTRDRawStream input(rawReader,par);
 
   // Loop through the digits
   while (input.Next()) {
@@ -370,9 +342,9 @@ AliTRDdigitsManager* AliTRDrawData::Raw2Digits(AliRawReader* rawReader)
       Int_t cham      = geo->GetChamber(det);
       Int_t plan      = geo->GetPlane(det);
       Int_t sect      = geo->GetSector(det);
-      Int_t rowMax    = commonParam->GetRowMax(plan,cham,sect);
-      Int_t colMax    = commonParam->GetColMax(plan);
-      Int_t timeTotal = calibration->GetNumberOfTimeBins();
+      Int_t rowMax    = par->GetRowMax(plan,cham,sect);
+      Int_t colMax    = par->GetColMax(plan);
+      Int_t timeTotal = par->GetTimeTotal();
 
       // Add a container for the digits of this detector
       digits = digitsManager->GetDigits(det);
@@ -405,6 +377,7 @@ AliTRDdigitsManager* AliTRDrawData::Raw2Digits(AliRawReader* rawReader)
   if (track2) track2->Compress(1,0);
 
   delete geo;
+  delete par;
 
   return digitsManager;
 

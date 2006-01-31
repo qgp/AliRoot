@@ -4,7 +4,7 @@
 // $Id$
 // $MpId$
 
-/// \ingroup trigger
+/// \ingroup slat
 /// \class AliMpTriggerSegmentation
 /// \brief Implementation of AliMpVSegmentation for trigger slats.
 /// 

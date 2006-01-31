@@ -15,11 +15,12 @@
 /////////////////////////////////////
 
 #include <TObject.h>
-#include "AliMUONClusterFinderVS.h" 
+#include "AliMUONClusterFinderVS.h" //AZ
 
 class AliLoader;
 class AliMUON;
 class AliMUONRawCluster;
+//AZ class AliMUONClusterFinderVS;
 class AliMUONData;
 class AliRawReader;
 
@@ -31,15 +32,17 @@ class AliMUONClusterReconstructor : public TObject
 
  
   // Cluster Finding & Trigger
-  virtual void   Digits2Clusters(Int_t chBeg = 0);
+  virtual void   Digits2Clusters();
   virtual void   Trigger2Trigger() ;
 
   // pointer to data container
   AliMUONData*   GetMUONData() {return fMUONData;}
   // Reco Model
   AliMUONClusterFinderVS* GetRecoModel() {return fRecModel;}
+  //  AliMUONClusterFinderAZ* GetRecoModel() {return fRecModel;}
   //AZ void   SetRecoModel(AliMUONClusterFinderVS* rec) {fRecModel = rec;}
   void   SetRecoModel(AliMUONClusterFinderVS* rec) {if (fRecModel) delete fRecModel; fRecModel = rec;} //AZ
+  //  void   SetRecoModel(AliMUONClusterFinderAZ* rec) {fRecModel = rec;}
 
 
  protected:
@@ -51,6 +54,7 @@ class AliMUONClusterReconstructor : public TObject
 
   AliMUONData*            fMUONData;           //! Data container for MUON subsystem 
   AliMUONClusterFinderVS* fRecModel;           //! cluster recontruction model
+  //AliMUONClusterFinderAZ* fRecModel;           //! cluster recontruction model
 
   // alice loader
   AliLoader* fLoader;

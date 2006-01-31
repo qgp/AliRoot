@@ -54,7 +54,6 @@ Revision 0.01  2005/07/25 A. De Caro
 #include <TTree.h>
 #include <TObjArray.h>
 #include <TClonesArray.h>
-#include <TFile.h>
 
 #include "AliLog.h"
 #include "AliRunLoader.h"
@@ -63,8 +62,6 @@ Revision 0.01  2005/07/25 A. De Caro
 #include "AliTOFdigit.h"
 #include "AliTOFcluster.h"
 #include "AliTOFGeometry.h"
-#include "AliTOFGeometryV4.h"
-#include "AliTOFGeometryV5.h"
 #include "AliTOFRawStream.h"
 
 #include "AliTOFClusterFinder.h"
@@ -102,10 +99,7 @@ AliTOFClusterFinder::AliTOFClusterFinder(AliRunLoader* runLoader):
 // Constructor
 //
 
-  runLoader->CdGAFile();
-  TFile *in=(TFile*)gFile;
-  in->cd();
-  fTOFGeometry = (AliTOFGeometry*)in->Get("TOFgeometry");
+  fTOFGeometry = new AliTOFGeometry();
 
 }
 //______________________________________________________________________________

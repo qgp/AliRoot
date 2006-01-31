@@ -6,6 +6,7 @@
 
 
 class TObjArray;
+class TMatrix;
 
 
 //                  ITS Class to calculate the radiation lenght matrix

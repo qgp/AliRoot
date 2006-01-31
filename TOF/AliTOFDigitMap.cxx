@@ -51,13 +51,10 @@ AliTOFDigitMap::AliTOFDigitMap()
 //
   fDigitMap = 0;
   fDigits = 0;
-
-  fTOFGeometry = new AliTOFGeometry();
-
 }
 
 ////////////////////////////////////////////////////////////////////////
-AliTOFDigitMap::AliTOFDigitMap(TClonesArray *dig, AliTOFGeometry *tofGeom)
+AliTOFDigitMap::AliTOFDigitMap(TClonesArray *dig)
 {
   //
   // ctor
@@ -65,11 +62,9 @@ AliTOFDigitMap::AliTOFDigitMap(TClonesArray *dig, AliTOFGeometry *tofGeom)
   // of course, these constants must not be hardwired
   // change later
   
-  fTOFGeometry = tofGeom;
-
   fNSector = AliTOFGeometry::NSectors();
   fNplate = AliTOFGeometry::NPlates();
-  fNstrip = fTOFGeometry->NMaxNstrip();
+  fNstrip = AliTOFGeometry::NStripC();
   fNpx  = AliTOFGeometry::NpadX();
   fNpz  = AliTOFGeometry::NpadZ();
   fMaxIndex=fNSector*fNplate*fNstrip*fNpx*fNpz;
@@ -85,8 +80,7 @@ AliTOFDigitMap::AliTOFDigitMap(const AliTOFDigitMap & /*digitMap*/)
 //
 // Dummy copy constructor
 //
-  ;
-
+    ;
 }
 
  
@@ -96,10 +90,7 @@ AliTOFDigitMap::~AliTOFDigitMap()
 //
 // Destructor
 //
-  if (fDigitMap) delete[] fDigitMap;
-
-  fTOFGeometry = 0;
-
+    if (fDigitMap) delete[] fDigitMap;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -118,11 +109,11 @@ Int_t AliTOFDigitMap::CheckedIndex(Int_t *vol) const
 // Return checked indices for vol
 //
   Int_t index=
-    vol[0]*fNplate*fNstrip*fNpx*fNpz+             // sector
-    vol[1]*fNstrip*fNpx*fNpz+                     // plate
-    vol[2]*fNpx*fNpz+                             // strip
-    vol[3]*fNpz+                                  // padx
-    vol[4];                                       // padz
+    (vol[0]/*-1*/)*fNplate*fNstrip*fNpx*fNpz+             // sector
+    (vol[1]/*-1*/)*fNstrip*fNpx*fNpz+                     // plate
+    (vol[2]/*-1*/)*fNpx*fNpz+                             // strip
+    (vol[3]/*-1*/)*fNpz+                                  // padx
+    (vol[4]/*-1*/);                                       // padz
 
     if (index >= fMaxIndex) {
       Error("AliTOFDigitMap","CheckedIndex - input outside bounds");
@@ -197,3 +188,8 @@ AliTOFDigitMap & AliTOFDigitMap::operator = (const AliTOFDigitMap & /*rhs*/)
 // Dummy assignment operator
     return *this;
 }
+
+
+
+
+

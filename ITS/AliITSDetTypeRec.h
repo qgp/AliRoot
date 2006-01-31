@@ -27,7 +27,6 @@ class AliITSclusterV2;
 class AliRawReader;
 class AliITSgeom;
 
-
 class AliITSDetTypeRec : public TObject {
   public:
     AliITSDetTypeRec(); // Default constructor
@@ -48,11 +47,10 @@ class AliITSDetTypeRec : public TObject {
     virtual void SetTreeAddressD(TTree* treeD);
 
     virtual void SetSegmentationModel(Int_t dettype, AliITSsegmentation *seg);
-    virtual void SetCalibrationModel(Int_t iMod, AliITSresponse *cal);
+    virtual void SetCalibrationModel(Int_t dettype, AliITSresponse *cal);
     virtual void SetReconstructionModel(Int_t dettype, AliITSClusterFinder *rec);
-    virtual Bool_t GetCalibration();
     virtual AliITSsegmentation* GetSegmentationModel(Int_t dettype);
-    virtual AliITSresponse* GetCalibrationModel(Int_t iMod);
+    virtual AliITSresponse* GetCalibrationModel(Int_t dettype);
     virtual AliITSClusterFinder* GetReconstructionModel(Int_t dettype);
 
     virtual void SetDigitClassName(Int_t i,Char_t *digit) 
@@ -105,17 +103,9 @@ class AliITSDetTypeRec : public TObject {
     void DigitsToRecPoints(Int_t evNumber,Int_t lastEntry,Option_t *det,Bool_t v2=kFALSE);
     void DigitsToRecPoints(AliRawReader* rawReader);
 
-    virtual void SetRunNumber(Int_t rn=0){fRunNumber = rn;}
-    virtual Int_t GetRunNumber() const {return fRunNumber;}
-
   private:
 
-    static const Int_t fgkNdettypes;          // number of det. types
-    static const Int_t fgkDefaultNModulesSPD; // Total numbers of SPD modules by default
-    static const Int_t fgkDefaultNModulesSDD; // Total numbers of SDD modules by default
-    static const Int_t fgkDefaultNModulesSSD; // Total numbers of SSD modules by default
-    Int_t fNMod[3];                           // numbers of modules from different types
-
+    static const Int_t fgkNdettypes; // number of det. types
     AliITSgeom   *fGeom;          // ITS geometry
     TObjArray    *fReconstruction;//! [NDet]
     TObjArray    *fSegmentation;  //! [NDet]
@@ -138,9 +128,8 @@ class AliITSDetTypeRec : public TObject {
     Int_t         fNClustersV2;    //Number of clusters v2
     TString fSelectedVertexer; // Vertexer selected in CreateVertexer
     AliITSLoader* fLoader;     // ITS loader
-    Int_t         fRunNumber;    //! run number (to access DB)
 
-    ClassDef(AliITSDetTypeRec,3) // ITS Reconstruction structure
+    ClassDef(AliITSDetTypeRec,1) // ITS Reconstruction structure
 };
 
 #endif

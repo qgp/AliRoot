@@ -11,9 +11,6 @@
 //____________________________________________________________________
 //
 //  Manager class for the FMD - Base class.
-//  AliFMDv1, AliFMDv0, and AliFMDAlla 
-//  provides concrete implementations. 
-//  This class is sooooo crowded
 //
 #ifndef ALIDETECTOR_H 
 # include <AliDetector.h>
@@ -25,9 +22,7 @@ class TBranch;
 class TClonesArray;
 class TBrowser;
 class AliDigitizer;
-#ifdef USE_PRE_MOVE
 class AliFMDSimulator;
-#endif
 class AliFMDHit;
 
 //____________________________________________________________________
@@ -41,7 +36,9 @@ public:
   AliFMD& operator=(const AliFMD& other);
   // Use old implementation
   void UseOld(Bool_t use=kTRUE) { fUseOld = use;  }
+  void UseDivided(Bool_t use=kTRUE) { fUseDivided = use; }
   void UseAssembly(Bool_t use=kTRUE) { fUseAssembly = use; }
+  void UseGeo(Bool_t use=kTRUE) { fUseGeo = use; }
   void UseDetailed(Bool_t use=kTRUE) { fDetailed = use; }
   
   // GEometry ANd Tracking (GEANT :-)
@@ -76,9 +73,7 @@ public:
 				       Float_t  pz=0,
 				       Float_t  edep=0,
 				       Int_t    pdg=0,
-				       Float_t  t=0, 
-				       Float_t  len=0, 
-				       Bool_t   stopped=kFALSE);
+				       Float_t  t=0);
   virtual        void   AddDigit(Int_t *digits, Int_t* notused=0);
   virtual        void   AddDigitByFields(UShort_t detector=0, 
 					 Char_t   ring='\0', 
@@ -116,24 +111,11 @@ protected:
   Int_t              fNsdigits;             // Number of digits  
   Bool_t             fDetailed;             // Use detailed geometry
   Bool_t             fUseOld;               // Use old approx geometry
+  Bool_t             fUseDivided;           // Use divided volumes
   Bool_t             fUseAssembly;          // Use divided volumes
+  Bool_t             fUseGeo;               // Allow use of TGeo impl.
   
-  enum {
-    kSiId,                 // ID index of Si medium
-    kAirId,                // ID index of Air medium
-    kPlasticId,            // ID index of Plastic medium
-    kPcbId,                // ID index of PCB medium
-    kSiChipId,             // ID index of Si Chip medium
-    kAlId,                 // ID index of Al medium
-    kCarbonId,             // ID index of Carbon medium
-    kCopperId,             // ID index of Copper Medium
-    kKaptonId              // ID index of Kapton Medium
-  };  
-
-#ifdef USE_PRE_MOVE
   AliFMDSimulator*   fSimulator;            // Simulator task
-#endif
-  TObjArray*         fBad;                  //! debugging - bad hits 
   
   ClassDef(AliFMD,10)     // Base class FMD entry point
 };

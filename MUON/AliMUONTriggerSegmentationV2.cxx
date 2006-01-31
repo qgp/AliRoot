@@ -17,12 +17,14 @@
 
 #include "AliMUONTriggerSegmentationV2.h"
 
+#include "AliLog.h"
+
 #include "AliMpPCB.h"
 #include "AliMpTrigger.h"
 #include "AliMpTriggerSegmentation.h"
 #include "AliMpSlat.h"
 
-#include "AliLog.h"
+#include "AliMUONSegmentationManager.h"
 
 #include "Riostream.h"
 #include "TClass.h"
@@ -67,9 +69,8 @@ fLineNumber(-1)
 }
 
 //_____________________________________________________________________________
-AliMUONTriggerSegmentationV2::AliMUONTriggerSegmentationV2(
-                                   AliMpVSegmentation* segmentation,
-                                   Int_t detElemId, AliMpPlaneType bendingOrNonBending)
+AliMUONTriggerSegmentationV2::AliMUONTriggerSegmentationV2(Int_t detElemId,
+                                                           AliMpPlaneType bendingOrNonBending) 
 : AliMUONVGeometryDESegmentation(),
 fDetElemId(detElemId),
 fPlaneType(bendingOrNonBending),
@@ -82,13 +83,7 @@ fLineNumber(-1)
   //
   // Normal ctor.
   //
-
-  fSlatSegmentation = dynamic_cast<AliMpTriggerSegmentation*>(segmentation);
-  if (fSlatSegmentation)
-    fSlat = fSlatSegmentation->Slat();
-  else 
-    AliFatal("Wrong mapping segmentation type");
-		
+	ReadMappingData();
 		
   AliDebug(1,Form("this=%p detElemId=%3d %s fSlatSegmentation=%p",this,detElemId,
 									( (bendingOrNonBending==kBendingPlane)?"Bending":"NonBending" ),
@@ -259,8 +254,10 @@ AliMUONTriggerSegmentationV2::GetPadI(Float_t x, Float_t y,
                   fSlatSegmentation->GetName(),
                   x,y,ixGlo,iyGlo));
   
+  Double_t slatx = fSlat->DX();
+  Double_t slaty = fSlat->DY();
   AliMpPad pad = 
-    fSlatSegmentation->PadByPosition(TVector2(x,y), kTRUE);
+    fSlatSegmentation->PadByPosition(TVector2(x+slatx,y+slaty), kTRUE);
 	
   if ( pad != AliMpPad::Invalid() )
 	{
@@ -367,7 +364,8 @@ AliMUONTriggerSegmentationV2::HasPad(Float_t x, Float_t y, Float_t)
 //  Bool_t ok1 = HasPad(ixPC,iyPC);
 
   AliMpPad pad = 
-  fSlatSegmentation->PadByPosition(TVector2(x,y),kFALSE);
+    fSlatSegmentation->PadByPosition(TVector2(x+fSlat->DX(),y+fSlat->DY()),
+                                     kFALSE);
   return pad.IsValid();
 }
 
@@ -656,6 +654,27 @@ AliMUONTriggerSegmentationV2::Print(Option_t* opt) const
 }
 
 //_____________________________________________________________________________
+void 
+AliMUONTriggerSegmentationV2::ReadMappingData()
+{
+  fSlatSegmentation = dynamic_cast<AliMpTriggerSegmentation*>
+  (AliMUONSegmentationManager::Segmentation(fDetElemId,fPlaneType));
+  
+	if (!fSlatSegmentation)
+	{
+		AliFatal("Wrong segmentation type encountered");
+	}
+  fSlat = fSlatSegmentation->Slat();
+  TString id(fSlat->GetID());
+  Ssiz_t pos = id.Last('L');
+  if ( pos <= 0 )
+  {
+    AliFatal(Form("Cannot infer line number for slat %s",id.Data()));
+  }
+  fLineNumber = TString(id(pos+1),1).Atoi();
+}
+
+//_____________________________________________________________________________
 Int_t
 AliMUONTriggerSegmentationV2::Sector(Int_t ix, Int_t iy)
 {
@@ -766,6 +785,23 @@ AliMUONTriggerSegmentationV2::SigGenInit(Float_t,Float_t,Float_t)
 {
   AliFatal("Not Implemented");
 }
+
+//_____________________________________________________________________________
+void
+AliMUONTriggerSegmentationV2::Streamer(TBuffer &R__b)
+{
+  if (R__b.IsReading()) 
+	{
+    AliMUONTriggerSegmentationV2::Class()->ReadBuffer(R__b, this);
+    ReadMappingData();
+  } 
+  else 
+	{
+    AliMUONTriggerSegmentationV2::Class()->WriteBuffer(R__b, this);
+  }
+}
+
+
 
 
 

@@ -16,10 +16,9 @@
 #ifndef ALI_MUON_GEOMETRY_SEGMENTATION_H
 #define ALI_MUON_GEOMETRY_SEGMENTATION_H
 
-#include "AliMUONGeometryDirection.h"
-
 #include <TObject.h>
-#include <TString.h>
+
+#include "AliMUONGeometryDirection.h"
 
 class TObjArray;
 class TF1;
@@ -83,10 +82,7 @@ class AliMUONGeometrySegmentation : public TObject
                           Float_t& x, Float_t& y, Float_t& z);
                        // Transform from real to pad coordinates
 
-    virtual Bool_t HasPad(Int_t detElemId, 
-                          Int_t ix, Int_t iy);
-    virtual Bool_t HasPad(Int_t detElemId, 
-                          Float_t& x, Float_t& y, Float_t& z);
+    virtual Bool_t HasPad(Int_t detElemId, Int_t ix, Int_t iy);
   
     // Initialisation
     //

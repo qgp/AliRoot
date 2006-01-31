@@ -46,7 +46,6 @@ class AliRawReaderMemory: public AliRawReader {
 
     virtual Bool_t   ReadHeader();
     virtual Bool_t   ReadNextData(UChar_t*& data);
-    virtual Bool_t   ReadNext(UChar_t* data, Int_t size);
 
     virtual Bool_t   Reset();
 
@@ -60,6 +59,8 @@ class AliRawReaderMemory: public AliRawReader {
     UChar_t*         fBuffer;      // buffer for payload
     UInt_t            fBufferSize;  // size of fBuffer in bytes
     UInt_t          fPosition;    // Current position in memory
+
+    virtual Bool_t   ReadNext(UChar_t* data, Int_t size);
 
     ClassDef(AliRawReaderMemory, 0) // class for reading raw digits from a memory block
 

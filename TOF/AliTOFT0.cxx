@@ -81,14 +81,12 @@
 #include <TVirtualMC.h>
 
 #include "AliDetector.h"
-#include "AliMC.h"
 #include "AliRun.h"
-
 #include "AliTOF.h"
 #include "AliTOFT0.h"
 #include "AliTOFhitT0.h"
 #include "AliTOFv4T0.h"
-#include "AliTOFv5T0.h"
+#include "AliMC.h"
 
 ClassImp(AliTOFT0)
 
@@ -497,3 +495,4 @@ Bool_t AliTOFT0::operator==( AliTOFT0 const &tzero )const
   else
     return kFALSE ;
 }
+

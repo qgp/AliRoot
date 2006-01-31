@@ -8,9 +8,9 @@
 # include "AliFMDDetector.h"
 #endif
 
-// Geometry description and parameters of the FMD2
-// detector. 
-// This has two rings. 
+/** Geometry description and parameters of the FMD2
+    detector. 
+*/
 class AliFMD2 : public AliFMDDetector 
 {
 protected: 

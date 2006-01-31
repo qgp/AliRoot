@@ -8,150 +8,90 @@
 //_____________________________________________________________
 // AliHLTTPCDisplay
 //
-// Display class for the HLT TPC events.
+// Simple display class for the HLT tracks.
 </pre>
 */
-// Author: Jochen Thaeder <mailto:thaeder@kip.uni-heidelberg.de>
-//         Anders Vestbo <mailto:vestbo@fi.uib.no>
+// Author: Anders Vestbo <mailto:vestbo@fi.uib.no>
+//         Jochen Thaeder <mailto:thaeder@kip.uni-heidelberg.de>
 //*-- Copyright &copy ALICE HLT Group 
 
-#include <TGeometry.h>
 #include <TObject.h>
 #include <TCanvas.h>
 #include <TH2.h>
-#include <TGraph.h>
 
+class TGeometry;
 class AliHLTTPCSpacePointData;
 class AliHLTTPCTrackArray;
 
 class AliHLTTPCDisplay : public TObject {
 
  public:
-  AliHLTTPCDisplay(Char_t *gfile="$(ALIHLT_BASEDIR)/geo/alice.geom");
+  AliHLTTPCDisplay();
+  AliHLTTPCDisplay(Int_t *slice, Char_t *gfile="$(ALIHLT_BASEDIR)/geo/alice.geom");
   virtual ~AliHLTTPCDisplay();
 
   // SETUP
-  void SetupHist();
-  void SetupCluster(Int_t slice, Int_t patch, UInt_t nofClusters, AliHLTTPCSpacePointData* data);
-  void SetupTracks(AliHLTTPCTrackArray *tracks);
+  void Setup(Char_t *trackfile,Char_t *path,Int_t event=-1,Bool_t sp=kFALSE);
+  void SetupClusterDataForPatch(Int_t slice, Int_t patch, UInt_t nofClusters, AliHLTTPCSpacePointData* data);
+  void SetupPadRow(Int_t histSwitch, Int_t slice, Int_t padrow);
 
-  // HISTOGRAM FILL/RESET FUNCTIONS
-
-  void FillPadRow(Int_t patch, ULong_t dataBlock, ULong_t dataLen);
-  void ResetHistPadRow();
-  void ResetHistResiduals();
-  void ResetHistCharge();
-
-  // DRAWER
-  void Draw3D();
-  void DrawHistPadRow(); 
-  void DrawGeomSector(Int_t sector);
-  void DrawHistPad1();
-  void DrawHistPad2();
-  void DrawHistPad3();
-  void DrawHistResiduals();
-  void DrawHistCharge();
-
-  // SETTER  
-  void SetSliceArray();
-  void SetSlices(){fMinSlice = 0; fMaxSlice = 35; fSlicePair = kFALSE; SetSliceArray();}
-  void SetSlices(Int_t s){fMinSlice = s; fMaxSlice = s; fSlicePair = kFALSE; SetSliceArray();}
-  void SetSlices(Int_t mins, Int_t maxs){fMinSlice = mins; fMaxSlice = maxs; fSlicePair = kFALSE; SetSliceArray();}
-  void SetSlicesPair(Int_t s){fMinSlice = s; fMaxSlice = s; fSlicePair = kTRUE; SetSliceArray();}
-  void SetSlicesPair(Int_t mins, Int_t maxs){fMinSlice = mins; fMaxSlice = maxs; fSlicePair = kTRUE; SetSliceArray();}
-  void SetPad(Int_t f){fPad = f;}
-  void SetPadRow(Int_t f){fPadRow = f;}
-  void SetSlicePadRow(Int_t f){fSlicePadRow = f;}
-  void SetMinHits(Int_t f){fMinHits = f;}
-  void SetPtThreshold(Float_t f){fPtThreshold = f;}
-  void SetSwitches(Bool_t f1, Bool_t f2, Bool_t f3, Bool_t f4) {fSwitch3DTracks = f1; fSwitch3DCluster = f2; fSwitch3DPadRow = f3; fSwitch3DGeometry = f4;} 
-  void SetHistPadRowAxis();
-  void SetSelectTrack(Int_t f) {fSelectTrack = f;}
-  void SetSelectTrackSlice(Int_t f) {fSelectTrackSlice = f;}
-  void SetSelectTrackSwitch(Bool_t f) {fSelectTrackSwitch = f;}
-  void SetSelectCluster(Int_t f) {fSelectCluster = f;}
-  void SetInvert() {Int_t tmp = fBackColor; fBackColor = fLineColor; fLineColor = tmp; }
-  void SetKeepView(Bool_t f){fKeepView = f;} 
+  // SETTER
+  void SetSlices(Int_t minslice, Int_t maxslice);
+  void SetSlices(Int_t slice);
+  void SetSlices();
+  void SetSlicesPair(Int_t slice);
+  void SetSlicesPair(Int_t minslice, Int_t maxslice);
+  void SetInvert(Bool_t invert=kTRUE);
+  void SetDrawGeo(Bool_t drawgeo=kTRUE);
+  void SetTracks(AliHLTTPCTrackArray *tracks) {fTracks=tracks;}
 
   // GETTER
-  Int_t GetPadRow(){return fPadRow;}
-  Int_t GetSlicePadRow(){return fSlicePadRow;}
-  Int_t GetNPads(){return fNPads;}
-  Int_t GetBackColor() {return fBackColor;}
+  Int_t GetPadrow(){return fPadRow;}
+  Int_t GetSlice(){return fSlice;}
 
-  struct AliHLTTPCTrackParameter{
-      Int_t nHits;
-      Int_t charge;
-      Double_t kappa;
-      Double_t radius;
-      Double_t xyzF[3];
-      Double_t xyzL[3];
-      Int_t slice;
-      Double_t phi0;
-      Double_t psi;
-      Double_t lambda;
-      Double_t pt;
-      Int_t id;
-      Double_t bfield;
-  };
-
-  AliHLTTPCTrackParameter fTrackParam;
-
-  private:
-
+  void DrawGeom(Int_t slice);
   Bool_t LoadGeometrie(Char_t *gfile);
+  void DisplayGeom(Bool_t x3don=kTRUE);
+  void ResetDisplay(){ fc1->Clear(); }
+  void DisplayAll(Int_t minhits=10,Bool_t clusterswitch=kTRUE,Bool_t trackswitch=kTRUE,Bool_t x3don=kTRUE, Float_t thr=0., Float_t* etaRange=NULL);
 
+
+  // PADROW
+  void FillPadRow(Int_t patch, ULong_t dataBlock, ULong_t dataLen, UInt_t nofClusters, AliHLTTPCSpacePointData* data);
+  void DrawPadRow(Bool_t x3don=kTRUE);
+
+ private:
   AliHLTTPCDisplay(const AliHLTTPCDisplay &/*d*/):TObject(){;}
   AliHLTTPCDisplay& operator=(const AliHLTTPCDisplay &/*d*/){return *this;}
 
-  AliHLTTPCSpacePointData *fClusters[36][6]; 
-  AliHLTTPCTrackArray *fTracks; 
+  TCanvas *fc1;
+  TGeometry *fGeom; //!
 
-  UInt_t fNcl[36][6];//number of cluster
+  AliHLTTPCSpacePointData *fClusters[36][6]; //!
+  AliHLTTPCTrackArray *fTracks; //!
 
-  TH1F *fHistrawcl;  // histogram for cluster in padrow
-  TH2F *fHistraw;    // histogram for signals in padrow
-  TH1F *fHistpad1;   // histogram for pad in padrow
-  TH1F *fHistpad2;   // histogram for pad in padrow
-  TH1F *fHistpad3;   // histogram for pad in padrow
-  TH1F *fHistallresiduals;//histogram for all residuals
-  TH1F *fHistcharge; // histogram for clustercharge
+  UInt_t fNcl[36][6]; //number of cluster
+  Int_t fMinSlice; //min slice
+  Int_t fMaxSlice; //max slice
+  Int_t fBackColor; //Background color
+  Int_t fLineColor; //Line color
+  Int_t fSlicePair; //draw pair of slices;
+  Float_t fTheta;
+  Int_t fSlicePairMax;
+  Int_t fSlicePairMin;
+  Bool_t fDrawGeo;
 
-  TGraph *fGraphresiduals; // graph of the residuals for one track
-
-  TGeometry *fGeom;  // geometry
-  Int_t fBackColor;  // Background color
-  Int_t fLineColor;  // Line color
-  Bool_t fKeepView;  // Keep View when redisplaying
-
-  Int_t fPad;        // pad
+  // PADROW
+  TH1F *fHistrawcl;  // Histogram for cluster in padrow
+  TH2F *fHistraw;    // Histogram for signals in padrow
+  Int_t fSlice;      // slice
   Int_t fPadRow;     // padrow
-  Int_t fSlicePadRow;// slice where padrow is in
   Int_t fNPads;      // number of pads in padrow
   Int_t fNTimes;     // number of timebins
-  Int_t fMinHits;    // minimum cluster per track
-  Float_t fPtThreshold;// pt threshold for tracks
-
-  Bool_t fSelectTrackSwitch;// switch ti single track mode
-  Int_t fSelectTrack;// select single track
-  Int_t fSelectTrackSlice; // select slice for single track
-
-  Int_t fSelectCluster; // select all=0, used=1, unused=2 cluster
-
-  Int_t fMinSlice;   //min slice
-  Int_t fMaxSlice;   //max slice
-  Bool_t fSlicePair; //draw pair of slices;
-  Bool_t fSliceArray[36];//Array if slice should be drawn or not
-
-  Bool_t fDrawGeo;
+  Int_t fhistSwitch; // switch between histogram and geometrie
   Int_t fcolorbin[20]; // number of entries per colorbin
   Int_t fbinct[20];    // index of colorbin
   Float_t *fpmarr[20]; // contains point data
-
-  Bool_t fSwitch3DCluster;
-  Bool_t fSwitch3DTracks;
-  Bool_t fSwitch3DPadRow;
-  Bool_t fSwitch3DGeometry;
 
   ClassDef(AliHLTTPCDisplay,1) //Display class
 };

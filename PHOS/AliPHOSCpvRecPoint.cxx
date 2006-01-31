@@ -18,9 +18,6 @@
 /* History of cvs commits:
  *
  * $Log$
- * Revision 1.22  2005/05/28 14:19:04  schutz
- * Compilation warnings fixed by T.P.
- *
  */
 
 //_________________________________________________________________________
@@ -278,14 +275,10 @@ void AliPHOSCpvRecPoint::EvalLocalPosition(Float_t logWeight,TClonesArray * digi
     Float_t zi ;
     phosgeom->AbsToRelNumbering(digit->GetId(), relid) ;
     phosgeom->RelPosInModule(relid, xi, zi);
-    if (fAmp>0 && fEnergyList[iDigit]>0) {
-      Float_t w = TMath::Max( 0., logWeight + TMath::Log( fEnergyList[iDigit] / fAmp ) ) ;
-      x    += xi * w ;
-      z    += zi * w ;
-      wtot += w ;
-    }
-    else
-      AliError(Form("Wrong energy %f and/or amplitude %f\n", fEnergyList[iDigit], fAmp));
+    Float_t w = TMath::Max( 0., logWeight + TMath::Log( fEnergyList[iDigit] / fAmp ) ) ;
+    x    += xi * w ;
+    z    += zi * w ;
+    wtot += w ;
   }
 
   if (wtot != 0) {

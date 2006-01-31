@@ -20,20 +20,33 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <TSystem.h>
+#include <TROOT.h>
+#include <TStopwatch.h>
 #include <TCanvas.h>
 #include <TF1.h>
+#include <TRandom.h>
 #include <TH1.h>
 #include <TFile.h>
+#include <TVector.h>
+#include <TArrayI.h>
+#include <TArrayF.h>
 
 #include "AliITS.h"
+#include "AliITSHuffman.h"
+#include "AliITSMapA1.h"
 #include "AliITSMapA2.h"
 #include "AliITSRawData.h"
+#include "AliITSdigitSDD.h"
 #include "AliITSdigitSPD.h"
 #include "AliITSetfSDD.h"
 #include "AliITSgeom.h"
+#include "AliITShit.h"
 #include "AliITSmodule.h"
 #include "AliITSpList.h"
+#include "AliITSresponse.h"
 #include "AliITSresponseSDD.h"
+#include "AliITSsegmentation.h"
 #include "AliITSsegmentationSDD.h"
 #include "AliITSsimulationSDD.h"
 #include "AliLog.h"
@@ -41,14 +54,25 @@
 
 ClassImp(AliITSsimulationSDD)
 ////////////////////////////////////////////////////////////////////////
-// Version: 0                                                         //
-// Written by Piergiorgio Cerello                                     //
-// November 23 1999                                                   //
-//                                                                    //
-// AliITSsimulationSDD is the simulation of SDDs.                     //
-////////////////////////////////////////////////////////////////////////
-
-//______________________________________________________________________
+// Version: 0
+// Written by Piergiorgio Cerello
+// November 23 1999
+//
+// AliITSsimulationSDD is the simulation of SDDs.
+  //
+//Begin_Html
+/*
+  <img src="picts/ITS/AliITShit_Class_Diagram.gif">
+  </pre>
+  <br clear=left>
+  <font size=+2 color=red>
+  <p>This show the relasionships between the ITS hit class and the 
+  rest of Aliroot.
+  </font>
+  <pre>
+*/
+//End_Html
+ //______________________________________________________________________
 Int_t power(Int_t b, Int_t e) {
     // compute b to the e power, where both b and e are Int_ts.
     Int_t power = 1,i;
@@ -180,8 +204,9 @@ AliITSsimulation& AliITSsimulationSDD::operator=(const AliITSsimulation &src){
 }
 
 //______________________________________________________________________
-AliITSsimulationSDD::AliITSsimulationSDD(AliITSDetTypeSim* dettyp):
-AliITSsimulation(dettyp),
+AliITSsimulationSDD::AliITSsimulationSDD(AliITSsegmentation *seg,
+                                         AliITSresponse *resp):
+AliITSsimulation(seg,resp),
 fITS(0),
 fHitMap2(0),
 fHitSigMap2(0),
@@ -222,26 +247,23 @@ void AliITSsimulationSDD::Init(){
     SetDoFFT();
     SetCheckNoise();
 
-    AliITSsegmentationSDD* seg = (AliITSsegmentationSDD*)GetSegmentationModel(1);
-    
-    AliITSresponseSDD* res = (AliITSresponseSDD*)GetResponseModel(fDetType->GetITSgeom()->GetStartSDD());
-    fpList = new AliITSpList( seg->Npz(),
-                              fScaleSize*seg->Npx() );
-    fHitSigMap2 = new AliITSMapA2(seg,fScaleSize,1);
-    fHitNoiMap2 = new AliITSMapA2(seg,fScaleSize,1);
+    fpList = new AliITSpList( GetSeg()->Npz(),
+                              fScaleSize*GetSeg()->Npx() );
+    fHitSigMap2 = new AliITSMapA2(GetSeg(),fScaleSize,1);
+    fHitNoiMap2 = new AliITSMapA2(GetSeg(),fScaleSize,1);
     fHitMap2 = fHitSigMap2;
 
-    fNofMaps = seg->Npz();
-    fMaxNofSamples = seg->Npx();
+    fNofMaps = GetSeg()->Npz();
+    fMaxNofSamples = GetSeg()->Npx();
     fAnodeFire = new Bool_t [fNofMaps];
     
-    Float_t sddLength = seg->Dx();
-    Float_t sddWidth  = seg->Dz();
+    Float_t sddLength = GetSeg()->Dx();
+    Float_t sddWidth  = GetSeg()->Dz();
 
     Int_t dummy        = 0;
-    Float_t anodePitch = seg->Dpz(dummy);
-    Double_t timeStep  = (Double_t)seg->Dpx(dummy);
-    Float_t driftSpeed = res->DriftSpeed();
+    Float_t anodePitch = GetSeg()->Dpz(dummy);
+    Double_t timeStep  = (Double_t)GetSeg()->Dpx(dummy);
+    Float_t driftSpeed = GetResp()->DriftSpeed();
 
     if(anodePitch*(fNofMaps/2) > sddWidth) {
         Warning("AliITSsimulationSDD",
@@ -256,10 +278,10 @@ void AliITSsimulationSDD::Init(){
     } // end if
 
     fElectronics = new AliITSetfSDD(timeStep/fScaleSize,
-                                    res->Electronics());
+                                    GetResp()->Electronics());
 
     char opt1[20], opt2[20];
-    res->ParamOptions(opt1,opt2);
+    GetResp()->ParamOptions(opt1,opt2);
     fParam = opt2;
     char *same = strstr(opt1,"same");
     if (same) {
@@ -270,7 +292,7 @@ void AliITSsimulationSDD::Init(){
         fBaseline.Set(fNofMaps);
     } // end if
 
-    const char *kopt=res->ZeroSuppOption();
+    const char *kopt=GetResp()->ZeroSuppOption();
     if (strstr(fParam.Data(),"file") ) {
         fD.Set(fNofMaps);
         fT1.Set(fNofMaps);
@@ -291,7 +313,7 @@ void AliITSsimulationSDD::Init(){
         SetCompressParam();
     } // end if else strstr
 
-    Bool_t write = res->OutputOption();
+    Bool_t write = GetResp()->OutputOption();
     if(write && strstr(kopt,"2D")) MakeTreeB();
 
     // call here if baseline does not change by module
@@ -355,9 +377,9 @@ void AliITSsimulationSDD::SDigitiseModule(AliITSmodule *mod,Int_t md,Int_t ev){
 
     InitSimulationModule( md, ev );
     HitsToAnalogDigits( mod );
-    ChargeToSignal( fModule,kFALSE ); // - Process signal without add noise
+    ChargeToSignal( kFALSE ); // - Process signal without add noise
     fHitMap2 = fHitNoiMap2;   // - Swap to noise map
-    ChargeToSignal( fModule,kTRUE );  // - Process only noise
+    ChargeToSignal( kTRUE );  // - Process only noise
     fHitMap2 = fHitSigMap2;   // - Return to signal map
     WriteSDigits();
     ClearMaps();
@@ -366,9 +388,8 @@ void AliITSsimulationSDD::SDigitiseModule(AliITSmodule *mod,Int_t md,Int_t ev){
 Bool_t AliITSsimulationSDD::AddSDigitsToModule(TClonesArray *pItemArray,
                                                Int_t mask ) {
     // Add Summable digits to module maps.
-  AliITSresponseSDD* res = (AliITSresponseSDD*)GetResponseModel(fDetType->GetITSgeom()->GetStartSDD());
     Int_t    nItems = pItemArray->GetEntries();
-    Double_t maxadc = res->MaxAdc();
+    Double_t maxadc = GetResp()->MaxAdc();
     Bool_t sig = kFALSE;
     
     // cout << "Adding "<< nItems <<" SDigits to module " << fModule << endl;
@@ -412,7 +433,7 @@ void AliITSsimulationSDD::DigitiseModule(AliITSmodule *mod,Int_t md,Int_t ev){
     InitSimulationModule( md, ev );
 
     if( !nhits && fCheckNoise ) {
-        ChargeToSignal( fModule,kTRUE );  // process noise
+        ChargeToSignal( kTRUE );  // process noise
         GetNoise();
         ClearMaps();
         return;
@@ -420,7 +441,7 @@ void AliITSsimulationSDD::DigitiseModule(AliITSmodule *mod,Int_t md,Int_t ev){
         if( !nhits ) return;
         
     HitsToAnalogDigits( mod );
-    ChargeToSignal( fModule,kTRUE );  // process signal + noise
+    ChargeToSignal( kTRUE );  // process signal + noise
 
     for( Int_t i=0; i<fNofMaps; i++ ) {
         for( Int_t j=0; j<fMaxNofSamples; j++ ) {
@@ -444,39 +465,35 @@ void AliITSsimulationSDD::DigitiseModule(AliITSmodule *mod,Int_t md,Int_t ev){
 void AliITSsimulationSDD::FinishDigits() {
     // introduce the electronics effects and do zero-suppression if required
 
-    ApplyDeadChannels(fModule);
-    if( fCrosstalkFlag ) ApplyCrosstalk(fModule);
+    ApplyDeadChannels();
+    if( fCrosstalkFlag ) ApplyCrosstalk();
 
-    AliITSresponseSDD* res = (AliITSresponseSDD*)GetResponseModel(fDetType->GetITSgeom()->GetStartSDD());
-    const char *kopt = res->ZeroSuppOption();
+    const char *kopt = GetResp()->ZeroSuppOption();
     ZeroSuppression( kopt );
 }
 //______________________________________________________________________
 void AliITSsimulationSDD::HitsToAnalogDigits( AliITSmodule *mod ) {
     // create maps to build the lists of tracks for each digit
 
-  AliITSsegmentationSDD* seg = (AliITSsegmentationSDD*)GetSegmentationModel(1);
-  AliITSresponseSDD* res = (AliITSresponseSDD*)GetResponseModel(fDetType->GetITSgeom()->GetStartSDD());
-  TObjArray *hits     = mod->GetHits();
+    TObjArray *hits     = mod->GetHits();
     Int_t      nhits    = hits->GetEntriesFast();
-
     //    Int_t      arg[6]   = {0,0,0,0,0,0};
     Int_t    dummy      = 0;
     Int_t    nofAnodes  = fNofMaps/2;
-    Float_t  sddLength  = seg->Dx();
-    Float_t  sddWidth   = seg->Dz();
-    Float_t  anodePitch = seg->Dpz(dummy);
-    Float_t  timeStep   = seg->Dpx(dummy);
-    Float_t  driftSpeed = res->DriftSpeed();
-    Float_t  maxadc     = res->MaxAdc();    
-    Float_t  topValue   = res->DynamicRange();
-    Float_t  cHloss     = res->ChargeLoss();
+    Float_t  sddLength  = GetSeg()->Dx();
+    Float_t  sddWidth   = GetSeg()->Dz();
+    Float_t  anodePitch = GetSeg()->Dpz(dummy);
+    Float_t  timeStep   = GetSeg()->Dpx(dummy);
+    Float_t  driftSpeed = GetResp()->DriftSpeed();
+    Float_t  maxadc     = GetResp()->MaxAdc();    
+    Float_t  topValue   = GetResp()->DynamicRange();
+    Float_t  cHloss     = GetResp()->ChargeLoss();
     Float_t  norm       = maxadc/topValue;
-    Double_t dfCoeff, s1; res->DiffCoeff(dfCoeff,s1); // Signal 2d Shape
-    Double_t eVpairs    = res->GetGeVToCharge()*1.0E9; // 3.6 eV by def.
-    Float_t  nsigma     = res->NSigmaIntegration(); //
-    Int_t    nlookups   = res->GausNLookUp();       //
-    Float_t  jitter     = res->JitterError(); // 
+    Double_t dfCoeff, s1; GetResp()->DiffCoeff(dfCoeff,s1); // Signal 2d Shape
+    Double_t eVpairs    = GetResp()->GetGeVToCharge()*1.0E9; // 3.6 eV by def.
+    Float_t  nsigma     = GetResp()->NSigmaIntegration(); //
+    Int_t    nlookups   = GetResp()->GausNLookUp();       //
+    Float_t  jitter     = ((AliITSresponseSDD*)GetResp())->JitterError(); // 
 
     // Piergiorgio's part (apart for few variables which I made float
     // when i thought that can be done
@@ -669,7 +686,7 @@ void AliITSsimulationSDD::HitsToAnalogDigits( AliITSmodule *mod ) {
                 if(TMath::Abs(aExpo) > nsigma)  anodeAmplitude = 0.;
                 else {
                     dummy          = (Int_t) ((aExpo+nsigma)/width);
-                    anodeAmplitude = amplitude*res->GausLookUp(dummy);
+                    anodeAmplitude = amplitude*GetResp()->GausLookUp(dummy);
                 } // end if TMath::Abs(aEspo) > nsigma
                 // index starts from 0
                 index = ((detector+1)%2)*nofAnodes+ia-1;
@@ -686,7 +703,7 @@ void AliITSsimulationSDD::HitsToAnalogDigits( AliITSmodule *mod ) {
                     else {
                         dummy         = (Int_t) ((tExpo+nsigma)/width);
                         timeAmplitude = anodeAmplitude*
-                            res->GausLookUp(dummy);
+                            GetResp()->GausLookUp(dummy);
                     } // end if TMath::Abs(tExpo) > nsigma
                     // build the list of Sdigits for this module        
                     //                    arg[0]     = index;
@@ -848,13 +865,11 @@ void AliITSsimulationSDD::AddDigit( Int_t i, Int_t j, Int_t signal ) {
     delete [] charges;
 }
 //______________________________________________________________________
-void AliITSsimulationSDD::ChargeToSignal(Int_t mod,Bool_t bAddNoise) {
+void AliITSsimulationSDD::ChargeToSignal(Bool_t bAddNoise) {
     // add baseline, noise, electronics and ADC saturation effects
 
     char opt1[20], opt2[20];
-    AliITSresponseSDD* res = (AliITSresponseSDD*)GetResponseModel(mod);
-
-    res->ParamOptions(opt1,opt2);
+    GetResp()->ParamOptions(opt1,opt2);
     char *read = strstr(opt1,"file");
     Double_t baseline, noise; 
 
@@ -863,11 +878,11 @@ void AliITSsimulationSDD::ChargeToSignal(Int_t mod,Bool_t bAddNoise) {
         //read baseline and noise from file
         if (readfile) ReadBaseline();
         readfile=kFALSE;
-    } else res->GetNoiseParam(noise,baseline);
+    } else GetResp()->GetNoiseParam(noise,baseline);
 
     Float_t contrib=0;
     Int_t i,k,kk;
-    Float_t maxadc = res->MaxAdc();    
+    Float_t maxadc = GetResp()->MaxAdc();    
     if(!fDoFFT) {
         for (i=0;i<fNofMaps;i++) {
             if( !fAnodeFire[i] ) continue;
@@ -932,44 +947,44 @@ void AliITSsimulationSDD::ChargeToSignal(Int_t mod,Bool_t bAddNoise) {
     return;
 }
 //____________________________________________________________________
-void AliITSsimulationSDD::ApplyDeadChannels(Int_t mod) {    
+void AliITSsimulationSDD::ApplyDeadChannels() {    
     // Set dead channel signal to zero
-    AliITSresponseSDD * response = (AliITSresponseSDD *)GetResponseModel(mod);
-    AliITSsegmentationSDD* seg = (AliITSsegmentationSDD*)GetSegmentationModel(1);
-    // nothing to do
-    if( response->IsDead() ||   
-        ( response->GetDeadChips() == 0 &&
-	  response->GetDeadChannels() == 0 ) ) return;  
+    AliITSresponseSDD * response = (AliITSresponseSDD *)GetResp();
     
-    // static AliITS *iTS = (AliITS*)gAlice->GetModule( "ITS" );
+    // nothing to do
+    if( response->GetDeadModules() == 0 && 
+        response->GetDeadChips() == 0 && 
+        response->GetDeadChannels() == 0 )
+        return;  
+    
+    static AliITS *iTS = (AliITS*)gAlice->GetModule( "ITS" );
 
-    Int_t fMaxNofSamples = seg->Npx();    
-    // AliITSgeom *geom = iTS->GetITSgeom();
-    // Int_t firstSDDMod = geom->GetStartDet( 1 );
+    Int_t fMaxNofSamples = GetSeg()->Npx();    
+    AliITSgeom *geom = iTS->GetITSgeom();
+    Int_t firstSDDMod = geom->GetStartDet( 1 );
     // loop over wings
     for( Int_t j=0; j<2; j++ ) {
-      // Int_t mod = (fModule-firstSDDMod)*2 + j;
-      for( Int_t u=0; u<response->Chips(); u++ )
-	for( Int_t v=0; v<response->Channels(); v++ ) {
-	  Float_t gain = response->Gain(j, u, v );
-	  for( Int_t k=0; k<fMaxNofSamples; k++ ) {
-	    Int_t i = j*response->Chips()*response->Channels() +
-	      u*response->Channels() + 
-	      v;
-	    Double_t signal =  gain * fHitMap2->GetSignal( i, k );
-	    fHitMap2->SetHit( i, k, signal );  ///
-	  }
-	}
-    } 
+        Int_t mod = (fModule-firstSDDMod)*2 + j;
+        for( Int_t u=0; u<response->Chips(); u++ )
+            for( Int_t v=0; v<response->Channels(); v++ ) {
+                Float_t Gain = response->Gain( mod, u, v );
+                for( Int_t k=0; k<fMaxNofSamples; k++ ) {
+                    Int_t i = j*response->Chips()*response->Channels() +
+                        u*response->Channels() + 
+                        v;
+                    Double_t signal =  Gain * fHitMap2->GetSignal( i, k );
+                    fHitMap2->SetHit( i, k, signal );  ///
+                }
+            }
+    }    
 }
 //______________________________________________________________________
-void AliITSsimulationSDD::ApplyCrosstalk(Int_t mod) {
+void AliITSsimulationSDD::ApplyCrosstalk() {
     // function add the crosstalk effect to signal
     // temporal function, should be checked...!!!
-    AliITSsegmentationSDD* seg = (AliITSsegmentationSDD*)GetSegmentationModel(1);
-  
-    Int_t fNofMaps = seg->Npz();
-    Int_t fMaxNofSamples = seg->Npx();
+
+    Int_t fNofMaps = GetSeg()->Npz();
+    Int_t fMaxNofSamples = GetSeg()->Npx();
 
     // create and inizialice crosstalk map
     Float_t* ctk = new Float_t[fNofMaps*fMaxNofSamples+1];
@@ -978,10 +993,10 @@ void AliITSsimulationSDD::ApplyCrosstalk(Int_t mod) {
         return;
     }
     memset( ctk, 0, sizeof(Float_t)*(fNofMaps*fMaxNofSamples+1) );
-    AliITSresponseSDD* res = (AliITSresponseSDD*)GetResponseModel(mod);
 
     Double_t noise, baseline;
-    res->GetNoiseParam( noise, baseline );
+    GetResp()->GetNoiseParam( noise, baseline );
+
     for( Int_t z=0; z<fNofMaps; z++ ) {
         Bool_t on = kFALSE;
         Int_t tstart = 0;
@@ -1052,7 +1067,7 @@ void AliITSsimulationSDD::ApplyCrosstalk(Int_t mod) {
 }
 //______________________________________________________________________
 void AliITSsimulationSDD::GetAnodeBaseline(Int_t i,Double_t &baseline,
-                                           Double_t &noise) const{
+                                           Double_t &noise){
     // Returns the Baseline for a particular anode.
     baseline = fBaseline[i];
     noise    = fNoise[i];
@@ -1094,9 +1109,8 @@ void AliITSsimulationSDD::CompressionParam(Int_t i,Int_t &db,Int_t &tl){
 void AliITSsimulationSDD::SetCompressParam(){
     // Sets the compression alogirthm parameters  
     Int_t cp[8],i;
-    AliITSresponseSDD* res = (AliITSresponseSDD*)GetResponseModel(fDetType->GetITSgeom()->GetStartSDD());
 
-    res->GiveCompressParam(cp);
+    GetResp()->GiveCompressParam(cp);
     for (i=0; i<2; i++) {
         fD[i]   = cp[i];
         fT1[i]  = cp[i+2];
@@ -1116,8 +1130,8 @@ void AliITSsimulationSDD::ReadBaseline(){
     Float_t bl,n;
     char input[100], base[100], param[100];
     char *filtmp;
-    AliITSresponseSDD* res = (AliITSresponseSDD*)GetResponseModel(fDetType->GetITSgeom()->GetStartSDD());
-    res->Filenames(input,base,param);
+
+    GetResp()->Filenames(input,base,param);
     fFileName=base;
     //
     filtmp = gSystem->ExpandPathName(fFileName.Data());
@@ -1194,12 +1208,10 @@ void AliITSsimulationSDD::Init2D(){
     char input[100],basel[100],par[100];
     char *filtmp;
     Double_t tmp1,tmp2;
-    AliITSresponseSDD* res = (AliITSresponseSDD*)GetResponseModel(fDetType->GetITSgeom()->GetStartSDD());
-
-    res->Thresholds(tmp1,tmp2);
+    GetResp()->Thresholds(tmp1,tmp2);
     Int_t minval = static_cast<Int_t>(tmp1);
 
-    res->Filenames(input,basel,par);
+    GetResp()->Filenames(input,basel,par);
     fFileName = par;
     //
     filtmp = gSystem->ExpandPathName(fFileName.Data());
@@ -1242,12 +1254,10 @@ void AliITSsimulationSDD::Compress2D(){
 
     Int_t db,tl,th; 
     Double_t tmp1,tmp2;
-    AliITSresponseSDD* res = (AliITSresponseSDD*)GetResponseModel(fDetType->GetITSgeom()->GetStartSDD());
-
-    res->Thresholds(tmp1,tmp2); 
+    GetResp()->Thresholds(tmp1,tmp2); 
     Int_t minval   = static_cast<Int_t>(tmp1);
-    Bool_t write   = res->OutputOption();   
-    Bool_t do10to8 = res->Do10to8();
+    Bool_t write   = GetResp()->OutputOption();   
+    Bool_t do10to8 = GetResp()->Do10to8();
     Int_t nz, nl, nh, low, i, j; 
 
     for (i=0; i<fNofMaps; i++) {
@@ -1287,10 +1297,7 @@ void AliITSsimulationSDD::Compress2D(){
 void  AliITSsimulationSDD::FindCluster(Int_t i,Int_t j,Int_t signal,
                                        Int_t minval,Bool_t &cond){
     // Find clusters according to the online 2D zero-suppression algorithm
-    AliITSresponseSDD* res = (AliITSresponseSDD*)GetResponseModel(fDetType->GetITSgeom()->GetStartSDD());
-    AliITSsegmentationSDD* seg = (AliITSsegmentationSDD*)GetSegmentationModel(1);
-  
-    Bool_t do10to8 = res->Do10to8();
+    Bool_t do10to8 = GetResp()->Do10to8();
     Bool_t high    = kFALSE;
 
     fHitMap2->FlagHit(i,j);
@@ -1301,7 +1308,7 @@ void  AliITSsimulationSDD::FindCluster(Int_t i,Int_t j,Int_t signal,
     Int_t nn;
     Int_t dbx,tlx,thx;  
     Int_t xList[kMaxNeighbours], yList[kMaxNeighbours];
-    seg->Neighbours(i,j,&nn,xList,yList);
+    GetSeg()->Neighbours(i,j,&nn,xList,yList);
     Int_t in,ix,iy,qns;
     for (in=0; in<nn; in++) {
         ix=xList[in];
@@ -1343,12 +1350,10 @@ void AliITSsimulationSDD::Init1D(){
     char input[100],basel[100],par[100];
     char *filtmp;
     Double_t tmp1,tmp2;
-    AliITSresponseSDD* res = (AliITSresponseSDD*)GetResponseModel(fDetType->GetITSgeom()->GetStartSDD());
-
-    res->Thresholds(tmp1,tmp2);
+    GetResp()->Thresholds(tmp1,tmp2);
     Int_t minval = static_cast<Int_t>(tmp1);
 
-    res->Filenames(input,basel,par);
+    GetResp()->Filenames(input,basel,par);
     fFileName=par;
 
     //  set first the disable and tol param
@@ -1392,9 +1397,7 @@ void AliITSsimulationSDD::Compress1D(){
     Int_t    dis,tol,thres,decr,diff;
     UChar_t *str=fStream->Stream();
     Int_t    counter=0;
-    AliITSresponseSDD* res = (AliITSresponseSDD*)GetResponseModel(fDetType->GetITSgeom()->GetStartSDD());
-
-    Bool_t   do10to8=res->Do10to8();
+    Bool_t   do10to8=GetResp()->Do10to8();
     Int_t    last=0;
     Int_t    k,i,j;
 
@@ -1449,7 +1452,7 @@ void AliITSsimulationSDD::Compress1D(){
     // open file and write out the stream of diff's
     static Bool_t open=kTRUE;
     static TFile *outFile;
-    Bool_t write = res->OutputOption();
+    Bool_t write = GetResp()->OutputOption();
     TDirectory *savedir = gDirectory;
  
     if (write ) {
@@ -1472,9 +1475,7 @@ void AliITSsimulationSDD::Compress1D(){
 //______________________________________________________________________
 void AliITSsimulationSDD::StoreAllDigits(){
     // if non-zero-suppressed data
-    AliITSresponseSDD* res = (AliITSresponseSDD*)GetResponseModel(fDetType->GetITSgeom()->GetStartSDD());
-
-    Bool_t do10to8 = res->Do10to8();
+    Bool_t do10to8 = GetResp()->Do10to8();
     Int_t i, j, digits[3];
 
     for (i=0; i<fNofMaps; i++) {
@@ -1564,14 +1565,13 @@ Float_t AliITSsimulationSDD::GetNoise() {
     Int_t decr;
     Int_t threshold = fT1[0];
     char opt1[20], opt2[20];
-    AliITSresponseSDD* res = (AliITSresponseSDD*)GetResponseModel(fDetType->GetITSgeom()->GetStartSDD());
 
-    res->ParamOptions(opt1,opt2);
+    GetResp()->ParamOptions(opt1,opt2);
     fParam=opt2;
     char *same = strstr(opt1,"same");
     Double_t noise,baseline;
     if (same) {
-        res->GetNoiseParam(noise,baseline);
+        GetResp()->GetNoiseParam(noise,baseline);
     } else {
         static Bool_t readfile=kTRUE;
         //read baseline and noise from file

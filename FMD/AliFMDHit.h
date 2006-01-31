@@ -35,9 +35,7 @@ public:
 	    Float_t  pz=0,
 	    Float_t  edep=0,
 	    Int_t    pdg=0,
-	    Float_t  t=0, 
-	    Float_t  l=0, 
-	    Bool_t   stop=kFALSE);
+	    Float_t  t=0);
   virtual ~AliFMDHit() {}
 
   UShort_t Detector()	const { return fDetector; }
@@ -53,8 +51,6 @@ public:
   Float_t  Q()          const;
   Int_t    Pdg()        const { return fPdg;      }
   Float_t  Time()       const { return fTime;     }
-  Float_t  Length()     const { return fLength;   }
-  Bool_t   IsStop()     const { return fStop;     }
   void     Print(Option_t* opt="") const;
 
   void     SetEdep(Float_t edep) { fEdep = edep; }
@@ -69,10 +65,8 @@ protected:
   Int_t    fPdg;       // Particles PDG code 
   Float_t  fEdep;      // Energy deposition
   Float_t  fTime;      // Particle's time of flight
-  Float_t  fLength;    // Track length through material. 
-  Bool_t   fStop;      // Whether track was stopped. 
-  
-  ClassDef(AliFMDHit,2)  //Hits for detector FMD
+
+  ClassDef(AliFMDHit,1)  //Hits for detector FMD
 };
 #endif
 //____________________________________________________________________

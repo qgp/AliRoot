@@ -8,10 +8,10 @@
 # include "AliFMDDetector.h"
 #endif
 
-// Geometry description and parameters of the FMD3 detector.
-// FMD3 has a fairly complicated support structure. 
-// The cone also supports the beam-pipe.
-//
+/** Geometry description and parameters of the FMD3 detector.
+    
+    FMD3 has a fairly complicated support structure 
+*/
 class AliFMD3 : public AliFMDDetector 
 {
 public: 

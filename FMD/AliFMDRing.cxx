@@ -44,7 +44,6 @@ AliFMDRing::AliFMDRing(Char_t id)
     fId(id), 
     fVerticies(0)
 {
-  // CTOR
   SetBondingWidth();
   SetWaferRadius();
   SetSiThickness();
@@ -55,7 +54,6 @@ AliFMDRing::AliFMDRing(Char_t id)
   SetPrintboardThickness();
   SetCopperThickness();
   SetChipThickness();
-  SetSpacing();
   
   if (fId == 'I' || fId == 'i') {
     SetLowR(4.3);
@@ -75,7 +73,6 @@ AliFMDRing::AliFMDRing(Char_t id)
 void
 AliFMDRing::Init()
 {
-  // Initialize 
   Double_t tanTheta  = TMath::Tan(fTheta * TMath::Pi() / 180.);
   Double_t tanTheta2 = TMath::Power(tanTheta,2);
   Double_t r2        = TMath::Power(fWaferRadius,2);
@@ -98,13 +95,6 @@ AliFMDRing::Init()
   fVerticies.AddAt(new TVector2(xC,      yC), 4);
   fVerticies.AddAt(new TVector2(fLowR,   yA), 5);  
 
-  // A's length. Corresponds to distance from nominal beam line to the
-  // cornor of the active silicon element. 
-  fMinR = GetVertex(5)->Mod();
-  // A's length. Corresponds to distance from nominal beam line to the
-  // cornor of the active silicon element. 
-  fMaxR = fHighR;
-
   fRingDepth = (fSiThickness + fPrintboardThickness 
 		+ fCopperThickness + fChipThickness 
 		+ fLegLength + fModuleSpacing + fSpacing);
@@ -114,7 +104,6 @@ AliFMDRing::Init()
 TVector2*
 AliFMDRing::GetVertex(Int_t i) const
 {
-  // Get the i'th vertex of polygon shape
   return static_cast<TVector2*>(fVerticies.At(i));
 }
 
@@ -126,8 +115,6 @@ AliFMDRing::Detector2XYZ(UShort_t sector,
 			 Double_t& y, 
 			 Double_t& z) const
 {
-  // Translate detector coordinates (this,sector,strip) to global
-  // coordinates (x,y,z)
   if (sector >= GetNSectors()) {
     Error("Detector2XYZ", "Invalid sector number %d (>=%d) in ring %c", 
 	  sector, GetNSectors(), fId);
@@ -145,37 +132,6 @@ AliFMDRing::Detector2XYZ(UShort_t sector,
   if (((sector / 2) % 2) == 1) 
     z += TMath::Sign(fModuleSpacing, z);
 }
-
-//____________________________________________________________________
-Bool_t
-AliFMDRing::XYZ2Detector(Double_t  x, 
-			 Double_t  y, 
-			 Double_t  z,
-			 UShort_t& sector,
-			 UShort_t& strip) const
-{
-  // Translate global coordinates (x,y,z) to detector coordinates
-  // (this,sector,strip)
-  sector = strip = 0;
-  Double_t r = TMath::Sqrt(x * x + y * y);
-  Int_t str = Int_t((r - fMinR) / GetPitch());
-  if (str < 0 || str >= GetNStrips()) return kFALSE;
-
-  Double_t phi = TMath::ATan2(y, x) * 180. / TMath::Pi();
-  if (phi < 0) phi = 360. + phi;
-  Int_t sec = Int_t(phi / fTheta);
-  if (sec < 0 || sec >= GetNSectors()) return kFALSE;
-  if ((sec / 2) % 2 == 1) {
-    if (TMath::Abs(z - TMath::Sign(fModuleSpacing, z)) >= 0.01)
-      return kFALSE;
-  }
-  else if (TMath::Abs(z) >= 0.01) return kFALSE;
-
-  strip  = str;
-  sector = sec;
-  return kTRUE;
-}
-
 
 //
 // EOF

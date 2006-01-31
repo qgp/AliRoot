@@ -18,15 +18,13 @@
 #include "AliHitMap.h"
 #include "TObject.h"
 #include "AliTOFGeometry.h"
-
 class TClonesArray;
-class AliTOFGeometry;
 
 class AliTOFDigitMap : public TObject
 {
  public:
     AliTOFDigitMap();
-    AliTOFDigitMap(TClonesArray *dig, AliTOFGeometry *tofGeom);
+    AliTOFDigitMap(TClonesArray *dig);
     AliTOFDigitMap(const AliTOFDigitMap & digitMap);
     
     virtual ~AliTOFDigitMap();
@@ -54,11 +52,9 @@ class AliTOFDigitMap : public TObject
     Int_t fNpx;                           // Number of pads in x
     Int_t fNpz;                           // Number of pads in z
 
-    TClonesArray *fDigits;                // Pointer to sdigits
+    TClonesArray *fDigits;               // Pointer to sdigits
     Int_t fMaxIndex;                      // maximum index in hit map
-    Int_t *fDigitMap;                     // ! [fMaxIndex]         
-
-    AliTOFGeometry *fTOFGeometry;
+    Int_t *fDigitMap;                       // ! [fMaxIndex]         
 
     ClassDef(AliTOFDigitMap,0) // Implements DigitMap as a 1-dim array
 };

@@ -35,8 +35,7 @@ class AliMUONChamber;
 class AliMUONSt12QuadrantSegmentation : public AliMUONVGeometryDESegmentation 
 {
   public:
-    AliMUONSt12QuadrantSegmentation(AliMpVSegmentation* segmentation,
-                                    AliMpStationType stationType, 
+    AliMUONSt12QuadrantSegmentation(AliMpStationType stationType,
                                     AliMpPlaneType planeType);
     AliMUONSt12QuadrantSegmentation();
     
@@ -163,15 +162,19 @@ class AliMUONSt12QuadrantSegmentation : public AliMUONVGeometryDESegmentation
   private:
     // methods
     void UpdateCurrentPadValues(const AliMpPad& pad);
+    void ReadMappingData();
   
+    // constants
+    static const Float_t  fgkWireD;     // default wire pitch
+
     // data members
 
     // From mapping
     //
     AliMpStationType         fStationType;       // station type
     AliMpPlaneType           fPlaneType;         // plane type
-    const AliMpSector*       fSector;            // sector (from mapping)
-    AliMpSectorSegmentation* fSectorSegmentation;// sector segmentation (from mapping)
+    AliMpSector*             fSector;            // ! sector (from mapping)
+    AliMpSectorSegmentation* fSectorSegmentation;// ! sector segmentation (from mapping)
     AliMpVPadIterator*       fSectorIterator;    // ! iterator over pads
 
     // Wire pitch

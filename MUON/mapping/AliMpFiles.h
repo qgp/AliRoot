@@ -2,7 +2,7 @@
  * See cxx source for full Copyright notice                               */
 
 // $Id$
-// $MpId: AliMpFiles.h,v 1.6 2006/01/11 10:05:01 ivana Exp $
+// $MpId: AliMpFiles.h,v 1.4 2005/08/26 15:43:36 ivana Exp $
 
 /// \ingroup basic
 /// \class AliMpFiles
@@ -36,14 +36,6 @@ class AliMpFiles : public TObject
     // methods
     //
     
-    // bus patch
-    //
-    static TString BusPatchFilePath(); 
-
-    // de names
-    //
-    static TString DENamesFilePath(AliMpStationType stationType);
-
     // trigger
     //
     static TString LocalTriggerBoardMapping();
@@ -85,16 +77,16 @@ class AliMpFiles : public TObject
   
   private: 
     // methods
-    static TString GetTop();
+    static const char* GetDefaultTop();
     static TString PlaneDataDir(AliMpStationType station, AliMpPlaneType plane); 
     static TString StationDataDir(AliMpStationType station); 
   
     // static data members  
+    static const TString fgkDefaultTop;    //top directory path (default)
     static const TString fgkDataDir;       //data directory
     static const TString fgkStationDir;    //station directory
     static const TString fgkBendingDir;    //bending plane directory
     static const TString fgkNonBendingDir; //non-bending plane directory
-    static const TString fgkDENames;       //DE names data file name
     static const TString fgkSector;        //sector data file name
     static const TString fgkSectorSpecial; //sector special data file name
     static const TString fgkSectorSpecial2;//sector special data file name
@@ -102,9 +94,10 @@ class AliMpFiles : public TObject
     static const TString fgkMotifSpecialPrefix; //special motif data file name 
     static const TString fgkPadPosPrefix;  //pad position data file name
     static const TString fgkDataExt;       //file extension
-    static const TString fgkBergToGCFileName;  //BergToGC mapping filr name
-    static const TString fgkTriggerLocalBoards;// local board name to id mapping
-    static const TString fgkBusPatchFileName;  //DetElemIdToBusPatch file name
+    static const TString fgkBergToGCFileName; //name of the file with BergToGC mapping
+    static const TString fgkTriggerLocalBoards; // local board name to id mapping
+  
+    static TString  fgTop; // top directory path
     
 
   ClassDef(AliMpFiles, 0) //File names and paths 

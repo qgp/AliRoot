@@ -27,8 +27,6 @@ class DecisionMakerCallback
 {
 public:
 
-	virtual ~DecisionMakerCallback() {};
-
 	/* Called when the decision maker has finished processing.
 	   At this point and tracks passed to the decision maker are no longer is use
 	   by the decision maker and the tracks can be released.
@@ -49,8 +47,6 @@ public:
 	{
 		callback = NULL;
 	};
-
-	virtual ~DecisionMaker() {};
 
 	/* This is the starting point of the decision algorithm. Any initialisation
 	   processing should be performed here.

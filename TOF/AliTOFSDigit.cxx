@@ -194,7 +194,7 @@ void AliTOFSDigit::Update(AliTOFSDigit* sdig)
   Int_t nlocations=sdig->GetNDigits();
 
   for (Int_t j = 0; j < nlocations; j++) {
-    Float_t tdcbin = AliTOFGeometry::TdcBinWidth();// [ps] hardwired for the time being
+    Float_t tdcbin=50.; // [ps] hardwired for the time being
     Int_t tdc=(Int_t)sdig->GetTdc(j);
     Int_t adc=(Int_t)sdig->GetAdc(j);
     // getting here only the first track number
@@ -254,7 +254,7 @@ AliTOFSDigit::~AliTOFSDigit()
 
 ////////////////////////////////////////////////////////////////////////
 
-Int_t AliTOFSDigit::GetTotPad(AliTOFGeometry *tofGeom) const
+Int_t AliTOFSDigit::GetTotPad() const
 {
   //
   // Get the "total" index of the pad inside a Sector
@@ -270,16 +270,16 @@ Int_t AliTOFSDigit::GetTotPad(AliTOFGeometry *tofGeom) const
     //before = 0;
     break;
   case 1:
-    before = tofGeom->NStripC();
+    before = AliTOFGeometry::NStripC();
     break;
   case 2:
-    before = AliTOFGeometry::NStripB() +   tofGeom->NStripC();
+    before = AliTOFGeometry::NStripB() +   AliTOFGeometry::NStripC();
     break;
   case 3:
-    before = AliTOFGeometry::NStripA() +   AliTOFGeometry::NStripB() + tofGeom->NStripC();
+    before = AliTOFGeometry::NStripA() +   AliTOFGeometry::NStripB() + AliTOFGeometry::NStripC();
     break;
   case 4:
-    before = AliTOFGeometry::NStripA() + 2*AliTOFGeometry::NStripB() + tofGeom->NStripC();
+    before = AliTOFGeometry::NStripA() + 2*AliTOFGeometry::NStripB() + AliTOFGeometry::NStripC();
     break;
   }
   
@@ -287,3 +287,4 @@ Int_t AliTOFSDigit::GetTotPad(AliTOFGeometry *tofGeom) const
   Int_t padTot = AliTOFGeometry::NpadXStrip()*strip + pad;
   return padTot;
 }
+

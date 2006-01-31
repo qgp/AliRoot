@@ -1,5 +1,3 @@
-# $Id$
-
 #
 # mapping 
 #
@@ -15,7 +13,6 @@ SRCS +=  \
 	 mapping/AliMpPad.cxx  \
 	 mapping/AliMpPadIteratorPtr.cxx  \
 	 mapping/AliMpPadPair.cxx  \
-	 mapping/AliMpStringObjMap.cxx  \
 	 mapping/AliMpVIndexed.cxx  \
 	 mapping/AliMpVPadIterator.cxx  \
 	 mapping/AliMpVSegmentation.cxx  \
@@ -66,22 +63,13 @@ SRCS +=  \
 	 mapping/AliMpSlatPadIterator.cxx  \
 	 mapping/AliMpSlatSegmentation.cxx  \
 	 mapping/AliMpSlatZonePadIterator.cxx  \
-	 mapping/AliMpSt345Reader.cxx  \
-
+	 mapping/AliMpSt345Reader.cxx
+   
 # Category trigger
-#
-SRCS +=  \
-	 mapping/AliMpTrigger.cxx  \
-	 mapping/AliMpTriggerReader.cxx  \
-	 mapping/AliMpTriggerSegmentation.cxx  \
-
-# Category management
-#
-SRCS +=  \
-	 mapping/AliMpBusPatch.cxx  \
-	 mapping/AliMpDEIterator.cxx  \
-	 mapping/AliMpDEManager.cxx  \
-	 mapping/AliMpSegFactory.cxx  \
+SRCS += \
+    mapping/AliMpTrigger.cxx \
+    mapping/AliMpTriggerReader.cxx \
+    mapping/AliMpTriggerSegmentation.cxx
 
 # Category graphics
 #

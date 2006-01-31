@@ -11,8 +11,6 @@
 //____________________________________________________________________
 // 
 // Class to writer ADC values to a Raw File
-// Uses general ALTRO class - which is wrong
-// Should make it right!
 //
 #ifndef ROOT_TTask
 # include <TTask.h>
@@ -29,7 +27,6 @@ class AliFMDRawWriter : public TTask
 {
 public:
   AliFMDRawWriter(AliFMD* fmd);
-  virtual ~AliFMDRawWriter() {}
 
   virtual void Exec(Option_t* option="");
 protected:

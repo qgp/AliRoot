@@ -21,8 +21,6 @@
 #pragma link C++ class AliMUONTrackHit+; 
 #pragma link C++ class AliMUONSegment+;
 #pragma link C++ class AliMUONClusterDrawAZ+;
-#pragma link C++ class AliMUONDetElement+; 
-#pragma link C++ class AliMUONEventRecoCombi+; 
 
 // raw data
 #pragma link C++ class AliMUONDDLTrigger+;
@@ -30,7 +28,7 @@
 #pragma link C++ class AliMUONScalerEventTrigger+;
 #pragma link C++ class AliMUONDDLTracker+;
 #pragma link C++ class AliMUONSubEventTracker+;
-#pragma link C++ class AliMUONRawReader+;
+#pragma link C++ class AliMUONRawData+;
 #pragma link C++ class AliMUONRawStream+;
 
 #endif

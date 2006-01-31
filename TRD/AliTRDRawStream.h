@@ -18,7 +18,7 @@ class AliTRDparameter;
 
 class AliTRDRawStream: public TObject {
   public :
-    AliTRDRawStream(AliRawReader* rawReader);
+    AliTRDRawStream(AliRawReader* rawReader, AliTRDparameter* parameter);
     virtual ~AliTRDRawStream();
 
     virtual Bool_t   Next();
@@ -44,6 +44,7 @@ class AliTRDRawStream: public TObject {
 
     AliRawReader*    fRawReader;    // object for reading the raw data
 
+    Int_t            fTimeTotal;    // total time bins
     Int_t            fCount;        // counter of bytes to be read for current detector
 
     Int_t            fDetector;     // index of current detector
@@ -56,7 +57,7 @@ class AliTRDRawStream: public TObject {
     Int_t            fTime;         // index of current time bin
     Int_t            fSignal;       // signal in ADC counts
 
-    ClassDef(AliTRDRawStream, 1)    // class for reading TRD raw digits
+    ClassDef(AliTRDRawStream, 0)    // class for reading TRD raw digits
 };
 
 #endif

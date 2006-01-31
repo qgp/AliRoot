@@ -8,6 +8,5 @@
  
 #pragma link C++ class  AliVZEROLoader+;
 #pragma link C++ class  AliVZEROdigit+;
-#pragma link C++ class  AliVZEROCalibData+;
 
 #endif

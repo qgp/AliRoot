@@ -31,7 +31,7 @@
 #include "AliMUONGeometryTransformer.h"
 #include "AliMUONGeometryModule.h"
 #include "AliMUONGeometrySVMap.h"
-#include "AliMUONGeometryStore.h"
+#include "AliMUONGeometryDEIndexing.h"
 #include "AliLog.h"
 
 
@@ -121,7 +121,8 @@ void AliMUONGeometry::FillData3(const TString& sensVolumePath,
 // ---
 
   // Module Id
-  Int_t moduleId = AliMUONGeometryStore::GetModuleId(detElemId);
+  Int_t moduleId 
+    = AliMUONGeometryDEIndexing::GetModuleId(detElemId);
     
   // Get module
   AliMUONGeometryModule* module 
@@ -300,7 +301,7 @@ AliMUONGeometry::GetModuleByDEId(Int_t detElemId, Bool_t warn) const
 /// Return the geometry module specified by index
 
   // Get module index
-  Int_t index = AliMUONGeometryStore::GetModuleId(detElemId);
+  Int_t index = AliMUONGeometryDEIndexing::GetModuleId(detElemId);
 
   return GetModule(index, warn);
 }    

@@ -16,8 +16,8 @@
 /* $Id$ */
 
 #include "AliMUONSt345SlatSegmentationV2.h"
-#include "AliMUONConstants.h"
 
+#include "AliLog.h"
 #include "AliMpArea.h"
 #include "AliMpSlat.h"
 #include "AliMpSlatSegmentation.h"
@@ -32,10 +32,11 @@
 // Dpx, Dpy, Sector offer now to the clustering. That indeed should be
 // handled directly at the level of AliMpVSegmentation...
 #include "AliMpVPadIterator.h"
-
-#include "AliLog.h"
+#include "AliMUONSegmentationManager.h"
+#include "AliMUONConstants.h"
 
 #include "Riostream.h"
+
 #include "TClass.h"
 
 ClassImp(AliMUONSt345SlatSegmentationV2)
@@ -61,9 +62,7 @@ fYhit(FMAX)
 }
 
 //_____________________________________________________________________________
-AliMUONSt345SlatSegmentationV2::AliMUONSt345SlatSegmentationV2(
-                                   AliMpVSegmentation* segmentation,
-                                   Int_t detElemId, AliMpPlaneType bendingOrNonBending)
+AliMUONSt345SlatSegmentationV2::AliMUONSt345SlatSegmentationV2(Int_t detElemId, AliMpPlaneType bendingOrNonBending)
 : AliMUONVGeometryDESegmentation(),
 fDetElemId(detElemId),
 fPlaneType(bendingOrNonBending),
@@ -76,12 +75,8 @@ fYhit(FMAX)
   //
   // Normal ctor.
   //
-
-  fSlatSegmentation = dynamic_cast<AliMpSlatSegmentation*>(segmentation);
-  if (fSlatSegmentation)
-    fSlat = fSlatSegmentation->Slat();
-  else 
-    AliFatal("Wrong mapping segmentation type");
+	
+	ReadMappingData();
 		
   AliDebug(1,Form("this=%p detElemId=%3d %s fSlatSegmentation=%p",this,detElemId,
 									( (bendingOrNonBending==kBendingPlane)?"Bending":"NonBending" ),
@@ -481,6 +476,20 @@ AliMUONSt345SlatSegmentationV2::Print(Option_t*) const
 }
 
 //_____________________________________________________________________________
+void
+AliMUONSt345SlatSegmentationV2::ReadMappingData()
+{
+	fSlatSegmentation = dynamic_cast<AliMpSlatSegmentation*>
+  (AliMUONSegmentationManager::Segmentation(fDetElemId,fPlaneType));
+	
+  if (!fSlatSegmentation)
+	{
+		AliFatal("Wrong segmentation type encountered");
+	}
+  fSlat = fSlatSegmentation->Slat();
+}
+
+//_____________________________________________________________________________
 Int_t
 AliMUONSt345SlatSegmentationV2::Sector(Int_t ix, Int_t)
 {
@@ -564,3 +573,19 @@ AliMUONSt345SlatSegmentationV2::SigGenInit(Float_t,Float_t,Float_t)
 {
   AliFatal("Not Implemented");
 }
+
+//_____________________________________________________________________________
+void
+AliMUONSt345SlatSegmentationV2::Streamer(TBuffer &R__b)
+{
+  if (R__b.IsReading()) 
+	{
+    AliMUONSt345SlatSegmentationV2::Class()->ReadBuffer(R__b, this);
+    ReadMappingData();
+  } 
+  else 
+	{
+    AliMUONSt345SlatSegmentationV2::Class()->WriteBuffer(R__b, this);
+  }
+}
+

@@ -19,8 +19,6 @@ class ClusterFinderCallback : public TObject
 {
 public:
 
-	virtual ~ClusterFinderCallback() {};
-
 	virtual void FoundClusters(UInt_t numberfound) = 0;
 	virtual void NoClustersFound() = 0;
 	

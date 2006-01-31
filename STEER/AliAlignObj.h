@@ -19,9 +19,7 @@ class AliAlignObj : public TObject {
   AliAlignObj(const AliAlignObj& theAlignObj);
   AliAlignObj& operator= (const AliAlignObj& theAlignObj);
   virtual ~AliAlignObj();
-  enum ELayerID{kInvalidLayer=0,
-		kFirstLayer=1,
-		kSPD1=1, kSPD2=2,
+  enum ELayerID{kSPD1=1, kSPD2=2,
 		kSDD1=3, kSDD2=4,
 		kSSD1=5, kSSD2=6,
 		kTPC1=7, kTPC2=8,
@@ -29,8 +27,7 @@ class AliAlignObj : public TObject {
 		kTOF=15,
 		kPHOS1=16, kPHOS2=17,
 		kRICH=18,
-		kMUON=19,
-		kLastLayer=20};
+		kMUON=19};
 
   //Setters
   virtual void SetTranslation(Double_t x, Double_t y, Double_t z) = 0;
@@ -55,9 +52,6 @@ class AliAlignObj : public TObject {
 
   void  Print(Option_t *) const;
 
-  static Int_t       LayerSize(Int_t layer) { return fgLayerSize[layer]; }
-  static const char* LayerName(Int_t layer) { return fgLayerName[layer]; }
-
   static UShort_t LayerToVolUID(ELayerID layerId, Int_t modId);
   static ELayerID VolUIDToLayer(UShort_t voluid, Int_t &modId);
   static ELayerID VolUIDToLayer(UShort_t voluid);
@@ -67,11 +61,8 @@ class AliAlignObj : public TObject {
   Bool_t MatrixToAngles(const Double_t *rot, Double_t *angles) const;
 
   //Volume identifiers
-  TString  fVolPath; // Volume path inside TGeo geometry
-  UShort_t fVolUID;  // Unique volume ID
-
-  static Int_t       fgLayerSize[kLastLayer - kFirstLayer];
-  static const char* fgLayerName[kLastLayer - kFirstLayer];
+  TString fVolPath; // Volume path inside TGeo geometry
+  UShort_t fVolUID; // Unique volume ID
   
   ClassDef(AliAlignObj, 1)
 };

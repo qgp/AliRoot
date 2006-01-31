@@ -11,8 +11,6 @@
 //____________________________________________________________________
 // 
 // Class to read ADC values from a AliRawReader object. 
-// Note, that it uses an ALTRO reader, which is wrong. 
-// Perhaps we need to implement it our selves
 // 
 #ifndef ROOT_TTask
 # include <TTask.h>
@@ -28,7 +26,7 @@ class AliFMDRawReader : public TTask
 {
 public:
   AliFMDRawReader(AliRawReader* reader, TTree* array);
-  virtual ~AliFMDRawReader() {}
+
   virtual void Exec(Option_t* option="");
 protected:
   TTree*        fTree;       //! Pointer to tree to read into 

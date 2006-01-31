@@ -9,7 +9,7 @@
    base class for HLT configurations
  */
 
-#include <cerrno>
+#include <errno.h>
 #include <TObject.h>
 #include <TList.h>
 #include "AliHLTDataTypes.h"
@@ -137,14 +137,7 @@ class AliHLTComponentHandler;
  *
  * AliHLTTask
  *
- * a task collects all the information which is necessary to process a certain step in the HLT data
- * processing chain:
- * 1. the instance of the component
- * 2. the data buffer which receives the result of the component and provides the data to other
- *    tasks/components
- * 3. a list of all dependencies
- * 4. a list of consumers
- * 5. the task object holds the configuration object 
+ * 
  */
 class AliHLTTask : public TObject, public AliHLTLogging {
  public:
@@ -161,17 +154,14 @@ class AliHLTTask : public TObject, public AliHLTLogging {
   const char *GetName() const;
 
   /* return pointer to configuration
-   * the tasks holds internally the configuration object, which is returned by the function
    */
   AliHLTConfiguration* GetConf();
 
-  /* return pointer to component, which the task internally holds
+  /* return pointer to configuration
    */
   AliHLTComponent* GetComponent();
 
   /* find a dependency with name/id 
-   * searches in the list of dependencies for a task
-   * NOTE: the id specifies a CONFIGURATION not a COMPONENT
    */
   AliHLTTask* FindDependency(const char* id);
 
@@ -184,24 +174,15 @@ class AliHLTTask : public TObject, public AliHLTLogging {
   int InsertBlockData(AliHLTComponent_BlockData* pBlock, AliHLTTask* pSource);
 
   /* add a dependency for the task
-   * the task which the current task depends on is added to the list
-   * result: 0 if suceeded, neg error code if failed
-   *    -EEXIST : the dependencies already exists
-   *
    */
   int SetDependency(AliHLTTask* pDep);
 
   /* return number of unresolved dependencies
-   * iterate through all the configurations the task depends on and check whether a corresponding
-   * task is available in the list
    */
   int CheckDependencies();
 
-  /* check whether the current task depends on the task pTask
-   * result:
-   *     1 the current task depends upon pTask
-   *     0 no dependency
-   *     neg error code if failure
+  /* 1 if the current task depends upon pTask
+   * 0 if no dependency
    */
   int Depends(AliHLTTask* pTask);
 

@@ -77,8 +77,6 @@ public:
   Bool_t         Run(Int_t firstEvent, Int_t lastEvent = -1)
     {return Run(NULL, firstEvent, lastEvent);};
 
-  void SetWriteAlignmentData(){fWriteAlignmentData=kTRUE;}
-
 private:
   Bool_t         RunLocalReconstruction(const TString& detectors);
   Bool_t         RunLocalEventReconstruction(const TString& detectors);
@@ -102,7 +100,6 @@ private:
   void           CreateTag(TFile* file);
   //==========================================//
 
-  void           WriteAlignmentData(AliESD* esd);
 
 
 
@@ -130,9 +127,7 @@ private:
   AliVertexer*   fVertexer;                //! vertexer for ITS
   AliTracker*    fTracker[fgkNDetectors];  //! trackers
 
-  Bool_t         fWriteAlignmentData; // write track space-points flag
-
-  ClassDef(AliReconstruction, 6)      // class for running the reconstruction
+  ClassDef(AliReconstruction, 5)      // class for running the reconstruction
 };
 
 #endif

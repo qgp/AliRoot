@@ -4,7 +4,7 @@
 // $Id$
 // $MpId$
 
-/// \ingroup trigger
+/// \ingroup slat
 /// \class AliMpTriggerReader
 /// \brief Read trigger slat ASCII files
 /// 

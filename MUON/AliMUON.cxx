@@ -65,7 +65,7 @@
 #include "AliMUONGeometrySegmentation.h"
 #include "AliMUONDigitizerv2.h"
 #include "AliMUONSDigitizerv1.h"
-#include "AliMUONRawWriter.h"
+#include "AliMUONRawData.h"
 #include "AliMUONSegmentation.h"
 #include "AliLog.h"
 
@@ -378,14 +378,6 @@ Float_t  AliMUON::GetMaxDestepAlu() const
 }   
 
 //____________________________________________________________________
- void  AliMUON::SetAlign(const TString& fileName, Bool_t align)
-{
- // Sets option for alignement to geometry builder
- 
-   fGeometryBuilder->SetAlign(fileName, align);
-}   
-
-//____________________________________________________________________
 void   AliMUON::SetResponseModel(Int_t id, AliMUONResponse *response)
 {
 // Set the response for chamber id
@@ -427,9 +419,9 @@ void AliMUON::Hits2SDigits()
 void AliMUON::Digits2Raw()
 {
   // convert digits of the current event to raw data
-  AliMUONRawWriter* rawData;
+  AliMUONRawData* rawData;
 
-  rawData = new AliMUONRawWriter(fLoader,fMUONData);
+  rawData = new AliMUONRawData(fLoader);
   if (!rawData->Digits2Raw()) AliInfo("pb writting raw data");
   delete rawData;
   return;

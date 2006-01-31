@@ -18,15 +18,8 @@
 //____________________________________________________________________
 //
 //  Hits in the FMD 
-//  Contains information on:
-//	Position of hit
-//	Momentum of track
-//	PID of track
-//	Energy loss of track
-//	Track #
-//	Track path length
-//	Track stopping status. 
-//  Latest changes by Christian Holm Christensen
+//
+// Latest changes by Christian Holm Christensen
 //
 #include "AliFMDHit.h"		// ALIFMDHIT_H
 #include "AliLog.h"		// ALILOG_H
@@ -53,11 +46,8 @@ AliFMDHit::AliFMDHit()
     fPz(0),
     fPdg(0),
     fEdep(0), 
-    fTime(0), 
-    fLength(0), 
-    fStop(0)
+    fTime(0)
 {
-  // Default CTOR
   fX = fY = fZ = 0;
 }
   
@@ -77,9 +67,7 @@ AliFMDHit::AliFMDHit(Int_t    shunt,
 		     Float_t  pz,
 		     Float_t  edep,
 		     Int_t    pdg,
-		     Float_t  t, 
-		     Float_t  l, 
-		     Bool_t   stop)
+		     Float_t  t)
   : AliHit(shunt, track),
     fDetector(detector), 
     fRing(ring), 
@@ -90,9 +78,7 @@ AliFMDHit::AliFMDHit(Int_t    shunt,
     fPz(pz),
     fPdg(pdg),
     fEdep(edep), 
-    fTime(t), 
-    fLength(l), 
-    fStop(stop)
+    fTime(t)
 {
   // Normal FMD hit ctor
   // 
@@ -166,8 +152,7 @@ AliFMDHit::Print(Option_t* option) const
     cout << "\tPDG:\t" << fPdg << " " << (pdg ? pdg->GetName() : "?") << "\n"
 	 << "\tP:\t(" << fPx << "," << fPy << "," << fPz << ") "<<P() << "\n" 
 	 << "\tX:\t" << fX << "," << fY << "," << fZ << "\n" 
-	 << "\tTrack #:\t" << fTrack << "\tLength:\t" 
-	 << fLength << "cm\t" << (IsStop() ? "stopped" : "") << std::endl;
+	 << "\tTrack #:\t" << fTrack << std::endl;
   }
 }
 

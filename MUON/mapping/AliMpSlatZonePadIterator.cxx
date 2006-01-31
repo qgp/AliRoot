@@ -23,7 +23,6 @@
 #include "AliMpSlat.h"
 #include "AliMpSlatSegmentation.h"
 
-#include "Riostream.h"
 #include <algorithm>
 #include <limits>
 #include <cassert>
@@ -34,7 +33,7 @@ ClassImp(AliMpSlatZonePadIterator)
 
 namespace 
 {
-  const Double_t epsilon = 1E-4; // cm
+  const Double_t epsilon = 1E-9; // mm
   Double_t DMAX(std::numeric_limits<Double_t>::max());
 }
 
@@ -96,14 +95,14 @@ AliMpSlatZonePadIterator::CropArea()
   Double_t xleft = first->ActiveXmin();
   Double_t xright = last->ActiveXmax() - epsilon;
 
-  AliDebug(3,Form("xleft,xright=%e,%e",xleft,xright));
+  AliDebug(3,Form("xleft,xright=%7.2f,%7.2f",xleft,xright));
 
   Double_t xmin = std::max(fArea.LeftBorder(),xleft);
   Double_t xmax = std::min(fArea.RightBorder(),xright);
   Double_t ymin = std::max(fArea.DownBorder(),0.0);
   Double_t ymax = std::min(fArea.UpBorder(),fkSlat->DY()*2.0-epsilon);
 
-  AliDebug(3,Form("Cropped area (%e,%e)->(%e,%e)",
+  AliDebug(3,Form("Cropped area (%7.2f,%7.2f)->(%7.2f,%7.2f)",
 		  xmin,ymin,xmax,ymax));
   
   // At this point (xmin,ymin)->(xmax,ymax) should be a zone completely included
@@ -116,15 +115,6 @@ AliMpSlatZonePadIterator::CropArea()
   AliMpPad bottomLeft 
     = fSlatSegmentation->PadByPosition(TVector2(xmin,ymin)-fkSlat->Position(),
                                        kFALSE);
-
-  StdoutToAliDebug(3,
-                   cout << "bottomLeft=" << endl;
-                   bottomLeft.Print();
-                   cout << bottomLeft.Position().X()+fkSlat->Position().X()
-                   << "," << bottomLeft.Position().Y()+fkSlat->Position().Y()
-                   << endl;
-                   );
-  
   if ( bottomLeft.IsValid() )
     {
       xmin = std::min(xmin,fkSlat->DX() + 
@@ -136,15 +126,6 @@ AliMpSlatZonePadIterator::CropArea()
   AliMpPad topRight 
     = fSlatSegmentation->PadByPosition(TVector2(xmax,ymax)-fkSlat->Position(),
                                        kFALSE);
-  StdoutToAliDebug(3,
-                   cout << "topRight=" << endl;
-                   topRight.Print();
-                   cout << topRight.Position().X()+fkSlat->Position().X()
-                   << "," << topRight.Position().Y()+fkSlat->Position().Y()
-                   << endl;
-                   
-                   );
-
   if ( topRight.IsValid() )
     {
       xmax = std::max(xmax,fkSlat->DX() + 

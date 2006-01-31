@@ -107,7 +107,6 @@
 #include <AliLoader.h>		// ALILOADER_H
 #include <AliRun.h>		// ALIRUN_H
 #include <AliMC.h>		// ALIMC_H
-#include "AliMagF.h"		// ALIMAGF_H
 #include <AliLog.h>		// ALILOG_H
 #include "AliFMD.h"		// ALIFMD_H
 #include "AliFMDDigit.h"	// ALIFMDDIGIG_H
@@ -116,17 +115,12 @@
 #include "AliFMDDetector.h"	// ALIFMDDETECTOR_H
 #include "AliFMDRing.h"		// ALIFMDRING_H
 #include "AliFMDDigitizer.h"	// ALIFMDDIGITIZER_H
-#ifdef USE_PRE_MOVE
 #include "AliFMDSimulator.h"	// ALIFMDSIMULATOR_H
 #include "AliFMDG3Simulator.h"	// ALIFMDG3SIMULATOR_H
 #include "AliFMDGeoSimulator.h"	// ALIFMDGEOSIMULATOR_H
 #include "AliFMDG3OldSimulator.h"	// ALIFMDG3OLDSIMULATOR_H
 #include "AliFMDGeoOldSimulator.h"	// ALIFMDGEOOLDSIMULATOR_H
-#else
-#include "AliFMDGeometryBuilderSimple.h"
-#endif
 #include "AliFMDRawWriter.h"	// ALIFMDRAWWRITER_H
-#include <TVector2.h>
 
 //____________________________________________________________________
 ClassImp(AliFMD)
@@ -140,10 +134,7 @@ AliFMD::AliFMD()
     fSDigits(0), 
     fNsdigits(0),
     fDetailed(kTRUE),
-#ifdef USE_PRE_MOVE
-    fSimulator(0), 
-#endif
-    fBad(0)
+    fSimulator(0)
 {
   //
   // Default constructor for class AliFMD
@@ -153,8 +144,9 @@ AliFMD::AliFMD()
   fDigits      = 0;
   fIshunt      = 0;
   fUseOld      = kFALSE;
-  fUseAssembly = kTRUE;
-  fBad         = new TClonesArray("AliFMDHit");
+  fUseDivided  = kFALSE;
+  fUseAssembly = kFALSE;
+  fUseGeo      = kTRUE;
 }
 
 //____________________________________________________________________
@@ -163,14 +155,13 @@ AliFMD::AliFMD(const AliFMD& other)
     fSDigits(other.fSDigits), 
     fNsdigits(other.fNsdigits),
     fDetailed(other.fDetailed),
-#ifdef USE_PRE_MOVE
-    fSimulator(other.fSimulator),
-#endif
-    fBad(other.fBad)
+    fSimulator(other.fSimulator)
 {
   // Copy constructor 
   fUseOld      = other.fUseOld;
+  fUseDivided  = other.fUseDivided;
   fUseAssembly = other.fUseAssembly;
+  fUseGeo      = other.fUseGeo;
 }
 
 //____________________________________________________________________
@@ -179,18 +170,16 @@ AliFMD::AliFMD(const char *name, const char *title)
     fSDigits(0),
     fNsdigits(0),
     fDetailed(kTRUE),
-#ifdef USE_PRE_MOVE
-    fSimulator(0), 
-#endif
-    fBad(0)
+    fSimulator(0)
 {
   //
   // Standard constructor for Forward Multiplicity Detector
   //
   AliDebug(10, "\tStandard CTOR");
   fUseOld      = kFALSE;
+  fUseDivided  = kFALSE;
   fUseAssembly = kFALSE;
-  fBad         = new TClonesArray("AliFMDHit");
+  fUseGeo      = kTRUE;
   
   // Initialise Hit array
   HitsArray();
@@ -225,26 +214,18 @@ AliFMD::~AliFMD ()
     delete fSDigits;
     fSDigits = 0;
   }
-  if (fBad) {
-    fBad->Delete();
-    delete fBad;
-    fBad = 0;
-  }
 }
 
 //____________________________________________________________________
 AliFMD&
 AliFMD::operator=(const AliFMD& other)
 {
-  // Assignment operator
   AliDetector::operator=(other);
   fSDigits		= other.fSDigits; 
   fNsdigits		= other.fNsdigits;
   fDetailed		= other.fDetailed;
-#ifdef USE_PRE_MOVE
   fSimulator            = other.fSimulator;
-#endif
-  fBad                  = other.fBad;
+  
   return *this;
 }
 
@@ -281,220 +262,30 @@ AliFMD::CreateGeometry()
   //     AliFMDSubDetector::Geomtry();
   //   END FOR
   //
-#ifndef USE_PRE_MOVE
-  AliFMDGeometry*  fmd = AliFMDGeometry::Instance();
-  if (fUseOld) fmd->SetBuilder(new AliFMDGeometryBuilderSimple(fDetailed));
-  fmd->SetDetailed(fDetailed);
-  fmd->UseAssembly(fUseAssembly);
-  fmd->Build();
-#else
   if (!fSimulator) {
     AliFatal("Simulator object not made yet!");
     return;
   }
   fSimulator->DefineGeometry();
-#endif
 }    
 
 //____________________________________________________________________
 void AliFMD::CreateMaterials() 
 {
-  // Define the materials and tracking mediums needed by the FMD
-  // simulation.   These mediums are made by sending the messages
-  // AliMaterial, AliMixture, and AliMedium to the passed AliModule
-  // object module.   The defined mediums are 
+  // Register various materials and tracking mediums with the
+  // backend.   
   // 
-  //	FMD Si$		Silicon (active medium in sensors)
-  //	FMD C$		Carbon fibre (support cone for FMD3 and vacuum pipe)
-  //	FMD Al$		Aluminium (honeycomb support plates)
-  //	FMD PCB$	Printed Circuit Board (FEE board with VA1_3)
-  //	FMD Chip$	Electronics chips (currently not used)
-  //	FMD Air$	Air (Air in the FMD)
-  //	FMD Plastic$	Plastic (Support legs for the hybrid cards)
-  //
-  // Pointers to TGeoMedium objects are retrived from the TGeoManager
-  // singleton.  These pointers are later used when setting up the
-  // geometry 
-  AliDebug(10, "\tCreating materials");
-  // Get pointer to geometry singleton object. 
-  AliFMDGeometry* geometry = AliFMDGeometry::Instance();
-  geometry->Init();
-#if 0
-  if (gGeoManager && gGeoManager->GetMedium("FMD Si$")) {
-    // We need to figure out the some stuff about the geometry
-    fmd->ExtractGeomInfo();
-    return;
-  }
-#endif  
-#ifndef USE_PRE_MOVE     
-  Int_t    id;
-  Double_t a                = 0;
-  Double_t z                = 0;
-  Double_t density          = 0;
-  Double_t radiationLength  = 0;
-  Double_t absorbtionLength = 999;
-  Int_t    fieldType        = gAlice->Field()->Integ();     // Field type 
-  Double_t maxField         = gAlice->Field()->Max();     // Field max.
-  Double_t maxBending       = 0;     // Max Angle
-  Double_t maxStepSize      = 0.001; // Max step size 
-  Double_t maxEnergyLoss    = 1;     // Max Delta E
-  Double_t precision        = 0.001; // Precision
-  Double_t minStepSize      = 0.001; // Minimum step size 
- 
-  // Silicon 
-  a                = 28.0855;
-  z                = 14.;
-  density          = geometry->GetSiDensity();
-  radiationLength  = 9.36;
-  maxBending       = 1;
-  maxStepSize      = .001;
-  precision        = .001;
-  minStepSize      = .001;
-  id               = kSiId;
-  AliMaterial(id, "Si$", a, z, density, radiationLength, absorbtionLength);
-  AliMedium(kSiId, "Si$", id,1,fieldType,maxField,maxBending,
-	    maxStepSize,maxEnergyLoss,precision,minStepSize);
-  
-
-  // Carbon 
-  a                = 12.011;
-  z                = 6.;
-  density          = 2.265;
-  radiationLength  = 18.8;
-  maxBending       = 10;
-  maxStepSize      = .01;
-  precision        = .003;
-  minStepSize      = .003;
-  id               = kCarbonId;
-  AliMaterial(id, "Carbon$", a, z, density, radiationLength, absorbtionLength);
-  AliMedium(kCarbonId, "Carbon$", id,0,fieldType,maxField,maxBending,
-		    maxStepSize,maxEnergyLoss,precision,minStepSize);
-
-  // Aluminum
-  a                = 26.981539;
-  z                = 13.;
-  density          = 2.7;
-  radiationLength  = 8.9;
-  id               = kAlId;
-  AliMaterial(id, "Aluminum$",a,z, density, radiationLength, absorbtionLength);
-  AliMedium(kAlId, "Aluminum$", id, 0, fieldType, maxField, maxBending,
-	    maxStepSize, maxEnergyLoss, precision, minStepSize);
-  
-  
-  // Copper 
-  a                = 63.546;
-  z                = 29;
-  density          =  8.96;
-  radiationLength  =  1.43;
-  id               = kCopperId;
-  AliMaterial(id, "Copper$", 
-		      a, z, density, radiationLength, absorbtionLength);
-  AliMedium(kCopperId, "Copper$", id, 0, fieldType, maxField, maxBending,
-	    maxStepSize, maxEnergyLoss, precision, minStepSize);
-  
-
-  // Silicon chip 
-  {
-    Float_t as[] = { 12.0107,      14.0067,      15.9994,
-		      1.00794,     28.0855,     107.8682 };
-    Float_t zs[] = {  6.,           7.,           8.,
-		      1.,          14.,          47. };
-    Float_t ws[] = {  0.039730642,  0.001396798,  0.01169634,
-		      0.004367771,  0.844665,     0.09814344903 };
-    density          = 2.36436;
-    maxBending       = 10;
-    maxStepSize      = .01;
-    precision        = .003;
-    minStepSize      = .003;
-    id               = kSiChipId;
-    AliMixture(id, "Si Chip$", as, zs, density, 6, ws);
-    AliMedium(kSiChipId, "Si Chip$",  id, 0, fieldType, maxField, maxBending, 
-	      maxStepSize, maxEnergyLoss, precision, minStepSize);
-  }
-  
-  // Kaption
-  {
-    Float_t as[] = { 1.00794,  12.0107,  14.010,   15.9994};
-    Float_t zs[] = { 1.,        6.,       7.,       8.};
-    Float_t ws[] = { 0.026362,  0.69113,  0.07327,  0.209235};
-    density          = 1.42;
-    maxBending       = 1;
-    maxStepSize      = .001;
-    precision        = .001;
-    minStepSize      = .001;
-    id               = kKaptonId;
-    AliMixture(id, "Kaption$", as, zs, density, 4, ws);
-    AliMedium(kKaptonId, "Kaption$", id,0,fieldType,maxField,maxBending,
-	      maxStepSize,maxEnergyLoss,precision,minStepSize);
-  }
-
-  // Air
-  {
-    Float_t as[] = { 12.0107, 14.0067,   15.9994,  39.948 };
-    Float_t zs[] = {  6.,      7.,       8.,       18. };
-    Float_t ws[] = { 0.000124, 0.755267, 0.231781, 0.012827 }; 
-    density      = .00120479;
-    maxBending   = 1;
-    maxStepSize  = .001;
-    precision    = .001;
-    minStepSize  = .001;
-    id           = kAirId;
-    AliMixture(id, "Air$", as, zs, density, 4, ws);
-    AliMedium(kAirId, "Air$", id,0,fieldType,maxField,maxBending,
-	      maxStepSize,maxEnergyLoss,precision,minStepSize);
-  }
-  
-  // PCB
-  {
-    Float_t zs[] = { 14.,         20.,         13.,         12.,
-		      5.,         22.,         11.,         19.,
-		     26.,          9.,          8.,          6.,
-		      7.,          1.};
-    Float_t as[] = { 28.0855,     40.078,      26.981538,   24.305, 
-		     10.811,      47.867,      22.98977,    39.0983,
-		     55.845,      18.9984,     15.9994,     12.0107,
-		     14.0067,      1.00794};
-    Float_t ws[] = {  0.15144894,  0.08147477,  0.04128158,  0.00904554, 
-		      0.01397570,  0.00287685,  0.00445114,  0.00498089,
-		      0.00209828,  0.00420000,  0.36043788,  0.27529426,
-		      0.01415852,  0.03427566};
-    density      = 1.8;
-    maxBending   = 1;
-    maxStepSize  = .001;
-    precision    = .001;
-    minStepSize  = .001;
-    id           = kPcbId;
-    AliMixture(id, "PCB$", as, zs, density, 14, ws);
-    AliMedium(kPcbId, "PCB$", id,0,fieldType,maxField,maxBending,
-	      maxStepSize,maxEnergyLoss,precision,minStepSize);
-  }
-  
-  // Plastic 
-  {
-    Float_t as[] = { 1.01, 12.01 };
-    Float_t zs[] = { 1.,   6.    };
-    Float_t ws[] = { 1.,   1.    };
-    density      = 1.03;
-    maxBending   = 10;
-    maxStepSize  = .01;
-    precision    = .003;
-    minStepSize  = .003;
-    id           = kPlasticId;
-    AliMixture(id, "Plastic$", as, zs, density, -2, ws);
-    AliMedium(kPlasticId, "Plastic$", id,0,fieldType,maxField,maxBending,
-	      maxStepSize,maxEnergyLoss,precision,minStepSize);
-  }
-#else
   AliDebug(10, "\tCreating materials");
 
   if (fSimulator) {
     AliFatal("Simulator object already instantised!");
     return;
   }
+  AliFMDGeometry* geometry = AliFMDGeometry::Instance();
+  geometry->Init();
   TVirtualMC* mc = TVirtualMC::GetMC();
-
   Bool_t geo = mc->IsRootGeometrySupported();
-  if (geo) {
+  if (geo && fUseGeo) {
     if (fUseOld) 
       fSimulator = new AliFMDGeoOldSimulator(this, fDetailed);
     else 
@@ -508,33 +299,39 @@ void AliFMD::CreateMaterials()
   }
   AliDebug(1, Form("using a %s as simulation backend", 
 		   fSimulator->IsA()->GetName()));
-  fSimulator->SetDetailed(fDetailed);
+  fSimulator->UseDivided(fUseDivided);
   fSimulator->UseAssembly(fUseAssembly);
   fSimulator->DefineMaterials();
-#endif
 }
 
 //____________________________________________________________________
 void  
 AliFMD::Init()
-{}
+{
+  //
+  // Initialis the FMD after it has been built
+  Int_t i;
+  //
+  if (AliLog::GetGlobalDebugLevel()) {
+    cout << "\n" << ClassName() << ": " << flush;
+    for (i = 0; i < 35; i++) cout << "*";
+    cout << " FMD_INIT ";
+    for (i = 0; i < 35; i++) cout << "*";
+    cout << "\n" << ClassName() << ": " << flush;
+    //
+    // Here the FMD initialisation code (if any!)
+    for (i = 0; i < 80; i++) cout << "*";
+    cout << endl;
+  }
+  //
+  //
+}
 
 //____________________________________________________________________
 void
 AliFMD::FinishEvent()
 {
-#ifndef USE_PRE_MOVE
-  if (fBad && fBad->GetEntries() > 0) {
-    AliWarning((Form("EndEvent", "got %d 'bad' hits", fBad->GetEntries())));
-    TIter next(fBad);
-    AliFMDHit* hit;
-    while ((hit = static_cast<AliFMDHit*>(next()))) 
-      hit->Print("D");
-    fBad->Clear();
-  }
-#else
   if (fSimulator) fSimulator->EndEvent();
-#endif
 }
 
 
@@ -831,9 +628,7 @@ AliFMD::AddHitByFields(Int_t    track,
 		       Float_t  pz,
 		       Float_t  edep,
 		       Int_t    pdg,
-		       Float_t  t, 
-		       Float_t  l, 
-		       Bool_t   stop)
+		       Float_t  t)
 {
   //
   // Add a hit to the list
@@ -854,8 +649,6 @@ AliFMD::AddHitByFields(Int_t    track,
   //    edep	  Energy deposited by track
   //    pdg	  Track's particle Id #
   //    t	  Time when the track hit 
-  //    l         Track length through the material. 
-  //    stop      Whether track was stopped or disappeared
   // 
   TClonesArray& a = *(HitsArray());
   // Search through the list of already registered hits, and see if we
@@ -882,8 +675,7 @@ AliFMD::AddHitByFields(Int_t    track,
   }
   // If hit wasn't already registered, do so know. 
   hit = new (a[fNhits]) AliFMDHit(fIshunt, track, detector, ring, sector, 
-				  strip, x, y, z, px, py, pz, edep, pdg, t, 
-				  l, stop);
+				  strip, x, y, z, px, py, pz, edep, pdg, t);
   fNhits++;
   return hit;
 }
@@ -1118,9 +910,7 @@ AliFMD::Browse(TBrowser* b)
   //
   AliDebug(30, "\tBrowsing the FMD");
   AliDetector::Browse(b);
-#ifdef USE_PRE_MOVE
   if (fSimulator) b->Add(fSimulator);
-#endif
   b->Add(AliFMDGeometry::Instance());
 }
 

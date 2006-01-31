@@ -27,11 +27,12 @@
 using namespace std;
 #endif
 
-#include <cerrno>
+#include <errno.h>
+//#include <string.h>
 #include "AliL3StandardIncludes.h"
 #include "AliHLTLogging.h"
-#include <cstdarg>
-#include <string>
+#include <stdarg.h>
+#include <string.h>
 
 ClassImp(AliHLTLogging)
 

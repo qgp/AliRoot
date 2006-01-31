@@ -113,9 +113,6 @@ enum EG_t {
   kMuonCocktailCent1Single,	//
   kMuonCocktailPer1Single,	//
   kMuonCocktailPer4Single,
-  kFlatFMD1, 
-  kFlatFMD2, 
-  kFlatFMD3,
   kEgMax
 };
 
@@ -174,10 +171,7 @@ const char* egName[kEgMax] = {
   "kMuonCocktailPer4HighPt",	//
   "kMuonCocktailCent1Single",	//
   "kMuonCocktailPer1Single",	//
-  "kMuonCocktailPer4Single",
-  "kFMD1Flat",
-  "kFMD2Flat",
-  "kFMD3Flat"
+  "kMuonCocktailPer4Single"
 };
 
 //____________________________________________________________________
@@ -228,7 +222,7 @@ Config()
   Rad_t rad  = kGluonRadiation;
   Mag_t mag  = k5kG;
   Int_t seed = 12345; //Set 0 to use the current time
-  MC_t  mc   = kGEANT3TGEO;
+  MC_t  mc   = kGEANT3;
   
   //____________________________________________________________________
   // Comment line 
@@ -253,7 +247,7 @@ Config()
     gSystem->Load("libGeom");
     cout << "\t* Loading TFluka..." << endl;  
     gSystem->Load("libTFluka");    
-    gSystem->MakeDirectory("peg");
+    
     // 
     // FLUKA MC
     //
@@ -322,28 +316,6 @@ Config()
 	((TFluka*)gMC)->SetGeneratePemf(kFALSE);
       else
 	((TFluka*)gMC)->SetGeneratePemf(kTRUE);
-      TString flupro(gSystem->Getenv("FLUPRO"));
-      if (flupro.IsNull()) 
-	Fatal("Config.C", "Environment variable FLUPRO not set");
-#if 0
-      char* files[] = { "brems_fin.bin", "cohff.bin", "elasct.bin", 
-			"gxsect.bin", "nuclear.bin", "sigmapi.bin", 
-			0 };
-      char* file = files[0];
-      while (file) {
-	TString which(gSystem->Which(".", file));
-	if (which.IsNull()) {
-	  if (gSystem->Symlink(Form("%s/%s", flupro.Data(), file), file)!=0) 
-	    Fatal("Config.C", "Couldn't link $(FLUPRO)/%s -> .", file);
-	}
-	file++;
-      }
-#endif
-      TString neuxsc(gSystem->Which(".", "neuxsc.bin"));
-      if (neuxsc.IsNull()) 
-	gSystem->Symlink(Form("%s/neuxsc_72.bin", flupro.Data()), 
-			 "neuxsc.bin"); 
-      gSystem->CopyFile("$(FLUPRO)/random.dat", "old.seed", kTRUE);
     }
     break;
   }
@@ -657,9 +629,9 @@ Config()
     //=================== FMD parameters ============================
     AliFMD *FMD = new AliFMDv1("FMD", "normal FMD");
     AliLog::SetModuleDebugLevel("FMD", 1);
-    // FMD->UseDetailed(kFALSE);
-    // FMD->UseAssembly();
-    // FMD->UseOld();
+    // FMD->UseDivided();
+    FMD->UseOld();
+    // FMD->UseGeo(kFALSE);
   }
 
   if (useMUON) {
@@ -1574,40 +1546,6 @@ GeneratorFactory(EG_t eg, Rad_t rad, TString& comment)
       gGener=gener;
     }
     break;
-  case kFlatFMD1: 
-    {
-      comment = comment.Append(" Flat in FMD1 range");
-      AliGenBox* gener = AliGenBox(2000);
-      gener->SetPart(211);
-      gener->SetMomentumRange(3,4);
-      gener->SetPhiRange(0, 360);
-      gener->SetThetaRange(0.77, 3.08);
-      gGener = gener;
-    }
-    break;
-  case kFlatFMD2: 
-    {
-      comment = comment.Append(" Flat in FMD2 range");
-      AliGenBox* gener = AliGenBox(2000);
-      gener->SetPart(211);
-      gener->SetMomentumRange(3,4);
-      gener->SetPhiRange(0, 360);
-      gener->SetThetaRange(2.95, 20.42);
-      gGener = gener;
-    }
-    break;
-  case kFlatFMD3: 
-    {
-      comment = comment.Append(" Flat in FMD3 range");
-      AliGenBox* gener = AliGenBox(2000);
-      gener->SetPart(211);
-      gener->SetMomentumRange(3,4);
-      gener->SetPhiRange(0, 360);
-      gener->SetThetaRange(155.97, 176.73);
-      gGener = gener;
-    }
-    break;
-    
   default: break;
   }
   return gGener;

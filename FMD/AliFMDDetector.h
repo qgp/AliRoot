@@ -23,8 +23,6 @@ class AliFMDDetector : public TNamed
 {
 public:
   AliFMDDetector(Int_t id, AliFMDRing* inner, AliFMDRing* outer);
-  AliFMDDetector(const AliFMDDetector& other);
-  AliFMDDetector& operator=(const AliFMDDetector& other);
   virtual ~AliFMDDetector() {}
   /** Initialize the geometry */
   virtual void Init();
@@ -80,8 +78,7 @@ public:
   
   void Detector2XYZ(Char_t ring, UShort_t sector, UShort_t strip, 
 		    Double_t& x, Double_t& y, Double_t& z) const;
-  Bool_t XYZ2Detector(Double_t x, Double_t y, Double_t z, 
-		      Char_t& ring, UShort_t& sector, UShort_t& strip) const;
+
 protected:
   Int_t		fId;			// Detector number
   Double_t	fInnerZ;		// Position of outer ring along z

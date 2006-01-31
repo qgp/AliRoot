@@ -24,37 +24,9 @@
 
 #include "AliESDtrack.h"
 #include "AliKalmanTrack.h"
-#include "AliTrackPointArray.h"
 #include "AliLog.h"
 
 ClassImp(AliESDtrack)
-
-void SetPIDValues(Float_t * dest, const Double_t * src, Int_t n) {
-  // This function copies "n" PID weights from "scr" to "dest"
-  // and normalizes their sum to 1 thus producing conditional probabilities.
-  // The negative weights are set to 0.
-  // In case all the weights are non-positive they are replaced by
-  // uniform probabilities
-
-  if (n<=0) return;
-
-  Float_t uniform = 1./(Float_t)n;
-
-  Float_t sum = 0;
-  for (Int_t i=0; i<n; i++) 
-    if (src[i]>=0) {
-      sum+=src[i];
-      dest[i] = src[i];
-    }
-    else {
-      dest[i] = 0;
-    }
-
-  if(sum>0)
-    for (Int_t i=0; i<n; i++) dest[i] /= sum;
-  else
-    for (Int_t i=0; i<n; i++) dest[i] = uniform;
-}
 
 //_______________________________________________________________________
 AliESDtrack::AliESDtrack() : 
@@ -106,8 +78,7 @@ AliESDtrack::AliESDtrack() :
   fRICHtheta(0),
   fRICHphi(0),
   fRICHdx(0),
-  fRICHdy(0),
-  fPoints(0)
+  fRICHdy(0)
 {
   //
   // The default ESD constructor 
@@ -205,8 +176,7 @@ AliESDtrack::AliESDtrack(const AliESDtrack& track):
   fRICHtheta(track.fRICHtheta),
   fRICHphi(track.fRICHphi),
   fRICHdx(track.fRICHdx),
-  fRICHdy(track.fRICHdy),
-  fPoints(track.fPoints)
+  fRICHdy(track.fRICHdy)
 {
   //
   //copy constructor
@@ -262,8 +232,7 @@ AliESDtrack::~AliESDtrack(){
   //
   //printf("Delete track\n");
   delete fITStrack;
-  delete fTRDtrack; 
-  delete fPoints;
+  delete fTRDtrack;  
 }
 
 //_______________________________________________________________________
@@ -372,7 +341,6 @@ void AliESDtrack::MakeMiniESDtrack(){
   fRICHdx = 0;     
   fRICHdy = 0;      
 
-  fPoints = 0;
 } 
 //_______________________________________________________________________
 Double_t AliESDtrack::GetMass() const {
@@ -808,58 +776,6 @@ void AliESDtrack::GetInnerExternalCovariance(Double_t cov[15]) const
  
 }
 
-Int_t AliESDtrack::GetNcls(Int_t idet) const
-{
-  // Get number of clusters by subdetector index
-  //
-  Int_t ncls = 0;
-  switch(idet){
-  case 0:
-    ncls = fITSncls;
-    break;
-  case 1:
-    ncls = fTPCncls;
-    break;
-  case 2:
-    ncls = fTRDncls;
-    break;
-  case 3:
-    if (fTOFindex != 0)
-      ncls = 1;
-    break;
-  default:
-    break;
-  }
-  return ncls;
-}
-
-Int_t AliESDtrack::GetClusters(Int_t idet, UInt_t *idx) const
-{
-  // Get cluster index array by subdetector index
-  //
-  Int_t ncls = 0;
-  switch(idet){
-  case 0:
-    ncls = GetITSclusters(idx);
-    break;
-  case 1:
-    ncls = GetTPCclusters((Int_t *)idx);
-    break;
-  case 2:
-    ncls = GetTRDclusters(idx);
-    break;
-  case 3:
-    if (fTOFindex != 0) {
-      idx[0] = GetTOFcluster();
-      ncls = 1;
-    }
-    break;
-  default:
-    break;
-  }
-  return ncls;
-}
-
 void  AliESDtrack::GetTRDExternalParameters(Double_t &x, Double_t&alpha, Double_t p[5], Double_t cov[15]) const
 {
   //
@@ -916,7 +832,7 @@ void AliESDtrack::SetIntegratedTimes(const Double_t *times) {
 //_______________________________________________________________________
 void AliESDtrack::SetITSpid(const Double_t *p) {
   // Sets values for the probability of each particle type (in ITS)
-  SetPIDValues(fITSr,p,AliPID::kSPECIES);
+  for (Int_t i=0; i<AliPID::kSPECIES; i++) fITSr[i]=p[i];
   SetStatus(AliESDtrack::kITSpid);
 }
 
@@ -969,7 +885,7 @@ Float_t AliESDtrack::GetTPCdensity(Int_t row0, Int_t row1) const{
 //_______________________________________________________________________
 void AliESDtrack::SetTPCpid(const Double_t *p) {  
   // Sets values for the probability of each particle type (in TPC)
-  SetPIDValues(fTPCr,p,AliPID::kSPECIES);
+  for (Int_t i=0; i<AliPID::kSPECIES; i++) fTPCr[i]=p[i];
   SetStatus(AliESDtrack::kTPCpid);
 }
 
@@ -992,7 +908,7 @@ Int_t AliESDtrack::GetTRDclusters(UInt_t *idx) const {
 //_______________________________________________________________________
 void AliESDtrack::SetTRDpid(const Double_t *p) {  
   // Sets values for the probability of each particle type (in TRD)
-  SetPIDValues(fTRDr,p,AliPID::kSPECIES);
+  for (Int_t i=0; i<AliPID::kSPECIES; i++) fTRDr[i]=p[i];
   SetStatus(AliESDtrack::kTRDpid);
 }
 
@@ -1018,7 +934,7 @@ Float_t AliESDtrack::GetTRDpid(Int_t iSpecies) const
 //_______________________________________________________________________
 void AliESDtrack::SetTOFpid(const Double_t *p) {  
   // Sets the probability of each particle type (in TOF)
-  SetPIDValues(fTOFr,p,AliPID::kSPECIES);
+  for (Int_t i=0; i<AliPID::kSPECIES; i++) fTOFr[i]=p[i];
   SetStatus(AliESDtrack::kTOFpid);
 }
 
@@ -1057,7 +973,7 @@ void AliESDtrack::SetTOFInfo(Float_t*info) {
 //_______________________________________________________________________
 void AliESDtrack::SetPHOSpid(const Double_t *p) {  
   // Sets the probability of each particle type (in PHOS)
-  SetPIDValues(fPHOSr,p,AliPID::kSPECIESN);
+  for (Int_t i=0; i<AliPID::kSPECIESN; i++) fPHOSr[i]=p[i];
   SetStatus(AliESDtrack::kPHOSpid);
 }
 
@@ -1070,7 +986,7 @@ void AliESDtrack::GetPHOSpid(Double_t *p) const {
 //_______________________________________________________________________
 void AliESDtrack::SetEMCALpid(const Double_t *p) {  
   // Sets the probability of each particle type (in EMCAL)
-  SetPIDValues(fEMCALr,p,AliPID::kSPECIESN);
+  for (Int_t i=0; i<AliPID::kSPECIESN; i++) fEMCALr[i]=p[i];
   SetStatus(AliESDtrack::kEMCALpid);
 }
 
@@ -1083,7 +999,7 @@ void AliESDtrack::GetEMCALpid(Double_t *p) const {
 //_______________________________________________________________________
 void AliESDtrack::SetRICHpid(const Double_t *p) {  
   // Sets the probability of each particle type (in RICH)
-  SetPIDValues(fRICHr,p,AliPID::kSPECIES);
+  for (Int_t i=0; i<AliPID::kSPECIES; i++) fRICHr[i]=p[i];
   SetStatus(AliESDtrack::kRICHpid);
 }
 
@@ -1098,7 +1014,7 @@ void AliESDtrack::GetRICHpid(Double_t *p) const {
 //_______________________________________________________________________
 void AliESDtrack::SetESDpid(const Double_t *p) {  
   // Sets the probability of each particle type for the ESD track
-  SetPIDValues(fR,p,AliPID::kSPECIES);
+  for (Int_t i=0; i<AliPID::kSPECIES; i++) fR[i]=p[i];
   SetStatus(AliESDtrack::kESDpid);
 }
 

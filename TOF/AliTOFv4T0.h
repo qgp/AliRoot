@@ -27,7 +27,6 @@ public:
   virtual Int_t  IsVersion() const {return 6;}
   virtual void   TOFpc(Float_t xtof,Float_t ytof,Float_t zlenC,Float_t zlenB,
                        Float_t zlenA,Float_t ztof0);
-  virtual void   TOFpc(Float_t, Float_t, Float_t, Float_t) {};
   virtual void   StepManager();
   virtual void   DrawModule() const;
   virtual void   DrawDetectorModules();
@@ -42,7 +41,7 @@ private:
   Int_t fIdFLTC; // FLTC volume identifier (inner plate C)
   Bool_t fTOFHoles; // Selecting Geometry with and w/o holes
  
-  ClassDef(AliTOFv4T0,2)  //Time Of Flight version 4
+  ClassDef(AliTOFv4T0,1)  //Time Of Flight version 4
 };
  
 #endif /* ALITOFv4T0_H */

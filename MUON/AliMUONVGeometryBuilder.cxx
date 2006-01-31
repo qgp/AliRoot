@@ -35,6 +35,7 @@
 #include "AliMUONGeometryEnvelopeStore.h"
 #include "AliMUONGeometryEnvelope.h"
 #include "AliMUONGeometryConstituent.h"
+#include "AliMUONGeometryDEIndexing.h"
 #include "AliMUONGeometryBuilder.h"
 #include "AliLog.h"
 
@@ -128,23 +129,9 @@ AliMUONVGeometryBuilder::ConvertTransform(const TGeoHMatrix& transform) const
   if ( fReferenceFrame.IsIdentity() )
     return transform;
   else  {
-    return AliMUONGeometryBuilder::Multiply( fReferenceFrame,
+    return AliMUONGeometryBuilder::Multiply( fReferenceFrame.Inverse(),
   				  	     transform,
-    					     fReferenceFrame.Inverse() );  
-  }			    
-}
-
-//______________________________________________________________________________
-TGeoHMatrix 
-AliMUONVGeometryBuilder::ConvertDETransform(const TGeoHMatrix& transform) const
-{
-// Convert transformation into the reference frame
-
-  if ( fReferenceFrame.IsIdentity() )
-    return transform;
-  else  {
-    return AliMUONGeometryBuilder::Multiply( fReferenceFrame,
-  				  	     transform );  
+    					     fReferenceFrame );  
   }			    
 }
 
@@ -171,7 +158,7 @@ void AliMUONVGeometryBuilder::MapSV(const TString& path0,
 // ---
 
   // Get module sensitive volumes map
-  Int_t moduleId = AliMUONGeometryStore::GetModuleId(detElemId);
+  Int_t moduleId = AliMUONGeometryDEIndexing::GetModuleId(detElemId);
   AliMUONGeometrySVMap* svMap = GetSVMap(moduleId);     
 
   Int_t nofDaughters = gMC->NofVolDaughters(volName);
@@ -183,7 +170,7 @@ void AliMUONVGeometryBuilder::MapSV(const TString& path0,
     TString volName(path0(npos1, npos2-npos1));  
     
     // Check if it is sensitive volume
-    Int_t moduleId = AliMUONGeometryStore::GetModuleId(detElemId);
+    Int_t moduleId = AliMUONGeometryDEIndexing::GetModuleId(detElemId);
     AliMUONGeometryModule* geometry = GetGeometry(moduleId);
     if (geometry->IsSensitiveVolume(volName)) {
       //cout << ".. adding to the map  " 
@@ -353,7 +340,7 @@ void  AliMUONVGeometryBuilder::FillTransformations() const
         = (AliMUONGeometryEnvelope*)envelopes->At(j);
 
       // skip envelope not corresponding to detection element
-      if ( envelope->GetUniqueID() == 0) continue;
+      if(envelope->GetUniqueID() == 0) continue;
        
       // Get envelope data 
       Int_t detElemId = envelope->GetUniqueID();	
@@ -362,21 +349,11 @@ void  AliMUONVGeometryBuilder::FillTransformations() const
       const TGeoCombiTrans* transform = envelope->GetTransformation(); 
       
       // Apply frame transform
-      TGeoHMatrix localTransform = ConvertDETransform(*transform);
+      TGeoHMatrix newTransform = ConvertTransform(*transform);
 
       // Add detection element transformation 
-      AliMUONGeometryDetElement* detElement
-        = new AliMUONGeometryDetElement(detElemId, path, localTransform);
-      detElements->Add(detElemId, detElement);
-
-      // Compose global transformation
-      TGeoHMatrix globalTransform 
-	= AliMUONGeometryBuilder::Multiply( 
-	            (*geometry->GetTransformer()->GetTransformation()),
-	             localTransform );
-		    ;
-      // Set the global transformation to detection element
-      detElement->SetGlobalTransformation(globalTransform);
+      detElements->Add(detElemId,
+        new AliMUONGeometryDetElement(detElemId, path, newTransform)); 
     }  
   }
 }

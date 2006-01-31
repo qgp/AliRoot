@@ -99,16 +99,18 @@ TString AliCDBId::ToString() const {
 // returns a string of Id data
 
 	TString result;
-	result += "path \"";
+	result += "Path \"";
 	result += GetPath();
-	result += "\"; run range [";
+	result += "\"; RunRange [";
 	result += GetFirstRun();
 	result += ",";
 	result += GetLastRun();
-	result += "]; version v";
+	result += "]; Version v";
 	result += GetVersion();
 	result += "_s";
 	result += GetSubVersion();
+	result += "; Previous storage ";
+	result += fLastStorage;
 	
 	return result;	
 }

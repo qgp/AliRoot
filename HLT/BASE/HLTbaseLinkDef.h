@@ -14,7 +14,6 @@
 #pragma link C++ class AliHLTConfigurationHandler;
 #pragma link C++ class AliHLTTask;
 #pragma link C++ class AliHLTLogging;
-#pragma link C++ class AliHLTDataBuffer;
 
 #endif
 

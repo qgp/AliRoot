@@ -26,9 +26,6 @@ class AliMUONGeometryStore : public TObject
     AliMUONGeometryStore();
     virtual ~AliMUONGeometryStore();
 
-    // static method
-    static  Int_t GetModuleId(Int_t detElemId);
-
     // methods
     void Add(Int_t objectId, TObject* object);  
 
@@ -47,11 +44,7 @@ class AliMUONGeometryStore : public TObject
   
   private:
     // static data members
-    static const Int_t fgkInitSize;    // Initial size of array of objects
-    static const Int_t fgkCoefficient; // Coefficient used in DE Id <-> Module Id
-
-    // methods
-    Int_t GetDEIndex(Int_t detElemId) const;
+    static const Int_t fgkInitSize; // Initial size of array of objects
 
     // data members
     TObjArray  fObjects; // The array of detection elements

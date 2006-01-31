@@ -28,15 +28,14 @@
 #include "AliRun.h"
 #include "AliRunLoader.h"
 
-#include "AliTOFGeometry.h"
-#include "AliTOFGeometryV4.h"
-#include "AliTOFGeometryV5.h"
 #include "AliTOFtracker.h"
 #include "AliTOFtrackerMI.h"
 #include "AliTOFClusterFinder.h"
 #include "AliTOFReconstructor.h"
 
+
 ClassImp(AliTOFReconstructor)
+
 
 //_____________________________________________________________________________
   void AliTOFReconstructor::Reconstruct(AliRunLoader* runLoader) const
@@ -89,8 +88,7 @@ AliTracker* AliTOFReconstructor::CreateTracker(AliRunLoader* runLoader) const
 
   AliTOFGeometry* geom = GetTOFGeometry(runLoader);
   if (!geom) return NULL;
-  //  Double_t parPID[] = {130., 5.};
-  Double_t parPID[] = {80., 5.};
+  Double_t parPID[] = {130., 5.};
   TString selectedTracker = GetOption();
   // use MI tracker if selected
   if (selectedTracker.Contains("MI")) return new AliTOFtrackerMI(geom,parPID);
@@ -111,22 +109,8 @@ AliTOFGeometry* AliTOFReconstructor::GetTOFGeometry(AliRunLoader* runLoader) con
 {
 // get the TOF parameters
 
-  AliTOFGeometry *tofGeom;
-
   runLoader->CdGAFile();
-  TDirectory *savedir=gDirectory; 
-  TFile *in=(TFile*)gFile;  
-  if (!in->IsOpen()) {
-    AliWarning("Geometry file is not open default  TOF geometry will be used");
-    tofGeom = new AliTOFGeometry();
-  }
-  else {
-    in->cd();  
-    tofGeom = (AliTOFGeometry*) in->Get("TOFgeometry");
-  }
-
-  savedir->cd();  
-
+  AliTOFGeometry* tofGeom = (AliTOFGeometry*) gFile->Get("TOFGeometry"); 
   if (!tofGeom) {
     AliError("no TOF geometry available");
     return NULL;

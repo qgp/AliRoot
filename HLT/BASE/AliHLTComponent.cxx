@@ -29,7 +29,7 @@ using namespace std;
 
 #include "AliHLTComponent.h"
 #include "AliHLTComponentHandler.h"
-#include <string>
+#include <string.h>
 #include "AliHLTSystem.h"
 
 ClassImp(AliHLTComponent)

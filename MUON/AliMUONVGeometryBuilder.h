@@ -107,7 +107,6 @@ class AliMUONVGeometryBuilder : public TObject
   private:
     //methods
     TGeoHMatrix ConvertTransform(const TGeoHMatrix& transform) const;
-    TGeoHMatrix ConvertDETransform(const TGeoHMatrix& transform) const;
     TString     ComposePath(const TString& volName, Int_t copyNo) const; 
     void        MapSV(const TString& path0, 
                       const TString& volName, Int_t detElemId) const;

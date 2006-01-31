@@ -53,7 +53,6 @@ AliMUONHitForRec::AliMUONHitForRec(AliTrackReference* theGhit)
   fZ = theGhit->Z();
   // fTrack = theGhit->fTrack; ?????????
   fChamberNumber = AliMUONConstants::ChamberNumber(fZ);
-  fDetElemId = 0;
   // other fields will be updated in
   // AliMUONEventReconstructor::NewHitForRecFromTrackRef,
   // except the following ones
@@ -88,7 +87,6 @@ AliMUONHitForRec::AliMUONHitForRec(AliMUONRawCluster* theRawCluster)
   // Fills the bending and non bending coordinates.
   fNonBendingCoor = theRawCluster->GetX(0);
   fBendingCoor = theRawCluster->GetY(0);
-  fDetElemId=0;
   // other fields will be updated in
   // AliMUONEventReconstructor::AddHitsForRecFromRawClusters,
   // except the following ones
@@ -111,7 +109,6 @@ AliMUONHitForRec::AliMUONHitForRec (const AliMUONHitForRec& theMUONHitForRec)
   fBendingReso2 = theMUONHitForRec.fBendingReso2;
   fNonBendingReso2 = theMUONHitForRec.fNonBendingReso2;
   fChamberNumber = theMUONHitForRec.fChamberNumber;
-  fDetElemId = theMUONHitForRec.fDetElemId;
   fHitNumber = theMUONHitForRec.fHitNumber;
   fTTRTrack = theMUONHitForRec.fTTRTrack;
   fTrackRefSignal = theMUONHitForRec.fTrackRefSignal;
@@ -120,6 +117,7 @@ AliMUONHitForRec::AliMUONHitForRec (const AliMUONHitForRec& theMUONHitForRec)
   fFirstTrackHitPtr = theMUONHitForRec.fFirstTrackHitPtr;
   fLastTrackHitPtr = theMUONHitForRec.fLastTrackHitPtr;
   fNTrackHits = theMUONHitForRec.fNTrackHits;
+
 }
 
   //__________________________________________________________________________
@@ -131,7 +129,6 @@ AliMUONHitForRec & AliMUONHitForRec::operator=(const AliMUONHitForRec& theMUONHi
   fBendingReso2 = theMUONHitForRec.fBendingReso2;
   fNonBendingReso2 = theMUONHitForRec.fNonBendingReso2;
   fChamberNumber = theMUONHitForRec.fChamberNumber;
-  fDetElemId = theMUONHitForRec.fDetElemId;
   fHitNumber = theMUONHitForRec.fHitNumber;
   fTTRTrack = theMUONHitForRec.fTTRTrack;
   fTrackRefSignal = theMUONHitForRec.fTrackRefSignal;
@@ -140,6 +137,7 @@ AliMUONHitForRec & AliMUONHitForRec::operator=(const AliMUONHitForRec& theMUONHi
   fFirstTrackHitPtr = theMUONHitForRec.fFirstTrackHitPtr;
   fLastTrackHitPtr = theMUONHitForRec.fLastTrackHitPtr;
   fNTrackHits = theMUONHitForRec.fNTrackHits;
+
   return *this;
 }
   //__________________________________________________________________________

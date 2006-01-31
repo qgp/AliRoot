@@ -15,13 +15,13 @@
 
 /* $Id$ */
 
-#include "AliMUONDigitMapA1.h"
-#include "AliMUONDigit.h"
-
-#include "AliLog.h"
-
 #include <TObjArray.h>
 #include <TMath.h>
+#include "AliMpVSegmentation.h"
+#include "AliMUONSegmentationManager.h"
+#include "AliMUONDigitMapA1.h"
+#include "AliMUONDigit.h"
+#include "AliLog.h"
 
 ClassImp(AliMUONDigitMapA1)
 
@@ -37,13 +37,15 @@ AliMUONDigitMapA1::AliMUONDigitMapA1()
 
 }
 //________________________________________________________________________________
-AliMUONDigitMapA1::AliMUONDigitMapA1(Int_t idDE, Int_t npx, Int_t npy )
+AliMUONDigitMapA1::AliMUONDigitMapA1(Int_t idDE,  AliMpPlaneType plane)
 {
 // Constructor with new segmentation
 
+   AliMpVSegmentation* seg = AliMUONSegmentationManager::Segmentation(idDE, plane);
+
    fIdDE = idDE;
-   fNpx = npx;
-   fNpy = npy;
+   fNpx  = seg->MaxPadIndexX()+1;
+   fNpy  = seg->MaxPadIndexY()+1;
    fMaxIndex = fNpx * fNpy + fNpx ;
     
    fHitMap = new Int_t[fMaxIndex];

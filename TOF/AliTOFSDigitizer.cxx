@@ -42,10 +42,8 @@
 #include "AliLog.h"
 #include "AliDetector.h"
 #include "AliLoader.h"
-#include "AliMC.h"
 #include "AliRun.h"
 #include "AliRunLoader.h"
-
 #include "AliTOF.h"
 #include "AliTOFGeometry.h"
 #include "AliTOFHitMap.h"
@@ -53,6 +51,7 @@
 #include "AliTOFSDigitizer.h"
 #include "AliTOFhit.h"
 #include "AliTOFhitT0.h"
+#include "AliMC.h"
 
 ClassImp(AliTOFSDigitizer)
 
@@ -69,9 +68,6 @@ ClassImp(AliTOFSDigitizer)
   ftail           = 0;
   fSelectedSector = -1;
   fSelectedPlate  = -1;
-
-  fTOFGeometry = new AliTOFGeometry();
-
 }
 
 //____________________________________________________________________________ 
@@ -100,21 +96,6 @@ AliTOFSDigitizer::AliTOFSDigitizer(const char* HeaderFile, Int_t evNumber1, Int_
       AliFatal("Event is not loaded. Exiting");
       return;
     }
-
-  fRunLoader->CdGAFile();
-  TDirectory *savedir=gDirectory;
-  TFile *in=(TFile*)gFile;
-
-  if (!in->IsOpen()) {
-    AliWarning("Geometry file is not open default TOF geometry will be used");
-    fTOFGeometry = new AliTOFGeometry();
-  }
-  else {
-    in->cd();
-    fTOFGeometry = (AliTOFGeometry*)in->Get("TOFgeometry");
-  }
-
-  savedir->cd();
 
   if (fRunLoader->TreeE() == 0x0) fRunLoader->LoadHeader();
   
@@ -149,9 +130,6 @@ AliTOFSDigitizer::~AliTOFSDigitizer()
 {
   // dtor
   fTOFLoader->CleanSDigitizer();
-
-  delete fTOFGeometry;
-
 }
 
 //____________________________________________________________________________ 
@@ -212,6 +190,7 @@ Double_t TimeWithTail(Double_t* x, Double_t* par)
   }
   return f;
 }
+
 
 //____________________________________________________________________________
 void AliTOFSDigitizer::Exec(Option_t *verboseOption) { 
@@ -283,7 +262,7 @@ void AliTOFSDigitizer::Exec(Option_t *verboseOption) {
     TClonesArray *tofHitArray = tof->Hits();
 
     // create hit map
-    AliTOFHitMap *hitMap = new AliTOFHitMap(tof->SDigits(), fTOFGeometry);
+    AliTOFHitMap *hitMap = new AliTOFHitMap(tof->SDigits());
 
     TBranch * tofHitsBranch = hitTree->GetBranch("TOF");
 
@@ -314,7 +293,7 @@ void AliTOFSDigitizer::Exec(Option_t *verboseOption) {
 
 	// fp: really sorry for this, it is a temporary trick to have
 	// track length too
-	if(version!=6 && version!=7){
+	if(version!=6){
 	  AliTOFhit *tofHit = (AliTOFhit *) tofHitArray->UncheckedAt(hit);
 	  tracknum = tofHit->GetTrack();
 	  vol[0] = tofHit->GetSector();
@@ -814,7 +793,7 @@ void AliTOFSDigitizer::PrintParameters()const
   cout << " Time walk (ps) at the boundary of the pad       : "<< fTimeWalkBoundary<< endl;
   cout << " Slope (ps/K) for neighbouring pad               : "<< fTimeWalkSlope<<endl;
   cout << " Pulse Heigth Simulation Parameters " << endl;
-  cout << " Flag for delay due to the PulseHeightEffect  : "<< fTimeDelayFlag <<endl;
+  cout << " Flag for delay due to the PulseHeightEffect: "<< fTimeDelayFlag <<endl;
   cout << " Pulse Height Slope                           : "<< fPulseHeightSlope<<endl;
   cout << " Time Delay Slope                             : "<< fTimeDelaySlope<<endl;
   cout << " Minimum charge amount which could be induced : "<< fMinimumCharge<<endl;

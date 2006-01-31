@@ -1,6 +1,4 @@
 //
-// $Id$
-//
 // Small script to test consistency of writing and reading raw data.
 //
 void
@@ -95,10 +93,6 @@ RawTest()
 #endif
 }
 
-//____________________________________________________________________
-//
-// EOF
-//
   
     
 	

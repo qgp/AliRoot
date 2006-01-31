@@ -30,21 +30,16 @@
 #include "AliTRDgeometry.h"
 #include "AliTRDparameter.h"
 #include "AliTRDpadPlane.h"
-#include "AliTRDgeometryFull.h"
+#include "AliTRDgeometryDetail.h"
 #include "AliTRDcluster.h" 
 #include "AliTRDtrack.h"
 #include "AliESD.h"
-
-#include "AliTRDcalibDB.h"
-#include "AliTRDCommonParam.h"
 
 #include "TTreeStream.h"
 #include "TGraph.h"
 #include "AliTRDtracker.h"
 #include "TLinearFitter.h"
 #include "AliRieman.h"
-#include "AliTrackPointArray.h"
-#include "AliAlignObj.h"
 
 //
 
@@ -139,7 +134,7 @@ AliTRDtracker::AliTRDtracker(const TFile *geomfile):AliTracker()
   TFile *in=(TFile*)geomfile;  
   if (!in->IsOpen()) {
     printf("AliTRDtracker::AliTRDtracker(): geometry file is not open!\n");
-    printf("    FULL TRD geometry and DEFAULT TRD parameter will be used\n");
+    printf("    DETAIL TRD geometry and DEFAULT TRD parameter will be used\n");
   }
   else {
     in->cd();  
@@ -155,7 +150,9 @@ AliTRDtracker::AliTRDtracker(const TFile *geomfile):AliTracker()
   }
   else { 
     printf("AliTRDtracker::AliTRDtracker(): can't find TRD geometry!\n");
-    fGeom = new AliTRDgeometryFull();
+    //printf("The DETAIL TRD geometry will be used\n");
+    //fGeom = new AliTRDgeometryDetail();
+    fGeom = new AliTRDgeometryDetail();
     fGeom->SetPHOShole();
     fGeom->SetRICHhole();    
   } 
@@ -169,6 +166,7 @@ AliTRDtracker::AliTRDtracker(const TFile *geomfile):AliTracker()
   fPar->Init();
 
   savedir->cd();  
+
 
   //  fGeom->SetT0(fTzero);
 
@@ -186,7 +184,7 @@ AliTRDtracker::AliTRDtracker(const TFile *geomfile):AliTracker()
       fHoles[icham][trS]=fGeom->IsHole(0,icham,geomS);
     }
   }
-  AliTRDpadPlane *padPlane = AliTRDCommonParam::Instance()->GetPadPlane(0,0);
+  AliTRDpadPlane *padPlane = fPar->GetPadPlane(0,0);
   Float_t tiltAngle = TMath::Abs(padPlane->GetTiltingAngle());
   //  Float_t tiltAngle = TMath::Abs(fPar->GetTiltingAngle()); 
   if(tiltAngle < 0.1) {
@@ -205,7 +203,7 @@ AliTRDtracker::AliTRDtracker(const TFile *geomfile):AliTracker()
   Double_t dxDrift = (Double_t) fGeom->CdrHght(); // Drift region
 
   Double_t dx = fgkDriftCorrection*(Double_t) fPar->GetDriftVelocity()
-                         / AliTRDcalibDB::Instance()->GetSamplingFrequency();
+                         / fPar->GetSamplingFrequency();
 
   Int_t tbAmp = fPar->GetTimeBefore();
   Int_t maxAmp = (Int_t) ((dxAmp+0.000001)/dx);
@@ -753,8 +751,7 @@ Int_t AliTRDtracker::RefitInward(AliESD* event)
       AliTRDtrack *pt2 = new AliTRDtrack(*seed2,seed2->GetAlpha());
       delete seed2;
       if (PropagateToTPC(*pt2)) { 
-        //pt2->CookdEdx(0.,1.);
-        pt2->CookdEdx( ); // Modification by PS
+        pt2->CookdEdx(0.,1.);
         CookdEdxTimBin(*pt2);
 	seed->UpdateTrackParams(pt2, AliESDtrack::kTRDrefit);
         for (Int_t i=0;i<kNPlane;i++) {
@@ -791,7 +788,7 @@ Int_t AliTRDtracker::FollowProlongation(AliTRDtrack& t, Int_t rf)
   Float_t  wSigmaC2, wSigmaTgl2, wSigmaY2, wSigmaZ2;
   Int_t lastplane = GetLastPlane(&t);
   Double_t dxsample = fgkDriftCorrection*(Double_t) fPar->GetDriftVelocity()
-                         / AliTRDcalibDB::Instance()->GetSamplingFrequency();
+                         / fPar->GetSamplingFrequency();
   Int_t trackIndex = t.GetLabel();  
 
   Int_t ns=Int_t(2*TMath::Pi()/AliTRDgeometry::GetAlpha()+0.5);     
@@ -980,13 +977,11 @@ Int_t AliTRDtracker::FollowProlongationG(AliTRDtrack& t, Int_t rf)
   Int_t tryAgain=fMaxGap;
   Double_t alpha=t.GetAlpha();
   alpha = TVector2::Phi_0_2pi(alpha);
-  Double_t radLength = 0.0;
-  Double_t rho = 0.0;
-  Double_t x, dx;
+  Double_t radLength, rho, x, dx;
   //, y, ymax, z;
   Int_t expectedNumberOfClusters = 0;
   Double_t dxsample = fgkDriftCorrection*(Double_t) fPar->GetDriftVelocity()
-                         / AliTRDcalibDB::Instance()->GetSamplingFrequency();
+                         / fPar->GetSamplingFrequency();
   //
   //
   alpha=AliTRDgeometry::GetAlpha();  // note: change in meaning
@@ -1167,7 +1162,7 @@ Int_t AliTRDtracker::FollowBackProlongation(AliTRDtrack& t)
   Double_t radLength, rho, x, dx, y, z;
   Bool_t lookForCluster;
   Double_t dxsample = fgkDriftCorrection*(Double_t) fPar->GetDriftVelocity()
-                         / AliTRDcalibDB::Instance()->GetSamplingFrequency();
+                         / fPar->GetSamplingFrequency();
 
   Int_t expectedNumberOfClusters = 0;
   x = t.GetX();
@@ -1324,11 +1319,9 @@ Int_t AliTRDtracker::FollowBackProlongationG(AliTRDtrack& t)
   Int_t clusters[1000];
   for (Int_t i=0;i<1000;i++) clusters[i]=-1;
   Double_t dxsample = fgkDriftCorrection*(Double_t) fPar->GetDriftVelocity()
-    / AliTRDcalibDB::Instance()->GetSamplingFrequency();
+    / fPar->GetSamplingFrequency();
   Int_t outerTB = fTrSec[0]->GetOuterTimeBin();
-  Double_t radLength = 0.0;
-  Double_t rho = 0.0;
-  Double_t x, dx; //y, z;
+  Double_t radLength, rho, x, dx; //y, z;
 
   Int_t expectedNumberOfClusters = 0;
   x = t.GetX();
@@ -1542,7 +1535,7 @@ Int_t AliTRDtracker::Refit(AliTRDtrack& t, Int_t rf)
   // get indices of assigned clusters for each layer
   // Origin: Thomas KUHR (Thomas.Kuhr@cern.ch)
   Double_t dxsample = fgkDriftCorrection*(Double_t) fPar->GetDriftVelocity()
-    / AliTRDcalibDB::Instance()->GetSamplingFrequency();
+    / fPar->GetSamplingFrequency();
   Int_t iCluster[90];
   for (Int_t i = 0; i < 90; i++) iCluster[i] = 0;
   for (Int_t i = 0; i < t.GetNumberOfClusters(); i++) {
@@ -2049,7 +2042,7 @@ void AliTRDtracker::MakeSeedsMI(Int_t /*inner*/, Int_t /*outer*/, AliESD * esd)
     }
   }
   //
-  AliTRDpadPlane *padPlane = AliTRDCommonParam::Instance()->GetPadPlane(0,0);
+  AliTRDpadPlane *padPlane = fPar->GetPadPlane(0,0);
   Double_t h01 = TMath::Tan(-TMath::Pi() / 180.0 * padPlane->GetTiltingAngle());
   Double_t hL[6];         // tilting angle
   Double_t xcl[6];        // x - position of reference cluster
@@ -3013,55 +3006,6 @@ Int_t AliTRDtracker::ReadClusters(TObjArray *array, TTree *ClusterTree) const
 }
 
 //__________________________________________________________________
-Bool_t AliTRDtracker::GetTrackPoint(Int_t index, AliTrackPoint& p) const
-{
-  //
-  // Get track space point with index i
-  // Origin: C.Cheshkov
-  //
-
-  AliTRDcluster *cl = (AliTRDcluster*)fClusters->UncheckedAt(index);
-  Int_t  idet = cl->GetDetector();
-  Int_t  isector = fGeom->GetSector(idet);
-  Int_t  ichamber= fGeom->GetChamber(idet);
-  Int_t  iplan   = fGeom->GetPlane(idet);
-  Double_t local[3];
-  local[0]=GetX(isector,iplan,cl->GetLocalTimeBin());
-  local[1]=cl->GetY();
-  local[2]=cl->GetZ();
-  Double_t global[3];
-  fGeom->RotateBack(idet,local,global);
-  p.SetXYZ(global[0],global[1],global[2]);
-  AliAlignObj::ELayerID iLayer = AliAlignObj::kTRD1;
-  switch (iplan) {
-  case 0:
-    iLayer = AliAlignObj::kTRD1;
-    break;
-  case 1:
-    iLayer = AliAlignObj::kTRD2;
-    break;
-  case 2:
-    iLayer = AliAlignObj::kTRD3;
-    break;
-  case 3:
-    iLayer = AliAlignObj::kTRD4;
-    break;
-  case 4:
-    iLayer = AliAlignObj::kTRD5;
-    break;
-  case 5:
-    iLayer = AliAlignObj::kTRD6;
-    break;
-  };
-  Int_t modId = isector*fGeom->Ncham()+ichamber;
-  UShort_t volid = AliAlignObj::LayerToVolUID(iLayer,modId);
-  p.SetVolumeID(volid);
-
-  return kTRUE;
-
-}
-
-//__________________________________________________________________
 void AliTRDtracker::CookLabel(AliKalmanTrack* pt, Float_t wrong) const 
 {
   //
@@ -3393,14 +3337,6 @@ AliTRDtracker::AliTRDtrackingSector::AliTRDtrackingSector(AliTRDgeometry* geo, I
   Double_t *zmaxsensitive = new Double_t[kNchambers];  
   //  Double_t  holeZmax = 1000.;   // the whole sector is missing
 
-  AliTRDCommonParam* commonParam = AliTRDCommonParam::Instance();
-  if (!commonParam)
-  {
-    printf("<AliTRDtracker::AliTRDtrackingSector::AliTRDtrackingSector> ");
-    printf("Could not get common params\n");
-    return;
-  }
-    
   for(Int_t plane = 0; plane < AliTRDgeometry::Nplan(); plane++) {
     //
     // Radiator 
@@ -3415,7 +3351,7 @@ AliTRDtracker::AliTRDtrackingSector::AliTRDtrackingSector(AliTRDgeometry* geo, I
     ymax          = fGeom->GetChamberWidth(plane)/2.;
     // Modidified for new pad plane class, 22.04.05 (C.B.)
     // ymaxsensitive = (fPar->GetColPadSize(plane)*fPar->GetColMax(plane)-4)/2.;
-    padPlane = commonParam->GetPadPlane(plane,0);
+    padPlane = fPar->GetPadPlane(plane,0);
     ymaxsensitive = (padPlane->GetColSize(1)*padPlane->GetNcols()-4)/2.;
 
     //    ymaxsensitive = (fPar->GetColPadSize(plane)*fPar->GetColMax(plane)-4)/2.;
@@ -3427,8 +3363,8 @@ AliTRDtracker::AliTRDtrackingSector::AliTRDtrackingSector(AliTRDgeometry* geo, I
       //Float_t pad = fPar->GetRowPadSize(plane,ch,0);
       Float_t pad = padPlane->GetRowSize(1);
       //Float_t pad = fPar->GetRowPadSize(plane,ch,0);
-      Float_t row0 = commonParam->GetRow0(plane,ch,0);
-      Int_t nPads = commonParam->GetRowMax(plane,ch,0);
+      Float_t row0 = fPar->GetRow0(plane,ch,0);
+      Int_t nPads = fPar->GetRowMax(plane,ch,0);
       zmaxsensitive[ch] = Float_t(nPads)*pad/2.;      
       //      zc[ch] = (pad * nPads)/2 + row0 - pad/2;
       //      zc[ch] = (pad * nPads)/2 + row0;
@@ -3438,10 +3374,10 @@ AliTRDtracker::AliTRDtrackingSector::AliTRDtrackingSector(AliTRDgeometry* geo, I
     }
 
     dx  = fgkDriftCorrection*fPar->GetDriftVelocity()
-        / AliTRDcalibDB::Instance()->GetSamplingFrequency();
+        / fPar->GetSamplingFrequency();
     rho = 0.00295 * 0.85; radLength = 11.0;  
 
-    Double_t x0 = (Double_t) AliTRDgeometry::GetTime0(plane);
+    Double_t x0 = (Double_t) fPar->GetTime0(plane);
     Double_t xbottom = x0 - dxDrift;
     Double_t xtop = x0 + dxAmp;
     //
@@ -3469,7 +3405,7 @@ AliTRDtracker::AliTRDtrackingSector::AliTRDtrackingSector(AliTRDgeometry* geo, I
     // Drift region
 
     dx = fgkDriftCorrection*fPar->GetDriftVelocity()
-       / AliTRDcalibDB::Instance()->GetSamplingFrequency();
+       / fPar->GetSamplingFrequency();
     steps = (Int_t) (dxDrift/dx)+3;
 
     for(tb = 0; tb < steps; tb++) {
@@ -3551,7 +3487,7 @@ Int_t  AliTRDtracker::AliTRDtrackingSector::CookTimeBinIndex(Int_t plane, Int_t 
   Double_t dxDrift = (Double_t) fGeom->CdrHght(); // Drift region  
   
   Double_t dx = fgkDriftCorrection*(Double_t) fPar->GetDriftVelocity()
-                         / AliTRDcalibDB::Instance()->GetSamplingFrequency();
+                         / fPar->GetSamplingFrequency();
 
   Int_t tbAmp = fPar->GetTimeBefore();
   Int_t maxAmp = (Int_t) ((dxAmp+0.000001)/dx);
@@ -3901,7 +3837,7 @@ Double_t AliTRDtracker::GetTiltFactor(const AliTRDcluster* c) {
 //
   Int_t det = c->GetDetector();    
   Int_t plane = fGeom->GetPlane(det);
-  AliTRDpadPlane *padPlane = AliTRDCommonParam::Instance()->GetPadPlane(plane,0);
+  AliTRDpadPlane *padPlane = fPar->GetPadPlane(plane,0);
   Double_t h01 = TMath::Tan(-TMath::Pi() / 180.0 * padPlane->GetTiltingAngle());
 
   if(fNoTilt) h01 = 0;

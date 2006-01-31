@@ -23,9 +23,6 @@
 // -- Author :  F. Pierella (Bologna University) pierella@bo.infn.it
 //////////////////////////////////////////////////////////////////////////////
 
-#include <stdlib.h>
-#include <Riostream.h>
-
 #include <TTree.h> 
 #include <TVector.h>
 #include <TObjArray.h>
@@ -33,13 +30,6 @@
 #include <TDirectory.h>
 #include <TRandom.h>
 
-#include "AliLog.h"
-#include "AliRun.h"
-#include "AliRunLoader.h"
-#include "AliLoader.h"
-#include "AliDigitizer.h"
-#include "AliRunDigitizer.h"
-#include "AliPDG.h"
 
 #include "AliTOFDigitizer.h"
 #include "AliTOF.h"
@@ -48,6 +38,17 @@
 #include "AliTOFdigit.h"
 #include "AliTOFSDigit.h"
 #include "AliTOFHitMap.h"
+#include "AliDigitizer.h"
+#include "AliRunDigitizer.h"
+
+#include "AliLog.h"
+#include "AliRun.h"
+#include "AliRunLoader.h"
+#include "AliLoader.h"
+#include "AliPDG.h"
+
+#include <stdlib.h>
+#include <Riostream.h>
 
 ClassImp(AliTOFDigitizer)
 
@@ -108,22 +109,6 @@ void AliTOFDigitizer::Exec(Option_t* /*option*/)
      return;
    }
    
-  outrl->CdGAFile();
-  TFile *in=(TFile*)gFile;
-  TDirectory *savedir=gDirectory;
-
-  AliTOFGeometry *tofGeometry;
-  if (!in->IsOpen()) {
-    AliWarning("Geometry file is not open default  TOF geometry will be used");
-    tofGeometry = new AliTOFGeometry();
-  }
-  else {
-    in->cd();
-    tofGeometry = (AliTOFGeometry*)in->Get("TOFgeometry");
-  }
-
-  savedir->cd();
-
   AliLoader* outgime = outrl->GetLoader("TOFLoader");
   if (outgime == 0x0)
    {
@@ -144,7 +129,7 @@ void AliTOFDigitizer::Exec(Option_t* /*option*/)
   fSDigitsArray=new TClonesArray("AliTOFSDigit",1000);
   
   // create hit map (to be created in Init())
-  fhitMap = new AliTOFHitMap(fSDigitsArray, tofGeometry);
+  fhitMap = new AliTOFHitMap(fSDigitsArray);
   
   // Loop over files to digitize
 
@@ -196,7 +181,7 @@ void AliTOFDigitizer::CreateDigits()
     // TOF sdigit volumes (always the same for all slots)
     Int_t sector    = tofsdigit->GetSector(); // range [0-17]
     Int_t plate     = tofsdigit->GetPlate();  // range [0- 4]
-    Int_t strip     = tofsdigit->GetStrip();  // range [0-14/18/19]
+    Int_t strip     = tofsdigit->GetStrip();  // range [0-19]
     Int_t padz      = tofsdigit->GetPadz();   // range [0- 1]
     Int_t padx      = tofsdigit->GetPadx();   // range [0-47]
     
@@ -211,8 +196,7 @@ void AliTOFDigitizer::CreateDigits()
     Bool_t isSDigitBad = (sector<0 || sector>17 || plate<0 || plate >4 || padz<0 || padz>1 || padx<0 || padx>47);
     
     if (isSDigitBad) {
-      //AliFatal("strange sdigit found");
-      AliFatal(Form("strange sdigit found   %3i  %2i  %2i  %3i    %3i", sector, plate, padz, padx, strip));
+      AliFatal("strange sdigit found");
     }
     //-------------------------------------------------------
     

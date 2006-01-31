@@ -7,7 +7,3 @@ for i in Inner ITS PIPE FMD Nothing ; do
 done 
 
 root -l -q FMD/scripts/DrawLego.C
-# ____________________________________________________________________
-#
-# EOF
-#

@@ -29,8 +29,6 @@ public:
 		fCallback = NULL;
 	};
 
-	virtual ~Tracker() {};
-
 	/* Methods required to be implemented by the tracker.
 	   These correspond to the dHLT::Tracker specification, refer to that
 	   class for more information.

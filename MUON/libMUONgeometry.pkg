@@ -13,14 +13,14 @@ SRCS  =  AliMUONGeometryConstituent.cxx \
 	 AliMUONGeometryModuleTransformer.cxx \
 	 AliMUONGeometryModule.cxx \
 	 AliMUONGeometryTransformer.cxx \
-         AliMUONGeometryMisAligner.cxx \
 	 AliMUONGeometry.cxx \
+	 AliMUONGeometryDEIndexing.cxx \
 	 AliMUONVGeometryBuilder.cxx \
 	 AliMUONGeometryBuilder.cxx \
 	 AliMUONGeometryStore.cxx \
 	 AliMUONVGeometryDESegmentation.cxx \
 	 AliMUONGeometrySegmentation.cxx \
-	 AliMUONSegmentation.cxx \
+	 AliMUONSegmentation.cxx 
 
 HDRS =  $(SRCS:.cxx=.h) 
 

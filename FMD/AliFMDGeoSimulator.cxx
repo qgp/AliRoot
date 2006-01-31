@@ -688,7 +688,7 @@ void
 AliFMDGeoSimulator::DefineGeometry() 
 {
   // Setup up the FMD geometry. 
-  AliDebug(1, "Setting up volumes, with ");
+  AliDebug(10, "Setting up volume");
 
   AliFMDGeometry* fmd = AliFMDGeometry::Instance();
   TGeoVolume* inner = RingGeometry(fmd->GetInner());

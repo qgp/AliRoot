@@ -15,9 +15,6 @@
 
 /*
 $Log$
-Revision 1.15  2005/04/20 13:03:36  cblume
-Fix of geometry and pad plane parameter
-
 Revision 1.14  2004/05/07 06:52:50  cblume
 Bug fix to allow for fPHOShole and not fRICHhole
 
@@ -86,7 +83,7 @@ Add new TRD classes
 #include "TVirtualMC.h"
 
 #include "AliTRDgeometryFull.h"
-#include "AliTRDCommonParam.h"
+#include "AliTRDparameter.h"
 
 ClassImp(AliTRDgeometryFull)
 
@@ -967,14 +964,8 @@ void AliTRDgeometryFull::CreateServices(Int_t *idtmed)
   gMC->Matrix(matrix[1], 80.0,  0.0, 90.0, 90.0, 10.0,180.0);
   gMC->Matrix(matrix[2],  0.0,  0.0, 90.0, 90.0, 90.0,  0.0);
 
-  AliTRDCommonParam* commonParam = AliTRDCommonParam::Instance();
-  if (!commonParam)
-  {
-    printf("<AliTRDgeometryFull::CreateServices> ");
-    printf("Could not get common params\n");
-    return;
-  }
-    
+  AliTRDparameter *parameter = new AliTRDparameter("par","TRD parameter");
+
   //
   // The cooling arterias
   //
@@ -1165,7 +1156,7 @@ void AliTRDgeometryFull::CreateServices(Int_t *idtmed)
     for (iplan = 0; iplan < kNplan-1; iplan++) { 
       Int_t   iDet    = GetDetectorSec(iplan,icham);
       Int_t   iCopy   = GetDetector(iplan,icham,0) * 100;
-      Int_t   nMCMrow = commonParam->GetRowMax(iplan,icham,0);
+      Int_t   nMCMrow = parameter->GetRowMax(iplan,icham,0);
       Float_t ySize   = (GetChamberLength(iplan,icham) - 2.*fgkRpadW) 
                       / ((Float_t) nMCMrow);
       sprintf(cTagV,"UU%02d",iDet);
@@ -1232,7 +1223,7 @@ void AliTRDgeometryFull::CreateServices(Int_t *idtmed)
     for (iplan = 0; iplan < kNplan-1; iplan++) { 
       Int_t   iDet    = GetDetectorSec(iplan,icham);
       Int_t   iCopy   = GetDetector(iplan,icham,0) * 100;
-      Int_t   nMCMrow = commonParam->GetRowMax(iplan,icham,0);
+      Int_t   nMCMrow = parameter->GetRowMax(iplan,icham,0);
       Float_t ySize   = (GetChamberLength(iplan,icham) - 2.*fgkRpadW) 
                       / ((Float_t) nMCMrow);
       sprintf(cTagV,"UU%02d",iDet);
@@ -1327,7 +1318,7 @@ void AliTRDgeometryFull::CreateServices(Int_t *idtmed)
     for (iplan = 0; iplan < kNplan-1; iplan++) { 
       Int_t   iDet    = GetDetectorSec(iplan,icham);
       Int_t   iCopy   = GetDetector(iplan,icham,0) * 1000;
-      Int_t   nMCMrow = commonParam->GetRowMax(iplan,icham,0);
+      Int_t   nMCMrow = parameter->GetRowMax(iplan,icham,0);
       Float_t ySize   = (GetChamberLength(iplan,icham) - 2.*fgkRpadW) 
                       / ((Float_t) nMCMrow);
       Int_t   nMCMcol = 8;
@@ -1389,4 +1380,7 @@ void AliTRDgeometryFull::CreateServices(Int_t *idtmed)
 
     }
   }
+
+  delete parameter;
+
 }

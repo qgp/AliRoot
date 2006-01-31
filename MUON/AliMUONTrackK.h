@@ -11,17 +11,18 @@
 /// \brief Kalman track in MUON arm of ALICE
 
 #include <TObject.h>
-#include "AliMUONTrack.h" 
-#include <TMatrixDfwd.h>
+#include "AliMUONTrack.h" //AZ
 
 class TArrayD;
+class TMatrixD;
 class AliMUONTrackReconstructor;
 class TClonesArray;
 class TObjArray;
 class AliMUONSegment;
+class AliMUON;
 class AliMUONHitForRec;
-class AliMUONEventRecoCombi;
 
+//AZ class AliMUONTrackK : public TObject {
 class AliMUONTrackK : public AliMUONTrack {
 
  public:
@@ -29,6 +30,7 @@ class AliMUONTrackK : public AliMUONTrack {
   AliMUONTrackK(); // Default constructor
   virtual ~AliMUONTrackK(); // Destructor
 
+  //AliMUONTrackK(const AliMUONTrackReconstructor *TrackReconstructor, const AliMUONHitForRec *hitForRec); // Constructor
   AliMUONTrackK(AliMUONTrackReconstructor *TrackReconstructor, TClonesArray *hitForRec); // Constructor
   AliMUONTrackK(AliMUONSegment *segment); // Constructor from a segment
 
@@ -80,10 +82,9 @@ class AliMUONTrackK : public AliMUONTrack {
  
   static Int_t fgDebug; // debug level
   static Int_t fgNOfPoints; // number of points in event
-  //static AliMUON *fgMUON; // pointer to MUON module  
+  static AliMUON *fgMUON; // pointer to MUON module  
   static AliMUONTrackReconstructor *fgTrackReconstructor; // pointer to event reconstructor
   static TClonesArray *fgHitForRec; // pointer to hits
-  static AliMUONEventRecoCombi *fgCombi; // pointer to combined cluster/track finder
 
   AliMUONSegment *fStartSegment; // seed segment  
   Double_t fPosition; // Z-coordinate of track
@@ -122,7 +123,7 @@ class AliMUONTrackK : public AliMUONTrack {
   void WeightPropagation(Double_t zEnd, Bool_t smooth);
   void MSThin(Int_t sign);
   void MSLine(Double_t dZ, Double_t X0);
-  Bool_t FindPoint(Int_t ichamb, Double_t zEnd, Int_t currIndx, Int_t iFB, AliMUONHitForRec *&hitAdd, Int_t iz);
+  Bool_t FindPoint(Int_t ichamb, Double_t zEnd, Int_t currIndx, Int_t iFB, AliMUONHitForRec *&hitAdd);
   void TryPoint(TMatrixD &point, const TMatrixD &pointWeight, TMatrixD &trackParTmp, Double_t &dChi2);
   void SetGeantParam(Double_t *VGeant3, Int_t iFB);
   void GetFromGeantParam(Double_t *VGeant3, Int_t iFB);

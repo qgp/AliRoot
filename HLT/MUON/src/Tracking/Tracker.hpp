@@ -29,8 +29,6 @@ class Tracker;
 class TrackerCallback
 {
 public:
-
-	virtual ~TrackerCallback() {};
 	
 	/* All clusters that fall within the specified boundary box on the specified
 	   chamber should be returned to the tracker, by calling the ReturnClusters
@@ -70,8 +68,6 @@ public:
 	{
 		callback = NULL;
 	};
-
-	virtual ~Tracker() {};
 
 	/* This is the starting point for the tracking algorithm. The tracker is 
 	   called at this point with the specified trigger record. It needs to figure
