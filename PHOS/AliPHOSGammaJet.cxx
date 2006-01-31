@@ -17,6 +17,12 @@
 /* History of cvs commits:
  *
  * $Log$
+ * Revision 1.10  2006/01/23 18:04:08  hristov
+ * Removing meaningless const
+ *
+ * Revision 1.9  2006/01/12 16:23:26  schutz
+ * ESD is properly read with methods of macros/AliReadESD.C copied in it
+ *
  * Revision 1.8  2005/12/20 07:08:32  schutz
  * corrected error in call AliReadESD
  *
@@ -40,20 +46,21 @@
 
 // --- ROOT system ---
 
-#include "TParticle.h"
-#include "TCanvas.h"
-#include "TPaveLabel.h"
-#include "TPad.h"
+#include <TFile.h>
+#include <TParticle.h>
+#include <TCanvas.h>
+#include <TPaveLabel.h>
+#include <TPad.h>
+#include <TH2.h>
+
 #include "AliPHOSGammaJet.h" 
 #include "AliPHOSGetter.h" 
-#include "TH2.h"
 #include "AliPHOSGeometry.h"
 #include "AliPHOSFastGlobalReconstruction.h"
 #include "AliESD.h"
 #include "AliESDtrack.h"
 #include "Riostream.h"
 
-//#include "../PYTHIA6/AliGenPythia.h"
 
 ClassImp(AliPHOSGammaJet)
 
@@ -961,7 +968,7 @@ void AliPHOSGammaJet::Exec(Option_t *option)
 
   if(fESDdata){
     // Create chain of esd trees
-    const UInt_t kNevent = static_cast<const UInt_t>(GetNEvent()) ; 
+    const UInt_t kNevent = static_cast<UInt_t>(GetNEvent()) ; 
     t = ReadESD(kNevent, fDirName, fESDTree, fPattern) ; 
     if(!t) {
       AliError("Could not create the TChain") ; 
