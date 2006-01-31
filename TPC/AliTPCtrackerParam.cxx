@@ -72,7 +72,6 @@
 #include <TParticle.h>
 #include <TStyle.h>
 #include <TSystem.h>
-#include <TFile.h>
 //------ AliRoot headers ------
 #include "AliGausCorr.h"
 #include "AliKalmanTrack.h"

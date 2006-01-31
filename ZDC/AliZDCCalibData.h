@@ -11,7 +11,6 @@
 #include "TNamed.h"
 #include "TH1.h"
 #include "AliZDC.h"
-#include "AliCDBEntry.h"
 
 class AliZDCCalibData: public TNamed {
 

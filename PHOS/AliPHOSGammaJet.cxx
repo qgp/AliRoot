@@ -17,15 +17,6 @@
 /* History of cvs commits:
  *
  * $Log$
- * Revision 1.10  2006/01/23 18:04:08  hristov
- * Removing meaningless const
- *
- * Revision 1.9  2006/01/12 16:23:26  schutz
- * ESD is properly read with methods of macros/AliReadESD.C copied in it
- *
- * Revision 1.8  2005/12/20 07:08:32  schutz
- * corrected error in call AliReadESD
- *
  * Revision 1.6  2005/05/28 14:19:04  schutz
  * Compilation warnings fixed by T.P.
  *
@@ -46,21 +37,17 @@
 
 // --- ROOT system ---
 
-#include <TFile.h>
-#include <TParticle.h>
-#include <TCanvas.h>
-#include <TPaveLabel.h>
-#include <TPad.h>
-#include <TH2.h>
-
+#include "TParticle.h"
+#include "TCanvas.h"
+#include "TPaveLabel.h"
+#include "TPad.h"
 #include "AliPHOSGammaJet.h" 
 #include "AliPHOSGetter.h" 
+#include "TH2.h"
 #include "AliPHOSGeometry.h"
 #include "AliPHOSFastGlobalReconstruction.h"
-#include "AliESD.h"
-#include "AliESDtrack.h"
-#include "Riostream.h"
-
+//#include "Riostream.h"
+//#include "../PYTHIA6/AliGenPythia.h"
 
 ClassImp(AliPHOSGammaJet)
 
@@ -72,7 +59,6 @@ AliPHOSGammaJet::AliPHOSGammaJet() : TTask()
   fAngleMaxParam.Reset(0.);
   fAnyConeOrPt      = 0  ;
   fEtaCut           = 0. ;
-  fESDdata          = 0  ;
   fFastRec          = 0  ;
   fInvMassMaxCut    = 0. ;
   fInvMassMinCut    = 0. ;
@@ -97,11 +83,6 @@ AliPHOSGammaJet::AliPHOSGammaJet() : TTask()
   fPtThreshold      = 0  ;
   fTPCCutsLikeEMCAL = 0  ;
   fSelect           = 0  ;
-
-  fDirName          = "" ;
-  fESDTree          = "" ;
-  fPattern          = "" ;
-
   for(Int_t i = 0; i<10; i++){
     fCones[i]         = 0.0 ;
     fNameCones[i]     = ""  ;
@@ -155,7 +136,7 @@ AliPHOSGammaJet::AliPHOSGammaJet() : TTask()
 AliPHOSGammaJet::AliPHOSGammaJet(const TString inputfilename) : 
   TTask("GammaJet","Analysis of gamma-jet correlations")
 {
-  // ctor
+  // ctor 
   fInputFileName = inputfilename;
   fFastRec = new AliPHOSFastGlobalReconstruction(fInputFileName);  
   AliPHOSGetter *  gime = AliPHOSGetter::Instance(fInputFileName) ;
@@ -170,7 +151,6 @@ AliPHOSGammaJet::AliPHOSGammaJet(const AliPHOSGammaJet & gj) : TTask(gj)
   // cpy ctor
   fAngleMaxParam     = gj.fAngleMaxParam;
   fAnyConeOrPt       = gj.fAnyConeOrPt;
-  fESDdata           = gj.fESDdata;
   fEtaCut            = gj.fEtaCut ;
   fInvMassMaxCut     = gj.fInvMassMaxCut ;
   fInvMassMinCut     = gj.fInvMassMinCut ;
@@ -209,10 +189,6 @@ AliPHOSGammaJet::AliPHOSGammaJet(const AliPHOSGammaJet & gj) : TTask(gj)
   fCone              = gj.fCone ;
   fPtThreshold       = gj.fPtThreshold  ;
 
-  fDirName           = gj.fDirName ;
-  fESDTree           = gj.fESDTree ;
-  fPattern           = gj.fPattern ;
-
   SetName (gj.GetName()) ; 
   SetTitle(gj.GetTitle()) ; 
 
@@ -250,7 +226,8 @@ AliPHOSGammaJet::~AliPHOSGammaJet()
 void AliPHOSGammaJet::AddHIJINGToList(Int_t iEvent, TClonesArray * particleList, 
 				      TClonesArray * plCh, 
 				      TClonesArray * plNe,  
-				      TClonesArray * plNePHOS)
+				      TClonesArray * plNePHOS,
+				      const AliPHOSGeometry * geom )
 {
 
   // List of particles copied to a root file.
@@ -287,10 +264,6 @@ void AliPHOSGammaJet::AddHIJINGToList(Int_t iEvent, TClonesArray * particleList,
   Int_t m = 0;
   Double_t x = 0., z = 0.;
   //  cout<<"bkg entries "<<t->GetEntries()<<endl;
-
-  AliPHOSGetter * gime = AliPHOSGetter::Instance() ; 
-  const AliPHOSGeometry * geom = gime->PHOSGeometry() ;
-
   if(!fOptFast){
     for (iParticle=0 ; iParticle < t->GetEntries() ; iParticle++) {
       t->GetEvent(iParticle) ;
@@ -557,7 +530,7 @@ void AliPHOSGammaJet::AddHIJINGToList(Int_t iEvent, TClonesArray * particleList,
 }  
 
 //____________________________________________________________________________
-Double_t AliPHOSGammaJet::CalculateJetRatioLimit(const Double_t ptg, 
+Double_t AliPHOSGammaJet::CalculateJetRatioLimit(Double_t ptg, 
 						 const Double_t *par, 
 						 const Double_t *x) {
 
@@ -578,13 +551,12 @@ void AliPHOSGammaJet::CreateParticleList(Int_t iEvent,
 					 TClonesArray * particleList, 
 					 TClonesArray * plCh, 
 					 TClonesArray * plNe,  
-					 TClonesArray * plNePHOS)
+					 TClonesArray * plNePHOS,
+					 const AliPHOSGeometry * geom )
 {
   //Info("CreateParticleList","Inside");
-  AliPHOSGetter * gime = AliPHOSGetter::Instance(fInputFileName) ;
-  const AliPHOSGeometry * geom = gime->PHOSGeometry() ; 
+  AliPHOSGetter * gime = AliPHOSGetter::Instance(fInputFileName) ; 
   gime->Event(iEvent, "X") ;
-
 
   Int_t index = particleList->GetEntries() ; 
   Int_t indexCh     = plCh->GetEntries() ;
@@ -825,134 +797,6 @@ void AliPHOSGammaJet::CreateParticleList(Int_t iEvent,
     }//OptFast
   //gime->Delete() ; 
 }
-//____________________________________________________________________________
-void AliPHOSGammaJet::CreateParticleListFromESD(TClonesArray * pl, 
-						TClonesArray * plCh, 
-						TClonesArray * plNe,  
-						TClonesArray * plNePHOS,
-						const AliESD * esd){
-  
-  //Create a list of particles from the ESD. These particles have been measured 
-  //by the Central Tracking system (TPC), PHOS and EMCAL 
-  //(EMCAL not available for the moment). 
-  //Info("CreateParticleListFromESD","Inside");
-
-  Int_t index = pl->GetEntries() ; 
-  Int_t npar  = 0 ;
-  Double_t pid[AliPID::kSPECIESN];  
-
-  //########### PHOS ##############
-  //Info("CreateParticleListFromESD","Fill ESD PHOS list");
-  Int_t begphos = esd->GetFirstPHOSParticle();  
-  Int_t endphos = esd->GetFirstPHOSParticle() + 
-    esd->GetNumberOfPHOSParticles() ;  
-  Int_t indexNePHOS = plNePHOS->GetEntries() ;
-  if(strstr(fOptionGJ,"deb all"))
-    Info("CreateParticleListFromESD","PHOS: first particle %d, last particle %d",
-	 begphos,endphos);
-
-  for (npar =  begphos; npar <  endphos; npar++) {//////////////PHOS track loop
-    AliESDtrack * track = esd->GetTrack(npar) ; // retrieve track from esd
-   
-    //Create a TParticle to fill the particle list
-
-    Double_t en = track->GetPHOSsignal() ;
-    Double_t * p = new Double_t();
-    track->GetPHOSposition(p) ;
-    TVector3 pos(p[0],p[1],p[2]) ; 
-    Double_t phi  = pos.Phi();
-    Double_t theta= pos.Theta();
-    Double_t px = en*TMath::Cos(phi)*TMath::Sin(theta);;
-    Double_t py = en*TMath::Sin(phi)*TMath::Sin(theta);
-    Double_t pz = en*TMath::Cos(theta);
-
-    TParticle * particle = new TParticle() ;
-    particle->SetMomentum(px,py,pz,en) ;
-
-    //Select only photons
-    
-    track->GetPHOSpid(pid);
-    //cout<<"pid "<<pid[AliPID::kPhoton]<<endl ;
-    if( pid[AliPID::kPhoton] > 0.75)
-      new((*plNePHOS)[indexNePHOS++])   TParticle(*particle) ;
-  }
-
-  //########### TPC #####################
-  //Info("CreateParticleListFromESD","Fill ESD TPC list");
-  Int_t begtpc = 0 ;  
-  Int_t endtpc = esd->GetNumberOfTracks() ;
-  Int_t indexCh     = plCh->GetEntries() ;
-  if(strstr(fOptionGJ,"deb all"))
-    Info("CreateParticleListFromESD","TPC: first particle %d, last particle %d",
-	 begtpc,endtpc);
-
-  for (npar =  begtpc; npar <  endtpc; npar++) {////////////// track loop
-    AliESDtrack * track = esd->GetTrack(npar) ; // retrieve track from esd
-    
-    Double_t en = track ->GetTPCsignal() ;
-    TVector3 mom = track->P3() ;
-    Double_t px = mom.Px();
-    Double_t py = mom.Py();
-    Double_t pz = mom.Pz(); //Check with TPC people if this is correct.
-
-    //cout<<"TPC signal "<<en<<endl;
-    //cout<<"px "<<px<<"; py "<<py<<"; pz "<<pz<<endl;
-    TParticle * particle = new TParticle() ;
-    particle->SetMomentum(px,py,pz,en) ;
-
-    new((*plCh)[indexCh++])       TParticle(*particle) ;    
-    new((*pl)[index++])           TParticle(*particle) ;
-
-  }
-
-  //################ EMCAL ##############
-  Double_t v[3] ; //vertex ;
-  esd->GetVertex()->GetXYZ(v) ; 
-  //##########Uncomment when ESD for EMCAL works ##########  
-  //Info("CreateParticleListFromESD","Fill ESD EMCAL list");
- 
-  Int_t begem = esd->GetFirstEMCALParticle();  
-  Int_t endem = esd->GetFirstEMCALParticle() + 
-    esd->GetNumberOfEMCALParticles() ;  
-  Int_t indexNe  = plNe->GetEntries() ; 
-  if(strstr(fOptionGJ,"deb all"))
-    Info("CreateParticleListFromESD","EMCAL: first particle %d, last particle %d",
-	 begem,endem);
-   
-  for (npar =  begem; npar <  endem; npar++) {//////////////EMCAL track loop
-     AliESDtrack * track = esd->GetTrack(npar) ; // retrieve track from esd
-  
-    Double_t en = track->GetEMCALsignal() ;
-    Double_t *p = new Double_t();
-    track->GetEMCALposition(p) ;
-    TVector3 pos(p[0],p[1],p[2]) ;
-    Double_t phi  = pos.Phi();
-    Double_t theta= pos.Theta();
-    Double_t px = en*TMath::Cos(phi)*TMath::Sin(theta);;
-    Double_t py = en*TMath::Sin(phi)*TMath::Sin(theta);
-    Double_t pz = en*TMath::Cos(theta);
-    //cout<<"EMCAL signal "<<en<<endl;
-    //cout<<"px "<<px<<"; py "<<py<<"; pz "<<pz<<endl;
-    //TParticle * particle = new TParticle() ;
-    //particle->SetMomentum(px,py,pz,en) ;
-  
-    Int_t pdg = 0;
-    //  //Uncomment if PID IS WORKING, photon and pi0 idenitification.
-    //  //if( pid[AliPID::kPhoton] > 0.75) //This has to be fixen.
-    //  //pdg = 22;
-    //  //else if( pid[AliPID::kPi0] > 0.75)
-    //  //pdg = 111;
-    pdg = 22; //No PID, assume all photons
-    TParticle * particle = new TParticle(pdg, 1, -1, -1, -1, -1, 
-					 px, py, pz, en, v[0], v[1], v[2], 0);
-
-    new((*plNe)[indexNe++])       TParticle(*particle) ; 
-    new((*pl)[index++])           TParticle(*particle) ;
-  }
-  
-  //  Info("CreateParticleListFromESD","End Inside");
-  
-}
 
 
 
@@ -962,24 +806,10 @@ void AliPHOSGammaJet::Exec(Option_t *option)
   // does the job
   fOptionGJ = option;
   MakeHistos() ; 
-  
-  AliESD * esd = 0;
-  TChain * t = 0 ;
 
-  if(fESDdata){
-    // Create chain of esd trees
-    const UInt_t kNevent = static_cast<UInt_t>(GetNEvent()) ; 
-    t = ReadESD(kNevent, fDirName, fESDTree, fPattern) ; 
-    if(!t) {
-      AliError("Could not create the TChain") ; 
-      //break ;
-    }
-    
-    // ESD  
-    t->SetBranchAddress("ESD",&esd); // point to the container esd where to put the event from the esdTree  
+  AliPHOSGetter * gime = AliPHOSGetter::Instance() ; 
+  const AliPHOSGeometry * geom = gime->PHOSGeometry() ;
 
-  }
- 
 
 //   AliGenPythia* pyth = (AliGenPythia*) gAlice->Generator();
 //   pyth->Init();
@@ -1001,52 +831,41 @@ void AliPHOSGammaJet::Exec(Option_t *option)
  
     TLorentzVector jet   (0,0,0,0);
     TLorentzVector jettpc(0,0,0,0);
-
-    if(fESDdata){
-
-      Int_t iNbytes = t->GetEntry(iEvent); // store event in esd
-      //cout<<"nbytes "<<iNbytes<<endl;
-      if ( iNbytes == 0 ) {
-	AliError("Empty TChain") ; 
-	break ;
-      }      
-      CreateParticleListFromESD(particleList, plCh,plNe,plNePHOS, esd); //,iEvent);
-    }
-    else{   
-      CreateParticleList(iEvent, particleList, plCh,plNe,plNePHOS); 
-      
-      //    TLorentzVector pyjet(0,0,0,0);
-      
-      //     Int_t nJ, nJT;
-      //     Float_t jets[4][10];
-      //     pyth->SetJetReconstructionMode(1);
-      //     pyth->LoadEvent();
-      //     pyth->GetJets(nJ, nJT, jets);
-      
-      //     Float_t pxJ = jets[0][0];
-      //     Float_t pyJ = jets[1][0];
-      //     Float_t pzJ = jets[2][0];
-      //     Float_t eJ  = jets[3][0];
-      //     pyjet.SetPxPyPzE(pxJ,pyJ,pzJ,eJ ) ;
-      
-      //     if(nJT > 1){
-      //       //Info("Exec",">>>>>>>>>>Number of jets !!!!   %d",nJT);
-      //       for (Int_t iJ = 1; iJ < nJT; iJ++) {
-      // 	Float_t pxJ = jets[0][iJ];
-      // 	Float_t pyJ = jets[1][iJ];
-      // 	Float_t pzJ = jets[2][iJ];
-      // 	Float_t eJ  = jets[3][iJ];
-      // 	pyjet.SetPxPyPzE(pxJ,pyJ,pzJ,eJ ) ;
-      // 	//Info("Exec",">>>>>Pythia Jet: %d, Phi %f, Eta %f, Pt %f",
-      // 	//	     iJ,pyjet.Phi(),pyjet.Eta(),pyjet.Pt());
-      //       }
-      
-      //     }
-      
-      if(fHIJING)
-	AddHIJINGToList(iEvent, particleList, plCh,plNe, plNePHOS);
-    }
     
+    CreateParticleList(iEvent, particleList, plCh,plNe,plNePHOS, geom ); 
+
+//    TLorentzVector pyjet(0,0,0,0);
+
+//     Int_t nJ, nJT;
+//     Float_t jets[4][10];
+//     pyth->SetJetReconstructionMode(1);
+//     pyth->LoadEvent();
+//     pyth->GetJets(nJ, nJT, jets);
+    
+//     Float_t pxJ = jets[0][0];
+//     Float_t pyJ = jets[1][0];
+//     Float_t pzJ = jets[2][0];
+//     Float_t eJ  = jets[3][0];
+//     pyjet.SetPxPyPzE(pxJ,pyJ,pzJ,eJ ) ;
+    
+//     if(nJT > 1){
+//       //Info("Exec",">>>>>>>>>>Number of jets !!!!   %d",nJT);
+//       for (Int_t iJ = 1; iJ < nJT; iJ++) {
+// 	Float_t pxJ = jets[0][iJ];
+// 	Float_t pyJ = jets[1][iJ];
+// 	Float_t pzJ = jets[2][iJ];
+// 	Float_t eJ  = jets[3][iJ];
+// 	pyjet.SetPxPyPzE(pxJ,pyJ,pzJ,eJ ) ;
+// 	//Info("Exec",">>>>>Pythia Jet: %d, Phi %f, Eta %f, Pt %f",
+// 	//	     iJ,pyjet.Phi(),pyjet.Eta(),pyjet.Pt());
+//       }
+      
+//     }
+    
+    if(fHIJING)
+      AddHIJINGToList(iEvent, particleList, plCh,plNe, plNePHOS, geom);
+
+
     Bool_t iIsInPHOS = kFALSE ;
     GetGammaJet(plNePHOS, ptg, phig, etag, iIsInPHOS) ; 
 
@@ -1271,12 +1090,15 @@ void AliPHOSGammaJet::GetGammaJet(TClonesArray * pl, Double_t &pt,
   for(Int_t ipr = 0;ipr < pl->GetEntries() ; ipr ++ ){
     TParticle * particle = dynamic_cast<TParticle *>(pl->At(ipr)) ;
 
-    if((particle->Pt() > fPtCut) && (particle->Pt() > pt)){
-
-      pt  = particle->Pt();          
-      phi = particle->Phi() ;
-      eta = particle->Eta() ;
-      Is  = kTRUE;
+    if( (particle->Pt() > fPtCut ) && ( particle->GetStatusCode() == 1) 
+	&& ( particle->GetPdgCode() == 22 || particle->GetPdgCode() == 111) ){
+       
+      if (particle->Pt() > pt) {
+	pt  = particle->Pt();          
+	phi = particle->Phi() ;
+	eta = particle->Eta() ;
+	Is  = kTRUE;
+      }
     }
   }
 }
@@ -1399,7 +1221,8 @@ void  AliPHOSGammaJet::GetLeadingPi0(TClonesArray * pl,
 
     while ( (particle = (TParticle*)next()) ) {
       iPrimary++;	  
-    
+      //     if(particle->GetStatusCode() == 1){
+
       ksPdg = particle->GetPdgCode();
       ptl  = particle->Pt();
       if(ksPdg == 111){ //2 gamma
@@ -1522,7 +1345,6 @@ void AliPHOSGammaJet::InitParameters()
   fInvMassMinCut  = 0.12 ;
   fOnlyCharged    = kFALSE ;
   fOptFast        = kFALSE ;
-  fESDdata        = kTRUE ;
   fPhiEMCALCut[0] = 60. *TMath::Pi()/180.;
   fPhiEMCALCut[1] = 180.*TMath::Pi()/180.;
   fPhiMaxCut      = 3.4 ;
@@ -1540,10 +1362,6 @@ void AliPHOSGammaJet::InitParameters()
   fJetTPCRatioMaxCut = 1.2 ;
   fJetTPCRatioMinCut = 0.3 ;
   fSelect         = kFALSE  ;
-
-  fDirName      = "./" ;
-  fESDTree      = "esdTree" ;
-  fPattern      = "." ;
 
   //Cut depending on gamma energy
 
@@ -1605,7 +1423,7 @@ void AliPHOSGammaJet::InitParameters()
 }
 
 //__________________________________________________________________________-
-Bool_t AliPHOSGammaJet::IsAngleInWindow(const Float_t angle,const Float_t e) {
+Bool_t AliPHOSGammaJet::IsAngleInWindow(Float_t angle, Float_t e) {
   //Check if the opening angle of the candidate pairs is inside 
   //our selection windowd
   Bool_t result = kFALSE;
@@ -1624,7 +1442,7 @@ Bool_t AliPHOSGammaJet::IsAngleInWindow(const Float_t angle,const Float_t e) {
 }
 
 //__________________________________________________________________________-
-Bool_t AliPHOSGammaJet::IsJetSelected(const Double_t ptg, const Double_t ptj, 
+Bool_t AliPHOSGammaJet::IsJetSelected(Double_t ptg, Double_t ptj, 
 				      const TString type ){
   //Check if the energy of the reconstructed jet is within an energy window
 
@@ -1721,7 +1539,7 @@ void AliPHOSGammaJet::List() const
 }
 
 //____________________________________________________________________________
-Double_t AliPHOSGammaJet::MakeEnergy(const Double_t energy)
+Double_t AliPHOSGammaJet::MakeEnergy(Double_t energy)
 {  
   // Smears the energy according to the energy dependent energy resolution.
   // A gaussian distribution is assumed
@@ -2617,7 +2435,7 @@ void  AliPHOSGammaJet::MakePhoton(TLorentzVector & particle)
 }
 
 //____________________________________________________________________________
-TVector3 AliPHOSGammaJet::MakePosition(const Double_t energy, const TVector3 pos)
+TVector3 AliPHOSGammaJet::MakePosition(Double_t energy, const TVector3 pos)
 {
   // Smears the impact position according to the energy dependent position resolution
   // A gaussian position distribution is assumed
@@ -2750,67 +2568,6 @@ void AliPHOSGammaJet::Print(const Option_t * opt) const
   printf("Inv Mass min cut  : %f\n", fInvMassMinCut) ; 
  
 } 
-
-//__________________________________________________________________________
-TChain * AliPHOSGammaJet::ReadESDfromdisk(const UInt_t eventsToRead, 
-			 const TString dirName, 
-			 const TString esdTreeName, 
-			 const char *  pattern) 
-{
-  // Reads ESDs from Disk
- TChain *  rv = 0; 
-
-  AliInfo( Form("\nReading files in %s \nESD tree name is %s \nReading %d events", 
-		dirName.Data(), esdTreeName.Data(), eventsToRead) ) ;
-  
-  // create a TChain of all the files 
-  TChain * cESDTree = new TChain(esdTreeName) ; 
-
-  // read from the directory file until the require number of events are collected
-  void * from = gSystem->OpenDirectory(dirName) ;
-  if (!from) {
-    AliError( Form("Directory %s does not exist") ) ;
-    rv = 0 ;
-  }
-  else{ // reading file names from directory
-    const char * subdir ; 
-    // search all subdirectories witch matching pattern
-    while( (subdir = gSystem->GetDirEntry(from))  && 
-	   (cESDTree->GetEntries() < eventsToRead)) {
-      if ( strstr(subdir, pattern) != 0 ) { 
-	char file[200] ; 
-        sprintf(file, "%s%s/AliESDs.root", dirName.Data(), subdir); 	
-	AliInfo( Form("Adding %s\n", file) );
-	cESDTree->Add(file) ;
-      }
-    } // while file
-  
-    AliInfo( Form(" %d events read", cESDTree->GetEntriesFast()) ) ;
-    rv = cESDTree ; 
-    
-  } // reading file names from directory
-  return rv ; 
-}
-
-//__________________________________________________________________________
-TChain * AliPHOSGammaJet::ReadESD(const UInt_t eventsToRead,
-		  const TString dirName, 
-		  const TString esdTreeName, 
-		  const char *  pattern)  
-{
-  // Read AliESDs files and return a Chain of events
- 
-  if ( dirName == "" ) {
-    AliError("Give the name of the DIR where to find files") ; 
-    return 0 ; 
-  }
-  if ( esdTreeName == "" ) 
-    return ReadESDfromdisk(eventsToRead, dirName) ;
-  else if ( strcmp(pattern, "") == 0 )
-    return ReadESDfromdisk(eventsToRead, dirName, esdTreeName) ;
-  else 
-    return ReadESDfromdisk(eventsToRead, dirName, esdTreeName, pattern) ;	    
-}
 
 //___________________________________________________________________
 void AliPHOSGammaJet::SetJet(TParticle * part, Bool_t & b, Float_t cone, 

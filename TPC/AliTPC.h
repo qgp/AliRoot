@@ -11,7 +11,10 @@
 #include "AliDetector.h"
 #include "AliHit.h" 
 #include "AliDigit.h" 
-#include <TMatrixFfwd.h>
+#include <TVector.h>
+
+
+class TMatrix;
 
 class TTree;
 
@@ -134,9 +137,9 @@ protected:
   //
   void SetDefaults();
   void DigitizeRow(Int_t irow,Int_t isec,TObjArray **rowTriplet);
-  Float_t GetSignal(TObjArray *p1, Int_t ntr, TMatrixF *m1, 
-                   TMatrixF *m2,Int_t *IndexRange);
-  void GetList (Float_t label,Int_t np,TMatrixF *m,Int_t *IndexRange,
+  Float_t GetSignal(TObjArray *p1, Int_t ntr, TMatrix *m1, 
+                   TMatrix *m2,Int_t *IndexRange);
+  void GetList (Float_t label,Int_t np,TMatrix *m,Int_t *IndexRange,
                 Float_t **pList);
   void MakeSector(Int_t isec,Int_t nrows,TTree *TH,Stat_t ntracks,TObjArray **row);
   void TransportElectron(Float_t *xyz, Int_t *index);

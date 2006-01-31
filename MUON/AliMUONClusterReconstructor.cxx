@@ -48,7 +48,10 @@ ClassImp(AliMUONClusterReconstructor) // Class implementation in ROOT context
   fLoader = loader;
 
   // initialize container
-  fMUONData = data;
+  if (data == 0x0)
+    fMUONData = new AliMUONData(fLoader,"MUON","MUON");
+  else
+    fMUONData = data;
   
   // reconstruction model
   fRecModel = new AliMUONClusterFinderVS();
@@ -92,6 +95,8 @@ AliMUONClusterReconstructor::operator=(const AliMUONClusterReconstructor& rhs)
 AliMUONClusterReconstructor::~AliMUONClusterReconstructor(void)
 {
 
+  if (fMUONData)
+    delete fMUONData;
   if (fRecModel)
     delete fRecModel;
 
@@ -116,14 +121,19 @@ void AliMUONClusterReconstructor::Digits2Clusters(Int_t chBeg)
     TClonesArray* muonDigits;
     Int_t n2;
     Int_t n1;
+  
+    fMUONData->ResetDigits(); //AZ
+    fMUONData->GetDigits(); //AZ
 
     for (Int_t ich = chBeg; ich < AliMUONConstants::NTrackingCh(); ich++) {
  
       id.Reset();
       n1 = 0;
       n2 = 0;
-
       //cathode 0 & 1
+      //fMUONData->ResetDigits();
+      //fMUONData->GetDigits();
+
       muonDigits = fMUONData->Digits(ich); 
       ndig = muonDigits->GetEntriesFast();
       TClonesArray &lDigit = *digAll;

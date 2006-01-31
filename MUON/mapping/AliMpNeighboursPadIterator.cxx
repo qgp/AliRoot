@@ -117,13 +117,12 @@ AliMpNeighboursPadIterator::operator = (const AliMpNeighboursPadIterator& right)
 //
 
 //______________________________________________________________________________
-Bool_t AliMpNeighboursPadIterator::IsNeighbour(const AliMpPad& pad) const
+Bool_t AliMpNeighboursPadIterator::IsNeighbours(const AliMpPad& pad) const
 {
 /// Return true if the pad located by <padIndice> is a neighbour of those
 /// located at <fCenterPad>
 
-    if ( !pad.IsValid() ) return kFALSE;    
-
+    
     TVector2 relPos  = pad.Position()   - fCenterPad.Position();
     TVector2 bounds  = pad.Dimensions() + fCenterPad.Dimensions();
     return (TMath::Abs(relPos.X())- bounds.X()<AliMpConstants::LengthTolerance()) && 
@@ -145,14 +144,14 @@ AliMpNeighboursPadIterator::PadVectorLine(const AliMpPad& from,
     PadVector ans;
     Bool_t cont=kTRUE;
     do {
-        if (IsNeighbour(current))
+        if (IsNeighbours(current))
             ans.push_back(current);
         else
             cont=kFALSE;
         TVector2 nextPos = current.Position() + TVector2(
           current.Dimensions().X()*(AliMpConstants::LengthStep()+1.)*direction.GetFirst(),
           current.Dimensions().Y()*(AliMpConstants::LengthStep()+1.)*direction.GetSecond());
-        current = fkSegmentation->PadByPosition(nextPos, false);
+        current = fkSegmentation->PadByPosition(nextPos);
     } while (cont);
     return ans;
 }
@@ -182,14 +181,14 @@ AliMpNeighboursPadIterator::PadVectorLine(const AliMpPad& from,
     PadVector* ans = new PadVector();
     Bool_t cont=kTRUE;
     do {
-        if (IsNeighbour(current))
+        if (IsNeighbours(current))
             ans->Add(new AliMpPad(current));
         else
             cont=kFALSE;
         TVector2 nextPos = current.Position() + TVector2(
           current.Dimensions().X()*(AliMpConstants::LengthStep()+1.)*direction.GetFirst(),
           current.Dimensions().Y()*(AliMpConstants::LengthStep()+1.)*direction.GetSecond());
-        current = fkSegmentation->PadByPosition(nextPos, false);
+        current = fkSegmentation->PadByPosition(nextPos);
     } while (cont);
     return ans;
 }

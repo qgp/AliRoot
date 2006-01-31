@@ -31,14 +31,13 @@ MuonRec.Run()
 .q
 EOF
 
-echo "Running efficiency  ..."
+echo "Running mass plot  ..."
 
 aliroot -b >& testResults.out << EOF
 .includepath $ALICE_ROOT/STEER
 .includepath $ALICE_ROOT/MUON
-.L $ALICE_ROOT/MUON/MUONefficiency.C++
-// no argument assumes Upsilon but MUONefficiency(443) works on Jpsi
-MUONefficiency();
+.L $ALICE_ROOT/MUON/MUONmassPlot_ESD.C++
+MUONmassPlot("galice.root",0,24999);
 .q
 EOF
 

@@ -54,11 +54,6 @@
 #include "AliTRDrawData.h"
 #include "AliTrackReference.h"
 
-#include "AliTRDSimParam.h"
-#include "AliTRDRecParam.h"
-#include "AliTRDCommonParam.h"
-#include "AliTRDcalibDB.h"
-
 ClassImp(AliTRD)
  
 //_____________________________________________________________________________
@@ -161,6 +156,7 @@ AliTRD::~AliTRD()
     delete fHits;
     fHits      = 0;
   }
+
 }
 
 //_____________________________________________________________________________

@@ -21,6 +21,7 @@
 #pragma link C++ class  AliMUONVGeometryDESegmentation+;
 #pragma link C++ class  AliMUONGeometrySegmentation+;
 #pragma link C++ class  AliMUONSegmentation+;
+#pragma link C++ class  AliMUONGeometryDEIndexing+;
 
 #pragma link C++ enum   AliMUONGeometryDirection;
 #endif

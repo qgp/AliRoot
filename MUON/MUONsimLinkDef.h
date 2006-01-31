@@ -4,6 +4,9 @@
 #pragma link off all functions;
 
 // builder
+#pragma link C++ class AliMUONSegFactoryV2+;  
+#pragma link C++ class AliMUONSegFactoryV3+;  
+#pragma link C++ class AliMUONSegFactoryV4+;  
 #pragma link C++ class AliMUONResponseFactory+;  
 
 // digitizer
@@ -12,8 +15,6 @@
 #pragma link C++ class AliMUONDigitizerv2+; 
 #pragma link C++ class AliMUONSDigitizerv1+;  
 #pragma link C++ class AliMUONTriggerDecision+; 
-#pragma link C++ class AliMUONRawWriter+;
-
 
 #pragma link C++ class AliMUONTest+; 
 #pragma link C++ enum  AliMUONTests+;

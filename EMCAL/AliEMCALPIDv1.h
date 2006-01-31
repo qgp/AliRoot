@@ -15,6 +15,7 @@
 // --- ROOT system ---
 //class TFormula ;
 class TVector3 ;
+class TMatrix ;
 class TPrincipal ;
 
 // --- Standard library ---

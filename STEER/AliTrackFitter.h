@@ -8,12 +8,12 @@
  *                                                                       *
  *************************************************************************/
 
-#include <TObject.h>
-#include <TMatrixDSymfwd.h>
+#include "TObject.h"
 
 #include "AliTrackPointArray.h"
 #include "AliAlignObj.h"
 
+class TMatrixDSym;
 
 class AliTrackFitter : public TObject {
 

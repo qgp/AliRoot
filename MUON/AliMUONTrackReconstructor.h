@@ -29,7 +29,7 @@ class AliTrackReference;
 class AliMUONTrackReconstructor : public TObject {
 
  public:
-  AliMUONTrackReconstructor(AliLoader* loader, AliMUONData* data); // default Constructor
+  AliMUONTrackReconstructor(AliLoader* loader); // default Constructor
   virtual ~AliMUONTrackReconstructor(void); // Destructor
 
   // Parameters for track reconstruction: public methods

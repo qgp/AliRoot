@@ -21,6 +21,7 @@
 
 #pragma link C++ class  AliTRDgeometry+;
 #pragma link C++ class  AliTRDgeometryFull+;
+#pragma link C++ class  AliTRDgeometryDetail+;
 #pragma link C++ class  AliTRDparameter+;
 #pragma link C++ class  AliTRDpadPlane+;
 
@@ -30,13 +31,8 @@
 #pragma link C++ class  AliTRDrawData+;
 #pragma link C++ class  AliTRDRawStream+;
 
-#pragma link C++ class  AliTRDCommonParam+;
-#pragma link C++ class  AliTRDcalibDB+;
 #pragma link C++ class  AliTRDCalROC+;
-#pragma link C++ class  AliTRDCalPad+;
-#pragma link C++ class  AliTRDCalDet+;
-#pragma link C++ class  AliTRDCalGlobals+;
-#pragma link C++ class  AliTRDCalChamber+;
-#pragma link C++ class  AliTRDCalStack+;
+#pragma link C++ class  AliTRDCalROCVdrift+;
+#pragma link C++ class  AliTRDCalVdrift+;
 
 #endif

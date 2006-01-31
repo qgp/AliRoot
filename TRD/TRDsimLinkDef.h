@@ -24,6 +24,5 @@
 #pragma link C++ class  AliTRDsimpleGen+;
 
 #pragma link C++ class  AliTRDdigitizer+;
-#pragma link C++ class  AliTRDSimParam+;
 
 #endif

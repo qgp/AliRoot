@@ -18,9 +18,6 @@
 /* History of cvs commits:
  *
  * $Log$
- * Revision 1.87  2005/11/22 08:46:43  kharlov
- * Updated to new CDB (Boris Polichtchouk)
- *
  * Revision 1.86  2005/11/14 21:52:43  hristov
  * Coding conventions
  *
@@ -336,7 +333,7 @@ void AliPHOSClusterizerv1::GetCalibrationParameters()
   if(AliCDBManager::Instance()->IsDefaultStorageSet()){
     AliCDBEntry *entry = (AliCDBEntry*) AliCDBManager::Instance()->GetDefaultStorage()
       ->Get("PHOS/GainFactors_and_Pedestals/Calibration",gAlice->GetRunNumber());
-    if (entry) fCalibData = (AliPHOSCalibData*) entry->GetObject();
+    fCalibData = (AliPHOSCalibData*) entry->GetObject();
   }
   
   

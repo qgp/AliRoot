@@ -7,6 +7,7 @@
 
 #include <TObject.h>
 
+class TMatrix;
 class AliITSIOTrack : public TObject {
 
 

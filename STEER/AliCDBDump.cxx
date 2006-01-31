@@ -97,18 +97,18 @@ Bool_t AliCDBDump::IdToKeyName(const AliCDBRunRange& runRange, Int_t version,
 // build key name from AliCDBId data (run range, version, subVersion)
 
         if (!runRange.IsValid()) {
-                AliDebug(2,Form("Invalid run range <%d, %d>.",
+                AliWarning(Form("Invalid run range <%d, %d>.",
                         runRange.GetFirstRun(), runRange.GetLastRun()));
                 return kFALSE;
         }
 
         if (version < 0) {
-                AliDebug(2,Form("Invalid version <%d>.", version));
+                AliWarning(Form("Invalid version <%d>.", version));
                 return kFALSE;
         }
 
 	if (subVersion < 0) {
-		AliDebug(2,Form("Invalid subversion <%s>.", subVersion));
+		AliWarning(Form("Invalid subversion <%s>.", subVersion));
 		return kFALSE;
 	}
     
@@ -181,7 +181,7 @@ Bool_t AliCDBDump::PrepareId(AliCDBId& id) {
 	
 			if (!KeyNameToId(keyName, aRunRange, aVersion, 
 			   aSubVersion)) {
-				AliDebug(2,Form(
+				AliWarning(Form(
 					"Bad keyname <%s>!I'll skip it.", keyName));
 				continue;
 			}
@@ -206,7 +206,7 @@ Bool_t AliCDBDump::PrepareId(AliCDBId& id) {
 	
 			if (!KeyNameToId(keyName, aRunRange, aVersion, 
 			   aSubVersion)) {
-				AliDebug(2,Form(
+				AliWarning(Form(
 					"Bad keyname <%s>!I'll skip it.", keyName));
 				continue;
 			}
@@ -233,7 +233,7 @@ Bool_t AliCDBDump::PrepareId(AliCDBId& id) {
 
 	if(lastStorage.Contains(TString("new"), TString::kIgnoreCase) &&
 	   id.GetSubVersion() > 0 ){
-		AliWarning(Form("A NEW object is being stored with version v%d_s%d",
+		AliWarning(Form("*** WARNING! a NEW object is being stored with version v%d_s%d",
 					id.GetVersion(),id.GetSubVersion()));
 		AliWarning(Form("and it will hide previously stored object with v%d_s%d!",
 					id.GetVersion(),id.GetSubVersion()-1));
@@ -545,57 +545,11 @@ Bool_t AliCDBDump::PutEntry(AliCDBEntry* entry) {
 	}
 
         if(result) {
-    		AliInfo(Form("CDB object stored into file %s",fFile->GetName()));
+    		AliInfo(Form("AliCDBEntry stored into file %s",fFile->GetName()));
     		AliInfo(Form("TDirectory/key name: %s/%s",id.GetPath().Data(),keyname.Data()));
         }
 
 	return result;
-}
-//_____________________________________________________________________________
-TList* AliCDBDump::GetIdListFromFile(const char* fileName){
-
-	TString turl(fileName);
-	if (turl[0] != '/') {
-		turl.Prepend(TString(gSystem->WorkingDirectory()) + '/');
-	}
-	TFile *file = TFile::Open(turl);
-	if (!file) {
-		AliError(Form("Can't open selection file <%s>!", turl.Data()));
-		return NULL;
-	}
-	file->cd();
-
-	TList *list = new TList();
-	list->SetOwner();
-	int i=0;
-	TString keycycle;
-	
-	AliCDBId *id;
-	while(1){
-		i++;
-		keycycle = "AliCDBId;";
-		keycycle+=i;
-		
-		id = (AliCDBId*) file->Get(keycycle);
-		if(!id) break;
-		list->AddFirst(id);
-	}
-	file->Close(); delete file; file=0;	
-	return list;
-}
-
-//_____________________________________________________________________________
-Bool_t AliCDBDump::Contains(const char* path) const{
-// check for path in storage
-
-	TDirectory::TContext context(gDirectory, fFile);
-	if (!(fFile && fFile->IsOpen())) {
-                AliError("AliCDBDump storage is not initialized properly");
-                return kFALSE;
-        }
-	
-	return gDirectory->cd(path);
-
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -639,6 +593,8 @@ AliCDBParam* AliCDBDumpFactory::CreateParameter(const char* dbString) {
 	if (pathname[0] != '/') {
 		pathname.Prepend(TString(gSystem->WorkingDirectory()) + '/');
 	}
+
+        AliInfo(pathname);
 
         return new AliCDBDumpParam(pathname, readOnly);
 }
