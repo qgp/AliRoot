@@ -108,6 +108,7 @@
 #include <TObjString.h>
 #include <TStopwatch.h>
 #include <TSystem.h>
+#include <TFile.h>
 
 #include "AliLog.h"
 #include "AliDigitizer.h"

@@ -15,12 +15,12 @@
 ////////////////////////////////////////////////
 
 #include <TObjArray.h>
+#include <TVectorfwd.h>
 
 #include "AliDetector.h"
 #include "AliMUONData.h"
 #include "AliMUONChamber.h"
 
-class TVector;
 class TFile;
 class TTree;
 
