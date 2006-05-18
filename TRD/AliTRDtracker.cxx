@@ -30,7 +30,7 @@
 
 #include "AliTRDgeometry.h"
 #include "AliTRDpadPlane.h"
-#include "AliTRDgeometry.h"
+#include "AliTRDgeometryFull.h"
 #include "AliTRDcluster.h" 
 #include "AliTRDtrack.h"
 #include "AliTRDseed.h"
@@ -107,7 +107,7 @@ AliTRDtracker::AliTRDtracker(const TFile *geomfile):AliTracker()
   }
   else { 
     printf("AliTRDtracker::AliTRDtracker(): can't find TRD geometry!\n");
-    fGeom = new AliTRDgeometry();
+    fGeom = new AliTRDgeometryFull();
   } 
   fGeom->ReadGeoMatrices();
 
@@ -679,10 +679,8 @@ Int_t AliTRDtracker::PropagateBack(AliESD* event)
       if (track->PropagateTo(xtof)) {
 	seed->UpdateTrackParams(track, AliESDtrack::kTRDout);
         for (Int_t i=0;i<AliESDtrack::kNPlane;i++) {
-          for (Int_t j=0;j<AliESDtrack::kNSlice;j++) {
-            seed->SetTRDsignals(track->GetPIDsignals(i,j),i,j);
-	  }
-          seed->SetTRDTimBin(track->GetPIDTimBin(i),i);
+           seed->SetTRDsignals(track->GetPIDsignals(i),i);
+           seed->SetTRDTimBin(track->GetPIDTimBin(i),i);
         }
 	//	seed->SetTRDtrack(new AliTRDtrack(*track));
 	if (track->GetNumberOfClusters()>foundMin) found++;
@@ -692,10 +690,8 @@ Int_t AliTRDtracker::PropagateBack(AliESD* event)
 	seed->UpdateTrackParams(track, AliESDtrack::kTRDout);
 	//seed->SetStatus(AliESDtrack::kTRDStop);    
         for (Int_t i=0;i<AliESDtrack::kNPlane;i++) {
-          for (Int_t j=0;j<AliESDtrack::kNSlice;j++) {
-            seed->SetTRDsignals(track->GetPIDsignals(i,j),i,j);
-	  }
-          seed->SetTRDTimBin(track->GetPIDTimBin(i),i);
+           seed->SetTRDsignals(track->GetPIDsignals(i),i);
+           seed->SetTRDTimBin(track->GetPIDTimBin(i),i);
         }
 	//seed->SetTRDtrack(new AliTRDtrack(*track));
 	found++;
@@ -774,9 +770,7 @@ Int_t AliTRDtracker::RefitInward(AliESD* event)
     AliTRDtrack *pt = new AliTRDtrack(seed2,seed2.GetAlpha());
     Int_t * indexes2 = seed2.GetIndexes();
     for (Int_t i=0;i<AliESDtrack::kNPlane;i++) {
-      for (Int_t j=0;j<AliESDtrack::kNSlice;j++) {
-        pt->SetPIDsignals(seed2.GetPIDsignals(i,j),i,j);
-      }
+      pt->SetPIDsignals(seed2.GetPIDsignals(i),i);
       pt->SetPIDTimBin(seed2.GetPIDTimBin(i),i);
     }
 
@@ -800,9 +794,7 @@ Int_t AliTRDtracker::RefitInward(AliESD* event)
     if(PropagateToX(t,xTPC,fgkMaxStep)) {
       seed->UpdateTrackParams(pt, AliESDtrack::kTRDrefit);
       for (Int_t i=0;i<AliESDtrack::kNPlane;i++) {
-        for (Int_t j=0;j<AliESDtrack::kNSlice;j++) {
-          seed->SetTRDsignals(pt->GetPIDsignals(i,j),i,j);
-	}
+        seed->SetTRDsignals(pt->GetPIDsignals(i),i);
         seed->SetTRDTimBin(pt->GetPIDTimBin(i),i);
       }
     }else{
@@ -817,9 +809,7 @@ Int_t AliTRDtracker::RefitInward(AliESD* event)
         CookdEdxTimBin(*pt2);
 	seed->UpdateTrackParams(pt2, AliESDtrack::kTRDrefit);
         for (Int_t i=0;i<AliESDtrack::kNPlane;i++) {
-          for (Int_t j=0;j<AliESDtrack::kNSlice;j++) {
-            seed->SetTRDsignals(pt2->GetPIDsignals(i,j),i,j);
-	  }
+          seed->SetTRDsignals(pt2->GetPIDsignals(i),i);
           seed->SetTRDTimBin(pt2->GetPIDTimBin(i),i);
         }
       }
@@ -2800,21 +2790,13 @@ void AliTRDtracker::CookdEdxTimBin(AliTRDtrack& TRDtrack)
   // Prashant Shukla (shukla@physi.uni-heidelberg.de)
   //
 
-  Double_t  clscharge[AliESDtrack::kNPlane][AliESDtrack::kNSlice];
-  Double_t  maxclscharge[AliESDtrack::kNPlane];
-  Int_t     nCluster[AliESDtrack::kNPlane][AliESDtrack::kNSlice];
-  Int_t     timebin[AliESDtrack::kNPlane];
+  Double_t  clscharge[AliESDtrack::kNPlane], maxclscharge[AliESDtrack::kNPlane];
+  Int_t  nCluster[AliESDtrack::kNPlane], timebin[AliESDtrack::kNPlane];
 
   //Initialization of cluster charge per plane.  
   for (Int_t iPlane = 0; iPlane < AliESDtrack::kNPlane; iPlane++) {
-    for (Int_t iSlice = 0; iSlice < AliESDtrack::kNSlice; iSlice++) {
-      clscharge[iPlane][iSlice] = 0.0;
-      nCluster[iPlane][iSlice] = 0;
-    }
-  }
-
-  //Initialization of cluster charge per plane.  
-  for (Int_t iPlane = 0; iPlane < AliESDtrack::kNPlane; iPlane++) {
+    clscharge[iPlane] = 0.0;
+    nCluster[iPlane] = 0;
     timebin[iPlane] = -1;
     maxclscharge[iPlane] = 0.0;
   }
@@ -2830,27 +2812,27 @@ void AliTRDtracker::CookdEdxTimBin(AliTRDtrack& TRDtrack)
     if (!tb) continue;
     Int_t detector = pTRDcluster->GetDetector();
     Int_t iPlane   = fGeom->GetPlane(detector);
-    Int_t iSlice = tb*AliESDtrack::kNSlice/AliTRDtrack::kNtimeBins;
-    clscharge[iPlane][iSlice] = clscharge[iPlane][iSlice]+charge;
+    clscharge[iPlane] = clscharge[iPlane]+charge;
     if(charge > maxclscharge[iPlane]) {
       maxclscharge[iPlane] = charge;
       timebin[iPlane] = tb;
     }
-    nCluster[iPlane][iSlice]++;
+    nCluster[iPlane]++;
   } // end of loop over cluster
 
   // Setting the fdEdxPlane and fTimBinPlane variabales 
   Double_t totalCharge = 0;
-
   for (Int_t iPlane = 0; iPlane < AliESDtrack::kNPlane; iPlane++) {
-    for (Int_t iSlice = 0; iSlice < AliESDtrack::kNSlice; iSlice++) {
-      if (nCluster[iPlane][iSlice]) clscharge[iPlane][iSlice] /= nCluster[iPlane][iSlice];
-      TRDtrack.SetPIDsignals(clscharge[iPlane][iSlice], iPlane, iSlice);
-      totalCharge= totalCharge+clscharge[iPlane][iSlice];
+    // Quality control of TRD track.
+    if (nCluster[iPlane]<= 5) {
+      clscharge[iPlane]=0.0;
+      timebin[iPlane]=-1;
     }
-    TRDtrack.SetPIDTimBin(timebin[iPlane], iPlane);     
+    if (nCluster[iPlane]) clscharge[iPlane] /= nCluster[iPlane];
+    TRDtrack.SetPIDsignals(clscharge[iPlane], iPlane);
+    TRDtrack.SetPIDTimBin(timebin[iPlane], iPlane);
+    totalCharge= totalCharge+clscharge[iPlane];
   }
-
   //  Int_t i;
   //  Int_t nc=TRDtrack.GetNumberOfClusters(); 
   //  Float_t dedx=0;

@@ -85,17 +85,6 @@ enum Mag_t
 {
     k2kG, k4kG, k5kG
 };
-
-//--- Trigger config ---
-enum TrigConf_t
-{
-    kDefaultPPTrig, kDefaultPbPbTrig
-};
-
-const char * TrigConfName[] = {
-    "p-p","Pb-Pb"
-};
-
 //--- Functions ---
 AliGenPythia *PythiaHVQ(PDC06Proc_t proc);
 AliGenerator *MbCocktail();
@@ -107,7 +96,6 @@ static PDC06Proc_t   proc     = kPyOmegaPlus;
 static DecayHvFl_t   decHvFl  = kNature; 
 static YCut_t        ycut     = kFull;
 static Mag_t         mag      = k5kG; 
-static TrigConf_t    trig     = kDefaultPPTrig; // default pp trigger configuration
 //========================//
 // Set Random Number seed //
 //========================//
@@ -180,10 +168,6 @@ void Config()
   rl->SetCompressionLevel(2);
   rl->SetNumberOfEventsPerFile(1000);
   gAlice->SetRunLoader(rl);
-  
-  // Set the trigger configuration
-  gAlice->SetTriggerDescriptor(TrigConfName[trig]);
-  cout<<"Trigger configuration is set to  "<<TrigConfName[trig]<<endl;
 
   //
   //=======================================================================
@@ -490,10 +474,6 @@ void Config()
     if (iTOF) {
         //=================== TOF parameters ============================
 	AliTOF *TOF = new AliTOFv5T0("TOF", "normal TOF");
-	// Partial geometry: modules at 2,3,4,6,7,11,12,14,15,16
-	// starting at 6h in positive direction
-	Int_t TOFSectors[18]={-1,-1,0,0,0,-1,0,0,-1,-1,-1,0,0,-1,0,0,0,0};
-	TOF->SetTOFSectors(TOFSectors);
     }
 
 
@@ -517,19 +497,11 @@ void Config()
         //=================== TRD parameters ============================
 
         AliTRD *TRD = new AliTRDv1("TRD", "TRD slow simulator");
-        AliTRDgeometry *geoTRD = TRD->GetGeometry();
-	// Partial geometry: modules at 2,3,4,6,11,12,14,15
-	// starting at 6h in positive direction
-	geoTRD->SetSMstatus(0,0);
-        geoTRD->SetSMstatus(1,0);
-        geoTRD->SetSMstatus(5,0);
-        geoTRD->SetSMstatus(7,0);
-        geoTRD->SetSMstatus(8,0);
-        geoTRD->SetSMstatus(9,0);
-        geoTRD->SetSMstatus(10,0);
-        geoTRD->SetSMstatus(13,0);
-        geoTRD->SetSMstatus(16,0);
-        geoTRD->SetSMstatus(17,0);
+
+        // Select the gas mixture (0: 97% Xe + 3% isobutane, 1: 90% Xe + 10% CO2)
+        TRD->SetGasMix(1);
+	// Switch on TR
+	AliTRDsim *TRDsim = TRD->CreateTR();
     }
 
     if (iFMD)

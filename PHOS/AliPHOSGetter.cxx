@@ -745,7 +745,7 @@ Int_t AliPHOSGetter::ReadRaw(AliRawReader *rawReader)
 }
 
 //____________________________________________________________________________ 
-Int_t AliPHOSGetter::ReadTreeD() const
+Int_t AliPHOSGetter::ReadTreeD()
 {
   // Read the Digits
   
@@ -756,7 +756,7 @@ Int_t AliPHOSGetter::ReadTreeD() const
 }
 
 //____________________________________________________________________________ 
-Int_t AliPHOSGetter::ReadTreeH() const
+Int_t AliPHOSGetter::ReadTreeH()
 {
   // Read the Hits
   PhosLoader()->CleanHits() ;
@@ -769,7 +769,7 @@ Int_t AliPHOSGetter::ReadTreeH() const
 }
 
 //____________________________________________________________________________ 
-Int_t AliPHOSGetter::ReadTreeR() const
+Int_t AliPHOSGetter::ReadTreeR()
 {
   // Read the RecPoints
   
@@ -785,7 +785,7 @@ Int_t AliPHOSGetter::ReadTreeR() const
 }
 
 //____________________________________________________________________________ 
-Int_t AliPHOSGetter::ReadTreeT() const
+Int_t AliPHOSGetter::ReadTreeT()
 {
   // Read the TrackSegments
   
@@ -800,7 +800,7 @@ Int_t AliPHOSGetter::ReadTreeT() const
   return TrackSegments()->GetEntries() ; 
 }
 //____________________________________________________________________________ 
-Int_t AliPHOSGetter::ReadTreeP() const
+Int_t AliPHOSGetter::ReadTreeP()
 {
   // Read the RecParticles
   
@@ -816,7 +816,7 @@ Int_t AliPHOSGetter::ReadTreeP() const
   return RecParticles()->GetEntries() ; 
 }
 //____________________________________________________________________________ 
-Int_t AliPHOSGetter::ReadTreeS() const
+Int_t AliPHOSGetter::ReadTreeS()
 {
   // Read the SDigits
   

@@ -16,9 +16,6 @@
 /* History of cvs commits:
  *
  * $Log$
- * Revision 1.97  2006/04/22 10:30:17  hristov
- * Add fEnergy to AliPHOSDigit and operate with EMC amplitude in energy units (Yu.Kharlov)
- *
  * Revision 1.96  2006/04/07 08:41:59  hristov
  * Follow AliAlignObj framework and remove AliPHOSAlignData (Yu.Kharlov)
  *
@@ -478,7 +475,7 @@ void AliPHOS::Digits2Raw()
       TString fileName("PHOS_") ;
       fileName += (iDDL + kDDLOffset) ; 
       fileName += ".ddl" ; 
-      buffer = new AliAltroBuffer(fileName.Data());
+      buffer = new AliAltroBuffer(fileName.Data(), 1);
       buffer->WriteDataHeader(kTRUE, kFALSE);  //Dummy;
 
       prevDDL = iDDL;

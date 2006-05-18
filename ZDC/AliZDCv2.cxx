@@ -484,7 +484,7 @@ void AliZDCv2::CreateBeamLine()
   tubpar[0] = 4.5;
   tubpar[1] = 55.;
   tubpar[2] = 170./2.;
-  gMC->Gsvolu("YMBX", "TUBE", idtmed[13], tubpar, 3);
+  gMC->Gsvolu("YMBX", "TUBE", idtmed[7], tubpar, 3);
 
   gMC->Gspos("MBXW", 1, "ZDC ", 0., 0., -tubpar[2]-zc, 0, "ONLY");
   gMC->Gspos("YMBX", 1, "ZDC ", 0., 0., -tubpar[2]-zc, 0, "ONLY");
@@ -947,7 +947,6 @@ void AliZDCv2::CreateMaterials()
   // --- Iron (no energy loss)
   ubuf[0] = 1.1;
   AliMaterial(8, "IRON1", 55.85, 26., 7.87, 1.76, 0., ubuf, 1);
-  AliMaterial(13, "IRON2", 55.85, 26., 7.87, 1.76, 0., ubuf, 1);
   
   // ---------------------------------------------------------  
   Float_t aResGas[3]={1.008,12.0107,15.9994};
@@ -1013,8 +1012,7 @@ void AliZDCv2::CreateMaterials()
   AliMedium(10,"ZVOID",10, isvol, inofld, nofieldm, tmaxfd, stemax, deemax, epsil, stmin);
   AliMedium(12,"ZAIR", 12, isvol, inofld, nofieldm, tmaxfd, stemax, deemax, epsil, stmin);
   //
-  AliMedium(11,"ZVOIM", 11, isvol, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
-  AliMedium(13,"ZIRONE",13, isvol, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
+  AliMedium(11,"ZVOIM",11, isvol, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);
   
   // Thresholds for showering in the ZDCs 
   i = 1; //tantalum
@@ -1051,12 +1049,6 @@ void AliZDCv2::CreateMaterials()
   i = 8; //iron with energy loss (ZIRONN)
   gMC->Gstpar(idtmed[i], "CUTGAM", .1);
   gMC->Gstpar(idtmed[i], "CUTELE", .1);
-  gMC->Gstpar(idtmed[i], "CUTNEU", 1.);
-  gMC->Gstpar(idtmed[i], "CUTHAD", 1.);
-  // Avoid too detailed showering along the beam line 
-  i = 13; //iron with energy loss (ZIRONN)
-  gMC->Gstpar(idtmed[i], "CUTGAM", 1.);
-  gMC->Gstpar(idtmed[i], "CUTELE", 1.);
   gMC->Gstpar(idtmed[i], "CUTNEU", 1.);
   gMC->Gstpar(idtmed[i], "CUTHAD", 1.);
   
@@ -1331,11 +1323,10 @@ void AliZDCv2::StepManager()
 	AddHit(gAlice->GetMCApp()->GetCurrentTrackNumber(), vol, hits);
 	
 	if(fNoShower==1){
-	  if(vol[0]==1) fnDetected += 1;
-	  else if(vol[0]==2) fpDetected += 1;
- 	  printf("\n  # of nucleons in ZN = %d",fnDetected);
-	  printf("\n  # of nucleons in ZP = %d\n\n",fpDetected);
+	  fpDetected += 1;
 	  gMC->StopTrack();
+	  if(vol[0]==1) printf("\n	# of detected neutrons = %d\n\n",fpDetected);
+	  if(vol[0]==2) printf("\n	# of detected protons = %d\n\n",fpDetected);
 	  return;
 	}
       }

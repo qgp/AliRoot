@@ -13,7 +13,21 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/* $Id: */
+/*
+$Log$
+Revision 1.6  2003/11/13 14:21:57  morsch
+Coding Rule violation corrections.
+
+Revision 1.5  2003/08/13 17:37:29  hristov
+Bug fix (Alpha)
+
+Revision 1.4  2003/08/05 16:14:20  morsch
+Some problems with too big fluctuations corrected. (A. de Falco)
+
+Revision 1.1  2003/01/06 10:13:09  morsch
+First commit.
+
+*/
 
 // Implementation of AliFastResponse for the Muon Spectrometer resolution.
 // The response depends on the charge of the muon and
@@ -35,13 +49,6 @@ AliFastMuonTrackingRes::AliFastMuonTrackingRes() :
 {
 // Deafault constructor
     SetBackground();
-}
-
-AliFastMuonTrackingRes::AliFastMuonTrackingRes(const AliFastMuonTrackingRes & res)
-    :AliFastResponse(res)
-{
-// Copy constructor
-    res.Copy(*this);
 }
 
 void AliFastMuonTrackingRes::Init()
@@ -124,12 +131,7 @@ void AliFastMuonTrackingRes::Evaluate(Float_t   p,  Float_t  theta , Float_t   p
     thetaS = theta + gRandom->Gaus(meantheta,sigmatheta);
 }
 
-AliFastMuonTrackingRes& AliFastMuonTrackingRes::operator=(const  AliFastMuonTrackingRes& rhs)
-{
-// Assignment operator
-    rhs.Copy(*this);
-    return *this;
-}
+
 
 
 

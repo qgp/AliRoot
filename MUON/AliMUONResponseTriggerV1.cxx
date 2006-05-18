@@ -15,12 +15,6 @@
 
 /* $Id$ */
 
-// ------------------
-// Class AliMUONTriggerResponseV1
-// ------------------
-// Trigger chamber response 
-// with cluster size activated
-
 #include <TMath.h>
 #include <TRandom.h>
 

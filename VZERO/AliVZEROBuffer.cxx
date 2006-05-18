@@ -43,6 +43,7 @@ AliVZEROBuffer::AliVZEROBuffer(const char* fileName){
   f.write((char*)(&header), sizeof(header));
   fNumberOfDigits=0;
   fVerbose=0;
+  remove("VZEROdigits.txt");
 }
 
 //_____________________________________________________________________________
@@ -88,6 +89,9 @@ void AliVZEROBuffer::WriteBinary(Int_t cell,Int_t ADC, Int_t Time){
   data.ADC  = ADC;
   data.Time = Time;
 
+  ofstream ftxt;
+  ftxt.open("VZEROdigits.txt",ios::app);
+  
   fNumberOfDigits++;
   f.write((char*)(&data),sizeof(data));
 

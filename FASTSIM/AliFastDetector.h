@@ -5,14 +5,6 @@
 
 /* $Id$ */
 
-//
-// Base class for fast simulation of a detctor
-// or a system of subdetectors.
-// The detector response is described by resolution and efficiency.
-// Author:
-// Andreas Morsch
-// andreas.morsch@cern.ch
-
 #include <TNamed.h>
 class TList;
 class TObjLink;
@@ -24,8 +16,7 @@ class AliFastDetector : public TNamed {
     
  public:
     AliFastDetector();
-    AliFastDetector(char* Name, char* Title);
-    AliFastDetector(const AliFastDetector& det);    
+    AliFastDetector(char* Name, char* Title);    
     virtual ~AliFastDetector();
     virtual void Init();
     virtual void SetGeometry(AliGeometry* geom) 
@@ -50,9 +41,6 @@ class AliFastDetector : public TNamed {
     AliFastDetector*  NextSubdetector();
     AliFastResponse*  FirstResponse();
     AliFastResponse*  NextResponse();
-    // Copy
-    AliFastDetector& operator=(const AliFastDetector & rhs);
-    void Copy(TObject&) const;
  protected:
     TList            *fSubdetectors;      // List of Subdetectors
     TList            *fResponses;         // Responses

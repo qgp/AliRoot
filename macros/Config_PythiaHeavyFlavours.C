@@ -17,7 +17,7 @@
 #include <TDatime.h>
 #include <TSystem.h>
 #include <TVirtualMC.h>
-#include <TGeant3TGeo.h>
+#include <TGeant3.h>
 #include "STEER/AliRunLoader.h"
 #include "STEER/AliRun.h"
 #include "STEER/AliConfig.h"
@@ -70,14 +70,6 @@ enum Mag_t
 {
     k2kG, k4kG, k5kG
 };
-//--- Trigger config ---
-enum TrigConf_t
-{
-    kDefaultPPTrig, kDefaultPbPbTrig
-};
-const char * TrigConfName[] = {
-    "p-p","Pb-Pb"
-};
 //--- Functions ---
 AliGenPythia *PythiaHVQ(ProcessHvFl_t proc);
 
@@ -87,7 +79,6 @@ static ProcessHvFl_t procHvFl = kCharmPbPb5500;
 static DecayHvFl_t   decHvFl  = kNature; 
 static YCut_t        ycut     = kFull;
 static Mag_t         mag      = k5kG; 
-static TrigConf_t    trig     = kDefaultPbPbTrig; // default PbPb trigger configuration
 // nEvts = -1  : you get 1 QQbar pair and all the fragmentation and 
 //               decay chain
 // nEvts = N>0 : you get N charm / beauty Hadrons 
@@ -160,10 +151,6 @@ void Config()
   rl->SetCompressionLevel(2);
   rl->SetNumberOfEventsPerFile(3);
   gAlice->SetRunLoader(rl);
-
-  // Set the trigger configuration
-  gAlice->SetTriggerDescriptor(TrigConfName[trig]);
-  cout<<"Trigger configuration is set to  "<<TrigConfName[trig]<<endl;
 
   //
   //=======================================================================
@@ -477,6 +464,12 @@ void Config()
     //=================== TRD parameters ============================
   
     AliTRD *TRD  = new AliTRDv1("TRD","TRD slow simulator");
+  
+    // Select the gas mixture (0: 97% Xe + 3% isobutane, 1: 90% Xe + 10% CO2)
+    TRD->SetGasMix(1);
+  
+    // Switch on TR
+    AliTRDsim *TRDsim = TRD->CreateTR();
   }
 
   if(iFMD) {

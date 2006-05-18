@@ -82,8 +82,6 @@ public:
   TClonesArray *ReconParticles() const {return fReconParticles;}
   void RecreateSDigitsArray();
   void CreateSDigitsArray();
-  virtual void   SetTOFSectors(Int_t *sectors);
-  virtual void   GetTOFSectors(Int_t *sectors) const;
   AliTOFGeometry *GetGeometry() const { return fTOFGeometry; }; 
 
   // Trigger
@@ -107,7 +105,6 @@ protected:
   Int_t   fIdSens;     // The unique identifier for sensitive volume FPAD 
 
   Bool_t  fTZero;      // Flag indicating if T0 is used
-  Int_t fTOFSectors[18]; // Selecting TOF Sectors to be simulated
   AliTOFGeometry *fTOFGeometry; //The TOF Geometry parameters
  
 private:

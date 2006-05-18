@@ -4,15 +4,6 @@
  * See cxx source for full Copyright notice                               */
 
 /* $Id$ */
-
-//
-// Realisation of AliLhcProcess for the fast simulation of the
-// Intra Beam Scattering process
-// in transverse and longitudinal direction.
-// Author: Andreas Morsch
-// andreas.morsch@cern.ch
-//
-
 #include "AliLhcProcess.h"
 class TList;
 class AliLhcBeam;
@@ -35,8 +26,8 @@ class AliLhcProcessIBS : public AliLhcProcess
     AliLhcBeam* fBeam[2];  // Beams
     Float_t fR[2];           // elem. ion radius
     Float_t fE[2];           // ion radius
-    Float_t fTaux;           // transverse time constant 
-    Float_t fTaue;           // longitudinal time constant       
+    Float_t fTaux;  
+    Float_t fTaue;
     Float_t* fTauxArray;     // [fNmax]
     Float_t* fTaueArray;     // [fNmax]
     

@@ -124,12 +124,12 @@ Int_t AliTPCtrackerMI::UpdateTrack(AliTPCseed * track, Int_t accept){
   //
 
   Double_t angle2 = track->GetSnp()*track->GetSnp();
+  angle2 = TMath::Sqrt(angle2/(1-angle2)); 
   //
   //SET NEW Track Point
   //
-  if (angle2<1) //PH sometimes angle2 is very big. To be investigated...
+  //  if (debug)
   {
-    angle2 = TMath::Sqrt(angle2/(1-angle2)); 
     AliTPCTrackerPoint   &point =*(track->GetTrackPoint(track->fRow));
     //
     point.SetSigmaY(c->GetSigmaY2()/track->fCurrentSigmaY2);
@@ -2584,13 +2584,6 @@ Int_t AliTPCtrackerMI::RefitInward(AliESD *event)
       Float_t sdedx = (seed->fSDEDX[0]+seed->fSDEDX[1]+seed->fSDEDX[2]+seed->fSDEDX[3])*0.25;
       Float_t dedx  = seed->GetdEdx();
       esd->SetTPCsignal(dedx, sdedx, ndedx);
-      //
-      // add seed to the esd track in Calib level
-      //
-      if (AliTPCReconstructor::StreamLevel()>0){
-	AliTPCseed * seedCopy = new AliTPCseed(*seed, kTRUE); 
-	esd->AddCalibObject(seedCopy);
-      }
       ntracks++;
     }
     else{

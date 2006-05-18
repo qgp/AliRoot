@@ -11,8 +11,9 @@
 /// \class AliMUONTriggerDecision
 /// \brief MUON trigger decision class 
 ///
-/// \author Philippe Crochet (LPCCFd)
-
+/////////////////////////////////////////////////
+///  MUON Trigger Decision Class               //
+/////////////////////////////////////////////////
 
 #include <TObject.h>
 #include "AliMUONLocalTrigger.h"

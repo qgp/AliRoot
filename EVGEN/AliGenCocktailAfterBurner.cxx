@@ -39,7 +39,6 @@
 
 #include "AliGenCocktailAfterBurner.h"
 #include "AliGenCocktailEntry.h"
-#include "AliCollisionGeometry.h"
 #include "AliStack.h"
 #include "AliMC.h"
 
@@ -55,8 +54,7 @@ AliGenCocktailAfterBurner::AliGenCocktailAfterBurner()
        cout<<"AliGenCocktailAfterBurner::AliGenCocktailAfterBurner()"<<endl;
     SetName("AliGenCocktailAfterBurner");
     SetTitle("AliGenCocktailAfterBurner");
-    fInternalStacks = 0;
-    fCollisionGeometries = 0;
+    fInternalStacks =0;
     fActiveStack = 0;
     fCurrentGenerator = 0;
     fCurrentEvent =0;
@@ -88,7 +86,6 @@ AliGenCocktailAfterBurner::~AliGenCocktailAfterBurner()
        delete fInternalStacks;
     }
     if (fAfterBurnerEntries) delete fAfterBurnerEntries; //delete entries
-    delete[] fCollisionGeometries;
   }
 /*********************************************************************/ 
 /*********************************************************************/ 
@@ -136,10 +133,6 @@ void AliGenCocktailAfterBurner::Init()
        fInternalStacks->Delete(); //clean after previous generation cycle
      }
 
-// ANDREAS MORSCH ---------------------------------------------------(
-    if (fCollisionGeometries) delete[] fCollisionGeometries;
-// ANDREAS MORSCH ---------------------------------------------------)
-    
     this->AliGenCocktail::Init(); 
     
     if (gDebug>0) cout<<"AliGenCocktailAfterBurner::Init"<<endl;
@@ -186,8 +179,7 @@ void AliGenCocktailAfterBurner::Generate()
       fCurrentEvent=0;
       Int_t numberOfEvents = gAlice->GetEventsPerRun();
       //Create stacks
-      fInternalStacks      = new TObjArray(numberOfEvents + fNBgEvents); //Create array of internal stacks
-      fCollisionGeometries = new AliCollisionGeometry*[numberOfEvents + fNBgEvents]; //Create array of collision geometries
+      fInternalStacks = new TObjArray(numberOfEvents + fNBgEvents); //Create array of internal stacks
       for(i=0;i<numberOfEvents + fNBgEvents;i++) 
        {	
         stack = new AliStack(10000);
@@ -226,11 +218,6 @@ void AliGenCocktailAfterBurner::Generate()
               }
                 fCurrentGenerator->Generate();
                 entry->SetLast(partArray->GetEntriesFast());
-		
-// ANDREAS MORSCH ---------------------------------------------------(
-		if (fCurrentGenerator->ProvidesCollisionGeometry())  fCollisionGeometries[i] = fCurrentGenerator->CollisionGeometry();
-// ANDREAS MORSCH ---------------------------------------------------)
-		
            }
 /***********************************************/
       }
@@ -300,25 +287,6 @@ AliStack* AliGenCocktailAfterBurner::GetStack(Int_t n) const
     }
     return ((AliStack*) fInternalStacks->At(n) );
 }
-
-/*********************************************************************/ 
-/*********************************************************************/ 
-
-// ANDREAS MORSCH ---------------------------------------------------(
-
-AliCollisionGeometry* AliGenCocktailAfterBurner::GetCollisionGeometry(Int_t n) const
-{
-//Returns the pointer to the N'th stack (event)
-  if( ( n<0 ) || ( n>=GetNumberOfEvents() ) )
-    {
-      Fatal("AliGenCocktailAfterBurner::GetCollisionGeometry","Asked for non existing stack (%d)",n);
-      return 0; 
-    }
-    return fCollisionGeometries[n];
-}
-
-// ANDREAS MORSCH ---------------------------------------------------)
-
 /*********************************************************************/ 
 /*********************************************************************/ 
 
@@ -377,12 +345,8 @@ void AliGenCocktailAfterBurner::SetTracks(Int_t stackno)
       mech = AliGenCocktailAfterBurner::IntToMCProcess(p->GetUniqueID());
       weight = p->GetWeight();
 
-      gAlice->GetMCApp()->PushTrack(done, parent, pdg, px, py, pz, e, vx, vy, vz, tof,polx, poly, polz, mech, ntr, weight);
-
-// ANDREAS MORSCH ---------------------------------------------------(
-      SetHighWaterMark(ntr) ; 
-// ANDREAS MORSCH ---------------------------------------------------)
-
+      gAlice->GetMCApp()->PushTrack(done, parent, pdg, px, py, pz, e, vx, vy, vz, tof,
+                       polx, poly, polz, mech, ntr, weight);
     }
 }
 /*********************************************************************/ 

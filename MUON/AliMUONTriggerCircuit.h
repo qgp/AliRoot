@@ -9,8 +9,6 @@
 /// \ingroup base
 /// \class AliMUONTriggerCircuit
 /// \brief MUON Trigger circuit
-///
-/// \author Philippe Crochet (LPCCFd)
 
 #include <TObject.h>
 #include <TObjArray.h>

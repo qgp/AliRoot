@@ -526,7 +526,7 @@ void AliTPCclustererMI::Digits2Clusters()
 	Float_t dig=digarr.CurrentDigit();
 	if (dig<=fParam->GetZeroSup()) continue;
 	Int_t j=digarr.CurrentRow()+3, i=digarr.CurrentColumn()+3;
-	Float_t gain = gainROC->GetValue(row,digarr.CurrentColumn());
+	Float_t gain = gainROC->GetValue(row,digarr.CurrentRow()/fParam->GetMaxTBin());
 	fBins[i*fMaxTime+j]=dig/gain;
       } while (digarr.Next());
     digarr.ExpandTrackBuffer();
@@ -553,8 +553,6 @@ void AliTPCclustererMI::Digits2Clusters(AliRawReader* rawReader)
     Error("Digits2Clusters", "output tree not initialised");
     return;
   }
-
-  AliTPCCalPad * gainTPC = AliTPCcalibDB::Instance()->GetPadGainFactor();
 
   rawReader->Reset();
   AliTPCRawStream input(rawReader);
@@ -646,9 +644,7 @@ void AliTPCclustererMI::Digits2Clusters(AliRawReader* rawReader)
     if (input.GetSignal() <= zeroSup) continue;
     Int_t i = input.GetPad() + 3;
     Int_t j = input.GetTime() + 3;
-    AliTPCCalROC * gainROC = gainTPC->GetCalROC(fSector);  // pad gains per given sector
-    Float_t gain = gainROC->GetValue(fRow,input.GetPad());
-    fBins[i*fMaxTime+j] = input.GetSignal()/gain;
+    fBins[i*fMaxTime+j] = input.GetSignal();
   }
 
   // find clusters in split rows that were skipped until now.

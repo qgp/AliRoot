@@ -14,13 +14,6 @@
  **************************************************************************/
 
 /* $Id$ */
-//
-// Base class for fast simulation of a detctor
-// or a system of subdetectors.
-// The detector response is described by resolution and efficiency.
-// Author:
-// Andreas Morsch
-// andreas.morsch@cern.ch
 
 #include "AliFastDetector.h"
 #include "AliFastResponse.h"
@@ -49,13 +42,6 @@ AliFastDetector::AliFastDetector(char* Name, char* Title):
 // Constructor
     fSubdetectors = new TList();
     fResponses    = new TList();
-}
-
-AliFastDetector::AliFastDetector(const AliFastDetector & det)
-    :TNamed(det)
-{
-// Copy constructor
-    det.Copy(*this);
 }
 
 AliFastDetector::~AliFastDetector()
@@ -107,9 +93,6 @@ void AliFastDetector::Init()
 
 Float_t AliFastDetector::EvaluateEfficiency(AliFastParticle* part)
 {
-//
-//  Evaluate the efficiency for detecting particle part
-//
     TIter nextDet(fSubdetectors);
     AliFastDetector *det;
     //
@@ -210,19 +193,4 @@ AliFastResponse*  AliFastDetector::NextResponse()
     }
 }
 
-
-AliFastDetector& AliFastDetector::operator=(const  AliFastDetector& rhs)
-{
-// Assignment operator
-    rhs.Copy(*this);
-    return *this;
-}
-
-void AliFastDetector::Copy(TObject&) const
-{
-    //
-    // Copy 
-    //
-    Fatal("Copy","Not implemented!\n");
-}
 

@@ -44,8 +44,7 @@ public:
                   void    MakeBranch( TString name, TTree * tree );
   //  Getters
                TString    GetDetectors();
-             ULong64_t    GetClassMask() const { return fClassMask; }
-               UChar_t    GetClusterMask();
+                Long_t    GetClassMask() const { return fClassMask; }
              TObjArray*   GetLoadedDescriptors() { return &fDescriptors; }
              TObjArray*   GetResultConditions();
                   void    Print( const Option_t* opt ="" ) const;

@@ -19,9 +19,14 @@ $Id$
 
 #include <Riostream.h>
 #include <TH1.h>
+#include <TMath.h>
+#include <TParticle.h>
+#include <TRandom.h>
 #include <TString.h>
 #include "AliITS.h"
+#include "AliITSMapA2.h" 
 #include "AliITSdigitSPD.h"
+#include "AliITSgeom.h"
 #include "AliITShit.h"
 #include "AliITSmodule.h"
 #include "AliITSpList.h"
@@ -30,16 +35,13 @@ $Id$
 #include "AliITSsimulationSPD.h"
 #include "AliLog.h"
 #include "AliRun.h"
-#include "AliCDBEntry.h"
-#include "AliCDBLocal.h"
 
 //#define DEBUG
 
 ClassImp(AliITSsimulationSPD)
 ////////////////////////////////////////////////////////////////////////
 //  Version: 1
-//  Modified by D. Elia, G.E. Bruno, H. Tydesjo 
-//  Fast diffusion code by Bjorn S. Nilsen
+//  Modified by Bjorn S. Nilsen, G.E. Bruno, H. Tydesjo
 //  March-April 2006
 //
 //  Version: 0
@@ -191,14 +193,6 @@ AliITSsimulation&  AliITSsimulationSPD::operator=(const
 
 //______________________________________________________________________
 void AliITSsimulationSPD::GetCalibrationObjects(Int_t RunNr) {
-    //    Gets the calibration objects for each module (ladder) 
-    // Inputs:
-    //    RunNr: hard coded to RunNr=0 for now
-    // Outputs:
-    //    none.
-    // Return:
-    //    none.
-
   AliCDBManager* man = AliCDBManager::Instance();
   if(!man->IsDefaultStorageSet()) {
     man->SetDefaultStorage("local://$ALICE_ROOT");
@@ -214,7 +208,7 @@ void AliITSsimulationSPD::GetCalibrationObjects(Int_t RunNr) {
     return;
   }
   for (Int_t mod=0; mod<240; mod++) {
-    fCalObj[mod] = (AliITSCalibrationSPD*) respSPD->At(mod);
+    calObj[mod] = (AliITSCalibrationSPD*) respSPD->At(mod);
   }
 }
 
@@ -260,9 +254,6 @@ void AliITSsimulationSPD::SDigitiseModule(AliITSmodule *mod,Int_t,
     SetEventNumber(event);
     // HitToSDigit(mod);
     HitToSDigitFast(mod);
-    RemoveDeadPixels(mod);
-//    cout << "After Remove in SDigitiseModule !!!!!" << endl; // dom
-//    cout << "Module " << mod->GetIndex() << " Event " << event << endl; // dom
     WriteSDigits();
     ClearMap();
 }
@@ -279,11 +270,9 @@ void AliITSsimulationSPD::WriteSDigits(){
     static AliITS *aliITS = (AliITS*)gAlice->GetModule("ITS");
 
     AliDebug(1,Form("Writing SDigits for module %d",GetModuleNumber()));
-//    cout << "WriteSDigits for module " << GetModuleNumber() << endl; // dom
     GetMap()->GetMaxMapIndex(niz, nix);
     for(iz=0; iz<niz; iz++)for(ix=0; ix<nix; ix++){
         if(GetMap()->GetSignalOnly(iz,ix)>0.0){
-//            cout << " Signal gt 0  iz ix " << iz << ix << " Module " << GetModuleNumber() << endl; // dom
             aliITS->AddSumDigit(*(GetMap()->GetpListItem(iz,ix)));
 	    if(AliDebugLevel()>0) {
 	      AliDebug(1,Form("%d, %d",iz,ix));
@@ -304,8 +293,7 @@ void AliITSsimulationSPD::FinishSDigitiseModule(){
     //    none
 
     AliDebug(1,"()");
-//    cout << "FinishSDigitiseModule for module " << GetModuleNumber() << endl; // dom
-    FrompListToDigits(); // Charge To Signal both adds noise and
+    pListToDigits(); // Charge To Signal both adds noise and
     ClearMap();
     return;
 }
@@ -328,8 +316,7 @@ void AliITSsimulationSPD::DigitiseModule(AliITSmodule *mod,Int_t,
     // HitToSDigit(mod);
     HitToSDigitFast(mod);
     RemoveDeadPixels(mod);
-//    cout << "After Remove in DigitiseModule in module " << mod->GetIndex() << endl; // dom
-    FrompListToDigits();
+    pListToDigits();
     ClearMap();
 }
 //______________________________________________________________________
@@ -401,18 +388,22 @@ void AliITSsimulationSPD::HitToSDigit(AliITSmodule *mod){
         default:
             break;
         case 1: //case 3:
+            // x is column and z is row (see AliITSsegmentationSPD::GetPadIxz)
             for(i=0;i<GetMap()->GetEntries();i++) 
                 if(GetMap()->GetpListItem(i)==0) continue;
                 else{
-                    GetMap()->GetMapIndex(GetMap()->GetpListItem(i)->GetIndex(),iz,ix);
+                    GetMap()->GetMapIndex(
+                              GetMap()->GetpListItem(i)->GetIndex(),iz,ix);
                     SetCoupling(iz,ix,idtrack,h);
                 } // end for i
             break;
         case 2: // case 4:
+            // x is column and z is row (see AliITSsegmentationSPD::GetPadIxz)
             for(i=0;i<GetMap()->GetEntries();i++) 
                 if(GetMap()->GetpListItem(i)==0) continue;
                 else{
-                    GetMap()->GetMapIndex(GetMap()->GetpListItem(i)->GetIndex(),iz,ix);
+                    GetMap()->GetMapIndex(
+                                GetMap()->GetpListItem(i)->GetIndex(),iz,ix);
                     SetCouplingOld(iz,ix,idtrack,h);
                 } // end for i
             break;
@@ -429,12 +420,12 @@ void AliITSsimulationSPD::HitToSDigitFast(AliITSmodule *mod){
     // Return:
     //    none.
     const Double_t kmictocm = 1.0e-4; // convert microns to cm.
-    const Int_t kn10=10;
-    const Double_t kti[kn10]={7.443716945e-3,2.166976971e-1,3.397047841e-1,
+    const Int_t n10=10;
+    const Double_t ti[n10]={7.443716945e-3,2.166976971e-1,3.397047841e-1,
                             4.325316833e-1,4.869532643e-1,5.130467358e-1,
                             5.674683167e-1,6.602952159e-1,7.833023029e-1,
                             9.255628306e-1};
-    const Double_t kwi[kn10]={1.477621124e-1,1.346333597e-1,1.095431813e-1,
+    const Double_t wi[n10]={1.477621124e-1,1.346333597e-1,1.095431813e-1,
                             7.472567455e-2,3.333567215e-2,3.333567215e-2,
                             7.472567455e-2,1.095431813e-1,1.346333597e-1,
                             1.477621124e-1};
@@ -460,17 +451,17 @@ void AliITSsimulationSPD::HitToSDigitFast(AliITSmodule *mod){
       } // end if GetDebug
         if(!mod->LineSegmentL(h,x0,x1,y0,y1,z0,z1,de,idtrack)) continue;
         st = TMath::Sqrt(x1*x1+y1*y1+z1*z1);
-        if(st>0.0) for(i=0;i<kn10;i++){ // Integrate over t
-            t   = kti[i];
+        if(st>0.0) for(i=0;i<n10;i++){ // Integrate over t
+            t   = ti[i];
             x   = x0+x1*t;
             y   = y0+y1*t;
             z   = z0+z1*t;
                 if(!(seg->LocalToDet(x,z,ix,iz))) continue; // outside
                 // el  = res->GeVToCharge((Double_t)(dt*de));
-                // el  = 1./kn10*res->GeVToCharge((Double_t)de);
-                el  = kwi[i]*res->GeVToCharge((Double_t)de); 
+                // el  = 1./n10*res->GeVToCharge((Double_t)de);
+                el  = wi[i]*res->GeVToCharge((Double_t)de); 
                 if(GetDebug(1)){
-                    if(el<=0.0) cout<<"el="<<el<<" kwi["<<i<<"]="<<kwi[i]
+                    if(el<=0.0) cout<<"el="<<el<<" wi["<<i<<"]="<<wi[i]
                                     <<" de="<<de<<endl;
                 } // end if GetDebug
                 sig = res->SigmaDiffusion1D(TMath::Abs(thick + y));
@@ -497,19 +488,22 @@ void AliITSsimulationSPD::HitToSDigitFast(AliITSmodule *mod){
         default:
             break;
         case 1: // case 3:
+            // x is column and z is row (see AliITSsegmentationSPD::GetPadIxz)
             for(i=0;i<GetMap()->GetEntries();i++)
                 if(GetMap()->GetpListItem(i)==0) continue;
                 else{
-                    GetMap()->GetMapIndex(GetMap()->GetpListItem(i)->GetIndex(),iz,ix);
+                    GetMap()->GetMapIndex(
+                              GetMap()->GetpListItem(i)->GetIndex(),iz,ix);
                     SetCoupling(iz,ix,idtrack,h);
                 } // end for i
             break;
         case 2: // case 4:
+            // x is column and z is row (see AliITSsegmentationSPD::GetPadIxz)
             for(i=0;i<GetMap()->GetEntries();i++)
                 if(GetMap()->GetpListItem(i)==0) continue;
                 else{
-                    GetMap()->GetMapIndex(GetMap()->GetpListItem(i)->GetIndex(),iz,ix);  
-                    SetCouplingOld(iz,ix,idtrack,h);
+                    GetMap()->GetMapIndex(
+                                GetMap()->GetpListItem(i)->GetIndex(),iz,ix);                    SetCouplingOld(iz,ix,idtrack,h);
                 } // end for i
             break;
         } // end switch
@@ -673,22 +667,14 @@ void AliITSsimulationSPD::SpreadChargeAsym(Double_t x0,Double_t z0,
 }
 //______________________________________________________________________
 void AliITSsimulationSPD::RemoveDeadPixels(AliITSmodule *mod){
-    //    Removes dead pixels on each module (ladder)
-    // Inputs:
-    //    Module Index (0,239)
-    // Outputs:
-    //    none.
-    // Return:
-    //    none.
-
-  Int_t moduleNr = mod->GetIndex();
-  Int_t nrDead = fCalObj[moduleNr]->GetNrDead();
-  for (Int_t i=0; i<nrDead; i++) {
-    GetMap()->DeleteHit(fCalObj[moduleNr]->GetDeadColAt(i),fCalObj[moduleNr]->GetDeadRowAt(i));
+  Int_t module_nr = mod->GetIndex();
+  Int_t nr_dead = calObj[module_nr]->GetNrDead();
+  for (Int_t i=0; i<nr_dead; i++) {
+    GetMap()->DeleteHit(calObj[module_nr]->GetDeadColAt(i),calObj[module_nr]->GetDeadRowAt(i));
   }
 }
 //______________________________________________________________________
-void AliITSsimulationSPD::FrompListToDigits(){
+void AliITSsimulationSPD::pListToDigits(){
     // add noise and electronics, perform the zero suppression and add the
     // digit to the list
     // Inputs:
@@ -701,10 +687,10 @@ void AliITSsimulationSPD::FrompListToDigits(){
     Int_t j,ix,iz;
     Double_t  electronics;
     Double_t sig;
-    const Int_t    knmaxtrk=AliITSdigitSPD::GetNTracks();
+    const Int_t    nmaxtrk=AliITSdigitSPD::GetNTracks();
     static AliITSdigitSPD dig;
     AliITSCalibrationSPD* res = (AliITSCalibrationSPD*)GetCalibrationModel(fDetType->GetITSgeom()->GetStartSPD());
-    if(GetDebug(1)) Info("FrompListToDigits","()");
+    if(GetDebug(1)) Info("pListToDigits","()");
     for(iz=0; iz<GetNPixelsZ(); iz++) for(ix=0; ix<GetNPixelsX(); ix++){
 // NEW (for the moment plugged by hand, in the future possibly read from Data Base)
 // here parametrize the efficiency of the pixel along the row for the test columns (1,9,17,25)
@@ -736,18 +722,15 @@ void AliITSsimulationSPD::FrompListToDigits(){
         dig.SetCoord1(iz);
         dig.SetCoord2(ix);
         dig.SetSignal(1);
-
-//        dig.SetSignalSPD((Int_t) GetMap()->GetSignal(iz,ix));
-        Double_t aSignal =  GetMap()->GetSignal(iz,ix);
-        if (TMath::Abs(aSignal)>2147483647.0) {
-          //PH 2147483647 is the max. integer
-          //PH This apparently is a problem which needs investigation
-          AliWarning(Form("Too big or too small signal value %f",aSignal));
-          aSignal = TMath::Sign((Double_t)2147483647,aSignal);
-        }
-        dig.SetSignalSPD((Int_t)aSignal);
-
-        for(j=0;j<knmaxtrk;j++){
+	Double_t aSignal =  GetMap()->GetSignal(iz,ix);
+	if (TMath::Abs(aSignal)>2147483647.0) { 
+	  //PH 2147483647 is the max. integer
+	  //PH This apparently is a problem which needs investigation
+	  AliWarning(Form("Too big or too small signal value %f",aSignal));
+	  aSignal = TMath::Sign((Double_t)2147483647,aSignal);
+	}
+	dig.SetSignalSPD((Int_t)aSignal); 
+        for(j=0;j<nmaxtrk;j++){
             if (j<GetMap()->GetNEntries()) {
                 dig.SetTrack(j,GetMap()->GetTrack(iz,ix,j));
                 dig.SetHit(j,GetMap()->GetHit(iz,ix,j));
@@ -816,7 +799,7 @@ void AliITSsimulationSPD::ResetHistograms(){
 }
 
 //______________________________________________________________________
-void AliITSsimulationSPD::SetCoupling(Int_t col, Int_t row, Int_t ntrack,
+void AliITSsimulationSPD::SetCoupling(Int_t row, Int_t col, Int_t ntrack,
 				      Int_t idhit) {
     //  Take into account the coupling between adiacent pixels.
     //  The parameters probcol and probrow are the probability of the
@@ -836,8 +819,8 @@ void AliITSsimulationSPD::SetCoupling(Int_t col, Int_t row, Int_t ntrack,
     */
     //End_Html
     // Inputs:
-    //    Int_t col            z cell index
-    //    Int_t row            x cell index
+    //    Int_t row            z cell index
+    //    Int_t col            x cell index
     //    Int_t ntrack         track incex number
     //    Int_t idhit          hit index number
     // Outputs:
@@ -850,35 +833,39 @@ void AliITSsimulationSPD::SetCoupling(Int_t col, Int_t row, Int_t ntrack,
     Double_t xr=0.;
 
     GetCouplings(couplC,couplR);
-    if(GetDebug(3)) Info("SetCoupling","(col=%d,row=%d,ntrack=%d,idhit=%d) "
-                         "Calling SetCoupling couplC=%e couplR=%e",
-                         col,row,ntrack,idhit,couplC,couplR);
-    j1 = col;
-    j2 = row;
-    pulse1 = GetMap()->GetSignalOnly(col,row);
+    if(GetDebug(3)) Info("SetCoupling","(row=%d,col=%d,ntrack=%d,idhit=%d) "
+                         "Calling SetCoupling couplR=%e couplC=%e",
+                         row,col,ntrack,idhit,couplR,couplC);
+    j1 = row;
+    j2 = col;
+    pulse1 = GetMap()->GetSignalOnly(row,col);
     pulse2 = pulse1;
-    for (Int_t isign=-1;isign<=1;isign+=2){// loop in col direction
+    for (Int_t isign=-1;isign<=1;isign+=2){// loop in row direction
         do{
             j1 += isign;
+            //   pulse1 *= couplR; 
             xr = gRandom->Rndm();
-            if ((j1<0) || (j1>GetNPixelsZ()-1) || (xr>couplC)){
-                j1 = col;
+            //if ((j1<0)||(j1>GetNPixelsZ()-1)||(pulse1<GetThreshold())){
+            if ((j1<0) || (j1>GetNPixelsZ()-1) || (xr>couplR)){
+                j1 = row;
                 flag = 1;
             }else{
-                UpdateMapSignal(row,j1,ntrack,idhit,pulse1);
+                UpdateMapSignal(col,j1,ntrack,idhit,pulse1);
                 //  flag = 0;
                 flag = 1; // only first next!!
             } // end if
         } while(flag == 0);
-        // loop in row direction
+        // loop in column direction
         do{
             j2 += isign;
+            // pulse2 *= couplC; 
             xr = gRandom->Rndm();
-            if ((j2<0) || (j2>GetNPixelsX()-1) || (xr>couplR)){
-                j2 = row;
+            //if((j2<0)||j2>(GetNPixelsX()-1)||pulse2<GetThreshold()){
+            if ((j2<0) || (j2>GetNPixelsX()-1) || (xr>couplC)){
+                j2 = col;
                 flag = 1;
             }else{
-                UpdateMapSignal(j2,col,ntrack,idhit,pulse2);
+                UpdateMapSignal(j2,row,ntrack,idhit,pulse2);
                 //  flag = 0;
                 flag = 1; // only first next!!
             } // end if
@@ -886,7 +873,7 @@ void AliITSsimulationSPD::SetCoupling(Int_t col, Int_t row, Int_t ntrack,
     } // for isign
 }
 //______________________________________________________________________
-void AliITSsimulationSPD::SetCouplingOld(Int_t col, Int_t row,
+void AliITSsimulationSPD::SetCouplingOld(Int_t row, Int_t col,
                 Int_t ntrack,Int_t idhit) {
     //  Take into account the coupling between adiacent pixels.
     //  The parameters probcol and probrow are the fractions of the
@@ -904,8 +891,8 @@ void AliITSsimulationSPD::SetCouplingOld(Int_t col, Int_t row,
     */
     //End_Html
     // Inputs:
-    //    Int_t col            z cell index
-    //    Int_t row            x cell index
+    //    Int_t row            z cell index
+    //    Int_t col            x cell index
     //    Int_t ntrack         track incex number
     //    Int_t idhit          hit index number
     //    Int_t module         module number
@@ -924,37 +911,37 @@ void AliITSsimulationSPD::SetCouplingOld(Int_t col, Int_t row,
 //    cout << "Couplings --> " << couplC << " " << couplR << endl;  //dom
 
 
-    if(GetDebug(3)) Info("SetCouplingOld","(col=%d,row=%d,ntrack=%d,idhit=%d) "
-                         "Calling SetCoupling couplC=%e couplR=%e",
-                         col,row,ntrack,idhit,couplC,couplR);
-    for (Int_t isign=-1;isign<=1;isign+=2){// loop in col direction
-    pulse1 = GetMap()->GetSignalOnly(col,row);
+    if(GetDebug(3)) Info("SetCouplingOld","(row=%d,col=%d,ntrack=%d,idhit=%d) "
+                         "Calling SetCoupling couplR=%e couplC=%e",
+                         row,col,ntrack,idhit,couplR,couplC);
+    for (Int_t isign=-1;isign<=1;isign+=2){// loop in row direction
+    pulse1 = GetMap()->GetSignalOnly(row,col);
     pulse2 = pulse1;
-    j1 = col;
-    j2 = row;
+    j1 = row;
+    j2 = col;
         do{
             j1 += isign;
-            pulse1 *= couplC;
+            pulse1 *= couplR;
             if ((j1<0)||(j1>GetNPixelsZ()-1)||(pulse1<GetThreshold())){
-                pulse1 = GetMap()->GetSignalOnly(col,row);
-                j1 = col;
+                pulse1 = GetMap()->GetSignalOnly(row,col);
+                j1 = row;
                 flag = 1;
             }else{
-                UpdateMapSignal(row,j1,ntrack,idhit,pulse1);
+                UpdateMapSignal(col,j1,ntrack,idhit,pulse1);
                 // flag = 0;
                 flag = 1;  // only first next !!
             } // end if
         } while(flag == 0);
-        // loop in row direction
+        // loop in column direction
         do{
             j2 += isign;
-            pulse2 *= couplR;
+            pulse2 *= couplC;
             if((j2<0)||(j2>(GetNPixelsX()-1))||(pulse2<GetThreshold())){
-                pulse2 = GetMap()->GetSignalOnly(col,row);
-                j2 = row;
+                pulse2 = GetMap()->GetSignalOnly(row,col);
+                j2 = col;
                 flag = 1;
             }else{
-                UpdateMapSignal(j2,col,ntrack,idhit,pulse2);
+                UpdateMapSignal(j2,row,ntrack,idhit,pulse2);
                 // flag = 0;
                 flag = 1; // only first next!!
             } // end if

@@ -21,10 +21,10 @@
 //____________________________________________________________________
 //
 // This is a class that constructs AliFMDRecPoint objects from of Digits
-// This class reads either digits from a TClonesArray or raw data from 
+//
+// This class reads either digits from a TClonesArray or raw data from
 // a DDL file (or similar), and stores the read ADC counts in an
-// internal cache (fAdcs).   The rec-points are made via the naiive
-// method. 
+// internal cache (fAdcs). 
 //
 //-- Authors: Evgeny Karpechev(INR) and Alla Maevsksia
 //  Latest changes by Christian Holm Christensen <cholm@nbi.dk>
@@ -33,7 +33,7 @@
 //____________________________________________________________________
 
 #include <AliLog.h>                        // ALILOG_H
-// #include <AliRun.h>                        // ALIRUN_H
+#include <AliRun.h>                        // ALIRUN_H
 #include <AliRunLoader.h>                  // ALIRUNLOADER_H
 #include <AliHeader.h>                     // ALIHEADER_H
 #include <AliGenEventHeader.h>             // ALIGENEVENTHEADER_H
@@ -228,11 +228,7 @@ AliFMDReconstructor::ProcessDigits(TClonesArray* digits) const
     AliFMDParameters* param  = AliFMDParameters::Instance();
     // Check that the strip is not marked as dead 
     if (param->IsDead(digit->Detector(), digit->Ring(), 
-		      digit->Sector(), digit->Strip())) {
-      AliDebug(10, Form("FMD%d%c[%2d,%3d] is dead", digit->Detector(), 
-			digit->Ring(), digit->Sector(), digit->Strip()));
-      continue;
-    }
+		      digit->Sector(), digit->Strip())) continue;
 
     // digit->Print();
     // Get eta and phi 
@@ -286,13 +282,13 @@ AliFMDReconstructor::SubtractPedestal(AliFMDDigit* digit) const
 						digit->Ring(), 
 						digit->Sector(), 
 						digit->Strip());
-  AliDebug(15, Form("Subtracting pedestal %f from signal %d", 
+  AliDebug(10, Form("Subtracting pedestal %f from signal %d", 
 		   pedM, digit->Counts()));
   if (digit->Count3() > 0)      counts = digit->Count3();
   else if (digit->Count2() > 0) counts = digit->Count2();
   else                          counts = digit->Count1();
   counts = TMath::Max(Int_t(counts - pedM), 0);
-  if (counts > 0) AliDebug(15, "Got a hit strip");
+  if (counts > 0) AliDebug(10, "Got a hit strip");
   
   return  UShort_t(counts);
 }
@@ -328,7 +324,7 @@ AliFMDReconstructor::Adc2Energy(AliFMDDigit* digit,
 						digit->Sector(), 
 						digit->Strip());
   Double_t          edep  = count * gain;
-  AliDebug(15, Form("Converting counts %d to energy via factor %f", 
+  AliDebug(10, Form("Converting counts %d to energy via factor %f", 
 		    count, gain));
   return edep;
 }
@@ -356,7 +352,7 @@ AliFMDReconstructor::Energy2Multiplicity(AliFMDDigit* /* digit */,
   Double_t          edepMIP = param->GetEdepMip();
   Float_t           mult    = edep / edepMIP;
   if (edep > 0) 
-    AliDebug(15, Form("Translating energy %f to multiplicity via "
+    AliDebug(10, Form("Translating energy %f to multiplicity via "
 		     "divider %f->%f", edep, edepMIP, mult));
   return mult;
 }

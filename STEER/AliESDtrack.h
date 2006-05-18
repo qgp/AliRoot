@@ -27,8 +27,11 @@
 #include "AliPID.h"
 #include "AliESDfriendTrack.h"
 
+#include <TVector3.h>
+
 class AliESDVertex;
 class AliKalmanTrack;
+class AliESDfriendTrack;
 class AliTrackPointArray;
 
 class AliESDtrack : public AliExternalTrackParam {
@@ -37,14 +40,9 @@ public:
   AliESDtrack(const AliESDtrack& track);
   virtual ~AliESDtrack();
   const AliESDfriendTrack *GetFriendTrack() const {return fFriendTrack;}
-  void SetFriendTrack(const AliESDfriendTrack *t) {
-    delete fFriendTrack; fFriendTrack=new AliESDfriendTrack(*t);
-  }
-  void AddCalibObject(TObject * object);     // add calib object to the list
-  TObject *  GetCalibObject(Int_t index);    // return calib objct at given position
   void MakeMiniESDtrack();
   void SetID(Int_t id) { fID =id;}
-  Int_t GetID() const { return fID;}
+  Int_t GetID(){ return fID;}
   void SetStatus(ULong_t flags) {fFlags|=flags;}
   void ResetStatus(ULong_t flags) {fFlags&=~flags;}
   Bool_t UpdateTrackParams(const AliKalmanTrack *t, ULong_t flags);
@@ -64,6 +62,9 @@ public:
   Double_t GetIntegratedLength() const {return fTrackLength;}
   void GetIntegratedTimes(Double_t *times) const;
   Double_t GetMass() const;
+  TVector3 P3() const {Double_t p[3]; GetPxPyPz(p); return TVector3(p[0],p[1],p[2]);} //running track momentum
+  TVector3 X3() const {Double_t x[3]; GetXYZ(x); return TVector3(x[0],x[1],x[2]);}    //running track position 
+
 
   Bool_t GetConstrainedPxPyPz(Double_t *p) const {
     if (!fCp) return kFALSE;
@@ -130,9 +131,7 @@ public:
      for (Int_t i=0;i<4;i++) fTPCPoints[i]=points[i];
   }
   void    SetTPCPointsF(UChar_t  findable){fTPCnclsF = findable;}
-  Int_t   GetTPCNcls() const { return fTPCncls;}
-  Int_t   GetTPCNclsF() const { return fTPCnclsF;}
-  Float_t GetTPCPoints(Int_t i) const {return fTPCPoints[i];}
+  Float_t GetTPCPoints(Int_t i){return fTPCPoints[i];}
   void    SetKinkIndexes(Int_t points[3]) {
      for (Int_t i=0;i<3;i++) fKinkIndexes[i] = points[i];
   }
@@ -143,8 +142,6 @@ public:
      fTPCsignal = signal; fTPCsignalS = sigma; fTPCsignalN = npoints;
   }
   Float_t GetTPCsignal() const {return fTPCsignal;}
-  Float_t GetTPCsignalSigma() const {return fTPCsignalS;}
-  Float_t GetTPCsignalN() const {return fTPCsignalN;}
   Float_t GetTPCchi2() const {return fTPCchi2;}
   Int_t   GetTPCclusters(Int_t *idx) const;
   Float_t GetTPCdensity(Int_t row0, Int_t row1) const;
@@ -158,14 +155,11 @@ public:
   Float_t GetTRDQuality()const {return fTRDQuality;}
   void    SetTRDBudget(Float_t budget){fTRDBudget=budget;}
   Float_t GetTRDBudget()const {return fTRDBudget;}
-  void    SetTRDsignals(Float_t dedx, Int_t i, Int_t j) {fTRDsignals[i][j]=dedx;}
+  void    SetTRDsignals(Float_t dedx, Int_t i) {fTRDsignals[i]=dedx;}
   void    SetTRDTimBin(Int_t timbin, Int_t i) {fTRDTimBin[i]=timbin;}
   void    GetTRDpid(Double_t *p) const;
   Float_t GetTRDsignal() const {return fTRDsignal;}
-  Float_t GetTRDsignals(Int_t iPlane, Int_t iSlice=-1) const { if (iSlice == -1) 
-    return (fTRDsignals[iPlane][0] + fTRDsignals[iPlane][1] + fTRDsignals[iPlane][2])/3.0;
-    return fTRDsignals[iPlane][iSlice];
-  }
+  Float_t GetTRDsignals(Int_t i) const {return fTRDsignals[i];}
   Int_t   GetTRDTimBin(Int_t i) const {return fTRDTimBin[i];}
   Float_t GetTRDchi2() const {return fTRDchi2;}
   Int_t   GetTRDclusters(Int_t *idx) const;
@@ -249,11 +243,11 @@ public:
     kTIME=0x80000000
   }; 
   enum {
-    kNPlane = 6,
-    kNSlice = 3
+    kNPlane = 6
   };
 protected:
   
+  //AliESDtrack & operator=(const AliESDtrack & );
 
   ULong_t   fFlags;         // Reconstruction status flags 
   Int_t     fLabel;         // Track label
@@ -267,14 +261,15 @@ protected:
 
   Int_t   fStopVertex;  // Index of the stop vertex
 
-  AliExternalTrackParam *fCp; // Track parameters constrained to the primary vertex
-  Double_t fCchi2; // chi2 at the primary vertex
+//Track parameters constrained to the primary vertex
+  AliExternalTrackParam *fCp; 
+  Double_t fCchi2; //chi2 at the primary vertex
 
+//Track parameters at the inner wall of the TPC
+  AliExternalTrackParam *fIp;
 
-  AliExternalTrackParam *fIp; // Track parameters at the inner wall of the TPC
-
-
-  AliExternalTrackParam *fOp; // Track parameters at the inner wall of the TRD 
+//Track parameters at the inner wall of the TRD 
+  AliExternalTrackParam *fOp;
 
   // ITS related track information
   Float_t fITSchi2;        // chi2 in the ITS
@@ -304,7 +299,7 @@ protected:
   Int_t   fTRDncls;        // number of clusters assigned in the TRD
   Int_t   fTRDncls0;       // number of clusters assigned in the TRD before first material cross
   Float_t fTRDsignal;      // detector's PID signal
-  Float_t fTRDsignals[kNPlane][kNSlice];  // TRD signals from all six planes in 3 slices each
+  Float_t fTRDsignals[kNPlane];  // TRD signals from all six planes
   Int_t   fTRDTimBin[kNPlane];   // Time bin of Max cluster from all six planes
   Float_t fTRDr[AliPID::kSPECIES]; // "detector response probabilities" (for the PID)
   Int_t   fTRDLabel;       // label according TRD
@@ -335,15 +330,11 @@ protected:
   Float_t fRICHmipX;       // x of the MIP in LORS
   Float_t fRICHmipY;       // y of the MIP in LORS
 
-  AliTrackPointArray *fPoints;// Array of track space points in the global frame
+  AliTrackPointArray *fPoints;//Array of track space points in the global frame
 
   AliESDfriendTrack *fFriendTrack; //! All the complementary information
 
- private:
-
-  AliESDtrack & operator=(const AliESDtrack & ) {return *this;}
-
-  ClassDef(AliESDtrack,29)  //ESDtrack 
+  ClassDef(AliESDtrack,27)  //ESDtrack 
 };
 
 #endif 

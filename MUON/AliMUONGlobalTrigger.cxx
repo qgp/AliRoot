@@ -16,12 +16,6 @@
 
 /* $Id$ */
 
-// ------------------
-// Class AliMUONGlobalTrigger
-// ------------------
-// Global Trigger algorithm data output
-// built from Local and Regional algorithms 
-
 #include "AliMUONGlobalTrigger.h"
 
 ClassImp(AliMUONGlobalTrigger)

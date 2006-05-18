@@ -20,10 +20,11 @@
 //      e-mail: Jouri.Belikov@cern.ch
 //-----------------------------------------------------------------
 
-#include <TMath.h>
+#include "TMath.h"
 
 #include "AliESDVertex.h"
 #include "AliESDtrack.h"
+#include "AliESDfriendTrack.h"
 #include "AliKalmanTrack.h"
 #include "AliLog.h"
 #include "AliTrackPointArray.h"
@@ -112,7 +113,7 @@ AliESDtrack::AliESDtrack() :
   //
   // The default ESD constructor 
   //
-  Int_t i, j;
+  Int_t i;
   for (i=0; i<AliPID::kSPECIES; i++) {
     fTrackTime[i]=0.;
     fR[i]=1.;
@@ -125,12 +126,7 @@ AliESDtrack::AliESDtrack() :
   
   for (i=0; i<3; i++)   { fKinkIndexes[i]=0;}
   for (i=0; i<3; i++)   { fV0Indexes[i]=-1;}
-  for (i=0;i<kNPlane;i++) {
-    for (j=0;j<kNSlice;j++) {
-      fTRDsignals[i][j]=0.; 
-    }
-    fTRDTimBin[i]=-1;
-  }
+  for (i=0;i<kNPlane;i++) {fTRDsignals[i]=0.; fTRDTimBin[i]=-1;}
   for (i=0;i<4;i++) {fTPCPoints[i]=-1;}
   for (i=0;i<3;i++) {fTOFLabel[i]=-1;}
   for (i=0;i<10;i++) {fTOFInfo[i]=-1;}
@@ -202,10 +198,8 @@ AliESDtrack::AliESDtrack(const AliESDtrack& track):
   for (Int_t i=0; i<3;i++)   { fV0Indexes[i]=track.fV0Indexes[i];}
   //
   for (Int_t i=0;i<kNPlane;i++) {
-    for (Int_t j=0;j<kNSlice;j++) {
-      fTRDsignals[i][j]=track.fTRDsignals[i][j]; 
-    }
-    fTRDTimBin[i]=track.fTRDTimBin[i];
+      fTRDsignals[i]=track.fTRDsignals[i]; 
+      fTRDTimBin[i]=track.fTRDTimBin[i];
   }
   for (Int_t i=0;i<AliPID::kSPECIES;i++) fTRDr[i]=track.fTRDr[i]; 
   for (Int_t i=0;i<AliPID::kSPECIES;i++) fTOFr[i]=track.fTOFr[i];
@@ -232,23 +226,6 @@ AliESDtrack::~AliESDtrack(){
   delete fFriendTrack;
   delete fPoints;
 }
-
-void AliESDtrack::AddCalibObject(TObject * object){
-  //
-  // add calib object to the list
-  //
-  if (!fFriendTrack) fFriendTrack  = new AliESDfriendTrack;
-  fFriendTrack->AddCalibObject(object);
-}
-
-TObject *  AliESDtrack::GetCalibObject(Int_t index){
-  //
-  // return calib objct at given position
-  //
-  if (!fFriendTrack) return 0;
-  return fFriendTrack->GetCalibObject(index);
-}
-
 
 //_______________________________________________________________________
 void AliESDtrack::MakeMiniESDtrack(){
@@ -307,10 +284,8 @@ void AliESDtrack::MakeMiniESDtrack(){
   fTRDncls0 = 0;       
   fTRDsignal = 0;      
   for (Int_t i=0;i<kNPlane;i++) {
-    for (Int_t j=0;j<kNSlice;j++) {
-      fTRDsignals[i][j] = 0; 
-    }
-    fTRDTimBin[i]  = 0;
+      fTRDsignals[i] = 0; 
+      fTRDTimBin[i]  = 0;
   }
   for (Int_t i=0;i<AliPID::kSPECIES;i++) fTRDr[i] = 0; 
   fTRDLabel = 0;       
@@ -847,9 +822,7 @@ Bool_t AliESDtrack::RelateToVertex
   if (d > maxd) return kFALSE; 
 
   //Propagate to the DCA
-  Double_t crv=kB2C*b*GetParameter()[4];
-  if (TMath::Abs(b) < kAlmost0Field) crv=0.;
-
+  Double_t crv=0.299792458e-3*b*GetParameter()[4];
   Double_t tgfv=-(crv*x - snp)/(crv*y + TMath::Sqrt(1.-snp*snp));
   sn=tgfv/TMath::Sqrt(1.+ tgfv*tgfv);
   if (TMath::Abs(tgfv)>0.) cs = sn/tgfv;

@@ -80,14 +80,22 @@ class AliAlignObj : public TObject {
   static ELayerID VolUIDToLayer(UShort_t voluid, Int_t &modId);
   static ELayerID VolUIDToLayer(UShort_t voluid);
 
-  static const char* GetVolPath(UShort_t voluid);
+  static const char* GetVolPath(UShort_t voluid) {
+    Int_t modId;
+    ELayerID layerId = VolUIDToLayer(voluid,modId);
+    return GetVolPath(layerId,modId);
+  }
   static const char* GetVolPath(ELayerID layerId, Int_t modId);
 
   Bool_t ApplyToGeometry();
   static Bool_t   GetFromGeometry(const char *path, AliAlignObj &alobj);
 
   static void         InitAlignObjFromGeometry();
-  static AliAlignObj* GetAlignObj(UShort_t voluid);
+  static AliAlignObj* GetAlignObj(UShort_t voluid) {
+    Int_t modId;
+    ELayerID layerId = VolUIDToLayer(voluid,modId);
+    return GetAlignObj(layerId,modId);
+  }
   static AliAlignObj* GetAlignObj(ELayerID layerId, Int_t modId);
 
  protected:
@@ -101,12 +109,12 @@ class AliAlignObj : public TObject {
   TString  fVolPath; // Volume path inside TGeo geometry
   UShort_t fVolUID;  // Unique volume ID
 
-  static Int_t       fgLayerSize[kLastLayer - kFirstLayer]; // Size of layers
-  static const char* fgLayerName[kLastLayer - kFirstLayer]; // Name of layers
+  static Int_t       fgLayerSize[kLastLayer - kFirstLayer];
+  static const char* fgLayerName[kLastLayer - kFirstLayer];
 
-  static TString*    fgVolPath[kLastLayer - kFirstLayer]; // Volume path
+  static TString*    fgVolPath[kLastLayer - kFirstLayer];
 
-  static AliAlignObj** fgAlignObjs[kLastLayer - kFirstLayer]; // Alignment objects
+  static AliAlignObj** fgAlignObjs[kLastLayer - kFirstLayer];
 
   ClassDef(AliAlignObj, 2)
 };

@@ -50,15 +50,14 @@ class AliTRDv1 : public AliTRD {
           void       SetSensSector(Int_t isector);
           void       SetSensSector(Int_t isector, Int_t nsector);
 
-          void       SetTR(Bool_t kTRUE)        { fTRon = kTRUE; };
+          AliTRDsim *CreateTR();
 
           Int_t      GetSensPlane() const       { return fSensPlane;       };
           Int_t      GetSensChamber() const     { return fSensChamber;     };
           Int_t      GetSensSector() const      { return fSensSector;      };
           Int_t      GetSensSectorRange() const { return fSensSectorRange; };
 
-          Bool_t     GetTR() const              { return fTRon;            };
-          AliTRDsim *GetTRDsim() const          { return fTR;              };
+          AliTRDsim *GetTR() const              { return fTR;              };
 
  protected:
 
@@ -70,7 +69,6 @@ class AliTRDv1 : public AliTRD {
   Int_t        fSensSector;             // Sensitive detector sector 
   Int_t        fSensSectorRange;        // Sensitive detector range
 
-  Bool_t       fTRon;                   // Switch for TR simulation
   AliTRDsim   *fTR;                     // TR simulator
 
   Int_t        fTypeOfStepManager;      // Type of Step Manager.
@@ -78,18 +76,18 @@ class AliTRDv1 : public AliTRD {
 
  private:
 
-  Double_t     BetheBloch(Double_t bg);
-  Double_t     BetheBlochGeant(Double_t bg);
-  void 	       Stepping();
+  Double_t 	BetheBloch(Double_t bg);
+  Double_t 	BetheBlochGeant(Double_t bg);
+	void 			Stepping();
   
-  TF1         *fDeltaE;                 // Energy distribution of the delta-electrons (Ermilova)
+	TF1         *fDeltaE;                 // Energy distribution of the delta-electrons (Ermilova)
+
   TF1         *fDeltaG;                 // Energy distribution of the
-	                                // Delta-electrons (GEANT) for StepManagerGeant
-  Float_t      fTrackLength0;         	// Save the track length at chamber entrance  
-  Int_t	       fPrimaryTrackPid;        // Save the id of the primary track  
+	                                      // delta-electrons (GEANT) for StepManagerGeant
+	Float_t			fTrackLength0;         		// Save the track length at chamber entrance  
+	Int_t				fPrimaryTrackPid;         // Save the id of the primary track  
 
-  ClassDef(AliTRDv1,4)                  // Transition Radiation Detector version 1 (slow simulator)
-
+  ClassDef(AliTRDv1,3)                  // Transition Radiation Detector version 1 (slow simulator)
 };
 
 #endif
