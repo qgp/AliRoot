@@ -6,20 +6,21 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "AliRoot/convert.hpp"
-#include "AliHLTMUONUtils.h"
+#include "Utils.hpp"
+#include "Error.hpp"
 
 
 AliHLTMUONPoint AliHLTMUONConvert(const AliHLTMUONCorePoint& point)
 {
 	DebugMsg(5, "Convert from AliHLTMUONCorePoint");
-	return AliHLTMUONPoint(point.X(), point.Y());
+	return AliHLTMUONPoint(point.fX, point.fY);
 }
 
 
 AliHLTMUONCorePoint AliHLTMUONConvert(const AliHLTMUONPoint& point)
 {
 	DebugMsg(5, "Convert from AliHLTMUONPoint");
-	return AliHLTMUONCorePoint(point.X(), point.Y());
+	return AliHLTMUONCorePoint(point.fX, point.fY);
 }
 
 

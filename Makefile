@@ -62,13 +62,6 @@ CXXFLAGS  += $(DATEFLAGS)
 CFLAGS    += $(DATEFLAGS)
 CINTFLAGS += $(DATEFLAGS)
 DEPINC    += $(DATEFLAGS)
-else
-DATEFLAGS  = -D`uname` -DDATE_SYS=`uname` -Dlong32='int' \
-             -Dlong64='long long' -DdatePointer='long'
-CXXFLAGS  += $(DATEFLAGS)
-CFLAGS    += $(DATEFLAGS)
-CINTFLAGS += $(DATEFLAGS)
-DEPINC    += $(DATEFLAGS)
 endif
 
 #-------------------------------------------------------------------------------
@@ -90,7 +83,7 @@ ALIROOTMODULES := STEER PHOS TRD TPC ZDC MUON PMD FMD TOF ITS \
       CRT RICH START STRUCT EVGEN RALICE ALIFAST VZERO \
       THijing MEVSIM TMEVSIM THbtp HBTP EMCAL HBTAN \
       THerwig TEPEMGEN EPEMGEN FASTSIM TPHIC RAW MONITOR DISPLAY ANALYSIS \
-      JETAN HLT LHC EVE
+      JETAN HLT LHC
 
 ifeq ($(findstring TFluka,$(MAKECMDGOALS)),TFluka)
 ALIROOTMODULES += TFluka

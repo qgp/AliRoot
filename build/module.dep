@@ -27,7 +27,7 @@ PHOS/module.mk:		 PHOS/libPHOSbase.pkg PHOS/libPHOSsim.pkg PHOS/libPHOSrec.pkg
 PMD/module.mk:		 PMD/libPMDbase.pkg PMD/libPMDsim.pkg PMD/libPMDrec.pkg
 PYTHIA6/module.mk:	 PYTHIA6/libpythia6.pkg
 RALICE/module.mk:	 RALICE/libRALICE.pkg
-RAW/module.mk:           RAW/libRAWData.pkg RAW/binalimdc.pkg RAW/bindateStream.pkg
+RAW/module.mk:           RAW/libRAWData.pkg RAW/binalimdc.pkg
 RICH/module.mk:		 RICH/libRICHbase.pkg RICH/libRICHrec.pkg RICH/libRICHsim.pkg
 SHUTTLE/module.mk:	 SHUTTLE/libSHUTTLE.pkg
 START/module.mk:	 START/libSTARTbase.pkg START/libSTARTsim.pkg START/libSTARTrec.pkg
@@ -45,4 +45,3 @@ TPHIC/module.mk:	 TPHIC/libTPHIC.pkg
 TRD/module.mk:		 TRD/libTRDbase.pkg TRD/libTRDsim.pkg TRD/libTRDrec.pkg TRD/libTRDfast.pkg
 VZERO/module.mk:	 VZERO/libVZERObase.pkg VZERO/libVZEROsim.pkg VZERO/libVZEROrec.pkg
 ZDC/module.mk:		 ZDC/libZDCbase.pkg ZDC/libZDCrec.pkg ZDC/libZDCsim.pkg
-EVE/module.mk:		 EVE/libAlieve.pkg EVE/libReve.pkg EVE/binreve.pkg 

@@ -42,8 +42,7 @@ public:
 
   void SetEventNumber(Int_t n) {fEventNumber=n;}
   void SetRunNumber(Int_t n) {fRunNumber=n;}
-  void SetTriggerMask(ULong64_t n) {fTriggerMask=n;}
-  void SetTriggerCluster(UChar_t n) {fTriggerCluster = n;}
+  void SetTrigger(Long_t n) {fTrigger=n;}
   void SetMagneticField(Float_t mf){fMagneticField = mf;}
   Float_t GetMagneticField() const {return fMagneticField;}
   
@@ -131,19 +130,13 @@ public:
   }
     
   void SetVertex(const AliESDVertex* vertex) {
-     fSPDVertex=new AliESDVertex(*vertex);
+    new(&fPrimaryVertex) AliESDVertex(*vertex);
   }
-  const AliESDVertex* GetVertex() const {return fSPDVertex;};
-
-  void SetPrimaryVertex(const AliESDVertex* vertex) {
-     fPrimaryVertex=new AliESDVertex(*vertex);
-  }
-  const AliESDVertex* GetPrimaryVertex() const {return fPrimaryVertex;};
+  const AliESDVertex* GetVertex() const {return &fPrimaryVertex;};
 
   Int_t  GetEventNumber() const {return fEventNumber;}
   Int_t  GetRunNumber() const {return fRunNumber;}
-  ULong64_t GetTriggerMask() const {return fTriggerMask;}
-  UChar_t  GetTriggerCluster() const {return fTriggerCluster;}
+  Long_t GetTrigger() const {return fTrigger;}
   
   Int_t GetNumberOfTracks()     const {return fTracks.GetEntriesFast();}
   Int_t GetNumberOfHLTConfMapTracks()     const {return fHLTConfMapTracks.GetEntriesFast();}
@@ -208,8 +201,7 @@ protected:
   // Event Identification
   Int_t        fEventNumber;     // Event Number
   Int_t        fRunNumber;       // Run Number
-  ULong64_t    fTriggerMask;     // Trigger Type (mask)
-  UChar_t      fTriggerCluster;  // Trigger cluster (mask)
+  Long_t       fTrigger;         // Trigger Type
   Int_t        fRecoVersion;     // Version of reconstruction 
   Float_t      fMagneticField;   // Solenoid Magnetic Field in kG : for compatibility with AliMagF
 
@@ -221,12 +213,10 @@ protected:
   Int_t        fZDCParticipants; // number of participants estimated by the ZDC
 
   Float_t      fT0zVertex;       // vertex z position estimated by the START
-  AliESDVertex *fSPDVertex;      // Primary vertex estimated by the SPD
-  AliESDVertex *fPrimaryVertex;  // Primary vertex estimated using ESD tracks
-
   Float_t      fT0timeStart;     // interaction time estimated by the START
   Float_t      fT0time[24];      // best TOF on each START PMT
   Float_t      fT0amplitude[24]; // number of particles(MIPs) on each START PMT
+  AliESDVertex fPrimaryVertex;   // Primary vertex estimated by the ITS
 
   TClonesArray fTracks;          // ESD tracks
   TClonesArray fHLTConfMapTracks;// HLT ESD tracks from Conformal Mapper method
@@ -247,7 +237,7 @@ protected:
  
   AliESDFMD *  fESDFMD; // FMD object containing rough multiplicity
 
-  ClassDef(AliESD,11)  //ESD class 
+  ClassDef(AliESD,9)  //ESD class 
 };
 #endif 
 

@@ -46,7 +46,6 @@ aliroot -b >& testSim.out << EOF
 gRandom->SetSeed($SEED);
 AliCDBManager::Instance()->SetDefaultStorage("$CDB");
 AliSimulation MuonSim("$ALICE_ROOT/MUON/Config.C");
-MuonSim.SetMakeTrigger("MUON");
 MuonSim.Run($NEVENTS); 
 .q
 EOF

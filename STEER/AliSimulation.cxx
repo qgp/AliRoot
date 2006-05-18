@@ -732,11 +732,7 @@ Bool_t AliSimulation::RunSimulation(Int_t nEvents)
   if (gGeoManager) gGeoManager->Export("geometry.root");
 
   // Misalign geometry
-//   if (!MisalignGeometry(runLoader)) {
-//     delete runLoader;
-//     return kFALSE;
-//   }
-  MisalignGeometry(runLoader);
+  if (!MisalignGeometry(runLoader)) return kFALSE;
 
   // Temporary fix by A.Gheata
   // Could be removed with the next Root version (>5.11)

@@ -34,9 +34,7 @@ void bxdraw(Int_t& icode, Int_t& mreg, Int_t& newreg,
        fluka->SetTrackIsExiting();
        fluka->SetCaller(kBXExiting);
        fluka->SetMreg(mreg,oldlttc);
-       TVirtualMCStack* cppstack = fluka->GetStack();
-       cppstack->SetCurrentTrack( TRACKR.ispusr[mkbmx2-1] );
-       (TVirtualMCApplication::Instance())->Stepping();
+       (TVirtualMCApplication::Instance())->Stepping(); 
     }
     if (newreg != fluka->GetDummyRegion()) {
        if (debug) printf("bxdraw (en) \n");
@@ -44,10 +42,8 @@ void bxdraw(Int_t& icode, Int_t& mreg, Int_t& newreg,
        fluka->SetTrackIsEntering();
        if (fluka->GetDummyBoundary() == 1) fluka->SetDummyBoundary(2);
        fluka->SetMreg(newreg,newlttc);
-       TVirtualMCStack* cppstack = fluka->GetStack();
-       cppstack->SetCurrentTrack( TRACKR.ispusr[mkbmx2-1] );
        (TVirtualMCApplication::Instance())->Stepping();
-    }
+    }      
 
 } // end of bxdraw
 } // end of extern "C"

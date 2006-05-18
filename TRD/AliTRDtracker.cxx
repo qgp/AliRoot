@@ -30,7 +30,7 @@
 
 #include "AliTRDgeometry.h"
 #include "AliTRDpadPlane.h"
-#include "AliTRDgeometry.h"
+#include "AliTRDgeometryFull.h"
 #include "AliTRDcluster.h" 
 #include "AliTRDtrack.h"
 #include "AliTRDseed.h"
@@ -107,7 +107,9 @@ AliTRDtracker::AliTRDtracker(const TFile *geomfile):AliTracker()
   }
   else { 
     printf("AliTRDtracker::AliTRDtracker(): can't find TRD geometry!\n");
-    fGeom = new AliTRDgeometry();
+
+    fGeom = new AliTRDgeometryFull();
+
   } 
   fGeom->ReadGeoMatrices();
 
