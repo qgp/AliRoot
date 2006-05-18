@@ -91,7 +91,7 @@ Double_t AliExternalTrackParam::GetP() const {
   // This function returns the track momentum
   // Results for (nearly) straight tracks are meaningless !
   //---------------------------------------------------------------------
-  if (TMath::Abs(fP[4])<=kAlmost0) return kVeryBig;
+  if (TMath::Abs(fP[4])<=0) return 1e+33;
   return TMath::Sqrt(1.+ fP[3]*fP[3])/TMath::Abs(fP[4]);
 }
 
@@ -109,7 +109,6 @@ Double_t AliExternalTrackParam::GetD(Double_t x,Double_t y,Double_t b) const {
   // with respect to a point with global coordinates (x,y)
   // in the magnetic field "b" (kG)
   //------------------------------------------------------------------
-  if (TMath::Abs(b) < kAlmost0Field) return GetLinearD(x,y);
   Double_t rp4=kB2C*b*fP[4];
 
   Double_t xt=fX, yt=fP[0];
@@ -214,11 +213,6 @@ Bool_t AliExternalTrackParam::Rotate(Double_t alpha) {
   fP0= -x*sa + fP0*ca;
   fP2=  sf*ca - cf*sa;
 
-  if (TMath::Abs(cf)<kAlmost0) {
-    AliError(Form("Too small cosine value %f",cf)); 
-    cf = kAlmost0;
-  } 
-
   Double_t rr=(ca+sf/cf*sa);  
 
   fC00 *= (ca*ca);
@@ -242,8 +236,6 @@ Bool_t AliExternalTrackParam::PropagateTo(Double_t xk, Double_t b) {
   if (TMath::Abs(dx)<=0)  return kTRUE;
 
   Double_t crv=kB2C*b*fP[4];
-  if (TMath::Abs(b) < kAlmost0Field) crv=0.;
-
   Double_t f1=fP[2], f2=f1 + crv*dx;
   if (TMath::Abs(f1) >= kAlmost1) return kFALSE;
   if (TMath::Abs(f2) >= kAlmost1) return kFALSE;

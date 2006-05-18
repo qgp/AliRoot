@@ -7,7 +7,7 @@
 
 #include "AliRoot/Track.hpp"
 #include <TMath.h>
-#include "AliHLTMUONUtils.h"
+#include "Utils.hpp"
 
 ClassImp(AliHLTMUONTrack)
 

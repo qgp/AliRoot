@@ -51,7 +51,7 @@ AliITSVertexerTracks::AliITSVertexerTracks():AliITSVertexer() {
   SetMinTracks();
   fTrksToSkip = 0;
   fNTrksToSkip = 0;
-
+  fDCAcut=0;
 }
 //----------------------------------------------------------------------------
 AliITSVertexerTracks::AliITSVertexerTracks(TFile *inFile,TFile *outFile,
@@ -69,6 +69,7 @@ AliITSVertexerTracks::AliITSVertexerTracks(TFile *inFile,TFile *outFile,
   SetMinTracks();
   fTrksToSkip = 0;
   fNTrksToSkip = 0;
+  fDCAcut=0;
   SetDebug();
 }
 //----------------------------------------------------------------------------
@@ -84,6 +85,7 @@ AliITSVertexerTracks::AliITSVertexerTracks(TString fn,
   SetMinTracks();
   fTrksToSkip = 0;
   fNTrksToSkip = 0;
+  fDCAcut=0;
 }
 //______________________________________________________________________
 AliITSVertexerTracks::AliITSVertexerTracks(const AliITSVertexerTracks &vtxr) : AliITSVertexer(vtxr) {
@@ -250,7 +252,7 @@ Int_t AliITSVertexerTracks::PrepareTracks(TTree &trkTree) {
 
   if(fDebug) {
     printf(" PrepareTracks()\n");
-    //    trkTree.Print();
+    trkTree.Print();
   }
 
   for(Int_t i=0; i<nEntries; i++) {
@@ -274,10 +276,8 @@ Int_t AliITSVertexerTracks::PrepareTracks(TTree &trkTree) {
     track->PropagateTo(xlStart,field);   // to vtxSeed
 
     // select tracks with d0rphi < maxd0rphi
-   
     d0rphi = TMath::Abs(track->GetD(fNominalPos[0],fNominalPos[1],field));
     if(d0rphi > maxd0rphi) { delete track; continue; }
-   
 
     fTrkArray.AddLast(track);
     
@@ -377,13 +377,8 @@ AliESDVertex* AliITSVertexerTracks::FindPrimaryVertexForCurrentEvent(AliESD *esd
   trkTree->Branch("tracks","AliESDtrack",&esdTrack);
 
   for(Int_t i=0; i<entr; i++) {
-    AliESDtrack *et = esdEvent->GetTrack(i);
-    esdTrack = new AliESDtrack(*et);
+    esdTrack = (AliESDtrack*)esdEvent->GetTrack(i);
     if(!esdTrack->GetStatus()&AliESDtrack::kITSin) continue;
-    if(!esdTrack->GetStatus()&AliESDtrack::kITSrefit) continue;
-    Int_t nclus=esdTrack->GetNcls(0); // check number of clusters in ITS
-    if(nclus<5) continue;
-
     trkTree->Fill();
   }
   delete esdTrack;
@@ -411,6 +406,9 @@ AliESDVertex* AliITSVertexerTracks::FindPrimaryVertexForCurrentEvent(AliESD *esd
   esdEvent->GetVertex()->GetTruePos(tp);
   fCurrentVertex->SetTruePos(tp);
 
+  esdEvent->SetVertex(fCurrentVertex);
+
+  cout<<"Vertex: "<<vtx[0]<<", "<<vtx[1]<<", "<<vtx[2]<<endl;
   return fCurrentVertex;
 }
 //---------------------------------------------------------------------------
@@ -444,11 +442,10 @@ void AliITSVertexerTracks::VertexFitter() {
     PrintStatus();
   }
   AliVertexerTracks *vertexer=new AliVertexerTracks(fNominalPos[0],fNominalPos[1]);
-  vertexer->SetFinderAlgorithm(1);
+  vertexer->SetFinderAlgorithm(5);
   AliVertex *thevert=(AliVertex*)vertexer->VertexForSelectedTracks(&fTrkArray);
   Double_t initPos[3];
   thevert->GetXYZ(initPos);
-  //  cout<<"Finder: "<<initPos[0]<<"; "<<initPos[1]<<"; "<<initPos[2]<<endl;
   delete vertexer;
 
 

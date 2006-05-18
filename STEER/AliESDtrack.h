@@ -40,8 +40,6 @@ public:
   void SetFriendTrack(const AliESDfriendTrack *t) {
     delete fFriendTrack; fFriendTrack=new AliESDfriendTrack(*t);
   }
-  void AddCalibObject(TObject * object);     // add calib object to the list
-  TObject *  GetCalibObject(Int_t index);    // return calib objct at given position
   void MakeMiniESDtrack();
   void SetID(Int_t id) { fID =id;}
   Int_t GetID() const { return fID;}
@@ -130,8 +128,6 @@ public:
      for (Int_t i=0;i<4;i++) fTPCPoints[i]=points[i];
   }
   void    SetTPCPointsF(UChar_t  findable){fTPCnclsF = findable;}
-  Int_t   GetTPCNcls() const { return fTPCncls;}
-  Int_t   GetTPCNclsF() const { return fTPCnclsF;}
   Float_t GetTPCPoints(Int_t i) const {return fTPCPoints[i];}
   void    SetKinkIndexes(Int_t points[3]) {
      for (Int_t i=0;i<3;i++) fKinkIndexes[i] = points[i];
@@ -143,8 +139,6 @@ public:
      fTPCsignal = signal; fTPCsignalS = sigma; fTPCsignalN = npoints;
   }
   Float_t GetTPCsignal() const {return fTPCsignal;}
-  Float_t GetTPCsignalSigma() const {return fTPCsignalS;}
-  Float_t GetTPCsignalN() const {return fTPCsignalN;}
   Float_t GetTPCchi2() const {return fTPCchi2;}
   Int_t   GetTPCclusters(Int_t *idx) const;
   Float_t GetTPCdensity(Int_t row0, Int_t row1) const;
@@ -163,7 +157,7 @@ public:
   void    GetTRDpid(Double_t *p) const;
   Float_t GetTRDsignal() const {return fTRDsignal;}
   Float_t GetTRDsignals(Int_t iPlane, Int_t iSlice=-1) const { if (iSlice == -1) 
-    return (fTRDsignals[iPlane][0] + fTRDsignals[iPlane][1] + fTRDsignals[iPlane][2])/3.0;
+    return (fTRDsignals[iPlane][0] + fTRDsignals[iPlane][1] + fTRDsignals[iPlane][3])/3.0;
     return fTRDsignals[iPlane][iSlice];
   }
   Int_t   GetTRDTimBin(Int_t i) const {return fTRDTimBin[i];}
@@ -343,7 +337,7 @@ protected:
 
   AliESDtrack & operator=(const AliESDtrack & ) {return *this;}
 
-  ClassDef(AliESDtrack,29)  //ESDtrack 
+  ClassDef(AliESDtrack,28)  //ESDtrack 
 };
 
 #endif 

@@ -23,8 +23,15 @@
 void
 Simulate()
 {
+  AliCDBManager* cdb = AliCDBManager::Instance();
+  cdb->SetDefaultStorage("local://$ALICE_ROOT");
   AliSimulation sim;
-  AliLog::SetModuleDebugLevel("FMD", 1);
+  AliCDBEntry* align = cdb->Get("FMD/Align/Data");
+  if (align) {
+    TClonesArray* array = dynamic_cast<TClonesArray*>(align->GetObject());
+    if (array) sim.SetAlignObjArray(array);
+  }
+  AliLog::SetModuleDebugLevel("FMD", 2);
   sim.SetConfigFile("$(ALICE_ROOT)/FMD/Config.C");
   // sim.SetMakeSDigits("FMD");
   sim.SetMakeDigits("FMD"); 

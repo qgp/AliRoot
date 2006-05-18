@@ -43,8 +43,8 @@
 #include "AliRoot/ClusterFinderProxy.hpp"
 #include "AliRoot/TrackerProxy.hpp"
 
-#include "AliHLTMUONUtils.h"
-#include "AliHLTMUONOutOfMemory.h"
+#include "Utils.hpp"
+#include "new.hpp"
 
 
 namespace  // AliMicroFramework should be hidden.
@@ -268,7 +268,7 @@ void AliMicroFramework::CreateClusterBlocks(
 			while (cs->MoreClusters())
 			{
 				AliHLTMUONCoreClusterPoint newpoint;
-				cs->FetchCluster(newpoint.X(), newpoint.Y());
+				cs->FetchCluster(newpoint.fX, newpoint.fY);
 				fClusters[chamber][currentcount[chamber]++] = newpoint;
 				cs->GetNextCluster();
 			}

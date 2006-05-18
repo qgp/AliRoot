@@ -24,6 +24,5 @@
 #pragma link C++ class AliAltroRawStream+;
 #pragma link C++ class AliAltroRawStreamOld+;
 #pragma link C++ class AliVMERawStream+;
-#pragma link C++ class AliFstream+;
 
 #endif

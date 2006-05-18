@@ -48,7 +48,7 @@
 #include "AliTRDdigit.h"
 #include "AliTRDdigitizer.h"
 #include "AliTRDdigitsManager.h"
-#include "AliTRDgeometry.h"
+#include "AliTRDgeometryFull.h"
 #include "AliTRDhit.h"
 #include "AliTRDpoints.h"
 #include "AliTRDrawData.h"
@@ -101,7 +101,7 @@ AliTRD::AliTRD(const char *name, const char *title)
   // Define the TRD geometry
   if ((frame->IsVersion() == 0) ||
       (frame->IsVersion() == 1)) {
-    fGeometry = new AliTRDgeometry();
+    fGeometry = new AliTRDgeometryFull();
   }
   else {
     Error("Ctor","Could not find valid FRAME version\n");
@@ -161,7 +161,6 @@ AliTRD::~AliTRD()
     delete fHits;
     fHits      = 0;
   }
-
 }
 
 //_____________________________________________________________________________
@@ -170,7 +169,6 @@ void AliTRD::Hits2Digits()
   //
   // Create digits
   //
-
   AliTRDdigitizer digitizer("TRDdigitizer","TRD digitizer class");
   AliLog::SetClassDebugLevel("TRDdigitizer",AliDebugLevel());
   
@@ -240,7 +238,7 @@ void AliTRD::SDigits2Digits()
   // Create final digits from summable digits
   //
 
-  // Create the TRD digitizer
+   // Create the TRD digitizer
   AliTRDdigitizer digitizer("TRDdigitizer","TRD digitizer class");  
   AliLog::SetClassDebugLevel("TRDdigitizer",AliDebugLevel());
 
@@ -296,7 +294,7 @@ void AliTRD::Digits2Raw()
   }
 
   AliTRDrawData rawWriter;
-  //  rawWriter.SetDebug(2);
+//  rawWriter.SetDebug(2);
   if (!rawWriter.Digits2Raw(digits)) {
     Error("AliTRD::Digits2Raw","The raw writer could not load the digits tree");
   }
@@ -686,7 +684,17 @@ void AliTRD::DrawModule() const
     gMC->Gsatt("BTR2","SEEN", 0);
     gMC->Gsatt("BTR3","SEEN", 0);
     gMC->Gsatt("UTR1","SEEN", 0);
+    if (fGeometry->GetPHOShole())
+      gMC->Gsatt("UTR2","SEEN", 0);
+    if (fGeometry->GetRICHhole())
+      gMC->Gsatt("UTR3","SEEN", 0);
   }
+//   gMC->Gsatt("UCII","SEEN", 0);
+//   gMC->Gsatt("UCIM","SEEN", 0);
+//   gMC->Gsatt("UCIO","SEEN", 0);
+//   gMC->Gsatt("UL02","SEEN", 1);
+//   gMC->Gsatt("UL05","SEEN", 1);
+//   gMC->Gsatt("UL06","SEEN", 1);
   
   gMC->Gdopt("hide", "on");
   gMC->Gdopt("shad", "on");
@@ -720,7 +728,14 @@ void AliTRD::Init()
 
   AliDebug(1,"++++++++++++++++++++++++++++++++++++++++++++++");
 
-  if (fGeometry->IsVersion() != 1) {
+  if (fGeometry->IsVersion() == 1) {
+    AliInfo("Full geometry version initialized");
+    if (fGeometry->GetPHOShole())
+      AliInfo("Leave space in front of PHOS free");
+    if (fGeometry->GetRICHhole())
+      AliInfo("Leave space in front of RICH free");
+  }
+  else {
     AliError("Not a valid geometry");
   }
   
@@ -733,6 +748,11 @@ void AliTRD::LoadPoints(Int_t )
   // Store x, y, z of all hits in memory.
   // Hit originating from TR photons are given a different color
   //
+
+  //if (!fDrawTR) {
+  //  AliDetector::LoadPoints(track);
+  //  return;
+  //}
 
   if (fHits == 0) return;
 
@@ -902,6 +922,28 @@ void AliTRD::SetTreeAddress()
     fHits = new TClonesArray("AliTRDhit",405);
   }
   AliDetector::SetTreeAddress();
+
+}
+
+//_____________________________________________________________________________
+void AliTRD::SetPHOShole()
+{
+  //
+  // Selects a geometry with a hole in front of the PHOS
+  //
+
+  fGeometry->SetPHOShole();
+
+}
+
+//_____________________________________________________________________________
+void AliTRD::SetRICHhole()
+{
+  //
+  // Selects a geometry with a hole in front of the RICH
+  //
+
+  fGeometry->SetRICHhole();
 
 }
 

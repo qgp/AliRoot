@@ -23,7 +23,6 @@
 
 #include <TSystem.h>
 #include <TVirtualMC.h>
-#include <TString.h>
 
 #include "AliFRAMEv2.h"
 #include "AliMagF.h"
@@ -76,7 +75,6 @@ void AliFRAMEv2::CreateGeometry()
   
   Float_t dx, dy, dz;
   Int_t i, j, jmod;
-  jmod = 0;
 //
 // Constants 
   const Float_t kEps   = 0.01;
@@ -466,41 +464,43 @@ void AliFRAMEv2::CreateGeometry()
 
 // The internal frame
 //
+  const char*  module[3] = {"B071\0", "B074\0", "B075\0"};
 //
 //
 //  Mother Volumes
 //
   ptrd1[0] = 50.18;
   ptrd1[1] = 70.35;
+//  ptrd1[0] = 50.10;
+//  ptrd1[1] = 70.20;
+
   ptrd1[2] = 375.5;
   ptrd1[3] =  57.2;  
-  
-  Float_t r      = 341.8;
-  Float_t rout1  = 410.564;
-  Float_t rout2  = 415.2;
-  TString module[18];
+  for (jmod = 0; jmod < 3; jmod++)
+  {
+      gMC->Gsvolu(module[jmod], "TRD1", kAir, ptrd1, 4);
+  }
 // Position of Holes for PHOS (P) and RICH (R) starting at 6h
 //                 P  P  P  -  -  R  R  R  -  -  -  -  -  -  -  -  P  P
   Int_t mod[18] = {0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1};
   
-  for (i = 0; i < 18; i++) {
-      // Create volume i 
-      char name[16];
-      sprintf(name, "BSEGMO%d", i);
-      gMC->Gsvolu(name, "TRD1", kAir, ptrd1, 4);
-
-      
-      module[i] = name;
-      // Place volume i
-      Float_t phi  = i * 20.;
-      Float_t phi2 = 270 + phi;
-      if (phi2 >= 360.) phi2 -= 360.;
+  
+  Float_t r      = 341.8;
+  Float_t rout1  = 410.564;
+  Float_t rout2  = 415.2;
+  Int_t modcount[3] = {0, 0, 0};
+  
+  for (i=0; i<18; i++) {
+      Float_t phi = i*20.;
+      Float_t phi2 = 270+phi;
+      if (phi2 >= 360.) phi2-=360.;
       
       dx =  TMath::Sin(phi*kdeg2rad)*r;
       dy = -TMath::Cos(phi*kdeg2rad)*r;
+      modcount[mod[i]]++;
       
       AliMatrix(idrotm[2034+i],  90.0, phi, 0., 0., 90., phi2);  
-      gMC->Gspos(name, 1, "B077", dx, dy, 0., idrotm[2034+i], "ONLY");
+      gMC->Gspos(module[mod[i]], modcount[mod[i]], "B077", dx, dy, 0., idrotm[2034+i], "ONLY");
 //
 //    Position elements of outer Frame
 //
@@ -718,19 +718,19 @@ void AliFRAMEv2::CreateGeometry()
 
   dz = -iFrH/2.+ringH/2.+kEps;
   
-  for (i = 0; i< 18; i++)
+  for (i = 0; i< 3; i++)
   {
 // ring bars
       for (jmod = 0; jmod<3; jmod++) {
-	  gMC->Gspos("B072", 6*i+jmod+1, module[jmod], 0,  dymodL[mod[i]], dz, 0, "ONLY");
-	  gMC->Gspos("B072", 6*i+jmod+4, module[jmod], 0, -dymodL[mod[i]], dz, idrotm[2070], "ONLY");      
+	  gMC->Gspos("B072", 6*i+jmod+1, module[jmod], 0,  dymodL[i], dz, 0, "ONLY");
+	  gMC->Gspos("B072", 6*i+jmod+4, module[jmod], 0, -dymodL[i], dz, idrotm[2070], "ONLY");      
 
 // 0-deg web
-	  if (mod[i] == 2) {
-	      gMC->Gspos("B263", 12*i+jmod+1,  module[jmod],  60.0732,  dymodU[2], 4.6669, idrotm[2072], "ONLY");
-	      gMC->Gspos("B263", 12*i+jmod+4,  module[jmod],  60.0732, -dymodU[2], 4.6669, idrotm[2071], "ONLY");      
-	      gMC->Gspos("B263", 12*i+jmod+7,  module[jmod], -60.0732,  dymodU[2], 4.6669, idrotm[2074], "ONLY");
-	      gMC->Gspos("B263", 12*i+jmod+10, module[jmod], -60.0732, -dymodU[2], 4.6669, idrotm[2073], "ONLY");      
+	  if (i==2) {
+	      gMC->Gspos("B263", 12*i+jmod+1,  module[jmod],  60.0732,  dymodU[i], 4.6669, idrotm[2072], "ONLY");
+	      gMC->Gspos("B263", 12*i+jmod+4,  module[jmod],  60.0732, -dymodU[i], 4.6669, idrotm[2071], "ONLY");      
+	      gMC->Gspos("B263", 12*i+jmod+7,  module[jmod], -60.0732,  dymodU[i], 4.6669, idrotm[2074], "ONLY");
+	      gMC->Gspos("B263", 12*i+jmod+10, module[jmod], -60.0732, -dymodU[i], 4.6669, idrotm[2073], "ONLY");      
 	  }
       }
   }
@@ -738,7 +738,7 @@ void AliFRAMEv2::CreateGeometry()
 // outer diagonal web
 
   dy = (dymodU[0]+dymodL[0])/2.;
-  for (jmod = 0; jmod < 18; jmod++) {
+  for (jmod = 0; jmod<3; jmod++) {
       gMC->Gspos("B063", 4*jmod+1, module[jmod],  60.0732,   dy, 4.6669, idrotm[2086], "ONLY");
       gMC->Gspos("B063", 4*jmod+2, module[jmod],  60.0732,  -dy, 4.6669, idrotm[2087], "ONLY");
       gMC->Gspos("B063", 4*jmod+3, module[jmod], -60.0732,   dy, 4.6669, idrotm[2088], "ONLY");
@@ -746,7 +746,7 @@ void AliFRAMEv2::CreateGeometry()
   }
 
   dy = (dymodU[1]+dymodL[1])/2.;
-  for (jmod = 0; jmod < 18; jmod++) {
+  for (jmod = 0; jmod<3; jmod++) {
       gMC->Gspos("B163", 4*jmod+1, module[jmod],  60.0732,   dy, 4.6669, idrotm[2080], "ONLY");
       gMC->Gspos("B163", 4*jmod+2, module[jmod],  60.0732,  -dy, 4.6669, idrotm[2079], "ONLY");
       gMC->Gspos("B163", 4*jmod+3, module[jmod], -60.0732,   dy, 4.6669, idrotm[2082], "ONLY");
@@ -755,7 +755,7 @@ void AliFRAMEv2::CreateGeometry()
 
 
   dy = (dymodL[2]+dymodU[1])/2.-dwl/2.;
-  for (jmod = 0; jmod < 18; jmod++) {
+  for (jmod = 0; jmod<3; jmod++) {
       gMC->Gspos("B065", 4*jmod+1, module[jmod],  60.0732,   dy, 4.6669, idrotm[2076], "ONLY");
       gMC->Gspos("B065", 4*jmod+2, module[jmod],  60.0732,  -dy, 4.6669, idrotm[2075], "ONLY");
       gMC->Gspos("B065", 4*jmod+3, module[jmod], -60.0732,   dy, 4.6669, idrotm[2078], "ONLY");
@@ -765,7 +765,7 @@ void AliFRAMEv2::CreateGeometry()
 
   dy = (dymodL[1]+dymodU[0])/2.;
 
-  for (jmod = 0; jmod < 18; jmod++) {
+  for (jmod = 0; jmod<3; jmod++) {
       gMC->Gspos("B067", 4*jmod+1, module[jmod],  60.0732,   dy, 4.6669, idrotm[2076], "ONLY");
       gMC->Gspos("B067", 4*jmod+2, module[jmod],  60.0732,  -dy, 4.6669, idrotm[2075], "ONLY");
       gMC->Gspos("B067", 4*jmod+3, module[jmod], -60.0732,   dy, 4.6669, idrotm[2078], "ONLY");
@@ -827,14 +827,13 @@ void AliFRAMEv2::CreateGeometry()
 
   dz = -iFrH/2.+ringH+longH/2.;
 
-  for (jmod = 0; jmod < 18; jmod++) {
+  for (jmod = 0; jmod<3; jmod++) {
       gMC->Gspos("BA59", 2*jmod+1, module[jmod],  49.6476, 0.0, dz, idrotm[2084], "ONLY");
       gMC->Gspos("BA59", 2*jmod+2, module[jmod], -49.6476, 0.0, dz, idrotm[2083], "ONLY");
   }
 //
 //
 // Spacer between TRD and TOF modules
-/*
   ptrap[0]  =   0.99;
   ptrap[1]  =  10.00;
   ptrap[2]  =   0.00;
@@ -847,33 +846,28 @@ void AliFRAMEv2::CreateGeometry()
   ptrap[9]  = ptrap[4];
   ptrap[10] = 0;
   gMC->Gsvolu("B056", "TRAP", kSteel, ptrap, 11);
-  for (jmod = 0; jmod < 18; jmod++) {
+  for (jmod = 0; jmod<3; jmod++) {
       gMC->Gspos("B056", 2*jmod+1, module[jmod],  61.9607, 0.0, 27.2, 0           , "ONLY");
       gMC->Gspos("B056", 2*jmod+2, module[jmod], -61.9607, 0.0, 27.2, idrotm[2085], "ONLY");
   }
-*/
+
   //
   // TRD mother volumes
   //
-
   ptrd1[0] = 49.8065;
-  ptrd1[1] = 63.0060;
+  ptrd1[1] = 62.8535;
   ptrd1[2] = 375.5;
-  ptrd1[3] = 37.43;
+  ptrd1[3] = 37.;
 
-//  ptrd1[0] = 49.8065;
-//  ptrd1[1] = 62.8535;
-//  ptrd1[2] = 375.5;
-//  ptrd1[3] = 37.;
+  gMC->Gsvolu("BTR1", "TRD1", kAir, ptrd1, 4);
+  gMC->Gsvolu("BTR2", "TRD1", kAir, ptrd1, 4);
+  gMC->Gsvolu("BTR3", "TRD1", kAir, ptrd1, 4);  
 
-  for (i = 0; i < 18; i++) {
-    char nameCh[16];
-    sprintf(nameCh, "BTRD%d",i);
-    char nameMo[16];
-    sprintf(nameMo, "BSEGMO%d",i);
-    gMC->Gsvolu(nameCh, "TRD1", kAir, ptrd1, 4);
-    gMC->Gspos(nameCh, 1, nameMo, 0., 0., -10.37, 0, "ONLY");
-  }
+      
+  gMC->Gspos("BTR1", 1, "B071", 0., 0., -10.8, 0, "ONLY");
+  gMC->Gspos("BTR2", 1, "B074", 0., 0., -10.8, 0, "ONLY");
+  gMC->Gspos("BTR3", 1, "B075", 0., 0., -10.8, 0, "ONLY");
+
 
 //
 // TOF  mother volumes
@@ -882,14 +876,14 @@ void AliFRAMEv2::CreateGeometry()
   ptrd1[1] = 68.3192;
   ptrd1[2] = 375.5;
   ptrd1[3] = 14.5;
-  for (i = 0; i < 18; i++) {
-    char nameCh[16];
-    sprintf(nameCh, "BTOF%d",i);
-    char nameMo[16];
-    sprintf(nameMo, "BSEGMO%d",i);
-    gMC->Gsvolu(nameCh, "TRD1", kAir, ptrd1, 4);
-    gMC->Gspos(nameCh, 1, nameMo, 0., 0., 42.69, 0, "ONLY");
-  }
+  gMC->Gsvolu("BTO1", "TRD1", kAir, ptrd1, 4);
+  gMC->Gsvolu("BTO2", "TRD1", kAir, ptrd1, 4);
+  gMC->Gsvolu("BTO3", "TRD1", kAir, ptrd1, 4);  
+      
+     
+  gMC->Gspos("BTO1", 1, "B071", 0., 0.,  42.69, 0, "ONLY");
+  gMC->Gspos("BTO2", 1, "B074", 0., 0.,  42.69, 0, "ONLY");
+  gMC->Gspos("BTO3", 1, "B075", 0., 0.,  42.69, 0, "ONLY");
 
 //
 //    Geometry of Rails starts here

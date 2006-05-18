@@ -30,16 +30,16 @@ AliTriggerCondition.cxx \
 AliTriggerDescriptor.cxx \
 AliCentralTrigger.cxx AliRieman.cxx\
 AliTrackFitter.cxx AliTrackFitterRieman.cxx AliTrackFitterStraight.cxx\
-AliTrackResiduals.cxx AliTrackResidualsChi2.cxx AliTrackResidualsFast.cxx AliTrackResidualsLinear.cxx\
+AliTrackResiduals.cxx AliTrackResidualsChi2.cxx AliTrackResidualsFast.cxx\
 AliAlignmentTracks.cxx \
 AliExpression.cxx \
-AliCTPRawData.cxx AliCTPRawStream.cxx
+AliCTPRawData.cxx
 
 HDRS:= $(SRCS:.cxx=.h) 
 
 DHDR= STEERLinkDef.h
 
-EINCLUDE:= RAW
+EINCLUDE:=$(ALICE)/geant3/TGeant3 RAW
 #ifeq (macosx,$(ALICE_TARGET))
 EINCLUDE+= TPC
 #endif

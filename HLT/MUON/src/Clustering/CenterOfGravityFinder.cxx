@@ -6,7 +6,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "Clustering/CenterOfGravityFinder.hpp"
-#include "AliHLTMUONError.h"
+#include "Error.hpp"
 
 
 AliHLTMUONCoreCenterOfGravityFinder::AliHLTMUONCoreCenterOfGravityFinder()
