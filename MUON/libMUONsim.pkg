@@ -21,7 +21,8 @@ SRCS:= AliMUONResponseFactory.cxx \
        AliMUONTriggerCrate.cxx \
        AliMUONTriggerElectronics.cxx \
        AliMUONGlobalTriggerBoard.cxx \
-       AliMUONRawWriter.cxx 
+       AliMUONRawWriter.cxx \
+       AliMUONTriggerEfficiencyCells.cxx
                      
 HDRS:= $(SRCS:.cxx=.h)
 

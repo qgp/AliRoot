@@ -25,12 +25,6 @@
  */
 /** @} */
 
-/** @defgroup raw MUON_raw
- *  Category of classes for raw data
- *  @{
- */
-/** @} */
-
 /** @defgroup mapping MUON_mapping
  *  Category of mapping classes
  *  @{

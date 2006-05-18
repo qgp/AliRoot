@@ -1,6 +1,5 @@
 // $Id$
 // The class categories definitions for Doxygen
-// From STEERLinkDef.h revision 1.86 and ESDLinkDef.h revision 1.18
 
 /** @defgroup STEER STEER
  *  Category of AliRoot steering classes
@@ -63,7 +62,6 @@
     class AliReconstruction {};
     class AliVertexGenFile {};
     class AliVertexer {};
-    class AliVertexerTracks {};
     class AliV0vertexer {};
     class AliCascadeVertexer {};
 
@@ -106,7 +104,6 @@
     class AliTrackResiduals {};
     class AliTrackResidualsChi2 {};
     class AliTrackResidualsFast {};
-    class AliTrackResidualsLinear {};
     class AliAlignmentTracks {};
 
     class TTreeDataElement {};
@@ -122,8 +119,6 @@
     class AliTriggerCondition {};
     class AliTriggerDescriptor {};
     class AliCentralTrigger {};
-    class AliCTPRawData {};
-    class AliCTPRawStream {};
 
 /** @} */
 
@@ -133,17 +128,13 @@
  */
 
     class  AliESD {};
-    class  AliESDfriend {};
     class  AliESDtrack {};
-    class  AliESDfriendTrack {};
     class  AliESDMuonTrack {};
     class  AliESDPmdTrack {};
-    class  AliESDTrdTrack {};
     class  AliESDHLTtrack {};
     class  AliESDv0 {};
     class  AliESDcascade {};
     class  AliESDVertex {};
-    class  AliVertex {};
     class  AliESDpid {};
     class  AliESDkink {};
     class  AliESDV0MI {};
@@ -153,7 +144,6 @@
     class  AliKalmanTrack {};
     class  AliHelix {};
     class  AliExternalTrackParam {};
-    class  AliStrLine {};
     class  AliLog {};
     class  AliPID {};
     class  AliTrackPointArray {};
@@ -176,7 +166,5 @@
     class  AliESDFMD {};
     class  AliFMDMap {};
     class  AliFMDFloatMap {};
-
-    class  AliESDMultITS {};
 
 /** @} */

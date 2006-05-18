@@ -9,8 +9,7 @@
 
 /// \ingroup base
 /// \class AliMUONGlobalTrigger
-/// \brief global trigger object
-/// \author Ph. Crochet
+/// \brief Reconstructed global trigger object
 
 #include <TObject.h>
 
@@ -39,9 +38,6 @@ class AliMUONGlobalTrigger : public TObject {
   Int_t PairLikeHpt()    const {return fPairLikeHpt ;}     
   Int_t PairLikeApt()    const {return fPairLikeApt ;}     
   
-  void  SetGlobalPattern(Int_t globalPattern);
-  Int_t GetGlobalPattern() const;
-
  ClassDef(AliMUONGlobalTrigger,1)  // reconstructed Global Trigger object    
     
 private:

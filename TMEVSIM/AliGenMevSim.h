@@ -9,16 +9,19 @@
 // Author: Sylwester Radomski <radomski@if.pw.edu.pl>
 
 
+#include "TString.h" 
+
 #include "AliGenerator.h"
 
-class AliMevSimConfig;
-class AliMevSimParticle;
+#include "AliMevSimConfig.h"
+#include "AliMevSimParticle.h"
 
 class TMevSim;
 
 class AliGenMevSim : public AliGenerator { 
 
 public:
+
   AliGenMevSim();
   AliGenMevSim(AliMevSimConfig *config);
 
@@ -30,10 +33,10 @@ public:
 
   virtual void Init();
   virtual void Generate();
-
 protected:
-  TMevSim * fMevSim;           // Pointer to the MevSim generator
-  AliMevSimConfig *fConfig;    // Pointer to the Configuration class
+  TMevSim * fMevSim;
+  AliMevSimConfig *fConfig;
+public:
       
   ClassDef(AliGenMevSim,1) // Interface class for AliMevsim
     

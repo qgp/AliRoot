@@ -12,10 +12,12 @@
  * about the suitability of this software for any purpose. It is          *
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
- 
-#include "AliMUONBusStruct.h"
-#include "AliLog.h"
 
+// $Id$
+ 
+#include "AliMUONSubEventTracker.h"
+
+#include "AliLog.h"
 
 /// 
 /// Bus patch structure for tracker raw data
@@ -27,28 +29,26 @@
 ///
 
 
-ClassImp(AliMUONBusStruct)
+const Int_t AliMUONSubEventTracker::fgkHeaderLength = 4;
 
- const Int_t AliMUONBusStruct::fgkHeaderLength = 4;
+ClassImp(AliMUONSubEventTracker)
 
 //___________________________________________
-AliMUONBusStruct::AliMUONBusStruct()
+AliMUONSubEventTracker::AliMUONSubEventTracker()
   :  TObject(),
      fTotalLength(0),
      fLength(0),
      fBusPatchId(0),
      fTriggerWord(0),
-     fBufSize(1024),
-     fDspId(0),
-     fBlkId(0)
+     fBufSize(1024)
 {
   //
-  // ctor
-  // 
+  //ctor
+  //
   fData = new UInt_t[fBufSize];
 }
 //___________________________________________
-AliMUONBusStruct::~AliMUONBusStruct()
+AliMUONSubEventTracker::~AliMUONSubEventTracker()
 {
   //
   // dtor
@@ -57,7 +57,7 @@ AliMUONBusStruct::~AliMUONBusStruct()
 }
 
 //___________________________________________
-void AliMUONBusStruct::SetAlloc(Int_t size)
+void AliMUONSubEventTracker::SetAlloc(Int_t size)
 {
   //
   // Allocate size per default 1024;
@@ -69,7 +69,7 @@ void AliMUONBusStruct::SetAlloc(Int_t size)
     ResizeData(size);
 }
 //___________________________________________
-void AliMUONBusStruct::AddData(UInt_t data)
+void AliMUONSubEventTracker::AddData(UInt_t data)
 {
   // could have used class from ROOT
   // but the structure must be as simple as possible
@@ -77,11 +77,11 @@ void AliMUONBusStruct::AddData(UInt_t data)
   if (fLength == fBufSize) 
     ResizeData();
   fData[fLength++] = data;
-  fTotalLength = fLength + fgkHeaderLength;
+  fTotalLength = fLength + 4;
 }
 
 //___________________________________________
-void AliMUONBusStruct::ResizeData(Int_t size)
+void AliMUONSubEventTracker::ResizeData(Int_t size)
 {
   // In case of resizing the vector
   // the most simplest way to do it
@@ -97,8 +97,8 @@ void AliMUONBusStruct::ResizeData(Int_t size)
   fData = newData;
 }
 //___________________________________________
-AliMUONBusStruct::
-AliMUONBusStruct(const AliMUONBusStruct& event): TObject(event)
+AliMUONSubEventTracker::
+AliMUONSubEventTracker(const AliMUONSubEventTracker& event): TObject(event)
 {
   //
   // copy ctor
@@ -109,16 +109,13 @@ AliMUONBusStruct(const AliMUONBusStruct& event): TObject(event)
   fTriggerWord = event.fTriggerWord;
   fBufSize     = event.fBufSize;
 
-  fBlkId = event.fBlkId;
-  fDspId = event.fDspId;
-
   fData =  new UInt_t[event.fBufSize];
   for (int i = 0; i < event.fBufSize; i++)
     fData[i] = event.fData[i];
 }
 //___________________________________________
-AliMUONBusStruct&
-AliMUONBusStruct::operator=(const AliMUONBusStruct& event)
+AliMUONSubEventTracker&
+AliMUONSubEventTracker::operator=(const AliMUONSubEventTracker& event)
 {
   //
   // assignment operator
@@ -130,38 +127,26 @@ AliMUONBusStruct::operator=(const AliMUONBusStruct& event)
   fTriggerWord = event.fTriggerWord;
   fBufSize     = event.fBufSize;
 
-  fBlkId = event.fBlkId;
-  fDspId = event.fDspId;
-
   delete [] fData;  
   fData =  new UInt_t[event.fBufSize];
-  for (int i = 0; i < event.fLength; i++)
+  for (int i = 0; i < event.fBufSize; i++)
     fData[i] = event.fData[i];
 
   return *this;
 }
 //___________________________________________
-Int_t AliMUONBusStruct::Compare(const TObject *obj) const
+Int_t AliMUONSubEventTracker::Compare(const TObject *obj) const
 {
   // 
   // sort bus patch by bus patch number
   // important for AliMUONRawWriter
   //
-  AliMUONBusStruct* event = (AliMUONBusStruct*) obj;
+  AliMUONSubEventTracker* event = (AliMUONSubEventTracker*) obj;
   return (fBusPatchId > event->GetBusPatchId()) ? 1 : -1;
 }
 
 //___________________________________________
-void AliMUONBusStruct::Clear(Option_t *)
-{
-  // clear
-  // delete the allocated memory 
-  //
-
-  delete[] fData;
-}
-//___________________________________________
-UInt_t AliMUONBusStruct::GetData(Int_t n) const 
+UInt_t  AliMUONSubEventTracker::GetData(Int_t n) const 
 {
   //
   // get data
@@ -173,10 +158,10 @@ UInt_t AliMUONBusStruct::GetData(Int_t n) const
 }
 
 //___________________________________________
-Char_t AliMUONBusStruct::GetParity(Int_t n) const   
+Char_t   AliMUONSubEventTracker::GetParity(Int_t n) const   
 {
   //
-  // get parity
+  // get pariry
   //
   if ( n>=0 && n<fLength ) return (Char_t)(fData[n] >> 29) &  0x7;
 
@@ -185,7 +170,7 @@ Char_t AliMUONBusStruct::GetParity(Int_t n) const
 }
 
 //___________________________________________
-UShort_t AliMUONBusStruct::GetManuId(Int_t n) const     
+UShort_t AliMUONSubEventTracker::GetManuId(Int_t n) const     
 {
   //
   // get manu Id
@@ -197,7 +182,7 @@ UShort_t AliMUONBusStruct::GetManuId(Int_t n) const
 }
 
 //___________________________________________
-Char_t AliMUONBusStruct::GetChannelId(Int_t n) const  
+Char_t   AliMUONSubEventTracker::GetChannelId(Int_t n) const  
 {
   // 
   // get channel Id
@@ -209,7 +194,7 @@ Char_t AliMUONBusStruct::GetChannelId(Int_t n) const
 }
 
 //___________________________________________
-UShort_t AliMUONBusStruct::GetCharge(Int_t n) const     
+UShort_t AliMUONSubEventTracker::GetCharge(Int_t n) const     
 {
   //
   // get charge (in ADC)

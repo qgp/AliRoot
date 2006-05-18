@@ -1,6 +1,6 @@
 /**************************************************************************
  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
- *                                                                        *
+ *      SigmaEffect_thetadegrees                                                                  *
  * Author: The ALICE Off-line Project.                                    *
  * Contributors are mentioned in the code where appropriate.              *
  *                                                                        *
@@ -28,8 +28,6 @@
 #include "AliMUONSegmentation.h"
 #include "AliMUONHit.h"
 #include "AliMUONTriggerCircuit.h"
-#include "AliMUONTriggerCircuitNew.h"
-#include "AliMUONTriggerCrateStore.h"
 #include "AliMUONGeometryBuilder.h"	
 #include "AliMUONGeometry.h"	
 #include "AliMUONGeometryTransformer.h"	
@@ -214,14 +212,7 @@ void AliMUONv1::Init()
   for (Int_t i=0; i<AliMUONConstants::NTriggerCircuit(); i++)  {
     AliMUONTriggerCircuit* c = (AliMUONTriggerCircuit*)(fTriggerCircuits->At(i));
     c->Init(i);
-  }
-  
-  AliMUONTriggerCrateStore store;
-  store.ReadFromFile();
-  for (Int_t i=0; i<AliMUONConstants::NTriggerCircuit(); i++)  
-  {
-    AliMUONTriggerCircuitNew* c = (AliMUONTriggerCircuitNew*)(fTriggerCircuitsNew->At(i));
-    c->Init(i,store);
+//    c->Print();
   }
   
 }

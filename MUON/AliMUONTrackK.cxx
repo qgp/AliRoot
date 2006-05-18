@@ -1762,17 +1762,19 @@ Bool_t AliMUONTrackK::Recover(void)
   if (iD > 1) { 
     trackK->fParFilter->Last()->SetUniqueID(iD-1);
     CreateMatrix(trackK->fParFilter); 
+    iD = 1; 
+    trackK->fParFilter->Last()->SetUniqueID(iD);
   }
   *((TMatrixD*)trackK->fParFilter->Last()) = *((TMatrixD*)fParExtrap->Last());
-  trackK->fParFilter->Last()->SetUniqueID(1);
   *(trackK->fTrackPar) = *((TMatrixD*)trackK->fParFilter->Last());
   iD = trackK->fCovFilter->Last()->GetUniqueID();
   if (iD > 1) { 
     trackK->fCovFilter->Last()->SetUniqueID(iD-1);
     CreateMatrix(trackK->fCovFilter); 
+    iD = 1; 
+    trackK->fCovFilter->Last()->SetUniqueID(iD);
   }
   *((TMatrixD*)trackK->fCovFilter->Last()) = *((TMatrixD*)fCovExtrap->Last());
-  trackK->fCovFilter->Last()->SetUniqueID(1);
   *(trackK->fWeight) = *((TMatrixD*)trackK->fCovFilter->Last());
   if (trackK->fWeight->Determinant() != 0) {
     Int_t ifail;
@@ -2111,17 +2113,19 @@ void AliMUONTrackK::Outlier()
   if (iD > 1) { 
     trackK->fParFilter->Last()->SetUniqueID(iD-1);
     CreateMatrix(trackK->fParFilter); 
+    iD = 1; 
+    trackK->fParFilter->Last()->SetUniqueID(iD);
   }
   *((TMatrixD*)trackK->fParFilter->Last()) = *((TMatrixD*)fParExtrap->Last());
-  trackK->fParFilter->Last()->SetUniqueID(1);
   *(trackK->fTrackPar) = *((TMatrixD*)trackK->fParFilter->Last());
   iD = trackK->fCovFilter->Last()->GetUniqueID();
   if (iD > 1) { 
     trackK->fCovFilter->Last()->SetUniqueID(iD-1);
     CreateMatrix(trackK->fCovFilter); 
+    iD = 1; 
+    trackK->fCovFilter->Last()->SetUniqueID(iD);
   }
   *((TMatrixD*)trackK->fCovFilter->Last()) = *((TMatrixD*)fCovExtrap->Last());
-  trackK->fCovFilter->Last()->SetUniqueID(1);
   *(trackK->fWeight) = *((TMatrixD*)trackK->fCovFilter->Last());
   if (trackK->fWeight->Determinant() != 0) {
     Int_t ifail;

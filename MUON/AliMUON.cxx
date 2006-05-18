@@ -58,7 +58,6 @@
 #include "AliMUONRawCluster.h"
 #include "AliMUONTransientDigit.h"
 #include "AliMUONTriggerCircuit.h"
-#include "AliMUONTriggerCircuitNew.h"
 #include "AliMUONGeometry.h"
 #include "AliMUONGeometryTransformer.h"
 #include "AliMUONGeometryBuilder.h"
@@ -104,7 +103,6 @@ AliMUON::AliMUON()
     fSplitLevel(0),
     fChambers(0),
     fTriggerCircuits(0),
-    fTriggerCircuitsNew(0),
     fGeometryBuilder(0),
     fSegmentation(0),
     fAccCut(kFALSE),
@@ -138,7 +136,6 @@ AliMUON::AliMUON(const char *name, const char *title,
     fSplitLevel(0),
     fChambers(0),
     fTriggerCircuits(0),
-    fTriggerCircuitsNew(0),
     fGeometryBuilder(0),
     fSegmentation(0),
     fAccCut(kFALSE),
@@ -204,12 +201,6 @@ AliMUON::AliMUON(const char *name, const char *title,
     for (Int_t circ=0; circ<AliMUONConstants::NTriggerCircuit(); circ++) {
       fTriggerCircuits->AddAt(new AliMUONTriggerCircuit(),circ);          
     }
-
-    fTriggerCircuitsNew = new TObjArray(AliMUONConstants::NTriggerCircuit());
-    for (Int_t circ=0; circ<AliMUONConstants::NTriggerCircuit(); circ++) {
-      fTriggerCircuitsNew->AddAt(new AliMUONTriggerCircuitNew(),circ);          
-    }
-    
 }
 
 //____________________________________________________________________
@@ -237,11 +228,6 @@ AliMUON::~AliMUON()
     fTriggerCircuits->Delete();
     delete fTriggerCircuits;
   }
-  if (fTriggerCircuitsNew){
-    fTriggerCircuitsNew->Delete();
-    delete fTriggerCircuitsNew;
-  }
-  
   delete fMUONData;
   delete fGeometryBuilder;
   delete fSegmentation;

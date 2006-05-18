@@ -5,11 +5,7 @@
 
 /* $Id$ */
 
-/// \ingroup sim
-/// \class AliMUONGlobalTriggerBoard
-/// \brief GLOBAL TRIGGER
-///
-/// \author Rachid Guernane (LPCCFd)
+//*-- Author: Rachid Guernane (LPCCFd)
 
 #include "AliMUONTriggerBoard.h"
 
@@ -29,16 +25,16 @@ class AliMUONGlobalTriggerBoard : public AliMUONTriggerBoard
 
       virtual void     Reset() {for (Int_t i=0; i<16; i++) fRegionalResponse[i] = 0;}
 
-      virtual void     Scan(Option_t *option) const;
+      virtual void     Scan(Option_t *option);
 
-      virtual void     Resp(Option_t*) const {}
+      virtual void     Resp(Option_t*) {}
 
       void Mask(Int_t index, UShort_t mask);
       
    private:
 
-      UShort_t fRegionalResponse[16]; // REGIONAL BOARD RESPONSES
-      UShort_t fMask[16];             // MASK
+      UShort_t fRegionalResponse[16];
+      UShort_t fMask[16];
 
    ClassDef(AliMUONGlobalTriggerBoard,1) 
 };

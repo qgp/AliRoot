@@ -33,8 +33,6 @@
 #pragma link C++ class AliMUONChamber+; 
 #pragma link C++ class AliMUONChamberTrigger+; 
 #pragma link C++ class AliMUONTriggerCircuit+; 
-#pragma link C++ class AliMUONTriggerCircuitNew+; 
-#pragma link C++ class AliMUONTriggerCrateStore+; 
 
 // containers
 #pragma link C++ class AliMUONData+; 
@@ -59,11 +57,19 @@
 #pragma link C++ class AliMUONCalibParam1I+;
 #pragma link C++ class AliMUONCalibParam2F+;
 #pragma link C++ class AliMUONCalibrationData+;
-#pragma link C++ class AliMUONTriggerEfficiencyCells+;
 
 // display
 #pragma link C++ class AliMUONDisplay+; 
-#pragma link C++ class AliMUONRecoCheck+;
+#pragma link C++ class AliMUONRecoCheck+; 
+
+// raw data
+#pragma link C++ class AliMUONRawReader+;
+#pragma link C++ class AliMUONRawStream+;
+#pragma link C++ class AliMUONSubEventTracker+;
+#pragma link C++ class AliMUONDDLTrigger+;
+#pragma link C++ class AliMUONDDLTracker+;
+#pragma link C++ class AliMUONSubEventTrigger+;
+#pragma link C++ class AliMUONScalerEventTrigger+;
 
 // debug
 #pragma link C++ class AliMUONCheck+;

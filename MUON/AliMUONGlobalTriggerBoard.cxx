@@ -16,10 +16,6 @@
 /* $Id$ */
 
 //*-- Author: Rachid Guernane (LPCCFd)
-//    GLOBAL TRIGGER IMPLEMENTATION
-//    INPUTS ARE REGIONAL RESPONSES
-//    OUTPUT IS A 12-BIT WORD
-//    4 BITS PER TRIGGER LEVEL
 
 #include "AliMUONGlobalTriggerBoard.h"
 #include "AliLog.h"
@@ -44,7 +40,6 @@ AliMUONGlobalTriggerBoard::AliMUONGlobalTriggerBoard(const char *name, Int_t a) 
 //___________________________________________
 void AliMUONGlobalTriggerBoard::Mask(Int_t index, UShort_t mask)
 {
-  // MASK GLOBAL TRIGGER BOARD INPUT index WITH VALUE mask
   if ( index>=0 && index < 16 ) 
   {
     fMask[index]=mask;
@@ -58,8 +53,6 @@ void AliMUONGlobalTriggerBoard::Mask(Int_t index, UShort_t mask)
 //___________________________________________
 void AliMUONGlobalTriggerBoard::Response()
 {
-   // COMPUTE THE GLOBAL TRIGGER BOARD
-   // RESPONSE ACCORDING TO THE Algo() METHOD
    Int_t t[16];
 
    for (Int_t i=0;i<16;i++) t[i] = fRegionalResponse[i] & fMask[i];
@@ -92,7 +85,6 @@ void AliMUONGlobalTriggerBoard::Response()
 //___________________________________________
 UShort_t AliMUONGlobalTriggerBoard::Algo(UShort_t i, UShort_t j, char *thres)
 {
-   // GLOBAL TRIGGER ALGORITHM
    TBits a(12), b(12); a.Set(12,&i); b.Set(12,&j);
 
    TBits trg1(2), trg2(2), trg(2);
@@ -151,10 +143,9 @@ UShort_t AliMUONGlobalTriggerBoard::Algo(UShort_t i, UShort_t j, char *thres)
 }
 
 //___________________________________________
-void AliMUONGlobalTriggerBoard::Scan(Option_t*) const
+void AliMUONGlobalTriggerBoard::Scan(Option_t*)
 {
-  // PRINT GLOBAL TRIGGER OUTPUT 
-  TBits w(12); w.Set(12,&fResponse);
+   TBits w(12); w.Set(12,&fResponse);
 
 // TRG[1:0]
 // 00 noth

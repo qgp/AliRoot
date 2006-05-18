@@ -63,9 +63,9 @@ AliMUONTrack::AliMUONTrack()
   // Default constructor
   fgFitter = 0;
   fTrackReconstructor = 0;
-  fTrackHitsPtr = NULL;
-  fTrackParamAtHit = NULL;
-  fHitForRecAtHit = NULL;
+  fTrackHitsPtr = new TObjArray(10);
+  fTrackParamAtHit = new TClonesArray("AliMUONTrackParam",10);  
+  fHitForRecAtHit = new TClonesArray("AliMUONHitForRec",10); 
   fTrackID = 0;
 }
 

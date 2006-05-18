@@ -12,36 +12,21 @@
  * about the suitability of this software for any purpose. It is          *
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
+
+#include "AliMUONSubEventTrigger.h"
  
-#include "AliMUONDDLTracker.h"
-#include "AliRawDataHeader.h"
+const Int_t AliMUONSubEventTrigger::fgkRegHeaderLength = 3;
 
-ClassImp(AliMUONDDLTracker)
-
-///
-/// \class AliMUONDDLTracker
-///
-/// A wrapper object for 1 DDL of the MUON tracking chambers.
-///
-/// \author C. Finck
-
- const Int_t AliMUONDDLTracker::fgkBlkHeaderLength = 8;
- const Int_t AliMUONDDLTracker::fgkDspHeaderLength = 8;
- const Int_t AliMUONDDLTracker::fgkEndOfDDL = 0x0FFFFFFFF;
+ClassImp(AliMUONSubEventTrigger)
 
 //___________________________________________
-AliMUONDDLTracker::AliMUONDDLTracker()
+AliMUONSubEventTrigger::AliMUONSubEventTrigger()
   :  TObject(),
-     fTotalBlkLength(0),
-     fBlkLength(0),
-     fDSPId(0),
-     fPadding(0x0DEADDEAD),
-     fTotalDspLength(0),
-     fDspLength(0),
-     fDSPId1(0),
-     fEventWord(0) 
+     fRegWord(0)
 {
-  //ctor
-  for (Int_t i = 0; i < 4; i++)
-    fBlkTriggerWord[i] = fDspTriggerWord[i] = 0;
+  for (Int_t i = 0; i < 16*5; i++)
+    fLocalData[i] = 0;
+
+  fRegInput[0] = fRegInput[1] = 0;
+
 }
