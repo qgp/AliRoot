@@ -8,8 +8,8 @@
 #include "AliRoot/ClusterFinderProxy.hpp"
 #include "AliRoot/ADCStream.hpp"
 #include "AliRoot/convert.hpp"
-#include "AliHLTMUONUtils.h"
-#include "AliHLTMUONOutOfMemory.h"
+#include "Utils.hpp"
+#include "new.hpp"
 
 
 AliHLTMUONClusterFinderProxy::AliHLTMUONClusterFinderProxy(AliHLTMUONClusterFinderInterface* client)

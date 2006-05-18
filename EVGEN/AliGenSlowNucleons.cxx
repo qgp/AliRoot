@@ -42,8 +42,6 @@
 // Default constructor
     fSlowNucleonModel = 0;
     fCollisionGeometry = 0;
-    fDebugHist1 = 0;
-    fDebugHist2 = 0;
 }
 
 AliGenSlowNucleons::AliGenSlowNucleons(Int_t npart)

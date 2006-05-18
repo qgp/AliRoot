@@ -32,7 +32,6 @@ ClassImp(AliTPCseed)
 AliTPCseed::AliTPCseed():
   AliTPCtrack(),
   fEsd(0x0),
-  fClusterOwner(kFALSE),
   fPoints(0x0),
   fEPoints(0x0),
   fRow(0),
@@ -68,10 +67,9 @@ AliTPCseed::AliTPCseed():
   for (Int_t i=0;i<12;i++) fOverlapLabels[i] = -1;
 }
 
-AliTPCseed::AliTPCseed(const AliTPCseed &s, Bool_t clusterOwner):
+AliTPCseed::AliTPCseed(const AliTPCseed &s):
   AliTPCtrack(s),
   fEsd(0x0),
-  fClusterOwner(clusterOwner),
   fPoints(0x0),
   fEPoints(0x0),
   fRow(0),
@@ -97,22 +95,12 @@ AliTPCseed::AliTPCseed(const AliTPCseed &s, Bool_t clusterOwner):
   //---------------------
   // dummy copy constructor
   //-------------------------
-  for (Int_t i=0;i<160;i++) {
-    fClusterPointer[i]=0;
-    if (fClusterOwner){
-      if (s.fClusterPointer[i])
-	fClusterPointer[i] = new AliTPCclusterMI(*(s.fClusterPointer[i]));
-    }else{
-      fClusterPointer[i] = s.fClusterPointer[i];
-    }
-    fTrackPoints[i] = s.fTrackPoints[i];
-  }
+  for (Int_t i=0;i<160;i++) fClusterPointer[i] = s.fClusterPointer[i];
   for (Int_t i=0;i<160;i++) fIndex[i] = s.fIndex[i];
 }
 AliTPCseed::AliTPCseed(const AliTPCtrack &t):
   AliTPCtrack(t),
   fEsd(0x0),
-  fClusterOwner(kFALSE),
   fPoints(0x0),
   fEPoints(0x0),
   fRow(0),
@@ -164,7 +152,6 @@ AliTPCseed::AliTPCseed(UInt_t index,  const Double_t xx[5],
 		       Double_t xr, Double_t alpha):      
   AliTPCtrack(index, xx, cc, xr, alpha),
   fEsd(0x0),
-  fClusterOwner(kFALSE),
   fPoints(0x0),
   fEPoints(0x0),
   fRow(0),
@@ -211,11 +198,6 @@ AliTPCseed::~AliTPCseed(){
   if (fEPoints) delete fEPoints;
   fEPoints = 0;
   fNoCluster =0;
-  if (fClusterOwner){
-    for (Int_t icluster=0; icluster<160; icluster++){
-      delete fClusterPointer[icluster];
-    }
-  }
 }
 
 AliTPCTrackerPoint * AliTPCseed::GetTrackPoint(Int_t i)

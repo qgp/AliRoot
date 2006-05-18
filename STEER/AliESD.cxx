@@ -42,9 +42,8 @@ AliESD::AliESD():
   fZDCEMEnergy(0),
   fZDCParticipants(0),
   fT0zVertex(0),
-  fSPDVertex(0),
-  fPrimaryVertex(0),
   fT0timeStart(0),
+  fPrimaryVertex(),
   fTracks("AliESDtrack",15000),
   fHLTConfMapTracks("AliESDHLTtrack",25000),
   fHLTHoughTracks("AliESDHLTtrack",15000),
@@ -74,8 +73,6 @@ AliESD::~AliESD()
   //
   // Standard destructor
   //
-  delete fSPDVertex;
-  delete fPrimaryVertex;
   fTracks.Delete();
   fHLTConfMapTracks.Delete();
   fHLTHoughTracks.Delete();
@@ -127,8 +124,7 @@ void AliESD::Reset()
   fZDCParticipants=0;
   fT0zVertex=0;
   fT0timeStart = 0;
-  delete fSPDVertex; fSPDVertex=0;
-  delete fPrimaryVertex; fPrimaryVertex=0;
+  fPrimaryVertex.Reset();
   fTracks.Clear();
   fHLTConfMapTracks.Clear();
   fHLTHoughTracks.Clear();
@@ -158,25 +154,25 @@ void AliESD::Print(Option_t *) const
 	 GetTriggerMask(),
 	 GetMagneticField() );
   printf("Vertex: (%.4f +- %.4f, %.4f +- %.4f, %.4f +- %.4f) cm\n",
-	 fPrimaryVertex->GetXv(), fPrimaryVertex->GetXRes(),
-	 fPrimaryVertex->GetYv(), fPrimaryVertex->GetYRes(),
-	 fPrimaryVertex->GetZv(), fPrimaryVertex->GetZRes());
+	 fPrimaryVertex.GetXv(), fPrimaryVertex.GetXRes(),
+	 fPrimaryVertex.GetYv(), fPrimaryVertex.GetYRes(),
+	 fPrimaryVertex.GetZv(), fPrimaryVertex.GetZRes());
   printf("Event from reconstruction version %d \n",fRecoVersion);
   printf("Number of tracks: \n");
   printf("                 charged   %d\n", GetNumberOfTracks());
   printf("                 hlt CF    %d\n", GetNumberOfHLTConfMapTracks());
   printf("                 hlt HT    %d\n", GetNumberOfHLTHoughTracks());
+  printf("                 phos      %d\n", GetNumberOfPHOSClusters());
+  printf("                 emcal     %d\n", GetNumberOfEMCALClusters());
   printf("                 muon      %d\n", GetNumberOfMuonTracks());
   printf("                 pmd       %d\n", GetNumberOfPmdTracks());
   printf("                 trd       %d\n", GetNumberOfTrdTracks());
   printf("                 v0        %d\n", GetNumberOfV0s());
-  printf("                 cascades  %d\n", GetNumberOfCascades());
-  printf("                 kinks     %d\n", GetNumberOfKinks());
-  printf("                 V0MIs     %d\n", GetNumberOfV0MIs());
-  printf("                 CaloClusters %d\n", GetNumberOfCaloClusters());
-  printf("                 phos      %d\n", GetNumberOfPHOSClusters());
-  printf("                 emcal     %d\n", GetNumberOfEMCALClusters());
-  printf("                 FMD       %s\n", (fESDFMD ? "yes" : "no"));
+  printf("                 cascades  %d\n)", GetNumberOfCascades());
+  printf("                 kinks     %d\n)", GetNumberOfKinks());
+  printf("                 V0MIs     %d\n)", GetNumberOfV0MIs());
+  printf("                 CaloClusters %d\n)", GetNumberOfCaloClusters());
+  printf("                 FMD       %s\n)", (fESDFMD ? "yes" : "no"));
 }
 
 void AliESD::SetESDfriend(const AliESDfriend *ev) {

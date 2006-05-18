@@ -127,7 +127,6 @@
 #include "AliESDVertex.h"
 #include "AliTracker.h"
 #include "AliVertexer.h"
-#include "AliVertexerTracks.h"
 #include "AliHeader.h"
 #include "AliGenEventHeader.h"
 #include "AliPID.h"
@@ -586,8 +585,6 @@ Bool_t AliReconstruction::Run(const char* input,
 
   gROOT->cd();
 
-  AliVertexerTracks tVertexer;
-
   // loop over events
   if (fRawReader) fRawReader->RewindEvents();
   
@@ -685,8 +682,6 @@ Bool_t AliReconstruction::Run(const char* input,
 	if (fCheckPointLevel > 1) WriteESD(esd, "trigger");
       }
     }
-
-    esd->SetPrimaryVertex(tVertexer.FindVertex(esd));
 
     // write ESD
     tree->Fill();

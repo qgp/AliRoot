@@ -189,7 +189,7 @@ void AliGenHijing::Generate()
 //
   Int_t nt  = 0;
   Int_t jev = 0;
-  Int_t j, kf, ks, ksp, imo;
+  Int_t j, kf, ks, imo;
   kf = 0;
     
 
@@ -283,15 +283,14 @@ void AliGenHijing::Generate()
 	  Bool_t  selected             =  kTRUE;
 	  kf        = iparticle->GetPdgCode();
 	  ks        = iparticle->GetStatusCode();
-	  ksp       = iparticle->GetUniqueID();
 	  
 // --------------------------------------------------------------------------
 // Count spectator neutrons and protons
-	  if(ksp == 0 || ksp == 1){
+	  if(ks == 0 || ks == 1){
 	      if(kf == kNeutron) fProjectileSpecn += 1;
 	      if(kf == kProton)  fProjectileSpecp += 1;
 	  }
-	  else if(ksp == 10 || ksp == 11){
+	  else if(ks == 10 || ks == 11){
 	      if(kf == kNeutron) fTargetSpecn += 1;
 	      if(kf == kProton)  fTargetSpecp += 1;
 	  }
@@ -299,8 +298,8 @@ void AliGenHijing::Generate()
 //	    
 	  if (!fSelectAll) {
 	      selected = KinematicSelection(iparticle,0)&&SelectFlavor(kf);
-	      if (!fSpectators && selected) selected = (ksp != 0 && ksp != 1 && ksp != 10
-							&& ksp != 11);
+	      if (!fSpectators && selected) selected = (ks != 0 && ks != 1 && ks != 10
+							&& ks != 11);
 	  }
 //
 // Put particle on the stack if selected
@@ -310,15 +309,9 @@ void AliGenHijing::Generate()
 	      pSelected[i] = 1;
 	  } // selected
       } // particle loop final state
-
-//
-//    Time of the interactions
-      Float_t tInt = 0.;
-      if (fPileUpTimeWindow > 0.) tInt = fPileUpTimeWindow * (2. * gRandom->Rndm() - 1.);
-
 //
 // Write particles to stack
-
+//
       for (i = 0; i<np; i++) {
 	  TParticle *  iparticle = (TParticle *) fParticles->At(i);
 	  Bool_t  hasMother   = (iparticle->GetFirstMother()     >=0);
@@ -332,9 +325,7 @@ void AliGenHijing::Generate()
 	      origin[0] = origin0[0]+iparticle->Vx()/10;
 	      origin[1] = origin0[1]+iparticle->Vy()/10;
 	      origin[2] = origin0[2]+iparticle->Vz()/10;
-	      tof = kconv * iparticle->T() + sign * origin0[2] / 3.e10;
-	      if (fPileUpTimeWindow > 0.) tof += tInt;
-	      
+	      tof = kconv*iparticle->T();
 	      imo = -1;
 	      TParticle* mother = 0;
 	      if (hasMother) {
@@ -343,7 +334,8 @@ void AliGenHijing::Generate()
 		  imo = (mother->GetPdgCode() != 92) ? newPos[imo] : -1;
 	      } // if has mother   
 	      Bool_t tFlag = (fTrackIt && !hasDaughter);
-	      PushTrack(tFlag,imo,kf,p,origin,polar,tof,kPNoProcess,nt, 1., ks);
+	      PushTrack(tFlag,imo,kf,p,origin,polar,
+		       tof,kPNoProcess,nt, 1., ks);
 
 	      
 	      KeepTrack(nt);
@@ -606,8 +598,8 @@ Bool_t AliGenHijing::CheckTrigger()
 	for (Int_t i = 0; i < np; i++) {
 	    TParticle* part = (TParticle*) fParticles->At(i);
 	    Int_t kf = part->GetPdgCode();
-	    Int_t ksp = part->GetUniqueID();
-	    if (kf == 22 && ksp == 40) {
+	    Int_t ks = part->GetStatusCode();
+	    if (kf == 22 && ks == 40) {
 		Float_t phi = part->Phi();
 		Float_t eta = part->Eta();
 		if  (eta < fEtaMaxJet && 

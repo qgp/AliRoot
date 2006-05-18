@@ -54,7 +54,7 @@ class AliGenAfterBurnerFlow : public AliGenerator {
   Int_t   fCounter;            // counter
 
 
-  ClassDef(AliGenAfterBurnerFlow,3)
+  ClassDef(AliGenAfterBurnerFlow,2)
 
 };
 

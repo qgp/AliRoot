@@ -24,27 +24,60 @@
 #include "AliAltroMapping.h"
 #include "AliRawDataHeaderSim.h"
 #include "AliLog.h"
-#include "AliFstream.h"
-//#include <stdlib.h>
+#include <Riostream.h>
+#include <stdlib.h>
 
 
 ClassImp(AliAltroBuffer)
 
 //_____________________________________________________________________________
-AliAltroBuffer::AliAltroBuffer(const char* fileName, const AliAltroMapping *mapping):
+AliAltroBuffer::AliAltroBuffer(const char* fileName, Int_t flag, const AliAltroMapping *mapping):
   fShift(0),
   fCurrentCell(0),
-  fFreeCellBuffer(16),
+  fFreeCellBuffer(0),
+  fFlag(flag),
   fVerbose(0),
   fFile(NULL),
+  fMaskBackward(0xFF),
+  fFilePosition(0),
+  fFileEnd(0),
   fDataHeaderPos(0),
+  fEndingFillWords(0),
   fMapping(mapping)
 {
+//if flag = 1 the actual object is used in the write mode
+//if flag = 0 the actual object is used in the read mode
+
   //the buffer is cleaned 
   for (Int_t i = 0; i < 5; i++) fBuffer[i] = 0;
 
-  //open the output file
-  fFile = new AliFstream(fileName);
+  if (flag) {
+    fFreeCellBuffer = 16;
+    fShift = 32; 
+    //open the output file
+#ifndef __DECCXX
+    fFile = new fstream(fileName, ios::binary|ios::out);
+#else
+    fFile = new fstream(fileName, ios::out);
+#endif
+  } else {
+    //open the input file
+#ifndef __DECCXX
+    fFile = new fstream(fileName, ios::binary|ios::in);
+#else
+    fFile = new fstream(fileName, ios::in);
+#endif
+    if (!fFile) {
+      Error("AliAltroBuffer", "File doesn't exist: %s", fileName);
+      return;
+    }
+    fShift = 0;
+    //To get the file dimension (position of the last element in term of bytes)
+    fFile->seekg(0, ios::end);
+    fFilePosition = fFile->tellg();
+    fFileEnd = fFilePosition;
+    fFile->seekg(0);
+  }
 
 }
 
@@ -53,10 +86,12 @@ AliAltroBuffer::~AliAltroBuffer()
 {
 // destructor
 
-  //Flush out the Buffer content at the end only if Buffer wasn't completely filled
-  Flush();
-  if (fVerbose) Info("~AliAltroBuffer", "File Created");
-
+  if (fFlag) {
+    //Flush out the Buffer content at the end only if Buffer wasn't completely filled
+    Flush();
+    if (fVerbose) Info("~AliAltroBuffer", "File Created");
+  }//end if
+  fFile->close();
   delete fFile;
 
 }
@@ -67,9 +102,14 @@ AliAltroBuffer::AliAltroBuffer(const AliAltroBuffer& source):
   fShift(source.fShift),
   fCurrentCell(source.fCurrentCell),
   fFreeCellBuffer(source.fFreeCellBuffer),
+  fFlag(source.fFlag),
   fVerbose(source.fVerbose),
   fFile(NULL),
+  fMaskBackward(source.fMaskBackward),
+  fFilePosition(source.fFilePosition),
+  fFileEnd(source.fFileEnd),
   fDataHeaderPos(source.fDataHeaderPos),
+  fEndingFillWords(source.fEndingFillWords),
   fMapping(source.fMapping)
 {
 // Copy Constructor
@@ -84,6 +124,98 @@ AliAltroBuffer& AliAltroBuffer::operator = (const AliAltroBuffer& /*source*/)
 
   Fatal("operator =", "assignment operator not implemented");
   return *this;
+}
+
+
+//_____________________________________________________________________________
+Int_t AliAltroBuffer::GetNext()
+{
+//It reads a 10 bits word in forward dicection from the Buffer.
+//A new Buffer is read from the file only when Buffer is empty.
+//If there aren't elements anymore -1 is returned otherwise 
+//the next element is returned
+
+  UInt_t mask = 0xFFC00000;
+  UInt_t temp;
+  UInt_t value;
+  if (!fShift) {
+    if (fFile->tellg() >= (Int_t)fFileEnd) return -1;
+    if (fFile->read((char*)fBuffer, sizeof(UInt_t)*5)) {
+      fCurrentCell = 0;
+      fShift = 22;
+      value = fBuffer[fCurrentCell] & mask;
+      value = value >> 22;
+      fBuffer[fCurrentCell] = fBuffer[fCurrentCell] << 10;
+      return value;      
+    } else {
+      return -1;
+    }
+  } else {
+    if (fShift >= 10) {
+      value = fBuffer[fCurrentCell] & mask;
+      value = value >> 22;
+      fShift -= 10;
+      fBuffer[fCurrentCell] = fBuffer[fCurrentCell] << 10;
+    } else {
+      value = fBuffer[fCurrentCell] & mask;
+      fCurrentCell++;
+      temp = fBuffer[fCurrentCell];
+      temp = temp >> fShift;
+      temp = temp & mask;
+      value = value | temp;
+      value = value >> 22;
+      fBuffer[fCurrentCell] = fBuffer[fCurrentCell] << (10-fShift);
+      fShift += 22;
+    }
+    return value;
+  }//end else
+}
+
+//_____________________________________________________________________________
+Int_t AliAltroBuffer::GetNextBackWord()
+{
+//It reads a 10 bits word in backward dicection from the Buffer.
+//A new Buffer is read from the file only when Buffer is empty.
+//If there aren't elements anymore -1 is returned otherwise 
+//the next element is returned
+
+  UInt_t mask = 0x3FF;
+  UInt_t temp;
+  UInt_t value;
+  if (!fShift) {
+    if (fFilePosition > fDataHeaderPos){
+      fFilePosition -= sizeof(UInt_t)*5;
+      fFile->seekg(fFilePosition);
+      fFile->read((char*)fBuffer, sizeof(UInt_t)*5);
+      
+      fCurrentCell = 4;
+      fShift = 22;
+      fMaskBackward = 0xFF;
+      value = fBuffer[fCurrentCell] & mask;
+      fBuffer[fCurrentCell] = fBuffer[fCurrentCell] >> 10;
+      return value;
+    } else {
+      fFile->seekg(fDataHeaderPos);
+      return -1;
+    }
+  } else {
+    if (fShift >= 10) {
+      value = fBuffer[fCurrentCell] & mask;
+      fShift -= 10;
+      fBuffer[fCurrentCell] = fBuffer[fCurrentCell] >> 10;
+    } else {
+      value = fBuffer[fCurrentCell];
+      fCurrentCell--;
+      temp = fBuffer[fCurrentCell] & mask;
+      temp = temp & fMaskBackward;
+      fMaskBackward = fMaskBackward >> 2;
+      temp = temp << fShift;
+      value = value | temp;
+      fBuffer[fCurrentCell] = fBuffer[fCurrentCell] >> (10-fShift);
+      fShift = 22 + fShift;
+    }
+    return value;
+  }//end else
 }
 
 //_____________________________________________________________________________
@@ -108,22 +240,23 @@ void AliAltroBuffer::FillBuffer(Int_t val)
     val = 0x3FF;
   }
   fFreeCellBuffer--;
-
-  fBuffer[fCurrentCell] |= (val << fShift);
-  fShift += 10;
-
-  if (fShift > 32) {
+  if (fShift < 10) {
+    Int_t temp = val;
+    val = val >> (10-fShift);
+    fBuffer[fCurrentCell] |= val;
     fCurrentCell++;
-    fShift -= 32;
-    fBuffer[fCurrentCell] |= (val >> (10 - fShift));
+    fShift += 32;
+    val = temp;
   }
-
-  if (fShift == 32) {
+  fShift -= 10;
+  val = val << fShift;
+  fBuffer[fCurrentCell] |= val;
+  if (!fShift) {
     //Buffer is written into a file
-    fFile->WriteBuffer((char*)fBuffer, sizeof(UInt_t)*5);
+    fFile->write((char*)fBuffer, sizeof(UInt_t)*5);
     //Buffer is empty
     for (Int_t j = 0; j < 5; j++) fBuffer[j] = 0;
-    fShift = 0;
+    fShift = 32;
     fCurrentCell = 0;
     fFreeCellBuffer = 16;
   }
@@ -191,6 +324,144 @@ void AliAltroBuffer::WriteTrailer(Int_t wordsNumber, Short_t hwAddress)
 }
 
 //_____________________________________________________________________________
+Bool_t AliAltroBuffer::ReadDummyTrailer(Int_t& wordsNumber, Int_t& padNumber,
+					Int_t& rowNumber, Int_t& secNumber)
+{
+//Read a dummy trailer of 40 bits in the forward reading mode
+
+  wordsNumber = GetNext();
+  if (wordsNumber == -1) return kFALSE;
+  padNumber = GetNext();
+  if (padNumber == -1) return kFALSE;
+  rowNumber = GetNext();
+  if (rowNumber == -1) return kFALSE;
+  secNumber = GetNext();
+  if (secNumber == -1) return kFALSE;
+  return kTRUE;
+}
+
+//_____________________________________________________________________________
+Bool_t AliAltroBuffer::ReadTrailer(Int_t& wordsNumber, Int_t& padNumber,
+				   Int_t& rowNumber, Int_t& secNumber)
+{
+//Read a trailer of 40 bits in the forward reading mode
+  if (!fMapping) {
+    AliError("No ALTRO mapping information is loaded! Reading a dummy trailer!");
+    return ReadDummyTrailer(wordsNumber,padNumber,
+			    rowNumber,secNumber);
+  }
+
+  Short_t hwAddress;
+  if (!ReadTrailer(wordsNumber,hwAddress)) return kFALSE;
+  rowNumber = fMapping->GetPadRow(hwAddress);
+  padNumber = fMapping->GetPad(hwAddress);
+  secNumber = fMapping->GetSector(hwAddress);
+
+  return kTRUE;
+}
+
+//_____________________________________________________________________________
+Bool_t AliAltroBuffer::ReadTrailer(Int_t& wordsNumber, Short_t& hwAddress)
+{
+//Read a trailer of 40 bits in the forward reading mode
+
+  Int_t temp = GetNext();
+  hwAddress = temp;
+
+  temp = GetNext();
+  wordsNumber = ((temp & 0x3FF) >> 6);
+  if (((temp >> 2) & 0xF) != 0xA)
+    AliFatal(Form("Incorrect trailer found ! Expecting second 0xA but found %x !",temp >> 6));
+  hwAddress |= (temp & 0x3) << 10;
+
+  temp = GetNext();
+  if ((temp >> 6) != 0xA)
+    AliFatal(Form("Incorrect trailer found ! Expecting 0xA but found %x !",temp >> 6));
+  wordsNumber |= (temp << 4) & 0x3FF;
+
+  temp = GetNext();
+  if (temp != 0x2AA)
+    AliFatal(Form("Incorrect trailer found ! Expecting 0x2AA but found %x !",temp));
+
+  return kTRUE;
+}
+
+//_____________________________________________________________________________
+Bool_t AliAltroBuffer::ReadDummyTrailerBackward(Int_t& wordsNumber, Int_t& padNumber,
+						Int_t& rowNumber, Int_t& secNumber)
+{
+//Read a trailer of 40 bits in the backward reading mode
+
+  Int_t temp;
+  fEndingFillWords = 0;
+  do {
+    temp = GetNextBackWord();
+    fEndingFillWords++;
+    if (temp == -1) return kFALSE;
+  } while (temp == 0x2AA);  
+  fEndingFillWords--;
+  secNumber = temp;
+  rowNumber = GetNextBackWord();
+  if (rowNumber == -1) return kFALSE;
+  padNumber = GetNextBackWord();
+  if (padNumber == -1) return kFALSE;
+  wordsNumber = GetNextBackWord();
+  if (wordsNumber == -1) return kFALSE;
+  return kTRUE;
+} 
+
+//_____________________________________________________________________________
+Bool_t AliAltroBuffer::ReadTrailerBackward(Int_t& wordsNumber, Int_t& padNumber,
+					   Int_t& rowNumber, Int_t& secNumber)
+{
+//Read a trailer of 40 bits in the backward reading mode
+  if (!fMapping) {
+    AliError("No ALTRO mapping information is loaded! Reading a dummy trailer!");
+    return ReadDummyTrailerBackward(wordsNumber,padNumber,
+				    rowNumber,secNumber);
+  }
+
+  Short_t hwAddress;
+  if (!ReadTrailerBackward(wordsNumber,hwAddress)) return kFALSE;
+  rowNumber = fMapping->GetPadRow(hwAddress);
+  padNumber = fMapping->GetPad(hwAddress);
+  secNumber = fMapping->GetSector(hwAddress);
+
+  return kTRUE;
+}
+
+//_____________________________________________________________________________
+Bool_t AliAltroBuffer::ReadTrailerBackward(Int_t& wordsNumber, Short_t& hwAddress)
+{
+//Read a trailer of 40 bits in the backward reading mode
+
+  Int_t temp;
+  fEndingFillWords = 0;
+  while ((temp = GetNextBackWord()) == 0x2AA) {
+    fEndingFillWords++;
+    if (temp == -1) return kFALSE;
+  };
+  if (fEndingFillWords == 0)
+    AliFatal("Incorrect trailer found ! Expected 0x2AA not found !");
+  fEndingFillWords--;
+
+  wordsNumber = (temp << 4) & 0x3FF;
+  if ((temp >> 6) != 0xA)
+    AliFatal(Form("Incorrect trailer found ! Expecting 0xA but found %x !",temp >> 6));
+
+  temp = GetNextBackWord();
+  hwAddress = (temp & 0x3) << 10;
+  if (((temp >> 2) & 0xF) != 0xA)
+    AliFatal(Form("Incorrect trailer found ! Expecting second 0xA but found %x !",(temp >> 2) & 0xF));
+  wordsNumber |= ((temp & 0x3FF) >> 6);
+
+  temp = GetNextBackWord();
+  hwAddress |= temp;
+
+  return kTRUE;
+} 
+
+//_____________________________________________________________________________
 void AliAltroBuffer::WriteChannel(Int_t padNumber, Int_t rowNumber, 
 				  Int_t secNumber,
 				  Int_t nTimeBins, const Int_t* adcValues,
@@ -251,6 +522,69 @@ Int_t AliAltroBuffer::WriteBunch(Int_t nTimeBins, const Int_t* adcValues,
 }
 
 //_____________________________________________________________________________
+void AliAltroBuffer::ReadChannelBackward(Int_t& padNumber, Int_t& rowNumber, 
+					 Int_t& secNumber,
+					 Int_t& nTimeBins, Int_t* adcValues)
+{
+//Read all ADC values and the trailer of a channel (in backward order)
+
+  Int_t wordsNumber;
+  if (!ReadTrailerBackward(wordsNumber,padNumber,
+			   rowNumber,secNumber)) return;
+  return ReadBunchBackward(wordsNumber,nTimeBins,adcValues);
+}
+
+//_____________________________________________________________________________
+void AliAltroBuffer::ReadChannelBackward(Short_t& hwAddress,
+					 Int_t& nTimeBins, Int_t* adcValues)
+{
+//Read all ADC values and the trailer of a channel (in backward order)
+
+  Int_t wordsNumber;
+  if (!ReadTrailerBackward(wordsNumber,
+			   hwAddress)) return;
+  return ReadBunchBackward(wordsNumber,nTimeBins,adcValues);
+}
+
+//_____________________________________________________________________________
+void AliAltroBuffer::ReadBunchBackward(Int_t wordsNumber,
+				       Int_t& nTimeBins, Int_t* adcValues)
+{
+  if (wordsNumber < 0) return;
+  // Number of fill words 
+  Int_t nFillWords;
+  if ((wordsNumber % 4) == 0)
+    nFillWords = 0;
+  else
+    nFillWords = 4 - wordsNumber % 4;
+  // Read the fill words 
+  for (Int_t i = 0; i < nFillWords; i++) {
+    Int_t temp = GetNextBackWord();
+    if (temp != 0x2AA) 
+      AliFatal(Form("Invalid fill word, expected 0x2AA, but got %X", temp));
+  }
+
+  // Decoding
+  Int_t lastWord =  wordsNumber;
+  nTimeBins = -1;
+  while (lastWord > 0) { 
+    Int_t l =  GetNextBackWord(); 
+    if (l < 0) AliFatal(Form("Bad bunch length (%d) !", l));
+    Int_t t =  GetNextBackWord(); 
+    if (t < 0) AliFatal(Form("Bad bunch time (%d) !", t));
+    lastWord -= 2;
+    if (nTimeBins == -1) nTimeBins = t + 1;
+    for (Int_t i = 2; i < l; i++) {
+      Int_t amp = GetNextBackWord();
+      if (amp < 0) AliFatal(Form("Bad adc value (%X) !", amp));
+      adcValues[t - (i-2)] = amp;
+      lastWord--;
+    }
+  }
+
+} 
+
+//_____________________________________________________________________________
 void AliAltroBuffer::WriteDataHeader(Bool_t dummy, Bool_t compressed)
 {
 //Write a (dummy or real) DDL data header, 
@@ -259,54 +593,31 @@ void AliAltroBuffer::WriteDataHeader(Bool_t dummy, Bool_t compressed)
   AliRawDataHeaderSim header;
   if (dummy) {
     //if size=0 it means that this data header is a dummy data header
-    fDataHeaderPos = fFile->Tellp();
-    fFile->WriteBuffer((char*)(&header), sizeof(header));
+    fDataHeaderPos = fFile->tellp();
+    fFile->write((char*)(&header), sizeof(header));
   } else {
-    WriteRCUTrailer(0);
-    UInt_t currentFilePos = fFile->Tellp();
-    fFile->Seekp(fDataHeaderPos);
+    UInt_t currentFilePos = fFile->tellp();
+    fFile->seekp(fDataHeaderPos);
     header.fSize = currentFilePos-fDataHeaderPos;
     header.SetAttribute(0);  // valid data
     if (compressed) header.SetAttribute(1); 
-    fFile->WriteBuffer((char*)(&header), sizeof(header));
-    fFile->Seekp(currentFilePos);
+    fFile->write((char*)(&header), sizeof(header));
+    fFile->seekp(currentFilePos);
   }
 }
 
 //_____________________________________________________________________________
-void AliAltroBuffer::WriteRCUTrailer(Int_t rcuId)
+Bool_t AliAltroBuffer::ReadDataHeader()
 {
-  // Writes the RCU trailer
-  // rcuId the is serial number of the corresponding
-  // RCU. The basic format of the trailer can be
-  // found in the RCU manual.
-  // This method should be called at the end of
-  // raw data writing.
+//Read the DDL data header at the beginning of the file, 
+//returns true in case of valid data
 
-  UInt_t currentFilePos = fFile->Tellp();
-  UInt_t size = currentFilePos-fDataHeaderPos;
-  size -= sizeof(AliRawDataHeader);
-  
-  if ((size % 5) != 0) {
-    AliFatal(Form("The current raw data payload is not a mutiple of 5 (%d) ! Can not write the RCU trailer !",size));
-    return;
-  }
-
-  // Now put the size in unit of number of 40bit words
-  size /= 5;
-  fFile->WriteBuffer((char *)(&size),sizeof(UInt_t));
-
-  // Now several not yet full defined fields
-  // In principle they are supposed to contain
-  // information about the sampling frequency,
-  // L1 phase, list of 'dead' FECs, etc.
-  //  UInt_t buffer[n];
-  //  fFile->WriteBuffer((char *)(buffer),sizeof(UInt_t)*n);
-  
-  //  Now the RCU identifier and size of the trailer
-  //  FOr the moment the triler size is 2 32-bit words
-  UInt_t buffer = 2;
-  buffer |= ((rcuId & 0x3FF) << 22);
-  fFile->WriteBuffer((char *)(&buffer),sizeof(UInt_t));
-
+  AliRawDataHeader header;
+  UInt_t currentPos = fFile->tellp();
+  fFile->seekp(0);
+  if (!fFile->read((char*)(&header), sizeof(header))) return kFALSE;
+  fDataHeaderPos = fFile->tellp();
+  fFile->seekp(currentPos);
+  return header.TestAttribute(0);
 }
+
