@@ -62,8 +62,7 @@ class AliHBTMonitorFunction: public TNamed
     
     virtual TH1* GetResult() = 0;
 
-    Int_t Write(const char* /*x1*/ = "",Int_t /*x2*/ = 0, Int_t /*x3*/ = 0);
-    Int_t Write(const char* x1 = "",Int_t x2 = 0, Int_t x3 = 0) const {return TObject::Write(x1,x2,x3);}
+    virtual void Write();
     virtual void Init();
     virtual const char* Name(){return GetName();}
     void Rename(const Char_t * name); 

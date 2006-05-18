@@ -5,7 +5,7 @@
 // Revision of includes 07/05/2004
 
 /// \ingroup base
-/// \class AliMUONSt1GeometryBuilder
+/// \class AliMUONCommonGeometryBuilder
 /// \brief MUON Station1 coarse geometry construction class
 ///
 /// Extracted from AliMUONv1

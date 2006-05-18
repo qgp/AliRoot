@@ -77,10 +77,10 @@ class AliCDBManager: public TObject {
 	Bool_t Put(AliCDBEntry* entry);
 		
 	void SetCacheFlag(Bool_t cacheFlag) {fCache=cacheFlag;}
-	Bool_t GetCacheFlag() const {return fCache;}
+	Bool_t GetCacheFlag() {return fCache;}
 
 	void SetRun(Long64_t run);
-	Long64_t GetRun() const {return fRun;}
+	Long64_t GetRun() {return fRun;}
 
 	// AliCDBEntry* Get(const char* path);
 
@@ -135,7 +135,6 @@ class AliCDBStorageFactory: public TObject {
 	friend class AliCDBManager;
 	
 public:
-	virtual ~AliCDBStorageFactory(){}
 	virtual Bool_t Validate(const char* dbString) = 0;
 	virtual AliCDBParam* CreateParameter(const char* dbString) = 0;	
 

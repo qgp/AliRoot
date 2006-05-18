@@ -27,7 +27,6 @@ ClassImp(AliDigitNew)
 
 //_______________________________________________________________________
 AliDigitNew::AliDigitNew():
-  TObject(),
   fAmp(0),
   fId(-1),
   fIndexInList(-1)

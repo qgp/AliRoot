@@ -15,13 +15,6 @@
 
 /* $Id$ */
 
-// -----------------------------------
-// Class AliMUONTriggerLut
-// -----------------------------------
-// Local Trigger Look Up Table - reading interface
-// LUT data is stored into TH3S histograms and readout 
-// from the Local Trigger algorithm.
-
 #include "AliMUONTriggerLut.h"
 
 #include "AliLog.h"
@@ -80,7 +73,6 @@ AliMUONTriggerLut::operator=(const AliMUONTriggerLut& rhs)
 void
 AliMUONTriggerLut::ReadFromFile(const char* filename)
 {
-// return output of LuT for corresponding TH3S  
   TFile f(filename);
   
   if ( f.IsZombie() )

@@ -17,7 +17,6 @@
 
 #include <Riostream.h>
 #include <TMath.h>
-#include <TVector2.h>
 
 #include "AliESDtrack.h"
 #include "AliTRDgeometry.h" 
@@ -76,9 +75,7 @@ AliTRDtrack::AliTRDtrack():
 
 {
   for (Int_t i=0; i<kNplane; i++) {
-    for (Int_t j=0; j<kNslice; j++) {
-      fdEdxPlane[i][j] = 0;
-    }
+    fdEdxPlane[i] = 0;
     fTimBinPlane[i] = -1;
   }
   for (UInt_t i=0; i<kMAXCLUSTERSPERTRACK; i++) {
@@ -88,7 +85,6 @@ AliTRDtrack::AliTRDtrack():
   }
   for (Int_t i=0; i<3; i++) fBudget[i] = 0;
 }
-
 //_____________________________________________________________________________
 AliTRDtrack::AliTRDtrack(const AliTRDcluster *c, UInt_t index, 
                          const Double_t xx[5], const Double_t cc[15], 
@@ -122,10 +118,8 @@ AliTRDtrack::AliTRDtrack(const AliTRDcluster *c, UInt_t index,
   fdEdxT=0.;
   fDE=0.;
   for (Int_t i=0;i<kNplane;i++){
-    for (Int_t j=0; j<kNslice; j++) {
-      fdEdxPlane[i][j] = 0;
-    }
-    fTimBinPlane[i] = -1;
+      fdEdxPlane[i] = 0.;
+      fTimBinPlane[i] = -1;
   }
 
   fLhElectron = 0.0;
@@ -171,11 +165,9 @@ AliTRDtrack::AliTRDtrack(const AliTRDtrack& t) : AliKalmanTrack(t)
   fdEdxT=t.fdEdxT;
   fDE=t.fDE;
   for (Int_t i=0;i<kNplane;i++){
-    for (Int_t j=0; j<kNslice; j++) {
-      fdEdxPlane[i][j] = t.fdEdxPlane[i][j];
-    }
-    fTimBinPlane[i] = t.fTimBinPlane[i];
-    fTracklets[i]   = t.fTracklets[i];
+      fdEdxPlane[i] = t.fdEdxPlane[i];
+      fTimBinPlane[i] = t.fTimBinPlane[i];
+      fTracklets[i]   = t.fTracklets[i];
   }
 
   fLhElectron = 0.0;
@@ -237,9 +229,7 @@ AliTRDtrack::AliTRDtrack(const AliKalmanTrack& t, Double_t alpha)
   fdEdx=t.GetPIDsignal();
   fDE  = 0;
   for (Int_t i=0;i<kNplane;i++){
-    for (Int_t j=0;j<kNslice;j++){
-      fdEdxPlane[i][j] = 0.0;
-    }
+    fdEdxPlane[i] = 0.0;
     fTimBinPlane[i] = -1;
   }
 
@@ -314,9 +304,7 @@ AliTRDtrack::AliTRDtrack(const AliESDtrack& t)
   fdEdx=t.GetTRDsignal();  
   fDE =0;     
   for (Int_t i=0;i<kNplane;i++){
-    for (Int_t j=0;j<kNslice;j++){
-      fdEdxPlane[i][j] = t.GetTRDsignals(i,j);
-    }
+    fdEdxPlane[i] = t.GetTRDsignals(i);
     fTimBinPlane[i] = t.GetTRDTimBin(i);
   }
 
@@ -420,6 +408,40 @@ AliTRDtrack &AliTRDtrack::operator=(const AliTRDtrack &t)
 
 }
 
+// //____________________________________________________________________________
+// AliTRDtrack * AliTRDtrack::MakeTrack(const AliTrackReference *ref, Double_t mass)
+// {
+//   //
+//   // Make dummy track from the track reference 
+//   // negative mass means opposite charge 
+//   //
+//   Double_t xx[5];
+//   Double_t cc[15];
+//   for (Int_t i=0;i<15;i++) cc[i]=0;
+//   Double_t x = ref->X(), y = ref->Y(), z = ref->Z();
+//   Double_t alpha = TMath::ATan2(y,x);
+//   Double_t xr = TMath::Sqrt(x*x+y*y);
+//   xx[0] = 0;
+//   xx[1] = z;
+//   xx[3] = ref->Pz()/ref->Pt();
+//   Float_t b[3];
+//   Float_t xyz[3]={x,y,z};
+//   Float_t convConst = 0;
+//   (AliKalmanTrack::GetFieldMap())->Field(xyz,b);
+//   convConst=1000/0.299792458/(1e-13 - b[2]);
+//   xx[4] = 1./(convConst*ref->Pt());
+//   if (mass<0) xx[4]*=-1.;  // negative mass - negative direction
+//   Double_t lcos = (x*ref->Px()+y*ref->Py())/(xr*ref->Pt());
+//   Double_t lsin = TMath::Sin(TMath::ACos(lcos));
+//   if (mass<0) lsin*=-1.;
+//   xx[2]   = xr*xx[4]-lsin;
+//   AliTRDcluster cl;
+//   AliTRDtrack * track = new  AliTRDtrack(&cl,100,xx,cc,xr,alpha);
+//   track->SetMass(TMath::Abs(mass));
+//   track->StartTimeIntegral();  
+//   return track;
+// }
+
 //____________________________________________________________________________
 Float_t AliTRDtrack::StatusForTOF()
 {
@@ -443,6 +465,22 @@ Float_t AliTRDtrack::StatusForTOF()
 
 }
             
+//____________________________________________________________________________
+void AliTRDtrack::GetExternalParameters(Double_t& xr, Double_t x[5]) const 
+{
+  //
+  // This function returns external TRD track representation
+  //
+
+  xr   = fX;
+  x[0] = GetY();
+  x[1] = GetZ();
+  x[2] = GetSnp();
+  x[3] = GetTgl();
+  x[4] = Get1Pt();
+
+}           
+
 //_____________________________________________________________________________
 void AliTRDtrack::GetExternalCovariance(Double_t cc[15]) const 
 {
@@ -676,7 +714,6 @@ Int_t AliTRDtrack::PropagateTo(Double_t xk,Double_t x0,Double_t rho)
   }
 
   return 1;            
-
 }     
 
 //_____________________________________________________________________________
@@ -1392,13 +1429,12 @@ Int_t AliTRDtrack::GetSector() const
 //_____________________________________________________________________________
 Double_t  AliTRDtrack::Get1Pt() const                       
 { 
-  //--------------------------------------------------------------
-  // Returns the inverse Pt (1/GeV/c)
-  // (or 1/"most probable pt", if the field is too weak)
-  //--------------------------------------------------------------
-  if (TMath::Abs(GetLocalConvConst()) > kVeryBigConvConst)
-      return 1./kMostProbableMomentum/TMath::Sqrt(1.+ GetTgl()*GetTgl());
-  return (TMath::Sign(1e-9,fC) + fC)*GetLocalConvConst();
+  //
+  // Returns 1 / pt
+  //
+
+  return (TMath::Sign(1e-9,fC) + fC)*GetLocalConvConst(); 
+
 }
 
 //_____________________________________________________________________________

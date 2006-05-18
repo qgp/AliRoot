@@ -127,7 +127,6 @@
 #include "AliSimulation.h"
 #include "AliVertexGenFile.h"
 #include "AliCentralTrigger.h"
-#include "AliCTPRawData.h"
 
 ClassImp(AliSimulation)
 
@@ -613,8 +612,10 @@ Bool_t AliSimulation::Run(Int_t nEvents)
   }
 
   // digits -> trigger
-  if (!RunTrigger(fMakeTrigger)) {
-    if (fStopOnError) return kFALSE;
+  if (!fMakeTrigger.IsNull()) {
+    if (!RunTrigger(fMakeTrigger)) {
+      if (fStopOnError) return kFALSE;
+    }
   }
 
   // digits -> raw data
@@ -640,16 +641,6 @@ Bool_t AliSimulation::RunTrigger(const char* descriptors)
    if (!runLoader) return kFALSE;
    TString des = descriptors;
 
-   if (des.IsNull()) {
-     if (gAlice->GetTriggerDescriptor() != "") {
-       des = gAlice->GetTriggerDescriptor();
-     }
-     else {
-       AliWarning("No trigger descriptor is specified. Skipping the trigger simulation...");
-       return kTRUE;
-     }
-   }
-
    runLoader->MakeTree( "CT" );
    AliCentralTrigger* aCTP = runLoader->GetTrigger();
   // Load Descriptors
@@ -671,17 +662,7 @@ Bool_t AliSimulation::RunTrigger(const char* descriptors)
    return kTRUE;
 }
 
-//_____________________________________________________________________________
-Bool_t AliSimulation::WriteTriggerRawData()
-{
-  // Writes the CTP (trigger) DDL raw data
-  // Details of the format are given in the
-  // trigger TDR - pages 134 and 135.
-  AliCTPRawData writer;
-  writer.RawData();
 
-  return kTRUE;
-}
 
 //_____________________________________________________________________________
 Bool_t AliSimulation::RunSimulation(Int_t nEvents)
@@ -706,16 +687,6 @@ Bool_t AliSimulation::RunSimulation(Int_t nEvents)
     gAlice->Init(fConfigFileName.Data());
   ););
 
-  // Get the trigger descriptor string
-  // Either from AliSimulation or from
-  // gAlice
-  if (fMakeTrigger.IsNull()) {
-    if (gAlice->GetTriggerDescriptor() != "")
-      fMakeTrigger = gAlice->GetTriggerDescriptor();
-  }
-  else
-    gAlice->SetTriggerDescriptor(fMakeTrigger.Data());
-
   // Set run number in CDBManager
   AliCDBManager::Instance()->SetRun(gAlice->GetRunNumber());
   AliInfo(Form("Run number: %d",AliCDBManager::Instance()->GetRun()));
@@ -732,11 +703,7 @@ Bool_t AliSimulation::RunSimulation(Int_t nEvents)
   if (gGeoManager) gGeoManager->Export("geometry.root");
 
   // Misalign geometry
-//   if (!MisalignGeometry(runLoader)) {
-//     delete runLoader;
-//     return kFALSE;
-//   }
-  MisalignGeometry(runLoader);
+  if (!MisalignGeometry(runLoader)) return kFALSE;
 
   // Temporary fix by A.Gheata
   // Could be removed with the next Root version (>5.11)
@@ -1057,9 +1024,6 @@ Bool_t AliSimulation::WriteRawFiles(const char* detectors)
       }
     }
 
-    if (!WriteTriggerRawData())
-      if (fStopOnError) return kFALSE;
-
     gSystem->ChangeDirectory(baseDir);
     if ((detStr.CompareTo("ALL") != 0) && !detStr.IsNull()) {
       AliError(Form("the following detectors were not found: %s", 
@@ -1090,7 +1054,7 @@ Bool_t AliSimulation::ConvertRawFilesToDate(const char* dateFileName)
 
   AliInfo(Form("converting raw data DDL files to DATE file %s", dateFileName));
   char command[256];
-  sprintf(command, "dateStream -D -o %s -# %d -C", 
+  sprintf(command, "dateStream -o %s -# %d -C", 
 	  dateFileName, runLoader->GetNumberOfEvents());
   FILE* pipe = gSystem->OpenPipe(command, "w");
 

@@ -66,10 +66,6 @@ void Config()
     rl->SetNumberOfEventsPerFile(6);        
     gAlice->SetRunLoader(rl);
 
-    // Set the trigger configuration
-    gAlice->SetTriggerDescriptor("Pb-Pb");
-    cout<<"Trigger configuration is set to  Pb-Pb"<<endl;
-
     //
     // Set External decayer
     AliDecayer *decayer = new AliDecayerPythia();
@@ -411,6 +407,12 @@ void Config()
         //=================== TRD parameters ============================
 
         AliTRD *TRD = new AliTRDv1("TRD", "TRD slow simulator");
+
+        // Select the gas mixture (0: 97% Xe + 3% isobutane, 1: 90% Xe + 10% CO2)
+        TRD->SetGasMix(1);
+
+        // Switch on TR
+        AliTRDsim *TRDsim = TRD->CreateTR();
     }
 
     if (iFMD)
@@ -449,7 +451,7 @@ void Config()
     if (iEMCAL && !iRICH)
     {
         //=================== EMCAL parameters ============================
-        AliEMCAL *EMCAL = new AliEMCALv2("EMCAL", "SHISH_77_TRD1_2X2_FINAL_110DEG");
+        AliEMCAL *EMCAL = new AliEMCALv2("EMCAL", "SHISH");
     }
 
     if (iSTART)

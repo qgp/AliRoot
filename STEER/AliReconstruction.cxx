@@ -127,7 +127,6 @@
 #include "AliESDVertex.h"
 #include "AliTracker.h"
 #include "AliVertexer.h"
-#include "AliVertexerTracks.h"
 #include "AliHeader.h"
 #include "AliGenEventHeader.h"
 #include "AliPID.h"
@@ -142,9 +141,6 @@
 #include "AliCDBManager.h"
 #include "AliCDBEntry.h"
 #include "AliAlignObj.h"
-
-#include "AliCentralTrigger.h"
-#include "AliCTPRawStream.h"
 
 ClassImp(AliReconstruction)
 
@@ -163,7 +159,6 @@ AliReconstruction::AliReconstruction(const char* gAliceFilename, const char* cdb
   fStopOnError(kFALSE),
   fWriteAlignmentData(kFALSE),
   fWriteESDfriend(kFALSE),
-  fFillTriggerESD(kTRUE),
 
   fRunLocalReconstruction("ALL"),
   fRunTracking("ALL"),
@@ -205,7 +200,6 @@ AliReconstruction::AliReconstruction(const AliReconstruction& rec) :
   fStopOnError(rec.fStopOnError),
   fWriteAlignmentData(rec.fWriteAlignmentData),
   fWriteESDfriend(rec.fWriteESDfriend),
-  fFillTriggerESD(rec.fFillTriggerESD),
 
   fRunLocalReconstruction(rec.fRunLocalReconstruction),
   fRunTracking(rec.fRunTracking),
@@ -586,8 +580,6 @@ Bool_t AliReconstruction::Run(const char* input,
 
   gROOT->cd();
 
-  AliVertexerTracks tVertexer;
-
   // loop over events
   if (fRawReader) fRawReader->RewindEvents();
   
@@ -677,17 +669,6 @@ Bool_t AliReconstruction::Run(const char* input,
     AliESDpid::MakePID(esd);
     if (fCheckPointLevel > 1) WriteESD(esd, "PID");
 
-    if (fFillTriggerESD) {
-      if (!ReadESD(esd, "trigger")) {
-	if (!FillTriggerESD(esd)) {
-	  if (fStopOnError) {CleanUp(file, fileOld); return kFALSE;}
-	}
-	if (fCheckPointLevel > 1) WriteESD(esd, "trigger");
-      }
-    }
-
-    esd->SetPrimaryVertex(tVertexer.FindVertex(esd));
-
     // write ESD
     tree->Fill();
     // write HLT ESD
@@ -695,8 +676,7 @@ Bool_t AliReconstruction::Run(const char* input,
 
     // write ESD friend
     if (fWriteESDfriend) {
-       esdf=new AliESDfriend();
-       esd->GetESDfriend(esdf);
+       esdf=new AliESDfriend(*esd);
        treef->Fill();  
     }
 
@@ -1150,45 +1130,6 @@ Bool_t AliReconstruction::FillESD(AliESD*& esd, const TString& detectors)
   return kTRUE;
 }
 
-//_____________________________________________________________________________
-Bool_t AliReconstruction::FillTriggerESD(AliESD*& esd)
-{
-  // Reads the trigger decision which is
-  // stored in Trigger.root file and fills
-  // the corresponding esd entries
-
-  AliInfo("Filling trigger information into the ESD");
-
-  if (fRawReader) {
-    AliCTPRawStream input(fRawReader);
-    if (!input.Next()) {
-      AliError("No valid CTP (trigger) DDL raw data is found ! The trigger information is not stored in the ESD !");
-      return kFALSE;
-    }
-    esd->SetTriggerMask(input.GetClassMask());
-    esd->SetTriggerCluster(input.GetClusterMask());
-  }
-  else {
-    AliRunLoader *runloader = AliRunLoader::GetRunLoader();
-    if (runloader) {
-      if (!runloader->LoadTrigger()) {
-	AliCentralTrigger *aCTP = runloader->GetTrigger();
-	esd->SetTriggerMask(aCTP->GetClassMask());
-	esd->SetTriggerCluster(aCTP->GetClusterMask());
-      }
-      else {
-	AliWarning("No trigger can be loaded! The trigger information is not stored in the ESD !");
-	return kFALSE;
-      }
-    }
-    else {
-      AliError("No run loader is available! The trigger information is not stored in the ESD !");
-      return kFALSE;
-    }
-  }
-
-  return kTRUE;
-}
 
 //_____________________________________________________________________________
 Bool_t AliReconstruction::IsSelected(TString detName, TString& detectors) const
@@ -1722,7 +1663,7 @@ void AliReconstruction::CreateTag(TFile* file)
 
     evTag->SetT0VertexZ(esd->GetT0zVertex());
     
-    evTag->SetTrigger(esd->GetTriggerMask());
+    evTag->SetTrigger(esd->GetTrigger());
     
     evTag->SetZDCNeutron1Energy(esd->GetZDCN1Energy());
     evTag->SetZDCProton1Energy(esd->GetZDCP1Energy());

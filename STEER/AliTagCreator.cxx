@@ -197,6 +197,7 @@ Bool_t AliTagCreator::MergeTags()
   ftag->Close();
 
   delete tag;
+  delete evTag;
   delete newTag;
 
   return kTRUE;
@@ -408,7 +409,7 @@ void AliTagCreator::CreateTag(TFile* file, const char *guid, const char *md5, co
     
     evTag->SetT0VertexZ(esd->GetT0zVertex());
     
-    evTag->SetTrigger(esd->GetTriggerMask());
+    evTag->SetTrigger(esd->GetTrigger());
     
     evTag->SetZDCNeutron1Energy(esd->GetZDCN1Energy());
     evTag->SetZDCProton1Energy(esd->GetZDCP1Energy());
@@ -498,5 +499,6 @@ void AliTagCreator::CreateTag(TFile* file, const char *guid, const char *md5, co
   delete esd;
 
   delete tag;
+  delete evTag;
 }
 

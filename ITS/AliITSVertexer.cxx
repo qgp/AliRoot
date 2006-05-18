@@ -15,6 +15,7 @@ ClassImp(AliITSVertexer)
 //______________________________________________________________________
 AliITSVertexer::AliITSVertexer():AliVertexer() {
   // Default Constructor
+  //SetUseV2Clusters(kTRUE);
 }
 
 AliITSVertexer::AliITSVertexer(TString filename) {
@@ -27,7 +28,7 @@ AliITSVertexer::AliITSVertexer(TString filename) {
     Fatal("AliITSVertexer","The AliRun object is not available - nothing done");
   }
   fCurrentVertex  = 0;   
-  fDebug = 0;
+  SetDebug();
   SetFirstEvent(0);
   SetLastEvent(0);
   rl->LoadHeader();
@@ -40,6 +41,7 @@ AliITSVertexer::AliITSVertexer(TString filename) {
     lst = static_cast<Int_t>(rl->TreeE()->GetEntries());
     SetLastEvent(lst-1);
   }
+  //SetUseV2Clusters(kTRUE);
 }
 
 //______________________________________________________________________

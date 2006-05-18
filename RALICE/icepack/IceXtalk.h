@@ -9,7 +9,6 @@
 #include "TROOT.h"
 #include "TTask.h"
 #include "TString.h"
-#include "TFile.h"
 
 #include "AliJob.h"
 #include "IceEvent.h"
@@ -32,6 +31,6 @@ class IceXtalk : public TTask
   Float_t fPmin;       // The minimal probability to induce cross talk 
   Float_t fPe;         // The nominal Xtalk signal in photo-electron equivalent
 
- ClassDef(IceXtalk,2) // TTask derived class to perform cross talk hit correction
+ ClassDef(IceXtalk,1) // TTask derived class to perform cross talk hit correction
 };
 #endif

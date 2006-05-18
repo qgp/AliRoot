@@ -38,7 +38,7 @@ public:
    //  Setters
                 Bool_t    AddDetectorCluster( TString & cluster );
                   void    AddCondition( TString & cond,  TString & name,
-                                        TString & description, ULong64_t mask  );
+                                        TString & description, Long_t mask  );
                   void    AddCondition( AliTriggerCondition* cond ) { fConditions.AddLast( cond ); }
   //  Getters
                TString    GetDetectorCluster() const { return fDetectorCluster; }
@@ -58,14 +58,14 @@ protected:
                TString    fDetectorCluster;    // Array of Detector Trigger
              TObjArray    fConditions;         // Array of Trigger Condition (AliTriggerCondition)
                
-    static const Int_t    fgkNDetectors = 10;             //! number possible trigger detectors
+    static const Int_t    fgkNDetectors = 9;              //! number possible trigger detectors
      static const char*   fgkDetectorName[fgkNDetectors]; //! names of detectors
 
 private:
                 Bool_t    IsSelected( TString detName, TString & detectors ) const;
   static const TString    fgkDescriptorFileName;        //! name of default descriptors file
 
-   ClassDef( AliTriggerDescriptor, 2 )  // Define a trigger descriptor
+   ClassDef( AliTriggerDescriptor, 1 )  // Define a trigger descriptor
 };
 
 #endif

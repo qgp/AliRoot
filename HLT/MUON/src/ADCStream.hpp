@@ -1,0 +1,19 @@
+////////////////////////////////////////////////////////////////////////////////
+//
+// Author: Artur Szostak
+// Email:  artur@alice.phy.uct.ac.za | artursz@iafrica.com
+//
+////////////////////////////////////////////////////////////////////////////////
+
+#ifndef ALIHLTMUONCOREADCSTREAM_H
+#define ALIHLTMUONCOREADCSTREAM_H
+
+#include "BasicTypes.hpp"
+
+
+class AliHLTMUONCoreADCStream
+{
+};
+
+
+#endif // ALIHLTMUONCOREADCSTREAM_H

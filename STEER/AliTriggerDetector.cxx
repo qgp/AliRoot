@@ -105,7 +105,9 @@ void AliTriggerDetector::Trigger()
 void AliTriggerDetector::SetInput( TString& name )
 {
    // Set Input by name
-   SetInput( name.Data() );
+   AliTriggerInput* in = ((AliTriggerInput*)fInputs.FindObject( name.Data() ));
+   in->Set();
+   fMask |= in->GetValue();
 }
 
 //_____________________________________________________________________________
@@ -113,11 +115,8 @@ void AliTriggerDetector::SetInput( const char * name )
 {
    // Set Input by name
    AliTriggerInput* in = ((AliTriggerInput*)fInputs.FindObject( name ));
-   if( in ) {
-      in->Set();
-      fMask |= in->GetValue();
-   } else
-      AliError( Form( "There is not input named %s", name ) );
+   in->Set();
+   fMask |= in->GetValue();
 }
 
 //_____________________________________________________________________________

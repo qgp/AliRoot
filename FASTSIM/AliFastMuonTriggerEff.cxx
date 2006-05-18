@@ -13,17 +13,27 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/* $Id$ */
-// The trigger parametrization is computed for background levels 0., 0.5 and 1.
-// In order to set a background level different from 0 it is necessary to 
-// explicitly force it with:
-// ForceBkgLevel(BkgLevel).
-// For intermediate background levels, the trigger response is linearly 
-// interpolated between these values.
-// There is increased granularity in the pT region below 3 GeV. Although
-// it does not seem to be necessary it is also possible to interpolate
-// between pT bins using SetInt().
+/*
+The trigger parametrization is computed for background levels 0., 0.5 and 1.
+In order to set a background level different from 0 it is necessary to 
+explicitly force it with:
+ForceBkgLevel(BkgLevel).
 
+For intermediate background levels, the trigger response is linearly 
+interpolated between these values.
+
+There is increased granularity in the pT region below 3 GeV. Although
+it does not seem to be necessary it is also possible to interpolate
+between pT bins using SetInt().
+
+$Log$
+Revision 1.9  2005/09/24 03:51:43  hristov
+Removing extra semicolon (Fedora Core 4)
+
+Revision 1.8  2005/09/22 11:31:42  morsch
+Completely revised version. (P. Cortese)
+
+*/
 
 #include "AliFastMuonTriggerEff.h"
 #include "TROOT.h"
@@ -46,13 +56,6 @@ AliFastMuonTriggerEff::AliFastMuonTriggerEff():
     fZones=0;
     SetBkgLevel(0.);
     UnsetInt();
-}
-
-AliFastMuonTriggerEff::AliFastMuonTriggerEff(const AliFastMuonTriggerEff& eff)
-    :AliFastResponse(eff)
-{
-// Copy constructor
-    eff.Copy(*this);
 }
 
 void AliFastMuonTriggerEff::SetCut(Int_t cut) 
@@ -425,7 +428,15 @@ void AliFastMuonTriggerEff::Evaluate(Float_t charge, Float_t pt,Float_t theta,
   return;
 }
 
-
+void AliFastMuonTriggerEff::Evaluate(Float_t charge, Float_t pt, Float_t theta,
+                                Float_t phi, Float_t& effLow, Float_t& effHigh)
+{
+    //
+    //  Trigger efficiency for pt, theta, phi (low and high cut)
+    //
+    Float_t effAny;
+    Evaluate(charge,pt,theta,phi,effLow,effHigh,effAny);
+}
 
 Float_t AliFastMuonTriggerEff::Evaluate(Float_t charge, Float_t pt,
                    Float_t theta, Float_t phi)
@@ -452,11 +463,3 @@ Float_t AliFastMuonTriggerEff::Evaluate(Float_t charge, Float_t pt,
 
     return eff;
 }
-
-AliFastMuonTriggerEff& AliFastMuonTriggerEff::operator=(const  AliFastMuonTriggerEff& rhs)
-{
-// Assignment operator
-    rhs.Copy(*this);
-    return *this;
-}
-

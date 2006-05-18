@@ -204,10 +204,12 @@ void AliSTARTReconstructor::FillESD(AliRunLoader* runLoader, AliESD *pESD) const
       amp[i] = frecpoints -> GetAmp(i);
     }
     pESD->SetT0zVertex(Zposition); //vertex Z position 
+    /*    
     pESD->SetT0(timeStart);        // interaction time 
-    pESD->SetT0time(time);         // best TOF on each PMT 
-    pESD->SetT0amplitude(amp);     // number of particles(MIPs) on each PMT
-
+    pESD->SetT0time(*time);        // best TOF on each PMT 
+    pESD->SetT0amplitude(*amp);    // number of particles(MIPs) on each PMT
+    */    
+    //    pESD->Dump();
     pStartLoader->UnloadRecPoints();
    
 } // vertex in 3 sigma

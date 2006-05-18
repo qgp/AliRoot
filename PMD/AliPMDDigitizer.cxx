@@ -338,41 +338,37 @@ void AliPMDDigitizer::Hits2SDigits(Int_t ievt)
 	      edep       = fPMDHit->GetEnergy();
 	      Int_t vol1 = fPMDHit->GetVolume(1); // Column
 	      Int_t vol2 = fPMDHit->GetVolume(2); // Row
-	      Int_t vol7 = fPMDHit->GetVolume(7); // UnitModule
-	      Int_t vol8 = fPMDHit->GetVolume(8); // SuperModule
-
+	      Int_t vol3 = fPMDHit->GetVolume(3); // UnitModule
+	      Int_t vol6 = fPMDHit->GetVolume(6); // SuperModule
 
 	      // -----------------------------------------//
-	      // In new geometry after adding electronics //
 	      // For Super Module 1 & 2                   //
-	      //  nrow = 48, ncol = 96                    //
-	      // For Super Module 3 & 4                   //
 	      //  nrow = 96, ncol = 48                    //
+	      // For Super Module 3 & 4                   //
+	      //  nrow = 48, ncol = 96                    //
 	      // -----------------------------------------//
-
-
 	      
-	      smnumber = (vol8-1)*6 + vol7;
+	      smnumber = (vol6-1)*6 + vol3;
 
-	      if (vol8 == 1 || vol8 == 2)
-		{
-		  xpad = vol2;
-		  ypad = vol1;
-		}
-	      else if (vol8 == 3 || vol8 == 4)
+	      if (vol6 == 1 || vol6 == 2)
 		{
 		  xpad = vol1;
 		  ypad = vol2;
 		}
+	      else if (vol6 == 3 || vol6 == 4)
+		{
+		  xpad = vol2;
+		  ypad = vol1;
+		}
 
 	      AliDebug(2,Form("Zposition = %f Edeposition = %f",zPos,edep));
-	      //Float_t zposition = TMath::Abs(zPos);
-	      if (zPos < fZPos)
+	      Float_t zposition = TMath::Abs(zPos);
+	      if (zposition < fZPos)
 		{
 		  // CPV
 		  fDetNo = 1;
 		}
-	      else if (zPos > fZPos)
+	      else if (zposition > fZPos)
 		{
 		  // PMD
 		  fDetNo = 0;
@@ -578,43 +574,42 @@ void AliPMDDigitizer::Hits2Digits(Int_t ievt)
 	      xPos = fPMDHit->X();
 	      yPos = fPMDHit->Y();
 	      zPos = fPMDHit->Z();
-	      edep       = fPMDHit->GetEnergy();
+
 	      Int_t vol1 = fPMDHit->GetVolume(1); // Column
 	      Int_t vol2 = fPMDHit->GetVolume(2); // Row
-	      Int_t vol7 = fPMDHit->GetVolume(7); // UnitModule
-	      Int_t vol8 = fPMDHit->GetVolume(8); // SuperModule
-
+	      Int_t vol3 = fPMDHit->GetVolume(3); // UnitModule
+	      Int_t vol6 = fPMDHit->GetVolume(6); // SuperModule
+	      edep       = fPMDHit->GetEnergy();
 
 	      // -----------------------------------------//
-	      // In new geometry after adding electronics //
 	      // For Super Module 1 & 2                   //
-	      //  nrow = 48, ncol = 96                    //
-	      // For Super Module 3 & 4                   //
 	      //  nrow = 96, ncol = 48                    //
+	      // For Super Module 3 & 4                   //
+	      //  nrow = 48, ncol = 96                    //
 	      // -----------------------------------------//
 	      
-	      smnumber = (vol8-1)*6 + vol7;
+	      smnumber = (vol6-1)*6 + vol3;
 
-	      if (vol8 == 1 || vol8 == 2)
-		{
-		  xpad = vol2;
-		  ypad = vol1;
-		}
-	      else if (vol8 == 3 || vol8 == 4)
+	      if (vol6 == 1 || vol6 == 2)
 		{
 		  xpad = vol1;
 		  ypad = vol2;
 		}
+	      else if (vol6 == 3 || vol6 == 4)
+		{
+		  xpad = vol2;
+		  ypad = vol1;
+		}
 
 	      AliDebug(2,Form("ZPosition = %f Edeposition = %d",zPos,edep));
-	      //Float_t zposition = TMath::Abs(zPos);
+	      Float_t zposition = TMath::Abs(zPos);
 
-	      if (zPos < fZPos)
+	      if (zposition < fZPos)
 		{
 		  // CPV
 		  fDetNo = 1;
 		}
-	      else if (zPos > fZPos)
+	      else if (zposition > fZPos)
 		{
 		  // PMD
 		  fDetNo = 0;

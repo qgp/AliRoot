@@ -28,7 +28,7 @@
 
 #include <TError.h>
 #include <TSysEvtHandler.h>
-#ifdef ALI_DATE
+#ifdef DATE_SYS
 #include <TROOT.h>
 #include <TSystem.h>
 #include <TDatime.h>
@@ -56,7 +56,7 @@ AliGDCInterruptHandler::AliGDCInterruptHandler() :
 
 
 //_____________________________________________________________________________
-#ifdef ALI_DATE
+#ifdef DATE_SYS
 int main(int argc, char** argv)
 {
   // set ROOT in batch mode

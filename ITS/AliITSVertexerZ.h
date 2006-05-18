@@ -27,13 +27,12 @@ class AliITSVertexerZ : public AliITSVertexer {
   void SetDiffPhiMax(Float_t pm = 0.01){fDiffPhiMax = pm;}
   void SetFirstLayerModules(Int_t m1 = 0, Int_t m2 = 79){fFirstL1 = m1; fLastL1 = m2;}
   void SetSecondLayerModules(Int_t m1 = 80, Int_t m2 = 239){fFirstL2 = m1; fLastL2 = m2;}
-  void SetLowLimit(Float_t lim=-20.){fLowLim = lim;}
-  void SetHighLimit(Float_t lim=20.){fHighLim = lim;}
+  void SetLowLimit(Float_t lim=-10.){fLowLim = lim;}
+  void SetHighLimit(Float_t lim=10.){fHighLim = lim;}
   Float_t GetLowLimit() const {return fLowLim;}
   Float_t GetHighLimit() const {return fHighLim;}
   void SetBinWidthCoarse(Float_t bw=0.01){fStepCoarse = bw;}
   void SetBinWidthFine(Float_t bw=0.0005){fStepFine = bw;}
-  void SetPPsetting(Float_t cl2=250., Float_t coarsebin=0.02){fPPsetting[0]=cl2; fPPsetting[1]=coarsebin;}
   Float_t GetBinWidthCoarse() const {return fStepCoarse;}
   Float_t GetBinWidthFine() const {return fStepFine;}
   void SetTolerance(Float_t tol = 20./10000.){fTolerance = tol;}
@@ -54,16 +53,14 @@ class AliITSVertexerZ : public AliITSVertexer {
   Float_t fZFound;         //! found value for the current event
   Float_t fZsig;           //! RMS of Z
   TH1F *fZCombc;           //! histogram with coarse z distribution
-  TH1F *fZCombv;           //! histogram with very coarse z (step=3coarse)distribution
   TH1F *fZCombf;           //! histogram with fine z distribution
   Float_t fLowLim;         // low limit for fZComb histograms
   Float_t fHighLim;        // high limit for fZComb histograms
   Float_t fStepCoarse;     // bin width for fZCombc
   Float_t fStepFine;       // bin width for fZCombf
   Float_t fTolerance;      // tolerance on the symmetry of the Z interval 
-  Float_t fPPsetting[2];   // [0] is the max. number of clusters on L2 to use [1] as fStepCoarse
 
-  ClassDef(AliITSVertexerZ,3);
+  ClassDef(AliITSVertexerZ,2);
 };
 
 #endif

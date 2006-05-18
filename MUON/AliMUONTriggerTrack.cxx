@@ -46,7 +46,6 @@ AliMUONTriggerTrack::AliMUONTriggerTrack()
 AliMUONTriggerTrack::AliMUONTriggerTrack(Float_t x11, Float_t y11, Float_t thetax, Float_t thetay, Long_t theGTPattern)
   : TObject()
 {
-// ctor from local trigger output
     fx11 = x11;
     fy11 = y11;
     fthetax = thetax;

@@ -270,8 +270,6 @@ void AliAlignObj::Transform(AliTrackPoint &p) const
 //_____________________________________________________________________________
 void AliAlignObj::Transform(AliTrackPointArray &array) const
 {
-  // This method is used to transform all the track points
-  // from the input AliTrackPointArray
   AliTrackPoint p;
   for (Int_t i = 0; i < array.GetNPoints(); i++) {
     array.GetPoint(p,i);
@@ -548,17 +546,8 @@ void  AliAlignObj::InitAlignObjFromGeometry()
 }
 
 //_____________________________________________________________________________
-AliAlignObj* AliAlignObj::GetAlignObj(UShort_t voluid) {
-  // Returns the alignment object for given volume ID
-  Int_t modId;
-  ELayerID layerId = VolUIDToLayer(voluid,modId);
-  return GetAlignObj(layerId,modId);
-}
-
-//_____________________________________________________________________________
 AliAlignObj* AliAlignObj::GetAlignObj(ELayerID layerId, Int_t modId)
 {
-  // Returns pointer to alignment object givent its layer and module ID
   if(modId<0 || modId>=fgLayerSize[layerId-kFirstLayer]){
     AliWarningClass(Form("Module number %d not in the valid range (0->%d) !",modId,fgLayerSize[layerId-kFirstLayer]-1));
     return NULL;
@@ -567,17 +556,8 @@ AliAlignObj* AliAlignObj::GetAlignObj(ELayerID layerId, Int_t modId)
 }
 
 //_____________________________________________________________________________
-const char* AliAlignObj::GetVolPath(UShort_t voluid) {
-  // Returns the volume path for given volume ID
-  Int_t modId;
-  ELayerID layerId = VolUIDToLayer(voluid,modId);
-  return GetVolPath(layerId,modId);
-}
-
-//_____________________________________________________________________________
 const char* AliAlignObj::GetVolPath(ELayerID layerId, Int_t modId)
 {
-  // Returns volume path to alignment object givent its layer and module ID
   if(modId<0 || modId>=fgLayerSize[layerId-kFirstLayer]){
     AliWarningClass(Form("Module number %d not in the valid range (0->%d) !",modId,fgLayerSize[layerId-kFirstLayer]-1));
     return NULL;
@@ -749,20 +729,20 @@ void AliAlignObj::InitVolPaths()
     Int_t modnum = 0;
     TString str1 = "ALIC_1/TPC_M_1/TPC_Drift_1/TPC_ENDCAP_1/TPC_SECT_";
     TString str2 = "ALIC_1/TPC_M_1/TPC_Drift_1/TPC_ENDCAP_2/TPC_SECT_";
-    TString strIn = "/TPC_IROC_1";
+    TString str_in = "/TPC_IROC_1";
     TString volpath;
     
     for(Int_t cnt=1; cnt<=18; cnt++){
       volpath = str1;
       volpath += cnt;
-      volpath += strIn;
+      volpath += str_in;
       fgVolPath[kTPC1-kFirstLayer][modnum] = volpath.Data();
       modnum++;
     }
     for(Int_t cnt=1; cnt<=18; cnt++){
       volpath = str2;
       volpath += cnt;
-      volpath += strIn;
+      volpath += str_in;
       fgVolPath[kTPC1-kFirstLayer][modnum] = volpath.Data();
       modnum++;
     }
@@ -773,20 +753,20 @@ void AliAlignObj::InitVolPaths()
     Int_t modnum = 0;
     TString str1 = "ALIC_1/TPC_M_1/TPC_Drift_1/TPC_ENDCAP_1/TPC_SECT_";
     TString str2 = "ALIC_1/TPC_M_1/TPC_Drift_1/TPC_ENDCAP_2/TPC_SECT_";
-    TString strOut = "/TPC_OROC_1";
+    TString str_out = "/TPC_OROC_1";
     TString volpath;
     
     for(Int_t cnt=1; cnt<=18; cnt++){
       volpath = str1;
       volpath += cnt;
-      volpath += strOut;
+      volpath += str_out;
       fgVolPath[kTPC2-kFirstLayer][modnum] = volpath.Data();
       modnum++;
     }
     for(Int_t cnt=1; cnt<=18; cnt++){
       volpath = str2;
       volpath += cnt;
-      volpath += strOut;
+      volpath += str_out;
       fgVolPath[kTPC2-kFirstLayer][modnum] = volpath.Data();
       modnum++;
     }
@@ -806,12 +786,25 @@ void AliAlignObj::InitVolPaths()
       Int_t sector = modnum/nStripSec;
       Char_t  string1[100];
       Char_t  string2[100];
-      Int_t icopy=-1;
-      if(sector<13){
-	icopy=sector+5;}  
-      else{ icopy=sector-13;}
 
-      sprintf(string1,"/ALIC_1/B077_1/BSEGMO%i_1/BTOF%i_1/FTOA_0/FLTA_0",sector,sector);
+      Int_t icopy=-1;
+
+      if(sector<3){
+	icopy=sector+1;
+	sprintf(string1,"/ALIC_1/B077_1/B075_%i/BTO3_1/FTOA_0/FLTA_0",icopy);
+      }
+      else if(sector<11){
+	icopy=sector+3;
+	sprintf(string1,"/ALIC_1/B077_1/B071_%i/BTO1_1/FTOA_0/FLTA_0",icopy);
+      }
+      else if(sector==11 || sector==12){
+	icopy=sector-10;
+	sprintf(string1,"/ALIC_1/B077_1/B074_%i/BTO2_1/FTOA_0/FLTA_0",icopy);
+      }
+      else {
+	icopy=sector-12;
+	sprintf(string1,"/ALIC_1/B077_1/B071_%i/BTO1_1/FTOA_0/FLTA_0",icopy);
+      }
       
       Int_t strInSec=modnum%nStripSec;
       icopy= strInSec;
@@ -838,29 +831,29 @@ void AliAlignObj::InitVolPaths()
 
   /*********************      TRD layers 0-6   *******************/
   {
-    TString strSM[18]={"ALIC_1/B077_1/BSEGMO5_1/BTRD5_1/UTR1_1/UTS1_1/UTI1_1/UT",
-		       "ALIC_1/B077_1/BSEGMO6_1/BTRD6_1/UTR1_1/UTS1_1/UTI1_1/UT",
-		       "ALIC_1/B077_1/BSEGMO7_1/BTRD7_1/UTR1_1/UTS1_1/UTI1_1/UT",
-		       "ALIC_1/B077_1/BSEGMO8_1/BTRD8_1/UTR1_1/UTS1_1/UTI1_1/UT",
-		       "ALIC_1/B077_1/BSEGMO9_1/BTRD9_1/UTR1_1/UTS1_1/UTI1_1/UT",
-		       "ALIC_1/B077_1/BSEGMO10_1/BTRD10_1/UTR1_1/UTS1_1/UTI1_1/UT",
-		       "ALIC_1/B077_1/BSEGMO11_1/BTRD11_1/UTR1_1/UTS1_1/UTI1_1/UT",
-		       "ALIC_1/B077_1/BSEGMO12_1/BTRD12_1/UTR1_1/UTS1_1/UTI1_1/UT",
-		       "ALIC_1/B077_1/BSEGMO13_1/BTRD13_1/UTR1_1/UTS1_1/UTI1_1/UT",
-		       "ALIC_1/B077_1/BSEGMO14_1/BTRD14_1/UTR1_1/UTS1_1/UTI1_1/UT",
-		       "ALIC_1/B077_1/BSEGMO15_1/BTRD15_1/UTR1_1/UTS1_1/UTI1_1/UT",
-		       "ALIC_1/B077_1/BSEGMO16_1/BTRD16_1/UTR1_1/UTS1_1/UTI1_1/UT",
-		       "ALIC_1/B077_1/BSEGMO17_1/BTRD17_1/UTR1_1/UTS1_1/UTI1_1/UT",
-		       "ALIC_1/B077_1/BSEGMO0_1/BTRD0_1/UTR1_1/UTS1_1/UTI1_1/UT",
-		       "ALIC_1/B077_1/BSEGMO1_1/BTRD1_1/UTR1_1/UTS1_1/UTI1_1/UT",
-		       "ALIC_1/B077_1/BSEGMO2_1/BTRD2_1/UTR1_1/UTS1_1/UTI1_1/UT",
-		       "ALIC_1/B077_1/BSEGMO3_1/BTRD3_1/UTR1_1/UTS1_1/UTI1_1/UT",
-		       "ALIC_1/B077_1/BSEGMO4_1/BTRD4_1/UTR1_1/UTS1_1/UTI1_1/UT"};
+    TString strSM[18]={"ALIC_1/B077_1/B075_1/BTR3_1/UTR1_3/UTS1_1/UTI1_1/UT",
+		       "ALIC_1/B077_1/B075_2/BTR3_1/UTR1_3/UTS1_1/UTI1_1/UT",
+		       "ALIC_1/B077_1/B075_3/BTR3_1/UTR1_3/UTS1_1/UTI1_1/UT",
+		       "ALIC_1/B077_1/B071_6/BTR1_1/UTR1_1/UTS1_1/UTI1_1/UT",
+		       "ALIC_1/B077_1/B071_7/BTR1_1/UTR1_1/UTS1_1/UTI1_1/UT",
+		       "ALIC_1/B077_1/B071_8/BTR1_1/UTR1_1/UTS1_1/UTI1_1/UT",
+		       "ALIC_1/B077_1/B071_9/BTR1_1/UTR1_1/UTS1_1/UTI1_1/UT",
+		       "ALIC_1/B077_1/B071_10/BTR1_1/UTR1_1/UTS1_1/UTI1_1/UT",
+		       "ALIC_1/B077_1/B071_11/BTR1_1/UTR1_1/UTS1_1/UTI1_1/UT",
+		       "ALIC_1/B077_1/B071_12/BTR1_1/UTR1_1/UTS1_1/UTI1_1/UT",
+		       "ALIC_1/B077_1/B071_13/BTR1_1/UTR1_1/UTS1_1/UTI1_1/UT",
+		       "ALIC_1/B077_1/B074_1/BTR2_1/UTR1_2/UTS1_1/UTI1_1/UT",
+		       "ALIC_1/B077_1/B074_2/BTR2_1/UTR1_2/UTS1_1/UTI1_1/UT",
+		       "ALIC_1/B077_1/B071_1/BTR1_1/UTR1_1/UTS1_1/UTI1_1/UT",
+		       "ALIC_1/B077_1/B071_2/BTR1_1/UTR1_1/UTS1_1/UTI1_1/UT",
+		       "ALIC_1/B077_1/B071_3/BTR1_1/UTR1_1/UTS1_1/UTI1_1/UT",
+		       "ALIC_1/B077_1/B071_4/BTR1_1/UTR1_1/UTS1_1/UTI1_1/UT",
+		       "ALIC_1/B077_1/B071_5/BTR1_1/UTR1_1/UTS1_1/UTI1_1/UT"};
     TString strPost = "_1";
     TString zeroStr = "0";
     TString volpath;
 
-    Int_t arTRDlayId[6] = {kTRD1, kTRD2, kTRD3, kTRD4, kTRD5, kTRD6};
+    Int_t TRDlayId[6] = {kTRD1, kTRD2, kTRD3, kTRD4, kTRD5, kTRD6};
 
     for(Int_t layer=0; layer<6; layer++){
       Int_t modnum=0;
@@ -871,7 +864,7 @@ void AliAlignObj::InitVolPaths()
 	  if(chnum<10) volpath += zeroStr;
 	  volpath += chnum;
 	  volpath += strPost;
-	  fgVolPath[arTRDlayId[layer]-kFirstLayer][modnum] = volpath.Data();
+	  fgVolPath[TRDlayId[layer]-kFirstLayer][modnum] = volpath.Data();
 	  modnum++;
 	}
       }

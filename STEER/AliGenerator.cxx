@@ -73,7 +73,6 @@ AliGenerator::AliGenerator():
   fVertexSmear(kNoSmear),
   fVertexSource(kInternal),
   fCutVertexZ(0),
-  fPileUpTimeWindow(-1.),
   fTrackIt(0),
   fVertexGenerator(0),
   fOrigin(3),
@@ -134,7 +133,6 @@ AliGenerator::AliGenerator(Int_t npart):
   fVertexSmear(kNoSmear),
   fVertexSource(kInternal),
   fCutVertexZ(0),
-  fPileUpTimeWindow(-1.),
   fTrackIt(0),
   fVertexGenerator(0),
   fOrigin(3),
@@ -197,7 +195,6 @@ AliGenerator::AliGenerator(const AliGenerator &gen):
   fVertexSmear(kNoSmear),
   fVertexSource(kInternal),
   fCutVertexZ(0),
-  fPileUpTimeWindow(-1.),
   fTrackIt(0),
   fVertexGenerator(0),
   fOrigin(3),
@@ -416,7 +413,7 @@ void  AliGenerator::PushTrack(Int_t done, Int_t parent, Int_t pdg,
   //
   // Loads one track on the stack
   //
-    
+
   if (fStack)
     fStack->PushTrack(done, parent, pdg, pmom, vpos, polar, tof,
                      mech, ntr, weight, is);

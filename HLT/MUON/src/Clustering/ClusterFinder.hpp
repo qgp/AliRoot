@@ -8,10 +8,10 @@
 #ifndef ALIHLTMUONCORECLUSTERFINDER_H
 #define ALIHLTMUONCORECLUSTERFINDER_H
 
-#include "AliHLTMUONBasicTypes.h"
-#include "AliHLTMUONUtils.h"
-#include "AliHLTMUONCoreCluster.h"
-#include "AliHLTMUONCoreADCStream.h"
+#include "BasicTypes.hpp"
+#include "Cluster.hpp"
+#include "ADCStream.hpp"
+#include "Utils.hpp"
 
 
 class AliHLTMUONCoreClusterFinder;

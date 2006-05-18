@@ -8,7 +8,7 @@
 #ifndef ALIHLTMUONCOREMANSOTRACKER_H
 #define ALIHLTMUONCOREMANSOTRACKER_H
 
-#include "AliHLTMUONBasicTypes.h"
+#include "BasicTypes.hpp"
 #include "Tracking/Tracker.hpp"
 #include "Buffers/List.hpp"
 #include "Buffers/CountedList.hpp"

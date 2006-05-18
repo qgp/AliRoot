@@ -215,7 +215,7 @@ Int_t AliITSMapA1::GetHitIndex(Int_t iz, Int_t ix) const {
     return TMath::Abs(fHitMap[CheckedIndex(iz, ix)])-1;
 }
 //______________________________________________________________________
-TObject* AliITSMapA1::GetHit(Int_t iz, Int_t ix) const {
+TObject* AliITSMapA1::GetHit(Int_t iz, Int_t ix){
     // return the pointer to the digit 
 
     Int_t index=GetHitIndex(iz,ix);
@@ -223,7 +223,7 @@ TObject* AliITSMapA1::GetHit(Int_t iz, Int_t ix) const {
     return (index <0) ? 0 : fObjects->UncheckedAt(GetHitIndex(iz,ix));
 }
 //______________________________________________________________________
-Double_t AliITSMapA1::GetSignal(Int_t iz, Int_t ix) const{
+Double_t AliITSMapA1::GetSignal(Int_t iz, Int_t ix){
     // get a pad signal
     Double_t signal;
 
@@ -233,7 +233,7 @@ Double_t AliITSMapA1::GetSignal(Int_t iz, Int_t ix) const{
     return signal;
 }
 //______________________________________________________________________
-FlagType AliITSMapA1::TestHit(Int_t iz, Int_t ix)  {
+FlagType AliITSMapA1::TestHit(Int_t iz, Int_t ix) {
     // check whether the digit has already been flagged
 
     if (CheckedIndex(iz, ix) < 0) return kEmpty;

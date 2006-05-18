@@ -114,7 +114,6 @@
 #pragma link C++ class AliTrackResiduals+;
 #pragma link C++ class AliTrackResidualsChi2+;
 #pragma link C++ class AliTrackResidualsFast+;
-#pragma link C++ class AliTrackResidualsLinear+;
 #pragma link C++ class AliAlignmentTracks+;
 
 #pragma link C++ class  TTreeDataElement+;
@@ -130,7 +129,5 @@
 #pragma link C++ class AliTriggerCondition+;
 #pragma link C++ class AliTriggerDescriptor+;
 #pragma link C++ class AliCentralTrigger+;
-#pragma link C++ class AliCTPRawData+;
-#pragma link C++ class AliCTPRawStream+;
 
 #endif

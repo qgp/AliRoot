@@ -25,7 +25,7 @@ public:
                           AliTriggerCondition();
                           AliTriggerCondition( const AliTriggerCondition &cond );
                           AliTriggerCondition( TString & condition, TString & name,
-                                               TString & description, ULong64_t mask );
+                                               TString & description, Long_t mask );
                virtual   ~AliTriggerCondition() {}
    AliTriggerCondition&   operator=(const AliTriggerCondition& rhs);
 
@@ -34,16 +34,15 @@ public:
   //  Setters
                   void    Reset() { fStatus = kFALSE; }
   //  Getters
-             ULong64_t    GetValue() const { return (fStatus) ? fClassMask : 0; }
-             ULong64_t    GetMask() const { return fClassMask; }
+                Long_t    GetValue() const { return (fStatus) ? fClassMask : 0; }
                 Bool_t    GetStatus() const { return fStatus; }
           virtual void    Print( const Option_t* opt ="" ) const;
 protected:
-             ULong64_t    fClassMask;   // UID "class mask" should set only 1 bit from the position 0 to 50
+                Long_t    fClassMask;   // UID "class mask" should set only 1 bit from the position 0 to 50
                TString    fCondition;   // Definition of the condition
                 Bool_t    fStatus;      // true = Condition has been satisfied after Trigger
 
-   ClassDef( AliTriggerCondition, 2 )  // Define a Trigger Condition
+   ClassDef( AliTriggerCondition, 1 )  // Define a Trigger Condition
 };
 
 #endif

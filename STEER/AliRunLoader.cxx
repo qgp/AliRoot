@@ -222,7 +222,7 @@ Int_t AliRunLoader::GetEvent(Int_t evno)
 {
 //Gets event number evno
 //Reloads all data properly
-//PH  if (fCurrentEvent == evno) return 0;
+  if (fCurrentEvent == evno) return 0;
   
   if (evno < 0)
    {

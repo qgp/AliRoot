@@ -50,11 +50,11 @@ void AliTRDReconstructor::Reconstruct(AliRunLoader* runLoader) const
   AliLoader *loader=runLoader->GetLoader("TRDLoader");
   loader->LoadRecPoints("recreate");
 
+  AliTRDclusterizerV1 clusterer("clusterer", "TRD clusterizer");
   runLoader->CdGAFile();
   Int_t nEvents = runLoader->GetNumberOfEvents();
 
   for (Int_t iEvent = 0; iEvent < nEvents; iEvent++) {
-    AliTRDclusterizerV1 clusterer("clusterer", "TRD clusterizer");
     clusterer.Open(runLoader->GetFileName(), iEvent);
     clusterer.ReadDigits();
     clusterer.MakeClusters();
@@ -65,8 +65,11 @@ void AliTRDReconstructor::Reconstruct(AliRunLoader* runLoader) const
 
   // Trigger (tracklets, LTU)
 
-  loader->LoadTracks("RECREATE");
-
+  loader->LoadTracks();
+  if (loader->TreeT()) {
+    Info("Reconstruct","Tracklets already exist");
+    return;
+  }
   Info("Reconstruct","Trigger tracklets will be produced");
 
   AliTRDtrigger trdTrigger("Trigger","Trigger class"); 
@@ -107,12 +110,12 @@ void AliTRDReconstructor::Reconstruct(AliRunLoader* runLoader,
   AliLoader *loader=runLoader->GetLoader("TRDLoader");
   loader->LoadRecPoints("recreate");
 
+  AliTRDclusterizerV1 clusterer("clusterer", "TRD clusterizer");
   runLoader->CdGAFile();
   Int_t nEvents = runLoader->GetNumberOfEvents();
 
   for (Int_t iEvent = 0; iEvent < nEvents; iEvent++) {
     if (!rawReader->NextEvent()) break;
-    AliTRDclusterizerV1 clusterer("clusterer", "TRD clusterizer");
     clusterer.Open(runLoader->GetFileName(), iEvent);
     clusterer.ReadDigits(rawReader);
     clusterer.MakeClusters();

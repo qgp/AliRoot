@@ -15,37 +15,22 @@
 
 /* $Id$ */
 
-// Basic implementation of a fast detector response. 
-// The 3-vector of the particle can be passes as
-// a TParticle or as
-// transverse momentum pt, polar angle theta and azimuthal angle phi
-// Author: Andreas Morsch
-// andreas.morsch@cern.ch
-//
 #include "AliFastResponse.h"
 #include "AliFastParticle.h"
 
 ClassImp(AliFastResponse)
 
 
-Float_t AliFastResponse::Evaluate(Float_t /*charge*/, Float_t /*pt*/, Float_t /*theta*/, Float_t /*phi*/)
+Float_t AliFastResponse::Evaluate(AliFastParticle* part)
 {
 //
-//  Dummy implementation of this method
-// 
-    return 0.;
-}
-
-
-void AliFastResponse::Evaluate(Float_t /*charge*/, Float_t   p,  Float_t  theta , Float_t   phi,
-			       Float_t& pS,  Float_t& thetaS, Float_t&  phiS)
-{
-//    
 // Basic implementation of this method 
 //
-    pS     = p;
-    thetaS = theta;
-    phiS   = phi;
+    Float_t theta = part->Theta();
+    Float_t phi   = part->Phi();
+    Float_t pt    = part->Pt();
+    Float_t eff   = Evaluate(pt, theta, phi);
+    return eff;
 }
 
 void AliFastResponse::Evaluate(Float_t   p,  Float_t  theta , Float_t   phi,
@@ -57,13 +42,5 @@ void AliFastResponse::Evaluate(Float_t   p,  Float_t  theta , Float_t   phi,
     pS     = p;
     thetaS = theta;
     phiS   = phi;
-}
-
-void AliFastResponse::Copy(TObject&) const
-{
-    //
-    // Copy 
-    //
-    Fatal("Copy","Not implemented!\n");
 }
 

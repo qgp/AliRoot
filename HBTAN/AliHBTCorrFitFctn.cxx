@@ -109,7 +109,7 @@ TH1* AliHBTCorrFitFctn::GetResult()
 Int_t AliHBTCorrFitFctn::WriteFunction()
 {
   //writes a function 
-  Int_t retval = 0;
+  Int_t retval;
   retval += AliHBTFunction::WriteFunction();
   retval += fNtuple->Write(0,TObject::kOverwrite);
   return retval;

@@ -110,7 +110,7 @@ void AliPHOSReconstructor::FillESD(AliRunLoader* runLoader, AliESD* esd) const
   TClonesArray *recParticles = AliPHOSGetter::Instance()->RecParticles();
   Int_t nOfRecParticles = recParticles->GetEntries();
   esd->SetNumberOfPHOSClusters(nOfRecParticles) ; 
-  esd->SetFirstPHOSCluster(esd->GetNumberOfCaloClusters()) ; 
+  esd->SetFirstPHOSCluster(esd->GetNumberOfTracks()) ; 
 
   for (Int_t recpart = 0 ; recpart < nOfRecParticles ; recpart++) {
     AliPHOSRecParticle * rp = dynamic_cast<AliPHOSRecParticle*>(recParticles->At(recpart));
