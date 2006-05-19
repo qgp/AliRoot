@@ -17,8 +17,8 @@ ICC_MINOR    := $(shell $(CXX) -V 2>&1 | awk '{ if (NR==1) print $$8 }' | \
 F77           = ifort
 
 # Global optimisation
-OPT           = -O -ip
-NOOPT         = -O0
+OPT           = -O -ip -g
+NOOPT         = -O0 -g
 
 CXXOPT        = $(OPT)
 CXXNOOPT      = $(NOOPT)
