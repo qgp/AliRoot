@@ -695,13 +695,14 @@ void AliModule::RemapTrackReferencesIDs(Int_t *map)
   // Called at finish primary
   //
   if (!fTrackReferences) return;
-  for (Int_t i=0;i<fTrackReferences->GetEntries();i++){
+  Int_t nEntries = fTrackReferences->GetEntries();
+  
+  for (Int_t i=0;i<nEntries;i++){
     AliTrackReference * ref = dynamic_cast<AliTrackReference*>(fTrackReferences->UncheckedAt(i));
     if (ref) {
       Int_t newID = map[ref->GetTrack()];
       if (newID>=0) ref->SetTrack(newID);
       else {
-        //ref->SetTrack(-1);
         ref->SetBit(kNotDeleted,kFALSE);
         fTrackReferences->RemoveAt(i);  
       }      
@@ -803,16 +804,16 @@ void AliModule::SetTreeAddress()
 }
 
 //_____________________________________________________________________________
-void  AliModule::AddTrackReference(Int_t label){
+AliTrackReference*  AliModule::AddTrackReference(Int_t label){
   //
   // add a trackrefernce to the list
   if (!fTrackReferences) {
     AliError("Container trackrefernce not active");
-    return;
+    return 0;
   }
   Int_t nref = fTrackReferences->GetEntriesFast();
   TClonesArray &lref = *fTrackReferences;
-  new(lref[nref]) AliTrackReference(label);
+  return new(lref[nref]) AliTrackReference(label);
 }
 
 
