@@ -38,6 +38,7 @@
 #include "AliConst.h" 
 #include "AliMagF.h"
 #include "AliRun.h"
+#include "AliTrackReference.h"
 #include "AliMC.h"
 #include "AliLog.h"
 
@@ -453,11 +454,40 @@ void AliMUONv1::StepManager2()
 
   if (idvol == -1) return;
   
+  // Detection elements id
+  const AliMUONGeometryModule* kGeometryModule
+    = GetGeometry()->GetModule(iChamber-1);
+
+  AliMUONGeometryDetElement* detElement
+    = kGeometryModule->FindBySensitiveVolume(CurrentVolumePath());
+
+  Int_t detElemId = 0;
+  if (detElement) detElemId = detElement->GetUniqueID(); 
+ 
+  if (!detElemId) {
+    cerr << "Chamber id: "
+  	 << setw(3) << iChamber << "  "
+  	 << "Current SV: " 
+  	 <<  CurrentVolumePath() 
+         << "  detElemId: "
+  	 << setw(5) << detElemId 
+         << endl;
+    Double_t x, y, z;
+    gMC->TrackPosition(x, y, z);	 
+    cerr << "	global position: "
+  	 << x << ", " << y << ", " << z
+  	 << endl;
+    AliError("DetElemId not identified.");
+  }  
+    
   // Filling TrackRefs file for MUON. Our Track references are the active volume of the chambers
-  if ( (gMC->IsTrackEntering() || gMC->IsTrackExiting() ) )     
-    AddTrackReference(gAlice->GetMCApp()->GetCurrentTrackNumber());
+  if ( (gMC->IsTrackEntering() || gMC->IsTrackExiting() ) ) {    
+    AliTrackReference* trackReference    
+      = AddTrackReference(gAlice->GetMCApp()->GetCurrentTrackNumber());
+    trackReference->SetUserId(detElemId);
+  }  
   
-   if( gMC->IsTrackEntering() ) {
+  if( gMC->IsTrackEntering() ) {
      Float_t theta = fTrackMomentum.Theta();
      if ((TMath::Pi()-theta)*kRaddeg>=15.) gMC->SetMaxStep(fStepMaxInActiveGas); // We use Pi-theta because z is negative
      iEnter = 1;
@@ -572,33 +602,7 @@ void AliMUONv1::StepManager2()
     }
     }
     
-    // Detection elements ids
-    const AliMUONGeometryModule* kGeometryModule
-      = GetGeometry()->GetModule(iChamber-1);
-
-    AliMUONGeometryDetElement* detElement
-      = kGeometryModule->FindBySensitiveVolume(CurrentVolumePath());
-
-    Int_t detElemId = 0;
-    if (detElement) detElemId = detElement->GetUniqueID(); 
- 
-    if (!detElemId) {
-      cerr << "Chamber id: "
-           << setw(3) << iChamber << "  "
-           << "Current SV: " 
-           <<  CurrentVolumePath() 
- 	   << "  detElemId: "
-           << setw(5) << detElemId 
-	   << endl;
-      Double_t x, y, z;
-      gMC->TrackPosition(x, y, z);	   
-      cerr << "   global position: "
-           << x << ", " << y << ", " << z
-           << endl;
-      AliError("DetElemId not identified.");
-    }  
-    
-    // One hit per chamber
+     // One hit per chamber
     GetMUONData()->AddHit2(fIshunt, 
 			  gAlice->GetMCApp()->GetCurrentTrackNumber(), 
 			  detElemId, ipart,
