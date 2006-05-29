@@ -28,6 +28,7 @@
 #pragma link C++ class  AliESDV0MIParams+;
 #pragma link C++ class  AliESDCaloCluster+;
 
+#pragma link C++ class  AliTracker+;
 #pragma link C++ class  AliKalmanTrack+;
 #pragma link C++ class  AliHelix+;
 #pragma link C++ class  AliExternalTrackParam+;
