@@ -24,6 +24,7 @@ protected:
   Int_t                        fSectorBlockSize;
   Short_t                      fLoadThreshold;
   Short_t                      fLoadPedestal;
+  Bool_t                       fAutoPedestal;
 
 public:
   TPCData();
@@ -31,6 +32,8 @@ public:
 
   void CreateSector(Int_t sector);
   void CreateAllSectors();
+  void DropAllSectors();
+  void DeleteAllSectors();
 
   TPCSectorData* GetSectorData(Int_t sector, Bool_t spawnSectors=kFALSE);
 
@@ -43,9 +46,11 @@ public:
   Short_t GetLoadPedestal()     const { return fLoadPedestal; }
   void    SetLoadPedestal(Short_t lp) { fLoadPedestal = lp; }
 
+  Bool_t GetAutoPedestal()     const { return fAutoPedestal; }
+  void   SetAutoPedestal(Bool_t ap)  { fAutoPedestal = ap; }
+
   void LoadDigits(TTree* tree, Bool_t spawnSectors=kTRUE);
-  void LoadRaw(AliTPCRawStream&    input, Bool_t spawnSectors=kTRUE);
-  void LoadRaw(AliTPCRawStreamOld& input, Bool_t spawnSectors=kTRUE, Bool_t warn=kFALSE);
+  void LoadRaw(AliTPCRawStream& input, Bool_t spawnSectors=kTRUE, Bool_t warn=kFALSE);
 
   ClassDef(TPCData, 1); // Manages TPC data for an event.
 }; // endclass TPCData

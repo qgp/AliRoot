@@ -170,6 +170,15 @@ TPCSectorData::~TPCSectorData()
     delete [] *b;
 }
 
+void TPCSectorData::DropData()
+{
+  fPads.assign(fgNAllPads, PadData());
+  for(std::vector<Short_t*>::iterator b=fBlocks.begin(); b!=fBlocks.end(); ++b)
+    delete [] *b;
+  fBlocks.clear();
+  fBlockPos = fBlockSize; // Enforce creation of a new block.
+}
+
 /**************************************************************************/
 
 void TPCSectorData::Print(Option_t* /*opt*/) const
@@ -191,9 +200,12 @@ void TPCSectorData::BeginPad(Int_t row, Int_t pad, Bool_t reverseTime)
     fCurrentPos  = 0;
     fCurrentStep = 2;
   }
+  //printf("begpad for row=%d pad=%d\n  buf=%p pos=%d step=%d\n",
+  //     fCurrentRow, fCurrentPad,
+  //     fPadBuffer, fCurrentPos, fCurrentStep);
 }
 
-void TPCSectorData::EndPad()
+void TPCSectorData::EndPad(Bool_t autoPedestal, Short_t threshold)
 {
   Short_t *beg, *end;
   if(fCurrentStep > 0) {
@@ -203,6 +215,40 @@ void TPCSectorData::EndPad()
     beg = fPadBuffer + fCurrentPos + 2;
     end = fPadBuffer + 2048;
   }
+
+  //printf("endpad for row=%d pad=%d\n  buf=%p beg=%p end=%p pos=%d step=%d\n",
+  //     fCurrentRow, fCurrentPad,
+  //     fPadBuffer, beg, end, fCurrentPos, fCurrentStep);
+  if(beg >= end)
+    return;
+
+  if(autoPedestal) {
+    Short_t array[1024];
+    Short_t* val;
+    val = beg + 1;    
+    while(val <= end) {
+      array[(val-beg)/2] = *val;
+      val += 2;
+    }    
+    Short_t pedestal = TMath::Nint(TMath::Median((end-beg)/2, array));
+    val = beg + 1;
+    while(val <= end) {
+      *val -= pedestal;
+      val += 2;
+    }
+    Short_t* wpos = beg;
+    Short_t* rpos = beg;
+    while(rpos < end) {
+      if(rpos[1] > threshold) {
+	wpos[0] = rpos[0];
+	wpos[1] = rpos[1];
+	wpos += 2;
+      }
+      rpos += 2;
+    }
+    end = wpos;
+  }
+
   Short_t* wpos = beg;
   Short_t* rpos = beg;
 
