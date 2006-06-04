@@ -338,7 +338,7 @@ Bool_t AliReconstruction::ApplyAlignObjsToGeom(TObjArray* alObjArray)
     }
 
   if (AliDebugLevelClass() >= 1) {
-    gGeoManager->CheckOverlaps(20);
+    gGeoManager->GetTopNode()->CheckOverlaps(20);
     TObjArray* ovexlist = gGeoManager->GetListOfOverlaps();
     if(ovexlist->GetEntriesFast()){  
       AliError("The application of alignment objects to the geometry caused huge overlaps/extrusions!");
@@ -1550,6 +1550,7 @@ void AliReconstruction::CreateTag(TFile* file)
   Int_t nEl1GeV, nEl3GeV, nEl10GeV;
   Float_t maxPt = .0, meanPt = .0, totalP = .0;
   Int_t fVertexflag;
+  Int_t iRunNumber = 0;
   TString fVertexName("default");
 
   AliRunTag *tag = new AliRunTag();
@@ -1570,8 +1571,9 @@ void AliReconstruction::CreateTag(TFile* file)
   TBranch * b = t->GetBranch("ESD");
   AliESD *esd = 0;
   b->SetAddress(&esd);
-  
-  tag->SetRunId(esd->GetRunNumber());
+
+  b->GetEntry(0);
+  Int_t iInitRunNumber = esd->GetRunNumber();
   
   Int_t iNumberOfEvents = b->GetEntries();
   for (Int_t iEventNumber = 0; iEventNumber < iNumberOfEvents; iEventNumber++) {
@@ -1603,6 +1605,8 @@ void AliReconstruction::CreateTag(TFile* file)
     fVertexflag = 0;
 
     b->GetEntry(iEventNumber);
+    iRunNumber = esd->GetRunNumber();
+    if(iRunNumber != iInitRunNumber) AliFatal("Inconsistency of run numbers in the AliESD!!!");
     const AliESDVertex * vertexIn = esd->GetVertex();
     if (!vertexIn) AliError("ESD has not defined vertex.");
     if (vertexIn) fVertexName = vertexIn->GetName();
@@ -1725,7 +1729,8 @@ void AliReconstruction::CreateTag(TFile* file)
 
     evTag->SetT0VertexZ(esd->GetT0zVertex());
     
-    evTag->SetTrigger(esd->GetTriggerMask());
+    evTag->SetTriggerMask(esd->GetTriggerMask());
+    evTag->SetTriggerCluster(esd->GetTriggerCluster());
     
     evTag->SetZDCNeutron1Energy(esd->GetZDCN1Energy());
     evTag->SetZDCProton1Energy(esd->GetZDCP1Energy());
@@ -1772,6 +1777,7 @@ void AliReconstruction::CreateTag(TFile* file)
     evTag->SetMeanPt(meanPt);
     evTag->SetMaxPt(maxPt);
     
+    tag->SetRunId(iInitRunNumber);
     tag->AddEventTag(*evTag);
   }
   lastEvent = iNumberOfEvents;
