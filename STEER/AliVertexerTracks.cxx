@@ -84,7 +84,7 @@ fDebug(0)
 //-----------------------------------------------------------------------------
 AliVertexerTracks::~AliVertexerTracks() {
   // Default Destructor
-  // The objects poited by the following pointer are not owned
+  // The objects pointed by the following pointer are not owned
   // by this class and are not deleted
   fCurrentVertex = 0;
   delete[] fTrksToSkip;
@@ -106,7 +106,9 @@ void AliVertexerTracks::ComputeMaxChi2PerTrack(Int_t nTracks) {
 //
   if(nTracks < 7) { fMaxChi2PerTrack = 1.e6;
   } else { fMaxChi2PerTrack = 100.; }
-
+  // Andrea, 2june06
+  // Chi2 cut not used any more, will be completely removed in next version
+  fMaxChi2PerTrack = 1.e8; 
   return;
 }
 //----------------------------------------------------------------------------

@@ -58,7 +58,7 @@ class AliVertexerTracks : public TObject {
     { fDCAcut=maxdca; return;}
   void SetFinderAlgorithm(Int_t opt=1) 
     { fAlgo=opt; return;}
-  void  SetNSigmad0(Double_t n=1) 
+  void  SetNSigmad0(Double_t n=3) 
     { fNSigma=n; return; }
 
  protected:
