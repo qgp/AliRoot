@@ -505,7 +505,8 @@ void AliMUONReconstructor::FillESD(AliRunLoader* runLoader, AliESD* esd) const
     recTrack = (AliMUONTrack*) recTracksArray->At(iRecTracks);
 
     trackParam = (AliMUONTrackParam*) (recTrack->GetTrackParamAtHit())->First();
-    trackParam->ExtrapToVertex(vertex[0],vertex[1],vertex[2]);
+    if (esdVert)
+      trackParam->ExtrapToVertex(vertex[0],vertex[1],vertex[2]);
 
     bendingSlope            = trackParam->GetBendingSlope();
     nonBendingSlope         = trackParam->GetNonBendingSlope();

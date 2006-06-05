@@ -21,6 +21,7 @@
 #include "AliESD.h"
 
 // MUON includes
+#include "AliMUONTrackParam.h"
 #include "AliESDMuonTrack.h"
 #endif
 //
@@ -116,9 +117,10 @@ Bool_t MUONmassPlot(char* filename = "galice.root", Int_t FirstEvent = 0, Int_t 
 
   Int_t ntrackhits, nevents;
   Double_t fitfmin;
+  Double_t fYVertex=0;
+  Double_t fXVertex=0;
   Double_t fZVertex=0;
 
- 
   TLorentzVector fV1, fV2, fVtot;
 
   // set off mag field 
@@ -157,7 +159,8 @@ Bool_t MUONmassPlot(char* filename = "galice.root", Int_t FirstEvent = 0, Int_t 
 
   runLoader->LoadHeader();
   nevents = runLoader->GetNumberOfEvents();
-        
+  AliMUONTrackParam trackParam;
+
   // Loop over events
   for (Int_t iEvent = FirstEvent; iEvent <= TMath::Min(LastEvent, nevents - 1); iEvent++) {
 
@@ -173,7 +176,11 @@ Bool_t MUONmassPlot(char* filename = "galice.root", Int_t FirstEvent = 0, Int_t 
 
     // get the SPD reconstructed vertex (vertexer) and fill the histogram
     AliESDVertex* Vertex = (AliESDVertex*) esd->AliESD::GetVertex();
-    if (Vertex) fZVertex = Vertex->GetZv();
+    if (Vertex) {
+      fZVertex = Vertex->GetZv();
+      fYVertex = Vertex->GetYv();
+      fXVertex = Vertex->GetXv();      
+    }
     hPrimaryVertex->Fill(fZVertex);
 
     Int_t nTracks = (Int_t)esd->GetNumberOfMuonTracks() ; 
@@ -185,6 +192,12 @@ Bool_t MUONmassPlot(char* filename = "galice.root", Int_t FirstEvent = 0, Int_t 
     for (Int_t iTrack = 0; iTrack <  nTracks;  iTrack++) {
 
       AliESDMuonTrack* muonTrack = esd->GetMuonTrack(iTrack);
+      if (!Vertex) {
+	//re-extrapolate to vertex, if not kown before.
+	trackParam.GetParamFrom(*muonTrack);
+	trackParam.ExtrapToVertex(fXVertex, fYVertex, fZVertex);
+	trackParam.SetParamFor(*muonTrack);
+      }
 
       thetaX = muonTrack->GetThetaX();
       thetaY = muonTrack->GetThetaY();
@@ -235,6 +248,11 @@ Bool_t MUONmassPlot(char* filename = "galice.root", Int_t FirstEvent = 0, Int_t 
 	for (Int_t iTrack2 = iTrack + 1; iTrack2 < nTracks; iTrack2++) {
 	  
 	  AliESDMuonTrack* muonTrack = esd->GetMuonTrack(iTrack2);
+          if (!Vertex) {
+	    trackParam.GetParamFrom(*muonTrack);
+	    trackParam.ExtrapToVertex(fXVertex, fYVertex, fZVertex);
+	    trackParam.SetParamFor(*muonTrack);
+	  }
 
 	  thetaX = muonTrack->GetThetaX();
 	  thetaY = muonTrack->GetThetaY();
