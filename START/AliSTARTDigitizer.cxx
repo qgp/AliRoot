@@ -307,12 +307,12 @@ void AliSTARTDigitizer::Exec(Option_t* /*option*/)
       AliDebug(2,Form("summult mv %i   mult  in chammens %i in ps %i ", 
 		      sumMult, fSumMult, fSumMult*channelWidth));
     }
-    if (  besttimeleft<99999 || besttimeleft < 99999) {
-      fSTART->AddDigit(bestRightTDC,bestLeftTDC,meanTime,timeDiff,fSumMult,
-		       ftimeCFD,fADC,ftimeLED,fADC0);
+//     if (  besttimeleft<99999 || besttimeleft < 99999) {
+    fSTART->AddDigit(bestRightTDC,bestLeftTDC,meanTime,timeDiff,fSumMult,
+		     ftimeCFD,fADC,ftimeLED,fADC0);
       
-      AliDebug(2,Form(" Digits wrote bestRightTDC %i bestLeftTDC %i  meanTime %i  timeDiff %i fSumMult %i ", bestRightTDC,bestLeftTDC,meanTime,timeDiff,fSumMult ));
-    }  
+    AliDebug(2,Form(" Digits wrote bestRightTDC %i bestLeftTDC %i  meanTime %i  timeDiff %i fSumMult %i ", bestRightTDC,bestLeftTDC,meanTime,timeDiff,fSumMult ));
+//     }  
     pOutStartLoader->UnloadHits();
   } //input streams loop
   
