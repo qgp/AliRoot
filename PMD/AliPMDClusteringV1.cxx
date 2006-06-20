@@ -480,6 +480,10 @@ void AliPMDClusteringV1::RefClust(int incr)
       for(j=0; j<=ig; j++){
 	cells[j]=0.;
       }
+      for (j=0; j<20;j++) {
+	lev1[j] =0;
+	lev2[j] =0;
+      }
       if(ig > 0){
 	for(j=0; j<=ncl[i]; j++){
 	  lev1[0]=0;
@@ -510,14 +514,16 @@ void AliPMDClusteringV1::RefClust(int incr)
 	      }
 	    }
 	  }else{
-	    if(lev2[0] == 0){cells[lev2[1]]=cells[lev2[1]]+1.;}
-	    else{
-	      sum=0.;
-	      for(k=1; k<=lev2[0]; k++){
-		sum=sum+zc[lev2[k]];
-	      }
-	      for(k=1; k<=lev2[0]; k++){
-		cells[lev2[k]]=cells[lev2[k]]+zc[lev2[k]]/sum;
+	    if (lev2[0] != 0) {
+	      if(lev2[0] == 1){cells[lev2[1]]=cells[lev2[1]]+1.;}
+	      else{
+		sum=0.;
+		for(k=1; k<=lev2[0]; k++){
+		  sum=sum+zc[lev2[k]];
+		}
+		for(k=1; k<=lev2[0]; k++){
+		  cells[lev2[k]]=cells[lev2[k]]+zc[lev2[k]]/sum;
+		}
 	      }
 	    }
 	  }
