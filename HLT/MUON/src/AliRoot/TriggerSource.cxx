@@ -24,7 +24,7 @@
 #include "AliMUONTriggerCircuit.h"
 #include "AliMUONDataInterface.h"
 #include "TDatabasePDG.h"
-#ifndef __alpha
+#ifndef __DECCXX
 #include <math.h>
 #else
 #include <float.h>
@@ -811,7 +811,7 @@ Bool_t AliHLTMUONTriggerSource::FillTriggerFromHits(
 	DebugMsg(2, "Creating TriggerRecord from hits on track: " << track );
 	
 	Float_t x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4;
-#ifndef __alpha
+#ifndef __DECCXX
 #ifndef __sun
 	x1 = y1 = z1 = x2 = y2 = z2 = x3 = y3 = z3 = x4 = y4 = z4 = nanf("");
 #else

@@ -16,7 +16,7 @@
 #include "AliMUONHit.h"
 #include "AliMUONRawCluster.h"
 #include "AliMUONDataInterface.h"
-#ifndef __alpha
+#ifndef __DECCXX
 #include <math.h>
 #else
 #include <float.h>
@@ -676,7 +676,7 @@ void AliHLTMUONClusterSource::AddChamberFrom(AliMUONDataInterface* data, Int_t c
 	
 	AddBlock(chamber);
 	UInt_t currentblocksize = 0;
-#ifndef __alpha
+#ifndef __DECCXX
 #ifndef __sun
 	Float_t x = nanf(""), y = nanf("");
 #else
@@ -767,7 +767,7 @@ void AliHLTMUONClusterSource::AddClusterFrom(
 // should already be selected before calling this method.
 
 	DebugMsg(1, "Entering AddClusterFrom");
-#ifndef __alpha
+#ifndef __DECCXX
 #ifndef __sun	
 	Float_t x = nanf(""), y = nanf("");
 #else

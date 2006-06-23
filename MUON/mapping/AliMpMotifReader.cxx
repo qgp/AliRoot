@@ -40,7 +40,7 @@
 #include <Riostream.h>
 #include <Rstrstream.h>
 
-#if !defined(__HP_aCC) && !defined(__alpha)
+#if !defined(__HP_aCC) && !defined(__DECCXX)
   #include <sstream>
 #endif
 
@@ -128,7 +128,7 @@ AliMpMotifType* AliMpMotifReader::BuildMotifType(const TString& motifTypeId)
     padPos.getline(line,255);
     if (!padPos) break;
 
-#if defined (__HP_aCC) || (__alpha)
+#if defined (__HP_aCC) || (__DECCXX)
     strstream strline;
     strline << line;
 #else
@@ -192,7 +192,7 @@ AliMpMotifType* AliMpMotifReader::BuildMotifType(const TString& motifTypeId)
     TString lineStr,token;
     lineStr.ReadLine(motif);
     if (!motif.good()) break;
-#if defined (__HP_aCC) || (__alpha)
+#if defined (__HP_aCC) || (__DECCXX)
     strstream tokenList;
     tokenList << lineStr.Data();
 #else

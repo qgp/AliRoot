@@ -51,7 +51,7 @@
 #include <TSystem.h>
 #include <TMath.h>
 
-#if !defined(__HP_aCC) && !defined(__alpha)
+#if !defined(__HP_aCC) && !defined(__DECCXX)
   #include <sstream>
 #endif
 
