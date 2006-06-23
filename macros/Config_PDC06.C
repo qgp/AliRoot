@@ -1,6 +1,27 @@
 //
 // Configuration for the Physics Data Challenge 2006
 //
+// Physics Run composition (Presented by A.Dainese, 21/03/06 
+//
+// Assuming inel = 70 mb (PPR v.1, p.64)
+//
+// 84.98% of MSEL=0 events (including diffractive) with 
+// QQbar switched off (these events will include injected J/psi) => kPyMbNoHvq
+// 
+// 14.14% of MSEL=1 events with ccbar (in 4 subsamples) => kCharmpp14000wmi 
+//     bin 1 25% (3.535%): 2.76 < pthard < 3 GeV/c 
+//     bin 2 40% (5.656%): 3 < pthard < 4 GeV/c 
+//     bin 3 29% (4.101%): 4 < pthard < 8 GeV/c 
+//     bin 4 6%  (0.848%):  pthard > 8 GeV/c 
+//
+// 0.73% of MSEL=1 events with bbbar (in 4 subsamples) => kBeautypp14000wmi
+//     bin 1 5%  (0.037%):   2.76 < pthard < 4 GeV/c
+//     bin 2 31% (0.226%):  4 < pthard < 6 GeV/c
+//     bin 3 28% (0.204%):  6 < pthard < 8 GeV/c
+//     bin 4 36% (0.263%):  pthard >8 GeV/c
+//
+// 0.075% of MSEL=0 events with QQbar switched off and 1 Omega-    => kPyOmegaMinus
+// 0.075% of MSEL=0 events with QQbar switched off and 1 OmegaBar+ => kPyOmegaPlus
 
 // One can use the configuration macro in compiled mode by
 // root [0] gSystem->Load("libgeant321");
@@ -108,6 +129,7 @@ static DecayHvFl_t   decHvFl  = kNature;
 static YCut_t        ycut     = kFull;
 static Mag_t         mag      = k5kG; 
 static TrigConf_t    trig     = kDefaultPPTrig; // default pp trigger configuration
+static Int_t         runNumber= 0; 
 //========================//
 // Set Random Number seed //
 //========================//
@@ -122,7 +144,7 @@ Int_t nEvts = -1;
 //       = kFALSE: only final heavy hadrons and their decays stored
 Bool_t stars = kTRUE;
 
-// To be used only with kCharmppMNRwmi and kBeautyppMNRwmi
+// To be used only with kCharmpp14000wmi and kBeautypp14000wmi
 // To get a "reasonable" agreement with MNR results, events have to be 
 // generated with the minimum ptHard set to 2.76 GeV.
 // To get a "perfect" agreement with MNR results, events have to be 
@@ -152,9 +174,6 @@ void Config()
   // Get settings from environment variables
   ProcessEnvironmentVars();
 
-  gRandom->SetSeed(seed);
-  cerr<<"Seed for random number generation= "<<seed<<endl; 
-
   // libraries required by geant321
 #if defined(__CINT__)
   gSystem->Load("libgeant321");
@@ -162,13 +181,13 @@ void Config()
 
   new TGeant3TGeo("C++ Interface to Geant3");
 
+  // Output every 100 tracks
+  ((TGeant3*)gMC)->SetSWIT(4,100);
+
   //=======================================================================
-  //  Create the output file
 
-   
+  // Run loader   
   AliRunLoader* rl=0x0;
-
-  cout<<"Config.C: Creating Run Loader ..."<<endl;
   rl = AliRunLoader::Open("galice.root",
 			  AliConfig::GetDefaultEventFolderName(),
 			  "recreate");
@@ -180,6 +199,9 @@ void Config()
   rl->SetCompressionLevel(2);
   rl->SetNumberOfEventsPerFile(1000);
   gAlice->SetRunLoader(rl);
+
+  // Run number
+  gAlice->SetRunNumber(runNumber);
   
   // Set the trigger configuration
   gAlice->SetTriggerDescriptor(TrigConfName[trig]);
@@ -222,9 +244,7 @@ void Config()
     gMC->SetCut("PPCUTM", cut);
     gMC->SetCut("TOFMAX", tofmax); 
 
-
-
-
+  //======================//
   // Set External decayer //
   //======================//
   TVirtualMCDecayer* decayer = new AliDecayerPythia();
@@ -306,14 +326,13 @@ void Config()
   
 
   // PRIMARY VERTEX
-  //
+
   gener->SetOrigin(0., 0., 0.);    // vertex position
-  //
-  //
+
   // Size of the interaction diamond
   // Longitudinal
   Float_t sigmaz  = 7.55 / TMath::Sqrt(2.); // [cm]
-  //
+
   // Transverse
   Float_t betast  = 10;                 // beta* [m]
   Float_t eps     = 3.75e-6;            // emittance [m]
@@ -328,7 +347,7 @@ void Config()
   gener->Init();
 
   // FIELD
-  //    
+
   if (mag == k2kG) {
     comment = comment.Append(" | L3 field 0.2 T");
   } else if (mag == k4kG) {
@@ -490,7 +509,7 @@ void Config()
     if (iTOF) {
         //=================== TOF parameters ============================
 	AliTOF *TOF = new AliTOFv5T0("TOF", "normal TOF");
-	// Partial geometry: modules at 2,3,4,6,7,11,12,14,15,16
+	// Partial geometry: modules at 2,3,4,6,7,11,12,14,15,16,17
 	// starting at 6h in positive direction
 	Int_t TOFSectors[18]={-1,-1,0,0,0,-1,0,0,-1,-1,-1,0,0,-1,0,0,0,0};
 	TOF->SetTOFSectors(TOFSectors);
@@ -582,9 +601,9 @@ void Config()
         AliVZERO *VZERO = new AliVZEROv7("VZERO", "normal VZERO");
     }
 }
-//
+
 //           PYTHIA
-//
+
 AliGenPythia *PythiaHVQ(PDC06Proc_t proc) {
 //*******************************************************************//
 // Configuration file for charm / beauty generation with PYTHIA      //
@@ -737,8 +756,8 @@ AliGenerator* MbCocktail()
       AliGenCocktail * gener = new AliGenCocktail();
       gener->UsePerEventRates();
  
-//
 //    Pythia
+
       AliGenPythia* pythia = new AliGenPythia(-1); 
       pythia->SetMomentumRange(0, 999999.);
       pythia->SetThetaRange(0., 180.);
@@ -748,7 +767,6 @@ AliGenerator* MbCocktail()
       pythia->SetEnergyCMS(14000.);
       pythia->SwitchHFOff();
       
-//
 //   J/Psi parameterisation
 
       AliGenParam* jpsi = new AliGenParam(1, AliGenMUONlib::kJpsi, "CDF scaled", "Jpsi");
@@ -756,8 +774,7 @@ AliGenerator* MbCocktail()
       jpsi->SetYRange(-8., 8.);
       jpsi->SetPhiRange(0., 360.);
       jpsi->SetForceDecay(kAll);
-//
-//        
+
       gener->AddGenerator(pythia, "Pythia", 1.);
       gener->AddGenerator(jpsi,   "J/Psi", 8.e-4);      
       
@@ -779,6 +796,21 @@ AliGenerator* PyMbTriggered(Int_t pdg)
 
 void ProcessEnvironmentVars()
 {
+    cout << "Processing environment variables" << endl;
+    // Random Number seed
+    if (gSystem->Getenv("CONFIG_SEED")) {
+      seed = atoi(gSystem->Getenv("CONFIG_SEED"));
+    }
+
+    gRandom->SetSeed(seed);
+    cout<<"Seed for random number generation= "<<seed<<endl; 
+
+    // Run Number
+    if (gSystem->Getenv("CONFIG_RUN")) {
+      runNumber = atoi(gSystem->Getenv("CONFIG_RUN"));
+    }
+    cout<<"Run number "<<runNumber<<endl;
+
     // Run type
     if (gSystem->Getenv("CONFIG_RUN_TYPE")) {
       for (Int_t iRun = 0; iRun < kRunMax; iRun++) {
@@ -787,12 +819,92 @@ void ProcessEnvironmentVars()
 	  cout<<"Run type set to "<<pprRunName[iRun]<<endl;
 	}
       }
+    } else {
+      // Define the run type randomly
+
+      // The array below contains the cumulative probability
+      // for the following cases:
+      // kPyMbNoHvq, kCharmpp14000wmi,kBeautypp14000wmi,kPyOmegaMinus,kPyOmegaPlus 
+      Double_t probType[] = {0.0,0.8498,0.9912,0.9985,0.99925,1.0};
+      Int_t iType = TMath::BinarySearch(6,probType,gRandom->Rndm());
+
+      switch (iType) {
+      case 0:
+	proc = kPyMbNoHvq;
+	break;
+      case 1:
+	proc = kCharmpp14000wmi;
+	{
+	  // Define ptHardMin,ptHardMax
+	  // The array below contains the cumulative probability
+	  // for the different pthard bins
+	  Double_t probPtCharm[] = {0.0,0.25,0.65,0.94,1.0};	
+	  Int_t iPt = TMath::BinarySearch(5,probPtCharm,gRandom->Rndm());
+	  switch (iPt) {
+	  case 0:
+	    ptHardMin = 2.76;
+	    ptHardMax = 3.0;
+	    break;
+	  case 1:
+	    ptHardMin = 3.0;
+	    ptHardMax = 4.0;
+	    break;
+	  case 2:
+	    ptHardMin = 4.0;
+	    ptHardMax = 8.0;
+	    break;
+	  case 3:
+	    ptHardMin = 8.0;
+	    ptHardMax = -1.0;
+	    break;
+	  default:
+	    cout << "ProcessEnvironmentVars: Wrong pthard bin" << endl;
+	  }
+	}
+	break;
+      case 2:
+	proc = kBeautypp14000wmi;
+	{
+	  // Define ptHardMin,ptHardMax
+	  // The array below contains the cumulative probability
+	  // for the different pthard bins
+	  Double_t probPtBeauty[] = {0.0,0.05,0.36,0.64,1.0};	
+	  Int_t iPt = TMath::BinarySearch(5,probPtBeauty,gRandom->Rndm());
+	  switch (iPt) {
+	  case 0:
+	    ptHardMin = 2.76;
+	    ptHardMax = 4.0;
+	    break;
+	  case 1:
+	    ptHardMin = 4.0;
+	    ptHardMax = 6.0;
+	    break;
+	  case 2:
+	    ptHardMin = 6.0;
+	    ptHardMax = 8.0;
+	    break;
+	  case 3:
+	    ptHardMin = 8.0;
+	    ptHardMax = -1.0;
+	    break;
+	  default:
+	    cout << "ProcessEnvironmentVars: Wrong pthard bin" << endl;
+	  }
+	}
+	break;
+      case 3:
+	proc = kPyOmegaMinus;
+	break;
+      case 4:
+	proc = kPyOmegaPlus;
+	break;
+      default:
+	cout << "ProcessEnvironmentVars: Wrong run type" << endl;
+      }
+      cout<<"Run type set to "<<pprRunName[proc]<<endl;
+      cout<<"ptHard limits: "<<ptHardMin<<" to " <<ptHardMax<<endl;
     }
 
-    // Random Number seed
-    if (gSystem->Getenv("CONFIG_SEED")) {
-      seed = atoi(gSystem->Getenv("CONFIG_SEED"));
-    }
 }
 
 
