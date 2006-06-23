@@ -1,5 +1,5 @@
 #ifdef __linux
-#if defined (__ia64) || defined (__x86_64)
+#if defined (__ia64) || defined (__x86_64) || defined (__alpha__)
 #else
 #include <fpu_control.h>
 void __attribute__ ((constructor))
