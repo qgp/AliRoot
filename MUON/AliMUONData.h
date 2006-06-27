@@ -92,16 +92,42 @@ class AliMUONData : public TNamed
     TClonesArray*  RecTracks() {return fRecTracks;}
     TClonesArray*  RecTriggerTracks() {return fRecTriggerTracks;}
 
-    void           GetTrack(Int_t it) const  {fLoader->TreeH()->GetEvent(it);}
-    Int_t          GetNtracks() const      {return (Int_t) fLoader->TreeH()->GetEntries();}
+    void           GetTrack(Int_t it) const  {
+      if (fLoader && fLoader->TreeH())
+	fLoader->TreeH()->GetEvent(it);
+    }
+    Int_t          GetNtracks() const      {
+      Int_t ntrk = 0;
+      if (fLoader && fLoader->TreeH())
+	ntrk = (Int_t) fLoader->TreeH()->GetEntries();
+      return ntrk;
+    }
     void           GetDigits() const;
-    void           GetSDigits() const {fLoader->TreeS()->GetEvent(0);}
-    void           GetRawClusters() const {fLoader->TreeR()->GetEvent(0);}
-    void           GetTrigger() const {fLoader->TreeR()->GetEvent(0);}
-    void           GetTriggerD() const {fLoader->TreeD()->GetEvent(0);}
+    void           GetSDigits() const {
+      if (fLoader && fLoader->TreeS())
+	fLoader->TreeS()->GetEvent(0);
+    }
+    void           GetRawClusters() const {
+      if (fLoader && fLoader->TreeR())
+	fLoader->TreeR()->GetEvent(0);
+    }
+    void           GetTrigger() const {
+      if (fLoader && fLoader->TreeR())
+	fLoader->TreeR()->GetEvent(0);
+    }
+    void           GetTriggerD() const {
+      if (fLoader && fLoader->TreeD())
+	fLoader->TreeD()->GetEvent(0);
+    }
     Int_t          GetSplitLevel() const {return fSplitLevel;}
-    void           GetRecTracks() const {fLoader->TreeT()->GetEvent(0);}
-    void           GetRecTriggerTracks() const {fLoader->TreeT()->GetEvent(0);}
+    void           GetRecTracks() const {
+      if (fLoader && fLoader->TreeT())
+	fLoader->TreeT()->GetEvent(0);
+    }
+    void           GetRecTriggerTracks() const {
+      if (fLoader && fLoader->TreeT())
+	fLoader->TreeT()->GetEvent(0);
+    }
 
     Bool_t        IsRawClusterBranchesInTree();
     Bool_t        IsDigitsBranchesInTree();
