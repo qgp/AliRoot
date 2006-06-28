@@ -16,7 +16,7 @@ CC	      = icc
 F77	      = ifort
 
 # Global optimisation
-OPT           = -O -g
+OPT           = -g
 NOOPT         = -g
 
 CXXOPT        = $(OPT) 
