@@ -1,6 +1,142 @@
-2006-06-01  Matevz Tadel  <matevz.tadel@cern.ch>
+2006-06-27  Matevz Tadel  <matevz.tadel@cern.ch>
 
-	HEAD
+	* BoxSetGL.cxx:
+	Skip render-state initialization if no boxes present.
+
+	* GeoNode.cxx:
+	* GeoNode.h:
+	Added option to render GeoTopNodeRnrEl at a given global position
+	(requires ROOT > 5.11.7).
+
+	* RGBrowser.cxx:
+	* RGBrowser.h:
+	* RGTopFrame.cxx:
+	Fixed creation of editor frame so that it uses X client's
+	SetRoot() functionality. This should (finally) close the issue.
+
+	* RMacro.cxx:
+	Check for macro via full-path (fTitle); save macro as '.C' not
+	'.Cexec'.
+
+	* Reve.cxx:
+	In CheckMacro() use TInterpreter::IsLoaded(mac) instead of
+	searching the list of global functions.
+
+	* VSDSelector.cxx:
+	Fixed code for hit and cluster import to work with 'new' render
+	element registration mechanism.
+
+2006-06-21  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	* LinkDef.h:
+	* RMacro.cxx:
+	* RMacro.h:
+	New class Reve::RMacro: a sub-class of TMacro that tries to unload
+	the macros properly before/after the operation.
+
+	* RGTopFrame.cxx:
+	* RGTopFrame.h:
+	Provide TFoler fMacroFolder to all consumers, register
+	Reve::RMacro mime type on start-up.
+
+	* Reve.cxx:
+	* Reve.h:
+	Added global function Bool_t Reve:CheckMacro().
+
+2006-06-20  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	* Track.cxx:
+	* Track.h:
+	In TrackList: added ImportHits/Clusters(); removed obsolete
+	MkPtScrollBar().
+
+2006-06-19  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	* PointSet.cxx:
+	* PointSet.h:
+	In PointSetArray: added member for default daughter PointSet
+	capacity (fDefPointSetCapacity) and method DeleteBins(). Set
+	daughter polymarker stuff in InitBins() instead of CloseBins().
+
+	* RGValuators.cxx:
+	* RGValuators.h:
+	Consistently use nuber of slider positions in RGValuator.
+
+	* RenderElement.h:
+	Added method RenderElementListBase::RemoveElements().
+
+2006-06-14  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	* BoxSetGL.h:
+	Added non-protected wrapper Render() for DirectDraw().
+
+	* PointSet.cxx:
+	* PointSet.h:
+	Subclassed point-set-array from TAttMarker, propagate changes to
+	all children.
+
+	* PointSetArrayEditor.cxx:
+	Removed stale printout.
+
+	* RGTopFrame.cxx:
+	Print exceptions to terminal also.
+
+2006-06-13  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	* Track.cxx:
+	Draw charged tracks as straight lines when magnetic field is near
+	zero.
+
+2006-06-12  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	* MCHelixLine.hi:
+	Formatting changes.
+
+	* RenderElement.cxx:
+	* RenderElement.h:
+	Renamed RenderElement::SetMainColorByPixel(Pixel_t) back to
+	RenderElement::SetMainColor(Pixel_t); there seemed to be a problem
+	when dependencies were not generated properly.
+
+	* Track.cxx:
+	* Track.h:
+	Added methods Track::ImportHits() and Track::ImportClusters();
+	fixed a charge value inconsistency yielding reconstructed
+	track charge to be 1/3.
+
+2006-06-09  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	* PointSet.h:
+	Added friend PointSetArrayEditor.
+
+	* PointSetArrayEditor.cxx:
+	* PointSetArrayEditor.h:
+	* TrackEditors.cxx:
+	* TrackEditors.h:
+	Use RGDoubleValuator for range-selection widget.
+
+	* RGTopFrame.cxx:
+	Accept -mode cmd-line option as an alias for -revemode.
+
+	* RGValuators.cxx:
+	Added some padding for labels.
+
+2006-06-02  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	* RGTopFrame.cxx:
+	* RGTopFrame.h:
+	Added method UndrawRenderElement().
+
+	* RenderElement.cxx:
+	* RenderElement.h:
+	Implemented dtor for RenderElement removing all instances from
+	browsers.
+
+	* RGValuators.cxx:
+	* RGValuators.h:
+	Added method RGValuator::SetEnabled().
+
+2006-06-01  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	* BoxSet.cxx:
 	* BoxSetGL.cxx:

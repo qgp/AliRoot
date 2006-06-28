@@ -94,24 +94,60 @@ void PointSet::Paint(Option_t* option)
 ClassImp(PointSetArray)
 
 PointSetArray::PointSetArray(const Text_t* name,
-					     const Text_t* title) :
-  TNamed(name, title), RenderElementListBase(fColor)
-{
-  fBins  = 0;
-  fColor = 1;
-}
+			     const Text_t* title) :
+  TNamed(name, title), RenderElementListBase(fMarkerColor),
+  fBins(0), fDefPointSetCapacity(128), fNBins(0)
+{}
 
 PointSetArray::~PointSetArray()
 {
-  delete [] fBins;
+  DeleteBins();
 }
 
 /**************************************************************************/
+
+void PointSetArray::SetMarkerColor(Color_t tcolor)
+{
+  for(lpRE_i i=fList.begin(); i!=fList.end(); ++i) {
+    TAttMarker* m = dynamic_cast<TAttMarker*>((*i)->GetObject());
+    if(m && m->GetMarkerColor() == fMarkerColor)
+      m->SetMarkerColor(tcolor);
+  }
+  TAttMarker::SetMarkerColor(tcolor);
+}
+
+void PointSetArray::SetMarkerStyle(Style_t mstyle)
+{
+  for(lpRE_i i=fList.begin(); i!=fList.end(); ++i) {
+    TAttMarker* m = dynamic_cast<TAttMarker*>((*i)->GetObject());
+    if(m && m->GetMarkerStyle() == fMarkerStyle)
+      m->SetMarkerStyle(mstyle);
+  }
+  TAttMarker::SetMarkerStyle(mstyle);
+}
+
+void PointSetArray::SetMarkerSize(Size_t msize)
+{
+  for(lpRE_i i=fList.begin(); i!=fList.end(); ++i) {
+    TAttMarker* m = dynamic_cast<TAttMarker*>((*i)->GetObject());
+    if(m && m->GetMarkerSize() == fMarkerSize)
+      m->SetMarkerSize(msize);
+  }
+  TAttMarker::SetMarkerSize(msize);
+}
+
 /**************************************************************************/
 
 void PointSetArray::InitBins(TGListTreeItem* tree_item, const Text_t* quant_name,
-				     Int_t nbins, Double_t min, Double_t max)
+			     Int_t nbins, Double_t min, Double_t max)
 {
+  static const Exc_t eH("PointSetArray::InitBins ");
+
+  if(nbins < 1) throw(eH + "nbins < 1.");
+  if(min > max) throw(eH + "min > max.");
+
+  DeleteBins();
+
   fQuantName = quant_name;
   fNBins     = nbins;
   fMin = fCurMin = min;
@@ -121,11 +157,26 @@ void PointSetArray::InitBins(TGListTreeItem* tree_item, const Text_t* quant_name
   fBins = new Reve::PointSet*[fNBins];
   for(Int_t i=0; i<fNBins; ++i) {
     fBins[i] = new Reve::PointSet
-      (Form("Slice %d [%4.3lf, %4.3lf]", i, fMin + i*fBinWidth, fMin + (i+1)*fBinWidth));
+      (Form("Slice %d [%4.3lf, %4.3lf]", i, fMin + i*fBinWidth, fMin + (i+1)*fBinWidth),
+       fDefPointSetCapacity);
+    fBins[i]->SetMarkerColor(fMarkerColor);
+    fBins[i]->SetMarkerStyle(fMarkerStyle);
+    fBins[i]->SetMarkerSize(fMarkerSize);
     AddElement(fBins[i]);
     if(tree_item)
       gReve->AddRenderElement(tree_item, fBins[i]);
   }
+}
+
+void PointSetArray::DeleteBins()
+{
+  if(fBins) {
+    for(Int_t i=0; i<fNBins; ++i)
+      delete fBins[i];
+    delete [] fBins;
+    fBins = 0; fNBins = 0;
+  }
+  RemoveElements();
 }
 
 void PointSetArray::Fill(Double_t quant, Double_t x, Double_t y, Double_t z)
@@ -140,13 +191,9 @@ void PointSetArray::Fill(TF3* , TTree* , TreeVarType_e )
 
 }
 
-void PointSetArray::CloseBins(Int_t mark_stlye, Float_t mark_size)
+void PointSetArray::CloseBins()
 {
   for(Int_t i=0; i<fNBins; ++i) {
-    fBins[i]->SetMarkerColor(fColor);
-    fBins[i]->SetMarkerColor(fColor);
-    fBins[i]->SetMarkerStyle(mark_stlye);
-    fBins[i]->SetMarkerSize(mark_size);
     fBins[i]->fN = fBins[i]->fLastPoint; // HACK! PolyMarker3D does half-management of array size.
     fBins[i]->ComputeBBox();
   }

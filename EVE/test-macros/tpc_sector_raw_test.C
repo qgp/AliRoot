@@ -29,8 +29,10 @@ void tpc_sector_raw_test(const char *file = "", Int_t ievent = 0)
   gStyle->SetPalette(1, 0);
 
   reader = new AliRawReaderRoot(file);
-  reader->LoadEquipmentIdsMap
-    (gSystem->ExpandPathName("$(ALICE_ROOT)/TPC/mapping/EquipmentIdMap.data"));
+//   reader->LoadEquipmentIdsMap
+//     (gSystem->ExpandPathName("$(ALICE_ROOT)/TPC/mapping/EquipmentIdMap.data"));
+  //(gSystem->ExpandPathName("EquipmentIdMap.data"));
+
   reader->Reset();
   for(Int_t i=0; i<ievent; ++i, ++event) {
     if(reader->NextEvent() == kFALSE) {
@@ -78,7 +80,7 @@ void next_event()
   printf("Now loading event %d\n", event);
   reader->Reset();
   AliTPCRawStream input(reader);
-  input.SetOldRCUFormat(kTRUE);
+  //  input.SetOldRCUFormat(kTRUE);
   // reader->Select(0, firstRCU, lastRCU);
 
   x->DropAllSectors();

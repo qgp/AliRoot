@@ -9,6 +9,8 @@
 
 #include <map>
 
+class TMacro;
+class TFolder;
 class TCanvas;
 class TGStatusBar;
 class TGListTree;
@@ -34,6 +36,8 @@ private:
   RGBrowser           *fBrowser;
   TGStatusBar         *fStatusBar;
   const char          *fVSDFile;
+
+  TFolder             *fMacroFolder;
 
   RGEditor            *fEditor;
 
@@ -63,6 +67,9 @@ public:
   TGListTreeItem* GetEventTreeItem();
   TGListTreeItem* GetGlobalTreeItem();
 
+  TFolder* GetMacroFolder() const { return fMacroFolder; }
+  TMacro*  GetMacro(const Text_t* name) const;
+
   RGEditor* GetEditor() const { return fEditor; }
   void EditRenderElement(RenderElement* rnr_element);
 
@@ -83,6 +90,7 @@ public:
   TGListTreeItem* AddGlobalRenderElement(TGListTreeItem* parent, RenderElement* rnr_element);
 
   void DrawRenderElement(RenderElement* rnr_element, TVirtualPad* pad=0);
+  void UndrawRenderElement(RenderElement* rnr_element, TVirtualPad* pad=0);
 
   void RenderElementChecked(TObject* obj, Bool_t state);
 

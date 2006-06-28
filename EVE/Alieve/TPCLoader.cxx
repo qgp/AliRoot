@@ -26,7 +26,7 @@ TPCLoader::TPCLoader(const Text_t* n, const Text_t* t) :
   fEvent(-1),
   fDoubleSR(kFALSE),
 
-  fTPCEquipementMap(),
+  fTPCEquipementMap("$(ALICE_ROOT)/TPC/mapping/EquipmentIdMap.data"),
   fReader(0),
   fData(0),
 
@@ -70,9 +70,8 @@ void TPCLoader::OpenFile()
   fEvent  = -1;
 
   fReader = new AliRawReaderRoot(fFile);
-  if(fTPCEquipementMap != "")
-    fReader->LoadEquipmentIdsMap
-      (gSystem->ExpandPathName(fTPCEquipementMap.Data()));
+//   fReader->LoadEquipmentIdsMap
+//     (gSystem->ExpandPathName(fTPCEquipementMap.Data()));
 
   NextEvent();
   LoadEvent();
@@ -89,8 +88,8 @@ void TPCLoader::LoadEvent()
   printf("Now loading event %d\n", fEvent);
   fReader->Reset();
   AliTPCRawStream input(fReader);
-  input.SetOldRCUFormat(kTRUE);
-  fReader->Select("TPC");
+//   input.SetOldRCUFormat(kTRUE);
+  fReader->Select(0);
 
   fData->DropAllSectors();
   fData->LoadRaw(input, kTRUE, kTRUE);  

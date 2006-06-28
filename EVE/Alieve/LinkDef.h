@@ -15,12 +15,16 @@
 #pragma link C++ class Alieve::VSDCreator+;
 
 // ITS
-
 #pragma link C++ class Alieve::ITSDigitsInfo+;
 #pragma link C++ class Alieve::ITSModule+;
 
-// TPC
 
+// MUON
+#pragma link C++ class Alieve::MUONDigitsInfo+;
+#pragma link C++ class Alieve::MUONModule+;
+
+
+// TPC
 #pragma link C++ class Alieve::TPCData+;
 
 #pragma link C++ class Alieve::TPCSectorData+;
@@ -29,6 +33,8 @@
 #pragma link C++ class Alieve::TPCSectorData::RowIterator;
 #pragma link C++ class Alieve::TPCSectorData::SegmentInfo;
 
+#pragma link C++ class Alieve::TPCSectorData::PadRowHack;
+
 #pragma link C++ class Alieve::TPCSectorViz+;
 #pragma link C++ class Alieve::TPCSectorVizEditor+;
 #pragma link C++ class Alieve::TPCSector2D+;
@@ -36,3 +42,8 @@
 #pragma link C++ class Alieve::TPCSector2DGL+;
 #pragma link C++ class Alieve::TPCSector3D+;
 #pragma link C++ class Alieve::TPCSector3DEditor+;
+#pragma link C++ class Alieve::TPCSector3DGL+;
+
+#pragma link C++ class Alieve::TPCLoader+;
+#pragma link C++ class Alieve::TPCLoaderEditor+;
+

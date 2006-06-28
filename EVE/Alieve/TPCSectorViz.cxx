@@ -41,21 +41,30 @@ TPCSectorViz::TPCSectorViz(const Text_t* n, const Text_t* t) :
   fFrameColor ((Color_t) 4),
   fRnrFrame (kTRUE),
   fTrans    (kFALSE),
-  fRTS      (1)
+  fRTS      (1),
+
+  fColorArray (0)
 {}
 
 TPCSectorViz::~TPCSectorViz()
 {
   if(fTPCData) fTPCData->DecRefCount();
+  delete [] fColorArray;
+}
+
+void TPCSectorViz::CopyVizParams(const TPCSectorViz& v)
+{
+  fMinTime   = v.fMinTime;
+  fMaxTime   = v.fMaxTime;
+  fThreshold = v.fThreshold;
+  fMaxVal    = v.fMaxVal;
+
+  fRnrInn    = v.fRnrInn;
+  fRnrOut1   = v.fRnrOut1;
+  fRnrOut2   = v.fRnrOut2;
 }
 
 /**************************************************************************/
-
-//UInt_t TPCSectorViz::IncRTS()
-//{
-//  return ++fRTS;
-//}
-
 
 void TPCSectorViz::SetDataSource(TPCData* data)
 {
@@ -66,17 +75,35 @@ void TPCSectorViz::SetDataSource(TPCData* data)
   IncRTS();
 }
 
-void TPCSectorViz::SetSectorID(Int_t segment)
+void TPCSectorViz::SetSectorID(Int_t id)
 {
-  if(segment < 0 ) segment = 0;
-  if(segment > 35) segment = 35;
-  fSectorID = segment;
+  if(id < 0)  id = 0;
+  if(id > 35) id = 35;
+  fSectorID = id;
+  if(fTrans)
+    SetTrans(kTRUE); // Force repositioning.
   IncRTS();
 }
 
 TPCSectorData* TPCSectorViz::GetSectorData() const
 {
   return fTPCData ? fTPCData->GetSectorData(fSectorID) : 0;
+}
+
+/**************************************************************************/
+
+void TPCSectorViz::SetThreshold(Short_t t)
+{
+  fThreshold = TMath::Min(t, (Short_t)(fMaxVal - 1));
+  ClearColorArray();
+  IncRTS();
+}
+
+void TPCSectorViz::SetMaxVal(Int_t mv)
+{
+  fMaxVal = TMath::Max(mv, (Int_t)(fThreshold + 1));
+  ClearColorArray();
+  IncRTS();
 }
 
 /**************************************************************************/
@@ -91,15 +118,19 @@ void TPCSectorViz::SetTrans(Bool_t trans)
     using namespace TMath;
     Float_t c = Cos((fSectorID + 0.5)*20*Pi()/180 - PiOver2());
     Float_t s = Sin((fSectorID + 0.5)*20*Pi()/180 - PiOver2());
-    Float_t z = TPCSectorData::GetParam().GetZLength();
-    if(fSectorID >= 18) z = -z;
+    Float_t z = TPCSectorData::GetZLength();
+    Float_t d = -1;
+    if(fSectorID >= 18) {
+      z = -z;
+      d = -d;
+    }
   
     // column major
     fMatrix[0]  = -c;
     fMatrix[1]  = -s;
     fMatrix[4]  = -s;
     fMatrix[5]  =  c;
-    fMatrix[10] = -1;
+    fMatrix[10] =  d;
     fMatrix[14] =  z;
     fMatrix[15] =  1;
   }
@@ -115,4 +146,23 @@ void TPCSectorViz::SetupColor(Int_t val, UChar_t* pixel) const
   Int_t   cBin = (Int_t) Nint(nCol*(val - fThreshold)/div);
 
   ColorFromIdx(gStyle->GetColorPalette(Min(nCol - 1, cBin)), pixel);
+}
+
+void TPCSectorViz::ClearColorArray()
+{
+  if(fColorArray) {
+    delete [] fColorArray;
+    fColorArray = 0;
+  }
+}
+
+void TPCSectorViz::SetupColorArray() const
+{
+  if(fColorArray)
+    return;
+
+  fColorArray = new UChar_t [4 * (fMaxVal - fThreshold + 1)];
+  UChar_t* p = fColorArray;
+  for(Int_t v=fThreshold; v<=fMaxVal; ++v, p+=4)
+    SetupColor(v, p);
 }

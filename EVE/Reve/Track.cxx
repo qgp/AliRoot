@@ -43,7 +43,7 @@ Track::Track(Reve::MCTrack* t, TrackRnrStyle* rs)
     t->ResetPdgCode(); pdgp = t->GetPDG();
   }
 
-  fCharge = (Int_t) pdgp->Charge();
+  fCharge = (Int_t) TMath::Nint(pdgp->Charge()/3);
   fLabel  = t->label;
 }
 
@@ -89,14 +89,16 @@ void Track::MakeTrack()
   mc_v0.t = 0;
 
   std::vector<MCVertex> track_points;
-  Bool_t decay = false;
+  Bool_t decay = kFALSE;
 
   if ((TMath::Abs(fV.z) > RS.fMaxZ) || (fV.x*fV.x + fV.y*fV.y > RS.fMaxR*RS.fMaxR)) 
     goto make_polyline;
   
-  if (fCharge) { // Charged particle
+  if (fCharge != 0 && TMath::Abs(RS.fMagField) > 1e-5) {
 
-    Float_t a = 0.2998*RS.fMagField*fCharge/300; // m->cm
+    // Charged particle in magnetic field
+
+    Float_t a = RS.fgkB2C * RS.fMagField * fCharge;
    
     MCHelix helix(fRnrStyle, &mc_v0, TMath::C()*fBeta, &track_points, a); //m->cm
     helix.Init(TMath::Sqrt(px*px+py*py), pz);
@@ -129,12 +131,14 @@ void Track::MakeTrack()
     }
   helix_bounds:
     //go to bounds
-    if(!decay || RS.fFitDecay == false){
+    if(!decay || RS.fFitDecay == kFALSE){
       helix.LoopToBounds(px,py,pz);
       // printf("%s loop to bounds  \n",fName.Data() );
     }
 
-  } else { // Neutral particle
+  } else {
+
+    // Neutral particle or no field
 
     MCLine line(fRnrStyle, &mc_v0, TMath::C()*fBeta, &track_points);
    
@@ -164,7 +168,7 @@ void Track::MakeTrack()
     }
 
   line_bounds:
-    if(!decay || RS.fFitDecay == false)
+    if(!decay || RS.fFitDecay == kFALSE)
       line.GotoBounds(px,py,pz);
 
   }
@@ -176,27 +180,44 @@ make_polyline:
 
 /**************************************************************************/
 
+void Track::ImportHits()
+{
+  Reve::LoadMacro("hits_from_label.C");
+  gROOT->ProcessLine(Form("hits_from_label(%d);", fLabel));
+}
+
+void Track::ImportClusters()
+{
+  Reve::LoadMacro("clusters_from_label.C");
+  gROOT->ProcessLine(Form("clusters_from_label(%d);", fLabel));
+}
+
+
+/**************************************************************************/
+/**************************************************************************/
+
 //______________________________________________________________________
 // TrackRnrStyle
 //
 
 ClassImp(Reve::TrackRnrStyle)
 
-Float_t       TrackRnrStyle::fgDefMagField = 0.5;
+Float_t       TrackRnrStyle::fgDefMagField = 5;
+const Float_t TrackRnrStyle::fgkB2C        = 0.299792458e-3;
 TrackRnrStyle TrackRnrStyle::fgDefStyle;
 
 void TrackRnrStyle::Init()
 {
   fMagField = fgDefMagField;
 
-  fMaxR  = 450;
-  fMaxZ  = 550;
+  fMaxR  = 350;
+  fMaxZ  = 450;
 
-  fMaxOrbs = 2;
+  fMaxOrbs = 0.5;
   fMinAng  = 45;
 
-  fFitDaughters = true;
-  fFitDecay     = true;
+  fFitDaughters = kTRUE;
+  fFitDecay     = kTRUE;
 
   fDelta  = 0.1; //calculate step size depending on helix radius
 }
@@ -216,8 +237,8 @@ void TrackList::Init()
   fMarkerColor = 5;
   // fMarker->SetMarkerSize(0.05);
 
-  fRnrMarkers = true;
-  fRnrTracks  = true;
+  fRnrMarkers = kTRUE;
+  fRnrTracks  = kTRUE;
 
   mRnrStyle = new TrackRnrStyle;
   SetMainColorPtr(&mRnrStyle->fColor);
@@ -375,34 +396,16 @@ void TrackList::SelectByPt(Float_t min_pt, Float_t max_pt)
 
 /**************************************************************************/
 
-#include <TGFrame.h>
-#include <TGDoubleSlider.h>
-#include <TGXYLayout.h>
-
-void TrackList::MakePtScrollbar()
+void TrackList::ImportHits()
 {
-  TGMainFrame* mf = new TGMainFrame(gClient->GetRoot(), 320, 60);
-
-  TGDoubleHSlider* hs = new TGDoubleHSlider(mf);
-  hs->SetRange(0.2, 10);
-  hs->SetPosition(0.2, 10);
-  hs->Resize(300, 25);
-  mf->AddFrame(hs, new TGLayoutHints(kLHintsCenterX, 10, 10, 10, 10));
-
-  hs->Connect("PositionChanged()", "Reve::TrackList",
-	      this, "HandlePtScrollEvent()");
-
-  mf->SetWindowName("Pt Selector");
-  mf->MapSubwindows();
-  mf->Resize(mf->GetDefaultSize()); // this is used here to init layout algorithm
-  mf->MapWindow();
+  for(lpRE_i i=fList.begin(); i!=fList.end(); ++i) {
+    ((Track*)(*i))->ImportHits();
+  }
 }
 
-void TrackList::HandlePtScrollEvent()
+void TrackList::ImportClusters()
 {
-  TGDoubleHSlider* hs = (TGDoubleHSlider*)gTQSender;
-
-  Float_t min = hs->GetMinPosition(), max = hs->GetMaxPosition();
-  printf("hslidor min=%f max=%f\n", min, max);
-  SelectByPt(min, max);
+  for(lpRE_i i=fList.begin(); i!=fList.end(); ++i) {
+    ((Track*)(*i))->ImportClusters();
+  }
 }

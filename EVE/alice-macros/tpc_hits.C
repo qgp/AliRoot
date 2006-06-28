@@ -12,13 +12,14 @@ tpc_hits(const char *varexp    = "TPC2.fArray.fR:TPC2.fArray.fFi:TPC2.fArray.fZ"
   rl->LoadHits("TPC");
 
   TTree* ht = rl->GetTreeH("TPC", false);
-  ht->SetEstimate(400*ht->GetEntries());
+  ht->SetEstimate(800*ht->GetEntries());
   ht->Draw(varexp, selection, option);
   
   Reve::PointSet* points =
     new Reve::PointSet(Form("TPC Hits '%s'", selection), ht,
 		       Reve::PointSet::TVT_RPhiZ);
   points->SetTitle(Form("N=%d", points->GetN()));
+  points->SetMarkerSize(2);
   points->SetMarkerColor((Color_t)3);
 
   gReve->AddRenderElement(points);
