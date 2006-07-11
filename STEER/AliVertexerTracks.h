@@ -60,28 +60,28 @@ class AliVertexerTracks : public TObject {
     { fAlgo=opt; return;}
   void  SetNSigmad0(Double_t n=3) 
     { fNSigma=n; return; }
+  static Double_t GetStrLinMinDist(Double_t *p0,Double_t *p1,Double_t *x0);
+  static Double_t GetDeterminant3X3(Double_t matr[][3]);
+  static void GetStrLinDerivMatrix(Double_t *p0,Double_t *p1,Double_t (*m)[3],Double_t *d);
+  static void GetStrLinDerivMatrix(Double_t *p0,Double_t *p1,Double_t *sigmasq,Double_t (*m)[3],Double_t *d);
 
  protected:
-  Double_t   GetField() const { return AliTracker::GetBz();} 
-  void     ComputeMaxChi2PerTrack(Int_t nTracks);
-  Int_t PrepareTracks(TTree &trkTree, Int_t OptImpParCut);
+  Double_t GetField() const { return AliTracker::GetBz();} 
+  Int_t    PrepareTracks(TTree &trkTree, Int_t OptImpParCut);
   Double_t Sigmad0rphi(Double_t pt) const;
   void     VertexFinder(Int_t optUseWeights=0);
   void     HelixVertexFinder();
   void     StrLinVertexFinderMinDist(Int_t OptUseWeights=0);
-  static void GetStrLinDerivMatrix(Double_t *p0,Double_t *p1,Double_t m[][3],Double_t *d);
-  static void GetStrLinDerivMatrix(Double_t *p0,Double_t *p1,Double_t *sigmasq,Double_t m[][3],Double_t *d);
-  static Double_t GetStrLinMinDist(Double_t *p0,Double_t *p1,Double_t *x0);
-  static Double_t GetDeterminant3X3(Double_t matr[][3]);
   void     VertexFitter(Bool_t useNominaVtx=kFALSE);
+  void     TooFewTracks(const AliESD *esdEvent);
 
+   
   AliVertex fVert;         // vertex after vertex finder
   AliESDVertex *fCurrentVertex;  // ESD vertex after fitter
   Double_t  fNominalPos[3];   // initial knowledge on vertex position
   Double_t  fNominalSigma[3]; // initial knowledge on vertex position
   Int_t     fMinTracks;       // minimum number of tracks
   Int_t     fMinITSClusters;  // minimum number of ITS clusters per track
-  Double_t  fMaxChi2PerTrack; // maximum contribition to the chi2 
   TObjArray fTrkArray;        // array with tracks to be processed
   Int_t     *fTrksToSkip;     // tracks to be skipped for find and fit 
   Int_t     fNTrksToSkip;     // number of tracks to be skipped 
@@ -103,10 +103,7 @@ class AliVertexerTracks : public TObject {
   //         approximated as straight lines 
 
 
-  ClassDef(AliVertexerTracks,4) // 3D Vertexing with ESD tracks 
+  ClassDef(AliVertexerTracks,5) // 3D Vertexing with ESD tracks 
 };
 
 #endif
-
-
-
