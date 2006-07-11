@@ -118,10 +118,10 @@ void AliFRAMEv2::CreateGeometry()
   ppgon[8] =   ppgon[5];
   ppgon[9] =   ppgon[6];
 
-  gMC->Gsvolu("B077", "PGON", kAir, ppgon, 10);
+  TGeoVolume* b077 = new TGeoVolumeAssembly("B077");  
+  TGeoVolume* alic = gGeoManager->GetVolume("ALIC");
+  alic->AddNode(b077,1,gGeoIdentity);
 
-//  gMC->Gsvolu("B077", "TUBE", kAir, ptube, 3);
-  gMC->Gspos("B077", 1, "ALIC", 0., 0., 0., 0, "ONLY");
 //
 // Reference plane for TRD
 //
@@ -137,24 +137,13 @@ void AliFRAMEv2::CreateGeometry()
   Float_t dol = 8.75;
   Float_t doh = 5.;
   Float_t ds  = 0.35;
+
 //
 // Mother volume
 //
-  ppgon[0] =   0.;
-  ppgon[1] = 360.;
-  ppgon[2] =  18.;
-
-  ppgon[3] =   2.;
-
-  ppgon[4] = -350.;
-  ppgon[5] =  399.;
-  ppgon[6] =  420.7122;
+  TGeoVolume* b076 = new TGeoVolumeAssembly("B076");
+  b077->AddNode(b076,1,gGeoIdentity);
   
-  ppgon[7] =  -ppgon[4]; 
-  ppgon[8] =   ppgon[5];
-  ppgon[9] =   ppgon[6];
-  gMC->Gsvolu("B076", "PGON", kAir, ppgon, 10);
-  gMC->Gspos("B076", 1, "B077", 0., 0., 0., 0, "ONLY");
 //  
 // Rings    
 //
