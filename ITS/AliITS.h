@@ -29,6 +29,11 @@ class AliITSmodule;
 class AliDigitizer;
 class AliRunDigitizer;
 
+class AliITSgeom;
+class TArrayD;
+class TGeoHMatrix;
+
+
 
 class AliITS : public AliDetector {
 
@@ -155,7 +160,27 @@ class AliITS : public AliDetector {
     Int_t        *fIdSens;     //[fIdN] layer identifier
     TString      *fIdName;     //[fIdN] layer identifier
     TObjArray    *fITSmodules; //! Pointer to ITS modules
-    ClassDef(AliITS,6) // Base class for ITS
+
+
+
+
+    // Patch to correct mismatch between TGeo and AliITSgeom
+    // To be there only for the PDC06 
+ private:
+    AliITSgeom* CreateAliITSgeom(); // Create and intilize geometry from TGeom
+    Bool_t InitAliITSgeomPPRasymmFMD(AliITSgeom *geom);
+    Bool_t InitGeomShapePPRasymmFMD(AliITSDetector idet,Bool_t *initSeg,
+				       TArrayD &shapePar,AliITSgeom *geom);
+    Bool_t GetTransformation(const TString &volumePath,TGeoHMatrix &mat);
+    Bool_t GetShape(const TString &volumePath,TString &shapeType,TArrayD &par);
+    void DecodeDetectorLayers(Int_t mod,Int_t &lay,Int_t &lad,Int_t &det);
+    void RecodeDetector(Int_t mod,Int_t &cpn0,Int_t &cpn1,Int_t &cpn2);
+                              // class in fShape of AliITSgeom class.
+    Bool_t    fDecode;        // Flag for new/old decoding
+
+
+
+    ClassDef(AliITS,7) // Base class for ITS
 
 };
 
