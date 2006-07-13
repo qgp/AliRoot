@@ -37,15 +37,18 @@
 #pragma link C++ class Reve::RecV0+;
 #pragma link C++ class Reve::GenInfo+;
 
-// Event
+// EventBase, VSDEvent, VSD
+#pragma link C++ class Reve::EventBase+;
 #pragma link C++ class Reve::EvTree+;
-#pragma link C++ class Reve::Event+;
+#pragma link C++ class Reve::VSDEvent+;
 #pragma link C++ class Reve::VSDTree+;
 #pragma link C++ class Reve::VSD+;
 
 // TTreeTools
 #pragma link C++ class TSelectorToEventList+;
 #pragma link C++ class TTreeQuery+;
+#pragma link C++ class TPointSelectorConsumer+;
+#pragma link C++ class TPointSelector+;
 
 // RenderElement
 #pragma link C++ class Reve::RenderElement+;
