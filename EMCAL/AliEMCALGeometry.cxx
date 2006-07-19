@@ -35,7 +35,7 @@
 
 #include <TMath.h>
 #include <TVector3.h>
-#include <TArrayD.h>
+	      //#include <TArrayD.h>
 #include <TObjArray.h>
 #include <TGeoManager.h>
 #include <TGeoNode.h>
@@ -63,6 +63,22 @@ AliEMCALGeometry  *AliEMCALGeometry::fgGeom      = 0;
 Bool_t             AliEMCALGeometry::fgInit      = kFALSE;
 AliEMCALAlignData *AliEMCALGeometry::fgAlignData = 0;
 
+
+
+AliEMCALGeometry::AliEMCALGeometry() : AliGeometry() 
+{ 
+  // default ctor only for internal usage (singleton)
+  // must be kept public for root persistency purposes, but should never be called by the outside world    
+  //  CreateListOfTrd1Modules();
+  AliDebug(2, "AliEMCALGeometry : default ctor ");
+}
+//______________________________________________________________________
+AliEMCALGeometry::AliEMCALGeometry(const Text_t* name, const Text_t* title) :
+AliGeometry(name, title) {// ctor only for internal usage (singleton)
+  AliDebug(2, Form("AliEMCALGeometry(%s,%s) ", name,title));
+  Init();
+  CreateListOfTrd1Modules();
+}
 //______________________________________________________________________
 AliEMCALGeometry::~AliEMCALGeometry(void){
     // dtor
@@ -79,9 +95,10 @@ void AliEMCALGeometry::Init(void){
   // 11-oct-05   - correction for pre final design
   // Feb 06,2006 - decrease the weight of EMCAL
 
-  fAdditionalOpts[0] = "nl=";   // number of sampling layers
-  fAdditionalOpts[1] = "pbTh="; // cm, Thickness of the Pb
-  fAdditionalOpts[2] = "scTh=";  // cm, Thickness of the Sc
+  fAdditionalOpts[0] = "nl=";    // number of sampling layers (fNECLayers)
+  fAdditionalOpts[1] = "pbTh=";  // cm, Thickness of the Pb   (fECPbRadThick)
+  fAdditionalOpts[2] = "scTh=";  // cm, Thickness of the Sc    (fECScintThick)
+  fAdditionalOpts[3] = "latSS=";  // cm, Thickness of lateral steel strip (fLateralSteelStrip)
 
   fNAdditionalOpts = sizeof(fAdditionalOpts) / sizeof(char*);
 
@@ -183,9 +200,6 @@ void AliEMCALGeometry::Init(void){
         fNPHIdiv = fNETAdiv  = 4;
       }
     }
-    fPhiTileSize = fPhiModuleSize/2. - fLateralSteelStrip; // 13-may-05 
-    fEtaTileSize = fEtaModuleSize/2. - fLateralSteelStrip; // 13-may-05 
-
     if(fGeoName.Contains("25")){
       fNECLayers     = 25;
       fECScintThick  = fECPbRadThickness = 0.5;
@@ -196,6 +210,10 @@ void AliEMCALGeometry::Init(void){
     }
 
     CheckAdditionalOptions();
+    DefineSamplingFraction();
+
+    fPhiTileSize = fPhiModuleSize/2. - fLateralSteelStrip; // 13-may-05 
+    fEtaTileSize = fEtaModuleSize/2. - fLateralSteelStrip; // 13-may-05 
 
     // constant for transition absid <--> indexes
     fNCellsInTower  = fNPHIdiv*fNETAdiv;
@@ -337,11 +355,33 @@ void AliEMCALGeometry::CheckAdditionalOptions()
       if       (addOpt.Contains("NL=",TString::kIgnoreCase))   {// number of sampling layers
         sscanf(addOpt.Data(),"NL=%i", &fNECLayers);
         AliDebug(2,Form(" fNECLayers %i (new) \n", fNECLayers));
-      } else if(addOpt.Contains("PBTH=",TString::kIgnoreCase)) {//Thickness of the Pb
+      } else if(addOpt.Contains("PBTH=",TString::kIgnoreCase)) {//Thickness of the Pb(fECPbRadThicknes)
         sscanf(addOpt.Data(),"PBTH=%f", &fECPbRadThickness);
-      } else if(addOpt.Contains("SCTH=",TString::kIgnoreCase)) {//Thickness of the Sc
+      } else if(addOpt.Contains("SCTH=",TString::kIgnoreCase)) {//Thickness of the Sc(fECScintThick)
         sscanf(addOpt.Data(),"SCTH=%f", &fECScintThick);
+      } else if(addOpt.Contains("LATSS=",TString::kIgnoreCase)) {// Thickness of lateral steel strip (fLateralSteelStrip)
+        sscanf(addOpt.Data(),"LATSS=%f", &fLateralSteelStrip);
+        AliDebug(2,Form(" fLateralSteelStrip %f (new) \n", fLateralSteelStrip));
       }
+    }
+  }
+}
+
+void AliEMCALGeometry::DefineSamplingFraction()
+{
+  // Jun 05,2006
+  // Look http://rhic.physics.wayne.edu/~pavlinov/ALICE/SHISHKEBAB/RES/linearityAndResolutionForTRD1.html
+  // Keep for compatibilty
+  //
+  if(fNECLayers == 69) {        // 10% layer reduction
+    fSampling = 12.55;
+  } else if(fNECLayers == 61) { // 20% layer reduction
+    fSampling = 12.80;
+  } else if(fNECLayers == 77) {
+    if       (fECScintThick>0.175 && fECScintThick<0.177) { // 10% Pb thicknes reduction
+      fSampling = 10.5; // fECScintThick = 0.176, fECPbRadThickness=0.144;
+    } else if(fECScintThick>0.191 && fECScintThick<0.193) { // 20% Pb thicknes reduction
+      fSampling = 8.93; // fECScintThick = 0.192, fECPbRadThickness=0.128;
     }
   }
 }
@@ -416,22 +456,22 @@ void AliEMCALGeometry::FillTRU(const TClonesArray * digits, TClonesArray * ampma
 
     //First calculate the row and column in the supermodule 
     //of the TRU to which the cell belongs.
-    Int_t col   = (ieta-1)/nCellsEta+1; 
-    Int_t row   = (iphi-1)/nCellsPhi+1; 
-    if(iSupMod > 10)
-      row   = (iphi-1)/nCellsPhi2+1; 
+    Int_t col   = ieta/nCellsEta; 
+    Int_t row   = iphi/nCellsPhi; 
+    if(iSupMod > 9)
+      row   = iphi/nCellsPhi2; 
     //Calculate label number of the TRU
-    Int_t itru  = (row-1) + (col-1)*fNTRUPhi + (iSupMod-1)*fNTRU ;  
+    Int_t itru  = row + col*fNTRUPhi + iSupMod*fNTRU ;  
  
     //Fill TRU matrix with cell values
     TMatrixD * amptrus   = dynamic_cast<TMatrixD *>(ampmatrix->At(itru)) ;
     TMatrixD * timeRtrus = dynamic_cast<TMatrixD *>(timeRmatrix->At(itru)) ;
 
     //Calculate row and column of the cell inside the TRU with number itru
-    Int_t irow = (iphi-1) - (row-1) *  nCellsPhi;
-    if(iSupMod > 10)
-      irow = (iphi-1) - (row-1) *  nCellsPhi2;
-    Int_t icol = (ieta-1) - (col-1) *  nCellsEta;
+    Int_t irow = iphi - row *  nCellsPhi;
+    if(iSupMod > 9)
+      irow = iphi - row *  nCellsPhi2;
+    Int_t icol = ieta - col *  nCellsEta;
     
     (*amptrus)(irow,icol) = amp ;
     (*timeRtrus)(irow,icol) = timeR ;
@@ -443,21 +483,21 @@ void AliEMCALGeometry::FillTRU(const TClonesArray * digits, TClonesArray * ampma
 void AliEMCALGeometry::GetCellPhiEtaIndexInSModuleFromTRUIndex(const Int_t itru, const Int_t iphitru, const Int_t ietatru, Int_t &iphiSM, Int_t &ietaSM) const 
 {
   
-  // This method transforms the (eta,phi) index of a cells in a 
+  // This method transforms the (eta,phi) index of cells in a 
   // TRU matrix into Super Module (eta,phi) index.
   
-  // Calculate in which row and column in which the TRU are 
+  // Calculate in which row and column where the TRU are 
   // ordered in the SM
 
-  Int_t col = itru/ fNTRUPhi + 1;
-  Int_t row = itru - (col-1)*fNTRUPhi + 1;
+  Int_t col = itru/ fNTRUPhi ;
+  Int_t row = itru - col*fNTRUPhi ;
    
   //Calculate the (eta,phi) index in SM
   Int_t nCellsPhi = fNPhi*2/fNTRUPhi;
   Int_t nCellsEta = fNZ*2/fNTRUEta;
   
-  iphiSM = nCellsPhi*(row-1) + iphitru + 1 ;
-  ietaSM = nCellsEta*(col-1) + ietatru + 1 ; 
+  iphiSM = nCellsPhi*row + iphitru  ;
+  ietaSM = nCellsEta*col + ietatru  ; 
 }
 
 //______________________________________________________________________
@@ -496,260 +536,8 @@ AliEMCALGeometry* AliEMCALGeometry::GetInstance(const Text_t* name,
     return rv; 
 }
 
-// These methods are obsolete but use in AliEMCALRecPoint - keep it now
-//______________________________________________________________________
-Int_t AliEMCALGeometry::TowerIndex(Int_t ieta,Int_t iphi) const {
-  // Returns the tower index number from the based on the Z and Phi
-  // index numbers.
-  // Inputs:
-  //   Int_t ieta    // index along z axis [1-fNZ]
-  //   Int_t iphi  // index along phi axis [1-fNPhi]
-  // Outputs:
-  //   none.
-  // Returned
-  //   Int_t index // Tower index number 
-  
-  if ( (ieta <= 0 || ieta>GetNEta()) || 
-       (iphi <= 0 || iphi>GetNPhi())) {
-    Error("TowerIndex", "Unexpected parameters eta = %d phi = %d!", ieta, iphi) ; 
-    return -1;
-  }
-  return ( (iphi - 1)*GetNEta() + ieta ); 
-}
-
-//______________________________________________________________________
-void AliEMCALGeometry::TowerIndexes(Int_t index,Int_t &ieta,Int_t &iphi) const {
-  // Inputs:
-  //   Int_t index // Tower index number [1-fNZ*fNPhi]
-  // Outputs:
-  //   Int_t ieta    // index allong z axis [1-fNZ]
-  //   Int_t iphi  // index allong phi axis [1-fNPhi]
-  // Returned
-  //   none.
-
-  Int_t nindex = 0;
-
-  if ( IsInECA(index) ) { // ECAL index
-    nindex = index ;
-  }
-  else {
-    Error("TowerIndexes", "Unexpected Id number!") ;
-    ieta = -1;
-    iphi = -1;
-    return;
-  }   
-
-  if (nindex%GetNZ()) 
-    iphi = nindex / GetNZ() + 1 ; 
-  else 
-    iphi = nindex / GetNZ() ; 
-  ieta = nindex - (iphi - 1) * GetNZ() ; 
-
-  AliDebug(2,Form("TowerIndexes: index=%d,%d, ieta=%d, iphi = %d", index, nindex,ieta, iphi)); 
-  return;
-  
-}
-
-//______________________________________________________________________
-void AliEMCALGeometry::EtaPhiFromIndex(Int_t index,Float_t &eta,Float_t &phi) const {
-    // given the tower index number it returns the based on the eta and phi
-    // of the tower.
-    // Inputs:
-    //   Int_t index // Tower index number [1-fNZ*fNPhi]
-    // Outputs:
-    //   Float_t eta  // eta of center of tower in pseudorapidity
-    //   Float_t phi  // phi of center of tower in degrees
-    // Returned
-    //   none.
-    Int_t ieta, iphi;
-    Float_t deta, dphi ;
-
-    TowerIndexes(index,ieta,iphi);
-    
-    AliDebug(2,Form("EtaPhiFromIndex: index = %d, ieta = %d, iphi = %d", index, ieta, iphi));
-
-    deta = (GetArm1EtaMax()-GetArm1EtaMin())/(static_cast<Float_t>(GetNEta()));
-    eta  = GetArm1EtaMin() + ((static_cast<Float_t>(ieta) - 0.5 ))*deta;
-
-    dphi = (GetArm1PhiMax() - GetArm1PhiMin())/(static_cast<Float_t>(GetNPhi()));  // in degrees.
-    phi  = GetArm1PhiMin() + dphi*(static_cast<Float_t>(iphi) - 0.5);//iphi range [1-fNphi].
-}
-
-//______________________________________________________________________
-Int_t AliEMCALGeometry::TowerIndexFromEtaPhi(Float_t eta,Float_t phi) const {
-    // returns the tower index number based on the eta and phi of the tower.
-    // Inputs:
-    //   Float_t eta  // eta of center of tower in pseudorapidity
-    //   Float_t phi  // phi of center of tower in degrees
-    // Outputs:
-    //   none.
-    // Returned
-    //   Int_t index // Tower index number [1-fNZ*fNPhi]
-
-    Int_t ieta,iphi;
-
-    ieta = static_cast<Int_t> ( 1 + (static_cast<Float_t>(GetNEta()) * (eta - GetArm1EtaMin()) / (GetArm1EtaMax() - GetArm1EtaMin())) ) ;
-
-    if( ieta <= 0 || ieta > GetNEta() ) { 
-      Error("TowerIndexFromEtaPhi", "Unexpected (eta, phi) = (%f, %f) value, outside of EMCAL!", eta, phi) ; 
-      return -1 ; 
-    }
-
-    iphi = static_cast<Int_t> ( 1 + (static_cast<Float_t>(GetNPhi()) * (phi - GetArm1PhiMin()) / (GetArm1PhiMax() - GetArm1PhiMin())) ) ;
-
-    if( iphi <= 0 || iphi > GetNPhi() ) { 
-      Error("TowerIndexFromEtaPhi", "Unexpected (eta, phi) = (%f, %f) value, outside of EMCAL!", eta, phi) ; 
-      return -1 ; 
-    }
-
-    return TowerIndex(ieta,iphi);
-}
-
-//______________________________________________________________________
-Bool_t AliEMCALGeometry::AbsToRelNumbering(Int_t AbsId, Int_t *relid) const {
-    // Converts the absolute numbering into the following array/
-    //  relid[0] = Row number inside EMCAL
-    //  relid[1] = Column number inside EMCAL
-    // Input:
-    //   Int_t AbsId // Tower index number [1-2*fNZ*fNPhi]
-    // Outputs:
-    //   Int_t *relid // array of 2. Described above.
-    Bool_t rv  = kTRUE ;
-    Int_t ieta=0,iphi=0,index=AbsId;
-
-    TowerIndexes(index,ieta,iphi);
-    relid[0] = ieta;
-    relid[1] = iphi;
-
-    return rv;
-}
-
-//______________________________________________________________________
-void AliEMCALGeometry::PosInAlice(const Int_t *relid, Float_t &theta, Float_t &phi) const 
-{
-  // Converts the relative numbering into the local EMCAL-module (x, z)
-  // coordinates
-  Int_t ieta = relid[0]; // offset along x axis
-  Int_t iphi = relid[1]; // offset along z axis
-  Int_t index;
-  Float_t eta;
-  
-  index = TowerIndex(ieta,iphi);
-  EtaPhiFromIndex(index,eta,phi);
-  //theta = 180.*(2.0*TMath::ATan(TMath::Exp(-eta)))/TMath::Pi();
-  theta = 2.0*TMath::ATan(TMath::Exp(-eta));
-
-  // correct for distance to IP
-  Float_t d = GetIP2ECASection() - GetIPDistance() ;  
-
-  Float_t correction = 1 + d/GetIPDistance() ; 
-  Float_t tantheta = TMath::Tan(theta) * correction ; 
-  theta = TMath::ATan(tantheta) * TMath::RadToDeg() ; 
-  if (theta < 0 ) 
-    theta += 180. ; 
-  
-  return;
-}
-
-//______________________________________________________________________
-void AliEMCALGeometry::PosInAlice(Int_t absid, Float_t &theta, Float_t &phi) const 
-{
-  // Converts the relative numbering into the local EMCAL-module (x, z)
-  // coordinates
-  Int_t relid[2] ; 
-  AbsToRelNumbering(absid, relid) ;
-  Int_t ieta = relid[0]; // offset along x axis
-  Int_t iphi = relid[1]; // offset along z axis
-  Int_t index;
-  Float_t eta;
-  
-  index = TowerIndex(ieta,iphi);
-  EtaPhiFromIndex(index,eta,phi);
-  theta = 2.0*TMath::ATan(TMath::Exp(-eta)) ;
-  
-  // correct for distance to IP
-  Float_t d = 0. ; 
-  if (IsInECA(absid))
-    d = GetIP2ECASection() - GetIPDistance() ; 
-  else {
-    Error("PosInAlice", "Unexpected id # %d!", absid) ; 
-    return;
-  }
-
-  Float_t correction = 1 + d/GetIPDistance() ; 
-  Float_t tantheta = TMath::Tan(theta) * correction ; 
-  theta = TMath::ATan(tantheta) * TMath::RadToDeg() ; 
-  if (theta < 0 ) 
-    theta += 180. ; 
-  
-  return;
-}
-
-//______________________________________________________________________
-void AliEMCALGeometry::XYZFromIndex(const Int_t *relid,Float_t &x,Float_t &y, Float_t &z) const {
-    // given the tower relative number it returns the X, Y and Z
-    // of the tower.
-    
-    // Outputs:
-    //   Float_t x  // x of center of tower in cm
-    //   Float_t y  // y of center of tower in cm
-    //   Float_t z  // z of centre of tower in cm
-    // Returned
-    //   none.
-    
-    Float_t eta,theta, phi,cylradius=0. ;
-    
-    Int_t ieta = relid[0]; // offset along x axis
-    Int_t iphi = relid[1]; // offset along z axis.
-    Int_t index;
-    
-    index = TowerIndex(ieta,iphi);
-    EtaPhiFromIndex(index,eta,phi);
-    theta = 180.*(2.0*TMath::ATan(TMath::Exp(-eta)))/TMath::Pi();
-    
-    cylradius = GetIP2ECASection() ;  
-
-    Double_t  kDeg2Rad = TMath::DegToRad() ; 
-    x =  cylradius * TMath::Cos(phi * kDeg2Rad ) ;
-    y =  cylradius * TMath::Sin(phi * kDeg2Rad ) ; 
-    z =  cylradius / TMath::Tan(theta * kDeg2Rad ) ; 
- 
- return;
-} 
-
-//______________________________________________________________________
-void AliEMCALGeometry::XYZFromIndex(Int_t absid,  TVector3 &v) const {
-    // given the tower relative number it returns the X, Y and Z
-    // of the tower.
-    
-    // Outputs:
-    //   Float_t x  // x of center of tower in cm
-    //   Float_t y  // y of center of tower in cm
-    //   Float_t z  // z of centre of tower in cm
-    // Returned
-    //   none.
-    
-    Float_t theta, phi,cylradius=0. ;
-        
-    PosInAlice(absid, theta, phi) ; 
-    
-    if ( IsInECA(absid) ) 
-      cylradius = GetIP2ECASection() ;
-    else {
-      Error("XYZFromIndex", "Unexpected Tower section") ;
-      return;
-    }
-
-    Double_t  kDeg2Rad = TMath::DegToRad() ; 
-    v.SetX(cylradius * TMath::Cos(phi * kDeg2Rad ) );
-    v.SetY(cylradius * TMath::Sin(phi * kDeg2Rad ) ); 
-    v.SetZ(cylradius / TMath::Tan(theta * kDeg2Rad ) ) ; 
- 
- return;
-} 
-
 Bool_t AliEMCALGeometry::IsInEMCAL(Double_t x, Double_t y, Double_t z) const {
-  // Checks whether point is inside the EMCal volume
+  // Checks whether point is inside the EMCal volume, used in AliEMCALv*.cxx
   //
   // Code uses cylindrical approximation made of inner radius (for speed)
   //
@@ -781,24 +569,26 @@ Bool_t AliEMCALGeometry::IsInEMCAL(Double_t x, Double_t y, Double_t z) const {
 // == Shish-kebab cases ==
 //
 Int_t AliEMCALGeometry::GetAbsCellId(Int_t nSupMod, Int_t nTower, Int_t nIphi, Int_t nIeta) const
-{ // 27-aug-04; 
+{ 
+  // 27-aug-04; 
   // corr. 21-sep-04; 
   //       13-oct-05; 110 degree case
-  // 1 <= nSupMod <= fNumberOfSuperModules
-  // 1 <= nTower  <= fNPHI * fNZ ( fNPHI * fNZ/2 for fKey110DEG=1)
-  // 1 <= nIphi   <= fNPHIdiv
-  // 1 <= nIeta   <= fNETAdiv
-  // 1 <= absid   <= fNCells
-  static Int_t id=0; // have to change from 1 to fNCells
-  if(fKey110DEG == 1 && nSupMod > 10) { // 110 degree case; last two supermodules
-    id  = fNCellsInSupMod*10 + (fNCellsInSupMod/2)*(nSupMod-11);
+  // May 31, 2006; ALICE numbering scheme:
+  // 0 <= nSupMod < fNumberOfSuperModules
+  // 0 <= nTower  < fNPHI * fNZ ( fNPHI * fNZ/2 for fKey110DEG=1)
+  // 0 <= nIphi   < fNPHIdiv
+  // 0 <= nIeta   < fNETAdiv
+  // 0 <= absid   < fNCells
+  static Int_t id=0; // have to change from 0 to fNCells-1
+  if(fKey110DEG == 1 && nSupMod >= 10) { // 110 degree case; last two supermodules
+    id  = fNCellsInSupMod*10 + (fNCellsInSupMod/2)*(nSupMod-10);
   } else {
-    id  = fNCellsInSupMod*(nSupMod-1);
+    id  = fNCellsInSupMod*nSupMod;
   }
-  id += fNCellsInTower *(nTower-1);
-  id += fNPHIdiv *(nIphi-1);
+  id += fNCellsInTower *nTower;
+  id += fNPHIdiv *nIphi;
   id += nIeta;
-  if(id<=0 || id > fNCells) {
+  if(id<0 || id >= fNCells) {
 //     printf(" wrong numerations !!\n");
 //     printf("    id      %6i(will be force to -1)\n", id);
 //     printf("    fNCells %6i\n", fNCells);
@@ -806,69 +596,67 @@ Int_t AliEMCALGeometry::GetAbsCellId(Int_t nSupMod, Int_t nTower, Int_t nIphi, I
 //     printf("    nTower  %6i\n", nTower);
 //     printf("    nIphi   %6i\n", nIphi);
 //     printf("    nIeta   %6i\n", nIeta);
-    id = -TMath::Abs(id);
+    id = -TMath::Abs(id); // if negative something wrong
   }
   return id;
 }
 
-Bool_t  AliEMCALGeometry::CheckAbsCellId(Int_t ind) const
+Bool_t  AliEMCALGeometry::CheckAbsCellId(Int_t absId) const
 { 
-  // 17-nov-04 - analog of IsInECA
-   if(fGeoName.Contains("TRD")) {
-     if(ind<=0 || ind > fNCells) return kFALSE;
-     else                        return kTRUE;
-   } else return IsInECA(ind);
+  // May 31, 2006; only trd1 now
+  if(absId<0 || absId >= fNCells) return kFALSE;
+  else                            return kTRUE;
 }
 
 Bool_t AliEMCALGeometry::GetCellIndex(Int_t absId,Int_t &nSupMod,Int_t &nTower,Int_t &nIphi,Int_t &nIeta) const
 { 
-  // 21-sep-04
-  // 19-oct-05;
+  // 21-sep-04; 19-oct-05;
+  // May 31, 2006; ALICE numbering scheme:
   static Int_t tmp=0, sm10=0;
-  if(absId<=0 || absId>fNCells) {
-//     Info("GetCellIndex"," wrong abs Id %i !! \n", absId); 
-    return kFALSE;
-  }
+  if(!CheckAbsCellId(absId)) return kFALSE;
+
   sm10 = fNCellsInSupMod*10;
-  if(fKey110DEG == 1 && absId > sm10) { // 110 degree case; last two supermodules  
-    nSupMod = (absId-1-sm10) / (fNCellsInSupMod/2) + 11;
-    tmp     = (absId-1-sm10) % (fNCellsInSupMod/2);
+  if(fKey110DEG == 1 && absId >= sm10) { // 110 degree case; last two supermodules  
+    nSupMod = (absId-sm10) / (fNCellsInSupMod/2) + 10;
+    tmp     = (absId-sm10) % (fNCellsInSupMod/2);
   } else {
-    nSupMod = (absId-1) / fNCellsInSupMod + 1;
-    tmp     = (absId-1) % fNCellsInSupMod;
+    nSupMod = absId / fNCellsInSupMod;
+    tmp     = absId % fNCellsInSupMod;
   }
 
-  nTower  = tmp / fNCellsInTower + 1;
+  nTower  = tmp / fNCellsInTower;
   tmp     = tmp % fNCellsInTower;
-  nIphi   = tmp / fNPHIdiv + 1;
-  nIeta   = tmp % fNPHIdiv + 1;
+  nIphi   = tmp / fNPHIdiv;
+  nIeta   = tmp % fNPHIdiv;
 
   return kTRUE;
 }
 
-void AliEMCALGeometry::GetTowerPhiEtaIndexInSModule(Int_t nSupMod, Int_t nTower,  int &iphit, int &ietat) const
+void AliEMCALGeometry::GetModulePhiEtaIndexInSModule(Int_t nSupMod, Int_t nTower,  int &iphim, int &ietam) const
 { 
-  // added nSupMod; have to check  - 19-oct-05 ! 
+  // added nSupMod; have to check  - 19-oct-05 !
+  // Alice numbering scheme        - Jun 01,2006 
   static Int_t nphi;
 
-  if(fKey110DEG == 1 && nSupMod>=11) nphi = fNPhi/2;
+  if(fKey110DEG == 1 && nSupMod>=10) nphi = fNPhi/2;
   else                               nphi = fNPhi;
 
-  ietat = (nTower-1)/nphi + 1; // have to change from 1 to fNZ
-  iphit = (nTower-1)%nphi + 1; // have to change from 1 to fNPhi
+  ietam = nTower/nphi; // have to change from 0 to fNZ-1
+  iphim = nTower%nphi; // have to change from 0 to fNPhi-1
 }
 
 void AliEMCALGeometry::GetCellPhiEtaIndexInSModule(Int_t nSupMod, Int_t nTower, Int_t nIphi, Int_t nIeta, 
 int &iphi, int &ieta) const
 { 
   // added nSupMod; Nov 25, 05
-  static Int_t iphit, ietat;
+  // Alice numbering scheme        - Jun 01,2006 
+  static Int_t iphim, ietam;
 
-  GetTowerPhiEtaIndexInSModule(nSupMod,nTower, iphit, ietat); 
-  // have to change from 1 to fNZ*fNETAdiv
-  ieta  = (ietat-1)*fNETAdiv + (3-nIeta); // x(module) = -z(SM) 
-  // iphi - have to change from 1 to fNPhi*fNPHIdiv
-  iphi  = (iphit-1)*fNPHIdiv + nIphi;     // y(module) =  y(SM) 
+  GetModulePhiEtaIndexInSModule(nSupMod,nTower, iphim, ietam); 
+  // have to change from 0 to (fNZ*fNETAdiv-1)
+  ieta  = ietam*fNETAdiv + (1-nIeta); // x(module) = -z(SM) 
+  // iphi - have to change from 0 to (fNPhi*fNPHIdiv-1)
+  iphi  = iphim*fNPHIdiv + nIphi;     // y(module) =  y(SM) 
 }
 
 Int_t  AliEMCALGeometry::GetSuperModuleNumber(Int_t absId)  const
@@ -883,26 +671,55 @@ Int_t  AliEMCALGeometry::GetSuperModuleNumber(Int_t absId)  const
 } 
 
 // Methods for AliEMCALRecPoint - Feb 19, 2006
-Bool_t AliEMCALGeometry::RelPosCellInSModule(Int_t absId, Double_t &xr, Double_t &yr, Double_t &zr)
+Bool_t AliEMCALGeometry::RelPosCellInSModule(Int_t absId, Double_t &xr, Double_t &yr, Double_t &zr) const
 {
-  //Look to see what the relative
-  //position inside a given cell is
-  //for a recpoint.
+  // Look to see what the relative
+  // position inside a given cell is
+  // for a recpoint.
+  // Alice numbering scheme - Jun 08, 2006
 
   static Int_t nSupMod, nTower, nIphi, nIeta, iphi, ieta;
+  static Int_t phiIndexShift=6;
   if(!CheckAbsCellId(absId)) return kFALSE;
 
   GetCellIndex(absId, nSupMod, nTower, nIphi, nIeta);
   GetCellPhiEtaIndexInSModule(nSupMod,nTower,nIphi,nIeta, iphi, ieta); 
  
-  xr = fXCentersOfCells->At(ieta-1);
-  zr = fEtaCentersOfCells->At(ieta-1);
+  xr = fXCentersOfCells.At(ieta);
+  zr = fEtaCentersOfCells.At(ieta);
 
-  yr = fPhiCentersOfCells->At(iphi-1);
+  if(nSupMod<10) {
+    yr = fPhiCentersOfCells.At(iphi);
+  } else {
+    yr = fPhiCentersOfCells.At(iphi + phiIndexShift);
+    //    cout<<" absId "<<absId<<" nSupMod "<<nSupMod << " iphi "<<iphi<<" ieta "<<ieta;
+    //    cout<< " xr " << xr << " yr " << yr << " zr " << zr <<endl;
+  }
 
-  //  cout<<" absId "<<absId<<" iphi "<<iphi<<"ieta"<<ieta;
-  // cout<< " xr " << xr << " yr " << yr << " zr " << zr <<endl;
   return kTRUE;
+}
+
+Bool_t AliEMCALGeometry::RelPosCellInSModule(Int_t absId, Double_t loc[3]) const
+{
+  // Alice numbering scheme - Jun 03, 2006
+  loc[0] = loc[1] = loc[2]=0.0;
+  if(RelPosCellInSModule(absId, loc[0],loc[1],loc[2])) {
+    return kTRUE;
+  }
+  return kFALSE;
+}
+
+Bool_t AliEMCALGeometry::RelPosCellInSModule(Int_t absId, TVector3 &vloc) const
+{
+  static Double_t loc[3];
+  if(RelPosCellInSModule(absId,loc)) {
+    vloc.SetXYZ(loc[0], loc[1], loc[2]);
+    return kTRUE;
+  } else {
+    vloc.SetXYZ(0,0,0);
+    return kFALSE;
+  }
+  // Alice numbering scheme - Jun 03, 2006
 }
 
 void AliEMCALGeometry::CreateListOfTrd1Modules()
@@ -931,37 +748,41 @@ void AliEMCALGeometry::CreateListOfTrd1Modules()
   AliDebug(2,Form(" fShishKebabTrd1Modules has %i modules \n", 
 		  fShishKebabTrd1Modules->GetSize()));
   // Feb 20,2006;
+  // Jun 01, 2006 - ALICE numbering scheme
   // define grid for cells in eta(z) and x directions in local coordinates system of SM
-  fEtaCentersOfCells = new TArrayD(fNZ *fNETAdiv);
-  fXCentersOfCells = new TArrayD(fNZ *fNETAdiv);
-  AliDebug(2,Form(" Cells grid in eta directions : size %i\n", fEtaCentersOfCells->GetSize()));
+  //  fEtaCentersOfCells = new TArrayD(fNZ *fNETAdiv);
+  //  fXCentersOfCells = new TArrayD(fNZ *fNETAdiv);
+  fEtaCentersOfCells.Set(fNZ *fNETAdiv);
+  fXCentersOfCells.Set(fNZ *fNETAdiv);
+  AliDebug(2,Form(" Cells grid in eta directions : size %i\n", fEtaCentersOfCells.GetSize()));
   Int_t iphi=0, ieta=0, nTower=0;
   Double_t xr, zr;
   for(Int_t it=0; it<fNZ; it++) { // array index
     AliEMCALShishKebabTrd1Module *trd1 = GetShishKebabModule(it);
-    nTower = fNPhi*it + 1;
+    nTower = fNPhi*it;
     for(Int_t ic=0; ic<fNETAdiv; ic++) { // array index
-      trd1->GetCenterOfCellInLocalCoordinateofSM(ic+1, xr, zr);
-      GetCellPhiEtaIndexInSModule(1, nTower, 1, ic+1, iphi, ieta); // don't depend from phi
-      fXCentersOfCells->AddAt(float(xr) - fParSM[0],ieta-1);
-      fEtaCentersOfCells->AddAt(float(zr) - fParSM[2],ieta-1);
+      trd1->GetCenterOfCellInLocalCoordinateofSM(ic, xr, zr);
+      GetCellPhiEtaIndexInSModule(0, nTower, 0, ic, iphi, ieta); // don't depend from phi - ieta in action
+      fXCentersOfCells.AddAt(float(xr) - fParSM[0],ieta);
+      fEtaCentersOfCells.AddAt(float(zr) - fParSM[2],ieta);
     }
   }
-  for(Int_t i=0; i<fEtaCentersOfCells->GetSize(); i++) {
+  for(Int_t i=0; i<fEtaCentersOfCells.GetSize(); i++) {
     AliDebug(2,Form(" ind %2.2i : z %8.3f : x %8.3f", i+1, 
-                    fEtaCentersOfCells->At(i),fXCentersOfCells->At(i)));
+                    fEtaCentersOfCells.At(i),fXCentersOfCells.At(i)));
   }
 
  // define grid for cells in phi(y) direction in local coordinates system of SM
-  fPhiCentersOfCells = new TArrayD(fNPhi*fNPHIdiv);
-  AliDebug(2,Form(" Cells grid in phi directions : size %i\n", fPhiCentersOfCells->GetSize()));
+  //  fPhiCentersOfCells = new TArrayD(fNPhi*fNPHIdiv);
+  fPhiCentersOfCells.Set(fNPhi*fNPHIdiv);
+  AliDebug(2,Form(" Cells grid in phi directions : size %i\n", fPhiCentersOfCells.GetSize()));
   Int_t ind=0;
   for(Int_t it=0; it<fNPhi; it++) { // array index
     Float_t ytLeftCenterModule = -fParSM[1] + fPhiModuleSize*(2*it+1)/2;         // module
     for(Int_t ic=0; ic<fNPHIdiv; ic++) { // array index
       Float_t ytLeftCenterCell = ytLeftCenterModule + fPhiTileSize *(2*ic-1)/2.; // tower(cell) 
-      fPhiCentersOfCells->AddAt(ytLeftCenterCell,ind);
-      AliDebug(2,Form(" ind %2.2i : y %8.3f ", ind, fPhiCentersOfCells->At(ind))); 
+      fPhiCentersOfCells.AddAt(ytLeftCenterCell,ind);
+      AliDebug(2,Form(" ind %2.2i : y %8.3f ", ind, fPhiCentersOfCells.At(ind))); 
       ind++;
     }
   }
@@ -1006,25 +827,20 @@ void  AliEMCALGeometry::GetTransformationForSM()
   transInit = kTRUE;
 }
 
-void AliEMCALGeometry::GetGlobal(const Double_t *loc, Double_t *glob, int nsm) const
+void AliEMCALGeometry::GetGlobal(const Double_t *loc, Double_t *glob, int ind) const
 {
-  //Figure out the global numbering
-  //of a given supermodule from the
-  //local numbering
-
+  // Figure out the global numbering
+  // of a given supermodule from the
+  // local numbering
+  // Alice numbering - Jun 03,2006
   //  if(fMatrixOfSM[0] == 0) GetTransformationForSM();
-  static int ind;
-  ind = nsm-1;
+
   if(ind>=0 && ind < GetNumberOfSuperModules()) {
     fMatrixOfSM[ind]->LocalToMaster(loc, glob);
   }
 }
 
-void AliEMCALGeometry::GetGlobal(Int_t /* absId */, TVector3 & /* vglob */) const
-{ // have to be defined  
-}
-
-void AliEMCALGeometry::GetGlobal(const TVector3 &vloc, TVector3 &vglob, int nsm) const
+void AliEMCALGeometry::GetGlobal(const TVector3 &vloc, TVector3 &vglob, int ind) const
 {
   //Figure out the global numbering
   //of a given supermodule from the
@@ -1032,26 +848,58 @@ void AliEMCALGeometry::GetGlobal(const TVector3 &vloc, TVector3 &vglob, int nsm)
 
   static Double_t tglob[3], tloc[3];
   vloc.GetXYZ(tloc);
-  GetGlobal(tloc, tglob, nsm);
+  GetGlobal(tloc, tglob, ind);
   vglob.SetXYZ(tglob[0], tglob[1], tglob[2]);
+}
+
+void AliEMCALGeometry::GetGlobal(Int_t absId , double glob[3]) const
+{ 
+  // Alice numbering scheme - Jun 03, 2006
+  static Int_t nSupMod, nModule, nIphi, nIeta;
+  static double loc[3];
+
+  glob[0]=glob[1]=glob[2]=0.0; // bad case
+  if(RelPosCellInSModule(absId, loc)) {
+    GetCellIndex(absId, nSupMod, nModule, nIphi, nIeta);
+    fMatrixOfSM[nSupMod]->LocalToMaster(loc, glob);
+  }
+}
+
+void AliEMCALGeometry::GetGlobal(Int_t absId , TVector3 &vglob) const
+{ 
+  // Alice numbering scheme - Jun 03, 2006
+  static Double_t glob[3];
+
+  GetGlobal(absId, glob);
+  vglob.SetXYZ(glob[0], glob[1], glob[2]);
+
 }
 
 void AliEMCALGeometry::GetGlobal(const AliRecPoint *rp, TVector3 &vglob) const
 {
-  //Figure out the global numbering
-  //of a given supermodule from the
-  //local numbering for RecPoints
+  // Figure out the global numbering
+  // of a given supermodule from the
+  // local numbering for RecPoints
 
   static TVector3 vloc;
-  static Int_t nSupMod, nTower, nIphi, nIeta;
+  static Int_t nSupMod, nModule, nIphi, nIeta;
 
   AliRecPoint *rpTmp = (AliRecPoint*)rp; // const_cast ??
   if(!rpTmp) return;
   AliEMCALRecPoint *rpEmc = (AliEMCALRecPoint*)rpTmp;
 
-  GetCellIndex(rpEmc->GetAbsId(0), nSupMod, nTower, nIphi, nIeta);
+  GetCellIndex(rpEmc->GetAbsId(0), nSupMod, nModule, nIphi, nIeta);
   rpTmp->GetLocalPosition(vloc);
   GetGlobal(vloc, vglob, nSupMod);
+}
+
+void AliEMCALGeometry::EtaPhiFromIndex(Int_t absId,Float_t &eta,Float_t &phi) const
+{
+  // Jun 03, 2006 - version for TRD1
+  static TVector3 vglob;
+  GetGlobal(absId, vglob);
+  eta = vglob.Eta();
+  phi = vglob.Phi();
 }
 
 AliEMCALShishKebabTrd1Module* AliEMCALGeometry::GetShishKebabModule(Int_t neta=0)

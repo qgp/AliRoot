@@ -20,6 +20,12 @@
 /*
  
 $Log$
+Revision 1.2  2006/06/02 23:03:03  pavlinov
+ALICE numbering scheme
+
+Revision 1.1  2006/02/28 21:56:34  jklay
+moving jetfinder code to subdirectory
+
 Revision 1.16  2006/02/15 15:11:05  pavlinov
 update of Jenn and Marco
 
@@ -217,8 +223,11 @@ if (fDebug>0) Info("AliEMCALJetFinderAlgoOmni","Beginning Default Constructor");
 	    {
 	     myPart = fInputPointer->GetTrack(j);
 	     Float_t eta = myPart->Eta();
-	     Float_t  phi = myPart->Phi();
-	     Int_t towerID = geom->TowerIndexFromEtaPhi(eta,180.0/TMath::Pi()*phi);
+	     //   have to be tune for TRD1; May 31,06 
+	     // Float_t  phi = myPart->Phi();
+	     // Int_t towerID = geom->TowerIndexFromEtaPhi(eta,180.0/TMath::Pi()*phi);
+	     Int_t towerID = 0; 
+
 	     Float_t  pT = myPart->Pt();
 	     Float_t unitEnergy = fUnit[towerID-1].GetUnitEnergy(); 
 	     Float_t unitEnergyNoCuts = fUnitNoCuts[towerID-1].GetUnitEnergy();

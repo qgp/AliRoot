@@ -19,7 +19,6 @@ class TString ;
 class TObjArray;
 class TVector3;
 class TGeoMatrix;
-class TArrayD;
 class TParticle ; 
 class AliEMCALShishKebabTrd1Module;
 class AliEMCALRecPoint;
@@ -28,6 +27,7 @@ class TClonesArray ;
 // --- AliRoot header files ---
 #include "AliGeometry.h"
 #include "AliEMCALAlignData.h"
+#include "TArrayD.h"
 
 class AliEMCALGeometry : public AliGeometry {
 public:
@@ -50,11 +50,12 @@ public:
   void GetCellPhiEtaIndexInSModuleFromTRUIndex(Int_t itru, Int_t iphitru, Int_t ietatru, Int_t &ietaSM, Int_t &iphiSM) const ; // Tranforms Eta-Phi Cell index in TRU into Eta-Phi index in Super Module
   
   // Have to call GetTransformationForSM() before calculation global charachteristics 
-  void GetGlobal(const Double_t *loc, Double_t *glob, int nsm) const;
-  void GetGlobal(const TVector3 &vloc, TVector3 &vglob, int nsm) const;
+  void GetGlobal(const Double_t *loc, Double_t *glob, int ind) const;
+  void GetGlobal(const TVector3 &vloc, TVector3 &vglob, int ind) const;
+  void GetGlobal(Int_t absId, Double_t glob[3]) const;
   void GetGlobal(Int_t absId, TVector3 &vglob) const;
   // for a given tower index it returns eta and phi of center of that tower.
-  void EtaPhiFromIndex(Int_t index,Float_t &eta,Float_t &phi) const;
+  void EtaPhiFromIndex(Int_t absId,Float_t &eta,Float_t &phi) const;
 
   //  virtual void GetGlobal(const AliEMCALRecPoint *rp, TVector3 &vglob) const;
 
@@ -94,7 +95,7 @@ public:
   Float_t GetECPbRadThick()const {return fECPbRadThickness;}
   Float_t GetECScintThick() const {return fECScintThick;}
   Float_t GetSampling() const {return fSampling ; } 
-  Bool_t IsInECA(Int_t index) const { if ( (index > 0 && (index <= GetNZ() * GetNPhi()))) return kTRUE; else return kFALSE ;}
+  //  Bool_t IsInECA(Int_t index) const { if ( (index > 0 && (index <= GetNZ() * GetNPhi()))) return kTRUE; else return kFALSE ;}
 
   Int_t   GetNumberOfSuperModules() const {return fNumberOfSuperModules;}
   Float_t GetfPhiGapForSuperModules() const {return fPhiGapForSM;}
@@ -132,18 +133,25 @@ public:
   void     GetTransformationForSM();
   Float_t *GetSuperModulesPars() {return fParSM;}
   TGeoMatrix *GetTransformationForSM(int i) {
-  if(i>=0 && GetNumberOfSuperModules()) return fMatrixOfSM[i]; 
+  if(i>=0 && i<GetNumberOfSuperModules()) return fMatrixOfSM[i]; 
                                         else return 0;}
-  // abs id <-> indexes; Shish-kebab case (TRD1 or TRD2)
+  // abs id <-> indexes; Shish-kebab case, only TRD1 now.
+  // EMCAL -> Super Module -> module -> tower(or cell) - logic tree of EMCAL
+  // May 31, 2006; ALICE numbering scheme: 
+  // see ALICE-INT-2003-038: ALICE Coordinate System and Software Numbering Convention
+  // All indexes are stared from zero now.
   Int_t   GetAbsCellId(Int_t nSupMod, Int_t nTower, Int_t nIphi, Int_t nIeta) const;
-  Bool_t  CheckAbsCellId(Int_t ind) const; // replace the IsInECA
+  Bool_t  CheckAbsCellId(Int_t absId) const;
   Bool_t  GetCellIndex(Int_t absId, Int_t &nSupMod, Int_t &nTower, Int_t &nIphi, Int_t &nIeta) const;
-  void    GetTowerPhiEtaIndexInSModule(Int_t nSupMod, Int_t nTower, Int_t &iphit, Int_t &ietat) const;
+  // Local coordinate of Super Module 
+  void    GetModulePhiEtaIndexInSModule(Int_t nSupMod, Int_t nTower, Int_t &iphim, Int_t &ietam) const;
   void    GetCellPhiEtaIndexInSModule(Int_t nSupMod, Int_t nTower, Int_t nIphi, Int_t nIeta,
                                       Int_t &iphi, Int_t &ieta) const ;
   Int_t   GetSuperModuleNumber(Int_t absId)  const; 
-  // Methods for AliEMCALRecPoint - Frb 19, 2006
-  Bool_t   RelPosCellInSModule(Int_t absId, Double_t &xr, Double_t &yr, Double_t &zr);
+  // Methods for AliEMCALRecPoint - Feb 19, 2006
+  Bool_t   RelPosCellInSModule(Int_t absId, Double_t &xr, Double_t &yr, Double_t &zr) const;
+  Bool_t   RelPosCellInSModule(Int_t absId, Double_t loc[3]) const;
+  Bool_t   RelPosCellInSModule(Int_t absId, TVector3 &vloc) const;
   // ---
   Float_t AngleFromEta(Float_t eta) const { // returns theta in radians for a given pseudorapidity
     return 2.0*TMath::ATan(TMath::Exp(-eta));
@@ -152,20 +160,6 @@ public:
     // pseudorapidity and r=sqrt(x*x+y*y).
     return r/TMath::Tan(AngleFromEta(eta));
   }
-  // These methods are obsolete but use in AliEMCALRecPoint - keep it now
-  Int_t TowerIndex(Int_t iz,Int_t iphi) const; // returns tower index
-  	// returns tower indexs iz, iphi.
-  void TowerIndexes(Int_t index,Int_t &iz,Int_t &iphi) const;
-  	// returns x, y, and z (cm) on the inner surface of a given EMCAL Cell specified by relid.
-  void XYZFromIndex(const Int_t *relid,Float_t &x,Float_t &y, Float_t &z) const;
-  void XYZFromIndex(Int_t absid, TVector3 &v) const;
-  	// for a given eta and phi in the EMCAL it returns the tower index.
-  Int_t TowerIndexFromEtaPhi(Float_t eta,Float_t phi) const;
-  	// for a given eta and phi in the EMCAL it returns the pretower index.
-  void PosInAlice(const Int_t *relid, Float_t &theta, Float_t &phi) const ;
-  void PosInAlice(Int_t absid, Float_t &theta, Float_t &phi) const ;
-  Bool_t AbsToRelNumbering(Int_t AbsId, Int_t *relid) const;
-  // --
   void SetNZ(Int_t nz) { fNZ= nz ; printf("SetNZ: Number of modules in Z set to %d", fNZ) ; }
   void SetNPhi(Int_t nphi) { fNPhi= nphi ; printf("SetNPhi: Number of modules in Phi set to %d", fNPhi) ; }
 
@@ -178,18 +172,10 @@ public:
   Int_t GetNCellsInSupMod() const {return fNCellsInSupMod;}
   Int_t GetNCellsInTower() const {return fNCellsInTower; }
 
-  AliEMCALGeometry() :
-    AliGeometry() {// default ctor only for internal usage (singleton)
-   // must be kept public for root persistency purposes, but should never be called by the outside world    
-     CreateListOfTrd1Modules();
-  };
+  AliEMCALGeometry(); // default ctor only for internal usage (singleton)
 
 protected:
-  AliEMCALGeometry(const Text_t* name, const Text_t* title) :
-    AliGeometry(name, title) {// ctor only for internal usage (singleton)
-    Init();
-    CreateListOfTrd1Modules();
-  };
+  AliEMCALGeometry(const Text_t* name, const Text_t* title);// ctor only for internal usage (singleton)
 
   AliEMCALGeometry(const Text_t* name, const Text_t* title, AliEMCALAlignData* alignData) :
     AliGeometry(name, title) {// Align data in action
@@ -199,7 +185,8 @@ protected:
   };
 
   void Init(void);     			// initializes the parameters of EMCAL
-  void CheckAdditionalOptions();         //
+  void CheckAdditionalOptions();        //
+  void DefineSamplingFraction();        // Jun 5, 2006
   
 private:
   static AliEMCALGeometry * fgGeom;	// pointer to the unique instance of the singleton
@@ -265,16 +252,16 @@ private:
   Float_t fTubsR;                        // radius of tubs 
   Float_t fTubsTurnAngle;                // turn angle of tubs in degree
   // Local Coordinates of SM
-  TArrayD *fEtaCentersOfCells;           // size fNEta*fNETAdiv (for TRD1 only) (eta or z in SM)
-  TArrayD *fXCentersOfCells;             // size fNEta*fNETAdiv (for TRD1 only) (       x in SM)
-  TArrayD *fPhiCentersOfCells;           // size fNPhi*fNPHIdiv (for TRD1 only) (phi or y in SM)
+  TArrayD  fEtaCentersOfCells;           // size fNEta*fNETAdiv (for TRD1 only) (eta or z in SM)
+  TArrayD  fXCentersOfCells;             // size fNEta*fNETAdiv (for TRD1 only) (       x in SM)
+  TArrayD  fPhiCentersOfCells;           // size fNPhi*fNPHIdiv (for TRD1 only) (phi or y in SM)
   // Move from AliEMCALv0 - Feb 19, 2006
   TList *fShishKebabTrd1Modules; //! list of modules
   // Local coordinates of SM for TRD1
   Float_t     fParSM[3];       // SM sizes as in GEANT (TRD1)
   TGeoMatrix* fMatrixOfSM[12]; //![fNumberOfSuperModules]; get from gGeoManager;
 
-  char *fAdditionalOpts[3];  //! some additional options for the geometry type and name
+  char *fAdditionalOpts[4];  //! some additional options for the geometry type and name
   int  fNAdditionalOpts;  //! size of additional options parameter
 
   ClassDef(AliEMCALGeometry, 10) // EMCAL geometry class 
