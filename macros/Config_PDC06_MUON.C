@@ -4,7 +4,7 @@
 // gAlice->SetConfigFunction("Config('$HOME','box');");
 // april 3rd: added L3 magnet 
 
-void Config(char directory[100]="", char option[6]="trg1mu")
+void Config(char directory[100]="", char option[6]="trg2mu")
 {
  
   static Int_t sseed = 0; // Set 0 to use the current time
@@ -131,6 +131,8 @@ void Config(char directory[100]="", char option[6]="trg1mu")
   Int_t   iPMD = 1;
   Int_t   iSTART = 1;
   Int_t   iVZERO = 1;
+  Int_t   iFRAME = 1;
+  Int_t   iTOF = 1;
 
   rl->CdGAFile();
 
@@ -148,9 +150,21 @@ void Config(char directory[100]="", char option[6]="trg1mu")
   AliPIPE *PIPE = new AliPIPEv0("PIPE", "Beam Pipe");
   //=================== SHIL parameters ============================
   AliSHIL *SHIL = new AliSHILv2("SHIL", "Shielding Version 2");
-  //=================== ITS parameters =============================
+ //=================== FRAME parameters =============================
+  if (iFRAME){
+      AliFRAMEv2 *FRAME = new AliFRAMEv2("FRAME", "Space Frame");
+  }
+ //=================== ITS parameters =============================
   if(iITS) {
       AliITSvPPRasymmFMD *ITS  = new AliITSvPPRasymmFMD("ITS","ITS PPR detailed version with asymmetric services");
+  }
+ //=================== TOF parameters ============================
+  if(iTOF) {
+      AliTOF *TOF = new AliTOFv5T0("TOF", "normal TOF");
+        // Partial geometry: modules at 2,3,4,6,7,11,12,14,15,16
+        // starting at 6h in positive direction
+        Int_t TOFSectors[18]={-1,-1,0,0,0,-1,0,0,-1,-1,-1,0,0,-1,0,0,0,0};
+        TOF->SetTOFSectors(TOFSectors);
   }
  //=================== ZDC parameters =============================
   if(iZDC) {
