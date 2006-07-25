@@ -18,6 +18,9 @@
 /* History of cvs commits:
  *
  * $Log$
+ * Revision 1.91  2006/04/29 20:25:30  hristov
+ * Decalibration is implemented (Yu.Kharlov)
+ *
  * Revision 1.90  2006/04/22 10:30:17  hristov
  * Add fEnergy to AliPHOSDigit and operate with EMC amplitude in energy units (Yu.Kharlov)
  *
@@ -422,7 +425,7 @@ void AliPHOSDigitizer::DecalibrateEMC(AliPHOSDigit *digit)
   Int_t row   =relId[2];
   Int_t column=relId[3];
   Float_t decalibration = gime->CalibData()->GetADCchannelEmc(module,column,row);
-  Float_t energy = digit->GetEnergy() * decalibration;
+  Float_t energy = digit->GetEnergy() / decalibration;
   digit->SetEnergy(energy);
 }
 //____________________________________________________________________________
