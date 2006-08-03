@@ -23,17 +23,17 @@ createTriggerDescriptor_pp()
    descrip.AddCondition( "ITS_SPD_HMULT_L0","ITS_SPD_HMULT_L0","SPD high mult. 150 ",       (ULong64_t)0x1 << 6 );
 
    // standalong MUON inputs
-   descrip.AddCondition( "MUON_SPlus_LPt_L0",
-                         "MUON_SPlus_LPt_L0",           "Muon Plus Low Pt",
+   descrip.AddCondition( "MUON_SPlus_All_L0 | MUON_SMinus_All_L0 | MUON_SUndef_All_L0",
+                         "MUON_Single_All_L0",           "Muon Single All Pt",
                          (ULong64_t)0x1 << 7 );
-   descrip.AddCondition( "MUON_Unlike_LPt_L0",
-                         "MUON_Unlike_LPt_L0",          "Di Muon Unlike sign Low Pt",
+   descrip.AddCondition( "MUON_Unlike_All_L0",
+                         "MUON_Unlike_All_L0",          "Di Muon Unlike sign All Pt",
                          (ULong64_t)0x1 << 8 );
    descrip.AddCondition( "MUON_Unlike_HPt_L0",
                          "MUON_Unlike_HPt_L0",          "Di Muon Unlike sign High Pt",
                          (ULong64_t)0x1 << 9 );
-   descrip.AddCondition( "MUON_Like_LPt_L0",
-                         "MUON_Like_LPt_L0",            "Di Muon Like sign Low Pt",
+   descrip.AddCondition( "MUON_Like_All_L0",
+                         "MUON_Like_All_L0",            "Di Muon Like sign All Pt",
                          (ULong64_t)0x1 << 10 );
    descrip.AddCondition( "MUON_Like_HPt_L0",
                          "MUON_Like_HPt_L0",            "Di Muon Like sign High Pt",
@@ -49,14 +49,14 @@ createTriggerDescriptor_pp()
                          "Minimum Bias with TOF",
                          (ULong64_t)0x1 << 13 );
 
-   descrip.AddCondition( "ITS_SPD_GFO_L0 & VZERO_AND & MUON_SPlus_LPt_L0",
-                         "MUONSingle_MB",                "Muon Single Low Pt Minimum Bias",
+   descrip.AddCondition( "ITS_SPD_GFO_L0 & VZERO_AND & (MUON_SPlus_All_L0 | MUON_SMinus_All_L0 | MUON_SUndef_All_L0)",
+                         "MUONSingle_MB",                "Muon Single All Pt Minimum Bias",
                          (ULong64_t)0x1 << 14 );
-   descrip.AddCondition( "ITS_SPD_GFO_L0 & VZERO_AND & MUON_Unlike_LPt_L0",
-                         "MUONUnlikeLPt_MB",              "Muon Unlike Low Pt Minimum Bias",
+   descrip.AddCondition( "ITS_SPD_GFO_L0 & VZERO_AND & MUON_Unlike_All_L0",
+                         "MUONUnlikeAll_MB",              "Muon Unlike All Pt Minimum Bias",
                          (ULong64_t)0x1 << 15 );
-   descrip.AddCondition( "ITS_SPD_GFO_L0 & VZERO_AND & MUON_Like_LPt_L0",
-                         "MUONLikeLPt_MB",                "Muon Like Low Pt Minimum Bias",
+   descrip.AddCondition( "ITS_SPD_GFO_L0 & VZERO_AND & MUON_Like_All_L0",
+                         "MUONLikeAll_MB",                "Muon Like All Pt Minimum Bias",
                          (ULong64_t)0x1 << 16 );
 
    cout << endl << endl;
