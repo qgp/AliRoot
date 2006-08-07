@@ -18,6 +18,9 @@
 /* History of cvs commits:
  *
  * $Log$
+ * Revision 1.92  2006/04/29 20:26:46  hristov
+ * Separate EMC and CPV calibration (Yu.Kharlov)
+ *
  * Revision 1.91  2006/04/22 10:30:17  hristov
  * Add fEnergy to AliPHOSDigit and operate with EMC amplitude in energy units (Yu.Kharlov)
  *
@@ -248,11 +251,6 @@ void AliPHOSClusterizerv1::Exec(Option_t *option)
     //increment the total number of recpoints per run 
     fRecPointsInRun += gime->EmcRecPoints()->GetEntriesFast() ;  
     fRecPointsInRun += gime->CpvRecPoints()->GetEntriesFast() ;  
-    if (fRawReader != 0) {
-      AliRunLoader * rl = AliRunLoader::GetRunLoader(gime->PhosLoader()->GetTitle());
-      Int_t iEvent = ievent;
-      rl->SetEventNumber(++iEvent);
-    }
   }
   
   if(fWrite) //do not unload in "on flight" mode
