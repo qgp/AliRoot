@@ -12,7 +12,9 @@
  * about the suitability of this software for any purpose. It is          *
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
+
 /* $Id$ */
+
 //_________________________________________________________________________
 //  A Reconstructed Particle in PHOS    
 //  To become a general class of AliRoot ?       
@@ -178,6 +180,8 @@ Int_t AliPHOSRecParticle::GetPrimaryIndex() const
     }
   }
   digit = gime->Digit(digitList[bestDigitIndex]);
+  if (digit==0) return -12345;
+
   
   // Get the list of primary tracks producing this digit
   // and find which track has more track energy.
