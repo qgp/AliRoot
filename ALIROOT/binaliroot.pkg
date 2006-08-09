@@ -7,18 +7,24 @@ ELIBSDIR:=
 
 ELIBS:= MUONgeometry MUONrec MUONsim MUONbase MUONmapping \
         TPCbase TPCsim TPCrec TPCfast \
-	ITSbase ITSsim ITSrec PMDbase PMDsim PMDrec TRDbase \
-        TRDsim TRDrec TRDfast \
-	FMDbase FMDsim FMDrec TOFbase TOFrec TOFsim PHOSbase PHOSsim PHOSrec CRT \
+	ITSbase ITSsim ITSrec \
+        PMDbase PMDsim PMDrec \
+        TRDbase TRDsim TRDrec TRDfast \
+	FMDbase FMDsim FMDrec \
+        TOFbase TOFrec TOFsim \
+        PHOSbase PHOSsim PHOSrec CRT \
         RICHbase RICHrec RICHsim \
-        ZDCbase ZDCsim ZDCrec VZERObase VZEROsim VZEROrec \
+        ZDCbase ZDCsim ZDCrec \
+        VZERObase VZEROsim VZEROrec \
         EMCALbase EMCALsim EMCALrec EMCALjet \
-        STRUCT STARTbase STARTsim STARTrec EVGEN ESD STEER \
+        STARTbase STARTsim STARTrec \
+        STRUCT EVGEN ESD STEER \
         pythia6 AliPythia6 pdf THijing \
         hijing TMEVSIM mevsim THbtp HBTP TEPEMGEN EPEMGEN \
-        FASTSIM microcern RAWData AliL3Src AliL3Comp AliL3Misc AliL3MUON \
-	AliL3Hough AliL3ITS \
-#	THerwig herwig TPHIC
+        FASTSIM microcern \
+        RAWDatabase RAWDatarec RAWDatasim \
+        AliL3Src AliL3Comp AliL3Misc AliL3MUON \
+	AliL3Hough AliL3ITS
 
 ifeq (macosx,$(ALICE_TARGET))
 
@@ -92,7 +98,9 @@ ARLIBS:= \
    TPC/tgt_$(ALICE_TARGET)/G__TPCfast.o $(LIBPATH)/libTPCfast.a \
    STEER/tgt_$(ALICE_TARGET)/G__STEER.o $(LIBPATH)/libSTEER.a \
    STEER/tgt_$(ALICE_TARGET)/G__ESD.o $(LIBPATH)/libESD.a \
-   RAW/tgt_$(ALICE_TARGET)/G__RAWData.o $(LIBPATH)/libRAWData.a \
+   RAW/tgt_$(ALICE_TARGET)/G__RAWDatabase.o $(LIBPATH)/libRAWDatabase.a \
+   RAW/tgt_$(ALICE_TARGET)/G__RAWDatasim.o $(LIBPATH)/libRAWDatasim.a \
+   RAW/tgt_$(ALICE_TARGET)/G__RAWDatarec.o $(LIBPATH)/libRAWDatarec.a \
    RAW/tgt_$(ALICE_TARGET)/G__MDC.o $(LIBPATH)/libMDC.a
 
 SHLIBS:= $(BINLIBDIRS) -lEVGEN -lEGPythia6 -lpythia6 -lAliPythia6 -lpdf -lTHijing -lhijing -lTMEVSIM -lmevsim -lTHbtp -lHBTP -lTHerwig -lherwig -lTEPEMGEN -lEPEMGEN -lTPHIC -lFASTSIM -lmicrocern

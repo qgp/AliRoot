@@ -6,16 +6,23 @@ ELIBSDIR :=
 ELIBS    := Reve Alieve \
   MUONgeometry MUONrec MUONsim MUONbase MUONmapping \
   TPCbase TPCsim TPCrec TPCfast \
-  ITSbase ITSsim ITSrec PMDbase PMDsim PMDrec TRDbase \
-  TRDsim TRDrec TRDfast \
-  FMDbase FMDsim FMDrec TOFbase TOFrec TOFsim PHOSbase PHOSsim PHOSrec CRT \
+  ITSbase ITSsim ITSrec \
+  PMDbase PMDsim PMDrec \
+  TRDbase TRDsim TRDrec TRDfast \
+  FMDbase FMDsim FMDrec \
+  TOFbase TOFrec TOFsim \
+  PHOSbase PHOSsim PHOSrec CRT \
   RICHbase RICHrec RICHsim \
-  ZDCbase ZDCsim ZDCrec VZERObase VZEROsim VZEROrec \
+  ZDCbase ZDCsim ZDCrec \
+  VZERObase VZEROsim VZEROrec \
   EMCALbase EMCALsim EMCALrec EMCALjet \
-  STRUCT STARTbase STARTsim STARTrec EVGEN ESD STEER \
+  STARTbase STARTsim STARTrec \
+  STRUCT EVGEN ESD STEER \
   pythia6 AliPythia6 pdf THijing \
   hijing TMEVSIM mevsim THbtp HBTP TEPEMGEN EPEMGEN \
-  FASTSIM microcern RAWData AliL3Src AliL3Comp AliL3Misc AliL3MUON \
+  FASTSIM microcern \
+  RAWDatabase RAWDatasim RAWDatarec \
+  AliL3Src AliL3Comp AliL3Misc AliL3MUON \
   AliL3Hough AliL3ITS \
 # THerwig herwig TPHIC
 
