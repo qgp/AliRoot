@@ -1,4 +1,0 @@
-SRCS:= AliRICHParam.cxx AliRICHHit.cxx AliRICHDigit.cxx AliRICHCluster.cxx AliRICHHelix.cxx AliRICH.cxx  
-
-HDRS:= $(SRCS:.cxx=.h)
-DHDR:= RICHbaseLinkDef.h
