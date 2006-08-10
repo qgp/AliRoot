@@ -24,7 +24,6 @@
 #include <TChain.h>
 #include <TFile.h>
 #include <TEventList.h>
-#include <TFileInfo.h>
 
 //ROOT-AliEn
 #include <TGridResult.h>
@@ -42,22 +41,21 @@ ClassImp(AliTagAnalysis)
 
 TChain *AliTagAnalysis::fgChain = 0;
 
-//______________________________________________________________________________
-AliTagAnalysis::AliTagAnalysis(): TObject()//local mode
+//___________________________________________________________________________
+AliTagAnalysis::AliTagAnalysis(): 
+  TObject(),
+  ftagresult(0)
 {
-  //==============Default constructor for a AliTagAnalysis==================
-  ftagresult = 0;
+  //Default constructor for a AliTagAnalysis
 }
 
-//______________________________________________________________________________
-AliTagAnalysis::~AliTagAnalysis()
-{
-//================Default destructor for a AliTagAnalysis=======================
+//___________________________________________________________________________
+AliTagAnalysis::~AliTagAnalysis() {
+//Default destructor for a AliTagAnalysis
 }
 
-//______________________________________________________________________________
-void AliTagAnalysis::ChainLocalTags(const char *dirname) //local version
-{
+//___________________________________________________________________________
+void AliTagAnalysis::ChainLocalTags(const char *dirname) {
   //Searches the entries of the provided direcory
   //Chains the tags that are stored locally
   fTagDirName = dirname;
@@ -71,32 +69,28 @@ void AliTagAnalysis::ChainLocalTags(const char *dirname) //local version
   void * dirp = gSystem->OpenDirectory(fTagDirName);
   const char * name = 0x0;
   // Add all files matching *pattern* to the chain
-  while((name = gSystem->GetDirEntry(dirp)))
-    {
-      if (strstr(name,tagPattern))
-	{ 
-	  fTagFilename = fTagDirName;
-	  fTagFilename += "/";
-	  fTagFilename += name;
+  while((name = gSystem->GetDirEntry(dirp))) {
+    if (strstr(name,tagPattern)) { 
+      fTagFilename = fTagDirName;
+      fTagFilename += "/";
+      fTagFilename += name;
 	  	
-	  TFile * fTag = TFile::Open(fTagFilename);
-	  if((!fTag) || (!fTag->IsOpen()))
-	    {
-	      AliError(Form("Tag file not opened!!!"));
-	      continue;
-	    } 
-	  fChain->Add(fTagFilename);  
-	  fTag->Close();
-	  delete fTag;
-	}//pattern check
-    }//directory loop
+      TFile * fTag = TFile::Open(fTagFilename);
+      if((!fTag) || (!fTag->IsOpen())) {
+	AliError(Form("Tag file not opened!!!"));
+	continue;
+      } 
+      fChain->Add(fTagFilename);  
+      fTag->Close();
+      delete fTag;
+    }//pattern check
+  }//directory loop
   AliInfo(Form("Chained tag files: %d ",fChain->GetEntries()));
 }
 
 
-//______________________________________________________________________________
-void AliTagAnalysis::ChainGridTags(TGridResult *res)
-{
+//___________________________________________________________________________
+void AliTagAnalysis::ChainGridTags(TGridResult *res) {
   //Loops overs the entries of the TGridResult
   //Chains the tags that are stored in the GRID
   ftagresult = res;
@@ -108,28 +102,25 @@ void AliTagAnalysis::ChainGridTags(TGridResult *res)
   TString gridname = "alien://";
   TString alienUrl;
  
-  for(Int_t i = 0; i < nEntries; i++)
-    {
-      alienUrl = ftagresult->GetKey(i,"turl");
-      TFile *f = TFile::Open(alienUrl,"READ");
-      fChain->Add(alienUrl);
-      //f->Close();
-      delete f;	 
-    }//grid result loop  
+  for(Int_t i = 0; i < nEntries; i++) {
+    alienUrl = ftagresult->GetKey(i,"turl");
+    TFile *f = TFile::Open(alienUrl,"READ");
+    fChain->Add(alienUrl);
+    delete f;	 
+  }//grid result loop  
 }
 
 
-//______________________________________________________________________________
-TList *AliTagAnalysis::QueryTags(AliEventTagCuts *EvTagCuts)
-{
+//___________________________________________________________________________
+TChain *AliTagAnalysis::QueryTags(AliEventTagCuts *EvTagCuts) {
   //Queries the tag chain using the defined 
   //event tag cuts from the AliEventTagCuts object
   AliInfo(Form("Querying the tags........"));
   
-  //file info list
-  TList *list = new TList();
-  
-  Int_t iAccepted = 0, evCounter = 0;
+  //ESD file chain
+  TChain *fESDchain = new TChain("esdTree");
+  //Event list
+  TEventList *fEventList = new TEventList();
   
   //Defining tag objects
   AliRunTag *tag = new AliRunTag;
@@ -140,39 +131,31 @@ TList *AliTagAnalysis::QueryTags(AliEventTagCuts *EvTagCuts)
   const char* md5 = 0;
   const char* guid = 0;
   const char* turl = 0;
+  const char* path = 0;
 
-  for(Int_t iTagFiles = 0; iTagFiles < fChain->GetEntries(); iTagFiles++)
-    {
-      TEventList *fEventList = new TEventList();
-      evCounter = 0;
-      fChain->GetEntry(iTagFiles);
-      Int_t iEvents = tag->GetNEvents();
-      const TClonesArray *tagList = tag->GetEventTags();
-      for(Int_t i = 0; i < iEvents; i++)
-	{
-	  evTag = (AliEventTag *) tagList->At(i);
-	  size = evTag->GetSize();
-	  md5 = evTag->GetMD5();
-	  guid = evTag->GetGUID(); 
-	  turl = evTag->GetTURL(); 
-	  if(EvTagCuts->IsAccepted(evTag))
-	    {
-	      fEventList->Enter(i);
-	      evCounter++;
-	    
-	      iAccepted++;
-	    }
-	}//event loop
+  Int_t iAccepted = 0;
+  for(Int_t iTagFiles = 0; iTagFiles < fChain->GetEntries(); iTagFiles++) {
+    fChain->GetEntry(iTagFiles);
+    Int_t iEvents = tag->GetNEvents();
+    const TClonesArray *tagList = tag->GetEventTags();
+    for(Int_t i = 0; i < iEvents; i++) {
+      evTag = (AliEventTag *) tagList->At(i);
+      size = evTag->GetSize();
+      md5 = evTag->GetMD5();
+      guid = evTag->GetGUID(); 
+      turl = evTag->GetTURL(); 
+      path = evTag->GetPath();
+      if(EvTagCuts->IsAccepted(evTag)) fEventList->Enter(iAccepted+i);
+    }//event loop
+    iAccepted += iEvents;
 
-      //adding a TFileInfo object to the list
-      if(evCounter != 0)
-	list->Add(new TFileInfo(turl,size,guid,md5,-1,-1,-1,fEventList));
-      fEventList->Clear("");
-      delete fEventList;
-    }//tag file loop
-  AliInfo(Form("Accepted events: %d",iAccepted));
+    if(path != NULL) fESDchain->Add(path);
+    else if(turl != NULL) fESDchain->Add(turl);
+  }//tag file loop
+  AliInfo(Form("Accepted events: %d",fEventList->GetN()));
+  fESDchain->SetEventList(fEventList);
    
-  return list;
+  return fESDchain;
 }
 
 
