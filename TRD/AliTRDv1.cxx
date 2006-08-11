@@ -672,7 +672,8 @@ void AliTRDv1::StepManagerGeant()
           }
 
 	  Int_t nsteps = 0;
-	  do {nsteps = gRandom->Poisson(pp);} while(!nsteps);
+	  do {nsteps = (Int_t)TMath::Min(gRandom->PoissonD(pp),1e9);}
+	  while(!nsteps);
           stepSize = 1./nsteps;
 	  gMC->SetMaxStep(stepSize);
 	}

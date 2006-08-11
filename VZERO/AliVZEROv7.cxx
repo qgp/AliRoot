@@ -808,7 +808,7 @@ void AliVZEROv7::StepManager()
       fibToPhot = fV0CFibToPhot;
     }
     nPhotonsInStep  = Int_t(destep / (lightYield *1e-9) );	
-    nPhotonsInStep  = gRandom->Poisson(nPhotonsInStep);
+    nPhotonsInStep  = (Int_t)TMath::Min(gRandom->PoissonD(nPhotonsInStep),1e9);
     eloss    += destep;
     tlength  += step; 	 
     if ( gMC->IsTrackEntering() ) { 
