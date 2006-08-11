@@ -185,15 +185,15 @@ Bool_t CheckESD(const char* gAliceFileName = "galice.root",
 				"#theta_{rec}-#theta_{sim} [mrad]", "N");
 
   // PID
-  Int_t partCode[AliPID::kSPECIES] = 
+  Int_t partCode[] = 
     {kElectron, kMuonMinus, kPiPlus, kKPlus, kProton};
-  const char* partName[AliPID::kSPECIES+1] = 
+  const char* partName[] = 
     {"electron", "muon", "pion", "kaon", "proton", "other"};
-  Double_t partFrac[AliPID::kSPECIES] = 
+  Double_t partFrac[] = 
     {0.01, 0.01, 0.85, 0.10, 0.05};
-  Int_t identified[AliPID::kSPECIES+1][AliPID::kSPECIES];
-  for (Int_t iGen = 0; iGen < AliPID::kSPECIES+1; iGen++) {
-    for (Int_t iRec = 0; iRec < AliPID::kSPECIES; iRec++) {
+  Int_t identified[6][5];
+  for (Int_t iGen = 0; iGen < 6; iGen++) {
+    for (Int_t iRec = 0; iRec < 5; iRec++) {
       identified[iGen][iRec] = 0;
     }
   }
@@ -335,14 +335,14 @@ Bool_t CheckESD(const char* gAliceFileName = "galice.root",
       // PID
       if ((track->GetStatus() & AliESDtrack::kESDpid) == 0) continue;
       Int_t iGen = 5;
-      for (Int_t i = 0; i < AliPID::kSPECIES; i++) {
+      for (Int_t i = 0; i < 5; i++) {
 	if (TMath::Abs(particle->GetPdgCode()) == partCode[i]) iGen = i;
       }
-      Double_t probability[AliPID::kSPECIES];
+      Double_t probability[5];
       track->GetESDpid(probability);
       Double_t pMax = 0;
       Int_t iRec = 0;
-      for (Int_t i = 0; i < AliPID::kSPECIES; i++) {
+      for (Int_t i = 0; i < 5; i++) {
 	probability[i] *= partFrac[i];
 	if (probability[i] > pMax) {
 	  pMax = probability[i];
@@ -353,7 +353,7 @@ Bool_t CheckESD(const char* gAliceFileName = "galice.root",
       if (iGen == iRec) nIdentified++;
 
       // dE/dx and TOF
-      Double_t time[AliPID::kSPECIES];
+      Double_t time[5];
       track->GetIntegratedTimes(time);
       if (iGen == iRec) {
 	hDEdxRight->Fill(pTrack.Mag(), track->GetTPCsignal());
@@ -455,55 +455,53 @@ Bool_t CheckESD(const char* gAliceFileName = "galice.root",
 
   // perform checks
   if (nGen < checkNGenLow) {
-    Warning("CheckESD", "low number of generated particles: %d", Int_t(nGen));
+    printf("W-CheckESD: low number of generated particles: %d\n", Int_t(nGen));
   }
 
   TH1F* hEff = CreateEffHisto(hGen, hRec);
 
-  Info("CheckESD", "%d out of %d tracks reconstructed including %d "
-	 "fake tracks", nRec, nGen, nFake);
+  printf("I-CheckESD: %d out of %d tracks reconstructed including %d fake tracks\n", nRec, nGen, nFake);
   if (nGen > 0) {
     // efficiency
     Double_t eff = nRec*1./nGen;
     Double_t effError = TMath::Sqrt(eff*(1.-eff) / nGen);
     Double_t fake = nFake*1./nGen;
     Double_t fakeError = TMath::Sqrt(fake*(1.-fake) / nGen);
-    Info("CheckESD", "eff = (%.1f +- %.1f) %%  fake = (%.1f +- %.1f) %%",
+    printf("I-CheckESD: eff = (%.1f +- %.1f) %%  fake = (%.1f +- %.1f) %%\n",
 	 100.*eff, 100.*effError, 100.*fake, 100.*fakeError);
 
     if (eff < checkEffLow - checkEffSigma*effError) {
-      Warning("CheckESD", "low efficiency: (%.1f +- %.1f) %%", 
+      printf("W-CheckESD: low efficiency: (%.1f +- %.1f) %%\n", 
 	      100.*eff, 100.*effError);
     }
     if (fake > checkFakeHigh + checkFakeSigma*fakeError) {
-      Warning("CheckESD", "high fake: (%.1f +- %.1f) %%", 
+      printf("W-CheckESD: high fake: (%.1f +- %.1f) %%\n", 
 	      100.*fake, 100.*fakeError);
     }
 
     // resolutions
     Double_t res, resError;
     if (FitHisto(hResPtInv, res, resError)) {
-      Info("CheckESD", "relative inverse pt resolution = (%.1f +- %.1f) %%",
-	   res, resError);
+      printf("I-CheckESD: relative inverse pt resolution = (%.1f +- %.1f) %%\n", res, resError);
       if (res > checkResPtInvHigh + checkResPtInvSigma*resError) {
-	Warning("CheckESD", "bad pt resolution: (%.1f +- %.1f) %%", 
+	printf("I-CheckESD: bad pt resolution: (%.1f +- %.1f) %%\n", 
 		res, resError);
       }
     }
 
     if (FitHisto(hResPhi, res, resError)) {
-      Info("CheckESD", "phi resolution = (%.1f +- %.1f) mrad", res, resError);
+      printf("I-CheckESD: phi resolution = (%.1f +- %.1f) mrad\n", res, resError);
       if (res > checkResPhiHigh + checkResPhiSigma*resError) {
-	Warning("CheckESD", "bad phi resolution: (%.1f +- %.1f) mrad", 
+	printf("W-CheckESD: bad phi resolution: (%.1f +- %.1f) mrad\n", 
 		res, resError);
       }
     }
 
     if (FitHisto(hResTheta, res, resError)) {
-      Info("CheckESD", "theta resolution = (%.1f +- %.1f) mrad", 
+      printf("I-CheckESD: theta resolution = (%.1f +- %.1f) mrad\n", 
 	   res, resError);
       if (res > checkResThetaHigh + checkResThetaSigma*resError) {
-	Warning("CheckESD", "bad theta resolution: (%.1f +- %.1f) mrad", 
+	printf("W-CheckESD: bad theta resolution: (%.1f +- %.1f) mrad\n", 
 		res, resError);
       }
     }
@@ -512,70 +510,70 @@ Bool_t CheckESD(const char* gAliceFileName = "galice.root",
     if (nRec > 0) {
       Double_t eff = nIdentified*1./nRec;
       Double_t effError = TMath::Sqrt(eff*(1.-eff) / nRec);
-      Info("CheckESD", "PID eff = (%.1f +- %.1f) %%", 
+      printf("I-CheckESD: PID eff = (%.1f +- %.1f) %%\n", 
 	   100.*eff, 100.*effError);
       if (eff < checkPIDEffLow - checkPIDEffSigma*effError) {
-	Warning("CheckESD", "low PID efficiency: (%.1f +- %.1f) %%", 
+	printf("CheckESD: low PID efficiency: (%.1f +- %.1f) %%\n", 
 		100.*eff, 100.*effError);
       }
     }
 
     printf("%9s:", "gen\\rec");
-    for (Int_t iRec = 0; iRec < AliPID::kSPECIES; iRec++) {
+    for (Int_t iRec = 0; iRec < 5; iRec++) {
       printf("%9s", partName[iRec]);
     }
     printf("\n");
-    for (Int_t iGen = 0; iGen < AliPID::kSPECIES+1; iGen++) {
+    for (Int_t iGen = 0; iGen < 5+1; iGen++) {
       printf("%9s:", partName[iGen]);
-      for (Int_t iRec = 0; iRec < AliPID::kSPECIES; iRec++) {
+      for (Int_t iRec = 0; iRec < 5; iRec++) {
 	printf("%9d", identified[iGen][iRec]);
       }
       printf("\n");
     }
 
     if (FitHisto(hResTOFRight, res, resError)) {
-      Info("CheckESD", "TOF resolution = (%.1f +- %.1f) ps", res, resError);
+      printf("I-CheckESD: TOF resolution = (%.1f +- %.1f) ps\n", res, resError);
       if (res > checkResTOFHigh + checkResTOFSigma*resError) {
-	Warning("CheckESD", "bad TOF resolution: (%.1f +- %.1f) ps", 
+	printf("W-CheckESD: bad TOF resolution: (%.1f +- %.1f) ps\n", 
 		res, resError);
       }
     }
 
     // calorimeters
     if (hEPHOS->Integral() < checkPHOSNLow) {
-      Warning("CheckESD", "low number of PHOS particles: %d", 
+      printf("W-CheckESD: low number of PHOS particles: %d\n", 
 	      Int_t(hEPHOS->Integral()));
     } else {
       Double_t mean = hEPHOS->GetMean();
       if (mean < checkPHOSEnergyLow) {
-	Warning("CheckESD", "low mean PHOS energy: %.1f GeV", mean);
+	printf("W-CheckESD: low mean PHOS energy: %.1f GeV\n", mean);
       } else if (mean > checkPHOSEnergyHigh) {
-	Warning("CheckESD", "high mean PHOS energy: %.1f GeV", mean);
+	printf("W-CheckESD: high mean PHOS energy: %.1f GeV\n", mean);
       }
     }
 
     if (hEEMCAL->Integral() < checkEMCALNLow) {
-      Warning("CheckESD", "low number of EMCAL particles: %d", 
+      printf("W-CheckESD: low number of EMCAL particles: %d\n", 
 	      Int_t(hEEMCAL->Integral()));
     } else {
       Double_t mean = hEEMCAL->GetMean();
       if (mean < checkEMCALEnergyLow) {
-	Warning("CheckESD", "low mean EMCAL energy: %.1f GeV", mean);
+	printf("W-CheckESD: low mean EMCAL energy: %.1f GeV\n", mean);
       } else if (mean > checkEMCALEnergyHigh) {
-	Warning("CheckESD", "high mean EMCAL energy: %.1f GeV", mean);
+	printf("W-CheckESD: high mean EMCAL energy: %.1f GeV\n", mean);
       }
     }
 
     // muons
     if (hPtMUON->Integral() < checkMUONNLow) {
-      Warning("CheckESD", "low number of MUON particles: %d", 
+      printf("W-CheckESD: low number of MUON particles: %d\n", 
 	      Int_t(hPtMUON->Integral()));
     } else {
       Double_t mean = hPtMUON->GetMean();
       if (mean < checkMUONPtLow) {
-	Warning("CheckESD", "low mean MUON pt: %.1f GeV/c", mean);
+	printf("W-CheckESD: low mean MUON pt: %.1f GeV/c\n", mean);
       } else if (mean > checkMUONPtHigh) {
-	Warning("CheckESD", "high mean MUON pt: %.1f GeV/c", mean);
+	printf("W-CheckESD: high mean MUON pt: %.1f GeV/c\n", mean);
       }
     }
 
@@ -584,10 +582,10 @@ Bool_t CheckESD(const char* gAliceFileName = "galice.root",
       Double_t eff = nRecV0s*1./nGenV0s;
       Double_t effError = TMath::Sqrt(eff*(1.-eff) / nGenV0s);
       if (effError == 0) effError = checkV0EffLow / TMath::Sqrt(1.*nGenV0s);
-      Info("CheckESD", "V0 eff = (%.1f +- %.1f) %%", 
+      printf("I-CheckESD: V0 eff = (%.1f +- %.1f) %%\n", 
 	   100.*eff, 100.*effError);
       if (eff < checkV0EffLow - checkV0EffSigma*effError) {
-	Warning("CheckESD", "low V0 efficiency: (%.1f +- %.1f) %%", 
+	printf("W-CheckESD: low V0 efficiency: (%.1f +- %.1f) %%\n", 
 		100.*eff, 100.*effError);
       }
     }
@@ -598,10 +596,10 @@ Bool_t CheckESD(const char* gAliceFileName = "galice.root",
       Double_t effError = TMath::Sqrt(eff*(1.-eff) / nGenCascades);
       if (effError == 0) effError = checkV0EffLow / 
 			   TMath::Sqrt(1.*nGenCascades);
-      Info("CheckESD", "Cascade eff = (%.1f +- %.1f) %%", 
+      printf("I-CheckESD: Cascade eff = (%.1f +- %.1f) %%\n", 
 	   100.*eff, 100.*effError);
       if (eff < checkCascadeEffLow - checkCascadeEffSigma*effError) {
-	Warning("CheckESD", "low Cascade efficiency: (%.1f +- %.1f) %%", 
+	printf("W-CheckESD: low Cascade efficiency: (%.1f +- %.1f) %%\n", 
 		100.*eff, 100.*effError);
       }
     }
@@ -695,6 +693,6 @@ Bool_t CheckESD(const char* gAliceFileName = "galice.root",
   delete runLoader;
 
   // result of check
-  Info("CheckESD", "check of ESD was successfull");
+  printf("I-CheckESD: check of ESD was successfull\n");
   return kTRUE;
 }
