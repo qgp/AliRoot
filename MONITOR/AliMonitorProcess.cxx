@@ -185,53 +185,6 @@ AliMonitorProcess::AliMonitorProcess(
 }
 
 //_____________________________________________________________________________
-AliMonitorProcess::AliMonitorProcess(const AliMonitorProcess& process) :
-  TObject(process),
-
-  fSelection(""),
-  fGrid(NULL),
-  fAlienDir(""),
-  fRunLoader(NULL),
-  fTPCParam(NULL),
-  fITSgeom(NULL),
-  fLogicalFileName(""),
-  fFileName(""),
-  fHLT(NULL),
-  fHLTHough(NULL),
-
-  fRunNumber(0),
-  fSubRunNumber(0),
-  fNEvents(0),
-  fNEventsMin(1),
-  fWriteHistoList(kFALSE),
-
-  fTopFolder(NULL),
-  fMonitors(),
-  fFile(NULL),
-  fTree(NULL),
-
-  fServerSocket(NULL),
-  fSockets(),
-  fDisplaySocket(NULL),
-
-  fStatus(kStopped),
-  fStopping(kFALSE),
-
-  fInterruptHandler(NULL)
-
-{
-  AliFatal("copy constructor not implemented");
-}
-
-//_____________________________________________________________________________
-AliMonitorProcess& AliMonitorProcess::operator = (const AliMonitorProcess&
-						  /*process*/)
-{
-  AliFatal("assignment operator not implemented");
-  return *this;
-}
-
-//_____________________________________________________________________________
 AliMonitorProcess::~AliMonitorProcess()
 {
 // clean up
@@ -1092,27 +1045,6 @@ AliMonitorProcess::AliMonitorInterruptHandler::AliMonitorInterruptHandler
   fProcess(process)
 {
 // constructor: set process
-}
-
-//_____________________________________________________________________________
-AliMonitorProcess::AliMonitorInterruptHandler::AliMonitorInterruptHandler
-  (const AliMonitorInterruptHandler& handler):
-  TSignalHandler(handler)
-{
-// copy constructor
-
-  AliFatal("copy constructor not implemented");
-}
-
-//_____________________________________________________________________________
-AliMonitorProcess::AliMonitorInterruptHandler&
-  AliMonitorProcess::AliMonitorInterruptHandler::operator =
-  (const AliMonitorInterruptHandler& /*handler*/)
-{
-// assignment operator
-
-  AliFatal("assignment operator not implemented");
-  return *this;
 }
 
 //_____________________________________________________________________________

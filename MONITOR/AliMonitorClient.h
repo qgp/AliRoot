@@ -39,8 +39,6 @@ RQ_OBJECT("AliMonitorClient")
 
 public:
   AliMonitorClient();
-  AliMonitorClient(const AliMonitorClient& client);
-  AliMonitorClient& operator = (const AliMonitorClient& client);
   virtual ~AliMonitorClient();
 
   void               CloseWindow();
@@ -66,6 +64,8 @@ public:
   void               OnLoopTimer();
 
 private:
+  AliMonitorClient(const AliMonitorClient& client);
+  AliMonitorClient& operator = (const AliMonitorClient& client);
   TFolder*           CreateTopFolder() const;
   AliMonitorHisto*   GetHisto(const char* folderName, const char* histoName);
   TGListTreeItem*    GetItem(TGListTreeItem* base, const char* folderName, 

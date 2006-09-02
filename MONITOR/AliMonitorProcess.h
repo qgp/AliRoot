@@ -126,12 +126,12 @@ private:
   class AliMonitorInterruptHandler : public TSignalHandler {
   public:
     AliMonitorInterruptHandler(AliMonitorProcess* process);
-    AliMonitorInterruptHandler(const AliMonitorInterruptHandler& handler);
-    AliMonitorInterruptHandler& operator = 
-      (const AliMonitorInterruptHandler& handler);
     virtual ~AliMonitorInterruptHandler() {};
     virtual Bool_t Notify();
   private:
+    AliMonitorInterruptHandler(const AliMonitorInterruptHandler& handler);
+    AliMonitorInterruptHandler& operator = 
+      (const AliMonitorInterruptHandler& handler);
     AliMonitorProcess* fProcess;       // process to notify
   };
 

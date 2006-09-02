@@ -197,9 +197,7 @@ Bool_t AliTRDCalPIDLQ::ReadData(Char_t *responseFile)
   // Read histogram Root file  
   TFile *histFile = new TFile(responseFile, "READ");
   if (!histFile || !histFile->IsOpen()) {
-    TString error;
-    error.Form("Opening TRD histgram file %s failed", responseFile);
-    AliError(error);    
+    AliError(Form("Opening TRD histgram file %s failed", responseFile));    
     return kFALSE;
   }
   gROOT->cd();

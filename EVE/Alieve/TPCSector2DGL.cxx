@@ -48,8 +48,10 @@ Bool_t TPCSector2DGL::SetModel(TObject* obj)
 {
 #if ROOT_VERSION_CODE <= ROOT_VERSION(5,11,2)
   if(set_model(obj, "Alieve::TPCSector2D")) {
-#else
+#elif ROOT_VERSION_CODE <= ROOT_VERSION(5,13,0)
   if(SetModelCheckClass(obj, "Alieve::TPCSector2D")) {
+#else
+  if(SetModelCheckClass(obj, Alieve::TPCSector2D::Class())) {
 #endif
     fSector = (TPCSector2D*) fExternalObj;
     return kTRUE;
