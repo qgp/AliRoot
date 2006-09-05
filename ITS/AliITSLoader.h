@@ -6,7 +6,8 @@
 #include <AliLoader.h>
 #include <AliESDVertex.h>
 #include <AliITSgeom.h>
-#include <AliITSpidESD.h>
+//#include <AliITSpidESD.h>
+class AliITSpidESD;
 class AliITSdigit;
 class TObjArray;
 
