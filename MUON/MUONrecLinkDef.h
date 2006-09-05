@@ -27,6 +27,10 @@
 // calibration
 #pragma link C++ class AliMUONDigitCalibrator+;
 
+// display
+#pragma link C++ class AliMUONDisplay+; 
+#pragma link C++ class AliMUONRecoCheck+; 
+
 #endif
 
 
