@@ -4,6 +4,10 @@
 // Author: Anders Vestbo <mailto:vestbo@fi.uib.no>, Uli Frankenfeld <mailto:franken@fi.uib.no>
 //*-- Copyright &copy ALICE HLT Group
 
+#if __GNUC__>= 3
+using namespace std;
+#endif
+
 #ifndef no_root
 #include <TFile.h>
 #include <TDirectory.h>
