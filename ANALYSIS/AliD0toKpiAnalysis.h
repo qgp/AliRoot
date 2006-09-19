@@ -7,13 +7,13 @@
 //                      Class AliD0toKpiAnalysis
 //             Reconstruction and analysis D0 -> K^- pi^+
 //      
-//         Origin: A. Dainese    andrea.dainese@pd.infn.it                  
+//         Origin: A. Dainese    andrea.dainese@lnl.infn.it                  
 //-------------------------------------------------------------------------
 
 #include <TString.h>
 #include <TNamed.h>
 #include "AliESD.h"
-#include "AliTracker.h"
+#include "AliRun.h"
 
 //-----------------------------------------------------------------------------
 class AliD0toKpiAnalysis : public TNamed {
@@ -24,14 +24,10 @@ class AliD0toKpiAnalysis : public TNamed {
 
   void ApplySelection(const Char_t *inName="AliD0toKpi.root",
 		      const Char_t *outName="AliD0toKpi_sele.root") const;
-  //  void FindCandidates(Int_t evFirst=0,Int_t evLast=0,
-  //		      const Char_t *outName="AliD0toKpi.root");
-  void FindCandidatesESD(Int_t evFirst=0,Int_t evLast=0,
-  			 const Char_t *outName="AliD0toKpi.root");
+  void FindCandidates(Int_t evFirst=0,Int_t evLast=0,
+		      const Char_t *outName="AliD0toKpi.root");
+  void MakeTracksRefFile(AliRun *gAlice,Int_t evFirst=0,Int_t evLast=0) const;
   void PrintStatus() const;
-  void SetBz(const AliMagF *map) { 
-    AliTracker::SetFieldMap(map,kTRUE); fBz=map->SolenoidField()/10.; 
-  }
   void SetVertexOnTheFly() { fVertexOnTheFly=kTRUE; }
   void SetSimulation() { fSim=kTRUE; }
   void SetOnlySignal() { fOnlySignal=kTRUE; }
@@ -47,7 +43,6 @@ class AliD0toKpiAnalysis : public TNamed {
   //
  private:
   //
-  Double_t fBz;             // value of the magnetic field
   Bool_t   fVertexOnTheFly; // flag for primary vertex reco on the fly
   Bool_t   fSim;            // flag for the analysis of simulated events
   Bool_t   fOnlySignal;     // write to file only signal candidates (for sim)
@@ -71,24 +66,16 @@ class AliD0toKpiAnalysis : public TNamed {
 
   //
   Double_t CalculateTOFmass(Double_t mom,Double_t length,Double_t time) const;
-  //void     MakeTracksRefFile(Int_t evFirst=0,Int_t evLast=0) const;
-  void     MakeTracksRefFileESD() const;
   Bool_t   SelectInvMass(const Double_t p[6]) const;
-  //void     SelectTracks(TTree &trkTree,
-  //			TObjArray &trksP,Int_t *trkEntryP,Int_t &nTrksP,
-  //			TObjArray &trksN,Int_t *trkEntryN,Int_t &nTrksN) const;
-  void     SelectTracksESD(AliESD &event,
-			   TObjArray &trksP,Int_t *trkEntryP,Int_t &nTrksP,
-			   TObjArray &trksN,Int_t *trkEntryN,Int_t &nTrksN) const;
-  void     SelectTracksESDvtx(AliESD &event,TTree *trkTree,
-			      TObjArray &trksP,Int_t *trkEntryP,Int_t &nTrksP,
-			      TObjArray &trksN,Int_t *trkEntryN,Int_t &nTrksN) const;
+  void     SelectTracks(AliESD *event,
+			TObjArray &trksP,Int_t *trkEntryP,Int_t &nTrksP,
+			TObjArray &trksN,Int_t *trkEntryN,Int_t &nTrksN) const;
   void     SetVertex1(Double_t x=0.,Double_t y=0.,Double_t z=0.) 
     { fV1[0]=x;fV1[1]=y;fV1[2]=z; }
   void     SimulationInfo(TTree *treeD0in,TTree *treeD0out) const;
   Bool_t   SingleTrkCuts(const AliESDtrack& trk, Double_t b) const;
   //
-  ClassDef(AliD0toKpiAnalysis,2)  // Reconstruction of D0 candidates class
+  ClassDef(AliD0toKpiAnalysis,3)  // Reconstruction of D0 candidates class
 };
 
 
