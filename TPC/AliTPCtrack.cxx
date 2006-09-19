@@ -128,6 +128,11 @@ const Double_t cc[15], Double_t xref, Double_t alpha) :
 
   SaveLocalConvConst();
 
+  Double_t c0=TMath::Sign(1/(kMostProbableMomentum*GetConvConst()),fP4);
+  Double_t w0=fC44/(fC44 + c0*c0), w1=c0*c0/(fC44 + c0*c0);
+  fP4 = w0*c0 + w1*fP4;
+  fC40*=w1; fC41*=w1; fC42*=w1; fC43*=w1; fC44*=w1;
+
   SetNumberOfClusters(1);
   
   fIndex[0]=index;
@@ -385,7 +390,7 @@ Int_t AliTPCtrack::PropagateTo(Double_t xk,Double_t /*x0*/,Double_t rho) {
 
   //Multiple scattering ******************
   Double_t d=sqrt((x1-fX)*(x1-fX)+(y1-fP0)*(y1-fP0)+(z1-fP1)*(z1-fP1));
-  Double_t p2=(1.+ GetTgl()*GetTgl())/(Get1Pt()*Get1Pt());
+  Double_t p2=P()*P();
   Double_t beta2=p2/(p2 + GetMass()*GetMass());
   beta2 = TMath::Min(beta2,0.99999999999);
   //Double_t theta2=14.1*14.1/(beta2*p2*1e6)*d/x0*rho;
@@ -589,19 +594,6 @@ void AliTPCtrack::ResetCovariance() {
 
 }
 
-////////////////////////////////////////////////////////////////////////
-Double_t AliTPCtrack::Phi() const {
-//
-//
-//
-  Double_t phi =  TMath::ASin(GetSnp()) + fAlpha;
-  if (phi<0) phi+=2*TMath::Pi();
-  if (phi>=2*TMath::Pi()) phi-=2*TMath::Pi();
-  return phi;
-}
-////////////////////////////////////////////////////////////////////////
-
-
 
 ////////////////////////////////////////////////////////////////////////
 // MI ADDITION
@@ -739,14 +731,4 @@ void  AliTPCtrack::UpdatePoints()
     fPoints[0]=i;
   }
   //
-}
-
-Double_t AliTPCtrack::Get1Pt() const {
-  //--------------------------------------------------------------
-  // Returns the inverse Pt (1/GeV/c)
-  // (or 1/"most probable pt", if the field is too weak)
-  //--------------------------------------------------------------
-  if (TMath::Abs(GetLocalConvConst()) > kVeryBigConvConst)
-      return 1./kMostProbableMomentum/TMath::Sqrt(1.+ GetTgl()*GetTgl());
-  return (TMath::Sign(1e-9,fP4) + fP4)*GetLocalConvConst();
 }

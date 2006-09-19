@@ -1174,7 +1174,7 @@ void AliTPCtrackerParam::CompareTPCtracks(
       cmptrk.eta = part->Eta();
       cmptrk.r = TMath::Sqrt(part->Vx()*part->Vx()+part->Vy()*part->Vy());
       
-      cmptrk.pt   = 1/TMath::Abs(geatrack->Get1Pt());
+      cmptrk.pt   = geatrack->Pt();
       cmptrk.cosl = TMath::Cos(TMath::ATan(geatrack->GetTgl()));
       cmptrk.p    = cmptrk.pt/cmptrk.cosl;
     
@@ -1214,7 +1214,7 @@ void AliTPCtrackerParam::CompareTPCtracks(
       cmptrk.dP2 = kaltrack->GetEta()-geatrack->GetEta();
       cmptrk.dP3 = kaltrack->GetTgl()-geatrack->GetTgl();
       cmptrk.dP4 = kaltrack->GetC()-geatrack->GetC();
-      cmptrk.dpt = 1/kaltrack->Get1Pt()-1/geatrack->Get1Pt();
+      cmptrk.dpt = kaltrack->Pt()-geatrack->Pt();
     
       // get covariance matrix
       // beware: lines 3 and 4 in the matrix are inverted!
@@ -1375,7 +1375,7 @@ void AliTPCtrackerParam::CookTrack(Double_t pt,Double_t eta) {
 
   // get P and Cosl from track
   cosl = TMath::Cos(TMath::ATan(fTrack.GetTgl()));
-  p    = 1./TMath::Abs(fTrack.Get1Pt())/cosl;
+  p    = fTrack.Pt()/cosl;
 
   trkKine[0] = p;
 

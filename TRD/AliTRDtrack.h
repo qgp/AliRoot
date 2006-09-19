@@ -65,10 +65,14 @@ class AliTRDtrack : public AliKalmanTrack {
    void            GetExternalParameters(Double_t& xr, Double_t x[5]) const;
 
    Double_t        GetLikelihoodElectron() const        { return fLhElectron;    }
-   Double_t        Get1Pt() const;
-   Double_t        GetP() const;
+   Double_t        Get1Pt() const {return fC*GetLocalConvConst();}
+   Double_t GetP() const {
+     return TMath::Sqrt(1.+ GetTgl()*GetTgl())*TMath::Abs(GetPt());
+   }
    Double_t        GetPredictedChi2(const AliTRDcluster* c, Double_t h01) const;
-   Double_t        GetPt() const                        { return 1.0 / Get1Pt(); }   
+   Double_t        GetPt() const {
+     return 1/(TMath::Sign(1e-9,Get1Pt()) + Get1Pt()); 
+   }   
    void            GetPxPyPz(Double_t &px, Double_t &py, Double_t &pz) const;
    void            GetGlobalXYZ(Double_t &x, Double_t &y, Double_t &z) const;
    Int_t           GetSeedLabel() const                 { return fSeedLab;       }
@@ -179,8 +183,7 @@ void AliTRDtrack::GetExternalParameters(Double_t& xr, Double_t x[5]) const
   // This function returns external TRD track representation
   //
   xr   = fX;
-  x[0] = GetY();  x[1] = GetZ();  x[2] = GetSnp();  x[3] = GetTgl();
-  x[4] = (TMath::Sign(1e-9,fC) + fC)*GetLocalConvConst();
+  x[0]=GetY();  x[1]=GetZ();  x[2]=GetSnp();  x[3]=GetTgl(); x[4]=Get1Pt();
 }           
 
 #endif   

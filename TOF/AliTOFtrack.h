@@ -43,13 +43,13 @@ public:
    Double_t GetSigmaY2() const {return fCyy;}
    Double_t GetSigmaZ2() const {return fCzz;}
 
-   Double_t Get1Pt() const {
-      return (TMath::Sign(1e-9,fC) + fC)*GetLocalConvConst();
-   }
+   Double_t Get1Pt() const { return fC*GetLocalConvConst(); }
    Double_t GetP()     const {  
      return TMath::Abs(GetPt())*sqrt(1.+GetTgl()*GetTgl());
    }
-   Double_t GetPt()    const {return 1./Get1Pt();}   
+   Double_t GetPt() const {
+     return 1/(TMath::Sign(1e-9,Get1Pt()) + Get1Pt());
+   }
    void     GetPxPyPz(Double_t &px, Double_t &py, Double_t &pz) const ;
    void     GetGlobalXYZ(Double_t &x, Double_t &y, Double_t &z) const ;
    Int_t    GetSeedLabel() const { return fSeedLab; }

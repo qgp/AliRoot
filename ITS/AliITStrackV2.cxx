@@ -237,7 +237,7 @@ Int_t AliITStrackV2::CorrectForMaterial(Double_t d, Double_t x0) {
   //------------------------------------------------------------------
   //This function corrects the track parameters for crossed material
   //------------------------------------------------------------------
-  Double_t p2=(1.+ fP3*fP3)/(Get1Pt()*Get1Pt());
+  Double_t p2=GetP()*GetP();
   Double_t beta2=p2/(p2 + GetMass()*GetMass());
   d*=TMath::Sqrt((1.+ fP3*fP3)/(1.- fP2*fP2));
 
@@ -658,7 +658,7 @@ Int_t AliITStrackV2::Improve(Double_t x0,Double_t xyz[3],Double_t ers[3]) {
     Double_t zv = xyz[2];                // local frame
   Double_t dy=fP0-yv, dz=fP1-zv;
   Double_t r2=fX*fX+dy*dy;
-  Double_t p2=(1.+ GetTgl()*GetTgl())/(Get1Pt()*Get1Pt());
+  Double_t p2=GetP()*GetP();
   Double_t beta2=p2/(p2 + GetMass()*GetMass());
   x0*=TMath::Sqrt((1.+ GetTgl()*GetTgl())/(1.- GetSnp()*GetSnp()));
   Double_t theta2=14.1*14.1/(beta2*p2*1e6)*x0;
@@ -768,13 +768,3 @@ PropagateToDCA(AliKalmanTrack *p, Double_t d, Double_t x0) {
 
   return dca;
 } 
-
-Double_t AliITStrackV2::Get1Pt() const {
-  //--------------------------------------------------------------
-  // Returns the inverse Pt (1/GeV/c)
-  // (or 1/"most probable pt", if the field is too weak)
-  //--------------------------------------------------------------
-  if (TMath::Abs(GetLocalConvConst()) > kVeryBigConvConst)
-      return 1./kMostProbableMomentum/TMath::Sqrt(1.+ GetTgl()*GetTgl());
-  return (TMath::Sign(1e-9,fP4) + fP4)*GetLocalConvConst();
-}

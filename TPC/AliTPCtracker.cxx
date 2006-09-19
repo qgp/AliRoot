@@ -211,7 +211,7 @@ Int_t AliTPCtracker::FollowProlongation(AliTPCseed& t, Int_t rf) {
     UInt_t index=0;
     Double_t maxchi2=kMaxCHI2;
     const AliTPCRow &krow=fSectors[s][nr];
-    Double_t pt=t.GetConvConst()/(100/0.299792458/0.2)/t.Get1Pt();
+    Double_t pt=t.GetConvConst()/(100/0.299792458/0.2)*t.Pt();
     Double_t sy2=AliTPCcluster::SigmaY2(t.GetX(),t.GetTgl(),pt);
     Double_t sz2=AliTPCcluster::SigmaZ2(t.GetX(),t.GetTgl());
     Double_t road=4.*sqrt(t.GetSigmaY2() + sy2), y=t.GetY(), z=t.GetZ();
@@ -348,7 +348,7 @@ Int_t AliTPCtracker::FollowBackProlongation
     AliTPCcluster *cl=0;
     Int_t index=0;
     Double_t maxchi2=kMaxCHI2;
-    Double_t pt=seed.GetConvConst()/(100/0.299792458/0.2)/seed.Get1Pt();
+    Double_t pt=seed.GetConvConst()/(100/0.299792458/0.2)*seed.Pt();
     Double_t sy2=AliTPCcluster::SigmaY2(seed.GetX(),seed.GetTgl(),pt);
     Double_t sz2=AliTPCcluster::SigmaZ2(seed.GetX(),seed.GetTgl());
     Double_t road=4.*sqrt(seed.GetSigmaY2() + sy2), z=seed.GetZ();

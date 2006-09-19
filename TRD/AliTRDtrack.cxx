@@ -611,7 +611,7 @@ Int_t AliTRDtrack::PropagateTo(Double_t xk,Double_t x0,Double_t rho)
 
   //Multiple scattering  ******************
   Double_t d=sqrt((x1-fX)*(x1-fX)+(y1-fY)*(y1-fY)+(z1-fZ)*(z1-fZ));
-  Double_t p2=(1.+ GetTgl()*GetTgl())/(Get1Pt()*Get1Pt());
+  Double_t p2=GetP()*GetP();
   Double_t beta2=p2/(p2 + GetMass()*GetMass());
   Double_t theta2=14.1*14.1/(beta2*p2*1e6)*d/x0*rho;
 
@@ -1386,29 +1386,6 @@ Int_t AliTRDtrack::GetSector() const
   return Int_t(TVector2::Phi_0_2pi(fAlpha)
              / AliTRDgeometry::GetAlpha())
              % AliTRDgeometry::kNsect;
-
-}
-
-//_____________________________________________________________________________
-Double_t  AliTRDtrack::Get1Pt() const                       
-{ 
-  //--------------------------------------------------------------
-  // Returns the inverse Pt (1/GeV/c)
-  // (or 1/"most probable pt", if the field is too weak)
-  //--------------------------------------------------------------
-  if (TMath::Abs(GetLocalConvConst()) > kVeryBigConvConst)
-      return 1./kMostProbableMomentum/TMath::Sqrt(1.+ GetTgl()*GetTgl());
-  return (TMath::Sign(1e-9,fC) + fC)*GetLocalConvConst();
-}
-
-//_____________________________________________________________________________
-Double_t  AliTRDtrack::GetP() const                         
-{ 
-  //
-  // Returns the total momentum
-  //
-
-  return TMath::Abs(GetPt())*sqrt(1.+GetTgl()*GetTgl());  
 
 }
 

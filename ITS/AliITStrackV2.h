@@ -64,10 +64,13 @@ public:
   Double_t GetSnp()  const {return fP2;}
   Double_t GetTgl()  const {return fP3;}
   Double_t GetC()    const {return fP4;}
-  Double_t Get1Pt() const;
+  Double_t Get1Pt() const {return fP4*GetLocalConvConst();}
   Double_t GetD(Double_t x=0, Double_t y=0) const;
   void GetDZ(Double_t xv, Double_t yv, Double_t zv, Float_t dz[2]) const;
   Double_t GetZat(Double_t x=0) const;
+
+  Double_t GetPt() const { return 1/(TMath::Abs(Get1Pt()) + 1e-9); }
+  Double_t GetP()  const { return TMath::Sqrt(1.+ GetTgl()*GetTgl())*GetPt(); }
 
   Double_t GetSigmaY2() const {return fC00;}
   Double_t GetSigmaZ2() const {return fC11;}
@@ -114,9 +117,8 @@ void AliITStrackV2::GetExternalParameters(Double_t& xr, Double_t x[5]) const {
   //---------------------------------------------------------------------
   // This function return external ITS track representation
   //---------------------------------------------------------------------
-     xr=fX;          
-     x[0]=GetY(); x[1]=GetZ(); x[2]=GetSnp(); x[3]=GetTgl();
-     x[4]=(TMath::Sign(1e-9,fP4) + fP4)*GetLocalConvConst();
+  xr=fX;          
+  x[0]=GetY(); x[1]=GetZ(); x[2]=GetSnp(); x[3]=GetTgl(); x[4]=Get1Pt();
 }
 
 inline

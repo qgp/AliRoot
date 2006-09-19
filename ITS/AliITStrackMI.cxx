@@ -155,8 +155,7 @@ Int_t AliITStrackMI::CorrectForMaterial(Double_t d, Double_t x0) {
   //------------------------------------------------------------------
   //This function corrects the track parameters for crossed material
   //------------------------------------------------------------------
-  //  Double_t p2=(1.+ GetTgl()*GetTgl())/(Get1Pt()*Get1Pt());
-  Double_t p2=(1.+ fP3*fP3)/(Get1Pt()*Get1Pt());
+  Double_t p2=GetP()*GetP();
   Double_t et   = p2 + GetMass()*GetMass();
   Double_t beta2=p2/et;
   et = sqrt(et);  

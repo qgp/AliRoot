@@ -50,21 +50,14 @@ public:
   Double_t GetY()   const {return fP0;}
   Double_t GetZ()   const {return fP1;}
   Double_t GetSnp() const {return fX*fP4 - fP2;}
-  Double_t Get1Pt() const;
+  Double_t Get1Pt() const {return fP4*GetLocalConvConst();}
   Double_t GetTgl() const {return fP3;}
+
+  Double_t Pt() const { return 1/(TMath::Abs(Get1Pt()) + 1e-9); }
+  Double_t P()  const { return TMath::Sqrt(1.+ GetTgl()*GetTgl())*Pt(); }
 
   Double_t GetSigmaY2() const {return fC00;}
   Double_t GetSigmaZ2() const {return fC11;}
-
-// Some methods useful for users. Implementation is not
-// optimized for speed but for minimal maintanance effort
-  Double_t Phi() const;
-  Double_t Theta() const {return TMath::Pi()/2.-TMath::ATan(GetTgl());}
-  Double_t Px() const {return TMath::Cos(Phi())/TMath::Abs(Get1Pt());}
-  Double_t Py() const {return TMath::Sin(Phi())/TMath::Abs(Get1Pt());}
-  Double_t Pz() const {return GetTgl()/TMath::Abs(Get1Pt());}
-  Double_t Pt() const {return 1./TMath::Abs(Get1Pt());}
-  Double_t P() const {return TMath::Sqrt(Pt()*Pt()+Pz()*Pz());}
 
   Int_t Compare(const TObject *o) const;
 
@@ -159,8 +152,7 @@ inline
 void AliTPCtrack::GetExternalParameters(Double_t& xr, Double_t x[5]) const {
   // This function return external TPC track representation
      xr=fX;
-     x[0]=GetY(); x[1]=GetZ(); x[2]=GetSnp(); x[3]=GetTgl();
-     x[4]=(TMath::Sign(1e-9,fP4) + fP4)*GetLocalConvConst();
+     x[0]=GetY(); x[1]=GetZ(); x[2]=GetSnp(); x[3]=GetTgl(); x[4]=Get1Pt();
 }
 
 inline void AliTPCtrack::GetXYZ(Float_t r[3]) const {

@@ -281,7 +281,7 @@ Int_t AliITStrackerMI::Clusters2Tracks(AliESD *event) {
 	  delete t;
 	  continue;
 	}
-	if (TMath::Abs(1/t->Get1Pt())<0.120) {
+	if (TMath::Abs(t->GetPt())<0.120) {
 	  delete t;
 	  continue;
 	}
@@ -1897,7 +1897,12 @@ Double_t AliITStrackerMI::GetMatchingChi2(AliITStrackMI * track1, AliITStrackMI 
   cov(2,4)=cov(4,2) = track1->fC42+track3.fC42;
   //
   cov(3,4)=cov(4,3) = track1->fC43+track3.fC43;
-  
+
+  if ( TMath::Abs(cov.Determinant()) < kAlmost0 ) {
+    AliWarning("Singular matrix !");
+    return kVeryBig;
+  }
+
   cov.Invert();
   TMatrixD vec2(cov,TMatrixD::kMult,vec);
   TMatrixD chi2(vec2,TMatrixD::kTransposeMult,vec);
@@ -2209,7 +2214,7 @@ AliITStrackMI *  AliITStrackerMI::GetBest2Tracks(Int_t trackID1, Int_t trackID2,
   //
   AliITStrackMI * track10=(AliITStrackMI*) arr1->UncheckedAt(0);
   AliITStrackMI * track20=(AliITStrackMI*) arr2->UncheckedAt(0);
-  if (TMath::Abs(1./track10->Get1Pt())>0.5+TMath::Abs(1/track20->Get1Pt())) return track10;
+  if (TMath::Abs(track10->GetPt())>0.5+TMath::Abs(track20->GetPt())) return track10;
 
   for (Int_t itrack=0;itrack<entries1;itrack++){
     AliITStrackMI * track=(AliITStrackMI*) arr1->UncheckedAt(itrack);
@@ -2272,11 +2277,11 @@ AliITStrackMI *  AliITStrackerMI::GetBest2Tracks(Int_t trackID1, Int_t trackID2,
   //
   w1 = (d2/(d1+d2)+ 2*s2/(s1+s2)+
 	+s2/(s1+s2)*0.5*(chi22+2.)/(chi21+chi22+4.)
-	+1.*TMath::Abs(1./track10->Get1Pt())/(TMath::Abs(1./track10->Get1Pt())+TMath::Abs(1./track20->Get1Pt()))
+	+1.*TMath::Abs(track10->GetPt())/(TMath::Abs(track10->GetPt())+TMath::Abs(track20->GetPt()))
 	);
   w2 = (d1/(d1+d2)+ 2*s1/(s1+s2)+
 	s1/(s1+s2)*0.5*(chi21+2.)/(chi21+chi22+4.)
-	+1.*TMath::Abs(1./track20->Get1Pt())/(TMath::Abs(1./track10->Get1Pt())+TMath::Abs(1./track20->Get1Pt()))
+	+1.*TMath::Abs(track20->GetPt())/(TMath::Abs(track10->GetPt())+TMath::Abs(track20->GetPt()))
 	);
 
   Double_t sumw = w1+w2;
