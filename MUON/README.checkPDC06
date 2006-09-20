@@ -1,0 +1,58 @@
+$Id$
+
+==========================================================
+ How to run the MUONCheckPDC06 macro 
+==========================================================
+
+In the beginning of MUONCheckPDC06.C, in Checking(), you have to configure:
+Total event number in galice.root: Ntot. 
+galice.root file path:  char *filename
+AliESDs.root file path: char *esdFileName
+Output directory path: char *outDir; 
+
+
+To compile and run MUONCheckPDC06.C
+.includepath $ALICE_ROOT/EVGEN
+.includepath $ALICE_ROOT/STEER
+.includepath $ALICE_ROOT/MUON
+.includepath $ALICE_ROOT/MUON/mapping
+.L MUONCheckPDC06.C+
+Checking()
+
+
+
+OUTPUTS in *outDir:
+* ESD.ps gives the ITS vertex (from AliESDVertex) and the multiplicity of ESD tracks
+
+* Hit_Densities.ps gives the hit densities (from AliMuonHit) for the first and last tracking plane and for the MT11 and MT22 trigger plane (with the trigger time cut of 75 ns)
+
+* Hit_theta.ps gives the hit theta for the same planes, with time cut for trigger planes
+
+* Tof_on_trigger.ps gives the time of flight for the first tracking plane and the last trigger plane, from AliTrackReference
+
+* TR_Hit_densities.ps  gives the hit densities (from AliTrackReference) for the first and last tracking plane and for the MT11 and MT22 trigger plane (without the trigger time cut). In these plots, one particle can give only one hit per plane
+
+*TriggerCheck.root gives the muliplicity of each response for SinglePlusApt, SingleMinusApt, SingleUndefApt, PairUnlikeLpt, PairUnlikeHpt, PairUnlikeApt, PairLikeApt
+*output.txt presents the trigger responses for each trigger cut,
+    - table 1: directly from trigger algorithm (from "AliMUONGlobalTrigger)
+    - table 2:normalized as classic trigger response, i.e. each trigger cut can give 1 or 0 for each event.
+    - table 3: Trigger rates for the nominal luminosity in pp
+
+    - table 4:From the trigger word got by the ESD file to compare with the algorithm response (table 2)
+			
+    - the percent of reconstructed tracks (ESD File) which match with the trigger
+
+
+********************************************************************************
+
+Notes: Each subroutine of the macro can run separately. You just need to comment the running command line.	
+	
+
+ 
+
+
+
+
+
+
+
