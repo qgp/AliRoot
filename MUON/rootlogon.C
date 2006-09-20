@@ -6,5 +6,5 @@
 /// By Laurent Aphecetche
 
 {
-  gSystem->SetIncludePath("-I${ALICE_ROOT}/include -I${ALICE_ROOT}/MUON -I${ALICE_ROOT}/MUON/mapping");
+  gSystem->SetIncludePath("-I${ALICE_ROOT}/include -I${ALICE_ROOT}/STEER -I${ALICE_ROOT}/EVGEN -I${ALICE_ROOT}/MUON -I${ALICE_ROOT}/MUON/mapping");
 }
