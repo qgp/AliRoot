@@ -19,26 +19,29 @@ class Track : public RenderElement,
 {
   friend class TrackList;
 
-private:
-  void                   Init();
+  Track(const Track&);            // Not implemented
+  Track& operator=(const Track&); // Not implemented
 
 protected:
-  Reve::Vector           fV;
-  Reve::Vector           fP;
-  Double_t               fBeta;
-  Int_t                  fCharge;
-  Int_t                  fLabel;
+  typedef std::vector<Reve::PathMark*>           vpPathMark_t;
+  typedef std::vector<Reve::PathMark*>::iterator vpPathMark_i;
 
-  TrackRnrStyle* 	 fRnrStyle;
+  Reve::Vector      fV;
+  Reve::Vector      fP;
+  Double_t          fBeta;
+  Int_t             fCharge;
+  Int_t             fLabel;
+  vpPathMark_t      fPathMarks;
+
+  TrackRnrStyle*    fRnrStyle;
     
-  TString                fName; 
-  TString                fTitle; 
+  TString           fName;
+  TString           fTitle;
 
 public: 
   Track();
   Track(Reve::MCTrack*  t, TrackRnrStyle* rs);
   Track(Reve::RecTrack* t, TrackRnrStyle* rs);
-  std::vector<Reve::PathMark*> fPathMarks;
   virtual ~Track();
 
   void Reset(Int_t n_points=0);
@@ -61,6 +64,7 @@ public:
   virtual void SetTitle(const Text_t* title) { fTitle = title; }
 
   Int_t GetLabel() const { return fLabel; }
+  void  AddPathMark(Reve::PathMark* pm) { fPathMarks.push_back(pm); }
 
   //--------------------------------
 
@@ -85,9 +89,6 @@ public:
 
 class TrackRnrStyle : public TObject 
 {
-private:
-  void         Init();
-
 public:
   Color_t                  fColor;
   Float_t                  fMagField;  
@@ -102,7 +103,7 @@ public:
   Bool_t                   fFitDaughters;   
   Bool_t                   fFitDecay;   
 
-  TrackRnrStyle() { Init(); }
+  TrackRnrStyle();
 
   void    SetColor(Color_t c) { fColor = c; }
   Color_t GetColor() const    { return fColor; }
@@ -125,24 +126,27 @@ public:
 class TrackList : public RenderElementListBase,
 		  public TPolyMarker3D
 {
+  TrackList(const TrackList&);            // Not implemented
+  TrackList& operator=(const TrackList&); // Not implemented
+
 private:
   void  Init();
 
 protected:
   TString              fTitle;
 
-  TrackRnrStyle*       mRnrStyle;
+  TrackRnrStyle*       fRnrStyle;
 
   Bool_t               fRnrMarkers;
   Bool_t               fRnrTracks;
 
 public:
-  TrackList(Int_t n_tracks=0);
-  TrackList(const Text_t* name, Int_t n_tracks=0);
+  TrackList(Int_t n_tracks=0, TrackRnrStyle* rs=0);
+  TrackList(const Text_t* name, Int_t n_tracks=0, TrackRnrStyle* rs=0);
 
   void Reset(Int_t n_tracks=0);
 
-  virtual const Text_t* GetTile() const  { return fTitle; }
+  virtual const Text_t* GetTitle() const { return fTitle; }
   virtual void SetTitle(const Text_t* t) { fTitle = t; }
 
   virtual Bool_t CanEditMainColor()  { return kTRUE; }
@@ -151,8 +155,8 @@ public:
 
   virtual void AddElement(RenderElement* el);
 
-  void  SetRnrStyle(TrackRnrStyle* rst) { mRnrStyle= rst; }
-  TrackRnrStyle* GetRnrStyle()          { return mRnrStyle; } 
+  void  SetRnrStyle(TrackRnrStyle* rst) { fRnrStyle= rst; }
+  TrackRnrStyle* GetRnrStyle()          { return fRnrStyle; } 
 
   Bool_t GetRnrTracks() const { return fRnrTracks; }
   void   SetRnrTracks(Bool_t);
@@ -163,13 +167,13 @@ public:
   void   MakeTracks();
   void   MakeMarkers();
 
-  Float_t GetMaxR()         const { return mRnrStyle->fMaxZ; }
-  Float_t GetMaxZ()         const { return mRnrStyle->fMaxR; }
-  Float_t GetMaxOrbs()      const { return mRnrStyle->fMaxOrbs; }
-  Float_t GetMinAng()       const { return mRnrStyle->fMinAng; }
-  Float_t GetDelta()        const { return mRnrStyle->fDelta; }
-  Bool_t  GetFitDaughters() const { return mRnrStyle->fFitDaughters; }
-  Bool_t  GetFitDecay()     const { return mRnrStyle->fFitDecay; }
+  Float_t GetMaxR()         const { return fRnrStyle->fMaxZ; }
+  Float_t GetMaxZ()         const { return fRnrStyle->fMaxR; }
+  Float_t GetMaxOrbs()      const { return fRnrStyle->fMaxOrbs; }
+  Float_t GetMinAng()       const { return fRnrStyle->fMinAng; }
+  Float_t GetDelta()        const { return fRnrStyle->fDelta; }
+  Bool_t  GetFitDaughters() const { return fRnrStyle->fFitDaughters; }
+  Bool_t  GetFitDecay()     const { return fRnrStyle->fFitDecay; }
 
   void SetMaxR(Float_t x);
   void SetMaxZ(Float_t x);

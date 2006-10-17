@@ -31,6 +31,9 @@ class TPCSectorViz : public Reve::RenderElement,
   friend class TPCSector3DEditor;
   friend class TPCSector3DGL;
 
+  TPCSectorViz(const TPCSectorViz&);            // Not implemented
+  TPCSectorViz& operator=(const TPCSectorViz&); // Not implemented
+
 protected:
   TPCData*    fTPCData; 
   Int_t       fSectorID;
@@ -74,6 +77,8 @@ public:
   Int_t          GetSectorID() const { return fSectorID; }
   TPCSectorData* GetSectorData() const;
 
+  Int_t GetMinTime() const { return fMinTime; }
+  Int_t GetMaxTime() const { return fMaxTime; }
   void SetMinTime(Int_t mt)    { fMinTime   = mt; IncRTS(); }
   void SetMaxTime(Int_t mt)    { fMaxTime   = mt; IncRTS(); }
   void SetThreshold(Short_t t);

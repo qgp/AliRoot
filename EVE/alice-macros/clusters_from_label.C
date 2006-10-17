@@ -3,7 +3,8 @@
 void clusters_from_label(Int_t label=0)
 {
   AliESD* esd = Alieve::Event::AssertESD();
-  TPolyMarker3D* clusters = new TPolyMarker3D(64);
+  Reve::PointSet* clusters = new Reve::PointSet(64);
+  clusters->SetOwnIds(kTRUE);
 
   for (Int_t n=0; n<esd->GetNumberOfTracks(); n++) {
     AliESDtrack* at = esd->GetTrack(n);
@@ -19,17 +20,18 @@ void clusters_from_label(Int_t label=0)
       const Float_t* z = pArr->GetZ();
       for (Int_t i=0; i<np; ++i) {
 	clusters->SetNextPoint(x[i], y[i], z[i]);
+	AliTrackPoint *atp = new AliTrackPoint;
+	pArr->GetPoint(*atp, i);
+	clusters->SetPointId(atp);
       }
     }
   }
   clusters->SetMarkerStyle(2);
-  clusters->SetMarkerSize(5);
+  clusters->SetMarkerSize(0.5);
   clusters->SetMarkerColor(4);
   clusters->SetName(Form("Clusters lab=%d", label));
 
   using namespace Reve;
-  Color_t* colp = FindColorVar(clusters, "fMarkerColor");
-  RenderElementObjPtr* rnrEl = new RenderElementObjPtr(clusters, *colp);
-  gReve->AddRenderElement(rnrEl);
+  gReve->AddRenderElement(clusters);
   gReve->Redraw3D();
 }

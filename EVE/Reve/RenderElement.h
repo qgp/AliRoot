@@ -23,14 +23,23 @@ class RenderElement
 {
   friend class RGTopFrame;
 
+  RenderElement(const RenderElement&);            // Not implemented
+  RenderElement& operator=(const RenderElement&); // Not implemented
+
 public:
-  struct ListTreeInfo {
+  class ListTreeInfo
+  {
+  public:
     TGListTree*     fTree;
     TGListTreeItem* fItem;
 
-    ListTreeInfo() {}
+    ListTreeInfo() : fTree(0), fItem(0) {}
     ListTreeInfo(TGListTree* lt, TGListTreeItem* lti) : fTree(lt), fItem(lti) {}
+    ListTreeInfo(const ListTreeInfo& l) : fTree(l.fTree), fItem(l.fItem) {}
     virtual ~ListTreeInfo() {}
+
+    ListTreeInfo& operator=(const ListTreeInfo& l)
+    { fTree = l.fTree; fItem = l.fItem; return *this; }
 
     bool operator==(const ListTreeInfo& x) const
     { return fTree == x.fTree && fItem == x.fItem; }
@@ -99,10 +108,10 @@ public:
 
   virtual void UpdateItems();
 
-  void SpawnEditor();                  // *MENU*
-  void ExportToCINT(Text_t* var_name); // *MENU*
+  void SpawnEditor();                          // *MENU*
+  virtual void ExportToCINT(Text_t* var_name); // *MENU*
 
-  virtual void Destroy();              // *MENU*
+  virtual void Destroy();                      // *MENU*
 
   virtual Bool_t CanEditRnrElement()   { return kTRUE; }
   virtual Bool_t GetRnrElement() const { return fRnrElement; }
@@ -124,6 +133,9 @@ public:
 class RenderElementObjPtr : public RenderElement,
                             public TObject
 {
+  RenderElementObjPtr(const RenderElementObjPtr&);            // Not implemented
+  RenderElementObjPtr& operator=(const RenderElementObjPtr&); // Not implemented
+
 protected:
   TObject* fObject;
   Bool_t   fOwnObject;
@@ -134,6 +146,7 @@ public:
   virtual ~RenderElementObjPtr();
 
   virtual TObject* GetObject(Exc_t eh="RenderElementObjPtr::GetObject ");
+  virtual void     ExportToCINT(Text_t* var_name);
 
   Bool_t GetOwnObject() const   { return fOwnObject; }
   void   SetOwnObject(Bool_t o) { fOwnObject = o; }
@@ -151,8 +164,8 @@ protected:
   void PaintElements(Option_t* option="");
 
 public:
-  RenderElementListBase() {}
-  RenderElementListBase(Color_t& col) : RenderElement(col) {}
+  RenderElementListBase() : RenderElement(), fChildren() {}
+  RenderElementListBase(Color_t& col) : RenderElement(col), fChildren() {}
   virtual ~RenderElementListBase();
 
   virtual void AddElement(RenderElement* el);

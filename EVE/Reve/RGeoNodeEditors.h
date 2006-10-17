@@ -17,6 +17,9 @@ class GeoTopNodeRnrEl;
 
 class GeoNodeRnrElEditor : public TGedFrame
 {
+  GeoNodeRnrElEditor(const GeoNodeRnrElEditor&);            // Not implemented
+  GeoNodeRnrElEditor& operator=(const GeoNodeRnrElEditor&); // Not implemented
+
 protected:
   GeoNodeRnrEl*   fNodeRE;
 
@@ -28,10 +31,11 @@ protected:
   TGNumberEntry*  fTransparency;
 
 public:
-  GeoNodeRnrElEditor(const TGWindow* p, Int_t id, Int_t width = 170, Int_t height = 30, UInt_t options = kChildFrame, Pixel_t back = GetDefaultFrameBackground());
+  GeoNodeRnrElEditor(const TGWindow* p=0, Int_t width=170, Int_t height=30,
+		     UInt_t options=kChildFrame, Pixel_t back=GetDefaultFrameBackground());
   virtual ~GeoNodeRnrElEditor() {}
 
-  virtual void SetModel(TVirtualPad* pad, TObject* obj, Int_t event);
+  virtual void SetModel(TObject* obj);
 
   void DoVizNode();
   void DoVizNodeDaughters();
@@ -47,6 +51,9 @@ public:
 
 class GeoTopNodeRnrElEditor : public TGedFrame
 {
+  GeoTopNodeRnrElEditor(const GeoTopNodeRnrElEditor&);            // Not implemented
+  GeoTopNodeRnrElEditor& operator=(const GeoTopNodeRnrElEditor&); // Not implemented
+
 protected:
   GeoTopNodeRnrEl*   fTopNodeRE;
 
@@ -54,10 +61,11 @@ protected:
   TGNumberEntry*     fVisLevel;
 
 public:
-  GeoTopNodeRnrElEditor(const TGWindow* p, Int_t id, Int_t width = 170, Int_t height = 30, UInt_t options = kChildFrame, Pixel_t back = GetDefaultFrameBackground());
+  GeoTopNodeRnrElEditor(const TGWindow* p=0, Int_t width=170, Int_t height=30,
+			UInt_t options=kChildFrame, Pixel_t back=GetDefaultFrameBackground());
   virtual ~GeoTopNodeRnrElEditor() {}
 
-  virtual void SetModel(TVirtualPad* pad, TObject* obj, Int_t event);
+  virtual void SetModel(TObject* obj);
 
   void DoVisOption();
   void DoVisLevel();

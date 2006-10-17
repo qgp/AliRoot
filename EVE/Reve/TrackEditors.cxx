@@ -22,11 +22,27 @@ using namespace Reve;
 
 ClassImp(TrackListEditor)
 
-TrackListEditor::TrackListEditor(const TGWindow *p, Int_t id, Int_t width, Int_t height,
-	     UInt_t options, Pixel_t back) :
-  TGedFrame(p, id, width, height, options | kVerticalFrame, back)
+TrackListEditor::TrackListEditor(const TGWindow *p,
+                                 Int_t width, Int_t height,
+                                 UInt_t options, Pixel_t back) :
+  TGedFrame(p, width, height, options | kVerticalFrame, back),
+
+  fTC (0),
+
+  fMaxR(0),
+  fMaxZ(0),
+  fMaxOrbits(0),
+  fMinAng(0),
+  fDelta(0),
+
+  fRnrTracks(0),
+  fRnrMarkers(0),
+
+  fFitDaughters(0),
+  fFitDecay(0),
+
+  fPtRange(0)
 {
-  fTC = 0;
   MakeTitle("TrackList");
 
     // --- Limits
@@ -135,13 +151,6 @@ TrackListEditor::TrackListEditor(const TGWindow *p, Int_t id, Int_t width, Int_t
   fPtRange->Connect("ValueSet()",
                     "Reve::TrackListEditor", this, "DoPtRange()");
   AddFrame(fPtRange, new TGLayoutHints(kLHintsTop, 1, 1, 2, 1));
-
-  // Register the editor.
-  TClass *cl = TrackList::Class();
-  TGedElement *ge = new TGedElement;
-  ge->fGedFrame = this;
-  ge->fCanvas = 0;
-  cl->GetEditorList()->Add(ge);
 }
 
 TrackListEditor::~TrackListEditor()
@@ -149,20 +158,9 @@ TrackListEditor::~TrackListEditor()
 
 /**************************************************************************/
 
-void TrackListEditor::SetModel(TVirtualPad* pad, TObject* obj, Int_t )
+void TrackListEditor::SetModel(TObject* obj)
 {
-  fModel = 0;
-  fPad   = 0;
-
-  if (!obj || !obj->InheritsFrom(TrackList::Class()) || obj->InheritsFrom(TVirtualPad::Class())) {
-    SetActive(kFALSE);
-    return;
-  }
-
-  fModel = obj;
-  fPad   = pad;
-
-  fTC = dynamic_cast<TrackList*>(fModel);
+  fTC = dynamic_cast<TrackList*>(obj);
 
   fMaxR->SetNumber(fTC->GetMaxR());
   fMaxZ->SetNumber(fTC->GetMaxZ());
@@ -177,8 +175,6 @@ void TrackListEditor::SetModel(TVirtualPad* pad, TObject* obj, Int_t )
   fFitDecay->SetState(fTC->GetFitDecay() ? kButtonDown : kButtonUp);
 
   fPtRange->SetValues(0.1, 10);
-
-  SetActive();
 }
 
 /**************************************************************************/
@@ -247,4 +243,5 @@ void TrackListEditor::DoFitDecay()
 void TrackListEditor::DoPtRange()
 {
   fTC->SelectByPt(fPtRange->GetMin(), fPtRange->GetMax());
+  Update();
 }

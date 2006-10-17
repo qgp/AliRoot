@@ -20,6 +20,9 @@ class TPCSector3D;
 
 class TPCSector3DEditor : public TGedFrame
 {
+  TPCSector3DEditor(const TPCSector3DEditor&);            // Not implemented
+  TPCSector3DEditor& operator=(const TPCSector3DEditor&); // Not implemented
+
 protected:
   TPCSector3D*      fM; // fModel dynamic-casted to TPCSector3DEditor
 
@@ -30,11 +33,11 @@ protected:
   Reve::RGValuator* fPointSize;
 
 public:
-  TPCSector3DEditor(const TGWindow* p, Int_t id, Int_t width=170, Int_t height=30,
+  TPCSector3DEditor(const TGWindow* p=0, Int_t width=170, Int_t height=30,
 		    UInt_t options=kChildFrame, Pixel_t back=GetDefaultFrameBackground());  
   virtual ~TPCSector3DEditor();
 
-  virtual void SetModel(TVirtualPad* pad, TObject* obj, Int_t event);
+  virtual void SetModel(TObject* obj);
 
   void DoRnrFrame();
   void DoDriftVel();

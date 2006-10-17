@@ -20,6 +20,8 @@ ClassImp(RenderElement)
 RenderElement::RenderElement() :
   fRnrElement          (kTRUE),
   fMainColorPtr        (0),
+  fItems               (),
+  fParents             (),
   fDestroyOnZeroRefCnt (kTRUE),
   fDenyDestroy         (kFALSE)
 {}
@@ -27,6 +29,8 @@ RenderElement::RenderElement() :
 RenderElement::RenderElement(Color_t& main_color) :
   fRnrElement          (kTRUE),
   fMainColorPtr        (&main_color),
+  fItems               (),
+  fParents             (),
   fDestroyOnZeroRefCnt (kTRUE),
   fDenyDestroy         (kFALSE)
 {}
@@ -55,6 +59,7 @@ void RenderElement::Destroy()
   if(fDenyDestroy)
     throw(eH + "this object is protected against destruction.");
 
+  gReve->PreDeleteRenderElement(this);
   delete this;
   gReve->Redraw3D();
 }
@@ -74,6 +79,7 @@ void RenderElement::RemoveParent(RenderElement* re)
   if(fParents.empty() && fDestroyOnZeroRefCnt) {
     // TObject* tobj = GetObject(eH);
     // Warning(eH.Data(), Form("auto-destructing '%s' on zero reference count.", tobj->GetName()));
+    gReve->PreDeleteRenderElement(this);
     delete this;
   }
 }
@@ -191,7 +197,6 @@ void RenderElement::UpdateItems()
     if(fMainColorPtr != 0) i->fItem->SetColor(GetMainColor());
     gClient->NeedRedraw(i->fTree);
   }
-  gReve->Redraw3D(); // This will go away once editor can notify ALL changes.
 }
 
 /**************************************************************************/
@@ -205,9 +210,8 @@ void RenderElement::ExportToCINT(Text_t* var_name)
 {
   static const Exc_t eH("RenderElement::ExportToCINT ");
 
-  TObject* obj = GetObject(eH);
-  const char* cname = obj->IsA()->GetName();
-  gROOT->ProcessLine(Form("%s* %s = (%s*) %p;", cname, var_name, cname, obj));
+  const char* cname = IsA()->GetName();
+  gROOT->ProcessLine(Form("%s* %s = (%s*)0x%lx;", cname, var_name, cname, this));
 }
 
 /**************************************************************************/
@@ -238,7 +242,12 @@ void RenderElement::SetRnrElement(Bool_t rnr)
 {
   if(rnr != fRnrElement) {
     fRnrElement = rnr;
-    UpdateItems();
+    for(sLTI_i i=fItems.begin(); i!=fItems.end(); ++i) {
+      if (i->fItem->IsChecked() != rnr) {
+        i->fItem->CheckItem(fRnrElement);
+        gClient->NeedRedraw(i->fTree);
+      }
+    }
   }
 }
 
@@ -248,7 +257,12 @@ void RenderElement::SetMainColor(Color_t color)
 {
   if (fMainColorPtr) {
     *fMainColorPtr = color;
-    UpdateItems();
+    for(sLTI_i i=fItems.begin(); i!=fItems.end(); ++i) {
+      if(i->fItem->GetColor() != color) {
+        i->fItem->SetColor(GetMainColor());
+        gClient->NeedRedraw(i->fTree);
+      }
+    }
   }
 }
 
@@ -287,6 +301,15 @@ TObject* RenderElementObjPtr::GetObject(Reve::Exc_t eh)
   if(fObject == 0)
     throw(eh + "fObject not set.");
   return fObject;
+}
+
+void RenderElementObjPtr::ExportToCINT(Text_t* var_name)
+{
+  static const Exc_t eH("RenderElementObjPtr::ExportToCINT ");
+
+  TObject* obj = GetObject(eH);
+  const char* cname = obj->IsA()->GetName();
+  gROOT->ProcessLine(Form("%s* %s = (%s*)0x%lx;", cname, var_name, cname, obj));
 }
 
 /**************************************************************************/

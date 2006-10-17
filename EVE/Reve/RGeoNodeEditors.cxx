@@ -22,11 +22,20 @@ using namespace Reve;
 
 ClassImp(GeoNodeRnrElEditor)
 
-GeoNodeRnrElEditor::GeoNodeRnrElEditor(const TGWindow *p, Int_t id, Int_t width, Int_t height,
-						 UInt_t options, Pixel_t back) :
-  TGedFrame(p, id, width, height, options | kVerticalFrame, back)
+GeoNodeRnrElEditor::GeoNodeRnrElEditor(const TGWindow *p,
+                                       Int_t width, Int_t height,
+                                       UInt_t options, Pixel_t back) :
+  TGedFrame(p,width, height, options | kVerticalFrame, back),
+
+  fNodeRE (0),
+
+  fVizNode(0),
+  fVizNodeDaughters(0),
+  fVizVolume(0),
+  fVizVolumeDaughters(0),
+
+  fTransparency(0)
 {
-  fNodeRE = 0;
   MakeTitle("GeoNode");
 
   // --- Visibility control
@@ -72,32 +81,13 @@ GeoNodeRnrElEditor::GeoNodeRnrElEditor(const TGWindow *p, Int_t id, Int_t width,
 			   "Reve::GeoNodeRnrElEditor", this, "DoTransparency()");
     AddFrame(f, new TGLayoutHints(kLHintsTop, 1, 1, 1, 1));
   }
-
-
-  // What is this crap?
-  TClass *cl = GeoNodeRnrEl::Class();
-  TGedElement *ge = new TGedElement;
-  ge->fGedFrame = this;
-  ge->fCanvas = 0;
-  cl->GetEditorList()->Add(ge);
 }
 
 /**************************************************************************/
 
-void GeoNodeRnrElEditor::SetModel(TVirtualPad* pad, TObject* obj, Int_t )
+void GeoNodeRnrElEditor::SetModel(TObject* obj)
 {
-  fModel = 0;
-  fPad = 0;
-
-  if (!obj || !obj->InheritsFrom(GeoNodeRnrEl::Class()) || obj->InheritsFrom(TVirtualPad::Class())) {
-    SetActive(kFALSE);
-    return;
-  }
-
-  fModel = obj;
-  fPad = pad;
-   
-  fNodeRE = dynamic_cast<GeoNodeRnrEl*>(fModel);
+  fNodeRE = dynamic_cast<GeoNodeRnrEl*>(obj);
   TGeoNode*  node = fNodeRE->fNode;
   TGeoVolume* vol = node->GetVolume();
 
@@ -107,8 +97,6 @@ void GeoNodeRnrElEditor::SetModel(TVirtualPad* pad, TObject* obj, Int_t )
   fVizVolumeDaughters->SetState(vol->IsVisDaughters() ? kButtonDown : kButtonUp);
 
   fTransparency->SetNumber(vol->GetTransparency());
-
-  SetActive();
 }
 
 /**************************************************************************/
@@ -155,11 +143,15 @@ void GeoNodeRnrElEditor::DoTransparency()
 
 ClassImp(GeoTopNodeRnrElEditor)
 
-GeoTopNodeRnrElEditor::GeoTopNodeRnrElEditor(const TGWindow *p, Int_t id, Int_t width, Int_t height,
+GeoTopNodeRnrElEditor::GeoTopNodeRnrElEditor(const TGWindow *p,
+                                             Int_t width, Int_t height,
 					     UInt_t options, Pixel_t back) :
-  TGedFrame(p, id, width, height, options | kVerticalFrame, back)
+  TGedFrame(p, width, height, options | kVerticalFrame, back),
+
+  fTopNodeRE (0),
+  fVisOption (0),
+  fVisLevel  (0)
 {
-  fTopNodeRE = 0;
   MakeTitle("GeoTopNode");
 
   {
@@ -191,37 +183,16 @@ GeoTopNodeRnrElEditor::GeoTopNodeRnrElEditor(const TGWindow *p, Int_t id, Int_t 
 			"Reve::GeoTopNodeRnrElEditor", this, "DoVisLevel()");
     AddFrame(f, new TGLayoutHints(kLHintsTop, 1, 1, 1, 1));
   }
-
-
-  // What is this crap?
-  TClass *cl = GeoNodeRnrEl::Class();
-  TGedElement *ge = new TGedElement;
-  ge->fGedFrame = this;
-  ge->fCanvas = 0;
-  cl->GetEditorList()->Add(ge);
 }
 
 /**************************************************************************/
 
-void GeoTopNodeRnrElEditor::SetModel(TVirtualPad* pad, TObject* obj, Int_t )
+void GeoTopNodeRnrElEditor::SetModel(TObject* obj)
 {
-  fModel = 0;
-  fPad = 0;
-
-  if (!obj || !obj->InheritsFrom(GeoTopNodeRnrEl::Class()) || obj->InheritsFrom(TVirtualPad::Class())) {
-    SetActive(kFALSE);
-    return;
-  }
-
-  fModel = obj;
-  fPad   = pad;
-   
-  fTopNodeRE = dynamic_cast<GeoTopNodeRnrEl*>(fModel);
+  fTopNodeRE = dynamic_cast<GeoTopNodeRnrEl*>(obj);
 
   fVisOption->SetNumber(fTopNodeRE->GetVisOption());
   fVisLevel->SetNumber(fTopNodeRE->GetVisLevel());
-
-  SetActive();
 }
 
 /**************************************************************************/

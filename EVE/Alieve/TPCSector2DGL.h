@@ -8,24 +8,29 @@
 #include <Alieve/TPCSector2D.h>
 #include <Alieve/TPCSectorData.h>
 
+class TGLViewer;
+class TGLScene;
 
 namespace Alieve {
 
 class TPCSector2DGL : public TGLObject
 {
+  TPCSector2DGL(const TPCSector2DGL&);            // Not implemented
+  TPCSector2DGL& operator=(const TPCSector2DGL&); // Not implemented
+
 protected:
   virtual void DirectDraw(const TGLDrawFlags & flags) const;
 
   void LoadPadrow(TPCSectorData::RowIterator& iter, Int_t row, Int_t off) const;
   void CreateTexture() const;
 
-  void DisplayTexture(Float_t padW,     Float_t padH, Float_t startR,
-                      Int_t numMaxPads, Int_t numRows,
-                      Int_t startCol,   Int_t startRow) const;
-  void DisplayQuads  (Float_t padW,     Float_t padH, Float_t startR,
-		      Int_t numMaxPads, Int_t numRows,
-		      Int_t startCol,   Int_t startRow) const;
-  void DisplayFrame  () const;
+  void DisplayTexture(const TPCSectorData::SegmentInfo& seg,
+                      Int_t startCol, Int_t startRow) const;
+  void DisplayQuads(const TPCSectorData::SegmentInfo& seg,
+		    Int_t startCol, Int_t startRow) const;
+  void DisplayNamedQuads(const TPCSectorData::SegmentInfo& seg,
+			 Int_t startCol, Int_t startRow) const;
+  void DisplayFrame() const;
 
   UChar_t* GetRowCol(Int_t row, Int_t col) const;
 
@@ -42,6 +47,9 @@ public:
 
   virtual Bool_t SetModel(TObject* obj); 
   virtual void   SetBBox();
+  virtual Bool_t SupportsSecondarySelect() const { return kTRUE; }
+
+  virtual void ProcessSelection(UInt_t* ptr, TGLViewer*, TGLScene*);
 
   static void TraceStepsUp  (const TPCSectorData::SegmentInfo& s);
   static void TraceStepsDown(const TPCSectorData::SegmentInfo& s);
