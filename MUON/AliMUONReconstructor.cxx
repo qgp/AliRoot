@@ -40,7 +40,6 @@
 #include "AliMUONTriggerTrack.h"
 #include "AliMUONTriggerCircuitNew.h"
 #include "AliMUONTriggerCrateStore.h"
-#include "AliMpSegFactory.h"
 
 #include "AliRawReader.h"
 #include "AliRun.h"
@@ -57,10 +56,7 @@ AliMUONReconstructor::AliMUONReconstructor()
     fDigitMaker(new AliMUONDigitMaker()), 
     fCalibrationData(0x0),
     fCrateManager(new AliMUONTriggerCrateStore()),
-    fTriggerCircuit(new TClonesArray("AliMUONTriggerCircuitNew", 234)),
-    fSegFactory(new AliMpSegFactory()),
-    fTransformer(new AliMUONGeometryTransformer(kTRUE))
-
+    fTriggerCircuit(new TClonesArray("AliMUONTriggerCircuitNew", 234))
 {
 /// Default constructor
 
@@ -71,24 +67,14 @@ AliMUONReconstructor::AliMUONReconstructor()
     // set to digit maker
     fDigitMaker->SetCrateManager(fCrateManager);
 
-    // set segmentation
-    fDigitMaker->SetSegFactory(fSegFactory);
-
-    // transformater
-    fTransformer->ReadGeometryData("volpath.dat", "geometry.root");
-
     // trigger circuit
     for (Int_t i = 0; i < AliMUONConstants::NTriggerCircuit(); i++)  {
       AliMUONTriggerCircuitNew* c = new AliMUONTriggerCircuitNew();
-      c->SetSegFactory(fSegFactory);
-      c->SetTransformer(fTransformer);
       c->Init(i,*fCrateManager);
       TClonesArray& circuit = *fTriggerCircuit;
       new(circuit[circuit.GetEntriesFast()])AliMUONTriggerCircuitNew(*c);
       delete c;
-    }
-
-  
+  }
 }
 
 //_____________________________________________________________________________
@@ -101,8 +87,6 @@ AliMUONReconstructor::~AliMUONReconstructor()
   delete fDigitMaker;
   delete fCrateManager;
   delete fTriggerCircuit;
-  delete fSegFactory;
-  delete fTransformer;
 }
 
 //_____________________________________________________________________________
@@ -151,15 +135,15 @@ void AliMUONReconstructor::Reconstruct(AliRunLoader* runLoader) const
   AliMUONData* data = new AliMUONData(loader,"MUON","MUON");
 
 // passing loader as argument.
-  AliMUONTrackReconstructor* recoEvent = new AliMUONTrackReconstructor(data);
+  AliMUONTrackReconstructor* recoEvent = new AliMUONTrackReconstructor(loader, data);
   recoEvent->SetTriggerCircuit(fTriggerCircuit);
 
   if (strstr(GetOption(),"Original")) 
-    recoEvent->SetTrackMethod(kOriginal); // Original tracking
+    recoEvent->SetTrackMethod(1); // Original tracking
   else if (strstr(GetOption(),"Combi")) 
-    recoEvent->SetTrackMethod(kCombi); // Combined cluster / track
+    recoEvent->SetTrackMethod(3); // Combined cluster / track
   else
-    recoEvent->SetTrackMethod(kKalman); // Kalman
+    recoEvent->SetTrackMethod(2); // Kalman
 
   AliMUONClusterReconstructor* recoCluster = new AliMUONClusterReconstructor(data);
   
@@ -177,8 +161,7 @@ void AliMUONReconstructor::Reconstruct(AliRunLoader* runLoader) const
   
   TTask* calibration = GetCalibrationTask(data);
   
-  Int_t chBeg = (recoEvent->GetTrackMethod() == kCombi ? 6 : 0); 
-
+  Int_t chBeg = recoEvent->GetTrackMethod() == 3 ? 6 : 0; 
   //   Loop over events              
   for(Int_t ievent = 0; ievent < nEvents; ievent++) {
 
@@ -190,7 +173,7 @@ void AliMUONReconstructor::Reconstruct(AliRunLoader* runLoader) const
     if (!loader->TreeR()) loader->MakeRecPointsContainer();
      
     // tracking branch
-    if (recoEvent->GetTrackMethod() != kCombi) {
+    if (recoEvent->GetTrackMethod() != 3) {
       data->MakeBranch("RC");
       data->SetTreeAddress("D,RC");
     } else {
@@ -210,7 +193,7 @@ void AliMUONReconstructor::Reconstruct(AliRunLoader* runLoader) const
     
     recoCluster->Digits2Clusters(chBeg); 
     
-    if (recoEvent->GetTrackMethod() == kCombi) {
+    if (recoEvent->GetTrackMethod() == 3) {
       // Combined cluster / track finder
       AliMUONEventRecoCombi::Instance()->FillEvent(data, (AliMUONClusterFinderAZ*)recModel);
       ((AliMUONClusterFinderAZ*) recModel)->SetReco(2); 
@@ -242,7 +225,7 @@ void AliMUONReconstructor::Reconstruct(AliRunLoader* runLoader) const
 
     loader->WriteTracks("OVERWRITE"); 
   
-    if (recoEvent->GetTrackMethod() == kCombi) { 
+    if (recoEvent->GetTrackMethod() == 3) { 
       // Combined cluster / track
       ((AliMUONClusterFinderAZ*) recModel)->SetReco(1);
       data->MakeBranch("RC");
@@ -254,6 +237,9 @@ void AliMUONReconstructor::Reconstruct(AliRunLoader* runLoader) const
 
     //--------------------------- Resetting branches -----------------------
     data->ResetDigits();
+    data->ResetRawClusters();
+    data->ResetTrigger();
+
     data->ResetRawClusters();
     data->ResetTrigger();
     data->ResetRecTracks();  
@@ -281,7 +267,7 @@ void AliMUONReconstructor::Reconstruct(AliRunLoader* runLoader, AliRawReader* ra
   AliMUONData data(loader,"MUON","MUON");
 
   // passing loader as argument.
-  AliMUONTrackReconstructor recoEvent(&data);
+  AliMUONTrackReconstructor recoEvent(loader, &data);
   recoEvent.SetTriggerCircuit(fTriggerCircuit);
 
   fDigitMaker->SetMUONData(&data);
@@ -290,11 +276,11 @@ void AliMUONReconstructor::Reconstruct(AliRunLoader* runLoader, AliRawReader* ra
 
   if (strstr(GetOption(),"Original")) 
   {
-    recoEvent.SetTrackMethod(kOriginal); // Original tracking
+    recoEvent.SetTrackMethod(1); // Original tracking
   }
   else
   {
-    recoEvent.SetTrackMethod(kKalman);
+    recoEvent.SetTrackMethod(2); // Kalman
   }
   
   AliMUONClusterFinderVS *recModel = recoCluster.GetRecoModel();
@@ -394,6 +380,9 @@ void AliMUONReconstructor::Reconstruct(AliRunLoader* runLoader, AliRawReader* ra
     
     //--------------------------- Resetting branches -----------------------
     data.ResetDigits();
+    data.ResetRawClusters();
+    data.ResetTrigger();
+
     data.ResetRawClusters();
     data.ResetTrigger();
     data.ResetRecTracks();

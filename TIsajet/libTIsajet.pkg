@@ -1,9 +1,0 @@
-SRCS= TIsajet.cxx AliGenIsajet.cxx
-
-HDRS= $(SRCS:.cxx=.h)
-
-DHDR:=TIsajetLinkDef.h
-
-EXPORT:=TIsajet.h Icommon.h
-
-EINCLUDE:=ISAJET

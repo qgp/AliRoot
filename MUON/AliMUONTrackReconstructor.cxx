@@ -51,6 +51,8 @@
 #include "AliMUONTrack.h"
 #include "AliMUONTrackHit.h"
 #include "AliMagF.h"
+//#include "AliRunLoader.h"
+#include "AliLoader.h"
 #include "AliMUONTrackK.h" 
 #include "AliLog.h"
 #include "AliTracker.h"
@@ -77,7 +79,7 @@ const Double_t AliMUONTrackReconstructor::fgkDefaultEfficiency = 0.95;
 ClassImp(AliMUONTrackReconstructor) // Class implementation in ROOT context
 
 //__________________________________________________________________________
-AliMUONTrackReconstructor::AliMUONTrackReconstructor(AliMUONData* data)
+AliMUONTrackReconstructor::AliMUONTrackReconstructor(AliLoader* loader, AliMUONData* data)
   : TObject(),
     fTrackMethod(1), //AZ - tracking method (1-default, 2-Kalman)
     fMinBendingMomentum(fgkDefaultMinBendingMomentum),
@@ -98,6 +100,7 @@ AliMUONTrackReconstructor::AliMUONTrackReconstructor(AliMUONData* data)
     fRecTrackHitsPtr(0x0),
     fNRecTrackHits(0),
     fMUONData(data),
+    fLoader(loader),
     fMuons(0),
     fTriggerTrack(new AliMUONTriggerTrack()),
     fTriggerCircuit(0x0)
@@ -309,7 +312,7 @@ void AliMUONTrackReconstructor::MakeEventToBeReconstructed(void)
   // Security on MUON ????
   // TreeR assumed to be be "prepared" in calling function
   // by "MUON->GetTreeR(nev)" ????
-  TTree *treeR = fMUONData->TreeR();
+  TTree *treeR = fLoader->TreeR();
 
   //AZ? fMUONData->SetTreeAddress("RC");
   AddHitsForRecFromRawClusters(treeR);
@@ -383,7 +386,7 @@ void AliMUONTrackReconstructor::AddHitsForRecFromRawClusters(TTree* TR)
       AliError(Form("nTRentries = %d not equal to 1 ",nTRentries));
       exit(0);
     }
-    fMUONData->GetRawClusters(); // only one entry  
+    fLoader->TreeR()->GetEvent(0); // only one entry  
   }
 
   // Loop over tracking chambers
@@ -632,7 +635,7 @@ Bool_t AliMUONTrackReconstructor::MakeTriggerTracks(void)
     AliMUONLocalTrigger *locTrg;
     AliMUONGlobalTrigger *gloTrg;
 
-    TTree* treeR = fMUONData->TreeR();
+    TTree* treeR = fLoader->TreeR();
    
     nTRentries = Int_t(treeR->GetEntries());
      
