@@ -130,8 +130,10 @@ const Double_t cc[15], Double_t xref, Double_t alpha) :
 
   Double_t c0=TMath::Sign(1/(kMostProbableMomentum*GetConvConst()),fP4);
   Double_t w0=fC44/(fC44 + c0*c0), w1=c0*c0/(fC44 + c0*c0);
+  Double_t p4=fP4;
   fP4 = w0*c0 + w1*fP4;
   fC40*=w1; fC41*=w1; fC42*=w1; fC43*=w1; fC44*=w1;
+  fP2+=fX*(fP4-p4);
 
   SetNumberOfClusters(1);
   
