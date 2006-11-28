@@ -1,7 +1,24 @@
 
 // Author: Artur Szostak
 //  email: artur@alice.phy.uct.ac.za
+/**************************************************************************
+ * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+ *                                                                        *
+ * Author: The ALICE Off-line Project.                                    *
+ * Contributors are mentioned in the code where appropriate.              *
+ *                                                                        *
+ * Permission to use, copy, modify and distribute this software and its   *
+ * documentation strictly for non-commercial purposes is hereby granted   *
+ * without fee, provided that the above copyright notice appears in all   *
+ * copies and that both the copyright notice and this permission notice   *
+ * appear in the supporting documentation. The authors make no claims     *
+ * about the suitability of this software for any purpose. It is          *
+ * provided "as is" without express or implied warranty.                  *
+ **************************************************************************/
+ 
+/* $Id$ */
 
+#include <cassert>
 #include <TError.h>
 #include <TParticle.h>
 
@@ -493,8 +510,8 @@ Int_t AliMUONDataInterface::NumberOfSDigits(
 // Returns the number of s-digits in the given file, folder, event,
 // chamber and cathode. -1 is returned on error.
 
-	Assert( 0 <= chamber && chamber <= 13 );
-	Assert( 0 <= cathode && cathode <= 1 );
+	assert( 0 <= chamber && chamber <= 13 );
+	assert( 0 <= cathode && cathode <= 1 );
 	
 	if ( ! FetchLoaders(filename, foldername) ) return -1;
 	if ( ! FetchEvent(event) ) return -1;
@@ -518,8 +535,8 @@ AliMUONDigit* AliMUONDataInterface::SDigit(
 // Returns the specified s-digit in the given file, folder, event,
 // chamber and cathode. NULL is returned on error.
 
-	Assert( 0 <= chamber && chamber <= 13 );
-	Assert( 0 <= cathode && cathode <= 1 );
+	assert( 0 <= chamber && chamber <= 13 );
+	assert( 0 <= cathode && cathode <= 1 );
 	
 	if ( ! FetchLoaders(filename, foldername) ) return NULL;
 	if ( ! FetchEvent(event) ) return NULL;
@@ -540,10 +557,10 @@ Int_t AliMUONDataInterface::NumberOfDigits(
 		Int_t chamber, Int_t cathode
 	)
 {
-// Returns the number of digits in the given file, folder, event,
-// chamber and cathode. -1 is returned on error.
-	Assert( 0 <= chamber && chamber <= 13 );
-	Assert( 0 <= cathode && cathode <= 1 );
+/// Returns the number of digits in the given file, folder, event,
+/// chamber and cathode. -1 is returned on error.
+	assert( 0 <= chamber && chamber <= 13 );
+	assert( 0 <= cathode && cathode <= 1 );
 	
 	if ( ! FetchLoaders(filename, foldername) ) return -1;
 	if ( ! FetchEvent(event) ) return -1;
@@ -567,8 +584,8 @@ AliMUONDigit* AliMUONDataInterface::Digit(
 // Returns the specified digit in the given file, folder, event,
 // chamber and cathode. NULL is returned on error.
 
-	Assert( 0 <= chamber && chamber <= 13 );
-	Assert( 0 <= cathode && cathode <= 1 );
+	assert( 0 <= chamber && chamber <= 13 );
+	assert( 0 <= cathode && cathode <= 1 );
 	
 	if ( ! FetchLoaders(filename, foldername) ) return NULL;
 	if ( ! FetchEvent(event) ) return NULL;
@@ -591,7 +608,7 @@ Int_t AliMUONDataInterface::NumberOfRawClusters(
 // Returns the number of raw clusters in the specified file, folder, event and chamber.
 // -1 is returned or error.
 
-	Assert( 0 <= chamber && chamber <= 13 );
+	assert( 0 <= chamber && chamber <= 13 );
 	if ( ! FetchLoaders(filename, foldername) ) return -1;
 	if ( ! FetchEvent(event) ) return -1;
 	if ( ! FetchTreeR() ) return -1;
@@ -615,7 +632,7 @@ AliMUONRawCluster* AliMUONDataInterface::RawCluster(
 // Fetch the specified raw cluster from the given file, folder, event and chamber number.
 // NULL is returned on error.
 
-	Assert( 0 <= chamber && chamber <= 13 );
+	assert( 0 <= chamber && chamber <= 13 );
 	if ( ! FetchLoaders(filename, foldername) ) return NULL;
 	if ( ! FetchEvent(event) ) return NULL;
 	if ( ! FetchTreeR() ) return NULL;
@@ -826,8 +843,8 @@ Int_t AliMUONDataInterface::NumberOfSDigits(Int_t chamber, Int_t cathode)
 // Get the number of s-digits on the chamber, cathode in the current event.
 // -1 is returned on error.
 
-	Assert( 0 <= chamber && chamber <= 13 );
-	Assert( 0 <= cathode && cathode <= 1 );
+	assert( 0 <= chamber && chamber <= 13 );
+	assert( 0 <= cathode && cathode <= 1 );
 	
 	if (fRunloader == NULL)
 	{
@@ -856,8 +873,8 @@ AliMUONDigit* AliMUONDataInterface::SDigit(Int_t chamber, Int_t cathode, Int_t s
 // Fetch the specified s-digits on the chamber, cathode from the current event.
 // NULL is returned on error.
 
-	Assert( 0 <= chamber && chamber <= 13 );
-	Assert( 0 <= cathode && cathode <= 1 );
+	assert( 0 <= chamber && chamber <= 13 );
+	assert( 0 <= cathode && cathode <= 1 );
 	
 	if (fRunloader == NULL)
 	{
@@ -886,8 +903,8 @@ Int_t AliMUONDataInterface::NumberOfDigits(Int_t chamber, Int_t cathode)
 // Get the number of digits on the chamber, cathode in the current event.
 // -1 is returned on error.
 
-	Assert( 0 <= chamber && chamber <= 13 );
-	Assert( 0 <= cathode && cathode <= 1 );
+	assert( 0 <= chamber && chamber <= 13 );
+	assert( 0 <= cathode && cathode <= 1 );
 	
 	if (fRunloader == NULL)
 	{
@@ -916,8 +933,8 @@ AliMUONDigit* AliMUONDataInterface::Digit(Int_t chamber, Int_t cathode, Int_t di
 // Fetch the specified digits on the chamber, cathode from the current event.
 // NULL is returned on error.
 
-	Assert( 0 <= chamber && chamber <= 13 );
-	Assert( 0 <= cathode && cathode <= 1 );
+	assert( 0 <= chamber && chamber <= 13 );
+	assert( 0 <= cathode && cathode <= 1 );
 	
 	if (fRunloader == NULL)
 	{
@@ -946,7 +963,7 @@ Int_t AliMUONDataInterface::NumberOfRawClusters(Int_t chamber)
 // Get the number of raw clusters on the given chamber in the current event.
 // -1 is returned on error.
 
-	Assert( 0 <= chamber && chamber <= 13 );
+	assert( 0 <= chamber && chamber <= 13 );
 
 	if (fRunloader == NULL)
 	{
@@ -976,7 +993,7 @@ AliMUONRawCluster* AliMUONDataInterface::RawCluster(Int_t chamber, Int_t cluster
 // Fetch the specified raw cluster on the given chamber from the current event.
 // NULL is returned on error.
 
-	Assert( 0 <= chamber && chamber <= 13 );
+	assert( 0 <= chamber && chamber <= 13 );
 
 	if (fRunloader == NULL)
 	{
