@@ -111,7 +111,9 @@ pkginclude_HEADERS		= $(CLASS_HDRS) \
 
 
 # version info for the library
-libAliHLTTPC_la_LDFLAGS		= @ALIROOT_LDFLAGS@ \
+libAliHLTTPC_la_LDFLAGS		= -L@ROOTLIBDIR@ \
+				  @ROOTLIBS@ \
+				  @ALIROOT_LDFLAGS@ \
 				  @ALIROOT_LIBS@ \
 				  -version-info 2:0:0
 
