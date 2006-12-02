@@ -33,6 +33,7 @@ dnl Check for ROOT
 dnl
 ROOT_PATH(, [have_root=1], [AC_ERROR([Stop! The HLT package needs ROOT.])])
 AM_CONDITIONAL(HAVE_ROOT, test "x$have_root" = "x1" )
+AC_SUBST([ROOTSYS])
 
 dnl ------------------------------------------------------------------
 # TODO: make this configurable through arguments
@@ -48,18 +49,44 @@ CPPFLAGS="$CPPFLAGS ${ROOTCFLAGS}"
 dnl ------------------------------------------------------------------
 dnl check for AliRoot features
 AC_LANG_PUSH(C++)
-AC_MSG_CHECKING([for AliRoot])
 have_aliroot=no
-with_aliroot=yes
-if test "x$with_aliroot" = "xyes" || test "x$with_aliroot" = "x" ; then
+AC_ARG_WITH(aliroot,[  --with-aliroot	top of the AliRoot installation],
+		    [test -d $with_aliroot && ALICE_ROOT=$with_aliroot],
+		    [])
+
+if test "x$ALICE_ROOT" != "x" && test -d $ALICE_ROOT ; then
+  dnl ------------------------------------------------------------------
+  dnl Try to estimate the system architecture
+  case $host_os:$host_cpu in
+  linux*:x86_64*)	alice_target='linuxx8664gcc'		;;
+  linux*)		alice_target='linux'			;;
+  *)			alice_target='unknown'			;;
+  esac
+  if test "x$alice_target" = "xunknown" ; then
+    if test -z $ALICE_TARGET ; then
+    AC_MSG_ERROR([Can not estimate system architecture.
+    To avoid the problem, set the ALICE_TARGET variable appropriately.
+    Please send the following information to Matthias.Richter@ift.uib.no:
+	${PACKAGE}: no AliRoot target definition for os=$host_os and cpu=$host_cpu ])
+    else
+    AC_MSG_NOTICE([Unknown system architecture.
+    Please send the following information to Matthias.Richter@ift.uib.no:
+	${PACKAGE}: no AliRoot target definition for os=$host_os and cpu=$host_cpu ])  
+    fi
+  else
+    if test "x$ALICE_TARGET" != "x" && test "x$ALICE_TARGET" != "x$alice_target" ; then
+    AC_MSG_WARN([The ALICE_TARGET variable does not match your current system
+    overriding $ALICE_TARGET by $alice_target])
+    fi
+    ALICE_TARGET=$alice_target
+  fi
   ALIROOTLIBDIR=${ALICE_ROOT}/lib/tgt_${ALICE_TARGET}
   ALIROOTINCDIR=${ALICE_ROOT}/include
-elif test "x$with_aliroot" != "xno" ; then
-  # TODO: think about the tgt_* subfolder
-  ALICE_ROOT="$with_aliroot"
-  ALIROOTLIBDIR="$ALICE_ROOT/lib"
-  ALIROOTINCDIR="$ALICE_ROOT/include"
+  test -d ${ALIROOTLIBDIR} || AC_MSG_WARN([can not find AliRoot library directory $ALIROOTLIBDIR])
+  test -d ${ALIROOTINCDIR} || AC_MSG_WARN([can not find AliRoot include directory $ALIROOTINCDIR])
 fi
+
+AC_MSG_CHECKING([for AliRoot])
 if test "x$ALICE_ROOT" != "x" \
    && test -d ${ALIROOTLIBDIR} \
    && test -d ${ALIROOTINCDIR}; then
@@ -75,69 +102,57 @@ if test ! "x$have_aliroot" = "xno" ; then
   # - the ROOT libs libGeom libMinuit libVMC libEG
   # - the AliRoot libESD libRAWData (libRAWDatarec from v4-04-Rev-07)
   # - ROOT libCint needs also libdl
+  # - from Nov 1 2006 TTreeFormula is needed by AliTagAnalysis and requires
+  #   libTreePlayer.so
   ALIROOT_CPPFLAGS="-I${ALIROOTINCDIR} -I${ALICE_ROOT}/RAW"
   ALIROOT_LDFLAGS="-L${ALIROOTLIBDIR}"
-  ALIROOT_LIBS="-lESD -lGeom -lMinuit -lVMC -lEG -ldl -lSTEER"
+  ALIROOT_LIBS="-lESD -lGeom -lMinuit -lVMC -lEG -ldl -lTreePlayer"
   save_CPPFLAGS=$CPPFLAGS
   save_LDFLAGS=$LDFLAGS
   save_LIBS=$LIBS
   CPPFLAGS="$save_CPPFLAGS $ALIROOT_CPPFLAGS"
   LDFLAGS="$save_LDFLAGS -L${ROOTLIBDIR} $ALIROOT_LDFLAGS"
-  LIBS="$save_LIBS $ROOTLIBS $ALIROOT_LIBS"
- 
+  
   # check for certain AliRoot libraries/files/features
-  if test ! "x$have_aliroot" = "xno" ; then
-    # the RAWReader classe are needed by the TPCLib/AliHLTTPCDigitReaderPacket
-    # and by the STEER library. From version v4-04-Rev-07 on the RawReader classes
-    # are in libRAWDatarec, before in libRAWData
-    have_alirawdata=yes
-    AC_MSG_CHECKING(for AliRawReader classes in RAWData libraries)
-    if test ! "x$have_alirawdata" = "xno" ; then
-      CHECKLIB="-lRAWDatarec"
-      LIBS="$save_LIBS $ROOTLIBS $ALIROOT_LIBS -lRAWDatabase $CHECKLIB"
-      AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <AliRawReaderMemory.h>
-  				       #include <AliRawReaderFile.h>
-  				       #include <AliRawReaderDate.h>
-  				       #include <AliRawReaderRoot.h>], 
-                                      [AliRawReaderMemory mreader;
-  				       AliRawReaderFile freader;
-  				       AliRawReaderDate dreader(NULL,0);
-  				       AliRawReaderRoot rreader(NULL,0)])],
-                                      [AC_DEFINE(HAVE_ALIRAWDATA)
-				       ALIROOT_LIBS="$ALIROOT_LIBS -lRAWDatabase $CHECKLIB"
-				       have_alirawdata=$CHECKLIB], 
-  				      [have_alirawdata=no])
-      # second pass with -RAWData
-      if test "x$have_alirawdata" = "xno" ; then
-        CHECKLIB="-lRAWData"
-        LIBS="$save_LIBS $ROOTLIBS $ALIROOT_LIBS $CHECKLIB"
-        AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <AliRawReaderMemory.h>
-    				       #include <AliRawReaderFile.h>
-    				       #include <AliRawReaderDate.h>
-    				       #include <AliRawReaderRoot.h>], 
-                                        [AliRawReaderMemory mreader;
-    				       AliRawReaderFile freader;
-    				       AliRawReaderDate dreader(NULL,0);
-    				       AliRawReaderRoot rreader(NULL,0);])],
-                                        [AC_DEFINE(HAVE_ALIRAWDATA)
-    				       ALIROOT_LIBS="$ALIROOT_LIBS $CHECKLIB"
-    				       have_alirawdata=$CHECKLIB], 
-    				      [have_alirawdata=no])
-      fi
-    fi
-    AC_MSG_RESULT($have_alirawdata)
-  fi
+  # CBD library is present since AliRoot version v4-05-00 (02.06.2006)
+  LIBS="$save_LIBS $ROOTLIBS $ALIROOT_LIBS"
+  CHECKLIB=CDB
+  AC_CHECK_LIB([$CHECKLIB],[_init],[ALIROOT_LIBS="$ALIROOT_LIBS -l$CHECKLIB"])
 
-  have_alisteer=yes
-  #AC_CHECK_HEADERS([AliRun.h],[have_alisteer=yes])
-  AC_MSG_CHECKING(for AliRun in -lSTEER)
-  if test "x$have_alisteer" = "xyes" ; then
-    AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <AliRun.h>], [AliRun aliroot])],
-                                    [AC_DEFINE(HAVE_ALISTEER)], 
-				    [have_alisteer=no
-				     have_aliroot=no])
-  fi
-  AC_MSG_RESULT($have_alisteer)
+  # splitted RAW libraries since AliRoot version v4-04-Rev-07 (09.08.2006)
+  have_alirawdata=no
+  LIBS="$save_LIBS $ROOTLIBS $ALIROOT_LIBS"
+  CHECKLIB=RAWDatabase
+  AC_CHECK_LIB([$CHECKLIB],[_init],
+	[ALIROOT_LIBS="$ALIROOT_LIBS -l$CHECKLIB"
+	 LIBS="$save_LIBS $ROOTLIBS $ALIROOT_LIBS"
+	 CHECKLIB=RAWDatarec
+	 AC_CHECK_LIB([$CHECKLIB],[_init],
+               [ALIROOT_LIBS="$ALIROOT_LIBS -l$CHECKLIB"
+	        AC_DEFINE(HAVE_ALIRAWDATA)
+	        have_alirawdata=$CHECKLIB])],
+	[# second pass with -RAWData
+	 CHECKLIB="-lRAWData"
+	 LIBS="$save_LIBS $ROOTLIBS $ALIROOT_LIBS $CHECKLIB -lSTEER"
+	 AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <AliRawReaderMemory.h>
+ 				       #include <AliRawReaderFile.h>
+ 				       #include <AliRawReaderDate.h>
+ 				       #include <AliRawReaderRoot.h>], 
+                                     [AliRawReaderMemory mreader;
+ 				       AliRawReaderFile freader;
+ 				       AliRawReaderDate dreader(NULL,0);
+ 				       AliRawReaderRoot rreader(NULL,0);])],
+                                     [AC_DEFINE(HAVE_ALIRAWDATA)
+ 				       ALIROOT_LIBS="$ALIROOT_LIBS $CHECKLIB"
+ 				       have_alirawdata=$CHECKLIB], 
+ 				      [have_alirawdata=no])
+	]) dnl AC_CHECK_LIB RAWDatabase
+  AC_MSG_CHECKING(for AliRawReader classes in RAWData libraries)
+  AC_MSG_RESULT($have_alirawdata)
+
+  LIBS="$save_LIBS $ROOTLIBS $ALIROOT_LIBS"
+  CHECKLIB=STEER
+  AC_CHECK_LIB([$CHECKLIB],[_init],[ALIROOT_LIBS="$ALIROOT_LIBS -l$CHECKLIB"])
 
   if test ! "x$have_aliroot" = "xno" ; then
     # the HLTTPCLib needs to link agains TPCbase and TPCrec
@@ -211,15 +226,12 @@ if test ! "x$have_aliroot" = "xno" ; then
   CPPFLAGS=$save_CPPFLAGS
   LDFLAGS=$save_LDFLAGS
   LIBS=$save_LIBS
-  if test ! "x$have_aliroot" = "xno" ; then
-    CPPFLAGS="$CPPFLAGS -DALIROOTVERSION=\\\"Unknown\\\""
-  fi
 fi
 AC_LANG_POP(C++)
 AC_SUBST([ALIROOT_CPPFLAGS])
 AC_SUBST([ALIROOT_LDFLAGS])
+AC_SUBST([ALIROOTLIBDIR])
 AC_SUBST([ALIROOT_LIBS])
-CPPFLAGS="$CPPFLAGS -DROOTVERSION=\\\"`${ROOTCONF} --version`\\\""
 
 dnl ------------------------------------------------------------------
 dnl check for the HLT PubSub Framework
@@ -231,6 +243,8 @@ if test -z $with_pubsub || ! test -d $with_pubsub ; then
   with_pubsub=no
 fi
 AC_MSG_RESULT([$with_pubsub])
+HOMER_VERSION=1
+HOMER_LIBS=
 
 AH_TEMPLATE([HAVE_HOMERREADER],[the HLT PubSub Homer Reader interface])
 if test "x$with_pubsub" != "xno" ; then
@@ -239,9 +253,17 @@ if test "x$with_pubsub" != "xno" ; then
   save_LIBS=$LIBS
   # currently the different versions of the HLT PubSub framework have a different
   # directory layout
-  if test -d ${with_pubsub}/include/HOMER/reader ; then
-    HOMER_CPPFLAGS="-I${with_pubsub}/include/HOMER/reader"
+  if test -d ${with_pubsub}/include/HOMER ; then
+    # the 'early' location of the include files with separated HOMER sub dirs
+    HOMER_CPPFLAGS="-I${with_pubsub}/include/HOMER -I${with_pubsub}/include/HOMER/reader"
+  elif test -d ${with_pubsub}/include/Util/HOMER ; then
+    # location for HLT Framework versions after Sep 2006
+    HOMER_CPPFLAGS="-I${with_pubsub}/include/Util/HOMER"
+  elif test -d ${with_pubsub}/src/Util/HOMER/include ; then
+    # fall back if include files were not installed (versions after Sep 06)
+    HOMER_CPPFLAGS="-I${with_pubsub}/src/Util/HOMER/include"
   else
+    # fall back if include files were not installed (versions before Sep 06)
     HOMER_CPPFLAGS="-I${with_pubsub}/src/Util/HOMER/reader/include -I${with_pubsub}/src/Util/HOMER/data/include"
   fi
   HOMER_LDFLAGS="-L${with_pubsub}/lib/`uname -s`-`uname -m`"
@@ -251,12 +273,33 @@ if test "x$with_pubsub" != "xno" ; then
   with_homer=no
   AC_LANG_PUSH(C++)
   AC_CHECK_HEADER([HOMERReader.h],
-    [ AC_CHECK_LIB([HOMERReader],[_init],[with_homer=yes])])
+    [ AC_CHECK_LIB([HOMER],[_init],
+      [with_homer=yes
+       HOMER_LIBS="-lHOMER"],
+      [ AC_CHECK_LIB([HOMERReader],[_init],
+                     [with_homer=yes
+		      HOMER_LIBS="-lHOMERReader"])])
+      LIBS="$LIBS $HOMER_LIBS"
+      AC_MSG_CHECKING([for HOMER version])
+      dnl The Homer library has no versioning, so we do our own
+      dnl version           description
+      dnl ----------------------------------------------------------------------
+      dnl   1          inintial version
+      dnl   2          GetBlockStatusFlags added to the interface
+      AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <HOMERReader.h>],
+                                      [HOMERReader reader("dummy", 0);
+ 				       reader.GetBlockStatusFlags(0);])],
+                                      [if test $HOMER_VERSION -lt 2 ; then HOMER_VERSION=2; fi],
+ 				      [])
+      AC_MSG_RESULT([$HOMER_VERSION])
+  ]) #AC_CHECK_HEADER([HOMERReader.h])
   AC_LANG_POP(C++)
   if test "x$with_homer" = "xno" ; then
     HOMER_CPPFLAGS=
     HOMER_LDFLAGS=
+    HOMER_LIBS=
   else
+    HOMER_CPPFLAGS="$HOMER_CPPFLAGS -DHOMER_VERSION=$HOMER_VERSION"
     AC_DEFINE(HAVE_HOMERREADER)
   fi
   CPPFLAGS="$save_CPPFLAGS"
@@ -265,6 +308,7 @@ if test "x$with_pubsub" != "xno" ; then
 fi
 AC_SUBST([HOMER_CPPFLAGS])
 AC_SUBST([HOMER_LDFLAGS])
+AC_SUBST([HOMER_LIBS])
 
 dnl ------------------------------------------------------------------
 AC_MSG_CHECKING([whether to impose strict coding conventions])
@@ -358,6 +402,18 @@ fi
 AC_MSG_RESULT([$enable_rowhough])
 
 dnl ------------------------------------------------------------------
+dnl The ROOTVERSION and ALIROOTVERSION defines were used by the old
+dnl stand-alone build system. This is most likely something old we can
+dnl get rid off later, or do something more reasonable. Since the define
+dnl needs the quotes they have to be  escaped. This works well for the
+dnl Makefile but not for the configure script. So we have to add the
+dnl defines after all the other checks.
+CPPFLAGS="$CPPFLAGS -DROOTVERSION=\\\"`${ROOTCONF} --version`\\\""
+if test ! "x$have_aliroot" = "xno" ; then
+  CPPFLAGS="$CPPFLAGS -DALIROOTVERSION=\\\"Unknown\\\""
+fi
+
+dnl ------------------------------------------------------------------
 dnl
 dnl Documentation
 dnl
@@ -375,6 +431,13 @@ fi
 AC_SUBST([HAVE_DOT])
 AC_SUBST([DOT_PATH])
 
+dnl ------------------------------------------------------------------
+dnl inatallation directory for libraries
+dnl 
+if test "x$prefix" != "xNONE" && test $ALICE_ROOT = $prefix ; then
+libdir=\${exec_prefix}/lib/tgt_$ALICE_TARGET
+AC_MSG_NOTICE([libdir set to $libdir])
+fi
 dnl ------------------------------------------------------------------
 AC_CONFIG_FILES([Makefile 
 		 BASE/Makefile

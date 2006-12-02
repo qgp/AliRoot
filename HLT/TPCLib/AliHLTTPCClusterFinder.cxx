@@ -204,7 +204,10 @@ void AliHLTTPCClusterFinder::ProcessDigits()
   fDigitReader->InitBlock(fPtr,fSize,fFirstRow,fLastRow,fCurrentPatch,fCurrentSlice);
   readValue = fDigitReader->Next();
 
-  if (!readValue)return;
+  // Matthias 08.11.2006 the following return would cause termination without writing the
+  // ClusterData and thus would block the component. I just want to have the commented line
+  // here for information
+  //if (!readValue)return;
 
   pad = fDigitReader->GetPad();
   time = fDigitReader->GetTime();
