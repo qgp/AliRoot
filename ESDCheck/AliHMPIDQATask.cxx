@@ -153,14 +153,14 @@ void AliHMPIDQATask::Exec(Option_t *)
   for(iTrk = 0 ; iTrk < fESD->GetNumberOfTracks() ; iTrk++){
     AliESDtrack *pTrk = fESD->GetTrack(iTrk) ;
 
-    fhHMPIDCkovP->Fill( pTrk->GetP(), pTrk->GetHMPIDsignal() ) ; 
-    fhHMPIDSigP ->Fill( pTrk->GetP(), TMath::Sqrt(pTrk->GetHMPIDchi2()) ) ;
+    fhHMPIDCkovP->Fill( pTrk->GetP(), pTrk->GetRICHsignal() ) ; 
+    fhHMPIDSigP ->Fill( pTrk->GetP(), TMath::Sqrt(pTrk->GetRICHchi2()) ) ;
      
 //     Float_t xm,ym; Int_t q,np;  pTrk->GetHMPIDmip(xm,ym,q,np);  fMipXY->Fill(xm,ym); //mip info
 //     Float_t xd,yd,th,ph;        pTrk->GetHMPIDtrk(xd,yd,th,ph); fDifXY->Fill(xd,yd); //track info 
      
     Double_t pid[5] ;  
-    pTrk->GetHMPIDpid(pid) ; 
+    pTrk->GetRICHpid(pid) ; 
     Int_t i ; 
     for(i = 0 ; i < 5 ; i++) 
       fhHMPIDProb[i]->Fill(pid[i]) ;
