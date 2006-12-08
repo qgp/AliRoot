@@ -1,0 +1,11 @@
+SRCS = AliAnalysisDataContainer.cxx AliAnalysisDataSlot.cxx \
+       AliAnalysisManager.cxx AliAnalysisTask.cxx
+
+
+HDRS:= $(SRCS:.cxx=.h) 
+
+DHDR= AnalysisTaskLinkDef.h
+
+EXPORT:=$(SRCS:.cxx=.h)
+
+
