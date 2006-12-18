@@ -29,23 +29,40 @@
 class AliEventTag;
 class TChain;
 class AliEventTagCuts;
+class AliRunTagCuts;
 class TGridResult;
+class TTreeFormula;
 
+//____________________________________________________//
 class AliTagAnalysis : public TObject {
  public:
   AliTagAnalysis();
   ~AliTagAnalysis(); 
-
+  
+  Bool_t AddTagsFile(const char *alienUrl);
   void ChainLocalTags(const char *dirname);
   void ChainGridTags(TGridResult *result);
-  TChain *QueryTags(AliEventTagCuts *EvTagCuts);
-   
+  
+  TChain *QueryTags(AliRunTagCuts *RunTagCuts, AliEventTagCuts *EvTagCuts);
+  TChain *QueryTags(const char *fRunCut, const char *fEventCut);  
+
+  Bool_t CreateXMLCollection(const char* name, AliRunTagCuts *RunTagCuts, AliEventTagCuts *EvTagCuts);
+  Bool_t CreateXMLCollection(const char* name, const char *fRunCut, const char *fEventCut);
+
+  TChain *GetInputChain(const char* system, const char* global, const char* wn);
+  
+  //____________________________________________________//
  protected:
   TGridResult *ftagresult; //the results from the tag grid query     
   TString fTagDirName; //the location of the locally stored tags
-    
+  
   static TChain *fgChain; //tag chain 
   TChain *fChain; //tag chain 
+  
+  //____________________________________________________//
+ private:
+  AliTagAnalysis(const AliTagAnalysis & source);
+  AliTagAnalysis & operator=(const AliTagAnalysis & source);
        
   ClassDef(AliTagAnalysis,0)  
 };
