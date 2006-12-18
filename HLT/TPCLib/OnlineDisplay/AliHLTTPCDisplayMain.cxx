@@ -197,6 +197,26 @@ AliHLTTPCDisplayMain::~AliHLTTPCDisplayMain() {
 //____________________________________________________________________________________________________
 Int_t AliHLTTPCDisplayMain::Connect( unsigned int cnt, const char** hostnames, unsigned short* ports, Char_t *gfile){
 
+    Char_t* defaultGeometry=NULL;
+#if defined(DEFAULT_GEOMETRY)
+    defaultGeometry=DEFAULT_GEOMETRY;
+#endif
+    if (gfile!=NULL) {
+      HLTDebug("probing geometry file %s", gfile);
+      ifstream test(gfile);
+      if (test.fail()) {
+	HLTWarning("unable to find geometry file %s, using default file", gfile);
+	gfile=defaultGeometry;
+      }
+      test.close();
+    } else {
+      HLTDebug("using default geometry file %s", gfile, defaultGeometry);
+      gfile=defaultGeometry;
+    }
+    if (gfile==NULL) {
+      HLTError("geometry file missing");
+      return -EINVAL;
+    }
 #if defined(HAVE_HOMERREADER) 
     // -- input datatypes , reverse
     Char_t* spptID="SRETSULC";
