@@ -1,6 +1,6 @@
 void SETUP()
 {
-  // Load the ANALYSIS_NEW library
+   // Load the ESD library
    gSystem->Load("libANALYSIS_NEW");
 
    // Set the Inlucde paths
