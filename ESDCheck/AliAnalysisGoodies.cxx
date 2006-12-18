@@ -96,13 +96,14 @@ const Bool_t AliAnalysisGoodies::Alien2Local(const TString collectionNameIn, con
   //        ou: the local directory where to save the esd root files          
 
   Bool_t rv = kTRUE ; 
-  
+
   fTimer.Start() ; 
 
-  AliXMLCollection collectionIn(collectionNameIn) ; 
+  AliXMLCollection * collectionIn = AliXMLCollection::Open(collectionNameIn) ;
+  collectionIn->Reset() ; 
 
   AliXMLCollection * collectionOu = new AliXMLCollection() ; 
-  TString collectionNameOu(collectionIn.GetCollectionName()) ; 
+  TString collectionNameOu(collectionIn->GetCollectionName()) ; 
   collectionNameOu.Append("Local") ; 
   collectionOu->SetCollectionName(collectionNameOu) ; 
   collectionOu->WriteHeader() ; 
@@ -111,9 +112,10 @@ const Bool_t AliAnalysisGoodies::Alien2Local(const TString collectionNameIn, con
   
   const char* ocwd = gSystem->WorkingDirectory();
 
-  while ( collectionIn.Next() ) {
+  Int_t counter = 0 ;  
+  while ( collectionIn->Next() ) {
     gSystem->ChangeDirectory(localDir) ; 
-    TString fileTURL = collectionIn.GetTURL() ; 
+    TString fileTURL = collectionIn->GetTURL("") ; 
 
     TString tempo(fileTURL) ; 
     tempo.Remove(tempo.Last('/'), tempo.Length()) ; 
@@ -126,11 +128,11 @@ const Bool_t AliAnalysisGoodies::Alien2Local(const TString collectionNameIn, con
     dir += evtsNumber + "/"; 
     gSystem->MakeDirectory(dir) ; 
     gSystem->ChangeDirectory(dir) ; 
-    dir += collectionIn.GetFileName() ; 
-    TEventList * list = collectionIn.GetEventList() ; 
+    dir += collectionIn->GetCollectionName() ; 
+    TEntryList * list = collectionIn->GetEventList("") ; 
     
-    collectionOu->WriteBody(collectionIn.GetCurrentEvent(), collectionIn.GetGUID(), collectionIn.GetLFN(), collectionIn.GetTURL(),  list) ;
-    
+    collectionOu->WriteBody(counter, collectionIn->GetGUID(""), collectionIn->GetLFN(""), collectionIn->GetTURL(""), list) ;
+    counter++ ; 
     printf("Copying %s to %s\n", fileTURL.Data(), dir.Data()) ;  
     merger.Cp(fileTURL, dir) ;
   }
@@ -216,8 +218,10 @@ const Bool_t AliAnalysisGoodies::MakeEsdCollectionFromTagCollection(AliRunTagCut
 const Bool_t AliAnalysisGoodies::MakeEsdCollectionFromTagCollection(const char * runCuts, const char * evtCuts, const char * in, const char * out) const 
 {
   // Makes an esd collection from a xml tag collection 
+  
   Bool_t rv = kTRUE ; 
-   // Open the file collection 
+ 
+  // Open the file collection 
   printf("*** Create Collection       ***\n");
   printf("***  Wk-Dir = |%s|             \n",gSystem->WorkingDirectory());
   printf("***  Coll   = |%s|             \n",in);              	
@@ -226,7 +230,7 @@ const Bool_t AliAnalysisGoodies::MakeEsdCollectionFromTagCollection(const char *
   TGridResult* result = collection->GetGridResult("");
   AliTagAnalysis * tagAna = new AliTagAnalysis(); 
   tagAna->ChainGridTags(result);
-
+  
   tagAna->CreateXMLCollection(out, runCuts, evtCuts) ;
 
   return rv ; 
@@ -510,6 +514,7 @@ const Bool_t AliAnalysisGoodies::ProcessTagFile(const char * tagFile, const char
  
   Bool_t rv = kTRUE ;  
   
+
   if ( !evtCuts && !runCuts ) {
     AliError("No Tag cuts provided") ; 
     return kFALSE ; 
@@ -529,7 +534,7 @@ const Bool_t AliAnalysisGoodies::ProcessTagFile(const char * tagFile, const char
   analysisChain = tagAna->QueryTags(runCuts, evtCuts);
   
   // Process the events
-  rv = ProcessChain(analysisChain) ; 
+ rv = ProcessChain(analysisChain) ; 
 
   return rv;
 }
@@ -617,8 +622,8 @@ const Bool_t AliAnalysisGoodies::ProcessTagXmlCollection(const char * xmlFile, c
   //              xmlFile: is the local xml file with the tag collection ( ex: tagCollection.xml) 
  
   Bool_t rv = kTRUE ;  
-  
-  if ( !evtCuts && !runCuts ) {
+
+ if ( !evtCuts && !runCuts ) {
     AliError("No Tag cuts provided") ; 
     return kFALSE ; 
   }
