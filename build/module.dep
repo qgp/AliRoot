@@ -47,3 +47,4 @@ VZERO/module.mk:	 VZERO/libVZERObase.pkg VZERO/libVZEROsim.pkg VZERO/libVZEROrec
 ZDC/module.mk:		 ZDC/libZDCbase.pkg ZDC/libZDCrec.pkg ZDC/libZDCsim.pkg
 EVE/module.mk:		 EVE/libReve.pkg EVE/binreve.pkg EVE/libAlieve.pkg EVE/binalieve.pkg
 PWG0/module.mk:          PWG0/libPWG0base.pkg  PWG0/libPWG0selectors.pkg
+ESDCheck/module.mk:      ESDCheck/libAnalysisCheck.pkg  
