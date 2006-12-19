@@ -132,8 +132,6 @@ void AliFMDQATask::Exec(Option_t *)
   
   AliESDFMD * fmd = fESD->GetFMDData() ;
   
-  fmd->CheckNeedUShort(currentFile);
-
   Int_t nFMD1 = 0, nFMD2i = 0, nFMD2o = 0, nFMD3i = 0, nFMD3o = 0 ;
   
   UShort_t detector = 1 ;
