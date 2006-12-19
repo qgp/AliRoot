@@ -65,7 +65,7 @@ void ana()
 
   // definition of analysis tasks
  
-  const Int_t knumberOfTasks = 8 ; 
+  const Int_t knumberOfTasks = 9 ; 
   AliAnalysisTask * taskList[knumberOfTasks] ; 
   TClass * taskInputList[knumberOfTasks]  ; 
   TClass * taskOutputList[knumberOfTasks] ; 
@@ -101,6 +101,10 @@ void ana()
   taskList[7]       = new AliFMDQATask("FMD") ;
   taskInputList[7]  = taskInputList[0] ; // only one top input container allowed 
   taskOutputList[7] = TObjArray::Class() ; 
+  
+  taskList[8]       = new AliTRDQATask("TRD") ;
+  taskInputList[8]  = taskInputList[0] ; // only one top input container allowed 
+  taskOutputList[8] = TObjArray::Class() ; 
 
   ag->SetTasks(knumberOfTasks, taskList, taskInputList, taskOutputList) ; 
 
@@ -108,7 +112,7 @@ void ana()
 
   // definition of Tag cuts 
   const char * runCuts = 0x0 ; 
-  const char * evtCuts = "fEventTag.fNPHOSClustersMin == 1 && fEventTag.fNEMCALClustersMin == 1" ; 
+  const char * evtCuts = 0x0 ; //"fEventTag.fNPHOSClustersMin == 1 && fEventTag.fNEMCALClustersMin == 1" ; 
 
   
   TString input = gSystem->Getenv("ANA_INPUT") ; 
@@ -121,7 +125,7 @@ void ana()
       ag->MakeEsdCollectionFromTagCollection(runCuts, evtCuts, input.Data(), collESD) ;
       sprintf(argument, "esd?%s", collESD) ; 
     } else if ( input.Contains("esd?") ) 
-      argument = input.Data() ; 
+      sprintf(argument, "%s", input.Data()) ; 
     ag->Process(argument) ;
 
   } else {
@@ -129,7 +133,7 @@ void ana()
     TChain* analysisChain = new TChain("esdTree") ;
     //   input = "alien:///alice/cern.ch/user/a/aliprod/prod2006_2/output_pp/105/411/AliESDs.root" ; 
     //   analysisChain->AddFile(input);
-    input = "AliESDs.root" ; 
+    input = "/home/schutz/group/schutz/work/production/data/Pythia/AliESDs.root" ; 
     analysisChain->AddFile(input);
     ag->Process(analysisChain) ; 
   }
