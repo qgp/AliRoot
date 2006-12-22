@@ -176,7 +176,7 @@ void AliTRDQATask::Init(const Option_t *)
   TObject *obj;
   int counter = 0;
   
-  while (obj = next.Next()) {
+  while ((obj = next.Next())) {
     if (obj->InheritsFrom("TH1"))  fOutputContainer->AddAt(obj, counter++);
   }
 
