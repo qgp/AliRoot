@@ -13,7 +13,7 @@ SRCS = AliESD.cxx AliESDfriend.cxx\
        AliESDFMD.cxx AliFMDMap.cxx AliFMDFloatMap.cxx \
        AliESDMultITS.cxx AliMultiplicity.cxx \
        AliSelector.cxx \
-       AliXMLCollection.cxx AliMagF.cxx
+       AliXMLCollection.cxx
 
 
 HDRS:= $(SRCS:.cxx=.h) 
