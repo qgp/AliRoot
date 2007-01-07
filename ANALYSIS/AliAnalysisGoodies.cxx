@@ -30,13 +30,15 @@
 #include "AliLog.h" 
 
 #include <Riostream.h>
+#ifdef WITHALIEN
 #include <TAlienCollection.h>
+#endif
 #include <TChain.h>
 #include <TFileMerger.h>
 #include <TGrid.h>
 #include <TROOT.h> 
 #include <TSystem.h>
-
+#include <TEntryList.h>
 
 //______________________________________________________________________________
 AliAnalysisGoodies::AliAnalysisGoodies() :
@@ -123,17 +125,20 @@ const Bool_t AliAnalysisGoodies::Alien2Local(const TString collectionNameIn, con
     tempo.Remove(tempo.Last('/'), tempo.Length()) ; 
     TString runNumber = tempo(tempo.Last('/')+1, tempo.Length())+"/" ; 
     TString dir = localDir + runNumber ; 
-    gSystem->MakeDirectory(dir) ; 
-    gSystem->ChangeDirectory(dir) ; 
-    dir += evtsNumber + "/"; 
-    gSystem->MakeDirectory(dir) ; 
-    gSystem->ChangeDirectory(dir) ; 
-    dir += collectionIn->GetCollectionName() ; 
+    dir += evtsNumber ;
+    char line[1024] ; 
+    sprintf(line, ".! mkdir -p %s", dir.Data()) ; 
+    gROOT->ProcessLine(line) ; 
+    printf("***************************%s\n", line) ; 
     TEntryList * list = collectionIn->GetEventList("") ; 
-    
+    if (!list) 
+     list = new TEntryList() ; 
     collectionOu->WriteBody(counter, collectionIn->GetGUID(""), collectionIn->GetLFN(""), collectionIn->GetTURL(""), list) ;
-    counter++ ; 
-    printf("Copying %s to %s\n", fileTURL.Data(), dir.Data()) ;  
+    counter++ ;
+    tempo = fileTURL ; 
+    TString filename = tempo(tempo.Last('/')+1, tempo.Length()) ;  
+    dir += filename ; 
+    AliInfo(Form("Copying %s to %s\n", fileTURL.Data(), dir.Data())) ;  
     merger.Cp(fileTURL, dir) ;
   }
   collectionOu->Export() ;
@@ -203,6 +208,8 @@ const Bool_t AliAnalysisGoodies::MakeEsdCollectionFromTagCollection(AliRunTagCut
   printf("*** Create Collection       ***\n");
   printf("***  Wk-Dir = |%s|             \n",gSystem->WorkingDirectory());
   printf("***  Coll   = |%s|             \n",in);              	
+
+#ifdef WITHALIEN
   
   TAlienCollection * collection = TAlienCollection::Open(in);
   TGridResult* result = collection->GetGridResult("");
@@ -211,6 +218,9 @@ const Bool_t AliAnalysisGoodies::MakeEsdCollectionFromTagCollection(AliRunTagCut
 
   tagAna->CreateXMLCollection(out, runCuts, evtCuts) ;
 
+#else
+  rv =  kFALSE;
+#endif
   return rv ; 
 }
 
@@ -226,6 +236,8 @@ const Bool_t AliAnalysisGoodies::MakeEsdCollectionFromTagCollection(const char *
   printf("***  Wk-Dir = |%s|             \n",gSystem->WorkingDirectory());
   printf("***  Coll   = |%s|             \n",in);              	
   
+#ifdef WITHALIEN
+
   TAlienCollection * collection = TAlienCollection::Open(in);
   TGridResult* result = collection->GetGridResult("");
   AliTagAnalysis * tagAna = new AliTagAnalysis(); 
@@ -233,7 +245,10 @@ const Bool_t AliAnalysisGoodies::MakeEsdCollectionFromTagCollection(const char *
   
   tagAna->CreateXMLCollection(out, runCuts, evtCuts) ;
 
-  return rv ; 
+  return rv ;
+#else
+  return kFALSE;
+#endif
 }
 
 //______________________________________________________________________
@@ -257,6 +272,8 @@ const Bool_t AliAnalysisGoodies::Merge(const char * collectionFile, const char *
   printf("***  Wk-Dir = |%s|             \n",gSystem->WorkingDirectory());
   printf("***  Coll   = |%s|             \n",collectionFile);              	
   
+#ifdef WITHALIEN
+
   TAlienCollection * collection = TAlienCollection::Open(collectionFile);
   TGridResult* result = collection->GetGridResult("");
   
@@ -293,7 +310,10 @@ const Bool_t AliAnalysisGoodies::Merge(const char * collectionFile, const char *
   fTimer.Stop();
   fTimer.Print();
   
-  return rv ; 
+  return rv ;
+#else
+  return kFALSE;
+#endif
 }
 
 //______________________________________________________________________
@@ -552,6 +572,8 @@ const Bool_t AliAnalysisGoodies::ProcessEsdXmlCollection(const char * xmlFile) c
   printf("***  Wk-Dir = |%s|             \n",gSystem->WorkingDirectory());
   printf("***  Coll   = |%s|             \n",xmlFile);              	
 
+#ifdef WITHALIEN
+
   TAlienCollection * collection = TAlienCollection::Open(xmlFile) ; 
   if (! collection) {
     AliError(Form("%s not found", xmlFile)) ; 
@@ -570,6 +592,9 @@ const Bool_t AliAnalysisGoodies::ProcessEsdXmlCollection(const char * xmlFile) c
   rv = ProcessChain(analysisChain) ; 
 
   return rv ; 
+#else
+  return kFALSE;
+#endif
 }
 
 //______________________________________________________________________
@@ -594,6 +619,8 @@ const Bool_t AliAnalysisGoodies::ProcessTagXmlCollection(const char * xmlFile, A
   if ( gSystem->AccessPathName(xmlFile) ) 
     TGrid::Connect("alien://"); 
 
+#ifdef WITHALIEN
+
   TAlienCollection * collection = TAlienCollection::Open(xmlFile) ; 
   if (! collection) {
     AliError(Form("%s not found", xmlFile)) ; 
@@ -612,6 +639,9 @@ const Bool_t AliAnalysisGoodies::ProcessTagXmlCollection(const char * xmlFile, A
   rv = ProcessChain(analysisChain) ; 
 
   return rv ; 
+#else
+  return kFALSE;
+#endif
 }
 
 //______________________________________________________________________
@@ -632,6 +662,8 @@ const Bool_t AliAnalysisGoodies::ProcessTagXmlCollection(const char * xmlFile, c
   printf("***  Wk-Dir = |%s|             \n",gSystem->WorkingDirectory());
   printf("***  Coll   = |%s|             \n",xmlFile);              	
  
+#ifdef WITHALIEN
+
   // check if file is local or alien
   if ( gSystem->AccessPathName(xmlFile) ) 
     TGrid::Connect("alien://"); 
@@ -654,6 +686,9 @@ const Bool_t AliAnalysisGoodies::ProcessTagXmlCollection(const char * xmlFile, c
   rv = ProcessChain(analysisChain) ; 
 
   return rv ; 
+#else
+  return kFALSE;
+#endif
 }
 
 //______________________________________________________________________
