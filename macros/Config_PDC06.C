@@ -774,9 +774,11 @@ AliGenerator* MbCocktail()
       jpsi->SetYRange(-8., 8.);
       jpsi->SetPhiRange(0., 360.);
       jpsi->SetForceDecay(kAll);
-
+//
+//
+      gener->AddGenerator(jpsi,   "J/Psi", 8.e-4);              
       gener->AddGenerator(pythia, "Pythia", 1.);
-      gener->AddGenerator(jpsi,   "J/Psi", 8.e-4);      
+
       
       return gener;
 }
