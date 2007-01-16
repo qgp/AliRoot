@@ -200,7 +200,11 @@ const Bool_t AliAnalysisGoodies::MakeEsdCollectionFromTagFile(AliRunTagCuts *run
 }
 
 //______________________________________________________________________
+#ifdef WITHALIEN
 const Bool_t AliAnalysisGoodies::MakeEsdCollectionFromTagCollection(AliRunTagCuts * runCuts, AliEventTagCuts * evtCuts, const char * in, const char * out) const 
+#else
+const Bool_t AliAnalysisGoodies::MakeEsdCollectionFromTagCollection(AliRunTagCuts *, AliEventTagCuts *, const char * in, const char *) const 
+#endif
 {
   // Makes an esd collection from a xml tag collection 
   Bool_t rv = kTRUE ; 
@@ -225,12 +229,14 @@ const Bool_t AliAnalysisGoodies::MakeEsdCollectionFromTagCollection(AliRunTagCut
 }
 
 //______________________________________________________________________
+#ifdef WITHALIEN
 const Bool_t AliAnalysisGoodies::MakeEsdCollectionFromTagCollection(const char * runCuts, const char * evtCuts, const char * in, const char * out) const 
+#else
+const Bool_t AliAnalysisGoodies::MakeEsdCollectionFromTagCollection(const char *, const char *, const char * in, const char *) const 
+#endif
 {
   // Makes an esd collection from a xml tag collection 
   
-  Bool_t rv = kTRUE ; 
- 
   // Open the file collection 
   printf("*** Create Collection       ***\n");
   printf("***  Wk-Dir = |%s|             \n",gSystem->WorkingDirectory());
@@ -238,6 +244,8 @@ const Bool_t AliAnalysisGoodies::MakeEsdCollectionFromTagCollection(const char *
   
 #ifdef WITHALIEN
 
+  Bool_t rv = kTRUE ; 
+ 
   TAlienCollection * collection = TAlienCollection::Open(in);
   TGridResult* result = collection->GetGridResult("");
   AliTagAnalysis * tagAna = new AliTagAnalysis(); 
@@ -252,14 +260,16 @@ const Bool_t AliAnalysisGoodies::MakeEsdCollectionFromTagCollection(const char *
 }
 
 //______________________________________________________________________
+#ifdef WITHALIEN
 const Bool_t AliAnalysisGoodies::Merge(const char * collectionFile, const char * subFile, const char * outFile) 
+#else
+const Bool_t AliAnalysisGoodies::Merge(const char * collectionFile, const char *, const char *) 
+#endif
 {
   // merges files listed in a xml collection 
   // usage Merge(collection, outputFile))
   //              collection: is a xml collection  
   
-  Bool_t rv = kFALSE ; 
-
   if ( strstr(collectionFile, ".xml") == 0 ) {
     AliError("Input collection file must be an \".xml\" file\n") ; 
     return kFALSE ; 
@@ -273,6 +283,8 @@ const Bool_t AliAnalysisGoodies::Merge(const char * collectionFile, const char *
   printf("***  Coll   = |%s|             \n",collectionFile);              	
   
 #ifdef WITHALIEN
+
+  Bool_t rv = kFALSE ; 
 
   TAlienCollection * collection = TAlienCollection::Open(collectionFile);
   TGridResult* result = collection->GetGridResult("");
@@ -566,14 +578,14 @@ const Bool_t AliAnalysisGoodies::ProcessEsdXmlCollection(const char * xmlFile) c
   // usage ProcessLocalEsdFile(xmlFile)
   //              xmlFile: is the local xml file with the ESD collection ( ex: esdCollection.xml) 
  
-  Bool_t rv = kTRUE ;  
-  
   printf("*** Process       ***\n");
   printf("***  Wk-Dir = |%s|             \n",gSystem->WorkingDirectory());
   printf("***  Coll   = |%s|             \n",xmlFile);              	
 
 #ifdef WITHALIEN
 
+  Bool_t rv = kTRUE ;  
+  
   TAlienCollection * collection = TAlienCollection::Open(xmlFile) ; 
   if (! collection) {
     AliError(Form("%s not found", xmlFile)) ; 
@@ -604,8 +616,6 @@ const Bool_t AliAnalysisGoodies::ProcessTagXmlCollection(const char * xmlFile, A
   // usage ProcessLocalEsdFile(xmlFile)
   //              xmlFile: is the local xml file with the tag collection ( ex: tagCollection.xml) 
  
-  Bool_t rv = kTRUE ;  
-  
   if ( !evtCuts && !runCuts ) {
     AliError("No Tag cuts provided") ; 
     return kFALSE ; 
@@ -621,6 +631,8 @@ const Bool_t AliAnalysisGoodies::ProcessTagXmlCollection(const char * xmlFile, A
 
 #ifdef WITHALIEN
 
+  Bool_t rv = kTRUE ;  
+  
   TAlienCollection * collection = TAlienCollection::Open(xmlFile) ; 
   if (! collection) {
     AliError(Form("%s not found", xmlFile)) ; 
@@ -651,8 +663,6 @@ const Bool_t AliAnalysisGoodies::ProcessTagXmlCollection(const char * xmlFile, c
   // usage ProcessLocalEsdFile(xmlFile)
   //              xmlFile: is the local xml file with the tag collection ( ex: tagCollection.xml) 
  
-  Bool_t rv = kTRUE ;  
-
  if ( !evtCuts && !runCuts ) {
     AliError("No Tag cuts provided") ; 
     return kFALSE ; 
@@ -663,6 +673,8 @@ const Bool_t AliAnalysisGoodies::ProcessTagXmlCollection(const char * xmlFile, c
   printf("***  Coll   = |%s|             \n",xmlFile);              	
  
 #ifdef WITHALIEN
+
+  Bool_t rv = kTRUE ;  
 
   // check if file is local or alien
   if ( gSystem->AccessPathName(xmlFile) ) 
