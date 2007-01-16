@@ -61,7 +61,6 @@
 #pragma link C++ class AliSelector+;
 
 #pragma link C++ class AliXMLCollection+;
-#pragma link C++ class AliMagF+;
 
 #endif
 
