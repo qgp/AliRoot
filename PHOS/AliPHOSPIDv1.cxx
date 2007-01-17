@@ -18,6 +18,9 @@
 /* History of cvs commits:
  *
  * $Log$
+ * Revision 1.102  2006/01/23 17:51:48  hristov
+ * Using the recommended way of forward declarations for TVector and TMatrix (see v5-08-00 release notes). Additional clean-up
+ *
  * Revision 1.101  2005/05/28 14:19:04  schutz
  * Compilation warnings fixed by T.P.
  *
@@ -1281,7 +1284,7 @@ void  AliPHOSPIDv1::MakeRecParticles()
       Float_t  emaxdtotal = 0. ; 
       
       if((lambda[0]+lambda[1])!=0) 
-	spher=fabs(lambda[0]-lambda[1])/(lambda[0]+lambda[1]); 
+	spher=TMath::Abs(lambda[0]-lambda[1])/(lambda[0]+lambda[1]); 
       
       emaxdtotal=emc->GetMaximalEnergy()/emc->GetEnergy(); 
       
