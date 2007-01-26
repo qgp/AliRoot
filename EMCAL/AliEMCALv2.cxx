@@ -44,6 +44,8 @@
 #include "AliPoints.h"
 // for TRD1 case only; May 31,2006
 
+#include <cassert>
+
 ClassImp(AliEMCALv2)
 
 //______________________________________________________________________

@@ -73,6 +73,7 @@
 #include <TPolyLine3D.h>
 #include <TBox.h>
 
+#include <cassert>
 
 
 ClassImp(AliMUONDisplay)

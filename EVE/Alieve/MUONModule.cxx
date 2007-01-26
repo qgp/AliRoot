@@ -33,6 +33,8 @@
 #include <TMarker3DBox.h>
 #include <TColor.h>
 
+#include <cassert>
+
 using namespace Reve;
 using namespace Alieve;
 using namespace std;

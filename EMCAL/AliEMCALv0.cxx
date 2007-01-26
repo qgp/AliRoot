@@ -53,6 +53,8 @@
 #include "AliRun.h"
 #include "AliLog.h"
 
+#include <cassert>
+
 ClassImp(AliEMCALv0)
 
 // EMCAL material
