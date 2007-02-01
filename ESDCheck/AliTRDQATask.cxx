@@ -12,6 +12,9 @@
  * about the suitability of this software for any purpose. It is          *
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
+
+/* $Id$ */
+
 //_________________________________________________________________________
 // An analysis task to check the TRD data in simulated data
 //
@@ -27,16 +30,16 @@
 // trdz = kTRDout && !kTRDref
 // 
 
+#include <TCanvas.h>
+#include <TChain.h>
+#include <TFile.h>
+#include <TGaxis.h>
+#include <TH1D.h>
+#include <TH2D.h>
+#include <TROOT.h>
+#include <TStyle.h>
+
 #include "AliTRDQATask.h"
-
-#include "TChain.h"
-#include "TH1D.h"
-#include "TH2D.h"
-#include "TFile.h"
-#include "TStyle.h"
-#include "TGaxis.h"
-#include "TCanvas.h"
-
 #include "AliESD.h"
 #include "AliLog.h"
 
@@ -169,14 +172,14 @@ void AliTRDQATask::Init(const Option_t *)
 
   
   // create output container
-  fOutputContainer = new TObjArray(80); 
+  fOutputContainer = new TObjArray(150); 
   
   // register histograms to the container  
   TIter next(gDirectory->GetList());
   TObject *obj;
   int counter = 0;
   
-  while ((obj = next.Next())) {
+  while (obj = next.Next()) {
     if (obj->InheritsFrom("TH1"))  fOutputContainer->AddAt(obj, counter++);
   }
 
@@ -331,14 +334,6 @@ void AliTRDQATask::Terminate(Option_t *)
   DrawGeoESD() ; 
   //DrawConvESD() ; 
   DrawPidESD() ; 
-   
-  char line[1024] ; 
-  sprintf(line, ".!tar -zcvf %s.tar.gz *.gif", GetName()) ; 
-  gROOT->ProcessLine(line);
-  sprintf(line, ".!rm -fR *.gif"); 
-  gROOT->ProcessLine(line);
- 
-  AliInfo(Form("!!! All the gif files are in %s.tar.gz !!! \n", GetName())) ;
 }
 
 //______________________________________________________________________________
