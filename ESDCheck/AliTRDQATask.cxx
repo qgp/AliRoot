@@ -331,6 +331,14 @@ void AliTRDQATask::Terminate(Option_t *)
   DrawGeoESD() ; 
   //DrawConvESD() ; 
   DrawPidESD() ; 
+   
+  char line[1024] ; 
+  sprintf(line, ".!tar -zcvf %s.tar.gz *.gif", GetName()) ; 
+  gROOT->ProcessLine(line);
+  sprintf(line, ".!rm -fR *.gif"); 
+  gROOT->ProcessLine(line);
+ 
+  AliInfo(Form("!!! All the gif files are in %s.tar.gz !!! \n", GetName())) ;
 }
 
 //______________________________________________________________________________
