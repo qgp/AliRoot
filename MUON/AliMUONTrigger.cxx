@@ -27,6 +27,8 @@
 #include "AliMUONGlobalTrigger.h"
 #include "AliMUONTrigger.h"
 
+#include <TClonesArray.h>
+
 ///
 /// \class AliMUONTrigger
 ///

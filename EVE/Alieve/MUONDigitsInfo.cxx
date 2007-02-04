@@ -5,6 +5,7 @@
 //                                                                      //
 //////////////////////////////////////////////////////////////////////////
 
+#include <TClonesArray.h>
 #include <TColor.h>
 
 #include "MUONDigitsInfo.h"

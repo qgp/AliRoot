@@ -6,6 +6,7 @@
 // Origin: Elena Bruna bruna@to.infn.it,, Massimo Masera masera@to.infn.it//
 //////////////////////////////////////////////////////////////////////////
 #include "AliITSPident.h"
+#include <TMath.h>
 
 ClassImp(AliITSPident)
   //_______________________________________________________________________

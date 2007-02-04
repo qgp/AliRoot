@@ -27,6 +27,7 @@
 #include "AliRun.h"
 #include "AliRunLoader.h"
 #include "TObjArray.h"
+#include <TClonesArray.h>
 
 ///
 /// The sdigitizer performs the transformation from hits (energy deposits by

@@ -56,6 +56,7 @@ class TFolder;
 class TSystem; 
 #include <TBenchmark.h>
 #include <TBrowser.h>
+#include <TROOT.h>
 
 // --- Standard library ---
 

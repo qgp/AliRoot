@@ -54,7 +54,7 @@
 #include <TGeoManager.h>
 #include <TGeoNode.h>
 // #include <TGeoVolume.h>
-// #include <TROOT.h>
+#include <TROOT.h>
 
 //====================================================================
 ClassImp(AliFMDAlignFaker)

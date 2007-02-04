@@ -19,6 +19,7 @@
 #include "AliITSBeamTestDigitizer.h"
 #include "AliRawReaderDate.h"
 #include "AliRawReaderRoot.h"
+#include <TClonesArray.h>
 
 const TString AliITSBeamTestDigitizer::fgkDefaultDigitsFileName="ITS.Digits.root";  
 

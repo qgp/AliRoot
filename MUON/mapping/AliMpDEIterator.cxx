@@ -31,6 +31,7 @@
 
 #include <Riostream.h>
 #include <TSystem.h>
+#include <TClass.h>
 
 const  Int_t  AliMpDEIterator::fgkMaxNofDetElements = 250;
 TArrayI  AliMpDEIterator::fgDetElemIds(fgkMaxNofDetElements);

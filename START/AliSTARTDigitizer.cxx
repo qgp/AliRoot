@@ -23,6 +23,7 @@
 #include <TError.h>
 #include <TH1F.h>
 #include <TGraph.h>
+#include <TMath.h>
 
 #include "AliLog.h"
 #include "AliSTARTDigitizer.h"

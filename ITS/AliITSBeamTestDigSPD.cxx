@@ -16,6 +16,7 @@
 #include <TBranch.h>
 #include <TTree.h>
 #include "AliITSEventHeader.h"
+#include <TClonesArray.h>
 ClassImp(AliITSBeamTestDigSPD)
 
 

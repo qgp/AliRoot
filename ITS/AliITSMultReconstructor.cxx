@@ -34,6 +34,7 @@
 #include "AliITSRecPoint.h"
 #include "AliITSgeom.h"
 #include "AliLog.h"
+#include <TClonesArray.h>
 
 //____________________________________________________________________
 ClassImp(AliITSMultReconstructor)

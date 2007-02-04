@@ -15,6 +15,13 @@
 
 /*
 $Log$
+Revision 1.3  2006/04/12 08:32:31  hristov
+New SPD simulation (Massimo):
+- speeding up of the diffusion code (Bjorn)
+- creation  of CDB file with the dead channels, implementation
+of the CDB reading, check of  the code (Henrik, Giuseppe, Domenico)
+- final tuning of the diffusion model parameters (Romualdo)
+
 Revision 1.2  2006/02/03 11:31:18  masera
 Calibration framework improved (E. Crescio)
 
@@ -43,6 +50,7 @@ Preprocessor classes for SPD (Paul Nilsson)
 ///////////////////////////////////////////////////////////////////////////
 
 #include "TFile.h"
+#include <TClonesArray.h>
 #include "AliITSPreprocessorSPD.h"
 #include "AliCDBEntry.h"
 #include "AliITSCalibrationSPD.h" 

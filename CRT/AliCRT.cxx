@@ -41,6 +41,7 @@
 
 #include <TTree.h>
 #include <TVirtualMC.h>
+#include <TClonesArray.h>
 
 #include "AliRun.h"
 #include "AliMagF.h"

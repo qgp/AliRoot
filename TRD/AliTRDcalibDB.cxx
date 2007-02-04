@@ -25,6 +25,7 @@
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
+#include <TMath.h>
 #include <TRandom.h>
 
 #include <AliCDBManager.h>

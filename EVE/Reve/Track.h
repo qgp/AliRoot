@@ -9,6 +9,8 @@
 #include <TPolyMarker3D.h>
 #include <TPolyLine3D.h>
 
+#include <vector>
+
 namespace Reve {
 
 class TrackRnrStyle;

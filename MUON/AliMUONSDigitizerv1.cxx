@@ -35,6 +35,7 @@
 #include "AliMUONHit.h"
 #include "AliMUONTransientDigit.h"
 #include "AliLog.h"
+#include <TClonesArray.h>
 
 ClassImp(AliMUONSDigitizerv1)
 

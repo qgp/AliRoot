@@ -14,6 +14,7 @@
 #include <TF2.h>           //fields
 #include "AliRICHDigit.h"  //Hit2Sdigs()
 #include <TGeoManager.h>   //Instance()
+#include <TClass.h>
 
 static const int kNchambers=7;     //number of RICH chambers 
 static const int kNpadsX = 160;    //number of pads along X in single chamber

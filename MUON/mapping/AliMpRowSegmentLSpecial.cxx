@@ -24,6 +24,9 @@
 // Included in AliRoot: 2003/05/02
 // Authors: David Guez, Ivana Hrivnacova; IPN Orsay
 
+#include <Riostream.h>
+#include <TMath.h>
+
 #include "AliMpRowSegmentLSpecial.h"
 #include "AliMpRow.h"
 #include "AliMpPadRow.h"

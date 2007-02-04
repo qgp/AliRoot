@@ -42,6 +42,7 @@
 #include "TF1.h"
 #include "TRandom.h"
 #include "TString.h"
+#include <TMath.h>
 
 ///
 /// The digitizer is performing the transformation to go from SDigits (digits

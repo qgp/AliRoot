@@ -29,6 +29,8 @@
  *   is fully consistent with the TGeo Rotation methods.                     *
  *****************************************************************************/
 
+#include <TClass.h>
+#include <TMath.h>
 #include <TGeoManager.h>
 #include <TGeoPhysicalNode.h>
 

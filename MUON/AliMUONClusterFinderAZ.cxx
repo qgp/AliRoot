@@ -26,6 +26,8 @@
 #include <TH2.h>
 #include <TMinuit.h>
 #include <TMatrixD.h>
+#include <TRandom.h>
+#include <TROOT.h>
 
 #include "AliMUONClusterFinderAZ.h"
 #include "AliMUONClusterDrawAZ.h"

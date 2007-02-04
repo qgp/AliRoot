@@ -26,7 +26,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 
  
+#include <TClonesArray.h>
 #include <TObjArray.h>
+#include <TPDGCode.h>
 #include <TParticle.h>
 #include <TParticlePDG.h>
 #include <TTree.h>

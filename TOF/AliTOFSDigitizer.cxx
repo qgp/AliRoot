@@ -26,11 +26,14 @@
 //   Use case: see AliTOFhits2sdigits.C macro in the CVS    //
 //__________________________________________________________//
 
-#include "TBenchmark.h"
-#include "TF1.h"
-#include "TFile.h"
-#include "TParticle.h"
-#include "TTree.h"
+#include <TBenchmark.h>
+#include <TClonesArray.h>
+#include <TF1.h>
+#include <TFile.h>
+#include <TParticle.h>
+#include <TTree.h>
+#include <TRandom.h>
+#include <TROOT.h>
 
 #include "AliLoader.h"
 #include "AliLog.h"

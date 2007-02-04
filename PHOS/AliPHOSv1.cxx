@@ -18,6 +18,9 @@
 /* History of cvs commits:
  *
  * $Log$
+ * Revision 1.104  2005/05/28 14:19:05  schutz
+ * Compilation warnings fixed by T.P.
+ *
  */
 
 //_________________________________________________________________________
@@ -32,6 +35,7 @@
 
 
 // --- ROOT system ---
+#include <TClonesArray.h>
 #include <TParticle.h>
 #include <TVirtualMC.h>
 

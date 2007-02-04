@@ -24,6 +24,7 @@
 #include "AliMUONDigit.h"
 #include "AliMUONVCalibParam.h"
 #include "TClonesArray.h"
+#include <TMath.h>
 
 ///
 /// Class used to calibrate digits (either real or simulated ones).

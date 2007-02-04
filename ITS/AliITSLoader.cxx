@@ -1,6 +1,7 @@
 #include "AliITSdigit.h"
 #include "AliITSLoader.h"
 #include "AliRunLoader.h"
+#include <TClonesArray.h>
 
 ///////////////////////////////////////////////////////////////////////////
 // Loader for ITS

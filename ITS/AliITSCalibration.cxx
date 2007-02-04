@@ -22,7 +22,8 @@
 //  AliITSCalibrationSSD                            //
 //////////////////////////////////////////////////////
 
-#include "Riostream.h"
+#include <Riostream.h>
+#include <TMath.h>
 #include "AliITSCalibration.h"
 
 ClassImp(AliITSCalibration)

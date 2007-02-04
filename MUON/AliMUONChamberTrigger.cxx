@@ -23,6 +23,7 @@
 #include "AliMUONGeometrySegmentation.h"
 #include "AliMUONGeometryTransformer.h"
 #include "AliLog.h"
+#include <TMath.h>
 
 ClassImp(AliMUONChamberTrigger)
 

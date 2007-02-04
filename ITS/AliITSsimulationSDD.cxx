@@ -15,6 +15,7 @@
 
 /* $Id$ */
 
+#include <TROOT.h>
 #include <Riostream.h>
 #include <stdlib.h>
 #include <stdio.h>

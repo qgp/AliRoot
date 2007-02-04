@@ -25,9 +25,11 @@ class AliEMCALRecPoint;
 class TClonesArray ;
 
 // --- AliRoot header files ---
+#include <TArrayD.h>
+#include <TMath.h>
+
 #include "AliGeometry.h"
 #include "AliEMCALAlignData.h"
-#include "TArrayD.h"
 
 class AliEMCALGeometry : public AliGeometry {
 public:

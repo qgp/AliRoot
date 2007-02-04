@@ -30,6 +30,7 @@
 #include <AliLog.h>
 #include "AliGenRICHlib.h"
 #include <TPDGCode.h>
+#include <TMath.h>
 
 ClassImp(AliGenRICHlib)
 

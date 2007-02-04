@@ -19,9 +19,10 @@
 #include "AliMagFMaps.h"
 
 
-
 #include <TCanvas.h>
 #include <TGraph.h>
+#include <TH1F.h>
+#include <TMath.h>
 #include <TMultiGraph.h>
 #include <TNtuple.h>
 #include <TObjString.h>

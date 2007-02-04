@@ -16,7 +16,7 @@
 
 /* $Id$ */
 
-
+#include <TClonesArray.h>
 #include "AliLog.h"
 #include "AliRun.h"
 #include "AliRunLoader.h"

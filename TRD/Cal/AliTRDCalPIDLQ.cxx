@@ -23,6 +23,7 @@
 
 #include <TH1F.h>
 #include <TFile.h>
+#include <TROOT.h>
 
 #include "AliLog.h"
 

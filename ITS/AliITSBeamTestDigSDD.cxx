@@ -16,6 +16,7 @@
 #include "AliITSgeom.h"
 #include <TBranch.h>
 #include <TTree.h>
+#include <TClonesArray.h>
 
 ClassImp(AliITSBeamTestDigSDD)
 

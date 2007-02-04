@@ -37,6 +37,7 @@
 #include "AliLoader.h"
 #include "AliRawReader.h" // for raw data
 #include "AliLog.h"
+#include <TClonesArray.h>
 
 
 //----------------------------------------------------------------------

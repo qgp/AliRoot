@@ -28,6 +28,7 @@
 #include <TBRIK.h>
 
 #include "AliITSgeomSSD.h"
+#include <TMath.h>
 
 ClassImp(AliITSgeomSSD)
 

@@ -24,6 +24,7 @@
 #include "AliTRDhit.h"    
 
 #include <Riostream.h>
+#include <TMath.h>
 
 
 ClassImp(AliTRDtrackHits)

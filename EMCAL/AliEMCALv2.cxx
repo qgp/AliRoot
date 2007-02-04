@@ -26,11 +26,13 @@
 // This is done by setting fIShunt =2, and flagging all parents of particles entering the EMCAL.
 
 // --- ROOT system ---
-#include <TParticle.h>
-#include <TVirtualMC.h>
 #include <TBrowser.h>
+#include <TClonesArray.h>
 #include <TH1.h>
 #include <TH2.h>
+#include <TParticle.h>
+#include <TROOT.h>
+#include <TVirtualMC.h>
 
 // --- Standard library ---
 

@@ -40,6 +40,8 @@
 #include <TGeoManager.h>
 #include <TGeoNode.h>
 #include <TGeoMatrix.h>
+#include <TGeoNode.h>
+#include <TList.h>
 #include <TMatrixD.h>
 #include <TObjString.h>
 #include <TClonesArray.h>

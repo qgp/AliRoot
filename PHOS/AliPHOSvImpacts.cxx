@@ -19,6 +19,9 @@
 /* History of cvs commits:
  *
  * $Log$
+ * Revision 1.22  2005/06/17 07:39:07  hristov
+ * Removing GetDebug and SetDebug from AliRun and AliModule. Using AliLog for the messages
+ *
  * Revision 1.21  2005/05/28 14:19:05  schutz
  * Compilation warnings fixed by T.P.
  *
@@ -38,6 +41,7 @@
 // --- ROOT system ---
 
 //#include <TTree.h>
+#include <TClonesArray.h>
 #include <TVirtualMC.h>
 
 // --- Standard library ---

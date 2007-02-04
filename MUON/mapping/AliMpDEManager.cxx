@@ -34,6 +34,7 @@
 #include <TSystem.h>
 #include <TObjString.h>
 #include <TMap.h>
+#include <TClass.h>
 
 const char  AliMpDEManager::fgkNameSeparator = '_'; 
 const char  AliMpDEManager::fgkCommentPrefix = '#'; 

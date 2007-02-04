@@ -7,6 +7,8 @@
 #include <TCanvas.h>
 #include <TGListTree.h>
 #include <THashList.h>
+#include <TROOT.h>
+#include <TClass.h>
 
 using namespace Reve;
 
