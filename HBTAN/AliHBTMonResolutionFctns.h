@@ -42,7 +42,7 @@ class AliHBTMonPtResolutionVsPtFctn;
 class AliHBTMonPhiResolutionVsPtFctn;
 class AliHBTMonThetaResolutionVsPtFctn;
 
-
+#include <TMath.h>
 #include "AliHBTMonitorFunction.h"
 /***********************************************************************/
 /***********************************************************************/

@@ -23,6 +23,7 @@
 // It differs from AliPHOSClusterizerv1 in neighbour definition only
 
 // ---- ROOT system ---
+#include <TMath.h>
 #include "TDirectory.h"
 #include "TBranch.h"
 #include "TTree.h"

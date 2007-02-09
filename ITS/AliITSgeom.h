@@ -23,7 +23,7 @@
 #include <TVector.h>
 #include <TString.h>
 #include <TArrayI.h>
-class TArrayI;
+#include <TMath.h>
 
 #include "AliITSgeomMatrix.h"
 
