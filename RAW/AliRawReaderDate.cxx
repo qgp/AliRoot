@@ -29,6 +29,8 @@
 #include "event.h"
 #endif
 
+#include <string.h>
+
 ClassImp(AliRawReaderDate)
 
 

@@ -25,6 +25,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "AliRawReaderDateV3.h"
+#include <string.h>
 
 struct eventHeaderStruct { 
   Int_t  size;          /* size of event in Bytes  */

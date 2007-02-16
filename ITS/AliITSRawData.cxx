@@ -4,6 +4,7 @@
 
 
 #include "AliITSRawData.h"
+#include <string.h>
 
 ClassImp(AliITSRawData)
 

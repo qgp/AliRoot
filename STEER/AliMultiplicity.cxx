@@ -1,4 +1,5 @@
 #include "AliMultiplicity.h"
+#include <string.h>
 
 ClassImp(AliMultiplicity)
 

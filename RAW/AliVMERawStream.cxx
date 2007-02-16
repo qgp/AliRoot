@@ -23,6 +23,7 @@
 
 #include "AliVMERawStream.h"
 #include "AliRawReader.h"
+#include <string.h>
 
 ClassImp(AliVMERawStream)
 
