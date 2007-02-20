@@ -10,13 +10,7 @@ SRCS:=  PHOS/AliHLTPHOSPulseGenerator.cxx \
 	PHOS/AliHLTPHOSEmcCalibData.cxx \
 	PHOS/AliHLTPHOSRawAnalyzerComponent.cxx \
 	PHOS/AliHLTPHOSRawAnalyzerCrudeComponent.cxx \
-	PHOS/AliHLTPHOSRawAnalyzerPeakFinderComponent.cxx \
-	PHOS/AliHLTPHOSDefinitions.cxx\
-	PHOS/AliHLTPHOSModuleMergerComponent.cxx \
-	PHOS/AliHLTPHOSFileWriterComponent.cxx  \
-	PHOS/AliHLTPHOSFileWriter.cxx \
-	PHOS/AliHLTPHOSDDLPackedFileWriter.cxx \
-	PHOS/AliHLTPHOSCellEnergiesFileWriter.cxx
+	PHOS/AliHLTPHOSRawAnalyzerPeakFinderComponent.cxx
 
 
 HDRS:=  PHOS/AliHLTPHOSPulseGenerator.h \
@@ -29,16 +23,7 @@ HDRS:=  PHOS/AliHLTPHOSPulseGenerator.h \
 	PHOS/AliHLTPHOSEmcCalibData.h \
 	PHOS/AliHLTPHOSRawAnalyzerComponent.h \
 	PHOS/AliHLTPHOSRawAnalyzerCrudeComponent.h \
-	PHOS/AliHLTPHOSRawAnalyzerPeakFinderComponent.h \
-	PHOS/AliHLTPHOSDefinitions.h \
-	PHOS/AliHLTPHOSModuleMergerComponent.h \
-	PHOS/AliHLTPHOSRcuCellEnergyDataStruct.h \
-	PHOS/AliHLTPHOSValidCellDataStruct.h \
-	PHOS/AliHLTPHOSFileWriterComponent.h \
-	PHOS/AliHLTPHOSDataHeaderStruct.h \
-	PHOS/AliHLTPHOSFileWriter.h \
-	PHOS/AliHLTPHOSDDLPackedFileWriter.h \
-	PHOS/AliHLTPHOSCellEnergiesFileWriter.h
+	PHOS/AliHLTPHOSRawAnalyzerPeakFinderComponent.h
 
 DHDR=   PHOS/AliHLTPHOSLinkDef.h
  					    
@@ -54,15 +39,6 @@ CLASS_HDRS:=	PHOS/AliHLTPHOSPulseGenerator.h \
 		PHOS/AliHLTPHOSRawAnalyzerComponent.h \
 		PHOS/AliHLTPHOSRawAnalyzerCrudeComponent.h \
 		PHOS/AliHLTPHOSRawAnalyzerPeakFinderComponent.h \
-		PHOS/AliHLTPHOSDefinitions.h \
-		PHOS/AliHLTPHOSModuleMergerComponent.h\
-		PHOS/AliHLTPHOSRcuCellEnergyData.h \
-		PHOS/AliHLTPHOSModuleCellEnergyData.h \
-		PHOS/AliHLTPHOSFileWriterComponent.h \
-		PHOS/AliHLTPHOSDataHeaderStruct.h \
-		PHOS/AliHLTPHOSFileWriter.h \
-		PHOS/AliHLTPHOSDDLPackedFileWriter.h \
-		PHOS/AliHLTPHOSCellEnergiesFileWriter.h
 
 MODULE_SRCS:=   PHOS/AliHLTPHOSPulseGenerator.cxx \
 		PHOS/AliHLTPHOSRawAnalyzer.cxx \
@@ -74,13 +50,7 @@ MODULE_SRCS:=   PHOS/AliHLTPHOSPulseGenerator.cxx \
 		PHOS/AliHLTPHOSEmcCalibData.cxx \
 		PHOS/AliHLTPHOSRawAnalyzerComponent.cxx \
 		PHOS/AliHLTPHOSRawAnalyzerCrudeComponent.cxx \
-		PHOS/AliHLTPHOSRawAnalyzerPeakFinderComponent.cxx \
-		PHOS/AliHLTPHOSDefinitions.cxx \
-		PHOS/AliHLTPHOSModuleMergerComponent.cxx \
-		PHOS/AliHLTPHOSFileWriterComponent.cxx \
-		PHOS/AliHLTPHOSFileWriter.cxx \
-		PHOS/AliHLTPHOSDDLPackedFileWriter.cxx \
-		PHOS/AliHLTPHOSCellEnergiesFileWriter.cxx
+		PHOS/AliHLTPHOSRawAnalyzerPeakFinderComponent.cxx 
 
 EINCLUDE+= HLT/BASE HLT/src HLT/hough HLT/comp HLT/misc HLT/ITS HLT/MUON/src TPC ITS MUON STEER RAW
 

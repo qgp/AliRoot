@@ -26,9 +26,6 @@ libAliHLTPHOS_la_SOURCES	= AliHLTPHOSPulseGenerator.cxx \
 			          AliHLTPHOSDefinitions.cxx \
 				  AliHLTPHOSModuleMergerComponent.cxx \
 				  AliHLTPHOSFileWriterComponent.cxx \
-				  AliHLTPHOSFileWriter.cxx \
-				  AliHLTPHOSDDLPackedFileWriter.cxx \
-				  AliHLTPHOSCellEnergiesFileWriter.cxx \
 				  PeakFinderTest.cxx
 
 # class header files, the link definition for the root dictionary
@@ -46,16 +43,13 @@ CLASS_HDRS			= AliHLTPHOSPulseGenerator.h \
 				  AliHLTPHOSRawAnalyzerPeakFinderComponent.h \
 				  AliHLTPHOSModuleMergerComponent.h \
                                   AliHLTPHOSFileWriterComponent.h
-				  AliHLTPHOSDDLPackedFileWriter.h\
-				  AliHLTPHOSCellEnergiesFileWriter.h
 
 pkginclude_HEADERS		= $(CLASS_HDRS) \
 				  AliHLTPHOSCommonDefs.h \
 			          AliHLTPHOSDefinitions.h \
 				  AliHLTPHOSModuleCellEnergyDataStruct.h\
 				  AliHLTPHOSRcuCellEnergyDataStruct.h \
-				  AliHLTPHOSValidCellDataStruct.h\
-				  AliHLTPHOSDataHeaderStruct.h
+				  AliHLTPHOSValidCellDataStruct.h
 
 # version info and linking flags for the library
 libAliHLTPHOS_la_LDFLAGS	= -L@ROOTLIBDIR@ \

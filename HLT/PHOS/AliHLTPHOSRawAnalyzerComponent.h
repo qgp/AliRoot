@@ -9,7 +9,6 @@
 #include "AliRawReaderMemory.h"
 #include "AliCaloRawStream.h"
 #include "AliHLTPHOSDefinitions.h"
-#include "AliHLTPHOSCommonDefs.h"
 
 class AliHLTPHOSRcuCellEnergyDataStruct;
 
@@ -29,7 +28,6 @@ class AliHLTPHOSRawAnalyzerComponent: public AliHLTProcessor
   virtual int DoInit( int argc, const char** argv );
   virtual int Deinit();
   virtual int DoDeinit();
-  void DumpData(int gain);
   void DumpData();
   void DumpChannelData(Double_t *data); 
   void SetEquippmentID(AliHLTUInt32_t id);
@@ -44,12 +42,10 @@ class AliHLTPHOSRawAnalyzerComponent: public AliHLTProcessor
 
  protected:
   AliHLTPHOSRawAnalyzer *analyzerPtr; 
-
- private:
   void Reset();
   void ResetDataPtr();
-  void ResetDataPtr(int sampleCnt);
-  void ResetDataPtr(int startindex, int sampleCnt);
+
+ private:
   static int fEventCount;
   AliHLTUInt32_t fEquippmentID;
   AliHLTUInt16_t fRcuX;
@@ -57,11 +53,11 @@ class AliHLTPHOSRawAnalyzerComponent: public AliHLTProcessor
   AliHLTUInt16_t fRcuRowOffeset;
   AliHLTUInt16_t fRcuColOffeset;
   AliHLTUInt16_t fModuleID;
-  Double_t fTmpChannelData[ALTRO_MAX_SAMPLES];
-  Double_t fMaxValues[N_MODULES][N_ROWS_MOD][N_COLUMNS_MOD][N_GAINS];
+  Double_t fTmpChannelData[1008];
+  Double_t fMaxValues[5][64][56][2];
   AliCaloRawStream *fPHOSRawStream;
   AliRawReaderMemory *fRawMemoryReader;
-  AliHLTPHOSRcuCellEnergyDataStruct* fOutPtr;
+  AliHLTPHOSRcuCellEnergyDataStruct* outPtr;
   static const AliHLTComponentDataType inputDataTypes[];
 };
 #endif

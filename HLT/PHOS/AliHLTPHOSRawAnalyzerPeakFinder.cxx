@@ -89,6 +89,8 @@ AliHLTPHOSRawAnalyzerPeakFinder::SetAVector(Double_t *aVec, Int_t size)
     }
 }
 
+
+
 /**
 * Extraction of timing and energy using the Peakfinde Algorithm.
 * The. The parameters "start" and "length" defines a sub array  of the data array
@@ -113,7 +115,7 @@ AliHLTPHOSRawAnalyzerPeakFinder::Evaluate(int start, int length)
 
   if(fTVectorPtr == 0 || fAVectorPtr == 0)
     {
-      //      printf("\nError: the peakfinder vectors are not specified, aborting !!!\n");
+      printf("\nError: the peakfinder vectors are not specified, aborting !!!\n");
     }
   else
     {
