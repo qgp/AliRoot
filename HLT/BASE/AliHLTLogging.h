@@ -24,9 +24,12 @@
 // HLTMessage is not filtered
 #define HLTMessage( ... )   LoggingVarargs(kHLTLogNone,      NULL , NULL ,  __VA_ARGS__ )
 
-#ifndef __func__
-#define __func__ "???"
-#endif
+// Matthias Feb07: temporary fix for version HLT-v0-5
+// this doesn't work, __func__ is not defined atthis stage even on architectures
+// where it is in general available. So we always get '???'
+/* #ifndef __func__ */
+/* #define __func__ "???" */
+/* #endif */
 
 // the following macros are filtered by the Global and Local Log Filter
 #define HLTBenchmark( ... ) LoggingVarargs(kHLTLogBenchmark, this->Class_Name() , __func__ ,  __VA_ARGS__ )
