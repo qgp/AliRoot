@@ -18,7 +18,11 @@
 #include <TLatex.h>
 #include <THStack.h>
 #include <TLegend.h>
+#if ROOT_VERSION_CODE>= 331523
+#include <TView3D.h>
+#else
 #include <TView.h>
+#endif
 #include <TPolyMarker3D.h>
 #include <TPolyLine3D.h>
 #include <TPolyLine.h>
@@ -209,7 +213,14 @@ void AliRICHParam::TestTrans()
   Int_t iNpointsX=50,iNpointsY=50;  
   new TCanvas("trasform","Test LORS-MARS transform"); TLatex t; t.SetTextSize(0.02);
   
-  TView *pView=new TView(1);  pView->SetRange(-400,-400,-400,400,400,400);
+#if ROOT_VERSION_CODE>= 331523
+  Double_t rmin[]={-1,-1,-1};
+  Double_t rmax[]={ 1, 1, 1};
+  TView *pView = new TView3D(1,rmin,rmax);
+#else
+  TView *pView=new TView(1);
+#endif
+  pView->SetRange(-400,-400,-400,400,400,400);
   DrawAxis();  
   for(Int_t iCham=1;iCham<=7;iCham++){//chamber loop
     AliRICHHelix helix(2.5,Norm(iCham).Theta()*TMath::RadToDeg(),Norm(iCham).Phi()*TMath::RadToDeg());
