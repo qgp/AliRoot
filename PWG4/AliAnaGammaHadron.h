@@ -7,6 +7,9 @@
 /* History of cvs commits:
  *
  * $Log$
+ * Revision 1.3  2007/03/08 10:24:32  schutz
+ * Coding convention
+ *
  * Revision 1.2  2007/02/09 18:40:40  schutz
  * BNew version from Gustavo
  *
