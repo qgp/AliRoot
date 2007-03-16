@@ -183,7 +183,7 @@ AliTOFQATask& AliTOFQATask::operator=(const AliTOFQATask &qatask)
   return *this;
 }
 //______________________________________________________________________________
-void AliTOFQATask::ConnectInputData(const Option_t*)
+void AliTOFQATask::Init(const Option_t*)
 {
   // Initialisation of branch container and histograms 
     
@@ -204,6 +204,8 @@ void AliTOFQATask::ConnectInputData(const Option_t*)
     fESD = new AliESD();
     SetBranchAddress(0, "ESD", &fESD);
   }
+  
+  CreateOutputObjects() ;
 }
 
 //________________________________________________________________________
@@ -217,8 +219,9 @@ void AliTOFQATask::CreateOutputObjects()
 void AliTOFQATask::Exec(Option_t *) 
 {
 
-//******* The loop over events --------------------------------------------------
-
+  // Processing of one event
+  Long64_t entry = fChain->GetReadEntry() ;  
+  
   Int_t nselESD=0;
   Int_t nmatchTOF=0;
   Int_t npidok=0;
@@ -226,8 +229,6 @@ void AliTOFQATask::Exec(Option_t *)
   //Set equal a-priori weights (just charged hadrions)
   Int_t nCalinSec=8736;
   Double_t c[5]={0, 0, 1, 1, 1};
-  // Processing of one event
-  Long64_t entry = fChain->GetReadEntry() ;  
   if (!fESD) {
     AliError("fESD is not connected to the input!") ; 
     return ; 
