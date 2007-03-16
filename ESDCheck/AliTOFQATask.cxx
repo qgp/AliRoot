@@ -28,12 +28,13 @@
 #include <TGaxis.h>
 #include <TLatex.h>
 #include <TPad.h>
+#include <TF1.h>
+#include <TSpectrum.h>
 
 #include "AliTOFQATask.h" 
 #include "AliESD.h" 
 #include "AliESDtrack.h" 
 #include "AliLog.h"
-#include "Riostream.h"
 
 //______________________________________________________________________________
 AliTOFQATask::AliTOFQATask(const char *name) : 
@@ -58,7 +59,11 @@ AliTOFQATask::AliTOFQATask(const char *name) :
   fhTOFDeltaTimeMT(0),
   fhTOFIDSpecies(0),
   fhTOFMassVsMom(0),
-  fhTOFMass(0)
+  fhTOFMass(0),
+  fmatchFracMin(0.15),
+  fmatchEffMin(0.30),
+  ftimePeakMax(0.05),
+  fmassPeakMax(0.05)
 {
   // Constructor.
   // Input slot #0 works with an Ntuple
@@ -90,7 +95,11 @@ AliTOFQATask::AliTOFQATask(const AliTOFQATask &qatask) :
   fhTOFDeltaTimeMT(0),
   fhTOFIDSpecies(0),
   fhTOFMassVsMom(0),
-  fhTOFMass(0)
+  fhTOFMass(0),
+  fmatchFracMin(0.15),
+  fmatchEffMin(0.30),
+  ftimePeakMax(0.05),
+  fmassPeakMax(0.05)
 {
   // Copy Constructor.
   fChain=qatask.fChain;
@@ -114,6 +123,10 @@ AliTOFQATask::AliTOFQATask(const AliTOFQATask &qatask) :
   fhTOFIDSpecies=qatask.fhTOFIDSpecies;
   fhTOFMassVsMom=qatask.fhTOFMassVsMom;
   fhTOFMass=qatask.fhTOFMass;
+  fmatchFracMin=qatask.fmatchFracMin;
+  fmatchEffMin=qatask.fmatchEffMin;
+  ftimePeakMax=qatask.ftimePeakMax;
+  fmassPeakMax=qatask.fmassPeakMax;
 }
 //______________________________________________________________________________
 AliTOFQATask:: ~AliTOFQATask() 
@@ -163,10 +176,14 @@ AliTOFQATask& AliTOFQATask::operator=(const AliTOFQATask &qatask)
   this->fhTOFIDSpecies=qatask.fhTOFIDSpecies;
   this->fhTOFMassVsMom=qatask.fhTOFMassVsMom;
   this->fhTOFMass=qatask.fhTOFMass;
+  this->fmatchFracMin=qatask.fmatchFracMin;
+  this->fmatchEffMin=qatask.fmatchEffMin;
+  this->ftimePeakMax=qatask.ftimePeakMax;
+  this->fmassPeakMax=qatask.fmassPeakMax;
   return *this;
 }
 //______________________________________________________________________________
-void AliTOFQATask::Init(const Option_t*)
+void AliTOFQATask::ConnectInputData(const Option_t*)
 {
   // Initialisation of branch container and histograms 
     
@@ -179,16 +196,23 @@ void AliTOFQATask::Init(const Option_t*)
     return ;
   }
   
-  if (!fESD) {
-    // One should first check if the branch address was taken by some other task
-    char ** address = (char **)GetBranchAddress(0, "ESD") ;
-    if (address) 
-      fESD = (AliESD *)(*address) ; 
-    if (!fESD) 
-      fChain->SetBranchAddress("ESD", &fESD) ;  
+  // One should first check if the branch address was taken by some other task
+  char ** address = (char **)GetBranchAddress(0, "ESD");
+  if (address) {
+    fESD = (AliESD*)(*address);
+  } else {
+    fESD = new AliESD();
+    SetBranchAddress(0, "ESD", &fESD);
   }
+}
+
+//________________________________________________________________________
+void AliTOFQATask::CreateOutputObjects()
+{
+// Create histograms
   BookHistos();
 }
+
 //______________________________________________________________________________
 void AliTOFQATask::Exec(Option_t *) 
 {
@@ -323,16 +347,7 @@ void AliTOFQATask::Exec(Option_t *)
 }
 //______________________________________________________________________________
 void AliTOFQATask::BookHistos()
-{
-  
-  // The output objects will be written to: 
-  TDirectory * cdir = gDirectory ; 
-  // Open a file for output #0
-  char outputName[1024] ; 
-  sprintf(outputName, "%s.root", GetName() ) ; 
-  OpenFile(0, outputName , "RECREATE") ; 
-  if (cdir) cdir->cd() ;   
-
+{  
   // Construct histograms:
   
   fhTOFMatch= 
@@ -423,6 +438,12 @@ void AliTOFQATask::GetEfficiency()
 //______________________________________________________________________________
 void AliTOFQATask::DrawHistos() 
 {
+
+
+  Int_t TOFsectors[18]={0,1,1,0,0,0,1,1,0,1,1,1,1,0,0,1,1,1};//TOF sectors which are supposed to be present
+  char* report=" ";
+  char* part[3]={"pions","kaons","protons"};// pi,ka,pr
+  Float_t masses[3]={0.1396,0.494,0.938};// particle masses pi,ka,pr
   // Makes a few plots
 
   AliInfo("Plotting....") ; 
@@ -467,6 +488,8 @@ void AliTOFQATask::DrawHistos()
   fhTOFeffMom->GetYaxis()->SetTitle("Fraction of matched ESD tracks");
   fhTOFeffMom->SetFillColor(4);
   fhTOFeffMom->Draw();
+  fhTOFeffMom->Fit("pol0","Q","",0.5,3.);
+  TF1 *fitMom = fhTOFeffMom->GetFunction("pol0");
   fhTOFeffMom->Draw("histo,same");
   
   cTOFeff->Print("TOF_eff.gif");
@@ -487,6 +510,8 @@ void AliTOFQATask::DrawHistos()
   fhTOFDeltaTime->GetXaxis()->SetTitle("t^{TOF}-t^{exp}_{#pi} (ns)");
   fhTOFDeltaTime->GetYaxis()->SetTitle("Entries");
   fhTOFDeltaTime->SetFillColor(4);
+  TSpectrum *timeDiff = new TSpectrum(1);
+  Int_t ntime = timeDiff->Search(fhTOFDeltaTime,1,"new",0.1);
   fhTOFDeltaTime->Draw();
 
   cTOFtime->Print("TOF_time.gif");
@@ -500,6 +525,10 @@ void AliTOFQATask::DrawHistos()
   fhTOFMass->GetXaxis()->SetTitle("Reconstructed Mass (GeV/c^{2})");
   fhTOFMass->GetYaxis()->SetTitle("Entries");
   fhTOFMass->SetFillColor(4);
+  Int_t npmass=1;
+  if(fhTOFMass->GetEntries()>1000)npmass=3;
+   TSpectrum *mass = new TSpectrum(npmass);
+  Int_t nmass = mass->Search(fhTOFMass,npmass,"new",0.02);
   fhTOFMass->Draw();
   cTOFpid->SetLogy(0);
   cTOFpid->cd(2);
@@ -559,11 +588,85 @@ void AliTOFQATask::DrawHistos()
   cTOFpid->Print("TOF_pid.gif");
   cTOFpid->Print("TOF_pid.eps");
 
-  // draw all 
-  //The General
-  
 
-  //The efficiency  
+  AliInfo("*****------- Start of TOF Data Quality report:------") ; 
+
+  Bool_t problem=kFALSE;
+  //------------------------------Matching Efficiency
+
+  //Overall Fraction:
+  Float_t matchFrac= fhTOFMatch->GetMean();
+  if(matchFrac<fmatchFracMin){
+    AliWarning(Form("*** Overall Fraction of matched tracks too low! Fraction = %f", matchFrac)) ;
+    problem=kTRUE;
+  }else{
+    AliInfo(Form("*** Fraction of matched tracks  = %f", matchFrac)) ; 
+  } 
+
+  if(fhTOFeffMom->GetEntries()<1.){
+    AliWarning(Form("*** No tracks matching with TOF! Fraction is = %f", matchFrac)) ; 
+    problem=kTRUE;
+  }
+
+  
+  //The efficiency as a function of momentum:
+  Float_t eff=  fitMom->GetParameter(0);
+  Float_t deff=  fitMom->GetParError(0);
+  if(eff+3*deff<fmatchEffMin){
+    AliWarning(Form("*** Fraction of matched tracks vs Momentum is too low! Fraction= %f", eff)) ;
+    problem=kTRUE;
+  }else{
+    AliInfo(Form("*** Fraction of matched tracks for p>0.5 GeV is = %f", eff)) ;
+  } 
+
+  //Matched tracks vs TOF Sector:
+  for(Int_t isec=1;isec<=18;isec++){
+    if(fhTOFsector->GetBinContent(isec)<1 && TOFsectors[isec-1]>0){
+      AliWarning(Form("*** Missing Entries in sector %i", isec)); 
+      problem=kTRUE;
+    }
+    if(fhTOFsector->GetBinContent(isec)>0 && TOFsectors[isec-1]==0){
+      AliWarning(Form("*** Unexpected Entries in sector %i", isec)); 
+      problem=kTRUE;
+    }
+  }
+
+  //-----------------------------Pid Quality
+
+  // Look at the time - expected time: 
+  if(ntime==0)AliWarning("*** No peak was found in time difference spectrum!");
+  Float_t *timePos = timeDiff->GetPositionX();
+  if(TMath::Abs(timePos[0])>ftimePeakMax){
+    AliWarning(Form("*** Main Peak position in tTOF-TEXP spectrum is sitting far from where expected! Tpeak = %f ps",timePos[0]*1.E3));  
+    problem=kTRUE;
+  }else{
+    AliInfo(Form("*** Main Peak position in tTOF-TEXP found at = %f ps",timePos[0]*1.E3));  
+  }
+  // Look at the Mass Spectrum: 
+  if(nmass==0)AliWarning("*** No peak was found in Mass difference spectrum!");
+  Float_t *massPos = mass->GetPositionX();
+  for(Int_t imass=0;imass<nmass;imass++){   
+    AliInfo(Form("*** the Mass peak for %s found at  = %f GeV/c^2",part[imass],massPos[imass]));
+    if(TMath::Abs( massPos[imass]-masses[imass])> fmassPeakMax){
+      AliWarning(Form("*** the Mass peak position for %s is not in the right place, found at  = %f GeV/c^2",part[imass],massPos[imass]));
+      problem=kTRUE;
+    }
+  }
+
+  // Look at the ID Species: 
+
+  if(fhTOFIDSpecies->GetEntries()>1000){
+    if(pifrac<0.8 || (kafrac<0.01 || kafrac>0.2) || (prfrac<0.01 || prfrac>0.2)){
+      AliWarning(Form("*** Unexpected Id fractions: pions = %f, kaons = %f, protons %f", pifrac,kafrac,prfrac));
+      problem=kTRUE;
+    }
+  }
+
+  if(problem) report="Problems found, please check!!!";   else report="Everything ok.";
+  AliInfo(Form("*****------- End of TOF QA report, %s -",report)) ; 
+  
+  delete mass;
+  delete timeDiff;
 }
 
 //______________________________________________________________________________
@@ -574,8 +677,26 @@ void AliTOFQATask::Terminate(Option_t *)
   // some plots
 
   AliInfo("TOF QA Task: End of events loop");
+ //  fOutputContainer = (TObjArray*)GetOutputData(0);
+//   fhTOFMatch       = (TH1F*)fOutputContainer->At(0);
+//   fhESDeffPhi      = (TH1F*)fOutputContainer->At(1);
+//   fhESDeffTheta    = (TH1F*)fOutputContainer->At(2);
+//   fhESDeffMom      = (TH1F*)fOutputContainer->At(3);
+//   fhTOFeffPhi      = (TH1F*)fOutputContainer->At(4);
+//   fhTOFeffPhiMT    = (TH1F*)fOutputContainer->At(5);
+//   fhTOFeffTheta    = (TH1F*)fOutputContainer->At(6);
+//   fhTOFeffThetaMT  = (TH1F*)fOutputContainer->At(7);
+//   fhTOFeffMom      = (TH1F*)fOutputContainer->At(8);
+//   fhTOFeffMomMT    = (TH1F*)fOutputContainer->At(9);
+//   fhTOFsector      = (TH1F*)fOutputContainer->At(10);
+//   fhTOFsectorMT    = (TH1F*)fOutputContainer->At(11);
+//   fhTOFTime        = (TH1F*)fOutputContainer->At(12);
+//   fhTOFDeltaTime   = (TH1F*)fOutputContainer->At(13);
+//   fhTOFDeltaTimeMT = (TH1F*)fOutputContainer->At(14);
+//   fhTOFIDSpecies   = (TH1F*)fOutputContainer->At(15);
+//   fhTOFMassVsMom   = (TH2F*)fOutputContainer->At(16);
+//   fhTOFMass        = (TH1F*)fOutputContainer->At(17);
   GetEfficiency();
-  PostData(0, fOutputContainer);
+//  PostData(0, fOutputContainer);
   DrawHistos() ; 
-
 }
