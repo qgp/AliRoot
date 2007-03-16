@@ -17,6 +17,9 @@
 /* History of cvs commits:
  *
  * $Log$
+ * Revision 1.4.2.1  2007/03/15 11:55:56  schutz
+ * taken from HEAD
+ *
  * Revision 1.3  2007/03/08 10:24:32  schutz
  * Coding convention
  *
@@ -253,42 +256,15 @@ void AliAnaGammaDirect::CreateParticleList(TClonesArray * pl,
     }
   }
 
-  //########## #####################
-  //Prepare bool array for EMCAL track matching
-
-  // step 1, set the flag in a way that it rejects all not-V1 clusters
-  // but at this point all V1 clusters are accepted
-  
-  Int_t begem = fESD->GetFirstEMCALCluster();  
-  Int_t endem = fESD->GetFirstEMCALCluster() + 
-    fESD->GetNumberOfEMCALClusters() ;  
  
-//   if(endem < begem+12)
-//     AliError("Number of pseudoclusters smaller than 12");
-  Bool_t *useCluster = new Bool_t[endem+1];
-  
-//   for (npar =  0; npar <  endem; npar++){
-//     if(npar < begem+12)
-//       useCluster[npar] =kFALSE; //EMCAL Pseudoclusters and PHOS clusters
-//     else
-//       useCluster[npar] =kTRUE;   //EMCAL clusters 
-//   }
-  for (npar =  0; npar <  endem; npar++)
-    useCluster[npar] =kFALSE; //EMCAL Pseudoclusters and clusters
-  
   //########### CTS (TPC+ITS) #####################
   Int_t begtpc   = 0 ;  
   Int_t endtpc   = fESD->GetNumberOfTracks() ;
   Int_t indexCh  = plCTS->GetEntries() ;
   AliDebug(3,Form("First CTS particle %d, last particle %d", begtpc,endtpc));
 
-  Int_t iemcalMatch  = -1 ;
   for (npar =  begtpc; npar <  endtpc; npar++) {////////////// track loop
     AliESDtrack * track = fESD->GetTrack(npar) ; // retrieve track from esd
-
-    // step 2 for EMCAL matching, change the flag for all matched clusters found in tracks
-    iemcalMatch = track->GetEMCALcluster(); 
-    if(iemcalMatch > 0) useCluster[iemcalMatch] = kTRUE; // reject matched cluster
     
     //We want tracks fitted in the detectors:
     ULong_t status=AliESDtrack::kTPCrefit;
@@ -321,7 +297,11 @@ void AliAnaGammaDirect::CreateParticleList(TClonesArray * pl,
   }
   
   //################ EMCAL ##############
-  
+    
+  Int_t begem = fESD->GetFirstEMCALCluster();  
+  Int_t endem = fESD->GetFirstEMCALCluster() + 
+    fESD->GetNumberOfEMCALClusters() ;  
+
   Int_t indexNe  = plEMCAL->GetEntries() ; 
   
   AliDebug(3,Form("First EMCAL particle %d, last particle %d",begem,endem));
@@ -329,18 +309,18 @@ void AliAnaGammaDirect::CreateParticleList(TClonesArray * pl,
     for (npar =  begem; npar <  endem; npar++) {//////////////EMCAL track loop
       AliESDCaloCluster * clus = fESD->GetCaloCluster(npar) ; // retrieve track from esd
       Int_t clustertype= clus->GetClusterType();
-      if(clustertype == AliESDCaloCluster::kClusterv1 && !useCluster[npar] ){
+      if(clustertype == AliESDCaloCluster::kClusterv1){
 	TLorentzVector momentum ;
 	clus->GetMomentum(momentum);
 	TParticle * particle = new TParticle() ;
-	//particle->SetMomentum(px,py,pz,en) ;
+
 	particle->SetMomentum(momentum) ;
-	cout<<"GOOD EMCAL "<<particle->Pt()<<endl;
+
 	pid=clus->GetPid();
 	if(fCalorimeter == "EMCAL")
 	  {
 	    TParticle * particle = new TParticle() ;
-	    //particle->SetMomentum(px,py,pz,en) ;
+
 	    AliDebug(4,Form("EMCAL clusters: pt %f, phi %f, eta %f", particle->Pt(),particle->Phi(),particle->Eta()));
 	    if(!fEMCALPID) //Only identified particles
 	      new((*plEMCAL)[indexNe++])       TParticle(*particle) ;
