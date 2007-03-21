@@ -39,6 +39,7 @@
 #include <TROOT.h> 
 #include <TSystem.h>
 #include <TEntryList.h>
+#include <TGridResult.h>
 
 //______________________________________________________________________________
 AliAnalysisGoodies::AliAnalysisGoodies() :
@@ -215,7 +216,11 @@ const Bool_t AliAnalysisGoodies::MakeEsdCollectionFromTagCollection(AliRunTagCut
 
 #ifdef WITHALIEN
   
+#if ROOT_VERSION_CODE<331524
   TAlienCollection * collection = TAlienCollection::Open(in);
+#else
+  TGridCollection * collection = TAlienCollection::Open(in);
+#endif
   TGridResult* result = collection->GetGridResult("");
   AliTagAnalysis * tagAna = new AliTagAnalysis(); 
   tagAna->ChainGridTags(result);
@@ -246,7 +251,11 @@ const Bool_t AliAnalysisGoodies::MakeEsdCollectionFromTagCollection(const char *
 
   Bool_t rv = kTRUE ; 
  
+#if ROOT_VERSION_CODE<331524
   TAlienCollection * collection = TAlienCollection::Open(in);
+#else
+  TGridCollection * collection = TAlienCollection::Open(in);
+#endif
   TGridResult* result = collection->GetGridResult("");
   AliTagAnalysis * tagAna = new AliTagAnalysis(); 
   tagAna->ChainGridTags(result);
@@ -286,7 +295,11 @@ const Bool_t AliAnalysisGoodies::Merge(const char * collectionFile, const char *
 
   Bool_t rv = kFALSE ; 
 
+#if ROOT_VERSION_CODE<331524
   TAlienCollection * collection = TAlienCollection::Open(collectionFile);
+#else
+  TGridCollection * collection = TAlienCollection::Open(collectionFile);
+#endif
   TGridResult* result = collection->GetGridResult("");
   
   Int_t index = 0  ;
@@ -586,7 +599,11 @@ const Bool_t AliAnalysisGoodies::ProcessEsdXmlCollection(const char * xmlFile) c
 
   Bool_t rv = kTRUE ;  
   
+#if ROOT_VERSION_CODE<331524
   TAlienCollection * collection = TAlienCollection::Open(xmlFile) ; 
+#else
+  TGridCollection * collection = TAlienCollection::Open(xmlFile) ; 
+#endif
   if (! collection) {
     AliError(Form("%s not found", xmlFile)) ; 
     return kFALSE ; 
@@ -633,7 +650,11 @@ const Bool_t AliAnalysisGoodies::ProcessTagXmlCollection(const char * xmlFile, A
 
   Bool_t rv = kTRUE ;  
   
+#if ROOT_VERSION_CODE<331524
   TAlienCollection * collection = TAlienCollection::Open(xmlFile) ; 
+#else
+  TGridCollection * collection = TAlienCollection::Open(xmlFile) ; 
+#endif
   if (! collection) {
     AliError(Form("%s not found", xmlFile)) ; 
     return kFALSE ; 
@@ -680,7 +701,11 @@ const Bool_t AliAnalysisGoodies::ProcessTagXmlCollection(const char * xmlFile, c
   if ( gSystem->AccessPathName(xmlFile) ) 
     TGrid::Connect("alien://"); 
 
+#if ROOT_VERSION_CODE<331524
   TAlienCollection * collection = TAlienCollection::Open(xmlFile) ; 
+#else
+  TGridCollection * collection = TAlienCollection::Open(xmlFile) ; 
+#endif
   if (! collection) {
     AliError(Form("%s not found", xmlFile)) ; 
     return kFALSE ; 

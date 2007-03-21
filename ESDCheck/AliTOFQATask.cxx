@@ -30,6 +30,7 @@
 #include <TPad.h>
 #include <TSpectrum.h>
 #include <TF1.h>
+#include <TROOT.h>
 
 #include "AliTOFQATask.h" 
 #include "AliESD.h" 
