@@ -144,7 +144,8 @@ void AliPMDClusteringV1::DoClust(Int_t idet, Int_t ismn,
 	  j = jd;
 	  i = id+(ndimYr/2-1)-(jd/2);
 
-	  Int_t ij = i + j*kNDIMX;
+	  //PH	  Int_t ij = i + j*kNDIMX;
+	  Int_t ij = i + j*ndimXr;
 
 	  if (ismn < 12)
 	    {
@@ -383,13 +384,13 @@ void AliPMDClusteringV1::RefClust(Int_t incr, Double_t edepcell[])
 
   AliPMDcludata *pmdcludata = 0;
 
-  Int_t *cellCount;
-  Int_t **cellXY;
+  Int_t *cellCount = 0x0;
+  Int_t **cellXY = 0x0;
   const Int_t kdim = 4500;
 
   Int_t    i, j, k, i1, i2, id, icl,  itest,ihld, ig, nsupcl,clno;
   Int_t    t[kdim];
-  Int_t    ncl[kdim], iord[kdim], lev1[20], lev2[20];
+  Int_t    ncl[kdim], iord[kdim], lev1[kdim], lev2[kdim];
   Int_t    clxy[15];
   Float_t  clusdata[6];
   Double_t x1, y1, z1, x2, y2, z2, dist,rr,sum;

@@ -1,13 +1,5 @@
 #include <TPDGCode.h>
 
-Bool_t gGun1      =kFALSE;
-Bool_t gGun7      =kFALSE;
-Bool_t gGunZ      =kFALSE;
-Bool_t gBox       =kFALSE;
-Bool_t gHijing    =kFALSE;
-Bool_t gHijingPara=kFALSE;
-Bool_t gPythia    =kFALSE;
-
 class HmpConfig : public TGMainFrame
 {
 RQ_OBJECT()
@@ -244,82 +236,72 @@ void HmpConfig::GenAddSlot(Int_t id)
     fGenBG->GetButton(kGun1)->SetEnabled(kFALSE);  fGenF->HideFrame(fGenNprimCO); fGenF->HideFrame(fGenPmaxCO);
     fGenBG->GetButton(kGun7)->SetEnabled(kFALSE);                                
     fGenBG->GetButton(kBox )->SetEnabled(kFALSE);  fGenPidCO->Select(kProton);    fGenPminCO->Select(25);
-                                                   fGenF->HideFrame(fGenChamCO);
-    gGunZ=!gGunZ;
   } 
   if(id==kGun1){
     fGenBG->GetButton(kGunZ)->SetEnabled(kFALSE);  fGenF->HideFrame(fGenNprimCO); fGenF->HideFrame(fGenPmaxCO); 
     fGenBG->GetButton(kGun7)->SetEnabled(kFALSE);  fGenPidCO->Select(kProton);    fGenPminCO->Select(25); fGenChamCO->Select(4);
     fGenBG->GetButton(kBox )->SetEnabled(kFALSE);  
-    gGun1=!gGun1;
   }
   if(id==kGun7){
     fGenBG->GetButton(kGunZ)->SetEnabled(kFALSE);  fGenF->HideFrame(fGenNprimCO);
     fGenBG->GetButton(kGun1)->SetEnabled(kFALSE);                                fGenPidCO->Select(kProton); 
     fGenBG->GetButton(kBox )->SetEnabled(kFALSE);  fGenF->HideFrame(fGenPmaxCO); fGenPminCO->Select(25);
                                                    fGenF->HideFrame(fGenChamCO); 
-    gGun7=!gGun7;
   } 
   if(id==kBox){
     fGenBG->GetButton(kGunZ)->SetEnabled(kFALSE);                                fGenNprimCO->Select(500);
     fGenBG->GetButton(kGun1)->SetEnabled(kFALSE);                                fGenPidCO  ->Select(kProton);
     fGenBG->GetButton(kGun7)->SetEnabled(kFALSE);                                fGenPminCO ->Select(15);       fGenPmaxCO->Select(15); 
-                                                   fGenF->HideFrame(fGenChamCO);
-    gBox=!gBox;
   }
   if(id==kHijing){
-//    fGenBG->GetButton(kHijing)->ChangeBackground(0xff0000);
+    fGenBG->GetButton(kHijing)->ChangeBackground(0xff0000);
     fGenBG->GetButton(kHijingPara)->SetEnabled(kFALSE);
     fGenBG->GetButton(kPythia)->SetEnabled(kFALSE);
-    gHijing=!gHijing;
   }
   if(id==kHijingPara){
     fGenBG->GetButton(kHijing)->SetEnabled(kFALSE);   fGenNprimCO->Select(500);
     fGenBG->GetButton(kPythia)->SetEnabled(kFALSE);
-    gHijingPara=!gHijingPara;
   }
   if(id==kPythia){
     fGenBG->GetButton(kHijing)->SetEnabled(kFALSE);
     fGenBG->GetButton(kHijingPara)->SetEnabled(kFALSE);
-    gPythia=!gPythia;
   }
 }//GenAddSlot()
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void HmpConfig::GenRemSlot(Int_t id)
 {//is invoked when any of generator check button is released
-  if(id==kGunZ&&!gGunZ){
+  if(id==kGunZ){
     fGenBG->GetButton(kGun1)->SetEnabled();  fGenF->ShowFrame(fGenNprimCO);                                                                  
     fGenBG->GetButton(kGun7)->SetEnabled();                                     fGenPidCO  ->Select(kNotUsed);
     fGenBG->GetButton(kBox )->SetEnabled();  fGenF->ShowFrame(fGenPmaxCO);      fGenPminCO ->Select(kNotUsed);
   } 
-  if(id==kGun1&&!gGun1){
+  if(id==kGun1){
     fGenBG->GetButton(kGunZ)->SetEnabled();  fGenF->ShowFrame(fGenNprimCO);
     fGenBG->GetButton(kGun7)->SetEnabled();                                     fGenPidCO  ->Select(kNotUsed);
     fGenBG->GetButton(kBox )->SetEnabled();  fGenF->ShowFrame(fGenPmaxCO);      fGenPminCO ->Select(kNotUsed);  
-                                                                                fGenChamCO ->Select(kNotUsed); 
   }
-  if(id==kGun7&&!gGun7){
+  if(id==kGun7){
     fGenBG->GetButton(kGunZ)->SetEnabled();  fGenF->ShowFrame(fGenNprimCO);
     fGenBG->GetButton(kGun1)->SetEnabled();                                     fGenPidCO  ->Select(kNotUsed);
     fGenBG->GetButton(kBox )->SetEnabled();  fGenF->ShowFrame(fGenPmaxCO);      fGenPminCO ->Select(kNotUsed); 
                                              fGenF->ShowFrame(fGenChamCO); 
   } 
-  if(id==kBox&&!gBox){
+  if(id==kBox){
     fGenBG->GetButton(kGunZ)->SetEnabled();                                     fGenNprimCO->Select(kNotUsed);
     fGenBG->GetButton(kGun1)->SetEnabled();                                     fGenPidCO  ->Select(kNotUsed);
     fGenBG->GetButton(kGun7)->SetEnabled();                                     fGenPminCO ->Select(kNotUsed);   fGenPmaxCO->Select(kNotUsed);
                                                                                 fGenChamCO ->Select(kNotUsed);
   }
-  if(id==kHijing&&!gHijing){
-//    fGenBG->GetButton(kHijing)->ChangeBackground(0xbebebe);
+  if(id==kHijing){
+    fGenBG->GetButton(kHijing)->ChangeBackground(0xbebebe);
     fGenBG->GetButton(kHijingPara)->SetEnabled();
     fGenBG->GetButton(kPythia)->SetEnabled();
   }
-  if(id==kHijingPara&&!gHijingPara){
-    fGenBG->GetButton(kHijing)->SetEnabled();                                   fGenNprimCO->Select(kNotUsed);
+  if(id==kHijingPara){
+    fGenBG->GetButton(kHijing)->SetEnabled();
     fGenBG->GetButton(kPythia)->SetEnabled();
   }
-  if(id==kPythia&&!gPythia){
+  if(id==kPythia){
     fGenBG->GetButton(kHijing)->SetEnabled();
     fGenBG->GetButton(kHijingPara)->SetEnabled();
   }
