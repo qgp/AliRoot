@@ -59,8 +59,7 @@ AliFemtoEventReaderESDChain::AliFemtoEventReaderESDChain(const AliFemtoEventRead
   fNumberofEvent = aReader.fNumberofEvent;
   fCurEvent = aReader.fCurEvent;
   fCurFile = aReader.fCurFile;
-  //fEvent = new AliESD(*aReader.fEvent);
-  fEvent = new AliESD();
+  fEvent = new AliESD(*aReader.fEvent);
   fEventFriend = aReader.fEventFriend;
   fClusterPerPadrow = (list<Int_t> **) malloc(sizeof(list<Int_t> *) * AliESDfriendTrack::kMaxTPCcluster);
   for (int tPad=0; tPad<AliESDfriendTrack::kMaxTPCcluster; tPad++) {
@@ -109,8 +108,7 @@ AliFemtoEventReaderESDChain& AliFemtoEventReaderESDChain::operator=(const AliFem
   fCurEvent = aReader.fCurEvent;
   fCurFile = aReader.fCurFile;
   if (fEvent) delete fEvent;
-  //fEvent = new AliESD(*aReader.fEvent);
-  fEvent = new AliESD();
+  fEvent = new AliESD(*aReader.fEvent);
 
   fEventFriend = aReader.fEventFriend;
   

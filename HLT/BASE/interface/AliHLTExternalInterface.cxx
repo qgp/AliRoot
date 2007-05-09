@@ -16,7 +16,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/** @file   AliHLTExternalInterface.cxx
+/** @file   AliHLT_C_Component_WrapperInterface.cxx
     @author Matthias Richter, Timm Steinbeck
     @date   
     @brief  Pure C interface to the AliRoot HLT component handler

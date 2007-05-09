@@ -36,8 +36,6 @@
 #include "AliTRDtrigger.h"
 #include "AliTRDtrigParam.h"
 #include "AliTRDgtuTrack.h"
-#include "AliTRDrawData.h"
-#include "AliTRDdigitsManager.h"
 
 ClassImp(AliTRDReconstructor)
 
@@ -45,17 +43,14 @@ Bool_t AliTRDReconstructor::fgkSeedingOn  = kFALSE;
 Int_t  AliTRDReconstructor::fgStreamLevel = 0;      // Stream (debug) level
 
 //_____________________________________________________________________________
-void AliTRDReconstructor::ConvertDigits(AliRawReader *rawReader
-				      , TTree *digitsTree) const
+void AliTRDReconstructor::ConvertDigits(AliRawReader* /*rawReader*/
+				      , TTree* /*digitsTree*/) const
 {
   //
   // Convert raw data digits into digit objects in a root tree
   //
 
-  AliTRDrawData rawData;
-  AliTRDdigitsManager *manager = rawData.Raw2Digits(rawReader);
-  manager->MakeBranch(digitsTree);
-  manager->WriteDigits();
+  AliError("conversion of raw data digits into digit objects not implemented");
 
 }
 
@@ -120,7 +115,6 @@ void AliTRDReconstructor::Reconstruct(AliRunLoader *runLoader
 //   loader->UnloadTracks();
 
 }
-
 //_____________________________________________________________________________
 void AliTRDReconstructor::Reconstruct(AliRawReader *rawReader
                                     , TTree *clusterTree) const
@@ -135,6 +129,7 @@ void AliTRDReconstructor::Reconstruct(AliRawReader *rawReader
   clusterer.OpenOutput(clusterTree);
   clusterer.ReadDigits(rawReader);
   clusterer.MakeClusters();
+  clusterer.WriteClusters(-1);
 
   //
   // No trigger, since we don't have the output tree for tracklets
@@ -143,8 +138,7 @@ void AliTRDReconstructor::Reconstruct(AliRawReader *rawReader
 }
 
 //_____________________________________________________________________________
-void AliTRDReconstructor::Reconstruct(TTree *digitsTree
-                                    , TTree *clusterTree) const
+void AliTRDReconstructor::Reconstruct(TTree *digitsTree, TTree *clusterTree) const
 {
   //
   // Reconstruct clusters
@@ -154,6 +148,7 @@ void AliTRDReconstructor::Reconstruct(TTree *digitsTree
   clusterer.OpenOutput(clusterTree);
   clusterer.ReadDigits(digitsTree);
   clusterer.MakeClusters();
+  clusterer.WriteClusters(-1);
 
   //
   // No trigger, since we don't have the output tree for tracklets
@@ -293,48 +288,48 @@ void AliTRDReconstructor::FillESD(AliRunLoader *runLoader
   //
   // Trigger (tracks, GTU)
   //
-//   AliTRDtrigger trdTrigger("Trigger","Trigger class"); 
+  AliTRDtrigger trdTrigger("Trigger","Trigger class"); 
 
-//   AliTRDtrigParam *trigp = new AliTRDtrigParam("TRDtrigParam"
-//                                               ,"TRD Trigger parameters");
+  AliTRDtrigParam *trigp = new AliTRDtrigParam("TRDtrigParam"
+                                              ,"TRD Trigger parameters");
 
-//   Float_t field = AliTracker::GetBz() * 0.1; // Tesla
-//   AliInfo(Form("Trigger set for magnetic field = %f Tesla \n",field));
-//   trigp->SetField(field);
-//   trigp->Init();
+  Float_t field = AliTracker::GetBz() * 0.1; // Tesla
+  AliInfo(Form("Trigger set for magnetic field = %f Tesla \n",field));
+  trigp->SetField(field);
+  trigp->Init();
 
-//   trdTrigger.SetParameter(trigp);
-//   trdTrigger.SetRunLoader(runLoader);
-//   trdTrigger.Init();
+  trdTrigger.SetParameter(trigp);
+  trdTrigger.SetRunLoader(runLoader);
+  trdTrigger.Init();
 
-//   Int_t iEvent = runLoader->GetEventNumber(); 
-//   runLoader->GetEvent(iEvent);
-//   trdTrigger.ReadTracklets(runLoader);
+  Int_t iEvent = runLoader->GetEventNumber(); 
+  runLoader->GetEvent(iEvent);
+  trdTrigger.ReadTracklets(runLoader);
 
-//   AliESDTrdTrack *TrdTrack = new AliESDTrdTrack();
-//   AliTRDgtuTrack *GtuTrack;
+  AliESDTrdTrack *TrdTrack = new AliESDTrdTrack();
+  AliTRDgtuTrack *GtuTrack;
 
-//   Int_t nTracks = trdTrigger.GetNumberOfTracks();
-//   for (Int_t iTrack = 0; iTrack < nTracks; iTrack++) {
+  Int_t nTracks = trdTrigger.GetNumberOfTracks();
+  for (Int_t iTrack = 0; iTrack < nTracks; iTrack++) {
 
-//     GtuTrack = trdTrigger.GetTrack(iTrack);
+    GtuTrack = trdTrigger.GetTrack(iTrack);
 
-//     TrdTrack->SetYproj(GtuTrack->GetYproj());
-//     TrdTrack->SetZproj(GtuTrack->GetZproj());
-//     TrdTrack->SetSlope(GtuTrack->GetSlope());
-//     TrdTrack->SetDetector(GtuTrack->GetDetector());
-//     TrdTrack->SetTracklets(GtuTrack->GetTracklets());
-//     TrdTrack->SetPlanes(GtuTrack->GetPlanes());
-//     TrdTrack->SetClusters(GtuTrack->GetClusters());
-//     TrdTrack->SetPt(GtuTrack->GetPt());
-//     TrdTrack->SetPhi(GtuTrack->GetPhi());
-//     TrdTrack->SetEta(GtuTrack->GetEta());
-//     TrdTrack->SetLabel(GtuTrack->GetLabel());
-//     TrdTrack->SetPID(GtuTrack->GetPID());
-//     TrdTrack->SetIsElectron(GtuTrack->IsElectron());
+    TrdTrack->SetYproj(GtuTrack->GetYproj());
+    TrdTrack->SetZproj(GtuTrack->GetZproj());
+    TrdTrack->SetSlope(GtuTrack->GetSlope());
+    TrdTrack->SetDetector(GtuTrack->GetDetector());
+    TrdTrack->SetTracklets(GtuTrack->GetTracklets());
+    TrdTrack->SetPlanes(GtuTrack->GetPlanes());
+    TrdTrack->SetClusters(GtuTrack->GetClusters());
+    TrdTrack->SetPt(GtuTrack->GetPt());
+    TrdTrack->SetPhi(GtuTrack->GetPhi());
+    TrdTrack->SetEta(GtuTrack->GetEta());
+    TrdTrack->SetLabel(GtuTrack->GetLabel());
+    TrdTrack->SetPID(GtuTrack->GetPID());
+    TrdTrack->SetIsElectron(GtuTrack->IsElectron());
 
-//     esd->AddTrdTrack(TrdTrack);
+    esd->AddTrdTrack(TrdTrack);
 
-//   }
+  }
 
 }

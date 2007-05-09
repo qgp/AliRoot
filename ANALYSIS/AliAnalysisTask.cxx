@@ -100,7 +100,6 @@
 #include <Riostream.h>
 #include <TFile.h>
 #include <TClass.h>
-#include <TTree.h>
 
 #include "AliAnalysisTask.h"
 #include "AliAnalysisDataSlot.h"
@@ -121,6 +120,7 @@ AliAnalysisTask::AliAnalysisTask()
                  fOutputs(NULL)
 {
 // Default constructor.
+   TObject::SetBit(kTaskEvtByEvt, kTRUE);
 }
 
 //______________________________________________________________________________
@@ -136,6 +136,7 @@ AliAnalysisTask::AliAnalysisTask(const char *name, const char *title)
                  fOutputs(NULL)                 
 {
 // Constructor.
+   TObject::SetBit(kTaskEvtByEvt, kTRUE);
    fInputs      = new TObjArray(2);
    fOutputs     = new TObjArray(2);
 }
@@ -232,11 +233,13 @@ void AliAnalysisTask::CheckNotify(Bool_t init)
 // accordingly. This method is called automatically for all tasks connected
 // to a container where the data was published.
    if (init) fInitialized = kFALSE;
-   Bool_t single_shot = IsPostEventLoop();
+//   Bool_t execperevent = IsExecPerEvent();
    AliAnalysisDataContainer *cinput;
    for (Int_t islot=0; islot<fNinputs; islot++) {
       cinput = GetInputSlot(islot)->GetContainer();
-      if (!cinput->GetData() || (single_shot && !cinput->IsPostEventLoop())) {
+      if (!cinput) return;
+      if (!cinput->GetData()) {
+//      if (!cinput->GetData() || execperevent!=cinput->IsEventByEvent()) {
          SetActive(kFALSE);
          return;
       }   
@@ -287,8 +290,6 @@ Bool_t AliAnalysisTask::ConnectOutput(Int_t islot, AliAnalysisDataContainer *con
    }            
    // Connect the slot to the container as output         
    if (!output->ConnectContainer(cont)) return kFALSE;
-   // Set event loop type the same as for the task
-   cont->SetPostEventLoop(IsPostEventLoop());
    // Declare this as the data producer
    cont->SetProducer(this, islot);
    AreSlotsConnected();
@@ -384,24 +385,6 @@ Bool_t AliAnalysisTask::SetBranchAddress(Int_t islot, const char *branch, void *
    return GetInputSlot(islot)->SetBranchAddress(branch, address);
 }   
 
-//______________________________________________________________________________
-void AliAnalysisTask::EnableBranch(Int_t islot, const char *bname) const
-{
-// Call this in ConnectInputData() to enable only the branches needed by this 
-// task. "*" will enable everything.
-   AliAnalysisDataSlot *input = GetInputSlot(islot);
-   if (!input || !input->GetType()->InheritsFrom(TTree::Class())) {
-      Error("EnableBranch", "Wrong slot type #%d for task %s: not TTree-derived type", islot, GetName());
-      return;
-   }   
-   TTree *tree = (TTree*)input->GetData();
-   if (!strcmp(bname, "*")) {
-      tree->SetBranchStatus("*",1);
-      return;
-   }
-   AliAnalysisDataSlot::EnableBranch(bname, tree);
-}
-      
 //______________________________________________________________________________
 void AliAnalysisTask::ConnectInputData(Option_t *)
 {
@@ -539,7 +522,7 @@ void AliAnalysisTask::PrintTask(Option_t *option, Int_t indent) const
    AliAnalysisDataContainer *cont;
    for (Int_t i=0; i<indent; i++) ind += " ";
    if (!dep || (dep && IsChecked())) {
-      printf("%s\n", Form("%stask: %s  ACTIVE=%i POST_LOOP=%i", ind.Data(), GetName(),IsActive(),IsPostEventLoop()));
+      printf("%s\n", Form("%stask: %s  ACTIVE=%i", ind.Data(), GetName(),IsActive()));
       if (dep) thistask->SetChecked(kFALSE);
       else {
          for (islot=0; islot<fNinputs; islot++) {
@@ -574,16 +557,16 @@ void AliAnalysisTask::PrintContainers(Option_t *option, Int_t indent) const
 }
 
 //______________________________________________________________________________
-void AliAnalysisTask::SetPostEventLoop(Bool_t flag)
+void AliAnalysisTask::SetExecPerEvent(Bool_t flag)
 {
-// Set the task execution mode - run after event loop or not. All output
+// Set the task execution mode - run in a event loop or single shot. All output
 // containers of this task will get the same type.
-   TObject::SetBit(kTaskPostEventLoop,flag);
+   TObject::SetBit(kTaskEvtByEvt,flag);
    AliAnalysisDataContainer *cont;
    Int_t islot;
    for (islot=0; islot<fNoutputs; islot++) {
       cont = GetOutputSlot(islot)->GetContainer();
-      if (cont) cont->SetPostEventLoop(flag);
+      if (cont) cont->SetEventByEvent(flag);
    }   
 }
    

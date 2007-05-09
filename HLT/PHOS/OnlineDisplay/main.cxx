@@ -25,26 +25,37 @@
 #include <TString.h>
 #endif
 
-#include <iostream>
-
-using namespace std;
 
 int
 main(int argc, char** argv) 
 {
-  try 
-    {
-      TApplication app("app", 0, 0);
-      AliHLTPHOSOnlineDisplay::Instance(argc, argv);
-      app.Run();
-    }
-  
-  catch (std::exception& e)
-    {
-      //   std::cerr << e.what() << std::endl;
-      return 1;
-    }
 
-  return 0;
-}  
+  //  AliHLTPHOSOnlineDisplay* onlineDisplay = new AliHLTPHOSOnlineDisplay("alice3", 42001); 
+  
+  if(!AliHLTPHOSOnlineDisplay::ScanArguments(argc, argv))
+  {
+    
+    try 
+      {
+	TApplication app("app", 0, 0);
+	//	AliHLTPHOSOnlineDisplay* phosDisplayPtr = new AliHLTPHOSOnlineDisplay();
+	//	AliHLTPHOSOnlineDisplay* phosDisplayPtr = AliHLTPHOSOnlineDisplay::Instance();
+	AliHLTPHOSOnlineDisplay::Instance();
+	app.Run();
+      }
+    
+    catch (std::exception& e)
+      {
+	//   std::cerr << e.what() << std::endl;
+	return 1;
+      }
+      return 0;
+  }
+    else
+      {
+	return -1;
+      }
+  
+}
+
 

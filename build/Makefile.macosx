@@ -25,7 +25,7 @@ endif
 
 # Global optimisation
 OPT           = -O -g
-NOOPT         = -O0 -g
+NOOPT         = -g
 
 CXXOPT        = $(OPT) 
 CXXNOOPT      = $(NOOPT) 
@@ -41,19 +41,17 @@ CLIBCXXOPTS   =
 CLIBCOPT      =
 CLIBFOPT      = $(CLIBDEFS)
 
-CXXSTF        =  -pipe -Wall -W -Wno-long-double -pipe -fbounds-check -fsigned-char -fno-common -fmessage-length=0 -Woverloaded-virtual -Weffc++ -fno-default-inline -fno-inline -I/usr/X11R6/include -I$(FINK_ROOT)/include
-
 # Compiler flags
-CXXFLAGS      = $(CXXOPT) $(CXXSTF) -Weffc++
+CXXFLAGS      = $(CXXOPT)   -Wall -W -Wno-long-double -pipe -fbounds-check -fsigned-char -fno-common -fmessage-length=0 -I/usr/X11R6/include -I$(FINK_ROOT)/include -Woverloaded-virtual -Weffc++ 
 
 ifeq (g95,$(findstring g95,$(ROOTBUILD)))
 CXXFLAGS+=-DFORTRAN_G95
 endif
-CXXFLAGSNO    = $(CXXNOOPT) $(CXXSTF) 
+CXXFLAGSNO    = $(CXXNOOPT) -Wall -W -pipe -fsigned-char -fno-common -fmessage-length=0 -I$(FINK_ROOT)/include  -Wno-long-double
 
 CFLAGS	      = $(COPT) -Wall -W -fno-common -pipe -I$(FINK_ROOT)/include
 
-FFLAGS        = $(CLIBFOPT) $(FOPT) -ftrace=full
+FFLAGS        = $(CLIBFOPT) $(FOPT)
 # rmkdepend flags for building dependencies of FORTRAN files
 DEPENDFFLAGS  = $(FFLAGS)
 

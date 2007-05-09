@@ -4,19 +4,20 @@
 /* Copyright(c) 2006, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                          */
 
-#include "AliHLTPHOSProcessor.h"
+#include "AliHLTProcessor.h"
+#include "AliHLTPHOSRawAnalyzer.h"
+#include "AliRawReaderMemory.h"
+#include "AliCaloRawStream.h"
 #include "AliHLTPHOSDefinitions.h"
 #include "AliHLTPHOSCommonDefs.h"
-
+#include "AliHLTPHOSRcuChannelDataStruct.h"
+#include <cstdlib>
 
 class AliHLTPHOSRcuCellEnergyDataStruct;
 class AliHLTPHOSRcuChannelDataStruct;
-class AliHLTPHOSPulseGenerator;
-class AliHLTPHOSDataCorruptor;
-class AliRawReaderMemory;
-class AliCaloRawStream;
 
-class AliHLTPHOSDDLDecoderComponent:public AliHLTPHOSProcessor
+class AliHLTPHOSDDLDecoderComponent:public AliHLTProcessor
+
 {
  public:
   AliHLTPHOSDDLDecoderComponent();
@@ -26,10 +27,15 @@ class AliHLTPHOSDDLDecoderComponent:public AliHLTPHOSProcessor
     {
       return *this;
     };
+
   virtual int DoInit( int argc, const char** argv );
   virtual int Deinit();
+  virtual int DoDeinit();
+  void SetEquippmentID(AliHLTUInt16_t id);
+  AliHLTUInt16_t  GetEquippmentID();
+  void SetCoordinates(AliHLTUInt16_t equippmentID);
   virtual const char* GetComponentID();
-  virtual void GetInputDataTypes( std::vector <AliHLTComponentDataType>& list);
+  virtual void GetInputDataTypes( std::vector <AliHLTComponentDataType>&);
   virtual AliHLTComponentDataType GetOutputDataType();
   virtual void GetOutputDataSize(unsigned long& constBase, double& inputMultiplier);
   virtual AliHLTComponent* Spawn();
@@ -37,13 +43,23 @@ class AliHLTPHOSDDLDecoderComponent:public AliHLTPHOSProcessor
   virtual int DoEvent( const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, 
 		     AliHLTComponentTriggerData& trigData, AliHLTUInt8_t* outputPtr, 
 		     AliHLTUInt32_t& size, vector<AliHLTComponentBlockData>& outputBlocks ); 
-
+ 
  private:
-  AliHLTPHOSDataCorruptor *fDataCorruptorPtr;                  /**<Pointer to data corruptor*/
-  Double_t fTmpChannelData[ALTRO_MAX_SAMPLES];                 /**<Temporary storage for altro dat from a single channel*/
-  AliCaloRawStream *fPHOSRawStream;                            /**<Streamer for PHOS raw data, used by fPHOSRawMemory reader*/ 
-  AliRawReaderMemory *fRawMemoryReader;                        /**<Decoder to read PHOS raw data on the altro format*/ 
-  AliHLTPHOSRcuChannelDataStruct*  fOutPtr;                    /**<Pointer to outputbuffer to write results from the component into shared memory*/
+  static int fgEventCount;
+  AliHLTUInt16_t fEquippmentID;
+  AliHLTUInt8_t  fRcuX;
+  AliHLTUInt8_t  fRcuZ;
+  AliHLTUInt8_t  fRcuZOffset;
+  AliHLTUInt8_t  fRcuXOffset;
+  AliHLTUInt8_t  fModuleID;
+  Bool_t fSendChannelData;
+  Bool_t fPrintInfo;
+  Double_t fTmpChannelData[ALTRO_MAX_SAMPLES];
+  int fPrintInfoFrequncy;
+  AliCaloRawStream *fPHOSRawStream;
+  AliRawReaderMemory *fRawMemoryReader;
+  AliHLTPHOSRcuChannelDataStruct*  fOutPtr;
+  static const AliHLTComponentDataType fgkInputDataTypes[];
 };
 #endif
 

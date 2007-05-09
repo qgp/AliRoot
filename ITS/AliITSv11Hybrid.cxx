@@ -13,12 +13,6 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-// $Id$
-
-// $Log$
-// Revision 1.3  2007/05/08 16:57:42  masera
-// Updates concerning the geometry: versioning system, new V11hybrid version, bug fixes (B.Nilsend and L. Gaudichet
-//
 
 //========================================================================
 //
@@ -26,8 +20,6 @@
 //
 //  This geometry is a mix between the old geometry (originally coded
 //  in AliITSvPPRasymmFMD) and the new TGeo geometry (v11).
-//  The flags which indicate whether the old or the new part is used
-//  is set in AliITSInitGeometry.cxx
 // 
 // Ludovic Gaudichet  (gaudichet@to.infn.it)
 //
@@ -90,10 +82,9 @@ AliITSv11Hybrid::AliITSv11Hybrid():
   fRails(0),
   fFluid(0),
   fIDMother(0),
-  fInitGeom((AliITSVersion_t)fMajorVersion,fMinorVersion),
   fSDDgeom(0)
  {
-    //    Standard default constructor
+    //    Standard default constructor for the ITS version 10.
     // Inputs:
     //   none.
     // Outputs:
@@ -121,9 +112,8 @@ AliITSv11Hybrid::AliITSv11Hybrid(const char *name, const char *title)
     fRails(0),
     fFluid(0),
     fIDMother(0),
-    fInitGeom((AliITSVersion_t)fMajorVersion,fMinorVersion),
     fSDDgeom(0) {
-    //    Standard constructor for the v11Hybrid geometry.
+    //    Standard constructor for the ITS version 10.
     // Inputs:
     //   const char * name   Ignored, set to "ITS"
     //   const char * title  Arbitrary title
@@ -225,6 +215,7 @@ void AliITSv11Hybrid::SetT2Lmatrix(const char *name, Double_t dAlpha,
   delete matLtoT;
   alignableEntry->SetMatrix(matTtoL);
 }
+
 //______________________________________________________________________
 void AliITSv11Hybrid::AddAlignableVolumes() const
 {
@@ -650,14 +641,6 @@ void AliITSv11Hybrid::CreateGeometry() {
 
   CreateOldGeometry();
   TGeoVolume *vITS = geoManager->GetVolume("ITSV");
-
-  const Char_t *cvsDate="$Date$";
-  const Char_t *cvsRevision="$Revision$";
-  const Int_t length=100;
-  Char_t vstrng[length];
-  if(fInitGeom.WriteVersionString(vstrng,length,(AliITSVersion_t)IsVersion(),
-			     fMinorVersion,cvsDate,cvsRevision))
-    vITS->SetTitle(vstrng);
 
   if (AliITSInitGeometry::SDDIsTGeoNative()) {
     fSDDgeom->Layer3(vITS);
@@ -5353,6 +5336,7 @@ void AliITSv11Hybrid::DrawModule() const{
     gMC->Gdhead(1111, "Inner Tracking System Version 1");
     gMC->Gdman(17, 6, "MAN");
 }
+
 //______________________________________________________________________
 void AliITSv11Hybrid::StepManager(){
     //    Called for every step in the ITS, then calles the AliITShit class
@@ -5369,94 +5353,108 @@ void AliITSv11Hybrid::StepManager(){
     // Return:
     //   none.
 
-    if(!(this->IsActive())) return;
+    static TLorentzVector position0;
+    static Int_t stat0=0;
+
+    if(!(this->IsActive())) {
+	return;
+    } // end if !Active volume.
+
     if(!(gMC->TrackCharge())) return;
 
-    Int_t  copy, id, lay;
-    Bool_t sensvol = kFALSE;
-    id = gMC->CurrentVolID(copy);
-    for(lay=0; lay<fIdN; lay++) if (id == fIdSens[lay]) {
-        sensvol=kTRUE;
-        break;
-    } // end for if
+    Int_t kk = 0, copy;
+    Int_t id = gMC->CurrentVolID(copy);
+    while ((id != fIdSens[kk]) && (kk<6)) ++kk;
 
-    if(sensvol && (gMC->IsTrackExiting())) {
-      copy = fTrackReferences->GetEntriesFast();
-      TClonesArray &lTR = *fTrackReferences;
-      // Fill TrackReference structure with this new TrackReference.
-      new(lTR[copy]) AliTrackReference(
-		     gAlice->GetMCApp()->GetCurrentTrackNumber());
+    if((kk<6) && (gMC->IsTrackExiting())) {
+	copy = fTrackReferences->GetEntriesFast();
+	TClonesArray &lTR = *fTrackReferences;
+	// Fill TrackReference structure with this new TrackReference.
+	new(lTR[copy]) AliTrackReference(gAlice->GetMCApp()->GetCurrentTrackNumber());
     } // if Outer ITS mother Volume
 
-    static TLorentzVector position, momentum; // Saves on calls to construtors
-    static AliITShit hit;// Saves on calls to constructors
-    Int_t   cpn0, cpn1, cpn2, status, mod;
-    //TClonesArray &lhits = *(GetDetTypeSim()->GetHits());
-    TClonesArray &lhits = *(Hits());
-    //
-    // Track status
-    status = 0;
-    if(gMC->IsTrackInside())      status +=  1;
-    if(gMC->IsTrackEntering())    status +=  2;
-    if(gMC->IsTrackExiting())     status +=  4;
-    if(gMC->IsTrackOut())         status +=  8;
-    if(gMC->IsTrackDisappeared()) status += 16;
-    if(gMC->IsTrackStop())        status += 32;
-    if(gMC->IsTrackAlive())       status += 64;
-    //
-    switch (lay) {
-    case 0:case 1: // SPD
-      gMC->CurrentVolOffID(2,cpn2);
-      gMC->CurrentVolOffID(3,cpn1);
-      gMC->CurrentVolOffID(4,cpn0);
-      break;
-    case 2:case 3: // SDD
-      cpn2 = 1;
-      if (AliITSInitGeometry::SDDIsTGeoNative()) {
-	gMC->CurrentVolOffID(2,cpn1);
-	gMC->CurrentVolOffID(3,cpn0);
-      } else {
-	gMC->CurrentVolOffID(1,cpn1);
-	gMC->CurrentVolOffID(2,cpn0);
-      };
-      break;
-    case 4:case 5: // SSD
-      cpn2 = 1;
-      gMC->CurrentVolOffID(1,cpn1);
-      gMC->CurrentVolOffID(2,cpn0);
-      break;
-    default:
-      Error("StepManager","Unknown volume lay=%d",lay+1);
-      return; // not an ITS sensitive volume.
-    } //
-    fInitGeom.DecodeDetector(mod,lay+1,cpn0,cpn1,cpn2);
+    Int_t   copy1, copy2;  
+    Int_t   vol[5];
+    TClonesArray &lhits = *fHits;
 
-    //
+    // Track status
+    vol[3] = 0;
+    vol[4] = 0;
+    if(gMC->IsTrackInside())      vol[3] +=  1;
+    if(gMC->IsTrackEntering())    vol[3] +=  2;
+    if(gMC->IsTrackExiting())     vol[3] +=  4;
+    if(gMC->IsTrackOut())         vol[3] +=  8;
+    if(gMC->IsTrackDisappeared()) vol[3] += 16;
+    if(gMC->IsTrackStop())        vol[3] += 32;
+    if(gMC->IsTrackAlive())       vol[3] += 64;
+
     // Fill hit structure.
-    //
-    hit.SetModule(mod);
-    hit.SetTrack(gAlice->GetMCApp()->GetCurrentTrackNumber());
+    vol[0] = kk+1;
+    Int_t sddModPos = 1, sddLaddPos = 2, sddIndShift = 0;
+    if (AliITSInitGeometry::SDDIsTGeoNative()) {
+      sddModPos     = 2;
+      sddLaddPos    = 3;
+      sddIndShift   = 1;
+    };
+
+    switch (kk) {
+
+    case 0: { // SPD
+
+      gMC->CurrentVolOffID(2,copy);  // det 1<->4
+      vol[1] = copy;
+      gMC->CurrentVolOffID(3,copy1); // lad 1<->2
+      gMC->CurrentVolOffID(4,copy2); // mod 1<->10
+      vol[2] = copy1+(copy2-1)*2; //# of ladders in one module  = 2
+    } break;
+
+    case 1: {
+
+      gMC->CurrentVolOffID(2,copy);  // 1<->4
+      vol[1] = copy;
+      gMC->CurrentVolOffID(3,copy1); // 1<->4
+      gMC->CurrentVolOffID(4,copy2); // 1<->10
+      vol[2] = copy1+(copy2-1)*4; //# of ladders in one module  = 4
+    } break;
+
+    case 2: // SDD
+    case 3: {
+
+      gMC->CurrentVolOffID(sddModPos, copy); // 1<->6  and 1<->8
+      vol[1] = copy + sddIndShift;
+      gMC->CurrentVolOffID(sddLaddPos, copy);// 1<->14 and 1<->22
+      vol[2] = copy + sddIndShift;
+    } break;
+
+    case 5: // SSD
+    case 4: {
+
+      gMC->CurrentVolOffID(1,copy); // 1<->22 and 1<->25
+      vol[1] = copy;
+      gMC->CurrentVolOffID(2,copy); // 1<->34 and 1<->38
+      vol[2] = copy;
+    } break;
+
+    default: return; // not an ITS volume?
+    }
+
+    TLorentzVector position, momentum;
     gMC->TrackPosition(position);
     gMC->TrackMomentum(momentum);
-    hit.SetPosition(position);
-    hit.SetTime(gMC->TrackTime());
-    hit.SetMomentum(momentum);
-    hit.SetStatus(status);
-    hit.SetEdep(gMC->Edep());
-    hit.SetShunt(GetIshunt());
-    if(gMC->IsTrackEntering()){
-        hit.SetStartPosition(position);
-        hit.SetStartTime(gMC->TrackTime());
-        hit.SetStartStatus(status);
-        return; // don't save entering hit.
+    vol[4] = stat0;
+    if(gMC->IsTrackEntering()) {
+	position0 = position;
+	stat0 = vol[3];
+	return;
     } // end if IsEntering
     // Fill hit structure with this new hit.
-    //Info("StepManager","Calling Copy Constructor");
-    new(lhits[fNhits++]) AliITShit(hit); // Use Copy Construtor.
-    // Save old position... for next hit.
-    hit.SetStartPosition(position);
-    hit.SetStartTime(gMC->TrackTime());
-    hit.SetStartStatus(status);
+    
+    new(lhits[fNhits++]) AliITShit(fIshunt,gAlice->GetMCApp()->GetCurrentTrackNumber(),vol,
+				   gMC->Edep(),gMC->TrackTime(),position,
+				   position0,momentum);
+
+    position0 = position;
+    stat0 = vol[3];
 
     return;
 }

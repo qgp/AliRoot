@@ -33,9 +33,8 @@
 #include "AliITStrackerSA.h"
 #include "AliITSVertexerIons.h"
 #include "AliITSVertexerFast.h"
-#include "AliITSVertexer3D.h"
+#include "AliITSVertexerPPZ.h"
 #include "AliITSVertexerZ.h"
-#include "AliITSVertexerCosmics.h"
 #include "AliESD.h"
 #include "AliITSpidESD.h"
 #include "AliITSpidESD1.h"
@@ -212,13 +211,9 @@ AliVertexer* AliITSReconstructor::CreateVertexer(AliRunLoader* /*runLoader*/) co
     Info("CreateVertexer","a AliITSVertexerFast object has been selected\n"); 
     return new AliITSVertexerFast(smear);
   }
-  if(selectedVertexer.Contains("3d") || selectedVertexer.Contains("3D")){
-    Info("CreateVertexer","a AliITSVertexer3D object has been selected\n");
-    return new AliITSVertexer3D("null");
-  }
-  if(selectedVertexer.Contains("cosmics") || selectedVertexer.Contains("COSMICS")){
-    Info("CreateVertexer","a AliITSVertexerCosmics object has been selected\n");
-    return new AliITSVertexerCosmics();
+  if(selectedVertexer.Contains("ppz") || selectedVertexer.Contains("PPZ")){
+    Info("CreateVertexer","a AliITSVertexerPPZ object has been selected\n");
+    return new AliITSVertexerPPZ("null");
   }
   // by default an AliITSVertexerZ object is instatiated
   Info("CreateVertexer","a AliITSVertexerZ object has been selected\n");
