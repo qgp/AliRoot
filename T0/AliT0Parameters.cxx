@@ -53,10 +53,7 @@ AliT0Parameters*
 AliT0Parameters::Instance() 
 {
   // Get static instance 
-  if (!fgInstance) {
-    fgInstance = new AliT0Parameters;
-    fgInstance->Init();
-  }
+  if (!fgInstance) fgInstance = new AliT0Parameters;
   return fgInstance;
 }
 
@@ -68,10 +65,8 @@ AliT0Parameters::AliT0Parameters()
    fQTmin(0),fQTmax(0),
    fSlewingLED(),fSlewingRec(),
    fPMTeff(),
-   fTimeDelayDA(0),fTimeDelayCFD(0),fTimeDelayTVD(0),fMeanT0(499),
-   fCalibentry(), fLookUpentry(),fSlewCorr(),
-   fLookUp(0), fNumberOfTRMs(0)
-
+   fTimeDelayLED(0),fTimeDelayCFD(0),fTimeDelayTVD(0),
+   fCalibentry(), fLookUpentry(),fSlewCorr()
 {
   // Default constructor 
 
@@ -101,8 +96,8 @@ AliT0Parameters::Init()
 {
   // Initialize the parameters manager.  We need to get stuff from the
   // CDB here. 
- 
-   if (fIsInit) return;
+  //   if (fIsInit) return;
+  
 
   AliCDBStorage *stor =AliCDBManager::Instance()->GetStorage("local://$ALICE_ROOT");
   //time equalizing
@@ -132,15 +127,15 @@ AliT0Parameters::Init()
 
 //__________________________________________________________________
 Float_t
-AliT0Parameters::GetTimeDelayDA(Int_t ipmt) 
+AliT0Parameters::GetTimeDelayLED(Int_t ipmt) 
 {
   // return time delay for LED channel
   // 
   if (!fCalibentry) {
-    fTimeDelayDA = 500;
-    return  fTimeDelayDA;
+    fTimeDelayLED = 0;
+    return  fTimeDelayLED;
   } 
-  return fgCalibData ->GetTimeDelayDA(ipmt);
+  return fgCalibData ->GetTimeDelayLED(ipmt);
 }
 //__________________________________________________________________
 Float_t
@@ -157,19 +152,6 @@ AliT0Parameters::GetTimeDelayCFD(Int_t ipmt)
   return fgCalibData->GetTimeDelayCFD(ipmt);
 }
 
-//__________________________________________________________________
-Int_t
-AliT0Parameters::GetMeanT0() 
-{
-  // return mean of T0 distrubution with vertex=0
-   // 
-  if (!fCalibentry) 
-    {
-      return fMeanT0;
-    }
-   
-  return fgCalibData->GetMeanT0();
-}
 //__________________________________________________________________
 
 void 

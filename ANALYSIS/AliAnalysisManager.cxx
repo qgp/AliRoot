@@ -59,7 +59,6 @@ AliAnalysisManager::AliAnalysisManager()
 {
 // Dummy constructor.
    fgAnalysisManager = this;
-   SetEventLoop(kTRUE);
 }
 
 //______________________________________________________________________________
@@ -85,7 +84,6 @@ AliAnalysisManager::AliAnalysisManager(const char *name, const char *title)
    fContainers = new TObjArray();
    fInputs     = new TObjArray();
    fOutputs    = new TObjArray();
-   SetEventLoop(kTRUE);
 }
 
 //______________________________________________________________________________
@@ -169,7 +167,7 @@ void AliAnalysisManager::Init(TTree *tree)
   // Init() will be called many times when running with PROOF.
    if (!tree) return;
    if (fDebug > 1) {
-      printf("->AliAnalysisManager::Init(%s)\n", tree->GetName());
+      printf("AliAnalysisManager::Init(%s)\n", tree->GetName());
    }
    if (!fInitOK) InitAnalysis();
    if (!fInitOK) return;
@@ -180,9 +178,6 @@ void AliAnalysisManager::Init(TTree *tree)
       return;
    }
    top->SetData(tree);
-   if (fDebug > 1) {
-      printf("<-AliAnalysisManager::Init(%s)\n", tree->GetName());
-   }
 }
 
 //______________________________________________________________________________
@@ -204,21 +199,15 @@ void AliAnalysisManager::SlaveBegin(TTree *tree)
   // When running with PROOF SlaveBegin() is called on each slave server.
   // The tree argument is deprecated (on PROOF 0 is passed).
    if (fDebug > 1) {
-      cout << "->AliAnalysisManager::SlaveBegin()" << endl;
+      cout << "AliAnalysisManager::SlaveBegin()" << endl;
    }
 
    TIter next(fTasks);
    AliAnalysisTask *task;
    // Call CreateOutputObjects for all tasks
-   while ((task=(AliAnalysisTask*)next())) {
-      TDirectory *curdir = gDirectory;
+   while ((task=(AliAnalysisTask*)next())) 
       task->CreateOutputObjects();
-      if (curdir) curdir->cd();
-   }   
    if (fMode == kLocalAnalysis) Init(tree);   
-   if (fDebug > 1) {
-      cout << "<-AliAnalysisManager::SlaveBegin()" << endl;
-   }
 }
 
 //______________________________________________________________________________
@@ -232,11 +221,6 @@ Bool_t AliAnalysisManager::Notify()
    if (fTree) {
       TFile *curfile = fTree->GetCurrentFile();
       if (curfile && fDebug>1) printf("AliAnalysisManager::Notify() file: %s\n", curfile->GetName());
-      TIter next(fTasks);
-      AliAnalysisTask *task;
-      // Call Notify for all tasks
-      while ((task=(AliAnalysisTask*)next())) 
-         task->Notify();      
    }
    return kTRUE;
 }    
@@ -262,23 +246,19 @@ Bool_t AliAnalysisManager::Process(Long64_t entry)
   //  Assuming that fChain is the pointer to the TChain being processed,
   //  use fChain->GetTree()->GetEntry(entry).
    if (fDebug > 1) {
-      cout << "->AliAnalysisManager::Process()" << endl;
+      cout << "AliAnalysisManager::Process()" << endl;
    }
    GetEntry(entry);
    ExecAnalysis();
-   if (fDebug > 1) {
-      cout << "<-AliAnalysisManager::Process()" << endl;
-   }
    return kTRUE;
 }
 
 //______________________________________________________________________________
 void AliAnalysisManager::PackOutput(TList *target)
 {
-  // Pack all output data containers in the output list. Called at SlaveTerminate
-  // stage in PROOF case for each slave.
+  // Pack all output data containers in the output list.
    if (fDebug > 1) {
-      cout << "->AliAnalysisManager::PackOutput()" << endl;
+      cout << "AliAnalysisManager::PackOutput()" << endl;
    }   
    if (!target) {
       Error("PackOutput", "No target. Aborting.");
@@ -286,43 +266,55 @@ void AliAnalysisManager::PackOutput(TList *target)
    }
 
    if (fMode == kProofAnalysis) {
+      AliAnalysisDataContainer *top = (AliAnalysisDataContainer*)fInputs->At(0);
+      if (!top) {
+          cout<<"Error: No top input container !" <<endl;
+          return;
+      }
+      top->SetData(0);
+
       TIter next(fOutputs);
       AliAnalysisDataContainer *output;
       while ((output=(AliAnalysisDataContainer*)next())) {
-         if (fDebug > 1) printf("   Packing container %s...\n", output->GetName());
-         if (output->GetData()) target->Add(output->ExportData());
+         if (fDebug > 1) printf("   Packing container %s\n", output->GetName());
+         if (output->GetData()) target->Add(output);
+//         output->SetDataOwned(kFALSE);
       }
    } 
+   fContainers->Clear();
    if (fDebug > 1) {
-      printf("<-AliAnalysisManager::PackOutput: output list contains %d containers\n", target->GetSize());
+      printf("   ->output list contains %d containers\n", target->GetSize());
    }
 }
 
 //______________________________________________________________________________
-void AliAnalysisManager::ImportWrappers(TList *source)
+void AliAnalysisManager::ReplaceOutputContainers(TList *source)
 {
-// Import data in output containers from wrappers coming in source.
-   if (fDebug > 1) {
-      cout << "->AliAnalysisManager::ImportWrappers()" << endl;
-   }   
+// Replace all exising containers with the ones coming in source.
    TIter next(fOutputs);
-   AliAnalysisDataContainer *cont;
-   AliAnalysisDataWrapper   *wrap;
-   Int_t icont = 0;
+   AliAnalysisDataContainer *cont, *output;
    while ((cont=(AliAnalysisDataContainer*)next())) {
-      wrap = (AliAnalysisDataWrapper*)source->FindObject(cont->GetName());
-      if (!wrap && fDebug>1) {
-         printf("(WW) ImportWrappers: container %s not found in analysis output !\n", cont->GetName());
+      output = (AliAnalysisDataContainer*)source->FindObject(cont->GetName());
+      if (!output) {
+         printf("Error: container %s not found in analysis output !\n", cont->GetName());
          continue;
       }
-      icont++;
-      if (fDebug > 1) printf("   Importing data for container %s\n", wrap->GetName());
-      if (cont->GetFileName()) printf("    -> %s\n", cont->GetFileName());
-      cont->ImportData(wrap);
+      if (fDebug > 1) printf("...Replacing output container %s\n", output->GetName());
+      if (cont->GetFileName()) printf("    -> %s\n", output->GetFileName());
+      Int_t ntasks = fTasks->GetEntries();
+      AliAnalysisTask *task;
+      AliAnalysisDataSlot *oslot;
+      for (Int_t i=0; i<ntasks; i++) {
+         task = (AliAnalysisTask*)fTasks->At(i);
+         Int_t nout = task->GetNoutputs();
+         for (Int_t iout=0; iout<nout; iout++) {
+            oslot = task->GetOutputSlot(iout);
+            if (oslot->GetContainer() == cont) oslot->ConnectContainer(output);
+         }
+      }
+//      output->GetConsumers()->Delete();
+//      if (output->GetProducer()) delete output->GetProducer();
    }         
-   if (fDebug > 1) {
-      cout << "<-AliAnalysisManager::ImportWrappers(): "<< icont << " containers imported" << endl;
-   }   
 }
 
 //______________________________________________________________________________
@@ -330,41 +322,32 @@ void AliAnalysisManager::UnpackOutput(TList *source)
 {
   // Called by AliAnalysisSelector::Terminate. Output containers should
   // be in source in the same order as in fOutputs.
-   if (fDebug > 1) {
-      cout << "->AliAnalysisManager::UnpackOutput()" << endl;
-   }   
+
    if (!source) {
-      Error("UnpackOutput", "No target. Aborting.");
+      Error("PackOutput", "No target. Aborting.");
       return;
    }
    if (fDebug > 1) {
+      printf("AliAnalysisManager::UnpackOutput(): %d containers\n", source->GetSize());
       printf("   Source list contains %d containers\n", source->GetSize());
    }   
 
-   if (fMode == kProofAnalysis) ImportWrappers(source);
+   if (fMode == kProofAnalysis) {
+      ReplaceOutputContainers(source);
+      fOutputs->Clear();
+   }
 
-   TIter next(fOutputs);
+   TCollection *collection = source;
+   if (fMode == kLocalAnalysis) collection = fOutputs;
+   TIter next(collection);
+
    AliAnalysisDataContainer *output;
    while ((output=(AliAnalysisDataContainer*)next())) {
+      if (fMode == kProofAnalysis) {
+         output->SetDataOwned(kTRUE);
+         fOutputs->Add(output);
+      }
       if (!output->GetData()) continue;
-      // Check if there are client tasks that run post event loop
-      if (output->HasConsumers()) {
-         // Disable event loop semaphore
-         output->SetPostEventLoop(kTRUE);
-         TObjArray *list = output->GetConsumers();
-         Int_t ncons = list->GetEntriesFast();
-         for (Int_t i=0; i<ncons; i++) {
-            AliAnalysisTask *task = (AliAnalysisTask*)list->At(i);
-            task->CheckNotify(kTRUE);
-            // If task is active, execute it
-            if (task->IsPostEventLoop() && task->IsActive()) {
-               if (fDebug > 1) {
-                  cout << "== Executing post event loop task " << task->GetName() << endl;
-               }                  
-               task->ExecuteTask();
-            }   
-         }
-      }   
       // Check if the output need to be written to a file.
       const char *filename = output->GetFileName();
       if (!filename || !strlen(filename)) continue;
@@ -380,11 +363,8 @@ void AliAnalysisManager::UnpackOutput(TList *source)
          callEnv.SetParam((Long_t) file);
          callEnv.Execute(output->GetData());
       }
-      output->GetData()->Write();
+      output->GetData()->Write();      
    }
-   if (fDebug > 1) {
-      cout << "<-AliAnalysisManager::UnpackOutput()" << endl;
-   }   
 }
 
 //______________________________________________________________________________
@@ -394,15 +374,12 @@ void AliAnalysisManager::Terminate()
   // a query. It always runs on the client, it can be used to present
   // the results graphically.
    if (fDebug > 1) {
-      cout << "->AliAnalysisManager::Terminate()" << endl;
+      cout << "AliAnalysisManager::Terminate()" << endl;
    }   
    AliAnalysisTask *task;
    TIter next(fTasks);
    // Call Terminate() for tasks
    while ((task=(AliAnalysisTask*)next())) task->Terminate();
-   if (fDebug > 1) {
-      cout << "<-AliAnalysisManager::Terminate()" << endl;
-   }   
 }
 
 //______________________________________________________________________________
@@ -429,10 +406,6 @@ AliAnalysisDataContainer *AliAnalysisManager::CreateContainer(const char *name,
 //   kExchangeContainer  = 0, used to exchange date between tasks
 //   kInputContainer   = 1, used to store input data
 //   kOutputContainer  = 2, used for posting results
-   if (fContainers->FindObject(name)) {
-      Error("CreateContainer","A container named %s already defined !\n",name);
-      return NULL;
-   }   
    AliAnalysisDataContainer *cont = new AliAnalysisDataContainer(name, datatype);
    fContainers->Add(cont);
    switch (type) {
@@ -440,6 +413,7 @@ AliAnalysisDataContainer *AliAnalysisManager::CreateContainer(const char *name,
          fInputs->Add(cont);
          break;
       case kOutputContainer:
+         if (fOutputs->FindObject(name)) printf("CreateContainer: warning: a container named %s existing !\n",name);
          fOutputs->Add(cont);
          if (filename && strlen(filename)) cont->SetFileName(filename);
          break;
@@ -561,22 +535,6 @@ Bool_t AliAnalysisManager::InitAnalysis()
          return kFALSE;
       }   
    }
-   // Check that all containers feeding post-event loop tasks are in the outputs list
-   TIter nextcont(fContainers); // loop over all containers
-   while ((cont=(AliAnalysisDataContainer*)nextcont())) {
-      if (!cont->IsPostEventLoop() && !fOutputs->FindObject(cont)) {
-         if (cont->HasConsumers()) {
-         // Check if one of the consumers is post event loop
-            TIter nextconsumer(cont->GetConsumers());
-            while ((task=(AliAnalysisTask*)nextconsumer())) {
-               if (task->IsPostEventLoop()) {
-                  fOutputs->Add(cont);
-                  break;
-               }
-            }
-         }
-      }
-   }   
    fInitOK = kTRUE;
    return kTRUE;
 }   
@@ -618,41 +576,14 @@ void AliAnalysisManager::StartAnalysis(const char *type, TTree *tree)
    }
    if (fMode == kGridAnalysis) {
       Warning("StartAnalysis", "GRID analysis mode not implemented. Running local.");
-      fMode = kLocalAnalysis;
-   }
-   char line[128];
-   SetEventLoop(kFALSE);
-   // Disable all branches if requested and set event loop mode
-   if (tree) {
-      if (TestBit(kDisableBranches)) {
-         printf("Disabling all branches...\n");
-//         tree->SetBranchStatus("*",0); // not yet working
-      }   
-      SetEventLoop(kTRUE);
-   }   
-
+      fMode = kLocalAnalysis; 
+   }     
+   char line[128];   
    TChain *chain = dynamic_cast<TChain*>(tree);
-
-   // Initialize locally all tasks
-   TIter next(fTasks);
-   AliAnalysisTask *task;
-   while ((task=(AliAnalysisTask*)next())) {
-      task->LocalInit();
-   }
-   
    switch (fMode) {
       case kLocalAnalysis:
          if (!tree) {
-            TIter next(fTasks);
-            AliAnalysisTask *task;
-            // Call CreateOutputObjects for all tasks
-            while ((task=(AliAnalysisTask*)next())) {
-               TDirectory *curdir = gDirectory;
-               task->CreateOutputObjects();
-               if (curdir) curdir->cd();
-            }   
             ExecAnalysis();
-            Terminate();
             return;
          } 
          // Run tree-based analysis via AliAnalysisSelector  

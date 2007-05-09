@@ -63,62 +63,35 @@ AliAltroRawStream::AliAltroRawStream(AliRawReader* rawReader) :
 //_____________________________________________________________________________
 AliAltroRawStream::AliAltroRawStream(const AliAltroRawStream& stream) :
   TObject(stream),
-  fNoAltroMapping(stream.fNoAltroMapping),
-  fIsOldRCUFormat(stream.fIsOldRCUFormat),
-  fIsShortDataHeader(stream.fIsShortDataHeader),
-  fDDLNumber(stream.fDDLNumber),
-  fPrevDDLNumber(stream.fPrevDDLNumber),
-  fRCUId(stream.fRCUId),
-  fPrevRCUId(stream.fPrevRCUId),
-  fHWAddress(stream.fHWAddress),
-  fPrevHWAddress(stream.fPrevHWAddress),
-  fTime(stream.fTime),
-  fPrevTime(stream.fPrevTime),
-  fSignal(stream.fSignal),
-  fTimeBunch(stream.fTimeBunch),
-  fRawReader(stream.fRawReader),
-  fData(stream.fData),
-  fPosition(stream.fPosition),
-  fCount(stream.fCount),
-  fBunchLength(stream.fBunchLength),
-  fRCUTrailerData(stream.fRCUTrailerData),
-  fRCUTrailerSize(stream.fRCUTrailerSize)
+  fNoAltroMapping(kTRUE),
+  fIsOldRCUFormat(kFALSE),
+  fIsShortDataHeader(kFALSE),
+  fDDLNumber(-1),
+  fPrevDDLNumber(-1),
+  fRCUId(-1),
+  fPrevRCUId(-1),
+  fHWAddress(-1),
+  fPrevHWAddress(-1),
+  fTime(-1),
+  fPrevTime(-1),
+  fSignal(-1),
+  fTimeBunch(-1),
+  fRawReader(NULL),
+  fData(NULL),
+  fPosition(0),
+  fCount(0),
+  fBunchLength(0),
+  fRCUTrailerData(NULL),
+  fRCUTrailerSize(0)
 {
-  fSegmentation[0]   = stream.fSegmentation[0];
-  fSegmentation[1]   = stream.fSegmentation[1];
-  fSegmentation[2]   = stream.fSegmentation[2];
+  Fatal("AliAltroRawStream", "copy constructor not implemented");
 }
 
 //_____________________________________________________________________________
-AliAltroRawStream& AliAltroRawStream::operator = (const AliAltroRawStream& stream)
+AliAltroRawStream& AliAltroRawStream::operator = (const AliAltroRawStream& 
+					      /* stream */)
 {
-  if(&stream == this) return *this;
-
-  fNoAltroMapping    = stream.fNoAltroMapping;
-  fIsOldRCUFormat    = stream.fIsOldRCUFormat;
-  fIsShortDataHeader = stream.fIsShortDataHeader;
-  fDDLNumber         = stream.fDDLNumber;
-  fPrevDDLNumber     = stream.fPrevDDLNumber;
-  fRCUId             = stream.fRCUId;
-  fPrevRCUId         = stream.fPrevRCUId;
-  fHWAddress         = stream.fHWAddress;
-  fPrevHWAddress     = stream.fPrevHWAddress;
-  fTime              = stream.fTime;
-  fPrevTime          = stream.fPrevTime;
-  fSignal            = stream.fSignal;
-  fTimeBunch         = stream.fTimeBunch;
-  fRawReader         = stream.fRawReader;
-  fData              = stream.fData;
-  fPosition          = stream.fPosition;
-  fCount             = stream.fCount;
-  fBunchLength       = stream.fBunchLength;
-  fRCUTrailerData    = stream.fRCUTrailerData;
-  fRCUTrailerSize    = stream.fRCUTrailerSize;
-
-  fSegmentation[0]   = stream.fSegmentation[0];
-  fSegmentation[1]   = stream.fSegmentation[1];
-  fSegmentation[2]   = stream.fSegmentation[2];
-
+  Fatal("operator =", "assignment operator not implemented");
   return *this;
 }
 

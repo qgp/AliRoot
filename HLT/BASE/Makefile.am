@@ -8,11 +8,12 @@
 #    e.g. for libHLTbase, MODULE=HLTbase
 MODULE				= HLTbase
 
-SUBDIRS 			= . util interface
+SUBDIRS 			= . util
 
 EXTRA_DIST			= HLTbaseLinkDef.h
 
-AM_CPPFLAGS			= -DMODULE=$(MODULE)
+AM_CPPFLAGS			= -DMODULE=$(MODULE) \
+				  -I@ALICE_ROOT@/STEER
 
 bin_SCRIPTS			= setenv.sh setenv.csh
 
@@ -20,7 +21,7 @@ bin_SCRIPTS			= setenv.sh setenv.csh
 lib_LTLIBRARIES			=  libHLTbase.la
 
 # version info for the library
-LIBRARY_VERSION			= '4:0:1'
+LIBRARY_VERSION			= '3:1:1'
 
 # MODDIR is set by the AliRoot build system and denotes the topdir
 # of the module, we must set it since the package definition libHLTbase.pkg
@@ -38,6 +39,8 @@ pkginclude_HEADERS		= $(MODULE_HDRS)
 # linker flags
 libHLTbase_la_LDFLAGS		= -L@ROOTLIBDIR@ \
 				  @ROOTLIBS@ \
+				  @ALIROOT_LDFLAGS@ \
+				  @ALIROOT_LIBS@ \
 				  -version-info $(LIBRARY_VERSION)
 
 # automatic generation of data and time of library build

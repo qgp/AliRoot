@@ -263,11 +263,11 @@ void AliTOFDigitizer::CreateDigits()
     
     // start loop on number of slots for current sdigit
     for (Int_t islot = 0; islot < nslot; islot++) {
-      Int_t  digit[4] = {-1,-1,-1,-1};     // TOF digit variables
+      Float_t  digit[4] = {-1.,-1.,-1.,-1.};     // TOF digit variables
       Int_t tracknum[AliTOFSDigit::kMAXDIGITS];     // contributing tracks for the current slot
       
-      Int_t tdc=tofsdigit->GetTdc(islot); digit[0]=tdc;
-      Int_t adc=tofsdigit->GetAdc(islot); digit[1]=adc;
+      Float_t tdc=tofsdigit->GetTdc(islot); digit[0]=tdc;
+      Float_t adc=tofsdigit->GetAdc(islot); digit[1]=adc;
       
       tracknum[0]=tofsdigit->GetTrack(islot,0);
       tracknum[1]=tofsdigit->GetTrack(islot,1);
@@ -442,12 +442,7 @@ void AliTOFDigitizer::DecalibrateTOFSignal( AliTOFcalib *calib){
 
   Float_t maxToT=max;
   Float_t minToT=min;
- 
   Float_t maxToTDistr=hToT->GetMaximum();
-
-  AliDebug (1, Form(" The minimum ToT = %f", minToT)); 
-  AliDebug (1, Form(" The maximum ToT = %f", maxToT)); 
-  AliDebug (1, Form(" The maximum peak in ToT = %f", maxToTDistr)); 
   
   // Loop on TOF Digits
 
@@ -481,15 +476,13 @@ void AliTOFDigitizer::DecalibrateTOFSignal( AliTOFcalib *calib){
 	par[j]=calChannel->GetSlewPar(j);
 	if(par[j]!=0)misCalibPars=kTRUE;
       }
-      AliDebug(2,Form(" Calib Pars = %f, %f, %f, %f, %f, %f ",par[0],par[1],par[2],par[3],par[4],par[5]));
+      
       // Now generate Realistic ToT distribution from TestBeam Data. 
       // Tot is in ns, assuming a Matching Window of 10 ns.
 
       Float_t simToT = 0;
       Float_t trix = 0;
       Float_t triy = 0;
-      Double_t timeCorr;
-      Double_t tToT;
       while (simToT <= triy){
 	trix = gRandom->Rndm(i);
 	triy = gRandom->Rndm(i);
@@ -499,41 +492,25 @@ void AliTOFDigitizer::DecalibrateTOFSignal( AliTOFcalib *calib){
 	simToT=hToT->GetBinContent(binx);
       }
       // the generated ToT (ns)
-      tToT= (Double_t) trix; // to apply slewing we start from ns..
-      // transform TOF signal in ns
-      AliDebug(2,Form(" The Initial Time (counts): %i: ",dig->GetTdc()));
-      AliDebug(2,Form(" Time before miscalibration (ps) %e: ",dig->GetTdc()*AliTOFGeometry::TdcBinWidth()));
+      Float_t tToT= trix; // to apply slewing need to go back to ns..
+      // transform TOF signal in ns, factor 1E-3 as bin width is in ps.
+      Float_t tdc = ((dig->GetTdc())*AliTOFGeometry::TdcBinWidth()+32)*1.E-3; 
+      AliDebug(2,Form(" Time before miscalibration (ns) %f: ",tdc));
       // add slewing effect
-      timeCorr=par[0] + tToT*(par[1] +tToT*(par[2] +tToT*(par[3] +tToT*(par[4] +tToT*par[5])))); 
-      AliDebug(2,Form(" The Time slewing (ns): %f: ",timeCorr));
+      Float_t timeoffset=par[0] + tToT*(par[1] +tToT*(par[2] +tToT*(par[3] +tToT*(par[4] +tToT*par[5])))); 
+      Float_t timeSlewed = tdc+timeoffset;
+      AliDebug(2,Form(" Time after applying slewing (ns): %f: ",timeSlewed));
       // add global time shift
-      timeCorr = timeCorr + timedelay;
-      AliDebug(2,Form(" The Time Slewing+ delay (ns): %f: ",timeCorr));
-      //convert to ps
-      timeCorr*=1E-3;
-      Double_t timeMis = (Double_t)(dig->GetTdc())*AliTOFGeometry::TdcBinWidth();
-      timeMis = timeMis+timeCorr;
-      AliDebug(2,Form(" The Miscalibrated time (ps): %e: ",timeMis));
-
-      // now update the digit info
- 
-      Int_t tdcCorr= (Int_t)(timeMis/AliTOFGeometry::TdcBinWidth());
-      AliDebug(2,Form(" Final Time (counts): %i: ",tdcCorr));
+      timeSlewed = timeSlewed + timedelay;
+      AliDebug(2,Form(" Time after applying global delay (ns): %f: ",timeSlewed));
       // Setting Decalibrated Time signal (TDC counts)    
-      dig->SetTdc(tdcCorr);   
-      // Setting realistic ToT signal (TDC counts) 
-      tToT*=1E3; //back to ps  
-      Int_t tot=(Int_t)(tToT/AliTOFGeometry::ToTBinWidth());//(factor 1E3 as input ToT is in ns)
-      dig->SetToT(tot); 
-      AliDebug(2,Form(" Final Time and ToT (counts): %i: ",dig->GetTdc(),dig->GetToT()));
-      if(tdcCorr<0){
-	AliWarning (Form(" The bad Slewed Time(TDC counts)= %i ", tdcCorr)); 
-	AliWarning(Form(" The bad ToT (TDC counts)= %i ", tot)); 
-      }
+      dig->SetTdc((timeSlewed*1E3-32)/AliTOFGeometry::TdcBinWidth());   
+      // Setting realistic ToT signal (TDC counts)   
+      dig->SetToT(trix/AliTOFGeometry::ToTBinWidth()*1.E3); //(factor 1E3 as input ToT is in ns)
     }
     else{
     // For Data with no Miscalibration, set ToT signal == Adc
-      dig->SetToT((Int_t)(dig->GetAdc()/AliTOFGeometry::ToTBinWidth())); //remove the factor 10^3 just to have a reasonable ToT range for raw data simulation even in the case of non-realistic ToT distribution (n.b. fAdc is practically an arbitrary quantity, and ToT has no impact on the TOF reco for non-miscalibrated digits)
+    dig->SetToT(dig->GetAdc()/AliTOFGeometry::ToTBinWidth()*1.E3); 
     }
   }
 

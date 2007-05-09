@@ -12,12 +12,6 @@
     @brief  Base class declaration for HLT components. 
     @note   The class is both used in Online (PubSub) and Offline (AliRoot)
             context
-
-// see below for class documentation
-// or
-// refer to README to build package
-// or
-// visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
                                                                           */
 /**
  * @defgroup alihlt_component Component handling of the HLT module
@@ -754,17 +748,13 @@ class AliHLTComponent : public AliHLTLogging {
 
   /**
    * Find the first input block of specified data type beginning at index.
-   * Input blocks containing a TObject have the size of the object as an
-   * unsigned 32 bit number in the first 4 bytes. This has to match the block
-   * size minus 4.
    * @param dt          data type
    * @param startIdx    index to start the search
-   * @param bObject     check if this is an object
    * @return index of the block, -ENOENT if no block found
    *
    * @internal
    */
-  int FindInputBlock(const AliHLTComponentDataType& dt, int startIdx=-1, int bObject=0) const;
+  int FindInputBlock(const AliHLTComponentDataType& dt, int startIdx=-1) const;
 
   /**
    * Get index in the array of input bocks.

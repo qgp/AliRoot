@@ -13,14 +13,10 @@
 //
 //
 
-#include <RVersion.h>
+
 #include "TObject.h"
 #include "TParticle.h"
-#if ROOT_VERSION_CODE > 331524
-#include "TMCParticle.h"
-#else
 #include "TMCParticle6.h"
-#endif
 #include "TClonesArray.h"
 #include "AliEMCALParton.h"
 #include "AliEMCALDigit.h"

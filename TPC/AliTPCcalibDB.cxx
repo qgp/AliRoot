@@ -78,22 +78,23 @@ void AliTPCcalibDB::Terminate()
 }
 
 //_____________________________________________________________________________
-AliTPCcalibDB::AliTPCcalibDB():
-  fRun(-1),
-  fPadGainFactor(0),
-  fPadTime0(0),
-  fPadPRFWidth(0),
-  fPadNoise(0),
-  fPedestals(0),
-  fTemperature(0),
-  fPressure(0),
-  fParam(0)
-
+AliTPCcalibDB::AliTPCcalibDB()
 {
   //
   // constructor
   //  
+  fRun = -1;
+      
   //
+  //
+  //
+  fPadGainFactor = 0;
+  fPadTime0      = 0;
+  fPadPRFWidth   = 0;
+  fPadNoise      = 0;
+  fPedestals     = 0;
+  fTemperature   = 0;
+  fParam         = 0;
   Update();    // temporary
 }
 
@@ -195,14 +196,6 @@ void AliTPCcalibDB::Update(){
     fTemperature = (AliTPCSensorTempArray*)entry->GetObject();
   }
 
-  entry          = GetCDBEntry("TPC/Calib/Pressure");
-  if (entry){
-    //if (fPressure) delete fPressure;
-    entry->SetOwner(kTRUE);
-    fPressure = (AliTPCSensorPressureArray*)entry->GetObject();
-  }
-
-
   entry          = GetCDBEntry("TPC/Calib/Parameters");
   if (entry){
     //if (fPadNoise) delete fPadNoise;
@@ -215,20 +208,3 @@ void AliTPCcalibDB::Update(){
   AliCDBManager::Instance()->SetCacheFlag(cdbCache); // reset original CDB cache
   
 }
-AliTPCcalibDB::AliTPCcalibDB(const AliTPCcalibDB& org)
-{
-  //
-  // Copy constructor invalid -- singleton implementation
-  //
-   Error("copy constructor","invalid -- singleton implementation");
-}
-
-AliTPCcalibDB& AliTPCcalibDB::operator= (const AliTPCcalibDB& rhs)
-{
-//
-// Singleton implementation - no assignment operator
-//
-  Error("operator =", "assignment operator not implemented");
-  return *this;
-}
-

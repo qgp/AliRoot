@@ -44,7 +44,7 @@ void TPCSectorData::InitStatics()
   if(fgParam != 0) return;
 
   fgParam    = new AliTPCParamSR;
-  fgZLength  = fgParam->GetZLength(0)+0.275;
+  fgZLength  = fgParam->GetZLength();
   fgNAllRows = fgParam->GetNRowLow() + fgParam->GetNRowUp();
   fgNAllPads = 0;
   fgRowBegs  = new Int_t[fgNAllRows + 1];

@@ -978,11 +978,7 @@ Bool_t AliHLTTPCTransform::Init(AliRunLoader *runLoader)
   fgPadPitchWidthUp=param->GetOuterPadPitchWidth();
   fgZWidth=param->GetZWidth();
   fgZSigma=param->GetZSigma();
-  // Matthias 24.04.2007 a default parameter has been added to GetZLength
-  // reverting some of Mareks changes
-  // TODO: we have to use the method correctly and put the slice no into it
-  //fgZLength=param->GetZLength(0)+0.275;
-  fgZLength=param->GetZLength()+0.275;
+  fgZLength=param->GetZLength();
   fgZOffset=param->GetZOffset();
   fgDiffT=param->GetDiffT();
   fgDiffL=param->GetDiffL();
@@ -1325,11 +1321,7 @@ Bool_t AliHLTTPCTransform::MakeInitFile(Char_t *rootfilename,Char_t *filename)
   fgPadPitchWidthUp=param->GetOuterPadPitchWidth();
   fgZWidth=param->GetZWidth();
   fgZSigma=param->GetZSigma();
-  // Matthias 24.04.2007 a default parameter has been added to GetZLength
-  // reverting some of Mareks changes
-  // TODO: we have to use the method correctly and put the slice no into it
-  //fgZLength=param->GetZLength(0)+0.275;
-  fgZLength=param->GetZLength()+0.275;
+  fgZLength=param->GetZLength();
   fgZOffset=param->GetZOffset();
   fgDiffT=param->GetDiffT();
   fgDiffL=param->GetDiffL();
@@ -1677,9 +1669,9 @@ Double_t AliHLTTPCTransform::GetParSigmaZ2(Int_t padrow,Float_t z,Float_t tgl)
 
   Double_t drift;
   if(z > 0)
-    drift = AliHLTTPCTransform::GetZLength()-0.275 - z;
+    drift = AliHLTTPCTransform::GetZLength() - z;
   else
-    drift = AliHLTTPCTransform::GetZLength()-0.302 + z;
+    drift = AliHLTTPCTransform::GetZLength() + z;
   
   Double_t t1 = fgZSigma*fgZSigma;
   Double_t t2 = fgDiffL*fgDiffL*drift;

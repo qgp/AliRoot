@@ -22,10 +22,10 @@ using std::endl;
 
 ClassImp(AliHLTPHOSRawAnalyzerKLevel) 
 
-//________________________________________________________________________________________________________
-AliHLTPHOSRawAnalyzerKLevel::AliHLTPHOSRawAnalyzerKLevel(const AliHLTPHOSRawAnalyzerKLevel&):AliHLTPHOSRawAnalyzer(), fTKLevel(0)
+
+AliHLTPHOSRawAnalyzerKLevel::AliHLTPHOSRawAnalyzerKLevel(const AliHLTPHOSRawAnalyzerKLevel&):AliHLTPHOSRawAnalyzer(), tKLevel(0)
 {
-  
+
 }
 
 
@@ -35,14 +35,12 @@ AliHLTPHOSRawAnalyzerKLevel::AliHLTPHOSRawAnalyzerKLevel(const AliHLTPHOSRawAnal
  * a sequense of ADC digitized 10 bit integer values, however for performance reasons all values used in
  * calculation is of type double.
  **/
-//________________________________________________________________________________________________________
-AliHLTPHOSRawAnalyzerKLevel::AliHLTPHOSRawAnalyzerKLevel():AliHLTPHOSRawAnalyzer(), fTKLevel(0) 
+AliHLTPHOSRawAnalyzerKLevel::AliHLTPHOSRawAnalyzerKLevel():AliHLTPHOSRawAnalyzer(), tKLevel(0) 
 {
   cout <<"You cannot invoke the Fitter without arguments"<<endl;;
 }
 
 
-//________________________________________________________________________________________________________
 AliHLTPHOSRawAnalyzerKLevel::~AliHLTPHOSRawAnalyzerKLevel()
 {
 
@@ -51,7 +49,7 @@ AliHLTPHOSRawAnalyzerKLevel::~AliHLTPHOSRawAnalyzerKLevel()
 
 
 /**
-* Extraction of timing and energy using the K-Level method.
+* Extraction of timing and energy using the Peakfinde Algorithm.
 * The. The parameters "start" and "length" defines a sub array  of the data array
 * that will be used for the the fit. If start+length must not exeed the total length
 * of the Data array. "start" must be chosen as close as possible to t0.
@@ -61,7 +59,6 @@ AliHLTPHOSRawAnalyzerKLevel::~AliHLTPHOSRawAnalyzerKLevel()
 * @param start the start index of the subarray of the data array. 
 * @param length the number of samples to use starting from index 
 **/
-//________________________________________________________________________________________________________
 void 
 AliHLTPHOSRawAnalyzerKLevel::Evaluate(int start, int length)
 {

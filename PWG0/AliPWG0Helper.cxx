@@ -15,7 +15,7 @@
 ClassImp(AliPWG0Helper)
 
 //____________________________________________________________________
-Bool_t AliPWG0Helper::IsEventTriggered(AliESD* aEsd, Trigger trigger)
+Bool_t AliPWG0Helper::IsEventTriggered(AliESD* aEsd)
 {
   // check if the event was triggered
   //
@@ -28,21 +28,8 @@ Bool_t AliPWG0Helper::IsEventTriggered(AliESD* aEsd, Trigger trigger)
 
   ULong64_t triggerMask = aEsd->GetTriggerMask();
 
-  switch (trigger)
-  {
-    case kMB1:
-    {
-      if (triggerMask&32 || ((triggerMask&1) || (triggerMask&2)))
-        return kTRUE;
-      break;
-    }
-    case kMB2:
-    {
-      if (triggerMask&32 && ((triggerMask&1) || (triggerMask&2)))
-        return kTRUE;
-      break;
-    }
-  }
+  if (triggerMask&32 && ((triggerMask&1) || (triggerMask&2)))
+    return kTRUE;
 
   return kFALSE;
 }

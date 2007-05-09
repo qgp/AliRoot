@@ -23,7 +23,7 @@
 // Author: Alexander Zinchenko, JINR Dubna
 
 #include "AliMUONTrackK.h"
-#include "AliMUONRecData.h"
+#include "AliMUONData.h"
 #include "AliMUONConstants.h"
 
 #include "AliMUONTrackReconstructorK.h"

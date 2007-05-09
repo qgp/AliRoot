@@ -50,7 +50,6 @@ class AliTRDcalibDB : public TObject {
         AliTRDCalROC        *GetGainFactorROC(Int_t det);
   const AliTRDCalDet        *GetGainFactorDet();
 
-        AliTRDCalROC        *GetPRFROC(Int_t det);
   Float_t                    GetPRFWidth(Int_t det, Int_t col, Int_t row);
 
   Int_t                      GetNumberOfTimeBins();

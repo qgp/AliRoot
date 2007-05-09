@@ -36,7 +36,6 @@ class AliTRDclusterizer : public TNamed {
   virtual Bool_t   Open(const Char_t *name, Int_t nEvent = 0);
   virtual Bool_t   OpenInput(Int_t nEvent = 0);
   virtual Bool_t   OpenOutput();
-  virtual Bool_t   OpenOutput(TTree *clusterTree);
   virtual Bool_t   MakeClusters() = 0;
   virtual Bool_t   WriteClusters(Int_t det);
           void     ResetRecPoints();
@@ -44,8 +43,7 @@ class AliTRDclusterizer : public TNamed {
           TObjArray     *RecPoints();
   virtual AliTRDcluster *AddCluster(Double_t *pos, Int_t timebin, Int_t det
                                   , Double_t amp, Int_t *tracks
-			          , Double_t *sig, Int_t iType
-                                  , Int_t col, Float_t center = 0);
+			          , Double_t *sig, Int_t iType, Float_t center = 0);
 
  protected:
 

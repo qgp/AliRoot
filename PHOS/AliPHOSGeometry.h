@@ -25,8 +25,6 @@
 #include "AliPHOSCPVGeometry.h"
 #include "AliPHOSSupportGeometry.h"
 
-class AliPHOSRecPoint;
-class TVector3;
 
 class AliPHOSGeometry : public AliGeometry {
 
@@ -41,9 +39,6 @@ public:
   virtual void   GetGlobal(const AliRecPoint* RecPoint, TVector3 & gpos, TMatrixF & /* gmat */) const 
                  {GetGlobal(RecPoint,gpos); }
   virtual void   GetGlobal(const AliRecPoint* RecPoint, TVector3 & gpos) const ;
-  virtual void   GetGlobalPHOS(const AliPHOSRecPoint* RecPoint, TVector3 & gpos) const ;
-  virtual void   GetGlobalPHOS(const AliPHOSRecPoint* RecPoint, TVector3 & gpos, TMatrixF & /* gmat */) const 
-                 {GetGlobalPHOS(RecPoint,gpos); }
   virtual Bool_t Impact(const TParticle * particle) const ;
 
   AliPHOSGeometry & operator = (const AliPHOSGeometry  & /*rvalue*/) {

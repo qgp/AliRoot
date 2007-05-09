@@ -27,7 +27,6 @@ class TClass;
 class TObjArray;
 class TCollection;
 class AliAnalysisTask;
-class AliAnalysisDataWrapper;
 class AliESD;
 
 class AliAnalysisDataContainer : public TNamed {
@@ -38,9 +37,6 @@ enum ENotifyMessage {
    kSaveData,
    kFileChange
 };   
-enum EAnalysisContainerFlags {
-   kPostEventLoop = BIT(14)
-};     
    AliAnalysisDataContainer();
    AliAnalysisDataContainer(const AliAnalysisDataContainer &cont);
    AliAnalysisDataContainer(const char *name, TClass *type);
@@ -59,17 +55,12 @@ enum EAnalysisContainerFlags {
    void                      ResetDataReady()     {fDataReady = kFALSE;}
    virtual Bool_t            SetData(TObject *data, Option_t *option="");
    void                      SetDataOwned(Bool_t flag) {fOwnedData = flag;}
-   void                      SetPostEventLoop(Bool_t flag=kTRUE) {TObject::SetBit(kPostEventLoop,flag);}
    void                      SetFileName(const char *filename) {fFileName = filename;}
    void                      SetProducer(AliAnalysisTask *prod, Int_t islot);
    void                      AddConsumer(AliAnalysisTask *cons, Int_t islot);
    void                      DeleteData();
-   // Wrapping
-   AliAnalysisDataWrapper   *ExportData() const;
-   void                      ImportData(AliAnalysisDataWrapper *pack);
    // Container status checking
    Bool_t                    IsDataReady() const  {return fDataReady;}
-   Bool_t                    IsPostEventLoop() const {return TObject::TestBit(kPostEventLoop);}
    Bool_t                    IsOwnedData() const  {return fOwnedData;}
    Bool_t                    ClientsExecuted() const;
    Bool_t                    HasConsumers() const {return (fConsumers != 0);}
@@ -95,33 +86,4 @@ protected:
    
    ClassDef(AliAnalysisDataContainer,1)  // Class describing a data container for analysis
 };
-
-//==============================================================================
-//   AliAnalysysDataWrapper - A basic wrapper for exchanging via the network
-// the data held by AliAnalysisDataContainer between the master and the client
-// in PROOF case. 
-//==============================================================================
-
-class AliAnalysisDataWrapper : public TNamed {
-
-public:
-   AliAnalysisDataWrapper() : TNamed(), fData(NULL) {}
-   AliAnalysisDataWrapper(TObject *data) : TNamed(), fData(data) {}
-   AliAnalysisDataWrapper(const AliAnalysisDataWrapper &other) 
-                        : TNamed(other), fData(other.fData) {}
-   virtual ~AliAnalysisDataWrapper() {}
-   
-   // Assignment
-   AliAnalysisDataWrapper &operator=(const AliAnalysisDataWrapper &other);
-
-   TObject                  *Data() const {return fData;}
-   // Merging
-   virtual Long64_t          Merge(TCollection *list);
-
-protected:
-   TObject                  *fData;       // Wrapped data
-
-   ClassDef(AliAnalysisDataWrapper, 1) // Data wrapper class for exchange via the net
-};
-
 #endif

@@ -35,21 +35,7 @@ AliTRDCalMonitoring::AliTRDCalMonitoring()
   //
   // AliTRDCalMonitoring default constructor
   //
-  
-  for (Int_t i=0; i<540; ++i) {
-    fAnodeCurrentsMin[i] = 0;
-    fAnodeCurrentsMax[i] = 0;
-    fDriftCurrentsMin[i] = 0;
-    fDriftCurrentsMax[i] = 0;
-    fAnodeVoltagesMin[i] = 0;
-    fAnodeVoltagesMax[i] = 0;
-    fDriftVoltagesMin[i] = 0;
-    fDriftVoltagesMax[i] = 0;
-  }
-  for (Int_t i=0; i<360; ++i) {
-    fLVVoltage[i] = 0;
-    fLVCurrent[i] = 0;
-  }
+
 }
 
 //_____________________________________________________________________________
@@ -63,19 +49,5 @@ AliTRDCalMonitoring::AliTRDCalMonitoring(const Text_t *name, const Text_t *title
   // AliTRDCalMonitoring constructor
   //
 
-  for (Int_t i=0; i<540; ++i) {
-    fAnodeCurrentsMin[i] = 0;
-    fAnodeCurrentsMax[i] = 0;
-    fDriftCurrentsMin[i] = 0;
-    fDriftCurrentsMax[i] = 0;
-    fAnodeVoltagesMin[i] = 0;
-    fAnodeVoltagesMax[i] = 0;
-    fDriftVoltagesMin[i] = 0;
-    fDriftVoltagesMax[i] = 0;
-  }
-  for (Int_t i=0; i<360; ++i) {
-    fLVVoltage[i] = 0;
-    fLVCurrent[i] = 0;
-  }
 }
 

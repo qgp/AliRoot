@@ -27,30 +27,17 @@
 #include "TH1F.h"
 #include "TF1.h"
 #include "TLinearFitter.h"
-
-//
-// includes neccessary for test functions
-//
-
-#include "TSystem.h"
-#include "TRandom.h"
-#include "TStopwatch.h"
-#include "TTreeStream.h"
  
 ClassImp(AliMathBase) // Class implementation to enable ROOT I/O
  
 AliMathBase::AliMathBase() : TObject()
 {
-  //
-  // Default constructor
-  //
+// Default constructor
 }
 ///////////////////////////////////////////////////////////////////////////
 AliMathBase::~AliMathBase()
 {
-  //
-  // Destructor
-  //
+// Destructor
 }
 
 
@@ -81,9 +68,7 @@ void AliMathBase::EvaluateUni(Int_t nvectors, Double_t *data, Double_t &mean
   Double_t sumx2 =0;
   Int_t    bestindex = -1;
   Double_t bestmean  = 0; 
-  Double_t bestsigma = (data[index[nvectors-1]]-data[index[0]]+1.);   // maximal possible sigma
-  bestsigma *=bestsigma;
-
+  Double_t bestsigma = data[index[nvectors-1]]-data[index[0]];   // maximal possible sigma
   for (Int_t i=0; i<hh; i++){
     sumx  += data[index[i]];
     sumx2 += data[index[i]]*data[index[i]];
@@ -295,7 +280,7 @@ Double_t  AliMathBase::FitGaus(TH1F* his, TVectorD *param, TMatrixD *matrix, Flo
   if (his->GetMaximum()<4) return -1;  
   if (his->GetEntries()<12) return -1;  
   if (his->GetRMS()<mat.GetTol()) return -1;
-  Float_t maxEstimate   = his->GetEntries()*his->GetBinWidth(1)/TMath::Sqrt((TMath::TwoPi()*his->GetRMS()));
+  Float_t maxEstimate   = his->GetEntries()*his->GetBinWidth(1)/TMath::Sqrt((2.*TMath::Pi()*his->GetRMS()));  
   Int_t dsmooth = TMath::Nint(6./TMath::Sqrt(maxEstimate));
 
   if (maxEstimate<1) return -1;
@@ -311,7 +296,7 @@ Double_t  AliMathBase::FitGaus(TH1F* his, TVectorD *param, TMatrixD *matrix, Flo
   for (Int_t iter=0; iter<2; iter++){
     fitter.ClearPoints();
     npoints=0;
-    for (Int_t ibin=1;ibin<nbins+1; ibin++){
+    for (Int_t ibin=1;ibin<nbins-1; ibin++){      
       Int_t countB=1;
       Float_t entriesI =  his->GetBinContent(ibin);
       for (Int_t delta = -dsmooth; delta<=dsmooth; delta++){
@@ -369,276 +354,5 @@ Double_t  AliMathBase::FitGaus(TH1F* his, TVectorD *param, TMatrixD *matrix, Flo
   }
   return chi2;
 }
-
-Double_t  AliMathBase::FitGaus(Float_t *arr, Int_t nBins, Float_t xMin, Float_t xMax, TVectorD *param, TMatrixD *matrix, Bool_t verbose){
-  //
-  //  Fit histogram with gaussian function
-  //  
-  //  Prameters:
-  //     nbins: size of the array and number of histogram bins
-  //     xMin, xMax: histogram range
-  //     param: paramters of the fit (0-Constant, 1-Mean, 2-Sigma)
-  //     matrix: covariance matrix -- not implemented yet, pass dummy matrix!!!
-  //
-  //  Return values:
-  //    >0: the chi2 returned by TLinearFitter
-  //    -3: only three points have been used for the calculation - no fitter was used
-  //    -2: only two points have been used for the calculation - center of gravity was uesed for calculation
-  //    -1: only one point has been used for the calculation - center of gravity was uesed for calculation
-  //    -4: invalid result!!
-  //
-  //  Fitting:
-  //  1. Step - make logarithm
-  //  2. Linear  fit (parabola) - more robust - always converge
-  //  
-  static TLinearFitter fitter(3,"pol2");
-  static TMatrixD mat(3,3);
-  static Double_t kTol = mat.GetTol();
-  fitter.StoreData(kFALSE);
-  fitter.ClearPoints();
-  TVectorD  par(3);
-  TVectorD  sigma(3);
-  TMatrixD A(3,3);
-  TMatrixD b(3,1);
-  Float_t rms = TMath::RMS(nBins,arr);
-  Float_t max = TMath::MaxElement(nBins,arr);
-  Float_t binWidth = (xMax-xMin)/(Float_t)nBins;
-
-  Float_t meanCOG = 0;
-  Float_t rms2COG = 0;
-  Float_t sumCOG  = 0;
-
-  Float_t entries = 0;
-  Int_t nfilled=0;
-
-  for (Int_t i=0; i<nBins; i++){
-      entries+=arr[i];
-      if (arr[i]>0) nfilled++;
-  }
-
-  if (max<4) return -4;
-  if (entries<12) return -4;
-  if (rms<kTol) return -4;
-
-  Int_t npoints=0;
-  //
-
-  //
-  for (Int_t ibin=0;ibin<nBins; ibin++){
-      Float_t entriesI = arr[ibin];
-    if (entriesI>1){
-      Double_t xcenter = xMin+(ibin+0.5)*binWidth;
-      
-      Float_t error    = 1./TMath::Sqrt(entriesI);
-      Float_t val = TMath::Log(Float_t(entriesI));
-      fitter.AddPoint(&xcenter,val,error);
-      if (npoints<3){
-	  A(npoints,0)=1;
-	  A(npoints,1)=xcenter;
-	  A(npoints,2)=xcenter*xcenter;
-	  b(npoints,0)=val;
-	  meanCOG+=xcenter*entriesI;
-	  rms2COG +=xcenter*entriesI*xcenter;
-	  sumCOG +=entriesI;
-      }
-      npoints++;
-    }
-  }
-
-  
-  Double_t chi2 = 0;
-  if (npoints>=3){
-      if ( npoints == 3 ){
-	  //analytic calculation of the parameters for three points
-	  A.Invert();
-	  TMatrixD res(1,3);
-	  res.Mult(A,b);
-	  par[0]=res(0,0);
-	  par[1]=res(0,1);
-	  par[2]=res(0,2);
-          chi2 = -3.;
-      } else {
-          // use fitter for more than three points
-	  fitter.Eval();
-	  fitter.GetParameters(par);
-	  fitter.GetCovarianceMatrix(mat);
-	  chi2 = fitter.GetChisquare()/Float_t(npoints);
-      }
-      if (TMath::Abs(par[1])<kTol) return -4;
-      if (TMath::Abs(par[2])<kTol) return -4;
-
-      if (!param)  param  = new TVectorD(3);
-      if (!matrix) matrix = new TMatrixD(3,3);  // !!!!might be a memory leek. use dummy matrix pointer to call this function!
-
-      (*param)[1] = par[1]/(-2.*par[2]);
-      (*param)[2] = 1./TMath::Sqrt(TMath::Abs(-2.*par[2]));
-      Double_t lnparam0 = par[0]+ par[1]* (*param)[1] +  par[2]*(*param)[1]*(*param)[1];
-      if ( lnparam0>307 ) return -4;
-      (*param)[0] = TMath::Exp(lnparam0);
-      if (verbose){
-	  par.Print();
-	  mat.Print();
-	  param->Print();
-	  printf("Chi2=%f\n",chi2);
-	  TF1 * f1= new TF1("f1","[0]*exp(-(x-[1])^2/(2*[2]*[2]))",xMin,xMax);
-	  f1->SetParameter(0, (*param)[0]);
-	  f1->SetParameter(1, (*param)[1]);
-	  f1->SetParameter(2, (*param)[2]);
-	  f1->Draw("same");
-      }
-      return chi2;
-  }
-
-  if (npoints == 2){
-      //use center of gravity for 2 points
-      meanCOG/=sumCOG;
-      rms2COG /=sumCOG;
-      (*param)[0] = max;
-      (*param)[1] = meanCOG;
-      (*param)[2] = TMath::Sqrt(TMath::Abs(meanCOG*meanCOG-rms2COG));
-      chi2=-2.;
-  }
-  if ( npoints == 1 ){
-      meanCOG/=sumCOG;
-      (*param)[0] = max;
-      (*param)[1] = meanCOG;
-      (*param)[2] = binWidth/TMath::Sqrt(12);
-      chi2=-1.;
-  }
-  return chi2;
-
-}
-
-
-Float_t AliMathBase::GetCOG(Short_t *arr, Int_t nBins, Float_t xMin, Float_t xMax, Float_t *rms, Float_t *sum)
-{
-    //
-    //  calculate center of gravity rms and sum for array 'arr' with nBins an a x range xMin to xMax
-    //  return COG; in case of failure return xMin
-    //
-    Float_t meanCOG = 0;
-    Float_t rms2COG = 0;
-    Float_t sumCOG  = 0;
-    Int_t npoints   = 0;
-
-    Float_t binWidth = (xMax-xMin)/(Float_t)nBins;
-
-    for (Int_t ibin=0; ibin<nBins; ibin++){
-	Float_t entriesI = (Float_t)arr[ibin];
-	Double_t xcenter = xMin+(ibin+0.5)*binWidth;
-	if ( entriesI>0 ){
-	    meanCOG += xcenter*entriesI;
-	    rms2COG += xcenter*entriesI*xcenter;
-	    sumCOG  += entriesI;
-	    npoints++;
-	}
-    }
-    if ( sumCOG == 0 ) return xMin;
-    meanCOG/=sumCOG;
-
-    if ( rms ){
-	rms2COG /=sumCOG;
-	(*rms) = TMath::Sqrt(TMath::Abs(meanCOG*meanCOG-rms2COG));
-	if ( npoints == 1 ) (*rms) = binWidth/TMath::Sqrt(12);
-    }
-
-    if ( sum )
-        (*sum) = sumCOG;
-
-    return meanCOG;
-}
-
-
-
-///////////////////////////////////////////////////////////////
-//////////////         TEST functions /////////////////////////
-///////////////////////////////////////////////////////////////
-
-
-
-
-
-void AliMathBase::TestGausFit(Int_t nhistos){
-  //
-  // Test performance of the parabolic - gaussian fit - compare it with 
-  // ROOT gauss fit
-  //  nhistos - number of histograms to be used for test
-  //
-  TTreeSRedirector *pcstream = new TTreeSRedirector("fitdebug.root");
-  
-  Float_t  *xTrue = new Float_t[nhistos];
-  Float_t  *sTrue = new Float_t[nhistos];
-  TVectorD **par1  = new TVectorD*[nhistos];
-  TVectorD **par2  = new TVectorD*[nhistos];
-  TMatrixD dummy(3,3);
-  
-  
-  TH1F **h1f = new TH1F*[nhistos];
-  TF1  *myg = new TF1("myg","gaus");
-  TF1  *fit = new TF1("fit","gaus");
-  gRandom->SetSeed(0);
-  
-  //init
-  for (Int_t i=0;i<nhistos; i++){
-    par1[i] = new TVectorD(3);
-    par2[i] = new TVectorD(3);
-    h1f[i]  = new TH1F(Form("h1f%d",i),Form("h1f%d",i),20,-10,10);
-    xTrue[i]= gRandom->Rndm();
-    gSystem->Sleep(2);
-    sTrue[i]= .75+gRandom->Rndm()*.5;
-    myg->SetParameters(1,xTrue[i],sTrue[i]);
-    h1f[i]->FillRandom("myg");
-  }
-  
-  TStopwatch s;
-  s.Start();
-  //standard gaus fit
-  for (Int_t i=0; i<nhistos; i++){
-    h1f[i]->Fit(fit,"0q");
-    (*par1[i])(0) = fit->GetParameter(0);
-    (*par1[i])(1) = fit->GetParameter(1);
-    (*par1[i])(2) = fit->GetParameter(2);
-  }
-  s.Stop();
-  printf("Gaussian fit\t");
-  s.Print();
-  
-  s.Start();
-  //AliMathBase gaus fit
-  for (Int_t i=0; i<nhistos; i++){
-    AliMathBase::FitGaus(h1f[i]->GetArray()+1,h1f[i]->GetNbinsX(),h1f[i]->GetXaxis()->GetXmin(),h1f[i]->GetXaxis()->GetXmax(),par2[i],&dummy);
-  }
-  
-  s.Stop();
-  printf("Parabolic fit\t");
-  s.Print();
-  //write stream
-  for (Int_t i=0;i<nhistos; i++){
-    Float_t xt  = xTrue[i];
-    Float_t st  = sTrue[i];
-    (*pcstream)<<"data"
-	       <<"xTrue="<<xt
-	       <<"sTrue="<<st
-	       <<"pg.="<<(par1[i])
-	       <<"pa.="<<(par2[i])
-	       <<"\n";
-  }    
-  //delete pointers
-  for (Int_t i=0;i<nhistos; i++){
-    delete par1[i];
-    delete par2[i];
-    delete h1f[i];
-  }
-  delete pcstream;
-  delete []h1f;
-  delete []xTrue;
-  delete []sTrue;
-  //
-  delete []par1;
-  delete []par2;
-
-}
-
-
 
 

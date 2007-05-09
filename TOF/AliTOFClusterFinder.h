@@ -18,7 +18,6 @@ class AliRawReader;
 
 class AliTOFGeometry;
 class AliTOFcluster;
-class AliTOFcalib;
 
 class AliTOFClusterFinder : public TObject
 {
@@ -27,18 +26,16 @@ class AliTOFClusterFinder : public TObject
 
  public:
 
-  AliTOFClusterFinder(AliTOFcalib *calib);
-  AliTOFClusterFinder(AliRunLoader* runLoader, AliTOFcalib *calib);
+  AliTOFClusterFinder();
+  AliTOFClusterFinder(AliRunLoader* runLoader);
   AliTOFClusterFinder(const AliTOFClusterFinder &source); // copy constructor
   AliTOFClusterFinder& operator=(const AliTOFClusterFinder &source); // ass. op.
   virtual ~AliTOFClusterFinder();
 
-  void Digits2RecPoints(TTree* digitsTree, TTree* clusterTree);
   void Digits2RecPoints(Int_t ievt);
   void Digits2RecPoints(AliRawReader *rawReader, TTree *clustersTree);
   void Digits2RecPoints(Int_t ievt, AliRawReader *rawReader);
   void Raw2Digits(Int_t ievt, AliRawReader *rawReader); // temporary solution
-  void Raw2Digits(AliRawReader *rawReader, TTree* digitsTree); 
   void FillRecPoint();
   void ResetRecpoint();
   void Load();
@@ -46,8 +43,6 @@ class AliTOFClusterFinder : public TObject
   void UnLoad();
   void UnLoadClusters();
   void SetVerbose(Int_t Verbose){fVerbose=Verbose;} // To set the verbose level
-  void SetDecoderVersion(Int_t version){fDecoderVersion=version;} // To set the decoder version
-  Bool_t GetDecoderVersion() const {return fDecoderVersion;} // To get the decoder version
 
  protected:
   AliRunLoader *fRunLoader;      // Pointer to Run Loader
@@ -73,12 +68,8 @@ class AliTOFClusterFinder : public TObject
   void  CalibrateRecPoint(); // Apply calibration pars to Clusters
 
   Int_t fVerbose;  //Verbose level (0:no msg, 1:msg, 2:digits in txt files)
-  Bool_t fDecoderVersion;   //setting whether to use the new decoder version 
-                            // -true -> new version
-                            // -false ->old version  (default value!!)
-  AliTOFcalib *fTOFcalib;       // pointer to the TOF calibration info
 
-  ClassDef(AliTOFClusterFinder,3) // To run TOF clustering
+  ClassDef(AliTOFClusterFinder,1) // To run TOF clustering
 };
 #endif
 

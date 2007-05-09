@@ -215,7 +215,6 @@ Bool_t AliExternalTrackParam::CorrectForMaterial
      d*=x0;
      Double_t dE=Bethe(beta2)*d;
      Double_t e=TMath::Sqrt(p2 + mass*mass);
-     if ( TMath::Abs(dE) > 0.3*e ) return kFALSE; //30% energy loss is too much!
      fP4*=(1.- e/p2*dE);
 
      // Approximate energy loss fluctuation (M.Ivanov)
@@ -381,7 +380,7 @@ Double_t p[3], Double_t bz) const {
   //+++++++++++++++++++++++++++++++++++++++++    
   GetXYZ(x);
     
-  if (TMath::Abs(Get1Pt()) < kAlmost0 || TMath::Abs(bz) < kAlmost0Field ){ //straight-line tracks
+  if (TMath::Abs(Get1Pt()) < kAlmost0){ //straight-line tracks
      Double_t unit[3]; GetDirection(unit);
      x[0]+=unit[0]*len;   
      x[1]+=unit[1]*len;   

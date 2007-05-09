@@ -26,7 +26,7 @@
 #include "AliMUONCalibrationData.h"
 #include "AliMUONClusterFinderAZ.h"
 #include "AliMUONClusterReconstructor.h"
-#include "AliMUONRecData.h"
+#include "AliMUONData.h"
 #include "AliMUONDigitCalibrator.h"
 #include "AliMUONEventRecoCombi.h" 
 #include "AliMUONDigitMaker.h"
@@ -56,7 +56,6 @@
 
 #include "TTask.h"
 #include "TStopwatch.h"
-#include "Riostream.h"
 
 /// \cond CLASSIMP
 ClassImp(AliMUONReconstructor)
@@ -71,7 +70,7 @@ AliMUONReconstructor::AliMUONReconstructor()
     fTriggerCircuit(new TClonesArray("AliMUONTriggerCircuit", 234)),
     fTransformer(new AliMUONGeometryTransformer(kTRUE)),
     fSegmentation(0x0),
-    fMUONData(new AliMUONRecData(0x0,"MUON","MUON"))
+    fMUONData(new AliMUONData(0x0,"MUON","MUON"))
 {
 /// Default constructor
 
@@ -334,7 +333,7 @@ void AliMUONReconstructor::Reconstruct(AliRunLoader* runLoader) const
 void AliMUONReconstructor::Reconstruct(AliRunLoader* runLoader, 
                                        AliRawReader* rawReader) const
 {
-/// Recontruct 
+/// Recontruct
 /// \todo add more
 
   //  AliLoader
@@ -396,16 +395,11 @@ void AliMUONReconstructor::Reconstruct(AliRunLoader* runLoader,
     //    AliDebug(1,Form("Making Digit Container for event %d",iEvent));
     //    loader->MakeDigitsContainer();
     //  }
-    // Write digits from raw data on disk
-    if (strstr(GetOption(),"SAVEDIGITS")) {
-	if (!loader->TreeD())fMUONData->GetLoader()->MakeDigitsContainer();
-	fMUONData->MakeBranch("D,GLT");
-	fMUONData->SetTreeAddress("D,GLT");
-	AliInfo("Digits from raw data will be stored.");
-    }
-    else {
-	fMUONData->SetDataContainer("D, GLT");
-    }
+    //  Digits are not stored on disk and created on flight from rawdata.
+    //  In order to write digits on disk the following lines should be uncommented
+    //  fMUONData->MakeBranch("D,GLT");
+    //  fMUONData->SetTreeAddress("D,GLT");
+    fMUONData->SetDataContainer("D, GLT");
     rawTimer.Start(kFALSE);
     fDigitMaker->Raw2Digits(rawReader);
     rawTimer.Stop();
@@ -416,12 +410,10 @@ void AliMUONReconstructor::Reconstruct(AliRunLoader* runLoader,
       calibration->ExecuteTask();
       calibTimer.Stop();
     }
-
-    // Write digits from raw data on disk
-    if (strstr(GetOption(),"SAVEDIGITS")) {
-	fMUONData->Fill("D,GLT");
-	loader->WriteDigits("OVERWRITE");
-    }
+    // Digits are not stored on disk and created on flight from rawdata.
+    // In order to write digits on disk the following lines should be uncommented
+    // fMUONData->Fill("D,GLT");
+    // loader->WriteDigits("OVERWRITE");
     //----------------------- digit2cluster & Trigger2Trigger -------------------
     clusterTimer.Start(kFALSE);
 
@@ -486,8 +478,7 @@ void AliMUONReconstructor::FillESD(AliRunLoader* runLoader, AliESD* esd) const
   Double_t fitFmin, chi2MatchTrigger;
   Double_t xRec, yRec, zRec, bendingSlope, nonBendingSlope, inverseBendingMomentum;
   Double_t xVtx, yVtx, zVtx, bendingSlopeAtVtx, nonBendingSlopeAtVtx, inverseBendingMomentumAtVtx;
-  Int_t matchTrigger;
-  UShort_t hitsPatternInTrigCh;
+  Bool_t matchTrigger;
 
   // setting pointer for tracks, triggertracks & trackparam at vertex
   AliMUONTrack* recTrack = 0;
@@ -564,7 +555,6 @@ void AliMUONReconstructor::FillESD(AliRunLoader* runLoader, AliESD* esd) const
     fitFmin          = recTrack->GetFitFMin();
     matchTrigger     = recTrack->GetMatchTrigger();
     chi2MatchTrigger = recTrack->GetChi2MatchTrigger();
-    hitsPatternInTrigCh = recTrack->GetHitsPatternInTrigCh();
 
     // setting data member of ESD MUON
     // at first station
@@ -586,7 +576,6 @@ void AliMUONReconstructor::FillESD(AliRunLoader* runLoader, AliESD* esd) const
     theESDTrack->SetNHit(nTrackHits);
     theESDTrack->SetMatchTrigger(matchTrigger);
     theESDTrack->SetChi2MatchTrigger(chi2MatchTrigger);
-    theESDTrack->SetHitsPatternInTrigCh(hitsPatternInTrigCh);
 
     // storing ESD MUON Track into ESD Event 
     if (nRecTracks != 0)  

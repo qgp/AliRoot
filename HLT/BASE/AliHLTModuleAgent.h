@@ -1,4 +1,3 @@
-//-*- Mode: C++ -*-
 // @(#) $Id$
 
 #ifndef ALIHLTMODULEAGENT_H
@@ -12,12 +11,6 @@
     @brief  Agent helper class for component libraries.
     @note   The class is used in Offline (AliRoot) context
 */
-
-// see below for class documentation
-// or
-// refer to README to build package
-// or
-// visit http://web.ift.uib.no/~kjeks/doc/alice-hlt   
 
 #include <TObject.h>
 #include <TList.h>

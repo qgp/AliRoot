@@ -241,17 +241,10 @@ Int_t AliTOFtracker::PropagateBack(AliESD* event) {
     AliESDtrack *t=event->GetTrack(i);
     AliESDtrack *seed =(AliESDtrack*)fSeeds->UncheckedAt(i);
     if(seed->GetTOFsignal()>0){
-      Float_t info[10];
-      seed->GetTOFInfo(info);
       t->SetTOFsignal(seed->GetTOFsignal());
       t->SetTOFcluster(seed->GetTOFcluster());
       t->SetTOFsignalToT(seed->GetTOFsignalToT());
       t->SetTOFCalChannel(seed->GetTOFCalChannel());
-      AliDebug(2,Form(" Setting TOF info: %f %f %f = ",info[0],info[1],info[2]));    
-      t->SetTOFInfo(info);
-
-      t->GetTOFInfo(info);
-      AliDebug(2,Form(" Getting again TOF info: %f %f %f = ",info[0],info[1],info[2]));    
       Int_t tlab[3]; seed->GetTOFLabel(tlab);    
       t->SetTOFLabel(tlab);
       AliTOFtrack *track = new AliTOFtrack(*seed); 
@@ -300,9 +293,6 @@ Int_t AliTOFtracker::PropagateBack(AliESD* event) {
 //_________________________________________________________________________
 void AliTOFtracker::CollectESD() {
    //prepare the set of ESD tracks to be matched to clusters in TOF
-
-  Int_t seedsTOF1=0;
-  Int_t seedsTOF2=0;
  
   fTracks= new TClonesArray("AliTOFtrack");
   TClonesArray &aTOFTrack = *fTracks;
@@ -311,7 +301,7 @@ void AliTOFtracker::CollectESD() {
     AliESDtrack *t =(AliESDtrack*)fSeeds->UncheckedAt(i);
     if ((t->GetStatus()&AliESDtrack::kTPCout)==0)continue;
 
-    // TRD 'good' tracks, already propagated at 371 cm
+    // TRD good tracks, already propagated at 371 cm
 
     AliTOFtrack *track = new AliTOFtrack(*t); // New
     Double_t x = track->GetX(); //New
@@ -322,7 +312,6 @@ void AliTOFtracker::CollectESD() {
       t->UpdateTrackParams(track,AliESDtrack::kTOFout);    
       new(aTOFTrack[fNseedsTOF]) AliTOFtrack(*track);
       fNseedsTOF++;
-      seedsTOF1++;
       delete track;
     }
 
@@ -334,15 +323,12 @@ void AliTOFtracker::CollectESD() {
 	t->UpdateTrackParams(track,AliESDtrack::kTOFout);    
  	new(aTOFTrack[fNseedsTOF]) AliTOFtrack(*track);
 	fNseedsTOF++;
-	seedsTOF2++;
       }
       delete track;
     }
   }
 
-  AliInfo(Form("Number of TOF seeds %i",fNseedsTOF));
-  AliInfo(Form("Number of TOF seeds Type 1 %i",seedsTOF1));
-  AliInfo(Form("Number of TOF seeds Type 2 %i",seedsTOF2));
+  AliInfo(Form("Number of TOF seedds %i",fNseedsTOF));
 
   // Sort according uncertainties on track position 
   fTracks->Sort();
@@ -356,7 +342,6 @@ void AliTOFtracker::MatchTracks( Bool_t mLastStep){
 
   static Float_t corrLen=0.75;
   static Float_t detDepth=15.3;
-  static Float_t padDepth=0.5;
 
   Float_t dY=fGeom->XPad(); 
   Float_t dZ=fGeom->ZPad(); 
@@ -516,10 +501,9 @@ void AliTOFtracker::MatchTracks( Bool_t mLastStep){
 
 
     Int_t nfound = 0;
-    Bool_t accept = kFALSE;
-    Bool_t isInside =kFALSE;
     for (Int_t istep=0; istep<nStepsDone; istep++) {
 
+      Bool_t isInside =kFALSE;
       Float_t ctrackPos[3];	
 
       ctrackPos[0]= trackPos[0][istep];
@@ -528,8 +512,6 @@ void AliTOFtracker::MatchTracks( Bool_t mLastStep){
 
       //now see whether the track matches any of the TOF clusters            
 
-      Float_t dist3d[3];
-      accept=kFALSE;
       for (Int_t i=0; i<nc; i++){
 	Int_t cind[5];
 	cind[0]= clind[0][i];
@@ -537,27 +519,24 @@ void AliTOFtracker::MatchTracks( Bool_t mLastStep){
 	cind[2]= clind[2][i];
 	cind[3]= clind[3][i];
 	cind[4]= clind[4][i];
-        isInside=fGeom->IsInsideThePad(global[i],ctrackPos,dist3d);
-
-        if( mLastStep){
-          Float_t xLoc=dist3d[0];
-          Float_t rLoc=TMath::Sqrt(dist3d[1]*dist3d[1]+dist3d[2]*dist3d[2]);
-	  accept = (TMath::Abs(xLoc)<padDepth*0.5 && rLoc<dCut);
-	}
-	else{
-	  accept = isInside;
-	}
+        Bool_t accept = kFALSE;
+	if( mLastStep)accept = (fGeom->DistanceToPad(cind,global[i],ctrackPos)<dCut);
+	if(!mLastStep)accept = (fGeom->IsInsideThePad(cind,global[i],ctrackPos));
 	if(accept){
-	  dist[nfound]=TMath::Sqrt(dist3d[0]*dist3d[0]+dist3d[1]*dist3d[1]+dist3d[2]*dist3d[2]);
+	  if(!mLastStep)isInside=kTRUE;
+          Float_t dist3d[3];
+	  dist[nfound]=fGeom->DistanceToPad(cind,global[i],ctrackPos,dist3d);
 	  distZ[nfound]=dist3d[2];
 	  crecL[nfound]=trackPos[3][istep];
 	  index[nfound]=clind[5][i]; // store cluster id 	    
 	  cxpos[nfound]=fGeom->RinTOF()+istep*0.1; //store prop.radius
 	  nfound++;
-	  if(accept &&!mLastStep)break;
+	  if(isInside)break;
 	}//end if accept
       } //end for on the clusters
-      if(accept &&!mLastStep)break;
+
+
+      if(isInside)break;
     } //end for on the steps     
 
 
@@ -586,7 +565,6 @@ void AliTOFtracker::MatchTracks( Bool_t mLastStep){
         recL=crecL[iclus]+corrLen*0.5;
       }
     }
-
 
     AliTOFcluster *c=fClusters[idclus];
     c->Use(); 
@@ -626,10 +604,6 @@ void AliTOFtracker::MatchTracks( Bool_t mLastStep){
     //  Store quantities to be used in the TOF Calibration
     Float_t tToT=fGeom->ToTBinWidth()*c->GetToT()*1E-3; // in ns
     t->SetTOFsignalToT(tToT);
-    Float_t rawTime=fGeom->TdcBinWidth()*c->GetTDCRAW()+32; // RAW time,in ps
-    Float_t info[10];
-    info[0]=rawTime;
-    info[1]=mindistZ;
     Int_t ind[5];
     ind[0]=c->GetDetInd(0);
     ind[1]=c->GetDetInd(1);
@@ -644,24 +618,11 @@ void AliTOFtracker::MatchTracks( Bool_t mLastStep){
     tlab[0]=c->GetLabel(0);
     tlab[1]=c->GetLabel(1);
     tlab[2]=c->GetLabel(2);
-    AliDebug(2,Form(" tdc time of the matched track %i = ",c->GetTDC()));    
+    
     Double_t tof=fGeom->TdcBinWidth()*c->GetTDC()+32; // in ps
-    AliDebug(2,Form(" tof time of the matched track: %f = ",tof));    
-    info[2]=tof;
-    AliDebug(2,Form(" Setting TOF info. raw time: %f  z distance: %f time: %f = ",info[0],info[1],info[2]));    
-    t->SetTOFInfo(info);
-
-    Double_t tofcorr=tof;
-    if(timeWalkCorr)tofcorr=CorrectTimeWalk(mindistZ,tof);
-    AliDebug(2,Form(" tof time of the matched track, after TW corr: %f = ",tofcorr));    
-    //Set TOF time signal and pointer to the matched cluster
-    t->SetTOFsignal(tofcorr);
+    if(timeWalkCorr)tof=CorrectTimeWalk(mindistZ,tof);
+    t->SetTOFsignal(tof);
     t->SetTOFcluster(idclus); // pointing to the recPoints tree
-
-    //Auxiliary info...
-
-
-    //Tracking info
     Double_t time[AliPID::kSPECIES]; t->GetIntegratedTimes(time);
     Double_t mom=t->GetP();
     for(Int_t j=0;j<AliPID::kSPECIES;j++){
@@ -675,8 +636,6 @@ void AliTOFtracker::MatchTracks( Bool_t mLastStep){
     t->SetIntegratedLength(recL);
     t->SetIntegratedTimes(time);
     t->SetTOFLabel(tlab);
-
- 
     // Fill Reco-QA histos for Reconstruction
     fHRecNClus->Fill(nc);
     fHRecDist->Fill(mindist);
@@ -688,9 +647,10 @@ void AliTOFtracker::MatchTracks( Bool_t mLastStep){
     // Fill Tree for on-the-fly offline Calibration
 
     if ( !((t->GetStatus() & AliESDtrack::kTIME)==0 )){    
+      Float_t rawtime=fGeom->TdcBinWidth()*c->GetTDCRAW()+32; // RAW time,in ps
       fIch=calindex;
       fToT=tToT;
-      fTime=rawTime;
+      fTime=rawtime;
       fExpTimePi=time[2];
       fExpTimeKa=time[3];
       fExpTimePr=time[4];
@@ -972,14 +932,14 @@ Float_t AliTOFtracker::CorrectTimeWalk( Float_t dist, Float_t tof) {
   return tofcorr;
 }
 //_________________________________________________________________________
-Float_t AliTOFtracker::GetTimeZerofromT0(AliESD *event) const {
+Float_t AliTOFtracker::GetTimeZerofromT0(AliESD *event) {
 
   //Returns TimeZero as measured by T0 detector
 
   return event->GetT0();
 }
 //_________________________________________________________________________
-Float_t AliTOFtracker::GetTimeZerofromTOF(AliESD * /*event*/) const {
+Float_t AliTOFtracker::GetTimeZerofromTOF(AliESD *event) {
 
   //dummy, for the moment. T0 algorithm using tracks on TOF
   {

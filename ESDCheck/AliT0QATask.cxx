@@ -142,17 +142,13 @@ void AliT0QATask::Terminate(Option_t *)
   fhT02 = (TH1F*)fOutputContainer->At(1);
   fhT03 = (TH1F*)fOutputContainer->At(2);
 
-  Bool_t problem = kFALSE ; 
-  AliInfo(Form(" *** %s Report:", GetName())) ; 
-
   Float_t mean = fhT02->GetMean();
 
   printf ("mean time T0 ps %f\n", mean) ;
 
-  if ( mean > 12600 || mean < 12400 ) {
+  if ( mean > 12600 || mean < 12400 ) 
    AliWarning (" !!!!!!!!!!-----events sample is WRONG - T0 unreal -------");  
-   problem = kTRUE ;
-  }
+
   TCanvas  * cTO1 = new TCanvas("cT01", "T0 ESD Test", 400, 10, 600, 700) ;
   cTO1->Divide(2, 2) ;
 
@@ -169,18 +165,10 @@ void AliT0QATask::Terminate(Option_t *)
   cTO1->Print("T0.eps");
 
   char line[1024] ; 
-  sprintf(line, ".!tar -zcf %s.tar.gz *.eps", GetName()) ; 
+  sprintf(line, ".!tar -zcvf %s.tar.gz *.eps", GetName()) ; 
   gROOT->ProcessLine(line);
   sprintf(line, ".!rm -fR *.eps"); 
   gROOT->ProcessLine(line);
  
-  AliInfo(Form("!!! All the eps files are in %s.tar.gz !!!", GetName())) ;
-
-  char * report ; 
-  if(problem)
-    report="Problems found, please check!!!";  
-  else 
-    report="OK";
-
-  AliInfo(Form("*** %s Summary Report: %s\n",GetName(), report)) ; 
+  AliInfo(Form("!!! All the eps files are in %s.tar.gz !!! \n", GetName())) ;
 }

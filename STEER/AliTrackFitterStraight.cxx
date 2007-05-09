@@ -228,7 +228,7 @@ void AliTrackFitterStraight::AddPoint(Float_t x, Float_t y, Float_t z, Float_t s
   fSumZZ += z*z*weight;
 }
 
-Bool_t AliTrackFitterStraight::Update(){
+void AliTrackFitterStraight::Update(){
   //
   //  Track fitter update
   //
@@ -287,8 +287,6 @@ Bool_t AliTrackFitterStraight::Update(){
     fConv =kTRUE;
   else
     fConv=kFALSE;
-
-  return kTRUE;
 }
 
 Double_t AliTrackFitterStraight::GetYat(Double_t x) const {

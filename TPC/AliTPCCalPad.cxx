@@ -28,10 +28,6 @@
 #include <TGraph.h>
 #include <TGraph2D.h>
 #include <TH2F.h>
-#include "TTreeStream.h"
-#include "TFile.h"
-#include "TKey.h"
-
 ClassImp(AliTPCCalPad)
 
 //_____________________________________________________________________________
@@ -67,11 +63,8 @@ AliTPCCalPad::AliTPCCalPad(const AliTPCCalPad &c):TNamed(c)
   // AliTPCCalPad copy constructor
   //
 
-  for (Int_t isec = 0; isec < kNsec; isec++) {
-         fROC[isec] = 0;
-     if (c.fROC[isec])
-       fROC[isec] = new AliTPCCalROC(*(c.fROC[isec]));
-  }
+  ((AliTPCCalPad &) c).Copy(*this);
+
 }
 
 //_____________________________________________________________________________
@@ -261,7 +254,7 @@ Double_t AliTPCCalPad::GetMeanRMS(Double_t &rms)
 
 
 //_____________________________________________________________________________
-Double_t AliTPCCalPad::GetMean(AliTPCCalPad* outlierPad)
+Double_t AliTPCCalPad::GetMean()
 {
     //
     // return mean of the mean of all ROCs
@@ -269,19 +262,17 @@ Double_t AliTPCCalPad::GetMean(AliTPCCalPad* outlierPad)
     Double_t arr[kNsec];
     Int_t n=0;
     for (Int_t isec = 0; isec < kNsec; isec++) {
-       AliTPCCalROC *calRoc = fROC[isec];
-       if ( calRoc ){
-          AliTPCCalROC* outlierROC = 0;
-          if (outlierPad) outlierROC = outlierPad->GetCalROC(isec);
-	       arr[n] = calRoc->GetMean(outlierROC);
-          n++;
-       }
+        AliTPCCalROC *calRoc = fROC[isec];
+	if ( calRoc ){
+	    arr[n] = calRoc->GetMean();
+            n++;
+	}
     }
     return TMath::Mean(n,arr);
 }
 
 //_____________________________________________________________________________
-Double_t AliTPCCalPad::GetRMS(AliTPCCalPad* outlierPad)
+Double_t AliTPCCalPad::GetRMS()
 {
     //
     // return mean of the RMS of all ROCs
@@ -289,19 +280,17 @@ Double_t AliTPCCalPad::GetRMS(AliTPCCalPad* outlierPad)
     Double_t arr[kNsec];
     Int_t n=0;
     for (Int_t isec = 0; isec < kNsec; isec++) {
-       AliTPCCalROC *calRoc = fROC[isec];
-       if ( calRoc ){
-          AliTPCCalROC* outlierROC = 0;
-          if (outlierPad) outlierROC = outlierPad->GetCalROC(isec);
-          arr[n] = calRoc->GetRMS(outlierROC);
-          n++;
-       }
+        AliTPCCalROC *calRoc = fROC[isec];
+	if ( calRoc ){
+	    arr[n] = calRoc->GetRMS();
+            n++;
+	}
     }
     return TMath::Mean(n,arr);
 }
 
 //_____________________________________________________________________________
-Double_t AliTPCCalPad::GetMedian(AliTPCCalPad* outlierPad)
+Double_t AliTPCCalPad::GetMedian()
 {
     //
     // return mean of the median of all ROCs
@@ -309,19 +298,17 @@ Double_t AliTPCCalPad::GetMedian(AliTPCCalPad* outlierPad)
     Double_t arr[kNsec];
     Int_t n=0;
     for (Int_t isec = 0; isec < kNsec; isec++) {
-       AliTPCCalROC *calRoc = fROC[isec];
-       if ( calRoc ){
-          AliTPCCalROC* outlierROC = 0;
-          if (outlierPad) outlierROC = outlierPad->GetCalROC(isec);
-          arr[n] = calRoc->GetMedian(outlierROC);
-          n++;
-       }
+        AliTPCCalROC *calRoc = fROC[isec];
+	if ( calRoc ){
+	    arr[n] = calRoc->GetMedian();
+            n++;
+	}
     }
     return TMath::Mean(n,arr);
 }
 
 //_____________________________________________________________________________
-Double_t AliTPCCalPad::GetLTM(Double_t *sigma, Double_t fraction, AliTPCCalPad* outlierPad)
+Double_t AliTPCCalPad::GetLTM(Double_t *sigma, Double_t fraction)
 {
     //
     // return mean of the LTM and sigma of all ROCs
@@ -335,9 +322,7 @@ Double_t AliTPCCalPad::GetLTM(Double_t *sigma, Double_t fraction, AliTPCCalPad* 
         AliTPCCalROC *calRoc = fROC[isec];
 	if ( calRoc ){
 	    if ( sigma ) sTemp=arrs+n;
-       AliTPCCalROC* outlierROC = 0;
-       if (outlierPad) outlierROC = outlierPad->GetCalROC(isec);
-	    arrm[n] = calRoc->GetLTM(sTemp,fraction, outlierROC);
+	    arrm[n] = calRoc->GetLTM(sTemp,fraction);
             n++;
 	}
     }
@@ -425,206 +410,5 @@ TH2F *AliTPCCalPad::MakeHisto2D(Int_t side){
   return his;
 }
 
-
-
-
-void AliTPCCalPad::MakeTree(const char * fileName, TObjArray * array, const char * mapFileName, AliTPCCalPad* outlierPad, Float_t ltmFraction) {
-  //
-  // Write tree with all available information
-  //
-   AliTPCROC* tpcROCinstance = AliTPCROC::Instance();
-
-   TObjArray* mapIROCs = 0;
-   TObjArray* mapOROCs = 0;
-   TVectorF *mapIROCArray = 0;
-   TVectorF *mapOROCArray = 0;
-   Int_t mapEntries = 0;
-   TString* mapNames = 0;
-   
-   if (mapFileName) {
-      TFile mapFile(mapFileName, "read");
-      
-      TList* listOfROCs = mapFile.GetListOfKeys();
-      mapEntries = listOfROCs->GetEntries()/2;
-      mapIROCs = new TObjArray(mapEntries*2);
-      mapOROCs = new TObjArray(mapEntries*2);
-      mapIROCArray = new TVectorF[mapEntries];
-      mapOROCArray = new TVectorF[mapEntries];
-      
-      mapNames = new TString[mapEntries];
-      for (Int_t ivalue = 0; ivalue < mapEntries; ivalue++) {
-         TString ROCname(((TKey*)(listOfROCs->At(ivalue*2)))->GetName());
-         ROCname.Remove(ROCname.Length()-4, 4);
-         mapIROCs->AddAt((AliTPCCalROC*)mapFile.Get((ROCname + "IROC").Data()), ivalue);
-         mapOROCs->AddAt((AliTPCCalROC*)mapFile.Get((ROCname + "OROC").Data()), ivalue);
-         mapNames[ivalue].Append(ROCname);
-      }
-      
-      for (Int_t ivalue = 0; ivalue < mapEntries; ivalue++) {
-         mapIROCArray[ivalue].ResizeTo(tpcROCinstance->GetNChannels(0));
-         mapOROCArray[ivalue].ResizeTo(tpcROCinstance->GetNChannels(36));
-      
-         for (UInt_t ichannel = 0; ichannel < tpcROCinstance->GetNChannels(0); ichannel++)
-            (mapIROCArray[ivalue])[ichannel] = ((AliTPCCalROC*)(mapIROCs->At(ivalue)))->GetValue(ichannel);
-         for (UInt_t ichannel = 0; ichannel < tpcROCinstance->GetNChannels(36); ichannel++)
-            (mapOROCArray[ivalue])[ichannel] = ((AliTPCCalROC*)(mapOROCs->At(ivalue)))->GetValue(ichannel);
-      }
-
-   } //  if (mapFileName)
-  
-   TTreeSRedirector cstream(fileName);
-   Int_t arrayEntries = array->GetEntries();
-   
-   TString* names = new TString[arrayEntries];
-   for (Int_t ivalue = 0; ivalue < arrayEntries; ivalue++)
-      names[ivalue].Append(((AliTPCCalPad*)array->At(ivalue))->GetName());
-
-   for (UInt_t isector = 0; isector < tpcROCinstance->GetNSectors(); isector++) {
-      //
-      // get statistic for given sector
-      //
-      TVectorF median(arrayEntries);
-      TVectorF mean(arrayEntries);
-      TVectorF rms(arrayEntries);
-      TVectorF ltm(arrayEntries);
-      TVectorF ltmrms(arrayEntries);
-      TVectorF medianWithOut(arrayEntries);
-      TVectorF meanWithOut(arrayEntries);
-      TVectorF rmsWithOut(arrayEntries);
-      TVectorF ltmWithOut(arrayEntries);
-      TVectorF ltmrmsWithOut(arrayEntries);
-      
-      TVectorF *vectorArray = new TVectorF[arrayEntries];
-      for (Int_t ivalue = 0; ivalue < arrayEntries; ivalue++)
-         vectorArray[ivalue].ResizeTo(tpcROCinstance->GetNChannels(isector));
-      
-      for (Int_t ivalue = 0; ivalue < arrayEntries; ivalue++) {
-         AliTPCCalPad* calPad = (AliTPCCalPad*) array->At(ivalue);
-         AliTPCCalROC* calROC = calPad->GetCalROC(isector);
-         AliTPCCalROC* outlierROC = 0;
-         if (outlierPad) outlierROC = outlierPad->GetCalROC(isector);
-         if (calROC) {
-            median[ivalue] = calROC->GetMedian();
-            mean[ivalue] = calROC->GetMean();
-            rms[ivalue] = calROC->GetRMS();
-            Double_t ltmrmsValue = 0;
-            ltm[ivalue] = calROC->GetLTM(&ltmrmsValue, ltmFraction);
-            ltmrms[ivalue] = ltmrmsValue;
-            if (outlierROC) {
-               medianWithOut[ivalue] = calROC->GetMedian(outlierROC);
-               meanWithOut[ivalue] = calROC->GetMean(outlierROC);
-               rmsWithOut[ivalue] = calROC->GetRMS(outlierROC);
-               ltmrmsValue = 0;
-               ltmWithOut[ivalue] = calROC->GetLTM(&ltmrmsValue, ltmFraction, outlierROC);
-               ltmrmsWithOut[ivalue] = ltmrmsValue;
-            }
-         }
-         else {
-            median[ivalue] = 0.;
-            mean[ivalue] = 0.;
-            rms[ivalue] = 0.;
-            ltm[ivalue] = 0.;
-            ltmrms[ivalue] = 0.;
-            medianWithOut[ivalue] = 0.;
-            meanWithOut[ivalue] = 0.;
-            rmsWithOut[ivalue] = 0.;
-            ltmWithOut[ivalue] = 0.;
-            ltmrmsWithOut[ivalue] = 0.;
-         }
-      }
-      
-      //
-      // fill vectors of variable per pad
-      //
-      TVectorF *posArray = new TVectorF[6];
-      for (Int_t ivalue = 0; ivalue < 6; ivalue++)
-         posArray[ivalue].ResizeTo(tpcROCinstance->GetNChannels(isector));
-
-      Float_t posG[3] = {0};
-      Float_t posL[3] = {0};
-      Int_t ichannel = 0;
-      for (UInt_t irow = 0; irow < tpcROCinstance->GetNRows(isector); irow++) {
-         for (UInt_t ipad = 0; ipad < tpcROCinstance->GetNPads(isector, irow); ipad++) {
-            tpcROCinstance->GetPositionLocal(isector, irow, ipad, posL);
-            tpcROCinstance->GetPositionGlobal(isector, irow, ipad, posG);
-            posArray[0][ichannel] = irow;
-            posArray[1][ichannel] = ipad;
-            posArray[2][ichannel] = posL[0];
-            posArray[3][ichannel] = posL[1];
-            posArray[4][ichannel] = posG[0];
-            posArray[5][ichannel] = posG[1];
-            
-            // loop over array containing AliTPCCalPads
-            for (Int_t ivalue = 0; ivalue < arrayEntries; ivalue++) {
-               AliTPCCalPad* calPad = (AliTPCCalPad*) array->At(ivalue);
-               AliTPCCalROC* calROC = calPad->GetCalROC(isector);
-               if (calROC)
-                  (vectorArray[ivalue])[ichannel] = calROC->GetValue(irow, ipad);
-               else
-                  (vectorArray[ivalue])[ichannel] = 0;
-            }
-            ichannel++;
-         }
-      }
-      
-      cstream << "calPads" <<
-         "sector=" << isector;
-      
-      for  (Int_t ivalue = 0; ivalue < arrayEntries; ivalue++) {
-         cstream << "calPads" <<
-            (Char_t*)((names[ivalue] + "_Median=").Data()) << median[ivalue] <<
-            (Char_t*)((names[ivalue] + "_Mean=").Data()) << mean[ivalue] <<
-            (Char_t*)((names[ivalue] + "_RMS=").Data()) << rms[ivalue] <<
-            (Char_t*)((names[ivalue] + "_LTM=").Data()) << ltm[ivalue] <<
-            (Char_t*)((names[ivalue] + "_RMS_LTM=").Data()) << ltmrms[ivalue];
-         if (outlierPad) {
-            cstream << "calPads" <<
-               (Char_t*)((names[ivalue] + "_Median_OutlierCutted=").Data()) << medianWithOut[ivalue] <<
-               (Char_t*)((names[ivalue] + "_Mean_OutlierCutted=").Data()) << meanWithOut[ivalue] <<
-               (Char_t*)((names[ivalue] + "_RMS_OutlierCutted=").Data()) << rmsWithOut[ivalue] <<
-               (Char_t*)((names[ivalue] + "_LTM_OutlierCutted=").Data()) << ltmWithOut[ivalue] <<
-               (Char_t*)((names[ivalue] + "_RMS_LTM_OutlierCutted=").Data()) << ltmrmsWithOut[ivalue];
-         }
-      }
-
-      for  (Int_t ivalue = 0; ivalue < arrayEntries; ivalue++) {
-         cstream << "calPads" <<
-            (Char_t*)((names[ivalue] + ".=").Data()) << &vectorArray[ivalue];
-      }
-
-      if (mapFileName) {
-         for  (Int_t ivalue = 0; ivalue < mapEntries; ivalue++) {
-            if (isector < 36)
-               cstream << "calPads" <<
-                  (Char_t*)((mapNames[ivalue] + ".=").Data()) << &mapIROCArray[ivalue];
-            else
-               cstream << "calPads" <<
-                  (Char_t*)((mapNames[ivalue] + ".=").Data()) << &mapOROCArray[ivalue];
-         }
-      }
-
-      cstream << "calPads" <<
-         "row.=" << &posArray[0] <<
-         "pad.=" << &posArray[1] <<
-         "lx.=" << &posArray[2] <<
-         "ly.=" << &posArray[3] <<
-         "gx.=" << &posArray[4] <<
-         "gy.=" << &posArray[5];
-         
-      cstream << "calPads" <<
-         "\n";
-
-      delete[] posArray;
-      delete[] vectorArray;
-   }
-   delete[] names;
-   if (mapFileName) {
-      delete mapIROCs;
-      delete mapOROCs;
-      delete[] mapIROCArray;
-      delete[] mapOROCArray;
-      delete[] mapNames;
-   }
-}
 
 

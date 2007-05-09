@@ -8,7 +8,6 @@
 
 #if !defined( __CINT__) || defined(__MAKECINT__)
   #include <Riostream.h>
-  #include <TROOT.h>
   #include <TTree.h>
   #include <TFile.h>
   #include <TH1F.h>
@@ -17,8 +16,6 @@
   #include "AliESD.h"
 
 #endif
-
-extern TROOT *gROOT;
 
 Int_t AliESDv0Analysis(const Char_t *dir=".") { 
    TH1F *hm=(TH1F*)gROOT->FindObject("hm");
@@ -43,8 +40,7 @@ Int_t AliESDv0Analysis(const Char_t *dir=".") {
 
    //****** Tentative particle type "concentrations"
    Double_t c[5]={0.0, 0.0, 1, 0, 1};
-   AliPID pid;
-   pid.SetPriors(c);
+   AliPID::SetPriors(c);
 
    //******* The loop over events
     while (tree->GetEvent(n)) {
@@ -77,7 +73,7 @@ Int_t AliESDv0Analysis(const Char_t *dir=".") {
        // Check if the "proton track" is a proton
        if ((protonTrk->GetStatus()&AliESDtrack::kESDpid)!=0) {
 	 Double_t r[10]; protonTrk->GetESDpid(r);
-         pid.SetProbabilities(r);
+         AliPID pid(r);
          Double_t pp=pid.GetProbability(AliPID::kProton);
          if (pp < pid.GetProbability(AliPID::kElectron)) continue;
          if (pp < pid.GetProbability(AliPID::kMuon)) continue;
@@ -88,7 +84,7 @@ Int_t AliESDv0Analysis(const Char_t *dir=".") {
        //Check if the "pion track" is a pion
        if ((pionTrk->GetStatus()&AliESDtrack::kESDpid)!=0) {
 	 Double_t r[10]; pionTrk->GetESDpid(r);
-         pid.SetProbabilities(r);
+         AliPID pid(r);
          Double_t ppi=pid.GetProbability(AliPID::kPion);
          if (ppi < pid.GetProbability(AliPID::kElectron)) continue;
          if (ppi < pid.GetProbability(AliPID::kMuon)) continue;

@@ -22,13 +22,6 @@ class AliMathBase : public TObject
   static  void TruncatedMean(TH1F * his, TVectorD *param, Float_t down=0, Float_t up=1.0, Bool_t verbose=kFALSE);
   static void LTM(TH1F * his, TVectorD *param=0 , Float_t fraction=1,  Bool_t verbose=kFALSE);
   static Double_t  FitGaus(TH1F* his, TVectorD *param=0, TMatrixD *matrix=0, Float_t xmin=0, Float_t xmax=0,  Bool_t verbose=kFALSE);
-  static Double_t  FitGaus(Float_t *arr, Int_t nBins, Float_t xMin, Float_t xMax, TVectorD *param=0, TMatrixD *matrix=0, Bool_t verbose=kFALSE);
-  static Float_t  GetCOG(Short_t *arr, Int_t nBins, Float_t xMin, Float_t xMax, Float_t *rms=0, Float_t *sum=0);
-
-  //
-  // TestFunctions:
-  //
- static  void TestGausFit(Int_t nhistos=5000);
     
  ClassDef(AliMathBase,0) // Various mathematical tools for physics analysis - which are not included in ROOT TMath
  

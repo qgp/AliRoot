@@ -17,8 +17,8 @@ class AliITSPreprocessorSDD : public AliPreprocessor {
 
  public:
  
-  AliITSPreprocessorSDD( AliShuttleInterface* shuttle):
-    AliPreprocessor("SDD", shuttle){}
+  AliITSPreprocessorSDD(const char* detector, AliShuttleInterface* shuttle):
+    AliPreprocessor(detector,shuttle){SetName("SDD");}
   virtual ~AliITSPreprocessorSDD(){;}
 
 
@@ -31,7 +31,6 @@ class AliITSPreprocessorSDD : public AliPreprocessor {
 
   static const Int_t fgkNumberOfSDD;       // number of SDD modules 
   static const Int_t fgkNumberOfChannels;  // number of channels per module
-    static const Int_t fgkNumberOfChannelsPerChip;    // Number of channels/chip
   static const TString fgkNameHistoPedestals; //name of ped. histo
   static const TString fgkNameHistoNoise;  //name of noise histo
   ClassDef(AliITSPreprocessorSDD,2)  // Alice ITS-SDD preprocessor.

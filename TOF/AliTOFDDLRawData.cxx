@@ -15,12 +15,6 @@
 
 /*
 $Log$
-Revision 1.15  2007/04/23 16:51:39  decaro
-Digits-to-raw_data conversion: correction for a more real description (A.De Caro, R.Preghenella)
-
-Revision 1.14  2007/03/28 10:50:33  decaro
-Rounding off problem in rawData coding/decoding: solved
-
 Revision 1.13  2007/02/20 15:57:00  decaro
 Raw data update: to read the TOF raw data defined in UNPACKED mode
 
@@ -84,8 +78,6 @@ AliTOFDDLRawData::AliTOFDDLRawData():
   fVerbose(0),
   fIndex(-1),
   fPackedAcquisition(kTRUE),
-  fFakeOrphaneProduction(kFALSE),
-  fMatchingWindow(8192),
   fTOFgeometry(0),
   fTOFdigitMap(new AliTOFDigitMap()),
   fTOFdigitArray(0x0),
@@ -99,8 +91,6 @@ AliTOFDDLRawData::AliTOFDDLRawData(AliTOFGeometry *tofGeom):
   fVerbose(0),
   fIndex(-1),
   fPackedAcquisition(kTRUE),
-  fFakeOrphaneProduction(kFALSE),
-  fMatchingWindow(8192),
   fTOFgeometry(tofGeom),
   fTOFdigitMap(new AliTOFDigitMap()),
   fTOFdigitArray(0x0),
@@ -116,8 +106,6 @@ AliTOFDDLRawData::AliTOFDDLRawData(const AliTOFDDLRawData &source) :
   fVerbose(0),
   fIndex(-1),
   fPackedAcquisition(kTRUE),
-  fFakeOrphaneProduction(kFALSE),
-  fMatchingWindow(8192),
   fTOFgeometry(0),
   fTOFdigitMap(new AliTOFDigitMap()),
   fTOFdigitArray(0x0),
@@ -127,8 +115,6 @@ AliTOFDDLRawData::AliTOFDDLRawData(const AliTOFDDLRawData &source) :
   this->fIndex=source.fIndex;
   this->fVerbose=source.fVerbose;
   this->fPackedAcquisition=source.fPackedAcquisition;
-  this->fFakeOrphaneProduction=source.fFakeOrphaneProduction;
-  this->fMatchingWindow=source.fMatchingWindow;
   this->fTOFgeometry=source.fTOFgeometry;
   this->fTOFdigitMap=source.fTOFdigitMap;
   this->fTOFdigitArray=source.fTOFdigitArray;
@@ -142,8 +128,6 @@ AliTOFDDLRawData& AliTOFDDLRawData::operator=(const AliTOFDDLRawData &source) {
   this->fIndex=source.fIndex;
   this->fVerbose=source.fVerbose;
   this->fPackedAcquisition=source.fPackedAcquisition;
-  this->fFakeOrphaneProduction=source.fFakeOrphaneProduction;
-  this->fMatchingWindow=source.fMatchingWindow;
   this->fTOFgeometry=source.fTOFgeometry;
   this->fTOFdigitMap=source.fTOFdigitMap;
   this->fTOFdigitArray=source.fTOFdigitArray;
@@ -908,11 +892,6 @@ void AliTOFDDLRawData::MakeTDCdigits(Int_t nDDL, Int_t nTRM, Int_t iChain,
   Int_t nTDC = -1;
   Int_t iCH = -1;
 
-  //Int_t numberOfMeasuresPerChannel = 0;
-  //Int_t maxMeasuresPerChannelInTDC = 0;
-
-  Bool_t outOut = HeadOrTail();
-
   ofstream ftxt;
 
   if (fVerbose==2) ftxt.open("TOFdigits.txt",ios::app);
@@ -929,8 +908,6 @@ void AliTOFDDLRawData::MakeTDCdigits(Int_t nDDL, Int_t nTRM, Int_t iChain,
     // loop on TDC channel number
     for (iCH=AliTOFGeometry::NCh()-1; iCH>=0; iCH--) {
 
-      //numberOfMeasuresPerChannel = 0;
-
       fTOFrawStream->EquipmentId2VolumeId(nDDL, nTRM, iChain, nTDC, iCH, volume);
 	
       if (volume[0]==-1 || volume[1]==-1 || volume[2]==-1 ||
@@ -942,18 +919,17 @@ void AliTOFDDLRawData::MakeTDCdigits(Int_t nDDL, Int_t nTRM, Int_t iChain,
 
       if (indexDigit[0]<0) {
 
-	trailingSpurious = Int_t(2097152*gRandom->Rndm());
-	leadingSpurious = Int_t(2097152*gRandom->Rndm());
+	trailingSpurious = Int_t(8192*gRandom->Rndm()) + Int_t(Int_t(256*gRandom->Rndm())*AliTOFGeometry::ToTBinWidth()/AliTOFGeometry::TdcBinWidth());
+	leadingSpurious = Int_t(8192*gRandom->Rndm());
 
-	if ( fFakeOrphaneProduction &&
-	     ( ( fPackedAcquisition && percentFilledCells<0.12 && gRandom->Rndm()<(0.12-percentFilledCells) ) ||
-	       (!fPackedAcquisition && percentFilledCells<0.24 && gRandom->Rndm()<(0.24-percentFilledCells) )  )  ) {
+	if ( ( fPackedAcquisition && percentFilledCells<0.12 && gRandom->Rndm()<(0.12-percentFilledCells)) ||
+	     (!fPackedAcquisition && percentFilledCells<0.24 && gRandom->Rndm()<(0.24-percentFilledCells)) ) {
 
 	  percentFilledCells+=kOneMoreFilledCell;
 
 	  Int_t dummyPS = 0;
 
-	  if (outOut) {
+	  if (HeadOrTail()) {
 	    word = trailingSpurious; // trailing edge measurement
 	    dummyPS = 2;
 	  }
@@ -979,15 +955,12 @@ void AliTOFDDLRawData::MakeTDCdigits(Int_t nDDL, Int_t nTRM, Int_t iChain,
 	    ftxt << "  " << volume[4];
 	    if (volume[3]<10) ftxt << "  " << volume[3];
 	    else              ftxt << " " << volume[3];
-	    ftxt << "   " << -1;
-	    if (word<10)                           ftxt << "        " << word;
-	    else if (word>=10     && word<100)     ftxt << "       " << word;
-	    else if (word>=100    && word<1000)    ftxt << "      " << word;
-	    else if (word>=1000   && word<10000)   ftxt << "     " << word;
-	    else if (word>=10000  && word<100000)  ftxt << "    " << word;
-	    else if (word>=100000 && word<1000000) ftxt << "   " << word;
-	    else                                   ftxt << "  " << word;
-	    ftxt << "   " << dummyPS << endl;
+	    ftxt << "       " << -1;
+	    if (word<10)                     ftxt << "      " << word;// << endl;
+	    else if (word>=10 && word<100)   ftxt << "     " << word;// << endl;
+	    else if (word>=100 && word<1000) ftxt << "    " << word;// << endl;
+	    else                             ftxt << "   " << word;// << endl;
+	    ftxt << "       " << dummyPS << endl;
 	  }
 
 	  AliBitPacking::PackWord(word,baseWord, 0,20);
@@ -1009,13 +982,13 @@ void AliTOFDDLRawData::MakeTDCdigits(Int_t nDDL, Int_t nTRM, Int_t iChain,
 	  nWordsPerTRM++;
 	  baseWord=0;
 
-	} // if ( fFakeOrphaneProduction && ( ( fPackedAcquisition && percentFilledCells<0.12 && gRandom->Rndm()<(0.12-percentFilledCells) ) or ... ) )
+	} // if (fPackedAcquisition && percentFilledCells<0.12 && gRandom->Rndm()<(0.12-percentFilledCells))  or ...
+
       } // if (indexDigit[0]<0)
 
       for (jj=0; jj<3;jj++) {
 
 	if (indexDigit[jj]<0) continue;
-
 	digs = (AliTOFdigit*)fTOFdigitArray->UncheckedAt(indexDigit[jj]);
 	  
 	if (digs->GetSector()!=volume[0] ||
@@ -1024,16 +997,14 @@ void AliTOFDDLRawData::MakeTDCdigits(Int_t nDDL, Int_t nTRM, Int_t iChain,
 	    digs->GetPadx()  !=volume[3] ||
 	    digs->GetPadz()  !=volume[4]) AliWarning(" --- ERROR --- ");
 
-	timeOfFlight = (Int_t)(digs->GetTdc())%8192;
+	//timeOfFlight = (Int_t)(digs->GetTdc())%8192;
+	timeOfFlight = (Int_t)(digs->GetTdc());
+	if (timeOfFlight>=8192) timeOfFlight = 0;
 
-	if (timeOfFlight>fMatchingWindow) continue;
-
-	//numberOfMeasuresPerChannel++;
-
-	// totCharge = (Int_t)digs->GetAdc(); //Use realistic ToT, for Standard production with no miscalibration/Slewing it == fAdC in digit (see AliTOFDigitizer)
-	totCharge = (Int_t)(digs->GetToT());
+	totCharge = (Int_t)(digs->GetToT());//digs->GetAdc();
 	// temporary control
 	if (totCharge<0) totCharge = 0;//TMath::Abs(totCharge);
+	if (totCharge>=256) totCharge = 255;
 
 	if (fPackedAcquisition) {
 
@@ -1054,19 +1025,18 @@ void AliTOFDDLRawData::MakeTDCdigits(Int_t nDDL, Int_t nTRM, Int_t iChain,
 	  ftxt << "  " << volume[4];
 	  if (volume[3]<10) ftxt << "  " << volume[3];
 	  else              ftxt << " " << volume[3];
-	  if (totCharge<10)                        ftxt << "    " << totCharge;
-	  else if (totCharge>=10 && totCharge<100) ftxt << "   " << totCharge;
-	  else                                     ftxt << "  " << totCharge;
-	  if (timeOfFlight<10)                             ftxt << "     " << timeOfFlight << endl;
-	  else if (timeOfFlight>=10  && timeOfFlight<100)  ftxt << "    " << timeOfFlight << endl;
-	  else if (timeOfFlight>=100 && timeOfFlight<1000) ftxt << "   " << timeOfFlight << endl;
-	  else                                             ftxt << "  " << timeOfFlight << endl;
+	  if (totCharge<10)                        ftxt << "        " << totCharge;
+	  else if (totCharge>=10 && totCharge<100) ftxt << "       " << totCharge;
+	  else                                     ftxt << "      " << totCharge;
+	  if (timeOfFlight<10)                             ftxt << "      " << timeOfFlight << endl;
+	  else if (timeOfFlight>=10 && timeOfFlight<100)   ftxt << "     " << timeOfFlight << endl;
+	  else if (timeOfFlight>=100 && timeOfFlight<1000) ftxt << "    " << timeOfFlight << endl;
+	  else                                             ftxt << "   " << timeOfFlight << endl;
 	}
 
-	word = timeOfFlight%8192; // time-of-fligth measurement
+	word = timeOfFlight; // time-of-fligth measurement
 	AliBitPacking::PackWord(word,baseWord, 0,12);
 
-	if (totCharge>=256) totCharge = 255;
 	word = totCharge; // time-over-threshould measurement
 	AliBitPacking::PackWord(word,baseWord,13,20);
 
@@ -1087,17 +1057,16 @@ void AliTOFDDLRawData::MakeTDCdigits(Int_t nDDL, Int_t nTRM, Int_t iChain,
 	nWordsPerTRM++;
 	baseWord=0;
 
-	if ( fFakeOrphaneProduction &&
-	     percentFilledCells<0.12 && gRandom->Rndm()<(0.12-percentFilledCells) ) {
+	if (percentFilledCells<0.12 && gRandom->Rndm()<(0.12-percentFilledCells)) {
 
 	  percentFilledCells+=kOneMoreFilledCell;
 
-	  trailingSpurious = Int_t(2097152*gRandom->Rndm());
-	  leadingSpurious = Int_t(2097152*gRandom->Rndm());
+	  trailingSpurious = Int_t(8192*gRandom->Rndm()) + Int_t(Int_t(256*gRandom->Rndm())*AliTOFGeometry::ToTBinWidth()/AliTOFGeometry::TdcBinWidth());
+	  leadingSpurious = Int_t(8192*gRandom->Rndm());
 
 	  Int_t dummyPS = 0;
 
-	  if (outOut) {
+	  if (HeadOrTail()) {
 	    word = trailingSpurious; // trailing edge measurement
 	    dummyPS = 2;
 	  }
@@ -1123,15 +1092,12 @@ void AliTOFDDLRawData::MakeTDCdigits(Int_t nDDL, Int_t nTRM, Int_t iChain,
 	    ftxt << "  " << volume[4];
 	    if (volume[3]<10) ftxt << "  " << volume[3];
 	    else              ftxt << " " << volume[3];
-	    ftxt << "   " << -1;
-	    if (word<10)                           ftxt << "        " << word;
-	    else if (word>=10     && word<100)     ftxt << "       " << word;
-	    else if (word>=100    && word<1000)    ftxt << "      " << word;
-	    else if (word>=1000   && word<10000)   ftxt << "     " << word;
-	    else if (word>=10000  && word<100000)  ftxt << "    " << word;
-	    else if (word>=100000 && word<1000000) ftxt << "   " << word;
-	    else                                   ftxt << "  " << word;
-	    ftxt << "   " << dummyPS << endl;
+	    ftxt << "       " << -1;
+	    if (word<10)                     ftxt << "      " << word;
+	    else if (word>=10 && word<100)   ftxt << "     " << word;
+	    else if (word>=100 && word<1000) ftxt << "    " << word;
+	    else                             ftxt << "   " << word;
+	    ftxt << "       " << dummyPS << endl;
 	  }
 
 	  AliBitPacking::PackWord(word,baseWord, 0,20);
@@ -1153,18 +1119,17 @@ void AliTOFDDLRawData::MakeTDCdigits(Int_t nDDL, Int_t nTRM, Int_t iChain,
 	  nWordsPerTRM++;
 	  baseWord=0;
 
-	} // if ( fFakeOrphaneProduction && percentFilledCells<0.12 && gRandom->Rndm()<(0.12-percentFilledCells) )
+	} // if (percentFilledCells<0.12 && gRandom->Rndm()<(0.12-percentFilledCells))
 
 
 	} // if (fPackedAcquisition)
 	else { // if (!fPackedAcquisition)
 
-	if ( fFakeOrphaneProduction &&
-	     percentFilledCells<0.24 && gRandom->Rndm()<(0.24-percentFilledCells) && outOut ) {
+	if (percentFilledCells<0.24 && gRandom->Rndm()<(0.24-percentFilledCells) && HeadOrTail()) {
 
 	  percentFilledCells+=kOneMoreFilledCell;
 
-	  trailingSpurious = Int_t(2097152*gRandom->Rndm());
+	  trailingSpurious = Int_t(8192*gRandom->Rndm()) + Int_t(Int_t(256*gRandom->Rndm())*AliTOFGeometry::ToTBinWidth()/AliTOFGeometry::TdcBinWidth());
 	  word = trailingSpurious;
 	  Int_t dummyPS = 2;
 
@@ -1185,15 +1150,12 @@ void AliTOFDDLRawData::MakeTDCdigits(Int_t nDDL, Int_t nTRM, Int_t iChain,
 	    ftxt << "  " << volume[4];
 	    if (volume[3]<10) ftxt << "  " << volume[3];
 	    else              ftxt << " " << volume[3];
-	    ftxt << "   " << -1;
-	    if (word<10)                           ftxt << "        " << word;
-	    else if (word>=10     && word<100)     ftxt << "       " << word;
-	    else if (word>=100    && word<1000)    ftxt << "      " << word;
-	    else if (word>=1000   && word<10000)   ftxt << "     " << word;
-	    else if (word>=10000  && word<100000)  ftxt << "    " << word;
-	    else if (word>=100000 && word<1000000) ftxt << "   " << word;
-	    else                                   ftxt << "  " << word;
-	    ftxt << "   " << dummyPS << endl;
+	    ftxt << "       " << -1;
+	    if (word<10)                     ftxt << "      " << word;
+	    else if (word>=10 && word<100)   ftxt << "     " << word;
+	    else if (word>=100 && word<1000) ftxt << "    " << word;
+	    else                             ftxt << "   " << word;
+	    ftxt << "       " << dummyPS << endl;
 	  }
 
 	  AliBitPacking::PackWord(word,baseWord, 0,20);
@@ -1215,10 +1177,10 @@ void AliTOFDDLRawData::MakeTDCdigits(Int_t nDDL, Int_t nTRM, Int_t iChain,
 	  nWordsPerTRM++;
 	  baseWord=0;
 
-	} // if ( fFakeOrphaneProduction && percentFilledCells<0.24 && gRandom->Rndm()<(0.24-percentFilledCells)  && outOut )
+	} // if (percentFilledCells<0.24 && gRandom->Rndm()<(0.24-percentFilledCells))
 
 
-	word = (timeOfFlight + Int_t(totCharge*AliTOFGeometry::ToTBinWidth()/AliTOFGeometry::TdcBinWidth()))%2097152; // trailing edge measurement
+	word = timeOfFlight + Int_t(totCharge*AliTOFGeometry::ToTBinWidth()/AliTOFGeometry::TdcBinWidth()); // trailing edge measurement
 
 	if (fVerbose==2) {
 	  if (nDDL<10) ftxt << "  " << nDDL;
@@ -1237,15 +1199,12 @@ void AliTOFDDLRawData::MakeTDCdigits(Int_t nDDL, Int_t nTRM, Int_t iChain,
 	  ftxt << "  " << volume[4];
 	  if (volume[3]<10) ftxt << "  " << volume[3];
 	  else              ftxt << " " << volume[3];
-	  ftxt << "   " << -1;
-	  if (word<10)                           ftxt << "        " << word;
-	  else if (word>=10     && word<100)     ftxt << "       " << word;
-	  else if (word>=100    && word<1000)    ftxt << "      " << word;
-	  else if (word>=1000   && word<10000)   ftxt << "     " << word;
-	  else if (word>=10000  && word<100000)  ftxt << "    " << word;
-	  else if (word>=100000 && word<1000000) ftxt << "   " << word;
-	  else                                   ftxt << "  " << word;
-	  ftxt << "   " << 2 << endl;
+	  ftxt << "       " << -1;
+	  if (word<10)                     ftxt << "      " << word;
+	  else if (word>=10 && word<100)   ftxt << "     " << word;
+	  else if (word>=100 && word<1000) ftxt << "    " << word;
+	  else                             ftxt << "   " << word;
+	  ftxt << "       " << 2 << endl;
 	}
 
 	AliBitPacking::PackWord(word,baseWord, 0,20);
@@ -1268,7 +1227,9 @@ void AliTOFDDLRawData::MakeTDCdigits(Int_t nDDL, Int_t nTRM, Int_t iChain,
 	nWordsPerTRM++;
 	baseWord=0;
 
-	word = timeOfFlight%2097152; // leading edge measurement
+
+
+	word = timeOfFlight; // leading edge measurement
 
 	if (fVerbose==2) {
 	  if (nDDL<10) ftxt << "  " << nDDL;
@@ -1287,15 +1248,11 @@ void AliTOFDDLRawData::MakeTDCdigits(Int_t nDDL, Int_t nTRM, Int_t iChain,
 	  ftxt << "  " << volume[4];
 	  if (volume[3]<10) ftxt << "  " << volume[3];
 	  else              ftxt << " " << volume[3];
-	  ftxt << "   " << -1;
-	  if (word<10)                           ftxt << "        " << word;
-	  else if (word>=10     && word<100)     ftxt << "       " << word;
-	  else if (word>=100    && word<1000)    ftxt << "      " << word;
-	  else if (word>=1000   && word<10000)   ftxt << "     " << word;
-	  else if (word>=10000  && word<100000)  ftxt << "    " << word;
-	  else if (word>=100000 && word<1000000) ftxt << "   " << word;
-	  else                                   ftxt << "  " << word;
-	  ftxt << "   " << 1 << endl;
+	  ftxt << "       " << -1;
+	  if (word<10)                   ftxt << "      " << word;
+	  else if (word>=10 && word<100) ftxt << "     " << word;
+	  else                           ftxt << "    " << word;
+	  ftxt << "       " << 1 << endl;
 	}
 
 	AliBitPacking::PackWord(word,baseWord, 0,20);
@@ -1319,12 +1276,11 @@ void AliTOFDDLRawData::MakeTDCdigits(Int_t nDDL, Int_t nTRM, Int_t iChain,
 	baseWord=0;
 
 
-	if ( fFakeOrphaneProduction &&
-	     percentFilledCells<0.24 && gRandom->Rndm()<(0.24-percentFilledCells) && !outOut ) {
+	if (percentFilledCells<0.24 && gRandom->Rndm()<(0.24-percentFilledCells) && !HeadOrTail()) {
 
 	  percentFilledCells+=kOneMoreFilledCell;
 
-	  leadingSpurious = Int_t(2097152*gRandom->Rndm());
+	  leadingSpurious = Int_t(8192*gRandom->Rndm());
 	  word = leadingSpurious;
 	  Int_t dummyPS = 1;
 
@@ -1345,15 +1301,12 @@ void AliTOFDDLRawData::MakeTDCdigits(Int_t nDDL, Int_t nTRM, Int_t iChain,
 	    ftxt << "  " << volume[4];
 	    if (volume[3]<10) ftxt << "  " << volume[3];
 	    else              ftxt << " " << volume[3];
-	    ftxt << "   " << -1;
-	    if (word<10)                           ftxt << "        " << word;
-	    else if (word>=10     && word<100)     ftxt << "       " << word;
-	    else if (word>=100    && word<1000)    ftxt << "      " << word;
-	    else if (word>=1000   && word<10000)   ftxt << "     " << word;
-	    else if (word>=10000  && word<100000)  ftxt << "    " << word;
-	    else if (word>=100000 && word<1000000) ftxt << "   " << word;
-	    else                                   ftxt << "  " << word;
-	    ftxt << "   " << dummyPS << endl;
+	    ftxt << "       " << -1;
+	    if (word<10)                     ftxt << "      " << word;// << endl;
+	    else if (word>=10 && word<100)   ftxt << "     " << word;// << endl;
+	    else if (word>=100 && word<1000) ftxt << "    " << word;// << endl;
+	    else                             ftxt << "   " << word;// << endl;
+	    ftxt << "       " << dummyPS << endl;
 	  }
 
 	  AliBitPacking::PackWord(word,baseWord, 0,20);
@@ -1375,76 +1328,41 @@ void AliTOFDDLRawData::MakeTDCdigits(Int_t nDDL, Int_t nTRM, Int_t iChain,
 	  nWordsPerTRM++;
 	  baseWord=0;
 
-	} // if ( fFakeOrphaneProduction && percentFilledCells<0.24 && gRandom->Rndm()<(0.24-percentFilledCells) && !outOut )
+	} // if (percentFilledCells<0.24 && gRandom->Rndm()<(0.24-percentFilledCells))
 
 
 	} // if (!fPackedAcquisition)
 
       } //end loop on digits in the same volume
 
-      //if (numberOfMeasuresPerChannel>maxMeasuresPerChannelInTDC)
-      //maxMeasuresPerChannelInTDC = numberOfMeasuresPerChannel;
-
     } // end loop on TDC channel number
-
-    //AliInfo(Form(" TDC number %2i:  numberOfMeasuresPerChannel = %2i  ---  maxMeasuresPerChannelInTDC = %2i ", nTDC, numberOfMeasuresPerChannel, maxMeasuresPerChannelInTDC));
-
-    if (localIndex==-1) continue;
-
-    if (fPackedAcquisition) {
-
-      for (Int_t jj=0; jj<=localIndex; jj++) {
-	fIndex++;
-	buf[fIndex] = localBuffer[jj];
-	localBuffer[jj] = 0;
-	psArray[jj] = -1;
-      }
-
-    }
-    else {
-      /*
-      if (maxMeasuresPerChannelInTDC = 1) {
-
-	for (Int_t jj=0; jj<=localIndex; jj++) {
-	  if (psArray[jj]==2) {
-	    fIndex++;
-	    buf[fIndex] = localBuffer[jj];
-	    localBuffer[jj] = 0;
-	    psArray[jj] = -1;
-	  }
-	}
-	for (Int_t jj=0; jj<=localIndex; jj++) {
-	  if (psArray[jj]==1) {
-	    fIndex++;
-	    buf[fIndex] = localBuffer[jj];
-	    localBuffer[jj] = 0;
-	    psArray[jj] = -1;
-	  }
-	}
-
-      } // if (maxMeasuresPerChannelInTDC = 1)
-      else if (maxMeasuresPerChannelInTDC>1) {
-
-	AliInfo(Form(" In the TOF DDL %2i, TRM %2i, TDC %2i, chain %1i, the maximum number of t.o.f. good measurements per channel is %2i",
-		     nDDL, nTRM, iChain, nTDC, iCH, maxMeasuresPerChannelInTDC));
-      */
-	for (Int_t jj=0; jj<=localIndex; jj++) {
-	    fIndex++;
-	    buf[fIndex] = localBuffer[jj];
-	    localBuffer[jj] = 0;
-	    psArray[jj] = -1;
-	}
-
-	//} // else if (maxMeasuresPerChannelInTDC>1)
-
-    } // else (!fPackedAcquisition)
-
-    localIndex = -1;
-
-    //maxMeasuresPerChannelInTDC = 0;
 
   } // end loop on TDC number
 
+  if (fPackedAcquisition) {
+
+    for (Int_t jj=0; jj<=localIndex; jj++) {
+      fIndex++;
+      buf[fIndex] = localBuffer[jj];
+    }
+
+  }
+  else {
+
+    for (Int_t jj=0; jj<=localIndex; jj++) {
+      if (psArray[jj]==2) {
+	fIndex++;
+	buf[fIndex] = localBuffer[jj];
+      }
+    }
+    for (Int_t jj=0; jj<=localIndex; jj++) {
+      if (psArray[jj]==1) {
+	fIndex++;
+	buf[fIndex] = localBuffer[jj];
+      }
+    }
+
+  }
 
   if (fVerbose==2) ftxt.close();
 

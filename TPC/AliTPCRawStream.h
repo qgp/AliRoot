@@ -32,10 +32,9 @@ class AliTPCRawStream: public AliAltroRawStream {
     inline Int_t GetPrevPad()    const { return fPrevPad; }    // Provide index of previous pad
     inline Bool_t  IsNewPad()    const {return (fPad != fPrevPad) || IsNewRow();};
 
-    AliTPCRawStream& operator = (const AliTPCRawStream& stream);
-    AliTPCRawStream(const AliTPCRawStream& stream);
-
   protected :
+    AliTPCRawStream(const AliTPCRawStream& stream);
+    AliTPCRawStream& operator = (const AliTPCRawStream& stream);
 
     virtual void ApplyAltroMapping();
 
@@ -47,7 +46,6 @@ class AliTPCRawStream: public AliAltroRawStream {
     Int_t            fPrevPad;      // index of previous pad
 
     AliAltroMapping *fMapping[6];   // Pointers to ALTRO mapping
-    Bool_t           fIsMapOwner;   // does object own its mappings?
 
     ClassDef(AliTPCRawStream, 0)    // base class for reading TPC raw digits
 };

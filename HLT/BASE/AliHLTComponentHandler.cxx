@@ -31,16 +31,15 @@ using namespace std;
 //#include <Riostream.h>
 #include <TSystem.h>
 #endif //HAVE_DLFCN_H
-//#include "AliHLTStdIncludes.h"
+#include "AliHLTStdIncludes.h"
 #include "AliHLTComponentHandler.h"
 #include "AliHLTComponent.h"
 #include "AliHLTDataTypes.h"
-//#include "AliHLTSystem.h"
-#include "TString.h"
+#include "AliHLTSystem.h"
 
 // the standard components
 // #include "AliHLTFilePublisher.h"
-// #include "AliHLTFileWriter.h"
+#include "AliHLTFileWriter.h"
 // #include "AliHLTRootFilePublisherComponent.h"
 // #include "AliHLTRootFileWriterComponent.h"
 
@@ -87,30 +86,11 @@ AliHLTComponentHandler::AliHLTComponentHandler(AliHLTComponentEnvironment* pEnv)
   AddStandardComponents();
 }
 
-AliHLTComponentHandler::AliHLTComponentHandler(const AliHLTComponentHandler&)
-  :
-  fComponentList(),
-  fScheduleList(),
-  fLibraryList(),
-  fEnvironment(),
-  fStandardList()
-{
-  // see header file for class documentation
-  HLTFatal("copy constructor untested");
-}
-
-AliHLTComponentHandler& AliHLTComponentHandler::operator=(const AliHLTComponentHandler&)
-{ 
-  // see header file for class documentation
-  HLTFatal("assignment operator untested");
-  return *this;
-}
-
 AliHLTComponentHandler::~AliHLTComponentHandler()
 {
   // see header file for class documentation
-  DeleteStandardComponents();
   UnloadLibraries();
+  DeleteStandardComponents();
 }
 
 int AliHLTComponentHandler::AnnounceVersion()
@@ -126,7 +106,7 @@ int AliHLTComponentHandler::AnnounceVersion()
   if (!time) time="unknown";
   HLTInfo("%s build on %s (%s)", PACKAGE_STRING, date, time);
 #else
-  HLTInfo("ALICE High Level Trigger build on %s (%s) (embedded AliRoot build)", __DATE__, __TIME__);
+  HLTInfo("ALICE High Level Trigger (embedded AliRoot build)");
 #endif
   return iResult;
 }
@@ -155,10 +135,8 @@ Int_t AliHLTComponentHandler::RegisterComponent(AliHLTComponent* pSample)
 int AliHLTComponentHandler::DeregisterComponent( const char* componentID )
 {
   // see header file for class documentation
-
   int iResult=0;
   if (componentID) {
-    HLTWarning("not yet implemented, please notify the developers if you need this function");
   } else {
     iResult=-EINVAL;
   }
@@ -284,7 +262,7 @@ int AliHLTComponentHandler::LoadLibrary( const char* libraryPath )
     const char* loadtype="";
 #ifdef HAVE_DLFCN_H
     // use interface to the dynamic linking loader
-    hLib.fHandle=dlopen(libraryPath, RTLD_NOW);
+    hLib.handle=dlopen(libraryPath, RTLD_NOW);
     loadtype="dlopen";
 #else
     // use ROOT dynamic loader
@@ -292,23 +270,23 @@ int AliHLTComponentHandler::LoadLibrary( const char* libraryPath )
     // 'failure' if the library was already loaded
     AliHLTLibHandle* pLib=FindLibrary(libraryPath);
     if (pLib) {
-	int* pRootHandle=reinterpret_cast<int*>(pLib->fHandle);
+	int* pRootHandle=reinterpret_cast<int*>(pLib->handle);
 	(*pRootHandle)++;
 	HLTDebug("instance %d of library %s loaded", (*pRootHandle), libraryPath);
-	hLib.fHandle=pRootHandle;
+	hLib.handle=pRootHandle;
     }
     
-    if (hLib.fHandle==NULL && gSystem->Load(libraryPath)==0) {
+    if (hLib.handle==NULL && gSystem->Load(libraryPath)==0) {
       int* pRootHandle=new int;
       if (pRootHandle) *pRootHandle=1;
-      hLib.fHandle=pRootHandle;
+      hLib.handle=pRootHandle;
       //HLTDebug("library %s loaded via gSystem", libraryPath);
     }
     loadtype="gSystem";
 #endif //HAVE_DLFCN_H
-    if (hLib.fHandle!=NULL) {
+    if (hLib.handle!=NULL) {
       // create TString object to store library path and use pointer as handle 
-      hLib.fName=new TString(libraryPath);
+      hLib.name=new TString(libraryPath);
       HLTInfo("library %s loaded (%s)", libraryPath, loadtype);
       fLibraryList.insert(fLibraryList.begin(), hLib);
       iResult=RegisterScheduledComponents();
@@ -335,68 +313,9 @@ int AliHLTComponentHandler::UnloadLibrary( const char* libraryPath )
   // see header file for class documentation
   int iResult=0;
   if (libraryPath) {
-    vector<AliHLTLibHandle>::iterator element=fLibraryList.begin();
-    while (element!=fLibraryList.end()) {
-      TString* pName=reinterpret_cast<TString*>((*element).fName);
-      if (pName->CompareTo(libraryPath)==0) {
-	UnloadLibrary(*element);
-	fLibraryList.erase(element);
-	break;
-      }
-      element++;
-  }
   } else {
     iResult=-EINVAL;
   }
-  return iResult;
-}
-
-int AliHLTComponentHandler::UnloadLibrary(AliHLTComponentHandler::AliHLTLibHandle &handle)
-{
-  // see header file for class documentation
-  int iResult=0;
-  fgAliLoggingFunc=NULL;
-  TString* pName=reinterpret_cast<TString*>(handle.fName);
-#ifdef HAVE_DLFCN_H
-  dlclose(handle.fHandle);
-#else
-  int* pCount=reinterpret_cast<int*>(handle.fHandle);
-  if (--(*pCount)==0) {
-    if (pName) {
-      /** Matthias 26.04.2007
-       * I spent about a week to investigate a bug which seems to be in ROOT.
-       * Under certain circumstances, TSystem::Unload crashes. The crash occured
-       * for the first time, when libAliHLTUtil was loaded from AliHLTSystem right
-       * after the ComponentHandler was created. It does not occur when dlopen is
-       * used. 
-       * It has most likely to do with the garbage collection and automatic
-       * cleanup in ROOT. The crash occurs when ROOT is terminated and before
-       * an instance of AliHLTSystem was created.
-       *   root [0] AliHLTSystem gHLT
-       * It does not occur when the instance was created dynamically (but not even
-       * deleted)
-       *   root [0] AliHLTSystem* gHLT=new AliHLTSystem
-       *
-       * For that reason, the libraries are not unloaded here, even though there
-       * will be memory leaks.
-      gSystem->Unload(pName->Data());
-       */
-    }
-    else {
-      HLTError("missing library name, can not unload");
-    }
-    delete pCount;
-  }
-#endif //HAVE_DLFCN_H
-  handle.fName=NULL;
-  handle.fHandle=NULL;
-  if (pName) {
-    HLTDebug("unload library %s", pName->Data());
-    delete pName;
-  } else {
-    HLTWarning("missing name for unloaded library");
-  }
-  pName=NULL;
   return iResult;
 }
 
@@ -406,7 +325,27 @@ int AliHLTComponentHandler::UnloadLibraries()
   int iResult=0;
   vector<AliHLTLibHandle>::iterator element=fLibraryList.begin();
   while (element!=fLibraryList.end()) {
-    UnloadLibrary(*element);
+    TString* pName=reinterpret_cast<TString*>((*element).name);
+#ifdef HAVE_DLFCN_H
+    dlclose((*element).handle);
+#else
+    int* pCount=reinterpret_cast<int*>((*element).handle);
+    if (--(*pCount)==0) {
+      if (pName)
+	gSystem->Unload(pName->Data());
+      else {
+	HLTError("missing library name, can not unload");
+      }
+      delete pCount;
+    }
+#endif //HAVE_DLFCN_H
+    if (pName) {
+      HLTDebug("unload library %s", pName->Data());
+      delete pName;
+    } else {
+      HLTWarning("missing name for unloaded library");
+    }
+    pName=NULL;
     fLibraryList.erase(element);
     element=fLibraryList.begin();
   }
@@ -420,9 +359,9 @@ void* AliHLTComponentHandler::FindSymbol(const char* library, const char* symbol
   if (hLib==NULL) return NULL;
   void* pFunc=NULL;
 #ifdef HAVE_DLFCN_H
-  pFunc=dlsym(hLib->fHandle, symbol);
+  pFunc=dlsym(hLib->handle, symbol);
 #else
-  TString* name=reinterpret_cast<TString*>(hLib->fName);
+  TString* name=reinterpret_cast<TString*>(hLib->name);
   pFunc=gSystem->DynFindSymbol(name->Data(), symbol);
 #endif
   return pFunc;
@@ -434,7 +373,7 @@ AliHLTComponentHandler::AliHLTLibHandle* AliHLTComponentHandler::FindLibrary(con
   AliHLTLibHandle* hLib=NULL;
   vector<AliHLTLibHandle>::iterator element=fLibraryList.begin();
   while (element!=fLibraryList.end()) {
-    TString* name=reinterpret_cast<TString*>((*element).fName);
+    TString* name=reinterpret_cast<TString*>((*element).name);
     if (name->CompareTo(library)==0) {
       hLib=&(*element);
       break;
@@ -450,7 +389,7 @@ int AliHLTComponentHandler::AddStandardComponents()
   int iResult=0;
   AliHLTComponent::SetGlobalComponentHandler(this);
 //   fStandardList.push_back(new AliHLTFilePublisher);
-//   fStandardList.push_back(new AliHLTFileWriter);
+  fStandardList.push_back(new AliHLTFileWriter);
 //   fStandardList.push_back(new AliHLTRootFilePublisherComponent);
 //   fStandardList.push_back(new AliHLTRootFileWriterComponent);
   AliHLTComponent::UnsetGlobalComponentHandler();
@@ -479,7 +418,7 @@ int AliHLTComponentHandler::DeleteStandardComponents()
   int iResult=0;
   vector<AliHLTComponent*>::iterator element=fStandardList.begin();
   while (element!=fStandardList.end()) {
-    //DeregisterComponent((*element)->GetComponentID());
+    DeregisterComponent((*element)->GetComponentID());
     delete(*element);
     fStandardList.erase(element);
     element=fStandardList.begin();

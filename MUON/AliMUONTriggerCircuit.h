@@ -6,7 +6,7 @@
 /* $Id$ */
 // Revision of includes 07/05/2004
 //
-/// \ingroup trigger
+/// \ingroup base
 /// \class AliMUONTriggerCircuit
 /// \brief MUON Trigger circuit
 ///
@@ -51,8 +51,6 @@ public:
   
   /// Set pointer to transformations
   void  SetTransformer(const AliMUONGeometryTransformer* transformer) {fTransformer = transformer;}
-  /// Get pointer to transformations
-  const AliMUONGeometryTransformer* GetTransformer() {return fTransformer;}
 
 private:
 

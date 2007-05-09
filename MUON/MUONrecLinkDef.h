@@ -1,16 +1,9 @@
-/* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
- * See cxx source for full Copyright notice                               */
-
-// $Id $
-
 #ifdef __CINT__
 #pragma link off all globals;
 #pragma link off all classes;
 #pragma link off all functions;
 
 // reconstruction
-#pragma link C++ class AliMUONRecData+; 
-#pragma link C++ class AliMUONRecLoader+; 
 #pragma link C++ class AliMUONClusterReconstructor+; 
 #pragma link C++ class AliMUONClusterFinderVS+; 
 #pragma link C++ class AliMUONClusterFinderAZ+; 
@@ -42,11 +35,17 @@
 #pragma link C++ class AliMUONClusterFinderCOG+;
 #pragma link C++ class AliMUONClusterFinderMLEM+;
 #pragma link C++ class AliMUONClusterSplitterMLEM+;
-#pragma link C++ class AliMUONTrackHitPattern+;
 
 // calibration
 #pragma link C++ class AliMUONDigitCalibrator+;
+#pragma link C++ class AliMUONHVNamer+;
 #pragma link C++ class AliMUONPadStatusMaker+;
 #pragma link C++ class AliMUONPadStatusMapMaker+;
 
+// display
+#pragma link C++ class AliMUONDisplay+; 
+#pragma link C++ class AliMUONRecoCheck+;
+
 #endif
+
+

@@ -184,15 +184,13 @@ fShape(5,0)          // Array of shapes and detector information.
     //      Int_t itype   the type of transformation kept.
     //                    bit 0 => Standard GEANT
     //                    bit 1 => ITS tracking
-    //                    bit 2 => A change in the coordinate system 
-    //                    has been made. others are still to be defined 
-    //                    as needed.
-    //      Int_t nlayers The number of ITS layers also set the size of 
-    //                    the arrays
-    //      Int_t *nlads  an array of the number of ladders for each 
+    //                    bit 2 => A change in the coordinate system has been made.
+    //                    others are still to be defined as needed.
+    //      Int_t nlayers The number of ITS layers also set the size of the arrays
+    //      Int_t *nlads  an array of the number of ladders for each layer. This
+    //                    array must be nlayers long.
+    //      Int_t *ndets  an array of the number of detectors per ladder for each
     //                    layer. This array must be nlayers long.
-    //      Int_t *ndets  an array of the number of detectors per ladder
-    //                    for each layer. This array must be nlayers long.
     //      Int_t mods    The number of modules. Typically the sum of all the 
     //                    detectors on every layer and ladder.
     // Outputs:
@@ -212,15 +210,13 @@ void AliITSgeom::Init(Int_t itype,Int_t nlayers,const Int_t *nlads,
     //      Int_t itype   the type of transformation kept.
     //                    bit 0 => Standard GEANT
     //                    bit 1 => ITS tracking
-    //                    bit 2 => A change in the coordinate system 
-    //                    has been made. others are still to be defined 
-    //                    as needed.
-    //      Int_t nlayers The number of ITS layers also set the size of 
-    //                    the arrays
-    //      Int_t *nlads  an array of the number of ladders for each 
+    //                    bit 2 => A change in the coordinate system has been made.
+    //                    others are still to be defined as needed.
+    //      Int_t nlayers The number of ITS layers also set the size of the arrays
+    //      Int_t *nlads  an array of the number of ladders for each layer. This
+    //                    array must be nlayers long.
+    //      Int_t *ndets  an array of the number of detectors per ladder for each
     //                    layer. This array must be nlayers long.
-    //      Int_t *ndets  an array of the number of detectors per ladder 
-    //                    for each layer. This array must be nlayers long.
     //      Int_t mods    The number of modules. Typically the sum of all the 
     //                    detectors on every layer and ladder.
     // Outputs:
@@ -470,9 +466,8 @@ void AliITSgeom::WriteNewFile(const char *filename)const{
     *fp << ", kSDD=" << (Int_t) kSDD << ", kSSD=" << (Int_t) kSSD;
     *fp << ", kSSDp=" << (Int_t) kSSDp << ", and kSDDp=" << (Int_t) kSDDp;
     *fp << "*/" << endl;
-    *fp << "Version "<< fVersion.Length()<<" " << fVersion.Data() << endl;//
-                                                // This should be consistent
-                                                // with the geometry version.
+    *fp << "Version "<< fVersion.Length()<<" " << fVersion.Data() << endl;//This should be consistent
+                                           // with the geometry version.
     *fp << "fTrans " << fTrans << endl;
     *fp << "fNmodules " << fNmodules << endl;
     *fp << "fNlayers " << fNlayers << endl;
@@ -568,8 +563,8 @@ fShape(0,0)      // TObjArray of detector geom.
                &l,&a,&d,&x,&y,&z,&o,&p,&q,&r,&s,&t);
         if(l>lm) lm = l;
         if(l<1 || l>fNlayers) {
-            printf("error in file %s layer=%d min. is 1 max is %d"
-                   " Trying new format\n",filename,l,fNlayers);
+            printf("error in file %s layer=%d min. is 1 max is %d Trying new format\n",
+                   filename,l,fNlayers);
             fclose(pf);
             ReadNewFile(filename);
             return;
@@ -605,8 +600,8 @@ fShape(0,0)      // TObjArray of detector geom.
         sscanf(buff,"%d %d %d %f %f %f %f %f %f %f %f %f",
                &l,&a,&d,&x,&y,&z,&o,&p,&q,&r,&s,&t);
         if(l<1 || l>fNlayers) {
-            Warning("AliITSgeom","error in file %s layer=%d"
-                    " min. is 1 max is %d",filename,l,fNlayers);
+            Warning("AliITSgeom","error in file %s layer=%d min. is 1 max is %d",
+                   filename,l,fNlayers);
             continue;
         }// end if l
         id[0] = l;id[1] = a;id[2] = d;
@@ -634,19 +629,17 @@ fShape(0,0)      // TObjArray of detector geom.
     } // end while ever loop
     fclose(pf);
 }
+
 //______________________________________________________________________
-AliITSgeom::AliITSgeom(const AliITSgeom &source) : 
-TObject(source),
-fVersion(source.fVersion), // Transformation version.
-fTrans(source.fTrans),   // Flag to keep track of which transformation
-fNmodules(source.fNmodules),// The total number of modules
-fNlayers(source.fNlayers), // The number of layers.
-fNlad(source.fNlad),    // Array of the number of ladders/layer(layer)
-fNdet(source.fNdet),    // Array of the number of detector/ladder(layer)
-fGm(source.fGm.GetSize(),source.fGm.LowerBound()),// Structure of 
-                                                  // translation and rotation.
-fShape(source.fShape.GetSize(),source.fShape.LowerBound())// Array of shapes 
-                                                   // and detector information.
+AliITSgeom::AliITSgeom(const AliITSgeom &source) : TObject(source),
+fVersion(source.fVersion),
+fTrans(source.fTrans),
+fNmodules(source.fNmodules),
+fNlayers(source.fNlayers),
+fNlad(source.fNlad),
+fNdet(source.fNdet),
+fGm(source.fGm),
+fShape(source.fShape)
 {
     //     The copy constructor for the AliITSgeom class. It calls the
     // = operator function. See the = operator function for more details.
@@ -657,37 +650,11 @@ fShape(source.fShape.GetSize(),source.fShape.LowerBound())// Array of shapes
     //     none.
     // Return:
     //     none.
-    Int_t i,n;
 
-    n = source.fGm.GetLast()+1;
-    for(i=source.fGm.LowerBound();i<n;i++){
-        fGm.AddAt(new AliITSgeomMatrix(*((AliITSgeomMatrix*)(
-                                             source.fGm.At(i)))),i);
-    } // end for i
-    fGm.SetOwner(kTRUE);
-    n = source.fShape.GetLast()+1;
-    for(i=source.fShape.LowerBound();i<n;i++){
-        switch ((AliITSDetector)i){
-        case kSPD :{
-            fShape.AddAt(new AliITSgeomSPD(*((AliITSgeomSPD*)(
-                                                 source.fShape.At(i)))),i);
-        } break;
-        case kSDD : case kSDDp:{
-            fShape.AddAt(new AliITSgeomSDD(*((AliITSgeomSDD*)(
-                                                 source.fShape.At(i)))),i);
-        }break;
-        case kSSD : case kSSDp :{
-            fShape.AddAt(new AliITSgeomSSD(*((AliITSgeomSSD*)(
-                                                 source.fShape.At(i)))),i);
-        }break;
-        default:{
-            AliError(Form("Unknown fShape type number=%d",i));
-        }break;
-        } // end switch
-    } // end for i
-    fShape.SetOwner(kTRUE);
-    return;
+  *this = source;  // Just use the = operator for now.
+  return;
 }
+
 //______________________________________________________________________
 AliITSgeom& AliITSgeom::operator=(const AliITSgeom &source){
     //     The = operator function for the AliITSgeom class. It makes an
@@ -713,38 +680,25 @@ AliITSgeom& AliITSgeom::operator=(const AliITSgeom &source){
     this->fVersion  = source.fVersion;
     this->fTrans    = source.fTrans;
     this->fNmodules = source.fNmodules;
-    this->fNlayers  = source.fNlayers;
-    this->fNlad     = source.fNlad;
-    this->fNdet     = source.fNdet;
-    this->fGm.Expand(this->fNmodules);
-    for(i=source.fGm.LowerBound();i<source.fGm.GetLast();i++){
-        fGm.AddAt(new AliITSgeomMatrix(*((AliITSgeomMatrix*)(
-                                             source.fGm.At(i)))),i);
-    } // end for i
-    fGm.SetOwner(kTRUE);
+    this->fNlayers = source.fNlayers;
+    this->fNlad.Set(fNlayers,source.fNlad.GetArray());
+    this->fNdet.Set(fNlayers,source.fNdet.GetArray());
     this->fShape.Expand(source.fShape.GetEntriesFast());
-    for(i=source.fShape.LowerBound();i<source.fShape.GetLast();i++){
-        switch ((AliITSDetector)i){
-        case kSPD :{
-            fShape.AddAt(new AliITSgeomSPD(*((AliITSgeomSPD*)(
-                                                 source.fShape.At(i)))),i);
-        } break;
-        case kSDD : case kSDDp:{
-            fShape.AddAt(new AliITSgeomSDD(*((AliITSgeomSDD*)(
-                                                 source.fShape.At(i)))),i);
-        }break;
-        case kSSD : case kSSDp :{
-            fShape.AddAt(new AliITSgeomSSD(*((AliITSgeomSSD*)(
-                                                 source.fShape.At(i)))),i);
-        }break;
-        default:{
-            AliError(Form("Unknown fShape type number=%d",i));
-        }break;
-        } // end switch
-    } // end for i
-    fShape.SetOwner(kTRUE);
+    for(i=0;i<source.fShape.GetEntriesFast();i++)
+        this->fShape.AddAt(new TObject(*(source.fShape.At(i))),i);
+    this->fShape.SetOwner(kTRUE);
+    this->fGm.Expand(this->fNmodules);
+    this->fGm.SetOwner(kTRUE);
+    for(i=0;i<this->fNmodules;i++)
+	if(i<0||i>=fGm.GetSize()){
+	    Error("ReadNewFile","i<0||i>=fGm.GetSize()=%d",
+		  i,fGm.GetSize());
+	    return *this;
+	} // end if
+        this->fGm.AddAt(new TObject(*(source.fGm.At(i))),i);
     return *this;
 }
+
 //______________________________________________________________________
 Int_t AliITSgeom::GetModuleIndex(Int_t lay,Int_t lad,Int_t det)const{
     //      This routine computes the module index number from the layer,
@@ -777,8 +731,7 @@ Int_t AliITSgeom::GetModuleIndex(Int_t lay,Int_t lad,Int_t det)const{
     return -1;
 }
 //______________________________________________________________________
-void AliITSgeom::GetModuleId(Int_t index,Int_t &lay,Int_t &lad,Int_t &det)
-const{
+void AliITSgeom::GetModuleId(Int_t index,Int_t &lay,Int_t &lad,Int_t &det)const{
     //      This routine computes the layer, ladder and detector number 
     // given the module index number. The number of ladders and detectors
     // per layer is determined when this geometry package is constructed,
@@ -892,8 +845,7 @@ Int_t AliITSgeom::GetStartDet(Int_t dtype)const{
     // This assumes that the detector types are different on different layers
     // and that they are not mixed up.
     // Inputs:
-    //    Int_t dtype A detector type number. 0 for SPD, 1 for SDD, 
-    //                and 2 for SSD.
+    //    Int_t dtype A detector type number. 0 for SPD, 1 for SDD, and 2 for SSD.
     // Outputs:
     //    none.
     // Return:
@@ -923,8 +875,7 @@ Int_t AliITSgeom::GetLastDet(Int_t dtype)const{
     // This assumes that the detector types are different on different layers
     // and that they are not mixed up.
     // Inputs:
-    //     Int_t dtype A detector type number. 0 for SPD, 1 for SDD, 
-    //                 and 2 for SSD.
+    //     Int_t dtype A detector type number. 0 for SPD, 1 for SDD, and 2 for SSD.
     // Outputs:
     // Return:
     //     the module index for the last occurrence of that detector type.
@@ -949,50 +900,6 @@ Int_t AliITSgeom::GetLastDet(Int_t dtype)const{
     return 0;
 }
 //______________________________________________________________________
-Bool_t AliITSgeom::IsInside(Int_t module,Double_t point[3])const{
-    // Determins if the give point is inside of the module as defined
-    // by this set of coordinate transforms.
-    // Inputs:
-    //    Int_t    module    The module to be checked
-    //    Double_t point[3]  A 3 vector global point
-    // Outputs:
-    //    none.
-    // Return:
-    //    kTRUE if point is inside of module, kFALSE otherwise.
-    Double_t l[3],dx,dy,dz;
-    AliITSDetector idet = (AliITSDetector)(this->GetGeomMatrix(module)->
-                                           GetDetectorIndex());
-
-    this->GtoL(module,point,l);
-    switch(idet){
-    case kSPD:{
-        AliITSgeomSPD *spd = (AliITSgeomSPD*)(fShape.At((Int_t)idet));
-        dx = spd->GetDx();
-        dy = spd->GetDy();
-        dz = spd->GetDz();}
-        break;
-    case kSDD: case kSDDp:{
-        AliITSgeomSDD *sdd = (AliITSgeomSDD*)(fShape.At((Int_t)idet));
-        dx = sdd->GetDx();
-        dy = sdd->GetDy();
-        dz = sdd->GetDz();}
-        break;
-    case kSSD: case kSSDp:{
-        AliITSgeomSSD *ssd = (AliITSgeomSSD*)(fShape.At((Int_t)idet));
-        dx = ssd->GetDx();
-        dy = ssd->GetDy();
-        dz = ssd->GetDz();}
-        break;
-    default: // Detector not defined.
-        return kFALSE;
-        break;
-    }// end switch
-    if(TMath::Abs(l[0])>dx) return kFALSE;
-    if(TMath::Abs(l[2])>dz) return kFALSE;
-    if(TMath::Abs(l[1])>dy) return kFALSE;
-    return kTRUE;
-}
-//______________________________________________________________________
 void AliITSgeom::PrintComparison(FILE *fp,AliITSgeom *other)const{
     //     This function was primarily created for diagnostic reasons. It
     // print to a file pointed to by the file pointer fp the difference
@@ -1012,9 +919,8 @@ void AliITSgeom::PrintComparison(FILE *fp,AliITSgeom *other)const{
     // rather than zooming quickly past you on a screen. fprintf is used to
     // do the printing. The fShapeIndex difference is not printed at this time.
     // Inputs:
-    //    FILE *fp           A file pointer to an opened file for writing 
-    //                       in which the results of the comparison will 
-    //                       be written.
+    //    FILE *fp           A file pointer to an opened file for writing in which
+    //                       the results of the comparison will be written.
     //    AliITSgeom *other  The other AliITSgeom class to which this one is
     //                       being compared.
     // Outputs:
@@ -1078,9 +984,8 @@ void AliITSgeom::PrintData(FILE *fp,Int_t lay,Int_t lad,Int_t det)const{
     // is given to the user. The output it written to the file pointed
     // to by the file pointer fp. This can be set to stdout if you want.
     // Inputs:
-    //     FILE *fp           A file pointer to an opened file for 
-    //                        writing in which the results of the 
-    //                        comparison will be written.
+    //     FILE *fp           A file pointer to an opened file for writing in which
+    //                        the results of the comparison will be written.
     //     Int_t lay          The layer number. Starting from 1.
     //     Int_t lad          The ladder number. Starting from 1.
     //     Int_t det          The detector number. Starting from 1.
@@ -1104,109 +1009,109 @@ void AliITSgeom::PrintData(FILE *fp,Int_t lay,Int_t lad,Int_t det)const{
     return;
 }
 //______________________________________________________________________
-void AliITSgeom::PrintGeom(ostream *wb)const{
+ofstream & AliITSgeom::PrintGeom(ofstream &rb)const{
     //     Stream out an object of class AliITSgeom to standard output.
     // Intputs:
-    //     ofstream *wb    The output streaming buffer.
+    //     ofstream &rb    The output streaming buffer.
     // Outputs:
     //     none.
     // Return:
-    //     none.
+    //     ofstream &rb    The output streaming buffer.
     Int_t i,nshapes;
 
-    wb->setf(ios::scientific);
-    *wb << fTrans << " ";
-    *wb << fNmodules << " ";
-    *wb << fNlayers << " ";
-    for(i=0;i<fNlayers;i++) *wb << fNlad[i] << " ";
-    for(i=0;i<fNlayers;i++) *wb << fNdet[i] << "\n";
+    rb.setf(ios::scientific);
+    rb << fTrans << " ";
+    rb << fNmodules << " ";
+    rb << fNlayers << " ";
+    for(i=0;i<fNlayers;i++) rb << fNlad[i] << " ";
+    for(i=0;i<fNlayers;i++) rb << fNdet[i] << "\n";
     for(i=0;i<fNmodules;i++) {
-        *wb <<setprecision(16) << *(GetGeomMatrix(i)) << "\n";
+        rb <<setprecision(16) << *(GetGeomMatrix(i)) << "\n";
     } // end for i
     nshapes = fShape.GetEntries();
-    *wb << nshapes <<endl;
+    rb << nshapes <<endl;
     for(i=0;i<nshapes;i++) if(fShape.At(i)!=0) switch (i){
     case kSPD:
-        *wb << kSPD <<","<< (AliITSgeomSPD*)(fShape.At(kSPD));
+        rb << kSPD <<","<< (AliITSgeomSPD*)(fShape.At(kSPD));
         break;
     case kSDD:
-        *wb << kSDD <<","<< (AliITSgeomSDD*)(fShape.At(kSDD));
+        rb << kSDD <<","<< (AliITSgeomSDD*)(fShape.At(kSDD));
         break;
     case kSSD:
-        *wb << kSSD <<","<< (AliITSgeomSSD*)(fShape.At(kSSD));
+        rb << kSSD <<","<< (AliITSgeomSSD*)(fShape.At(kSSD));
         break;
     case kSSDp:
-        *wb << kSSDp <<","<< (AliITSgeomSSD*)(fShape.At(kSSDp));
+        rb << kSSDp <<","<< (AliITSgeomSSD*)(fShape.At(kSSDp));
         break;
     case kSDDp:
-        *wb << kSDDp <<","<< (AliITSgeomSDD*)(fShape.At(kSDDp));
+        rb << kSDDp <<","<< (AliITSgeomSDD*)(fShape.At(kSDDp));
         break;
     } // end for i / switch
-    return;
+    return rb;
 }
 //______________________________________________________________________
-void AliITSgeom::ReadGeom(istream *rb){
+ifstream & AliITSgeom::ReadGeom(ifstream &rb){
     //     Stream in an object of class AliITSgeom from standard input.
     // Intputs:
-    //     ifstream *rb    The input streaming buffer.
+    //     ifstream &rb    The input streaming buffer.
     // Outputs:
     //     none.
     // Return:
-    //     none.
+    //     ifstream &rb    The input streaming buffer.
     Int_t i,j;
 
     fGm.Clear();
 
-    *rb >> fTrans >> fNmodules >> fNlayers;
+    rb >> fTrans >> fNmodules >> fNlayers;
     fNlad.Set(fNlayers);
     fNdet.Set(fNlayers);
-    for(i=0;i<fNlayers;i++) *rb >> fNlad[i];
-    for(i=0;i<fNlayers;i++) *rb >> fNdet[i];
+    for(i=0;i<fNlayers;i++) rb >> fNlad[i];
+    for(i=0;i<fNlayers;i++) rb >> fNdet[i];
     fGm.Expand(fNmodules);
     fGm.SetOwner(kTRUE);
     for(i=0;i<fNmodules;i++){
 	if(i<0||i>=fGm.GetSize()){
 	    Error("ReadGeom","i<0||i>=fGm.GetSize()=%d",
 		  i,fGm.GetSize());
-	    return;
+	    return rb;
 	} // end if
         fGm.AddAt(new AliITSgeomMatrix,i);
-        *rb >> *(GetGeomMatrix(i));
+        rb >> *(GetGeomMatrix(i));
     } // end for i
-    *rb >> i;
+    rb >> i;
     fShape.Expand(i);
     fShape.SetOwner(kTRUE);
     for(i=0;i<fShape.GetEntries();i++) {
-        *rb >> j;
+        rb >> j;
         switch (j){
         case kSPD:{
             AliITSgeomSPD *s = new AliITSgeomSPD();
-            *rb >> *s;
+            rb >> *s;
             fShape.AddAt(s,kSPD);}
             break;
         case kSDD:{
             AliITSgeomSDD *s = new AliITSgeomSDD();
-            *rb >> *s;
+            rb >> *s;
             fShape.AddAt(s,kSDD);}
             break;
         case kSSD:{
             AliITSgeomSSD *s = new AliITSgeomSSD();
-            *rb >> *s;
+            rb >> *s;
             fShape.AddAt(s,kSSD);}
             break;
         case kSSDp:{
             AliITSgeomSSD *s = new AliITSgeomSSD();
-            *rb >> *s;
+            rb >> *s;
             fShape.AddAt(s,kSSDp);}
             break;
         case kSDDp:{
             AliITSgeomSDD *s = new AliITSgeomSDD();
-            *rb >> *s;
+            rb >> *s;
             fShape.AddAt(s,kSDDp);}
             break;
         } // end  switch
     } //  end for i
-    return;
+    return rb;
 }
 //______________________________________________________________________
 //     The following routines modify the transformation of "this"
@@ -1230,8 +1135,8 @@ void AliITSgeom::GlobalChange(const Float_t *tran,const Float_t *rot){
     // respect to the beam line, except for an effective rotation about the
     // beam axis which will just rotate the ITS as a hole about the beam axis.
     // Intputs:
-    //     Float_t *tran   A 3 element array representing the global 
-    //                     translations. the elements are x,y,z in cm.
+    //     Float_t *tran   A 3 element array representing the global translations.
+    //                     the elements are x,y,z in cm.
     //     Float_t *rot    A 3 element array representing the global rotation
     //                     angles about the three axis x,y,z in radians
     // Outputs:
@@ -1279,9 +1184,8 @@ void AliITSgeom::GlobalCylindericalChange(const Float_t *tran,
     // line, except for an effective rotation about the beam axis which will
     // just rotate the ITS as a hole about the beam axis.
     // Intputs:
-    //     Float_t *tran   A 3 element array representing the global 
-    //                     translations. the elements are r,theta,z in 
-    //                     cm/radians.
+    //     Float_t *tran   A 3 element array representing the global translations.
+    //                     the elements are r,theta,z in cm/radians.
     //     Float_t *rot    A 3 element array representing the global rotation
     //                     angles about the three axis x,y,z in radians
     // Outputs:
@@ -1323,12 +1227,10 @@ void AliITSgeom::RandomChange(const Float_t *stran,const Float_t *srot){
     // x y and z translations, and the three element array srot,
     // for the three rotation about the axis x y and z.
     // Intputs:
-    //     Float_t *stran  A 3 element array representing the global 
-    //                     translations variances. The elements are x,
-    //                     y,z in cm.
+    //     Float_t *stran  A 3 element array representing the global translations
+    //                     variances. The elements are x,y,z in cm.
     //     Float_t *srot   A 3 element array representing the global rotation
-    //                     angles variances about the three axis x,y,z in 
-    //                     radians.
+    //                     angles variances about the three axis x,y,z in radians.
     // Outputs:
     //     none.
     // Return:
@@ -1363,12 +1265,10 @@ void AliITSgeom::RandomCylindericalChange(const Float_t *stran,
     // in detector position allow for the simulation of a random uncertainty
     // in the detector positions of the ITS.
     // Intputs:
-    //     Float_t *stran  A 3 element array representing the global 
-    //                     translations variances. The elements are r,
-    //                     theta,z in cm/radians.
+    //     Float_t *stran  A 3 element array representing the global translations
+    //                     variances. The elements are r,theta,z in cm/radians.
     //     Float_t *srot   A 3 element array representing the global rotation
-    //                     angles variances about the three axis x,y,z in 
-    //                     radians.
+    //                     angles variances about the three axis x,y,z in radians.
     // Outputs:
     //     none.
     // Return:
@@ -1582,83 +1482,31 @@ Double_t AliITSgeom::GetAverageRadiusOfLayer(Int_t layer,Double_t &range)const{
     return r;
 }
 //_______________________________________________________________________
-void AliITSgeom::DetLToTrackingV2(Int_t md,Float_t xin,Float_t zin,
-                                  Float_t &yout,Float_t &zout) {
+void AliITSgeom::DetLToTrackingV2(Int_t md, Float_t xin, Float_t zin, Float_t &yout, Float_t &zout) {
 
-    //Conversion from local coordinates on detectors to local
-    //coordinates used for tracking ("v2")
-    // Inputs:
-    //   Int_t   md      Module number
-    //   Float_t xin     Standard local coordinate x
-    //   Float_t zin     Standard local coordinate z
-    // Output:
-    //   Float_t yout    Tracking local coordinate y
-    //   Float_t zout    Tracking local coordinate z
-    // Return:
-    //   none.
-    Float_t x,y,z;
-    Double_t rt[9],al;
-
-    GetTrans(md,x,y,z);
-    GetRotMatrix(md,rt);
-    al = TMath::ATan2(rt[1],rt[0])+TMath::Pi();
-    yout = -(-xin+(x*((Float_t)TMath::Cos(al))+y*((Float_t)TMath::Sin(al))));
-    if(md<(GetModuleIndex(2,1,1))) yout *= -1; 
-    zout = -zin+z; 
+  //Conversion from local coordinates on detectors to local
+  //coordinates used for tracking ("v2")
+  Float_t x,y,z; 
+  Double_t rt[9];
+  GetTrans(md,x,y,z);
+  GetRotMatrix(md,rt);
+  Double_t al=TMath::ATan2(rt[1],rt[0])+TMath::Pi();
+  yout=-(-xin+(x*TMath::Cos(al)+y*TMath::Sin(al)));
+  if ( md<(GetModuleIndex(2,1,1)) ) yout*=-1; 
+  zout=-zin+(Double_t)z; 
 }
+
 //_______________________________________________________________________
-void AliITSgeom::TrackingV2ToDetL(Int_t md,Float_t yin,Float_t zin,
-                                  Float_t &xout,Float_t &zout) {
-    //Conversion from local coordinates used for tracking ("v2") to
-    //local detector coordinates  
-    // Inputs:
-    //   Int_t   md      Module number
-    //   Float_t yin     Tracking local coordinate y
-    //   Float_t zin     Tracking local coordinate z
-    // Output:
-    //   Float_t xout    Standard local coordinate x
-    //   Float_t zout    Standard local coordinate z
-    // Return:
-    //   none.
-    Float_t x,y,z;
-    Double_t rt[9],al;
-
-    GetTrans(md,x,y,z);
-    GetRotMatrix(md,rt);
-    al = TMath::ATan2(rt[1],rt[0])+TMath::Pi();
-    xout = yin;
-    if(md<(GetModuleIndex(2,1,1))) xout = -xout;
-    xout += (x*((Float_t)TMath::Cos(al))+y*((Float_t)TMath::Sin(al)));
-    zout  = -zin+z; 
+void AliITSgeom::TrackingV2ToDetL(Int_t md,Float_t yin,Float_t zin,Float_t &xout,Float_t &zout) {
+  //Conversion from local coordinates used for tracking ("v2") to
+  //local detector coordinates
+  
+  Float_t x,y,z; Double_t rt[9];
+  GetTrans(md,x,y,z);
+  GetRotMatrix(md,rt);
+  Double_t al=TMath::ATan2(rt[1],rt[0])+TMath::Pi();
+  xout=yin;
+  if( md<(GetModuleIndex(2,1,1)) ) xout=-xout;
+  xout+=(x*TMath::Cos(al)+y*TMath::Sin(al));
+  zout=-zin+(Double_t)z; 
 }
-//----------------------------------------------------------------------
-ostream &operator<<(ostream &os,AliITSgeom &p){
-    // Standard output streaming function.
-    // Inputs:
-    //   ostream    os   The output stream
-    //   AliITSgeom p    The AliITSgeom class to be printed out
-    // Outputs:
-    //   none.
-    // Return:
-    //   The input stream
-
-    p.PrintGeom(&os);
-    return os;
-}
-//----------------------------------------------------------------------
-istream &operator>>(istream &is,AliITSgeom &r){
-    // Standard input streaming function.
-    // Inputs:
-    //   istream    is  The input stream
-    //   AliITSgeom p   The AliITSgeom class to be filled from this 
-    //                  input stream
-    // Outputs:
-    //   none.
-    // Return:
-    //   The input stream
-
-    r.ReadGeom(&is);
-    return is;
-}
-//----------------------------------------------------------------------
-

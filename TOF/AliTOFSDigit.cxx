@@ -23,14 +23,15 @@
 //  fStrip   : strips number                                               //
 //  fPadx    : pad number along x                                          //
 //  fPadz    : pad number along z                                          //
-//  fTdc     : TArrayI of TDC values                                       //
-//  fAdc     : TArrayI of ADC values                                       //
+//  fTdc     : TArrayF of TDC values                                       //
+//  fAdc     : TArrayF of ADC values                                       //
 //                                                                         //
 //  Getters, setters and member functions  defined here                    //
 //                                                                         //
 // -- Authors: F. Pierella, A. Seganti, D. Vicinanza                       //
 //_________________________________________________________________________//
 
+#include "TArrayF.h"
 #include "TArrayI.h"
 
 #include "AliLog.h"
@@ -58,7 +59,7 @@ AliTOFSDigit::AliTOFSDigit():
 }
 
 ////////////////////////////////////////////////////////////////////////
-AliTOFSDigit::AliTOFSDigit(Int_t tracknum, Int_t *vol,Int_t *digit):
+AliTOFSDigit::AliTOFSDigit(Int_t tracknum, Int_t *vol,Float_t *digit):
   TObject(),
   fSector(-1),
   fPlate(-1),
@@ -80,9 +81,9 @@ AliTOFSDigit::AliTOFSDigit(Int_t tracknum, Int_t *vol,Int_t *digit):
   fPadx   = vol[3];
   fPadz   = vol[4];
   fNDigits = 1;
-  fTdc = new TArrayI(fNDigits);
+  fTdc = new TArrayF(fNDigits);
   (*fTdc)[0] = digit[0];
-  fAdc = new TArrayI(fNDigits);
+  fAdc = new TArrayF(fNDigits);
   (*fAdc)[0] = digit[1];
   fTracks = new TArrayI(kMAXDIGITS*fNDigits);
   (*fTracks)[0] = tracknum;
@@ -113,8 +114,8 @@ AliTOFSDigit::AliTOFSDigit(const AliTOFSDigit & digit):
   fPadx   = digit.fPadx;
   fPadz   = digit.fPadz;
   fNDigits = digit.fNDigits;
-  fTdc = new TArrayI(*digit.fTdc);  
-  fAdc = new TArrayI(*digit.fAdc);
+  fTdc = new TArrayF(*digit.fTdc);  
+  fAdc = new TArrayF(*digit.fAdc);
   fTracks = new TArrayI(*digit.fTracks);
 }
 
@@ -139,7 +140,7 @@ AliTOFSDigit& AliTOFSDigit::operator=(const AliTOFSDigit & digit)
 
 ////////////////////////////////////////////////////////////////////////
 AliTOFSDigit::AliTOFSDigit(Int_t sector, Int_t plate, Int_t strip, Int_t padx,
-			   Int_t padz, Int_t tdc, Int_t adc):
+			   Int_t padz, Float_t tdc, Float_t adc):
   fSector(sector),
   fPlate(plate),
   fStrip(strip),
@@ -153,9 +154,9 @@ AliTOFSDigit::AliTOFSDigit(Int_t sector, Int_t plate, Int_t strip, Int_t padx,
   //
   // Constructor for sdigit
   //
-  fTdc = new TArrayI(fNDigits);
+  fTdc = new TArrayF(fNDigits);
   (*fTdc)[0] = tdc;   
-  fAdc = new TArrayI(fNDigits);
+  fAdc = new TArrayF(fNDigits);
   (*fAdc)[0] = adc;   
   // no tracks were specified, set them to -1
   fTracks = new TArrayI(kMAXDIGITS*fNDigits);
@@ -196,7 +197,7 @@ void AliTOFSDigit::Update(Float_t tdcbin, Int_t tdc, Int_t adc, Int_t track)
   }
   
   if (sameTime >= 0) {
-    (*fAdc)[sameTime] += adc;
+    (*fAdc)[sameTime] += static_cast<Float_t>(adc);
     // update track - find the first -1  value and replace it by the
     // track number
     for (Int_t iTrack=0; iTrack<kMAXDIGITS; iTrack++) {
@@ -255,7 +256,7 @@ void AliTOFSDigit::Update(AliTOFSDigit* sdig)
     }
     
     if (sameTime >= 0) {
-      (*fAdc)[sameTime] += adc;
+      (*fAdc)[sameTime] += static_cast<Float_t>(adc);
       // update track - find the first -1  value and replace it by the
       // track number
       for (Int_t iTrack=0; iTrack<kMAXDIGITS; iTrack++) {

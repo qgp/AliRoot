@@ -33,7 +33,6 @@ class AliTRDclusterizerV1 : public AliTRDclusterizer {
   virtual Bool_t   MakeClusters();
   virtual Bool_t   ReadDigits();
   virtual Bool_t   ReadDigits(AliRawReader *rawReader);
-  virtual Bool_t   ReadDigits(TTree *digitsTree);
 
  protected:
 

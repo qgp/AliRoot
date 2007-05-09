@@ -5,7 +5,7 @@ dnl template for the configuration script for the Alice HLT
 dnl framework and components
 dnl 
 dnl ------------------------------------------------------------------
-AC_INIT([Alice High Level Trigger] , [0.7-dev], [Matthias.Richter@ift.uib.no], alice-hlt)
+AC_INIT([Alice High Level Trigger] , [0.6-dev], [Matthias.Richter@ift.uib.no], alice-hlt)
 
 dnl ------------------------------------------------------------------
 dnl the package from CVS contains the old Makefiles as well. In order to
@@ -194,8 +194,6 @@ if test ! "x$have_aliroot" = "xno" ; then
   AC_CHECK_LIB([$CHECKLIB],[_init],[ALIROOT_LIBS="$ALIROOT_LIBS -l$CHECKLIB"])
 
   # CBD library is present since AliRoot version v4-05-00 (02.06.2006)
-  # in addition a circular dependency has been introduced in March 06 which
-  # requires to add libSTEER already here
   LIBS="$save_LIBS $ROOTLIBS $ALIROOT_LIBS -lSTEER"
   CHECKLIB=CDB
   AC_CHECK_LIB([$CHECKLIB],[_init],[ALIROOT_LIBS="$ALIROOT_LIBS -l$CHECKLIB"])
@@ -579,7 +577,6 @@ AC_CONFIG_FILES([Makefile
 		 BASE/setenv.sh
 		 BASE/setenv.csh
 		 BASE/util/Makefile
-		 BASE/interface/Makefile
 		 SampleLib/Makefile
 		 TPCLib/Makefile
 		 TPCLib/mapping2array.cxx

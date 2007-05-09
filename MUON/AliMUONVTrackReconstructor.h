@@ -14,14 +14,13 @@
 #include <TObject.h>
 
 class TClonesArray;
-class AliMUONRecData;
+class AliMUONData;
 class AliMUONTriggerTrack;
-class AliMUONTrackHitPattern;
 
 class AliMUONVTrackReconstructor : public TObject {
 
  public:
-  AliMUONVTrackReconstructor(AliMUONRecData* data); // default Constructor
+  AliMUONVTrackReconstructor(AliMUONData* data); // default Constructor
   virtual ~AliMUONVTrackReconstructor(); // Destructor
 
   // Parameters for track reconstruction: public methods
@@ -48,9 +47,9 @@ class AliMUONVTrackReconstructor : public TObject {
   void EventDumpTrigger(void);  // dump reconstructed trigger event
   
           /// Return MUON data
-  AliMUONRecData*  GetMUONData() {return fMUONData;}
+  AliMUONData*  GetMUONData() {return fMUONData;}
           /// Set MUON data
-  void SetMUONData(AliMUONRecData* data) {fMUONData = data;}
+  void SetMUONData(AliMUONData* data) {fMUONData = data;}
 
           /// Set trigger circuit
   void SetTriggerCircuit(TClonesArray* circuit) {fTriggerCircuit = circuit;}
@@ -86,7 +85,7 @@ class AliMUONVTrackReconstructor : public TObject {
   Int_t fNRecTracks; ///< number of reconstructed tracks
 
   // data container
-  AliMUONRecData* fMUONData; ///< Data container for MUON subsystem 
+  AliMUONData* fMUONData; ///< Data container for MUON subsystem 
 
   // Functions
   AliMUONVTrackReconstructor (const AliMUONVTrackReconstructor& rhs); ///< copy constructor
@@ -107,8 +106,6 @@ class AliMUONVTrackReconstructor : public TObject {
   virtual void RemoveDoubleTracks(void) = 0;
                /// \todo add comment
   virtual void FillMUONTrack(void) = 0;
-
-  AliMUONTrackHitPattern *fTrackHitPattern; ///< Pointer to class for hit pattern recognition
 
  private:
   

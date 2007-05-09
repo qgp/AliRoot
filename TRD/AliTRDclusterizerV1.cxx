@@ -147,18 +147,6 @@ Bool_t AliTRDclusterizerV1::ReadDigits()
 }
 
 //_____________________________________________________________________________
-Bool_t AliTRDclusterizerV1::ReadDigits(TTree *digitsTree)
-{
-  //
-  // Reads the digits arrays from the input tree
-  //
-
-  // Read in the digit arrays
-  return (fDigitsManager->ReadDigits(digitsTree));
-
-}
-
-//_____________________________________________________________________________
 Bool_t AliTRDclusterizerV1::ReadDigits(AliRawReader *rawReader)
 {
   //
@@ -516,9 +504,8 @@ Bool_t AliTRDclusterizerV1::MakeClusters()
 			                           ,dummy
 			                           ,clusterSig
 			                           ,iType
-                                                   ,col
-    		                                   ,clusterPads[1]);
-		
+                                                   ,clusterPads[1]);
+
 		// Store the amplitudes of the pads in the cluster for later analysis
 		Short_t signals[7] = { 0, 0, 0, 0, 0, 0, 0 };
 		for (Int_t jPad = col-3; jPad <= col+3; jPad++) {

@@ -46,7 +46,6 @@
 #include <TTask.h>
 #include <TTree.h>
 #include <TVirtualMC.h>
-#include <TStopwatch.h>
 
 #include "AliConst.h"
 #include "AliLoader.h"
@@ -319,7 +318,7 @@ void AliTOF::AddT0Hit(Int_t track, Int_t *vol, Float_t *hits)
 }
 
 //_____________________________________________________________________________
-void AliTOF::AddDigit(Int_t *tracks, Int_t *vol, Int_t *digits)
+void AliTOF::AddDigit(Int_t *tracks, Int_t *vol, Float_t *digits)
 {
   //
   // Add a TOF digit
@@ -330,7 +329,7 @@ void AliTOF::AddDigit(Int_t *tracks, Int_t *vol, Int_t *digits)
 }
 
 //_____________________________________________________________________________
-void AliTOF::AddSDigit(Int_t tracknum, Int_t *vol, Int_t *digits)
+void AliTOF::AddSDigit(Int_t tracknum, Int_t *vol, Float_t *digits)
 {
      
 //
@@ -404,16 +403,7 @@ void AliTOF::CreateGeometry()
 
   Float_t xTof, yTof;
 
-  if (IsVersion()==8) {
-
-    xTof = 124.5;//fTOFGeometry->StripLength()+2.*(0.3+0.03); // cm,  x-dimension of FTOA volume
-    yTof = fTOFGeometry->Rmax()-fTOFGeometry->Rmin(); // cm,  y-dimension of FTOA volume
-    Float_t zTof = fTOFGeometry->ZlenA();             // cm,  z-dimension of FTOA volume
-    
-    //  TOF module internal definitions
-    TOFpc(xTof, yTof, zTof);
-
-  } else if (IsVersion()==7) {
+  if (IsVersion()==7) {
 
     xTof = 124.5;//fTOFGeometry->StripLength()+2.*(0.3+0.03); // cm,  x-dimension of FTOA volume
     yTof = fTOFGeometry->Rmax()-fTOFGeometry->Rmin(); // cm,  y-dimension of FTOA volume
@@ -639,7 +629,7 @@ AliDigitizer* AliTOF::CreateDigitizer(AliRunDigitizer* manager) const
 }
 
 //___________________________________________________________________________
-Bool_t AliTOF::CheckOverlap(Int_t* vol, Int_t* digit,Int_t Track)
+Bool_t AliTOF::CheckOverlap(Int_t* vol, Float_t* digit,Int_t Track)
 {
 //
 // Checks if 2 or more hits belong to the same pad.
@@ -663,8 +653,8 @@ Bool_t AliTOF::CheckOverlap(Int_t* vol, Int_t* digit,Int_t Track)
       if (vol[i]!=vol2[i]) idem=kFALSE;}
 
     if (idem){  // same pad fired
-      Int_t tdc2 = digit[0];
-      Int_t tdc1 = currentDigit->GetTdc();
+      Float_t tdc2 = digit[0];
+      Float_t tdc1 = currentDigit->GetTdc();
 
       // we separate two digits on the same pad if
       // they are separated in time by at least 25 ns
@@ -684,7 +674,7 @@ Bool_t AliTOF::CheckOverlap(Int_t* vol, Int_t* digit,Int_t Track)
 	overlap = kTRUE;
 	return overlap;
       } else 
-	overlap= kFALSE;
+		overlap= kFALSE;
 
     } // close if (idem) -> two digits on the same TOF pad
 
@@ -699,9 +689,6 @@ void AliTOF::Digits2Raw()
 // Starting from the TOF digits, writes the Raw Data objects
 //
 
-  TStopwatch stopwatch;
-  stopwatch.Start();
-
   fLoader->LoadDigits();
 
   TTree* digits = fLoader->TreeD();
@@ -710,6 +697,7 @@ void AliTOF::Digits2Raw()
     return;
   }
   
+  //AliRunLoader *rl = AliRunLoader::Open("galice.root",AliConfig::GetDefaultEventFolderName(),"read");
   fRunLoader->CdGAFile();
   TFile *in=(TFile*)gFile;
   in->cd();
@@ -718,13 +706,7 @@ void AliTOF::Digits2Raw()
   AliTOFDDLRawData rawWriter(geometry);
   //AliTOFDDLRawData rawWriter;
   rawWriter.SetVerbose(0);
-  //rawWriter.SetFakeOrphaneProduction(kTRUE);
-  //rawWriter.SetPackedAcquisitionMode(kFALSE);
-  if (rawWriter.GetPackedAcquisitionMode()) {
-    if(rawWriter.GetMatchingWindow()>8192)
-      AliWarning(Form("You are running in packing mode and the matching window is %.2f ns, i.e. greater than 199.8848 ns",
-		      rawWriter.GetMatchingWindow()*AliTOFGeometry::TdcBinWidth()*1.e-03));
-  }
+  //rawWriter.SetAcquisitionMode(kFALSE);
   
   AliDebug(1,"Formatting raw data for TOF");
   digits->GetEvent(0);
@@ -732,9 +714,6 @@ void AliTOF::Digits2Raw()
 
   fLoader->UnloadDigits();
   
-  AliDebug(1, Form("Execution time to write TOF raw data : R:%.2fs C:%.2fs",
-		   stopwatch.RealTime(),stopwatch.CpuTime()));
-
 }
 
 //____________________________________________________________________________

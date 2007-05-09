@@ -56,11 +56,10 @@ AliMUONTrack::AliMUONTrack()
     fFitWithVertex(kFALSE),
     fVertex(0x0),
     fFitFMin(-1.),
-    fMatchTrigger(-1),
+    fMatchTrigger(kFALSE),
     floTrgNum(-1),
     fChi2MatchTrigger(0.),
-    fTrackID(0),
-    fHitsPatternInTrigCh(0)
+    fTrackID(0)
 {
   /// Default constructor
 }
@@ -76,11 +75,10 @@ AliMUONTrack::AliMUONTrack(AliMUONHitForRec* hitForRec1, AliMUONHitForRec* hitFo
     fFitWithVertex(kFALSE),
     fVertex(0x0),
     fFitFMin(-1.),
-    fMatchTrigger(-1),
+    fMatchTrigger(kFALSE),
     floTrgNum(-1),    
     fChi2MatchTrigger(0.),
-    fTrackID(0),
-    fHitsPatternInTrigCh(0)
+    fTrackID(0)
 {
   /// Constructor from thw hitForRec's
 
@@ -170,8 +168,7 @@ AliMUONTrack::AliMUONTrack (const AliMUONTrack& theMUONTrack)
     fMatchTrigger(theMUONTrack.fMatchTrigger),
     floTrgNum(theMUONTrack.floTrgNum),    
     fChi2MatchTrigger(theMUONTrack.fChi2MatchTrigger),
-    fTrackID(theMUONTrack.fTrackID),
-    fHitsPatternInTrigCh(theMUONTrack.fHitsPatternInTrigCh)
+    fTrackID(theMUONTrack.fTrackID)
 {
   ///copy constructor
   Int_t maxIndex = 0;
@@ -259,8 +256,7 @@ AliMUONTrack & AliMUONTrack::operator=(const AliMUONTrack& theMUONTrack)
   fMatchTrigger       =  theMUONTrack.fMatchTrigger;
   floTrgNum           =  theMUONTrack.floTrgNum;
   fChi2MatchTrigger   =  theMUONTrack.fChi2MatchTrigger;
-  fTrackID            =  theMUONTrack.fTrackID; 
-  fHitsPatternInTrigCh = theMUONTrack.fHitsPatternInTrigCh;
+  fTrackID            =  theMUONTrack.fTrackID;
 
   return *this;
 }

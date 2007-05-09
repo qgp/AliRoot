@@ -27,7 +27,6 @@
 #include <TObjArray.h>
 #include <TParticle.h>
 #include <TF1.h>
-#include <TVirtualMC.h>
 
 #include "AliGenCocktailEventHeader.h"
 
@@ -38,7 +37,6 @@
 #include "AliMC.h"
 #include "AliRun.h"
 #include "AliStack.h"
-#include "AliDecayer.h"
 #include "AliLog.h"
 #include "AliGenPythia.h"
 
@@ -48,15 +46,11 @@ ClassImp(AliGenMUONCocktailpp)
 //________________________________________________________________________
 AliGenMUONCocktailpp::AliGenMUONCocktailpp()
     :AliGenCocktail(),
-     fDecayer(0),
-     fDecayModeResonance(kAll),
-     fDecayModePythia(kAll),
      fTotalRate(0),
      fMuonMultiplicity(0),
      fMuonPtCut(0.),
      fMuonThetaMinCut(0.),
      fMuonThetaMaxCut(0.),
-     fMuonOriginCut(-999.),
      fNSucceded(0),
      fNGenerated(0)
 {
@@ -103,8 +97,6 @@ void AliGenMUONCocktailpp::Init()
     Double_t sigmaupsilonP = 0.502e-6;  
     Double_t sigmaupsilonPP = 0.228e-6;
     
-    AliInfo(Form("the parametrised resonances uses the decay mode %d",fDecayModeResonance));
-
 // Generation using CDF scaled distribution for pp@14TeV (from D. Stocco)
 //----------------------------------------------------------------------
 // Jpsi generator
@@ -113,9 +105,7 @@ void AliGenMUONCocktailpp::Init()
     genjpsi->SetPtRange(0.,100.);
     genjpsi->SetYRange(-8.,8.);
     genjpsi->SetPhiRange(0.,360.);
-    genjpsi->SetForceDecay(fDecayModeResonance);
-    if (!gMC) genjpsi->SetDecayer(fDecayer);
-
+    genjpsi->SetForceDecay(kAll);
     genjpsi->Init();  // generation in 4pi
     ratiojpsi = sigmajpsi / sigmaReaction * genjpsi->GetRelativeArea(ptMin,ptMax,yMin,yMax,phiMin,phiMax); // get weight
     AliInfo(Form("jpsi prod. cross-section in pp(14 TeV) %5.3g b",sigmajpsi));
@@ -135,9 +125,7 @@ void AliGenMUONCocktailpp::Init()
     genpsiP->SetPtRange(0.,100.);
     genpsiP->SetYRange(-8.,8.);
     genpsiP->SetPhiRange(0.,360.);
-    genpsiP->SetForceDecay(fDecayModeResonance);
-    if (!gMC) genpsiP->SetDecayer(fDecayer);
-
+    genpsiP->SetForceDecay(kAll);
     genpsiP->Init();  // generation in 4pi
     ratiopsiP = sigmapsiP / sigmaReaction * genpsiP->GetRelativeArea(ptMin,ptMax,yMin,yMax,phiMin,phiMax);
     AliInfo(Form("psiP prod. cross-section in pp(14 TeV) %5.3g b",sigmapsiP));
@@ -157,8 +145,7 @@ void AliGenMUONCocktailpp::Init()
     genupsilon->SetPtRange(0.,100.); 
     genupsilon->SetYRange(-8.,8.);
     genupsilon->SetPhiRange(0.,360.);
-    genupsilon->SetForceDecay(fDecayModeResonance);
-    if (!gMC) genupsilon->SetDecayer(fDecayer);
+    genupsilon->SetForceDecay(kAll);
     genupsilon->Init();  // generation in 4pi
     ratioupsilon = sigmaupsilon / sigmaReaction * genupsilon->GetRelativeArea(ptMin,ptMax,yMin,yMax,phiMin,phiMax);
     AliInfo(Form("Upsilon 1S prod. cross-section in pp(14 TeV) %5.3g b",sigmaupsilon));
@@ -178,8 +165,7 @@ void AliGenMUONCocktailpp::Init()
     genupsilonP->SetPtRange(0.,100.);
     genupsilonP->SetYRange(-8.,8.);
     genupsilonP->SetPhiRange(0.,360.);
-    genupsilonP->SetForceDecay(fDecayModeResonance);
-    if (!gMC) genupsilonP->SetDecayer(fDecayer);  
+    genupsilonP->SetForceDecay(kAll);
     genupsilonP->Init();  // generation in 4pi
     ratioupsilonP = sigmaupsilonP / sigmaReaction * genupsilonP->GetRelativeArea(ptMin,ptMax,yMin,yMax,phiMin,phiMax);
     AliInfo(Form("Upsilon 2S prod. cross-section in pp(14 TeV) %5.3g b",sigmaupsilonP));
@@ -199,8 +185,7 @@ void AliGenMUONCocktailpp::Init()
     genupsilonPP->SetPtRange(0.,100.); 
     genupsilonPP->SetYRange(-8.,8.);
     genupsilonPP->SetPhiRange(0.,360.);
-    genupsilonPP->SetForceDecay(fDecayModeResonance);
-    if (!gMC) genupsilonPP->SetDecayer(fDecayer);  
+    genupsilonPP->SetForceDecay(kAll);
     genupsilonPP->Init();  // generation in 4pi
     ratioupsilonPP = sigmaupsilonPP / sigmaReaction * genupsilonPP->GetRelativeArea(ptMin,ptMax,yMin,yMax,phiMin,phiMax);
     AliInfo(Form("Upsilon 3S prod. cross-section in pp(14 TeV) %5.3g b",sigmaupsilonPP));
@@ -212,14 +197,14 @@ void AliGenMUONCocktailpp::Init()
     genupsilonPP->Init(); // generation in selected kinematical range
     AddGenerator(genupsilonPP,"UpsilonPP", ratioupsilonPP); // Adding Generator
     fTotalRate+=ratioupsilonPP;
+    
 //------------------------------------------------------------------
 // Pythia generator
     AliGenPythia *pythia = new AliGenPythia(1);
     pythia->SetProcess(kPyMbMSEL1);
     pythia->SetStrucFunc(kCTEQ5L);
     pythia->SetEnergyCMS(14000.);
-    AliInfo(Form("\n\npythia uses the decay mode %d",fDecayModePythia));
-    pythia->SetForceDecay(fDecayModePythia);
+    pythia->SetForceDecay(kAll);
     pythia->SetPtRange(0.,100.);
     pythia->SetYRange(-8.,8.);
     pythia->SetPhiRange(0.,360.);
@@ -228,13 +213,6 @@ void AliGenMUONCocktailpp::Init()
     AddGenerator(pythia,"Pythia",1);
     fTotalRate+=1.;
 
-    TIter next(fEntries);
-    AliGenCocktailEntry *entry;
-    if (fStack) {
-	while((entry = (AliGenCocktailEntry*)next())) {
-	    entry->Generator()->SetStack(fStack);
-	}
-    }
 }
 
 //_________________________________________________________________________
@@ -291,25 +269,23 @@ void AliGenMUONCocktailpp::Generate()
 	Int_t iPart;
 	fNGenerated++;
 	Int_t numberOfMuons=0;	
-
-    	Int_t maxPart = partArray->GetEntriesFast();
-	for(iPart=0; iPart<maxPart; iPart++){      
+  	
+	for(iPart=0; iPart<partArray->GetEntriesFast(); iPart++){      
 	    
-	  TParticle *part = gAlice->GetMCApp()->Particle(iPart);
-	  if ( TMath::Abs(part->GetPdgCode()) == 13 ){  
-	    if((part->Vz() > fMuonOriginCut) && //take only the muons that decayed before the abs + 1 int. length in C abs
-	       (part->Theta()*180./TMath::Pi()>fMuonThetaMinCut) &&
-	       (part->Theta()*180./TMath::Pi()<fMuonThetaMaxCut) &&
-	       (part->Pt()>fMuonPtCut)) {
-	      numberOfMuons++;
+	    if ( (TMath::Abs(gAlice->GetMCApp()->Particle(iPart)->GetPdgCode())==13)  &&
+		 (gAlice->GetMCApp()->Particle(iPart)->Theta()*180./TMath::Pi()>fMuonThetaMinCut) &&
+		 (gAlice->GetMCApp()->Particle(iPart)->Theta()*180./TMath::Pi()<fMuonThetaMaxCut) &&
+		 (gAlice->GetMCApp()->Particle(iPart)->Pt()>fMuonPtCut)                             ) { 
+ 
+		numberOfMuons++;
 	    }
-	  }
-	}	
+	}
+	
 	if (numberOfMuons >= fMuonMultiplicity) primordialTrigger = kTRUE;
     }
     fNSucceded++;
 
-//     AliInfo(Form("Generated Events are %d and Succeeded Events are %d",fNGenerated,fNSucceded));
+    AliInfo(Form("Generated Events are %d and Succeeded Events are %d",fNGenerated,fNSucceded));
     AliDebug(5,Form("Generated Events are %d and Succeeded Events are %d",fNGenerated,fNSucceded));
 }
 

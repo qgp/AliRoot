@@ -10,6 +10,7 @@
 //     Author: Markus Oldenburg, CERN
 //-------------------------------------------------------------------------
 
+#include <TNamed.h>
 #include <TRef.h>
 #include <TRefArray.h>
 #include <TMath.h>

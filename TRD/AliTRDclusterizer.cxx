@@ -164,22 +164,6 @@ Bool_t AliTRDclusterizer::OpenOutput()
 }
 
 //_____________________________________________________________________________
-Bool_t AliTRDclusterizer::OpenOutput(TTree *clusterTree)
-{
-  //
-  // Connect the output tree
-  //
-
-  TObjArray *ioArray = 0;
-
-  fClusterTree = clusterTree;
-  fClusterTree->Branch("TRDcluster","TObjArray",&ioArray,32000,0);
-
-  return kTRUE;
-
-}
-
-//_____________________________________________________________________________
 Bool_t AliTRDclusterizer::OpenInput(Int_t nEvent)
 {
   //
@@ -273,8 +257,7 @@ Bool_t AliTRDclusterizer::WriteClusters(Int_t det)
 AliTRDcluster* AliTRDclusterizer::AddCluster(Double_t *pos, Int_t timebin
                                            , Int_t det, Double_t amp
 				           , Int_t *tracks, Double_t *sig
-                                           , Int_t iType, Int_t col
-                                           , Float_t center)
+                                           , Int_t iType, Float_t center)
 {
   //
   // Add a cluster for the TRD
@@ -291,7 +274,6 @@ AliTRDcluster* AliTRDclusterizer::AddCluster(Double_t *pos, Int_t timebin
   c->SetSigmaZ2(sig[1]);
   c->SetLocalTimeBin(timebin);
   c->SetCenter(center);
-  c->SetPad(col);
 
   if (tracks) {
     c->AddTrackIndex(tracks);

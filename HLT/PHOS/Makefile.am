@@ -6,9 +6,7 @@ MODULE 				= AliHLTPHOS
 EXTRA_DIST			= AliHLTPHOSLinkDef.h
 
 AM_CPPFLAGS			= @ALIROOT_CPPFLAGS@ \
-				  -I@ALICE_ROOT@/PHOS \
-				  -I$(top_srcdir)/BASE \
-				  -I$(top_srcdir)/BASE/util
+				  -I$(top_srcdir)/BASE
 
 # library definition
 lib_LTLIBRARIES			=  libAliHLTPHOS.la
@@ -34,18 +32,6 @@ libAliHLTPHOS_la_SOURCES	= AliHLTPHOSPulseGenerator.cxx \
 				  AliHLTPHOSHistogramProducerComponent.cxx \
 				  AliHLTPHOSRcuHistogramProducer.cxx \
 				  AliHLTPHOSRcuHistogramProducerComponent.cxx \
-				  AliHLTPHOSDDLDecoderComponent.cxx \
-				  AliHLTPHOSDataCorruptor.cxx \
-				  AliHLTPHOSDataQualityMonitor.cxx \
-				  AliHLTPHOSRcuDataQualityMonitorComponent.cxx \
-				  AliHLTPHOSProcessor.cxx \
-				  AliHLTPHOSClusterizer.cxx \
-				  AliHLTPHOSClusterizerComponent.cxx \
-				  AliHLTPHOSPhysicsAnalyzerSpectrum.cxx \
-				  AliHLTPHOSPhysicsAnalyzerSpectrumComponent.cxx \
-				  AliHLTPHOSPhysicsAnalyzer.cxx \
-				  AliHLTPHOSPhysicsDefinitions.cxx \
-				  AliHLTPHOSPhysicsAnalyzerPeakFitter.cxx
 				  PeakFinderTest.cxx
 
 # class header files, the link definition for the root dictionary
@@ -68,20 +54,7 @@ CLASS_HDRS			= AliHLTPHOSPulseGenerator.h \
 				  AliHLTPHOSCellEnergiesFileWriter.h \
 				  AliHLTPHOSRcuHistogramProducer.h \
 				  AliHLTPHOSRcuHistogramProducerComponent.h \
-				  AliHLTPHOSHistogramProducerComponent.h \
-				  AliHLTPHOSDDLDecoderComponent.h \
-				  AliHLTPHOSDataCorruptor.h \
-				  AliHLTPHOSDataQualityMonitor.h \
-				  AliHLTPHOSRcuDataQualityMonitorComponent.h \
-				  AliHLTPHOSProcessor.h \
-				  AliHLTPHOSClusterizer.h \
-				  AliHLTPHOSClusterizerComponent.h \
-				  AliHLTPHOSPhysicsAnalyzerSpectrum.h \
-				  AliHLTPHOSPhysicsAnalyzerSpectrumComponent.h \
-				  AliHLTPHOSPhysicsAnalyzer.h \
-				  AliHLTPHOSPhysicsDefinitions.h \
-				  AliHLTPHOSPhysicsAnalyzerPeakFitter.h
-
+				  AliHLTPHOSHistogramProducerComponent.h
 
 pkginclude_HEADERS		= $(CLASS_HDRS) \
 				  AliHLTPHOSCommonDefs.h \
@@ -93,24 +66,14 @@ pkginclude_HEADERS		= $(CLASS_HDRS) \
 				  AliHLTPHOSModuleCellAccumulatedEnergyDataStruct.h \
 				  AliHLTPHOSModuleCellAverageEnergyDataStruct.h \
 				  AliHLTPHOSRcuCellAccumulatedEnergyDataStruct.h \
-			 	  AliHLTPHOSRcuCellAverageEnergyDataStruct.h \
-				  AliHLTPHOSRcuChannelDataStruct.h \
-				  AliHLTPHOSValidChannelDataStruct.h
-				  AliHLTPHOSClusterDataStruct.h \
-				  AliHLTPHOSRecPointDataStruct.h \
-				  AliHLTPHOSPhysicsDefinitions.h \
-				  AliHLTPHOSRecPointListDataStruct.h
+			 	  AliHLTPHOSRcuCellAverageEnergyDataStruct.h
+
 
 # version info and linking flags for the library
-libAliHLTPHOS_la_LIBADD		= $(top_builddir)/BASE/util/libAliHLTUtil.la
 libAliHLTPHOS_la_LDFLAGS	= -L@ROOTLIBDIR@ \
 				  @ROOTLIBS@ \
 				  @ALIROOT_LDFLAGS@ \
 				  @ALIROOT_LIBS@ \
-				  -lRAWDatasim \
-				  -lPHOSbase \
-				  -lPHOSsim \
-				  -lPHOSrec \
 				  -version-info 0:0:0
 
 # automatic generation of data and time of library build

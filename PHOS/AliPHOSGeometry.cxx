@@ -262,18 +262,13 @@ Bool_t AliPHOSGeometry::AbsToRelNumbering(Int_t AbsId, Int_t * relid) const
   } 
   return rv ; 
 }
+
 //____________________________________________________________________________
 void AliPHOSGeometry::GetGlobal(const AliRecPoint* recPoint, TVector3 & gpos) const
 {
-  AliFatal(Form("Please use GetGlobalPHOS(recPoint,gpos) instead of GetGlobal!"));
-}
-
-//____________________________________________________________________________
-void AliPHOSGeometry::GetGlobalPHOS(const AliPHOSRecPoint* recPoint, TVector3 & gpos) const
-{
   // Calculates the coordinates of a RecPoint and the error matrix in the ALICE global coordinate system
  
-  const AliPHOSRecPoint * tmpPHOS = recPoint ;  
+  AliPHOSRecPoint * tmpPHOS = (AliPHOSRecPoint *) recPoint ;  
   TVector3 localposition ;
 
   tmpPHOS->GetLocalPosition(gpos) ;
@@ -323,7 +318,7 @@ void AliPHOSGeometry::ImpactOnEmc(Double_t * vtx, Double_t theta, Double_t phi,
   // calculates the impact coordinates on PHOS of a neutral particle  
   // emitted in the vertex vtx[3] with direction theta and phi in the ALICE global coordinate system
   TVector3 p(TMath::Sin(theta)*TMath::Cos(phi),TMath::Sin(theta)*TMath::Sin(phi),TMath::Cos(theta)) ;
-  TVector3 v(vtx[0],vtx[1],vtx[2]) ;
+  TVector3 v(vtx[0],vtx[1],-vtx[2]) ;
 
   //calculate offset to crystal surface
   Float_t * inthermo = fGeometryEMCA->GetInnerThermoHalfSize() ;
@@ -707,8 +702,7 @@ void AliPHOSGeometry::Local2Global(Int_t mod, Float_t x, Float_t z,
 //____________________________________________________________________________
 void AliPHOSGeometry::GetIncidentVector(const TVector3 &vtx, Int_t module, Float_t x,Float_t z, TVector3 &vInc) const {
   //Calculates vector pointing from vertex to current poisition in module local frame
-  //Note that PHOS local system and ALICE global have opposite z directions
 
   Global2Local(vInc,vtx,module) ; 
-  vInc.SetXYZ(vInc.X()+x,vInc.Y(),vInc.Z()-z) ;
+  vInc.SetXYZ(vInc.X()+x,vInc.Y(),vInc.Z()+z) ;
 }

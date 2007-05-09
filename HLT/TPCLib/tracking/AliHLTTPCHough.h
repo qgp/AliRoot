@@ -25,9 +25,7 @@ class AliHLTTPCHoughIntMerger;
 class AliHLTTPCHoughGlobalMerger;
 class AliHLTTPCBenchmark;
 
-#ifdef HAVE_THREAD
-class TThread;
-#endif // HAVE_THREAD
+#include "TThread.h"
 class AliRunLoader;
 class AliRawEvent;
 class AliESD;
@@ -171,9 +169,7 @@ class AliHLTTPCHough {
   void CleanUp();
   Double_t GetCpuTime();
 
-#ifdef HAVE_THREAD
-  TThread *fThread; //! Pointer to the TThread object in case of running in a thread
-#endif // HAVE_THREAD
+  TThread *fThread; // Pointer to the TThread object in case of running in a thread
 
   ClassDef(AliHLTTPCHough,1) //Hough transform base class
 };

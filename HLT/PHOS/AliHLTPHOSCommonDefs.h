@@ -25,7 +25,7 @@
 #define N_XCOLUMNS_MOD     N_COLUMNS_MOD                 /**<Number of columns per module*/ 
 
 #define N_GAINS            2                             /**<Number of gains per ALTRO channel*/
-#define N_DATATYPES        10                            /**<Max number of output datatypes for a single component*/
+#define N_DATATYPES        10 
 
 //peakfinder constatnts
 #define PF_MAX_PATH_LENGTH 256
@@ -40,13 +40,6 @@
 //general altro signal constatnts
 #define DEFAULT_TAU 2    /**<Assume that the signal rise time of the altrp pulses is 2 us (nominal value of the electronics)*/
 #define DEFAULT_FS  10   /**<Assume that the signal is samples with 10 MHZ samle rate*/
-
-//HOMER
-#define MAX_BIN_VALUE 1023
-#define MAX_HOSTS 20
-#define MAX_HOSTNAME_LENGTH 64
-#define DEFAULT_EVENT_PORT 42001 
-#define DEFAULT_HISTO_PORT 42002 
 
 #endif
 

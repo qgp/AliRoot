@@ -43,7 +43,9 @@ AliDIPOv3::AliDIPOv3()
  
 //_____________________________________________________________________________
 AliDIPOv3::AliDIPOv3(const char *name, const char *title)
-  : AliDIPOv2(name,title)
+  : AliDIPOv2(name,title),
+    fCenterOfDDIPVolume(0.0)
+    
 {
   //
   // Standard constructor for the magnetic dipole version 3    
@@ -77,9 +79,9 @@ void AliDIPOv3::CreateSpectrometerDipole()
 // 
     Float_t alhc = 0.794;
     
-    TGeoRotation* rotxz      = new TGeoRotation("rotxz",    270.,   0., 90.,  90.,  180., 0.);
-    TGeoRotation* rotiz      = new TGeoRotation("rotiz",     90.,   0., 90.,  90.,  180., 0.);
+    TGeoRotation* rotxz      = new TGeoRotation("rotxz",     90.,   0., 90.,  90.,  180., 0.);
     TGeoRotation* rotxzlhc   = new TGeoRotation("rotxzlhc", 180.,  180. + alhc, 0.);
+    TGeoRotation* rotlhc     = new TGeoRotation("rotlhc",   0.,  alhc, 0.);
 
     TGeoRotation* rotxz108   = new TGeoRotation("rotxz108", 90., 108., 90., 198.,  180.,   0.);
     TGeoRotation* rotxz180   = new TGeoRotation("rotxz180", 90., 180., 90., 270.,  180.,   0.);
@@ -115,45 +117,34 @@ void AliDIPOv3::CreateSpectrometerDipole()
     
 
     //
-    // Mother volume for muon spectrometer tracking station 3
-
-    Float_t z30 =  825.;
-    Float_t zst = 1052.;
-
-    Float_t rcD0 = (kZDipoleF - 5.)  * TMath::Tan(9. * kDegrad);
+    // Mother volume
     Float_t rcD1 = kZDipole * TMath::Tan(9. * kDegrad);
+    TGeoPcon* shDDIP1 =  new TGeoPcon("shDDIP1", 0., 360., 4);
+    shDDIP1->DefineSection(0, -dipoleL/2. - 5., 0., (kZDipoleF -5.)  * TMath::Tan(9. * kDegrad));
+    shDDIP1->DefineSection(1,          0., 0., rcD1);
     Float_t rcD2 = rcD1 + dipoleL/2. * TMath::Tan(10.1 * kDegrad);
-    Float_t rc30 = z30 * TMath::Tan(9. * kDegrad);
-    Float_t rcst = rcD1  + (zst - kZDipole) * TMath::Tan(10.1 * kDegrad);
-    
- 
-    Float_t riD0 = (kZDipoleF - 5.)  * TMath::Tan(2. * kDegrad) + 0.2;
-    Float_t riD1 = 30.;
-    Float_t riD2 = 35.8;
-    Float_t riD3 = riD2 + (kZDipoleR - zst)      * TMath::Tan(2. * kDegrad);
-    Float_t riD4 = riD2 + (kZDipoleR - zst + 5.) * TMath::Tan(2. * kDegrad);
-    
+    shDDIP1->DefineSection(2, +dipoleL/2.,      0., rcD2);
+    shDDIP1->DefineSection(3, +dipoleL/2. + 5., 0., rcD2);
 
-    TGeoPcon* shDDIP1 =  new TGeoPcon("shDDIP1", 0., 360., 7);
-
-    shDDIP1->DefineSection(0,  (kZDipoleF - 5.), riD0, rcD0);
-    shDDIP1->DefineSection(1,  z30            , riD1, rc30);
-    shDDIP1->DefineSection(2,  kZDipole       , riD1, rcD1);
-    shDDIP1->DefineSection(3,  zst            , riD1, rcst);
-    shDDIP1->DefineSection(4,  zst            , riD2, rcst);
-    shDDIP1->DefineSection(5,  kZDipoleR      , riD3, rcD2);
-    shDDIP1->DefineSection(6, (kZDipoleR + 5.), riD4, rcD2);
+    TGeoCombiTrans* trDDIP = new TGeoCombiTrans("trDDIP", 0., dipoleL/2. * TMath::Tan(alhc * kDegrad), 0., rotlhc);
+    trDDIP->RegisterYourself();
      
-    TGeoBBox* shDDIP2 =  new TGeoBBox(164., 182., 36.);
+    TGeoBBox* shDDIP2 =  new TGeoBBox(164., 182., 25.);
     shDDIP2->SetName("shDDIP2");
-    TGeoTranslation* trDDIP2 = new TGeoTranslation("trDDIP2", 0., 0., kZDipole - 12.);
-    trDDIP2->RegisterYourself();
-
-    TGeoTube* shDDIP3 =  new TGeoTube(0., 30., 40.);
+    TGeoPcon* shDDIP3 =  new TGeoPcon(  0., 360.,  5);
     shDDIP3->SetName("shDDIP3");
+    Float_t z30 =  825. - kZDipole;
+    Float_t zst = 1052. - kZDipole;
+    
+    
+    shDDIP3->DefineSection(0, -dipoleL/2. - 10., 0., (kZDipoleF - 10.)  * TMath::Tan(2. * kDegrad) + 0.2);
+    shDDIP3->DefineSection(1,              z30, 0.,  28.8 + 0.2);
+    shDDIP3->DefineSection(2,              zst, 0.,  28.8 + 0.2);
+    shDDIP3->DefineSection(3,              zst, 0.,  35.8);
+    shDDIP3->DefineSection(4, +dipoleL/2. + 10., 0.,   35.8 + (dipoleL/2. + 10. - zst) * TMath::Tan(2. * kDegrad));
+    
+    TGeoCompositeShape*  shDDIP = new TGeoCompositeShape("shDDIP", "(shDDIP2 + shDDIP1:trDDIP) - shDDIP3:trDDIP");
 
-
-    TGeoCompositeShape*  shDDIP = new TGeoCompositeShape("shDDIP", "shDDIP1+(shDDIP2:trDDIP2-shDDIP3:trDDIP2)");
     TGeoVolume*  voDDIP = new TGeoVolume("DDIP", shDDIP, kMedAir);
 //
 // Yoke
@@ -191,7 +182,7 @@ void AliDIPOv3::CreateSpectrometerDipole()
 
 
     asYoke->AddNode(asYokeSide, 1, new TGeoTranslation(+lx0/2. + 3. * dGap - blockHeight/2., 0., 0.));
-    asYoke->AddNode(asYokeSide, 2, new TGeoCombiTrans( -lx0/2. - 3. * dGap + blockHeight/2., 0., 0., rotiz));
+    asYoke->AddNode(asYokeSide, 2, new TGeoCombiTrans( -lx0/2. - 3. * dGap + blockHeight/2., 0., 0., rotxz));
 
 //    
 // Coils
@@ -375,7 +366,6 @@ void AliDIPOv3::CreateSpectrometerDipole()
     
     rmin1 = (zHanger1 - 13.) * TMath::Tan(2. * kDegrad);
     rmin2 = rmin1 + 26. * TMath::Tan( 2.0 * kDegrad);
-
     rmax1 = (zHanger1 - 13.) * TMath::Tan(9. * kDegrad);
     rmax2 = rmax1 + 26. * TMath::Tan(9. * kDegrad);
 
@@ -390,9 +380,8 @@ void AliDIPOv3::CreateSpectrometerDipole()
     TGeoBBox* shHanger21  = new TGeoBBox(3.5/2., 250., 25./2.);
     shHanger21->SetName("shHanger21");
 
-    rmin1 = 35.8 + (zHanger2 - 13. - zst) * TMath::Tan(2. * kDegrad);
+    rmin1 = 35.8 + (zHanger2 - 13. - zst - kZDipole) * TMath::Tan(2. * kDegrad);
     rmin2 = rmin1 + 26. * TMath::Tan( 2.0 * kDegrad);
-
     rmax1 = rcD1 + (zHanger2 - 13. - kZDipole) * TMath::Tan(10.1 * kDegrad);
     rmax2 = rmax1 + 26. * TMath::Tan(10.1 * kDegrad);
     TGeoCone* shHanger22  = new TGeoCone(13., rmin1, rmax1, rmin2, rmax2);
@@ -407,7 +396,7 @@ void AliDIPOv3::CreateSpectrometerDipole()
     
     TGeoVolume* voHS1 = new TGeoVolume("DHS1", new TGeoBBox( 1.5, 12.5, hsLength/2.), kMedSteel);
     TGeoVolume* voHS2 = new TGeoVolume("DHS2", new TGeoBBox(12.5,  1.5, hsLength/2.), kMedSteel);
-    Float_t hsH = gapHeight/2. + blockHeight - (rmax1+rmax2)/2. - 2.;
+    Float_t hsH = gapHeight/2. + blockHeight - (rmax1+rmax2)/2.;
     
     TGeoVolume* voHS3 = new TGeoVolume("DHS3", new TGeoBBox(3.5/2., hsH/2., 25./2.),    kMedSteel);
 
@@ -419,11 +408,13 @@ void AliDIPOv3::CreateSpectrometerDipole()
     
     
 
-    dz = zHanger1;
-    voDDIP->AddNode(voHanger1, 1, new TGeoTranslation(0., 0., dz));
+    dz = zHanger1 - kZDipole;
+    dy = -(kZDipoleR - zHanger1) * TMath::Tan(alhc * kDegrad);
+    voDDIP->AddNode(voHanger1, 1, new TGeoCombiTrans(0., dy, dz, rotlhc));
 
-    dz = zHanger2;
-    voDDIP->AddNode(voHanger2, 1, new TGeoTranslation(0., 0., dz));
+    dz = zHanger2 - kZDipole;
+    dy = -(kZDipoleR - zHanger2) * TMath::Tan(alhc * kDegrad);
+    voDDIP->AddNode(voHanger2, 1, new TGeoCombiTrans(0., dy, dz, rotlhc));
     
     
     
@@ -444,7 +435,7 @@ void AliDIPOv3::CreateSpectrometerDipole()
     asDipole->AddNode(asDCoilSupport, 3, new TGeoCombiTrans( 0., 0., dz, rotxy108));
     asDipole->AddNode(asDCoilSupport, 4, new TGeoCombiTrans( 0., 0., dz, rotxy288));
     
-    asDipole->AddNode(asDCoilSupport, 5, new TGeoCombiTrans( 0., 0., -dz, rotiz));
+    asDipole->AddNode(asDCoilSupport, 5, new TGeoCombiTrans( 0., 0., -dz, rotxz));
     asDipole->AddNode(asDCoilSupport, 6, new TGeoCombiTrans( 0., 0., -dz, rotxz108));
     asDipole->AddNode(asDCoilSupport, 7, new TGeoCombiTrans( 0., 0., -dz, rotxz180));
     asDipole->AddNode(asDCoilSupport, 8, new TGeoCombiTrans( 0., 0., -dz, rotxz288));
@@ -458,8 +449,11 @@ void AliDIPOv3::CreateSpectrometerDipole()
     asDipole->SetVisContainers(1);
     voDDIP->SetVisibility(0);
 
-    top->AddNode(asDipole, 1, new TGeoCombiTrans(0.,  dipoleL / 2. * TMath::Tan(alhc * kDegrad), -kZDipole, rotxzlhc));
-    top->AddNode(voDDIP,   1, new TGeoCombiTrans(0., 0., 0., rotxz));
+    top->AddNode(asDipole, 1, new TGeoCombiTrans(0., dipoleL / 2. * TMath::Tan(alhc * kDegrad), -kZDipole, rotxzlhc));
+    top->AddNode(voDDIP,   1, new TGeoCombiTrans(0., dipoleL / 2. * TMath::Tan(alhc * kDegrad), -kZDipole, rotxzlhc));
+    // This following value is needed by the MUON module to place the station 3 
+    // in the DDIP volume with respect to the center of this volume.
+    fCenterOfDDIPVolume = kZDipole;  
 }
 
 

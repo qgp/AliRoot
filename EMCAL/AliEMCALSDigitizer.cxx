@@ -174,7 +174,7 @@ void AliEMCALSDigitizer::InitParameters()
   }
   // Initializes parameters
   fA         = 0;
-  fB         = 1.e+6;  // Changed 24 Apr 2007. Dynamic range now 2 TeV
+  fB         = 1.e+7;
   fSampling  = geom->GetSampling();
 
  // threshold for deposit energy of hit

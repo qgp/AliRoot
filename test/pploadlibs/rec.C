@@ -1,5 +1,5 @@
 void rec() {
-  gSystem->Load("libProof");
+  gSystem->Load("libTree");
   gROOT->Macro("loadlibsrec.C");
   new AliRun("gAlice","The ALICE Off-line Simulation Framework");
   AliReconstruction reco;

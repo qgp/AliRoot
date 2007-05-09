@@ -1,8 +1,6 @@
 *********************************************
 Board  1     Board num  RC1L1B12     CRATE  1 R    Slot = 1
 
-DetElemId  1114  1214  1314  1414 
-
 X1input1 = 1RC1L1X1         X1input2 = 1RC1L1X2
 X2input1 = 2RC1L1X1         X2input2 = 2RC1L1X2
 X3input1 = 3RC1L1X1         X3input2 = 3RC1L1X2
@@ -21,8 +19,6 @@ Switch( RC1L1B12 )
 
 *********************************************
 Board  2     Board num  RC1L2B12     CRATE  1 R    Slot = 2
-
-DetElemId  1115  1215  1315  1415 
 
 X1input1 = 1RC1L2X1         X1input2 = 1RC1L2X2
 X2input1 = 2RC1L2X1         X2input2 = 2RC1L2X2
@@ -43,8 +39,6 @@ Switch( RC1L2B12 )
 *********************************************
 Board  3     Board num  RC1L2B34     CRATE  1 R    Slot = 3
 
-DetElemId  1115  1215  1315  1415 
-
 X1input1 = 1RC1L2X3         X1input2 = 1RC1L2X4
 X2input1 = 2RC1L2X3         X2input2 = 2RC1L2X4
 X3input1 = 3RC1L2X3         X3input2 = 3RC1L2X4
@@ -63,8 +57,6 @@ Switch( RC1L2B34 )
 
 *********************************************
 Board  4     Board num  RC1L3B12     CRATE  1 R    Slot = 4
-
-DetElemId  1116  1216  1316  1416 
 
 X1input1 = 1RC1L3X1         X1input2 = 1RC1L3X2
 X2input1 = 2RC1L3X1         X2input2 = 2RC1L3X2
@@ -85,8 +77,6 @@ Switch( RC1L3B12 )
 *********************************************
 Board  5     Board num  RC1L3B34     CRATE  1 R    Slot = 5
 
-DetElemId  1116  1216  1316  1416 
-
 X1input1 = 1RC1L3X3         X1input2 = 1RC1L3X4
 X2input1 = 2RC1L3X3         X2input2 = 2RC1L3X4
 X3input1 = 3RC1L3X3         X3input2 = 3RC1L3X4
@@ -105,8 +95,6 @@ Switch( RC1L3B34 )
 
 *********************************************
 Board  6     Board num  RC1L4B12     CRATE  1 R    Slot = 6
-
-DetElemId  1117  1217  1317  1417 
 
 X1input1 = 1RC1L4X1         X1input2 = 1RC1L4X2
 X2input1 = 2RC1L4X1         X2input2 = 2RC1L4X2
@@ -127,8 +115,6 @@ Switch( RC1L4B12 )
 *********************************************
 Board  7     Board num  RC1L4B34     CRATE  1 R    Slot = 7
 
-DetElemId  1117  1217  1317  1417 
-
 X1input1 = 1RC1L4X3         X1input2 = 1RC1L4X4
 X2input1 = 2RC1L4X3         X2input2 = 2RC1L4X4
 X3input1 = 3RC1L4X3         X3input2 = 3RC1L4X4
@@ -147,8 +133,6 @@ Switch( RC1L4B34 )
 
 *********************************************
 Board  8     Board num  RC1L4B56     CRATE  1 R    Slot = 8
-
-DetElemId  1117  1217  1317  1417 
 
 X1input1 = 1RC1L4X5         X1input2 = 1RC1L4X6
 X2input1 = 2RC1L4X5         X2input2 = 2RC1L4X6
@@ -169,8 +153,6 @@ Switch( RC1L4B56 )
 ******************************************
 Board  9     Board num  RC1L6B12     CRATE  1 R    Slot = 9
 
-DetElemId  1101  1201  1301  1401 
-
 X1input1 = 1RC1L6X1         X1input2 = 1RC1L6X2
 X2input1 = 2RC1L6X1         X2input2 = 2RC1L6X2
 X3input1 = 3RC1L6X1         X3input2 = 3RC1L6X2
@@ -189,8 +171,6 @@ Switch( RC1L6B12 )
 
 *********************************************
 Board  10     Board num  RC1L6B34     CRATE  1 R    Slot = 10
-
-DetElemId  1101  1201  1301  1401 
 
 X1input1 = 1RC1L6X3         X1input2 = 1RC1L6X4
 X2input1 = 2RC1L6X3         X2input2 = 2RC1L6X4
@@ -211,8 +191,6 @@ Switch( RC1L6B34 )
 **********************************************
 Board  11     Board num  RC1L6B56     CRATE  1 R    Slot = 11
 
-DetElemId  1101  1201  1301  1401 
-
 X1input1 = 1RC1L6X5         X1input2 = 1RC1L6X6
 X2input1 = 2RC1L6X5         X2input2 = 2RC1L6X6
 X3input1 = 3RC1L6X5         X3input2 = 3RC1L6X6
@@ -231,8 +209,6 @@ Switch( RC1L6B56 )
 
 **********************************************
 Board  12     Board num  RC1L7B12     CRATE  1 R    Slot = 12
-
-DetElemId  1102  1202  1302  1402 
 
 X1input1 = 1RC1L7X1         X1input2 = 1RC1L7X2
 X2input1 = 2RC1L7X1         X2input2 = 2RC1L7X2
@@ -253,8 +229,6 @@ Switch( RC1L7B12 )
 **********************************************
 Board  13     Board num  RC1L7B34     CRATE  1 R    Slot = 13
 
-DetElemId  1102  1202  1302  1402 
-
 X1input1 = 1RC1L7X3         X1input2 = 1RC1L7X4
 X2input1 = 2RC1L7X3         X2input2 = 2RC1L7X4
 X3input1 = 3RC1L7X3         X3input2 = 3RC1L7X4
@@ -273,8 +247,6 @@ Switch( RC1L7B34 )
 
 **********************************************
 Board  14     Board num  RC1L8B12     CRATE  1 R    Slot = 14
-
-DetElemId  1103  1203  1303  1403 
 
 X1input1 = 1RC1L8X1         X1input2 = 1RC1L8X2
 X2input1 = 2RC1L8X1         X2input2 = 2RC1L8X2
@@ -295,8 +267,6 @@ Switch( RC1L8B12 )
 **********************************************
 Board  15     Board num  RC1L8B34     CRATE  1 R    Slot = 15
 
-DetElemId  1103  1203  1303  1403 
-
 X1input1 = 1RC1L8X3         X1input2 = 1RC1L8X4
 X2input1 = 2RC1L8X3         X2input2 = 2RC1L8X4
 X3input1 = 3RC1L8X3         X3input2 = 3RC1L8X4
@@ -316,8 +286,6 @@ Switch( RC1L8B34 )
 **********************************************
 Board  16     Board num  RC1L9B12     CRATE  1 R    Slot = 16
 
-DetElemId  1104  1204  1304  1404 
-
 X1input1 = 1RC1L9X1         X1input2 = 1RC1L9X2
 X2input1 = 2RC1L9X1         X2input2 = 2RC1L9X2
 X3input1 = 3RC1L9X1         X3input2 = 3RC1L9X2
@@ -336,8 +304,6 @@ Switch( RC1L9B12 )
 
 *********************************************
 Board  17     Board num  RC2L1B12     CRATE  2 R    Slot = 1
-
-DetElemId  1114  1214  1314  1414 
     
 X1input1 = 1RC2L1X1         X1input2 = 1RC2L1X2
 X2input1 = 2RC2L1X1         X2input2 = 2RC2L1X2
@@ -358,8 +324,6 @@ Switch( RC2L1B12 )
 *********************************************
 Board  18     Board num  RC2L2B12     CRATE  2 R    Slot = 2
 
-DetElemId  1115  1215  1315  1415 
-
 X1input1 = 1RC2L2X1         X1input2 = 1RC2L2X2
 X2input1 = 2RC2L2X1         X2input2 = 2RC2L2X2
 X3input1 = 3RC2L2X1         X3input2 = 3RC2L2X2
@@ -378,8 +342,6 @@ Switch( RC2L2B12 )
 
 *********************************************
 Board  19     Board num  RC2L2B34     CRATE  2 R    Slot = 3
-
-DetElemId  1115  1215  1315  1415 
 
 X1input1 = 1RC2L2X3         X1input2 = 1RC2L2X4
 X2input1 = 2RC2L2X3         X2input2 = 2RC2L2X4
@@ -400,8 +362,6 @@ Switch( RC2L2B34 )
 *********************************************
 Board  20     Board num  RC2L3B12     CRATE  2 R    Slot = 4
 
-DetElemId  1116  1216  1316  1416 
-
 X1input1 = 1RC2L3X1         X1input2 = 1RC2L3X2
 X2input1 = 2RC2L3X1         X2input2 = 2RC2L3X2
 X3input1 = 3RC2L3X1         X3input2 = 3RC2L3X2
@@ -420,8 +380,6 @@ Switch( RC2L3B12 )
 
 *********************************************
 Board  21     Board num  RC2L3B34     CRATE  2 R    Slot = 5
-
-DetElemId  1116  1216  1316  1416 
 
 X1input1 = 1RC2L3X3         X1input2 = 1RC2L3X4
 X2input1 = 2RC2L3X3         X2input2 = 2RC2L3X4
@@ -442,8 +400,6 @@ Switch( RC2L3B34 )
 *********************************************
 Board  22     Board num  RC2L4B12     CRATE  2 R    Slot = 6
 
-DetElemId  1117  1217  1317  1417 
-
 X1input1 = 1RC2L4X1         X1input2 = 1RC2L4X2
 X2input1 = 2RC2L4X1         X2input2 = 2RC2L4X2
 X3input1 = 3RC2L4X1         X3input2 = 3RC2L4X2
@@ -462,8 +418,6 @@ Switch( RC2L4B12 )
 
 *********************************************
 Board  23     Board num  RC2L4B34     CRATE  2 R    Slot = 7
-
-DetElemId  1117  1217  1317  1417 
 
 X1input1 = 1RC2L4X3         X1input2 = 1RC2L4X4
 X2input1 = 2RC2L4X3         X2input2 = 2RC2L4X4
@@ -484,8 +438,6 @@ Switch( RC2L4B34 )
 *********************************************
 Board  24     Board num  RC2L4B56     CRATE  2 R    Slot = 8
 
-DetElemId  1117  1217  1317  1417 
-
 X1input1 = 1RC2L4X5         X1input2 = 1RC2L4X6
 X2input1 = 2RC2L4X5         X2input2 = 2RC2L4X6
 X3input1 = 3RC2L4X5         X3input2 = 3RC2L4X6
@@ -504,8 +456,6 @@ Switch( RC2L4B56 )
 
 ******************************************
 Board  25     Board num  RC2L4B78     CRATE  2 R    Slot = 9
-
-DetElemId  1117  1217  1317  1417 
 
 X1input1 = 1RC2L4X7         X1input2 = 1RC2L4X8
 X2input1 = 2RC2L4X7         X2input2 = 2RC2L4X8
@@ -526,8 +476,6 @@ Switch( RC2L4B78 )
 *********************************************
 Board  26     Board num  RC2L5B12     CRATE  2 R    Slot = 10
 
-DetElemId  1100  1200  1300  1400 
-
 X1input1 = 1RC2L5X1         X1input2 = 1RC2L5X2
 X2input1 = 2RC2L5X1         X2input2 = 2RC2L5X2
 X3input1 = 3RC2L5X1         X3input2 = 3RC2L5X2
@@ -546,8 +494,6 @@ Switch( RC2L5B12 )
 
 **********************************************
 Board  27     Board num  RC2L5B34     CRATE  2 R    Slot = 11
-
-DetElemId  1100  1200  1300  1400 
 
 X1input1 = 1RC2L5X3         X1input2 = 1RC2L5X4
 X2input1 = 2RC2L5X3         X2input2 = 2RC2L5X4
@@ -568,8 +514,6 @@ Switch( RC2L5B34 )
 **********************************************
 Board  28     Board num  RC2L5B56     CRATE  2 R    Slot = 12
 
-DetElemId  1100  1200  1300  1400 
-
 X1input1 = 1RC2L5X5         X1input2 = 1RC2L5X6
 X2input1 = 2RC2L5X5         X2input2 = 2RC2L5X6
 X3input1 = 3RC2L5X5         X3input2 = 3RC2L5X6
@@ -588,8 +532,6 @@ Switch( RC2L5B56 )
 
 **********************************************
 Board  29     Board num  RC2L5B78     CRATE  2 R    Slot = 13
-
-DetElemId  1100  1200  1300  1400 
 
 X1input1 = 1RC2L5X7         X1input2 = 1RC2L5X8
 X2input1 = 2RC2L5X7         X2input2 = 2RC2L5X8
@@ -610,8 +552,6 @@ Switch( RC2L5B78 )
 **********************************************
 Board  30     Board num  RC2L6B12     CRATE  2 R    Slot = 14
 
-DetElemId  1101  1201  1301  1401 
-
 X1input1 = 1RC2L6X1         X1input2 = 1RC2L6X2
 X2input1 = 2RC2L6X1         X2input2 = 2RC2L6X2
 X3input1 = 3RC2L6X1         X3input2 = 3RC2L6X2
@@ -630,8 +570,6 @@ Switch( RC2L6B12 )
 
 **********************************************
 Board  31     Board num  RC2L6B34     CRATE  2 R    Slot = 15
-
-DetElemId  1101  1201  1301  1401 
 
 X1input1 = 1RC2L6X3          X1input2 = 1RC2L6X4
 X2input1 = 2RC2L6X3          X2input2 = 2RC2L6X4
@@ -652,8 +590,6 @@ Switch( RC2L6B34 )
 **********************************************
 Board  nn     Board num  RIntC2-Up     CRATE  2 R    Slot = 16
 
-DetElemId 0000
-
 X1input1 = NONE                 X1input2 = NONE
 X2input1 = NONE                 X2input2 = NONE
 X3input1 = 3RC2L6X5 (2)         X3input2 = 3RC2L6X6 (2)
@@ -672,8 +608,6 @@ Switch( RIntC2-Up )
  
 *********************************************
 Board nn     Board num  RIntC2-Dw     CRATE  2-3 R    Slot = 1
-
-DetElemId 0000
 
 X1input1 = NONE                 X1input2 = NONE
 X2input1 = NONE                 X2input2 = NONE
@@ -694,8 +628,6 @@ Switch( RIntC2-Dw )
 *********************************************
 Board  32     Board num  RC2L6B56     CRATE  2-3 R    Slot = 2
 
-DetElemId  1101  1201  1301  1401 
-
 X1input1 = 1RC2L6X5              X1input2 = 1RC2L6X6
 X2input1 = 2RC2L6X5              X2input2 = 2RC2L6X6
 X3input1 = 3RC2L6X5 (1)          X3input2 = 3RC2L6X6 (1)
@@ -714,8 +646,6 @@ Switch( RC2L6B56 )
 
 **********************************************
 Board  33     Board num  RC2L6B78     CRATE  2-3 R    Slot = 3
-
-DetElemId  1101  1201  1301  1401 
 
 X1input1 = 1RC2L6X7         X1input2 = 1RC2L6X8
 X2input1 = 2RC2L6X7         X2input2 = 2RC2L6X8
@@ -736,8 +666,6 @@ Switch( RC2L6B78 )
 **********************************************
 Board  34     Board num  RC2L7B12     CRATE  2-3 R    Slot = 4
 
-DetElemId  1102  1202  1302  1402 
-
 X1input1 = 1RC2L7X1         X1input2 = 1RC2L7X2
 X2input1 = 2RC2L7X1         X2input2 = 2RC2L7X2
 X3input1 = 3RC2L7X1         X3input2 = 3RC2L7X2
@@ -756,8 +684,6 @@ Switch( RC2L7B12 )
 
 **********************************************
 Board  35     Board num  RC2L7B34     CRATE  2-3 R    Slot = 5
-
-DetElemId  1102  1202  1302  1402 
 
 X1input1 = 1RC2L7X3         X1input2 = 1RC2L7X4
 X2input1 = 2RC2L7X3         X2input2 = 2RC2L7X4
@@ -778,8 +704,6 @@ Switch( RC2L7B34 )
 **********************************************
 Board  36     Board num  RC2L8B12     CRATE  2-3 R    Slot = 6
 
-DetElemId  1103  1203  1303  1403 
-
 X1input1 = 1RC2L8X1         X1input2 = 1RC2L8X2
 X2input1 = 2RC2L8X1         X2input2 = 2RC2L8X2
 X3input1 = 3RC2L8X1         X3input2 = 3RC2L8X2
@@ -798,8 +722,6 @@ Switch( RC2L8B12 )
 
 **********************************************
 Board  37     Board num  RC2L8B34     CRATE  2-3 R    Slot = 7
-
-DetElemId  1103  1203  1303  1403 
 
 X1input1 = 1RC2L8X3         X1input2 = 1RC2L8X4
 X2input1 = 2RC2L8X3         X2input2 = 2RC2L8X4
@@ -820,8 +742,6 @@ Switch( RC2L8B34 )
 **********************************************
 Board  38     Board num  RC2L9B12     CRATE  2-3 R    Slot = 8
 
-DetElemId  1104  1204  1304  1404 
-
 X1input1 = 1RC2L9X1         X1input2 = 1RC2L9X2
 X2input1 = 2RC2L9X1         X2input2 = 2RC2L9X2
 X3input1 = 3RC2L9X1         X3input2 = 3RC2L9X2
@@ -840,8 +760,6 @@ Switch( RC2L9B12 )
     
 *********************************************
 Board nn     Board num  RintC3-Dw     CRATE  2-3 R    Slot = 9
-
-DetElemId 0000
 
 X1input1 = NONE                 X1input2 = NONE
 X2input1 = NONE                 X2input2 = NONE
@@ -862,8 +780,6 @@ Switch( RIntC3-Dw )
 *********************************************
 Board  54     Board num  RC3L6B56     CRATE  2-3 R    Slot = 10
 
-DetElemId  1101  1201  1301  1401 
-
 X1input1 = 1RC3L6X5              X1input2 = 1RC3L6X6
 X2input1 = 2RC3L6X5              X2input2 = 2RC3L6X6
 X3input1 = 3RC3L6X5 (1)          X3input2 = 3RC3L6X6 (1)
@@ -882,8 +798,6 @@ Switch( RC3L6B56 )
 
 **********************************************
 Board  55     Board num  RC3L6B78     CRATE  2-3 R    Slot = 11
-
-DetElemId  1101  1201  1301  1401 
 
 X1input1 = 1RC3L6X7         X1input2 = 1RC3L6X8
 X2input1 = 2RC3L6X7         X2input2 = 2RC3L6X8
@@ -904,8 +818,6 @@ Switch( RC3L6B78 )
 **********************************************
 Board  56     Board num  RC3L7B12     CRATE  2-3 R    Slot = 12
 
-DetElemId  1102  1202  1302  1402 
-
 X1input1 = 1RC3L7X1         X1input2 = 1RC3L7X2
 X2input1 = 2RC3L7X1         X2input2 = 2RC3L7X2
 X3input1 = 3RC3L7X1         X3input2 = 3RC3L7X2
@@ -924,8 +836,6 @@ Switch( RC3L7B12 )
 
 **********************************************
 Board  57     Board num  RC3L7B34     CRATE  2-3 R    Slot = 13
-
-DetElemId  1102  1202  1302  1402 
 
 X1input1 = 1RC3L7X3         X1input2 = 1RC3L7X4
 X2input1 = 2RC3L7X3         X2input2 = 2RC3L7X4
@@ -946,8 +856,6 @@ Switch( RC3L7B34 )
 **********************************************
 Board  58     Board num  RC3L8B12     CRATE  2-3 R    Slot = 14
 
-DetElemId  1103  1203  1303  1403 
-
 X1input1 = 1RC3L8X1         X1input2 = 1RC3L8X2
 X2input1 = 2RC3L8X1         X2input2 = 2RC3L8X2
 X3input1 = 3RC3L8X1         X3input2 = 3RC3L8X2
@@ -966,8 +874,6 @@ Switch( RC3L8B12 )
 
 **********************************************
 Board  59     Board num  RC3L8B34     CRATE  2-3 R    Slot = 15
-
-DetElemId  1103  1203  1303  1403 
 
 X1input1 = 1RC3L8X3         X1input2 = 1RC3L8X4
 X2input1 = 2RC3L8X3         X2input2 = 2RC3L8X4
@@ -988,8 +894,6 @@ Switch( RC3L8B34 )
 **********************************************
 Board  60     Board num  RC3L9B12     CRATE  2-3 R    Slot = 16
 
-DetElemId  1104  1204  1304  1404 
-
 X1input1 = 1RC3L9X1         X1input2 = 1RC3L9X2
 X2input1 = 2RC3L9X1         X2input2 = 2RC3L9X2
 X3input1 = 3RC3L9X1         X3input2 = 3RC3L9X2
@@ -1008,8 +912,6 @@ Switch( RC3L9B12 )
 
 *********************************************
 Board  39     Board num  RC3L1B12     CRATE  3 R    Slot = 1
-
-DetElemId  1114  1214  1314  1414 
     
 X1input1 = 1RC3L1X1         X1input2 = 1RC3L1X2
 X2input1 = 2RC3L1X1         X2input2 = 2RC3L1X2
@@ -1030,8 +932,6 @@ Switch( RC3L1B12 )
 *********************************************
 Board  40     Board num  RC3L2B12     CRATE  3 R    Slot = 2
 
-DetElemId  1115  1215  1315  1415 
-
 X1input1 = 1RC3L2X1         X1input2 = 1RC3L2X2
 X2input1 = 2RC3L2X1         X2input2 = 2RC3L2X2
 X3input1 = 3RC3L2X1         X3input2 = 3RC3L2X2
@@ -1050,8 +950,6 @@ Switch( RC3L2B12 )
 
 *********************************************
 Board  41     Board num  RC3L2B34     CRATE  3 R    Slot = 3
-
-DetElemId  1115  1215  1315  1415 
 
 X1input1 = 1RC3L2X3         X1input2 = 1RC3L2X4
 X2input1 = 2RC3L2X3         X2input2 = 2RC3L2X4
@@ -1072,8 +970,6 @@ Switch( RC3L2B34 )
 *********************************************
 Board  42     Board num  RC3L3B12     CRATE  3 R    Slot = 4
 
-DetElemId  1116  1216  1316  1416 
-
 X1input1 = 1RC3L3X1         X1input2 = 1RC3L3X2
 X2input1 = 2RC3L3X1         X2input2 = 2RC3L3X2
 X3input1 = 3RC3L3X1         X3input2 = 3RC3L3X2
@@ -1092,8 +988,6 @@ Switch( RC3L3B12 )
 
 *********************************************
 Board  43     Board num  RC3L3B34     CRATE  3 R    Slot = 5
-
-DetElemId  1116  1216  1316  1416 
 
 X1input1 = 1RC3L3X3         X1input2 = 1RC3L3X4
 X2input1 = 2RC3L3X3         X2input2 = 2RC3L3X4
@@ -1114,8 +1008,6 @@ Switch( RC3L3B34 )
 *********************************************
 Board  44     Board num  RC3L4B12     CRATE  3 R    Slot = 6
 
-DetElemId  1117  1217  1317  1417 
-
 X1input1 = 1RC3L4X1         X1input2 = 1RC3L4X2
 X2input1 = 2RC3L4X1         X2input2 = 2RC3L4X2
 X3input1 = 3RC3L4X1         X3input2 = 3RC3L4X2
@@ -1134,8 +1026,6 @@ Switch( RC3L4B12 )
 
 *********************************************
 Board  45     Board num  RC3L4B34     CRATE  3 R    Slot = 7
-
-DetElemId  1117  1217  1317  1417 
 
 X1input1 = 1RC3L4X3         X1input2 = 1RC3L4X4
 X2input1 = 2RC3L4X3         X2input2 = 2RC3L4X4
@@ -1156,8 +1046,6 @@ Switch( RC3L4B34 )
 *********************************************
 Board  46     Board num  RC3L4B56     CRATE  3 R    Slot = 8
 
-DetElemId  1117  1217  1317  1417 
-
 X1input1 = 1RC3L4X5         X1input2 = 1RC3L4X6
 X2input1 = 2RC3L4X5         X2input2 = 2RC3L4X6
 X3input1 = 3RC3L4X5         X3input2 = 3RC3L4X6
@@ -1176,8 +1064,6 @@ Switch( RC3L4B56 )
 
 ******************************************
 Board  47     Board num  RC3L4B78     CRATE  3 R    Slot = 9
-
-DetElemId  1117  1217  1317  1417 
 
 X1input1 = 1RC3L4X7         X1input2 = 1RC3L4X8
 X2input1 = 2RC3L4X7         X2input2 = 2RC3L4X8
@@ -1198,8 +1084,6 @@ Switch( RC3L4B78 )
 *********************************************
 Board  48     Board num  RC3L5B12     CRATE  3 R    Slot = 10
 
-DetElemId  1100  1200  1300  1400 
-
 X1input1 = 1RC3L5X1         X1input2 = 1RC3L5X2
 X2input1 = 2RC3L5X1         X2input2 = 2RC3L5X2
 X3input1 = 3RC3L5X1         X3input2 = 3RC3L5X2
@@ -1218,8 +1102,6 @@ Switch( RC3L5B12 )
 
 **********************************************
 Board  49     Board num  RC3L5B34     CRATE  3 R    Slot = 11
-
-DetElemId  1100  1200  1300  1400 
 
 X1input1 = 1RC3L5X3         X1input2 = 1RC3L5X4
 X2input1 = 2RC3L5X3         X2input2 = 2RC3L5X4
@@ -1240,8 +1122,6 @@ Switch( RC3L5B34 )
 **********************************************
 Board  50     Board num  RC3L5B56     CRATE  3 R    Slot = 12
 
-DetElemId  1100  1200  1300  1400 
-
 X1input1 = 1RC3L5X5         X1input2 = 1RC3L5X6
 X2input1 = 2RC3L5X5         X2input2 = 2RC3L5X6
 X3input1 = 3RC3L5X5         X3input2 = 3RC3L5X6
@@ -1260,8 +1140,6 @@ Switch( RC3L5B56 )
 
 **********************************************
 Board  51     Board num  RC3L5B78     CRATE  3 R    Slot = 13
-
-DetElemId  1100  1200  1300  1400 
 
 X1input1 = 1RC3L5X7         X1input2 = 1RC3L5X8
 X2input1 = 2RC3L5X7         X2input2 = 2RC3L5X8
@@ -1282,8 +1160,6 @@ Switch( RC3L5B78 )
 **********************************************
 Board  52     Board num  RC3L6B12     CRATE  3 R    Slot = 14
 
-DetElemId  1101  1201  1301  1401 
-
 X1input1 = 1RC3L6X1         X1input2 = 1RC3L6X2
 X2input1 = 2RC3L6X1         X2input2 = 2RC3L6X2
 X3input1 = 3RC3L6X1         X3input2 = 3RC3L6X2
@@ -1302,8 +1178,6 @@ Switch( RC3L6B12 )
 
 **********************************************
 Board  53     Board num  RC3L6B34     CRATE  3 R    Slot = 15
-
-DetElemId  1101  1201  1301  1401 
 
 X1input1 = 1RC3L6X3              X1input2 = 1RC3L6X4
 X2input1 = 2RC3L6X3              X2input2 = 2RC3L6X4
@@ -1324,8 +1198,6 @@ Switch( RC3L6B34 )
 **********************************************
 Board  nn     Board num  RIntC3-Up     CRATE  3 R    Slot = 16
 
-DetElemId 0000
-
 X1input1 = NONE                 X1input2 = NONE
 X2input1 = NONE                 X2input2 = NONE
 X3input1 = 3RC3L6X5 (2)         X3input2 = 3RC3L6X6 (2)
@@ -1344,8 +1216,6 @@ Switch( RIntC3-Up )
 
 *********************************************
 Board  61     Board num  RC4L1B12     CRATE  4 R    Slot = 1
-
-DetElemId  1114  1214  1314  1414 
     
 X1input1 = 1RC4L1X1         X1input2 = 1RC4L1X2
 X2input1 = 2RC4L1X1         X2input2 = 2RC4L1X2
@@ -1366,8 +1236,6 @@ Switch( RC4L1B12 )
 *********************************************
 Board  62     Board num  RC4L2B12     CRATE  4 R    Slot = 2
 
-DetElemId  1115  1215  1315  1415 
-
 X1input1 = 1RC4L2X1         X1input2 = 1RC4L2X2
 X2input1 = 2RC4L2X1         X2input2 = 2RC4L2X2
 X3input1 = 3RC4L2X1         X3input2 = 3RC4L2X2
@@ -1386,8 +1254,6 @@ Switch( RC4L2B12 )
 
 *********************************************
 Board  63     Board num  RC4L2B34     CRATE  4 R    Slot = 3
-
-DetElemId  1115  1215  1315  1415 
 
 X1input1 = 1RC4L2X3         X1input2 = 1RC4L2X4
 X2input1 = 2RC4L2X3         X2input2 = 2RC4L2X4
@@ -1408,8 +1274,6 @@ Switch( RC4L2B34 )
 *********************************************
 Board  64     Board num  RC4L3B12     CRATE  4 R    Slot = 4
 
-DetElemId  1116  1216  1316  1416 
-
 X1input1 = 1RC4L3X1         X1input2 = 1RC4L3X2
 X2input1 = 2RC4L3X1         X2input2 = 2RC4L3X2
 X3input1 = 3RC4L3X1         X3input2 = 3RC4L3X2
@@ -1428,8 +1292,6 @@ Switch( RC4L3B12 )
 
 *********************************************
 Board  65     Board num  RC4L3B34     CRATE  4 R    Slot = 5
-
-DetElemId  1116  1216  1316  1416 
 
 X1input1 = 1RC4L3X3         X1input2 = 1RC4L3X4
 X2input1 = 2RC4L3X3         X2input2 = 2RC4L3X4
@@ -1450,8 +1312,6 @@ Switch( RC4L3B34 )
 *********************************************
 Board  66     Board num  RC4L4B12     CRATE  4 R    Slot = 6
 
-DetElemId  1117  1217  1317  1417 
-
 X1input1 = 1RC4L4X1         X1input2 = 1RC4L4X2
 X2input1 = 2RC4L4X1         X2input2 = 2RC4L4X2
 X3input1 = 3RC4L4X1         X3input2 = 3RC4L4X2
@@ -1470,8 +1330,6 @@ Switch( RC4L4B12 )
 
 *********************************************
 Board  67     Board num  RC4L4B34     CRATE  4 R    Slot = 7
-
-DetElemId  1117  1217  1317  1417 
 
 X1input1 = 1RC4L4X3         X1input2 = 1RC4L4X4
 X2input1 = 2RC4L4X3         X2input2 = 2RC4L4X4
@@ -1492,8 +1350,6 @@ Switch( RC4L4B34 )
 *********************************************
 Board  68     Board num  RC4L5B12     CRATE  4 R    Slot = 8
 
-DetElemId  1100  1200  1300  1400 
-
 X1input1 = 1RC4L5X1         X1input2 = 1RC4L5X2
 X2input1 = 2RC4L5X1         X2input2 = 2RC4L5X2
 X3input1 = 3RC4L5X1         X3input2 = 3RC4L5X2
@@ -1512,8 +1368,6 @@ Switch( RC4L5B12 )
 
 ******************************************
 Board  69     Board num  RC4L5B34     CRATE  4 R    Slot = 9
-
-DetElemId  1100  1200  1300  1400 
 
 X1input1 = 1RC4L5X3         X1input2 = 1RC4L5X4
 X2input1 = 2RC4L5X3         X2input2 = 2RC4L5X4
@@ -1534,8 +1388,6 @@ Switch( RC4L5B34 )
 *********************************************
 Board  70     Board num  RC4L6B12     CRATE  4 R    Slot = 10
 
-DetElemId  1101  1201  1301  1401 
-
 X1input1 = 1RC4L6X1         X1input2 = 1RC4L6X2
 X2input1 = 2RC4L6X1         X2input2 = 2RC4L6X2
 X3input1 = 3RC4L6X1         X3input2 = 3RC4L6X2
@@ -1554,8 +1406,6 @@ Switch( RC4L6B12 )
 
 **********************************************
 Board  71     Board num  RC4L6B34     CRATE  4 R    Slot = 11
-
-DetElemId  1101  1201  1301  1401 
 
 X1input1 = 1RC4L6X3         X1input2 = 1RC4L6X4
 X2input1 = 2RC4L6X3         X2input2 = 2RC4L6X4
@@ -1576,8 +1426,6 @@ Switch( RC4L6B34 )
 **********************************************
 Board  72     Board num  RC4L7B12     CRATE  4 R    Slot = 12
 
-DetElemId  1102  1202  1302  1402 
-
 X1input1 = 1RC4L7X1         X1input2 = 1RC4L7X2
 X2input1 = 2RC4L7X1         X2input2 = 2RC4L7X2
 X3input1 = 3RC4L7X1         X3input2 = 3RC4L7X2
@@ -1596,8 +1444,6 @@ Switch( RC4L7B12 )
 
 **********************************************
 Board  73     Board num  RC4L7B34     CRATE  4 R    Slot = 13
-
-DetElemId  1102  1202  1302  1402 
 
 X1input1 = 1RC4L7X3         X1input2 = 1RC4L7X4
 X2input1 = 2RC4L7X3         X2input2 = 2RC4L7X4
@@ -1618,8 +1464,6 @@ Switch( RC4L7B34 )
 **********************************************
 Board  74     Board num  RC4L8B12     CRATE  4 R    Slot = 14
 
-DetElemId  1103  1203  1303  1403 
-
 X1input1 = 1RC4L8X1         X1input2 = 1RC4L8X2
 X2input1 = 2RC4L8X1         X2input2 = 2RC4L8X2
 X3input1 = 3RC4L8X1         X3input2 = 3RC4L8X2
@@ -1638,8 +1482,6 @@ Switch( RC4L8B12 )
 
 **********************************************
 Board  75     Board num  RC4L8B34     CRATE  4 R    Slot = 15
-
-DetElemId  1103  1203  1303  1403 
 
 X1input1 = 1RC4L8X3         X1input2 = 1RC4L8X4
 X2input1 = 2RC4L8X3         X2input2 = 2RC4L8X4
@@ -1660,8 +1502,6 @@ Switch( RC4L8B34 )
 **********************************************
 Board  76     Board num  RC4L9B12     CRATE  4 R    Slot = 16
 
-DetElemId  1104  1204  1304  1404 
-
 X1input1 = 1RC4L9X1         X1input2 = 1RC4L9X2
 X2input1 = 2RC4L9X1         X2input2 = 2RC4L9X2
 X3input1 = 3RC4L9X1         X3input2 = 3RC4L9X2
@@ -1680,8 +1520,6 @@ Switch( RC4L9B12 )
 
 *********************************************
 Board  77     Board num  RC5L1B12     CRATE  5 R    Slot = 1
-
-DetElemId  1114  1214  1314  1414 
     
 X1input1 = 1RC5L1X1         X1input2 = 1RC5L1X2
 X2input1 = 2RC5L1X1         X2input2 = 2RC5L1X2
@@ -1702,8 +1540,6 @@ Switch( RC5L1B12 )
 *********************************************
 Board  78     Board num  RC5L2B12     CRATE  5 R    Slot = 2
 
-DetElemId  1115  1215  1315  1415 
-
 X1input1 = 1RC5L2X1         X1input2 = 1RC5L2X2
 X2input1 = 2RC5L2X1         X2input2 = 2RC5L2X2
 X3input1 = 3RC5L2X1         X3input2 = 3RC5L2X2
@@ -1722,8 +1558,6 @@ Switch( RC5L2B12 )
 
 *********************************************
 Board  79     Board num  RC5L2B34     CRATE  5 R    Slot = 3
-
-DetElemId  1115  1215  1315  1415 
 
 X1input1 = 1RC5L2X3         X1input2 = 1RC5L2X4
 X2input1 = 2RC5L2X3         X2input2 = 2RC5L2X4
@@ -1744,8 +1578,6 @@ Switch( RC5L2B34 )
 *********************************************
 Board  80     Board num  RC5L3B12     CRATE  5 R    Slot = 4
 
-DetElemId  1116  1216  1316  1416 
-
 X1input1 = 1RC5L3X1         X1input2 = 1RC5L3X2
 X2input1 = 2RC5L3X1         X2input2 = 2RC5L3X2
 X3input1 = 3RC5L3X1         X3input2 = 3RC5L3X2
@@ -1764,8 +1596,6 @@ Switch( RC5L3B12 )
 
 *********************************************
 Board  81     Board num  RC5L3B34     CRATE  5 R    Slot = 5
-
-DetElemId  1116  1216  1316  1416 
 
 X1input1 = 1RC5L3X3         X1input2 = 1RC5L3X4
 X2input1 = 2RC5L3X3         X2input2 = 2RC5L3X4
@@ -1786,8 +1616,6 @@ Switch( RC5L3B34 )
 *********************************************
 Board  82     Board num  RC5L4B12     CRATE  5 R    Slot = 6
 
-DetElemId  1117  1217  1317  1417 
-
 X1input1 = 1RC5L4X1         X1input2 = 1RC5L4X2
 X2input1 = 2RC5L4X1         X2input2 = 2RC5L4X2
 X3input1 = 3RC5L4X1         X3input2 = 3RC5L4X2
@@ -1806,8 +1634,6 @@ Switch( RC5L4B12 )
 
 *********************************************
 Board  83     Board num  RC5L4B34     CRATE  5 R    Slot = 7
-
-DetElemId  1117  1217  1317  1417 
 
 X1input1 = 1RC5L4X3         X1input2 = 1RC5L4X4
 X2input1 = 2RC5L4X3         X2input2 = 2RC5L4X4
@@ -1828,8 +1654,6 @@ Switch( RC5L4B34 )
 *********************************************
 Board  84     Board num  RC5L5B12     CRATE  5 R    Slot = 8
 
-DetElemId  1100  1200  1300  1400 
-
 X1input1 = 1RC5L5X1         X1input2 = 1RC5L5X2
 X2input1 = 2RC5L5X1         X2input2 = 2RC5L5X2
 X3input1 = 3RC5L5X1         X3input2 = 3RC5L5X2
@@ -1848,8 +1672,6 @@ Switch( RC5L5B12 )
 
 ******************************************
 Board  85     Board num  RC5L5B34     CRATE  5 R    Slot = 9
-
-DetElemId  1100  1200  1300  1400 
 
 X1input1 = 1RC5L5X3         X1input2 = 1RC5L5X4
 X2input1 = 2RC5L5X3         X2input2 = 2RC5L5X4
@@ -1870,8 +1692,6 @@ Switch( RC5L5B34 )
 *********************************************
 Board  86     Board num  RC5L6B12     CRATE  5 R    Slot = 10
 
-DetElemId  1101  1201  1301  1401 
-
 X1input1 = 1RC5L6X1         X1input2 = 1RC5L6X2
 X2input1 = 2RC5L6X1         X2input2 = 2RC5L6X2
 X3input1 = 3RC5L6X1         X3input2 = 3RC5L6X2
@@ -1890,8 +1710,6 @@ Switch( RC5L6B12 )
 
 **********************************************
 Board  87     Board num  RC5L6B34     CRATE  5 R    Slot = 11
-
-DetElemId  1101  1201  1301  1401 
 
 X1input1 = 1RC5L6X3         X1input2 = 1RC5L6X4
 X2input1 = 2RC5L6X3         X2input2 = 2RC5L6X4
@@ -1912,8 +1730,6 @@ Switch( RC5L6B34 )
 **********************************************
 Board  88     Board num  RC5L7B12     CRATE  5 R    Slot = 12
 
-DetElemId  1102  1202  1302  1402 
-
 X1input1 = 1RC5L7X1         X1input2 = 1RC5L7X2
 X2input1 = 2RC5L7X1         X2input2 = 2RC5L7X2
 X3input1 = 3RC5L7X1         X3input2 = 3RC5L7X2
@@ -1932,8 +1748,6 @@ Switch( RC5L7B12 )
 
 **********************************************
 Board  89     Board num  RC5L7B34     CRATE  5 R    Slot = 13
-
-DetElemId  1102  1202  1302  1402 
 
 X1input1 = 1RC5L7X3         X1input2 = 1RC5L7X4
 X2input1 = 2RC5L7X3         X2input2 = 2RC5L7X4
@@ -1954,8 +1768,6 @@ Switch( RC5L7B34 )
 **********************************************
 Board  90     Board num  RC5L8B12     CRATE  5 R    Slot = 14
 
-DetElemId  1103  1203  1303  1403 
-
 X1input1 = 1RC5L8X1         X1input2 = 1RC5L8X2
 X2input1 = 2RC5L8X1         X2input2 = 2RC5L8X2
 X3input1 = 3RC5L8X1         X3input2 = 3RC5L8X2
@@ -1974,8 +1786,6 @@ Switch( RC5L8B12 )
 
 **********************************************
 Board  91     Board num  RC5L8B34     CRATE  5 R    Slot = 15
-
-DetElemId  1103  1203  1303  1403 
 
 X1input1 = 1RC5L8X3         X1input2 = 1RC5L8X4
 X2input1 = 2RC5L8X3         X2input2 = 2RC5L8X4
@@ -1996,8 +1806,6 @@ Switch( RC5L8B34 )
 **********************************************
 Board  92     Board num  RC5L9B12     CRATE  5 R    Slot = 16
 
-DetElemId  1104  1204  1304  1404 
-
 X1input1 = 1RC5L9X1         X1input2 = 1RC5L9X2
 X2input1 = 2RC5L9X1         X2input2 = 2RC5L9X2
 X3input1 = 3RC5L9X1         X3input2 = 3RC5L9X2
@@ -2016,8 +1824,6 @@ Switch( RC5L9B12 )
 
 *********************************************
 Board  93     Board num  RC6L1B12     CRATE  6 R    Slot = 1
-
-DetElemId  1114  1214  1314  1414 
     
 X1input1 = 1RC6L1X1         X1input2 = 1RC6L1X2
 X2input1 = 2RC6L1X1         X2input2 = 2RC6L1X2
@@ -2038,8 +1844,6 @@ Switch( RC6L1B12 )
 *********************************************
 Board  94     Board num  RC6L2B12     CRATE  6 R    Slot = 2
 
-DetElemId  1115  1215  1315  1415 
-
 X1input1 = 1RC6L2X1         X1input2 = 1RC6L2X2
 X2input1 = 2RC6L2X1         X2input2 = 2RC6L2X2
 X3input1 = 3RC6L2X1         X3input2 = 3RC6L2X2
@@ -2058,8 +1862,6 @@ Switch( RC6L2B12 )
 
 *********************************************
 Board  95     Board num  RC6L2B34     CRATE  6 R    Slot = 3
-
-DetElemId  1115  1215  1315  1415 
 
 X1input1 = 1RC6L2X3         X1input2 = 1RC6L2X4
 X2input1 = 2RC6L2X3         X2input2 = 2RC6L2X4
@@ -2080,8 +1882,6 @@ Switch( RC6L2B34 )
 *********************************************
 Board  96     Board num  RC6L3B12     CRATE  6 R    Slot = 4
 
-DetElemId  1116  1216  1316  1416 
-
 X1input1 = 1RC6L3X1         X1input2 = 1RC6L3X2
 X2input1 = 2RC6L3X1         X2input2 = 2RC6L3X2
 X3input1 = 3RC6L3X1         X3input2 = 3RC6L3X2
@@ -2100,8 +1900,6 @@ Switch( RC6L3B12 )
 
 *********************************************
 Board  97     Board num  RC6L3B34     CRATE  6 R    Slot = 5
-
-DetElemId  1116  1216  1316  1416 
 
 X1input1 = 1RC6L3X3         X1input2 = 1RC6L3X4
 X2input1 = 2RC6L3X3         X2input2 = 2RC6L3X4
@@ -2122,8 +1920,6 @@ Switch( RC6L3B34 )
 *********************************************
 Board  98     Board num  RC6L4B12     CRATE  6 R    Slot = 6
 
-DetElemId  1117  1217  1317  1417 
-
 X1input1 = 1RC6L4X1         X1input2 = 1RC6L4X2
 X2input1 = 2RC6L4X1         X2input2 = 2RC6L4X2
 X3input1 = 3RC6L4X1         X3input2 = 3RC6L4X2
@@ -2142,8 +1938,6 @@ Switch( RC6L4B12 )
 
 *********************************************
 Board  99     Board num  RC6L4B34     CRATE  6 R    Slot = 7
-
-DetElemId  1117  1217  1317  1417 
 
 X1input1 = 1RC6L4X3         X1input2 = 1RC6L4X4
 X2input1 = 2RC6L4X3         X2input2 = 2RC6L4X4
@@ -2164,8 +1958,6 @@ Switch( RC6L4B34 )
 *********************************************
 Board  100     Board num  RC6L5B12     CRATE  6 R    Slot = 8
 
-DetElemId  1100  1200  1300  1400 
-
 X1input1 = 1RC6L5X1         X1input2 = 1RC6L5X2
 X2input1 = 2RC6L5X1         X2input2 = 2RC6L5X2
 X3input1 = 3RC6L5X1         X3input2 = 3RC6L5X2
@@ -2184,8 +1976,6 @@ Switch( RC6L5B12 )
 
 ******************************************
 Board  101     Board num  RC6L5B34     CRATE  6 R    Slot = 9
-
-DetElemId  1100  1200  1300  1400 
 
 X1input1 = 1RC6L5X3         X1input2 = 1RC6L5X4
 X2input1 = 2RC6L5X3         X2input2 = 2RC6L5X4
@@ -2206,8 +1996,6 @@ Switch( RC6L5B34 )
 *********************************************
 Board  102     Board num  RC6L6B12     CRATE  6 R    Slot = 10
 
-DetElemId  1101  1201  1301  1401 
-
 X1input1 = 1RC6L6X1         X1input2 = 1RC6L6X2
 X2input1 = 2RC6L6X1         X2input2 = 2RC6L6X2
 X3input1 = 3RC6L6X1         X3input2 = 3RC6L6X2
@@ -2226,8 +2014,6 @@ Switch( RC6L6B12 )
 
 **********************************************
 Board  103     Board num  RC6L6B34     CRATE  6 R    Slot = 11
-
-DetElemId  1101  1201  1301  1401 
 
 X1input1 = 1RC6L6X3         X1input2 = 1RC6L6X4
 X2input1 = 2RC6L6X3         X2input2 = 2RC6L6X4
@@ -2248,8 +2034,6 @@ Switch( RC6L6B34 )
 **********************************************
 Board  104     Board num  RC6L7B12     CRATE  6 R    Slot = 12
 
-DetElemId  1102  1202  1302  1402 
-
 X1input1 = 1RC6L7X1         X1input2 = 1RC6L7X2
 X2input1 = 2RC6L7X1         X2input2 = 2RC6L7X2
 X3input1 = 3RC6L7X1         X3input2 = 3RC6L7X2
@@ -2268,8 +2052,6 @@ Switch( RC6L7B12 )
 
 **********************************************
 Board  105     Board num  RC6L7B34     CRATE  6 R    Slot = 13
-
-DetElemId  1102  1202  1302  1402 
 
 X1input1 = 1RC6L7X3         X1input2 = 1RC6L7X4
 X2input1 = 2RC6L7X3         X2input2 = 2RC6L7X4
@@ -2290,8 +2072,6 @@ Switch( RC6L7B34 )
 **********************************************
 Board  106     Board num  RC6L8B12     CRATE  6 R    Slot = 14
 
-DetElemId  1103  1203  1303  1403 
-
 X1input1 = 1RC6L8X1         X1input2 = 1RC6L8X2
 X2input1 = 2RC6L8X1         X2input2 = 2RC6L8X2
 X3input1 = 3RC6L8X1         X3input2 = 3RC6L8X2
@@ -2310,8 +2090,6 @@ Switch( RC6L8B12 )
 
 **********************************************
 Board  107     Board num  RC6L8B34     CRATE  6 R    Slot = 15
-
-DetElemId  1103  1203  1303  1403 
 
 X1input1 = 1RC6L8X3         X1input2 = 1RC6L8X4
 X2input1 = 2RC6L8X3         X2input2 = 2RC6L8X4
@@ -2332,8 +2110,6 @@ Switch( RC6L8B34 )
 **********************************************
 Board  108     Board num  RC6L9B12     CRATE  6 R    Slot = 16
 
-DetElemId  1104  1204  1304  1404 
-
 X1input1 = 1RC6L9X1         X1input2 = 1RC6L9X2
 X2input1 = 2RC6L9X1         X2input2 = 2RC6L9X2
 X3input1 = 3RC6L9X1         X3input2 = 3RC6L9X2
@@ -2352,8 +2128,6 @@ Switch( RC6L9B12 )
 
 *********************************************
 Board  109     Board num  RC7L1B12     CRATE  7 R    Slot = 1
-
-DetElemId  1114  1214  1314  1414 
     
 X1input1 = 1RC7L1X1         X1input2 = 1RC7L1X2
 X2input1 = 2RC7L1X1         X2input2 = 2RC7L1X2
@@ -2374,8 +2148,6 @@ Switch( RC7L1B12 )
 *********************************************
 Board  110     Board num  RC7L2B12     CRATE  7 R    Slot = 2
 
-DetElemId  1115  1215  1315  1415 
-
 X1input1 = 1RC7L2X1         X1input2 = 1RC7L2X2
 X2input1 = 2RC7L2X1         X2input2 = 2RC7L2X2
 X3input1 = 3RC7L2X1         X3input2 = 3RC7L2X2
@@ -2394,8 +2166,6 @@ Switch( RC7L2B12 )
 
 *********************************************
 Board  111     Board num  RC7L3B12     CRATE  7 R    Slot = 3
-
-DetElemId  1116  1216  1316  1416 
 
 X1input1 = 1RC7L3X1         X1input2 = 1RC7L3X2
 X2input1 = 2RC7L3X1         X2input2 = 2RC7L3X2
@@ -2416,8 +2186,6 @@ Switch( RC7L3B12 )
 *********************************************
 Board  112     Board num  RC7L4B12     CRATE  7 R    Slot = 4
 
-DetElemId  1117  1217  1317  1417 
-
 X1input1 = 1RC7L4X1         X1input2 = 1RC7L4X2
 X2input1 = 2RC7L4X1         X2input2 = 2RC7L4X2
 X3input1 = 3RC7L4X1         X3input2 = 3RC7L4X2
@@ -2436,8 +2204,6 @@ Switch( RC7L4B12 )
 
 *********************************************
 Board  113     Board num  RC7L5B12     CRATE  7 R    Slot = 5
-
-DetElemId  1100  1200  1300  1400 
 
 X1input1 = 1RC7L5X1         X1input2 = 1RC7L5X2
 X2input1 = 2RC7L5X1         X2input2 = 2RC7L5X2
@@ -2458,8 +2224,6 @@ Switch( RC7L5B12 )
 *********************************************
 Board  114     Board num  RC7L6B12     CRATE  7 R    Slot = 6
 
-DetElemId  1101  1201  1301  1401 
-
 X1input1 = 1RC7L6X1         X1input2 = 1RC7L6X2
 X2input1 = 2RC7L6X1         X2input2 = 2RC7L6X2
 X3input1 = 3RC7L6X1         X3input2 = 3RC7L6X2
@@ -2478,8 +2242,6 @@ Switch( RC7L6B12 )
 
 *********************************************
 Board  115     Board num  RC7L7B12     CRATE  7 R    Slot = 7
-
-DetElemId  1102  1202  1302  1402 
 
 X1input1 = 1RC7L7X1         X1input2 = 1RC7L7X2
 X2input1 = 2RC7L7X1         X2input2 = 2RC7L7X2
@@ -2500,8 +2262,6 @@ Switch( RC7L7B12 )
 *********************************************
 Board  116     Board num  RC7L8B12     CRATE  7 R    Slot = 8
 
-DetElemId  1103  1203  1303  1403 
-
 X1input1 = 1RC7L8X1         X1input2 = 1RC7L8X2
 X2input1 = 2RC7L8X1         X2input2 = 2RC7L8X2
 X3input1 = 3RC7L8X1         X3input2 = 3RC7L8X2
@@ -2520,8 +2280,6 @@ Switch( RC7L8B12 )
 
 ******************************************
 Board  117     Board num  RC7L9B12     CRATE  7 R    Slot = 9
-
-DetElemId  1104  1204  1304  1404 
 
 X1input1 = 1RC7L9X1         X1input2 = 1RC7L9X2
 X2input1 = 2RC7L9X1         X2input2 = 2RC7L9X2
@@ -2542,8 +2300,6 @@ Switch( RC7L9B12 )
 *********************************************
 Board  118     Board num  LC1L1B12     CRATE  1 L    Slot = 1
 
-DetElemId  1113  1213  1313  1413 
-
 X1input1 = 1LC1L1X1         X1input2 = 1LC1L1X2
 X2input1 = 2LC1L1X1         X2input2 = 2LC1L1X2
 X3input1 = 3LC1L1X1         X3input2 = 3LC1L1X2
@@ -2562,8 +2318,6 @@ Switch( LC1L1B12 )
 
 *********************************************
 Board  119     Board num  LC1L2B12     CRATE  1 L    Slot = 2
-
-DetElemId  1112  1212  1312  1412 
 
 X1input1 = 1LC1L2X1         X1input2 = 1LC1L2X2
 X2input1 = 2LC1L2X1         X2input2 = 2LC1L2X2
@@ -2584,8 +2338,6 @@ Switch( LC1L2B12 )
 *********************************************
 Board  120     Board num  LC1L2B34     CRATE  1 L    Slot = 3
 
-DetElemId  1112  1212  1312  1412 
-
 X1input1 = 1LC1L2X3         X1input2 = 1LC1L2X4
 X2input1 = 2LC1L2X3         X2input2 = 2LC1L2X4
 X3input1 = 3LC1L2X3         X3input2 = 3LC1L2X4
@@ -2604,8 +2356,6 @@ Switch( LC1L2B34 )
 
 *********************************************
 Board  121     Board num  LC1L3B12     CRATE  1 L    Slot = 4
-
-DetElemId  1111  1211  1311  1411 
 
 X1input1 = 1LC1L3X1         X1input2 = 1LC1L3X2
 X2input1 = 2LC1L3X1         X2input2 = 2LC1L3X2
@@ -2626,8 +2376,6 @@ Switch( LC1L3B12 )
 *********************************************
 Board  122     Board num  LC1L3B34     CRATE  1 L    Slot = 5
 
-DetElemId  1111  1211  1311  1411 
-
 X1input1 = 1LC1L3X3         X1input2 = 1LC1L3X4
 X2input1 = 2LC1L3X3         X2input2 = 2LC1L3X4
 X3input1 = 3LC1L3X3         X3input2 = 3LC1L3X4
@@ -2646,8 +2394,6 @@ Switch( LC1L3B34 )
 
 *********************************************
 Board  123     Board num  LC1L4B12     CRATE  1 L    Slot = 6
-
-DetElemId  1110  1210  1310  1410 
 
 X1input1 = 1LC1L4X1         X1input2 = 1LC1L4X2
 X2input1 = 2LC1L4X1         X2input2 = 2LC1L4X2
@@ -2668,8 +2414,6 @@ Switch( LC1L4B12 )
 *********************************************
 Board  124     Board num  LC1L4B34     CRATE  1 L    Slot = 7
 
-DetElemId  1110  1210  1310  1410 
-
 X1input1 = 1LC1L4X3         X1input2 = 1LC1L4X4
 X2input1 = 2LC1L4X3         X2input2 = 2LC1L4X4
 X3input1 = 3LC1L4X3         X3input2 = 3LC1L4X4
@@ -2688,8 +2432,6 @@ Switch( LC1L4B34 )
 
 *********************************************
 Board  125     Board num  LC1L4B56     CRATE  1 L    Slot = 8
-
-DetElemId  1110  1210  1310  1410 
 
 X1input1 = 1LC1L4X5         X1input2 = 1LC1L4X6
 X2input1 = 2LC1L4X5         X2input2 = 2LC1L4X6
@@ -2710,8 +2452,6 @@ Switch( LC1L4B56 )
 ******************************************
 Board  126     Board num  LC1L6B12     CRATE  1 L    Slot = 9
 
-DetElemId  1108  1208  1308  1408 
-
 X1input1 = 1LC1L6X1         X1input2 = 1LC1L6X2
 X2input1 = 2LC1L6X1         X2input2 = 2LC1L6X2
 X3input1 = 3LC1L6X1         X3input2 = 3LC1L6X2
@@ -2730,8 +2470,6 @@ Switch( LC1L6B12 )
 
 *********************************************
 Board  127     Board num  LC1L6B34     CRATE  1 L    Slot = 10
-
-DetElemId  1108  1208  1308  1408 
 
 X1input1 = 1LC1L6X3         X1input2 = 1LC1L6X4
 X2input1 = 2LC1L6X3         X2input2 = 2LC1L6X4
@@ -2752,8 +2490,6 @@ Switch( LC1L6B34 )
 **********************************************
 Board  128     Board num  LC1L6B56     CRATE  1 L    Slot = 11
 
-DetElemId  1108  1208  1308  1408 
-
 X1input1 = 1LC1L6X5         X1input2 = 1LC1L6X6
 X2input1 = 2LC1L6X5         X2input2 = 2LC1L6X6
 X3input1 = 3LC1L6X5         X3input2 = 3LC1L6X6
@@ -2772,8 +2508,6 @@ Switch( LC1L6B56 )
 
 **********************************************
 Board  129     Board num  LC1L7B12     CRATE  1 L    Slot = 12
-
-DetElemId  1107  1207  1307  1407 
 
 X1input1 = 1LC1L7X1         X1input2 = 1LC1L7X2
 X2input1 = 2LC1L7X1         X2input2 = 2LC1L7X2
@@ -2794,8 +2528,6 @@ Switch( LC1L7B12 )
 **********************************************
 Board  130     Board num  LC1L7B34     CRATE  1 L    Slot = 13
 
-DetElemId  1107  1207  1307  1407 
-
 X1input1 = 1LC1L7X3         X1input2 = 1LC1L7X4
 X2input1 = 2LC1L7X3         X2input2 = 2LC1L7X4
 X3input1 = 3LC1L7X3         X3input2 = 3LC1L7X4
@@ -2814,8 +2546,6 @@ Switch( LC1L7B34 )
 
 **********************************************
 Board  131     Board num  LC1L8B12     CRATE  1 L    Slot = 14
-
-DetElemId  1106  1206  1306  1406 
 
 X1input1 = 1LC1L8X1         X1input2 = 1LC1L8X2
 X2input1 = 2LC1L8X1         X2input2 = 2LC1L8X2
@@ -2836,8 +2566,6 @@ Switch( LC1L8B12 )
 **********************************************
 Board  132     Board num  LC1L8B34     CRATE  1 L    Slot = 15
 
-DetElemId  1106  1206  1306  1406 
-
 X1input1 = 1LC1L8X3         X1input2 = 1LC1L8X4
 X2input1 = 2LC1L8X3         X2input2 = 2LC1L8X4
 X3input1 = 3LC1L8X3         X3input2 = 3LC1L8X4
@@ -2857,8 +2585,6 @@ Switch( LC1L8B34 )
 **********************************************
 Board  133     Board num  LC1L9B12     CRATE  1 L    Slot = 16
 
-DetElemId  1105  1205  1305  1405 
-
 X1input1 = 1LC1L9X1         X1input2 = 1LC1L9X2
 X2input1 = 2LC1L9X1         X2input2 = 2LC1L9X2
 X3input1 = 3LC1L9X1         X3input2 = 3LC1L9X2
@@ -2877,8 +2603,6 @@ Switch( LC1L9B12 )
 
 *********************************************
 Board  134     Board num  LC2L1B12     CRATE  2 L    Slot = 1
-
-DetElemId  1113  1213  1313  1413 
     
 X1input1 = 1LC2L1X1         X1input2 = 1LC2L1X2
 X2input1 = 2LC2L1X1         X2input2 = 2LC2L1X2
@@ -2899,8 +2623,6 @@ Switch( LC2L1B12 )
 *********************************************
 Board  135     Board num  LC2L2B12     CRATE  2 L    Slot = 2
 
-DetElemId  1112  1212  1312  1412 
-
 X1input1 = 1LC2L2X1         X1input2 = 1LC2L2X2
 X2input1 = 2LC2L2X1         X2input2 = 2LC2L2X2
 X3input1 = 3LC2L2X1         X3input2 = 3LC2L2X2
@@ -2919,8 +2641,6 @@ Switch( LC2L2B12 )
 
 *********************************************
 Board  136     Board num  LC2L2B34     CRATE  2 L    Slot = 3
-
-DetElemId  1112  1212  1312  1412 
 
 X1input1 = 1LC2L2X3         X1input2 = 1LC2L2X4
 X2input1 = 2LC2L2X3         X2input2 = 2LC2L2X4
@@ -2941,8 +2661,6 @@ Switch( LC2L2B34 )
 *********************************************
 Board  137     Board num  LC2L3B12     CRATE  2 L    Slot = 4
 
-DetElemId  1111  1211  1311  1411 
-
 X1input1 = 1LC2L3X1         X1input2 = 1LC2L3X2
 X2input1 = 2LC2L3X1         X2input2 = 2LC2L3X2
 X3input1 = 3LC2L3X1         X3input2 = 3LC2L3X2
@@ -2961,8 +2679,6 @@ Switch( LC2L3B12 )
 
 *********************************************
 Board  138     Board num  LC2L3B34     CRATE  2 L    Slot = 5
-
-DetElemId  1111  1211  1311  1411 
 
 X1input1 = 1LC2L3X3         X1input2 = 1LC2L3X4
 X2input1 = 2LC2L3X3         X2input2 = 2LC2L3X4
@@ -2983,8 +2699,6 @@ Switch( LC2L3B34 )
 *********************************************
 Board  139    Board num  LC2L4B12     CRATE  2 L    Slot = 6
 
-DetElemId  1110  1210  1310  1410 
-
 X1input1 = 1LC2L4X1         X1input2 = 1LC2L4X2
 X2input1 = 2LC2L4X1         X2input2 = 2LC2L4X2
 X3input1 = 3LC2L4X1         X3input2 = 3LC2L4X2
@@ -3003,8 +2717,6 @@ Switch( LC2L4B12 )
 
 *********************************************
 Board  140     Board num  LC2L4B34     CRATE  2 L    Slot = 7
-
-DetElemId  1110  1210  1310  1410 
 
 X1input1 = 1LC2L4X3         X1input2 = 1LC2L4X4
 X2input1 = 2LC2L4X3         X2input2 = 2LC2L4X4
@@ -3025,8 +2737,6 @@ Switch( LC2L4B34 )
 *********************************************
 Board  141     Board num  LC2L4B56     CRATE  2 L    Slot = 8
 
-DetElemId  1110  1210  1310  1410 
-
 X1input1 = 1LC2L4X5         X1input2 = 1LC2L4X6
 X2input1 = 2LC2L4X5         X2input2 = 2LC2L4X6
 X3input1 = 3LC2L4X5         X3input2 = 3LC2L4X6
@@ -3045,8 +2755,6 @@ Switch( LC2L4B56 )
 
 ******************************************
 Board  142     Board num  LC2L4B78     CRATE  2 L    Slot = 9
-
-DetElemId  1110  1210  1310  1410 
 
 X1input1 = 1LC2L4X7         X1input2 = 1LC2L4X8
 X2input1 = 2LC2L4X7         X2input2 = 2LC2L4X8
@@ -3067,8 +2775,6 @@ Switch( LC2L4B78 )
 *********************************************
 Board  143     Board num  LC2L5B12     CRATE  2 L    Slot = 10
 
-DetElemId  1109  1209  1309  1409 
-
 X1input1 = 1LC2L5X1         X1input2 = 1LC2L5X2
 X2input1 = 2LC2L5X1         X2input2 = 2LC2L5X2
 X3input1 = 3LC2L5X1         X3input2 = 3LC2L5X2
@@ -3087,8 +2793,6 @@ Switch( LC2L5B12 )
 
 **********************************************
 Board  144     Board num  LC2L5B34     CRATE  2 L    Slot = 11
-
-DetElemId  1109  1209  1309  1409 
 
 X1input1 = 1LC2L5X3         X1input2 = 1LC2L5X4
 X2input1 = 2LC2L5X3         X2input2 = 2LC2L5X4
@@ -3109,8 +2813,6 @@ Switch( LC2L5B34 )
 **********************************************
 Board  145     Board num  LC2L5B56     CRATE  2 L    Slot = 12
 
-DetElemId  1109  1209  1309  1409 
-
 X1input1 = 1LC2L5X5         X1input2 = 1LC2L5X6
 X2input1 = 2LC2L5X5         X2input2 = 2LC2L5X6
 X3input1 = 3LC2L5X5         X3input2 = 3LC2L5X6
@@ -3129,8 +2831,6 @@ Switch( LC2L5B56 )
 
 **********************************************
 Board  146     Board num  LC2L5B78     CRATE  2 L    Slot = 13
-
-DetElemId  1109  1209  1309  1409 
 
 X1input1 = 1LC2L5X7         X1input2 = 1LC2L5X8
 X2input1 = 2LC2L5X7         X2input2 = 2LC2L5X8
@@ -3151,8 +2851,6 @@ Switch( LC2L5B78 )
 **********************************************
 Board  147     Board num  LC2L6B12     CRATE  2 L    Slot = 14
 
-DetElemId  1108  1208  1308  1408 
-
 X1input1 = 1LC2L6X1         X1input2 = 1LC2L6X2
 X2input1 = 2LC2L6X1         X2input2 = 2LC2L6X2
 X3input1 = 3LC2L6X1         X3input2 = 3LC2L6X2
@@ -3171,8 +2869,6 @@ Switch( LC2L6B12 )
 
 **********************************************
 Board  148     Board num  LC2L6B34     CRATE  2 L    Slot = 15
-
-DetElemId  1108  1208  1308  1408 
 
 X1input1 = 1LC2L6X3          X1input2 = 1LC2L6X4
 X2input1 = 2LC2L6X3          X2input2 = 2LC2L6X4
@@ -3193,8 +2889,6 @@ Switch( LC2L6B34 )
 **********************************************
 Board  nn     Board num  LIntC2-Up     CRATE  2 L    Slot = 16
 
-DetElemId 0000
-
 X1input1 = NONE                 X1input2 = NONE
 X2input1 = NONE                 X2input2 = NONE
 X3input1 = 3LC2L6X5 (2)         X3input2 = 3LC2L6X6 (2)
@@ -3213,8 +2907,6 @@ Switch( LIntC2-Up )
     
 *********************************************
 Board nn     Board num  LIntC2-Dw     CRATE  2-3 L    Slot = 1
-
-DetElemId 0000
 
 X1input1 = NONE                 X1input2 = NONE
 X2input1 = NONE                 X2input2 = NONE
@@ -3235,8 +2927,6 @@ Switch( LIntC2-Dw )
 *********************************************
 Board  149     Board num  LC2L6B56     CRATE  2-3 L    Slot = 2
 
-DetElemId  1108  1208  1308  1408 
-
 X1input1 = 1LC2L6X5              X1input2 = 1LC2L6X6
 X2input1 = 2LC2L6X5              X2input2 = 2LC2L6X6
 X3input1 = 3LC2L6X5 (1)          X3input2 = 3LC2L6X6 (1)
@@ -3255,8 +2945,6 @@ Switch( LC2L6B56 )
 
 **********************************************
 Board  150     Board num  LC2L6B78     CRATE  2-3 L    Slot = 3
-
-DetElemId  1108  1208  1308  1408 
 
 X1input1 = 1LC2L6X7         X1input2 = 1LC2L6X8
 X2input1 = 2LC2L6X7         X2input2 = 2LC2L6X8
@@ -3277,8 +2965,6 @@ Switch( LC2L6B78 )
 **********************************************
 Board  151     Board num  LC2L7B12     CRATE  2-3 L    Slot = 4
 
-DetElemId  1107  1207  1307  1407 
-
 X1input1 = 1LC2L7X1         X1input2 = 1LC2L7X2
 X2input1 = 2LC2L7X1         X2input2 = 2LC2L7X2
 X3input1 = 3LC2L7X1         X3input2 = 3LC2L7X2
@@ -3297,8 +2983,6 @@ Switch( LC2L7B12 )
 
 **********************************************
 Board  152     Board num  LC2L7B34     CRATE  2-3 L    Slot = 5
-
-DetElemId  1107  1207  1307  1407 
 
 X1input1 = 1LC2L7X3         X1input2 = 1LC2L7X4
 X2input1 = 2LC2L7X3         X2input2 = 2LC2L7X4
@@ -3319,8 +3003,6 @@ Switch( LC2L7B34 )
 **********************************************
 Board  153     Board num  LC2L8B12     CRATE  2-3 L    Slot = 6
 
-DetElemId  1106  1206  1306  1406 
-
 X1input1 = 1LC2L8X1         X1input2 = 1LC2L8X2
 X2input1 = 2LC2L8X1         X2input2 = 2LC2L8X2
 X3input1 = 3LC2L8X1         X3input2 = 3LC2L8X2
@@ -3339,8 +3021,6 @@ Switch( LC2L8B12 )
 
 **********************************************
 Board  154     Board num  LC2L8B34     CRATE  2-3 L    Slot = 7
-
-DetElemId  1106  1206  1306  1406 
 
 X1input1 = 1LC2L8X3         X1input2 = 1LC2L8X4
 X2input1 = 2LC2L8X3         X2input2 = 2LC2L8X4
@@ -3361,8 +3041,6 @@ Switch( LC2L8B34 )
 **********************************************
 Board  155     Board num  LC2L9B12     CRATE  2-3 L    Slot = 8
 
-DetElemId  1105  1205  1305  1405 
-
 X1input1 = 1LC2L9X1         X1input2 = 1LC2L9X2
 X2input1 = 2LC2L9X1         X2input2 = 2LC2L9X2
 X3input1 = 3LC2L9X1         X3input2 = 3LC2L9X2
@@ -3381,8 +3059,6 @@ Switch( LC2L9B12 )
     
 *********************************************
 Board nn     Board num  LintC3-Dw     CRATE  2-3 L    Slot = 9
-
-DetElemId 0000
 
 X1input1 = NONE                 X1input2 = NONE
 X2input1 = NONE                 X2input2 = NONE
@@ -3403,8 +3079,6 @@ Switch( LIntC3-Dw )
 *********************************************
 Board   171     Board num  LC3L6B56     CRATE  2-3 L    Slot = 10
 
-DetElemId  1108  1208  1308  1408 
-
 X1input1 = 1LC3L6X5              X1input2 = 1LC3L6X6
 X2input1 = 2LC3L6X5              X2input2 = 2LC3L6X6
 X3input1 = 3LC3L6X5 (1)          X3input2 = 3LC3L6X6 (1)
@@ -3423,8 +3097,6 @@ Switch( LC3L6B56 )
 
 **********************************************
 Board   172     Board num  LC3L6B78     CRATE  2-3 L    Slot = 11
-
-DetElemId  1108  1208  1308  1408 
 
 X1input1 = 1LC3L6X7         X1input2 = 1LC3L6X8
 X2input1 = 2LC3L6X7         X2input2 = 2LC3L6X8
@@ -3445,8 +3117,6 @@ Switch( LC3L6B78 )
 **********************************************
 Board   173     Board num  LC3L7B12     CRATE  2-3 L    Slot = 12
 
-DetElemId  1107  1207  1307  1407 
-
 X1input1 = 1LC3L7X1         X1input2 = 1LC3L7X2
 X2input1 = 2LC3L7X1         X2input2 = 2LC3L7X2
 X3input1 = 3LC3L7X1         X3input2 = 3LC3L7X2
@@ -3465,8 +3135,6 @@ Switch( LC3L7B12 )
 
 **********************************************
 Board   174     Board num  LC3L7B34     CRATE  2-3 L    Slot = 13
-
-DetElemId  1107  1207  1307  1407 
 
 X1input1 = 1LC3L7X3         X1input2 = 1LC3L7X4
 X2input1 = 2LC3L7X3         X2input2 = 2LC3L7X4
@@ -3487,8 +3155,6 @@ Switch( LC3L7B34 )
 **********************************************
 Board   175     Board num  LC3L8B12     CRATE  2-3 L    Slot = 14
 
-DetElemId  1106  1206  1306  1406 
-
 X1input1 = 1LC3L8X1         X1input2 = 1LC3L8X2
 X2input1 = 2LC3L8X1         X2input2 = 2LC3L8X2
 X3input1 = 3LC3L8X1         X3input2 = 3LC3L8X2
@@ -3507,8 +3173,6 @@ Switch( LC3L8B12 )
 
 **********************************************
 Board   176     Board num  LC3L8B34     CRATE  2-3 L    Slot = 15
-
-DetElemId  1106  1206  1306  1406 
 
 X1input1 = 1LC3L8X3         X1input2 = 1LC3L8X4
 X2input1 = 2LC3L8X3         X2input2 = 2LC3L8X4
@@ -3529,8 +3193,6 @@ Switch( LC3L8B34 )
 **********************************************
 Board   177     Board num  LC3L9B12     CRATE  2-3 L    Slot = 16
 
-DetElemId  1105  1205  1305  1405 
-
 X1input1 = 1LC3L9X1         X1input2 = 1LC3L9X2
 X2input1 = 2LC3L9X1         X2input2 = 2LC3L9X2
 X3input1 = 3LC3L9X1         X3input2 = 3LC3L9X2
@@ -3549,8 +3211,6 @@ Switch( LC3L9B12 )
 
 *********************************************
 Board  156     Board num  LC3L1B12     CRATE  3 L    Slot = 1
-
-DetElemId  1113  1213  1313  1413 
     
 X1input1 = 1LC3L1X1         X1input2 = 1LC3L1X2
 X2input1 = 2LC3L1X1         X2input2 = 2LC3L1X2
@@ -3571,8 +3231,6 @@ Switch( LC3L1B12 )
 *********************************************
 Board  157     Board num  LC3L2B12     CRATE  3 L    Slot = 2
 
-DetElemId  1112  1212  1312  1412 
-
 X1input1 = 1LC3L2X1         X1input2 = 1LC3L2X2
 X2input1 = 2LC3L2X1         X2input2 = 2LC3L2X2
 X3input1 = 3LC3L2X1         X3input2 = 3LC3L2X2
@@ -3591,8 +3249,6 @@ Switch( LC3L2B12 )
 
 *********************************************
 Board  158     Board num  LC3L2B34     CRATE  3 L    Slot = 3
-
-DetElemId  1112  1212  1312  1412 
 
 X1input1 = 1LC3L2X3         X1input2 = 1LC3L2X4
 X2input1 = 2LC3L2X3         X2input2 = 2LC3L2X4
@@ -3613,8 +3269,6 @@ Switch( LC3L2B34 )
 *********************************************
 Board  159     Board num  LC3L3B12     CRATE  3 L    Slot = 4
 
-DetElemId  1111  1211  1311  1411 
-
 X1input1 = 1LC3L3X1         X1input2 = 1LC3L3X2
 X2input1 = 2LC3L3X1         X2input2 = 2LC3L3X2
 X3input1 = 3LC3L3X1         X3input2 = 3LC3L3X2
@@ -3633,8 +3287,6 @@ Switch( LC3L3B12 )
 
 *********************************************
 Board  160     Board num  LC3L3B34     CRATE  3 L    Slot = 5
-
-DetElemId  1111  1211  1311  1411 
 
 X1input1 = 1LC3L3X3         X1input2 = 1LC3L3X4
 X2input1 = 2LC3L3X3         X2input2 = 2LC3L3X4
@@ -3655,8 +3307,6 @@ Switch( LC3L3B34 )
 *********************************************
 Board  161     Board num  LC3L4B12     CRATE  3 L    Slot = 6
 
-DetElemId  1110  1210  1310  1410 
-
 X1input1 = 1LC3L4X1         X1input2 = 1LC3L4X2
 X2input1 = 2LC3L4X1         X2input2 = 2LC3L4X2
 X3input1 = 3LC3L4X1         X3input2 = 3LC3L4X2
@@ -3675,8 +3325,6 @@ Switch( LC3L4B12 )
 
 *********************************************
 Board  162     Board num  LC3L4B34     CRATE  3 L    Slot = 7
-
-DetElemId  1110  1210  1310  1410 
 
 X1input1 = 1LC3L4X3         X1input2 = 1LC3L4X4
 X2input1 = 2LC3L4X3         X2input2 = 2LC3L4X4
@@ -3697,8 +3345,6 @@ Switch( LC3L4B34 )
 *********************************************
 Board  163     Board num  LC3L4B56     CRATE  3 L    Slot = 8
 
-DetElemId  1110  1210  1310  1410 
-
 X1input1 = 1LC3L4X5         X1input2 = 1LC3L4X6
 X2input1 = 2LC3L4X5         X2input2 = 2LC3L4X6
 X3input1 = 3LC3L4X5         X3input2 = 3LC3L4X6
@@ -3717,8 +3363,6 @@ Switch( LC3L4B56 )
 
 ******************************************
 Board  164     Board num  LC3L4B78     CRATE  3 L    Slot = 9
-
-DetElemId  1110  1210  1310  1410 
 
 X1input1 = 1LC3L4X7         X1input2 = 1LC3L4X8
 X2input1 = 2LC3L4X7         X2input2 = 2LC3L4X8
@@ -3739,8 +3383,6 @@ Switch( LC3L4B78 )
 *********************************************
 Board  165     Board num  LC3L5B12     CRATE  3 L    Slot = 10
 
-DetElemId  1109  1209  1309  1409 
-
 X1input1 = 1LC3L5X1         X1input2 = 1LC3L5X2
 X2input1 = 2LC3L5X1         X2input2 = 2LC3L5X2
 X3input1 = 3LC3L5X1         X3input2 = 3LC3L5X2
@@ -3759,8 +3401,6 @@ Switch( LC3L5B12 )
 
 **********************************************
 Board  166     Board num  LC3L5B34     CRATE  3 L    Slot = 11
-
-DetElemId  1109  1209  1309  1409 
 
 X1input1 = 1LC3L5X3         X1input2 = 1LC3L5X4
 X2input1 = 2LC3L5X3         X2input2 = 2LC3L5X4
@@ -3781,8 +3421,6 @@ Switch( LC3L5B34 )
 **********************************************
 Board  167     Board num  LC3L5B56     CRATE  3 L    Slot = 12
 
-DetElemId  1109  1209  1309  1409 
-
 X1input1 = 1LC3L5X5         X1input2 = 1LC3L5X6
 X2input1 = 2LC3L5X5         X2input2 = 2LC3L5X6
 X3input1 = 3LC3L5X5         X3input2 = 3LC3L5X6
@@ -3801,8 +3439,6 @@ Switch( LC3L5B56 )
 
 **********************************************
 Board  168     Board num  LC3L5B78     CRATE  3 L    Slot = 13
-
-DetElemId  1109  1209  1309  1409 
 
 X1input1 = 1LC3L5X7         X1input2 = 1LC3L5X8
 X2input1 = 2LC3L5X7         X2input2 = 2LC3L5X8
@@ -3823,8 +3459,6 @@ Switch( LC3L5B78 )
 **********************************************
 Board  169     Board num  LC3L6B12     CRATE  3 L    Slot = 14
 
-DetElemId  1108  1208  1308  1408 
-
 X1input1 = 1LC3L6X1         X1input2 = 1LC3L6X2
 X2input1 = 2LC3L6X1         X2input2 = 2LC3L6X2
 X3input1 = 3LC3L6X1         X3input2 = 3LC3L6X2
@@ -3843,8 +3477,6 @@ Switch( LC3L6B12 )
 
 **********************************************
 Board  170     Board num  LC3L6B34     CRATE  3 L    Slot = 15
-
-DetElemId  1108  1208  1308  1408 
 
 X1input1 = 1LC3L6X3              X1input2 = 1LC3L6X4
 X2input1 = 2LC3L6X3              X2input2 = 2LC3L6X4
@@ -3865,8 +3497,6 @@ Switch( LC3L6B34 )
 **********************************************
 Board  nn     Board num  LIntC3-Up     CRATE  3 L    Slot = 16
 
-DetElemId 0000
-
 X1input1 = NONE                 X1input2 = NONE
 X2input1 = NONE                 X2input2 = NONE
 X3input1 = 3LC3L6X5 (2)         X3input2 = 3LC3L6X6 (2)
@@ -3885,8 +3515,6 @@ Switch( LIntC3-Up )
 
 *********************************************
 Board  178     Board num  LC4L1B12     CRATE  4 L    Slot = 1
-
-DetElemId  1113  1213  1313  1413 
     
 X1input1 = 1LC4L1X1         X1input2 = 1LC4L1X2
 X2input1 = 2LC4L1X1         X2input2 = 2LC4L1X2
@@ -3907,8 +3535,6 @@ Switch( LC4L1B12 )
 *********************************************
 Board  179     Board num  LC4L2B12     CRATE  4 L    Slot = 2
 
-DetElemId  1112  1212  1312  1412 
-
 X1input1 = 1LC4L2X1         X1input2 = 1LC4L2X2
 X2input1 = 2LC4L2X1         X2input2 = 2LC4L2X2
 X3input1 = 3LC4L2X1         X3input2 = 3LC4L2X2
@@ -3927,8 +3553,6 @@ Switch( LC4L2B12 )
 
 *********************************************
 Board  180     Board num  LC4L2B34     CRATE  4 L    Slot = 3
-
-DetElemId  1112  1212  1312  1412 
 
 X1input1 = 1LC4L2X3         X1input2 = 1LC4L2X4
 X2input1 = 2LC4L2X3         X2input2 = 2LC4L2X4
@@ -3949,8 +3573,6 @@ Switch( LC4L2B34 )
 *********************************************
 Board  181     Board num  LC4L3B12     CRATE  4 L    Slot = 4
 
-DetElemId  1111  1211  1311  1411 
-
 X1input1 = 1LC4L3X1         X1input2 = 1LC4L3X2
 X2input1 = 2LC4L3X1         X2input2 = 2LC4L3X2
 X3input1 = 3LC4L3X1         X3input2 = 3LC4L3X2
@@ -3969,8 +3591,6 @@ Switch( LC4L3B12 )
 
 *********************************************
 Board  182     Board num  LC4L3B34     CRATE  4 L    Slot = 5
-
-DetElemId  1111  1211  1311  1411 
 
 X1input1 = 1LC4L3X3         X1input2 = 1LC4L3X4
 X2input1 = 2LC4L3X3         X2input2 = 2LC4L3X4
@@ -3992,8 +3612,6 @@ Switch( LC4L3B34 )
 *********************************************
 Board  183     Board num  LC4L4B12     CRATE  4 L    Slot = 6
 
-DetElemId  1110  1210  1310  1410 
-
 X1input1 = 1LC4L4X1         X1input2 = 1LC4L4X2
 X2input1 = 2LC4L4X1         X2input2 = 2LC4L4X2
 X3input1 = 3LC4L4X1         X3input2 = 3LC4L4X2
@@ -4012,8 +3630,6 @@ Switch( LC4L4B12 )
 
 *********************************************
 Board  184     Board num  LC4L4B34     CRATE  4 L    Slot = 7
-
-DetElemId  1110  1210  1310  1410 
 
 X1input1 = 1LC4L4X3         X1input2 = 1LC4L4X4
 X2input1 = 2LC4L4X3         X2input2 = 2LC4L4X4
@@ -4034,8 +3650,6 @@ Switch( LC4L4B34 )
 *********************************************
 Board  185     Board num  LC4L5B12     CRATE  4 L    Slot = 8
 
-DetElemId  1109  1209  1309  1409 
-
 X1input1 = 1LC4L5X1         X1input2 = 1LC4L5X2
 X2input1 = 2LC4L5X1         X2input2 = 2LC4L5X2
 X3input1 = 3LC4L5X1         X3input2 = 3LC4L5X2
@@ -4054,8 +3668,6 @@ Switch( LC4L5B12 )
 
 ******************************************
 Board  186     Board num  LC4L5B34     CRATE  4 L    Slot = 9
-
-DetElemId  1109  1209  1309  1409 
 
 X1input1 = 1LC4L5X3         X1input2 = 1LC4L5X4
 X2input1 = 2LC4L5X3         X2input2 = 2LC4L5X4
@@ -4076,8 +3688,6 @@ Switch( LC4L5B34 )
 *********************************************
 Board  187     Board num  LC4L6B12     CRATE  4 L    Slot = 10
 
-DetElemId  1108  1208  1308  1408 
-
 X1input1 = 1LC4L6X1         X1input2 = 1LC4L6X2
 X2input1 = 2LC4L6X1         X2input2 = 2LC4L6X2
 X3input1 = 3LC4L6X1         X3input2 = 3LC4L6X2
@@ -4096,8 +3706,6 @@ Switch( LC4L6B12 )
 
 **********************************************
 Board  188     Board num  LC4L6B34     CRATE  4 L    Slot = 11
-
-DetElemId  1108  1208  1308  1408 
 
 X1input1 = 1LC4L6X3         X1input2 = 1LC4L6X4
 X2input1 = 2LC4L6X3         X2input2 = 2LC4L6X4
@@ -4118,8 +3726,6 @@ Switch( LC4L6B34 )
 **********************************************
 Board  189     Board num  LC4L7B12     CRATE  4 L    Slot = 12
 
-DetElemId  1107  1207  1307  1407 
-
 X1input1 = 1LC4L7X1         X1input2 = 1LC4L7X2
 X2input1 = 2LC4L7X1         X2input2 = 2LC4L7X2
 X3input1 = 3LC4L7X1         X3input2 = 3LC4L7X2
@@ -4138,8 +3744,6 @@ Switch( LC4L7B12 )
 
 **********************************************
 Board  190     Board num  LC4L7B34     CRATE  4 L    Slot = 13
-
-DetElemId  1107  1207  1307  1407 
 
 X1input1 = 1LC4L7X3         X1input2 = 1LC4L7X4
 X2input1 = 2LC4L7X3         X2input2 = 2LC4L7X4
@@ -4160,8 +3764,6 @@ Switch( LC4L7B34 )
 **********************************************
 Board  191     Board num  LC4L8B12     CRATE  4 L    Slot = 14
 
-DetElemId  1106  1206  1306  1406 
-
 X1input1 = 1LC4L8X1         X1input2 = 1LC4L8X2
 X2input1 = 2LC4L8X1         X2input2 = 2LC4L8X2
 X3input1 = 3LC4L8X1         X3input2 = 3LC4L8X2
@@ -4180,8 +3782,6 @@ Switch( LC4L8B12 )
 
 **********************************************
 Board  192     Board num  LC4L8B34     CRATE  4 L    Slot = 15
-
-DetElemId  1106  1206  1306  1406 
 
 X1input1 = 1LC4L8X3         X1input2 = 1LC4L8X4
 X2input1 = 2LC4L8X3         X2input2 = 2LC4L8X4
@@ -4202,8 +3802,6 @@ Switch( LC4L8B34 )
 **********************************************
 Board  193     Board num  LC4L9B12     CRATE  4 L    Slot = 16
 
-DetElemId  1105  1205  1305  1405 
-
 X1input1 = 1LC4L9X1         X1input2 = 1LC4L9X2
 X2input1 = 2LC4L9X1         X2input2 = 2LC4L9X2
 X3input1 = 3LC4L9X1         X3input2 = 3LC4L9X2
@@ -4222,8 +3820,6 @@ Switch( LC4L9B12 )
 
 *********************************************
 Board  194     Board num  LC5L1B12     CRATE  5 L    Slot = 1
-
-DetElemId  1113  1213  1313  1413 
     
 X1input1 = 1LC5L1X1         X1input2 = 1LC5L1X2
 X2input1 = 2LC5L1X1         X2input2 = 2LC5L1X2
@@ -4244,8 +3840,6 @@ Switch( LC5L1B12 )
 *********************************************
 Board  195     Board num  LC5L2B12     CRATE  5 L    Slot = 2
 
-DetElemId  1112  1212  1312  1412 
-
 X1input1 = 1LC5L2X1         X1input2 = 1LC5L2X2
 X2input1 = 2LC5L2X1         X2input2 = 2LC5L2X2
 X3input1 = 3LC5L2X1         X3input2 = 3LC5L2X2
@@ -4264,8 +3858,6 @@ Switch( LC5L2B12 )
 
 *********************************************
 Board  196     Board num  LC5L2B34     CRATE  5 L    Slot = 3
-
-DetElemId  1112  1212  1312  1412 
 
 X1input1 = 1LC5L2X3         X1input2 = 1LC5L2X4
 X2input1 = 2LC5L2X3         X2input2 = 2LC5L2X4
@@ -4286,8 +3878,6 @@ Switch( LC5L2B34 )
 *********************************************
 Board  197     Board num  LC5L3B12     CRATE  5 L    Slot = 4
 
-DetElemId  1111  1211  1311  1411 
-
 X1input1 = 1LC5L3X1         X1input2 = 1LC5L3X2
 X2input1 = 2LC5L3X1         X2input2 = 2LC5L3X2
 X3input1 = 3LC5L3X1         X3input2 = 3LC5L3X2
@@ -4306,8 +3896,6 @@ Switch( LC5L3B12 )
 
 *********************************************
 Board  198     Board num  LC5L3B34     CRATE  5 L    Slot = 5
-
-DetElemId  1111  1211  1311  1411 
 
 X1input1 = 1LC5L3X3         X1input2 = 1LC5L3X4
 X2input1 = 2LC5L3X3         X2input2 = 2LC5L3X4
@@ -4328,8 +3916,6 @@ Switch( LC5L3B34 )
 *********************************************
 Board  199     Board num  LC5L4B12     CRATE  5 L    Slot = 6
 
-DetElemId  1110  1210  1310  1410 
-
 X1input1 = 1LC5L4X1         X1input2 = 1LC5L4X2
 X2input1 = 2LC5L4X1         X2input2 = 2LC5L4X2
 X3input1 = 3LC5L4X1         X3input2 = 3LC5L4X2
@@ -4348,8 +3934,6 @@ Switch( LC5L4B12 )
 
 *********************************************
 Board  200     Board num  LC5L4B34     CRATE  5 L    Slot = 7
-
-DetElemId  1110  1210  1310  1410 
 
 X1input1 = 1LC5L4X3         X1input2 = 1LC5L4X4
 X2input1 = 2LC5L4X3         X2input2 = 2LC5L4X4
@@ -4370,8 +3954,6 @@ Switch( LC5L4B34 )
 *********************************************
 Board  201     Board num  LC5L5B12     CRATE  5 L    Slot = 8
 
-DetElemId  1109  1209  1309  1409 
-
 X1input1 = 1LC5L5X1         X1input2 = 1LC5L5X2
 X2input1 = 2LC5L5X1         X2input2 = 2LC5L5X2
 X3input1 = 3LC5L5X1         X3input2 = 3LC5L5X2
@@ -4390,8 +3972,6 @@ Switch( LC5L5B12 )
 
 ******************************************
 Board  202     Board num  LC5L5B34     CRATE  5 L    Slot = 9
-
-DetElemId  1109  1209  1309  1409 
 
 X1input1 = 1LC5L5X3         X1input2 = 1LC5L5X4
 X2input1 = 2LC5L5X3         X2input2 = 2LC5L5X4
@@ -4412,8 +3992,6 @@ Switch( LC5L5B34 )
 *********************************************
 Board  203     Board num  LC5L6B12     CRATE  5 L    Slot = 10
 
-DetElemId  1108  1208  1308  1408 
-
 X1input1 = 1LC5L6X1         X1input2 = 1LC5L6X2
 X2input1 = 2LC5L6X1         X2input2 = 2LC5L6X2
 X3input1 = 3LC5L6X1         X3input2 = 3LC5L6X2
@@ -4432,8 +4010,6 @@ Switch( LC5L6B12 )
 
 **********************************************
 Board  204     Board num  LC5L6B34     CRATE  5 L    Slot = 11
-
-DetElemId  1108  1208  1308  1408 
 
 X1input1 = 1LC5L6X3         X1input2 = 1LC5L6X4
 X2input1 = 2LC5L6X3         X2input2 = 2LC5L6X4
@@ -4454,8 +4030,6 @@ Switch( LC5L6B34 )
 **********************************************
 Board  205     Board num  LC5L7B12     CRATE  5 L    Slot = 12
 
-DetElemId  1107  1207  1307  1407 
-
 X1input1 = 1LC5L7X1         X1input2 = 1LC5L7X2
 X2input1 = 2LC5L7X1         X2input2 = 2LC5L7X2
 X3input1 = 3LC5L7X1         X3input2 = 3LC5L7X2
@@ -4474,8 +4048,6 @@ Switch( LC5L7B12 )
 
 **********************************************
 Board  206     Board num  LC5L7B34     CRATE  5 L    Slot = 13
-
-DetElemId  1107  1207  1307  1407 
 
 X1input1 = 1LC5L7X3         X1input2 = 1LC5L7X4
 X2input1 = 2LC5L7X3         X2input2 = 2LC5L7X4
@@ -4496,8 +4068,6 @@ Switch( LC5L7B34 )
 **********************************************
 Board  207     Board num  LC5L8B12     CRATE  5 L    Slot = 14
 
-DetElemId  1106  1206  1306  1406 
-
 X1input1 = 1LC5L8X1         X1input2 = 1LC5L8X2
 X2input1 = 2LC5L8X1         X2input2 = 2LC5L8X2
 X3input1 = 3LC5L8X1         X3input2 = 3LC5L8X2
@@ -4516,8 +4086,6 @@ Switch( LC5L8B12 )
 
 **********************************************
 Board  208     Board num  LC5L8B34     CRATE  5 L    Slot = 15
-
-DetElemId  1106  1206  1306  1406 
 
 X1input1 = 1LC5L8X3         X1input2 = 1LC5L8X4
 X2input1 = 2LC5L8X3         X2input2 = 2LC5L8X4
@@ -4538,8 +4106,6 @@ Switch( LC5L8B34 )
 **********************************************
 Board  209     Board num  LC5L9B12     CRATE  5 L    Slot = 16
 
-DetElemId  1105  1205  1305  1405 
-
 X1input1 = 1LC5L9X1         X1input2 = 1LC5L9X2
 X2input1 = 2LC5L9X1         X2input2 = 2LC5L9X2
 X3input1 = 3LC5L9X1         X3input2 = 3LC5L9X2
@@ -4558,8 +4124,6 @@ Switch( LC5L9B12 )
 
 *********************************************
 Board  210     Board num  LC6L1B12     CRATE  6 L    Slot = 1
-
-DetElemId  1113  1213  1313  1413 
     
 X1input1 = 1LC6L1X1         X1input2 = 1LC6L1X2
 X2input1 = 2LC6L1X1         X2input2 = 2LC6L1X2
@@ -4580,8 +4144,6 @@ Switch( LC6L1B12 )
 *********************************************
 Board  211     Board num  LC6L2B12     CRATE  6 L    Slot = 2
 
-DetElemId  1112  1212  1312  1412 
-
 X1input1 = 1LC6L2X1         X1input2 = 1LC6L2X2
 X2input1 = 2LC6L2X1         X2input2 = 2LC6L2X2
 X3input1 = 3LC6L2X1         X3input2 = 3LC6L2X2
@@ -4600,8 +4162,6 @@ Switch( LC6L2B12 )
 
 *********************************************
 Board  212     Board num  LC6L2B34     CRATE  6 L    Slot = 3
-
-DetElemId  1112  1212  1312  1412 
 
 X1input1 = 1LC6L2X3         X1input2 = 1LC6L2X4
 X2input1 = 2LC6L2X3         X2input2 = 2LC6L2X4
@@ -4622,8 +4182,6 @@ Switch( LC6L2B34 )
 *********************************************
 Board  213     Board num  LC6L3B12     CRATE  6 L    Slot = 4
 
-DetElemId  1111  1211  1311  1411 
-
 X1input1 = 1LC6L3X1         X1input2 = 1LC6L3X2
 X2input1 = 2LC6L3X1         X2input2 = 2LC6L3X2
 X3input1 = 3LC6L3X1         X3input2 = 3LC6L3X2
@@ -4642,8 +4200,6 @@ Switch( LC6L3B12 )
 
 *********************************************
 Board  214     Board num  LC6L3B34     CRATE  6 L    Slot = 5
-
-DetElemId  1111  1211  1311  1411 
 
 X1input1 = 1LC6L3X3         X1input2 = 1LC6L3X4
 X2input1 = 2LC6L3X3         X2input2 = 2LC6L3X4
@@ -4664,8 +4220,6 @@ Switch( LC6L3B34 )
 *********************************************
 Board  215     Board num  LC6L4B12     CRATE  6 L    Slot = 6
 
-DetElemId  1110  1210  1310  1410 
-
 X1input1 = 1LC6L4X1         X1input2 = 1LC6L4X2
 X2input1 = 2LC6L4X1         X2input2 = 2LC6L4X2
 X3input1 = 3LC6L4X1         X3input2 = 3LC6L4X2
@@ -4684,8 +4238,6 @@ Switch( LC6L4B12 )
 
 *********************************************
 Board  216     Board num  LC6L4B34     CRATE  6 L    Slot = 7
-
-DetElemId  1110  1210  1310  1410 
 
 X1input1 = 1LC6L4X3         X1input2 = 1LC6L4X4
 X2input1 = 2LC6L4X3         X2input2 = 2LC6L4X4
@@ -4706,8 +4258,6 @@ Switch( LC6L4B34 )
 *********************************************
 Board  217     Board num  LC6L5B12     CRATE  6 L    Slot = 8
 
-DetElemId  1109  1209  1309  1409 
-
 X1input1 = 1LC6L5X1         X1input2 = 1LC6L5X2
 X2input1 = 2LC6L5X1         X2input2 = 2LC6L5X2
 X3input1 = 3LC6L5X1         X3input2 = 3LC6L5X2
@@ -4726,8 +4276,6 @@ Switch( LC6L5B12 )
 
 ******************************************
 Board  218     Board num  LC6L5B34     CRATE  6 L    Slot = 9
-
-DetElemId  1109  1209  1309  1409 
 
 X1input1 = 1LC6L5X3         X1input2 = 1LC6L5X4
 X2input1 = 2LC6L5X3         X2input2 = 2LC6L5X4
@@ -4748,8 +4296,6 @@ Switch( LC6L5B34 )
 *********************************************
 Board  219     Board num  LC6L6B12     CRATE  6 L    Slot = 10
 
-DetElemId  1108  1208  1308  1408 
-
 X1input1 = 1LC6L6X1         X1input2 = 1LC6L6X2
 X2input1 = 2LC6L6X1         X2input2 = 2LC6L6X2
 X3input1 = 3LC6L6X1         X3input2 = 3LC6L6X2
@@ -4768,8 +4314,6 @@ Switch( LC6L6B12 )
 
 **********************************************
 Board  220     Board num  LC6L6B34     CRATE  6 L    Slot = 11
-
-DetElemId  1108  1208  1308  1408 
 
 X1input1 = 1LC6L6X3         X1input2 = 1LC6L6X4
 X2input1 = 2LC6L6X3         X2input2 = 2LC6L6X4
@@ -4790,8 +4334,6 @@ Switch( LC6L6B34 )
 **********************************************
 Board  221     Board num  LC6L7B12     CRATE  6 L    Slot = 12
 
-DetElemId  1107  1207  1307  1407 
-
 X1input1 = 1LC6L7X1         X1input2 = 1LC6L7X2
 X2input1 = 2LC6L7X1         X2input2 = 2LC6L7X2
 X3input1 = 3LC6L7X1         X3input2 = 3LC6L7X2
@@ -4810,8 +4352,6 @@ Switch( LC6L7B12 )
 
 **********************************************
 Board  222     Board num  LC6L7B34     CRATE  6 L    Slot = 13
-
-DetElemId  1107  1207  1307  1407 
 
 X1input1 = 1LC6L7X3         X1input2 = 1LC6L7X4
 X2input1 = 2LC6L7X3         X2input2 = 2LC6L7X4
@@ -4832,8 +4372,6 @@ Switch( LC6L7B34 )
 **********************************************
 Board  223     Board num  LC6L8B12     CRATE  6 L    Slot = 14
 
-DetElemId  1106  1206  1306  1406 
-
 X1input1 = 1LC6L8X1         X1input2 = 1LC6L8X2
 X2input1 = 2LC6L8X1         X2input2 = 2LC6L8X2
 X3input1 = 3LC6L8X1         X3input2 = 3LC6L8X2
@@ -4852,8 +4390,6 @@ Switch( LC6L8B12 )
 
 **********************************************
 Board  224     Board num  LC6L8B34     CRATE  6 L    Slot = 15
-
-DetElemId  1106  1206  1306  1406 
 
 X1input1 = 1LC6L8X3         X1input2 = 1LC6L8X4
 X2input1 = 2LC6L8X3         X2input2 = 2LC6L8X4
@@ -4874,8 +4410,6 @@ Switch( LC6L8B34 )
 **********************************************
 Board  225     Board num  LC6L9B12     CRATE  6 L    Slot = 16
 
-DetElemId  1105  1205  1305  1405 
-
 X1input1 = 1LC6L9X1         X1input2 = 1LC6L9X2
 X2input1 = 2LC6L9X1         X2input2 = 2LC6L9X2
 X3input1 = 3LC6L9X1         X3input2 = 3LC6L9X2
@@ -4894,8 +4428,6 @@ Switch( LC6L9B12 )
 
 *********************************************
 Board  226     Board num  LC7L1B12     CRATE  7 L    Slot = 1
-
-DetElemId  1113  1213  1313  1413 
     
 X1input1 = 1LC7L1X1         X1input2 = 1LC7L1X2
 X2input1 = 2LC7L1X1         X2input2 = 2LC7L1X2
@@ -4916,8 +4448,6 @@ Switch( LC7L1B12 )
 *********************************************
 Board  227     Board num  LC7L2B12     CRATE  7 L    Slot = 2
 
-DetElemId  1112  1212  1312  1412 
-
 X1input1 = 1LC7L2X1         X1input2 = 1LC7L2X2
 X2input1 = 2LC7L2X1         X2input2 = 2LC7L2X2
 X3input1 = 3LC7L2X1         X3input2 = 3LC7L2X2
@@ -4936,8 +4466,6 @@ Switch( LC7L2B12 )
 
 *********************************************
 Board  228     Board num  LC7L3B12     CRATE  7 L    Slot = 3
-
-DetElemId  1111  1211  1311  1411 
 
 X1input1 = 1LC7L3X1         X1input2 = 1LC7L3X2
 X2input1 = 2LC7L3X1         X2input2 = 2LC7L3X2
@@ -4958,8 +4486,6 @@ Switch( LC7L3B12 )
 *********************************************
 Board  229     Board num  LC7L4B12     CRATE  7 L    Slot = 4
 
-DetElemId  1110  1210  1310  1410 
-
 X1input1 = 1LC7L4X1         X1input2 = 1LC7L4X2
 X2input1 = 2LC7L4X1         X2input2 = 2LC7L4X2
 X3input1 = 3LC7L4X1         X3input2 = 3LC7L4X2
@@ -4978,8 +4504,6 @@ Switch( LC7L4B12 )
 
 *********************************************
 Board  230     Board num  LC7L5B12     CRATE  7 L    Slot = 5
-
-DetElemId  1109  1209  1309  1409 
 
 X1input1 = 1LC7L5X1         X1input2 = 1LC7L5X2
 X2input1 = 2LC7L5X1         X2input2 = 2LC7L5X2
@@ -5000,8 +4524,6 @@ Switch( LC7L5B12 )
 *********************************************
 Board  231     Board num  LC7L6B12     CRATE  7 L    Slot = 6
 
-DetElemId  1108  1208  1308  1408 
-
 X1input1 = 1LC7L6X1         X1input2 = 1LC7L6X2
 X2input1 = 2LC7L6X1         X2input2 = 2LC7L6X2
 X3input1 = 3LC7L6X1         X3input2 = 3LC7L6X2
@@ -5020,8 +4542,6 @@ Switch( LC7L6B12 )
 
 *********************************************
 Board  232     Board num  LC7L7B12     CRATE  7 L    Slot = 7
-
-DetElemId  1107  1207  1307  1407 
 
 X1input1 = 1LC7L7X1         X1input2 = 1LC7L7X2
 X2input1 = 2LC7L7X1         X2input2 = 2LC7L7X2
@@ -5042,8 +4562,6 @@ Switch( LC7L7B12 )
 *********************************************
 Board  233     Board num  LC7L8B12     CRATE  7 L    Slot = 8
 
-DetElemId  1106  1206  1306  1406 
-
 X1input1 = 1LC7L8X1         X1input2 = 1LC7L8X2
 X2input1 = 2LC7L8X1         X2input2 = 2LC7L8X2
 X3input1 = 3LC7L8X1         X3input2 = 3LC7L8X2
@@ -5062,8 +4580,6 @@ Switch( LC7L8B12 )
 
 ******************************************
 Board  234     Board num  LC7L9B12     CRATE  7 L    Slot = 9
-
-DetElemId  1105  1205  1305  1405 
 
 X1input1 = 1LC7L9X1         X1input2 = 1LC7L9X2
 X2input1 = 2LC7L9X1         X2input2 = 2LC7L9X2

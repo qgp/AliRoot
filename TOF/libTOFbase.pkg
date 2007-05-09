@@ -2,14 +2,12 @@
 # $Id$
 
 SRCS  = AliTOFGeometry.cxx  \
+	AliTOFGeometryV4.cxx  \
 	AliTOFGeometryV5.cxx  \
         AliTOFdigit.cxx  \
         AliTOFRawMap.cxx\
         AliTOFrawData.cxx\
         AliTOFRawStream.cxx\
-        AliTOFHitData.cxx\
-        AliTOFHitDataBuffer.cxx\
-        AliTOFDecoder.cxx\
 	AliTOFChannel.cxx  \
 	AliTOFChannelOnline.cxx  \
 	AliTOFChSim.cxx  \

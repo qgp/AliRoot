@@ -1,4 +1,3 @@
-//-*- Mode: C++ -*-
 // $Id$
 
 #ifndef ALIHLTCONFIGURATIONHANDLER_H
@@ -11,12 +10,6 @@
     @date   
     @brief  Global handling of HLT configurations.
 */
-
-// see below for class documentation
-// or
-// refer to README to build package
-// or
-// visit http://web.ift.uib.no/~kjeks/doc/alice-hlt   
 
 #include <TList.h>
 

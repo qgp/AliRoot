@@ -9,8 +9,8 @@
 #pragma link off all functions;
  
 #pragma link C++ class  AliTOF+;
-#pragma link C++ class  AliTOFv6T0+;
 #pragma link C++ class  AliTOFv5T0+;
+#pragma link C++ class  AliTOFv4T0+;
 #pragma link C++ class  AliTOFhit+;
 #pragma link C++ class  AliTOFhitT0+;
 

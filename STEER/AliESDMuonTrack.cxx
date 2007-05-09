@@ -49,9 +49,8 @@ AliESDMuonTrack::AliESDMuonTrack ():
   fNonBendingCoorUncorrected(0),
   fChi2(0),
   fNHit(0),
-  fMatchTrigger(-1),
-  fChi2MatchTrigger(0),
-  fHitsPatternInTrigCh(0)
+  fMatchTrigger(0),
+  fChi2MatchTrigger(0)
 {
   // Default constructor
 }
@@ -75,8 +74,7 @@ AliESDMuonTrack::AliESDMuonTrack (const AliESDMuonTrack& MUONTrack):
   fChi2(MUONTrack.fChi2),
   fNHit(MUONTrack.fNHit),
   fMatchTrigger(MUONTrack.fMatchTrigger),
-  fChi2MatchTrigger(MUONTrack.fChi2MatchTrigger),
-  fHitsPatternInTrigCh(MUONTrack.fHitsPatternInTrigCh)
+  fChi2MatchTrigger(MUONTrack.fChi2MatchTrigger)
 {
   //
   // Copy constructor
@@ -112,8 +110,6 @@ AliESDMuonTrack& AliESDMuonTrack::operator=(const AliESDMuonTrack& MUONTrack)
 
   fMatchTrigger           = MUONTrack.fMatchTrigger;  
   fChi2MatchTrigger       = MUONTrack.fChi2MatchTrigger; 
-
-  fHitsPatternInTrigCh    = MUONTrack.fHitsPatternInTrigCh;
  
   return *this;
 }

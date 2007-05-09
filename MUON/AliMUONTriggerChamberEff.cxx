@@ -29,7 +29,7 @@
 #include "AliMUONGeometryTransformer.h"
 #include "AliMUONSegmentation.h"
 #include "AliMUON.h"
-#include "AliMUONRecData.h"
+#include "AliMUONData.h"
 #include "AliMUONTriggerTrack.h"
 
 #include "AliMpVSegmentation.h"
@@ -126,7 +126,7 @@ void AliMUONTriggerChamberEff::SetGaliceFile(const char *galiceFile)
 	AliLoader* loader = fRunLoader->GetLoader("MUONLoader");
 	if ( loader )
 	{
-	    fData = new AliMUONRecData(loader,"MUON","MUON");
+	    fData = new AliMUONData(loader,"MUON","MUON");
 	    loader->LoadTracks("READ");
 	    loader->LoadDigits("READ");
 	}

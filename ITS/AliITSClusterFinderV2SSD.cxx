@@ -28,7 +28,6 @@
 #include "AliITSRawStreamSSD.h"
 #include <TClonesArray.h>
 #include "AliITSdigitSSD.h"
-#include "AliITSCalibrationSSD.h"
 
 ClassImp(AliITSClusterFinderV2SSD)
 
@@ -58,23 +57,13 @@ void AliITSClusterFinderV2SSD::FindClustersSSD(TClonesArray *alldigits) {
   //------------------------------------------------------------
   // Actual SSD cluster finder
   //------------------------------------------------------------
-  AliITSCalibrationSSD* cal = (AliITSCalibrationSSD*)GetResp(fModule);
-  Float_t gain=0;
-
   Int_t smaxall=alldigits->GetEntriesFast();
   if (smaxall==0) return;
   TObjArray *digits = new TObjArray;
   for (Int_t i=0;i<smaxall; i++){
     AliITSdigitSSD *d=(AliITSdigitSSD*)alldigits->UncheckedAt(i);
-
-    if(d->IsSideP()) gain = cal->GetGainP(d->GetStripNumber());  
-    else gain = cal->GetGainN(d->GetStripNumber());
-
-    Float_t q=gain*d->GetSignal(); // calibration brings mip peaks around 120 (in ADC units)
-    q=cal->ADCToKeV(q); // converts the charge in KeV from ADC units
-    //Float_t q=d->GetSignal()/4.29;// temp. fix (for PID purposed - normalis. to be checked)
+    Float_t q=d->GetSignal()/4.29;// temp. fix (for PID purposed - normalis. to be checked)
     d->SetSignal(Int_t(q));
-
     if (d->GetSignal()<3) continue;
     digits->AddLast(d);
   }
@@ -218,7 +207,7 @@ void AliITSClusterFinderV2SSD::RawdataToClusters(AliRawReader* rawReader,TClones
   
 }
 
-void AliITSClusterFinderV2SSD::FindClustersSSD(AliITSRawStreamSSD* input, 
+void AliITSClusterFinderV2SSD::FindClustersSSD(AliITSRawStream* input, 
 					TClonesArray** clusters) 
 {
   //------------------------------------------------------------
@@ -235,15 +224,12 @@ void AliITSClusterFinderV2SSD::FindClustersSSD(AliITSRawStreamSSD* input,
   Int_t prevStrip = -1;
   Int_t prevFlag = -1;
   Int_t prevModule = -1;
-  Float_t gain=0;
-  AliITSCalibrationSSD* cal=NULL;
-  
 
   // read raw data input stream
   while (kTRUE) {
     Bool_t next = input->Next();
 
-    if(input->GetSignal()<(3*4.) && next) continue;
+    if(input->GetSignal()<(3*4.29) && next) continue;
     // check if a new cluster starts
     Int_t strip = input->GetCoord2();
     Int_t flag = input->GetCoord1();
@@ -295,17 +281,11 @@ void AliITSClusterFinderV2SSD::FindClustersSSD(AliITSRawStreamSSD* input,
       nClusters[0] = nClusters[1] = 0;
       y = q = 0.;
       nDigits = 0;
-
-      cal = (AliITSCalibrationSSD*)GetResp(input->GetModuleID());
-
     }
 
-    if(input->GetSideFlag()==0) gain = cal->GetGainP(input->GetStrip());  
-    else gain = cal->GetGainN(input->GetStrip());
-    
     // add digit to current cluster
-    q += cal->ADCToKeV( gain * input->GetSignal() );  // signal is corrected for gain and converted in KeV 
-    y += strip * cal->ADCToKeV( gain * input->GetSignal() );
+    q += input->GetSignal()/4.29;
+    y += strip * input->GetSignal()/4.29;
     nDigits++;
     prevStrip = strip;
     prevFlag = flag;
@@ -323,9 +303,6 @@ FindClustersSSD(Ali1Dcluster* neg, Int_t nn,
   //------------------------------------------------------------
   // Actual SSD cluster finder
   //------------------------------------------------------------
-
-  const TGeoHMatrix *mT2L=AliITSgeomTGeo::GetTracking2LocalMatrix(fModule);
-
   TClonesArray &cl=*clusters;
   //
   Float_t tanp=fTanP, tann=fTanN;
@@ -417,12 +394,8 @@ FindClustersSSD(Ali1Dcluster* neg, Int_t nn,
       zt-=fHlSSD; yt-=fHwSSD;
       ybest=yt; zbest=zt; 
       qbest=0.5*(pos[ip].GetQ()+neg[j].GetQ());
-      {
-      Double_t loc[3]={ybest,0.,zbest},trk[3]={0.,0.,0.};
-      mT2L->MasterToLocal(loc,trk);
-      lp[0]=trk[1];
-      lp[1]=trk[2];
-      }
+      lp[0]=-(-ybest+fYshift[fModule]);
+      lp[1]=  -zbest+fZshift[fModule];
       lp[2]=0.0025*0.0025;  //SigmaY2
       lp[3]=0.110*0.110;  //SigmaZ2
       
@@ -488,12 +461,8 @@ FindClustersSSD(Ali1Dcluster* neg, Int_t nn,
 	  zt-=fHlSSD; yt-=fHwSSD;
 	  ybest =yt;  zbest=zt; 
 	  qbest =pos[ip].GetQ();
-          {
-          Double_t loc[3]={ybest,0.,zbest},trk[3]={0.,0.,0.};
-          mT2L->MasterToLocal(loc,trk);
-          lp[0]=trk[1];
-          lp[1]=trk[2];
-          }
+	  lp[0]=-(-ybest+fYshift[fModule]);
+	  lp[1]=  -zbest+fZshift[fModule];
 	  lp[2]=0.0025*0.0025;  //SigmaY2
 	  lp[3]=0.110*0.110;  //SigmaZ2
 	  
@@ -547,12 +516,8 @@ FindClustersSSD(Ali1Dcluster* neg, Int_t nn,
 	  zt-=fHlSSD; yt-=fHwSSD;
 	  ybest =yt;  zbest=zt; 
 	  qbest =pos[ip2].GetQ();
-          {
-          Double_t loc[3]={ybest,0.,zbest},trk[3]={0.,0.,0.};
-          mT2L->MasterToLocal(loc,trk);
-          lp[0]=trk[1];
-          lp[1]=trk[2];
-          }
+	  lp[0]=-(-ybest+fYshift[fModule]);
+	  lp[1]=  -zbest+fZshift[fModule];
 	  lp[2]=0.0025*0.0025;  //SigmaY2
 	  lp[3]=0.110*0.110;  //SigmaZ2
 	  
@@ -623,12 +588,8 @@ FindClustersSSD(Ali1Dcluster* neg, Int_t nn,
 	  zt-=fHlSSD; yt-=fHwSSD;
 	  ybest =yt;  zbest=zt; 
 	  qbest =neg[jn].GetQ();
-          {
-          Double_t loc[3]={ybest,0.,zbest},trk[3]={0.,0.,0.};
-          mT2L->MasterToLocal(loc,trk);
-          lp[0]=trk[1];
-          lp[1]=trk[2];
-          }
+	  lp[0]=-(-ybest+fYshift[fModule]);
+	  lp[1]=  -zbest+fZshift[fModule];
 	  lp[2]=0.0025*0.0025;  //SigmaY2
 	  lp[3]=0.110*0.110;  //SigmaZ2
 	  
@@ -681,12 +642,8 @@ FindClustersSSD(Ali1Dcluster* neg, Int_t nn,
 	  zt-=fHlSSD; yt-=fHwSSD;
 	  ybest =yt;  zbest=zt; 
 	  qbest =neg[jn2].GetQ();
-          {
-          Double_t loc[3]={ybest,0.,zbest},trk[3]={0.,0.,0.};
-          mT2L->MasterToLocal(loc,trk);
-          lp[0]=trk[1];
-          lp[1]=trk[2];
-          }
+	  lp[0]=-(-ybest+fYshift[fModule]);
+	  lp[1]=  -zbest+fZshift[fModule];
 	  lp[2]=0.0025*0.0025;  //SigmaY2
 	  lp[3]=0.110*0.110;  //SigmaZ2
 	  
@@ -787,12 +744,8 @@ FindClustersSSD(Ali1Dcluster* neg, Int_t nn,
       zt-=fHlSSD; yt-=fHwSSD;
       ybest=yt; zbest=zt; 
       qbest=0.5*(pos[ip].GetQ()+neg[j].GetQ());
-      {
-      Double_t loc[3]={ybest,0.,zbest},trk[3]={0.,0.,0.};
-      mT2L->MasterToLocal(loc,trk);
-      lp[0]=trk[1];
-      lp[1]=trk[2];
-      }
+      lp[0]=-(-ybest+fYshift[fModule]);
+      lp[1]=  -zbest+fZshift[fModule];
       lp[2]=0.0025*0.0025;  //SigmaY2
       lp[3]=0.110*0.110;  //SigmaZ2	
       lp[4]=qbest;        //Q
@@ -858,12 +811,8 @@ FindClustersSSD(Ali1Dcluster* neg, Int_t nn,
       if (TMath::Abs(zt)<fHlSSD+0.01*(neg[j].GetNd()+pos[i].GetNd())) {
         ybest=yt; zbest=zt; 
         qbest=0.5*(pos[i].GetQ()+neg[j].GetQ());
-        {
-        Double_t loc[3]={ybest,0.,zbest},trk[3]={0.,0.,0.};
-        mT2L->MasterToLocal(loc,trk);
-        lp[0]=trk[1];
-        lp[1]=trk[2];
-        }
+        lp[0]=-(-ybest+fYshift[fModule]);
+        lp[1]=  -zbest+fZshift[fModule];
         lp[2]=0.0025*0.0025;  //SigmaY2
         lp[3]=0.110*0.110;  //SigmaZ2
 

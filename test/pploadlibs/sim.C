@@ -1,5 +1,5 @@
 void sim(Int_t nev=4) {
-  gSystem->Load("libProof");
+  gSystem->Load("libTree");
   if (!strcmp(gSystem->GetBuildArch(),"macosx")) gSystem->Load("libf95");
   gROOT->Macro("loadlibssim.C");
   new AliRun("gAlice","The ALICE Off-line Simulation Framework");

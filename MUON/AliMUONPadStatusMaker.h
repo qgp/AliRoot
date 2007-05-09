@@ -6,7 +6,7 @@
 
 // $Id$
 
-/// \ingroup rec
+/// \ingroup reco
 /// \class AliMUONPadStatusMaker
 /// \brief Make a 2DStore of pad statuses, using different sources of information
 /// 

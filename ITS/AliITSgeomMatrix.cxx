@@ -47,7 +47,7 @@ $Id$
 ClassImp(AliITSgeomMatrix)
 //----------------------------------------------------------------------
 AliITSgeomMatrix::AliITSgeomMatrix():
-TObject(),         // Base Class.
+TObject(),
 fDetectorIndex(0), // Detector type index (like fShapeIndex was)
 fid(),       // layer, ladder, detector numbers.
 frot(),      //! vector of rotations about x,y,z [radians].
@@ -84,21 +84,17 @@ fPath(){     // Path in geometry to this module
 	fid[i] = 0;
 	frot[i] = ftran[i] = 0.0;
 	for(j=0;j<3;j++) fm[i][j] = 0.0;
+	fCylR = fCylPhi = 0.0;
     }// end for i
     fm[0][0] = fm[1][1] = fm[2][2] = 1.0;
 }
 
 //----------------------------------------------------------------------
 AliITSgeomMatrix::AliITSgeomMatrix(const AliITSgeomMatrix &source) : 
-TObject(source),         // Base Class.
-fDetectorIndex(source.fDetectorIndex),// Detector type index (like 
-                                      // fShapeIndex was)
-fid(),       // layer, ladder, detector numbers.
-frot(),      //! vector of rotations about x,y,z [radians].
-ftran(),     // Translation vector of module x,y,z.
-fCylR(source.fCylR),  //! R Translation in Cylinderical coordinates
-fCylPhi(source.fCylPhi),//! Phi Translation vector in Cylindrical coord.
-fm(),        // Rotation matrix based on frot.
+TObject(source),
+fDetectorIndex(source.fDetectorIndex),
+fCylR(source.fCylR),
+fCylPhi(source.fCylPhi),
 fPath(source.fPath){
     // The standard Copy constructor. This make a full / proper copy of
     // this class.
@@ -108,14 +104,13 @@ fPath(source.fPath){
     //    none.
     // Return:
     //    A copy constructes AliITSgeomMatrix class.
-    Int_t i,j;
-
-    for(i=0;i<3;i++){
-        this->fid[i]     = source.fid[i];
-        this->frot[i]    = source.frot[i];
-        this->ftran[i]   = source.ftran[i];
-        for(j=0;j<3;j++) this->fm[i][j] = source.fm[i][j];
-    }// end for i
+	Int_t i,j;
+	for(i=0;i<3;i++){
+		this->fid[i]     = source.fid[i];
+		this->frot[i]    = source.frot[i];
+		this->ftran[i]   = source.ftran[i];
+		for(j=0;j<3;j++) this->fm[i][j] = source.fm[i][j];
+	}// end for i
 }
 //----------------------------------------------------------------------
 AliITSgeomMatrix& AliITSgeomMatrix::operator=(const AliITSgeomMatrix &source){
@@ -129,26 +124,27 @@ AliITSgeomMatrix& AliITSgeomMatrix::operator=(const AliITSgeomMatrix &source){
     //    none.
     // Return:
     //    A copy of the source AliITSgeomMatrix class.
+  if(this == &source)return *this;
+  Int_t i,j;
 
-    if(this == &source)return *this;
-    Int_t i,j;
+  this->fDetectorIndex = source.fDetectorIndex;
+  this->fCylR      = source.fCylR;
+  this->fCylPhi    = source.fCylPhi;
+  for(i=0;i<3;i++){
+    this->fid[i]     = source.fid[i];
+    this->frot[i]    = source.frot[i];
+    this->ftran[i]   = source.ftran[i];
 
-    this->fDetectorIndex = source.fDetectorIndex;
-    this->fCylR      = source.fCylR;
-    this->fCylPhi    = source.fCylPhi;
-    for(i=0;i<3;i++){
-        this->fid[i]     = source.fid[i];
-        this->frot[i]    = source.frot[i];
-        this->ftran[i]   = source.ftran[i];
-        for(j=0;j<3;j++) this->fm[i][j] = source.fm[i][j];
-    } // end for i
-    this->fPath   = source.fPath;
-    return *this;
+    for(j=0;j<3;j++) this->fm[i][j] = source.fm[i][j];
+  }
+  this->fPath   = source.fPath;
+  return *this;
 }
+
 //----------------------------------------------------------------------
 AliITSgeomMatrix::AliITSgeomMatrix(Int_t idt,const Int_t id[3],
                         const Double_t rot[3],const Double_t tran[3]):
-TObject(),           // Base class
+TObject(),
 fDetectorIndex(idt), // Detector type index (like fShapeIndex was)
 fid(),       // layer, ladder, detector numbers.
 frot(),      //! vector of rotations about x,y,z [radians].
@@ -196,7 +192,7 @@ fPath(){     // Path in geometry to this moduel
 AliITSgeomMatrix::AliITSgeomMatrix(Int_t idt, const Int_t id[3],
                                    Double_t matrix[3][3],
                                    const Double_t tran[3]):
-TObject(),            // Base class
+TObject(),
 fDetectorIndex(idt), // Detector type index (like fShapeIndex was)
 fid(),       // layer, ladder, detector numbers.
 frot(),      //! vector of rotations about x,y,z [radians].
@@ -330,15 +326,11 @@ void AliITSgeomMatrix::MatrixFromSixAngles(const Double_t *ang){
 AliITSgeomMatrix::AliITSgeomMatrix(const Double_t rotd[6]/*degrees*/,
                                    Int_t idt,const Int_t id[3],
                                    const Double_t tran[3]):
-TObject(),            // Base class
-fDetectorIndex(idt), // Detector type index (like fShapeIndex was)
-fid(),       // layer, ladder, detector numbers.
-frot(),      //! vector of rotations about x,y,z [radians].
-ftran(),     // Translation vector of module x,y,z.
-fCylR(0.0),  //! R Translation in Cylinderical coordinates
-fCylPhi(0.0),//! Phi Translation vector in Cylindrical coord.
-fm(),        // Rotation matrix based on frot.
-fPath(){     // Path in geometry to this module
+TObject(),
+fDetectorIndex(idt),
+fCylR(0.),
+fCylPhi(0.),
+fPath(){
     // This is a constructor for the AliITSgeomMatrix class. The matrix 
     // is defined by the 6 GEANT 3.21 rotation angles [degrees], and 
     // the translation vector tran [cm]. In addition the layer, ladder, 
@@ -370,6 +362,7 @@ fPath(){     // Path in geometry to this module
     if(fCylPhi<0.0) fCylPhi += TMath::Pi();
     this->MatrixFromSixAngles(rotd);
 }
+
 //----------------------------------------------------------------------
 void AliITSgeomMatrix::AngleFromMatrix(){
     // Computes the angles from the rotation matrix up to a phase of 
@@ -399,6 +392,7 @@ void AliITSgeomMatrix::AngleFromMatrix(){
     frot[2] = rz;
     return;
 }
+
 //----------------------------------------------------------------------
 void AliITSgeomMatrix::MatrixFromAngle(){
     // Computes the Rotation matrix from the angles [radians] kept in this
@@ -417,57 +411,23 @@ void AliITSgeomMatrix::MatrixFromAngle(){
     //   none
     // Return:
     //   none
-    Double_t sx,sy,sz,cx,cy,cz;
+   Double_t sx,sy,sz,cx,cy,cz;
 
-    sx = TMath::Sin(frot[0]); cx = TMath::Cos(frot[0]);
-    sy = TMath::Sin(frot[1]); cy = TMath::Cos(frot[1]);
-    sz = TMath::Sin(frot[2]); cz = TMath::Cos(frot[2]);
-    fm[0][0] = +cz*cy;             // fr[0]
-    fm[0][1] = +cz*sy*sx - sz*cx;  // fr[1]
-    fm[0][2] = +cz*sy*cx + sz*sx;  // fr[2]
-    fm[1][0] = +sz*cy;             // fr[3]
-    fm[1][1] = +sz*sy*sx + cz*cx;  // fr[4]
-    fm[1][2] = +sz*sy*cx - cz*sx;  // fr[5]
-    fm[2][0] = -sy;                // fr[6]
-    fm[2][1] = +cy*sx;             // fr[7]
-    fm[2][2] = +cy*cx;             // fr[8]
-}
-//----------------------------------------------------------------------
-void AliITSgeomMatrix::SetEulerAnglesChi(const Double_t ang[3]){
-    // Computes the Rotation matrix from the Euler angles [radians], 
-    // Chi-convention, kept in this class. The matrix used in 
-    // AliITSgeomMatrix::SetEulerAnglesChi and 
-    // its inverse AliITSgeomMatrix::GetEulerAnglesChi() are defined in 
-    // the following ways, R = Rb*Rc*Rd (M=R*L+T) where
-    //     C2 +S2  0       1  0    0       C0 +S0  0
-    // Rb=-S2  C2  0  Rc=  0  C1 +S1   Rd=-S0  C0  0
-    //     0   0   1       0 -S1  C1       0   0   1
-    // This form is taken from Wolfram Research's Geometry>
-    // Transformations>Rotations web page (also should be
-    // found in their book).
-    // Inputs:
-    //   Double_t ang[3] The three Euler Angles Phi, Theta, Psi
-    // Outputs:
-    //   none
-    // Return:
-    //   none
-    Double_t s0,s1,s2,c0,c1,c2;
+   sx = TMath::Sin(frot[0]); cx = TMath::Cos(frot[0]);
+   sy = TMath::Sin(frot[1]); cy = TMath::Cos(frot[1]);
+   sz = TMath::Sin(frot[2]); cz = TMath::Cos(frot[2]);
+   fm[0][0] = +cz*cy;             // fr[0]
+   fm[0][1] = +cz*sy*sx - sz*cx;  // fr[1]
+   fm[0][2] = +cz*sy*cx + sz*sx;  // fr[2]
+   fm[1][0] = +sz*cy;             // fr[3]
+   fm[1][1] = +sz*sy*sx + cz*cx;  // fr[4]
+   fm[1][2] = +sz*sy*cx - cz*sx;  // fr[5]
+   fm[2][0] = -sy;                // fr[6]
+   fm[2][1] = +cy*sx;             // fr[7]
+   fm[2][2] = +cy*cx;             // fr[8]
 
-    s0 = TMath::Sin(ang[0]); c0 = TMath::Cos(ang[0]);
-    s1 = TMath::Sin(ang[1]); c1 = TMath::Cos(ang[1]);
-    s2 = TMath::Sin(ang[2]); c2 = TMath::Cos(ang[2]);
-    fm[0][0] = +c2*c0-c1*s0*s2;  // fr[0]
-    fm[0][1] = +c2*s0+c1*c0*s2;  // fr[1]
-    fm[0][2] = +s2*s1;           // fr[2]
-    fm[1][0] = -s2*c0-c1*s0*c2;  // fr[3]
-    fm[1][1] = -s2*s0+c1*c0*c2;  // fr[4]
-    fm[1][2] = +c2*s1;           // fr[5]
-    fm[2][0] = s1*s0;            // fr[6]
-    fm[2][1] = -s1*c0;           // fr[7]
-    fm[2][2] = +c1;              // fr[8]
-    AngleFromMatrix();
-    return ;
 }
+
 //----------------------------------------------------------------------
 void AliITSgeomMatrix::GtoLPosition(const Double_t g0[3],Double_t l[3]) const {
     // Returns the local coordinates given the global coordinates [cm].
@@ -479,16 +439,16 @@ void AliITSgeomMatrix::GtoLPosition(const Double_t g0[3],Double_t l[3]) const {
     //                  detector coordiante system
     // Return:
     //   none
-    Int_t    i,j;
-    Double_t g[3];
+	Int_t    i,j;
+	Double_t g[3];
 
-    for(i=0;i<3;i++) g[i] = g0[i] - ftran[i];
-    for(i=0;i<3;i++){
-        l[i] = 0.0;
-        for(j=0;j<3;j++) l[i] += fm[i][j]*g[j];
-        // g = R l + translation
-    } // end for i
-    return;
+	for(i=0;i<3;i++) g[i] = g0[i] - ftran[i];
+	for(i=0;i<3;i++){
+		l[i] = 0.0;
+		for(j=0;j<3;j++) l[i] += fm[i][j]*g[j];
+		// g = R l + translation
+	} // end for i
+	return;
 }
 //----------------------------------------------------------------------
 void AliITSgeomMatrix::LtoGPosition(const Double_t l[3],Double_t g[3]) const {
@@ -501,15 +461,15 @@ void AliITSgeomMatrix::LtoGPosition(const Double_t l[3],Double_t g[3]) const {
     //                   Global coordinate system
     // Return:
     //   none.
-    Int_t    i,j;
+	Int_t    i,j;
 
-    for(i=0;i<3;i++){
-        g[i] = 0.0;
-        for(j=0;j<3;j++) g[i] += fm[j][i]*l[j];
-        g[i] += ftran[i];
-        // g = R^t l + translation
-    } // end for i
-    return;
+	for(i=0;i<3;i++){
+		g[i] = 0.0;
+		for(j=0;j<3;j++) g[i] += fm[j][i]*l[j];
+		g[i] += ftran[i];
+		// g = R^t l + translation
+	} // end for i
+	return;
 }
 //----------------------------------------------------------------------
 void AliITSgeomMatrix::GtoLMomentum(const Double_t g[3],Double_t l[3]) const{
@@ -524,14 +484,14 @@ void AliITSgeomMatrix::GtoLMomentum(const Double_t g[3],Double_t l[3]) const{
     //                 local coordinate system
     // Return:
     //   none.
-    Int_t    i,j;
+	Int_t    i,j;
 
-    for(i=0;i<3;i++){
-        l[i] = 0.0;
-        for(j=0;j<3;j++) l[i] += fm[i][j]*g[j];
-        // g = R l
-    } // end for i
-    return;
+	for(i=0;i<3;i++){
+		l[i] = 0.0;
+		for(j=0;j<3;j++) l[i] += fm[i][j]*g[j];
+		// g = R l
+	} // end for i
+	return;
 }
 //----------------------------------------------------------------------
 void AliITSgeomMatrix::LtoGMomentum(const Double_t l[3],Double_t g[3]) const {
@@ -546,14 +506,14 @@ void AliITSgeomMatrix::LtoGMomentum(const Double_t l[3],Double_t g[3]) const {
     //                 coordinate system
     // Return:
     //   none.
-    Int_t    i,j;
+	Int_t    i,j;
 
-    for(i=0;i<3;i++){
-        g[i] = 0.0;
-        for(j=0;j<3;j++) g[i] += fm[j][i]*l[j];
-        // g = R^t l
-    } // end for i
-    return;
+	for(i=0;i<3;i++){
+		g[i] = 0.0;
+		for(j=0;j<3;j++) g[i] += fm[j][i]*l[j];
+		// g = R^t l
+	} // end for i
+	return;
 }
 //----------------------------------------------------------------------
 void AliITSgeomMatrix::GtoLPositionError(const Double_t g[3][3],
@@ -570,15 +530,15 @@ void AliITSgeomMatrix::GtoLPositionError(const Double_t g[3][3],
     //                    local coordinate system
     // Return:
     //   none.
-    Int_t    i,j,k,m;
+	Int_t    i,j,k,m;
 
-    for(i=0;i<3;i++)for(m=0;m<3;m++){
-        l[i][m] = 0.0;
-        for(j=0;j<3;j++)for(k=0;k<3;k++)
-            l[i][m] += fm[j][i]*g[j][k]*fm[k][m];
-    } // end for i,m
-    // g = R^t l R
-    return;
+	for(i=0;i<3;i++)for(m=0;m<3;m++){
+	    l[i][m] = 0.0;
+	    for(j=0;j<3;j++)for(k=0;k<3;k++)
+		l[i][m] += fm[j][i]*g[j][k]*fm[k][m];
+	} // end for i,m
+	    // g = R^t l R
+	return;
 }
 //----------------------------------------------------------------------
 void AliITSgeomMatrix::LtoGPositionError(const Double_t l[3][3],
@@ -594,15 +554,15 @@ void AliITSgeomMatrix::LtoGPositionError(const Double_t l[3][3],
     //                    coordinate system
     // Return:
     //   none.
-    Int_t    i,j,k,m;
+	Int_t    i,j,k,m;
 
-    for(i=0;i<3;i++)for(m=0;m<3;m++){
-        g[i][m] = 0.0;
-        for(j=0;j<3;j++)for(k=0;k<3;k++)
-            g[i][m] += fm[i][j]*l[j][k]*fm[m][k];
-    } // end for i,m
-    // g = R l R^t
-    return;
+	for(i=0;i<3;i++)for(m=0;m<3;m++){
+	    g[i][m] = 0.0;
+	    for(j=0;j<3;j++)for(k=0;k<3;k++)
+		g[i][m] += fm[i][j]*l[j][k]*fm[m][k];
+	} // end for i,m
+	    // g = R l R^t
+	return;
 }
 //----------------------------------------------------------------------
 void AliITSgeomMatrix::GtoLPositionTracking(const Double_t g[3],
@@ -773,22 +733,22 @@ void AliITSgeomMatrix::GtoLPositionErrorTracking(const Double_t g[3][3],
     //   Double_t l[3][3] the error matrix represented in the detector 
     //                    local coordinate system
     // Return:
-    Int_t    i,j,k,m;
-    Double_t rt[3][3];
-    Double_t a0[3][3] = {{0.,+1.,0.},{-1.,0.,0.},{0.,0.,+1.}};
-    Double_t a1[3][3] = {{0.,-1.,0.},{+1.,0.,0.},{0.,0.,+1.}};
+	Int_t    i,j,k,m;
+	Double_t rt[3][3];
+	Double_t a0[3][3] = {{0.,+1.,0.},{-1.,0.,0.},{0.,0.,+1.}};
+	Double_t a1[3][3] = {{0.,-1.,0.},{+1.,0.,0.},{0.,0.,+1.}};
 
-    if(fid[0]==1) for(i=0;i<3;i++)for(j=0;j<3;j++)for(k=0;k<3;k++)
-        rt[i][k] = a0[i][j]*fm[j][k];
-    else for(i=0;i<3;i++)for(j=0;j<3;j++)for(k=0;k<3;k++)
-        rt[i][k] = a1[i][j]*fm[j][k];
-    for(i=0;i<3;i++)for(m=0;m<3;m++){
-        l[i][m] = 0.0;
-        for(j=0;j<3;j++)for(k=0;k<3;k++)
-            l[i][m] += rt[j][i]*g[j][k]*rt[k][m];
-    } // end for i,m
-    // g = R^t l R
-    return;
+	if(fid[0]==1) for(i=0;i<3;i++)for(j=0;j<3;j++)for(k=0;k<3;k++)
+	    rt[i][k] = a0[i][j]*fm[j][k];
+	else for(i=0;i<3;i++)for(j=0;j<3;j++)for(k=0;k<3;k++)
+	    rt[i][k] = a1[i][j]*fm[j][k];
+	for(i=0;i<3;i++)for(m=0;m<3;m++){
+	    l[i][m] = 0.0;
+	    for(j=0;j<3;j++)for(k=0;k<3;k++)
+		l[i][m] += rt[j][i]*g[j][k]*rt[k][m];
+	} // end for i,m
+	    // g = R^t l R
+	return;
 }
 //----------------------------------------------------------------------
 void AliITSgeomMatrix::LtoGPositionErrorTracking(const Double_t l[3][3],
@@ -812,22 +772,22 @@ void AliITSgeomMatrix::LtoGPositionErrorTracking(const Double_t l[3][3],
     //                    coordinate system
     // Return:
     //   none.
-    Int_t    i,j,k,m;
-    Double_t rt[3][3];
-    Double_t a0[3][3] = {{0.,+1.,0.},{-1.,0.,0.},{0.,0.,+1.}};
-    Double_t a1[3][3] = {{0.,-1.,0.},{+1.,0.,0.},{0.,0.,+1.}};
+	Int_t    i,j,k,m;
+	Double_t rt[3][3];
+	Double_t a0[3][3] = {{0.,+1.,0.},{-1.,0.,0.},{0.,0.,+1.}};
+	Double_t a1[3][3] = {{0.,-1.,0.},{+1.,0.,0.},{0.,0.,+1.}};
 
-    if(fid[0]==1) for(i=0;i<3;i++)for(j=0;j<3;j++)for(k=0;k<3;k++)
-        rt[i][k] = a0[i][j]*fm[j][k];
-    else for(i=0;i<3;i++)for(j=0;j<3;j++)for(k=0;k<3;k++)
-        rt[i][k] = a1[i][j]*fm[j][k];
-    for(i=0;i<3;i++)for(m=0;m<3;m++){
-        g[i][m] = 0.0;
-        for(j=0;j<3;j++)for(k=0;k<3;k++)
-            g[i][m] += rt[i][j]*l[j][k]*rt[m][k];
-    } // end for i,m
-    // g = R l R^t
-    return;
+	if(fid[0]==1) for(i=0;i<3;i++)for(j=0;j<3;j++)for(k=0;k<3;k++)
+	    rt[i][k] = a0[i][j]*fm[j][k];
+	else for(i=0;i<3;i++)for(j=0;j<3;j++)for(k=0;k<3;k++)
+	    rt[i][k] = a1[i][j]*fm[j][k];
+	for(i=0;i<3;i++)for(m=0;m<3;m++){
+	    g[i][m] = 0.0;
+	    for(j=0;j<3;j++)for(k=0;k<3;k++)
+		g[i][m] += rt[i][j]*l[j][k]*rt[m][k];
+	} // end for i,m
+	    // g = R l R^t
+	return;
 }
 //----------------------------------------------------------------------
 void AliITSgeomMatrix::PrintTitles(ostream *os) const {
@@ -1045,26 +1005,22 @@ TNode* AliITSgeomMatrix::CreateNode(const Char_t *nodeName,
     title = nodeTitle;
     //
     mother->cd();
-    TNode *node1 = new TNode(name.Data(),title.Data(),shape,
-                             trans[0],trans[1],trans[2],rot);
+    TNode *node1 = new TNode(name.Data(),title.Data(),shape,trans[0],trans[1],trans[2],rot);
     if(axis){
         Int_t i,j;
         const Float_t kScale=0.5,kLw=0.2;
-        Float_t xchar[13][2]={
-            {0.5*kLw,1.},{0.,0.5*kLw},{0.5-0.5*kLw,0.5},
-            {0.,0.5*kLw},{0.5*kLw,0.},{0.5,0.5-0.5*kLw},
-            {1-0.5*kLw,0.},{1.,0.5*kLw},{0.5+0.5*kLw,0.5},
-            {1.,1.-0.5*kLw},{1.-0.5*kLw,1.},{0.5,0.5+0.5*kLw},
-            {0.5*kLw,1.}};
-        Float_t ychar[10][2]={
-            {.5-0.5*kLw,0.},{.5+0.5*kLw,0.},{.5+0.5*kLw,0.5-0.5*kLw},
-            {1.,1.-0.5*kLw},{1.-0.5*kLw,1.},{0.5+0.5*kLw,0.5},
-            {0.5*kLw,1.}   ,{0.,1-0.5*kLw} ,{0.5-0.5*kLw,0.5},
-            {.5-0.5*kLw,0.}};
-        Float_t zchar[11][2]={
-            {0.,1.},{0,1.-kLw},{1.-kLw,1.-kLw},{0.,kLw}   ,{0.,0.},
-            {1.,0.},{1.,kLw}  ,{kLw,kLw}      ,{1.,1.-kLw},{1.,1.},
-            {0.,1.}};
+        Float_t xchar[13][2]={{0.5*kLw,1.},{0.,0.5*kLw},{0.5-0.5*kLw,0.5},
+                              {0.,0.5*kLw},{0.5*kLw,0.},{0.5,0.5-0.5*kLw},
+                              {1-0.5*kLw,0.},{1.,0.5*kLw},{0.5+0.5*kLw,0.5},
+                              {1.,1.-0.5*kLw},{1.-0.5*kLw,1.},{0.5,0.5+0.5*kLw},
+                              {0.5*kLw,1.}};
+        Float_t ychar[10][2]={{.5-0.5*kLw,0.},{.5+0.5*kLw,0.},{.5+0.5*kLw,0.5-0.5*kLw},
+                              {1.,1.-0.5*kLw},{1.-0.5*kLw,1.},{0.5+0.5*kLw,0.5},
+                              {0.5*kLw,1.}   ,{0.,1-0.5*kLw} ,{0.5-0.5*kLw,0.5},
+                              {.5-0.5*kLw,0.}};
+        Float_t zchar[11][2]={{0.,1.},{0,1.-kLw},{1.-kLw,1.-kLw},{0.,kLw}   ,{0.,0.},
+                              {1.,0.},{1.,kLw}  ,{kLw,kLw}      ,{1.,1.-kLw},{1.,1.},
+                              {0.,1.}};
         for(i=0;i<13;i++)for(j=0;j<2;j++){
             if(i<13) xchar[i][j] = kScale*xchar[i][j];
             if(i<10) ychar[i][j] = kScale*ychar[i][j];
@@ -1079,18 +1035,16 @@ TNode* AliITSgeomMatrix::CreateNode(const Char_t *nodeName,
         TXTRU *axiszl = new TXTRU("z","z","text",10,2);
         for(i=0;i<10;i++) axiszl->DefineVertex(i,zchar[i][0],zchar[i][1]);
         axiszl->DefineSection(0,-0.5*kLw);axiszl->DefineSection(1,0.5*kLw);
-        Float_t lxy[13][2]={
-            {-0.5*kLw,-0.5*kLw},{0.8,-0.5*kLw},{0.8,-0.1},{1.0,0.0},
-            {0.8,0.1},{0.8,0.5*kLw},{0.5*kLw,0.5*kLw},{0.5*kLw,0.8},
-            {0.1,0.8},{0.0,1.0},{-0.1,0.8},{-0.5*kLw,0.8},
-            {-0.5*kLw,-0.5*kLw}};
+        Float_t lxy[13][2]={{-0.5*kLw,-0.5*kLw},{0.8,-0.5*kLw},{0.8,-0.1},{1.0,0.0},
+                            {0.8,0.1},{0.8,0.5*kLw},{0.5*kLw,0.5*kLw},{0.5*kLw,0.8},
+                            {0.1,0.8},{0.0,1.0},{-0.1,0.8},{-0.5*kLw,0.8},
+                            {-0.5*kLw,-0.5*kLw}};
         TXTRU *axisxy = new TXTRU("axisxy","axisxy","text",13,2);
         for(i=0;i<13;i++) axisxy->DefineVertex(i,lxy[i][0],lxy[i][1]);
         axisxy->DefineSection(0,-0.5*kLw);axisxy->DefineSection(1,0.5*kLw);
-        Float_t lz[8][2]={
-            {0.5*kLw,-0.5*kLw},{0.8,-0.5*kLw},{0.8,-0.1},{1.0,0.0},
-            {0.8,0.1},{0.8,0.5*kLw},{0.5*kLw,0.5*kLw},
-            {0.5*kLw,-0.5*kLw}};
+        Float_t lz[8][2]={{0.5*kLw,-0.5*kLw},{0.8,-0.5*kLw},{0.8,-0.1},{1.0,0.0},
+                           {0.8,0.1},{0.8,0.5*kLw},{0.5*kLw,0.5*kLw},
+                           {0.5*kLw,-0.5*kLw}};
         TXTRU *axisz = new TXTRU("axisz","axisz","text",8,2);
         for(i=0;i<8;i++) axisz->DefineVertex(i,lz[i][0],lz[i][1]);
         axisz->DefineSection(0,-0.5*kLw);axisz->DefineSection(1,0.5*kLw);
@@ -1102,8 +1056,7 @@ TNode* AliITSgeomMatrix::CreateNode(const Char_t *nodeName,
         title = name.Append("axisxy");
         TNode *nodeaxy = new TNode(title.Data(),title.Data(),axisxy);
         title = name.Append("axisz");
-        TNode *nodeaz = new TNode(title.Data(),title.Data(),axisz,
-                                  0.,0.,0.,yaxis90);
+        TNode *nodeaz = new TNode(title.Data(),title.Data(),axisz,0.,0.,0.,yaxis90);
         TNode *textboxX0 = new TNode("textboxX0","textboxX0",axisxl,
                                     lxy[3][0],lxy[3][1],0.0);
         TNode *textboxX1 = new TNode("textboxX1","textboxX1",axisxl,
@@ -1183,10 +1136,8 @@ void AliITSgeomMatrix::MakeFigures() const {
     node0->cd();
     TNode *node1 = new TNode("NODE1","NODE1",det);
     node1->cd();
-    TNode *nodex = new TNode("NODEx","NODEx",arrow,
-                             l[0][0],l[0][1],l[0][2],xarrow);
-    TNode *nodey = new TNode("NODEy","NODEy",arrow,
-                             l[2][0],l[2][1],l[2][2],yarrow);
+    TNode *nodex = new TNode("NODEx","NODEx",arrow,l[0][0],l[0][1],l[0][2],xarrow);
+    TNode *nodey = new TNode("NODEy","NODEy",arrow,l[2][0],l[2][1],l[2][2],yarrow);
     TNode *nodez = new TNode("NODEz","NODEz",arrow,l[4][0],l[4][1],l[4][2]);
     //
     axis->Draw();

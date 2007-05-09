@@ -50,7 +50,7 @@ void AliPMDPreprocessor::Initialize(Int_t run, UInt_t startTime,
 UInt_t AliPMDPreprocessor::Process(TMap* pdaqAliasMap)
 {
 
- if(!pdaqAliasMap) return 1;
+ if(!pdaqAliasMap) return 0;
 	
 	AliPMDCalibData *calibda = new AliPMDCalibData();
 
@@ -58,7 +58,7 @@ UInt_t AliPMDPreprocessor::Process(TMap* pdaqAliasMap)
 
         if(!filesources) {
                 Log(Form("No sources found for PMDGAINS!"));
-                return 1;
+                return 0;
         }
 
         AliInfo("Here's the list of sources for PMDGAINS");
@@ -74,7 +74,7 @@ UInt_t AliPMDPreprocessor::Process(TMap* pdaqAliasMap)
                 if(filename.Length() == 0) {
                         Log(Form("Error retrieving file from source %s failed!", source->GetName()));
                         delete filesources;
-                        return 1;
+                        return 0;
                 }
 
                 Log(Form("File with id PMDGAINS got from %s", source->GetName()));
@@ -84,13 +84,13 @@ UInt_t AliPMDPreprocessor::Process(TMap* pdaqAliasMap)
 		if(!f || !f->IsOpen()) 
 		{
 			Log(Form("Error opening file with Id PMDGAINS from source %s!", source->GetName()));
-			return 1;
+			return 0;
 		} 
 		TTree *tree = dynamic_cast<TTree *> (f->Get("ic"));
 		if (!tree) 
 		{
 			Log("Could not find object \"ic\" in DAQ file!");
-			return 1;
+			return 0;
 		}
 		
    		tree->SetBranchAddress("DET",       &DET);
@@ -120,14 +120,6 @@ UInt_t AliPMDPreprocessor::Process(TMap* pdaqAliasMap)
   result = Store("Calib","Data", calibda, &metaData);
 
  delete calibda;
-if(result==0)
-      { Log("Error storing");                        
-        return 1;
- }
- else
- {
-        return 0;
- }
-
+ return result;
 }
 

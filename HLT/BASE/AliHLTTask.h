@@ -1,4 +1,3 @@
-//-*- Mode: C++ -*-
 // $Id$
 
 #ifndef ALIHLTTASK_H
@@ -11,12 +10,6 @@
     @date   
     @brief  base class for HLT tasks
 */
-
-// see below for class documentation
-// or
-// refer to README to build package
-// or
-// visit http://web.ift.uib.no/~kjeks/doc/alice-hlt   
 
 #include <cerrno>
 #include <TObject.h>
@@ -125,14 +118,6 @@ class AliHLTTask : public TObject, public AliHLTLogging {
   int SetDependency(AliHLTTask* pDep);
 
   /**
-   * Clear a dependency.
-   * The ROOT TList touches the object which is in the list, even though
-   * it shouldn't care about. Thats why all lists have to be cleared before
-   * objects are deleted.
-   */
-  int UnsetDependency(AliHLTTask* pDep);
-
-  /**
    * Return number of unresolved dependencies.
    * Iterate through all the configurations the task depends on and check
    * whether a corresponding task is available in the list.
@@ -164,14 +149,6 @@ class AliHLTTask : public TObject, public AliHLTLogging {
    * @return >=0 if succeeded, neg. error code if failed 
    */
   int SetTarget(AliHLTTask* pDep);
-
-  /**
-   * Clear a target.
-   * The ROOT TList touches the object which is in the list, even though
-   * it shouldn't care about. Thats why all lists have to be cleared before
-   * objects are deleted.
-   */
-  int UnsetTarget(AliHLTTask* pTarget);
 
   /**
    * Prepare the task for event processing.

@@ -19,11 +19,8 @@
 #include "AliHLTPHOSCommonDefs.h"
 
 
-
-
 AliHLTPHOSRawAnalyzerPeakFinderComponent gAliHLTPHOSRawAnalyzerPeakFinderComponent;
 
-//___________________________________________________________________________________________________________
 AliHLTPHOSRawAnalyzerPeakFinderComponent::AliHLTPHOSRawAnalyzerPeakFinderComponent():AliHLTPHOSRawAnalyzerComponent()
 {
   fAnalyzerPtr = new AliHLTPHOSRawAnalyzerPeakFinder();
@@ -39,28 +36,24 @@ AliHLTPHOSRawAnalyzerPeakFinderComponent::AliHLTPHOSRawAnalyzerPeakFinderCompone
 } 
 
 
-//___________________________________________________________________________________________________________
 AliHLTPHOSRawAnalyzerPeakFinderComponent::~AliHLTPHOSRawAnalyzerPeakFinderComponent()
 {
 
 }
 
 
-//___________________________________________________________________________________________________________
 AliHLTPHOSRawAnalyzerPeakFinderComponent::AliHLTPHOSRawAnalyzerPeakFinderComponent(const AliHLTPHOSRawAnalyzerPeakFinderComponent & ) : AliHLTPHOSRawAnalyzerComponent()
 {
 
 }
 
 
-//___________________________________________________________________________________________________________
 const char* 
 AliHLTPHOSRawAnalyzerPeakFinderComponent::GetComponentID()
 {
   return "PhosRawPeakFinder";
 }
 
-//___________________________________________________________________________________________________________
 Bool_t 
 AliHLTPHOSRawAnalyzerPeakFinderComponent::LoadPFVector()
 {
@@ -68,7 +61,6 @@ AliHLTPHOSRawAnalyzerPeakFinderComponent::LoadPFVector()
 }
 
 
-//___________________________________________________________________________________________________________
 Bool_t 
 AliHLTPHOSRawAnalyzerPeakFinderComponent::LoadPFVector(int startIndex, int nSamples, int tau, int fs)
 {
@@ -106,7 +98,6 @@ AliHLTPHOSRawAnalyzerPeakFinderComponent::LoadPFVector(int startIndex, int nSamp
 }
 
 
-//___________________________________________________________________________________________________________
 AliHLTComponent*
 AliHLTPHOSRawAnalyzerPeakFinderComponent::Spawn()
 {

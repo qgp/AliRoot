@@ -22,7 +22,7 @@
 #include "AliLog.h"
 #include "AliMUON.h"
 #include "AliMUONChamber.h"
-#include "AliMUONSimData.h"
+#include "AliMUONData.h"
 #include "AliMUONDigit.h"
 #include "AliMUONHit.h"
 #include "AliMpDEManager.h"
@@ -87,7 +87,7 @@ AliMUONSDigitizerV2::Exec(Option_t*)
 
   fLoader->LoadHits("READ");
   
-  AliMUONSimData muonData(fLoader,"MUON","MUON");
+  AliMUONData muonData(fLoader,"MUON","MUON");
 
   AliMUON* muon = static_cast<AliMUON*>(gAlice->GetModule("MUON"));
     

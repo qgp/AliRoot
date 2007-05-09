@@ -22,7 +22,6 @@ ClassImp(AliHMPIDHit)
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void AliHMPIDHit::Draw(Option_t*)
 {
-// Draw option of the hits in the display
   Int_t iMark;
   switch(Pid()){
     case 50000050:   iMark=4;  break;
@@ -30,7 +29,7 @@ void AliHMPIDHit::Draw(Option_t*)
     default:         iMark=26; break;
   }    
   TMarker *pMark=new TMarker(fLx,fLy,iMark); pMark->SetMarkerColor(kRed); pMark->Draw();
-}//Draw
+}
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void AliHMPIDHit::Hit2Sdi(TClonesArray *pSdiLst,Int_t iHow)const
 {
@@ -51,7 +50,7 @@ void AliHMPIDHit::Hit2Sdi(TClonesArray *pSdiLst,Int_t iHow)const
       new((*pSdiLst)[iSdiCnt++]) AliHMPIDDigit(dig);
     }
   }
-}//Hit2Sdi
+}
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void AliHMPIDHit::Print(Option_t *opt)const
 {
@@ -75,5 +74,5 @@ void AliHMPIDHit::Print(Option_t *opt)const
   Printf("%sHIT: ch=%i                 (%7.3f,%7.3f) Q=%8.3f TID= %5i, MARS=(%7.2f,%7.2f,%7.2f) %s  %s",
          opt,  Ch(),                    fLx,fLy,  fQ,     fTrack,         X(),  Y(),  Z(),   sPart, 
                         (AliHMPIDDigit::IsInDead(LorsX(),LorsY()))? "IN DEAD ZONE":"");
-}//Print
+}
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

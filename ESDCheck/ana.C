@@ -36,22 +36,18 @@ Bool_t LoadLib( const char* pararchivename)
   }
 
   if ( strstr(pararchivename, "ESD") ) {
-    //gSystem->Load("libVMC.so");
-    //gSystem->Load("libRAliEn.so");
-    gSystem->Load("libESD.so") ;
-    //gSystem->Load("libProof.so") ;
+    gSystem->Load("libVMC.so");
+    gSystem->Load("libESD.so");
+    gSystem->Load("libRAliEn.so") ;
+    gSystem->Load("libProof.so") ;
   }
 
-  if ( strstr(pararchivename, "AnalysisCheck") ) {
-    gSystem->Load("libSpectrum.so");
-  }
-  
-  printf("lib%s done\n", pararchivename);
+  printf("*** %s library loaded *** %s **\n", pararchivename);
 
   gSystem->ChangeDirectory(cdir);
 
   gIsAnalysisLoaded = kTRUE ; 
-  return rv ; 
+  return rv ;  ; 
 }
 
 //______________________________________________________________________
@@ -60,6 +56,7 @@ void ana()
   if (! gIsAnalysisLoaded ) {
     LoadLib("ESD") ; 
     LoadLib("ANALYSIS") ; 
+    printf("Include path = %s\n", gSystem->GetIncludePath()) ; 
     LoadLib("AnalysisCheck") ; 
   }
   
@@ -68,7 +65,7 @@ void ana()
 
   // definition of analysis tasks
  
-  const Int_t knumberOfTasks = 10 ; 
+  const Int_t knumberOfTasks = 8 ; 
   AliAnalysisTask * taskList[knumberOfTasks] ; 
   TClass * taskInputList[knumberOfTasks]  ; 
   TClass * taskOutputList[knumberOfTasks] ; 
@@ -101,33 +98,17 @@ void ana()
   taskInputList[6]  = taskInputList[0] ; // only one top input container allowed 
   taskOutputList[6] = TObjArray::Class() ; 
   
-  taskList[7]       = new AliTRDQATask("TRD") ;
+  taskList[7]       = new AliFMDQATask("FMD") ;
   taskInputList[7]  = taskInputList[0] ; // only one top input container allowed 
   taskOutputList[7] = TObjArray::Class() ; 
 
-  taskList[8]       = new AliTOFQATask("TOF") ;
-  taskInputList[8]  = taskInputList[0] ; // only one top input container allowed 
-  taskOutputList[8] = TObjArray::Class() ; 
-
-  taskList[9]       = new AliVZEROQATask("VZERO") ;
-  taskInputList[9]  = taskInputList[0] ; // only one top input container allowed 
-  taskOutputList[9] = TObjArray::Class() ; 
-
-//   taskList[8]       = new AliFMDQATask("FMD") ;
-//   taskInputList[8]  = taskInputList[0] ; // only one top input container allowed 
-//   taskOutputList[8] = TObjArray::Class() ; 
-  
   ag->SetTasks(knumberOfTasks, taskList, taskInputList, taskOutputList) ; 
 
   // get the data to analyze
 
   // definition of Tag cuts 
   const char * runCuts = 0x0 ; 
-  const char * evtCuts = 0x0 ; 
-  const char * lhcCuts = 0x0 ; 
-  const char * detCuts = 0x0 ; 
-  
-//"fEventTag.fNPHOSClustersMin == 1 && fEventTag.fNEMCALClustersMin == 1" ; 
+  const char * evtCuts = "fEventTag.fNPHOSClustersMin == 1 && fEventTag.fNEMCALClustersMin == 1" ; 
 
   
   TString input = gSystem->Getenv("ANA_INPUT") ; 
@@ -137,10 +118,10 @@ void ana()
       //create the ESD collection from the tag collection 
       input.ReplaceAll("tag?", "") ; 
       const char * collESD = "esdCollection.xml" ;
-      ag->MakeEsdCollectionFromTagCollection(runCuts, lhcCuts, detCuts, evtCuts, input.Data(), collESD) ;
+      ag->MakeEsdCollectionFromTagCollection(runCuts, evtCuts, input.Data(), collESD) ;
       sprintf(argument, "esd?%s", collESD) ; 
     } else if ( input.Contains("esd?") ) 
-      sprintf(argument, "%s", input.Data()) ; 
+      argument = input.Data() ; 
     ag->Process(argument) ;
 
   } else {
@@ -152,7 +133,6 @@ void ana()
     analysisChain->AddFile(input);
     ag->Process(analysisChain) ; 
   }
-  return ;
 }
 
 //______________________________________________________________________
@@ -165,3 +145,17 @@ void Merge(const char * xml, const char * sub, const char * out)
   ag->Merge(xml, sub, out) ;
 }
 
+//______________________________________________________________________
+void test(const char * fcollection1) 
+{
+  AliXMLCollection collection1(fcollection1);
+ TChain* analysisChain = new TChain("esdTree");
+ 
+ collection1.Reset();
+ while (collection1.Next()) {
+   cout<<"Adding "<<collection1.GetTURL()<<endl;
+   analysisChain->Add(collection1.GetTURL());
+ }
+ 
+ return ;
+}

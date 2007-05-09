@@ -30,11 +30,7 @@
 #pragma link C++ class  AliMagFC+;
 #pragma link C++ class  AliMagFCM+;
 #pragma link C++ class  AliMagFMaps-;
-#pragma link C++ class  AliMagFMapsV1+;
 #pragma link C++ class  AliMagFDM+;
-#pragma link C++ class  AliMagFCheb+;
-#pragma link C++ class  AliCheb3DCalc+;
-#pragma link C++ class  AliCheb3D+;
 #pragma link C++ class  AliLego+;
 #pragma link C++ class  AliLegoGenerator+;
 #pragma link C++ class  AliLegoGeneratorXYZ+;
@@ -75,6 +71,8 @@
 #pragma link C++ class  AliReconstruction+;
 #pragma link C++ class  AliVertexGenFile+;
 #pragma link C++ class  AliVertexer+;
+#pragma link C++ class  AliVertexerTracks+;
+#pragma link C++ class  AliStrLine+;
 #pragma link C++ class  AliV0vertexer+;
 #pragma link C++ class  AliCascadeVertexer+;
 
@@ -94,7 +92,6 @@
 
 #pragma link C++ class AliTrackFitter+;
 #pragma link C++ class AliTrackFitterRieman+;
-#pragma link C++ class AliTrackFitterKalman+;
 #pragma link C++ class AliTrackFitterStraight+;
 #pragma link C++ class AliTrackResiduals+;
 #pragma link C++ class AliTrackResidualsChi2+;
@@ -128,12 +125,5 @@
 #pragma link C++ class  AliSelectorRL+;
 
 #pragma link C++ class  AliSplineFit+;
-
-#pragma link C++ class AliDCSValue+;
-#pragma link C++ class AliDCSSensor+;
-#pragma link C++ class AliDCSSensorArray+;
-
-#pragma link C++ class AliSurveyObj+;
-#pragma link C++ class AliSurveyPoint+;
 
 #endif

@@ -76,7 +76,6 @@
 #include "AliRun.h"
 
 #include <TList.h>
-#include <TArrayS.h>
 
 
 /// \cond CLASSIMP
@@ -171,30 +170,63 @@ Int_t AliMUONDigitMaker::ReadTrackerDDL(AliRawReader* rawReader)
   Int_t    buspatchId;
   UChar_t  channelId;
   UShort_t manuId;
+  Char_t   parity;
   UShort_t charge; 
+  Int_t    dataSize;
 
   Int_t iChamber;
 
+  AliMUONDDLTracker*   ddlTracker = 0x0;
+  AliMUONBlockHeader*  blkHeader  = 0x0;
+  AliMUONDspHeader*    dspHeader  = 0x0;
+  AliMUONBusStruct*    busStruct  = 0x0;
+
   fRawStreamTracker->SetReader(rawReader);
-  fRawStreamTracker->First();
-  
-  while ( fRawStreamTracker->Next(buspatchId,manuId,channelId,charge) )
-  {    
+
+  while(fRawStreamTracker->NextDDL()) {
+    
+    ddlTracker =  fRawStreamTracker->GetDDLTracker();
+
+    Int_t nBlock = ddlTracker->GetBlkHeaderEntries();
+    for(Int_t iBlock = 0; iBlock < nBlock ;iBlock++){
+
+      blkHeader = ddlTracker->GetBlkHeaderEntry(iBlock);
+ 
+      Int_t nDsp = blkHeader->GetDspHeaderEntries();
+
+      for(Int_t iDsp = 0; iDsp < nDsp ;iDsp++){   //DSP loop
+
+	dspHeader =  blkHeader->GetDspHeaderEntry(iDsp);
+
+	Int_t nBusPatch = dspHeader->GetBusPatchEntries();
+
+	for(Int_t iBusPatch = 0; iBusPatch < nBusPatch; iBusPatch++) {  
+
+	  busStruct = dspHeader->GetBusPatchEntry(iBusPatch);
+
+	  dataSize   = busStruct->GetLength();
+	  buspatchId = busStruct->GetBusPatchId();
+
+	  for (Int_t iData = 0; iData < dataSize; iData++) {
+
+	    // digits info
+	    parity    = busStruct->GetParity(iData); // test later for parity
+	    manuId    = busStruct->GetManuId(iData);
+	    channelId = busStruct->GetChannelId(iData);
+	    charge    = busStruct->GetCharge(iData);
+	    // set charge
 	    fDigit->SetSignal(charge);
 	    fDigit->SetPhysicsSignal(charge);
 	    fDigit->SetADC(charge);
 
 	    // Get Back the hits at pads
 	    Int_t error = GetMapping(buspatchId,manuId,channelId,fDigit); 
-	    if (error) 
-      {
+	    if (error) {
 	      AliWarning("Mapping Error\n");
 	      continue;
 	    }
-	    
-      // debugging 
-	    if (AliLog::GetGlobalDebugLevel() == 3) 
-      {
+	    // debugging 
+	    if (AliLog::GetGlobalDebugLevel() == 3) {
 	      Int_t padX  = fDigit->PadX();
 	      Int_t padY  = fDigit->PadY();
 	      Int_t iCath = fDigit->Cathode();  
@@ -210,21 +242,23 @@ Int_t AliMUONDigitMaker::ReadTrackerDDL(AliRawReader* rawReader)
 	    // fill digits
 	    iChamber = AliMpDEManager::GetChamberId(fDigit->DetElemId());
 
+ 
 	    if (fDigitFlag || fDisplayFlag)
-      {
-        fMUONData->AddDigit(iChamber, *fDigit);
-      }
+		fMUONData->AddDigit(iChamber, *fDigit);
 	    else
-      {
-        fMUONData->AddSDigit(iChamber, *fDigit);
-      }
-  }
-  
+		fMUONData->AddSDigit(iChamber, *fDigit);
+
+
+	  } // iData
+	} // iBusPatch
+      } // iDsp
+    } // iBlock
+  } // NextDDL
+
   fTrackerTimer.Stop();
 
   return kTRUE;
 }
-
 //____________________________________________________________________
 Int_t AliMUONDigitMaker::GetMapping(Int_t busPatchId, UShort_t manuId, 
 					 UChar_t channelId, AliMUONDigit* digit )
@@ -341,22 +375,8 @@ Int_t AliMUONDigitMaker::ReadTriggerDDL(AliRawReader* rawReader)
 	    // Make SDigit
 
 	    digitList.Clear();
-	    //FIXEME should find something better than a TArray
-	    TArrayS xyPattern[2];
-	    xyPattern[0].Set(4);
-	    xyPattern[1].Set(4);
-
-	    xyPattern[0].AddAt(localStruct->GetX1(),0);
-	    xyPattern[0].AddAt(localStruct->GetX2(),1);
-	    xyPattern[0].AddAt(localStruct->GetX3(),2);
-	    xyPattern[0].AddAt(localStruct->GetX4(),3);
-
-	    xyPattern[1].AddAt(localStruct->GetY1(),0);
-	    xyPattern[1].AddAt(localStruct->GetY2(),1);
-	    xyPattern[1].AddAt(localStruct->GetY3(),2);
-	    xyPattern[1].AddAt(localStruct->GetY4(),3);
-
-	    if( TriggerDigits(loCircuit, xyPattern, digitList) ) {
+	    
+	    if( TriggerDigits(localBoard, localStruct, digitList) ) {
 
 	      for (Int_t iEntry = 0; iEntry < digitList.GetEntries(); iEntry++) {
 
@@ -385,82 +405,118 @@ Int_t AliMUONDigitMaker::ReadTriggerDDL(AliRawReader* rawReader)
   return kTRUE;
 
 }
-
 //____________________________________________________________________
-Int_t AliMUONDigitMaker::TriggerDigits(Int_t nBoard, 
-				       TArrayS* xyPattern,
+void AliMUONDigitMaker::GetTriggerChamber(AliMUONLocalStruct* localStruct, Int_t& xyPattern, 
+					  Int_t& iChamber, Int_t& iCath, Int_t icase)
+{
+  /// get chamber & cathode number, (chamber starts at 0 !)
+
+    switch(icase) {
+    case 0: 
+      xyPattern =  localStruct->GetX1();
+      iCath = 0;
+      iChamber = 10;
+      break;
+    case 1: 
+      xyPattern =  localStruct->GetX2();
+      iCath = 0;
+      iChamber = 11;
+      break;
+    case 2: 
+      xyPattern =  localStruct->GetX3();
+      iCath = 0;
+      iChamber = 12;
+      break;
+    case 3: 
+      xyPattern =  localStruct->GetX4();
+      iCath = 0;
+      iChamber = 13;
+      break;
+    case 4: 
+      xyPattern =  localStruct->GetY1();
+      iCath = 1;
+      iChamber = 10;
+      break;
+    case 5: 
+      xyPattern =  localStruct->GetY2();
+      iCath = 1;
+      iChamber = 11;
+      break;
+    case 6: 
+      xyPattern =  localStruct->GetY3();
+      iCath = 1;
+      iChamber = 12;
+      break;
+    case 7: 
+      xyPattern =  localStruct->GetY4();
+      iCath = 1;
+      iChamber = 13;
+      break;
+    }
+}
+//____________________________________________________________________
+Int_t AliMUONDigitMaker::TriggerDigits(AliMUONLocalTriggerBoard* localBoard, 
+				       AliMUONLocalStruct* localStruct,
 				       TList& digitList)
 {
   /// make (S)Digit for trigger
 
   Int_t detElemId;
-  Int_t previousDetElemId[4] = {0};
-  Int_t previousBoard[4] = {0};
+  Int_t nBoard;
+  Int_t iCath = -1;
+  Int_t iChamber = 0;
+  Int_t xyPattern = 0;
 
   // loop over x1-4 and y1-4
-  for(Int_t iChamber = 0; iChamber < 4; ++iChamber){
-    for(Int_t iCath = 0; iCath < 2; ++iCath){
+  for (Int_t icase = 0; icase < 8; icase++) {
+
+    // get chamber, cathode and associated trigger response pattern
+    GetTriggerChamber(localStruct, xyPattern, iChamber, iCath, icase);
   
-      Int_t pattern = (Int_t)xyPattern[iCath].At(iChamber); 
-      if (!pattern) continue;
+    if (!xyPattern) continue;
 
-      // get detElemId
-      AliMUONTriggerCircuit triggerCircuit;
-      AliMUONLocalTriggerBoard* localBoard = fCrateManager->LocalBoard(nBoard);
-      detElemId = triggerCircuit.DetElemId(iChamber+10, localBoard->GetName());//FIXME +/-10 (should be ok with new mapping)
+    // get detElemId
+    AliMUONTriggerCircuit triggerCircuit;
+    detElemId = triggerCircuit.DetElemId(iChamber, localBoard->GetName());
+    nBoard    = localBoard->GetNumber();
 
+    const AliMpVSegmentation* seg 
+      = AliMpSegmentation::Instance()
+        ->GetMpSegmentation(detElemId, AliMp::GetCathodType(iCath));  
 
-      if(iCath == 1){ // FIXME should find a more elegant way
-	// Don't save twice the same digit
-	// (since strips in non bending plane can cross several boards)
-	Int_t prevDetElemId = previousDetElemId[iChamber];
-	Int_t prevBoard = previousBoard[iChamber];
-	previousDetElemId[iChamber] = detElemId;
-	previousBoard[iChamber] = nBoard;
-
-	if(detElemId == prevDetElemId){
-	  if(nBoard-prevBoard==1) continue;
-	}
-      }
-
-      const AliMpVSegmentation* seg 
-	  = AliMpSegmentation::Instance()
-	  ->GetMpSegmentation(detElemId, AliMp::GetCathodType(iCath));  
-
-      // loop over the 16 bits of pattern
-      for (Int_t ibitxy = 0; ibitxy < 16; ++ibitxy) {
+    // loop over the 16 bits of pattern
+    for (Int_t ibitxy = 0; ibitxy < 16; ibitxy++) {
     
-	if ((pattern >> ibitxy) & 0x1) {
+      if ((xyPattern >> ibitxy) & 0x1) {
 
-	  // not quite sure about this
-	  Int_t offset = 0;
-	  if (iCath && localBoard->GetSwitch(6)) offset = -8;
+	// not quite sure about this
+	Int_t offset = 0;
+	if (iCath && localBoard->GetSwitch(6)) offset = -8;
 
-	  AliMpPad pad = seg->PadByLocation(AliMpIntPair(nBoard,ibitxy+offset),kTRUE);
+	AliMpPad pad = seg->PadByLocation(AliMpIntPair(nBoard,ibitxy+offset),kTRUE);
 
-	  AliMUONDigit* digit = new  AliMUONDigit();
-	  if (!pad.IsValid()) {
-	    AliWarning(Form("No pad for detElemId: %d, nboard %d, ibitxy: %d\n",
-			    detElemId, nBoard, ibitxy));
-	    continue;
-	  } // 
+	AliMUONDigit* digit = new  AliMUONDigit();
+	if (!pad.IsValid()) {
+	  AliWarning(Form("No pad for detElemId: %d, nboard %d, ibitxy: %d\n",
+			  detElemId, nBoard, ibitxy));
+	  continue;
+	} // 
 
-	  Int_t padX = pad.GetIndices().GetFirst();
-	  Int_t padY = pad.GetIndices().GetSecond();
+	Int_t padX = pad.GetIndices().GetFirst();
+	Int_t padY = pad.GetIndices().GetSecond();
 
-	  // file digit
-	  digit->SetPadX(padX);
-	  digit->SetPadY(padY);
-	  digit->SetSignal(1.);
-	  digit->SetCathode(iCath);
-	  digit->SetDetElemId(detElemId);
-	  digit->SetElectronics(nBoard, ibitxy);
-	  digitList.Add(digit);
+	// file digit
+	digit->SetPadX(padX);
+	digit->SetPadY(padY);
+	digit->SetSignal(1.);
+	digit->SetCathode(iCath);
+	digit->SetDetElemId(detElemId);
+	digit->SetElectronics(nBoard, ibitxy);
+	digitList.Add(digit);
 	
-	}// xyPattern
-      }// ibitxy
-    }// cath
-  } // ichamber
+      }// xyPattern
+    }// ibitxy
+  }// case
 
   return kTRUE;
 } 

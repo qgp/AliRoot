@@ -5,13 +5,7 @@
  *  Category of AliRoot steering classes
  *  @{
  */
-
-/** @defgroup STEER0 STEER0
- *  Category of AliRoot steering classes
- *  @ingroup STEER
- *  @{
- */
-// From STEERLinkDef.h revision 1.99
+// From STEERLinkDef.h revision 1.95
 
     class AliPDG {};
 
@@ -29,11 +23,7 @@
     class AliMagFC {};
     class AliMagFCM {};
     class AliMagFMaps {};
-    class AliMagFMapsV1 {};
     class AliMagFDM {};
-    class AliMagFCheb {};
-    class AliCheb3DCalc {};
-    class AliCheb3D {};
     class AliLego {};
     class AliLegoGenerator {};
     class AliLegoGeneratorXYZ {};
@@ -74,6 +64,8 @@
     class AliReconstruction {};
     class AliVertexGenFile {};
     class AliVertexer {};
+    class AliVertexerTracks {};
+    class AliStrLine {};
     class AliV0vertexer {};
     class AliCascadeVertexer {};
 
@@ -93,7 +85,6 @@
 
     class AliTrackFitter {};
     class AliTrackFitterRieman {};
-    class AliTrackFitterKalman {};
     class AliTrackFitterStraight {};
     class AliTrackResiduals {};
     class AliTrackResidualsChi2 {};
@@ -120,6 +111,7 @@
     class AliSignalProcesor {};
     class  AliHelix {};
     class  AliCluster {};
+    class  AliClusterTGeo {};
     class  AliTracker {};
     class  AliV0 {};
     class  AliKink {};
@@ -131,12 +123,11 @@
 
 /** @} */
 
-/** @defgroup ESD ESD
+/** @defgroup STEER_ESD STEER_ESD
  *  Category of AliRoot event sumary data classes
- *  @ingroup STEER
  *  @{
  */
-// From ESDLinkDef.h revision 1.32
+// From ESDLinkDef.h revision 1.29
 
     enum  AliLog::EType_t {};
 
@@ -159,8 +150,6 @@
 
     class  AliKalmanTrack {};
     class  AliExternalTrackParam {};
-    class  AliVertexerTracks {};
-    class  AliStrLine {};
     class  AliLog {};
     class  AliPID {};
     class  AliTrackPointArray {};
@@ -173,7 +162,6 @@
 
     class AliTagCreator {};
     class AliRunTagCuts {};
-    class AliLHCTagCuts {};
     class AliEventTagCuts {};
 
     class AliTrackPointArray {};
@@ -194,12 +182,11 @@
 
 /** @} */
 
-/** @defgroup CDB CDB
+/** @defgroup STEER_CDB STEER_CDB
  *  Category of AliRoot Conditions database classes
- *  @ingroup STEER
  *  @{
  */
-// From CDBLinkDef.h revision 1.9
+// From CDBLinkDef.h revision 1.5
 
     class AliCDBPath {};
     class AliCDBRunRange {};
@@ -221,8 +208,6 @@
     class AliCDBGridParam {};
 
     class AliDCSValue {};
-    class AliDCSSensor {};
-    class AliDCSSensorArray {};
 
     class AliPreprocessor {};
 
@@ -233,9 +218,8 @@
 
 /** @} */
 
-/** @defgroup AOD AOD
+/** @defgroup STEER_AOD STEER_AOD
  *  Category of AliRoot AOD classes
- *  @ingroup STEER
  *  @{
  */
 // From AODLinkDef.h revision 1.5

@@ -284,17 +284,6 @@ Bool_t AliTRDtrigger::ReadDigits(AliRawReader* rawReader)
 }
 
 //_____________________________________________________________________________
-Bool_t AliTRDtrigger::ReadDigits(TTree *digitsTree) 
-{
-  //
-  // Reads the digits arrays from the input tree
-  //
-
-  return (fDigitsManager->ReadDigits(digitsTree));
-
-}
-
-//_____________________________________________________________________________
 Bool_t AliTRDtrigger::ReadTracklets(AliRunLoader *rl) 
 {
   //

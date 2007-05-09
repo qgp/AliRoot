@@ -34,8 +34,6 @@
 #include "TEventList.h"
 
 #include "AliRunTagCuts.h"
-#include "AliLHCTagCuts.h"
-#include "AliDetectorTagCuts.h"
 #include "AliEventTagCuts.h"
 #include "AliTagAnalysis.h"
 
@@ -61,8 +59,8 @@ AliTagAnalysisFrame::AliTagAnalysisFrame(const TGWindow *main, UInt_t w, UInt_t 
   fComboEventTagCut2(0), fTagResult(0),
   fAnalysisChain(0), fListBox(0),
   fBrowser(NULL), fBrowserButton(NULL),
-  fAliTagAnalysis(0), fAliRunCuts(0), fAliLHCCuts(0), 
-  fAliDetectorCuts(0), fAliEventCuts(0), fEventTagCutsName(0) {
+  fAliTagAnalysis(0), fAliRunCuts(0),
+  fAliEventCuts(0), fEventTagCutsName(0) {
    // Constructor.
 
 /*
@@ -128,8 +126,6 @@ AliTagAnalysisFrame::AliTagAnalysisFrame(const TGWindow *main, UInt_t w, UInt_t 
   
   fAliTagAnalysis = new AliTagAnalysis(); 
   fAliRunCuts = new AliRunTagCuts();
-  fAliLHCCuts = new AliLHCTagCuts();
-  fAliDetectorCuts = new AliDetectorTagCuts();
   fAliEventCuts = new AliEventTagCuts();
   
   MapSubwindows();
@@ -152,8 +148,6 @@ AliTagAnalysisFrame::~AliTagAnalysisFrame() {
   
   delete fAliTagAnalysis;
   delete fAliRunCuts;
-  delete fAliLHCCuts;
-  delete fAliDetectorCuts;
   delete fAliEventCuts;
   delete fTagResult;
   delete fAnalysisChain;
@@ -367,7 +361,7 @@ void AliTagAnalysisFrame::RunLocal() {
 #endif   
   
   fAnalysisChain = new TChain("esdTree");
-  fAnalysisChain = fAliTagAnalysis->QueryTags(fAliRunCuts,fAliLHCCuts,fAliDetectorCuts,fAliEventCuts);
+  fAnalysisChain = fAliTagAnalysis->QueryTags(fAliRunCuts,fAliEventCuts);
   
   TString res = TString("Number of Accepted Events: ");
   res += fAnalysisChain->GetEventList()->GetN();
@@ -412,7 +406,7 @@ void AliTagAnalysisFrame::RunGrid() {
 #endif
   
   fAnalysisChain = new TChain("esdTree");
-  fAnalysisChain = fAliTagAnalysis->QueryTags(fAliRunCuts,fAliLHCCuts,fAliDetectorCuts,fAliEventCuts);
+  fAnalysisChain = fAliTagAnalysis->QueryTags(fAliRunCuts,fAliEventCuts);
   
   TString res = TString("Number of Accepted Events: ");
   res += fAnalysisChain->GetEventList()->GetN();

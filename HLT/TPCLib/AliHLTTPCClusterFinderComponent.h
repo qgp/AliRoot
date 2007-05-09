@@ -57,16 +57,11 @@ class AliHLTTPCClusterFinderComponent : public AliHLTProcessor
 	// Public functions to implement AliHLTComponent's interface.
 	// These functions are required for the registration process
 
-  /** interface function, see @ref AliHLTComponent for description */
-  const char* GetComponentID();
-  /** interface function, see @ref AliHLTComponent for description */
-  void GetInputDataTypes( vector<AliHLTComponentDataType>& list);
-  /** interface function, see @ref AliHLTComponent for description */
-  AliHLTComponentDataType GetOutputDataType();
-  /** interface function, see @ref AliHLTComponent for description */
-  virtual void GetOutputDataSize( unsigned long& constBase, double& inputMultiplier );
-  /** interface function, see @ref AliHLTComponent for description */
-  AliHLTComponent* Spawn();
+	const char* GetComponentID();
+	void GetInputDataTypes( vector<AliHLTComponentDataType>& list);
+	AliHLTComponentDataType GetOutputDataType();
+	virtual void GetOutputDataSize( unsigned long& constBase, double& inputMultiplier );
+	AliHLTComponent* Spawn();
 
     protected:
 	

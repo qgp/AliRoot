@@ -41,9 +41,7 @@ AliMpDDL::AliMpDDL(Int_t id)
   : TObject(),
     fId(id),
     fDEIds(),
-    fBusPatchIds(),
-    fTriggerCrateIds(false)
-
+    fBusPatchIds()
 {
 /// Standard constructor
 }
@@ -53,8 +51,7 @@ AliMpDDL::AliMpDDL(TRootIOCtor* /*ioCtor*/)
   : TObject(),
     fId(0),
     fDEIds(),
-    fBusPatchIds(),
-    fTriggerCrateIds()
+    fBusPatchIds()
 {
 /// Root IO constructor
 }
@@ -109,24 +106,6 @@ Bool_t AliMpDDL::AddDE(Int_t detElemId)
 }   
 
 //______________________________________________________________________________
-Bool_t AliMpDDL::AddTriggerCrate(Int_t crateId)
-{
-/// Add trigger crate with given crateId.
-/// Return true if the trigger crate was added
-
-  if ( HasTriggerCrateId(crateId) ) {
-    AliWarningStream() 
-	<< "Trigger crate Id = " << crateId << " already present."
-	<< endl;
-    return false;
-  }    
-  
-  fTriggerCrateIds.Add(crateId);
-
-  return true;
-}      
-
-//______________________________________________________________________________
 Int_t AliMpDDL::GetNofDEs() const
 {  
 /// Return the number of detection elements connected to this DDL
@@ -172,30 +151,6 @@ Bool_t  AliMpDDL::HasBusPatchId(Int_t busPatchId) const
 /// Return true if the detection element Id is present
 
   return fBusPatchIds.HasValue(busPatchId);; 
-}
-
-//______________________________________________________________________________
-Int_t AliMpDDL::GetNofTriggerCrates() const
-{  
-/// Return the number of trigger crate connected to this DDL
-
-  return fTriggerCrateIds.GetSize(); 
-}
-
-//______________________________________________________________________________
-Int_t  AliMpDDL::GetTriggerCrateId(Int_t index) const
-{  
-/// Return the trigger crate by index (in loop)
-
-  return fTriggerCrateIds.GetValue(index); 
-}
-
-//______________________________________________________________________________
-Bool_t  AliMpDDL::HasTriggerCrateId(Int_t triggerCrateId) const
-{  
-/// Return true if the trigger crate Id is present
-
-  return fTriggerCrateIds.HasValue(triggerCrateId);
 }
 
 //____________________________________________________________________

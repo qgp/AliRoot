@@ -125,12 +125,6 @@ AliHLTConfiguration::~AliHLTConfiguration()
     delete[] fArgv;
     fArgv=NULL;
   }
-
-  vector<AliHLTConfiguration*>::iterator element=fListSources.begin();
-  while (element!=fListSources.end()) {
-    fListSources.erase(element);
-    element=fListSources.begin();
-  }
 }
 
 /* the global configuration handler which is used to automatically register the configuration
@@ -304,7 +298,7 @@ int AliHLTConfiguration::ExtractSources()
 	if (fgConfigurationHandler) {
 	  AliHLTConfiguration* pConf=fgConfigurationHandler->FindConfiguration(*element);
 	  if (pConf) {
-	    //HLTDebug("configuration %s (%p): source \"%s\" (%p) inserted", GetName(), this, pConf->GetName(), pConf);
+	    HLTDebug("source \"%s\" inserted", pConf->GetName());
 	    fListSources.push_back(pConf);
 	  } else {
 	    HLTError("can not find source \"%s\"", (*element));
@@ -470,21 +464,6 @@ AliHLTTask& AliHLTTask::operator=(const AliHLTTask&)
 
 AliHLTTask::~AliHLTTask()
 {
-  TObjLink* lnk=fListDependencies.FirstLink();
-
-  while (lnk!=NULL) {
-    AliHLTTask* pTask=(AliHLTTask*)lnk->GetObject();
-    pTask->UnsetTarget(this);
-    lnk=lnk->Next();
-  }
-  lnk=fListTargets.FirstLink();
-
-  while (lnk!=NULL) {
-    AliHLTTask* pTask=(AliHLTTask*)lnk->GetObject();
-    pTask->UnsetDependency(this);
-    lnk=lnk->Next();
-  }
-
   if (fpComponent) delete fpComponent;
   fpComponent=NULL;
   if (fpBlockDataArray) delete[] fpBlockDataArray;
@@ -510,7 +489,6 @@ int AliHLTTask::Init(AliHLTConfiguration* pConf, AliHLTComponentHandler* pCH)
 	// currently just set to NULL. 
 	iResult=pCH->CreateComponent(fpConfiguration->GetComponentID(), NULL, argc, argv, fpComponent);
 	if (fpComponent || iResult<=0) {
-	  //HLTDebug("component %s (%p) created", fpComponent->GetComponentID(), fpComponent); 
 	} else {
 	  HLTError("can not find component \"%s\" (%d)", fpConfiguration->GetComponentID(), iResult);
 	}
@@ -536,7 +514,6 @@ int AliHLTTask::Deinit()
   AliHLTComponent* pComponent=GetComponent();
   fpComponent=NULL;
   if (pComponent) {
-    //HLTDebug("delete component %s (%p)", pComponent->GetComponentID(), pComponent); 
     pComponent->Deinit();
     delete pComponent;
   } else {
@@ -654,15 +631,6 @@ int AliHLTTask::SetDependency(AliHLTTask* pDep)
   return iResult;
 }
 
-int AliHLTTask::UnsetDependency(AliHLTTask* pDep)
-{
-  fListDependencies.Remove(pDep);
-  if (fpConfiguration) {
-    fpConfiguration->InvalidateSources();
-  }
-  return 0;
-}
-
 int AliHLTTask::CheckDependencies()
 {
   // see header file for function documentation
@@ -724,12 +692,6 @@ int AliHLTTask::SetTarget(AliHLTTask* pTgt)
     iResult=-EINVAL;
   }
   return iResult;
-}
-
-int AliHLTTask::UnsetTarget(AliHLTTask* pTarget)
-{
-  fListTargets.Remove(pTarget);
-  return 0;
 }
 
 int AliHLTTask::StartRun()
@@ -918,7 +880,6 @@ int AliHLTTask::ProcessTask(Int_t eventNo)
 	HLTDebug("task %s: component %s ProcessEvent finnished (%d): size=%d blocks=%d", GetName(), pComponent->GetComponentID(), iResult, size, outputBlockCnt);
 	if (iResult>=0 && pTgtBuffer) {
 	  iResult=fpDataBuffer->SetSegments(pTgtBuffer, outputBlocks, outputBlockCnt);
-	  delete [] outputBlocks; outputBlocks=NULL; outputBlockCnt=0;
 	}
       } else {
 	HLTError("task %s: no target buffer available", GetName());
@@ -1076,12 +1037,14 @@ AliHLTConfigurationHandler::AliHLTConfigurationHandler()
 AliHLTConfigurationHandler::~AliHLTConfigurationHandler()
 {
   // see header file for function documentation
-  TObjLink* lnk=NULL;
-  while (lnk=fgListConfigurations.FirstLink()) {
-    AliHLTConfiguration* pConf=(AliHLTConfiguration*)lnk->GetObject();
-    HLTDebug("delete configuration \"%s\"", pConf->GetName());
-    fgListConfigurations.Remove(lnk);
-    delete pConf;
+  TObjLink* lnk=fgListConfigurations.FirstLink();
+  while (lnk) {
+    TObject* obj=lnk->GetObject();
+    if (fgListConfigurations.FindObject(obj->GetName())==NULL) {
+      HLTDebug("delete configuration \"%s\"", obj->GetName());
+      delete obj;
+    }
+    lnk=lnk->Next();
   }
 }
 
@@ -1093,7 +1056,7 @@ int AliHLTConfigurationHandler::RegisterConfiguration(AliHLTConfiguration* pConf
     if (FindConfiguration(pConf->GetName()) == NULL) {
       AliHLTConfiguration* pClone=new AliHLTConfiguration(*pConf);
       fgListConfigurations.Add(pClone);
-      HLTDebug("configuration \"%s\" (%p) registered from %p", pClone->GetName(), pClone, pConf);
+      HLTDebug("configuration \"%s\" registered", pClone->GetName());
 
       // mark all configurations with unresolved dependencies for re-evaluation
       TObjLink* lnk=fgListConfigurations.FirstLink();

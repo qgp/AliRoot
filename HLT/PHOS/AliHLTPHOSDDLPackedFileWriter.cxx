@@ -1,24 +1,21 @@
 #include  "AliHLTPHOSDDLPackedFileWriter.h"
 
 
-//_________________________________________________________________________________________________
 AliHLTPHOSDDLPackedFileWriter::AliHLTPHOSDDLPackedFileWriter()
 {
 
 }
 
 
-//_________________________________________________________________________________________________
 AliHLTPHOSDDLPackedFileWriter::~AliHLTPHOSDDLPackedFileWriter()
 {
 
 }
 
 
-//_________________________________________________________________________________________________
-const int 
+int 
 AliHLTPHOSDDLPackedFileWriter::WriteFile(const AliHLTComponentEventData& evtData, 
-			const AliHLTComponentBlockData* blocks, AliHLTComponentTriggerData& trigData, int evntCnt) const
+			const AliHLTComponentBlockData* blocks, AliHLTComponentTriggerData& trigData, int evntCnt)
 {
   return 0;
 }

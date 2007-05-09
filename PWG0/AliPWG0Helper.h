@@ -14,9 +14,7 @@ class TH3;
 class AliPWG0Helper : public TObject
 {
   public:
-    enum Trigger { kMB1 = 0, kMB2 }; // definition from ALICE-INT-2005-025
-
-    static Bool_t IsEventTriggered(AliESD* aEsd, Trigger trigger = kMB2);
+    static Bool_t IsEventTriggered(AliESD* aEsd);
     static Bool_t IsVertexReconstructed(AliESD* aEsd);
     static Bool_t IsPrimaryCharged(TParticle* aParticle, Int_t aTotalPrimaries, Bool_t adebug = kFALSE);
 

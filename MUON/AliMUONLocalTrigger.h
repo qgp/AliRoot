@@ -7,13 +7,12 @@
 /* $Id$ */
 // Revision of includes 07/05/2004
 
-/// \ingroup trigger
+/// \ingroup base
 /// \class AliMUONLocalTrigger
 /// \brief Reconstructed Local Trigger object
 //  Author Ph. Crochet
 
 #include <TObject.h>
-#include <TArrayS.h>
 
 class AliMUONLocalStruct;
 
@@ -51,9 +50,6 @@ class AliMUONLocalTrigger : public TObject {
   UShort_t GetX3Pattern() const {return fX3Pattern;}
            /// Return X strip pattern for chamber 22
   UShort_t GetX4Pattern() const {return fX4Pattern;}
-           /// return X pattern array
-   void    GetXPattern(TArrayS& array) const;
-
 
            /// Return Y strip pattern for chamber 11 
   UShort_t GetY1Pattern() const {return fY1Pattern;}
@@ -63,8 +59,6 @@ class AliMUONLocalTrigger : public TObject {
   UShort_t GetY3Pattern() const {return fY3Pattern;}
            /// Return Y strip pattern for chamber 22
   UShort_t GetY4Pattern() const {return fY4Pattern;}
-           /// return Y pattern array
-   void    GetYPattern(TArrayS& array) const;
 
   Char_t GetLoDecision();
 

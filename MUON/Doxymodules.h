@@ -1,63 +1,54 @@
 // $Id$
 // The class categories definitions for Doxygen
 
-/** @defgroup MUON MUON
- *  \brief See library hierarchy too
- *  Category of MUON classes
- * \image html muon_libs.jpg
- *  @{
- */
-
-/** @defgroup mapping mapping
+/** @defgroup mapping MUON_mapping
  *  Category of mapping classes
- * \image html mapping_libs.jpg
- *  @ingroup MUON
  *  @{
  */
 
-/** @defgroup basic mp_basic
+/** @defgroup basic MUON_mapping_basic
  *  @ingroup mapping
  *  Category of basic classes in mapping
  *  @{
  */
 /** @} */
 
-/** @defgroup motif mp_motif
+/** @defgroup motif MUON_mapping_motif
  *  @ingroup mapping
  *  Category of motif classes in mapping
  *  @{
  */
 /** @} */
 
-/** @defgroup sector mp_sector
+/** @defgroup sector MUON_mapping_sector
  *  @ingroup mapping
  *  Category of classes for quadrants in mapping
  *  @{
  */
 /** @} */
 
-/** @defgroup slat mp_slat
+/** @defgroup slat MUON_mapping_slat
  *  @ingroup mapping
  *  Category of classes for slats in mapping
  *  @{
  */
 /** @} */
 
-/** @defgroup mptrigger mp_trigger
+/** @defgroup trigger MUON_mapping_trigger
  *  @ingroup mapping
  *  Category of classes for slats in mapping
  *  @{
  */
 /** @} */
 
-/** @defgroup management mp_management
+/** @defgroup management MUON_mapping_management
  *  @ingroup mapping
  *  Category of classes for management in mapping
  *  @{
  */
 /** @} */
 
-/** @defgroup graphics mp_graphics
+/** @defgroup graphics MUON_mapping_graphics
  *  @ingroup mapping
  *  Category of classes for visualization in mapping
  *  @{
@@ -66,70 +57,54 @@
 
 /** @} */
 
-/** @defgroup raw raw
- *  Category of classes for raw data
- *  @ingroup MUON
- *  @{
- */
-/** @} */
-
-/** @defgroup calib calib
- *  Category of basic classes for calibration
- *  @ingroup MUON
- *  @{
- */
-/** @} */
-
-/** @defgroup geometry geometry
+/** @defgroup geometry MUON_geometry
  *  Category of geometry framework classes
- *  @ingroup MUON
  *  @{
  */
 /** @} */
 
-/** @defgroup trigger trigger
- *  Category of classes for trigger
- *  @ingroup MUON
+/** @defgroup raw MUON_raw
+ *  Category of classes for raw data
  *  @{
  */
 /** @} */
 
-/** @defgroup base base
- *  Category of basic classes
- *  @ingroup MUON
+/** @defgroup calib MUON_calib
+ *  Category of basic classes for calibration
  *  @{
  */
 /** @} */
 
-/** @defgroup shuttle shuttle
+/** @defgroup shuttle MUON_shuttle
  *  Category of classes for shuttle
- *  @ingroup MUON
  *  @{
  */
 /** @} */
 
-/** @defgroup sim sim
+/** @defgroup base MUON_base
+ *  Category of basic classes
+ *  @{
+ */
+/** @} */
+
+/** @defgroup sim MUON_sim
  *  Category of classes for simulation
- *  @ingroup MUON
  *  @{
  */
 /** @} */
 
-/** @defgroup rec rec
+/** @defgroup rec MUON_rec
  *  Category of classes for reconstruction
- *  @ingroup MUON
  *  @{
  */
 /** @} */
 
-/** @defgroup evaluation evaluation
+/** @defgroup evaluation MUON_evaluation
  *  Category of classes for evaluation
- *  @ingroup MUON
  *  @{
  */
 /** @} */
 
-/** @} */
 
 
 

@@ -31,7 +31,6 @@
 #include "AliITSsegmentationSDD.h"
 #include <TClonesArray.h>
 #include "AliITSdigitSDD.h"
-#include "AliITSgeomTGeo.h"
 
 ClassImp(AliITSClusterFinderV2SDD)
 
@@ -112,9 +111,6 @@ FindClustersSDD(AliBin* bins[2], Int_t nMaxBin, Int_t nzBins,
   //------------------------------------------------------------
   // Actual SDD cluster finder
   //------------------------------------------------------------
-
-  const TGeoHMatrix *mT2L=AliITSgeomTGeo::GetTracking2LocalMatrix(fModule);
-
   AliITSCalibrationSDD* cal = (AliITSCalibrationSDD*)GetResp(fModule);
   Int_t ncl=0; 
   TClonesArray &cl=*clusters;
@@ -238,13 +234,11 @@ FindClustersSDD(AliBin* bins[2], Int_t nMaxBin, Int_t nzBins,
 	 
 	 CorrectPosition(zdet,xdet);
 
-         {
-         Double_t loc[3]={xdet,0.,zdet},trk[3]={0.,0.,0.};
-         mT2L->MasterToLocal(loc,trk);
-         y=trk[1];
-         z=trk[2]; 
-         }
-         q/=5.243;  //to have MPV 1 MIP = 86.4 KeV --> this must go to calibr.
+	 y=-(-xdet+fYshift[fModule]);
+	 z=  -zdet+fZshift[fModule];
+	  
+	 q/=5.039;  //to have MPV 1 MIP = 86.4 KeV
+         q/=16.49;  //to be consistent with SSD - provisional 06-APR-2007
          Float_t hit[5] = {y, z, 0.0030*0.0030, 0.0020*0.0020, q};
          Int_t  info[3] = {maxj-minj+1, maxi-mini+1, fNlayer[fModule]};
 
@@ -315,7 +309,8 @@ void AliITSClusterFinderV2SDD::FindClustersSDD(AliITSRawStream* input,
 	FindClustersSDD(bins, kMaxBin, kNzBins, NULL, clusters[iModule]);
 	Int_t nClusters = clusters[iModule]->GetEntriesFast();
 	nClustersSDD += nClusters;
-	bins[0] = bins[1] = NULL;	
+	bins[0] = bins[1] = NULL;
+	
       }
 
       if (!next) break;
@@ -327,22 +322,12 @@ void AliITSClusterFinderV2SDD::FindClustersSDD(AliITSRawStream* input,
     }
 
     // fill the current digit into the bins array
-    AliITSCalibrationSDD* cal = (AliITSCalibrationSDD*)GetResp(input->GetModuleID());
-    AliITSresponseSDD* res  = (AliITSresponseSDD*)cal->GetResponse();
-    const char *option=res->ZeroSuppOption();
-    Int_t q=input->GetSignal();
-    if(!((strstr(option,"1D")) || (strstr(option,"2D")))){
-      Float_t baseline = cal->GetBaseline(input->GetCoord1());
-       if(q>baseline) q-=(Int_t)baseline;
-       else q=0;
-     }
-    if(q>=cal->GetThresholdAnode(input->GetCoord1())) {
+    if(input->GetSignal()>=3) {
       Int_t iz = input->GetCoord1()+1;
-      //Int_t side = ((iz <= fNzSDD) ? 0 : 1);
-      Int_t side = ((AliITSRawStreamSDD*)input)->GetChannel();
-      //  iz -= side*fNzSDD;
+      Int_t side = ((iz <= fNzSDD) ? 0 : 1);
+      iz -= side*fNzSDD;
       Int_t index = (input->GetCoord2()+1) * kNzBins + iz;
-      bins[side][index].SetQ(q);
+      bins[side][index].SetQ(input->GetSignal());
       bins[side][index].SetMask(1);
       bins[side][index].SetIndex(index);
     }
@@ -352,6 +337,7 @@ void AliITSClusterFinderV2SDD::FindClustersSDD(AliITSRawStream* input,
   delete[] binsSDDInit;
 
   Info("FindClustersSDD", "found clusters in ITS SDD: %d", nClustersSDD);
+
 }
 
 
@@ -361,18 +347,18 @@ void AliITSClusterFinderV2SDD::CorrectPosition(Float_t &z, Float_t&y){
   //correction of coordinates using the maps stored in the DB
 
   AliITSCalibrationSDD* cal = (AliITSCalibrationSDD*)GetResp(fModule);
-  static const Int_t knbint = cal->GetMapTimeNBin();
-  static const Int_t knbina = cal->Chips()*cal->Channels();
+  static const Int_t nbint = cal->GetMapTimeNBin();
+  static const Int_t nbina = cal->Chips()*cal->Channels();
   Float_t stepa = (GetSeg()->Dpz(0))/10000.; //anode pitch in cm
   Float_t stept = (GetSeg()->Dx()/cal->GetMapTimeNBin()/2.)/10.;
   
   Int_t bint = TMath::Abs((Int_t)(y/stept));
-  if(y>=0) bint+=(Int_t)(knbint/2.);
-  if(bint>knbint) AliError("Wrong bin number!");
+  if(y>=0) bint+=(Int_t)(nbint/2.);
+  if(bint>nbint) AliError("Wrong bin number!");
 
   Int_t bina = TMath::Abs((Int_t)(z/stepa));
-  if(z>=0) bina+=(Int_t)(knbina/2.);
-  if(bina>knbina) AliError("Wrong bin number!");
+  if(z>=0) bina+=(Int_t)(nbina/2.);
+  if(bina>nbina) AliError("Wrong bin number!");
 
   Float_t devz = cal->GetMapACell(bina,bint)/10000.;
   Float_t devx = cal->GetMapTCell(bina,bint)/10000.;

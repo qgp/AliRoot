@@ -427,7 +427,7 @@ void AliTOFSDigitizer::Exec(Option_t *verboseOption) {
 
       for (Int_t hit = 0; hit < nhits; hit++) {
 	Int_t    vol[5];       // location for a digit
-	Int_t  digit[2];     // TOF digit variables
+	Float_t  digit[2];     // TOF digit variables
 	Int_t tracknum;
 	Float_t dxPad;
 	Float_t dzPad;
@@ -435,7 +435,7 @@ void AliTOFSDigitizer::Exec(Option_t *verboseOption) {
 
 	// fp: really sorry for this, it is a temporary trick to have
 	// track length too
-	if (version<6) { //(version!=6 && version!=7)
+	if(version!=6 && version!=7){
 	  AliTOFhit *tofHit = (AliTOFhit *) tofHitArray->UncheckedAt(hit);
 	  tracknum = tofHit->GetTrack();
 	  vol[0] = tofHit->GetSector();

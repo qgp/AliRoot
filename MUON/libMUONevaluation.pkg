@@ -2,11 +2,7 @@
 
 SRCS:= AliMUONPairLight.cxx \
        AliMUONTrackLight.cxx \
-       AliMUONCheck.cxx \
-       AliMUONRecoCheck.cxx \
-       AliMUONPoints.cxx \
-       AliMUONDisplay.cxx \
-       AliMUONDataInterface.cxx \
+       AliMUONCheck.cxx
             
 HDRS:= $(SRCS:.cxx=.h)
 

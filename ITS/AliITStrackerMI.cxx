@@ -578,22 +578,62 @@ AliCluster *AliITStrackerMI::GetCluster(Int_t index) const {
   return fgLayers[l].GetCluster(c);
 }
 
+#include "TGeoManager.h"
+#include "TGeoMatrix.h"
+#include "TGeoPhysicalNode.h"
+
 Bool_t AliITStrackerMI::GetTrackPoint(Int_t index, AliTrackPoint& p) const {
   //
   // Get track space point with index i
   //
-
   Int_t l=(index & 0xf0000000) >> 28;
   Int_t c=(index & 0x0fffffff) >> 00;
   AliITSRecPoint *cl = fgLayers[l].GetCluster(c);
   Int_t idet = cl->GetDetectorIndex();
 
-  Float_t xyz[3];
-  Float_t cov[6];
-  cl->GetGlobalXYZ(xyz);
-  cl->GetGlobalCov(cov);
-  p.SetXYZ(xyz, cov);
+  const char* name = AliAlignObj::SymName((AliAlignObj::ELayerID)
+					  (l+AliAlignObj::kFirstLayer), idet);
+  TGeoPNEntry *mapPN = gGeoManager->GetAlignableEntry(name);
 
+  if (!mapPN) return kFALSE;
+  TGeoPhysicalNode *node = mapPN->GetPhysicalNode();
+  if (!node) {
+    gGeoManager->MakeAlignablePN(name);
+    node = mapPN->GetPhysicalNode();
+  }
+  if (!node) return kFALSE;
+  TGeoHMatrix* matrix = node->GetMatrix();
+  if (!matrix) return kFALSE;
+
+  //
+  // Calculate the global coordinates
+  //
+  Double_t localCoord[]  = {cl->GetDetLocalX(), 0, cl->GetDetLocalZ()};
+  // LG  AliAlignObj makes life simple but keep in mind that alignable
+  // LG  volume doesn't mean sensitive volume. There might be a shift
+  // LG  between the 2, has it is here for the SPD :
+  if (l<2) localCoord[1] = 0.01;
+  // LG   !!!   Check for this when the new geometry comes   !!!
+  Double_t globalCoord[3] = {0};
+  matrix->LocalToMaster(localCoord, globalCoord);
+  Float_t xyz[3]= {globalCoord[0], globalCoord[1], globalCoord[2]};
+
+  //
+  // Calculate the cov matrix
+  //
+  TGeoRotation rotMatrix(*matrix);
+  TGeoRotation rotMatrixTr(rotMatrix.Inverse());
+  Double_t sigmaArray[] = {cl->GetSigmaY2(),0,0, 0,0,0, 0,0,cl->GetSigmaZ2()};
+  TGeoRotation sigmMatrix;
+  sigmMatrix.SetMatrix( sigmaArray );
+  sigmMatrix.MultiplyBy(&rotMatrixTr, kFALSE);
+  sigmMatrix.MultiplyBy(&rotMatrix, kTRUE);
+  const Double_t *globalSigma =  sigmMatrix.GetRotationMatrix();
+  Float_t cov[6]= { globalSigma[0], globalSigma[1], globalSigma[2],
+		                    globalSigma[4], globalSigma[5],
+		                                    globalSigma[8] };
+
+  p.SetXYZ(xyz[0],xyz[1],xyz[2],cov);
   AliAlignObj::ELayerID iLayer = AliAlignObj::kInvalidLayer; 
   switch (l) {
   case 0:
@@ -1673,7 +1713,7 @@ Bool_t AliITStrackerMI::RefitAt(Double_t xx,AliITStrackMI *t,
      Double_t maxchi2=1000.*kMaxChi2;
 
      Int_t idx=index[i];
-     if (idx>=0) {
+     if (idx>0) {
         const AliITSRecPoint *c=(AliITSRecPoint *)GetCluster(idx); 
 	if (c){
 	  if (idet != c->GetDetectorIndex()) {
@@ -1819,7 +1859,7 @@ AliITStrackerMI::RefitAt(Double_t xx,AliITStrackMI *t,const Int_t *clindex) {
      Double_t maxchi2=1000.*kMaxChi2;
 
      Int_t idx=index[i];
-     if (idx>=0) {
+     if (idx>0) {
         const AliITSRecPoint *c=(AliITSRecPoint *)GetCluster(idx); 
 	if (c){
 	  if (idet != c->GetDetectorIndex()) {

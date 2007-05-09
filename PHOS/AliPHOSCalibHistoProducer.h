@@ -20,6 +20,7 @@ class AliPHOSCalibHistoProducer : public TObject {
 public:
 
   AliPHOSCalibHistoProducer();
+  AliPHOSCalibHistoProducer(AliRawReader* rawReader);
   AliPHOSCalibHistoProducer(const AliPHOSCalibHistoProducer &histoproducer);
   AliPHOSCalibHistoProducer& operator= (const AliPHOSCalibHistoProducer &histoproducer);
   virtual ~AliPHOSCalibHistoProducer();
@@ -28,7 +29,6 @@ public:
   void UpdateHistoFile();
   void SetUpdatingRate(Int_t rate) {fUpdatingRate = rate;}
   void SetOldRCUFormat(Bool_t isOldRCUFormat) { fIsOldRCUFormat = isOldRCUFormat; }
-  void SetRawReader(AliRawReader* rawReader) { fRawReader = rawReader; }
 
 protected:
 
@@ -37,8 +37,6 @@ protected:
   TFile* fHistoFile;          // root file to store histograms in
   Int_t fUpdatingRate;        // update rate
   Bool_t fIsOldRCUFormat;     // Old RCU format flag.
-  TClonesArray* fDigits;      // digits of one event
-  Int_t fEvents;
 
   ClassDef(AliPHOSCalibHistoProducer,1)
 

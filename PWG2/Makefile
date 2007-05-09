@@ -2,7 +2,7 @@
 
 include $(ROOTSYS)/test/Makefile.arch
 
-default-target: libPWG2.so libPWG2ebye.so libPWG2flow.so libPWG2femtoscopy.so libPWG2femtoscopyUser.so
+default-target: libPWG2.so libPWG2ebye.so libPWG0flow.so 
 
 ALICEINC      = -I.
 
@@ -20,9 +20,7 @@ endif
 #  ALICEINC += -I../$(PWG0base_INCLUDE)
 #endif
 
-CXXFLAGS     += $(ALICEINC) -g -IFEMTOSCOPY/AliFemto -IFEMTOSCOPY/AliFemto/Base -IFEMTOSCOPY/AliFemto/Infrastructure -IFEMTOSCOPY/AliFemtoUser
-
-ALICEINC += -IFEMTOSCOPY/AliFemto -IFEMTOSCOPY/AliFemto/Base -IFEMTOSCOPY/AliFemto/Infrastructure  -IFEMTOSCOPY/AliFemtoUser
+CXXFLAGS     += $(ALICEINC) -g
 
 PACKAGE = PWG2
 include lib$(PACKAGE).pkg
@@ -53,7 +51,7 @@ G__PWG2.cxx G__PWG2.h: $(HDRS_PWG2) $(DHDR_PWG2)
 	rootcint -f $@ -c $(ALICEINC) $^
 
 clean:
-	@rm -f $(OBJS_PWG2) $(OBJS_PWG2ebye) $(OBJS_PWG2flow) $(OBJS_PWG2femtoscopy) *.so G__PWG2.* G__PWG2ebye.* G__PWG2flow.* G__PWG2femtoscopy.* $(PARFILE)
+	@rm -f $(OBJS_PWG2) $(OBJS_PWG2ebye) $(OBJS_PWG2flow) *.so G__PWG2.* G__PWG2ebye.* G__PWG2flow.* $(PARFILE)
 
 ### CREATE PAR FILE
 
@@ -133,53 +131,6 @@ endif
 	@echo "done"
 
 G__PWG2flow.cxx G__PWG2flow.h: $(HDRS_PWG2flow) $(DHDR_PWG2flow)
-	@echo "Generating dictionary ..."
-	rootcint -f $@ -c $(ALICEINC) $^
-
-
-## libPWG2femtoscopy part
-include libPWG2femtoscopy.pkg
-
-DHDR_PWG2femtoscopy := $(DHDR)
-HDRS_PWG2femtoscopy := $(HDRS)
-SRCS_PWG2femtoscopy := $(SRCS) G__PWG2femtoscopy.cxx
-OBJS_PWG2femtoscopy := $(SRCS_PWG2femtoscopy:.cxx=.o)
-
-libPWG2femtoscopy.so: $(OBJS_PWG2femtoscopy)
-	@echo "Linking" $@ ...
-	@/bin/rm -f $@
-ifeq ($(PLATFORM),macosx)
-	@$(LD) -bundle -undefined $(UNDEFOPT) $(LDFLAGS) $^ -o $@
-else
-	@$(LD) $(SOFLAGS) $(LDFLAGS) $^ -o $@
-endif
-	@chmod a+x $@
-	@echo "done"
-
-G__PWG2femtoscopy.cxx G__PWG2femtoscopy.h: $(HDRS_PWG2femtoscopy) $(DHDR_PWG2femtoscopy)
-	@echo "Generating dictionary ..."
-	rootcint -f $@ -c $(ALICEINC) $^
-
-## libPWG2femtoscopyUser part
-include libPWG2femtoscopyUser.pkg
-
-DHDR_PWG2femtoscopyUser := $(DHDR)
-HDRS_PWG2femtoscopyUser := $(HDRS)
-SRCS_PWG2femtoscopyUser := $(SRCS) G__PWG2femtoscopyUser.cxx
-OBJS_PWG2femtoscopyUser := $(SRCS_PWG2femtoscopyUser:.cxx=.o)
-
-libPWG2femtoscopyUser.so: $(OBJS_PWG2femtoscopyUser)
-	@echo "Linking" $@ ...
-	@/bin/rm -f $@
-ifeq ($(PLATFORM),macosx)
-	@$(LD) -bundle -undefined $(UNDEFOPT) $(LDFLAGS) $^ -o $@
-else
-	@$(LD) $(SOFLAGS) $(LDFLAGS) $^ -o $@
-endif
-	@chmod a+x $@
-	@echo "done"
-
-G__PWG2femtoscopyUser.cxx G__PWG2femtoscopyUser.h: $(HDRS_PWG2femtoscopyUser) $(DHDR_PWG2femtoscopyUser)
 	@echo "Generating dictionary ..."
 	rootcint -f $@ -c $(ALICEINC) $^
 

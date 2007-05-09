@@ -43,7 +43,6 @@
 #include <TROOT.h>
 #include <TClass.h>
 #include <TTree.h>
-#include <TLeaf.h>
 
 #include "AliAnalysisDataSlot.h"
 #include "AliAnalysisTask.h"
@@ -139,36 +138,13 @@ void *AliAnalysisDataSlot::GetBranchAddress(const char *branchname) const
 }   
 
 //______________________________________________________________________________
-Int_t AliAnalysisDataSlot::EnableBranch(const char *bname, TTree *tree)
-{
-// Static method to enable recursively a branch in a tree (why this in not in ROOT?)
-   TBranch *branch = tree->GetBranch(bname);
-   Int_t count = 0;
-//   static Int_t indent = 0;
-   if (!branch) return count;
-//   TString s;
-//   for (Int_t i=0; i<indent; i++) s += " ";
-   count++;
-//   printf("%sbranch %s: kDoNotProcess=%d\n",s.Data(), branch->GetName(), branch->TestBit(kDoNotProcess));
-   branch->SetBit(kDoNotProcess, kFALSE);
-   TIter next(branch->GetListOfBranches());
-   TBranch *branch_sub;
-   // Activate all sub-branches
-//   indent++;
-   while ((branch_sub=(TBranch*)next())) {
-      count += AliAnalysisDataSlot::EnableBranch(branch_sub->GetName(), tree);
-   }
-//   indent--;
-   return count;   
-}   
-
-//______________________________________________________________________________
 Bool_t AliAnalysisDataSlot::SetBranchAddress(const char *branchname, void *address)
 {
 // Set a branch address for input tree. To be called during MyTask::Init()
 // only if GetBranchAddress() returns a NULL pointer for a tree-type slot.
    if (GetBranchAddress(branchname)) {
-      Error("SetBranchAddress","Branch address for %s already set by other task. Call first GetBranchAddress() in %s::ConnectInputData()",branchname, fParent->GetName());
+     cout<<"Branch address for "<<branchname<<" already set by other task. Call first GetBranchAddress() in "<<fParent->GetName()<<"::Init()"<<endl;
+     //AliError(Form("Branch address for %s already set by other task. Call first GetBranchAddress() in %s::Init()",branchname, fParent->GetName()));
       return kFALSE;
    }
    TTree *tree = (TTree*)GetData();

@@ -6,7 +6,7 @@
 /* $Id$ */
 // Includes revised 07/05/2004
 //
-/// \ingroup evaluation
+/// \ingroup base
 /// \class AliMUONDataInterface
 /// \brief An easy to use interface to data in the MUON module
 
@@ -16,8 +16,7 @@
 #include <TObject.h>
 #include <TString.h>
 
-#include "AliMUONRecData.h"
-#include "AliMUONSimData.h"
+#include "AliMUONData.h"
 
 class TParticle;
 
@@ -117,9 +116,9 @@ class AliMUONDataInterface : public TObject
   /// Not implemented
   AliMUONDataInterface& operator=(const AliMUONDataInterface& rhs);
   
-  Bool_t FetchMuonLoader(TString filename);
-  Bool_t LoadLoaders(TString filename);
-  Bool_t FetchLoaders(TString filename);
+  Bool_t FetchMuonLoader(TString filename, TString foldername);
+  Bool_t LoadLoaders(TString filename, TString foldername);
+  Bool_t FetchLoaders(TString filename, TString foldername);
   Bool_t FetchEvent(Int_t event);
   Bool_t FetchTreeK();
   Bool_t FetchTreeH();
@@ -128,8 +127,7 @@ class AliMUONDataInterface : public TObject
   Bool_t FetchTreeR();
   Bool_t FetchTreeT();
   
-  Bool_t fCreatedRunLoader;   //!< If this object created the fRunloader then this flag is set.	
-  Bool_t fCreatedRunLoaderSim;//!< If this object created the fRunloader then this flag is set.	
+  Bool_t fCreatedRunLoader;  //!< If this object created the fRunloader then this flag is set.	
   
   Bool_t fHitAddressSet;     //!< Flag specifying if the TTree address for the hit tree was set.
   Bool_t fSDigitAddressSet;  //!< Flag specifying if the TTree address for the s-digit tree was set.
@@ -139,14 +137,10 @@ class AliMUONDataInterface : public TObject
   Bool_t fRecTracksAddressSet; //!< Flag specifying if the TTree address for the rec tracks tree was set.
   
   AliRunLoader* fRunloader;  //!< Pointer to the runloader object used.
-  AliRunLoader* fRunloaderSim; //!< Pointer to the runloader object used.
-  AliLoader* fRecLoader;    //!< Pointer to the muon loader object used.
-  AliLoader* fSimLoader;    //!< Pointer to the muon loader object used.
-  AliMUONRecData fRecData;  //!< Pointer to the muon raw data interface.
-  AliMUONSimData fSimData;  //!< Pointer to the muon raw data interface.
+  AliLoader* fMuonloader;    //!< Pointer to the muon loader object used.
+  AliMUONData fData;         //!< Pointer to the muon raw data interface.
   TString fFilename;         //!< The file name from which we are fetching data.
   TString fFoldername;       //!< The folder name from which we are fetching data.
-  TString fFoldernameSim;    //!< The folder name from which we are fetching data.
   Int_t fEventnumber;        //!< The currently selected event.
   Int_t fTrack;              //!< The currently selected track.
   Int_t fSCathode;           //!< The currently selected cathode in TreeS.

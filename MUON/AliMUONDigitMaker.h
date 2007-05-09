@@ -15,7 +15,6 @@
 #include "TStopwatch.h"
 
 class TList;
-class TArrayS;
 
 class AliRawReader;
 class AliMUONData;
@@ -23,6 +22,7 @@ class AliMUONDigit;
 class AliMUONGlobalTrigger;
 class AliMUONLocalTrigger;
 class AliMUONTriggerCrateStore;
+class AliMUONLocalTriggerBoard;
 class AliMUONLocalStruct;
 
 class AliMUONRawStreamTracker;
@@ -48,7 +48,11 @@ class AliMUONDigitMaker : public TObject
   Int_t GetMapping(Int_t buspatchId, UShort_t manuId, 
 			  UChar_t channelId, AliMUONDigit* digit );
 
-  Int_t TriggerDigits(Int_t nBoard, TArrayS* xyPattern, TList& digitList );
+  Int_t TriggerDigits(AliMUONLocalTriggerBoard* localBoard, 
+		      AliMUONLocalStruct* localStruct, TList& digitList );
+
+  void GetTriggerChamber(AliMUONLocalStruct* localStruct, 
+			 Int_t& xyPattern, Int_t& iChamber, Int_t& iCath, Int_t iCase );
 
         /// Set flag to generates scaler event
   void  SetScalerEvent() {fScalerEvent = kTRUE;}

@@ -24,6 +24,8 @@
 #include <AliStack.h>      //StepManager(),Hits2SDigits()
 #include <AliLoader.h>        //Hits2SDigits()
 #include <AliRunLoader.h>     //Hits2SDigits()
+#include <AliConst.h>
+#include <AliPDG.h>
 #include <AliMC.h>            //StepManager()      
 #include <AliRun.h>           //CreateMaterials()    
 #include <AliMagF.h>          //CreateMaterials()
@@ -550,7 +552,7 @@ void AliHMPIDv1::StepManager()
       eloss=0;                                                                                    //reset Eloss collector                         
       gMC->TrackPosition(in[0],in[1],in[2]);                                                      //take position at the entrance
     }else if(gMC->IsTrackExiting()||gMC->IsTrackStop()||gMC->IsTrackDisappeared()){               //exiting or disappeared
-      eloss              +=gMC->Edep();                                                           //take into account last step Eloss
+      eloss              +=gMC->Edep();                                                            //take into account last step Eloss
                           gMC->CurrentVolOffID(1,copy);                                           //take current chamber since geometry tree is HMPID-Rgap
       Int_t tid=          gMC->GetStack()->GetCurrentTrackNumber();                               //take TID
       Int_t pid=          gMC->TrackPid();                                                        //take PID

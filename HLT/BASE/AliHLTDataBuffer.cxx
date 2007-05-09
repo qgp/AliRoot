@@ -21,12 +21,6 @@
     @brief  Handling of Data Buffers for HLT components.
 */
 
-// see header file for class documentation
-// or
-// refer to README to build package
-// or
-// visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
-
 #if __GNUC__>= 3
 using namespace std;
 #endif
@@ -294,6 +288,7 @@ int AliHLTDataBuffer::SetSegments(AliHLTUInt8_t* pTgt, AliHLTComponentBlockData*
     if (fpBuffer) {
       if (fpBuffer->fPtr==(void*)pTgt) {
 	AliHLTDataBuffer::AliHLTDataSegment segment;
+	memset(&segment, 0, sizeof(AliHLTDataBuffer::AliHLTDataSegment));
 	for (int i=0; i<iSize; i++) {
 	  if (arrayBlockData[i].fOffset+arrayBlockData[i].fSize<=fpBuffer->fSize) {
 	    segment.fSegmentOffset=arrayBlockData[i].fOffset;
@@ -373,6 +368,7 @@ AliHLTDataBuffer::AliHLTRawBuffer* AliHLTDataBuffer::CreateRawBuffer(AliHLTUInt3
     // no buffer found, create a new one
     pRawBuffer=new AliHLTRawBuffer;
     if (pRawBuffer) {
+      memset(pRawBuffer, 0, sizeof(AliHLTRawBuffer));
       pRawBuffer->fPtr=malloc(reqSize);
       if (pRawBuffer->fPtr) {
 	pRawBuffer->fSize=size;

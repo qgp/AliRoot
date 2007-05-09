@@ -53,9 +53,6 @@ AliHLTPHOSGetEventButton::HandleButton(Event_t* event)
 	  onlineDisplayPtr->GetHistogram();
 	  cout << "updating Histograms" << endl;
 	  break;
-	case 'r':
-	   onlineDisplayPtr-> GetNextEventRaw();
-	   //   cout << "updating RawdataDisplay" << endl;
 	}
    //     onlineDisplayPtr->GetNextEvent();
     }

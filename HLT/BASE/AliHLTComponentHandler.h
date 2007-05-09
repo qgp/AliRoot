@@ -1,4 +1,3 @@
-//-*- Mode: C++ -*-
 // @(#) $Id$
 
 #ifndef ALIHLTCOMPONENTHANDLER_H
@@ -13,15 +12,10 @@
     @note   The handler is part of the interface and both used in the
             Online (PubSub) and Offline (AliRoot) context.
                                                                           */
-
-// see below for class documentation
-// or
-// refer to README to build package
-// or
-// visit http://web.ift.uib.no/~kjeks/doc/alice-hlt   
+   
 
 #include <vector>
-//#include "TObject.h"
+#include "TObject.h"
 #include "AliHLTDataTypes.h"
 #include "AliHLTLogging.h"
 
@@ -41,10 +35,6 @@ class AliHLTComponentHandler : public AliHLTLogging {
   AliHLTComponentHandler();
   /** constructor */
   AliHLTComponentHandler(AliHLTComponentEnvironment* pEnv);
-  /** not a valid copy constructor, defined according to effective C++ style */
-  AliHLTComponentHandler(const AliHLTComponentHandler&);
-  /** not a valid assignment op, but defined according to effective C++ style */
-  AliHLTComponentHandler& operator=(const AliHLTComponentHandler&);
   /** destructor */
   virtual ~AliHLTComponentHandler();
 
@@ -81,8 +71,7 @@ class AliHLTComponentHandler : public AliHLTLogging {
 
   /**
    * Unload a component shared library.
-   * All components will be de-registered when the last instance of the
-   * library was unloaded.
+   * All components will be de-registered.
    * @param libraryPath  library name as specified to @ref LoadLibrary
    * @return 0 if succeeded, neg. error code if failed
    */
@@ -220,11 +209,11 @@ class AliHLTComponentHandler : public AliHLTLogging {
    * Compount descriptor for component libraries
    */
   struct AliHLTLibHandle {
-    AliHLTLibHandle() : fHandle(NULL), fName(NULL) {}
+    AliHLTLibHandle() : handle(NULL), name(NULL) {}
     /** dlopen handle */
-    void* fHandle;                                                 //! transient
+    void* handle;                                                  //! transient
     /** name of the library, casted to TString* before use */
-    void* fName;                                                   //! transient
+    void* name;                                                    //! transient
   };
 
   /**
@@ -233,15 +222,6 @@ class AliHLTComponentHandler : public AliHLTLogging {
    * @return pointer to AliHLTLibHandle
    */
   AliHLTLibHandle* FindLibrary(const char* library);
-
-  /**
-   * Unload a component shared library.
-   * All components will be de-registered when the last instance of the
-   * library was unloaded.
-   * @param handle       handle to the library to unload
-   * @return 0 if succeeded, neg. error code if failed
-   */
-  int UnloadLibrary(AliHLTComponentHandler::AliHLTLibHandle &handle);
 
   /** list of registered components */
   vector<AliHLTComponent*> fComponentList;                         // see above 

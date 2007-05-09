@@ -43,7 +43,6 @@ int AliHLT_C_Component_InitSystem( AliHLTComponentEnvironment* environ )
   gComponentHandler_C = new AliHLTComponentHandler(environ);
   if ( !gComponentHandler_C )
     return EFAULT;
-  gComponentHandler_C->InitAliLogTrap(gComponentHandler_C);
   gComponentHandler_C->AnnounceVersion();
   return 0;
 }

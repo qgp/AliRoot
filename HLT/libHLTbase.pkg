@@ -14,6 +14,7 @@ MODULE_SRCS= 	AliHLTComponent.cxx \
 		AliHLTConsumerDescriptor.cxx \
 		AliHLTDataSource.cxx \
 		AliHLTDataSink.cxx \
+		AliHLTFileWriter.cxx \
 		AliHLTOfflineInterface.cxx \
 		AliHLTOfflineDataSource.cxx \
 		AliHLTOfflineDataSink.cxx \
@@ -32,6 +33,7 @@ CLASS_HDRS:=  	AliHLTComponent.h \
 		AliHLTConsumerDescriptor.h \
 		AliHLTDataSource.h \
 		AliHLTDataSink.h \
+		AliHLTFileWriter.h \
 		AliHLTOfflineInterface.h \
 		AliHLTOfflineDataSource.h \
 		AliHLTOfflineDataSink.h \
@@ -44,9 +46,8 @@ MODULE_HDRS:= 	$(CLASS_HDRS) \
 		AliHLTDefinitions.h \
 		AliHLTStdIncludes.h
 
-#DHDR:= 		BASE/HLTbaseLinkDef.h
-DHDR:= 		
-CINTAUTOLINK:=  1
+DHDR:= 		BASE/HLTbaseLinkDef.h
+CINTAUTOLINK:=
 
 SRCS:=$(patsubst %,BASE/%,$(MODULE_SRCS))
 CINTHDRS:=$(patsubst %,BASE/%,$(CLASS_HDRS))

@@ -1,27 +1,29 @@
 #ifndef ALIHLTPHOSFILEWRITER_H
 #define ALIHLTPHOSFILEWRITER_H
 
+#include "AliHLTPHOSFileWriter.h"
+#include <string>
 #include "AliHLTDataTypes.h"
 #include <iostream>
-using std::string;
 
+using std::string;
 
 class AliHLTPHOSFileWriter
 {
  public:
   AliHLTPHOSFileWriter();
   virtual ~AliHLTPHOSFileWriter();
-  void  MakeFilename(int eventNr =0, const AliHLTComponentDataType& dataType =  kAliHLTVoidDataType);
+  void  MakeFilename(int eventNr, const AliHLTComponentDataType& dataType);
   void SetDirectory(string& directory); 
 
  protected:
   int fCurrentEvntCnt;
-  FILE *fCurrentFile;      /**<Flepointer to current file*/
-  string fDirectory;       /**<Ouput directory for files produced by this component*/
-  string fCurrentFilename; /**<Name of file for writng current data to file*/
+  FILE *fCurrentFile;
+  string fDirectory;
+  string fCurrentFilename;
 
  private:
-  AliHLTPHOSFileWriter(const AliHLTPHOSFileWriter &);           /**<Never to be called*/
+  AliHLTPHOSFileWriter(const AliHLTPHOSFileWriter & );           /**<Never to be called*/
   AliHLTPHOSFileWriter & operator = (const AliHLTPHOSFileWriter &) /**<Never to be called*/
     {
       return *this;

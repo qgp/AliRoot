@@ -8,6 +8,5 @@
 #pragma link C++ class  AliHMPIDHit+;
 #pragma link C++ class  AliHMPIDCluster+;
 #pragma link C++ class  AliHMPIDParam+;
-#pragma link C++ class  AliHMPIDPreprocessor+;
-
+#pragma link C++ class  AliHMPID+;
 #endif

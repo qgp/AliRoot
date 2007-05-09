@@ -72,7 +72,7 @@ AliHLTComponent::AliHLTComponent()
   memset(&fEnvironment, 0, sizeof(AliHLTComponentEnvironment));
   if (fgpComponentHandler)
     fgpComponentHandler->ScheduleRegister(this);
-  //SetLocalLoggingLevel(kHLTLogDefault);
+  SetLocalLoggingLevel(kHLTLogDefault);
 }
 
 AliHLTComponent::AliHLTComponent(const AliHLTComponent&)
@@ -109,8 +109,6 @@ AliHLTComponent::~AliHLTComponent()
 {
   // see header file for function documentation
   CleanupInputObjects();
-  if (fpStopwatches!=NULL) delete fpStopwatches;
-  fpStopwatches=NULL;
 }
 
 AliHLTComponentHandler* AliHLTComponent::fgpComponentHandler=NULL;
@@ -452,7 +450,7 @@ const TObject* AliHLTComponent::GetFirstInputObject(const AliHLTComponentDataTyp
   fSearchDataType=dt;
   if (classname) fClassName=classname;
   else fClassName.clear();
-  int idx=FindInputBlock(fSearchDataType, 0, 1);
+  int idx=FindInputBlock(fSearchDataType, 0);
   HLTDebug("found block %d when searching for data type %s", idx, DataType2Text(dt).c_str());
   TObject* pObj=NULL;
   if (idx>=0) {
@@ -480,7 +478,7 @@ const TObject* AliHLTComponent::GetNextInputObject(int bForce)
 {
   // see header file for function documentation
   ALIHLTCOMPONENT_BASE_STOPWATCH();
-  int idx=FindInputBlock(fSearchDataType, fCurrentInputBlock+1, 1);
+  int idx=FindInputBlock(fSearchDataType, fCurrentInputBlock+1);
   //HLTDebug("found block %d when searching for data type %s", idx, DataType2Text(fSearchDataType).c_str());
   TObject* pObj=NULL;
   if (idx>=0) {
@@ -491,18 +489,13 @@ const TObject* AliHLTComponent::GetNextInputObject(int bForce)
   return pObj;
 }
 
-int AliHLTComponent::FindInputBlock(const AliHLTComponentDataType& dt, int startIdx, int bObject) const
+int AliHLTComponent::FindInputBlock(const AliHLTComponentDataType& dt, int startIdx) const
 {
   // see header file for function documentation
   int iResult=-ENOENT;
   if (fpInputBlocks!=NULL) {
     int idx=startIdx<0?0:startIdx;
     for ( ; (UInt_t)idx<fCurrentEventData.fBlockCnt && iResult==-ENOENT; idx++) {
-      if (bObject!=0) {
-	if (fpInputBlocks[idx].fPtr==NULL) continue;
-	AliHLTUInt32_t firstWord=*((AliHLTUInt32_t*)fpInputBlocks[idx].fPtr);
-	if (firstWord!=fpInputBlocks[idx].fSize-sizeof(AliHLTUInt32_t)) continue;
-      }
       if (dt == kAliHLTAnyDataType || fpInputBlocks[idx].fDataType == dt) {
 	iResult=idx;
       }
@@ -528,8 +521,8 @@ TObject* AliHLTComponent::CreateInputObject(int idx, int bForce)
 	    HLTDebug("object %p type %s created", pObj, objclass->GetName());
 	  } else {
 	  }
-	  //} else {
-       	} else if (bForce!=0) {
+	} else {
+	  //	} else if (bForce!=0) {
 	  HLTError("size missmatch: block size %d, indicated %d", fpInputBlocks[idx].fSize, firstWord+sizeof(AliHLTUInt32_t));
 	}
       } else {
@@ -635,7 +628,6 @@ const AliHLTComponentBlockData* AliHLTComponent::GetFirstInputBlock(const AliHLT
   if (idx>=0) {
     // check for fpInputBlocks pointer done in FindInputBlock
     pBlock=&fpInputBlocks[idx];
-    fCurrentInputBlock=idx;
   }
   return pBlock;
 }
@@ -659,7 +651,6 @@ const AliHLTComponentBlockData* AliHLTComponent::GetNextInputBlock()
   if (idx>=0) {
     // check for fpInputBlocks pointer done in FindInputBlock
     pBlock=&fpInputBlocks[idx];
-    fCurrentInputBlock=idx;
   }
   return pBlock;
 }

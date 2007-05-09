@@ -18,7 +18,7 @@
 class AliMUONTrackReconstructorK : public AliMUONVTrackReconstructor {
 
  public:
-  AliMUONTrackReconstructorK(AliMUONRecData* data, const Option_t* TrackMethod); // default Constructor
+  AliMUONTrackReconstructorK(AliMUONData* data, const Option_t* TrackMethod); // default Constructor
   virtual ~AliMUONTrackReconstructorK(); // Destructor
 
           /// Return track method
