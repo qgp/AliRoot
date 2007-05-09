@@ -27,11 +27,10 @@ void Hdisp(Int_t cosRun=44)                                                    /
       
       TFile *pEsdFl=TFile::Open("AliESDs.root"); gEsdTr=(TTree*) pEsdFl->Get("esdTree"); gEsdTr->SetBranchAddress("ESD", &gEsd);
       pAll->cd(7); TButton *pBtn=new TButton("Next","ReadEvt()",0,0,0.2,0.1);   pBtn->Draw();
-                   TButton *pHitBtn=new TButton("Print hits","PrintHits()",0  ,0.2,0.3,0.3);   pHitBtn->Draw();
-                   TButton *pSdiBtn=new TButton("Print sdis","PrintSdis()",0  ,0.4,0.3,0.5);   pSdiBtn->Draw();
-                   TButton *pDigBtn=new TButton("Print digs","PrintDigs()",0  ,0.6,0.3,0.7);   pDigBtn->Draw();
-                   TButton *pCluBtn=new TButton("Print clus","PrintClus()",0  ,0.8,0.3,0.9);   pCluBtn->Draw();  
-                   TButton *pEsdBtn=new TButton("Print  ESD"," PrintEsd()",0.4,0.8,0.7,0.9);  pEsdBtn->Draw();  
+                   TButton *pHitBtn=new TButton("Print hits","PrintHits()",0,0.2,0.3,0.3);   pHitBtn->Draw();
+                   TButton *pSdiBtn=new TButton("Print sdis","PrintSdis()",0,0.4,0.3,0.5);   pSdiBtn->Draw();
+                   TButton *pDigBtn=new TButton("Print digs","PrintDigs()",0,0.6,0.3,0.7);   pDigBtn->Draw();
+                   TButton *pCluBtn=new TButton("Print clus","PrintClus()",0,0.8,0.3,0.9);   pCluBtn->Draw();  
       ReadEvt();
     }
     else if ( gSystem->IsFileInIncludePath(Form("cosmic%d.root",cosRun))){                          //clm: Check if cosmic file is in the folder
@@ -77,6 +76,8 @@ void SimEvt()
   TObjArray    digs(7); for(Int_t i=0;i<7;i++) digs.AddAt(new TClonesArray("AliHMPIDDigit"),i);
   TObjArray    clus(7); for(Int_t i=0;i<7;i++) clus.AddAt(new TClonesArray("AliHMPIDCluster"),i);
   AliESD esd;
+  AliHMPIDDigit::fSigmas=4;
+  AliHMPIDDigitizer::DoNoise(kFALSE);
   gEvt++;
   SimEsd(&esd);
   SimHits(&esd,&hits);
@@ -114,8 +115,8 @@ void SimHits(AliESD *pEsd, TClonesArray *pHits)
   Int_t hc=0; 
   for(Int_t iTrk=0;iTrk<pEsd->GetNumberOfTracks();iTrk++){//tracks loop
     AliESDtrack *pTrk=pEsd->GetTrack(iTrk);
-    Float_t xPc,yPc;
-    Int_t ch=AliHMPIDTracker::IntTrkCha(pTrk,xPc,yPc);
+    Float_t xRa,yRa;
+    Int_t ch=AliHMPIDTracker::IntTrkCha(pTrk,xRa,yRa);
     if(ch<0) continue; //this track does not hit HMPID
     Float_t beta = pTrk->GetP()/(TMath::Sqrt(pTrk->GetP()*pTrk->GetP()+0.938*0.938));
     Float_t ckov=TMath::ACos(1./(beta*1.292));
@@ -351,20 +352,6 @@ void PrintClus()
   Int_t iCluCnt=0; for(Int_t iCh=0;iCh<7;iCh++) iCluCnt+=gH->CluLst(iCh)->GetEntries();
   
   Printf("totally %i clusters for event %i",iCluCnt,gEvt);
-}
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-void PrintEsd()
-{//prints a list of HMPID Esd  for a given event
-  Printf("List of HMPID ESD summary for event %i",gEvt);
-  Int_t nTrks = gEsd->GetNumberOfTracks();
-  
-  for(Int_t iTrk=0;iTrk<nTrks;iTrk++){
-    AliESDtrack *pTrk = gEsd->GetTrack(iTrk);
-    Float_t x,y;Int_t q,nacc;
-    pTrk->GetHMPIDmip(x,y,q,nacc);
-    Printf("Track %02i with p %7.2f with ThetaCer %5.3f with %i photons",iTrk,pTrk->GetP(),pTrk->GetHMPIDsignal(),nacc);
-  }
-  
 }
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void OpenCalib()

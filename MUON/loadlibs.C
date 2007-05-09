@@ -35,13 +35,11 @@ void loadlibs ()
   gSystem->Load("libMUONmapping");
   gSystem->Load("libMUONcalib");
   gSystem->Load("libMUONgeometry");
-  gSystem->Load("libMUONtrigger");
-  
-  gSystem->Load("libRAWDatabase");
-  gSystem->Load("libMUONraw");
-    
   gSystem->Load("libMUONbase");
 
+  gSystem->Load("libRAWDatabase");
+  gSystem->Load("libMUONraw");
+  
   gSystem->Load("libMUONshuttle");
 
   gSystem->Load("libRAWDatarec");
@@ -49,6 +47,4 @@ void loadlibs ()
   
   gSystem->Load("libRAWDatasim");
   gSystem->Load("libMUONsim");
-  
-  gSystem->Load("libMUONevaluation");
 }

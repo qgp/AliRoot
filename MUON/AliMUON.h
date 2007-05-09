@@ -6,7 +6,7 @@
 /* $Id$ */
 // Revision of includes 07/05/2004
 
-/// \ingroup sim
+/// \ingroup base
 /// \class AliMUON
 /// \brief AliDetector class for MUON subsystem providing
 /// simulation data management 
@@ -15,7 +15,7 @@
 #include <TObjArray.h>
 
 #include "AliDetector.h"
-#include "AliMUONSimData.h"
+#include "AliMUONData.h"
 #include "AliMUONChamber.h"
 #include "AliMUONTrigger.h"
 
@@ -25,10 +25,11 @@ class TFile;
 class TTree;
 
 class AliLoader;
-class AliMUONSimData;
+class AliMUONData;
 class AliMUONResponse;
 class AliMUONSegmentation;
 class AliMUONHit;
+class AliMUONRawCluster;
 class AliMUONGeometry;
 class AliMUONGeometryTransformer;
 class AliMUONGeometryBuilder;
@@ -57,7 +58,7 @@ class AliMUON : public  AliDetector
     AliMUONSegmentation*               GetSegmentation() const    { return fSegmentation; }
 
                    /// Return MUONData   
-    AliMUONSimData*   GetMUONData() {return fMUONData;}
+    AliMUONData*   GetMUONData() {return fMUONData;}
 
     // MUONLoader definition
     virtual AliLoader* MakeLoader(const char* topfoldername); //builds standard getter (AliLoader type)
@@ -72,6 +73,8 @@ class AliMUON : public  AliDetector
     virtual void   ResetDigits()                 {GetMUONData()->ResetDigits();}
                    /// Reset trigger
     virtual void   ResetTrigger()                {GetMUONData()->ResetTrigger();}
+                   /// Reset raw clusters
+    virtual void   ResetRawClusters()            {GetMUONData()->ResetRawClusters();}
                    /// Set split level
     virtual void   SetSplitLevel(Int_t SplitLevel)     {fSplitLevel=SplitLevel;}
 
@@ -140,6 +143,11 @@ class AliMUON : public  AliDetector
       {return *((AliMUONChamber *) (*fChambers)[id]);}
                   /// Return reference to New Circuit \a id 
 
+    // Return pointers to digit
+    AliMUONRawCluster    *RawCluster(Int_t ichamber, Int_t icathod,
+				     Int_t icluster);
+    // Inherited and overridden from AliModule:
+    //PH    virtual void RemapTrackHitIDs(Int_t * map);
     
   protected:
     /// Not implemented
@@ -151,7 +159,7 @@ class AliMUON : public  AliDetector
 
     Int_t                 fNCh;                ///< Number of chambers   
     Int_t                 fNTrackingCh;        ///< Number of tracking chambers*
-    AliMUONSimData*       fMUONData;           ///< Data container for MUON subsystem  
+    AliMUONData*          fMUONData;           ///< Data container for MUON subsystem  
     Int_t                 fSplitLevel;         ///< Splitlevel when making branches in outfiles.
     TObjArray*            fChambers;           ///< List of Tracking Chambers
     AliMUONGeometryBuilder*  fGeometryBuilder; ///< Geometry builder 
@@ -183,7 +191,7 @@ class AliMUON : public  AliDetector
     
     AliMUONDigitMaker* fDigitMaker; //!< pointer to the digit maker class
 
-    ClassDef(AliMUON,14)  // MUON Detector base class
+    ClassDef(AliMUON,13)  // MUON Detector base class
 };
 #endif
 

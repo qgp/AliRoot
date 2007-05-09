@@ -12,8 +12,7 @@
 */
 
 #include "AliHLTDataSink.h"
-#include <TString.h>
-//#include <TList.h>
+#include <TList.h>
 
 /**
  * @class AliHLTFileWriter
@@ -149,7 +148,7 @@ class AliHLTFileWriter : public AliHLTDataSink  {
    * Check a mode flag.
    * @return 1 if flag is set, 0 if not
    */
-  int CheckMode(Short_t mode) const;
+  int CheckMode(Short_t mode);
 
   /**
    * Working modes of the writer

@@ -29,7 +29,7 @@
 ////////////////////////////////////
 
 #include "AliMUONTrackReconstructorK.h"
-#include "AliMUONRecData.h"
+#include "AliMUONData.h"
 #include "AliMUONConstants.h"
 #include "AliMUONHitForRec.h"
 #include "AliMUONObjectPair.h"
@@ -46,7 +46,7 @@ ClassImp(AliMUONConstants)
 /// \endcond
 
 //__________________________________________________________________________
-AliMUONTrackReconstructorK::AliMUONTrackReconstructorK(AliMUONRecData* data, const Option_t* TrackMethod)
+AliMUONTrackReconstructorK::AliMUONTrackReconstructorK(AliMUONData* data, const Option_t* TrackMethod)
   : AliMUONVTrackReconstructor(data),
     fTrackMethod(2), //tracking method (2-Kalman 3-Combination-Kalman/Clustering)
     fMuons(0)

@@ -29,9 +29,8 @@ class AliAnalysisTask : public TTask {
   enum EAnalysisTaskFlags {
     kTaskUsed    = BIT(14),
     kTaskZombie  = BIT(15),
-    kTaskChecked = BIT(16),
-    kTaskPostEventLoop = BIT(17)
-  };
+    kTaskChecked = BIT(16)
+  };   
 
  protected:
   Bool_t                    fReady;         // Flag if the task is ready
@@ -60,18 +59,14 @@ class AliAnalysisTask : public TTask {
   Bool_t                    PostData(Int_t iout, TObject *data, Option_t *option="");
   //=====================================================================
   
-  // === USE THIS FIRST IN YOUR ConnectInputData() TO CHECH IF A BRANCH IS ALREADY CONNECTED
+  // === USE THIS FIRST IN YOUR Init() TO CHECH IF A BRANCH IS ALREADY CONNECTED
   // TO SOME ADDRESS.
   char                     *GetBranchAddress(Int_t islot, const char *branch) const;
-  // === CALL THIS AFTERWARDS IN ConnectInputData() IF THE BRANCH ADDRESS IS NOT YET SET
+  // === CALL THIS AFTERWARDS IN Init() IF THE BRANCH ADDRESS IS NOT YET SET
   Bool_t                    SetBranchAddress(Int_t islot, const char *branch, void *address) const;
   //=====================================================================
-  //=== CALL IN ConnectInputData() TO ENABLE ONLY EXPLICIT BRANCHES NEEDED FOR THIS TASK EXECUTION
-  void                      EnableBranch(Int_t islot, const char *bname) const;
-  //=====================================================================
-  // === CALL THIS IN CreateOutputObjects BEFORE CREATING THE OBJECT FOR EACH 
-  // OUTPUT IOUT THAT HAS TO BE WRITTEN TO A FILE
-  void                      OpenFile(Int_t iout, Option_t *option="RECREATE") const;
+  // === CALL THIS IN CreateOutputObjects IF THE OUTPUT IS TO BE WRITTEN AT OUTPUT IOUT
+//  void                      OpenFile(Int_t iout, const char *name, Option_t *option) const;
   
 public:  
   AliAnalysisTask();
@@ -84,8 +79,6 @@ public:
   //=====================================================================
   // === OVERLOAD THIS AND CREATE YOUR OUTPUT OBJECTS (HISTOGRAMS,DATA) HERE
   virtual void              CreateOutputObjects();
-  // === OVERLOAD THIS IF YOU NEED TO INITIALIZE YOUR CLASS ON THE CLIENT
-  virtual void              LocalInit();
   // === OVERLOAD THIS IF YOU NEED TO TREAT INPUT FILE CHANGE
   virtual Bool_t            Notify();
   // Conect inputs/outputs to data containers (by AliAnalysisModule)
@@ -110,7 +103,6 @@ public:
   TObject                  *GetOutputData(Int_t islot) const;  
   Bool_t                    IsOutputReady(Int_t islot) const {return fOutputReady[islot];}
   Bool_t                    IsChecked() const  {return TObject::TestBit(kTaskChecked);}
-  Bool_t                    IsPostEventLoop() const {return TObject::TestBit(kTaskPostEventLoop);}
   Bool_t                    IsInitialized() const  {return fInitialized;}
   Bool_t                    IsReady() const  {return fReady;}
   Bool_t                    IsUsed() const   {return TObject::TestBit(kTaskUsed);}
@@ -118,7 +110,6 @@ public:
   void                      PrintTask(Option_t *option="all", Int_t indent=0) const;
   void                      PrintContainers(Option_t *option="all", Int_t indent=0) const;
   void                      SetChecked(Bool_t flag=kTRUE) {TObject::SetBit(kTaskChecked,flag);}
-  void                      SetPostEventLoop(Bool_t flag=kTRUE);
   void                      SetUsed(Bool_t flag=kTRUE);
   void                      SetZombie(Bool_t flag=kTRUE) {TObject::SetBit(kTaskZombie,flag);}
   // Main task execution 

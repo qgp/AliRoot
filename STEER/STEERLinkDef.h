@@ -94,7 +94,6 @@
 
 #pragma link C++ class AliTrackFitter+;
 #pragma link C++ class AliTrackFitterRieman+;
-#pragma link C++ class AliTrackFitterKalman+;
 #pragma link C++ class AliTrackFitterStraight+;
 #pragma link C++ class AliTrackResiduals+;
 #pragma link C++ class AliTrackResidualsChi2+;
@@ -128,12 +127,5 @@
 #pragma link C++ class  AliSelectorRL+;
 
 #pragma link C++ class  AliSplineFit+;
-
-#pragma link C++ class AliDCSValue+;
-#pragma link C++ class AliDCSSensor+;
-#pragma link C++ class AliDCSSensorArray+;
-
-#pragma link C++ class AliSurveyObj+;
-#pragma link C++ class AliSurveyPoint+;
 
 #endif

@@ -35,47 +35,36 @@
 
 
 
-void MUONdisplay (Int_t nevent=0, 
-                  TString fileName="galice.root",
-                  TString fileNameSim="galice_sim.root") {
+void MUONdisplay (Int_t nevent=0, TString fileName="galice.root") {
 
   // set off mag field 
   AliMagF::SetReadField(kFALSE);
  
   // Getting runloader 
-  AliRunLoader * RunLoaderSim = AliRunLoader::Open(fileNameSim.Data(),"MUONFolderSim","READ");
-  if (RunLoaderSim == 0x0) {
+  AliRunLoader * RunLoader = AliRunLoader::Open(fileName.Data(),"MUONFolder","READ");
+  if (RunLoader == 0x0) {
     Error("MUONdisplay","Inut file %s error!",fileName.Data());
     return;   
   }
-  RunLoaderSim->LoadHeader();
-  RunLoaderSim->LoadKinematics("READ");
+  RunLoader->LoadHeader();
+  RunLoader->LoadKinematics("READ");
 
   //  if (RunLoader->GetAliRun() == 0x0) 
-  RunLoaderSim->LoadgAlice();
-  gAlice = RunLoaderSim->GetAliRun();
+  RunLoader->LoadgAlice();
+  gAlice = RunLoader->GetAliRun();
 
   // Getting MUONloader 
-  AliLoader * MUONLoaderSim  = RunLoaderSim->GetLoader("MUONLoader");
-  MUONLoaderSim->LoadHits("READ");
-  MUONLoaderSim->LoadDigits("READ");
-  
-  // Getting runloader 
-  AliRunLoader * RunLoaderRec = AliRunLoader::Open(fileName.Data(),"MUONFolder","READ");
-  if (RunLoaderRec == 0x0) {
-    Error("MUONdisplay","Inut file %s error!",fileName.Data());
-    return;   
-  }
-  AliLoader * MUONLoaderRec  = RunLoaderRec->GetLoader("MUONLoader");
-  MUONLoaderRec->LoadRecPoints("READ");
-  MUONLoaderRec->LoadTracks("READ");
+  AliLoader * MUONLoader  = RunLoader->GetLoader("MUONLoader");
+  MUONLoader->LoadHits("READ");
+  MUONLoader->LoadDigits("READ");
+  MUONLoader->LoadRecPoints("READ");
+  MUONLoader->LoadTracks("READ");
 
 
   // Create Event Display object
-  AliMUONDisplay *muondisplay = new AliMUONDisplay(750, MUONLoaderSim, MUONLoaderRec);
+  AliMUONDisplay *muondisplay = new AliMUONDisplay(750, MUONLoader);
 
   // Display first event
-  RunLoaderSim->GetEvent(nevent);
-  RunLoaderRec->GetEvent(nevent);
+  RunLoader->GetEvent(nevent);
   muondisplay->ShowNextEvent(0);
 }

@@ -13,9 +13,6 @@
  ***************************************************************************
  *
  * $Log$
- * Revision 1.1.1.1  2007/04/25 15:38:41  panos
- * Importing the HBT code dir
- *
  * Revision 1.1.1.1  2007/03/07 10:14:49  mchojnacki
  * First version on CVS
  *
@@ -54,11 +51,7 @@ extern void FillHbtParticleCollection(AliFemtoParticleCut*         partCut,
 
 
 //____________________________
-AliFemtoVertexAnalysis::AliFemtoVertexAnalysis(unsigned int bins, double min, double max):
-  fVertexBins(0),
-  fOverFlow(0),  
-  fUnderFlow(0)
-{
+AliFemtoVertexAnalysis::AliFemtoVertexAnalysis(unsigned int bins, double min, double max){
   //  mControlSwitch     = 0;
   fEventCut          = 0;
   fFirstParticleCut  = 0;
@@ -76,12 +69,7 @@ AliFemtoVertexAnalysis::AliFemtoVertexAnalysis(unsigned int bins, double min, do
 };
 //____________________________
 
-AliFemtoVertexAnalysis::AliFemtoVertexAnalysis(const AliFemtoVertexAnalysis& a) : 
-  AliFemtoAnalysis(),
-  fVertexBins(0),
-  fOverFlow(0),  
-  fUnderFlow(0)
-{
+AliFemtoVertexAnalysis::AliFemtoVertexAnalysis(const AliFemtoVertexAnalysis& a) : AliFemtoAnalysis() {
   //AliFemtoVertexAnalysis();
   fEventCut          = 0;
   fFirstParticleCut  = 0;

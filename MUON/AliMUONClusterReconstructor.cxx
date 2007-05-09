@@ -28,7 +28,7 @@
 
 #include "AliMUONDigit.h"
 #include "AliMUONConstants.h"
-#include "AliMUONRecData.h"
+#include "AliMUONData.h"
 #include "AliMUONClusterFinderVS.h"
 #include "AliMUONClusterInput.h"
 #include "AliMUONRawCluster.h"
@@ -45,7 +45,7 @@ ClassImp(AliMUONClusterReconstructor) // Class implementation in ROOT context
 /// \endcond
  
 //__________________________________________________________________________
-AliMUONClusterReconstructor::AliMUONClusterReconstructor(AliMUONRecData* data,
+AliMUONClusterReconstructor::AliMUONClusterReconstructor(AliMUONData* data,
                                                          AliMUONVClusterFinder* clusterFinder,
                                                          const AliMUONGeometryTransformer* transformer)
 : TObject(),

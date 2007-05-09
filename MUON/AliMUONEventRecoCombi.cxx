@@ -23,7 +23,7 @@
 
 #include "AliMUONEventRecoCombi.h"
 
-#include "AliMUONRecData.h"
+#include "AliMUONData.h"
 #include "AliMUONDetElement.h"
 #include "AliMUONDigit.h"
 #include "AliMUONHitForRec.h"
@@ -81,7 +81,7 @@ AliMUONEventRecoCombi::~AliMUONEventRecoCombi()
 }
 
 //_________________________________________________________________________
-void AliMUONEventRecoCombi::FillEvent(AliMUONRecData *data, AliMUONClusterFinderAZ *recModel)
+void AliMUONEventRecoCombi::FillEvent(AliMUONData *data, AliMUONClusterFinderAZ *recModel)
 {
   /// Fill event information
 
@@ -182,7 +182,7 @@ void AliMUONEventRecoCombi::FillEvent(AliMUONRecData *data, AliMUONClusterFinder
 }
 
 //_________________________________________________________________________
-void AliMUONEventRecoCombi::FillRecP(AliMUONRecData *dataCluster, AliMUONTrackReconstructorK *recoTrack) const
+void AliMUONEventRecoCombi::FillRecP(AliMUONData *dataCluster, AliMUONTrackReconstructorK *recoTrack) const
 {
   /// Fill rec. points used for tracking from det. elems
 

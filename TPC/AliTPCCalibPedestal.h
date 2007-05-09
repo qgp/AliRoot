@@ -9,45 +9,37 @@
 
 class TObjArray;
 class TH2F;
+class TH2S;
+class TH1S;
+class TH1F;
+class TH1D;
+class TF1;
 class TTreeSRedirector;
 class AliTPCROC;
-class AliTPCCalROC;
 class AliRawReader;
-struct eventHeaderStruct;
 
 
 class AliTPCCalibPedestal : public TObject {
 
 public:
   AliTPCCalibPedestal();
-  AliTPCCalibPedestal(const AliTPCCalibPedestal &ped);
   virtual ~AliTPCCalibPedestal();
-
-  AliTPCCalibPedestal& operator = (const  AliTPCCalibPedestal &source);
-
-  Bool_t ProcessEvent(AliTPCRawStream *rawStream);
-  Bool_t ProcessEvent(AliRawReader    *rawReader);
-  Bool_t ProcessEvent(eventHeaderStruct   *event);
-
+  
+  Bool_t ProcessEvent(AliRawReader *rawReader); 
   Int_t Update(const Int_t isector, const Int_t iRow, const Int_t iPad,
 	       const Int_t iTimeBin, const Float_t signal);
   void Analyse();
   //
-  AliTPCCalROC* GetCalRocPedestal (Int_t sector, Bool_t force=kFALSE);  // get calibration object - sector
-  AliTPCCalROC* GetCalRocRMS(Int_t sector, Bool_t force=kFALSE);        // get calibration object - sector
-  const TObjArray* GetCalPadPedestal (){return &fCalRocArrayPedestal;}  // get calibration object
-  const TObjArray* GetCalPadRMS(){return &fCalRocArrayRMS;}             // get calibration object
+  AliTPCCalROC* GetCalRocPedestal (Int_t sector, Bool_t force=kFALSE);  //get calibration object - sector
+  AliTPCCalROC* GetCalRocRMS(Int_t sector, Bool_t force=kFALSE);        //get calibration object - sector
+  const TObjArray* GetCalPadPedestal (){return &fCalRocArrayPedestal;}//get calibration object
+  const TObjArray* GetCalPadRMS(){return &fCalRocArrayRMS;}           //get calibration object
   
-  TH2F* GetHistoPedestal  (Int_t sector, Bool_t force=kFALSE);          // get refernce histogram
-  void  DumpToFile(const Char_t *filename, const Char_t *dir="", const Bool_t append=kFALSE);
+  TH2S* GetHistoPedestal  (Int_t sector, Bool_t force=kFALSE);          //get refernce histogram
+  void DumpToFile(const Char_t *filename, const Char_t *dir="", const Bool_t append=kFALSE);
   //
-  Int_t   GetFirstTimeBin() const { return fFirstTimeBin; }
-  Int_t   GetLastTimeBin()  const { return fLastTimeBin;  }
-  Int_t   GetAdcMin()       const { return fAdcMin;       }
-  Int_t   GetAdcMax()       const { return fAdcMax;       }
-
-  void    SetRangeTime(Int_t tMin, Int_t tMax){ fFirstTimeBin=tMin; fLastTimeBin=tMax; }  // Set time bin range that is used for the pedestal calibration
-  void    SetRangeAdc (Int_t aMin, Int_t aMax){ fAdcMin=aMin; fAdcMax=aMax; }  // Set adc range for the pedestal calibration
+  Short_t GetDebugLevel(){ return fDebugLevel; }
+  void    SetDebugLevel(Short_t debug=1){ fDebugLevel = debug;}
 
 
   Bool_t TestEvent();  //test the fast approach to fill histogram  - used for test purposes
@@ -66,9 +58,12 @@ private:
   
   TObjArray fHistoPedestalArray;    //  Calibration histograms for Pedestal distribution
   
+  TTreeSRedirector *fDebugStreamer;  //! debug streamer
   
+  Short_t fDebugLevel;
+  //! debugging
   
-  TH2F* GetHisto(Int_t sector, TObjArray *arr,
+  TH2S* GetHisto(Int_t sector, TObjArray *arr,
 		 Int_t nbinsY, Float_t ymin, Float_t ymax,
 		 Char_t *type, Bool_t force);
     

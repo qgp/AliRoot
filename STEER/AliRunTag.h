@@ -17,10 +17,9 @@
 #include <TString.h>
 #include <TClonesArray.h>
 #include "AliLHCTag.h"
-#include "AliDetectorTag.h"
 
 class AliEventTag;
-//class AliDetectorTag;
+class AliDetectorTag;
 
 
 //___________________________________________________________________________
@@ -43,8 +42,8 @@ class AliRunTag : public TObject {
   void SetCalibVersion(Int_t Pn) {fAliceCalibrationVersion = Pn;}
   void SetDataType(Int_t i) {fAliceDataType = i;}
   void SetNEvents(Int_t Pn) { fNumEvents = Pn; }
-  void SetLHCTag(Float_t Plumin, TString type);
-  void SetDetectorTag(UInt_t mask);
+  void SetLHCTag(Float_t Plumin, char *type);
+  void SetDetectorTag(const AliDetectorTag &t);
   void AddEventTag(const AliEventTag &t);
   void Clear(const char * opt = "");
   
@@ -63,8 +62,8 @@ class AliRunTag : public TObject {
   Int_t       GetDataType() const {return fAliceDataType;}
   Int_t       GetNEvents() const {return fNumEvents;}
   AliLHCTag  *GetLHCTag() {return &fLHCTag; } 
-  AliDetectorTag *GetDetectorTags() {return &fDetectorTag;}
   const TClonesArray *GetEventTags() const {return &fEventTag;}
+  const TClonesArray *GetDetectorTags() const {return &fDetectorTag;}
 
   //____________________________________________________//
  private:
@@ -83,7 +82,7 @@ class AliRunTag : public TObject {
   Int_t        fNumEvents;               //number of events per file
   Int_t        fNumDetectors;            //number of detector configs per file
   TClonesArray fEventTag;                //array with all event tags
-  AliDetectorTag fDetectorTag;             //array with all the detector tags
+  TClonesArray fDetectorTag;             //array with all the detector tags
   AliLHCTag    fLHCTag;                  //LHC tag object
   
   ClassDef(AliRunTag,3)  //(ClassName, ClassVersion)

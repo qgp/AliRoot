@@ -120,19 +120,14 @@ void AliAnalysisTaskPt::Exec(Option_t *)
 void AliAnalysisTaskPt::Terminate(Option_t *) 
 {
   // Processing when the event loop is ended
-
-  Bool_t problem=kFALSE;
-
-  AliInfo(Form(" *** %s Report:", GetName())) ; 
-
+  
   TCanvas *c1 = new TCanvas("c1","Pt",10,10,310,310);
   c1->SetFillColor(10);
   c1->SetHighLightColor(10);
   
   c1->cd(1)->SetLeftMargin(0.15);
   c1->cd(1)->SetBottomMargin(0.15);  
-  if (fhPt->GetMaximum() > 0 ) 
-    c1->cd(1)->SetLogy();
+  c1->cd(1)->SetLogy();
   fOutputContainer = (TObjArray*)GetOutputData(0);
   fhPt = (TH1F*)fOutputContainer->At(0);
   if (fhPt) fhPt->DrawCopy("E");
@@ -140,18 +135,10 @@ void AliAnalysisTaskPt::Terminate(Option_t *)
   c1->Print("TracksPt.eps");
 
   char line[1024] ; 
-  sprintf(line, ".!tar -zcf %s.tar.gz *.eps", GetName()) ; 
+  sprintf(line, ".!tar -zcvf %s.tar.gz *.eps", GetName()) ; 
   gROOT->ProcessLine(line);
   sprintf(line, ".!rm -fR *.eps"); 
   gROOT->ProcessLine(line);
 
-  AliInfo(Form("!!! All the eps files are in %s.tar.gz !!!", GetName())) ;
- 
-  char * report ; 
-  if(problem)
-    report="Problems found, please check!!!";  
-  else 
-    report="OK";
-  
-  AliInfo(Form("*** %s Summary Report: %s \n",GetName(), report)) ; 
+  AliInfo(Form("!!! All the eps files are in %s.tar.gz !!! \n", GetName())) ;
 }

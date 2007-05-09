@@ -5,7 +5,7 @@
 
 /* $Id$ */
 
-/// \ingroup trigger
+/// \ingroup sim
 /// \class AliMUONTriggerCrate
 /// \brief Trigger Crate
 ///

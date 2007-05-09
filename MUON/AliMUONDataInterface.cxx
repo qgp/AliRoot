@@ -70,7 +70,6 @@ ClassImp(AliMUONDataInterface)
 AliMUONDataInterface::AliMUONDataInterface()
 	: TObject(), 
 	  fCreatedRunLoader(kFALSE),
-	  fCreatedRunLoaderSim(kFALSE),
 	  fHitAddressSet(kFALSE),
 	  fSDigitAddressSet(kFALSE),
 	  fDigitAddressSet(kFALSE),
@@ -78,14 +77,10 @@ AliMUONDataInterface::AliMUONDataInterface()
 	  fTriggerAddressSet(kFALSE),
 	  fRecTracksAddressSet(kFALSE),
 	  fRunloader(0x0),
-	  fRunloaderSim(0x0),
-	  fRecLoader(0x0),
-	  fSimLoader(0x0),
-	  fRecData(0x0, "MUON", "MUON"),
-	  fSimData(0x0, "MUON", "MUON"),
+	  fMuonloader(0x0),
+	  fData(0x0, "MUON", "MUON"),
 	  fFilename(),
-	  fFoldername("MUONLoader"),
-	  fFoldernameSim("MUONLoaderSim"),
+	  fFoldername(),
 	  fEventnumber(-1),
 	  fTrack(-1),
 	  fSCathode(-1),
@@ -104,9 +99,6 @@ AliMUONDataInterface::~AliMUONDataInterface()
 
 	if (fRunloader != NULL && fCreatedRunLoader)
 		delete fRunloader;
-
-	if (fRunloaderSim != NULL && fCreatedRunLoaderSim)
-		delete fRunloaderSim;
 }
 
 void AliMUONDataInterface::Reset()
@@ -116,11 +108,8 @@ void AliMUONDataInterface::Reset()
 /// Specificaly AliRunLoader is not deleted.
 
 	fCreatedRunLoader = kFALSE;
-	fCreatedRunLoaderSim = kFALSE;
 	fRunloader = NULL;
-	fRunloaderSim = NULL;
-	fRecLoader = NULL;
-	fSimLoader = NULL;
+	fMuonloader = NULL;
 	fEventnumber = -1;
 	fTrack = -1;
 	fSCathode = -1;
@@ -144,10 +133,10 @@ Bool_t AliMUONDataInterface::UseCurrentRunLoader()
 	if (fRunloader == NULL) return kFALSE;
 	// Fetch the current file name, folder name and event number.
 	fFilename = fRunloader->GetFileName();
-        // fFoldername = fRunloader->GetEventFolder()->GetName();
+	fFoldername = fRunloader->GetEventFolder()->GetName();
 	fEventnumber = fRunloader->GetEventNumber();
 
-	if ( ! FetchMuonLoader(fFilename.Data()) )
+	if ( ! FetchMuonLoader(fFilename.Data(), fFoldername.Data()) )
 	{
 		Reset();
 		return kFALSE;
@@ -157,75 +146,52 @@ Bool_t AliMUONDataInterface::UseCurrentRunLoader()
 }
 
 
-Bool_t AliMUONDataInterface::FetchMuonLoader(TString filename)
+Bool_t AliMUONDataInterface::FetchMuonLoader(TString filename, TString foldername)
 {
 /// Fetches the muon loader for the given filename/foldername
 
-
-	fRecLoader = fRunloader->GetLoader("MUONLoader");
-	if (fRecLoader == NULL)
+	fMuonloader = fRunloader->GetLoader("MUONLoader");
+	if (fMuonloader == NULL)
 	{
 		AliError(Form("Could not find the MUON loader in file: %s and folder: %s", 
-			(const char*)filename, fFoldername.Data() ));
+			(const char*)filename, (const char*)foldername));
 		return kFALSE;
 	}
 	
 	// Need to connect the muon loader to the AliMUONData object,
-	// else class to fRecData will return NULL.
-	fRecData.SetLoader(fRecLoader);
-
-	fSimLoader = fRunloaderSim->GetLoader("MUONLoader");
-	if (fSimLoader == NULL)
-	{
-		AliError(Form("Could not find the MUON loader in file: %s and folder: %s", 
-			(const char*)filename, fFoldernameSim.Data()));
-		return kFALSE;
-	}
-	
-	// Need to connect the muon loader to the AliMUONData object,
-	// else class to fSimData will return NULL.
-	fSimData.SetLoader(fSimLoader);
+	// else class to fData will return NULL.
+	fData.SetLoader(fMuonloader);
 	return kTRUE;
 }
 
 
-Bool_t AliMUONDataInterface::LoadLoaders(TString filename)
+Bool_t AliMUONDataInterface::LoadLoaders(TString filename, TString foldername)
 {
 /// Load the run and muon loaders from the specified file and folder.
 /// kTRUE is returned on success and kFALSE on failure.
 
-	fRunloader = AliRunLoader::Open(filename, "MUONFolder", "READ");
+	fRunloader = AliRunLoader::Open(filename, foldername, "READ");
 	if (fRunloader == NULL)
 	{
-		AliError(Form("Could not find or load the run loader for the file: %s and folder: MUONFolder", 
-			(const char*)filename));
+		AliError(Form("Could not find or load the run loader for the file: %s and folder: %s", 
+			(const char*)filename, (const char*)foldername));
 		return kFALSE;
 	}
 	fCreatedRunLoader = kTRUE;
-
-	fRunloaderSim = AliRunLoader::Open(filename, "MUONFolderSim", "READ");
-	if (fRunloaderSim == NULL)
-	{
-		AliError(Form("Could not find or load the run loader for the file: %s and folder: MUONFolderSim", 
-			(const char*)filename));
-		return kFALSE;
-	}
-	fCreatedRunLoaderSim = kTRUE;
-
-	if ( ! FetchMuonLoader(filename) )
+	if ( ! FetchMuonLoader(filename, foldername) )
 	{
 		fRunloader = NULL;
-		fRunloaderSim = NULL;
 		return kFALSE;
 	}
 	
 	fFilename = filename;
+	fFoldername = foldername;
 	fEventnumber = -1;  // Reset the event number to force the event to be loaded.
 	return kTRUE;
 }
 
 
-Bool_t AliMUONDataInterface::FetchLoaders(TString filename)
+Bool_t AliMUONDataInterface::FetchLoaders(TString filename, TString foldername)
 {
 /// Fetch the run loader and muon loader objects from memory if they already exist,
 /// or from memory if they do not. 
@@ -237,12 +203,12 @@ Bool_t AliMUONDataInterface::FetchLoaders(TString filename)
 	{
 		fRunloader = AliRunLoader::GetRunLoader();
 		if (fRunloader == NULL)
-			return LoadLoaders(filename);
+			return LoadLoaders(filename, foldername);
 		else
 		{
-			if (fRecLoader == NULL)
+			if (fMuonloader == NULL)
 			{
-				if ( ! FetchMuonLoader(filename) )
+				if ( ! FetchMuonLoader(filename, foldername) )
 				{
 					fRunloader = NULL;
 					return kFALSE;
@@ -252,15 +218,15 @@ Bool_t AliMUONDataInterface::FetchLoaders(TString filename)
 		
 		// Fetch the current file and folder names.
 		fFilename = fRunloader->GetFileName();
-		// fFoldername = fRunloader->GetEventFolder()->GetName();
+		fFoldername = fRunloader->GetEventFolder()->GetName();
 	}
 
 	// If filename or foldername are not the same as the ones currently selected then
 	// reopen the file.
-	if ( filename.CompareTo(fFilename) != 0 )
+	if ( filename.CompareTo(fFilename) != 0 || foldername.CompareTo(fFoldername) != 0 )
 	{
 		delete fRunloader;
-		return LoadLoaders(filename);
+		return LoadLoaders(filename, foldername);
 	}
 	return kTRUE;
 }
@@ -308,10 +274,10 @@ Bool_t AliMUONDataInterface::FetchTreeK()
 {
 /// Fetch the Kine tree from the current run loader.
 
-	if (fRunloaderSim->TreeK() == NULL)
+	if (fRunloader->TreeK() == NULL)
 	{
-		fRunloaderSim->LoadKinematics("READ");
-		if (fRunloaderSim->TreeK() == NULL)
+		fRunloader->LoadKinematics("READ");
+		if (fRunloader->TreeK() == NULL)
 		{
 			AliError("Could not load TreeK.");
 			return kFALSE;
@@ -326,20 +292,20 @@ Bool_t AliMUONDataInterface::FetchTreeH()
 /// Fetch the Hits tree from the current muon loader.
 /// Set all the required addresses etc...
 
-	if (fSimLoader->TreeH() == NULL)
+	if (fMuonloader->TreeH() == NULL)
 	{
-		fSimLoader->LoadHits("READ");
-		if (fSimLoader->TreeH() == NULL)
+		fMuonloader->LoadHits("READ");
+		if (fMuonloader->TreeH() == NULL)
 		{
 			AliError("Could not load TreeH.");
 			return kFALSE;
 		}
-		fSimData.SetTreeAddress("H");
+		fData.SetTreeAddress("H");
 		fHitAddressSet = kTRUE;
 	}
 	else if ( ! fHitAddressSet )
 	{
-		fSimData.SetTreeAddress("H");
+		fData.SetTreeAddress("H");
 		fHitAddressSet = kTRUE;
 	}
 	return kTRUE;
@@ -351,20 +317,20 @@ Bool_t AliMUONDataInterface::FetchTreeS()
 /// Fetch the S-Digits tree from the current muon loader.
 /// Set all the required addresses etc...
 
-	if (fSimLoader->TreeS() == NULL)
+	if (fMuonloader->TreeS() == NULL)
 	{
-		fSimLoader->LoadSDigits("READ");
-		if (fSimLoader->TreeS() == NULL)
+		fMuonloader->LoadSDigits("READ");
+		if (fMuonloader->TreeS() == NULL)
 		{
 			AliError("Could not load TreeS.");
 			return kFALSE;
 		}
-		fSimData.SetTreeAddress("S");
+		fData.SetTreeAddress("S");
 		fSDigitAddressSet = kTRUE;
 	}
 	else if ( ! fSDigitAddressSet )
 	{
-		fSimData.SetTreeAddress("S");
+		fData.SetTreeAddress("S");
 		fSDigitAddressSet = kTRUE;
 	}
 	return kTRUE;
@@ -376,20 +342,20 @@ Bool_t AliMUONDataInterface::FetchTreeD()
 /// Fetch the digits tree from the current muon loader.
 /// Set all the required addresses etc...
 
-	if (fSimLoader->TreeD() == NULL)
+	if (fMuonloader->TreeD() == NULL)
 	{
-		fSimLoader->LoadDigits("READ");
-		if (fSimLoader->TreeD() == NULL)
+		fMuonloader->LoadDigits("READ");
+		if (fMuonloader->TreeD() == NULL)
 		{
 			AliError("Could not load TreeD.");
 			return kFALSE;
 		}
-		fSimData.SetTreeAddress("D");
+		fData.SetTreeAddress("D");
 		fDigitAddressSet = kTRUE;
 	}
 	else if ( ! fDigitAddressSet )
 	{
-		fSimData.SetTreeAddress("D");
+		fData.SetTreeAddress("D");
 		fDigitAddressSet = kTRUE;
 	}
 	return kTRUE;
@@ -401,10 +367,10 @@ Bool_t AliMUONDataInterface::FetchTreeR()
 /// Fetch the reconstructed objects tree from the current muon loader.
 /// Note: The addresses must still be set. 
   
-  if (fRecLoader->TreeR() == NULL)
+  if (fMuonloader->TreeR() == NULL)
     {
-      fRecLoader->LoadRecPoints("READ");
-      if (fRecLoader->TreeR() == NULL)
+      fMuonloader->LoadRecPoints("READ");
+      if (fMuonloader->TreeR() == NULL)
 	{
 	  AliError("Could not load TreeR.");
 	  return kFALSE;
@@ -422,10 +388,10 @@ Bool_t AliMUONDataInterface::FetchTreeT()
 {
 /// fetch the reconstructed tracks tree from the current muon loader
 /// note : the addresses must still be set.
-  if (fRecLoader->TreeT() == NULL)
+  if (fMuonloader->TreeT() == NULL)
     {
-      fRecLoader->LoadTracks("READ");
-      if (fRecLoader->TreeT() == NULL)
+      fMuonloader->LoadTracks("READ");
+      if (fMuonloader->TreeT() == NULL)
 	{
 	  AliError("Could not load TreeT.");
 	  return kFALSE;
@@ -442,7 +408,7 @@ Int_t AliMUONDataInterface::NumberOfEvents(TString filename, TString foldername)
 {
 /// Returns the number of events in the specified file/folder, and -1 on error.
 
-	if ( ! FetchLoaders(filename) ) return -1;
+	if ( ! FetchLoaders(filename, foldername) ) return -1;
 	return fRunloader->GetNumberOfEvents();
 }
 
@@ -451,7 +417,7 @@ Int_t AliMUONDataInterface::NumberOfParticles(TString filename, TString folderna
 {
 /// Returns the number of events in the specified file/folder, and -1 on error.
 
-	if ( ! FetchLoaders(filename) ) return -1;
+	if ( ! FetchLoaders(filename, foldername) ) return -1;
 	if ( ! FetchEvent(event) ) return -1;
 	if ( ! FetchTreeK() ) return -1;
 	return (Int_t) fRunloader->TreeK()->GetEntriesFast();
@@ -465,7 +431,7 @@ TParticle* AliMUONDataInterface::Particle(
 /// Returns the specified particle in the given file, folder and event.
 /// NULL is returned on error.
 
-	if ( ! FetchLoaders(filename) ) return NULL;
+	if ( ! FetchLoaders(filename, foldername) ) return NULL;
 	if ( ! FetchEvent(event) ) return NULL;
 	if ( ! FetchTreeK() ) return NULL;
 	
@@ -482,10 +448,10 @@ Int_t AliMUONDataInterface::NumberOfTracks(TString filename, TString foldername,
 /// Returns the number of tracks in the specified file/folder and event.
 /// -1 is returned on error.
 
-	if ( ! FetchLoaders(filename) ) return -1;
+	if ( ! FetchLoaders(filename, foldername) ) return -1;
 	if ( ! FetchEvent(event) ) return -1;
 	if ( ! FetchTreeH() ) return -1;
-	return fSimData.GetNtracks();
+	return fData.GetNtracks();
 }
 
 
@@ -496,17 +462,17 @@ Int_t AliMUONDataInterface::NumberOfHits(
 /// Returns the number of hits in the specified file/folder, event and track.
 /// -1 is returned on error.
 
-	if ( ! FetchLoaders(filename) ) return -1;
+	if ( ! FetchLoaders(filename, foldername) ) return -1;
 	if ( ! FetchEvent(event) ) return -1;
 	if ( ! FetchTreeH() ) return -1;
 
 	if (fTrack < 0 || fTrack != track)
 	{
-		fSimData.ResetHits();
-		fSimData.GetTrack(track);
+		fData.ResetHits();
+		fData.GetTrack(track);
 		fTrack = track;
 	}
-	return fSimData.Hits()->GetEntriesFast();
+	return fData.Hits()->GetEntriesFast();
 }
 
 
@@ -518,17 +484,17 @@ AliMUONHit* AliMUONDataInterface::Hit(
 /// Returns the specified hit in the given file, folder, event and track.
 /// NULL is returned on error.
 
-	if ( ! FetchLoaders(filename) ) return NULL;
+	if ( ! FetchLoaders(filename, foldername) ) return NULL;
 	if ( ! FetchEvent(event) ) return NULL;
 	if ( ! FetchTreeH() ) return NULL;
 
 	if (fTrack < 0 || fTrack != track)
 	{
-		fSimData.ResetHits();
-		fSimData.GetTrack(track);
+		fData.ResetHits();
+		fData.GetTrack(track);
 		fTrack = track;
 	}
-	return static_cast<AliMUONHit*>( fSimData.Hits()->At(hit) );
+	return static_cast<AliMUONHit*>( fData.Hits()->At(hit) );
 }
 
 
@@ -543,17 +509,17 @@ Int_t AliMUONDataInterface::NumberOfSDigits(
 	assert( 0 <= chamber && chamber <= 13 );
 	assert( 0 <= cathode && cathode <= 1 );
 	
-	if ( ! FetchLoaders(filename) ) return -1;
+	if ( ! FetchLoaders(filename, foldername) ) return -1;
 	if ( ! FetchEvent(event) ) return -1;
 	if ( ! FetchTreeS() ) return -1;
 
 	if ( fSCathode != cathode )
 	{
-		fSimData.ResetSDigits();
-		fSimData.GetSDigits();
+		fData.ResetSDigits();
+		fData.GetSDigits();
 		fSCathode = cathode;
 	}
-	return fSimData.SDigits(chamber)->GetEntriesFast();
+	return fData.SDigits(chamber)->GetEntriesFast();
 }
 
 
@@ -568,17 +534,17 @@ AliMUONDigit* AliMUONDataInterface::SDigit(
 	assert( 0 <= chamber && chamber <= 13 );
 	assert( 0 <= cathode && cathode <= 1 );
 	
-	if ( ! FetchLoaders(filename) ) return NULL;
+	if ( ! FetchLoaders(filename, foldername) ) return NULL;
 	if ( ! FetchEvent(event) ) return NULL;
 	if ( ! FetchTreeS() ) return NULL;
 
 	if ( fSCathode != cathode )
 	{
-		fSimData.ResetSDigits();
-		fSimData.GetSDigits();
+		fData.ResetSDigits();
+		fData.GetSDigits();
 		fSCathode = cathode;
 	}
-	return static_cast<AliMUONDigit*>( fSimData.SDigits(chamber)->At(sdigit) );
+	return static_cast<AliMUONDigit*>( fData.SDigits(chamber)->At(sdigit) );
 }
 
 
@@ -592,17 +558,17 @@ Int_t AliMUONDataInterface::NumberOfDigits(
 	assert( 0 <= chamber && chamber <= 13 );
 	assert( 0 <= cathode && cathode <= 1 );
 	
-	if ( ! FetchLoaders(filename) ) return -1;
+	if ( ! FetchLoaders(filename, foldername) ) return -1;
 	if ( ! FetchEvent(event) ) return -1;
 	if ( ! FetchTreeD() ) return -1;
 
 	if ( fCathode != cathode )
 	{
-		fSimData.ResetDigits();
-		fSimData.GetDigits();
+		fData.ResetDigits();
+		fData.GetDigits();
 		fCathode = cathode;
 	}
-	return fSimData.Digits(chamber)->GetEntriesFast();
+	return fData.Digits(chamber)->GetEntriesFast();
 }
 
 
@@ -617,17 +583,17 @@ AliMUONDigit* AliMUONDataInterface::Digit(
 	assert( 0 <= chamber && chamber <= 13 );
 	assert( 0 <= cathode && cathode <= 1 );
 	
-	if ( ! FetchLoaders(filename) ) return NULL;
+	if ( ! FetchLoaders(filename, foldername) ) return NULL;
 	if ( ! FetchEvent(event) ) return NULL;
 	if ( ! FetchTreeD() ) return NULL;
 
 	if ( fCathode != cathode )
 	{
-		fSimData.ResetDigits();
-		fSimData.GetDigits();
+		fData.ResetDigits();
+		fData.GetDigits();
 		fCathode = cathode;
 	}
-	return static_cast<AliMUONDigit*>( fSimData.Digits(chamber)->At(digit) );
+	return static_cast<AliMUONDigit*>( fData.Digits(chamber)->At(digit) );
 }
 
 
@@ -639,18 +605,18 @@ Int_t AliMUONDataInterface::NumberOfRawClusters(
 /// -1 is returned or error.
 
 	assert( 0 <= chamber && chamber <= 13 );
-	if ( ! FetchLoaders(filename) ) return -1;
+	if ( ! FetchLoaders(filename, foldername) ) return -1;
 	if ( ! FetchEvent(event) ) return -1;
 	if ( ! FetchTreeR() ) return -1;
 	if ( ! fClusterAddressSet )
 	{
 		// If the raw cluster address in TreeR is not set yet then set it now.
-		fRecData.SetTreeAddress("RC");
-		fRecData.ResetRawClusters();
-		fRecData.GetRawClusters();
+		fData.SetTreeAddress("RC");
+		fData.ResetRawClusters();
+		fData.GetRawClusters();
 		fClusterAddressSet = kTRUE;
 	}
-	return fRecData.RawClusters(chamber)->GetEntriesFast();
+	return fData.RawClusters(chamber)->GetEntriesFast();
 }
 
 
@@ -663,18 +629,18 @@ AliMUONRawCluster* AliMUONDataInterface::RawCluster(
 /// NULL is returned on error.
 
 	assert( 0 <= chamber && chamber <= 13 );
-	if ( ! FetchLoaders(filename) ) return NULL;
+	if ( ! FetchLoaders(filename, foldername) ) return NULL;
 	if ( ! FetchEvent(event) ) return NULL;
 	if ( ! FetchTreeR() ) return NULL;
 	if ( ! fClusterAddressSet )
 	{
 		// If the raw cluster address in TreeR is not set yet then set it now.
-		fRecData.SetTreeAddress("RC");
-		fRecData.ResetRawClusters();
-		fRecData.GetRawClusters();
+		fData.SetTreeAddress("RC");
+		fData.ResetRawClusters();
+		fData.GetRawClusters();
 		fClusterAddressSet = kTRUE;
 	}
-	return static_cast<AliMUONRawCluster*>( fRecData.RawClusters(chamber)->At(cluster) );
+	return static_cast<AliMUONRawCluster*>( fData.RawClusters(chamber)->At(cluster) );
 }
 
 
@@ -683,18 +649,18 @@ Int_t AliMUONDataInterface::NumberOfLocalTriggers(TString filename, TString fold
 /// Return the number of local trigger objects in the specified file, folder and
 /// event number. -1 is returned on error.
 
-	if ( ! FetchLoaders(filename) ) return -1;
+	if ( ! FetchLoaders(filename, foldername) ) return -1;
 	if ( ! FetchEvent(event) ) return -1;
 	if ( ! FetchTreeD() ) return -1;
 	if ( ! fTriggerAddressSet )
 	{
 		// If the local trigger address in TreeR is not set yet then set it now.
-		fRecData.SetTreeAddress("GLT");
-		fRecData.ResetTrigger();
-		fRecData.GetTriggerD();
+		fData.SetTreeAddress("GLT");
+		fData.ResetTrigger();
+		fData.GetTriggerD();
 		fTriggerAddressSet = kTRUE;
 	}
-	return fRecData.LocalTrigger()->GetEntriesFast();
+	return fData.LocalTrigger()->GetEntriesFast();
 }
 
 
@@ -705,18 +671,18 @@ AliMUONLocalTrigger* AliMUONDataInterface::LocalTrigger(
 /// Fetch the specified local trigger object from the given file, folder and event number.
 /// NULL is returned on error.
 
-	if ( ! FetchLoaders(filename) ) return NULL;
+	if ( ! FetchLoaders(filename, foldername) ) return NULL;
 	if ( ! FetchEvent(event) ) return NULL;
 	if ( ! FetchTreeD() ) return NULL;
 	if ( ! fTriggerAddressSet )
 	{
 		// If the local trigger address in TreeR is not set yet then set it now.
-		fRecData.SetTreeAddress("GLT");
-		fRecData.ResetTrigger();
-		fRecData.GetTriggerD();
+		fData.SetTreeAddress("GLT");
+		fData.ResetTrigger();
+		fData.GetTriggerD();
 		fTriggerAddressSet = kTRUE;
 	}
-	return static_cast<AliMUONLocalTrigger*>( fRecData.LocalTrigger()->At(trigger) );
+	return static_cast<AliMUONLocalTrigger*>( fData.LocalTrigger()->At(trigger) );
 }
 
 Bool_t AliMUONDataInterface::SetFile(TString filename, TString foldername)
@@ -724,7 +690,7 @@ Bool_t AliMUONDataInterface::SetFile(TString filename, TString foldername)
 /// Set the current file and folder from which to fetch data.
 /// kTRUE is returned if the run and muon loaders were found, else kFALSE. 
 
-	return FetchLoaders(filename);
+	return FetchLoaders(filename, foldername);
 }
 
 
@@ -812,7 +778,7 @@ Int_t AliMUONDataInterface::NumberOfTracks()
 		return -1;
 	}
 	if ( ! FetchTreeH() ) return -1;
-	return fSimData.GetNtracks();
+	return fData.GetNtracks();
 }
 
 
@@ -834,11 +800,11 @@ Int_t AliMUONDataInterface::NumberOfHits(Int_t track)
 	if ( ! FetchTreeH() ) return -1;
 	if (fTrack < 0 || fTrack != track)
 	{
-		fSimData.ResetHits();
-		fSimData.GetTrack(track);
+		fData.ResetHits();
+		fData.GetTrack(track);
 		fTrack = track;
 	}
-	return fSimData.Hits()->GetEntriesFast();
+	return fData.Hits()->GetEntriesFast();
 }
 
 
@@ -860,11 +826,11 @@ AliMUONHit* AliMUONDataInterface::Hit(Int_t track, Int_t hit)
 	if ( ! FetchTreeH() ) return NULL;
 	if (fTrack < 0 || fTrack != track)
 	{
-		fSimData.ResetHits();
-		fSimData.GetTrack(track);
+		fData.ResetHits();
+		fData.GetTrack(track);
 		fTrack = track;
 	}
-	return static_cast<AliMUONHit*>( fSimData.Hits()->At(hit) );
+	return static_cast<AliMUONHit*>( fData.Hits()->At(hit) );
 }
 
 
@@ -890,11 +856,11 @@ Int_t AliMUONDataInterface::NumberOfSDigits(Int_t chamber, Int_t cathode)
 	if ( ! FetchTreeS() ) return -1;
 	if ( fSCathode != cathode )
 	{
-		fSimData.ResetSDigits();
-		fSimData.GetSDigits();
+		fData.ResetSDigits();
+		fData.GetSDigits();
 		fSCathode = cathode;
 	}
-	return fSimData.SDigits(chamber)->GetEntriesFast();
+	return fData.SDigits(chamber)->GetEntriesFast();
 }
 
 
@@ -920,11 +886,11 @@ AliMUONDigit* AliMUONDataInterface::SDigit(Int_t chamber, Int_t cathode, Int_t s
 	if ( ! FetchTreeS() ) return NULL;
 	if ( fSCathode != cathode )
 	{
-		fSimData.ResetSDigits();
-		fSimData.GetSDigits();
+		fData.ResetSDigits();
+		fData.GetSDigits();
 		fSCathode = cathode;
 	}
-	return static_cast<AliMUONDigit*>( fSimData.SDigits(chamber)->At(sdigit) );
+	return static_cast<AliMUONDigit*>( fData.SDigits(chamber)->At(sdigit) );
 }
 
 
@@ -950,11 +916,11 @@ Int_t AliMUONDataInterface::NumberOfDigits(Int_t chamber, Int_t cathode)
 	if ( ! FetchTreeD() ) return -1;
 	if ( fCathode != cathode )
 	{
-		fSimData.ResetDigits();
-		fSimData.GetDigits();
+		fData.ResetDigits();
+		fData.GetDigits();
 		fCathode = cathode;
 	}
-	return fSimData.Digits(chamber)->GetEntriesFast();
+	return fData.Digits(chamber)->GetEntriesFast();
 }
 
 
@@ -980,11 +946,11 @@ AliMUONDigit* AliMUONDataInterface::Digit(Int_t chamber, Int_t cathode, Int_t di
 	if ( ! FetchTreeD() ) return NULL;
 	if ( fCathode != cathode )
 	{
-		fSimData.ResetDigits();
-		fSimData.GetDigits();
+		fData.ResetDigits();
+		fData.GetDigits();
 		fCathode = cathode;
 	}
-	return static_cast<AliMUONDigit*>( fSimData.Digits(chamber)->At(digit) );
+	return static_cast<AliMUONDigit*>( fData.Digits(chamber)->At(digit) );
 }
 
 
@@ -1009,12 +975,12 @@ Int_t AliMUONDataInterface::NumberOfRawClusters(Int_t chamber)
 	if ( ! FetchTreeR() ) return -1;
 	if ( ! fClusterAddressSet )
 	{
-		fRecData.SetTreeAddress("RC");
-		fRecData.ResetRawClusters();
-		fRecData.GetRawClusters();
+		fData.SetTreeAddress("RC");
+		fData.ResetRawClusters();
+		fData.GetRawClusters();
 		fClusterAddressSet = kTRUE;
 	}
-	return fRecData.RawClusters(chamber)->GetEntriesFast();
+	return fData.RawClusters(chamber)->GetEntriesFast();
 }
 
 
@@ -1039,12 +1005,12 @@ AliMUONRawCluster* AliMUONDataInterface::RawCluster(Int_t chamber, Int_t cluster
 	if ( ! FetchTreeR() ) return NULL;
 	if ( ! fClusterAddressSet )
 	{
-		fRecData.SetTreeAddress("RC");
-		fRecData.ResetRawClusters();
-		fRecData.GetRawClusters();
+		fData.SetTreeAddress("RC");
+		fData.ResetRawClusters();
+		fData.GetRawClusters();
 		fClusterAddressSet = kTRUE;
 	}
-	return static_cast<AliMUONRawCluster*>( fRecData.RawClusters(chamber)->At(cluster) );
+	return static_cast<AliMUONRawCluster*>( fData.RawClusters(chamber)->At(cluster) );
 }
 
 
@@ -1067,12 +1033,12 @@ Int_t AliMUONDataInterface::NumberOfLocalTriggers()
 	if ( ! FetchTreeD() ) return -1;
 	if ( ! fTriggerAddressSet )
 	{
-		fRecData.SetTreeAddress("GLT");
-		fRecData.ResetTrigger();
-		fRecData.GetTriggerD();
+		fData.SetTreeAddress("GLT");
+		fData.ResetTrigger();
+		fData.GetTriggerD();
 		fTriggerAddressSet = kTRUE;
 	}
-	return fRecData.LocalTrigger()->GetEntriesFast();
+	return fData.LocalTrigger()->GetEntriesFast();
 }
 
 
@@ -1095,12 +1061,12 @@ AliMUONLocalTrigger* AliMUONDataInterface::LocalTrigger(Int_t trigger)
 	if ( ! FetchTreeD() ) return NULL;
 	if ( ! fTriggerAddressSet )
 	{
-		fRecData.SetTreeAddress("GLT");
-		fRecData.ResetTrigger();
-		fRecData.GetTriggerD();
+		fData.SetTreeAddress("GLT");
+		fData.ResetTrigger();
+		fData.GetTriggerD();
 		fTriggerAddressSet = kTRUE;
 	}
-	return static_cast<AliMUONLocalTrigger*>( fRecData.LocalTrigger()->At(trigger) );
+	return static_cast<AliMUONLocalTrigger*>( fData.LocalTrigger()->At(trigger) );
 }
 
 Int_t AliMUONDataInterface::NumberOfGlobalTriggers()
@@ -1122,12 +1088,12 @@ Int_t AliMUONDataInterface::NumberOfGlobalTriggers()
   if ( ! FetchTreeD() ) return -1;
   if ( ! fTriggerAddressSet )
     {
-      fRecData.SetTreeAddress("GLT");
-      fRecData.ResetTrigger();
-      fRecData.GetTriggerD();
+      fData.SetTreeAddress("GLT");
+      fData.ResetTrigger();
+      fData.GetTriggerD();
       fTriggerAddressSet = kTRUE;
     }
-  return fRecData.GlobalTrigger()->GetEntriesFast();
+  return fData.GlobalTrigger()->GetEntriesFast();
 }
 
 AliMUONGlobalTrigger* AliMUONDataInterface::GlobalTrigger(Int_t trigger)
@@ -1149,12 +1115,12 @@ AliMUONGlobalTrigger* AliMUONDataInterface::GlobalTrigger(Int_t trigger)
   if ( ! FetchTreeD() ) return NULL;
   if ( ! fTriggerAddressSet )
     {
-      fRecData.SetTreeAddress("GLT");
-      fRecData.ResetTrigger();
-      fRecData.GetTriggerD();
+      fData.SetTreeAddress("GLT");
+      fData.ResetTrigger();
+      fData.GetTriggerD();
       fTriggerAddressSet = kTRUE;
     }
-  return static_cast<AliMUONGlobalTrigger*>( fRecData.GlobalTrigger()->At(trigger) );
+  return static_cast<AliMUONGlobalTrigger*>( fData.GlobalTrigger()->At(trigger) );
 }
 
 Int_t AliMUONDataInterface::NumberOfRecTracks()
@@ -1176,12 +1142,12 @@ Int_t AliMUONDataInterface::NumberOfRecTracks()
   if ( ! FetchTreeT() ) return -1;
   if ( ! fRecTracksAddressSet )
     {
-      fRecData.SetTreeAddress("RT");
-      fRecData.ResetRecTracks();
-      fRecData.GetRecTracks();
+      fData.SetTreeAddress("RT");
+      fData.ResetRecTracks();
+      fData.GetRecTracks();
       fRecTracksAddressSet = kTRUE;
     }
-  return fRecData.RecTracks()->GetEntriesFast();
+  return fData.RecTracks()->GetEntriesFast();
 }
 
 AliMUONTrack* AliMUONDataInterface::RecTrack(Int_t rectrack)
@@ -1203,11 +1169,11 @@ AliMUONTrack* AliMUONDataInterface::RecTrack(Int_t rectrack)
   if ( ! FetchTreeT() ) return NULL;
   if ( ! fRecTracksAddressSet )
     {
-      fRecData.SetTreeAddress("RT");
-      fRecData.ResetRecTracks();
-      fRecData.GetRecTracks();
+      fData.SetTreeAddress("RT");
+      fData.ResetRecTracks();
+      fData.GetRecTracks();
       fRecTracksAddressSet = kTRUE;
     }
-  return static_cast<AliMUONTrack*>( fRecData.RecTracks()->At(rectrack) );
-  // return (AliMUONTrack*)(fRecData.RecTracks()->At(rectrack));
+  return static_cast<AliMUONTrack*>( fData.RecTracks()->At(rectrack) );
+  // return (AliMUONTrack*)(fData.RecTracks()->At(rectrack));
 }

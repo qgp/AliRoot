@@ -7,15 +7,14 @@
 /* $Id$ */
 // Revision of includes 07/05/2004
 
-/// \ingroup evaluation
+/// \ingroup base
 /// \class AliMUONDisplay
 /// \brief Utility class to display MUON events
 
 #include "AliDisplay.h"
 
 class AliLoader;
-class AliMUONSimData;
-class AliMUONRecData;
+class AliMUONData;
 class AliMUONTrack;
 class TCanvas;
 class TPad;
@@ -28,8 +27,7 @@ class AliMUONDisplay : public AliDisplay
 {
 public:
                      AliMUONDisplay();
-                     AliMUONDisplay(Int_t size, 
-                                    AliLoader * simLoader, AliLoader * recLoader);
+                     AliMUONDisplay(Int_t size, AliLoader * loader=0x0);
 		     
    virtual          ~AliMUONDisplay();
    virtual void      Clear(Option_t *option="");
@@ -57,10 +55,8 @@ public:
    Int_t             GetChamber() const {return fChamber;}    ///< Return current chamber
    Int_t             GetCathode() const {return fCathode;}    ///< Return current cathode
 
-   AliMUONSimData*   GetMUONSimData() {return fMUONSimData;}        ///< Return MUON data
-   AliMUONRecData*   GetMUONRecData() {return fMUONRecData;}        ///< Return MUON data
-   AliLoader*        GetSimLoader()  {return fSimLoader;}           ///< Return loader
-   AliLoader*        GetRecLoader()  {return fRecLoader;}           ///< Return loader
+   AliMUONData*      GetMUONData() {return fMUONData;}        ///< Return MUON data
+   AliLoader*        GetLoader()  {return fLoader;}           ///< Return loader
 
    virtual void      LoadDigits(Int_t chamber, Int_t cathode);
    virtual void      LoadHits(Int_t chamber);
@@ -111,10 +107,8 @@ private:
    TObjArray        *fRpoints;              ///< Array of cog points for each cathode
    Int_t            fNextCathode;           ///< Flagging next cathode
 
-   AliLoader*        fSimLoader;            //!< MUON loader to get data
-   AliLoader*        fRecLoader;            //!< MUON loader to get data
-   AliMUONSimData*   fMUONSimData;          //!< Data container for MUON subsystem 
-   AliMUONRecData*   fMUONRecData;          //!< Data container for MUON subsystem 
+   AliLoader*       fLoader;                //!< MUON loader to get data
+   AliMUONData*     fMUONData;              //!< Data container for MUON subsystem 
 
    ClassDef(AliMUONDisplay, 0)   //Utility class to display MUON events
 };

@@ -24,12 +24,13 @@ public:
   AliTOFQATask& operator=(const AliTOFQATask & qatask); // assignment operator
   virtual ~AliTOFQATask(); //dtor
   virtual void Exec(Option_t * opt = "") ;
-  virtual void ConnectInputData(Option_t *) ;
-  virtual void CreateOutputObjects() ; 
+  virtual void ConnectInputData(Option_t *);
+  virtual void CreateOutputObjects();
   virtual void Terminate(Option_t * opt = "") ;
 
 private:
-  Bool_t DrawHistos() ;
+  void BookHistos() ;
+  void DrawHistos() ;
   void GetEfficiency() ;
   TTree   * fChain ;            //!pointer to the analyzed TTree or TChain
   AliESD  * fESD ;              //! Declaration of leave types
@@ -56,12 +57,6 @@ private:
   TH2F    * fhTOFMassVsMom; //Mass vs Momentum correlation
   TH1F    * fhTOFMass;      //reconstructed Mass from TOF
    
-  // Some QA parameters
-
-  Float_t fmatchFracMin;       //Thresholds for QA checks (matched tracks)
-  Float_t fmatchEffMin;        //Thresholds for QA checks (matched tracks)
-  Float_t ftimePeakMax;        //Thresholds for QA checks (time spectrum)
-  Float_t fmassPeakMax;        //Thresholds for QA checks (mass spectrum)
-  ClassDef(AliTOFQATask, 1); //  TOF Quality Assurance analysis task 
+  ClassDef(AliTOFQATask, 0); //  TOF Quality Assurance analysis task 
 };
 #endif // ALITOFQATASK_H

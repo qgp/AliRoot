@@ -7,7 +7,7 @@
 /* $Id$ */
 // Revision of includes 07/05/2004
 
-/// \ingroup trigger
+/// \ingroup base
 /// \class AliMUONGlobalTrigger
 /// \brief Global trigger object
 //  Author Ph. Crochet

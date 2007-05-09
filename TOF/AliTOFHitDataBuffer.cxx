@@ -15,9 +15,6 @@
 
 /*
 $Log$
-Revision 1.1  2007/04/27 11:03:09  arcelli
-container for TOF raw data
-
  authors: Roberto Preghenella, preghenella@bo.infn.it
           with contribution from Chiara Zampolli, zampolli@bo.infn.it 
 */
@@ -31,12 +28,12 @@ container for TOF raw data
 //                                                                    //
 ////////////////////////////////////////////////////////////////////////
 
-#include "AliLog.h"
+#include <stdlib.h>
 #include "AliTOFHitDataBuffer.h"
 
 ClassImp(AliTOFHitDataBuffer)
 
-AliTOFHitDataBuffer::AliTOFHitDataBuffer(Int_t BufferSize) :
+AliTOFHitDataBuffer::AliTOFHitDataBuffer(Int_t BufferSize = 1000) :
   TObject(),
   fBufferSize(BufferSize),
   fBuffer(0x0),
@@ -79,7 +76,7 @@ AliTOFHitDataBuffer::~AliTOFHitDataBuffer()
 Bool_t AliTOFHitDataBuffer::Add(AliTOFHitData &HitData) {
   // adding a new entry 
   if (fEntries >= fBufferSize){
-    AliError("The buffer is completely full. ");
+    printf("buffer limit: current entries = %d\n", fEntries);
     return kTRUE;
   }
   fBuffer[fEntries++] = HitData;

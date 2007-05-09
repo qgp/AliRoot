@@ -17,10 +17,8 @@ class AliFemtoCutMonitorHandler{
  public:
   
   AliFemtoCutMonitorHandler();
-  AliFemtoCutMonitorHandler(const AliFemtoCutMonitorHandler& aHan);
   virtual ~AliFemtoCutMonitorHandler();
-  AliFemtoCutMonitorHandler& operator=(const AliFemtoCutMonitorHandler& aHan);
-
+  
   AliFemtoCutMonitorCollection* PassMonitorColl(); 
   AliFemtoCutMonitorCollection* FailMonitorColl(); 
   AliFemtoCutMonitor* PassMonitor(int n); 

@@ -17,8 +17,6 @@
 
 // Macro which loads and compiles the MUON macros:
 //
-// fastMuonGen.C                 - ok, comp,  x;      Hermine, Alessandro
-// fastMuonSim.C                 - ok, comp,  x;      Hermine, Alessandro
 // DecodeRecoCocktail.C          - ok, comp,  README; Hermine, Alessandro
 // ReadRecoCocktail.C            - ok, comp,  README; Hermine, Alessandro
 // MergeMuonLight.C              - x,  comp,  README; Hermine, Alessandro
@@ -79,8 +77,6 @@ void loadmacros ()
   //
   TString includePath = "-I${ALICE_ROOT}/include ";
   includePath        += "-I${ALICE_ROOT}/RAW ";
-  includePath        += "-I${ALICE_ROOT}/FASTSIM ";
-  includePath        += "-I${ALICE_ROOT}/EVGEN ";
   includePath        += "-I${ALICE_ROOT}/SHUTTLE/TestShuttle ";
   includePath        += "-I${ALICE_ROOT}/ITS ";
   includePath        += "-I${ALICE_ROOT}/MUON ";
@@ -95,9 +91,6 @@ void loadmacros ()
 
   // Load macros
   //
-  gROOT->LoadMacro("$ALICE_ROOT/MUON/fastMUONGen.C++");      
-  gROOT->LoadMacro("$ALICE_ROOT/MUON/fastMUONSim.C++");      
-/*
   gROOT->LoadMacro("$ALICE_ROOT/MUON/DecodeRecoCocktail.C++");      
   gROOT->LoadMacro("$ALICE_ROOT/MUON/ReadRecoCocktail.C++");     
   gROOT->LoadMacro("$ALICE_ROOT/MUON/MergeMuonLight.C++");       
@@ -118,11 +111,10 @@ void loadmacros ()
   gROOT->LoadMacro("$ALICE_ROOT/MUON/MUONRawStreamTracker.C++");    
   gROOT->LoadMacro("$ALICE_ROOT/MUON/MUONRawStreamTrigger.C++");    
   gROOT->LoadMacro("$ALICE_ROOT/MUON/MUONRecoCheck.C++");           
-  // gROOT->LoadMacro("$ALICE_ROOT/MUON/MUONResoEffChamber.C++"); 
+  gROOT->LoadMacro("$ALICE_ROOT/MUON/MUONResoEffChamber.C++"); 
   gROOT->LoadMacro("$ALICE_ROOT/MUON/MUONStatusMap.C++");        
-  // gROOT->LoadMacro("$ALICE_ROOT/MUON/MUONTrigger.C++");        
+  gROOT->LoadMacro("$ALICE_ROOT/MUON/MUONTrigger.C++");        
   gROOT->LoadMacro("$ALICE_ROOT/MUON/MUONTriggerEfficiency.C++");   
   gROOT->LoadMacro("$ALICE_ROOT/MUON/MUONTriggerEfficiencyPt.C++"); 
   gROOT->LoadMacro("$ALICE_ROOT/MUON/TestMUONPreprocessor.C++");    
-*/
 }

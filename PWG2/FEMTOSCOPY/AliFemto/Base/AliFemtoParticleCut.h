@@ -16,10 +16,9 @@ class AliFemtoParticleCut : public AliFemtoCutMonitorHandler {
   friend class AliFemtoBaseAnalysis;
 
 public:
-  AliFemtoParticleCut();   // default constructor. - Users should write their own
+  AliFemtoParticleCut(){/* no-op */};   // default constructor. - Users should write their own
   AliFemtoParticleCut(const AliFemtoParticleCut&); // copy constructor
   virtual ~AliFemtoParticleCut(){/* no-op */};  // destructor
-  AliFemtoParticleCut& operator=(const AliFemtoParticleCut& aCut);
 
   virtual AliFemtoString Report() =0;    // user-written method to return string describing cuts
 
@@ -37,21 +36,19 @@ public:
   void SetAnalysis(AliFemtoBaseAnalysis*);
 
 protected:
-  AliFemtoBaseAnalysis* fyAnalysis; // Link to the base analysis class
   double fMass;
+  AliFemtoBaseAnalysis* fyAnalysis; // Link to the base analysis class
 
 #ifdef __ROOT__
   ClassDef(AliFemtoParticleCut, 0)
 #endif
 };
 
-inline AliFemtoParticleCut::AliFemtoParticleCut(): AliFemtoCutMonitorHandler(), fyAnalysis(0), fMass(0){};   // default constructor. - Users should write their own
-inline AliFemtoParticleCut::AliFemtoParticleCut(const AliFemtoParticleCut& c): AliFemtoCutMonitorHandler(), fyAnalysis(0), fMass(0) { 
+inline AliFemtoParticleCut::AliFemtoParticleCut(const AliFemtoParticleCut& c) : AliFemtoCutMonitorHandler() { 
   fMass = c.fMass; fyAnalysis = 0; 
 #ifdef STHBTDEBUG
   cout << " AliFemtoParticleCut::AliFemtoParticleCut(const AliFemtoParticleCut& c) - fMass: " << fMass << endl;
 #endif
 }
 inline void AliFemtoParticleCut::SetAnalysis(AliFemtoBaseAnalysis* analysis) { fyAnalysis = analysis; }
-inline AliFemtoParticleCut& AliFemtoParticleCut::operator=(const AliFemtoParticleCut& aCut) { if (this == &aCut) return *this; fyAnalysis = aCut.fyAnalysis; fMass=aCut.fMass; return *this; }
 #endif

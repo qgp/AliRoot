@@ -27,8 +27,7 @@ AliTriggerDetector.cxx \
 AliTriggerCondition.cxx \
 AliTriggerDescriptor.cxx \
 AliCentralTrigger.cxx AliRieman.cxx\
-AliTrackFitter.cxx AliTrackFitterRieman.cxx AliTrackFitterKalman.cxx\
-AliTrackFitterStraight.cxx\
+AliTrackFitter.cxx AliTrackFitterRieman.cxx AliTrackFitterStraight.cxx\
 AliTrackResiduals.cxx AliTrackResidualsChi2.cxx AliTrackResidualsFast.cxx AliTrackResidualsLinear.cxx\
 AliAlignmentTracks.cxx \
 AliExpression.cxx \
@@ -36,9 +35,7 @@ AliCTPRawData.cxx AliCTPRawStream.cxx \
 AliMathBase.cxx AliSignalProcesor.cxx \
 AliTracker.cxx AliCluster.cxx AliHelix.cxx AliV0.cxx AliKink.cxx \
 AliSelectorRL.cxx AliSplineFit.cxx \
-AliMagFMapsV1.cxx \
-AliDCSValue.cxx AliDCSSensor.cxx AliDCSSensorArray.cxx \
-AliSurveyObj.cxx AliSurveyPoint.cxx
+AliMagFMapsV1.cxx
 
 
 HDRS:= $(SRCS:.cxx=.h) 

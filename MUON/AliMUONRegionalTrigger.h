@@ -7,7 +7,7 @@
 /* $Id$ */
 // Revision of includes 07/05/2004
 
-/// \ingroup trigger
+/// \ingroup base
 /// \class AliMUONRegionalTrigger
 /// \brief Reconstructed regional Trigger object
 //  Author Ch. Finck

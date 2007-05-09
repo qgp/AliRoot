@@ -29,13 +29,11 @@
 #include "AliITSDetTypeRec.h"
 #include "AliITSLoader.h"
 #include "AliITStrackerMI.h"
-#include "AliITStrackerV2.h"
 #include "AliITStrackerSA.h"
 #include "AliITSVertexerIons.h"
 #include "AliITSVertexerFast.h"
-#include "AliITSVertexer3D.h"
+#include "AliITSVertexerPPZ.h"
 #include "AliITSVertexerZ.h"
-#include "AliITSVertexerCosmics.h"
 #include "AliESD.h"
 #include "AliITSpidESD.h"
 #include "AliITSpidESD1.h"
@@ -170,9 +168,6 @@ AliTracker* AliITSReconstructor::CreateTracker(AliRunLoader* runLoader)const
   AliTracker* tracker;    
   if (selectedTracker.Contains("MI")) {
     tracker = new AliITStrackerMI(0);
-  }  
-  else if (selectedTracker.Contains("V2")) {
-    tracker = new AliITStrackerV2(0);
   }
   else {
     tracker =  new AliITStrackerSA(0);  // inherits from AliITStrackerMI
@@ -212,13 +207,9 @@ AliVertexer* AliITSReconstructor::CreateVertexer(AliRunLoader* /*runLoader*/) co
     Info("CreateVertexer","a AliITSVertexerFast object has been selected\n"); 
     return new AliITSVertexerFast(smear);
   }
-  if(selectedVertexer.Contains("3d") || selectedVertexer.Contains("3D")){
-    Info("CreateVertexer","a AliITSVertexer3D object has been selected\n");
-    return new AliITSVertexer3D("null");
-  }
-  if(selectedVertexer.Contains("cosmics") || selectedVertexer.Contains("COSMICS")){
-    Info("CreateVertexer","a AliITSVertexerCosmics object has been selected\n");
-    return new AliITSVertexerCosmics();
+  if(selectedVertexer.Contains("ppz") || selectedVertexer.Contains("PPZ")){
+    Info("CreateVertexer","a AliITSVertexerPPZ object has been selected\n");
+    return new AliITSVertexerPPZ("null");
   }
   // by default an AliITSVertexerZ object is instatiated
   Info("CreateVertexer","a AliITSVertexerZ object has been selected\n");

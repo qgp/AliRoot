@@ -46,12 +46,11 @@ private:
 #endif
 };
 
-inline AliFemtoShareQualityPairCut::AliFemtoShareQualityPairCut(const AliFemtoShareQualityPairCut& c) : 
-  AliFemtoPairCut(c),
-  fNPairsPassed(0),
-  fNPairsFailed(0),
-  fShareQualityMax(1.0) // no cut
-{ /* no-op */ }
+inline AliFemtoShareQualityPairCut::AliFemtoShareQualityPairCut(const AliFemtoShareQualityPairCut& c) : AliFemtoPairCut(c) {
+  fNPairsPassed = 0;
+  fNPairsFailed = 0;
+  fShareQualityMax = 1.0; // no cut
+}
 
 inline AliFemtoShareQualityPairCut* AliFemtoShareQualityPairCut::Clone() { AliFemtoShareQualityPairCut* c = new AliFemtoShareQualityPairCut(*this); return c;}
 

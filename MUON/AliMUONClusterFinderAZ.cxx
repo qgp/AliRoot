@@ -33,7 +33,7 @@
 #include "AliMUONClusterDrawAZ.h"
 #include "AliMUONVGeometryDESegmentation.h"
 #include "AliMUONGeometryModuleTransformer.h"
-#include "AliMUONGeometrySegmentation.h"
+#include "AliMUON.h"
 #include "AliMUONDigit.h"
 #include "AliMUONRawCluster.h"
 #include "AliMUONClusterInput.h"

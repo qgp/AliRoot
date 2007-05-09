@@ -120,14 +120,6 @@ UInt_t AliPMDPreprocessor::Process(TMap* pdaqAliasMap)
   result = Store("Calib","Data", calibda, &metaData);
 
  delete calibda;
-if(result==0)
-      { Log("Error storing");                        
-        return 1;
- }
- else
- {
-        return 0;
- }
-
+ return result;
 }
 

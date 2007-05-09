@@ -22,16 +22,15 @@ using std::endl;
 
 ClassImp(AliHLTPHOSPulseGenerator) 
 
-
-
-AliHLTPHOSPulseGenerator::AliHLTPHOSPulseGenerator(): fAmplitude(0), fNSamples(0),fTau(0), fSampleFreq(0), fTZero(0), fDataPtr(0), fDT(0)
+/**
+ * Default constructor, not to be called without argumets
+ **/
+AliHLTPHOSPulseGenerator::AliHLTPHOSPulseGenerator(): fAmplitude(0), fNSamples(0),fTau(0), fSampleFreq(0), fTZero(0), fDataPtr(0), fDT(0), fEvent(0)
 {
-  //Never to be called   
   cout << "You cannot invoke the Pulsgenerator without parameters" << endl;
 }
 
-
-AliHLTPHOSPulseGenerator::AliHLTPHOSPulseGenerator(const AliHLTPHOSPulseGenerator &): fAmplitude(0), fNSamples(0),fTau(0), fSampleFreq(0), fTZero(0), fDataPtr(0), fDT(0)
+AliHLTPHOSPulseGenerator::AliHLTPHOSPulseGenerator(const AliHLTPHOSPulseGenerator &): fAmplitude(0), fNSamples(0),fTau(0), fSampleFreq(0), fTZero(0), fDataPtr(0), fDT(0), fEvent(0)
 {
   
 }
@@ -39,133 +38,141 @@ AliHLTPHOSPulseGenerator::AliHLTPHOSPulseGenerator(const AliHLTPHOSPulseGenerato
 
 AliHLTPHOSPulseGenerator::~AliHLTPHOSPulseGenerator()
 {
-  //Destructor  
   delete fDataPtr;
   fDataPtr=0;
 }
 
-
-AliHLTPHOSPulseGenerator::AliHLTPHOSPulseGenerator(double a, double t0, int N, double tau, double fs): fAmplitude(a), fNSamples(N),fTau(0), fSampleFreq(fs), fTZero(0), fDataPtr(0), fDT(0)
+/**
+ * Contruct a pulsegenrator object an initializes all necessary parameters
+ * @param a Amplitude in ADC levels (0 -1023)
+ * @param t0 Timedelay in nanoseconds of signal relative the first sample. This value should be between 0 and Ts
+ * where Ts is the sample interval
+ **/
+AliHLTPHOSPulseGenerator::AliHLTPHOSPulseGenerator(double a, double t0, int N, double t, double fs): fAmplitude(a), fNSamples(N),fTau(0), fSampleFreq(fs), fTZero(0), fDataPtr(0), fDT(0), fEvent(0)
 {
-  //See header file for documentation  
   fDataPtr = new double[100];
   SetAmplitude(a);
   SetDT(fs);
   SetTZero(t0);
   fNSamples=N;
-  fTau=tau;
+  fTau=t;
   fSampleFreq=fs;
+  MakePulse(fDataPtr);
 }
 
-
+/**
+ * Adds a baseline offset to the signal
+ * @param baselineLevel The basline level to add
+ * @param *samples The sample array for which to add te basline offset
+ **/
 void 
 AliHLTPHOSPulseGenerator::AddBaseline(double baselineLevel, double *samples)
 {
-  //See header file for documentation
   double *tmpSamples;
   tmpSamples = samples;
   printf("\nbaselineLevel = %f\n", baselineLevel);
   cout << "AddBaseline not implemented yet" << endl;
 }
 
-
+/**
+ * Adds Gaussian white noise to the sample array given by *dataPtr.
+ * @param dataPtr array of samples
+ * @param sigma the noise amplitude in entities of ADC levels  
+ **/
 void 
 AliHLTPHOSPulseGenerator::AddNoise(double *dataPtr, double *sigma)
 {
-  //See header file for documentation 
   printf("\ndataPtr = %f, sigma = %f\n", *dataPtr, *sigma);
   cout << "AddNoise is not implemented yet" << endl;
 }
 
 
+/**
+ * Adds correlated Gaussian noise with cutof frequency "cutoff"
+ * @param dataPtr array of values
+ * @param sigma noise amplitude in entities of ADC levels
+ * @param -30DB cutoff frequency of the noise in entities of sampling frequency
+ **/
 void 
 AliHLTPHOSPulseGenerator::AddNoise(double *dataPtr, double *sigma, double cutoff)
 {
-  //See header file for documentation 
   printf("\ndataPtr = %f, sigma = %f, cutoff = %f\n", *dataPtr, *sigma, cutoff);
   cout << "AddNoise is not implemeted yet" << endl;
 }
 
-
+/**
+ * Adds pretrigger samples to the sample array and returns 
+ * a new array containing the pretrigger samples concatenatet
+ * in front of the samples given by "samples"
+ * @param The baseline value of the pretrigger samples
+ * @param The sample array for which to add the pretrigger samples
+ **/
 double *
 AliHLTPHOSPulseGenerator::AddPretriggerSamples(double baselineLevel, double *samples)
 {
-    //See header file for documentation
   printf("\nbaslinelevel = %f, samples = %f\n", baselineLevel, *samples);
   cout << "AddPretriggerSamples not implemented yet" << endl;
   return 0;
 }
 
 
+/**
+ * Returns the generated pulse with the parameters given in the constructor
+ **/
 double *
-AliHLTPHOSPulseGenerator::GetPulse(double a, double t0)
+AliHLTPHOSPulseGenerator::GetPulse()
 {
-  //See header file for documentation
   return fDataPtr;
 }
 
 
-void 
-AliHLTPHOSPulseGenerator::Quantisize(double *dataPtr) const
+/**
+ * Returns a Pulse with new amplidude and t0
+ * @param a new amplidude, overriding the one given in the constructor
+ **/
+double *
+AliHLTPHOSPulseGenerator::GetPulse(double a, double t0)
 {
-  //See header file for documentation
+  return fDataPtr;
+}
+
+/**
+ * Emulates the ADC. Rounds down to nearest Integerevalue all entries given by
+ * dataPtr
+ **/
+void 
+AliHLTPHOSPulseGenerator::Quantisize(double *dataPtr)
+{
   double *dtaPtr;
   dtaPtr = new double[100];
   dtaPtr = dataPtr;
+  //  cout << "Quantisize is not implemented yet" << endl;
 }
-
 
 void
 AliHLTPHOSPulseGenerator::SetAmplitude(double a)
 {
-  //See header file for documentation
   fAmplitude=a;
 }
-
 
 void 
 AliHLTPHOSPulseGenerator::SetDT(double fs)
 {
-  //See header file for documentation
   fDT=1/fs;  
 }
-
 
 void
 AliHLTPHOSPulseGenerator::SetTZero(double t0)
 {
-  //See header file for documentation
   fTZero = -t0/1000; // Since time is in nanoseconds and the samplingfrequency is in MHz -> divide by 1000
-}
-
-
-void 
-AliHLTPHOSPulseGenerator::SetSampleFreq(int fs)
-{
-  //See header file for documentation
-  fSampleFreq = fs;
-  SetDT(fs);
 }
 
 
 void
 AliHLTPHOSPulseGenerator::MakePulse(double *dtaPtr)
 {
-  //See header file for documentation
-  for(int i=0; i<fNSamples; i++)
-    {
-      dtaPtr[i]=fAmplitude*exp((Double_t)2)*pow((i*fDT-fTZero)/fTau, 2)*exp(-2*(i*fDT-fTZero)/fTau);
-    }  
+for(int i=0; i<fNSamples; i++)
+  {
+    dtaPtr[i]=fAmplitude*exp((Double_t)2)*pow((i*fDT-fTZero)/fTau, 2)*exp(-2*(i*fDT-fTZero)/fTau);
+  }  
 }
-
-
-void
-AliHLTPHOSPulseGenerator::MakePulse(double *dtaPtr, int N)
-{
-  //See header file for documentation
-  for(int i=0; i<N; i++)
-    {
-      dtaPtr[i]=fAmplitude*exp((Double_t)2)*pow((i*fDT-fTZero)/fTau, 2)*exp(-2*(i*fDT-fTZero)/fTau);
-    }  
-}
-

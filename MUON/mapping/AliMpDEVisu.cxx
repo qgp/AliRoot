@@ -160,7 +160,7 @@ AliMpDEVisu::AliMpDEVisu(UInt_t w, UInt_t h)
   fCurrentDEName = detElem->GetDEName();
   fNameDECombo = new  TGComboBox(hframe, kDEName);
 
-  UpdateNameView(kTRUE);
+  UpdateNameView();
   fNameDECombo->Resize(160, 20);
   fNameDECombo->Select(0);
   fNameDECombo->Associate(this);
@@ -367,10 +367,6 @@ void AliMpDEVisu::DrawDE(Bool_t info)
   fEcanvas->GetCanvas()->cd();
   fEcanvas->GetCanvas()->SetEditable(kTRUE);
   
-  fNameDECombo->Select(fDEOccurrence[fCurrentDetElem]);
-  TGLBEntry* entry = fNameDECombo->GetSelectedEntry();
-  entry->SetBackgroundColor(0xDDDDDD);
-
   if (AliMpDEManager::GetStationType(fCurrentDetElem) == AliMp::kStation345 ) {
     
     DrawSlat("PMCI");
@@ -609,7 +605,7 @@ Bool_t AliMpDEVisu::ProcessMessage(Long_t msg, Long_t parm1, Long_t /*parm2*/)
           {
             case kChamberCombo: 
               UpdateComboDE();
-              UpdateNameView(kTRUE);
+              UpdateNameView();
               break;
               
             case kDECombo:
@@ -680,13 +676,13 @@ void AliMpDEVisu::UpdateComboCH()
 
     AliMpDetElement* detElem = AliMpDEManager::GetDetElement(fCurrentDEName);
 
-    Int_t idx =  AliMpDEManager::GetChamberId(detElem->GetId());
-    fChamberCombo->Select(idx);
+    Int_t Idx =  AliMpDEManager::GetChamberId(detElem->GetId());
+    fChamberCombo->Select(Idx);
 
     UpdateComboDE();
 
-    idx = detElem->GetId() % 100;
-    fDECombo->Select(idx);
+    Idx = detElem->GetId() % 100;
+    fDECombo->Select(Idx);
 
     fCurrentDetElem = fDEComboIdx[fDECombo->GetSelected()];
 
@@ -713,7 +709,7 @@ void AliMpDEVisu::UpdateComboDE()
 }
 
 //__________________________________________________________
-void AliMpDEVisu::UpdateNameView(Bool_t firstTime)
+void AliMpDEVisu::UpdateNameView()
 {
   /// update DE name in respect to selected DE id.
     
@@ -723,21 +719,11 @@ void AliMpDEVisu::UpdateNameView(Bool_t firstTime)
 
   fCurrentDEName = detElem->GetDEName();
 
-  if (firstTime) {
-    AliMpDEIterator it;
- 
-    fNameDECombo->RemoveAll();
-  
-    for ( it.First(fChamberCombo->GetSelected()); !it.IsDone(); it.Next() ) {
-
-      Int_t detElemId = it.CurrentDE()->GetId();
-      TString deName  = it.CurrentDE()->GetDEName();
-
-      Int_t idx = fNameDECombo->GetNumberOfEntries();
-      fNameDECombo->AddEntry(deName.Data(), idx);
-      fNameDEComboIdx[idx]   = deName;
-      fDEOccurrence[detElemId] = idx;
-    }
+  Int_t entry = fNameDECombo->GetNumberOfEntries();
+  if (fDEOccurrence[fCurrentDetElem] == -1) {
+      fNameDECombo->AddEntry(fCurrentDEName.Data(), entry);
+      fNameDEComboIdx[entry] = fCurrentDEName;
+      fDEOccurrence[fCurrentDetElem] = entry;
   }
 
   fNameDECombo->Select(fDEOccurrence[fCurrentDetElem]);

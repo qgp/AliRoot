@@ -14,14 +14,11 @@
 #include "TObject.h"
 #include "AliTOFHitData.h"
 
-//data buffer size
-#define DATA_BUFFER_SIZE 1000
-
 class AliTOFHitDataBuffer : public TObject{
   
  public:
 
-  AliTOFHitDataBuffer(Int_t BufferSize = DATA_BUFFER_SIZE);
+  AliTOFHitDataBuffer(Int_t BufferSize);
   ~AliTOFHitDataBuffer();  
   AliTOFHitDataBuffer(const AliTOFHitDataBuffer &source);
   AliTOFHitDataBuffer& operator=(const AliTOFHitDataBuffer & source); 

@@ -21,10 +21,9 @@ class AliFemtoPairCut : public AliFemtoCutMonitorHandler {
 
 public:
 
-  AliFemtoPairCut();   // default constructor. - Users should write their own
+  AliFemtoPairCut(){/* no-op */};   // default constructor. - Users should write their own
   AliFemtoPairCut(const AliFemtoPairCut& c); // copy constructor
   virtual ~AliFemtoPairCut(){/* no-op */};  // destructor
-  AliFemtoPairCut& operator=(const AliFemtoPairCut &aCut);
 
   virtual bool Pass(const AliFemtoPair* pair) =0;  // true if passes, false if not
 
@@ -46,9 +45,6 @@ protected:
 };
 
 
-inline AliFemtoPairCut::AliFemtoPairCut(const AliFemtoPairCut& c) :  AliFemtoCutMonitorHandler(), fyAnalysis(0) {  }
+inline AliFemtoPairCut::AliFemtoPairCut(const AliFemtoPairCut& c) : AliFemtoCutMonitorHandler() { fyAnalysis = 0; }
 inline void AliFemtoPairCut::SetAnalysis(AliFemtoBaseAnalysis* analysis) { fyAnalysis = analysis; }
-inline AliFemtoPairCut::AliFemtoPairCut(): AliFemtoCutMonitorHandler(), fyAnalysis(0) {};   // default constructor. - Users should write their own
-inline AliFemtoPairCut& AliFemtoPairCut::operator=(const AliFemtoPairCut &aCut) { if (this == &aCut) return *this; fyAnalysis = aCut.fyAnalysis; return *this; }
-
 #endif

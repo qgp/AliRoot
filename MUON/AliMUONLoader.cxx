@@ -21,30 +21,30 @@
 // Implements AliLoader for MUON subsystem
 // Author: Gines Martinez
 
-#include "AliMUONSimLoader.h"
+#include "AliMUONLoader.h"
 #include "AliMUONConstants.h"
 #include "AliLog.h"
 
 /// \cond CLASSIMP
-ClassImp(AliMUONSimLoader)
+ClassImp(AliMUONLoader)
 /// \endcond
 
 //___________________________________________________________________
-AliMUONSimLoader::AliMUONSimLoader()
+AliMUONLoader::AliMUONLoader()
   : AliLoader(),
     fMUONData(0)
 {
 /// Default constructor
 }
 //_______________________________________________________________________________
-AliMUONSimLoader::AliMUONSimLoader(const Char_t* detname,const Char_t* eventfoldername)
+AliMUONLoader::AliMUONLoader(const Char_t* detname,const Char_t* eventfoldername)
   : AliLoader(detname,eventfoldername),
     fMUONData(0)
 {
 /// Standard contructor with name of the top folder of the tree
 }
 //_______________________________________________________________________________
-AliMUONSimLoader::AliMUONSimLoader(const Char_t * detname,TFolder* eventfolder)
+AliMUONLoader::AliMUONLoader(const Char_t * detname,TFolder* eventfolder)
   : AliLoader(detname,eventfolder),
     fMUONData(0)
 {
@@ -52,20 +52,20 @@ AliMUONSimLoader::AliMUONSimLoader(const Char_t * detname,TFolder* eventfolder)
 }
 
 //_______________________________________________________________________________
-AliMUONSimLoader::~AliMUONSimLoader()
+AliMUONLoader::~AliMUONLoader()
 {
 /// Destructor 
 }
 
 //_______________________________________________________________________________
-void AliMUONSimLoader::SetMUONData(AliMUONSimData * MUONData)
+void AliMUONLoader::SetMUONData(AliMUONData * MUONData)
 {
 /// Set MUON data
 
   fMUONData = MUONData;
 }
 //_______________________________________________________________________________
-AliMUONSimData * AliMUONSimLoader::GetMUONData()
+AliMUONData * AliMUONLoader::GetMUONData()
 {
 /// Get MUON data
 

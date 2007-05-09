@@ -1,7 +1,6 @@
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
 
-// $Id $
 // $MpId: basicLinkDefIn.h,v 1.8 2006/01/11 10:09:18 ivana Exp $ 
 
 #pragma link C++ nestedclasses;
@@ -111,8 +110,6 @@
 #pragma link C++ class  AliMpDEIterator+;
 #pragma link C++ class  AliMpDEManager+;
 #pragma link C++ class  AliMpBusPatch+;
-#pragma link C++ class  AliMpTriggerCrate+;
-#pragma link C++ class  AliMpLocalBoard+;
 #pragma link C++ class  AliMpDDL+;
 #pragma link C++ class  AliMpDDLStore+;
 

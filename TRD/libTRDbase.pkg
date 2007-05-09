@@ -19,7 +19,6 @@ SRCS= AliTRDarrayI.cxx \
       Cal/AliTRDCalDet.cxx \
       Cal/AliTRDCalGlobals.cxx \
       Cal/AliTRDCalPIDLQ.cxx \
-      Cal/AliTRDCalPIDLQRef.cxx \
       Cal/AliTRDCalMonitoring.cxx \
       Cal/AliTRDCalChamberStatus.cxx \
       Cal/AliTRDCalPadStatus.cxx \

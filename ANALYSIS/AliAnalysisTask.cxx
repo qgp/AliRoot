@@ -62,13 +62,7 @@
 //    }
 // }
 // 
-// The method LocalInit() may be implemented to call locally (on the client)
-// all initialization methods of the class. It is not mandatory and was created
-// in order to minimize the complexity and readability of the analysis macro.
-// DO NOT create in this method the histigrams or task output objects that will
-// go in the task output containers. Use CreateOutputObjects for that.
-//
-// The method CreateOutputObjects() has to be implemented an will contain the
+// The method CreateOutputObjects() has to be overloaded an will contain the
 // objects that should be created only once per session (e.g. output
 // histograms)
 //
@@ -98,14 +92,12 @@
 //==============================================================================
 
 #include <Riostream.h>
-#include <TFile.h>
+#include <TDirectory.h>
 #include <TClass.h>
-#include <TTree.h>
 
 #include "AliAnalysisTask.h"
 #include "AliAnalysisDataSlot.h"
 #include "AliAnalysisDataContainer.h"
-#include "AliAnalysisManager.h"
 
 ClassImp(AliAnalysisTask)
 
@@ -232,11 +224,8 @@ void AliAnalysisTask::CheckNotify(Bool_t init)
 // accordingly. This method is called automatically for all tasks connected
 // to a container where the data was published.
    if (init) fInitialized = kFALSE;
-   Bool_t single_shot = IsPostEventLoop();
-   AliAnalysisDataContainer *cinput;
    for (Int_t islot=0; islot<fNinputs; islot++) {
-      cinput = GetInputSlot(islot)->GetContainer();
-      if (!cinput->GetData() || (single_shot && !cinput->IsPostEventLoop())) {
+      if (!GetInputData(islot)) {
          SetActive(kFALSE);
          return;
       }   
@@ -287,8 +276,6 @@ Bool_t AliAnalysisTask::ConnectOutput(Int_t islot, AliAnalysisDataContainer *con
    }            
    // Connect the slot to the container as output         
    if (!output->ConnectContainer(cont)) return kFALSE;
-   // Set event loop type the same as for the task
-   cont->SetPostEventLoop(IsPostEventLoop());
    // Declare this as the data producer
    cont->SetProducer(this, islot);
    AreSlotsConnected();
@@ -385,37 +372,9 @@ Bool_t AliAnalysisTask::SetBranchAddress(Int_t islot, const char *branch, void *
 }   
 
 //______________________________________________________________________________
-void AliAnalysisTask::EnableBranch(Int_t islot, const char *bname) const
-{
-// Call this in ConnectInputData() to enable only the branches needed by this 
-// task. "*" will enable everything.
-   AliAnalysisDataSlot *input = GetInputSlot(islot);
-   if (!input || !input->GetType()->InheritsFrom(TTree::Class())) {
-      Error("EnableBranch", "Wrong slot type #%d for task %s: not TTree-derived type", islot, GetName());
-      return;
-   }   
-   TTree *tree = (TTree*)input->GetData();
-   if (!strcmp(bname, "*")) {
-      tree->SetBranchStatus("*",1);
-      return;
-   }
-   AliAnalysisDataSlot::EnableBranch(bname, tree);
-}
-      
-//______________________________________________________________________________
 void AliAnalysisTask::ConnectInputData(Option_t *)
 {
 // Overload and connect your branches here.
-}
-
-//______________________________________________________________________________
-void AliAnalysisTask::LocalInit()
-{
-// The method LocalInit() may be implemented to call locally (on the client)
-// all initialization methods of the class. It is not mandatory and was created
-// in order to minimize the complexity and readability of the analysis macro.
-// DO NOT create in this method the histigrams or task output objects that will
-// go in the task output containers. Use CreateOutputObjects for that.
 }
 
 //______________________________________________________________________________
@@ -423,36 +382,6 @@ void AliAnalysisTask::CreateOutputObjects()
 {
 // Called once per task either in PROOF or local mode. Overload to put some 
 // task initialization and/or create your output objects here.
-}
-
-//______________________________________________________________________________
-void AliAnalysisTask::OpenFile(Int_t iout, Option_t *option) const
-{
-// This method has to be called INSIDE the user redefined CreateOutputObjects
-// method, before creating each object corresponding to the output containers
-// that are to be written to a file. This need to be done in general for the big output
-// objects that may not fit memory during processing. 
-// - 'option' is the file opening option.
-//=========================================================================
-// NOTE !: The method call will be ignored in PROOF mode, in which case the 
-// results have to be streamed back to the client and written just before Terminate()
-//=========================================================================
-//
-// Example:
-// void MyAnaTask::CreateOutputObjects() {
-//    OpenFile(0);   // Will open the file for the object to be written at output #0
-//    fAOD = new TTree("AOD for D0toKPi");
-//    OpenFile(1);
-// now some histos that should go in the file of the second output container
-//    fHist1 = new TH1F("my quality check hist1",...);
-//    fHist2 = new TH2F("my quality check hist2",...);
-// }
-   
-   if (iout<0 || iout>=fNoutputs) return;
-   AliAnalysisManager *mgr = AliAnalysisManager::GetAnalysisManager();
-   if (!mgr || mgr->GetAnalysisType()==AliAnalysisManager::kProofAnalysis) return;
-   AliAnalysisDataContainer *cont = GetOutputSlot(iout)->GetContainer();
-   if (strlen(cont->GetFileName())) new TFile(cont->GetFileName(), option);
 }
 
 //______________________________________________________________________________
@@ -539,7 +468,7 @@ void AliAnalysisTask::PrintTask(Option_t *option, Int_t indent) const
    AliAnalysisDataContainer *cont;
    for (Int_t i=0; i<indent; i++) ind += " ";
    if (!dep || (dep && IsChecked())) {
-      printf("%s\n", Form("%stask: %s  ACTIVE=%i POST_LOOP=%i", ind.Data(), GetName(),IsActive(),IsPostEventLoop()));
+      printf("%s\n", Form("%stask: %s  ACTIVE=%i", ind.Data(), GetName(),IsActive()));
       if (dep) thistask->SetChecked(kFALSE);
       else {
          for (islot=0; islot<fNinputs; islot++) {
@@ -569,21 +498,6 @@ void AliAnalysisTask::PrintContainers(Option_t *option, Int_t indent) const
    Int_t islot;
    for (islot=0; islot<fNoutputs; islot++) {
       cont = GetOutputSlot(islot)->GetContainer();
-      if (cont) cont->PrintContainer(option, indent);
+      cont->PrintContainer(option, indent);
    }   
 }
-
-//______________________________________________________________________________
-void AliAnalysisTask::SetPostEventLoop(Bool_t flag)
-{
-// Set the task execution mode - run after event loop or not. All output
-// containers of this task will get the same type.
-   TObject::SetBit(kTaskPostEventLoop,flag);
-   AliAnalysisDataContainer *cont;
-   Int_t islot;
-   for (islot=0; islot<fNoutputs; islot++) {
-      cont = GetOutputSlot(islot)->GetContainer();
-      if (cont) cont->SetPostEventLoop(flag);
-   }   
-}
-   

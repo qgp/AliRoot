@@ -19,8 +19,6 @@ void Displayv11(const char* filename=""){
     TGeoVolume *ALIC = mgr2->MakeBox("ALIC",vacmed,100.,100.,200.);
     mgr2->SetTopVolume(ALIC);
     TGeoVolume *ITS = mgr2->MakeBox("ITSV",vacmed,99.,99.,199.);
-    TGeoVolumeAssembly *ITSspd = new TGeoVolumeAssembly("ITSspd");
-    ITS->AddNode(ITSspd,1);
     ALIC->AddNode(ITS,1);
     //
     /*
@@ -31,21 +29,14 @@ void Displayv11(const char* filename=""){
     its->CreateMaterials();
     its->CreateGeometry();
     */
-    AliITSv11GeometrySPD *gspd = new AliITSv11GeometrySPD(0);
-    //AliITSv11GeometrySDD *gsdd = new AliITSv11GeometrySDD();
-    AliITSv11GeometrySupport *gsupp = new AliITSv11GeometrySupport(3);
-    //AliITSv11GeometrySSD *gssd = new AliITSv11GeometrySSD();
+    AliITSv11GeometrySPD *gspd = new AliITSv11GeometrySPD();
+    //AliITSv11GeometrySDD *gsdd = new AliITSgeometrySDD();
+    //AliITSv11GeometrySupport *gsupp = new AliITSGeometrySupport();
+    //AliITSv11GeometrySSD *gssd = new AliITSGeometrySSD();
     //
     Int_t imat=1,imed=1;
     gspd->CreateSPDCenteralMaterials(imed,imat);
-    gspd->SPDSector(ITSspd,mgr2);
-    gsupp->SPDCone(ITS,mgr2);
-    gsupp->SetDebug(1);
-    gsupp->SDDCone(ITS,mgr2);
-    //gsdd->Layer3(ITS);
-    //gsdd->Layer4(ITS);
-    gsupp->SSDCone(ITS,mgr2);
-    gsupp->ServicesCableSupport(ITS);
+    gspd->SPDSector(ITS,mgr2);
     //
     mgr2->CloseGeometry();
     //
@@ -60,10 +51,8 @@ void Displayv11(const char* filename=""){
     bar->AddButton("Set RayTrace off","ISetits(5,0)","Perspective off");
     bar->AddButton("Set circle/80","ISetits(1,80)","circles ~ by 80 lines");
     bar->AddButton("Display Geometry","Displayit()","Run Displayit");
-    bar->AddButton("Display SPD Sector Volume","EngineeringSPDSector()",
-                   "Run EngineeringSPDSector");
-    bar->AddButton("Display SPD Ceneral Volume","EngineeringSPDCenter()",
-                   "Run EngineeringSPDCenter");
+    bar->AddButton("Display SPD Ceneral Volume","EngineeringSPDLayer()",
+                   "Run EngineeringSPDLayer");
     bar->AddButton("Display SPD Thermal Sheald","EngineeringSPDThS()",
                    "Run EngineeringSPDThS");
     bar->AddButton("Display SDD Layer 3","EngineeringSDDLayer3()",
@@ -254,8 +243,8 @@ void Displayit(){
     //
 }
 //----------------------------------------------------------------------
-void EngineeringSPDSector(){
-    // Display SPD Sector Geometry
+void EngineeringSPDLayer(){
+    // Display SPD Layer Geometry
     // Inputs:
     //    none.
     // Outputs:
@@ -269,16 +258,14 @@ void EngineeringSPDSector(){
     TCanvas *c4;
     if(!(c4 = (TCanvas*)gROOT->FindObject("C4")))
         c4 = new TCanvas("C4","ITS SPD Layer Geometry Side View",500,500);
-    TGeoVolume *ITS,*ITSspd,*SPDLay=0;
+    TGeoVolume *ITS,*SPDLay=0;
     TGeoNode *node;
     TArrow *arrow=new TArrow();
     //
     node = ALIC->FindNode("ITSV_1");
     ITS = node->GetVolume();
-    node = ITS->FindNode("ITSspd_1");
-    ITSspd = node->GetVolume();
-    node = ITSspd->FindNode("ITSSPDCarbonFiberSectorV_1");
-    //node = ITSspd->FindNode("ITSSPDTempSPDMotherVolume_1");
+    node = ITS->FindNode("ITSSPDCarbonFiberSectorV_1");
+    //node = ITS->FindNode("ITSSPDTempSPDMotherVolume_1");
     SPDLay = node->GetVolume();
     //
     mgr2->SetNsegments(ISetits(1,-1));
@@ -299,7 +286,7 @@ void EngineeringSPDSector(){
     if(view1){
         view1->SetView(DSetits(2,-1.),DSetits(3,-1.),DSetits(4,-1.),irr);
         if(irr) cout <<"error="<<irr<<endl;
-        if(ISetits(4,-1)==0) view1->SetParallel();
+        if(ISetits(4,-1)==0) view1->SetParralel();
         else  view1->SetPerspective();
         view1->Front();
         if(ISetits(3,-1)!=0) view1->ShowAxis();
@@ -307,83 +294,18 @@ void EngineeringSPDSector(){
     if(ISetits(5,-1)==1) SPDLay->Raytrace();
     //
     if(!(c5 = (TCanvas*)gROOT->FindObject("C5")))
-        c5 = new TCanvas("C5","ITS SPD Sector Geometry End View",500,500);
+        c5 = new TCanvas("C5","ITS SPD Layer Geometry End View",500,500);
     SPDLay->Draw();
     TView *view2 = c5->GetView();
     if(view2){
         view2->SetView(DSetits(2,-1.),DSetits(3,-1.),DSetits(4,-1.),irr);
         if(irr) cout <<"error="<<irr<<endl;
-        if(ISetits(4,-1)==0) view2->SetParallel();
+        if(ISetits(4,-1)==0) view2->SetParralel();
         else  view2->SetPerspective();
         view2->Top();
         if(ISetits(3,-1)!=0) view2->ShowAxis();
     } // end if view2
     if(ISetits(5,-1)==1) SPDLay->Raytrace();
-    //
-}
-//----------------------------------------------------------------------
-void EngineeringSPDCenter(){
-    // Display SPD Centeral Geometry
-    // Inputs:
-    //    none.
-    // Outputs:
-    //    none.
-    // Retrurn:
-    //    none.
-    Int_t irr;
-    //
-    TGeoManager *mgr2 = gGeoManager;
-    TGeoVolume *ALIC = mgr2->GetTopVolume();
-    TCanvas *c4;
-    if(!(c4 = (TCanvas*)gROOT->FindObject("C4")))
-        c4 = new TCanvas("C4","ITS SPD Layer Geometry Side View",500,500);
-    TGeoVolume *ITS,*ITSspd,*SPDLay=0;
-    TGeoNode *node;
-    TArrow *arrow=new TArrow();
-    //
-    node = ALIC->FindNode("ITSV_1");
-    ITS = node->GetVolume();
-    node = ITS->FindNode("ITSspd_1");
-    ITSspd = node->GetVolume();
-    //
-    mgr2->SetNsegments(ISetits(1,-1));
-    //
-    mgr2->SetVisLevel(6);
-    mgr2->SetVisOption(0);
-    //mgr2->CheckOverlaps(0.01);
-    //mgr2->PrintOverlaps();
-    if(ISetits(2,-1)==1){
-        TGeoShape *clip = new TGeoTubeSeg(0, 1000, 2000, 45, 90);
-        mgr2->SetClippingShape(clip);
-    } // end if
-    mgr2->SetPhiRange(DSetits(1,-1.),DSetits(0,-1.));
-    if(ISetits(2,-1)!=0) mgr2->SetPhiRange(DSetits(1,-1.),DSetits(0,-1.));
-    //
-    ITSspd->Draw();
-    TView *view1 = c4->GetView();
-    if(view1){
-        view1->SetView(DSetits(2,-1.),DSetits(3,-1.),DSetits(4,-1.),irr);
-        if(irr) cout <<"error="<<irr<<endl;
-        if(ISetits(4,-1)==0) view1->SetParallel();
-        else  view1->SetPerspective();
-        view1->Front();
-        if(ISetits(3,-1)!=0) view1->ShowAxis();
-    } // end if view1
-    if(ISetits(5,-1)==1) SPDLay->Raytrace();
-    //
-    if(!(c5 = (TCanvas*)gROOT->FindObject("C5")))
-        c5 = new TCanvas("C5","ITS SPD Centeral Geometry End View",500,500);
-    ITSspd->Draw();
-    TView *view2 = c5->GetView();
-    if(view2){
-        view2->SetView(DSetits(2,-1.),DSetits(3,-1.),DSetits(4,-1.),irr);
-        if(irr) cout <<"error="<<irr<<endl;
-        if(ISetits(4,-1)==0) view2->SetParallel();
-        else  view2->SetPerspective();
-        view2->Top();
-        if(ISetits(3,-1)!=0) view2->ShowAxis();
-    } // end if view2
-    if(ISetits(5,-1)==1) ITSspd->Raytrace();
     //
 }
 //----------------------------------------------------------------------
@@ -409,7 +331,7 @@ void EngineeringSPDThS(){
     //
     node = ALIC->FindNode("ITSV_1");
     ITS = node->GetVolume();
-    node = ITS->FindNode("ITSspdThermalShealdMother_1");
+    node = ITS->FindNode("ITSspdThermalShealdMotherM_1");
     SPDThS = node->GetVolume();
     //
     mgr2->SetNsegments(ISetits(1,-1));
@@ -432,7 +354,7 @@ void EngineeringSPDThS(){
     if(view1){
         view1->SetView(DSetits(2,-1.),DSetits(3,-1.),DSetits(4,-1.),irr);
         if(irr) cout <<"error="<<irr<<endl;
-        if(ISetits(4,-1)==0) view1->SetParallel();
+        if(ISetits(4,-1)==0) view1->SetParralel();
         else  view1->SetPerspective();
         view1->Front();
         if(ISetits(3,-1)!=0) view1->ShowAxis();
@@ -446,7 +368,7 @@ void EngineeringSPDThS(){
     if(view2){
         view2->SetView(DSetits(2,-1.),DSetits(3,-1.),DSetits(4,-1.),irr);
         if(irr) cout <<"error="<<irr<<endl;
-        if(ISetits(4,-1)==0) view2->SetParallel();
+        if(ISetits(4,-1)==0) view2->SetParralel();
         else  view2->SetPerspective();
         view2->Top();
         if(ISetits(3,-1)!=0) view2->ShowAxis();
@@ -497,7 +419,7 @@ void EngineeringSDDLayer3(){
     if(view1){
         view1->SetView(DSetits(2,-1.),DSetits(3,-1.),DSetits(4,-1.),irr);
         if(irr) cout <<"error="<<irr<<endl;
-        if(ISetits(4,-1)==0) view1->SetParallel();
+        if(ISetits(4,-1)==0) view1->SetParralel();
         else  view1->SetPerspective();
         view1->Front();
         if(ISetits(3,-1)!=0) view1->ShowAxis();
@@ -511,7 +433,7 @@ void EngineeringSDDLayer3(){
     if(view2){
         view2->SetView(DSetits(2,-1.),DSetits(3,-1.),DSetits(4,-1.),irr);
         if(irr) cout <<"error="<<irr<<endl;
-        if(ISetits(4,-1)==0) view2->SetParallel();
+        if(ISetits(4,-1)==0) view2->SetParralel();
         else  view2->SetPerspective();
         view2->Top();
         if(ISetits(3,-1)!=0) view2->ShowAxis();
@@ -562,7 +484,7 @@ void EngineeringSDDLayer4(){
     if(view1){
         view1->SetView(DSetits(2,-1.),DSetits(3,-1.),DSetits(4,-1.),irr);
         if(irr) cout <<"error="<<irr<<endl;
-        if(ISetits(4,-1)==0) view1->SetParallel();
+        if(ISetits(4,-1)==0) view1->SetParralel();
         else  view1->SetPerspective();
         view1->Front();
         if(ISetits(3,-1)!=0) view1->ShowAxis();
@@ -576,7 +498,7 @@ void EngineeringSDDLayer4(){
     if(view2){
         view2->SetView(DSetits(2,-1.),DSetits(3,-1.),DSetits(4,-1.),irr);
         if(irr) cout <<"error="<<irr<<endl;
-        if(ISetits(4,-1)==0) view2->SetParallel();
+        if(ISetits(4,-1)==0) view2->SetParralel();
         else  view2->SetPerspective();
         view2->Top();
         if(ISetits(3,-1)!=0) view2->ShowAxis();
@@ -629,7 +551,7 @@ void EngineeringSDDCone(){
     if(view1){
         view1->SetView(DSetits(2,-1.),DSetits(3,-1.),DSetits(4,-1.),irr);
         if(irr) cout <<"error="<<irr<<endl;
-        if(ISetits(4,-1)==0) view1->SetParallel();
+        if(ISetits(4,-1)==0) view1->SetParralel();
         else  view1->SetPerspective();
         view1->Front();
         if(ISetits(3,-1)!=0) view1->ShowAxis();
@@ -643,7 +565,7 @@ void EngineeringSDDCone(){
     if(view2){
         view2->SetView(DSetits(2,-1.),DSetits(3,-1.),DSetits(4,-1.),irr);
         if(irr) cout <<"error="<<irr<<endl;
-        if(ISetits(4,-1)==0) view2->SetParallel();
+        if(ISetits(4,-1)==0) view2->SetParralel();
         else  view2->SetPerspective();
         view2->Top();
         if(ISetits(3,-1)!=0) view2->ShowAxis();
@@ -700,7 +622,7 @@ void EngineeringSDDCylinder(){
     if(view1){
         view1->SetView(DSetits(2,-1.),DSetits(3,-1.),DSetits(4,-1.),irr);
         if(irr) cout <<"error="<<irr<<endl;
-        if(ISetits(4,-1)==0) view1->SetParallel();
+        if(ISetits(4,-1)==0) view1->SetParralel();
         else  view1->SetPerspective();
         view1->Front();
         if(ISetits(3,-1)!=0) view1->ShowAxis();
@@ -715,7 +637,7 @@ void EngineeringSDDCylinder(){
     if(view2){
         view2->SetView(DSetits(2,-1.),DSetits(3,-1.),DSetits(4,-1.),irr);
         if(irr) cout <<"error="<<irr<<endl;
-        if(ISetits(4,-1)==0) view2->SetParallel();
+        if(ISetits(4,-1)==0) view2->SetParralel();
         else  view2->SetPerspective();
         view2->Top();
         if(ISetits(3,-1)!=0) view2->ShowAxis();
@@ -771,7 +693,7 @@ void EngineeringSSDCone(){
     if(view1){
         view1->SetView(DSetits(2,-1.),DSetits(3,-1.),DSetits(4,-1.),irr);
         if(irr) cout <<"error="<<irr<<endl;
-        if(ISetits(4,-1)==0) view1->SetParallel();
+        if(ISetits(4,-1)==0) view1->SetParralel();
         else  view1->SetPerspective();
         view1->Top();
         if(ISetits(3,-1)!=0) view1->ShowAxis();
@@ -785,7 +707,7 @@ void EngineeringSSDCone(){
     if(view2){
         view2->SetView(DSetits(2,-1.),DSetits(3,-1.),DSetits(4,-1.),irr);
         if(irr) cout <<"error="<<irr<<endl;
-        if(ISetits(4,-1)==0) view2->SetParallel();
+        if(ISetits(4,-1)==0) view2->SetParralel();
         else  view2->SetPerspective();
         view2->Front();
         if(ISetits(3,-1)!=0) view2->ShowAxis();
@@ -842,7 +764,7 @@ void EngineeringSSDCylinder(){
     if(view1){
         view1->SetView(DSetits(2,-1.),DSetits(3,-1.),DSetits(4,-1.),irr);
         if(irr) cout <<"error="<<irr<<endl;
-        if(ISetits(4,-1)==0) view1->SetParallel();
+        if(ISetits(4,-1)==0) view1->SetParralel();
         else  view1->SetPerspective();
         view1->Front();
         if(ISetits(3,-1)!=0) view1->ShowAxis();
@@ -857,7 +779,7 @@ void EngineeringSSDCylinder(){
     if(view2){
         view2->SetView(DSetits(2,-1.),DSetits(3,-1.),DSetits(4,-1.),irr);
         if(irr) cout <<"error="<<irr<<endl;
-        if(ISetits(4,-1)==0) view2->SetParallel();
+        if(ISetits(4,-1)==0) view2->SetParralel();
         else  view2->SetPerspective();
         view2->Top();
         if(ISetits(3,-1)!=0) view2->ShowAxis();
@@ -914,7 +836,7 @@ void EngineeringSupRB24(){
     if(view1){
         view1->SetView(DSetits(2,-1.),DSetits(3,-1.),DSetits(4,-1.),irr);
         if(irr) cout <<"error="<<irr<<endl;
-        if(ISetits(4,-1)==0) view1->SetParallel();
+        if(ISetits(4,-1)==0) view1->SetParralel();
         else  view1->SetPerspective();
         view1->Front();
         if(ISetits(3,-1)!=0) view1->ShowAxis();
@@ -928,7 +850,7 @@ void EngineeringSupRB24(){
     if(view2){
         view2->SetView(DSetits(2,-1.),DSetits(3,-1.),DSetits(4,-1.),irr);
         if(irr) cout <<"error="<<irr<<endl;
-        if(ISetits(4,-1)==0) view2->SetParallel();
+        if(ISetits(4,-1)==0) view2->SetParralel();
         else  view2->SetPerspective();
         view2->Top();
         if(ISetits(3,-1)!=0) view2->ShowAxis();
@@ -983,7 +905,7 @@ void EngineeringSupTrayRB24(){
     if(view1){
         view1->SetView(DSetits(2,-1.),DSetits(3,-1.),DSetits(4,-1.),irr);
         if(irr) cout <<"error="<<irr<<endl;
-        if(ISetits(4,-1)==0) view1->SetParallel();
+        if(ISetits(4,-1)==0) view1->SetParralel();
         else  view1->SetPerspective();
         view1->Front();
         if(ISetits(3,-1)!=0) view1->ShowAxis();
@@ -1000,7 +922,7 @@ void EngineeringSupTrayRB24(){
     if(view2){
         view2->SetView(DSetits(2,-1.),DSetits(3,-1.),DSetits(4,-1.),irr);
         if(irr) cout <<"error="<<irr<<endl;
-        if(ISetits(4,-1)==0) view2->SetParallel();
+        if(ISetits(4,-1)==0) view2->SetParralel();
         else  view2->SetPerspective();
         view2->Top();
         if(ISetits(3,-1)!=0) view2->ShowAxis();
@@ -1054,7 +976,7 @@ void EngineeringSupRB26(){
     if(view1){
         view1->SetView(DSetits(2,-1.),DSetits(3,-1.),DSetits(4,-1.),irr);
         if(irr) cout <<"error="<<irr<<endl;
-        if(ISetits(4,-1)==0) view1->SetParallel();
+        if(ISetits(4,-1)==0) view1->SetParralel();
         else  view1->SetPerspective();
         view1->Front();
         if(ISetits(3,-1)!=0) view1->ShowAxis();
@@ -1068,7 +990,7 @@ void EngineeringSupRB26(){
     if(view2){
         view2->SetView(DSetits(2,-1.),DSetits(3,-1.),DSetits(4,-1.),irr);
         if(irr) cout <<"error="<<irr<<endl;
-        if(ISetits(4,-1)==0) view2->SetParallel();
+        if(ISetits(4,-1)==0) view2->SetParralel();
         else  view2->SetPerspective();
         view2->Top();
         if(ISetits(3,-1)!=0) view2->ShowAxis();

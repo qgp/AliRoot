@@ -13,7 +13,6 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-#include "AliHLTPHOSDefinitions.h"
 #include "AliHLTPHOSFileWriterComponent.h"
 #include <iostream>
 #include <TObjString.h>
@@ -25,22 +24,23 @@
 #include "AliHLTPHOSRcuCellEnergyDataStruct.h"
 #include "AliHLTPHOSDataHeaderStruct.h"
 #include "AliHLTDataTypes.h"
-#include "AliHLTPHOSDDLPackedFileWriter.h" 
-#include "AliHLTPHOSCellEnergiesFileWriter.h"
 
 
-const AliHLTComponentDataType AliHLTPHOSFileWriterComponent::fgkInputDataTypes[]={kAliHLTVoidDataType,{0,"",""}}; //'zero' terminated array
+
+class AliRawReaderMemory;
+class AliCaloRawStream;
+class AliHLTPHOSRcuCellEnergyDataStruct;
+
+
+const AliHLTComponentDataType AliHLTPHOSFileWriterComponent::fInputDataTypes[]={kAliHLTVoidDataType,{0,"",""}}; //'zero' terminated array
 
 
 AliHLTPHOSFileWriterComponent gAliHLTPHOSFileWriterComponent;
 
-//____________________________________________________________________________________
 AliHLTPHOSFileWriterComponent::AliHLTPHOSFileWriterComponent():  AliHLTFileWriter(), fCellEnergiesFileWriterPtr(0) \
   , fDDLPackedFileWriterPtr(0), fDirectory(""),fFilename(""), fEventCount(0)
 {
-  /* 
-   *Default constructor
-   */
+  // see header file for documentation
   for(int i=0; i<N_DATATYPES; i++)
     {
       fDataTypesToFile[i] = kAliHLTVoidDataType;
@@ -51,26 +51,26 @@ AliHLTPHOSFileWriterComponent::AliHLTPHOSFileWriterComponent():  AliHLTFileWrite
 
 } 
 
-//____________________________________________________________________________________
 AliHLTPHOSFileWriterComponent::~AliHLTPHOSFileWriterComponent()
 {
+  // see header file for documentation
   delete fCellEnergiesFileWriterPtr;
   delete fDDLPackedFileWriterPtr;
 }
 
 
-//____________________________________________________________________________________
+
 AliHLTPHOSFileWriterComponent::AliHLTPHOSFileWriterComponent(const AliHLTPHOSFileWriterComponent & ): AliHLTFileWriter(), fCellEnergiesFileWriterPtr(0), \
   fDDLPackedFileWriterPtr(0), fDirectory(""),fFilename(""), fEventCount(0)
 {
+  // see header file for documentation
 
 }
 
-
-//____________________________________________________________________________________
 int 
 AliHLTPHOSFileWriterComponent::AddDataType(string dataType)
 {
+  // see header file for documentation 
   int ret = -1;
   int tmpCnt = 0;
   for(int i=0; i< N_DATATYPES; i++)
@@ -85,69 +85,67 @@ AliHLTPHOSFileWriterComponent::AddDataType(string dataType)
 
   if(dataType.compare("gkCellEnergyDataType") == 0)
     {
-      fDataTypesToFile[tmpCnt] = AliHLTPHOSDefinitions::fgkCellEnergyDataType; 
+      fDataTypesToFile[tmpCnt] = AliHLTPHOSDefinitions::gkCellEnergyDataType; 
       cout <<"regsitring dataType for filewriting: fDataTypesToFile[" << tmpCnt <<"]"<<endl; 
     } 
   else if(dataType.compare("gkDDLPackedRawDataType") == 0)
     {
- 	  fDataTypesToFile[tmpCnt] = AliHLTPHOSDefinitions::fgkDDLPackedRawDataType; 
+ 	  fDataTypesToFile[tmpCnt] = AliHLTPHOSDefinitions::gkDDLPackedRawDataType; 
     }
 
   cout << "dataType.compare(cmpString) = " <<dataType.compare(cmpString)<<endl;
   return ret;
 }
 
-//____________________________________________________________________________________
+
 int 
 AliHLTPHOSFileWriterComponent::Deinit()
 {
+  // see header file for documentation
   return 0;
 }
 
-//____________________________________________________________________________________
 int 
 AliHLTPHOSFileWriterComponent::DoDeinit()
 {
+ // see header file for documentation
   Logging(kHLTLogInfo, "HLT", "PHOS", ",AliHLTPHOSFileWriterComponen DoDeinit");
   return 0;
 }
 
-
-//____________________________________________________________________________________
 const char* 
 AliHLTPHOSFileWriterComponent::GetComponentID()
 {
+ // see header file for documentation
   return "PhosFileWriter";
 }
 
-
-//____________________________________________________________________________________
 AliHLTComponent*
 AliHLTPHOSFileWriterComponent::Spawn()
 {
+  // see header file for documentation
   return new AliHLTPHOSFileWriterComponent;
 }
 
 
-//____________________________________________________________________________________
 void
 AliHLTPHOSFileWriterComponent::GetInputDataTypes( vector<AliHLTComponentDataType>& list)
 {
-  const AliHLTComponentDataType* pType=fgkInputDataTypes;
+  // see header file for documentation
+  const AliHLTComponentDataType* pType=fInputDataTypes;
   while (pType->fID!=0) {
     list.push_back(*pType);
     pType++;
   }
 }
 
-//____________________________________________________________________________________
 AliHLTComponentDataType 
 AliHLTPHOSFileWriterComponent::GetOutputDataType()
 {
-  return AliHLTPHOSDefinitions::fgkCellEnergyDataType;
+  // see header file for documentation
+  return AliHLTPHOSDefinitions::gkCellEnergyDataType;
 }
 
-//____________________________________________________________________________________
 void
 AliHLTPHOSFileWriterComponent::GetOutputDataSize(unsigned long& constBase, double& inputMultiplier )
 
@@ -157,7 +155,6 @@ AliHLTPHOSFileWriterComponent::GetOutputDataSize(unsigned long& constBase, doubl
   inputMultiplier = 0.1;
 }
 
-//____________________________________________________________________________________
 Bool_t 
 AliHLTPHOSFileWriterComponent::IsRegisteredDataType(const AliHLTComponentDataType& dataType)
 {

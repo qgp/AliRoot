@@ -20,13 +20,16 @@
 
 void loadlibcalib () 
 {
-  gSystem->Load("libMatrix");
+  gSystem->Load("libVMC");
+  gSystem->Load("libMinuit");
   gSystem->Load("libTree");
-  gSystem->Load("libGeom");
-  gSystem->Load("libESD");
   
-  gSystem->Load("libGui");
+  gSystem->Load("libESD");
+  gSystem->Load("libSTEER"); 
+  
   gSystem->Load("libPhysics");
+
   gSystem->Load("libMUONmapping");
   gSystem->Load("libMUONcalib");
+
 }

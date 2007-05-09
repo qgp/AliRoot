@@ -53,8 +53,7 @@ void TOFPreprocessor()
   AliTOFDataDCS* output = dynamic_cast<AliTOFDataDCS*> (chkEntry->GetObject());
   // If everything went fine, draw the result
   if (output)
-    printf("Output found.\n");
-  //    output->Draw();
+    output->Draw();
   
 }
 
@@ -93,11 +92,13 @@ TMap* CreateDCSAliasMap()
   Float_t tentHVv=6500, tentHVi=80, tentLVv=2.7, tentLVi=4.5,
     tentLVv33=3.3, tentLVv50=5.0, tentLVv48=48,
     tentLVi33=100, tentLVi50=3.0, tentLVi48=10,
-    tentFEEthr=1.0, tentFEEtfeac=25, tentFEEttrm=45;
+    tentFEEthr=1.0, tentFEEtfeac=25, tentFEEttrm=45, 
+    tentTemp=25, tentPress=900;
   Float_t sigmaHVv=10, sigmaHVi=10, sigmaLVv=0.2, sigmaLVi=1.0,
     sigmaLVv33=0.1, sigmaLVv50=0.1, sigmaLVv48=1,
     sigmaLVi33=10, sigmaLVi50=0.5, sigmaLVi48=2,
-    sigmaFEEthr=0.1, sigmaFEEtfeac=10, sigmaFEEttrm=4;
+    sigmaFEEthr=0.1, sigmaFEEtfeac=10, sigmaFEEttrm=4, 
+    sigmaTemp=1, sigmaPress=10;
 
   Float_t tent=0, sigma=0, thr=0;
   Int_t NAliases=10514, NHV=90, NLV=576, NLV33=72, NLV50=72, NLV48=72, NFEEthr=1152, NFEEtfeac=576, NFEEttrm=6840, NT=1, NP=1;
@@ -262,6 +263,21 @@ TMap* CreateDCSAliasMap()
       sigma=sigmaFEEttrm;
       //thr=thrFEEthr;
     }
+    else if (nAlias<NHV*4+2*NLV+2*NLV33+2*NLV50+2*NLV48+NFEEthr+NFEEtfeac+NFEEttrm+1){
+      cout << " putting temperature" << endl;
+      aliasName = "temperature";
+      tent=tentTemp;
+      sigma=sigmaTemp;
+      //thr=thrTemp;
+    }
+    else if (nAlias<NHV*4+2*NLV+2*NLV33+2*NLV50+2*NLV48+NFEEthr+NFEEtfeac+NFEEttrm+2){
+      cout << " putting pressure" << endl;
+      aliasName = "pressure";
+      tent=tentPress;
+      sigma=sigmaPress;
+      //thr=thrPress;
+    }
+
 
     // gauss generation of values 
     for (int timeStamp=0;timeStamp<1000;timeStamp+=10){

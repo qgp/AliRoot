@@ -19,15 +19,12 @@ using namespace std;
 #include "Infrastructure/AliFemtoString.h"
 
 class AliFemtoEventReader {
-  
- public:
+
+public:
   // even tho it's only a base class and never constructed, if you don't have an implementation,
   // you get "AliFemtoEventReader type_info node" upon dynamical loading
-  AliFemtoEventReader() : fEventCut(0), fTrackCut(0), fV0Cut(0), fXiCut(0), fKinkCut(0), fReaderStatus(0), fDebug(1) { /* no-op */ };
-  AliFemtoEventReader(const AliFemtoEventReader& aReader);
+  AliFemtoEventReader() : fEventCut(0), fTrackCut(0), fV0Cut(0), fXiCut(0), fKinkCut(0), fDebug(1) { /* no-op */ }
   virtual ~AliFemtoEventReader(){/* no-op */}
-  
-  AliFemtoEventReader& operator=(const AliFemtoEventReader& aReader);
   
   virtual AliFemtoEvent* ReturnHbtEvent() =0;
 

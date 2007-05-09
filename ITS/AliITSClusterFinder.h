@@ -129,6 +129,8 @@ class AliITSClusterFinder :public TObject{
     Int_t              fClusterSize;   //! ClusterSize
     Int_t              fNPeaks;        //! NPeaks  
     // Data members needed to fill AliCluster objects
+    Float_t fYshift[2200];       // y-shifts of detector local coor. systems 
+    Float_t fZshift[2200];       // z-shifts of detector local coor. systems 
     Int_t fNdet[2200];           // detector index  
     Int_t fNlayer[2200];         // detector layer
 
@@ -138,7 +140,7 @@ class AliITSClusterFinder :public TObject{
     AliITSClusterFinder& operator=(const AliITSClusterFinder &source);
     
 
-    ClassDef(AliITSClusterFinder,7) //Class for clustering and reconstruction of space points
+    ClassDef(AliITSClusterFinder,6) //Class for clustering and reconstruction of space points
 };
 // Input and output functions for standard C++ input/output.
 ostream &operator<<(ostream &os,AliITSClusterFinder &source);

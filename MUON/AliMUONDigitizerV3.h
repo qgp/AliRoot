@@ -21,7 +21,7 @@
 #endif
 
 class AliMUONCalibrationData;
-class AliMUONSimData;
+class AliMUONData;
 class AliMUONDigit;
 class AliMUONLogger;
 class AliMUONTriggerEfficiencyCells;
@@ -62,16 +62,16 @@ private:
   void GenerateNoisyDigits();
   void GenerateNoisyDigitsForOneCathode(Int_t detElemId, Int_t cathode);
 
-  AliMUONSimData* GetDataAccess(const TString& folderName);
+  AliMUONData* GetDataAccess(const TString& folderName);
 
   Bool_t MergeDigits(const AliMUONDigit& src, AliMUONDigit& srcAndDest);
 
-  void MergeWithSDigits(AliMUONSimData& outputData, const AliMUONSimData& inputData, 
+  void MergeWithSDigits(AliMUONData& outputData, const AliMUONData& inputData, 
                         Int_t mask);
   
 private:
   Bool_t fIsInitialized; ///< are we initialized ?
-  AliMUONSimData* fOutputData; //!< pointer to access digits
+  AliMUONData* fOutputData; //!< pointer to access digits
   AliMUONCalibrationData* fCalibrationData; //!< pointer to access calib parameters
   TTask* fTriggerProcessor; ///< pointer to the trigger part of the job
   AliMUONTriggerEfficiencyCells* fTriggerEfficiency; ///< trigger efficiency map  
@@ -84,7 +84,7 @@ private:
   /// for noise-only digit generation and zero-suppression
   AliMUONLogger* fLogger; //!< to keep track of messages
   
-  ClassDef(AliMUONDigitizerV3,4) // MUON Digitizer V3-3
+  ClassDef(AliMUONDigitizerV3,3) // MUON Digitizer V3-3
 };
 
 #endif

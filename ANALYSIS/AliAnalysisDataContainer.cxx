@@ -266,7 +266,7 @@ void AliAnalysisDataContainer::PrintContainer(Option_t *option, Int_t indent) co
    opt.ToLower();
    Bool_t dep = (opt.Contains("dep"))?kTRUE:kFALSE;
    if (!dep) {
-      printf("%sContainer: %s  type: %s POST_LOOP=%i", ind.Data(), GetName(), GetTitle(), IsPostEventLoop());
+      printf("%sContainer: %s  type: %s", ind.Data(), GetName(), GetTitle());
       if (fProducer) 
          printf("%s = Data producer: task %s",ind.Data(),fProducer->GetName());
       else

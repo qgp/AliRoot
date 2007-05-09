@@ -13,7 +13,7 @@
 #include "AliReconstructor.h"
 
 class AliMUONCalibrationData;
-class AliMUONRecData;
+class AliMUONData;
 class AliMUONDigitMaker;
 class AliMUONTriggerCrateStore;
 class AliMUONGeometryTransformer;
@@ -76,7 +76,7 @@ private:
     AliMUONGeometryTransformer* fTransformer; //!< pointer to transformation
     AliMUONSegmentation*        fSegmentation; //!< pointer to segmentation
 
-    AliMUONRecData*             fMUONData;     //!< pointer to container
+    AliMUONData* fMUONData;                    //!< pointer to container
 
   ClassDef(AliMUONReconstructor, 0)   // class for the MUON reconstruction
 };

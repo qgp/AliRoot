@@ -7,7 +7,7 @@
 /* $Id$ */
 // Revision of includes 07/05/2004
 //
-/// \ingroup evaluation
+/// \ingroup base
 /// \class AliMUONPoints
 /// \brief Class to draw detector clusters (is PolyMarker3D)
 

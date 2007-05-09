@@ -26,7 +26,7 @@
 #include "AliMUONCalibrationData.h"
 #include "AliMUONClusterFinderAZ.h"
 #include "AliMUONClusterReconstructor.h"
-#include "AliMUONRecData.h"
+#include "AliMUONData.h"
 #include "AliMUONDigitCalibrator.h"
 #include "AliMUONEventRecoCombi.h" 
 #include "AliMUONDigitMaker.h"
@@ -56,7 +56,6 @@
 
 #include "TTask.h"
 #include "TStopwatch.h"
-#include "Riostream.h"
 
 /// \cond CLASSIMP
 ClassImp(AliMUONReconstructor)
@@ -71,7 +70,7 @@ AliMUONReconstructor::AliMUONReconstructor()
     fTriggerCircuit(new TClonesArray("AliMUONTriggerCircuit", 234)),
     fTransformer(new AliMUONGeometryTransformer(kTRUE)),
     fSegmentation(0x0),
-    fMUONData(new AliMUONRecData(0x0,"MUON","MUON"))
+    fMUONData(new AliMUONData(0x0,"MUON","MUON"))
 {
 /// Default constructor
 
@@ -334,7 +333,7 @@ void AliMUONReconstructor::Reconstruct(AliRunLoader* runLoader) const
 void AliMUONReconstructor::Reconstruct(AliRunLoader* runLoader, 
                                        AliRawReader* rawReader) const
 {
-/// Recontruct 
+/// Recontruct
 /// \todo add more
 
   //  AliLoader

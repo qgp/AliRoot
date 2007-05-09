@@ -49,8 +49,7 @@ class AliTRDtrigger : public TNamed {
 
           Bool_t   Open(const Char_t *name, Int_t nEvent = 0);
           Bool_t   ReadDigits();
-          Bool_t   ReadDigits(AliRawReader *rawReader);
-          Bool_t   ReadDigits(TTree *digitsTree);
+          Bool_t   ReadDigits(AliRawReader* rawReader);
           Bool_t   MakeTracklets(Bool_t makeTracks = kFALSE);
           void     MakeTracks(Int_t det);
           Bool_t   WriteTracklets(Int_t det);

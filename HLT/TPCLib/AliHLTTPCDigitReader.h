@@ -8,7 +8,7 @@
  * See cxx source for full Copyright notice                               */
 
 /** @file   AliHLTTPCDigitReader.h
-    @author Timm Steinbeck, Jochen Thaeder, Matthias Richter, Kenneth Aamodt
+    @author Timm Steinbeck, Jochen Thaeder, Matthias Richter
     @date   
     @brief  An abstract reader class for TPC data.
 */
@@ -85,11 +85,6 @@ public:
    * Get the time bin of the current value.
    */
   virtual int GetTime()=0;
-
-  /**
-   * Method to use old rcu fomat.
-   */
-  virtual void SetOldRCUFormat(Bool_t oldrcuformat);
 
 protected:
 	

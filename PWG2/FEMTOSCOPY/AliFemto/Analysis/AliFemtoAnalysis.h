@@ -31,8 +31,6 @@ class AliFemtoAnalysis : public AliFemtoBaseAnalysis {
   AliFemtoAnalysis(const AliFemtoAnalysis& OriginalAnalysis);  // copy constructor
   virtual ~AliFemtoAnalysis();
 
-  AliFemtoAnalysis& operator=(const AliFemtoAnalysis& aAna);
-
   // Gets and Sets
 
   virtual AliFemtoPairCut*       PairCut();

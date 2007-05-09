@@ -15,9 +15,6 @@
 
 /*
 $Log$
-Revision 1.1  2007/04/27 11:00:32  arcelli
-TOF Raw Data decoder
-
   author: Roberto Preghenella (R+), preghenella@bo.infn.it
 */
 
@@ -277,7 +274,8 @@ AliTOFDecoder::Decode(UInt_t *rawData, Int_t nWords)
 	break;
 	
       default:
-	AliError(Form("  %02x - 0x%08x [ERROR] Not valid slotID in global header",decodeStatus,*rawData));
+	if (fVerbose)
+	  AliError(Form("  %02x - 0x%08x [ERROR] Not valid slotID in global header",decodeStatus,*rawData));
 	return kTRUE;
 	break;
 	
@@ -335,7 +333,8 @@ AliTOFDecoder::Decode(UInt_t *rawData, Int_t nWords)
 	break; 
 	
       default:
-	AliError(Form("  %02x - 0x%08x [ERROR] Not valid slotID/pattern in global trailer",decodeStatus,*rawData));
+	if (fVerbose)
+	  AliError(Form("  %02x - 0x%08x [ERROR] Not valid slotID/pattern in global trailer",decodeStatus,*rawData));
 	return kTRUE;
 	break;
       }

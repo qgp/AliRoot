@@ -13,7 +13,6 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-
 #include "AliHLTPHOSRawAnalyzerCrude.h"
 #include <iostream>
 
@@ -23,7 +22,6 @@ using std::endl;
 ClassImp(AliHLTPHOSRawAnalyzerCrude) 
 
 
-//____________________________________________________________________________
 AliHLTPHOSRawAnalyzerCrude::AliHLTPHOSRawAnalyzerCrude(const AliHLTPHOSRawAnalyzerCrude&):AliHLTPHOSRawAnalyzer()
 {
 
@@ -35,14 +33,13 @@ AliHLTPHOSRawAnalyzerCrude::AliHLTPHOSRawAnalyzerCrude(const AliHLTPHOSRawAnalyz
  * a sequense of ADC digitized 10 bit integer values, however for performance reasons all values used in
  * calculation is of type double.
  **/
-//____________________________________________________________________________
 AliHLTPHOSRawAnalyzerCrude::AliHLTPHOSRawAnalyzerCrude():AliHLTPHOSRawAnalyzer() 
 {
 
 }
 
 
-//____________________________________________________________________________
+
 AliHLTPHOSRawAnalyzerCrude::~AliHLTPHOSRawAnalyzerCrude()
 {
 
@@ -60,8 +57,9 @@ AliHLTPHOSRawAnalyzerCrude::~AliHLTPHOSRawAnalyzerCrude()
 * "index + length" must not exeed the length of the data array set in the constructor.
 * @param start the start index of the subarray of the data array. 
 * @param length the number of samples to use starting from index 
+* @param tVector the peakfinder vector for timing
+* @param aVector the peakfinder vector for amplitude (energy)
 **/
-//____________________________________________________________________________
 void 
 AliHLTPHOSRawAnalyzerCrude::Evaluate(int start, int length)
 {

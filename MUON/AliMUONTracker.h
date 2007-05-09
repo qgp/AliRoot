@@ -4,16 +4,14 @@
  * See cxx source for full Copyright notice                               */
 
 
-/// \ingroup rec
+/// \ingroup base
 /// \class AliMUONTracker
 /// \brief MUON base Tracker
-///
-//  Author: Christian Finck, SUBATECH Nantes
 
 #include "AliTracker.h"
 class AliESD;
 class AliCluster;
-class AliMUONRecData;
+class AliMUONData;
 class TClonesArray;
 class AliMUONVTrackReconstructor;
 
@@ -40,7 +38,7 @@ class AliMUONTracker : public AliTracker
   /// Set trigger circuit
   void SetTriggerCircuit(TClonesArray* circuit) {fTriggerCircuit = circuit;}
   /// Set pointer to data container
-  void SetMUONData(AliMUONRecData* data) {fMUONData = data;}
+  void SetMUONData(AliMUONData* data) {fMUONData = data;}
   /// Set option
   void SetOption(Option_t* opt);
 
@@ -51,7 +49,7 @@ private:
   AliMUONTracker& operator=(const AliMUONTracker& rhs);
     
   TClonesArray* fTriggerCircuit;                //!< trigger circuit
-  AliMUONRecData*  fMUONData;                   //!< pointer to container
+  AliMUONData*  fMUONData;                      //!< pointer to container
   AliMUONVTrackReconstructor* fTrackReco;       //!< track reconstructor
 
   ClassDef(AliMUONTracker,0)  //tracker base class for MUON

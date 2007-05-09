@@ -26,10 +26,12 @@
 #include "AliAnalysisGoodies.h" 
 #include "AliAnalysisManager.h" 
 #include "AliAnalysisTask.h" 
+  //#include "AliPhotonAnalysisTask.h" 
 #include "AliLog.h" 
 
 #include <Riostream.h>
 #ifdef WITHALIEN
+#include <TAlienCollection.h>
 #include <TGridResult.h>
 #include <TFileMerger.h>
 #endif
@@ -41,8 +43,6 @@
 
 //______________________________________________________________________________
 AliAnalysisGoodies::AliAnalysisGoodies() :
-  TObject(),
-  fTimer(), 
   fESDTreeName("esdTree"), 
   fnumberOfTasks(0),
   fTaskList(0),
@@ -51,26 +51,6 @@ AliAnalysisGoodies::AliAnalysisGoodies() :
 {
   fTimer.Reset() ; 
    
-  TString token = gSystem->Getenv("GRID_TOKEN") ; 
-  
-  if ( token == "OK" ) 
-    TGrid::Connect("alien://");
-  else 
-    AliInfo("You are not connected to the GRID") ; 
-}
-
-//______________________________________________________________________________
-AliAnalysisGoodies::AliAnalysisGoodies(const AliAnalysisGoodies& ag) :
-  TObject(),
-  fTimer(), 
-  fESDTreeName(""), 
-  fnumberOfTasks(0),
-  fTaskList(0),
-  fTaskInType(0), 
-  fTaskOuType(0)
-{
-  
-  fESDTreeName = ag.fESDTreeName ;  
   TString token = gSystem->Getenv("GRID_TOKEN") ; 
   
   if ( token == "OK" ) 
@@ -176,7 +156,7 @@ Bool_t AliAnalysisGoodies::Alien2Local(const TString collectionNameIn, const TSt
 }
 
 //______________________________________________________________________
-Bool_t AliAnalysisGoodies::Make(AliRunTagCuts *runCuts, AliLHCTagCuts *lhcCuts, AliDetectorTagCuts *detCuts, AliEventTagCuts *evtCuts, const char * in, const char * out) const  
+Bool_t AliAnalysisGoodies::Make(AliRunTagCuts *runCuts, AliEventTagCuts *evtCuts, const char * in, const char * out) const  
 {
   // makes esd collection from tags 
   // usage Make(tags, esds)
@@ -192,9 +172,9 @@ Bool_t AliAnalysisGoodies::Make(AliRunTagCuts *runCuts, AliLHCTagCuts *lhcCuts, 
  
   TString file(in) ; 
   if ( file.Contains(".root") ) 
-    rv = MakeEsdCollectionFromTagFile(runCuts, lhcCuts, detCuts, evtCuts, file.Data(), out) ; 
+    rv = MakeEsdCollectionFromTagFile(runCuts, evtCuts, file.Data(), out) ; 
   else  if ( file.Contains(".xml") ) 
-    rv = MakeEsdCollectionFromTagCollection(runCuts, lhcCuts, detCuts, evtCuts, file.Data(), out) ;
+    rv = MakeEsdCollectionFromTagCollection(runCuts, evtCuts, file.Data(), out) ;
   else {
     AliError(Form("%s is not a valid file format", in)) ; 
     rv = kFALSE ; 
@@ -204,7 +184,7 @@ Bool_t AliAnalysisGoodies::Make(AliRunTagCuts *runCuts, AliLHCTagCuts *lhcCuts, 
 }
 
 //______________________________________________________________________
-Bool_t AliAnalysisGoodies::MakeEsdCollectionFromTagFile(AliRunTagCuts *runCuts, AliLHCTagCuts *lhcCuts, AliDetectorTagCuts *detCuts, AliEventTagCuts *evtCuts, const char * in, const char * out) const 
+Bool_t AliAnalysisGoodies::MakeEsdCollectionFromTagFile(AliRunTagCuts *runCuts, AliEventTagCuts *evtCuts, const char * in, const char * out) const 
 {
   // Makes an esd collection from a root tag file 
   Bool_t rv = kTRUE ; 
@@ -218,14 +198,14 @@ Bool_t AliAnalysisGoodies::MakeEsdCollectionFromTagFile(AliRunTagCuts *runCuts, 
   if ( ! rv ) 
     return rv ; 
  
-  tagAna->CreateXMLCollection(out, runCuts, lhcCuts, detCuts, evtCuts) ;
+  tagAna->CreateXMLCollection(out, runCuts, evtCuts) ;
  
   return rv ; 
 
 }
 
 //______________________________________________________________________
-Bool_t AliAnalysisGoodies::MakeEsdCollectionFromTagCollection(AliRunTagCuts *runCuts, AliLHCTagCuts *lhcCuts, AliDetectorTagCuts *detCuts, AliEventTagCuts *evtCuts, const char * in, const char * out) const 
+Bool_t AliAnalysisGoodies::MakeEsdCollectionFromTagCollection(AliRunTagCuts * runCuts, AliEventTagCuts * evtCuts, const char * in, const char * out) const 
 {
   // Makes an esd collection from a xml tag collection 
   Bool_t rv = kTRUE ; 
@@ -236,12 +216,12 @@ Bool_t AliAnalysisGoodies::MakeEsdCollectionFromTagCollection(AliRunTagCuts *run
 
 #ifdef WITHALIEN
   
-  TGridCollection * collection = (TGridCollection*)gROOT->ProcessLine(Form("TAlienCollection::Open(%s)",in));
+  TGridCollection * collection = TAlienCollection::Open(in);
   TGridResult* result = collection->GetGridResult("");
   AliTagAnalysis * tagAna = new AliTagAnalysis(); 
   tagAna->ChainGridTags(result);
 
-  tagAna->CreateXMLCollection(out, runCuts, lhcCuts, detCuts, evtCuts) ;
+  tagAna->CreateXMLCollection(out, runCuts, evtCuts) ;
 
 #else
   rv =  kFALSE;
@@ -250,7 +230,7 @@ Bool_t AliAnalysisGoodies::MakeEsdCollectionFromTagCollection(AliRunTagCuts *run
 }
 
 //______________________________________________________________________
-Bool_t AliAnalysisGoodies::MakeEsdCollectionFromTagCollection(const char * runCuts, const char *lhcCuts, const char *detCuts, const char * evtCuts, const char * in, const char * out) const 
+Bool_t AliAnalysisGoodies::MakeEsdCollectionFromTagCollection(const char * runCuts, const char * evtCuts, const char * in, const char * out) const 
 {
   // Makes an esd collection from a xml tag collection 
   
@@ -263,17 +243,17 @@ Bool_t AliAnalysisGoodies::MakeEsdCollectionFromTagCollection(const char * runCu
   
 #ifdef WITHALIEN
 
-  TGridCollection * collection = (TGridCollection*)gROOT->ProcessLine(Form("TAlienCollection::Open(%s)",in));
+  TGridCollection * collection = TAlienCollection::Open(in);
   TGridResult* result = collection->GetGridResult("");
   AliTagAnalysis * tagAna = new AliTagAnalysis(); 
   tagAna->ChainGridTags(result);
   
-  tagAna->CreateXMLCollection(out, runCuts, lhcCuts, detCuts, evtCuts) ;
+  tagAna->CreateXMLCollection(out, runCuts, evtCuts) ;
 
-#else
-  rv = kFALSE;
-#endif
   return rv ;
+#else
+  return kFALSE;
+#endif
 }
 
 //______________________________________________________________________
@@ -299,7 +279,7 @@ Bool_t AliAnalysisGoodies::Merge(const char * collectionFile, const char * subFi
   
 #ifdef WITHALIEN
 
-  TGridCollection * collection = (TGridCollection*)gROOT->ProcessLine(Form("TAlienCollection::Open(%s)",collectionFile));
+  TGridCollection * collection = TAlienCollection::Open(collectionFile);
   TGridResult* result = collection->GetGridResult("");
   
   Int_t index = 0  ;
@@ -335,10 +315,10 @@ Bool_t AliAnalysisGoodies::Merge(const char * collectionFile, const char * subFi
   fTimer.Stop();
   fTimer.Print();
   
-#else
-  rv = kFALSE;
-#endif
   return rv ;
+#else
+  return kFALSE;
+#endif
 }
 
 //______________________________________________________________________
@@ -363,18 +343,16 @@ Bool_t AliAnalysisGoodies::Process(const char * inFile)
   // usage Process(esdFile)
   //              esdFile: is of the form opt?file_lfn 
   Bool_t rv = kFALSE ; 
-  AliRunTagCuts      * runCuts = 0x0 ; 
-  AliLHCTagCuts      * lhcCuts = 0x0 ;
-  AliDetectorTagCuts * detCuts = 0x0 ; 
-  AliEventTagCuts    * evtCuts = 0x0 ;
+  AliRunTagCuts   * runCuts = 0x0 ; 
+  AliEventTagCuts * evtCuts = 0x0 ;
 
-  rv = Process(inFile, runCuts, lhcCuts, detCuts, evtCuts) ; 
+  rv = Process(inFile, runCuts, evtCuts) ; 
 
   return rv ; 
 }
 
 //______________________________________________________________________
-Bool_t AliAnalysisGoodies::Process(const char * inFile, AliRunTagCuts *runCuts, AliLHCTagCuts *lhcCuts, AliDetectorTagCuts *detCuts, AliEventTagCuts * evtCuts ) 
+Bool_t AliAnalysisGoodies::Process(const char * inFile, AliRunTagCuts *runCuts, AliEventTagCuts * evtCuts ) 
 {
   // process the events with an Analysis Task 
   // usage Process(esdFile, runtagCuts, evtTagCuts)
@@ -395,11 +373,11 @@ Bool_t AliAnalysisGoodies::Process(const char * inFile, AliRunTagCuts *runCuts, 
 
   } else if (file.Contains("tag?") && file.Contains(".root") ) {
     file.ReplaceAll("tag?", "") ; 
-    rv = ProcessTagFile(file.Data(), runCuts, lhcCuts, detCuts, evtCuts) ; 
+    rv = ProcessTagFile(file.Data(), runCuts, evtCuts) ; 
 
   } else if (file.Contains("tag?") && file.Contains(".xml") ) {
     file.ReplaceAll("tag?", "") ; 
-    rv = ProcessTagXmlCollection(file.Data(), runCuts, lhcCuts, detCuts, evtCuts) ; 
+    rv = ProcessTagXmlCollection(file.Data(), runCuts, evtCuts) ; 
 
   } else { 
     AliError(Form("%s is not a valid file format", inFile)) ; 
@@ -413,7 +391,7 @@ Bool_t AliAnalysisGoodies::Process(const char * inFile, AliRunTagCuts *runCuts, 
 }
 
 //______________________________________________________________________
-Bool_t AliAnalysisGoodies::Process(const char * inFile, const char * runCuts, const char * lhcCuts, const char * detCuts, const char * evtCuts) 
+Bool_t AliAnalysisGoodies::Process(const char * inFile, const char * runCuts, const char * evtCuts) 
 {
   // process the events with an Analysis Task 
   // usage Process(esdFile, runtagCuts, evtTagCuts)
@@ -434,11 +412,11 @@ Bool_t AliAnalysisGoodies::Process(const char * inFile, const char * runCuts, co
 
   } else if (file.Contains("tag?") && file.Contains(".root") ) {
     file.ReplaceAll("tag?", "") ; 
-    rv = ProcessTagFile(file.Data(), runCuts, lhcCuts, detCuts, evtCuts) ; 
+    rv = ProcessTagFile(file.Data(), runCuts, evtCuts) ; 
 
   } else if (file.Contains("tag?") && file.Contains(".xml") ) {
     file.ReplaceAll("tag?", "") ; 
-    rv = ProcessTagXmlCollection(file.Data(), runCuts, lhcCuts, detCuts, evtCuts) ; 
+    rv = ProcessTagXmlCollection(file.Data(), runCuts, evtCuts) ; 
 
   } else { 
     AliError(Form("%s is not a valid file format", inFile)) ; 
@@ -483,10 +461,12 @@ Bool_t AliAnalysisGoodies::ProcessChain(TChain * chain) const
     mgr->ConnectOutput(task, 0, taskOutput);
   }
   
-  // start processing 
+  // Open data
+//  taskInput->SetData(chain);
 
   if (mgr->InitAnalysis()) {
     mgr->PrintStatus();
+//    chain->Process(mgr);
     mgr->StartAnalysis("local",chain);
   } else 
     rv = kFALSE ; 
@@ -519,7 +499,7 @@ Bool_t AliAnalysisGoodies::ProcessEsdFile(const char * esdFile) const
 }
 
 //______________________________________________________________________
-Bool_t AliAnalysisGoodies::ProcessTagFile(const char * tagFile, AliRunTagCuts *runCuts, AliLHCTagCuts *lhcCuts, AliDetectorTagCuts *detCuts, AliEventTagCuts *evtCuts) const   
+Bool_t AliAnalysisGoodies::ProcessTagFile(const char * tagFile, AliRunTagCuts *runCuts, AliEventTagCuts *evtCuts) const   
 {
   // process the events in a single Tag file with an Analysis Task 
   // usage ProcessLocalEsdFile(tagFile)
@@ -543,7 +523,7 @@ Bool_t AliAnalysisGoodies::ProcessTagFile(const char * tagFile, AliRunTagCuts *r
 
   // Query the tag file and make the analysis chain
   TChain * analysisChain = new TChain(fESDTreeName)  ;
-  analysisChain = tagAna->QueryTags(runCuts, lhcCuts, detCuts, evtCuts);
+  analysisChain = tagAna->QueryTags(runCuts, evtCuts);
   
   // Process the events
   rv = ProcessChain(analysisChain) ; 
@@ -552,7 +532,7 @@ Bool_t AliAnalysisGoodies::ProcessTagFile(const char * tagFile, AliRunTagCuts *r
 }
 
 //______________________________________________________________________
-Bool_t AliAnalysisGoodies::ProcessTagFile(const char * tagFile, const char * runCuts, const char * lhcCuts, const char * detCuts, const char * evtCuts) const   
+Bool_t AliAnalysisGoodies::ProcessTagFile(const char * tagFile, const char * runCuts, const char * evtCuts) const   
 {
   // process the events in a single Tag file with an Analysis Task 
   // usage ProcessLocalEsdFile(tagFile)
@@ -577,7 +557,7 @@ Bool_t AliAnalysisGoodies::ProcessTagFile(const char * tagFile, const char * run
 
   // Query the tag file and make the analysis chain
   TChain * analysisChain = new TChain(fESDTreeName)  ;
-  analysisChain = tagAna->QueryTags(runCuts, lhcCuts, detCuts, evtCuts);
+  analysisChain = tagAna->QueryTags(runCuts, evtCuts);
   
   // Process the events
  rv = ProcessChain(analysisChain) ; 
@@ -600,7 +580,7 @@ Bool_t AliAnalysisGoodies::ProcessEsdXmlCollection(const char * xmlFile) const
 
 #ifdef WITHALIEN
 
-  TGridCollection * collection = (TGridCollection*)gROOT->ProcessLine(Form("TAlienCollection::Open(%s)",xmlFile));
+  TGridCollection * collection = TAlienCollection::Open(xmlFile) ; 
   if (! collection) {
     AliError(Form("%s not found", xmlFile)) ; 
     return kFALSE ; 
@@ -617,14 +597,14 @@ Bool_t AliAnalysisGoodies::ProcessEsdXmlCollection(const char * xmlFile) const
   // Process the events
   rv = ProcessChain(analysisChain) ; 
 
-#else
-  rv = kFALSE;
-#endif
   return rv ; 
+#else
+  return kFALSE;
+#endif
 }
 
 //______________________________________________________________________
-Bool_t AliAnalysisGoodies::ProcessTagXmlCollection(const char * xmlFile, AliRunTagCuts *runCuts, AliLHCTagCuts *lhcCuts, AliDetectorTagCuts *detCuts, AliEventTagCuts * evtCuts) const   
+Bool_t AliAnalysisGoodies::ProcessTagXmlCollection(const char * xmlFile, AliRunTagCuts *runCuts, AliEventTagCuts * evtCuts) const   
 {
   // process the events in a xml ESD collection  with an Analysis Task 
   // usage ProcessLocalEsdFile(xmlFile)
@@ -647,7 +627,7 @@ Bool_t AliAnalysisGoodies::ProcessTagXmlCollection(const char * xmlFile, AliRunT
 
 #ifdef WITHALIEN
 
-  TGridCollection * collection = (TGridCollection*)gROOT->ProcessLine(Form("TAlienCollection::Open(%s)",xmlFile));
+  TGridCollection * collection = TAlienCollection::Open(xmlFile) ; 
   if (! collection) {
     AliError(Form("%s not found", xmlFile)) ; 
     return kFALSE ; 
@@ -659,19 +639,19 @@ Bool_t AliAnalysisGoodies::ProcessTagXmlCollection(const char * xmlFile, AliRunT
   
   // Query the tag file and make the analysis chain
   TChain * analysisChain = new TChain(fESDTreeName)  ;
-  analysisChain = tagAna->QueryTags(runCuts, lhcCuts, detCuts, evtCuts);
+  analysisChain = tagAna->QueryTags(runCuts, evtCuts);
 
   // Process the events
   rv = ProcessChain(analysisChain) ; 
 
-#else
-  rv = kFALSE;
-#endif
   return rv ; 
+#else
+  return kFALSE;
+#endif
 }
 
 //______________________________________________________________________
-Bool_t AliAnalysisGoodies::ProcessTagXmlCollection(const char * xmlFile, const char * runCuts, const char * lhcCuts, const char * detCuts, const char * evtCuts) const   
+Bool_t AliAnalysisGoodies::ProcessTagXmlCollection(const char * xmlFile, const char * runCuts, const char * evtCuts) const   
 {
   // process the events in a xml ESD collection  with an Analysis Task 
   // usage ProcessLocalEsdFile(xmlFile)
@@ -694,7 +674,7 @@ Bool_t AliAnalysisGoodies::ProcessTagXmlCollection(const char * xmlFile, const c
   if ( gSystem->AccessPathName(xmlFile) ) 
     TGrid::Connect("alien://"); 
 
-  TGridCollection * collection = (TGridCollection*)gROOT->ProcessLine(Form("TAlienCollection::Open(%s)",xmlFile));
+  TGridCollection * collection = TAlienCollection::Open(xmlFile) ; 
   if (! collection) {
     AliError(Form("%s not found", xmlFile)) ; 
     return kFALSE ; 
@@ -706,15 +686,15 @@ Bool_t AliAnalysisGoodies::ProcessTagXmlCollection(const char * xmlFile, const c
   
   // Query the tag file and make the analysis chain
   TChain * analysisChain = new TChain(fESDTreeName)  ;
-  analysisChain = tagAna->QueryTags(runCuts, lhcCuts, detCuts, evtCuts);
+  analysisChain = tagAna->QueryTags(runCuts, evtCuts);
 
   // Process the events
   rv = ProcessChain(analysisChain) ; 
 
-#else
-  rv = kFALSE;
-#endif
   return rv ; 
+#else
+  return kFALSE;
+#endif
 }
 
 //______________________________________________________________________

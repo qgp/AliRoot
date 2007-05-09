@@ -105,8 +105,7 @@ Bool_t AliAnalysisSelector::Notify()
    // is started when using PROOF. It is normaly not necessary to make changes
    // to the generated code, but the routine can be extended by the
    // user if needed. The return value is currently not used.
-   if (fAnalysis) return fAnalysis->Notify();
-   return kFALSE;
+   if (fAnalysis) fAnalysis->Notify();
 }   
 
 //______________________________________________________________________________

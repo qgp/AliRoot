@@ -261,11 +261,6 @@ void AliTRDgeometry::Init()
   Float_t phi = 0.0;
   for (isect = 0; isect < fgkNsect; isect++) {
     phi = 2.0 * TMath::Pi() /  (Float_t) fgkNsect * ((Float_t) isect + 0.5);
-    fRotA11[isect] = TMath::Cos(phi);
-    fRotA12[isect] = TMath::Sin(phi);
-    fRotA21[isect] = TMath::Sin(phi);
-    fRotA22[isect] = TMath::Cos(phi);
-    phi = -1.0 * phi;
     fRotB11[isect] = TMath::Cos(phi);
     fRotB12[isect] = TMath::Sin(phi);
     fRotB21[isect] = TMath::Sin(phi);
@@ -587,11 +582,11 @@ void AliTRDgeometry::CreateGeometry(Int_t *idtmed)
 
       // Position the frames of the chambers in the TRD mother volume
       xpos  = 0.0;
-      ypos  = - fClength[iplan][0] - fClength[iplan][1] - fClength[iplan][2]/2.0;
+      ypos  = fClength[iplan][0] + fClength[iplan][1] + fClength[iplan][2]/2.0;
       for (Int_t ic = 0; ic < icham; ic++) {
-        ypos += fClength[iplan][ic];        
+        ypos -= fClength[iplan][ic];        
       }
-      ypos += fClength[iplan][icham]/2.0;
+      ypos -= fClength[iplan][icham]/2.0;
       zpos  = fgkVrocsm + fgkSMpltT + fgkCraH/2.0 + fgkCdrH/2.0 - fgkSheight/2.0 
             + iplan * (fgkCH + fgkVspace);
       // The lower aluminum frame, radiator + drift region
@@ -1043,11 +1038,11 @@ void AliTRDgeometry::CreateServices(Int_t *idtmed)
       gMC->Gsvolu(cTagV,"BOX",idtmed[1302-1],parServ,kNparServ);
 
       xpos  = 0.0;
-      ypos  = - fClength[iplan][0] - fClength[iplan][1] - fClength[iplan][2]/2.0;
+      ypos  = fClength[iplan][0] + fClength[iplan][1] + fClength[iplan][2]/2.0;
       for (Int_t ic = 0; ic < icham; ic++) {
-        ypos += fClength[iplan][ic];        
+        ypos -= fClength[iplan][ic];        
       }
-      ypos += fClength[iplan][icham]/2.0;
+      ypos -= fClength[iplan][icham]/2.0;
       zpos  = fgkVrocsm + fgkSMpltT + fgkCH + fgkVspace/2.0 - fgkSheight/2.0 
             + iplan * (fgkCH + fgkVspace);
       zpos -= 0.742/2.0;
@@ -1322,38 +1317,18 @@ void AliTRDgeometry::GroupChamber(Int_t iplan, Int_t icham, Int_t *idtmed)
 }
 
 //_____________________________________________________________________________
-Bool_t AliTRDgeometry::Rotate(Int_t d, Double_t *pos, Double_t *rot) const
+Bool_t AliTRDgeometry::RotateBack(Int_t det, Double_t *loc, Double_t *glb) const
 {
   //
-  // Rotates all chambers in the position of sector 0 and transforms
-  // the coordinates in the ALICE restframe <pos> into the 
-  // corresponding local frame <rot>.
+  // Rotates a chambers to transform the corresponding local frame 
+  // coordinates <loc> into the coordinates of the ALICE restframe <glb>.
   //
 
-  Int_t sector = GetSector(d);
+  Int_t sector = GetSector(det);
 
-  rot[0] =  pos[0] * fRotA11[sector] + pos[1] * fRotA12[sector];
-  rot[1] = -pos[0] * fRotA21[sector] + pos[1] * fRotA22[sector];
-  rot[2] =  pos[2];
-
-  return kTRUE;
-
-}
-
-//_____________________________________________________________________________
-Bool_t AliTRDgeometry::RotateBack(Int_t d, Double_t *rot, Double_t *pos) const
-{
-  //
-  // Rotates a chambers from the position of sector 0 into its
-  // original position and transforms the corresponding local frame 
-  // coordinates <rot> into the coordinates of the ALICE restframe <pos>.
-  //
-
-  Int_t sector = GetSector(d);
-
-  pos[0] =  rot[0] * fRotB11[sector] + rot[1] * fRotB12[sector];
-  pos[1] = -rot[0] * fRotB21[sector] + rot[1] * fRotB22[sector];
-  pos[2] =  rot[2];
+  glb[0] = loc[0] * fRotB11[sector] - loc[1] * fRotB12[sector];
+  glb[1] = loc[0] * fRotB21[sector] + loc[1] * fRotB22[sector];
+  glb[2] = loc[2];
 
   return kTRUE;
 
@@ -1414,7 +1389,6 @@ Int_t AliTRDgeometry::GetSector(Int_t d) const
 
 }
 
-//CL
 //_____________________________________________________________________________
 Int_t AliTRDgeometry::GetPadRowFromMCM(Int_t irob, Int_t imcm) const
 {
@@ -1423,20 +1397,30 @@ Int_t AliTRDgeometry::GetPadRowFromMCM(Int_t irob, Int_t imcm) const
 
   return fgkMCMrow*(irob/2) + imcm/fgkMCMrow;
 
-;
 }
 
 //_____________________________________________________________________________
 Int_t AliTRDgeometry::GetPadColFromADC(Int_t irob, Int_t imcm, Int_t iadc) const
 {
   //
-  // return which pad is connected to this adc channel. return -1 if it
-  // is one of the not directly connected adc channels (0, 1 20)
+  // return which pad is connected to this adc channel.
+  //
+  // ADC channels 2 to 19 are connected directly to a pad via PASA.
+  // ADC channels 0, 1 and 20 are not connected to the PASA on this MCM.
+  // So the mapping (for MCM 0 on ROB 0 at least) is
+  //
+  // ADC channel  :   0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20
+  // Pad          :   x  x 17 16 15 14 13 12 11 10  9  8  7  6  5  4  3  2  1  0  x
+  // Func. returns:  19 18 17 16 15 14 13 12 11 10  9  8  7  6  5  4  3  2  1  0 -1
+  //
+  // Here we assume that 21 ADC channels are transmitted. Maybe it will only be
+  // 18 later on!!!
+  //
+  // This function maps also correctly the channels that cross from MCM to MCM
+  // (ADC channels 0, 1, 20).
   //
 
-  if (iadc < 2 || iadc > 19 ) return -1;
-
-  return (iadc-2) + (imcm%fgkMCMrow)*fgkPadmax + GetRobSide(irob)*fgkColmax/2;
+  return (17-(iadc-2)) + (imcm%fgkMCMrow)*fgkPadmax + GetRobSide(irob)*fgkColmax/2;
 
 }
 
@@ -1511,7 +1495,7 @@ AliTRDgeometry *AliTRDgeometry::GetGeometry(AliRunLoader *runLoader)
     // If it is not in the file, try to get it from the run loader 
     if (runLoader->GetAliRun()) {
       AliTRD *trd = (AliTRD *) runLoader->GetAliRun()->GetDetector("TRD");
-      geom = trd->GetGeometry();
+      if (trd) geom = trd->GetGeometry();
     }
   }
   if (!geom) {
@@ -1528,7 +1512,13 @@ AliTRDgeometry *AliTRDgeometry::GetGeometry(AliRunLoader *runLoader)
 Bool_t AliTRDgeometry::ReadGeoMatrices()
 {
   //
-  // Read geo matrices from current gGeoManager for each TRD sector
+  // Read the geo matrices from the current gGeoManager for each TRD detector
+  //
+  // This fill three arrays of TGeoHMatrix, ordered by detector numbers 
+  // for fast access:
+  //   fMatrixArray:           Used for transformation local <-> global ???
+  //   fMatrixCorrectionArray: Used for transformation local <-> tracking system
+  //   fMatrixGeo:             Alignable objects
   //
 
   if (!gGeoManager) {
@@ -1538,11 +1528,11 @@ Bool_t AliTRDgeometry::ReadGeoMatrices()
   fMatrixArray           = new TObjArray(kNdet); 
   fMatrixCorrectionArray = new TObjArray(kNdet);
   fMatrixGeo             = new TObjArray(kNdet);
-  AliAlignObjAngles o;
 
   for (Int_t iLayer = AliAlignObj::kTRD1; iLayer <= AliAlignObj::kTRD6; iLayer++) {
     for (Int_t iModule = 0; iModule < AliAlignObj::LayerSize(iLayer); iModule++) {
 
+      // Find the path to the different alignable objects (ROCs)
       UShort_t     volid   = AliAlignObj::LayerToVolUID(iLayer,iModule);
       const char  *symname = AliAlignObj::SymName(volid);
       TGeoPNEntry *pne     = gGeoManager->GetAlignableEntry(symname);
@@ -1553,36 +1543,38 @@ Bool_t AliTRDgeometry::ReadGeoMatrices()
       if (!gGeoManager->cd(path)) {
         return kFALSE;
       }
-      TGeoHMatrix *m         = gGeoManager->GetCurrentMatrix();
-      Int_t        iLayerTRD = iLayer - AliAlignObj::kTRD1;
-      Int_t        isector   = Nsect() - 1 - (iModule/Ncham());
-      Int_t        ichamber  = Ncham() - 1 - (iModule%Ncham());
-      Int_t        lid       = GetDetector(iLayerTRD,ichamber,isector);    
 
-      //
-      // Local geo system z-x-y  to x-y--z 
-      //
-      fMatrixGeo->AddAt(new TGeoHMatrix(*m),lid);
-      
-      TGeoRotation mchange; 
-      mchange.RotateY(90); 
-      mchange.RotateX(90);
+      // Get the geo matrix of the current alignable object
+      // and add it to the corresponding list
+      TGeoHMatrix *matrix   = gGeoManager->GetCurrentMatrix();
+      Int_t        iplane   = iLayer - AliAlignObj::kTRD1;
+      Int_t        isector  = iModule / Ncham();
+      Int_t        ichamber = iModule % Ncham();
+      Int_t        idet     = GetDetector(iplane,ichamber,isector);
+      fMatrixGeo->AddAt(new TGeoHMatrix(* matrix),idet);
 
-      TGeoHMatrix gMatrix(mchange.Inverse());
-      gMatrix.MultiplyLeft(m);
-      fMatrixArray->AddAt(new TGeoHMatrix(gMatrix),lid); 
+      // Construct the geo matrix for the local <-> global transformation
+      // and add it to the corresponding list.
+      // In addition to the original geo matrix also a rotation of the
+      // kind z-x-y to x-y--z is applied.
+      TGeoRotation rotMatrixA;
+      rotMatrixA.RotateY(90); 
+      rotMatrixA.RotateX(90);
+      TGeoHMatrix matrixGlobal(rotMatrixA.Inverse());
+      matrixGlobal.MultiplyLeft(matrix);
+      fMatrixArray->AddAt(new TGeoHMatrix(matrixGlobal),idet);
 
-      //
-      // Cluster transformation matrix
-      //
-      TGeoHMatrix  rotMatrix(mchange.Inverse());
-      rotMatrix.MultiplyLeft(m);
+      // Construct the geo matrix for the cluster transformation
+      // and add it to the corresponding list.
+      // In addition to the original geo matrix also a rotation of the
+      // kind x-y--z to z-x-y and a rotation by the sector angle is applied.
       Double_t sectorAngle = 20.0 * (isector % 18) + 10.0;
-      TGeoHMatrix  rotSector;
+      TGeoHMatrix rotMatrixB(rotMatrixA.Inverse());
+      rotMatrixB.MultiplyLeft(matrix);
+      TGeoHMatrix rotSector;
       rotSector.RotateZ(sectorAngle);
-      rotMatrix.MultiplyLeft(&rotSector);      
-
-      fMatrixCorrectionArray->AddAt(new TGeoHMatrix(rotMatrix),lid);       
+      rotMatrixB.MultiplyLeft(&rotSector);      
+      fMatrixCorrectionArray->AddAt(new TGeoHMatrix(rotMatrixB),idet);
 
     }    
   }

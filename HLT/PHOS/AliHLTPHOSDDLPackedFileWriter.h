@@ -5,17 +5,18 @@
 #include <string>
 #include "AliHLTDataTypes.h"
 
+
 using std::string;
 
 class AliHLTPHOSDDLPackedFileWriter: public AliHLTPHOSFileWriter
 {
  public:
   AliHLTPHOSDDLPackedFileWriter();
-  virtual ~AliHLTPHOSDDLPackedFileWriter();
+  ~AliHLTPHOSDDLPackedFileWriter();
 
-  const virtual int WriteFile(const AliHLTComponentEventData& evtData, 
-			const AliHLTComponentBlockData* blocks, AliHLTComponentTriggerData& trigData, int evntCnt) const;
-  
+virtual int WriteFile(const AliHLTComponentEventData& evtData, 
+			const AliHLTComponentBlockData* blocks, AliHLTComponentTriggerData& trigData, int evntCnt);
+
 
 };
 

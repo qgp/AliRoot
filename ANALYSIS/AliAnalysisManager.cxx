@@ -59,7 +59,6 @@ AliAnalysisManager::AliAnalysisManager()
 {
 // Dummy constructor.
    fgAnalysisManager = this;
-   SetEventLoop(kTRUE);
 }
 
 //______________________________________________________________________________
@@ -85,7 +84,6 @@ AliAnalysisManager::AliAnalysisManager(const char *name, const char *title)
    fContainers = new TObjArray();
    fInputs     = new TObjArray();
    fOutputs    = new TObjArray();
-   SetEventLoop(kTRUE);
 }
 
 //______________________________________________________________________________
@@ -210,11 +208,8 @@ void AliAnalysisManager::SlaveBegin(TTree *tree)
    TIter next(fTasks);
    AliAnalysisTask *task;
    // Call CreateOutputObjects for all tasks
-   while ((task=(AliAnalysisTask*)next())) {
-      TDirectory *curdir = gDirectory;
+   while ((task=(AliAnalysisTask*)next())) 
       task->CreateOutputObjects();
-      if (curdir) curdir->cd();
-   }   
    if (fMode == kLocalAnalysis) Init(tree);   
    if (fDebug > 1) {
       cout << "<-AliAnalysisManager::SlaveBegin()" << endl;
@@ -347,24 +342,6 @@ void AliAnalysisManager::UnpackOutput(TList *source)
    AliAnalysisDataContainer *output;
    while ((output=(AliAnalysisDataContainer*)next())) {
       if (!output->GetData()) continue;
-      // Check if there are client tasks that run post event loop
-      if (output->HasConsumers()) {
-         // Disable event loop semaphore
-         output->SetPostEventLoop(kTRUE);
-         TObjArray *list = output->GetConsumers();
-         Int_t ncons = list->GetEntriesFast();
-         for (Int_t i=0; i<ncons; i++) {
-            AliAnalysisTask *task = (AliAnalysisTask*)list->At(i);
-            task->CheckNotify(kTRUE);
-            // If task is active, execute it
-            if (task->IsPostEventLoop() && task->IsActive()) {
-               if (fDebug > 1) {
-                  cout << "== Executing post event loop task " << task->GetName() << endl;
-               }                  
-               task->ExecuteTask();
-            }   
-         }
-      }   
       // Check if the output need to be written to a file.
       const char *filename = output->GetFileName();
       if (!filename || !strlen(filename)) continue;
@@ -380,7 +357,7 @@ void AliAnalysisManager::UnpackOutput(TList *source)
          callEnv.SetParam((Long_t) file);
          callEnv.Execute(output->GetData());
       }
-      output->GetData()->Write();
+      output->GetData()->Write();      
    }
    if (fDebug > 1) {
       cout << "<-AliAnalysisManager::UnpackOutput()" << endl;
@@ -429,10 +406,6 @@ AliAnalysisDataContainer *AliAnalysisManager::CreateContainer(const char *name,
 //   kExchangeContainer  = 0, used to exchange date between tasks
 //   kInputContainer   = 1, used to store input data
 //   kOutputContainer  = 2, used for posting results
-   if (fContainers->FindObject(name)) {
-      Error("CreateContainer","A container named %s already defined !\n",name);
-      return NULL;
-   }   
    AliAnalysisDataContainer *cont = new AliAnalysisDataContainer(name, datatype);
    fContainers->Add(cont);
    switch (type) {
@@ -440,6 +413,7 @@ AliAnalysisDataContainer *AliAnalysisManager::CreateContainer(const char *name,
          fInputs->Add(cont);
          break;
       case kOutputContainer:
+         if (fOutputs->FindObject(name)) printf("CreateContainer: warning: a container named %s existing !\n",name);
          fOutputs->Add(cont);
          if (filename && strlen(filename)) cont->SetFileName(filename);
          break;
@@ -561,22 +535,6 @@ Bool_t AliAnalysisManager::InitAnalysis()
          return kFALSE;
       }   
    }
-   // Check that all containers feeding post-event loop tasks are in the outputs list
-   TIter nextcont(fContainers); // loop over all containers
-   while ((cont=(AliAnalysisDataContainer*)nextcont())) {
-      if (!cont->IsPostEventLoop() && !fOutputs->FindObject(cont)) {
-         if (cont->HasConsumers()) {
-         // Check if one of the consumers is post event loop
-            TIter nextconsumer(cont->GetConsumers());
-            while ((task=(AliAnalysisTask*)nextconsumer())) {
-               if (task->IsPostEventLoop()) {
-                  fOutputs->Add(cont);
-                  break;
-               }
-            }
-         }
-      }
-   }   
    fInitOK = kTRUE;
    return kTRUE;
 }   
@@ -620,43 +578,23 @@ void AliAnalysisManager::StartAnalysis(const char *type, TTree *tree)
       Warning("StartAnalysis", "GRID analysis mode not implemented. Running local.");
       fMode = kLocalAnalysis;
    }
-   char line[128];
-   SetEventLoop(kFALSE);
-   // Disable all branches if requested and set event loop mode
-   if (tree) {
-      if (TestBit(kDisableBranches)) {
-         printf("Disabling all branches...\n");
-//         tree->SetBranchStatus("*",0); // not yet working
-      }   
-      SetEventLoop(kTRUE);
-   }   
-
+   char line[128];   
+   // Disable by default all branches
+   if (tree) tree->SetBranchStatus("*",0);
    TChain *chain = dynamic_cast<TChain*>(tree);
-
-   // Initialize locally all tasks
-   TIter next(fTasks);
-   AliAnalysisTask *task;
-   while ((task=(AliAnalysisTask*)next())) {
-      task->LocalInit();
-   }
-   
    switch (fMode) {
       case kLocalAnalysis:
          if (!tree) {
             TIter next(fTasks);
             AliAnalysisTask *task;
             // Call CreateOutputObjects for all tasks
-            while ((task=(AliAnalysisTask*)next())) {
-               TDirectory *curdir = gDirectory;
-               task->CreateOutputObjects();
-               if (curdir) curdir->cd();
-            }   
+            while ((task=(AliAnalysisTask*)next())) task->CreateOutputObjects();
             ExecAnalysis();
             Terminate();
             return;
          } 
          // Run tree-based analysis via AliAnalysisSelector  
-         gROOT->ProcessLine(".L $ALICE_ROOT/ANALYSIS/AliAnalysisSelector.cxx+");
+         gROOT->ProcessLine(".L AliAnalysisSelector.cxx+");
          cout << "===== RUNNING LOCAL ANALYSIS " << GetName() << " ON TREE " << tree->GetName() << endl;
          sprintf(line, "AliAnalysisSelector *selector = new AliAnalysisSelector((AliAnalysisManager*)0x%lx);",(ULong_t)this);
          gROOT->ProcessLine(line);

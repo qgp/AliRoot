@@ -15,15 +15,6 @@
 
 /*
 $Log$
-Revision 1.11  2007/05/09 08:37:40  arcelli
-Fix a bug in getting the pad volume path (in case of holes for PHOS)
-
-Revision 1.10  2007/05/03 08:04:19  decaro
-Coding convention: RN17 violation -> suppression
-
-Revision 1.9  2007/04/27 17:41:01  arcelli
-merge DistanceToPad and IsInsideThePad methods
-
 Revision 1.8  2007/02/19 18:55:26  decaro
 Added getter methods for volume path (for Event Display)
 
@@ -297,7 +288,7 @@ Bool_t AliTOFGeometryV5::IsInsideThePadPar(Int_t *det, Float_t *pos) const
   //const Float_t klstripx = fgkStripLength;
   */
 
-  const Float_t kPadDepth = 0.5;//0.05;//0.11;//0.16;//          // heigth of Sensitive Layer
+  const Float_t padDepth = 0.5;//0.05;//0.11;//0.16;//          // heigth of Sensitive Layer
 
   //Transform pos into Sector Frame
 
@@ -341,7 +332,7 @@ Bool_t AliTOFGeometryV5::IsInsideThePadPar(Int_t *det, Float_t *pos) const
   Float_t yr =  yt;
   Float_t zr = -xt*TMath::Sin(alpha/kRaddeg)+zt*TMath::Cos(alpha/kRaddeg);
 
-  if(TMath::Abs(xr)<=kPadDepth*0.5 && TMath::Abs(yr)<= (fgkXPad*0.5) && TMath::Abs(zr)<= (fgkZPad*0.5))
+  if(TMath::Abs(xr)<=padDepth*0.5 && TMath::Abs(yr)<= (fgkXPad*0.5) && TMath::Abs(zr)<= (fgkZPad*0.5))
     isInside=true;
   return isInside;
 
@@ -356,7 +347,7 @@ Bool_t AliTOFGeometryV5::IsInsideThePad(TGeoHMatrix mat, Float_t *pos, Float_t *
 // inside pad with Detector Indices idet (iSect,iPlate,iStrip,iPadX,iPadZ) 
 //
 
-  const Float_t kPadDepth = 0.5;      // heigth of Sensitive Layer
+  const Float_t padDepth = 0.5;      // heigth of Sensitive Layer
   Double_t vecg[3];
   vecg[0]=pos[0];
   vecg[1]=pos[1];
@@ -380,7 +371,7 @@ Bool_t AliTOFGeometryV5::IsInsideThePad(TGeoHMatrix mat, Float_t *pos, Float_t *
   }
  
   Bool_t isInside=false; 
-  if(TMath::Abs(xr)<= kPadDepth*0.5 && TMath::Abs(yr)<= (fgkXPad*0.5) && TMath::Abs(zr)<= (fgkZPad*0.5))
+  if(TMath::Abs(xr)<= padDepth*0.5 && TMath::Abs(yr)<= (fgkXPad*0.5) && TMath::Abs(zr)<= (fgkZPad*0.5))
     isInside=true; 
   return isInside;
 
@@ -1563,8 +1554,11 @@ void AliTOFGeometryV5::GetVolumePath(Int_t *ind, Char_t *path ) {
   
   Int_t icopy=-1;
   icopy=sector;
- 
-  sprintf(string1,"/ALIC_1/B077_1/BSEGMO%i_1/BTOF%i_1",icopy,icopy);
+  // Old 6h convention
+  // if(sector<13){
+  //    icopy=sector+5;}  
+  // else{ icopy=sector-13;}
+  sprintf(string1,"/ALIC_1/B077_1/BSEGMO%i_1/BTOF%i_1/FTOA_0/FLTA_0",icopy,icopy);
   
   Int_t iplate=ind[1];
   Int_t istrip=ind[2];
@@ -1574,12 +1568,13 @@ void AliTOFGeometryV5::GetVolumePath(Int_t *ind, Char_t *path ) {
   if( iplate==3) icopy=istrip+NStripC()+NStripB()+NStripA(); 
   if( iplate==4) icopy=istrip+NStripC()+2*NStripB()+NStripA(); 
   icopy++;
-  sprintf(string2,"FTOA_0/FLTA_0/FSTR_%i",icopy);
+  sprintf(string2,"FSTR_%i",icopy);
   if(fHoles && (sector==11 || sector==12)){
     if(iplate<2)  sprintf(string2,"FTOB_0/FLTB_0/FSTR_%i",icopy);
     if(iplate>2)  sprintf(string2,"FTOC_0/FLTC_0/FSTR_%i",icopy);
   }
  
+
   Int_t padz = ind[3]+1; 
   Int_t padx = ind[4]+1;
   sprintf(string3,"FPCB_1/FSEN_1/FSEZ_%i/FPAD_%i",padz,padx);
@@ -1595,6 +1590,10 @@ void AliTOFGeometryV5::GetVolumePath(Int_t sector, Char_t *path ){
   Char_t string[100];
 
   Int_t icopy = sector;
+  // Old 6h convention
+  // if(sector<13){
+  //    icopy=sector+5;}  
+  // else{ icopy=sector-13;}
 
   sprintf(string,"/ALIC_1/B077_1/BSEGMO%i_1/BTOF%i_1",icopy,icopy);
   sprintf(path,"%s",string);
@@ -1611,8 +1610,11 @@ void AliTOFGeometryV5::GetVolumePath(Int_t sector, Int_t plate, Int_t strip, Cha
   Char_t string3[100];
   
   Int_t icopy = sector;
-
-  sprintf(string1,"/ALIC_1/B077_1/BSEGMO%i_1/BTOF%i_1",icopy,icopy);
+  // Old 6h convention
+  // if(sector<13){
+  //    icopy=sector+5;}  
+  // else{ icopy=sector-13;}
+  sprintf(string1,"/ALIC_1/B077_1/BSEGMO%i_1/BTOF%i_1/FTOA_0/FLTA_0",icopy,icopy);
   
   if(plate==0) icopy=strip; 
   if(plate==1) icopy=strip+NStripC(); 
@@ -1620,7 +1622,7 @@ void AliTOFGeometryV5::GetVolumePath(Int_t sector, Int_t plate, Int_t strip, Cha
   if(plate==3) icopy=strip+NStripC()+NStripB()+NStripA(); 
   if(plate==4) icopy=strip+NStripC()+2*NStripB()+NStripA(); 
   icopy++;
-  sprintf(string2,"FTOA_0/FLTA_0/FSTR_%i",icopy);
+  sprintf(string2,"FSTR_%i",icopy);
   if(fHoles && (sector==11 || sector==12)) {
     if(plate<2)  sprintf(string2,"FTOB_0/FLTB_0/FSTR_%i",icopy);
     if(plate>2)  sprintf(string2,"FTOC_0/FLTC_0/FSTR_%i",icopy);

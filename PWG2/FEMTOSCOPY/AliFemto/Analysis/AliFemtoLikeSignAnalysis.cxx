@@ -33,12 +33,7 @@ extern void FillHbtParticleCollection(AliFemtoParticleCut*         partCut,
 
  
 //____________________________
-AliFemtoLikeSignAnalysis::AliFemtoLikeSignAnalysis(unsigned int bins, double min, double max) : 
-  AliFemtoAnalysis(),
-  fVertexBins(0),
-  fOverFlow(0),  
-  fUnderFlow(0)  
-{
+AliFemtoLikeSignAnalysis::AliFemtoLikeSignAnalysis(unsigned int bins, double min, double max) : AliFemtoAnalysis() {
   fVertexBins = bins;
   fVertexZ[0] = min;
   fVertexZ[1] = max;
@@ -49,12 +44,7 @@ AliFemtoLikeSignAnalysis::AliFemtoLikeSignAnalysis(unsigned int bins, double min
     /* no-op */
 }
 //____________________________
-AliFemtoLikeSignAnalysis::AliFemtoLikeSignAnalysis(const AliFemtoLikeSignAnalysis& a) : 
-  AliFemtoAnalysis(a) ,
-  fVertexBins(0),
-  fOverFlow(0),  
-  fUnderFlow(0)  
-{
+AliFemtoLikeSignAnalysis::AliFemtoLikeSignAnalysis(const AliFemtoLikeSignAnalysis& a) : AliFemtoAnalysis(a) {
   fVertexBins = a.fVertexBins; 
   fVertexZ[0] = a.fVertexZ[0]; 
   fVertexZ[1] = a.fVertexZ[1];

@@ -193,9 +193,7 @@ Bool_t AliMpBusPatch::SetNofManusPerModule()
     //vec[vec.GetSize()-1] = manuPerPcb+1;
     fNofManusPerModule.Add(manuPerPcb+1);
     return true;  
-  } 
-  
-  return false; 
+  }  
 }     
 
 //______________________________________________________________________________

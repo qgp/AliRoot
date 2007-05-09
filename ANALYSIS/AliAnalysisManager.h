@@ -38,11 +38,6 @@ enum EAliAnalysisExecMode {
    kGridAnalysis     = 2
 };
 
-enum EAliAnalysisFlags {
-   kEventLoop        = BIT(14),
-   kDisableBranches  = BIT(15)
-};   
-
    AliAnalysisManager();
    AliAnalysisManager(const char *name, const char *title="");
    virtual            ~AliAnalysisManager();
@@ -80,7 +75,6 @@ enum EAliAnalysisFlags {
    void                SetAnalysisType(EAliAnalysisExecMode mode) {fMode = mode;}
    void                SetCurrentEntry(Long64_t entry) {fCurrentEntry = entry;}
    void                SetDebugLevel(UInt_t level) {fDebug = level;}
-   void                SetDisableBranches(Bool_t disable=kTRUE) {TObject::SetBit(kDisableBranches,disable);}
 
    // Container handling
    AliAnalysisDataContainer *CreateContainer(const char *name, TClass *datatype, 
@@ -102,7 +96,6 @@ enum EAliAnalysisFlags {
    // Analysis initialization and execution, status
    Bool_t               InitAnalysis();
    Bool_t               IsInitialized() const {return fInitOK;}
-   Bool_t               IsEventLoop() const {return TObject::TestBit(kEventLoop);}
    void                 ResetAnalysis();
    void                 ExecAnalysis(Option_t *option="");
    void                 FinishAnalysis();
@@ -110,7 +103,6 @@ enum EAliAnalysisFlags {
 
 protected:
    void                 ImportWrappers(TList *source);
-   void                 SetEventLoop(Bool_t flag=kTRUE) {TObject::SetBit(kEventLoop,flag);}
 
 private:
    TTree               *fTree;         //! Input tree in case of TSelector model

@@ -16,50 +16,68 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-
 #include "AliHLTPHOSDDLDecoderComponent.h"
 #include <iostream>
+#include "stdio.h"
 #include "AliRawReaderMemory.h"
 #include "AliCaloRawStream.h"
+#include <cstdlib>
 #include "AliHLTPHOSRcuChannelDataStruct.h"
-#include "AliHLTPHOSPulseGenerator.h"
-#include "AliHLTPHOSDataCorruptor.h"
+
+ AliHLTPHOSDDLDecoderComponent  gAliHLTPHOSDDLDecoderComponent;
+
+const AliHLTComponentDataType AliHLTPHOSDDLDecoderComponent::fgkInputDataTypes[]={kAliHLTVoidDataType,{0,"",""}}; //'zero' terminated array
+int   AliHLTPHOSDDLDecoderComponent::fgEventCount = 0; 
 
 
-using namespace std;
-
-
-AliHLTPHOSDDLDecoderComponent  gAliHLTPHOSDDLDecoderComponent;
-
-
-AliHLTPHOSDDLDecoderComponent::AliHLTPHOSDDLDecoderComponent():AliHLTPHOSProcessor(), fPHOSRawStream(0), fRawMemoryReader(0), 
-fOutPtr(0), fDataCorruptorPtr(0)
+/**
+ * @class AliHLTPHOSDDLDecoderComponent
+ */
+AliHLTPHOSDDLDecoderComponent::AliHLTPHOSDDLDecoderComponent():AliHLTProcessor(), fEquippmentID(0), fRcuX(0), 
+fRcuZ(0),fRcuZOffset(0), fRcuXOffset(0),  fModuleID(0), fSendChannelData(kFALSE), fPHOSRawStream(0), fRawMemoryReader(0), fOutPtr(0)
 {
-  //Default constructor
-  fDataCorruptorPtr = new AliHLTPHOSDataCorruptor();
+
 } 
 
 AliHLTPHOSDDLDecoderComponent::~AliHLTPHOSDDLDecoderComponent()
 {
-  //Destructor
-  delete  fRawMemoryReader;
-  delete  fPHOSRawStream;
-  delete  fDataCorruptorPtr;
+  if(fRawMemoryReader != 0)
+    {
+      delete fRawMemoryReader;
+    }
+    if(fPHOSRawStream != 0)
+    {
+      delete fPHOSRawStream;
+    }
 }
 
 
-AliHLTPHOSDDLDecoderComponent::AliHLTPHOSDDLDecoderComponent(const AliHLTPHOSDDLDecoderComponent & ) : AliHLTPHOSProcessor(), 
-fPHOSRawStream(0),fRawMemoryReader(0), fOutPtr(0), fDataCorruptorPtr(0)
+AliHLTPHOSDDLDecoderComponent::AliHLTPHOSDDLDecoderComponent(const AliHLTPHOSDDLDecoderComponent & ) : AliHLTProcessor(), 
+fEquippmentID(0), fRcuX(0), fRcuZ(0),fRcuZOffset(0), fRcuXOffset(0),  fModuleID(0),  fSendChannelData(kFALSE), fPHOSRawStream(0), fRawMemoryReader(0), fOutPtr(0)
 {
-
 }
 
 
+/*
+ *Deinit function called by the HLT framwork at end of run
+ *@return 0 if the denitialzation was sucessfull.
+ */
 int 
 AliHLTPHOSDDLDecoderComponent::Deinit()
 {
-  //Se html documentation of base class
   cout <<  "Deinit" << endl;
+  return 0;
+}
+
+
+/*
+ *Deinit function called by the HLT framwork at end of run
+ *@return 0 if the denitialzation was sucessfull.
+ */
+int 
+AliHLTPHOSDDLDecoderComponent::DoDeinit()
+{
+  cout << "DoDeinit" << endl;
   Logging(kHLTLogInfo, "HLT", "PHOS", ",AliHLTPHOSRawAnalyzerComponen DoDeinit");
 
   if(fRawMemoryReader !=0)
@@ -73,23 +91,22 @@ AliHLTPHOSDDLDecoderComponent::Deinit()
     }
   return 0;
 
-  return 0;
 }
 
-
+/*
+ *Function called by the HLT framework during initialization
+ *@return the ID of the component
+ */
 const char* 
 AliHLTPHOSDDLDecoderComponent::GetComponentID()
 {
-  //Se html documentation of base class
   return "PhosDDLDecoder";
 }
 
 
-
 void
-AliHLTPHOSDDLDecoderComponent::GetInputDataTypes(vector<AliHLTComponentDataType>& list)
+AliHLTPHOSDDLDecoderComponent::GetInputDataTypes( vector<AliHLTComponentDataType>& list)
 {
-  //Se html documentation of base class
   const AliHLTComponentDataType* pType=fgkInputDataTypes;
   while (pType->fID!=0) {
     list.push_back(*pType);
@@ -100,45 +117,36 @@ AliHLTPHOSDDLDecoderComponent::GetInputDataTypes(vector<AliHLTComponentDataType>
 AliHLTComponentDataType 
 AliHLTPHOSDDLDecoderComponent::GetOutputDataType()
 {
-  //See html documentation of base class
-  return AliHLTPHOSDefinitions::fgkCellEnergyDataType;
+  return AliHLTPHOSDefinitions::gkCellEnergyDataType;
 }
 
 void
 AliHLTPHOSDDLDecoderComponent::GetOutputDataSize(unsigned long& constBase, double& inputMultiplier )
 
 {
-  //Se html documentation of base class
   constBase = 30;
   inputMultiplier = 1;
 }
 
 
-int
-AliHLTPHOSDDLDecoderComponent::DoEvent( const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, 
+int AliHLTPHOSDDLDecoderComponent::DoEvent( const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, 
 					      AliHLTComponentTriggerData& trigData, AliHLTUInt8_t* outputPtr, 
 					      AliHLTUInt32_t& size, vector<AliHLTComponentBlockData>& outputBlocks )
 {
-  //See html documentation of base class
-  double testPulse[70];
-  fDataCorruptorPtr->MakeCorruptedDataTest(testPulse,70);
-
-  //  AliHLTUInt8_t tmpMod    = 0;
-  //  AliHLTUInt8_t tmpZ      = 0;
-  //  AliHLTUInt8_t tmpX      = 0;
-  // AliHLTUInt8_t tmpGain   = 0;
+  AliHLTUInt8_t tmpMod    = 0;
+  AliHLTUInt8_t tmpZ      = 0;
+  AliHLTUInt8_t tmpX      = 0;
+  AliHLTUInt8_t tmpGain   = 0;
   Int_t sampleCnt         = 0;
   Int_t processedChannels = 0;
   UInt_t offset           = 0; 
   UInt_t mysize           = 0;
   UInt_t tSize            = 0;
-
   Int_t tmpChannelCnt     = 0;
-  //  Int_t tmpStartIndex     = 0;
-
+  Int_t tmpStartIndex     = 0;
   AliHLTUInt8_t* outBPtr;
-  //unsigned long first;
-  // unsigned long last;
+  unsigned long first;
+  unsigned long last;
   outBPtr = outputPtr;
   const AliHLTComponentBlockData* iter = NULL; 
   unsigned long ndx;
@@ -150,7 +158,7 @@ AliHLTPHOSDDLDecoderComponent::DoEvent( const AliHLTComponentEventData& evtData,
       tmpChannelCnt = 0;
       offset = tSize;
 
-      if ( iter->fDataType != AliHLTPHOSDefinitions::fgkDDLPackedRawDataType )
+      if ( iter->fDataType != AliHLTPHOSDefinitions::gkDDLPackedRawDataType )
 	{
 	  continue;
 	}
@@ -181,13 +189,13 @@ AliHLTPHOSDDLDecoderComponent::DoEvent( const AliHLTComponentEventData& evtData,
 	}
 
       fOutPtr->fNValidChannels = tmpChannelCnt-1;;
-
+ 
       int tmpSampleCnt=0;
       AliHLTComponentBlockData bd;
       FillBlockData( bd );
       bd.fOffset = offset;
       bd.fSize = mysize;
-      bd.fDataType = AliHLTPHOSDefinitions::fgkCellChannelDataDataType;
+      bd.fDataType = AliHLTPHOSDefinitions::gkCellChannelDataDataType;
       bd.fSpecification = 0xeFFFFFFF;
       outputBlocks.push_back( bd);
       tSize += mysize;
@@ -202,13 +210,13 @@ AliHLTPHOSDDLDecoderComponent::DoEvent( const AliHLTComponentEventData& evtData,
       return EMSGSIZE;
     }
 
-  fPhosEventCount++; 
+  fgEventCount++; 
   
   if(fPrintInfo == kTRUE)
     {
-      if(fPhosEventCount%fPrintInfoFrequncy == 0)
+      if(fgEventCount%fPrintInfoFrequncy == 0)
       	{
-	  cout <<"Analyzing event " <<  fPhosEventCount  << "for Equippment " << fkEquippmentID << endl; 
+	  cout <<"Analyzing event " <<  fgEventCount  << "for Equippment " << fEquippmentID << endl; 
 	}  
     }
   size = tSize;
@@ -219,29 +227,154 @@ AliHLTPHOSDDLDecoderComponent::DoEvent( const AliHLTComponentEventData& evtData,
 int
 AliHLTPHOSDDLDecoderComponent::DoInit( int argc, const char** argv )
 {
-  //See html documentation of base class 
+  fSendChannelData = kFALSE;
   fPrintInfo = kFALSE;
   fRawMemoryReader = new AliRawReaderMemory();
   fPHOSRawStream = new  AliCaloRawStream(fRawMemoryReader,"PHOS");
   fPHOSRawStream->SetOldRCUFormat(kFALSE);
   int iResult=0;
   TString argument="";
-  ScanArguments(argc, argv);
+  Bool_t isSetEquippmentID = kFALSE;
 
-  if(fIsSetEquippmentID == kFALSE)
+  for(int i=0; i<argc && iResult>=0; i++) 
+    {
+      argument=argv[i];
+      
+      if (argument.IsNull()) 
+	{
+	  continue;
+	}
+                         
+    if (argument.CompareTo("-equipmentID") == 0) 
+	{
+	  cout << "AliHLTPHOSDDLDecoderComponent:DoInit  argument = -equipmentID   "  <<endl;  
+	  if(i+1 <= argc)
+	    {
+	      fEquippmentID = atoi(argv[i+1]);
+	      cout << "AliHLTPHOSDDLDecoderComponent:DoInit  setting equippment ID to  " << fEquippmentID <<endl;
+	      fRawMemoryReader->SetEquipmentID(fEquippmentID); 
+	      SetEquippmentID(fEquippmentID);
+	      SetCoordinates(fEquippmentID);
+	      isSetEquippmentID = kTRUE;
+	    }
+	  else
+	    {
+	       iResult= -1;
+	       Logging( kHLTLogFatal, "HLT::AliHLTPHOSRcuHistogramProducerComponent::DoInt( int argc, const char** argv )", "Missing argument",
+			"The argument -equippmentID expects a number");
+	       return  iResult;   
+	    }
+	}
+      
+    
+    if (argument.CompareTo("-datatype") == 0) 
+      {
+	if(i+1 <= argc)
+	  {
+	    //	    i++;
+	    argument=argv[i+1];
+	    if(argument.CompareTo("channeldata") == 0)
+	      {
+		cout << "AliHLTPHOSDDLDecoderComponent::DoIni  setting sendChannelData = kTRUE "<< endl; 
+		fSendChannelData = kTRUE;
+	      }
+	  }	
+      }
+    
 
+    if (argument.CompareTo("-printinfo") == 0) 
+      {
+	if(i+1 <= argc)
+	  {
+	    argument=argv[i+1];
+	    fPrintInfoFrequncy = atoi(argv[i+1]);
+	    fPrintInfo = kTRUE;
+	    cout << "AliHLTPHOSDDLDecoderComponent::DoIni  setting printinfo = kTRUE, with update frequency every  "<< fPrintInfoFrequncy << "th event" <<endl; 
+	  }
+	else
+	  {
+	    cout << "WARNING: asking for event info, but no update frequency is specified, otipn is ignored" << endl;
+	  }
+	//     }	
+      }
+ 
+    }
+
+
+  if(isSetEquippmentID == kFALSE)
     {
       Logging( kHLTLogFatal, "HLT::AliHLTPHOSRcuHistogramProducerComponent::DoInt( int argc, const char** argv )", "Missing argument",
 	       "The argument equippmentID is not set: set it with a component argumet like this: -equippmentID  <number>");
       iResult = -2; 
     }
 
-  return iResult;
+
+  return 0;
+}
+
+
+
+void 
+AliHLTPHOSDDLDecoderComponent::SetEquippmentID(AliHLTUInt16_t id)
+{
+  fEquippmentID = id;
+}
+
+
+AliHLTUInt16_t
+AliHLTPHOSDDLDecoderComponent::GetEquippmentID()
+{
+  return  fEquippmentID;
+}
+
+
+void 
+AliHLTPHOSDDLDecoderComponent::SetCoordinates(AliHLTUInt16_t equippmentID)
+{
+  int rcuIndex =  (fEquippmentID - 1792)%N_RCUS_PER_MODULE;
+  fModuleID = (fEquippmentID  -1792 -rcuIndex)/N_RCUS_PER_MODULE;
+  
+  if(rcuIndex == 0)
+    {
+      fRcuX = 0; 
+      fRcuZ = 0;
+    }
+
+  if(rcuIndex == 1)
+    {
+      fRcuX = 0; 
+      fRcuZ = 1;
+    }
+ 
+  if(rcuIndex == 2)
+    {
+      fRcuX = 1; 
+      fRcuZ = 0;
+    }
+
+  if(rcuIndex == 3)
+    {
+      fRcuX = 1; 
+      fRcuZ = 1;
+    }
+
+
+
+  fRcuZOffset =  N_ZROWS_RCU*fRcuZ;
+  fRcuXOffset =  N_XCOLUMNS_RCU*fRcuX;
+
+  cout <<"********InitInfo************"<< endl;
+  cout <<"AliHLTPHOSDDLDecoderComponent::SetCoordinate"<< endl;
+  cout <<"Equpippment ID =\t"<< fEquippmentID <<endl;
+  cout <<"Module ID =\t"<<  (int)fModuleID<<endl;
+  cout <<"RCUX =\t\t" << (int)fRcuX << endl;
+  cout <<"RCUZ =\t\t" << (int)fRcuZ << endl;
+  cout <<"RcuZOffset = \t" <<  (int)fRcuZOffset << endl;
+  cout <<"RcuXOffset = \t" <<  (int)fRcuXOffset << endl << endl;
 }
 
 AliHLTComponent*
 AliHLTPHOSDDLDecoderComponent::Spawn()
 {
-  //See html documentation of base class 
   return new AliHLTPHOSDDLDecoderComponent;
 }

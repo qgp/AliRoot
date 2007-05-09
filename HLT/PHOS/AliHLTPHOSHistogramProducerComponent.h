@@ -5,17 +5,22 @@
 /* Copyright(c) 2006, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice  */ 
 
-#include "AliHLTPHOSProcessor.h"
+#include "AliHLTProcessor.h"
 #include "AliHLTPHOSDefinitions.h"
 #include "AliHLTPHOSCommonDefs.h"
+//#include "TH2.h"
+//#include "AliHLTPHOSCommonDefs.h"
+//#include "AliHLTPHOSModuleCellAccumulatedEnergyDataStruct.h"
 
-
+//class TH2;
 class AliHLTPHOSModuleCellAccumulatedEnergyDataStruct;
 
-class AliHLTPHOSHistogramProducerComponent:public AliHLTPHOSProcessor
+class AliHLTPHOSHistogramProducerComponent:public AliHLTProcessor
 {
  public:
   AliHLTPHOSHistogramProducerComponent();
+  
+  //  ~AliHLTPHOSHistogramProducerComponent();
   virtual ~AliHLTPHOSHistogramProducerComponent();
   AliHLTPHOSHistogramProducerComponent(const AliHLTPHOSHistogramProducerComponent & );
   AliHLTPHOSHistogramProducerComponent & operator = (const AliHLTPHOSHistogramProducerComponent &)
@@ -24,29 +29,32 @@ class AliHLTPHOSHistogramProducerComponent:public AliHLTPHOSProcessor
    };
   virtual int DoInit( int argc = 0, const char** argv = 0);
   virtual int Deinit();
-  virtual int DoEvent( const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, 
-		     AliHLTComponentTriggerData& trigData, AliHLTUInt8_t* outputPtr, 
-		     AliHLTUInt32_t& size, vector<AliHLTComponentBlockData>& outputBlocks );
-
+  virtual int DoDeinit();
+  virtual int DoEvent(const AliHLTComponentEventData&, const AliHLTComponentBlockData*, AliHLTComponentTriggerData&, AliHLTUInt8_t*, AliHLTUInt32_t&, std::vector<AliHLTComponentBlockData, std::allocator<AliHLTComponentBlockData> >&);
   void DumpData(int gain = 0);
+  int GetEquippmentId();
   virtual const char* GetComponentID();
-  virtual void GetInputDataTypes( std::vector <AliHLTComponentDataType>& list);
+  virtual void GetInputDataTypes(std::vector<AliHLTComponentDataType, std::allocator<AliHLTComponentDataType> >&);
   virtual AliHLTComponentDataType GetOutputDataType();
   virtual void GetOutputDataSize(unsigned long& constBase, double& inputMultiplier);
+  void SetEquippmentId(int id = 0);
   virtual AliHLTComponent* Spawn();
+  
  protected:
   void Reset();
   void ResetDataPtr();
 
  private:
-  Double_t fEnergyAverageValues[N_ZROWS_MOD][N_XCOLUMNS_MOD][N_GAINS]; /**<Accumulated energy divided by the number of hits for each readout channel*/  
-  Double_t fAccumulatedValues[N_ZROWS_MOD][N_XCOLUMNS_MOD][N_GAINS];   /**<Accumulated energy for each readout channel of one RCU*/
-  //  Double_t fTimingAverageValues[N_ZROWS_MOD][N_XCOLUMNS_MOD][N_GAINS]; 
-  AliHLTUInt32_t fHits[N_ZROWS_MOD][N_XCOLUMNS_MOD][N_GAINS];         /**<Total number of hits for each cell of one RCU*/
-  Double_t fTmpChannelData[ALTRO_MAX_SAMPLES];                        /**<Array to temporarily store dat fro a single altro channel*/                        
-  AliHLTPHOSModuleCellAccumulatedEnergyDataStruct*  fOutPtr;          /**<Pointer to outputbuffer to write results from the component into shared memory*/
-  static const AliHLTComponentDataType fgkInputDataTypes[];           /**<List of  datatypes that can be given to this component*/  
-  static const AliHLTComponentDataType fgkOutputDataType;             /**<Output datatype produced by this component*/
+  Double_t fEnergyAverageValues[N_ZROWS_MOD][N_XCOLUMNS_MOD][N_GAINS];  
+  Double_t fAccumulatedValues[N_ZROWS_MOD][N_XCOLUMNS_MOD][N_GAINS];
+  Double_t fTimingAverageValues[N_ZROWS_MOD][N_XCOLUMNS_MOD][N_GAINS]; 
+  AliHLTUInt32_t fHits[N_ZROWS_MOD][N_XCOLUMNS_MOD][N_GAINS];
+  int fEventCount;
+  AliHLTUInt32_t fEquippmentID;
+  Double_t fTmpChannelData[ALTRO_MAX_SAMPLES];
+  AliHLTPHOSModuleCellAccumulatedEnergyDataStruct*  fOutPtr;
+  static const AliHLTComponentDataType fgkInputDataTypes[];
+  static const AliHLTComponentDataType fgkOutputDataType;
 };
 
 #endif

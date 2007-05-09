@@ -15,20 +15,8 @@
 
 /*
 $Log$
-Revision 1.17  2007/05/03 08:53:50  decaro
-Coding convention: RS3 violation -> suppression
-
-Revision 1.16  2007/05/03 08:22:22  decaro
-Coding convention: RN17 violation -> suppression
-
-Revision 1.15  2007/04/30 15:22:06  arcelli
-Change TOF digit Time, Tot etc to int type
-
 Revision 1.14  2007/04/27 11:11:53  arcelli
 updates for the new decoder
-
-Revision 1.13  2007/03/16 11:46:35  decaro
-Coding convention: RN17 rule violation -> suppression
 
 Revision 1.12  2007/02/22 09:43:45  decaro
 Added AliTOFRawStream::GetIndex method for online calibration (C.Zampolli)
@@ -138,8 +126,8 @@ AliTOFRawStream::AliTOFRawStream(AliRawReader* rawReader):
   //
 
   for (Int_t i=0;i<AliDAQ::NumberOfDdls("TOF");i++){
-    fDataBuffer[i]=new AliTOFHitDataBuffer();
-    fPackedDataBuffer[i]=new AliTOFHitDataBuffer();
+    fDataBuffer[i]=new AliTOFHitDataBuffer(DATA_BUFFER_SIZE);
+    fPackedDataBuffer[i]=new AliTOFHitDataBuffer(DATA_BUFFER_SIZE);
   }
 
   fTOFrawData = new TClonesArray("AliTOFrawData",1000);
@@ -187,8 +175,8 @@ AliTOFRawStream::AliTOFRawStream():
   // default ctr
   //
   for (Int_t i=0;i<AliDAQ::NumberOfDdls("TOF");i++){
-    fDataBuffer[i]=new AliTOFHitDataBuffer();
-    fPackedDataBuffer[i]=new AliTOFHitDataBuffer();
+    fDataBuffer[i]=new AliTOFHitDataBuffer(DATA_BUFFER_SIZE);
+    fPackedDataBuffer[i]=new AliTOFHitDataBuffer(DATA_BUFFER_SIZE);
   }
 
   fTOFrawData = new TClonesArray("AliTOFrawData",1000);
@@ -1123,20 +1111,20 @@ void AliTOFRawStream::EquipmentId2VolumeId(Int_t nDDL, Int_t nTRM, Int_t iChain,
 Int_t AliTOFRawStream::GetIndex(Int_t *detId)
 {
   //Retrieve calibration channel index
-  const Int_t kSectors = fTOFGeometry->NSectors();
-  const Int_t kPlates = fTOFGeometry->NPlates();
-  const Int_t kStripA = fTOFGeometry->NStripA();
-  const Int_t kStripB = fTOFGeometry->NStripB();
-  const Int_t kStripC = fTOFGeometry->NStripC();
-  const Int_t kPadX = fTOFGeometry->NpadX();
-  const Int_t kPadZ = fTOFGeometry->NpadZ();
+  const Int_t nSectors = fTOFGeometry->NSectors();
+  const Int_t nPlates = fTOFGeometry->NPlates();
+  const Int_t nStripA = fTOFGeometry->NStripA();
+  const Int_t nStripB = fTOFGeometry->NStripB();
+  const Int_t nStripC = fTOFGeometry->NStripC();
+  const Int_t nPadX = fTOFGeometry->NpadX();
+  const Int_t nPadZ = fTOFGeometry->NpadZ();
 
 
   Int_t isector = detId[0];
-  if (isector >= kSectors)
+  if (isector >= nSectors)
     AliError(Form("Wrong sector number in TOF (%d) !",isector));
   Int_t iplate = detId[1];
-  if (iplate >= kPlates)
+  if (iplate >= nPlates)
     AliError(Form("Wrong plate number in TOF (%d) !",iplate));
   Int_t istrip = detId[2];
   Int_t ipadz = detId[3];
@@ -1147,31 +1135,37 @@ Int_t AliTOFRawStream::GetIndex(Int_t *detId)
     stripOffset = 0;
     break;
   case 1:
-    stripOffset = kStripC;
+    stripOffset = nStripC;
     break;
   case 2:
-    stripOffset = kStripC+kStripB;
+    stripOffset = nStripC+nStripB;
     break;
   case 3:
-    stripOffset = kStripC+kStripB+kStripA;
+    stripOffset = nStripC+nStripB+nStripA;
     break;
   case 4:
-    stripOffset = kStripC+kStripB+kStripA+kStripB;
+    stripOffset = nStripC+nStripB+nStripA+nStripB;
     break;
   default:
     AliError(Form("Wrong plate number in TOF (%d) !",iplate));
     break;
   };
 
-  Int_t idet = ((2*(kStripC+kStripB)+kStripA)*kPadZ*kPadX)*isector +
-               (stripOffset*kPadZ*kPadX)+
-               (kPadZ*kPadX)*istrip+
-	       (kPadX)*ipadz+
+  Int_t idet = ((2*(nStripC+nStripB)+nStripA)*nPadZ*nPadX)*isector +
+               (stripOffset*nPadZ*nPadX)+
+               (nPadZ*nPadX)*istrip+
+	       (nPadX)*ipadz+
 	        ipadx;
   return idet;
 }
 //-----------------------------------------------------------------------------
 Bool_t AliTOFRawStream::DecodeDDL(Int_t DDLMin, Int_t DDLMax, Int_t verbose = 0){
+  Int_t currentEquipment;
+  Int_t currentDDL;
+
+  //pointers
+  UChar_t *data = 0x0;
+  
   //check and fix valid DDL range
   if (DDLMin < 0){
     DDLMin = 0;
@@ -1188,16 +1182,6 @@ Bool_t AliTOFRawStream::DecodeDDL(Int_t DDLMin, Int_t DDLMax, Int_t verbose = 0)
   if (verbose)
     AliInfo(Form("Selected TOF DDL range: %d-%d", DDLMin, DDLMax));
 
-  return(Decode(verbose));
-}
-//-----------------------------------------------------------------------------
-Bool_t AliTOFRawStream::Decode(Int_t verbose = 0){
-  Int_t currentEquipment;
-  Int_t currentDDL;
-
-  //pointers
-  UChar_t *data = 0x0;
-  
   //loop and read DDL headers 
   while(fRawReader->ReadHeader()){
 
@@ -1258,10 +1242,6 @@ Bool_t AliTOFRawStream::Decode(Int_t verbose = 0){
 void
 AliTOFRawStream::ResetBuffers()
 {
-  //
-  // To reset the buffers
-  //
-
   for (Int_t iDDL = 0; iDDL < AliDAQ::NumberOfDdls("TOF"); iDDL++){
     ResetDataBuffer(iDDL);
     ResetPackedDataBuffer(iDDL);
@@ -1272,10 +1252,6 @@ AliTOFRawStream::ResetBuffers()
 Bool_t
 AliTOFRawStream::LoadRawDataBuffers(Int_t indexDDL, Int_t verbose)
 {
-  //
-  // To load the buffers
-  //
-
   fTOFrawData->Clear();
   fPackedDigits = 0;
   
