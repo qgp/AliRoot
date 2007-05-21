@@ -144,8 +144,8 @@ void AliPMDClusteringV1::DoClust(Int_t idet, Int_t ismn,
 	  j = jd;
 	  i = id+(ndimYr/2-1)-(jd/2);
 
-	  Int_t ij = i + j*kNDIMX;
-	  // BKN Int_t ij = i + j*ndimXr;
+	  //PH	  Int_t ij = i + j*kNDIMX;
+	  Int_t ij = i + j*ndimXr;
 
 	  if (ismn < 12)
 	    {
@@ -592,10 +592,7 @@ void AliPMDClusteringV1::RefClust(Int_t incr, Double_t edepcell[])
 		  zc[ig] = z[iord[j]];
 		}
 	    }
-	  //GaussFit(ncl[i], ig, x[0], y[0] ,z[0], xc[0], yc[0], zc[0], rc[0]);
-
-	  GaussFit(ncl[i], ig, x, y ,z, xc, yc, zc, rc);
-
+	  GaussFit(ncl[i], ig, x[0], y[0] ,z[0], xc[0], yc[0], zc[0], rc[0]);
 	  icl += ig+1;
 	  // compute the number of cells belonging to each cluster.
 	  // cell is shared between several clusters ( if they are equidistant
@@ -733,20 +730,22 @@ void AliPMDClusteringV1::RefClust(Int_t incr, Double_t edepcell[])
     }
 }
 // ------------------------------------------------------------------------ //
-void AliPMDClusteringV1::GaussFit(Int_t ncell, Int_t nclust, Double_t x[], 
-			  Double_t y[] ,Double_t z[], Double_t xc[], 
-			  Double_t yc[], Double_t zc[], Double_t rc[])
+void AliPMDClusteringV1::GaussFit(Int_t ncell, Int_t nclust, Double_t &x, 
+				  Double_t &y ,Double_t &z, Double_t &xc, 
+				  Double_t &yc, Double_t &zc, Double_t &rc)
 {
   // Does gaussian fitting
   //
+
   const Int_t kdim = 4500;
   Int_t i, j, i1, i2, novar, idd, jj;
   Int_t neib[kdim][50];
 
   Double_t sum, dx, dy, str, str1, aint, sum1, rr, dum;
   Double_t x1, x2, y1, y2;
+  Double_t xx[kdim], yy[kdim], zz[kdim], xxc[kdim], yyc[kdim];
   Double_t a[kdim], b[kdim], c[kdim], d[kdim], ha[kdim], hb[kdim];
-  Double_t hc[kdim], hd[kdim];
+  Double_t hc[kdim], hd[kdim], zzc[kdim], rrc[kdim];
   
   TRandom rnd;
   
@@ -755,36 +754,42 @@ void AliPMDClusteringV1::GaussFit(Int_t ncell, Int_t nclust, Double_t x[],
   rr    = 0.3;
   novar = 0;
   j     = 0;  
- 
+
   for(i = 0; i <= ncell; i++)
     {
-      str  += z[i];
+      xx[i] = *(&x+i);
+      yy[i] = *(&y+i);
+      zz[i] = *(&z+i);
+      str  += zz[i];
     }
   for(i=0; i<=nclust; i++)
     {
-      str1  += zc[i];
-      rc[i] = 0.5;
+      xxc[i] = *(&xc+i);
+      yyc[i] = *(&yc+i);
+      zzc[i] = *(&zc+i);
+      str1  += zzc[i];
+      rrc[i] = 0.5;
     }
-
   for(i = 0; i <= nclust; i++)
     {
-      zc[i] = str/str1*zc[i];
-      ha[i]  = xc[i];
-      hb[i]  = yc[i];
-      hc[i]  = zc[i];
-      hd[i]  = rc[i];
-      x1     = xc[i];
-      y1     = yc[i];
+      zzc[i] = str/str1*zzc[i];
+      ha[i]  = xxc[i];
+      hb[i]  = yyc[i];
+      hc[i]  = zzc[i];
+      hd[i]  = rrc[i];
+      x1     = xxc[i];
+      y1     = yyc[i];
     }
+ 
   for(i = 0; i <= ncell; i++)
     {
       idd = 0;
-      x1  = x[i];
-      y1  = y[i];
+      x1  = xx[i];
+      y1  = yy[i];
       for(j = 0; j <= nclust; j++)
 	{
-	  x2 = xc[j];
-	  y2 = yc[j];
+	  x2 = xxc[j];
+	  y2 = yyc[j];
 	  if(Distance(x1,y1,x2,y2) <= 3.)
 	    { 
 	      idd++;
@@ -801,22 +806,22 @@ void AliPMDClusteringV1::GaussFit(Int_t ncell, Int_t nclust, Double_t x[],
       for(i2 = 1; i2 <= idd; i2++)
 	{
 	  jj    = neib[i1][i2];
-	  dx    = x[i1] - xc[jj];
-	  dy    = y[i1] - yc[jj];
-	  dum   = rc[j]*rc[jj] + rr*rr;
-	  aint += exp(-(dx*dx+dy*dy)/dum)*zc[idd]*rr*rr/dum;
+	  dx    = xx[i1] - xxc[jj];
+	  dy    = yy[i1] - yyc[jj];
+	  dum   = rrc[j]*rrc[jj] + rr*rr;
+	  aint += exp(-(dx*dx+dy*dy)/dum)*zzc[idd]*rr*rr/dum;
 	}
-      sum += (aint - z[i1])*(aint - z[i1])/str;
+      sum += (aint - zz[i1])*(aint - zz[i1])/str;
     } 
   str1 = 0.;
  
   for(i = 0; i <= nclust; i++)
     {
-      a[i]  = xc[i] + 0.6*(rnd.Uniform() - 0.5);
-      b[i]  = yc[i] + 0.6*(rnd.Uniform() - 0.5);
-      c[i]  = zc[i]*(1.+ ( rnd.Uniform() - 0.5)*0.2);
-      str1 += zc[i];
-      d[i]  = rc[i]*(1.+ ( rnd.Uniform() - 0.5)*0.1);
+      a[i]  = xxc[i] + 0.6*(rnd.Uniform() - 0.5);
+      b[i]  = yyc[i] + 0.6*(rnd.Uniform() - 0.5);
+      c[i]  = zzc[i]*(1.+ ( rnd.Uniform() - 0.5)*0.2);
+      str1 += zzc[i];
+      d[i]  = rrc[i]*(1.+ ( rnd.Uniform() - 0.5)*0.1);
       
       if(d[i] < 0.25)
 	{
@@ -836,24 +841,31 @@ void AliPMDClusteringV1::GaussFit(Int_t ncell, Int_t nclust, Double_t x[],
       for(i2 = 1; i2 <= idd; i2++)
 	{
 	  jj    = neib[i1][i2];
-	  dx    = x[i1] - a[jj];
-	  dy    = y[i1] - b[jj];
+	  dx    = xx[i1] - a[jj];
+	  dy    = yy[i1] - b[jj];
 	  dum   = d[jj]*d[jj]+rr*rr;
 	  aint += exp(-(dx*dx+dy*dy)/dum)*c[i2]*rr*rr/dum;
 	}
-      sum1 += (aint - z[i1])*(aint - z[i1])/str;
+      sum1 += (aint - zz[i1])*(aint - zz[i1])/str;
     }
 
     if(sum1 < sum)
       {
 	for(i2 = 0; i2 <= nclust; i2++)
 	{
-	  xc[i2] = a[i2];
-	  yc[i2] = b[i2];
-	  zc[i2] = c[i2];
-	  rc[i2] = d[i2];
+	  xxc[i2] = a[i2];
+	  yyc[i2] = b[i2];
+	  zzc[i2] = c[i2];
+	  rrc[i2] = d[i2];
 	  sum     = sum1;
 	}
+      }
+    for(j = 0; j <= nclust; j++)
+      {
+	*(&xc+j) = xxc[j];
+	*(&yc+j) = yyc[j];
+	*(&zc+j) = zzc[j];
+	*(&rc+j) = rrc[j];
       }
 }
 // ------------------------------------------------------------------------ //
