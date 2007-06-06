@@ -20,6 +20,8 @@
 //     Author: Markus Oldenburg, CERN
 //-------------------------------------------------------------------------
 
+#include <TTree.h>
+
 #include "AliAODEvent.h"
 #include "AliAODHeader.h"
 #include "AliAODTrack.h"
@@ -29,11 +31,12 @@ ClassImp(AliAODEvent)
 //______________________________________________________________________________
 AliAODEvent::AliAODEvent() :
   fAODObjects(new TList()),
-  fHeader((AliAODHeader*)fAODObjects->At(0)),
-  fTracks((TClonesArray*)fAODObjects->At(1)),
-  fVertices((TClonesArray*)fAODObjects->At(2)),
-  fClusters((TClonesArray*)fAODObjects->At(3)),
-  fJets((TClonesArray*)fAODObjects->At(4))
+  fHeader(0),
+  fTracks(0),
+  fVertices(0),
+  fClusters(0),
+  fJets(0),
+  fPhotons(0)
 {
   // default constructor
 }
@@ -41,9 +44,8 @@ AliAODEvent::AliAODEvent() :
 //______________________________________________________________________________
 AliAODEvent::~AliAODEvent() 
 {
-  // destructor
-
-  delete fAODObjects;
+// destructor
+    delete fAODObjects;
 }
 
 //______________________________________________________________________________
@@ -75,6 +77,7 @@ void AliAODEvent::CreateStdContent()
   AddObject(new TClonesArray("AliAODVertex", 0));
   AddObject(new TClonesArray("AliAODCluster", 0));
   AddObject(new TClonesArray("AliAODJet", 0));
+  AddObject(new TClonesArray("AliAODPhoton", 0));
 
   // read back pointers
   GetStdContent();
@@ -84,11 +87,12 @@ void AliAODEvent::CreateStdContent()
   fVertices->SetName("vertices");
   fClusters->SetName("clusters");
   fJets->SetName("jets");
+  fPhotons->SetName("photons");
 
 }
 
 //______________________________________________________________________________
-void AliAODEvent::GetStdContent() const
+void AliAODEvent::GetStdContent()
 {
   // set pointers for standard content
 
@@ -97,6 +101,7 @@ void AliAODEvent::GetStdContent() const
   fVertices = (TClonesArray*)fAODObjects->At(2);
   fClusters = (TClonesArray*)fAODObjects->At(3);
   fJets     = (TClonesArray*)fAODObjects->At(4);
+  fPhotons  = (TClonesArray*)fAODObjects->At(5);
 }
 
 //______________________________________________________________________________
@@ -110,6 +115,16 @@ void AliAODEvent::ResetStd(Int_t trkArrSize, Int_t vtxArrSize)
   fVertices->Delete();
   if (vtxArrSize > fVertices->GetSize()) 
     fVertices->Expand(vtxArrSize);
+}
+
+void AliAODEvent::ClearStd()
+{
+  // clears the standard arrays
+    fTracks   ->Clear();
+    fVertices ->Clear();
+    fClusters ->Clear();
+    fJets     ->Clear();
+    fPhotons  ->Clear();
 }
 
 //______________________________________________________________________________
@@ -128,3 +143,5 @@ Int_t AliAODEvent::GetMuonTracks(TRefArray *muonTracks) const
   
   return muonTracks->GetSize();
 }
+
+

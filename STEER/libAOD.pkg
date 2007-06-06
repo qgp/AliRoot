@@ -1,6 +1,8 @@
 SRCS = AliAODEvent.cxx AliVirtualParticle.cxx AliAODHeader.cxx \
 	AliAODTrack.cxx AliAODVertex.cxx AliAODCluster.cxx \
-	AliAODJet.cxx AliAODRedCov.cxx AliAODRecoDecay.cxx
+	AliAODJet.cxx AliAODRedCov.cxx AliAODRecoDecay.cxx \
+	AliVirtualEventHandler.cxx AliAODHandler.cxx \
+	AliAODPhoton.cxx
 
 HDRS:= $(SRCS:.cxx=.h) 
 
