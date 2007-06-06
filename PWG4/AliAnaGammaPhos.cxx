@@ -37,6 +37,7 @@
 #include "AliESD.h" 
 #include "AliAODEvent.h"
 #include "AliAODHandler.h"
+#include "AliAODPhoton.h"
 #include "AliLog.h"
 
 //______________________________________________________________________________
@@ -85,15 +86,15 @@ AliAnaGammaPhos::AliAnaGammaPhos(const char *name) :
   DefineInput(0, TChain::Class());
   // Output slots 
   DefineOutput(0,  TTree::Class()) ; 
-  DefineOutput(1,  TList::Class()) ; 
+  //  DefineOutput(1,  TList::Class()) ; 
 }
 
 //______________________________________________________________________________
 AliAnaGammaPhos::~AliAnaGammaPhos()
 {
   // dtor
-  fOutputList->Clear() ; 
-  delete fOutputList ;
+  //  fOutputList->Clear() ; 
+  //delete fOutputList ;
 }
 
 
@@ -128,10 +129,12 @@ void AliAnaGammaPhos::CreateOutputObjects()
  
   OpenFile(0) ;
   AliAODHandler* handler = (AliAODHandler*) ((AliAnalysisManager::GetAnalysisManager())->GetEventHandler());  
+  fTreeA = handler->GetTree() ; 
   fAOD   = handler->GetAOD();
   fAODPhotons = fAOD->GetClusters() ; 
+  
 
-  OpenFile(1) ; 
+  //OpenFile(1) ; 
 
   fhPHOSPos            = new TNtuple("PHOSPos"         , "Position in PHOS"  , "x:y:z");
   fhPHOS               = new TNtuple("PHOS"            , "PHOS"  , "event:digits:clusters:photons");
@@ -221,7 +224,7 @@ void AliAnaGammaPhos::Exec(Option_t *)
   }
   
   PostData(0, fTreeA) ; 
-  PostData(1, fOutputList);
+  //  PostData(1, fOutputList);
 
   delete [] phosVector ; 
   delete [] phosPhotonsEnergy ; 
@@ -242,15 +245,15 @@ void AliAnaGammaPhos::Terminate(Option_t *)
 {
   // Processing when the event loop is ended
 
-  fOutputList = (TList*)GetOutputData(1);  
-  fhPHOSPos            = (TNtuple*)fOutputList->At(0);
-  fhPHOS               = (TNtuple*)fOutputList->At(1);
-  fhPHOSEnergy         = (TH1D*)fOutputList->At(2);
-  fhPHOSDigits         = (TH1I*)fOutputList->At(3);
-  fhPHOSRecParticles   = (TH1D*)fOutputList->At(4);
-  fhPHOSPhotons        = (TH1I*)fOutputList->At(5);
-  fhPHOSInvariantMass  = (TH1D*)fOutputList->At(6);
-  fhPHOSDigitsEvent    = (TH1I*)fOutputList->At(7);
+//   fOutputList = (TList*)GetOutputData(0);  
+//   fhPHOSPos            = (TNtuple*)fOutputList->At(0);
+//   fhPHOS               = (TNtuple*)fOutputList->At(1);
+//   fhPHOSEnergy         = (TH1D*)fOutputList->At(2);
+//   fhPHOSDigits         = (TH1I*)fOutputList->At(3);
+//   fhPHOSRecParticles   = (TH1D*)fOutputList->At(4);
+//   fhPHOSPhotons        = (TH1I*)fOutputList->At(5);
+//   fhPHOSInvariantMass  = (TH1D*)fOutputList->At(6);
+//   fhPHOSDigitsEvent    = (TH1I*)fOutputList->At(7);
 
   Bool_t problem = kFALSE ; 
   AliInfo(Form(" *** %s Report:", GetName())) ; 
