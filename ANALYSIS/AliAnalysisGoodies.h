@@ -38,8 +38,8 @@ public:
   Bool_t Process(const char * esdFile)  ;  
   Bool_t Process(const char * inFile, AliRunTagCuts *runCuts, AliLHCTagCuts *lhcCuts, AliDetectorTagCuts *detCuts, AliEventTagCuts * evtCuts ) ;
   Bool_t Process(const char * inFile, const char * runCuts, const char * lhcCuts, const char * detCuts, const char * evtCuts) ;  
- void         SetESDTreeName(const char * name) { fESDTreeName = name ; }
-  void         SetTasks(Int_t nb, AliAnalysisTask ** taskList, TClass ** inputType, TClass ** outputType) ;
+  void   SetESDTreeName(const char * name) { fESDTreeName = name ; }
+  void   SetTasks(TList * taskList, TList ** inputType, TList ** outputType) ;
   Bool_t MakeEsdCollectionFromTagFile(AliRunTagCuts *runCuts, AliLHCTagCuts *lhcCuts, AliDetectorTagCuts *detCuts, AliEventTagCuts *evtCuts, const char * in, const char * out) const ; 
 
 private:
@@ -55,12 +55,12 @@ private:
   Bool_t ProcessTagXmlCollection(const char * xmlFile, AliRunTagCuts *runCuts, AliLHCTagCuts *lhcCuts, AliDetectorTagCuts *detCuts, AliEventTagCuts * evtCuts) const ;   
   Bool_t ProcessTagXmlCollection(const char * xmlFile, const char * runCuts, const char * lhcCuts, const char * detCuts, const char * evtCuts) const ; 
 
-  TStopwatch        fTimer         ;   //! stopwatch
-  TString           fESDTreeName   ;   //! name of the ESD TTree
-  UShort_t          fnumberOfTasks ;   //! number of tasks
-  AliAnalysisTask ** fTaskList      ;  //! list of tasks
-  TClass          ** fTaskInType    ;  //! list of tasks input
-  TClass          ** fTaskOuType    ;  //! list of tasks output
+  TStopwatch        fTimer         ;  //! stopwatch
+  TString           fESDTreeName   ;  //! name of the ESD TTree
+  UShort_t          fnumberOfTasks ;  //! number of tasks
+  TList           * fTaskList      ;  //! list of tasks
+  TList          ** fTaskInType    ;  //! list of tasks input
+  TList          ** fTaskOuType    ;  //! list of tasks output
 
   ClassDef(AliAnalysisGoodies, 0); // an analysis utilities class
 };

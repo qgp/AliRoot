@@ -25,6 +25,7 @@
 #include "AliXMLCollection.h" 
 #include "AliAnalysisGoodies.h" 
 #include "AliAnalysisManager.h" 
+#include "AliAODHandler.h"
 #include "AliAnalysisTask.h" 
 #include "AliLog.h" 
 
@@ -466,31 +467,32 @@ Bool_t AliAnalysisGoodies::ProcessChain(TChain * chain) const
   // Make the analysis manager
   AliAnalysisManager * mgr = new AliAnalysisManager("Goodies Manager", "Analysis manager created by AliAnalysisGoodies") ;
 
-  // Make tasks 
-  // The top input must be common to all top tasks
-  TClass * classIn = fTaskInType[0] ; 
-  AliAnalysisDataContainer * taskInput  = mgr->CreateContainer("InputContainer", classIn, AliAnalysisManager::kInputContainer) ;
-  Int_t index ; 
-  for (index = 0; index < fnumberOfTasks; index++) {
- 
-    TClass * classOu = fTaskOuType[index] ;    
-    AliAnalysisTask * task = fTaskList[index] ;
+  mgr->SetDebugLevel(100) ; 
 
-    AliAnalysisDataContainer * taskOutput = mgr->CreateContainer(Form("OutputContainer%d",index), classOu, AliAnalysisManager::kOutputContainer, Form("%s.root",task->GetName())) ;
-    mgr->AddTask(task) ;
-    
-    // Create containers for input/output
-   
-    rv = mgr->ConnectInput (task, 0, taskInput);
-    if (!rv) 
-      AliFatal(Form("Error while connecting %s to %s", task->GetName(), taskInput->GetName())) ;  
-    rv = mgr->ConnectOutput(task, 0, taskOutput);
-    if (!rv) 
-      AliFatal(Form("Error while connecting %s to %s", task->GetName(), taskOutput->GetName())) ;  
+  AliAODHandler      * aodHandler = new AliAODHandler() ; 
+  mgr->SetEventHandler(aodHandler) ; 
+
+  // add the tasks
+  Int_t taskIndex ; 
+  for (taskIndex = 0; taskIndex < fTaskList->GetEntries(); taskIndex++) {
+   AliAnalysisTask * task = dynamic_cast<AliAnalysisTask *>(fTaskList->At(taskIndex)) ;
+   mgr->AddTask(task) ;
+   //connect the input
+   Int_t inputIndex ; 
+   for (inputIndex = 0 ; inputIndex < fTaskInType[taskIndex]->GetEntries() ; inputIndex++) {
+     TClass * classIn = static_cast<TClass *> (fTaskInType[taskIndex]->At(inputIndex)) ; 
+     AliAnalysisDataContainer * taskInput  = mgr->CreateContainer(Form("InputContainer%d_%d", taskIndex, inputIndex), classIn, AliAnalysisManager::kInputContainer) ;
+     mgr->ConnectInput (task, inputIndex, taskInput);
+   }
+   Int_t outputIndex ; 
+   for (outputIndex = 0 ; outputIndex < fTaskOuType[taskIndex]->GetEntries() ; outputIndex++) {
+     TClass * classOu = static_cast<TClass *>(fTaskOuType[taskIndex]->At(outputIndex)) ;    
+     AliAnalysisDataContainer * taskOutput = mgr->CreateContainer(Form("OutputContainer%d_%d",taskIndex, outputIndex), classOu, AliAnalysisManager::kOutputContainer, Form("%s_%d.root",task->GetName(), outputIndex)) ;
+     mgr->ConnectOutput(task, outputIndex, taskOutput);
+   }     
   }
   
   // start processing 
-
   if (mgr->InitAnalysis()) {
     mgr->PrintStatus();
     mgr->StartAnalysis("local",chain);
@@ -772,13 +774,13 @@ Bool_t AliAnalysisGoodies::Register( const char * lfndir, const char * pfndir, c
 }
  
 //______________________________________________________________________
-void AliAnalysisGoodies::SetTasks(Int_t nb, AliAnalysisTask ** taskList, TClass ** inputType, TClass ** outputType)
+void AliAnalysisGoodies::SetTasks(TList * taskList, TList ** inputType, TList ** outputType)
 {
   // define a task with its output and input type
 
   
-  fnumberOfTasks= nb; 
-  fTaskList   = taskList ;
-  fTaskInType = inputType ; 
-  fTaskOuType = outputType ; 
+  fnumberOfTasks = taskList->GetEntries() ; 
+  fTaskList      = taskList ;
+  fTaskInType    = inputType ; 
+  fTaskOuType    = outputType ; 
 }
