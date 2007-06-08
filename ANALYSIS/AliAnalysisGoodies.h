@@ -22,6 +22,7 @@ class AliRunTagCuts ;
 class AliLHCTagCuts ;  
 class AliDetectorTagCuts ;  
 class AliAnalysisManager ; 
+class AliAnalysisDataContainer ;; 
 
 class AliAnalysisGoodies : public TObject {
 
@@ -32,8 +33,10 @@ public:
 
   virtual void Help() const; 
   Bool_t Alien2Local(const TString collectionNameIn, const TString localDir) ; 
-  void   ConnectInput(AliAnalysisTask * task, TClass * classin, UShort_t index) ; 
-  void   ConnectOuput(AliAnalysisTask * task, TClass * classou, UShort_t index, TString opt = "") ; 
+  AliAnalysisDataContainer * ConnectInput(AliAnalysisTask * task, TClass * classin, UShort_t index) ; 
+  void ConnectInput(AliAnalysisTask * task, AliAnalysisDataContainer * in, UShort_t index ) ;
+  AliAnalysisDataContainer * ConnectOuput(AliAnalysisTask * task, TClass * classou, UShort_t index, TString opt = "") ; 
+  void   ConnectOuput(AliAnalysisTask * task, AliAnalysisDataContainer * ou, UShort_t index) ; 
   Bool_t Make(AliRunTagCuts *runCuts, AliLHCTagCuts *lhcCuts, AliDetectorTagCuts *detCuts, AliEventTagCuts *evtCuts, const char * in, const char * out) const ;
   Bool_t Merge(const char * collection, const char * subFile = 0, const char * outFile = 0) ; 
   Bool_t Register( const char * lfndir, const char * pfndir, const char * file)  ;   
