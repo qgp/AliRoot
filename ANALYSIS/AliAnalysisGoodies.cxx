@@ -466,13 +466,10 @@ Bool_t AliAnalysisGoodies::ProcessChain(TChain * chain) const
   
   // Make the analysis manager
   AliAnalysisManager * mgr = new AliAnalysisManager("Goodies Manager", "Analysis manager created by AliAnalysisGoodies") ;
-
-  mgr->SetDebugLevel(100) ; 
-
   AliAODHandler      * aodHandler = new AliAODHandler() ; 
   mgr->SetEventHandler(aodHandler) ; 
 
-  // add the tasks
+   // add the tasks
   Int_t taskIndex ; 
   for (taskIndex = 0; taskIndex < fTaskList->GetEntries(); taskIndex++) {
    AliAnalysisTask * task = dynamic_cast<AliAnalysisTask *>(fTaskList->At(taskIndex)) ;
@@ -487,7 +484,14 @@ Bool_t AliAnalysisGoodies::ProcessChain(TChain * chain) const
    Int_t outputIndex ; 
    for (outputIndex = 0 ; outputIndex < fTaskOuType[taskIndex]->GetEntries() ; outputIndex++) {
      TClass * classOu = static_cast<TClass *>(fTaskOuType[taskIndex]->At(outputIndex)) ;    
-     AliAnalysisDataContainer * taskOutput = mgr->CreateContainer(Form("OutputContainer%d_%d",taskIndex, outputIndex), classOu, AliAnalysisManager::kOutputContainer, Form("%s_%d.root",task->GetName(), outputIndex)) ;
+     char filename[20] ; 
+     if (taskIndex == GetAODIndex()[0] && outputIndex == GetAODIndex()[1] ) {
+       aodHandler->SetOutputFileName(Form("%s_0.root",task->GetName())) ; 
+       sprintf(filename, "default") ; 
+     }
+     else 
+       sprintf(filename, "%s_%d.root",task->GetName(), outputIndex) ; 
+     AliAnalysisDataContainer * taskOutput = mgr->CreateContainer(Form("OutputContainer%d_%d",taskIndex, outputIndex), classOu, AliAnalysisManager::kOutputContainer, filename) ;
      mgr->ConnectOutput(task, outputIndex, taskOutput);
    }     
   }

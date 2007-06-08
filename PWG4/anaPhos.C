@@ -85,18 +85,21 @@ void anaPhos(const Int_t kEvent=100)
   TList ** taskInputList = new TList[knumberOfTasks] ; 
   TList ** taskOutputList = new TList[knumberOfTasks] ; 
   Int_t taskIndex = 0, inputIndex = 0, outputIndex = 0 ; 
+
   
   // first task 
   taskList->AddAt( new AliAnaGammaPhos("GammaPhos"), taskIndex ) ; 
   taskInputList[taskIndex]  = new TList() ; 
   taskInputList[taskIndex]->AddAt(TChain::Class(), inputIndex++) ; 
   taskOutputList[taskIndex] = new TList() ; 
-  taskOutputList[taskIndex]->AddAt(TTree::Class(), outputIndex++) ;
-  //  taskOutputList[taskIndex]->AddAt(TList::Class(), outputIndex++) ; 
+  taskOutputList[taskIndex]->AddAt(TTree::Class(), outputIndex) ;
+  ag->SetAODIndex(taskIndex, outputIndex) ; 
+  outputIndex++ ; 
+  taskOutputList[taskIndex]->AddAt(TList::Class(), outputIndex++) ; 
   taskIndex++ ; 
-
+  
   ag->SetTasks(taskList, taskInputList, taskOutputList) ; 
-
+ 
   // get the data to analyze
 
   // definition of Tag cuts 
