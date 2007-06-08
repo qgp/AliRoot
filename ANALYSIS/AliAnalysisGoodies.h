@@ -21,6 +21,7 @@ class AliEventTagCuts ;
 class AliRunTagCuts ;  
 class AliLHCTagCuts ;  
 class AliDetectorTagCuts ;  
+class AliAnalysisManager ; 
 
 class AliAnalysisGoodies : public TObject {
 
@@ -31,6 +32,8 @@ public:
 
   virtual void Help() const; 
   Bool_t Alien2Local(const TString collectionNameIn, const TString localDir) ; 
+  void   ConnectInput(AliAnalysisTask * task, TClass * classin, UShort_t index) ; 
+  void   ConnectOuput(AliAnalysisTask * task, TClass * classou, UShort_t index, TString opt = "") ; 
   Bool_t Make(AliRunTagCuts *runCuts, AliLHCTagCuts *lhcCuts, AliDetectorTagCuts *detCuts, AliEventTagCuts *evtCuts, const char * in, const char * out) const ;
   Bool_t Merge(const char * collection, const char * subFile = 0, const char * outFile = 0) ; 
   Bool_t Register( const char * lfndir, const char * pfndir, const char * file)  ;   
@@ -38,13 +41,10 @@ public:
   Bool_t Process(const char * esdFile)  ;  
   Bool_t Process(const char * inFile, AliRunTagCuts *runCuts, AliLHCTagCuts *lhcCuts, AliDetectorTagCuts *detCuts, AliEventTagCuts * evtCuts ) ;
   Bool_t Process(const char * inFile, const char * runCuts, const char * lhcCuts, const char * detCuts, const char * evtCuts) ;  
-  void   SetAODIndex(const Int_t taskIndex, const Int_t outputIndex) { fAODIndex = new Int_t[2] ; fAODIndex[0] = taskIndex ; fAODIndex[1] = outputIndex ; }
   void   SetESDTreeName(const char * name) { fESDTreeName = name ; }
-  void   SetTasks(TList * taskList, TList ** inputType, TList ** outputType) ;
   Bool_t MakeEsdCollectionFromTagFile(AliRunTagCuts *runCuts, AliLHCTagCuts *lhcCuts, AliDetectorTagCuts *detCuts, AliEventTagCuts *evtCuts, const char * in, const char * out) const ; 
 
 private:
-  const Int_t * GetAODIndex() const { return fAODIndex ; }
   Bool_t MakeEsdCollectionFromTagFile(const char * , const char * , const char * , const char *) const ;
   Bool_t MakeEsdCollectionFromTagCollection(AliRunTagCuts *runCuts, AliLHCTagCuts *lhcCuts, AliDetectorTagCuts *detCuts, AliEventTagCuts *evtCuts, const char * in, const char * out) const ;
   Bool_t MakeEsdCollectionFromTagCollection(const char * runCuts, const char *lhcCuts, const char *detCuts, const char * evtCuts, const char * in, const char * out) const ;
@@ -59,12 +59,7 @@ private:
 
   TStopwatch        fTimer         ;  //! stopwatch
   TString           fESDTreeName   ;  //! name of the ESD TTree
-  UShort_t          fnumberOfTasks ;  //! number of tasks
-  TList           * fTaskList      ;  //! list of tasks
-  TList          ** fTaskInType    ;  //! list of tasks input
-  TList          ** fTaskOuType    ;  //! list of tasks output
-  Int_t           * fAODIndex      ;  //! index of task and output that is related to AOD
-
+  AliAnalysisManager * fAmgr       ;  //! the analysis manager
   ClassDef(AliAnalysisGoodies, 0); // an analysis utilities class
 };
 #endif // ALIANALYSISGOODIES_H

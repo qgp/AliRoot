@@ -79,26 +79,13 @@ void anaPhos(const Int_t kEvent=100)
 
   // definition of analysis tasks
  
-  const Int_t knumberOfTasks = 1 ;
-
-  TList * taskList       = new TList() ;
-  TList ** taskInputList = new TList[knumberOfTasks] ; 
-  TList ** taskOutputList = new TList[knumberOfTasks] ; 
-  Int_t taskIndex = 0, inputIndex = 0, outputIndex = 0 ; 
-
-  
   // first task 
-  taskList->AddAt( new AliAnaGammaPhos("GammaPhos"), taskIndex ) ; 
-  taskInputList[taskIndex]  = new TList() ; 
-  taskInputList[taskIndex]->AddAt(TChain::Class(), inputIndex++) ; 
-  taskOutputList[taskIndex] = new TList() ; 
-  taskOutputList[taskIndex]->AddAt(TTree::Class(), outputIndex) ;
-  ag->SetAODIndex(taskIndex, outputIndex) ; 
-  outputIndex++ ; 
-  taskOutputList[taskIndex]->AddAt(TList::Class(), outputIndex++) ; 
-  taskIndex++ ; 
-  
-  ag->SetTasks(taskList, taskInputList, taskOutputList) ; 
+  AliAnaGammaPhos * task = new AliAnaGammaPhos("GammaPhos") ;
+  ag->ConnectInput(task, TChain::Class(), 0) ; 
+  ag->ConnectOuput(task, TTree::Class(), 0, "AOD") ;  
+  ag->ConnectOuput(task, TList::Class(), 1) ;  
+
+  // second task 
  
   // get the data to analyze
 
