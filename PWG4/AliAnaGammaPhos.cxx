@@ -86,7 +86,7 @@ AliAnaGammaPhos::AliAnaGammaPhos(const char *name) :
   DefineInput(0, TChain::Class());
   // Output slots 
   DefineOutput(0,  TTree::Class()) ; 
-  //  DefineOutput(1,  TList::Class()) ; 
+  DefineOutput(1,  TList::Class()) ; 
 }
 
 //______________________________________________________________________________
@@ -134,7 +134,7 @@ void AliAnaGammaPhos::CreateOutputObjects()
   fAODPhotons = fAOD->GetClusters() ; 
   
 
-  //OpenFile(1) ; 
+  OpenFile(1) ; 
 
   fhPHOSPos            = new TNtuple("PHOSPos"         , "Position in PHOS"  , "x:y:z");
   fhPHOS               = new TNtuple("PHOS"            , "PHOS"  , "event:digits:clusters:photons");
@@ -191,15 +191,15 @@ void AliAnaGammaPhos::Exec(Option_t *)
     AliESDCaloCluster * caloCluster = fESD->GetCaloCluster(phosCluster) ;
     if (caloCluster) {
       Float_t pos[3] ;
-      caloCluster->GetGlobalPosition( pos ) ;
-      fhPHOSEnergy->Fill( caloCluster->GetClusterEnergy() ) ;
+      caloCluster->GetPosition( pos ) ;
+      fhPHOSEnergy->Fill( caloCluster->E() ) ;
       fhPHOSPos->Fill( pos[0], pos[1], pos[2] ) ;
       fhPHOSDigits->Fill(entry, caloCluster->GetNumberOfDigits() ) ;
       numberOfDigitsInPhos += caloCluster->GetNumberOfDigits() ;
       Float_t * pid = caloCluster->GetPid() ;
       if(pid[AliPID::kPhoton] > GetPhotonId() ) {
 	phosVector[fPhotonsInPhos] = new TVector3(pos[0],pos[1],pos[2]) ;
-	phosPhotonsEnergy[fPhotonsInPhos]=caloCluster->GetClusterEnergy() ;
+	phosPhotonsEnergy[fPhotonsInPhos]=caloCluster->E() ;
         //new ((*fAODPhotons)[fPhotonsInPhos++;]) AliAODPhoton ( );
       }
     }
@@ -224,7 +224,7 @@ void AliAnaGammaPhos::Exec(Option_t *)
   }
   
   PostData(0, fTreeA) ; 
-  //  PostData(1, fOutputList);
+  PostData(1, fOutputList);
 
   delete [] phosVector ; 
   delete [] phosPhotonsEnergy ; 
