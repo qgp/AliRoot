@@ -27,7 +27,6 @@
 #pragma link C++ class AliAODRecoDecay;
 #pragma link C++ class AliVirtualEventHandler+;
 #pragma link C++ class AliAODHandler+;
-#pragma link C++ class AliAODPhoton+;
 #endif
 
 

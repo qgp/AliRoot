@@ -20,7 +20,6 @@
 #include "AliAODVertex.h"
 #include "AliAODCluster.h"
 #include "AliAODJet.h"
-#include "AliAODPhoton.h"
 
 
 class AliAODEvent : public TObject {
@@ -72,13 +71,6 @@ class AliAODEvent : public TObject {
   void          AddJet(const AliAODJet* vtx)
     {new((*fJets)[fJets->GetEntries()]) AliAODJet(*vtx);}
 
-  // -- Photon
-  TClonesArray *GetPhotons()            const { return fPhotons; }
-  Int_t         GetNPhotons()           const { return fPhotons->GetEntriesFast(); }
-  AliAODPhoton *GetPhoton(Int_t nPhoton) const { return (AliAODPhoton*)fPhotons->At(nPhoton); }
-  void          AddPhoton(const AliAODPhoton* ph)
-    {new((*fPhotons)[fPhotons->GetEntries()]) AliAODPhoton(*ph);}
-
   // -- Services
   void    CreateStdContent();
   void    GetStdContent();
@@ -97,7 +89,6 @@ class AliAODEvent : public TObject {
   TClonesArray  *fVertices; //! vertices
   TClonesArray  *fClusters; //! neutral particles
   TClonesArray  *fJets;     //! jets
-  TClonesArray  *fPhotons;  //! photons
 
   ClassDef(AliAODEvent,1);
 };
