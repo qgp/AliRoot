@@ -229,14 +229,22 @@ void AliESDCaloCluster::SetPid(const Float_t *p) {
 }
 
 //_______________________________________________________________________
-void AliESDCaloCluster::GetMomentum(TLorentzVector& p) {
+void AliESDCaloCluster::GetMomentum(TLorentzVector& p, Double_t *vertex) {
   // Returns TLorentzVector with momentum of the cluster. Only valid for clusters 
   // identified as photons or pi0 (overlapped gamma) produced on the vertex
+    //Vertex can be recovered with esd pointer doing:  
+  //" Double_t vertex[3] ; esd->GetVertex()->GetXYZ(vertex) ; "
+
+  if(vertex){//calculate direction from vertex
+    fGlobalPos[0]-=vertex[0];
+    fGlobalPos[1]-=vertex[1];
+    fGlobalPos[2]-=vertex[2];
+  }
   
   Double_t r = TMath::Sqrt(fGlobalPos[0]*fGlobalPos[0]+
-		            fGlobalPos[1]*fGlobalPos[1]+
-		            fGlobalPos[2]*fGlobalPos[2]   ) ; 
-
+			   fGlobalPos[1]*fGlobalPos[1]+
+			   fGlobalPos[2]*fGlobalPos[2]   ) ; 
+  
   p.SetPxPyPzE( fEnergy*fGlobalPos[0]/r,  fEnergy*fGlobalPos[1]/r,  fEnergy*fGlobalPos[2]/r,  fEnergy) ; 
   
 }

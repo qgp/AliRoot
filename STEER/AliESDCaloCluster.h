@@ -44,18 +44,18 @@ public:
   void SetPHOS(Bool_t phos) { fPHOSCluster = phos;}
   Bool_t IsPHOS() const {return fPHOSCluster;}
 
-  void SetTrackMatchedIndex(Int_t match) { fTrackMatched = match;}
-  Int_t GetTrackMatchedIndex() const {return fTrackMatched;}
+  void SetTrackMatched(Int_t match) { fTrackMatched = match;}
+  Int_t GetTrackMatched() const {return fTrackMatched;}
 
-  void SetGlobalPosition(const Float_t *pos) {
+  void SetPosition(const Float_t *pos) {
     fGlobalPos[0] = pos[0]; fGlobalPos[1] = pos[1]; fGlobalPos[2] = pos[2];
   }
-  void GetGlobalPosition(Float_t *pos) const {
+  void GetPosition(Float_t *pos) const {
     pos[0] = fGlobalPos[0]; pos[1] = fGlobalPos[1]; pos[2] = fGlobalPos[2];
   }
 
-  void SetClusterEnergy(Float_t ene) { fEnergy = ene;}
-  Float_t GetClusterEnergy() const   { return fEnergy;}
+  void SetE(Float_t ene) { fEnergy = ene;}
+  Float_t E() const   { return fEnergy;}
 
   void SetClusterDisp(Float_t disp)  { fDispersion = disp; }
   Float_t GetClusterDisp() const     { return fDispersion; }
@@ -65,9 +65,6 @@ public:
 
   void SetPid(const Float_t *p);
   Float_t *GetPid() {return fPID;}
-
-  void SetPrimaryIndex(Int_t primary)     { fPrimaryIndex = primary; }
-  Int_t GetPrimaryIndex() const           { return fPrimaryIndex; }
 
   void SetM20(Float_t m20)                { fM20 = m20; }
   Float_t GetM20() const                  { return fM20; }
@@ -86,12 +83,6 @@ public:
 
   void SetDistanceToBadChannel(Float_t dist) {fDistToBadChannel=dist;}
   Float_t GetDistanceToBadChannel() const {return fDistToBadChannel;}
-
-  void SetNumberOfPrimaries(Int_t nprim)      { fNumberOfPrimaries = nprim; }
-  Int_t GetNumberOfPrimaries() const         { return fNumberOfPrimaries; }
-  
-  void SetListOfPrimaries(UShort_t *prim)       { fListOfPrimaries = prim;}
-  UShort_t *GetListOfPrimaries() const          { return fListOfPrimaries;}
   
   void SetNumberOfDigits(Int_t ndig)      { fNumberOfDigits = ndig; }
   Int_t GetNumberOfDigits() const         { return fNumberOfDigits; }
@@ -105,7 +96,16 @@ public:
   void SetDigitIndex(UShort_t *digit)     { fDigitIndex = digit;}
   UShort_t *GetDigitIndex() const         { return fDigitIndex; }
 
-  void GetMomentum(TLorentzVector& p);
+  void GetMomentum(TLorentzVector& p, Double_t * vertexPosition );
+
+  void SetLabel(Int_t primary)     { fPrimaryIndex = primary; }
+  Int_t GetLabel() const           { return fPrimaryIndex; }
+  
+  void SetNLabels(Int_t nprim)      { fNumberOfPrimaries = nprim; }
+  Int_t GetNLabels() const         { return fNumberOfPrimaries; }
+  
+  void SetLabels(UShort_t *prim)       { fListOfPrimaries = prim;}
+  UShort_t *GetLabels() const          { return fListOfPrimaries;}
 
 protected:
 
@@ -113,8 +113,8 @@ protected:
   Int_t     fClusterType;      // Flag for different clustering versions
   Bool_t    fEMCALCluster;     // Is this is an EMCAL cluster?
   Bool_t    fPHOSCluster;      // Is this is a PHOS cluster?
+  Float_t   fGlobalPos[3];     // position in global coordinate system  
   Int_t       fTrackMatched;      // Index of track to which the cluster belongs
-  Float_t   fGlobalPos[3];     // position in global coordinate system
   Float_t   fEnergy;           // energy measured by calorimeter
   Float_t   fDispersion;       // cluster dispersion, for shape analysis
   Float_t   fChi2;             // chi2 of cluster fit
@@ -126,10 +126,8 @@ protected:
   UShort_t  fNExMax ;          // number of (Ex-)maxima before unfolding
   Float_t   fEmcCpvDistance;   // the distance from PHOS EMC rec.point to the closest CPV rec.point
  Float_t   fDistToBadChannel; // Distance to nearest bad channel
-
-  Int_t     fNumberOfPrimaries;   // number of primaries that generated the cluster
-  UShort_t*   fListOfPrimaries;   //[fNumberOfPrimaries] list of primaries that generated the cluster
-
+ Int_t     fNumberOfPrimaries;   // number of primaries that generated the cluster
+ UShort_t*   fListOfPrimaries;   //[fNumberOfPrimaries] list of primaries that generated the cluster
   Int_t     fNumberOfDigits;   // number of calorimeter digits in cluster
                                // Very important! The streamer needs to
                                // know how big these arrays are for
@@ -137,8 +135,9 @@ protected:
   UShort_t* fDigitAmplitude;   //[fNumberOfDigits] digit energy (integer units)
   UShort_t* fDigitTime;        //[fNumberOfDigits] time of this digit (integer units)
   UShort_t* fDigitIndex;       //[fNumberOfDigits] calorimeter digit index
+  
 
-  ClassDef(AliESDCaloCluster,2)  //ESDCaloCluster 
+  ClassDef(AliESDCaloCluster,3)  //ESDCaloCluster 
 };
 
 #endif 

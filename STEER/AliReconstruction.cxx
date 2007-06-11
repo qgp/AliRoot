@@ -2699,8 +2699,8 @@ void AliReconstruction::ESDFile2AODFile(TFile* esdFile, TFile* aodFile)
 
       Int_t id = cluster->GetID();
       Int_t label = -1;
-      Float_t energy = cluster->GetClusterEnergy();
-      cluster->GetGlobalPosition(posF);
+      Float_t energy = cluster->E();
+      cluster->GetPosition(posF);
       AliAODVertex *prodVertex = primary;
       AliAODTrack *primTrack = NULL;
       Char_t ttype=AliAODCluster::kUndef;
