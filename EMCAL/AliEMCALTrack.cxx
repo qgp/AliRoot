@@ -169,6 +169,7 @@ Double_t AliEMCALTrack::GetBz() const
 	//
 	
 	// if magnetic field is constant...
+  
 	if (AliTracker::UniformField()) return AliTracker::GetBz();
 	
 	// ...else:
@@ -219,7 +220,7 @@ Bool_t AliEMCALTrack::PropagateTo(Double_t xk, Double_t d, Double_t x0)
 		if (Rotate(alpha)) {
 			if (GetYAt(xk, field, y)) {
 				if (TMath::Abs(y) <= ymax) {
-					AliInfo(Form("Required change from sector %d to sector %d to succeed in propagation", istart, i));
+				  AliDebug(1,Form("Required change from sector %d to sector %d to succeed in propagation", istart, i));
 					return SimplePropagation(xk, d, x0);
 				}
 			}
@@ -274,7 +275,7 @@ Bool_t AliEMCALTrack::PropagateToGlobal(Double_t x, Double_t y, Double_t z, Doub
 	
 	Int_t    isector = (Int_t)(phi / width);
 	Double_t rotation = ((Double_t)isector + 0.5) * width;
-	vc.RotateZ(rotation * TMath::DegToRad());
+	vc.RotateZ(-rotation * TMath::DegToRad());
 	
 	return PropagateTo(vc.X(), d, x0);
 }
