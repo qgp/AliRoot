@@ -214,7 +214,7 @@ void AliEMCALReconstructor::FillESD(AliRunLoader* runLoader, AliESD* esd) const
   for (Int_t itrack = 0; itrack < endtpc; itrack++) {
     AliESDtrack * track = esd->GetTrack(itrack) ; // retrieve track
     iemcalMatch = track->GetEMCALcluster();
-    if(iemcalMatch > 0) matchedTrack[iemcalMatch] = itrack;
+    if(iemcalMatch >= 0) matchedTrack[iemcalMatch] = itrack;
   } 
   
   //########################################
@@ -283,34 +283,40 @@ void AliEMCALReconstructor::FillESD(AliRunLoader* runLoader, AliESD* esd) const
       }
 
       //Primaries
-      Int_t  primMult  = 0;
-      Int_t *primInts =  clust->GetPrimaries(primMult);
-      UShort_t *primList = new UShort_t[primMult];
-      for (Int_t ipr=0; ipr<primMult; ipr++) 
-	primList[ipr] = (UShort_t)(primInts[ipr]);	 
+      Int_t  parMult  = 0;
+      Int_t *parInts =  clust->GetParents(parMult);
+      UShort_t *parList = new UShort_t[parMult];
+      for (Int_t ipr=0; ipr<parMult; ipr++) 
+	parList[ipr] = (UShort_t)(parInts[ipr]);	 
 
 
       // fills the ESDCaloCluster
       AliESDCaloCluster * ec = new AliESDCaloCluster() ; 
       ec->SetEMCAL(kTRUE);
       ec->SetClusterType(clust->GetClusterType());
-      ec->SetGlobalPosition(xyz);
-      ec->SetClusterEnergy(clust->GetEnergy());
+      ec->SetPosition(xyz);
+      ec->SetE(clust->GetEnergy());
       
       ec->SetNumberOfDigits(newdigitMult);
       ec->SetDigitAmplitude(amplList); //energies
       ec->SetDigitTime(timeList);      //times
       ec->SetDigitIndex(digiList);     //indices
+
       if(clust->GetClusterType()== AliESDCaloCluster::kClusterv1){
-        ec->SetPrimaryIndex(clust->GetPrimaryIndex());
-        ec->SetNumberOfPrimaries(primMult);           //primary multiplicity
-        ec->SetListOfPrimaries(primList);                  //primary List for a cluster  
+
         ec->SetClusterDisp(clust->GetDispersion());
         ec->SetClusterChi2(-1); //not yet implemented
         ec->SetM02(elipAxis[0]*elipAxis[0]) ;
         ec->SetM20(elipAxis[1]*elipAxis[1]) ;
         ec->SetM11(-1) ;        //not yet implemented
-        ec->SetTrackMatchedIndex( matchedTrack[iClust]); //track matched 
+        ec->SetTrackMatched( matchedTrack[iClust]); //track matched 
+ 
+       if(parMult  > 0 && parList)
+	 ec->SetLabel(parList[0]);
+       else
+	 ec->SetLabel(-1);
+        ec->SetNLabels(parMult);           //primary multiplicity
+        ec->SetLabels(parList);                  //primary List for a cluster  
       } 
 
       // add the cluster to the esd object

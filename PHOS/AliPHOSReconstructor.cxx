@@ -210,8 +210,8 @@ void AliPHOSReconstructor::FillESD(AliRunLoader* runLoader, AliESD* esd) const
     }
 
     ec->SetPHOS(kTRUE);
-    ec->SetGlobalPosition(xyz);                 //rec.point position in MARS
-    ec->SetClusterEnergy(rp->Energy());         //total particle energy
+    ec->SetPosition(xyz);                 //rec.point position in MARS
+    ec->SetE(rp->Energy());         //total particle energy
     ec->SetClusterDisp(emcRP->GetDispersion()); //cluster dispersion
     ec->SetPid          (rp->GetPID()) ;        //array of particle identification
     ec->SetM02(emcRP->GetM2x()) ;               //second moment M2x
@@ -229,14 +229,14 @@ void AliPHOSReconstructor::FillESD(AliRunLoader* runLoader, AliESD* esd) const
     ec->SetDistanceToBadChannel(emcRP->GetDistanceToBadCrystal()); 
 
     //Primaries
-    ec->SetPrimaryIndex(rp->GetPrimaryIndex());
+    ec->SetLabel(rp->GetPrimaryIndex());
     Int_t  primMult  = 0;
     Int_t *primInts =  emcRP->GetPrimaries(primMult);
-    ec->SetNumberOfPrimaries(primMult);           //primary multiplicity
+    ec->SetNLabels(primMult);           //primary multiplicity
     UShort_t *primList = new UShort_t[primMult];
     for (Int_t ipr=0; ipr<primMult; ipr++) 
       primList[ipr] = (UShort_t)(primInts[ipr]);	 
-    ec->SetListOfPrimaries(primList);                  //primary List for a cluster
+    ec->SetLabels(primList);                  //primary List for a cluster
     
     // add the track to the esd object
     esd->AddCaloCluster(ec);
@@ -296,8 +296,8 @@ void AliPHOSReconstructor::FillESD(AliRunLoader* runLoader,
     }
 
     ec->SetPHOS(kTRUE);
-    ec->SetGlobalPosition(xyz);                 //rec.point position in MARS
-    ec->SetClusterEnergy(rp->Energy());         //total particle energy
+    ec->SetPosition(xyz);                 //rec.point position in MARS
+    ec->SetE(rp->Energy());         //total particle energy
     ec->SetClusterDisp(emcRP->GetDispersion()); //cluster dispersion
     ec->SetPid          (rp->GetPID()) ;        //array of particle identification
     ec->SetM02(emcRP->GetM2x()) ;               //second moment M2x

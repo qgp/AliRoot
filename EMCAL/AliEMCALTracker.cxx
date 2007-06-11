@@ -34,7 +34,6 @@
 
 #include <TFile.h>
 #include <TTree.h>
-#include <TMath.h>
 #include <TList.h>
 #include <TString.h>
 #include <TVector3.h>
@@ -242,12 +241,11 @@ Int_t AliEMCALTracker::LoadClusters(TTree *cTree)
 		return 1;
 	}
 	
-	TClonesArray dummy("AliEMCALRecPoint", 10000);
-	TClonesArray *clusters = &dummy;
+	TClonesArray *clusters = new TClonesArray("AliEMCALRecPoint", 1000);
 	branch->SetAddress(&clusters);
-	Int_t nClusters = (Int_t)clusters->GetEntries();
 	
 	cTree->GetEvent(0);
+	Int_t nClusters = (Int_t)clusters->GetEntries();
 	fClusters = new TObjArray(0);
 	for (Int_t i = 0; i < nClusters; i++) {
 		AliEMCALRecPoint *cluster = (AliEMCALRecPoint*)clusters->At(i);
@@ -261,6 +259,10 @@ Int_t AliEMCALTracker::LoadClusters(TTree *cTree)
 		return 1;
 	}
 	
+	branch->SetAddress(0);
+        clusters->Delete();
+        delete clusters;
+
 	AliInfo(Form("Collected %d clusters", fClusters->GetEntries()));
 
 	return 0;
@@ -1040,7 +1042,7 @@ AliEMCALTracker::AliEMCALMatchCluster::AliEMCALMatchCluster(Int_t index, AliEMCA
 //
 AliEMCALTracker::AliEMCALMatchCluster::AliEMCALMatchCluster(Int_t index, AliESDCaloCluster *caloCluster)
   : fIndex(index),
-    fLabel(caloCluster->GetPrimaryIndex()),
+    fLabel(caloCluster->GetLabel()),
     fX(0.),
     fY(0.),
     fZ(0.)
@@ -1050,7 +1052,7 @@ AliEMCALTracker::AliEMCALMatchCluster::AliEMCALMatchCluster(Int_t index, AliESDC
 	// Index of passed cluster in its native array must be specified.
 	//
 	Float_t clpos[3];
-	caloCluster->GetGlobalPosition(clpos);
+	caloCluster->GetPosition(clpos);
 	
 	fX = (Double_t)clpos[0];
 	fY = (Double_t)clpos[1];
