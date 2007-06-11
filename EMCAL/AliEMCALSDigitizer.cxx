@@ -178,7 +178,7 @@ void AliEMCALSDigitizer::InitParameters()
   fSampling  = geom->GetSampling();
 
  // threshold for deposit energy of hit
-  fECPrimThreshold  = 0.; // 24-nov-04 - was 1.e-6;
+  fECPrimThreshold  = 0.04; // 24-nov-04 - was 1.e-6;
 
   AliDebug(2,Form("Print: \n------------------- %s -------------\n",GetName()));
   AliDebug(2,Form("   fInit                                 %i\n", int(fInit)));
