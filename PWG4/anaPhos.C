@@ -21,7 +21,7 @@ Bool_t LoadLib( const char* pararchivename)
     cout << processline << endl ; 
     gROOT->ProcessLine(processline) ;
     gSystem->ChangeDirectory(cdir) ; 
-    sprintf(processline, ".! mv %s/%s .", gSystem->Getenv("ALICE_ROOT"), parpar) ;
+    sprintf(processline, ".! mv /tmp/%s .", parpar) ;
     gROOT->ProcessLine(processline) ; 	
     sprintf(processline,".! tar xvzf %s",parpar);
     gROOT->ProcessLine(processline);
