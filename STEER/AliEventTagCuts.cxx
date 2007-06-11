@@ -28,29 +28,154 @@ class AliESD;
 ClassImp(AliEventTagCuts)
 
 
-//----------------------------------------//
-AliEventTagCuts::AliEventTagCuts()
+//___________________________________________________________________________
+AliEventTagCuts::AliEventTagCuts() :
+  TObject(),
+  
+  fNParticipantsMin(-1), fNParticipantsMax(10000),
+  fNParticipantsFlag(kFALSE),
+  fImpactParamMin(-1.0), fImpactParamMax(1000.0),
+  fImpactParamFlag(kFALSE),
+
+  fVxMin(-1000.0), fVxMax(1000.0), 
+  fVxFlag(kFALSE),
+  fVyMin(-1000.0), fVyMax(1000.0),  
+  fVyFlag(kFALSE),
+  fVzMin(-1000.0), fVzMax(1000.0),
+  fVzFlag(kFALSE),
+  fPrimaryVertexFlag(1),
+  fPVFlag(kFALSE),
+
+  fPrimaryVertexZErrorMin(-10000.), fPrimaryVertexZErrorMax(10000.),
+  fPVzErrorFlag(kFALSE),
+  fTriggerMask(0),
+  fTriggerMaskFlag(kFALSE),
+  fTriggerCluster(0),
+  fTriggerClusterFlag(kFALSE),
+ 
+  fZDCNeutron1EnergyMin(-1.0), fZDCNeutron1EnergyMax(100000.0),
+  fZDCNeutron1EnergyFlag(kFALSE),
+  fZDCProton1EnergyMin(-1.0), fZDCProton1EnergyMax(100000.0),
+  fZDCProton1EnergyFlag(kFALSE),
+  fZDCNeutron2EnergyMin(-1.0), fZDCNeutron2EnergyMax(100000.0),
+  fZDCNeutron2EnergyFlag(kFALSE),
+  fZDCProton2EnergyMin(-1.0), fZDCProton2EnergyMax(100000.0),
+  fZDCProton2EnergyFlag(kFALSE),
+  fZDCEMEnergyMin(-1.0), fZDCEMEnergyMax(100000.0),
+  fZDCEMEnergyFlag(kFALSE),
+  fT0VertexZMin(-10000.0), fT0VertexZMax(10000.0),  
+  fT0VertexZFlag(kFALSE),
+  fMultMin(0), fMultMax(100000),  
+  fMultFlag(kFALSE),
+  fPosMultMin(-1), fPosMultMax(100000),
+  fPosMultFlag(kFALSE),
+  fNegMultMin(-1), fNegMultMax(100000),
+  fNegMultFlag(kFALSE),
+  fNeutrMultMin(-1), fNeutrMultMax(100000),
+  fNeutrMultFlag(kFALSE),
+  fNV0sMin(-1), fNV0sMax(1000000),
+  fNV0sFlag(kFALSE),
+  fNCascadesMin(-1), fNCascadesMax(100000),
+  fNCascadesFlag(kFALSE),
+  fNKinksMin(-1), fNKinksMax(1000000),
+  fNKinksFlag(kFALSE),
+
+  fNPMDTracksMin(-1), fNPMDTracksMax(100000),
+  fNPMDTracksFlag(kFALSE),
+  fNFMDTracksMin(-1), fNFMDTracksMax(100000),
+  fNFMDTracksFlag(kFALSE),
+  fNPHOSClustersMin(-1), fNPHOSClustersMax(100000),
+  fNPHOSClustersFlag(kFALSE),
+  fNEMCALClustersMin(-1), fNEMCALClustersMax(100000),
+  fNEMCALClustersFlag(kFALSE),
+  fNJetCandidatesMin(-1), fNJetCandidatesMax(100000),
+  fNJetCandidatesFlag(kFALSE),
+
+  fTopJetEnergyMin(-1.0), 
+  fTopJetEnergyMinFlag(kFALSE),
+  fTopNeutralEnergyMin(-1.0), 
+  fTopNeutralEnergyMinFlag(kFALSE),
+  fNHardPhotonCandidatesMin(-1), fNHardPhotonCandidatesMax(100000),
+  fNHardPhotonCandidatesFlag(kFALSE),
+  fNChargedAbove1GeVMin(-1), fNChargedAbove1GeVMax(100000),
+  fNChargedAbove1GeVFlag(kFALSE),
+  fNChargedAbove3GeVMin(-1), fNChargedAbove3GeVMax(100000),
+  fNChargedAbove3GeVFlag(kFALSE),
+  fNChargedAbove10GeVMin(-1), fNChargedAbove10GeVMax(100000),
+  fNChargedAbove10GeVFlag(kFALSE),
+  fNMuonsAbove1GeVMin(-1), fNMuonsAbove1GeVMax(100000),
+  fNMuonsAbove1GeVFlag(kFALSE),
+  fNMuonsAbove3GeVMin(-1), fNMuonsAbove3GeVMax(100000),
+  fNMuonsAbove3GeVFlag(kFALSE),
+  fNMuonsAbove10GeVMin(-1), fNMuonsAbove10GeVMax(100000), 
+  fNMuonsAbove10GeVFlag(kFALSE),
+  fNElectronsAbove1GeVMin(-1), fNElectronsAbove1GeVMax(100000),
+  fNElectronsAbove1GeVFlag(kFALSE),
+  fNElectronsAbove3GeVMin(-1), fNElectronsAbove3GeVMax(100000),
+  fNElectronsAbove3GeVFlag(kFALSE),
+  fNElectronsAbove10GeVMin(-1), fNElectronsAbove10GeVMax(100000),
+  fNElectronsAbove10GeVFlag(kFALSE),
+  fNElectronsMin(-1), fNElectronsMax(100000),
+  fNElectronsFlag(kFALSE),
+  fNMuonsMin(-1), fNMuonsMax(100000),
+  fNMuonsFlag(kFALSE),
+  fNPionsMin(-1), fNPionsMax(100000),
+  fNPionsFlag(kFALSE),
+  fNKaonsMin(-1), fNKaonsMax(100000),
+  fNKaonsFlag(kFALSE),
+  fNProtonsMin(-1), fNProtonsMax(100000),
+  fNProtonsFlag(kFALSE),
+  fNLambdasMin(-1), fNLambdasMax(100000),
+  fNLambdasFlag(kFALSE),
+  fNPhotonsMin(-1), fNPhotonsMax(100000),
+  fNPhotonFlag(kFALSE),
+  fNPi0sMin(-1), fNPi0sMax(100000), 
+  fNPi0sFlag(kFALSE),
+  fNNeutronsMin(-1), fNNeutronsMax(100000), 
+  fNNeutronsFlag(kFALSE),
+  fNKaon0sMin(-1), fNKaon0sMax(100000), 
+  fNKaon0sFlag(kFALSE),
+  fTotalPMin(-1.0), fTotalPMax(1000000.0),
+  fTotalPFlag(kFALSE),
+  fMeanPtMin(-1.0), fMeanPtMax(100000.0),
+  fMeanPtFlag(kFALSE),
+  fTopPtMin(-1.0),
+  fTopPtMinFlag(kFALSE),
+  fTotalNeutralPMin(-1.0), fTotalNeutralPMax(1000000.0),   
+  fTotalNeutralPFlag(kFALSE),
+  fMeanNeutralPtMin(-1.0), fMeanNeutralPtMax(1000000.0), 
+  fMeanNeutralPtFlag(kFALSE),
+  fTopNeutralPtMin(-1.0), 
+  fTopNeutralPtMinFlag(kFALSE),
+  fEventPlaneAngleMin(-10000000.0), fEventPlaneAngleMax(10000000.0), 
+  fEventPlaneAngleFlag(kFALSE),
+  fHBTRadiiMin(-1.0), fHBTRadiiMax(100000.0), 
+  fHBTRadiiFlag(kFALSE)
 {
   //Default constructor which calls the Reset method.
   Reset();
 }
 
-//----------------------------------------//
-AliEventTagCuts::~AliEventTagCuts()
-{  
+//___________________________________________________________________________
+AliEventTagCuts::~AliEventTagCuts() {  
   //Defaut destructor.
 }
 
-//----------------------------------------//
-void AliEventTagCuts::Reset()
-{
+//___________________________________________________________________________
+void AliEventTagCuts::Reset() {
   //Sets dummy values to every private member.
+  fNParticipantsFlag = kFALSE;
+  fImpactParamFlag = kFALSE;
+
   fVxFlag = kFALSE;
   fVyFlag = kFALSE;
   fVzFlag = kFALSE;
-  fParticipantsFlag = kFALSE;
-  fImpactParamFlag = kFALSE;
   fPVFlag = kFALSE;
+  fPVzErrorFlag = kFALSE;
+
+  fTriggerMaskFlag = kFALSE;
+  fTriggerClusterFlag = kFALSE;
+
   fZDCNeutron1EnergyFlag = kFALSE;
   fZDCProton1EnergyFlag = kFALSE;
   fZDCNeutron2EnergyFlag = kFALSE;
@@ -58,635 +183,618 @@ void AliEventTagCuts::Reset()
   fZDCEMEnergyFlag = kFALSE;
   fT0VertexZFlag = kFALSE;
   fMultFlag = kFALSE;
-  fMultPosFlag = kFALSE;
-  fMultNegFlag = kFALSE;
-  fMultNeutrFlag = kFALSE;
-  fV0sFlag = kFALSE;
-  fCascadesFlag = kFALSE;
-  fkinksFlag = kFALSE;
-  fMaxJetEnergyFlag = kFALSE;
-  fNHardPhotonsCandidatesFlag = kFALSE;
-  fMaxNeutralFlag = kFALSE;
-  fChargedAbove1GeVFlag = kFALSE;
-  fChargedAbove3GeVFlag = kFALSE;
-  fChargedAbove10GeVFlag = kFALSE;
-  fMuonsAbove1GeVFlag = kFALSE;
-  fMuonsAbove3GeVFlag = kFALSE;
-  fMuonsAbove10GeVFlag = kFALSE;
-  fElectronsAbove1GeVFlag = kFALSE;
-  fElectronsAbove3GeVFlag = kFALSE;
-  fElectronsAbove10GeVFlag = kFALSE;
-  fElectronsFlag = kFALSE;
-  fMuonsFlag = kFALSE;
-  fPionsFlag = kFALSE;
-  fKaonsFlag = kFALSE;
-  fProtonsFlag = kFALSE;
-  fLambdasFlag = kFALSE;
-  fPhotonFlag = kFALSE;
-  fPi0sFlag = kFALSE;
-  fNeutronsFlag = kFALSE;
-  fKaon0sFlag = kFALSE;
+  fPosMultFlag = kFALSE;
+  fNegMultFlag = kFALSE;
+  fNeutrMultFlag = kFALSE;
+  fNV0sFlag = kFALSE;
+  fNCascadesFlag = kFALSE;
+  fNKinksFlag = kFALSE;
+
+  fNPMDTracksFlag = kFALSE;
+  fNFMDTracksFlag = kFALSE;
+  fNPHOSClustersFlag = kFALSE;
+  fNEMCALClustersFlag = kFALSE;
+  fNJetCandidatesFlag = kFALSE;
+
+  fTopJetEnergyMinFlag = kFALSE;
+  fNHardPhotonCandidatesFlag = kFALSE;
+  fTopNeutralEnergyMinFlag = kFALSE;
+  fNChargedAbove1GeVFlag = kFALSE;
+  fNChargedAbove3GeVFlag = kFALSE;
+  fNChargedAbove10GeVFlag = kFALSE;
+  fNMuonsAbove1GeVFlag = kFALSE;
+  fNMuonsAbove3GeVFlag = kFALSE;
+  fNMuonsAbove10GeVFlag = kFALSE;
+  fNElectronsAbove1GeVFlag = kFALSE;
+  fNElectronsAbove3GeVFlag = kFALSE;
+  fNElectronsAbove10GeVFlag = kFALSE;
+  fNElectronsFlag = kFALSE;
+  fNMuonsFlag = kFALSE;
+  fNPionsFlag = kFALSE;
+  fNKaonsFlag = kFALSE;
+  fNProtonsFlag = kFALSE;
+  fNLambdasFlag = kFALSE;
+  fNPhotonFlag = kFALSE;
+  fNPi0sFlag = kFALSE;
+  fNNeutronsFlag = kFALSE;
+  fNKaon0sFlag = kFALSE;
   fTotalPFlag = kFALSE;
   fMeanPtFlag = kFALSE;
-  fMaxPtFlag = kFALSE;
+  fTopPtMinFlag = kFALSE;
   fTotalNeutralPFlag = kFALSE;
   fMeanNeutralPtFlag = kFALSE;
-  fMaxNeutralPtFlag = kFALSE;
+  fTopNeutralPtMinFlag = kFALSE;
   fEventPlaneAngleFlag = kFALSE;
   fHBTRadiiFlag = kFALSE;
   
-  fVxMin = -1000.0;
-  fVxMax = 1000.0; 
-  fVyMin = -1000.0;
-  fVyMax = 1000.0;  
-  fVzMin = -1000.0;
-  fVzMax = 1000.0;
-
-  fMultMin = 0;
-  fMultMax = 100000;  
-
-  fParticipantsMin = -1;
-  fParticipantMax = 10000;
-  fImpactParamMin = -1.0;
-  fImpactParamMax = 1000.0;
+  fVxMin = -1000.0; fVxMax = 1000.0; 
+  fVyMin = -1000.0; fVyMax = 1000.0;  
+  fVzMin = -1000.0; fVzMax = 1000.0;
+  fNParticipantsMin = -1; fNParticipantsMax = 10000;
+  fImpactParamMin = -1.0; fImpactParamMax = 1000.0;
   fPrimaryVertexFlag = 1;
+
+  fPrimaryVertexZErrorMin = -10000.; fPrimaryVertexZErrorMax = 10000.;
+  fTriggerMask = 0;
+  fTriggerCluster = 0;
  
-  fZDCNeutron1EnergyMin = -1.0;
-  fZDCNeutron1EnergyMax = 100000.0;
-  fZDCProton1EnergyMin = -1.0;
-  fZDCProton1EnergyMax = 100000.0;
-  fZDCNeutron2EnergyMin = -1.0;
-  fZDCNeutron2EnergyMax = 100000.0;
-  fZDCProton2EnergyMin = -1.0;
-  fZDCProton2EnergyMax = 100000.0;
-  fZDCEMEnergyMin = -1.0;
-  fZDCEMEnergyMax = 100000.0;
-  fT0VertexZMin = -10000.0;
-  fT0VertexZMax = 10000.0;
-  
-  fMultPosMin = -1;
-  fMultPosMax = 100000;
-  fMultNegMin = -1;
-  fMultNegMax = 100000;
-  fMultNeutrMin = -1;
-  fMultNeutrMax = 100000;
-  fV0sMin = -1;
-  fV0sMax = 1000000;
-  fCascadesMin = -1;
-  fCascadesMax = 100000;
-  fkinksMin = -1;
-  fkinksMax = 1000000;
+  fZDCNeutron1EnergyMin = -1.0; fZDCNeutron1EnergyMax = 100000.0;
+  fZDCProton1EnergyMin = -1.0; fZDCProton1EnergyMax = 100000.0;
+  fZDCNeutron2EnergyMin = -1.0; fZDCNeutron2EnergyMax = 100000.0;
+  fZDCProton2EnergyMin = -1.0; fZDCProton2EnergyMax = 100000.0;
+  fZDCEMEnergyMin = -1.0; fZDCEMEnergyMax = 100000.0;
+  fT0VertexZMin = -10000.0; fT0VertexZMax = 10000.0;  
+  fMultMin = 0; fMultMax = 100000;  
+  fPosMultMin = -1; fPosMultMax = 100000;
+  fNegMultMin = -1; fNegMultMax = 100000;
+  fNeutrMultMin = -1; fNeutrMultMax = 100000;
+  fNV0sMin = -1; fNV0sMax = 1000000;
+  fNCascadesMin = -1; fNCascadesMax = 100000;
+  fNKinksMin = -1; fNKinksMax = 1000000;
 
-  fMaxJetEnergy = -1.0; 
+  fNPMDTracksMin = -1, fNPMDTracksMax = 100000;
+  fNFMDTracksMin = -1, fNFMDTracksMax = 100000;
+  fNPHOSClustersMin = -1, fNPHOSClustersMax = 100000;
+  fNEMCALClustersMin = -1, fNEMCALClustersMax = 100000;
+  fNJetCandidatesMin = -1, fNJetCandidatesMax = 100000;
 
-  fNHardPhotonsCandidatesMin = -1;
-  fNHardPhotonsCandidatesMax = 100000;
-  fMaxNeutralEnergy = -1.0; 
-  
-  fChargedAbove1GeVMin = -1;
-  fChargedAbove1GeVMax = 100000;
-  fChargedAbove3GeVMin = -1;
-  fChargedAbove3GeVMax = 100000;
-  fChargedAbove10GeVMin = -1;
-  fChargedAbove10GeVMax = 100000;
-  fMuonsAbove1GeVMin = -1;
-  fMuonsAbove1GeVMax = 100000;
-  fMuonsAbove3GeVMin = -1;
-  fMuonsAbove3GeVMax = 100000;
-  fMuonsAbove10GeVMin = -1;
-  fMuonsAbove10GeVMax = 100000; 
-  fElectronsAbove1GeVMin = -1;
-  fElectronsAbove1GeVMax = 100000;
-  fElectronsAbove3GeVMin = -1;
-  fElectronsAbove3GeVMax = 100000;
-  fElectronsAbove10GeVMin = -1;
-  fElectronsAbove10GeVMax = 100000;
-
-  fElectronsMin = -1;
-  fElectronsMax = 100000;
-  fMuonsMin = -1;
-  fMuonsMax = 100000;
-  fPionsMin = -1;
-  fPionsMax = 100000;
-  fKaonsMin = -1;
-  fKaonsMax = 100000;
-  fProtonsMin = -1;
-  fProtonsMax = 100000;
-  fLambdasMin = -1;
-  fLambdasMax = 100000;
-  fPhotonsMin = -1;
-  fPhotonsMax = 100000;
-  fPi0sMin = -1;
-  fPi0sMax = 100000; 
-  fNeutronsMin = -1;
-  fNeutronsMax = 100000; 
-  fKaon0sMin = -1;
-  fKaon0sMax = 100000; 
-
-  fTotalPMin = -1.0;
-  fTotalPMax = 1000000.0;
-  fMeanPtMin = -1.0;
-  fMeanPtMax = 100000.0;
-  fMaxPt = -1.0; 
-  fTotalNeutralPMin = -1.0;
-  fTotalNeutralPMax = 1000000.0;  
-  fMeanNeutralPtMin = -1.0;
-  fMeanNeutralPtMax = 1000000.0; 
-  fMaxNeutralPt = -1.0; 
-  fEventPlaneAngleMin = -10000000.0;
-  fEventPlaneAngleMax = 10000000.0; 
-  fHBTRadiiMin = -1.0;
-  fHBTRadiiMax = 100000.0; 
+  fTopJetEnergyMin = -1.0; 
+  fNHardPhotonCandidatesMin = -1; fNHardPhotonCandidatesMax = 100000;
+  fTopNeutralEnergyMin = -1.0; 
+  fNChargedAbove1GeVMin = -1; fNChargedAbove1GeVMax = 100000;
+  fNChargedAbove3GeVMin = -1; fNChargedAbove3GeVMax = 100000;
+  fNChargedAbove10GeVMin = -1; fNChargedAbove10GeVMax = 100000;
+  fNMuonsAbove1GeVMin = -1; fNMuonsAbove1GeVMax = 100000;
+  fNMuonsAbove3GeVMin = -1; fNMuonsAbove3GeVMax = 100000;
+  fNMuonsAbove10GeVMin = -1; fNMuonsAbove10GeVMax = 100000; 
+  fNElectronsAbove1GeVMin = -1; fNElectronsAbove1GeVMax = 100000;
+  fNElectronsAbove3GeVMin = -1; fNElectronsAbove3GeVMax = 100000;
+  fNElectronsAbove10GeVMin = -1; fNElectronsAbove10GeVMax = 100000;
+  fNElectronsMin = -1; fNElectronsMax = 100000;
+  fNMuonsMin = -1; fNMuonsMax = 100000;
+  fNPionsMin = -1; fNPionsMax = 100000;
+  fNKaonsMin = -1; fNKaonsMax = 100000;
+  fNProtonsMin = -1; fNProtonsMax = 100000;
+  fNLambdasMin = -1; fNLambdasMax = 100000;
+  fNPhotonsMin = -1; fNPhotonsMax = 100000;
+  fNPi0sMin = -1; fNPi0sMax = 100000; 
+  fNNeutronsMin = -1; fNNeutronsMax = 100000; 
+  fNKaon0sMin = -1; fNKaon0sMax = 100000; 
+  fTotalPMin = -1.0; fTotalPMax = 1000000.0;
+  fMeanPtMin = -1.0; fMeanPtMax = 100000.0;
+  fTopPtMin = -1.0; fTotalNeutralPMin = -1.0;
+  fTotalNeutralPMax = 1000000.0;   
+  fMeanNeutralPtMin = -1.0; fMeanNeutralPtMax = 1000000.0; 
+  fTopNeutralPtMin = -1.0; 
+  fEventPlaneAngleMin = -10000000.0; fEventPlaneAngleMax = 10000000.0; 
+  fHBTRadiiMin = -1.0; fHBTRadiiMax = 100000.0; 
 }
 
-//----------------------------------------//
-void AliEventTagCuts::SetPrimaryVertexXRange(Float_t r1, Float_t r2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetPrimaryVertexXRange(Float_t low, Float_t high) {
   //Sets the primary vertex x range 
   //and the corresponding flag to kTRUE if the cut is used.
-  fVxMin = r1;
-  fVxMax = r2; 
+  fVxMin = low;
+  fVxMax = high; 
   fVxFlag = kTRUE;
 }
 
-//----------------------------------------//
-void AliEventTagCuts::SetPrimaryVertexYRange(Float_t r1, Float_t r2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetPrimaryVertexYRange(Float_t low, Float_t high) {
   //Sets the primary vertex y range 
   //and the corresponding flag to kTRUE if the cut is used.
-  fVyMin = r1;
-  fVyMax = r2; 
+  fVyMin = low;
+  fVyMax = high; 
   fVyFlag = kTRUE;
 }
 
-//----------------------------------------//
-void AliEventTagCuts::SetPrimaryVertexZRange(Float_t r1, Float_t r2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetPrimaryVertexZRange(Float_t low, Float_t high) {
   //Sets the primary vertex z range 
   //and the corresponding flag to kTRUE if the cut is used.
-  fVzMin = r1;
-  fVzMax = r2; 
+  fVzMin = low;
+  fVzMax = high; 
   fVzFlag = kTRUE;
 }
 
-//----------------------------------------//
-void AliEventTagCuts::SetMultiplicityRange(Int_t n1, Int_t n2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetPrimaryVertexZErrorRange(Float_t low, Float_t high) {
+  //Sets the primary vertex z error range 
+  //and the corresponding flag to kTRUE if the cut is used.
+  fPrimaryVertexZErrorMin = low;
+  fPrimaryVertexZErrorMax = high; 
+  fPVzErrorFlag = kTRUE;
+}
+
+//___________________________________________________________________________
+void AliEventTagCuts::SetTriggerMask(ULong64_t trmask) {
+  //Sets the trigger mask 
+  //and the corresponding flag to kTRUE if the cut is used.
+  fTriggerMask = trmask;
+  fTriggerMaskFlag = kTRUE;
+}
+
+//___________________________________________________________________________
+void AliEventTagCuts::SetTriggerCluster(UChar_t trcluster) {
+  //Sets the trigger cluster 
+  //and the corresponding flag to kTRUE if the cut is used.
+  fTriggerCluster = trcluster;
+  fTriggerClusterFlag = kTRUE;
+}
+
+//___________________________________________________________________________
+void AliEventTagCuts::SetMultiplicityRange(Int_t low, Int_t high) {
   //Sets the primary multiplicity range 
   //and the corresponding flag to kTRUE if the cut is used.
-  fMultMin = n1;
-  fMultMax = n2;
+  fMultMin = low;
+  fMultMax = high;
   fMultFlag = kTRUE;
 }
 
-//----------------------------------------//
-void AliEventTagCuts::SetParticipantsRange(Int_t i1, Int_t i2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetNParticipantsRange(Int_t low, Int_t high) {
   //Sets the number of participants range 
   //and the corresponding flag to kTRUE if the cut is used.
-  fParticipantsMin = i1;
-  fParticipantMax = i2;
-  fParticipantsFlag = kTRUE;
+  fNParticipantsMin = low;
+  fNParticipantsMax = high;
+  fNParticipantsFlag = kTRUE;
 }
 
-//----------------------------------------//
-void AliEventTagCuts::SetImpactParamRange(Float_t r1, Float_t r2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetImpactParamRange(Float_t low, Float_t high) {
   //Sets the impact parameter range 
   //and the corresponding flag to kTRUE if the cut is used.
-  fImpactParamMin = r1;
-  fImpactParamMax = r2;
+  fImpactParamMin = low;
+  fImpactParamMax = high;
   fImpactParamFlag = kTRUE;
 }
  
 
-//----------------------------------------//
-void AliEventTagCuts::SetPrimaryVertexFlag(Int_t i)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetPrimaryVertexFlag(Int_t flag) {
   //Sets the primary vertex flag cut 
   //and the corresponding flag to kTRUE if the cut is used.
-  fPrimaryVertexFlag = i;
+  fPrimaryVertexFlag = flag;
   fPVFlag = kTRUE;
 }
 
-//----------------------------------------//
-void AliEventTagCuts::SetZDCNeutr1Range(Float_t r1, Float_t r2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetZDCNeutron1Range(Float_t low, Float_t high) {
   //Sets the ZDC's neutron energy range 
   //and the corresponding flag to kTRUE if the cut is used.
-  fZDCNeutron1EnergyMin = r1;
-  fZDCNeutron1EnergyMax = r2;
+  fZDCNeutron1EnergyMin = low;
+  fZDCNeutron1EnergyMax = high;
   fZDCNeutron1EnergyFlag = kTRUE;
 }
-//----------------------------------------//
-void AliEventTagCuts::SetZDCProt1Range(Float_t r1, Float_t r2)
-{
+
+//___________________________________________________________________________
+void AliEventTagCuts::SetZDCProton1Range(Float_t low, Float_t high) {
   //Sets the ZDC's proton energy range 
   //and the corresponding flag to kTRUE if the cut is used.
-  fZDCProton1EnergyMin = r1;
-  fZDCProton1EnergyMax = r2;
+  fZDCProton1EnergyMin = low;
+  fZDCProton1EnergyMax = high;
   fZDCProton1EnergyFlag = kTRUE;
 }
-//----------------------------------------//
-void AliEventTagCuts::SetZDCNeutr2Range(Float_t r1, Float_t r2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetZDCNeutron2Range(Float_t low, Float_t high) {
   //Sets the ZDC's neutron energy range 
   //and the corresponding flag to kTRUE if the cut is used.
-  fZDCNeutron2EnergyMin = r1;
-  fZDCNeutron2EnergyMax = r2;
+  fZDCNeutron2EnergyMin = low;
+  fZDCNeutron2EnergyMax = high;
   fZDCNeutron2EnergyFlag = kTRUE;
 }
-//----------------------------------------//
-void AliEventTagCuts::SetZDCProt2Range(Float_t r1, Float_t r2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetZDCProton2Range(Float_t low, Float_t high) {
   //Sets the ZDC's proton energy range 
   //and the corresponding flag to kTRUE if the cut is used.
-  fZDCProton2EnergyMin = r1;
-  fZDCProton2EnergyMax = r2;
+  fZDCProton2EnergyMin = low;
+  fZDCProton2EnergyMax = high;
   fZDCProton2EnergyFlag = kTRUE;
 }
-//----------------------------------------//
-void AliEventTagCuts::SetZDCEMRange(Float_t r1, Float_t r2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetZDCEMRange(Float_t low, Float_t high) {
   //Sets the ZDC's e/m energy range 
   //and the corresponding flag to kTRUE if the cut is used.
-  fZDCEMEnergyMin = r1;
-  fZDCEMEnergyMax = r2;
+  fZDCEMEnergyMin = low;
+  fZDCEMEnergyMax = high;
   fZDCEMEnergyFlag = kTRUE;
 }
 
-//----------------------------------------//
-void AliEventTagCuts::SetT0VertexZRange(Float_t r1, Float_t r2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetT0VertexZRange(Float_t low, Float_t high) {
   //Sets the T0's Vz range 
   //and the corresponding flag to kTRUE if the cut is used.
-  fT0VertexZMin = r1;
-  fT0VertexZMax = r2;
+  fT0VertexZMin = low;
+  fT0VertexZMax = high;
   fT0VertexZFlag = kTRUE;
 }
 
-//----------------------------------------//
-void AliEventTagCuts::SetPosMultiplicityRange(Int_t n1, Int_t n2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetPosMultiplicityRange(Int_t low, Int_t high) {
   //Sets the positive multiplicity range 
   //and the corresponding flag to kTRUE if the cut is used.
-  fMultPosMin = n1;
-  fMultPosMax = n2;
-  fMultPosFlag = kTRUE;
+  fPosMultMin = low;
+  fPosMultMax = high;
+  fPosMultFlag = kTRUE;
 }
 
 
-//----------------------------------------//
-void AliEventTagCuts::SetNegMultiplicityRange(Int_t n1, Int_t n2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetNegMultiplicityRange(Int_t low, Int_t high) {
   //Sets the negative multiplicity range 
   //and the corresponding flag to kTRUE if the cut is used.
-  fMultNegMin = n1;
-  fMultNegMax = n2;
-  fMultNegFlag = kTRUE;
+  fNegMultMin = low;
+  fNegMultMax = high;
+  fNegMultFlag = kTRUE;
 }
 
 
-//----------------------------------------//
-void AliEventTagCuts::SetNeutrMultiplicityRange(Int_t n1, Int_t n2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetNeutrMultiplicityRange(Int_t low, Int_t high) {
   //Sets the neutral particle multiplicity range 
   //and the corresponding flag to kTRUE if the cut is used.
-  fMultNeutrMin = n1;
-  fMultNeutrMax = n2;
-  fMultNeutrFlag = kTRUE;
+  fNeutrMultMin = low;
+  fNeutrMultMax = high;
+  fNeutrMultFlag = kTRUE;
 }
 
-//----------------------------------------//
-void AliEventTagCuts::SetV0sRange(Int_t n1, Int_t n2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetNV0sRange(Int_t low, Int_t high) {
   //Sets the v0s multiplicity range 
   //and the corresponding flag to kTRUE if the cut is used.
-  fV0sMin = n1;
-  fV0sMax = n2;
-  fV0sFlag = kTRUE;
+  fNV0sMin = low;
+  fNV0sMax = high;
+  fNV0sFlag = kTRUE;
 }
 
-//----------------------------------------//
-void AliEventTagCuts::SetCascadesRange(Int_t n1, Int_t n2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetNCascadesRange(Int_t low, Int_t high) {
   //Sets the cascades multiplicity range 
   //and the corresponding flag to kTRUE if the cut is used.
-  fCascadesMin = n1;
-  fCascadesMax = n2;
-  fCascadesFlag = kTRUE;
+  fNCascadesMin = low;
+  fNCascadesMax = high;
+  fNCascadesFlag = kTRUE;
 }
 
-//----------------------------------------//
-void AliEventTagCuts::SetKinksRange(Int_t n1, Int_t n2)
-{
-  //Sets the kinks multipliicity range 
+//___________________________________________________________________________
+void AliEventTagCuts::SetNKinksRange(Int_t low, Int_t high) {
+  //Sets the kinks multiplicity range 
   //and the corresponding flag to kTRUE if the cut is used.
-  fkinksMin = n1;
-  fkinksMax = n2;
-  fkinksFlag = kTRUE;
+  fNKinksMin = low;
+  fNKinksMax = high;
+  fNKinksFlag = kTRUE;
 }
 
-//----------------------------------------//
-void AliEventTagCuts::SetMaxJetEnergy(Float_t r1)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetNPMDTracksRange(Int_t low, Int_t high) {
+  //Sets the number of PMD tracks range 
+  //and the corresponding flag to kTRUE if the cut is used.
+  fNPMDTracksMin = low;
+  fNPMDTracksMax = high;
+  fNPMDTracksFlag = kTRUE;
+}
+
+//___________________________________________________________________________
+void AliEventTagCuts::SetNFMDTracksRange(Int_t low, Int_t high) {
+  //Sets the number of FMD tracks range 
+  //and the corresponding flag to kTRUE if the cut is used.
+  fNFMDTracksMin = low;
+  fNFMDTracksMax = high;
+  fNFMDTracksFlag = kTRUE;
+}
+
+//___________________________________________________________________________
+void AliEventTagCuts::SetNPHOSClustersRange(Int_t low, Int_t high) {
+  //Sets the number of PHOS clusters range 
+  //and the corresponding flag to kTRUE if the cut is used.
+  fNPHOSClustersMin = low;
+  fNPHOSClustersMax = high;
+  fNPHOSClustersFlag = kTRUE;
+}
+
+//___________________________________________________________________________
+void AliEventTagCuts::SetNEMCALClustersRange(Int_t low, Int_t high) {
+  //Sets the number of EMCAL clusters range 
+  //and the corresponding flag to kTRUE if the cut is used.
+  fNEMCALClustersMin = low;
+  fNEMCALClustersMax = high;
+  fNEMCALClustersFlag = kTRUE;
+}
+
+//___________________________________________________________________________
+void AliEventTagCuts::SetNJetCandidatesRange(Int_t low, Int_t high) {
+  //Sets the number of jet candidates range 
+  //and the corresponding flag to kTRUE if the cut is used.
+  fNJetCandidatesMin = low;
+  fNJetCandidatesMax = high;
+  fNJetCandidatesFlag = kTRUE;
+}
+
+//___________________________________________________________________________
+void AliEventTagCuts::SetTopJetEnergyMin(Float_t low) {
   //Sets the lower limit of the maximum jet energy
   //and the corresponding flag to kTRUE if the cut is used.
-  fMaxJetEnergy = r1; 
-  fMaxJetEnergyFlag = kTRUE;
+  fTopJetEnergyMin = low; 
+  fTopJetEnergyMinFlag = kTRUE;
 }
-//----------------------------------------//
-void AliEventTagCuts::SetMaxNeutralEnergy(Float_t r1)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetTopNeutralEnergyMin(Float_t low) {
   //Sets the lower limit of the maximum neutral jet energy
   //and the corresponding flag to kTRUE if the cut is used.
-  fMaxNeutralEnergy = r1; 
-  fMaxNeutralFlag = kTRUE;
+  fTopNeutralEnergyMin = low; 
+  fTopNeutralEnergyMinFlag = kTRUE;
 }
-//----------------------------------------//
-void AliEventTagCuts::SetHardPhotonsRange(Int_t i1, Int_t i2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetNHardPhotonsRange(Int_t low, Int_t high) {
   //Sets the hard photons multiplicity range
   //and the corresponding flag to kTRUE if the cut is used.
-  fNHardPhotonsCandidatesMin = i1;
-  fNHardPhotonsCandidatesMax = i2;
-  fNHardPhotonsCandidatesFlag = kTRUE;
+  fNHardPhotonCandidatesMin = low;
+  fNHardPhotonCandidatesMax = high;
+  fNHardPhotonCandidatesFlag = kTRUE;
 } 
 
-//----------------------------------------//
-void AliEventTagCuts::SetNChargedAbove1GeVRange(Int_t i1, Int_t i2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetNChargedAbove1GeVRange(Int_t low, Int_t high) {
   //Sets the number of charged above 1GeV range
   //and the corresponding flag to kTRUE if the cut is used.
-  fChargedAbove1GeVMin = i1;
-  fChargedAbove1GeVMax = i2;
-  fChargedAbove1GeVFlag = kTRUE;
+  fNChargedAbove1GeVMin = low;
+  fNChargedAbove1GeVMax = high;
+  fNChargedAbove1GeVFlag = kTRUE;
 }
 
-//----------------------------------------//
- void AliEventTagCuts::SetNChargedAbove3GeVRange(Int_t i1, Int_t i2)
-{
+//___________________________________________________________________________
+ void AliEventTagCuts::SetNChargedAbove3GeVRange(Int_t low, Int_t high) {
   //Sets the number of charged above 3GeV range
   //and the corresponding flag to kTRUE if the cut is used.
-  fChargedAbove3GeVMin = i1;
-  fChargedAbove3GeVMax = i2;
-  fChargedAbove3GeVFlag = kTRUE;
+  fNChargedAbove3GeVMin = low;
+  fNChargedAbove3GeVMax = high;
+  fNChargedAbove3GeVFlag = kTRUE;
 }
 
 
-//----------------------------------------//
-void AliEventTagCuts::SetNChargedAbove10GeVRange(Int_t i1, Int_t i2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetNChargedAbove10GeVRange(Int_t low, Int_t high) {
   //Sets the number of charged above 10GeV range
   //and the corresponding flag to kTRUE if the cut is used.
-  fChargedAbove10GeVMin = i1;
-  fChargedAbove10GeVMax = i2;
-  fChargedAbove10GeVFlag = kTRUE;
+  fNChargedAbove10GeVMin = low;
+  fNChargedAbove10GeVMax = high;
+  fNChargedAbove10GeVFlag = kTRUE;
 }
 
 
-//----------------------------------------//
-void AliEventTagCuts::SetNMuonsAbove1GeVRange(Int_t i1, Int_t i2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetNMuonsAbove1GeVRange(Int_t low, Int_t high) {
   //Sets the number of muons above 1GeV range
   //and the corresponding flag to kTRUE if the cut is used.
-  fMuonsAbove1GeVMin = i1;
-  fMuonsAbove1GeVMax = i2;
-  fMuonsAbove1GeVFlag = kTRUE;
+  fNMuonsAbove1GeVMin = low;
+  fNMuonsAbove1GeVMax = high;
+  fNMuonsAbove1GeVFlag = kTRUE;
 }
 
 
-//----------------------------------------//
-void AliEventTagCuts::SetNMuonsAbove3GeVRange(Int_t i1, Int_t i2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetNMuonsAbove3GeVRange(Int_t low, Int_t high) {
   //Sets the number of muons above 3GeV range
   //and the corresponding flag to kTRUE if the cut is used.
-  fMuonsAbove3GeVMin = i1;
-  fMuonsAbove3GeVMax = i2;
-  fMuonsAbove3GeVFlag = kTRUE;
+  fNMuonsAbove3GeVMin = low;
+  fNMuonsAbove3GeVMax = high;
+  fNMuonsAbove3GeVFlag = kTRUE;
 } 
 
-//----------------------------------------//
-void AliEventTagCuts::SetNMuonsAbove10GeVRange(Int_t i1, Int_t i2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetNMuonsAbove10GeVRange(Int_t low, Int_t high) {
   //Sets the number of muons above 10GeV range
   //and the corresponding flag to kTRUE if the cut is used.
-  fMuonsAbove10GeVMin = i1;
-  fMuonsAbove10GeVMax = i2; 
-  fMuonsAbove10GeVFlag = kTRUE;
+  fNMuonsAbove10GeVMin = low;
+  fNMuonsAbove10GeVMax = high; 
+  fNMuonsAbove10GeVFlag = kTRUE;
 }
 
 
-//----------------------------------------//
-void AliEventTagCuts::SetNElectronsAbove1GeVRange(Int_t i1, Int_t i2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetNElectronsAbove1GeVRange(Int_t low, Int_t high) {
   //Sets the number of electrons above 1GeV range
   //and the corresponding flag to kTRUE if the cut is used.
-  fElectronsAbove1GeVMin = i1;
-  fElectronsAbove1GeVMax = i2;
-  fElectronsAbove1GeVFlag = kTRUE;
+  fNElectronsAbove1GeVMin = low;
+  fNElectronsAbove1GeVMax = high;
+  fNElectronsAbove1GeVFlag = kTRUE;
 }
 
-//----------------------------------------//
-void AliEventTagCuts::SetNElectronsAbove3GeVRange(Int_t i1, Int_t i2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetNElectronsAbove3GeVRange(Int_t low, Int_t high) {
   //Sets the number of electrons above 3GeV range
   //and the corresponding flag to kTRUE if the cut is used.
-  fElectronsAbove3GeVMin = i1;
-  fElectronsAbove3GeVMax = i2;
-  fElectronsAbove3GeVFlag = kTRUE;
+  fNElectronsAbove3GeVMin = low;
+  fNElectronsAbove3GeVMax = high;
+  fNElectronsAbove3GeVFlag = kTRUE;
 }
 
-//----------------------------------------//
-void AliEventTagCuts::SetNElectronsAbove10GeVRange(Int_t i1, Int_t i2)
-{  
+//___________________________________________________________________________
+void AliEventTagCuts::SetNElectronsAbove10GeVRange(Int_t low, Int_t high) {  
   //Sets the number of electrons above 10GeV range
   //and the corresponding flag to kTRUE if the cut is used.
-  fElectronsAbove10GeVMin = i1;
-  fElectronsAbove10GeVMax = i2;
-  fElectronsAbove10GeVFlag = kTRUE;
+  fNElectronsAbove10GeVMin = low;
+  fNElectronsAbove10GeVMax = high;
+  fNElectronsAbove10GeVFlag = kTRUE;
 }
-//----------------------------------------//
-void AliEventTagCuts::SetNElectronRange(Int_t n1, Int_t n2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetNElectronRange(Int_t low, Int_t high) {
   //Sets the electron multiplicity range
   //and the corresponding flag to kTRUE if the cut is used.
-  fElectronsMin = n1;
-  fElectronsMax = n2;
-  fElectronsFlag = kTRUE;
+  fNElectronsMin = low;
+  fNElectronsMax = high;
+  fNElectronsFlag = kTRUE;
 }
-//----------------------------------------//
-void AliEventTagCuts::SetNMuonRange(Int_t n1, Int_t n2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetNMuonRange(Int_t low, Int_t high) {
   //Sets the muon multiplicity range
   //and the corresponding flag to kTRUE if the cut is used.
-  fMuonsMin = n1;
-  fMuonsMax = n2;
-  fMuonsFlag = kTRUE;
+  fNMuonsMin = low;
+  fNMuonsMax = high;
+  fNMuonsFlag = kTRUE;
 }
 
-//----------------------------------------//
-void AliEventTagCuts::SetNPionRange(Int_t n1, Int_t n2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetNPionRange(Int_t low, Int_t high) {
   //Sets the pion multiplicity range
   //and the corresponding flag to kTRUE if the cut is used.
-  fPionsMin = n1;
-  fPionsMax = n2;
-  fPionsFlag = kTRUE;
+  fNPionsMin = low;
+  fNPionsMax = high;
+  fNPionsFlag = kTRUE;
 } 
 
-//----------------------------------------//
-void AliEventTagCuts::SetNKaonRange(Int_t n1, Int_t n2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetNKaonRange(Int_t low, Int_t high) {
   //Sets the kaon multiplicity range
   //and the corresponding flag to kTRUE if the cut is used.
-  fKaonsMin = n1;
-  fKaonsMax = n2;
-  fKaonsFlag = kTRUE;
+  fNKaonsMin = low;
+  fNKaonsMax = high;
+  fNKaonsFlag = kTRUE;
 }
 
-//----------------------------------------//
-void AliEventTagCuts::SetNProtonRange(Int_t n1, Int_t n2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetNProtonRange(Int_t low, Int_t high) {
   //Sets the proton multiplicity range
   //and the corresponding flag to kTRUE if the cut is used.
-  fProtonsMin = n1;
-  fProtonsMax = n2;
-  fProtonsFlag = kTRUE;
+  fNProtonsMin = low;
+  fNProtonsMax = high;
+  fNProtonsFlag = kTRUE;
 } 
 
-//----------------------------------------//
-void AliEventTagCuts::SetNLambdaRange(Int_t n1, Int_t n2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetNLambdaRange(Int_t low, Int_t high) {
   //Sets the lambda multiplicity range
   //and the corresponding flag to kTRUE if the cut is used.
-  fLambdasMin = n1;
-  fLambdasMax = n2;
-  fLambdasFlag = kTRUE;
+  fNLambdasMin = low;
+  fNLambdasMax = high;
+  fNLambdasFlag = kTRUE;
 } 
-//----------------------------------------//
-void AliEventTagCuts::SetNPhotonRange(Int_t n1, Int_t n2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetNPhotonRange(Int_t low, Int_t high) {
   //Sets the photon multiplicity range
   //and the corresponding flag to kTRUE if the cut is used.
-  fPhotonsMin = n1;
-  fPhotonsMax = n2;
-  fPhotonFlag = kTRUE;
+  fNPhotonsMin = low;
+  fNPhotonsMax = high;
+  fNPhotonFlag = kTRUE;
 } 
-//----------------------------------------//
-void AliEventTagCuts::SetNPi0Range(Int_t n1, Int_t n2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetNPi0Range(Int_t low, Int_t high) {
   //Sets the pi0 multiplicity range
   //and the corresponding flag to kTRUE if the cut is used.
-  fPi0sMin = n1;
-  fPi0sMax = n2; 
-  fPi0sFlag = kTRUE;
+  fNPi0sMin = low;
+  fNPi0sMax = high; 
+  fNPi0sFlag = kTRUE;
 }  
 
-//----------------------------------------//
-void AliEventTagCuts::SetNNeutronRange(Int_t n1, Int_t n2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetNNeutronRange(Int_t low, Int_t high) {
   //Sets the neutron multiplicity range
   //and the corresponding flag to kTRUE if the cut is used.
-  fNeutronsMin = n1;
-  fNeutronsMax = n2; 
-  fNeutronsFlag = kTRUE;
+  fNNeutronsMin = low;
+  fNNeutronsMax = high; 
+  fNNeutronsFlag = kTRUE;
 }
 
-//----------------------------------------//
-void AliEventTagCuts::SetNKaon0Range(Int_t n1, Int_t n2)
-{  
+//___________________________________________________________________________
+void AliEventTagCuts::SetNKaon0Range(Int_t low, Int_t high) {  
   //Sets the K0s multiplicity range
   //and the corresponding flag to kTRUE if the cut is used.
-  fKaon0sMin = n1;
-  fKaon0sMax = n2; 
-  fKaon0sFlag = kTRUE;
+  fNKaon0sMin = low;
+  fNKaon0sMax = high; 
+  fNKaon0sFlag = kTRUE;
 }
 
-//----------------------------------------//
-void AliEventTagCuts::SetTotalPRange(Float_t r1, Float_t r2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetTotalPRange(Float_t low, Float_t high) {
   //Sets the total momentum range
   //and the corresponding flag to kTRUE if the cut is used.
-  fTotalPMin = r1;
-  fTotalPMax = r2;
+  fTotalPMin = low;
+  fTotalPMax = high;
   fTotalPFlag = kTRUE;
 }
 
-//----------------------------------------//
-void AliEventTagCuts::SetMeanPtRange(Float_t r1, Float_t r2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetMeanPtRange(Float_t low, Float_t high) {
   //Sets the mean Pt range
   //and the corresponding flag to kTRUE if the cut is used.
-  fMeanPtMin = r1;
-  fMeanPtMax = r2;
+  fMeanPtMin = low;
+  fMeanPtMax = high;
   fMeanPtFlag = kTRUE;
 }  
 
-//----------------------------------------//
-void AliEventTagCuts::SetMaxPt(Float_t r1)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetTopPtMin(Float_t low) {
   //Sets the lower limit of the max Pt value
   //and the corresponding flag to kTRUE if the cut is used.
-  fMaxPt = r1; 
-  fMaxPtFlag = kTRUE;
+  fTopPtMin = low; 
+  fTopPtMinFlag = kTRUE;
 }
 
-//----------------------------------------//
-void AliEventTagCuts::SetTotalNeutralPRange(Float_t r1, Float_t r2)
-{  
+//___________________________________________________________________________
+void AliEventTagCuts::SetTotalNeutralPRange(Float_t low, Float_t high) {  
   //Sets the total momentum of neutral particles range
   //and the corresponding flag to kTRUE if the cut is used.
-  fTotalNeutralPMin =r1 ;
-  fTotalNeutralPMax = r2;  
+  fTotalNeutralPMin =low ;
+  fTotalNeutralPMax = high;  
   fTotalNeutralPFlag = kTRUE;
 }
-//----------------------------------------//
-void AliEventTagCuts::SetMeanNeutralPtPRange(Float_t r1, Float_t r2)
-{  
+//___________________________________________________________________________
+void AliEventTagCuts::SetMeanNeutralPtPRange(Float_t low, Float_t high) {  
   //Sets the mean Pt of neutral particles range
   //and the corresponding flag to kTRUE if the cut is used.
-  fMeanNeutralPtMin = r1;
-  fMeanNeutralPtMax = r2; 
+  fMeanNeutralPtMin = low;
+  fMeanNeutralPtMax = high; 
   fMeanNeutralPtFlag = kTRUE;
-} 
-//----------------------------------------//
-void AliEventTagCuts::SetMaxNeutralPt(Float_t r1)
-{  
+}
+//___________________________________________________________________________
+void AliEventTagCuts::SetTopNeutralPtMin(Float_t low) {  
   //Sets the lower limit of the maximum Pt of neutral particles
   //and the corresponding flag to kTRUE if the cut is used.
-  fMaxNeutralPt = r1; 
-  fMaxNeutralPtFlag = kTRUE;
+  fTopNeutralPtMin = low; 
+  fTopNeutralPtMinFlag = kTRUE;
 }
 
-//----------------------------------------//
-void AliEventTagCuts::SetEvPlaneAngleRange(Float_t r1, Float_t r2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetEventPlaneAngleRange(Float_t low, Float_t high) {
   //Sets the event plane range
   //and the corresponding flag to kTRUE if the cut is used.
-  fEventPlaneAngleMin = r1;
-  fEventPlaneAngleMax = r2; 
+  fEventPlaneAngleMin = low;
+  fEventPlaneAngleMax = high; 
   fEventPlaneAngleFlag = kTRUE;
 }
 
-//----------------------------------------//
-void AliEventTagCuts::SetHBTRadiiRange(Float_t r1, Float_t r2)
-{
+//___________________________________________________________________________
+void AliEventTagCuts::SetHBTRadiiRange(Float_t low, Float_t high) {
   //Sets the HBT radii range
   //and the corresponding flag to kTRUE if the cut is used.
-  fHBTRadiiMin = r1;
-  fHBTRadiiMax = r2; 
+  fHBTRadiiMin = low;
+  fHBTRadiiMax = high; 
   fHBTRadiiFlag = kTRUE;
 }
 
-//----------------------------------------//
-Bool_t AliEventTagCuts::IsAccepted(AliEventTag *EvTag) const
-{
+//___________________________________________________________________________
+Bool_t AliEventTagCuts::IsAccepted(AliEventTag *EvTag) const {
   //Returns true if the event is accepted otherwise false.
-  if(fMultFlag)
-    if((EvTag->GetNumOfTracks() < fMultMin) || (EvTag->GetNumOfTracks() > fMultMax))
-      return kFALSE; 
-  
   if(fVzFlag)
     if((EvTag->GetVertexZ() < fVzMin) || (EvTag->GetVertexZ() > fVzMax))
       return kFALSE;
@@ -699,8 +807,8 @@ Bool_t AliEventTagCuts::IsAccepted(AliEventTag *EvTag) const
     if((EvTag->GetVertexX() < fVxMin) || (EvTag->GetVertexX() > fVxMax))
       return kFALSE;
   
-  if(fParticipantsFlag)
-    if((EvTag->GetNumOfParticipants() < fParticipantsMin) || (EvTag->GetNumOfParticipants() > fParticipantMax))
+  if(fNParticipantsFlag)
+    if((EvTag->GetNumOfParticipants() < fNParticipantsMin) || (EvTag->GetNumOfParticipants() > fNParticipantsMax))
       return kFALSE; 
   
   if(fImpactParamFlag)
@@ -711,6 +819,16 @@ Bool_t AliEventTagCuts::IsAccepted(AliEventTag *EvTag) const
     if((EvTag->GetVertexFlag() != fPrimaryVertexFlag))
       return kFALSE; 
   
+  if(fPVzErrorFlag)
+    if((EvTag->GetVertexZError() < fPrimaryVertexZErrorMin) || (EvTag->GetVertexZError() > fPrimaryVertexZErrorMax))
+      return kFALSE; 
+  if(fTriggerMaskFlag)
+    if((EvTag->GetTriggerMask() != fTriggerMask))
+      return kFALSE; 
+  if(fTriggerClusterFlag)
+    if((EvTag->GetTriggerMask() != fTriggerMask))
+      return kFALSE; 
+
   if(fZDCNeutron1EnergyFlag)
     if((EvTag->GetZDCNeutron1Energy() < fZDCNeutron1EnergyMin) || (EvTag->GetZDCNeutron1Energy() > fZDCNeutron1EnergyMax))
       return kFALSE; 
@@ -735,116 +853,138 @@ Bool_t AliEventTagCuts::IsAccepted(AliEventTag *EvTag) const
     if((EvTag->GetT0VertexZ() < fT0VertexZMin) || (EvTag->GetT0VertexZ() > fT0VertexZMax))
       return kFALSE; 
   
-  if(fMultPosFlag)
-    if((EvTag->GetNumOfPosTracks() < fMultPosMin) || (EvTag->GetNumOfPosTracks() > fMultPosMax))
+  if(fMultFlag)
+    if((EvTag->GetNumOfTracks() < fMultMin) || (EvTag->GetNumOfTracks() > fMultMax))
       return kFALSE; 
   
-  if(fMultNegFlag)
-    if((EvTag->GetNumOfNegTracks() < fMultNegMin) || (EvTag->GetNumOfNegTracks() > fMultNegMax))
+  if(fPosMultFlag)
+    if((EvTag->GetNumOfPosTracks() < fPosMultMin) || (EvTag->GetNumOfPosTracks() > fPosMultMax))
       return kFALSE; 
   
-  if(fMultNeutrFlag)
-    if((EvTag->GetNumOfNeutrTracks() < fMultNeutrMin) || (EvTag->GetNumOfNeutrTracks() > fMultNeutrMax))
+  if(fNegMultFlag)
+    if((EvTag->GetNumOfNegTracks() < fNegMultMin) || (EvTag->GetNumOfNegTracks() > fNegMultMax))
       return kFALSE; 
   
-  if(fV0sFlag)
-    if((EvTag->GetNumOfV0s() < fV0sMin) || (EvTag->GetNumOfV0s() > fV0sMax))
+  if(fNeutrMultFlag)
+    if((EvTag->GetNumOfNeutrTracks() < fNeutrMultMin) || (EvTag->GetNumOfNeutrTracks() > fNeutrMultMax))
       return kFALSE; 
   
-  if(fCascadesFlag)
-    if((EvTag->GetNumOfCascades() < fCascadesMin) || (EvTag->GetNumOfCascades() > fCascadesMax))
+  if(fNV0sFlag)
+    if((EvTag->GetNumOfV0s() < fNV0sMin) || (EvTag->GetNumOfV0s() > fNV0sMax))
       return kFALSE; 
   
-  if(fkinksFlag)
-    if((EvTag->GetNumOfKinks() < fkinksMin) || (EvTag->GetNumOfKinks() > fkinksMax))
+  if(fNCascadesFlag)
+    if((EvTag->GetNumOfCascades() < fNCascadesMin) || (EvTag->GetNumOfCascades() > fNCascadesMax))
       return kFALSE; 
   
-  if(fMaxJetEnergyFlag)
-    if((EvTag->GetMaxJetEnergy() < fMaxJetEnergy))
+  if(fNKinksFlag)
+    if((EvTag->GetNumOfKinks() < fNKinksMin) || (EvTag->GetNumOfKinks() > fNKinksMax))
+      return kFALSE; 
+
+
+  if(fNPMDTracksFlag)
+    if((EvTag->GetNumOfPMDTracks() < fNPMDTracksMin) || (EvTag->GetNumOfPMDTracks() > fNPMDTracksMax))
+      return kFALSE; 
+  if(fNFMDTracksFlag)
+    if((EvTag->GetNumOfFMDTracks() < fNFMDTracksMin) || (EvTag->GetNumOfFMDTracks() > fNFMDTracksMax))
+      return kFALSE; 
+  if(fNPHOSClustersFlag)
+    if((EvTag->GetNumOfPHOSClusters() < fNPHOSClustersMin) || (EvTag->GetNumOfPHOSClusters() > fNPHOSClustersMax))
+      return kFALSE; 
+  if(fNEMCALClustersFlag)
+    if((EvTag->GetNumOfEMCALClusters() < fNEMCALClustersMin) || (EvTag->GetNumOfEMCALClusters() > fNEMCALClustersMax))
+      return kFALSE; 
+  if(fNJetCandidatesFlag)
+    if((EvTag->GetNumOfJetCandidates() < fNJetCandidatesMin) || (EvTag->GetNumOfJetCandidates() > fNJetCandidatesMax))
+      return kFALSE; 
+
+
+  if(fTopJetEnergyMinFlag)
+    if((EvTag->GetMaxJetEnergy() < fTopJetEnergyMin))
       return kFALSE; 
   
-  if(fNHardPhotonsCandidatesFlag)
-    if((EvTag->GetNumOfHardPhotonsCandidates() < fNHardPhotonsCandidatesMin) || (EvTag->GetNumOfHardPhotonsCandidates() > fNHardPhotonsCandidatesMax))
+  if(fNHardPhotonCandidatesFlag)
+    if((EvTag->GetNumOfHardPhotonsCandidates() < fNHardPhotonCandidatesMin) || (EvTag->GetNumOfHardPhotonsCandidates() > fNHardPhotonCandidatesMax))
       return kFALSE; 
   
-  if(fMaxNeutralFlag)
-    if((EvTag->GetMaxNeutralEnergy() < fMaxNeutralEnergy))
+  if(fTopNeutralEnergyMinFlag)
+    if((EvTag->GetMaxNeutralEnergy() < fTopNeutralEnergyMin))
       return kFALSE; 
   
-  if(fChargedAbove1GeVFlag)
-    if((EvTag->GetNumOfChargedAbove1GeV() < fChargedAbove1GeVMin) || (EvTag->GetNumOfChargedAbove1GeV() > fChargedAbove1GeVMax))
+  if(fNChargedAbove1GeVFlag)
+    if((EvTag->GetNumOfChargedAbove1GeV() < fNChargedAbove1GeVMin) || (EvTag->GetNumOfChargedAbove1GeV() > fNChargedAbove1GeVMax))
       return kFALSE; 
   
-  if(fChargedAbove3GeVFlag)
-    if((EvTag->GetNumOfChargedAbove3GeV() < fChargedAbove3GeVMin) || (EvTag->GetNumOfChargedAbove3GeV() > fChargedAbove3GeVMax))
+  if(fNChargedAbove3GeVFlag)
+    if((EvTag->GetNumOfChargedAbove3GeV() < fNChargedAbove3GeVMin) || (EvTag->GetNumOfChargedAbove3GeV() > fNChargedAbove3GeVMax))
       return kFALSE; 
   
-  if(fChargedAbove10GeVFlag)
-    if((EvTag->GetNumOfChargedAbove10GeV() < fChargedAbove10GeVMin) || (EvTag->GetNumOfChargedAbove10GeV() > fChargedAbove10GeVMax))
+  if(fNChargedAbove10GeVFlag)
+    if((EvTag->GetNumOfChargedAbove10GeV() < fNChargedAbove10GeVMin) || (EvTag->GetNumOfChargedAbove10GeV() > fNChargedAbove10GeVMax))
       return kFALSE; 
   
-  if(fMuonsAbove1GeVFlag)
-    if((EvTag->GetNumOfMuonsAbove1GeV() < fMuonsAbove1GeVMin) || (EvTag->GetNumOfMuonsAbove1GeV() > fMuonsAbove1GeVMax))
+  if(fNMuonsAbove1GeVFlag)
+    if((EvTag->GetNumOfMuonsAbove1GeV() < fNMuonsAbove1GeVMin) || (EvTag->GetNumOfMuonsAbove1GeV() > fNMuonsAbove1GeVMax))
       return kFALSE; 
   
-  if(fMuonsAbove3GeVFlag)
-    if((EvTag->GetNumOfMuonsAbove3GeV() < fMuonsAbove3GeVMin) || (EvTag->GetNumOfMuonsAbove3GeV() > fMuonsAbove3GeVMax))
+  if(fNMuonsAbove3GeVFlag)
+    if((EvTag->GetNumOfMuonsAbove3GeV() < fNMuonsAbove3GeVMin) || (EvTag->GetNumOfMuonsAbove3GeV() > fNMuonsAbove3GeVMax))
       return kFALSE; 
   
-  if(fMuonsAbove10GeVFlag)
-    if((EvTag->GetNumOfMuonsAbove10GeV() < fMuonsAbove10GeVMin) || (EvTag->GetNumOfMuonsAbove10GeV() > fMuonsAbove10GeVMax))
+  if(fNMuonsAbove10GeVFlag)
+    if((EvTag->GetNumOfMuonsAbove10GeV() < fNMuonsAbove10GeVMin) || (EvTag->GetNumOfMuonsAbove10GeV() > fNMuonsAbove10GeVMax))
       return kFALSE; 
   
-  if(fElectronsAbove1GeVFlag)
-    if((EvTag->GetNumOfElectronsAbove1GeV()  < fElectronsAbove1GeVMin) || (EvTag->GetNumOfElectronsAbove1GeV()  > fElectronsAbove1GeVMax))
+  if(fNElectronsAbove1GeVFlag)
+    if((EvTag->GetNumOfElectronsAbove1GeV()  < fNElectronsAbove1GeVMin) || (EvTag->GetNumOfElectronsAbove1GeV()  > fNElectronsAbove1GeVMax))
       return kFALSE; 
   
-  if(fElectronsAbove3GeVFlag)
-    if((EvTag->GetNumOfElectronsAbove3GeV() < fElectronsAbove3GeVMin) || (EvTag->GetNumOfElectronsAbove3GeV() > fElectronsAbove3GeVMax))
+  if(fNElectronsAbove3GeVFlag)
+    if((EvTag->GetNumOfElectronsAbove3GeV() < fNElectronsAbove3GeVMin) || (EvTag->GetNumOfElectronsAbove3GeV() > fNElectronsAbove3GeVMax))
       return kFALSE; 
   
-  if(fElectronsAbove10GeVFlag)
-    if((EvTag->GetNumOfElectronsAbove10GeV() < fElectronsAbove10GeVMin) || (EvTag->GetNumOfElectronsAbove10GeV() > fElectronsAbove10GeVMax))
+  if(fNElectronsAbove10GeVFlag)
+    if((EvTag->GetNumOfElectronsAbove10GeV() < fNElectronsAbove10GeVMin) || (EvTag->GetNumOfElectronsAbove10GeV() > fNElectronsAbove10GeVMax))
       return kFALSE; 
   
-  if(fElectronsFlag)
-    if((EvTag->GetNumOfElectrons() < fElectronsMin) || (EvTag->GetNumOfElectrons() > fElectronsMax))
+  if(fNElectronsFlag)
+    if((EvTag->GetNumOfElectrons() < fNElectronsMin) || (EvTag->GetNumOfElectrons() > fNElectronsMax))
       return kFALSE; 
   
-  if(fMuonsFlag)
-    if((EvTag->GetNumOfMuons() < fMuonsMin) || (EvTag->GetNumOfMuons() > fMuonsMax))
+  if(fNMuonsFlag)
+    if((EvTag->GetNumOfMuons() < fNMuonsMin) || (EvTag->GetNumOfMuons() > fNMuonsMax))
       return kFALSE; 
   
-  if(fPionsFlag)
-    if((EvTag->GetNumOfPions() < fPionsMin) || (EvTag->GetNumOfPions() > fPionsMax))
+  if(fNPionsFlag)
+    if((EvTag->GetNumOfPions() < fNPionsMin) || (EvTag->GetNumOfPions() > fNPionsMax))
       return kFALSE; 
   
-  if(fKaonsFlag)
-    if((EvTag->GetNumOfKaons() < fKaonsMin) || (EvTag->GetNumOfKaons() > fKaonsMax))
+  if(fNKaonsFlag)
+    if((EvTag->GetNumOfKaons() < fNKaonsMin) || (EvTag->GetNumOfKaons() > fNKaonsMax))
       return kFALSE; 
   
-  if(fProtonsFlag)
-    if((EvTag->GetNumOfProtons() < fProtonsMin) || (EvTag->GetNumOfProtons() > fProtonsMax))
+  if(fNProtonsFlag)
+    if((EvTag->GetNumOfProtons() < fNProtonsMin) || (EvTag->GetNumOfProtons() > fNProtonsMax))
       return kFALSE; 
   
-  if(fLambdasFlag)
-    if((EvTag->GetNumOfLambdas() < fLambdasMin) || (EvTag->GetNumOfLambdas() > fLambdasMax))
+  if(fNLambdasFlag)
+    if((EvTag->GetNumOfLambdas() < fNLambdasMin) || (EvTag->GetNumOfLambdas() > fNLambdasMax))
       return kFALSE; 
   
-  if(fPhotonFlag)
-    if((EvTag->GetNumOfPhotons() < fPhotonsMin) || (EvTag->GetNumOfPhotons() > fPhotonsMax))
+  if(fNPhotonFlag)
+    if((EvTag->GetNumOfPhotons() < fNPhotonsMin) || (EvTag->GetNumOfPhotons() > fNPhotonsMax))
       return kFALSE; 
   
-  if(fPi0sFlag)
-    if((EvTag->GetNumOfPi0s() < fPi0sMin) || (EvTag->GetNumOfPi0s() > fPi0sMax))
+  if(fNPi0sFlag)
+    if((EvTag->GetNumOfPi0s() < fNPi0sMin) || (EvTag->GetNumOfPi0s() > fNPi0sMax))
       return kFALSE; 
   
-  if(fNeutronsFlag)
-    if((EvTag->GetNumOfNeutrons() < fNeutronsMin) || (EvTag->GetNumOfNeutrons() > fNeutronsMax))
+  if(fNNeutronsFlag)
+    if((EvTag->GetNumOfNeutrons() < fNNeutronsMin) || (EvTag->GetNumOfNeutrons() > fNNeutronsMax))
       return kFALSE; 
   
-  if(fKaon0sFlag)
-    if((EvTag->GetNumOfKaon0s() < fKaon0sMin) || (EvTag->GetNumOfKaon0s() > fKaon0sMax))
+  if(fNKaon0sFlag)
+    if((EvTag->GetNumOfKaon0s() < fNKaon0sMin) || (EvTag->GetNumOfKaon0s() > fNKaon0sMax))
       return kFALSE; 
   
   if(fTotalPFlag)
@@ -855,8 +995,8 @@ Bool_t AliEventTagCuts::IsAccepted(AliEventTag *EvTag) const
     if((EvTag->GetMeanPt() < fMeanPtMin) || (EvTag->GetMeanPt() > fMeanPtMax))
       return kFALSE; 
   
-  if(fMaxPtFlag)
-    if((EvTag->GetMaxPt() < fMaxPt))
+  if(fTopPtMinFlag)
+    if((EvTag->GetMaxPt() < fTopPtMin))
       return kFALSE; 
   
   if(fTotalNeutralPFlag)
@@ -867,8 +1007,8 @@ Bool_t AliEventTagCuts::IsAccepted(AliEventTag *EvTag) const
     if((EvTag->GetNeutralMeanPt() < fMeanNeutralPtMin) || (EvTag->GetNeutralMeanPt() >fMeanNeutralPtMax ))
       return kFALSE; 
   
-  if(fMaxNeutralPtFlag)
-    if((EvTag->GetNeutralMaxPt() < fMaxNeutralPt))
+  if(fTopNeutralPtMinFlag)
+    if((EvTag->GetNeutralMaxPt() < fTopNeutralPtMin))
       return kFALSE; 
   
   if(fEventPlaneAngleFlag)

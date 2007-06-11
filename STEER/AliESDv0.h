@@ -38,6 +38,10 @@ public:
   void SetESDindexes(Int_t ip, Int_t im){fNidx=ip;fPidx=im;}
   void SetDcaDaughters(Double_t rDcaDaughters=0.);
   Double_t GetDcaDaughters() {return fDcaDaughters;}
+
+  void GetPosCov(Double_t cov[6]) const {
+    for (Int_t i=0; i<6; ++i) cov[i] = fPosCov[i];
+  }
 protected: 
   Int_t fPdgCode;           // reconstructed V0's type (PDG code)
   Double_t fEffMass;        // reconstructed V0's effective mass

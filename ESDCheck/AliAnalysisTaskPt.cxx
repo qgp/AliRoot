@@ -46,7 +46,7 @@ AliAnalysisTaskPt::AliAnalysisTaskPt(const char *name) :
 }
 
 //________________________________________________________________________
-void AliAnalysisTaskPt::Init(Option_t *) 
+void AliAnalysisTaskPt::ConnectInputData(Option_t *) 
 {
   // Initialisation of branch container and histograms 
   
@@ -59,24 +59,22 @@ void AliAnalysisTaskPt::Init(Option_t *)
     return ;
   }
   
-  if (!fESD) {
-    // One should first check if the branch address was taken by some other task
-    char ** address = (char **)GetBranchAddress(0, "ESD") ;
-    if (address) 
-      fESD = (AliESD *)(*address) ; 
-    if (!fESD) 
-      fChain->SetBranchAddress("ESD", &fESD) ;  
+  // One should first check if the branch address was taken by some other task
+  char ** address = (char **)GetBranchAddress(0, "ESD");
+  if (address) {
+    fESD = (AliESD*)(*address);
+  } else {
+    fESD = new AliESD();
+    SetBranchAddress(0, "ESD", &fESD);
   }
-  // The output objects will be written to 
-  TDirectory * cdir = gDirectory ; 
-  // Open a file for output #0
-  char outputName[1024] ; 
-  sprintf(outputName, "%s.root", GetName() ) ; 
-  OpenFile(0, outputName , "RECREATE") ; 
-  if (cdir) 
-    cdir->cd() ; 
-  
+}
+
+//________________________________________________________________________
+void AliAnalysisTaskPt::CreateOutputObjects()
+{
   // create histograms 
+
+  OpenFile(0) ; 
 
   fhPt = new TH1F("fhPt","This is the Pt distribution",15,0.1,3.1);
   fhPt->SetStats(kTRUE);
@@ -125,23 +123,38 @@ void AliAnalysisTaskPt::Exec(Option_t *)
 void AliAnalysisTaskPt::Terminate(Option_t *) 
 {
   // Processing when the event loop is ended
-  
+
+  Bool_t problem=kFALSE;
+
+  AliInfo(Form(" *** %s Report:", GetName())) ; 
+
   TCanvas *c1 = new TCanvas("c1","Pt",10,10,310,310);
   c1->SetFillColor(10);
   c1->SetHighLightColor(10);
   
   c1->cd(1)->SetLeftMargin(0.15);
   c1->cd(1)->SetBottomMargin(0.15);  
-  c1->cd(1)->SetLogy();
-  fhPt->DrawCopy("E");
+  if (fhPt->GetMaximum() > 0 ) 
+    c1->cd(1)->SetLogy();
+  fOutputContainer = (TObjArray*)GetOutputData(0);
+  fhPt = (TH1F*)fOutputContainer->At(0);
+  if (fhPt) fhPt->DrawCopy("E");
 
   c1->Print("TracksPt.eps");
 
   char line[1024] ; 
-  sprintf(line, ".!tar -zcvf %s.tar.gz *.eps", GetName()) ; 
+  sprintf(line, ".!tar -zcf %s.tar.gz *.eps", GetName()) ; 
   gROOT->ProcessLine(line);
   sprintf(line, ".!rm -fR *.eps"); 
   gROOT->ProcessLine(line);
 
-  AliInfo(Form("!!! All the eps files are in %s.tar.gz !!! \n", GetName())) ;
+  AliInfo(Form("!!! All the eps files are in %s.tar.gz !!!", GetName())) ;
+ 
+  char * report ; 
+  if(problem)
+    report="Problems found, please check!!!";  
+  else 
+    report="OK";
+  
+  AliInfo(Form("*** %s Summary Report: %s \n",GetName(), report)) ; 
 }

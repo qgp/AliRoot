@@ -1,7 +1,7 @@
  
 ALIFAST/module.mk:	 ALIFAST/libALIFAST.pkg
 ALIROOT/module.mk:	 ALIROOT/binaliroot.pkg 
-ANALYSIS/module.mk:	 ANALYSIS/libANALYSIS.pkg 
+ANALYSIS/module.mk:	 ANALYSIS/libANALYSIS.pkg ANALYSIS/libAnalysisOld.pkg   ANALYSIS/libANALYSISRL.pkg
 CRT/module.mk:           CRT/libCRT.pkg
 DISPLAY/module.mk: 	 DISPLAY/libDISPLAY.pkg
 EMCAL/module.mk:	 EMCAL/libEMCALbase.pkg EMCAL/libEMCALsim.pkg EMCAL/libEMCALrec.pkg EMCAL/libEMCALjet.pkg
@@ -31,7 +31,7 @@ RAW/module.mk:           RAW/libRAWDatabase.pkg RAW/libRAWDatasim.pkg RAW/libRAW
 RICH/module.mk:		 RICH/libRICHbase.pkg RICH/libRICHrec.pkg RICH/libRICHsim.pkg
 SHUTTLE/module.mk:	 SHUTTLE/libSHUTTLE.pkg
 START/module.mk:	 START/libSTARTbase.pkg START/libSTARTsim.pkg START/libSTARTrec.pkg
-STEER/module.mk:	 STEER/libESD.pkg STEER/libSTEER.pkg
+STEER/module.mk:	 STEER/libESD.pkg STEER/libSTEER.pkg STEER/libAOD.pkg
 STRUCT/module.mk:	 STRUCT/libSTRUCT.pkg
 TEPEMGEN/module.mk:      TEPEMGEN/libTEPEMGEN.pkg
 TFluka/module.mk:        TFluka/libTFluka.pkg

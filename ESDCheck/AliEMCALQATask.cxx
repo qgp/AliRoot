@@ -75,7 +75,7 @@ AliEMCALQATask::~AliEMCALQATask()
 }
 
 //______________________________________________________________________________
-void AliEMCALQATask::Init(const Option_t*)
+void AliEMCALQATask::ConnectInputData(const Option_t*)
 {
   // Initialisation of branch container and histograms 
     
@@ -88,25 +88,23 @@ void AliEMCALQATask::Init(const Option_t*)
     return ;
   }
   
-  if (!fESD) {
-    // One should first check if the branch address was taken by some other task
-    char ** address = (char **)GetBranchAddress(0, "ESD") ;
-    if (address) 
-      fESD = (AliESD *)(*address) ; 
-    if (!fESD) 
-      fChain->SetBranchAddress("ESD", &fESD) ;  
+  // One should first check if the branch address was taken by some other task
+  char ** address = (char **)GetBranchAddress(0, "ESD");
+  if (address) {
+    fESD = (AliESD*)(*address);
+  } else {
+    fESD = new AliESD();
+    SetBranchAddress(0, "ESD", &fESD);
   }
-  // The output objects will be written to 
-  TDirectory * cdir = gDirectory ; 
-  // Open a file for output #0
-  char outputName[1024] ; 
-  sprintf(outputName, "%s.root", GetName() ) ; 
-  OpenFile(0, outputName , "RECREATE") ; 
-  if (cdir) 
-    cdir->cd() ; 
+}
   
-  // create histograms 
-  
+//______________________________________________________________________________
+void AliEMCALQATask::CreateOutputObjects()  
+{
+// create histograms  
+
+  OpenFile(0) ; 
+
   fhEMCALPos           = new TNtuple("EMCALPos"        , "Position in EMCAL" , "x:y:z");
   fhEMCAL              = new TNtuple("EMCAL"           , "EMCAL" , "event:digits:clusters:photons");
   fhEMCALEnergy        = new TH1D("EMCALEnergy"        , "EMCALEnergy"       , 1000, 0., 10. ) ;
@@ -163,9 +161,9 @@ void AliEMCALQATask::Exec(Option_t *)
     AliESDCaloCluster * caloCluster = fESD->GetCaloCluster(emcalCluster) ;
     if (caloCluster) {
       Float_t pos[3] ;
-      fhEMCALPos->Fill(pos[0],pos[1],pos[2]) ;
       if(caloCluster->GetClusterType() == AliESDCaloCluster::kClusterv1) {  
 	caloCluster->GetGlobalPosition(pos) ;
+	fhEMCALPos->Fill(pos[0],pos[1],pos[2]) ;
 	fhEMCALEnergy->Fill(caloCluster->GetClusterEnergy()) ;
 	fhEMCALDigits->Fill(entry, caloCluster->GetNumberOfDigits()) ;
 	numberOfEmcalClustersv1++ ;
@@ -208,37 +206,50 @@ void AliEMCALQATask::Exec(Option_t *)
 void AliEMCALQATask::Terminate(Option_t *)
 {
   // Processing when the event loop is ended
-  
-  printf("EMCALEnergy Mean        : %5.3f , RMS : %5.3f \n", fhEMCALEnergy->GetMean(),        fhEMCALEnergy->GetRMS()        ) ;
-  printf("EMCALDigits Mean        : %5.3f , RMS : %5.3f \n", fhEMCALDigits->GetMean(),        fhEMCALDigits->GetRMS()        ) ;
-  printf("EMCALRecParticles Mean  : %5.3f , RMS : %5.3f \n", fhEMCALRecParticles->GetMean(),  fhEMCALRecParticles->GetRMS()  ) ;
-  printf("EMCALPhotons Mean       : %5.3f , RMS : %5.3f \n", fhEMCALPhotons->GetMean(),       fhEMCALPhotons->GetRMS()       ) ;
-  printf("EMCALInvariantMass Mean : %5.3f , RMS : %5.3f \n", fhEMCALInvariantMass->GetMean(), fhEMCALInvariantMass->GetRMS() ) ;
-  printf("EMCALDigitsEvent Mean   : %5.3f , RMS : %5.3f \n", fhEMCALDigitsEvent->GetMean(),   fhEMCALDigitsEvent->GetRMS()   ) ;
+  fOutputContainer = (TObjArray*)GetOutputData(0);
+  fhEMCALEnergy = (TH1D*)fOutputContainer->At(2);
+  fhEMCALDigits = (TH1I*)fOutputContainer->At(3);
+  fhEMCALRecParticles = (TH1D*)fOutputContainer->At(4);
+  fhEMCALPhotons = (TH1I*)fOutputContainer->At(5);
+  fhEMCALInvariantMass = (TH1D*)fOutputContainer->At(6);
+  fhEMCALDigitsEvent = (TH1I*)fOutputContainer->At(7);
+ 
+  Bool_t problem = kFALSE ; 
+  AliInfo(Form(" *** %s Report:", GetName())) ; 
+  printf("        EMCALEnergy Mean        : %5.3f , RMS : %5.3f \n", fhEMCALEnergy->GetMean(),        fhEMCALEnergy->GetRMS()        ) ;
+  printf("        EMCALDigits Mean        : %5.3f , RMS : %5.3f \n", fhEMCALDigits->GetMean(),        fhEMCALDigits->GetRMS()        ) ;
+  printf("        EMCALRecParticles Mean  : %5.3f , RMS : %5.3f \n", fhEMCALRecParticles->GetMean(),  fhEMCALRecParticles->GetRMS()  ) ;
+  printf("        EMCALPhotons Mean       : %5.3f , RMS : %5.3f \n", fhEMCALPhotons->GetMean(),       fhEMCALPhotons->GetRMS()       ) ;
+  printf("        EMCALInvariantMass Mean : %5.3f , RMS : %5.3f \n", fhEMCALInvariantMass->GetMean(), fhEMCALInvariantMass->GetRMS() ) ;
+  printf("        EMCALDigitsEvent Mean   : %5.3f , RMS : %5.3f \n", fhEMCALDigitsEvent->GetMean(),   fhEMCALDigitsEvent->GetRMS()   ) ;
 
   TCanvas  * cEMCAL = new TCanvas("EMCAL", "EMCAL ESD Test", 400, 10, 600, 700);
   cEMCAL->Divide(3, 2) ; 
 
   cEMCAL->cd(1) ; 
-  gPad->SetLogy();
+  if ( fhEMCALEnergy->GetMaximum() > 0. ) 
+    gPad->SetLogy();
   fhEMCALEnergy->SetAxisRange(0, 25.);
   fhEMCALEnergy->SetXTitle("Energy (GeV)");
   fhEMCALEnergy->Draw();
   
   cEMCAL->cd(2) ; 
-  gPad->SetLogy();
+  if ( fhEMCALDigits->GetMaximum() > 0. ) 
+    gPad->SetLogy();
   fhEMCALDigits->SetAxisRange(0, 25.);
   fhEMCALDigits->SetXTitle("DigitsPerCluster");
   fhEMCALDigits->Draw();
  
   cEMCAL->cd(3) ; 
-  gPad->SetLogy();
+  if ( fhEMCALRecParticles->GetMaximum() > 0. ) 
+     gPad->SetLogy();
   fhEMCALRecParticles->SetAxisRange(0, 25.);
   fhEMCALRecParticles->SetXTitle("RecParticles");
   fhEMCALRecParticles->Draw();
  
   cEMCAL->cd(4) ; 
-  gPad->SetLogy();
+  if ( fhEMCALPhotons->GetMaximum() > 0. ) 
+    gPad->SetLogy();
   fhEMCALPhotons->SetAxisRange(0, 25.);
   fhEMCALPhotons->SetXTitle("Photons");
   fhEMCALPhotons->Draw();
@@ -248,7 +259,8 @@ void AliEMCALQATask::Terminate(Option_t *)
   fhEMCALInvariantMass->Draw();
  
   cEMCAL->cd(6) ; 
-  gPad->SetLogy();
+  if ( fhEMCALDigitsEvent->GetMaximum() > 0. ) 
+    gPad->SetLogy();
   fhEMCALDigitsEvent->SetAxisRange(0, 40.);
   fhEMCALDigitsEvent->SetXTitle("DigitsPerEvent");
   fhEMCALDigitsEvent->Draw();
@@ -256,10 +268,18 @@ void AliEMCALQATask::Terminate(Option_t *)
   cEMCAL->Print("EMCAL.eps");
  
   char line[1024] ; 
-  sprintf(line, ".!tar -zcvf %s.tar.gz *.eps", GetName()) ; 
+  sprintf(line, ".!tar -zcf %s.tar.gz *.eps", GetName()) ; 
   gROOT->ProcessLine(line);
   sprintf(line, ".!rm -fR *.eps"); 
   gROOT->ProcessLine(line);
  
-  AliInfo(Form("!!! All the eps files are in %s.tar.gz !!! \n", GetName())) ;
+  AliInfo(Form("!!! All the eps files are in %s.tar.gz !!!", GetName())) ;
+
+  char * report ; 
+  if(problem)
+    report="Problems found, please check!!!";  
+  else 
+    report="OK";
+
+  AliInfo(Form("*** %s Summary Report: %s \n",GetName(), report)) ; 
 }

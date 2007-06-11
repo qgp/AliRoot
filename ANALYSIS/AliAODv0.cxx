@@ -49,25 +49,78 @@ AliAODv0::AliAODv0() : TObject() {
   fKeyNeg  = 999;
 
   fChi2    = 999;
-  fEvent   = 0;
 }
 
 AliAODv0::AliAODv0(AliESDv0* rV0Vertex ,AliESD* rEvent){
   this->Fill(rV0Vertex,rEvent);
 }
 
+
+AliAODv0::AliAODv0(const AliAODv0& rAliAODv0) : TObject(rAliAODv0) {
+  //--------------------------------------------------------------------
+  // Copy constructor
+  //--------------------------------------------------------------------
+  fDecayVertexV0X     = rAliAODv0.fDecayVertexV0X;
+  fDecayVertexV0Y     = rAliAODv0.fDecayVertexV0Y;
+  fDecayVertexV0Z     = rAliAODv0.fDecayVertexV0Z;
+  fDcaV0Daughters     = rAliAODv0.fDcaV0Daughters;
+  fDcaV0ToPrimVertex  = rAliAODv0.fDcaV0ToPrimVertex ;
+  fDcaPosToPrimVertex = rAliAODv0.fDcaPosToPrimVertex;
+  fDcaNegToPrimVertex = rAliAODv0.fDcaNegToPrimVertex;
+  fMomPosX = rAliAODv0.fMomPosX;
+  fMomPosY = rAliAODv0.fMomPosY;
+  fMomPosZ = rAliAODv0.fMomPosZ;
+  fMomNegX = rAliAODv0.fMomNegX;
+  fMomNegY = rAliAODv0.fMomNegY;
+  fMomNegZ = rAliAODv0.fMomNegZ;
+
+  fKeyNeg  = rAliAODv0.fKeyNeg;
+  fKeyPos =  rAliAODv0.fKeyPos;
+
+  fChi2    = rAliAODv0.fChi2;
+}
+
+AliAODv0& AliAODv0::operator=(const AliAODv0& rAliAODv0){
+  //--------------------------------------------------------------------
+  // Assignment overload
+  //--------------------------------------------------------------------
+  this->fDecayVertexV0X     = rAliAODv0.fDecayVertexV0X;
+  this->fDecayVertexV0Y     = rAliAODv0.fDecayVertexV0Y;
+  this->fDecayVertexV0Z     = rAliAODv0.fDecayVertexV0Z;
+  this->fDcaV0Daughters     = rAliAODv0.fDcaV0Daughters;
+  this->fDcaV0ToPrimVertex  = rAliAODv0.fDcaV0ToPrimVertex ;
+  this->fDcaPosToPrimVertex = rAliAODv0.fDcaPosToPrimVertex;
+  this->fDcaNegToPrimVertex = rAliAODv0.fDcaNegToPrimVertex;
+  this->fMomPosX = rAliAODv0.fMomPosX;
+  this->fMomPosY = rAliAODv0.fMomPosY;
+  this->fMomPosZ = rAliAODv0.fMomPosZ;
+  this->fMomNegX = rAliAODv0.fMomNegX;
+  this->fMomNegY = rAliAODv0.fMomNegY;
+  this->fMomNegZ = rAliAODv0.fMomNegZ;
+
+  this->fKeyPos  = rAliAODv0.fKeyPos;
+  this->fKeyNeg  = rAliAODv0.fKeyNeg;
+
+  this->fChi2    = rAliAODv0.fChi2;
+  return *this;
+}
+
+AliAODv0::~AliAODv0(){
+  //--------------------------------------------------------------------
+  // Empty destructor
+  //--------------------------------------------------------------------
+}
+
+
 void AliAODv0::Fill(AliESDv0* rV0Vertex ,AliESD* rEvent){
   // Fills the data memebers of the AOD
-  fEvent=rEvent;
   Double_t tDecayVertexV0[3]; rV0Vertex->GetXYZ(tDecayVertexV0[0],tDecayVertexV0[1],tDecayVertexV0[2]); 
   fDecayVertexV0X = tDecayVertexV0[0];
   fDecayVertexV0Y = tDecayVertexV0[1];
   fDecayVertexV0Z = tDecayVertexV0[2];
 
   fDcaV0Daughters = rV0Vertex->GetDcaDaughters();
-
   fDcaV0ToPrimVertex = rV0Vertex->GetD();
-
 
   Double_t tMomPos[3]; rV0Vertex->GetPPxPyPz(tMomPos[0],tMomPos[1],tMomPos[2]); 
   fMomPosX = tMomPos[0];
@@ -79,11 +132,11 @@ void AliAODv0::Fill(AliESDv0* rV0Vertex ,AliESD* rEvent){
   fMomNegY = tMomNeg[1];
   fMomNegZ = tMomNeg[2];
 
-  fKeyPos = TMath::Abs(rV0Vertex->GetPindex());// need to ask why Abs
-  fKeyNeg = TMath::Abs(rV0Vertex->GetNindex());
+  fKeyPos = (UInt_t)TMath::Abs(rV0Vertex->GetPindex());// need to ask why Abs
+  fKeyNeg = (UInt_t)TMath::Abs(rV0Vertex->GetNindex());
 
-  AliESDtrack *pTrack=fEvent->GetTrack(fKeyPos);
-  AliESDtrack *nTrack=fEvent->GetTrack(fKeyNeg);
+  AliESDtrack *pTrack=rEvent->GetTrack(fKeyPos);
+  AliESDtrack *nTrack=rEvent->GetTrack(fKeyNeg);
 
   Float_t tDcaPosToPrimVertex[2];
   if(pTrack) pTrack->GetImpactParameters(tDcaPosToPrimVertex[0],tDcaPosToPrimVertex[1]);

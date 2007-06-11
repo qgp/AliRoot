@@ -25,7 +25,6 @@
 #include <TString.h>
 #include <TTree.h>
 #include <TSystem.h>
-#include <TSystemDirectory.h>
 #include <TChain.h>
 #include <TLorentzVector.h>
 
@@ -48,11 +47,13 @@ ClassImp(AliTagCreator)
 
 
 //______________________________________________________________________________
-AliTagCreator::AliTagCreator() {
+  AliTagCreator::AliTagCreator() :
+    TObject(),
+    fSE("ALICE::CERN::se"),
+    fgridpath(""),
+    fStorage(0)
+{
   //==============Default constructor for a AliTagCreator==================
-  fgridpath = "";
-  fSE = "";   
-  fStorage = 0; 
 }
 
 //______________________________________________________________________________
@@ -182,8 +183,7 @@ Bool_t AliTagCreator::MergeTags() {
     const char * name = 0x0;
     // Add all files matching *pattern* to the chain
     while((name = gSystem->GetDirEntry(dirp))) {
-      if (strstr(name,tagPattern))       
-	fgChain->Add(name);  
+      if (strstr(name,tagPattern)) fgChain->Add(name);  
     }//directory loop
     AliInfo(Form("Chained tag files: %d",fgChain->GetEntries()));
   }//local mode
@@ -203,26 +203,52 @@ Bool_t AliTagCreator::MergeTags() {
   }//grid mode
  
   AliRunTag *tag = new AliRunTag;
-  AliEventTag *evTag = new AliEventTag;
   fgChain->SetBranchAddress("AliTAG",&tag);
-   
-  //Defining new tag objects
-  AliRunTag *newTag = new AliRunTag();
-  TTree ttag("T","A Tree with event tags");
-  TBranch * btag = ttag.Branch("AliTAG", &newTag);
-  btag->SetCompressionLevel(9);
-  for(Int_t iTagFiles = 0; iTagFiles < fgChain->GetEntries(); iTagFiles++) {
-    fgChain->GetEntry(iTagFiles);
-    newTag->SetRunId(tag->GetRunId());
-    const TClonesArray *tagList = tag->GetEventTags();
-    for(Int_t j = 0; j < tagList->GetEntries(); j++) {
-      evTag = (AliEventTag *) tagList->At(j);
-      newTag->AddEventTag(*evTag);
-    }
-    ttag.Fill();
-    newTag->Clear();
-  }//tag file loop 
+  fgChain->GetEntry(0);
+  TString localFileName = "Run"; localFileName += tag->GetRunId(); 
+  localFileName += ".Merged"; localFileName += ".ESD.tag.root";
+     
+  TString filename = 0x0;
   
+  if(fStorage == 0) {
+    filename = localFileName.Data();      
+    AliInfo(Form("Writing merged tags to local file: %s",filename.Data()));
+  } 
+  else if(fStorage == 1) {
+    TString alienFileName = "/alien";
+    alienFileName += gGrid->Pwd();
+    alienFileName += fgridpath.Data();
+    alienFileName += "/";
+    alienFileName +=  localFileName;
+    alienFileName += "?se=";
+    alienFileName += fSE.Data();
+    filename = alienFileName.Data();
+    AliInfo(Form("Writing merged tags to grid file: %s",filename.Data()));     
+  }
+
+  fgChain->Merge(filename);
+
+  return kTRUE;
+}
+
+//__________________________________________________________________________
+Bool_t AliTagCreator::MergeTags(TGridResult *result) {
+  //Merges the tags that are listed in the TGridResult 
+  AliInfo(Form("Merging tags....."));
+  TChain *fgChain = new TChain("T");
+
+  Int_t nEntries = result->GetEntries();
+
+  TString alienUrl;
+  for(Int_t i = 0; i < nEntries; i++) {
+    alienUrl = result->GetKey(i,"turl");
+    fgChain->Add(alienUrl);  
+  }
+  AliInfo(Form("Chained tag files: %d",fgChain->GetEntries()));
+  AliRunTag *tag = new AliRunTag;
+  fgChain->SetBranchAddress("AliTAG",&tag);
+  fgChain->GetEntry(0);
+    
   TString localFileName = "Run"; localFileName += tag->GetRunId(); 
   localFileName += ".Merged"; localFileName += ".ESD.tag.root";
      
@@ -244,13 +270,7 @@ Bool_t AliTagCreator::MergeTags() {
     AliInfo(Form("Writing merged tags to grid file: %s",filename.Data()));     
   }
   
-  TFile* ftag = TFile::Open(filename, "recreate");
-  ftag->cd();
-  ttag.Write();
-  ftag->Close();
-
-  delete tag;
-  delete newTag;
+  fgChain->Merge(filename);
 
   return kTRUE;
 }
@@ -313,7 +333,7 @@ void AliTagCreator::CreateTag(TFile* file, const char *guid, const char *md5, co
   b->GetEntry(0);
   Int_t iInitRunNumber = esd->GetRunNumber();
 
-  Int_t iNumberOfEvents = b->GetEntries();
+  Int_t iNumberOfEvents = (Int_t)b->GetEntries();
   for (Int_t iEventNumber = 0; iEventNumber < iNumberOfEvents; iEventNumber++) {
     ntrack = 0;
     nPos = 0;
@@ -619,7 +639,7 @@ void AliTagCreator::CreateTag(TFile* file, const char *filepath, Int_t Counter) 
   b->GetEntry(0);
   Int_t iInitRunNumber = esd->GetRunNumber();
 
-  Int_t iNumberOfEvents = b->GetEntries();
+  Int_t iNumberOfEvents = (Int_t)b->GetEntries();
   for (Int_t iEventNumber = 0; iEventNumber < iNumberOfEvents; iEventNumber++) {
     ntrack = 0;
     nPos = 0;

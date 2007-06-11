@@ -1,33 +1,24 @@
-SRCS= TGliteXmlEventlist.cxx\
-      AliAOD.cxx AliEventBuffer.cxx \
-      AliRunAnalysis.cxx AliAnalysis.cxx \
-      AliVAODParticle.cxx AliAODParticle.cxx \
-      AliAODPair.cxx   AliAODRun.cxx     \
-      AliAODParticleCut.cxx AliAODParticleBaseCut.cxx \
-      AliAODPairCut.cxx AliAODPairBaseCut.cxx \
-      AliEventCut.cxx AliEventBaseCut.cxx \
-      AliReader.cxx AliReaderAOD.cxx AliReaderKineTree.cxx \
-      AliReaderESD.cxx AliReaderESDTree.cxx \
-      AliTrackPoints.cxx AliClusterMap.cxx \
-      AliD0toKpi.cxx  AliD0toKpiAnalysis.cxx AliFlowAnalysis.cxx \
-      AliMuonAnalysis.cxx  AliAODv0.cxx \
-      AliAnalysisEventCuts.cxx AliAnalysisTrackCuts.cxx AliBalance.cxx
+SRCS = AliAnalysisDataContainer.cxx AliAnalysisDataSlot.cxx \
+       AliAnalysisManager.cxx AliAnalysisTask.cxx \
+       AliAnalysisSelector.cxx
 
-HDRS= $(SRCS:.cxx=.h) 
+CHECKALIEN = $(shell root-config --has-alien)
+ifeq (yes,$(CHECKALIEN))
+PACKCXXFLAGS := $(CXXFLAGS) -DWITHALIEN
+endif
 
-DHDR:=ANALYSISLinkDef.h
+CHECKXML = $(shell root-config --has-xml)
+ifeq (yes,$(CHECKXML))
+PACKCXXFLAGS += $(CXXFLAGS) -DWITHXML
+CINTFLAGS += -DWITHXML
+SRCS += AliTagAnalysis.cxx AliXMLCollection.cxx AliAnalysisGoodies.cxx
+endif
 
-EXPORT:=AliAOD.h AliEventBuffer.h\
-      AliVAODParticle.h     AliAODParticle.h  \
-      AliAODPair.h          AliAODRun.h \
-      AliAODPairCut.h       AliAODPairBaseCut.h \
-      AliAODParticleCut.h   AliAODParticleBaseCut.h \
-      AliRunAnalysis.h      AliAnalysis.h     \
-      AliEventCut.h         AliEventBaseCut.h \
-      AliReader.h           AliReaderESD.h    \
-      AliTrackPoints.h      AliClusterMap.h   \
-      AliFlowAnalysis.h     AliReaderESDTree.h \
-      AliMuonAnalysis.h     AliAODv0.h \
-      AliAnalysisEventCuts.h AliAnalysisTrackCuts.h AliBalance.h
+HDRS:= $(SRCS:.cxx=.h) 
 
-EINCLUDE:= TPC ITS
+DHDR= ANALYSISLinkDef.h
+
+EXPORT:=$(SRCS:.cxx=.h)
+
+
+

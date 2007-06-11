@@ -51,6 +51,10 @@ public:
   }
   Int_t GetBindex() const {return fBachIdx;}
 
+  void GetPosCovXi(Double_t cov[6]) const {
+    for (Int_t i=0; i<6; ++i) cov[i] = fPosCov[i];
+  }
+
 protected: 
   Int_t fPdgCode;           // reconstructed cascade type (PDG code)
   Double_t fEffMass;        // reconstructed cascade effective mass

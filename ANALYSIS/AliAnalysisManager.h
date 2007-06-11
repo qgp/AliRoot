@@ -13,27 +13,47 @@
 // event for all tasks depending only on initial input data.
 //==============================================================================
 
-#ifndef ROOT_TSelector
-#include "TSelector.h"
+#ifndef ROOT_TNamed
+#include <TNamed.h>
 #endif
 
 class TClass;
+class TTree;
 class AliAnalysisDataContainer;
 class AliAnalysisTask;
+class AliVirtualEventHandler;
 
-class AliAnalysisManager : public TSelector {
+
+class AliAnalysisManager : public TNamed {
 
 public:
 
 enum EAliAnalysisContType {
-   kNormalContainer  = 0,
+   kExchangeContainer  = 0,
    kInputContainer   = 1,
    kOutputContainer  = 2
 };   
+
+enum EAliAnalysisExecMode {
+   kLocalAnalysis    = 0,
+   kProofAnalysis    = 1,
+   kGridAnalysis     = 2
+};
+
+enum EAliAnalysisFlags {
+   kEventLoop        = BIT(14),
+   kDisableBranches  = BIT(15)
+};   
+
    AliAnalysisManager();
+   AliAnalysisManager(const char *name, const char *title="");
    virtual            ~AliAnalysisManager();
+
+   AliAnalysisManager(const AliAnalysisManager& other);
+   AliAnalysisManager& operator=(const AliAnalysisManager& other);
    
-   // Selector-specific methods
+   void                StartAnalysis(const char *type="local", TTree *tree=0);
+
    virtual void        Init(TTree *tree);   
    virtual void        Begin(TTree *tree);
    virtual Bool_t      Notify();
@@ -41,22 +61,36 @@ enum EAliAnalysisContType {
    virtual Bool_t      ProcessCut(Long64_t entry) {return Process(entry);}
    virtual Bool_t      Process(Long64_t entry);
    virtual Int_t       GetEntry(Long64_t entry, Int_t getall = 0);
-   virtual void        SlaveTerminate();
+   void                PackOutput(TList *target);
+   void                UnpackOutput(TList *source);
    virtual void        Terminate();
 
-   // Getters
-   TTree              *GetTree() const       {return fTree;}
+   // Getters/Setters
+   static AliAnalysisManager *GetAnalysisManager() {return fgAnalysisManager;}
    TObjArray          *GetContainers() const {return fContainers;}
+   UInt_t              GetDebugLevel() const {return fDebug;}
    TObjArray          *GetInputs() const     {return fInputs;}
    TObjArray          *GetOutputs() const    {return fOutputs;}
    TObjArray          *GetTasks() const      {return fTasks;}
    TObjArray          *GetTopTasks() const   {return fTopTasks;}
+   TTree              *GetTree() const       {return fTree;}
    TObjArray          *GetZombieTasks() const {return fZombies;}
-//   AliAnalysisInfo    *GetStatus() const     {return fStatus;}  
+   Long64_t            GetCurrentEntry() const {return fCurrentEntry;}
+   EAliAnalysisExecMode 
+                       GetAnalysisType() const {return fMode;}
+
+   void                SetAnalysisType(EAliAnalysisExecMode mode) {fMode = mode;}
+   void                SetCurrentEntry(Long64_t entry) {fCurrentEntry = entry;}
+   void                SetDebugLevel(UInt_t level) {fDebug = level;}
+   void                SetDisableBranches(Bool_t disable=kTRUE) {TObject::SetBit(kDisableBranches,disable);}
+   void                SetEventHandler(AliVirtualEventHandler* handler) {fEventHandler = handler;}
+   AliVirtualEventHandler*
+                       GetEventHandler() {return fEventHandler;}
 
    // Container handling
    AliAnalysisDataContainer *CreateContainer(const char *name, TClass *datatype, 
-                                EAliAnalysisContType type=kNormalContainer);
+                       EAliAnalysisContType type     = kExchangeContainer, 
+                       const char          *filename = NULL);
    
    // Including tasks and getting them
    void                 AddTask(AliAnalysisTask *task);
@@ -73,27 +107,31 @@ enum EAliAnalysisContType {
    // Analysis initialization and execution, status
    Bool_t               InitAnalysis();
    Bool_t               IsInitialized() const {return fInitOK;}
+   Bool_t               IsEventLoop() const {return TObject::TestBit(kEventLoop);}
    void                 ResetAnalysis();
    void                 ExecAnalysis(Option_t *option="");
    void                 FinishAnalysis();
    void                 PrintStatus(Option_t *option="all") const;
 
 protected:
-   TTree               *fTree;         // Input tree in case of TSelector model
-   Bool_t               fInitOK;       // Initialisation done
-   TObjArray           *fContainers;   //-> List of all containers
-   TObjArray           *fInputs;       //-> List of containers with input data
-   TObjArray           *fOutputs;      //-> List of containers with results
-   TObjArray           *fTasks;        //-> List of analysis tasks
-   TObjArray           *fTopTasks;     //-> List of top tasks
-   TObjArray           *fZombies;      //-> List of zombie tasks
-//   AliAnalysisInfo     *fStatus;       // Analysis info object
+   void                 ImportWrappers(TList *source);
+   void                 SetEventLoop(Bool_t flag=kTRUE) {TObject::SetBit(kEventLoop,flag);}
 
 private:
-   AliAnalysisManager(const AliAnalysisManager& other);
-   AliAnalysisManager& operator=(const AliAnalysisManager& other);
+   TTree                  *fTree;         //! Input tree in case of TSelector model
+   AliVirtualEventHandler *fEventHandler; //  Output event handler
+   Long64_t                fCurrentEntry; //! Current processed entry in the tree
+   EAliAnalysisExecMode    fMode;         // Execution mode
+   Bool_t                  fInitOK;       // Initialisation done
+   UInt_t                  fDebug;        // Debug level
+   TObjArray              *fTasks;        // List of analysis tasks
+   TObjArray              *fTopTasks;     // List of top tasks
+   TObjArray              *fZombies;      // List of zombie tasks
+   TObjArray              *fContainers;   // List of all containers
+   TObjArray              *fInputs;       // List of containers with input data
+   TObjArray              *fOutputs;      // List of containers with results
 
-
+   static AliAnalysisManager *fgAnalysisManager; //! static pointer to object instance
    ClassDef(AliAnalysisManager,1)  // Analysis manager class
 };   
 #endif

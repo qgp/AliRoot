@@ -39,11 +39,11 @@
 // match.
 //==============================================================================
 
-#include "Riostream.h"
-
-#include "TClass.h"
-#include "TTree.h"
-//#include "AliLog.h"
+#include <Riostream.h>
+#include <TROOT.h>
+#include <TClass.h>
+#include <TTree.h>
+#include <TLeaf.h>
 
 #include "AliAnalysisDataSlot.h"
 #include "AliAnalysisTask.h"
@@ -52,12 +52,34 @@
 ClassImp(AliAnalysisDataSlot)
 
 //______________________________________________________________________________
+AliAnalysisDataSlot::AliAnalysisDataSlot(TClass *type, AliAnalysisTask *task)
+                    :TNamed(), 
+                     fType(type),
+                     fParent(task), 
+                     fContainer(NULL)
+{
+// Default constructor.
+   SetTitle(fType->GetName());
+}
+
+//______________________________________________________________________________
+AliAnalysisDataSlot::AliAnalysisDataSlot(const AliAnalysisDataSlot &slot)
+                    :TNamed(slot), 
+                     fType(NULL), 
+                     fParent(slot.fParent), 
+                     fContainer(slot.fContainer)
+{
+// Copy ctor.
+   GetType();
+}                        
+
+//______________________________________________________________________________
 AliAnalysisDataSlot& AliAnalysisDataSlot::operator=(const AliAnalysisDataSlot &slot)
 {
 // Assignment
    if (&slot == this) return *this;
-   TObject::operator=(slot);
-   fType = slot.fType;
+   TNamed::operator=(slot);
+   GetType();
    fParent = slot.fParent;
    fContainer = slot.fContainer;   
    return *this;
@@ -69,9 +91,9 @@ Bool_t AliAnalysisDataSlot::ConnectContainer(AliAnalysisDataContainer *cont)
 // Connect the data slot with a given container. The operation will succeed only
 // if the type defined by the slot inherits from the type enforced by the container.
 // The error message in case of failure is posted by the caller.
-   if (!cont || !fType) return kFALSE;
+   if (!cont || !GetType()) return kFALSE;
    if (!fType->InheritsFrom(cont->GetType())) {
-     cout<<"Data slot of type "<<fType->GetName()<<" of task "<<fParent->GetName()<<" cannot be connected to data container "<<cont->GetName()<<" of type "<<cont->GetType()->GetName()<<endl;
+     cout<<"Data slot of type "<<GetTitle()<<" of task "<<fParent->GetName()<<" cannot be connected to data container "<<cont->GetName()<<" of type "<<cont->GetTitle()<<endl;
      //AliError(Form("Data slot of type %s of task %s cannot be connected to data container %s of type %s", fType->GetName(), fParent->GetName(), cont->GetName(), cont->GetType()->GetName()));
       return kFALSE;
    }   
@@ -80,11 +102,22 @@ Bool_t AliAnalysisDataSlot::ConnectContainer(AliAnalysisDataContainer *cont)
 }   
 
 //______________________________________________________________________________
+TClass *AliAnalysisDataSlot::GetType() const
+{
+// Get class type for this slot.
+   AliAnalysisDataSlot *slot = (AliAnalysisDataSlot*)this;
+   if (!fType) slot->SetType(gROOT->GetClass(fTitle.Data()));
+   if (!fType) printf("AliAnalysisDataSlot: Unknown class: %s\n", GetTitle());
+   return fType;
+}
+   
+//______________________________________________________________________________
 void *AliAnalysisDataSlot::GetBranchAddress(const char *branchname) const
 {
 // Retrieve the address for a given branch. One should always test this before
 // using SetBranchAddress because the address gets set by the first caller.
 // Call this in MyTask::Init()
+   if (!GetType()) return NULL;
    if (!fType->InheritsFrom(TTree::Class())) {
      cout<<"Cannot call GetBranchAddress() for data slot of task "<<fParent->GetName()<<" not pointing to tree-type data"<<endl;
      //AliFatal(Form("Cannot call GetBranchAddress() for data slot of task %s not pointing to tree-type data", fParent->GetName()));
@@ -106,13 +139,36 @@ void *AliAnalysisDataSlot::GetBranchAddress(const char *branchname) const
 }   
 
 //______________________________________________________________________________
+Int_t AliAnalysisDataSlot::EnableBranch(const char *bname, TTree *tree)
+{
+// Static method to enable recursively a branch in a tree (why this in not in ROOT?)
+   TBranch *branch = tree->GetBranch(bname);
+   Int_t count = 0;
+//   static Int_t indent = 0;
+   if (!branch) return count;
+//   TString s;
+//   for (Int_t i=0; i<indent; i++) s += " ";
+   count++;
+//   printf("%sbranch %s: kDoNotProcess=%d\n",s.Data(), branch->GetName(), branch->TestBit(kDoNotProcess));
+   branch->SetBit(kDoNotProcess, kFALSE);
+   TIter next(branch->GetListOfBranches());
+   TBranch *branch_sub;
+   // Activate all sub-branches
+//   indent++;
+   while ((branch_sub=(TBranch*)next())) {
+      count += AliAnalysisDataSlot::EnableBranch(branch_sub->GetName(), tree);
+   }
+//   indent--;
+   return count;   
+}   
+
+//______________________________________________________________________________
 Bool_t AliAnalysisDataSlot::SetBranchAddress(const char *branchname, void *address)
 {
 // Set a branch address for input tree. To be called during MyTask::Init()
 // only if GetBranchAddress() returns a NULL pointer for a tree-type slot.
    if (GetBranchAddress(branchname)) {
-     cout<<"Branch address for "<<branchname<<" already set by other task. Call first GetBranchAddress() in "<<fParent->GetName()<<"::Init()"<<endl;
-     //AliError(Form("Branch address for %s already set by other task. Call first GetBranchAddress() in %s::Init()",branchname, fParent->GetName()));
+      Error("SetBranchAddress","Branch address for %s already set by other task. Call first GetBranchAddress() in %s::ConnectInputData()",branchname, fParent->GetName());
       return kFALSE;
    }
    TTree *tree = (TTree*)GetData();
@@ -125,7 +181,7 @@ TObject *AliAnalysisDataSlot::GetData() const
 {
 // Retreives the data from the container if it is ready.
    if (!fContainer) {
-     cout<<"Data slot of type "<<fType->GetName()<<" of task "<<fParent->GetName()<<" has no connected data container"<<endl;
+     cout<<"Data slot of type "<<GetTitle()<<" of task "<<fParent->GetName()<<" has no connected data container"<<endl;
      //AliError(Form("Data slot of type %s of task %s has no connected data container",fType->GetName(), fParent->GetName()));    
       return NULL;
    }
@@ -138,7 +194,7 @@ Bool_t  AliAnalysisDataSlot::IsDataReady() const
 {
 // Check if data for this slot is ready in its container.
    if (!fContainer) {
-     cout<<"Data slot of type "<<fType->GetName()<<" of task "<<fParent->GetName()<<" has no connected data container"<<endl;
+     cout<<"Data slot of type "<<GetTitle()<<" of task "<<fParent->GetName()<<" has no connected data container"<<endl;
      //AliError(Form("Data slot of type %s of task %s has no connected data container",fType->GetName(), fParent->GetName()));    
       return kFALSE;
    }

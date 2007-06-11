@@ -25,6 +25,7 @@
 #include "AliESD.h"
 #include "AliAODv0.h"
 #include "AliAODxi.h"
+#include "AliCascadeVertexer.h"
 
 ClassImp(AliAODxi)
 
@@ -96,12 +97,49 @@ AliAODxi::~AliAODxi(){
 
 void AliAODxi::Fill(AliESDcascade* rXiVertex ,AliESD* rEvent){
   // Fills the data memebers of the AOD
-  Double_t tDecayVertexXi[3]; rXiVertex->GetXYZcascade(tDecayVertexXi[0],tDecayVertexXi[1],tDecayVertexXi[2]); 
+  Double_t tDecayVertexXi[3];
+  //PH  rXiVertex->GetXYZcascade(tDecayVertexXi[0],tDecayVertexXi[1],tDecayVertexXi[2]); 
+  rXiVertex->GetXYZ(tDecayVertexXi[0],tDecayVertexXi[1],tDecayVertexXi[2]); 
   fDecayVertexXiX = tDecayVertexXi[0];
   fDecayVertexXiY = tDecayVertexXi[1];
   fDecayVertexXiZ = tDecayVertexXi[2];
 
-  fDcaXiDaughters = rXiVertex->GetDcaXiDaughters();
+  //PH fDcaXiDaughters = rXiVertex->GetDcaXiDaughters();
+  //PH The information is missing, we have to retrieve it from the V0 and the track
+  //PH We need first the index of the V0
+
+  Int_t negIndex = rXiVertex->GetNindex();
+  Int_t posIndex = rXiVertex->GetPindex();
+  
+  Int_t v0Index = -1;
+  AliESDv0 * pV0 = 0x0;
+
+  Int_t nV0 = rEvent->GetNumberOfV0s();
+  for (Int_t iV0=0; iV0<nV0; ++iV0) {
+    
+    AliESDv0 * v0 = rEvent->GetV0(iV0);
+    Int_t curNegIndex = v0->GetNindex();
+    Int_t curPosIndex = v0->GetPindex();
+
+    if (curNegIndex == negIndex && curPosIndex == posIndex) {
+      v0Index = iV0;
+      pV0 = v0;
+    }
+  }
+
+  Int_t bacIndex = rXiVertex->GetBindex();
+  AliESDtrack * pBac = rEvent->GetTrack(bacIndex);
+  // Distance between the track and the V0
+
+  Double_t b=rEvent->GetMagneticField();
+  AliCascadeVertexer cvertexer;
+  Double_t dca = cvertexer.PropagateToDCA(pV0,pBac,b);
+
+  fDcaXiDaughters = dca;
+
+
+
+  //PH  fDcaXiToPrimVertex = rXiVertex->GetD();
   fDcaXiToPrimVertex = rXiVertex->GetD();
 
   Double_t tMomPos[3]; rXiVertex->GetPPxPyPz(tMomPos[0],tMomPos[1],tMomPos[2]); 
@@ -146,10 +184,14 @@ void AliAODxi::Fill(AliESDcascade* rXiVertex ,AliESD* rEvent){
 
   fDcaBachelorToPrimVertex = TMath::Sqrt(tDcaBachelorToPrimVertex[0]*tDcaBachelorToPrimVertex[0]+tDcaBachelorToPrimVertex[1]*tDcaBachelorToPrimVertex[1]);
 
-  fDcaV0Daughters    = rXiVertex->GetDcaV0Daughters();
-  fDcaV0ToPrimVertex = rXiVertex->GetDcascade(rEvent->GetVertex()->GetXv(),
-					      rEvent->GetVertex()->GetYv(),
-					      rEvent->GetVertex()->GetZv());
+  //PH  fDcaV0Daughters    = rXiVertex->GetDcaV0Daughters();
+  //PH  fDcaV0Daughters    = pV0->GetDcaDaughters();
+  //PH  fDcaV0ToPrimVertex = rXiVertex->GetDcascade(rEvent->GetVertex()->GetXv(),
+  //PH					      rEvent->GetVertex()->GetYv(),
+  //PH					      rEvent->GetVertex()->GetZv());
+  fDcaV0ToPrimVertex = rXiVertex->GetD(rEvent->GetVertex()->GetXv(),
+				       rEvent->GetVertex()->GetYv(),
+				       rEvent->GetVertex()->GetZv());
 
   double tDecayVertexV0[3]; rXiVertex->GetXYZ(tDecayVertexV0[0],tDecayVertexV0[1],tDecayVertexV0[2]);
   fDecayVertexV0X=tDecayVertexV0[0];

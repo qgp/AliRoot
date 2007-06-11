@@ -136,7 +136,7 @@ AliPMDQATask::~AliPMDQATask()
 }
 
 //______________________________________________________________________________
-void AliPMDQATask::Init(const Option_t*)
+void AliPMDQATask::ConnectInputData(const Option_t*)
 {
   // Initialisation of branch container and histograms 
     
@@ -149,25 +149,23 @@ void AliPMDQATask::Init(const Option_t*)
     return ;
   }
   
-  if (!fESD) {
-    // One should first check if the branch address was taken by some other task
-    char ** address = (char **)GetBranchAddress(0, "ESD") ;
-    if (address) 
-      fESD = (AliESD *)(*address) ; 
-    if (!fESD) 
-      fChain->SetBranchAddress("ESD", &fESD) ;  
+  // One should first check if the branch address was taken by some other task
+  char ** address = (char **)GetBranchAddress(0, "ESD");
+  if (address) {
+    fESD = (AliESD*)(*address);
+  } else {
+    fESD = new AliESD();
+    SetBranchAddress(0, "ESD", &fESD);
   }
-  // The output objects will be written to 
-  TDirectory * cdir = gDirectory ; 
-  // Open a file for output #0
-  char outputName[1024] ; 
-  sprintf(outputName, "%s.root", GetName() ) ; 
-  OpenFile(0, outputName , "RECREATE") ; 
-  if (cdir) 
-    cdir->cd() ; 
-  
+}
+
+//________________________________________________________________________
+void AliPMDQATask::CreateOutputObjects()
+{  
   // create histograms 
   
+  OpenFile(0) ; 
+
   fhPMDP1   = new TH2F("fhPMDP1","XY of Clusters",100,-100.,100.,100,-100.,100.);
   fhPMDC2   = new TH1F("fhPMDC2","CPV  PHI",200,-1,9);
   fhPMDP2   = new TH1F("fhPMDP2","PRE  PHI",200,-1,9);
@@ -436,7 +434,51 @@ void AliPMDQATask::Exec(Option_t *)
 void AliPMDQATask::Terminate(Option_t *)
 {
   // Processing when the event loop is ended
+  fOutputContainer = (TObjArray*)GetOutputData(0);
   
+  fhPMDP1   = (TH2F*)fOutputContainer->At(0);
+  fhPMDC2   = (TH1F*)fOutputContainer->At(1);
+  fhPMDP2   = (TH1F*)fOutputContainer->At(2);
+  fhPMDC3   = (TH1F*)fOutputContainer->At(3);
+  fhPMDP3   = (TH1F*)fOutputContainer->At(4);
+  fhPMDP4   = (TH1F*)fOutputContainer->At(5);
+  fhPMDC5   = (TH1F*)fOutputContainer->At(6);
+  fhPMDP5   = (TH1F*)fOutputContainer->At(7);
+  fhPMDCP0  = (TH2F*)fOutputContainer->At(8);
+  fhPMDCP1  = (TH2F*)fOutputContainer->At(9);
+  fhPMDCP2  = (TH2F*)fOutputContainer->At(10);
+  fhPMDCP3  = (TH2F*)fOutputContainer->At(11);
+  fhPMDCP4  = (TH2F*)fOutputContainer->At(12);
+
+  fhPMDSM1  = (TH2F*)fOutputContainer->At(13);
+  fhPMDSM2  = (TH2F*)fOutputContainer->At(14);
+  fhPMDSM3  = (TH2F*)fOutputContainer->At(15);
+  fhPMDSM4  = (TH2F*)fOutputContainer->At(16);
+  fhPMDSM5  = (TH2F*)fOutputContainer->At(17);
+  fhPMDSM6  = (TH2F*)fOutputContainer->At(18);
+  fhPMDSM7  = (TH2F*)fOutputContainer->At(19);
+  fhPMDSM8  = (TH2F*)fOutputContainer->At(20);
+  fhPMDSM9  = (TH2F*)fOutputContainer->At(21);
+  fhPMDSM10 = (TH2F*)fOutputContainer->At(22);
+  fhPMDSM11 = (TH2F*)fOutputContainer->At(23);
+  fhPMDSM12 = (TH2F*)fOutputContainer->At(24);
+  fhPMDSM13 = (TH2F*)fOutputContainer->At(25);
+  fhPMDSM14 = (TH2F*)fOutputContainer->At(26);
+  fhPMDSM15 = (TH2F*)fOutputContainer->At(27);
+  fhPMDSM16 = (TH2F*)fOutputContainer->At(28);
+  fhPMDSM17 = (TH2F*)fOutputContainer->At(29);
+  fhPMDSM18 = (TH2F*)fOutputContainer->At(30);
+  fhPMDSM19 = (TH2F*)fOutputContainer->At(31);
+  fhPMDSM20 = (TH2F*)fOutputContainer->At(32);
+  fhPMDSM21 = (TH2F*)fOutputContainer->At(33);
+  fhPMDSM22 = (TH2F*)fOutputContainer->At(34);
+  fhPMDSM23 = (TH2F*)fOutputContainer->At(35);
+  fhPMDSM24 = (TH2F*)fOutputContainer->At(36);
+  fhPMDSM   = (TH1F*)fOutputContainer->At(37);
+
+  Bool_t problem = kFALSE ; 
+  AliInfo(Form(" *** %s Report:", GetName())) ; 
+
   gStyle->SetOptStat(110000);
   gStyle->SetOptFit(1);
 
@@ -544,11 +586,18 @@ void AliPMDQATask::Terminate(Option_t *)
   cPMD4->Print("CPVPREAdc.eps");
 
   char line[1024] ; 
-  sprintf(line, ".!tar -zcvf %s.tar.gz *.eps", GetName()) ; 
+  sprintf(line, ".!tar -zcf %s.tar.gz *.eps", GetName()) ; 
   gROOT->ProcessLine(line);
   
-  AliInfo(Form("!!! All the eps files are in %s.tar.gz !!! \n", GetName())) ;
+  AliInfo(Form("!!! All the eps files are in %s.tar.gz !!!", GetName())) ;
   
+  char * report ; 
+  if(problem)
+    report="Problems found, please check!!!";  
+  else 
+    report="OK";
+
+  AliInfo(Form("*** %s Summary Report: %s \n",GetName(), report)) ; 
 }
 
 //______________________________________________________________________________

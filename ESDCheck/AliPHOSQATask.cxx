@@ -75,7 +75,7 @@ AliPHOSQATask::~AliPHOSQATask()
 
 
 //______________________________________________________________________________
-void AliPHOSQATask::Init(const Option_t*)
+void AliPHOSQATask::ConnectInputData(const Option_t*)
 {
   // Initialisation of branch container and histograms 
     
@@ -88,25 +88,23 @@ void AliPHOSQATask::Init(const Option_t*)
     return ;
   }
   
-  if (!fESD) {
-    // One should first check if the branch address was taken by some other task
-    char ** address = (char **)GetBranchAddress(0, "ESD") ;
-    if (address) 
-      fESD = (AliESD *)(*address) ; 
-    if (!fESD) 
-      fChain->SetBranchAddress("ESD", &fESD) ;  
+  // One should first check if the branch address was taken by some other task
+  char ** address = (char **)GetBranchAddress(0, "ESD");
+  if (address) {
+    fESD = (AliESD*)(*address);
+  } else {
+    fESD = new AliESD();
+    SetBranchAddress(0, "ESD", &fESD);
   }
-  // The output objects will be written to 
-  TDirectory * cdir = gDirectory ; 
-  // Open a file for output #0
-  char outputName[1024] ; 
-  sprintf(outputName, "%s.root", GetName() ) ; 
-  OpenFile(0, outputName , "RECREATE") ; 
-  if (cdir) 
-    cdir->cd() ; 
-  
+}
+
+//________________________________________________________________________
+void AliPHOSQATask::CreateOutputObjects()
+{  
   // create histograms 
   
+  OpenFile(0) ; 
+
   fhPHOSPos            = new TNtuple("PHOSPos"         , "Position in PHOS"  , "x:y:z");
   fhPHOS               = new TNtuple("PHOS"            , "PHOS"  , "event:digits:clusters:photons");
   fhPHOSEnergy         = new TH1D("PHOSEnergy"         , "PHOSEnergy"        , 1000, 0., 10. ) ;
@@ -205,19 +203,32 @@ void AliPHOSQATask::Exec(Option_t *)
 void AliPHOSQATask::Terminate(Option_t *)
 {
   // Processing when the event loop is ended
-  
-  printf("PHOSEnergy Mean         : %5.3f , RMS : %5.3f \n", fhPHOSEnergy->GetMean(),         fhPHOSEnergy->GetRMS()         ) ;
-  printf("PHOSDigits Mean         : %5.3f , RMS : %5.3f \n", fhPHOSDigits->GetMean(),         fhPHOSDigits->GetRMS()         ) ;
-  printf("PHOSRecParticles Mean   : %5.3f , RMS : %5.3f \n", fhPHOSRecParticles->GetMean(),   fhPHOSRecParticles->GetRMS()   ) ;
-  printf("PHOSPhotons Mean        : %5.3f , RMS : %5.3f \n", fhPHOSPhotons->GetMean(),        fhPHOSPhotons->GetRMS()        ) ;
-  printf("PHOSInvariantMass Mean  : %5.3f , RMS : %5.3f \n", fhPHOSInvariantMass->GetMean(),  fhPHOSInvariantMass->GetRMS()  ) ;
-  printf("PHOSDigitsEvent Mean    : %5.3f , RMS : %5.3f \n", fhPHOSDigitsEvent->GetMean(),    fhPHOSDigitsEvent->GetRMS()    ) ;
+
+  fOutputContainer = (TObjArray*)GetOutputData(0);  
+  fhPHOSPos            = (TNtuple*)fOutputContainer->At(0);
+  fhPHOS               = (TNtuple*)fOutputContainer->At(1);
+  fhPHOSEnergy         = (TH1D*)fOutputContainer->At(2);
+  fhPHOSDigits         = (TH1I*)fOutputContainer->At(3);
+  fhPHOSRecParticles   = (TH1D*)fOutputContainer->At(4);
+  fhPHOSPhotons        = (TH1I*)fOutputContainer->At(5);
+  fhPHOSInvariantMass  = (TH1D*)fOutputContainer->At(6);
+  fhPHOSDigitsEvent    = (TH1I*)fOutputContainer->At(7);
+
+  Bool_t problem = kFALSE ; 
+  AliInfo(Form(" *** %s Report:", GetName())) ; 
+  printf("        PHOSEnergy Mean         : %5.3f , RMS : %5.3f \n", fhPHOSEnergy->GetMean(),         fhPHOSEnergy->GetRMS()         ) ;
+  printf("        PHOSDigits Mean         : %5.3f , RMS : %5.3f \n", fhPHOSDigits->GetMean(),         fhPHOSDigits->GetRMS()         ) ;
+  printf("        PHOSRecParticles Mean   : %5.3f , RMS : %5.3f \n", fhPHOSRecParticles->GetMean(),   fhPHOSRecParticles->GetRMS()   ) ;
+  printf("        PHOSPhotons Mean        : %5.3f , RMS : %5.3f \n", fhPHOSPhotons->GetMean(),        fhPHOSPhotons->GetRMS()        ) ;
+  printf("        PHOSInvariantMass Mean  : %5.3f , RMS : %5.3f \n", fhPHOSInvariantMass->GetMean(),  fhPHOSInvariantMass->GetRMS()  ) ;
+  printf("        PHOSDigitsEvent Mean    : %5.3f , RMS : %5.3f \n", fhPHOSDigitsEvent->GetMean(),    fhPHOSDigitsEvent->GetRMS()    ) ;
 
   TCanvas  * cPHOS = new TCanvas("cPHOS", "PHOS ESD Test", 400, 10, 600, 700) ;
   cPHOS->Divide(3, 2);
 
   cPHOS->cd(1) ; 
-  gPad->SetLogy();
+  if ( fhPHOSEnergy->GetMaximum() > 0. ) 
+    gPad->SetLogy();
   fhPHOSEnergy->SetAxisRange(0, 25.);
   fhPHOSEnergy->SetLineColor(2);
   fhPHOSEnergy->Draw();
@@ -228,13 +239,15 @@ void AliPHOSQATask::Terminate(Option_t *)
   fhPHOSDigits->Draw();
 
   cPHOS->cd(3) ; 
-  gPad->SetLogy();
+  if ( fhPHOSRecParticles->GetMaximum() > 0. ) 
+    gPad->SetLogy();
   fhPHOSRecParticles->SetAxisRange(0, 25.);
   fhPHOSRecParticles->SetLineColor(2);
   fhPHOSRecParticles->Draw();
 
   cPHOS->cd(4) ; 
-  gPad->SetLogy();
+  if ( fhPHOSPhotons->GetMaximum() > 0. ) 
+    gPad->SetLogy();
   fhPHOSPhotons->SetAxisRange(0,25.);
   fhPHOSPhotons->SetLineColor(2);
   fhPHOSPhotons->Draw();
@@ -244,7 +257,8 @@ void AliPHOSQATask::Terminate(Option_t *)
   fhPHOSInvariantMass->Draw();
  
   cPHOS->cd(6) ; 
-  gPad->SetLogy();
+  if ( fhPHOSDigitsEvent->GetMaximum() > 0. ) 
+    gPad->SetLogy();
   fhPHOSDigitsEvent->SetAxisRange(0,40.);
   fhPHOSDigitsEvent->SetLineColor(2);
   fhPHOSDigitsEvent->Draw();
@@ -252,10 +266,18 @@ void AliPHOSQATask::Terminate(Option_t *)
   cPHOS->Print("PHOS.eps");
  
   char line[1024] ; 
-  sprintf(line, ".!tar -zcvf %s.tar.gz *.eps", GetName()) ; 
+  sprintf(line, ".!tar -zcf %s.tar.gz *.eps", GetName()) ; 
   gROOT->ProcessLine(line);
   sprintf(line, ".!rm -fR *.eps"); 
   gROOT->ProcessLine(line);
  
-  AliInfo(Form("!!! All the eps files are in %s.tar.gz !!! \n", GetName())) ;
+  AliInfo(Form("!!! All the eps files are in %s.tar.gz !!!", GetName())) ;
+
+  char * report ; 
+  if(problem)
+    report="Problems found, please check!!!";  
+  else 
+    report="OK";
+
+  AliInfo(Form("*** %s Summary Report: %s \n",GetName(), report)) ; 
 }
