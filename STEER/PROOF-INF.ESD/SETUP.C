@@ -3,6 +3,7 @@ void SETUP()
    // Load some ROOT libraries
    gSystem->Load("libEG");
    gSystem->Load("libGeom");
+   gSystem->Load("libTree"); // from ROOT v5.15.04
 
    // Load the ESD library
    gSystem->Load("libESD");
