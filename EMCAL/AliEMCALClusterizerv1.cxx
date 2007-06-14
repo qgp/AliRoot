@@ -400,16 +400,29 @@ void AliEMCALClusterizerv1::InitParameters()
 
   fNTowerInGroup = 36;  //Produces maximum of 80 pseudoclusters per event
 
-  fECAClusteringThreshold   = 0.1;  // value obtained from Aleksei
+  fECAClusteringThreshold   = 0.5;  // Best value for 2 GeV gamma merged with Ideal HIJING. Retune later? 
   fECALocMaxCut = 0.03; // ??
 
   fECAW0    = 4.5;
   fTimeCut = 300e-9 ; // 300 ns time cut (to be tuned) 
   fToUnfold = kFALSE ;
   fRecPointsInRun  = 0 ;
-  fMinECut = 0.01; // have to be tune
+  fMinECut = 0.45; // Best value for 2 GeV gamma merged with Ideal HIJING. Retune later? 
 
   fCalibData               = 0 ;
+
+  // If reconstruction parameters are found in OCDB, take them from it
+
+  AliEMCALLoader *emcalLoader = 
+    dynamic_cast<AliEMCALLoader*>(AliRunLoader::GetRunLoader()->GetDetectorLoader("EMCAL"));
+  AliEMCALRecParam *recParamDB = emcalLoader->RecParam();
+  if (recParamDB != 0) {
+    fECAClusteringThreshold = recParamDB->GetClusteringThreshold();
+    fECAW0                  = recParamDB->GetW0();
+    fMinECut                = recParamDB->GetMinECut();
+    AliDebug(1,Form("Reconstruction parameters were taken from OCDB: fECAClusteringThreshold=%.3f, fECAW=%.3f, fMinECut=%.3f",
+		    fECAClusteringThreshold,fECAW0,fMinECut));
+  }
 }
 
 //____________________________________________________________________________
@@ -438,8 +451,8 @@ Int_t AliEMCALClusterizerv1::AreNeighbours(AliEMCALDigit * d1, AliEMCALDigit * d
   rowdiff = TMath::Abs(iphi1 - iphi2);  
   coldiff = TMath::Abs(ieta1 - ieta2) ;  
   
-  //  if (( coldiff <= 1 )  && ( rowdiff <= 1 )) rv = 1;  // neighbours with at least commom vertex
-  if(coldiff + rowdiff <= 1) rv = 1;  // neighbours with at least commom side; Nov 6,2006
+  // neighbours with at least commom side; May 11, 2007
+  if ((coldiff==0 && abs(rowdiff)==1) || (rowdiff==0 && abs(coldiff)==1)) rv = 1;  
  
   if (gDebug == 2 && rv==1) 
   printf("AreNeighbours: neighbours=%d, id1=%d, relid1=%d,%d \n id2=%d, relid2=%d,%d \n", 
