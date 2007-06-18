@@ -268,9 +268,10 @@ void TFluka::FinishGeometry() {
 //
   if (fVerbosityLevel >=3) {
     cout << "==> TFluka::FinishGeometry() called." << endl;
-    printf("----FinishGeometry - nothing to do with TGeo\n");
+    printf("----FinishGeometry - applying misalignment if any\n");
     cout << "<== TFluka::FinishGeometry() called." << endl;
   }  
+  TVirtualMCApplication::Instance()->MisalignGeometry();
 } 
 
 //______________________________________________________________________________ 
@@ -1219,7 +1220,7 @@ void TFluka::InitPhysics()
 // Process Fluka specific scoring options
 //
     TFlukaScoringOption::SetStaticInfo(pFlukaVmcInp, fGeom);
-    Float_t loginp        = 49.0;
+    Float_t loginp        = -49.0;
     Int_t inp             = 0;
     Int_t nscore          = fUserScore->GetEntries();
     
