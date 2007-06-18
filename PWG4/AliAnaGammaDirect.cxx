@@ -17,6 +17,12 @@
 /* History of cvs commits:
  *
  * $Log$
+ * Revision 1.5  2007/06/18 12:06:03  schutz
+ * new methods of AliESDCaloCluster
+ *
+ * Revision 1.4  2007/03/15 11:47:39  schutz
+ * Methods added
+ *
  * Revision 1.3  2007/03/08 10:24:32  schutz
  * Coding convention
  *
@@ -234,7 +240,7 @@ void AliAnaGammaDirect::CreateParticleList(TClonesArray * pl,
 
 	//Create a TParticle to fill the particle list
 	TLorentzVector momentum ;
-	clus->GetMomentum(momentum);
+	clus->GetMomentum(momentum, 0);
 	TParticle * particle = new TParticle() ;
 	//particle->SetMomentum(px,py,pz,en) ;
 	particle->SetMomentum(momentum) ;
@@ -331,7 +337,7 @@ void AliAnaGammaDirect::CreateParticleList(TClonesArray * pl,
       Int_t clustertype= clus->GetClusterType();
       if(clustertype == AliESDCaloCluster::kClusterv1 && !useCluster[npar] ){
 	TLorentzVector momentum ;
-	clus->GetMomentum(momentum);
+	clus->GetMomentum(momentum, 0);
 	TParticle * particle = new TParticle() ;
 	//particle->SetMomentum(px,py,pz,en) ;
 	particle->SetMomentum(momentum) ;

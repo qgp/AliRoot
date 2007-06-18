@@ -200,12 +200,11 @@ void AliAnaCaloTrigger::Exec(Option_t *)
   for(icaloCluster = firstCaloCluster ; icaloCluster < firstCaloCluster + numberOfCaloClusters ; icaloCluster++) {
     AliESDCaloCluster * cluster = fESD->GetCaloCluster(icaloCluster) ;
     if (cluster) {
-      
-      Float_t cluEnergy = cluster->GetClusterEnergy() ; 
+      Float_t cluEnergy = cluster->E() ; 
       Float_t pos[3] ;
       TVector3 vpos ;
       
-      cluster->GetGlobalPosition( pos ) ;
+      cluster->GetPosition( pos ) ;
       
       if ( cluEnergy > enMax) { 
 	enMax = cluEnergy ; 
