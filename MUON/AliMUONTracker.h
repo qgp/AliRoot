@@ -3,6 +3,7 @@
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
 
+/* $Id$ */
 
 /// \ingroup rec
 /// \class AliMUONTracker
@@ -16,6 +17,7 @@ class AliCluster;
 class AliMUONRecData;
 class TClonesArray;
 class AliMUONVTrackReconstructor;
+class AliMUONTrackHitPattern;
 
 class AliMUONTracker : public AliTracker
 {
@@ -44,6 +46,8 @@ class AliMUONTracker : public AliTracker
   /// Set option
   void SetOption(Option_t* opt);
 
+  void SetTrackHitPattern(AliMUONTrackHitPattern* pattern) {fTrackHitPattern = pattern;}
+
 private:
   /// Not implemented
   AliMUONTracker(const AliMUONTracker& rhs);
@@ -53,6 +57,7 @@ private:
   TClonesArray* fTriggerCircuit;                //!< trigger circuit
   AliMUONRecData*  fMUONData;                   //!< pointer to container
   AliMUONVTrackReconstructor* fTrackReco;       //!< track reconstructor
+  AliMUONTrackHitPattern* fTrackHitPattern; //!< pointer track hit
 
   ClassDef(AliMUONTracker,0)  //tracker base class for MUON
 };

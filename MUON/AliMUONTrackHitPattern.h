@@ -3,11 +3,15 @@
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
 
+/* $Id$ */
+
 /// \ingroup rec
 /// \class AliMUONTrackHitPattern
 /// \brief Class for the MUON track hit pattern
 ///
 //  Author: Diego Stocco
+
+
 
 #include <TObject.h>
 #include <TList.h>
@@ -25,7 +29,8 @@ class TClonesArray;
 
 class AliMUONTrackHitPattern : public TObject {
 public:
-    AliMUONTrackHitPattern(AliMUONRecData *MUONData); // Default Constructor
+  AliMUONTrackHitPattern(AliMUONRecData *MUONData, AliMUONTriggerCrateStore* store, 
+					       AliMUONGeometryTransformer* transf); // Default Constructor
     virtual ~AliMUONTrackHitPattern(); // Destructor
     
     void GetHitPattern(TClonesArray *recTracksArray);

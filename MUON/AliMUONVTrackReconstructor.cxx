@@ -100,7 +100,6 @@ AliMUONVTrackReconstructor::AliMUONVTrackReconstructor(AliMUONRecData* data)
   if (!kField) AliFatal("No field available");
   AliMUONTrackExtrap::SetField(kField);
 
-  fTrackHitPattern = new AliMUONTrackHitPattern(fMUONData);
 }
 
   //__________________________________________________________________________
@@ -111,7 +110,6 @@ AliMUONVTrackReconstructor::~AliMUONVTrackReconstructor(void)
   delete [] fIndexOfFirstHitForRecPerChamber;
   delete fTriggerTrack;
   delete fHitsForRecPtr;
-  delete fTrackHitPattern;
 }
 
   //__________________________________________________________________________
@@ -253,7 +251,7 @@ void AliMUONVTrackReconstructor::ValidateTracksWithTrigger(void)
 {
   /// Try to match track from tracking system with trigger track
   static const Double_t kDistSigma[3]={1,1,0.02}; // sigma of distributions (trigger-track) X,Y,slopeY
-  
+
   AliMUONTrack *track;
   AliMUONTrackParam trackParam; 
   AliMUONTriggerTrack *triggerTrack;
@@ -328,10 +326,11 @@ void AliMUONVTrackReconstructor::ValidateTracksWithTrigger(void)
 	    chi2MatchTrigger=doubleChi2;
 	}
     }
-    
+
     track->SetMatchTrigger(matchTrigger);
     track->SetLoTrgNum(loTrgNum);
     track->SetChi2MatchTrigger(chi2MatchTrigger);
+
     track = (AliMUONTrack*) fRecTracksPtr->After(track);
   }
 

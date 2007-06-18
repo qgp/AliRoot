@@ -37,6 +37,7 @@
 #include "AliMUONVTrackReconstructor.h"
 #include "AliMUONTrackReconstructor.h"
 #include "AliMUONTrackReconstructorK.h"
+#include "AliMUONTrackHitPattern.h"
 #include "AliMUONTriggerTrack.h"
 #include "AliMUONTriggerCircuit.h"
 #include "AliMUONTriggerCrateStore.h"
@@ -100,7 +101,7 @@ AliMUONReconstructor::AliMUONReconstructor()
       delete c;
     }
 
-  
+    fTrackHitPattern = new AliMUONTrackHitPattern(fMUONData, fCrateManager, fTransformer);
 }
 
 //_____________________________________________________________________________
@@ -116,6 +117,8 @@ AliMUONReconstructor::~AliMUONReconstructor()
   delete fTransformer;
   delete fSegmentation;
   delete fMUONData;
+  delete fTrackHitPattern;
+
 }
 
 //_____________________________________________________________________________
@@ -626,6 +629,7 @@ AliTracker* AliMUONReconstructor::CreateTracker(AliRunLoader* runLoader) const
   AliMUONTracker* tracker = new AliMUONTracker();
   tracker->SetMUONData(fMUONData);
   tracker->SetTriggerCircuit(fTriggerCircuit);
+  tracker->SetTrackHitPattern(fTrackHitPattern);
   tracker->SetOption(GetOption());
 
   return tracker;

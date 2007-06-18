@@ -20,6 +20,7 @@ class AliMUONGeometryTransformer;
 class AliTracker;
 class AliMUONClusterReconstructor;
 class AliMUONSegmentation;
+class AliMUONTrackHitPattern;
 
 class TTask;
 class TClonesArray;
@@ -77,6 +78,8 @@ private:
     AliMUONSegmentation*        fSegmentation; //!< pointer to segmentation
 
     AliMUONRecData*             fMUONData;     //!< pointer to container
+
+    AliMUONTrackHitPattern* fTrackHitPattern; //!< pointer track hit
 
   ClassDef(AliMUONReconstructor, 0)   // class for the MUON reconstruction
 };

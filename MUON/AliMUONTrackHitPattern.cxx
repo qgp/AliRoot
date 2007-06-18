@@ -13,6 +13,9 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
+
+/* $Id$ */
+
 ////////////////////////////////////
 ///
 /// \class AliMUONTrackHitPattern
@@ -71,11 +74,12 @@ ClassImp(AliMUONTrackHitPattern) // Class implementation in ROOT context
 
 
 //______________________________________________________________________________
-AliMUONTrackHitPattern::AliMUONTrackHitPattern(AliMUONRecData *data)
+AliMUONTrackHitPattern::AliMUONTrackHitPattern(AliMUONRecData *data, AliMUONTriggerCrateStore* store, 
+					       AliMUONGeometryTransformer* transf)
     : TObject(),
       fMUONData(data),
-      fTransformer(new AliMUONGeometryTransformer(kTRUE)),
-      fCrateManager(new AliMUONTriggerCrateStore()),
+      fTransformer(transf),
+      fCrateManager(store),
       fDigitMaker(new AliMUONDigitMaker())
 {
     /// Default constructor
@@ -84,12 +88,6 @@ AliMUONTrackHitPattern::AliMUONTrackHitPattern(AliMUONRecData *data)
     const AliMagF* kField = AliTracker::GetFieldMap();
     if (!kField) AliFatal("No field available");
     AliMUONTrackExtrap::SetField(kField);
-
-    // Geometry transformer
-    fTransformer->ReadGeometryData("volpath.dat", "geometry.root");
-
-    // Crate manager to retrieve local boards
-    fCrateManager->ReadFromFile();
 
     // set to digit maker
     fDigitMaker->SetCrateManager(fCrateManager);
@@ -107,7 +105,8 @@ AliMUONTrackHitPattern::~AliMUONTrackHitPattern(void)
     for(Int_t ch=0; ch<4; ch++){
 	fTriggerDigitsList[ch].Delete();
     }
-    delete fCrateManager;
+
+    delete fDigitMaker;
 }
 
 
@@ -256,6 +255,7 @@ Bool_t AliMUONTrackHitPattern::TriggerDigits()
     /// make (S)Digit for trigger
     //
 
+    for(Int_t ch=0; ch<4; ++ch) fTriggerDigitsList[ch].Clear();
 
     Int_t nBoard;
 

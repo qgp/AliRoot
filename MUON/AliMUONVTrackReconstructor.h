@@ -55,6 +55,8 @@ class AliMUONVTrackReconstructor : public TObject {
           /// Set trigger circuit
   void SetTriggerCircuit(TClonesArray* circuit) {fTriggerCircuit = circuit;}
 
+  /// set trigger pattern
+  void SetTrackHitPattern(AliMUONTrackHitPattern* pattern) {fTrackHitPattern = pattern;}
 
  protected:
 
@@ -108,11 +110,10 @@ class AliMUONVTrackReconstructor : public TObject {
                /// \todo add comment
   virtual void FillMUONTrack(void) = 0;
 
-  AliMUONTrackHitPattern *fTrackHitPattern; ///< Pointer to class for hit pattern recognition
-
  private:
   
   AliMUONTriggerTrack* fTriggerTrack; ///< Trigger track structure
+  AliMUONTrackHitPattern *fTrackHitPattern; ///< Pointer to class for hit pattern recognition
 
   TClonesArray* fTriggerCircuit;      //!< trigger circuit array
   

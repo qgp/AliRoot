@@ -13,6 +13,8 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
+/* $Id$ */
+
 /// \class AliMUONTracker
 /// Interface class for use of global tracking framework;
 /// reconstruct tracks from recpoints
@@ -30,7 +32,8 @@ AliMUONTracker::AliMUONTracker()
   : AliTracker(),
     fTriggerCircuit(0x0),
     fMUONData(0x0),
-    fTrackReco(0x0)
+    fTrackReco(0x0),
+    fTrackHitPattern(0x0)
 {
   /// constructor
 
@@ -61,6 +64,7 @@ void AliMUONTracker::SetOption(Option_t* option)
     fTrackReco = new AliMUONTrackReconstructorK(fMUONData,"Kalman");
 
   fTrackReco->SetTriggerCircuit(fTriggerCircuit);
+  fTrackReco->SetTrackHitPattern(fTrackHitPattern);
 
 }
 
