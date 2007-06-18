@@ -223,6 +223,7 @@ void AliMUONReconstructor::Reconstruct(AliRunLoader* runLoader) const
   else recoEvent = new AliMUONTrackReconstructorK(fMUONData,"Kalman");
   
   recoEvent->SetTriggerCircuit(fTriggerCircuit);
+  recoEvent->SetTrackHitPattern(fTrackHitPattern);
 
   AliMUONClusterReconstructor* recoCluster = CreateClusterReconstructor();
   
