@@ -18,6 +18,9 @@
 /* History of cvs commits:
  *
  * $Log$
+ * Revision 1.105  2007/05/02 13:41:22  kharlov
+ * Mode protection against absence of calib.data from AliPHOSCalibData to AliPHOSClusterizerv1::GetCalibrationParameters()
+ *
  * Revision 1.104  2007/04/27 16:55:53  kharlov
  * Calibration stops if PHOS CDB objects do not exist
  *
@@ -637,6 +640,7 @@ void AliPHOSClusterizerv1::WriteRecPoints()
     if(rp->GetMultiplicity()==0){
       emcRecPoints->RemoveAt(index) ;
       delete rp ;
+      continue;
     }
 
 // No vertex is available now, calculate cirrections in PID
