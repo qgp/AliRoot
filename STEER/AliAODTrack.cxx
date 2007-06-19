@@ -406,6 +406,6 @@ void AliAODTrack::Print(Option_t* /* option */) const
   printf("       phi = %f\n", Phi());
   printf("  chi2/NDF = %f\n", Chi2perNDF());
   printf("    charge = %d\n", Charge());
-  printf(" PID object: %p\n", PID());
+  printf(" PID object: %p\n", (void*)PID());
 }
 

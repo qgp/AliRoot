@@ -210,6 +210,6 @@ void AliAODCluster::Print(Option_t* /* option */) const
   printf("Object name: %s   Cluster type: %s\n", GetName(), GetTitle()); 
   printf("    energy = %f\n", E());
   printf("      chi2 = %f\n", Chi2());
-  printf(" PID object: %p\n", PID());
+  printf(" PID object: %p\n", (void*)PID());
 }
 

@@ -167,7 +167,7 @@ TMap *AliXMLCollection::Next() {
 }
 
 //___________________________________________________________________________
-const char *AliXMLCollection::GetTURL(const char* filename) const {
+const char *AliXMLCollection::GetTURL(const char* filename) {
   // Get a file's transport URL (TURL). Returns 0 in case of error.
   
   if (fCurrent) {
@@ -225,7 +225,7 @@ Bool_t AliXMLCollection::Remove(TMap * map) {
 }
 
 //___________________________________________________________________________
-const char *AliXMLCollection::GetLFN(const char* ) const {
+const char *AliXMLCollection::GetLFN(const char* ) {
   // Get a file's LFN. Returns 0 in case of error.
   
   if (fCurrent) {
@@ -241,7 +241,7 @@ const char *AliXMLCollection::GetLFN(const char* ) const {
 }
 
 //__________________________________________________________________________
-Bool_t AliXMLCollection::OverlapCollection(AliXMLCollection * comparator) {
+Bool_t AliXMLCollection::OverlapCollection(TGridCollection * comparator) {
   // return kTRUE if comparator overlaps with this
   if ((!comparator)) return kFALSE;
   

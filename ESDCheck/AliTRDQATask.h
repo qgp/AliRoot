@@ -21,7 +21,9 @@ class AliTRDQATask : public AliAnalysisTask {
 
 public:
   AliTRDQATask(const char *name);
-  AliTRDQATask(AliTRDQATask& trd) { new AliTRDQATask(trd.GetName());}
+  AliTRDQATask(AliTRDQATask& trd):AliAnalysisTask(){
+    new AliTRDQATask(trd.GetName());
+  }
   virtual ~AliTRDQATask() {}
    
   virtual void Exec(Option_t * opt = "");

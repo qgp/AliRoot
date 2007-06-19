@@ -20,6 +20,10 @@ public:
   virtual ~RMacro() {}
 
   virtual void Exec(const char* params = "0");
+  virtual Long_t Exec(const char* params, Int_t * ){
+    Exec(params);
+    return 0;
+  }
 
   ClassDef(RMacro, 1);
 }; // endclass RMacro
