@@ -1,4 +1,5 @@
 #if !defined( __CINT__) || defined(__MAKECINT__)
+#include <TROOT.h>
 #include <TFile.h>
 #include <TError.h>
 #include <TH1.h>
@@ -142,12 +143,7 @@ Bool_t CheckESD(const char* gAliceFileName = "galice.root",
 	    gAliceFileName);
     return kFALSE;
   }
-  runLoader->LoadgAlice();
-  gAlice = runLoader->GetAliRun();
-  if (!gAlice) {
-    Error("CheckESD", "no galice object found");
-    return kFALSE;
-  }
+
   runLoader->LoadKinematics();
   runLoader->LoadHeader();
 
@@ -249,7 +245,7 @@ Bool_t CheckESD(const char* gAliceFileName = "galice.root",
     runLoader->GetEvent(iEvent);
 
     // select simulated primary particles, V0s and cascades
-    AliStack* stack = gAlice->Stack();
+    AliStack* stack = runLoader->Stack();
     Int_t nParticles = stack->GetNtrack();
     TArrayF vertex(3);
     runLoader->GetHeader()->GenEventHeader()->PrimaryVertex(vertex);
