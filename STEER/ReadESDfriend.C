@@ -35,10 +35,14 @@ void ReadESDfriend(Bool_t readFriend=kTRUE) {
     // Now the attached information can be accessed via pointer to ESD.
     // Example: indices of the TPC clusters associated with the track number 0.
        const AliESDtrack *t=ev->GetTrack(0);
-       Int_t idx[AliESDfriendTrack::kMaxTPCcluster], n=t->GetTPCclusters(idx);
-       cout<<"Number of TPC clusters: "<<n<<endl;
-       cout<<"Index of the 7th TPC cluster: "<<idx[7]<<endl<<endl; 
+       if (t) {
+	 Int_t idx[AliESDfriendTrack::kMaxTPCcluster], n=t->GetTPCclusters(idx);
+	 cout<<"Number of TPC clusters: "<<n<<endl;
+	 cout<<"Index of the 7th TPC cluster: "<<idx[7]<<endl<<endl;
+       }
+       delete ev;
+       ev = 0x0;
    }
-
    delete esdTree;
+   f.Close();
 }
