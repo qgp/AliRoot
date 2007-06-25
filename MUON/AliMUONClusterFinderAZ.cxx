@@ -1142,11 +1142,16 @@ void AliMUONClusterFinderAZ::Mlem(Double_t *coef, Double_t *probi, Int_t nIter)
   Int_t nPix = fPixArray->GetEntriesFast();
   Int_t npad = fnPads[0] + fnPads[1];
   Double_t *probi1 = new Double_t [nPix];
+  Double_t *chargeNew = new Double_t [nPix];
   Double_t probMax = 0;
   Int_t indx, indx1;
   AliMUONPixel *pixPtr;
 
-  for (Int_t ipix=0; ipix<nPix; ipix++) if (probi[ipix] > probMax) probMax = probi[ipix];
+  for (Int_t ipix=0; ipix<nPix; ++ipix) {
+    if (probi[ipix] > probMax) probMax = probi[ipix];
+    chargeNew[ipix] = 0;
+  }
+
   for (Int_t iter=0; iter<nIter; iter++) {
     // Do iterations
     for (Int_t ipix=0; ipix<nPix; ipix++) {
@@ -1170,10 +1175,16 @@ void AliMUONClusterFinderAZ::Mlem(Double_t *coef, Double_t *probi, Int_t nIter)
 	if (coef[indx] > 1.e-6) sum += fXyq[2][j]*coef[indx]/sum1;
       } // for (Int_t j=0;
       pixPtr = (AliMUONPixel*) fPixArray->UncheckedAt(ipix);
-      if (probi1[ipix] > 1.e-6) pixPtr->SetCharge(pixPtr->Charge()*sum/probi1[ipix]);
+      if (probi1[ipix] > 1.e-6) chargeNew[ipix] = pixPtr->Charge() * sum / probi1[ipix];
+      else chargeNew[ipix] = 0.;
     } // for (Int_t ipix=0;
+    for (Int_t i = 0; i < nPix; ++i) {
+      pixPtr = (AliMUONPixel*) fPixArray->UncheckedAt(i);
+      pixPtr->SetCharge(chargeNew[i]);
+    }
   } // for (Int_t iter=0;
   delete [] probi1;
+  delete [] chargeNew;
   return;
 }
 
@@ -1942,13 +1953,14 @@ Int_t AliMUONClusterFinderAZ::Fit(Int_t iSimple, Int_t nfit, Int_t *clustFit, TO
   Double_t param0[2][8]={{0},{0}}, deriv[2][8]={{0},{0}}; 
   Double_t shift[8], stepMax, derMax, parmin[8], parmax[8], func2[2], shift0;
   Double_t delta[8], scMax, dder[8], estim, shiftSave = 0;
-  Int_t min, max, nCall = 0, memory[8] = {0}, nLoop, idMax = 0, iestMax = 0, nFail;
+  Int_t min, max, nCall = 0, nLoop, idMax = 0, iestMax = 0, nFail;
   Double_t rad, dist[3] = {0};
 
   // Try to fit with one-track hypothesis, then 2-track. If chi2/dof is 
   // lower, try 3-track (if number of pads is sufficient).
   for (Int_t iseed=0; iseed<nfit; iseed++) {
 
+    Int_t memory[8] = {0};
     if (iseed) { for (Int_t j=0; j<fNpar; j++) param[j] = parOk[j]; } // for bounded params
     for (Int_t j=0; j<3; j++) step0[fNpar+j] = shift[fNpar+j] = step[j];
     if (nfit == 1) param[fNpar] = xyCand[0][0]; // take COG
