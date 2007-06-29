@@ -44,7 +44,7 @@ private:
   AliAODEvent  * fAOD ;           //! AOD
   TClonesArray * fAODPhotons ;    //! reconstructed photons
   Int_t          fPhotonsInPhos ; //! number of photons found
-  TTree        * fTreeA ;         // tree of identified photons   
+  TTree        * fTreeA ;         // tree of identified photons 
   // task parameters
   Float_t   fPhotonId ;  // threshold for photon identification 
 
