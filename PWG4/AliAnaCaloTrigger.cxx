@@ -6,13 +6,12 @@
  *                                                                        *
  * Permission to use, copy, modify and distribute this software and its   *
  * documentation strictly for non-commercial purposes is hereby granted   *
- * without fee, provided that the above copyright notice appears in all   *
+ * without fee, provided that the above copyright notice appears in all   *  
  * copies and that both the copyright notice and this permission notice   *
  * appear in the supporting documentation. The authors make no claims     *
  * about the suitability of this software for any purpose. It is          *
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
-
 //_________________________________________________________________________
 // An analysis task to check the PHOS/EMCAL simulated trigger
 //
@@ -197,24 +196,21 @@ void AliAnaCaloTrigger::Exec(Option_t *)
   
   // loop over the Calorimeters Clusters
   
+  Float_t cluEnergy ; 
   for(icaloCluster = firstCaloCluster ; icaloCluster < firstCaloCluster + numberOfCaloClusters ; icaloCluster++) {
     AliESDCaloCluster * cluster = fESD->GetCaloCluster(icaloCluster) ;
     if (cluster) {
-      Float_t cluEnergy = cluster->E() ; 
+      cluEnergy = cluster->E() ; 
       Float_t pos[3] ;
       TVector3 vpos ;
-      
       cluster->GetPosition( pos ) ;
-      
       if ( cluEnergy > enMax) { 
 	enMax = cluEnergy ; 
 	vpos.SetXYZ(pos[0], pos[1], pos[2]) ; 
 	etaMax = vpos.Eta() ; 
 	phiMax = vpos.Phi() ; 
       }
-
       Float_t * pid = cluster->GetPid() ;
-      
       if(pid[AliPID::kPhoton] > 0.9) {
 	if ( cluEnergy > phEnMax) { 
 	  phEnMax = cluEnergy ; 
@@ -224,10 +220,10 @@ void AliAnaCaloTrigger::Exec(Option_t *)
 	}
       }
     }//if cluster
-    
+  }
+  
     fNtTrigger22->Fill(a22, a22O, enMax, phEnMax, eta22, phi22, etaMax, phiMax * TMath::RadToDeg() + 360., phEtaMax, phPhiMax * TMath::RadToDeg() + 360.);
     fNtTriggerNN->Fill(aNN, aNNO, enMax, phEnMax, etaNN, phiNN, etaMax, phiMax * TMath::RadToDeg() + 360., phEtaMax, phPhiMax * TMath::RadToDeg() + 360.);
-  }//CaloCluster loop
   
   }//If trigger arrays filled
   
