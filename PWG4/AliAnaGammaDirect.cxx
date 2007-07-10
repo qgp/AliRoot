@@ -17,6 +17,9 @@
 /* History of cvs commits:
  *
  * $Log$
+ * Revision 1.4.4.1  2007/06/18 12:26:49  hristov
+ * Updates from the CVS HEAD
+ *
  * Revision 1.5  2007/06/18 12:06:03  schutz
  * new methods of AliESDCaloCluster
  *
@@ -27,7 +30,7 @@
  * Coding convention
  *
  * Revision 1.2  2007/02/09 18:40:40  schutz
- * BNew version from Gustavo
+ * New version from Gustavo
  *
  * Revision 1.1  2007/01/23 17:17:29  schutz
  * New Gamma package
@@ -36,16 +39,7 @@
  */
 
 //_________________________________________________________________________
-// Class for the analysis of gamma correlations (gamma-jet, 
-// gamma-hadron and isolation cut.
-// This class contains 3 main methods: one to fill lists of particles (ESDs) comming 
-//  from the CTS (ITS+TPC) and the calorimeters;  the other one tags a candidate 
-//  cluster as isolated;  the last one search in the 
-//  corresponing calorimeter for the highest energy cluster, identified it as 
-//  prompt photon;
-//
-//  Class created from old AliPHOSGammaJet 
-//  (see AliRoot versions previous Release 4-09)
+// Class for the analysis of prompt direct photons with the isolation cut analysis
 //
 //*-- Author: Gustavo Conesa (LNF-INFN) 
 //////////////////////////////////////////////////////////////////////////////
@@ -68,11 +62,9 @@ ClassImp(AliAnaGammaDirect)
 
 //____________________________________________________________________________
   AliAnaGammaDirect::AliAnaGammaDirect(const char *name) : 
-    AliAnalysisTask(name,""), fChain(0), fESD(0),
-    fOutputContainer(new TObjArray(100)), 
-    fPrintInfo(0), fMinGammaPt(0.),
-    fCalorimeter(""), fEMCALPID(0),fPHOSPID(0),
-    fEMCALPhotonWeight(0.), fEMCALPi0Weight(0.), fPHOSPhotonWeight(0.),
+    AliAnalysisTask(name,""), fCaloList(0x0),  fCTSList(0x0),
+    fOutputContainer(0x0),  fDirectGamma(0x0),
+    fMinGammaPt(0.),
     fConeSize(0.),fPtThreshold(0.),fPtSumThreshold(0), 
     fMakeICMethod(0),fhNGamma(0),fhPhiGamma(0),fhEtaGamma(0)
 {
@@ -82,22 +74,19 @@ ClassImp(AliAnaGammaDirect)
   InitParameters();
 
   // Input slot #0 works with an Ntuple
-  DefineInput(0, TChain::Class());
+  DefineInput(0, TClonesArray::Class());
+  DefineInput(1, TClonesArray::Class());
   // Output slot #0 writes into a TH1 container
-  DefineOutput(0,  TObjArray::Class()) ; 
-  
+  DefineOutput(0,  TParticle::Class()) ; 
+  DefineOutput(1,  TList::Class()) ; 
 }
 
 
 //____________________________________________________________________________
 AliAnaGammaDirect::AliAnaGammaDirect(const AliAnaGammaDirect & g) : 
-  AliAnalysisTask(g), fChain(g.fChain), fESD(g.fESD),
-  fOutputContainer(g. fOutputContainer),  fPrintInfo(g.fPrintInfo),
-  fMinGammaPt(g.fMinGammaPt), fCalorimeter(g.fCalorimeter),
-  fEMCALPID(g.fEMCALPID),fPHOSPID(g.fPHOSPID),
-  fEMCALPhotonWeight(g.fEMCALPhotonWeight), 
-  fEMCALPi0Weight(g.fEMCALPi0Weight), 
-  fPHOSPhotonWeight(g.fPHOSPhotonWeight),
+  AliAnalysisTask(g),  fCaloList(g.fCaloList),  fCTSList(g.fCTSList),
+  fOutputContainer(g.fOutputContainer),  fDirectGamma(g.fDirectGamma),
+  fMinGammaPt(g.fMinGammaPt), 
   fConeSize(g.fConeSize),
   fPtThreshold(g.fPtThreshold),
   fPtSumThreshold(g.fPtSumThreshold), 
@@ -116,17 +105,11 @@ AliAnaGammaDirect & AliAnaGammaDirect::operator = (const AliAnaGammaDirect & sou
 
   if(&source == this) return *this;
 
-  fChain = source.fChain ; 
-  fESD = source.fESD ;
+  fCaloList = source.fCaloList;
+  fCTSList = source.fCTSList;
   fOutputContainer = source.fOutputContainer ;
-  fPrintInfo = source.fPrintInfo ;
+  fDirectGamma = source.fDirectGamma ;
   fMinGammaPt = source.fMinGammaPt ;   
-  fCalorimeter = source. fCalorimeter ;  
-  fEMCALPID = source.fEMCALPID ;
-  fPHOSPID = source.fPHOSPID ;
-  fEMCALPhotonWeight = source. fEMCALPhotonWeight ;
-  fEMCALPi0Weight = source.fEMCALPi0Weight ;
-  fPHOSPhotonWeight = source.fPHOSPhotonWeight ;
   fConeSize = source.fConeSize ;
   fPtThreshold = source.fPtThreshold ;
   fPtSumThreshold = source.fPtSumThreshold ; 
@@ -134,7 +117,6 @@ AliAnaGammaDirect & AliAnaGammaDirect::operator = (const AliAnaGammaDirect & sou
   fhNGamma = source.fhNGamma ; 
   fhPhiGamma = source.fhPhiGamma ;
   fhEtaGamma = source.fhEtaGamma ;
-
 
   return *this;
 
@@ -146,6 +128,15 @@ AliAnaGammaDirect::~AliAnaGammaDirect()
   // Remove all pointers
   fOutputContainer->Clear() ; 
   delete fOutputContainer ;
+
+  fCaloList->Clear() ; 
+  delete fCaloList ;
+
+  fCTSList->Clear() ; 
+  delete fCTSList ;
+
+  delete fDirectGamma ;
+
   delete fhNGamma    ;  
   delete fhPhiGamma  ; 
   delete fhEtaGamma   ;  
@@ -160,19 +151,16 @@ void AliAnaGammaDirect::ConnectInputData(const Option_t*)
   AliInfo(Form("*** Initialization of %s", GetName())) ; 
   
   // Get input data
-  fChain = dynamic_cast<TChain *>(GetInputData(0)) ;
-  if (!fChain) {
+  fCaloList = dynamic_cast<TClonesArray *>(GetInputData(0)) ;
+  if (!fCaloList) {
     AliError(Form("Input 0 for %s not found\n", GetName()));
     return ;
   }
   
-  // One should first check if the branch address was taken by some other task
-  char ** address = (char **)GetBranchAddress(0, "ESD");
-  if (address) {
-    fESD = (AliESD*)(*address);
-  } else {
-    fESD = new AliESD();
-    SetBranchAddress(0, "ESD", &fESD);
+  fCTSList = dynamic_cast<TClonesArray *>(GetInputData(1)) ;
+  if (!fCTSList) {
+    AliError(Form("Input 1 for %s not found\n", GetName()));
+    return ;
   }
 
 }
@@ -183,9 +171,10 @@ void AliAnaGammaDirect::CreateOutputObjects()
 
   // Create histograms to be saved in output file and 
   // store them in fOutputContainer
-
-  fOutputContainer = new TObjArray(3) ;
-
+  OpenFile(0) ; 
+  fOutputContainer = new TList() ; 
+  fOutputContainer->SetName("DirectGammaHistos") ; 
+  
   //Histograms of highest gamma identified in Event
   fhNGamma  = new TH1F("NGamma","Number of #gamma over PHOS",240,0,120); 
   fhNGamma->SetYTitle("N");
@@ -203,258 +192,30 @@ void AliAnaGammaDirect::CreateOutputObjects()
   fhEtaGamma->SetYTitle("#eta");
   fhEtaGamma->SetXTitle("p_{T #gamma} (GeV/c)");
   fOutputContainer->Add(fhEtaGamma) ;
+  
+  fDirectGamma = new TParticle;
 
 }
-
-//____________________________________________________________________________
-void AliAnaGammaDirect::CreateParticleList(TClonesArray * pl, 
-					TClonesArray * plCTS, 
-					TClonesArray * plEMCAL,  
-					TClonesArray * plPHOS){
-  
-  //Create a list of particles from the ESD. These particles have been measured 
-  //by the Central Tracking system (TPC+ITS), PHOS and EMCAL 
-  
-  Int_t index = pl->GetEntries() ; 
-  Int_t npar  = 0 ;
-  Float_t *pid = new Float_t[AliPID::kSPECIESN];  
-  AliDebug(3,"Fill particle lists");
-  if(fPrintInfo)
-    AliInfo(Form("fCalorimeter %s",fCalorimeter.Data()));
-
-  Double_t v[3] ; //vertex ;
-  fESD->GetVertex()->GetXYZ(v) ; 
-
-  //########### PHOS ##############
-  if(fCalorimeter == "PHOS"){
-
-    Int_t begphos = fESD->GetFirstPHOSCluster();  
-    Int_t endphos = fESD->GetFirstPHOSCluster() + 
-      fESD->GetNumberOfPHOSClusters() ;  
-    Int_t indexNePHOS = plPHOS->GetEntries() ;
-    AliDebug(3,Form("First PHOS particle %d, last particle %d", begphos,endphos));
-
-    if(fCalorimeter == "PHOS"){
-      for (npar =  begphos; npar <  endphos; npar++) {//////////////PHOS track loop
-	AliESDCaloCluster * clus = fESD->GetCaloCluster(npar) ; // retrieve track from esd
-
-	//Create a TParticle to fill the particle list
-	TLorentzVector momentum ;
-	clus->GetMomentum(momentum, 0);
-	TParticle * particle = new TParticle() ;
-	//particle->SetMomentum(px,py,pz,en) ;
-	particle->SetMomentum(momentum) ;
-
-	AliDebug(4,Form("PHOS clusters: pt %f, phi %f, eta %f", particle->Pt(),particle->Phi(),particle->Eta()));
-	
-	//Select only photons
-	
-	pid=clus->GetPid();
-	//cout<<"pid "<<pid[AliPID::kPhoton]<<endl ;
-	if( !fPHOSPID)
-	  new((*plPHOS)[indexNePHOS++])   TParticle(*particle) ;
-	else if( pid[AliPID::kPhoton] > fPHOSPhotonWeight)
-	  new((*plPHOS)[indexNePHOS++])   TParticle(*particle) ;
-      }
-    }
-  }
-
-  //########## #####################
-  //Prepare bool array for EMCAL track matching
-
-  // step 1, set the flag in a way that it rejects all not-V1 clusters
-  // but at this point all V1 clusters are accepted
-  
-  Int_t begem = fESD->GetFirstEMCALCluster();  
-  Int_t endem = fESD->GetFirstEMCALCluster() + 
-    fESD->GetNumberOfEMCALClusters() ;  
- 
-//   if(endem < begem+12)
-//     AliError("Number of pseudoclusters smaller than 12");
-  Bool_t *useCluster = new Bool_t[endem+1];
-  
-//   for (npar =  0; npar <  endem; npar++){
-//     if(npar < begem+12)
-//       useCluster[npar] =kFALSE; //EMCAL Pseudoclusters and PHOS clusters
-//     else
-//       useCluster[npar] =kTRUE;   //EMCAL clusters 
-//   }
-  for (npar =  0; npar <  endem; npar++)
-    useCluster[npar] =kFALSE; //EMCAL Pseudoclusters and clusters
-  
-  //########### CTS (TPC+ITS) #####################
-  Int_t begtpc   = 0 ;  
-  Int_t endtpc   = fESD->GetNumberOfTracks() ;
-  Int_t indexCh  = plCTS->GetEntries() ;
-  AliDebug(3,Form("First CTS particle %d, last particle %d", begtpc,endtpc));
-
-  Int_t iemcalMatch  = -1 ;
-  for (npar =  begtpc; npar <  endtpc; npar++) {////////////// track loop
-    AliESDtrack * track = fESD->GetTrack(npar) ; // retrieve track from esd
-
-    // step 2 for EMCAL matching, change the flag for all matched clusters found in tracks
-    iemcalMatch = track->GetEMCALcluster(); 
-    if(iemcalMatch > 0) useCluster[iemcalMatch] = kTRUE; // reject matched cluster
-    
-    //We want tracks fitted in the detectors:
-    ULong_t status=AliESDtrack::kTPCrefit;
-    status|=AliESDtrack::kITSrefit;
-   
-    //We want tracks whose PID bit is set:
-    //     ULong_t status =AliESDtrack::kITSpid;
-    //     status|=AliESDtrack::kTPCpid;
-  
-    if ( (track->GetStatus() & status) == status) {//Check if the bits we want are set
-      // Do something with the tracks which were successfully
-      // re-fitted 
-      Double_t en = 0; //track ->GetTPCsignal() ;
-      Double_t mom[3];
-      track->GetPxPyPz(mom) ;
-      Double_t px = mom[0];
-      Double_t py = mom[1];
-      Double_t pz = mom[2]; //Check with TPC people if this is correct.
-      Int_t pdg = 11; //Give any charged PDG code, in this case electron.
-      //I just want to tag the particle as charged
-       TParticle * particle = new TParticle(pdg, 1, -1, -1, -1, -1, 
-					    px, py, pz, en, v[0], v[1], v[2], 0);
-  
-      //TParticle * particle = new TParticle() ;
-      //particle->SetMomentum(px,py,pz,en) ;
- 
-      new((*plCTS)[indexCh++])       TParticle(*particle) ;    
-      new((*pl)[index++])           TParticle(*particle) ;
-    }
-  }
-  
-  //################ EMCAL ##############
-  
-  Int_t indexNe  = plEMCAL->GetEntries() ; 
-  
-  AliDebug(3,Form("First EMCAL particle %d, last particle %d",begem,endem));
-    
-    for (npar =  begem; npar <  endem; npar++) {//////////////EMCAL track loop
-      AliESDCaloCluster * clus = fESD->GetCaloCluster(npar) ; // retrieve track from esd
-      Int_t clustertype= clus->GetClusterType();
-      if(clustertype == AliESDCaloCluster::kClusterv1 && !useCluster[npar] ){
-	TLorentzVector momentum ;
-	clus->GetMomentum(momentum, 0);
-	TParticle * particle = new TParticle() ;
-	//particle->SetMomentum(px,py,pz,en) ;
-	particle->SetMomentum(momentum) ;
-	cout<<"GOOD EMCAL "<<particle->Pt()<<endl;
-	pid=clus->GetPid();
-	if(fCalorimeter == "EMCAL")
-	  {
-	    TParticle * particle = new TParticle() ;
-	    //particle->SetMomentum(px,py,pz,en) ;
-	    AliDebug(4,Form("EMCAL clusters: pt %f, phi %f, eta %f", particle->Pt(),particle->Phi(),particle->Eta()));
-	    if(!fEMCALPID) //Only identified particles
-	      new((*plEMCAL)[indexNe++])       TParticle(*particle) ;
-	    else if(pid[AliPID::kPhoton] > fEMCALPhotonWeight)
-	      new((*plEMCAL)[indexNe++])       TParticle(*particle) ;	    
-	  }
-	else
-	  {
-	      Int_t pdg = 0;
-	      if(fEMCALPID) 
-		{
-		  if( pid[AliPID::kPhoton] > fEMCALPhotonWeight) 
-		    pdg = 22;
-		  else if( pid[AliPID::kPi0] > fEMCALPi0Weight)
-		    pdg = 111;
-		}
-	      else
-		pdg = 22; //No PID, assume all photons
-	      
-	      TParticle * particle = new TParticle(pdg, 1, -1, -1, -1, -1, 
-						   momentum.Px(), momentum.Py(), momentum.Pz(), momentum.E(), v[0], v[1], v[2], 0);
-	      AliDebug(4,Form("EMCAL clusters: pt %f, phi %f, eta %f", particle->Pt(),particle->Phi(),particle->Eta()));
-	      
-	      new((*plEMCAL)[indexNe++])       TParticle(*particle) ; 
-	      new((*pl)[index++])           TParticle(*particle) ;
-	  }
-      }
-    }
-    
-    AliDebug(3,"Particle lists filled");
-    
-}
-
-
 
 //____________________________________________________________________________
 void AliAnaGammaDirect::Exec(Option_t *) 
 {
   
-  // Processing of one event
-
-  //Get ESDs
-  Long64_t entry = fChain->GetReadEntry() ;
-  
-  if (!fESD) {
-    AliError("fESD is not connected to the input!") ; 
-    return ; 
-  }
-  
-  if (fPrintInfo) 
-     AliInfo(Form("%s ----> Processing event # %lld",  (dynamic_cast<TChain *>(fChain))->GetFile()->GetName(), entry)) ; 
-
-  //CreateTLists with arrays of TParticles. Filled with particles only relevant for the analysis.
-
-  TClonesArray * particleList = new TClonesArray("TParticle",1000); // All particles refitted in CTS and detected in EMCAL (jet)
-  TClonesArray * plCTS         = new TClonesArray("TParticle",1000); // All particles refitted in Central Tracking System (ITS+TPC)
-  TClonesArray * plNe         = new TClonesArray("TParticle",1000);   // All particles measured in Jet Calorimeter (EMCAL)
-  TClonesArray * plPHOS     = new TClonesArray("TParticle",1000);  // All particles measured in PHOS as Gamma calorimeter
-  TClonesArray * plEMCAL   = new TClonesArray("TParticle",1000);  // All particles measured in EMCAL as Gamma calorimeter
-
-  TParticle *pGamma = new TParticle(); //It will contain the kinematics of the found prompt gamma
- 
-  //Fill lists with photons, neutral particles and charged particles
-  //look for the highest energy photon in the event inside fCalorimeter
-  
-  AliDebug(2, "Fill particle lists, get prompt gamma");
-  
-  //Fill particle lists 
-  CreateParticleList(particleList, plCTS,plEMCAL,plPHOS); 
-  
-  if(fCalorimeter == "PHOS")
-    plNe = plPHOS;
-  if(fCalorimeter == "EMCAL")
-    plNe = plEMCAL;
-  
+  // Processing of one event  
+  //AliInfo(Form("%s ----> Processing event # %lld",  (dynamic_cast<TChain *>(fChain))->GetFile()->GetName(), entry)) ; 
   
   Bool_t iIsInPHOSorEMCAL = kFALSE ; //To check if Gamma was in any calorimeter
   //Search highest energy prompt gamma in calorimeter
-  GetPromptGamma(plNe,  plCTS, pGamma, iIsInPHOSorEMCAL) ; 
-  
-  AliDebug(1, Form("Is Gamma in %s? %d",fCalorimeter.Data(),iIsInPHOSorEMCAL));
-  
-  //If there is any photon candidate in fCalorimeter
-  if(iIsInPHOSorEMCAL){
-    if (fPrintInfo)
-      AliInfo(Form("Prompt Gamma: pt %f, phi %f, eta %f", pGamma->Pt(),pGamma->Phi(),pGamma->Eta())) ;
+  GetPromptGamma(fCaloList,  fCTSList, fDirectGamma, iIsInPHOSorEMCAL) ; 
     
-  }//Gamma in Calo
-  
-  AliDebug(2, "End of analysis, delete pointers");
-  
-  particleList->Delete() ; 
-  plCTS->Delete() ;
-  plNe->Delete() ;
-  plEMCAL->Delete() ;
-  plPHOS->Delete() ;
-  pGamma->Delete();
- 
-  PostData(0, fOutputContainer);
+  //If there is any photon candidate in calorimeter
+  if(iIsInPHOSorEMCAL)
+    AliInfo(Form("Prompt Gamma: pt %f, phi %f, eta %f", fDirectGamma->Pt(),fDirectGamma->Phi(),fDirectGamma->Eta())) ;
+    
+  PostData(0, fDirectGamma) ; 
+  PostData(1, fOutputContainer);
 
- delete plNe ;
-  delete plCTS ;
-  //delete plPHOS ;
-  //delete plEMCAL ;
-  delete particleList ;
-
-  //  delete pGamma;
-
+  AliDebug(2, "End of analysis");
 }    
 
 
@@ -508,16 +269,9 @@ void AliAnaGammaDirect::InitParameters()
 {
  
   //Initialize the parameters of the analysis.
-  fCalorimeter="PHOS";
-  fPrintInfo           = kTRUE;
   fMinGammaPt  = 5. ;
 
   //Fill particle lists when PID is ok
-  fEMCALPID = kFALSE;
-  fPHOSPID = kFALSE;
-  fEMCALPhotonWeight = 0.5 ;
-  fEMCALPi0Weight = 0.5 ;
-  fPHOSPhotonWeight = 0.8 ;
   fConeSize             = 0.2 ; 
   fPtThreshold         = 2.0; 
   fPtSumThreshold  = 1.; 
@@ -541,7 +295,7 @@ void  AliAnaGammaDirect::MakeIsolationCut(TClonesArray * plCTS,
   Float_t phi    = -100.  ;
   Float_t rad   = -100 ;
   Int_t    n        = 0 ;
-  TParticle * particle  = new TParticle();
+  TParticle * particle  = new TParticle;
 
   coneptsum = 0; 
   icmpt = kFALSE;
@@ -603,7 +357,6 @@ void AliAnaGammaDirect::Print(const Option_t * opt) const
   printf("pT threshold           =     %f\n", fPtThreshold) ;
   printf("pT sum threshold   =     %f\n", fPtSumThreshold) ; 
   printf("Min Gamma pT      =     %f\n",  fMinGammaPt) ; 
-  printf("Calorimeter            =     %s\n", fCalorimeter.Data()) ; 
 } 
 
 void AliAnaGammaDirect::Terminate(Option_t *)

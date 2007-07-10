@@ -1,8 +1,9 @@
-// to be used with AliRoot
-//Macro to find prompt photon and do correlation analysis at the kinematic level
-//Example for PHOS and EMCAL prompt photon analysis
+//to be used with aliroot for the moment.
+//Macro to find prompt photon and do correlation analysis at the data level
+//Example for PHOS and EMCAL analysis photon analysis
 //Here both detectors used for detection of prompt photon 
 //but should be done separately
+Bool_t gIsAnalysisLoaded = kFALSE ; 
 
 //______________________________________________________________________
 Bool_t LoadLib( const char* pararchivename) 
@@ -17,7 +18,7 @@ Bool_t LoadLib( const char* pararchivename)
   // Setup par File
   if (pararchivename) {
    char parpar[80] ; 
-   sprintf(parpar, "%s.par", pararchivename) ;
+   sprintf(parpar, "%s", pararchivename) ;
    if ( gSystem->AccessPathName(parpar) ) {
     gSystem->ChangeDirectory(gSystem->Getenv("ALICE_ROOT")) ;
     char processline[1024];
@@ -58,21 +59,26 @@ Bool_t LoadLib( const char* pararchivename)
 
   gSystem->ChangeDirectory(cdir);
 
- 
+  gIsAnalysisLoaded = kTRUE ; 
   return rv ; 
 }
 
 //______________________________________________________________________
-void anaKine(const Int_t kEvent=10)  
+void anaData(const Int_t kEvent=10)  
 {
-  
-  //AliLog::SetGlobalDebugLevel(1);
+
+  // AliLog::SetGlobalDebugLevel(0);
 
   gSystem->AddIncludePath("-I\"$ALICE_ROOT/include\"");
   gSystem->Load("libANALYSIS.so");
   gSystem->Load("libANALYSISRL.so");
-  
-  LoadLib("PWG4Gamma") ; 
+
+  if (! gIsAnalysisLoaded ) {
+    //    LoadLib("ESD") ; 
+    //   LoadLib("AOD") ;
+    //   LoadLib("ANALYSIS") ; 
+    LoadLib("PWG4Gamma") ; 
+  }
   
   // create the analysis goodies object
   AliAnalysisGoodies * ag = new AliAnalysisGoodies() ; 
@@ -80,17 +86,16 @@ void anaKine(const Int_t kEvent=10)
   // definition of analysis tasks
   //////////////////////////////////////////////////////////////////////////
   // first task :
-  // Read the data, input: in this case ****MC kinematics data****, 
+  // Read the data, input: in this case ****ESD data****, 
   //                output: 3 TClonesArray of TParticles, 
-  // 1) in phos acceptance, 2) in EMCAL acceptance, 3) in CTS acceptance
+  // 1) PHOS clusters, 2)EMCAL clusters, 3)Charged particles found in CTS
   //////////////////////////////////////////////////////////////////////////
-  AliAnaGammaMC * reader = new AliAnaGammaMC("GammaMC") ;
-  ag->ConnectInput(reader, TChain::Class(), 0) ;
-  //reader->SetCalorimeter("EMCAL"); 
+  AliAnaGammaData * reader = new AliAnaGammaData("GammaData") ;
+  //reader->SetCalorimeter("PHOS"); 
+  ag->ConnectInput(reader, TChain::Class(), 0) ; 
   AliAnalysisDataContainer * outPHOSGamma  = ag->ConnectOuput(reader, TClonesArray::Class(), 0) ;
   AliAnalysisDataContainer * outEMCALGamma = ag->ConnectOuput(reader, TClonesArray::Class(), 1) ;
   AliAnalysisDataContainer * outCharged    = ag->ConnectOuput(reader, TClonesArray::Class(), 2) ;
-  AliAnalysisDataContainer * outParton     = ag->ConnectOuput(reader, TClonesArray::Class(), 3) ;
   
   ////////////////////////////////////////////////////////////////////////////////
   //second task, find prompt/direct photon in calorimeter with pid and isolation cuts.
@@ -104,7 +109,7 @@ void anaKine(const Int_t kEvent=10)
   ag->ConnectInput(gammaDirectPhos, outCharged,   1) ; 
   AliAnalysisDataContainer * outPHOSGammaDirect  = ag->ConnectOuput(gammaDirectPhos, TParticle::Class(), 0) ;
   ag->ConnectOuput(gammaDirectPhos, TList::Class(), 1) ;
-  
+
   ////////////////////////////////////////////////////////////////////////////////
   //Case 2: Calorimeter is EMCAL
   ////////////////////////////////////////////////////////////////////////////////
@@ -113,7 +118,6 @@ void anaKine(const Int_t kEvent=10)
   ag->ConnectInput(gammaDirectEmcal, outCharged,    1) ; 
   AliAnalysisDataContainer * outEMCALGammaDirect  = ag->ConnectOuput(gammaDirectEmcal, TParticle::Class(), 0) ;
   ag->ConnectOuput(gammaDirectEmcal, TList::Class(), 1) ;
-  
   
   //////////////////////////////////////////////////////////////////////////////////
   //third task, correlate prompt photon with jet on the opposite side. 
@@ -131,42 +135,44 @@ void anaKine(const Int_t kEvent=10)
   ////////////////////////////////////////////////////////////////////////////////
   //Case 1: Prompt photon calorimeter is PHOS, jet calorimeter is EMCAL
   ////////////////////////////////////////////////////////////////////////////////
-  AliAnaGammaCorr * corrPhos = new AliAnaGammaCorr("CorrPartonPhos") ;
-  corrPhos->SetAnalysisType(AliAnaGammaCorr::kParton) ; // kParton, kJetLeadCone, kJetFinder, kHadron 
+  AliAnaGammaCorr * corrPhos = new AliAnaGammaCorr("CorrPhos") ;
+  corrPhos->SetAnalysisType(AliAnaGammaCorr::kHadron) ; // kJetFinder, kJetLeadCone, kHadron
   corrPhos->SetDataType(AliAnaGammaCorr::kData) ; // kData, kMC, kMCData
   ag->ConnectInput(corrPhos, outPHOSGammaDirect, 0) ; 
-  ag->ConnectInput(corrPhos, outParton, 1) ; 
-  AliAnalysisDataContainer * outPartonPhos  = ag->ConnectOuput(corrPhos, TList::Class(), 0) ; 
+  ag->ConnectInput(corrPhos, outCharged, 1) ; 
+  ag->ConnectInput(corrPhos, outEMCALGamma, 2) ; 
+  AliAnalysisDataContainer * outPhos  = ag->ConnectOuput(corrPhos, TList::Class(), 0) ; 
 
   ////////////////////////////////////////////////////////////////////////////////
   //Case 2: Prompt photon calorimeter is EMCAL, !"jet calorimeter is PHOS"!
   ////////////////////////////////////////////////////////////////////////////////
-  AliAnaGammaCorr * corrEmcal = new AliAnaGammaCorr("CorrPartonEmcal") ; 
-  corrEmcal->SetAnalysisType(AliAnaGammaCorr::kParton) ; // kParton, kJetFinder, kJetLeadCone, kHadron
-  corrEmcal->SetDataType(AliAnaGammaCorr::kMC) ; // kData, kMC, kMCData
+  AliAnaGammaCorr * corrEmcal = new AliAnaGammaCorr("CorrEmcal") ; 
+  corrEmcal->SetAnalysisType(AliAnaGammaCorr::kHadron) ; // kJetFinder, kJetLeadCone, kHadron
+  corrEmcal->SetDataType(AliAnaGammaCorr::kData) ; // kData, kMC, kMCData
   ag->ConnectInput(corrEmcal, outEMCALGammaDirect, 0) ; 
-  ag->ConnectInput(corrEmcal, outParton, 1) ; 
-  AliAnalysisDataContainer * outPartonEmcal  =  ag->ConnectOuput(corrPartonEmcal, TList::Class(), 0) ; 
-
-//   AliAnaScale * scalePhos = new AliAnaScale("ScaledcorrPartonPhos") ;
-//   ag->ConnectInput(scalePhos, outPartonPhos, 0) ;
-//   ag->ConnectOuput(scalePhos, TList::Class(), 0) ;
-
-//   AliAnaScale * scaleEmcal = new AliAnaScale("ScaledcorrPartonEmcal") ;
-//   ag->ConnectInput(scaleEmcal, outPartonEmcal, 0) ;
-//   ag->ConnectOuput(scaleEmcal, TList::Class(), 0) ;
-
+  ag->ConnectInput(corrEmcal, outCharged, 1) ; 
+  ag->ConnectInput(corrEmcal, outPHOSGamma, 2) ; 
+  AliAnalysisDataContainer * outEmcal  =  ag->ConnectOuput(corrEmcal, TList::Class(), 0) ;
+ 
+  //   //Scale Histograms with correspondin cross sections
+  //   AliAnaScale * scalePhos = new AliAnaScale("ScaledcorrHadronPhos") ;
+  //   ag->ConnectInput(scalePhos, outHadronPhos, 0) ;
+  //   ag->ConnectOuput(scalePhos, TList::Class(), 0) ;
+  
+  //   AliAnaScale * scaleEmcal = new AliAnaScale("ScaledcorrHadronEmcal") ;
+  //   ag->ConnectInput(scaleEmcal, outHadronEmcal, 0) ;
+  //   ag->ConnectOuput(scaleEmcal, TList::Class(), 0) ;
+  
   // get the data to analyze
-
+  
   // definition of Tag cuts 
   const char * runCuts = 0x0 ; 
   const char * evtCuts = 0x0 ; 
   const char * lhcCuts = 0x0 ; 
   const char * detCuts = 0x0 ; 
   
-//"fEventTag.fNPHOSClustersMin == 1 && fEventTag.fNEMCALClustersMin == 1" ; 
+  //"fEventTag.fNPHOSClustersMin == 1 && fEventTag.fNEMCALClustersMin == 1" ; 
 
-  
   TString input = gSystem->Getenv("ANA_INPUT") ; 
   if ( input != "") {
     char argument[1024] ;  
