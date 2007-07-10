@@ -182,7 +182,7 @@ void AliMUONRecoCheck::MakeTrackRef()
   Float_t  nonBendingSlope = 0;
   Float_t inverseBendingMomentum = 0;
   
-  TTree* treeTR = fRunLoader->TreeTR();
+  TTree* treeTR = fRunLoaderSim->TreeTR();
   if (treeTR == NULL) return;
 
   TBranch* branch = treeTR->GetBranch("MUON");
