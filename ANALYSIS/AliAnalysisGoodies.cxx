@@ -192,8 +192,6 @@ AliAnalysisDataContainer * AliAnalysisGoodies::ConnectInput(AliAnalysisTask * ta
 
   if ( ! fAmgr->GetTask(task->GetName()) ) 
     fAmgr->AddTask(task) ;
-  else 
-    AliFatal(Form("Task %s already exists", task->GetName())) ; 
 
   AliAnalysisDataContainer * taskInput = 0x0 ; 
   if ( fAmgr->GetInputs() ) 
@@ -214,12 +212,15 @@ void AliAnalysisGoodies::ConnectInput(AliAnalysisTask * task, AliAnalysisDataCon
   // connect a task to the input
 
   if ( ! fAmgr->GetTask(task->GetName()) ) 
-    fAmgr->AddTask(task) ;
-  else 
-    AliFatal(Form("Task %s already exists", task->GetName())) ; 
+    fAmgr->AddTask(task) ;  
 
-  fAmgr->ConnectInput (task, index, taskInput);
-} 
+  AliAnalysisDataContainer * in = 0x0 ; 
+  in = dynamic_cast<AliAnalysisDataContainer *>(fAmgr->GetInputs()->FindObject(Form("InputContainer_%s_%d", task->GetName(), index))) ; 
+  if ( ! in ) 
+    fAmgr->ConnectInput (task, index, taskInput);
+  else 
+    AliFatal(Form("Input %s already exists", taskInput->GetName())) ;  
+}
 
 //______________________________________________________________________
 AliAnalysisDataContainer *  AliAnalysisGoodies::ConnectOuput(AliAnalysisTask * task, TClass * classou, UShort_t index, TString opt ) 
