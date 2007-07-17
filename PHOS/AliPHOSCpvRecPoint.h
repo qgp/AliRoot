@@ -8,6 +8,9 @@
 /* History of cvs commits:
  *
  * $Log$
+ * Revision 1.20  2007/03/06 06:47:28  kharlov
+ * DP:Possibility to use actual vertex position added
+ *
  * Revision 1.19  2006/08/28 10:01:56  kharlov
  * Effective C++ warnings fixed (Timur Pocheptsov)
  *
@@ -47,7 +50,7 @@ public:
   Int_t  Compare(const TObject * obj) const;                 // method for sorting  
   void   EvalAll(Float_t logWeight, TClonesArray * digits) ;
   void   EvalAll(Float_t logWeight, TVector3 &vtx, TClonesArray * digits) ;
-  void   EvalLocalPosition(Float_t logWeight, TVector3 &vtx, TClonesArray * digits ) ;  
+  void   EvalLocalPosition(Float_t logWeight, TVector3 &vtx, TClonesArray * digits, TVector3 &vInc) ;  
   void   EvalClusterLengths(TClonesArray * digits) ;
 
   virtual void ExecuteEvent(Int_t event, Int_t px, Int_t py) /*const*/ ; 

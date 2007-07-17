@@ -17,6 +17,9 @@
 /* History of cvs commits:
  *
  * $Log$
+ * Revision 1.87  2007/05/04 14:49:29  policheh
+ * AliPHOSRecPoint inheritance from AliCluster
+ *
  * Revision 1.86  2007/04/02 15:00:16  cvetan
  * No more calls to gAlice in the reconstruction
  *
@@ -251,11 +254,11 @@ void  AliPHOSTrackSegmentMakerv1::GetDistanceInPHOSPlane(AliPHOSEmcRecPoint * em
   TVector3 cpvGlobal; // Global position of the CPV recpoint
   geom->GetGlobalPHOS((AliPHOSRecPoint*)cpvClu,cpvGlobal);
   Double_t vtxCPV[3]={cpvGlobal.X(),cpvGlobal.Y(),cpvGlobal.Z()} ;
+  Int_t dummyMod ;
 
   if (fESD == 0x0) {
      //if no track information available, assume straight line from IP to emcal
-     Int_t dummyMod ;
-     geom->ImpactOnEmc(vtxCPV,cpvGlobal.Theta(),cpvGlobal.Phi(),dummyMod,xCPV,zCPV) ;
+     geom->ImpactOnEmc(vtxCPV,cpvGlobal.Theta(),cpvGlobal.Phi(),dummyMod,zCPV,xCPV) ;
      dx=xCPV - vecEmc.X() ;
      dz=zCPV - vecEmc.Z() ;
      return ;
@@ -295,8 +298,7 @@ void  AliPHOSTrackSegmentMakerv1::GetDistanceInPHOSPlane(AliPHOSEmcRecPoint * em
       track = fESD->GetTrack(iClosestTrack);
       if (track->GetPxPyPzAt(rCPV, fESD->GetMagneticField(), pxyz)) { // track momentum ibid.
         vecP.SetXYZ(pxyz[0],pxyz[1],pxyz[2]);
-        Int_t dummyMod ;
-	geom->ImpactOnEmc(vtxCPV,vecP.Theta(),vecP.Phi(),dummyMod,xCPV,zCPV) ;
+	geom->ImpactOnEmc(vtxCPV,vecP.Theta(),vecP.Phi(),dummyMod,zCPV,xCPV) ;
       }
     }
     
@@ -309,8 +311,10 @@ void  AliPHOSTrackSegmentMakerv1::GetDistanceInPHOSPlane(AliPHOSEmcRecPoint * em
     dz=zCPV - vecEmc.Z() ;
   }
   else{
-    dz=999. ;
-    dx=999. ;
+    // If no global track was found, just take the nearest CPV point
+    geom->ImpactOnEmc(vtxCPV,cpvGlobal.Theta(),cpvGlobal.Phi(),dummyMod,zCPV,xCPV) ;
+    dx=xCPV - vecEmc.X() ;
+    dz=zCPV - vecEmc.Z() ;
   }
   return ;
 }
