@@ -51,9 +51,9 @@ void KineTools::SetDaughterPathMarks(RenderElement* cont, AliStack* stack, Bool_
 	pm->P.Set(dp->Px(),dp->Py(), dp->Pz()); 
         pm->time = dp->T();
         track->AddPathMark(pm);
-	if (recurse)
-	  SetDaughterPathMarks(track, stack, recurse);
       }
+      if (recurse)
+	SetDaughterPathMarks(track, stack, recurse);
     }
     ++iter;
   }
