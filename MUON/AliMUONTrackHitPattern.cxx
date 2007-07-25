@@ -128,10 +128,10 @@ void AliMUONTrackHitPattern::GetHitPattern(TClonesArray *recTracksPtr)
     for(Int_t iTrack=0; iTrack<nRecTracks; iTrack++){
 	pattern = 0;
 	AliMUONTrack *muonTrack = (AliMUONTrack*) recTracksPtr->At(iTrack);
-	AliMUONTrackParam *trackParam = (AliMUONTrackParam*) ((muonTrack->GetTrackParamAtHit())->Last());
+	AliMUONTrackParam trackParam = *((AliMUONTrackParam*) ((muonTrack->GetTrackParamAtHit())->Last()));
 	for(Int_t ch=0; ch<4; ch++){
-	    AliMUONTrackExtrap::ExtrapToZCov(trackParam, AliMUONConstants::DefaultChamberZ(10+ch));
-	    FindPadMatchingTrack(trackParam, isMatch, ch);
+	    AliMUONTrackExtrap::ExtrapToZCov(&trackParam, AliMUONConstants::DefaultChamberZ(10+ch));
+	    FindPadMatchingTrack(&trackParam, isMatch, ch);
 	    for(Int_t cath=0; cath<2; cath++){
 		if(isMatch[cath]) pattern |= kMask[cath][ch];
 	    }
