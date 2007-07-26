@@ -1,3 +1,4 @@
+
 /**************************************************************************
  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  *                                                                        *
@@ -136,7 +137,7 @@ void AliAnaCaloTriggerMC::CreateOutputObjects()
 void AliAnaCaloTriggerMC::Exec(Option_t *) 
 {
   // Processing of one event
-  
+   
   Long64_t entry = fChain->GetReadEntry() ;
 
   if (AliAnalysisTaskRL::GetEntry(entry) == kFALSE) {
@@ -161,7 +162,7 @@ void AliAnaCaloTriggerMC::Exec(Option_t *)
   TArrayF * triggerPosition   = 0x0 ;
   Int_t firstCaloCluster      = 0 ;
   Int_t numberOfCaloClusters  = 0 ;
-
+  
   if(fCalorimeter == "PHOS"){
     triggerAmplitudes      = fESD->GetPHOSTriggerAmplitudes();
     triggerPosition        = fESD->GetPHOSTriggerPosition();
@@ -174,7 +175,7 @@ void AliAnaCaloTriggerMC::Exec(Option_t *)
     firstCaloCluster     = fESD->GetFirstEMCALCluster() ;
     numberOfCaloClusters = fESD->GetNumberOfEMCALClusters() ;
   }
-  
+
   if( triggerAmplitudes && triggerPosition ){
     // trigger amplitudes
     const Float_t a22    = static_cast<Float_t>(triggerAmplitudes->At(0)) ; 
@@ -208,7 +209,7 @@ void AliAnaCaloTriggerMC::Exec(Option_t *)
     
     // loop over the Calorimeters Clusters
     Float_t cluEnergy = 0;
-    Int_t labelmax = -1;
+    Int_t labelmax = -5;
     for(icaloCluster = firstCaloCluster ; icaloCluster < firstCaloCluster + numberOfCaloClusters ; icaloCluster++) {
       AliESDCaloCluster * cluster = fESD->GetCaloCluster(icaloCluster) ;
       if (cluster) {
@@ -238,14 +239,16 @@ void AliAnaCaloTriggerMC::Exec(Option_t *)
 	}
       }//if cluster
     }//CaloCluster loop
-    
-    TParticle * particle = stack->Particle(labelmax); 
-    Float_t ptgen = particle->Energy();
-    fNtTrigger22->Fill(a22, a22O, ptgen, enMax, phEnMax, eta22, phi22, etaMax, phiMax * TMath::RadToDeg() + 360., phEtaMax, phPhiMax * TMath::RadToDeg() + 360.);
-    fNtTriggerNN->Fill(aNN, aNNO, ptgen, enMax, phEnMax, etaNN, phiNN, etaMax, phiMax * TMath::RadToDeg() + 360., phEtaMax, phPhiMax * TMath::RadToDeg() + 360.);
-    
+
+    if(labelmax < stack->GetNtrack() && labelmax >= 0 ){
+      TParticle * particle = stack->Particle(labelmax); 
+      Float_t ptgen = particle->Energy();
+      fNtTrigger22->Fill(a22, a22O, ptgen, enMax, phEnMax, eta22, phi22, etaMax, phiMax * TMath::RadToDeg() + 360., phEtaMax, phPhiMax * TMath::RadToDeg() + 360.);
+      fNtTriggerNN->Fill(aNN, aNNO, ptgen, enMax, phEnMax, etaNN, phiNN, etaMax, phiMax * TMath::RadToDeg() + 360., phEtaMax, phPhiMax * TMath::RadToDeg() + 360.);
+    }
+    else AliDebug(1, Form("Wrong label %d, ntrack %d, Emax %f ",labelmax, stack->GetNtrack(), phEnMax));
   }//If trigger arrays filled
-  
+    
   PostData(0, fOutputContainer);
   
 }

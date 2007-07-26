@@ -1,8 +1,11 @@
-SRCS = AliAnaCaloTrigger.cxx  AliAnaCaloTriggerMC.cxx\
-       AliAnaGammaPhos.cxx AliGammaMC.cxx \
+SRCS = AliAnaCaloTrigger.cxx AliAnaCaloTriggerMC.cxx \
+       AliAnaGammaPhos.cxx AliNeutralMesonSelection.cxx \
        AliAnaScale.cxx AliMCScale.cxx \
-       AliAnaGammaData.cxx AliAnaGammaMC.cxx \
-       AliAnaGammaDirect.cxx AliAnaGammaCorr.cxx 
+       AliAnaGamma.cxx  AliAnaGammaDirect.cxx  \
+       AliAnaGammaCorrelation.cxx  AliAnaGammaParton.cxx AliAnaGammaHadron.cxx AliAnaGammaJetLeadCone.cxx  AliAnaGammaJetFinder.cxx \
+       AliAnalysisTaskGamma.cxx \
+       AliGammaReader.cxx AliGammaDataReader.cxx \
+       AliGammaMCReader.cxx  AliGammaMCDataReader.cxx 
 
 HDRS:= $(SRCS:.cxx=.h) 
 
