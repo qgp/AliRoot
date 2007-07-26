@@ -8,6 +8,8 @@
 #pragma link C++ class AliAnaCaloTriggerMC+;
 #pragma link C++ class AliAnaGammaPhos+;
 #pragma link C++ class AliAnaScale+;
+#pragma link C++ class AliGammaMC+;
+#pragma link C++ class AliMCScale+;
 #pragma link C++ class AliAnaGammaData+;
 #pragma link C++ class AliAnaGammaMC+;
 #pragma link C++ class AliAnaGammaDirect+;

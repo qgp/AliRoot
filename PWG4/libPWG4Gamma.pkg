@@ -1,5 +1,6 @@
 SRCS = AliAnaCaloTrigger.cxx  AliAnaCaloTriggerMC.cxx\
-       AliAnaGammaPhos.cxx AliAnaScale.cxx \
+       AliAnaGammaPhos.cxx AliGammaMC.cxx \
+       AliAnaScale.cxx AliMCScale.cxx \
        AliAnaGammaData.cxx AliAnaGammaMC.cxx \
        AliAnaGammaDirect.cxx AliAnaGammaCorr.cxx 
 
