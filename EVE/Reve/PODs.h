@@ -45,6 +45,10 @@ public:
   Vector(Float_t _x, Float_t _y, Float_t _z) : x(_x), y(_y), z(_z) {}
   virtual ~Vector() {}
 
+  Vector operator + (const Vector &);
+  Vector operator - (const Vector &);
+  Vector operator * (Double_t a);
+
   Float_t* c_vec() { return &x; }
   void Set(Float_t*  v) { x=v[0]; y=v[1]; z=v[2]; }
   void Set(Double_t* v) { x=v[0]; y=v[1]; z=v[2]; }

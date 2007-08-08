@@ -39,6 +39,17 @@ Float_t Vector::Eta() const
   return (z >= 0) ? 10e10 : -10e10;
 }
 
+Vector Vector::operator + (const Vector & b) {
+   return Vector(x + b.x, y + b.y, z + b.z);
+}
+
+Vector Vector::operator - (const Vector & b) {
+   return Vector(x - b.x, y - b.y, z - b.z);
+}
+
+Vector Vector::operator * (Double_t a) {
+   return Vector(a*x, a*y, a*z);
+}
 /**************************************************************************/
 /**************************************************************************/
 
