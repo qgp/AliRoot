@@ -1,5 +1,0 @@
-SRCS=  TKDTree.cxx TKDInterpolator.cxx TKDSpline.cxx
-
-HDRS= $(SRCS:.cxx=.h)
-
-DHDR:=kDStatLinkDef.h
