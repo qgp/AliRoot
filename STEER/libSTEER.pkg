@@ -1,6 +1,6 @@
 SRCS          = AliRunLoader.cxx AliLoader.cxx AliDataLoader.cxx  \
 AliObjectLoader.cxx AliBaseLoader.cxx AliTreeLoader.cxx AliTaskLoader.cxx \
-AliDetector.cxx	AliMagF.cxx \
+AliDetector.cxx	AliHeader.cxx	AliMagF.cxx \
 AliDigit.cxx	AliHit.cxx	AliPoints.cxx \
 AliDisplay.cxx	AliRun.cxx AliGenerator.cxx AliVertexGenerator.cxx \
 AliLego.cxx	AliModule.cxx	AliDigitNew.cxx \
@@ -10,17 +10,17 @@ AliMagFDM.cxx	AliLegoGenerator.cxx AliLegoGeneratorXYZ.cxx\
 AliLegoGeneratorPhiZ.cxx AliLegoGeneratorEta.cxx AliLegoGeneratorEtaR.cxx \
 AliRndm.cxx \
 AliMCQA.cxx AliPDG.cxx AliDebugVolume.cxx \
-AliConfig.cxx \
+AliGenEventHeader.cxx AliStack.cxx AliConfig.cxx \
 AliRunDigitizer.cxx AliDigitizer.cxx AliStream.cxx \
 AliMergeCombi.cxx AliMagFMaps.cxx AliFieldMap.cxx \
 AliMagFCheb.cxx AliCheb3D.cxx \
-AliGausCorr.cxx \
+AliGausCorr.cxx AliTrackReference.cxx \
 AliTrackMap.cxx AliTrackMapper.cxx AliCollisionGeometry.cxx \
 AliMemoryWatcher.cxx \
 AliVertexer.cxx \
 AliV0vertexer.cxx AliCascadeVertexer.cxx\
 AliMC.cxx AliSimulation.cxx AliReconstruction.cxx AliVertexGenFile.cxx \
-AliReconstructor.cxx TTreeStream.cxx\
+AliReconstructor.cxx AliDetectorEventHeader.cxx TTreeStream.cxx\
 AliGeomManager.cxx \
 AliAlignObj.cxx AliAlignObjAngles.cxx AliAlignObjMatrix.cxx \
 AliTriggerInput.cxx \
@@ -45,10 +45,7 @@ AliSurveyObj.cxx AliSurveyPoint.cxx \
 AliCodeTimer.cxx \
 AliFstream.cxx \
 AliCTPRawData.cxx \
-AliQualAss.cxx \
-AliQualAssDataMaker.cxx \
-AliQualAssChecker.cxx \
-AliQualAssCheckerBase.cxx
+AliMCEventHandler.cxx	
 
 
 

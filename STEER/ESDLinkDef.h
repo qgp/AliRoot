@@ -43,10 +43,21 @@
 #pragma link C++ class  AliVertexerTracks+;
 #pragma link C++ class  AliStrLine+;
 #pragma link C++ class  AliLog+;
+#pragma link C++ class  AliPID+;
 #pragma link C++ class  AliTrackPointArray+;
 #pragma link C++ class  AliTrackPoint+;
 
+#pragma link C++ class AliRunTag+;
+#pragma link C++ class AliLHCTag+;
+#pragma link C++ class AliDetectorTag+;
+#pragma link C++ class AliEventTag+;
+
+#pragma link C++ class AliTagCreator+;
 #pragma link C++ class AliESDTagCreator+;
+#pragma link C++ class AliRunTagCuts+;
+#pragma link C++ class AliLHCTagCuts+;
+#pragma link C++ class AliDetectorTagCuts+;
+#pragma link C++ class AliEventTagCuts+;
 
 #pragma link C++ class AliTrackPointArray+;
 #pragma link C++ class AliTrackPoint+;

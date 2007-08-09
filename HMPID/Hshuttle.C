@@ -8,8 +8,7 @@
   
   AliTestShuttle* pShuttle = new AliTestShuttle(0,0,1000000);   
   pShuttle->SetInputRunType("PHYSICS");
-//  pShuttle->SetInputRunType("PEDESTAL_RUN");
-  SimPed();   for(Int_t ldc=1;ldc<=2;ldc++) pShuttle->AddInputFile(AliTestShuttle::kDAQ,"HMP","pedestals",Form("LDC%i",ldc),Form("HmpidPeds%i.tar",ldc));
+  SimPed();   for(Int_t ldc=1;ldc<=4;ldc++) pShuttle->AddInputFile(AliTestShuttle::kDAQ,"HMP","pedestals",Form("LDC%i",ldc),Form("HmpidPeds%i.tar",ldc));
   SimMap(pDcsMap,runTime); pShuttle->SetDCSInput(pDcsMap);                                    //DCS map
   
   AliPreprocessor* pp = new AliHMPIDPreprocessor(pShuttle); pShuttle->Process();  delete pp;  //here goes preprocessor 
@@ -21,10 +20,9 @@
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void SimPed()
 {
-  Int_t iDDLmin=0,iDDLmax=13;
-  Int_t nSigmas = 3;             // value stored in the ddl files of pedestals
+  Int_t nSigmas = 1;             // value stored in the ddl files of pedestals
   ofstream out;
-  for(Int_t ddl=iDDLmin;ddl<=iDDLmax;ddl++){
+  for(Int_t ddl=0;ddl<=13;ddl++){
     out.open(Form("HmpidPedDdl%02i.txt",ddl));
     out << nSigmas <<endl;
     for(Int_t row=1;row<=24;row++)
@@ -36,37 +34,45 @@ void SimPed()
           out << Form("%2i %2i %2i %5.2f %5.2f %x\n",row,dil,adr,mean,sigma,inhard);
         }
 
+    Printf("file ped %02i created",ddl);
     out.close();
   }
-  Printf("HMPID - All %i DDL pedestal files created successfully",iDDLmax-iDDLmin+1);
-  gSystem->Exec("tar cf HmpidPeds1.tar HmpidPedDdl00.txt HmpidPedDdl01.txt HmpidPedDdl02.txt HmpidPedDdl03.txt HmpidPedDdl04.txt HmpidPedDdl05.txt HmpidPedDdl06.txt");
-  gSystem->Exec("tar cf HmpidPeds2.tar HmpidPedDdl07.txt HmpidPedDdl08.txt HmpidPedDdl09.txt HmpidPedDdl10.txt HmpidPedDdl11.txt HmpidPedDdl12.txt HmpidPedDdl13.txt");
-  Printf("HMPID - 2 tar files (HmpidPeds1-2) created (size 2273280 bytes)");
+  gSystem->Exec("tar cf HmpidPeds1.tar HmpidPedDdl00.txt HmpidPedDdl01.txt HmpidPedDdl02.txt HmpidPedDdl03.txt");
+  gSystem->Exec("tar cf HmpidPeds2.tar HmpidPedDdl04.txt HmpidPedDdl05.txt HmpidPedDdl06.txt HmpidPedDdl07.txt");
+  gSystem->Exec("tar cf HmpidPeds3.tar HmpidPedDdl08.txt HmpidPedDdl09.txt HmpidPedDdl10.txt HmpidPedDdl11.txt");
+  gSystem->Exec("tar cf HmpidPeds4.tar HmpidPedDdl12.txt HmpidPedDdl13.txt");
 }
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void SimMap(TMap *pDcsMap,Int_t runTime=1500)
 {
-  Int_t stepTime=100; //time interval between measurements
+  Int_t stepTime=100; //time interval between mesuraments
   Int_t startTime=0;
+  
   
   for(Int_t iCh=0;iCh<7;iCh++){//chambers loop
     TObjArray *pP=new TObjArray;  pP->SetOwner(1);
-    TObjArray *pHV=new TObjArray; pHV->SetOwner(1);
+    TObjArray *pHV=new TObjArray; pHV->SetOwner(1); 
+    TObjArray *pUserCut=new TObjArray; pUserCut->SetOwner(1); 
+    TObjArray *pDaqSigCut=new TObjArray; pDaqSigCut->SetOwner(1); 
     for(Int_t time=0;time<runTime;time+=stepTime) {
        pP->Add(new AliDCSValue((Float_t)1005.0 ,time));   //sample CH4 pressure [mBar]
-       pHV->Add(new AliDCSValue((Float_t)2050.0,time));   //sample chamber HV [V]
+       pHV->Add(new AliDCSValue((Float_t)2010.0,time));   //sample chamber HV [V]
+       pUserCut->Add(new AliDCSValue(3,time));            //User Cut in number of sigmas
+       pDaqSigCut->Add(new AliDCSValue(1,time));          //Cut in sigmas applied to electronics
     }
     pDcsMap->Add(new TObjString(Form("HMP_DET/HMP_MP%i/HMP_MP%i_GAS/HMP_MP%i_GAS_PMWC.actual.value"           ,iCh,iCh,iCh)),pP); 
     pDcsMap->Add(new TObjString(Form("HMP_DET/HMP_MP%i/HMP_MP%i_PW/HMP_MP%i_SEC0/HMP_MP%i_SEC0_HV.actual.vMon",iCh,iCh,iCh)),pHV); 
+    pDcsMap->Add(new TObjString(Form("HMP_%i.UserCut",iCh)),pUserCut); 
+    pDcsMap->Add(new TObjString(Form("HMP_%i.DaqSigCut",iCh)),pDaqSigCut); 
 
     for(Int_t iRad=0;iRad<3;iRad++){//radiators loop
-      TObjArray *pT1=new TObjArray; pT1->SetOwner(1);
-      TObjArray *pT2=new TObjArray; pT2->SetOwner(1);
+      TObjArray *pT1=new TObjArray; pT1->SetOwner(1); 
+      TObjArray *pT2=new TObjArray; pT2->SetOwner(1); 
       for (Int_t time=0;time<runTime;time+=stepTime)  pT1->Add(new AliDCSValue(13,time));  //sample inlet temperature    Nmean=1.292 @ 13 degrees
       for (Int_t time=0;time<runTime;time+=stepTime)  pT2->Add(new AliDCSValue(14,time));  //sample outlet temperature
       pDcsMap->Add(new TObjString(Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iIn_Temp",iCh,iCh,iRad)) ,pT1); 
       pDcsMap->Add(new TObjString(Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iOut_Temp",iCh,iCh,iRad)),pT2);
-    }//radiators loop
+    }//radiators loop    
   }//chambers loop
 }//SimMap()
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

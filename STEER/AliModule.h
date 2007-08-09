@@ -15,7 +15,6 @@
 #include <Riostream.h>
 #include <TNamed.h>
 
-#include "AliLog.h"
 #include "AliTriggerDetector.h"
 
 class TClonesArray;
@@ -98,7 +97,6 @@ public:
   virtual void        Digits2Raw();
   virtual void        Raw2Digits()  {}
   virtual Bool_t      Raw2SDigits(AliRawReader*) {return kFALSE;}
-  virtual void        QualAssDataMaker (const char *) {} 
   virtual void        Browse(TBrowser *) {} //PH Do we need it?
   virtual void        CreateGeometry() {}
   virtual void        CreateMaterials() {}
@@ -150,9 +148,8 @@ public:
   void                SetRunLoader(AliRunLoader* runLoader) 
     {fRunLoader = runLoader;}
   
-// Quality Assurance methods
-  virtual void CheckQA()    { ; }
-  
+//
+ 
 protected:      
 
   // Data members

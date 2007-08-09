@@ -19,9 +19,6 @@
 /* History of cvs commits:
  *
  * $Log$
- * Revision 1.50  2006/08/28 10:01:56  kharlov
- * Effective C++ warnings fixed (Timur Pocheptsov)
- *
  * Revision 1.49  2006/05/10 06:42:53  kharlov
  * Remove redundant loop over primaries
  *
@@ -80,7 +77,7 @@
 #include "AliPHOSGetter.h"
 #include "AliPHOSHit.h"
 #include "AliPHOSSDigitizer.h"
-#include "AliPHOSQualAssDataMaker.h" 
+//#include "AliMemoryWatcher.h"
 
 ClassImp(AliPHOSSDigitizer)
 
@@ -95,11 +92,9 @@ AliPHOSSDigitizer::AliPHOSSDigitizer() :
   fInit(kFALSE),
   fSDigitsInRun(0),
   fFirstEvent(0),
-  fLastEvent(0), 
-  fQADM (0x0)
+  fLastEvent(0)
 {
   // ctor
-  // Intialize the quality assurance data maker 	
 }
 
 //____________________________________________________________________________ 
@@ -113,46 +108,12 @@ AliPHOSSDigitizer::AliPHOSSDigitizer(const char * alirunFileName,
   fInit(kFALSE),
   fSDigitsInRun(0),
   fFirstEvent(0),
-  fLastEvent(0), 
-  fQADM (0x0)
+  fLastEvent(0)
 {
   // ctor
   InitParameters() ; 
   Init();
   fDefaultInit = kFALSE ; 
-  // Intialize the quality assurance data maker 	
-  GetQualAssDataMaker()->Init(AliQualAss::kHITS) ;
-  GetQualAssDataMaker()->Init(AliQualAss::kSDIGITS) ; 
-}
-
-//____________________________________________________________________________
-AliPHOSSDigitizer::AliPHOSSDigitizer(const AliPHOSSDigitizer& sd) :
-  TTask(sd.GetName(), sd.GetTitle()),
-  fA(sd.fA), fB(sd.fB),
-  fPrimThreshold(sd.fPrimThreshold),
-  fDefaultInit(kFALSE),
-  fEventFolderName(sd.fEventFolderName),
-  fInit(kFALSE),
-  fSDigitsInRun(sd.fSDigitsInRun),
-  fFirstEvent(sd.fFirstEvent),
-  fLastEvent(sd.fLastEvent), 
-  fQADM (sd.fQADM)
-{ 
-  // cpy ctor
-  // Intialize the quality assurance data maker 	
-  GetQualAssDataMaker()->Init(AliQualAss::kHITS) ;
-  GetQualAssDataMaker()->Init(AliQualAss::kSDIGITS) ; 
-}
-
-
-//_____________________________________________________________________________
-AliPHOSSDigitizer& AliPHOSSDigitizer::operator = (const AliPHOSSDigitizer& qa)
-{
-// assignment operator
-
-  this->~AliPHOSSDigitizer();
-  new(this) AliPHOSSDigitizer(qa);
-  return *this;
 }
 
 //____________________________________________________________________________ 
@@ -163,9 +124,7 @@ AliPHOSSDigitizer::~AliPHOSSDigitizer() {
   AliPHOSGetter * gime =
     AliPHOSGetter::Instance();  
   gime->PhosLoader()->CleanSDigitizer();
-  delete fQADM ; 
 }
-
 //____________________________________________________________________________ 
 void AliPHOSSDigitizer::Init()
 {
@@ -188,8 +147,6 @@ void AliPHOSSDigitizer::Init()
   gime->PostSDigitizer(this);
   gime->PhosLoader()->GetSDigitsDataLoader()->GetBaseTaskLoader()->SetDoNotReload(kTRUE);
  
-  fQADM = new AliPHOSQualAssDataMaker() ;  
-
 }
 
 //____________________________________________________________________________ 
@@ -273,14 +230,6 @@ void AliPHOSSDigitizer::Exec(Option_t *option)
       digit->SetIndexInList(i) ;     
     }
 
-    // make Quality Assurance data
-
-    GetQualAssDataMaker()->SetData(hits) ; 
-    GetQualAssDataMaker()->Exec(AliQualAss::kHITS) ; 
-    GetQualAssDataMaker()->SetData(sdigits) ; 
-    GetQualAssDataMaker()->Exec(AliQualAss::kSDIGITS) ; 
-
-
     //Now write SDigits
 
     
@@ -304,10 +253,6 @@ void AliPHOSSDigitizer::Exec(Option_t *option)
     //memwatcher.Watch(ievent); 
   }// event loop
   
-  //Write the quality assurance data 
-  GetQualAssDataMaker()->Finish(AliQualAss::kHITS) ;
-  GetQualAssDataMaker()->Finish(AliQualAss::kSDIGITS) ;
-
   Unload();
 
   //  gime->PhosLoader()->GetSDigitsDataLoader()->GetBaseTaskLoader()->SetDoNotReload(kTRUE);

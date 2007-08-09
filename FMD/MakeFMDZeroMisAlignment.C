@@ -2,12 +2,7 @@ void MakeFMDZeroMisAlignment()
 {
   // Create TClonesArray of zero-misalignment objects for FMD
   //
-  if(!AliGeomManager::GetGeometry()){
-    if(!(AliCDBManager::Instance())->IsDefaultStorageSet())
-      AliCDBManager::Instance()->SetDefaultStorage("local://$ALICE_ROOT");
-      AliCDBManager::Instance()->SetRun(0);
-    AliGeomManager::LoadGeometry();
-  }
+  if(!gGeoManager) TGeoManager::Import("geometry.root");
   
   gSystem->Load("libFMDutil.so");
   if( gSystem->Getenv("TOCDB") != TString("kTRUE") ){

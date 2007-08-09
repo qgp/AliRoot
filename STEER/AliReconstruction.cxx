@@ -153,7 +153,6 @@
 #include "AliESDtrack.h"
 
 #include "AliESDTagCreator.h"
-#include "AliAODTagCreator.h"
 
 #include "AliGeomManager.h"
 #include "AliTrackPointArray.h"
@@ -830,10 +829,7 @@ Bool_t AliReconstruction::Run(const char* input)
   // In case of empty events the tags will contain dummy values
   AliESDTagCreator *esdtagCreator = new AliESDTagCreator();
   esdtagCreator->CreateESDTags(fFirstEvent,fLastEvent);
-  if (fWriteAOD) {
-    AliAODTagCreator *aodtagCreator = new AliAODTagCreator();
-    aodtagCreator->CreateAODTags(fFirstEvent,fLastEvent);
-  }
+  //if (fWriteAOD) tagCreator->CreateAODTags(fFirstEvent,fLastEvent);
 
   return kTRUE;
 }
@@ -2366,7 +2362,7 @@ void AliReconstruction::ESDFile2AODFile(TFile* esdFile, TFile* aodFile)
       // has to be changed once the muon pid is provided by the ESD
       for (Int_t i = 0; i < 10; pid[i++] = 0.); pid[AliAODTrack::kMuon]=1.;
       
-      primary->AddDaughter(aodTrack = 
+      primary->AddDaughter(
 	  new(tracks[jTracks++]) AliAODTrack(0, // no ID provided
 					     0, // no label provided
 					     p,
@@ -2375,21 +2371,13 @@ void AliReconstruction::ESDFile2AODFile(TFile* esdFile, TFile* aodFile)
 					     kFALSE,
 					     NULL, // no covariance matrix provided
 					     esdMuTrack->Charge(),
-					     0, // ITSClusterMap is set below
+					     0, // no ITSMuonClusterMap
 					     pid,
 					     primary,
  					     kFALSE,    // muon tracks are not used to fit the primary vtx
 					     kFALSE,    // not used for vertex fit
 					     AliAODTrack::kPrimary)
 	  );
-    
-        aodTrack->SetHitsPatternInTrigCh(esdMuTrack->GetHitsPatternInTrigCh());
-        Int_t track2Trigger = esdMuTrack->GetMatchTrigger();
-        aodTrack->SetMatchTrigger(track2Trigger);
-        if (track2Trigger) 
-  	  aodTrack->SetChi2MatchTrigger(esdMuTrack->GetChi2MatchTrigger());
-        else 
-	  aodTrack->SetChi2MatchTrigger(0.);
     }
     
     // Access to the AOD container of clusters

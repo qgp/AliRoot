@@ -416,7 +416,7 @@ int AliHLTTPCClusterFinderComponent::DoEvent( const AliHLTComponentEventData& ev
 #endif 
 
       fClusterFinder->InitSlice( slice, patch, row[0], row[1], maxPoints );
-      fClusterFinder->SetOutputArray( (AliHLTTPCSpacePointData*)outPtr->fSpacePoints );
+      fClusterFinder->SetOutputArray( outPtr->fSpacePoints );
 	
       if(fUnsorted){
 

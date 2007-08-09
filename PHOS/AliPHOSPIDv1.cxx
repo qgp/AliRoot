@@ -18,9 +18,6 @@
 /* History of cvs commits:
  *
  * $Log$
- * Revision 1.112  2007/07/11 13:43:30  hristov
- * New class AliESDEvent, backward compatibility with the old AliESD (Christian)
- *
  * Revision 1.111  2007/05/04 14:49:29  policheh
  * AliPHOSRecPoint inheritance from AliCluster
  *
@@ -145,7 +142,6 @@ ClassImp( AliPHOSPIDv1)
 
 //____________________________________________________________________________
 AliPHOSPIDv1::AliPHOSPIDv1() :
-  AliPHOSPID(),
   fBayesian(kFALSE),
   fDefaultInit(kFALSE),
   fWrite(kFALSE),
@@ -160,7 +156,6 @@ AliPHOSPIDv1::AliPHOSPIDv1() :
   fPPi0(0),
   fRecParticlesInRun(0),
   fParameters(0),
-  fVtx(0.), 
   fTFphoton(0),
   fTFpiong(0),
   fTFkaong(0),
@@ -197,7 +192,6 @@ AliPHOSPIDv1::AliPHOSPIDv1(const AliPHOSPIDv1 & pid ) :
   fPPi0(0),
   fRecParticlesInRun(0),
   fParameters(0),
-  fVtx(0.), 
   fTFphoton(0),
   fTFpiong(0),
   fTFkaong(0),
@@ -235,7 +229,6 @@ AliPHOSPIDv1::AliPHOSPIDv1(const TString alirunFileName, const TString eventFold
   fPPi0(0),
   fRecParticlesInRun(0),
   fParameters(0),
-  fVtx(0.), 
   fTFphoton(0),
   fTFpiong(0),
   fTFkaong(0),

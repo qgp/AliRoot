@@ -17,9 +17,6 @@
 /* History of cvs commits:
  *
  * $Log$
- * Revision 1.90  2007/07/11 13:43:30  hristov
- * New class AliESDEvent, backward compatibility with the old AliESD (Christian)
- *
  * Revision 1.89  2007/07/03 08:13:04  kharlov
  * Bug fix in CPV local coordinates
  *
@@ -116,7 +113,6 @@
 #include "AliPHOSGetter.h"
 #include "AliESDEvent.h"
 #include "AliESDtrack.h"
-#include "AliPHOSQualAssDataMaker.h"
 
 ClassImp( AliPHOSTrackSegmentMakerv1) 
 
@@ -129,7 +125,6 @@ AliPHOSTrackSegmentMakerv1::AliPHOSTrackSegmentMakerv1() :
   fNTrackSegments(0),
   fRcpv(0.f),
   fRtpc(0.f),
-  fVtx(0.f), 
   fLinkUpArray(0),
   fEmcFirst(0),
   fEmcLast(0),
@@ -151,7 +146,6 @@ AliPHOSTrackSegmentMakerv1::AliPHOSTrackSegmentMakerv1(const TString & alirunFil
   fNTrackSegments(0),
   fRcpv(0.f),
   fRtpc(0.f),
-  fVtx(0.f), 
   fLinkUpArray(0),
   fEmcFirst(0),
   fEmcLast(0),
@@ -174,7 +168,6 @@ AliPHOSTrackSegmentMakerv1::AliPHOSTrackSegmentMakerv1(const AliPHOSTrackSegment
   fNTrackSegments(0),
   fRcpv(0.f),
   fRtpc(0.f),
-  fVtx(0.f), 
   fLinkUpArray(0),
   fEmcFirst(0),
   fEmcLast(0),
@@ -213,9 +206,10 @@ void  AliPHOSTrackSegmentMakerv1::FillOneModule()
   // clusters from one PHOS module are
 
   AliPHOSGetter * gime = AliPHOSGetter::Instance() ; 
+  
   TObjArray * emcRecPoints = gime->EmcRecPoints() ; 
   TObjArray * cpvRecPoints = gime->CpvRecPoints() ; 
-   
+ 
   //First EMC clusters
   Int_t totalEmc = emcRecPoints->GetEntriesFast() ;
   for(fEmcFirst = fEmcLast; (fEmcLast < totalEmc) &&  
@@ -516,15 +510,14 @@ void  AliPHOSTrackSegmentMakerv1::Exec(Option_t *option)
     
     gime->TrackSegments()->Clear();
 
-   //   if(!ReadRecPoints(ievent))   continue; //reads RecPoints for event ievent
+    //    if(!ReadRecPoints(ievent))   continue; //reads RecPoints for event ievent
     
     for(fModule = 1; fModule <= geom->GetNModules() ; fModule++ ) {
       FillOneModule() ; 
       MakeLinks() ;
       MakePairs() ;
     }
-   
-    
+
     WriteTrackSegments() ;
 
     if(strstr(option,"deb"))

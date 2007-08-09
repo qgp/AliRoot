@@ -30,7 +30,7 @@ void MakeTRDFullMisAlignment(){
   UShort_t volid;
   const char *symname;
 
-  AliGeomManager::LoadGeometry("./geom_misalBSEGMO.root"); // geometry where the BSEGMO volumes have been misaligned
+  TGeoManager::Import("/home/rgrosso/MacroAllineamento010207/geom_misalBSEGMO.root"); // geometry where the BSEGMO volumes have been misaligned
 
   // create the supermodules' alignment objects
   for (int i; i<18; i++) {
@@ -54,8 +54,9 @@ void MakeTRDFullMisAlignment(){
       return;
     }
   }
-  gGeoManager->Export("./geom_misalBSEGMO_trdSM.root");
-  AliGeomManager::LoadGeometry("./geom_misalBSEGMO_trdSM.root");
+  gGeoManager->Export("/home/rgrosso/MacroAllineamento010207/geom_misalBSEGMO_trdSM.root");
+  gGeoManager=0x0;
+  TGeoManager::Import("/home/rgrosso/MacroAllineamento010207/geom_misalBSEGMO_trdSM.root");
   // create the chambers' alignment objects
   ran = new TRandom(4357);
   for (Int_t iLayer = AliGeomManager::kTRD1; iLayer <= AliGeomManager::kTRD6; iLayer++) {
@@ -75,44 +76,28 @@ void MakeTRDFullMisAlignment(){
     }
   }
 
-  const char* macroname = "MakeTRDFullMisAlignment.C";
   if( gSystem->Getenv("TOCDB") != TString("kTRUE") ){
     // save on file
-    const char* filename = "TRDfullMisalignment.root";
-    TFile f(filename,"RECREATE");
-    if(!f){
-      Error(macroname,"cannot open file for output\n");
-      return;
-    }
-    Info(macroname,"Saving alignment objects to the file %s", filename);
+    TFile f("TRDfullMisalignment.root","RECREATE");
+    if(!f) cerr<<"cannot open file for output\n";
     f.cd();
     f.WriteObject(array,"TRDAlignObjs","kSingleKey");
     f.Close();
   }else{
     // save in CDB storage
-    TString Storage = gSystem->Getenv("STORAGE");
-    if(!Storage.BeginsWith("local://") && !Storage.BeginsWith("alien://")) {
-      Error(macroname,"STORAGE variable set to %s is not valid. Exiting\n",Storage.Data());
-      return;
-    }
-    Info(macroname,"Saving alignment objects in CDB storage %s",
-	 Storage.Data());
+    const char* Storage = gSystem->Getenv("STORAGE");
     AliCDBManager* cdb = AliCDBManager::Instance();
-    AliCDBStorage* storage = cdb->GetStorage(Storage.Data());
-    if(!storage){
-      Error(macroname,"Unable to open storage %s\n",Storage.Data());
-      return;
-    }
+    AliCDBStorage* storage = cdb->GetStorage(Storage);
     AliCDBMetaData* md = new AliCDBMetaData();
     md->SetResponsible("Dariusz Miskowiec");
     md->SetComment("Full misalignment for TRD");
     md->SetAliRootVersion(gSystem->Getenv("ARVERSION"));
-    AliCDBId id("TRD/Align/Data",0,AliCDBRunRange::Infinity());
+    AliCDBId id("TRD/Align/Data",0,9999999);
     storage->Put(array,id,md);
   }
 
   array->Delete();
-  gGeoManager = 0x0;
+
 }
 
 

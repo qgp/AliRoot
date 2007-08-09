@@ -34,12 +34,7 @@ void MakePMDZeroMisAlignment(){
     // Steel plate 
  */
   
-  if(!AliGeomManager::GetGeometry()){
-    if(!(AliCDBManager::Instance())->IsDefaultStorageSet())
-      AliCDBManager::Instance()->SetDefaultStorage("local://$ALICE_ROOT");
-      AliCDBManager::Instance()->SetRun(0);
-    AliGeomManager::LoadGeometry();
-  }
+  if(!gGeoManager) TGeoManager::Import("geometry.root");
   // needed for the constructors with local coordinates not to fail
 
   //Create a TClonesArray of Align Object to store displacement Angles
@@ -59,39 +54,24 @@ void MakePMDZeroMisAlignment(){
     new(alobj[j++]) AliAlignObjAngles(snSector.Data(), volid, dx, dy, dz, dpsi, dtheta, dphi, kTRUE);
   }
 
-  const char* macroname = "MakePMDZeroMisAlignment.C";
   if( gSystem->Getenv("TOCDB") != TString("kTRUE") ){
     // Create a File to store the alignment data
-    const char* filename = "PMDzeroMisalignment.root";
-    TFile f(filename,"RECREATE");
-    if(!f){
-      Error(macroname,"cannot open file for output\n");
-      return;
-    }
-    Info(macroname,"Saving alignment objects to the file %s", filename);
+    TFile f("PMDzeroMisalignment.root","RECREATE");
+    if(!f) {cerr<<"cannot open file for output\n";}
+    
     f.cd();
-    f.WriteObject(array,"PMDAlignObjs","kSingleKey");
+    f.WriteObject(array,"PMDAlignObjs ","kSingleKey");
     f.Close();
   }else{
   // save in CDB storage
-    TString Storage = gSystem->Getenv("STORAGE");
-    if(!Storage.BeginsWith("local://") && !Storage.BeginsWith("alien://")) {
-      Error(macroname,"STORAGE variable set to %s is not valid. Exiting\n",Storage.Data());
-      return;
-    }
-    Info(macroname,"Saving alignment objects in CDB storage %s",
-	 Storage.Data());
+    const char* Storage = gSystem->Getenv("STORAGE");
     AliCDBManager* cdb = AliCDBManager::Instance();
-    AliCDBStorage* storage = cdb->GetStorage(Storage.Data());
-    if(!storage){
-      Error(macroname,"Unable to open storage %s\n",Storage.Data());
-      return;
-    }
+    AliCDBStorage* storage = cdb->GetStorage(Storage);
     AliCDBMetaData* md = new AliCDBMetaData();
     md->SetResponsible("");
     md->SetComment("Zero misalignment for PMD");
     md->SetAliRootVersion(gSystem->Getenv("ARVERSION"));
-    AliCDBId id("PMD/Align/Data",0,AliCDBRunRange::Infinity());
+    AliCDBId id("PMD/Align/Data",0,9999999);
     storage->Put(array,id,md);
   }
   array->Delete();
