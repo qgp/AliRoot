@@ -54,12 +54,12 @@ public:
 
 
 void RenderPolyMarkers(TAttMarker& marker, Float_t* p, Int_t n, 
-		       Bool_t selection, Bool_t sec_selection);
+		       Bool_t selection=kFALSE, Bool_t sec_selection=kFALSE);
 
 void RenderPoints(TAttMarker& marker, Float_t* p, Int_t n,
-		  Bool_t selection, Bool_t sec_selection);
+		  Bool_t selection=kFALSE, Bool_t sec_selection=kFALSE);
 
-void RenderCrosses(TAttMarker& marker, Float_t* p, Int_t n, Bool_t sec_selection);
+void RenderCrosses(TAttMarker& marker, Float_t* p, Int_t n, Bool_t sec_selection=kFALSE);
 
 }
 

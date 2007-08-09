@@ -63,7 +63,6 @@ void StraightLineSetGL::DirectDraw(TGLRnrCtx & rnrCtx) const
 
   glPushAttrib(GL_POINT_BIT | GL_LINE_BIT | GL_ENABLE_BIT);
   GLUtilNS::GL_Capability_Switch lights_off(GL_LIGHTING, false);
- 
   if(mL.fRnrLines && mL.fLinePlex.Size() > 0)
   {
     UChar_t color[4];
@@ -103,13 +102,10 @@ void StraightLineSetGL::DirectDraw(TGLRnrCtx & rnrCtx) const
       glEnd();
     }
   }
-
-  if(mL.fRnrMarkers && mL.fMarkerPlex.Size() > 0)
+  glPopAttrib();
+ 
+ if(mL.fRnrMarkers && mL.fMarkerPlex.Size() > 0)
   {
-    UChar_t color[4];
-    ColorFromIdx(mL.GetMarkerColor(), color);
-    glColor4ubv(color);
-
     VoidCPlex::iterator mi(mL.fMarkerPlex);
     Float_t* pnts = new Float_t[mL.fMarkerPlex.Size()*3];
     Float_t* pnt  = pnts;
@@ -131,7 +127,6 @@ void StraightLineSetGL::DirectDraw(TGLRnrCtx & rnrCtx) const
     delete [] pnts;
   }
 
-  glPopAttrib();
 }
 
 /**************************************************************************/

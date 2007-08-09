@@ -1,4 +1,5 @@
 #include "GLUtilNS.h"
+#include "Reve.h"
 
 #include <TAttMarker.h>
 #include <TGLIncludes.h>
@@ -9,12 +10,21 @@ void RenderPolyMarkers(TAttMarker& marker, Float_t* p, Int_t n,
 		       Bool_t selection, Bool_t sec_selection)
 {
   // Store attributes GL_POINT_BIT and GL_LINE_BIT before call this function !
+  glPushAttrib(GL_ENABLE_BIT |GL_POINT_BIT | GL_LINE_BIT);
+  glDisable(GL_LIGHTING);
+  glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
+  glEnable(GL_COLOR_MATERIAL);
+  UChar_t color[4];
+  Reve::ColorFromIdx(marker.GetMarkerColor(), color);
+  glColor4ubv(color);
 
   Int_t s = marker.GetMarkerStyle(); 
   if (s == 2 || s == 3 || s == 5 || s == 28)
     RenderCrosses(marker, p, n, sec_selection); 
   else
     RenderPoints(marker, p, n, selection, sec_selection); 
+
+  glPopAttrib();
 }
 
 //______________________________________________________________________________
@@ -114,7 +124,7 @@ void RenderCrosses(TAttMarker& marker, Float_t* p, Int_t n,
   }
 
   // cross dim
-  const Float_t  d = marker.GetMarkerSize();
+  const Float_t  d = 2*marker.GetMarkerSize();
   if (sec_selection) 
   {
     glPushName(0);
