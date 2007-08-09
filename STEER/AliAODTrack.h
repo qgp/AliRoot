@@ -13,11 +13,11 @@
 #include <TRef.h>
 #include <TParticle.h>
 
-#include "AliVParticle.h"
+#include "AliVirtualParticle.h"
 #include "AliAODVertex.h"
 #include "AliAODRedCov.h"
 
-class AliAODTrack : public AliVParticle {
+class AliAODTrack : public AliVirtualParticle {
 
  public:
   
@@ -194,9 +194,8 @@ class AliAODTrack : public AliVParticle {
   void     SetChi2MatchTrigger(Double_t Chi2MatchTrigger) {fChi2MatchTrigger = Chi2MatchTrigger;}
   UShort_t GetHitsPatternInTrigCh() const { return (fITSMuonClusterMap&0xff00)>>8; }
   void     SetHitsPatternInTrigCh(UShort_t hitsPatternInTrigCh);
-  Int_t    HitsMT(Int_t istation, Int_t iplane, Char_t *cathode=0);  // Check if track hits Muon chambers
-  Int_t    HitsMuonChamber(Int_t MuonChamber);  // Check if track hits Muon chambers
-  Bool_t   IsMuonTrack() const { return fITSMuonClusterMap>>16;}  // This scheme has to be checked, still!
+  Int_t HitsMT(Int_t istation, Int_t iplane, Char_t *cathode=0);  // Check if track hits Muon chambers
+  Int_t HitsMuonChamber(Int_t MuonChamber);  // Check if track hits Muon chambers
 
   void SetProdVertex(TObject *vertex) { fProdVertex = vertex; }
 
@@ -225,7 +224,7 @@ class AliAODTrack : public AliVParticle {
   Double_t      fChi2MatchTrigger;  // chi2 of trigger/track matching
   UInt_t        fFilterMap;         // filter information, one bit per set of cuts
 
-  ClassDef(AliAODTrack,4);
+  ClassDef(AliAODTrack,3);
 };
 
 #endif

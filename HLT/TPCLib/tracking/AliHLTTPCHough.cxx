@@ -1499,7 +1499,6 @@ Int_t AliHLTTPCHough::WaitForThreadFinish()
 #else
   return fThread->Join(fThread->GetId());
 #endif
-#endif // HAVE_THREAD
   AliErrorClassStream() << "thread support not compiled" << endl;
-  return 0;
+#endif // HAVE_THREAD
 }

@@ -33,7 +33,6 @@
 // of the hit.
 /////////////////////////////////////////////////
 
-#include <strings.h>
 #include "AliHLTMUONHitReconstructor.h"
 #include "AliHLTMUONRecHitsBlockStruct.h"
 

@@ -1,10 +1,11 @@
-SRCS          =  \
+SRCS          =  AliPHOSRecPoint.cxx AliPHOSEmcRecPoint.cxx \
+                 AliPHOSCpvRecPoint.cxx \
                  AliPHOSClusterizerv1.cxx  \
                  AliPHOSLink.cxx \
-                 AliPHOSReconstructor.cxx \
+                 AliPHOSReconstructor.cxx  AliPHOSTrackSegment.cxx \
                  AliPHOSTrackSegmentMakerv1.cxx \
                  AliPHOSTrackSegmentMakerv2.cxx \
-                 AliPHOSPIDv0.cxx \
+                 AliPHOSRecParticle.cxx AliPHOSPIDv0.cxx \
                  AliPHOSAnalyze.cxx \
                  AliPHOSIhepAnalyze.cxx AliPHOSEvalRecPoint.cxx \
                  AliPHOSRecManager.cxx AliPHOSRecCpvManager.cxx \

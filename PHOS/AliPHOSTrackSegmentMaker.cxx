@@ -17,9 +17,6 @@
 /* History of cvs commits:
  *
  * $Log$
- * Revision 1.27  2006/08/25 16:56:30  kharlov
- * Compliance with Effective C++
- *
  * Revision 1.26  2006/08/25 16:00:53  kharlov
  * Compliance with Effective C++AliPHOSHit.cxx
  *
@@ -43,7 +40,6 @@
 // --- AliRoot header files ---
 #include "AliPHOSTrackSegmentMaker.h"
 #include "AliPHOSGetter.h"
-#include "AliPHOSQualAssDataMaker.h" 
 
 ClassImp( AliPHOSTrackSegmentMaker) 
 
@@ -54,10 +50,9 @@ AliPHOSTrackSegmentMaker:: AliPHOSTrackSegmentMaker() :
   fEventFolderName(""),
   fFirstEvent(0),
   fLastEvent(-1),
-  fESD(0), 
-  fQADM(0x0)  
+  fESD(0)
 {
- // ctor
+  // ctor
 }
 
 //____________________________________________________________________________
@@ -67,12 +62,9 @@ AliPHOSTrackSegmentMaker::AliPHOSTrackSegmentMaker(const TString alirunFileName,
   fEventFolderName(eventFolderName),
   fFirstEvent(0),
   fLastEvent(-1),
-  fESD(0), 
-  fQADM(0x0)
+  fESD(0)
 {
   // ctor
-  fQADM = new  AliPHOSQualAssDataMaker() ; //!Quality Assurance Data Maker
-  GetQualAssDataMaker()->Init(AliQualAss::kTRACKSEGMENTS) ; 
 }
 
 //____________________________________________________________________________
@@ -81,8 +73,7 @@ AliPHOSTrackSegmentMaker::AliPHOSTrackSegmentMaker(const AliPHOSTrackSegmentMake
   fEventFolderName(tsmaker.GetEventFolderName()),
   fFirstEvent(tsmaker.GetFirstEvent()),
   fLastEvent(tsmaker.GetLastEvent()),
-  fESD(tsmaker.GetESD()), 
-  fQADM(tsmaker.fQADM)
+  fESD(tsmaker.GetESD())
 {
   //Copy constructor
 } 
@@ -93,6 +84,5 @@ AliPHOSTrackSegmentMaker::~AliPHOSTrackSegmentMaker()
  //Remove this from the parental task before destroying
   if(AliPHOSGetter::Instance()->PhosLoader())
     AliPHOSGetter::Instance()->PhosLoader()->CleanTracker();
-  delete fQADM ; 
 }
 

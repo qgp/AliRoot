@@ -16,28 +16,10 @@
 /* $Id$ */
 
 //-------------------------------------------------------------------------
-//     Event header base class
+//     base class for ESD and AOD particles
 //     Author: Markus Oldenburg, CERN
 //-------------------------------------------------------------------------
 
-#include "AliVHeader.h"
+#include "AliVirtualParticle.h"
 
-ClassImp(AliVHeader)
-
-//______________________________________________________________________________
-AliVHeader::AliVHeader() : 
-  TNamed("header","") { } // default constructor 
-
-//______________________________________________________________________________
-AliVHeader::AliVHeader(const AliVHeader& hdr) :
-  TNamed(hdr) { } // Copy constructor
-
-//______________________________________________________________________________
-AliVHeader& AliVHeader::operator=(const AliVHeader& hdr)
-{
-  // Assignment operator
-  if(this!=&hdr) { 
-    TNamed::operator=(hdr);
-  }
-  return *this;
-}
+ClassImp(AliVirtualParticle)

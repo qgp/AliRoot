@@ -18,12 +18,7 @@ SRCS          =  AliPHOS.cxx \
 		 AliPHOSRawDigiProducer.cxx \
 		 AliPHOSEmcBadChannelsMap.cxx \
 		 AliPHOSSurvey.cxx \
-		 AliPHOSSurvey1.cxx \
-                 AliPHOSQualAssDataMaker.cxx \
-                 AliPHOSQualAssChecker.cxx \
-                 AliPHOSRecParticle.cxx AliPHOSRecPoint.cxx \
-                 AliPHOSEmcRecPoint.cxx \
-                 AliPHOSCpvRecPoint.cxx   AliPHOSTrackSegment.cxx
+		 AliPHOSSurvey1.cxx
 
 HDRS:= $(SRCS:.cxx=.h) 
 

@@ -267,12 +267,8 @@
     enum   AliAODCluster::AODClu_t {};
     enum   AliAODCluster::AODCluPID_t {};
 
-    class  AliVParticle {};
-    class  AliVEvent {};
-    class  AliVHeader {};
-    class  AliVEventHandler {};
-
     class  AliAODEvent {};
+    class  AliVirtualParticle {};
     class  AliAODHeader {};
     class  AliAODTrack {};
     class  AliAODVertex {};
@@ -283,6 +279,7 @@
     class  AliAODRedCov<Int_t> {};
     class  AliAODRedCov<Int_t> {};
     class  AliAODRecoDecay;
+    class  AliVirtualEventHandler {};
     class  AliAODHandler {};
 
 /** @} */

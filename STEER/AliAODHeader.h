@@ -6,14 +6,14 @@
 /* $Id$ */
 
 //-------------------------------------------------------------------------
-//     AOD event header class
+//     AOD event base class
 //     Author: Markus Oldenburg, CERN
 //-------------------------------------------------------------------------
 
-#include "AliVHeader.h"
+#include <TNamed.h>
 #include "AliAODVertex.h"
 
-class AliAODHeader : public AliVHeader {
+class AliAODHeader : public TNamed {
 
  public :
   AliAODHeader();
@@ -65,8 +65,8 @@ class AliAODHeader : public AliVHeader {
   
   void SetRunNumber(Int_t nRun)                { fRunNumber = nRun; }
   void SetBunchCrossNumber(UShort_t nBx)       { fBunchCrossNumber = nBx; }
-  void SetOrbitNumber(UInt_t nOr)              { fOrbitNumber = nOr; }
-  void SetPeriodNumber(UInt_t nPer)            { fPeriodNumber = nPer; }
+  void SetOrbitNumber(Int_t nOr)               { fOrbitNumber = nOr; }
+  void SetPeriodNumber(Int_t nPer)             { fPeriodNumber = nPer; }
   void SetTriggerMask(ULong64_t trigMsk)       { fTriggerMask = trigMsk; }
   void SetTriggerCluster(UChar_t trigClus)     { fTriggerCluster = trigClus; }
   void SetEventType(UInt_t evttype)            { fEventType = evttype; }
@@ -107,7 +107,7 @@ class AliAODHeader : public AliVHeader {
   Int_t       fRefMultNeg;          // reference multiplicity of negative particles
   UChar_t     fTriggerCluster;      // Trigger cluster (mask)
   
-  ClassDef(AliAODHeader,4);
+  ClassDef(AliAODHeader,3);
 };
 
 #endif

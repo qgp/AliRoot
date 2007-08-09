@@ -11,11 +11,11 @@
 //-------------------------------------------------------------------------
 
 #include <TLorentzVector.h>
-#include "AliVParticle.h"
+#include "AliVirtualParticle.h"
 #include "AliAODVertex.h"
 
 
-class AliAODPhoton : public AliVParticle {
+class AliAODPhoton : public AliVirtualParticle {
 
  public:
     AliAODPhoton();
@@ -24,7 +24,7 @@ class AliAODPhoton : public AliVParticle {
     virtual ~AliAODPhoton();
     AliAODPhoton(const AliAODPhoton& photon); 
     AliAODPhoton& operator=(const AliAODPhoton& photon);
-// AliVParticle methods
+// AliVirtualParticle methods
     virtual Double_t Px()         const { return fMomentum->Px();      }
     virtual Double_t Py()         const { return fMomentum->Py();      }
     virtual Double_t Pz()         const { return fMomentum->Pz();      }

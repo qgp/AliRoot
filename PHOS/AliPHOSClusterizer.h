@@ -8,9 +8,6 @@
 /* History of cvs commits:
  *
  * $Log$
- * Revision 1.40  2006/08/25 16:56:30  kharlov
- * Compliance with Effective C++
- *
  * Revision 1.39  2006/03/30 13:04:56  hristov
  * AliRawReader is not persistent
  *
@@ -27,16 +24,15 @@
 //*-- Author: Yves Schutz (SUBATECH) & Dmitri Peressounko (SUBATECH & Kurchatov Institute)
 // --- ROOT system ---
 
-
 #include "TTask.h" 
+#include "AliConfig.h"
+#include "AliRawReaderFile.h"
+
 class TFile ; 
 
 // --- Standard library ---
 
 // --- AliRoot header files ---
-#include "AliConfig.h"
-#include "AliRawReaderFile.h"
-class AliPHOSQualAssDataMaker ; 
 
 class AliPHOSClusterizer : public TTask {
 
@@ -81,14 +77,10 @@ public:
   virtual const char * Version() const {Warning("Version", "Not Defined" ) ; return 0 ; }  
 
 protected:
-  AliPHOSQualAssDataMaker * GetQualAssDataMaker() const { return fQADM ; } 
-
   TString fEventFolderName ;  // event folder name
   Int_t   fFirstEvent;        // first event to process
   Int_t   fLastEvent;         // last  event to process
   AliRawReader *fRawReader;   //! reader of raw data
-
-  AliPHOSQualAssDataMaker * fQADM ; //!Quality Assurance Data Maker
 
   ClassDef(AliPHOSClusterizer,4)  // Clusterization algorithm class 
 

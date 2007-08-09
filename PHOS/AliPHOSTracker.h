@@ -8,9 +8,6 @@
 /* History of cvs commits:
  *
  * $Log$
- * Revision 1.4  2007/08/03 13:52:16  kharlov
- * Working skeleton of matching the ESD tracks and ESD clusters (Iouri Belikov)
- *
  */
 
 //-------------------------------------------------------------------------
@@ -28,8 +25,6 @@ class TTree;
 
 class AliCluster;
 class AliESDEvent;
-class AliPHOSTrackSegmentMaker ; 
-class AliPHOSPID ; 
 
 class AliPHOSTracker : public AliTracker
 {
@@ -63,9 +58,7 @@ private:
   static Bool_t fgDebug ;    //! Verbosity controller
 
   TClonesArray *fModules[5];
-  
-  AliPHOSTrackSegmentMaker * fTSM ; //! the track segment maker 
-  AliPHOSPID * fPID ;               //! the pid maker 
+
   ClassDef(AliPHOSTracker,1)
 };
 

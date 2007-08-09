@@ -12,12 +12,11 @@
 //   Origin: Christian Klein-Boesing, CERN, Christian.Klein-Boesing@cern.ch 
 //-------------------------------------------------------------------------
 
-#include "AliVHeader.h"
+#include <TObject.h>
 
-class AliESDHeader: public AliVHeader {
+class AliESDHeader: public TObject {
 public:
   AliESDHeader();
-  virtual ~AliESDHeader();
   AliESDHeader(const AliESDHeader& header);
   AliESDHeader& operator=(const AliESDHeader& header);
 
@@ -27,7 +26,6 @@ public:
   void      SetEventType(UInt_t eventType){fEventType = eventType;}
   void      SetEventNumberInFile(Int_t n) {fEventNumberInFile=n;}
   void      SetBunchCrossNumber(UShort_t n) {fBunchCrossNumber=n;}
-  void      SetPeriodNumber(UInt_t n) {fPeriodNumber=n;}
   void      SetTriggerCluster(UChar_t n) {fTriggerCluster = n;}
 
   ULong64_t GetTriggerMask() const {return fTriggerMask;}
@@ -36,11 +34,12 @@ public:
   UInt_t    GetEventType()  const { return fEventType;}
   Int_t     GetEventNumberInFile() const {return fEventNumberInFile;}
   UShort_t  GetBunchCrossNumber() const {return fBunchCrossNumber;}
-  UInt_t    GetPeriodNumber() const {return fPeriodNumber;}
   UChar_t   GetTriggerCluster() const {return fTriggerCluster;}
 
+
+
   void      Reset();
-  void      Print(const Option_t *opt=0) const;
+  void    Print(const Option_t *opt=0) const;
 private:
 
   // Event Identification
@@ -50,10 +49,9 @@ private:
   UInt_t       fEventType;         // Type of Event
   Int_t        fEventNumberInFile; // running Event count in the file
   UShort_t     fBunchCrossNumber;  // Bunch Crossing Number
-  Int_t        fPeriodNumber;      // Period Number
   UChar_t      fTriggerCluster;    // Trigger cluster (mask)
   
-  ClassDef(AliESDHeader,2)
+  ClassDef(AliESDHeader,1)
 };
 
 #endif

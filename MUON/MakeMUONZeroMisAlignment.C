@@ -39,50 +39,39 @@
 void MakeMUONZeroMisAlignment()
 {
   // Load geometry, if not yet loaded,
-  if(!AliGeomManager::GetGeometry()){
-    if(!(AliCDBManager::Instance())->IsDefaultStorageSet())
-      AliCDBManager::Instance()->SetDefaultStorage("local://$ALICE_ROOT");
-      AliCDBManager::Instance()->SetRun(0);
-    AliGeomManager::LoadGeometry();
-  }
+  if ( ! AliGeomManager::GetGeometry() )
+    AliGeomManager::LoadGeometry("geometry.root");
 
   AliMUONGeometryTransformer transformer;
   transformer.LoadGeometryData();
   TClonesArray* array = transformer.CreateZeroAlignmentData();;
 
-  const char* macroname = "MakeMUONZeroMisAlignment.C";
   if ( TString(gSystem->Getenv("TOCDB")) != TString("kTRUE") ) {
+    // save in file
+    cout << "Generating zero misalignment data in a file ..." << endl;
+
     // Create a file to store the alignment data
-    const char* filename = "MUONZeroMisalignment.root";
-    TFile f(filename,"RECREATE");
-    if(!f){
-      Error(macroname,"cannot open file for output\n");
-      return;
+    TFile f("MUONzeroMisalignment.root", "RECREATE");
+    if( !f.IsOpen() ) {
+      cerr<<"cannot open file for output\n";
     }
-    Info(macroname,"Saving alignment objects to the file %s", filename);
+    
     f.cd();
-    f.WriteObject(array,"MUONAlignObjs","kSingleKey");
+    f.WriteObject(array,"MUONAlignObjs ","kSingleKey");
     f.Close();
-  } else {
+  }
+  else {
+    cout << "Generating zero misalignment data in CDB ..." << endl;
+
     // save in CDB storage
-    TString Storage = gSystem->Getenv("STORAGE");
-    if(!Storage.BeginsWith("local://") && !Storage.BeginsWith("alien://")) {
-      Error(macroname,"STORAGE variable set to %s is not valid. Exiting\n",Storage.Data());
-      return;
-    }
-    Info(macroname,"Saving alignment objects in CDB storage %s",
-	 Storage.Data());
-    AliCDBManager* cdb = AliCDBManager::Instance();
-    AliCDBStorage* storage = cdb->GetStorage(Storage.Data());
-    if(!storage){
-      Error(macroname,"Unable to open storage %s\n",Storage.Data());
-      return;
-    }
+    const char* Storage = gSystem->Getenv("STORAGE");
+    AliCDBManager* cdbManager = AliCDBManager::Instance();
+    AliCDBStorage* storage = cdbManager->GetStorage(Storage);
     AliCDBMetaData* cdbData = new AliCDBMetaData();
     cdbData->SetResponsible("Dimuon Offline project");
     cdbData->SetComment("MUON alignment objects with zero misalignment");
     cdbData->SetAliRootVersion(gSystem->Getenv("ARVERSION"));
-    AliCDBId id("MUON/Align/Data", 0, AliCDBRunRange::Infinity()); 
+    AliCDBId id("MUON/Align/Data", 0, 9999999); 
     storage->Put(array, id, cdbData);
   }
 }   

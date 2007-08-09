@@ -34,7 +34,7 @@ ClassImp(AliESDMuonTrack)
 
 //_____________________________________________________________________________
 AliESDMuonTrack::AliESDMuonTrack ():
-  AliVParticle(),
+  TObject(),
   fInverseBendingMomentum(0),
   fThetaX(0),
   fThetaY(0),
@@ -59,7 +59,7 @@ AliESDMuonTrack::AliESDMuonTrack ():
 
 //_____________________________________________________________________________
 AliESDMuonTrack::AliESDMuonTrack (const AliESDMuonTrack& MUONTrack):
-  AliVParticle(MUONTrack),
+  TObject(MUONTrack),
   fInverseBendingMomentum(MUONTrack.fInverseBendingMomentum),
   fThetaX(MUONTrack.fThetaX),
   fThetaY(MUONTrack.fThetaY),
@@ -93,8 +93,6 @@ AliESDMuonTrack& AliESDMuonTrack::operator=(const AliESDMuonTrack& MUONTrack)
   if (this == &MUONTrack)
     return *this;
 
-  AliVParticle::operator=(MUONTrack); // don't forget to invoke the base class' assignment operator
-  
   fInverseBendingMomentum = MUONTrack.fInverseBendingMomentum; 
   fThetaX                 = MUONTrack.fThetaX;           
   fThetaY                 = MUONTrack.fThetaY;           

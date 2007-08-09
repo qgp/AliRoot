@@ -1,6 +1,6 @@
 // -*- mode: C++ -*- 
-#ifndef ALIMCEVENTHANDLER_H
-#define ALIMCEVENTHANDLER_H
+#ifndef ALIMCEVENT_H
+#define ALIMCEVENT_H
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
 
@@ -16,7 +16,7 @@
 // Origin: Andreas Morsch, CERN, andreas.morsch@cern.ch 
 //-------------------------------------------------------------------------
 
-#include "AliVEventHandler.h"
+#include "AliVirtualEventHandler.h"
 class TFile;
 class TTree;
 class TParticle;
@@ -25,55 +25,40 @@ class AliHeader;
 class AliStack;
 
 
-class AliMCEventHandler : public AliVEventHandler 
+class AliMCEvent : public AliVirtualEventHandler 
 {
 public:
-    AliMCEventHandler();
-    AliMCEventHandler(const char* name, const char* title);
-    virtual ~AliMCEventHandler();
+    AliMCEvent();
+    AliMCEvent(const char* name, const char* title);
+    virtual ~AliMCEvent();
     virtual void         SetOutputFileName(char* /* fname */) {;}
     virtual char*        GetOutputFileName() {return 0;}
-    virtual void         SetInputPath(char* fname) {fPathName = fname;}
-    virtual char*        GetInputPath() {return fPathName;}
     virtual Bool_t       InitIO(Option_t* opt);
     virtual Bool_t       BeginEvent();
-    virtual Bool_t       Notify(const char* path);
     virtual Bool_t       FinishEvent();
     virtual Bool_t       Terminate();
     virtual Bool_t       TerminateIO();
-    virtual void         ResetIO();
-    virtual Bool_t       GetEvent(Int_t iev);
-    
     //
     AliStack* Stack()  {return fStack;}
     TTree*    TreeTR() {return fTreeTR;}
     Int_t     GetParticleAndTR(Int_t i, TParticle*& particle, TClonesArray*& trefs);
-    void      DrawCheck(Int_t i, Bool_t search=kFALSE);
-private:
-    Bool_t    OpenFile(Int_t i);
-    void      ReorderAndExpandTreeTR();
-    
+    void      DrawCheck(Int_t i);
+	    
 private:
     TFile            *fFileE;            //! File with TreeE
     TFile            *fFileK;            //! File with TreeK
     TFile            *fFileTR;           //! File with TreeTR
-    TFile            *fTmpFileTR;        //! Temporary file with TreeTR to read old format
     TTree            *fTreeE;            //! TreeE  (Event Headers)
     TTree            *fTreeK;            //! TreeK  (kinematics tree)
     TTree            *fTreeTR;           //! TreeTR (track references tree)
-    TTree            *fTmpTreeTR;        //! Temporary tree TR to read old format
     AliStack         *fStack;            //! Current pointer to stack
     AliHeader        *fHeader;           //! Current pointer to header
-    TClonesArray     *fTrackReferences;  //! Current list of track references
+    TClonesArray     *fTrackReferences;  //! Current list of tarck references
     Int_t             fNEvent;           //! Number of events
     Int_t             fEvent;            //! Current event
     Int_t             fNprimaries;       //! Number of primaries
-    Int_t             fNparticles;       //! Number of particles
-    char             *fPathName;         //! Input file path 
-    char             *fExtension;        //! File name extension 
-    Int_t             fFileNumber;       //! Input file number
-    Int_t             fEventsPerFile;    //! Number of events per file
-    ClassDef(AliMCEventHandler,1)  //MC Truth EventHandler class 
+    Int_t             fNparticles;       //! Number of particles 
+    ClassDef(AliMCEvent,1)  //MCEvent class 
 };
 #endif 
 

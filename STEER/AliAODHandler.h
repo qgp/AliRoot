@@ -10,7 +10,7 @@
 //     Author: Andreas Morsch, CERN
 //-------------------------------------------------------------------------
 
-#include "AliVEventHandler.h"
+#include "AliVirtualEventHandler.h"
 
 class AliAODEvent;
 class TFile;
@@ -18,7 +18,7 @@ class TTree;
 
 
 
-class AliAODHandler : public AliVEventHandler {
+class AliAODHandler : public AliVirtualEventHandler {
     
  public:
     AliAODHandler();
@@ -28,10 +28,10 @@ class AliAODHandler : public AliVEventHandler {
     virtual char*        GetOutputFileName() {return fName;}
     virtual Bool_t       InitIO(Option_t* option);
     virtual Bool_t       BeginEvent(){ return kTRUE;}
-    virtual Bool_t       Notify(const char * /* path */) {return kTRUE;}
     virtual Bool_t       FinishEvent();
     virtual Bool_t       Terminate();
     virtual Bool_t       TerminateIO();
+    virtual Bool_t       Notify() {return kTRUE;}
     //
     AliAODEvent*         GetAOD()  {return fAODEvent;}
     TTree*               GetTree() {return fTreeA;}

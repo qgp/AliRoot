@@ -741,12 +741,11 @@ void AliHLTTPCClusterFinder::ReadDataUnsorted(void* ptr,unsigned long size){
 void AliHLTTPCClusterFinder::FindClusters(){
   fPadArray->FindClusterCandidates();
   fPadArray->FindClusters(fMatch);
-  AliHLTTPCClusters * clusterlist = new AliHLTTPCClusters[fPadArray->fClusters.size()]; //Clusterlist
+  AliHLTTPCClusters clusterlist[fPadArray->fClusters.size()]; //Clusterlist
   for(int i=0;i<fPadArray->fClusters.size();i++){
     clusterlist[i] = fPadArray->fClusters[i];
   }
   WriteClusters(fPadArray->fClusters.size(),clusterlist);
-  delete [] clusterlist;
 }
 void AliHLTTPCClusterFinder::WriteClusters(Int_t nclusters,AliHLTTPCClusters *list)//This is used when using the AliHLTTPCClusters class for cluster data
 {

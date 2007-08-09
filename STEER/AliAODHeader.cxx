@@ -26,7 +26,7 @@ ClassImp(AliAODHeader)
 
 //______________________________________________________________________________
 AliAODHeader::AliAODHeader() : 
-  AliVHeader(),
+  TNamed("header",""),
   fMagneticField(-999.),
   fMuonMagFieldScale(-999.),
   fCentrality(-999.),
@@ -47,8 +47,7 @@ AliAODHeader::AliAODHeader() :
   fTriggerCluster(0)
 {
   // default constructor
-
-  SetName("header");
+  
 }
 
 //______________________________________________________________________________
@@ -57,7 +56,7 @@ AliAODHeader::AliAODHeader(Int_t nRun,
 			   UInt_t nOrbit,
 			   UInt_t nPeriod,
 			   Char_t *title) :
-  AliVHeader(),
+  TNamed("header", title),
   fMagneticField(-999.),
   fMuonMagFieldScale(-999.),
   fCentrality(-999.),
@@ -78,9 +77,6 @@ AliAODHeader::AliAODHeader(Int_t nRun,
   fTriggerCluster(0)
 {
   // constructor
-
-  SetName("header");
-  SetTitle(title);
 }
 
 //______________________________________________________________________________
@@ -103,7 +99,7 @@ AliAODHeader::AliAODHeader(Int_t nRun,
 			   UChar_t trigClus,
 			   UInt_t evttype,
 			   Char_t *title) :
-  AliVHeader(),
+  TNamed("header",title),
   fMagneticField(magField),
   fMuonMagFieldScale(muonMagFieldScale),
   fCentrality(cent),
@@ -124,20 +120,18 @@ AliAODHeader::AliAODHeader(Int_t nRun,
   fTriggerCluster(trigClus)
 {
   // constructor
-
-  SetName("header");
-  SetTitle(title);
 }
 
 //______________________________________________________________________________
 AliAODHeader::~AliAODHeader() 
 {
   // destructor
+  
 }
 
 //______________________________________________________________________________
 AliAODHeader::AliAODHeader(const AliAODHeader& hdr) :
-  AliVHeader(hdr),
+  TNamed(hdr),
   fMagneticField(hdr.fMagneticField),
   fMuonMagFieldScale(hdr.fMuonMagFieldScale),
   fCentrality(hdr.fCentrality),
@@ -158,9 +152,6 @@ AliAODHeader::AliAODHeader(const AliAODHeader& hdr) :
   fTriggerCluster(hdr.fTriggerCluster)
 {
   // Copy constructor.
-  
-  SetName(hdr.fName);
-  SetTitle(hdr.fTitle);
 }
 
 //______________________________________________________________________________
@@ -169,7 +160,8 @@ AliAODHeader& AliAODHeader::operator=(const AliAODHeader& hdr)
   // Assignment operator
   if(this!=&hdr) {
     
-     AliVHeader::operator=(hdr);
+    // TObject
+    TNamed::operator=(hdr);
     
     fMagneticField    = hdr.fMagneticField;
     fMuonMagFieldScale= hdr.fMuonMagFieldScale;
@@ -190,9 +182,6 @@ AliAODHeader& AliAODHeader::operator=(const AliAODHeader& hdr)
     fRefMultNeg       = hdr.fRefMultNeg;
     fTriggerCluster   = hdr.fTriggerCluster;
   }
-
-  SetName(hdr.fName);
-  SetTitle(hdr.fTitle);
 
   return *this;
 }

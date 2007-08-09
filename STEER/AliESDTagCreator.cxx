@@ -195,7 +195,7 @@ void AliESDTagCreator::CreateTag(TFile* file, const char *guid, const char *md5,
   TBranch * btag = ttag.Branch("AliTAG", &tag);
   btag->SetCompressionLevel(9);
   
-  AliInfo(Form("Creating the ESD tags......."));	
+  AliInfo(Form("Creating the tags......."));	
   
   Int_t firstEvent = 0,lastEvent = 0;
   TTree *t = (TTree*) file->Get("esdTree");
@@ -499,7 +499,7 @@ void AliESDTagCreator::CreateTag(TFile* file, const char *filepath, Int_t Counte
   TBranch * btag = ttag.Branch("AliTAG", &tag);
   btag->SetCompressionLevel(9);
   
-  AliInfo(Form("Creating the ESD tags......."));	
+  AliInfo(Form("Creating the tags......."));	
   
   Int_t firstEvent = 0,lastEvent = 0;
   
@@ -805,7 +805,7 @@ void AliESDTagCreator::CreateESDTags(Int_t fFirstEvent, Int_t fLastEvent) {
   TBranch * btag = ttag.Branch("AliTAG", &tag);
   btag->SetCompressionLevel(9);
   
-  AliInfo(Form("Creating the ESD tags......."));	
+  AliInfo(Form("Creating the tags......."));	
 
   TFile *file = TFile::Open("AliESDs.root");
   if (!file || !file->IsOpen()) {
@@ -1106,7 +1106,7 @@ void AliESDTagCreator::CreateESDTags(Int_t fFirstEvent, Int_t fLastEvent) {
     delete file;
     return ;
   }
-  TTree *aodTree = (TTree*)file->Get("aodTree");
+  TTree *aodTree = (TTree*)file->Get("AOD");
   AliAODEvent *aod = (AliAODEvent*)aodTree->GetUserInfo()->FindObject("AliAODEvent");
   TIter next(aod->GetList());
   TObject *el;

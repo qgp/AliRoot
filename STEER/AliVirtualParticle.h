@@ -1,5 +1,5 @@
-#ifndef AliVParticle_H
-#define AliVParticle_H
+#ifndef AliVirtualParticle_H
+#define AliVirtualParticle_H
 /* Copyright(c) 1998-2007, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
 
@@ -13,13 +13,11 @@
 #include <Rtypes.h>
 #include <TObject.h>
 
-class AliVParticle: public TObject {
+class AliVirtualParticle: public TObject {
 
 public:
-  AliVParticle() { }
-  virtual ~AliVParticle() { }
-  AliVParticle(const AliVParticle& vPart); 
-  AliVParticle& operator=(const AliVParticle& vPart);
+  AliVirtualParticle() { }
+  virtual ~AliVirtualParticle() { }
 
   // kinematics
   virtual Double_t Px() const = 0;
@@ -45,7 +43,7 @@ public:
   virtual const Double_t *PID() const = 0; // return PID object (to be defined, still)
 
 
-  ClassDef(AliVParticle,0)  // base class for particles
+  ClassDef(AliVirtualParticle,0)  // base class for particles
 };
 
 #endif

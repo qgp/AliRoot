@@ -29,9 +29,6 @@
 #include "AliPHOSClusterizer.h"
 #include "AliPHOSGetter.h" 
 
-// --- AliRoot header files ---
-#include "AliPHOSQualAssDataMaker.h"
-
 ClassImp(AliPHOSClusterizer)
 
 //____________________________________________________________________________
@@ -40,8 +37,7 @@ AliPHOSClusterizer::AliPHOSClusterizer():
   fEventFolderName(""),
   fFirstEvent(0),
   fLastEvent(-1),
-  fRawReader(0),
-  fQADM(0)
+  fRawReader(0)
 {
   // ctor
 }
@@ -53,22 +49,16 @@ AliPHOSClusterizer::AliPHOSClusterizer(const TString alirunFileName,
 	alirunFileName), fEventFolderName(eventFolderName),
   fFirstEvent(0),
   fLastEvent(-1),
-  fRawReader(0),
-  fQADM(0)
+  fRawReader(0)
 {
   // ctor
-  fQADM = new AliPHOSQualAssDataMaker() ;  
-  //initiaizes the quality assurance data maker
-  fQADM ->Init(AliQualAss::kRECPOINTS) ;    
 }
 
 //____________________________________________________________________________
 AliPHOSClusterizer::AliPHOSClusterizer(const AliPHOSClusterizer & clusterizer) :
   TTask(clusterizer),fEventFolderName(clusterizer.GetEventFolderName()),
   fFirstEvent(clusterizer.GetFirstEvent()),fLastEvent(clusterizer.GetLastEvent()),
-  fRawReader(clusterizer.GetRawReader()),
-  fQADM(clusterizer.GetQualAssDataMaker())
-  
+  fRawReader(clusterizer.GetRawReader())
 {
   //Copy constructor
 }

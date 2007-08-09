@@ -4,12 +4,7 @@ void MakeTOFZeroMisAlignment(){
   TClonesArray *array = new TClonesArray("AliAlignObjAngles",2000);
   TClonesArray &alobj = *array;
    
-  if(!AliGeomManager::GetGeometry()){
-    if(!(AliCDBManager::Instance())->IsDefaultStorageSet())
-      AliCDBManager::Instance()->SetDefaultStorage("local://$ALICE_ROOT");
-      AliCDBManager::Instance()->SetRun(0);
-    AliGeomManager::LoadGeometry();
-  }
+  if(!gGeoManager) TGeoManager::Import("geometry.root");
   // needed for the constructors with local coordinates not to fail
 
   AliAlignObjAngles a;
@@ -23,39 +18,23 @@ void MakeTOFZeroMisAlignment(){
     new(alobj[j++]) AliAlignObjAngles(AliGeomManager::SymName(idTOF,i), AliGeomManager::LayerToVolUID(idTOF,i), dx, dy, dz, dpsi, dtheta, dphi, kTRUE);
   }
 
-  const char* macroname = "MakeTOFZeroMisAlignment.C";
   if( gSystem->Getenv("TOCDB") != TString("kTRUE") ){
     // save on file
-    const char* filename = "TOFzeroMisalignment.root";
-    TFile f(filename,"RECREATE");
-    if(!f){
-      Error(macroname,"cannot open file for output\n");
-      return;
-    }
-    Info(macroname,"Saving alignment objects to the file %s", filename);
+    TFile f("TOFzeroMisalignment.root","RECREATE");
+    if(!f) cerr<<"cannot open file for output\n";
     f.cd();
     f.WriteObject(array,"TOFAlignObjs","kSingleKey");
     f.Close();
   }else{
     // save in CDB storage
-    TString Storage = gSystem->Getenv("STORAGE");
-    if(!Storage.BeginsWith("local://") && !Storage.BeginsWith("alien://")) {
-      Error(macroname,"STORAGE variable set to %s is not valid. Exiting\n",Storage.Data());
-      return;
-    }
-    Info(macroname,"Saving alignment objects in CDB storage %s",
-	 Storage.Data());
+    const char* Storage = gSystem->Getenv("STORAGE");
     AliCDBManager* cdb = AliCDBManager::Instance();
-    AliCDBStorage* storage = cdb->GetStorage(Storage.Data());
-    if(!storage){
-      Error(macroname,"Unable to open storage %s\n",Storage.Data());
-      return;
-    }
+    AliCDBStorage* storage = cdb->GetStorage(Storage);
     AliCDBMetaData* md = new AliCDBMetaData();
     md->SetResponsible("Silvia Arcelli");
     md->SetComment("Zero misalignment for TOF");
     md->SetAliRootVersion("HEAD");
-    AliCDBId id("TOF/Align/Data",0,AliCDBRunRange::Infinity());
+    AliCDBId id("TOF/Align/Data",0,9999999);
     storage->Put(array,id,md);
   }
 

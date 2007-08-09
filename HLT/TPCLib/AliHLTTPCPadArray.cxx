@@ -159,7 +159,6 @@ Int_t AliHLTTPCPadArray::ReadData(){
       fRowPadVector[fDigitReader->GetRow()-76][fDigitReader->GetPad()]->SetDataSignal(fDigitReader->GetTime(),fDigitReader->GetSignal());
     }
   }
-  return 0;
 }
 void AliHLTTPCPadArray::FindClusters(Int_t match){
   //see header file for documentation

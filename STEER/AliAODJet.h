@@ -11,12 +11,11 @@
 //-------------------------------------------------------------------------
 
 #include <TLorentzVector.h>
-#include "AliVParticle.h"
-#include <TArrayI.h>
+#include "AliVirtualParticle.h"
 #include "AliAODVertex.h"
 
 
-class AliAODJet : public AliVParticle {
+class AliAODJet : public AliVirtualParticle {
 
  public:
     AliAODJet();
@@ -25,7 +24,7 @@ class AliAODJet : public AliVParticle {
     virtual ~AliAODJet();
     AliAODJet(const AliAODJet& jet); 
     AliAODJet& operator=(const AliAODJet& jet);
-// AliVParticle methods
+// AliVirtualParticle methods
     virtual Double_t Px()         const { return fMomentum->Px();      }
     virtual Double_t Py()         const { return fMomentum->Py();      }
     virtual Double_t Pz()         const { return fMomentum->Pz();      }
@@ -39,20 +38,17 @@ class AliAODJet : public AliVParticle {
     virtual Double_t Eta()        const { return fMomentum->Eta();     }
     virtual Double_t Y()          const { return fMomentum->Rapidity();}
 //
-    virtual void     AddTrack(TObject *tr) {fRefTracks->Add(tr);}
-    TObject* GetTrack(Int_t i) {return fRefTracks->At(i);}
     virtual void     SetBgEnergy(Double_t bgEnCh, Double_t bgEnNe)
 	{fBackgEnergy[0] = bgEnCh; fBackgEnergy[1] = bgEnNe;}
     virtual void     SetEffArea(Double_t effACh, Double_t effANe)
 	{fEffectiveArea[0] = effACh; fEffectiveArea[1] = effANe;}
     
-    virtual TRefArray* GetRefTracks()           const { return  fRefTracks;}
-    virtual Double_t   ChargedBgEnergy()        const { return  fBackgEnergy[0];}
-    virtual Double_t   NeutralBgEnergy()        const { return  fBackgEnergy[1];}
-    virtual Double_t   TotalBgEnergy()          const { return (fBackgEnergy[0] + fBackgEnergy[1]);}
+    virtual Double_t ChargedBgEnergy()        const { return  fBackgEnergy[0];}
+    virtual Double_t NeutralBgEnergy()        const { return  fBackgEnergy[1];}
+    virtual Double_t TotalBgEnergy()          const { return (fBackgEnergy[0] + fBackgEnergy[1]);}
 
-    virtual Double_t   EffectiveAreaCharged()   const { return  fEffectiveArea[0];}
-    virtual Double_t   EffectiveAreaNeutral()   const { return  fEffectiveArea[1];}
+    virtual Double_t EffectiveAreaCharged()   const { return  fEffectiveArea[0];}
+    virtual Double_t EffectiveAreaNeutral()   const { return  fEffectiveArea[1];}
 
     virtual void     Print(Option_t* /*option*/) const;
     
@@ -64,10 +60,9 @@ class AliAODJet : public AliVParticle {
     
  private:
     TLorentzVector* fMomentum;           // Jet 4-momentum vector
-    TRefArray*      fRefTracks;          // array of references to the tracks belonging to the jet
     Double_t        fBackgEnergy[2];     // Subtracted background energy
     Double_t        fEffectiveArea[2];   // Effective jet area used for background subtraction
-    ClassDef(AliAODJet,2);
+    ClassDef(AliAODJet,1);
 };
 
 #endif

@@ -16,10 +16,13 @@ void ReadAOD(const char *fileName = "AliAOD.root") {
 
   // open input file and get the TTree
   TFile inFile(fileName, "READ");
+  TTree *aodTree = (TTree*)inFile.Get("AOD");
 
-  TTree *aodTree = (TTree*)inFile.Get("aodTree");
-  AliAODEvent *ev = new AliAODEvent();
-  ev->ReadFromTree(aodTree);
+  AliAODEvent *aod = (AliAODEvent*)aodTree->GetUserInfo()->FindObject("AliAODEvent");
+  TIter next(aod->GetList());
+  TObject *el;
+  while((el=(TNamed*)next())) 
+    aodTree->SetBranchAddress(el->GetName(),aod->GetList()->GetObjectRef(el));
 
   // loop over events
   Int_t nEvents = aodTree->GetEntries();
@@ -29,14 +32,17 @@ void ReadAOD(const char *fileName = "AliAOD.root") {
     // read events
     aodTree->GetEvent(nEv);
     
+    // set pointers
+    aod->GetStdContent();
+
     //print event info
-    ev->GetHeader()->Print();
+    aod->GetHeader()->Print();
 
     // loop over tracks
-    Int_t nTracks = ev->GetNTracks();
+    Int_t nTracks = aod->GetNTracks();
     for (Int_t nTr = 0; nTr < nTracks; nTr++) {
       
-      AliAODTrack *tr = ev->GetTrack(nTr);
+      AliAODTrack *tr = aod->GetTrack(nTr);
 
       // print track info
       cout << nTr+1 << "/" << nTracks << ": track pt: " << tr->Pt();
@@ -47,11 +53,11 @@ void ReadAOD(const char *fileName = "AliAOD.root") {
     }
 
     // loop over vertices
-    Int_t nVtxs = ev->GetNVertices();
+    Int_t nVtxs = aod->GetNVertices();
     for (Int_t nVtx = 0; nVtx < nVtxs; nVtx++) {
       
       // print track info
-      cout << nVtx+1 << "/" << nVtxs << ": vertex z position: " << ev->GetVertex(nVtx)->GetZ() << endl;
+      cout << nVtx+1 << "/" << nVtxs << ": vertex z position: " << aod->GetVertex(nVtx)->GetZ() << endl;
     }
   }
   

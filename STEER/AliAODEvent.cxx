@@ -28,16 +28,8 @@
 
 ClassImp(AliAODEvent)
 
-// definition of std AOD member names
-  const char* AliAODEvent::fAODListName[kAODListN] = {"header",
-						      "tracks",
-						      "vertices",
-						      "clusters",
-						      "jets",
-						      "tracklets"};
 //______________________________________________________________________________
 AliAODEvent::AliAODEvent() :
-  AliVEvent(),
   fAODObjects(new TList()),
   fHeader(0),
   fTracks(0),
@@ -67,7 +59,7 @@ void AliAODEvent::AddObject(TObject* obj)
 }
 
 //______________________________________________________________________________
-TObject *AliAODEvent::FindListObject(const char *objName)
+TObject *AliAODEvent::GetObject(const char *objName) const 
 {
   // Return the pointer to the object with the given name.
 
@@ -87,56 +79,28 @@ void AliAODEvent::CreateStdContent()
   AddObject(new TClonesArray("AliAODJet", 0));
   AddObject(new AliAODTracklets());
 
-  // set names
-  SetStdNames();
-
   // read back pointers
   GetStdContent();
 
-  return;
+  // set names
+  fTracks->SetName("tracks");
+  fVertices->SetName("vertices");
+  fClusters->SetName("clusters");
+  fJets->SetName("jets");
+  fTracklets->SetName("tracklets");	
 }
-
-//______________________________________________________________________________
-void AliAODEvent::SetStdNames()
-{
-  // introduce the standard naming
-
-  if(fAODObjects->GetEntries()==kAODListN){
-    for(int i = 0;i < fAODObjects->GetEntries();i++){
-      TObject *fObj = fAODObjects->At(i);
-      if(fObj->InheritsFrom("TNamed")){
-	((TNamed*)fObj)->SetName(fAODListName[i]);
-      }
-      else if(fObj->InheritsFrom("TClonesArray")){
-	((TClonesArray*)fObj)->SetName(fAODListName[i]);
-      }
-    }
-  }
-  else{
-    printf("%s:%d SetStdNames() Wrong number of Std Entries \n",(char*)__FILE__,__LINE__);
-  }
-} 
 
 //______________________________________________________________________________
 void AliAODEvent::GetStdContent()
 {
   // set pointers for standard content
 
-  fHeader    = (AliAODHeader*)fAODObjects->FindObject("header");
-  fTracks    = (TClonesArray*)fAODObjects->FindObject("tracks");
-  fVertices  = (TClonesArray*)fAODObjects->FindObject("vertices");
-  fClusters  = (TClonesArray*)fAODObjects->FindObject("clusters");
-  fJets      = (TClonesArray*)fAODObjects->FindObject("jets");
-  fTracklets = (AliAODTracklets*)fAODObjects->FindObject("tracklets");
-  
-  /* old implementation
   fHeader    = (AliAODHeader*)fAODObjects->At(0);
   fTracks    = (TClonesArray*)fAODObjects->At(1);
   fVertices  = (TClonesArray*)fAODObjects->At(2);
   fClusters  = (TClonesArray*)fAODObjects->At(3);
   fJets      = (TClonesArray*)fAODObjects->At(4);
   fTracklets = (AliAODTracklets*)fAODObjects->At(5);
-  */
 }
 
 //______________________________________________________________________________
@@ -171,7 +135,7 @@ Int_t AliAODEvent::GetMuonTracks(TRefArray *muonTracks) const
 
   AliAODTrack *track = 0;
   for (Int_t iTrack = 0; iTrack < GetNTracks(); iTrack++) {
-    if ((track = GetTrack(iTrack))->IsMuonTrack()) {
+    if ((track = GetTrack(iTrack))->GetMostProbablePID() == AliAODTrack::kMuon) {
       muonTracks->Add(track);
     }
   }
@@ -180,27 +144,18 @@ Int_t AliAODEvent::GetMuonTracks(TRefArray *muonTracks) const
 }
 
 
+
 void AliAODEvent::ReadFromTree(TTree *tree)
 {
-  // connects aod event to tree
-  
-  // load the TTree
-  tree->LoadTree(0);
+    // connects aod event to tree
 
-  fAODObjects = (TList*)((AliAODEvent*)tree->GetTree()->GetUserInfo()->FindObject("AliAODEvent"))->GetList(); 
-  TIter next(fAODObjects);
-  TNamed *el;
-  while((el=(TNamed*)next())){
-    TString bname(el->GetName());
-    tree->SetBranchAddress(bname.Data(),fAODObjects->GetObjectRef(el));
-  }
-  GetStdContent();
+    fAODObjects = (TList*)((AliAODEvent*)tree->GetTree()->GetUserInfo()->FindObject("AliAODEvent"))->GetList(); 
+    TIter next(fAODObjects);
+    TNamed *el;
+    while((el=(TNamed*)next())){
+	TString bname(el->GetName());
+	tree->SetBranchAddress(bname.Data(),fAODObjects->GetObjectRef(el));
+    }
+    GetStdContent();
 }
 
-//______________________________________________________________________________
-void AliAODEvent::Print(Option_t *) const
-{
-  // Something meaningful should be implemented here.
-  
-  return;
-}

@@ -9,9 +9,6 @@
 /* History of cvs commits:
  *
  * $Log$
- * Revision 1.26  2006/08/28 10:01:56  kharlov
- * Effective C++ warnings fixed (Timur Pocheptsov)
- *
  * Revision 1.25  2005/11/30 18:56:26  schutz
  * Small corrections to fix compilation errors
  *
@@ -37,15 +34,12 @@ class TFile ;
 // --- Standard library ---
 
 // --- AliRoot header files ---
-class AliPHOSQualAssDataMaker ; 
 
 class AliPHOSSDigitizer: public TTask {
 
 public:
   AliPHOSSDigitizer() ;          // ctor
   AliPHOSSDigitizer(const char * alirunFileName, const char * eventFolderName = AliConfig::GetDefaultEventFolderName()) ; 
-  AliPHOSSDigitizer(const AliPHOSSDigitizer& sd) ;   
-  AliPHOSSDigitizer& operator = (const AliPHOSSDigitizer& sd) ;
 
   virtual ~AliPHOSSDigitizer(); // dtor
 
@@ -58,11 +52,8 @@ public:
   void           SetEventRange(Int_t first=0, Int_t last=-1) {fFirstEvent=first; fLastEvent=last; }
 
   Bool_t operator == (const AliPHOSSDigitizer & sd) const ;
-
- 
+  
 private:
-  AliPHOSQualAssDataMaker * GetQualAssDataMaker() const { return fQADM ; } 
-
   void     Init() ;
   void     InitParameters() ;
   void     PrintSDigits(Option_t * option) ;
@@ -79,7 +70,6 @@ private:
   Int_t   fSDigitsInRun ;   //! Total number of sdigits in one run
   Int_t   fFirstEvent;      // first event to process
   Int_t   fLastEvent;       // last  event to process
-  AliPHOSQualAssDataMaker * fQADM ; //!Quality Assurance Data Maker
 
   ClassDef(AliPHOSSDigitizer,3)  // description 
 

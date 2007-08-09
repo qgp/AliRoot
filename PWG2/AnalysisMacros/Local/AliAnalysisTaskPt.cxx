@@ -60,10 +60,10 @@ void AliAnalysisTaskPt::Exec(Option_t *) {
   cout<<"Entry: "<<ientry<<" - Tracks: "<<fESD->GetNumberOfTracks()<<endl;
   
   for(Int_t iTracks = 0; iTracks < fESD->GetNumberOfTracks(); iTracks++) {
-    AliESDtrack * track = fESD->GetTrack(iTracks);
-    //UInt_t status = track->GetStatus();
+    AliESDtrack * ESDTrack = fESD->GetTrack(iTracks);
+    //UInt_t status = ESDTrack->GetStatus();
     Double_t momentum[3];
-    track->GetPxPyPz(momentum);
+    ESDTrack->GetPxPyPz(momentum);
     Double_t Pt = sqrt(pow(momentum[0],2) + pow(momentum[1],2));
     fHistPt->Fill(Pt);
   }//track loop 
@@ -75,11 +75,14 @@ void AliAnalysisTaskPt::Exec(Option_t *) {
 void AliAnalysisTaskPt::Terminate(Option_t *) {
   // Draw some histogram at the end.
   if (!gROOT->IsBatch()) {
-    TCanvas *c1 = new TCanvas("c1","Pt",10,10,510,510);
-    c1->SetFillColor(10); c1->SetHighLightColor(10);
-    c1->cd(1)->SetLeftMargin(0.15); c1->cd(1)->SetBottomMargin(0.15);  
+    TCanvas *c1 = new TCanvas("c1","Pt",10,10,310,310);
+    c1->SetFillColor(10);
+    c1->SetHighLightColor(10);
+    
+    c1->cd(1)->SetLeftMargin(0.15);
+    c1->cd(1)->SetBottomMargin(0.15);  
     c1->cd(1)->SetLogy();
-    fHistPt = (TH1F*)GetOutputData(0);
+    //fHistPt = (TH1F*)GetOutputData(0);
     if (fHistPt) fHistPt->DrawCopy("E");
   }
 }

@@ -31,7 +31,7 @@ ClassImp(AliAODHandler)
 
 //______________________________________________________________________________
 AliAODHandler::AliAODHandler() :
-    AliVEventHandler(),
+    AliVirtualEventHandler(),
     fAODEvent(NULL),
     fTreeA(NULL),
     fFileA(NULL),
@@ -42,7 +42,7 @@ AliAODHandler::AliAODHandler() :
 
 //______________________________________________________________________________
 AliAODHandler::AliAODHandler(const char* name, const char* title):
-    AliVEventHandler(name, title),
+    AliVirtualEventHandler(name, title),
     fAODEvent(NULL),
     fTreeA(NULL),
     fFileA(NULL),
@@ -107,7 +107,7 @@ Bool_t AliAODHandler::TerminateIO()
 void AliAODHandler::CreateTree()
 {
     // Creates the AOD Tree
-    fTreeA = new TTree("aodTree", "AliAOD tree");
+    fTreeA = new TTree("AOD", "AliAOD tree");
     fTreeA->Branch(fAODEvent->GetList());
 }
 

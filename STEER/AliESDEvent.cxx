@@ -80,7 +80,6 @@ ClassImp(AliESDEvent)
 						       "AliRawDataErrorLogs"};
 //______________________________________________________________________________
 AliESDEvent::AliESDEvent():
-  AliVEvent(),
   fESDObjects(new TList()),
   fESDRun(0),
   fHeader(0),
@@ -112,7 +111,7 @@ AliESDEvent::AliESDEvent():
 }
 //______________________________________________________________________________
 AliESDEvent::AliESDEvent(const AliESDEvent& esd):
-  AliVEvent(esd),
+  TObject(esd),
   fESDObjects(new TList()),
   fESDRun(new AliESDRun(*esd.fESDRun)),
   fHeader(new AliESDHeader(*esd.fHeader)),
@@ -174,7 +173,7 @@ AliESDEvent & AliESDEvent::operator=(const AliESDEvent& source) {
   // Assignment operator
 
   if(&source == this) return *this;
-  AliVEvent::operator=(source);
+  TObject::operator=(source);
 
   fESDRun = new AliESDRun(*source.fESDRun);
   fHeader = new AliESDHeader(*source.fHeader);
@@ -353,8 +352,6 @@ void AliESDEvent::Print(Option_t *) const
   printf("                 emcal     %d\n", GetNumberOfEMCALClusters());
   printf("                 FMD       %s\n", (fESDFMD ? "yes" : "no"));
   printf("                 VZERO     %s\n", (fESDVZERO ? "yes" : "no"));
-
-  return;
 }
 
 void AliESDEvent::SetESDfriend(const AliESDfriend *ev) {
@@ -591,6 +588,9 @@ void AliESDEvent::CreateStdContent()
   SetStdNames();
   // read back pointers
   GetStdContent();
+
+
+
 }
 
 TObject* AliESDEvent::FindListObject(const char *name){
@@ -599,10 +599,8 @@ TObject* AliESDEvent::FindListObject(const char *name){
 } 
 
 void AliESDEvent::ReadFromTree(TTree *tree){
-
-  // load the TTree
-  tree->LoadTree(0);
-
+  
+ 
   // if we find the "ESD" branch on the tree we do have the old structure
   if(tree->GetBranch("ESD")){
       char ** address = (char **)(tree->GetBranch("ESD")->GetAddress());

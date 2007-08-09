@@ -19,22 +19,16 @@ void runProofESD(const char *selectorfile) {
   // Enable the Analysis Package
   gProof->UploadPackage("ESD.par");
   gProof->EnablePackage("ESD");
-  gProof->UploadPackage("AOD.par");
-  gProof->EnablePackage("AOD");
   gProof->UploadPackage("ANALYSIS.par");
   gProof->EnablePackage("ANALYSIS");
-
-  gProof->GetManager()->ShowROOTVersions();
-  gProof->ShowEnabledPackages();
   
   // You should get this macro and the txt file from:
   // http://aliceinfo.cern.ch/Offline/Analysis/CAF/
   gROOT->LoadMacro("CreateESDChain.C");
   TChain* chain = 0x0;
-  chain = CreateESDChain("ESD1.txt",100);
+  chain = CreateESDChain("ESD100_110_v2.txt",10);
 
   gROOT->LoadMacro(selectorfile);
-  gProof->Load(selectorfile);
   gROOT->LoadMacro("demoCAF.C");
   demoCAF(chain,"proof");
  

@@ -374,7 +374,7 @@ AliMUONCalibrationData::RegionalTriggerBoardMasks(Int_t regionalBoardNumber) con
     
     if (!rtbm)
     {
-      AliError(Form("Could not get mask for regionalBoard index=%d",regionalBoardNumber));
+      AliError(Form("Could not get mask for regionalBoard index=%d",index));
     }
     return rtbm;  
   }

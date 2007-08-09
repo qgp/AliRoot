@@ -20,25 +20,25 @@
 //     Author: Andreas Morsch, CERN
 //-------------------------------------------------------------------------
 
-#include "AliVEventHandler.h"
+#include "AliVirtualEventHandler.h"
 
-ClassImp(AliVEventHandler)
+ClassImp(AliVirtualEventHandler)
 
 //______________________________________________________________________________
-AliVEventHandler::AliVEventHandler() :
+AliVirtualEventHandler::AliVirtualEventHandler() :
   TNamed()
 {
   // default constructor
 }
 
 //______________________________________________________________________________
-AliVEventHandler::~AliVEventHandler() 
+AliVirtualEventHandler::~AliVirtualEventHandler() 
 {
 // destructor
 }
 
 //______________________________________________________________________________
-AliVEventHandler::AliVEventHandler(const char* name, const char* title):
+AliVirtualEventHandler::AliVirtualEventHandler(const char* name, const char* title):
     TNamed(name, title)
 {
 }

@@ -18,7 +18,10 @@
 #include "TVirtualMC.h"
 #include "TParticle.h"
 
+#include "AliStack.h"
 #include "AliTrackReference.h"
+#include "AliExternalTrackParam.h"
+#include "AliKalmanTrack.h"
 #include <Riostream.h>
 
 // 
@@ -132,7 +135,7 @@ AliTrackReference::AliTrackReference(Int_t label, Int_t id) :
   // This particle has to be kept
 
 }
-/*
+//_______________________________________________________________________
 AliExternalTrackParam * AliTrackReference::MakeTrack(const AliTrackReference *ref, Double_t mass)
 {
   //
@@ -158,7 +161,7 @@ AliExternalTrackParam * AliTrackReference::MakeTrack(const AliTrackReference *re
   AliExternalTrackParam * track = new  AliExternalTrackParam(xr,alpha,xx,cc);
   return track;
 }
-*/
+
 //_______________________________________________________________________
 void
 AliTrackReference::Print(Option_t* /*opt*/) const
