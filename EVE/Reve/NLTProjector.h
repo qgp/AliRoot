@@ -1,8 +1,10 @@
 #ifndef REVE_NLTProjector
 #define REVE_NLTProjector
 
-#include "TNamed.h"
-#include "TString.h"
+#include <TAtt3D.h>
+#include <TAttBBox.h>
+
+#include <Reve/RenderElement.h>
 
 namespace std {
 template<typename _Tp> class allocator;
@@ -18,46 +20,72 @@ class Vector;
 class PointSet;
 class NLTPolygonSet;
 class NLTPolygon;
+class Track;
 class TrackList;
 /**************************************************************************/
 //  NLTProjections
 /**************************************************************************/
 class NLTProjection {
 public: 
-  enum Type_e       { CFishEye, RhoZ, RhoPhi}; 
- 
+  enum Type_e       { E_CFishEye, E_RhoZ, E_RhoPhi, None}; 
+
+  Type_e              fType;
   Float_t             fDistortion; // sensible values from 0 to 0.01
  
-  virtual   Bool_t    AcceptSegment(Vector& /*v1*/, Vector& /*v2*/) {return kTRUE;}
+  virtual   Bool_t    AcceptSegment(Vector&, Vector&, Float_t /*tolerance*/) {return kTRUE;}
   virtual   Vector*   Project(Vector* pnts, Int_t npnts, Bool_t create_new = kTRUE);
+  virtual   void      ProjectPoint(Float_t&, Float_t&, Float_t&){};
+
+  // required to draw scale on the axis
+  virtual   Float_t   PositionToValue(Float_t /*pos*/, Int_t /*axis*/) = 0;
+  virtual   Float_t   ValueToPosition(Float_t /*pos*/, Int_t /*axis*/) = 0;
+
   NLTProjection():fDistortion(0.) {}
   ClassDef(NLTProjection, 0)
 };
 
-class PhiZ: public   NLTProjection {
-};
-
 class RhoZ: public NLTProjection {
 public:
-  virtual   Bool_t    AcceptSegment(Vector& v1, Vector& v2); 
-  virtual   Vector*   Project(Vector* pnts, Int_t npnts, Bool_t copy = kTRUE);  
+  RhoZ() : NLTProjection() {fType = E_RhoZ;}
+  virtual   Bool_t    AcceptSegment(Vector& v1, Vector& v2, Float_t tolerance); 
+  virtual   void      ProjectPoint(Float_t& x, Float_t& y, Float_t& z);
+
+  // required to draw scale on the axis
+  virtual   Float_t   PositionToValue(Float_t a, Int_t /*axis*/){ return a/(1-TMath::Abs(a)*fDistortion); }
+  virtual   Float_t   ValueToPosition(Float_t a, Int_t /*axis*/){ return a/(1+TMath::Abs(a)*fDistortion); }
+
   ClassDef(RhoZ, 0)
 };
 
 class CircularFishEye: public NLTProjection {
 public:
-  virtual   Vector*   Project(Vector* pnts, Int_t npnts, Bool_t copy = kTRUE); 
+  CircularFishEye():NLTProjection() {fType = E_CFishEye;}
+  virtual   void      ProjectPoint(Float_t& x, Float_t& y, Float_t& z); 
+
+  // required to draw scale on the axis
+  virtual   Float_t   PositionToValue(Float_t a, Int_t /*axis*/){ return a/(1-TMath::Abs(a)*fDistortion); }
+  virtual   Float_t   ValueToPosition(Float_t a, Int_t /*axis*/){ return a/(1+TMath::Abs(a)*fDistortion); }
+
   ClassDef(CircularFishEye, 0)
 };
 
 /**************************************************************************/
 //  NLTProjector
 /**************************************************************************/
-class NLTProjector : public TNamed
+class NLTProjector : public RenderElementList,
+		     public TAttBBox,
+                     public TAtt3D
 { 
+  NLTProjector(const NLTProjector&);            // Not implemented
+  NLTProjector& operator=(const NLTProjector&); // Not implemented
+
 protected:
-  void   CheckPoint(Int_t idx, Float_t* bbox);
+  Int_t  GetBreakPointIdx(Int_t start);
+  void   GetBreakPoint(Int_t N, Bool_t back, Float_t& x, Float_t& y, Float_t& z);
   Bool_t IsFirstIdxHead(Int_t s0, Int_t s1, TBuffer3D* buff);
+  void   AddPolygon( std::list<Int_t, std::allocator<Int_t> >& pp, std::list<NLTPolygon, std::allocator<NLTPolygon> >& pols);
+
+  Track* MakeTrack(Track* track, Bool_t create, Int_t start_idx, Int_t end_idx);
 
 private:
   NLTProjection*  fProjection;
@@ -66,6 +94,8 @@ private:
 
   // temporary variables cashed 
   Int_t*          fIdxMap; // map from original to projected and reduced point needed oly for geometry
+  Int_t           fNPnts; // number of reduced and projected points
+  Vector*         fPnts;  // reduced and projected points
   Int_t           fNRPnts; // number of reduced and projected points
   Vector*         fRPnts;  // reduced and projected points
 
@@ -78,16 +108,23 @@ public:
   NLTProjector();
   virtual ~NLTProjector();
 
-  NLTPolygonSet*  ProjectGeoShape(TBuffer3D* buff, Int_t useBuffPols=-1);
+  NLTPolygonSet*  ProjectBuffer3D(TBuffer3D* buff, Int_t useBuffPols=-1);
   void            ProjectPointSet(PointSet* ps);
-  void            ProjectTrackList(TrackList* tl);
+  void            ProjectTrack(Bool_t recurse);
+  void            RegisterTrack(Track* track, Bool_t recurse=kTRUE);
+  void            RegisterTrackList(TrackList* tl, Bool_t recurse=kTRUE);
   
   void            SetProjection(NLTProjection* p){ fProjection = p;}
   void            SetProjection(NLTProjection::Type_e type, Float_t distort = 0.);
   NLTProjection*  GetProjection(){ return fProjection; }
 
   void            DumpBuffer(TBuffer3D* b);
+
+  virtual Bool_t  CanEditMainColor() { return kTRUE; }
+
+  virtual void    ComputeBBox();
+  virtual void    Paint(Option_t* option = "");
   ClassDef(NLTProjector, 0) //GUI for editing TGLViewer attributes
-  };
+    };
 }
 #endif
