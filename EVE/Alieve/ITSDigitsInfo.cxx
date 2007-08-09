@@ -337,11 +337,11 @@ void ITSDigitsInfo::GetModuleIDs(ITSModuleSelection* sel, std::vector<UInt_t>& i
       idx1 = fGeom->GetLastSPD();
       break;
     case 1:
-      idx0 = fGeom->GetLastSPD();
+      idx0 = fGeom->GetLastSPD()+1;
       idx1 = fGeom->GetLastSDD();
       break;
     case 2:
-      idx0 = fGeom->GetLastSDD();
+      idx0 = fGeom->GetLastSDD()+1;
       idx1 = fGeom->GetLastSSD();
       break;
     default:
