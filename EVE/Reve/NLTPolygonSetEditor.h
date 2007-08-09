@@ -16,7 +16,7 @@ class NLTPolygonSetEditor : public TGedFrame
 protected:
   NLTPolygonSet* fPS; // fModel dynamic-casted to NLTPolygonSetEditor
 
-  TGColorSelect       *fFillColor;      // fill color widget
+  // TGColorSelect       *fFillColor;      // fill color widget
   
   TGNumberEntry       *fLineWidth;
   TGColorSelect       *fLineColor;      // fill color widget
@@ -29,7 +29,7 @@ public:
 
   virtual void SetModel(TObject* obj);
 
-  virtual void DoFillColor(Pixel_t color);
+  //virtual void DoFillColor(Pixel_t color);
 
   virtual void DoLineWidth();
   virtual void DoLineColor(Pixel_t color);

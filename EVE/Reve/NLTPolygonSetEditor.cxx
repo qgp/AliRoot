@@ -14,17 +14,18 @@ using namespace Reve;
 ClassImp(NLTPolygonSetEditor)
 
   NLTPolygonSetEditor::NLTPolygonSetEditor(const TGWindow *p,
-				     Int_t width, Int_t height,
-				     UInt_t options, Pixel_t back) :
+					   Int_t width, Int_t height,
+					   UInt_t options, Pixel_t back) :
     TGedFrame(p, width, height, options | kVerticalFrame, back),
     fPS(0),
-    fFillColor(0),
+    //  fFillColor(0),
     fLineWidth(0),
     fLineColor(0),
     fZDepth()
 {
   MakeTitle("NLTPolygonSet");
-  {
+  /*
+    {
     TGCompositeFrame *f1 = new TGCompositeFrame(this, 80, 20, kHorizontalFrame);
     TGLabel *l = new TGLabel(f1, "FillColor:");
     f1->AddFrame(l, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 25, 2, 1, 1));
@@ -32,7 +33,8 @@ ClassImp(NLTPolygonSetEditor)
     fFillColor->Connect("ColorSelected(Pixel_t)", "Reve::NLTPolygonSetEditor", this, "DoFillColor(Pixel_t)");
     f1->AddFrame(fFillColor, new TGLayoutHints(kLHintsLeft, 1, 1, 1, 1));
     AddFrame(f1, new TGLayoutHints(kLHintsTop, 1, 1, 0, 0));
-  }
+    }
+  */
 
   {
     TGCompositeFrame *f = new TGCompositeFrame(this, 80, 20, kHorizontalFrame);
@@ -58,8 +60,8 @@ ClassImp(NLTPolygonSetEditor)
     TGLabel *l = new TGLabel(f, "Z Depth:");
     f->AddFrame(l, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 24, 2, 1, 1));
     fZDepth = new TGNumberEntry(f, 0., 6, -1, 
-			      TGNumberFormat::kNESRealOne, TGNumberFormat::kNEAPositive,
-			      TGNumberFormat::kNELLimitMinMax, 0.1, 2000.0);
+				TGNumberFormat::kNESRealOne, TGNumberFormat::kNEAPositive,
+				TGNumberFormat::kNELLimitMinMax, 0.1, 2000.0);
     fZDepth->GetNumberEntry()->SetToolTipText("Maximum z-coordinate to which the tracks will be drawn.");
     f->AddFrame(fZDepth, new TGLayoutHints(kLHintsLeft, 1, 1, 1, 1));
     fZDepth->Connect("ValueSet(Long_t)", "Reve::NLTPolygonSetEditor", this, "DoZDepth()");
@@ -74,12 +76,14 @@ NLTPolygonSetEditor::~NLTPolygonSetEditor()
 {}
 
 /**************************************************************************/
+/*
 void NLTPolygonSetEditor::DoFillColor(Pixel_t pixel)
 {
   printf("do fill color \n");
   fPS->SetFillColor(pixel);
   Update();
 }
+*/
 /**************************************************************************/
 void NLTPolygonSetEditor::DoLineWidth()
 {
@@ -109,7 +113,7 @@ void NLTPolygonSetEditor::DoZDepth()
 void NLTPolygonSetEditor::SetModel(TObject* obj)
 {
   fPS = dynamic_cast<NLTPolygonSet*>(obj);
-  fFillColor->SetColor(TColor::Number2Pixel(fPS->GetFillColor()), kFALSE);
+  //  fFillColor->SetColor(TColor::Number2Pixel(fPS->GetFillColor()), kFALSE);
   fLineWidth->SetNumber(fPS->fLineWidth);
   fLineColor->SetColor(TColor::Number2Pixel(fPS->GetLineColor()), kFALSE);
   fZDepth->SetNumber(fPS->fZDepth);
