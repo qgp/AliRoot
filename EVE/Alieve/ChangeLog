@@ -1,3 +1,18 @@
+2007-08-09  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
+
+	* ITSDigitsInfo.cxx:
+	Fix offset by one bug in GetModuleIDs().
+	
+	* ITSModuleStepper.cxx:
+	* ITSModuleStepper.h:
+	ITSModuleStepper is an TGLOverlayElement. ITSModuleStepperGL
+	functionality moved here.
+	
+	* LinkDef.h:
+	* ITSModuleStepperGL.cxx:
+	* ITSModuleStepperGL.h:
+	Remove files.
+
 2007-08-06  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	* JetPlane.cxx:

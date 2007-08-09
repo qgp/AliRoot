@@ -1,3 +1,42 @@
+2007-08-09  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
+
+	* GLUtilNS.cxx:
+	* GLUtilNS.h:
+	* StraightLineSetGL.cxx:
+	In RederPolymarkers()/RederCorssess()/RederPoints() argument
+	sec_sel has default value false. RenderPolyMarkers() now also
+	applies color from TAttMarker.
+
+	* Track.cxx:
+	* Track.h:
+	* TrackGL.cxx:
+	MakeTrack()/MakeTracks() are recursive by default.
+
+	* LinkDef.h:
+	* NLTProjectorGL.h:
+	* NLTProjectorGL.cxx:
+	New files.
+	Draw axis to define bounding box of non-linear projected geometry.
+
+	* NLTProjector.cxx:
+	* NLTProjector.h:
+	Fix inconsistent checking of polygon duplicates. Enable dynamic
+	configuration of TrackRenderStyle.
+
+	* ZTrans.cxx:
+	* ZTrans.h:
+	Add multiply functions with Double_t* as an argument.
+
+	* NLTPolygonSet.cxx:
+	* NLTPolygonSet.h:
+	* NLTPolygonSetGL.cxx:
+	 NLTPolygonSetGL inherited from RenderElementList. Add Getters for
+	vertices and polygons.
+
+	* NLTPolygonSetEditor.cxx:
+	* NLTPolygonSetEditor.h:
+	Edit transparency of main color.
+
 2007-07-23  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	* Track.h:
