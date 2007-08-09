@@ -16,18 +16,20 @@ ClassImp(NLTPolygonSet)
 
 /**************************************************************************/
 NLTPolygonSet::NLTPolygonSet(const Text_t* n, const Text_t* t) :
- RenderElement(),
- TNamed(n,t), 
- TAtt3D(), 
- fNPnts(0),
- fPnts(0),
- fNPols(0),
- fPols(0),
- fFillColor(5),
- fLineColor(3),
- fLineWidth(1),
- fZDepth(0)
-{}
+  RenderElementList(n, t),
+  TAtt3D(),
+  fNPnts(0),
+  fPnts(0),
+  fNPols(0),
+  fPols(0),
+  fFillColor(5),
+  fLineColor(3),
+  fLineWidth(1),
+  fTransparency (0),
+  fZDepth(0)
+{
+  SetMainColorPtr(&fFillColor);
+}
 
 /**************************************************************************/
 
@@ -61,8 +63,8 @@ void NLTPolygonSet::Paint(Option_t* )
 
   // Section kCore
   buffer.fID           = this;
-  buffer.fColor        = 2;
-  buffer.fTransparency = 0;
+  buffer.fColor        = GetMainColor();
+  buffer.fTransparency = fTransparency;
   buffer.fLocalFrame   = false; 
 
   buffer.SetSectionsValid(TBuffer3D::kCore);

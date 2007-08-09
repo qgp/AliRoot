@@ -7,6 +7,7 @@
 #include "TAtt3D.h"
 #include "TAttBBox.h"
 #include "TColor.h"
+#include "PODs.h"
 
 namespace Reve {
 
@@ -21,17 +22,16 @@ public:
   NLTPolygon() : fNPnts(0), fPnts(0) {}
   NLTPolygon(Int_t n, Int_t* p) : fNPnts(n), fPnts(p) {}
   NLTPolygon(const NLTPolygon& x) : fNPnts(x.fNPnts), fPnts(x.fPnts) {}
+  virtual ~NLTPolygon() {}
+
   NLTPolygon& operator=(const NLTPolygon& x)
   { fNPnts = x.fNPnts; fPnts = x.fPnts; return *this; }
-
-  virtual ~NLTPolygon() {}
 
   ClassDef(NLTPolygon, 0)
 };
 
 
-class NLTPolygonSet :  public Reve::RenderElement,
-                       public TNamed, 
+class NLTPolygonSet :  public Reve::RenderElementList,
 		       public TAtt3D, 
                        public TAttBBox
 {
@@ -51,8 +51,10 @@ protected:
   Color_t      fFillColor;  
   Color_t      fLineColor;
   Float_t      fLineWidth;
-  Float_t      fZDepth;
 
+  UChar_t      fTransparency;
+
+  Float_t      fZDepth;
 public:
   NLTPolygonSet(const Text_t* n="NLTPolygonSet", const Text_t* t="");
   virtual ~NLTPolygonSet();
@@ -63,9 +65,15 @@ public:
   void SetPoints(Vector* p, Int_t n) {fPnts = p; fNPnts = n;}
   void SetPolygons(NLTPolygon* p, Int_t n){fPols=p; fNPols=n;}
 
-  virtual Color_t GetFillColor() const { return fFillColor; }
+  virtual Bool_t CanEditMainColor()        { return kTRUE; }
+
+  // virtual Color_t GetFillColor() const { return fFillColor; }
   virtual Color_t GetLineColor() const { return fLineColor; }
   
+  virtual Bool_t  CanEditMainTransparency()      { return kTRUE; }
+  virtual UChar_t GetMainTransparency() const    { return fTransparency; }
+  virtual void    SetMainTransparency(UChar_t t) { fTransparency = t; }  
+
   Int_t GetSize(){return fNPols;}
   virtual void Dump() const;
 
@@ -78,6 +86,8 @@ public:
   virtual void SetZDepth(Float_t z){fZDepth = z;}
   virtual void SetLineWidth(Double_t lw){fLineWidth = lw;}
 
+  Int_t        GetNPnts(){return fNPnts;}
+  Float_t*     GetPnt(Int_t i) {return fPnts[i].c_vec();}
 
   ClassDef(NLTPolygonSet,0) 
     }; // endclass NLTPolygonSet

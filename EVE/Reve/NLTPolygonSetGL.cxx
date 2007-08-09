@@ -77,14 +77,10 @@ void NLTPolygonSetGL::DirectDraw(TGLRnrCtx & /*rnrCtx*/) const
   glDisable(GL_LIGHTING);
   glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
   glEnable(GL_COLOR_MATERIAL);
-  glPolygonMode(GL_FRONT, GL_FILL);
-  glPolygonMode(GL_BACK,  GL_FILL);
+  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
   glDisable(GL_CULL_FACE);
 
   // polygons
-  UChar_t col[4];
-  ColorFromIdx(PS.fFillColor, col);
-  glColor4ubv(col);
   glEnable(GL_POLYGON_OFFSET_FILL);
   glPolygonOffset(1.,1.);
   GLUtriangulatorObj *tessObj = GetTesselator();
