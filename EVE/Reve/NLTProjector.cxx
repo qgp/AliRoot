@@ -509,7 +509,6 @@ void  NLTProjector::GetBreakPoint(Int_t idx, Bool_t back,  Float_t& x, Float_t& 
 {
   Vector vL = fPnts[idx];
   Vector vR = fPnts[idx+1];
-  Bool_t debug = kTRUE;
   // printf("out of tolerance:%d (%f, %f, %f)(%f, %f, %f) \n",
   //	 N, vL.x, vL.y, vL.z, vR.x, vR.y, vR.z );
 
@@ -530,9 +529,13 @@ void  NLTProjector::GetBreakPoint(Int_t idx, Bool_t back,  Float_t& x, Float_t& 
   }
 
   if(back)
+  {
     x = vL.x; y = vL.y; z = vL.z;
+  }
   else
+  {
     x = vR.x; y = vR.y; z = vR.z;
+  }
   fProjection->ProjectPoint(x, y, z);
 }
 
