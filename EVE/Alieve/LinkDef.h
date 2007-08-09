@@ -29,7 +29,6 @@
 #pragma link C++ class Alieve::ITSSDSubEditor+;
 #pragma link C++ class Alieve::ITSScaledModuleEditor+;
 #pragma link C++ class Alieve::ITSModuleStepper+;
-#pragma link C++ class Alieve::ITSModuleStepperGL+;
 
 // MUON
 #pragma link C++ class Alieve::MUONData+;
