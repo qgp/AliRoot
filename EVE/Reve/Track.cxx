@@ -112,6 +112,50 @@ Track::~Track()
     delete *i;
 }
 
+Track::Track(const Track& t) :
+  Line(),
+  TQObject(),
+  fV(t.fV),
+  fP(t.fP),
+  fBeta(t.fBeta),
+  fCharge(t.fCharge),
+  fLabel(t.fLabel),
+  fIndex(t.fIndex),
+  fPathMarks(),
+  fRnrStyle(t.fRnrStyle)
+{
+  SetMainColor(t.GetMainColor());
+  // Line
+  fRnrLine = t.fRnrLine;
+  fRnrPoints = t.fRnrPoints;
+  // TLineAttrib
+  fLineColor = t.fLineColor;
+  fLineStyle = t.fLineStyle;
+  fLineWidth = t.fLineWidth;
+}
+
+Track& Track::operator=(const Track& t)
+{
+  fV        = t.fV;
+  fP        = t.fP;
+  fBeta     = t.fBeta;
+  fCharge   = t.fCharge;
+  fLabel    = t.fLabel;
+  fIndex    = t.fIndex;
+  fPathMarks= t.fPathMarks;
+
+  SetMainColor(t.GetMainColor());
+  // Line
+  fRnrLine = t.fRnrLine;
+  fRnrPoints = t.fRnrPoints;
+  // TLineAttrib
+  fLineColor = t.fLineColor;
+  fLineStyle = t.fLineStyle;
+  fLineWidth = t.fLineWidth;
+
+  return *this;
+}
+
 /*
 void Track::Reset(Int_t n_points)
 {
@@ -257,6 +301,28 @@ make_polyline:
     }
   }
 
+  fVisPathMarks.clear();
+  for(std::vector<PathMark*>::iterator i=fPathMarks.begin(); i!=fPathMarks.end(); ++i) 
+  {
+    if((TMath::Abs((*i)->V.z) <RS.fMaxZ) && ((*i)->V.Perp() < RS.fMaxR))
+    {
+      Bool_t accept = kFALSE;
+      switch((*i)->type)
+      {
+	case(PathMark::Daughter):
+	  if(RS.fRnrDaughters) accept = kTRUE;
+	  break;
+	case(PathMark::Reference):
+	  if(RS.fRnrReferences) accept = kTRUE;
+	  break;
+	case(PathMark::Decay):
+	  if(RS.fRnrDecay) accept = kTRUE;
+	  break;
+      } 
+      if(accept) fVisPathMarks.push_back((*i)->V);
+    }
+  }
+
   if(recurse) {
     for(List_i i=fChildren.begin(); i!=fChildren.end(); ++i)
     {
@@ -264,6 +330,7 @@ make_polyline:
       if(t) t->MakeTrack(recurse); 
     }
   }
+  Emit("MakeTrack(Bool_t)", (Long_t)recurse);
 }
 
 /**************************************************************************/

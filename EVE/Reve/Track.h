@@ -26,12 +26,11 @@ class Track : public Line, public TQObject
   friend class TrackCounter;
   friend class TrackGL;
 
-  Track(const Track&);            // Not implemented
-  Track& operator=(const Track&); // Not implemented
-
 public:
   typedef std::vector<Reve::PathMark*>           vpPathMark_t;
+  typedef std::vector<Reve::Vector>             viPathMark_t;
   typedef std::vector<Reve::PathMark*>::iterator vpPathMark_i;
+
 protected:
   Reve::Vector      fV;
   Reve::Vector      fP;
@@ -40,8 +39,9 @@ protected:
   Int_t             fLabel;
   Int_t             fIndex;
   vpPathMark_t      fPathMarks;
+  viPathMark_t      fVisPathMarks;
 
-  TrackRnrStyle*    fRnrStyle;
+  TrackRnrStyle*    fRnrStyle; 
 
 public:
   Track();
@@ -50,7 +50,10 @@ public:
   Track(Reve::RecTrack* t, TrackRnrStyle* rs);
   virtual ~Track();
 
-  virtual void MakeTrack(Bool_t recurse=kFALSE);
+  Track(const Track& t);           
+  Track& operator=(const Track& t);
+
+  virtual void MakeTrack(Bool_t recurse=kTRUE);  //*SIGNAL*
 
   TrackRnrStyle* GetRnrStyle() const  { return fRnrStyle; }
   void SetRnrStyle(TrackRnrStyle* rs) { fRnrStyle = rs; }
@@ -61,6 +64,8 @@ public:
   void  SetIndex(Int_t idx) { fIndex = idx;  }
 
   void  AddPathMark(Reve::PathMark* pm) { fPathMarks.push_back(pm); }
+  vpPathMark_t& GetPathMarksRef(){return fPathMarks;}
+  viPathMark_t& GetVisPathMarksRef(){return fVisPathMarks;}
   void  SortPathMarksByTime();
 
   //--------------------------------
@@ -204,7 +209,7 @@ public:
   Bool_t GetRnrMarkers() const { return fRnrMarkers; }
   void   SetRnrMarkers(Bool_t);
 
-  void   MakeTracks(Bool_t recurse=kFALSE);
+  void   MakeTracks(Bool_t recurse=kTRUE);
   void   MakeMarkers();
 
   Width_t GetWidth() const { return fRnrStyle->fWidth; }

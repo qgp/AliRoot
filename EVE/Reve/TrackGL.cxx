@@ -2,6 +2,7 @@
 
 #include "TrackGL.h"
 #include <Reve/Track.h>
+#include <Reve/GLUtilNS.h>
 
 #include <TGLSelectRecord.h>
 
@@ -54,114 +55,22 @@ void TrackGL::ProcessSelection(TGLRnrCtx & /*rnrCtx*/, TGLSelectRecord & rec)
 /**************************************************************************/
 void TrackGL::DirectDraw(TGLRnrCtx & rnrCtx) const
 {
-  // Render line and path marks
-
+  // track 
   LineGL::DirectDraw(rnrCtx);
 
-  if ( ! fTrack->fPathMarks.empty())
-  {
-    TrackRnrStyle* rs = fTrack->GetRnrStyle();
-    Int_t  style = rs->fPMStyle;
-
-    UChar_t color[4];
-    ColorFromIdx(rs->fPMColor, color);
-    glColor4ubv(color);
-    
-    glPushAttrib(GL_POINT_BIT | GL_LINE_BIT | GL_ENABLE_BIT);
-    glDisable(GL_LIGHTING);
-
-    Int_t ms = rs->fPMStyle;
-    // points
-    if (ms != 2 && ms != 3 && ms != 5 && ms != 28) 
+  // path-marks
+  TrackRnrStyle& RS = *fTrack->GetRnrStyle();
+  Int_t N =  fTrack->fVisPathMarks.size();   
+  if ( N && RS.fPMSize > 0.)
+  { Float_t* pnts = new Float_t[3*N];
+    for(Int_t i=0; i<N; i++) 
     {
-      Float_t size = 5*rs->fPMSize;
-      if (style == 4 || style == 20 || style == 24) 
-      {
-	if (style == 4 || style == 24)
-	  glEnable(GL_BLEND);
-	glEnable(GL_POINT_SMOOTH);
-      } 
-      else 
-      {
-	glDisable(GL_POINT_SMOOTH);
-	if      (style == 1) size = 1;
-	else if (style == 6) size = 2;
-	else if (style == 7) size = 3;
-      }
-      glPointSize(size);
-
-      glBegin(GL_POINTS);
-      Bool_t accept;
-      std::vector<PathMark*>& pm = fTrack->fPathMarks;
-      for(std::vector<PathMark*>::iterator i=pm.begin(); i!=pm.end(); ++i) 
-      {
-	accept = kFALSE;
-	switch((*i)->type)
-	{
-	  case(PathMark::Daughter):
-	    if(rs->fRnrDaughters) accept = kTRUE;
-	    break;
-	  case(PathMark::Reference):
-	    if(rs->fRnrReferences) accept = kTRUE;
-	    break;
-	  case(PathMark::Decay):
-	    if(rs->fRnrDecay) accept = kTRUE;
-	    break;
-	} 
-	if(accept)
-	{
-	  if((TMath::Abs((*i)->V.z) < rs->fMaxZ) && ((*i)->V.Perp() < rs->fMaxR))
-	    glVertex3f((*i)->V.x, (*i)->V.y,(*i)->V.z);
-	}
-      } 
-      glEnd();
-    } // end render points
-    else 
-    {
-      // crosses
-      if (style == 28) 
-      {
-	glEnable(GL_BLEND);
-	glEnable(GL_LINE_SMOOTH);
-	glLineWidth(2);
-      } 
-      else 
-      {
-	glDisable(GL_LINE_SMOOTH);
-      }
-
-      glBegin(GL_LINES);
-      Bool_t accept;
-      Float_t d = 2* rs->fPMSize;
-      std::vector<PathMark*>& pm = fTrack->fPathMarks;     
-      for(std::vector<PathMark*>::iterator i=pm.begin(); i!=pm.end(); ++i) 
-      {
-	accept = kFALSE;
-	switch((*i)->type)
-	{
-	  case(PathMark::Daughter):
-	    if(rs->fRnrDaughters) accept = kTRUE;
-	    break;
-	  case(PathMark::Reference):
-	    if(rs->fRnrReferences) accept = kTRUE;
-	    break;
-	  case(PathMark::Decay):
-	    if(rs->fRnrDecay) accept = kTRUE;
-	    break;
-	} 
-	if(accept)
-	{
-	  if((TMath::Abs((*i)->V.z) < rs->fMaxZ) && ((*i)->V.Perp() < rs->fMaxR))
-	  {
-	    const Float_t &x=(*i)->V.x, &y=(*i)->V.y, &z=(*i)->V.z;
-	    glVertex3f(x-d, y,   z);    glVertex3f(x+d, y,   z);
-	    glVertex3f(x,   y-d, z);    glVertex3f(x,   y+d, z);
-	    glVertex3f(x,   y,   z-d);  glVertex3f(x,   y,   z+d);
-	  }
-	}
-      } 
-      glEnd();
-    } // end render corsses
-    glPopAttrib();
-  } //if PM not empty
+      pnts[i*3]   = fTrack->fVisPathMarks[i].x;
+      pnts[i*3+1] = fTrack->fVisPathMarks[i].y;
+      pnts[i*3+2] = fTrack->fVisPathMarks[i].z;
+    }
+    TAttMarker ms(RS.fPMColor, RS.fPMStyle, RS.fPMSize);
+    GLUtilNS::RenderPolyMarkers(ms, pnts, N);
+    delete [] pnts;
+  }
 }
