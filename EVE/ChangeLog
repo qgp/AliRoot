@@ -1,3 +1,12 @@
+2007-08-10  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
+
+	* Alieve/.SKEL-gedsubed.cxx:
+	* Alieve/.SKEL-gedsubed.h:
+	* Reve/.SKEL-gedsubed.cxx:
+	* Reve/.SKEL-gedsubed.h:
+	* reve-genclass.pl:
+	Generate class skeletons for ged sub-editors.
+
 2007-08-09  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
 
 	* alice-macros/NLT_demo.C:
