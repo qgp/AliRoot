@@ -13,6 +13,8 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
+/* $Id$ */
+
 //
 // Manager class for filter decisions based on cuts
 // The filter contains a list of sets of cuts.
