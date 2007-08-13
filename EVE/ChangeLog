@@ -1,3 +1,38 @@
+2007-08-13  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	EVE-dev
+
+	* alice-macros/MUON_display.C:
+	* alice-macros/NLT_geo_demo.C:
+	* alice-macros/clusters_from_label.C:
+	* alice-macros/emcal_digits.C:
+	* alice-macros/emcal_hits.C:
+	* alice-macros/esd_Cascade.C:
+	* alice-macros/esd_V0.C:
+	* alice-macros/esd_tracks.C:
+	* alice-macros/geom_fmd.C:
+	* alice-macros/geom_hmpid.C:
+	* alice-macros/geom_phos.C:
+	* alice-macros/geom_t0.C:
+	* alice-macros/geom_vzero.C:
+	* alice-macros/its_digits.C:
+	* alice-macros/its_hits.C:
+	* alice-macros/its_raw.C:
+	* alice-macros/kine_tracks.C:
+	* alice-macros/pmd_digits.C:
+	* alice-macros/pmd_raw.C:
+	* alice-macros/primary_vertex_tracks.C:
+	* alice-macros/tof_digits.C:
+	* alice-macros/tof_digits_sector.C:
+	* alice-macros/tof_digits_strips.C:
+	* alice-macros/tof_hits.C:
+	* alice-macros/tpc_digits.C:
+	* alice-macros/tpc_hits.C:
+	* alice-macros/trd_hits.C:
+	* macros/reve_quad_test.C:
+	Consistent ordering of arguments to AddRenderElement(),
+	AddGlobalRenderElement() and RemoveRenderElement().
+
 2007-08-10  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
 
 	* Alieve/.SKEL-gedsubed.cxx:

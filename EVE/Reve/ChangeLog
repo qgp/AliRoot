@@ -1,3 +1,16 @@
+2007-08-13  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	EVE-dev
+
+	* GeoNode.cxx:
+	* NLTProjector.cxx:
+	* PointSet.cxx:
+	* RGTopFrame.cxx:
+	* RGTopFrame.h:
+	* VSDSelector.cxx:
+	Consistent ordering of arguments to AddRenderElement(),
+	AddGlobalRenderElement() and RemoveRenderElement().
+
 2007-08-09  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
 
 	* GLUtilNS.cxx:
