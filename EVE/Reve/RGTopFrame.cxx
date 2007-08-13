@@ -324,19 +324,18 @@ TGListTreeItem* RGTopFrame::AddEvent(EventBase* event)
   return elti;
 }
 
-TGListTreeItem* RGTopFrame::AddRenderElement(RenderElement* rnr_element)
-{
-  if (fCurrentEvent == 0)
-    AddEvent(new EventBase("Event", "Auto-created event directory"));
-  return AddRenderElement(fCurrentEvent, rnr_element);
-}
-
-TGListTreeItem* RGTopFrame::AddRenderElement(RenderElement* parent,
-					     RenderElement* rnr_element)
+TGListTreeItem* RGTopFrame::AddRenderElement(RenderElement* rnr_element,
+					     RenderElement* parent)
 {
   static const Exc_t eH("RGTopFrame::AddRenderElement ");
 
   // Here could route rnr-element to several browsers/pads.
+
+  if (parent == 0) {
+    if (fCurrentEvent == 0)
+      AddEvent(new EventBase("Event", "Auto-created event directory"));
+    parent = fCurrentEvent;
+  }
 
   parent->AddElement(rnr_element);
 
@@ -346,17 +345,15 @@ TGListTreeItem* RGTopFrame::AddRenderElement(RenderElement* parent,
   return newitem;
 }
 
-TGListTreeItem* RGTopFrame::AddGlobalRenderElement(RenderElement* rnr_element)
-{
-  return AddGlobalRenderElement(fGlobalStore, rnr_element);
-}
-
-TGListTreeItem* RGTopFrame::AddGlobalRenderElement(RenderElement* parent,
-						   RenderElement* rnr_element)
+TGListTreeItem* RGTopFrame::AddGlobalRenderElement(RenderElement* rnr_element,
+						   RenderElement* parent)
 {
   static const Exc_t eH("RGTopFrame::AddGlobalRenderElement ");
 
   // Here could route rnr-element to several browsers/pads.
+
+  if (parent == 0)
+    parent = fGlobalStore;
 
   parent->AddElement(rnr_element);
 
@@ -368,8 +365,8 @@ TGListTreeItem* RGTopFrame::AddGlobalRenderElement(RenderElement* parent,
 
 /**************************************************************************/
 
-void RGTopFrame::RemoveRenderElement(RenderElement* parent,
-				     RenderElement* rnr_element)
+void RGTopFrame::RemoveRenderElement(RenderElement* rnr_element,
+				     RenderElement* parent)
 {
   rnr_element->RemoveFromListTree(GetListTree());
 

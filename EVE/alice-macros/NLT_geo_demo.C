@@ -43,7 +43,7 @@ void project_to_pointset(Reve::NLTProjector* nlt, const Text_t* path)
       ps->SetPoint(i,  buff->fPnts[3*i], buff->fPnts[3*i+1], buff->fPnts[3*i+2]);
    
     PointSet* pps = nlt->ProjectPointSet(ps);
-    gReve->AddGlobalRenderElement(nlt, pps);
+    gReve->AddGlobalRenderElement(pps, nlt);
   }
 }
 /**************************************************************************/
@@ -101,7 +101,7 @@ void project_nodes(Reve::NLTProjector* nlt, const Text_t* parent_path)
   TGeoNode* geon;
 
   Reve::RenderElementList* el = new Reve::RenderElementList(parent_path);
-  gReve->AddGlobalRenderElement(nlt, el);
+  gReve->AddGlobalRenderElement(el, nlt);
   while((geon = (TGeoNode*)next_node())) 
   {
     TGeoVolume* v = geon->GetVolume();
@@ -110,7 +110,7 @@ void project_nodes(Reve::NLTProjector* nlt, const Text_t* parent_path)
       Reve::NLTPolygonSet* ps = project_node(nlt, path.Data());
       if(ps) {
 	ps->SetName(geon->GetName());
-	gReve->AddGlobalRenderElement(el, ps);
+	gReve->AddGlobalRenderElement(ps, el);
       }
     }
   }
@@ -124,22 +124,22 @@ void make_simple_geo(Reve::NLTProjector* nlt)
 
   project_nodes( nlt, "/ALIC_1/ITSV_holder_1/ITSV_1");
   ps = project_node( nlt, "/ALIC_1/TPC_holder_1/TPC_1/TDGN_1");
-  if(ps) gReve->AddGlobalRenderElement(nlt, ps);
+  if(ps) gReve->AddGlobalRenderElement(ps, nlt);
   ps = project_node(nlt, "/ALIC_1/TRD TOF_holder_1/B077_1");
-  if(ps) gReve->AddGlobalRenderElement(nlt, ps);
+  if(ps) gReve->AddGlobalRenderElement(ps, nlt);
   ps = project_node(nlt, "/ALIC_1/TRD TOF_holder_1/BRS4_1");
-  if(ps) gReve->AddGlobalRenderElement(nlt, ps);
+  if(ps) gReve->AddGlobalRenderElement(ps, nlt);
   ps = project_node(nlt, "/ALIC_1/TRD TOF_holder_1/BRS4_2");
-  if(ps) gReve->AddGlobalRenderElement(nlt, ps);
+  if(ps) gReve->AddGlobalRenderElement(ps, nlt);
   ps = project_node(nlt, "/ALIC_1/TRD TOF_holder_1/BFMO_1");
-  if(ps) gReve->AddGlobalRenderElement(nlt, ps);
+  if(ps) gReve->AddGlobalRenderElement(ps, nlt);
   ps = project_node(nlt, "/ALIC_1/TRD TOF_holder_1/BBMO_1");
-  if( ps) gReve->AddGlobalRenderElement(nlt, ps);
+  if( ps) gReve->AddGlobalRenderElement(ps, nlt);
 
   for(Int_t i = 1; i<6; i++) {
     ps = project_node(nlt, Form("/ALIC_1/PHOS_holder_1/PHOS_%d", i));
     ps->SetFillColor((Color_t)(kOrange-4));
-    if(ps) gReve->AddGlobalRenderElement(nlt, ps);
+    if(ps) gReve->AddGlobalRenderElement(ps, nlt);
   }
   project_nodes( nlt, "/ALIC_1/FMD_holder_1");  
   project_nodes( nlt, "/ALIC_1/RICH_holder_1");
@@ -164,7 +164,7 @@ void project_geo_shape(Reve::NLTProjector* nlt, Reve::GeoShapeRnrEl* pgsh, Reve:
     ps->SetName(pgsh->GetName());
     ps->SetRnrSelf(pgsh->GetRnrSelf());
     ps->SetRnrChildren(pgsh->GetRnrChildren());
-    gReve->AddGlobalRenderElement(parent,ps);
+    gReve->AddGlobalRenderElement(ps, parent);
     //    ps->SetFillColor(pgsh->GetColor());
     ps->SetMainColor(pgsh->GetColor());
     ps->SetLineColor((Color_t)TColor::GetColorBright(pgsh->GetColor()));

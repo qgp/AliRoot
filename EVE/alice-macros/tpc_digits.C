@@ -67,7 +67,7 @@ void tpc_digits(Int_t mode=0)
 	s->SetDataSource(g_tpc_data);
 	s->SetFrameColor(col);
 	s->SetAutoTrans(kTRUE);
-	gReve->AddRenderElement(l, s);
+	gReve->AddRenderElement(s, l);
       }
     }
     {
@@ -82,7 +82,7 @@ void tpc_digits(Int_t mode=0)
 	s->SetDataSource(g_tpc_data);
 	s->SetFrameColor(col);
 	s->SetAutoTrans(kTRUE);
-	gReve->AddRenderElement(l, s);
+	gReve->AddRenderElement(s, l);
       }
     }
     gReve->EnableRedraw();
@@ -113,7 +113,7 @@ void tpc_digits(Int_t mode=0)
 	s->SetDataSource(g_tpc_data);
 	s->SetFrameColor(col);
 	s->SetAutoTrans(kTRUE);
-	gReve->AddRenderElement(l, s);
+	gReve->AddRenderElement(s, l);
       }
     }
     {
@@ -128,7 +128,7 @@ void tpc_digits(Int_t mode=0)
 	s->SetDataSource(g_tpc_data);
 	s->SetFrameColor(col);
 	s->SetAutoTrans(kTRUE);
-	gReve->AddRenderElement(l, s);
+	gReve->AddRenderElement(s, l);
       }
     }
     gReve->EnableRedraw();
@@ -171,7 +171,7 @@ void tpc_digits_2drange(Int_t start, Int_t end)
       s->SetDataSource(g_tpc_data);
       s->SetFrameColor(col);
       s->SetAutoTrans(kTRUE);
-      gReve->AddRenderElement(l, s);
+      gReve->AddRenderElement(s, l);
     }
   }
   gReve->EnableRedraw();

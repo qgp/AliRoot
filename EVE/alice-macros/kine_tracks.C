@@ -55,7 +55,7 @@ kine_tracks(Double_t min_pt  = 0.1,   Double_t min_p   = 0.2,
       track->SetName(form);
       if (pdg_col && p->GetPDG())
 	track->SetMainColor(get_pdg_color(p->GetPDG()->PdgCode()));
-      gReve->AddRenderElement(cont, track);
+      gReve->AddRenderElement(track, cont);
 
       if (recurse)
 	kine_daughters(track, stack, min_pt, min_p, pdg_col, recurse);
@@ -106,7 +106,7 @@ void kine_daughters(Reve::Track* parent,  AliStack* stack,
       dtrack->SetName(form);
       if (pdg_col && dp->GetPDG())
 	dtrack->SetMainColor(get_pdg_color(dp->GetPDG()->PdgCode()));
-      gReve->AddRenderElement(parent, dtrack);
+      gReve->AddRenderElement(dtrack, parent);
 
       if (recurse)
 	kine_daughters(dtrack, stack, min_pt, min_p, pdg_col, recurse);
@@ -224,7 +224,7 @@ kine_track(Int_t  label,
       char form[1000];
       sprintf(form,"%s [%d]", p->GetName(), label);
       track->SetName(form);
-      gReve->AddRenderElement(cont, track);
+      gReve->AddRenderElement(track, cont);
 
     }
 
@@ -238,7 +238,7 @@ kine_track(Int_t  label,
 	sprintf(form,"%s [%d]", dp->GetName(), d);
 	track->SetName(form);
         track->MakeTrack();
-	gReve->AddRenderElement(cont, track);
+	gReve->AddRenderElement(track, cont);
       }
     }
   }

@@ -204,7 +204,7 @@ void VSDSelector::SelectParticles(const Text_t* selection)
       mTreeK->GetEntry(label);
       Track* track = new Track(mpK, cont->GetRnrStyle());
       track->SetName(Form("%s daughters:%d", mK.GetName(), mK.GetNDaughters()));
-      gReve->AddRenderElement(cont, track);
+      gReve->AddRenderElement(track, cont);
 
       // printf("select daugters %s selection %s\n",mpK->GetName(),Form("fMother[0] == %d", track->GetLabel()));
       if(fRecursiveSelect->IsOn()) {
@@ -234,7 +234,7 @@ void VSDSelector::ImportDaughtersRec(RenderElement* parent, TrackList* cont,
     mTreeK->GetEntry(i); 
     Track* track = new Track(mpK, cont->GetRnrStyle());
     track->SetName(Form("%s daughters:%d", mK.GetName(), mK.GetNDaughters()));
-    gReve->AddRenderElement(parent, track);
+    gReve->AddRenderElement(track, parent);
     cont->AddElement(track); // ?? is this ok ??
     if(mK.GetNDaughters())
       ImportDaughtersRec(track, cont, mK.GetFirstDaughter(), mK.GetLastDaughter());
@@ -369,7 +369,7 @@ void VSDSelector::SelectRecTracks()
       Track* track = new Track(mpR, cont->GetRnrStyle());
       track->MakeTrack();
 
-      gReve->AddRenderElement(cont, track);
+      gReve->AddRenderElement(track, cont);
     }
     cont->MakeMarkers();
     gReve->Redraw3D();

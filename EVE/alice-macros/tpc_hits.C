@@ -37,11 +37,7 @@ tpc_hits(const char *varexp    = "TPC2.fArray.fR:TPC2.fArray.fFi:TPC2.fArray.fZ"
   points->SetMarkerSize(.5);
   points->SetMarkerColor((Color_t)3);
 
-  if(cont)
-    gReve->AddRenderElement(cont, points);
-  else 
-    gReve->AddRenderElement(points);
-
+  gReve->AddRenderElement(points, cont);
   gReve->Redraw3D();
 
   return points;

@@ -190,7 +190,7 @@ void TPCLoader::UpdateSectors(Bool_t dropNonPresent)
     if(fSec2Ds[i] != 0)
     {
       if (dropNonPresent && sd == 0) {
-	gReve->RemoveRenderElement(this, fSec2Ds[i]);
+	gReve->RemoveRenderElement(fSec2Ds[i], this);
 	fSec2Ds[i] = 0;
       } else {
 	fSec2Ds[i]->IncRTS();
@@ -216,7 +216,7 @@ void TPCLoader::UpdateSectors(Bool_t dropNonPresent)
 	s->SetAutoTrans(kTRUE);
 	s->SetFrameColor(36);
 
-	gReve->AddRenderElement(this, s);
+	gReve->AddRenderElement(s, this);
       }
     }
 
@@ -224,7 +224,7 @@ void TPCLoader::UpdateSectors(Bool_t dropNonPresent)
     if(fSec3Ds[i] != 0)
     {
       if (dropNonPresent && sd == 0) {
-	gReve->RemoveRenderElement(this, fSec3Ds[i]);
+	gReve->RemoveRenderElement(fSec3Ds[i], this);
 	fSec3Ds[i] = 0;
       } else {
 	fSec3Ds[i]->IncRTS();
@@ -260,7 +260,7 @@ void TPCLoader::CreateSectors3D()
       s->SetAutoTrans(kTRUE);
       s->SetFrameColor(36);
 
-      gReve->AddRenderElement(this, s);
+      gReve->AddRenderElement(s, this);
     }
   }
   gReve->EnableRedraw();
@@ -272,7 +272,7 @@ void TPCLoader::DeleteSectors3D()
   for(Int_t i=0; i<=35; ++i) {
     RenderElement* re = fSec3Ds[i];
     if(re != 0) {
-      gReve->RemoveRenderElement(this, re);
+      gReve->RemoveRenderElement(re, this);
       // delete re; // Done automatically.
       fSec3Ds[i] = 0;
     }

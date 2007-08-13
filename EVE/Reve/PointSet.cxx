@@ -281,7 +281,7 @@ void PointSetArray::InitBins(const Text_t* quant_name,
     fBins[i]->SetMarkerStyle(fMarkerStyle);
     fBins[i]->SetMarkerSize(fMarkerSize);
     if(addRe)
-      gReve->AddRenderElement(this, fBins[i]);
+      gReve->AddRenderElement(fBins[i], this);
     else
       AddElement(fBins[i]);
   }

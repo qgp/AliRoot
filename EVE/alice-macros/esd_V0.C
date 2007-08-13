@@ -99,7 +99,7 @@ Reve::V0List* esd_V0(Double_t min_pt=0.1, Double_t max_pt=100)
     
     Reve::V0* myV0 = esd_make_v0(rnrStyle, primVertex, negTr,posTr, v0, n);
     if (myV0) {
-      gReve->AddRenderElement(cont, myV0);
+      gReve->AddRenderElement(myV0, cont);
       count++;
     }
   }

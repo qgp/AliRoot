@@ -346,10 +346,7 @@ Int_t GeoShapeRnrEl::SubImportShapeExtract(TGeoShapeExtract * gse,
   if (gsre->fShape)
     gsre->fShape->SetUniqueID(gsre->fShape->GetUniqueID() + 1);
 
-  if (parent)
-    gReve->AddGlobalRenderElement(parent, gsre);
-  else
-    gReve->AddGlobalRenderElement(gsre);
+  gReve->AddGlobalRenderElement(gsre, parent);
 
   if (gse->HasElements())
   {

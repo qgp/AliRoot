@@ -132,12 +132,12 @@ public:
 
   // These are more like ReveManager stuff.
   TGListTreeItem* AddEvent(EventBase* event); // Could have Reve::Event ...
-  TGListTreeItem* AddRenderElement(RenderElement* rnr_element);
-  TGListTreeItem* AddRenderElement(RenderElement* parent, RenderElement* rnr_element);
-  TGListTreeItem* AddGlobalRenderElement(RenderElement* rnr_element);
-  TGListTreeItem* AddGlobalRenderElement(RenderElement* parent, RenderElement* rnr_element);
+  TGListTreeItem* AddRenderElement(RenderElement* rnr_element,
+				   RenderElement* parent=0);
+  TGListTreeItem* AddGlobalRenderElement(RenderElement* rnr_element,
+					 RenderElement* parent=0);
 
-  void RemoveRenderElement(RenderElement* parent, RenderElement* rnr_element);
+  void RemoveRenderElement(RenderElement* rnr_element, RenderElement* parent);
   void PreDeleteRenderElement(RenderElement* rnr_element);
 
   void DrawRenderElement(RenderElement* rnr_element, TVirtualPad* pad=0);

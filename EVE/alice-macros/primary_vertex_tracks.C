@@ -17,7 +17,7 @@ Reve::TrackList* primary_vertex_tracks()
     Reve::Track* track = esd_make_track(rnrStyle, n, at, at);
     track->SetLineWidth(4);
     track->SetLineStyle(7);
-    gReve->AddRenderElement(cont, track);
+    gReve->AddRenderElement(track, cont);
   }
 
   cont->MakeTracks();

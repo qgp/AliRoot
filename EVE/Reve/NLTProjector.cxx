@@ -570,7 +570,7 @@ Track*  NLTProjector::MakeTrack(Track* tb, Bool_t create, Int_t first, Int_t las
   {
     track = new Track(*tb);
     track->SetName(Form("NLT%d_%s", first, tb->GetName()));
-    gReve->AddRenderElement(tb, track);
+    gReve->AddRenderElement(track, tb);
   }
   else
   { 
