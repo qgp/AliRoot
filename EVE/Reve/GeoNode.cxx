@@ -161,8 +161,8 @@ ClassImp(GeoTopNodeRnrEl)
 GeoTopNodeRnrEl::GeoTopNodeRnrEl(TGeoManager* manager, TGeoNode* node,
 				 Int_t visopt, Int_t vislvl) :
   GeoNodeRnrEl (node),
-  fGlobalTrans (),
   fManager     (manager),
+  fGlobalTrans (),
   fVisOption   (visopt),
   fVisLevel    (vislvl)
 {

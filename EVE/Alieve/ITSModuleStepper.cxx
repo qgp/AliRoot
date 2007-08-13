@@ -603,6 +603,7 @@ Bool_t ITSModuleStepper::Handle(TGLRnrCtx          & /*rnrCtx*/,
   switch (event->fType)
   { 
     case kMotionNotify:
+    {
       Int_t item = rec.GetN() < 2 ? -1 : (Int_t)rec.GetItem(1);
       if (fWActive != item) {
         fWActive = item;
@@ -611,6 +612,7 @@ Bool_t ITSModuleStepper::Handle(TGLRnrCtx          & /*rnrCtx*/,
         return kFALSE;
       }
       break;
+    }
     case kButtonPress:
     {
       if (event->fCode != kButton1) {
