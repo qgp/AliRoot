@@ -2,7 +2,7 @@
 
 Reve::PointSet* clusters_from_label(Int_t label=0, RenderElement* cont=0)
 {
-  AliESD* esd = Alieve::Event::AssertESD();
+  AliESDEvent* esd = Alieve::Event::AssertESD();
   Reve::PointSet* clusters = new Reve::PointSet(64);
   clusters->SetOwnIds(kTRUE);
 
