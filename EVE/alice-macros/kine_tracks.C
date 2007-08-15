@@ -65,7 +65,7 @@ kine_tracks(Double_t min_pt  = 0.1,   Double_t min_p   = 0.2,
   // set path marks
   Alieve::KineTools kt; 
   kt.SetDaughterPathMarks(cont, stack, recurse);
-  if (use_track_refs && rl->LoadTrackRefs())
+  if (use_track_refs && rl->LoadTrackRefs() == 0)
   {
     kt.SetTrackReferences(cont, rl->TreeTR(), recurse);
     cont->SetEditPathMarks(kTRUE);
