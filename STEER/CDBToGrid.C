@@ -29,6 +29,8 @@ if(detName == ""){
 	TList *align = man->GetAll(alignPath);
 }
 
+Int_t ok=0;
+TString failed="";
 AliCDBEntry *entry;
 for(int i=0;i<calib->GetEntries();i++){
 
@@ -40,15 +42,27 @@ for(int i=0;i<calib->GetEntries();i++){
 	TString path=entry->GetId().GetPath();
 	if (path == "ITS/Resp/RespSDD") entry->GetId().SetPath("ITS/Calib/RespSDD"); // bug in ITS/Resp/RespSDD
 
-	dest->Put(entry);
+      	if (dest->Put(entry)) {
+      		ok++;
+      	} else {
+      		failed += path.Data(); failed += " "; 
+      	}
 }
+printf("************ Calib done. Stored %d objects over %d *********** \n", ok, calib->GetEntries());
+printf("***** List of failed objects: %s \n", failed.Data());
 
  
 for(int i=0;i<align->GetEntries();i++){
 	entry = (AliCDBEntry*) align->At(i);
 	entry->GetId().SetRunRange(0,999999999);
-	dest->Put(entry);
+      	if (dest->Put(entry)) {
+      		ok++;
+      	} else {
+      		failed += path.Data(); failed += " "; 
+      	}
 }
+printf("************ Align done. Stored %d objects over %d *********** \n", ok, align->GetEntries());
+printf("***** List of failed objects: %s \n", failed.Data());
 
 
 man->Destroy();
