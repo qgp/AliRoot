@@ -13,6 +13,8 @@
 #include <TGeoVolume.h>
 #include <TContextMenu.h>
 
+class TGLViewer;
+
 namespace Reve {
 
 class RGEditor;
@@ -44,9 +46,9 @@ protected:
   RGBrowser(const TGWindow *p, UInt_t w, UInt_t h);
   virtual ~RGBrowser() {}
 
-  void SetupClassicLook(RGEditor*& editor, TCanvas* glpad);
-  void SetupEditorLook(RGEditor*& editor, TCanvas* glpad);
-  void SetupGLViewerLook(RGEditor*& editor, TCanvas* glpad);
+  void       SetupClassicLook (RGEditor*& editor);
+  void       SetupEditorLook  (RGEditor*& editor);
+  TGLViewer* SetupGLViewerLook(RGEditor*& editor);
 
   void RedrawListTree();
 
