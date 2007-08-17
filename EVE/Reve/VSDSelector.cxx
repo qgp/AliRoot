@@ -198,7 +198,6 @@ void VSDSelector::SelectParticles(const Text_t* selection)
   gReve->AddRenderElement(cont);
 
   if(n > 0) {
-    Reve::PadHolder pHolder(true, gReve->GetGLCanvas());
     for(Int_t i=0; i<n; i++) {
       Int_t label = evl.GetEntry(i);
       mTreeK->GetEntry(label);
