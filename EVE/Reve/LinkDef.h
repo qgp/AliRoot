@@ -75,13 +75,19 @@
 #pragma link C++ class Reve::RenderElement::ListTreeInfo+;
 #pragma link C++ class Reve::RenderElementObjPtr+;
 #pragma link C++ class Reve::RenderElementList+;
-#pragma link C++ class Reve::PadPrimitive+;
 #pragma link C++ class Reve::RenderElementEditor+;
 
 #pragma link C++ class std::list<Reve::RenderElement*>;
 #pragma link C++ class std::list<Reve::RenderElement*>::iterator;
 #pragma link C++ typedef Reve::RenderElement::List_t;
 #pragma link C++ typedef Reve::RenderElement::List_i;
+
+// GL-interface
+#pragma link C++ class Reve::Scene+;
+#pragma link C++ class Reve::SceneList+;
+#pragma link C++ class Reve::SceneInfo+;
+#pragma link C++ class Reve::Viewer+;
+#pragma link C++ class Reve::ViewerList+;
 
 // Pad
 #pragma link C++ class Reve::Pad+;
