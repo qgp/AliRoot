@@ -85,11 +85,65 @@ void RenderElement::RemoveParent(RenderElement* re)
   }
 }
 
+void RenderElement::CollectSceneParents(List_t& scenes)
+{
+  // Collect all parents of class Reve::Scene. This is needed to
+  // automatically detect which scenes need to be updated.
+  //
+  // Overriden in Reve::Scene to return itself.
+
+  for(List_i p=fParents.begin(); p!=fParents.end(); ++p)
+    (*p)->CollectSceneParents(scenes);
+}
+
+/**************************************************************************/
+// List-tree stuff
+/**************************************************************************/
+
+Int_t RenderElement::ExpandIntoListTree(TGListTree* ltree,
+					TGListTreeItem* parent)
+{
+  // Populates parent with elements.
+  // parent must be an already existing representation of *this*.
+  // Returns number of inserted elements.
+  // If parent already has children, it does nothing.
+  //
+  // RnrEl can be inserted in a list-tree several times, thus we can not
+  // search through fItems to get parent here.
+  // Anyhow, it is probably known as it must have been selected by the user.
+
+  if(parent->GetFirstChild() != 0)
+    return 0;
+  Int_t n = 0;
+  for(List_i i=fChildren.begin(); i!=fChildren.end(); ++i) {
+    (*i)->AddIntoListTree(ltree, parent);
+    ++n;
+  }
+  return n;
+}
+
+Int_t RenderElement::DestroyListSubTree(TGListTree* ltree,
+					TGListTreeItem* parent)
+{
+  Int_t n = 0;
+  TGListTreeItem* i = parent->GetFirstChild();
+  while(i != 0) {
+    n += DestroyListSubTree(ltree, i);
+    RenderElement* re = (RenderElement*) i->GetUserData();
+    i = i->GetNextSibling();
+    re->RemoveFromListTree(ltree, parent);
+  }
+  return n;
+}
+
 /**************************************************************************/
 
 TGListTreeItem* RenderElement::AddIntoListTree(TGListTree* ltree,
 					       TGListTreeItem* parent_lti)
 {
+  // Add this render element into ltree to already existing item
+  // parent_lti.
+
   static const Exc_t eH("RenderElement::AddIntoListTree ");
 
   TObject* tobj = GetObject(eH);
@@ -112,8 +166,34 @@ TGListTreeItem* RenderElement::AddIntoListTree(TGListTree* ltree,
 TGListTreeItem* RenderElement::AddIntoListTree(TGListTree* ltree,
 					       RenderElement* parent)
 {
-  TGListTreeItem* parent_lti = parent ? parent->FindListTreeItem(ltree) : 0;
-  return AddIntoListTree(ltree, parent_lti);
+  // Add this render element into ltree to all items belonging to
+  // parent. Returns list-tree-item from the first register entry.
+
+  TGListTreeItem* lti = 0;
+  if (parent == 0) {
+    lti = AddIntoListTree(ltree, (TGListTreeItem*) 0);
+  } else {
+    for(sLTI_ri i = parent->fItems.rbegin(); i != parent->fItems.rend(); ++i)
+    {
+      if(i->fTree == ltree)
+	lti = AddIntoListTree(ltree, i->fItem);
+    }
+  }
+  return lti;
+}
+
+TGListTreeItem* RenderElement::AddIntoListTrees(RenderElement* parent)
+{
+  // Add this render element into all list-trees and all items
+  // belonging to parent. Returns list-tree-item from the first
+  // register entry.
+
+  TGListTreeItem* lti = 0;
+  for(sLTI_ri i = parent->fItems.rbegin(); i != parent->fItems.rend(); ++i)
+  {
+    lti = AddIntoListTree(i->fTree, i->fItem);
+  }
+  return lti;
 }
 
 Bool_t RenderElement::RemoveFromListTree(TGListTree* ltree)
@@ -246,15 +326,6 @@ void RenderElement::SetRnrSelf(Bool_t rnr)
       if(i->fItem->IsChecked() != rnr) {
         i->fItem->SetCheckBoxPictures(GetCheckBoxPicture(1, fRnrChildren),
 				      GetCheckBoxPicture(0, fRnrChildren));
-#if ROOT_VERSION_CODE <= ROOT_VERSION(5,14,0)
-        // cover undesired behavior TGListTree::UpdateChecked
-	if(i->fItem->GetParent()) {
-	  RenderElement* p = (RenderElement*) i->fItem->GetParent()->GetUserData();
-	  if(p) 
-	    i->fItem->GetParent()->SetCheckBoxPictures(GetCheckBoxPicture(1, p->GetRnrChildren()),
-						       GetCheckBoxPicture(0, p->GetRnrChildren()));
-	}
-#endif
         i->fItem->CheckItem(fRnrSelf);
         gClient->NeedRedraw(i->fTree);
       }
@@ -285,16 +356,6 @@ void RenderElement::SetRnrState(Bool_t rnr)
   {
     i->fItem->SetCheckBoxPictures(GetCheckBoxPicture(1,1), GetCheckBoxPicture(0,0));
     i->fItem->CheckItem(fRnrSelf);
-
-#if ROOT_VERSION_CODE <= ROOT_VERSION(5,14,0)
-    // cover undesired behavior TGListTree::UpdateChecked
-    if(i->fItem->GetParent()) {
-      RenderElement* p = (RenderElement*) i->fItem->GetParent()->GetUserData();
-      if(p) 
-	i->fItem->GetParent()->SetCheckBoxPictures(GetCheckBoxPicture(1, p->GetRnrChildren()),
-						   GetCheckBoxPicture(0, p->GetRnrChildren()));
-    }
-#endif
     gClient->NeedRedraw(i->fTree);
   }
 }
@@ -330,49 +391,38 @@ void RenderElement::AddElement(RenderElement* el)
 {
   fChildren.push_back(el);
   el->AddParent(this);
+  gReve->ElementChanged(this);
 }
 
 void RenderElement::RemoveElement(RenderElement* el)
 {
-   el->RemoveParent(this);
-   RemoveElementLocal(el);
+  // Remove el from the list of children.
+
+  el->RemoveParent(this);
+  RemoveElementLocal(el);
+  gReve->ElementChanged(this);
 }
 
 void RenderElement::RemoveElementLocal(RenderElement* el)
 {
+  // Perform local removal of el only. 
+  // Called from RemoveElement() which does whole untangling.
+  // Put into special function as framework-related handling of
+  // element removal should really be common to all classes.
+  // If you override this, you should also override RemoveElements().
+
   fChildren.remove(el);
 }
 
 void RenderElement::RemoveElements()
 {
+  // Remove all elements.
+
   for(List_i i=fChildren.begin(); i!=fChildren.end(); ++i) {
     (*i)->RemoveParent(this);
   }
   fChildren.clear();
-}
-
-/**************************************************************************/
-
-Int_t RenderElement::ExpandIntoListTree(TGListTree* ltree,
-						TGListTreeItem* parent)
-{
-  // Populates parent with elements.
-  // parent must be an already existing representation of *this*.
-  // Returns number of inserted elements.
-  // If parent already has children, it does nothing.
-  //
-  // RnrEl can be inserted in a list-tree several times, thus we can not
-  // search through fItems to get parent here.
-  // Anyhow, it is probably known as it must have been selected by the user.
-
-  if(parent->GetFirstChild() != 0)
-    return 0;
-  Int_t n = 0;
-  for(List_i i=fChildren.begin(); i!=fChildren.end(); ++i) {
-    (*i)->AddIntoListTree(ltree, parent);
-    ++n;
-  }
-  return n;
+  gReve->ElementChanged(this);
 }
 
 /**************************************************************************/
@@ -382,6 +432,7 @@ void RenderElement::EnableListElements()
   for(List_i i=fChildren.begin(); i!=fChildren.end(); ++i)
     (*i)->SetRnrSelf(kTRUE);
 
+  gReve->ElementChanged(this);
   gReve->Redraw3D();
 }
 
@@ -390,24 +441,11 @@ void RenderElement::DisableListElements()
   for(List_i i=fChildren.begin(); i!=fChildren.end(); ++i)
     (*i)->SetRnrSelf(kFALSE);
 
+  gReve->ElementChanged(this);
   gReve->Redraw3D();
 }
 
 /**************************************************************************/
-
-Int_t RenderElement::DestroyListSubTree(TGListTree* ltree,
-						TGListTreeItem* parent)
-{
-  Int_t n = 0;
-  TGListTreeItem* i = parent->GetFirstChild();
-  while(i != 0) {
-    n += DestroyListSubTree(ltree, i);
-    RenderElement* re = (RenderElement*) i->GetUserData();
-    i = i->GetNextSibling();
-    re->RemoveFromListTree(ltree, parent);
-  }
-  return n;
-}
 
 void RenderElement::Destroy()
 {
@@ -437,7 +475,12 @@ void RenderElement::DestroyElements()
   }
 }
 
-const TGPicture* RenderElement::GetCheckBoxPicture(Bool_t rnrSelf, Bool_t rnrDaughters)
+/**************************************************************************/
+// Statics
+/**************************************************************************/
+
+const TGPicture*
+RenderElement::GetCheckBoxPicture(Bool_t rnrSelf, Bool_t rnrDaughters)
 {
   Int_t idx = 0;
   if(rnrSelf)       idx = 2;
@@ -446,7 +489,13 @@ const TGPicture* RenderElement::GetCheckBoxPicture(Bool_t rnrSelf, Bool_t rnrDau
   return fgRnrIcons[idx];
 }
 
+
 /**************************************************************************/
+/**************************************************************************/
+
+//______________________________________________________________________
+// Reve::RenderElementObjPtr
+//
 
 ClassImp(RenderElementObjPtr)
 
@@ -484,7 +533,13 @@ RenderElementObjPtr::~RenderElementObjPtr()
     delete fObject;
 }
 
+
 /**************************************************************************/
+/**************************************************************************/
+
+//______________________________________________________________________
+// Reve::RenderElementList
+//
 
 ClassImp(RenderElementList)
 
@@ -492,28 +547,17 @@ RenderElementList::RenderElementList(const Text_t* n, const Text_t* t, Bool_t do
   RenderElement(),
   TNamed(n, t),
   fColor(0),
-  fDoColor(doColor)
+  fDoColor(doColor),
+  fChildClass(0)
 {
   if(fDoColor) {
     SetMainColorPtr(&fColor);
   }
 }
 
-/**************************************************************************/
-
-ClassImp(PadPrimitive)
-
-PadPrimitive::PadPrimitive(const Text_t* n, const Text_t* t) :
-  RenderElement(),
-  TNamed(n, t)
-{}
-
-void PadPrimitive::Paint(Option_t* option)
+Bool_t RenderElementList::AcceptRenderElement(RenderElement* el)
 {
-  if (fRnrChildren)
-  {
-    for(List_i i=fChildren.begin(); i!=fChildren.end(); ++i)
-      (*i)->PadPaint(option);
-  }
+  if (fChildClass && ! el->IsA()->InheritsFrom(fChildClass))
+    return kFALSE;
+  return kTRUE;
 }
-
