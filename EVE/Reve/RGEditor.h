@@ -28,6 +28,8 @@ public:
 
   virtual void Update(TGedFrame* gframe=0);
 
+  // virtual Bool_t HandleButton(Event_t *event);
+
   ClassDef(RGEditor, 1);
 }; // endclass RGEditor
 

@@ -19,7 +19,9 @@ ClassImp(RGEditor)
 RGEditor::RGEditor(TCanvas* canvas) :
   TGedEditor(canvas),
   fRnrElement(0)
-{}
+{
+  Resize(250, 400);
+}
 
 void RGEditor::DisplayRenderElement(RenderElement* re)
 {
@@ -40,7 +42,25 @@ void RGEditor::Update(TGedFrame* /*gframe*/)
 
   if (fRnrElement) {
     fRnrElement->UpdateItems();
+    gReve->ElementChanged(fRnrElement);
   }
 
   gReve->Redraw3D();
 }
+
+/**************************************************************************/
+
+/*
+// Attempt to enable mouse-wheel in geditor -- failed.
+Bool_t RGEditor::HandleButton(Event_t *event)
+{
+  // Handle mouse button event in container.
+
+  printf("odfjgsf\n");
+  if (event->fCode == kButton4 || event->fCode == kButton5) {
+    return fCan->GetContainer()->HandleButton(event);
+  } else {
+    return TGedEditor::HandleButton(event);
+  }
+}
+*/
