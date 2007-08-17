@@ -1,10 +1,12 @@
 #include "RGTopFrame.h"
 
-#include "RGBrowser.h"
-#include "RGEditor.h"
-
+#include <Reve/Viewer.h>
+#include <Reve/Scene.h>
+#include <Reve/Pad.h>
 #include <Reve/EventBase.h>
-#include "VSDSelector.h"
+
+#include <Reve/RGBrowser.h>
+#include <Reve/RGEditor.h>
 
 #include <TGMenu.h>
 #include <TGTab.h>
@@ -49,18 +51,18 @@ RGTopFrame::RGTopFrame(const TGWindow *p, UInt_t w, UInt_t h, LookType_e look) :
 
   fMasterFrame (0),
   fMasterTab   (0),
-  fGLCanvas    (0),
-  fSelector    (0),
   fBrowser     (0),
   fStatusBar   (0),
-  fVSDFile     (""),
 
-  fMacroFolder(0),
-  fEditor (0),
+  fMacroFolder (0),
+  fEditor      (0),
 
+  fViewers        (0),
+  fScenes         (0),
+  fViewer         (0),
+  fGlobalScene    (0),
+  fEventScene     (0),
   fCurrentEvent   (0),
-  fGlobalStore    (0),
-  fKeepEmptyCont  (kFALSE),
 
   fRedrawDisabled (0),
   fResetCameras   (kFALSE),
@@ -86,32 +88,18 @@ RGTopFrame::RGTopFrame(const TGWindow *p, UInt_t w, UInt_t h, LookType_e look) :
   TGLayoutHints *lay2 = new TGLayoutHints(kLHintsTop | kLHintsLeft | kLHintsExpandX | kLHintsExpandY, 2, 2, 2, 2);
 
   fMasterFrame = new TGCompositeFrame(this, w, h, kHorizontalFrame | kRaisedFrame);
-  TGVerticalFrame* fV2 = new TGVerticalFrame(fMasterFrame, GetWidth()-40, GetHeight()-40, kSunkenFrame);
+  TGVerticalFrame* fv2 = new TGVerticalFrame(fMasterFrame, GetWidth()-40, GetHeight()-40, kSunkenFrame);
 
-  fMasterFrame->AddFrame(fV2, lay1);
+  fMasterFrame->AddFrame(fv2, lay1);
 
-  fMasterTab = new TGTab(fV2, GetWidth(), GetHeight());  
+  fMasterTab = new TGTab(fv2, GetWidth(), GetHeight());  
 
   // browser tab
   TGCompositeFrame* tframe1 = fMasterTab->AddTab("Object Browser");
   fBrowser = new RGBrowser(tframe1, w, h);
   tframe1->AddFrame(fBrowser, lay2);
 
-  // tree selection tab
-  TGCompositeFrame* tframe2 = fMasterTab->AddTab("Tree Selections");  
-  fSelector = new VSDSelector(tframe2);
-
-  // gl-canvas
-  Reve::PushPad();
-  TGCompositeFrame* tframe3 = fMasterTab->AddTab("GLCanvas");
-  TRootEmbeddedCanvas* ecanvas3 = new TRootEmbeddedCanvas("GLCanvas", tframe3, 580, 360);
-  // !!!! Avoid this
-  //tframe3->AddFrame(ecanvas3, lay2);
-  fGLCanvas = ecanvas3->GetCanvas();
-  fGLCanvas->SetEditable(kFALSE);
-  Reve::PopPad();
-
-  fV2->AddFrame(fMasterTab, lay0);
+  fv2->AddFrame(fMasterTab, lay0);
   AddFrame(fMasterFrame, lay0);
    
   // Create status bar
@@ -126,22 +114,22 @@ RGTopFrame::RGTopFrame(const TGWindow *p, UInt_t w, UInt_t h, LookType_e look) :
 
   /**************************************************************************/
   /**************************************************************************/
-  
+  TGLViewer* glv = 0;
   switch(look) {
   case LT_Classic: {
-    fBrowser->SetupClassicLook(fEditor, fGLCanvas);
-    fGLCanvas->GetViewer3D("ogl");
+    fBrowser->SetupClassicLook(fEditor);
+    glv = new TGLSAViewer(0, 0, fEditor);
     break;
   }
 
   case LT_Editor: {
-    fBrowser->SetupEditorLook(fEditor, fGLCanvas);
-    fGLCanvas->GetViewer3D("ogl");
+    fBrowser->SetupEditorLook(fEditor);
+    glv = new TGLSAViewer(0, 0, fEditor);
     break;
   }
 
   case LT_GLViewer: {
-    fBrowser->SetupGLViewerLook(fEditor, fGLCanvas);
+    glv = fBrowser->SetupGLViewerLook(fEditor);
     break;
   }
 
@@ -151,26 +139,32 @@ RGTopFrame::RGTopFrame(const TGWindow *p, UInt_t w, UInt_t h, LookType_e look) :
   }
   }
 
-  TGLViewer* glv = dynamic_cast<TGLViewer*>(fGLCanvas->GetViewer3D());
-  if(glv) {
-    glv->SetSmartRefresh(kTRUE);
-    glv->SetResetCamerasOnUpdate(kFALSE);
-    glv->SetResetCameraOnDoubleClick(kFALSE);
-    TGLSAViewer* glsav = dynamic_cast<TGLSAViewer*>(glv);
-    if(glsav) {
-      TGedEditor* e = glsav->GetGedEditor();
-      e->SetModel(e->GetPad(), glsav, kButton1Down);
-    }
-  }
+  fViewers = new ViewerList("Viewers");
+  fViewers->SetDenyDestroy(kTRUE);
+  AddToListTree(fViewers, kTRUE);
+
+  fViewer  = new Viewer("GL-One");
+  fViewer->SetGLViewer(glv);
+  fViewer->SetDenyDestroy(kTRUE);
+  AddRenderElement(fViewer, fViewers);
+
+  fScenes  = new SceneList ("Scenes");
+  fScenes->SetDenyDestroy(kTRUE);
+  AddToListTree(fScenes, kTRUE);
+
+  fGlobalScene = new Scene("Geometry scene");
+  fGlobalScene->SetDenyDestroy(kTRUE);
+  AddRenderElement(fGlobalScene, fScenes);
+
+  fEventScene = new Scene("Event scene");
+  fEventScene->SetDenyDestroy(kTRUE);
+  AddRenderElement(fEventScene, fScenes);
+
+  fViewer->AddScene(fGlobalScene);
+  fViewer->AddScene(fEventScene);
 
   /**************************************************************************/
   /**************************************************************************/
-
-  fGlobalStore = new PadPrimitive("Geometry", "");
-  fGlobalStore->SetDenyDestroy(kTRUE);
-  TGListTreeItem* glti = fGlobalStore->AddIntoListTree(GetListTree(), (TGListTreeItem*)0);
-  GetListTree()->OpenItem(glti);
-  DrawRenderElement(fGlobalStore);
 
   Resize(GetDefaultSize()); // this is used here to init layout algorithm
   SetWindowName("Reve");
@@ -179,13 +173,9 @@ RGTopFrame::RGTopFrame(const TGWindow *p, UInt_t w, UInt_t h, LookType_e look) :
   fEditor->DisplayObject(0);
 
   gSystem->ProcessEvents();
-}
 
-/**************************************************************************/
-
-TGLViewer* RGTopFrame::GetGLViewer()
-{
-  return dynamic_cast<TGLViewer*>(fGLCanvas->GetViewer3D());
+  printf("initiating first redraw ...\n");
+  Redraw3D(kTRUE);
 }
 
 /**************************************************************************/
@@ -205,11 +195,18 @@ TCanvas* RGTopFrame::AddCanvasTab(const char* name)
   return ec->GetCanvas();
 }
 
-/**************************************************************************/
-
-TGListTree* RGTopFrame::GetListTree() const
+TGLViewer* RGTopFrame::GetGLViewer() const
 {
-  return fBrowser->GetListTree();
+  return fViewer->GetGLViewer();
+}
+
+Viewer* RGTopFrame::SpawnNewViewer(const Text_t* name, const Text_t* title)
+{
+  Viewer* v = new Viewer(name, title);
+  v->SpawnGLViewer(0, 0); // Could pass fEditor.
+  v->SetDenyDestroy(kTRUE);
+  AddRenderElement(v, fViewers);
+  return v;
 }
 
 /**************************************************************************/
@@ -245,24 +242,22 @@ void RGTopFrame::RegisterRedraw3D()
 void RGTopFrame::DoRedraw3D()
 {
   // printf("RGTopFrame::DoRedraw3D redraw triggered\n");
-  TGLViewer* glv = GetGLViewer();
-  if (fResetCameras) {
-    glv->ResetCamerasAfterNextUpdate();
-    fResetCameras = kFALSE;
-  }
-  if (fDropLogicals) {
-    glv->SetSmartRefresh(kFALSE);
-  }
 
-  fGLCanvas->Modified();
-  fGLCanvas->Update();
+  fScenes ->RepaintChangedScenes();
+  fViewers->RepaintChangedViewers(fResetCameras, fDropLogicals);
 
-  if (fDropLogicals) {
-    glv->SetSmartRefresh(kTRUE);
-    fDropLogicals = kFALSE;
-  }
+  fResetCameras = kFALSE;
+  fDropLogicals = kFALSE;
 
   fTimerActive = kFALSE;
+}
+
+void RGTopFrame::ElementChanged(RenderElement* rnr_element)
+{
+  RenderElement::List_t scenes;
+  rnr_element->CollectSceneParents(scenes);
+  for (RenderElement::List_i s=scenes.begin(); s!=scenes.end(); ++s)
+    ((Scene*)*s)->Changed();
 }
 
 /**************************************************************************/
@@ -314,14 +309,26 @@ void RGTopFrame::SpawnGui(LookType_e revemode)
 /**************************************************************************/
 /**************************************************************************/
 
+TGListTree* RGTopFrame::GetListTree() const
+{
+  return fBrowser->GetListTree();
+}
+
+TGListTreeItem*
+RGTopFrame::AddToListTree(RenderElement* re, Bool_t open, TGListTree* lt)
+{
+  if (lt == 0) lt = GetListTree();
+  TGListTreeItem* lti = re->AddIntoListTree(lt, (TGListTreeItem*)0);
+  if (open) lt->OpenItem(lti);
+  return lti;
+}
+
 TGListTreeItem* RGTopFrame::AddEvent(EventBase* event)
 {
   fCurrentEvent = event;
   fCurrentEvent->SetDenyDestroy(kTRUE);
-  TGListTreeItem* elti = event->AddIntoListTree(GetListTree(), (TGListTreeItem*)0);
-  GetListTree()->OpenItem(elti);
-  DrawRenderElement(event);
-  return elti;
+  AddRenderElement(fCurrentEvent, fEventScene);
+  return AddToListTree(event, kTRUE);
 }
 
 TGListTreeItem* RGTopFrame::AddRenderElement(RenderElement* rnr_element,
@@ -329,7 +336,10 @@ TGListTreeItem* RGTopFrame::AddRenderElement(RenderElement* rnr_element,
 {
   static const Exc_t eH("RGTopFrame::AddRenderElement ");
 
-  // Here could route rnr-element to several browsers/pads.
+  if (parent && ! parent->AcceptRenderElement(rnr_element)) {
+    throw(eH + "parent '%s' rejects '%s'.",
+	  parent->GetObject()->GetName(), rnr_element->GetObject()->GetName());
+  }
 
   if (parent == 0) {
     if (fCurrentEvent == 0)
@@ -340,7 +350,7 @@ TGListTreeItem* RGTopFrame::AddRenderElement(RenderElement* rnr_element,
   parent->AddElement(rnr_element);
 
   TGListTreeItem* newitem =
-    rnr_element->AddIntoListTree(GetListTree(), parent);
+    rnr_element->AddIntoListTrees(parent);
 
   return newitem;
 }
@@ -350,15 +360,18 @@ TGListTreeItem* RGTopFrame::AddGlobalRenderElement(RenderElement* rnr_element,
 {
   static const Exc_t eH("RGTopFrame::AddGlobalRenderElement ");
 
-  // Here could route rnr-element to several browsers/pads.
+  if (parent && ! parent->AcceptRenderElement(rnr_element)) {
+    throw(eH + "parent '%s' rejects '%s'.",
+	  parent->GetObject()->GetName(), rnr_element->GetObject()->GetName());
+  }
 
   if (parent == 0)
-    parent = fGlobalStore;
+    parent = fGlobalScene;
 
   parent->AddElement(rnr_element);
 
   TGListTreeItem* newitem =
-    rnr_element->AddIntoListTree(GetListTree(), parent);
+    rnr_element->AddIntoListTrees(parent);
 
   return newitem;
 }
@@ -381,29 +394,6 @@ void RGTopFrame::PreDeleteRenderElement(RenderElement* rnr_element)
 
 /**************************************************************************/
 
-void RGTopFrame::DrawRenderElement(RenderElement* rnr_element, TVirtualPad* pad)
-{
-  if(pad == 0) pad = fGLCanvas;
-
-  { Reve::PadHolder pHolder(false, pad);
-    if (pad == fGLCanvas) fGLCanvas->SetEditable(kTRUE);
-    rnr_element->GetObject()->Draw();
-    if (pad == fGLCanvas) fGLCanvas->SetEditable(kFALSE);
-  }
-  Redraw3D();
-}
-
-void RGTopFrame::UndrawRenderElement(RenderElement* rnr_element, TVirtualPad* pad)
-{
-  if(pad == 0) pad = fGLCanvas;
-  { Reve::PadHolder pHolder(false, pad);
-    pad->GetListOfPrimitives()->Remove(rnr_element->GetObject());
-  }
-  Redraw3D();
-}
-
-/**************************************************************************/
-
 void RGTopFrame::RenderElementChecked(TObject* obj, Bool_t state)
 {
   // Item's user-data is blindly casted into TObject.
@@ -418,6 +408,7 @@ void RGTopFrame::RenderElementChecked(TObject* obj, Bool_t state)
     fEditor->DisplayObject(rnrEl->GetObject());
   }
 
+  ElementChanged(rnrEl);
   Redraw3D();
 }
 

@@ -16,6 +16,7 @@
 class TMacro;
 class TFolder;
 class TCanvas;
+
 class TGTab;
 class TGStatusBar;
 class TGListTree;
@@ -25,12 +26,14 @@ class TGLViewer;
 
 namespace Reve {
 
-class VSDSelector;
 class RGBrowser;
 class RGEditor;
 
 class RenderElement;
 class PadPrimitive;
+
+class Viewer; class ViewerList;
+class Scene;  class SceneList;
 
 class EventBase;
 
@@ -61,21 +64,23 @@ private:
   TGCompositeFrame    *fMasterFrame;
   TGTab               *fMasterTab;
 
-  TCanvas             *fGLCanvas;
-  VSDSelector         *fSelector;
   RGBrowser           *fBrowser;
   TGStatusBar         *fStatusBar;
-  const char          *fVSDFile;
 
   TFolder             *fMacroFolder;
 
   RGEditor            *fEditor;
 
+  ViewerList          *fViewers;
+  SceneList           *fScenes;
+
+  Viewer              *fViewer;   // First / default gl-viewer.
+  Scene               *fGlobalScene;
+  Scene               *fEventScene;
   EventBase           *fCurrentEvent;
-  PadPrimitive        *fGlobalStore;
-  Bool_t               fKeepEmptyCont;
 
   Int_t                fRedrawDisabled;
+  Bool_t               fFullRedraw;
   Bool_t               fResetCameras;
   Bool_t               fDropLogicals;
   Bool_t               fTimerActive;
@@ -92,22 +97,20 @@ public:
   TGCompositeFrame* GetMasterFrame() { return fMasterFrame; }
   TGTab*            GetMasterTab()   { return fMasterTab; }
 
-  TCanvas*     GetGLCanvas()   { return fGLCanvas; }
-  VSDSelector* GetSelector()   { return fSelector; }
   RGBrowser*   GetBrowser()    { return fBrowser; }
   TGStatusBar* GetStatusBar()  { return fStatusBar; }
 
-  // Temporary cheating.
-  TGLViewer*   GetGLViewer();
+  SceneList*   GetScenes()   const { return fScenes; }
+  ViewerList*  GetViewers()  const { return fViewers; }
+
+  Viewer*      GetDefViewer()    const { return fViewer; }
+  Scene*       GetGlobalScene()  const { return fGlobalScene; }
+  Scene*       GetEventScene()   const { return fEventScene; }
+  EventBase*   GetCurrentEvent() const { return fCurrentEvent; }
 
   TCanvas*     AddCanvasTab(const char* name);
-
-  TGListTree*        GetListTree() const;
-  EventBase*         GetCurrentEvent() const { return fCurrentEvent; }
-  PadPrimitive*      GetGlobalStore()  const { return fGlobalStore; }
-
-  Bool_t             GetKeepEmptyCont()      { return fKeepEmptyCont; } 
-  void               SetKeepEmptyCont(Bool_t keep) { fKeepEmptyCont=keep; }     
+  TGLViewer*   GetGLViewer() const;
+  Viewer*      SpawnNewViewer(const Text_t* name, const Text_t* title="");
 
   TFolder*  GetMacroFolder() const { return fMacroFolder; }
   TMacro*   GetMacro(const Text_t* name) const;
@@ -127,11 +130,15 @@ public:
   void RegisterRedraw3D();
   void DoRedraw3D();
 
+  void ElementChanged(RenderElement* rnr_element);
+
   static int  SpawnGuiAndRun(int argc, char **argv);
   static void SpawnGui(LookType_e revemode = LT_Editor);
 
   // These are more like ReveManager stuff.
-  TGListTreeItem* AddEvent(EventBase* event); // Could have Reve::Event ...
+  TGListTree*     GetListTree() const;
+  TGListTreeItem* AddToListTree(RenderElement* re, Bool_t open, TGListTree* lt=0);
+  TGListTreeItem* AddEvent(EventBase* event);
   TGListTreeItem* AddRenderElement(RenderElement* rnr_element,
 				   RenderElement* parent=0);
   TGListTreeItem* AddGlobalRenderElement(RenderElement* rnr_element,
@@ -139,9 +146,6 @@ public:
 
   void RemoveRenderElement(RenderElement* rnr_element, RenderElement* parent);
   void PreDeleteRenderElement(RenderElement* rnr_element);
-
-  void DrawRenderElement(RenderElement* rnr_element, TVirtualPad* pad=0);
-  void UndrawRenderElement(RenderElement* rnr_element, TVirtualPad* pad=0);
 
   void RenderElementChecked(TObject* obj, Bool_t state);
 
