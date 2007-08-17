@@ -1,3 +1,54 @@
+2007-08-17  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	EVE-dev
+
+	* EventBase.cxx:
+	* EventBase.h:
+	Subclass directly from RenderElementList instead of PadPrimitive.
+
+	* Pad.cxx:
+	* Pad.h:
+	Override virtuals IsBatch(), Update() and GetViewer3D() to allow
+	Reve::Pad - GLViewer link to survive without a canvas.
+
+	* RGBrowser.cxx:
+	* RGBrowser.h:
+	Removed all usage of pad during construction of editor and
+	gl-viewer.
+
+	* RGEditor.cxx:
+	* RGEditor.h:
+	In Update() propagate the change to gReve so that it can deduce
+	which scenes need to be repainted. GUI size change.
+
+	* RGTopFrame.cxx:
+	* RGTopFrame.h:
+	Major restructuring of basic state representation: use new
+	Viewer/Scene classes to allow many simoultaneous GL-viewers with
+	shared scenes; update mechanism changed accordingly.
+
+	* RenderElement.cxx:
+	* RenderElement.h:
+	Added virtual CollectSceneParents() for update steering;
+	generalized methods for adding elements into list-trees; removed
+	obsolete class PadPrimitive.
+
+	* Scene.cxx:
+	* Scene.h:
+	* SceneInfo.cxx:
+	* SceneInfo.h:
+	* Viewer.cxx:
+	* Viewer.h:
+	New files implementing classes for representation of
+	GL-viewer/scene classes in Reve.
+
+	* LinkDef.h:
+	Register new classes Scene, SceneList, SceneInfo, Viewer and
+	ViewerList; remove PadPrimitive.
+
+	* VSDSelector.cxx:
+	Removed obsolete protection of gPad.
+
 2007-08-13  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	EVE-dev
