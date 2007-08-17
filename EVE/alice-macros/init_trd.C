@@ -8,5 +8,5 @@ void init_trd()
 
 	Alieve::TRDLoaderManager *trd=new Alieve::TRDLoaderManager("TRD manager", "Loader manager for TRD data monitoring");
 	gReve->AddRenderElement(trd);
-	gReve->DrawRenderElement(trd);
+	gReve->AddToListTree(trd, kTRUE);
 }
