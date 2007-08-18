@@ -111,6 +111,7 @@ public:
   TCanvas*     AddCanvasTab(const char* name);
   TGLViewer*   GetGLViewer() const;
   Viewer*      SpawnNewViewer(const Text_t* name, const Text_t* title="");
+  Scene*       SpawnNewScene(const Text_t* name, const Text_t* title="");
 
   TFolder*  GetMacroFolder() const { return fMacroFolder; }
   TMacro*   GetMacro(const Text_t* name) const;

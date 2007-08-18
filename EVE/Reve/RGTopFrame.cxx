@@ -208,6 +208,13 @@ Viewer* RGTopFrame::SpawnNewViewer(const Text_t* name, const Text_t* title)
   AddRenderElement(v, fViewers);
   return v;
 }
+Scene* RGTopFrame::SpawnNewScene(const Text_t* name, const Text_t* title)
+{
+  Scene* s = new Scene(name, title);
+  s->SetDenyDestroy(kTRUE);
+  AddRenderElement(s, fScenes);
+  return s;
+}
 
 /**************************************************************************/
 // Macro management
@@ -264,7 +271,7 @@ void RGTopFrame::ElementChanged(RenderElement* rnr_element)
 
 int RGTopFrame::SpawnGuiAndRun(int argc, char **argv)
 {
-  LookType_e revemode = LT_Editor;
+  LookType_e revemode = LT_GLViewer;
   Int_t w = 540;
   Int_t h = 500;
   if(argc >= 3 && (strcmp(argv[1], "-revemode")==0 || strcmp(argv[1], "-mode")==0)) {
