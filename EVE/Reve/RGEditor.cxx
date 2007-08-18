@@ -18,21 +18,47 @@ ClassImp(RGEditor)
 
 RGEditor::RGEditor(TCanvas* canvas) :
   TGedEditor(canvas),
-  fRnrElement(0)
+  fRnrElement(0),
+  fObject    (0)
 {
   Resize(250, 400);
+
+  // Fix priority for TAttMarkerEditor.
+  TClass* amClass = TClass::GetClass("TAttMarker");
+  TClass* edClass = TClass::GetClass("TAttMarkerEditor");
+  TGWindow *exroot = (TGWindow*) fClient->GetRoot();
+  fClient->SetRoot(fTabContainer);
+  fgFrameCreator = this;
+  TGedFrame *frame = reinterpret_cast<TGedFrame*>(edClass->New());
+  frame->SetModelClass(amClass);
+  {
+    Int_t off = edClass->GetDataMemberOffset("fPriority");
+    if(off == 0)
+      printf("ojej!\n");
+    else
+      * (Int_t*) (((char*)frame) + off) = 1;
+  }
+  fgFrameCreator = 0;
+  fClient->SetRoot(exroot);
+  fFrameMap.Add(amClass, frame);
+}
+
+RenderElement* RGEditor::GetRnrElement() const
+{
+  return (fModel == fObject) ? fRnrElement : 0;
 }
 
 void RGEditor::DisplayRenderElement(RenderElement* re)
 {
   fRnrElement = re;
-  TObject* obj = fRnrElement ? fRnrElement->GetObject() : 0;
-  SetModel(fPad, obj, kButton1Down);
+  fObject     = fRnrElement ? fRnrElement->GetObject() : 0;
+  SetModel(fPad, fObject, kButton1Down);
 }
 
 void RGEditor::DisplayObject(TObject* obj)
 {
   fRnrElement = 0;
+  fObject     = obj;
   SetModel(fPad, obj, kButton1Down);
 }
 

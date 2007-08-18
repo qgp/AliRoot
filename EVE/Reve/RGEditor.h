@@ -15,13 +15,14 @@ class RGEditor : public TGedEditor
   RGEditor& operator=(const RGEditor&); // Not implemented
 
 protected:
-  RenderElement* fRnrElement;
+  RenderElement *fRnrElement; // Cached rnr-el pointer
+  TObject       *fObject;     // Cached tobj pointer
 
 public:
   RGEditor(TCanvas* canvas=0);
   virtual ~RGEditor() {}
 
-  RenderElement* GetRnrElement() const { return fRnrElement; }
+  RenderElement* GetRnrElement() const;
   
   void DisplayRenderElement(RenderElement* re);
   void DisplayObject(TObject* obj);
@@ -30,7 +31,7 @@ public:
 
   // virtual Bool_t HandleButton(Event_t *event);
 
-  ClassDef(RGEditor, 1);
+  ClassDef(RGEditor, 0);
 }; // endclass RGEditor
 
 }
