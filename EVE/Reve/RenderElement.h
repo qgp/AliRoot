@@ -146,6 +146,8 @@ public:
   virtual void Destroy();                      // *MENU*
   virtual void DestroyElements();
 
+  virtual void HandleElementPaste(RenderElement* el);
+
   virtual Bool_t CanEditRnrElement()   { return kTRUE; }
   virtual Bool_t GetRnrSelf() const { return fRnrSelf; }
   virtual Bool_t GetRnrChildren() const { return fRnrChildren; }

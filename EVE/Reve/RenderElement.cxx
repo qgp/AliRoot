@@ -476,6 +476,14 @@ void RenderElement::DestroyElements()
 }
 
 /**************************************************************************/
+
+void RenderElement::HandleElementPaste(RenderElement* el)
+{
+  gReve->AddRenderElement(el, this);
+  gReve->Redraw3D();
+}
+
+/**************************************************************************/
 // Statics
 /**************************************************************************/
 
