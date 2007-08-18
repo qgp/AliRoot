@@ -1,3 +1,12 @@
+2007-08-19  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	EVE-dev
+
+	* RGTopFrame.cxx:
+	* RGTopFrame.h:
+	Default start-up mode now embedded gl viewer;
+	added function SpawnNewScene().
+
 2007-08-18  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
 
 	EVE-dev
