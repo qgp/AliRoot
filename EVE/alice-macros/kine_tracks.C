@@ -27,9 +27,8 @@ kine_tracks(Double_t min_pt  = 0.1,   Double_t min_p   = 0.2,
   gReve->DisableRedraw();
  
   Reve::TrackList* cont = new Reve::TrackList("Kine Tracks"); 
-  cont->SetMainColor(Color_t(6));
+  cont->SetMainColor(Color_t(3));
   Reve::TrackRnrStyle* rnrStyle = cont->GetRnrStyle();
-  rnrStyle->fColor = 8;
   // !!! Watch the '-', apparently different sign convention then for ESD.
   rnrStyle->SetMagField( - gAlice->Field()->SolenoidField() );
 
@@ -68,7 +67,7 @@ kine_tracks(Double_t min_pt  = 0.1,   Double_t min_p   = 0.2,
   if (use_track_refs && rl->LoadTrackRefs() == 0)
   {
     kt.SetTrackReferences(cont, rl->TreeTR(), recurse);
-    cont->SetEditPathMarks(kTRUE);
+    rnrStyle->SetEditPathMarks(kTRUE);
   }
   kt.SortPathMarks(cont, recurse);
 
@@ -79,8 +78,6 @@ kine_tracks(Double_t min_pt  = 0.1,   Double_t min_p   = 0.2,
   cont->UpdateItems();
 
   cont->MakeTracks(recurse);
-  cont->MakeMarkers();
-
   gReve->EnableRedraw();
   gReve->Redraw3D();
 
@@ -190,9 +187,8 @@ kine_track(Int_t  label,
       sprintf(tooltip,"Ndaughters=%d", p->GetNDaughters());
       tlist->SetTitle(tooltip);
       tlist->SelectByPt(0.2, 100);
-      rnrStyle->fColor   = 8;
       rnrStyle->fMaxOrbs = 8;
-      tlist->SetEditPathMarks(kTRUE);
+      rnrStyle->SetEditPathMarks(kTRUE);
       gReve->AddRenderElement(cont);
       rs = tlist->GetRnrStyle();
     }

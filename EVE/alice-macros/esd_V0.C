@@ -108,7 +108,6 @@ Reve::V0List* esd_V0(Double_t min_pt=0.1, Double_t max_pt=100)
   cont->UpdateItems();
 
   cont->MakeV0s();
-  cont->MakeMarkers();
   gReve->Redraw3D();
 
   return cont;
