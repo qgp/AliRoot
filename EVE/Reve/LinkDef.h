@@ -134,9 +134,12 @@
 // Track
 #pragma link C++ class Reve::Track+;
 #pragma link C++ class Reve::TrackGL+;
+#pragma link C++ class Reve::TrackEditor+;
 #pragma link C++ class Reve::TrackRnrStyle+;
 #pragma link C++ class Reve::TrackList+;
 #pragma link C++ class Reve::TrackListEditor+;
+#pragma link C++ class Reve::TrackRnrStyleSubEditor+;
+#pragma link C++ class Reve::TrackRnrStyleEditor+;
 #pragma link C++ class Reve::TrackCounter+;
 #pragma link C++ class Reve::TrackCounterEditor+;
 
