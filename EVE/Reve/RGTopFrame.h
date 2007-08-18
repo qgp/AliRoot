@@ -147,6 +147,8 @@ public:
   void RemoveRenderElement(RenderElement* rnr_element, RenderElement* parent);
   void PreDeleteRenderElement(RenderElement* rnr_element);
 
+  void RenderElementSelect(RenderElement* rnr_element);
+  void RenderElementPaste(RenderElement* rnr_element);
   void RenderElementChecked(TObject* obj, Bool_t state);
 
   void NotifyBrowser(TGListTreeItem* parent_lti=0);

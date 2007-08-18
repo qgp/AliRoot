@@ -394,6 +394,18 @@ void RGTopFrame::PreDeleteRenderElement(RenderElement* rnr_element)
 
 /**************************************************************************/
 
+void RGTopFrame::RenderElementSelect(RenderElement* rnr_element)
+{
+  EditRenderElement(rnr_element);
+}
+
+void RGTopFrame::RenderElementPaste(RenderElement* rnr_element)
+{
+  RenderElement* src = fEditor->GetRnrElement();
+  if (src)
+    rnr_element->HandleElementPaste(src);
+}
+
 void RGTopFrame::RenderElementChecked(TObject* obj, Bool_t state)
 {
   // Item's user-data is blindly casted into TObject.
