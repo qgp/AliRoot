@@ -6,7 +6,7 @@
 
 namespace GLUtilNS {
 
-void RenderPolyMarkers(TAttMarker& marker, Float_t* p, Int_t n,
+void RenderPolyMarkers(const TAttMarker& marker, Float_t* p, Int_t n,
 		       Bool_t selection, Bool_t sec_selection)
 {
   // Store attributes GL_POINT_BIT and GL_LINE_BIT before call this function !
@@ -28,7 +28,7 @@ void RenderPolyMarkers(TAttMarker& marker, Float_t* p, Int_t n,
 }
 
 //______________________________________________________________________________
-void RenderPoints(TAttMarker& marker, Float_t* p, Int_t n,
+void RenderPoints(const TAttMarker& marker, Float_t* p, Int_t n,
 		  Bool_t selection, Bool_t sec_selection)
 {
   // Render markers as circular or square points.
@@ -107,7 +107,7 @@ void RenderPoints(TAttMarker& marker, Float_t* p, Int_t n,
 }
 
 //______________________________________________________________________________
-void RenderCrosses(TAttMarker& marker, Float_t* p, Int_t n,
+void RenderCrosses(const TAttMarker& marker, Float_t* p, Int_t n,
 		   Bool_t sec_selection)
 {
   // Render markers as crosses.

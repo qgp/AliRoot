@@ -53,13 +53,13 @@ public:
 };
 
 
-void RenderPolyMarkers(TAttMarker& marker, Float_t* p, Int_t n, 
+void RenderPolyMarkers(const TAttMarker& marker, Float_t* p, Int_t n, 
 		       Bool_t selection=kFALSE, Bool_t sec_selection=kFALSE);
 
-void RenderPoints(TAttMarker& marker, Float_t* p, Int_t n,
+void RenderPoints(const TAttMarker& marker, Float_t* p, Int_t n,
 		  Bool_t selection=kFALSE, Bool_t sec_selection=kFALSE);
 
-void RenderCrosses(TAttMarker& marker, Float_t* p, Int_t n, Bool_t sec_selection=kFALSE);
+void RenderCrosses(const TAttMarker& marker, Float_t* p, Int_t n, Bool_t sec_selection=kFALSE);
 
 }
 
