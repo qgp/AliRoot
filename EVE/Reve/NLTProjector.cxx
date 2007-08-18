@@ -487,20 +487,7 @@ void NLTProjector::RegisterTrackList(TrackList* tl, Bool_t recurse)
   {
     Track* track = dynamic_cast<Track*>(*i);
     RegisterTrack(track, recurse);
-  }
-  tl->MakeTracks(kFALSE);
-
-  // set projected first vertices in track list 
-  Float_t x, y, z;
-  tl->Reset(tl->GetNChildren());
-  for(List_i j=tl->BeginChildren(); j!=tl->EndChildren(); ++j) 
-  {
-    Track* track = dynamic_cast<Track*>(*j);
-    if(track->GetLastPoint() >= 0)
-    {
-      track->GetPoint(0, x, y, z);
-      tl->SetNextPoint(x, y, z);
-    }
+    track->MakeTrack(kFALSE);
   }
 }
 

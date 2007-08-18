@@ -101,7 +101,6 @@ V0::V0(Reve::RecTrack* tNeg, Reve::RecTrack* tPos,
   fCosPointingAngle(999),
   fDecayLength(0)
 {
-  fMarkerColor = fRnrStyle->GetColor();
   fPolyLineV0.SetLineColor(fMarkerColor);
   fPolyLinePos.SetLineColor(2);  // red
   fPolyLineNeg.SetLineColor(7);  // light blue
@@ -372,7 +371,6 @@ void V0List::Init()
 {
 
   if (fRnrStyle== 0) fRnrStyle = new TrackRnrStyle;
-  SetMainColorPtr(&fRnrStyle->fColor);
 
   fMin[0]  = 0;   fMax[0] = 10; // pt
   fMin[1]  = 0;   fMax[1] = 10; // K0s mass

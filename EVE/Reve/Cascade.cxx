@@ -123,7 +123,7 @@ Cascade::Cascade(TrackRnrStyle* rs) :
   fCasCosPointingAngle(999),
   fCasDecayLength(999)
 {
-  fMarkerColor = fRnrStyle->GetColor();
+  fMarkerColor = fRnrStyle->fFVAtt.GetMarkerColor();
   fPolyLineV0.SetLineColor(fMarkerColor);
   fPolyLinePos.SetLineColor(2);  // red
   fPolyLineNeg.SetLineColor(7);  // light blue
@@ -439,8 +439,6 @@ void CascadeList::Init()
 {
 
   if (fRnrStyle== 0) fRnrStyle = new TrackRnrStyle;
-  SetMainColorPtr(&fRnrStyle->fColor);
-
 
   fMin[0]  =  0;     fMax[0]  = 5; // Xi mass
   fMin[1]  =  0;     fMax[1]  = 5; // Omega mass

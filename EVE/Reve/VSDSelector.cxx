@@ -193,7 +193,7 @@ void VSDSelector::SelectParticles(const Text_t* selection)
     throw (eH + "no entries found for selection in kinematics.");
 
   TrackList* cont   = new TrackList();
-  cont->GetRnrStyle()->SetColor(4);
+  cont->SetMainColor(4);
 
   gReve->AddRenderElement(cont);
 
@@ -220,7 +220,6 @@ void VSDSelector::SelectParticles(const Text_t* selection)
       }
       track->MakeTrack();
     }
-    cont->MakeMarkers();
   }
 }
 
@@ -357,8 +356,8 @@ void VSDSelector::SelectRecTracks()
     throw (eH + "No entries found in ESD data.");
 
   if(n > 0) {
-    TrackList* cont = new TrackList(Form("RecTracks %s [%d]",selection, n), n);
-    cont->GetRnrStyle()->SetColor(6);
+    TrackList* cont = new TrackList(Form("RecTracks %s [%d]",selection, n));
+    cont->SetMainColor(6);
 
     gReve->AddRenderElement(cont);
 
@@ -370,7 +369,6 @@ void VSDSelector::SelectRecTracks()
 
       gReve->AddRenderElement(track, cont);
     }
-    cont->MakeMarkers();
     gReve->Redraw3D();
   }
 }
