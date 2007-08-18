@@ -264,17 +264,26 @@ void RGBrowser::ItemClicked(TGListTreeItem *item, Int_t btn, Int_t x, Int_t y)
   if(re == 0) return;
   TObject* obj = re->GetObject();
 
-  if(btn == 3) {
-    // If control pressed, show menu for renderelement itself.
-    // event->fState & kKeyControlMask
-    // ??? how do i get current event?
-    if (obj) {
-      fCtxMenu->Popup(x, y, obj);
-    }
-    return;
-  }
+  switch (btn)
+  {
+    case 1:
+      gReve->RenderElementSelect(re);
+      break;
 
-  gReve->EditRenderElement(re);
+    case 2:
+      gReve->RenderElementPaste(re);
+      break;
+
+    case 3:
+      // If control pressed, show menu for render-element itself.
+      // event->fState & kKeyControlMask
+      // ??? how do i get current event?
+      if (obj) fCtxMenu->Popup(x, y, obj);
+      break;
+
+    default:
+      break;
+  }
 }
 
 void RGBrowser::DbClickListItem(TGListTreeItem* item, Int_t btn)
