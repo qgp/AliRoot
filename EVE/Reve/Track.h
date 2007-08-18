@@ -13,6 +13,7 @@
 #include <Reve/Line.h>
 
 #include <TPolyMarker3D.h>
+#include <TMarker.h>
 #include <TQObject.h>
 
 namespace Reve {
@@ -22,13 +23,13 @@ class TrackList;
 
 class Track : public Line, public TQObject
 {
-  friend class TrackList;
+  friend class TrackRnrStyle;
   friend class TrackCounter;
   friend class TrackGL;
 
 public:
   typedef std::vector<Reve::PathMark*>           vpPathMark_t;
-  typedef std::vector<Reve::Vector>             viPathMark_t;
+  typedef std::vector<Reve::Vector>              viPathMark_t;
   typedef std::vector<Reve::PathMark*>::iterator vpPathMark_i;
 
 protected:
@@ -56,7 +57,7 @@ public:
   virtual void MakeTrack(Bool_t recurse=kTRUE);  //*SIGNAL*
 
   TrackRnrStyle* GetRnrStyle() const  { return fRnrStyle; }
-  void SetRnrStyle(TrackRnrStyle* rs) { fRnrStyle = rs; }
+  void SetRnrStyle(TrackRnrStyle* rs);
 
   Int_t GetLabel() const    { return fLabel; }
   void  SetLabel(Int_t lbl) { fLabel = lbl;  }
@@ -99,12 +100,13 @@ public:
 // TrackList has Get/Set methods for RnrStlye and
 // TrackListEditor provides editor access to them.
 
-class TrackRnrStyle : public TObject
+class TrackRnrStyle : public TObject,
+                      public ReferenceBackPtr
 {
+private:
+  void                     RebuildTracks();
+
 public:
-  Color_t                  fColor;
-  Width_t                  fWidth;
-  Style_t                  fStyle;
   Float_t                  fMagField;
   // track limits
   Float_t                  fMaxR;
@@ -120,9 +122,8 @@ public:
   Float_t                  fMinP;
   Float_t                  fMaxP;
 
-  Color_t                  fPMColor;
-  Style_t                  fPMStyle;
-  Size_t                   fPMSize;
+  Bool_t                   fEditPathMarks;
+  TMarker                  fPMAtt;
 
   Bool_t                   fFitDaughters;
   Bool_t                   fFitReferences;
@@ -131,11 +132,32 @@ public:
   Bool_t                   fRnrDaughters;
   Bool_t                   fRnrReferences;
   Bool_t                   fRnrDecay;
+ 
+  Bool_t                   fRnrFV; // first vertex
+  TMarker                  fFVAtt;
 
   TrackRnrStyle();
 
-  void    SetColor(Color_t c) { fColor = c; }
-  Color_t GetColor() const    { return fColor; }
+  // callbacks
+  void   SetEditPathMarks(Bool_t x) { fEditPathMarks = x; }
+  void   SetRnrDaughters(Bool_t x);
+  void   SetRnrReferences(Bool_t x);
+  void   SetRnrDecay(Bool_t x);
+
+  void   SetRnrFV(Bool_t x){  fRnrFV = x;}
+
+  void   SetFitDaughters(Bool_t x);
+  void   SetFitReferences(Bool_t x);
+  void   SetFitDecay(Bool_t x);
+
+  void   SetMaxR(Float_t x);
+  void   SetMaxZ(Float_t x);
+  void   SetMaxOrbs(Float_t x);
+  void   SetMinAng(Float_t x);
+  void   SetDelta(Float_t x);
+
+  void   SelectByPt(Float_t min_pt=0.2, Float_t max_pt=10);
+  void   SelectByP(Float_t min_pt=0.0, Float_t max_pt=100);
 
   Float_t GetMagField() const     { return fMagField; }
   void    SetMagField(Float_t mf) { fMagField = mf; }
@@ -152,106 +174,56 @@ public:
 // TrackList
 /**************************************************************************/
 
-class TrackList : public RenderElement,
-		  public TPolyMarker3D
+class TrackList : public RenderElementList,
+                  public TAttMarker,
+                  public TAttLine
 {
+private:
   TrackList(const TrackList&);            // Not implemented
   TrackList& operator=(const TrackList&); // Not implemented
-
-private:
-  void  Init();
+  Bool_t               fRecurse;
 
 protected:
-  TString              fTitle;
-
   TrackRnrStyle*       fRnrStyle;
 
-  Bool_t               fRnrMarkers;
-  Bool_t               fRnrTracks;
-  Bool_t               fEditPathMarks;
-
+  Bool_t               fRnrLine;
+  Bool_t               fRnrPoints;
 public:
-  TrackList(Int_t n_tracks=0, TrackRnrStyle* rs=0);
-  TrackList(const Text_t* name, Int_t n_tracks=0, TrackRnrStyle* rs=0);
-
-  void Reset(Int_t n_tracks=0);
-
-  virtual const Text_t* GetTitle() const  { return fTitle; }
-  virtual void  SetTitle(const Text_t* t) { fTitle = t; }
-
-  virtual Bool_t CanEditMainColor()  { return kTRUE; }
-
-  virtual void Paint(Option_t* option="");
+  TrackList(TrackRnrStyle* rs=0);
+  TrackList(const Text_t* name, TrackRnrStyle* rs=0);
+  virtual ~TrackList();
 
   virtual void AddElement(RenderElement* el);
-
-  virtual void SetMarkerColor(Color_t c) { TAttMarker::SetMarkerColor(c); if(fRnrStyle) fRnrStyle->fPMColor = c; }
-  virtual void SetMarkerStyle(Style_t s) { TAttMarker::SetMarkerStyle(s); if(fRnrStyle) fRnrStyle->fPMStyle = s; }
-  virtual void SetMarkerSize(Size_t s)   { TAttMarker::SetMarkerSize(s);  if(fRnrStyle) fRnrStyle->fPMSize  = s; }
-
-  TrackRnrStyle* GetRnrStyle()           { fRnrStyle->fPMColor = GetMarkerColor();fRnrStyle->fPMStyle = GetMarkerStyle();fRnrStyle->fPMSize = GetMarkerSize(); return fRnrStyle; }
-  void   SetRnrStyle(TrackRnrStyle* rst) { fRnrStyle= rst; }
-
-  Bool_t GetEditPathMarks() const   { return fEditPathMarks; }
-  void   SetEditPathMarks(Bool_t x) { fEditPathMarks = x; }
-
-  Bool_t GetRnrTracks() const { return fRnrTracks; }
-  void   SetRnrTracks(Bool_t);
-
-  Bool_t GetRnrDaughters()  const { return fRnrStyle->fRnrDaughters; }
-  Bool_t GetRnrReferences() const { return fRnrStyle->fRnrReferences; }
-  Bool_t GetRnrDecay()      const { return fRnrStyle->fRnrDecay; }
-
-  void   SetRnrDaughters(Bool_t x);
-  void   SetRnrReferences(Bool_t x);
-  void   SetRnrDecay(Bool_t x);
-
-  Bool_t GetRnrMarkers() const { return fRnrMarkers; }
-  void   SetRnrMarkers(Bool_t);
-
   void   MakeTracks(Bool_t recurse=kTRUE);
-  void   MakeMarkers();
 
-  Width_t GetWidth() const { return fRnrStyle->fWidth; }
-  void  SetWidth(Width_t w);
-
-  Width_t GetStyle() const { return fRnrStyle->fStyle; }
-  void  SetStyle(Style_t s);
-
-  Float_t GetMaxR()         const { return fRnrStyle->fMaxR; }
-  Float_t GetMaxZ()         const { return fRnrStyle->fMaxZ; }
-  Float_t GetMaxOrbs()      const { return fRnrStyle->fMaxOrbs; }
-  Float_t GetMinAng()       const { return fRnrStyle->fMinAng; }
-  Float_t GetDelta()        const { return fRnrStyle->fDelta; }
-
-  Float_t GetMinPt()        const { return fRnrStyle->fMinPt; }
-  Float_t GetMaxPt()        const { return fRnrStyle->fMaxPt; }
-
-  Float_t GetMinP()         const { return fRnrStyle->fMinP; }
-  Float_t GetMaxP()         const { return fRnrStyle->fMaxP; }
-
-  Bool_t  GetFitDaughters()  const { return fRnrStyle->fFitDaughters; }
-  Bool_t  GetFitReferences() const { return fRnrStyle->fFitReferences; }
-  Bool_t  GetFitDecay()      const { return fRnrStyle->fFitDecay; }
-
-  void SetFitDaughters(Bool_t x);
-  void SetFitReferences(Bool_t x);
-  void SetFitDecay(Bool_t x);
-
-  void SetMaxR(Float_t x);
-  void SetMaxZ(Float_t x);
-  void SetMaxOrbs(Float_t x);
-  void SetMinAng(Float_t x);
-  void SetDelta(Float_t x);
-
-  // void  UpdateBounds();
-  Int_t   GetNTracks() { return fN; }
-
-  void SelectByPt(Float_t min_pt=0.2, Float_t max_pt=10); // *MENU*
-  void SelectByP(Float_t min_pt=0.0, Float_t max_pt=100); // *MENU*
+  void  SetRnrStyle(TrackRnrStyle* rs);
+  TrackRnrStyle*  GetRnrStyle(){return fRnrStyle;}
 
   //--------------------------------
+  virtual void   SetMainColor(Color_t c);
+  virtual void   SetLineColor(Color_t c){SetMainColor(c);}
+  virtual void   SetLineColor(Color_t c, RenderElement* el);
+  virtual void   SetLineWidth(Width_t w);
+  virtual void   SetLineWidth(Width_t w, RenderElement* el);
+  virtual void   SetLineStyle(Style_t s);
+  virtual void   SetLineStyle(Style_t s, RenderElement* el);
 
+  virtual void   SetMarkerColor(Color_t c);
+  virtual void   SetMarkerColor(Color_t c, RenderElement* el);
+  virtual void   SetMarkerSize(Size_t s);
+  virtual void   SetMarkerSize(Size_t s, RenderElement* el);
+  virtual void   SetMarkerStyle(Style_t s);
+  virtual void   SetMarkerStyle(Style_t s, RenderElement* el);
+
+  void SetRnrLine(Bool_t rnr);
+  void SetRnrLine(Bool_t rnr, RenderElement* el);
+  Bool_t GetRnrLine(){return fRnrLine;}
+
+  void SetRnrPoints(Bool_t r);
+  void SetRnrPoints(Bool_t r, RenderElement* el);
+  Bool_t GetRnrPoints(){return fRnrPoints;}
+
+  //--------------------------------
   void ImportHits();     // *MENU*
   void ImportClusters(); // *MENU*
 

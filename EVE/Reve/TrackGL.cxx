@@ -57,20 +57,23 @@ void TrackGL::DirectDraw(TGLRnrCtx & rnrCtx) const
 {
   // track 
   LineGL::DirectDraw(rnrCtx);
+  
 
   // path-marks
-  TrackRnrStyle& RS = *fTrack->GetRnrStyle();
-  Int_t N =  fTrack->fVisPathMarks.size();   
-  if ( N && RS.fPMSize > 0.)
-  { Float_t* pnts = new Float_t[3*N];
+  if (fTrack->fVisPathMarks.size());
+  { 
+    Int_t N =  fTrack->fVisPathMarks.size();
+    Float_t* pnts = new Float_t[3*N];
     for(Int_t i=0; i<N; i++) 
     {
       pnts[i*3]   = fTrack->fVisPathMarks[i].x;
       pnts[i*3+1] = fTrack->fVisPathMarks[i].y;
       pnts[i*3+2] = fTrack->fVisPathMarks[i].z;
     }
-    TAttMarker ms(RS.fPMColor, RS.fPMStyle, RS.fPMSize);
-    GLUtilNS::RenderPolyMarkers(ms, pnts, N);
+    GLUtilNS::RenderPolyMarkers(fTrack->GetRnrStyle()->fPMAtt,pnts, N);
     delete [] pnts;
   }
+
+  if(fTrack->fRnrStyle->fRnrFV && fTrack->GetLastPoint())
+    GLUtilNS::RenderPolyMarkers(fTrack->GetRnrStyle()->fFVAtt,fTrack->GetP(), 1);
 }
