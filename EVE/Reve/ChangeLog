@@ -1,3 +1,42 @@
+2007-08-18  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
+
+	EVE-dev
+
+	* LinkDef.h:
+	Registere new classes TrackEditor, TrackRnrStyleEditor and
+	TrackRnrStyleSubEditor.
+
+	* Track.cxx:
+	* Track.h:
+	* TrackEditors.cxx:
+	* TrackEditors.h:
+	* TrackGL.cxx:
+	* TrackRnrStyleEditor.cxx:
+	* TrackRnrStyleEditor.h:
+	Configuration of track rendering has two sources. First is done by
+	TrackRnrStyle which can be shared. Second type of configuration
+	goes via TrackList container, a RenderElement parent of a track. 
+
+	TrackList handles only track line attributes. These attributes are
+	set recursively by default. The remaining configuration is dane
+	with referenced TrackRnrStyle.
+
+	* GLUtilNS.cxx:
+	* GLUtilNS.h:
+	Change argument TAttMatker& in RenderPoints(), RenderCrosses() and
+	RenderPolymarkers() to const TAttMatker&.
+
+	* LineEditor.cxx:
+	Put checkbox fRnrMarkers before checkbox fRnrLine.
+
+	* Cascade.cxx:
+	* V0.cxx:
+	* VSDSelector.cxx:
+	* NLTProjector.cxx:
+	Set line color in tracks to TrackList main color. Remove call
+	MakeMarkers(). Rendering of fist vertex is done in
+	TrackGL::DirectDraw().
+
 2007-08-18  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	EVE-dev
