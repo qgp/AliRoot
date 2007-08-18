@@ -49,13 +49,14 @@ void Viewer::SpawnGLViewer(TGFrame* parent, TGedEditor* ged)
 
 void Viewer::AddScene(Scene* scene)
 {
-  // !!!! check if scene already in
-  // ? viewer::addscenme returns tglsceneinfo (0 on failure)
-  
+  static const Exc_t eH("Viewer::AddScene ");
+
   TGLSceneInfo* glsi = fGLViewer->AddScene(scene->GetGLScene());
   if (glsi != 0) {
     SceneInfo* si = new SceneInfo(this, scene, glsi);
     gReve->AddRenderElement(si, this);
+  } else {
+    throw(eH + "scene already in the viewer.");
   }
 }
 
@@ -69,6 +70,19 @@ void Viewer::RemoveElements()
 {
   fGLViewer->RemoveAllScenes();
   RenderElement::RemoveElements();
+}
+
+void Viewer::HandleElementPaste(RenderElement* el)
+{
+  static const Exc_t eH("Viewer::HandleElementPaste ");
+
+  Scene* scene = dynamic_cast<Scene*>(el);
+  if (scene != 0) {
+    AddScene(scene);
+    gReve->Redraw3D();
+  } else {
+    throw(eH + "class Viewer only accepts Scene paste argument.");
+  }
 }
 
 /**************************************************************************/

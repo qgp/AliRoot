@@ -39,6 +39,8 @@ public:
   virtual void RemoveElementLocal(RenderElement* el);
   virtual void RemoveElements();
 
+  virtual void HandleElementPaste(RenderElement* el);
+
   ClassDef(Viewer, 0);
 }; // endclass Viewer
 
