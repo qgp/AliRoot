@@ -256,7 +256,7 @@ void  NLTProjector::ReducePoints(Vector* pnts, Int_t N)
 	break;
       }
     } 
-    // have not find a point inside epsilon, add new point in scaled array
+    // have not found a point inside epsilon, add new point in scaled array
     if(fIdxMap[v] == -1)
     {
       fIdxMap[v] = fNRPnts;

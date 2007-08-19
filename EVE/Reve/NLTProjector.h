@@ -25,7 +25,9 @@ class TrackList;
 /**************************************************************************/
 //  NLTProjections
 /**************************************************************************/
-class NLTProjection {
+
+class NLTProjection
+{
 public: 
   enum Type_e       { E_CFishEye, E_RhoZ, E_RhoPhi, None}; 
 
@@ -40,13 +42,18 @@ public:
   virtual   Float_t   PositionToValue(Float_t /*pos*/, Int_t /*axis*/) = 0;
   virtual   Float_t   ValueToPosition(Float_t /*pos*/, Int_t /*axis*/) = 0;
 
-  NLTProjection():fDistortion(0.) {}
-  ClassDef(NLTProjection, 0)
+  NLTProjection() : fDistortion(0.) {}
+  virtual ~NLTProjection() {}
+
+  ClassDef(NLTProjection, 0);
 };
 
-class RhoZ: public NLTProjection {
+class RhoZ: public NLTProjection
+{
 public:
   RhoZ() : NLTProjection() {fType = E_RhoZ;}
+  virtual ~RhoZ() {}
+
   virtual   Bool_t    AcceptSegment(Vector& v1, Vector& v2, Float_t tolerance); 
   virtual   void      ProjectPoint(Float_t& x, Float_t& y, Float_t& z);
 
@@ -54,19 +61,22 @@ public:
   virtual   Float_t   PositionToValue(Float_t a, Int_t /*axis*/){ return a/(1-TMath::Abs(a)*fDistortion); }
   virtual   Float_t   ValueToPosition(Float_t a, Int_t /*axis*/){ return a/(1+TMath::Abs(a)*fDistortion); }
 
-  ClassDef(RhoZ, 0)
+  ClassDef(RhoZ, 0);
 };
 
-class CircularFishEye: public NLTProjection {
+class CircularFishEye : public NLTProjection
+{
 public:
   CircularFishEye():NLTProjection() {fType = E_CFishEye;}
+  virtual ~CircularFishEye() {}
+
   virtual   void      ProjectPoint(Float_t& x, Float_t& y, Float_t& z); 
 
   // required to draw scale on the axis
   virtual   Float_t   PositionToValue(Float_t a, Int_t /*axis*/){ return a/(1-TMath::Abs(a)*fDistortion); }
   virtual   Float_t   ValueToPosition(Float_t a, Int_t /*axis*/){ return a/(1+TMath::Abs(a)*fDistortion); }
 
-  ClassDef(CircularFishEye, 0)
+  ClassDef(CircularFishEye, 0);
 };
 
 /**************************************************************************/
@@ -116,7 +126,7 @@ public:
   
   void            SetProjection(NLTProjection* p){ fProjection = p;}
   void            SetProjection(NLTProjection::Type_e type, Float_t distort = 0.);
-  NLTProjection*  GetProjection(){ return fProjection; }
+  NLTProjection*  GetProjection() { return fProjection; }
 
   void            DumpBuffer(TBuffer3D* b);
 
@@ -124,7 +134,9 @@ public:
 
   virtual void    ComputeBBox();
   virtual void    Paint(Option_t* option = "");
-  ClassDef(NLTProjector, 0) //GUI for editing TGLViewer attributes
-    };
+
+  ClassDef(NLTProjector, 0); //GUI for editing TGLViewer attributes
+};
+
 }
 #endif

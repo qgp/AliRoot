@@ -17,6 +17,8 @@ private:
   FrameBoxGL& operator=(const FrameBoxGL&); // Not implemented
 
 public:
+  virtual ~FrameBoxGL() {}
+
   static void Render(const FrameBox* box);
 
   ClassDef(FrameBoxGL, 0);
