@@ -19,7 +19,7 @@
 
 	* RenderElement.cxx:
 	* RenderElement.h:
-	Added virtual functions SetRnrElNameTitle() and Changed(),
+	Added virtual functions SetRnrElNameTitle() and Changed().
 
 2007-08-19  Matevz Tadel  <matevz.tadel@cern.ch>
 
