@@ -45,7 +45,7 @@ void tpc_digits(Int_t mode=0)
     gReve->AddRenderElement(s);
     gReve->Redraw3D();
 
-    TGLViewer* cam = dynamic_cast<TGLViewer*>(gReve->GetGLCanvas()->GetViewer3D());
+    //TGLViewer* cam = gReve->GetGLViewer();
     //cam->SetCurrentCamera(TGLViewer::kCameraOrthoXOY) ;
     //cam->SetOrthoCamera(TGLViewer::kCameraOrthoXOY, 2*left, 2*right, 2*top, bottom); 
     //printf("%f %f %f %f\n", left, right, top, bottom);
