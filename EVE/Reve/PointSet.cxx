@@ -3,6 +3,7 @@
 #include "PointSet.h"
 
 #include <Reve/RGTopFrame.h>
+#include <Reve/NLTProjector.h>
 
 #include <TTree.h>
 #include <TTreePlayer.h>
@@ -127,6 +128,14 @@ void PointSet::TakeAction(TSelectorDraw* sel)
     throw(eH + "unknown tree variable type.");
   }
 }
+
+/**************************************************************************/
+
+TClass* PointSet::ProjectedClass() const
+{
+  return NLTPointSet::Class();
+}
+
 
 /**************************************************************************/
 /**************************************************************************/
@@ -320,5 +329,36 @@ void PointSetArray::SetRange(Double_t min, Double_t max)
   for(Int_t i=0; i<fNBins; ++i) {
     if(fBins[i] != 0)
       fBins[i]->SetRnrSelf(i>=low_b && i<=high_b);
+  }
+}
+
+
+/**************************************************************************/
+/**************************************************************************/
+
+
+//______________________________________________________________________
+// NLTPointSet
+//
+
+ClassImp(NLTPointSet)
+
+NLTPointSet::NLTPointSet() :
+  PointSet     (),
+  NLTProjected ()
+{}
+
+void NLTPointSet::UpdateProjection()
+{
+  NLTProjection& proj = * fProjector->GetProjection();
+  PointSet     & ps   = * dynamic_cast<PointSet*>(fProjectable);
+
+  Int_t n = ps.GetN();
+  Reset(n);
+  Float_t *o = ps.GetP(), *p = GetP();
+  for(Int_t i = 0; i < n; ++i, o+=3, p+=3)
+  {
+    p[0] = o[0]; p[1] = o[1]; p[2] = o[2];
+    proj.ProjectPoint(p[0], p[1], p[2]);
   }
 }

@@ -5,6 +5,7 @@
 
 #include <Reve/PODs.h>
 #include <Reve/RenderElement.h>
+#include <Reve/NLTBases.h>
 #include <Reve/TTreeTools.h>
 
 #include <TPointSet3D.h>
@@ -17,7 +18,8 @@ namespace Reve {
 
 class PointSet : public RenderElement,
                  public TPointSet3D,
-                 public TPointSelectorConsumer
+                 public TPointSelectorConsumer,
+                 public NLTProjectable
 {
   friend class PointSetArray;
 
@@ -41,6 +43,8 @@ public:
   virtual void Paint(Option_t* option="");
 
   virtual void TakeAction(TSelectorDraw*);
+
+  virtual TClass* ProjectedClass() const;
 
   ClassDef(PointSet, 1);
 }; // endclass PointSet
@@ -103,6 +107,26 @@ public:
 
   ClassDef(PointSetArray, 1);
 };
+
+/**************************************************************************/
+
+class NLTPointSet : public PointSet,
+                    public NLTProjected
+{
+private:
+  NLTPointSet(const NLTPointSet&);            // Not implemented
+  NLTPointSet& operator=(const NLTPointSet&); // Not implemented
+
+protected:
+
+public:
+  NLTPointSet();
+  virtual ~NLTPointSet() {}
+
+  virtual void UpdateProjection();
+
+  ClassDef(NLTPointSet, 1);
+}; // endclass NLTPointSet
 
 }
 
