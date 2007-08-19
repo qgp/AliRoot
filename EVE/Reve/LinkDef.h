@@ -114,6 +114,8 @@
 #pragma link C++ class Reve::RGTriVecValuator+;
 
 // Non-linear transformations
+#pragma link C++ class Reve::NLTProjectable+;
+#pragma link C++ class Reve::NLTProjected+;
 #pragma link C++ class Reve::NLTProjection+;
 //#pragma link C++ class Reve::PhiZ+;
 #pragma link C++ class Reve::RhoZ+;
@@ -126,6 +128,8 @@
 #pragma link C++ class Reve::NLTPolygonSet+;
 #pragma link C++ class Reve::NLTPolygonSetEditor+;
 #pragma link C++ class Reve::NLTPolygonSetGL+;
+
+#pragma link C++ class Reve::NLTPointSet+;
 
 //=====================================
 // Graphical elements (with renderers)
