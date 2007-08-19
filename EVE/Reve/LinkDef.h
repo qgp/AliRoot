@@ -122,6 +122,7 @@
 #pragma link C++ class Reve::CircularFishEye+;
 
 #pragma link C++ class Reve::NLTProjector+;
+#pragma link C++ class Reve::NLTProjectorEditor+;
 #pragma link C++ class Reve::NLTProjectorGL+;
 
 #pragma link C++ class Reve::NLTPolygon+;
