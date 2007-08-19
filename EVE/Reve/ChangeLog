@@ -1,5 +1,28 @@
 2007-08-19  Matevz Tadel  <matevz.tadel@cern.ch>
 
+	* LinkDef.h:
+	Register new class NLTProjectorEditor.
+
+	* NLTProjector.cxx:
+	* NLTProjector.h:
+	Added methods for (recursive) import and update of projected
+	elements.
+
+	* NLTProjectorEditor.cxx:
+	* NLTProjectorEditor.h:
+	New files, editor class for NLTProjection.
+
+	* PointSet.cxx:
+	* PointSet.h:
+	PointSet: implemented virtual SetRnrElNameTitle();
+	NLTPointSet: implemented virtual SetProjection().
+
+	* RenderElement.cxx:
+	* RenderElement.h:
+	Added virtual functions SetRnrElNameTitle() and Changed(),
+
+2007-08-19  Matevz Tadel  <matevz.tadel@cern.ch>
+
 	EVE-dev
 
 	* FrameBoxGL.h:
