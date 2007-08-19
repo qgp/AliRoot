@@ -29,9 +29,9 @@ class TrackList;
 class NLTProjection
 {
 public: 
-  enum Type_e       { E_CFishEye, E_RhoZ, E_RhoPhi, None}; 
+  enum PType_e { PT_Unknown, PT_CFishEye, PT_RhoZ }; // , PT_RhoPhi}; 
 
-  Type_e              fType;
+  PType_e             fType;
   Float_t             fDistortion; // sensible values from 0 to 0.01
  
   virtual   Bool_t    AcceptSegment(Vector&, Vector&, Float_t /*tolerance*/) {return kTRUE;}
@@ -42,7 +42,7 @@ public:
   virtual   Float_t   PositionToValue(Float_t /*pos*/, Int_t /*axis*/) = 0;
   virtual   Float_t   ValueToPosition(Float_t /*pos*/, Int_t /*axis*/) = 0;
 
-  NLTProjection() : fDistortion(0.) {}
+  NLTProjection() : fType(PT_Unknown), fDistortion(0) {}
   virtual ~NLTProjection() {}
 
   ClassDef(NLTProjection, 0);
@@ -51,7 +51,7 @@ public:
 class RhoZ: public NLTProjection
 {
 public:
-  RhoZ() : NLTProjection() {fType = E_RhoZ;}
+  RhoZ() : NLTProjection() { fType = PT_RhoZ; }
   virtual ~RhoZ() {}
 
   virtual   Bool_t    AcceptSegment(Vector& v1, Vector& v2, Float_t tolerance); 
@@ -67,7 +67,7 @@ public:
 class CircularFishEye : public NLTProjection
 {
 public:
-  CircularFishEye():NLTProjection() {fType = E_CFishEye;}
+  CircularFishEye():NLTProjection() { fType = PT_CFishEye; }
   virtual ~CircularFishEye() {}
 
   virtual   void      ProjectPoint(Float_t& x, Float_t& y, Float_t& z); 
@@ -88,6 +88,8 @@ class NLTProjector : public RenderElementList,
 { 
   NLTProjector(const NLTProjector&);            // Not implemented
   NLTProjector& operator=(const NLTProjector&); // Not implemented
+
+public:
 
 protected:
   Int_t  GetBreakPointIdx(Int_t start);
@@ -124,9 +126,16 @@ public:
   void            RegisterTrack(Track* track, Bool_t recurse=kTRUE);
   void            RegisterTrackList(TrackList* tl, Bool_t recurse=kTRUE);
   
-  void            SetProjection(NLTProjection* p){ fProjection = p;}
-  void            SetProjection(NLTProjection::Type_e type, Float_t distort = 0.);
+  void            SetProjection(NLTProjection::PType_e type, Float_t distort=0);
+  void            SetProjection(NLTProjection* p);
   NLTProjection*  GetProjection() { return fProjection; }
+
+  virtual Bool_t  ShouldImport(RenderElement* rnr_el);
+  virtual void    ImportElementsRecurse(RenderElement* rnr_el, RenderElement* parent);
+  virtual void    ImportElements(RenderElement* rnr_el);
+
+  virtual void    ProjectChildrenRecurse(RenderElement* rnr_el);
+  virtual void    ProjectChildren();
 
   void            DumpBuffer(TBuffer3D* b);
 

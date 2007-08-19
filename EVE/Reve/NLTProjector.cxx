@@ -31,7 +31,7 @@ namespace {
 }
 
 //______________________________________________________________________________
-Vector*  NLTProjection::Project(Vector* origPnts, Int_t Npnts, Bool_t copy)
+Vector* NLTProjection::Project(Vector* origPnts, Int_t Npnts, Bool_t copy)
 {
   Vector* pnts = 0; 
   if(copy) 
@@ -52,7 +52,7 @@ Vector*  NLTProjection::Project(Vector* origPnts, Int_t Npnts, Bool_t copy)
 }
 
 //______________________________________________________________________________
-void  RhoZ::ProjectPoint(Float_t& x, Float_t& y, Float_t& z)
+void RhoZ::ProjectPoint(Float_t& x, Float_t& y, Float_t& z)
 {
     Float_t R = TMath::Sqrt(x*x+y*y);
     Float_t NR =R/(1+R*fDistortion);
@@ -97,11 +97,12 @@ ClassImp(NLTProjector)
 
 NLTProjector::NLTProjector():
   RenderElementList("NLTProjector",""),
-  fProjection(0),
-  fEps(0.05),fIdxMap(0),  
-  fNPnts(0), fPnts(0),
-  fNRPnts(0), fRPnts(0)
+  fProjection (0),
+  fEps    (0.05), fIdxMap (0),  
+  fNPnts  (0),    fPnts   (0),
+  fNRPnts (0),    fRPnts  (0)
 {
+  SetProjection(NLTProjection::PT_CFishEye, 0);
 }
 
 //______________________________________________________________________________
@@ -130,22 +131,25 @@ void NLTProjector::CleanUp()
 }
 
 //______________________________________________________________________________
-void NLTProjector::SetProjection(NLTProjection::Type_e type, Float_t distort)
+void NLTProjector::SetProjection(NLTProjection::PType_e type, Float_t distort)
 {
   static const Exc_t eH("NLTProjector::SetProjection ");
+
+  delete fProjection;
+
   TString name;
   switch (type)
   {
-    case NLTProjection::E_RhoZ:
-    {
-      fProjection  = new RhoZ();
-      name = Form("RhoZ %3f", distort);
-      break;
-    }
-    case NLTProjection::E_CFishEye:
+    case NLTProjection::PT_CFishEye:
     {
       fProjection  = new CircularFishEye();
       name = Form("CircularFishEye %3f", distort);
+      break;
+    }
+    case NLTProjection::PT_RhoZ:
+    {
+      fProjection  = new RhoZ;
+      name = Form("RhoZ %3f", distort);
       break;
     }
     default:
@@ -154,6 +158,82 @@ void NLTProjector::SetProjection(NLTProjection::Type_e type, Float_t distort)
   }
   SetName(name.Data());
   fProjection->fDistortion = distort;
+}
+
+//______________________________________________________________________________
+void NLTProjector::SetProjection(NLTProjection* p)
+{
+  delete fProjection;
+  fProjection = p;
+}
+
+//______________________________________________________________________________
+Bool_t NLTProjector::ShouldImport(RenderElement* rnr_el)
+{
+  if (rnr_el->IsA()->InheritsFrom(NLTProjectable::Class()))
+    return kTRUE;
+  for (List_i i=rnr_el->BeginChildren(); i!=rnr_el->EndChildren(); ++i)
+    if (ShouldImport(*i))
+      return kTRUE;
+  return kFALSE;
+}
+
+//______________________________________________________________________________
+void NLTProjector::ImportElementsRecurse(RenderElement* rnr_el, RenderElement* parent)
+{
+  if (ShouldImport(rnr_el))
+  {
+    RenderElement  *new_re = 0;
+    NLTProjected   *new_pr = 0;
+    NLTProjectable *pble   = dynamic_cast<NLTProjectable*>(rnr_el);
+    if (pble)
+    {
+      new_re = (RenderElement*) pble->ProjectedClass()->New();
+      new_pr = dynamic_cast<NLTProjected*>(new_re);
+      new_pr->SetProjection(this, pble);
+    }
+    else
+    {
+      new_re = new RenderElementList;      
+    }
+    TObject *tobj   = rnr_el->GetObject();
+    new_re->SetRnrElNameTitle(tobj->GetName(), tobj->GetTitle());
+    gReve->AddRenderElement(new_re, parent);
+
+    if (new_pr)
+    {
+      new_pr->UpdateProjection();
+    }
+
+    for (List_i i=rnr_el->BeginChildren(); i!=rnr_el->EndChildren(); ++i)
+      ImportElementsRecurse(*i, new_re);
+  }
+}
+
+//______________________________________________________________________________
+void NLTProjector::ImportElements(RenderElement* rnr_el)
+{
+  ImportElementsRecurse(rnr_el, this);
+}
+
+//______________________________________________________________________________
+void NLTProjector::ProjectChildrenRecurse(RenderElement* rnr_el)
+{
+  NLTProjected* pted = dynamic_cast<NLTProjected*>(rnr_el);
+  if (pted)
+  {
+    pted->UpdateProjection();
+    rnr_el->Changed();
+  }
+
+  for (List_i i=rnr_el->BeginChildren(); i!=rnr_el->EndChildren(); ++i)
+    ProjectChildrenRecurse(*i);
+}
+
+//______________________________________________________________________________
+void NLTProjector::ProjectChildren()
+{
+  ProjectChildrenRecurse(this);
 }
 
 //______________________________________________________________________________
@@ -239,7 +319,7 @@ void NLTProjector::AddPolygon(std::list<Int_t>& pp, std::list<NLTPolygon>& pols)
 }
 
 //______________________________________________________________________________
-void  NLTProjector::ReducePoints(Vector* pnts, Int_t N)
+void NLTProjector::ReducePoints(Vector* pnts, Int_t N)
 {
   fIdxMap   = new Int_t[N];  
   Int_t* ra = new Int_t[N];  // list of reduced vertices
@@ -276,7 +356,7 @@ void  NLTProjector::ReducePoints(Vector* pnts, Int_t N)
 }
 
 //______________________________________________________________________________
-void  NLTProjector::MakePolygonsFromBP(TBuffer3D* buff, std::list<NLTPolygon>& pols)
+void NLTProjector::MakePolygonsFromBP(TBuffer3D* buff, std::list<NLTPolygon>& pols)
 {
   // build polygons from sorted list of segments : buff->fPols
 
@@ -328,7 +408,7 @@ void  NLTProjector::MakePolygonsFromBP(TBuffer3D* buff, std::list<NLTPolygon>& p
 }// MakePolygonsFromBP
 
 //______________________________________________________________________________
-void  NLTProjector::MakePolygonsFromBS(TBuffer3D* buff, std::list<NLTPolygon>& pols)
+void NLTProjector::MakePolygonsFromBS(TBuffer3D* buff, std::list<NLTPolygon>& pols)
 {
   // builds polygons from the set of buffer segments
 
@@ -397,7 +477,7 @@ void  NLTProjector::MakePolygonsFromBS(TBuffer3D* buff, std::list<NLTPolygon>& p
 }//MakePolygonsFromBS
 
  //______________________________________________________________________________
-NLTPolygonSet*  NLTProjector::ProjectBuffer3D(TBuffer3D* buff, Int_t useBuffPols)
+NLTPolygonSet* NLTProjector::ProjectBuffer3D(TBuffer3D* buff, Int_t useBuffPols)
 { 
   // rewrite from Double_t to Vector array
   // DumpBuffer(buff);  
