@@ -35,6 +35,7 @@ public:
   Float_t  fMaxTheta; 
   
   ITSModuleSelection();
+  virtual ~ITSModuleSelection() {}
 
   ClassDef(ITSModuleSelection, 1);
 };
