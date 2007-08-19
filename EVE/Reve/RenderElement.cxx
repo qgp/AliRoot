@@ -67,6 +67,15 @@ RenderElement::~RenderElement()
 
 /**************************************************************************/
 
+void RenderElement::SetRnrElNameTitle(const Text_t* name, const Text_t* title)
+{
+  TNamed* named = dynamic_cast<TNamed*>(GetObject());
+  if (named)
+    named->SetNameTitle(name, title);
+}
+
+/**************************************************************************/
+
 void RenderElement::AddParent(RenderElement* re)
 {
   fParents.push_back(re);
@@ -481,6 +490,11 @@ void RenderElement::HandleElementPaste(RenderElement* el)
 {
   gReve->AddRenderElement(el, this);
   gReve->Redraw3D();
+}
+
+void RenderElement::Changed()
+{
+  gReve->ElementChanged(this);
 }
 
 /**************************************************************************/

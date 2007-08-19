@@ -75,6 +75,8 @@ public:
   RenderElement(Color_t& main_color);
   virtual ~RenderElement();
 
+  virtual void SetRnrElNameTitle(const Text_t* name, const Text_t* title);
+
   virtual void AddParent(RenderElement* re);
   virtual void RemoveParent(RenderElement* re);
   virtual void CollectSceneParents(List_t& scenes);
@@ -144,9 +146,10 @@ public:
   virtual void RemoveElements();
 
   virtual void Destroy();                      // *MENU*
-  virtual void DestroyElements();
+  virtual void DestroyElements();              // *MENU*
 
   virtual void HandleElementPaste(RenderElement* el);
+  virtual void Changed();
 
   virtual Bool_t CanEditRnrElement()   { return kTRUE; }
   virtual Bool_t GetRnrSelf() const { return fRnrSelf; }
