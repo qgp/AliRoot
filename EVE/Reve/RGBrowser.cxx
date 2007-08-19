@@ -239,7 +239,8 @@ TGLViewer* RGBrowser::SetupGLViewerLook(RGEditor*& editor)
          break;
      }
   }
-  fSelectionFrame->Resize(fSelectionFrame->GetWidth(), fSelectionFrame->GetHeight()/2);
+  fSelectionFrame->Resize(250, 300);
+  v->GetFrame()->Resize(768, 768);
 
   return v;
 }
