@@ -30,12 +30,14 @@ public:
   PointSet(Int_t n_points=0, TreeVarType_e tv_type=TVT_XYZ);
   PointSet(const Text_t* name, Int_t n_points=0, TreeVarType_e tv_type=TVT_XYZ);
   PointSet(const Text_t* name, TTree* tree, TreeVarType_e tv_type=TVT_XYZ);
-
+  
   void  Reset(Int_t n_points=0);
   Int_t GrowFor(Int_t n_points);
 
   virtual const Text_t* GetTitle() const          { return fTitle; }
   virtual void          SetTitle(const Text_t* t) { fTitle = t; }
+
+  virtual void SetRnrElNameTitle(const Text_t* name, const Text_t* title);
 
   virtual void SetMarkerColor(Color_t col)
   { SetMainColor(col); }
@@ -122,6 +124,8 @@ protected:
 public:
   NLTPointSet();
   virtual ~NLTPointSet() {}
+
+  virtual void SetProjection(NLTProjector* proj, NLTProjectable* model);
 
   virtual void UpdateProjection();
 

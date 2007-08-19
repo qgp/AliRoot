@@ -85,6 +85,14 @@ Int_t PointSet::GrowFor(Int_t n_points)
 
 /**************************************************************************/
 
+void PointSet::SetRnrElNameTitle(const Text_t* name, const Text_t* title)
+{
+  SetName(name);
+  SetTitle(title);
+}
+
+/**************************************************************************/
+
 void PointSet::Paint(Option_t* option)
 {
   if(fRnrSelf == kFALSE) return;
@@ -348,6 +356,13 @@ NLTPointSet::NLTPointSet() :
   NLTProjected ()
 {}
 
+void NLTPointSet::SetProjection(NLTProjector* proj, NLTProjectable* model)
+{
+  NLTProjected::SetProjection(proj, model);
+
+  * (TAttMarker*)this = * dynamic_cast<TAttMarker*>(fProjectable);
+}
+
 void NLTPointSet::UpdateProjection()
 {
   NLTProjection& proj = * fProjector->GetProjection();
@@ -361,4 +376,5 @@ void NLTPointSet::UpdateProjection()
     p[0] = o[0]; p[1] = o[1]; p[2] = o[2];
     proj.ProjectPoint(p[0], p[1], p[2]);
   }
+  fLastPoint = n - 1;
 }
