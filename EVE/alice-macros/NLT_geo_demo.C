@@ -1,6 +1,6 @@
 // $Id$
 
-void NLT_geo_demo(Int_t type = Reve::NLTProjection::E_CFishEye, Float_t distortion = 0.02)
+void NLT_geo_demo(Int_t type = Reve::NLTProjection::PT_CFishEye, Float_t distortion = 0.02)
 {  
    Reve::LoadMacro("region_marker.C");
    region_marker();
@@ -12,7 +12,7 @@ void NLT_geo_demo(Int_t type = Reve::NLTProjection::E_CFishEye, Float_t distorti
    //  make_simple_geo(nlt);
    make_gentle_geo(nlt);
    
-   TGLViewer* glv = dynamic_cast<TGLViewer*>(gReve->GetGLCanvas()->GetViewer3D());
+   TGLViewer* glv = gReve->GetGLViewer();
    glv->SetCurrentCamera(TGLViewer::kCameraOrthoXOY);
 }
 

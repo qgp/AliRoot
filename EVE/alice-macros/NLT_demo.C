@@ -1,6 +1,6 @@
 // $Id$
 
-void NLT_demo(Int_t type = Reve::NLTProjection::E_RhoZ, Float_t distortion = 0.02)
+void NLT_demo(Int_t type = Reve::NLTProjection::PT_RhoZ, Float_t distortion = 0.02)
 {
   // simple example of non linear projection
   Reve::LoadMacro("alieve_init.C");
