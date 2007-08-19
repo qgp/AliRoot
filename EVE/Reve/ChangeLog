@@ -2,6 +2,29 @@
 
 	EVE-dev
 
+	* FrameBoxGL.h:
+	* NLTProjector.cxx:
+	* NLTProjector.h:
+	Fix gcc-4 warnings.
+
+	* LinkDef.h:
+	Register new classes NLTProjectable, NLTProjected and NLTPointSet.
+
+	* NLTBases.cxx:
+	* NLTBases.h:
+	New files: new abstract bases NLTProjectable and NLTProjected.
+
+	* PointSet.cxx:
+	* PointSet.h:
+	New class NLTPointSet; add NLTProjectable as a base of PointSet.
+
+	* RGBrowser.cxx:
+	Resize widgets to obtain resonable starting size.
+
+2007-08-19  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	EVE-dev
+
 	* RGTopFrame.cxx:
 	* RGTopFrame.h:
 	Default start-up mode now embedded gl viewer;
