@@ -1,4 +1,18 @@
+2007-08-19  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	EVE-dev
+
+	* alice-macros/NLT_demo.C:
+	* alice-macros/NLT_geo_demo.C:
+	Update for changes in Reve.
+
+	* alice-macros/NLT_test.C:
+	New file, mini test macro for automatic import of projected
+	elements.
+
 2007-08-18  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
+
+	EVE-dev
 
 	* alice-macros/esd_V0.C:
 	* alice-macros/esd_tracks.C:
