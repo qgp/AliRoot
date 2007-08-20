@@ -3,6 +3,12 @@
 	EVE-dev
 
 	* NLTProjector.cxx:
+	* NLTProjector.h:
+	* Viewer.cxx:
+	* Viewer.h:
+	Method HandleElementPaste() now returns Bool_t.
+
+	* NLTProjector.cxx:
 	Use new method CollectSceneParentsFromChildren() to optimize
 	update of all related scenes.
 
@@ -17,7 +23,7 @@
 	* RenderElement.cxx:
 	* RenderElement.h:
 	Added method CollectSceneParentsFromChildren().
-	Changed return value of HandleElementPaste from void to Bool_t.
+	Changed return value of HandleElementPaste() from void to Bool_t.
 	Renamed Changed() to ElementChanged().
 
 	* TriangleSet.cxx:
