@@ -87,8 +87,10 @@ void RenderElement::RemoveParent(RenderElement* re)
 
   fParents.remove(re);
   if(fParents.empty() && fDestroyOnZeroRefCnt) {
-    // TObject* tobj = GetObject(eH);
-    // Warning(eH.Data(), Form("auto-destructing '%s' on zero reference count.", tobj->GetName()));
+    if (gDebug > 0) {
+       TObject* tobj = GetObject(eH);
+       Info(eH.Data(), Form("auto-destructing '%s' on zero reference count.", tobj->GetName()));
+    }
     gReve->PreDeleteRenderElement(this);
     delete this;
   }
@@ -205,19 +207,6 @@ TGListTreeItem* RenderElement::AddIntoListTrees(RenderElement* parent)
   return lti;
 }
 
-Bool_t RenderElement::RemoveFromListTree(TGListTree* ltree)
-{
-  sLTI_i i = FindItem(ltree);
-  if(i != fItems.end()) {
-    ltree->DeleteItem(i->fItem);
-    fItems.erase(i);
-    gClient->NeedRedraw(ltree);
-    return kTRUE;
-  } else {
-    return kFALSE;
-  }
-}
-
 Bool_t RenderElement::RemoveFromListTree(TGListTree* ltree,
 					 TGListTreeItem* parent_lti)
 {
@@ -230,6 +219,26 @@ Bool_t RenderElement::RemoveFromListTree(TGListTree* ltree,
   } else {
     return kFALSE;
   }
+}
+
+Int_t RenderElement::RemoveFromListTrees(RenderElement* parent)
+{
+  Int_t count = 0;
+
+  for (sLTI_i i = fItems.begin(); i != fItems.end(); ++i)
+  {
+    TGListTreeItem *plti = i->fItem->GetParent();
+    if (plti != 0 && (RenderElement*) plti->GetUserData() == parent)
+    {
+      sLTI_i j = i--;
+      j->fTree->DeleteItem(j->fItem);
+      gClient->NeedRedraw(j->fTree);
+      fItems.erase(j);
+      ++count;
+    }
+  }
+
+  return count;
 }
 
 /**************************************************************************/

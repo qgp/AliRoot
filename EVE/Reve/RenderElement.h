@@ -122,9 +122,9 @@ public:
 					  RenderElement* parent);
   virtual TGListTreeItem* AddIntoListTrees(RenderElement* parent);
 
-  virtual Bool_t          RemoveFromListTree(TGListTree* ltree);
   virtual Bool_t          RemoveFromListTree(TGListTree* ltree,
 					     TGListTreeItem* parent_lti);
+  virtual Int_t           RemoveFromListTrees(RenderElement* parent);
 
   virtual sLTI_i          FindItem(TGListTree* ltree);
   virtual sLTI_i          FindItem(TGListTree* ltree,
