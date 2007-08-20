@@ -30,7 +30,9 @@ public:
   PointSet(Int_t n_points=0, TreeVarType_e tv_type=TVT_XYZ);
   PointSet(const Text_t* name, Int_t n_points=0, TreeVarType_e tv_type=TVT_XYZ);
   PointSet(const Text_t* name, TTree* tree, TreeVarType_e tv_type=TVT_XYZ);
-  
+
+  virtual void ComputeBBox();
+
   void  Reset(Int_t n_points=0);
   Int_t GrowFor(Int_t n_points);
 

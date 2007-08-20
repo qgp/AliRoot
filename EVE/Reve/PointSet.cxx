@@ -59,6 +59,12 @@ PointSet::PointSet(const Text_t* name, TTree* tree, TreeVarType_e tv_type) :
 
 /**************************************************************************/
 
+void PointSet::ComputeBBox()
+{
+  TPointSet3D::ComputeBBox();
+  AssertBBoxExtents(0.1);
+}
+
 void PointSet::Reset(Int_t n_points)
 {
   delete [] fP; fP = 0;
