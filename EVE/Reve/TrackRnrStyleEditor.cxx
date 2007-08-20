@@ -61,7 +61,7 @@ TrackRnrStyleSubEditor::TrackRnrStyleSubEditor(const TGWindow *p):
   fMaxR->SetLabelWidth(labelW);
   fMaxR->SetNELength(6);
   fMaxR->Build();
-  fMaxR->SetLimits(0.1, 1000, 100, TGNumberFormat::kNESRealOne);
+  fMaxR->SetLimits(0.1, 1000, 101, TGNumberFormat::kNESRealOne);
   fMaxR->SetToolTip("Maximum radius to which the tracks will be drawn.");
   fMaxR->Connect("ValueSet(Double_t)", "Reve::TrackRnrStyleSubEditor", this, "DoMaxR()");
   AddFrame(fMaxR, new TGLayoutHints(kLHintsTop, 1, 1, 1, 1));
@@ -70,7 +70,7 @@ TrackRnrStyleSubEditor::TrackRnrStyleSubEditor(const TGWindow *p):
   fMaxZ->SetLabelWidth(labelW);
   fMaxZ->SetNELength(6);
   fMaxZ->Build();
-  fMaxZ->SetLimits(0.1, 2000, 100, TGNumberFormat::kNESRealOne);
+  fMaxZ->SetLimits(0.1, 2000, 101, TGNumberFormat::kNESRealOne);
   fMaxZ->SetToolTip("Maximum z-coordinate to which the tracks will be drawn.");
   fMaxZ->Connect("ValueSet(Double_t)", "Reve::TrackRnrStyleSubEditor", this, "DoMaxZ()");
   AddFrame(fMaxZ, new TGLayoutHints(kLHintsTop, 1, 1, 1, 1));
@@ -79,7 +79,7 @@ TrackRnrStyleSubEditor::TrackRnrStyleSubEditor(const TGWindow *p):
   fMaxOrbits->SetLabelWidth(labelW);
   fMaxOrbits->SetNELength(6);
   fMaxOrbits->Build();
-  fMaxOrbits->SetLimits(0.1, 80, 100, TGNumberFormat::kNESRealOne);
+  fMaxOrbits->SetLimits(0.1, 50, 101, TGNumberFormat::kNESRealOne);
   fMaxOrbits->SetToolTip("Maximal angular path of tracks' orbits (1 ~ 2Pi).");
   fMaxOrbits->Connect("ValueSet(Double_t)", "Reve::TrackRnrStyleSubEditor", this, "DoMaxOrbits()");  
   AddFrame(fMaxOrbits, new TGLayoutHints(kLHintsTop, 1, 1, 1, 1));
@@ -88,7 +88,7 @@ TrackRnrStyleSubEditor::TrackRnrStyleSubEditor(const TGWindow *p):
   fMinAng->SetLabelWidth(labelW);
   fMinAng->SetNELength(6);
   fMinAng->Build();
-  fMinAng->SetLimits(1, 160, 50, TGNumberFormat::kNESRealOne);
+  fMinAng->SetLimits(1, 160, 81, TGNumberFormat::kNESRealOne);
   fMinAng->SetToolTip("Minimal angular step between two helix points.");
   fMinAng->Connect("ValueSet(Double_t)", "Reve::TrackRnrStyleSubEditor", this, "DoMinAng()");
   AddFrame(fMinAng, new TGLayoutHints(kLHintsTop, 1, 1, 1, 1));
@@ -97,7 +97,7 @@ TrackRnrStyleSubEditor::TrackRnrStyleSubEditor(const TGWindow *p):
   fDelta->SetLabelWidth(labelW);
   fDelta->SetNELength(6);
   fDelta->Build();
-  fDelta->SetLimits(0.001, 10, 100, TGNumberFormat::kNESRealTwo);
+  fDelta->SetLimits(0.001, 10, 101, TGNumberFormat::kNESRealTwo);
   fDelta->SetToolTip("Maximal error at the mid-point of the line connecting to helix points.");
   fDelta->Connect("ValueSet(Double_t)", "Reve::TrackRnrStyleSubEditor", this, "DoDelta()");
   AddFrame(fDelta, new TGLayoutHints(kLHintsTop, 1, 1, 1, 1));
