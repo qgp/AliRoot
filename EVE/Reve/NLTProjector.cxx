@@ -232,7 +232,7 @@ void NLTProjector::ProjectChildrenRecurse(RenderElement* rnr_el)
   if (pted)
   {
     pted->UpdateProjection();
-    rnr_el->Changed();
+    rnr_el->ElementChanged(kFALSE);
   }
 
   for (List_i i=rnr_el->BeginChildren(); i!=rnr_el->EndChildren(); ++i)
@@ -243,6 +243,10 @@ void NLTProjector::ProjectChildrenRecurse(RenderElement* rnr_el)
 void NLTProjector::ProjectChildren()
 {
   ProjectChildrenRecurse(this);
+
+  List_t scenes;
+  CollectSceneParentsFromChildren(scenes, 0);
+  gReve->ScenesChanged(scenes);
 }
 
 //______________________________________________________________________________
