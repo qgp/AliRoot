@@ -172,7 +172,7 @@ void NLTProjector::SetProjection(NLTProjection* p)
 //______________________________________________________________________________
 Bool_t NLTProjector::HandleElementPaste(RenderElement* el)
 {
-  Int_t n_children = fChildren.size();
+  size_t n_children  = fChildren.size();
   ImportElements(el);
   return n_children != fChildren.size();
 }
