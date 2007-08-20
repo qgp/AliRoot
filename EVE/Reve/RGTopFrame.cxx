@@ -116,11 +116,6 @@ RGTopFrame::RGTopFrame(const TGWindow *p, UInt_t w, UInt_t h, LookType_e look) :
   /**************************************************************************/
   TGLViewer* glv = 0;
   switch(look) {
-  case LT_Classic: {
-    fBrowser->SetupClassicLook(fEditor);
-    glv = new TGLSAViewer(0, 0, fEditor);
-    break;
-  }
 
   case LT_Editor: {
     fBrowser->SetupEditorLook(fEditor);
@@ -276,7 +271,7 @@ int RGTopFrame::SpawnGuiAndRun(int argc, char **argv)
   Int_t h = 500;
   if(argc >= 3 && (strcmp(argv[1], "-revemode")==0 || strcmp(argv[1], "-mode")==0)) {
     LookType_e m = LookType_e(atoi(argv[2]));
-    if(m >= LT_Classic && m <= LT_GLViewer)
+    if(m > LT_Unknown && m <= LT_GLViewer)
       revemode = m;
     printf("revemode = %d\n", revemode);
     if(revemode == LT_GLViewer) {

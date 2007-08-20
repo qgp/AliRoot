@@ -73,7 +73,6 @@ RGBrowser::RGBrowser(const TGWindow *p, UInt_t w, UInt_t h) :
     
   fMainFrame(0), fV1(0), fV2(0),
   fSelectionFrame(0), fTreeView(0),
-  fCanvasWindow(0), fDisplayFrame(0),  
   fListTree(0),
   fCtxMenu(0)
 {
@@ -111,12 +110,6 @@ RGBrowser::RGBrowser(const TGWindow *p, UInt_t w, UInt_t h) :
   lo = new TGLayoutHints(kLHintsTop | kLHintsExpandX | kLHintsExpandY);
   fV1->AddFrame(fSelectionFrame, lo);
  
-  // Classic look vars:
-  fCanvasWindow = 0;
-  fDisplayFrame = 0;
- 
-  //display frame
-
   lo = new TGLayoutHints(kLHintsExpandX | kLHintsExpandY);
   AddFrame(fMainFrame, lo);
 
@@ -130,12 +123,6 @@ RGBrowser::RGBrowser(const TGWindow *p, UInt_t w, UInt_t h) :
   // popup menu
   
   fCtxMenu = new TContextMenu("", "");
-
-
-  //-- CINT export now declared in RenderElement with *MENU*
-  // SetupCintExport(PointSet::Class());
-  // SetupCintExport(Track::Class());
-  // SetupCintExport(TrackList::Class());
   
   fListTree->Connect("Clicked(TGListTreeItem*, Int_t, Int_t, Int_t)", "Reve::RGBrowser", 
 		     this, "ItemClicked(TGListTreeItem*, Int_t, Int_t, Int_t)");  
@@ -151,21 +138,6 @@ RGBrowser::RGBrowser(const TGWindow *p, UInt_t w, UInt_t h) :
 }
 
 /**************************************************************************/
-
-void RGBrowser::SetupClassicLook(RGEditor*& editor)
-{
-  fCanvasWindow = new TGCanvas(fV2, 25, 250);
-  fDisplayFrame = new TGCompositeFrame(fCanvasWindow->GetViewPort(), 0, 0,kVerticalFrame, TGFrame::GetWhitePixel() );
-  fCanvasWindow->SetContainer(fDisplayFrame);
-  fDisplayFrame->SetCleanup(kDeepCleanup);
-
-  fV2->AddFrame(fCanvasWindow, new TGLayoutHints(kLHintsExpandX | kLHintsExpandY, 0, 0, 2, 2));
-  fV2->MapSubwindows();
-
-  editor = new RGEditor();
-  editor->GetTGCanvas()->ChangeOptions(0);
-  editor->SetWindowName("Reve Editor");
-}
 
 void RGBrowser::SetupEditorLook(RGEditor*& editor)
 {

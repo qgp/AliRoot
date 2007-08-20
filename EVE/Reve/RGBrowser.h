@@ -32,9 +32,6 @@ protected:
   TGCompositeFrame* fSelectionFrame; // in fact list-tree frame
   TGCanvas*         fTreeView;
 
-  TGCanvas*         fCanvasWindow;
-  TGCompositeFrame* fDisplayFrame;   // detailed-vire frame, used in Classic look
-  
   TGListTree*       fListTree;
   TContextMenu*     fCtxMenu;
 
@@ -46,7 +43,6 @@ protected:
   RGBrowser(const TGWindow *p, UInt_t w, UInt_t h);
   virtual ~RGBrowser() {}
 
-  void       SetupClassicLook (RGEditor*& editor);
   void       SetupEditorLook  (RGEditor*& editor);
   TGLViewer* SetupGLViewerLook(RGEditor*& editor);
 

@@ -44,7 +44,7 @@ class RGTopFrame : public TGMainFrame
   RGTopFrame& operator=(const RGTopFrame&); // Not implemented
 
 public:
-  enum LookType_e { LT_Classic, LT_Editor, LT_GLViewer };
+  enum LookType_e { LT_Unknown, LT_Editor, LT_GLViewer };
 
   class RedrawDisabler
   {
@@ -92,7 +92,7 @@ protected:
   std::map<TString, TGeoManager*> fGeometries;
 
 public:
-  RGTopFrame(const TGWindow *p, UInt_t w, UInt_t h, LookType_e look=LT_Classic);
+  RGTopFrame(const TGWindow *p, UInt_t w, UInt_t h, LookType_e look=LT_GLViewer);
 
   TGCompositeFrame* GetMasterFrame() { return fMasterFrame; }
   TGTab*            GetMasterTab()   { return fMasterTab; }
