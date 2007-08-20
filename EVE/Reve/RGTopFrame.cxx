@@ -383,8 +383,7 @@ TGListTreeItem* RGTopFrame::AddGlobalRenderElement(RenderElement* rnr_element,
 void RGTopFrame::RemoveRenderElement(RenderElement* rnr_element,
 				     RenderElement* parent)
 {
-  rnr_element->RemoveFromListTree(GetListTree());
-
+  rnr_element->RemoveFromListTrees(parent);
   parent->RemoveElement(rnr_element);
 }
 
