@@ -256,8 +256,13 @@ void RGTopFrame::DoRedraw3D()
 
 void RGTopFrame::ElementChanged(RenderElement* rnr_element)
 {
-  RenderElement::List_t scenes;
+  std::list<RenderElement*> scenes;
   rnr_element->CollectSceneParents(scenes);
+  ScenesChanged(scenes);
+}
+
+void RGTopFrame::ScenesChanged(std::list<RenderElement*>& scenes)
+{
   for (RenderElement::List_i s=scenes.begin(); s!=scenes.end(); ++s)
     ((Scene*)*s)->Changed();
 }
@@ -400,21 +405,16 @@ void RGTopFrame::RenderElementSelect(RenderElement* rnr_element)
   EditRenderElement(rnr_element);
 }
 
-void RGTopFrame::RenderElementPaste(RenderElement* rnr_element)
+Bool_t RGTopFrame::RenderElementPaste(RenderElement* rnr_element)
 {
   RenderElement* src = fEditor->GetRnrElement();
   if (src)
-    rnr_element->HandleElementPaste(src);
+    return rnr_element->HandleElementPaste(src);
+  return kFALSE;
 }
 
-void RGTopFrame::RenderElementChecked(TObject* obj, Bool_t state)
+void RGTopFrame::RenderElementChecked(RenderElement* rnrEl, Bool_t state)
 {
-  // Item's user-data is blindly casted into TObject.
-  // We recast it blindly back into the render element.
-  // State is ignored as it is kept consistent with internal fRnrSelf and
-  // fRnrChildren.
-
-  RenderElement* rnrEl = (RenderElement*) obj;
   rnrEl->SetRnrState(state);
 
   if(fEditor->GetModel() == rnrEl->GetObject()) {
@@ -422,7 +422,6 @@ void RGTopFrame::RenderElementChecked(TObject* obj, Bool_t state)
   }
 
   ElementChanged(rnrEl);
-  Redraw3D();
 }
 
 /**************************************************************************/

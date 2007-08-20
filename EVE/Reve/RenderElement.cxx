@@ -101,10 +101,29 @@ void RenderElement::CollectSceneParents(List_t& scenes)
   // Collect all parents of class Reve::Scene. This is needed to
   // automatically detect which scenes need to be updated.
   //
-  // Overriden in Reve::Scene to return itself.
+  // Overriden in Reve::Scene to include itself and return.
 
   for(List_i p=fParents.begin(); p!=fParents.end(); ++p)
     (*p)->CollectSceneParents(scenes);
+}
+
+void RenderElement::CollectSceneParentsFromChildren(List_t& scenes, RenderElement* parent)
+{
+  // Collect scene-parents from all children. This is needed to
+  // automatically detect which scenes need to be updated during/after
+  // a full sub-tree update.
+  // Argument parent specifies parent in traversed hierarchy for which we can
+  // skip the upwards search.
+
+  for(List_i p=fParents.begin(); p!=fParents.end(); ++p)
+  {
+    if (*p != parent) (*p)->CollectSceneParents(scenes);
+  }
+
+  for(List_i c=fChildren.begin(); c!=fChildren.end(); ++c)
+  {
+    (*c)->CollectSceneParentsFromChildren(scenes, this);
+  }
 }
 
 /**************************************************************************/
@@ -495,15 +514,19 @@ void RenderElement::DestroyElements()
 
 /**************************************************************************/
 
-void RenderElement::HandleElementPaste(RenderElement* el)
+Bool_t RenderElement::HandleElementPaste(RenderElement* el)
 {
+  // React to element being pasted or dnd-ed.
+  // Return true if redraw is needed.
+
   gReve->AddRenderElement(el, this);
-  gReve->Redraw3D();
+  return kTRUE;
 }
 
-void RenderElement::Changed()
+void RenderElement::ElementChanged(Bool_t update_scenes)
 {
-  gReve->ElementChanged(this);
+  if (update_scenes)
+    gReve->ElementChanged(this);
 }
 
 /**************************************************************************/

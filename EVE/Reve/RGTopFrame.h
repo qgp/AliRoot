@@ -11,6 +11,7 @@
 #include <TTimer.h>
 #include <TVirtualPad.h>
 
+#include <list>
 #include <map>
 
 class TMacro;
@@ -132,6 +133,7 @@ public:
   void DoRedraw3D();
 
   void ElementChanged(RenderElement* rnr_element);
+  void ScenesChanged(std::list<Reve::RenderElement*>& scenes);
 
   static int  SpawnGuiAndRun(int argc, char **argv);
   static void SpawnGui(LookType_e revemode = LT_Editor);
@@ -148,9 +150,9 @@ public:
   void RemoveRenderElement(RenderElement* rnr_element, RenderElement* parent);
   void PreDeleteRenderElement(RenderElement* rnr_element);
 
-  void RenderElementSelect(RenderElement* rnr_element);
-  void RenderElementPaste(RenderElement* rnr_element);
-  void RenderElementChecked(TObject* obj, Bool_t state);
+  void   RenderElementSelect(RenderElement* rnr_element);
+  Bool_t RenderElementPaste(RenderElement* rnr_element);
+  void   RenderElementChecked(RenderElement* rnrEl, Bool_t state);
 
   void NotifyBrowser(TGListTreeItem* parent_lti=0);
   void NotifyBrowser(RenderElement* parent);

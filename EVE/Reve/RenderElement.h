@@ -80,6 +80,7 @@ public:
   virtual void AddParent(RenderElement* re);
   virtual void RemoveParent(RenderElement* re);
   virtual void CollectSceneParents(List_t& scenes);
+  virtual void CollectSceneParentsFromChildren(List_t& scenes, RenderElement* parent);
 
   List_i BeginParents() { return fParents.begin(); }
   List_i EndParents()   { return fParents.end();   }
@@ -148,8 +149,8 @@ public:
   virtual void Destroy();                      // *MENU*
   virtual void DestroyElements();              // *MENU*
 
-  virtual void HandleElementPaste(RenderElement* el);
-  virtual void Changed();
+  virtual Bool_t HandleElementPaste(RenderElement* el);
+  virtual void   ElementChanged(Bool_t update_scenes=kTRUE);
 
   virtual Bool_t CanEditRnrElement()   { return kTRUE; }
   virtual Bool_t GetRnrSelf() const { return fRnrSelf; }
