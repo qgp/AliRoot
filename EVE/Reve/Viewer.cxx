@@ -72,16 +72,17 @@ void Viewer::RemoveElements()
   RenderElement::RemoveElements();
 }
 
-void Viewer::HandleElementPaste(RenderElement* el)
+Bool_t Viewer::HandleElementPaste(RenderElement* el)
 {
   static const Exc_t eH("Viewer::HandleElementPaste ");
 
   Scene* scene = dynamic_cast<Scene*>(el);
   if (scene != 0) {
     AddScene(scene);
-    gReve->Redraw3D();
+    return kTRUE;
   } else {
-    throw(eH + "class Viewer only accepts Scene paste argument.");
+    Warning(eH.Data(), "class Viewer only accepts Scene paste argument.");
+    return kFALSE;
   }
 }
 
