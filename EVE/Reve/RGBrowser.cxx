@@ -127,9 +127,9 @@ RGBrowser::RGBrowser(const TGWindow *p, UInt_t w, UInt_t h) :
   fListTree->Connect("Clicked(TGListTreeItem*, Int_t, Int_t, Int_t)", "Reve::RGBrowser", 
 		     this, "ItemClicked(TGListTreeItem*, Int_t, Int_t, Int_t)");  
   fListTree->Connect("DoubleClicked(TGListTreeItem*, Int_t)", "Reve::RGBrowser", 
-		     this, "DbClickListItem(TGListTreeItem*,Int_t )"); 
-  //fListTree->Connect("Clicked(TGListTreeItem*, Int_t)", "Reve::RGBrowser", 
-  //		     this, "DisplayChildren(TGListTreeItem*, Int_t)");  
+		     this, "DbClickListItem(TGListTreeItem*, Int_t)"); 
+  fListTree->Connect("KeyPressed(TGListTreeItem*, UInt_t, UInt_t)", "Reve::RGBrowser", 
+  		     this, "KeyPressListItem(TGListTreeItem*, UInt_t, UInt_t)");  
 
   //---------------------------------------------
   // WARNING ... this Connect goes to *gReve*!
@@ -281,6 +281,20 @@ void RGBrowser::DbClickListItem(TGListTreeItem* item, Int_t btn)
 	UpdateListItems(item, btn);
       }
     }
+  }
+}
+
+void RGBrowser::KeyPressListItem(TGListTreeItem *entry, UInt_t keysym, UInt_t mask)
+{
+  if (keysym == kKey_Delete)
+  {
+    RenderElement* remove_re = dynamic_cast<RenderElement*>
+      ((RenderElement*) entry->GetUserData());
+    RenderElement* parent_re = dynamic_cast<RenderElement*>
+      ((RenderElement*) entry->GetParent()->GetUserData());
+
+    if (remove_re && parent_re)
+      gReve->RemoveRenderElement(remove_re, parent_re);
   }
 }
 

@@ -49,9 +49,11 @@ protected:
   void RedrawListTree();
 
   void ItemClicked(TGListTreeItem *entry, Int_t btn, Int_t x, Int_t y);
+  void DbClickListItem(TGListTreeItem* item, Int_t btn);
+  void KeyPressListItem(TGListTreeItem *entry, UInt_t keysym, UInt_t mask);
+
   void ExportToCINT(Text_t* var_name, TObject* obj);
 
-  void DbClickListItem(TGListTreeItem* item, Int_t btn);
   void UpdateListItems(TGListTreeItem* item, Int_t btn);
 
   TGListTree* GetListTree() { return fListTree; }
