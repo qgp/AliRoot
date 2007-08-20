@@ -1,3 +1,9 @@
+2007-08-20  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	* alice-macros/NLT_test.C:
+	Create special scene for projected event and add it to the default
+	gl viewer.
+
 2007-08-19  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	EVE-dev

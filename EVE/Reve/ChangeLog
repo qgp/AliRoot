@@ -2,6 +2,11 @@
 
 	EVE-dev
 
+	* NLTProjector.cxx:
+	* NLTProjector.h:
+	Bind element-paste to ImportElements.
+	Prefix imported render-element names with "NLT ".
+
 	* PointSet.cxx:
 	* PointSet.h:
 	Implemented virtual ComputeBBox() to enforce minimal bounding-box
