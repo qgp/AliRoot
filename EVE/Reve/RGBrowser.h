@@ -48,6 +48,7 @@ protected:
 
   void RedrawListTree();
 
+  void ItemChecked(TObject* obj, Bool_t state);
   void ItemClicked(TGListTreeItem *entry, Int_t btn, Int_t x, Int_t y);
   void DbClickListItem(TGListTreeItem* item, Int_t btn);
   void KeyPressListItem(TGListTreeItem *entry, UInt_t keysym, UInt_t mask);

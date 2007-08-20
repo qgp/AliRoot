@@ -124,17 +124,14 @@ RGBrowser::RGBrowser(const TGWindow *p, UInt_t w, UInt_t h) :
   
   fCtxMenu = new TContextMenu("", "");
   
+  fListTree->Connect("Checked(TObject*,Bool_t)", "Reve::RGBrowser",
+		     this, "ItemChecked(TObject*, Bool_t)");
   fListTree->Connect("Clicked(TGListTreeItem*, Int_t, Int_t, Int_t)", "Reve::RGBrowser", 
 		     this, "ItemClicked(TGListTreeItem*, Int_t, Int_t, Int_t)");  
   fListTree->Connect("DoubleClicked(TGListTreeItem*, Int_t)", "Reve::RGBrowser", 
 		     this, "DbClickListItem(TGListTreeItem*, Int_t)"); 
   fListTree->Connect("KeyPressed(TGListTreeItem*, UInt_t, UInt_t)", "Reve::RGBrowser", 
   		     this, "KeyPressListItem(TGListTreeItem*, UInt_t, UInt_t)");  
-
-  //---------------------------------------------
-  // WARNING ... this Connect goes to *gReve*!
-  fListTree->Connect("Checked(TObject*,Bool_t)", "Reve::RGTopFrame",
-		     gReve, "RenderElementChecked(TObject*, Bool_t)");
 }
 
 /**************************************************************************/
@@ -228,6 +225,16 @@ void RGBrowser::RedrawListTree()
 
 /**************************************************************************/
 
+void RGBrowser::ItemChecked(TObject* obj, Bool_t state)
+{
+  // Item's user-data is blindly casted into TObject.
+  // We recast it blindly back into the render element.
+
+  RenderElement* rnrEl = (RenderElement*) obj;
+  gReve->RenderElementChecked(rnrEl, state);
+  gReve->Redraw3D();
+}
+
 void RGBrowser::ItemClicked(TGListTreeItem *item, Int_t btn, Int_t x, Int_t y)
 {
   //printf("ItemClicked item %s List %d btn=%d, x=%d, y=%d\n",
@@ -244,7 +251,8 @@ void RGBrowser::ItemClicked(TGListTreeItem *item, Int_t btn, Int_t x, Int_t y)
       break;
 
     case 2:
-      gReve->RenderElementPaste(re);
+      if (gReve->RenderElementPaste(re))
+        gReve->Redraw3D();
       break;
 
     case 3:
@@ -284,7 +292,7 @@ void RGBrowser::DbClickListItem(TGListTreeItem* item, Int_t btn)
   }
 }
 
-void RGBrowser::KeyPressListItem(TGListTreeItem *entry, UInt_t keysym, UInt_t mask)
+void RGBrowser::KeyPressListItem(TGListTreeItem *entry, UInt_t keysym, UInt_t /*mask*/)
 {
   if (keysym == kKey_Delete)
   {
@@ -294,7 +302,10 @@ void RGBrowser::KeyPressListItem(TGListTreeItem *entry, UInt_t keysym, UInt_t ma
       ((RenderElement*) entry->GetParent()->GetUserData());
 
     if (remove_re && parent_re)
+    {
       gReve->RemoveRenderElement(remove_re, parent_re);
+      gReve->Redraw3D();
+    }
   }
 }
 
