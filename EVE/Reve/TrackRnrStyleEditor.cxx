@@ -97,7 +97,7 @@ TrackRnrStyleSubEditor::TrackRnrStyleSubEditor(const TGWindow *p):
   fDelta->SetLabelWidth(labelW);
   fDelta->SetNELength(6);
   fDelta->Build();
-  fDelta->SetLimits(0.001, 80, 50, TGNumberFormat::kNESRealOne);
+  fDelta->SetLimits(0.001, 10, 100, TGNumberFormat::kNESRealTwo);
   fDelta->SetToolTip("Maximal error at the mid-point of the line connecting to helix points.");
   fDelta->Connect("ValueSet(Double_t)", "Reve::TrackRnrStyleSubEditor", this, "DoDelta()");
   AddFrame(fDelta, new TGLayoutHints(kLHintsTop, 1, 1, 1, 1));
