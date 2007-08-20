@@ -167,6 +167,14 @@ void NLTProjector::SetProjection(NLTProjection* p)
   fProjection = p;
 }
 
+/**************************************************************************/
+
+//______________________________________________________________________________
+void NLTProjector::HandleElementPaste(RenderElement* el)
+{
+  ImportElements(el);
+}
+
 //______________________________________________________________________________
 Bool_t NLTProjector::ShouldImport(RenderElement* rnr_el)
 {
@@ -197,7 +205,8 @@ void NLTProjector::ImportElementsRecurse(RenderElement* rnr_el, RenderElement* p
       new_re = new RenderElementList;      
     }
     TObject *tobj   = rnr_el->GetObject();
-    new_re->SetRnrElNameTitle(tobj->GetName(), tobj->GetTitle());
+    new_re->SetRnrElNameTitle(Form("NLT %s", tobj->GetName()),
+			      tobj->GetTitle());
     gReve->AddRenderElement(new_re, parent);
 
     if (new_pr)

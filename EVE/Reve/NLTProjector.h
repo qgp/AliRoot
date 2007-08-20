@@ -130,6 +130,8 @@ public:
   void            SetProjection(NLTProjection* p);
   NLTProjection*  GetProjection() { return fProjection; }
 
+  virtual void    HandleElementPaste(RenderElement* el);
+
   virtual Bool_t  ShouldImport(RenderElement* rnr_el);
   virtual void    ImportElementsRecurse(RenderElement* rnr_el, RenderElement* parent);
   virtual void    ImportElements(RenderElement* rnr_el);
