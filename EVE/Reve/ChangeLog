@@ -1,5 +1,30 @@
 2007-08-20  Matevz Tadel  <matevz.tadel@cern.ch>
 
+	EVE-dev
+
+	* NLTProjector.cxx:
+	Use new method CollectSceneParentsFromChildren() to optimize
+	update of all related scenes.
+
+	* RGBrowser.cxx:
+	* RGBrowser.h:
+	Conform to convention that change initiator is responsible for
+	calling redraw. Added method ItemChecked() to act as a mediator to
+	gReve.
+
+	* RGTopFrame.cxx:
+	* RGTopFrame.h:
+	* RenderElement.cxx:
+	* RenderElement.h:
+	Added method CollectSceneParentsFromChildren().
+	Changed return value of HandleElementPaste from void to Bool_t.
+	Renamed Changed() to ElementChanged().
+
+	* TriangleSet.cxx:
+	Fixed gcc-4 warnings.
+
+2007-08-20  Matevz Tadel  <matevz.tadel@cern.ch>
+
 	* RGBrowser.cxx:
 	* RGBrowser.h:
 	Added handling of key-presses in list-tree; in particular delete
