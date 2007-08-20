@@ -1,5 +1,22 @@
 2007-08-20  Matevz Tadel  <matevz.tadel@cern.ch>
 
+	* RGBrowser.cxx:
+	* RGBrowser.h:
+	Added handling of key-presses in list-tree; in particular delete
+	key removes render element from specific parent.
+
+	* RGTopFrame.cxx:
+	RemoveRenderElement now properly untangles the element from all
+	list-trees.
+
+	* RenderElement.cxx:
+	* RenderElement.h:
+	Implemented RemoveFromListTrees(RenderElement* parent) that
+	removes items from all list trees where parent is equal to the one
+	passed as argument.
+
+2007-08-20  Matevz Tadel  <matevz.tadel@cern.ch>
+
 	EVE-dev
 
 	* NLTProjector.cxx:
