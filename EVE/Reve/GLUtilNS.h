@@ -6,6 +6,7 @@
 #include <TObject.h>
 
 class TAttMarker;
+class TAttLine;
 
 namespace GLUtilNS
 {
@@ -52,6 +53,8 @@ public:
   { if(fFlip) fFoo(fState); }
 };
 
+void RenderLine(const TAttLine& al, Float_t* p, Int_t n, 
+		       Bool_t selection=kFALSE, Bool_t sec_selection=kFALSE);
 
 void RenderPolyMarkers(const TAttMarker& marker, Float_t* p, Int_t n, 
 		       Bool_t selection=kFALSE, Bool_t sec_selection=kFALSE);
