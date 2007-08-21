@@ -11,6 +11,7 @@
 
 // Updates
 #include <Reve/RGTopFrame.h>
+#include <Reve/NLTTrack.h>
 #include <TCanvas.h>
 
 #include <vector>
@@ -54,7 +55,6 @@ Track::Track(TParticle* t, Int_t label, TrackRnrStyle* rs):
   fRnrStyle(0)
 {
   SetRnrStyle(rs);
-  //  fLineColor = fRnrStyle->GetColor();
   fMainColorPtr = &fLineColor;
 
   TParticlePDG* pdgp = t->GetPDG();
@@ -78,7 +78,6 @@ Track::Track(Reve::MCTrack* t, TrackRnrStyle* rs):
   fRnrStyle(0)
 {
   SetRnrStyle(rs);
-  // fLineColor = fRnrStyle->GetColor();
   fMainColorPtr = &fLineColor;
 
   TParticlePDG* pdgp = t->GetPDG();
@@ -104,7 +103,6 @@ Track::Track(Reve::RecTrack* t, TrackRnrStyle* rs) :
   fRnrStyle(0)
 {
   SetRnrStyle(rs);
-  // fLineColor = fRnrStyle->GetColor();
   fMainColorPtr = &fLineColor;
 
   SetName(t->GetName());
@@ -140,7 +138,7 @@ Track::Track(const Track& t) :
   fLineWidth = t.fLineWidth;
 }
 
-Track& Track::operator=(const Track& t)
+void Track::SetTrackParams(const Track& t)
 {
   fV        = t.fV;
   fP        = t.fP;
@@ -152,7 +150,7 @@ Track& Track::operator=(const Track& t)
 
   SetMainColor(t.GetMainColor());
   // Line
-  fRnrLine = t.fRnrLine;
+  fRnrLine   = t.fRnrLine;
   fRnrPoints = t.fRnrPoints;
   // TLineAttrib
   fLineColor = t.fLineColor;
@@ -160,7 +158,6 @@ Track& Track::operator=(const Track& t)
   fLineWidth = t.fLineWidth;
 
   SetRnrStyle(t.fRnrStyle);
-  return *this;
 }
 
 /*
@@ -317,28 +314,6 @@ make_polyline:
     }
   }
 
-  fVisPathMarks.clear();
-  for(std::vector<PathMark*>::iterator i=fPathMarks.begin(); i!=fPathMarks.end(); ++i) 
-  {
-    if((TMath::Abs((*i)->V.z) <RS.fMaxZ) && ((*i)->V.Perp() < RS.fMaxR))
-    {
-      Bool_t accept = kFALSE;
-      switch((*i)->type)
-      {
-	case(PathMark::Daughter):
-	  if(RS.fRnrDaughters) accept = kTRUE;
-	  break;
-	case(PathMark::Reference):
-	  if(RS.fRnrReferences) accept = kTRUE;
-	  break;
-	case(PathMark::Decay):
-	  if(RS.fRnrDecay) accept = kTRUE;
-	  break;
-      } 
-      if(accept) fVisPathMarks.push_back((*i)->V);
-    }
-  }
-
   if(recurse) {
     for(List_i i=fChildren.begin(); i!=fChildren.end(); ++i)
     {
@@ -347,6 +322,12 @@ make_polyline:
     }
   }
   Emit("MakeTrack(Bool_t)", (Long_t)recurse);
+}
+
+/**************************************************************************/
+TClass* Track::ProjectedClass() const
+{
+  return NLTTrack::Class();
 }
 
 /**************************************************************************/
@@ -919,6 +900,12 @@ void TrackList::ImportClusters()
   }
 }
 
+/**************************************************************************/
+
+TClass* TrackList::ProjectedClass() const
+{
+  return NLTTrackList::Class();
+}
 /**************************************************************************/
 /**************************************************************************/
 /**************************************************************************/

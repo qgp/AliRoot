@@ -21,7 +21,8 @@ namespace Reve {
 class TrackRnrStyle;
 class TrackList;
 
-class Track : public Line, public TQObject
+class Track : public Line, 
+              public TQObject
 {
   friend class TrackRnrStyle;
   friend class TrackCounter;
@@ -29,7 +30,6 @@ class Track : public Line, public TQObject
 
 public:
   typedef std::vector<Reve::PathMark*>           vpPathMark_t;
-  typedef std::vector<Reve::Vector>              viPathMark_t;
   typedef std::vector<Reve::PathMark*>::iterator vpPathMark_i;
 
 protected:
@@ -40,7 +40,6 @@ protected:
   Int_t             fLabel;
   Int_t             fIndex;
   vpPathMark_t      fPathMarks;
-  viPathMark_t      fVisPathMarks;
 
   TrackRnrStyle*    fRnrStyle; 
 
@@ -51,10 +50,10 @@ public:
   Track(Reve::RecTrack* t, TrackRnrStyle* rs);
   virtual ~Track();
 
-  Track(const Track& t);           
-  Track& operator=(const Track& t);
+  Track(const Track& t);
+  virtual void SetTrackParams(const Track& t);
 
-  virtual void MakeTrack(Bool_t recurse=kTRUE);  //*SIGNAL*
+  virtual void MakeTrack(Bool_t recurse=kTRUE);
 
   TrackRnrStyle* GetRnrStyle() const  { return fRnrStyle; }
   void SetRnrStyle(TrackRnrStyle* rs);
@@ -66,7 +65,6 @@ public:
 
   void  AddPathMark(Reve::PathMark* pm) { fPathMarks.push_back(pm); }
   vpPathMark_t& GetPathMarksRef(){return fPathMarks;}
-  viPathMark_t& GetVisPathMarksRef(){return fVisPathMarks;}
   void  SortPathMarksByTime();
 
   //--------------------------------
@@ -83,6 +81,8 @@ public:
   //--------------------------------
 
   void CtrlClicked(Reve::Track*); // *SIGNAL*
+
+  virtual TClass* ProjectedClass() const;
 
   ClassDef(Track, 1);
 }; // endclass Track
@@ -175,6 +175,7 @@ public:
 /**************************************************************************/
 
 class TrackList : public RenderElementList,
+                  public NLTProjectable,
                   public TAttMarker,
                   public TAttLine
 {
@@ -226,6 +227,8 @@ public:
   //--------------------------------
   void ImportHits();     // *MENU*
   void ImportClusters(); // *MENU*
+
+  virtual TClass* ProjectedClass() const;
 
   ClassDef(TrackList, 1);
 };
