@@ -64,12 +64,21 @@ void RhoZ::ProjectPoint(Float_t& x, Float_t& y, Float_t& z)
 //______________________________________________________________________________
 Bool_t RhoZ::AcceptSegment(Vector& v1, Vector& v2, Float_t tolerance) 
 {
-  //  return (v1.y*v2.y < 0) ? kFALSE : kTRUE;
-  if(v1.y*v2.y < 0){
-    if(TMath::Abs(v1.y - v2.y) > tolerance)
+  if((v1.y < 0 && v2.y > 0) || (v1.y > 0 && v2.y < 0))
+  {
+    if (tolerance > 0)
     {
-      return kFALSE;
+      Float_t a1 = TMath::Abs(v1.y), a2 = TMath::Abs(v2.y);
+      if (a1 < a2)
+      {
+	if (a1 < tolerance) { v1.y = 0; return kTRUE; }
+      }
+      else
+      {
+	if (a2 < tolerance) { v2.y = 0; return kTRUE; }
+      }
     }
+    return kFALSE;
   }
   return kTRUE;
 }
@@ -166,8 +175,6 @@ void NLTProjector::SetProjection(NLTProjection* p)
   delete fProjection;
   fProjection = p;
 }
-
-/**************************************************************************/
 
 //______________________________________________________________________________
 Bool_t NLTProjector::HandleElementPaste(RenderElement* el)
@@ -542,217 +549,6 @@ NLTPolygonSet* NLTProjector::ProjectBuffer3D(TBuffer3D* buff, Int_t useBuffPols)
   CleanUp();
   return ps;
 }
-
-//______________________________________________________________________________
-void NLTProjector::ProjectPointSet(PointSet* orig)
-{
-  // keep original rewrite points into Vector array
-  Float_t* op = orig->GetP();
-  Vector* vp = new Vector[orig->GetN()];
-  for( Int_t k=0; k<orig->GetN(); k++)
-    vp[k].Set(op[3*k], op[3*k+1], op[3*k+2]);
-  Vector* pnts = fProjection->Project(vp, orig->GetN(), kFALSE);
-  ReducePoints(pnts, orig->GetN());
-  orig->Reset(fNRPnts);
-  for(Int_t i = 0; i< fNRPnts; i++){
-    orig->SetPoint(i, fRPnts[i].x, fRPnts[i].y, fRPnts[3].z);
-  }
-  CleanUp();
-}
-
-//______________________________________________________________________________
-void NLTProjector::RegisterTrack(Track* track, Bool_t recurse)
-{
-  track->Connect("MakeTrack(Bool_t)", "Reve::NLTProjector", this, "ProjectTrack(Bool_t)");
-
-  if(recurse)
-  {
-    for(List_i i=track->BeginChildren(); i!=track->EndChildren(); ++i) 
-    {
-      Track* dt = dynamic_cast<Track*>(*i);
-      RegisterTrack(dt, recurse);
-    }
-  }
-}
-
-//______________________________________________________________________________
-void NLTProjector::RegisterTrackList(TrackList* tl, Bool_t recurse)
-{
-  for(List_i i=tl->BeginChildren(); i!=tl->EndChildren(); ++i) 
-  {
-    Track* track = dynamic_cast<Track*>(*i);
-    RegisterTrack(track, recurse);
-    track->MakeTrack(kFALSE);
-  }
-}
-
-//______________________________________________________________________________
-void  NLTProjector::GetBreakPoint(Int_t idx, Bool_t back,  Float_t& x, Float_t& y, Float_t& z)
-{
-  Vector vL = fPnts[idx];
-  Vector vR = fPnts[idx+1];
-  // printf("out of tolerance:%d (%f, %f, %f)(%f, %f, %f) \n",
-  //	 N, vL.x, vL.y, vL.z, vR.x, vR.y, vR.z );
-
-  while((vL-vR).Mag() > 0.1)
-  { 
-    Vector vM = (vL+vR)*0.5;
-    Vector vLP  = vL; fProjection->ProjectPoint(vLP.x, vLP.y, vLP.z);
-    Vector vMP  = vM; fProjection->ProjectPoint(vMP.x, vMP.y, vMP.z);
-    if(fProjection->AcceptSegment(vL, vM, 0.))
-    {
-      vL = vM;
-    }
-    else 
-    {
-      vR = vM;
-    }
-    // printf("new interval Mag %f (%f, %f, %f)(%f, %f, %f) \n",(vL-vR).Mag(), vL.x, vL.y, vL.z, vR.x, vR.y, vR.z);
-  }
-
-  if(back)
-  {
-    x = vL.x; y = vL.y; z = vL.z;
-  }
-  else
-  {
-    x = vR.x; y = vR.y; z = vR.z;
-  }
-  fProjection->ProjectPoint(x, y, z);
-}
-
-//______________________________________________________________________________
-Int_t  NLTProjector::GetBreakPointIdx(Int_t start)
-{
-  Int_t val = fNPnts-1;
-  if( fNPnts > 1 )
-  {
-    Bool_t broken = kFALSE;
-    Int_t i = start;
-    while(i<fNPnts-1)
-    {
-      if(fProjection->AcceptSegment(fRPnts[fIdxMap[i]], fRPnts[fIdxMap[i+1]], 0.) == kFALSE)
-      {
-	broken = kTRUE;
-        break;
-      }
-      i++;
-    }
-    if(broken) val = i;
-  }
-  // printf("GetBreakPoint start:%d, break %d,  total:%d \n", start, val, fNPnts);
-  return val;
-}
-
-//______________________________________________________________________________
-Track*  NLTProjector::MakeTrack(Track* tb, Bool_t create, Int_t first, Int_t last)
-{
-  Track* track;
-  if(create) 
-  {
-    track = new Track(*tb);
-    track->SetName(Form("NLT%d_%s", first, tb->GetName()));
-    gReve->AddRenderElement(track, tb);
-  }
-  else
-  { 
-    track = tb;
-  }
-  
-  // set points
-  Int_t i0 = fIdxMap[first];
-  Int_t i1 = fIdxMap[last];
-  Int_t N =  i1 - i0 +1;
-
-  if(i0 != 0) N++; // add in front if cut
-  if(i1 != fNRPnts-1) N++; // add in back if cut 
-  track->Reset(N);
-  Float_t x, y, z;
-  if(i0 != 0)
-  {
-    GetBreakPoint(first-1, kFALSE,  x, y, z);
-    track->SetNextPoint(x, y, z); 
-    //printf("ADD POINT to start (%f, %f, %f) \n", x, y, z);  
-  }
-  for(Int_t i=i0; i<=i1; i++)
-  {
-    track->SetNextPoint(fRPnts[i].x, fRPnts[i].y, fRPnts[i].z); 
-    //printf("set point %d (%f, %f, %f) \n", i, fRPnts[i].x, fRPnts[i].y, fRPnts[i].z);
-  }
-  if(i1 != fNRPnts-1 )
-  {
-    GetBreakPoint(last, kTRUE,  x, y, z);
-    track->SetNextPoint(x, y, z);  
-    // printf("ADD POINT to finish (%f, %f, %f) \n", x, y, z); 
-  }
-  
-  return track;
-}
-
-//______________________________________________________________________________
-void  NLTProjector::ProjectTrack(Bool_t /*recurse*/)
-{
-  TQObject* qobj = (TQObject*)gTQSender;
-  Track* track = dynamic_cast<Track*>(qobj);
-  
-  // destroy track fragments created with projection
-  List_i bi;
-  for(List_i i=track->BeginChildren(); i!=track->EndChildren(); ++i) 
-  {
-    Track* child = dynamic_cast<Track*>(*i);
-    if(child)
-    {
-      TString name = child->GetName();
-      if(name.BeginsWith("NLT"));
-      {
-        bi = i;
-        bi--;
-	child->Destroy();
-        i = bi;
-      }
-    }
-  }
-  
-  // track might not have any points
-  if(track->GetLastPoint() == -1)
-    return;
-  
-  // project track points store original points
-  fNPnts = track->GetLastPoint()+1;
-  fPnts = new Vector[fNPnts];
-  Float_t* op = track->GetP();
-  for( Int_t k=0; k<fNPnts; k++)
-    fPnts[k].Set(op[3*k], op[3*k+1], op[3*k+2]);
-  Vector* pp = fProjection->Project(fPnts, fNPnts);
-  ReducePoints(pp, fNPnts);
-
-  Int_t L, R;// indices of fPnts
-  L = R = 0;
-  R = GetBreakPointIdx(L);
-  MakeTrack(track, kFALSE, L, R);
-  L = R + 1;
-  // create NLT child tracks from remaining part  
-  if(R < fNRPnts-1)
-  {
-    while(L <fNRPnts)
-    {
-      R = GetBreakPointIdx(L);
-      MakeTrack(track, kTRUE, L, R);
-      L = R+1;
-    } 
-  }
-  delete [] fPnts;
-  fPnts = 0; fNPnts = 0;
-  CleanUp();
-
-  // compute range of path marks
-  Track::viPathMark_t& vpm = track->GetVisPathMarksRef();
-  for (std::vector<Reve::Vector>::iterator i=vpm.begin(); i!=vpm.end(); ++i)
-  {
-    fProjection->ProjectPoint((*i).x, (*i).y, (*i).z);
-  }
-}
-
 
 //______________________________________________________________________________
 void NLTProjector::Paint(Option_t* /*option*/)

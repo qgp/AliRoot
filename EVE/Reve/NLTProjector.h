@@ -121,10 +121,6 @@ public:
   virtual ~NLTProjector();
 
   NLTPolygonSet*  ProjectBuffer3D(TBuffer3D* buff, Int_t useBuffPols=-1);
-  void            ProjectPointSet(PointSet* ps);
-  void            ProjectTrack(Bool_t recurse);
-  void            RegisterTrack(Track* track, Bool_t recurse=kTRUE);
-  void            RegisterTrackList(TrackList* tl, Bool_t recurse=kTRUE);
   
   void            SetProjection(NLTProjection::PType_e type, Float_t distort=0);
   void            SetProjection(NLTProjection* p);
