@@ -29,6 +29,7 @@
 #include "AliTrackReference.h"
 #include "AliHeader.h"
 #include "AliStack.h"
+#include "AliLog.h"
 
 #include <TTree.h>
 #include <TFile.h>
@@ -103,27 +104,27 @@ Bool_t AliMCEventHandler::InitIO(Option_t* /*opt*/)
 { 
     // Initialize input
     //
-    fFileE = new TFile(Form("%sgalice.root", fPathName));
-    if (!fFileE) printf("AliMCEventHandler:galice.root not found in directory %s ! \n", fPathName);
+    fFileE = TFile::Open(Form("%sgalice.root", fPathName));
+    if (!fFileE) AliFatal(Form("AliMCEventHandler:galice.root not found in directory %s ! \n", fPathName));
 
     fFileE->GetObject("TE", fTreeE);
     fTreeE->SetBranchAddress("Header", &fHeader);
     fNEvent = fTreeE->GetEntries();
     //
     // Tree K
-    fFileK = new TFile(Form("%sKinematics%s.root", fPathName, fExtension));
-    if (!fFileK) printf("AliMCEventHandler:Kinematics.root not found in directory %s ! \n", fPathName);
+    fFileK = TFile::Open(Form("%sKinematics%s.root", fPathName, fExtension));
+    if (!fFileK) AliFatal(Form("AliMCEventHandler:Kinematics.root not found in directory %s ! \n", fPathName));
     fEventsPerFile = fFileK->GetNkeys() - fFileK->GetNProcessIDs();
     //
     // Tree TR
-    fFileTR = new TFile(Form("%sTrackRefs%s.root", fPathName, fExtension));
-    if (!fFileTR) printf("AliMCEventHandler:TrackRefs.root not found in directory %s ! \n", fPathName);
+    fFileTR = TFile::Open(Form("%sTrackRefs%s.root", fPathName, fExtension));
+    if (!fFileTR) AliWarning(Form("AliMCEventHandler:TrackRefs.root not found in directory %s ! \n", fPathName));
     //
     // Reset the event number
-    fEvent = -1;
-    fFileNumber = 0;
+    fEvent      = -1;
+    fFileNumber =  0;
     
-    printf("AliMCEventHandler:Number of events in this directory %5d \n", fNEvent);
+    AliInfo(Form("AliMCEventHandler:Number of events in this directory %5d \n", fNEvent));
     return kTRUE;
     
 }
@@ -131,6 +132,8 @@ Bool_t AliMCEventHandler::InitIO(Option_t* /*opt*/)
 Bool_t AliMCEventHandler::GetEvent(Int_t iev)
 {
     // Load the event number iev
+    //
+    // Calculate the file number
     Int_t inew  = iev/fEventsPerFile;
     if (inew != fFileNumber) {
 	fFileNumber = inew;
@@ -138,9 +141,10 @@ Bool_t AliMCEventHandler::GetEvent(Int_t iev)
 	    return kFALSE;
 	}
     }
-    
+    // Folder name
     char folder[20];
     sprintf(folder, "Event%d", iev);
+
     // TreeE
     fTreeE->GetEntry(iev);
     fStack = fHeader->Stack();
@@ -148,31 +152,36 @@ Bool_t AliMCEventHandler::GetEvent(Int_t iev)
     TDirectoryFile* dirK  = 0;
     fFileK->GetObject(folder, dirK);
     if (!dirK) {
-	printf("AliMCEventHandler: Event #%5d not found\n", iev);
+	AliWarning(Form("AliMCEventHandler: Event #%5d not found\n", iev));
 	return kFALSE;
     }
     dirK->GetObject("TreeK", fTreeK);
     fStack->ConnectTree(fTreeK);
     fStack->GetEvent();
+    
     //Tree TR 
-    TDirectoryFile* dirTR = 0;
-    fFileTR->GetObject(folder, dirTR);
-    dirTR->GetObject("TreeTR", fTreeTR);
-    if (fTreeTR->GetBranch("AliRun")) {
-	// This is an old format with one branch per detector not in synch with TreeK
-	ReorderAndExpandTreeTR();
-    } else {
-	// New format 
-	fTreeTR->SetBranchAddress("TrackReferences", &fTrackReferences);
+
+    if (fFileTR) {
+	TDirectoryFile* dirTR = 0;
+	fFileTR->GetObject(folder, dirTR);
+	dirTR->GetObject("TreeTR", fTreeTR);
+	if (fTreeTR->GetBranch("AliRun")) {
+	    // This is an old format with one branch per detector not in synch with TreeK
+	    ReorderAndExpandTreeTR();
+	    delete dirTR;
+	} else {
+	    // New format 
+	    fTreeTR->SetBranchAddress("TrackReferences", &fTrackReferences);
+	}
     }
-	
+
     //
     fNparticles = fStack->GetNtrack();
     fNprimaries = fStack->GetNprimary();
-    printf("AliMCEventHandler: Event#: %5d Number of particles %5d \n", fEvent, fNparticles);
+    AliInfo(Form("AliMCEventHandler: Event#: %5d Number of particles: %5d (all) %5d (primaries)\n", 
+		 fEvent, fNparticles, fNprimaries));
     
     return kTRUE;
-
 }
 
 Bool_t AliMCEventHandler::OpenFile(Int_t i)
@@ -189,14 +198,14 @@ Bool_t AliMCEventHandler::OpenFile(Int_t i)
     delete fFileK;
     fFileK = new TFile(Form("%sKinematics%s.root", fPathName, fExtension));
     if (!fFileK) {
-	printf("AliMCEventHandler:Kinematics%s.root not found in directory %s ! \n", fExtension, fPathName);
+	AliFatal(Form("AliMCEventHandler:Kinematics%s.root not found in directory %s ! \n", fExtension, fPathName));
 	ok = kFALSE;
     }
     
     delete fFileTR;
     fFileTR = new TFile(Form("%sTrackRefs%s.root", fPathName, fExtension));
     if (!fFileTR) {
-	printf("AliMCEventHandler:TrackRefs%s.root not found in directory %s ! \n", fExtension, fPathName);
+	AliWarning(Form("AliMCEventHandler:TrackRefs%s.root not found in directory %s ! \n", fExtension, fPathName));
 	ok = kFALSE;
     }
     
@@ -208,7 +217,7 @@ Bool_t AliMCEventHandler::BeginEvent()
     // Read the next event
     fEvent++;
     if (fEvent >= fNEvent) {
-	printf("AliMCEventHandler: Event number out of range %5d\n", fEvent);
+	AliWarning(Form("AliMCEventHandler: Event number out of range %5d\n", fEvent));
 	return kFALSE;
     }
     return GetEvent(fEvent);
@@ -217,30 +226,42 @@ Bool_t AliMCEventHandler::BeginEvent()
 Int_t AliMCEventHandler::GetParticleAndTR(Int_t i, TParticle*& particle, TClonesArray*& trefs)
 {
     // Retrieve entry i
-    if (i > -1 && i < fNparticles) {
-	fTreeTR->GetEntry(fStack->TreeKEntry(i));
-    } else {
-	printf("AliMCEventHandler::GetEntry: Index out of range");
+    if (i < 0 || i >= fNparticles) {
+	AliWarning(Form("AliMCEventHandler::GetEntry: Index out of range"));
+	particle = 0;
+	trefs    = 0;
+	return (-1);
     }
     particle = fStack->Particle(i);
-    trefs    = fTrackReferences;
-    return trefs->GetEntries();
+    if (fFileTR) {
+	fTreeTR->GetEntry(fStack->TreeKEntry(i));
+	trefs    = fTrackReferences;
+	return trefs->GetEntries();
+    } else {
+	trefs = 0;
+	return -1;
+    }
 }
 
-void AliMCEventHandler::DrawCheck(Int_t i, Bool_t search)
+void AliMCEventHandler::DrawCheck(Int_t i, Int_t search)
 {
     // Retrieve entry i and draw momentum vector and hits
+    if (!fFileTR) {
+	AliWarning("No Track Reference information available");
+	return;
+    } 
+
     if (i > -1 && i < fNparticles) {
 	fTreeTR->GetEntry(fStack->TreeKEntry(i));
     } else {
-	printf("AliMCEventHandler::GetEntry: Index out of range");
+	AliWarning("AliMCEventHandler::GetEntry: Index out of range");
     }
-
+    
     Int_t nh = fTrackReferences->GetEntries();
     
     
     if (search) {
-	while(nh == 0 && i < fNparticles - 1) {
+	while(nh <= search && i < fNparticles - 1) {
 	    i++;
 	    fTreeTR->GetEntry(fStack->TreeKEntry(i));
 	    nh =  fTrackReferences->GetEntries();
@@ -295,7 +316,9 @@ void AliMCEventHandler::ResetIO()
 			    
 Bool_t AliMCEventHandler::FinishEvent()
 {
-    // Dummy 
+    // Reset the stack 
+    Stack()->Reset();
+    
     return kTRUE;
 }
 
@@ -318,7 +341,10 @@ void AliMCEventHandler::ReorderAndExpandTreeTR()
 //  Copy the information from different branches into one
 //
 //  TreeTR
-    if (fTmpTreeTR) delete fTmpTreeTR;
+    if (fTmpTreeTR) {
+	fTmpTreeTR->Delete("all");
+    }
+    
     if (fTmpFileTR) {
 	fTmpFileTR->Close();
 	delete fTmpFileTR;
@@ -328,7 +354,17 @@ void AliMCEventHandler::ReorderAndExpandTreeTR()
     fTmpTreeTR = new TTree("TreeTR", "Track References");
     if (!fTrackReferences)  fTrackReferences = new TClonesArray("AliTrackReference", 100);
     fTmpTreeTR->Branch("TrackReferences", "TClonesArray", &fTrackReferences, 4000);
+
 //
+    fTreeTR->SetBranchStatus("*",      0);
+    fTreeTR->SetBranchStatus("AliRun", 1);
+    fTreeTR->SetBranchStatus("ITS",    1);
+    fTreeTR->SetBranchStatus("TPC",    1);
+    fTreeTR->SetBranchStatus("TRD",    1);
+    fTreeTR->SetBranchStatus("TOF",    1);
+    fTreeTR->SetBranchStatus("FRAME",  1);
+    fTreeTR->SetBranchStatus("MUON",   1);
+
     TClonesArray* trefs[7];
     for (Int_t i = 0; i < 7; i++) trefs[i] = 0;
     if (fTreeTR){
@@ -483,6 +519,11 @@ void AliMCEventHandler::ReorderAndExpandTreeTR()
 	ifills++;
     } // tracks
     // Check
+    delete fTreeTR;
+    for (Int_t ib = 0; ib < 7; ib++) {
+	if (trefs[ib]) delete trefs[ib];
+    }
+
     if (ifills != fStack->GetNtrack()) 
 	printf("AliMCEventHandler:Number of entries in TreeTR (%5d) unequal to TreeK (%5d) \n", 
 	       ifills, fStack->GetNtrack());
