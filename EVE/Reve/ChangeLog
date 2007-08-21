@@ -1,3 +1,41 @@
+2007-08-21  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
+
+	EVE-dev
+
+	* GLUtilNS.cxx:
+	* GLUtilNS.h:
+	* LineGL.cxx:
+	Add function RenderLine() to draw a float array with given
+	TAttLine. In RenderCorsses() and RenderPoints() fix bug => leave
+	second argument to point to the same location.
+
+	* TrackGL.cxx:
+        Use GLUtilNS::RenderLine(). Do check of PathMarks boundaries in
+	DirectDraw().
+
+	* Track.cxx:
+	* Track.h:
+	TrackList and Track become NLTProjectable classes. In Track remove
+	vector fVisPathMarks. It was unnecessary, since fPathMarks have
+	the required data.
+
+	* LinkDef.h:
+	Register new classes NLTTrack, NLTTrackGL, NLTTrackList.
+
+	* NLTTrack.cxx:
+	* NLTTrack.h:
+	* NLTTrackGL.cxx:
+	* NLTTrackGL.h:
+	New files: new classes for management and rendering of projected
+	tracks.
+
+	* NLTProjector.cxx:
+	* NLTProjector.h:
+	Remove obsolete management for PointSet and Track. Fix bug in RhoZ::AcceptSegment().
+
+	* TrackRnrStyleEditor.cxx:
+	Fix interval in fMaxOrbits RGValuator.
+
 2007-08-20  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	EVE-dev
