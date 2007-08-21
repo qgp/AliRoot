@@ -125,6 +125,10 @@
 #pragma link C++ class Reve::NLTProjectorEditor+;
 #pragma link C++ class Reve::NLTProjectorGL+;
 
+#pragma link C++ class Reve::NLTTrack+;
+#pragma link C++ class Reve::NLTTrackGL+;
+#pragma link C++ class Reve::NLTTrackList+;
+
 #pragma link C++ class Reve::NLTPolygon+;
 #pragma link C++ class Reve::NLTPolygonSet+;
 #pragma link C++ class Reve::NLTPolygonSetEditor+;
