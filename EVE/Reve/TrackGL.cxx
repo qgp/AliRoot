@@ -55,25 +55,47 @@ void TrackGL::ProcessSelection(TGLRnrCtx & /*rnrCtx*/, TGLSelectRecord & rec)
 /**************************************************************************/
 void TrackGL::DirectDraw(TGLRnrCtx & rnrCtx) const
 {
-  // track 
-  LineGL::DirectDraw(rnrCtx);
-  
+  LineGL::DirectDraw(rnrCtx);  
 
   // path-marks
-  if (fTrack->fVisPathMarks.size());
-  { 
-    Int_t N =  fTrack->fVisPathMarks.size();
-    Float_t* pnts = new Float_t[3*N];
-    for(Int_t i=0; i<N; i++) 
+  std::vector<PathMark*>& pm = fTrack->fPathMarks;
+  TrackRnrStyle& RS = *fTrack->GetRnrStyle();
+  if(pm.size())
+  {
+    Float_t* pnts = new Float_t[3*pm.size()]; // maximum
+    Int_t N = 0;  
+    Bool_t accept;
+    for(std::vector<PathMark*>::iterator i=pm.begin(); i!=pm.end(); ++i) 
     {
-      pnts[i*3]   = fTrack->fVisPathMarks[i].x;
-      pnts[i*3+1] = fTrack->fVisPathMarks[i].y;
-      pnts[i*3+2] = fTrack->fVisPathMarks[i].z;
-    }
-    GLUtilNS::RenderPolyMarkers(fTrack->GetRnrStyle()->fPMAtt,pnts, N);
+      accept = kFALSE;
+      switch((*i)->type)
+      {
+	case(PathMark::Daughter):
+	  if(RS.fRnrDaughters) accept = kTRUE;
+	  break;
+	case(PathMark::Reference):
+	  if(RS.fRnrReferences) accept = kTRUE;
+	  break;
+	case(PathMark::Decay):
+	  if(RS.fRnrDecay) accept = kTRUE;
+	  break;
+      } 
+      if(accept)
+      {
+	if((TMath::Abs((*i)->V.z) < RS.fMaxZ) && ((*i)->V.Perp() < RS.fMaxR))
+	{
+	  pnts[3*N  ] =(*i)->V.x; 
+	  pnts[3*N+1] =(*i)->V.y; 
+	  pnts[3*N+2] =(*i)->V.z;
+	  N++;
+	}
+      }
+    } 
+    GLUtilNS::RenderPolyMarkers(RS.fPMAtt, pnts, N);
     delete [] pnts;
   }
 
-  if(fTrack->fRnrStyle->fRnrFV && fTrack->GetLastPoint())
-    GLUtilNS::RenderPolyMarkers(fTrack->GetRnrStyle()->fFVAtt,fTrack->GetP(), 1);
+  // fist vertex
+ if(RS.fRnrFV && fTrack->GetLastPoint())
+    GLUtilNS::RenderPolyMarkers(RS.fFVAtt, fTrack->GetP(), 1);
 }
