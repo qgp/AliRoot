@@ -115,6 +115,7 @@
 
 // Non-linear transformations
 #pragma link C++ class Reve::NLTProjectable+;
+#pragma link C++ class Reve::NLTGeoProjectable+;
 #pragma link C++ class Reve::NLTProjected+;
 #pragma link C++ class Reve::NLTProjection+;
 //#pragma link C++ class Reve::PhiZ+;
