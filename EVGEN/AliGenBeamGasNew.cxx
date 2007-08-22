@@ -27,20 +27,23 @@
 //  Author: Jochen Klein
 //-------------------------------------------------------------
 
+#include <TList.h>
+#include <TObjArray.h>
+#include <TParticle.h>
+
 #include "AliGenBeamGasNew.h"
 #include "AliGenCocktail.h" 
 #include "AliGenCocktailEntry.h"
-#include "AliGenEventHeader.h"
 #include "AliGenCocktailEventHeader.h"
-#include "AliGenHijing.h" 
-#include <TList.h>
-#include <TObjArray.h>
+#include "../THijing/AliGenHijing.h" 
 #include "AliCollisionGeometry.h"
 #include "AliRun.h"
 #include "AliMC.h"
 #include "AliStack.h"
+#include "AliLog.h"
+
 #include "AliHeader.h"
-#include "TParticle.h"
+#include "AliGenEventHeader.h"
 
 ClassImp(AliGenBeamGasNew)
 
@@ -53,14 +56,13 @@ AliGenBeamGasNew::AliGenBeamGasNew() :
     fZwindow(2000), 
     fRate(1e3)
 {
-  printf("AliGenBeamGasNew instatiated!\n");
+  // Default constructor
 }
 
 AliGenBeamGasNew::~AliGenBeamGasNew()
 {
   delete fEntries;
-  fEntries = 0;
-  fHeader = 0;
+  delete fHeader;
 }
 
 void AliGenBeamGasNew::SetTimeWindow(Float_t twindow) { fTwindow = twindow; }
@@ -89,8 +91,8 @@ void AliGenBeamGasNew::Init()
   // p-O-collision at 7 TeV (fixed target)
   if (!fEntries) {
     AliGenHijing *gen = new AliGenHijing(-1);
-    gen->SetEnergyCMS(7000);
     gen->SetReferenceFrame("LAB");
+    gen->SetEnergyCMS(7000);
     gen->SetProjectile("P",1,1);
     gen->SetTarget("A",16,8);
     gen->SetPhiRange(0,360);
@@ -150,10 +152,11 @@ void AliGenBeamGasNew::VertexInternal()
   
   gRandom->RndmArray(2,random);
   fVertex[0] = fVertex[1] = 0;
-  fVertex[2] = random[0] * 4000 - 2000;
+  fVertex[2] = random[0] * 2 * fZwindow - fZwindow;
   nbunch = fTwindow/25e-9;
   bunch = floor(2*nbunch * random[1] - nbunch);
   fItime = fVertex[2] / 100 / 3e8 + bunch * 25e-9;
+  AliInfo(Form("fItime: %13.3e \n", fItime));
 }
 
 void AliGenBeamGasNew::Generate()
@@ -248,7 +251,8 @@ void AliGenBeamGasNew::Generate()
   } 
   // Event Vertex
   fHeader->SetPrimaryVertex(eventVertex);
-  //  fHeader->SetNvertex(numbg);
+  fHeader->CalcNProduced();
+
   if (fContainer) {
     fContainer->AddHeader(fHeader);
   } else {
