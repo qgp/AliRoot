@@ -43,7 +43,7 @@
 #include "ITS/AliITSvPPRasymmFMD.h"
 #include "TPC/AliTPCv2.h"
 #include "TOF/AliTOFv6T0.h"
-#include "HMPID/AliHMPIDv1.h"
+#include "HMPID/AliHMPIDv2.h"
 #include "ZDC/AliZDCv2.h"
 #include "TRD/AliTRDv1.h"
 #include "FMD/AliFMDv1.h"
@@ -121,10 +121,14 @@ const char * pprTrigConfName[] = {
 
 // This part for configuration    
 
-static PprRun_t srun = kHijing_per2;
+static PprRun_t srun = kHijing_cent1;
 static PprRad_t srad = kGluonRadiation;
 static PprMag_t smag = k5kG;
-static Int_t    sseed = 12345; //Set 0 to use the current time
+//========================//
+// Set Random Number seed //
+//========================//
+TDatime dt;
+static UInt_t sseed    = dt.Get();
 static PprTrigConf_t strig = kDefaultPbPbTrig; // default pp trigger configuration
 
 // Comment line 
@@ -425,7 +429,7 @@ void Config()
     if (iHMPID)
     {
         //=================== HMPID parameters ===========================
-        AliHMPID *HMPID = new AliHMPIDv1("HMPID", "normal HMPID");
+        AliHMPID *HMPID = new AliHMPIDv2("HMPID", "normal HMPID");
 
     }
 
