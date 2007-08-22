@@ -36,7 +36,7 @@ public:
   virtual void UpdateProjection();
   virtual void MakeTrack(Bool_t recurse=kTRUE);
 
-  void         PrintLineSegments();          // *MENU*
+  void         PrintLineSegments();
 
   ClassDef(NLTTrack, 1);
 }; // endclass NLTTrack
