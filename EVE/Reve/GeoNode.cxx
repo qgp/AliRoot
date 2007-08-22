@@ -2,6 +2,7 @@
 
 #include "GeoNode.h"
 #include <Reve/RGTopFrame.h>
+#include <Reve/NLTBases.h>
 
 #include "TGeoShapeExtract.h"
 
@@ -13,6 +14,7 @@
 #include <TGeoShape.h>
 #include <TGeoVolume.h>
 #include <TGeoNode.h>
+#include <TGeoShapeAssembly.h>
 #include <TGeoManager.h>
 #include <TVirtualGeoPainter.h>
 
@@ -320,21 +322,19 @@ void GeoShapeRnrEl::Paint(Option_t* /*option*/)
 
 /**************************************************************************/
 
-Int_t GeoShapeRnrEl::ImportShapeExtract(TGeoShapeExtract * gse,
+GeoShapeRnrEl* GeoShapeRnrEl::ImportShapeExtract(TGeoShapeExtract * gse,
 					RenderElement    * parent)
 {
   gReve->DisableRedraw();
-  Int_t n = SubImportShapeExtract(gse, parent);
-  printf ("GeoShapeRnrEl::ImportShapeExtract imported %d elements\n", n);
+  GeoShapeRnrEl* gsre = SubImportShapeExtract(gse, parent);
   gReve->EnableRedraw();
-  return n;
+  return gsre;
 }
 
-Int_t GeoShapeRnrEl::SubImportShapeExtract(TGeoShapeExtract * gse,
+
+GeoShapeRnrEl* GeoShapeRnrEl::SubImportShapeExtract(TGeoShapeExtract * gse,
 					   RenderElement    * parent)
 {
-  Int_t ncreated = 1;
-
   GeoShapeRnrEl* gsre = new GeoShapeRnrEl(gse->GetName(), gse->GetTitle());
   gsre->fHMTrans.SetFromArray(gse->GetTrans());
   const Float_t* rgba = gse->GetRGBA();
@@ -353,8 +353,28 @@ Int_t GeoShapeRnrEl::SubImportShapeExtract(TGeoShapeExtract * gse,
     TIter next(gse->GetElements());
     TGeoShapeExtract* chld;
     while ((chld = (TGeoShapeExtract*) next()) != 0)
-      ncreated += SubImportShapeExtract(chld, gsre);
+     SubImportShapeExtract(chld, gsre);
   }
 
-  return ncreated;
+  return gsre;
+}
+/**************************************************************************/
+TBuffer3D* GeoShapeRnrEl::MakeBuffer3D()
+{
+  if(fShape == 0) return 0;
+
+  if(dynamic_cast<TGeoShapeAssembly*>(fShape)){
+    // !!!! TGeoShapeAssembly makes a bad TBuffer3D
+    return 0;
+  }
+
+  TBuffer3D* buff  = fShape->MakeBuffer3D();
+  Reve::ZTrans& mx = RefHMTrans();
+  Int_t N = buff->NbPnts();
+  Double_t* pnts = buff->fPnts;   
+  for(Int_t k=0; k<N; k++) 
+  {
+    mx.MultiplyIP(&pnts[3*k]);
+  }
+  return buff;
 }
