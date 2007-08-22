@@ -6,34 +6,25 @@
 
 #include <Reve/RenderElement.h>
 
-namespace std {
-template<typename _Tp> class allocator;
-template<typename _Tp, typename _Alloc > class list;
-}
-
-class TGeoManager;
-class TGeoMatrix;
-class TBuffer3D;
-
 namespace Reve {
+
 class Vector;
-class PointSet;
-class NLTPolygonSet;
-class NLTPolygon;
-class Track;
-class TrackList;
+
 /**************************************************************************/
 //  NLTProjections
 /**************************************************************************/
 
 class NLTProjection
 {
-public: 
+public:
   enum PType_e { PT_Unknown, PT_CFishEye, PT_RhoZ }; // , PT_RhoPhi}; 
 
+protected:
   PType_e             fType;
   Float_t             fDistortion; // sensible values from 0 to 0.01
- 
+  Float_t             fScale;
+
+public: 
   virtual   Bool_t    AcceptSegment(Vector&, Vector&, Float_t /*tolerance*/) {return kTRUE;}
   virtual   Vector*   Project(Vector* pnts, Int_t npnts, Bool_t create_new = kTRUE);
   virtual   void      ProjectPoint(Float_t&, Float_t&, Float_t&){};
@@ -42,7 +33,13 @@ public:
   virtual   Float_t   PositionToValue(Float_t /*pos*/, Int_t /*axis*/) = 0;
   virtual   Float_t   ValueToPosition(Float_t /*pos*/, Int_t /*axis*/) = 0;
 
-  NLTProjection() : fType(PT_Unknown), fDistortion(0) {}
+  void      SetDistortion(Float_t d){fDistortion=d; fScale = 1+300*fDistortion;}
+  Float_t   GetDistortion(){return fDistortion;}
+
+  void      SetType(PType_e t){fType = t;}
+  PType_e   GetType(){return fType;}
+
+  NLTProjection() : fType(PT_Unknown), fDistortion(0), fScale(1.0f) {}
   virtual ~NLTProjection() {}
 
   ClassDef(NLTProjection, 0);
@@ -86,42 +83,16 @@ class NLTProjector : public RenderElementList,
 		     public TAttBBox,
                      public TAtt3D
 { 
+private:
   NLTProjector(const NLTProjector&);            // Not implemented
   NLTProjector& operator=(const NLTProjector&); // Not implemented
-
-public:
-
-protected:
-  Int_t  GetBreakPointIdx(Int_t start);
-  void   GetBreakPoint(Int_t N, Bool_t back, Float_t& x, Float_t& y, Float_t& z);
-  Bool_t IsFirstIdxHead(Int_t s0, Int_t s1, TBuffer3D* buff);
-  void   AddPolygon( std::list<Int_t, std::allocator<Int_t> >& pp, std::list<NLTPolygon, std::allocator<NLTPolygon> >& pols);
-
-  Track* MakeTrack(Track* track, Bool_t create, Int_t start_idx, Int_t end_idx);
-
-private:
+  
   NLTProjection*  fProjection;
-
-  Float_t         fEps;    // distance accounted in reducing the ponts
-
-  // temporary variables cashed 
-  Int_t*          fIdxMap; // map from original to projected and reduced point needed oly for geometry
-  Int_t           fNPnts; // number of reduced and projected points
-  Vector*         fPnts;  // reduced and projected points
-  Int_t           fNRPnts; // number of reduced and projected points
-  Vector*         fRPnts;  // reduced and projected points
-
-  void            ReducePoints(Vector* p, Int_t N);
-  void            MakePolygonsFromBP(TBuffer3D* buff, std::list<NLTPolygon, std::allocator<NLTPolygon> >& pols);
-  void            MakePolygonsFromBS(TBuffer3D* buff, std::list<NLTPolygon, std::allocator<NLTPolygon> >& pols);
-  void            CleanUp();
 
 public:
   NLTProjector();
   virtual ~NLTProjector();
 
-  NLTPolygonSet*  ProjectBuffer3D(TBuffer3D* buff, Int_t useBuffPols=-1);
-  
   void            SetProjection(NLTProjection::PType_e type, Float_t distort=0);
   void            SetProjection(NLTProjection* p);
   NLTProjection*  GetProjection() { return fProjection; }
@@ -134,8 +105,6 @@ public:
 
   virtual void    ProjectChildrenRecurse(RenderElement* rnr_el);
   virtual void    ProjectChildren();
-
-  void            DumpBuffer(TBuffer3D* b);
 
   virtual Bool_t  CanEditMainColor() { return kTRUE; }
 
