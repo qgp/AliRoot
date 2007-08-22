@@ -44,7 +44,7 @@ void NLTTrack::SetProjection(NLTProjector* proj, NLTProjectable* model)
 void NLTTrack::UpdateProjection()
 {
   fProjection = fProjector->GetProjection();
-  MakeTrack();
+  MakeTrack(kFALSE); //NLTProjector makes recursive calls
 }
 
 //______________________________________________________________________________
