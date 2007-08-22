@@ -1,3 +1,38 @@
+2007-08-22  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
+
+	EVE-dev
+
+	* NLTBases.cxx:
+	* NLTBases.h:
+	Implementation of NLTGeoProjectable class, to be a common base of GeoNode and
+	GeoShapeRnrEl for non-linear projections.
+
+	* GeoNode.cxx:
+	* GeoNode.h:
+	GeoShapeRnrEl inherited from NLTGeoProjectable class.
+
+	* LinkDef.h:
+	Register new class NLTGeoProjectable.
+
+	* NLTPolygonSet.cxx:
+	* NLTPolygonSet.h:
+	* NLTProjector.cxx:
+	* NLTProjector.h:
+        Non-linear transformation of TBuffer3D moved in NLTPolygonSet.
+
+	* NLTPolygonSetGL.cxx:
+	NLTPolygons in NLTPolygonSet stored in std::list.
+	
+	* NLTProjectorEditor.cxx:
+	Use NLTProjector Getters and Setters.
+	
+	* NLTTrack.h:
+	Remove PrintLineSegments() from popup menu.
+	
+	* NLTTrack.cxx:
+	In UpdateProjection disable recursive behavior. Recursive calls
+	already done by NLTProjector.
+
 2007-08-21  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
 
 	EVE-dev

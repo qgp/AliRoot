@@ -1,10 +1,15 @@
+2007-08-22  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
+
+	* alice-macros/NLT_geo_demo.C:
+	Remove obsolete demo.
+
 2007-08-21  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
 
 	* alice-macros/NLT_demo.C:
 	Remove file: replaced by NLT_test.C.
 	
 	* alice-macros/NLT_test.C:
-	Put current camera in orographic XY projection. Disable drawing of
+	Put current camera in orthographic XY projection. Disable drawing of
 	NLTProjector.
 
 2007-08-20  Matevz Tadel  <matevz.tadel@cern.ch>
