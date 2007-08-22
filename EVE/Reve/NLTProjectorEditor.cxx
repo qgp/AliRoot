@@ -43,10 +43,10 @@ NLTProjectorEditor::NLTProjectorEditor(const TGWindow *p,
   }
 
   fDistortion = new RGValuator(this, "Distortion:", 90, 0);
-  fDistortion->SetShowSlider(kFALSE);
+  // fDistortion->SetShowSlider(kFALSE);
   fDistortion->SetNELength(8);
   fDistortion->Build();
-  fDistortion->SetLimits(0, 200, 100, TGNumberFormat::kNESRealTwo);
+  fDistortion->SetLimits(0, 50, 101, TGNumberFormat::kNESRealTwo);
   fDistortion->SetToolTip("Minimal angular step between two helix points.");
   fDistortion->Connect("ValueSet(Double_t)", "Reve::NLTProjectorEditor",
 		       this, "DoDistortion()");
@@ -62,8 +62,8 @@ void NLTProjectorEditor::SetModel(TObject* obj)
 {
   fM = dynamic_cast<NLTProjector*>(obj);
 
-  fType->Select(fM->GetProjection()->fType, kFALSE);  
-  fDistortion->SetValue(1000.0f * fM->GetProjection()->fDistortion);
+  fType->Select(fM->GetProjection()->GetType(), kFALSE);  
+  fDistortion->SetValue(1000.0f * fM->GetProjection()->GetDistortion());
 }
 
 /**************************************************************************/
@@ -77,7 +77,7 @@ void NLTProjectorEditor::DoType(Int_t type)
 
 void NLTProjectorEditor::DoDistortion()
 {
-  fM->GetProjection()->fDistortion = 0.001f * fDistortion->GetValue();
+  fM->GetProjection()->SetDistortion(0.001f * fDistortion->GetValue());
   fM->ProjectChildren();
   Update();
 }
