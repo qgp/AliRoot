@@ -1,6 +1,7 @@
 // $Header$
 
 #include "NLTBases.h"
+#include "Reve/NLTPolygonSet.h"
 
 using namespace Reve;
 
@@ -15,6 +16,19 @@ NLTProjectable::NLTProjectable()
 
 }
 
+//______________________________________________________________________
+// NLTGeoProjectable
+//
+
+ClassImp(NLTGeoProjectable)
+
+NLTGeoProjectable::NLTGeoProjectable()
+{}
+
+TClass* NLTGeoProjectable::ProjectedClass() const
+{
+   return NLTPolygonSet::Class();
+} 
 
 //______________________________________________________________________
 // NLTProjected
