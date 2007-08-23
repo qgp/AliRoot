@@ -122,7 +122,8 @@ Int_t AliCascadeVertexer::V0sTracks2CascadeVertices(AliESDEvent *event) {
          AliESDcascade cascade(*pv0,*pbt,bidx);//constucts a cascade candidate
          if (cascade.GetChi2Xi() > fChi2max) continue;
 
-	 Double_t x,y,z; cascade.GetXYZ(x,y,z); 
+
+	 Double_t x,y,z; cascade.GetXYZcascade(x,y,z); // Bo: bug due to inheritance removed !
          Double_t r2=x*x + y*y; 
          if (r2 > fRmax*fRmax) continue;   // condition on fiducial zone
          if (r2 < fRmin*fRmin) continue;
@@ -164,7 +165,7 @@ Int_t AliCascadeVertexer::V0sTracks2CascadeVertices(AliESDEvent *event) {
          AliESDcascade cascade(*pv0,*pbt,bidx); //constucts a cascade candidate
          if (cascade.GetChi2Xi() > fChi2max) continue;
 
-	 Double_t x,y,z; cascade.GetXYZ(x,y,z); 
+	 Double_t x,y,z; cascade.GetXYZcascade(x,y,z);  // Bo: bug due to inheritance removed !
          Double_t r2=x*x + y*y; 
          if (r2 > fRmax*fRmax) continue;   // condition on fiducial zone
          if (r2 < fRmin*fRmin) continue;

@@ -1879,7 +1879,7 @@ void AliReconstruction::ESDFile2AODFile(TFile* esdFile, TFile* aodFile)
     for (Int_t nCascade = 0; nCascade < nCascades; ++nCascade) {
       AliESDcascade *cascade = esd->GetCascade(nCascade);
       
-      cascade->GetXYZ(pos[0], pos[1], pos[2]);
+      cascade->GetXYZcascade(pos[0], pos[1], pos[2]);
       cascade->GetPosCovXi(covVtx);
      
       // Add the cascade vertex
@@ -1937,8 +1937,8 @@ void AliReconstruction::ESDFile2AODFile(TFile* esdFile, TFile* aodFile)
 	     << " The V0 " << indV0 
 	     << " doesn't exist in the array of V0s or was used!" << endl;
 
-	cascade->GetXYZ(pos[0], pos[1], pos[2]);
-	cascade->GetPosCov(covVtx);
+	cascade->GetXYZcascade(pos[0], pos[1], pos[2]);
+	cascade->GetPosCovXi(covVtx);
       
 	vV0FromCascade = new(vertices[jVertices++]) AliAODVertex(pos,
 								 covVtx,
