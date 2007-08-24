@@ -16,6 +16,7 @@
 #include <TSystem.h>
 
 #include <TGClient.h>
+#include <TGMimeTypes.h>
 
 #include <list>
 #include <algorithm>
@@ -112,6 +113,9 @@ void SetupGUI()
   RenderElement::fgRnrIcons[1] = gClient->GetPicture(fld + "rnr01_t.xpm");
   RenderElement::fgRnrIcons[2] = gClient->GetPicture(fld + "rnr10_t.xpm");
   RenderElement::fgRnrIcons[3] = gClient->GetPicture(fld + "rnr11_t.xpm");
+
+  gClient->GetMimeTypeList()->AddType("root/tmacro", "Reve::RMacro",
+                                      "tmacro_s.xpm", "tmacro_t.xpm", "");
 }
 
 /**************************************************************************/
