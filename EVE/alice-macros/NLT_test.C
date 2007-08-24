@@ -13,7 +13,6 @@ Reve::NLTProjector* NLT_test(Reve::RenderElement* top=0)
 
   NLTProjector* p = new NLTProjector;
   p->SetProjection(NLTProjection::PT_RhoZ, 0.01);
-  p->SetRnrSelf(kFALSE);
 
   gReve->AddToListTree(p, kTRUE);
   gReve->AddRenderElement(p, s);
