@@ -6,6 +6,7 @@
 #include <TGedFrame.h>
 
 class TGComboBox;
+class TGNumberEntry;
 
 namespace Reve {
 
@@ -19,16 +20,22 @@ private:
   NLTProjectorEditor& operator=(const NLTProjectorEditor&); // Not implemented
 
 protected:
-  NLTProjector *fM; // fModel dynamic-casted to NLTProjectorEditor
+  NLTProjector  *fM; // fModel dynamic-casted to NLTProjectorEditor
 
-  TGComboBox   *fType;
-  RGValuator   *fDistortion;
+  TGComboBox    *fType;
+  RGValuator    *fDistortion;
+
+  TGComboBox    *fSIMode; // scale info
+  TGNumberEntry *fSILevel;
 
 public:
   NLTProjectorEditor(const TGWindow* p=0, Int_t width=170, Int_t height=30, UInt_t options = kChildFrame, Pixel_t back=GetDefaultFrameBackground());
   virtual ~NLTProjectorEditor();
 
   virtual void SetModel(TObject* obj);
+
+  void DoSplitInfoMode(Int_t type);
+  void DoSplitInfoLevel();
 
   void DoType(Int_t type);
   void DoDistortion();
