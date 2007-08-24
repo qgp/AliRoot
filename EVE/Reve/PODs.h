@@ -50,6 +50,9 @@ public:
   Vector operator * (Double_t a);
 
   Float_t* c_vec() { return &x; }
+  Float_t& operator [] (Int_t indx);
+  Float_t  operator [] (Int_t indx) const;
+
   void Set(Float_t*  v) { x=v[0]; y=v[1]; z=v[2]; }
   void Set(Double_t* v) { x=v[0]; y=v[1]; z=v[2]; }
   void Set(Float_t  _x, Float_t  _y, Float_t  _z) { x=_x; y=_y; z=_z; }
@@ -91,6 +94,12 @@ inline Float_t Vector::SquareDistance(const Vector& b) const
 {
   return ((x - b.x)*(x - b.x) + (y - b.y)*(y - b.y) + (z - b.z)*(z - b.z));
 }
+
+inline Float_t& Vector::operator [] (Int_t idx)
+{ return (&x)[idx]; }
+
+inline Float_t Vector::operator [] (Int_t idx) const
+{ return (&x)[idx]; }
 
 /**************************************************************************/
 // PathMark
