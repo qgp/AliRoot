@@ -2,6 +2,7 @@
 
 #include "SceneInfo.h"
 #include "Scene.h"
+#include "RGTopFrame.h"
 
 #include <TGLSceneInfo.h>
 
@@ -44,4 +45,22 @@ void SceneInfo::SetRnrState(Bool_t rnr)
 {
   RenderElement::SetRnrState(rnr);
   fGLSceneInfo->SetActive(fRnrSelf);
+}
+
+/**************************************************************************/
+
+Bool_t SceneInfo::AcceptRenderElement(RenderElement* /*el*/)
+{
+  static const Exc_t eH("SceneInfo::AcceptRenderElement ");
+
+  gReve->SetStatusLine(eH + "this class does not accept children.");
+  return kFALSE;
+}
+
+Bool_t SceneInfo::HandleElementPaste(RenderElement* /*el*/)
+{
+  static const Exc_t eH("SceneInfo::HandleElementPaste ");
+
+  gReve->SetStatusLine(eH + "this class does not accept children.");
+  return kFALSE;
 }

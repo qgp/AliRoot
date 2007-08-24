@@ -37,6 +37,9 @@ public:
   virtual void   SetRnrSelf(Bool_t rnr);
   virtual void   SetRnrState(Bool_t rnr);
 
+  virtual Bool_t AcceptRenderElement(RenderElement* el);
+  virtual Bool_t HandleElementPaste(RenderElement* el);
+
   ClassDef(SceneInfo, 0);
 }; // endclass SceneInfo
 
