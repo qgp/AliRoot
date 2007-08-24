@@ -4,8 +4,7 @@
 #define REVE_RGTopFrame_H
 
 #include <TClass.h>
-#include <TGFrame.h>
-#include <TGStatusBar.h>
+//#include <TGFrame.h>
 #include <TGeoManager.h>
 #include <TROOT.h>
 #include <TTimer.h>
@@ -22,11 +21,13 @@ class TGTab;
 class TGStatusBar;
 class TGListTree;
 class TGListTreeItem;
+class TGStatusBar;
 
 class TGLViewer;
 
 namespace Reve {
 
+class RGLTEFrame;
 class RGBrowser;
 class RGEditor;
 
@@ -39,14 +40,12 @@ class Scene;  class SceneList;
 class EventBase;
 
 
-class RGTopFrame : public TGMainFrame
+class RGTopFrame
 {
   RGTopFrame(const RGTopFrame&);            // Not implemented
   RGTopFrame& operator=(const RGTopFrame&); // Not implemented
 
 public:
-  enum LookType_e { LT_Unknown, LT_Editor, LT_GLViewer };
-
   class RedrawDisabler
   {
   private:
@@ -62,15 +61,14 @@ public:
   };
 
 private:
-  TGCompositeFrame    *fMasterFrame;
-  TGTab               *fMasterTab;
 
   RGBrowser           *fBrowser;
+  RGLTEFrame          *fLTEFrame;
+  RGEditor            *fEditor;
   TGStatusBar         *fStatusBar;
 
   TFolder             *fMacroFolder;
 
-  RGEditor            *fEditor;
 
   ViewerList          *fViewers;
   SceneList           *fScenes;
@@ -88,20 +86,17 @@ private:
   TTimer               fRedrawTimer;
 
 protected:
-  LookType_e           fLook;
-
   std::map<TString, TGeoManager*> fGeometries;
 
 public:
-  RGTopFrame(const TGWindow *p, UInt_t w, UInt_t h, LookType_e look=LT_GLViewer);
+  RGTopFrame(UInt_t w, UInt_t h);
+  virtual ~RGTopFrame();
 
-  TGCompositeFrame* GetMasterFrame() { return fMasterFrame; }
-  TGTab*            GetMasterTab()   { return fMasterTab; }
+  RGBrowser*   GetBrowser()   const { return fBrowser;   }
+  RGEditor*    GetEditor()    const { return fEditor;    }
+  TGStatusBar* GetStatusBar() const { return fStatusBar; }
 
-  RGBrowser*   GetBrowser()    { return fBrowser; }
-  TGStatusBar* GetStatusBar()  { return fStatusBar; }
-
-  SceneList*   GetScenes()   const { return fScenes; }
+  SceneList*   GetScenes()   const { return fScenes;  }
   ViewerList*  GetViewers()  const { return fViewers; }
 
   Viewer*      GetDefViewer()    const { return fViewer; }
@@ -111,13 +106,12 @@ public:
 
   TCanvas*     AddCanvasTab(const char* name);
   TGLViewer*   GetGLViewer() const;
-  Viewer*      SpawnNewViewer(const Text_t* name, const Text_t* title="");
+  Viewer*      SpawnNewViewer(const Text_t* name, const Text_t* title="", Bool_t embed=kTRUE);
   Scene*       SpawnNewScene(const Text_t* name, const Text_t* title="");
 
   TFolder*  GetMacroFolder() const { return fMacroFolder; }
   TMacro*   GetMacro(const Text_t* name) const;
 
-  RGEditor* GetEditor() const { return fEditor; }
   void EditRenderElement(RenderElement* rnr_element);
 
   void DisableRedraw() { ++fRedrawDisabled; }
@@ -132,15 +126,17 @@ public:
   void RegisterRedraw3D();
   void DoRedraw3D();
 
-  void ElementChanged(RenderElement* rnr_element);
+  void RenderElementChanged(RenderElement* rnr_element);
   void ScenesChanged(std::list<Reve::RenderElement*>& scenes);
 
   static int  SpawnGuiAndRun(int argc, char **argv);
-  static void SpawnGui(LookType_e revemode = LT_Editor);
+  static void SpawnGui();
 
   // These are more like ReveManager stuff.
   TGListTree*     GetListTree() const;
   TGListTreeItem* AddToListTree(RenderElement* re, Bool_t open, TGListTree* lt=0);
+  void            RemoveFromListTree(RenderElement* re, TGListTree* lt, TGListTreeItem* lti);
+
   TGListTreeItem* AddEvent(EventBase* event);
   TGListTreeItem* AddRenderElement(RenderElement* rnr_element,
 				   RenderElement* parent=0);
@@ -160,6 +156,7 @@ public:
   // Hmmph ... geometry management?
   TGeoManager* GetGeometry(const TString& filename);
 
+  void SetStatusLine(const char* text);
   void ThrowException(const char* text="foo");
 
   ClassDef(RGTopFrame, 0);
