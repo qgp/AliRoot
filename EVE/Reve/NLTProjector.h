@@ -23,24 +23,28 @@ protected:
   PType_e             fType;
   Float_t             fDistortion; // sensible values from 0 to 0.01
   Float_t             fScale;
-
-public: 
-  virtual   Bool_t    AcceptSegment(Vector&, Vector&, Float_t /*tolerance*/) {return kTRUE;}
-  virtual   Vector*   Project(Vector* pnts, Int_t npnts, Bool_t create_new = kTRUE);
-  virtual   void      ProjectPoint(Float_t&, Float_t&, Float_t&){};
-
-  // required to draw scale on the axis
-  virtual   Float_t   PositionToValue(Float_t /*pos*/, Int_t /*axis*/) = 0;
-  virtual   Float_t   ValueToPosition(Float_t /*pos*/, Int_t /*axis*/) = 0;
-
-  void      SetDistortion(Float_t d){fDistortion=d; fScale = 1+300*fDistortion;}
-  Float_t   GetDistortion(){return fDistortion;}
-
-  void      SetType(PType_e t){fType = t;}
-  PType_e   GetType(){return fType;}
-
+ 
+public:
   NLTProjection() : fType(PT_Unknown), fDistortion(0), fScale(1.0f) {}
-  virtual ~NLTProjection() {}
+  virtual   ~NLTProjection() {}
+
+  virtual   void      ProjectPoint(Float_t&, Float_t&, Float_t&){}
+  virtual   void      ProjectVector(Vector& v);
+  virtual   Vector*   Project(Vector* pnts, Int_t npnts, Bool_t create_new = kTRUE);
+
+  void                SetDistortion(Float_t d);
+  Float_t             GetDistortion(){return fDistortion;}
+  void                SetType(PType_e t){fType = t;}
+  PType_e             GetType(){return fType;}
+
+  virtual   Bool_t    AcceptSegment(Vector&, Vector&, Float_t /*tolerance*/) {return kTRUE;} 
+  virtual   void      SetDirectionalVector(Int_t screenAxis, Vector& vec);
+
+  // utils to draw axis
+  virtual Float_t             GetValForScreenPos(Int_t ax, Float_t value);
+  virtual Float_t             GetScreenVal(Int_t ax, Float_t value);
+
+  static   Float_t    fgEps;
 
   ClassDef(NLTProjection, 0);
 };
@@ -53,10 +57,7 @@ public:
 
   virtual   Bool_t    AcceptSegment(Vector& v1, Vector& v2, Float_t tolerance); 
   virtual   void      ProjectPoint(Float_t& x, Float_t& y, Float_t& z);
-
-  // required to draw scale on the axis
-  virtual   Float_t   PositionToValue(Float_t a, Int_t /*axis*/){ return a/(1-TMath::Abs(a)*fDistortion); }
-  virtual   Float_t   ValueToPosition(Float_t a, Int_t /*axis*/){ return a/(1+TMath::Abs(a)*fDistortion); }
+  virtual   void      SetDirectionalVector(Int_t screenAxis, Vector& vec);
 
   ClassDef(RhoZ, 0);
 };
@@ -68,10 +69,6 @@ public:
   virtual ~CircularFishEye() {}
 
   virtual   void      ProjectPoint(Float_t& x, Float_t& y, Float_t& z); 
-
-  // required to draw scale on the axis
-  virtual   Float_t   PositionToValue(Float_t a, Int_t /*axis*/){ return a/(1-TMath::Abs(a)*fDistortion); }
-  virtual   Float_t   ValueToPosition(Float_t a, Int_t /*axis*/){ return a/(1+TMath::Abs(a)*fDistortion); }
 
   ClassDef(CircularFishEye, 0);
 };
@@ -89,6 +86,9 @@ private:
   
   NLTProjection*  fProjection;
 
+  Int_t           fSplitInfoMode;
+  Int_t           fSplitInfoLevel;
+  Color_t         fAxisColor;  
 public:
   NLTProjector();
   virtual ~NLTProjector();
@@ -96,6 +96,14 @@ public:
   void            SetProjection(NLTProjection::PType_e type, Float_t distort=0);
   void            SetProjection(NLTProjection* p);
   NLTProjection*  GetProjection() { return fProjection; }
+
+  // scale info 
+  void            SetSplitInfoMode(Int_t x){fSplitInfoMode = x;}
+  Int_t           GetSplitInfoMode(){return fSplitInfoMode;}
+  void            SetSplitInfoLevel(Int_t x){fSplitInfoLevel = x;}
+  Int_t           GetSplitInfoLevel(){return fSplitInfoLevel;}
+  void            SetAxisColor(Color_t col){SetMainColor(col);}
+  Color_t         GetAxisColor(){return fAxisColor;}
 
   virtual Bool_t  HandleElementPaste(RenderElement* el);
 

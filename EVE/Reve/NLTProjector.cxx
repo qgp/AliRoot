@@ -1,7 +1,7 @@
 #include "NLTProjector.h"
 #include "RGTopFrame.h"
 #include "NLTPolygonSet.h"
-#include "PODs.h"
+//#include "PODs.h"
 #include "PointSet.h"
 #include "Track.h"
 
@@ -18,6 +18,17 @@
 #include <list>
 
 using namespace Reve;
+
+ClassImp(Reve::NLTProjection)
+
+Float_t NLTProjection::fgEps = 0.01f;
+
+//______________________________________________________________________________
+void NLTProjection::ProjectVector(Vector& v)
+{
+  ProjectPoint(v.x, v.y, v.z);
+}
+
 //______________________________________________________________________________
 Vector* NLTProjection::Project(Vector* origPnts, Int_t Npnts, Bool_t copy)
 {
@@ -40,16 +51,96 @@ Vector* NLTProjection::Project(Vector* origPnts, Int_t Npnts, Bool_t copy)
 }
 
 //______________________________________________________________________________
+void NLTProjection::SetDistortion(Float_t d)
+{
+  // Prevent scaling down whole projected scene.
+  // TPC should be constat size. 
+
+  fDistortion=d; 
+  fScale = 1+300*fDistortion;
+}
+
+
+//______________________________________________________________________________
+void NLTProjection::SetDirectionalVector(Int_t screenAxis, Vector& vec)
+{
+  for(Int_t i=0; i<3; i++)
+  {
+    vec[i] = (i==screenAxis) ? 1. : 0.;
+  }
+}
+
+//______________________________________________________________________________
+Float_t NLTProjection::GetValForScreenPos(Int_t i, Float_t sv)
+{
+  // move on unprojected axis, find when projected value is geiven screen values
+  Float_t xL, xM, xR;
+  
+  // search from -/+ infinity according to sign of screen value
+  if(sv > 0)
+  {
+    xL = 0;
+    xR = 1000;
+    while(xR <sv) xR*=2;
+  }
+  else 
+  {
+    xR = 0;
+    xL = -1000;
+    while(xR <sv) xR*=2;
+  }
+
+  //  printf("start bisection %f, %f , SCREEN VALUE %f \n", xL, xR, sv);
+  Vector V, DirVec;
+  SetDirectionalVector(i,DirVec); 
+  Int_t count = 0;
+  do 
+  {  
+    xM  = (xL+xR)*0.5;
+    V = DirVec*xM; 
+    ProjectVector(V);
+    if (V[i] > sv) 
+      xR = xM; 
+    else
+      xL = xM;
+    count++;
+  } while( TMath::Abs(V[i] -sv) > fgEps);
+
+  return xM;
+}
+
+//______________________________________________________________________________
+Float_t NLTProjection::GetScreenVal(Int_t i, Float_t x)
+{
+  Vector dv; 
+  SetDirectionalVector(i, dv); dv = dv*x;
+  ProjectVector(dv);
+  return dv[i];
+}
+/**************************************************************************/
+/**************************************************************************/
+ClassImp(Reve::RhoZ)
+
 void RhoZ::ProjectPoint(Float_t& x, Float_t& y, Float_t& z)
 {
     Float_t R = TMath::Sqrt(x*x+y*y);
     Float_t NR = R / (1.0f + R*fDistortion);
     y = (y > 0) ? NR : -NR;
     y *= fScale;
-    x = (z*fScale)/ (1.0f + TMath::Abs(z)*fDistortion);
+    x = (z*fScale) / (1.0f + TMath::Abs(z)*fDistortion);
     z = 0;
 }
 
+
+//______________________________________________________________________________
+void RhoZ::SetDirectionalVector(Int_t screenAxis, Vector& vec)
+{
+  if(screenAxis == 0) 
+    vec.Set(0., 0., 1);
+  else 
+    vec.Set(0., 1., 0);
+
+}
 //______________________________________________________________________________
 Bool_t RhoZ::AcceptSegment(Vector& v1, Vector& v2, Float_t tolerance) 
 {
@@ -74,6 +165,7 @@ Bool_t RhoZ::AcceptSegment(Vector& v1, Vector& v2, Float_t tolerance)
 
 /**************************************************************************/
 /**************************************************************************/
+ClassImp(Reve:: CircularFishEye)
 //______________________________________________________________________________
 void  CircularFishEye::ProjectPoint(Float_t& x, Float_t& y, Float_t& z) 
 {
@@ -95,9 +187,15 @@ ClassImp(NLTProjector)
 
 NLTProjector::NLTProjector():
   RenderElementList("NLTProjector",""),
-  fProjection (0)
+
+  fProjection (0),
+
+  fSplitInfoMode(0),
+  fSplitInfoLevel(1),
+  fAxisColor(0)
 {
   SetProjection(NLTProjection::PT_CFishEye, 0);
+  fMainColorPtr = &fAxisColor;
 }
 
 //______________________________________________________________________________
@@ -187,20 +285,17 @@ void NLTProjector::ImportElementsRecurse(RenderElement* rnr_el, RenderElement* p
 			      tobj->GetTitle());
     gReve->AddRenderElement(new_re, parent);
 
-    if (new_pr)
-    {
-      new_pr->UpdateProjection();
-    }
-
     for (List_i i=rnr_el->BeginChildren(); i!=rnr_el->EndChildren(); ++i)
       ImportElementsRecurse(*i, new_re);
   }
+
 }
 
 //______________________________________________________________________________
 void NLTProjector::ImportElements(RenderElement* rnr_el)
 {
   ImportElementsRecurse(rnr_el, this);
+  ProjectChildren();
 }
 
 //______________________________________________________________________________
@@ -210,6 +305,13 @@ void NLTProjector::ProjectChildrenRecurse(RenderElement* rnr_el)
   if (pted)
   {
     pted->UpdateProjection();
+    TAttBBox* bb = dynamic_cast<TAttBBox*>(pted);
+    if(bb) 
+    {
+      Float_t* b = bb->AssertBBox();
+      BBoxCheckPoint(b[0], b[2], b[4]);
+      BBoxCheckPoint(b[1], b[3], b[5]);
+    }
     rnr_el->ElementChanged(kFALSE);
   }
 
@@ -220,7 +322,16 @@ void NLTProjector::ProjectChildrenRecurse(RenderElement* rnr_el)
 //______________________________________________________________________________
 void NLTProjector::ProjectChildren()
 {
+  BBoxZero();
   ProjectChildrenRecurse(this);
+  AssertBBoxExtents(0.1);
+  {
+    using namespace TMath;
+    fBBox[0] = 10.0f * Floor(fBBox[0]/10.0f);
+    fBBox[1] = 10.0f * Ceil (fBBox[1]/10.0f);
+    fBBox[2] = 10.0f * Floor(fBBox[2]/10.0f);
+    fBBox[3] = 10.0f * Ceil (fBBox[3]/10.0f);
+  }
 
   List_t scenes;
   CollectSceneParentsFromChildren(scenes, 0);
@@ -244,12 +355,12 @@ void NLTProjector::Paint(Option_t* /*option*/)
     Error(eH, "only direct GL rendering supported.");
 }
 
+
 //______________________________________________________________________________
 void NLTProjector::ComputeBBox()
 {
   // Fill bounding-box information in base-class TAttBBox (virtual method).
 
-  // TODO:: be reseted and checked points, tracks  ...
   static const Exc_t eH("NLTProjector::ComputeBBox ");
 
   if(GetNChildren() == 0) {
@@ -259,3 +370,4 @@ void NLTProjector::ComputeBBox()
 
   BBoxInit();
 }
+
