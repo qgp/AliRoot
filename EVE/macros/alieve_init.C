@@ -76,6 +76,4 @@ void alieve_init(const Text_t* path   = ".", Int_t event=0,
     printf(" done.\n");
     gReve->AddEvent(Alieve::gEvent);
   }
-
-  gDebug = 1;
 }
