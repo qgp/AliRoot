@@ -18,7 +18,7 @@ ClassImp(NLTTrackGL)
 
 NLTTrackGL::NLTTrackGL() : TrackGL(), fM(0)
 {
-  // fCached = false; // Disable display list.
+  // fDLCache = kFALSE; // Disable display list.
 }
 
 NLTTrackGL::~NLTTrackGL()
