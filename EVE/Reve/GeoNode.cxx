@@ -228,13 +228,9 @@ void GeoTopNodeRnrEl::Paint(Option_t* option)
     gPad = pad;
     TVirtualGeoPainter* vgp = fManager->GetGeomPainter();
     if(vgp != 0) {
-#if ROOT_VERSION_CODE > ROOT_VERSION(5,11,6)
       TGeoHMatrix geomat;
       fGlobalTrans.SetGeoHMatrix(geomat);
       vgp->PaintNode(fNode, option, &geomat);
-#else
-      vgp->PaintNode(fNode, option);
-#endif
     }
     fManager->SetTopVolume(top_volume);
   }
