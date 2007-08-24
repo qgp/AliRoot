@@ -476,7 +476,7 @@ void TRDLoaderEditor::FileOpen()
   fi.fFilename  = StrDup(gSystem->BaseName(fM->fFilename.Data()));
 //  fi.fFileTypes = tpcfiletypes;
 
-  new TGFileDialog(fClient->GetRoot(), gReve, kFDOpen, &fi);
+  new TGFileDialog(fClient->GetRoot(), gReve->GetMainWindow(), kFDOpen, &fi);
   if (!fi.fFilename) return;
 
   fFile->SetToolTipText(gSystem->DirName (fi.fFilename));
