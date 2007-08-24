@@ -113,6 +113,7 @@ void NLTProjector::SetProjection(NLTProjection::PType_e type, Float_t distort)
   static const Exc_t eH("NLTProjector::SetProjection ");
 
   delete fProjection;
+  fProjection = 0;
 
   TString name;
   switch (type)
