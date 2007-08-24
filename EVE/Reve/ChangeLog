@@ -1,3 +1,22 @@
+2007-08-24  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
+
+	* NLTProjector.cxx:
+	* NLTProjector.h:
+	* NLTProjectorGL.cxx:
+	* NLTProjectorGL.h:
+	Improve algorithm for tick-mark positioning and configuration.
+
+	* NLTProjectorEditor.cxx:
+	* NLTProjectorEditor.h:
+	Add widgets to configure scale info.
+
+	* PODs.h:
+	Add index operator to Vector class.
+
+	* RenderElement.cxx:
+	* RenderElement.h:
+	Add GetRnrElName()/GetRnrElTitle() in RenderElement class.
+
 2007-08-24  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	* LinkDef.h:

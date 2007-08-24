@@ -1,3 +1,8 @@
+2007-08-24  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
+
+	* alice-macros/NLT_test.C:
+	Enable rendering of NLTProjector to get scale info.
+
 2007-08-24  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	* alice-macros/NLT_test.C:
