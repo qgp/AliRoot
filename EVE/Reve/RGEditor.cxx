@@ -16,12 +16,12 @@ using namespace Reve;
 
 ClassImp(RGEditor)
 
-RGEditor::RGEditor(TCanvas* canvas) :
+RGEditor::RGEditor(TCanvas* canvas, Int_t width, Int_t height) :
   TGedEditor(canvas),
   fRnrElement(0),
   fObject    (0)
 {
-  Resize(250, 400);
+  Resize(width, height);
 
   // Fix priority for TAttMarkerEditor.
   TClass* amClass = TClass::GetClass("TAttMarker");
@@ -51,7 +51,7 @@ RenderElement* RGEditor::GetRnrElement() const
 void RGEditor::DisplayRenderElement(RenderElement* re)
 {
   fRnrElement = re;
-  fObject     = fRnrElement ? fRnrElement->GetObject() : 0;
+  fObject     = fRnrElement ? fRnrElement->GetEditorObject() : 0;
   SetModel(fPad, fObject, kButton1Down);
 }
 
@@ -68,7 +68,7 @@ void RGEditor::Update(TGedFrame* /*gframe*/)
 
   if (fRnrElement) {
     fRnrElement->UpdateItems();
-    gReve->ElementChanged(fRnrElement);
+    gReve->RenderElementChanged(fRnrElement);
   }
 
   gReve->Redraw3D();

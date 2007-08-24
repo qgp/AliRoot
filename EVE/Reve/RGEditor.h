@@ -19,7 +19,7 @@ protected:
   TObject       *fObject;     // Cached tobj pointer
 
 public:
-  RGEditor(TCanvas* canvas=0);
+  RGEditor(TCanvas* canvas=0, Int_t width=250, Int_t height=400);
   virtual ~RGEditor() {}
 
   RenderElement* GetRnrElement() const;
