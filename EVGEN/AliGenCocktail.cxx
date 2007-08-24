@@ -54,8 +54,11 @@ AliGenCocktail::AliGenCocktail()
 AliGenCocktail::~AliGenCocktail()
 {
 // Destructor
+  if (fEntries) {
+    fEntries->Delete();
     delete fEntries;
     fEntries = 0;
+  }
     //    delete fHeader; // It is removed in AliRunLoader
     fHeader = 0;
 }
