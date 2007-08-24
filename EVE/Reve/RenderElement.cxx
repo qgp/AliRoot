@@ -8,7 +8,6 @@
 #include <TCanvas.h>
 #include <TGListTree.h>
 #include <TGPicture.h>
-#include <THashList.h>
 
 #include <algorithm>
 
@@ -61,7 +60,6 @@ RenderElement::~RenderElement()
 
   for(sLTI_i i=fItems.begin(); i!=fItems.end(); ++i) {
     i->fTree->DeleteItem(i->fItem);
-    gClient->NeedRedraw(i->fTree);
   }
 }
 
@@ -86,10 +84,15 @@ void RenderElement::RemoveParent(RenderElement* re)
   static const Exc_t eH("RenderElement::RemoveParent ");
 
   fParents.remove(re);
-  if(fParents.empty() && fDestroyOnZeroRefCnt) {
+  CheckReferenceCount(eH);
+}
+
+void RenderElement::CheckReferenceCount(const Reve::Exc_t& eh)
+{
+  if(fParents.empty() && fItems.empty() && fDestroyOnZeroRefCnt) {
     if (gDebug > 0) {
-       TObject* tobj = GetObject(eH);
-       Info(eH.Data(), Form("auto-destructing '%s' on zero reference count.", tobj->GetName()));
+       TObject* tobj = GetObject(eh);
+       Info(eh.Data(), Form("auto-destructing '%s' on zero reference count.", tobj->GetName()));
     }
     gReve->PreDeleteRenderElement(this);
     delete this;
@@ -157,7 +160,8 @@ Int_t RenderElement::DestroyListSubTree(TGListTree* ltree,
 {
   Int_t n = 0;
   TGListTreeItem* i = parent->GetFirstChild();
-  while(i != 0) {
+  while (i != 0)
+  {
     n += DestroyListSubTree(ltree, i);
     RenderElement* re = (RenderElement*) i->GetUserData();
     i = i->GetNextSibling();
@@ -187,8 +191,7 @@ TGListTreeItem* RenderElement::AddIntoListTree(TGListTree* ltree,
   item->SetTipText(tobj->GetTitle());
 
   fItems.insert(ListTreeInfo(ltree, item));
-
-  gClient->NeedRedraw(ltree);
+  ltree->ClearViewPort();
 
   return item;
 }
@@ -229,11 +232,15 @@ TGListTreeItem* RenderElement::AddIntoListTrees(RenderElement* parent)
 Bool_t RenderElement::RemoveFromListTree(TGListTree* ltree,
 					 TGListTreeItem* parent_lti)
 {
+  static const Exc_t eH("RenderElement::RemoveFromListTree ");
+
   sLTI_i i = FindItem(ltree, parent_lti);
   if(i != fItems.end()) {
+    DestroyListSubTree(ltree, i->fItem);
     ltree->DeleteItem(i->fItem);
+    ltree->ClearViewPort();
     fItems.erase(i);
-    gClient->NeedRedraw(ltree);
+    if (parent_lti == 0) CheckReferenceCount(eH);
     return kTRUE;
   } else {
     return kFALSE;
@@ -250,8 +257,9 @@ Int_t RenderElement::RemoveFromListTrees(RenderElement* parent)
     if (plti != 0 && (RenderElement*) plti->GetUserData() == parent)
     {
       sLTI_i j = i--;
+      DestroyListSubTree(j->fTree, j->fItem);
       j->fTree->DeleteItem(j->fItem);
-      gClient->NeedRedraw(j->fTree);
+      j->fTree->ClearViewPort();
       fItems.erase(j);
       ++count;
     }
@@ -308,7 +316,7 @@ void RenderElement::UpdateItems()
     i->fItem->SetTipText(tobj->GetTitle());
     i->fItem->CheckItem(fRnrSelf);
     if(fMainColorPtr != 0) i->fItem->SetColor(GetMainColor());
-    gClient->NeedRedraw(i->fTree);
+    i->fTree->ClearViewPort();
   }
 }
 
@@ -364,7 +372,7 @@ void RenderElement::SetRnrSelf(Bool_t rnr)
         i->fItem->SetCheckBoxPictures(GetCheckBoxPicture(1, fRnrChildren),
 				      GetCheckBoxPicture(0, fRnrChildren));
         i->fItem->CheckItem(fRnrSelf);
-        gClient->NeedRedraw(i->fTree);
+        i->fTree->ClearViewPort();
       }
     }
   }
@@ -380,7 +388,7 @@ void RenderElement::SetRnrChildren(Bool_t rnr)
     {
       i->fItem->SetCheckBoxPictures(GetCheckBoxPicture(fRnrSelf, fRnrChildren),
 				    GetCheckBoxPicture(fRnrSelf, fRnrChildren));
-      gClient->NeedRedraw(i->fTree);
+      i->fTree->ClearViewPort();
     }
   }
 }
@@ -393,7 +401,7 @@ void RenderElement::SetRnrState(Bool_t rnr)
   {
     i->fItem->SetCheckBoxPictures(GetCheckBoxPicture(1,1), GetCheckBoxPicture(0,0));
     i->fItem->CheckItem(fRnrSelf);
-    gClient->NeedRedraw(i->fTree);
+    i->fTree->ClearViewPort();
   }
 }
 
@@ -411,7 +419,7 @@ void RenderElement::SetMainColor(Color_t color)
     for(sLTI_i i=fItems.begin(); i!=fItems.end(); ++i) {
       if(i->fItem->GetColor() != color) {
         i->fItem->SetColor(GetMainColor());
-        gClient->NeedRedraw(i->fTree);
+	i->fTree->ClearViewPort();
       }
     }
   }
@@ -426,18 +434,18 @@ void RenderElement::SetMainColor(Pixel_t pixel)
 
 void RenderElement::AddElement(RenderElement* el)
 {
-  fChildren.push_back(el);
   el->AddParent(this);
-  gReve->ElementChanged(this);
+  fChildren.push_back(el);
+  gReve->RenderElementChanged(this);
 }
 
 void RenderElement::RemoveElement(RenderElement* el)
 {
   // Remove el from the list of children.
 
-  el->RemoveParent(this);
   RemoveElementLocal(el);
-  gReve->ElementChanged(this);
+  el->RemoveParent(this);
+  ElementChanged();
 }
 
 void RenderElement::RemoveElementLocal(RenderElement* el)
@@ -459,26 +467,32 @@ void RenderElement::RemoveElements()
     (*i)->RemoveParent(this);
   }
   fChildren.clear();
-  gReve->ElementChanged(this);
+  gReve->RenderElementChanged(this);
 }
 
 /**************************************************************************/
 
-void RenderElement::EnableListElements()
+void RenderElement::EnableListElements(Bool_t rnr_self,  Bool_t rnr_children)
 {
   for(List_i i=fChildren.begin(); i!=fChildren.end(); ++i)
-    (*i)->SetRnrSelf(kTRUE);
+  {
+    (*i)->SetRnrSelf(rnr_self);
+    (*i)->SetRnrChildren(rnr_children);
+  }
 
-  gReve->ElementChanged(this);
+  gReve->RenderElementChanged(this);
   gReve->Redraw3D();
 }
 
-void RenderElement::DisableListElements()
+void RenderElement::DisableListElements(Bool_t rnr_self,  Bool_t rnr_children)
 {
   for(List_i i=fChildren.begin(); i!=fChildren.end(); ++i)
-    (*i)->SetRnrSelf(kFALSE);
+  {
+    (*i)->SetRnrSelf(rnr_self);
+    (*i)->SetRnrChildren(rnr_children);
+  }
 
-  gReve->ElementChanged(this);
+  gReve->RenderElementChanged(this);
   gReve->Redraw3D();
 }
 
@@ -526,7 +540,7 @@ Bool_t RenderElement::HandleElementPaste(RenderElement* el)
 void RenderElement::ElementChanged(Bool_t update_scenes)
 {
   if (update_scenes)
-    gReve->ElementChanged(this);
+    gReve->RenderElementChanged(this);
 }
 
 /**************************************************************************/

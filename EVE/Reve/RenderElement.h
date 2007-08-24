@@ -79,6 +79,7 @@ public:
 
   virtual void AddParent(RenderElement* re);
   virtual void RemoveParent(RenderElement* re);
+  virtual void CheckReferenceCount(const Reve::Exc_t& eh="RenderElement::CheckReferenceCount ");
   virtual void CollectSceneParents(List_t& scenes);
   virtual void CollectSceneParentsFromChildren(List_t& scenes, RenderElement* parent);
 
@@ -90,8 +91,8 @@ public:
   List_i EndChildren()   { return fChildren.end();   }
   Int_t  GetNChildren() const { return fChildren.size(); }
 
-  void EnableListElements();   // *MENU*
-  void DisableListElements();  // *MENU*
+  void EnableListElements (Bool_t rnr_self=kTRUE,  Bool_t rnr_children=kTRUE);  // *MENU*
+  void DisableListElements(Bool_t rnr_self=kFALSE, Bool_t rnr_children=kFALSE); // *MENU*
 
   Bool_t GetDestroyOnZeroRefCnt() const   { return fDestroyOnZeroRefCnt; }
   void   SetDestroyOnZeroRefCnt(Bool_t d) { fDestroyOnZeroRefCnt = d; }
@@ -102,7 +103,7 @@ public:
   virtual void PadPaint(Option_t* option);
 
   virtual TObject* GetObject(Reve::Exc_t eh="RenderElement::GetObject ");
-
+  virtual TObject* GetEditorObject() { return GetObject(); }
   /*
     TRef&    GetSource() { return fSource; }
     TObject* GetSourceObject() const { return fSource.GetObject(); }
@@ -134,7 +135,8 @@ public:
   virtual TGListTreeItem* FindListTreeItem(TGListTree* ltree,
 					   TGListTreeItem* parent_lti);
 
-  virtual void UpdateItems();
+  virtual Int_t GetNItems() const { return fItems.size(); }
+  virtual void  UpdateItems();
 
   void SpawnEditor();                          // *MENU*
   virtual void ExportToCINT(Text_t* var_name); // *MENU*
