@@ -35,11 +35,11 @@ void Viewer::SetGLViewer(TGLViewer* s)
   fGLViewer = s;
 
   fGLViewer->SetSmartRefresh(kTRUE);
-  fGLViewer->SetResetCamerasOnUpdate(kFALSE);
+  // fGLViewer->SetResetCamerasOnUpdate(kFALSE);
   fGLViewer->SetResetCameraOnDoubleClick(kFALSE);
 }
 
-void Viewer::SpawnGLViewer(TGFrame* parent, TGedEditor* ged)
+void Viewer::SpawnGLViewer(const TGWindow* parent, TGedEditor* ged)
 {
   TGLSAViewer* v = new TGLSAViewer(parent, 0, ged);
   SetGLViewer(v);
@@ -70,6 +70,11 @@ void Viewer::RemoveElements()
 {
   fGLViewer->RemoveAllScenes();
   RenderElement::RemoveElements();
+}
+
+TObject* Viewer::GetEditorObject()
+{
+  return fGLViewer;
 }
 
 Bool_t Viewer::HandleElementPaste(RenderElement* el)
@@ -109,7 +114,7 @@ ViewerList::~ViewerList()
 
 void ViewerList::RepaintChangedViewers(Bool_t resetCameras, Bool_t dropLogicals)
 {
-  for(List_i i=fChildren.begin(); i!=fChildren.end(); ++i)
+  for (List_i i=fChildren.begin(); i!=fChildren.end(); ++i)
   {
     TGLViewer* glv = ((Viewer*)*i)->GetGLViewer();
     if (glv->IsChanged())
@@ -122,6 +127,22 @@ void ViewerList::RepaintChangedViewers(Bool_t resetCameras, Bool_t dropLogicals)
       glv->RequestDraw();
 
       if (dropLogicals) glv->SetSmartRefresh(kTRUE);
+    }
+  }
+}
+
+void ViewerList::SceneDestructing(Scene* scene)
+{
+  for (List_i i=fChildren.begin(); i!=fChildren.end(); ++i)
+  {
+    Viewer* viewer = (Viewer*) *i;
+    List_i j = viewer->BeginChildren();
+    while (j != viewer->EndChildren())
+    {
+      SceneInfo* sinfo = (SceneInfo*) *j;
+      ++j;
+      if (sinfo->GetScene() == scene)
+	gReve->RemoveRenderElement(sinfo, viewer);
     }
   }
 }

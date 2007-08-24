@@ -5,7 +5,7 @@
 
 #include <Reve/RenderElement.h>
 
-class TGFrame;
+class TGWindow;
 class TGedEditor;
 class TGLViewer;
 
@@ -32,12 +32,14 @@ public:
 
   TGLViewer* GetGLViewer() const { return fGLViewer; }
   void SetGLViewer(TGLViewer* s);
-  void SpawnGLViewer(TGFrame* parent, TGedEditor* ged);
+  void SpawnGLViewer(const TGWindow* parent, TGedEditor* ged);
 
   virtual void AddScene(Scene* scene);
 
   virtual void RemoveElementLocal(RenderElement* el);
   virtual void RemoveElements();
+
+  virtual TObject* GetEditorObject();
 
   virtual Bool_t HandleElementPaste(RenderElement* el);
 
@@ -62,6 +64,8 @@ public:
   virtual ~ViewerList();
 
   void RepaintChangedViewers(Bool_t resetCameras, Bool_t dropLogicals);
+
+  void SceneDestructing(Scene* scene);
 
   ClassDef(ViewerList, 0);
 }; // endclass ViewerList
