@@ -1,6 +1,8 @@
 // $Header$
 
 #include "Scene.h"
+#include "Viewer.h"
+#include <Reve/RGTopFrame.h>
 
 #include <TList.h>
 #include <TGLScenePad.h>
@@ -28,7 +30,9 @@ Scene::Scene(const Text_t* n, const Text_t* t) :
 }
 
 Scene::~Scene()
-{}
+{
+  gReve->GetViewers()->SceneDestructing(this);
+}
 
 /**************************************************************************/
 
