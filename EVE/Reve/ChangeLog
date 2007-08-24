@@ -1,11 +1,77 @@
+2007-08-24  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	EVE-dev
+
+	* LinkDef.h:
+	Register class RGLTEFrame.
+
+	* RGBrowser.cxx:
+	* RGBrowser.h:
+	Subclass RGBrowser from TNewBrowser, add new class RGLTEFrame to
+	encapsulate list-tree editor combo.
+	This is a major change,	basically no code left unchanged.
+
+	* RGEditor.cxx:
+	* RGEditor.h:
+	Added width, height ctor args.
+	Use RenderElement::GetEditorObject() instead of GetObject().
+
+	* RGTopFrame.cxx:
+	* RGTopFrame.h:
+	Removed inheritance from TGmainFrame, use RGBrowser as top-level
+	GUI element. Whole initalization rewritten to reflect that.
+	RGTopFrame class is now ripe to be renamed to Application, Manager
+	or something similar.
+
+	For consistency renamed ElementChanged() to RenderElementChanged().
+
+	* RenderElement.cxx:
+	* RenderElement.h:
+	Added virtual GetEditorObject() that can return an alternate
+	object to be edited when rnr-el is selected (eg. Viewer passes its
+	TGLViewer).
+
+	Added virtual CheckReferenceCount() (code taken from
+	RemoveParent()) that is now also called from RemoveFromListTree()
+	when a top-level list-tree-entry is removed.
+
+	Replaced all calls gClient->NeedRedraw(listtree) with
+	listtree->ClearViewPort() [changes in root].
+
+	Added optional arguments Bool_t rnr_self/children to
+	En/DisableListElements().
+
+	* Reve.cxx:
+	Moved mime-type init for RMacro from RGTopFrame to SetupGUI().
+
+	* Scene.cxx:
+	Report scene destruction to global viewer-list.
+
+	* SceneInfo.cxx:
+	* SceneInfo.h:
+	Overrode AcceptRenderElement() and HandleElementPaste() to deny
+	addition of elements.
+
+	* Viewer.cxx:
+	* Viewer.h:
+	Viewer:	overrode GetEditorObject() to return fGLViewer.
+	ViewerList: added SceneDestructing(Scene* scene) method to
+	unregister a scene from all existing viewers.
+
+	* GeoNode.cxx:
+	Remove obsolete root-version ifdef.
+
+	* VSDSelector.h:
+	Add missing include.
+
 2007-08-22  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
 
 	EVE-dev
 
 	* NLTBases.cxx:
 	* NLTBases.h:
-	Implementation of NLTGeoProjectable class, to be a common base of GeoNode and
-	GeoShapeRnrEl for non-linear projections.
+	Implementation of NLTGeoProjectable class, to be a common base of
+	GeoNode and GeoShapeRnrEl for non-linear projections.
 
 	* GeoNode.cxx:
 	* GeoNode.h:
@@ -22,13 +88,13 @@
 
 	* NLTPolygonSetGL.cxx:
 	NLTPolygons in NLTPolygonSet stored in std::list.
-	
+
 	* NLTProjectorEditor.cxx:
 	Use NLTProjector Getters and Setters.
-	
+
 	* NLTTrack.h:
 	Remove PrintLineSegments() from popup menu.
-	
+
 	* NLTTrack.cxx:
 	In UpdateProjection disable recursive behavior. Recursive calls
 	already done by NLTProjector.
@@ -213,7 +279,7 @@
 	* TrackRnrStyleEditor.h:
 	Configuration of track rendering has two sources. First is done by
 	TrackRnrStyle which can be shared. Second type of configuration
-	goes via TrackList container, a RenderElement parent of a track. 
+	goes via TrackList container, a RenderElement parent of a track.
 
 	TrackList handles only track line attributes. These attributes are
 	set recursively by default. The remaining configuration is dane
@@ -472,7 +538,7 @@
 	* Track.h:
 	* TrackEditors.cxx:
 	* TrackEditors.h:
-	Enable line style modification in TrackList/TrackListEditor.   
+	Enable line style modification in TrackList/TrackListEditor.
 
 2007-05-24  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
 
@@ -485,7 +551,7 @@
 	* GeoNode.h:
 	* RGeoNodeEditors.cxx:
 	Map SetRnrSelf and SetRnrChildren to node visibility and to node
-	daughters visibility. 
+	daughters visibility.
 
 2007-04-19  Matevz Tadel  <matevz.tadel@cern.ch>
 
@@ -685,12 +751,12 @@
 	* RenderElement.h:
 	* LinkDef.h:
 	Classes RenderElement and RenderElementListBase have been merged,
-	RenderElementListBase class is removed. 
+	RenderElementListBase class is removed.
 
-	Since RenderElement supports hierarchical structure fRnrElement is 
+	Since RenderElement supports hierarchical structure fRnrElement is
 	replaced to fRnrSelf and fRnrChildren. RnrSelf/RnrDaughters
 	callbacks from editor set check box picture according to the for
-	possible states. 
+	possible states.
 
 	New class PadPrimitve. Objects of the classes enable recursive
 	rendering  as they are added in TPad fListOfPrimitives.
@@ -749,7 +815,7 @@
 
 	* RenderElement.cxx:
 	Call redraw after Enable/DisableListElements.
-	
+
 	* Track.cxx:
 	* Track.h:
 	Two new items for context menu: PrintPathMarks and
@@ -767,11 +833,11 @@
 	Fix Ludovic's strange const-method syntax.
 
 2007-02-19  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
-		
+
 	* PODs.h:
 	Add member time to class PathMark. Set values in enum
 	PathMark::Type_e.
-	
+
 	* Track.cxx:
 	Add callbacks to set path marks. In Track::MakeTrack() implement
 	fitting of track references and daughter particles.
@@ -870,7 +936,7 @@
 	* QuadSetGL.cxx:
 	* QuadSetGL.h:
 	Added support for secondary selection. Sacrificed some speed for
-	simplicity / clarity. 
+	simplicity / clarity.
 
 2006-12-08  Matevz Tadel  <matevz.tadel@cern.ch>
 
@@ -1026,7 +1092,7 @@
 
 	* RGValuators.cxx:
 	* RGValuators.h:
-	Added int version of SetLimits for RGDoubleValuator; added 
+	Added int version of SetLimits for RGDoubleValuator; added
 	getters for value limits (Ludovic).
 
 	* Plex.cxx:
@@ -1079,7 +1145,7 @@
 	* TrackEditors.cxx:
 	* TrackEditors.h:
 	Cleaned-up by using RGValuators instead of raw ROOT GUI (partial).
-	
+
 	* QuadSet.cxx:
 	* QuadSet.h:
 	* QuadSetGL.cxx:
@@ -1159,7 +1225,7 @@
 	Changed inheritance to include Reve::RenderElement;
 	use ZTrans to store transformation matrix;
 	added render-mode state (to force line/fill drawing).
-	
+
 	In class Box added ctor and function MakeAxisAlignedBox() to
 	facilitate creation of regular boxes.
 
@@ -1222,7 +1288,7 @@
 2006-10-12  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	EVE-dev
-	
+
 	* BoxSet.h:
 	Fix wrong numerical constant in transformation assignment.
 
@@ -1247,7 +1313,7 @@
 2006-10-04  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	EVE-dev
-	
+
 	* RenderElement.cxx:
 	* RenderElement.h:
 	Made RenderElement::ExportToCINT() virtual and reimplemented it in
@@ -1261,7 +1327,7 @@
 2006-10-02  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	EVE-dev
-	
+
 	* .SKEL-ged.cxx:
 	* .SKEL-ged.h:
 	* .SKEL-gl.cxx:
@@ -1383,7 +1449,7 @@
 2006-08-29  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	EVE-dev
-	
+
 	* BoxSetGL.cxx:
 	* QuadSetGL.cxx:
 	Added ifdefs for post root-5.11.0 prototype of SetModelCheckClass().
