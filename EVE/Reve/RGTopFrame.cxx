@@ -153,6 +153,11 @@ TCanvas* RGTopFrame::AddCanvasTab(const char* name)
   return c;
 }
 
+TGWindow* RGTopFrame::GetMainWindow() const
+{
+  return fBrowser;
+}
+
 TGLViewer* RGTopFrame::GetGLViewer() const
 {
   return fViewer->GetGLViewer();

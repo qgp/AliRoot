@@ -22,6 +22,7 @@ class TGStatusBar;
 class TGListTree;
 class TGListTreeItem;
 class TGStatusBar;
+class TGWindow;
 
 class TGLViewer;
 
@@ -69,7 +70,6 @@ private:
 
   TFolder             *fMacroFolder;
 
-
   ViewerList          *fViewers;
   SceneList           *fScenes;
 
@@ -105,6 +105,7 @@ public:
   EventBase*   GetCurrentEvent() const { return fCurrentEvent; }
 
   TCanvas*     AddCanvasTab(const char* name);
+  TGWindow*    GetMainWindow() const;
   TGLViewer*   GetGLViewer() const;
   Viewer*      SpawnNewViewer(const Text_t* name, const Text_t* title="", Bool_t embed=kTRUE);
   Scene*       SpawnNewScene(const Text_t* name, const Text_t* title="");
