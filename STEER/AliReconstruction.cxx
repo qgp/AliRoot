@@ -1937,12 +1937,12 @@ void AliReconstruction::ESDFile2AODFile(TFile* esdFile, TFile* aodFile)
 	     << " The V0 " << indV0 
 	     << " doesn't exist in the array of V0s or was used!" << endl;
 
-	cascade->GetXYZcascade(pos[0], pos[1], pos[2]);
-	cascade->GetPosCovXi(covVtx);
+	cascade->GetXYZ(pos[0], pos[1], pos[2]);
+	cascade->GetPosCov(covVtx);
       
 	vV0FromCascade = new(vertices[jVertices++]) AliAODVertex(pos,
 								 covVtx,
-								 v0->GetChi2V0(), // = chi2/NDF since NDF = 2*2-3
+								 cascade->GetChi2V0(), // = chi2/NDF since NDF = 2*2-3
 								 vcascade,
 								 AliAODVertex::kV0);
 	vcascade->AddDaughter(vV0FromCascade);
