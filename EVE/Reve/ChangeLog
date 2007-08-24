@@ -1,5 +1,22 @@
 2007-08-24  Matevz Tadel  <matevz.tadel@cern.ch>
 
+	* LinkDef.h:
+	Register new class NLTPointSetGL.
+
+	* NLTPointSetGL.cxx:
+	* NLTPointSetGL.h:
+	New files: hack to disable display-lists for NLTPointSet (bug in
+	fglrx driver, takes forever).
+
+	* NLTProjector.cxx:
+	Set fProjection = 0 after destruction.
+
+	* .SKEL-gl.cxx:
+	* NLTTrackGL.cxx:
+	Fix a commented line for display-list disabling.
+
+2007-08-24  Matevz Tadel  <matevz.tadel@cern.ch>
+
 	EVE-dev
 
 	* LinkDef.h:
