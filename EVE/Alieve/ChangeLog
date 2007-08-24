@@ -1,7 +1,10 @@
 2007-08-24  Matevz Tadel  <matevz.tadel@cern.ch>
 
+	EVE-dev
+
 	* TPCLoaderEditor.cxx:
 	* TRDLoader.cxx:
+	Use gReve->GetMainWindow() to obtain main window for file-dialog.
 
 2007-08-13  Matevz Tadel  <matevz.tadel@cern.ch>
 
