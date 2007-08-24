@@ -39,7 +39,7 @@ public:
   virtual void RemoveElementLocal(RenderElement* el);
   virtual void RemoveElements();
 
-  virtual TObject* GetEditorObject();
+  virtual TObject* GetEditorObject() const;
 
   virtual Bool_t HandleElementPaste(RenderElement* el);
 

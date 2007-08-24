@@ -72,7 +72,7 @@ void Viewer::RemoveElements()
   RenderElement::RemoveElements();
 }
 
-TObject* Viewer::GetEditorObject()
+TObject* Viewer::GetEditorObject() const
 {
   return fGLViewer;
 }

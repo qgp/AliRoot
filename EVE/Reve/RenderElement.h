@@ -76,7 +76,7 @@ public:
   virtual ~RenderElement();
 
   virtual void SetRnrElNameTitle(const Text_t* name, const Text_t* title);
-  virtual const Text_t* GetRnrElName() const;
+  virtual const Text_t* GetRnrElName()  const;
   virtual const Text_t* GetRnrElTitle() const;
 
   virtual void AddParent(RenderElement* re);
@@ -104,8 +104,8 @@ public:
 
   virtual void PadPaint(Option_t* option);
 
-  virtual TObject* GetObject(Reve::Exc_t eh="RenderElement::GetObject ");
-  virtual TObject* GetEditorObject() { return GetObject(); }
+  virtual TObject* GetObject(Reve::Exc_t eh="RenderElement::GetObject ") const;
+  virtual TObject* GetEditorObject() const { return GetObject(); }
   /*
     TRef&    GetSource() { return fSource; }
     TObject* GetSourceObject() const { return fSource.GetObject(); }
