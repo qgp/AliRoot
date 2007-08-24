@@ -3,7 +3,7 @@
 Reve::PointSet*
 trd_hits(const char *varexp    = "fX:fY:fZ",
 	 const char *selection = "",
-	 RenderElement* cont = 0)
+	 Reve::RenderElement* cont = 0)
 {
   AliRunLoader* rl =  Alieve::Event::AssertRunLoader();
   rl->LoadHits("TRD");

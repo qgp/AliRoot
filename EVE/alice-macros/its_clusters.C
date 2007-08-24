@@ -1,5 +1,5 @@
 
-Reve::PointSet* its_clusters(RenderElement* cont=0, Float_t maxR=50)
+Reve::PointSet* its_clusters(Reve::RenderElement* cont=0, Float_t maxR=50)
 {
   Alieve::Event::AssertGeometry();
 

@@ -1,5 +1,5 @@
 
-Reve::PointSet* tpc_clusters(RenderElement* cont=0, Float_t maxR=270)
+Reve::PointSet* tpc_clusters(Reve::RenderElement* cont=0, Float_t maxR=270)
 {
   const Int_t kMaxCl=100*160;
 

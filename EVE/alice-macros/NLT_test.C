@@ -1,5 +1,5 @@
 
-Reve::NLTProjector* NLT_test(RenderElement* top=0)
+Reve::NLTProjector* NLT_test(Reve::RenderElement* top=0)
 {
   using namespace Reve;
 
@@ -22,7 +22,8 @@ Reve::NLTProjector* NLT_test(RenderElement* top=0)
     top = gReve->GetCurrentEvent();
 
   p->ImportElements(top);
-  top->SetRnrState(kFALSE);
+
+  gReve->Redraw3D(kTRUE);
 
   return p;
 }
