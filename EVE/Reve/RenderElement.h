@@ -76,6 +76,8 @@ public:
   virtual ~RenderElement();
 
   virtual void SetRnrElNameTitle(const Text_t* name, const Text_t* title);
+  virtual const Text_t* GetRnrElName() const;
+  virtual const Text_t* GetRnrElTitle() const;
 
   virtual void AddParent(RenderElement* re);
   virtual void RemoveParent(RenderElement* re);
@@ -198,7 +200,7 @@ public:
   RenderElementObjPtr(TObject* obj, Color_t& mainColor, Bool_t own=kTRUE);
   virtual ~RenderElementObjPtr();
 
-  virtual TObject* GetObject(Exc_t eh="RenderElementObjPtr::GetObject ");
+  virtual TObject* GetObject(Exc_t eh="RenderElementObjPtr::GetObject ") const;
   virtual void     ExportToCINT(Text_t* var_name);
 
   Bool_t GetOwnObject() const   { return fOwnObject; }

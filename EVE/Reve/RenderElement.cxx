@@ -73,6 +73,19 @@ void RenderElement::SetRnrElNameTitle(const Text_t* name, const Text_t* title)
 }
 
 /**************************************************************************/
+const Text_t* RenderElement::GetRnrElName() const
+{
+  TObject* named = dynamic_cast<TObject*>(GetObject());
+  return named ? named->GetName() : "<noo-nom>";
+}
+
+/**************************************************************************/
+const Text_t*  RenderElement::GetRnrElTitle() const
+{
+  TObject* named = dynamic_cast<TObject*>(GetObject());
+  return named ? named->GetTitle() : "<noo-tit>";
+}
+/**************************************************************************/
 
 void RenderElement::AddParent(RenderElement* re)
 {
@@ -311,6 +324,7 @@ void RenderElement::UpdateItems()
   static const Exc_t eH("RenderElement::UpdateItems ");
 
   TObject* tobj = GetObject(eH);
+
   for(sLTI_i i=fItems.begin(); i!=fItems.end(); ++i) {
     i->fItem->Rename(tobj->GetName());
     i->fItem->SetTipText(tobj->GetTitle());
@@ -322,12 +336,12 @@ void RenderElement::UpdateItems()
 
 /**************************************************************************/
 
-TObject* RenderElement::GetObject(Exc_t eh)
+TObject* RenderElement::GetObject(Exc_t eh) const
 {
-  TObject* obj = dynamic_cast<TObject*>(this);
+  const TObject* obj = dynamic_cast<const TObject*>(this);
   if(obj == 0)
     throw(eh + "not a TObject.");
-  return obj;
+  return const_cast<TObject*>(obj);
 }
 
 void RenderElement::SpawnEditor()
@@ -579,7 +593,7 @@ RenderElementObjPtr::RenderElementObjPtr(TObject* obj, Color_t& mainColor, Bool_
   fOwnObject(own)
 {}
 
-TObject* RenderElementObjPtr::GetObject(Reve::Exc_t eh)
+TObject* RenderElementObjPtr::GetObject(Reve::Exc_t eh) const
 {
   if(fObject == 0)
     throw(eh + "fObject not set.");
