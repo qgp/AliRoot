@@ -1,3 +1,20 @@
+2007-08-24  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	* alice-macros/NLT_test.C:
+	* alice-macros/clusters_from_index.C:
+	* alice-macros/clusters_from_label.C:
+	* alice-macros/hits_from_label.C:
+	* alice-macros/its_clusters.C:
+	* alice-macros/phos_clusters.C:
+	* alice-macros/tpc_clusters.C:
+	* alice-macros/tpc_hits.C:
+	* alice-macros/trd_hits.C:
+	Argument types must be fully quantified with latest cint: added
+	'Reve::' where needed.
+
+	* macros/alieve_init.C:
+	Changes for browser-topframe reorganization.
+
 2007-08-22  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
 
 	* alice-macros/NLT_geo_demo.C:
