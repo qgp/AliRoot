@@ -999,8 +999,11 @@ Int_t AliEMCALTracker::SolveCompetitions()
 			}
 		}
 	}
+
 	*/
 	
+	delete [] usedC;
+	delete [] usedT;
 	return count;
 }
 //

@@ -592,6 +592,7 @@ void AliPHOSTrigger::SetTriggers(const TClonesArray * ampmatrix, const Int_t iMo
     //Transform digit amplitude in Raw Samples
     if (fADCValuesHighnxn == 0) {
       fADCValuesHighnxn = new Int_t[nTimeBins];
+      if(fADCValuesLownxn)delete [] fADCValuesLownxn; // we miss also the dtor... 
       fADCValuesLownxn  = new Int_t[nTimeBins];
     }
 

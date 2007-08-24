@@ -228,7 +228,7 @@ void AliPHOSReconstructor::FillESD(AliRunLoader* runLoader, AliESDEvent* esd) co
 	(Short_t)(TMath::Min(digit->GetTime()*nsec100,kBigShort)); // time in units of 0.01 ns
       digiList[iDigit] = (Short_t)(digit->GetId());
     }
-    
+  
     //Primaries
     Int_t  primMult  = 0;
     Int_t *primInts =  emcRP->GetPrimaries(primMult);
@@ -273,6 +273,10 @@ void AliPHOSReconstructor::FillESD(AliRunLoader* runLoader, AliESDEvent* esd) co
     // add the track to the esd object
     esd->AddCaloCluster(ec);
     delete ec;    
+    delete [] primList;
+    delete [] amplList;
+    delete [] timeList;
+    delete [] digiList;
   }  
 }
 
