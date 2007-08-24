@@ -137,6 +137,7 @@
 #pragma link C++ class Reve::NLTPolygonSetGL+;
 
 #pragma link C++ class Reve::NLTPointSet+;
+#pragma link C++ class Reve::NLTPointSetGL+;
 
 //=====================================
 // Graphical elements (with renderers)
