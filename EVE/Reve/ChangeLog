@@ -1,3 +1,31 @@
+2007-08-26  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	* NLTProjector.cxx:
+	NLTProjection::GetValForScreenPos(): use projected values during
+	calculation of inital bisection bounds.
+
+	* PODs.cxx:
+	* PODs.h:
+	Added Vector::Mult(). Whitespace.
+
+	* RGBrowser.cxx:
+	* RGBrowser.h:
+	RGLTEFrame: added functions ReconfToHorizontal/Vertical() and menu
+	entry to invoke them.
+
+	* RGTopFrame.cxx:
+	* RGTopFrame.h:
+	Added GetLTEFrame().
+	Setup TGLSAViewer to edit external objects by default.
+	At startup show editor of default viewer.
+
+	* RenderElement.cxx:
+	In RemoveFromListTrees() rewrite list-tree-item loop to avoid
+	backward iteration during item removal.
+
+	* Viewer.cxx:
+	Setup TGLSAViewer to edit external objects by default.
+
 2007-08-24  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
 
 	* NLTProjector.cxx:
