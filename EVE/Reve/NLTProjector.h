@@ -22,27 +22,30 @@ public:
 protected:
   PType_e             fType;
   Float_t             fDistortion; // sensible values from 0 to 0.01
+  Float_t             fFixedRadius;
   Float_t             fScale;
  
 public:
-  NLTProjection() : fType(PT_Unknown), fDistortion(0), fScale(1.0f) {}
+  NLTProjection() : fType(PT_Unknown), fDistortion(0), fFixedRadius(300), fScale(1.0f) {}
   virtual   ~NLTProjection() {}
 
   virtual   void      ProjectPoint(Float_t&, Float_t&, Float_t&){}
   virtual   void      ProjectVector(Vector& v);
   virtual   Vector*   Project(Vector* pnts, Int_t npnts, Bool_t create_new = kTRUE);
 
-  void                SetDistortion(Float_t d);
-  Float_t             GetDistortion(){return fDistortion;}
   void                SetType(PType_e t){fType = t;}
   PType_e             GetType(){return fType;}
+  void                SetDistortion(Float_t d);
+  Float_t             GetDistortion(){return fDistortion;}
+  void                SetFixedRadius(Float_t x){fFixedRadius = x;}
+  Float_t             GetFixedRadius(){return fFixedRadius;}
 
   virtual   Bool_t    AcceptSegment(Vector&, Vector&, Float_t /*tolerance*/) {return kTRUE;} 
   virtual   void      SetDirectionalVector(Int_t screenAxis, Vector& vec);
 
   // utils to draw axis
-  virtual Float_t             GetValForScreenPos(Int_t ax, Float_t value);
-  virtual Float_t             GetScreenVal(Int_t ax, Float_t value);
+  virtual Float_t     GetValForScreenPos(Int_t ax, Float_t value);
+  virtual Float_t     GetScreenVal(Int_t ax, Float_t value);
 
   static   Float_t    fgEps;
 
@@ -89,6 +92,9 @@ private:
   Int_t           fSplitInfoMode;
   Int_t           fSplitInfoLevel;
   Color_t         fAxisColor;  
+
+  Float_t         fCurrentDepth;
+
 public:
   NLTProjector();
   virtual ~NLTProjector();
@@ -104,6 +110,8 @@ public:
   Int_t           GetSplitInfoLevel(){return fSplitInfoLevel;}
   void            SetAxisColor(Color_t col){SetMainColor(col);}
   Color_t         GetAxisColor(){return fAxisColor;}
+  void            SetCurrentDepth(Float_t d){fCurrentDepth =d;}
+  Float_t         GetCurrentDepth(){return fCurrentDepth;}
 
   virtual Bool_t  HandleElementPaste(RenderElement* el);
 

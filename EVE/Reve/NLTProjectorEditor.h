@@ -24,10 +24,11 @@ protected:
 
   TGComboBox    *fType;
   RGValuator    *fDistortion;
+  RGValuator    *fFixedRadius;
 
-  TGComboBox    *fSIMode; // scale info
+  // axis
+  TGComboBox    *fSIMode; 
   TGNumberEntry *fSILevel;
-
 public:
   NLTProjectorEditor(const TGWindow* p=0, Int_t width=170, Int_t height=30, UInt_t options = kChildFrame, Pixel_t back=GetDefaultFrameBackground());
   virtual ~NLTProjectorEditor();
@@ -39,6 +40,7 @@ public:
 
   void DoType(Int_t type);
   void DoDistortion();
+  void DoFixedRadius();
 
   ClassDef(NLTProjectorEditor, 0); // Editor for NLTProjector
 }; // endclass NLTProjectorEditor

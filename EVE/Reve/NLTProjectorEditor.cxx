@@ -21,8 +21,15 @@ ClassImp(NLTProjectorEditor)
 					 Int_t width, Int_t height,
 					 UInt_t options, Pixel_t back) :
     TGedFrame(p, width, height, options | kVerticalFrame, back),
-    fM(0)
-					// Initialize widget pointers to 0
+    fM(0),
+
+    fType(0),
+    fDistortion(0),
+    fFixedRadius(0),
+
+    fSIMode(0),
+    fSILevel(0)
+  
 {
   MakeTitle("Axis");
   {
@@ -32,6 +39,8 @@ ClassImp(NLTProjectorEditor)
     fSIMode = new TGComboBox(f);
     fSIMode->AddEntry("Value", 1);
     fSIMode->AddEntry("Position", 0);
+    // !! combo box dos not have a tool tip 
+    //fSIMode->GetNumberEntry()->SetToolTipText("Set tick-marks on equidistant values/screen position.");
     TGListBox* lb = fSIMode->GetListBox();
     lb->Resize(lb->GetWidth(), 2*18);
     fSIMode->Resize(80, 20);
@@ -43,11 +52,11 @@ ClassImp(NLTProjectorEditor)
   {
     TGHorizontalFrame* f = new TGHorizontalFrame(this);
     TGLabel* lab = new TGLabel(f, "SplitLevel");
-    f->AddFrame(lab, new TGLayoutHints(kLHintsLeft|kLHintsBottom, 1, 6, 1, 2));
+    f->AddFrame(lab, new TGLayoutHints(kLHintsLeft|kLHintsBottom, 1, 8, 1, 2));
     
     fSILevel = new TGNumberEntry(f, 0, 3, -1,TGNumberFormat::kNESInteger, TGNumberFormat::kNEANonNegative,
 				 TGNumberFormat::kNELLimitMinMax, 0, 3);
-    // fSILevel->SetToolTipText("Number of tick-marks TMath::Power(2, level).");
+    fSILevel->GetNumberEntry()->SetToolTipText("Number of tick-marks TMath::Power(2, level).");
     fSILevel->Connect("ValueSet(Long_t)", "Reve::NLTProjectorEditor", this, "DoSplitInfoLevel()");
     f->AddFrame(fSILevel, new TGLayoutHints(kLHintsTop, 1, 1, 1, 2));
     AddFrame(f, new TGLayoutHints(kLHintsTop, 0, 0, 0, 3) );
@@ -58,7 +67,7 @@ ClassImp(NLTProjectorEditor)
   {
     TGHorizontalFrame* f = new TGHorizontalFrame(this);
     TGLabel* lab = new TGLabel(f, "Type");
-    f->AddFrame(lab, new TGLayoutHints(kLHintsLeft|kLHintsBottom, 1, 27, 1, 2));
+    f->AddFrame(lab, new TGLayoutHints(kLHintsLeft|kLHintsBottom, 1, 31, 1, 2));
     fType = new TGComboBox(f);
     fType->AddEntry("CFishEye", NLTProjection::PT_CFishEye);
     fType->AddEntry("RhoZ",     NLTProjection::PT_RhoZ);
@@ -71,14 +80,26 @@ ClassImp(NLTProjectorEditor)
     AddFrame(f);
   }
 
+  Int_t labelW = 60;
   fDistortion = new RGValuator(this, "Distortion:", 90, 0);
   fDistortion->SetNELength(8);
+  fDistortion->SetLabelWidth(labelW);
   fDistortion->Build();
   fDistortion->SetLimits(0, 50, 101, TGNumberFormat::kNESRealTwo);
-  fDistortion->SetToolTip("Minimal angular step between two helix points.");
   fDistortion->Connect("ValueSet(Double_t)", "Reve::NLTProjectorEditor",
 		       this, "DoDistortion()");
   AddFrame(fDistortion, new TGLayoutHints(kLHintsTop, 1, 1, 1, 1));
+
+
+  fFixedRadius = new RGValuator(this, "FixedR:", 90, 0);
+  fFixedRadius->SetNELength(8);
+  fFixedRadius->SetLabelWidth(labelW);
+  fFixedRadius->Build();
+  fFixedRadius->SetLimits(0, 1000, 101, TGNumberFormat::kNESRealOne);
+  fFixedRadius->SetToolTip("Radius not scaled by distotion.");
+  fFixedRadius->Connect("ValueSet(Double_t)", "Reve::NLTProjectorEditor",
+		       this, "DoFixedRadius()");
+  AddFrame(fFixedRadius, new TGLayoutHints(kLHintsTop, 1, 1, 1, 1));
 }
 
 NLTProjectorEditor::~NLTProjectorEditor()
@@ -90,11 +111,12 @@ void NLTProjectorEditor::SetModel(TObject* obj)
 {
   fM = dynamic_cast<NLTProjector*>(obj);
 
-  fType->Select(fM->GetProjection()->GetType(), kFALSE);  
-  fDistortion->SetValue(1000.0f * fM->GetProjection()->GetDistortion());
-
   fSIMode->Select(fM->GetSplitInfoMode(), kFALSE);  
   fSILevel->SetNumber(fM->GetSplitInfoLevel());
+
+  fType->Select(fM->GetProjection()->GetType(), kFALSE);  
+  fDistortion->SetValue(1000.0f * fM->GetProjection()->GetDistortion());
+  fFixedRadius->SetValue(fM->GetProjection()->GetFixedRadius());
 }
 
 /**************************************************************************/
@@ -109,6 +131,13 @@ void NLTProjectorEditor::DoType(Int_t type)
 void NLTProjectorEditor::DoDistortion()
 {
   fM->GetProjection()->SetDistortion(0.001f * fDistortion->GetValue());
+  fM->ProjectChildren();
+  Update();
+}
+
+void NLTProjectorEditor::DoFixedRadius()
+{
+  fM->GetProjection()->SetFixedRadius(fFixedRadius->GetValue());
   fM->ProjectChildren();
   Update();
 }

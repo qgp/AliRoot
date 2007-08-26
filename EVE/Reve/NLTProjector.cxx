@@ -1,7 +1,6 @@
 #include "NLTProjector.h"
 #include "RGTopFrame.h"
 #include "NLTPolygonSet.h"
-//#include "PODs.h"
 #include "PointSet.h"
 #include "Track.h"
 
@@ -54,10 +53,10 @@ Vector* NLTProjection::Project(Vector* origPnts, Int_t Npnts, Bool_t copy)
 void NLTProjection::SetDistortion(Float_t d)
 {
   // Prevent scaling down whole projected scene.
-  // TPC should be constat size. 
+  // Point at fixe distance shold be on constant screen coorinate. 
 
   fDistortion=d; 
-  fScale = 1+300*fDistortion;
+  fScale = 1+fFixedRadius*fDistortion;
 }
 
 //______________________________________________________________________________
@@ -205,7 +204,9 @@ NLTProjector::NLTProjector():
 
   fSplitInfoMode(0),
   fSplitInfoLevel(1),
-  fAxisColor(0)
+  fAxisColor(0),
+
+  fCurrentDepth(0)
 {
   SetProjection(NLTProjection::PT_CFishEye, 0);
   fMainColorPtr = &fAxisColor;
@@ -288,6 +289,7 @@ void NLTProjector::ImportElementsRecurse(RenderElement* rnr_el, RenderElement* p
       new_re = (RenderElement*) pble->ProjectedClass()->New();
       new_pr = dynamic_cast<NLTProjected*>(new_re);
       new_pr->SetProjection(this, pble);
+      new_pr->SetDepth(fCurrentDepth);
     }
     else
     {
