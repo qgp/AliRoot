@@ -226,6 +226,14 @@ void RGTopFrame::DoRedraw3D()
   fTimerActive = kFALSE;
 }
 
+void RGTopFrame::FullRedraw3D(Bool_t resetCameras, Bool_t dropLogicals)
+{
+  fScenes ->RepaintAllScenes();
+  fViewers->RepaintAllViewers(resetCameras, dropLogicals);
+}
+
+/**************************************************************************/
+
 void RGTopFrame::RenderElementChanged(RenderElement* rnr_element)
 {
   std::list<RenderElement*> scenes;

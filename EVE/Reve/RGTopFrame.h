@@ -127,6 +127,7 @@ public:
   }
   void RegisterRedraw3D();
   void DoRedraw3D();
+  void FullRedraw3D(Bool_t resetCameras=kFALSE, Bool_t dropLogicals=kFALSE);
 
   void RenderElementChanged(RenderElement* rnr_element);
   void ScenesChanged(std::list<Reve::RenderElement*>& scenes);
