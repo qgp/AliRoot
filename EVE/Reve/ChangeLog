@@ -1,3 +1,27 @@
+2007-08-26  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
+
+	* NLTProjector.cxx:
+	* NLTProjector.h:
+	* NLTProjectorEditor.cxx:
+	* NLTProjectorEditor.h:
+	Add member fFixedRadius. It defines distance from center, where
+	projected value is not dependent of distortion. Introduce z-depth
+	which defines the z coordinate of projected points.
+
+	* NLTBases.h:
+	* PointSet.cxx:
+	* NLTPolygonSet.cxx:
+	* NLTPolygonSet.h:
+	* NLTPolygonSetEditor.cxx:
+	* NLTPolygonSetEditor.h:
+	NLTProjected new member z-depth.
+
+	* NLTTrack.cxx:
+        Improve algorithm in GetBreakpoint().
+
+	* PODs.h:
+	Add function Vector::Set(const Vector& v).
+
 2007-08-26  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	* RGTopFrame.cxx:
