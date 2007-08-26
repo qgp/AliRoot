@@ -47,7 +47,7 @@ public:
 
   Vector operator + (const Vector &);
   Vector operator - (const Vector &);
-  Vector operator * (Double_t a);
+  Vector operator * (Float_t a);
 
   Float_t* c_vec() { return &x; }
   Float_t& operator [] (Int_t indx);
@@ -73,6 +73,8 @@ public:
 
   Float_t Distance(const Vector& v) const;
   Float_t SquareDistance(const Vector& v) const;
+
+  Vector& Mult(const Vector&a, Float_t af) { x = a.x*af; y = a.y*af; z = a.z*af; return *this; }
 
   ClassDef(Vector, 1);
 };
