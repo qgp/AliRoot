@@ -42,6 +42,7 @@ void Viewer::SetGLViewer(TGLViewer* s)
 void Viewer::SpawnGLViewer(const TGWindow* parent, TGedEditor* ged)
 {
   TGLSAViewer* v = new TGLSAViewer(parent, 0, ged);
+  v->ToggleEditObject();
   SetGLViewer(v);
 }
 
