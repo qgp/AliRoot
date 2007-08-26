@@ -1,5 +1,12 @@
 2007-08-26  Matevz Tadel  <matevz.tadel@cern.ch>
 
+	* RenderElement.cxx:
+	* RenderElement.h:
+	Added new optional argument Bool_t redraw to ElementChanged().
+	USe the above method consistently throughout the code.
+
+2007-08-26  Matevz Tadel  <matevz.tadel@cern.ch>
+
 	* NLTProjector.cxx:
 	NLTProjection::GetValForScreenPos(): use projected values during
 	calculation of inital bisection bounds.
