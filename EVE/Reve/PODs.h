@@ -58,6 +58,7 @@ public:
   void Set(Float_t  _x, Float_t  _y, Float_t  _z) { x=_x; y=_y; z=_z; }
   void Set(Double_t _x, Double_t _y, Double_t _z) { x=_x; y=_y; z=_z; }
   void Set(const TVector3& v) { x=v.x(); y=v.y(); z=v.z(); }
+  void Set(const Vector& v) { x=v.x; y=v.y; z=v.z; }
 
   Float_t Phi()      const;
   Float_t Theta()    const;
