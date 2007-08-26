@@ -451,7 +451,7 @@ void RenderElement::AddElement(RenderElement* el)
 {
   el->AddParent(this);
   fChildren.push_back(el);
-  gReve->RenderElementChanged(this);
+  ElementChanged();
 }
 
 void RenderElement::RemoveElement(RenderElement* el)
@@ -482,7 +482,7 @@ void RenderElement::RemoveElements()
     (*i)->RemoveParent(this);
   }
   fChildren.clear();
-  gReve->RenderElementChanged(this);
+  ElementChanged();
 }
 
 /**************************************************************************/
@@ -495,8 +495,7 @@ void RenderElement::EnableListElements(Bool_t rnr_self,  Bool_t rnr_children)
     (*i)->SetRnrChildren(rnr_children);
   }
 
-  gReve->RenderElementChanged(this);
-  gReve->Redraw3D();
+  ElementChanged(kTRUE, kTRUE);
 }
 
 void RenderElement::DisableListElements(Bool_t rnr_self,  Bool_t rnr_children)
@@ -507,8 +506,7 @@ void RenderElement::DisableListElements(Bool_t rnr_self,  Bool_t rnr_children)
     (*i)->SetRnrChildren(rnr_children);
   }
 
-  gReve->RenderElementChanged(this);
-  gReve->Redraw3D();
+  ElementChanged(kTRUE, kTRUE);
 }
 
 /**************************************************************************/
@@ -552,10 +550,12 @@ Bool_t RenderElement::HandleElementPaste(RenderElement* el)
   return kTRUE;
 }
 
-void RenderElement::ElementChanged(Bool_t update_scenes)
+void RenderElement::ElementChanged(Bool_t update_scenes, Bool_t redraw)
 {
   if (update_scenes)
     gReve->RenderElementChanged(this);
+  if (redraw)
+    gReve->Redraw3D();
 }
 
 /**************************************************************************/

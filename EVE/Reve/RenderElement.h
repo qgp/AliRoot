@@ -154,7 +154,7 @@ public:
   virtual void DestroyElements();              // *MENU*
 
   virtual Bool_t HandleElementPaste(RenderElement* el);
-  virtual void   ElementChanged(Bool_t update_scenes=kTRUE);
+  virtual void   ElementChanged(Bool_t update_scenes=kTRUE, Bool_t redraw=kFALSE);
 
   virtual Bool_t CanEditRnrElement()   { return kTRUE; }
   virtual Bool_t GetRnrSelf() const { return fRnrSelf; }
