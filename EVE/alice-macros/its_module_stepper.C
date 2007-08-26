@@ -4,7 +4,7 @@ namespace Alieve
 class ITSModuleStepper;
 }
 
-void its_module_stepper( Int_t det=0, Int_t col = 5 , Int_t row = 4)
+void its_module_stepper(Int_t det = 0, Int_t col = 5, Int_t row = 4)
 {
   TFile *file = TFile::Open("ITS.Digits.root");
   TDirectory* dir = (TDirectory*) file->Get("Event0");
@@ -25,4 +25,6 @@ void its_module_stepper( Int_t det=0, Int_t col = 5 , Int_t row = 4)
   v->SetCurrentCamera(TGLViewer::kCameraOrthoXOY);
   TGLCameraMarkupStyle* mup = v->GetCameraMarkup();
   if(mup) mup->SetShow(kFALSE);
+
+  gReve->Redraw3D(kTRUE);
 }
