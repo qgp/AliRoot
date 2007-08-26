@@ -55,19 +55,20 @@ void  NLTTrack::GetBreakPoint(Int_t idx, Bool_t back,  Float_t& x, Float_t& y, F
   // printf("out of tolerance:%d (%f, %f, %f)(%f, %f, %f) \n",
   // 	 idx, vL.x, vL.y, vL.z, vR.x, vR.y, vR.z );
 
+  Vector vM, vLP, vRP, vMP;
   while((vL-vR).Mag() > 0.1)
   { 
-    Vector vM = (vL+vR)*0.5;
-    Vector vLP  = vL; fProjection->ProjectPoint(vLP.x, vLP.y, vLP.z);
-    Vector vMP  = vM; fProjection->ProjectPoint(vMP.x, vMP.y, vMP.z);
+    vM.Mult(vL+vR, 0.5f);
+    vLP.Set(vL); fProjection->ProjectPoint(vLP.x, vLP.y, vLP.z);
+    vMP.Set(vM); fProjection->ProjectPoint(vMP.x, vMP.y, vMP.z);
     // if(fProjection->AcceptSegment(vL, vM, GetRnrStyle()->fDelta*0.1))
     if(fProjection->AcceptSegment(vL, vM, 0.0f))
     {
-      vL = vM;
+      vL.Set(vM);
     }
     else 
     {
-      vR = vM;
+      vR.Set(vM);
     }
     //printf("new interval Mag %f (%f, %f, %f)(%f, %f, %f) \n",(vL-vR).Mag(), vL.x, vL.y, vL.z, vR.x, vR.y, vR.z);
   }
@@ -127,6 +128,7 @@ void NLTTrack::MakeTrack(Bool_t recurse)
   {
     fOrigPnts[i].Set(p);
     fProjection->ProjectPoint(p[0], p[1], p[2]);
+    p[2] = fDepth;
   } 
   Float_t x, y, z;
   std::vector<Vector> vvec;
