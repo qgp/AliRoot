@@ -19,12 +19,11 @@ void its_module_stepper(Int_t det = 0, Int_t col = 5, Int_t row = 4)
   ms->ConfigStepper(col, row);
   ms->DisplayDet(det, -1);
   gReve->AddRenderElement(ms);
+  gReve->Redraw3D(kTRUE); // To enforce camera reset
   gReve->EnableRedraw();
 
   TGLViewer* v = (TGLViewer *)gReve->GetGLViewer();
   v->SetCurrentCamera(TGLViewer::kCameraOrthoXOY);
   TGLCameraMarkupStyle* mup = v->GetCameraMarkup();
   if(mup) mup->SetShow(kFALSE);
-
-  gReve->Redraw3D(kTRUE);
 }
