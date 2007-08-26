@@ -56,7 +56,7 @@ RGLTEFrame::RGLTEFrame(const Text_t* name, Int_t width, Int_t height) :
   SetWindowName(name);
   SetCleanup(kNoCleanup);
 
-  fFrame = new TGVerticalFrame(this, width, height);
+  fFrame = new TGCompositeFrame(this, width, height, kVerticalFrame);
 
   // List-tree
   fLTFrame  = new TGCompositeFrame(fFrame, width, 3*height/7, kVerticalFrame);
@@ -70,11 +70,11 @@ RGLTEFrame::RGLTEFrame(const Text_t* name, Int_t width, Int_t height) :
   fLTFrame->AddFrame(fLTCanvas, new TGLayoutHints
 		     (kLHintsNormal | kLHintsExpandX | kLHintsExpandY, 1, 1, 1, 1));
   fFrame  ->AddFrame(fLTFrame, new TGLayoutHints
-		     (kLHintsTop | kLHintsExpandX | kLHintsExpandY));
+		     (kLHintsNormal | kLHintsExpandX | kLHintsExpandY));
 
   // Splitter
-  TGHSplitter *splitter = new TGHSplitter(fFrame);
-  fFrame->AddFrame(splitter, new TGLayoutHints(kLHintsTop | kLHintsExpandX, 1,1,2,2));
+  fSplitter = new TGHSplitter(fFrame);
+  fFrame->AddFrame(fSplitter, new TGLayoutHints(kLHintsTop | kLHintsExpandX, 1,1,2,2));
 
   // Editor
   fFrame->SetEditDisabled(kEditEnable);
@@ -87,19 +87,17 @@ RGLTEFrame::RGLTEFrame(const Text_t* name, Int_t width, Int_t height) :
   {
     TGFrameElement *el = 0;
     TIter next(fFrame->GetList());
-    while ((el = (TGFrameElement *)next())) {
+    while ((el = (TGFrameElement *) next())) {
       if (el->fFrame == fEditor)
 	if (el->fLayout) {
 	  el->fLayout->SetLayoutHints(kLHintsTop | kLHintsExpandX);
-	  el->fLayout->SetPadLeft(0);
-	  el->fLayout->SetPadRight(1);
-	  el->fLayout->SetPadTop(2);
-	  el->fLayout->SetPadBottom(1);
+	  el->fLayout->SetPadLeft(0); el->fLayout->SetPadRight(1);
+	  el->fLayout->SetPadTop(2);  el->fLayout->SetPadBottom(1);
 	  break;
 	}
     }
   }
-  splitter->SetFrame(fEditor, kFALSE);
+  fSplitter->SetFrame(fEditor, kFALSE);
 
   AddFrame(fFrame, new TGLayoutHints(kLHintsNormal | kLHintsExpandX | kLHintsExpandY));
 
@@ -126,10 +124,93 @@ RGLTEFrame::~RGLTEFrame()
   // Should un-register editor, all items and list-tree from gReve ... eventually.
 
   delete fEditor;
+  delete fSplitter;
   delete fListTree;
   delete fLTCanvas;
   delete fLTFrame;
   delete fFrame;
+}
+
+/**************************************************************************/
+
+void RGLTEFrame::ReconfToHorizontal()
+{
+  UnmapWindow();
+
+  fFrame->ChangeOptions(kHorizontalFrame);
+  fLTFrame->ChangeOptions(kHorizontalFrame);
+  fListTree->ChangeOptions(kVerticalFrame);
+
+  TGFrameElement *el = 0;
+  TIter next(fFrame->GetList());
+  while ((el = (TGFrameElement *) next()))
+  {
+    if (el->fFrame == fSplitter)
+    {
+      delete fSplitter;
+      el->fFrame = fSplitter = new TGVSplitter(fFrame);
+      el->fLayout->SetLayoutHints(kLHintsLeft | kLHintsExpandY);
+      el->fLayout->SetPadLeft(2); el->fLayout->SetPadRight (2);
+      el->fLayout->SetPadTop (1); el->fLayout->SetPadBottom(1);
+    }
+    else if (el->fFrame == fEditor)
+    {
+      fEditor->ChangeOptions(fEditor->GetOptions() & (~kFixedHeight));
+      fEditor->ChangeOptions(fEditor->GetOptions() |   kFixedWidth);
+      el->fLayout->SetLayoutHints(kLHintsLeft | kLHintsExpandY);
+    }
+  }
+
+  fEditor->Resize(fEditor->GetWidth() / 2 - 1, fEditor->GetHeight());
+  fSplitter->SetFrame(fEditor, kFALSE);
+
+  Layout();
+  //fFrame->Layout();
+  //fLTFrame->Layout();
+  //fLTCanvas->Layout();
+  //fListTree->ClearViewPort();
+  MapSubwindows();
+  MapWindow();
+}
+
+void RGLTEFrame::ReconfToVertical()
+{
+  UnmapWindow();
+
+  fFrame->ChangeOptions(kVerticalFrame);
+  fLTFrame->ChangeOptions(kVerticalFrame);
+  fListTree->ChangeOptions(kHorizontalFrame);
+
+  TGFrameElement *el = 0;
+  TIter next(fFrame->GetList());
+  while ((el = (TGFrameElement *) next()))
+  {
+    if (el->fFrame == fSplitter)
+    {
+      delete fSplitter;
+      el->fFrame = fSplitter = new TGHSplitter(fFrame);
+      el->fLayout->SetLayoutHints(kLHintsTop | kLHintsExpandX);
+      el->fLayout->SetPadLeft(2); el->fLayout->SetPadRight (2);
+      el->fLayout->SetPadTop (1); el->fLayout->SetPadBottom(1);
+    }
+    else if (el->fFrame == fEditor)
+    {
+      fEditor->ChangeOptions(fEditor->GetOptions() & (~kFixedWidth));
+      fEditor->ChangeOptions(fEditor->GetOptions() |   kFixedHeight);
+      el->fLayout->SetLayoutHints(kLHintsTop | kLHintsExpandX);
+    }
+  }
+
+  fEditor->Resize(fEditor->GetWidth(), fEditor->GetHeight() / 2 - 1);
+  fSplitter->SetFrame(fEditor, kFALSE);
+
+  Layout();
+  //fFrame->Layout();
+  //fLTFrame->Layout();
+  //fLTCanvas->Layout();
+  //fListTree->ClearViewPort();
+  MapSubwindows();
+  MapWindow();
 }
 
 /**************************************************************************/
@@ -305,8 +386,9 @@ void RGBrowser::CalculateReparentXY(TGObject* parent, Int_t& x, Int_t& y)
 namespace
 {
 enum ReveMenu_e {
-  kNewViewer, kNewScene, kNewProjector,
-  kNewBrowser, kNewCanvas, kNewCanvasExt
+  kNewViewer,  kNewScene,  kNewProjector,
+  kNewBrowser, kNewCanvas, kNewCanvasExt,
+  kVerticalBrowser
 };
 }
 
@@ -324,6 +406,9 @@ RGBrowser::RGBrowser(UInt_t w, UInt_t h) :
   fRevePopup->AddEntry("New &Browser",   kNewBrowser);
   fRevePopup->AddEntry("New &Canvas",    kNewCanvas);
   fRevePopup->AddEntry("New Canvas Ext", kNewCanvasExt);
+  fRevePopup->AddSeparator();
+  fRevePopup->AddEntry("Vertical browser", kVerticalBrowser);
+  fRevePopup->CheckEntry(kVerticalBrowser);
 
   fRevePopup->Connect("Activated(Int_t)", "Reve::RGBrowser", 
   		     this, "ReveMenu(Int_t)"); 
@@ -386,6 +471,16 @@ void RGBrowser::ReveMenu(Int_t id)
 
     case kNewCanvasExt:
       gROOT->ProcessLineFast("new TCanvas");
+      break;
+
+    case kVerticalBrowser:
+      if (fRevePopup->IsEntryChecked(kVerticalBrowser)) {
+        gReve->GetLTEFrame()->ReconfToHorizontal();
+        fRevePopup->UnCheckEntry(kVerticalBrowser);
+      } else {
+        gReve->GetLTEFrame()->ReconfToVertical();
+        fRevePopup->CheckEntry(kVerticalBrowser);
+      }
       break;
 
     default:

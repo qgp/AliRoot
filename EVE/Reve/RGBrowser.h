@@ -7,6 +7,7 @@
 #include <TContextMenu.h>
 
 class TGFileBrowser;
+class TGSplitter;
 
 namespace Reve {
 
@@ -25,6 +26,7 @@ protected:
 
   TGCanvas         *fLTCanvas;
   TGListTree       *fListTree;
+  TGSplitter       *fSplitter;
   RGEditor         *fEditor;
 
   TContextMenu     *fCtxMenu;
@@ -36,6 +38,9 @@ protected:
 public:
   RGLTEFrame(const Text_t* name, Int_t width=250, Int_t height=700);
   virtual ~RGLTEFrame();
+
+  void ReconfToHorizontal();
+  void ReconfToVertical();
 
   TGListTree* GetListTree() { return fListTree; }
 
