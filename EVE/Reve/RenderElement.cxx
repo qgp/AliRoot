@@ -264,12 +264,13 @@ Int_t RenderElement::RemoveFromListTrees(RenderElement* parent)
 {
   Int_t count = 0;
 
-  for (sLTI_i i = fItems.begin(); i != fItems.end(); ++i)
+  sLTI_i i  = fItems.begin();
+  while (i != fItems.end())
   {
-    TGListTreeItem *plti = i->fItem->GetParent();
+    sLTI_i j = i++;
+    TGListTreeItem *plti = j->fItem->GetParent();
     if (plti != 0 && (RenderElement*) plti->GetUserData() == parent)
     {
-      sLTI_i j = i--;
       DestroyListSubTree(j->fTree, j->fItem);
       j->fTree->DeleteItem(j->fItem);
       j->fTree->ClearViewPort();
