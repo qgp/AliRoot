@@ -80,8 +80,6 @@ protected:
 
   UChar_t      fTransparency;
 
-  Float_t      fZDepth;
-
 public:
   NLTPolygonSet(const Text_t* n="NLTPolygonSet", const Text_t* t="");
   virtual ~NLTPolygonSet();
@@ -110,8 +108,6 @@ public:
 
   virtual void    SetFillColor(Color_t c) { fFillColor = c; }
   virtual void    SetLineColor(Color_t c) { fLineColor = c; }
-
-  virtual void    SetZDepth(Float_t z){fZDepth = z;}
   virtual void    SetLineWidth(Double_t lw){fLineWidth = lw;}
 
   ClassDef(NLTPolygonSet,0) 

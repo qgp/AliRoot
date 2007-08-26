@@ -381,6 +381,7 @@ void NLTPointSet::UpdateProjection()
   {
     p[0] = o[0]; p[1] = o[1]; p[2] = o[2];
     proj.ProjectPoint(p[0], p[1], p[2]);
+    p[2] = fDepth;
   }
   fLastPoint = n - 1;
 }

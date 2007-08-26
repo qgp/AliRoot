@@ -58,11 +58,14 @@ protected:
   NLTProjector   *fProjector;
   NLTProjectable *fProjectable;
 
+  Float_t         fDepth;
+
 public:
   NLTProjected();
   virtual ~NLTProjected() {}
 
   virtual void SetProjection(NLTProjector* proj, NLTProjectable* model);
+  virtual void SetDepth(Float_t d) { fDepth = d; }
 
   virtual void UpdateProjection() = 0;
 

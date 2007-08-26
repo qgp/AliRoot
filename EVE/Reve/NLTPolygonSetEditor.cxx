@@ -20,8 +20,7 @@ ClassImp(NLTPolygonSetEditor)
     fPS(0),
     //  fFillColor(0),
     fLineWidth(0),
-    fLineColor(0),
-    fZDepth()
+    fLineColor(0)
 {
   MakeTitle("NLTPolygonSet");
   /*
@@ -54,20 +53,6 @@ ClassImp(NLTPolygonSetEditor)
 
     AddFrame(f, new TGLayoutHints(kLHintsTop, 1, 1, 0, 0));
   }
-
-  {
-    TGHorizontalFrame* f = new TGHorizontalFrame(this);
-    TGLabel *l = new TGLabel(f, "Z Depth:");
-    f->AddFrame(l, new TGLayoutHints(kLHintsLeft | kLHintsCenterY, 24, 2, 1, 1));
-    fZDepth = new TGNumberEntry(f, 0., 6, -1, 
-				TGNumberFormat::kNESRealOne, TGNumberFormat::kNEAPositive,
-				TGNumberFormat::kNELLimitMinMax, 0.1, 2000.0);
-    fZDepth->GetNumberEntry()->SetToolTipText("Maximum z-coordinate to which the tracks will be drawn.");
-    f->AddFrame(fZDepth, new TGLayoutHints(kLHintsLeft, 1, 1, 1, 1));
-    fZDepth->Connect("ValueSet(Long_t)", "Reve::NLTPolygonSetEditor", this, "DoZDepth()");
-    AddFrame(f, new TGLayoutHints(kLHintsTop, 1, 1, 1, 1));
-  }
-  
 }
 
 
@@ -101,14 +86,6 @@ void NLTPolygonSetEditor::DoLineColor(Pixel_t pixel)
 }
 
 /**************************************************************************/
-void NLTPolygonSetEditor::DoZDepth()
-{
-  fPS->fZDepth = fZDepth->GetNumber();
-  fPS->ResetBBox();
-  Update();
-}
-
-/**************************************************************************/
 
 void NLTPolygonSetEditor::SetModel(TObject* obj)
 {
@@ -116,5 +93,4 @@ void NLTPolygonSetEditor::SetModel(TObject* obj)
   //  fFillColor->SetColor(TColor::Number2Pixel(fPS->GetFillColor()), kFALSE);
   fLineWidth->SetNumber(fPS->fLineWidth);
   fLineColor->SetColor(TColor::Number2Pixel(fPS->GetLineColor()), kFALSE);
-  fZDepth->SetNumber(fPS->fZDepth);
 }

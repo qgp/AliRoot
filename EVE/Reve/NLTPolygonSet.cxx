@@ -39,8 +39,7 @@ NLTPolygonSet::NLTPolygonSet(const Text_t* n, const Text_t* t) :
   fFillColor(5),
   fLineColor(3),
   fLineWidth(1),
-  fTransparency (0),
-  fZDepth(0)
+  fTransparency (0)
 {
   SetMainColorPtr(&fFillColor);
 }
@@ -146,7 +145,7 @@ void NLTPolygonSet::ProjectAndReducePoints()
   // create an array of scaled points
   fPnts = new Vector[fNPnts];
   for(Int_t i = 0; i<fNPnts; i++)
-    fPnts[i].Set(pnts[ra[i]].x,  pnts[ra[i]].y,  pnts[ra[i]].z);
+    fPnts[i].Set(pnts[ra[i]].x,  pnts[ra[i]].y, fDepth);
   
   delete [] ra;  
   // printf("reduced %d points of %d\n", fNPnts, N);
