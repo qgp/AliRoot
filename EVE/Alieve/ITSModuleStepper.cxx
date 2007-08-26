@@ -81,7 +81,6 @@ ITSModuleStepper::ITSModuleStepper(ITSDigitsInfo* di) :
   gReve->GetGLViewer()->AddOverlayElement(this);
 }
 
-/**************************************************************************/
 ITSModuleStepper::~ITSModuleStepper()
 {
   gReve->GetGLViewer()->RemoveOverlayElement(this);
@@ -101,13 +100,13 @@ void ITSModuleStepper::ConfigStepper(Int_t nx, Int_t ny)
   Int_t nmod = nx*ny;
   for(Int_t m=0; m<nmod; m++) 
   {
-    AddElement( new ITSScaledModule(m, fDigitsInfo, fScaleInfo));
+    AddElement(new ITSScaledModule(m, fDigitsInfo, fScaleInfo));
   }
 }
 
 /**************************************************************************/
 
-void  ITSModuleStepper::SetFirst(Int_t first)
+void ITSModuleStepper::SetFirst(Int_t first)
 {
   Int_t lastpage = fIDs.size()/Nxy();
   if(fIDs.size() % Nxy() ) lastpage++;  
@@ -120,25 +119,25 @@ void  ITSModuleStepper::SetFirst(Int_t first)
   Apply();
 }
 
-void  ITSModuleStepper::Start()
+void ITSModuleStepper::Start()
 {
   fPosition = 0;
   fStepper->Reset(); 
   Apply();
 }
 
-void  ITSModuleStepper::Next()
+void ITSModuleStepper::Next()
 {
-  SetFirst( fPosition + Nxy());
+  SetFirst(fPosition + Nxy());
 }
 
-void  ITSModuleStepper::Previous()
+void ITSModuleStepper::Previous()
 {
   // move to the top left corner first
-  SetFirst( fPosition - Nxy());
+  SetFirst(fPosition - Nxy());
 }
 
-void  ITSModuleStepper::End()
+void ITSModuleStepper::End()
 { 
   Int_t lastpage = fIDs.size()/Nxy();
   if(fIDs.size() % Nxy() ) lastpage++;  
@@ -150,7 +149,7 @@ void  ITSModuleStepper::End()
 
 /**************************************************************************/
 
-void  ITSModuleStepper::DisplayDet(Int_t det, Int_t layer)
+void ITSModuleStepper::DisplayDet(Int_t det, Int_t layer)
 {
   fSubDet = det;
   fIDs.clear();
@@ -164,7 +163,7 @@ void  ITSModuleStepper::DisplayDet(Int_t det, Int_t layer)
 
 /**************************************************************************/
 
-void  ITSModuleStepper::DisplayTheta(Float_t min, Float_t max)
+void ITSModuleStepper::DisplayTheta(Float_t min, Float_t max)
 {
   fIDs.clear();
   ITSModuleSelection sel = ITSModuleSelection();
@@ -182,6 +181,7 @@ Int_t ITSModuleStepper::GetCurrentPage()
   if(idx % Nxy()) n++;
   return n;
 }
+
 /**************************************************************************/
 
 Int_t ITSModuleStepper::GetPages()
@@ -192,6 +192,7 @@ Int_t ITSModuleStepper::GetPages()
 }
   
 /**************************************************************************/
+
 void  ITSModuleStepper::Apply()
 {
   // printf("ITSModuleStepper::Apply fPosition %d \n", fPosition);
@@ -249,9 +250,8 @@ void  ITSModuleStepper::Apply()
     }
   }
 
-  // update in case scaled module is a model in the editor
+  ElementChanged();
   gReve->EnableRedraw();
-  gReve->GetEditor()->DisplayObject(gReve->GetEditor()->GetModel());
 }
 
 /**************************************************************************/
@@ -299,7 +299,177 @@ void ITSModuleStepper::Render(TGLRnrCtx& rnrCtx)
   RenderCellIDs();
 }
 
+
 /**************************************************************************/
+// Protected sub-renderers
+/**************************************************************************/
+
+//______________________________________________________________________
+Float_t ITSModuleStepper::TextLength(const char* txt)
+{
+  Float_t llx, lly, llz, urx, ury, urz;
+  fText->BBox(txt, llx, lly, llz, urx, ury, urz);
+  return (urx-llx)*fTextSize;
+}
+
+//______________________________________________________________________
+void ITSModuleStepper::RenderString(TString string, Int_t id)
+{
+  Float_t txtY = fWHeight*0.5;
+  Float_t txtl = TextLength(string.Data());
+
+  if(id > 0) glLoadName(id);
+  if(id>0 && fWActive == id)
+    fText->SetTextColor(fWActiveCol);
+  else  
+    fText->SetTextColor(fFontCol);
+
+  
+  if(id>0)
+  { 
+    if(fWActive == id) 
+      fText->SetTextColor(fWActiveCol);
+    else
+      fText->SetTextColor(fFontCol);
+
+    glLoadName(id);
+    Float_t ss = fWWidth*0.4;
+    fText->PaintGLText(ss, txtY, -0.8, string.Data());
+    // box
+    Float_t bw =2*ss+txtl;
+    RenderFrame(bw,fWHeight*2,id);
+    glTranslatef( bw, 0, 0);
+  }
+  else 
+  {
+    fText->SetTextColor(fFontCol);
+    fText->PaintGLText(0, txtY, -0.8, string.Data());
+    glTranslatef(txtl, 0, 0);
+  }
+}
+
+//______________________________________________________________________
+void ITSModuleStepper::RenderFrame(Float_t dx, Float_t dy, Int_t id)
+{
+  if(fRnrFrame == kFALSE)return;
+
+  glPushAttrib(GL_ENABLE_BIT | GL_POLYGON_BIT);
+  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  UChar_t color[4];
+  if(fWActive == id)
+    ColorFromIdx(fWActiveCol, color);
+  else  
+    ColorFromIdx(fWCol, color);
+  glColor4ubv(color);
+
+  glBegin(GL_QUADS);
+  glVertex2f(0, 0);   glVertex2f(dx, 0);
+  glVertex2f(dx, dy); glVertex2f(0, dy);
+  glEnd();
+  glPopAttrib();
+}
+
+//______________________________________________________________________
+void ITSModuleStepper::RenderSymbol(Float_t dx, Float_t dy, Int_t id)
+{
+  glLoadName(id);
+
+  UChar_t color[4];
+  if(fWActive == id)
+    ColorFromIdx(fWActiveCol, color);
+  else  
+    ColorFromIdx(fWCol, color);
+  glColor4ubv(color);
+
+  Float_t xs = dx/4, ys = dy/4;
+  if(id == 0) {
+    glBegin(GL_QUADS);
+    glVertex2f(0,ys); glVertex2f(0, ys*3); 
+    glVertex2f(dx, ys*3); glVertex2f(dx, ys);
+    glEnd();
+    return;
+  }
+
+  glBegin(GL_TRIANGLES);
+  switch (id) {
+    case 1:
+    {
+      // left
+      //      glVertex2f(xs*2.5, ys*3); glVertex2f(xs*1.5, ys*2); glVertex2f(xs*2.5, ys);
+      glVertex2f(xs*3, ys*3); glVertex2f(xs*1, ys*2); glVertex2f(xs*3, ys);
+      break;
+    }
+    case 2:
+    {
+      //double left
+      glVertex2f(xs*2, ys*3); glVertex2f(xs, ys*2);    glVertex2f(xs*2, ys);
+      glVertex2f(xs*3, ys*3); glVertex2f(xs*2, ys*2);  glVertex2f(xs*3, ys);
+      break;
+    }
+    case 3:
+    {
+      // right
+      //glVertex2f(xs*1.5, ys); glVertex2f(xs*2.5, ys*2); glVertex2f(xs*1.5, ys*3);
+      glVertex2f(xs*1, ys); glVertex2f(xs*3, ys*2); glVertex2f(xs*1, ys*3);
+      break;
+    }
+    case 4:
+    {
+      // double right
+      glVertex2f(xs, ys);     glVertex2f(xs*2, ys*2);   glVertex2f(xs, ys*3);
+      glVertex2f(xs*2, ys);   glVertex2f(xs*3, ys*2);   glVertex2f(xs*2, ys*3);
+      break;
+    }
+    case 5:
+    {
+      // up
+      glVertex2f(xs, ys*2.5);  glVertex2f(xs*2, ys*3.5); glVertex2f(xs*3, ys*2.5);
+      break;
+    }
+    case 6:
+    {
+      // down
+      glVertex2f(xs, ys*1.5);  glVertex2f(xs*2, ys*0.5); glVertex2f(xs*3, ys*1.5);
+      break;
+    }
+   
+    default:
+      break;
+  }
+  glEnd();
+  glLoadName(0);
+}
+
+//______________________________________________________________________
+void ITSModuleStepper::RenderPalette(Float_t dx, Float_t x, Float_t y)
+{
+  glPushMatrix();
+  glLoadIdentity();
+  glTranslatef(1 -x- dx, -1+y*4, 0);
+  ITSModule* qs = dynamic_cast<ITSModule*>(*BeginChildren());
+  RGBAPalette* p = qs->GetPalette();
+  Float_t xs = dx/(p->GetMaxVal()- p->GetMinVal());
+ 
+  Float_t x0  = 0;
+  glBegin(GL_QUAD_STRIP);
+  for(Int_t i=p->GetMinVal(); i<=p->GetMaxVal(); i++) 
+  {
+    glColor4ubv(p->ColorFromValue(i + p->GetMinVal()));
+    glVertex2f(x0, 0);
+    glVertex2f(x0, y);
+    x0+=xs;
+  }
+  glEnd();
+
+  glRotatef(-90,1, 0, 0 );
+  Double_t v1[3] = {0., 0., 0.};
+  Double_t v2[3] = {dx, 0, 0.};
+  fAxis->SetLabelsSize(fTextSize/dx);
+  fAxis->PaintGLAxis(v1, v2, p->GetMinVal(), p->GetMaxVal(), 206);
+  glPopMatrix();
+}
+
+//______________________________________________________________________
 void ITSModuleStepper::RenderMenu()
 {
   Float_t ww = 2*fWWidth;
@@ -394,177 +564,6 @@ void ITSModuleStepper::RenderMenu()
   glPopName();
 }
 
-
-/**************************************************************************/
-Float_t ITSModuleStepper::TextLength(const char* txt)
-{
-  Float_t llx, lly, llz, urx, ury, urz;
-  fText->BBox(txt, llx, lly, llz, urx, ury, urz);
-  return (urx-llx)*fTextSize;
-}
-
-
-/**************************************************************************/
-void ITSModuleStepper::RenderString(TString string, Int_t id)
-{
-  Float_t txtY = fWHeight*0.5;
-  Float_t txtl = TextLength(string.Data());
-
-  if(id > 0) glLoadName(id);
-  if(id>0 && fWActive == id)
-    fText->SetTextColor(fWActiveCol);
-  else  
-    fText->SetTextColor(fFontCol);
-
-  
-  if(id>0)
-  { 
-    if(fWActive == id) 
-      fText->SetTextColor(fWActiveCol);
-    else
-      fText->SetTextColor(fFontCol);
-
-    glLoadName(id);
-    Float_t ss = fWWidth*0.4;
-    fText->PaintGLText(ss, txtY, -0.8, string.Data());
-    // box
-    Float_t bw =2*ss+txtl;
-    RenderFrame(bw,fWHeight*2,id);
-    glTranslatef( bw, 0, 0);
-  }
-  else 
-  {
-    fText->SetTextColor(fFontCol);
-    fText->PaintGLText(0, txtY, -0.8, string.Data());
-    glTranslatef(txtl, 0, 0);
-  }
-}
-
-
-/**************************************************************************/
-
-void ITSModuleStepper::RenderPalette(Float_t dx, Float_t x, Float_t y)
-{
-  glPushMatrix();
-  glLoadIdentity();
-  glTranslatef(1 -x- dx, -1+y*4, 0);
-  ITSModule* qs = dynamic_cast<ITSModule*>(*BeginChildren());
-  RGBAPalette* p = qs->GetPalette();
-  Float_t xs = dx/(p->GetMaxVal()- p->GetMinVal());
- 
-  Float_t x0  = 0;
-  glBegin(GL_QUAD_STRIP);
-  for(Int_t i=p->GetMinVal(); i<=p->GetMaxVal(); i++) 
-  {
-    glColor4ubv(p->ColorFromValue(i + p->GetMinVal()));
-    glVertex2f(x0, 0);
-    glVertex2f(x0, y);
-    x0+=xs;
-  }
-  glEnd();
-
-  glRotatef(-90,1, 0, 0 );
-  Double_t v1[3] = {0., 0., 0.};
-  Double_t v2[3] = {dx, 0, 0.};
-  fAxis->SetLabelsSize(fTextSize/dx);
-  fAxis->PaintGLAxis(v1, v2, p->GetMinVal(), p->GetMaxVal(), 206);
-  glPopMatrix();
-}
-
-/**************************************************************************/
-void ITSModuleStepper::RenderFrame(Float_t dx, Float_t dy, Int_t id)
-{
-  if(fRnrFrame == kFALSE)return;
-
-  glPushAttrib(GL_ENABLE_BIT | GL_POLYGON_BIT);
-  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-  UChar_t color[4];
-  if(fWActive == id)
-    ColorFromIdx(fWActiveCol, color);
-  else  
-    ColorFromIdx(fWCol, color);
-  glColor4ubv(color);
-
-  glBegin(GL_QUADS);
-  glVertex2f(0, 0);   glVertex2f(dx, 0);
-  glVertex2f(dx, dy); glVertex2f(0, dy);
-  glEnd();
-  glPopAttrib();
-}
-
-/**************************************************************************/
-
-void ITSModuleStepper::RenderSymbol(Float_t dx, Float_t dy, Int_t id)
-{
-  glLoadName(id);
-
-  UChar_t color[4];
-  if(fWActive == id)
-    ColorFromIdx(fWActiveCol, color);
-  else  
-    ColorFromIdx(fWCol, color);
-  glColor4ubv(color);
-
-  Float_t xs = dx/4, ys = dy/4;
-  if(id == 0) {
-    glBegin(GL_QUADS);
-    glVertex2f(0,ys); glVertex2f(0, ys*3); 
-    glVertex2f(dx, ys*3); glVertex2f(dx, ys);
-    glEnd();
-    return;
-  }
-
-  glBegin(GL_TRIANGLES);
-  switch (id) {
-    case 1:
-    {
-      // left
-      //      glVertex2f(xs*2.5, ys*3); glVertex2f(xs*1.5, ys*2); glVertex2f(xs*2.5, ys);
-      glVertex2f(xs*3, ys*3); glVertex2f(xs*1, ys*2); glVertex2f(xs*3, ys);
-      break;
-    }
-    case 2:
-    {
-      //double left
-      glVertex2f(xs*2, ys*3); glVertex2f(xs, ys*2);    glVertex2f(xs*2, ys);
-      glVertex2f(xs*3, ys*3); glVertex2f(xs*2, ys*2);  glVertex2f(xs*3, ys);
-      break;
-    }
-    case 3:
-    {
-      // right
-      //glVertex2f(xs*1.5, ys); glVertex2f(xs*2.5, ys*2); glVertex2f(xs*1.5, ys*3);
-      glVertex2f(xs*1, ys); glVertex2f(xs*3, ys*2); glVertex2f(xs*1, ys*3);
-      break;
-    }
-    case 4:
-    {
-      // double right
-      glVertex2f(xs, ys);     glVertex2f(xs*2, ys*2);   glVertex2f(xs, ys*3);
-      glVertex2f(xs*2, ys);   glVertex2f(xs*3, ys*2);   glVertex2f(xs*2, ys*3);
-      break;
-    }
-    case 5:
-    {
-      // up
-      glVertex2f(xs, ys*2.5);  glVertex2f(xs*2, ys*3.5); glVertex2f(xs*3, ys*2.5);
-      break;
-    }
-    case 6:
-    {
-      // down
-      glVertex2f(xs, ys*1.5);  glVertex2f(xs*2, ys*0.5); glVertex2f(xs*3, ys*1.5);
-      break;
-    }
-   
-    default:
-      break;
-  }
-  glEnd();
-  glLoadName(0);
-}
-
-
 //______________________________________________________________________
 void ITSModuleStepper::RenderCellIDs()
 {
@@ -591,6 +590,11 @@ void ITSModuleStepper::RenderCellIDs()
     }
   }
 }
+
+
+/**************************************************************************/
+// Virtual event handlers from TGLOverlayElement
+/**************************************************************************/
 
 //______________________________________________________________________
 Bool_t ITSModuleStepper::Handle(TGLRnrCtx          & /*rnrCtx*/,
@@ -638,7 +642,7 @@ Bool_t ITSModuleStepper::Handle(TGLRnrCtx          & /*rnrCtx*/,
           if(si->fScale < 5) 
           {
             si->ScaleChanged(si->fScale + 1);	
-            gReve->Redraw3D();
+            ElementChanged(kTRUE, kTRUE);
           }
           break;
         }
@@ -648,7 +652,7 @@ Bool_t ITSModuleStepper::Handle(TGLRnrCtx          & /*rnrCtx*/,
           if(si->fScale > 1) 
           {
             si->ScaleChanged(si->GetScale() - 1);	
-            gReve->Redraw3D();
+            ElementChanged(kTRUE, kTRUE);
           }
           break;
         }

@@ -66,13 +66,13 @@ protected:
   Color_t                 fFontCol;
 
   // wrappers
-  void   RenderFrame(Float_t dx, Float_t dy, Int_t id);
-  void   RenderSymbol(Float_t dx, Float_t dy, Int_t id);
-  void   RenderString(TString tex ,Int_t id = -1);
-  void   RenderPalette(Float_t dx, Float_t x, Float_t y);
-  void   RenderMenu();
-  void   RenderCellIDs();
   Float_t TextLength(const char* txt);
+  void    RenderString(TString tex ,Int_t id = -1);
+  void    RenderFrame(Float_t dx, Float_t dy, Int_t id);
+  void    RenderSymbol(Float_t dx, Float_t dy, Int_t id);
+  void    RenderPalette(Float_t dx, Float_t x, Float_t y);
+  void    RenderMenu();
+  void    RenderCellIDs();
 
   // module ID navigation
   Int_t  Nxy(){ return fStepper->Nx*fStepper->Ny; }
