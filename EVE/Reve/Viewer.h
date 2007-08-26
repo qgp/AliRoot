@@ -64,6 +64,7 @@ public:
   virtual ~ViewerList();
 
   void RepaintChangedViewers(Bool_t resetCameras, Bool_t dropLogicals);
+  void RepaintAllViewers(Bool_t resetCameras, Bool_t dropLogicals);
 
   void SceneDestructing(Scene* scene);
 

@@ -122,7 +122,7 @@ void ViewerList::RepaintChangedViewers(Bool_t resetCameras, Bool_t dropLogicals)
     {
       // printf(" Viewer '%s' changed ... reqesting draw.\n", (*i)->GetObject()->GetName());
 
-      if (resetCameras)	glv->ResetCamerasAfterNextUpdate();
+      if (resetCameras)	glv->PostSceneBuildSetup(kTRUE);
       if (dropLogicals) glv->SetSmartRefresh(kFALSE);
 
       glv->RequestDraw();
@@ -131,6 +131,25 @@ void ViewerList::RepaintChangedViewers(Bool_t resetCameras, Bool_t dropLogicals)
     }
   }
 }
+
+void ViewerList::RepaintAllViewers(Bool_t resetCameras, Bool_t dropLogicals)
+{
+  for (List_i i=fChildren.begin(); i!=fChildren.end(); ++i)
+  {
+    TGLViewer* glv = ((Viewer*)*i)->GetGLViewer();
+
+    // printf(" Viewer '%s' sending redraw reqest.\n", (*i)->GetObject()->GetName());
+
+    if (resetCameras) glv->PostSceneBuildSetup(kTRUE);
+    if (dropLogicals) glv->SetSmartRefresh(kFALSE);
+
+    glv->RequestDraw();
+
+    if (dropLogicals) glv->SetSmartRefresh(kTRUE);
+  }
+}
+
+/**************************************************************************/
 
 void ViewerList::SceneDestructing(Scene* scene)
 {
