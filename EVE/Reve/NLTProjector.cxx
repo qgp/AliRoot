@@ -60,7 +60,6 @@ void NLTProjection::SetDistortion(Float_t d)
   fScale = 1+300*fDistortion;
 }
 
-
 //______________________________________________________________________________
 void NLTProjection::SetDirectionalVector(Int_t screenAxis, Vector& vec)
 {
@@ -75,36 +74,47 @@ Float_t NLTProjection::GetValForScreenPos(Int_t i, Float_t sv)
 {
   // move on unprojected axis, find when projected value is geiven screen values
   Float_t xL, xM, xR;
+
+  Vector V, DirVec;
+  SetDirectionalVector(i, DirVec);
   
   // search from -/+ infinity according to sign of screen value
-  if(sv > 0)
+  if (sv > 0)
   {
-    xL = 0;
-    xR = 1000;
-    while(xR <sv) xR*=2;
+    xL = 0; xR = 1000;
+    while (1)
+    {
+      V.Mult(DirVec, xR); ProjectVector(V);
+      if (V[i] > sv) break;
+      xL = xR; xR *= 2;
+    }
   }
-  else 
+  else if (sv < 0)
   {
-    xR = 0;
-    xL = -1000;
-    while(xR <sv) xR*=2;
+    xR = 0; xL = -1000;
+    while (1)
+    {
+      V.Mult(DirVec, xL); ProjectVector(V);
+      if (V[i] < sv) break;
+      xR = xL; xL *= 2;
+    }
+  }
+  else
+  {
+    return 0;
   }
 
   //  printf("start bisection %f, %f , SCREEN VALUE %f \n", xL, xR, sv);
-  Vector V, DirVec;
-  SetDirectionalVector(i,DirVec); 
-  Int_t count = 0;
   do 
   {  
-    xM  = (xL+xR)*0.5;
-    V = DirVec*xM; 
+    xM = 0.5f * (xL + xR);
+    V.Mult(DirVec, xM);
     ProjectVector(V);
     if (V[i] > sv) 
       xR = xM; 
     else
       xL = xM;
-    count++;
-  } while( TMath::Abs(V[i] -sv) > fgEps);
+  } while(TMath::Abs(V[i] - sv) > fgEps);
 
   return xM;
 }
@@ -117,8 +127,11 @@ Float_t NLTProjection::GetScreenVal(Int_t i, Float_t x)
   ProjectVector(dv);
   return dv[i];
 }
+
+
 /**************************************************************************/
 /**************************************************************************/
+
 ClassImp(Reve::RhoZ)
 
 void RhoZ::ProjectPoint(Float_t& x, Float_t& y, Float_t& z)
