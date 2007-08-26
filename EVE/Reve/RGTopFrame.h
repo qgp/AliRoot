@@ -93,6 +93,7 @@ public:
   virtual ~RGTopFrame();
 
   RGBrowser*   GetBrowser()   const { return fBrowser;   }
+  RGLTEFrame*  GetLTEFrame()  const { return fLTEFrame;  }
   RGEditor*    GetEditor()    const { return fEditor;    }
   TGStatusBar* GetStatusBar() const { return fStatusBar; }
 

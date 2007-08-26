@@ -97,6 +97,7 @@ RGTopFrame::RGTopFrame(UInt_t w, UInt_t h) :
   fBrowser->StartEmbedding(1);
   TGLSAViewer* glv = new TGLSAViewer(gClient->GetRoot(), 0, fEditor);
   //glv->GetFrame()->SetCleanup(kNoCleanup);
+  glv->ToggleEditObject();
   fBrowser->StopEmbedding();
   fBrowser->SetTabTitle("GLViewer", 1);
 
@@ -133,7 +134,7 @@ RGTopFrame::RGTopFrame(UInt_t w, UInt_t h) :
   /**************************************************************************/
   /**************************************************************************/
 
-  fEditor->DisplayObject(0);
+  fEditor->DisplayObject(GetGLViewer());
 
   gSystem->ProcessEvents();
 }
