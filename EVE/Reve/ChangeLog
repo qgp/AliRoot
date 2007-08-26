@@ -1,5 +1,22 @@
 2007-08-26  Matevz Tadel  <matevz.tadel@cern.ch>
 
+	* RGTopFrame.cxx:
+	* RGTopFrame.h:
+	Added FullRedraw3D() forcing complete redraw of scenes and
+	viewers.
+
+	* Scene.cxx:
+	* Scene.h:
+	Added RepaintAllScenes().
+
+	* Viewer.cxx:
+	* Viewer.h:
+	Added RepaintAllViewers().
+	When camera reset is requested call viewer->PostSceneBuildSetup()
+	instead of ResetCamerasAfterNextUpdate().
+
+2007-08-26  Matevz Tadel  <matevz.tadel@cern.ch>
+
 	* RenderElement.cxx:
 	* RenderElement.h:
 	Added new optional argument Bool_t redraw to ElementChanged().
