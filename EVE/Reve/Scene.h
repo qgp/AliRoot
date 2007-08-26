@@ -64,6 +64,7 @@ public:
   virtual ~SceneList();
 
   void RepaintChangedScenes();
+  void RepaintAllScenes();
 
   ClassDef(SceneList, 0);
 }; // endclass SceneList

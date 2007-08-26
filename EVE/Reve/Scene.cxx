@@ -100,3 +100,13 @@ void SceneList::RepaintChangedScenes()
     }
   }
 }
+
+void SceneList::RepaintAllScenes()
+{
+  for(List_i i=fChildren.begin(); i!=fChildren.end(); ++i)
+  {
+    Scene* s = (Scene*) *i;
+    // printf(" Scene '%s' repainting.\n", s->GetName());
+    s->Repaint();
+  }
+}
