@@ -345,6 +345,9 @@ void ZTrans::SetPos(Double_t x, Double_t y, Double_t z)
 void ZTrans::SetPos(Double_t* x)
 { M[F03] = x[0]; M[F13] = x[1]; M[F23] = x[2]; }
 
+void ZTrans::SetPos(Float_t* x)
+{ M[F03] = x[0]; M[F13] = x[1]; M[F23] = x[2]; }
+
 void ZTrans::SetPos(const ZTrans& t)
 {
   const Double_t* T = t.M;
@@ -355,6 +358,9 @@ void ZTrans::GetPos(Double_t& x, Double_t& y, Double_t& z) const
 { x = M[F03]; y = M[F13]; z = M[F23]; }
 
 void ZTrans::GetPos(Double_t* x) const
+{ x[0] = M[F03]; x[1] = M[F13]; x[2] = M[F23]; }
+
+void ZTrans::GetPos(Float_t* x) const
 { x[0] = M[F03]; x[1] = M[F13]; x[2] = M[F23]; }
 
 void ZTrans::GetPos(TVector3& v) const

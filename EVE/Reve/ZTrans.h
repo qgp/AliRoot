@@ -117,10 +117,12 @@ public:
 
   void SetPos(Double_t x, Double_t y, Double_t z);
   void SetPos(Double_t* x);
+  void SetPos(Float_t * x);
   void SetPos(const ZTrans& t);
 
   void GetPos(Double_t& x, Double_t& y, Double_t& z) const;
   void GetPos(Double_t* x) const;
+  void GetPos(Float_t * x) const;
   void GetPos(TVector3& v) const;  
   TVector3 GetPos() const;
 
