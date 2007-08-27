@@ -1,5 +1,17 @@
 2007-08-27  Matevz Tadel  <matevz.tadel@cern.ch>
 
+	* RGTopFrame.cxx:
+	Use gClient->GetRoot() for creation of embedded gl viewer.
+
+	* RGValuators.cxx:
+	During construction of label frame use fName instead of GetName(),
+	which is used for saving gui into a macro.
+
+	* TrackRnrStyleEditor.cxx:
+	Fix labels, now that we can have spaces.
+
+2007-08-27  Matevz Tadel  <matevz.tadel@cern.ch>
+
 	EVE-dev
 
 	* FrameBox.cxx:
