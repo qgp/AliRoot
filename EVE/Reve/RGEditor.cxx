@@ -52,14 +52,26 @@ void RGEditor::DisplayRenderElement(RenderElement* re)
 {
   fRnrElement = re;
   fObject     = fRnrElement ? fRnrElement->GetEditorObject() : 0;
-  SetModel(fPad, fObject, kButton1Down);
+  TGedEditor::SetModel(fPad, fObject, kButton1Down);
 }
 
 void RGEditor::DisplayObject(TObject* obj)
 {
-  fRnrElement = 0;
+  fRnrElement = dynamic_cast<RenderElement*>(obj);
   fObject     = obj;
-  SetModel(fPad, obj, kButton1Down);
+  TGedEditor::SetModel(fPad, obj, kButton1Down);
+}
+
+/**************************************************************************/
+
+void RGEditor::SetModel(TVirtualPad* pad, TObject* obj, Int_t event)
+{
+  // !!!! do something so that such calls from elswhere will also
+  // now the render element
+
+  fRnrElement = dynamic_cast<RenderElement*>(obj);
+  fObject     = obj;
+  TGedEditor::SetModel(pad, obj, event);
 }
 
 void RGEditor::Update(TGedFrame* /*gframe*/)

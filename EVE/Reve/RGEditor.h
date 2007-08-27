@@ -23,10 +23,11 @@ public:
   virtual ~RGEditor() {}
 
   RenderElement* GetRnrElement() const;
-  
+
   void DisplayRenderElement(RenderElement* re);
   void DisplayObject(TObject* obj);
 
+  virtual void SetModel(TVirtualPad* pad, TObject* obj, Int_t event);
   virtual void Update(TGedFrame* gframe=0);
 
   // virtual Bool_t HandleButton(Event_t *event);
