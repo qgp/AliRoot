@@ -65,7 +65,7 @@ ITSModuleStepper::ITSModuleStepper(ITSDigitsInfo* di) :
   fWActiveCol(45),
   fFontCol(8)
 {
-  fStepper   = new GridStepper();
+  fStepper = new GridStepper();
   fScaleInfo = new DigitScaleInfo();
 
   fAxis = new TGLAxis();
@@ -97,9 +97,8 @@ ITSModuleStepper::~ITSModuleStepper()
 void ITSModuleStepper::ConfigStepper(Int_t nx, Int_t ny)
 {
   fStepper->SetNs(nx, ny);
-  fStepper->SetOs(-0.5f*(nx-1)*fStepper->Dx, -0.5f*(ny-1)*fStepper->Dy);
   Int_t nmod = nx*ny;
-  for(Int_t m=0; m<nmod; ++m) 
+  for(Int_t m=0; m<nmod; m++) 
   {
     AddElement(new ITSScaledModule(m, fDigitsInfo, fScaleInfo));
   }
@@ -199,8 +198,7 @@ void  ITSModuleStepper::Apply()
   // printf("ITSModuleStepper::Apply fPosition %d \n", fPosition);
   gReve->DisableRedraw();
 
-  Float_t  pos[3];
-  UInt_t   idx = fPosition;
+  UInt_t idx = fPosition;
   for(List_i childit=fChildren.begin(); childit!=fChildren.end(); ++childit)
   {
     if(idx < fIDs.size()) 
@@ -212,7 +210,7 @@ void  ITSModuleStepper::Apply()
       tr.RotateLF(3,2,TMath::PiOver2());
       tr.RotateLF(1,3,TMath::PiOver2());   
 
-      // scaling 
+      // scaleing 
       Float_t mz, mx;
       Float_t* fp = mod->GetFrame()->GetFramePoints();
       // switch x,z it will be rotated afterwards
@@ -231,8 +229,9 @@ void  ITSModuleStepper::Apply()
       Float_t scale = (fExpandCell*sx)/mz;
       tr.Scale(scale, scale, scale);
 
-      fStepper->GetPosition(pos);
-      tr.SetPos(pos);
+      Float_t  p[3];
+      fStepper->GetPosition(p);
+      tr.SetPos(p[0]+0.5*fStepper->Dx, p[1]+0.5*fStepper->Dy, p[2]+0.5*fStepper->Dz);
   
       if(mod->GetSubDetID() == 2)
 	mod->SetName(Form("SSD %d", idx));
@@ -449,24 +448,35 @@ void ITSModuleStepper::RenderPalette(Float_t dx, Float_t x, Float_t y)
   glTranslatef(1 -x- dx, -1+y*4, 0);
   ITSModule* qs = dynamic_cast<ITSModule*>(*BeginChildren());
   RGBAPalette* p = qs->GetPalette();
-  Float_t xs = dx/(p->GetMaxVal()- p->GetMinVal());
- 
-  Float_t x0  = 0;
   glBegin(GL_QUAD_STRIP);
-  for(Int_t i=p->GetMinVal(); i<=p->GetMaxVal(); i++) 
+  glColor4ubv(p->ColorFromValue(p->GetMinVal()));
+  glVertex2f(0, 0);
+  glVertex2f(0, y);
+  if (p->GetMaxVal() > p->GetMinVal() + 1)
   {
-    glColor4ubv(p->ColorFromValue(i + p->GetMinVal()));
-    glVertex2f(x0, 0);
-    glVertex2f(x0, y);
-    x0+=xs;
+    Float_t xs = dx/(p->GetMaxVal() - p->GetMinVal());
+    Float_t x0 = xs;
+    for(Int_t i=p->GetMinVal() + 1; i<p->GetMaxVal(); i++) 
+    {
+      glColor4ubv(p->ColorFromValue(i));
+      glVertex2f(x0, 0);
+      glVertex2f(x0, y);
+      x0+=xs;
+    }
   }
+  glColor4ubv(p->ColorFromValue(p->GetMaxVal()));
+  glVertex2f(dx, 0);
+  glVertex2f(dx, y);
   glEnd();
 
-  glRotatef(-90,1, 0, 0 );
-  Double_t v1[3] = {0., 0., 0.};
-  Double_t v2[3] = {dx, 0, 0.};
-  fAxis->SetLabelsSize(fTextSize/dx);
-  fAxis->PaintGLAxis(v1, v2, p->GetMinVal(), p->GetMaxVal(), 206);
+  if (p->GetMaxVal() > p->GetMinVal())
+  {
+    glRotatef(-90,1, 0, 0 );
+    Double_t v1[3] = {0., 0., 0.};
+    Double_t v2[3] = {dx, 0, 0.};
+    fAxis->SetLabelsSize(fTextSize/dx);
+    fAxis->PaintGLAxis(v1, v2, p->GetMinVal(), p->GetMaxVal(), 206);
+  }
   glPopMatrix();
 }
 
@@ -640,9 +650,9 @@ Bool_t ITSModuleStepper::Handle(TGLRnrCtx          & /*rnrCtx*/,
         case 5:
         {
           DigitScaleInfo* si = fScaleInfo;
-          if(si->fScale < 5) 
+          if(si->GetScale() < 5) 
           {
-            si->ScaleChanged(si->fScale + 1);	
+            si->ScaleChanged(si->GetScale() + 1);	
             ElementChanged(kTRUE, kTRUE);
           }
           break;
@@ -650,7 +660,7 @@ Bool_t ITSModuleStepper::Handle(TGLRnrCtx          & /*rnrCtx*/,
         case 6:
         {
           DigitScaleInfo* si = fScaleInfo;
-          if(si->fScale > 1) 
+          if(si->GetScale() > 1) 
           {
             si->ScaleChanged(si->GetScale() - 1);	
             ElementChanged(kTRUE, kTRUE);

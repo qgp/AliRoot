@@ -17,7 +17,7 @@ ClassImp(DigitScaleInfo)
 DigitScaleInfo::DigitScaleInfo():
   fScale(1),
   fStatType (ST_Average),
-  fAutoUpdatePalette(kTRUE)
+  fSyncPalette(kFALSE)
 {
 }
 
@@ -30,6 +30,7 @@ void DigitScaleInfo::ScaleChanged(Int_t s)
 void DigitScaleInfo::StatTypeChanged(Int_t t)
 {
     fStatType = t;
+    fSyncPalette = kTRUE;
     Emit("StatTypeChanged(Int_t)",fStatType);
 }
 
@@ -289,19 +290,77 @@ void ITSScaledModule::LoadQuads()
 
 void ITSScaledModule::SetQuadValues()
 {
-  Int_t N = fPlex.Size();
+  if(fScaleInfo->GetSyncPalette()) SyncPalette();
+
+  Int_t N = fPlex.Size(); 
   for (Int_t i = 0 ; i< N; i++)
   {
     ScaledDigit* sd = dynamic_cast<ScaledDigit*>(GetId(i));
     Int_t v = 0;
-    switch(fScaleInfo->GetStatType()) {
-      case DigitScaleInfo::ST_Occup:   v = sd->N;   break;
-      case DigitScaleInfo::ST_Average: v = Int_t(sd->sum/(1.* sd->N)); break;
-      case DigitScaleInfo::ST_Rms:     v = Int_t(TMath::Sqrt(sd->sqr_sum)/(1.*sd->N)); break;    
+    switch(fScaleInfo->GetStatType())
+    {
+      using namespace TMath;
+
+      case DigitScaleInfo::ST_Occup:
+	v = Nint((100.0*sd->N) / (fNCx*fNCz));
+	break;
+      case DigitScaleInfo::ST_Average:
+	v = Nint((Double_t) sd->sum / sd->N);
+	break;
+      case DigitScaleInfo::ST_Rms:
+	v = Nint(Sqrt(sd->sqr_sum) / sd->N);
+	break;
     }
     QuadBase* qb = GetQuad(i);
     qb->fValue = v;
   }
+}
+
+/**************************************************************************/
+
+void ITSScaledModule::SyncPalette()
+{  
+  // printf("ITSScaledModule::SyncPalette()\n");
+  if(fScaleInfo->GetStatType() == DigitScaleInfo::ST_Occup) 
+  {
+    // SPD
+    ITSModule::fgSPDPalette->SetLimits(0, 100);
+    ITSModule::fgSPDPalette->SetMinMax(0, 100);
+    
+    // SDD
+    ITSModule::fgSDDPalette->SetLimits(0, 100);
+    ITSModule::fgSDDPalette->SetMinMax(0, 100);
+
+    // SSD
+    ITSModule::fgSSDPalette->SetLimits(0, 100);
+    ITSModule::fgSDDPalette->SetMinMax(0, 100);
+  }
+  else
+  {
+    Alieve::ITSDigitsInfo& DI = *fInfo;
+    // SPD
+    ITSModule::fgSPDPalette->SetLimits(0, DI.fSPDHighLim);
+    ITSModule::fgSPDPalette->SetMinMax(DI.fSPDMinVal, DI.fSPDMaxVal);
+    
+    // SDD
+    ITSModule::fgSDDPalette->SetLimits(0, DI.fSDDHighLim);
+    ITSModule::fgSDDPalette->SetMinMax(DI.fSDDMinVal, DI.fSDDMaxVal);
+
+    // SSD
+    ITSModule::fgSSDPalette->SetLimits(0, DI.fSSDHighLim);
+    ITSModule::fgSSDPalette->SetMinMax(DI.fSSDMinVal, DI.fSSDMaxVal);
+  }
+
+  fScaleInfo->SetSyncPalette(kFALSE);
+}
+
+/**************************************************************************/
+
+void ITSScaledModule::GetScaleData(Int_t& cnx, Int_t& cnz, Int_t& total)
+{
+  cnx =fNx;
+  cnz =fNz;
+  total = cnx*cnz;
 }
 
 /**************************************************************************/

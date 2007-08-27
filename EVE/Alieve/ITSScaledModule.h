@@ -18,14 +18,17 @@ class DigitScaleInfo : public TQObject, public Reve::ReferenceBackPtr
 {
 public:
   enum StatType_e { ST_Occup, ST_Average, ST_Rms };
-  
-  Int_t            fScale;    
-  Int_t            fStatType;
 
-  Bool_t           fAutoUpdatePalette;
+  // Bool_t           fAutoUpdatePalette;
 private:
   DigitScaleInfo(const DigitScaleInfo&);            // Not implemented
   DigitScaleInfo& operator=(const DigitScaleInfo&); // Not implemented
+
+protected:
+  Int_t            fScale;    
+  Int_t            fStatType;
+  
+  Bool_t           fSyncPalette;
 
 public:
   DigitScaleInfo();
@@ -36,6 +39,9 @@ public:
 
   Int_t            GetStatType() { return fStatType; }
   void             StatTypeChanged(Int_t t);  //*SIGNAL*
+
+  Bool_t           GetSyncPalette(){return fSyncPalette;}
+  void             SetSyncPalette(Bool_t x){fSyncPalette = x;}
 
   ClassDef(DigitScaleInfo, 1);
 };
@@ -90,6 +96,9 @@ public:
   virtual void LoadQuads();
   void         SetQuadValues();
 
+  void         SyncPalette();
+
+  void         GetScaleData(Int_t& cnx, Int_t& cnz, Int_t& total);
   DigitScaleInfo*  GetScaleInfo(){ return fScaleInfo; }
 
   ClassDef(ITSScaledModule, 1);
