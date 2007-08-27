@@ -81,7 +81,7 @@ void RGValuator::Build(Bool_t connect)
     TGCompositeFrame *labfr = 
       new TGHorizontalFrame(hf1, fLabelWidth, fNEHeight,
 			    fLabelWidth != 0 ? kFixedSize : kFixedHeight);
-    fLabel = new TGLabel(labfr, GetName());
+    fLabel = new TGLabel(labfr, fName);
     labfr->AddFrame(fLabel, labh);
     hf1->AddFrame(labfr, labfrh);
   }
