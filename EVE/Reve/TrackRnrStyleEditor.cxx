@@ -105,7 +105,7 @@ TrackRnrStyleSubEditor::TrackRnrStyleSubEditor(const TGWindow *p):
   // --- Selectors
   Int_t dbW = 210;
 
-  fPtRange = new RGDoubleValuator(this,"Pt_rng", 40, 0);
+  fPtRange = new RGDoubleValuator(this,"Pt rng:", 40, 0);
   fPtRange->SetNELength(6);
   fPtRange->SetLabelWidth(labelW);
   fPtRange->Build();
@@ -115,7 +115,7 @@ TrackRnrStyleSubEditor::TrackRnrStyleSubEditor(const TGWindow *p):
 		    "Reve::TrackRnrStyleSubEditor", this, "DoPtRange()");
   AddFrame(fPtRange, new TGLayoutHints(kLHintsTop, 1, 1, 4, 1));
 
-  fPRange = new RGDoubleValuator(this,"P_rng", 40, 0);
+  fPRange = new RGDoubleValuator(this,"P rng:", 40, 0);
   fPRange->SetNELength(6);
   fPRange->SetLabelWidth(labelW);
   fPRange->Build();
