@@ -10,7 +10,7 @@ class Event;
 Alieve::TPCData* g_tpc_data = 0;
 Alieve::Event*   g_tpc_last_event = 0;
 
-void tpc_digits(Int_t mode=0)
+void tpc_digits(Int_t mode=1)
 {
   if (g_tpc_data == 0 || g_tpc_last_event != Alieve::gEvent) {
     AliRunLoader* rl =  Alieve::Event::AssertRunLoader();
