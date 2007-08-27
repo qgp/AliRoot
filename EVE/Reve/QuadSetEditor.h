@@ -27,15 +27,15 @@ private:
   QuadSetEditor(const QuadSetEditor&);            // Not implemented
   QuadSetEditor& operator=(const QuadSetEditor&); // Not implemented
 
+  void CreateInfoTab();
 protected:
-  QuadSet* fM; // fModel dynamic-casted to QuadSetEditor
+  QuadSet*              fM; // fModel dynamic-casted to QuadSetEditor
 
-  ZTransSubEditor* fHMTrans;
-
+  ZTransSubEditor*      fHMTrans;
   RGBAPaletteSubEditor* fPalette;
 
-  // Declare widgets
   TGHorizontalFrame*    fHistoButtFrame;
+  TGVerticalFrame*      fInfoFrame;
 
 public:
   QuadSetEditor(const TGWindow* p=0, Int_t width=170, Int_t height=30, UInt_t options = kChildFrame, Pixel_t back=GetDefaultFrameBackground());

@@ -6,6 +6,7 @@
 #include <Reve/RGValuators.h>
 #include <Reve/ZTransEditor.h>
 #include <Reve/RGBAPaletteEditor.h>
+#include <Reve/RGEditor.h>
 
 #include <TVirtualPad.h>
 #include <TColor.h>
@@ -13,6 +14,7 @@
 #include <TStyle.h>
 
 #include <TGLabel.h>
+#include <TG3DLine.h>
 #include <TGButton.h>
 #include <TGNumberEntry.h>
 #include <TGColorSelect.h>
@@ -31,8 +33,10 @@ QuadSetEditor::QuadSetEditor(const TGWindow *p, Int_t width, Int_t height,
   TGedFrame(p, width, height, options | kVerticalFrame, back),
   fM(0),
   fHMTrans   (0),
-  fPalette   (0)
-  // Initialize widget pointers to 0
+  fPalette   (0),
+  
+  fHistoButtFrame(0),
+  fInfoFrame(0)
 {
   MakeTitle("Transformation matrix");
 
@@ -48,28 +52,44 @@ QuadSetEditor::QuadSetEditor(const TGWindow *p, Int_t width, Int_t height,
   fPalette->Connect("Changed", "Reve::QuadSetEditor", this, "Update()");
   AddFrame(fPalette, new TGLayoutHints(kLHintsTop | kLHintsExpandX, 2, 0, 0, 0));
 
-
-  MakeTitle("QuadSet");
-
-  fHistoButtFrame = new TGHorizontalFrame(this);
-  {
-    TGTextButton* b = 0;
-
-    b = new TGTextButton(fHistoButtFrame, "Histo");
-    b->SetToolTipText("Show histogram over full range.");
-    fHistoButtFrame->AddFrame(b, new TGLayoutHints(kLHintsLeft|kLHintsExpandX, 1, 1, 0, 0));
-    b->Connect("Clicked()", "Reve::QuadSetEditor", this, "DoHisto()");
-
-    b = new TGTextButton(fHistoButtFrame, "Range Histo");
-    b->SetToolTipText("Show histogram over selected range.");
-    fHistoButtFrame->AddFrame(b, new TGLayoutHints(kLHintsLeft|kLHintsExpandX, 1, 1, 0, 0));
-    b->Connect("Clicked()", "Reve::QuadSetEditor", this, "DoRangeHisto()");
-  }
-  AddFrame(fHistoButtFrame, new TGLayoutHints(kLHintsExpandX, 2, 0, 0, 0));
+  CreateInfoTab();
 }
 
 QuadSetEditor::~QuadSetEditor()
 {}
+
+/*************************************************************************/
+void QuadSetEditor::CreateInfoTab()
+{
+
+  fInfoFrame = CreateEditorTabSubFrame("Info");
+
+  TGCompositeFrame *title1 = new TGCompositeFrame(fInfoFrame, 180, 10, 
+						  kHorizontalFrame | 
+						  kLHintsExpandX   | 
+						  kFixedWidth      | 
+						  kOwnBackground);
+
+  title1->AddFrame(new TGLabel(title1, "QuadSet Info"), 
+		   new TGLayoutHints(kLHintsLeft, 1, 1, 0, 0));
+  title1->AddFrame(new TGHorizontal3DLine(title1),
+		   new TGLayoutHints(kLHintsExpandX, 5, 5, 7, 7));
+  fInfoFrame->AddFrame(title1, new TGLayoutHints(kLHintsTop, 0, 0, 2, 0));
+
+  
+  fHistoButtFrame = new TGHorizontalFrame(fInfoFrame);
+  TGTextButton* b = 0;
+  b = new TGTextButton(fHistoButtFrame, "Histo");
+  b->SetToolTipText("Show histogram over full range.");
+  fHistoButtFrame->AddFrame(b, new TGLayoutHints(kLHintsLeft|kLHintsExpandX, 1, 1, 0, 0));
+  b->Connect("Clicked()", "Reve::QuadSetEditor", this, "DoHisto()");
+
+  b = new TGTextButton(fHistoButtFrame, "Range Histo");
+  b->SetToolTipText("Show histogram over selected range.");
+  fHistoButtFrame->AddFrame(b, new TGLayoutHints(kLHintsLeft|kLHintsExpandX, 1, 1, 0, 0));
+  b->Connect("Clicked()", "Reve::QuadSetEditor", this, "DoRangeHisto()");
+  fInfoFrame->AddFrame(fHistoButtFrame, new TGLayoutHints(kLHintsExpandX, 2, 0, 0, 0));
+}
 
 /**************************************************************************/
 
