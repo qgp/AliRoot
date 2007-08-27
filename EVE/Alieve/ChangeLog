@@ -1,3 +1,31 @@
+2007-08-27  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
+
+	EVE-dev
+
+	* ITSDigitsInfo.cxx:
+	* ITSDigitsInfo.h:
+        Fix theta range ITSModuleSelection. Add default values values for
+	low and high values in sub-detectors. 
+
+	* ITSModule.cxx:
+	Initialize low and high values reading ITSDigitsInfo.
+
+	* ITSModuleStepper.cxx:
+	* ITSScaledModule.cxx:
+	* ITSScaledModule.h:
+	Synchronize palette according to scale and statistic type.
+
+	* ITSScaledModuleEditor.cxx:
+	* ITSScaledModuleEditor.h:
+	Do not use sub-editor mechanism. Add widgets directly in TGedFrame.
+
+	* LinkDef.h:
+        Unregister obsolete class ITSSDSubEditor.
+
+	* PMDModuleEditor.cxx:
+	* PMDModuleEditor.h:
+	Use QuadSetEditor Info tab.
+
 2007-08-27  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	EVE-dev
