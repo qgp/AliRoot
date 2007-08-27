@@ -65,7 +65,7 @@ ITSModuleStepper::ITSModuleStepper(ITSDigitsInfo* di) :
   fWActiveCol(45),
   fFontCol(8)
 {
-  fStepper = new GridStepper();
+  fStepper   = new GridStepper();
   fScaleInfo = new DigitScaleInfo();
 
   fAxis = new TGLAxis();
@@ -97,8 +97,9 @@ ITSModuleStepper::~ITSModuleStepper()
 void ITSModuleStepper::ConfigStepper(Int_t nx, Int_t ny)
 {
   fStepper->SetNs(nx, ny);
+  fStepper->SetOs(-0.5f*(nx-1)*fStepper->Dx, -0.5f*(ny-1)*fStepper->Dy);
   Int_t nmod = nx*ny;
-  for(Int_t m=0; m<nmod; m++) 
+  for(Int_t m=0; m<nmod; ++m) 
   {
     AddElement(new ITSScaledModule(m, fDigitsInfo, fScaleInfo));
   }
@@ -198,7 +199,8 @@ void  ITSModuleStepper::Apply()
   // printf("ITSModuleStepper::Apply fPosition %d \n", fPosition);
   gReve->DisableRedraw();
 
-  UInt_t idx = fPosition;
+  Float_t  pos[3];
+  UInt_t   idx = fPosition;
   for(List_i childit=fChildren.begin(); childit!=fChildren.end(); ++childit)
   {
     if(idx < fIDs.size()) 
@@ -210,7 +212,7 @@ void  ITSModuleStepper::Apply()
       tr.RotateLF(3,2,TMath::PiOver2());
       tr.RotateLF(1,3,TMath::PiOver2());   
 
-      // scaleing 
+      // scaling 
       Float_t mz, mx;
       Float_t* fp = mod->GetFrame()->GetFramePoints();
       // switch x,z it will be rotated afterwards
@@ -229,9 +231,8 @@ void  ITSModuleStepper::Apply()
       Float_t scale = (fExpandCell*sx)/mz;
       tr.Scale(scale, scale, scale);
 
-      Float_t  p[3];
-      fStepper->GetPosition(p);
-      tr.SetPos(p[0]+0.5*fStepper->Dx, p[1]+0.5*fStepper->Dy, p[2]+0.5*fStepper->Dz);
+      fStepper->GetPosition(pos);
+      tr.SetPos(pos);
   
       if(mod->GetSubDetID() == 2)
 	mod->SetName(Form("SSD %d", idx));
