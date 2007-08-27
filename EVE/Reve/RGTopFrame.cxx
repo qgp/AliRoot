@@ -169,7 +169,7 @@ Viewer* RGTopFrame::SpawnNewViewer(const Text_t* name, const Text_t* title, Bool
   Viewer* v = new Viewer(name, title);
 
   if (embed)  fBrowser->StartEmbedding(1);
-  v->SpawnGLViewer(0, embed ? fEditor : 0);
+  v->SpawnGLViewer(gClient->GetRoot(), embed ? fEditor : 0);
   v->SetDenyDestroy(kTRUE);
   if (embed)  fBrowser->StopEmbedding(), fBrowser->SetTabTitle(name, 1);
   AddRenderElement(v, fViewers);
