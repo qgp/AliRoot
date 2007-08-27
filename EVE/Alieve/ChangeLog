@@ -1,4 +1,17 @@
+2007-08-27  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	EVE-dev
+
+	* ITSModule.cxx:
+	Request filled frame for all standard frame-boxes.
+
+	* ITSModuleStepper.cxx:
+	Shift origin of grid-stepper instead of shifting each individual
+	module.
+
 2007-08-26  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	EVE-dev
 
 	* ITSModuleStepper.cxx:
 	* ITSModuleStepper.h:
@@ -25,6 +38,8 @@
 	AddGlobalRenderElement() and RemoveRenderElement().
 
 2007-08-09  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
+
+	EVE-dev
 
 	* ITSDigitsInfo.cxx:
 	Fix offset by one bug in GetModuleIDs().
