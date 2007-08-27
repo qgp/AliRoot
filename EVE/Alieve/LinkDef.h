@@ -26,7 +26,6 @@
 #pragma link C++ class Alieve::ITSModule+;
 #pragma link C++ class Alieve::DigitScaleInfo+;
 #pragma link C++ class Alieve::ITSScaledModule+;
-#pragma link C++ class Alieve::ITSSDSubEditor+;
 #pragma link C++ class Alieve::ITSScaledModuleEditor+;
 #pragma link C++ class Alieve::ITSModuleStepper+;
 
