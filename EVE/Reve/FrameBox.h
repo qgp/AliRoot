@@ -27,6 +27,7 @@ protected:
 
   Color_t      fFrameColor;
   UChar_t      fFrameRGBA[4];
+  Bool_t       fFrameFill;
 
 public:
   FrameBox();
@@ -54,6 +55,9 @@ public:
   void SetFrameColor(Color_t ci);
   void SetFrameColor(Pixel_t pix);
   void SetFrameColor(UChar_t r, UChar_t g, UChar_t b, UChar_t a=255);
+
+  Bool_t GetFrameFill() const   { return fFrameFill; }
+  void   SetFrameFill(Bool_t f) { fFrameFill = f;    }
 
   ClassDef(FrameBox, 1);
 }; // endclass FrameBox

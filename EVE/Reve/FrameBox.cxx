@@ -17,7 +17,8 @@ FrameBox::FrameBox() :
   fFrameSize   (0),
   fFramePoints (0),
 
-  fFrameColor  (0)
+  fFrameColor  (0),
+  fFrameFill   (kFALSE)
 {
   fFrameRGBA[0] = fFrameRGBA[1] = fFrameRGBA[2] = fFrameRGBA[3] = 255;
 }
