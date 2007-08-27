@@ -1,5 +1,12 @@
 2007-08-27  Matevz Tadel  <matevz.tadel@cern.ch>
 
+	* TPCSector2D.cxx:
+	* TPCSector2D.h:
+	Added menu-function MakeSector3D().
+	Removed obsolete ifdefed code.
+
+2007-08-27  Matevz Tadel  <matevz.tadel@cern.ch>
+
 	EVE-dev
 
 	* ITSModule.cxx:
