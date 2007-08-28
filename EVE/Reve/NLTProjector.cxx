@@ -215,7 +215,6 @@ NLTProjector::NLTProjector():
 //______________________________________________________________________________
 NLTProjector::~NLTProjector()
 {
-  TQObject::Disconnect("Reve::Track", "ProjectTrack(Bool_t)");
   if(fProjection) delete fProjection;
 }
 
