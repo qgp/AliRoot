@@ -36,11 +36,9 @@ ClassImp(NLTProjectorEditor)
     TGHorizontalFrame* f = new TGHorizontalFrame(this);
     TGLabel* lab = new TGLabel(f, "StepMode");
     f->AddFrame(lab, new TGLayoutHints(kLHintsLeft|kLHintsBottom, 1, 6, 1, 2));
-    fSIMode = new TGComboBox(f);
+    fSIMode = new TGComboBox(f, "Position");
     fSIMode->AddEntry("Value", 1);
     fSIMode->AddEntry("Position", 0);
-    // !! combo box dos not have a tool tip 
-    //fSIMode->GetNumberEntry()->SetToolTipText("Set tick-marks on equidistant values/screen position.");
     TGListBox* lb = fSIMode->GetListBox();
     lb->Resize(lb->GetWidth(), 2*18);
     fSIMode->Resize(80, 20);
@@ -48,6 +46,12 @@ ClassImp(NLTProjectorEditor)
 		     this, "DoSplitInfoMode(Int_t)");
     f->AddFrame(fSIMode, new TGLayoutHints(kLHintsTop, 1, 1, 1, 1));
     AddFrame(f);
+
+    if(fSIMode->GetTextEntry())
+    {
+      fSIMode->GetTextEntry()->SetToolTipText("Set tick-marks on equidistant values/screen position.");
+    }
+    else printf("AAAA \n");
   }
   {
     TGHorizontalFrame* f = new TGHorizontalFrame(this);
@@ -98,7 +102,7 @@ ClassImp(NLTProjectorEditor)
   fFixedRadius->SetLimits(0, 1000, 101, TGNumberFormat::kNESRealOne);
   fFixedRadius->SetToolTip("Radius not scaled by distotion.");
   fFixedRadius->Connect("ValueSet(Double_t)", "Reve::NLTProjectorEditor",
-		       this, "DoFixedRadius()");
+			this, "DoFixedRadius()");
   AddFrame(fFixedRadius, new TGLayoutHints(kLHintsTop, 1, 1, 1, 1));
 }
 
