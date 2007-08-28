@@ -17,9 +17,11 @@ ClassImp(FrameBoxGL)
 
 void FrameBoxGL::Render(const FrameBox* box)
 {
-  GLboolean lightp;
+  GLboolean lightp, cullp;
   glGetBooleanv(GL_LIGHTING, &lightp);
   if (lightp) glDisable(GL_LIGHTING);
+  glGetBooleanv(GL_CULL_FACE, &cullp);
+  if (cullp)  glDisable(GL_CULL_FACE);
 
   const FrameBox& b = *box;
   const Float_t*  p =  b.fFramePoints;
@@ -58,4 +60,5 @@ void FrameBoxGL::Render(const FrameBox* box)
 
   if (b.fFrameFill) glPopAttrib();
   if (lightp)       glEnable(GL_LIGHTING);
+  if (cullp)        glEnable(GL_CULL_FACE);
 }
