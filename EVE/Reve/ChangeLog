@@ -2,6 +2,17 @@
 
 	EVE-dev
 
+	* GridStepperEditor.cxx:
+	* GridStepperEditor.h:
+        Configure GridStepper widgets.
+	
+	* NLTProjector.cxx:
+        Remeve obsolete Signal/Slot call.
+	
+2007-08-28  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
+
+	EVE-dev
+
 	* .SKEL-gedsubed.cxx:
 	Change callback in sub-editor skeleton file.
 
@@ -19,7 +30,7 @@
 
 	EVE-dev
 
-	* FrameBoxGL.cxx:
+	*es FrameBoxGL.cxx:
 	Disable back-face culling if enabled.
 
 	* RMacro.cxx:
