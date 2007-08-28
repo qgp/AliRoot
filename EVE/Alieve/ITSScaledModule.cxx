@@ -23,19 +23,35 @@ DigitScaleInfo::DigitScaleInfo():
 
 void DigitScaleInfo::ScaleChanged(Int_t s)
 {
-    fScale = s;
-    Emit("ScaleChanged(Int_t)",fScale);
+  fScale = s;
+  
+  ITSScaledModule* sm;
+  std::list<RenderElement*>::iterator i = fBackRefs.begin();
+  while (i != fBackRefs.end())
+  {
+    sm = dynamic_cast<ITSScaledModule*>(*i);
+    if(sm) sm->LoadQuads();
+    ++i;
+  }
 }
 
 void DigitScaleInfo::StatTypeChanged(Int_t t)
 {
-    fStatType = t;
-    fSyncPalette = kTRUE;
-    Emit("StatTypeChanged(Int_t)",fStatType);
+  fStatType = t;
+  fSyncPalette = kTRUE;
+    
+  ITSScaledModule* sm;
+  std::list<RenderElement*>::iterator i = fBackRefs.begin();
+  while (i != fBackRefs.end())
+  {
+    sm = dynamic_cast<ITSScaledModule*>(*i);
+    if(sm) sm->SetQuadValues();
+    ++i;
+  }
 }
 
 //______________________________________________________________________
-// DigitScaleInfo
+// ScaledDigit
 //
 ScaledDigit::ScaledDigit():
   TObject(),
@@ -64,7 +80,7 @@ void ScaledDigit::Dump() const
 
 ClassImp(ITSScaledModule)
 
-  ITSScaledModule::ITSScaledModule(Int_t gid, ITSDigitsInfo* info, DigitScaleInfo* si):
+ITSScaledModule::ITSScaledModule(Int_t gid, ITSDigitsInfo* info, DigitScaleInfo* si):
   ITSModule("ITSScaledModule", "ITSScaledModule"),
   fNx(-1),
   fNz(-1),
@@ -72,18 +88,16 @@ ClassImp(ITSScaledModule)
   fNCz(-1),
   fScaleInfo(si)
 {
-  si->IncRefCount(this);
-  si->Connect("ScaleChanged(Int_t)", "Alieve::ITSScaledModule", this,"LoadQuads()");
-  si->Connect("StatTypeChanged(Int_t)", "Alieve::ITSScaledModule", this,"SetQuadValues()");
   SetOwnIds(kTRUE);
 
   SetDigitsInfo(info);
-  SetID(gid);
+  SetID(gid); 
+  fScaleInfo->IncRefCount(this);
 }
 
 ITSScaledModule::~ITSScaledModule()
 {
-  fScaleInfo->DecRefCount();
+  fScaleInfo->DecRefCount(this);
 }
 
 /**************************************************************************/

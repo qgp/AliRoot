@@ -35,10 +35,10 @@ public:
   virtual ~DigitScaleInfo(){}
     
   Int_t            GetScale() { return fScale; }
-  void             ScaleChanged(Int_t s); //*SIGNAL*
+  void             ScaleChanged(Int_t s);
 
   Int_t            GetStatType() { return fStatType; }
-  void             StatTypeChanged(Int_t t);  //*SIGNAL*
+  void             StatTypeChanged(Int_t t);
 
   Bool_t           GetSyncPalette(){return fSyncPalette;}
   void             SetSyncPalette(Bool_t x){fSyncPalette = x;}
