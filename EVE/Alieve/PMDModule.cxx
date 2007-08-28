@@ -50,6 +50,7 @@ void PMDModule::DisplayInit(Int_t ism)
   Reve::FrameBox *pmdModBox = new FrameBox();
   pmdModBox->SetAAQuadXY(xism, yism, 0, dxism, dyism);
   pmdModBox->SetFrameColor((Color_t) 31);
+  pmdModBox->SetFrameFill(kTRUE);
 
   Reve::RGBAPalette *pmdModPalette  = new RGBAPalette(20, 1000);
   pmdModPalette->SetLimits(0, 1000);
