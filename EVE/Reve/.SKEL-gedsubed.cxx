@@ -49,7 +49,7 @@ void XXCLASS::Changed()
 //void XXCLASS::DoABCD()
 //{
 //   // Set some value from some widget
-//   Update();
+//   Changed();
 //}
 
 
