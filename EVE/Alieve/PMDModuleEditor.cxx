@@ -125,7 +125,6 @@ void PMDModuleEditor::SetModel(TObject* obj)
   fM = dynamic_cast<PMDModule*>(obj);
 
   // Set values of widgets
-  // fXYZZ->SetValue(fM->GetXYZZ());
 
   fInfoLabel0->SetText(Form("Cells hit per Module : %d", fM->GetNPads()));
   fInfoLabel1->SetText(Form("ADC       per Module : %d", fM->GetAdc()));
@@ -141,16 +140,3 @@ void PMDModuleEditor::DisplayHistos()
   gPad->Modified();
   gPad->Update();
 }
-
-
-
-
-/**************************************************************************/
-
-// Implements callback/slot methods
-
-// void PMDModuleEditor::DoXYZZ()
-// {
-//   fM->SetXYZZ(fXYZZ->GetValue());
-//   Update();
-// }
