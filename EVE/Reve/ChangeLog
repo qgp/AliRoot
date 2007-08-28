@@ -1,3 +1,14 @@
+2007-08-28  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	EVE-dev
+
+	* FrameBoxGL.cxx:
+	Disable back-face culling if enabled.
+
+	* RMacro.cxx:
+	Revert back to gled-style checking if a macro is loaded. The
+	Axel's method spits blood with latest cint.
+
 2007-08-27  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
 
 	EVE-dev
