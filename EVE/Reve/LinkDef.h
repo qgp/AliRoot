@@ -47,6 +47,8 @@
 
 // Stepper
 #pragma link C++ class Reve::GridStepper+;
+#pragma link C++ class Reve::GridStepperSubEditor+;
+#pragma link C++ class Reve::GridStepperEditor+;
 
 // RGBAPalette
 #pragma link C++ class Reve::RGBAPalette+;
