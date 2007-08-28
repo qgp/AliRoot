@@ -1,3 +1,20 @@
+2007-08-28  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
+
+	EVE-dev
+
+	* .SKEL-gedsubed.cxx:
+	Change callback in sub-editor skeleton file.
+
+	* GridStepperEditor.cxx:
+	* GridStepperEditor.h:
+	New class GridStepperEditor/GridStepperSubEditor.
+
+	* LinkDef.h:
+	Register new classes: GridStepperSubEditor and GridStepperEditor.
+
+	* NLTProjectorEditor.cxx:
+	Add tool-tip in TGComboBox.
+
 2007-08-28  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	EVE-dev
