@@ -53,7 +53,7 @@ private:
   GridStepperEditor& operator=(const GridStepperEditor&); // Not implemented
 
 protected:
-  GridStepper      *fM;  // fModel dynamic-casted to GridStepper
+  GridStepper            *fM;  // fModel dynamic-casted to GridStepper
   GridStepperSubEditor   *fSE;
 
 public:
@@ -62,10 +62,8 @@ public:
 
   virtual void SetModel(TObject* obj);
 
-  void DoXYZZ();
-
   ClassDef(GridStepperEditor, 0) // Editor for GridStepper
-    };
+};
 
 }
 

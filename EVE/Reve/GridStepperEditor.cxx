@@ -33,85 +33,85 @@ GridStepperSubEditor::GridStepperSubEditor(const TGWindow *p) :
   fDy            (0),
   fDz            (0)
 {
-  Int_t labelW = 22;
-  {
-    TGHorizontalFrame* f = new TGHorizontalFrame(this);
-    AddFrame(f, new TGLayoutHints(kLHintsTop, 1, 1, 1, 0));
+  Int_t labelW = 15;
 
-    fNx = new RGValuator(f,"Nx:", 200, 0);
-    fNx->SetNELength(4);
+  TGHorizontalFrame* VF = new TGHorizontalFrame(this);
+    
+  {
+    TGGroupFrame* f = new TGGroupFrame(VF, "NumRows", kVerticalFrame);
+    f->SetWidth(30);
+    VF->AddFrame(f, new TGLayoutHints(kLHintsTop, 1, 1, 1, 0));
+
+    fNx = new RGValuator(f,"X:", 200, 0);
+    fNx->SetNELength(3);
     fNx->SetLabelWidth(labelW);
     fNx->SetShowSlider(kFALSE);
     fNx->Build();
-    fNx->GetSlider()->SetWidth(224);
-    fNx->SetLimits(0, 1023, TGNumberFormat::kNESInteger);
-    fNx->Connect("ValueSet()",
-		 "Reve::RGBAPaletteSubEditor", this, "DoNs()");
+    fNx->SetLimits(1, 15);
+    fNx->Connect("ValueSet(Double_t)",
+		 "Reve::GridStepperSubEditor", this, "DoNs()");
     f->AddFrame(fNx, new TGLayoutHints(kLHintsTop, 1, 1, 1, 1));
 
-    fNy = new RGValuator(f,"Nx:", 200, 0);
-    fNy->SetNELength(4);
+    fNy = new RGValuator(f,"Y:", 200, 0);
+    fNy->SetNELength(3);
     fNy->SetLabelWidth(labelW);
     fNy->SetShowSlider(kFALSE);
     fNy->Build();
-    fNy->GetSlider()->SetWidth(224);
-    fNy->SetLimits(0, 1023, TGNumberFormat::kNESInteger);
-    fNy->Connect("ValueSet()",
-		 "Reve::RGBAPaletteSubEditor", this, "DoNs()");
+    fNy->SetLimits(1, 15);
+    fNy->Connect("ValueSet(Double_t)",
+		 "Reve::GridStepperSubEditor", this, "DoNs()");
     f->AddFrame(fNy, new TGLayoutHints(kLHintsTop, 1, 1, 1, 1));
 
-    fNz = new RGValuator(f,"Nx:", 200, 0);
-    fNz->SetNELength(4);
+    fNz = new RGValuator(f,"Z:", 200, 0);
+    fNz->SetNELength(3);
     fNz->SetLabelWidth(labelW);
     fNz->SetShowSlider(kFALSE);
     fNz->Build();
-    fNz->GetSlider()->SetWidth(224);
-    fNz->SetLimits(0, 1023, TGNumberFormat::kNESInteger);
-    fNz->Connect("ValueSet()",
-		 "Reve::RGBAPaletteSubEditor", this, "DoNs()");
+    fNz->SetLimits(1, 15);
+    fNz->Connect("ValueSet(Double_t)",
+		 "Reve::GridStepperSubEditor", this, "DoNs()");
     f->AddFrame(fNz, new TGLayoutHints(kLHintsTop, 1, 1, 1, 1));
 
-    AddFrame(f, new TGLayoutHints(kLHintsExpandX, 2, 0, 0, 0));
+    //AddFrame(f, new TGLayoutHints(kLHintsExpandX, 2, 0, 0, 0));
   }
   {
-    TGHorizontalFrame* f = new TGHorizontalFrame(this);
-    AddFrame(f, new TGLayoutHints(kLHintsTop, 1, 1, 1, 0));
+    TGGroupFrame* f = new TGGroupFrame(VF, "Step", kVerticalFrame);
+    f->SetWidth(130);
+    VF->AddFrame(f, new TGLayoutHints(kLHintsTop, 1, 1, 1, 0));
 
-    fDx = new RGValuator(f,"Nx:", 200, 0);
-    fDx->SetNELength(4);
+    fDx = new RGValuator(f,"X:", 200, 0);
+    fDx->SetNELength(5);
     fDx->SetLabelWidth(labelW);
     fDx->SetShowSlider(kFALSE);
     fDx->Build();
-    fDx->GetSlider()->SetWidth(224);
-    fDx->SetLimits(0, 1023, TGNumberFormat::kNESInteger);
-    fDx->Connect("ValueSet()",
-		 "Reve::RGBAPaletteSubEditor", this, "DoDs()");
+    fDx->SetLimits(0.1, 100, 101, TGNumberFormat::kNESRealOne);
+    fDx->Connect("ValueSet(Double_t)",
+		 "Reve::GridStepperSubEditor", this, "DoDs()");
     f->AddFrame(fDx, new TGLayoutHints(kLHintsTop, 1, 1, 1, 1));
 
-    fDy = new RGValuator(f,"Nx:", 200, 0);
-    fDy->SetNELength(4);
+    fDy = new RGValuator(f,"Y:", 200, 0);
+    fDy->SetNELength(5);
     fDy->SetLabelWidth(labelW);
     fDy->SetShowSlider(kFALSE);
     fDy->Build();
-    fDy->GetSlider()->SetWidth(224);
-    fDy->SetLimits(0, 1023, TGNumberFormat::kNESInteger);
-    fDy->Connect("ValueSet()",
-		 "Reve::RGBAPaletteSubEditor", this, "DoDs()");
+    fDy->SetLimits(0.1, 100, 101, TGNumberFormat::kNESRealOne);
+    fDy->Connect("ValueSet(Double_t)",
+		 "Reve::GridStepperSubEditor", this, "DoDs()");
     f->AddFrame(fDy, new TGLayoutHints(kLHintsTop, 1, 1, 1, 1));
 
-    fDz = new RGValuator(f,"Nx:", 200, 0);
-    fDz->SetNELength(4);
+    fDz = new RGValuator(f,"Z:", 200, 0);
+    fDz->SetNELength(5);
     fDz->SetLabelWidth(labelW);
     fDz->SetShowSlider(kFALSE);
     fDz->Build();
-    fDz->GetSlider()->SetWidth(224);
-    fDz->SetLimits(0, 1023, TGNumberFormat::kNESInteger);
-    fDz->Connect("ValueSet()",
-		 "Reve::RGBAPaletteSubEditor", this, "DoDs()");
+    fDz->SetLimits(0.1, 100, 101, TGNumberFormat::kNESRealOne);
+    fDz->Connect("ValueSet(Double_t)",
+		 "Reve::GridStepperSubEditor", this, "DoDs()");
     f->AddFrame(fDz, new TGLayoutHints(kLHintsTop, 1, 1, 1, 1));
 
-    AddFrame(f, new TGLayoutHints(kLHintsExpandX, 2, 0, 0, 0));
+    //AddFrame(f, new TGLayoutHints(kLHintsExpandX, 2, 0, 0, 0));
   }
+  AddFrame(VF, new TGLayoutHints(kLHintsExpandX, 2, 0, 0, 0));
 }
 
 //______________________________________________________________________
@@ -121,12 +121,12 @@ void GridStepperSubEditor::SetModel(GridStepper* m)
   fM = m;
 
   fNx->SetValue(m->Nx);
-  fNx->SetValue(m->Ny);
-  fNx->SetValue(m->Nz);
+  fNy->SetValue(m->Ny);
+  fNz->SetValue(m->Nz);
 
-  fNx->SetValue(m->Dx);
-  fNx->SetValue(m->Dy);
-  fNx->SetValue(m->Dz);
+  fDx->SetValue(m->Dx);
+  fDy->SetValue(m->Dy);
+  fDz->SetValue(m->Dz);
 }
 
 //______________________________________________________________________
@@ -140,16 +140,15 @@ void GridStepperSubEditor::Changed()
 //______________________________________________________________________
 void GridStepperSubEditor::DoNs()
 {
-   // Set some value from some widget
   fM->SetNs((Int_t)fNx->GetValue(), (Int_t)fNy->GetValue(), (Int_t)fNz->GetValue()); 
-   Changed();
+  Changed();
 }
 
 //______________________________________________________________________
 void GridStepperSubEditor::DoDs()
 {
    // Set some value from some widget
-  fM->SetDs((Int_t)fDx->GetValue(), (Int_t)fDy->GetValue(),(Int_t)fDz->GetValue()); 
+  fM->SetDs(fDx->GetValue(), fDy->GetValue(), fDz->GetValue()); 
   Changed();
 }
 
