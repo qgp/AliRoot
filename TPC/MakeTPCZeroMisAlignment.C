@@ -1,13 +1,7 @@
 void MakeTPCZeroMisAlignment(){
   // Create TClonesArray of zero misalignment objects for TPC
   //
-  if(!AliGeomManager::GetGeometry()){
-    if(!(AliCDBManager::Instance())->IsDefaultStorageSet())
-      AliCDBManager::Instance()->SetDefaultStorage("local://$ALICE_ROOT");
-      AliCDBManager::Instance()->SetRun(0);
-    AliGeomManager::LoadGeometry();
-  }
-  // needed for the constructors with local coordinates not to fail
+  const char* macroname = "MakeTPCZeroMisAlignment.C";
 
   TClonesArray *array = new TClonesArray("AliAlignObjAngles",100);
   TClonesArray &alobj = *array;
@@ -27,8 +21,6 @@ void MakeTPCZeroMisAlignment(){
     }
   }
 
-
-  const char* macroname = "MakeTPCZeroMisAlignment.C";
   if( gSystem->Getenv("TOCDB") != TString("kTRUE") ){
     // save on file
     const char* filename = "TPCzeroMisalignment.root";

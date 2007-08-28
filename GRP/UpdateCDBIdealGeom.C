@@ -1,9 +1,10 @@
-void UpdateCDBIdealGeom(){
+void UpdateCDBIdealGeom(const char* cdbUri){
   // produce the ideal geometry with the current AliRoot and store it in the
   // CDB
 
   AliCDBManager* man = AliCDBManager::Instance();
-  man->SetDefaultStorage("local://$ALICE_ROOT");
+  if(!man->IsDefaultStorageSet()) man->SetDefaultStorage("local://$ALICE_ROOT");
+  AliCDBStorage* storage = man->GetStorage(cdbUri);
   man->SetRun(0);
   AliCDBId id("GRP/Geometry/Data",0,AliCDBRunRange::Infinity());
   AliCDBMetaData *md= new AliCDBMetaData();
@@ -26,11 +27,11 @@ void UpdateCDBIdealGeom(){
     alirootv="HEAD";
   }else{
     alirootv = buf;
-    md->SetAliRootVersion(alirootv);
-    md->SetComment(Form("Geometry produced with root version %s and AliRoot version %s",rootv,alirootv));
   }
+  md->SetAliRootVersion(alirootv);
+  md->SetComment(Form("Geometry produced with root version %s and AliRoot version %s",rootv,alirootv));
   
-  gAlice->Init();
+  gAlice->Init("$ALICE_ROOT/macros/Config.C");
   
   if(!gGeoManager){
     Printf("Unable to produce a valid geometry to be put in the CDB!");
@@ -38,6 +39,6 @@ void UpdateCDBIdealGeom(){
   }
   
   Printf("Storing in CDB geometry produced with root version %s and AliRoot version %s",rootv,alirootv);
-  man->Put(gGeoManager,id,md);
+  storage->Put(gGeoManager,id,md);
 
 }

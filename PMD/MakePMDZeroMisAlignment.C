@@ -33,20 +33,12 @@ void MakePMDZeroMisAlignment(){
     // As these will be mounted on the same
     // Steel plate 
  */
-  
-  if(!AliGeomManager::GetGeometry()){
-    if(!(AliCDBManager::Instance())->IsDefaultStorageSet())
-      AliCDBManager::Instance()->SetDefaultStorage("local://$ALICE_ROOT");
-      AliCDBManager::Instance()->SetRun(0);
-    AliGeomManager::LoadGeometry();
-  }
-  // needed for the constructors with local coordinates not to fail
+
+  const char* macroname = "MakePMDZeroMisAlignment.C";
 
   //Create a TClonesArray of Align Object to store displacement Angles
   TClonesArray *array = new TClonesArray("AliAlignObjAngles",10);
   TClonesArray &alobj = *array;
-  
-  AliAlignObjAngles o;
   
   Int_t iIndex=0; //  let all modules have index=0 in a layer with no LUT
   AliGeomManager::ELayerID iLayer = AliGeomManager::kInvalidLayer;
@@ -59,7 +51,6 @@ void MakePMDZeroMisAlignment(){
     new(alobj[j++]) AliAlignObjAngles(snSector.Data(), volid, dx, dy, dz, dpsi, dtheta, dphi, kTRUE);
   }
 
-  const char* macroname = "MakePMDZeroMisAlignment.C";
   if( gSystem->Getenv("TOCDB") != TString("kTRUE") ){
     // Create a File to store the alignment data
     const char* filename = "PMDzeroMisalignment.root";

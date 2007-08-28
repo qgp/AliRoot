@@ -1,18 +1,10 @@
 void MakeZDCResMisAlignment(){
   // Create TClonesArray of residual misalignment objects for ZDC
   // 
-  if(!AliGeomManager::GetGeometry()){
-    if(!(AliCDBManager::Instance())->IsDefaultStorageSet())
-      AliCDBManager::Instance()->SetDefaultStorage("local://$ALICE_ROOT");
-      AliCDBManager::Instance()->SetRun(0);
-    AliGeomManager::LoadGeometry();
-  }
-  // needed for the constructors with local coordinates not to fail
+  const char* macroname = "MakeZDCResMisAlignment.C";
 
   TClonesArray *array = new TClonesArray("AliAlignObjAngles",10);
   TClonesArray &alobj = *array;
-
-  AliAlignObjAngles a;
 
   Double_t dx=0., dy=0.05, dz=0.;
   Double_t dpsi=0., dtheta=0., dphi=0.;
@@ -27,7 +19,6 @@ void MakeZDCResMisAlignment(){
   new(alobj[0]) AliAlignObjAngles(ZDCn, volid, dx, dy, dz, dpsi, dtheta, dphi, kTRUE);
   new(alobj[1]) AliAlignObjAngles(ZDCp, volid, dx, dy, dz, dpsi, dtheta, dphi,kTRUE);
 
-  const char* macroname = "MakeZDCResMisAlignment.C";
   if( gSystem->Getenv("TOCDB") != TString("kTRUE") ){
     // save in file
     const char* filename = "ZDCresidualMisalignment.root";

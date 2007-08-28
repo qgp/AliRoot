@@ -4,8 +4,6 @@ void MakeT0ZeroMisAlignment(){
   TClonesArray *array = new TClonesArray("AliAlignObjAngles",10);
   TClonesArray &alobj = *array;
 
-  AliAlignObjAngles a;
-
   Double_t dx=0, dy=0, dz=0, dpsi=0, dtheta=0, dphi=0;
 
   TString symName, sn;
