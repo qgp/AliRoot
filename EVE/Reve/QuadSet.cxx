@@ -762,22 +762,7 @@ void QuadSet::ComputeBBox()
     } // end switch quad-type
   } // end if frame ... else ...
 
-#if ROOT_VERSION_CODE <= ROOT_VERSION(5,14,0)
-  { // Resize bounding box so that it does not have 0 volume.
-    // This should be done in TAttBBox (via method AssertMinExtents(epsilon)).
-    // Or handled more gracefully in TGLViewer.
-    static const Float_t eps = 1e-3;
-    for (Int_t i=0; i<6; i+=2) {
-      if (fBBox[i+1] - fBBox[i] < eps) {
-	Float_t b = 0.5*(fBBox[i] + fBBox[i+1]);
-	fBBox[i]   = b - 0.5*eps;
-	fBBox[i+1] = b + 0.5*eps;
-      }
-    }
-  }
-#else
   AssertBBoxExtents(0.001);
-#endif
 }
 
 /**************************************************************************/
