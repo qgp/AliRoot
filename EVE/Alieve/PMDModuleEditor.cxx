@@ -50,6 +50,8 @@ PMDModuleEditor::PMDModuleEditor(const TGWindow *p, Int_t width, Int_t height,
 
 void PMDModuleEditor::CreateInfoFrame()
 {
+  fInfoFrame = CreateEditorTabSubFrame("Info");
+
   TGCompositeFrame *title1 = new TGCompositeFrame(fInfoFrame, 145, 10, 
 						  kHorizontalFrame | 
 						  kLHintsExpandX   | 
@@ -61,9 +63,6 @@ void PMDModuleEditor::CreateInfoFrame()
   title1->AddFrame(new TGHorizontal3DLine(title1),
 		   new TGLayoutHints(kLHintsExpandX, 5, 5, 7, 7));
   fInfoFrame->AddFrame(title1, new TGLayoutHints(kLHintsTop, 0, 0, 2, 0));
-
-  TGCompositeFrame* tabcont = fGedEditor->GetEditorTab("Info"); 
-  fInfoFrame = new TGVerticalFrame(tabcont);
 
   Int_t labelW = 67;
 
@@ -114,8 +113,6 @@ void PMDModuleEditor::CreateInfoFrame()
 
     fInfoFrame->AddFrame(f, new TGLayoutHints(kLHintsLeft, 0, 0, 0, 0));
   }
-
-  tabcont->AddFrame(fInfoFrame);
 }
 
 PMDModuleEditor::~PMDModuleEditor()

@@ -77,10 +77,7 @@ ITSScaledModuleEditor::~ITSScaledModuleEditor()
 /*************************************************************************/
 void ITSScaledModuleEditor::CreateInfoFrame()
 {
-  //fInfoFrame = CreateEditorTabSubFrame("Info");
-  TGCompositeFrame* tabcont = fGedEditor->GetEditorTab("Info"); 
-  fInfoFrame = new TGVerticalFrame(tabcont);
-
+  fInfoFrame = CreateEditorTabSubFrame("Info");
   TGCompositeFrame *title1 = new TGCompositeFrame(fInfoFrame, 145, 10, 
 						  kHorizontalFrame | 
 						  kLHintsExpandX   | 
@@ -105,7 +102,6 @@ void ITSScaledModuleEditor::CreateInfoFrame()
   fInfoFrame->AddFrame(fInfoLabel1, new TGLayoutHints(kLHintsLeft|kLHintsExpandX,
 					  lp, 0, 2, 8));
 
-  tabcont->AddFrame(fInfoFrame);
 }
 
 /**************************************************************************/
