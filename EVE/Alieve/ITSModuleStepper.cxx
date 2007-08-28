@@ -65,8 +65,13 @@ ITSModuleStepper::ITSModuleStepper(ITSDigitsInfo* di) :
   fWActiveCol(45),
   fFontCol(8)
 {
+  fDigitsInfo->IncRefCount();
+
   fStepper = new GridStepper();
+  fStepper->SetNs(5, 4);
+
   fScaleInfo = new DigitScaleInfo();
+  fScaleInfo->IncRefCount();
 
   fAxis = new TGLAxis();
   fAxis->SetLineColor(4);
@@ -85,8 +90,10 @@ ITSModuleStepper::~ITSModuleStepper()
 {
   gReve->GetGLViewer()->RemoveOverlayElement(this);
 
+   fScaleInfo->DecRefCount();
+  fDigitsInfo->DecRefCount();
+
   delete fStepper;
-  delete fScaleInfo;
 
   delete fAxis;
   delete fText;
@@ -94,13 +101,29 @@ ITSModuleStepper::~ITSModuleStepper()
 
 /**************************************************************************/
 
-void ITSModuleStepper::ConfigStepper(Int_t nx, Int_t ny)
+void ITSModuleStepper::AddElement(RenderElement* el)
 {
-  fStepper->SetNs(nx, ny);
-  Int_t nmod = nx*ny;
-  for(Int_t m=0; m<nmod; m++) 
+  static const Exc_t eH("ITSModulestepper::AddElement ");
+  ITSScaledModule* m = dynamic_cast<ITSScaledModule*>(el);
+  if ( m == 0)
   {
-    AddElement(new ITSScaledModule(m, fDigitsInfo, fScaleInfo));
+    throw(eH + "new element not a ITSScaledModule.");
+  }
+  RenderElement::AddElement(m);
+}
+
+/**************************************************************************/
+
+void ITSModuleStepper::Capacity()
+{
+  Int_t N = fStepper->Nx*fStepper->Ny;
+  if(N != GetNChildren())
+  {
+    DestroyElements();
+    for(Int_t m=0; m<N; m++) 
+    {
+      AddElement(new ITSScaledModule(m, fDigitsInfo, fScaleInfo));
+    }
   }
 }
 
@@ -115,14 +138,12 @@ void ITSModuleStepper::SetFirst(Int_t first)
   if(first > first_lastpage) first = first_lastpage;
   if(first < 0) first = 0;
   fPosition = first;
-  fStepper->Reset(); 
   Apply();
 }
 
 void ITSModuleStepper::Start()
 {
   fPosition = 0;
-  fStepper->Reset(); 
   Apply();
 }
 
@@ -197,6 +218,7 @@ void  ITSModuleStepper::Apply()
 {
   // printf("ITSModuleStepper::Apply fPosition %d \n", fPosition);
   gReve->DisableRedraw();
+  Capacity();
 
   UInt_t idx = fPosition;
   for(List_i childit=fChildren.begin(); childit!=fChildren.end(); ++childit)
@@ -210,7 +232,7 @@ void  ITSModuleStepper::Apply()
       tr.RotateLF(3,2,TMath::PiOver2());
       tr.RotateLF(1,3,TMath::PiOver2());   
 
-      // scaleing 
+      // scaling 
       Float_t mz, mx;
       Float_t* fp = mod->GetFrame()->GetFramePoints();
       // switch x,z it will be rotated afterwards
@@ -250,6 +272,7 @@ void  ITSModuleStepper::Apply()
     }
   }
 
+  fStepper->Reset();
   ElementChanged();
   gReve->EnableRedraw();
 }
@@ -583,7 +606,7 @@ void ITSModuleStepper::RenderCellIDs()
   Double_t x, y,z;
   Double_t sx, sy, sz;
   UInt_t idx = fPosition;
-  for(List_i  childit=fChildren.begin();  childit!=fChildren.end(); ++childit)
+  for (List_i childit=fChildren.begin(); childit!=fChildren.end(); ++childit)
   {
     if(idx < fIDs.size()) 
     { 

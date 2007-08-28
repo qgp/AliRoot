@@ -79,11 +79,14 @@ protected:
   void   AddToList( Int_t modID ){ fIDs.push_back(modID);}
   void   ResetList(){ fIDs.clear();}
   void   SetFirst(Int_t first);
-  void   Apply();
 
 public:
   ITSModuleStepper(ITSDigitsInfo* di);
   virtual ~ITSModuleStepper();
+
+  // RenderElement
+  virtual  Bool_t CanEditMainColor() { return kTRUE; }
+  virtual void AddElement(Reve::RenderElement* el);
 
   // external functions
   void     DisplayDet(Int_t det, Int_t layer = -1);
@@ -97,16 +100,18 @@ public:
   virtual void   Render(TGLRnrCtx& rnrCtx);
 
   // stepper
-  void     ConfigStepper(Int_t nx, Int_t ny);
+  Reve::GridStepper*  GetStepper(){return fStepper;}
+  void                SetStepper(Reve::GridStepper* s){ fStepper = s; Apply();}
+
   Int_t    GetCurrentPage();
   Int_t    GetPages();
   void     Start();
   void     Next();
   void     Previous();
   void     End();
+  void     Apply();
+  void     Capacity();
 
-  // RenderElement
-  virtual  Bool_t CanEditMainColor() { return kTRUE; }
 
   // getters/setters
   Color_t  GetWColor(){ return fWCol; };
