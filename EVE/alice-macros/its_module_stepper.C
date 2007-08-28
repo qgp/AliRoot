@@ -4,7 +4,7 @@ namespace Alieve
 class ITSModuleStepper;
 }
 
-void its_module_stepper(Int_t det = 0, Int_t col = 5, Int_t row = 4)
+void its_module_stepper(Int_t det = 0)
 {
   TFile *file = TFile::Open("ITS.Digits.root");
   TDirectory* dir = (TDirectory*) file->Get("Event0");
@@ -16,7 +16,6 @@ void its_module_stepper(Int_t det = 0, Int_t col = 5, Int_t row = 4)
   Alieve::ITSModuleStepper* ms = new Alieve::ITSModuleStepper(di);
   ms->SetMainColor(Color_t(8));
   gStyle->SetPalette(1, 0);
-  ms->ConfigStepper(col, row);
   ms->DisplayDet(det, -1);
   gReve->AddRenderElement(ms);
   gReve->Redraw3D(kTRUE); // To enforce camera reset
