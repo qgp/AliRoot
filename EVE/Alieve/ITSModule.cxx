@@ -68,7 +68,9 @@ void ITSModule::InitStatics(ITSDigitsInfo* info)
     fgSPDFrameBox->SetAAQuadXZ(-dx, 0, -dz, 2*dx, 2*dz);
     fgSPDFrameBox->SetFrameColor((Color_t) 31);
     fgSPDFrameBox->SetFrameFill(kTRUE);
+    fgSPDFrameBox->IncRefCount();
     fgSPDPalette  = new RGBAPalette(info->fSPDMinVal,info->fSPDMaxVal);
+    fgSPDPalette->IncRefCount();
   }
 
   {
@@ -79,8 +81,10 @@ void ITSModule::InitStatics(ITSDigitsInfo* info)
     fgSDDFrameBox->SetAAQuadXZ(-dx, 0, -dz, 2*dx, 2*dz);
     fgSDDFrameBox->SetFrameColor((Color_t) 32);
     fgSDDFrameBox->SetFrameFill(kTRUE);
+    fgSDDFrameBox->IncRefCount();
     fgSDDPalette  = new RGBAPalette(info->fSDDMinVal,info->fSDDMaxVal);
     fgSDDPalette->SetLimits(0, info->fSDDHighLim); // Set proper ADC range.
+    fgSDDPalette->IncRefCount();
   }
 
   {
@@ -91,8 +95,10 @@ void ITSModule::InitStatics(ITSDigitsInfo* info)
     fgSSDFrameBox->SetAAQuadXZ(-dx, 0, -dz, 2*dx, 2*dz);
     fgSSDFrameBox->SetFrameColor((Color_t) 33);
     fgSSDFrameBox->SetFrameFill(kTRUE);
+    fgSSDFrameBox->IncRefCount();
     fgSSDPalette  = new RGBAPalette(info->fSSDMinVal,info->fSSDMaxVal);
     fgSSDPalette->SetLimits(0, info->fSSDHighLim); // Set proper ADC range.
+    fgSSDPalette->IncRefCount();
   }
 
 }
