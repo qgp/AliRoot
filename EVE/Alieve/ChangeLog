@@ -4,19 +4,21 @@
 
 	* ITSModule.cxx:
         In InitStatics add missing reference on global palettes.
-	
+
 	* ITSModuleStepper.cxx:
 	* ITSModuleStepper.h:
 	* ITSModuleStepperEditor.cxx:
 	* ITSModuleStepperEditor.h:
-	Enable dynamic setting of Reve::GridStepper cell size and number of rows. 
+	Enable dynamic setting of Reve::GridStepper cell size and number
+	of rows.
 
 	* LinkDef.h:
         Register new class ITSModuleStepperEditor.
-	
+
 	* ITSScaledModule.cxx:
 	* ITSScaledModule.h:
-	Replace roots gui Signal/Slot mechanism by using structure of Reve::ReferenceBackPtr.
+	Replace roots gui Signal/Slot mechanism by using structure of
+	Reve::ReferenceBackPtr.
 
 2007-08-28  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
 
