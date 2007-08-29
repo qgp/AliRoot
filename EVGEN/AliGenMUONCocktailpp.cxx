@@ -22,8 +22,9 @@
 // The free parameeters are :
 //      pp reaction cross-section
 //      production cross-sections in pp collisions 
-// July 07:added heavy quark production from AliGenCorrHF and heavy quark 
-//         production switched off in Pythia 
+// July 07: added heavy quark production from AliGenCorrHF and heavy quark 
+//         production switched off in Pythia
+// Aug. 07: added trigger momentum cut
 
 #include <TObjArray.h>
 #include <TParticle.h>
@@ -55,6 +56,7 @@ AliGenMUONCocktailpp::AliGenMUONCocktailpp()
      fTotalRate(0),
      fMuonMultiplicity(0),
      fMuonPtCut(0.),
+     fMuonPCut(0.),
      fMuonThetaMinCut(0.),
      fMuonThetaMaxCut(0.),
      fMuonOriginCut(-999.),
@@ -327,7 +329,8 @@ void AliGenMUONCocktailpp::Generate()
 	    if((part->Vz() > fMuonOriginCut) && //take only the muons that decayed before the abs + 1 int. length in C abs
 	       (part->Theta()*180./TMath::Pi()>fMuonThetaMinCut) &&
 	       (part->Theta()*180./TMath::Pi()<fMuonThetaMaxCut) &&
-	       (part->Pt()>fMuonPtCut)) {
+	       (part->Pt()>fMuonPtCut) &&
+	       (part->P()>fMuonPCut)) {
 	      numberOfMuons++;
 	    }
 	  }
