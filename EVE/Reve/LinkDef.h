@@ -219,3 +219,4 @@
 #pragma link C++ class Reve::StraightLineSet+;
 #pragma link C++ class Reve::StraightLineSetGL+;
 #pragma link C++ class Reve::StraightLineSetEditor+;
+#pragma link C++ class Reve::NLTSLineSet+;
