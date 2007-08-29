@@ -39,6 +39,7 @@ ClassImp(NLTProjectorEditor)
     fSIMode = new TGComboBox(f, "Position");
     fSIMode->AddEntry("Value", 1);
     fSIMode->AddEntry("Position", 0);
+    fSIMode->GetTextEntry()->SetToolTipText("Set tick-marks on equidistant values/screen position.");
     TGListBox* lb = fSIMode->GetListBox();
     lb->Resize(lb->GetWidth(), 2*18);
     fSIMode->Resize(80, 20);
@@ -46,12 +47,6 @@ ClassImp(NLTProjectorEditor)
 		     this, "DoSplitInfoMode(Int_t)");
     f->AddFrame(fSIMode, new TGLayoutHints(kLHintsTop, 1, 1, 1, 1));
     AddFrame(f);
-
-    if(fSIMode->GetTextEntry())
-    {
-      fSIMode->GetTextEntry()->SetToolTipText("Set tick-marks on equidistant values/screen position.");
-    }
-    else printf("AAAA \n");
   }
   {
     TGHorizontalFrame* f = new TGHorizontalFrame(this);
@@ -86,7 +81,7 @@ ClassImp(NLTProjectorEditor)
 
   Int_t labelW = 60;
   fDistortion = new RGValuator(this, "Distortion:", 90, 0);
-  fDistortion->SetNELength(8);
+  fDistortion->SetNELength(5);
   fDistortion->SetLabelWidth(labelW);
   fDistortion->Build();
   fDistortion->SetLimits(0, 50, 101, TGNumberFormat::kNESRealTwo);
@@ -96,7 +91,7 @@ ClassImp(NLTProjectorEditor)
 
 
   fFixedRadius = new RGValuator(this, "FixedR:", 90, 0);
-  fFixedRadius->SetNELength(8);
+  fFixedRadius->SetNELength(5);
   fFixedRadius->SetLabelWidth(labelW);
   fFixedRadius->Build();
   fFixedRadius->SetLimits(0, 1000, 101, TGNumberFormat::kNESRealOne);
