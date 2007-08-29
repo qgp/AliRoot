@@ -2,6 +2,13 @@
 #pragma link off all globals;
 #pragma link off all classes;
 
+// Bertrand's new browser and helpers
+#pragma link C++ class TGClassBrowser;
+#pragma link C++ class TGCommandPlugin;
+#pragma link C++ class TGFileBrowser;
+#pragma link C++ class TGNewBrowser;
+
+
 #pragma link C++ namespace Reve;
 #pragma link C++ global   gReve; // In RGTopFrame ... should move.
 
