@@ -17,10 +17,9 @@ Reve::NLTProjector* NLT_test(Reve::RenderElement* top=0)
   gReve->AddToListTree(p, kTRUE);
   gReve->AddRenderElement(p, s);
 
-  if (top == 0)
-    top = gReve->GetCurrentEvent();
-
-  p->ImportElements(top);
+  top = gReve->GetCurrentEvent();
+  if (top)
+    p->ImportElements(top);
 
   gReve->Redraw3D(kTRUE);
 
