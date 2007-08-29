@@ -1,14 +1,14 @@
 void trackcount_init()
 {
-  Reve::LoadMacro("alieve_init.C");
-  alieve_init(".", -1);
+  // Reve::LoadMacro("alieve_init.C");
+  // alieve_init();
 
   {
-    TGLViewer* glv = dynamic_cast<TGLViewer*>(gReve->GetGLCanvas()->GetViewer3D());
+    TGLViewer* glv = (TGLViewer *)gReve->GetGLViewer();
     glv->SetIgnoreSizesOnUpdate(kTRUE);
     // The size of ortho cameras can not be set in advance.
-    // glv->SetOrthoCamera(TGLViewer::kCameraOrthoXOY, -0.1, 0.1, 0.1, -0.1);
-    // glv->SetOrthoCamera(TGLViewer::kCameraOrthoZOY, -22, 22, 22, -22);
+    glv->SetOrthoCamera(TGLViewer::kCameraOrthoXOY, -0.1, 0.1, 0.1, -0.1);
+    glv->SetOrthoCamera(TGLViewer::kCameraOrthoZOY, -22, 22, 22, -22);
   }
 
   Reve::TrackCounter* g_trkcnt = new Reve::TrackCounter("Primary Counter");
@@ -49,7 +49,7 @@ void on_new_event()
   while (i != cont->EndChildren()) {
     Reve::TrackList* l = dynamic_cast<Reve::TrackList*>(*i);
     if (l != 0) {
-      l->SetWidth(2);
+      l->SetLineWidth(2);
       g_trkcnt->RegisterTracks(l, (count <= 2));
       ++count;
     }
