@@ -10,7 +10,7 @@
 	* ITSModuleStepperEditor.cxx:
 	* ITSModuleStepperEditor.h:
 	Enable dynamic setting of Reve::GridStepper cell size and number of rows. 
-	
+
 	* LinkDef.h:
         Register new class ITSModuleStepperEditor.
 	

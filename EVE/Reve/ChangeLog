@@ -2,6 +2,23 @@
 
 	EVE-dev
 
+	* LinkDef.h:
+        Register new class NLTSLineSet.
+
+	* StraightLineSet.cxx:
+	* StraightLineSet.h:
+        Implement StraightLineSet projected class NLTSLineSet.
+
+	* StraightLineSetGL.cxx:
+	StraightLineSet inherits from TAttLine.
+
+	* StraightLineSetEditor.cxx:
+	Editor not friend class of model. Use Getters/Setters.
+
+2007-08-29  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
+
+	EVE-dev
+
 	* NLTProjectorEditor.cxx:
 	ChangeTGNumberEntry length.
 

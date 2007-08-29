@@ -2,6 +2,17 @@
 
 	EVE-dev
 
+	* alice-macros/NLT_test.C:
+        Fix wrong condition before import event to NLTProjector.
+
+	* alice-macros/primary_vertex.C:
+	Present the primary-vertex as a cross and three ellipses by using
+	the StraightLineSet primitive.
+
+2007-08-29  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
+
+	EVE-dev
+
 	* macros/trackcount_init.C:
 	Call alieve_init before trackcount_init. Problems in loading macros with std::list.
 	
