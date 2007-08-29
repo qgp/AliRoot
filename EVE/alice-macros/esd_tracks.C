@@ -80,7 +80,7 @@ Reve::TrackList* esd_tracks(Double_t min_pt=0.1, Double_t max_pt=100)
     }
 
     Reve::Track* track = esd_make_track(rnrStyle, n, at, tp);
-    track->SetLineColor(cont->GetMainColor());
+    track->SetAttLineAttMarker(cont);
     gReve->AddRenderElement(track, cont);
   }
 
@@ -133,7 +133,7 @@ Reve::TrackList* esd_tracks_from_array(TCollection* col, AliESDEvent* esd=0)
     AliESDtrack* at = (AliESDtrack*) obj;
 
     Reve::Track* track = esd_make_track(rnrStyle, count, at);
-    track->SetLineColor(cont->GetMainColor());
+    track->SetAttLineAttMarker(cont);
     gReve->AddRenderElement(track, cont);
   }
 
@@ -278,6 +278,7 @@ Reve::RenderElementList* esd_tracks_vertex_cut()
     ++count;
 
     Reve::Track* track = esd_make_track(tlist->GetRnrStyle(), n, at, tp);
+    track->SetAttLineAttMarker(tlist);    
 
     //PH The line below is replaced waiting for a fix in Root
     //PH which permits to use variable siza arguments in CINT
