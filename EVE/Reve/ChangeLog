@@ -1,3 +1,27 @@
+2007-08-29  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	EVE-dev
+
+	* TGClassBrowser.cxx:
+	* TGClassBrowser.h:
+	* TGCommandPlugin.cxx:
+	* TGCommandPlugin.h:
+	* TGFileBrowser.cxx:
+	* TGFileBrowser.h:
+	* TGNewBrowser.cxx:
+	* TGNewBrowser.h:
+	New files from Bertrand, somewhat hacked: prototype implementation
+	of a new root browser.
+
+	* LinkDef.h:
+	Register new classes TGClassBrowser, TGCommandPlugin,
+	TGFileBrowser and TGNewBrowser.
+
+	* RGBrowser.cxx:
+	* RGBrowser.h:
+	Fix includes for the new-browser files (before they were in
+	ROOTSYS/include).
+
 2007-08-28  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
 
 	EVE-dev
