@@ -1,3 +1,14 @@
+2007-08-29  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
+
+	EVE-dev
+
+	* NLTProjectorEditor.cxx:
+	ChangeTGNumberEntry length.
+
+	* Track.cxx:
+	* Track.h:
+	Add function in Track to set line and marker attributes from TrackList.
+
 2007-08-29  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	EVE-dev

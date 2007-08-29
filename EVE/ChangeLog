@@ -1,3 +1,19 @@
+2007-08-29  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
+
+	EVE-dev
+
+	* macros/trackcount_init.C:
+	Call alieve_init before trackcount_init. Problems in loading macros with std::list.
+	
+	* alice-macros/NLT_trackcount_init.C:
+        New macro: trackcount in non-linear projections.
+	
+	* alice-macros/esd_tracks.C:
+	Set marker and line attributes as defined in parent TrackList.
+	
+	* alice-macros/geom_gentle.C:
+	Return pointer of imported geometry.
+
 2007-08-28  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
 
 	EVE-dev
