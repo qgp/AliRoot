@@ -1,7 +1,7 @@
 #ifndef REVE_RGBrowser_H
 #define REVE_RGBrowser_H
 
-#include <TGNewBrowser.h>
+#include "TGNewBrowser.h"
 #include <TGListTree.h>
 
 #include <TContextMenu.h>

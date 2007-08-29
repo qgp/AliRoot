@@ -6,6 +6,9 @@
 #include <Reve/PointSet.h>
 #include <Reve/Track.h>
 
+#include "TGFileBrowser.h"
+#include <TBrowser.h>
+
 #include <Riostream.h>
 
 #include <TROOT.h>
@@ -489,9 +492,6 @@ void RGBrowser::ReveMenu(Int_t id)
 }
 
 /**************************************************************************/
-
-#include <TBrowser.h>
-#include <TGFileBrowser.h>
 
 void RGBrowser::InitPlugins()
 {
