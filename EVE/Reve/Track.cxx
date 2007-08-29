@@ -181,6 +181,18 @@ void Track::SetRnrStyle(TrackRnrStyle* rs)
 }
 
 /**************************************************************************/
+void Track::SetAttLineAttMarker(TrackList* tl)
+{
+  SetLineColor(tl->GetLineColor());
+  SetLineStyle(tl->GetLineStyle());
+  SetLineWidth(tl->GetLineWidth());
+
+  SetMarkerColor(tl->GetMarkerColor());
+  SetMarkerStyle(tl->GetMarkerStyle());
+  SetMarkerSize(tl->GetMarkerSize());
+}
+
+/**************************************************************************/
 
 void Track::MakeTrack(Bool_t recurse)
 {

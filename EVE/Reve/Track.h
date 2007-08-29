@@ -57,6 +57,7 @@ public:
 
   TrackRnrStyle* GetRnrStyle() const  { return fRnrStyle; }
   void SetRnrStyle(TrackRnrStyle* rs);
+  void SetAttLineAttMarker(TrackList* tl);
 
   Int_t GetLabel() const    { return fLabel; }
   void  SetLabel(Int_t lbl) { fLabel = lbl;  }
