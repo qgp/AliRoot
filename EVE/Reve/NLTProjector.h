@@ -30,6 +30,7 @@ public:
   virtual   ~NLTProjection() {}
 
   virtual   void      ProjectPoint(Float_t&, Float_t&, Float_t&){}
+  virtual   void      ProjectPointFv(Float_t* v){ProjectPoint(v[0], v[1], v[2]);}
   virtual   void      ProjectVector(Vector& v);
   virtual   Vector*   Project(Vector* pnts, Int_t npnts, Bool_t create_new = kTRUE);
 
@@ -104,14 +105,17 @@ public:
   NLTProjection*  GetProjection() { return fProjection; }
 
   // scale info 
-  void            SetSplitInfoMode(Int_t x){fSplitInfoMode = x;}
-  Int_t           GetSplitInfoMode(){return fSplitInfoMode;}
-  void            SetSplitInfoLevel(Int_t x){fSplitInfoLevel = x;}
-  Int_t           GetSplitInfoLevel(){return fSplitInfoLevel;}
-  void            SetAxisColor(Color_t col){SetMainColor(col);}
-  Color_t         GetAxisColor(){return fAxisColor;}
-  void            SetCurrentDepth(Float_t d){fCurrentDepth =d;}
-  Float_t         GetCurrentDepth(){return fCurrentDepth;}
+  void            SetSplitInfoMode(Int_t x)  { fSplitInfoMode = x;     }
+  Int_t           GetSplitInfoMode()   const { return fSplitInfoMode;  }
+
+  void            SetSplitInfoLevel(Int_t x) { fSplitInfoLevel = x;    }
+  Int_t           GetSplitInfoLevel()  const { return fSplitInfoLevel; }
+
+  void            SetAxisColor(Color_t col)  { SetMainColor(col);      }
+  Color_t         GetAxisColor()       const { return fAxisColor;      }
+
+  void            SetCurrentDepth(Float_t d) { fCurrentDepth = d;      }
+  Float_t         GetCurrentDepth()    const { return fCurrentDepth;   }
 
   virtual Bool_t  HandleElementPaste(RenderElement* el);
 
