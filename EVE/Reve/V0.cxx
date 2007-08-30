@@ -322,7 +322,7 @@ ClassImp(Reve::V0List)
 
 //______________________________________________________________________
 V0List::V0List() :
-  RenderElement(),
+  RenderElementList(),
   fTitle(),
   fRnrStyle(0),
   fRnrDaughters(kTRUE),
@@ -331,6 +331,8 @@ V0List::V0List() :
   fNegColor(0),
   fPosColor(0)
 {
+  fChildClass = V0::Class(); // override member from base RenderElementList
+
   for (Int_t i=0; i<fgkNcutVar; i++)
     fHist[i] = 0;
   for (Int_t i=0; i<fgkNcutVar2D; i++)
@@ -339,7 +341,7 @@ V0List::V0List() :
 
 //______________________________________________________________________
 V0List::V0List(TrackRnrStyle* rs) :
-  RenderElement(),
+  RenderElementList(),
   fTitle(),
   fRnrStyle(rs),
   fRnrDaughters(kTRUE),
@@ -348,12 +350,14 @@ V0List::V0List(TrackRnrStyle* rs) :
   fNegColor(0),
   fPosColor(0)
 {
+  fChildClass = V0::Class(); // override member from base RenderElementList
+
   Init();
 }
 
 //______________________________________________________________________
 V0List::V0List(const Text_t* name, TrackRnrStyle* rs) :
-  RenderElement(),
+  RenderElementList(),
   fTitle(),
   fRnrStyle(rs),
   fRnrDaughters(kTRUE),
@@ -362,6 +366,8 @@ V0List::V0List(const Text_t* name, TrackRnrStyle* rs) :
   fNegColor(0),
   fPosColor(0)
 {
+  fChildClass = V0::Class(); // override member from base RenderElementList
+
   Init();
   SetName(name);
 }
@@ -369,7 +375,6 @@ V0List::V0List(const Text_t* name, TrackRnrStyle* rs) :
 //______________________________________________________________________
 void V0List::Init()
 {
-
   if (fRnrStyle== 0) fRnrStyle = new TrackRnrStyle;
 
   fMin[0]  = 0;   fMax[0] = 10; // pt
@@ -478,16 +483,6 @@ void V0List::Paint(Option_t* option) {
 
 
 //______________________________________________________________________
-
-void V0List::AddElement(RenderElement* el) {
-
-  static const Exc_t eH("V0List::AddElement ");
-  if (dynamic_cast<V0*>(el)  == 0)
-    throw(eH + "new element not a V0.");
-  RenderElement::AddElement(el);
-}
-
-
 
 void V0List::SetRnrV0vtx(Bool_t rnr) {
   fRnrV0vtx = rnr;

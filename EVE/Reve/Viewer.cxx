@@ -64,13 +64,11 @@ void Viewer::AddScene(Scene* scene)
 void Viewer::RemoveElementLocal(RenderElement* el)
 {
   fGLViewer->RemoveScene(((SceneInfo*)el)->GetGLScene());
-  RenderElement::RemoveElementLocal(el);
 }
 
-void Viewer::RemoveElements()
+void Viewer::RemoveElementsLocal()
 {
   fGLViewer->RemoveAllScenes();
-  RenderElement::RemoveElements();
 }
 
 TObject* Viewer::GetEditorObject() const
@@ -125,7 +123,7 @@ void ViewerList::RepaintChangedViewers(Bool_t resetCameras, Bool_t dropLogicals)
       if (resetCameras)	glv->PostSceneBuildSetup(kTRUE);
       if (dropLogicals) glv->SetSmartRefresh(kFALSE);
 
-      glv->RequestDraw();
+      glv->RequestDraw(TGLRnrCtx::kLODHigh);
 
       if (dropLogicals) glv->SetSmartRefresh(kTRUE);
     }
@@ -143,7 +141,7 @@ void ViewerList::RepaintAllViewers(Bool_t resetCameras, Bool_t dropLogicals)
     if (resetCameras) glv->PostSceneBuildSetup(kTRUE);
     if (dropLogicals) glv->SetSmartRefresh(kFALSE);
 
-    glv->RequestDraw();
+    glv->RequestDraw(TGLRnrCtx::kLODHigh);
 
     if (dropLogicals) glv->SetSmartRefresh(kTRUE);
   }

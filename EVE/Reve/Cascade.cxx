@@ -397,7 +397,7 @@ ClassImp(Reve::CascadeList)
 
 //______________________________________________________________________
 CascadeList::CascadeList(TrackRnrStyle* rs) :
-  RenderElement(),
+  RenderElementList(),
   fTitle(),
   fRnrStyle(rs),
   fRnrBach(kTRUE),
@@ -410,13 +410,15 @@ CascadeList::CascadeList(TrackRnrStyle* rs) :
   fPosColor(0),
   fBachColor(0)
 {
+  fChildClass = Cascade::Class(); // override member from base RenderElementList
+
   Init();
 }
 
 
 //______________________________________________________________________
 CascadeList::CascadeList(const Text_t* name, TrackRnrStyle* rs) :
-  RenderElement(),
+  RenderElementList(),
   fTitle(),
   fRnrStyle(rs),
   fRnrBach(kTRUE),
@@ -429,6 +431,8 @@ CascadeList::CascadeList(const Text_t* name, TrackRnrStyle* rs) :
   fPosColor(0),
   fBachColor(0)
 {
+  fChildClass = Cascade::Class(); // override member from base RenderElementList
+
   Init();
   SetName(name);
 }
@@ -437,7 +441,6 @@ CascadeList::CascadeList(const Text_t* name, TrackRnrStyle* rs) :
 //______________________________________________________________________
 void CascadeList::Init()
 {
-
   if (fRnrStyle== 0) fRnrStyle = new TrackRnrStyle;
 
   fMin[0]  =  0;     fMax[0]  = 5; // Xi mass
@@ -556,17 +559,6 @@ void CascadeList::Paint(Option_t* option) {
 
 
 //______________________________________________________________________
-
-void CascadeList::AddElement(RenderElement* el)
-{
-  static const Exc_t eH("CascadeList::AddElement ");
-  if (dynamic_cast<Cascade*>(el)  == 0)
-    throw(eH + "new element not a Cascade.");
-  RenderElement::AddElement(el);
-}
-
-
-
 void CascadeList::SetRnrV0vtx(Bool_t rnr)
 {
   fRnrV0vtx = rnr;

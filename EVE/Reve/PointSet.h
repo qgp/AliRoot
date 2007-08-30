@@ -79,7 +79,7 @@ public:
   virtual ~PointSetArray();
 
   virtual void RemoveElementLocal(RenderElement* el);
-  virtual void RemoveElements();
+  virtual void RemoveElementsLocal();
 
   virtual void Paint(Option_t* option="");
 

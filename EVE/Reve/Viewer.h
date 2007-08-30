@@ -37,7 +37,7 @@ public:
   virtual void AddScene(Scene* scene);
 
   virtual void RemoveElementLocal(RenderElement* el);
-  virtual void RemoveElements();
+  virtual void RemoveElementsLocal();
 
   virtual TObject* GetEditorObject() const;
 

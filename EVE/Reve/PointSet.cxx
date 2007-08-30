@@ -198,13 +198,11 @@ void PointSetArray::RemoveElementLocal(RenderElement* el)
       break;
     }
   }
-  RenderElement::RemoveElementLocal(el);
 }
 
-void PointSetArray::RemoveElements()
+void PointSetArray::RemoveElementsLocal()
 {
   delete [] fBins; fBins = 0;
-  RenderElement::RemoveElements();
 }
 
 /**************************************************************************/
