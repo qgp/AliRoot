@@ -178,6 +178,16 @@ void NLTTrack::PrintLineSegments()
     segment ++;
   }
 }
+
+/**************************************************************************/
+
+void NLTTrack::CtrlClicked(Reve::Track* /*track*/)
+{
+  Track* t = dynamic_cast<Track*>(fProjectable);
+  if (t)
+    t->CtrlClicked(t);
+}
+
 //______________________________________________________________________
 // NLTTrackList
 //

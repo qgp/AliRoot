@@ -38,6 +38,8 @@ public:
 
   void         PrintLineSegments();
 
+  virtual void CtrlClicked(Reve::Track*); // marked as signal in Track
+
   ClassDef(NLTTrack, 1);
 }; // endclass NLTTrack
 
