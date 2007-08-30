@@ -132,19 +132,24 @@ Bool_t CheckMacro(const Text_t* mac)
 {
   // Checks if macro 'mac' is loaded.
 
-  return gROOT->GetInterpreter()->IsLoaded(mac);
+  // Axel's advice; now sth seems slow, using old method below for test.
+  // return gROOT->GetInterpreter()->IsLoaded(mac);
 
   // Previous version expected function with same name and used ROOT's
   // list of global functions.
-  /*
+
   TString foo(mac); ChompTail(foo);
+  /*
   if(recreate) {
     TCollection* logf = gROOT->GetListOfGlobalFunctions(kFALSE);
     logf->SetOwner();
     logf->Clear();
   }
-  return (gROOT->GetGlobalFunction(foo.Data(), 0, kTRUE) != 0);
   */
+  if (gROOT->GetGlobalFunction(foo.Data(), 0, kFALSE) != 0)
+    return kTRUE;
+  else
+    return (gROOT->GetGlobalFunction(foo.Data(), 0, kTRUE) != 0);
 }
 
 void AssertMacro(const Text_t* mac)
