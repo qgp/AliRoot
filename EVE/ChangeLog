@@ -1,3 +1,12 @@
+2007-08-30  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	* alice-macros/its_clusters.C:
+	* alice-macros/tpc_clusters.C:
+	Allow on-the-fly compilation.
+
+	* alice-macros/NLT_trackcount_init.C:
+	Put in sync with the rest of the world.
+
 2007-08-29  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
 
 	EVE-dev

@@ -2,6 +2,69 @@
 
 	EVE-dev
 
+	* RenderElement.cxx:
+	* RenderElement.h:
+	Change DenyDestroy to Int_t, replace Set with Inc/Dec
+	methods. Fixed zero-ref checks accordingly.
+
+	Symmetrized RemoveElement and RemoveElements with their Local
+	parts.
+
+	Moved code for list-tree item mgmnt from RGTopFrame to Add/Remove
+	element methods here.
+
+	* RGTopFrame.cxx:
+	* RGTopFrame.h:
+	Moved list-tree item mgmnt from Add/RemoveRenderElement to
+	appropriate methods in RenderElement.
+
+	Update to new RnrEl::DenyDestroy.
+
+	Added Bool_t fKeepEmptyCont as it is queried by many macros.
+
+	* RGBrowser.cxx:
+	Update to new RnrEl::DenyDestroy.
+
+	* PointSet.cxx:
+	* PointSet.h:
+	* Viewer.cxx:
+	* Viewer.h:
+	* Cascade.cxx:
+	* Cascade.h:
+	* V0.cxx:
+	* V0.h:
+	Update to new RnrEl::RemoveElementLocal, RemoveElementsLocal.	
+
+	* NLTBases.cxx:
+	* NLTBases.h:
+	Added list<NTLProjected*> fProjectedList to NLTProjectable.
+	Set of functions to manage it.
+	Proper management in relevant functions of NLTProjectable and
+	NTLProjected.
+
+	* NLTTrack.cxx:
+	* NLTTrack.h:
+	Forward CtrlClicked() call (from gl sec-selection) to
+	fProjectable.
+
+	* NLTProjector.cxx:
+	Set RnrSelf/Children() on imported elements.
+
+	* NLTPolygonSet.cxx:
+	* NLTPolygonSet.h:
+	Fix search for duplicate polygons a little.
+
+	* Track.cxx:
+	* Track.h:
+	Manage list of projected tracks so that it works in TrackCount.
+
+	* Reve.cxx:
+	Revert to gled-style check if function is loaded in cint.
+
+2007-08-30  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	EVE-dev
+
 	* TGFileBrowser.cxx:
 	* TGFileBrowser.h:
 	From Bertrand.
