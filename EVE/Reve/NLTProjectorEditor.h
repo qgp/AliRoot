@@ -25,6 +25,7 @@ protected:
   TGComboBox    *fType;
   RGValuator    *fDistortion;
   RGValuator    *fFixedRadius;
+  RGValuator    *fCurrentDepth;
 
   // axis
   TGComboBox    *fSIMode; 
@@ -40,7 +41,9 @@ public:
 
   void DoType(Int_t type);
   void DoDistortion();
-  void DoFixedRadius();
+  void DoFixedRadius();  
+  void DoCurrentDepth();
+
 
   ClassDef(NLTProjectorEditor, 0); // Editor for NLTProjector
 }; // endclass NLTProjectorEditor

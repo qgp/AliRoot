@@ -26,6 +26,7 @@ ClassImp(NLTProjectorEditor)
     fType(0),
     fDistortion(0),
     fFixedRadius(0),
+    fCurrentDepth(0),
 
     fSIMode(0),
     fSILevel(0)
@@ -99,6 +100,17 @@ ClassImp(NLTProjectorEditor)
   fFixedRadius->Connect("ValueSet(Double_t)", "Reve::NLTProjectorEditor",
 			this, "DoFixedRadius()");
   AddFrame(fFixedRadius, new TGLayoutHints(kLHintsTop, 1, 1, 1, 1));
+
+
+  fCurrentDepth = new RGValuator(this, "CurrentZ:", 90, 0);
+  fCurrentDepth->SetNELength(5);
+  fCurrentDepth->SetLabelWidth(labelW);
+  fCurrentDepth->Build();
+  fCurrentDepth->SetLimits(-300, 300, 601, TGNumberFormat::kNESRealOne);
+  fCurrentDepth->SetToolTip("Radius not scaled by distotion.");
+  fCurrentDepth->Connect("ValueSet(Double_t)", "Reve::NLTProjectorEditor",
+			this, "DoFixedRadius()");
+  AddFrame(fCurrentDepth, new TGLayoutHints(kLHintsTop, 1, 1, 1, 1));
 }
 
 NLTProjectorEditor::~NLTProjectorEditor()
@@ -116,6 +128,7 @@ void NLTProjectorEditor::SetModel(TObject* obj)
   fType->Select(fM->GetProjection()->GetType(), kFALSE);  
   fDistortion->SetValue(1000.0f * fM->GetProjection()->GetDistortion());
   fFixedRadius->SetValue(fM->GetProjection()->GetFixedRadius());
+  fCurrentDepth->SetValue(fM->GetCurrentDepth());
 }
 
 /**************************************************************************/
@@ -141,6 +154,12 @@ void NLTProjectorEditor::DoFixedRadius()
   Update();
 }
 
+void NLTProjectorEditor::DoCurrentDepth()
+{
+  fM->GetProjection()->SetFixedRadius(fCurrentDepth->GetValue());
+  fM->ProjectChildren();
+  Update();
+}
 /**************************************************************************/
 
 void NLTProjectorEditor::DoSplitInfoMode(Int_t type)
