@@ -5,10 +5,13 @@
 
 #include <Reve/Reve.h>
 
+#include <list>
+
 class TBuffer3D;
 
 namespace Reve {
 
+class NLTProjected;
 class NLTProjector;
 
 class NLTProjectable
@@ -19,12 +22,16 @@ private:
 
 protected:
   // Eventually, references to all projected instances.
+  std::list<NLTProjected*> fProjectedList;
 
 public:
   NLTProjectable();
-  virtual ~NLTProjectable() {}
+  virtual ~NLTProjectable();
 
   virtual TClass* ProjectedClass() const = 0;
+
+  virtual void AddProjected(NLTProjected* p)    { fProjectedList.push_back(p); }
+  virtual void RemoveProjected(NLTProjected* p) { fProjectedList.remove(p); }
 
   ClassDef(NLTProjectable, 0);
 }; // endclass NLTProjectable
@@ -62,9 +69,11 @@ protected:
 
 public:
   NLTProjected();
-  virtual ~NLTProjected() {}
+  virtual ~NLTProjected();
 
   virtual void SetProjection(NLTProjector* proj, NLTProjectable* model);
+  virtual void UnRefProjectable(NLTProjectable* assumed_parent);
+
   virtual void SetDepth(Float_t d) { fDepth = d; }
 
   virtual void UpdateProjection() = 0;
