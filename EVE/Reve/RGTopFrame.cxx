@@ -65,6 +65,7 @@ RGTopFrame::RGTopFrame(UInt_t w, UInt_t h) :
   fRedrawDisabled (0),
   fResetCameras   (kFALSE),
   fDropLogicals   (kFALSE),
+  fKeepEmptyCont  (kFALSE),
   fTimerActive    (kFALSE),
   fRedrawTimer    (),
 
@@ -108,24 +109,24 @@ RGTopFrame::RGTopFrame(UInt_t w, UInt_t h) :
   // --------------------------------
 
   fViewers = new ViewerList("Viewers");
-  fViewers->SetDenyDestroy(kTRUE);
+  fViewers->IncDenyDestroy();
   AddToListTree(fViewers, kTRUE);
 
   fViewer  = new Viewer("GL-One");
   fViewer->SetGLViewer(glv);
-  fViewer->SetDenyDestroy(kTRUE);
+  fViewer->IncDenyDestroy();
   AddRenderElement(fViewer, fViewers);
 
   fScenes  = new SceneList ("Scenes");
-  fScenes->SetDenyDestroy(kTRUE);
+  fScenes->IncDenyDestroy();
   AddToListTree(fScenes, kTRUE);
 
   fGlobalScene = new Scene("Geometry scene");
-  fGlobalScene->SetDenyDestroy(kTRUE);
+  fGlobalScene->IncDenyDestroy();
   AddRenderElement(fGlobalScene, fScenes);
 
   fEventScene = new Scene("Event scene");
-  fEventScene->SetDenyDestroy(kTRUE);
+  fEventScene->IncDenyDestroy();
   AddRenderElement(fEventScene, fScenes);
 
   fViewer->AddScene(fGlobalScene);
@@ -170,7 +171,7 @@ Viewer* RGTopFrame::SpawnNewViewer(const Text_t* name, const Text_t* title, Bool
 
   if (embed)  fBrowser->StartEmbedding(1);
   v->SpawnGLViewer(gClient->GetRoot(), embed ? fEditor : 0);
-  v->SetDenyDestroy(kTRUE);
+  v->IncDenyDestroy();
   if (embed)  fBrowser->StopEmbedding(), fBrowser->SetTabTitle(name, 1);
   AddRenderElement(v, fViewers);
   return v;
@@ -318,7 +319,7 @@ void RGTopFrame::RemoveFromListTree(RenderElement* re, TGListTree* lt, TGListTre
 TGListTreeItem* RGTopFrame::AddEvent(EventBase* event)
 {
   fCurrentEvent = event;
-  fCurrentEvent->SetDenyDestroy(kTRUE);
+  fCurrentEvent->IncDenyDestroy();
   AddRenderElement(fCurrentEvent, fEventScene);
   return AddToListTree(event, kTRUE);
 }
@@ -339,9 +340,7 @@ TGListTreeItem* RGTopFrame::AddRenderElement(RenderElement* rnr_element,
     parent = fCurrentEvent;
   }
 
-  parent->AddElement(rnr_element);
-
-  TGListTreeItem* newitem = rnr_element->AddIntoListTrees(parent);
+  TGListTreeItem* newitem = parent->AddElement(rnr_element);
 
   return newitem;
 }
@@ -372,7 +371,6 @@ TGListTreeItem* RGTopFrame::AddGlobalRenderElement(RenderElement* rnr_element,
 void RGTopFrame::RemoveRenderElement(RenderElement* rnr_element,
 				     RenderElement* parent)
 {
-  rnr_element->RemoveFromListTrees(parent);
   parent->RemoveElement(rnr_element);
 }
 

@@ -82,6 +82,7 @@ private:
   Bool_t               fFullRedraw;
   Bool_t               fResetCameras;
   Bool_t               fDropLogicals;
+  Bool_t               fKeepEmptyCont;
   Bool_t               fTimerActive;
   TTimer               fRedrawTimer;
 
@@ -128,6 +129,10 @@ public:
   void RegisterRedraw3D();
   void DoRedraw3D();
   void FullRedraw3D(Bool_t resetCameras=kFALSE, Bool_t dropLogicals=kFALSE);
+
+  Bool_t GetKeepEmptyCont() const   { return fKeepEmptyCont; }
+  void   SetKeepEmptyCont(Bool_t k) { fKeepEmptyCont = k; }
+
 
   void RenderElementChanged(RenderElement* rnr_element);
   void ScenesChanged(std::list<Reve::RenderElement*>& scenes);
