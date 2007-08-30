@@ -34,7 +34,7 @@ Vector* NLTProjection::Project(Vector* origPnts, Int_t Npnts, Bool_t copy)
   Vector* pnts = 0; 
   if(copy) 
   {
-    pnts = (Vector* )malloc(Npnts*sizeof(Vector));
+    pnts = new Vector[Npnts];
     memcpy(pnts, origPnts, Npnts*sizeof(Vector));
   }
   else
@@ -297,6 +297,8 @@ void NLTProjector::ImportElementsRecurse(RenderElement* rnr_el, RenderElement* p
     TObject *tobj   = rnr_el->GetObject();
     new_re->SetRnrElNameTitle(Form("NLT %s", tobj->GetName()),
 			      tobj->GetTitle());
+    new_re->SetRnrSelf     (rnr_el->GetRnrSelf());
+    new_re->SetRnrChildren(rnr_el->GetRnrChildren());
     gReve->AddRenderElement(new_re, parent);
 
     for (List_i i=rnr_el->BeginChildren(); i!=rnr_el->EndChildren(); ++i)
