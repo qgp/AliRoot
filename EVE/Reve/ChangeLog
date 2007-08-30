@@ -1,3 +1,23 @@
+2007-08-30  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	EVE-dev
+
+	* TGFileBrowser.cxx:
+	* TGFileBrowser.h:
+	From Bertrand.
+	Override ReallyDelete() so that browser is properly deregistered
+	from root.
+
+	* TGNewBrowser.cxx:
+	* TGNewBrowser.h:
+	From Bertrand.
+	Move framework specific menus to the left menu-bar.
+
+	* RGBrowser.cxx:
+	Remove the 'Framework' popup on construction.
+	Add 'Reve' popup to inherited member fMenuBar.
+	Added 'New Text Editor' menu entry.
+
 2007-08-29  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
 
 	EVE-dev
