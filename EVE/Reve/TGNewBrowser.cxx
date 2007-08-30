@@ -76,21 +76,21 @@ void TGNewBrowser::CreateBrowser(const char *name)
    // Menubar Frame
    fTopMenuFrame = new TGHorizontalFrame(fVf, 100, 20);
 
-   fPreMenuFrame = new TGHorizontalFrame(fTopMenuFrame, 0, 20);
-   fTopMenuFrame->AddFrame(fPreMenuFrame, fLH0);
-
-   fMenuFrame = new TGHorizontalFrame(fTopMenuFrame, 100, 20, kRaisedFrame);
-   fMenuBar   = new TGMenuBar(fMenuFrame, 10, 10, kHorizontalFrame);
+   fPreMenuFrame = new TGHorizontalFrame(fTopMenuFrame, 0, 20, kRaisedFrame);
+   fMenuBar   = new TGMenuBar(fPreMenuFrame, 10, 10, kHorizontalFrame);
    fMenuFile  = new TGPopupMenu(gClient->GetRoot());
    fMenuFile->AddEntry(" &Browse...    Ctrl+B", M_FILE_BROWSE);
    fMenuFile->AddSeparator();
-   fMenuFile->AddEntry(" E&xit               Ctrl+Q", M_FILE_EXIT, 0, 
+   fMenuFile->AddEntry(" &Close              Ctrl+Q", M_FILE_EXIT, 0, 
                        gClient->GetPicture("bld_exit.png"));
-   fMenuBar->AddPopup("&File", fMenuFile, fLH1);
+   fMenuBar->AddPopup("&Framework", fMenuFile, fLH1);
    fMenuFile->Connect("Activated(Int_t)", "TGNewBrowser", this,
                       "HandleMenu(Int_t)");
-   fMenuFrame->AddFrame(fMenuBar, fLH2);
-   fTopMenuFrame->AddFrame(fMenuFrame, fLH3);
+   fPreMenuFrame->AddFrame(fMenuBar, fLH2);
+   fTopMenuFrame->AddFrame(fPreMenuFrame, fLH0);
+
+   fMenuFrame = new TGHorizontalFrame(fTopMenuFrame, 100, 20, kRaisedFrame);
+   fTopMenuFrame->AddFrame(fMenuFrame, fLH5);
 
    fVf->AddFrame(fTopMenuFrame, fLH3);
    fActMenuBar = fMenuBar;
@@ -375,7 +375,7 @@ void TGNewBrowser::SetTabTitle(const char *title, Int_t pos, Int_t subpos)
 void TGNewBrowser::ShowMenu(TGCompositeFrame *menu)
 {
    // Show the selected frame's menu and hide previous one.
-
+/*
    if (fActMenuBar == fMenuBar) {
       Disconnect(fMenuFile, "Activated(Int_t)", this, "HandleMenu(Int_t)");
    }
@@ -383,6 +383,7 @@ void TGNewBrowser::ShowMenu(TGCompositeFrame *menu)
       fMenuFile->Connect("Activated(Int_t)", "TGNewBrowser", this,
                          "HandleMenu(Int_t)");
    }
+*/
    fMenuFrame->HideFrame(fActMenuBar);
    fMenuFrame->ShowFrame(menu);
    menu->Layout();
@@ -478,10 +479,14 @@ void TGNewBrowser::SwitchMenus(TGCompositeFrame  *from)
                   TGMenuEntry *exit = popup->GetEntry("Close Canvas");
                   popup->HideEntry(exit->GetEntryId());
                }
+               if (popup->GetEntry("Close Viewer")) {
+                  TGMenuEntry *exit = popup->GetEntry("Close Viewer");
+                  popup->HideEntry(exit->GetEntryId());
+               }
                if (popup->GetEntry("Quit ROOT")) {
                   TGMenuEntry *exit = popup->GetEntry("Quit ROOT");
                   popup->HideEntry(exit->GetEntryId());
-                  popup->AddEntry(" E&xit               Ctrl+Q", M_FILE_EXIT, 
+                  popup->AddEntry(" &Close              Ctrl+Q", M_FILE_EXIT, 
                                   0, gClient->GetPicture("bld_exit.png"));
                   popup->Connect("Activated(Int_t)", "TGNewBrowser", this, 
                                  "HandleMenu(Int_t)");
@@ -489,7 +494,7 @@ void TGNewBrowser::SwitchMenus(TGCompositeFrame  *from)
                if (popup->GetEntry("Exit")) {
                   TGMenuEntry *exit = popup->GetEntry("Exit");
                   popup->HideEntry(exit->GetEntryId());
-                  popup->AddEntry(" E&xit               Ctrl+Q", M_FILE_EXIT, 
+                  popup->AddEntry(" &Close              Ctrl+Q", M_FILE_EXIT, 
                                   0, gClient->GetPicture("bld_exit.png"));
                   popup->Connect("Activated(Int_t)", "TGNewBrowser", this, 
                                  "HandleMenu(Int_t)");
@@ -537,7 +542,7 @@ TGFileBrowser* TGNewBrowser::MakeFileBrowser()
    TBrowserImp    imp;
    TBrowser      *tb = new TBrowser("Pipi", "Strel", &imp);
    TGFileBrowser *fb = new TGFileBrowser(tb, "File browser", 200, 500);
-   tb->SetBrowserImp(fb);
+   tb->SetBrowserImp((TBrowserImp *)fb);
    fb->SetBrowser(tb);
    fb->SetNewBrowser(this);
    return fb;

@@ -86,12 +86,12 @@ public:
    void              SetTabTitle(const char *title, Int_t pos = kRight, Int_t subpos = -1);
    void              HandleMenu(Int_t id);
    using             TGCompositeFrame::RemoveFrame;
+   void              RecursiveReparent(TGPopupMenu *popup);
    void              RemoveFrame(Int_t pos, Int_t subpos);
    void              ShowMenu(TGCompositeFrame *menu);
    TGCompositeFrame *StartEmbedding(Int_t pos = kRight, Int_t subpos = -1);
    void              StopEmbedding(TGLayoutHints *layout=0);
    void              SwitchMenus(TGCompositeFrame *from);
-   void              RecursiveReparent(TGPopupMenu *popup);
 
    virtual void      ExecPlugin(const char *fname, Int_t pos = kRight, Int_t subpos = -1);
 
