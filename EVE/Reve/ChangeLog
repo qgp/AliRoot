@@ -1,12 +1,18 @@
 2007-08-30  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
 
+	* StraightLineSet.cxx:
+	* StraightLineSet.h:
+        Handle translation and scale in projected line-set separately. 
+	
+2007-08-30  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
+
 	EVE-dev
 
 	* NLTProjector.h:
 	Reindent.
 	
 	* NLTProjectorEditor.cxx:
-	* NLTProjectorEditor.h:
+	* yNLTProjectorEditor.h:
 	Add RGValuator for current depth.
 
 	* StraightLineSet.cxx:
