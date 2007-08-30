@@ -144,6 +144,7 @@ public:
 
   void     MultiplyIP(TVector3& v, Double_t w=1) const;
   void     MultiplyIP(Double_t* v, Double_t w=1) const;
+  void     MultiplyIP(Float_t*  v, Double_t w=1) const;
   TVector3 Multiply(const TVector3& v, Double_t w=1) const;
   void     Multiply(const Double_t *vin, Double_t* vout, Double_t w=1) const;
   void     RotateIP(TVector3& v) const;

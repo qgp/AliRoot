@@ -501,6 +501,14 @@ void ZTrans::MultiplyIP(Double_t* v, Double_t w) const
   v[2] = M[F20]*r[0] + M[F21]*r[1] + M[F22]*r[2] + M[F23]*w;
 }
 
+void ZTrans::MultiplyIP(Float_t* v, Double_t w) const
+{
+  Double_t r[3] = { v[0], v[1], v[2] };
+  v[0] = M[F00]*r[0] + M[F01]*r[1] + M[F02]*r[2] + M[F03]*w;
+  v[1] = M[F10]*r[0] + M[F11]*r[1] + M[F12]*r[2] + M[F13]*w;
+  v[2] = M[F20]*r[0] + M[F21]*r[1] + M[F22]*r[2] + M[F23]*w;
+}
+
 TVector3 ZTrans::Multiply(const TVector3& v, Double_t w) const
 {
   return TVector3(M[F00]*v.x() + M[F01]*v.y() + M[F02]*v.z() + M[F03]*w,
