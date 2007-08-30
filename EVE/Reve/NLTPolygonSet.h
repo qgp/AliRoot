@@ -35,6 +35,9 @@ public:
   NLTPolygon& operator=(const NLTPolygon& x)
   { fNPnts = x.fNPnts; fPnts = x.fPnts; return *this; }
 
+  Int_t FindPoint(Int_t pi)
+  { for (Int_t i=0; i<fNPnts; ++i) if (fPnts[i] == pi) return i; return -1; }
+
   ClassDef(NLTPolygon, 0)
 };
 

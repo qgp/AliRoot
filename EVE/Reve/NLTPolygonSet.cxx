@@ -62,7 +62,7 @@ void NLTPolygonSet::ClearPolygonSet()
   fPols.clear();
   
   // delete reduced points  
-  delete [] fPnts; fNPnts = 0;
+  delete [] fPnts; fPnts = 0; fNPnts = 0;
 }
 
 /**************************************************************************/
@@ -77,11 +77,6 @@ void NLTPolygonSet::SetProjection(NLTProjector* proj, NLTProjectable* model)
     SetMainColor(gsre->GetColor());
     SetLineColor((Color_t)TColor::GetColorBright(gsre->GetColor()));
     SetMainTransparency(gsre->GetMainTransparency());
-
-    SetRnrSelf(gsre->GetRnrSelf());
-    SetRnrChildren(gsre->GetRnrChildren());
-
-    ProjectBuffer3D();
   }
 }
 
@@ -121,10 +116,10 @@ void NLTPolygonSet::ProjectAndReducePoints()
   fIdxMap   = new Int_t[N];  
   Int_t* ra = new Int_t[N];  // list of reduced vertices
 
-  for(UInt_t v = 0; v < (UInt_t)N; v++)
+  for(UInt_t v = 0; v < (UInt_t)N; ++v)
   {
     fIdxMap[v] = -1;
-    for(Int_t k = 0; k<fNPnts; k++) 
+    for(Int_t k = 0; k < fNPnts; ++k) 
     {
       if(pnts[v].SquareDistance(pnts[ra[k]]) < fEps*fEps)
       {
@@ -137,14 +132,14 @@ void NLTPolygonSet::ProjectAndReducePoints()
     {
       fIdxMap[v] = fNPnts;
       ra[fNPnts] = v;
-      fNPnts++;
+      ++fNPnts;
     }
     // printf("(%f, %f) vertex map %d -> %d \n", pnts[v*2], pnts[v*2 + 1], v, fIdxMap[v]);
   }
   
   // create an array of scaled points
   fPnts = new Vector[fNPnts];
-  for(Int_t i = 0; i<fNPnts; i++)
+  for(Int_t i = 0; i < fNPnts; ++i)
     fPnts[i].Set(pnts[ra[i]].x,  pnts[ra[i]].y, fDepth);
   
   delete [] ra;  
@@ -157,7 +152,7 @@ void NLTPolygonSet::AddPolygon(std::list<Int_t>& pp)
   if(pp.size() <= 2) return;
 
   // dimension of bbox
-  Float_t bbox[] = {0., 0., 0., 0., 0., 0.};
+  Float_t bbox[] = { 1e6, -1e6, 1e6, -1e6, 1e6, -1e6 };
   for (std::list<Int_t>::iterator u = pp.begin(); u!= pp.end(); u++) 
   {
     Int_t idx = *u; 
@@ -177,12 +172,18 @@ void NLTPolygonSet::AddPolygon(std::list<Int_t>& pp)
   for (std::list<NLTPolygon>::iterator poi = fPols.begin(); poi!= fPols.end(); poi++)
   {
     NLTPolygon P = *poi;
-    if(pp.size() != (UInt_t)P.fNPnts) 
+    if (pp.size() != (UInt_t)P.fNPnts) 
       continue;      
-    std::list<Int_t>::iterator u;
-    for (u = pp.begin(); u!= pp.end(); u++) 
+    std::list<Int_t>::iterator u = pp.begin();
+    Int_t pidx = P.FindPoint(*u);
+    if (pidx < 0)
+      continue;
+    while (u != pp.end())
     {
-      if ((*u) != P.fPnts[*u]) break;
+      if ((*u) != P.fPnts[pidx])
+        break;
+      ++u;
+      if (++pidx >= P.fNPnts) pidx = 0;
     }
     if (u == pp.end()) return;
   }
@@ -224,7 +225,7 @@ void NLTPolygonSet::MakePolygonsFromBP()
     pp.push_back(head);
     // printf("start idx head %d, tail %d\n", head, tail);
     std::list<Seg> segs;  
-    for(UInt_t s=1; s< Nseg; s++)
+    for(UInt_t s = 1; s < Nseg; ++s)
       segs.push_back(Seg(fBuff->fSegs[3*seg[s] + 1],fBuff->fSegs[3*seg[s] + 2]));
     Bool_t accepted = kFALSE; 
     for(std::list<Seg>::iterator it = segs.begin(); it != segs.end(); it++ )
@@ -259,7 +260,7 @@ void NLTPolygonSet::MakePolygonsFromBS()
   std::list<Seg> segs;  
   std::list<Seg>::iterator it;
   NLTProjection* projection = fProjector->GetProjection();
-  for(UInt_t s=0; s< fBuff->NbSegs(); s++)
+  for(UInt_t s = 0; s < fBuff->NbSegs(); ++s)
   {
     Bool_t duplicate = kFALSE;
     Int_t vo1, vo2;   // idx from fBuff segment
@@ -327,7 +328,7 @@ void  NLTPolygonSet::ProjectBuffer3D()
   //DumpBuffer3D();
   ProjectAndReducePoints();
 
-  MakePolygonsFromBP(); 
+  MakePolygonsFromBP();
   if(fPols.empty())
     MakePolygonsFromBS();
   
