@@ -23,38 +23,37 @@ ClassImp(RenderElement)
 const TGPicture* RenderElement::fgRnrIcons[4] = { 0 };
 
 RenderElement::RenderElement() :
-  fRnrSelf          (kTRUE),
-  fRnrChildren        (kTRUE),
+  fRnrSelf             (kTRUE),
+  fRnrChildren         (kTRUE),
   fMainColorPtr        (0),
   fItems               (),
   fParents             (),
   fDestroyOnZeroRefCnt (kTRUE),
-  fDenyDestroy         (kFALSE),
-  fChildren(0)
+  fDenyDestroy         (0),
+  fChildren            ()
 {}
 
 RenderElement::RenderElement(Color_t& main_color) :
-  fRnrSelf          (kTRUE),
-  fRnrChildren        (kTRUE),
+  fRnrSelf             (kTRUE),
+  fRnrChildren         (kTRUE),
   fMainColorPtr        (&main_color),
   fItems               (),
   fParents             (),
   fDestroyOnZeroRefCnt (kTRUE),
-  fDenyDestroy         (kFALSE),
-  fChildren(0)
+  fDenyDestroy         (0),
+  fChildren            ()
 {}
 
 RenderElement::~RenderElement()
 {
   static const Exc_t _eh("RenderElement::RenderElement ");
 
-  for(sLTI_i i=fItems.begin(); i!=fItems.end(); ++i) {
-    DestroyListSubTree(i->fTree, i->fItem);
-  }
   RemoveElements();
 
-  for(List_i p=fParents.begin(); p!=fParents.end(); ++p) {
+  for(List_i p=fParents.begin(); p!=fParents.end(); ++p)
+  {
     (*p)->RemoveElementLocal(this);
+    (*p)->fChildren.remove(this);
   }
   fParents.clear();
 
@@ -89,11 +88,17 @@ const Text_t*  RenderElement::GetRnrElTitle() const
 
 void RenderElement::AddParent(RenderElement* re)
 {
+  // Adding parent is subordinate to adding an element.
+  // Consider this an internal function.
+
   fParents.push_back(re);
 }
 
 void RenderElement::RemoveParent(RenderElement* re)
 {
+  // Removing parent is subordinate to removing an element.
+  // Consider this an internal function.
+
   static const Exc_t eH("RenderElement::RemoveParent ");
 
   fParents.remove(re);
@@ -102,11 +107,12 @@ void RenderElement::RemoveParent(RenderElement* re)
 
 void RenderElement::CheckReferenceCount(const Reve::Exc_t& eh)
 {
-  if(fParents.empty() && fItems.empty() && fDestroyOnZeroRefCnt) {
-    if (gDebug > 0) {
-       TObject* tobj = GetObject(eh);
-       Info(eh.Data(), Form("auto-destructing '%s' on zero reference count.", tobj->GetName()));
-    }
+  if(fParents.empty()   &&  fItems.empty()         &&
+     fDenyDestroy <= 0  &&  fDestroyOnZeroRefCnt)
+  {
+    if (gDebug > 0)
+       Info(eh, Form("auto-destructing '%s' on zero reference count.", GetRnrElName()));
+
     gReve->PreDeleteRenderElement(this);
     delete this;
   }
@@ -175,7 +181,7 @@ Int_t RenderElement::DestroyListSubTree(TGListTree* ltree,
   TGListTreeItem* i = parent->GetFirstChild();
   while (i != 0)
   {
-    n += DestroyListSubTree(ltree, i);
+    //n += DestroyListSubTree(ltree, i);
     RenderElement* re = (RenderElement*) i->GetUserData();
     i = i->GetNextSibling();
     re->RemoveFromListTree(ltree, parent);
@@ -213,7 +219,8 @@ TGListTreeItem* RenderElement::AddIntoListTree(TGListTree* ltree,
 					       RenderElement* parent)
 {
   // Add this render element into ltree to all items belonging to
-  // parent. Returns list-tree-item from the first register entry.
+  // parent. Returns list-tree-item from the first register entry (but
+  // we use a set for that so it can be anything).
 
   TGListTreeItem* lti = 0;
   if (parent == 0) {
@@ -232,7 +239,7 @@ TGListTreeItem* RenderElement::AddIntoListTrees(RenderElement* parent)
 {
   // Add this render element into all list-trees and all items
   // belonging to parent. Returns list-tree-item from the first
-  // register entry.
+  // register entry (but we use a set for that so it can be anything).
 
   TGListTreeItem* lti = 0;
   for(sLTI_ri i = parent->fItems.rbegin(); i != parent->fItems.rend(); ++i)
@@ -447,42 +454,61 @@ void RenderElement::SetMainColor(Pixel_t pixel)
 
 /**************************************************************************/
 
-void RenderElement::AddElement(RenderElement* el)
+TGListTreeItem* RenderElement::AddElement(RenderElement* el)
 {
   el->AddParent(this);
   fChildren.push_back(el);
+  TGListTreeItem* ret = el->AddIntoListTrees(this);
   ElementChanged();
+  return ret;
 }
 
 void RenderElement::RemoveElement(RenderElement* el)
 {
   // Remove el from the list of children.
 
+  el->RemoveFromListTrees(this);
   RemoveElementLocal(el);
   el->RemoveParent(this);
+  fChildren.remove(el);
   ElementChanged();
 }
 
-void RenderElement::RemoveElementLocal(RenderElement* el)
+void RenderElement::RemoveElementLocal(RenderElement* /*el*/)
 {
-  // Perform local removal of el only. 
+  // Perform additional local removal of el.
   // Called from RemoveElement() which does whole untangling.
   // Put into special function as framework-related handling of
-  // element removal should really be common to all classes.
-  // If you override this, you should also override RemoveElements().
-
-  fChildren.remove(el);
+  // element removal should really be common to all classes and
+  // clearing of local structures happens in between removal
+  // of list-tree-items and final untangling.
+  // If you override this, you should also override
+  // RemoveElementsLocal().
 }
 
 void RenderElement::RemoveElements()
 {
-  // Remove all elements.
+  // Remove all elements. This assumes removing of all elements can be
+  // done more efficiently then looping over them and removing one by
+  // one.
 
-  for(List_i i=fChildren.begin(); i!=fChildren.end(); ++i) {
+  for(sLTI_i i=fItems.begin(); i!=fItems.end(); ++i)
+  {
+    DestroyListSubTree(i->fTree, i->fItem);
+  }
+  RemoveElementsLocal();
+  for(List_i i=fChildren.begin(); i!=fChildren.end(); ++i)
+  {
     (*i)->RemoveParent(this);
   }
   fChildren.clear();
   ElementChanged();
+}
+
+void RenderElement::RemoveElementsLocal()
+{
+  // Perform additional local removal of all elements.
+  // See comment to RemoveelementLocal(RenderElement*).
 }
 
 /**************************************************************************/
@@ -515,8 +541,8 @@ void RenderElement::Destroy()
 {
   static const Exc_t eH("RenderElement::Destroy ");
 
-  if(fDenyDestroy)
-    throw(eH + "this object is protected against destruction.");
+  if (fDenyDestroy > 0)
+    throw(eH + "this element '%s' is protected against destruction.", GetRnrElName());
 
   gReve->PreDeleteRenderElement(this);
   delete this;
@@ -529,11 +555,21 @@ void RenderElement::DestroyElements()
 
   while( ! fChildren.empty()) {
     RenderElement* c = fChildren.front();
-    try {
-      c->Destroy();
+    if (c->fDenyDestroy <= 0)
+    {
+      try {
+        c->Destroy();
+      }
+      catch(Exc_t exc) {
+        Warning(eH, Form("element destruction failed: '%s'.", exc.Data()));
+        RemoveElement(c);
+      }
     }
-    catch(Exc_t exc) {
-      Warning(eH.Data(), Form("element destruction failed: '%s'.", exc.Data()));
+    else
+    {
+      if (gDebug > 0)
+        Info(eH, Form("element '%s' is protected agains destruction, removin locally.", c->GetRnrElName()));
+
       RemoveElement(c);
     }
   }
@@ -623,6 +659,9 @@ RenderElementObjPtr::~RenderElementObjPtr()
 //______________________________________________________________________
 // Reve::RenderElementList
 //
+
+// !!! should have two ctors (like in RenderElement), one with Color_t&
+// and set fDoColor automatically, based on which ctor is called.
 
 ClassImp(RenderElementList)
 

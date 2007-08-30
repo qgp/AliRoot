@@ -66,7 +66,7 @@ protected:
   List_t fParents;
 
   Bool_t fDestroyOnZeroRefCnt;
-  Bool_t fDenyDestroy;
+  Int_t  fDenyDestroy;
 
   List_t fChildren;
 
@@ -99,8 +99,9 @@ public:
   Bool_t GetDestroyOnZeroRefCnt() const   { return fDestroyOnZeroRefCnt; }
   void   SetDestroyOnZeroRefCnt(Bool_t d) { fDestroyOnZeroRefCnt = d; }
 
-  Bool_t GetDenyDestroy() const   { return fDenyDestroy; }
-  void   SetDenyDestroy(Bool_t d) { fDenyDestroy = d; }
+  Int_t  GetDenyDestroy() const { return fDenyDestroy; }
+  void   IncDenyDestroy()       { ++fDenyDestroy; }
+  void   DecDenyDestroy()       { if (--fDenyDestroy <= 0) CheckReferenceCount("RenderElement::DecDenyDestroy "); }
 
   virtual void PadPaint(Option_t* option);
 
@@ -145,10 +146,11 @@ public:
 
   virtual Bool_t AcceptRenderElement(RenderElement* /*el*/) { return kTRUE; }
 
-  virtual void AddElement(RenderElement* el);
+  virtual TGListTreeItem* AddElement(RenderElement* el);
   virtual void RemoveElement(RenderElement* el);
   virtual void RemoveElementLocal(RenderElement* el);
   virtual void RemoveElements();
+  virtual void RemoveElementsLocal();
 
   virtual void Destroy();                      // *MENU*
   virtual void DestroyElements();              // *MENU*
