@@ -24,7 +24,8 @@ StraightLineSet::StraightLineSet(const Text_t* n, const Text_t* t):
   fLinePlex(sizeof(Line), 4),
   fMarkerPlex(sizeof(Marker), 8),
   fRnrMarkers(kTRUE),
-  fRnrLines(kTRUE)
+  fRnrLines(kTRUE),
+  fHMTrans()
 {
   fMainColorPtr = &fLineColor;
   fLineColor    = 4;
@@ -79,6 +80,7 @@ void StraightLineSet::Paint(Option_t* /*option*/)
   buff.fColor        = fLineColor;
   buff.fTransparency = 0;
   buff.fLocalFrame   = kFALSE;
+  fHMTrans.SetBuffer3D(buff);
   buff.SetSectionsValid(TBuffer3D::kCore);
 
   Int_t reqSections = gPad->GetViewer3D()->AddObject(buff);
@@ -123,17 +125,19 @@ void NLTSLineSet::UpdateProjection()
   Int_t NL = orig.GetLinePlex().Size();
   fLinePlex.Reset(sizeof(Line), NL);
   Line* l;
-  Float_t x1, y1, z1;
-  Float_t x2, y2, z2;
+  Float_t p1[3];
+  Float_t p2[3];
   VoidCPlex::iterator li(orig.GetLinePlex());
   while (li.next()) 
   {
     l = (Line*) li();
-    x1 = l->fV1[0];  y1 = l->fV1[1]; z1 = l->fV1[2];
-    x2 = l->fV2[0];  y2 = l->fV2[1]; z2 = l->fV2[2];
-    proj.ProjectPoint(x1, y1, z1);
-    proj.ProjectPoint(x2, y2, z2);
-    AddLine(x1, y1, z1, x2, y2, z2);
+    p1[0] = l->fV1[0];  p1[1] = l->fV1[1]; p1[2] = l->fV1[2];
+    p2[0] = l->fV2[0];  p2[1] = l->fV2[1]; p2[2] = l->fV2[2];
+    fHMTrans.MultiplyIP(p1);
+    fHMTrans.MultiplyIP(p2);
+    proj.ProjectPointFv(p1);
+    proj.ProjectPointFv(p2);
+    AddLine(p1[0], p1[1], p1[2], p2[0], p2[1], p2[2]);
   }
 
   // markers

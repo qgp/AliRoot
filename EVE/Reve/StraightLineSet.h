@@ -17,6 +17,7 @@
 #include <Reve/RenderElement.h>
 #include <Reve/NLTBases.h>
 #include <Reve/Plex.h>
+#include <Reve/ZTrans.h>
 class TRandom;
 
 namespace Reve {
@@ -69,9 +70,22 @@ protected:
 
   Line*             fLastLine; //!          
 
+  Bool_t            fTrans;
+  ZTrans            fHMTrans;
 public:
   StraightLineSet(const Text_t* n="StraightLine", const Text_t* t="");
   virtual ~StraightLineSet() {}
+
+  virtual Bool_t  CanEditMainHMTrans() { return  kTRUE; }
+  virtual ZTrans* PtrMainHMTrans()     { return &fHMTrans; }
+
+  ZTrans& RefHMTrans() { return fHMTrans; }
+  void SetTransMatrix(Double_t* carr)        { fHMTrans.SetFrom(carr); }
+  void SetTransMatrix(const TGeoMatrix& mat) { fHMTrans.SetFrom(mat);  }
+
+
+  virtual void SetLineColor(Color_t col) { SetMainColor(col); }
+
 
   void    AddLine(Float_t x1, Float_t y1, Float_t z1, Float_t x2, Float_t y2, Float_t z2);
   void    AddMarker(Int_t lineID, Float_t pos);
@@ -82,14 +96,11 @@ public:
   virtual void ComputeBBox();
   virtual void Paint(Option_t* option="");
 
-  virtual void SetLineColor(Color_t col) { SetMainColor(col); }
-
   virtual void SetRnrMarkers(Bool_t x) {fRnrMarkers = x;}
   virtual Bool_t GetRnrMarkers(){return fRnrMarkers;}
 
   virtual void SetRnrLines(Bool_t x) {fRnrLines = x;}
   virtual Bool_t GetRnrLines(){return fRnrLines;}
-
 
   virtual TClass* ProjectedClass() const;
 
