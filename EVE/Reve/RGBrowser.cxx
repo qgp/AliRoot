@@ -390,7 +390,7 @@ namespace
 {
 enum ReveMenu_e {
   kNewViewer,  kNewScene,  kNewProjector,
-  kNewBrowser, kNewCanvas, kNewCanvasExt,
+  kNewBrowser, kNewCanvas, kNewCanvasExt, kNewTextEditor,
   kVerticalBrowser
 };
 }
@@ -409,6 +409,7 @@ RGBrowser::RGBrowser(UInt_t w, UInt_t h) :
   fRevePopup->AddEntry("New &Browser",   kNewBrowser);
   fRevePopup->AddEntry("New &Canvas",    kNewCanvas);
   fRevePopup->AddEntry("New Canvas Ext", kNewCanvasExt);
+  fRevePopup->AddEntry("New Text Editor",kNewTextEditor);
   fRevePopup->AddSeparator();
   fRevePopup->AddEntry("Vertical browser", kVerticalBrowser);
   fRevePopup->CheckEntry(kVerticalBrowser);
@@ -416,25 +417,9 @@ RGBrowser::RGBrowser(UInt_t w, UInt_t h) :
   fRevePopup->Connect("Activated(Int_t)", "Reve::RGBrowser", 
   		     this, "ReveMenu(Int_t)"); 
 
-  /*
-   fFileMenu->AddEntry("&Close Viewer", kGLCloseViewer);
-   fFileMenu->AddSeparator();
-   fFileSaveMenu = new TGPopupMenu(fFrame->GetClient()->GetRoot());
-   fFileSaveMenu->AddEntry("viewer.&eps", kGLSaveEPS);
-   fFileSaveMenu->AddEntry("viewer.&pdf", kGLSavePDF);
-   fFileSaveMenu->AddEntry("viewer.&gif", kGLSaveGIF);
-   fFileSaveMenu->AddEntry("viewer.&jpg", kGLSaveJPG);
-   fFileSaveMenu->AddEntry("viewer.p&ng", kGLSavePNG);
-   fFileMenu->AddPopup("&Save", fFileSaveMenu);
-   fFileMenu->AddEntry("Save &As...", kGLSaveAS);
-   fFileMenu->AddSeparator();
-   fFileMenu->AddEntry("&Quit ROOT", kGLQuitROOT);
-   fFileMenu->Associate(fFrame);
-  */
-
-  TGMenuBar *menuBar = new TGMenuBar(fPreMenuFrame, 1, 1, kHorizontalFrame);
-  menuBar->AddPopup("&Reve", fRevePopup, new TGLayoutHints(kLHintsTop | kLHintsLeft, 0, 4, 0, 0));
-  fPreMenuFrame->AddFrame(menuBar, new TGLayoutHints(kLHintsNormal, 1, 1, 1, 3));
+  fMenuBar->RemovePopup("Framework");
+  // ?? should disconnect / delete.
+  fMenuBar->AddPopup("&Reve", fRevePopup, new TGLayoutHints(kLHintsTop | kLHintsLeft, 0, 4, 0, 0));
 
   fPreMenuFrame->ChangeOptions(fPreMenuFrame->GetOptions() | kRaisedFrame);
   fTopMenuFrame->Layout();
@@ -474,6 +459,13 @@ void RGBrowser::ReveMenu(Int_t id)
 
     case kNewCanvasExt:
       gROOT->ProcessLineFast("new TCanvas");
+      break;
+
+    case kNewTextEditor:
+      StartEmbedding(1);
+      gROOT->ProcessLineFast(Form("new TGTextEditor((const char *)0, (const TGWindow *)0x%lx)", gClient->GetRoot()));
+      StopEmbedding();
+      SetTabTitle("Editor", 1);
       break;
 
     case kVerticalBrowser:
@@ -521,8 +513,8 @@ void RGBrowser::InitPlugins()
 
   // --- main frame
 
-  /*
   // Canvas plugin...
+  /* Now in menu
   StartEmbedding(1);
   gROOT->ProcessLineFast("new TCanvas");
   StopEmbedding();
@@ -530,11 +522,13 @@ void RGBrowser::InitPlugins()
   */
 
   // Editor plugin...
+  /* Now in menu
   StartEmbedding(1);
   gROOT->ProcessLineFast(Form("new TGTextEditor((const char *)0, (const TGWindow *)0x%lx)", 
 			  gClient->GetRoot()));
   StopEmbedding();
   SetTabTitle("Editor", 1);
+  */
 
   // --- bottom area
 
