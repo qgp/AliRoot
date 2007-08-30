@@ -17,6 +17,7 @@
 #include "TRegexp.h"
 #include "TEnv.h"
 #include "TImage.h"
+#include "TBrowser.h"
 #include <time.h>
 #include <string.h>
 
@@ -138,6 +139,15 @@ void TGFileBrowser::CreateBrowser(const char *name)
 }
 
 //______________________________________________________________________________
+void TGFileBrowser::ReallyDelete()
+{
+   // Really delete the browser and the this GUI.
+
+   gInterpreter->DeleteGlobal(fBrowser);
+   delete fBrowser;    // will in turn delete this object
+}
+
+//______________________________________________________________________________
 TGFileBrowser::~TGFileBrowser()
 {
    // Destructor.
@@ -185,6 +195,7 @@ void TGFileBrowser::Add(TObject *obj, const char *name, Int_t check)
             fListTree->AddItem(fListLevel, name, obj, pic, pic);
       }
    }
+   fListTree->ClearViewPort();
 }
 
 //______________________________________________________________________________
@@ -320,7 +331,7 @@ void TGFileBrowser::ApplyFilter(Int_t id)
    fListTree->DeleteChildren(item);
    DoubleClicked(item, 1);
    //fListTree->AdjustPosition(item);
-   gClient->NeedRedraw(fListTree, kTRUE);
+   fListTree->ClearViewPort();
 }
 
 //______________________________________________________________________________
@@ -540,7 +551,7 @@ void TGFileBrowser::DoubleClicked(TGListTreeItem *item, Int_t /*btn*/)
                if (!fListTree->FindChildByName(item, fname)) {
                   itm = fListTree->AddItem(item,fname,pic,pic);
                   if (size && modtime) {
-                     char *tiptext = FormatFileInfo(size, modtime);
+                     char *tiptext = FormatFileInfo(fname.Data(), size, modtime);
                      itm->SetTipText(tiptext);
                      delete [] tiptext;
                   }
@@ -592,6 +603,9 @@ void TGFileBrowser::DoubleClicked(TGListTreeItem *item, Int_t /*btn*/)
                                      embed, f.GetName()));
                }
             }
+            else {
+               XXExecuteDefaultAction(&f);
+            }
          }
       }
       else {
@@ -629,23 +643,24 @@ Long_t TGFileBrowser::XXExecuteDefaultAction(TObject *obj)
 }
 
 //______________________________________________________________________________
-char *TGFileBrowser::FormatFileInfo(Long64_t size, Long_t modtime)
+char *TGFileBrowser::FormatFileInfo(const char *fname, Long64_t size, Long_t modtime)
 {
 
    Long64_t fsize, bsize;
-   TString infos;
+   TString infos = fname;
+   infos += "\n";
 
    fsize = bsize = size;
    if (fsize > 1024) {
       fsize /= 1024;
       if (fsize > 1024) {
          // 3.7MB is more informative than just 3MB
-         infos.Form("Size: %lld.%lldM", fsize/1024, (fsize%1024)/103);
+         infos += Form("Size: %lld.%lldM", fsize/1024, (fsize%1024)/103);
       } else {
-         infos.Form("Size: %lld.%lldK", bsize/1024, (bsize%1024)/103);
+         infos += Form("Size: %lld.%lldK", bsize/1024, (bsize%1024)/103);
       }
    } else {
-      infos.Form("Size: %lld", bsize);
+      infos += Form("Size: %lld", bsize);
    }
    struct tm *newtime;
    time_t loctime = (time_t) modtime;

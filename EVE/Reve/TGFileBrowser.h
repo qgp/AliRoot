@@ -74,10 +74,13 @@ public:
    TString     DirName(TGListTreeItem* item);
    void        DoubleClicked(TGListTreeItem *item, Int_t btn);
    Long_t      XXExecuteDefaultAction(TObject *obj);
-   char       *FormatFileInfo(Long64_t size, Long_t modtime);
+   char       *FormatFileInfo(const char *fname, Long64_t size, Long_t modtime);
    void        GetObjPicture(const TGPicture **pic, TObject *obj);
    void        GotoDir(const char *path);
    
+   // overridden from TGMainFrame
+   void        ReallyDelete();
+
    ClassDef(TGFileBrowser, 0) // File browser.
 };
 
