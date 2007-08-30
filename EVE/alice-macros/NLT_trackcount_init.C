@@ -14,15 +14,21 @@ void NLT_trackcount_init()
 {
   Reve::LoadMacro("geom_gentle.C");
 
+  Reve::LoadMacro("primary_vertex.C");
+  Reve::LoadMacro("esd_tracks.C");
+  Reve::LoadMacro("its_clusters.C++");
+  Reve::LoadMacro("tpc_clusters.C++");
+
   TGLViewer* v = (TGLViewer *)gReve->GetGLViewer();
   v->SetCurrentCamera(TGLViewer::kCameraOrthoXOY);
   TGLCameraMarkupStyle* mup = v->GetCameraMarkup();
   if(mup) mup->SetShow(kFALSE);
 
   Reve::TrackCounter* g_trkcnt = new Reve::TrackCounter("Primary Counter");
-  gReve->AddGlobalRenderElement(g_trkcnt);
+  gReve->AddToListTree(g_trkcnt, kFALSE);
 
   Reve::Scene* s = gReve->SpawnNewScene("Projected Event");
+  gReve->GetDefViewer()->RemoveElements();
   gReve->GetDefViewer()->AddScene(s);
 
   Reve::NLTProjector* p = new Reve::NLTProjector; proj = p;
@@ -30,18 +36,13 @@ void NLT_trackcount_init()
   gReve->AddRenderElement(proj, s);
 
   // geometry
-  Reve::GeoShapeRnrEl* gg = geom_gentle();  geom = gg;
-  proj->ImportElements(geom);
-  geom->SetRnrState(kFALSE);
-  //Reve::RenderElement::List_i i = proj->BeginChildren();
-  // RenderElement* re = *i; pgeom = re;
-  
+  Reve::GeoShapeRnrEl* gg = geom_gentle();
+  geom = gg;
+
   // event
   Alieve::gEvent->AddNewEventCommand("on_new_event();");
   Alieve::gEvent->GotoEvent(0);
   Reve::RenderElement* top = gReve->GetCurrentEvent();
-  if(top) proj->ImportElements(top);
-  top->SetRnrState(kFALSE);
 
   gReve->Redraw3D(kTRUE);
 }
@@ -50,10 +51,6 @@ void NLT_trackcount_init()
 
 void on_new_event()
 {
-  Reve::LoadMacro("primary_vertex.C");
-  Reve::LoadMacro("esd_tracks.C");
-  Reve::LoadMacro("its_clusters.C");
-  Reve::LoadMacro("tpc_clusters.C");
 
   Reve::PointSet* itsc = its_clusters();
   itsc->SetMarkerColor(5);
@@ -64,9 +61,6 @@ void on_new_event()
   primary_vertex(1, 1);
 
   Reve::RenderElementList* cont = esd_tracks_vertex_cut();
-  //TGListTree* lt = gReve->GetListTree();
-  //TGListTreeItem* ti = cont->FindListTreeItem(lt);
-  //lt->OpenItem(ti);
 
   // Here we expect five TrackList containers.
   // First two have reasonable primaries (sigma-to-prim-vertex < 5).
@@ -92,7 +86,7 @@ void on_new_event()
   proj->ImportElements(geom);
   // event
   proj->ImportElements(top);
-  top->SetRnrState(kFALSE);
+  // top->SetRnrState(kFALSE);
 }
 
 /**************************************************************************/
