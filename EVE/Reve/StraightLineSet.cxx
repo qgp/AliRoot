@@ -128,13 +128,17 @@ void NLTSLineSet::UpdateProjection()
   Float_t p1[3];
   Float_t p2[3];
   VoidCPlex::iterator li(orig.GetLinePlex());
+
+  Double_t s1, s2, s3;
+  orig.RefHMTrans().GetScale(s1, s2, s3);
+  ZTrans mx; mx.Scale(s1, s2, s3);
   while (li.next()) 
   {
     l = (Line*) li();
     p1[0] = l->fV1[0];  p1[1] = l->fV1[1]; p1[2] = l->fV1[2];
     p2[0] = l->fV2[0];  p2[1] = l->fV2[1]; p2[2] = l->fV2[2];
-    fHMTrans.MultiplyIP(p1);
-    fHMTrans.MultiplyIP(p2);
+    mx.MultiplyIP(p1);
+    mx.MultiplyIP(p2);
     proj.ProjectPointFv(p1);
     proj.ProjectPointFv(p2);
     AddLine(p1[0], p1[1], p1[2], p2[0], p2[1], p2[2]);
@@ -150,4 +154,10 @@ void NLTSLineSet::UpdateProjection()
     m = (Marker*) mi();
     AddMarker(m->fLineID, m->fPos);
   }
+
+  // set position
+  Float_t pos[3];
+  orig.RefHMTrans().GetPos(pos);
+  proj.ProjectPointFv(pos);
+  fHMTrans.SetPos(pos);
 }

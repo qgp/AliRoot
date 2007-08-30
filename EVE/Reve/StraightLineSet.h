@@ -124,6 +124,8 @@ public:
   NLTSLineSet();
   virtual ~NLTSLineSet() {}
 
+  virtual Bool_t  CanEditMainHMTrans() { return  kFALSE; }
+
   virtual void SetProjection(NLTProjector* proj, NLTProjectable* model);
 
   virtual void UpdateProjection();
