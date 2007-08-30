@@ -81,7 +81,8 @@ public:
 
   //--------------------------------
 
-  void CtrlClicked(Reve::Track*); // *SIGNAL*
+  virtual void CtrlClicked(Reve::Track*); // *SIGNAL*
+  virtual void SetLineStyle(Style_t lstyle);
 
   virtual TClass* ProjectedClass() const;
 
@@ -195,7 +196,6 @@ public:
   TrackList(const Text_t* name, TrackRnrStyle* rs=0);
   virtual ~TrackList();
 
-  virtual void AddElement(RenderElement* el);
   void   MakeTracks(Bool_t recurse=kTRUE);
 
   void  SetRnrStyle(TrackRnrStyle* rs);

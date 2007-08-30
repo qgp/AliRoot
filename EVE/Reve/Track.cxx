@@ -452,6 +452,21 @@ void Track::CtrlClicked(Reve::Track* track)
   Emit("CtrlClicked(Reve::Track*)", (Long_t)track);
 }
 
+void Track::SetLineStyle(Style_t lstyle)
+{
+  TAttLine::SetLineStyle(lstyle);
+  std::list<NLTProjected*>::iterator pi = fProjectedList.begin();
+  while (pi != fProjectedList.end())
+  {
+    Track* pt = dynamic_cast<Track*>(*pi);
+    if (pt)
+    {
+      pt->SetLineStyle(lstyle);
+      pt->ElementChanged();
+    }
+    ++pi;
+  }
+}
 
 /**************************************************************************/
 /**************************************************************************/
@@ -646,6 +661,8 @@ TrackList::TrackList(TrackRnrStyle* rs) :
   fRnrLine(kTRUE),
   fRnrPoints(kFALSE)
 {
+  fChildClass = Track::Class(); // override member from base RenderElementList
+
   fMainColorPtr = &fLineColor;
   if (fRnrStyle== 0) rs = new TrackRnrStyle;
   SetRnrStyle(rs);
@@ -661,7 +678,9 @@ TrackList::TrackList(const Text_t* name, TrackRnrStyle* rs) :
   fRnrLine(kTRUE),
   fRnrPoints(kFALSE)
 {
- fMainColorPtr = &fLineColor;
+  fChildClass = Track::Class(); // override member from base RenderElementList
+
+  fMainColorPtr = &fLineColor;
   if (fRnrStyle== 0) rs = new TrackRnrStyle;
   SetRnrStyle(rs);
 }
@@ -679,21 +698,8 @@ void TrackList::SetRnrStyle(TrackRnrStyle* rs)
   fRnrStyle = rs;
   if (fRnrStyle) rs->IncRefCount();
 }
-/**************************************************************************/
-
-void TrackList::AddElement(RenderElement* el)
-{
-  static const Exc_t eH("TrackList::AddElement ");
-  Track* track = dynamic_cast<Track*>(el);
-  if ( track == 0)
-  {
-    throw(eH + "new element not a Track.");
-  }
-  RenderElement::AddElement(track);
-}
 
 /**************************************************************************/
-
 void TrackList::MakeTracks(Bool_t recurse)
 {
   for(List_i i=fChildren.begin(); i!=fChildren.end(); ++i)
@@ -963,7 +969,7 @@ void TrackCounter::Reset()
   TIter next(&fTrackLists);
   TrackList* tlist;
   while ((tlist = dynamic_cast<TrackList*>(next())))
-    tlist->RemoveParent(this);
+    tlist->DecDenyDestroy();
   fTrackLists.Clear();
 }
 
@@ -972,7 +978,7 @@ void TrackCounter::RegisterTracks(TrackList* tlist, Bool_t goodTracks)
   // printf("TrackCounter::RegisterTracks '%s', %s\n",
   //   tlist->GetObject()->GetName(), goodTracks ? "good" : "bad");
 
-  tlist->AddParent(this);
+  tlist->IncDenyDestroy();
   fTrackLists.Add(tlist);
 
   List_i i = tlist->BeginChildren();
@@ -997,7 +1003,7 @@ void TrackCounter::DoTrackAction(Track* track)
 {
   // !!!! No check done if ok.
   // !!!! Should also override RemoveElementLocal
-  // !!!! But then ... should also sotre local information if track is ok.
+  // !!!! But then ... should also store local information if track is ok.
 
   switch (fClickAction)
   {
@@ -1022,6 +1028,7 @@ void TrackCounter::DoTrackAction(Track* track)
 	track->SetLineStyle(1);
 	++fGoodTracks;
       }
+      track->ElementChanged();
       gReve->Redraw3D();
 
       printf("TrackCounter::CountTrack All=%d, Good=%d, Bad=%d\n",
