@@ -1,12 +1,16 @@
 // $Header$
 
+#ifndef __CINT_
 #include <list>
 #include <string>
+#endif
 
 void alieve_init(const Text_t* path   = ".", Int_t event=0,
 		 const Text_t* cdburi = 0,
 		 Bool_t assert_runloader=kFALSE, Bool_t assert_esd=kFALSE)
 {
+  using namespace std;
+
   // Set-up environment, load libraries.
 
   Reve::SetupEnvironment();
@@ -23,7 +27,7 @@ void alieve_init(const Text_t* path   = ".", Int_t event=0,
   if(dirhandle != 0) {
     char* filename;
     TPRegexp re("\.C$");
-    std::list<std::string> names;
+    list<string> names;
     while((filename = gSystem->GetDirEntry(dirhandle)) != 0) {
       if(re.Match(filename)) {
 	names.push_back(filename);
@@ -35,7 +39,7 @@ void alieve_init(const Text_t* path   = ".", Int_t event=0,
     //PH on some platforms (alphalinuxgcc, solariscc5, etc.)
     // f->Add(new Reve::RMacro(Form("%s/%s", macdir.Data(), filename)));
     char fullName[1000];
-    for (std::list<std::string>::iterator si=names.begin(); si!=names.end(); ++si)
+    for (list<string>::iterator si=names.begin(); si!=names.end(); ++si)
     {
       sprintf(fullName,"%s/%s", macdir.Data(), si->c_str());
       f->Add(new Reve::RMacro(fullName));
