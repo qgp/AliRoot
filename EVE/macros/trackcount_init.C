@@ -1,7 +1,12 @@
 void trackcount_init()
 {
-  // Reve::LoadMacro("alieve_init.C");
-  // alieve_init();
+  Reve::LoadMacro("alieve_init.C");
+  alieve_init(".", -1);
+
+  Reve::LoadMacro("primary_vertex.C");
+  Reve::LoadMacro("esd_tracks.C");
+  Reve::LoadMacro("its_clusters.C+");
+  Reve::LoadMacro("tpc_clusters.C+");
 
   {
     TGLViewer* glv = (TGLViewer *)gReve->GetGLViewer();
@@ -16,15 +21,12 @@ void trackcount_init()
 
   Alieve::gEvent->AddNewEventCommand("on_new_event();");
   Alieve::gEvent->GotoEvent(0);
+
+  gReve->Redraw3D(kTRUE);
 }
 
 void on_new_event()
 {
-  Reve::LoadMacro("primary_vertex.C");
-  Reve::LoadMacro("esd_tracks.C");
-  Reve::LoadMacro("its_clusters.C");
-  Reve::LoadMacro("tpc_clusters.C");
-
   Reve::PointSet* itsc = its_clusters();
   itsc->SetMarkerColor(5);
 

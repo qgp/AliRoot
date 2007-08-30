@@ -1,23 +1,25 @@
-namespace Reve {
+namespace Reve
+{
 class NLTProjector;
 class GeoShapeRnrEl;
 class RnrElement*;
 }
 
-Reve::NLTProjector* proj = 0;
-Reve::GeoShapeRnrEl* geom = 0;
+Reve::NLTProjector  * proj = 0;
+Reve::GeoShapeRnrEl * geom = 0;
 // Reve::RenderElement* pgeom = 0;
-
-using namespace Reve;
 
 void NLT_trackcount_init()
 {
+  Reve::LoadMacro("alieve_init.C");
+  alieve_init(".", -1);
+
   Reve::LoadMacro("geom_gentle.C");
 
   Reve::LoadMacro("primary_vertex.C");
   Reve::LoadMacro("esd_tracks.C");
-  Reve::LoadMacro("its_clusters.C++");
-  Reve::LoadMacro("tpc_clusters.C++");
+  Reve::LoadMacro("its_clusters.C+");
+  Reve::LoadMacro("tpc_clusters.C+");
 
   TGLViewer* v = (TGLViewer *)gReve->GetGLViewer();
   v->SetCurrentCamera(TGLViewer::kCameraOrthoXOY);
@@ -42,7 +44,6 @@ void NLT_trackcount_init()
   // event
   Alieve::gEvent->AddNewEventCommand("on_new_event();");
   Alieve::gEvent->GotoEvent(0);
-  Reve::RenderElement* top = gReve->GetCurrentEvent();
 
   gReve->Redraw3D(kTRUE);
 }
@@ -51,7 +52,6 @@ void NLT_trackcount_init()
 
 void on_new_event()
 {
-
   Reve::PointSet* itsc = its_clusters();
   itsc->SetMarkerColor(5);
 
