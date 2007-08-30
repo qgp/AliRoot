@@ -53,18 +53,14 @@ void TPCLoader::RemoveElementLocal(RenderElement* el)
     if(fSec2Ds[i] == el) fSec2Ds[i] = 0;
     if(fSec3Ds[i] == el) fSec3Ds[i] = 0;
   }
-
-  RenderElement::RemoveElementLocal(el);
 }
 
-void TPCLoader::RemoveElements()
+void TPCLoader::RemoveElementsLocal()
 {
   for(Int_t i=0; i<36; ++i) {
     fSec2Ds[i] = 0;
     fSec3Ds[i] = 0;
   }
-
-  RenderElement::RemoveElements();
 }
 
 /**************************************************************************/
