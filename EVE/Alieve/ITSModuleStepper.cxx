@@ -34,8 +34,7 @@ using namespace Alieve;
 ClassImp(ITSModuleStepper)
 
 ITSModuleStepper::ITSModuleStepper(ITSDigitsInfo* di) :
-  RenderElement(fWCol),
-  TNamed("ITS 2DStore", "ITSModuleStepper"),   
+  RenderElementList("ITS 2DStore", "ITSModuleStepper", kTRUE),
 
   fPosition(0), 
     
@@ -65,6 +64,11 @@ ITSModuleStepper::ITSModuleStepper(ITSDigitsInfo* di) :
   fWActiveCol(45),
   fFontCol(8)
 {
+  // override member from base RenderElementList
+  fChildClass = ITSScaledModule::Class();
+
+  SetMainColorPtr(&fWCol);
+
   fDigitsInfo->IncRefCount();
 
   fStepper = new GridStepper();
@@ -97,19 +101,6 @@ ITSModuleStepper::~ITSModuleStepper()
 
   delete fAxis;
   delete fText;
-}
-
-/**************************************************************************/
-
-void ITSModuleStepper::AddElement(RenderElement* el)
-{
-  static const Exc_t eH("ITSModulestepper::AddElement ");
-  ITSScaledModule* m = dynamic_cast<ITSScaledModule*>(el);
-  if ( m == 0)
-  {
-    throw(eH + "new element not a ITSScaledModule.");
-  }
-  RenderElement::AddElement(m);
 }
 
 /**************************************************************************/
@@ -603,7 +594,7 @@ void ITSModuleStepper::RenderCellIDs()
 {
   fText->SetTextSize(fStepper->Dy*0.1);
   fText->SetTextColor(fFontCol);
-  Double_t x, y,z;
+  Double_t x, y, z;
   Double_t sx, sy, sz;
   UInt_t idx = fPosition;
   for (List_i childit=fChildren.begin(); childit!=fChildren.end(); ++childit)
@@ -616,6 +607,7 @@ void ITSModuleStepper::RenderCellIDs()
       tr.GetPos(x,y,z);
       x += fStepper->Dx*0.5;
       y -= fStepper->Dy*0.5;
+      z += 0.4; // !!! MT hack - cross check with overlay rendering.
       Float_t llx, lly, llz, urx, ury, urz;
       fText->BBox(name, llx, lly, llz, urx, ury, urz);
       tr.GetScale(sx, sy, sz);

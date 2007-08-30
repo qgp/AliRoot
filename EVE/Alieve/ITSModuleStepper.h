@@ -19,9 +19,8 @@ namespace Alieve {
 class ITSDigitsInfo;
 class DigitScaleInfo;
 
-class ITSModuleStepper : public Reve::RenderElement,
-                         public TGLOverlayElement,
-                         public TNamed
+class ITSModuleStepper : public Reve::RenderElementList,
+                         public TGLOverlayElement
 {
   friend class ITSModuleStepperGL;
 
@@ -83,10 +82,6 @@ protected:
 public:
   ITSModuleStepper(ITSDigitsInfo* di);
   virtual ~ITSModuleStepper();
-
-  // RenderElement
-  virtual  Bool_t CanEditMainColor() { return kTRUE; }
-  virtual void AddElement(Reve::RenderElement* el);
 
   // external functions
   void     DisplayDet(Int_t det, Int_t layer = -1);
