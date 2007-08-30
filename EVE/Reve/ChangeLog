@@ -1,3 +1,22 @@
+2007-08-30  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
+
+	EVE-dev
+
+	* NLTProjector.h:
+	Reindent.
+	
+	* NLTProjectorEditor.cxx:
+	* NLTProjectorEditor.h:
+	Add RGValuator for current depth.
+
+	* StraightLineSet.cxx:
+	* StraightLineSet.h:
+	Use transformation matrix, to scale or move line set.
+
+	* ZTrans.cxx:
+	* ZTrans.h:
+	Add multiply function with Float_t* as an argument.
+
 2007-08-30  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	EVE-dev
