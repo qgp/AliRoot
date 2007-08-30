@@ -330,8 +330,8 @@ TGListTreeItem* RGTopFrame::AddRenderElement(RenderElement* rnr_element,
   static const Exc_t eH("RGTopFrame::AddRenderElement ");
 
   if (parent && ! parent->AcceptRenderElement(rnr_element)) {
-    throw(eH + "parent '%s' rejects '%s'.",
-	  parent->GetObject()->GetName(), rnr_element->GetObject()->GetName());
+    throw(eH + Form("parent '%s' rejects '%s'.",
+                    parent->GetRnrElName(), rnr_element->GetRnrElName()));
   }
 
   if (parent == 0) {
