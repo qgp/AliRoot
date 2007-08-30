@@ -311,7 +311,7 @@ void RGLTEFrame::ItemKeyPress(TGListTreeItem *entry, UInt_t keysym, UInt_t /*mas
 
     if (entry->GetParent())
     {
-      if (rnr_el->GetDenyDestroy() && rnr_el->GetNItems() == 1)
+      if (rnr_el->GetDenyDestroy() > 0 && rnr_el->GetNItems() == 1)
 	throw(eH + "DestroyDenied set for this item.");
 
       RenderElement* parent_re = dynamic_cast<RenderElement*>
@@ -326,7 +326,7 @@ void RGLTEFrame::ItemKeyPress(TGListTreeItem *entry, UInt_t keysym, UInt_t /*mas
     }
     else
     {
-      if (rnr_el->GetDenyDestroy())
+      if (rnr_el->GetDenyDestroy() > 0)
 	throw(eH + "DestroyDenied set for top-level item.");
       ResetSelectedTimer(entry);
       gReve->RemoveFromListTree(rnr_el, fListTree, entry);
