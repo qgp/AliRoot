@@ -205,6 +205,9 @@ void Event::GotoEvent(Int_t event)
   RGTopFrame::RedrawDisabler rd(gReve);
   gReve->Redraw3D(kFALSE, kTRUE); // Enforce drop of all logicals.
 
+  // !!! MT this is somewhat brutal; at least optionally, one could be
+  // a bit gentler, checking for objs owning their external refs and having
+  // additinal parents.
   DestroyElements();
   fEventId = event;
   SetName(Form("Event %d", fEventId));
