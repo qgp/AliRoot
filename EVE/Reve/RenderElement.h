@@ -47,6 +47,7 @@ public:
   };
 
   static const TGPicture*                      fgRnrIcons[4];
+  static const TGPicture*                      fgListTreeIcons[8];
 
   typedef std::set<ListTreeInfo>               sLTI_t;
   typedef sLTI_t::iterator                     sLTI_i;
@@ -180,7 +181,8 @@ public:
   virtual Bool_t  CanEditMainHMTrans() { return kFALSE; }
   virtual ZTrans* PtrMainHMTrans()     { return 0; }
 
-  static const TGPicture* GetCheckBoxPicture(Bool_t rnrElement, Bool_t rnrDaughter);
+  static  const TGPicture* GetCheckBoxPicture(Bool_t rnrElement, Bool_t rnrDaughter);
+  virtual const TGPicture* GetListTreeIcon() { return fgListTreeIcons[0]; }
 
   ClassDef(RenderElement, 1);
 }; // endclass RenderElement

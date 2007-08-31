@@ -21,6 +21,7 @@ using namespace Reve;
 ClassImp(RenderElement)
 
 const TGPicture* RenderElement::fgRnrIcons[4] = { 0 };
+const TGPicture* RenderElement::fgListTreeIcons[8] = { 0 };
 
 RenderElement::RenderElement() :
   fRnrSelf             (kTRUE),
@@ -204,6 +205,8 @@ TGListTreeItem* RenderElement::AddIntoListTree(TGListTree* ltree,
 					0, 0, kTRUE);
   item->SetCheckBoxPictures(GetCheckBoxPicture(1, fRnrChildren),
 			    GetCheckBoxPicture(0, fRnrChildren));
+
+  item->SetPictures(GetListTreeIcon(),GetListTreeIcon());
   item->CheckItem(fRnrSelf);
 
   if(fMainColorPtr != 0) item->SetColor(GetMainColor());
