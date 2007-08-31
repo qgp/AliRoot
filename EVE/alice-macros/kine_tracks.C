@@ -97,7 +97,7 @@ void kine_daughters(Reve::Track* parent,  AliStack* stack,
       TParticle* dp = stack->Particle(d);
       if (dp->Pt() < min_pt && dp->P() < min_p) continue;
 
-      Track* dtrack = new Reve::Track(dp, d, rs);  
+      Reve::Track* dtrack = new Reve::Track(dp, d, rs);  
       char form[1000];
       sprintf(form,"%s [%d]", dp->GetName(), d);
       dtrack->SetName(form);
