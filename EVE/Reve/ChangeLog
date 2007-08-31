@@ -1,3 +1,20 @@
+2007-08-31  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
+
+	EVE-dev
+
+	* RenderElement.cxx:
+	* RenderElement.h:
+	New virtual GetListTreeIcon(), which sets an icon picture in a list tree.
+
+	* Reve.cxx:
+        Initialize list tree icons.
+
+	* Scene.h:
+	* Track.h:
+	* Viewer.h:
+	* PointSet.h:
+        Set specific icons for this class in a list tree.
+
 2007-08-30  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
 
 	* StraightLineSet.cxx:

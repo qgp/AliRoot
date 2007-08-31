@@ -1,13 +1,22 @@
+2007-08-31  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
+
+	EVE-dev
+
+	* alice-macros/kine_tracks.C:
+	Add missing namespace qualifier.
+
+	* icons/pointset.xpm:
+	* icons/scene.xpm:
+	* icons/track.xpm:
+	* icons/viewer.xpm:
+	New files: icons for list tree.
+
 2007-08-30  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
 
-	* Reve/NLTProjector.h:
-	* Reve/NLTProjectorEditor.cxx:
-	* Reve/NLTProjectorEditor.h:
-	* Reve/StraightLineSet.cxx:
-	* Reve/StraightLineSet.h:
-	* Reve/ZTrans.cxx:
-	* Reve/ZTrans.h:
+	EVE-dev
+
 	* alice-macros/primary_vertex.C:
+	Generalize creation of primary vertex ellipse.
 
 2007-08-30  Matevz Tadel  <matevz.tadel@cern.ch>
 
