@@ -48,6 +48,8 @@ public:
 
   virtual void TakeAction(TSelectorDraw*);
 
+  virtual const TGPicture* GetListTreeIcon() { return RenderElement::fgListTreeIcons[3]; }
+
   virtual TClass* ProjectedClass() const;
 
   ClassDef(PointSet, 1);

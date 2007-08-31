@@ -84,6 +84,8 @@ public:
   virtual void CtrlClicked(Reve::Track*); // *SIGNAL*
   virtual void SetLineStyle(Style_t lstyle);
 
+  virtual const TGPicture* GetListTreeIcon() { return fgListTreeIcons[4]; }; 
+
   virtual TClass* ProjectedClass() const;
 
   ClassDef(Track, 1);

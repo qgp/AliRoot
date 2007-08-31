@@ -43,6 +43,8 @@ public:
 
   virtual Bool_t HandleElementPaste(RenderElement* el);
 
+  virtual const TGPicture* GetListTreeIcon() { return RenderElement::fgListTreeIcons[1]; }
+
   ClassDef(Viewer, 0);
 }; // endclass Viewer
 

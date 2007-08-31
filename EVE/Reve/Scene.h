@@ -43,6 +43,7 @@ public:
   virtual void SetName(const Text_t* n);
   virtual void Paint(Option_t* option = "");
 
+  virtual const TGPicture* GetListTreeIcon() { return RenderElement::fgListTreeIcons[2]; }
   ClassDef(Scene, 0);
 }; // endclass Scene
 
