@@ -34,13 +34,13 @@ void loadlibsrec ()
 /*   gSystem->Load("libPHOSsim"); */
 /*   gSystem->Load("libPHOSrec"); */
   gSystem->Load("libMUONmapping");
-/*   gSystem->Load("libMUONgeometry"); */
-/*   gSystem->Load("libMUONcalib"); */
-/*   gSystem->Load("libMUONraw"); */
-/*   gSystem->Load("libMUONtrigger"); */
-/*   gSystem->Load("libMUONbase"); */
-/*   gSystem->Load("libMUONsim"); */
-/*   gSystem->Load("libMUONrec"); */
+  gSystem->Load("libMUONgeometry");
+  gSystem->Load("libMUONcalib");
+  gSystem->Load("libMUONraw");
+  gSystem->Load("libMUONtrigger");
+  gSystem->Load("libMUONbase");
+  gSystem->Load("libMUONsim");
+  gSystem->Load("libMUONrec");
 /*   gSystem->Load("libFMDbase"); */
 /*   gSystem->Load("libFMDsim"); */
 /*   gSystem->Load("libFMDrec"); */
