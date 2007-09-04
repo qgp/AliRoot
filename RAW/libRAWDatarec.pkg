@@ -24,3 +24,9 @@ EINCLUDE+= ${DATE_COMMON_DEFS}
 endif
 
 EXPORT:=AliRawReader.h AliAltroRawStream.h AliFilter.h
+
+ifeq (win32gcc,$(ALICE_TARGET))
+PACKSOFLAGS:= $(SOFLAGS) -L$(ALICE_ROOT)/lib/tgt_$(ALICE_TARGET) \
+                         -lSTEERBase -lRAWDatabase -lESD \
+#                         -L$(shell root-config --libdir) -lVMC -lEG -lGeom
+endif

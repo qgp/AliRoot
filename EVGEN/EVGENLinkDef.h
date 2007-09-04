@@ -20,7 +20,6 @@
 #pragma link C++ class  AliGenParam+;
 #pragma link C++ class  AliGenCocktail+;
 #pragma link C++ class  AliGenMUONCocktail+;
-#pragma link C++ class  AliGenMUONCocktailpp+;
 #pragma link C++ class  AliGenCocktailAfterBurner+;
 #pragma link C++ class  AliGenCocktailEntry+;
 #pragma link C++ class  AliGenExtFile+;
@@ -47,7 +46,6 @@
 #pragma link C++ class  AliGenGeVSimEventHeader+;
 #pragma link C++ class  AliGeVSimParticle+;
 #pragma link C++ class  AliGenBeamGas+;
-#pragma link C++ class  AliGenBeamGasNew+;
 #pragma link C++ class  AliGenAfterBurnerFlow+;
 #pragma link C++ class  AliGenSlowNucleons+;
 #pragma link C++ class  AliSlowNucleonModel+;

@@ -1,28 +1,23 @@
-//
-// Configuration for the Physics Data Challenge 2006
-//
-
 // One can use the configuration macro in compiled mode by
 // root [0] gSystem->Load("libgeant321");
 // root [0] gSystem->SetIncludePath("-I$ROOTSYS/include -I$ALICE_ROOT/include\
 //                   -I$ALICE_ROOT -I$ALICE/geant3/TGeant3");
-// root [0] .x grun.C(1,"Config_PDC06.C++")
+// root [0] .x grun.C(1,"Config.C++")
 
 #if !defined(__CINT__) || defined(__MAKECINT__)
 #include <Riostream.h>
 #include <TRandom.h>
-#include <TDatime.h>
 #include <TSystem.h>
 #include <TVirtualMC.h>
 #include <TGeant3TGeo.h>
-#include "EVGEN/AliGenCocktail.h"
-#include "EVGEN/AliGenParam.h"
-#include "EVGEN/AliGenMUONlib.h"
 #include "STEER/AliRunLoader.h"
 #include "STEER/AliRun.h"
 #include "STEER/AliConfig.h"
 #include "PYTHIA6/AliDecayerPythia.h"
-#include "PYTHIA6/AliGenPythia.h"
+#include "EVGEN/AliGenCocktail.h"
+#include "EVGEN/AliGenHIJINGpara.h"
+#include "EVGEN/AliGenFixed.h"
+#include "EVGEN/AliGenBox.h"
 #include "STEER/AliMagFMaps.h"
 #include "STRUCT/AliBODY.h"
 #include "STRUCT/AliMAG.h"
@@ -32,13 +27,13 @@
 #include "STRUCT/AliFRAMEv2.h"
 #include "STRUCT/AliSHILv3.h"
 #include "STRUCT/AliPIPEv3.h"
-#include "ITS/AliITSgeom.h"
 #include "ITS/AliITSvPPRasymmFMD.h"
 #include "TPC/AliTPCv2.h"
 #include "TOF/AliTOFv6T0.h"
 #include "HMPID/AliHMPIDv2.h"
 #include "ZDC/AliZDCv2.h"
 #include "TRD/AliTRDv1.h"
+#include "TRD/AliTRDgeometry.h"
 #include "FMD/AliFMDv1.h"
 #include "MUON/AliMUONv1.h"
 #include "PHOS/AliPHOSv1.h"
@@ -49,147 +44,65 @@
 #include "VZERO/AliVZEROv7.h"
 #endif
 
-
-enum PDC06Proc_t 
-{
-//--- Heavy Flavour Production ---
-  kCharmPbPb5500,  kCharmpPb8800,  kCharmpp14000,  kCharmpp14000wmi,
-  kD0PbPb5500,     kD0pPb8800,     kD0pp14000,
-  kDPlusPbPb5500,  kDPluspPb8800,  kDPluspp14000,
-  kBeautyPbPb5500, kBeautypPb8800, kBeautypp14000, kBeautypp14000wmi, 
-// -- Pythia Mb
-  kPyMbNoHvq, kPyOmegaPlus, kPyOmegaMinus, kRunMax
-};
-
-const char * pprRunName[] = {
-  "kCharmPbPb5500",  "kCharmpPb8800",  "kCharmpp14000",  "kCharmpp14000wmi",
-  "kD0PbPb5500",     "kD0pPb8800",     "kD0pp14000",
-  "kDPlusPbPb5500",  "kDPluspPb8800",  "kDPluspp14000",
-  "kBeautyPbPb5500", "kBeautypPb8800", "kBeautypp14000", "kBeautypp14000wmi", 
-  "kPyMbNoHvq", "kPyOmegaPlus", "kPyOmegaMinus"
-};
-
-
-//--- Decay Mode ---
-enum DecayHvFl_t 
-{
-  kNature,  kHadr, kSemiEl, kSemiMu
-};
-//--- Rapidity Cut ---
-enum YCut_t
-{
-  kFull, kBarrel, kMuonArm
-};
-//--- Magnetic Field ---
-enum Mag_t
-{
-    k2kG, k4kG, k5kG
-};
-
-//--- Trigger config ---
-enum TrigConf_t
+enum PprTrigConf_t
 {
     kDefaultPPTrig, kDefaultPbPbTrig
 };
 
-const char * TrigConfName[] = {
+const char * pprTrigConfName[] = {
     "p-p","Pb-Pb"
 };
 
-//--- Functions ---
-AliGenPythia *PythiaHVQ(PDC06Proc_t proc);
-AliGenerator *MbCocktail();
-AliGenerator *PyMbTriggered(Int_t pdg);
-void ProcessEnvironmentVars();
+Float_t EtaToTheta(Float_t arg);
 
-// This part for configuration
-static PDC06Proc_t   proc     = kPyMbNoHvq;
-static DecayHvFl_t   decHvFl  = kNature; 
-static YCut_t        ycut     = kFull;
-static Mag_t         mag      = k5kG; 
-static TrigConf_t    trig     = kDefaultPPTrig; // default pp trigger configuration
-//========================//
-// Set Random Number seed //
-//========================//
-TDatime dt;
-static UInt_t seed    = dt.Get();
-
-// nEvts = -1  : you get 1 QQbar pair and all the fragmentation and 
-//               decay chain
-// nEvts = N>0 : you get N charm / beauty Hadrons 
-Int_t nEvts = -1; 
-// stars = kTRUE : all heavy resonances and their decay stored
-//       = kFALSE: only final heavy hadrons and their decays stored
-Bool_t stars = kTRUE;
-
-// To be used only with kCharmppMNRwmi and kBeautyppMNRwmi
-// To get a "reasonable" agreement with MNR results, events have to be 
-// generated with the minimum ptHard set to 2.76 GeV.
-// To get a "perfect" agreement with MNR results, events have to be 
-// generated in four ptHard bins with the following relative 
-// normalizations:
-//  CHARM
-// 2.76-3 GeV: 25%
-//    3-4 GeV: 40%
-//    4-8 GeV: 29%
-//     >8 GeV:  6%
-//  BEAUTY
-// 2.76-4 GeV:  5% 
-//    4-6 GeV: 31%
-//    6-8 GeV: 28%
-//     >8 GeV: 36%
-Float_t ptHardMin =  2.76;
-Float_t ptHardMax = -1.;
-
-
-// Comment line
-static TString comment;
+static PprTrigConf_t strig = kDefaultPPTrig;// default PP trigger configuration
 
 void Config()
 {
- 
+    // ThetaRange is (0., 180.). It was (0.28,179.72) 7/12/00 09:00
+    // Theta range given through pseudorapidity limits 22/6/2001
 
-  // Get settings from environment variables
-  ProcessEnvironmentVars();
+    // Set Random Number seed
+  gRandom->SetSeed(123456); // Set 0 to use the currecnt time
 
-  gRandom->SetSeed(seed);
-  cerr<<"Seed for random number generation= "<<seed<<endl; 
 
-  // libraries required by geant321
+   // libraries required by geant321
 #if defined(__CINT__)
-  gSystem->Load("libgeant321");
+    gSystem->Load("libgeant321");
 #endif
 
-  new TGeant3TGeo("C++ Interface to Geant3");
+    new     TGeant3TGeo("C++ Interface to Geant3");
 
-  //=======================================================================
-  //  Create the output file
+    AliRunLoader* rl=0x0;
 
-   
-  AliRunLoader* rl=0x0;
 
-  cout<<"Config.C: Creating Run Loader ..."<<endl;
-  rl = AliRunLoader::Open("galice.root",
-			  AliConfig::GetDefaultEventFolderName(),
-			  "recreate");
-  if (rl == 0x0)
-    {
-      gAlice->Fatal("Config.C","Can not instatiate the Run Loader");
-      return;
-    }
-  rl->SetCompressionLevel(2);
-  rl->SetNumberOfEventsPerFile(1000);
-  gAlice->SetRunLoader(rl);
-  
-  // Set the trigger configuration
-  gAlice->SetTriggerDescriptor(TrigConfName[trig]);
-  cout<<"Trigger configuration is set to  "<<TrigConfName[trig]<<endl;
+    rl = AliRunLoader::Open("galice.root",
+			    AliConfig::GetDefaultEventFolderName(),
+			    "recreate");
+    if (rl == 0x0)
+      {
+	gAlice->Fatal("Config.C","Can not instatiate the Run Loader");
+	return;
+      }
+    rl->SetCompressionLevel(2);
+    rl->SetNumberOfEventsPerFile(3);
+    gAlice->SetRunLoader(rl);
 
-  //
-  //=======================================================================
-  // ************* STEERING parameters FOR ALICE SIMULATION **************
-  // --- Specify event type to be tracked through the ALICE setup
-  // --- All positions are in cm, angles in degrees, and P and E in GeV
+    // Set the trigger configuration
+    gAlice->SetTriggerDescriptor(pprTrigConfName[strig]);
+    cout<<"Trigger configuration is set to  "<<pprTrigConfName[strig]<<endl;
+
+    //
+    // Set External decayer
+    TVirtualMCDecayer *decayer = new AliDecayerPythia();
+
+    decayer->SetForceDecay(kAll);
+    decayer->Init();
+    gMC->SetExternalDecayer(decayer);
+    //=======================================================================
+    // ************* STEERING parameters FOR ALICE SIMULATION **************
+    // --- Specify event type to be tracked through the ALICE setup
+    // --- All positions are in cm, angles in degrees, and P and E in GeV
 
 
     gMC->SetProcess("DCAY",1);
@@ -222,155 +135,169 @@ void Config()
     gMC->SetCut("PPCUTM", cut);
     gMC->SetCut("TOFMAX", tofmax); 
 
+    // Special generation for Valgrind tests
+    // Each detector is fired by few particles selected 
+    // to cover specific cases
 
 
+    // The cocktail iitself
 
-  // Set External decayer //
-  //======================//
-  TVirtualMCDecayer* decayer = new AliDecayerPythia();
-  // DECAYS
-  //
-  switch(decHvFl) {
-  case kNature:
-    decayer->SetForceDecay(kAll);
-    break;
-  case kHadr:
-    decayer->SetForceDecay(kHadronicD);
-    break;
-  case kSemiEl:
-    decayer->SetForceDecay(kSemiElectronic);
-    break;
-  case kSemiMu:
-    decayer->SetForceDecay(kSemiMuonic);
-    break;
-  }
-  decayer->Init();
-  gMC->SetExternalDecayer(decayer);
+    AliGenCocktail *gener = new AliGenCocktail();
+    gener->SetPhiRange(0, 360);
+    // Set pseudorapidity range from -8 to 8.
+    Float_t thmin = EtaToTheta(8);   // theta min. <---> eta max
+    Float_t thmax = EtaToTheta(-8);  // theta max. <---> eta min 
+    gener->SetThetaRange(thmin,thmax);
+    gener->SetOrigin(0, 0, 0);  //vertex position
+    gener->SetSigma(0, 0, 0);   //Sigma in (X,Y,Z) (cm) on IP position
 
-  //=========================//
-  // Generator Configuration //
-  //=========================//
-  AliGenerator* gener = 0x0;
-  
-  if (proc <=   kBeautypp14000wmi) {
-      AliGenPythia *pythia = PythiaHVQ(proc);
-      // FeedDown option
-      pythia->SetFeedDownHigherFamily(kFALSE);
-      // Stack filling option
-      if(!stars) pythia->SetStackFillOpt(AliGenPythia::kParentSelection);
-      // Set Count mode
-      if(nEvts>0) pythia->SetCountMode(AliGenPythia::kCountParents);
-      //
-      // DECAYS
-      //  
-      switch(decHvFl) {
-      case kNature:
-	  pythia->SetForceDecay(kAll);
-	  break;
-      case kHadr:
-	  pythia->SetForceDecay(kHadronicD);
-	  break;
-      case kSemiEl:
-	  pythia->SetForceDecay(kSemiElectronic);
-	  break;
-      case kSemiMu:
-	  pythia->SetForceDecay(kSemiMuonic);
-	  break;
-      }
-      //
-      // GEOM & KINE CUTS
-      //
-      pythia->SetMomentumRange(0,99999999);
-      pythia->SetPhiRange(0., 360.);
-      pythia->SetThetaRange(0,180);
-      switch(ycut) {
-      case kFull:
-	  pythia->SetYRange(-999,999);
-	  break;
-      case kBarrel:
-	  pythia->SetYRange(-2,2);
-	  break;
-      case kMuonArm:
-	  pythia->SetYRange(1,6);
-	  break;
-      }
-      gener = pythia;
-  } else if (proc == kPyMbNoHvq) {
-      gener = MbCocktail();
-  } else if (proc == kPyOmegaMinus) {
-      gener = PyMbTriggered(3334);
-  } else if (proc == kPyOmegaPlus) {
-      gener = PyMbTriggered(-3334);
-  }
-  
-  
 
-  // PRIMARY VERTEX
-  //
-  gener->SetOrigin(0., 0., 0.);    // vertex position
-  //
-  //
-  // Size of the interaction diamond
-  // Longitudinal
-  Float_t sigmaz  = 7.55 / TMath::Sqrt(2.); // [cm]
-  //
-  // Transverse
-  Float_t betast  = 10;                 // beta* [m]
-  Float_t eps     = 3.75e-6;            // emittance [m]
-  Float_t gamma   = 7000. / 0.938272;   // relativistic gamma [1]
-  Float_t sigmaxy = TMath::Sqrt(eps * betast / gamma) / TMath::Sqrt(2.) * 100.;  // [cm]
-  printf("\n \n Diamond size x-y: %10.3e z: %10.3e\n \n", sigmaxy, sigmaz);
+    // Particle guns for the barrel part (taken from RichConfig)
+
+    AliGenFixed *pG1=new AliGenFixed(1);
+    pG1->SetPart(2212);
+    pG1->SetMomentum(2.5);
+    pG1->SetTheta(109.5-3);
+    pG1->SetPhi(10);
+    gener->AddGenerator(pG1,"g1",1);
     
-  gener->SetSigma(sigmaxy, sigmaxy, sigmaz);      // Sigma in (X,Y,Z) (cm) on IP position
-  gener->SetCutVertexZ(3.);        // Truncate at 3 sigma
-  gener->SetVertexSmear(kPerEvent);
+    AliGenFixed *pG2=new AliGenFixed(1);
+    pG2->SetPart(211);
+    pG2->SetMomentum(1.0);
+    pG2->SetTheta( 90.0-3);
+    pG2->SetPhi(10);
+    gener->AddGenerator(pG2,"g2",1);
 
-  gener->Init();
-
-  // FIELD
-  //    
-  if (mag == k2kG) {
-    comment = comment.Append(" | L3 field 0.2 T");
-  } else if (mag == k4kG) {
-    comment = comment.Append(" | L3 field 0.4 T");
-  } else if (mag == k5kG) {
-    comment = comment.Append(" | L3 field 0.5 T");
-  }
-  printf("\n \n Comment: %s \n \n", comment.Data());
+    AliGenFixed *pG3=new AliGenFixed(1);
+    pG3->SetPart(-211);
+    pG3->SetMomentum(1.5);
+    pG3->SetTheta(109.5-3);
+    pG3->SetPhi(30);
+    gener->AddGenerator(pG3,"g3",1);
     
-  AliMagFMaps* field = new AliMagFMaps("Maps","Maps", 2, 1., 10., mag);
-  field->SetL3ConstField(0); //Using const. field in the barrel
-  rl->CdGAFile();
-  gAlice->SetField(field);    
+    AliGenFixed *pG4=new AliGenFixed(1);
+    pG4->SetPart(321);
+    pG4->SetMomentum(0.7);
+    pG4->SetTheta( 90.0-3);
+    pG4->SetPhi(30);
+    gener->AddGenerator(pG4,"g4",1);
+    
+    AliGenFixed *pG5=new AliGenFixed(1);
+    pG5->SetPart(-321);
+    pG5->SetMomentum(1.0);
+    pG5->SetTheta( 70.0-3);
+    pG5->SetPhi(30);
+    gener->AddGenerator(pG5,"g5",1);
+    
+    AliGenFixed *pG6=new AliGenFixed(1);
+    pG6->SetPart(-2212);
+    pG6->SetMomentum(2.5);
+    pG6->SetTheta( 90.0-3);
+    pG6->SetPhi(50);
+    gener->AddGenerator(pG6,"g6",1);
+    
+    AliGenFixed *pG7=new AliGenFixed(1);
+    pG7->SetPart(-211);
+    pG7->SetMomentum(0.7);
+    pG7->SetTheta( 70.0-3);
+    pG7->SetPhi(50);
+    gener->AddGenerator(pG7,"g7",1);
+
+    // Electrons for TRD
+
+    AliGenFixed *pG8=new AliGenFixed(1);
+    pG8->SetPart(11);
+    pG8->SetMomentum(1.2);
+    pG8->SetTheta( 95.0);
+    pG8->SetPhi(190);
+    gener->AddGenerator(pG8,"g8",1);
+
+    AliGenFixed *pG9=new AliGenFixed(1);
+    pG9->SetPart(-11);
+    pG9->SetMomentum(1.2);
+    pG9->SetTheta( 85.0);
+    pG9->SetPhi(190);
+    gener->AddGenerator(pG9,"g9",1);
+
+    // PHOS
+
+    AliGenBox *gphos = new AliGenBox(1);
+    gphos->SetMomentumRange(10,11.);
+    gphos->SetPhiRange(270.5,270.7);
+    gphos->SetThetaRange(90.5,90.7);
+    gphos->SetPart(22);
+    gener->AddGenerator(gphos,"GENBOX GAMMA for PHOS",1);
+
+    // EMCAL
+
+    AliGenBox *gemcal = new AliGenBox(1);
+    gemcal->SetMomentumRange(10,11.);
+    gemcal->SetPhiRange(90.5,199.5);
+    gemcal->SetThetaRange(90.5,90.7);
+    gemcal->SetPart(22);
+    gener->AddGenerator(gemcal,"GENBOX GAMMA for EMCAL",1);
+
+    // MUON
+    AliGenBox * gmuon1 = new AliGenBox(1);
+    gmuon1->SetMomentumRange(20.,20.1);
+    gmuon1->SetPhiRange(0., 360.);         
+    gmuon1->SetThetaRange(171.000,178.001);
+    gmuon1->SetPart(13);           // Muons
+    gener->AddGenerator(gmuon1,"GENBOX MUON1",1);
+
+    AliGenBox * gmuon2 = new AliGenBox(1);
+    gmuon2->SetMomentumRange(20.,20.1);
+    gmuon2->SetPhiRange(0., 360.);         
+    gmuon2->SetThetaRange(171.000,178.001);
+    gmuon2->SetPart(-13);           // Muons
+    gener->AddGenerator(gmuon2,"GENBOX MUON1",1);
+
+    //TOF
+    AliGenFixed *gtof=new AliGenFixed(1);
+    gtof->SetPart(2212);
+    gtof->SetMomentum(2.5);
+    gtof->SetTheta(95);
+    pG1->SetPhi(340);
+    gener->AddGenerator(gtof,"Proton for TOF",1);
+    
+    gener->Init();
 
 
+    // 
+    // Activate this line if you want the vertex smearing to happen
+    // track by track
+    //
+    //gener->SetVertexSmear(perTrack); 
+    // Field (L3 0.5 T)
+    AliMagFMaps* field = new AliMagFMaps("Maps","Maps", 2, 1., 10., 2);
+    field->SetL3ConstField(1); //Using const. field in the barrel if 0
+    gAlice->SetField(field);    
 
-  Int_t iABSO  = 1;
-  Int_t iACORDE   = 0;
-  Int_t iDIPO  = 1;
-  Int_t iEMCAL = 1;
-  Int_t iFMD   = 1;
-  Int_t iFRAME = 1;
-  Int_t iHALL  = 1;
-  Int_t iITS   = 1;
-  Int_t iMAG   = 1;
-  Int_t iMUON  = 1;
-  Int_t iPHOS  = 1;
-  Int_t iPIPE  = 1;
-  Int_t iPMD   = 1;
-  Int_t iHMPID  = 1;
-  Int_t iSHIL  = 1;
-  Int_t iT0 = 1;
-  Int_t iTOF   = 1;
-  Int_t iTPC   = 1;
-  Int_t iTRD   = 1;
-  Int_t iVZERO = 1;
-  Int_t iZDC   = 1;
-  
 
+    Int_t   iABSO  =  1;
+    Int_t   iDIPO  =  1;
+    Int_t   iFMD   =  0;
+    Int_t   iFRAME =  1;
+    Int_t   iHALL  =  1;
+    Int_t   iITS   =  1;
+    Int_t   iMAG   =  1;
+    Int_t   iMUON  =  0;
+    Int_t   iPHOS  =  0;
+    Int_t   iPIPE  =  1;
+    Int_t   iPMD   =  1;
+    Int_t   iHMPID  =  1;
+    Int_t   iSHIL  =  1;
+    Int_t   iT0 =  0;
+    Int_t   iTOF   =  1;
+    Int_t   iTPC   =  1;
+    Int_t   iTRD   =  0;
+    Int_t   iZDC   =  0;
+    Int_t   iEMCAL =  0;
+    Int_t   iACORDE   =  0;
+    Int_t   iVZERO =  1;
+    rl->CdGAFile();
     //=================== Alice BODY parameters =============================
     AliBODY *BODY = new AliBODY("BODY", "Alice envelop");
-
 
     if (iMAG)
     {
@@ -428,12 +355,12 @@ void Config()
     {
         //=================== ITS parameters ============================
 
-	AliITSvPPRasymmFMD *ITS  = new AliITSvPPRasymmFMD("ITS","New ITS PPR detailed version with asymmetric services");
+	AliITSvPPRasymmFMD *ITS  = new AliITSvPPRasymmFMD("ITS","ITS PPR detailed version with asymmetric services");
     }
 
     if (iTPC)
     {
-      //============================ TPC parameters =====================
+        //============================ TPC parameters ===================
         AliTPC *TPC = new AliTPCv2("TPC", "Default");
     }
 
@@ -443,12 +370,9 @@ void Config()
 	AliTOF *TOF = new AliTOFv6T0("TOF", "normal TOF");
 	// Partial geometry: modules at 2,3,4,6,7,11,12,14,15,16
 	// starting at 6h in positive direction
-	//	Int_t TOFSectors[18]={-1,-1,0,0,0,-1,0,0,-1,-1,-1,0,0,-1,0,0,0,0};
-	// Partial geometry: modules at 1,2,6,7,9,10,11,12,15,16,17
-	// (ALICE numbering convention)
-       	Int_t TOFSectors[18]={-1,0,0,-1,-1,-1,0,0,-1,0,0,0,0,-1,-1,0,0,0};
+	Int_t TOFSectors[18]={-1,-1,0,0,0,-1,0,0,-1,-1,-1,0,0,-1,0,0,0,0};
 	TOF->SetTOFSectors(TOFSectors);
-    }
+     }
 
 
     if (iHMPID)
@@ -496,7 +420,7 @@ void Config()
     {
         //=================== MUON parameters ===========================
         // New MUONv1 version (geometry defined via builders)
-        AliMUON *MUON = new AliMUONv1("MUON", "default");
+        AliMUON *MUON = new AliMUONv1("MUON","default");
     }
     //=================== PHOS parameters ===========================
 
@@ -535,220 +459,10 @@ void Config()
         //=================== VZERO parameters ============================
         AliVZERO *VZERO = new AliVZEROv7("VZERO", "normal VZERO");
     }
-}
-//
-//           PYTHIA
-//
-AliGenPythia *PythiaHVQ(PDC06Proc_t proc) {
-//*******************************************************************//
-// Configuration file for charm / beauty generation with PYTHIA      //
-//                                                                   //
-// The parameters have been tuned in order to reproduce the inclusive//
-// heavy quark pt distribution given by the NLO pQCD calculation by  //
-// Mangano, Nason and Ridolfi.                                       //
-//                                                                   //
-// For details and for the NORMALIZATION of the yields see:          //
-//   N.Carrer and A.Dainese,                                         //
-//   "Charm and beauty production at the LHC",                       //
-//   ALICE-INT-2003-019, [arXiv:hep-ph/0311225];                     //
-//   PPR Chapter 6.6, CERN/LHCC 2005-030 (2005).                     //
-//*******************************************************************//
-  AliGenPythia * gener = 0x0;
 
-  switch(proc) {
-  case kCharmPbPb5500:
-      comment = comment.Append(" Charm in Pb-Pb at 5.5 TeV");
-      gener = new AliGenPythia(nEvts);
-      gener->SetProcess(kPyCharmPbPbMNR);
-      gener->SetStrucFunc(kCTEQ4L);
-      gener->SetPtHard(2.1,-1.0);
-      gener->SetEnergyCMS(5500.);
-      gener->SetNuclei(208,208);
-      break;
-  case kCharmpPb8800:
-      comment = comment.Append(" Charm in p-Pb at 8.8 TeV");
-      gener = new AliGenPythia(nEvts);
-      gener->SetProcess(kPyCharmpPbMNR);
-      gener->SetStrucFunc(kCTEQ4L);
-      gener->SetPtHard(2.1,-1.0);
-      gener->SetEnergyCMS(8800.);
-      gener->SetProjectile("P",1,1);
-      gener->SetTarget("Pb",208,82);
-      break;
-  case kCharmpp14000:
-      comment = comment.Append(" Charm in pp at 14 TeV");
-      gener = new AliGenPythia(nEvts);
-      gener->SetProcess(kPyCharmppMNR);
-      gener->SetStrucFunc(kCTEQ4L);
-      gener->SetPtHard(2.1,-1.0);
-      gener->SetEnergyCMS(14000.);
-      break;
-  case kCharmpp14000wmi:
-      comment = comment.Append(" Charm in pp at 14 TeV with mult. interactions");
-      gener = new AliGenPythia(-1);
-      gener->SetProcess(kPyCharmppMNRwmi);
-      gener->SetStrucFunc(kCTEQ5L);
-      gener->SetPtHard(ptHardMin,ptHardMax);
-      gener->SetEnergyCMS(14000.);
-      break;
-  case kD0PbPb5500:
-      comment = comment.Append(" D0 in Pb-Pb at 5.5 TeV");
-      gener = new AliGenPythia(nEvts);
-      gener->SetProcess(kPyD0PbPbMNR);
-      gener->SetStrucFunc(kCTEQ4L);
-      gener->SetPtHard(2.1,-1.0);
-      gener->SetEnergyCMS(5500.);
-      gener->SetNuclei(208,208);
-      break;
-  case kD0pPb8800:
-      comment = comment.Append(" D0 in p-Pb at 8.8 TeV");
-      gener = new AliGenPythia(nEvts);
-      gener->SetProcess(kPyD0pPbMNR);
-      gener->SetStrucFunc(kCTEQ4L);
-      gener->SetPtHard(2.1,-1.0);
-      gener->SetEnergyCMS(8800.);
-      gener->SetProjectile("P",1,1);
-      gener->SetTarget("Pb",208,82);
-      break;
-  case kD0pp14000:
-      comment = comment.Append(" D0 in pp at 14 TeV");
-      gener = new AliGenPythia(nEvts);
-      gener->SetProcess(kPyD0ppMNR);
-      gener->SetStrucFunc(kCTEQ4L);
-      gener->SetPtHard(2.1,-1.0);
-      gener->SetEnergyCMS(14000.);
-      break;
-  case kDPlusPbPb5500:
-      comment = comment.Append(" DPlus in Pb-Pb at 5.5 TeV");
-      gener = new AliGenPythia(nEvts);
-      gener->SetProcess(kPyDPlusPbPbMNR);
-      gener->SetStrucFunc(kCTEQ4L);
-      gener->SetPtHard(2.1,-1.0);
-      gener->SetEnergyCMS(5500.);
-      gener->SetNuclei(208,208);
-      break;
-  case kDPluspPb8800:
-      comment = comment.Append(" DPlus in p-Pb at 8.8 TeV");
-      gener = new AliGenPythia(nEvts);
-      gener->SetProcess(kPyDPluspPbMNR);
-      gener->SetStrucFunc(kCTEQ4L);
-      gener->SetPtHard(2.1,-1.0);
-      gener->SetEnergyCMS(8800.);
-      gener->SetProjectile("P",1,1);
-      gener->SetTarget("Pb",208,82);
-      break;
-  case kDPluspp14000:
-      comment = comment.Append(" DPlus in pp at 14 TeV");
-      gener = new AliGenPythia(nEvts);
-      gener->SetProcess(kPyDPlusppMNR);
-      gener->SetStrucFunc(kCTEQ4L);
-      gener->SetPtHard(2.1,-1.0);
-      gener->SetEnergyCMS(14000.);
-      break;
-  case kBeautyPbPb5500:
-      comment = comment.Append(" Beauty in Pb-Pb at 5.5 TeV");
-      gener = new AliGenPythia(nEvts);
-      gener->SetProcess(kPyBeautyPbPbMNR);
-      gener->SetStrucFunc(kCTEQ4L);
-      gener->SetPtHard(2.75,-1.0);
-      gener->SetEnergyCMS(5500.);
-      gener->SetNuclei(208,208);
-      break;
-  case kBeautypPb8800:
-      comment = comment.Append(" Beauty in p-Pb at 8.8 TeV");
-      gener = new AliGenPythia(nEvts);
-      gener->SetProcess(kPyBeautypPbMNR);
-      gener->SetStrucFunc(kCTEQ4L);
-      gener->SetPtHard(2.75,-1.0);
-      gener->SetEnergyCMS(8800.);
-      gener->SetProjectile("P",1,1);
-      gener->SetTarget("Pb",208,82);
-      break;
-  case kBeautypp14000:
-      comment = comment.Append(" Beauty in pp at 14 TeV");
-      gener = new AliGenPythia(nEvts);
-      gener->SetProcess(kPyBeautyppMNR);
-      gener->SetStrucFunc(kCTEQ4L);
-      gener->SetPtHard(2.75,-1.0);
-      gener->SetEnergyCMS(14000.);
-      break;
-  case kBeautypp14000wmi:
-      comment = comment.Append(" Beauty in pp at 14 TeV with mult. interactions");
-      gener = new AliGenPythia(-1);
-      gener->SetProcess(kPyBeautyppMNRwmi);
-      gener->SetStrucFunc(kCTEQ5L);
-      gener->SetPtHard(ptHardMin,ptHardMax);
-      gener->SetEnergyCMS(14000.);
-      break;
-  }
 
-  return gener;
 }
 
-AliGenerator* MbCocktail()
-{
-      comment = comment.Append(" pp at 14 TeV: Pythia low-pt, no heavy quarks + J/Psi from parameterisation");
-      AliGenCocktail * gener = new AliGenCocktail();
-      gener->UsePerEventRates();
- 
-//
-//    Pythia
-      AliGenPythia* pythia = new AliGenPythia(-1); 
-      pythia->SetMomentumRange(0, 999999.);
-      pythia->SetThetaRange(0., 180.);
-      pythia->SetYRange(-12.,12.);
-      pythia->SetPtRange(0,1000.);
-      pythia->SetProcess(kPyMb);
-      pythia->SetEnergyCMS(14000.);
-      pythia->SwitchHFOff();
-      
-//
-//   J/Psi parameterisation
-
-      AliGenParam* jpsi = new AliGenParam(1, AliGenMUONlib::kJpsi, "CDF scaled", "Jpsi");
-      jpsi->SetPtRange(0.,100.);
-      jpsi->SetYRange(-8., 8.);
-      jpsi->SetPhiRange(0., 360.);
-      jpsi->SetForceDecay(kAll);
-//
-//
-      gener->AddGenerator(jpsi,   "J/Psi", 8.e-4);              
-      gener->AddGenerator(pythia, "Pythia", 1.);
-
-      
-      return gener;
+Float_t EtaToTheta(Float_t arg){
+  return (180./TMath::Pi())*2.*atan(exp(-arg));
 }
-
-AliGenerator* PyMbTriggered(Int_t pdg)
-{
-    AliGenPythia* pythia = new AliGenPythia(-1); 
-    pythia->SetMomentumRange(0, 999999.);
-    pythia->SetThetaRange(0., 180.);
-    pythia->SetYRange(-12.,12.);
-    pythia->SetPtRange(0,1000.);
-    pythia->SetProcess(kPyMb);
-    pythia->SetEnergyCMS(14000.);
-    pythia->SetTriggerParticle(pdg, 0.9);
-    return pythia;
-}
-
-void ProcessEnvironmentVars()
-{
-    // Run type
-    if (gSystem->Getenv("CONFIG_RUN_TYPE")) {
-      for (Int_t iRun = 0; iRun < kRunMax; iRun++) {
-	if (strcmp(gSystem->Getenv("CONFIG_RUN_TYPE"), pprRunName[iRun])==0) {
-	  proc = (PDC06Proc_t)iRun;
-	  cout<<"Run type set to "<<pprRunName[iRun]<<endl;
-	}
-      }
-    }
-
-    // Random Number seed
-    if (gSystem->Getenv("CONFIG_SEED")) {
-      seed = atoi(gSystem->Getenv("CONFIG_SEED"));
-    }
-}
-
-
-

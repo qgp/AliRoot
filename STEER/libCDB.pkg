@@ -1,3 +1,5 @@
+#-*- Mode: Makefile -*-
+
 SRCS          = AliCDBEntry.cxx AliCDBId.cxx AliCDBMetaData.cxx \
 AliCDBPath.cxx AliCDBRunRange.cxx AliCDBManager.cxx \
 AliCDBStorage.cxx AliCDBLocal.cxx AliCDBDump.cxx AliCDBGrid.cxx \
@@ -14,4 +16,7 @@ AliCDBStorage.h AliCDBLocal.h AliCDBDump.h AliCDBGrid.h \
 AliPreprocessor.h  AliShuttleInterface.h \
 AliGRPPreprocessor.h AliGRPDCS.h
 
+ifeq (win32gcc,$(ALICE_TARGET))
+PACKSOFLAGS:= $(SOFLAGS) -L$(ALICE_ROOT)/lib/tgt_$(ALICE_TARGET) -lSTEERBase
+endif
 

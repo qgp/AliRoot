@@ -1,3 +1,4 @@
+#-*- Mode: Makefile -*-
 #
 # mapping 
 #
@@ -22,7 +23,7 @@ SRCS +=  \
 	 mapping/AliMpVPadIterator.cxx  \
 	 mapping/AliMpVSegmentation.cxx  \
 	 mapping/AliMpManuList.cxx 
-   
+
 # Category motif
 #
 SRCS +=  \
@@ -71,7 +72,7 @@ SRCS +=  \
 	 mapping/AliMpPCBPadIterator.cxx  \
 	 mapping/AliMpSt345Reader.cxx  \
    mapping/AliMpSlatMotifMap.cxx
-   
+
 # Category trigger
 #
 SRCS +=  \
@@ -93,7 +94,7 @@ SRCS +=  \
          mapping/AliMpDDL.cxx \
 	 mapping/AliMpDDLStore.cxx \
 	 mapping/AliMpCDB.cxx
-	 
+
 # Category graphics
 #
 SRCS +=  \
@@ -111,8 +112,13 @@ SRCS +=  \
          mapping/AliMpIteratorPainter.cxx
 
 HDRS  = $(SRCS:.cxx=.h)
-#HDRS  = $(SRCS:.cxx=.h)
- 
+
 DHDR := MUONmappingLinkDef.h
- 
+
 EINCLUDE:= RAW MUON/mapping
+
+ifeq (win32gcc,$(ALICE_TARGET))
+PACKSOFLAGS:= $(SOFLAGS) -L$(ALICE_ROOT)/lib/tgt_$(ALICE_TARGET) \
+                         -lCDB -lSTEERBase \
+                         -L$(shell root-config --libdir) -lGui
+endif

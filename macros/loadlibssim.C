@@ -29,45 +29,47 @@ void loadlibssim ()
   gSystem->Load("libSTEERBase");
   gSystem->Load("libESD");
   gSystem->Load("libCDB");
-  gSystem->Load("libSTEER");
+  gSystem->Load("libAOD");
   gSystem->Load("libRAWDatabase");
   gSystem->Load("libRAWDatarec");
-
+  gSystem->Load("libSTEER");
   gSystem->Load("libRAWDatasim");
-  gSystem->Load("libEVGEN");
+
   gSystem->Load("libFASTSIM");
+  gSystem->Load("libEVGEN");
   gSystem->Load("libAliPythia6");
 
   gSystem->Load("libhijing");
   gSystem->Load("libTHijing");// AliGenHijingEventHeader needed by libZDCsim.so
 
   gSystem->Load("libSTRUCT");
-  gSystem->Load("libPHOSbase");
-  gSystem->Load("libPHOSsim");
+
+/*   gSystem->Load("libPHOSbase"); */
+/*   gSystem->Load("libPHOSsim"); */
   gSystem->Load("libMUONmapping");
-  gSystem->Load("libMUONgeometry");
-  gSystem->Load("libMUONcalib");
-  gSystem->Load("libMUONraw");
-  gSystem->Load("libMUONtrigger");
-  gSystem->Load("libMUONbase");
-  gSystem->Load("libMUONsim");
-  gSystem->Load("libFMDbase");
-  gSystem->Load("libFMDsim");
+/*   gSystem->Load("libMUONgeometry"); */
+/*   gSystem->Load("libMUONcalib"); */
+/*   gSystem->Load("libMUONraw"); */
+/*   gSystem->Load("libMUONtrigger"); */
+/*   gSystem->Load("libMUONbase"); */
+/*   gSystem->Load("libMUONsim"); */
+/*   gSystem->Load("libFMDbase"); */
+/*   gSystem->Load("libFMDsim"); */
   gSystem->Load("libPMDbase");
   gSystem->Load("libPMDsim");
   gSystem->Load("libHMPIDbase");
   gSystem->Load("libHMPIDsim");
-  gSystem->Load("libT0base");
-  gSystem->Load("libT0sim");
-  gSystem->Load("libT0rec");
-  gSystem->Load("libZDCbase");
-  gSystem->Load("libZDCsim");
-  gSystem->Load("libACORDEbase");
-  gSystem->Load("libACORDEsim");
+/*   gSystem->Load("libT0base"); */
+/*   gSystem->Load("libT0sim"); */
+/*   gSystem->Load("libT0rec"); */
+/*   gSystem->Load("libZDCbase"); */
+/*   gSystem->Load("libZDCsim"); */
+/*   gSystem->Load("libACORDEbase"); */
+/*   gSystem->Load("libACORDEsim"); */
   gSystem->Load("libVZERObase");
   gSystem->Load("libVZEROsim");
-  gSystem->Load("libEMCALbase");
-  gSystem->Load("libEMCALsim");
+/*   gSystem->Load("libEMCALbase"); */
+/*   gSystem->Load("libEMCALsim"); */
 
   // The following lines have to be commented on Darwin
   // for the moment due to cross dependencies
@@ -75,8 +77,8 @@ void loadlibssim ()
   gSystem->Load("libTPCsim");
   gSystem->Load("libITSbase");
   gSystem->Load("libITSsim");
-  gSystem->Load("libTRDbase");
-  gSystem->Load("libTRDsim");
+/*   gSystem->Load("libTRDbase"); */
+/*   gSystem->Load("libTRDsim"); */
   gSystem->Load("libTOFbase");
   gSystem->Load("libTOFsim");
 }
