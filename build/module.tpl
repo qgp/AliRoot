@@ -201,13 +201,13 @@ endif
 #------------------------------------------------------------------------
 
 ifneq (,$(findstring macosx,$(ALICE_TARGET)))
-$(@PACKAGE@LIB): $(@PACKAGE@DLIB) $(@PACKAGE@O) $(@PACKAGE@DO) @MODULE@/module.mk
+$(@PACKAGE@LIB): $(@PACKAGE@DLIB) $(@PACKAGE@O) $(@PACKAGE@DO)
 ifndef ALIQUIET
 	  @echo "***** Linking library $@ *****"
 endif
 	  $(MUTE)rm -f $@; cd $(dir $@); ln -s $(notdir $(@PACKAGE@DLIB)) $(notdir $@)
 else
-$(@PACKAGE@LIB):$(@PACKAGE@O) $(@PACKAGE@DO) @MODULE@/module.mk
+$(@PACKAGE@LIB):$(@PACKAGE@O) $(@PACKAGE@DO)
 ifndef ALIQUIET
 	  @echo "***** Linking library $@ *****"
 endif
@@ -222,7 +222,7 @@ endif
 endif
 
 ifneq ($(DYEXT),)
-$(@PACKAGE@DLIB):$(@PACKAGE@O) $(@PACKAGE@DO) @MODULE@/module.mk
+$(@PACKAGE@DLIB):$(@PACKAGE@O) $(@PACKAGE@DO)
 ifndef ALIQUIET
 	  @echo "***** Linking library $@ *****"
 endif
@@ -237,7 +237,7 @@ endif
 
 #------------------------------------------------------------------------
 
-$(@PACKAGE@ALIB):$(@PACKAGE@O) $(@PACKAGE@DO) @MODULE@/module.mk
+$(@PACKAGE@ALIB):$(@PACKAGE@O) $(@PACKAGE@DO)
 ifndef ALIQUIET
 	  @echo "***** Linking static library $@ *****"
 endif
@@ -251,7 +251,7 @@ endif
 	  $(MUTE)chmod a-w $@
 
 
-$(@PACKAGE@BIN):$(@PACKAGE@O) $(@PACKAGE@DO) @MODULE@/module.mk
+$(@PACKAGE@BIN):$(@PACKAGE@O) $(@PACKAGE@DO)
 ifndef ALIQUIET
 	  @echo "***** Making executable $@ *****"
 endif
@@ -261,7 +261,7 @@ else
 	  $(MUTE)$(LD) $(@PACKAGE@LDFLAGS) $(@PACKAGE@O) $(@PACKAGE@DO) $(BINLIBDIRS) $(@PACKAGE@ELIBSDIR) $(@PACKAGE@ELIBS) $(@PACKAGE@BLIBS) $(EXEFLAGS) -o $@
 endif
 
-$(@PACKAGE@DAL): $(@PACKAGE@CINTHDRS) @MODULE@/module.mk @MODULE@/tgt_$(ALICE_TARGET)/@PACKAGE@_srcslist
+$(@PACKAGE@DAL): $(@PACKAGE@CINTHDRS) @MODULE@/tgt_$(ALICE_TARGET)/@PACKAGE@_srcslist
 ifndef ALIQUIET
 	 @echo "***** Creating $@ *****";
 endif
@@ -275,7 +275,7 @@ endif
 	   echo "#pragma link C++ class $(i);" >> $@ ;)
 	$(MUTE)echo '#endif' >> $@
 
-$(@PACKAGE@DS): $(@PACKAGE@CINTHDRS) $(@PACKAGE@DH) @MODULE@/module.mk @MODULE@/tgt_$(ALICE_TARGET)/@PACKAGE@_srcslist
+$(@PACKAGE@DS): $(@PACKAGE@CINTHDRS) $(@PACKAGE@DH) @MODULE@/tgt_$(ALICE_TARGET)/@PACKAGE@_srcslist
 ifndef ALIQUIET
 	 @echo "***** Creating $@ *****";
 endif
