@@ -1,3 +1,14 @@
+2007-09-06  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	EVE-dev
+
+	* RGBrowser.cxx:
+	Clarify exception text.
+
+	* RGEditor.cxx:
+	From Bertrand: use set-method when changing static
+	TGedFrame::fgFrameCreator (required for windows).
+
 2007-08-31  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
 
 	EVE-dev
@@ -29,7 +40,7 @@
 	Reindent.
 	
 	* NLTProjectorEditor.cxx:
-	* yNLTProjectorEditor.h:
+	* NLTProjectorEditor.h:
 	Add RGValuator for current depth.
 
 	* StraightLineSet.cxx:
