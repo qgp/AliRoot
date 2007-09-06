@@ -28,7 +28,7 @@ RGEditor::RGEditor(TCanvas* canvas, Int_t width, Int_t height) :
   TClass* edClass = TClass::GetClass("TAttMarkerEditor");
   TGWindow *exroot = (TGWindow*) fClient->GetRoot();
   fClient->SetRoot(fTabContainer);
-  fgFrameCreator = this;
+  SetFrameCreator(this);
   TGedFrame *frame = reinterpret_cast<TGedFrame*>(edClass->New());
   frame->SetModelClass(amClass);
   {
@@ -38,7 +38,7 @@ RGEditor::RGEditor(TCanvas* canvas, Int_t width, Int_t height) :
     else
       * (Int_t*) (((char*)frame) + off) = 1;
   }
-  fgFrameCreator = 0;
+  SetFrameCreator(0);
   fClient->SetRoot(exroot);
   fFrameMap.Add(amClass, frame);
 }
