@@ -327,7 +327,7 @@ void RGLTEFrame::ItemKeyPress(TGListTreeItem *entry, UInt_t keysym, UInt_t /*mas
     else
     {
       if (rnr_el->GetDenyDestroy() > 0)
-	throw(eH + "DestroyDenied set for top-level item.");
+	throw(eH + "DestroyDenied set for this top-level item.");
       ResetSelectedTimer(entry);
       gReve->RemoveFromListTree(rnr_el, fListTree, entry);
       gReve->Redraw3D();
