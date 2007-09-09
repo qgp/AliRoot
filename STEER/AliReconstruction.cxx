@@ -633,7 +633,7 @@ Bool_t AliReconstruction::Run(const char* input)
   
   ProcInfo_t ProcInfo;
   gSystem->GetProcInfo(&ProcInfo);
-  AliInfo(Form("Current memory usage %d %d", ProcInfo.fMemResident, ProcInfo.fMemVirtual))
+  AliInfo(Form("Current memory usage %d %d", ProcInfo.fMemResident, ProcInfo.fMemVirtual));
   for (Int_t iEvent = 0; iEvent < fRunLoader->GetNumberOfEvents(); iEvent++) {
     if (fRawReader) fRawReader->NextEvent();
     if ((iEvent < fFirstEvent) || ((fLastEvent >= 0) && (iEvent > fLastEvent))) {
