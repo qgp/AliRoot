@@ -60,7 +60,7 @@ TGClassBrowser::~TGClassBrowser()
 }
 
 //______________________________________________________________________________
-void TGClassBrowser::DisplayClass(TGListTreeItem *item, const TString &fname)
+void TGClassBrowser::DisplayClass(TGListTreeItem *, const TString &)
 {
    // display details of ROOT class
 
@@ -71,7 +71,6 @@ void TGClassBrowser::DoubleClicked(TGListTreeItem *item, Int_t /*btn*/)
 {
    // Process double clicks in TGListTree.
 
-   const TGPicture *pic=0;
    TClass *cl;
    TIter nextcl(gROOT->GetListOfClasses());
    if (item == fListTree->GetFirstItem()) {   
@@ -84,6 +83,7 @@ void TGClassBrowser::DoubleClicked(TGListTreeItem *item, Int_t /*btn*/)
                             cl->GetImplFileName(), cl->GetImplFileLine()));
          }
       }
+      fListTree->ClearViewPort();
       return;
    }
    cl = (TClass*)gROOT->GetListOfClasses()->FindObject(item->GetText());
@@ -119,5 +119,6 @@ void TGClassBrowser::DoubleClicked(TGListTreeItem *item, Int_t /*btn*/)
          fListTree->AddItem(item, method.Data(), fMethodIcon, fMethodIcon);
       }
    }
+   fListTree->ClearViewPort();
 }
 

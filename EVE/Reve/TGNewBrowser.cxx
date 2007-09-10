@@ -1,6 +1,7 @@
 
 #include "TROOT.h"
 #include "TSystem.h"
+#include "TApplication.h"
 #include "TBrowser.h"
 #include "TGClient.h"
 #include "TGFrame.h"
@@ -12,6 +13,9 @@
 #include "Varargs.h"
 #include "TInterpreter.h"
 #include "TBrowser.h"
+#include "TGFileDialog.h"
+#include "TObjString.h"
+#include <KeySymbols.h>
 
 #include "TGNewBrowser.h"
 #include "TGFileBrowser.h"
@@ -22,9 +26,27 @@
 #include <TWin32SplashThread.h>
 #endif
 
-enum EMyMessageTypes {
-   M_FILE_BROWSE = 11011,
-   M_FILE_EXIT
+static const char *gOpenFileTypes[] = {
+   "ROOT files",   "*.root",
+   "All files",    "*",
+   0,              0 
+};
+
+static const char *gPluginFileTypes[] = {
+   "ROOT files",   "*.C",
+   "All files",    "*",
+   0,              0 
+};
+
+enum ENewBrowserMessages {
+   kBrowse = 11011,
+   kOpenFile,
+   kNewEditor,
+   kNewCanvas,
+   kExecPlugin,
+   kCloseTab,
+   kCloseWindow,
+   kQuitRoot
 };
 
 //______________________________________________________________________________
@@ -39,6 +61,7 @@ TGNewBrowser::TGNewBrowser(const char *name, UInt_t width, UInt_t height, Bool_t
       InitPlugins();
       MapWindow();
    }
+   gVirtualX->SetInputFocus(GetId());
 }
 
 //______________________________________________________________________________
@@ -55,6 +78,7 @@ TGNewBrowser::TGNewBrowser(const char *name, Int_t x, Int_t y,
       InitPlugins();
       MapWindow();
    }
+   gVirtualX->SetInputFocus(GetId());
 }
 
 
@@ -78,12 +102,18 @@ void TGNewBrowser::CreateBrowser(const char *name)
 
    fPreMenuFrame = new TGHorizontalFrame(fTopMenuFrame, 0, 20, kRaisedFrame);
    fMenuBar   = new TGMenuBar(fPreMenuFrame, 10, 10, kHorizontalFrame);
-   fMenuFile  = new TGPopupMenu(gClient->GetRoot());
-   fMenuFile->AddEntry(" &Browse...    Ctrl+B", M_FILE_BROWSE);
+   fMenuFile  = new TGPopupMenu(gClient->GetDefaultRoot());
+   fMenuFile->AddEntry("&Browse...             Ctrl+B", kBrowse);
+   fMenuFile->AddEntry("&Open...                 Ctrl+O", kOpenFile);
+   fMenuFile->AddEntry("New &Editor          Ctrl+E", kNewEditor);
+   fMenuFile->AddEntry("New &Canvas       Ctrl+C", kNewCanvas);
+   fMenuFile->AddEntry("Exec &Plugin...      Ctrl+P", kExecPlugin);
    fMenuFile->AddSeparator();
-   fMenuFile->AddEntry(" &Close              Ctrl+Q", M_FILE_EXIT, 0, 
-                       gClient->GetPicture("bld_exit.png"));
-   fMenuBar->AddPopup("&Framework", fMenuFile, fLH1);
+   fMenuFile->AddEntry("Close &Tab           Ctrl+T", kCloseTab);
+   fMenuFile->AddEntry("Close &Window   Ctrl+W", kCloseWindow);
+   fMenuFile->AddSeparator();
+   fMenuFile->AddEntry("&Quit Root             Ctrl+Q", kQuitRoot);
+   fMenuBar->AddPopup("Framewor&k", fMenuFile, fLH1);
    fMenuFile->Connect("Activated(Int_t)", "TGNewBrowser", this,
                       "HandleMenu(Int_t)");
    fPreMenuFrame->AddFrame(fMenuBar, fLH2);
@@ -161,6 +191,7 @@ void TGNewBrowser::CreateBrowser(const char *name)
    SetWMSizeHints(600, 350, 10000, 10000, 2, 2);
    MapSubwindows();
    Resize(GetDefaultSize());
+   AddInput(kKeyPressMask | kKeyReleaseMask);
 
    fVf->HideFrame(fToolbarFrame);
 }  
@@ -170,57 +201,6 @@ TGNewBrowser::~TGNewBrowser()
 {
    // Clean up all widgets, frames and layouthints that were used
 
-   TGFrameElement *el;
-   Int_t i;
-   Disconnect(fMenuFile, "Activated(Int_t)", this, "HandleMenu(Int_t)");
-   for (i=0;i<fTabLeft->GetNumberOfTabs();i++) {
-      el = (TGFrameElement *)fTabLeft->GetTabContainer(i)->GetList()->First();
-      if (el && el->fFrame) {
-         el->fFrame->SetFrameElement(0);
-         if (el->fFrame->InheritsFrom("TGMainFrame"))
-            el->fFrame->ReallyDelete();
-         else
-            delete el->fFrame;
-         if (el->fLayout && (el->fLayout != fgDefaultHints) &&
-            (el->fLayout->References() > 0)) {
-            el->fLayout->RemoveReference();
-         }
-         fTabLeft->GetTabContainer(i)->GetList()->Remove(el);
-         delete el;
-      }
-   }
-   for (i=0;i<fTabRight->GetNumberOfTabs();i++) {
-      el = (TGFrameElement *)fTabRight->GetTabContainer(i)->GetList()->First();
-      if (el && el->fFrame) {
-         el->fFrame->SetFrameElement(0);
-         if (el->fFrame->InheritsFrom("TGMainFrame"))
-            el->fFrame->ReallyDelete();
-         else
-            delete el->fFrame;
-         if (el->fLayout && (el->fLayout != fgDefaultHints) &&
-            (el->fLayout->References() > 0)) {
-            el->fLayout->RemoveReference();
-         }
-         fTabRight->GetTabContainer(i)->GetList()->Remove(el);
-         delete el;
-      }
-   }
-   for (i=0;i<fTabBottom->GetNumberOfTabs();i++) {
-      el = (TGFrameElement *)fTabBottom->GetTabContainer(i)->GetList()->First();
-      if (el && el->fFrame) {
-         el->fFrame->SetFrameElement(0);
-         if (el->fFrame->InheritsFrom("TGMainFrame"))
-            el->fFrame->ReallyDelete();
-         else
-            delete el->fFrame;
-         if (el->fLayout && (el->fLayout != fgDefaultHints) &&
-            (el->fLayout->References() > 0)) {
-            el->fLayout->RemoveReference();
-         }
-         fTabBottom->GetTabContainer(i)->GetList()->Remove(el);
-         delete el;
-      }
-   }
    delete fLH0;
    delete fLH1;
    delete fLH2;
@@ -252,6 +232,60 @@ void TGNewBrowser::CloseWindow()
 {
    // Called when window is closed via the window manager.
 
+   TGFrameElement *el;
+   Int_t i;
+   Disconnect(fMenuFile, "Activated(Int_t)", this, "HandleMenu(Int_t)");
+   for (i=0;i<fTabLeft->GetNumberOfTabs();i++) {
+      el = (TGFrameElement *)fTabLeft->GetTabContainer(i)->GetList()->First();
+      if (el && el->fFrame) {
+         el->fFrame->SetFrameElement(0);
+         if (el->fFrame->InheritsFrom("TGMainFrame"))
+            ((TGMainFrame *)el->fFrame)->CloseWindow();
+         else
+            delete el->fFrame;
+         el->fFrame = 0;
+         if (el->fLayout && (el->fLayout != fgDefaultHints) &&
+            (el->fLayout->References() > 0)) {
+            el->fLayout->RemoveReference();
+         }
+         fTabLeft->GetTabContainer(i)->GetList()->Remove(el);
+         delete el;
+      }
+   }
+   for (i=0;i<fTabRight->GetNumberOfTabs();i++) {
+      el = (TGFrameElement *)fTabRight->GetTabContainer(i)->GetList()->First();
+      if (el && el->fFrame) {
+         el->fFrame->SetFrameElement(0);
+         if (el->fFrame->InheritsFrom("TGMainFrame"))
+            ((TGMainFrame *)el->fFrame)->CloseWindow();
+         else
+            delete el->fFrame;
+         el->fFrame = 0;
+         if (el->fLayout && (el->fLayout != fgDefaultHints) &&
+            (el->fLayout->References() > 0)) {
+            el->fLayout->RemoveReference();
+         }
+         fTabRight->GetTabContainer(i)->GetList()->Remove(el);
+         delete el;
+      }
+   }
+   for (i=0;i<fTabBottom->GetNumberOfTabs();i++) {
+      el = (TGFrameElement *)fTabBottom->GetTabContainer(i)->GetList()->First();
+      if (el && el->fFrame) {
+         el->fFrame->SetFrameElement(0);
+         if (el->fFrame->InheritsFrom("TGMainFrame"))
+            ((TGMainFrame *)el->fFrame)->CloseWindow();
+         else
+            delete el->fFrame;
+         el->fFrame = 0;
+         if (el->fLayout && (el->fLayout != fgDefaultHints) &&
+            (el->fLayout->References() > 0)) {
+            el->fLayout->RemoveReference();
+         }
+         fTabBottom->GetTabContainer(i)->GetList()->Remove(el);
+         delete el;
+      }
+   }
    DeleteWindow();
 }
 
@@ -261,7 +295,7 @@ void TGNewBrowser::DoTab(Int_t id)
    // Handle Tab navigation.
 
    TGTab *sender = (TGTab *)gTQSender;
-   if (sender) {
+   if ((sender) && (sender == fTabRight)) {
       SwitchMenus(sender->GetTabContainer(id));
    }
 }
@@ -278,19 +312,136 @@ void TGNewBrowser::ExecPlugin(const char *fname, Int_t pos, Int_t subpos)
 }
 
 //______________________________________________________________________________
+Bool_t TGNewBrowser::HandleKey(Event_t *event)
+{
+   char   input[10];
+   Int_t  n;
+   UInt_t keysym;
+
+   if (event->fType == kGKeyPress) {
+      gVirtualX->LookupString(event, input, sizeof(input), keysym);
+      n = strlen(input);
+
+      switch ((EKeySym)keysym) {   // ignore these keys
+         case kKey_Shift:
+         case kKey_Control:
+         case kKey_Meta:
+         case kKey_Alt:
+         case kKey_CapsLock:
+         case kKey_NumLock:
+         case kKey_ScrollLock:
+            return kTRUE;
+         default:
+            break;
+      }
+      if (event->fState & kKeyControlMask) {   // Cntrl key modifier pressed
+         switch ((EKeySym)keysym & ~0x20) {   // treat upper and lower the same
+            case kKey_B:
+               fMenuFile->Activated(kBrowse);
+               return kTRUE;
+            case kKey_O:
+               fMenuFile->Activated(kOpenFile);
+               return kTRUE;
+            case kKey_E:
+               fMenuFile->Activated(kNewEditor);
+               return kTRUE;
+            case kKey_C:
+               fMenuFile->Activated(kNewCanvas);
+               return kTRUE;
+            case kKey_P:
+               fMenuFile->Activated(kExecPlugin);
+               return kTRUE;
+            case kKey_T:
+               fMenuFile->Activated(kCloseTab);
+               return kTRUE;
+            case kKey_W:
+               fMenuFile->Activated(kCloseWindow);
+               return kTRUE;
+            case kKey_Q:
+               fMenuFile->Activated(kQuitRoot);
+               return kTRUE;
+            default:
+               break;
+         }
+      }
+   }
+   return TGMainFrame::HandleKey(event);
+}
+
+//______________________________________________________________________________
 void TGNewBrowser::HandleMenu(Int_t id)
 {
    // Handle menu items.
 
+   static Int_t cNr = 1;
+   static Int_t eNr = 1;
    TGPopupMenu *sender = (TGPopupMenu *)gTQSender;
-   if ((sender != fMenuFile) && (id != M_FILE_EXIT))
+   if (sender != fMenuFile)
       return;
    switch (id) {
-      case M_FILE_BROWSE:
+      case kBrowse:
          new TBrowser();
          break;
-      case M_FILE_EXIT:
+      case kOpenFile:
+         {
+            static TString dir(".");
+            TGFileInfo fi;
+            fi.fFileTypes = gOpenFileTypes;
+            fi.fIniDir    = StrDup(dir);
+            new TGFileDialog(gClient->GetDefaultRoot(), this,
+                             kFDOpen,&fi);
+            dir = fi.fIniDir;
+            if (fi.fMultipleSelection && fi.fFileNamesList) {
+               TObjString *el;
+               TIter next(fi.fFileNamesList);
+               while ((el = (TObjString *) next())) {
+                  gROOT->ProcessLine(Form("new TFile(\"%s\");",
+                                     gSystem->UnixPathName(el->GetString())));
+               }
+            }
+            else if (fi.fFilename) {
+               gROOT->ProcessLine(Form("new TFile(\"%s\");",
+                                  gSystem->UnixPathName(fi.fFilename)));
+            }
+         }
+         break;
+      case kNewEditor:
+         StartEmbedding(1);
+         ++eNr;
+         gROOT->ProcessLine(Form("new TGTextEditor((const char *)0, (const TGWindow *)0x%lx)", 
+                            gClient->GetRoot()));
+         StopEmbedding();
+         SetTabTitle(Form("Editor %d", eNr), 1);
+         break;
+      case kNewCanvas:
+         StartEmbedding(1);
+         ++cNr;
+         gROOT->ProcessLine(Form("new TCanvas(\"BrowserCanvas%d\", \"Browser Canvas %d\")", cNr, cNr));
+         StopEmbedding();
+         SetTabTitle(Form("Canvas %d", cNr), 1);
+         break;
+      case kExecPlugin:
+         {
+            static TString dir(".");
+            TGFileInfo fi;
+            fi.fFileTypes = gPluginFileTypes;
+            fi.fIniDir    = StrDup(dir);
+            new TGFileDialog(gClient->GetDefaultRoot(), this,
+                             kFDOpen,&fi);
+            dir = fi.fIniDir;
+            if (fi.fFilename) {
+               ExecPlugin(fi.fFilename, kRight);
+            }
+         }
+         break;
+      case kCloseTab:
+         RemoveFrame(kRight, fTabRight->GetCurrent());
+         break;
+      case kCloseWindow:
          CloseWindow();
+         break;
+      case kQuitRoot:
+         gApplication->Terminate(0);
          break;
       default:
          break;
@@ -309,6 +460,9 @@ void TGNewBrowser::RemoveFrame(Int_t pos, Int_t subpos)
          break;
       case kRight: // right
          edit = fTabRight;
+         fMenuFrame->HideFrame(fActMenuBar);
+         fMenuFrame->GetList()->Remove(fActMenuBar);
+         fActMenuBar = 0;
          break;
       case kBottom: // bottom
          edit = fTabBottom;
@@ -318,14 +472,15 @@ void TGNewBrowser::RemoveFrame(Int_t pos, Int_t subpos)
    if (el && el->fFrame) {
       el->fFrame->SetFrameElement(0);
       if (el->fFrame->InheritsFrom("TGMainFrame"))
-         el->fFrame->ReallyDelete();
+         ((TGMainFrame *)el->fFrame)->CloseWindow();
       else
          delete el->fFrame;
+      el->fFrame = 0;
       if (el->fLayout && (el->fLayout != fgDefaultHints) &&
          (el->fLayout->References() > 0)) {
          el->fLayout->RemoveReference();
       }
-      fTabBottom->GetTabContainer(subpos)->GetList()->Remove(el);
+      edit->GetTabContainer(subpos)->GetList()->Remove(el);
       delete el;
    }
    fNbTab[pos]--;
@@ -375,15 +530,24 @@ void TGNewBrowser::SetTabTitle(const char *title, Int_t pos, Int_t subpos)
 void TGNewBrowser::ShowMenu(TGCompositeFrame *menu)
 {
    // Show the selected frame's menu and hide previous one.
-/*
-   if (fActMenuBar == fMenuBar) {
-      Disconnect(fMenuFile, "Activated(Int_t)", this, "HandleMenu(Int_t)");
+
+   TGFrameElement *el = 0;
+   // temporary solution until I find a proper way to handle 
+   // these bloody menus...
+   fBindList->Delete();
+   TIter nextm(fMenuBar->GetList());
+   while ((el = (TGFrameElement *) nextm())) {
+      TGMenuTitle *t = (TGMenuTitle *) el->fFrame;
+      Int_t code = t->GetHotKeyCode();
+      BindKey(fMenuBar, code, kKeyMod1Mask);
+      BindKey(fMenuBar, code, kKeyMod1Mask | kKeyShiftMask);
+      BindKey(fMenuBar, code, kKeyMod1Mask | kKeyLockMask);
+      BindKey(fMenuBar, code, kKeyMod1Mask | kKeyShiftMask | kKeyLockMask);
+      BindKey(fMenuBar, code, kKeyMod1Mask | kKeyMod2Mask);
+      BindKey(fMenuBar, code, kKeyMod1Mask | kKeyShiftMask | kKeyMod2Mask);
+      BindKey(fMenuBar, code, kKeyMod1Mask | kKeyMod2Mask | kKeyLockMask);
+      BindKey(fMenuBar, code, kKeyMod1Mask | kKeyShiftMask | kKeyMod2Mask | kKeyLockMask);
    }
-   if (menu == fMenuBar) {
-      fMenuFile->Connect("Activated(Int_t)", "TGNewBrowser", this,
-                         "HandleMenu(Int_t)");
-   }
-*/
    fMenuFrame->HideFrame(fActMenuBar);
    fMenuFrame->ShowFrame(menu);
    menu->Layout();
@@ -486,18 +650,10 @@ void TGNewBrowser::SwitchMenus(TGCompositeFrame  *from)
                if (popup->GetEntry("Quit ROOT")) {
                   TGMenuEntry *exit = popup->GetEntry("Quit ROOT");
                   popup->HideEntry(exit->GetEntryId());
-                  popup->AddEntry(" &Close              Ctrl+Q", M_FILE_EXIT, 
-                                  0, gClient->GetPicture("bld_exit.png"));
-                  popup->Connect("Activated(Int_t)", "TGNewBrowser", this, 
-                                 "HandleMenu(Int_t)");
                }
                if (popup->GetEntry("Exit")) {
                   TGMenuEntry *exit = popup->GetEntry("Exit");
                   popup->HideEntry(exit->GetEntryId());
-                  popup->AddEntry(" &Close              Ctrl+Q", M_FILE_EXIT, 
-                                  0, gClient->GetPicture("bld_exit.png"));
-                  popup->Connect("Activated(Int_t)", "TGNewBrowser", this, 
-                                 "HandleMenu(Int_t)");
                }
             }
             ShowMenu(menu);
@@ -519,7 +675,7 @@ void TGNewBrowser::RecursiveReparent(TGPopupMenu *popup)
          RecursiveReparent(entry->GetPopup());
       }
    }
-   popup->ReparentWindow(gClient->GetRoot());
+   popup->ReparentWindow(gClient->GetDefaultRoot());
 }
 
 //______________________________________________________________________________
@@ -570,7 +726,6 @@ void TGNewBrowser::InitPlugins()
       TGFileBrowser *fb = MakeFileBrowser();
       fb->BrowseObj(gROOT);
       fb->AddFSDirectory("/");
-      gSystem->ProcessEvents();
       fb->GotoDir(gSystem->WorkingDirectory());
       fb->Show();
    }
@@ -591,13 +746,37 @@ void TGNewBrowser::InitPlugins()
    gROOT->ProcessLine(Form("new TGTextEditor((const char *)0, (const TGWindow *)0x%lx)", 
                       gClient->GetRoot()));
    StopEmbedding();
-   SetTabTitle("Editor", 1);
+   SetTabTitle("Editor 1", 1);
+
+   // HTML plugin...
+   gSystem->Load("libGuiHtml");
+   if (gSystem->Load("libRHtml") >= 0) {
+      StartEmbedding(1);
+      gROOT->ProcessLine(Form("new TGHtmlBrowser(\"http://root.cern.ch/root/html/ClassIndex.html\", \
+                              (const TGWindow *)0x%lx)", gClient->GetRoot()));
+      StopEmbedding();
+      SetTabTitle("HTML", 1);
+   }
 
    // Canvas plugin...
    StartEmbedding(1);
-   gROOT->ProcessLine("new TCanvas()");
+   gROOT->ProcessLine("new TCanvas(\"BrowserCanvas1\", \"Browser Canvas 1\")");
    StopEmbedding();
-   SetTabTitle("Canvas", 1);
+   SetTabTitle("Canvas 1", 1);
+
+#if 0
+   // GLViewer plugin...
+   StartEmbedding(1);
+   gROOT->ProcessLine(Form("new TGLSAViewer((TGFrame *)0x%lx, 0);", gClient->GetRoot()));
+   StopEmbedding();
+   SetTabTitle("GL Viewer", 1);
+
+   // PROOF plugin...
+   StartEmbedding(1);
+   gROOT->ProcessLine("new TSessionViewer();");
+   StopEmbedding();
+   SetTabTitle("PROOF", 1);
+#endif
 
    // --- Right bottom area
 

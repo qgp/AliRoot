@@ -94,6 +94,7 @@ public:
    void              SwitchMenus(TGCompositeFrame *from);
 
    virtual void      ExecPlugin(const char *fname, Int_t pos = kRight, Int_t subpos = -1);
+   virtual Bool_t    HandleKey(Event_t *event);
 
    // static TBrowserImp *NewBrowser(TBrowser *b = 0, const char *title = "ROOT Browser", UInt_t width = 800, UInt_t height = 500);
    // static TBrowserImp *NewBrowser(TBrowser *b, const char *title, Int_t x, Int_t y, UInt_t width, UInt_t height);

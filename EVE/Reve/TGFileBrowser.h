@@ -31,11 +31,14 @@ class TGFileBrowser : public TGMainFrame, public TBrowserImp {
 
 protected:
    // TGNewBrowser      *fNewBrowser;
+   TGHorizontalFrame *fTopFrame;
+   TGHorizontalFrame *fBotFrame;
    TGCanvas          *fCanvas;
    TGListTree        *fListTree;
    TGListTreeItem    *fListLevel;         // current TGListTree level
    TGListTreeItem    *fCurrentDir;        // 
    TGListTreeItem    *fRootDir;           // 
+   TGComboBox        *fDrawOption;        // draw options combobox
    TGComboBox        *fFileType;          // file type combobox
    TContextMenu      *fContextMenu;       // context menu pointer
    const TGPicture   *fRootIcon;
@@ -62,6 +65,7 @@ public:
    virtual void RecursiveRemove(TObject *obj);
    virtual void Refresh(Bool_t force = kFALSE);
    virtual void Show() { MapRaised(); }
+   Option_t    *GetDrawOption() const;
 
    TGNewBrowser *GetNewBrowser() const          { return fNewBrowser; }
    void          SetNewBrowser(TGNewBrowser* b) { fNewBrowser = b;    }
