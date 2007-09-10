@@ -4363,6 +4363,7 @@ void  AliITStrackerMI::FindV02(AliESDEvent *event)
   //
   // delete temporary arrays
   //  
+  delete[] forbidden;
   delete[] minPointAngle;
   delete[] maxr;
   delete[] minr;

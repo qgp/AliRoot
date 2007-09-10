@@ -1365,7 +1365,7 @@ Int_t AliITStrackerSA::FindTrackLowChiSquare(TObjArray* tracklist, Int_t dim) co
     //return trk;
     return 0;
   }
-  //if(dim==0) return 0;
+  if(dim==0) return 0;
   Double_t * chi2 = new Double_t[dim];
   Int_t * index = new Int_t[dim];
   for(Int_t i=0;i<dim;i++){
@@ -1390,9 +1390,10 @@ Int_t AliITStrackerSA::FindTrackLowChiSquare(TObjArray* tracklist, Int_t dim) co
     w++;
   }
 
+		Int_t tmp = index[dim-1]; 		
   delete [] chi2;
   delete [] index;
-  return index[dim-1];
+  return tmp;
 }
 
 //__________________________________________________________

@@ -782,6 +782,7 @@ Bool_t AliReconstruction::Run(const char* input)
     // write ESD
     if (fCleanESD) CleanESD(esd);
     if (fWriteESDfriend) {
+      esdf->~AliESDfriend();
       new (esdf) AliESDfriend(); // Reset...
       esd->GetESDfriend(esdf);
     }
@@ -794,6 +795,7 @@ Bool_t AliReconstruction::Run(const char* input)
     esd->Reset();
     hltesd->Reset();
     if (fWriteESDfriend) {
+      esdf->~AliESDfriend();
       new (esdf) AliESDfriend(); // Reset...
     }
     // esdf->Reset();
@@ -801,9 +803,6 @@ Bool_t AliReconstruction::Run(const char* input)
     gSystem->GetProcInfo(&ProcInfo);
     AliInfo(Form("Event %d -> Current memory usage %d %d",iEvent, ProcInfo.fMemResident, ProcInfo.fMemVirtual));
   } 
-
-
-
 
   tree->GetUserInfo()->Add(esd);
   hlttree->GetUserInfo()->Add(hltesd);
@@ -840,7 +839,7 @@ Bool_t AliReconstruction::Run(const char* input)
     AliAODTagCreator *aodtagCreator = new AliAODTagCreator();
     aodtagCreator->CreateAODTags(fFirstEvent,fLastEvent);
   }
-
+  
   return kTRUE;
 }
 
