@@ -1,3 +1,33 @@
+2007-09-10  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	EVE-dev
+
+	* TGClassBrowser.cxx:
+	* TGFileBrowser.cxx:
+	* TGFileBrowser.h:
+	* TGNewBrowser.cxx:
+	* TGNewBrowser.h:
+	From Bertrand.
+
+	- Removed dependencies on libRIO
+	- Solved problems when user double-click on different keys
+	  in different opened Root files
+	- Changed icons size for Root files containing pictures
+	- Added drawing option combobox
+	- Added a few main menu entries, allowing to:
+	  - add a new tab with canvas
+	  - add a new tab with editor
+	  - remove a tab element
+	  - execute a plugin by TGFileDialog selection
+	- Added key shortcuts for these menus entries
+	- Double-clicking on a .C file opens it in the editor if 
+	  the active tab is the editor one, otherwise the default 
+	  action will be taken (execute it) 
+	- Properly goes to current (startup) directory at startup 
+	  time (open the list tree to the current directory)
+	- Properly remove menu when closing a tab element
+	- Temporary remove keys binding on embedded menus
+
 2007-09-06  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	EVE-dev
