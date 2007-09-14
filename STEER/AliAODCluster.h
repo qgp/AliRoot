@@ -124,7 +124,7 @@ class AliAODCluster : public AliVParticle {
   virtual Double_t Pt() const {return TMath::Sqrt(Px()*Px() + Py()*Py()); }
   virtual Double_t P() const {return TMath::Sqrt(Px()*Px() + Py()*Py() + Pz()*Pz()); }
   virtual Double_t OneOverPt() const {return Pt() ? 1./Pt(): -999.;}
-  virtual Double_t Phi() const {return (fType==AliAODCluster::kPHOSNeutral) ? TMath::ATan2(fPosition[1], fPosition[0]) : 0.;}
+  virtual Double_t Phi() const {return (fType==AliAODCluster::kPHOSNeutral) ? TMath::Pi()+TMath::ATan2(-fPosition[1], -fPosition[0]) : 0.;}
   virtual Double_t Theta() const {return (fType==AliAODCluster::kPHOSNeutral) ? TMath::ATan2(Pt(), fPosition[2]) : 0.;}
   virtual Double_t Eta() const {return (fType==AliAODCluster::kPHOSNeutral) ? -TMath::Log(TMath::Tan(0.5 * Theta())) : 0.;}
   virtual Short_t  Charge() const {return (fType==AliAODCluster::kPHOSNeutral) ? 0 : -999;}
@@ -135,21 +135,21 @@ class AliAODCluster : public AliVParticle {
   Double32_t    fEnergy;         // energy
   Double32_t    fPosition[3];    // position of the cluster
 
-  Double32_t    fPID[9];         // [0.,1.,8] pointer to PID object
   Double32_t    fChi2;           // chi2 (probably not necessary for PMD)
+  Double32_t    fPID[9];         // [0.,1.,8] pointer to PID object
 
   Int_t         fID;             // unique cluster ID, points back to the ESD cluster
   Int_t         fLabel;          // particle label, points back to MC track
   
+  Char_t        fType;           // cluster type
+
   AliAODRedCov<4> *fCovMatrix;   // covariance matrix (x, y, z, E)
   TRef          fProdVertex;     // vertex of origin (not necessary for PMD)
   TRef          fPrimTrack;      // primary track associated with this cluster (not necessary for PMD)
 
-  // TRef      fAssocCluster;   // for PMD: cluster of other layer associated with this cluster
-  Char_t        fType;
+  // TRef      fAssocCluster;       // for PMD: cluster of other layer associated with this cluster
 
-
-  ClassDef(AliAODCluster,2);
+  ClassDef(AliAODCluster,3);
 };
 
 #endif

@@ -31,15 +31,15 @@ ClassImp(AliAODTrack)
 AliAODTrack::AliAODTrack() : 
   AliVParticle(),
   fChi2perNDF(-999.),
-  fID(-999),
-  fLabel(-999),
-  fCovMatrix(NULL),
-  fProdVertex(0x0),
-  fCharge(-99),
-  fITSMuonClusterMap(0),
-  fType(kUndef),
   fChi2MatchTrigger(0.),
-  fFilterMap(0)
+  fLabel(-999),
+  fITSMuonClusterMap(0),
+  fFilterMap(0),
+  fID(-999),
+  fCharge(-99),
+  fType(kUndef),
+  fCovMatrix(NULL),
+  fProdVertex(0x0)
 {
   // default constructor
 
@@ -49,7 +49,7 @@ AliAODTrack::AliAODTrack() :
 }
 
 //______________________________________________________________________________
-AliAODTrack::AliAODTrack(Int_t id,
+AliAODTrack::AliAODTrack(Short_t id,
 			 Int_t label, 
 			 Double_t p[3],
 			 Bool_t cartesian,
@@ -66,15 +66,15 @@ AliAODTrack::AliAODTrack(Int_t id,
 			 UInt_t selectInfo) :
   AliVParticle(),
   fChi2perNDF(-999.),
-  fID(id),
-  fLabel(label),
-  fCovMatrix(NULL),
-  fProdVertex(prodVertex),
-  fCharge(charge),
-  fITSMuonClusterMap(itsClusMap),
-  fType(ttype),
   fChi2MatchTrigger(0.),
-  fFilterMap(selectInfo)
+  fLabel(label),
+  fITSMuonClusterMap(itsClusMap),
+  fFilterMap(selectInfo),
+  fID(id),
+  fCharge(charge),
+  fType(ttype),
+  fCovMatrix(NULL),
+  fProdVertex(prodVertex)
 {
   // constructor
  
@@ -88,7 +88,7 @@ AliAODTrack::AliAODTrack(Int_t id,
 }
 
 //______________________________________________________________________________
-AliAODTrack::AliAODTrack(Int_t id,
+AliAODTrack::AliAODTrack(Short_t id,
 			 Int_t label, 
 			 Float_t p[3],
 			 Bool_t cartesian,
@@ -105,15 +105,15 @@ AliAODTrack::AliAODTrack(Int_t id,
 			 UInt_t selectInfo) :
   AliVParticle(),
   fChi2perNDF(-999.),
-  fID(id),
-  fLabel(label),
-  fCovMatrix(NULL),
-  fProdVertex(prodVertex),
-  fCharge(charge),
-  fITSMuonClusterMap(itsClusMap),
-  fType(ttype),
   fChi2MatchTrigger(0.),
-  fFilterMap(selectInfo)
+  fLabel(label),
+  fITSMuonClusterMap(itsClusMap),
+  fFilterMap(selectInfo),
+  fID(id),
+  fCharge(charge),
+  fType(ttype),
+  fCovMatrix(NULL),
+  fProdVertex(prodVertex)
 {
   // constructor
  
@@ -137,15 +137,15 @@ AliAODTrack::~AliAODTrack()
 AliAODTrack::AliAODTrack(const AliAODTrack& trk) :
   AliVParticle(trk),
   fChi2perNDF(trk.fChi2perNDF),
-  fID(trk.fID),
+  fChi2MatchTrigger(trk.fChi2MatchTrigger),
   fLabel(trk.fLabel),
-  fCovMatrix(NULL),
-  fProdVertex(trk.fProdVertex),
-  fCharge(trk.fCharge),
   fITSMuonClusterMap(trk.fITSMuonClusterMap),
+  fFilterMap(trk.fFilterMap),
+  fID(trk.fID),
+  fCharge(trk.fCharge),
   fType(trk.fType),
-  fChi2MatchTrigger(0.),
-  fFilterMap(trk.fFilterMap)
+  fCovMatrix(NULL),
+  fProdVertex(trk.fProdVertex)
 {
   // Copy constructor
 
@@ -171,21 +171,24 @@ AliAODTrack& AliAODTrack::operator=(const AliAODTrack& trk)
     trk.GetPID(fPID);
 
     fChi2perNDF = trk.fChi2perNDF;
+    fChi2MatchTrigger = trk.fChi2MatchTrigger;
 
     fID = trk.fID;
     fLabel = trk.fLabel;    
     
+    fITSMuonClusterMap = trk.fITSMuonClusterMap;
+    fFilterMap = trk.fFilterMap;
+
+    fCharge = trk.fCharge;
+    fType = trk.fType;
+
     delete fCovMatrix;
     if(trk.fCovMatrix) fCovMatrix=new AliAODRedCov<6>(*trk.fCovMatrix);
     else fCovMatrix=NULL;
     fProdVertex = trk.fProdVertex;
 
-    fCharge = trk.fCharge;
-    fITSMuonClusterMap = trk.fITSMuonClusterMap;
     SetUsedForVtxFit(trk.GetUsedForVtxFit());
     SetUsedForPrimVtxFit(trk.GetUsedForPrimVtxFit());
-    fType = trk.fType;
-    fFilterMap = trk.fFilterMap;
   }
 
   return *this;
@@ -350,7 +353,7 @@ template <class T> void AliAODTrack::SetP(const T *p, const Bool_t cartesian)
       Double_t P = TMath::Sqrt(pt2 + p[2]*p[2]);
       
       fMomentum[0] = TMath::Sqrt(pt2); // pt
-      fMomentum[1] = (pt2 != 0.) ? TMath::ATan2(p[1], p[0]) : -999; // phi
+      fMomentum[1] = (pt2 != 0.) ? TMath::Pi()+TMath::ATan2(-p[1], -p[0]) : -999; // phi
       fMomentum[2] = (P != 0.) ? TMath::ACos(p[2]/P) : -999.; // theta
     } else {
       fMomentum[0] = p[0];  // pt

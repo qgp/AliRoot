@@ -32,11 +32,12 @@ ClassImp(AliAODVertex)
 AliAODVertex::AliAODVertex() : 
   TObject(),
   fChi2perNDF(-999.),
+  fID(-1),
+  fType(kUndef),
   fCovMatrix(NULL),
   fParent(0x0),
-  fDaughters(),
-  fType(kUndef)
- {
+  fDaughters()
+  {
   // default constructor
 
   fPosition[0] = fPosition[1] = fPosition[2] = -999.;
@@ -47,13 +48,15 @@ AliAODVertex::AliAODVertex(const Double_t position[3],
 			   const Double_t covMatrix[6],
 			   Double_t  chi2perNDF,
 			   TObject  *parent,
+			   Short_t id,
 			   Char_t vtype) :
   TObject(),
   fChi2perNDF(chi2perNDF),
+  fID(id),
+  fType(vtype),
   fCovMatrix(NULL),
   fParent(parent),
-  fDaughters(),
-  fType(vtype)
+  fDaughters()
 {
   // constructor
 
@@ -66,14 +69,16 @@ AliAODVertex::AliAODVertex(const Float_t position[3],
 			   const Float_t  covMatrix[6],
 			   Double_t  chi2perNDF,
 			   TObject  *parent,
+			   Short_t id,
 			   Char_t vtype) :
 
   TObject(),
   fChi2perNDF(chi2perNDF),
+  fID(id),
+  fType(vtype),
   fCovMatrix(NULL),
   fParent(parent),
-  fDaughters(),
-  fType(vtype)
+  fDaughters()
 {
   // constructor
 
@@ -87,10 +92,11 @@ AliAODVertex::AliAODVertex(const Double_t position[3],
 			   Char_t vtype) :
   TObject(),
   fChi2perNDF(chi2perNDF),
+  fID(-1),
+  fType(vtype),
   fCovMatrix(NULL),
   fParent(0x0),
-  fDaughters(),
-  fType(vtype)
+  fDaughters()
 {
   // constructor without covariance matrix
 
@@ -103,10 +109,11 @@ AliAODVertex::AliAODVertex(const Float_t position[3],
 			   Char_t vtype) :
   TObject(),
   fChi2perNDF(chi2perNDF),
+  fID(-1),
+  fType(vtype),
   fCovMatrix(NULL),
   fParent(0x0),
-  fDaughters(),
-  fType(vtype)
+  fDaughters()
 {
   // constructor without covariance matrix
 
@@ -125,10 +132,11 @@ AliAODVertex::~AliAODVertex()
 AliAODVertex::AliAODVertex(const AliAODVertex& vtx) :
   TObject(vtx),
   fChi2perNDF(vtx.fChi2perNDF),
+  fID(vtx.fID),
+  fType(vtx.fType),
   fCovMatrix(NULL),
   fParent(vtx.fParent),
-  fDaughters(vtx.fDaughters),
-  fType(vtx.fType)
+  fDaughters(vtx.fDaughters)
 {
   // Copy constructor.
   
@@ -152,6 +160,8 @@ AliAODVertex& AliAODVertex::operator=(const AliAODVertex& vtx)
       fPosition[i] = vtx.fPosition[i];
     
     fChi2perNDF = vtx.fChi2perNDF;
+    fID = vtx.fID;
+    fType = vtx.fType;
 
     //covariance matrix
     delete fCovMatrix;
@@ -161,7 +171,6 @@ AliAODVertex& AliAODVertex::operator=(const AliAODVertex& vtx)
     //other stuff
     fParent = vtx.fParent;
     fDaughters = vtx.fDaughters;
-    fType = vtx.fType;
   }
   
   return *this;
@@ -434,7 +443,7 @@ void AliAODVertex::PhiAndThetaToVertex(AliAODVertex *vtx, P &phi, T &theta) cons
   // rotation angles around z-axis (phi) and around new y-axis (theta)
   // with which vtx is seen (used by RotatedCovMatrix... methods)
 
-  phi = TMath::ATan2(vtx->GetY()-GetY(),vtx->GetX()-GetX());
+  phi = TMath::Pi()+TMath::ATan2(-vtx->GetY()+GetY(),-vtx->GetX()+GetX());
   Double_t vtxxphi = vtx->GetX()*TMath::Cos(phi)+vtx->GetY()*TMath::Sin(phi);
   Double_t xphi = GetX()*TMath::Cos(phi)+GetY()*TMath::Sin(phi);
   theta = TMath::ATan2(vtx->GetZ()-GetZ(),vtxxphi-xphi);
