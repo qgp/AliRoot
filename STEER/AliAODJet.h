@@ -32,12 +32,14 @@ class AliAODJet : public AliVParticle {
     virtual Double_t Pt()         const { return fMomentum->Pt();      }
     virtual Double_t P()          const { return fMomentum->P();       }
     virtual Double_t OneOverPt()  const { return 1. / fMomentum->Pt(); }
-    virtual Double_t Phi()        const { return fMomentum->Phi();     }
+    virtual Double_t Phi()        const;
     virtual Double_t Theta()      const { return fMomentum->Theta();   }
     virtual Double_t E()          const { return fMomentum->E();       }
     virtual Double_t M()          const { return fMomentum->M();       }
     virtual Double_t Eta()        const { return fMomentum->Eta();     }
     virtual Double_t Y()          const { return fMomentum->Rapidity();}
+    
+
 //
     virtual void     AddTrack(TObject *tr) {fRefTracks->Add(tr);}
     TObject* GetTrack(Int_t i) {return fRefTracks->At(i);}
@@ -63,11 +65,22 @@ class AliAODJet : public AliVParticle {
     
     
  private:
+    Double32_t      fBackgEnergy[2];     // Subtracted background energy
+    Double32_t      fEffectiveArea[2];   // Effective jet area used for background subtraction
+
     TLorentzVector* fMomentum;           // Jet 4-momentum vector
     TRefArray*      fRefTracks;          // array of references to the tracks belonging to the jet
-    Double_t        fBackgEnergy[2];     // Subtracted background energy
-    Double_t        fEffectiveArea[2];   // Effective jet area used for background subtraction
-    ClassDef(AliAODJet,2);
+
+    ClassDef(AliAODJet,3);
+
 };
+
+inline Double_t AliAODJet::Phi() const
+{
+    // Return phi
+    Double_t phi = fMomentum->Phi();
+    if (phi < 0.) phi += 2. * TMath::Pi();
+    return phi;
+}
 
 #endif
