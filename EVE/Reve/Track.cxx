@@ -627,12 +627,8 @@ TrackList::TrackList(TrackRnrStyle* rs) :
   fRnrLine(kTRUE),
   fRnrPoints(kFALSE),
 
-  fMinPt   (0.1),
-  fMaxPt   (10),
-  fLimPt   (0),
-  fMinP    (0.1),
-  fMaxP    (100),
-  fLimP    (0)
+  fMinPt (0), fMaxPt (0), fLimPt (0),
+  fMinP  (0), fMaxP  (0), fLimP  (0)
 {
   fChildClass = Track::Class(); // override member from base RenderElementList
 
@@ -649,7 +645,10 @@ TrackList::TrackList(const Text_t* name, TrackRnrStyle* rs) :
   fRecurse(kTRUE),
   fRnrStyle      (0),
   fRnrLine(kTRUE),
-  fRnrPoints(kFALSE)
+  fRnrPoints(kFALSE),
+
+  fMinPt (0), fMaxPt (0), fLimPt (0),
+  fMinP  (0), fMaxP  (0), fLimP  (0)
 {
   fChildClass = Track::Class(); // override member from base RenderElementList
 
