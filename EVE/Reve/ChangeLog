@@ -1,3 +1,25 @@
+2007-09-19  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	EVE-dev
+
+	* MCHelixLine.hi:
+	Properly extrapolate helices to boundaries (needed for
+	high-momentum tracks).
+	Added check for near-zero pT (extrapolate as line).
+	Some code cleanup.
+
+	* RenderElement.cxx:
+	In SetRnrState() check if update is really necessary.
+
+	* Track.cxx:
+	* Track.h:
+	* TrackEditors.cxx:
+	* TrackEditors.h:
+	* TrackRnrStyleEditor.cxx:
+	* TrackRnrStyleEditor.h:
+	Implement automatic determination of p and pT ranges.
+	Moved momentum ranges from TrackRnrStyle to TrackList.
+
 2007-09-10  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	EVE-dev
