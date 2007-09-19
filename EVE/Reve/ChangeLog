@@ -2,6 +2,22 @@
 
 	EVE-dev
 
+	* EventBase.cxx:
+	* EventBase.h:
+	Added empty virtual functions for event-navigation.
+	Moved new-event-commands list and method from Alieve::Event.
+
+	* RGValuators.cxx:
+	Do not use GetName() on TGWindow derivatives.
+
+	* Track.cxx:
+	Added initialization of min/max/lim momentums to the other
+	TrackList ctor as well.
+
+2007-09-19  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	EVE-dev
+
 	* MCHelixLine.hi:
 	Properly extrapolate helices to boundaries (needed for
 	high-momentum tracks).
