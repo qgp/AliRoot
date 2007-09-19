@@ -15,12 +15,10 @@
 
 #include <TFile.h>
 #include <TTree.h>
-#include <TObjString.h>
 #include <TError.h>
 
 #include <TROOT.h>
 #include <TSystem.h>
-#include <TCint.h>
 
 using namespace Reve;
 using namespace Alieve;
@@ -53,8 +51,7 @@ Event::Event() :
   fPath (), fEventId   (0),
   fRunLoader (0),
   fESDFile   (0), fESDTree (0), fESD (0),
-  fESDfriend (0), fESDfriendExists(kFALSE),
-  fNewEventCommands()
+  fESDfriend (0), fESDfriendExists(kFALSE)
 {}
 
 Event::Event(TString path, Int_t ev) :
@@ -63,8 +60,7 @@ Event::Event(TString path, Int_t ev) :
   fPath (path), fEventId(-1),
   fRunLoader (0),
   fESDFile   (0), fESDTree (0), fESD (0),
-  fESDfriend (0), fESDfriendExists(kFALSE),
-  fNewEventCommands()
+  fESDfriend (0), fESDfriendExists(kFALSE)
 {
   Open();
   if (ev >= 0) GotoEvent(ev);
@@ -240,23 +236,6 @@ void Event::Close()
   }
 }
 
-/**************************************************************************/
-
-void Event::AfterNewEventLoaded()
-{
-  TIter next(&fNewEventCommands);
-  TObject* o;
-  while ((o = next())) {
-    TObjString* s = dynamic_cast<TObjString*>(o);
-    if (s)
-      gInterpreter->ProcessLine(s->String());
-  }
-}
-
-void Event::AddNewEventCommand(const Text_t* cmd)
-{
-  fNewEventCommands.Add(new TObjString(cmd));
-}
 
 /**************************************************************************/
 /**************************************************************************/
