@@ -67,12 +67,14 @@ void TrackEditor::DoEditRnrStyle()
 ClassImp(TrackListEditor)
 
 TrackListEditor::TrackListEditor(const TGWindow *p,
-				   Int_t width, Int_t height,
-				   UInt_t options, Pixel_t back) :
-    TGedFrame(p, width, height, options | kVerticalFrame, back),
+                                 Int_t width, Int_t height,
+                                 UInt_t options, Pixel_t back) :
+  TGedFrame(p, width, height, options | kVerticalFrame, back),
 
-    fTC (0),
-    fRSSubEditor(0)
+  fTC         (0),
+  fPtRange    (0),
+  fPRange     (0),
+  fRSSubEditor(0)
 {
   {
     TGHorizontalFrame* f = new TGHorizontalFrame(this);
@@ -87,7 +89,31 @@ TrackListEditor::TrackListEditor(const TGWindow *p,
   
     AddFrame(f, new TGLayoutHints(kLHintsTop, 0,0,2,1));
   }
- 
+  {  // --- Selectors
+    Int_t labelW = 51;
+    Int_t dbW    = 210;
+
+    fPtRange = new RGDoubleValuator(this,"Pt rng:", 40, 0);
+    fPtRange->SetNELength(6);
+    fPtRange->SetLabelWidth(labelW);
+    fPtRange->Build();
+    fPtRange->GetSlider()->SetWidth(dbW);
+    fPtRange->SetLimits(0, 10, TGNumberFormat::kNESRealTwo);
+    fPtRange->Connect("ValueSet()",
+                      "Reve::TrackListEditor", this, "DoPtRange()");
+    AddFrame(fPtRange, new TGLayoutHints(kLHintsTop, 1, 1, 4, 1));
+
+    fPRange = new RGDoubleValuator(this,"P rng:", 40, 0);
+    fPRange->SetNELength(6);
+    fPRange->SetLabelWidth(labelW);
+    fPRange->Build();
+    fPRange->GetSlider()->SetWidth(dbW);
+    fPRange->SetLimits(0, 100, TGNumberFormat::kNESRealTwo);
+    fPRange->Connect("ValueSet()",
+                     "Reve::TrackListEditor", this, "DoPRange()");
+    AddFrame(fPRange, new TGLayoutHints(kLHintsTop, 1, 1, 4, 1));
+  }
+
   MakeTitle("RenderStyle");
   fRSSubEditor = new TrackRnrStyleSubEditor(this);
   fRSSubEditor->Connect("Changed()", "Reve::TrackListEditor", this, "Update()"); 
@@ -96,10 +122,10 @@ TrackListEditor::TrackListEditor(const TGWindow *p,
 }
 
 TrackListEditor::~TrackListEditor()
-{
-}
+{}
 
 /**************************************************************************/
+
 void TrackListEditor::CreateRefsTab()
 {
   fRefs = CreateEditorTabSubFrame("Refs");
@@ -122,16 +148,26 @@ void TrackListEditor::CreateRefsTab()
 }
 
 /**************************************************************************/
+
 void TrackListEditor::SetModel(TObject* obj)
 {
   fTC = dynamic_cast<TrackList*>(obj); 
   fRnrLine  ->SetState(fTC->GetRnrLine()   ? kButtonDown : kButtonUp);
   fRnrPoints->SetState(fTC->GetRnrPoints() ? kButtonDown : kButtonUp);
-  
+
+  Float_t llim;
+  fPtRange->SetValues(fTC->fMinPt, fTC->fMaxPt);
+  llim = TMath::Log10(fTC->fLimPt);
+  fPtRange->SetLimits(0, fTC->fLimPt, llim < 2 ? TGNumberFormat::kNESRealTwo : (llim < 3 ? TGNumberFormat::kNESRealOne : TGNumberFormat::kNESInteger));
+  fPRange ->SetValues(fTC->fMinP, fTC->fMaxP);
+  llim = TMath::Log10(fTC->fLimP);
+  fPRange ->SetLimits(0, fTC->fLimP, llim < 2 ? TGNumberFormat::kNESRealTwo : (llim < 3 ? TGNumberFormat::kNESRealOne : TGNumberFormat::kNESInteger));
+
   fRSSubEditor->SetModel(fTC->GetRnrStyle());
 }
 
 /**************************************************************************/
+
 void TrackListEditor::DoRnrLine()
 {
   fTC->SetRnrLine(fRnrLine->IsOn());
@@ -141,6 +177,20 @@ void TrackListEditor::DoRnrLine()
 void TrackListEditor::DoRnrPoints()
 {
   fTC->SetRnrPoints(fRnrPoints->IsOn());
+  Update();
+}
+
+/**************************************************************************/
+
+void TrackListEditor::DoPtRange()
+{ 
+  fTC->SelectByPt(fPtRange->GetMin(), fPtRange->GetMax());
+  Update();
+}
+
+void TrackListEditor::DoPRange()
+{
+  fTC->SelectByP(fPRange->GetMin(), fPRange->GetMax());
   Update();
 }
 

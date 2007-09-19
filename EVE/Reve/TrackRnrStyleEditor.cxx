@@ -47,9 +47,6 @@ TrackRnrStyleSubEditor::TrackRnrStyleSubEditor(const TGWindow *p):
     fRnrReferences(0),
     fRnrDecay(0),
 
-    fPtRange(0),
-    fPRange(0),
-    
     fRefsCont(0),
     fPMAtt(0),
     fFVAtt(0)
@@ -101,29 +98,6 @@ TrackRnrStyleSubEditor::TrackRnrStyleSubEditor(const TGWindow *p):
   fDelta->SetToolTip("Maximal error at the mid-point of the line connecting to helix points.");
   fDelta->Connect("ValueSet(Double_t)", "Reve::TrackRnrStyleSubEditor", this, "DoDelta()");
   AddFrame(fDelta, new TGLayoutHints(kLHintsTop, 1, 1, 1, 1));
-
-  // --- Selectors
-  Int_t dbW = 210;
-
-  fPtRange = new RGDoubleValuator(this,"Pt rng:", 40, 0);
-  fPtRange->SetNELength(6);
-  fPtRange->SetLabelWidth(labelW);
-  fPtRange->Build();
-  fPtRange->GetSlider()->SetWidth(dbW);
-  fPtRange->SetLimits(0, 10, TGNumberFormat::kNESRealTwo);
-  fPtRange->Connect("ValueSet()",
-		    "Reve::TrackRnrStyleSubEditor", this, "DoPtRange()");
-  AddFrame(fPtRange, new TGLayoutHints(kLHintsTop, 1, 1, 4, 1));
-
-  fPRange = new RGDoubleValuator(this,"P rng:", 40, 0);
-  fPRange->SetNELength(6);
-  fPRange->SetLabelWidth(labelW);
-  fPRange->Build();
-  fPRange->GetSlider()->SetWidth(dbW);
-  fPRange->SetLimits(0, 100, TGNumberFormat::kNESRealTwo);
-  fPRange->Connect("ValueSet()",
-		   "Reve::TrackRnrStyleSubEditor", this, "DoPRange()");
-  AddFrame(fPRange, new TGLayoutHints(kLHintsTop, 1, 1, 4, 1));
 }
 
 //______________________________________________________________________
@@ -207,7 +181,7 @@ void TrackRnrStyleSubEditor::CreateRefsContainer(TGVerticalFrame* p)
   p->AddFrame(fRefsCont,new TGLayoutHints(kLHintsTop| kLHintsExpandX));
 }
 
-  //______________________________________________________________________
+//______________________________________________________________________
 void TrackRnrStyleSubEditor::SetModel(TrackRnrStyle* m)
 {
   fM = m;
@@ -238,9 +212,6 @@ void TrackRnrStyleSubEditor::SetModel(TrackRnrStyle* m)
 
   fRnrFV->SetState(fM->fRnrFV ? kButtonDown : kButtonUp);
   fFVAtt->SetModel(&fM->fFVAtt);
-
-  fPtRange->SetValues(fM->fMinPt, fM->fMaxPt);
-  fPRange->SetValues(fM->fMinP, fM->fMaxP);
 }
 
 /**************************************************************************/
@@ -333,20 +304,6 @@ void TrackRnrStyleSubEditor::DoRnrFV()
   Changed();
 }
 
-/**************************************************************************/
-void TrackRnrStyleSubEditor::DoPtRange()
-{ 
-  fM->SelectByP(fPtRange->GetMin(), fPtRange->GetMax());
-  Changed();
-}
-
-
-void TrackRnrStyleSubEditor::DoPRange()
-{
-  fM->SelectByP(fPRange->GetMin(), fPRange->GetMax());
-  Changed();
-}
-
 
 //______________________________________________________________________
 // TrackRnrStyleEditor
@@ -355,12 +312,12 @@ void TrackRnrStyleSubEditor::DoPRange()
 ClassImp(TrackRnrStyleEditor)
 
 TrackRnrStyleEditor::TrackRnrStyleEditor(const TGWindow *p,
-					   Int_t width, Int_t height,
-					   UInt_t options, Pixel_t back) :
-    TGedFrame(p, width, height, options | kVerticalFrame, back),
+                                         Int_t width, Int_t height,
+                                         UInt_t options, Pixel_t back) :
+  TGedFrame(p, width, height, options | kVerticalFrame, back),
 
-    fM (0),
-    fRSSubEditor(0)
+  fM (0),
+  fRSSubEditor(0)
 {
   MakeTitle("RenderStyle");
 

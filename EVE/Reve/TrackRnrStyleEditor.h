@@ -50,9 +50,6 @@ protected:
   TGButton*            fRnrReferences;
   TGButton*            fRnrDecay;
 
-  RGDoubleValuator*    fPtRange;
-  RGDoubleValuator*    fPRange;
-
   TGCompositeFrame*    fRefsCont;
 
   TAttMarkerEditor*    fPMAtt;
@@ -76,9 +73,6 @@ public:
   void DoRnrPM();
   
   void DoRnrFV();
-
-  void DoPtRange();
-  void DoPRange();
 
   void CreateRefsContainer(TGVerticalFrame* p);
 

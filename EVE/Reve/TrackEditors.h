@@ -57,10 +57,14 @@ protected:
   TGVerticalFrame                 *fRefs;
 
   TrackList                       *fTC; // fModel dynamic-casted to TrackListEditor
-  TrackRnrStyleSubEditor          *fRSSubEditor;
 
   TGCheckButton                   *fRnrLine;
   TGCheckButton                   *fRnrPoints;
+
+  RGDoubleValuator                *fPtRange;
+  RGDoubleValuator                *fPRange;
+
+  TrackRnrStyleSubEditor          *fRSSubEditor;
 
 public:
   TrackListEditor(const TGWindow* p=0, Int_t width=170, Int_t height=30,
@@ -73,6 +77,9 @@ public:
   void DoRnrLine();
   void DoRnrPoints();
  
+  void DoPtRange();
+  void DoPRange();
+
   ClassDef(TrackListEditor, 1); // Editor for TrackList
 }; // endclass TrackListEditor
 

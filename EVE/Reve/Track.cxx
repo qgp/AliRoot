@@ -212,9 +212,9 @@ void Track::MakeTrack(Bool_t recurse)
   if ((TMath::Abs(fV.z) > RS.fMaxZ) || (fV.x*fV.x + fV.y*fV.y > RS.fMaxR*RS.fMaxR)) 
     goto make_polyline;
   
-  if (fCharge != 0 && TMath::Abs(RS.fMagField) > 1e-5) {
-
-    // Charged particle in magnetic field
+  if (fCharge != 0 && TMath::Abs(RS.fMagField) > 1e-5 && fP.Perp2() > 1e-6)
+  {
+    // Charged particle in magnetic field with non-zero pT.
 
     Float_t a = RS.fgkB2C * RS.fMagField * fCharge;
    
@@ -233,31 +233,31 @@ void Track::MakeTrack(Bool_t recurse)
 	if (RS.fFitReferences && pm->type == Reve::PathMark::Reference)
 	{
 	  if(TMath::Abs(pm->V.z) > RS.fMaxZ ||
-	     TMath::Sqrt(pm->V.x*pm->V.x + pm->V.y*pm->V.y) > RS.fMaxR )
+	     TMath::Sqrt(pm->V.x*pm->V.x + pm->V.y*pm->V.y) > RS.fMaxR)
 	    goto helix_bounds;
 
 	  // printf("%s fit reference  \n", fName.Data()); 
 	  helix.LoopToVertex(px, py, pz, pm->V.x, pm->V.y, pm->V.z);
-	  px =  pm->P.x;
-	  py =  pm->P.y;
-	  pz =  pm->P.z;
+	  px = pm->P.x;
+	  py = pm->P.y;
+	  pz = pm->P.z;
 	}
 	else if(RS.fFitDaughters &&  pm->type == Reve::PathMark::Daughter)
 	{
-	  if(TMath::Abs(pm->V.z) > RS.fMaxZ 
-	     || TMath::Sqrt(pm->V.x*pm->V.x + pm->V.y*pm->V.y) > RS.fMaxR )
+	  if(TMath::Abs(pm->V.z) > RS.fMaxZ ||
+	     TMath::Sqrt(pm->V.x*pm->V.x + pm->V.y*pm->V.y) > RS.fMaxR)
 	    goto helix_bounds;
 
           // printf("%s fit daughter  \n", fName.Data()); 
 	  helix.LoopToVertex(px, py, pz, pm->V.x, pm->V.y, pm->V.z);
-	  px -=  pm->P.x;
-	  py -=  pm->P.y;
-	  pz -=  pm->P.z;
+	  px -= pm->P.x;
+	  py -= pm->P.y;
+	  pz -= pm->P.z;
 	}
 	else if(RS.fFitDecay &&  pm->type == Reve::PathMark::Decay)
 	{
-	  if(TMath::Abs(pm->V.z) > RS.fMaxZ 
-	     || TMath::Sqrt(pm->V.x*pm->V.x + pm->V.y*pm->V.y) > RS.fMaxR )
+	  if(TMath::Abs(pm->V.z) > RS.fMaxZ ||
+	     TMath::Sqrt(pm->V.x*pm->V.x + pm->V.y*pm->V.y) > RS.fMaxR)
 	    goto helix_bounds;
 	  helix.LoopToVertex(px, py, pz, pm->V.x, pm->V.y, pm->V.z);
           decay = true;
@@ -273,7 +273,8 @@ void Track::MakeTrack(Bool_t recurse)
     }
   helix_bounds:
     // go to bounds
-    if(!decay || RS.fFitDecay == kFALSE){
+    if(!decay || RS.fFitDecay == kFALSE)
+    {
       helix.LoopToBounds(px,py,pz);
       // printf("%s loop to bounds  \n",fName.Data() );
     }
@@ -284,24 +285,32 @@ void Track::MakeTrack(Bool_t recurse)
 
     MCLine line(fRnrStyle, &mc_v0, TMath::C()*fBeta, &track_points);
    
-    if(!fPathMarks.empty()){
-      for(std::vector<Reve::PathMark*>::iterator i=fPathMarks.begin(); i!=fPathMarks.end(); ++i) {
+    if(!fPathMarks.empty())
+    {
+      for(std::vector<Reve::PathMark*>::iterator i=fPathMarks.begin(); i!=fPathMarks.end(); ++i)
+      {
 	Reve::PathMark* pm = *i;
 
-	if(RS.fFitDaughters &&  pm->type == Reve::PathMark::Daughter){
-          if(TMath::Abs(pm->V.z) > RS.fMaxZ 
-	     || TMath::Sqrt(pm->V.x*pm->V.x + pm->V.y*pm->V.y) > RS.fMaxR )
+	if(RS.fFitDaughters &&  pm->type == Reve::PathMark::Daughter)
+        {
+          if(TMath::Abs(pm->V.z) > RS.fMaxZ ||
+	     TMath::Sqrt(pm->V.x*pm->V.x + pm->V.y*pm->V.y) > RS.fMaxR)
+          {
 	    goto line_bounds;
+          }
 	  line.GotoVertex(pm->V.x, pm->V.y, pm->V.z);
-	  fP.x -=  pm->P.x;
-	  fP.y -=  pm->P.y;
-	  fP.z -=  pm->P.z;
+	  fP.x -= pm->P.x;
+	  fP.y -= pm->P.y;
+	  fP.z -= pm->P.z;
 	}
 
-	if(RS.fFitDecay &&  pm->type == Reve::PathMark::Decay){
-	  if(TMath::Abs(pm->V.z) > RS.fMaxZ 
-	     || TMath::Sqrt(pm->V.x*pm->V.x + pm->V.y*pm->V.y) > RS.fMaxR )
+	if(RS.fFitDecay &&  pm->type == Reve::PathMark::Decay)
+        {
+	  if(TMath::Abs(pm->V.z) > RS.fMaxZ ||
+	     TMath::Sqrt(pm->V.x*pm->V.x + pm->V.y*pm->V.y) > RS.fMaxR)
+          {
 	    goto line_bounds;
+          }
 	  line.GotoVertex(pm->V.x, pm->V.y, pm->V.z);
           decay = true;
 	  break;
@@ -326,7 +335,8 @@ make_polyline:
     }
   }
 
-  if(recurse) {
+  if(recurse)
+  {
     for(List_i i=fChildren.begin(); i!=fChildren.end(); ++i)
     {
       Track* t = dynamic_cast<Track*>(*i);
@@ -494,12 +504,6 @@ TrackRnrStyle::TrackRnrStyle() :
   fMinAng  (45),
   fDelta   (0.1),
 
-  fMinPt   (0.1),
-  fMaxPt   (10),
-
-  fMinP    (0.1),
-  fMaxP    (100),
-
   fEditPathMarks(kFALSE),
   fPMAtt(),
 
@@ -523,6 +527,7 @@ TrackRnrStyle::TrackRnrStyle() :
 }
 
 /**************************************************************************/
+
 void TrackRnrStyle::RebuildTracks()
 {
   Track* track;
@@ -603,45 +608,6 @@ void TrackRnrStyle::SetRnrReferences(Bool_t rnr)
   RebuildTracks();
 }
  
-/**************************************************************************/
-void TrackRnrStyle::SelectByPt(Float_t min_pt, Float_t max_pt)
-{
-  fMinPt = min_pt;
-  fMaxPt = max_pt;
-
-  Float_t minptsq = min_pt*min_pt;
-  Float_t maxptsq = max_pt*max_pt;
-
-  Float_t ptsq;
-  std::list<RenderElement*>::iterator i = fBackRefs.begin();
-  while (i != fBackRefs.end())
-  {
-    ptsq = ((Track*)(*i))->fP.Perp2();
-    Bool_t on = ptsq >= minptsq && ptsq <= maxptsq;
-    (*i)->SetRnrSelf(on);
-    (*i)->SetRnrChildren(on);
-    i++;
-  }
-}
-
-void TrackRnrStyle::SelectByP(Float_t min_p, Float_t max_p)
-{
-  fMinP = min_p;
-  fMaxP = max_p;
-
-  Float_t minpsq = min_p*min_p;
-  Float_t maxpsq = max_p*max_p;
-  Float_t psq;
-
-  std::list<RenderElement*>::iterator i = fBackRefs.begin();
-  while (i != fBackRefs.end())
-  {
-    psq  = ((Track*)(*i))->fP.Mag();
-    psq *= psq;
-    (*i)->SetRnrSelf(psq >= minpsq && psq <= maxpsq);
-    i++;
-  }
-}
 
 /**************************************************************************/
 /**************************************************************************/
@@ -659,7 +625,14 @@ TrackList::TrackList(TrackRnrStyle* rs) :
   fRecurse(kTRUE),
   fRnrStyle(0),
   fRnrLine(kTRUE),
-  fRnrPoints(kFALSE)
+  fRnrPoints(kFALSE),
+
+  fMinPt   (0.1),
+  fMaxPt   (10),
+  fLimPt   (0),
+  fMinP    (0.1),
+  fMaxP    (100),
+  fLimP    (0)
 {
   fChildClass = Track::Class(); // override member from base RenderElementList
 
@@ -691,6 +664,7 @@ TrackList::~TrackList()
 }
 
 /**************************************************************************/
+
 void TrackList::SetRnrStyle(TrackRnrStyle* rs)
 {
   if (fRnrStyle == rs) return;
@@ -700,23 +674,61 @@ void TrackList::SetRnrStyle(TrackRnrStyle* rs)
 }
 
 /**************************************************************************/
+
 void TrackList::MakeTracks(Bool_t recurse)
 {
+  fLimPt = fLimP = 0;
+
   for(List_i i=fChildren.begin(); i!=fChildren.end(); ++i)
   {
-    ((Track*)(*i))->MakeTrack(recurse);
+    Track* track = (Track*)(*i);
+    track->MakeTrack(recurse);
+
+    fLimPt = TMath::Max(fLimPt, track->fP.Perp());
+    fLimP  = TMath::Max(fLimP,  track->fP.Mag());
+    if (recurse)
+      FindMomentumLimits(*i, recurse);
   }
+
+  fLimPt = RoundMomentumLimit(fLimPt);
+  fLimP  = RoundMomentumLimit(fLimP);
+  if (fMaxPt == 0) fMaxPt = fLimPt;
+  if (fMaxP  == 0) fMaxP  = fLimP;
+
   gReve->Redraw3D();
 }
 
+void TrackList::FindMomentumLimits(RenderElement* el, Bool_t recurse)
+{
+  for(List_i i=el->BeginChildren(); i!=el->EndChildren(); ++i)
+  {
+    Track* track = dynamic_cast<Track*>(*i);
+    if (track)
+    {
+      fLimPt = TMath::Max(fLimPt, track->fP.Perp());
+      fLimP  = TMath::Max(fLimP,  track->fP.Mag());
+      if (recurse)
+        FindMomentumLimits(*i, recurse);
+    }
+  }
+}
+
+Float_t TrackList::RoundMomentumLimit(Float_t x)
+{
+  using namespace TMath;
+  Double_t fac = Power(10, 1 - Floor(Log10(x)));
+  return Ceil(fac*x) / fac;
+}
+
 /**************************************************************************/
+
 void TrackList::SetRnrLine(Bool_t rnr)
 {
   for(List_i i=BeginChildren(); i!=EndChildren(); ++i)
   {
     Track* track = (Track*)(*i);
-    if(track->GetRnrLine() == fRnrLine) track->SetRnrLine(rnr);
-    if(fRecurse) SetRnrLine(rnr, *i);
+    if (track->GetRnrLine() == fRnrLine) track->SetRnrLine(rnr);
+    if (fRecurse) SetRnrLine(rnr, *i);
   }
   fRnrLine = rnr;
 }
@@ -727,11 +739,13 @@ void TrackList::SetRnrLine(Bool_t rnr, RenderElement* el)
   for(List_i i=el->BeginChildren(); i!=el->EndChildren(); ++i)
   {
     track = dynamic_cast<Track*>(*i);
-    if(track) 
-      if(track->GetRnrLine() == fRnrLine) track->SetRnrLine(rnr);
-    if(fRecurse) SetRnrLine(rnr, *i);
+    if (track && (track->GetRnrLine() == fRnrLine))
+      track->SetRnrLine(rnr);
+    if (fRecurse)
+      SetRnrLine(rnr, *i);
   }
 }
+
 /**************************************************************************/
 
 void TrackList::SetRnrPoints(Bool_t rnr)
@@ -739,8 +753,8 @@ void TrackList::SetRnrPoints(Bool_t rnr)
   for(List_i i=BeginChildren(); i!=EndChildren(); ++i)
   {
     Track* track = (Track*)(*i);
-    if(track->GetRnrPoints() == fRnrPoints) track->SetRnrPoints(rnr);
-    if(fRecurse) SetRnrPoints(rnr, *i);
+    if (track->GetRnrPoints() == fRnrPoints) track->SetRnrPoints(rnr);
+    if (fRecurse) SetRnrPoints(rnr, *i);
   }
   fRnrPoints = rnr;
 }
@@ -751,10 +765,10 @@ void TrackList::SetRnrPoints(Bool_t rnr, RenderElement* el)
   for(List_i i=el->BeginChildren(); i!=el->EndChildren(); ++i)
   {
     track = dynamic_cast<Track*>(*i);
-    if(track) 
-      if(track->GetRnrPoints() == fRnrPoints) track->SetRnrPoints(rnr);
+    if (track) 
+      if (track->GetRnrPoints() == fRnrPoints) track->SetRnrPoints(rnr);
     
-    if(fRecurse) SetRnrPoints(rnr, *i);
+    if (fRecurse) SetRnrPoints(rnr, *i);
   }
 }
 /**************************************************************************/
@@ -764,8 +778,8 @@ void TrackList::SetMainColor(Color_t col)
   for(List_i i=BeginChildren(); i!=EndChildren(); ++i)
   {
     Track* track = (Track*)(*i);
-    if(track->GetLineColor() == fLineColor) track->SetLineColor(col);
-    if(fRecurse)SetLineColor(col, *i);
+    if (track->GetLineColor() == fLineColor) track->SetLineColor(col);
+    if (fRecurse) SetLineColor(col, *i);
   }
   RenderElement::SetMainColor(col);
 }
@@ -776,19 +790,22 @@ void TrackList::SetLineColor(Color_t col, RenderElement* el)
   for(List_i i=el->BeginChildren(); i!=el->EndChildren(); ++i)
   {
     track = dynamic_cast<Track*>(*i);
-    if(track) 
-      if(track->GetLineColor() == fLineColor) track->SetLineColor(col);
-    if(fRecurse) SetLineColor(col, *i);
+    if (track && track->GetLineColor() == fLineColor)
+      track->SetLineColor(col);
+    if (fRecurse)
+      SetLineColor(col, *i);
   }
 }
+
 /**************************************************************************/
+
 void TrackList::SetLineWidth(Width_t width)
 {
-   for(List_i i=BeginChildren(); i!=EndChildren(); ++i)
+  for(List_i i=BeginChildren(); i!=EndChildren(); ++i)
   {
     Track* track = (Track*)(*i);
-    if(track->GetLineWidth() == fLineWidth) track->SetLineWidth(width);
-    if(fRecurse)SetLineWidth(width, *i);
+    if (track->GetLineWidth() == fLineWidth) track->SetLineWidth(width);
+    if (fRecurse) SetLineWidth(width, *i);
   }
   fLineWidth=width; 
 }
@@ -799,20 +816,22 @@ void TrackList::SetLineWidth(Width_t width, RenderElement* el)
   for(List_i i=el->BeginChildren(); i!=el->EndChildren(); ++i)
   {
     track = dynamic_cast<Track*>(*i);
-    if(track) 
-      if(track->GetLineWidth() == fLineWidth) track->SetLineWidth(width);
-    if(fRecurse) SetLineWidth(width, *i);
+    if (track && track->GetLineWidth() == fLineWidth)
+      track->SetLineWidth(width);
+    if (fRecurse)
+      SetLineWidth(width, *i);
   }
 }
+
 /**************************************************************************/
 
 void TrackList::SetLineStyle(Style_t style)
 {
-   for(List_i i=BeginChildren(); i!=EndChildren(); ++i)
+  for(List_i i=BeginChildren(); i!=EndChildren(); ++i)
   {
     Track* track = (Track*)(*i);
-    if(track->GetLineStyle() == fLineStyle) track->SetLineStyle(style);
-    if(fRecurse)SetLineStyle(style, *i);
+    if (track->GetLineStyle() == fLineStyle) track->SetLineStyle(style);
+    if (fRecurse)SetLineStyle(style, *i);
   }
   fLineStyle=style; 
 }
@@ -823,20 +842,22 @@ void TrackList::SetLineStyle(Style_t style, RenderElement* el)
   for(List_i i=el->BeginChildren(); i!=el->EndChildren(); ++i)
   {
     track = dynamic_cast<Track*>(*i);
-    if(track) 
-      if(track->GetLineStyle() == fLineStyle) track->SetLineStyle(style);
-    if(fRecurse) SetLineStyle(style, *i);
+    if (track && track->GetLineStyle() == fLineStyle)
+      track->SetLineStyle(style);
+    if (fRecurse)
+      SetLineStyle(style, *i);
   }
 }
+
 /**************************************************************************/
 
 void TrackList::SetMarkerStyle(Style_t style)
 {
-   for(List_i i=BeginChildren(); i!=EndChildren(); ++i)
+  for(List_i i=BeginChildren(); i!=EndChildren(); ++i)
   {
     Track* track = (Track*)(*i);
-    if(track->GetMarkerStyle() == fMarkerStyle) track->SetMarkerStyle(style);
-    if(fRecurse)SetMarkerStyle(style, *i);
+    if (track->GetMarkerStyle() == fMarkerStyle) track->SetMarkerStyle(style);
+    if (fRecurse) SetMarkerStyle(style, *i);
   }
   fMarkerStyle=style; 
 }
@@ -847,20 +868,22 @@ void TrackList::SetMarkerStyle(Style_t style, RenderElement* el)
   for(List_i i=el->BeginChildren(); i!=el->EndChildren(); ++i)
   {
     track = dynamic_cast<Track*>(*i);
-    if(track) 
-      if(track->GetMarkerStyle() == fMarkerStyle) track->SetMarkerStyle(style);
-    if(fRecurse) SetMarkerStyle(style, *i);
+    if (track && track->GetMarkerStyle() == fMarkerStyle)
+      track->SetMarkerStyle(style);
+    if(fRecurse)
+      SetMarkerStyle(style, *i);
   }
 }
 
 /**************************************************************************/
+
 void TrackList::SetMarkerColor(Color_t col)
 {
   for(List_i i=BeginChildren(); i!=EndChildren(); ++i)
   {
     Track* track = (Track*)(*i);
-    if(track->GetMarkerColor() == fMarkerColor) track->SetMarkerColor(col);
-    if(fRecurse)SetMarkerColor(col, *i);
+    if (track->GetMarkerColor() == fMarkerColor) track->SetMarkerColor(col);
+    if (fRecurse) SetMarkerColor(col, *i);
   }
   fMarkerColor=col; 
 }
@@ -871,9 +894,10 @@ void TrackList::SetMarkerColor(Color_t col, RenderElement* el)
   for(List_i i=el->BeginChildren(); i!=el->EndChildren(); ++i)
   {
     track = dynamic_cast<Track*>(*i);
-    if(track) 
-      if(track->GetMarkerColor() == fMarkerColor) track->SetMarkerColor(col);
-    if(fRecurse) SetMarkerColor(col, *i);
+    if (track && track->GetMarkerColor() == fMarkerColor)
+      track->SetMarkerColor(col);
+    if (fRecurse)
+      SetMarkerColor(col, *i);
   }
 }
 
@@ -881,11 +905,11 @@ void TrackList::SetMarkerColor(Color_t col, RenderElement* el)
 
 void TrackList::SetMarkerSize(Size_t size)
 {
-   for(List_i i=BeginChildren(); i!=EndChildren(); ++i)
+  for(List_i i=BeginChildren(); i!=EndChildren(); ++i)
   {
     Track* track = (Track*)(*i);
-    if(track->GetMarkerSize() == fMarkerSize) track->SetMarkerSize(size);
-    if(fRecurse)SetMarkerSize(size, *i);
+    if (track->GetMarkerSize() == fMarkerSize) track->SetMarkerSize(size);
+    if (fRecurse) SetMarkerSize(size, *i);
   }
   fMarkerSize=size; 
 }
@@ -896,9 +920,86 @@ void TrackList::SetMarkerSize(Size_t size, RenderElement* el)
   for(List_i i=el->BeginChildren(); i!=el->EndChildren(); ++i)
   {
     track = dynamic_cast<Track*>(*i);
-    if(track) 
-      if(track->GetMarkerSize() == fMarkerSize) track->SetMarkerSize(size);
-    if(fRecurse) SetMarkerSize(size, *i);
+    if (track && track->GetMarkerSize() == fMarkerSize)
+      track->SetMarkerSize(size);
+    if (fRecurse)
+      SetMarkerSize(size, *i);
+  }
+}
+
+/**************************************************************************/
+
+void TrackList::SelectByPt(Float_t min_pt, Float_t max_pt)
+{
+  fMinPt = min_pt;
+  fMaxPt = max_pt;
+
+  const Float_t minptsq = min_pt*min_pt;
+  const Float_t maxptsq = max_pt*max_pt;
+
+  for(List_i i=BeginChildren(); i!=EndChildren(); ++i)
+  {
+    const Float_t ptsq = ((Track*)(*i))->fP.Perp2();
+    Bool_t on = ptsq >= minptsq && ptsq <= maxptsq;
+    (*i)->SetRnrState(on);
+    if (on && fRecurse)
+      SelectByPt(min_pt, max_pt, *i);
+  }
+}
+
+void TrackList::SelectByPt(Float_t min_pt, Float_t max_pt, RenderElement* el)
+{
+  const Float_t minptsq = min_pt*min_pt;
+  const Float_t maxptsq = max_pt*max_pt;
+
+  for(List_i i=el->BeginChildren(); i!=el->EndChildren(); ++i)
+  {
+    Track* track = dynamic_cast<Track*>(*i);
+    if (track)
+    {
+      const Float_t ptsq = track->fP.Perp2();
+      Bool_t on = ptsq >= minptsq && ptsq <= maxptsq;
+      track->SetRnrState(on);
+      if (on && fRecurse)
+        SelectByPt(min_pt, max_pt, *i);
+    }
+  }
+}
+
+void TrackList::SelectByP(Float_t min_p, Float_t max_p)
+{
+  fMinP = min_p;
+  fMaxP = max_p;
+
+  const Float_t minpsq = min_p*min_p;
+  const Float_t maxpsq = max_p*max_p;
+
+  for(List_i i=BeginChildren(); i!=EndChildren(); ++i)
+  {
+    const Float_t psq  = ((Track*)(*i))->fP.Mag2();
+    Bool_t on = psq >= minpsq && psq <= maxpsq;
+    (*i)->SetRnrState(psq >= minpsq && psq <= maxpsq);
+    if (on && fRecurse)
+      SelectByP(min_p, max_p, *i);
+  }
+}
+
+void TrackList::SelectByP(Float_t min_p, Float_t max_p, RenderElement* el)
+{
+  const Float_t minpsq = min_p*min_p;
+  const Float_t maxpsq = max_p*max_p;
+
+  for(List_i i=el->BeginChildren(); i!=el->EndChildren(); ++i)
+  {
+    Track* track = dynamic_cast<Track*>(*i);
+    if (track)
+    {
+      const Float_t psq  = ((Track*)(*i))->fP.Mag2();
+      Bool_t on = psq >= minpsq && psq <= maxpsq;
+      track->SetRnrState(on);
+      if (on && fRecurse)
+        SelectByP(min_p, max_p, *i);
+    }
   }
 }
 

@@ -25,6 +25,7 @@ class Track : public Line,
               public TQObject
 {
   friend class TrackRnrStyle;
+  friend class TrackList;
   friend class TrackCounter;
   friend class TrackGL;
 
@@ -120,12 +121,6 @@ public:
   Float_t                  fMinAng;  // Minimal angular step between two helix points.
   Float_t                  fDelta;   // Maximal error at the mid-point of the line connecting to helix points.
 
-  Float_t                  fMinPt;
-  Float_t                  fMaxPt;
-
-  Float_t                  fMinP;
-  Float_t                  fMaxP;
-
   Bool_t                   fEditPathMarks;
   TMarker                  fPMAtt;
 
@@ -160,9 +155,6 @@ public:
   void   SetMinAng(Float_t x);
   void   SetDelta(Float_t x);
 
-  void   SelectByPt(Float_t min_pt=0.2, Float_t max_pt=10);
-  void   SelectByP(Float_t min_pt=0.0, Float_t max_pt=100);
-
   Float_t GetMagField() const     { return fMagField; }
   void    SetMagField(Float_t mf) { fMagField = mf; }
 
@@ -183,6 +175,8 @@ class TrackList : public RenderElementList,
                   public TAttMarker,
                   public TAttLine
 {
+  friend class TrackListEditor;
+
 private:
   TrackList(const TrackList&);            // Not implemented
   TrackList& operator=(const TrackList&); // Not implemented
@@ -193,17 +187,29 @@ protected:
 
   Bool_t               fRnrLine;
   Bool_t               fRnrPoints;
+
+  Float_t              fMinPt;
+  Float_t              fMaxPt;
+  Float_t              fLimPt;
+  Float_t              fMinP;
+  Float_t              fMaxP;
+  Float_t              fLimP;
+
+  Float_t RoundMomentumLimit(Float_t x);
+
 public:
   TrackList(TrackRnrStyle* rs=0);
   TrackList(const Text_t* name, TrackRnrStyle* rs=0);
   virtual ~TrackList();
 
-  void   MakeTracks(Bool_t recurse=kTRUE);
+  void  MakeTracks(Bool_t recurse=kTRUE);
+  void  FindMomentumLimits(RenderElement* el, Bool_t recurse);
 
   void  SetRnrStyle(TrackRnrStyle* rs);
   TrackRnrStyle*  GetRnrStyle(){return fRnrStyle;}
 
   //--------------------------------
+
   virtual void   SetMainColor(Color_t c);
   virtual void   SetLineColor(Color_t c){SetMainColor(c);}
   virtual void   SetLineColor(Color_t c, RenderElement* el);
@@ -227,7 +233,13 @@ public:
   void SetRnrPoints(Bool_t r, RenderElement* el);
   Bool_t GetRnrPoints(){return fRnrPoints;}
 
+  void SelectByPt(Float_t min_pt, Float_t max_pt);
+  void SelectByPt(Float_t min_pt, Float_t max_pt, RenderElement* el);
+  void SelectByP (Float_t min_p,  Float_t max_p);
+  void SelectByP (Float_t min_p,  Float_t max_p,  RenderElement* el);
+
   //--------------------------------
+
   void ImportHits();     // *MENU*
   void ImportClusters(); // *MENU*
 
