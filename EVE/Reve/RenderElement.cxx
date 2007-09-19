@@ -420,13 +420,16 @@ void RenderElement::SetRnrChildren(Bool_t rnr)
 
 void RenderElement::SetRnrState(Bool_t rnr)
 {
-  fRnrSelf = fRnrChildren = rnr; 
-
-  for (sLTI_i i=fItems.begin(); i!=fItems.end(); ++i) 
+  if (fRnrSelf != rnr || fRnrChildren != rnr)
   {
-    i->fItem->SetCheckBoxPictures(GetCheckBoxPicture(1,1), GetCheckBoxPicture(0,0));
-    i->fItem->CheckItem(fRnrSelf);
-    i->fTree->ClearViewPort();
+    fRnrSelf = fRnrChildren = rnr; 
+
+    for (sLTI_i i=fItems.begin(); i!=fItems.end(); ++i) 
+    {
+      i->fItem->SetCheckBoxPictures(GetCheckBoxPicture(1,1), GetCheckBoxPicture(0,0));
+      i->fItem->CheckItem(fRnrSelf);
+      i->fTree->ClearViewPort();
+    }
   }
 }
 
