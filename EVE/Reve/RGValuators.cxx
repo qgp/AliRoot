@@ -233,13 +233,13 @@ void RGDoubleValuator::Build(Bool_t connect)
   
   if(fLabelWidth > 0) {
     TGCompositeFrame *lf = new TGHorizontalFrame(hf1, fLabelWidth, fNEHeight, kFixedSize);
-    fLabel = new TGLabel(lf, GetName());
+    fLabel = new TGLabel(lf, fName);
     lf->AddFrame(fLabel, lh); 
     // add label frame to top horizontal frame
     TGLayoutHints* lfh = new TGLayoutHints(kLHintsLeft, 0,0,0,0);
     hf1->AddFrame(lf, lfh);
   } else {
-    fLabel = new TGLabel(hf1, GetName());
+    fLabel = new TGLabel(hf1, fName);
     hf1->AddFrame(fLabel, lh);  
   }
 
