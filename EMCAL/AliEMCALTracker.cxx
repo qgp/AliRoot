@@ -1053,8 +1053,8 @@ Int_t AliEMCALTracker::AliEMCALMatch::Compare(const TObject *obj) const
 	
 	AliEMCALTracker::AliEMCALMatch *that = (AliEMCALTracker::AliEMCALMatch*)obj;
 	
-	Double_t thisDist = fPt;//fDistance;
-	Double_t thatDist = that->fPt;//that->GetDistance();
+	Double_t thisDist = fDistance;
+	Double_t thatDist = that->GetDistance();
 	
 	if (thisDist > thatDist) return 1;
 	else if (thisDist < thatDist) return -1;
