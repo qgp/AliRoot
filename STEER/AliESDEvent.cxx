@@ -301,7 +301,7 @@ void AliESDEvent::ResetStdContent()
   if(fCascades)fCascades->Clear();
   if(fKinks)fKinks->Clear();
   if(fCaloClusters)fCaloClusters->Delete();
-  if(fErrorLogs) fErrorLogs->Clear();
+  if(fErrorLogs) fErrorLogs->Delete();
 
   // don't reset fconnected fConnected ;
 
@@ -745,7 +745,7 @@ void AliESDEvent::CopyFromOldESD()
 
     // FMD
     
-    SetFMDData(fESDOld->GetFMDData());
+    if(fESDOld->GetFMDData())SetFMDData(fESDOld->GetFMDData());
 
     // T0
 
@@ -756,11 +756,11 @@ void AliESDEvent::CopyFromOldESD()
     // VZERO
     if (fESDOld->GetVZEROData()) SetVZEROData(fESDOld->GetVZEROData());
 
-    SetVertex(fESDOld->GetVertex());
+    if(fESDOld->GetVertex())SetVertex(fESDOld->GetVertex());
 
-    SetPrimaryVertex(fESDOld->GetPrimaryVertex());
+    if(fESDOld->GetPrimaryVertex())SetPrimaryVertex(fESDOld->GetPrimaryVertex());
 
-    SetMultiplicity(fESDOld->GetMultiplicity());
+    if(fESDOld->GetMultiplicity())SetMultiplicity(fESDOld->GetMultiplicity());
     
     for(int i = 0;i<fESDOld->GetNumberOfTracks();i++){
       AddTrack(fESDOld->GetTrack(i));
@@ -792,7 +792,7 @@ void AliESDEvent::CopyFromOldESD()
 
 
     for(int i = 0;i<fESDOld->GetNumberOfCaloClusters();i++){
-      AddCaloCluster(fESDOld->GetCaloCluster(i));
+	AddCaloCluster(fESDOld->GetCaloCluster(i));
     }
   }// if fesdold
 }
