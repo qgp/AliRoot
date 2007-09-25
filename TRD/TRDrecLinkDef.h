@@ -8,7 +8,6 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class  AliTRDcluster+;
 #pragma link C++ class  AliTRDclusterMI+;
 
 #pragma link C++ class  AliTRDclusterizer+;

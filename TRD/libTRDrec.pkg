@@ -1,6 +1,6 @@
 #-*- Mode: Makefile -*-
 
-SRCS= AliTRDcluster.cxx \
+SRCS= \
       AliTRDclusterMI.cxx \
       AliTRDclusterizer.cxx \
       AliTRDclusterizerV1.cxx \
@@ -23,7 +23,6 @@ EINCLUDE= RAW
 
 ifeq (win32gcc,$(ALICE_TARGET))
 PACKSOFLAGS:= $(SOFLAGS) -L$(ALICE_ROOT)/lib/tgt_$(ALICE_TARGET) \
-                         -lTRDbase -lSTEER -lCDB -lSTEERBase \
-                         -lRAWDatasim -lRAWDatarec -lRAWDatabase \
-                         -L$(shell root-config --libdir) -lMinuit -lVMC -lEG -lGeom
+                         -lTRDbase -lSTEER -lESD -lSTEERBase -lRAWDatarec \
+                         -L$(shell root-config --libdir) -lMinuit -lGeom
 endif

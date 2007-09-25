@@ -71,5 +71,7 @@
 #pragma link C++ class  AliTRDltuTracklet+;
 #pragma link C++ class  AliTRDgtuTrack+;
 #pragma link C++ class  AliTRDmodule+;
+#pragma link C++ class  AliTRDSimParam+;
+#pragma link C++ class  AliTRDcluster+;
 
 #endif
