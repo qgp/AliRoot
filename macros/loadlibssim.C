@@ -62,10 +62,10 @@ void loadlibssim ()
 /*   gSystem->Load("libT0base"); */
 /*   gSystem->Load("libT0sim"); */
 /*   gSystem->Load("libT0rec"); */
-/*   gSystem->Load("libZDCbase"); */
-/*   gSystem->Load("libZDCsim"); */
-/*   gSystem->Load("libACORDEbase"); */
-/*   gSystem->Load("libACORDEsim"); */
+  gSystem->Load("libZDCbase");
+  gSystem->Load("libZDCsim");
+  gSystem->Load("libACORDEbase");
+  gSystem->Load("libACORDEsim");
   gSystem->Load("libVZERObase");
   gSystem->Load("libVZEROsim");
 /*   gSystem->Load("libEMCALbase"); */
@@ -77,8 +77,8 @@ void loadlibssim ()
   gSystem->Load("libTPCsim");
   gSystem->Load("libITSbase");
   gSystem->Load("libITSsim");
-/*   gSystem->Load("libTRDbase"); */
-/*   gSystem->Load("libTRDsim"); */
+  gSystem->Load("libTRDbase");
+  gSystem->Load("libTRDsim");
   gSystem->Load("libTOFbase");
   gSystem->Load("libTOFsim");
 }

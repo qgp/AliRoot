@@ -56,7 +56,7 @@ void loadlibs ()
   gSystem->Load("libMUONbase");
   gSystem->Load("libMUONsim");
   gSystem->Load("libMUONrec");
-/*   gSystem->Load("libMUONevaluation"); */
+  gSystem->Load("libMUONevaluation");
 /*   gSystem->Load("libFMDbase"); */
 /*   gSystem->Load("libFMDsim"); */
 /*   gSystem->Load("libFMDrec"); */
@@ -69,12 +69,12 @@ void loadlibs ()
 /*   gSystem->Load("libT0base"); */
 /*   gSystem->Load("libT0sim"); */
 /*   gSystem->Load("libT0rec"); */
-/*   gSystem->Load("libZDCbase"); */
-/*   gSystem->Load("libZDCsim"); */
-/*   gSystem->Load("libZDCrec"); */
-/*   gSystem->Load("libACORDEbase"); */
-/*   gSystem->Load("libACORDEsim"); */
-/*   gSystem->Load("libACORDErec"); */
+  gSystem->Load("libZDCbase");
+  gSystem->Load("libZDCsim");
+  gSystem->Load("libZDCrec");
+  gSystem->Load("libACORDEbase");
+  gSystem->Load("libACORDEsim");
+  gSystem->Load("libACORDErec");
   gSystem->Load("libVZERObase");
   gSystem->Load("libVZEROsim");
   gSystem->Load("libVZEROrec");
@@ -92,10 +92,10 @@ void loadlibs ()
   gSystem->Load("libITSbase");
   gSystem->Load("libITSsim");
   gSystem->Load("libITSrec");
- /*  gSystem->Load("libTRDbase"); */
-/*   gSystem->Load("libTRDsim"); */
-/*   gSystem->Load("libTRDrec"); */
-/*   gSystem->Load("libTRDfast"); */
+  gSystem->Load("libTRDbase");
+  gSystem->Load("libTRDsim");
+  gSystem->Load("libTRDrec");
+  gSystem->Load("libTRDfast");
   gSystem->Load("libTOFbase");
   gSystem->Load("libTOFsim");
   gSystem->Load("libTOFrec");

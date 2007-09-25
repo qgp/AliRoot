@@ -53,12 +53,12 @@ void loadlibsrec ()
 /*   gSystem->Load("libT0base"); */
 /*   gSystem->Load("libT0sim"); */
 /*   gSystem->Load("libT0rec"); */
-/*   gSystem->Load("libZDCbase"); */
-/*   gSystem->Load("libZDCsim"); */
-/*   gSystem->Load("libZDCrec"); */
-/*   gSystem->Load("libACORDEbase"); */
-/*   gSystem->Load("libACORDEsim"); */
-/*   gSystem->Load("libACORDErec"); */
+  gSystem->Load("libZDCbase");
+  gSystem->Load("libZDCsim");
+  gSystem->Load("libZDCrec");
+  gSystem->Load("libACORDEbase");
+  gSystem->Load("libACORDEsim");
+  gSystem->Load("libACORDErec");
   gSystem->Load("libVZERObase");
   gSystem->Load("libVZEROsim");
   gSystem->Load("libVZEROrec");
@@ -74,9 +74,9 @@ void loadlibsrec ()
   gSystem->Load("libITSbase");
   gSystem->Load("libITSsim");
   gSystem->Load("libITSrec");
-/*   gSystem->Load("libTRDbase"); */
-/*   gSystem->Load("libTRDsim"); */
-/*   gSystem->Load("libTRDrec"); */
+  gSystem->Load("libTRDbase");
+  gSystem->Load("libTRDsim");
+  gSystem->Load("libTRDrec");
   gSystem->Load("libTOFbase");
   gSystem->Load("libTOFsim");
   gSystem->Load("libTOFrec");
