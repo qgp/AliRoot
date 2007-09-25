@@ -66,8 +66,6 @@ void fastGen(Int_t nev = 1, char* filename = "galice.root")
 //                         Termination
 //  Generator
     gener->FinishRun();
-//  Stack
-    stack->FinishRun();
 //  Write file
     rl->WriteHeader("OVERWRITE");
     gener->Write();
@@ -84,7 +82,7 @@ AliGenerator*  CreateGenerator()
 //   vertex position and smearing 
     gener->SetVertexSmear(kPerEvent);
 //   structure function
-    gener->SetStrucFunc(kGRVHO);
+    gener->SetStrucFunc(kCTEQ5L);
 //   charm, beauty, charm_unforced, beauty_unforced, jpsi, jpsi_chi, mb
     gener->SetProcess(kPyJets);
 //   Centre of mass energy 
