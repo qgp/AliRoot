@@ -142,9 +142,9 @@ class AliTPCseed : public AliTPCtrack {
      TClonesArray * fPoints;              //!array with points along the track
      TClonesArray * fEPoints;             //! array with exact points - calculated in special macro not used in tracking
      //---CURRENT VALUES
-     Int_t fRow;                 //!current row number  
-     Int_t fSector;              //!current sector number
-     Int_t fRelativeSector;      //! index of current relative sector
+     Int_t fRow;                 // current row number  
+     Int_t fSector;              // current sector number
+     Int_t fRelativeSector;      // index of current relative sector
      Float_t fCurrentSigmaY2;    //!expected current cluster sigma Y
      Float_t fCurrentSigmaZ2;    //!expected current cluster sigma Z
      Float_t fErrorY2;           //!sigma of current cluster 
@@ -172,7 +172,7 @@ class AliTPCseed : public AliTPCtrack {
      AliTPCTrackerPoint  fTrackPoints[160];  //track points - array track points
      TBits   fClusterMap;       // bit is 1 if track has a hit on padrow
      TBits   fSharedMap;        // bit is 1 if track shares a hit on padrow
-     ClassDef(AliTPCseed,2)  
+     ClassDef(AliTPCseed,3)  
 };
 
 
