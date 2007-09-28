@@ -11,13 +11,13 @@ ifneq ($(ALICE_ROOT),)
   ALICEINC += -I$(ALICE_ROOT)/include -I$(ALICE_ROOT)/PYTHIA6 -I$(ALICE_ROOT)/EVGEN -I$(ALICE_ROOT)/RAW -I$(ALICE_ROOT)/TPC
 else
   ifneq ($(ESD_INCLUDE),)
-    ALICEINC += -I../$(ESD_INCLUDE)
+    ALICEINC += -I../$(ESD_INCLUDE) -I../$(STEERBase_INCLUDE) -I../$(ANALYSIS_INCLUDE) -I../$(AOD_INCLUDE)
   endif
 endif
 
 # for building of PWG0dep.par
 ifneq ($(PWG0base_INCLUDE),)
-  ALICEINC += -I../$(PWG0base_INCLUDE)
+  ALICEINC += -I../$(PWG0base_INCLUDE)  
 endif
 
 CXXFLAGS     += $(ALICEINC) -g
