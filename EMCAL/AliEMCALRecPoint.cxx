@@ -71,6 +71,8 @@ AliEMCALRecPoint::AliEMCALRecPoint()
     fGeomPtr = AliEMCALGeometry::GetInstance();
   //fGeomPtr = AliEMCALGeometry::GetInstance(AliEMCALGeometry::GetDefaulGeometryName());
     //  fGeomPtr->GetTransformationForSM(); // Global <-> Local
+  fLambda[0] = 0;
+  fLambda[1] = 0;
 }
 
 //____________________________________________________________________________
@@ -115,6 +117,8 @@ AliEMCALRecPoint::AliEMCALRecPoint(const char * opt)
     fGeomPtr = AliEMCALGeometry::GetInstance();
   //    fGeomPtr = AliEMCALGeometry::GetInstance(AliEMCALGeometry::GetDefaulGeometryName());
   //  fGeomPtr->GetTransformationForSM(); // Global <-> Local
+  fLambda[0] = 0;
+  fLambda[1] = 0;
 }
 
 //____________________________________________________________________________
