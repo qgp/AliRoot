@@ -10,6 +10,7 @@
 #include "AliFemtoCorrFctn.h"
 #include "AliFemtoPair.h"
 #include "AliFemtoModelManager.h"
+#include <TH1D.h>
 
 class AliFemtoModelCorrFctn: public AliFemtoCorrFctn {
 

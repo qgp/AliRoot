@@ -233,3 +233,12 @@ void AliFemtoTrack::SetTPCshared(const short& aNBit, const Bool_t& aValue)
   fShared.SetBitNumber(aNBit, aValue);
 }
 
+void AliFemtoTrack::SetTPCClusterMap(const TBits& aBits)
+{
+  fClusters = aBits;
+}
+void AliFemtoTrack::SetTPCSharedMap(const TBits& aBits)
+{
+  fShared = aBits;
+}
+

@@ -101,6 +101,9 @@ public:
   void SetTPCcluster(const short& aNBit, const Bool_t& aValue);
   void SetTPCshared(const short& aNBit, const Bool_t& aValue);
 
+  void SetTPCClusterMap(const TBits& aBits);
+  void SetTPCSharedMap(const TBits& aBits);
+
   /* Th stuff */
   void SetHiddenInfo(AliFemtoHiddenInfo* aHiddenInfo);
   bool ValidHiddenInfo() const;

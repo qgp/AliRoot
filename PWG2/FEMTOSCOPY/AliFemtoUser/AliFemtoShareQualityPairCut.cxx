@@ -25,8 +25,9 @@ ClassImp(AliFemtoShareQualityPairCut)
 AliFemtoShareQualityPairCut::AliFemtoShareQualityPairCut():
   fNPairsPassed(0),
   fNPairsFailed(0),
-  fShareQualityMax(1.0)
-{
+  fShareQualityMax(1.0),
+  fRemoveSameLabel(0)
+ {
 }
 //__________________
 AliFemtoShareQualityPairCut::~AliFemtoShareQualityPairCut(){
@@ -79,16 +80,24 @@ bool AliFemtoShareQualityPairCut::Pass(const AliFemtoPair* pair){
     hsfval = ns*1.0/nh;
   }
   //  if (hsmval > -0.4) {
-  cout << "Pair quality: " << hsmval << " " << an << " " << nh << " " 
-       << (pair->Track1()->Track()) << " " 
-       << (pair->Track2()->Track()) << endl;
-  cout << "Bits: " << pair->Track1()->Track()->TPCclusters().GetNbits() << endl;
+//   cout << "Pair quality: " << hsmval << " " << an << " " << nh << " " 
+//        << (pair->Track1()->Track()) << " " 
+//        << (pair->Track2()->Track()) << endl;
+//   cout << "Bits: " << pair->Track1()->Track()->TPCclusters().GetNbits() << endl;
     //  }
-  if (hsfval > 0.0) {
-    cout << "Pair sharity: " << hsfval << " " << ns << " " << nh << "    " << hsmval << " " << an << " " << nh << endl;
-  }
+//   if (hsfval > 0.0) {
+//     cout << "Pair sharity: " << hsfval << " " << ns << " " << nh << "    " << hsmval << " " << an << " " << nh << endl;
+//   }
 
-  temp = hsmval < fShareQualityMax;
+  temp = (hsmval < fShareQualityMax) && (hsfval < fShareFractionMax);
+
+  if (fRemoveSameLabel) {
+    if (fabs(pair->Track1()->Track()->Label()) == fabs(pair->Track2()->Track()->Label())) {
+      cout << "Found a pair with same label " << pair->Track1()->Track()->Label() << endl;
+      cout << "Quality Sharity Passed " << hsmval << " " << hsfval << " " << pair->QInv() << " " << temp << endl;
+      temp = kFALSE;
+    }
+  }
 
   temp ? fNPairsPassed++ : fNPairsFailed++;
   return temp;
@@ -110,13 +119,26 @@ Double_t AliFemtoShareQualityPairCut::GetAliFemtoShareQualityMax() {
   return fShareQualityMax;
 }
 
+void AliFemtoShareQualityPairCut::SetShareFractionMax(Double_t aShareFractionMax) {
+  fShareFractionMax = aShareFractionMax;
+}
+Double_t AliFemtoShareQualityPairCut::GetAliFemtoShareFractionMax() {
+  return fShareFractionMax;
+}
+
 TList *AliFemtoShareQualityPairCut::ListSettings()
 {
   // return a list of settings in a writable form
   TList *tListSetttings = new TList();
   char buf[200];
   snprintf(buf, 200, "AliFemtoShareQualityPairCut.sharequalitymax=%lf", fShareQualityMax);
+  snprintf(buf, 200, "AliFemtoShareQualityPairCut.sharefractionmax=%lf", fShareFractionMax);
   tListSetttings->AddLast(new TObjString(buf));
 
   return tListSetttings;
+}
+
+void     AliFemtoShareQualityPairCut::SetRemoveSameLabel(Bool_t aRemove)
+{
+  fRemoveSameLabel = aRemove;
 }
