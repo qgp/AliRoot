@@ -24,3 +24,8 @@
 //#pragma link C++ class AliStHbtPythiaOnFlyEventReader;
 //#pragma link C++ class AliStHbtTrack;
 #pragma link C++ class AliFemtoEventReaderESDKine;
+#pragma link C++ class AliFemtoEventReaderESDKineTPCOnly;
+#pragma link C++ class AliFemtoModelCorrFctnTrueQ;
+#pragma link C++ class AliFemtoModelBPLCMSCorrFctn;
+#pragma link C++ class AliFemtoEventReaderESDWithFriend;
+

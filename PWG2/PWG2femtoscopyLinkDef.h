@@ -18,6 +18,7 @@
 #pragma link C++ class AliFemtoDummyPairCut;
 #pragma link C++ class AliFemtoCoulomb;
 #pragma link C++ class AliFemtoCutMonitorHandler;
+#pragma link C++ class AliFemtoCutMonitorParticleTrue;
 #pragma link C++ class AliFemtoLorentzVector;
 #pragma link C++ class AliFemtoManager;
 #pragma link C++ class AliFmHelixD;

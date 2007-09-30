@@ -9,6 +9,7 @@ SRCS= FEMTOSCOPY/AliFemto/AliFemtoSimpleAnalysis.cxx \
       FEMTOSCOPY/AliFemto/AliFemtoDummyPairCut.cxx \
       FEMTOSCOPY/AliFemto/AliFemtoCoulomb.cxx \
       FEMTOSCOPY/AliFemto/AliFemtoCutMonitorHandler.cxx \
+      FEMTOSCOPY/AliFemto/AliFemtoCutMonitorParticleTrue.cxx \
       FEMTOSCOPY/AliFemto/AliFemtoEvent.cxx \
       FEMTOSCOPY/AliFemto/AliFemtoKink.cxx \
       FEMTOSCOPY/AliFemto/AliFemtoManager.cxx \
