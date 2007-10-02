@@ -1,3 +1,25 @@
+2007-10-02  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	* ITSModule.cxx:
+	* ITSModule.h:
+	* ITSScaledModule.cxx:
+	* ITSScaledModule.h:
+	* PMDModule.cxx:
+	* T0Module.cxx:
+	* T0Module.h:
+	* TOFSector.cxx:
+	* TOFSector.h:
+	Changes required by re-basing of QuadSet to DigitSet.
+
+	* TPCSector3D.cxx:
+	* TPCSector3DGL.cxx:
+	* TPCSector3DGL.h:
+	Use axis-aligned box-set for speed/memory optimization.
+	Support secondary-selection for boxes.
+
+	* TRDData.cxx:
+	Comment-out unused code requiring obsolete features of BoxSet.
+
 2007-09-19  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	EVE-dev

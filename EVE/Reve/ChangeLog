@@ -1,3 +1,56 @@
+2007-10-02  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	EVE-dev
+
+	* DigitSet.cxx:
+	* DigitSet.h:
+	* DigitSetEditor.cxx:
+	* DigitSetEditor.h:
+	New files: take common digit rendering stuff from QuadSet.
+
+	* QuadSet.cxx:
+	* QuadSet.h:
+	Much code moved to DigitSet: this is the new base.
+
+	* QuadSetEditor.cxx:
+	* QuadSetEditor.h:
+	Removed files: all done in DigitSetEditor now.
+
+	* QuadSetGL.cxx:
+	* QuadSetGL.h:
+	Changes for DigitSet.
+	Skip rendering in line-pass of outline mode.
+
+	* BoxSet.cxx:
+	* BoxSet.h:
+	Inherit from DigitSet.
+	Implement optimised axis-aligned box modes.
+
+	* BoxSetGL.cxx:
+	* BoxSetGL.h:
+	Support new box-modes and secondary-selection.
+
+	* FrameBox.cxx:
+	* FrameBox.h:
+	* FrameBoxGL.cxx:
+	* FrameBoxGL.h:
+	Add support for background polygon.
+
+	* LinkDef.h:
+	Add DigitSet and DigitSetEditor.
+	Remove QuadSetEditor and Box.
+
+	* PointSet.cxx:
+	* PointSet.h:
+	Support assignment of external references in PointSetArray.
+
+	* RGBrowser.cxx:
+	Tried to add HTML browser; apparently the class was not put into
+	root repository yet,
+
+	* StraightLineSet.cxx:
+	Effc++ warnings.
+
 2007-09-19  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	EVE-dev
