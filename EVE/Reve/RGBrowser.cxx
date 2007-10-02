@@ -390,7 +390,7 @@ namespace
 {
 enum ReveMenu_e {
   kNewViewer,  kNewScene,  kNewProjector,
-  kNewBrowser, kNewCanvas, kNewCanvasExt, kNewTextEditor,
+  kNewBrowser, kNewCanvas, kNewCanvasExt, kNewTextEditor, kNewHtmlBrowser,
   kVerticalBrowser
 };
 }
@@ -402,14 +402,15 @@ RGBrowser::RGBrowser(UInt_t w, UInt_t h) :
   // Construct Reve menu
 
   fRevePopup = new TGPopupMenu(gClient->GetRoot());
-  fRevePopup->AddEntry("New &Viewer",    kNewViewer);
-  fRevePopup->AddEntry("New &Scene",     kNewScene);
-  fRevePopup->AddEntry("New &Projector", kNewProjector);
+  fRevePopup->AddEntry("New &Viewer",      kNewViewer);
+  fRevePopup->AddEntry("New &Scene",       kNewScene);
+  fRevePopup->AddEntry("New &Projector",   kNewProjector);
   fRevePopup->AddSeparator();
-  fRevePopup->AddEntry("New &Browser",   kNewBrowser);
-  fRevePopup->AddEntry("New &Canvas",    kNewCanvas);
-  fRevePopup->AddEntry("New Canvas Ext", kNewCanvasExt);
-  fRevePopup->AddEntry("New Text Editor",kNewTextEditor);
+  fRevePopup->AddEntry("New &Browser",     kNewBrowser);
+  fRevePopup->AddEntry("New &Canvas",      kNewCanvas);
+  fRevePopup->AddEntry("New Canvas Ext",   kNewCanvasExt);
+  fRevePopup->AddEntry("New Text Editor",  kNewTextEditor);
+  // fRevePopup->AddEntry("New HTML Browser", kNewHtmlBrowser);
   fRevePopup->AddSeparator();
   fRevePopup->AddEntry("Vertical browser", kVerticalBrowser);
   fRevePopup->CheckEntry(kVerticalBrowser);
@@ -466,6 +467,18 @@ void RGBrowser::ReveMenu(Int_t id)
       gROOT->ProcessLineFast(Form("new TGTextEditor((const char *)0, (const TGWindow *)0x%lx)", gClient->GetRoot()));
       StopEmbedding();
       SetTabTitle("Editor", 1);
+      break;
+
+    case kNewHtmlBrowser:
+      gSystem->Load("libGuiHtml");
+      if (gSystem->Load("libRHtml") >= 0)
+      {
+        StartEmbedding(1);
+        gROOT->ProcessLine(Form("new TGHtmlBrowser(\"http://root.cern.ch/root/html/ClassIndex.html\", \
+                              (const TGWindow *)0x%lx)", gClient->GetRoot()));
+        StopEmbedding();
+        SetTabTitle("HTML", 1);
+      }
       break;
 
     case kVerticalBrowser:
