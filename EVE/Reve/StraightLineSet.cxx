@@ -19,13 +19,18 @@ using namespace Reve;
 ClassImp(StraightLineSet)
 
 StraightLineSet::StraightLineSet(const Text_t* n, const Text_t* t):
-  RenderElement(),
-  TNamed(n, t),
-  fLinePlex(sizeof(Line), 4),
-  fMarkerPlex(sizeof(Marker), 8),
-  fRnrMarkers(kTRUE),
-  fRnrLines(kTRUE),
-  fHMTrans()
+  RenderElement (),
+  TNamed        (n, t),
+
+  fLinePlex      (sizeof(Line), 4),
+  fMarkerPlex    (sizeof(Marker), 8),
+  fOwnLinesIds   (kFALSE),
+  fOwnMarkersIds (kFALSE),
+  fRnrMarkers    (kTRUE),
+  fRnrLines      (kTRUE),
+  fLastLine      (0),
+  fTrans         (kFALSE),
+  fHMTrans       ()
 {
   fMainColorPtr = &fLineColor;
   fLineColor    = 4;
