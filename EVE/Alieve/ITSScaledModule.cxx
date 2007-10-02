@@ -325,7 +325,7 @@ void ITSScaledModule::SetQuadValues()
 	v = Nint(Sqrt(sd->sqr_sum) / sd->N);
 	break;
     }
-    QuadBase* qb = GetQuad(i);
+    DigitBase* qb = GetDigit(i);
     qb->fValue = v;
   }
 }
@@ -379,12 +379,12 @@ void ITSScaledModule::GetScaleData(Int_t& cnx, Int_t& cnz, Int_t& total)
 
 /**************************************************************************/
 
-void  ITSScaledModule::QuadSelected(Int_t idx)
+void  ITSScaledModule::DigitSelected(Int_t idx)
 {
   // Override control-click from QuadSet
-  printf("ITSScaledModule::QuadSelected "); Print();
+  printf("ITSScaledModule::DigitSelected "); Print();
 
-  QuadBase* qb  = GetQuad(idx);
+  DigitBase* qb  = GetDigit(idx);
   TObject* obj  = qb->fId.GetObject();
   ScaledDigit* sd = dynamic_cast<ScaledDigit*>(obj);
   TClonesArray *digits = fInfo->GetDigits(fID, fDetID);

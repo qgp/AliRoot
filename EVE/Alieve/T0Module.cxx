@@ -172,11 +172,11 @@ void T0Module::MakeModules(AliT0digit *digits)
 
 /**************************************************************************/
 
-void T0Module::QuadSelected(Int_t idx)
+void T0Module::DigitSelected(Int_t idx)
 {
   // Override control-click from QuadSet
 
-  QuadBase* qb   = GetQuad(idx);
+  DigitBase* qb   = GetDigit(idx);
   if (fSigType == 0) { //ADC
     printf("adc====================\n");
     Int_t   besttimeright = fDigits->BestTimeA();

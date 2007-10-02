@@ -91,7 +91,7 @@ public:
   ITSScaledModule(Int_t gid, ITSDigitsInfo* info, DigitScaleInfo* si );
   virtual ~ITSScaledModule();
 
-  virtual void QuadSelected(Int_t idx);
+  virtual void DigitSelected(Int_t idx);
 
   virtual void LoadQuads();
   void         SetQuadValues();

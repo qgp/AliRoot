@@ -368,11 +368,11 @@ void ITSModule::SetTrans()
 
 /**************************************************************************/
 
-void ITSModule::QuadSelected(Int_t idx)
+void ITSModule::DigitSelected(Int_t idx)
 {
   // Override control-click from QuadSet
 
-  QuadBase* qb   = GetQuad(idx);
+  DigitBase* qb   = GetDigit(idx);
   TObject* obj   = qb->fId.GetObject();
   AliITSdigit* d = dynamic_cast<AliITSdigit*>(obj);
   printf("ITSModule::QuadSelected "); Print();
