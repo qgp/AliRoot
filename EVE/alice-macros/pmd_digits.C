@@ -1,6 +1,8 @@
 // ---------------------------------------------------------------------- //
 void pmd_digits(Int_t mode = 0)
 {
+  Bool_t drawBackPolygons = kFALSE;
+
   gStyle->SetPalette(1, 0);
 
 
@@ -23,7 +25,7 @@ void pmd_digits(Int_t mode = 0)
   // l->SetMainColor((Color_t)3);
   gReve->AddRenderElement(l);
 
-  Reve::RGBAPalette* pal = new Reve::RGBAPalette(20, 1024);
+  Reve::RGBAPalette* pal = new Reve::RGBAPalette(20, 1000);
   pal->SetLimits(0, 1024);
 
   Int_t NSM         = 0;
@@ -106,6 +108,15 @@ void pmd_digits(Int_t mode = 0)
 	      lmodule->SetPosition(0.,0.,zpos);
 	      lmodule->DisplayDigitsData(modnumber, pmdt);
               lmodule->SetPalette(pal);
+              if (drawBackPolygons)
+              {
+                Reve::FrameBox* b = lmodule->GetFrame();
+                b->SetFrameWidth(1.5);
+                b->SetFrameColor((Color_t) 1);
+                b->SetBackColor ((Color_t) (kTeal - 9));
+                b->SetFrameFill (kFALSE);
+                b->SetDrawBack  (kTRUE);
+              }
 	      gReve->AddRenderElement(lmodule, lddl);
 	      modnumber++;
 	      if (iddl == 4 && modnumber == 30) modnumber = 42;
