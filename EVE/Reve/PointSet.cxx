@@ -165,7 +165,7 @@ PointSetArray::PointSetArray(const Text_t* name,
   RenderElement(fMarkerColor),
   TNamed(name, title),
 
-  fBins(0), fDefPointSetCapacity(128), fNBins(0),
+  fBins(0), fDefPointSetCapacity(128), fNBins(0), fLastBin(-1),
   fMin(0), fCurMin(0), fMax(0), fCurMax(0),
   fBinWidth(0),
   fQuantName()
@@ -202,7 +202,7 @@ void PointSetArray::RemoveElementLocal(RenderElement* el)
 
 void PointSetArray::RemoveElementsLocal()
 {
-  delete [] fBins; fBins = 0;
+  delete [] fBins; fBins = 0; fLastBin = -1;
 }
 
 /**************************************************************************/
@@ -289,6 +289,7 @@ void PointSetArray::InitBins(const Text_t* quant_name,
 
   fQuantName = quant_name;
   fNBins     = nbins;
+  fLastBin   = -1;
   fMin = fCurMin = min;
   fMax = fCurMax = max;
   fBinWidth  = (fMax - fMin)/fNBins;
@@ -310,9 +311,17 @@ void PointSetArray::InitBins(const Text_t* quant_name,
 
 void PointSetArray::Fill(Double_t x, Double_t y, Double_t z, Double_t quant)
 {
-  Int_t bin    = Int_t( (quant - fMin)/fBinWidth );
-  if(bin >= 0 && bin < fNBins && fBins[bin] != 0)
-    fBins[bin]->SetNextPoint(x, y, z);
+  fLastBin = Int_t( (quant - fMin)/fBinWidth );
+  if(fLastBin >= 0 && fLastBin < fNBins && fBins[fLastBin] != 0)
+    fBins[fLastBin]->SetNextPoint(x, y, z);
+  else
+    fLastBin = -1;
+}
+
+void PointSetArray::SetPointId(TObject* id)
+{
+  if (fLastBin >= 0)
+    fBins[fLastBin]->SetPointId(id);
 }
 
 void PointSetArray::CloseBins()
@@ -326,6 +335,18 @@ void PointSetArray::CloseBins()
 
       fBins[i]->ComputeBBox();
     }
+  }
+  fLastBin = -1;
+}
+
+/**************************************************************************/
+
+void PointSetArray::SetOwnIds(Bool_t o)
+{
+  for(Int_t i=0; i<fNBins; ++i)
+  {
+    if(fBins[i] != 0)
+      fBins[i]->SetOwnIds(o);
   }
 }
 

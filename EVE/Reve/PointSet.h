@@ -71,6 +71,7 @@ protected:
   PointSet**   fBins;
   Int_t        fDefPointSetCapacity;
   Int_t        fNBins;
+  Int_t        fLastBin;              //!
   Double_t     fMin, fCurMin;
   Double_t     fMax, fCurMax;
   Double_t     fBinWidth;
@@ -95,8 +96,10 @@ public:
   void InitBins(const Text_t* quant_name, Int_t nbins, Double_t min, Double_t max,
 		Bool_t addRe=kTRUE);
   void Fill(Double_t x, Double_t y, Double_t z, Double_t quant);
-
+  void SetPointId(TObject* id);
   void CloseBins();
+
+  void SetOwnIds(Bool_t o);
 
   Int_t GetDefPointSetCapacity() const  { return fDefPointSetCapacity; }
   void  SetDefPointSetCapacity(Int_t c) { fDefPointSetCapacity = c; }
