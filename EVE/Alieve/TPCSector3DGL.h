@@ -32,11 +32,16 @@ public:
   TPCSector3DGL();
   virtual ~TPCSector3DGL();
 
+  virtual Bool_t ShouldDLCache(const TGLRnrCtx&) const { return kFALSE; }
+
   virtual Bool_t SetModel(TObject* obj, const Option_t* opt=0);
   virtual void   SetBBox();
 
   void DrawSegmentFrame(const TPCSectorData::SegmentInfo& s,
                         Int_t botExtraPads=0, Int_t topExtraPads=0) const;
+
+  virtual Bool_t SupportsSecondarySelect() const { return kTRUE; }
+  virtual void   ProcessSelection(TGLRnrCtx & rnrCtx, TGLSelectRecord & rec);
 
   ClassDef(TPCSector3DGL, 0);
 }; // endclass TPCSector3DGL
