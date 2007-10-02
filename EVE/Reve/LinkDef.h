@@ -188,16 +188,18 @@
 #pragma link C++ class Reve::FrameBox+;
 #pragma link C++ class Reve::FrameBoxGL+;
 
+// DigitSet
+#pragma link C++ class Reve::DigitSet+;
+#pragma link C++ class Reve::DigitSetEditor+;
+
 // QuadSet
 #pragma link C++ class Reve::Quad+;
 #pragma link C++ class Reve::OldQuadSet+;
 #pragma link C++ class Reve::OldQuadSetGL+;
 #pragma link C++ class Reve::QuadSet+;
-#pragma link C++ class Reve::QuadSetEditor+;
 #pragma link C++ class Reve::QuadSetGL+;
 
 // BoxSet
-#pragma link C++ class Reve::Box+;
 #pragma link C++ class Reve::BoxSet+;
 #pragma link C++ class Reve::BoxSetGL+;
 
