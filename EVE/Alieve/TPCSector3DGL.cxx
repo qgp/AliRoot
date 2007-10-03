@@ -33,6 +33,21 @@ TPCSector3DGL::~TPCSector3DGL()
 
 /**************************************************************************/
 
+//______________________________________________________________________________
+Short_t TPCSector3DGL::QuantizeShapeLOD(Short_t shapeLOD, Short_t combiLOD) const
+{
+   // Factor in scene/viewer LOD and quantize.
+
+   Int_t lod = ((Int_t)shapeLOD * (Int_t)combiLOD) / 100;
+
+   if (lod >= 100)
+     return 100;
+   else
+     return (Short_t)(10 * TMath::Nint(0.1*lod));
+}
+
+/**************************************************************************/
+
 Bool_t TPCSector3DGL::SetModel(TObject* obj, const Option_t* /*opt*/)
 {
   if(SetModelCheckClass(obj, Alieve::TPCSector3D::Class())) {

@@ -32,7 +32,9 @@ public:
   TPCSector3DGL();
   virtual ~TPCSector3DGL();
 
-  virtual Bool_t ShouldDLCache(const TGLRnrCtx&) const { return kFALSE; }
+  virtual Bool_t   ShouldDLCache(const TGLRnrCtx&) const { return kFALSE; }
+  virtual ELODAxes SupportedLODAxes()              const { return kLODAxesAll; }
+  virtual Short_t  QuantizeShapeLOD(Short_t shapeLOD, Short_t combiLOD) const;
 
   virtual Bool_t SetModel(TObject* obj, const Option_t* opt=0);
   virtual void   SetBBox();
