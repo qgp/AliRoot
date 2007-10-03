@@ -2,6 +2,7 @@
 #define REVE_MCHelixLine_H
 
 #include <Reve/Track.h>
+#include <cassert>
 #include <vector>
 
 namespace Reve {
