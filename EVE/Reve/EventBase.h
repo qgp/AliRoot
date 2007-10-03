@@ -21,7 +21,7 @@ public:
   TList& GetNewEventCommands() { return fNewEventCommands; }
 
   virtual void Open() {}
-  virtual void GotoEvent(Int_t event) {}
+  virtual void GotoEvent(Int_t /*event*/) {}
   virtual void NextEvent() {}
   virtual void PrevEvent() {}
   virtual void Close() {}
