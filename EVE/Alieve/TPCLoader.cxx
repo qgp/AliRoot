@@ -190,6 +190,7 @@ void TPCLoader::UpdateSectors(Bool_t dropNonPresent)
 	fSec2Ds[i] = 0;
       } else {
 	fSec2Ds[i]->IncRTS();
+        fSec2Ds[i]->ElementChanged();
       }
     }
     else
@@ -224,6 +225,7 @@ void TPCLoader::UpdateSectors(Bool_t dropNonPresent)
 	fSec3Ds[i] = 0;
       } else {
 	fSec3Ds[i]->IncRTS();
+        fSec3Ds[i]->ElementChanged();
       }
     }
   }
