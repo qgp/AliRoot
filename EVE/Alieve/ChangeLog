@@ -1,3 +1,15 @@
+2007-10-03  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	EVE-dev
+
+	* TPCLoader.cxx:
+	Add calls to ElementChanged() for all displayed sectors after
+	loading a new event.
+
+	* TPCSectorViz.cxx:
+	* TPCSectorViz.h:
+	White-space.
+
 2007-10-02  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	EVE-dev
