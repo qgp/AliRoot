@@ -191,6 +191,10 @@ void BoxSetGL::DirectDraw(TGLRnrCtx & rnrCtx) const
 
   if (rnrCtx.SecSelection()) glPushName(0);
 
+  Int_t boxSkip = 0;
+  if (rnrCtx.ShapeLOD() < 50)
+    boxSkip = 6 - (rnrCtx.ShapeLOD()+1)/10;
+
   VoidCPlex::iterator bi(mB.fPlex);
 
   switch (mB.fBoxType)
@@ -209,6 +213,7 @@ void BoxSetGL::DirectDraw(TGLRnrCtx & rnrCtx) const
           RenderBox(b.fVertices);
           glEnd();
         }
+        if (boxSkip) { Int_t s = boxSkip; while (s--) bi.next(); }
       }
       break;
     } // end case free-box
@@ -228,6 +233,7 @@ void BoxSetGL::DirectDraw(TGLRnrCtx & rnrCtx) const
           glCallList(fBoxDL);
           glPopMatrix();
         }
+        if (boxSkip) { Int_t s = boxSkip; while (s--) bi.next(); }
       }
       break;
     }
@@ -244,6 +250,7 @@ void BoxSetGL::DirectDraw(TGLRnrCtx & rnrCtx) const
           glCallList(fBoxDL);
           glTranslatef(-b.fA, -b.fB, -b.fC);
         }
+        if (boxSkip) { Int_t s = boxSkip; while (s--) bi.next(); }
       }
       break;
     }
