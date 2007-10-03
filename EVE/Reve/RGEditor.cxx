@@ -80,7 +80,7 @@ void RGEditor::Update(TGedFrame* /*gframe*/)
 
   if (fRnrElement) {
     fRnrElement->UpdateItems();
-    gReve->RenderElementChanged(fRnrElement);
+    fRnrElement->ElementChanged();
   }
 
   gReve->Redraw3D();
