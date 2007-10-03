@@ -14,6 +14,7 @@ namespace Reve {
 class GeoNodeRnrEl;
 class GeoTopNodeRnrEl;
 
+class RGValuator;
 
 class GeoNodeRnrElEditor : public TGedFrame
 {
@@ -57,8 +58,8 @@ class GeoTopNodeRnrElEditor : public TGedFrame
 protected:
   GeoTopNodeRnrEl*   fTopNodeRE;
 
-  TGNumberEntry*     fVisOption;
-  TGNumberEntry*     fVisLevel;
+  Reve::RGValuator*  fVisOption;
+  Reve::RGValuator*  fVisLevel;
 
 public:
   GeoTopNodeRnrElEditor(const TGWindow* p=0, Int_t width=170, Int_t height=30,
