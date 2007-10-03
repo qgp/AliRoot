@@ -62,7 +62,7 @@ void tpc_digits(Int_t mode=1)
       gReve->AddRenderElement(l);
       
       for(Int_t i = 0; i<18; i++) {
-	Alieve::TPCSector2D* s = new Alieve::TPCSector2D();
+	Alieve::TPCSector2D* s = new Alieve::TPCSector2D(Form("TPCSector2D %d", i));
 	s->SetSectorID(i);
 	s->SetDataSource(g_tpc_data);
 	s->SetFrameColor(col);
@@ -77,7 +77,7 @@ void tpc_digits(Int_t mode=1)
 
       gReve->AddRenderElement(l);
       for(Int_t i = 18; i<36; i++) {
-	Alieve::TPCSector2D* s = new Alieve::TPCSector2D();
+	Alieve::TPCSector2D* s = new Alieve::TPCSector2D(Form("TPCSector2D %d", i));
 	s->SetSectorID(i);
 	s->SetDataSource(g_tpc_data);
 	s->SetFrameColor(col);
@@ -108,7 +108,7 @@ void tpc_digits(Int_t mode=1)
       gReve->AddRenderElement(l);
       
       for(Int_t i = 0; i<18; i++) {
-	Alieve::TPCSector3D* s = new Alieve::TPCSector3D();
+	Alieve::TPCSector3D* s = new Alieve::TPCSector3D(Form("TPCSector3D %d", i));
 	s->SetSectorID(i);
 	s->SetDataSource(g_tpc_data);
 	s->SetFrameColor(col);
@@ -123,7 +123,7 @@ void tpc_digits(Int_t mode=1)
 
       gReve->AddRenderElement(l);
       for(Int_t i = 18; i<36; i++) {
-	Alieve::TPCSector3D* s = new Alieve::TPCSector3D();
+	Alieve::TPCSector3D* s = new Alieve::TPCSector3D(Form("TPCSector3D %d", i));
 	s->SetSectorID(i);
 	s->SetDataSource(g_tpc_data);
 	s->SetFrameColor(col);
