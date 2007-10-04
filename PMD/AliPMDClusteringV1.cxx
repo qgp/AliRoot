@@ -30,7 +30,12 @@
    Bhubaneswar 751 005 ( phatak@iopb.res.in ) Given the energy deposited
    ( or ADC value ) in each cell of supermodule ( pmd or cpv ), the code
    builds up superclusters and breaks them into clusters. The input is
-   in array edepcell[kNMX] and cluster information is in a  TObjArray. 
+   in array edepcell[kNMX] and cluster information is in a
+   TObjarray. Integer clno gives total number of clusters in the
+   supermodule.
+
+   fClusters is the only global ( public ) variables.
+   Others are local ( private ) to the code.
    At the moment, the data is read for whole detector ( all supermodules
    and pmd as well as cpv. This will have to be modify later )
    LAST UPDATE  :  October 23, 2002
@@ -102,9 +107,10 @@ void AliPMDClusteringV1::DoClust(Int_t idet, Int_t ismn,
   Float_t  clusdata[6];
   Double_t cutoff, ave;
   Double_t edepcell[kNMX];
-
+  
+  
   Double_t *cellenergy = new Double_t [11424];// Ajay
-
+  
   const float ktwobysqrt3 = 1.1547; // 2./sqrt(3.)
 
   // ndimXr and ndimYr are different because of different module size
@@ -129,7 +135,6 @@ void AliPMDClusteringV1::DoClust(Int_t idet, Int_t ismn,
   }
 
 
-
   Int_t kk = 0;
   for (Int_t i = 0; i < kNDIMX; i++)
     {
@@ -149,30 +154,30 @@ void AliPMDClusteringV1::DoClust(Int_t idet, Int_t ismn,
 	  i = id+(ndimYr/2-1)-(jd/2);
 
 	  Int_t ij = i + j*kNDIMX;
-
+	  // BKN Int_t ij = i + j*ndimXr;
+	  
 	  if (ismn < 12)
 	    {
-		//edepcell[ij]    = celladc[jd][id];
-		cellenergy[ij]    = celladc[jd][id];//Ajay
-		fCellTrNo[i][j] = jd*10000+id;  // for association 
+	      //edepcell[ij]    = celladc[jd][id];
+	      cellenergy[ij]    = celladc[jd][id];//Ajay
+	      fCellTrNo[i][j] = jd*10000+id;  // for association 
 	    }
 	  else if (ismn >= 12 && ismn <= 23)
 	    {
-		//edepcell[ij]    = celladc[id][jd];
-		cellenergy[ij]    = celladc[id][jd];//Ajay
-		fCellTrNo[i][j] = id*10000+jd;  // for association 
+	      //edepcell[ij]    = celladc[id][jd];
+	      cellenergy[ij]    = celladc[id][jd];//Ajay
+	      fCellTrNo[i][j] = id*10000+jd;  // for association 
 	    }
-
 	}
     }
-
+  
   //Ajay
   for (Int_t i = 0; i < kNMX; i++)
   {
     edepcell[i] = cellenergy[i];
   }
-  delete [] cellenergy;
 
+  delete [] cellenergy;
 
   Int_t iord1[kNMX];
   TMath::Sort(kNMX,edepcell,iord1);// order the data
@@ -190,13 +195,14 @@ void AliPMDClusteringV1::DoClust(Int_t idet, Int_t ismn,
 	  nmx1++;
 	}
     }
+  
   AliDebug(1,Form("Number of cells having energy >= %f are %d",cutoff,nmx1));
 
   if (nmx1 == 0) nmx1 = 1;
   ave = ave/nmx1;
-
   AliDebug(1,Form("Number of cells in a SuperM = %d and Average = %f",
 		  kNMX,ave));
+  
   incr = CrClust(ave, cutoff, nmx1,iord1, edepcell );
   RefClust(incr,edepcell);
   Int_t nentries1 = fPMDclucont->GetEntries();
@@ -256,7 +262,6 @@ void AliPMDClusteringV1::DoClust(Int_t idet, Int_t ismn,
       pmdcont->Add(pmdcl);
     }
   
-
   fPMDclucont->Clear();
   
 }
@@ -286,7 +291,7 @@ Int_t AliPMDClusteringV1::CrClust(Double_t ave, Double_t cutoff, Int_t nmx1,
     {
       fInfcl[0][i] = -1;
       
-      j   = iord1[i];
+      j  = iord1[i];
       id2 = j/kNDIMX;
       id1 = j-id2*kNDIMX;
 
@@ -306,7 +311,7 @@ Int_t AliPMDClusteringV1::CrClust(Double_t ave, Double_t cutoff, Int_t nmx1,
 
   for(icell = 0; icell <= nmx1; icell++)
     {
-      j   = iord1[icell];
+      j  = iord1[icell];
       id2 = j/kNDIMX;
       id1 = j-id2*kNDIMX;
 
@@ -391,15 +396,18 @@ void AliPMDClusteringV1::RefClust(Int_t incr, Double_t edepcell[])
   // Takes the big patch and does gaussian fitting and
   // finds out the more refined clusters
   //
+  
+
+
   AliPMDcludata *pmdcludata = 0;
 
-  Int_t *cellCount;
-  Int_t **cellXY;
+  Int_t *cellCount = 0x0;
+  Int_t **cellXY = 0x0;
   const Int_t kdim = 4500;
 
   Int_t    i, j, k, i1, i2, id, icl,  itest,ihld, ig, nsupcl,clno;
   Int_t    t[kdim];
-  Int_t    ncl[kdim], iord[kdim], lev1[20], lev2[20];
+  Int_t    ncl[kdim], iord[kdim], lev1[kdim], lev2[kdim];
   Int_t    clxy[15];
   Float_t  clusdata[6];
   Double_t x1, y1, z1, x2, y2, z2, dist,rr,sum;
@@ -414,7 +422,7 @@ void AliPMDClusteringV1::RefClust(Int_t incr, Double_t edepcell[])
       if (i < 6) clusdata[i] = 0.;
       if (i < 15) clxy[i] = 0;
     }
- 
+
   // clno counts the final clusters
   // nsupcl =  # of superclusters; ncl[i]= # of cells in supercluster i
   // x, y and z store (x,y) coordinates of and energy deposited in a cell
@@ -424,9 +432,9 @@ void AliPMDClusteringV1::RefClust(Int_t incr, Double_t edepcell[])
   
   clno  = -1;
   nsupcl = -1;
+
   for(i = 0; i <= incr; i++)
     {
-      
       if(fInfcl[0][i] != nsupcl)
 	{
 	  nsupcl++;
@@ -438,13 +446,14 @@ void AliPMDClusteringV1::RefClust(Int_t incr, Double_t edepcell[])
 	  break;
 	}
       ncl[nsupcl]++;
-      
     }
+  
   AliDebug(1,Form("Number of cells = %d Number of Superclusters = %d",
 		  incr+1,nsupcl+1));
   id  = -1;
   icl = -1;
-  for( i = 0; i<= nsupcl; i++)
+  
+  for(i = 0; i <= nsupcl; i++) 
     {
       if(ncl[i] == 0)
 	{
@@ -519,7 +528,6 @@ void AliPMDClusteringV1::RefClust(Int_t incr, Double_t edepcell[])
 	}
       else
 	{
-	  
 	  id++;
 	  iord[0] = 0;
 	  // super-cluster of more than two cells - broken up into smaller
@@ -533,6 +541,7 @@ void AliPMDClusteringV1::RefClust(Int_t incr, Double_t edepcell[])
 	  x[0]    = fCoord[0][i1][i2];
 	  y[0]    = fCoord[1][i1][i2];
 	  z[0]    = edepcell[i12];
+
 	  t[0] = fCellTrNo[i1][i2];	  //asso
 	  
 	  iord[0] = 0;
@@ -547,6 +556,7 @@ void AliPMDClusteringV1::RefClust(Int_t incr, Double_t edepcell[])
 	      x[j]    = fCoord[0][i1][i2];
 	      y[j]    = fCoord[1][i1][i2];
 	      z[j]    = edepcell[i12];
+
 	      t[j]    = fCellTrNo[i1][i2];	      //asso
 	    }
 	  
@@ -577,7 +587,6 @@ void AliPMDClusteringV1::RefClust(Int_t incr, Double_t edepcell[])
 	  xc[ig] = x[iord[0]];
 	  yc[ig] = y[iord[0]];
 	  zc[ig] = z[iord[0]];
-	  
 	  for(j = 1; j <= ncl[i]; j++)
 	    {
 	      itest = -1;
@@ -590,7 +599,7 @@ void AliPMDClusteringV1::RefClust(Int_t incr, Double_t edepcell[])
 		  rr = Distance(x1,y1,x2,y2);
 		  if(rr >= 1.1 && rr < 1.8 && z[iord[j]] > zc[k]/4.)itest++;
 		  if(rr >= 1.8 && rr < 2.1 && z[iord[j]] > zc[k]/10.)itest++;
-		  if(rr >= 2.1)itest++;
+		  if( rr >= 2.1)itest++;
 		}
 	      if(itest == ig)
 		{
@@ -600,11 +609,12 @@ void AliPMDClusteringV1::RefClust(Int_t incr, Double_t edepcell[])
 		  zc[ig] = z[iord[j]];
 		}
 	    }
-	  GaussFit(ncl[i], ig, x, y ,z, xc, yc, zc, rc);
+	  GaussFit(ncl[i], ig, x[0], y[0] ,z[0], xc[0], yc[0], zc[0], rc[0]);
 	  icl += ig+1;
 	  // compute the number of cells belonging to each cluster.
 	  // cell is shared between several clusters ( if they are equidistant
 	  // from it ) in the ratio of cluster energy deposition
+
 	  Int_t jj = 15;
 	  cellCount = new Int_t [ig+1];
 	  cellXY = new Int_t *[jj];
@@ -735,22 +745,24 @@ void AliPMDClusteringV1::RefClust(Int_t incr, Double_t edepcell[])
 	  delete [] cellXY;
 	}
     }
-  }
+}
 // ------------------------------------------------------------------------ //
-void AliPMDClusteringV1::GaussFit(Int_t ncell, Int_t nclust, Double_t x[], 
-			  Double_t y[] ,Double_t z[], Double_t xc[], 
-			  Double_t yc[], Double_t zc[], Double_t rc[])
+void AliPMDClusteringV1::GaussFit(Int_t ncell, Int_t nclust, Double_t &x, 
+				  Double_t &y ,Double_t &z, Double_t &xc, 
+				  Double_t &yc, Double_t &zc, Double_t &rc)
 {
   // Does gaussian fitting
   //
+
   const Int_t kdim = 4500;
   Int_t i, j, i1, i2, novar, idd, jj;
   Int_t neib[kdim][50];
 
   Double_t sum, dx, dy, str, str1, aint, sum1, rr, dum;
   Double_t x1, x2, y1, y2;
+  Double_t xx[kdim], yy[kdim], zz[kdim], xxc[kdim], yyc[kdim];
   Double_t a[kdim], b[kdim], c[kdim], d[kdim], ha[kdim], hb[kdim];
-  Double_t hc[kdim], hd[kdim];
+  Double_t hc[kdim], hd[kdim], zzc[kdim], rrc[kdim];
   
   TRandom rnd;
   
@@ -759,36 +771,42 @@ void AliPMDClusteringV1::GaussFit(Int_t ncell, Int_t nclust, Double_t x[],
   rr    = 0.3;
   novar = 0;
   j     = 0;  
- 
+
   for(i = 0; i <= ncell; i++)
     {
-      str  += z[i];
+      xx[i] = *(&x+i);
+      yy[i] = *(&y+i);
+      zz[i] = *(&z+i);
+      str  += zz[i];
     }
   for(i=0; i<=nclust; i++)
     {
-      str1  += zc[i];
-      rc[i] = 0.5;
+      xxc[i] = *(&xc+i);
+      yyc[i] = *(&yc+i);
+      zzc[i] = *(&zc+i);
+      str1  += zzc[i];
+      rrc[i] = 0.5;
     }
-
   for(i = 0; i <= nclust; i++)
     {
-      zc[i] = str/str1*zc[i];
-      ha[i]  = xc[i];
-      hb[i]  = yc[i];
-      hc[i]  = zc[i];
-      hd[i]  = rc[i];
-      x1     = xc[i];
-      y1     = yc[i];
+      zzc[i] = str/str1*zzc[i];
+      ha[i]  = xxc[i];
+      hb[i]  = yyc[i];
+      hc[i]  = zzc[i];
+      hd[i]  = rrc[i];
+      x1     = xxc[i];
+      y1     = yyc[i];
     }
+ 
   for(i = 0; i <= ncell; i++)
     {
       idd = 0;
-      x1  = x[i];
-      y1  = y[i];
+      x1  = xx[i];
+      y1  = yy[i];
       for(j = 0; j <= nclust; j++)
 	{
-	  x2 = xc[j];
-	  y2 = yc[j];
+	  x2 = xxc[j];
+	  y2 = yyc[j];
 	  if(Distance(x1,y1,x2,y2) <= 3.)
 	    { 
 	      idd++;
@@ -805,22 +823,22 @@ void AliPMDClusteringV1::GaussFit(Int_t ncell, Int_t nclust, Double_t x[],
       for(i2 = 1; i2 <= idd; i2++)
 	{
 	  jj    = neib[i1][i2];
-	  dx    = x[i1] - xc[jj];
-	  dy    = y[i1] - yc[jj];
-	  dum   = rc[j]*rc[jj] + rr*rr;
-	  aint += exp(-(dx*dx+dy*dy)/dum)*zc[idd]*rr*rr/dum;
+	  dx    = xx[i1] - xxc[jj];
+	  dy    = yy[i1] - yyc[jj];
+	  dum   = rrc[j]*rrc[jj] + rr*rr;
+	  aint += exp(-(dx*dx+dy*dy)/dum)*zzc[idd]*rr*rr/dum;
 	}
-      sum += (aint - z[i1])*(aint - z[i1])/str;
+      sum += (aint - zz[i1])*(aint - zz[i1])/str;
     } 
   str1 = 0.;
  
   for(i = 0; i <= nclust; i++)
     {
-      a[i]  = xc[i] + 0.6*(rnd.Uniform() - 0.5);
-      b[i]  = yc[i] + 0.6*(rnd.Uniform() - 0.5);
-      c[i]  = zc[i]*(1.+ ( rnd.Uniform() - 0.5)*0.2);
-      str1 += zc[i];
-      d[i]  = rc[i]*(1.+ ( rnd.Uniform() - 0.5)*0.1);
+      a[i]  = xxc[i] + 0.6*(rnd.Uniform() - 0.5);
+      b[i]  = yyc[i] + 0.6*(rnd.Uniform() - 0.5);
+      c[i]  = zzc[i]*(1.+ ( rnd.Uniform() - 0.5)*0.2);
+      str1 += zzc[i];
+      d[i]  = rrc[i]*(1.+ ( rnd.Uniform() - 0.5)*0.1);
       
       if(d[i] < 0.25)
 	{
@@ -840,24 +858,31 @@ void AliPMDClusteringV1::GaussFit(Int_t ncell, Int_t nclust, Double_t x[],
       for(i2 = 1; i2 <= idd; i2++)
 	{
 	  jj    = neib[i1][i2];
-	  dx    = x[i1] - a[jj];
-	  dy    = y[i1] - b[jj];
+	  dx    = xx[i1] - a[jj];
+	  dy    = yy[i1] - b[jj];
 	  dum   = d[jj]*d[jj]+rr*rr;
 	  aint += exp(-(dx*dx+dy*dy)/dum)*c[i2]*rr*rr/dum;
 	}
-      sum1 += (aint - z[i1])*(aint - z[i1])/str;
+      sum1 += (aint - zz[i1])*(aint - zz[i1])/str;
     }
 
     if(sum1 < sum)
       {
 	for(i2 = 0; i2 <= nclust; i2++)
 	{
-	  xc[i2] = a[i2];
-	  yc[i2] = b[i2];
-	  zc[i2] = c[i2];
-	  rc[i2] = d[i2];
+	  xxc[i2] = a[i2];
+	  yyc[i2] = b[i2];
+	  zzc[i2] = c[i2];
+	  rrc[i2] = d[i2];
 	  sum     = sum1;
 	}
+      }
+    for(j = 0; j <= nclust; j++)
+      {
+	*(&xc+j) = xxc[j];
+	*(&yc+j) = yyc[j];
+	*(&zc+j) = zzc[j];
+	*(&rc+j) = rrc[j];
       }
 }
 // ------------------------------------------------------------------------ //
