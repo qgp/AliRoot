@@ -1,3 +1,10 @@
+2007-10-04  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	EVE-dev
+
+	* alice-macros/tpc_calib_viewer.C:
+	New macro (with Marian): start an embedded TPC calibration viewer.
+
 2007-10-03  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	EVE-dev
