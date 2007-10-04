@@ -11,6 +11,9 @@
  ***************************************************************************
  *
  * $Log$
+ * Revision 1.3  2007/05/22 09:01:42  akisiel
+ * Add the possibiloity to save cut settings in the ROOT file
+ *
  * Revision 1.2  2007/05/21 10:38:25  akisiel
  * More coding rule conformance
  *
@@ -54,7 +57,8 @@ AliFemtoESDTrackCut::AliFemtoESDTrackCut() :
     fminTPCclsF(0),
     fminITScls(0),
     fNTracksPassed(0),
-    fNTracksFailed(0)
+    fNTracksFailed(0),
+    fRemoveKinks(kFALSE)
 {
   // Default constructor
   fNTracksPassed = fNTracksFailed = 0;
@@ -90,7 +94,7 @@ bool AliFemtoESDTrackCut::Pass(const AliFemtoTrack* track)
       //cout<<" status "<<track->Label()<<" "<<track->Flags()<<" "<<track->TPCnclsF()<<" "<<track->ITSncls()<<endl;
       if ((track->Flags()&fStatus)!=fStatus)
 	{
-	  //  cout<<track->Flags()<<" "<<fStatus<<" no go through status"<<endl;
+	  //	  cout<<track->Flags()<<" "<<fStatus<<" no go through status"<<endl;
 	  return false;
 	}
 	
@@ -181,6 +185,10 @@ bool AliFemtoESDTrackCut::Pass(const AliFemtoTrack* track)
       //cout<<fPidProbMuon[0]<<" <  mi="<<track->PidProbMuon()<<" <"<<fPidProbMuon[1]<<endl;
       return false;
     }
+  if (fRemoveKinks) {
+    if ((track->KinkIndex(0)) || (track->KinkIndex(1)) || (track->KinkIndex(2)))
+      return false;
+  }
   
   // cout<<"Go Through the cut"<<endl;
   // cout<<fLabel<<" Label="<<track->Label()<<endl;
@@ -257,6 +265,12 @@ TList *AliFemtoESDTrackCut::ListSettings()
   tListSetttings->AddLast(new TObjString(buf));
   snprintf(buf, 200, "AliFemtoESDTrackCut.rapidity.maximum=%lf", fRapidity[1]);
   tListSetttings->AddLast(new TObjString(buf));
+  snprintf(buf, 200, "AliFemtoESDTrackCut.removekinks=%i", fRemoveKinks);
+  tListSetttings->AddLast(new TObjString(buf));
 
   return tListSetttings;
+}
+void AliFemtoESDTrackCut::SetRemoveKinks(const bool& flag)
+{
+  fRemoveKinks = flag;
 }

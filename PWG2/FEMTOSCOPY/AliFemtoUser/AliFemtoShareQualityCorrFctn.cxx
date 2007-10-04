@@ -218,14 +218,22 @@ void AliFemtoShareQualityCorrFctn::AddRealPair( AliFemtoPair* pair){
 	 << pair->Track1()->Track()->P().z() << " "  
 	 << pair->Track1()->Track()->Label() << " "  
 	 << pair->Track1()->Track()->TrackId() << " "  
-	 << pair->Track1()->Track()->Flags() << endl;
+	 << pair->Track1()->Track()->Flags() << " "
+	 << pair->Track1()->Track()->KinkIndex(0) << " "
+	 << pair->Track1()->Track()->KinkIndex(1) << " "
+	 << pair->Track1()->Track()->KinkIndex(2) << " "
+	 << endl;
     cout << "Momentum2 " 
 	 << pair->Track2()->Track()->P().x() << " "  
 	 << pair->Track2()->Track()->P().y() << " "  
 	 << pair->Track2()->Track()->P().z() << " "  
 	 << pair->Track2()->Track()->Label() << " "  
 	 << pair->Track2()->Track()->TrackId() << " "  
-	 << pair->Track2()->Track()->Flags() << endl;
+	 << pair->Track2()->Track()->Flags() << " " 
+	 << pair->Track2()->Track()->KinkIndex(0) << " "
+	 << pair->Track2()->Track()->KinkIndex(1) << " "
+	 << pair->Track2()->Track()->KinkIndex(2) << " "
+	 << endl;
   }
 
   fShareNumerator->Fill(tQinv, hsfval);

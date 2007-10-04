@@ -41,7 +41,8 @@ class AliFemtoESDTrackCut : public AliFemtoTrackCut
   void SetStatus(const long& w);
   void SetminTPCclsF(const short& s);
   void SetminITScls(const int& s);
-  
+  void SetRemoveKinks(const bool& flag);
+
  private:   // here are the quantities I want to cut on...
 
   int               fCharge;             // particle charge
@@ -58,6 +59,7 @@ class AliFemtoESDTrackCut : public AliFemtoTrackCut
   int               fminITScls;          // min number of clusters assigned in the ITS 
   long              fNTracksPassed;      // passed tracks count
   long              fNTracksFailed;      // failed tracks count
+  bool              fRemoveKinks;        // if true particles with any kink label will not pass
 
 #ifdef __ROOT__ 
   ClassDef(AliFemtoESDTrackCut, 1)
