@@ -53,6 +53,9 @@ AliFemtoTrack::AliFemtoTrack():
 {
   // Default constructor
   fHiddenInfo = NULL;
+  fKinkIndexes[0] = 0;
+  fKinkIndexes[1] = 0;
+  fKinkIndexes[2] = 0;
   //  cout << "Created track " << this << endl;
 }
 
@@ -117,6 +120,9 @@ AliFemtoTrack::AliFemtoTrack(const AliFemtoTrack& t) :
     fHiddenInfo = t.GetHiddenInfo()->Clone();
   else 
     fHiddenInfo = NULL;
+  fKinkIndexes[0] = t.fKinkIndexes[0];
+  fKinkIndexes[1] = t.fKinkIndexes[1];
+  fKinkIndexes[2] = t.fKinkIndexes[2];
   //  cout << "Created track " << this << endl;
 };
 
@@ -151,6 +157,9 @@ AliFemtoTrack& AliFemtoTrack::operator=(const AliFemtoTrack& aTrack)
   fTPCsignalS=aTrack.fTPCsignalS;  
   fClusters=aTrack.fClusters;
   fShared=aTrack.fShared;
+  fKinkIndexes[0] = aTrack.fKinkIndexes[0];
+  fKinkIndexes[1] = aTrack.fKinkIndexes[1];
+  fKinkIndexes[2] = aTrack.fKinkIndexes[2];
   if (ValidHiddenInfo())
     delete fHiddenInfo;
   if (aTrack.ValidHiddenInfo())
@@ -242,3 +251,17 @@ void AliFemtoTrack::SetTPCSharedMap(const TBits& aBits)
   fShared = aBits;
 }
 
+void AliFemtoTrack::SetKinkIndexes(int points[3])
+{
+  fKinkIndexes[0] = points[0];
+  fKinkIndexes[1] = points[1];
+  fKinkIndexes[2] = points[2];
+}
+
+int  AliFemtoTrack::KinkIndex(int aIndex) const
+{
+  if ((aIndex <3) && (aIndex>=0))
+    return fKinkIndexes[aIndex];
+  else
+    return 0;
+}

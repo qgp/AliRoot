@@ -11,6 +11,9 @@
 /*
  *$Id$
  *$Log$
+ *Revision 1.2.2.1  2007/09/30 11:38:59  akisiel
+ *Adapt the readers to the new AliESDEvent structure
+ *
  *Revision 1.2  2007/05/22 09:01:42  akisiel
  *Add the possibiloity to save cut settings in the ROOT file
  *
@@ -347,6 +350,11 @@ AliFemtoEvent* AliFemtoEventReaderESD::ReturnHbtEvent()
       trackCopy->SetTPCClusterMap(esdtrack->GetTPCClusterMap());
       trackCopy->SetTPCSharedMap(esdtrack->GetTPCSharedMap());
 
+      int indexes[3];
+      for (int ik=0; ik<3; ik++) {
+	indexes[ik] = esdtrack->GetKinkIndex(ik);
+      }
+      trackCopy->SetKinkIndexes(indexes);
       //decision if we want this track
       //if we using diffrent labels we want that this label was use for first time 
       //if we use hidden info we want to have match between sim data and ESD

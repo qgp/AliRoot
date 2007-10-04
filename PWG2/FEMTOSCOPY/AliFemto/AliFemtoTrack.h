@@ -104,6 +104,9 @@ public:
   void SetTPCClusterMap(const TBits& aBits);
   void SetTPCSharedMap(const TBits& aBits);
 
+  void SetKinkIndexes(int points[3]);
+  int  KinkIndex(int aIndex) const;
+
   /* Th stuff */
   void SetHiddenInfo(AliFemtoHiddenInfo* aHiddenInfo);
   bool ValidHiddenInfo() const;
@@ -150,12 +153,13 @@ public:
   // TPC related track information
   float  fTPCchi2;       // chi2 in the TPC
   int    fTPCncls;       // number of clusters assigned in the TPC
-  short fTPCnclsF;      // number of findable clusters in the TPC
-  short fTPCsignalN;    // number of points used for dEdx
-  float fTPCsignalS;    // RMS of dEdx measurement
-  TBits fClusters;      // Cluster per padrow map
-  TBits fShared;        // Sharing per padrow map
-  
+  short fTPCnclsF;       // number of findable clusters in the TPC
+  short fTPCsignalN;     // number of points used for dEdx
+  float fTPCsignalS;     // RMS of dEdx measurement
+  TBits fClusters;       // Cluster per padrow map
+  TBits fShared;         // Sharing per padrow map
+
+  int   fKinkIndexes[3]; // Kink Index list
   /* Th stuff */
   // Fab private : add mutable
   //  mutable 
