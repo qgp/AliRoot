@@ -1,3 +1,17 @@
+2007-10-04  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	EVE-dev
+
+	* GeoNode.cxx:
+	For class GeoShapeRnrEl:
+	Add missing call to ElementChanged() in ImportShapeExtract().
+	Properly handle fHMTrans::UseTrans.
+
+	* TGeoShapeExtract.cxx:
+	* TGeoShapeExtract.h:
+	Add setters and AddElement() method to allow creation of ad hoc
+	shape collections.
+
 2007-10-03  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	EVE-dev
