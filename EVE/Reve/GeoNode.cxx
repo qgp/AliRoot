@@ -302,6 +302,7 @@ void GeoShapeRnrEl::Paint(Option_t* /*option*/)
   buff.fColor        = fColor;
   buff.fTransparency = fTransparency;
   fHMTrans.SetBuffer3D(buff);
+  buff.fLocalFrame   = kTRUE; // Always enforce local frame (no geo manager).
 
   fShape->GetBuffer3D(TBuffer3D::kBoundingBox | TBuffer3D::kShapeSpecific, true);
 
@@ -323,6 +324,7 @@ GeoShapeRnrEl* GeoShapeRnrEl::ImportShapeExtract(TGeoShapeExtract * gse,
 {
   gReve->DisableRedraw();
   GeoShapeRnrEl* gsre = SubImportShapeExtract(gse, parent);
+  gsre->ElementChanged();
   gReve->EnableRedraw();
   return gsre;
 }
@@ -354,7 +356,9 @@ GeoShapeRnrEl* GeoShapeRnrEl::SubImportShapeExtract(TGeoShapeExtract * gse,
 
   return gsre;
 }
+
 /**************************************************************************/
+
 TBuffer3D* GeoShapeRnrEl::MakeBuffer3D()
 {
   if(fShape == 0) return 0;
@@ -365,12 +369,15 @@ TBuffer3D* GeoShapeRnrEl::MakeBuffer3D()
   }
 
   TBuffer3D* buff  = fShape->MakeBuffer3D();
-  Reve::ZTrans& mx = RefHMTrans();
-  Int_t N = buff->NbPnts();
-  Double_t* pnts = buff->fPnts;   
-  for(Int_t k=0; k<N; k++) 
+  if (fHMTrans.GetUseTrans())
   {
-    mx.MultiplyIP(&pnts[3*k]);
+    Reve::ZTrans& mx = RefHMTrans();
+    Int_t N = buff->NbPnts();
+    Double_t* pnts = buff->fPnts;   
+    for(Int_t k=0; k<N; k++) 
+    {
+      mx.MultiplyIP(&pnts[3*k]);
+    }
   }
   return buff;
 }
