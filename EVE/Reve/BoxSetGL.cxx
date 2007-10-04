@@ -67,30 +67,30 @@ void BoxSetGL::MakeOriginBox(Float_t* p, Float_t dx, Float_t dy, Float_t dz) con
 
 inline void BoxSetGL::RenderBox(const Float_t* p) const
 {
-  // bottom: 3210
+  // bottom: 0123
   glNormal3f(0, 0, -1);
-  glVertex3fv(p + 9);  glVertex3fv(p + 6);
-  glVertex3fv(p + 3);  glVertex3fv(p);
-  // top:   4567
-  glNormal3f(0, 0, 1);
-  glVertex3fv(p + 12); glVertex3fv(p + 15);
-  glVertex3fv(p + 18); glVertex3fv(p + 21);
-  // front: 0154
-  glNormal3f(0, -1, 0);
   glVertex3fv(p);      glVertex3fv(p + 3);
-  glVertex3fv(p + 15); glVertex3fv(p + 12);
-  // back:  7623
-  glNormal3f(0, 1, 0);
-  glVertex3fv(p + 21); glVertex3fv(p + 18);
   glVertex3fv(p + 6);  glVertex3fv(p + 9);
-  // left:  4730
-  glNormal3f(-1, 0, 0);
-  glVertex3fv(p + 12); glVertex3fv(p + 21);
-  glVertex3fv(p + 9);  glVertex3fv(p);
-  // right: 5126
-  glNormal3f(1, 0, 0);
+  // top:    7654
+  glNormal3f(0, 0, 1);
+  glVertex3fv(p + 21); glVertex3fv(p + 18);
+  glVertex3fv(p + 15); glVertex3fv(p + 12);
+  // back:  0451
+  glNormal3f(0, 1, 0);
+  glVertex3fv(p);      glVertex3fv(p + 12);
   glVertex3fv(p + 15); glVertex3fv(p + 3);
-  glVertex3fv(p + 6);  glVertex3fv(p + 18);
+  // front:   3267
+  glNormal3f(0, -1, 0);
+  glVertex3fv(p + 9);   glVertex3fv(p + 6);
+  glVertex3fv(p + 18);  glVertex3fv(p + 21);
+  // left:    0374
+  glNormal3f(-1, 0, 0);
+  glVertex3fv(p);       glVertex3fv(p + 9);
+  glVertex3fv(p + 21);  glVertex3fv(p + 12);
+  // right:   1562
+  glNormal3f(1, 0, 0);
+  glVertex3fv(p + 3);   glVertex3fv(p + 15);
+  glVertex3fv(p + 18);  glVertex3fv(p + 6);
 }
 
 void BoxSetGL::MakeDisplayList() const
@@ -180,7 +180,6 @@ void BoxSetGL::DirectDraw(TGLRnrCtx & rnrCtx) const
   glPushAttrib(GL_ENABLE_BIT | GL_POLYGON_BIT);
   glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
   glEnable(GL_COLOR_MATERIAL);
-  glDisable(GL_CULL_FACE);
 
   if (mB.fRenderMode == DigitSet::RM_Fill)
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
