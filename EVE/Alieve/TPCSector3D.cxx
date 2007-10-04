@@ -101,28 +101,29 @@ void TPCSector3D::LoadPadrow(TPCSectorData::RowIterator& iter,
                              Float_t xs, Float_t ys, Float_t pw, Float_t ph) 
 {
   Short_t pad, time, val;
-  Float_t x0, z0; // x1, z0, z1;
+  Float_t x0, z0;
   Float_t ym = ys + 0.5*ph;
-  // Float_t ye = ys + ph;
   Float_t zs = fZStep/fDriftVel;
 
-  while (iter.NextPad()) {
+  while (iter.NextPad())
+  {
     pad = iter.Pad();
-    while (iter.Next()) {
+    while (iter.Next())
+    {
       time = iter.Time();
       val  = iter.Signal();
 
       if(val <= fThreshold || time < fMinTime || time > fMaxTime)
 	continue;
 
-      if(fPointSetOn && val <= fPointSetMaxVal) {
+      if(fPointSetOn && val <= fPointSetMaxVal)
+      {
 	fPointSetArray.Fill(xs + (pad+0.5)*pw, ym, (time+0.5)*zs, val);
-      } else {
+      }
+      else
+      {
 	x0 = xs + pad*pw;
-	// x1 = x0 + pw;
 	z0 = time*zs;
-	// z1 = z0 + zs;
-
 	fBoxSet.AddBox(x0, ys, z0, pw, ph, zs);
         fBoxSet.DigitColor(ColorFromArray(val));
       }
