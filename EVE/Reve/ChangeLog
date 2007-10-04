@@ -2,6 +2,13 @@
 
 	EVE-dev
 
+	* BoxSetGL.cxx:
+	Make box face-normals and face-orientations consistent.
+
+2007-10-04  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	EVE-dev
+
 	* GeoNode.cxx:
 	For class GeoShapeRnrEl:
 	Add missing call to ElementChanged() in ImportShapeExtract().
