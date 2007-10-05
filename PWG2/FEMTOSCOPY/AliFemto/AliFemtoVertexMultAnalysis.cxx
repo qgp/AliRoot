@@ -13,6 +13,9 @@
  ***************************************************************************
  *
  * $Log$
+ * Revision 1.2  2007/07/09 16:17:11  mlisa
+ * several files changed to change name of AliFemtoAnalysis to AliFemtoSimpleAnalysis and AliFemtoBaseAnalysis to AliFemtoAnalysis.  Also removed some hard-coded cuts of Marek
+ *
  * Revision 1.1  2007/05/16 10:22:12  akisiel
  * Making the directory structure of AliFemto flat. All files go into one common directory
  *
@@ -89,7 +92,7 @@ AliFemtoVertexMultAnalysis::AliFemtoVertexMultAnalysis(unsigned int binsVertex, 
   if (fMixingBuffer) delete fMixingBuffer;
   fPicoEventCollectionVectorHideAway = new AliFemtoPicoEventCollectionVectorHideAway(fVertexZBins,fVertexZ[0],fVertexZ[1],
 										  fMultBins,fMult[0],fMult[1]);
-};
+}
 //____________________________
 
 AliFemtoVertexMultAnalysis::AliFemtoVertexMultAnalysis(const AliFemtoVertexMultAnalysis& a) : 

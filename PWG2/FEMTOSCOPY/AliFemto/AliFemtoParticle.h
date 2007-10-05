@@ -130,7 +130,7 @@ private:
 };
 
 inline AliFemtoTrack* AliFemtoParticle::Track() const { return fTrack; }
-inline unsigned long  AliFemtoParticle::TrackId() const { return fTrack->TrackId(); }; 
+inline unsigned long  AliFemtoParticle::TrackId() const { return fTrack->TrackId(); }
 inline const AliFemtoLorentzVector& AliFemtoParticle::FourMomentum() const {return fFourMomentum;}
 inline AliFmPhysicalHelixD& AliFemtoParticle::Helix() {return fHelix;}
 //inline unsigned long AliFemtoParticle::TopologyMap(const int word) const {return fMap[word];}

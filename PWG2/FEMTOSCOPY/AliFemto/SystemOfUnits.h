@@ -35,6 +35,9 @@
  ***************************************************************************
  *
  * $Log$
+ * Revision 1.1  2007/05/16 10:22:12  akisiel
+ * Making the directory structure of AliFemto flat. All files go into one common directory
+ *
  * Revision 1.1.1.1  2007/04/25 15:38:41  panos
  * Importing the HBT code dir
  *
@@ -302,6 +305,6 @@ namespace units {
 
 #endif
 
-};
+}
 using namespace units;
 #endif /* HEP_SYSTEM_OF_UNITS_H */

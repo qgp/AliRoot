@@ -124,7 +124,7 @@ AliFemtoTrack::AliFemtoTrack(const AliFemtoTrack& t) :
   fKinkIndexes[1] = t.fKinkIndexes[1];
   fKinkIndexes[2] = t.fKinkIndexes[2];
   //  cout << "Created track " << this << endl;
-};
+}
 
 AliFemtoTrack& AliFemtoTrack::operator=(const AliFemtoTrack& aTrack)
 {
