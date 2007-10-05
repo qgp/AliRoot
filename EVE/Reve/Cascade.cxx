@@ -31,7 +31,7 @@
 #include <TColor.h>
 
 // Updates
-#include <Reve/RGTopFrame.h>
+#include <Reve/ReveManager.h>
 #include <TCanvas.h>
 #include <TH1F.h>
 #include <TH2F.h>

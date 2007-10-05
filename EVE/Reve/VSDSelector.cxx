@@ -1,7 +1,7 @@
 
 #include "VSDSelector.h"
 #include "VSDEvent.h"
-#include "RGTopFrame.h"
+#include "ReveManager.h"
 
 #include <Reve/Track.h>
 #include <Reve/PointSet.h>

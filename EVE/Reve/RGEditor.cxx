@@ -2,7 +2,7 @@
 
 #include "RGEditor.h"
 #include "RenderElement.h"
-#include "RGTopFrame.h"
+#include "ReveManager.h"
 
 #include <TGedFrame.h>
 #include <TGCanvas.h>

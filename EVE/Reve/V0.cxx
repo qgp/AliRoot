@@ -28,7 +28,7 @@
 #include <TPolyMarker3D.h>
 #include <TColor.h>
 
-#include <Reve/RGTopFrame.h>
+#include <Reve/ReveManager.h>
 #include <TCanvas.h>
 #include <TH1F.h>
 #include <TH2F.h>

@@ -1,7 +1,7 @@
 // $Header$
 
 #include "GeoNode.h"
-#include <Reve/RGTopFrame.h>
+#include <Reve/ReveManager.h>
 #include <Reve/NLTBases.h>
 
 #include "TGeoShapeExtract.h"

@@ -6,7 +6,7 @@
 #include <Alieve/TPCData.h>
 #include <Alieve/TPCSectorData.h>
 
-#include <Reve/RGTopFrame.h>
+#include <Reve/ReveManager.h>
 
 #include <AliTPCParam.h>
 

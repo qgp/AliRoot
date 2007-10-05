@@ -4,7 +4,7 @@
 #include <Reve/Track.h>
 
 #include <Reve/RGValuators.h>
-#include <Reve/RGTopFrame.h>
+#include <Reve/ReveManager.h>
 
 #include <TVirtualPad.h>
 #include <TColor.h>

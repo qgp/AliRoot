@@ -4,7 +4,7 @@
 #include "ITSDigitsInfo.h"
 #include "ITSScaledModule.h"
 
-#include "Reve/RGTopFrame.h"
+#include "Reve/ReveManager.h"
 #include "Reve/RGEditor.h"
 #include "Reve/GridStepper.h"
 #include "Reve/GLTextNS.h"

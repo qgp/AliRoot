@@ -1,5 +1,5 @@
 #include "NLTProjector.h"
-#include "RGTopFrame.h"
+#include "ReveManager.h"
 #include "NLTPolygonSet.h"
 #include "PointSet.h"
 #include "Track.h"

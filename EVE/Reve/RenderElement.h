@@ -18,7 +18,7 @@ class ZTrans;
 
 class RenderElement
 {
-  friend class RGTopFrame;
+  friend class ReveManager;
 
   RenderElement(const RenderElement&);            // Not implemented
   RenderElement& operator=(const RenderElement&); // Not implemented

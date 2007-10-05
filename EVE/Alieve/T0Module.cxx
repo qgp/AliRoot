@@ -9,7 +9,7 @@
 #include <TStyle.h>
 #include <TMath.h>
 #include <TRandom.h>
-#include <Reve/RGTopFrame.h>
+#include <Reve/ReveManager.h>
 #include <AliT0digit.h>
 #include "TArrayI.h"
 #include <AliRawReader.h>

@@ -1,7 +1,7 @@
 #include "TRDLoader.h"
 #include "TRDModuleImp.h"
 
-#include <Reve/RGTopFrame.h>
+#include <Reve/ReveManager.h>
 #include <Reve/RGValuators.h>
 
 #include "TSystem.h"

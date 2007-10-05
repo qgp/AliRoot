@@ -1,6 +1,6 @@
 #include "TOFSector.h"
 
-#include <Reve/RGTopFrame.h>
+#include <Reve/ReveManager.h>
 
 #include <AliTOFdigit.h>
 #include <AliTOFGeometryV5.h>

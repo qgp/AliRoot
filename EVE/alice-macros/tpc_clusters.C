@@ -9,7 +9,7 @@ class PointSet;
 #else
 
 #include <Reve/Reve.h>
-#include <Reve/RGTopFrame.h>
+#include <Reve/ReveManager.h>
 #include <Reve/PointSet.h>
 #include <Alieve/EventAlieve.h>
 

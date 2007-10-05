@@ -1,5 +1,5 @@
 #include "RGBrowser.h"
-#include "RGTopFrame.h"
+#include "ReveManager.h"
 #include "Reve.h"
 #include "RGEditor.h"
 #include "VSDSelector.h"

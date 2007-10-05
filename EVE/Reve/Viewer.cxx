@@ -4,7 +4,7 @@
 #include "Scene.h"
 #include "SceneInfo.h"
 
-#include <Reve/RGTopFrame.h>
+#include <Reve/ReveManager.h>
 
 #include <TGLSAViewer.h>
 #include <TGLScenePad.h>

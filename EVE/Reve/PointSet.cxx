@@ -2,7 +2,7 @@
 
 #include "PointSet.h"
 
-#include <Reve/RGTopFrame.h>
+#include <Reve/ReveManager.h>
 #include <Reve/NLTProjector.h>
 
 #include <TTree.h>

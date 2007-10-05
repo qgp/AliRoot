@@ -1,10 +1,9 @@
 // $Header$
 
-#ifndef REVE_RGTopFrame_H
-#define REVE_RGTopFrame_H
+#ifndef REVE_ReveManager_H
+#define REVE_ReveManager_H
 
 #include <TClass.h>
-//#include <TGFrame.h>
 #include <TGeoManager.h>
 #include <TROOT.h>
 #include <TTimer.h>
@@ -41,10 +40,10 @@ class Scene;  class SceneList;
 class EventBase;
 
 
-class RGTopFrame
+class ReveManager
 {
-  RGTopFrame(const RGTopFrame&);            // Not implemented
-  RGTopFrame& operator=(const RGTopFrame&); // Not implemented
+  ReveManager(const ReveManager&);            // Not implemented
+  ReveManager& operator=(const ReveManager&); // Not implemented
 
 public:
   class RedrawDisabler
@@ -53,9 +52,9 @@ public:
     RedrawDisabler(const RedrawDisabler&);            // Not implemented
     RedrawDisabler& operator=(const RedrawDisabler&); // Not implemented
 
-    RGTopFrame* fFrame;
+    ReveManager* fFrame;
   public:
-    RedrawDisabler(RGTopFrame* f) : fFrame(f)
+    RedrawDisabler(ReveManager* f) : fFrame(f)
     { if (fFrame) fFrame->DisableRedraw(); }
     ~RedrawDisabler()
     { if (fFrame) fFrame->EnableRedraw(); }
@@ -90,8 +89,8 @@ protected:
   std::map<TString, TGeoManager*> fGeometries;
 
 public:
-  RGTopFrame(UInt_t w, UInt_t h);
-  virtual ~RGTopFrame();
+  ReveManager(UInt_t w, UInt_t h);
+  virtual ~ReveManager();
 
   RGBrowser*   GetBrowser()   const { return fBrowser;   }
   RGLTEFrame*  GetLTEFrame()  const { return fLTEFrame;  }
@@ -167,11 +166,11 @@ public:
   void SetStatusLine(const char* text);
   void ThrowException(const char* text="foo");
 
-  ClassDef(RGTopFrame, 0);
+  ClassDef(ReveManager, 0);
 };
 
 } // namespace Reve
 
-extern Reve::RGTopFrame* gReve;
+extern Reve::ReveManager* gReve;
 
 #endif

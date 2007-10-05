@@ -3,7 +3,7 @@
 #include "ITSModuleStepperEditor.h"
 #include <Alieve/ITSModuleStepper.h>
 #include <Reve/GridStepperEditor.h>
-#include <Reve/RGTopFrame.h>
+#include <Reve/ReveManager.h>
 
 #include <TVirtualPad.h>
 #include <TColor.h>

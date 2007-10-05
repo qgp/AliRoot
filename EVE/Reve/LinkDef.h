@@ -10,7 +10,7 @@
 
 
 #pragma link C++ namespace Reve;
-#pragma link C++ global   gReve; // In RGTopFrame ... should move.
+#pragma link C++ global   gReve; // In ReveManager ... should move.
 
 //================================
 // base/
@@ -114,8 +114,8 @@
 // RMacro
 #pragma link C++ class Reve::RMacro+;
 
-// RGTopFrame
-#pragma link C++ class Reve::RGTopFrame+;
+// ReveManager
+#pragma link C++ class Reve::ReveManager+;
 
 // RGValuators
 #pragma link C++ class Reve::RGValuatorBase+;

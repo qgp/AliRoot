@@ -1,7 +1,7 @@
 // $Header$
 
 #include "RenderElement.h"
-#include "RGTopFrame.h"
+#include "ReveManager.h"
 #include "RGEditor.h"
 
 #include <TColor.h>

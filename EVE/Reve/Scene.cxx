@@ -2,7 +2,7 @@
 
 #include "Scene.h"
 #include "Viewer.h"
-#include <Reve/RGTopFrame.h>
+#include <Reve/ReveManager.h>
 
 #include <TList.h>
 #include <TGLScenePad.h>

@@ -18,7 +18,7 @@
 
 #include "TriangleSet.h"
 #include "RGBAPalette.h"
-#include "RGTopFrame.h"
+#include "ReveManager.h"
 
 #include <TMath.h>
 #include <TVector3.h>

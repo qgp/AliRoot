@@ -2,7 +2,7 @@
 #include "TRDLoader.h"
 #include "TRDLoaderImp.h"
 
-#include <Reve/RGTopFrame.h>
+#include <Reve/ReveManager.h>
 
 #include <TGLabel.h>
 #include <TGButton.h>

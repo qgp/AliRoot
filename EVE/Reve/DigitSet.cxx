@@ -2,7 +2,7 @@
 
 #include "DigitSet.h"
 
-#include "RGTopFrame.h"
+#include "ReveManager.h"
 
 #include <TColor.h>
 

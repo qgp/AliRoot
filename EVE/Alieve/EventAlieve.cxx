@@ -2,7 +2,7 @@
 
 #include "EventAlieve.h"
 #include <Reve/Reve.h>
-#include <Reve/RGTopFrame.h>
+#include <Reve/ReveManager.h>
 
 #include <AliRunLoader.h>
 #include <AliRun.h>
@@ -198,7 +198,7 @@ void Event::GotoEvent(Int_t event)
     throw(eH + Form("event %d not present, available range [%d, %d].",
 		    event, 0, maxEvent));
 
-  RGTopFrame::RedrawDisabler rd(gReve);
+  ReveManager::RedrawDisabler rd(gReve);
   gReve->Redraw3D(kFALSE, kTRUE); // Enforce drop of all logicals.
 
   // !!! MT this is somewhat brutal; at least optionally, one could be

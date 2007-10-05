@@ -16,7 +16,7 @@
 
 #include <TCanvas.h>
 #include <TGLViewer.h>
-#include <Reve/RGTopFrame.h>
+#include <Reve/ReveManager.h>
 
 
 #include <TH1F.h>

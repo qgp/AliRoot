@@ -10,7 +10,7 @@
 #include <TColor.h>
 
 // Updates
-#include <Reve/RGTopFrame.h>
+#include <Reve/ReveManager.h>
 #include <Reve/NLTTrack.h>
 #include <TCanvas.h>
 

@@ -18,7 +18,7 @@ class RGLTEFrame : public TGMainFrame
   RGLTEFrame(const RGLTEFrame&);            // Not implemented
   RGLTEFrame& operator=(const RGLTEFrame&); // Not implemented
 
-  friend class RGTopFrame;
+  friend class ReveManager;
 
 protected:
   TGCompositeFrame *fFrame;

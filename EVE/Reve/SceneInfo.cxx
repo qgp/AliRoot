@@ -2,7 +2,7 @@
 
 #include "SceneInfo.h"
 #include "Scene.h"
-#include "RGTopFrame.h"
+#include "ReveManager.h"
 
 #include <TGLSceneInfo.h>
 

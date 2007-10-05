@@ -3,7 +3,7 @@
 #include "TPCLoaderEditor.h"
 #include <Alieve/TPCLoader.h>
 #include <Alieve/TPCData.h>
-#include <Reve/RGTopFrame.h>
+#include <Reve/ReveManager.h>
 #include <Reve/RGValuators.h>
 
 #include <TSystem.h>

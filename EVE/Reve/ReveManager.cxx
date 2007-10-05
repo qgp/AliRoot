@@ -1,4 +1,4 @@
-#include "RGTopFrame.h"
+#include "ReveManager.h"
 
 #include <Reve/Viewer.h>
 #include <Reve/Scene.h>
@@ -44,11 +44,11 @@
 using namespace Reve;
 using namespace Reve;
 
-Reve::RGTopFrame* gReve = 0;
+Reve::ReveManager* gReve = 0;
 
 /**************************************************************************/
 
-RGTopFrame::RGTopFrame(UInt_t w, UInt_t h) :
+ReveManager::ReveManager(UInt_t w, UInt_t h) :
   fBrowser     (0),
   fEditor      (0),
   fStatusBar   (0),
@@ -71,14 +71,14 @@ RGTopFrame::RGTopFrame(UInt_t w, UInt_t h) :
 
   fGeometries     ()
 {
-  static const Exc_t eH("RGTopFrame::RGTopFrame ");
+  static const Exc_t eH("ReveManager::ReveManager ");
 
   if (gReve != 0)
     throw(eH + "There can be only one!");
 
   gReve = this;
 
-  fRedrawTimer.Connect("Timeout()", "Reve::RGTopFrame", this, "DoRedraw3D()");
+  fRedrawTimer.Connect("Timeout()", "Reve::ReveManager", this, "DoRedraw3D()");
   fMacroFolder = new TFolder("EVE", "Visualization macros");
   gROOT->GetListOfBrowsables()->Add(fMacroFolder);
 
@@ -140,12 +140,12 @@ RGTopFrame::RGTopFrame(UInt_t w, UInt_t h) :
   gSystem->ProcessEvents();
 }
 
-RGTopFrame::~RGTopFrame()
+ReveManager::~ReveManager()
 {}
 
 /**************************************************************************/
 
-TCanvas* RGTopFrame::AddCanvasTab(const char* name)
+TCanvas* ReveManager::AddCanvasTab(const char* name)
 {
   fBrowser->StartEmbedding(1, -1);
   TCanvas* c = new TCanvas;
@@ -155,17 +155,17 @@ TCanvas* RGTopFrame::AddCanvasTab(const char* name)
   return c;
 }
 
-TGWindow* RGTopFrame::GetMainWindow() const
+TGWindow* ReveManager::GetMainWindow() const
 {
   return fBrowser;
 }
 
-TGLViewer* RGTopFrame::GetGLViewer() const
+TGLViewer* ReveManager::GetGLViewer() const
 {
   return fViewer->GetGLViewer();
 }
 
-Viewer* RGTopFrame::SpawnNewViewer(const Text_t* name, const Text_t* title, Bool_t embed)
+Viewer* ReveManager::SpawnNewViewer(const Text_t* name, const Text_t* title, Bool_t embed)
 {
   Viewer* v = new Viewer(name, title);
 
@@ -177,7 +177,7 @@ Viewer* RGTopFrame::SpawnNewViewer(const Text_t* name, const Text_t* title, Bool
   return v;
 }
 
-Scene* RGTopFrame::SpawnNewScene(const Text_t* name, const Text_t* title)
+Scene* ReveManager::SpawnNewScene(const Text_t* name, const Text_t* title)
 {
   Scene* s = new Scene(name, title);
   AddRenderElement(s, fScenes);
@@ -188,7 +188,7 @@ Scene* RGTopFrame::SpawnNewScene(const Text_t* name, const Text_t* title)
 // Macro management
 /**************************************************************************/
 
-TMacro* RGTopFrame::GetMacro(const Text_t* name) const
+TMacro* ReveManager::GetMacro(const Text_t* name) const
 {
   return dynamic_cast<TMacro*>(fMacroFolder->FindObject(name));
 }
@@ -197,9 +197,9 @@ TMacro* RGTopFrame::GetMacro(const Text_t* name) const
 // Editor
 /**************************************************************************/
 
-void RGTopFrame::EditRenderElement(RenderElement* rnr_element)
+void ReveManager::EditRenderElement(RenderElement* rnr_element)
 {
-  static const Exc_t eH("RGTopFrame::EditRenderElement ");
+  static const Exc_t eH("ReveManager::EditRenderElement ");
 
   fEditor->DisplayRenderElement(rnr_element);
 }
@@ -208,15 +208,15 @@ void RGTopFrame::EditRenderElement(RenderElement* rnr_element)
 // 3D Pad management
 /**************************************************************************/
 
-void RGTopFrame::RegisterRedraw3D()
+void ReveManager::RegisterRedraw3D()
 {
   fRedrawTimer.Start(0, kTRUE);
   fTimerActive = true;
 }
 
-void RGTopFrame::DoRedraw3D()
+void ReveManager::DoRedraw3D()
 {
-  // printf("RGTopFrame::DoRedraw3D redraw triggered\n");
+  // printf("ReveManager::DoRedraw3D redraw triggered\n");
 
   fScenes ->RepaintChangedScenes();
   fViewers->RepaintChangedViewers(fResetCameras, fDropLogicals);
@@ -227,7 +227,7 @@ void RGTopFrame::DoRedraw3D()
   fTimerActive = kFALSE;
 }
 
-void RGTopFrame::FullRedraw3D(Bool_t resetCameras, Bool_t dropLogicals)
+void ReveManager::FullRedraw3D(Bool_t resetCameras, Bool_t dropLogicals)
 {
   fScenes ->RepaintAllScenes();
   fViewers->RepaintAllViewers(resetCameras, dropLogicals);
@@ -235,14 +235,14 @@ void RGTopFrame::FullRedraw3D(Bool_t resetCameras, Bool_t dropLogicals)
 
 /**************************************************************************/
 
-void RGTopFrame::RenderElementChanged(RenderElement* rnr_element)
+void ReveManager::RenderElementChanged(RenderElement* rnr_element)
 {
   std::list<RenderElement*> scenes;
   rnr_element->CollectSceneParents(scenes);
   ScenesChanged(scenes);
 }
 
-void RGTopFrame::ScenesChanged(std::list<RenderElement*>& scenes)
+void ReveManager::ScenesChanged(std::list<RenderElement*>& scenes)
 {
   for (RenderElement::List_i s=scenes.begin(); s!=scenes.end(); ++s)
     ((Scene*)*s)->Changed();
@@ -250,7 +250,7 @@ void RGTopFrame::ScenesChanged(std::list<RenderElement*>& scenes)
 
 /**************************************************************************/
 
-int RGTopFrame::SpawnGuiAndRun(int argc, char **argv)
+int ReveManager::SpawnGuiAndRun(int argc, char **argv)
 {
   Int_t w = 1024;
   Int_t h =  768;
@@ -258,7 +258,7 @@ int RGTopFrame::SpawnGuiAndRun(int argc, char **argv)
   TRint theApp("App", &argc, argv);
 
   Reve::SetupGUI();
-  /* gReve = */ new RGTopFrame(w, h);
+  /* gReve = */ new ReveManager(w, h);
 
  run_loop:
   try {
@@ -272,25 +272,25 @@ int RGTopFrame::SpawnGuiAndRun(int argc, char **argv)
   return 0;
 }
 
-void RGTopFrame::SpawnGui()
+void ReveManager::SpawnGui()
 {
   Int_t w = 1024;
   Int_t h =  768;
 
   Reve::SetupGUI();
-  /* gReve = */ new RGTopFrame(w, h);
+  /* gReve = */ new ReveManager(w, h);
 }
 
 /**************************************************************************/
 /**************************************************************************/
 
-TGListTree* RGTopFrame::GetListTree() const
+TGListTree* ReveManager::GetListTree() const
 {
   return fLTEFrame->fListTree;
 }
 
 TGListTreeItem*
-RGTopFrame::AddToListTree(RenderElement* re, Bool_t open, TGListTree* lt)
+ReveManager::AddToListTree(RenderElement* re, Bool_t open, TGListTree* lt)
 {
   // Add rnr-el as a top-level to a list-tree.
   // Please add a single copy of a render-element as a top level
@@ -302,11 +302,11 @@ RGTopFrame::AddToListTree(RenderElement* re, Bool_t open, TGListTree* lt)
   return lti;
 }
 
-void RGTopFrame::RemoveFromListTree(RenderElement* re, TGListTree* lt, TGListTreeItem* lti)
+void ReveManager::RemoveFromListTree(RenderElement* re, TGListTree* lt, TGListTreeItem* lti)
 {
   // Remove top-level rnr-el from list-tree with specified tree-item.
 
-  static const Exc_t eH("RGTopFrame::RemoveFromListTree ");
+  static const Exc_t eH("ReveManager::RemoveFromListTree ");
 
   if (lti->GetParent())
     throw(eH + "not a top-level item.");
@@ -316,7 +316,7 @@ void RGTopFrame::RemoveFromListTree(RenderElement* re, TGListTree* lt, TGListTre
 
 /**************************************************************************/
 
-TGListTreeItem* RGTopFrame::AddEvent(EventBase* event)
+TGListTreeItem* ReveManager::AddEvent(EventBase* event)
 {
   fCurrentEvent = event;
   fCurrentEvent->IncDenyDestroy();
@@ -324,10 +324,10 @@ TGListTreeItem* RGTopFrame::AddEvent(EventBase* event)
   return AddToListTree(event, kTRUE);
 }
 
-TGListTreeItem* RGTopFrame::AddRenderElement(RenderElement* rnr_element,
+TGListTreeItem* ReveManager::AddRenderElement(RenderElement* rnr_element,
 					     RenderElement* parent)
 {
-  static const Exc_t eH("RGTopFrame::AddRenderElement ");
+  static const Exc_t eH("ReveManager::AddRenderElement ");
 
   if (parent && ! parent->AcceptRenderElement(rnr_element)) {
     throw(eH + Form("parent '%s' rejects '%s'.",
@@ -345,10 +345,10 @@ TGListTreeItem* RGTopFrame::AddRenderElement(RenderElement* rnr_element,
   return newitem;
 }
 
-TGListTreeItem* RGTopFrame::AddGlobalRenderElement(RenderElement* rnr_element,
+TGListTreeItem* ReveManager::AddGlobalRenderElement(RenderElement* rnr_element,
 						   RenderElement* parent)
 {
-  static const Exc_t eH("RGTopFrame::AddGlobalRenderElement ");
+  static const Exc_t eH("ReveManager::AddGlobalRenderElement ");
 
   if (parent && ! parent->AcceptRenderElement(rnr_element)) {
     throw(eH + "parent '%s' rejects '%s'.",
@@ -368,13 +368,13 @@ TGListTreeItem* RGTopFrame::AddGlobalRenderElement(RenderElement* rnr_element,
 
 /**************************************************************************/
 
-void RGTopFrame::RemoveRenderElement(RenderElement* rnr_element,
+void ReveManager::RemoveRenderElement(RenderElement* rnr_element,
 				     RenderElement* parent)
 {
   parent->RemoveElement(rnr_element);
 }
 
-void RGTopFrame::PreDeleteRenderElement(RenderElement* rnr_element)
+void ReveManager::PreDeleteRenderElement(RenderElement* rnr_element)
 {
   if (fEditor->GetRnrElement() == rnr_element)
     fEditor->DisplayObject(0);
@@ -382,12 +382,12 @@ void RGTopFrame::PreDeleteRenderElement(RenderElement* rnr_element)
 
 /**************************************************************************/
 
-void RGTopFrame::RenderElementSelect(RenderElement* rnr_element)
+void ReveManager::RenderElementSelect(RenderElement* rnr_element)
 {
   EditRenderElement(rnr_element);
 }
 
-Bool_t RGTopFrame::RenderElementPaste(RenderElement* rnr_element)
+Bool_t ReveManager::RenderElementPaste(RenderElement* rnr_element)
 {
   RenderElement* src = fEditor->GetRnrElement();
   if (src)
@@ -395,7 +395,7 @@ Bool_t RGTopFrame::RenderElementPaste(RenderElement* rnr_element)
   return kFALSE;
 }
 
-void RGTopFrame::RenderElementChecked(RenderElement* rnrEl, Bool_t state)
+void ReveManager::RenderElementChecked(RenderElement* rnrEl, Bool_t state)
 {
   rnrEl->SetRnrState(state);
 
@@ -408,7 +408,7 @@ void RGTopFrame::RenderElementChecked(RenderElement* rnrEl, Bool_t state)
 
 /**************************************************************************/
 
-void RGTopFrame::NotifyBrowser(TGListTreeItem* parent_lti)
+void ReveManager::NotifyBrowser(TGListTreeItem* parent_lti)
 {
   TGListTree* lt = GetListTree();
   if(parent_lti)
@@ -416,7 +416,7 @@ void RGTopFrame::NotifyBrowser(TGListTreeItem* parent_lti)
   lt->ClearViewPort();
 }
 
-void RGTopFrame::NotifyBrowser(RenderElement* parent)
+void ReveManager::NotifyBrowser(RenderElement* parent)
 {
   TGListTreeItem* parent_lti = parent ? parent->FindListTreeItem(GetListTree()) : 0;
   NotifyBrowser(parent_lti);
@@ -426,9 +426,9 @@ void RGTopFrame::NotifyBrowser(RenderElement* parent)
 // GeoManager registration
 /**************************************************************************/
 
-TGeoManager* RGTopFrame::GetGeometry(const TString& filename)
+TGeoManager* ReveManager::GetGeometry(const TString& filename)
 {
-  static const Exc_t eH("RGTopFrame::GetGeometry ");
+  static const Exc_t eH("ReveManager::GetGeometry ");
 
   TString exp_filename = filename;
   gSystem->ExpandPathName(exp_filename);
@@ -476,14 +476,14 @@ TGeoManager* RGTopFrame::GetGeometry(const TString& filename)
 // Testing exceptions
 /**************************************************************************/
 
-void RGTopFrame::SetStatusLine(const char* text)
+void ReveManager::SetStatusLine(const char* text)
 {
   fStatusBar->SetText(text);
 }
 
-void RGTopFrame::ThrowException(const char* text)
+void ReveManager::ThrowException(const char* text)
 {
-  static const Exc_t eH("RGTopFrame::ThrowException ");
+  static const Exc_t eH("ReveManager::ThrowException ");
 
   throw(eH + text);
 }

@@ -3,7 +3,7 @@
 #include "TrackEditors.h"
 #include <Reve/Track.h>
 #include <Reve/TrackRnrStyleEditor.h>
-#include <Reve/RGTopFrame.h>
+#include <Reve/ReveManager.h>
 
 #include <Reve/RGValuators.h>
 
@@ -201,7 +201,7 @@ void TrackListEditor::DoPRange()
 
 #include <TCanvas.h>
 #include <TGLViewer.h>
-#include <Reve/RGTopFrame.h>
+#include <Reve/ReveManager.h>
 
 //______________________________________________________________________
 // TrackCounterEditor
