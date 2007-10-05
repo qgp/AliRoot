@@ -2337,8 +2337,10 @@ Double_t TFluka::GetPrimaryElectronKineticEnergy(Int_t i) const
     // Returns kinetic energy of primary electron i
 
     Double_t ekin = -1.;
+    
     if (i >= 0 && i < ALLDLT.nalldl) {
-        ekin =  ALLDLT.talldl[i];
+	Int_t j = ALLDLT.nalldl - 1 - i;
+        ekin =  ALLDLT.talldl[j];
     } else {
         Warning("GetPrimaryElectronKineticEnergy",
                 "Primary electron index out of range %d %d \n",
@@ -2351,9 +2353,10 @@ void TFluka::GetPrimaryElectronPosition(Int_t i, Double_t& x, Double_t& y, Doubl
 {
     // Returns position  of primary electron i
         if (i >= 0 && i < ALLDLT.nalldl) {
-	    x = ALLDLT.xalldl[i];
-	    y = ALLDLT.yalldl[i];
-	    z = ALLDLT.zalldl[i];
+	    Int_t j = ALLDLT.nalldl - 1 - i;
+	    x = ALLDLT.xalldl[j];
+	    y = ALLDLT.yalldl[j];
+	    z = ALLDLT.zalldl[j];
 	    return;
 	} else {
 	    Warning("GetPrimaryElectronPosition",
@@ -2372,3 +2375,25 @@ Int_t TFluka::GetIonPdg(Int_t z, Int_t a, Int_t i) const
   return 1000000000 + 10*1000*z + 10*a + i;
 }  
      
+void  TFluka::PrimaryIonisationStepping(Int_t nprim)
+{
+// Call Stepping for primary ionisation electrons
+    Int_t i;
+// Protection against nprim > mxalld
+
+// Multiple steps for nprim > 0
+    if (nprim > 0) {
+	for (i = 0; i < nprim; i++) {
+	    SetCurrentPrimaryElectronIndex(i);
+	    (TVirtualMCApplication::Instance())->Stepping();
+	    if (i == 0) SetTrackIsNew(kFALSE);
+	}	
+    } else {
+	// No primary electron ionisation
+	// Call Stepping anyway but flag nprim = 0 as index = -2
+	SetCurrentPrimaryElectronIndex(-2);
+	(TVirtualMCApplication::Instance())->Stepping();
+    }
+    // Reset the index
+    SetCurrentPrimaryElectronIndex(-1);
+}
