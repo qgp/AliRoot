@@ -1,3 +1,25 @@
+2007-10-05  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	EVE-dev
+
+	* EventAlieve.cxx:
+	* ITSModuleStepper.cxx:
+	* ITSModuleStepperEditor.cxx:
+	* PMDModuleEditor.cxx:
+	* T0Module.cxx:
+	* TOFSector.cxx:
+	* TOFStrip.cxx:
+	* TPCLoader.cxx:
+	* TPCLoaderEditor.cxx:
+	* TPCSector2D.cxx:
+	* TRDLoader.cxx:
+	* TRDLoaderImp.cxx:
+	* TRDLoaderManager.cxx:
+	* TRDModule.cxx:
+	* TRDModuleImp.cxx:
+	* alieve_main/alieve_main.cxx:
+	Renamed class RGTopFrame to ReveManager.
+
 2007-10-04  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	EVE-dev

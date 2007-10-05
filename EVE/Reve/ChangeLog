@@ -1,3 +1,42 @@
+2007-10-05  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	EVE-dev
+
+	* RGeoNodeEditors.cxx:
+	* RGeoNodeEditors.h:
+	* GeoNodeEditor.cxx:
+	* GeoNodeEditor.h:
+	Rename inconsistently named file RGeoNodeEditors to
+	GeoNodeEditor.
+
+	* RGTopFrame.cxx:
+	* RGTopFrame.h:
+	* ReveManager.cxx:
+	* ReveManager.h:
+	* Cascade.cxx:
+	* DigitSet.cxx:
+	* GeoNode.cxx:
+	* LinkDef.h:
+	* NLTProjector.cxx:
+	* PointSet.cxx:
+	* QuadSet.cxx:
+	* RGBrowser.cxx:
+	* RGBrowser.h:
+	* RGEditor.cxx:
+	* RenderElement.cxx:
+	* RenderElement.h:
+	* Scene.cxx:
+	* SceneInfo.cxx:
+	* Track.cxx:
+	* TrackEditors.cxx:
+	* TrackRnrStyleEditor.cxx:
+	* TriangleSet.cxx:
+	* V0.cxx:
+	* VSDSelector.cxx:
+	* Viewer.cxx:
+	* reve_main/reve_main.cxx:
+	Renamed class RGTopFrame to ReveManager.
+
 2007-10-04  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	EVE-dev

@@ -1,3 +1,16 @@
+2007-10-05  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	EVE-dev
+
+	* alice-macros/esd_Cascade.C:
+	* alice-macros/esd_V0.C:
+	* alice-macros/its_clusters.C:
+	* alice-macros/tpc_clusters.C:
+	* macros/reve_sa_init.C:
+	* test-macros/tpc_gui.C:
+	* test-macros/tpc_gui_hack.C:
+	Renamed class RGTopFrame to ReveManager.
+
 2007-10-04  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	EVE-dev
