@@ -1,7 +1,7 @@
 // $Header$
 
-#ifndef REVE_RGeoNodeEditors_H
-#define REVE_RGeoNodeEditors_H
+#ifndef REVE_GeoNodeEditor_H
+#define REVE_GeoNodeEditor_H
 
 #include <TGedFrame.h>
 

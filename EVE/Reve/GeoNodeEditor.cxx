@@ -1,6 +1,6 @@
 // $Header$
 
-#include "RGeoNodeEditors.h"
+#include "GeoNodeEditor.h"
 #include "RGValuators.h"
 
 #include <Reve/GeoNode.h>
