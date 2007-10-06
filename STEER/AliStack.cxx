@@ -62,7 +62,7 @@ AliStack::AliStack():
 
 //_______________________________________________________________________
 AliStack::AliStack(Int_t size, const char* /*evfoldname*/):
-  fParticles(new TClonesArray("TParticle",3000)),
+  fParticles(new TClonesArray("TParticle",1000)),
   fParticleMap(new TObjArray(size)),
   fParticleFileMap(0),
   fParticleBuffer(0),
@@ -84,7 +84,7 @@ AliStack::AliStack(Int_t size, const char* /*evfoldname*/):
 //_______________________________________________________________________
 AliStack::AliStack(const AliStack& st):
     TVirtualMCStack(st),
-    fParticles(new TClonesArray("TParticle",3000)),
+    fParticles(new TClonesArray("TParticle",1000)),
     fParticleMap(new TObjArray(*st.Particles())),
     fParticleFileMap(st.fParticleFileMap),
     fParticleBuffer(0),
@@ -292,7 +292,7 @@ TParticle*  AliStack::PopPrimaryForTracking(Int_t i)
 }      
 
 //_____________________________________________________________________________
-void AliStack::PurifyKine()
+Bool_t AliStack::PurifyKine()
 {
   //
   // Compress kinematic tree keeping only flagged particles
@@ -306,7 +306,7 @@ void AliStack::PurifyKine()
 
   // Save in Header total number of tracks before compression
   // If no tracks generated return now
-  if(fHgwmk+1 == fNtrack) return;
+  if(fHgwmk+1 == fNtrack) return kFALSE;
 
   // First pass, invalid Daughter information
   for(i=0; i<fNtrack; i++) {
@@ -383,17 +383,18 @@ void AliStack::PurifyKine()
   for(i=fLoadPoint; i<fLoadPoint+toshrink; ++i) fParticles->RemoveAt(i);
   fNtrack=nkeep;
   fHgwmk=nkeep-1;
+  return kTRUE;
 }
 
 
-void AliStack::ReorderKine()
+Bool_t AliStack::ReorderKine()
 {
 //
 // In some transport code children might not come in a continuous sequence.
 // In this case the stack  has  to  be reordered in order to establish the 
 // mother daughter relation using index ranges.
 //    
-  if(fHgwmk+1 == fNtrack) return;
+  if(fHgwmk+1 == fNtrack) return kFALSE;
 
   //
   // Howmany secondaries have been produced ?
@@ -484,6 +485,8 @@ void AliStack::ReorderKine()
 	  }
       }
   } // new particles poduced
+  
+  return kTRUE;
 }
 
 Bool_t AliStack::KeepPhysics(TParticle* part)
