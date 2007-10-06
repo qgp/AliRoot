@@ -62,7 +62,7 @@ AliStack::AliStack():
 
 //_______________________________________________________________________
 AliStack::AliStack(Int_t size, const char* /*evfoldname*/):
-  fParticles(new TClonesArray("TParticle",1000)),
+  fParticles(new TClonesArray("TParticle",3000)),
   fParticleMap(new TObjArray(size)),
   fParticleFileMap(0),
   fParticleBuffer(0),
@@ -84,7 +84,7 @@ AliStack::AliStack(Int_t size, const char* /*evfoldname*/):
 //_______________________________________________________________________
 AliStack::AliStack(const AliStack& st):
     TVirtualMCStack(st),
-    fParticles(new TClonesArray("TParticle",1000)),
+    fParticles(new TClonesArray("TParticle",3000)),
     fParticleMap(new TObjArray(*st.Particles())),
     fParticleFileMap(st.fParticleFileMap),
     fParticleBuffer(0),
@@ -300,7 +300,7 @@ void AliStack::PurifyKine()
   //
 
   TObjArray &particles = *fParticleMap;
-  int nkeep=fHgwmk+1, parent, i;
+  int nkeep = fHgwmk + 1, parent, i;
   TParticle *part, *father;
   fTrackLabelMap.Set(particles.GetLast()+1);
 
@@ -333,19 +333,16 @@ void AliStack::PurifyKine()
   // Second pass, build map between old and new numbering
   for(i=fHgwmk+1; i<fNtrack; i++) {
       if(particles.At(i)->TestBit(kKeepBit)) {
-	  
 	  // This particle has to be kept
 	  fTrackLabelMap[i]=nkeep;
 	  // If old and new are different, have to move the pointer
 	  if(i!=nkeep) particles[nkeep]=particles.At(i);
 	  part = dynamic_cast<TParticle*>(particles.At(nkeep));
-	  
 	  // as the parent is always *before*, it must be already
 	  // in place. This is what we are checking anyway!
 	  if((parent=part->GetFirstMother())>fHgwmk) 
 	      if(fTrackLabelMap[parent]==-99) Fatal("PurifyKine","fTrackLabelMap[%d] = -99!\n",parent);
 	      else part->SetFirstMother(fTrackLabelMap[parent]);
-	  
 	  nkeep++;
       }
   }
@@ -378,16 +375,16 @@ void AliStack::PurifyKine()
       particles[i]=fParticleBuffer=0;
   }
   
-  for (i=nkeep; i<fNtrack; ++i) particles[i]=0;
+  for (i = nkeep; i < fNtrack; ++i) particles[i]=0;
   
   Int_t toshrink = fNtrack-fHgwmk-1;
   fLoadPoint-=toshrink;
-  
   
   for(i=fLoadPoint; i<fLoadPoint+toshrink; ++i) fParticles->RemoveAt(i);
   fNtrack=nkeep;
   fHgwmk=nkeep-1;
 }
+
 
 void AliStack::ReorderKine()
 {
@@ -423,7 +420,7 @@ void AliStack::ReorderKine()
       //
       // Reset  LoadPoint 
       // 
-      fLoadPoint = fHgwmk + 1;
+      Int_t loadPoint = fHgwmk + 1;
       //
       // Re-Push particles into stack 
       // The outer loop is over parents, the inner over children.
@@ -457,18 +454,18 @@ void AliStack::ReorderKine()
 	      Int_t jpa = tmp[j]->GetFirstMother();
               // Check if daughter of current parent
 	      if (jpa == ipa) {
-		  particles[fLoadPoint] = tmp[j];
+		  particles[loadPoint] = tmp[j];
 		  // Re-establish daughter information
-		  parP->SetLastDaughter(fLoadPoint);
-		  if (parP->GetFirstDaughter() == -1) parP->SetFirstDaughter(fLoadPoint);
+		  parP->SetLastDaughter(loadPoint);
+		  if (parP->GetFirstDaughter() == -1) parP->SetFirstDaughter(loadPoint);
 		  // Set Mother information
 		  if (i != -1) {
 		      tmp[j]->SetFirstMother(map1[i]);
 		  } 
 		  // Build the map
-		  map1[j] = fLoadPoint;
+		  map1[j] = loadPoint;
 		  // Increase load point
-		  fLoadPoint++;
+		  loadPoint++;
 	      }
 	  } // children
       } // parents
