@@ -59,8 +59,6 @@ void AliPHOSRawDigiProducer::MakeDigits(TClonesArray *digits, AliPHOSRawDecoder*
 
   while (decoder->NextDigit()) {
 
-    if (decoder->GetEnergy() <= 0.) continue;
-
     lowGainFlag = decoder->IsLowGain();
     time = decoder->GetTime();
 

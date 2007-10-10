@@ -1632,7 +1632,7 @@ Double_t AliMath::PsiValue(TH1F* his,TH1F* hyp,TF1* pdf,Int_t f) const
  return psi;
 }
 ///////////////////////////////////////////////////////////////////////////
-Double_t AliMath::Chi2Value(Int_t m,Int_t* n,Double_t* p,Int_t* ndf) const
+Double_t AliMath::Chi2Value(Int_t m,Int_t* n,Double_t* p) const
 {
 // Provide the frequentist chi-squared value of observations of a counting
 // experiment w.r.t. a Bernoulli class hypothesis B_m.
@@ -1643,24 +1643,20 @@ Double_t AliMath::Chi2Value(Int_t m,Int_t* n,Double_t* p,Int_t* ndf) const
 //
 // Further mathematical details can be found in astro-ph/0702029.
 //
-// m   : The number of different possible outcomes of the counting experiment
-// n   : The observed number of different outcomes
-// p   : The probabilities of the different outcomes according to the hypothesis
-// ndf : The returned number of degrees of freedom
-//
-// Note : Both the arrays "n" and (when provided) "p" should be of dimension "m".
+// m : The number of different possible outcomes of the counting experiment
+// n : The observed number of different outcomes
+// p : The probabilities of the different outcomes according to the hypothesis
 //
 // In case no probabilities are given (i.e. pk=0), a uniform distribution
 // is assumed.
 //
-// The default values are pk=0 and ndf=0.
+// The default value is pk=0.
 //
-// In the case of inconsistent input, a chi-squared and ndf value of -1 is returned.
+// In the case of inconsistent input, a chi-squared  value of -1 is returned.
 //
 //--- NvE 03-oct-2007 Utrecht University
 
  Double_t chi=-1;
- if (ndf) *ndf=-1;
 
  if (m<=0 || !n) return chi;
 
@@ -1675,17 +1671,13 @@ Double_t AliMath::Chi2Value(Int_t m,Int_t* n,Double_t* p,Int_t* ndf) const
  for (Int_t i=0; i<m; i++)
  {
   if (p) pk=p[i]; // Probabilities from a specific B_m hypothesis
-  if (n[i]>0 && pk>0 && ntot>0)
-  {
-   chi+=pow(double(n[i])-double(ntot)*pk,2)/(ntot*pk);
-   if (ndf) (*ndf)=(*ndf)+1;
-  }
+  if (n[i]>0 && pk>0 && ntot>0) chi+=pow(double(n[i])-double(ntot)*pk,2)/(ntot*pk);
  }
 
  return chi;
 }
 ///////////////////////////////////////////////////////////////////////////
-Double_t AliMath::Chi2Value(TH1F* his,TH1F* hyp,TF1* pdf,Int_t* ndf) const
+Double_t AliMath::Chi2Value(TH1F* his,TH1F* hyp,TF1* pdf) const
 {
 // Provide the frequentist chi-squared value of observations of a counting
 // experiment (in histogram format) w.r.t. a Bernoulli class hypothesis B_m.
@@ -1703,14 +1695,13 @@ Double_t AliMath::Chi2Value(TH1F* his,TH1F* hyp,TF1* pdf,Int_t* ndf) const
 // his : The experimental observations in histogram format
 // hyp : Hypothetical observations according to some hypothesis
 // pdf : Probability distribution function for the hypothesis
-// ndf : The returned number of degrees of freedom
 //
 // In case no hypothesis is specified (i.e. hyp=0 and pdf=0), a uniform
 // background distribution is assumed.
 //
-// Default values are : hyp=0, pdf=0 and ndf=0.
+// Default values are : hyp=0, pdf=0 and f=0.
 //
-// In the case of inconsistent input, a chi-squared and ndf value of -1 is returned.
+// In the case of inconsistent input, a chi-squared value of -1 is returned.
 //
 //--- NvE 03-oct-2007 Utrecht University
 
@@ -1744,7 +1735,7 @@ Double_t AliMath::Chi2Value(TH1F* his,TH1F* hyp,TF1* pdf,Int_t* ndf) const
    if (nk>0) n[i-1]=nk;
    if (pk>0) p[i-1]=pk;
   }
-  chi=Chi2Value(nbins,n,p,ndf);
+  chi=Chi2Value(nbins,n,p);
  }
 
  // Hypothesis specified via a pdf
@@ -1766,7 +1757,7 @@ Double_t AliMath::Chi2Value(TH1F* his,TH1F* hyp,TF1* pdf,Int_t* ndf) const
     if (nk>0) n[ipdf-1]=nk;
     if (pk>0) p[ipdf-1]=pk;
    }
-   chi=Chi2Value(nbins,n,p,ndf);
+   chi=Chi2Value(nbins,n,p);
   }
  }
 
@@ -1792,7 +1783,7 @@ Double_t AliMath::Chi2Value(TH1F* his,TH1F* hyp,TF1* pdf,Int_t* ndf) const
    if (nk>0) n[j-1]=nk;
    if (pk>0) p[j-1]=pk;
   }
-  chi=Chi2Value(nbins,n,p,ndf);
+  chi=Chi2Value(nbins,n,p);
   delete href;
  }
 

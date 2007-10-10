@@ -1,25 +1,11 @@
 // $Id$
 
-/**************************************************************************
- * This file is property of and copyright by the ALICE HLT Project        * 
- * ALICE Experiment at CERN, All rights reserved.                         *
- *                                                                        *
- * Primary Authors: Matthias Richter <Matthias.Richter@ift.uib.no>        *
- *                  for The ALICE HLT Project.                            *
- *                                                                        *
- * Permission to use, copy, modify and distribute this software and its   *
- * documentation strictly for non-commercial purposes is hereby granted   *
- * without fee, provided that the above copyright notice appears in all   *
- * copies and that both the copyright notice and this permission notice   *
- * appear in the supporting documentation. The authors make no claims     *
- * about the suitability of this software for any purpose. It is          *
- * provided "as is" without express or implied warranty.                  *
- **************************************************************************/
-
-/** @file   AliHLTReconstruction.cxx
-    @author Matthias Richter
-    @date   
-    @brief  Binding class for HLT reconstruction in AliRoot. */
+///////////////////////////////////////////////////////////////////////////////
+//                                                                           //
+// class for HLT reconstruction                                              //
+// <Cvetan.Cheshkov@cern.ch>                                                 //
+// <loizides@ikf.uni-frankfurt.de>                                           //
+///////////////////////////////////////////////////////////////////////////////
 
 #include <TSystem.h>
 #include <TObjString.h>
@@ -40,13 +26,7 @@ AliHLTReconstructor::AliHLTReconstructor()
 AliHLTReconstructor::~AliHLTReconstructor()
 { 
   //destructor
-
   if (fpSystem) {
-    AliDebug(0, Form("delete HLT system: status %#x", fpSystem->GetStatusFlags()));
-    if (fpSystem->CheckStatus(AliHLTSystem::kReady)) {
-      // send specific 'event' to execute the stop sequence
-      fpSystem->Reconstruct(0, NULL, NULL);
-    }
     delete fpSystem;
   }
   fpSystem=NULL;

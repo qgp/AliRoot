@@ -224,26 +224,6 @@ AliFMDReconstructor::GetVertex() const
 
 //____________________________________________________________________
 void 
-AliFMDReconstructor::Reconstruct(AliRawReader* /*reader*/, TTree*) const
-{
-  // Reconstruct directly from raw data (no intermediate output on
-  // digit tree or rec point tree).  
-  // Parameters: 
-  //   reader	Raw event reader 
-  //   ctree    Not used. 
-  AliError("Method is not used");
-#if 0
-  TClonesArray*   array = new TClonesArray("AliFMDDigit");
-  AliFMDRawReader rawRead(reader, 0);
-  rawRead.ReadAdcs(array);
-  ProcessDigits(array);
-  array->Delete();
-  delete array;
-#endif
-}
-
-//____________________________________________________________________
-void 
 AliFMDReconstructor::Reconstruct(TTree* digitsTree, 
 				 TTree* clusterTree) const 
 {
@@ -520,15 +500,6 @@ AliFMDReconstructor::FillESD(TTree*  /* digitsTree */,
   if (fDiagStep3) fDiagStep3->Reset();
   if (fDiagStep4) fDiagStep4->Reset();
   if (fDiagAll)   fDiagAll->Reset();
-}
-
-//____________________________________________________________________
-void
-AliFMDReconstructor::FillESD(AliRawReader*, TTree* clusterTree, 
-			     AliESDEvent* esd) const
-{
-  TTree* dummy = 0;
-  FillESD(dummy, clusterTree, esd);
 }
 
 //____________________________________________________________________

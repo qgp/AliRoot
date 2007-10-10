@@ -22,12 +22,6 @@
     @brief  A general tree publisher component for the AliLoader.
 */
 
-// see header file for class documentation
-// or
-// refer to README to build package
-// or
-// visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
-
 #include "AliHLTLoaderPublisherComponent.h"
 #include "AliRunLoader.h"
 #include "AliLoader.h"
@@ -145,7 +139,7 @@ int AliHLTLoaderPublisherComponent::DoInit( int argc, const char** argv )
   if (iResult<0) return iResult;
 
   if (fLoaderType.IsNull()) {
-    AliErrorStream() << "loader type required, use \'-loader\' option" << endl;
+    HLTError("loader type required, use \'-loader\' option");
     return -EINVAL;
   }
 

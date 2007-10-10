@@ -5769,8 +5769,10 @@ void AliTPCtrackerMI::UpdateKinkQualityM(AliTPCseed * seed){
     if (index>=0) break;
     index = TMath::Abs(index)-1;
     AliESDkink * kink = fEvent->GetKink(index);
-    kink->SetTPCDensity(-1,0,0);
-    kink->SetTPCDensity(1,0,1);
+    //kink->fTPCdensity2[0][0]=-1;
+    //kink->fTPCdensity2[0][1]=-1;
+    kink->SetTPCDensity2(-1,0,0);
+    kink->SetTPCDensity2(1,0,1);
     //
     Int_t row0 = kink->GetTPCRow0() - 2 - Int_t( 0.5/ (0.05+kink->GetAngle(2)));
     if (row0<15) row0=15;
@@ -5780,9 +5782,9 @@ void AliTPCtrackerMI::UpdateKinkQualityM(AliTPCseed * seed){
     //
     Int_t found,foundable,shared;
     seed->GetClusterStatistic(0,row0, found, foundable,shared,kFALSE);
-    if (foundable>5)   kink->SetTPCDensity(Float_t(found)/Float_t(foundable),0,0);
+    if (foundable>5)   kink->SetTPCDensity2(Float_t(found)/Float_t(foundable),0,0);
     seed->GetClusterStatistic(row1,155, found, foundable,shared,kFALSE);
-    if (foundable>5)   kink->SetTPCDensity(Float_t(found)/Float_t(foundable),0,1);
+    if (foundable>5)   kink->SetTPCDensity2(Float_t(found)/Float_t(foundable),0,1);
   }
     
 }
@@ -5797,8 +5799,8 @@ void AliTPCtrackerMI::UpdateKinkQualityD(AliTPCseed * seed){
     if (index<=0) break;
     index = TMath::Abs(index)-1;
     AliESDkink * kink = fEvent->GetKink(index);
-    kink->SetTPCDensity(-1,1,0);
-    kink->SetTPCDensity(-1,1,1);
+    kink->SetTPCDensity2(-1,1,0);
+    kink->SetTPCDensity2(-1,1,1);
     //
     Int_t row0 = kink->GetTPCRow0() -2 - Int_t( 0.5/ (0.05+kink->GetAngle(2)));
     if (row0<15) row0=15;
@@ -5808,9 +5810,9 @@ void AliTPCtrackerMI::UpdateKinkQualityD(AliTPCseed * seed){
     //
     Int_t found,foundable,shared;
     seed->GetClusterStatistic(0,row0, found, foundable,shared,kFALSE);
-    if (foundable>5)   kink->SetTPCDensity(Float_t(found)/Float_t(foundable),1,0);
+    if (foundable>5)   kink->SetTPCDensity2(Float_t(found)/Float_t(foundable),1,0);
     seed->GetClusterStatistic(row1,155, found, foundable,shared,kFALSE);
-    if (foundable>5)   kink->SetTPCDensity(Float_t(found)/Float_t(foundable),1,1);
+    if (foundable>5)   kink->SetTPCDensity2(Float_t(found)/Float_t(foundable),1,1);
   }
     
 }

@@ -30,7 +30,7 @@
  *   ...
  *   handler->CreateConfiguration("my-analysis-chain"  , "FileWriter", "my-processor" , "my arguments");
  *   </pre>
- * - @ref GetReconstructionChains <br>
+ * - @ref GetLocalRecConfigurations <br>
  *   returns a string of blank separated configurations to be run during
  *   local event reconstruction.
  *   <pre>
@@ -38,8 +38,7 @@
  *   </pre>
  * - @ref GetRequiredComponentLibraries <br>
  *   returns a string of blank separated libraries which have to be loaded
- *   in addition in order to load all required components. <br>
- *   @note Not the right place for library dependencies.
+ *   in addition
  *   <pre>
  *   return "libAliHLTUtil.so";
  *   </pre>
@@ -67,13 +66,11 @@ class AliHLTAgentSample : public AliHLTModuleAgent {
    * AliHLTConfigurationHandler. The agent can adapt the configurations
    * to be registered to the current AliRoot setup by checking the
    * runloader.
-   * @param handler   [in] the configuration handler
-   * @param rawReader [in] AliRoot RawReader instance 
-   * @param runloader [in] AliRoot runloader
+   * @param handler      the configuration handler
+   * @param runloader    AliRoot runloader
    * @return neg. error code if failed
    */
   int CreateConfigurations(AliHLTConfigurationHandler* handler,
-			   AliRawReader* rawReader=NULL,
 			   AliRunLoader* runloader=NULL) const;
 
   /**
@@ -82,12 +79,10 @@ class AliHLTAgentSample : public AliHLTModuleAgent {
    * described by the last configuration(s) in the chain. 
    * The agent can adapt the configurations to be registered to the current
    * AliRoot setup by checking the runloader.
-   * @param rawReader [in] AliRoot RawReader instance 
-   * @param runloader [in] AliRoot runloader
+   * @param runloader  [in] AliRoot runloader
    * @return string containing the top configurations separated by blanks
    */
-  const char* GetReconstructionChains(AliRawReader* rawReader=NULL,
-				      AliRunLoader* runloader=NULL) const;
+  const char* GetLocalRecConfigurations(AliRunLoader* runloader=NULL) const;
 
   /**
    * Component libraries which the configurations of this agent depend on.

@@ -46,7 +46,6 @@ AliHLTTPCAgent::~AliHLTTPCAgent()
 }
 
 int AliHLTTPCAgent::CreateConfigurations(AliHLTConfigurationHandler* handler,
-					 AliRawReader* /*rawReader*/,
 					 AliRunLoader* /*runloader*/) const
 {
   // see header file for class documentation
@@ -95,8 +94,7 @@ int AliHLTTPCAgent::CreateConfigurations(AliHLTConfigurationHandler* handler,
   return 0;
 }
 
-const char* AliHLTTPCAgent::GetReconstructionChains(AliRawReader* /*rawReader*/,
-						    AliRunLoader* /*runloader*/) const
+const char* AliHLTTPCAgent::GetLocalRecConfigurations(AliRunLoader* /*runloader*/) const
 {
   // see header file for class documentation
   return NULL;

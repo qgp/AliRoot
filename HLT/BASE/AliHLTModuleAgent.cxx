@@ -40,6 +40,21 @@ AliHLTModuleAgent::AliHLTModuleAgent()
   Register(this);
 }
 
+AliHLTModuleAgent::AliHLTModuleAgent(const AliHLTModuleAgent&)
+  :
+  TObject(),
+  AliHLTLogging(),
+  fpNext(NULL)
+{
+  // see header file for function documentation
+}
+
+AliHLTModuleAgent& AliHLTModuleAgent::operator=(const AliHLTModuleAgent&)
+{
+  // see header file for function documentation
+  return *this;
+}
+
 AliHLTModuleAgent::~AliHLTModuleAgent()
 {
   // see header file for function documentation
@@ -77,15 +92,19 @@ void AliHLTModuleAgent::PrintStatus(const char* agent)
 }
 
 int AliHLTModuleAgent::CreateConfigurations(AliHLTConfigurationHandler* /*handler*/,
-					    AliRawReader* /*rawReader*/,
 					    AliRunLoader* /*runloader*/) const
 {
   // default method, nothing to be done, child classes can overload
   return 0;
 }
 
-const char* AliHLTModuleAgent::GetReconstructionChains(AliRawReader* /*rawReader*/,
-						       AliRunLoader* /*runloader*/) const
+const char* AliHLTModuleAgent::GetLocalRecConfigurations(AliRunLoader* /*runloader*/) const
+{
+  // default method, nothing to be done, child classes can overload
+  return NULL;
+}
+
+const char* AliHLTModuleAgent::GetEventRecConfigurations(AliRunLoader* /*runloader*/) const
 {
   // default method, nothing to be done, child classes can overload
   return NULL;
@@ -97,8 +116,7 @@ const char* AliHLTModuleAgent::GetRequiredComponentLibraries() const
   return NULL;
 }
 
-int AliHLTModuleAgent::RegisterComponents(AliRawReader* /*rawReader*/,
-					  AliRunLoader* /*runloader*/) const
+int AliHLTModuleAgent::RegisterComponents(AliRunLoader* /*runloader*/) const
 {
   // default method, nothing to be done, child classes can overload
   return 0;

@@ -29,7 +29,6 @@
 #include "TNtuple.h"
 #include "TFile.h"
 #include "TError.h"
-#include "TMath.h"
 
 #include "AliLoader.h"
 #include "AliRunLoader.h"
@@ -52,14 +51,7 @@ using std::endl;
 void MakeTrackTable(
 		Int_t firstEvent = 0,
 		Int_t lastEvent = -1,
-		const char* dHLToutputfile = "output_0x00000000.root",
-		Float_t maxSigma = 4., // 4 standard deviations
-		Float_t sigmaX = 0.1,  // 1 mm resolution
-		Float_t sigmaY = 0.01, // 100 micron resolution
-		Float_t sigmaZ = 0.02,  // 200 microns resolution
-		Float_t sigmaXtrg = 0.5,  // 5 mm resolution
-		Float_t sigmaYtrg = 0.5,  // 5 mm resolution
-		Float_t sigmaZtrg = 0.02  // 2 microns resolution
+		const char* dHLToutputfile = "output_0x00000000.root"
 	)
 {
 	gSystem->Load("libAliHLTMUON.so");
@@ -266,13 +258,7 @@ void MakeTrackTable(
 					
 					TVector3 hV(hitX[j-1][kinetrack], hitY[j-1][kinetrack], hitZ[j-1][kinetrack]);
 					TVector3 diff = hV - hit->Coordinate();
-					Double_t diffX = diff.X() / sigmaX;
-					Double_t diffY = diff.Y() / sigmaY;
-					Double_t diffZ = diff.Z() / sigmaZ;
-					if (diffX > maxSigma) continue;
-					if (diffY > maxSigma) continue;
-					if (diffZ > maxSigma) continue;
-					sumOfDiffs += diffX*diffX + diffY*diffY + diffZ*diffZ;
+					sumOfDiffs += diff.Mag2(); // Use the square of diff. More Chi^2 like properties.
 					hitsMatched++;
 				}
 				if (mtrack->TriggerRecord() != NULL)
@@ -286,20 +272,14 @@ void MakeTrackTable(
 						
 						TVector3 hV(hitX[j-1][kinetrack], hitY[j-1][kinetrack], hitZ[j-1][kinetrack]);
 						TVector3 diff = hV - hit;
-						Double_t diffX = diff.X() / sigmaXtrg;
-						Double_t diffY = diff.Y() / sigmaYtrg;
-						Double_t diffZ = diff.Z() / sigmaZtrg;
-						if (diffX > maxSigma) continue;
-						if (diffY > maxSigma) continue;
-						if (diffZ > maxSigma) continue;
-						sumOfDiffs += diffX*diffX + diffY*diffY + diffZ*diffZ;
+						sumOfDiffs += diff.Mag2(); // Use the square of diff. More Chi^2 like properties.
 						hitsMatched++;
 					}
 				}
 				
 				// Now check the fit quality.
 				if (hitsMatched <= 0) continue;
-				Double_t fitQuality = TMath::Sqrt(sumOfDiffs) / hitsMatched;
+				Double_t fitQuality = sumOfDiffs / hitsMatched;
 				if (fitQuality < bestFitQuality)
 				{
 					bestFitQuality = fitQuality;

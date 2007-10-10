@@ -878,12 +878,10 @@ Bool_t AliReconstruction::Run(const char* input)
 		continue;
     AliQualAssDataMaker * qadm = GetQualAssDataMaker(iDet);
     if (!qadm) continue;
-    
     qadm->EndOfCycle(AliQualAss::kRECPOINTS);
     qadm->EndOfCycle(AliQualAss::kESDS);
     qadm->Finish(AliQualAss::kRECPOINTS);
     qadm->Finish(AliQualAss::kESDS) ; 
-    
   }
 
   tree->GetUserInfo()->Add(esd);
@@ -901,8 +899,7 @@ Bool_t AliReconstruction::Run(const char* input)
   file->cd();
   if (fWriteESDfriend)
     tree->SetBranchStatus("ESDfriend*",0);
-  // we want to have only one tree version number
-  tree->Write(tree->GetName(),TObject::kOverwrite);
+  tree->Write();
   hlttree->Write();
 
   if (fWriteAOD) {
@@ -1042,12 +1039,11 @@ Bool_t AliReconstruction::RunLocalEventReconstruction(const TString& detectors)
       AliCodeTimerStart(Form("running quality assurance data maker for %s", fgkDetectorName[iDet]));
       AliInfo(Form("running quality assurance data maker for %s", fgkDetectorName[iDet]));
 	  
-      if (qadm->IsCycleDone() ) {
-	
-	qadm->EndOfCycle(AliQualAss::kRECPOINTS) ; 
-	qadm->EndOfCycle(AliQualAss::kESDS) ; 
+    if (qadm->IsCycleDone() ) {
+      qadm->EndOfCycle(AliQualAss::kRECPOINTS) ; 
+	  qadm->EndOfCycle(AliQualAss::kESDS) ; 
       qadm->StartOfCycle(AliQualAss::kRECPOINTS) ; 
-      qadm->StartOfCycle(AliQualAss::kESDS, "same") ; 
+	  qadm->StartOfCycle(AliQualAss::kESDS, "same") ; 
    }
       qadm->Exec(AliQualAss::kRECPOINTS, clustersTree) ; 
       AliCodeTimerStop(Form("running quality assurance data maker for %s", fgkDetectorName[iDet]));
@@ -2510,15 +2506,15 @@ void AliReconstruction::ESDFile2AODFile(TFile* esdFile, TFile* aodFile)
       AliAODTrack *primTrack = NULL;
       Char_t ttype=AliAODCluster::kUndef;
 
-      if (cluster->GetClusterType() == AliESDCaloCluster::kPHOSCluster){
- 	ttype = AliAODCluster::kPHOSNeutral;
+      if (cluster->IsPHOS()) ttype=AliAODCluster::kPHOSNeutral;
+      else if (cluster->IsEMCAL()) {
+
+	if (cluster->GetClusterType() == AliESDCaloCluster::kPseudoCluster)
+	  ttype = AliAODCluster::kEMCALPseudoCluster;
+	else
+	  ttype = AliAODCluster::kEMCALClusterv1;
+
       }
-      else if (cluster->GetClusterType() == AliESDCaloCluster::kEMCALClusterv1){
-	ttype = AliAODCluster::kEMCALClusterv1;
-      }      
-      else if (cluster->GetClusterType() == AliESDCaloCluster::kEMCALPseudoCluster){
- 	ttype = AliAODCluster::kEMCALPseudoCluster;
-      }    
 
       new(clusters[jClusters++]) AliAODCluster(id,
 					       label,
@@ -2733,7 +2729,7 @@ AliQualAssDataMaker * AliReconstruction::GetQualAssDataMaker(Int_t iDet)
     qadm->Init(AliQualAss::kRECPOINTS, fRunLoader->GetHeader()->GetRun(), GetQACycles(fgkDetectorName[iDet]));
     qadm->Init(AliQualAss::kESDS, fRunLoader->GetHeader()->GetRun(), GetQACycles(fgkDetectorName[iDet]));
     qadm->StartOfCycle(AliQualAss::kRECPOINTS);
-        qadm->StartOfCycle(AliQualAss::kESDS, "same") ; 	
+    qadm->StartOfCycle(AliQualAss::kESDS, "same") ; 	
     fQualAssDataMaker[iDet] = qadm;
   }
 
@@ -2756,8 +2752,8 @@ Bool_t AliReconstruction::RunQualAss(const char* detectors, AliESDEvent *& esd)
    AliCodeTimerStart(Form("running quality assurance data maker for %s", fgkDetectorName[iDet]));
    AliInfo(Form("running quality assurance data maker for %s", fgkDetectorName[iDet]));
     
-      qadm->Exec(AliQualAss::kESDS, esd) ; 
-      qadm->Increment() ; 
+   qadm->Exec(AliQualAss::kESDS, esd) ; 
+   qadm->Increment() ; 
 
    AliCodeTimerStop(Form("running quality assurance data maker for %s", fgkDetectorName[iDet]));
  }

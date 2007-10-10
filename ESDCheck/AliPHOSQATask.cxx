@@ -166,7 +166,7 @@ void AliPHOSQATask::Exec(Option_t *)
       fhPHOSPos->Fill( pos[0], pos[1], pos[2] ) ;
       fhPHOSDigits->Fill(entry, caloCluster->GetNumberOfDigits() ) ;
       numberOfDigitsInPhos += caloCluster->GetNumberOfDigits() ;
-      Double_t * pid = caloCluster->GetPid() ;
+      Float_t * pid = caloCluster->GetPid() ;
       if(pid[AliPID::kPhoton] > 0.9) {
 	phosVector[numberOfPhotonsInPhos] = new TVector3(pos[0],pos[1],pos[2]) ;
 	phosPhotonsEnergy[numberOfPhotonsInPhos]=caloCluster->E() ;

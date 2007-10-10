@@ -83,11 +83,7 @@ UInt_t AliGRPPreprocessor::Process(TMap* valueMap) {
   const char* detectorMask = GetRunParameter("detectorMask");
   const char* lhcPeriod = GetRunParameter("LHCperiod");
 
-  TList* list = GetFileSources(kDAQ);  
-  if (!list) {
-    Log("No raw data tag list found!!!");
-    return kTRUE;
-  }
+  TList* list = GetFileSources(kDAQ);
   TIterator* iter = list->MakeIterator();
   TObject* obj = 0;
   while ((obj = iter->Next())) {

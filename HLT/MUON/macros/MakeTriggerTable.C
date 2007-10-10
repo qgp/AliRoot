@@ -51,11 +51,7 @@ using std::endl;
 void MakeTriggerTable(
 		Int_t firstEvent = 0,
 		Int_t lastEvent = -1,
-		const char* L0outputfile = "output_0x00000000.root",
-		Float_t maxSigma = 4., // 4 standard deviations
-		Float_t sigmaXtrg = 0.5,  // 5 mm resolution
-		Float_t sigmaYtrg = 0.5,  // 5 mm resolution
-		Float_t sigmaZtrg = 0.02  // 2 microns resolution
+		const char* L0outputfile = "output_0x00000000.root"
 	)
 {
 	gSystem->Load("libAliHLTMUON.so");
@@ -244,13 +240,7 @@ void MakeTriggerTable(
 					TVector3 hV(hitX[j-11][kinetrack], hitY[j-11][kinetrack], hitZ[j-11][kinetrack]);
 					if (hV == TVector3(0,0,0)) continue;
 					TVector3 diff = hV - hit;
-					Double_t diffX = diff.X() / sigmaXtrg;
-					Double_t diffY = diff.Y() / sigmaYtrg;
-					Double_t diffZ = diff.Z() / sigmaZtrg;
-					if (diffX > maxSigma) continue;
-					if (diffY > maxSigma) continue;
-					if (diffZ > maxSigma) continue;
-					sumOfDiffs += diffX*diffX + diffY*diffY + diffZ*diffZ;
+					sumOfDiffs += diff.Mag2(); // Use the square of diff. More Chi^2 like properties.
 					hitsMatched++;
 				}
 				

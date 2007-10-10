@@ -43,7 +43,7 @@ ClassImp(AliCaloRawStream)
 
 
 //_____________________________________________________________________________
-AliCaloRawStream::AliCaloRawStream(AliRawReader* rawReader, TString calo, AliAltroMapping **mapping) :
+  AliCaloRawStream::AliCaloRawStream(AliRawReader* rawReader, TString calo) :
   AliAltroRawStream(rawReader),
   fModule(-1),
   fPrevModule(-1),
@@ -51,9 +51,7 @@ AliCaloRawStream::AliCaloRawStream(AliRawReader* rawReader, TString calo, AliAlt
   fPrevRow(-1),
   fColumn(-1),
   fPrevColumn(-1),
-  fGain(0),
-  fNRCU(0),
-  fExternalMapping(kFALSE)
+  fGain(0)
 {
 // create an object to read PHOS/EMCAL raw digits
 
@@ -63,21 +61,14 @@ AliCaloRawStream::AliCaloRawStream(AliRawReader* rawReader, TString calo, AliAlt
   fNRCU = 4;
   if(calo == "EMCAL")  fNRCU = 2;
 
-  if (mapping == NULL) {
-    TString path = gSystem->Getenv("ALICE_ROOT");
-    path += "/"+calo+"/mapping/RCU";
-    TString path2;
-    for(Int_t i = 0; i < fNRCU; i++) {
-      path2 = path;
-      path2 += i;
-      path2 += ".data";
-      fMapping[i] = new AliCaloAltroMapping(path2.Data());
-    }
-  }
-  else {
-    fExternalMapping = kTRUE;
-    for(Int_t i = 0; i < fNRCU; i++)
-      fMapping[i] = mapping[i];
+  TString path = gSystem->Getenv("ALICE_ROOT");
+  path += "/"+calo+"/mapping/RCU";
+  TString path2;
+  for(Int_t i = 0; i < fNRCU; i++) {
+    path2 = path;
+    path2 += i;
+    path2 += ".data";
+    fMapping[i] = new AliCaloAltroMapping(path2.Data());
   }
 
   SetNoAltroMapping(kFALSE);
@@ -93,8 +84,7 @@ AliCaloRawStream::AliCaloRawStream(const AliCaloRawStream& stream) :
   fColumn(-1),
   fPrevColumn(-1),
   fGain(0),
-  fNRCU(0),
-  fExternalMapping(kFALSE)
+  fNRCU(0)
 {  
   Fatal("AliCaloRawStream", "copy constructor not implemented");
 }
@@ -112,9 +102,7 @@ AliCaloRawStream::~AliCaloRawStream()
 {
 // destructor
 
-  if (!fExternalMapping)
-    for(Int_t i = 0; i < fNRCU; i++)
-      delete fMapping[i];
+  for(Int_t i = 0; i < fNRCU; i++) delete fMapping[i];
 }
 
 //_____________________________________________________________________________

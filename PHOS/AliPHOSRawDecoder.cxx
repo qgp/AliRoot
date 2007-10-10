@@ -54,7 +54,7 @@ AliPHOSRawDecoder::AliPHOSRawDecoder():
 }
 
 //-----------------------------------------------------------------------------
-AliPHOSRawDecoder::AliPHOSRawDecoder(AliRawReader* rawReader,  AliAltroMapping **mapping):
+AliPHOSRawDecoder::AliPHOSRawDecoder(AliRawReader* rawReader):
   fRawReader(0),fCaloStream(0),fPedSubtract(kFALSE),fEnergy(-111),fTime(-111),fModule(-1),fColumn(-1),fRow(-1),fLowGainFlag(kFALSE),fSamples(0),fPulseGenerator(0)
 {
   //Construct a decoder object.
@@ -62,7 +62,7 @@ AliPHOSRawDecoder::AliPHOSRawDecoder(AliRawReader* rawReader,  AliAltroMapping *
   //using AliRawReader::NextEvent().
 
   fRawReader =  rawReader;
-  fCaloStream = new AliCaloRawStream(rawReader,"PHOS",mapping);
+  fCaloStream = new AliCaloRawStream(rawReader,"PHOS");
   fCaloStream->SetOldRCUFormat(kFALSE);
   fSamples = new TArrayI(100);
   fPulseGenerator = new AliPHOSPulseGenerator();
@@ -132,13 +132,11 @@ Bool_t AliPHOSRawDecoder::NextDigit()
   Int_t    iBin     = 0;
   Int_t    mxSmps   = fSamples->GetSize();
   Int_t    tLength  = 0;
+  Int_t    ped      = 0;
   fEnergy = -111;
-  Float_t pedMean = 0;
-  Int_t   nPed = 0;
-  Float_t baseLine = 1.0;
-  const Float_t nPreSamples = 10;
   
   fSamples->Reset();
+
    while ( in->Next() ) { 
 
      if(!tLength) {
@@ -159,29 +157,23 @@ Bool_t AliPHOSRawDecoder::NextDigit()
        // Take is as a first time bin multiplied by the sample tick time
        
        if(fPedSubtract) 
-	 fEnergy -= (Double_t)(pedMean/nPed); // "pedestal subtraction"
+	 fEnergy -= (Double_t)ped; // "pedestal subtraction"
        
        if(fLowGainFlag)
 	 fEnergy *= fPulseGenerator->GetRawFormatHighLowGainFactor(); // *16 
-
-       if (fEnergy < baseLine) fEnergy = 0;
-
-       pedMean = 0;
+      
        return kTRUE;
      }
 
      fLowGainFlag = in->IsLowGain();
      fTime = fPulseGenerator->GetRawFormatTimeTrigger() * in->GetTime();
      fModule = in->GetModule()+1;
-     fRow    = in->GetRow()   +1;
+     fRow = in->GetRow()   +1;
      fColumn = in->GetColumn()+1;
 
      // Fill array with samples
      iBin++;                                                             
-     if(tLength-iBin < nPreSamples) {
-       pedMean += in->GetSignal();
-       nPed++;
-     }
+     if(iBin==1) ped=in->GetSignal();
      fSamples->AddAt(in->GetSignal(),tLength-iBin);
      if((Double_t)in->GetSignal() > fEnergy) fEnergy = (Double_t)in->GetSignal();
      

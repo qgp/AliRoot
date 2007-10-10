@@ -51,7 +51,7 @@ AliHMPIDParam::AliHMPIDParam(Bool_t noGeo=kFALSE):TNamed("HmpidParam","default v
 // In particular, matrices to be used for LORS<->MARS trasnformations are initialized from TGeo structure.    
 // Note that TGeoManager should be already initialized from geometry.root file  
 
-  Float_t dead=2.6;// cm of the dead zones between PCs-> See 2CRC2099P1
+  if(noGeo==kTRUE){fgCellX=0.8;fgCellY=0.84;} 
   
   if(noGeo==kFALSE && !gGeoManager)  
   {
@@ -59,15 +59,16 @@ AliHMPIDParam::AliHMPIDParam(Bool_t noGeo=kFALSE):TNamed("HmpidParam","default v
     if(!gGeoManager) AliFatal("!!!!!!No geometry loaded!!!!!!!");
   }
   
-  fgCellX=0.8;fgCellY=0.84;
+  Float_t dead=2.6;// cm of the dead zones between PCs-> See 2CRC2099P1
+  TGeoVolume *pCellVol = gGeoManager->GetVolume("Hcel");
   
-  if(!noGeo==kTRUE){
-    TGeoVolume *pCellVol = gGeoManager->GetVolume("Hcel");
-    if(pCellVol) {
-      TGeoBBox *bcell = (TGeoBBox *)pCellVol->GetShape();
-      fgCellX=2.*bcell->GetDX(); fgCellY = 2.*bcell->GetDY();  // overwrite the values with the read ones
-    }
-  }    
+  if(!pCellVol) {
+    fgCellX=0.8;fgCellY=0.84;
+    } else { 
+    TGeoBBox *bcell = (TGeoBBox *)pCellVol->GetShape();
+    fgCellX=2.*bcell->GetDX(); fgCellY = 2.*bcell->GetDY();
+  }
+  
   fgPcX=80.*fgCellX; fgPcY = 48.*fgCellY;
   fgAllX=2.*fgPcX+dead;
   fgAllY=3.*fgPcY+2.*dead;

@@ -42,8 +42,8 @@ AliHLTMUONAgent::~AliHLTMUONAgent()
 {
 }
 
-const char* AliHLTMUONAgent::GetReconstructionChains(AliRawReader* /*rawReader*/,
-						     AliRunLoader* /*runloader*/
+const char* AliHLTMUONAgent::GetLocalRecConfigurations(
+		AliRunLoader* runloader
 	) const
 {
 	return "dhlt-simhits";
@@ -59,8 +59,7 @@ const char* AliHLTMUONAgent::GetRequiredComponentLibraries() const
 
 int AliHLTMUONAgent::CreateConfigurations(
 		AliHLTConfigurationHandler* handler,
-		AliRawReader* /*rawReader*/,
-		AliRunLoader* /*runloader*/
+		AliRunLoader* runloader
 	) const
 {
 	if (handler == NULL) return 0;

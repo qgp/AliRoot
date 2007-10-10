@@ -484,43 +484,45 @@ Bool_t AliRawReaderRoot::ReadNext(UChar_t* data, Int_t size)
   UInt_t gapR = (pos+size)%sizeof(UInt_t);
   if ( gapR > 0 ) gapR = sizeof(UInt_t) - gapR;
 
+  if (gapL>0 || gapR>0) printf("AliRawReaderRoot::ReadNext: relative pos in buffer=%d, buffer size=%d, gapLeft=%d, gapRight=%d\n", pos, size, gapL, gapR);
+
   UChar_t* firstWord = fPosition - gapL;          // pointer to the begin of the 1st word
   UChar_t* lastWord  = fPosition + size + gapR;   // pointer to the begin of the 1st word following the buffer and not included
 
   // Loop through the all words and write each of them swapped
-  UInt_t   bytesWritten = 0;
+  UInt_t   bytesRead = 0;
   while (firstWord < lastWord) 
   {
       UInt_t* value   = (UInt_t*) firstWord;
       UInt_t valueInv = SwapWord( *value );
 
-      if ( (gapL+size)<=sizeof(UInt_t) ) 
+      if ( (pos/sizeof(UInt_t)) == ((pos+size)/sizeof(UInt_t)) ) 
       {
-         // invert only byte(s) within the 1st (and unique) word 
-         memcpy((UInt_t*)(data+bytesWritten), &valueInv+gapL, size);
-         bytesWritten += size;
+         // invert only byte(s) within the 1st (and unique) read word 
+         bytesRead += size;
+         memcpy((UInt_t*)(data+bytesRead), &valueInv+gapL, size);
       }
       else 
       {
          if ( gapL>0 ) 
          {
             // 1st word unaligned
-            memcpy((UInt_t*)(data+bytesWritten), &valueInv+gapL, sizeof(UInt_t)-gapL);
-            bytesWritten += sizeof(UInt_t) - gapL;
+            bytesRead += sizeof(UInt_t) - gapL;
+            memcpy((UInt_t*)(data+bytesRead), &valueInv+gapL, sizeof(UInt_t)-gapL);
          }
          else 
          {
             if ( gapR>0 ) 
             {
                // last word unaligned
-               memcpy((UInt_t*)(data+bytesWritten), &valueInv, sizeof(UInt_t)-gapR);
-               bytesWritten += sizeof(UInt_t) - gapR;
+               bytesRead += sizeof(UInt_t) - gapR;
+               memcpy((UInt_t*)(data+bytesRead), &valueInv, sizeof(UInt_t)-gapR);
             }
             else
             { 
                // no unalignements
-               memcpy((UInt_t*)(data+bytesWritten), &valueInv, sizeof(UInt_t));
-               bytesWritten += sizeof(UInt_t);
+               bytesRead += sizeof(UInt_t);
+               memcpy((UInt_t*)(data+bytesRead), &valueInv, sizeof(UInt_t));
             }            
          }
       }

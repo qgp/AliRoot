@@ -208,7 +208,7 @@ void AliEMCALReconstructor::FillESD(TTree* digitsTree, TTree* clustersTree,
 
   for (Int_t iClust = 0 ; iClust < nClusters ; iClust++) {
     const AliEMCALRecPoint * clust = (const AliEMCALRecPoint*)clusters->At(iClust);
-    //if(clust->GetClusterType()== AliESDCaloCluster::kEMCALClusterv1) nRP++; else nPC++;
+    //if(clust->GetClusterType()== AliESDCaloCluster::kClusterv1) nRP++; else nPC++;
     if (Debug()) clust->Print();
     // Get information from EMCAL reconstruction points
     Float_t xyz[3];
@@ -241,7 +241,7 @@ void AliEMCALReconstructor::FillESD(TTree* digitsTree, TTree* clustersTree,
 	digiList[newdigitMult] = (UShort_t)(digitInts[iDigit]);
         newdigitMult++;
       }
-      else if (clust->GetClusterType() != AliESDCaloCluster::kEMCALPseudoCluster)
+      else if (clust->GetClusterType() != AliESDCaloCluster::kPseudoCluster)
         Warning("FillESD()","Negative or 0 digit amplitude in cluster");
     }
     
@@ -276,6 +276,7 @@ void AliEMCALReconstructor::FillESD(TTree* digitsTree, TTree* clustersTree,
     
       // fills the ESDCaloCluster
       AliESDCaloCluster * ec = new AliESDCaloCluster() ; 
+      ec->SetEMCAL(kTRUE);
       ec->SetClusterType(clust->GetClusterType());
       ec->SetPosition(xyz);
       ec->SetE(clust->GetEnergy());
@@ -286,7 +287,7 @@ void AliEMCALReconstructor::FillESD(TTree* digitsTree, TTree* clustersTree,
       ec->AddDigitTime(arrayTimeList);
       ec->AddDigitIndex(arrayIndexList);
     
-      if(clust->GetClusterType()== AliESDCaloCluster::kEMCALClusterv1){
+      if(clust->GetClusterType()== AliESDCaloCluster::kClusterv1){
 
         ec->SetClusterDisp(clust->GetDispersion());
         ec->SetClusterChi2(-1); //not yet implemented
