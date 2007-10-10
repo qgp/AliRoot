@@ -1,3 +1,13 @@
+2007-10-10  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
+
+	* NLTProjector.cxx:
+	* NLTProjector.h:
+	* NLTProjectorGL.cxx:
+	* NLTProjectorEditor.cxx:
+	* NLTProjectorEditor.h:
+	Set NLTProjection name according to projection type and
+	distortion. Use fAxisColor instead of RenderElement::fMainColor.
+
 2007-10-05  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	EVE-dev
