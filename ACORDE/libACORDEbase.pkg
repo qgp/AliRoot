@@ -1,7 +1,0 @@
-SRCS = AliACORDE.cxx AliACORDEConstants.cxx AliACORDECalibData.cxx \
-       AliGenACORDE.cxx  AliACORDELoader.cxx
-                                                                                          
-HDRS:= $(SRCS:.cxx=.h)
-                                                                                          
-DHDR:=ACORDEbaseLinkDef.h
-
