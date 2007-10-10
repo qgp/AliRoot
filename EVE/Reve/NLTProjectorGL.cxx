@@ -171,14 +171,8 @@ void NLTProjectorGL::DirectDraw(TGLRnrCtx & /*rnrCtx*/) const
   bbv[2] = fM->GetProjection()->GetValForScreenPos(1,bbox[2]);
   bbv[3] = fM->GetProjection()->GetValForScreenPos(1,bbox[3]);
 
-  // printf("BBOX (%f,%f) (%f, %f)\n", bbox[0], bbox[1], bbox[2], bbox[3]);
-  // printf("BBV (%f,%f) (%f, %f)\n", bbv[0], bbv[1], bbv[2], bbv[3]);
-
-  UChar_t color[4];
-  Reve::ColorFromIdx(fM->GetMainColor(), color);
-  glColor4ubv(color);
   fText->SetTextSize(fLabelSize*fRange);
-  fText->SetTextColor(fM->GetMainColor()); 
+  fText->SetTextColor(fM->GetAxisColor()); 
  
   { // horizontal
     glPushMatrix();

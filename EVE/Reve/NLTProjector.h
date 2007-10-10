@@ -21,18 +21,22 @@ public:
 
 protected:
   PType_e             fType;
+  const char*         fName;
   Float_t             fDistortion; // sensible values from 0 to 0.01
   Float_t             fFixedRadius;
   Float_t             fScale;
  
 public:
-  NLTProjection() : fType(PT_Unknown), fDistortion(0), fFixedRadius(300), fScale(1.0f) {}
+  NLTProjection() : fType(PT_Unknown), fName(0), fDistortion(0), fFixedRadius(300), fScale(1.0f) {}
   virtual   ~NLTProjection() {}
 
   virtual   void      ProjectPoint(Float_t&, Float_t&, Float_t&){}
-  virtual   void      ProjectPointFv(Float_t* v){ProjectPoint(v[0], v[1], v[2]);}
+  virtual   void      ProjectPointFv(Float_t* v){ ProjectPoint(v[0], v[1], v[2]); }
   virtual   void      ProjectVector(Vector& v);
   virtual   Vector*   Project(Vector* pnts, Int_t npnts, Bool_t create_new = kTRUE);
+
+  const     char*     GetName(){return fName;}
+  void                SetName(const char* txt){ fName = txt; }
 
   void                SetType(PType_e t){fType = t;}
   PType_e             GetType(){return fType;}
@@ -41,7 +45,7 @@ public:
   void                SetFixedRadius(Float_t x){fFixedRadius = x;}
   Float_t             GetFixedRadius(){return fFixedRadius;}
 
-  virtual   Bool_t    AcceptSegment(Vector&, Vector&, Float_t /*tolerance*/) {return kTRUE;} 
+  virtual   Bool_t    AcceptSegment(Vector&, Vector&, Float_t /*tolerance*/) { return kTRUE; } 
   virtual   void      SetDirectionalVector(Int_t screenAxis, Vector& vec);
 
   // utils to draw axis
@@ -56,7 +60,7 @@ public:
 class RhoZ: public NLTProjection
 {
 public:
-  RhoZ() : NLTProjection() { fType = PT_RhoZ; }
+  RhoZ() : NLTProjection() { fType = PT_RhoZ; fName="RhoZ";}
   virtual ~RhoZ() {}
 
   virtual   Bool_t    AcceptSegment(Vector& v1, Vector& v2, Float_t tolerance); 
@@ -69,7 +73,7 @@ public:
 class CircularFishEye : public NLTProjection
 {
 public:
-  CircularFishEye():NLTProjection() { fType = PT_CFishEye; }
+  CircularFishEye():NLTProjection() { fType = PT_CFishEye; fName="CircularFishEye"; }
   virtual ~CircularFishEye() {}
 
   virtual   void      ProjectPoint(Float_t& x, Float_t& y, Float_t& z); 
@@ -104,6 +108,7 @@ public:
   void            SetProjection(NLTProjection* p);
   NLTProjection*  GetProjection() { return fProjection; }
 
+  virtual void    UpdateName();
   // scale info 
   void            SetSplitInfoMode(Int_t x)  { fSplitInfoMode = x;     }
   Int_t           GetSplitInfoMode()   const { return fSplitInfoMode;  }
@@ -111,7 +116,7 @@ public:
   void            SetSplitInfoLevel(Int_t x) { fSplitInfoLevel = x;    }
   Int_t           GetSplitInfoLevel()  const { return fSplitInfoLevel; }
 
-  void            SetAxisColor(Color_t col)  { SetMainColor(col);      }
+  void            SetAxisColor(Color_t col)  { fAxisColor = col;       }
   Color_t         GetAxisColor()       const { return fAxisColor;      }
 
   void            SetCurrentDepth(Float_t d) { fCurrentDepth = d;      }
@@ -125,8 +130,6 @@ public:
 
   virtual void    ProjectChildrenRecurse(RenderElement* rnr_el);
   virtual void    ProjectChildren();
-
-  virtual Bool_t  CanEditMainColor() { return kTRUE; }
 
   virtual void    ComputeBBox();
   virtual void    Paint(Option_t* option = "");

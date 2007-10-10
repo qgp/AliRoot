@@ -209,13 +209,19 @@ NLTProjector::NLTProjector():
   fCurrentDepth(0)
 {
   SetProjection(NLTProjection::PT_CFishEye, 0);
-  fMainColorPtr = &fAxisColor;
 }
 
 //______________________________________________________________________________
 NLTProjector::~NLTProjector()
 {
   if(fProjection) delete fProjection;
+}
+
+//______________________________________________________________________________
+void NLTProjector::UpdateName()
+{
+  SetName(Form ("%s (%3.1f)", fProjection->GetName(), fProjection->GetDistortion()*1000));
+  UpdateItems();
 }
 
 //______________________________________________________________________________
@@ -226,27 +232,24 @@ void NLTProjector::SetProjection(NLTProjection::PType_e type, Float_t distort)
   delete fProjection;
   fProjection = 0;
 
-  TString name;
   switch (type)
   {
     case NLTProjection::PT_CFishEye:
     {
       fProjection  = new CircularFishEye();
-      name = Form("CircularFishEye %3f", distort);
       break;
     }
     case NLTProjection::PT_RhoZ:
     {
       fProjection  = new RhoZ;
-      name = Form("RhoZ %3f", distort);
       break;
     }
     default:
       throw(eH + "projection type not valid.");
       break;
   }
-  SetName(name.Data());
   fProjection->SetDistortion(distort);
+  UpdateName();
 }
 
 //______________________________________________________________________________
@@ -254,6 +257,7 @@ void NLTProjector::SetProjection(NLTProjection* p)
 {
   delete fProjection;
   fProjection = p;
+  UpdateName();
 }
 
 //______________________________________________________________________________
@@ -362,7 +366,7 @@ void NLTProjector::Paint(Option_t* /*option*/)
 
   // Section kCore
   buff.fID           = this;
-  buff.fColor        = GetMainColor();
+  buff.fColor        = fAxisColor;
   buff.fTransparency = 0;
   buff.SetSectionsValid(TBuffer3D::kCore);
 

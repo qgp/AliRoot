@@ -5,7 +5,9 @@
 
 #include <Reve/RGValuators.h>
 
+#include <TColor.h>
 #include <TGNumberEntry.h>
+#include <TGColorSelect.h>
 #include <TGComboBox.h>
 #include <TGLabel.h>
 
@@ -17,22 +19,40 @@ using namespace Reve;
 
 ClassImp(NLTProjectorEditor)
 
-  NLTProjectorEditor::NLTProjectorEditor(const TGWindow *p,
-					 Int_t width, Int_t height,
-					 UInt_t options, Pixel_t back) :
-    TGedFrame(p, width, height, options | kVerticalFrame, back),
-    fM(0),
+NLTProjectorEditor::NLTProjectorEditor(const TGWindow *p,
+				       Int_t width, Int_t height,
+				       UInt_t options, Pixel_t back) :
+  TGedFrame(p, width, height, options | kVerticalFrame, back),
+  fM(0),
 
-    fType(0),
-    fDistortion(0),
-    fFixedRadius(0),
-    fCurrentDepth(0),
+  fType(0),
+  fDistortion(0),
+  fFixedRadius(0),
+  fCurrentDepth(0),
 
-    fSIMode(0),
-    fSILevel(0)
-  
+  fAxisColor(0),
+  fSIMode(0),
+  fSILevel(0)
 {
   MakeTitle("Axis");
+  {
+    TGHorizontalFrame* hf1 = new TGHorizontalFrame(this);
+
+    TGCompositeFrame *labfr = 
+      new TGHorizontalFrame(hf1, 60, 15, kFixedSize);
+    TGLabel* l = new TGLabel(labfr, "Color");
+    labfr->AddFrame(l, new TGLayoutHints(kLHintsLeft|kLHintsBottom));
+    hf1->AddFrame(labfr, new TGLayoutHints(kLHintsLeft|kLHintsBottom));
+
+
+    fAxisColor = new TGColorSelect(hf1, 0, -1);
+    hf1->AddFrame(fAxisColor, new TGLayoutHints(kLHintsLeft, 2, 0, 1, 1));
+    fAxisColor->Connect
+      ("ColorSelected(Pixel_t)",
+       "Reve::NLTProjectorEditor", this, "DoAxisColor(Pixel_t)");
+
+    AddFrame(hf1);
+  }
   {
     TGHorizontalFrame* f = new TGHorizontalFrame(this);
     TGLabel* lab = new TGLabel(f, "StepMode");
@@ -122,6 +142,7 @@ void NLTProjectorEditor::SetModel(TObject* obj)
 {
   fM = dynamic_cast<NLTProjector*>(obj);
 
+  fAxisColor->SetColor(TColor::Number2Pixel(fM->GetAxisColor()), kFALSE);
   fSIMode->Select(fM->GetSplitInfoMode(), kFALSE);  
   fSILevel->SetNumber(fM->GetSplitInfoLevel());
 
@@ -143,6 +164,7 @@ void NLTProjectorEditor::DoType(Int_t type)
 void NLTProjectorEditor::DoDistortion()
 {
   fM->GetProjection()->SetDistortion(0.001f * fDistortion->GetValue());
+  fM->UpdateName();
   fM->ProjectChildren();
   Update();
 }
@@ -171,5 +193,11 @@ void NLTProjectorEditor::DoSplitInfoMode(Int_t type)
 void NLTProjectorEditor::DoSplitInfoLevel()
 {
   fM->SetSplitInfoLevel((Int_t)fSILevel->GetNumber());
+  Update();
+}
+
+void NLTProjectorEditor::DoAxisColor(Pixel_t pixel)
+{ 
+  fM->SetAxisColor(Color_t(TColor::GetColor(pixel)));
   Update();
 }

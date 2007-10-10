@@ -7,6 +7,7 @@
 
 class TGComboBox;
 class TGNumberEntry;
+class TGColorSelect;
 
 namespace Reve {
 
@@ -28,8 +29,10 @@ protected:
   RGValuator    *fCurrentDepth;
 
   // axis
+  TGColorSelect *fAxisColor;
   TGComboBox    *fSIMode; 
   TGNumberEntry *fSILevel;
+
 public:
   NLTProjectorEditor(const TGWindow* p=0, Int_t width=170, Int_t height=30, UInt_t options = kChildFrame, Pixel_t back=GetDefaultFrameBackground());
   virtual ~NLTProjectorEditor();
@@ -38,12 +41,12 @@ public:
 
   void DoSplitInfoMode(Int_t type);
   void DoSplitInfoLevel();
+  void DoAxisColor(Pixel_t pixel);
 
   void DoType(Int_t type);
   void DoDistortion();
   void DoFixedRadius();  
   void DoCurrentDepth();
-
 
   ClassDef(NLTProjectorEditor, 0); // Editor for NLTProjector
 }; // endclass NLTProjectorEditor
