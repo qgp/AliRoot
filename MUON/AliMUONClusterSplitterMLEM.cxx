@@ -867,7 +867,7 @@ AliMUONClusterSplitterMLEM::Split(const AliMUONCluster& cluster,
   for (Int_t i=0; i<nclust; i++) used[i] = kFALSE;
   Int_t *clustNumb = new Int_t[nclust];
   Int_t nCoupled, nForFit, minGroup[3], clustFit[3], nfit = 0;
-  Double_t parOk[8];
+  Double_t parOk[]={0,0,0,0,0,0,0,0};
   
   for (Int_t igroup=0; igroup<nclust; igroup++) 
   {
