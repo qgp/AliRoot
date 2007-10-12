@@ -22,6 +22,12 @@
     @date   
     @brief  Base class implementation for HLT components. */
 
+// see header file for class documentation
+// or
+// refer to README to build package
+// or
+// visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
+
 #if __GNUC__>= 3
 using namespace std;
 #endif
@@ -212,6 +218,7 @@ int AliHLTComponent::DoDeinit()
 
 int AliHLTComponent::GetOutputDataTypes(vector<AliHLTComponentDataType>& /*tgtList*/)
 {
+  HLTLogKeyword("dummy");
   return 0;
 }
 
@@ -502,9 +509,8 @@ int AliHLTComponent::FindInputBlock(const AliHLTComponentDataType& dt, int start
     for ( ; (UInt_t)idx<fCurrentEventData.fBlockCnt && iResult==-ENOENT; idx++) {
       if (bObject!=0) {
 	if (fpInputBlocks[idx].fPtr==NULL) continue;
-	AliHLTUInt8_t* pSrc=reinterpret_cast<AliHLTUInt8_t*>(fpInputBlocks[idx].fPtr);
-	pSrc+=fpInputBlocks[idx].fOffset;
-	if (*reinterpret_cast<AliHLTUInt32_t*>(pSrc)!=fpInputBlocks[idx].fSize-sizeof(AliHLTUInt32_t)) continue;
+	AliHLTUInt32_t firstWord=*((AliHLTUInt32_t*)fpInputBlocks[idx].fPtr);
+	if (firstWord!=fpInputBlocks[idx].fSize-sizeof(AliHLTUInt32_t)) continue;
       }
       if (dt == kAliHLTAnyDataType || fpInputBlocks[idx].fDataType == dt) {
 	iResult=idx;
@@ -521,12 +527,10 @@ TObject* AliHLTComponent::CreateInputObject(int idx, int bForce)
   if (fpInputBlocks!=NULL) {
     if ((UInt_t)idx<fCurrentEventData.fBlockCnt) {
       if (fpInputBlocks[idx].fPtr) {
-	AliHLTUInt8_t* pSrc=reinterpret_cast<AliHLTUInt8_t*>(fpInputBlocks[idx].fPtr);
-	pSrc+=fpInputBlocks[idx].fOffset;
-	AliHLTUInt32_t firstWord=*((AliHLTUInt32_t*)pSrc);
+	AliHLTUInt32_t firstWord=*((AliHLTUInt32_t*)fpInputBlocks[idx].fPtr);
 	if (firstWord==fpInputBlocks[idx].fSize-sizeof(AliHLTUInt32_t)) {
 	  HLTDebug("create object from block %d size %d", idx, fpInputBlocks[idx].fSize);
-	  AliHLTMessage msg((void*)pSrc, fpInputBlocks[idx].fSize);
+	  AliHLTMessage msg(fpInputBlocks[idx].fPtr, fpInputBlocks[idx].fSize);
 	  TClass* objclass=msg.GetClass();
 	  pObj=msg.ReadObject(objclass);
 	  if (pObj && objclass) {
@@ -782,7 +786,6 @@ int AliHLTComponent::InsertOutputBlock(void* pBuffer, int iBufferSize, const Ali
       AliHLTComponentBlockData bd;
       FillBlockData( bd );
       bd.fOffset        = fOutputBufferFilled;
-      bd.fPtr           = fpOutputBuffer;
       bd.fSize          = iBlkSize;
       bd.fDataType      = dt;
       bd.fSpecification = spec;
@@ -855,7 +858,6 @@ AliHLTMemoryFile* AliHLTComponent::CreateMemoryFile(int capacity,
 	AliHLTComponentBlockData bd;
 	FillBlockData( bd );
 	bd.fOffset        = fOutputBufferFilled;
-	bd.fPtr           = fpOutputBuffer;
 	bd.fSize          = capacity;
 	bd.fDataType      = dt;
 	bd.fSpecification = spec;
@@ -910,6 +912,7 @@ AliHLTMemoryFile* AliHLTComponent::CreateMemoryFile(const AliHLTComponentDataTyp
 int AliHLTComponent::Write(AliHLTMemoryFile* pFile, const TObject* pObject,
 			   const char* key, int option)
 {
+  // see header file for function documentation
   int iResult=0;
   if (pFile && pObject) {
     pFile->cd();
@@ -930,6 +933,7 @@ int AliHLTComponent::Write(AliHLTMemoryFile* pFile, const TObject* pObject,
 
 int AliHLTComponent::CloseMemoryFile(AliHLTMemoryFile* pFile)
 {
+  // see header file for function documentation
   int iResult=0;
   if (pFile) {
     vector<AliHLTMemoryFile*>::iterator element=fMemFiles.begin();
@@ -1212,8 +1216,7 @@ int AliHLTComponent::CopyStruct(void* pStruct, unsigned int iStructSize, unsigne
     if (fpInputBlocks!=NULL && iBlockNo<fCurrentEventData.fBlockCnt) {
       AliHLTUInt32_t* pTgt=(AliHLTUInt32_t*)pStruct;
       if (fpInputBlocks[iBlockNo].fPtr && fpInputBlocks[iBlockNo].fSize) {
-	AliHLTUInt8_t* pSrc=((AliHLTUInt8_t*)fpInputBlocks[iBlockNo].fPtr)+fpInputBlocks[iBlockNo].fOffset;
-	AliHLTUInt32_t copy=*((AliHLTUInt32_t*)pSrc);
+	AliHLTUInt32_t copy=*((AliHLTUInt32_t*)fpInputBlocks[iBlockNo].fPtr);
 	if (fpInputBlocks[iBlockNo].fSize!=copy) {
 	  HLTWarning("%s event: missmatch of block size (%d) and structure size (%d)", eventname, fpInputBlocks[iBlockNo].fSize, copy);
 	  if (copy>fpInputBlocks[iBlockNo].fSize) copy=fpInputBlocks[iBlockNo].fSize;
@@ -1226,7 +1229,7 @@ int AliHLTComponent::CopyStruct(void* pStruct, unsigned int iStructSize, unsigne
 	    memset(pTgt, 0, iStructSize);
 	  }
 	}
-	memcpy(pTgt, pSrc, copy);
+	memcpy(pTgt, fpInputBlocks[iBlockNo].fPtr, copy);
 	*pTgt=iStructSize;
 	iResult=copy;
       } else {
