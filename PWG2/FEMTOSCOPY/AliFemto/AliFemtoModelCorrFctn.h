@@ -4,13 +4,13 @@
 /// uses the model framework and weight generation                           ///
 ///                                                                          ///
 ////////////////////////////////////////////////////////////////////////////////
-#ifndef AliFemtoModelCorrFctn_hh
-#define AliFemtoModelCorrFctn_hh
+#ifndef ALIFEMTOMODELCORRFCTN_H
+#define ALIFEMTOMODELCORRFCTN_H
 
 #include "AliFemtoCorrFctn.h"
-#include "AliFemtoPair.h"
-#include "AliFemtoModelManager.h"
-#include <TH1D.h>
+class AliFemtoPair;
+class AliFemtoModelManager;
+class TH1D;
 
 class AliFemtoModelCorrFctn: public AliFemtoCorrFctn {
 

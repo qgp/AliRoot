@@ -14,7 +14,7 @@ class AliFemtoKink;
 class AliFemtoPair; // Gael 12/04/02
 class TH1D;
 #include "AliFemtoString.h"
-#include "AliFemtoParticleCollection.h" // Gael 19/06/02
+#include "AliFemtoParticleCollection.h"
 #include "AliFemtoCutMonitor.h"
 
 class AliFemtoCutMonitorParticleTrue : public AliFemtoCutMonitor{
@@ -22,7 +22,11 @@ class AliFemtoCutMonitorParticleTrue : public AliFemtoCutMonitor{
 public:
   AliFemtoCutMonitorParticleTrue();
   AliFemtoCutMonitorParticleTrue(const char *aName);
+  AliFemtoCutMonitorParticleTrue(const AliFemtoCutMonitorParticleTrue &aCut);
   virtual ~AliFemtoCutMonitorParticleTrue();
+
+  AliFemtoCutMonitorParticleTrue& operator=(const AliFemtoCutMonitorParticleTrue& aCut);
+
   virtual AliFemtoString Report();
   virtual void Fill(const AliFemtoTrack* aTrack);
   void Write();

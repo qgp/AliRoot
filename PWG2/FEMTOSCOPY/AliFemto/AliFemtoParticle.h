@@ -55,7 +55,8 @@ public:
 
   // the following method is for explicit internal calculation to fill datamembers.
   // It is invoked automatically if AliFemtoParticle constructed from AliFemtoTrack
-  //void CalculateNominalTpcExitAndEntrancePoints(); // NOTE - this requires the fHelix, so be sure this is filled
+  // void CalculateNominalTpcExitAndEntrancePoints(); 
+  // NOTE - this requires the fHelix, so be sure this is filled
 
 
   AliFemtoThreeVector fNominalPosSample[11];  // I make this public for convenience and speed of AliFemtoPair()

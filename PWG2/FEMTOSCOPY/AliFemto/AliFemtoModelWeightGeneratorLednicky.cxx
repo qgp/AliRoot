@@ -13,6 +13,7 @@
 //#include "StHbtMaker/ThCorrFctn/AliFemtoModelWeightGeneratorLednicky.h"
 #include "AliFemtoModelWeightGeneratorLednicky.h"
 #include "AliFemtoModelHiddenInfo.h"
+#include "AliFemtoPair.h"
 //#include "StarCallf77.h"
 //#include <strstream.h>
 //#include <iomanip.h>

@@ -1,3 +1,9 @@
+////////////////////////////////////////////////////////////////////////////
+//                                                                        //
+// AliFemtoVertexAnalysis - Femtoscopic analysis which mixes events       //
+// with respect to the z position of the primary vertex                   //
+//                                                                        //
+////////////////////////////////////////////////////////////////////////////
 /***************************************************************************
  *
  * $Id$
@@ -13,6 +19,9 @@
  ***************************************************************************
  *
  * $Log$
+ * Revision 1.2.2.1  2007/10/05 09:38:17  akisiel
+ * Fix stray colons
+ *
  * Revision 1.2  2007/07/09 16:17:11  mlisa
  * several files changed to change name of AliFemtoAnalysis to AliFemtoSimpleAnalysis and AliFemtoBaseAnalysis to AliFemtoAnalysis.  Also removed some hard-coded cuts of Marek
  *
@@ -156,23 +165,25 @@ AliFemtoVertexAnalysis::~AliFemtoVertexAnalysis(){
 //____________________________
 AliFemtoString AliFemtoVertexAnalysis::Report()
 {
+  // prepare report fromt the execution
   cout << "AliFemtoVertexAnalysis - constructing Report..."<<endl;
-  char Ctemp[200];
+  char ctemp[200];
   AliFemtoString temp = "-----------\nHbt AliFemtoVertexAnalysis Report:\n";
-  sprintf(Ctemp,"Events are mixed in %d bins in the range %E cm to %E cm.\n",fVertexBins,fVertexZ[0],fVertexZ[1]);
-  temp += Ctemp;
-  sprintf(Ctemp,"Events underflowing: %d\n",fUnderFlow);
-  temp += Ctemp;
-  sprintf(Ctemp,"Events overflowing: %d\n",fOverFlow);
-  temp += Ctemp;
-  sprintf(Ctemp,"Now adding AliFemtoSimpleAnalysis(base) Report\n");
-  temp += Ctemp;
+  sprintf(ctemp,"Events are mixed in %d bins in the range %E cm to %E cm.\n",fVertexBins,fVertexZ[0],fVertexZ[1]);
+  temp += ctemp;
+  sprintf(ctemp,"Events underflowing: %d\n",fUnderFlow);
+  temp += ctemp;
+  sprintf(ctemp,"Events overflowing: %d\n",fOverFlow);
+  temp += ctemp;
+  sprintf(ctemp,"Now adding AliFemtoSimpleAnalysis(base) Report\n");
+  temp += ctemp;
   temp += AliFemtoSimpleAnalysis::Report();
   AliFemtoString returnThis=temp;
   return returnThis;
 }
 //_________________________
 void AliFemtoVertexAnalysis::ProcessEvent(const AliFemtoEvent* hbtEvent) {
+  // Put the event though the analysis
   cout << " AliFemtoVertexAnalysis::ProcessEvent(const AliFemtoEvent* hbtEvent) " << endl;
   // get right mixing buffer
   double vertexZ = hbtEvent->PrimVertPos().z();
