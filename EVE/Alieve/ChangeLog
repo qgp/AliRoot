@@ -1,3 +1,19 @@
+2007-10-16  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	EVE-dev
+
+	* MUONData.cxx:
+	* MUONData.h:
+	* TOFDigitsInfo.cxx:
+	* TOFSector.cxx:
+	* TOFSector.h:
+	* TOFStrip.cxx:
+	* TOFStrip.h:
+	* TPCData.cxx:
+	* TRDData.cxx:
+	* TRDModuleImp.cxx:
+	Merge from EVE-head-after-merge to HEAD.
+
 2007-10-05  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	EVE-dev
@@ -26,6 +42,15 @@
 
 	* TPCSector3D.cxx:
 	Remove lines that were commented-out during last revision.
+
+2007-10-04  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	* TOFDigitsInfo.cxx:
+	* TOFSector.cxx:
+	* TOFSector.h:
+	* TOFStrip.cxx:
+	* TOFStrip.h:
+	From Annalisa: changes for the new TOF geometry classes.
 
 2007-10-03  Matevz Tadel  <matevz.tadel@cern.ch>
 
@@ -71,6 +96,13 @@
 
 	* TRDData.cxx:
 	Comment-out unused code requiring obsolete features of BoxSet.
+
+2007-09-24  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	* MUONData.cxx:
+	* MUONData.h:
+	From Bogdan: modifications for the new structure of the data in
+	the MUON code.
 
 2007-09-19  Matevz Tadel  <matevz.tadel@cern.ch>
 

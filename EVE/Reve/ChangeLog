@@ -1,3 +1,13 @@
+2007-10-16  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	* Line.cxx:
+	* Line.h:
+	* PointSet.cxx:
+	* PointSet.h:
+	* TTreeTools.cxx:
+	* TTreeTools.h:
+	* Track.cxx:
+
 2007-10-10  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
 
 	* NLTProjector.cxx:
