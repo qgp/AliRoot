@@ -9,6 +9,7 @@
 #include <Reve/TTreeTools.h>
 
 #include <TPointSet3D.h>
+#include <TArrayI.h>
 
 class TTree;
 class TF3;
@@ -24,20 +25,31 @@ class PointSet : public RenderElement,
   friend class PointSetArray;
 
 protected:
-  TString fTitle;
+  TString  fTitle;           // Title/tooltip of the PointSet.
+  TArrayI *fIntIds;          // Optional array of integer ideices.
+  Int_t    fIntIdsPerPoint;  // Number of integer indices assigned to each point.
+
+  void AssertIntIdsSize();
 
 public:
   PointSet(Int_t n_points=0, TreeVarType_e tv_type=TVT_XYZ);
   PointSet(const Text_t* name, Int_t n_points=0, TreeVarType_e tv_type=TVT_XYZ);
-  PointSet(const Text_t* name, TTree* tree, TreeVarType_e tv_type=TVT_XYZ);
+  virtual ~PointSet();
 
   virtual void ComputeBBox();
 
-  void  Reset(Int_t n_points=0);
+  void  Reset(Int_t n_points=0, Int_t n_int_ids=0);
   Int_t GrowFor(Int_t n_points);
 
   virtual const Text_t* GetTitle() const          { return fTitle; }
   virtual void          SetTitle(const Text_t* t) { fTitle = t; }
+
+  Int_t  GetIntIdsPerPoint() const { return fIntIdsPerPoint; }
+  Int_t* GetPointIntIds(Int_t p) const;
+  Int_t  GetPointIntId(Int_t p, Int_t i) const;
+
+  void   SetPointIntIds(Int_t* ids);
+  void   SetPointIntIds(Int_t n, Int_t* ids);
 
   virtual void SetRnrElNameTitle(const Text_t* name, const Text_t* title);
 
@@ -46,13 +58,14 @@ public:
 
   virtual void Paint(Option_t* option="");
 
-  virtual void TakeAction(TSelectorDraw*);
+  virtual void InitFill(Int_t subIdNum);
+  virtual void TakeAction(TPointSelector*);
 
   virtual const TGPicture* GetListTreeIcon() { return RenderElement::fgListTreeIcons[3]; }
 
   virtual TClass* ProjectedClass() const;
 
-  ClassDef(PointSet, 1);
+  ClassDef(PointSet, 1); // Render element containing an array of 3D points.
 }; // endclass PointSet
 
 /**************************************************************************/
@@ -68,10 +81,10 @@ class PointSetArray : public RenderElement,
   PointSetArray& operator=(const PointSetArray&); // Not implemented
 
 protected:
-  PointSet**   fBins;
-  Int_t        fDefPointSetCapacity;
-  Int_t        fNBins;
-  Int_t        fLastBin;              //!
+  PointSet**   fBins;                 //  Pointers to subjugated PointSet's.
+  Int_t        fDefPointSetCapacity;  //  Default capacity of subjugated PointSet's.
+  Int_t        fNBins;                //  Number of subjugated PointSet's.
+  Int_t        fLastBin;              //! Index of the last filled PointSet.
   Double_t     fMin, fCurMin;
   Double_t     fMax, fCurMax;
   Double_t     fBinWidth;
@@ -90,7 +103,7 @@ public:
   virtual void SetMarkerStyle(Style_t mstyle=1);
   virtual void SetMarkerSize(Size_t msize=1);
 
-  virtual void TakeAction(TSelectorDraw*);
+  virtual void TakeAction(TPointSelector*);
 
 
   void InitBins(const Text_t* quant_name, Int_t nbins, Double_t min, Double_t max,

@@ -17,6 +17,19 @@ using namespace Reve;
 //______________________________________________________________________
 // PointSet
 //
+// PointSet is a render-element holding a collection of 3D points with
+// optional per-point TRef and an arbitrary number of integer ids (to
+// be used for signal, volume id, track-id, etc).
+//
+// 3D point representation is implemented in base-class TPolyMarker3D.
+// Per-point TRef is implemented in base-class TPointSet3D.
+//
+// By using the TPointSelector the points and integer ids can be
+// filled directly from a TTree holding the source data.
+// Setting of per-point TRef's is not supported.
+//
+// PointSet is a NLTProjectable: it can be projected by using the
+// NLTProjector class.
 
 ClassImp(PointSet)
 
@@ -25,8 +38,12 @@ PointSet::PointSet(Int_t n_points, TreeVarType_e tv_type) :
   TPointSet3D(n_points),
   TPointSelectorConsumer(tv_type),
 
-  fTitle()
+  fTitle          (),
+  fIntIds         (0),
+  fIntIdsPerPoint (0)
 {
+  // Constructor.
+
   fMarkerStyle = 20;
 }
 
@@ -35,44 +52,48 @@ PointSet::PointSet(const Text_t* name, Int_t n_points, TreeVarType_e tv_type) :
   TPointSet3D(n_points),
   TPointSelectorConsumer(tv_type),
 
-  fTitle()
+  fTitle          (),
+  fIntIds         (0),
+  fIntIdsPerPoint (0)
 {
+  // Constructor.
+
   fMarkerStyle = 20;
   SetName(name);
 }
 
-PointSet::PointSet(const Text_t* name, TTree* tree, TreeVarType_e tv_type) :
-  RenderElement(fMarkerColor),
-  TPointSet3D(tree->GetSelectedRows()),
-  TPointSelectorConsumer(tv_type),
-
-  fTitle()
+PointSet::~PointSet()
 {
-  static const Exc_t eH("PointSet::PointSet ");
+  // Destructor.
 
-  fMarkerStyle = 20;
-  SetName(name);
-
-  TTreePlayer* tp = dynamic_cast<TTreePlayer*>(tree->GetPlayer());
-  TakeAction(dynamic_cast<TSelectorDraw*>(tp->GetSelector()));
+  delete fIntIds;
 }
 
 /**************************************************************************/
 
 void PointSet::ComputeBBox()
 {
+  // Override of virtual method from TAttBBox.
+
   TPointSet3D::ComputeBBox();
   AssertBBoxExtents(0.1);
 }
 
-void PointSet::Reset(Int_t n_points)
+void PointSet::Reset(Int_t n_points, Int_t n_int_ids)
 {
+  // Drop all data and set-up the data structures to recive new data.
+  // n_points   specifies the initial size of the arrays.
+  // n_int_ids  specifies the number of integer ids per point.
+
   delete [] fP; fP = 0;
   fN = n_points;
   if(fN) fP = new Float_t [3*fN];
   memset(fP, 0, 3*fN*sizeof(Float_t));
   fLastPoint = -1;
   ClearIds();
+  delete fIntIds; fIntIds = 0;
+  fIntIdsPerPoint = n_int_ids;
+  if (fIntIdsPerPoint > 0) fIntIds = new TArrayI(fIntIdsPerPoint*fN);
   ResetBBox();
 }
 
@@ -86,7 +107,62 @@ Int_t PointSet::GrowFor(Int_t n_points)
   Int_t old_size = Size();
   Int_t new_size = old_size + n_points;
   SetPoint(new_size - 1, 0, 0, 0);
+  if (fIntIds)
+    fIntIds->Set(fIntIdsPerPoint * new_size);
   return old_size;
+}
+
+/**************************************************************************/
+
+inline void PointSet::AssertIntIdsSize()
+{
+  // Assert that size of IntId array is compatible with the size of
+  // the point array.
+
+  Int_t exp_size = GetN()*fIntIdsPerPoint;
+  if (fIntIds->GetSize() < exp_size)
+    fIntIds->Set(exp_size);
+}
+
+Int_t* PointSet::GetPointIntIds(Int_t p) const
+{
+  // Return a pointer to integer ids of point with index p.
+  // Existence of integer id array is checked, 0 is returned if it
+  // does not exist.
+  // Validity of p is *not* checked.
+
+  if (fIntIds)
+    return fIntIds->GetArray() + p*fIntIdsPerPoint;
+  return 0;
+}
+
+Int_t PointSet::GetPointIntId(Int_t p, Int_t i) const
+{
+  // Return i-th integer id of point with index p.
+  // Existence of integer id array is checked, kMinInt is returned if
+  // it does not exist.
+  // Validity of p and i is *not* checked.
+
+  if (fIntIds)
+    return * (fIntIds->GetArray() + p*fIntIdsPerPoint + i);
+  return kMinInt;
+}
+
+void PointSet::SetPointIntIds(Int_t* ids)
+{
+  // Set integer ids for the last point that was registerd (most
+  // probably via TPolyMarker3D::SetNextPoint(x,y,z)).
+
+  SetPointIntIds(fLastPoint, ids);
+}
+
+void PointSet::SetPointIntIds(Int_t n, Int_t* ids)
+{
+  if (!fIntIds) return;
+  AssertIntIdsSize();
+  Int_t* x = fIntIds->GetArray() + n*fIntIdsPerPoint;
+  for (Int_t i=0; i<fIntIdsPerPoint; ++i)
+    x[i] = ids[i];
 }
 
 /**************************************************************************/
@@ -108,7 +184,21 @@ void PointSet::Paint(Option_t* option)
 
 /**************************************************************************/
 
-void PointSet::TakeAction(TSelectorDraw* sel)
+void PointSet::InitFill(Int_t subIdNum)
+{
+  if (subIdNum > 0) {
+    fIntIdsPerPoint = subIdNum;
+    if (!fIntIds)
+      fIntIds = new TArrayI(fIntIdsPerPoint*GetN());
+    else
+      fIntIds->Set(fIntIdsPerPoint*GetN());
+  } else {
+    delete fIntIds; fIntIds = 0;
+    fIntIdsPerPoint = 0;
+  }
+}
+
+void PointSet::TakeAction(TPointSelector* sel)
 {
   static const Exc_t eH("PointSet::TakeAction ");
 
@@ -117,11 +207,12 @@ void PointSet::TakeAction(TSelectorDraw* sel)
 
   Int_t    n = sel->GetNfill();
   Int_t  beg = GrowFor(n);
-  Float_t *p = fP + 3*beg;
 
-  // printf("PointSet::TakeAction beg=%d n=%d size=%d\n", beg, n, Size());
+  // printf("PointSet::TakeAction beg=%d n=%d size=%d nsubid=%d dim=%d\n",
+  //        beg, n, Size(), sel->GetSubIdNum(), sel->GetDimension());
 
   Double_t *vx = sel->GetV1(), *vy = sel->GetV2(), *vz = sel->GetV3();
+  Float_t  *p  = fP + 3*beg;
 
   switch(fSourceCS) {
   case TVT_XYZ:
@@ -140,6 +231,25 @@ void PointSet::TakeAction(TSelectorDraw* sel)
     break;
   default:
     throw(eH + "unknown tree variable type.");
+  }
+
+  if (fIntIds) {
+    Double_t** subarr = new Double_t* [fIntIdsPerPoint];
+    for (Int_t i=0; i<fIntIdsPerPoint; ++i) {
+      subarr[i] = sel->GetVal(sel->GetDimension() - fIntIdsPerPoint + i);
+      if (subarr[i] == 0)
+        throw(eH + "sub-id array not available.");
+    }
+    Int_t* ids = fIntIds->GetArray() + fIntIdsPerPoint*beg;
+    n = sel->GetNfill();
+    while (n-- > 0) {
+      for (Int_t i=0; i<fIntIdsPerPoint; ++i) {
+        ids[i] = TMath::Nint(*subarr[i]);
+        ++subarr[i];
+      }
+      ids += fIntIdsPerPoint;
+    }
+    delete [] subarr;
   }
 }
 
@@ -239,7 +349,7 @@ void PointSetArray::SetMarkerSize(Size_t msize)
 
 /**************************************************************************/
 
-void PointSetArray::TakeAction(TSelectorDraw* sel)
+void PointSetArray::TakeAction(TPointSelector* sel)
 {
   static const Exc_t eH("PointSetArray::TakeAction ");
 
