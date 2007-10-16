@@ -33,11 +33,7 @@ acorde_hits(const char *varexp    = "ACORDE.fX:ACORDE.fY:ACORDE.fZ",
   points->SetMarkerSize(.5);
   points->SetMarkerColor((Color_t)2);
 
-  if(cont)
-    gReve->AddRenderElement(cont, points);
-  else 
-    gReve->AddRenderElement(points);
-  gReve->Redraw3D();
+  gReve->AddRenderElement(points, cont);
 
   return points;
 }
