@@ -49,9 +49,9 @@ void loadlibsrec ()
   gSystem->Load("libHMPIDbase");
   gSystem->Load("libHMPIDsim");
   gSystem->Load("libHMPIDrec");
-/*   gSystem->Load("libT0base"); */
-/*   gSystem->Load("libT0sim"); */
-/*   gSystem->Load("libT0rec"); */
+  gSystem->Load("libT0base");
+  gSystem->Load("libT0sim");
+  gSystem->Load("libT0rec");
   gSystem->Load("libZDCbase");
   gSystem->Load("libZDCsim");
   gSystem->Load("libZDCrec");

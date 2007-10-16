@@ -287,7 +287,7 @@ void Config()
     Int_t   iPMD   =  1;
     Int_t   iHMPID  =  1;
     Int_t   iSHIL  =  1;
-    Int_t   iT0 =  0;
+    Int_t   iT0 =  1;
     Int_t   iTOF   =  1;
     Int_t   iTPC   =  1;
     Int_t   iTRD   =  1;

@@ -16,5 +16,10 @@
 #pragma link C++ class  AliT0Parameters+;
 #pragma link C++ class  AliT0LookUpValue+;
 #pragma link C++ class  AliT0LookUpKey+;
+#pragma link C++ class  AliT0RecPoint+;
+#pragma link C++ class  AliT0RawReader+;
+#pragma link C++ class  AliT0Digitizer+;
+#pragma link C++ class  AliT0hit+;
+#pragma link C++ class  AliT0RawData+;
 
 #endif
