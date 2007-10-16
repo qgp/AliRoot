@@ -1,3 +1,22 @@
+2007-10-16  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	Merged EVE-head-after-merge to HEAD into EVE-dev.
+	Moved tag EVE-head-after-merge to current HEAD.
+
+	EVE-dev
+
+	* alice-macros/MUON_display.C:
+	* alice-macros/acorde_hits.C:
+	* alice-macros/geom_acorde.C:
+	* binalieve.pkg:
+	Merge from EVE-head-after-merge to HEAD.
+
+	* alice-macros/its_hits.C:
+	Added example line for usage of per-point integer ids.
+
+	* icons/pointset.xpm:
+	Changed icon.
+
 2007-10-05  Matevz Tadel  <matevz.tadel@cern.ch>
 
 	EVE-dev
@@ -17,6 +36,12 @@
 
 	* alice-macros/tpc_calib_viewer.C:
 	New macro (with Marian): start an embedded TPC calibration viewer.
+
+2007-10-04  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	* alice-macros/acorde_hits.C:
+	* alice-macros/geom_acorde.C:
+	New files from Eleazar: geometry and hits for ACORDE.
 
 2007-10-03  Matevz Tadel  <matevz.tadel@cern.ch>
 
@@ -40,6 +65,12 @@
 
 	* alice-macros/pmd_digits.C:
 	Optionally add background polygons.
+
+2007-09-24  Matevz Tadel  <matevz.tadel@cern.ch>
+
+	* alice-macros/MUON_display.C:
+	From Bogdan: modifications for the new structure of the data in
+	the MUON code.
 
 2007-08-31  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
 
