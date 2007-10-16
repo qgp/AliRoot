@@ -9,16 +9,10 @@
 #pragma link C++ class AliPHOSv2+;
 #pragma link C++ class AliPHOSvFast+;
 #pragma link C++ class AliPHOSvImpacts+;
-#pragma link C++ class AliPHOSImpact+;
 #pragma link C++ class AliPHOSCPVDigit+;
-#pragma link C++ class AliPHOSTick+;
 #pragma link C++ class AliPHOSRaw2Digits+;
 #pragma link C++ class AliPHOSBeamTestEvent+;
-#pragma link C++ class AliPHOSCalibrationData+;
-#pragma link C++ class AliPHOSCalibrManager+;
 #pragma link C++ class AliPHOSCalibrator+;
-#pragma link C++ class AliPHOSConTableDB+;
 #pragma link C++ class AliPHOSOnlineMonitor+;
-#pragma link C++ class AliPHOSTrigger+;
 
 #endif

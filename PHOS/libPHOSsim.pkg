@@ -1,14 +1,9 @@
 SRCS          =  AliPHOSv0.cxx AliPHOSv1.cxx AliPHOSv2.cxx \
                  AliPHOSvFast.cxx AliPHOSvImpacts.cxx \
-                 AliPHOSImpact.cxx \
                  AliPHOSCPVDigit.cxx  \
-                 AliPHOSTick.cxx \
                  AliPHOSRaw2Digits.cxx AliPHOSBeamTestEvent.cxx \
-		 AliPHOSCalibrationData.cxx\
-                 AliPHOSCalibrator.cxx AliPHOSCalibrManager.cxx \
-		 AliPHOSConTableDB.cxx \
-                 AliPHOSOnlineMonitor.cxx \
-		 AliPHOSTrigger.cxx 
+                 AliPHOSCalibrator.cxx \
+                 AliPHOSOnlineMonitor.cxx
 
 HDRS:= $(SRCS:.cxx=.h) 
 
@@ -16,5 +11,12 @@ DHDR= PHOSsimLinkDef.h
 
 EINCLUDE:=RAW
 
+
+ifeq (win32gcc,$(ALICE_TARGET))
+PACKSOFLAGS:= $(SOFLAGS) -L$(ALICE_ROOT)/lib/tgt_$(ALICE_TARGET) \
+                         -lPHOSbase -lPHOSrec -lSTEER -lSTEERBase \
+                         -lRAWDatarec \
+                         -L$(shell root-config --libdir) -lVMC -lEG -lGeom -lPhysics
+endif
 
 

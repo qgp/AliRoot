@@ -16,7 +16,8 @@ SRCS          =  \
 		 AliPHOSTracker.cxx \
 		 AliPHOSRecoParam.cxx \
 		 AliPHOSRecoParamEmc.cxx \
-		 AliPHOSRecoParamCpv.cxx
+		 AliPHOSRecoParamCpv.cxx \
+                 AliPHOSImpact.cxx
                 
            
 HDRS:= $(SRCS:.cxx=.h) 
@@ -24,6 +25,15 @@ HDRS:= $(SRCS:.cxx=.h)
 DHDR= PHOSrecLinkDef.h
 
 EINCLUDE:=RAW
+
+
+
+ifeq (win32gcc,$(ALICE_TARGET))
+PACKSOFLAGS:= $(SOFLAGS) -L$(ALICE_ROOT)/lib/tgt_$(ALICE_TARGET) \
+                         -lPHOSbase -lSTEER -lCDB -lESD -lSTEERBase \
+                         -lRAWDatarec \
+                         -L$(shell root-config --libdir) -lMinuit -lVMC -lEG -lGeom
+endif
 
 
 

@@ -282,7 +282,7 @@ void Config()
     Int_t   iITS   =  1;
     Int_t   iMAG   =  1;
     Int_t   iMUON  =  1;
-    Int_t   iPHOS  =  0;
+    Int_t   iPHOS  =  1;
     Int_t   iPIPE  =  1;
     Int_t   iPMD   =  1;
     Int_t   iHMPID  =  1;

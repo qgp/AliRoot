@@ -40,5 +40,11 @@
 #pragma link C++ class AliPHOSCpvRecPoint+;
 #pragma link C++ class AliPHOSEmcRecPoint+;
 #pragma link C++ class AliPHOSTrackSegment+;
+#pragma link C++ class AliPHOSTrigger+;
+
+#pragma link C++ class AliPHOSCalibrationData+;
+#pragma link C++ class AliPHOSCalibrManager+;
+#pragma link C++ class AliPHOSTick+;
+#pragma link C++ class AliPHOSConTableDB+;
 
 #endif

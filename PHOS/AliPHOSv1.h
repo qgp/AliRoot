@@ -8,6 +8,9 @@
 /* History of cvs commits:
  *
  * $Log$
+ * Revision 1.41  2006/11/14 17:11:15  hristov
+ * Removing inheritances from TAttLine, TAttMarker and AliRndm in AliModule. The copy constructor and assignment operators are moved to the private part of the class and not implemented. The corresponding changes are propagated to the detectors
+ *
  * Revision 1.40  2006/09/13 07:31:01  kharlov
  * Effective C++ corrections (T.Pocheptsov)
  *
@@ -24,10 +27,10 @@
 
 // --- ROOT system ---
 class TClonesArray ;
-class TLorentzVector ;
 class TFile;
 
 // --- AliRoot header files ---
+#include <TLorentzVector.h>
 #include "AliPHOSv0.h"
 
 class AliPHOSv1 : public AliPHOSv0 {

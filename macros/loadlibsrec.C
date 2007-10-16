@@ -30,9 +30,8 @@ void loadlibsrec ()
   gSystem->Load("libRAWDatasim");
 
   gSystem->Load("libSTRUCT");
-/*   gSystem->Load("libPHOSbase"); */
-/*   gSystem->Load("libPHOSsim"); */
-/*   gSystem->Load("libPHOSrec"); */
+  gSystem->Load("libPHOSbase");
+  gSystem->Load("libPHOSrec");
   gSystem->Load("libMUONmapping");
   gSystem->Load("libMUONgeometry");
   gSystem->Load("libMUONcalib");
