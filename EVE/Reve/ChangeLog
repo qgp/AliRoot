@@ -1,12 +1,19 @@
 2007-10-16  Matevz Tadel  <matevz.tadel@cern.ch>
 
+	EVE-dev
+
 	* Line.cxx:
 	* Line.h:
 	* PointSet.cxx:
 	* PointSet.h:
 	* TTreeTools.cxx:
 	* TTreeTools.h:
+	Add support for optional integer ids for every point in a
+	PointSet. Can also be filled via TPointSelector.
+	Remove obsolete constructor from PointSet and Line.
+
 	* Track.cxx:
+	Merge from EVE-head-after-merge to HEAD.
 
 2007-10-10  Alja Mrak-Tadel  <Alja.Mrak.Tadel@cern.ch>
 
