@@ -29,9 +29,9 @@ void loadlibssim ()
   gSystem->Load("libSTEERBase");
   gSystem->Load("libESD");
   gSystem->Load("libCDB");
-  gSystem->Load("libSTEER");
   gSystem->Load("libRAWDatabase");
   gSystem->Load("libRAWDatarec");
+  gSystem->Load("libSTEER");
 
   gSystem->Load("libRAWDatasim");
   gSystem->Load("libEVGEN");
@@ -73,10 +73,16 @@ void loadlibssim ()
   // for the moment due to cross dependencies
   gSystem->Load("libTPCbase");
   gSystem->Load("libTPCsim");
+  gSystem->Load("libTPCrec");
   gSystem->Load("libITSbase");
   gSystem->Load("libITSsim");
   gSystem->Load("libTRDbase");
   gSystem->Load("libTRDsim");
+  gSystem->Load("libTRDrec");
   gSystem->Load("libTOFbase");
   gSystem->Load("libTOFsim");
+
+  gSystem->Load("libHLTbase");
+  gSystem->Load("libHLTinterface");
+  gSystem->Load("libHLTsim");
 }

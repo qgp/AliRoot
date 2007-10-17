@@ -25,8 +25,9 @@ AliEMCALSuperModule.cxx \
 AliEMCALCell.cxx \
 AliEMCALPi0SelectionParam.cxx \
 AliEMCALCalibCoefs.cxx \
-AliEMCALCellInfo.cxx\
-AliCaloCalibPedestal.cxx
+AliEMCALCellInfo.cxx \
+AliCaloCalibPedestal.cxx \
+AliEMCALRecPointsQaESDSelector.cxx
 
 HDRS= $(SRCS:.cxx=.h) 
 

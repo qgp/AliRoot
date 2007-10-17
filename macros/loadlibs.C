@@ -31,9 +31,9 @@ void loadlibs ()
   gSystem->Load("libSTEERBase");
   gSystem->Load("libESD");
   gSystem->Load("libCDB");
-  gSystem->Load("libSTEER");
   gSystem->Load("libRAWDatabase");
   gSystem->Load("libRAWDatarec");
+  gSystem->Load("libSTEER");
   gSystem->Load("libRAWDatasim");
   gSystem->Load("libEVGEN");
   gSystem->Load("libFASTSIM");
@@ -99,10 +99,7 @@ void loadlibs ()
   gSystem->Load("libTOFrec");
 
   gSystem->Load("libHLTbase");
-  gSystem->Load("libAliHLTITS");
-  gSystem->Load("libAliHLTSrc");
-  gSystem->Load("libAliHLTMisc");
-  gSystem->Load("libAliHLTComp");
-  gSystem->Load("libThread");
-  gSystem->Load("libAliHLTHough");
+  gSystem->Load("libHLTinterface");
+  gSystem->Load("libHLTsim");
+  gSystem->Load("libHLTrec");
 }

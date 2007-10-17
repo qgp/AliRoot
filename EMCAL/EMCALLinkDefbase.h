@@ -38,4 +38,5 @@
 #pragma link C++ class cellInfo+;
 //
 #pragma link C++ class AliCaloCalibPedestal+;
+#pragma link C++ class AliEMCALRecPointsQaESDSelector+;
 #endif

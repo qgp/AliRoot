@@ -40,5 +40,6 @@
 #pragma link C++ class AliPHOSCpvRecPoint+;
 #pragma link C++ class AliPHOSEmcRecPoint+;
 #pragma link C++ class AliPHOSTrackSegment+;
+#pragma link C++ class AliPHOSReconstructor+;
 
 #endif

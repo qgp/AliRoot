@@ -23,11 +23,11 @@ void loadlibsrec ()
   gSystem->Load("libSTEERBase");
   gSystem->Load("libESD");
   gSystem->Load("libCDB");
-  gSystem->Load("libSTEER");
   gSystem->Load("libRAWDatabase");
   gSystem->Load("libRAWDatarec");
+  gSystem->Load("libSTEER");
 
-  gSystem->Load("libSTRUCT");
+  //  gSystem->Load("libSTRUCT");
   gSystem->Load("libPHOSbase");
   gSystem->Load("libPHOSsim");
   gSystem->Load("libPHOSrec");
@@ -54,9 +54,9 @@ void loadlibsrec ()
   gSystem->Load("libZDCbase");
   gSystem->Load("libZDCsim");
   gSystem->Load("libZDCrec");
-  gSystem->Load("libACORDEbase");
-  gSystem->Load("libACORDEsim");
-  gSystem->Load("libACORDErec");
+//   gSystem->Load("libACORDEbase");
+//   gSystem->Load("libACORDEsim");
+//   gSystem->Load("libACORDErec");
   gSystem->Load("libVZERObase");
   gSystem->Load("libVZEROsim");
   gSystem->Load("libVZEROrec");
@@ -79,11 +79,4 @@ void loadlibsrec ()
   gSystem->Load("libTOFsim");
   gSystem->Load("libTOFrec");
 
-  gSystem->Load("libHLTbase");
-  gSystem->Load("libAliHLTITS");
-  gSystem->Load("libAliHLTSrc");
-  gSystem->Load("libAliHLTMisc");
-  gSystem->Load("libAliHLTComp");
-  gSystem->Load("libThread");
-  gSystem->Load("libAliHLTHough");
 }
