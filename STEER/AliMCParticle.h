@@ -53,12 +53,17 @@ public:
     Int_t              GetNumberOfTrackReferences() {return fNTrackRef;}
     AliTrackReference* GetTrackReference(Int_t i)
 	{return dynamic_cast<AliTrackReference*>((*fTrackReferences)[i]);}
+    Bool_t             HasDisappeared() {return fHasDisappeared;}
+    UShort_t           NumberOfHits(Int_t i) {return fNHits[i];}
+	    
  private:
     TParticle *fParticle;             // The wrapped TParticle
     TRefArray *fTrackReferences;      // Reference array to track references
     Int_t      fNTrackRef;            // Number of track references
-    
-  ClassDef(AliMCParticle,0)  // AliVParticle realisation for MCParticles
+    UShort_t*  fNHits;                // Number of hits per detector
+    Bool_t     fHasDisappeared;       // This particle has disappeared
+      
+    ClassDef(AliMCParticle,0)         // AliVParticle realisation for MCParticles
 };
 
 inline Double_t AliMCParticle::Px()        const {return fParticle->Px();}

@@ -32,7 +32,9 @@ AliMCParticle::AliMCParticle():
     AliVParticle(),
     fParticle(0),
     fTrackReferences(0),
-    fNTrackRef(0)
+    fNTrackRef(0),
+    fNHits(0),
+    fHasDisappeared(kFALSE)
 {
     // Constructor
 }
@@ -41,12 +43,27 @@ AliMCParticle::AliMCParticle(TParticle* part, TRefArray* rarray):
     AliVParticle(),
     fParticle(part),
     fTrackReferences(rarray),
-    fNTrackRef(0)
+    fNTrackRef(0),
+    fNHits(0),
+    fHasDisappeared(kFALSE)
 {
     // Constructor
+    Int_t i;
+    
     if (rarray != 0) {
 	fNTrackRef = fTrackReferences->GetEntriesFast();
-    }
+	fNHits = new UShort_t[7];
+	for (i = 0; i < 7; i++) fNHits[i] = 0;
+	for (i = 0; i < fNTrackRef; i++) {
+	    AliTrackReference* ref = GetTrackReference(i);
+	    Int_t id = ref->DetectorId();
+	    if (id >= 0) {
+		fNHits[ref->DetectorId()] ++;
+	    } else {
+		fHasDisappeared = kTRUE;
+	    } // Detector or disappeared ?
+	} // Loop over track references
+    } // Has references ?
 }
     
     

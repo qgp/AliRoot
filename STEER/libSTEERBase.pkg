@@ -11,8 +11,8 @@ SRCS = AliVParticle.cxx \
        AliGenPythiaEventHeader.cxx AliGenCocktailEventHeader.cxx \
        AliGenHijingEventHeader.cxx AliCollisionGeometry.cxx \
        AliStack.cxx AliMCEventHandler.cxx \
-       AliTrackReference.cxx AliSysInfo.cxx 		   	
-
+       AliTrackReference.cxx \
+       AliMCEvent.cxx AliMCParticle.cxx AliSysInfo.cxx			   
 HDRS:= $(SRCS:.cxx=.h) 
 
 DHDR= STEERBaseLinkDef.h
