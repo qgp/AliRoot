@@ -28,6 +28,7 @@
 #pragma link C++ class AliAODHandler+;
 #pragma link C++ class AliAODTracklets+;
 #pragma link C++ class AliAODTagCreator+;
+#pragma link C++ class AliAODInputHandler+;
 
 #endif
 

@@ -63,6 +63,8 @@
 
 #pragma link C++ class  AliRawDataErrorLog+;
 
+#pragma link C++ class  AliESDInputHandler+;
+
 #endif
 
 

@@ -12,7 +12,7 @@
 
 #include "AliVEventHandler.h"
 
-class TChain;
+class TTree;
 class AliVEvent;
 
 class AliInputEventHandler : public AliVEventHandler {
