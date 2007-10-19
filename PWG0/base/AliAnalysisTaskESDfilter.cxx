@@ -15,12 +15,14 @@
 
 /* $Id$ */
  
+#include <TTree.h>
 #include <TChain.h>
 #include <TFile.h>
 
 #include "AliAnalysisTaskESDfilter.h"
 #include "AliAnalysisManager.h"
 #include "AliESDEvent.h"
+#include "AliESDInputHandler.h"
 #include "AliAODEvent.h"
 #include "AliAODHandler.h"
 #include "AliAnalysisFilter.h"
@@ -38,7 +40,7 @@ ClassImp(AliAnalysisTaskESDfilter)
 
 AliAnalysisTaskESDfilter::AliAnalysisTaskESDfilter():
     fDebug(0),
-    fChain(0x0),
+    fTree(0x0),
     fESD(0x0),
     fAOD(0x0),
     fTreeA(0x0),
@@ -52,7 +54,7 @@ AliAnalysisTaskESDfilter::AliAnalysisTaskESDfilter():
 AliAnalysisTaskESDfilter::AliAnalysisTaskESDfilter(const char* name):
     AliAnalysisTask(name, "AnalysisTaskESDfilter"),
     fDebug(0),
-    fChain(0x0),
+    fTree(0x0),
     fESD(0x0),
     fAOD(0x0),
     fTreeA(0x0),
@@ -88,9 +90,10 @@ void AliAnalysisTaskESDfilter::ConnectInputData(Option_t */*option*/)
 // Connect the input data
 //
     if (fDebug > 1) AliInfo("ConnectInputData() \n");
-    fChain = (TChain*)GetInputData(0);
-    fESD = new AliESDEvent();
-    fESD->ReadFromTree(fChain);
+    AliESDInputHandler* esdH = 
+	(AliESDInputHandler*) ((AliAnalysisManager::GetAnalysisManager())->GetInputEventHandler());
+    fESD  = esdH->GetEvent();
+    fTree = esdH->GetTree();
 }
 
 void AliAnalysisTaskESDfilter::Exec(Option_t */*option*/)
@@ -98,9 +101,8 @@ void AliAnalysisTaskESDfilter::Exec(Option_t */*option*/)
 // Execute analysis for current event
 //
     AliESD* old = fESD->GetAliESDOld();
-    if (old) fESD->CopyFromOldESD();
     
-    Long64_t ientry = fChain->GetReadEntry();
+    Long64_t ientry = fTree->GetReadEntry();
     AliInfo(Form("ESD Filter: Analysing event # %5d\n", (Int_t) ientry));
     
     
