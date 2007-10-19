@@ -41,7 +41,12 @@ class AliFemtoESDTrackCut : public AliFemtoTrackCut
   void SetStatus(const long& w);
   void SetminTPCclsF(const short& s);
   void SetminITScls(const int& s);
-  
+  void SetRemoveKinks(const bool& flag);
+  void SetMostProbablePion();
+  void SetMostProbableKaon();
+  void SetMostProbableProton();
+  void SetNoMostProbable(); 
+
  private:   // here are the quantities I want to cut on...
 
   int               fCharge;             // particle charge
@@ -58,6 +63,13 @@ class AliFemtoESDTrackCut : public AliFemtoTrackCut
   int               fminITScls;          // min number of clusters assigned in the ITS 
   long              fNTracksPassed;      // passed tracks count
   long              fNTracksFailed;      // failed tracks count
+  bool              fRemoveKinks;        // if true particles with any kink label will not pass
+  int               fMostProbable;       // this particle type is required to be most probable
+
+  float PidFractionElectron(float mom);
+  float PidFractionPion(float mom);
+  float PidFractionKaon(float mom);
+  float PidFractionProton(float mom);
 
 #ifdef __ROOT__ 
   ClassDef(AliFemtoESDTrackCut, 1)
@@ -77,6 +89,10 @@ inline void AliFemtoESDTrackCut::SetLabel(const bool& flag){fLabel=flag;}
 inline void AliFemtoESDTrackCut::SetStatus(const long& status){fStatus=status;}
 inline void AliFemtoESDTrackCut::SetminTPCclsF(const short& minTPCclsF){fminTPCclsF=minTPCclsF;}
 inline void AliFemtoESDTrackCut::SetminITScls(const int& minITScls){fminITScls=minITScls;}
+inline void AliFemtoESDTrackCut::SetMostProbablePion() { fMostProbable = 2; }
+inline void AliFemtoESDTrackCut::SetMostProbableKaon() { fMostProbable = 3; }
+inline void AliFemtoESDTrackCut::SetMostProbableProton() { fMostProbable = 4; }
+inline void AliFemtoESDTrackCut::SetNoMostProbable() { fMostProbable = 0; }
 
 #endif
 

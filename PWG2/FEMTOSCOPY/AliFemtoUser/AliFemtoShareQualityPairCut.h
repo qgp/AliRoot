@@ -36,11 +36,19 @@ public:
   AliFemtoShareQualityPairCut* Clone();
   void SetShareQualityMax(Double_t aAliFemtoShareQualityMax);
   Double_t GetAliFemtoShareQualityMax();
-
-private:
+  void SetShareFractionMax(Double_t aAliFemtoShareFractionMax);
+  Double_t GetAliFemtoShareFractionMax();
+  void     SetRemoveSameLabel(Bool_t aRemove);
+  
+ protected:
   long fNPairsPassed;
   long fNPairsFailed;
+
+ private:
   Double_t fShareQualityMax;
+  Double_t fShareFractionMax;
+  Bool_t   fRemoveSameLabel;
+
 
 #ifdef __ROOT__
   ClassDef(AliFemtoShareQualityPairCut, 0)
@@ -51,7 +59,8 @@ inline AliFemtoShareQualityPairCut::AliFemtoShareQualityPairCut(const AliFemtoSh
   AliFemtoPairCut(c),
   fNPairsPassed(0),
   fNPairsFailed(0),
-  fShareQualityMax(1.0) // no cut
+  fShareQualityMax(1.0),
+  fShareFractionMax(1.0)// no cut
 { /* no-op */ }
 
 inline AliFemtoShareQualityPairCut* AliFemtoShareQualityPairCut::Clone() { AliFemtoShareQualityPairCut* c = new AliFemtoShareQualityPairCut(*this); return c;}
