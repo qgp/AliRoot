@@ -15,7 +15,6 @@
 class TH2D;
 class TClonesArray;
 class TMinuit;
-class TStopwatch;
 
 #ifndef ROOT_TObjArray
 #  include "TObjArray.h"
@@ -56,7 +55,6 @@ private:
   /// Check precluster to simplify it (if possible), and return the simplified cluster
   AliMUONCluster* CheckPrecluster(const AliMUONCluster& cluster); 
   AliMUONCluster* CheckPreclusterTwoCathodes(AliMUONCluster* cluster); 
-  AliMUONCluster* CheckPreclusterOneCathode(AliMUONCluster* cluster); 
   
   /// Checks whether a pad and a pixel have an overlapping area.
   Bool_t Overlap(const AliMUONPad& pad, const AliMUONPad& pixel); 
@@ -65,6 +63,7 @@ private:
   void BuildPixArray(AliMUONCluster& cluster); 
   void BuildPixArrayOneCathode(AliMUONCluster& cluster); 
   void BuildPixArrayTwoCathodes(AliMUONCluster& cluster); 
+  void PadOverHist(Int_t idir, Int_t ix0, Int_t iy0, AliMUONPad *pad);
 
   void RemovePixel(Int_t i);
   
@@ -100,9 +99,8 @@ private:
                            Double_t* coef, Double_t* probi);
   
   void CheckOverlaps();
-  
-  TStopwatch* Timer(Int_t i) const;
-  
+  void AddBinSimple(TH2D *mlem, Int_t ic, Int_t jc);
+
 private:
     
   // Some constants
@@ -133,11 +131,6 @@ private:
   TObjArray* fPixArray; //!< collection of pixels
   Int_t fDebug; //!< debug level
   Bool_t fPlot; //!< whether we should plot thing (for debug only, quite slow!)
-  
-  TObjArray* fTimers; //!< internal timers
-  
-  /// \todo add comment
-  enum ETimer { kMainLoop, kCheckPreCluster, kLast };
   
   AliMUONClusterSplitterMLEM* fSplitter; //!< helper class to go from pixel arrays to clusters
   Int_t fNClusters; //!< total number of clusters
