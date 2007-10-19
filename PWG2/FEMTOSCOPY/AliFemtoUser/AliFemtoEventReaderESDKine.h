@@ -12,6 +12,12 @@
 /*
  *$Id$
  *$Log$
+ *Revision 1.1.2.1  2007/09/30 11:38:59  akisiel
+ *Adapt the readers to the new AliESDEvent structure
+ *
+ *Revision 1.1  2007/05/25 12:42:54  akisiel
+ *Adding a reader for the Kine information
+ *
  *Revision 1.1  2007/05/16 10:22:11  akisiel
  *Making the directory structure of AliFemto flat. All files go into one common directory
  *
@@ -35,8 +41,7 @@
 #include <string>
 #include <vector>
 #include "TTree.h"
-#include "AliESD.h"
-#include "AliESDfriend.h"
+#include "AliESDEvent.h"
 #include <list>
 #include "AliRunLoader.h"
 #include "AliFemtoModelHiddenInfo.h"
@@ -72,13 +77,9 @@ class AliFemtoEventReaderESDKine : public AliFemtoEventReader
   unsigned int   fCurFile;          // number of current file
   vector<string> fListOfFiles;      // list of ESD files 		
   TTree*         fTree;             // ESD tree
-  AliESD*        fEvent;            // ESD event
+  AliESDEvent*   fEvent;            // ESD event
   TFile*         fEsdFile;          // ESD file 
-  AliESDfriend*  fEventFriend;      // ESD friend informaion
   AliRunLoader*  fRunLoader;        // Run loader for kine reading 
-
-  list<Int_t>  **fSharedList;       //! Table (one list per padrow) of clusters which are shared
-  list<Int_t>  **fClusterPerPadrow; //! Table (one list per padrow) of clusters in each padrow
 		
 #ifdef __ROOT__
   ClassDef(AliFemtoEventReaderESDKine, 1)
