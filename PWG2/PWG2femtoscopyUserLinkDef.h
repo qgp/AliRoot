@@ -14,6 +14,7 @@
 // #pragma link C++ class marekTrackCut;
 // #pragma link C++ class marekPairCut;
 #pragma link C++ class AliFemtoShareQualityPairCut;
+#pragma link C++ class AliFemtoShareQualityKTPairCut;
 #pragma link C++ class AliFemtoESDTrackCut;
 #pragma link C++ class AliFemtoQPairCut;
 #pragma link C++ class AliFemtoShareQualityCorrFctn;
@@ -24,3 +25,4 @@
 //#pragma link C++ class AliStHbtPythiaOnFlyEventReader;
 //#pragma link C++ class AliStHbtTrack;
 #pragma link C++ class AliFemtoEventReaderESDKine;
+#pragma link C++ class AliFemtoModelCorrFctnTrueQ;
