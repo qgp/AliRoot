@@ -158,7 +158,7 @@ void AliAODEvent::ClearStd()
     fTracks   ->Clear();
     fVertices ->Clear();
     fClusters ->Clear();
-    fJets     ->Clear();
+    fJets     ->Delete();
     fTracklets->DeleteContainer();
 }
 
