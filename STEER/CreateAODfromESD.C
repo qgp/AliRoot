@@ -19,6 +19,8 @@
 #include "AliESDv0.h"
 #include "AliESDcascade.h"
 #include "AliESDCaloCluster.h"
+#include "AliESDkink.h"
+#include "AliMultiplicity.h"
 
 #endif
 
@@ -679,7 +681,7 @@ void CreateAODfromESD(const char *inFileName = "AliESDs.root",
       if (cluster->IsPHOS()) ttype=AliAODCluster::kPHOSNeutral;
       else if (cluster->IsEMCAL()) {
 
-	if (cluster->GetClusterType() == AliESDCaloCluster::kPseudoCluster)
+	if (cluster->GetClusterType() == AliESDCaloCluster::kEMCALPseudoCluster)
 	  ttype = AliAODCluster::kEMCALPseudoCluster;
 	else
 	  ttype = AliAODCluster::kEMCALClusterv1;
