@@ -62,6 +62,7 @@
 #include <TCanvas.h>
 #include <TView.h>
 #include <TVirtualX.h>
+#include <TSystem.h>
 
 //____________________________________________________________________
 ClassImp(AliFMDDisplay)
