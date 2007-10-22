@@ -32,6 +32,7 @@
 #pragma link C++ class  AliFMDCalibSampleRate+;
 #pragma link C++ class  AliFMDCalibStripRange+;
 #pragma link C++ class  AliFMDAltroMapping+;
+#pragma link C++ class  AliFMDGeometryBuilder+;
 // #pragma link C++ class  AliFMDAltroIO+;
 // #pragma link C++ class  AliFMDAltroReader+;
 // #pragma link C++ class  AliFMDAltroWriter+;

@@ -6,7 +6,7 @@ void sim(Int_t nev=4) {
   new AliRun("gAlice","The ALICE Off-line Simulation Framework");
 
   AliSimulation simulator;
-  simulator.SetMakeSDigits("TOF HMPID VZERO PMD MUON");
+  simulator.SetMakeSDigits("TRD TOF HMPID PHOS VZERO T0 FMD PMD MUON");
   simulator.SetMakeDigitsFromHits("ITS TPC");
   //  simulator.SetWriteRawData("ALL","raw.root",kTRUE);
  

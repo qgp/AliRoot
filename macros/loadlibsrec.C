@@ -40,9 +40,9 @@ void loadlibsrec ()
   gSystem->Load("libMUONbase");
   gSystem->Load("libMUONsim");
   gSystem->Load("libMUONrec");
-/*   gSystem->Load("libFMDbase"); */
-/*   gSystem->Load("libFMDsim"); */
-/*   gSystem->Load("libFMDrec"); */
+  gSystem->Load("libFMDbase");
+  gSystem->Load("libFMDsim");
+  gSystem->Load("libFMDrec");
   gSystem->Load("libPMDbase");
   gSystem->Load("libPMDsim");
   gSystem->Load("libPMDrec");

@@ -54,8 +54,8 @@ void loadlibssim ()
   gSystem->Load("libMUONtrigger");
   gSystem->Load("libMUONbase");
   gSystem->Load("libMUONsim");
-/*   gSystem->Load("libFMDbase"); */
-/*   gSystem->Load("libFMDsim"); */
+  gSystem->Load("libFMDbase");
+  gSystem->Load("libFMDsim");
   gSystem->Load("libPMDbase");
   gSystem->Load("libPMDsim");
   gSystem->Load("libHMPIDbase");

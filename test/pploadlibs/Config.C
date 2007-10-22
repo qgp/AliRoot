@@ -276,7 +276,7 @@ void Config()
 
     Int_t   iABSO  =  1;
     Int_t   iDIPO  =  1;
-    Int_t   iFMD   =  0;
+    Int_t   iFMD   =  1;
     Int_t   iFRAME =  1;
     Int_t   iHALL  =  1;
     Int_t   iITS   =  1;

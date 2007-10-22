@@ -5,7 +5,6 @@
 SRCS		=  AliFMD.cxx 				\
 		   AliFMDv0.cxx				\
 		   AliFMDv1.cxx				\
-		   AliFMDGeometryBuilder.cxx		\
 		   AliFMDPoints.cxx			\
 		   AliFMDHit.cxx 			\
 		   AliFMDBaseDigitizer.cxx		\
@@ -20,7 +19,7 @@ EINCLUDE 	:= RAW
 
 ifeq (win32gcc,$(ALICE_TARGET))
 PACKSOFLAGS:= $(SOFLAGS) -L$(ALICE_ROOT)/lib/tgt_$(ALICE_TARGET) \
-                         -lFMDbase -lSTEER -lCDB -lSTEERBase \
+                         -lFMDbase -lSTEER -lCDB -lESD -lSTEERBase \
                          -lRAWDatasim -lRAWDatarec -lRAWDatabase \
                          -L$(shell root-config --libdir) -lMinuit -lVMC -lEG -lGeom -lGui
 endif
