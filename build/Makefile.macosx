@@ -24,8 +24,8 @@ F77	      = gfortran
 endif
 
 # Global optimisation
-OPT           = -O -g
-NOOPT         = -O0 -g
+OPT           = -O
+NOOPT         = 
 
 CXXOPT        = $(OPT) 
 CXXNOOPT      = $(NOOPT) 

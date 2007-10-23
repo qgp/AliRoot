@@ -12,8 +12,8 @@ CCMAJORV      = $(shell $(CC) -dumpversion | cut -d. -f1)
 CCMINORV      = $(shell $(CC) -dumpversion | cut -d. -f2)
 
 # Global optimisation
-OPT           = -O -g
-NOOPT         = -g
+OPT           = -O
+NOOPT         = 
 
 CXXOPT        = $(OPT)
 CXXNOOPT      = $(NOOPT)

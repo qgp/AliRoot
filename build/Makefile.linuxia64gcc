@@ -10,8 +10,8 @@ F77	      = g77
 CC	      = gcc
 
 # Global optimisation
-OPT           = -g -O
-NOOPT         = -g
+OPT           = -O
+NOOPT         = 
 
 CXXOPT        = $(OPT)
 CXXNOOPT      = $(NOOPT)
