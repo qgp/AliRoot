@@ -105,7 +105,7 @@ class AliGenMC : public AliGenerator
     AliGenMC(const AliGenMC &MC);
     AliGenMC & operator=(const AliGenMC & rhs);
     
-    ClassDef(AliGenMC,5)       // AliGenerator implementation for generators using MC methods
+    ClassDef(AliGenMC,6)       // AliGenerator implementation for generators using MC methods
 };
 #endif
 
