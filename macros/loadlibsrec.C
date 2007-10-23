@@ -61,9 +61,9 @@ void loadlibsrec ()
   gSystem->Load("libVZERObase");
   gSystem->Load("libVZEROsim");
   gSystem->Load("libVZEROrec");
-/*   gSystem->Load("libEMCALbase"); */
-/*   gSystem->Load("libEMCALsim"); */
-/*   gSystem->Load("libEMCALrec"); */
+  gSystem->Load("libEMCALbase");
+  gSystem->Load("libEMCALsim");
+  gSystem->Load("libEMCALrec");
 
   // The following lines have to be commented on Darwin
   // for the moment due to cross dependencies

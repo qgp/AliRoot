@@ -4,11 +4,7 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class AliEMCAL+;
 #pragma link C++ class AliEMCALGeometry+; 
-#pragma link C++ class AliEMCALv0+;
-#pragma link C++ class AliEMCALv1+;
-#pragma link C++ class AliEMCALv2+;
 #pragma link C++ class AliEMCALHit+;
 #pragma link C++ class AliEMCALLoader+;	
 #pragma link C++ class AliEMCALShishKebabModule+;
@@ -25,6 +21,8 @@
 #pragma link C++ class AliEMCALCalibHistoProducer+;
 #pragma link C++ class AliEMCALPreprocessor+;
 #pragma link C++ class AliEMCALRawUtils+;
+#pragma link C++ class AliEMCALTick+;
+#pragma link C++ class AliEMCALTrigger+;
 // Calibration staff
 // #pragma link C++ class AliEMCALFolder;
 // #pragma link C++ class AliEMCALSuperModule;

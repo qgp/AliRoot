@@ -27,3 +27,9 @@ DHDR:=EMCALLinkDefjet.h
 
 # have to tune
 EINCLUDE:=PYTHIA6 RAW EVGEN THijing
+
+ifeq (win32gcc,$(ALICE_TARGET))
+PACKSOFLAGS:= $(SOFLAGS) -L$(ALICE_ROOT)/lib/tgt_$(ALICE_TARGET) \
+                         -lEMCALbase -lESD -lSTEER -lSTEERBase -lmicrocern \
+                         -L$(shell root-config --libdir) -lEG
+endif

@@ -69,8 +69,8 @@ void loadlibssim ()
   gSystem->Load("libACORDEsim");
   gSystem->Load("libVZERObase");
   gSystem->Load("libVZEROsim");
-/*   gSystem->Load("libEMCALbase"); */
-/*   gSystem->Load("libEMCALsim"); */
+  gSystem->Load("libEMCALbase");
+  gSystem->Load("libEMCALsim");
 
   // The following lines have to be commented on Darwin
   // for the moment due to cross dependencies
