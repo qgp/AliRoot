@@ -37,10 +37,10 @@ class AliMUONTracker : public AliTracker
   /// Main entry point.
   virtual Int_t Clusters2Tracks(AliESDEvent* esd);
 
-  /// 
+  /// Load clusters
   virtual Int_t LoadClusters(TTree* clustersTree);
 
-  ///
+  /// Unload clusters
   virtual void  UnloadClusters();
 
   /// Dummy implementation
@@ -49,8 +49,6 @@ class AliMUONTracker : public AliTracker
   virtual Int_t RefitInward(AliESDEvent* /*event*/) {return 0;}
   /// Dummy implementation
   virtual AliCluster *GetCluster(Int_t /*index*/) const {return 0;}
-  /// Set option
-  void SetOption(Option_t* opt);
 
 private:
   /// Not implemented
@@ -58,6 +56,8 @@ private:
   /// Not implemented
   AliMUONTracker& operator=(const AliMUONTracker& rhs);
     
+  Int_t CreateTrackReconstructor();
+  
   Int_t Clusters2Tracks(TTree& tracksTree, AliESDEvent* esd);
 
   void FillESD(AliMUONVTrackStore& trackStore, AliESDEvent* esd) const;
@@ -65,10 +65,10 @@ private:
 private:
   const AliMUONDigitMaker* fDigitMaker; //!< digit maker (not owner)
   const AliMUONGeometryTransformer* fTransformer; //!< geometry transformer (not owner)
-  const AliMUONTriggerCircuit* fTriggerCircuit;                //!< trigger circuit (not owner)
+  const AliMUONTriggerCircuit* fTriggerCircuit; //!< trigger circuit (not owner)
   AliMUONTriggerChamberEff* fTrigChamberEff; //!< trigger efficiency (not owner)
   AliMUONTrackHitPattern* fTrackHitPatternMaker; //!< trigger hit pattern maker
-  AliMUONVTrackReconstructor* fTrackReco;       //!< track reconstructor
+  AliMUONVTrackReconstructor* fTrackReco; //!< track reconstructor
   AliMUONVClusterStore* fClusterStore; //!< cluster container
   AliMUONVTriggerStore* fTriggerStore; //!< trigger information
   

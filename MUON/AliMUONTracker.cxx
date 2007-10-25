@@ -28,6 +28,8 @@
 
 #include "AliMUONTracker.h"
 
+#include "AliMUONReconstructor.h"
+#include "AliMUONRecoParam.h"
 #include "AliMUONTrack.h"
 #include "AliMUONTrackExtrap.h"
 #include "AliMUONTrackHitPattern.h"
@@ -138,6 +140,9 @@ AliMUONTracker::Clusters2Tracks(AliESDEvent* esd)
     AliError("TriggerStore is NULL");
     rv=3;
   }
+  
+  if (!fTrackReco) rv = CreateTrackReconstructor();
+  
   if (!rv)
   {
     rv = Clusters2Tracks(*tracksTree,esd);
@@ -253,18 +258,29 @@ AliMUONTracker::FillESD(AliMUONVTrackStore& trackStore, AliESDEvent* esd) const
 }
 
 //_____________________________________________________________________________
-void AliMUONTracker::SetOption(Option_t* option)
+Int_t AliMUONTracker::CreateTrackReconstructor()
 {
-  /// set reconstructor class
+  /// Create track reconstructor, depending on tracking mode set in RecoParam
+  /// return 0 if OK
   
-  if (strstr(option,"Original")) 
+  TString opt(AliMUONReconstructor::GetRecoParam()->GetTrackingMode());
+  opt.ToUpper();
+  
+  if (strstr(opt,"ORIGINAL"))
   {
-    fTrackReco = new AliMUONTrackReconstructor;
+    fTrackReco = new AliMUONTrackReconstructor();
   }
-  else 
+  else if (strstr(opt,"KALMAN"))
   {
     fTrackReco = new AliMUONTrackReconstructorK();
   }
+  else
+  {
+    AliError(Form("tracking mode \"%s\" does not exist",opt.Data()));
+    return 1;
+  }
+  
+  return 0;
 }
 
 //_____________________________________________________________________________
