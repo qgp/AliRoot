@@ -11,6 +11,9 @@
 /*
  *$Id$
  *$Log$
+ *Revision 1.1.6.1  2007/10/19 13:30:41  akisiel
+ *Make Kine reader aware of new AliESD
+ *
  *Revision 1.1.2.1  2007/09/30 11:38:59  akisiel
  *Adapt the readers to the new AliESDEvent structure
  *
@@ -40,7 +43,7 @@
 #include "AliFemtoEventReaderESDKine.h"
 
 #include "TFile.h"
-#include "TTree.h"
+#include "TChain.h"
 #include "AliESDEvent.h"
 #include "AliESDtrack.h"
 #include "AliESDVertex.h"
@@ -72,11 +75,9 @@ AliFemtoEventReaderESDKine::AliFemtoEventReaderESDKine():
   fConstrained(true),
   fNumberofEvent(0),
   fCurEvent(0),
-  fCurFile(0),
-  fListOfFiles(0x0),
+  fCurRLEvent(0),
   fTree(0x0),
   fEvent(0x0),
-  fEsdFile(0x0),
   fRunLoader(0x0)
 {
 }
@@ -87,11 +88,9 @@ AliFemtoEventReaderESDKine::AliFemtoEventReaderESDKine(const AliFemtoEventReader
   fConstrained(true),
   fNumberofEvent(0),
   fCurEvent(0),
-  fCurFile(0),
-  fListOfFiles(0x0),
+  fCurRLEvent(0),
   fTree(0x0),
   fEvent(0x0),
-  fEsdFile(0x0),
   fRunLoader(0x0)
 {
   // copy constructor
@@ -100,13 +99,7 @@ AliFemtoEventReaderESDKine::AliFemtoEventReaderESDKine(const AliFemtoEventReader
   fConstrained = aReader.fConstrained;
   fNumberofEvent = aReader.fNumberofEvent;
   fCurEvent = aReader.fCurEvent;
-  fCurFile = aReader.fCurFile;
-  fTree = aReader.fTree->CloneTree();
-  //  fEvent = new AliESD(*aReader.fEvent);
   fEvent = new AliESDEvent();
-  fEsdFile = new TFile(aReader.fEsdFile->GetName());
-  for (unsigned int veciter = 0; veciter<aReader.fListOfFiles.size(); veciter++)
-    fListOfFiles.push_back(aReader.fListOfFiles[veciter]);
 }
 //__________________
 //Destructor
@@ -116,7 +109,6 @@ AliFemtoEventReaderESDKine::~AliFemtoEventReaderESDKine()
   //delete fListOfFiles;
   delete fTree;
   delete fEvent;
-  delete fEsdFile;
   if (fRunLoader) delete fRunLoader;
 }
 
@@ -132,23 +124,18 @@ AliFemtoEventReaderESDKine& AliFemtoEventReaderESDKine::operator=(const AliFemto
   fConstrained = aReader.fConstrained;
   fNumberofEvent = aReader.fNumberofEvent;
   fCurEvent = aReader.fCurEvent;
-  fCurFile = aReader.fCurFile;
+  fCurRLEvent = aReader.fCurRLEvent;
   if (fTree) delete fTree;
-  fTree = aReader.fTree->CloneTree();
+  //  fTree = aReader.fTree->CloneTree();
   if (fEvent) delete fEvent;
   fEvent = new AliESDEvent();
-  if (fEsdFile) delete fEsdFile;
-  fEsdFile = new TFile(aReader.fEsdFile->GetName());
   if (fRunLoader) delete fRunLoader;
   fRunLoader = new AliRunLoader(*aReader.fRunLoader);
 
-  for (unsigned int veciter = 0; veciter<aReader.fListOfFiles.size(); veciter++)
-    fListOfFiles.push_back(aReader.fListOfFiles[veciter]);
-  
   return *this;
 }
 //__________________
-AliFemtoString AliFemtoEventReaderESDKine::Report()
+AliFemtoString AliFemtoEventReaderESDKine::Report() const
 {
   // create reader report
   AliFemtoString temp = "\n This is the AliFemtoEventReaderESDKine\n";
@@ -164,6 +151,9 @@ void AliFemtoEventReaderESDKine::SetInputFile(const char* inputFile)
   fInputFile=string(inputFile);
   cout<<"Input File set on "<<fInputFile<<endl;
   ifstream infile(inputFile);
+
+  fTree = new TChain("esdTree");
+
   if(infile.good()==true)
     { 
       //checking if all give files have good tree inside
@@ -178,7 +168,7 @@ void AliFemtoEventReaderESDKine::SetInputFile(const char* inputFile)
 	      if (tree!=0x0)
 		{
 		  cout<<"putting file  "<<string(buffer)<<" into analysis"<<endl;
-		  fListOfFiles.push_back(string(buffer));
+		  fTree->AddFile(buffer);
 		  delete tree;
 		}
 	      esdFile->Close();	
@@ -188,18 +178,6 @@ void AliFemtoEventReaderESDKine::SetInputFile(const char* inputFile)
     }
 }
 
-//setting the next file to read	
-bool AliFemtoEventReaderESDKine::GetNextFile()
-{ 	
-  // Begin reading the next file
-  if (fCurFile>=fListOfFiles.size())
-    return false;
-  fFileName=fListOfFiles.at(fCurFile);	
-  cout<<"FileName set on "<<fFileName<<" "<<fCurFile<<endl;
-
-  fCurFile++;
-  return true;
-}
 void AliFemtoEventReaderESDKine::SetConstrained(const bool constrained)
 {
   fConstrained=constrained;
@@ -220,18 +198,12 @@ AliFemtoEvent* AliFemtoEventReaderESDKine::ReturnHbtEvent()
 
   if (fCurEvent==fNumberofEvent)//open next file  
     {
-      cout<<"next file"<<endl;
-      if(GetNextFile())	
-	{
-	  delete fEvent;//added 1.04.2007
-	  fEvent=new AliESDEvent();
-	  //	  delete fTree;
-	  //fTree=0;
-	  delete fEsdFile;
+      if (fNumberofEvent == 0) {
+	fEvent=new AliESDEvent();
 		
 	  //ESD data
-	  fEsdFile=TFile::Open(fFileName.c_str(),"READ");
-	  fTree = (TTree*) fEsdFile->Get("esdTree");			
+// 	  fEsdFile=TFile::Open(fFileName.c_str(),"READ");
+// 	  fTree = (TTree*) fEsdFile->Get("esdTree");			
 
 	  fTree->SetBranchStatus("MuonTracks*",0);
 	  fTree->SetBranchStatus("PmdTracks*",0);
@@ -252,27 +224,19 @@ AliFemtoEvent* AliFemtoEventReaderESDKine::ReturnHbtEvent()
 //	  fTree->SetBranchStatus("fTracks.fCalibContainer",0);
 
 
-	  fNumberofEvent=fTree->GetEntries();
-	  cout<<"Number of Entries in file "<<fNumberofEvent<<endl;
-	  fCurEvent=0;
-	  // simulation data reading setup
- 	  tGAliceFilename = fFileName.c_str();
- 	  tGAliceFilename.ReplaceAll("AliESDs","galice");
-	  if (fRunLoader) delete fRunLoader;
-	  fRunLoader = AliRunLoader::Open(tGAliceFilename.Data());
-	  if (fRunLoader==0x0)
-	    {
-	      cout << "No Kine tree in file " << tGAliceFilename.Data() << endl;
-	      exit(0);
-	    }
-	  if(fRunLoader->LoadHeader())
-	    {
-	      cout << "Could not read RunLoader header in file " << tGAliceFilename.Data() << endl;
-	      exit(0);
-	    }
-	  fRunLoader->LoadKinematics();
-	  
+	fNumberofEvent=fTree->GetEntries();
+
+	if (fNumberofEvent == 0) {
+	  cout<<"no event in input "<<endl;
+	  fReaderStatus=1;
+	  return hbtEvent; 
 	}
+
+	cout<<"Number of Entries in the input "<<fNumberofEvent<<endl;
+	fCurEvent=0;
+	// simulation data reading setup
+	
+      }
       else //no more data to read
 	{
 	  cout<<"no more files "<<hbtEvent<<endl;
@@ -284,7 +248,30 @@ AliFemtoEvent* AliFemtoEventReaderESDKine::ReturnHbtEvent()
   fTree->GetEvent(fCurEvent);//getting next event
   //  vector<int> tLabelTable;//to check labels
   
-  fRunLoader->GetEvent(fCurEvent);
+  cout << "fFileName is " << fFileName.Data() << endl;
+  cout << "Current file is " << fTree->GetCurrentFile()->GetName() << endl;
+  if (fFileName.CompareTo(fTree->GetCurrentFile()->GetName())) {
+    fFileName = fTree->GetCurrentFile()->GetName();
+    tGAliceFilename = fFileName;
+    tGAliceFilename.ReplaceAll("AliESDs","galice");
+    cout << "Reading RunLoader from " << tGAliceFilename.Data() << endl;
+    if (fRunLoader) delete fRunLoader;
+    fRunLoader = AliRunLoader::Open(tGAliceFilename.Data());
+    if (fRunLoader==0x0)
+      {
+	cout << "No Kine tree in file " << tGAliceFilename.Data() << endl;
+	exit(0);
+      }
+    if(fRunLoader->LoadHeader())
+      {
+	cout << "Could not read RunLoader header in file " << tGAliceFilename.Data() << endl;
+	exit(0);
+      }
+    fRunLoader->LoadKinematics();
+    fCurRLEvent = 0;
+  }
+
+  fRunLoader->GetEvent(fCurRLEvent);
   AliStack* tStack = 0x0;
   tStack = fRunLoader->Stack();
 	
@@ -349,9 +336,9 @@ AliFemtoEvent* AliFemtoEventReaderESDKine::ReturnHbtEvent()
 	delete trackCopy;
 	continue;
       }
-      const AliFmThreeVectorD origin(fV1[0],fV1[1],fV1[2]);
+      const AliFmThreeVectorD kOrigin(fV1[0],fV1[1],fV1[2]);
       //setting helix I do not if it is ok
-      AliFmPhysicalHelixD helix(ktP,origin,(double)(fEvent->GetMagneticField())*kilogauss,(double)(trackCopy->Charge())); 
+      AliFmPhysicalHelixD helix(ktP,kOrigin,(double)(fEvent->GetMagneticField())*kilogauss,(double)(trackCopy->Charge())); 
       trackCopy->SetHelix(helix);
 	    	
       trackCopy->SetTrackId(esdtrack->GetID());
@@ -411,12 +398,12 @@ AliFemtoEvent* AliFemtoEventReaderESDKine::ReturnHbtEvent()
 
   hbtEvent->SetNumberOfTracks(realnofTracks);//setting number of track which we read in event	
   fCurEvent++;	
+  fCurRLEvent++;
   cout<<"end of reading nt "<<nofTracks<<" real number "<<realnofTracks<<endl;
   if (fCurEvent== fNumberofEvent)//if end of current file close all
     {   
       fTree->Reset(); 
       delete fTree;
-      fEsdFile->Close();
     }
   return hbtEvent; 
 }

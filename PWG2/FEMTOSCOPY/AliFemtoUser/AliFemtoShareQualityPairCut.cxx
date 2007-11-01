@@ -93,7 +93,7 @@ bool AliFemtoShareQualityPairCut::Pass(const AliFemtoPair* pair){
   temp = (hsmval < fShareQualityMax) && (hsfval < fShareFractionMax);
 
   if (fRemoveSameLabel) {
-    if (fabs(pair->Track1()->Track()->Label()) == fabs(pair->Track2()->Track()->Label())) {
+    if (abs(pair->Track1()->Track()->Label()) == abs(pair->Track2()->Track()->Label())) {
       cout << "Found a pair with same label " << pair->Track1()->Track()->Label() << endl;
       cout << "Quality Sharity Passed " << hsmval << " " << hsfval << " " << pair->QInv() << " " << temp << endl;
       temp = kFALSE;

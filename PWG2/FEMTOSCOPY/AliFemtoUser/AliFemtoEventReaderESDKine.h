@@ -12,6 +12,9 @@
 /*
  *$Id$
  *$Log$
+ *Revision 1.1.6.1  2007/10/19 13:30:41  akisiel
+ *Make Kine reader aware of new AliESD
+ *
  *Revision 1.1.2.1  2007/09/30 11:38:59  akisiel
  *Adapt the readers to the new AliESDEvent structure
  *
@@ -33,14 +36,14 @@
  */
   
 
-#ifndef ALIFEMTOEVENTREADERESD_H
-#define ALIFEMTOEVENTREADERESD_H
+#ifndef ALIFEMTOEVENTREADERESDKINE_H
+#define ALIFEMTOEVENTREADERESDKINE_H
 #include "AliFemtoEventReader.h"
 #include "AliFemtoEnumeration.h"
 
 #include <string>
 #include <vector>
-#include "TTree.h"
+#include "TChain.h"
 #include "AliESDEvent.h"
 #include <list>
 #include "AliRunLoader.h"
@@ -58,7 +61,7 @@ class AliFemtoEventReaderESDKine : public AliFemtoEventReader
   AliFemtoEventReaderESDKine& operator=(const AliFemtoEventReaderESDKine& aReader);
 
   AliFemtoEvent* ReturnHbtEvent();
-  AliFemtoString Report();
+  AliFemtoString Report() const;
   //void SetFileName(const char* fileName);
   void SetInputFile(const char* inputFile);
   void SetConstrained(const bool constrained);
@@ -67,18 +70,14 @@ class AliFemtoEventReaderESDKine : public AliFemtoEventReader
  protected:
 
  private:
-  bool           GetNextFile();     // setting next file to read 
-
-  string         fInputFile;        // name of input file with ESD filenames
-  string         fFileName;         // name of current ESD file
+  TString        fInputFile;        // name of input file with ESD filenames
+  TString        fFileName;         // name of current ESD file
   bool           fConstrained;      // flag to set which momentum from ESD file will be use
   int            fNumberofEvent;    // number of Events in ESD file
   int            fCurEvent;         // number of current event
-  unsigned int   fCurFile;          // number of current file
-  vector<string> fListOfFiles;      // list of ESD files 		
-  TTree*         fTree;             // ESD tree
+  int            fCurRLEvent;       // Current simulated event
+  TChain*        fTree;             // ESD tree
   AliESDEvent*   fEvent;            // ESD event
-  TFile*         fEsdFile;          // ESD file 
   AliRunLoader*  fRunLoader;        // Run loader for kine reading 
 		
 #ifdef __ROOT__
