@@ -1,3 +1,9 @@
+/////////////////////////////////////////////////////////////////////////////
+//                                                                         //
+// AliFemtoShareQualityPairCut - a pair cut which checks for some pair     //
+// qualities that attempt to identify slit/doubly reconstructed tracks     //
+//                                                                         //
+/////////////////////////////////////////////////////////////////////////////
 /***************************************************************************
  *
  * $Id$
@@ -28,7 +34,9 @@ AliFemtoShareQualityPairCut::AliFemtoShareQualityPairCut():
   fShareQualityMax(1.0),
   fShareFractionMax(1.0),
   fRemoveSameLabel(0)
- {
+{
+  // Default constructor
+  // Nothing to do
 }
 //__________________
 AliFemtoShareQualityPairCut::~AliFemtoShareQualityPairCut(){
@@ -36,6 +44,7 @@ AliFemtoShareQualityPairCut::~AliFemtoShareQualityPairCut(){
 }
 //__________________
 bool AliFemtoShareQualityPairCut::Pass(const AliFemtoPair* pair){
+  // Check for pairs that are possibly shared/double reconstruction
   bool temp;
   
   Int_t nh = 0;
@@ -105,10 +114,11 @@ bool AliFemtoShareQualityPairCut::Pass(const AliFemtoPair* pair){
 }
 //__________________
 AliFemtoString AliFemtoShareQualityPairCut::Report(){
-  string Stemp = "AliFemtoShareQuality Pair Cut - remove shared and split pairs\n";  char Ctemp[100];
-  sprintf(Ctemp,"Number of pairs which passed:\t%ld  Number which failed:\t%ld\n",fNPairsPassed,fNPairsFailed);
-  Stemp += Ctemp;
-  AliFemtoString returnThis = Stemp;
+  // Prepare the report from the execution
+  string stemp = "AliFemtoShareQuality Pair Cut - remove shared and split pairs\n";  char ctemp[100];
+  sprintf(ctemp,"Number of pairs which passed:\t%ld  Number which failed:\t%ld\n",fNPairsPassed,fNPairsFailed);
+  stemp += ctemp;
+  AliFemtoString returnThis = stemp;
   return returnThis;}
 //__________________
 
@@ -116,14 +126,14 @@ void AliFemtoShareQualityPairCut::SetShareQualityMax(Double_t aShareQualityMax) 
   fShareQualityMax = aShareQualityMax;
 }
 
-Double_t AliFemtoShareQualityPairCut::GetAliFemtoShareQualityMax() {
+Double_t AliFemtoShareQualityPairCut::GetAliFemtoShareQualityMax() const {
   return fShareQualityMax;
 }
 
 void AliFemtoShareQualityPairCut::SetShareFractionMax(Double_t aShareFractionMax) {
   fShareFractionMax = aShareFractionMax;
 }
-Double_t AliFemtoShareQualityPairCut::GetAliFemtoShareFractionMax() {
+Double_t AliFemtoShareQualityPairCut::GetAliFemtoShareFractionMax() const {
   return fShareFractionMax;
 }
 

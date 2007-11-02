@@ -135,7 +135,7 @@ AliFemtoString AliFemtoShareQualityCorrFctn::Report(){
 //____________________________
 void AliFemtoShareQualityCorrFctn::AddRealPair( AliFemtoPair* pair){
   // add real (effect) pair
-  double tQinv = fabs(pair->QInv());   // note - qInv() will be negative for identical pairs...
+  //  double tQinv = fabs(pair->QInv());   // note - qInv() will be negative for identical pairs...
   Int_t nh = 0;
   Int_t an = 0;
   Int_t ns = 0;

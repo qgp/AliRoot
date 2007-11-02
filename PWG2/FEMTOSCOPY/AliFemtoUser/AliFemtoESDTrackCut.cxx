@@ -11,6 +11,9 @@
  ***************************************************************************
  *
  * $Log$
+ * Revision 1.3.6.1  2007/10/19 13:31:59  akisiel
+ * Fix stray colons and rule conformance
+ *
  * Revision 1.3.2.1  2007/10/04 13:10:23  akisiel
  * Add Kink removal
  *
@@ -112,9 +115,9 @@ AliFemtoESDTrackCut::AliFemtoESDTrackCut() :
   fminITScls=0;
 }
 //------------------------------
-//AliFemtoESDTrackCut::~AliFemtoESDTrackCut(){
-//  /* noop */
-//}
+AliFemtoESDTrackCut::~AliFemtoESDTrackCut(){
+  /* noop */
+}
 //------------------------------
 bool AliFemtoESDTrackCut::Pass(const AliFemtoTrack* track)
 {
@@ -266,6 +269,7 @@ bool AliFemtoESDTrackCut::Pass(const AliFemtoTrack* track)
 //------------------------------
 AliFemtoString AliFemtoESDTrackCut::Report()
 {
+  // Prepare report from the execution
   string tStemp;
   char tCtemp[100];
   sprintf(tCtemp,"Particle mass:\t%E\n",this->Mass());
@@ -350,8 +354,9 @@ void AliFemtoESDTrackCut::SetRemoveKinks(const bool& flag)
 // 4       2.503553e+00    5.736207e-01
 // 5       -1.125965e+00   2.821170e-01
 // 6       2.009036e-01    5.438876e-02
-float AliFemtoESDTrackCut::PidFractionElectron(float mom)
+float AliFemtoESDTrackCut::PidFractionElectron(float mom) const
 {
+  // Provide a parameterized fraction of electrons dependent on momentum
   if (mom<0.13) return 0.0;
   if (mom>1.8) return 0.0;
   return (7.594129e-02 
@@ -368,8 +373,9 @@ float AliFemtoESDTrackCut::PidFractionElectron(float mom)
 // 0       1.063457e+00    8.872043e-03
 // 1       -4.222208e-01   2.534402e-02
 // 2       1.042004e-01    1.503945e-02
-float AliFemtoESDTrackCut::PidFractionPion(float mom)
+float AliFemtoESDTrackCut::PidFractionPion(float mom) const
 {
+  // Provide a parameterized fraction of pions dependent on momentum
   if (mom<0.13) return 0.0;
   if (mom>2.0) return 0.0;
   return ( 1.063457e+00
@@ -383,8 +389,9 @@ float AliFemtoESDTrackCut::PidFractionPion(float mom)
 // 1       4.415666e-01    1.143939e-02
 // 2       -2.996790e-01   1.840964e-02
 // 3       6.704652e-02    7.783990e-03
-float AliFemtoESDTrackCut::PidFractionKaon(float mom)
+float AliFemtoESDTrackCut::PidFractionKaon(float mom) const
 {
+  // Provide a parameterized fraction of kaons dependent on momentum
   if (mom<0.18) return 0.0;
   if (mom>2.0) return 0.0;
   return (-7.289406e-02
@@ -399,8 +406,9 @@ float AliFemtoESDTrackCut::PidFractionKaon(float mom)
 // 1       1.163684e-01    1.319316e-02
 // 2       8.354116e-02    1.997948e-02
 // 3       -4.608098e-02   8.336400e-03
-float AliFemtoESDTrackCut::PidFractionProton(float mom)
+float AliFemtoESDTrackCut::PidFractionProton(float mom) const
 {
+  // Provide a parameterized fraction of protons dependent on momentum
   if (mom<0.26) return  0.0;
   if (mom>2.0) return 0.0;
   return (-3.730200e-02  

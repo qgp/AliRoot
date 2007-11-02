@@ -22,7 +22,7 @@ class AliFemtoESDTrackCut : public AliFemtoTrackCut
 
  public:
   AliFemtoESDTrackCut();
-  //~AliFemtoESDTrackCut();
+  virtual ~AliFemtoESDTrackCut();
 
   virtual bool Pass(const AliFemtoTrack* aTrack);
 
@@ -31,7 +31,7 @@ class AliFemtoESDTrackCut : public AliFemtoTrackCut
 
   void SetPt(const float& lo, const float& hi);
   void SetRapidity(const float& lo, const float& hi);
-  void SetCharge(const int&);
+  void SetCharge(const int& ch);
   void SetPidProbElectron(const float& lo, const float& hi);
   void SetPidProbPion(const float& lo, const float& hi);
   void SetPidProbKaon(const float& lo, const float& hi);
@@ -66,10 +66,10 @@ class AliFemtoESDTrackCut : public AliFemtoTrackCut
   bool              fRemoveKinks;        // if true particles with any kink label will not pass
   int               fMostProbable;       // this particle type is required to be most probable
 
-  float PidFractionElectron(float mom);
-  float PidFractionPion(float mom);
-  float PidFractionKaon(float mom);
-  float PidFractionProton(float mom);
+  float PidFractionElectron(float mom) const;
+  float PidFractionPion(float mom) const;
+  float PidFractionKaon(float mom) const;
+  float PidFractionProton(float mom) const;
 
 #ifdef __ROOT__ 
   ClassDef(AliFemtoESDTrackCut, 1)
