@@ -1,4 +1,0 @@
-SRCS:=  AliHMPIDReconstructor.cxx AliHMPIDTracker.cxx AliHMPIDRecon.cxx AliHMPIDReconHTA.cxx
-
-HDRS:= $(SRCS:.cxx=.h)
-DHDR:= HMPIDrecLinkDef.h
