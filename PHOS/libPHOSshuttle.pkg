@@ -1,8 +1,0 @@
-SRCS          =  AliPHOSCalibHistoProducer.cxx \
-                 AliPHOSPreprocessor.cxx
-
-HDRS:= $(SRCS:.cxx=.h) 
-
-DHDR= PHOSshuttleLinkDef.h
-
-EINCLUDE:=RAW
