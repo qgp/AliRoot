@@ -1,6 +1,0 @@
-SRCS=  	AliBCM.cxx AliBCMHit.cxx AliBCMLoader.cxx
-
-HDRS= $(SRCS:.cxx=.h)
-
-DHDR:=BCMLinkDef.h
-
