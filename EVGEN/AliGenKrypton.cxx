@@ -94,12 +94,13 @@ void AliGenKrypton::Generate(){
   //
   for(Int_t i=0;i<ngamma;i++){
     rnd=gRandom->Rndm();
+    Double_t theta = TMath::Pi()*rnd;
     phi=TMath::TwoPi()*rnd;    
     ptot=egamma[i];
-    p[0]=ptot*TMath::Cos(phi);
-    p[1]=ptot*TMath::Sin(phi);
+    p[0]=ptot*TMath::Cos(phi)*TMath::Sin(theta);
+    p[1]=ptot*TMath::Sin(phi)*TMath::Sin(theta);
     rnd=gRandom->Rndm();
-    p[2]=ptot*TMath::Cos(TMath::Pi()*rnd);
+    p[2]=ptot*TMath::Cos(theta);
     //
     // her push particle
     //
@@ -120,7 +121,7 @@ void AliGenKrypton::KrDecay(Int_t &nelectron, Int_t &ngamma, Double_t *eelectron
   //
   // first decay - 32 keV
   //
-  if(rnd < prob1[0]) {
+   if(rnd < prob1[0]) {
     // 2 electrons
     nelectron = 2;
     eelectron[0]=30.e-6;
@@ -157,5 +158,7 @@ void AliGenKrypton::KrDecay(Int_t &nelectron, Int_t &ngamma, Double_t *eelectron
     ngamma++;
     egamma[ngamma-1]=9.e-6;
   }
+  
+
 }
 //________________________________________________________________________
