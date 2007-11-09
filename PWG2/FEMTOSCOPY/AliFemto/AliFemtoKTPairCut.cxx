@@ -27,6 +27,8 @@ AliFemtoKTPairCut::AliFemtoKTPairCut():
   fKTMin(0),
   fKTMax(1.0e6)
 {
+  fKTMin = 0;
+  fKTMax = 1.0e6;
 }
 //__________________
 AliFemtoKTPairCut::AliFemtoKTPairCut(const AliFemtoKTPairCut& c) : 
