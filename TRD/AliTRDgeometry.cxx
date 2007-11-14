@@ -1863,3 +1863,22 @@ Bool_t AliTRDgeometry::CreateClusterMatrixArray()
 
 }
 
+//_____________________________________________________________________________
+Bool_t AliTRDgeometry::ChamberInGeometry(Int_t det)
+{
+  //
+  // Checks whether the given detector is part of the current geometry
+  //
+
+  if (!fClusterMatrixArray) {
+    CreateClusterMatrixArray();
+  }  
+
+  if (!GetClusterMatrix(det)) {
+    return kFALSE;
+  }
+  else {
+    return kTRUE;
+  }
+
+}
