@@ -57,7 +57,8 @@ AliMCEventHandler::AliMCEventHandler() :
     fPathName(new TString("./")),
     fExtension(""),
     fFileNumber(0),
-    fEventsPerFile(0)
+    fEventsPerFile(0),
+    fReadTR(kTRUE)
 {
     // Default constructor
 }
@@ -91,10 +92,13 @@ AliMCEventHandler::~AliMCEventHandler()
     delete fFileTR;
 }
 
-Bool_t AliMCEventHandler::InitIO(Option_t* /*opt*/) 
+Bool_t AliMCEventHandler::InitIO(Option_t* opt)
 { 
     // Initialize input
     //
+    if (!(strcmp(opt, "proof")) || !(strcmp(opt, "local"))) return kTRUE;
+    //
+
     fFileE = TFile::Open(Form("%sgalice.root", fPathName->Data()));
     if (!fFileE) AliFatal(Form("AliMCEventHandler:galice.root not found in directory %s ! \n", fPathName->Data()));
 
@@ -111,8 +115,10 @@ Bool_t AliMCEventHandler::InitIO(Option_t* /*opt*/)
     fEventsPerFile = fFileK->GetNkeys() - fFileK->GetNProcessIDs();
     //
     // Tree TR
-    fFileTR = TFile::Open(Form("%sTrackRefs%s.root", fPathName->Data(), fExtension));
-    if (!fFileTR) AliWarning(Form("AliMCEventHandler:TrackRefs.root not found in directory %s ! \n", fPathName->Data()));
+    if (fReadTR) {
+      fFileTR = TFile::Open(Form("%sTrackRefs%s.root", fPathName->Data(), fExtension));
+      if (!fFileTR) AliWarning(Form("AliMCEventHandler:TrackRefs.root not found in directory %s ! \n", fPathName->Data()));
+    }
     //
     // Reset the event number
     fEvent      = -1;
@@ -189,15 +195,21 @@ Bool_t AliMCEventHandler::OpenFile(Int_t i)
     return ok;
 }
 
-Bool_t AliMCEventHandler::BeginEvent()
+Bool_t AliMCEventHandler::BeginEvent(Long64_t entry)
 { 
     // Read the next event
-    fEvent++;
-    if (fEvent >= fNEvent) {
-	AliWarning(Form("AliMCEventHandler: Event number out of range %5d\n", fEvent));
+    if (entry == -1) {
+	fEvent++;
+	entry = fEvent;
+    } else {
+	fEvent = entry;
+    }
+
+    if (entry >= fNEvent) {
+	AliWarning(Form("AliMCEventHandler: Event number out of range %5d\n", entry));
 	return kFALSE;
     }
-    return GetEvent(fEvent);
+    return GetEvent(entry);
 }
 
 Int_t AliMCEventHandler::GetParticleAndTR(Int_t i, TParticle*& particle, TClonesArray*& trefs)
