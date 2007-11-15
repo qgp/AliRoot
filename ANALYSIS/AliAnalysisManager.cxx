@@ -45,29 +45,6 @@ ClassImp(AliAnalysisManager)
 AliAnalysisManager *AliAnalysisManager::fgAnalysisManager = NULL;
 
 //______________________________________________________________________________
-AliAnalysisManager::AliAnalysisManager() 
-                   :TNamed(),
-                    fTree(NULL),
-		    fInputEventHandler(NULL),
-		    fOutputEventHandler(NULL),
-		    fMCtruthEventHandler(NULL),
-                    fCurrentEntry(-1),
-                    fMode(kLocalAnalysis),
-                    fInitOK(kFALSE),
-                    fDebug(0),
-                    fTasks(NULL),
-                    fTopTasks(NULL),
-                    fZombies(NULL),
-                    fContainers(NULL),
-                    fInputs(NULL),
-                    fOutputs(NULL)
-{
-// Dummy constructor.
-   fgAnalysisManager = this;
-   SetEventLoop(kTRUE);
-}
-
-//______________________________________________________________________________
 AliAnalysisManager::AliAnalysisManager(const char *name, const char *title)
                    :TNamed(name,title),
                     fTree(NULL),
@@ -188,7 +165,7 @@ void AliAnalysisManager::Init(TTree *tree)
 
    if (fInputEventHandler) {
        fInputEventHandler->SetInputTree(tree);
-       fInputEventHandler->InitIO("");
+       fInputEventHandler->InitIO("proof");
    }
 
    if (!fInitOK) InitAnalysis();
@@ -234,9 +211,22 @@ void AliAnalysisManager::SlaveBegin(TTree *tree)
 	   fOutputEventHandler->InitIO("local");
        }
    }
-   if (fInputEventHandler && fMode == kLocalAnalysis) {
-       fInputEventHandler->SetInputTree(tree);
-       fInputEventHandler->InitIO("");
+   if (fInputEventHandler) {
+       if (fMode == kProofAnalysis) {
+	   fInputEventHandler->SetInputTree(tree);
+	   fInputEventHandler->InitIO("proof");
+       } else {
+	   fInputEventHandler->SetInputTree(tree);
+	   fInputEventHandler->InitIO("local");
+       }
+   }
+
+   if (fMCtruthEventHandler) {
+       if (fMode == kProofAnalysis) {
+	   fMCtruthEventHandler->InitIO("proof");
+       } else {
+	   fMCtruthEventHandler->InitIO("local");
+       }
    }
    
    //
@@ -272,7 +262,15 @@ Bool_t AliAnalysisManager::Notify()
 	while ((task=(AliAnalysisTask*)next())) 
 	    task->Notify();
 	
-	// Call Notify of the MC truth handler
+	// Call Notify of the event handlers
+	if (fInputEventHandler) {
+	    fInputEventHandler->Notify(curfile->GetName());
+	}
+
+	if (fOutputEventHandler) {
+	    fOutputEventHandler->Notify(curfile->GetName());
+	}
+
 	if (fMCtruthEventHandler) {
 	    fMCtruthEventHandler->Notify(curfile->GetName());
 	}
@@ -304,9 +302,9 @@ Bool_t AliAnalysisManager::Process(Long64_t entry)
    if (fDebug > 1) {
       cout << "->AliAnalysisManager::Process()" << endl;
    }
-   if (fInputEventHandler)   fInputEventHandler  ->BeginEvent();
-   if (fOutputEventHandler)  fOutputEventHandler ->BeginEvent();
-   if (fMCtruthEventHandler) fMCtruthEventHandler->BeginEvent();
+   if (fInputEventHandler)   fInputEventHandler  ->BeginEvent(entry);
+   if (fOutputEventHandler)  fOutputEventHandler ->BeginEvent(entry);
+   if (fMCtruthEventHandler) fMCtruthEventHandler->BeginEvent(entry);
    
    GetEntry(entry);
    ExecAnalysis();
@@ -328,7 +326,7 @@ void AliAnalysisManager::PackOutput(TList *target)
       Error("PackOutput", "No target. Aborting.");
       return;
    }
-
+   if (fInputEventHandler)   fInputEventHandler  ->Terminate();
    if (fOutputEventHandler)  fOutputEventHandler ->Terminate();
    if (fMCtruthEventHandler) fMCtruthEventHandler->Terminate();
    
@@ -336,8 +334,14 @@ void AliAnalysisManager::PackOutput(TList *target)
       TIter next(fOutputs);
       AliAnalysisDataContainer *output;
       while ((output=(AliAnalysisDataContainer*)next())) {
-         if (fDebug > 1) printf("   Packing container %s...\n", output->GetName());
-         if (output->GetData()) target->Add(output->ExportData());
+         if (output->GetData()) {
+            if (output->GetProducer()->IsPostEventLoop()) continue;
+            AliAnalysisDataWrapper *wrap = output->ExportData();
+            // Output wrappers must delete data after merging (AG 13/11/07)
+            wrap->SetDeleteData(kTRUE);
+            if (fDebug > 1) printf("   Packing container %s...\n", output->GetName());
+            target->Add(wrap);
+         }   
       }
    } 
    if (fDebug > 1) {
@@ -357,6 +361,7 @@ void AliAnalysisManager::ImportWrappers(TList *source)
    AliAnalysisDataWrapper   *wrap;
    Int_t icont = 0;
    while ((cont=(AliAnalysisDataContainer*)next())) {
+      if (cont->GetProducer()->IsPostEventLoop()) continue;
       wrap = (AliAnalysisDataWrapper*)source->FindObject(cont->GetName());
       if (!wrap && fDebug>1) {
          printf("(WW) ImportWrappers: container %s not found in analysis output !\n", cont->GetName());
@@ -455,7 +460,9 @@ void AliAnalysisManager::Terminate()
       cout << "<-AliAnalysisManager::Terminate()" << endl;
    }   
    //
-   if (fOutputEventHandler) fOutputEventHandler->TerminateIO();
+   if (fInputEventHandler)   fInputEventHandler  ->TerminateIO();
+   if (fOutputEventHandler)  fOutputEventHandler ->TerminateIO();
+   if (fMCtruthEventHandler) fMCtruthEventHandler->TerminateIO();
 }
 
 //______________________________________________________________________________
@@ -748,9 +755,6 @@ void AliAnalysisManager::ExecAnalysis(Option_t *option)
    AliAnalysisTask *task;
    // Check if the top tree is active.
    if (fTree) {
-      if (fDebug>1) {
-         printf("AliAnalysisManager::ExecAnalysis\n");
-      }   
       TIter next(fTasks);
    // De-activate all tasks
       while ((task=(AliAnalysisTask*)next())) task->SetActive(kFALSE);
@@ -760,11 +764,13 @@ void AliAnalysisManager::ExecAnalysis(Option_t *option)
          return;
       }   
       cont->SetData(fTree); // This will notify all consumers
+      Long64_t entry = fTree->GetTree()->GetReadEntry();
+      
 //
 //    Call BeginEvent() for optional input/output and MC services 
-      if (fInputEventHandler)   fInputEventHandler  ->BeginEvent();
-      if (fOutputEventHandler)  fOutputEventHandler ->BeginEvent();
-      if (fMCtruthEventHandler) fMCtruthEventHandler->BeginEvent();
+      if (fInputEventHandler)   fInputEventHandler  ->BeginEvent(entry);
+      if (fOutputEventHandler)  fOutputEventHandler ->BeginEvent(entry);
+      if (fMCtruthEventHandler) fMCtruthEventHandler->BeginEvent(entry);
 //
 //    Execute the tasks
       TIter next1(cont->GetConsumers());
@@ -777,6 +783,7 @@ void AliAnalysisManager::ExecAnalysis(Option_t *option)
       }
 //
 //    Call FinishEvent() for optional output and MC services 
+      if (fInputEventHandler)   fInputEventHandler  ->FinishEvent();
       if (fOutputEventHandler)  fOutputEventHandler ->FinishEvent();
       if (fMCtruthEventHandler) fMCtruthEventHandler->FinishEvent();
 //
@@ -785,9 +792,9 @@ void AliAnalysisManager::ExecAnalysis(Option_t *option)
    // The event loop is not controlled by TSelector   
 //
 //  Call BeginEvent() for optional input/output and MC services 
-   if (fInputEventHandler)   fInputEventHandler  ->BeginEvent();
-   if (fOutputEventHandler)  fOutputEventHandler ->BeginEvent();
-   if (fMCtruthEventHandler) fMCtruthEventHandler->BeginEvent();
+   if (fInputEventHandler)   fInputEventHandler  ->BeginEvent(-1);
+   if (fOutputEventHandler)  fOutputEventHandler ->BeginEvent(-1);
+   if (fMCtruthEventHandler) fMCtruthEventHandler->BeginEvent(-1);
    TIter next2(fTopTasks);
    while ((task=(AliAnalysisTask*)next2())) {
       task->SetActive(kTRUE);
@@ -798,7 +805,8 @@ void AliAnalysisManager::ExecAnalysis(Option_t *option)
    }   
 //
 // Call FinishEvent() for optional output and MC services 
-   if (fOutputEventHandler)  fOutputEventHandler->FinishEvent();
+   if (fInputEventHandler)   fInputEventHandler  ->FinishEvent();
+   if (fOutputEventHandler)  fOutputEventHandler ->FinishEvent();
    if (fMCtruthEventHandler) fMCtruthEventHandler->FinishEvent();
 }
 

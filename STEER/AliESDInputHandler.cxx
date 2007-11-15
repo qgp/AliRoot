@@ -47,15 +47,16 @@ AliESDInputHandler::AliESDInputHandler(const char* name, const char* title):
 {
 }
 
-Bool_t AliESDInputHandler::InitIO(Option_t* /*opt*/)
+Bool_t AliESDInputHandler::InitIO(Option_t* opt)
 {
+    if (!fTree) return kFALSE;
     // Get pointer to ESD event
     fEvent = new AliESDEvent();
     fEvent->ReadFromTree(fTree);
     return kTRUE;
 }
 
-Bool_t AliESDInputHandler::BeginEvent()
+Bool_t AliESDInputHandler::BeginEvent(Long64_t /*entry*/)
 {
     // Copy from old to new format if necessary
     AliESD* old = ((AliESDEvent*) fEvent)->GetAliESDOld();
