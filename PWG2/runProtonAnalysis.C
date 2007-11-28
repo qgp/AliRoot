@@ -70,17 +70,6 @@ void runLocal() {
   //____________________________________________//
   // 1st Proton task
   AliAnalysisTaskProtons *task1 = new AliAnalysisTaskProtons("TaskProtons");
-  TFile *f = TFile::Open("PriorProb/PriorProbabilities.root ");
-  TF1 *fitElectrons = (TF1 *)f->Get("fitElectrons");
-  TF1 *fitMuons = (TF1 *)f->Get("fitMuons");
-  TF1 *fitPions = (TF1 *)f->Get("fitPions");
-  TF1 *fitKaons = (TF1 *)f->Get("fitKaons");
-  TF1 *fitProtons = (TF1 *)f->Get("fitProtons");
-  task1->SetPriorProbabilityFunctions(fitElectrons,
-				      fitMuons,
-				      fitPions,
-				      fitKaons,
-				      fitProtons);
   mgr->AddTask(task1);
 
   // Create containers for input/output
@@ -164,17 +153,6 @@ void runInteractive() {
   //____________________________________________//
   // 1st Proton task
   AliAnalysisTaskProtons *task1 = new AliAnalysisTaskProtons("TaskProtons");
-  TFile *f = TFile::Open("PriorProb/PriorProbabilities.root ");
-  TF1 *fitElectrons = (TF1 *)f->Get("fitElectrons");
-  TF1 *fitMuons = (TF1 *)f->Get("fitMuons");
-  TF1 *fitPions = (TF1 *)f->Get("fitPions");
-  TF1 *fitKaons = (TF1 *)f->Get("fitKaons");
-  TF1 *fitProtons = (TF1 *)f->Get("fitProtons");
-  task1->SetPriorProbabilityFunctions(fitElectrons,
-				      fitMuons,
-				      fitPions,
-				      fitKaons,
-				      fitProtons);
   mgr->AddTask(task1);
 
   // Create containers for input/output
@@ -251,17 +229,6 @@ void runBatch() {
   //____________________________________________//
   // 1st Proton task
   AliAnalysisTaskProtons *task1 = new AliAnalysisTaskProtons("TaskProtons");
-  TFile *f = TFile::Open("PriorProb/PriorProbabilities.root ");
-  TF1 *fitElectrons = (TF1 *)f->Get("fitElectrons");
-  TF1 *fitMuons = (TF1 *)f->Get("fitMuons");
-  TF1 *fitPions = (TF1 *)f->Get("fitPions");
-  TF1 *fitKaons = (TF1 *)f->Get("fitKaons");
-  TF1 *fitProtons = (TF1 *)f->Get("fitProtons");
-  task1->SetPriorProbabilityFunctions(fitElectrons,
-				      fitMuons,
-				      fitPions,
-				      fitKaons,
-				      fitProtons);
   mgr->AddTask(task1);
 
   // Create containers for input/output
@@ -285,7 +252,7 @@ void runProof() {
   timer.Start();
   printf("****** Connect to PROOF *******\n");
   TProof::Open("proof://lxb6046.cern.ch"); 
-  gProof->SetParallel();
+  gProof->SetParallel(1);
 
   // Enable the Analysis Package
   gProof->UploadPackage("STEERBase.par");
@@ -316,17 +283,6 @@ void runProof() {
   //____________________________________________//
   // 1st Proton task
   AliAnalysisTaskProtons *task1 = new AliAnalysisTaskProtons("TaskProtons");
-  TFile *f = TFile::Open("PriorProb/PriorProbabilities.root ");
-  TF1 *fitElectrons = (TF1 *)f->Get("fitElectrons");
-  TF1 *fitMuons = (TF1 *)f->Get("fitMuons");
-  TF1 *fitPions = (TF1 *)f->Get("fitPions");
-  TF1 *fitKaons = (TF1 *)f->Get("fitKaons");
-  TF1 *fitProtons = (TF1 *)f->Get("fitProtons");
-  task1->SetPriorProbabilityFunctions(fitElectrons,
-				      fitMuons,
-				      fitPions,
-				      fitKaons,
-				      fitProtons);
   mgr->AddTask(task1);
 
   // Create containers for input/output

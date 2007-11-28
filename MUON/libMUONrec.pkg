@@ -1,6 +1,7 @@
 # $Id$
 
-SRCS:= AliMUONPixel.cxx \
+SRCS:= AliMUONClusterReconstructor.cxx \
+       AliMUONPixel.cxx \
        AliMUONReconstructor.cxx \
        AliMUONVTrackReconstructor.cxx \
        AliMUONTrackReconstructor.cxx \
@@ -35,9 +36,7 @@ SRCS:= AliMUONPixel.cxx \
        AliMUONClusterStoreV2Iterator.cxx \
        AliMUONVTrackStore.cxx \
        AliMUONTrackStoreV1.cxx \
-       AliMUONRecoParam.cxx \
-       AliMUONVClusterServer.cxx \
-       AliMUONSimpleClusterServer.cxx
+       AliMUONRecoParam.cxx
        
 HDRS:= $(SRCS:.cxx=.h)
 

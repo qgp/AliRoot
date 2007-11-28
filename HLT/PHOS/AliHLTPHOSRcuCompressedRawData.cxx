@@ -1,11 +1,11 @@
-#ifndef ALIHLTPHOSRCUCELLENERGYDATASTRUCT_H
-#define ALIHLTPHOSRCUCELLENERGYDATASTRUCT_H
-
 /**************************************************************************
- * Copyright(c) 2007, ALICE Experiment at CERN, All rights reserved.      *
+ * This file is property of and copyright by the Experimental Nuclear     *
+ * Physics Group, Dep. of Physics                                         *
+ * University of Oslo, Norway, 2007                                       *
  *                                                                        *
  * Author: Per Thomas Hille <perthi@fys.uio.no> for the ALICE HLT Project.*
  * Contributors are mentioned in the code where appropriate.              *
+ * Please report bugs to perthi@fys.uio.no                                *
  *                                                                        *
  * Permission to use, copy, modify and distribute this software and its   *
  * documentation strictly for non-commercial purposes is hereby granted   *
@@ -15,21 +15,21 @@
  * about the suitability of this software for any purpose. It is          *
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
-//#include "AliHLTPHOSCommonDefs.h"
-#include "AliHLTPHOSValidCellDataStruct.h"
-#include "Rtypes.h"
+#include "AliHLTPHOSRcuCompressedRawData.h"
 
-#include "AliHLTPHOSConstants.h"
-using namespace PhosHLTConst;
+//
+// Strucure for internal use containing compressed raw data for a single
+// readout partition/DDL/RCU
+//
 
-struct AliHLTPHOSRcuCellEnergyDataStruct
+AliHLTPHOSRcuCompressedRawData::AliHLTPHOSRcuCompressedRawData()
 {
-  Int_t fModuleID;
-  Int_t fRcuX;
-  Int_t fRcuZ;
-  Int_t fCnt;
-  AliHLTPHOSValidCellDataStruct fValidData[N_ZROWS_RCU*N_XCOLUMNS_RCU*N_GAINS];
-  
-};
 
-#endif
+}
+
+
+AliHLTPHOSRcuCompressedRawData::~AliHLTPHOSRcuCompressedRawData()
+{
+
+}
+

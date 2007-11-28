@@ -628,10 +628,6 @@ void AliHLTTPCPad::FindClusterCandidates()
 {
   // see header file for class documentation
 
-  if(fSizeOfSignalPositionArray<2){
-    return;
-  }
-
   if(fNSigmaThreshold>0){
     ZeroSuppress(fNSigmaThreshold);
   }

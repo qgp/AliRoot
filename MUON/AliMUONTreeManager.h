@@ -6,7 +6,7 @@
 
 // $Id$
 
-/// \ingroup core
+/// \ingroup calib
 /// \class AliMUONTreeManager
 /// \brief Helper class to ease TTree (MUON) branches manipulations
 /// 

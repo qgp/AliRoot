@@ -29,7 +29,6 @@ class AliMUONGMSSubprocessor : public AliMUONVSubprocessor
     virtual ~AliMUONGMSSubprocessor();
 
     // methods
-    virtual void   Initialize(Int_t run, UInt_t startTime, UInt_t endTime);
     virtual UInt_t Process(TMap* /*dcsAliasMap*/);
 
   private:
@@ -46,7 +45,7 @@ class AliMUONGMSSubprocessor : public AliMUONVSubprocessor
     static const TString  fgkMatrixArrayName;  ///< The fixed matrix array name
   
     // data members
-    AliMUONGeometryTransformer* fTransformer; ///< Geometry transformer
+    AliMUONGeometryTransformer fTransformer;///< Geometry transformer
 
     ClassDef(AliMUONGMSSubprocessor, 1) // Shuttle sub-processor for GMS
 };

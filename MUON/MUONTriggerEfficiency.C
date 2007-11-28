@@ -38,7 +38,6 @@
 #include "AliHeader.h"
 #include "AliLoader.h"
 #include "AliStack.h"
-#include "AliCDBManager.h"
 
 // MUON includes
 #include "AliMUON.h"
@@ -63,10 +62,6 @@ void MUONTriggerEfficiency(const char* filenameSim="galice_sim.root",
                            Bool_t readFromRP = 0)
 {
   
-  // Set default CDB storage
-  AliCDBManager* man = AliCDBManager::Instance();
-  man->SetDefaultStorage("local://$ALICE_ROOT");
-
   // output file
   
   AliMUONMCDataInterface diSim(filenameSim);

@@ -29,8 +29,9 @@
 //#include <TObjectTable.h>
 #endif
 
-void runReconstruction(int seed, const char* input, const char* recoptions)
+void runReconstruction(int run, int seed, const char* input, const char* recoptions)
 { 
+  AliCDBManager::Instance()->SetRun(run);
   AliCDBManager* man = AliCDBManager::Instance();
   man->SetDefaultStorage("local://$ALICE_ROOT");
   
@@ -52,8 +53,6 @@ void runReconstruction(int seed, const char* input, const char* recoptions)
   MuonRec->SetWriteAOD();
   
   AliMUONRecoParam *muonRecoParam = AliMUONRecoParam::GetLowFluxParam();
-  muonRecoParam->CombineClusterTrackReco(kTRUE);
-
   AliMUONReconstructor::SetRecoParam(muonRecoParam);
   muonRecoParam->Print("FULL");
   

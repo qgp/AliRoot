@@ -13,7 +13,7 @@
     @brief  A digit reader implementation for simulated, packed TPC 'raw' data.
 */
 
-//#define ENABLE_PAD_SORTING 1
+#define ENABLE_PAD_SORTING 1
 
 #include "AliHLTTPCDigitReader.h"
 
@@ -26,9 +26,7 @@ class AliTPCRawStream;
 /**
  * @class AliHLTTPCDigitReaderPacked
  * A digit reader implementation for simulated, packed TPC 'raw' data.
- * Includes reordering of the pads by default, sorting (and time and
- * memory consuming intermediate storing of the data) can be disabled
- * by @ref SetUnsorted(kTRUE).
+ * Includes reordering of the pads if @ref ENABLE_PAD_SORTING is 1.
  * @ingroup alihlt_tpc
  */
 class AliHLTTPCDigitReaderPacked : public AliHLTTPCDigitReader{
@@ -49,7 +47,6 @@ public:
    */
   Int_t InitBlock(void* ptr,ULong_t size, Int_t patch, Int_t slice);
   void SetOldRCUFormat(bool oldrcuformat){fOldRCUFormat=oldrcuformat;}
-  void SetUnsorted(bool unsorted){fUnsorted=unsorted;}
   Bool_t NextSignal();
   Int_t GetRow();
   Int_t GetPad();
@@ -65,29 +62,28 @@ private:
   AliHLTTPCDigitReaderPacked& operator=(const AliHLTTPCDigitReaderPacked&);
 
   // Initialize AliROOT TPC raw stream parsing class
-  AliRawReaderMemory *fRawMemoryReader; //!transient
+  AliRawReaderMemory *fRawMemoryReader;
 
-  AliTPCRawStream *fTPCRawStream; //!transient
+  AliTPCRawStream *fTPCRawStream;
     
-  //#if ENABLE_PAD_SORTING 
-  Int_t fCurrentRow; //!transient
-  Int_t fCurrentPad; //!transient
-  Int_t fCurrentBin; //!transient
+#if ENABLE_PAD_SORTING 
+  Int_t fCurrentRow;
+  Int_t fCurrentPad;
+  Int_t fCurrentBin;
  
-  Int_t fRowOffset; //!transient
-  Int_t fNRows; //!transient
+  Int_t fRowOffset;
+  Int_t fNRows;
 
-  Int_t fNMaxRows; //!transient
-  Int_t fNMaxPads; //!transient
-  Int_t fNTimeBins; //!transient
+  Int_t fNMaxRows;
+  Int_t fNMaxPads;
+  Int_t fNTimeBins;
 
   Int_t *fData;
-  //#endif // ENABLE_PAD_SORTING
+#endif // ENABLE_PAD_SORTING
 
-  Bool_t fOldRCUFormat; //!transient
-  Bool_t fUnsorted; //!transient
+  Bool_t fOldRCUFormat;
 
-  ClassDef(AliHLTTPCDigitReaderPacked, 1)
+  ClassDef(AliHLTTPCDigitReaderPacked, 0)
 	
 };
 

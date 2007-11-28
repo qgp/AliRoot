@@ -675,7 +675,7 @@ Bool_t AliSimulation::Run(Int_t nEvents)
   
   
   // digits -> trigger
-  if (!RunTrigger(fMakeTrigger,fMakeDigits)) {
+  if (!RunTrigger(fMakeTrigger)) {
     if (fStopOnError) return kFALSE;
   }
 
@@ -713,7 +713,7 @@ Bool_t AliSimulation::Run(Int_t nEvents)
 }
 
 //_____________________________________________________________________________
-Bool_t AliSimulation::RunTrigger(const char* config, const char* detectors)
+Bool_t AliSimulation::RunTrigger(const char* config)
 {
   // run the trigger
 
@@ -741,7 +741,7 @@ Bool_t AliSimulation::RunTrigger(const char* config, const char* detectors)
        trconfiguration = gAlice->GetTriggerDescriptor();
      }
      else
-       AliWarning("No trigger descriptor is specified. Loading the one that is in the CDB.");
+       AliWarning("No trigger descriptor is specified. Loading the one that is the CDB.");
    }
 
    runLoader->MakeTree( "GG" );
@@ -751,7 +751,7 @@ Bool_t AliSimulation::RunTrigger(const char* config, const char* detectors)
      return kFALSE;
 
    // digits -> trigger
-   if( !aCTP->RunTrigger( runLoader , detectors ) ) {
+   if( !aCTP->RunTrigger( runLoader ) ) {
       if (fStopOnError) {
 	//  delete aCTP;
 	return kFALSE;
@@ -1167,7 +1167,7 @@ Bool_t AliSimulation::ConvertRawFilesToDate(const char* dateFileName)
   char command[256];
   // Note the option -s. It is used in order to avoid
   // the generation of SOR/EOR events.
-  sprintf(command, "dateStream -c -s -D -o %s -# %d -C -run %d", 
+  sprintf(command, "dateStream -s -D -o %s -# %d -C -run %d", 
 	  dateFileName, runLoader->GetNumberOfEvents(),runLoader->GetHeader()->GetRun());
   FILE* pipe = gSystem->OpenPipe(command, "w");
 

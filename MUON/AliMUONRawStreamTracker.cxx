@@ -205,7 +205,6 @@ AliMUONRawStreamTracker::GetNextDDL()
     // We have not actually been able to complete the loading of the new DDL so
     // we are still on the old one. In this case we do not need to reset fCurrentDDL.
     //fCurrentDDL = 0;
-    if (IsErrorLogger()) AddErrorMessage();
     return kFALSE;
   }
   
@@ -232,6 +231,8 @@ AliMUONRawStreamTracker::GetNextDDL()
 
   Bool_t ok = fPayload->Decode(buffer, totalDataWord/4);
   
+  if (IsErrorLogger()) AddErrorMessage();
+
   delete[] buffer;
   
   fCurrentDDL = fPayload->GetDDLTracker();
@@ -376,7 +377,6 @@ Bool_t AliMUONRawStreamTracker::NextDDL()
   if ( fDDL == fgkMaxDDL ) 
   {
     fDDL = 0;
-    if ( IsErrorLogger()) AddErrorMessage();
     return kFALSE;
   }
   
@@ -397,6 +397,8 @@ Bool_t AliMUONRawStreamTracker::NextDDL()
 #endif
   
   Bool_t ok = fPayload->Decode(buffer, totalDataWord/4);
+
+  if ( IsErrorLogger()) AddErrorMessage();
 
   delete[] buffer;
   
@@ -434,8 +436,6 @@ void AliMUONRawStreamTracker::AddErrorMessage()
       if (msg.Contains("Padding"))
         GetReader()->AddMinorErrorLog(kPaddingWordErr, msg.Data());
     }
-    
-    log->Clear(); // clear logger after each event
 }
 
 //______________________________________________________

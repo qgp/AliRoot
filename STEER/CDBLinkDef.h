@@ -40,8 +40,4 @@
 #pragma link C++ class AliGRPPreprocessor+;
 #pragma link C++ class AliGRPDCS+;
 
-#pragma link C++ class  TTreeDataElement+;
-#pragma link C++ class  TTreeStream+;
-#pragma link C++ class  TTreeSRedirector+;
-
 #endif

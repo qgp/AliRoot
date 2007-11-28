@@ -172,11 +172,10 @@ void AliMCEvent::Clean()
 
 void AliMCEvent::FinishEvent()
 {
-  // Clean-up after event
-  fStack->Reset(0);
-  fMCParticles->Delete();
-  fMCParticleMap->Delete();
-  fTrackReferences->Clear();
+    // Clean-up after event
+     fStack->Reset(0);
+     fMCParticles->Delete();
+     fTrackReferences->Clear();
 }
 
 
@@ -444,6 +443,7 @@ AliMCParticle* AliMCEvent::GetTrack(Int_t i) const
     TClonesArray  *trefs      = 0;
     Int_t          ntref      = 0;
     TRefArray     *rarray     = 0;
+    
     // Out of range check
     if (i < 0 || i >= fNparticles) {
 	AliWarning(Form("AliMCEvent::GetEntry: Index out of range"));
@@ -451,6 +451,7 @@ AliMCParticle* AliMCEvent::GetTrack(Int_t i) const
 	return (mcParticle);
     }
     
+
 
     //
     // First check of the MC Particle has been already cached
@@ -473,6 +474,7 @@ AliMCParticle* AliMCEvent::GetTrack(Int_t i) const
 		nen++;
 	    } // loop over track references for entry i
 	} // if TreeTR available
+
 	Int_t nentries = fMCParticles->GetEntriesFast();
 	new ((*fMCParticles)[nentries]) AliMCParticle(particle, rarray);
 	mcParticle = dynamic_cast<AliMCParticle*>((*fMCParticles)[nentries]);
@@ -480,6 +482,7 @@ AliMCParticle* AliMCEvent::GetTrack(Int_t i) const
     } else {
 	mcParticle = dynamic_cast<AliMCParticle*>(fMCParticleMap->At(i));
     }
+    delete rarray;
     return mcParticle;
 }
 

@@ -34,7 +34,7 @@
 #include "AliACORDERawData.h"
 #include "AliDAQ.h"
 #include "AliFstream.h"
-#include "AliRawDataHeaderSim.h"
+#include "AliRawDataHeader.h"
 
 
 ClassImp(AliACORDERawData)
@@ -83,7 +83,7 @@ void AliACORDERawData::WriteACORDERawData(Bool_t *b)
   AliFstream* fFile = new AliFstream(fileName);
 
   // write header
-  AliRawDataHeaderSim header;
+  AliRawDataHeader header;
   UInt_t header_position = fFile->Tellp();
   fFile->WriteBuffer((char*)(&header), sizeof(header));
 

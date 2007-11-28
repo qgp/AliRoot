@@ -6,7 +6,7 @@
 
 // $Id$
 
-/// \ingroup core
+/// \ingroup calib
 /// \class AliMUON2DMapIterator
 /// \brief Implementation of TIterator for 2D maps
 /// 

@@ -15,6 +15,7 @@
 
 #include "AliMUONTriggerEfficiencyCells.h"
 #include "AliMpConstants.h"
+#include "AliMpDEManager.h"
 
 // Classes for display
 #include "AliMUONGeometryTransformer.h"
@@ -421,9 +422,7 @@ void AliMUONTriggerEfficiencyCells::CheckConstants() const
 Int_t AliMUONTriggerEfficiencyCells::FindChamberIndex(Int_t detElemId) const
 {
 ///  From detElemId to chamber number
-
-  // Int_t iChamber = AliMpDEManager::GetChamberId(detElemId);
-  Int_t iChamber = detElemId/100 - 1;
+  Int_t iChamber = AliMpDEManager::GetChamberId(detElemId);
   Int_t chamber = iChamber-AliMpConstants::NofTrackingChambers();
   return chamber;
 }
@@ -474,6 +473,9 @@ AliMUONTriggerEfficiencyCells::Reset()
       fBoardEfficiency[chCath] = 0x0;
       fSlatEfficiency[chCath] = 0x0;
     }
+
+    if(!AliMpCDB::LoadDDLStore()) // Load DDL store from OCDB
+      AliFatal("Could not access mapping OCDB");
 }
 
 

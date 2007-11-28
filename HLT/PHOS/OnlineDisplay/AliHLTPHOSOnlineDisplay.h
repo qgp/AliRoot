@@ -16,10 +16,7 @@
 #include <TRootEmbeddedCanvas.h>
 #include <TCanvas.h>
 #include "TGFrame.h"
-
-//#include "AliHLTPHOSRcuChannelDataStruct.h"
-//#include "AliHLTPHOSRcuCellEnergyDataStruct.h"
-
+#include "AliHLTPHOSRcuChannelDataStruct.h"
 #include "AliHLTPHOSOnlineDisplayEventTab.h"
 #include "AliHLTPHOSOnlineDisplayCalibTab.h"
 #include "AliHLTPHOSOnlineDisplayRawTab.h"
@@ -36,8 +33,7 @@ using namespace PhosHLTConst;
 #define MAX_HISTOGRAMS 320
 
 class TCanvas;
-
-//class AliHLTPHOSRcuCellEnergyDataStruct;
+class AliHLTPHOSRcuCellEnergyDataStruct;
 
 
 class AliHLTPHOSOnlineDisplay : public  TGMainFrame, public AliHLTPHOSBase

@@ -27,7 +27,6 @@
 
 // --- AliRoot header files ---
 #include "AliLog.h"
-#include "AliAltroMapping.h"
 #include "AliESDEvent.h"
 #include "AliESDCaloCluster.h"
 #include "AliPHOSReconstructor.h"
@@ -328,18 +327,10 @@ void  AliPHOSReconstructor::ConvertDigits(AliRawReader* rawReader, TTree* digits
 
   AliPHOSRawDecoder * dc ;
 
-  const TObjArray* maps = AliPHOSRecoParamEmc::GetMappings();
-  if(!maps) AliFatal("Cannot retrieve ALTRO mappings!!");
-
-  AliAltroMapping *mapping[4];
-  for(Int_t i = 0; i < 4; i++) {
-    mapping[i] = (AliAltroMapping*)maps->At(i);
-  }
-
   if(strcmp(fgkRecoParamEmc->DecoderVersion(),"v1")==0) 
-    dc=new AliPHOSRawDecoderv1(rawReader,mapping);
+    dc=new AliPHOSRawDecoderv1(rawReader);
   else
-    dc=new AliPHOSRawDecoder(rawReader,mapping);
+    dc=new AliPHOSRawDecoder(rawReader);
 
   TString option = GetOption();
   if (option.Contains("OldRCUFormat"))

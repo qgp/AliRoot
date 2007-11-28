@@ -6,7 +6,7 @@
 
 // $Id$
 
-/// \ingroup core
+/// \ingroup base
 /// \class AliMUONLogger
 /// \brief A logger that keeps track of the number of times a message appeared
 /// 
@@ -35,8 +35,6 @@ public:
   void   Print(Option_t* opt="") const;
   
   void   Print(TString& key, ofstream& out) const;
-  
-  void   Clear(Option_t* /*option*/ ="");
   
   Bool_t Next(TString& msg, Int_t& occurance);
   void   ResetItr();

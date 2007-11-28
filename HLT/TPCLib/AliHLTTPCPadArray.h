@@ -37,19 +37,10 @@ class AliHLTTPCPadArray : public AliHLTLogging {
 
 public:
 
-  /**
-   * Data exchange structure to propagate the information about
-   * active pads from the component carrying out the selection.
-   * Currently it's the AliHLTTPCClusterFinderComponent, but the code
-   * is encapsulated into AliHLTTPCPad/AliHLTTPCPadArray.
-   *
-   * Data type: @ref AliHLTTPCDefinitions::fgkActivePadsDataType
-   * {ACTIVPAD,TPC }
-   */
   struct AliHLTTPCActivePads
   {
-    UInt_t fRow;           //row value
     UInt_t fPad;           //pad value
+    UInt_t fRow;           //row value
   };
   typedef struct AliHLTTPCActivePads AliHLTTPCActivePads; //!
 
@@ -87,11 +78,6 @@ public:
    * Set the patch number.
    */
   void SetPatch(Int_t patch);
-
-  /**
-   * Get the patch number.
-   */
-  Int_t GetPatch(){return fPatch;}
 
   /**
    * Set the digit reader.

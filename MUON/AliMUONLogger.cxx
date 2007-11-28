@@ -76,15 +76,6 @@ AliMUONLogger::Log(const char* message)
 }
 
 //_____________________________________________________________________________
-void   
-AliMUONLogger::Clear(Option_t* /*option*/) 
-{  
-  /// reset logger spool
-
-  fLog->Clear();
-}
-
-//_____________________________________________________________________________
 void 
 AliMUONLogger::Print(Option_t* opt) const
 {

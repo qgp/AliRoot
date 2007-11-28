@@ -110,10 +110,12 @@ AliHLTPHOSDigitMakerComponent::DoEvent(const AliHLTComponentEventData& evtData, 
 					std::vector<AliHLTComponentBlockData>& outputBlocks)
 {
   //see header file for documentation
+
   UInt_t tSize            = 0;
   UInt_t offset           = 0; 
   UInt_t mysize           = 0;
   Int_t digitCount = 0;
+  //  cout << " AliHLTPHOSDigitMakerComponent::DoEven  fEvtCnt = " << fEvtCnt <<endl; 
 
   AliHLTUInt8_t* outBPtr;
   outBPtr = outputPtr;
@@ -164,9 +166,6 @@ AliHLTPHOSDigitMakerComponent::DoEvent(const AliHLTComponentEventData& evtData, 
       
   fDigitMakerPtr->Reset();
   
-  
-
-
   if(fPhosEventCount % 10 == 0)
     {
       cout << "Event #: " << fPhosEventCount << endl;

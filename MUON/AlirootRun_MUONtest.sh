@@ -13,7 +13,7 @@ SIMCONFIG="$ALICE_ROOT/MUON/Config.C" # default simulation configuration file
 OUTDIR=""
 CURDIR=`pwd`
 
-#RUN=0 # run number for OCDB access
+RUN=0 # run number for OCDB access
 SEED=1234567 # random number generator seed
 SIMDIR="generated" # sub-directory where to move simulated files prior to reco
 DUMPEVENT=5 # event to be dump on files
@@ -97,7 +97,7 @@ if [ "$SIMULATION" -eq 1 ]; then
 
   echo "Running simulation  ..."
 
-  aliroot -b -q runSimulation.C\($SEED,$NEVENTS,\""$SIMCONFIG"\"\) >& $OUTDIR/testSim.out 
+  aliroot -b -q runSimulation.C\($RUN,$SEED,$NEVENTS,\""$SIMCONFIG"\"\) >& $OUTDIR/testSim.out 
   
   echo "Moving generated files to $SIMDIR"
   mkdir $OUTDIR/$SIMDIR
@@ -119,7 +119,7 @@ if [ "$RECONSTRUCTION" -eq 1 ]; then
 
   cd $OUTDIR
   
-  aliroot -b -q runReconstruction\.C\($SEED,\""$OUTDIR/raw.root"\",\""$RECOPTIONS"\"\) >& $OUTDIR/testReco.out
+  aliroot -b -q runReconstruction\.C\($RUN,$SEED,\""$OUTDIR/raw.root"\",\""$RECOPTIONS"\"\) >& $OUTDIR/testReco.out
 
 fi
 
@@ -168,8 +168,6 @@ EOF
 
   if [ -f "$OUTDIR/$SIMDIR/galice.root" ]; then
     aliroot -b  << EOF
-    AliCDBManager* man = AliCDBManager::Instance();
-    man->SetDefaultStorage("local://$ALICE_ROOT");
     AliMUONMCDataInterface mcdSim("$OUTDIR/$SIMDIR/galice.root");
     mcdSim.DumpKine($DUMPEVENT);       > $OUTDIR/dump.$DUMPEVENT.kine
     mcdSim.DumpHits($DUMPEVENT);       > $OUTDIR/dump.$DUMPEVENT.hits
@@ -184,8 +182,6 @@ EOF
 
   if [ -f "$OUTDIR/galice.root" ]; then
     aliroot -b << EOF
-    AliCDBManager* man = AliCDBManager::Instance();
-    man->SetDefaultStorage("local://$ALICE_ROOT");
     AliMUONDataInterface dRec("$OUTDIR/galice.root");
     dRec.DumpDigits($DUMPEVENT,true); > $OUTDIR/dump.$DUMPEVENT.recdigits
     dRec.DumpRecPoints($DUMPEVENT);  > $OUTDIR/dump.$DUMPEVENT.recpoints

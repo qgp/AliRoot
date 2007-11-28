@@ -30,6 +30,7 @@
 #include "AliAltroBuffer.h"
 #include "AliTPCAltroMapping.h"
 #include "AliTPCDDLRawData.h"
+#include "AliRawDataHeader.h"
 #include "AliDAQ.h"
 
 ClassImp(AliTPCDDLRawData)

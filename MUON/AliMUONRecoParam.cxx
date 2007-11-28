@@ -48,7 +48,6 @@ AliMUONRecoParam::AliMUONRecoParam()
   fSigmaCutForImprovement(0.),
   fSigmaCutForTrigger(0.),
   fMaxNormChi2MatchTrigger(0.),
-  fCombinedClusterTrackReco(kFALSE),
   fTrackAllTracks(kFALSE),
   fRecoverTracks(kFALSE),
   fMakeTrackCandidatesFast(kFALSE),
@@ -149,9 +148,6 @@ void AliMUONRecoParam::Print(Option_t *option) const
   cout<<Form("Clustering mode = %s",fClusteringMode.Data())<<endl;
   
   cout<<Form("Tracking mode = %s",fTrackingMode.Data())<<endl;
-  
-  if (fCombinedClusterTrackReco) cout<<"Combined cluster/track reconstruction is on"<<endl;
-  else cout<<"Combined cluster/track reconstruction is off"<<endl;
   
   cout<<Form("Bending momentum range = [%5.2f,%5.2f]",fMinBendingMomentum,fMaxBendingMomentum)<<endl;
   

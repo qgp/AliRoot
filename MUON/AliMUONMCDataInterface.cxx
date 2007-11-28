@@ -43,9 +43,7 @@
 
 #include "AliLog.h"
 #include "AliRunLoader.h"
-#include "AliHeader.h"
 #include "AliStack.h"
-#include "AliCDBManager.h"
 
 #include <Riostream.h>
 #include <TClonesArray.h>
@@ -110,17 +108,14 @@ AliMUONMCDataInterface::HitStore(Int_t event, Int_t track)
   /// Returned pointer should not be deleted
   
   if (not IsValid()) return 0x0;
-
-  if (event == fCurrentEvent)
-  {
-    if (track == fDataX and fHitStore != 0x0)  // using fDataX as track number.
+  if (event == fCurrentEvent
+      and fDataX == track  // using fDataX as track number.
+      and fHitStore != 0x0
+     )
       return fHitStore;
-  }
-  else
-  {
-    ResetStores();
-    if ( not LoadEvent(event) ) return 0x0;
-  }
+  
+  ResetStores();
+  if (not LoadEvent(event)) return 0x0;
   
   fLoader->LoadHits();
   
@@ -159,17 +154,10 @@ AliMUONMCDataInterface::SDigitStore(Int_t event)
   /// Returned pointer should not be deleted
   
   if (not IsValid()) return 0x0;
+  if (event == fCurrentEvent and fSDigitStore != 0x0) return fSDigitStore;
   
-  if (event == fCurrentEvent)
-  {
-    if (fSDigitStore != 0x0)
-      return fSDigitStore;
-  }
-  else
-  {
-    ResetStores();
-    if ( not LoadEvent(event) ) return 0x0;
-  }
+  ResetStores();
+  if (not LoadEvent(event)) return 0x0;
   
   fLoader->LoadSDigits();
   
@@ -201,17 +189,10 @@ AliMUONMCDataInterface::DigitStore(Int_t event)
   /// Returned pointer should not be deleted
   
   if (not IsValid()) return 0x0;
+  if (event == fCurrentEvent and fDigitStore != 0x0) return fDigitStore;
   
-  if (event == fCurrentEvent)
-  {
-    if (fDigitStore != 0x0)
-      return fDigitStore;
-  }
-  else
-  {
-    ResetStores();
-    if ( not LoadEvent(event) ) return 0x0;
-  }
+  ResetStores();
+  if (not LoadEvent(event)) return 0x0;
   
   fLoader->LoadDigits();
   
@@ -263,17 +244,15 @@ AliMUONMCDataInterface::TrackRefs(Int_t event, Int_t track)
   /// Returned pointer should not be deleted
   
   if ( not IsValid() ) return 0x0;
-  
-  if (event == fCurrentEvent)
-  {
-    if (track == fDataX and fTrackRefs != 0x0)  // using fDataX as track number.
-      return fTrackRefs;
-  }
-  else
+
+  if (event != fCurrentEvent)
   {
     ResetStores();
     if ( not LoadEvent(event) ) return 0x0;
   }
+  
+  if (track == fDataX)  // using fDataX as track number.
+    return fTrackRefs;
   
   fLoader->GetRunLoader()->LoadTrackRefs();
   
@@ -310,17 +289,10 @@ AliMUONMCDataInterface::TriggerStore(Int_t event)
   /// Returned pointer should not be deleted.
   
   if (not IsValid()) return 0x0;
+  if (event == fCurrentEvent and fTriggerStore != 0x0) return fTriggerStore;
   
-  if (event == fCurrentEvent)
-  {
-    if (fTriggerStore != 0x0)
-      return fTriggerStore;
-  }
-  else
-  {
-    ResetStores();
-    if ( not LoadEvent(event) ) return 0x0;
-  }
+  ResetStores();
+  if (not LoadEvent(event)) return 0x0;
   
   fLoader->LoadDigits();
   
@@ -602,19 +574,6 @@ AliMUONMCDataInterface::Open(const char* filename)
     AliError(Form("Cannot open file %s",filename));    
     fIsValid = kFALSE;
   }
-  
-  // Get run number and set it to CDB manager
-  runLoader->LoadHeader();
-  if ( ! runLoader->GetHeader() ) {
-    AliError("Cannot load header.");    
-    fIsValid = kFALSE;
-  }
-  else {
-    Int_t runNumber = runLoader->GetHeader()->GetRun();
-    AliCDBManager::Instance()->SetRun(runNumber);
-  }  
-  runLoader->UnloadHeader(); 
-
   fLoader = runLoader->GetDetectorLoader("MUON");
   if (fLoader == 0x0)
   {

@@ -37,24 +37,6 @@
 
 
 #if !defined(__CINT__) || defined(__MAKECINT__)
-
-// MUON includes
-#include "AliMUONTrackParam.h"
-#include "AliMUONTrackExtrap.h"
-#include "AliESDMuonTrack.h"
-
-// STEER includes
-#include "AliRun.h"
-#include "AliRunLoader.h"
-#include "AliHeader.h"
-#include "AliLoader.h"
-#include "AliStack.h"
-#include "AliMagFMaps.h"
-#include "AliESDEvent.h"
-#include "AliESDVertex.h"
-#include "AliTracker.h"
-#include "AliCDBManager.h"
-
 // ROOT includes
 #include "TTree.h"
 #include "TNtuple.h"
@@ -71,6 +53,22 @@
 #include <TGeoManager.h>
 #include <TROOT.h>
 
+// STEER includes
+#include "AliRun.h"
+#include "AliRunLoader.h"
+#include "AliHeader.h"
+#include "AliLoader.h"
+#include "AliStack.h"
+#include "AliMagFMaps.h"
+#include "AliESDEvent.h"
+#include "AliESDVertex.h"
+#include "AliTracker.h"
+#include "AliCDBManager.h"
+
+// MUON includes
+#include "AliMUONTrackParam.h"
+#include "AliMUONTrackExtrap.h"
+#include "AliESDMuonTrack.h"
 #endif
 
 // Arguments:
@@ -240,9 +238,6 @@ Bool_t MUONefficiency( char* filename = "galice.root", char* geoFilename = "geom
   esd->ReadFromTree(tree);
 
   runLoader->LoadHeader();
-  Int_t runNumber = runLoader->GetHeader()->GetRun();
-  AliCDBManager::Instance()->SetRun(runNumber);
-
   nevents = runLoader->GetNumberOfEvents();
   AliMUONTrackParam trackParam;
 

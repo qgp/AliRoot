@@ -35,14 +35,8 @@ public:
   AliMUONClusterFinderMLEM(Bool_t plot, AliMUONVClusterFinder* clusterFinder); // Constructor
   virtual ~AliMUONClusterFinderMLEM(); // Destructor
 
-  virtual Bool_t NeedSegmentation() const { return kTRUE; }
-  
-  using AliMUONVClusterFinder::Prepare;
-
-  virtual Bool_t Prepare(Int_t detElemId,
-                         TClonesArray* pads[2],
-                         const AliMpArea& area,
-                         const AliMpVSegmentation* segmentations[2]);
+  virtual Bool_t Prepare(const AliMpVSegmentation* segmentations[2],
+                         const AliMUONVDigitStore& digitStore);
   
   virtual AliMUONCluster* NextCluster();
   

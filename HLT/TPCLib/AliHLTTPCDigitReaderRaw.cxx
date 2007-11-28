@@ -311,12 +311,10 @@ int AliHLTTPCDigitReaderRaw::GetAltroChannelRawData(void* &pTgt, AliHLTUInt16_t 
 {
   int iResult=0;
   if (fBuffer==NULL) return -ENODATA;
-  if (fAltroBlockPositionBytes-fAltroBlockLengthBytes>=GetCommonDataHeaderSize()) {
-    pTgt=fBuffer+(fAltroBlockPositionBytes-fAltroBlockLengthBytes);
+  if (fAltroBlockPositionBytes-fAltroBlockLengthBytes>GetCommonDataHeaderSize()) {
+    pTgt=fBuffer+(fAltroBlockPositionBytes-fAltroBlockLengthBytes+1);
     iResult=fAltroBlockLengthBytes;
     hwAddress=fAltroBlockHWAddress;
-  } else {
-    iResult=-ERANGE;
   }
   return iResult;
 }
@@ -604,8 +602,13 @@ Bool_t AliHLTTPCDigitReaderRaw::ApplyMapping()
 	    fPad = fgMapping0[(unsigned)fAltroBlockHWAddress][1];
 	    break;
         case 1:
-	    fRow = fgMapping1[(unsigned)fAltroBlockHWAddress][0];
-	    fPad = fgMapping1[(unsigned)fAltroBlockHWAddress][1];
+	    fRow = AliHLTTPCDigitReaderRaw::fgMapping1[(unsigned)fAltroBlockHWAddress][0];
+	    fPad = AliHLTTPCDigitReaderRaw::fgMapping1[(unsigned)fAltroBlockHWAddress][1];
+#if 0
+	    printf ("pad %d # row %d (hwa: %u / 0x%08X\n", fgMapping1[(unsigned)fAltroBlockHWAddress][0],fgMapping1[(unsigned)fAltroBlockHWAddress][1], (unsigned)fAltroBlockHWAddress, (unsigned)fAltroBlockHWAddress);
+	    printf ("pad %d # row %d (hwa: %u / 0x%08X\n", fgMapping1[(unsigned)fAltroBlockHWAddress-1][0],fgMapping1[(unsigned)fAltroBlockHWAddress-1][1], (unsigned)fAltroBlockHWAddress-1, (unsigned)fAltroBlockHWAddress-1);
+	    printf ("pad %d # row %d (hwa: %u / 0x%08X\n", fgMapping1[(unsigned)fAltroBlockHWAddress+1][0],fgMapping1[(unsigned)fAltroBlockHWAddress+1][1], (unsigned)fAltroBlockHWAddress+1, (unsigned)fAltroBlockHWAddress+1);
+#endif
 	    break;
 	case 2:
 	    fRow = fgMapping2[(unsigned)fAltroBlockHWAddress][0];

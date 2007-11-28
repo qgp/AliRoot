@@ -109,21 +109,33 @@ AliMUONClusterFinderMLEM::~AliMUONClusterFinderMLEM()
 
 //_____________________________________________________________________________
 Bool_t 
-AliMUONClusterFinderMLEM::Prepare(Int_t detElemId,
-                                  TClonesArray* pads[2],
-                                  const AliMpArea& area,
-                                  const AliMpVSegmentation* seg[2])
+AliMUONClusterFinderMLEM::Prepare(const AliMpVSegmentation* segmentations[2],
+                                  const AliMUONVDigitStore& digitStore)
 {
   /// Prepare for clustering
 //  AliCodeTimerAuto("")
   
   for ( Int_t i = 0; i < 2; ++i )
   {
-    fSegmentation[i] = seg[i];
+    fSegmentation[i] = segmentations[i];
   }
   
   // Find out the DetElemId
-  fDetElemId = detElemId;
+  fDetElemId = -1;
+  
+  TIter next(digitStore.CreateIterator());
+  AliMUONVDigit* d = static_cast<AliMUONVDigit*>(next());
+  
+  if (d)
+  {
+    fDetElemId = d->DetElemId();
+  }
+  
+  if ( fDetElemId < 0 )
+  {
+    AliWarning("Could not find DE. Probably no digits at all ?");
+    return kFALSE;
+  }
   
   delete fSplitter;
   fSplitter = new AliMUONClusterSplitterMLEM(fDetElemId,fPixArray);
@@ -136,14 +148,7 @@ AliMUONClusterFinderMLEM::Prepare(Int_t detElemId,
   
   AliDebug(3,Form("EVT %d DE %d",fEventNumber,fDetElemId));
   
-  if ( fPreClusterFinder->NeedSegmentation() )
-  {
-    return fPreClusterFinder->Prepare(detElemId,pads,area,seg);
-  }
-  else
-  {
-    return fPreClusterFinder->Prepare(detElemId,pads,area);
-  }
+  return fPreClusterFinder->Prepare(segmentations,digitStore);
 }
 
 //_____________________________________________________________________________
@@ -298,7 +303,7 @@ AliMUONClusterFinderMLEM::CheckPrecluster(const AliMUONCluster& origCluster)
   /// Check precluster in order to attempt to simplify it (mostly for
   /// two-cathode preclusters)
     
-  AliCodeTimerAuto("")
+  //  AliCodeTimerAuto("")
 
   // Disregard small clusters (leftovers from splitting or noise)
   if ((origCluster.Multiplicity()==1 || origCluster.Multiplicity()==2) &&
@@ -307,6 +312,7 @@ AliMUONClusterFinderMLEM::CheckPrecluster(const AliMUONCluster& origCluster)
     return 0x0;
   }
 
+  //AliMUONCluster* cluster = static_cast<AliMUONCluster*>(origCluster.Clone());
   AliMUONCluster* cluster = new AliMUONCluster(origCluster);
 
   AliDebug(2,"Start of CheckPreCluster=");

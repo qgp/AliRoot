@@ -30,13 +30,10 @@
 
 #include "AliMUONConstants.h"
 #include "AliMUONVCluster.h"
-#include "AliMUONVClusterServer.h"
 #include "AliMUONVClusterStore.h"
 #include "AliMUONTrack.h"
 #include "AliMUONTrackParam.h"
 #include "AliMUONTrackExtrap.h"
-
-#include "AliMpArea.h"
 
 #include "AliLog.h"
 
@@ -53,8 +50,8 @@ ClassImp(AliMUONTrackReconstructor) // Class implementation in ROOT context
 /// \endcond
 
   //__________________________________________________________________________
-AliMUONTrackReconstructor::AliMUONTrackReconstructor(AliMUONVClusterServer& clusterServer)
-  : AliMUONVTrackReconstructor(clusterServer)
+AliMUONTrackReconstructor::AliMUONTrackReconstructor()
+  : AliMUONVTrackReconstructor()
 {
   /// Constructor
 }
@@ -66,7 +63,7 @@ AliMUONTrackReconstructor::~AliMUONTrackReconstructor()
 } 
 
   //__________________________________________________________________________
-void AliMUONTrackReconstructor::MakeTrackCandidates(AliMUONVClusterStore& clusterStore)
+void AliMUONTrackReconstructor::MakeTrackCandidates(const AliMUONVClusterStore& clusterStore)
 {
   /// To make track candidates (assuming linear propagation if the flag fgkMakeTrackCandidatesFast is set to kTRUE):
   /// Start with segments station(1..) 4 or 5 then follow track in station 5 or 4.
@@ -80,21 +77,6 @@ void AliMUONTrackReconstructor::MakeTrackCandidates(AliMUONVClusterStore& cluste
 
   AliDebug(1,"Enter MakeTrackCandidates");
 
-  // Unless we're doing combined tracking, we'll clusterize all stations at once
-  Int_t firstChamber(0);
-  Int_t lastChamber(9);
-  
-  if (AliMUONReconstructor::GetRecoParam()->CombineClusterTrackReco()) {
-    // ... Here's the exception : ask the clustering to reconstruct
-    // clusters *only* in station 4 and 5 for combined tracking
-    firstChamber = 6;
-  }
-
-  for (Int_t i = firstChamber; i <= lastChamber; ++i ) 
-  {
-    fClusterServer.Clusterize(i, clusterStore, AliMpArea());
-  }
-  
   // Loop over stations(1..) 5 and 4 and make track candidates
   for (Int_t istat=4; istat>=3; istat--) {
     
@@ -144,7 +126,7 @@ void AliMUONTrackReconstructor::MakeTrackCandidates(AliMUONVClusterStore& cluste
 }
 
   //__________________________________________________________________________
-void AliMUONTrackReconstructor::FollowTracks(AliMUONVClusterStore& clusterStore)
+void AliMUONTrackReconstructor::FollowTracks(const AliMUONVClusterStore& clusterStore)
 {
   /// Follow tracks in stations(1..) 3, 2 and 1
   AliDebug(1,"Enter FollowTracks");
@@ -317,7 +299,7 @@ void AliMUONTrackReconstructor::FollowTracks(AliMUONVClusterStore& clusterStore)
 }
 
   //__________________________________________________________________________
-Bool_t AliMUONTrackReconstructor::FollowTrackInStation(AliMUONTrack &trackCandidate, AliMUONVClusterStore& clusterStore, Int_t nextStation)
+Bool_t AliMUONTrackReconstructor::FollowTrackInStation(AliMUONTrack &trackCandidate, const AliMUONVClusterStore& clusterStore, Int_t nextStation)
 {
   /// Follow trackCandidate in station(0..) nextStation and search for compatible cluster(s)
   /// Keep all possibilities or only the best one(s) according to the flag fgkTrackAllTracks:
@@ -388,12 +370,6 @@ Bool_t AliMUONTrackReconstructor::FollowTrackInStation(AliMUONTrack &trackCandid
   // Printout for debuging
   if ((AliLog::GetDebugLevel("MUON","AliMUONTrackReconstructor") >= 1) || (AliLog::GetGlobalDebugLevel() >= 1)) {
     cout << "FollowTrackInStation: look for clusters in chamber(1..): " << ch2+1 << endl;
-  }
-  
-  // Ask the clustering to reconstruct new clusters around the track position in the current station
-  // except for station 4 and 5 that are already entirely clusterized
-  if (AliMUONReconstructor::GetRecoParam()->CombineClusterTrackReco()) {
-    if (nextStation < 3) AskForNewClustersInStation(extrapTrackParamAtCh, clusterStore, nextStation);
   }
   
   // Create iterators to loop over clusters in both chambers
@@ -784,7 +760,7 @@ void AliMUONTrackReconstructor::UpdateTrack(AliMUONTrack &track, AliMUONTrackPar
 }
 
   //__________________________________________________________________________
-Bool_t AliMUONTrackReconstructor::RecoverTrack(AliMUONTrack &trackCandidate, AliMUONVClusterStore& clusterStore, Int_t nextStation)
+Bool_t AliMUONTrackReconstructor::RecoverTrack(AliMUONTrack &trackCandidate, const AliMUONVClusterStore& clusterStore, Int_t nextStation)
 {
   /// Try to recover the track candidate in the next station
   /// by removing the worst of the two clusters attached in the current station

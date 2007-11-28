@@ -1,5 +1,5 @@
-#ifndef ALIHLTPHOSVALIDCELLDEBUGDATASTRUCT_H
-#define ALIHLTPHOSVALIDCELLDEBUGDATASTRUCT_H 
+#ifndef ALIHLTPHOSVALIDCHANNELDATASTRUCT_H
+#define ALIHLTPHOSVALIDCHANNELDATASTRUCT_H 
 
 /***************************************************************************
  * Copyright(c) 2007, ALICE Experiment at CERN, All rights reserved.       *
@@ -18,19 +18,21 @@
 
 #include "AliHLTDataTypes.h"
 #include "Rtypes.h"
+#include "AliHLTPHOSCommonDefs.h"
 
-//#define N_DATA_SAMPLES 70
-#define N_DATA_SAMPLES 510
-
-struct AliHLTPHOSValidCellDataStruct
+struct AliHLTPHOSValidChannelDataStruct
 {
   AliHLTUInt8_t fZ;
   AliHLTUInt8_t fX;
   AliHLTUInt8_t fGain;
-  Float_t fEnergy;
-  Float_t fTime;
-  Int_t fCrazyness;
-  Int_t fData[N_DATA_SAMPLES];
+  //  AliHLTUInt16_t fNSamples;
+  AliHLTUInt16_t fDataSize; 
+  //  AliHLTUInt16_t fChannelData[ALTRO_MAX_SAMPLES];
+  //  Float_t fChannelData[350];
+  // UInt_t  fChannelData[1024];
+  UInt_t  fChannelData[200];
+  //  UInt_t  *fChannelData;
+
 };
 
 

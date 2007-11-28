@@ -22,7 +22,7 @@
 #include <TSystem.h>
 
 #include "AliLog.h"
-#include "AliRawDataHeaderSim.h"
+#include "AliRawDataHeader.h"
 #include "AliBitPacking.h"
 #include "AliPMDdigit.h"
 #include "AliPMDBlockHeader.h"
@@ -90,7 +90,7 @@ void AliPMDDDLRawData::WritePMDRawData(TTree *treeD)
   Int_t modulePerDDL        = 0;
 
 
-  AliRawDataHeaderSim header;
+  AliRawDataHeader header;
   UInt_t sizeRawData = 0;
   
   const Int_t kSize = 1536;

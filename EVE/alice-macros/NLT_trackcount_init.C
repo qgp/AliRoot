@@ -50,16 +50,11 @@ void NLT_trackcount_init()
 
 void on_new_event()
 {
-  try {
-    Reve::PointSet* itsc = its_clusters();
-    itsc->SetMarkerColor(5);
+  Reve::PointSet* itsc = its_clusters();
+  itsc->SetMarkerColor(5);
 
-    Reve::PointSet* tpcc = tpc_clusters();
-    tpcc->SetMarkerColor(4);
-  }
-  catch(Reve::Exc_t& exc) {
-    printf("Exception loading ITS/TPC clusters: %s\n", exc.Data());
-  }
+  Reve::PointSet* tpcc = tpc_clusters();
+  tpcc->SetMarkerColor(4);
 
   primary_vertex(1, 1);
 

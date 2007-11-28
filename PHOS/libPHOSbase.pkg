@@ -24,8 +24,7 @@ SRCS          =  AliPHOS.cxx \
                  AliPHOSQAChecker.cxx \
                  AliPHOSRecParticle.cxx AliPHOSRecPoint.cxx \
                  AliPHOSEmcRecPoint.cxx \
-                 AliPHOSCpvRecPoint.cxx   AliPHOSTrackSegment.cxx \
-                 AliPHOSReconstructor.cxx 
+                 AliPHOSCpvRecPoint.cxx   AliPHOSTrackSegment.cxx
 
 HDRS:= $(SRCS:.cxx=.h) 
 

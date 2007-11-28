@@ -26,8 +26,6 @@
 //-----------------------------------------------------------------------------
 
 #include "AliMpArea.h"
-
-#include "AliLog.h"
 #include "AliMpConstants.h"
 
 #include <Riostream.h>
@@ -174,81 +172,10 @@ TVector2 AliMpArea::RightUpCorner() const
 }  
 
 //_____________________________________________________________________________
-Bool_t AliMpArea::Contains(const AliMpArea& area) const
-{
-/// Whether area is contained within this
-  
-//  return
-//    ( area.LeftBorder() > LeftBorder() - AliMpConstants::LengthTolerance() &&
-//      area.RightBorder() < RightBorder() +  AliMpConstants::LengthTolerance() &&
-//      area.DownBorder() > DownBorder() - AliMpConstants::LengthTolerance() &&
-//      area.UpBorder() < UpBorder() + AliMpConstants::LengthTolerance() );
-
-  if ( area.LeftBorder() < LeftBorder() ||
-       area.RightBorder() > RightBorder() ||
-       area.DownBorder() < DownBorder() ||
-       area.UpBorder() > UpBorder() ) 
-  {
-    return kFALSE;
-  }
-  else
-  {
-    return kTRUE;
-  }
-}
-
-//_____________________________________________________________________________
-AliMpArea AliMpArea::Intersect(const AliMpArea& area) const
-{ 
-/// Return the common part of area and this
-
-  Double_t xmin = TMath::Max(area.LeftBorder(),LeftBorder());
-  Double_t xmax = TMath::Min(area.RightBorder(),RightBorder());
-  Double_t ymin = TMath::Max(area.DownBorder(),DownBorder());
-  Double_t ymax = TMath::Min(area.UpBorder(),UpBorder());
-
-  return AliMpArea( TVector2( (xmin+xmax)/2.0, (ymin+ymax)/2.0 ),
-                    TVector2( (xmax-xmin)/2.0, (ymax-ymin)/2.0 ) );
-}
-
-//_____________________________________________________________________________
-Bool_t AliMpArea::Overlap(const AliMpArea& area) const
-{
-/// Return true if this overlaps with given area
-
-  if ( LeftBorder() > area.RightBorder() - AliMpConstants::LengthTolerance() ||
-       RightBorder() < area.LeftBorder() + AliMpConstants::LengthTolerance() )
-  {
-    return kFALSE;
-  }
-
-  if ( DownBorder() > area.UpBorder() - AliMpConstants::LengthTolerance() ||
-       UpBorder() < area.DownBorder() + AliMpConstants::LengthTolerance() )
-  {
-    return kFALSE;
-  }
-  return kTRUE;
-  
-}
-
-//_____________________________________________________________________________
 void
-AliMpArea::Print(Option_t* opt) const
+AliMpArea::Print(Option_t*) const
 {
 /// Printing
-/// When option is set to B (borders), the area boreders will be printed 
-/// instead of default parameters
-
-  
-  if ( opt[0] == 'B' ) {
-    cout << "Area x-borders: (" 
-         << LeftBorder() << ", " << RightBorder() << ") " 
-	 << " y-borders: (" 
-         << DownBorder() << ", " << UpBorder() << ") " 
-	 << endl;
-    return;
-
-  }       
 
   cout << (*this) << endl;
 }

@@ -3,7 +3,7 @@
 
 // $Id$
 
-/// \ingroup core
+/// \ingroup basic
 /// \class AliMpStringObjMap
 /// \brief Substitutes map <string, TObject> which ALICE does not allow to use 
 ///

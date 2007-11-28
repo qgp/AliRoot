@@ -2,8 +2,7 @@
 #include <iostream>
 #include "AliHLTPHOSRcuCellAccumulatedEnergyDataStruct.h"
 #include "AliHLTPHOSGetEventButton.h"
-//#include "AliHLTPHOSRcuChannelDataStruct.h"
-#include "AliHLTPHOSRcuCellEnergyDataStruct.h"
+#include "AliHLTPHOSRcuChannelDataStruct.h"
 
 using namespace std;
 
@@ -47,22 +46,15 @@ AliHLTPHOSOnlineDisplayRawTab::ReadBlockData(HOMERReader *homerReaderPtr)
     {
       cout << "GetNextEventRaw(): updating block " << endl;
       AliHLTUInt16_t moduleID;
-
-      //    const AliHLTPHOSRcuChannelDataStruct* rcuChannelDataPtr = (const AliHLTPHOSRcuChannelDataStruct*)homerReaderPtr->GetBlockData( blk ); 
-      const AliHLTPHOSRcuCellEnergyDataStruct* rcuChannelDataPtr = (const AliHLTPHOSRcuCellEnergyDataStruct*)homerReaderPtr->GetBlockData( blk ); 
-
+      const AliHLTPHOSRcuChannelDataStruct* rcuChannelDataPtr = (const AliHLTPHOSRcuChannelDataStruct*)homerReaderPtr->GetBlockData( blk ); 
       moduleID = rcuChannelDataPtr->fModuleID ;
       cout << "GetNextEventRaw() Module ID =" << moduleID << endl; 
- 
-
       int tmpx;
       int tmpz;
       AliHLTUInt32_t tmpChCnt =0;
       AliHLTUInt16_t tmpSampleCnt =0;
       
-      //   tmpChCnt = rcuChannelDataPtr->fNValidChannels;
-      tmpChCnt = rcuChannelDataPtr->fCnt;
- 
+      tmpChCnt = rcuChannelDataPtr->fNValidChannels;
       cout << "tmpChCnt = " << tmpChCnt << endl; 
       
       for( AliHLTUInt32_t ch =0; ch < tmpChCnt; ch ++)
@@ -70,8 +62,7 @@ AliHLTPHOSOnlineDisplayRawTab::ReadBlockData(HOMERReader *homerReaderPtr)
 	  {
 	    tmpz =  rcuChannelDataPtr->fValidData[ch].fZ;
 	    tmpx =  rcuChannelDataPtr->fValidData[ch].fX;	
-	    //	    tmpSampleCnt =  rcuChannelDataPtr->fValidData[ch].fDataSize -2;
-	    tmpSampleCnt =  rcuChannelDataPtr->fValidData[ch].fNSamples;
+	    tmpSampleCnt =  rcuChannelDataPtr->fValidData[ch].fDataSize -2;
 
 	    //	    fgChannelDataPlotPtr[tmpz][tmpx]->SetFillColor(3);
 
@@ -81,8 +72,7 @@ AliHLTPHOSOnlineDisplayRawTab::ReadBlockData(HOMERReader *homerReaderPtr)
 	      {
 		if(  rcuChannelDataPtr->fValidData[ch].fGain  == 0)
 		  {
-		    //		    fgChannelDataPlotPtr[tmpz][tmpx]->SetBinContent(sample,  rcuChannelDataPtr->fValidData[ch].fChannelData[sample]);
-		    fgChannelDataPlotPtr[tmpz][tmpx]->SetBinContent(sample,  rcuChannelDataPtr->fValidData[ch].fData[sample]);
+		    fgChannelDataPlotPtr[tmpz][tmpx]->SetBinContent(sample,  rcuChannelDataPtr->fValidData[ch].fChannelData[sample]);
 		  }
 
 	      }

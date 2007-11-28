@@ -36,9 +36,7 @@ AliAODCaloCluster::AliAODCaloCluster() :
   fEmcCpvDistance(-999.),
   fNExMax(0),
   fTracksMatched(),
-  fNCells(0),
-  fCellsAbsId(),
-  fCellsAmpFraction()
+  fCellNumber()
 {
   // default constructor
 
@@ -63,9 +61,7 @@ AliAODCaloCluster::AliAODCaloCluster(Int_t id,
   fEmcCpvDistance(-999.),
   fNExMax(0),
   fTracksMatched(),
-  fNCells(0),
-  fCellsAbsId(),
-  fCellsAmpFraction()
+  fCellNumber()
 {
   // constructor
 
@@ -90,9 +86,7 @@ AliAODCaloCluster::AliAODCaloCluster(Int_t id,
   fEmcCpvDistance(-999.),
   fNExMax(0),
   fTracksMatched(),
-  fNCells(0),
-  fCellsAbsId(),
-  fCellsAmpFraction()
+  fCellNumber()
 {
   // constructor
 }
@@ -102,8 +96,6 @@ AliAODCaloCluster::AliAODCaloCluster(Int_t id,
 AliAODCaloCluster::~AliAODCaloCluster() 
 {
   // destructor
-  if(fCellsAmpFraction) delete[] fCellsAmpFraction; fCellsAmpFraction=0;
-  if(fCellsAbsId) delete[] fCellsAbsId;  fCellsAbsId = 0;
 }
 
 
@@ -119,28 +111,9 @@ AliAODCaloCluster::AliAODCaloCluster(const AliAODCaloCluster& clus) :
   fEmcCpvDistance(clus.fEmcCpvDistance),
   fNExMax(clus.fNExMax),
   fTracksMatched(clus.fTracksMatched),
-  fNCells(clus.fNCells),
-  fCellsAbsId(),
-  fCellsAmpFraction()
+  fCellNumber(clus.fCellNumber)
 {
   // Copy constructor
-
-  if (clus.fNCells > 0) {
-    
-    if(clus.fCellsAbsId){
-      fCellsAbsId = new UShort_t[clus.fNCells];
-      for (Int_t i=0; i<clus.fNCells; i++)
-	fCellsAbsId[i]=clus.fCellsAbsId[i];
-    }
-    
-    if(clus.fCellsAmpFraction){
-      fCellsAmpFraction = new Double32_t[clus.fNCells];
-      for (Int_t i=0; i<clus.fNCells; i++)
-	fCellsAmpFraction[i]=clus.fCellsAmpFraction[i];
-    }
-    
-  }
-  
 }
 
 //______________________________________________________________________________
@@ -160,24 +133,7 @@ AliAODCaloCluster& AliAODCaloCluster::operator=(const AliAODCaloCluster& clus)
     fEmcCpvDistance = clus.fEmcCpvDistance;
     fNExMax = clus.fNExMax;
     fTracksMatched = clus.fTracksMatched;
-
-    fNCells= clus. fNCells;
-    if (clus.fNCells > 0) {
-      
-      if(clus.fCellsAbsId){
-	fCellsAbsId = new UShort_t[clus.fNCells];
-	for (Int_t i=0; i<clus.fNCells; i++)
-	  fCellsAbsId[i]=clus.fCellsAbsId[i];
-      }
-      
-      if(clus.fCellsAmpFraction){
-	fCellsAmpFraction = new Double32_t[clus.fNCells];
-	for (Int_t i=0; i<clus.fNCells; i++)
-	  fCellsAmpFraction[i]=clus.fCellsAmpFraction[i];
-      }
-      
-    }
-
+    fCellNumber = clus.fCellNumber;
   }
 
   return *this;

@@ -47,36 +47,9 @@ AliMUONVClusterFinder::~AliMUONVClusterFinder()
 }
 
 //_____________________________________________________________________________
-Bool_t 
-AliMUONVClusterFinder::Prepare(Int_t /*detElemId*/,
-                               TClonesArray* /*pads*/[2],
-                               const AliMpArea& /*area*/)
-{
-/// Not implemented
-
-  AliError("Not implemented");
-  return kFALSE;
-}
-
-//_____________________________________________________________________________
-Bool_t 
-AliMUONVClusterFinder::Prepare(Int_t /*detElemId*/,
-                               TClonesArray* /*pads*/[2],
-                               const AliMpArea& /*area*/,
-                               const AliMpVSegmentation* /*segmentations*/[2])
-{
-/// Not implemented
-
-  AliError("Not implemented");
-  return kFALSE;
-}
-
-//_____________________________________________________________________________
 Bool_t
 AliMUONVClusterFinder::UsePad(const AliMUONPad&)
 {
-/// Not implemented
-
   AliError("Not implemented");
   return kFALSE;
 }

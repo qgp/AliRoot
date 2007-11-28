@@ -2,7 +2,6 @@
 #include "TTree.h"
 #include "TList.h"
 #include "TH2F.h"
-#include "TF1.h"
 #include "TCanvas.h"
 #include "TLorentzVector.h"
 
@@ -22,10 +21,7 @@ ClassImp(AliAnalysisTaskProtons)
 
 //________________________________________________________________________
 AliAnalysisTaskProtons::AliAnalysisTaskProtons(const char *name) 
-: AliAnalysisTask(name, ""), fESD(0), fList(0), fAnalysis(0), 
-  fElectronFunction(0), fMuonFunction(0),
-  fPionFunction(0), fKaonFunction(0), fProtonFunction(0),
-  fFunctionUsed(kFALSE) { 
+  : AliAnalysisTask(name, ""), fESD(0), fList(0), fAnalysis(0) { 
   // Constructor
 
   // Define input and output slots here
@@ -77,14 +73,7 @@ void AliAnalysisTaskProtons::CreateOutputObjects() {
   fAnalysis->SetMaxSigmaToVertex(3.);
   fAnalysis->SetITSRefit();
   fAnalysis->SetTPCRefit();
-  if(fFunctionUsed)
-    fAnalysis->SetPriorProbabilityFunctions(fElectronFunction,
-					    fMuonFunction,
-					    fPionFunction,
-					    fKaonFunction,
-					    fProtonFunction);
-  else
-    fAnalysis->SetPriorProbabilities(partFrac);
+  fAnalysis->SetPriorProbabilities(partFrac);
 }
 
 //________________________________________________________________________

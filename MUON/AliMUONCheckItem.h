@@ -6,7 +6,7 @@
 
 // $Id$
 
-/// \ingroup core
+/// \ingroup calib
 /// \class AliMUONCheckItem
 /// \brief A structure used to gather information at different levels (ch,manu,de,chamber)
 /// 

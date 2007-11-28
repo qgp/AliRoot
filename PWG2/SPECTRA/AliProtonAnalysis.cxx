@@ -21,7 +21,6 @@
 #include <Riostream.h>
 #include <TFile.h>
 #include <TSystem.h>
-#include <TF1.h>
 #include <TH2F.h>
 #include <TH1D.h>
 
@@ -46,9 +45,6 @@ AliProtonAnalysis::AliProtonAnalysis() :
   fMaxCov11Flag(kFALSE), fMaxCov22Flag(kFALSE), fMaxCov33Flag(kFALSE), fMaxCov44Flag(kFALSE), fMaxCov55Flag(kFALSE),
   fMaxSigmaToVertexFlag(kFALSE),
   fITSRefitFlag(kFALSE), fTPCRefitFlag(kFALSE),
-  fFunctionProbabilityFlag(kFALSE), 
-  fElectronFunction(0), fMuonFunction(0),
-  fPionFunction(0), fKaonFunction(0), fProtonFunction(0),
   fHistYPtProtons(0), fHistYPtAntiProtons(0) {
   //Default constructor
   for(Int_t i = 0; i < 5; i++) fPartFrac[i] = 0.0;
@@ -59,18 +55,6 @@ AliProtonAnalysis::AliProtonAnalysis(Int_t nbinsY, Float_t fLowY, Float_t fHighY
   TObject(),
   fNBinsY(nbinsY), fMinY(fLowY), fMaxY(fHighY),
   fNBinsPt(nbinsPt), fMinPt(fLowPt), fMaxPt(fHighPt),
-  fMinTPCClusters(0), fMinITSClusters(0),
-  fMaxChi2PerTPCCluster(0), fMaxChi2PerITSCluster(0),
-  fMaxCov11(0), fMaxCov22(0), fMaxCov33(0), fMaxCov44(0), fMaxCov55(0),
-  fMaxSigmaToVertex(0),
-  fMinTPCClustersFlag(kFALSE), fMinITSClustersFlag(kFALSE),
-  fMaxChi2PerTPCClusterFlag(kFALSE), fMaxChi2PerITSClusterFlag(kFALSE),
-  fMaxCov11Flag(kFALSE), fMaxCov22Flag(kFALSE), fMaxCov33Flag(kFALSE), fMaxCov44Flag(kFALSE), fMaxCov55Flag(kFALSE),
-  fMaxSigmaToVertexFlag(kFALSE),
-  fITSRefitFlag(kFALSE), fTPCRefitFlag(kFALSE),
-  fFunctionProbabilityFlag(kFALSE), 
-  fElectronFunction(0), fMuonFunction(0),
-  fPionFunction(0), fKaonFunction(0), fProtonFunction(0),
   fHistYPtProtons(0), fHistYPtAntiProtons(0) {
   //Default constructor
 
@@ -257,21 +241,6 @@ TH1D *AliProtonAnalysis::GetPtAsymmetryHistogram() {
 }
 
 //____________________________________________________________________//
-Double_t AliProtonAnalysis::GetParticleFraction(Int_t i, Double_t p) {
-  Double_t partFrac;
-  if(fFunctionProbabilityFlag) {
-    if(i == 0) partFrac = fElectronFunction->Eval(p);
-    if(i == 1) partFrac = fMuonFunction->Eval(p);
-    if(i == 2) partFrac = fPionFunction->Eval(p);
-    if(i == 3) partFrac = fKaonFunction->Eval(p);
-    if(i == 4) partFrac = fProtonFunction->Eval(p);
-  }
-  else partFrac = fPartFrac[i];
-
-  return partFrac;
-}
-
-//____________________________________________________________________//
 void AliProtonAnalysis::Analyze(AliESDEvent* fESD) {
   //Main analysis part
   Int_t nGoodTracks = fESD->GetNumberOfTracks();
@@ -279,16 +248,15 @@ void AliProtonAnalysis::Analyze(AliESDEvent* fESD) {
     AliESDtrack* track = fESD->GetTrack(iTracks);
     if(IsAccepted(track)) {
       Double_t Pt = track->Pt();
-      Double_t P = track->P();
 	
-      //pid
+	  //pid
       Double_t probability[5];
 	  track->GetESDpid(probability);
       Double_t rcc = 0.0;
-      for(Int_t i = 0; i < AliPID::kSPECIES; i++) rcc += probability[i]*GetParticleFraction(i,P);
+      for(Int_t i = 0; i < AliPID::kSPECIES; i++) rcc += probability[i]*fPartFrac[i];
       if(rcc == 0.0) continue;
       Double_t w[5];
-      for(Int_t i = 0; i < AliPID::kSPECIES; i++) w[i] = probability[i]*GetParticleFraction(i,P)/rcc;
+      for(Int_t i = 0; i < AliPID::kSPECIES; i++) w[i] = probability[i]*fPartFrac[i]/rcc;
       Long64_t fParticleType = TMath::LocMax(AliPID::kSPECIES,w);
       if(fParticleType == 4) {
         if(track->Charge() > 0) fHistYPtProtons->Fill(Rapidity(track),Pt);

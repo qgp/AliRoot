@@ -165,7 +165,6 @@ Bool_t AliT0DataDCS::ProcessData(TMap& aliasMap)
 */
 
 	fIsProcessed=kTRUE;
-	return kTRUE;
 }
 
 //---------------------------------------------------------------

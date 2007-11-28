@@ -24,7 +24,5 @@
 
 #pragma link C++ class  AliTOFT0+;
 #pragma link C++ class  AliTOFTrigger+;
-#pragma link C++ class  AliTOFQADataMaker+;
-#pragma link C++ class  AliTOFQAChecker+;
 
 #endif

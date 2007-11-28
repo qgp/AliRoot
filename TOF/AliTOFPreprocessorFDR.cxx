@@ -15,12 +15,6 @@
 
 /* 
 $Log$
-Revision 1.2  2007/11/27 07:24:41  zampolli
-Log used, fData member removed
-
-Revision 1.1  2007/11/24 18:36:27  zampolli
-TOF Preprocessor for FDR
-
 */
 
 #include <Riostream.h>
@@ -29,6 +23,9 @@ TOF Preprocessor for FDR
 
 #include <TFile.h>
 #include <TH1.h>
+#include <TH1F.h>
+#include <TH1S.h>
+#include <TH2S.h>
 #include <TMath.h>
 #include <TObjArray.h>
 #include <TObjString.h>
@@ -36,11 +33,16 @@ TOF Preprocessor for FDR
 
 #include "AliCDBMetaData.h"
 #include "AliLog.h"
+#include "AliTOFChannelOnline.h"
 #include "AliTOFDataDCS.h"
 #include "AliTOFGeometry.h"
 #include "AliTOFPreprocessorFDR.h"
 #include "AliTOFFormatDCS.h"
 #include "AliDCSValue.h"
+
+class TF1;
+class AliDCSValue;
+class AliTOFGeometry;
 
 // TOF preprocessor class.
 // It takes data from DCS and passes them to the class AliTOFDataDCS, which
@@ -56,6 +58,7 @@ ClassImp(AliTOFPreprocessorFDR)
 
 AliTOFPreprocessorFDR::AliTOFPreprocessorFDR(AliShuttleInterface* shuttle) :
   AliPreprocessor("TOF", shuttle),
+  fData(0),
   fStoreRefData(kTRUE)
 {
   // constructor
@@ -67,6 +70,10 @@ AliTOFPreprocessorFDR::AliTOFPreprocessorFDR(AliShuttleInterface* shuttle) :
 AliTOFPreprocessorFDR::~AliTOFPreprocessorFDR()
 {
   // destructor
+  if (fData){
+    delete fData;
+    fData = 0;
+  }
 }
 
 //______________________________________________________________________________
@@ -77,10 +84,11 @@ void AliTOFPreprocessorFDR::Initialize(Int_t run, UInt_t startTime,
 
   AliPreprocessor::Initialize(run, startTime, endTime);
 
-	Log(Form("\n\tRun %d \n\tStartTime %s \n\tEndTime %s", run,
+	AliInfo(Form("\n\tRun %d \n\tStartTime %s \n\tEndTime %s", run,
 		TTimeStamp(startTime).AsString(),
 		TTimeStamp(endTime).AsString()));
 
+	fData = new AliTOFDataDCS(fRun, fStartTime, fEndTime);
 }
 
 //_____________________________________________________________________________
@@ -137,12 +145,12 @@ UInt_t AliTOFPreprocessorFDR::ProcessDCSDataPoints(TMap* aliasMap)
       TObjArray *aliasArr = (TObjArray*) aliasMap->GetValue(aliasDP[i].Data());
       
       if(!aliasArr){
-	Log(Form("Alias %s not found!", aliasDP[i].Data()));
+	AliError(Form("Alias %s not found!", aliasDP[i].Data()));
 	return kFALSE;
       }
       
       if(aliasArr->GetEntries()<3){
-	Log(Form("Alias %s has just %d entries!",
+	AliError(Form("Alias %s has just %d entries!",
 		      aliasDP[i].Data(),aliasArr->GetEntries()));
 	continue;
       }
@@ -243,7 +251,7 @@ UInt_t AliTOFPreprocessorFDR::ProcessDCSDataPoints(TMap* aliasMap)
     metaDataDCS.SetBeamPeriod(0);
     metaDataDCS.SetResponsible("Chiara Zampolli");
     metaDataDCS.SetComment("This preprocessor fills an AliTOFDataDCS object.");
-    Log("Storing DCS Data");
+    AliInfo("Storing DCS Data");
     resultDCSStore = StoreReferenceData("Calib","DCSData",array, &metaDataDCS);
     if (!resultDCSStore){
       Log("Some problems occurred while storing DCS data results in Reference Data, TOF exiting from Shuttle");
@@ -251,8 +259,8 @@ UInt_t AliTOFPreprocessorFDR::ProcessDCSDataPoints(TMap* aliasMap)
       // in reference data
     }
     
-    Log("Storing DCS Data in OCDB");
-    resultDCSMap = Store("Calib","DCSData",array, &metaDataDCS,0,kTRUE);
+    AliInfo("Storing DCS Data in OCDB");
+    resultDCSMap = Store("Calib","DCSData",array, &metaDataDCS);
     if (!resultDCSStore){
       Log("Some problems occurred while storing DCS data results in OCDB, TOF exiting from Shuttle");
       return 3;// return error Code for processed DCS data not stored 

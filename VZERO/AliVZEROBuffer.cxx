@@ -23,7 +23,7 @@
 #include <Riostream.h>
 #include <TObjArray.h>
 #include "AliLog.h"
-#include "AliRawDataHeaderSim.h"
+#include "AliRawDataHeader.h"
 #include "AliVZEROBuffer.h"
 
 //#include "TFile.h"
@@ -49,7 +49,7 @@ AliVZEROBuffer::AliVZEROBuffer(const char* fileName):TObject(),
   f = new AliFstream(fileName);
   // fout=new TFile(fileName,"recreate");
   // tree=new TTree("tree","Values");
-  AliRawDataHeaderSim header;
+  AliRawDataHeader header;
   f->WriteBuffer((char*)(&header), sizeof(header));
 
 }
@@ -57,7 +57,7 @@ AliVZEROBuffer::AliVZEROBuffer(const char* fileName):TObject(),
 //_____________________________________________________________________________
 AliVZEROBuffer::~AliVZEROBuffer(){
   // Destructor, it closes the IO stream
-  AliRawDataHeaderSim header;
+  AliRawDataHeader header;
   header.fSize = f->Tellp();
   header.SetAttribute(0);  // valid data
   f->Seekp(0);

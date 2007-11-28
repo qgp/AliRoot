@@ -19,11 +19,6 @@ public:
   virtual ~AliPHOSRecoParamEmc() {}
 
   static AliPHOSRecoParam* GetEmcDefaultParameters();
-  static const  TObjArray* GetMappings();
-
- private:
-  
-  static TObjArray* fgkMaps; // ALTRO mappings for RCU0..RCU3
 
   ClassDef(AliPHOSRecoParamEmc,1)
 };

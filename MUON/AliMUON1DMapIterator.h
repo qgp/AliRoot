@@ -6,7 +6,7 @@
 
 // $Id$
 
-/// \ingroup core
+/// \ingroup calib
 /// \class AliMUON1DMapIterator
 /// \brief Implementation of TIterator for 1D maps
 /// 

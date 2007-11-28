@@ -35,8 +35,6 @@ using namespace std;
 #include "AliHLTTriggerSelectiveReadoutComponent.h"
 #include "AliHLTTPCDefinitions.h"
 
-#include "TMath.h"
-
 #include <cstdlib>
 #include <cerrno>
 
@@ -96,7 +94,11 @@ void AliHLTTriggerSelectiveReadoutComponent::GetOutputDataSize( unsigned long& c
   // see header file for class documentation
 
   constBase = sizeof( AliHLTEventDDL );
-  inputMultiplier = 0.0;
+
+  if ( ! fDetector.CompareTo("TPC") )
+    inputMultiplier = 216.0;
+  else
+    HLTError("Output DataSize for Detector '%s' has not been implemented", fDetector.Data() );
 }
 
 // Spawn function, return new instance of this class
@@ -121,14 +123,14 @@ Int_t AliHLTTriggerSelectiveReadoutComponent::DoInit( int argc, const char** arg
     if ( argument.IsNull() ) continue;
 
     // -detector
-    if ( ! argument.CompareTo("-detector") ) {
+    if ( argument.CompareTo("-detector") == 0) {
 
       if ( ( bMissingParam=( ++ii >= argc ) ) ) break;
       
       fDetector = argv[ii];  
       fDetector.Remove(TString::kLeading, ' ');
-      fDetector.Resize(4);
 
+      fDetector = parameter;
       HLTInfo( "Detector has been set to '%s'.", fDetector.Data() );
     }
     
@@ -136,10 +138,10 @@ Int_t AliHLTTriggerSelectiveReadoutComponent::DoInit( int argc, const char** arg
     else if ( ! argument.CompareTo("-enableThreshold") ) {
 
       if ( ( bMissingParam=( ++ii >= argc ) ) ) break;
-
-      parameter = argv[ii];  
-      parameter.Remove( TString::kLeading, ' ' );
       
+      parameter = argv[ii];  
+      parameter.Remove(TString::kLeading, ' ');
+
       if ( ! parameter.CompareTo("size") ) {
 	fEnableThresholdSize = kTRUE;
 	HLTInfo( "Threshold on data 'size' has been enabled." );
@@ -150,32 +152,9 @@ Int_t AliHLTTriggerSelectiveReadoutComponent::DoInit( int argc, const char** arg
       }
     } 
 
-    // -threshold
-    else if ( ! argument.CompareTo("-threshold") ) {
-
-      if ( ( bMissingParam=( ++ii >= argc ) ) ) break;
-
-      Int_t jj = 0;
-      
-      for ( jj ; ( jj < fkNThreshold ) && ( ( ii + jj ) < argc ); jj++ ) {
-	
-	parameter = argv[ii+jj];  
-	parameter.Remove( TString::kLeading, ' ' );
-
-	if ( parameter.BeginsWith( '-' ) ) break;
-    
-	if  (parameter.IsDigit() ) {
-	  fThreshold[jj] = (AliHLTUInt32_t) parameter.Atoi();
-	  HLTInfo( "Threshold for %d  is set to %d.", jj, fThreshold[jj] );
-	} 
-	else {
-	  HLTError( "Cannot convert %d. threshold  specifier '%s'.", jj, parameter.Data() );
-	  iResult = -EINVAL;
-	  break;
-	}
-      } // for ( jj ; ( jj < fkNThreshold ) && ( ( ii + jj ) < argc ); jj++ ) {
-      
-      ii += --jj;
+    // -enableThreshold
+    else if ( ! argument.CompareTo("-treshold") ) {
+       HLTError("Not yet implemented '%s'", argument.Data() );
     } 
     
     // - unknow parameter
@@ -185,14 +164,9 @@ Int_t AliHLTTriggerSelectiveReadoutComponent::DoInit( int argc, const char** arg
     }
 
   } // for ( Int_t ii=0; ii<argc && iResult>=0; ii++ ) {
-
+    
   if ( bMissingParam ) {
     HLTError( "Missing parameter for argument '%s'.", argument.Data() );
-    iResult = -EPROTO;
-  }
-
-  if ( fDetector.IsNull() ) { 
-    HLTError( "No Detector has been supplied, this is mandatory." );
     iResult = -EPROTO;
   }
 
@@ -209,10 +183,6 @@ Int_t AliHLTTriggerSelectiveReadoutComponent::DoDeinit() {
 Int_t AliHLTTriggerSelectiveReadoutComponent::DoEvent( const AliHLTComponentEventData& /*evtData*/, AliHLTComponentTriggerData& trigData ) {
   // see header file for class documentation
 
-  // ** No readout list for SOR and EOR event
-  if ( GetFirstInputBlock( kAliHLTDataTypeSOR ) || GetFirstInputBlock( kAliHLTDataTypeEOR ) )
-    return 0;
-  
   // ** Create empty Readoutlist
   AliHLTEventDDL readoutList;
   memset( &readoutList, 0, sizeof(AliHLTEventDDL) );
@@ -222,10 +192,19 @@ Int_t AliHLTTriggerSelectiveReadoutComponent::DoEvent( const AliHLTComponentEven
   AliHLTUInt8_t patch = 0;
 
   // ** Loop over all input blocks and specify which data format should be read - only select Raw Data
-  for ( iter = GetFirstInputBlock(kAliHLTDataTypeDDLRaw|fDetector.Data()); iter != NULL; iter = GetNextInputBlock() ) {
+  iter = GetFirstInputBlock( kAliHLTDataTypeDDLRaw );
+  
+  while ( iter != NULL ) {
     
+    // ** Check if block has the origin as specified in fDetector
+    if ( fDetector.CompareTo( iter->fDataType.fOrigin ) == 0 ) {
+      iter = GetNextInputBlock();
+      continue;
+    }
+
     // ** Check if block has only the CDH Header ( 32 Bytes = gkAliHLTCommonHeaderCount *sizeof(AliHLTUInt32_t) )
     if ( iter->fSize <= ( gkAliHLTCommonHeaderCount * sizeof(AliHLTUInt32_t) ) ) {
+      iter = GetNextInputBlock();
       continue;
     }
 
@@ -234,57 +213,61 @@ Int_t AliHLTTriggerSelectiveReadoutComponent::DoEvent( const AliHLTComponentEven
     //
 
     // ** Check for TPC specifc specification
-    if ( ! fDetector.CompareTo("TPC ") ) {
+    if ( fDetector.CompareTo("TPC") == 0 ) {
+      
       // ** Get DDL ID
       AliHLTUInt8_t slice = AliHLTTPCDefinitions::GetMinSliceNr( *iter );
       patch = AliHLTTPCDefinitions::GetMinPatchNr( *iter );
+	
       if (patch < 2) ddlId = 768 + (2 * slice) + patch;
       else ddlId = 838 + (4*slice) + patch;
+	
       HLTDebug ( "Input Data - TPC - Slice/Patch: %d/%d - EquipmentID : %d.", slice, patch, ddlId );
-    } // if ( ! fDetector.CompareTo("TPC ") ) {
+    } // if ( fDetector.CompareTo("TPC") == 0 ) {
     
     // ** Check for other detector specifc specification
     else {
       HLTError("Detector '%s' has not been implemented yet.", fDetector.Data() );
+      iter = GetNextInputBlock();
       continue;
     }
-
+      
     //
     // ** Check if threshold should be considerd
     //
-
+    
     if ( fEnableThresholdSize ) {
+
       // ** Check for TPC threshold
-      if ( ! fDetector.CompareTo("TPC ") ) {
+      if ( ! fDetector.CompareTo("TPC") ) {
 	if ( patch < fkNThreshold ){ 
+
 	  // ** if datablock to big, do not put it in HLT readout, enable for DAQ readout
 	  if ( ( fThreshold[patch] !=0 ) && ( iter->fSize > fThreshold[patch] ) ) {
-	    EnableDDLBit( readoutList, ddlId ); 
-	    HLTDebug ( "DDL Id %d enabled for DAQ readout - size %d > threshold %d.", ddlId, iter->fSize, fThreshold[patch] );
+	    //----------------------SetEnableDDL( &readoutList, ddlId );
+	    iter = GetNextInputBlock();
 	    continue;
 	  }
+	  
 	}
-      } // if ( ! fDetector.CompareTo("TPC ") ) {
+      } // if ( ! fDetector.CompareTo("TPC") ) {
       
       // ** Check for other detector threshold
       else
 	HLTError("Check for size threshold as not been implemented yet for Detector '%s'.", fDetector.Data() );
       
     } // if ( fEnableThresholdSize ) {
- 
-    //
-    // ** PushForward data block
-    //
-    
+
+    // ** PushBack data block
     PushBack( iter->fPtr , iter->fSize, iter->fDataType, iter->fSpecification);
       
-  } //  for ( iter = GetFirstInputBlock(kAliHLTDataTypeDDLRaw|fDetector.Data()); iter != NULL; iter = GetNextInputBlock() ) {
-  
-  //
+    // ** Get next input block, with the same specification as defined in GetFirstInputBlock()
+    iter = GetNextInputBlock();
+    
+  } //  while ( iter != NULL ) {
+    
   // ** PushBack readout list
-  //
-  
   PushBack( &readoutList, sizeof(AliHLTEventDDL), kAliHLTDataTypeDDL, (AliHLTUInt32_t) 0 );
-
+  
   return 0;
 }

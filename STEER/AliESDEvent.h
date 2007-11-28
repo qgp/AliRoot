@@ -42,7 +42,6 @@ class AliESDPmdTrack;
 class AliESDFMD;
 class AliESDkink;
 class AliESDCaloCluster;
-class AliESDCaloCells;
 class AliESDv0;
 class AliMultiplicity;
 class AliRawDataErrorLog;
@@ -76,8 +75,6 @@ public:
 		       kCascades,
 		       kKinks,
 		       kCaloClusters,
-		       kEMCALCells,
-		       kPHOSCells,
 		       kErrorLogs,
 		       kESDListN
   };
@@ -251,11 +248,7 @@ public:
   AliESDCaloCluster *GetCaloCluster(Int_t i) const {
     return (AliESDCaloCluster *)fCaloClusters->UncheckedAt(i);
   }
-
   Int_t AddCaloCluster(const AliESDCaloCluster *c);
-
-  AliESDCaloCells *GetEMCALCells() const {return fEMCALCells; }  
-  AliESDCaloCells *GetPHOSCells() const {return fPHOSCells; }  
 
   AliRawDataErrorLog *GetErrorLog(Int_t i) const {
     return (AliRawDataErrorLog *)fErrorLogs->UncheckedAt(i);
@@ -282,27 +275,21 @@ public:
   Int_t GetNumberOfV0s()      const {return fV0s->GetEntriesFast();}
   Int_t GetNumberOfCascades() const {return fCascades->GetEntriesFast();}
   Int_t GetNumberOfKinks() const {return fKinks->GetEntriesFast();}
-  
   Int_t GetEMCALClusters(TRefArray *clusters) const;
   Int_t GetPHOSClusters(TRefArray *clusters) const;
   Int_t GetNumberOfCaloClusters() const {return fCaloClusters->GetEntriesFast();}
 
-  
-  // Remove this stuff CKB?
-  //---------------------------------------------------
   Int_t GetNumberOfEMCALClusters() const {return fEMCALClusters;}
   void  SetNumberOfEMCALClusters(Int_t clus) {fEMCALClusters = clus;}
   Int_t GetFirstEMCALCluster() const {return fFirstEMCALCluster;}
   void  SetFirstEMCALCluster(Int_t index) {fFirstEMCALCluster = index;}
- 
+  TArrayF *GetEMCALTriggerPosition() const {return  fEMCALTrigger->GetTriggerPosition();}
+  TArrayF *GetEMCALTriggerAmplitudes() const {return  fEMCALTrigger->GetTriggerAmplitudes();}
+
   Int_t GetNumberOfPHOSClusters() const {return fPHOSClusters;}
   void  SetNumberOfPHOSClusters(Int_t part) { fPHOSClusters = part ; }
   void  SetFirstPHOSCluster(Int_t index) { fFirstPHOSCluster = index ; } 
   Int_t GetFirstPHOSCluster() const  { return fFirstPHOSCluster ; }
-  //-------------------------------------------------------
-
-  TArrayF *GetEMCALTriggerPosition() const {return  fEMCALTrigger->GetTriggerPosition();}
-  TArrayF *GetEMCALTriggerAmplitudes() const {return  fEMCALTrigger->GetTriggerAmplitudes();}
   TArrayF *GetPHOSTriggerPosition() const {return  fPHOSTrigger->GetTriggerPosition();}
   TArrayF *GetPHOSTriggerAmplitudes() const {return  fPHOSTrigger->GetTriggerAmplitudes();}
 
@@ -351,8 +338,6 @@ protected:
   TClonesArray *fCascades;         //! Cascade vertices
   TClonesArray *fKinks;            //! Kinks
   TClonesArray *fCaloClusters;     //! Calorimeter clusters for PHOS/EMCAL
-  AliESDCaloCells *fEMCALCells;     //! EMCAL cell info
-  AliESDCaloCells *fPHOSCells;     //! PHOS cell info
   TClonesArray *fErrorLogs;        //! Raw-data reading error messages
  
 

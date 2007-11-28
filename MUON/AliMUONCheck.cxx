@@ -72,7 +72,12 @@ foutDir(outDir),
 fFirstEvent(firstEvent),
 fLastEvent(lastEvent)
 {
-  /// ctor  
+  /// ctor
+
+  // Load mapping
+  if ( ! AliMpCDB::LoadMpSegmentation() ) {
+    AliFatal("Could not access mapping from OCDB !");
+  }
 }
 
 //_____________________________________________________________________________
@@ -88,6 +93,11 @@ fFirstEvent(firstEvent),
 fLastEvent(lastEvent)
 {
   /// ctor
+
+  // Load mapping
+  if ( ! AliMpCDB::LoadMpSegmentation() ) {
+    AliFatal("Could not access mapping from OCDB !");
+  }
 }
 
 //_____________________________________________________________________________

@@ -160,31 +160,32 @@ void AliAnalysisManager::Init(TTree *tree)
   // Init() will be called many times when running with PROOF.
    if (!tree) return;
    if (fDebug > 1) {
-      printf("->AliAnalysisManager::InitTree(%s)\n", tree->GetName());
+      printf("->AliAnalysisManager::Init(%s)\n", tree->GetName());
    }
 
-   // Call InitTree of EventHandler
+   // Call InitIO of EventHandler
    if (fOutputEventHandler) {
       if (fMode == kProofAnalysis) {
-         fOutputEventHandler->Init(0x0, "proof");
+         fOutputEventHandler->InitIO("proof");
       } else {
-         fOutputEventHandler->Init(0x0, "local");
+         fOutputEventHandler->InitIO("local");
       }
    }
 
    if (fInputEventHandler) {
+      fInputEventHandler->SetInputTree(tree);
       if (fMode == kProofAnalysis) {
-         fInputEventHandler->Init(tree, "proof");
+         fInputEventHandler->InitIO("proof");
       } else {
-         fInputEventHandler->Init(tree, "local");
+         fInputEventHandler->InitIO("local");
       }
    }
 
    if (fMCtruthEventHandler) {
       if (fMode == kProofAnalysis) {
-         fMCtruthEventHandler->Init(0x0, "proof");
+         fMCtruthEventHandler->InitIO("proof");
       } else {
-         fMCtruthEventHandler->Init(0x0, "local");
+         fMCtruthEventHandler->InitIO("local");
       }
    }
 
@@ -210,32 +211,6 @@ void AliAnalysisManager::SlaveBegin(TTree *tree)
   // The tree argument is deprecated (on PROOF 0 is passed).
    if (fDebug > 1) {
       cout << "->AliAnalysisManager::SlaveBegin()" << endl;
-   }
-
-   // Call Init of EventHandler
-   if (fOutputEventHandler) {
-      if (fMode == kProofAnalysis) {
-         fOutputEventHandler->Init("proof");
-      } else {
-         fOutputEventHandler->Init("local");
-      }
-   }
-
-   if (fInputEventHandler) {
-      fInputEventHandler->SetInputTree(tree);
-      if (fMode == kProofAnalysis) {
-         fInputEventHandler->Init("proof");
-      } else {
-         fInputEventHandler->Init("local");
-      }
-   }
-
-   if (fMCtruthEventHandler) {
-      if (fMode == kProofAnalysis) {
-         fMCtruthEventHandler->Init("proof");
-      } else {
-         fMCtruthEventHandler->Init("local");
-      }
    }
 
    TIter next(fTasks);

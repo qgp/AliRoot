@@ -101,6 +101,10 @@
 #pragma link C++ class AliTrackResidualsLinear+;
 #pragma link C++ class AliAlignmentTracks+;
 
+#pragma link C++ class  TTreeDataElement+;
+#pragma link C++ class  TTreeStream+;
+#pragma link C++ class  TTreeSRedirector+;
+
 #pragma link C++ class  AliRieman;
 
 #pragma link C++ class AliExpression+;

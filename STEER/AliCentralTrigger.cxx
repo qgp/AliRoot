@@ -186,7 +186,7 @@ TString AliCentralTrigger::GetDetectors()
 }
 
 //_____________________________________________________________________________
-Bool_t AliCentralTrigger::RunTrigger( AliRunLoader* runLoader, const char *detectors )
+Bool_t AliCentralTrigger::RunTrigger( AliRunLoader* runLoader )
 {
    // run the trigger
 
@@ -210,9 +210,7 @@ Bool_t AliCentralTrigger::RunTrigger( AliRunLoader* runLoader, const char *detec
       runLoader->GetEvent( iEvent );
       // Get detectors involve
       TString detStr = GetDetectors();
-      AliInfo( Form(" Triggering Detectors: %s \n", detStr.Data() ) );
-      TString detWithDigits = detectors;
-      AliInfo( Form(" Detectors with digits: %s \n", detWithDigits.Data() ) );
+      AliInfo( Form(" Triggering Detectors %s \n", detStr.Data() ) );
       TObjArray* detArray = runLoader->GetAliRun()->Detectors();
       // Reset Mask
       fClassMask = 0;
@@ -220,8 +218,7 @@ Bool_t AliCentralTrigger::RunTrigger( AliRunLoader* runLoader, const char *detec
       for( Int_t iDet = 0; iDet < detArray->GetEntriesFast(); iDet++ ) {
          AliModule* det = (AliModule*) detArray->At( iDet );
          if( !det || !det->IsActive() ) continue;
-         if( IsSelected(det->GetName(), detStr) &&
-	     IsSelected(det->GetName(), detWithDigits) ) {
+         if( IsSelected(det->GetName(), detStr) ) {
 
             AliInfo( Form("Triggering from digits for %s", det->GetName() ) );
             AliTriggerDetector* trgdet = det->CreateTriggerDetector();
