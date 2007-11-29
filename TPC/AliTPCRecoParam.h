@@ -29,6 +29,7 @@ class AliTPCRecoParam : public AliDetectorRecoParam
   void     SetTimeBinRange(Int_t first, Int_t last){ fFirstBin = first; fLastBin = last;}
   Bool_t   GetCalcPedestal()       const  { return fBCalcPedestal;}
   Bool_t   GetDoUnfold()           const  { return fBDoUnfold;}
+  void     SetDoUnfold(Bool_t unfold)     { fBDoUnfold = unfold;}
   Float_t  GetDumpAmplitudeMin()   const  { return fDumpAmplitudeMin;}
   Float_t  GetMaxNoise()           const  { return fMaxNoise;}  
   Float_t  GetMinMaxCutAbs()       const  { return fMinMaxCutAbs; }
@@ -44,6 +45,7 @@ class AliTPCRecoParam : public AliDetectorRecoParam
   Float_t  GetMaxC()    const      { return fMaxC;}
   Bool_t   GetSpecialSeeding() const { return fBSpecialSeeding;}
   Bool_t   GetBYMirror() const { return fBYMirror;}
+  void     SetBYMirror(Bool_t mirror)  { fBYMirror = mirror;} //
   static   AliTPCRecoParam *GetLowFluxParam();        // make reco parameters for low  flux env.
   static   AliTPCRecoParam *GetHighFluxParam();       // make reco parameters for high flux env. 
   static   AliTPCRecoParam *GetLaserTestParam(Bool_t bPedestal);  // special setting for laser 
