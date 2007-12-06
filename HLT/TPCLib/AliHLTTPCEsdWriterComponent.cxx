@@ -90,6 +90,7 @@ int AliHLTTPCEsdWriterComponent::AliWriter::InitWriter()
     fESD->CreateStdContent();
     fTree = new TTree("esdTree", "Tree with HLT ESD objects");
     if (fTree) {
+      fTree->SetDirectory(0);
       fESD->WriteToTree(fTree);
     }
   }
@@ -150,7 +151,7 @@ int AliHLTTPCEsdWriterComponent::ProcessBlocks(TTree* pTree, AliESDEvent* pESD,
 {
   // see header file for class documentation
   int iResult=0;
-  if (pTree && pESD && blocks) {
+  if (pESD && blocks) {
       const AliHLTComponentBlockData* iter = NULL;
       AliHLTTPCTrackletData* inPtr=NULL;
       int bIsTrackSegs=0;
@@ -189,7 +190,7 @@ int AliHLTTPCEsdWriterComponent::ProcessBlocks(TTree* pTree, AliESDEvent* pESD,
 	  }
 	}
       }
-      if (iResult>=0) {
+      if (iResult>=0 && pTree) {
 	pTree->Fill();
       }
 
@@ -235,7 +236,8 @@ int AliHLTTPCEsdWriterComponent::Tracks2ESD(AliHLTTPCTrackArray* pTracks, AliESD
 
 AliHLTTPCEsdWriterComponent::AliConverter::AliConverter()
   :
-  fBase(new AliHLTTPCEsdWriterComponent)
+  fBase(new AliHLTTPCEsdWriterComponent),
+  fWriteTree(1)
 {
   // see header file for class documentation
   // or
@@ -273,7 +275,32 @@ void AliHLTTPCEsdWriterComponent::AliConverter::GetOutputDataSize(unsigned long&
 int AliHLTTPCEsdWriterComponent::AliConverter::DoInit(int argc, const char** argv)
 {
   // see header file for class documentation
-  return 0;
+  int iResult=0;
+  TString argument="";
+  int bMissingParam=0;
+  for (int i=0; i<argc && iResult>=0; i++) {
+    argument=argv[i];
+    if (argument.IsNull()) continue;
+
+    // -notree
+    if (argument.CompareTo("-notree")==0) {
+      fWriteTree=0;
+
+      // -tree
+    } else if (argument.CompareTo("-tree")==0) {
+      fWriteTree=1;
+
+    } else {
+      HLTError("unknown argument %s", argument.Data());
+      break;
+    }
+  }
+  if (bMissingParam) {
+    HLTError("missing parameter for argument %s", argument.Data());
+    iResult=-EINVAL;
+  }
+
+  return iResult;
 }
 
 int AliHLTTPCEsdWriterComponent::AliConverter::DoDeinit()
@@ -295,16 +322,27 @@ int AliHLTTPCEsdWriterComponent::AliConverter::DoEvent(const AliHLTComponentEven
   AliESDEvent* pESD = new AliESDEvent;
   if (pESD && fBase) {
     pESD->CreateStdContent();
-    TTree* pTree = new TTree("esdTree", "Tree with HLT ESD objects");
+    TTree* pTree = NULL;
+    // TODO: Matthias 06.12.2007
+    // Tried to write the ESD directly instead to a tree, but this did not work
+    // out. Information in the ESD is different, needs investigation.
+    if (fWriteTree)
+      pTree = new TTree("esdTree", "Tree with HLT ESD objects");
     if (pTree) {
+      pTree->SetDirectory(0);
       pESD->WriteToTree(pTree);
-
-      if ((iResult=fBase->ProcessBlocks(pTree, pESD, blocks, (int)evtData.fBlockCnt))>=0) {
-	// TODO: set the specification correctly
-	iResult=PushBack(pTree, kAliHLTDataTypeESDTree|kAliHLTDataOriginTPC, 0);
-      }
-      delete pTree;
     }
+
+    if ((iResult=fBase->ProcessBlocks(pTree, pESD, blocks, (int)evtData.fBlockCnt))>=0) {
+	// TODO: set the specification correctly
+      if (pTree)
+	iResult=PushBack(pTree, kAliHLTDataTypeESDTree|kAliHLTDataOriginTPC, 0);
+      else
+	iResult=PushBack(pESD, kAliHLTDataTypeESDObject|kAliHLTDataOriginTPC, 0);
+    }
+    if (pTree)
+      delete pTree;
+
     delete pESD;
   }
   return iResult;
