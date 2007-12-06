@@ -17,6 +17,9 @@
 /* History of cvs commits:
  *
  * $Log$
+ * Revision 1.53.10.1  2007/12/06 10:29:59  hristov
+ * Bug fix: using the mapping from CDB
+ *
  * Revision 1.53  2007/03/17 19:56:38  mvl
  * Moved signal shape routines from AliEMCAL to separate class AliEMCALRawUtils to streamline raw data reconstruction code.
  *
@@ -275,7 +278,7 @@ void AliEMCAL::CreateMaterials()
 void AliEMCAL::Digits2Raw() {
   static AliEMCALRawUtils rawUtil;
   //Get Mapping RCU files from the AliEMCALRecParam                                                          
-  AliCDBEntry* entry = AliCDBManager::Instance()->Get("EMCAL/Calib/Mapping");
+  static AliCDBEntry* entry = AliCDBManager::Instance()->Get("EMCAL/Calib/Mapping");
   const TObjArray* maps = 0x0;
   if(entry)
     maps = (TObjArray*)entry->GetObject();
