@@ -1,5 +1,8 @@
 /* $Id$ */
-/* $Log$ */
+/* $Log$
+/* Revision 1.1  2007/12/07 14:13:02  gustavo
+/* Example macros for execution and configuration of the analysis
+/* */
 
 //---------------------------------------------------
 // Example macro to do analysis with the 
