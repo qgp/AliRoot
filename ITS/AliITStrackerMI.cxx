@@ -451,7 +451,7 @@ Int_t AliITStrackerMI::Clusters2Tracks(AliESDEvent *event) {
   fTrackHypothesys.Expand(nentr);
   fBestHypothesys.Expand(nentr);
   MakeCoefficients(nentr);
-  if(fUseTGeo==3 || fUseTGeo==4) MakeTrksMaterialLUT(nentr);
+  if(fUseTGeo==3 || fUseTGeo==4) MakeTrksMaterialLUT(event->GetNumberOfTracks());
   Int_t ntrk=0;
   // THE TWO TRACKING PASSES
   for (fPass=0; fPass<2; fPass++) {
@@ -515,10 +515,10 @@ Int_t AliITStrackerMI::Clusters2Tracks(AliESDEvent *event) {
   fCoefficients=0;
   DeleteTrksMaterialLUT();
 
+  fTrackingPhase="Default";
+
   Info("Clusters2Tracks","Number of prolonged tracks: %d\n",ntrk);
 
-  fTrackingPhase="Default";
-  
   return 0;
 }
 //------------------------------------------------------------------------
@@ -3050,6 +3050,7 @@ AliITStrackMI * AliITStrackerMI::GetBestHypothesys(Int_t esdindex, AliITStrackMI
   AliITStrackMI * forwardtrack = new AliITStrackMI(*original);
   Double_t xyzVtx[]={GetX(),GetY(),GetZ()};	
   Double_t ersVtx[]={GetSigmaX()/3.,GetSigmaY()/3.,GetSigmaZ()/3.};
+
   //
   for (Int_t i=0;i<entries;i++){    
     AliITStrackMI * track = (AliITStrackMI*)array->At(i);    
@@ -3085,7 +3086,6 @@ AliITStrackMI * AliITStrackerMI::GetBestHypothesys(Int_t esdindex, AliITStrackMI
     if ((track->GetConstrain()) && track->GetChi22()>90.)  continue;
     if ((!track->GetConstrain()) && track->GetChi22()>30.)  continue;
     if ( track->GetChi22()/track->GetNumberOfClusters()>11.)  continue;
-
 
     if  (!(track->GetConstrain())&&track->GetChi2MIP(1)>AliITSReconstructor::GetRecoParam()->GetMaxChi2PerCluster(1))  continue;
     //
@@ -4039,11 +4039,15 @@ void AliITStrackerMI::FindV02(AliESDEvent *event)
       //
       //
       TObjArray * array0b     = (TObjArray*)fBestHypothesys.At(itrack0);
-      if (!array0b&&pvertex->GetRr()<40 && TMath::Abs(track0->GetTgl())<1.1) 
+      if (!array0b&&pvertex->GetRr()<40 && TMath::Abs(track0->GetTgl())<1.1) {
+	fCurrentEsdTrack = itrack0; // needed in CorrectForLayerMaterial()
 	FollowProlongationTree((AliITStrackMI*)fOriginal.At(itrack0),itrack0, kFALSE);
+      }
       TObjArray * array1b    = (TObjArray*)fBestHypothesys.At(itrack1);
-      if (!array1b&&pvertex->GetRr()<40 && TMath::Abs(track1->GetTgl())<1.1) 
+      if (!array1b&&pvertex->GetRr()<40 && TMath::Abs(track1->GetTgl())<1.1) {
+	fCurrentEsdTrack = itrack1; // needed in CorrectForLayerMaterial()
 	FollowProlongationTree((AliITStrackMI*)fOriginal.At(itrack1),itrack1, kFALSE);
+      }
       //
       AliITStrackMI * track0b = (AliITStrackMI*)fOriginal.At(itrack0);       
       AliITStrackMI * track1b = (AliITStrackMI*)fOriginal.At(itrack1);
@@ -4720,7 +4724,8 @@ Int_t AliITStrackerMI::CorrectForLayerMaterial(AliITStrackMI *t,
     lengthTimesMeanDensity = fxTimesRhoLayer[layerindex];
     break;
   case 3:
-    if(!fxOverX0LayerTrks || index<0 || index>=6*fNtracks) Error("CorrectForLayerMaterial","Incorrect usage of UseTGeo option!\n");
+    if(!fxOverX0LayerTrks || index<0 || index>=6*fNtracks)
+      Error("CorrectForLayerMaterial","Incorrect usage of UseTGeo option!\n");
     if(fxOverX0LayerTrks[index]<0) {
       AliTracker::MeanMaterialBudget(oldGlobXYZ,globXYZ,mparam);
       if(mparam[1]>900000) return 0;
