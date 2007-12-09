@@ -27,11 +27,11 @@
 //
 // run number for the dummy file
 Int_t gkDummyRun = 0;
-char *gCDBpath   = "local://$ALICE_ROOT";
+char *gCDBpath   = "local://~/mycalib1";
 AliCDBStorage* gStorLoc = 0;
 
 //
-//Float_t gTSample    = 2.0000000e-07;
+Float_t gTSample    = 2.0000000e-07;
 //
 //
 Float_t gMeanGain   = 1;
@@ -43,6 +43,8 @@ Float_t gSigmaTime0 = 0;
 Float_t gMeanNoise  = 1;
 Float_t gSigmaNoise = 0;
 //
+Float_t gMeanPRF    = 1;
+Float_t gSigmaPRF   = 0;
 //
 Float_t gMeanPedestal  = 0;
 Float_t gSigmaPedestal = 0;
@@ -73,7 +75,7 @@ TObject* CreatePadObject(const char* shortName, const char* description, Float_t
 
 void StoreObject(const char* cdbPath, TObject* object, AliCDBMetaData* metaData)
 {
-  AliCDBId id1(cdbPath, gkDummyRun, AliCDBRunRange::Infinity()); 
+  AliCDBId id1(cdbPath, gkDummyRun, gkDummyRun); 
   gStorLoc->Put(object, id1, metaData); 
 }
     
@@ -190,6 +192,12 @@ void AliTPCCreateDummyCDB()
   obj = CreatePadObject("PadNoise","TPC Noise  (local -pad- variations)", gMeanNoise , gSigmaNoise);
   StoreObject("TPC/Calib/PadNoise", obj, metaData);
   //
+  // PRF width fluctuation   - normalized to 0.  - spread - 0.0 
+  //
+  metaData = CreateMetaObject("AliTPCCalPad");  
+  obj = CreatePadObject("PadPRF","TPC PRF  (local -pad- variations)", gMeanPRF , gSigmaPRF);
+  StoreObject("TPC/Calib/PadPRF", obj, metaData);
+  //
   // Pedestals
   //
   metaData = CreateMetaObject("AliTPCCalPad");  
@@ -200,12 +208,12 @@ void AliTPCCreateDummyCDB()
   //
   metaData = CreateMetaObject("AliTPCParam");  
   AliTPCParam * param = new AliTPCParamSR;
-  //  param->SetTSample(gTSample);
+  param->SetTSample(gTSample);
   param->Update();
   StoreObject("TPC/Calib/Parameters", param, metaData); 
   //
   //
-  // generate random missalignemnt - TO BE MODIFIED ACCCRDING NEW ALIROOT
+  // generate random missalignemnt
   //
-  //  GenerateRndTPC(gSigmaDx,gSigmaDy,gSigmaDz,gSigmaAngle);
+  GenerateRndTPC(gSigmaDx,gSigmaDy,gSigmaDz,gSigmaAngle);
 }
