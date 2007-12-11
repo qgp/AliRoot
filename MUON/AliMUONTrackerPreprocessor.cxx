@@ -68,13 +68,14 @@ AliMUONTrackerPreprocessor::~AliMUONTrackerPreprocessor()
 void
 AliMUONTrackerPreprocessor::Initialize(Int_t run, UInt_t startTime, UInt_t endTime)
 {
-  /// Re-register the subprocessor(s) depnding on the actual runTYpe
+  /// Re-register the subprocessor(s) depending on the actual runType
 
   ClearSubprocessors();
   
   TString runType = GetRunType();
   
   fIsValid = kTRUE;
+  fIsApplicable = kTRUE;
   
   if ( runType == "PEDESTAL_RUN" ) // FIXME : check the name
   {
@@ -99,8 +100,7 @@ AliMUONTrackerPreprocessor::Initialize(Int_t run, UInt_t startTime, UInt_t endTi
   }
   else
   {
-    Log(Form("ERROR-Unknown RunType=%",runType.Data()));
-    fIsValid = kFALSE;
+    fIsApplicable = kFALSE;
   }
   
   AliMUONPreprocessor::Initialize(run,startTime,endTime);
