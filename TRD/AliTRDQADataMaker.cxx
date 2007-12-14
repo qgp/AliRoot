@@ -134,9 +134,11 @@ void AliTRDQADataMaker::EndOfDetectorCycle(AliQA::TASKINDEX task, TObjArray * li
 	  Int_t sm = i/18;
 	  Int_t det = i%18;
 	  TH2D *h2 = (TH2D*)list->At(14+sm);
-	  Int_t bin = h2->FindBin(det,j);
-	  // printf("%d %d %d\n", det, j, bin);
-	  h2->SetBinContent(bin, fit->GetParameter(1));
+	  if (h2) {
+	    Int_t bin = h2->FindBin(det,j);
+	    // printf("%d %d %d\n", det, j, bin);
+	    h2->SetBinContent(bin, fit->GetParameter(1));
+	  }
 	}
       }
     }
