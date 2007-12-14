@@ -114,7 +114,6 @@ UInt_t AliVZEROPreprocessor::Process(TMap* dcsAliasMap)
 		calibData->SetSigma(Sigmas);			
 		calibData->SetGain(Gains); }				
 		
-	delete sourceList; 
 	delete source;      
   
   // Check that everything was properly transmitted
@@ -139,7 +138,8 @@ UInt_t AliVZEROPreprocessor::Process(TMap* dcsAliasMap)
   }
 
   delete calibData;
-
+  delete sourceList; 
+	
   if (!result) return 1;   
   return 0;
 }
