@@ -42,6 +42,7 @@
 #include <TList.h>
 #include <TVector2.h>
 #include <cassert>
+#include <TGeoMatrix.h>
 
 #include "AliEMCALShishKebabModule.h"
 #include "AliEMCALShishKebabTrd1Module.h"

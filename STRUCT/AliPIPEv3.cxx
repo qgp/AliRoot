@@ -35,6 +35,7 @@
 #include <TGeoBBox.h>
 #include <TGeoXtru.h>
 #include <TGeoCompositeShape.h>
+#include <TGeoMatrix.h>
 
 #include "AliConst.h"
 #include "AliMagF.h"

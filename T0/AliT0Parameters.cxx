@@ -39,6 +39,7 @@
 #include <Riostream.h>
 #include <TGeoManager.h>
 #include <TGeoPhysicalNode.h>
+#include <TGeoMatrix.h>
 #include <AliGeomManager.h>
 
 AliT0CalibTimeEq* AliT0Parameters::fgCalibData = 0;

@@ -40,6 +40,7 @@
 #include <TGeoXtru.h>		// ROOT_TGeoXtru
 #include <TMath.h>
 #include <TVector2.h>		// ROOT_TVector2
+#include <TGeoMatrix.h>
 //#include <TGeoMaterial.h>	// ROOT_TGeoMaterial
 //#include <TGeoMedium.h>		// ROOT_TGeoMedium
 //#include <TGeoPcon.h>		// ROOT_TGeoPcon

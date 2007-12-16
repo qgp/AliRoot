@@ -42,6 +42,7 @@ $Id$
 #include <TGeoEltu.h>
 #include <TGeoHype.h>
 #include <TMath.h>
+#include <TGeoMatrix.h>
 
 #include "AliLog.h"
 #include "AliITSgeomSPD.h"

@@ -9,6 +9,7 @@
 #include <TGeoManager.h>
 #include <TGeoVolume.h>
 #include <TGeoPcon.h>
+#include <TGeoMatrix.h>
 #include "AliRun.h"
 #include "AliITSvBeamTestITS04.h"
 #include <TClonesArray.h>

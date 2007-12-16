@@ -31,6 +31,7 @@
 #include <TVirtualMC.h>
 #include <TGeoManager.h>
 #include <TGeoPhysicalNode.h>
+#include <TGeoMatrix.h>
 
 #include "AliConst.h"
 #include "AliLog.h"

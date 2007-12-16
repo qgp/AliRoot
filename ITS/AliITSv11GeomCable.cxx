@@ -24,6 +24,7 @@
 #include <TGeoManager.h>
 #include <TGeoVolume.h>
 #include <TGeoNode.h>
+#include <TGeoMatrix.h>
 
 #include "AliITSv11GeomCable.h"
 

@@ -11,6 +11,7 @@
 #include <TVirtualViewer3D.h>
 #include <TColor.h>
 #include <TFile.h>
+#include <TGeoMatrix.h>
 
 #include <TGeoShape.h>
 #include <TGeoVolume.h>

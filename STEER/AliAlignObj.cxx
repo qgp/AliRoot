@@ -26,6 +26,7 @@
 #include <TGeoPhysicalNode.h>
 #include <TMath.h>
 #include <TMatrixDSym.h>
+#include <TGeoMatrix.h>
 
 #include "AliAlignObj.h"
 #include "AliTrackPointArray.h"

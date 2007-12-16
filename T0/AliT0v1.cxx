@@ -42,6 +42,8 @@
 #include "TGeoTube.h"
 #include "TGeoCompositeShape.h"
 #include <TGraph.h>
+#include <TGeoVolume.h>
+#include <TGeoMatrix.h>
 
 #include "AliLog.h"
 #include "AliMagF.h"
