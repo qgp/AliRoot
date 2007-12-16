@@ -612,7 +612,7 @@ void AliTPCclustererMI::Digits2Clusters()
   fInput->GetBranch("Segment")->SetAddress(&dummy);
   Stat_t nentries = fInput->GetEntries();
   
-  fMaxTime=fParam->GetMaxTBin()+6; // add 3 virtual time bins before and 3   after
+  fMaxTime=fRecoParam->GetLastBin()+6; // add 3 virtual time bins before and 3   after
     
   Int_t nclusters  = 0;
 
@@ -712,7 +712,7 @@ void AliTPCclustererMI::Digits2Clusters(AliRawReader* rawReader)
 
   Int_t nclusters  = 0;
   
-  fMaxTime = fParam->GetMaxTBin() + 6; // add 3 virtual time bins before and 3 after
+  fMaxTime = fRecoParam->GetLastBin() + 6; // add 3 virtual time bins before and 3 after
   const Int_t kNIS = fParam->GetNInnerSector();
   const Int_t kNOS = fParam->GetNOuterSector();
   const Int_t kNS = kNIS + kNOS;
@@ -804,9 +804,11 @@ void AliTPCclustererMI::Digits2Clusters(AliRawReader* rawReader)
       iPad+=3;
       //time
       Int_t iTimeBin = input.GetTime();
-      if ( iTimeBin < 0 || iTimeBin >= fParam->GetMaxTBin())
+      if ( iTimeBin < fRecoParam->GetFirstBin() || iTimeBin >= fRecoParam->GetLastBin()){
+	continue;
 	AliFatal(Form("Timebin index (%d) outside the range (%d -> %d) !",
 		      iTimeBin, 0, iTimeBin -1));
+      }
       iTimeBin+=3;
       //signal
       Float_t signal = input.GetSignal();
@@ -1078,20 +1080,20 @@ Double_t AliTPCclustererMI::ProcesSignal(Float_t *signal, Int_t nchannels, Int_t
       fAmplitudeHisto->AddAt(sectorArray, uid[0]);
     }
     Int_t position =  uid[2]+roc->GetRowIndexes(uid[0])[uid[1]];
-    TH1F * histo = (TH1F*)sectorArray->UncheckedAt(position);
-    if (!histo){
-      char hname[100];
-      sprintf(hname,"Amp_%d_%d_%d",uid[0],uid[1],uid[2]);
-      TFile * backup = gFile;
-      fDebugStreamer->GetFile()->cd();
-      histo = new TH1F(hname, hname, 100, 5,100);
-      //histo->SetDirectory(0);     // histogram not connected to directory -(File)
-      sectorArray->AddAt(histo, position);
-      if (backup) backup->cd();
-    }
-    for (Int_t i=0; i<nchannels; i++){
-      histo->Fill(signal[i]);
-    }
+    // TH1F * histo = (TH1F*)sectorArray->UncheckedAt(position);
+//     if (!histo){
+//       char hname[100];
+//       sprintf(hname,"Amp_%d_%d_%d",uid[0],uid[1],uid[2]);
+//       TFile * backup = gFile;
+//       fDebugStreamer->GetFile()->cd();
+//       histo = new TH1F(hname, hname, 100, 5,100);
+//       //histo->SetDirectory(0);     // histogram not connected to directory -(File)
+//       sectorArray->AddAt(histo, position);
+//       if (backup) backup->cd();
+//     }
+//     for (Int_t i=0; i<nchannels; i++){
+//       histo->Fill(signal[i]);
+//     }
   }
   //
   //
