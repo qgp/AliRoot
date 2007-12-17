@@ -116,6 +116,7 @@ public:
   virtual Bool_t RunQA(const char* detectors, AliESDEvent *& esd);
   void    SetQACycles(const char * detector, const Int_t cycles) { fQACycles[GetDetIndex(detector)] = cycles ; }
   void    SetQAInLoop() { fQAInLoop = kTRUE ; } 
+  void    SetRunQA(const Bool_t val) { fRunQA = val ; } 
 
 private:
   void 		 InitCDB();
@@ -152,7 +153,6 @@ private:
   AliQADataMaker*      GetQADataMaker(Int_t iDet);
   const Int_t          GetQACycles(const char * detector) { return fQACycles[GetDetIndex(detector)] ; }
   void                 CheckQA() ;
-  void                 SetQA(const Bool_t val) { fRunQA = val ; } 
 
   //*** Global reconstruction flags *******************
   Bool_t         fUniformField;       // uniform field tracking flag
