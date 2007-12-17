@@ -1,4 +1,18 @@
 /*
+TPC DA for online calibration
+
+Contact: Haavard.Helstrup@cern.ch
+Link:
+Run Type: PULSER_RUN
+DA Type: LDC
+Number of events needed: 100
+Input Files: 
+Output Files: tpcPulser.root, to be exported to the DAQ FXS
+Trigger types used: CALIBRATION_EVENT
+
+*/
+
+/*
 
 TPCda_pulser.cxx - calibration algorithm for TPC pulser events
 
@@ -72,6 +86,8 @@ int main(int argc, char **argv) {
   /* log start of process */
   printf("TPC Pulser DA started - %s\n",__FILE__);
 
+  /* set time bin range */
+  calibPulser.SetRangeTime(400,500);
 
   /* declare monitoring program */
   status=monitorDeclareMp( __FILE__ );
@@ -121,7 +137,8 @@ int main(int argc, char **argv) {
       //  Pulser calibration
 
       AliRawReader *rawReader = new AliRawReaderDate((void*)event);
-      calibPulser.ProcessEvent(rawReader);
+//      calibPulser.ProcessEvent(rawReader);
+      calibPulser.ProcessEventFast(rawReader);
       delete rawReader;
 
       /* free resources */
@@ -136,6 +153,13 @@ int main(int argc, char **argv) {
   calibPulser.Write("calibPulser");
   delete fileTPC;
   printf("Wrote %s\n",RESULT_FILE);
+
+  /* store the result file on FES */
+
+  status=daqDA_FES_storeFile(RESULT_FILE,RESULT_FILE);
+  if (status) {
+    status = -2;
+  }
 
   return status;
 }

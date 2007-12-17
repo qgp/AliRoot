@@ -1,4 +1,18 @@
 /*
+TPC DA for online calibration
+
+Contact: Haavard.Helstrup@cern.ch
+Link: 
+Run Type: PHYSICS_RUN STANDALONE DAQ
+DA Type: MON
+Number of events needed: 500
+Input Files: 
+Output Files: tpcCE.root, to be exported to the DAQ FXS
+Trigger types used: PHYSICS_EVENT
+
+*/
+
+/*
 
 TPCCEda.cxx - calibration algorithm for TPC Central Electrode events
 
@@ -13,7 +27,7 @@ and save results in a file (named from RESULT_FILE define - see below).
 
 */
 
-#define RESULT_FILE "tpcPulser.root"
+#define RESULT_FILE "tpcCE.root"
 
 
 #include <daqDA.h>
@@ -71,6 +85,10 @@ int main(int argc, char **argv) {
 
   /* log start of process */
   printf("TPC CE DA started - %s\n",__FILE__);
+
+
+  /* set time bin range */
+  calibCE.SetRangeTime(800,940);
 
 
   /* declare monitoring program */
@@ -136,6 +154,13 @@ int main(int argc, char **argv) {
   calibCE.Write("calibCE");
   delete fileTPC;
   printf("Wrote %s\n",RESULT_FILE);
+
+  /* store the result file on FES */
+
+  status=daqDA_FES_storeFile(RESULT_FILE,RESULT_FILE);
+  if (status) {
+    status = -2;
+  }
 
   return status;
 }
