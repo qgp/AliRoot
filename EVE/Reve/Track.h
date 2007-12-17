@@ -14,15 +14,13 @@
 
 #include <TPolyMarker3D.h>
 #include <TMarker.h>
-#include <TQObject.h>
 
 namespace Reve {
 
 class TrackRnrStyle;
 class TrackList;
 
-class Track : public Line, 
-              public TQObject
+class Track : public Line
 {
   friend class TrackRnrStyle;
   friend class TrackList;
@@ -88,6 +86,7 @@ public:
 			  Bool_t colorPdg    =kTRUE, Bool_t recurse    =kTRUE); // *MENU*
   void PrintKineStack();          // *MENU*
   void PrintPathMarks();          // *MENU*
+  void PrintParticle();          // *MENU*
 
   //--------------------------------
 

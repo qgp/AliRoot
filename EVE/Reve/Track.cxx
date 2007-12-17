@@ -132,7 +132,6 @@ Track::Track(Reve::RecTrack* t, TrackRnrStyle* rs) :
 //______________________________________________________________________________
 Track::Track(const Track& t) :
   Line(),
-  TQObject(),
   fV(t.fV),
   fP(t.fP),
   fBeta(t.fBeta),
@@ -558,6 +557,16 @@ void Track::PrintKineStack()
 
   Reve::LoadMacro("print_kine_from_label.C");
   gROOT->ProcessLine(Form("print_kine_from_label(%d);", label));
+}
+
+//______________________________________________________________________________
+void Track::PrintParticle()
+{
+  // Print track parameters.
+
+  printf("particle %s sign %d\n", GetName(), fCharge);
+  printf("V (%f, %f, %f) \n", fV.x, fV.y, fV.z);
+  printf("P (%f, %f, %f) Pt(%f)\n", fP.x, fP.y, fP.z, fP.Perp());
 }
 
 //______________________________________________________________________________
