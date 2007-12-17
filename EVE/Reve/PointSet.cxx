@@ -38,6 +38,7 @@ PointSet::PointSet(Int_t n_points, TreeVarType_e tv_type) :
   RenderElement(fMarkerColor),
   TPointSet3D(n_points),
   TPointSelectorConsumer(tv_type),
+  TQObject(),
 
   fTitle          (),
   fIntIds         (0),
@@ -281,6 +282,26 @@ void PointSet::TakeAction(TPointSelector* sel)
     }
     delete [] subarr;
   }
+}
+
+//______________________________________________________________________________
+void PointSet::PointSelected(Int_t id)
+{
+  // Virtual method of base class TPointSet3D. Call invoked with secondary selection 
+  // in  TPointSet3DGL.
+
+  PointCtrlClicked(this, id);
+}
+//______________________________________________________________________________
+void PointSet::PointCtrlClicked(PointSet* ps, Int_t id)
+{
+  // Emits "PointCtrlClicked(*)" signal.
+
+  Long_t args[2];
+  args[0] = (Long_t) ps;
+  args[1] = (Long_t) id;
+
+  TQObject::Emit("PointCtrlClicked(Reve::PointSet*,Int_t)", args);
 }
 
 /**************************************************************************/

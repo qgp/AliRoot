@@ -10,6 +10,7 @@
 
 #include <TPointSet3D.h>
 #include <TArrayI.h>
+#include <TQObject.h>
 
 class TTree;
 class TF3;
@@ -20,6 +21,7 @@ namespace Reve {
 class PointSet : public RenderElement,
                  public TPointSet3D,
                  public TPointSelectorConsumer,
+                 public TQObject,
                  public NLTProjectable
 {
   friend class PointSetArray;
@@ -60,6 +62,9 @@ public:
 
   virtual void InitFill(Int_t subIdNum);
   virtual void TakeAction(TPointSelector*);
+
+  virtual void PointSelected(Int_t id);
+  virtual void PointCtrlClicked(PointSet* ps, Int_t id); // *SIGNAL*
 
   virtual const TGPicture* GetListTreeIcon() { return RenderElement::fgListTreeIcons[3]; }
 
@@ -104,7 +109,6 @@ public:
   virtual void SetMarkerSize(Size_t msize=1);
 
   virtual void TakeAction(TPointSelector*);
-
 
   void InitBins(const Text_t* quant_name, Int_t nbins, Double_t min, Double_t max,
 		Bool_t addRe=kTRUE);
