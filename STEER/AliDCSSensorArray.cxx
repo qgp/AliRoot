@@ -108,8 +108,8 @@ AliDCSSensorArray::AliDCSSensorArray(UInt_t startTime, UInt_t endTime,
   //
   fSensors = AliDCSSensor::ReadTree(confTree);
   fSensors->BypassStreamer(kFALSE);
-  fStartTime = TTimeStamp(startTime);
-  fEndTime   = TTimeStamp(endTime);
+  fStartTime = TTimeStamp((time_t)startTime, (Int_t) 0);
+  fEndTime   = TTimeStamp((time_t)endTime, (Int_t) 0);
 }
 
 
@@ -133,8 +133,8 @@ AliDCSSensorArray::AliDCSSensorArray(UInt_t startTime, UInt_t endTime,
   // AliDCSSensorArray constructor for Shuttle preprocessor
   //  (TClonesArray of AliDCSSensor objects)
   //
-  fStartTime = TTimeStamp(startTime);
-  fEndTime   = TTimeStamp(endTime);
+  fStartTime = TTimeStamp((time_t)startTime, (Int_t) 0);
+  fEndTime   = TTimeStamp((time_t)endTime, (Int_t) 0);
 }
 
 //_____________________________________________________________________________
