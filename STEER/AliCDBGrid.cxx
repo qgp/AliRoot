@@ -858,6 +858,11 @@ void AliCDBGrid::QueryValidFiles()
 	AliDebug(2,Form("pattern: %s", pattern.Data()));
 
 	TGridResult *res = gGrid->Query(fDBFolder, pattern, filter, "");
+	
+	if (!res) {
+		AliError("Grid query failed");
+		return;
+	}
 
 	AliCDBId validFileId;
 	for(int i=0; i<res->GetEntries(); i++){
