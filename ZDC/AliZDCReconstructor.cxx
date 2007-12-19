@@ -501,14 +501,14 @@ void AliZDCReconstructor::ReconstructEvent(TTree *clustersTree,
   if(nPartTotRight<0) nPartTotRight=0;
   //
   // *** DEBUG ***
-  printf("\n\t AliZDCReconstructor -> calibSumZN1HG %1.0f, calibSumZP1HG %1.0f,"
-      "  calibSumZN2HG %1.0f, calibSumZP2HG %1.0f, corrADCZEMHG %1.0f\n", 
-      calibSumZN1HG,calibSumZP1HG,calibSumZN2HG,calibSumZP2HG,corrADCZEMHG);
-  printf("\t AliZDCReconstructor -> nGenSpecNLeft %d, nGenSpecPLeft %d, nGenSpecLeft %d\n"
-      "\t\t nGenSpecNRight %d, nGenSpecPRight %d, nGenSpecRight %d\n", 
-      nGenSpecNLeft, nGenSpecPLeft, nGenSpecLeft, 
-      nGenSpecNRight, nGenSpecPRight, nGenSpecRight);
-  printf("\t AliZDCReconstructor ->  NpartL %d,  NpartR %d,  b %1.2f fm\n\n",nPartTotLeft, nPartTotRight, impPar);
+//   printf("\n\t AliZDCReconstructor -> calibSumZN1HG %1.0f, calibSumZP1HG %1.0f,"
+//       "  calibSumZN2HG %1.0f, calibSumZP2HG %1.0f, corrADCZEMHG %1.0f\n", 
+//       calibSumZN1HG,calibSumZP1HG,calibSumZN2HG,calibSumZP2HG,corrADCZEMHG);
+//   printf("\t AliZDCReconstructor -> nGenSpecNLeft %d, nGenSpecPLeft %d, nGenSpecLeft %d\n"
+//       "\t\t nGenSpecNRight %d, nGenSpecPRight %d, nGenSpecRight %d\n", 
+//       nGenSpecNLeft, nGenSpecPLeft, nGenSpecLeft, 
+//       nGenSpecNRight, nGenSpecPRight, nGenSpecRight);
+//   printf("\t AliZDCReconstructor ->  NpartL %d,  NpartR %d,  b %1.2f fm\n\n",nPartTotLeft, nPartTotRight, impPar);
 
   // create the output tree
   AliZDCReco reco(calibSumZN1HG, calibSumZP1HG, calibSumZN2HG, calibSumZP2HG, 
