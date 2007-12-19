@@ -15,6 +15,9 @@
 
 /*
 $Log$
+Revision 1.5  2007/01/19 13:36:10  jgrosseo
+added Print method, fixed missing virtual
+
 Revision 1.4  2006/09/04 17:42:34  hristov
 Changes required by Effective C++
 
@@ -244,7 +247,7 @@ const Char_t* AliDCSValue::ToString() const
     case kInvalid: break;
   }
 
-  return Form("%s Timestamp: %s", str.Data(), TTimeStamp(fTimeStamp).AsString());
+  return Form("%s Timestamp: %s", str.Data(), TTimeStamp((time_t) fTimeStamp, 0).AsString());
 }
 
 void AliDCSValue::Print(Option_t* /*opt*/) const
