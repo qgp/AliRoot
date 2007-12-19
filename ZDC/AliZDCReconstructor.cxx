@@ -260,8 +260,8 @@ void AliZDCReconstructor::Reconstruct(AliRawReader* rawReader, TTree* clustersTr
         if(gain == 0) tZP2CorrHG[quad]  += (Float_t) (rawData.GetADCValue()-meanPed[pedindex]); 
         else tZP2CorrLG[quad]  += (Float_t) (rawData.GetADCValue()-meanPed[pedindex+24]); 
       }
-      printf("\t AliZDCReconstructor - det %d quad %d res %d -> Ped[%d] = %1.0f\n", 
-        det,quad,gain, pedindex, meanPed[pedindex]);
+//       printf("\t AliZDCReconstructor - det %d quad %d res %d -> Ped[%d] = %1.0f\n", 
+//         det,quad,gain, pedindex, meanPed[pedindex]);
      }
     }//IsADCDataWord
   }
