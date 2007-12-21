@@ -33,6 +33,9 @@
 
 
 // $Log$
+// Revision 1.11  2007/11/22 08:32:48  masera
+// Second thermal shield updated in agreement with the installed one. Correction concerning the chemical composition of Rohacell (M.Sitta)
+//
 // Revision 1.10  2007/11/19 17:01:26  masera
 // SSD ladder supports + endcaps systems (E. Cattaruzza)
 //
@@ -435,8 +438,8 @@ void AliITSv11Hybrid::AddAlignableVolumes() const
 	    if(!gGeoManager->SetAlignableEntry(strEntryName4.Data(),module.Data()))
 	      AliFatal("Unable to set alignable entry!!");    
 	    
-	    SetT2Lmatrix(strEntryName4.Data(), -0.0081, kTRUE, kTRUE);
-	    // -0.0081 is the shift between the centers of alignable and sensitive volumes
+	    SetT2Lmatrix(strEntryName4.Data(), 0.0081, kTRUE, kTRUE);
+	    // 0.0081 is the shift between the centers of alignable and sensitive volumes
 	    // It is directly extracted from the new SPD geometry
  
 	  }
@@ -653,7 +656,11 @@ void AliITSv11Hybrid::AddAlignableVolumes() const
 	if(!gGeoManager->SetAlignableEntry(strEntryName2.Data(),wafer.Data()))
 	  AliFatal("Unable to set alignable entry!!");
 
+	if(c1 != 2) { 
 	SetT2Lmatrix(strEntryName2.Data(), 0, kFALSE, c2>=3);
+	  	  } else {// for ladder 2, mounted with a pi rot around y
+	  SetT2Lmatrix(strEntryName2.Data(), 0, kFALSE, c2<3);
+	  }
       }
     }
 
