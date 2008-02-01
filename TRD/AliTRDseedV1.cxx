@@ -30,6 +30,7 @@
 
 #include "AliLog.h"
 #include "AliMathBase.h"
+#include "AliTracker.h"
 
 #include "AliTRDseedV1.h"
 #include "AliTRDcluster.h"
@@ -276,10 +277,11 @@ void AliTRDseedV1::GetCovAt(Double_t /*x*/, Double_t *cov) const
 {
 // Computes covariance in the y-z plane at radial point x
 
-	const Float_t k0= .2; // to be checked in FindClusters
-	Double_t sy20   = k0*TMath::Tan(fYfit[1]); sy20 *= sy20;
-	
-	Double_t sy2    = fSigmaY2*fSigmaY2 + sy20;
+	Int_t ic = -1; do ic++; while (!fClusters[ic]); 
+  AliTRDcalibDB *fCalib = AliTRDcalibDB::Instance();
+	Double_t exB         = fCalib->GetOmegaTau(fCalib->GetVdriftAverage(fClusters[ic]->GetDetector()), -AliTracker::GetBz()*0.1);
+
+	Double_t sy2    = fSigmaY2*fSigmaY2 + .2*(fYfit[1]-exB)*(fYfit[1]-exB);
 	Double_t sz2    = fPadLength/12.;
 
 	//printf("Yfit[1] %f sy20 %f SigmaY2 %f\n", fYfit[1], sy20, fSigmaY2);
