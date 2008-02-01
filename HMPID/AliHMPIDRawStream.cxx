@@ -33,15 +33,17 @@ ClassImp(AliHMPIDRawStream)
 
 //_____________________________________________________________________________
 AliHMPIDRawStream::AliHMPIDRawStream(AliRawReader* rawReader) :
+  fNPads(0),
+  fCharge(0x0),
+  fPad(0x0),
   fDDLNumber(-1),
   fRawReader(rawReader),
   fData(NULL),
-  fPosition(-1)
+  fPosition(-1),
+  fWord(0),
+  fZeroSup(kTRUE)
 {
   // Constructor
-  fNPads = 0;
-  fCharge = 0x0;
-  fPad =0x0;
 
   for(Int_t l=1; l < kSumErr; l++) fNumOfErr[l]=0;               //reset errors
     
@@ -50,10 +52,15 @@ AliHMPIDRawStream::AliHMPIDRawStream(AliRawReader* rawReader) :
 }
 //-----------------------------------------------------------------------------
 AliHMPIDRawStream::AliHMPIDRawStream() :
+  fNPads(0),
+  fCharge(0x0),
+  fPad(0x0),
   fDDLNumber(-1),
   fRawReader(0x0),
   fData(NULL),
-  fPosition(-1)
+  fPosition(-1),
+  fWord(0),
+  fZeroSup(kTRUE)
 {
   // Constructor
   for(Int_t l=1; l < kSumErr; l++) fNumOfErr[l]=0;               //reset errors
@@ -116,6 +123,7 @@ Bool_t AliHMPIDRawStream::Next()
 //    else Printf("Event DDL %i ERROR in decoding!.",fDDLNumber);
 //    if(stDeb) DumpData(fRawReader->GetDataSize());
 //    stDeb=kFALSE;
+    DelVars();
   }
 //  return status;
   return kTRUE;
@@ -134,8 +142,14 @@ void AliHMPIDRawStream::InitVars(Int_t n)
 void AliHMPIDRawStream::DelVars()
 {
   fNPads = 0;
-  delete fCharge;
-  delete fPad;
+  if (fCharge) {
+    delete [] fCharge;
+    fCharge = 0x0;
+  }
+  if (fPad) {
+    delete [] fPad;
+    fPad = 0x0;
+  }
 }    
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Bool_t AliHMPIDRawStream::ReadHMPIDRawData()
