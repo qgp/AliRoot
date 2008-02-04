@@ -786,7 +786,7 @@ Bool_t AliReconstruction::Run(const char* input, Bool_t IsOnline)
         qadm->Init(AliQA::kESDS, AliCDBManager::Instance()->GetRun());
         if (!fInLoopQA) {
            qadm->StartOfCycle(AliQA::kRECPOINTS);
-           qadm->StartOfCycle(AliQA::kESDS);
+           qadm->StartOfCycle(AliQA::kESDS,"same");
         }
      }
   }
@@ -829,7 +829,7 @@ Bool_t AliReconstruction::Run(const char* input, Bool_t IsOnline)
        if (fRunGlobalQA) {
           AliQADataMakerRec *qadm = GetQADataMaker(fgkNDetectors);
           qadm->StartOfCycle(AliQA::kRECPOINTS);
-          qadm->StartOfCycle(AliQA::kESDS);
+          qadm->StartOfCycle(AliQA::kESDS,"same");
        }
     }
 
@@ -965,6 +965,12 @@ Bool_t AliReconstruction::Run(const char* input, Bool_t IsOnline)
  
     // write ESD
     if (fCleanESD) CleanESD(esd);
+
+    if (fRunQA && fRunGlobalQA) {
+       AliQADataMakerRec *qadm = GetQADataMaker(fgkNDetectors);
+       if (qadm) qadm->Exec(AliQA::kESDS, esd);
+    }
+
     if (fWriteESDfriend) {
       esdf->~AliESDfriend();
       new (esdf) AliESDfriend(); // Reset...
@@ -1461,8 +1467,6 @@ Bool_t AliReconstruction::RunTracking(AliESDEvent*& esd)
 
   // pass 2: ALL backwards
 
-  if (fRunQA && fRunGlobalQA) AliTracker::SetFillResiduals(kTRUE);     
-
   for (Int_t iDet = 0; iDet < fgkNDetectors; iDet++) {
     if (!fTracker[iDet]) continue;
     AliDebug(1, Form("%s back propagation", fgkDetectorName[iDet]));
@@ -1503,8 +1507,6 @@ Bool_t AliReconstruction::RunTracking(AliESDEvent*& esd)
     AliSysInfo::AddStamp(Form("Tracking1%s_%d",fgkDetectorName[iDet],eventNr), iDet,3, eventNr);
   }
 
-  if (fRunQA && fRunGlobalQA) AliTracker::SetFillResiduals(kFALSE);     
-
   // write space-points to the ESD in case alignment data output
   // is switched on
   if (fWriteAlignmentData)
@@ -1512,6 +1514,7 @@ Bool_t AliReconstruction::RunTracking(AliESDEvent*& esd)
 
   // pass 3: TRD + TPC + ITS refit inwards
 
+  if (fRunQA && fRunGlobalQA) AliTracker::SetFillResiduals(kTRUE);     
 
   for (Int_t iDet = 2; iDet >= 0; iDet--) {
     if (!fTracker[iDet]) continue;
@@ -1537,6 +1540,8 @@ Bool_t AliReconstruction::RunTracking(AliESDEvent*& esd)
     fLoader[iDet]->UnloadRecPoints();
     AliSysInfo::AddStamp(Form("RUnloadCluster%s_%d",fgkDetectorName[iDet],eventNr), iDet,5, eventNr);
   }
+
+  if (fRunQA && fRunGlobalQA) AliTracker::SetFillResiduals(kFALSE);     
 
   //
   // Propagate track to the vertex - if not done by ITS
