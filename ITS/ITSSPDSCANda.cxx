@@ -44,6 +44,7 @@ extern "C" {
 #include <TPluginManager.h>
 #include <TObjArray.h>
 #include <TString.h>
+#include <TFitter.h>
 
 int main(int argc, char **argv) {
   if (argc<2) {
@@ -70,6 +71,9 @@ int main(int argc, char **argv) {
   // prameters config files
   TString paramsFileName = Form("%s/standal_params.txt",configFilesDir);
   TString permNoisyFileName = Form("%s/perm_noisy.txt",configFilesDir);
+
+  TFitter *fitter = new TFitter(3);
+  TVirtualFitter::SetFitter(fitter);
 
   // This line is needed in case of a stand-alone application w/o
   // $ROOTSYS/etc/system.rootrc file
