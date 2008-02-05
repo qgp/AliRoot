@@ -48,7 +48,7 @@ class AliTRDQADataMakerRec: public AliQADataMakerRec {
   Int_t    CheckPointer(TObject *obj, const char *name);
 
   // internal methods
-  Int_t    GetSector(const Double_t alpha) const;
+  Int_t    GetSector(Double_t alpha) const;
   Double_t GetExtZ(const AliExternalTrackParam *paramIn) const;
   void BuildRatio(TH1D *ratio, TH1D *histN, TH1D *histD);
 
