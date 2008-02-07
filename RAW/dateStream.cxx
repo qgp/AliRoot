@@ -1171,13 +1171,10 @@ void loadCdh( struct commonDataHeaderStruct * const cdh,
   cdh->cdhMiniEventId = cdh->cdhEventId1;
 }
 void decodeCDH( struct ldcEventDescriptorStruct       * const ldc,
-		const struct payloadDescriptorStruct  * const payloadDesc,
-		bool updateCDHref);
+		const struct payloadDescriptorStruct  * const payloadDesc );
 
 void createEvent( void ) {
   assert( workingAs == ldc || workingAs == gdc );
-
-  bool updateCDHref = true;
 
   /* Step 1: load all buffers (if needed) and compose the GDC/LDC headers */
   if ( workingAs == gdc ) {
@@ -1197,10 +1194,7 @@ void createEvent( void ) {
       for ( eq = ldc->head; eq != NULL; eq = eq->next ) {
 	if ( !bufferData ) {
 	  loadBuffer( eq->payload );
-	  if ( !currGdc->loaded ) {
-	    decodeCDH( ldc, eq->payload, updateCDHref );
-	    updateCDHref= false;
-	  } 
+	  if ( !currGdc->loaded ) decodeCDH( ldc, eq->payload );
 	}
 	loadCdh( (struct commonDataHeaderStruct*)eq->payload->data,
 		 &currEventId );
@@ -1225,10 +1219,7 @@ void createEvent( void ) {
     for ( eq = currLdc->head; eq != NULL; eq = eq->next ) {
       if ( !bufferData ) {
 	loadBuffer( eq->payload );
-	if ( !currLdc->loaded ) {
-	  decodeCDH( currLdc, eq->payload, updateCDHref );
-	  updateCDHref = false;
-	}
+	if ( !currLdc->loaded ) decodeCDH( currLdc, eq->payload );
       }
       loadCdh( (struct commonDataHeaderStruct*)eq->payload->data,
 	       &currEventId );
@@ -1414,8 +1405,7 @@ void initEquipment( struct equipmentHeaderStruct * const eq ) {
 } /* End of initEquipment */
 
 void decodeCDH(       struct ldcEventDescriptorStruct * const ldc,
-		      const struct payloadDescriptorStruct  * const payloadDesc,
-		      bool updateCDHref ) {
+		const struct payloadDescriptorStruct  * const payloadDesc ) {
   if ( handleCDH ) {
     static struct commonDataHeaderStruct *cdhRef = NULL;
     struct commonDataHeaderStruct *cdh;
@@ -1440,7 +1430,7 @@ void decodeCDH(       struct ldcEventDescriptorStruct * const ldc,
 		 cdh->cdhVersion );
 	exit( 1 );
       }
-      if ( cdhRef == NULL || updateCDHref ) {
+      if ( cdhRef == NULL ) {
 	cdhRef = cdh;
 #define CDH_TRIGGER_INFORMATION_UNAVAILABLE_MASK (1<<CDH_TRIGGER_INFORMATION_UNAVAILABLE_BIT)
 	gotAliceTrigger = (cdhRef->cdhStatusErrorBits & CDH_TRIGGER_INFORMATION_UNAVAILABLE_MASK) == 0;
@@ -1587,7 +1577,6 @@ RoiHigh/Low reference:0x%x-%x current:0x%x-%x\n",
 
 void initEvents() {
   assert( workingAs == ldc || workingAs == gdc );
-  bool initCDHref = true;
 
   if ( workingAs == gdc ) {
     struct gdcEventDescriptorStruct *gdc;
@@ -1618,8 +1607,7 @@ void initEvents() {
 				  ATTR_ORBIT_BC );
 	  eq->header.equipmentSize = eq->payload->size + sizeof( eq->header );
 	  ldc->header.eventSize += eq->header.equipmentSize;
-	  decodeCDH( ldc, eq->payload , initCDHref);
-	  initCDHref = false;
+	  decodeCDH( ldc, eq->payload );
 	  OR_ALL_ATTRIBUTES( eq->header.equipmentTypeAttribute,
 			     ldc->header.eventTypeAttribute );
 	  OR_ALL_ATTRIBUTES( eq->header.equipmentTypeAttribute,
@@ -1678,8 +1666,7 @@ void initEvents() {
 				ATTR_ORBIT_BC );
 	eq->header.equipmentSize = eq->payload->size + sizeof( eq->header );
 	ldc->header.eventSize += eq->header.equipmentSize;
-	decodeCDH( ldc, eq->payload, initCDHref );
-	initCDHref = false;
+	decodeCDH( ldc, eq->payload );
 	OR_ALL_ATTRIBUTES( eq->header.equipmentTypeAttribute,
 			   ldc->header.eventTypeAttribute );
       }
