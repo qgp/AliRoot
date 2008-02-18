@@ -2028,10 +2028,10 @@ void AliReconstruction::CleanUp(TFile* file, TFile* fileOld)
   if(!(AliCDBManager::Instance()->GetCacheFlag())) {
   	delete fDiamondProfile;
   	fDiamondProfile = NULL;
+	delete fGRPList;
+	fGRPList = NULL;
   }
 
-  delete fGRPList;
-  fGRPList = NULL;
 
   delete fRunLoader;
   fRunLoader = NULL;
