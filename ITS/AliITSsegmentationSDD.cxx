@@ -14,7 +14,9 @@
  **************************************************************************/
 #include <Riostream.h>
 #include <TMath.h>
-
+#include <TGeoManager.h>
+#include <TGeoVolume.h>
+#include <TGeoBBox.h>
 #include "AliITSsegmentationSDD.h"
 #include "AliITSgeomSDD.h"
 #include "AliITSresponseSDD.h"
@@ -69,7 +71,7 @@ fSetDriftSpeed(0){
   InitFromGeom(geom);
 }
 //______________________________________________________________________
-AliITSsegmentationSDD::AliITSsegmentationSDD() : AliITSsegmentation(),
+AliITSsegmentationSDD::AliITSsegmentationSDD(Option_t *opt) : AliITSsegmentation(),
 fNsamples(0),
 fNanodes(0),
 fPitch(0),
@@ -78,6 +80,21 @@ fDriftSpeed(0),
 fSetDriftSpeed(0){
   // Default constructor
   Init();
+  if(strstr(opt,"TGeo")){
+    if(!gGeoManager){
+      AliError("Geometry is not initialized\n");
+      return;
+    }
+    TGeoVolume *v=NULL;
+    v = gGeoManager->GetVolume("ITSsddSensitivL3");
+    if(!v){
+      AliWarning("TGeo volume ITSsddSensitivL3 not found (hint: use v11Hybrid geometry)\n Using hardwired default values"); 
+    }
+    else {
+      TGeoBBox *s=(TGeoBBox*)v->GetShape();
+      SetDetSize(s->GetDX()*10000.,s->GetDZ()*20000.,s->GetDY()*20000.);
+    }
+  }
 }
 
 //______________________________________________________________________
