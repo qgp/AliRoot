@@ -43,7 +43,7 @@ int deroot(const char *rootFileName, const char *dateFileName, const char *ddlFi
   size_t gdcSize;
   if (ddlFilesFolder) {
     char command[256];
-    sprintf(command, "rm -r %s/raw%d", ddlFilesFolder, gdcCounter);
+    sprintf(command, "rm -rf %s/raw%ld", ddlFilesFolder, gdcCounter);
     gSystem->Exec(command);
     sprintf(command, "%s/raw%d", ddlFilesFolder, gdcCounter);
     if (gSystem->MakeDirectory(command) < 0) {
