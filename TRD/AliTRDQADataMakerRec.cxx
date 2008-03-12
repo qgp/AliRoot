@@ -538,10 +538,9 @@ void AliTRDQADataMakerRec::MakeRaws(AliRawReader* rawReader)
   const Int_t kMCM = 16;
   //  const Int_t kADC = 22;
 
-  AliTRDrawStreamTB *raw = new AliTRDrawStreamTB(rawReader);
-
-  raw->SetRawVersion(3);
-  raw->Init();
+  //AliTRDrawStreamBase::SetRawStreamVersion("TB");
+  AliTRDrawStreamBase *raw = AliTRDrawStreamBase::GetRawStream(rawReader);
+  AliInfo(Form("Stream version: %s", raw->IsA()->GetName()));
 
   while (raw->Next()) {
 
@@ -566,6 +565,7 @@ void AliTRDQADataMakerRec::MakeRaws(AliRawReader* rawReader)
     GetRawsData(3)->Fill(sm);
     GetRawsData(4+sm)->Fill(index);
   }
+  delete raw;
 }
 
 //____________________________________________________________________________
