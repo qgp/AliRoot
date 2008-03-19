@@ -64,6 +64,6 @@ echo $CHUNKS | while read -d " " filename; do
      rm -rf   $RUNNUM"/"$CHUNK
      mkdir -p $RUNNUM"/"$CHUNK
      cd       $RUNNUM"/"$CHUNK
-     aliroot ../../rec.C\(\"alien://$filename\"\) 2>&1 | tee rec.log
+     aliroot -b -q ../../rec.C\(\"alien://$filename\"\) 2>&1 | tee rec.log
      cd ../..
 done
