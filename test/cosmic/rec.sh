@@ -28,7 +28,7 @@ fi
 
 VERSION=1.0
 TITLE="Standalone reconstruction of Grid rawdata chunks. v$VERSION"
-ALIEN="$ALIENBIN/alien login -u aliprod -exec"
+ALIEN="$ALIENBIN/alien login -exec"
 
 # Retrieve the list of chunks from AliEn.......
 BASEDIR="/alice/data/20"$YEAR
@@ -53,7 +53,7 @@ echo "Selected chunks:"
 echo $CHUNKS
 echo
 
-alien-token-init aliprod
+alien-token-init
 . /tmp/gclient_env_$UID
 
 echo $CHUNKS | while read -d " " filename; do 
