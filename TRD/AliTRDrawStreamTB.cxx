@@ -721,9 +721,9 @@ AliTRDrawStreamTB::NextChamber(AliTRDdigitsManager *digitsManager)
 	  if (digits->GetNtime() == 0) 
 	    {
 	      digits->Allocate(rowMax, colMax, ntbins);
-	      track0->Allocate(rowMax, colMax, ntbins);
-	      track1->Allocate(rowMax, colMax, ntbins);
-	      track2->Allocate(rowMax, colMax, ntbins);
+	      if (track0) track0->Allocate(rowMax, colMax, ntbins);
+	      if (track1) track1->Allocate(rowMax, colMax, ntbins);
+	      if (track2) track2->Allocate(rowMax, colMax, ntbins);
 	    }
 
 	  indexes = digitsManager->GetIndexes(det);
@@ -743,9 +743,9 @@ AliTRDrawStreamTB::NextChamber(AliTRDdigitsManager *digitsManager)
 	      digits->SetDataUnchecked(GetRow(), GetCol(), it, GetSignals()[it]);
 	      
 	      indexes->AddIndexTBin(GetRow(), GetCol(), it);
-	      track0->SetDataUnchecked(GetRow(), GetCol(), it, 0);
-	      track1->SetDataUnchecked(GetRow(), GetCol(), it, 0);
-	      track2->SetDataUnchecked(GetRow(), GetCol(), it, 0);
+	      if (track0) track0->SetDataUnchecked(GetRow(), GetCol(), it, 0);
+	      if (track1) track1->SetDataUnchecked(GetRow(), GetCol(), it, 0);
+	      if (track2) track2->SetDataUnchecked(GetRow(), GetCol(), it, 0);
 	    }
 	} // tbins
     }// while Next()
