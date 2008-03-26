@@ -180,6 +180,7 @@ Bool_t AliMUONRawStreamTrigger::GetNextDDL()
   /// Returns the next DDL present
   
   assert( GetReader() != 0 );
+
   
   Bool_t kFound(kFALSE);
   
@@ -208,11 +209,13 @@ Bool_t AliMUONRawStreamTrigger::GetNextDDL()
   
   Int_t totalDataWord  = GetReader()->GetDataSize(); // in bytes
   
+  Bool_t scalerEvent =  GetReader()->GetDataHeader()->GetL1TriggerMessage() & 0x1;
+
   AliDebug(3, Form("DDL Number %d totalDataWord %d\n", fCurrentDDLIndex,
                    totalDataWord));
 
   UInt_t *buffer = new UInt_t[totalDataWord/4];
-  
+
   if ( !GetReader()->ReadNext((UChar_t*)buffer, totalDataWord) )
   {
     // We have not actually been able to complete the loading of the new DDL so
@@ -228,7 +231,9 @@ Bool_t AliMUONRawStreamTrigger::GetNextDDL()
 
   fPayload->ResetDDL();
   
-  Bool_t ok = fPayload->Decode(buffer);
+
+
+  Bool_t ok = fPayload->Decode(buffer, scalerEvent);
 
   delete[] buffer;
   
@@ -349,6 +354,9 @@ Bool_t AliMUONRawStreamTrigger::NextDDL()
 
   Int_t totalDataWord = GetReader()->GetDataSize(); // in bytes
 
+  Bool_t scalerEvent =  GetReader()->GetDataHeader()->GetL1TriggerMessage() & 0x1;
+
+
   UInt_t *buffer = new UInt_t[totalDataWord/4];
 
   // check not necessary yet, but for future developments
@@ -358,7 +366,7 @@ Bool_t AliMUONRawStreamTrigger::NextDDL()
   Swap(buffer, totalDataWord / sizeof(UInt_t)); // swap needed for mac power pc
 #endif
 
-  fPayload->Decode(buffer);
+  fPayload->Decode(buffer, scalerEvent);
 
 
   fDDL++;
