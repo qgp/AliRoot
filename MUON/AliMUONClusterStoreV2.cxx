@@ -124,7 +124,7 @@ AliMUONVCluster* AliMUONClusterStoreV2::CreateCluster(Int_t chamberId, Int_t det
 }
 
 //_____________________________________________________________________________
-Bool_t AliMUONClusterStoreV2::Add(const AliMUONVCluster& vCluster)
+AliMUONVCluster* AliMUONClusterStoreV2::Add(const AliMUONVCluster& vCluster)
 {
   /// Add a cluster to this store
   const AliMUONRawClusterV2* cluster = dynamic_cast<const AliMUONRawClusterV2*>(&vCluster);
@@ -132,7 +132,7 @@ Bool_t AliMUONClusterStoreV2::Add(const AliMUONVCluster& vCluster)
   if (!cluster) {
     AliError(Form("Cluster is not of the expected type (%s vs AliMUONRawClusterV2)",
                   vCluster.ClassName()));
-    return kFALSE;
+    return 0x0;
   }
   
   // check chamberId
@@ -143,17 +143,19 @@ Bool_t AliMUONClusterStoreV2::Add(const AliMUONVCluster& vCluster)
   }
   
   // check that there is no cluster with the same Id
-  if (FindObject(cluster->GetUniqueID())) {
-    AliError("cluster store already contains a cluster with the same ID --> add() aborted");
-    return kFALSE;
+  AliMUONVCluster *c = FindObject(cluster->GetUniqueID());
+  if (c) {
+    AliError("cluster store already contains a cluster with the same ID --> add() aborted:");
+    c->Print("FULL");
+    return 0x0;
   }
   
   // add new cluster
-  AliMUONVCluster *c = new((*fClusters)[fClusters->GetLast()+1]) AliMUONRawClusterV2(*cluster);
+  c = new((*fClusters)[fClusters->GetLast()+1]) AliMUONRawClusterV2(*cluster);
   
   if (c) UpdateMap(*c);
   
-  return kTRUE;
+  return c;
 }
 
 //_____________________________________________________________________________
@@ -189,9 +191,14 @@ AliMUONVCluster* AliMUONClusterStoreV2::Remove(AliMUONVCluster& cluster)
   /// Remove a cluster
   AliMUONVCluster* c = static_cast<AliMUONVCluster*>(fClusters->Remove(&cluster));
   
-  if (c) {
+  if (c) 
+  {
     fClusters->Compress();
     fMapped = kFALSE;
+  }
+  else
+  {
+    AliError("Could not remove cluster from array");
   }
   
   return c;
@@ -205,16 +212,24 @@ void AliMUONClusterStoreV2::ReMap()
   
   // Create (or clear) the TClonesArray of map
   Int_t nChamber = AliMpConstants::NofTrackingChambers();
-  if (!fMap) fMap = new TClonesArray("AliMpExMap",nChamber);
-  else fMap->Clear("C");
   
-  // Create one map per chamber
-  AliMpExMap *map;
-  for (Int_t chamber=0; chamber<nChamber; chamber++) {
-    map = new((*fMap)[chamber]) AliMpExMap(kTRUE);
-    map->SetOwner(kFALSE);
+  if (!fMap) {
+    fMap = new TClonesArray("AliMpExMap",nChamber);
+    
+    // Create one map per chamber
+    AliMpExMap *map;
+    for (Int_t chamber=0; chamber<nChamber; chamber++) {
+      map = new((*fMap)[chamber]) AliMpExMap(kTRUE);
+      map->SetOwner(kFALSE);
+    }
   }
-  
+  else {
+    for (Int_t chamber=0; chamber<nChamber; chamber++) {
+      AliMpExMap *map = static_cast<AliMpExMap *>(fMap->At(chamber));
+      map->Clear("C");
+    }
+  }  
+
   // Fill the maps
   TIter next(fClusters);
   AliMUONVCluster* cluster;

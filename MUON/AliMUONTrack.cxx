@@ -23,15 +23,15 @@
 
 #include "AliMUONTrack.h"
 
-#include "AliMUONTrackParam.h" 
-#include "AliMUONRawClusterV2.h" 
-#include "AliMUONObjectPair.h" 
+#include "AliMUONReconstructor.h"
+#include "AliMUONRecoParam.h"
+#include "AliMUONVCluster.h"
+#include "AliMUONVClusterStore.h"
+#include "AliMUONObjectPair.h"
 #include "AliMUONConstants.h"
-#include "AliMUONTrackExtrap.h" 
+#include "AliMUONTrackExtrap.h"
 
 #include "AliLog.h"
-#include "AliESDMuonTrack.h"
-#include "AliESDMuonCluster.h"
 
 #include <TMath.h>
 #include <TMatrixD.h>
@@ -45,7 +45,7 @@ ClassImp(AliMUONTrack) // Class implementation in ROOT context
 //__________________________________________________________________________
 AliMUONTrack::AliMUONTrack()
   : TObject(),
-    fTrackParamAtCluster(new TClonesArray("AliMUONTrackParam",10)),
+    fTrackParamAtCluster(0x0),
     fFitWithVertex(kFALSE),
     fVertexErrXY2(),
     fFitWithMCS(kFALSE),
@@ -62,7 +62,6 @@ AliMUONTrack::AliMUONTrack()
     fLocalTrigger(0)
 {
   /// Default constructor
-  fTrackParamAtCluster->SetOwner(kTRUE);
   fVertexErrXY2[0] = 0.;
   fVertexErrXY2[1] = 0.;
 }
@@ -87,31 +86,13 @@ AliMUONTrack::AliMUONTrack(AliMUONObjectPair *segment)
     fLocalTrigger(0)
 {
   /// Constructor from two clusters
-  fTrackParamAtCluster->SetOwner(kTRUE);
   
   fVertexErrXY2[0] = 0.;
   fVertexErrXY2[1] = 0.;
   
   // Pointers to clusters from the segment
-  AliMUONVCluster* cluster1 = (AliMUONVCluster*) segment->First();
-  AliMUONVCluster* cluster2 = (AliMUONVCluster*) segment->Second();
-  
-  // check sorting in -Z (spectro z<0)
-  if (cluster1->GetZ() < cluster2->GetZ()) {
-    cluster1 = cluster2;
-    cluster2 = (AliMUONVCluster*) segment->First();
-  }
-  
-  // order the clusters into the track according to the station the segment belong to
-  //(the cluster first attached is the one from which we will start the tracking procedure)
-  AliMUONVCluster *firstCluster, *lastCluster;
-  if (cluster1->GetChamberId() == 8) {
-    firstCluster = cluster1;
-    lastCluster = cluster2;
-  } else {
-    firstCluster = cluster2;
-    lastCluster = cluster1;
-  }
+  AliMUONVCluster* firstCluster = (AliMUONVCluster*) segment->First();
+  AliMUONVCluster* lastCluster = (AliMUONVCluster*) segment->Second();
   
   // Compute track parameters
   Double_t z1 = firstCluster->GetZ();
@@ -129,7 +110,6 @@ AliMUONTrack::AliMUONTrack(AliMUONObjectPair *segment)
   Double_t bendingImpact = bendingCoor1 - z1 * bendingSlope;
   Double_t inverseBendingMomentum = 1. / AliMUONTrackExtrap::GetBendingMomentumFromImpactParam(bendingImpact);
   
-  
   // Set track parameters at first cluster
   AliMUONTrackParam trackParamAtFirstCluster;
   trackParamAtFirstCluster.SetZ(z1);
@@ -138,7 +118,6 @@ AliMUONTrack::AliMUONTrack(AliMUONObjectPair *segment)
   trackParamAtFirstCluster.SetBendingCoor(bendingCoor1);
   trackParamAtFirstCluster.SetBendingSlope(bendingSlope);
   trackParamAtFirstCluster.SetInverseBendingMomentum(inverseBendingMomentum);
-  
   
   // Set track parameters at last cluster
   AliMUONTrackParam trackParamAtLastCluster;
@@ -149,43 +128,40 @@ AliMUONTrack::AliMUONTrack(AliMUONObjectPair *segment)
   trackParamAtLastCluster.SetBendingSlope(bendingSlope);
   trackParamAtLastCluster.SetInverseBendingMomentum(inverseBendingMomentum);
   
-  
   // Compute and set track parameters covariances at first cluster
-  TMatrixD paramCov1(5,5);
-  paramCov1.Zero();
+  TMatrixD paramCov(5,5);
+  paramCov.Zero();
   // Non bending plane
-  paramCov1(0,0) = firstCluster->GetErrX2();
-  paramCov1(0,1) = firstCluster->GetErrX2() / dZ;
-  paramCov1(1,0) = paramCov1(0,1);
-  paramCov1(1,1) = ( firstCluster->GetErrX2() + lastCluster->GetErrX2() ) / dZ / dZ;
+  paramCov(0,0) = firstCluster->GetErrX2();
+  paramCov(0,1) = firstCluster->GetErrX2() / dZ;
+  paramCov(1,0) = paramCov(0,1);
+  paramCov(1,1) = ( firstCluster->GetErrX2() + lastCluster->GetErrX2() ) / dZ / dZ;
   // Bending plane
-  paramCov1(2,2) = firstCluster->GetErrY2();
-  paramCov1(2,3) = firstCluster->GetErrY2() / dZ;
-  paramCov1(3,2) = paramCov1(2,3);
-  paramCov1(3,3) = ( firstCluster->GetErrY2() + lastCluster->GetErrY2() ) / dZ / dZ;
-  // Inverse bending momentum (50% error)
-  paramCov1(4,4) = 0.5*inverseBendingMomentum * 0.5*inverseBendingMomentum;
+  paramCov(2,2) = firstCluster->GetErrY2();
+  paramCov(2,3) = firstCluster->GetErrY2() / dZ;
+  paramCov(3,2) = paramCov(2,3);
+  paramCov(3,3) = ( firstCluster->GetErrY2() + lastCluster->GetErrY2() ) / dZ / dZ;
+  // Inverse bending momentum (vertex resolution + bending slope resolution + 10% error on dipole parameters+field)
+  paramCov(4,4) = ((AliMUONReconstructor::GetRecoParam()->GetBendingVertexDispersion() *
+		    AliMUONReconstructor::GetRecoParam()->GetBendingVertexDispersion() +
+		    (z1 * z1 * lastCluster->GetErrY2() + z2 * z2 * firstCluster->GetErrY2()) / dZ / dZ) /
+		   bendingImpact / bendingImpact + 0.1 * 0.1) * inverseBendingMomentum * inverseBendingMomentum;
+  paramCov(2,4) = - z2 * firstCluster->GetErrY2() * inverseBendingMomentum / bendingImpact / dZ;
+  paramCov(4,2) = paramCov(2,4);
+  paramCov(3,4) = - (z1 * lastCluster->GetErrY2() + z2 * firstCluster->GetErrY2()) * inverseBendingMomentum / bendingImpact / dZ / dZ;
+  paramCov(4,3) = paramCov(3,4);
+  
   // Set covariances
-  trackParamAtFirstCluster.SetCovariances(paramCov1);
+  trackParamAtFirstCluster.SetCovariances(paramCov);
   
-  
-  // Compute and set track parameters covariances at last cluster (as if the first cluster did not exist)
-  TMatrixD paramCov2(5,5);
-  paramCov2.Zero();
-  // Non bending plane
-  paramCov2(0,0) = paramCov1(0,0);
-  paramCov2(1,1) = 100.*paramCov1(1,1);
-  // Bending plane
-  paramCov2(2,2) = paramCov1(2,2);
-  paramCov2(3,3) = 100.*paramCov1(3,3);
-  // Inverse bending momentum
-  paramCov2(4,4) = paramCov1(4,4);
-  // Set covariances
-  trackParamAtLastCluster.SetCovariances(paramCov2);
-  
-  // Flag clusters as being removable
-  trackParamAtFirstCluster.SetRemovable(kTRUE);
-  trackParamAtLastCluster.SetRemovable(kTRUE);
+  // Compute and set track parameters covariances at last cluster
+  paramCov(1,0) = - paramCov(1,0);
+  paramCov(0,1) = - paramCov(0,1);
+  paramCov(3,2) = - paramCov(3,2);
+  paramCov(2,3) = - paramCov(2,3);
+  paramCov(2,4) = z1 * lastCluster->GetErrY2() * inverseBendingMomentum / bendingImpact / dZ;
+  paramCov(4,2) = paramCov(2,4);
+  trackParamAtLastCluster.SetCovariances(paramCov);
   
   // Add track parameters at clusters
   AddTrackParamAtCluster(trackParamAtFirstCluster,*firstCluster);
@@ -194,109 +170,9 @@ AliMUONTrack::AliMUONTrack(AliMUONObjectPair *segment)
 }
 
 //__________________________________________________________________________
-AliMUONTrack::AliMUONTrack(AliESDMuonTrack &esdTrack)
-  : TObject(),
-    fTrackParamAtCluster(new TClonesArray("AliMUONTrackParam",10)),
-    fFitWithVertex(kFALSE),
-    fVertexErrXY2(),
-    fFitWithMCS(kFALSE),
-    fClusterWeightsNonBending(0x0),
-    fClusterWeightsBending(0x0),
-    fGlobalChi2(esdTrack.GetChi2()),
-    fImproved(kFALSE),
-    fMatchTrigger(esdTrack.GetMatchTrigger()),
-    floTrgNum(-1),
-    fChi2MatchTrigger(esdTrack.GetChi2MatchTrigger()),
-    fTrackID(0),
-    fTrackParamAtVertex(new AliMUONTrackParam()),
-    fHitsPatternInTrigCh(esdTrack.GetHitsPatternInTrigCh()),
-    fLocalTrigger(0)
-{
-  /// Constructor from ESD muon track
-  /// Compute track parameters and covariances at each cluster if available
-  /// or store parameters and covariances at first (fake) cluster only if not
-  
-  fTrackParamAtCluster->SetOwner(kTRUE);
-  
-  fVertexErrXY2[0] = 0.;
-  fVertexErrXY2[1] = 0.;
-  
-  // global info
-  SetLocalTrigger(esdTrack.LoCircuit(), esdTrack.LoStripX(), esdTrack.LoStripY(),
-		  esdTrack.LoDev(), esdTrack.LoLpt(), esdTrack.LoHpt());
-  
-  // track parameters at vertex
-  fTrackParamAtVertex->GetParamFrom(esdTrack);
-  
-  // track parameters at first cluster
-  AliMUONTrackParam param;
-  param.GetParamFromUncorrected(esdTrack);
-  param.GetCovFrom(esdTrack);
-  
-  // fill fTrackParamAtCluster with track parameters at each cluster if available
-  if(esdTrack.ClustersStored()) {
-    
-    // loop over ESD clusters
-    AliESDMuonCluster *esdCluster = (AliESDMuonCluster*) esdTrack.GetClusters().First();
-    while (esdCluster) {
-      
-      // copy cluster information
-      AliMUONRawClusterV2 cluster(*esdCluster);
-      
-      // only set the Z parameter to avoid error in the AddTrackParamAtCluster(...) method
-      param.SetZ(cluster.GetZ());
-      
-      // add common track parameters at current cluster
-      AddTrackParamAtCluster(param, cluster, kTRUE);
-      
-      esdCluster = (AliESDMuonCluster*) esdTrack.GetClusters().After(esdCluster);
-    }
-    
-    // sort array of track parameters at clusters
-    fTrackParamAtCluster->Sort();
-    
-    // check that parameters stored in ESD are parameters at the most upstream cluster
-    // (convert Z position values to Float_t because of Double32_t in ESD track)
-    AliMUONTrackParam *firstTrackParam = (AliMUONTrackParam*) fTrackParamAtCluster->First();
-    if (((Float_t)firstTrackParam->GetZ()) != ((Float_t)esdTrack.GetZUncorrected())) {
-      
-      AliError("track parameters are not given at the most upstream stored cluster");
-      fTrackParamAtCluster->Clear("C");
-      
-    } else {
-      
-      // Compute track parameters and covariances at each cluster from info at the first one
-      UpdateCovTrackParamAtCluster();
-      
-    }
-    
-  }
-  
-  // fill fTrackParamAtCluster with track parameters at first (fake) cluster
-  // if first cluster not found or clusters not available
-  if (GetNClusters() == 0) {
-    
-    // get number of the first hit chamber (according to the MUONClusterMap if not empty)
-    Int_t firstCh = 0;
-    if (esdTrack.GetMuonClusterMap() != 0) while (!esdTrack.IsInMuonClusterMap(firstCh)) firstCh++;
-    else firstCh = AliMUONConstants::ChamberNumber(param.GetZ());
-    
-    // produce fake cluster at this chamber
-    AliMUONRawClusterV2 fakeCluster(firstCh, 0, 0);
-    fakeCluster.SetXYZ(param.GetNonBendingCoor(), param.GetBendingCoor(), param.GetZ());
-    fakeCluster.SetErrXY(0., 0.);
-    
-    // add track parameters at first (fake) cluster
-    AddTrackParamAtCluster(param, fakeCluster, kTRUE);
-    
-  }
-  
-}
-
-//__________________________________________________________________________
 AliMUONTrack::AliMUONTrack(const AliMUONTrack& track)
   : TObject(track),
-    fTrackParamAtCluster(new TClonesArray("AliMUONTrackParam",10)),
+    fTrackParamAtCluster(0x0),
     fFitWithVertex(track.fFitWithVertex),
     fVertexErrXY2(),
     fFitWithMCS(track.fFitWithMCS),
@@ -315,10 +191,13 @@ AliMUONTrack::AliMUONTrack(const AliMUONTrack& track)
   ///copy constructor
   
   // necessary to make a copy of the objects and not only the pointers in TClonesArray.
-  AliMUONTrackParam *trackParamAtCluster = (AliMUONTrackParam*) track.fTrackParamAtCluster->First();
-  while (trackParamAtCluster) {
-    new ((*fTrackParamAtCluster)[GetNClusters()]) AliMUONTrackParam(*trackParamAtCluster);
-    trackParamAtCluster = (AliMUONTrackParam*) track.fTrackParamAtCluster->After(trackParamAtCluster);
+  if (track.fTrackParamAtCluster) {
+    fTrackParamAtCluster = new TClonesArray("AliMUONTrackParam",10);
+    AliMUONTrackParam *trackParamAtCluster = (AliMUONTrackParam*) track.fTrackParamAtCluster->First();
+    while (trackParamAtCluster) {
+      new ((*fTrackParamAtCluster)[GetNClusters()]) AliMUONTrackParam(*trackParamAtCluster);
+      trackParamAtCluster = (AliMUONTrackParam*) track.fTrackParamAtCluster->After(trackParamAtCluster);
+    }
   }
   
   // copy vertex resolution square used during the tracking procedure
@@ -344,13 +223,18 @@ AliMUONTrack & AliMUONTrack::operator=(const AliMUONTrack& track)
 
   // base class assignement
   TObject::operator=(track);
-
-  // necessary to make a copy of the objects and not only the pointers in TClonesArray.
-  fTrackParamAtCluster = new TClonesArray("AliMUONTrackParam",10);
-  AliMUONTrackParam *trackParamAtCluster = (AliMUONTrackParam*) track.fTrackParamAtCluster->First();
-  while (trackParamAtCluster) {
-    new ((*fTrackParamAtCluster)[GetNClusters()]) AliMUONTrackParam(*trackParamAtCluster);
-    trackParamAtCluster = (AliMUONTrackParam*) track.fTrackParamAtCluster->After(trackParamAtCluster);
+  
+  // clear memory
+  Clear();
+  
+  // necessary to make a copy of the objects and not only the pointers in TClonesArray
+  if (track.fTrackParamAtCluster) {
+    fTrackParamAtCluster = new TClonesArray("AliMUONTrackParam",10);
+    AliMUONTrackParam *trackParamAtCluster = (AliMUONTrackParam*) track.fTrackParamAtCluster->First();
+    while (trackParamAtCluster) {
+      new ((*fTrackParamAtCluster)[GetNClusters()]) AliMUONTrackParam(*trackParamAtCluster);
+      trackParamAtCluster = (AliMUONTrackParam*) track.fTrackParamAtCluster->After(trackParamAtCluster);
+    }
   }
   
   // copy cluster weights matrix if any
@@ -359,9 +243,6 @@ AliMUONTrack & AliMUONTrack::operator=(const AliMUONTrack& track)
       fClusterWeightsNonBending->ResizeTo(*(track.fClusterWeightsNonBending));
       *fClusterWeightsNonBending = *(track.fClusterWeightsNonBending);
     } else fClusterWeightsNonBending = new TMatrixD(*(track.fClusterWeightsNonBending));
-  } else if (fClusterWeightsNonBending) {
-    delete fClusterWeightsNonBending;
-    fClusterWeightsNonBending = 0x0;
   }
   
   // copy cluster weights matrix if any
@@ -370,18 +251,12 @@ AliMUONTrack & AliMUONTrack::operator=(const AliMUONTrack& track)
       fClusterWeightsBending->ResizeTo(*(track.fClusterWeightsBending));
       *fClusterWeightsBending = *(track.fClusterWeightsBending);
     } else fClusterWeightsBending = new TMatrixD(*(track.fClusterWeightsBending));
-  } else if (fClusterWeightsBending) {
-    delete fClusterWeightsBending;
-    fClusterWeightsBending = 0x0;
   }
   
   // copy track parameters at vertex if any
   if (track.fTrackParamAtVertex) {
     if (fTrackParamAtVertex) *fTrackParamAtVertex = *(track.fTrackParamAtVertex);
     else fTrackParamAtVertex = new AliMUONTrackParam(*(track.fTrackParamAtVertex));
-  } else if (fTrackParamAtVertex) {
-    delete fTrackParamAtVertex;
-    fTrackParamAtVertex = 0x0;
   }
   
   fFitWithVertex      =  track.fFitWithVertex;
@@ -414,10 +289,22 @@ AliMUONTrack::~AliMUONTrack()
 void AliMUONTrack::Clear(Option_t* opt)
 {
   /// Clear arrays
-  fTrackParamAtCluster->Clear(opt);
+  if (opt && opt[0] == 'C' && fTrackParamAtCluster) fTrackParamAtCluster->Clear("C");
+  else {
+    delete fTrackParamAtCluster;
+    fTrackParamAtCluster = 0x0;
+  }
   delete fClusterWeightsNonBending; fClusterWeightsNonBending = 0x0;
   delete fClusterWeightsBending; fClusterWeightsBending = 0x0;
   delete fTrackParamAtVertex; fTrackParamAtVertex = 0x0;
+}
+
+  //__________________________________________________________________________
+TClonesArray* AliMUONTrack::GetTrackParamAtCluster() const
+{
+  /// return array of track parameters at cluster (create it if needed)
+  if (!fTrackParamAtCluster) fTrackParamAtCluster = new TClonesArray("AliMUONTrackParam",10);
+  return fTrackParamAtCluster;
 }
 
   //__________________________________________________________________________
@@ -441,6 +328,7 @@ void AliMUONTrack::AddTrackParamAtCluster(const AliMUONTrackParam &trackParam, A
   }
   
   // add parameters to the array of track parameters
+  if (!fTrackParamAtCluster) fTrackParamAtCluster = new TClonesArray("AliMUONTrackParam",10);
   AliMUONTrackParam* trackParamAtCluster = new ((*fTrackParamAtCluster)[GetNClusters()]) AliMUONTrackParam(trackParam);
   
   // link parameters with the associated cluster or its copy
@@ -448,13 +336,16 @@ void AliMUONTrack::AddTrackParamAtCluster(const AliMUONTrackParam &trackParam, A
     AliMUONVCluster *clusterCopy = static_cast<AliMUONVCluster*>(cluster.Clone());
     trackParamAtCluster->SetClusterPtr(clusterCopy, kTRUE);
   } else trackParamAtCluster->SetClusterPtr(&cluster);
+  
+  // sort the array of track parameters
+  fTrackParamAtCluster->Sort();
 }
 
   //__________________________________________________________________________
 void AliMUONTrack::RemoveTrackParamAtCluster(AliMUONTrackParam *trackParam)
 {
   /// Remove trackParam from the array of TrackParamAtCluster
-  if (!fTrackParamAtCluster->Remove(trackParam)) {
+  if (!fTrackParamAtCluster || !fTrackParamAtCluster->Remove(trackParam)) {
     AliWarning("object to remove does not exist in array fTrackParamAtCluster");
     return;
   }
@@ -537,6 +428,78 @@ void AliMUONTrack::UpdateCovTrackParamAtCluster()
 }
 
   //__________________________________________________________________________
+Bool_t AliMUONTrack::IsValid()
+{
+  /// check the validity of the current track (at least one cluster per requested station)
+  
+  Int_t nClusters = GetNClusters();
+  AliMUONTrackParam *trackParam;
+  Int_t currentStation = 0, expectedStation = 0;
+  
+  for (Int_t i = 0; i < nClusters; i++) {
+    trackParam = (AliMUONTrackParam*) fTrackParamAtCluster->UncheckedAt(i);
+    
+    // skip unrequested stations
+    while (expectedStation < AliMUONConstants::NTrackingSt() &&
+	   !AliMUONReconstructor::GetRecoParam()->RequestStation(expectedStation)) expectedStation++;
+    
+    currentStation = trackParam->GetClusterPtr()->GetChamberId()/2;
+    
+    // missing station
+    if (currentStation > expectedStation) return kFALSE;
+    
+    // found station --> look for next one
+    if (currentStation == expectedStation) expectedStation++;
+    
+  }
+  
+  return expectedStation == AliMUONConstants::NTrackingSt();
+  
+}
+
+  //__________________________________________________________________________
+void AliMUONTrack::TagRemovableClusters() {
+  /// Identify clusters that can be removed from the track,
+  /// with the only requirement to have at least 1 cluster per requested station
+  
+  Int_t nClusters = GetNClusters();
+  AliMUONTrackParam *trackParam, *nextTrackParam;
+  Int_t currentCh, nextCh;
+  
+  // reset flags to kFALSE for all clusters in required station
+  for (Int_t i = 0; i < nClusters; i++) {
+    trackParam = (AliMUONTrackParam*) fTrackParamAtCluster->UncheckedAt(i);
+    if (AliMUONReconstructor::GetRecoParam()->RequestStation(trackParam->GetClusterPtr()->GetChamberId()/2))
+      trackParam->SetRemovable(kFALSE);
+    else trackParam->SetRemovable(kTRUE);
+  }
+  
+  // loop over track parameters
+  for (Int_t i = 0; i < nClusters; i++) {
+    trackParam = (AliMUONTrackParam*) fTrackParamAtCluster->UncheckedAt(i);
+    
+    currentCh = trackParam->GetClusterPtr()->GetChamberId();
+    
+    // loop over next track parameters
+    for (Int_t j = i+1; j < nClusters; j++) {
+      nextTrackParam = (AliMUONTrackParam*) fTrackParamAtCluster->UncheckedAt(j);
+      
+      nextCh = nextTrackParam->GetClusterPtr()->GetChamberId();
+      
+      // check if the 2 clusters are on the same station
+      if (nextCh/2 != currentCh/2) break;
+      
+      // set clusters in the same station as being removable
+      trackParam->SetRemovable(kTRUE);
+      nextTrackParam->SetRemovable(kTRUE);
+      
+    }
+    
+  }
+    
+}
+
+  //__________________________________________________________________________
 Bool_t AliMUONTrack::ComputeLocalChi2(Bool_t accountForMCS)
 {
   /// Compute each cluster contribution to the chi2 of the track
@@ -544,6 +507,12 @@ Bool_t AliMUONTrack::ComputeLocalChi2(Bool_t accountForMCS)
   /// - Also recompute the weight matrices of the attached clusters if accountForMCS=kTRUE
   /// - Assume that track parameters at each cluster are corrects
   /// - Return kFALSE if computation failed
+  AliDebug(1,"Enter ComputeLocalChi2");
+  
+  if (!fTrackParamAtCluster) {
+    AliWarning("no cluster attached to this track");
+    return kFALSE;
+  }
   
   if (accountForMCS) { // Compute local chi2 taking into account multiple scattering effects
       
@@ -660,6 +629,12 @@ Double_t AliMUONTrack::ComputeGlobalChi2(Bool_t accountForMCS)
   /// - Assume that track parameters at each cluster are corrects
   /// - Assume the cluster weights matrices are corrects
   /// - Return negative value if chi2 computation failed
+  AliDebug(1,"Enter ComputeGlobalChi2");
+  
+  if (!fTrackParamAtCluster) {
+    AliWarning("no cluster attached to this track");
+    return 1.e10;
+  }
   
   Double_t chi2 = 0.;
   
@@ -724,6 +699,12 @@ Bool_t AliMUONTrack::ComputeClusterWeights(TMatrixD* mcsCovariances)
   /// - Use the provided MCS covariance matrix if any (otherwise build it temporarily)
   /// - Assume that track parameters at each cluster are corrects
   /// - Return kFALSE if computation failed
+  AliDebug(1,"Enter ComputeClusterWeights1");
+  
+  if (!fTrackParamAtCluster) {
+    AliWarning("no cluster attached to this track");
+    return kFALSE;
+  }
   
   // Alocate memory
   Int_t nClusters = GetNClusters();
@@ -746,6 +727,7 @@ Bool_t AliMUONTrack::ComputeClusterWeights(TMatrixD& clusterWeightsNB, TMatrixD&
   /// accounting for multiple scattering correlations and cluster resolution
   /// - Use the provided MCS covariance matrix if any (otherwise build it temporarily)
   /// - Return kFALSE if computation failed
+  AliDebug(1,"Enter ComputeClusterWeights2");
   
   // Check MCS covariance matrix and recompute it if need
   Int_t nClusters = GetNClusters();
@@ -835,6 +817,7 @@ void AliMUONTrack::ComputeMCSCovariances(TMatrixD& mcsCovariances) const
 {
   /// Compute the multiple scattering covariance matrix
   /// (assume that track parameters at each cluster are corrects)
+  AliDebug(1,"Enter ComputeMCSCovariances");
   
   // Reset the size of the covariance matrix if needed
   Int_t nClusters = GetNClusters();
@@ -923,6 +906,7 @@ Int_t AliMUONTrack::ClustersInCommon(AliMUONTrack* track) const
 {
   /// Returns the number of clusters in common between the current track ("this")
   /// and the track pointed to by "track".
+  if (!fTrackParamAtCluster || !this->fTrackParamAtCluster) return 0;
   Int_t clustersInCommon = 0;
   AliMUONTrackParam *trackParamAtCluster1, *trackParamAtCluster2;
   // Loop over clusters of first track
@@ -950,7 +934,7 @@ Double_t AliMUONTrack::GetNormalizedChi2() const
   
   Double_t numberOfDegFree = (2. * GetNClusters() - 5.);
   if (numberOfDegFree > 0.) return fGlobalChi2 / numberOfDegFree;
-  else return 1.e10;
+  else return fGlobalChi2; // system is under-constraint
 }
 
   //__________________________________________________________________________
@@ -966,6 +950,8 @@ Bool_t* AliMUONTrack::CompatibleTrack(AliMUONTrack *track, Double_t sigmaCut) co
   Bool_t *compatibleCluster = new Bool_t[AliMUONConstants::NTrackingCh()]; 
   for ( Int_t ch = 0; ch < AliMUONConstants::NTrackingCh(); ch++) compatibleCluster[ch] = kFALSE;
 
+  if (!fTrackParamAtCluster || !this->fTrackParamAtCluster) return compatibleCluster;
+  
   // Loop over clusters of first track
   trackParamAtCluster1 = (AliMUONTrackParam*) this->fTrackParamAtCluster->First();
   while (trackParamAtCluster1) {
@@ -1046,7 +1032,7 @@ void AliMUONTrack::Print(Option_t*) const
       ", LoTrgNum=" << setw(3) << GetLoTrgNum()  << 
     ", Chi2-tracking-trigger=" << setw(8) << setprecision(5) <<  GetChi2MatchTrigger();
   cout << Form(" HitTriggerPattern %x",fHitsPatternInTrigCh) << endl;
-  fTrackParamAtCluster->First()->Print("FULL");
+  if (fTrackParamAtCluster) fTrackParamAtCluster->First()->Print("FULL");
 }
 
 //__________________________________________________________________________

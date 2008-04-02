@@ -33,33 +33,31 @@
 
 #include "AliMUONTracker.h"
 
-#include "AliMUONReconstructor.h"
+#include "AliCodeTimer.h"
+#include "AliESDEvent.h"
+#include "AliESDMuonTrack.h"
+#include "AliESDVertex.h"
+#include "AliLog.h"
+#include "AliMUONClusterStoreV2.h"
+#include "AliMUONESDInterface.h"
+#include "AliMUONLegacyClusterServer.h"
 #include "AliMUONRecoParam.h"
+#include "AliMUONReconstructor.h"
 #include "AliMUONTrack.h"
 #include "AliMUONTrackExtrap.h"
 #include "AliMUONTrackHitPattern.h"
 #include "AliMUONTrackParam.h"
-#include "AliMUONVCluster.h"
-#include "AliMUONVClusterServer.h"
-#include "AliMUONVDigitStore.h"
 #include "AliMUONTrackReconstructor.h"
 #include "AliMUONTrackReconstructorK.h"
 #include "AliMUONTrackStoreV1.h"
 #include "AliMUONTriggerTrackStoreV1.h"
-#include "AliMUONClusterStoreV2.h"
+#include "AliMUONVCluster.h"
+#include "AliMUONVClusterServer.h"
+#include "AliMUONVDigitStore.h"
 #include "AliMUONVTriggerStore.h"
-
-#include "AliESDEvent.h"
-#include "AliESDMuonTrack.h"
-#include "AliESDMuonCluster.h"
-#include "AliESDMuonPad.h"
-#include "AliESDVertex.h"
-#include "AliLog.h"
-#include "AliCodeTimer.h"
-
 #include <Riostream.h>
-#include <TTree.h>
 #include <TRandom.h>
+#include <TTree.h>
 
 /// \cond CLASSIMP
 ClassImp(AliMUONTracker)
@@ -67,8 +65,8 @@ ClassImp(AliMUONTracker)
 
 
 //_____________________________________________________________________________
-AliMUONTracker::AliMUONTracker(AliMUONVClusterServer& clusterServer,
-			       const AliMUONVDigitStore& digitStore,
+AliMUONTracker::AliMUONTracker(AliMUONVClusterServer* clusterServer,
+                               const AliMUONVDigitStore& digitStore,
                                const AliMUONDigitMaker* digitMaker,
                                const AliMUONGeometryTransformer* transformer,
                                const AliMUONTriggerCircuit* triggerCircuit)
@@ -80,14 +78,28 @@ AliMUONTracker::AliMUONTracker(AliMUONVClusterServer& clusterServer,
   fTrackReco(0x0),
   fClusterStore(0x0),
   fTriggerStore(0x0),
-  fClusterServer(clusterServer), // not owner
-  fDigitStore(digitStore) // not owner
+  fClusterServer(clusterServer), 
+  fIsOwnerOfClusterServer(kFALSE),
+  fDigitStore(digitStore), // not owner
+  fInputClusterStore(0x0),
+  fTriggerTrackStore(0x0)
 {
   /// constructor
   if (fTransformer && fDigitMaker)
     fTrackHitPatternMaker = new AliMUONTrackHitPattern(*fTransformer,*fDigitMaker);
   
-  fClusterServer.UseDigitStore(fDigitStore);
+  if (!fClusterServer)
+  {
+    AliInfo("No cluster server given. Will use AliMUONLegacyClusterServer");
+    fIsOwnerOfClusterServer = kTRUE;
+  }
+  else
+  {
+    TIter next(fDigitStore.CreateIterator());
+    fClusterServer->UseDigits(next);
+    
+    SetupClusterServer(*fClusterServer);
+  }
 }
 
 //_____________________________________________________________________________
@@ -98,6 +110,9 @@ AliMUONTracker::~AliMUONTracker()
   delete fTrackHitPatternMaker;
   delete fClusterStore;
   delete fTriggerStore;
+  if ( fIsOwnerOfClusterServer ) delete fClusterServer;
+  delete fInputClusterStore;
+  delete fTriggerTrackStore;
 }
 
 //_____________________________________________________________________________
@@ -113,13 +128,25 @@ AliMUONTracker::ClusterStore() const
 }
 
 //_____________________________________________________________________________
+AliMUONVTriggerTrackStore*
+AliMUONTracker::TriggerTrackStore() const
+{
+  /// Return (and create if necessary) the trigger track container
+  if (!fTriggerTrackStore) 
+  {
+    fTriggerTrackStore = new AliMUONTriggerTrackStoreV1;
+  }
+  return fTriggerTrackStore;
+}
+
+//_____________________________________________________________________________
 Int_t AliMUONTracker::LoadClusters(TTree* clustersTree)
 {
   /// Load triggerStore from clustersTree
 
-  ClusterStore()->Clear();
-  
   delete fTriggerStore;
+  delete fInputClusterStore;
+  fInputClusterStore=0x0;
 
   if ( ! clustersTree ) {
     AliFatal("No clustersTree");
@@ -134,7 +161,20 @@ Int_t AliMUONTracker::LoadClusters(TTree* clustersTree)
     return 2;
   }
   
-  ClusterStore()->Connect(*clustersTree,kFALSE);
+  if ( fIsOwnerOfClusterServer )
+  {
+    fInputClusterStore = AliMUONVClusterStore::Create(*clustersTree);
+    if ( fInputClusterStore ) 
+    {
+      AliInfo(Form("Created %s from cluster tree",fInputClusterStore->ClassName()));
+      fInputClusterStore->Clear();
+      fInputClusterStore->Connect(*clustersTree,kFALSE);
+    }
+    delete fClusterServer;
+    fClusterServer = new AliMUONLegacyClusterServer(*fTransformer,fInputClusterStore);
+    SetupClusterServer(*fClusterServer);
+  }
+  
   fTriggerStore->Connect(*clustersTree,kFALSE);
   
   clustersTree->GetEvent(0);
@@ -149,7 +189,10 @@ Int_t AliMUONTracker::Clusters2Tracks(AliESDEvent* esd)
   AliDebug(1,"");
   AliCodeTimerAuto("")
   
-  if (!fTrackReco) CreateTrackReconstructor();
+  if (!fTrackReco) 
+  {
+    fTrackReco = CreateTrackReconstructor(AliMUONReconstructor::GetRecoParam()->GetTrackingMode(),fClusterServer);
+  }
   
   // if the required tracking mode does not exist
   if  (!fTrackReco) return 1;
@@ -165,20 +208,21 @@ Int_t AliMUONTracker::Clusters2Tracks(AliESDEvent* esd)
     return 3;
   }
 
+  // Make trigger tracks
+  if ( fTriggerCircuit ) 
+  {
+    TriggerTrackStore()->Clear();
+    fTrackReco->EventReconstructTrigger(*fTriggerCircuit,*fTriggerStore,*(TriggerTrackStore()));
+  }
+  
   // Make tracker tracks
   AliMUONVTrackStore* trackStore = new AliMUONTrackStoreV1;
   fTrackReco->EventReconstruct(*(ClusterStore()),*trackStore);
   
-  // Make trigger tracks
-  AliMUONVTriggerTrackStore* triggerTrackStore(0x0);
-  if ( fTriggerCircuit ) {
-    triggerTrackStore = new AliMUONTriggerTrackStoreV1;
-    fTrackReco->EventReconstructTrigger(*fTriggerCircuit,*fTriggerStore,*triggerTrackStore);
-  }
-
   // Match tracker/trigger tracks
-  if ( triggerTrackStore && fTrackHitPatternMaker ) {
-    fTrackReco->ValidateTracksWithTrigger(*trackStore,*triggerTrackStore,*fTriggerStore,*fTrackHitPatternMaker);
+  if ( fTrackHitPatternMaker ) 
+  {
+    fTrackReco->ValidateTracksWithTrigger(*trackStore,*(TriggerTrackStore()),*fTriggerStore,*fTrackHitPatternMaker);
   }
   
   // Fill ESD
@@ -186,7 +230,6 @@ Int_t AliMUONTracker::Clusters2Tracks(AliESDEvent* esd)
   
   // cleanup
   delete trackStore;
-  delete triggerTrackStore;
   
   return 0;
 }
@@ -198,130 +241,65 @@ void AliMUONTracker::FillESD(AliMUONVTrackStore& trackStore, AliESDEvent* esd) c
   AliDebug(1,"");
   AliCodeTimerAuto("")
   
-  // Random number to decide whether to save additional cluster info or not for the current event
-  Double_t rand = 0.;
-  if (AliMUONReconstructor::GetRecoParam()->SaveFullClusterInESD()) rand = gRandom->Uniform(0.,100.);
+  AliMUONTrack* track;
+  AliESDMuonTrack esdTrack;
+  Double_t vertex[3] = {0., 0., 0.};
+  TIter next(trackStore.CreateIterator());
   
-  // Get vertex 
-  Double_t vertex[3] = {0};
-  Double_t errXVtx = 0., errYVtx = 0.;
+  // get ITS vertex
   const AliESDVertex* esdVert = esd->GetVertex(); 
-  if (esdVert->GetNContributors()) 
-  {
+  if (esdVert->GetNContributors()) {
     esdVert->GetXYZ(vertex);
-    errXVtx = esdVert->GetXRes();
-    errYVtx = esdVert->GetYRes();
     AliDebug(1,Form("found vertex (%e,%e,%e)",vertex[0],vertex[1],vertex[2]));
   }
   
-  AliMUONTrack* track;
-  AliMUONVCluster* cluster;
-  AliMUONVDigit* digit;
-  TIter next(trackStore.CreateIterator());
-  
-  while ( ( track = static_cast<AliMUONTrack*>(next()) ) )
-  {
-    AliMUONTrackParam* trackParam = static_cast<AliMUONTrackParam*>((track->GetTrackParamAtCluster())->First());
+  // fill ESD event including all info in ESD cluster if required and only for the given fraction of events
+  if (AliMUONReconstructor::GetRecoParam()->SaveFullClusterInESD() && 
+      gRandom->Uniform(100.) <= AliMUONReconstructor::GetRecoParam()->GetPercentOfFullClusterInESD()) {
     
-    // new ESD muon track
-    AliESDMuonTrack esdTrack;
-    
-    /// Extrapolate to vertex (which is set to (0,0,0) if not available, see above)
-    AliMUONTrackParam trackParamAtVtx(*trackParam);
-    AliMUONTrackExtrap::ExtrapToVertex(&trackParamAtVtx, vertex[0], vertex[1], vertex[2], errXVtx, errYVtx);
-    
-    /// Extrapolate to vertex plan (which is set to z=0 if not available, see above)
-    AliMUONTrackParam trackParamAtDCA(*trackParam);
-    AliMUONTrackExtrap::ExtrapToVertexWithoutBranson(&trackParamAtDCA, vertex[2]);
-    
-    // at first station
-    trackParam->SetParamForUncorrected(esdTrack);
-    trackParam->SetCovFor(esdTrack);
-    
-    // at vertex
-    trackParamAtVtx.SetParamFor(esdTrack);
-    
-    // at Distance of Closest Approach
-    trackParamAtDCA.SetParamForDCA(esdTrack);
-    
-    // global info
-    esdTrack.SetChi2(track->GetGlobalChi2());
-    esdTrack.SetNHit(track->GetNClusters());
-    esdTrack.SetLocalTrigger(track->GetLocalTrigger());
-    esdTrack.SetChi2MatchTrigger(track->GetChi2MatchTrigger());
-    esdTrack.SetHitsPatternInTrigCh(track->GetHitsPatternInTrigCh());
-    
-    // muon cluster info
-    while (trackParam) {
-      cluster = trackParam->GetClusterPtr();
-      
-      // new ESD muon cluster
-      AliESDMuonCluster esdCluster;
-      
-      // fill minimum info in ESD cluster
-      esdCluster.SetUniqueID(cluster->GetUniqueID());
-      esdCluster.SetXYZ(cluster->GetX(), cluster->GetY(), cluster->GetZ());
-      esdCluster.SetErrXY(cluster->GetErrX(), cluster->GetErrY());
-      
-      // fill additional info in ESD cluster if required and only for a fraction of events
-      if (AliMUONReconstructor::GetRecoParam()->SaveFullClusterInESD() && 
-	  rand <= AliMUONReconstructor::GetRecoParam()->GetPercentOfFullClusterInESD()) {
-	
-	esdCluster.SetCharge(cluster->GetCharge());
-	esdCluster.SetChi2(cluster->GetChi2());
-	
-	// fill ESD pad with digit info
-	for (Int_t i=0; i<cluster->GetNDigits(); i++) {
-	  digit = fDigitStore.FindObject(cluster->GetDigitId(i));
-	  
-	  // new ESD muon pad
-	  AliESDMuonPad esdPad;
-	  
-	  esdPad.SetUniqueID(digit->GetUniqueID());
-	  esdPad.SetADC(digit->ADC());
-	  esdPad.SetCharge(digit->Charge());
-	  
-	  // add pad info in ESD cluster
-	  esdCluster.AddPad(esdPad);
-	}
-	
-      }
-      
-      // add cluster info in ESD track
-      esdTrack.AddCluster(esdCluster);
-      esdTrack.AddInMuonClusterMap(cluster->GetChamberId());
-      
-      trackParam = static_cast<AliMUONTrackParam*>(track->GetTrackParamAtCluster()->After(trackParam));
+    while ( ( track = static_cast<AliMUONTrack*>(next()) ) ) {
+      AliMUONESDInterface::MUONToESD(*track, esdTrack, vertex, &fDigitStore);
+      esd->AddMuonTrack(&esdTrack);
     }
     
-    // storing ESD MUON Track into ESD Event 
-    esd->AddMuonTrack(&esdTrack);
-  } // end of loop on tracks
+  } else {
+    
+    while ( ( track = static_cast<AliMUONTrack*>(next()) ) ) {
+      AliMUONESDInterface::MUONToESD(*track, esdTrack, vertex);
+      esd->AddMuonTrack(&esdTrack);
+    }
+    
+  }
+  
 }
 
 //_____________________________________________________________________________
-void AliMUONTracker::CreateTrackReconstructor()
+AliMUONVTrackReconstructor* AliMUONTracker::CreateTrackReconstructor(const char* trackingMode, AliMUONVClusterServer* clusterServer)
 {
   /// Create track reconstructor, depending on tracking mode set in RecoParam
   
-  TString opt(AliMUONReconstructor::GetRecoParam()->GetTrackingMode());
+  AliMUONVTrackReconstructor* trackReco(0x0);
+  
+  TString opt(trackingMode);
   opt.ToUpper();
   
   if (strstr(opt,"ORIGINAL"))
   {
-    fTrackReco = new AliMUONTrackReconstructor(fClusterServer);
+    trackReco = new AliMUONTrackReconstructor(*clusterServer);
   }
   else if (strstr(opt,"KALMAN"))
   {
-    fTrackReco = new AliMUONTrackReconstructorK(fClusterServer);
+    trackReco = new AliMUONTrackReconstructorK(*clusterServer);
   }
   else
   {
-    AliError(Form("tracking mode \"%s\" does not exist",opt.Data()));
-    return;
+    AliErrorClass(Form("tracking mode \"%s\" does not exist",opt.Data()));
+    return 0x0;
   }
   
-  AliInfo(Form("Will use %s for tracking",fTrackReco->ClassName()));
+  AliInfoClass(Form("Will use %s for tracking",trackReco->ClassName()));
+  
+  return trackReco;
 }
 
 //_____________________________________________________________________________
@@ -329,5 +307,31 @@ void AliMUONTracker::UnloadClusters()
 {
   /// Clear internal clusterStore
   
-  ClusterStore()->Clear();
+  delete fInputClusterStore;
+  fInputClusterStore = 0x0;
 }
+
+
+//_____________________________________________________________________________
+void
+AliMUONTracker::SetupClusterServer(AliMUONVClusterServer& clusterServer)
+{
+  /// Setup the cluster server
+  
+  if ( AliMUONReconstructor::GetRecoParam()->BypassSt45() )
+  {
+    Bool_t ok = clusterServer.UseTriggerTrackStore(TriggerTrackStore());
+  
+    if ( ok ) 
+    
+    {
+      AliWarning("WILL USE TRIGGER TRACKS TO GENERATE CLUSTERS IN STATIONS 4 AND 5, THUS BYPASSING REAL CLUSTERS IN THOSE TWO STATIONS !!!");    
+    }
+    else
+    {
+      AliWarning("BYPASSING OF ST45 REQUESTED, BUT CLUSTERSERVER DOES NOT SEEM TO SUPPORT IT !!!");    
+    }
+  }
+}
+
+

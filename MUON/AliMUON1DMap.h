@@ -37,7 +37,9 @@ public:
   using AliMUONVStore::FindObject;
   
   virtual TObject* FindObject(UInt_t i) const;
-  
+
+  virtual TObject* FindObject(Int_t i, Int_t j) const;
+
   virtual TIterator* CreateIterator() const;
   
   using AliMUONVStore::GetSize;
@@ -45,11 +47,7 @@ public:
   virtual Int_t GetSize() const;
   
 private:
-   void CopyTo(AliMUON1DMap& to) const;
-  /** Set the object stored at i.
-    if replace=false and there's already an object there, returns kFALSE
-    */
-  virtual Bool_t Set(Int_t i, TObject* object, Bool_t replace);
+  virtual Bool_t Set(Int_t i, TObject* object);
   
 private:  
     

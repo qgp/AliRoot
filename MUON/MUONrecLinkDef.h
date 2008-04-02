@@ -36,6 +36,7 @@
 #pragma link C++ class AliMUONClusterFinderMLEM+;
 #pragma link C++ class AliMUONClusterSplitterMLEM+;
 #pragma link C++ class AliMUONTrackHitPattern+;
+#pragma link C++ class AliMUONRefitter+;
 
 #pragma link C++ class AliMUONVClusterStore+;
 #pragma link C++ class AliMUONClusterStoreV1+;
@@ -50,6 +51,10 @@
 
 #pragma link C++ class AliMUONVClusterServer+;
 #pragma link C++ class AliMUONSimpleClusterServer+;
+#pragma link C++ class AliMUONLegacyClusterServer+;
+#pragma link C++ class AliMUONTriggerTrackToTrackerClusters+;
+
+#pragma link C++ class AliMUONESDInterface+;
 
 // calibration
 #pragma link C++ class AliMUONDigitCalibrator+;

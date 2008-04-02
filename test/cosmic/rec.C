@@ -61,7 +61,7 @@ void rec(const char *filename="raw.root")
   // MUON settings
   AliLog::SetClassDebugLevel("AliMUONRawStreamTracker",3);
   AliMUONRecoParam *muonRecoParam = AliMUONRecoParam::GetLowFluxParam();
-  muonRecoParam->CombineClusterTrackReco(kTRUE);
+  muonRecoParam->CombineClusterTrackReco(kFALSE);
   muonRecoParam->SetCalibrationMode("NOGAIN");
   //muonRecoParam->SetClusteringMode("PEAKFIT");
   //muonRecoParam->SetClusteringMode("PEAKCOG");

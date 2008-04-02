@@ -22,16 +22,19 @@ class AliMUONTrackReconstructorK : public AliMUONVTrackReconstructor
   
   AliMUONTrackReconstructorK(AliMUONVClusterServer& clusterServer); // default Constructor
   virtual ~AliMUONTrackReconstructorK(); // Destructor
+  
+  virtual Bool_t RefitTrack(AliMUONTrack &track);
 
 
  protected:
 
   // Functions
   virtual void MakeTrackCandidates(AliMUONVClusterStore& clusterStore);
+  virtual void MakeMoreTrackCandidates(AliMUONVClusterStore& clusterStore);
   virtual void FollowTracks(AliMUONVClusterStore& clusterStore);
   virtual void ComplementTracks(const AliMUONVClusterStore& clusterStore);
-  virtual void ImproveTracks();
-  virtual void Finalize();
+  virtual void ImproveTrack(AliMUONTrack &track);
+  virtual void FinalizeTrack(AliMUONTrack &track);
   
 
  private:
@@ -44,6 +47,7 @@ class AliMUONTrackReconstructorK : public AliMUONVTrackReconstructor
   void RetraceTrack(AliMUONTrack &trackCandidate, Bool_t resetSeed);
   void RetracePartialTrack(AliMUONTrack &trackCandidate, const AliMUONTrackParam* startingTrackParam);
   
+  Bool_t FollowTrackInChamber(AliMUONTrack &trackCandidate, AliMUONVClusterStore& clusterStore, Int_t nextChamber);
   Bool_t FollowTrackInStation(AliMUONTrack &trackCandidate, AliMUONVClusterStore& clusterStore, Int_t nextStation);
   
   Double_t RunKalmanFilter(AliMUONTrackParam &trackParamAtCluster);
