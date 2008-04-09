@@ -557,7 +557,6 @@ AliTRDCalROC *AliTRDcalibDB::GetGainFactorROC(Int_t det)
 {
   //
   // Returns the gain factor calibration object for a given ROC
-  // containing one number per pad 
   //
   
   const AliTRDCalPad *calPad     = dynamic_cast<const AliTRDCalPad *> 
@@ -698,6 +697,29 @@ Char_t AliTRDcalibDB::GetPadStatus(Int_t det, Int_t col, Int_t row)
 }
 
 //_____________________________________________________________________________
+AliTRDCalSingleChamberStatus* AliTRDcalibDB::GetPadStatusROC(Int_t det)
+{
+  //
+  // Returns the pad status calibration object for a given ROC
+  //
+
+  const AliTRDCalPadStatus *cal  = dynamic_cast<const AliTRDCalPadStatus *> 
+                                   (GetCachedCDBObject(kIDPadStatus));
+  if (!cal) {
+    return 0;
+  }
+
+  AliTRDCalSingleChamberStatus *roc = cal->GetCalROC(det);
+  if (!roc) {
+    return 0;
+  }
+  else {
+    return roc;
+  }
+
+}
+
+//_____________________________________________________________________________
 Char_t AliTRDcalibDB::GetChamberStatus(Int_t det)
 {
   //
@@ -766,6 +788,22 @@ Bool_t AliTRDcalibDB::IsPadBridgedRight(Int_t det, Int_t col, Int_t row)
 }
 
 //_____________________________________________________________________________
+Bool_t AliTRDcalibDB::IsPadNotConnected(Int_t det, Int_t col, Int_t row)
+{
+  //
+  // Returns status, see name of functions for details ;-)
+  //
+  const AliTRDCalPadStatus         * cal = dynamic_cast<const AliTRDCalPadStatus *> 
+                                           (GetCachedCDBObject(kIDPadStatus));
+  if (!cal) {
+    return -1;
+  }
+
+  return cal->IsNotConnected(det,col,row);
+
+}
+
+//_____________________________________________________________________________
 Bool_t AliTRDcalibDB::IsChamberInstalled(Int_t det)
 {
   //
@@ -808,12 +846,12 @@ const AliTRDCalPID *AliTRDcalibDB::GetPIDObject(const Int_t method)
 
   switch(method) {
     case 0: return dynamic_cast<const AliTRDCalPID *> 
-		               (GetCachedCDBObject(kIDPIDNN));
-    case 1: return dynamic_cast<const AliTRDCalPID *>
 		               (GetCachedCDBObject(kIDPIDLQ));
+    case 1: return dynamic_cast<const AliTRDCalPID *>
+		               (GetCachedCDBObject(kIDPIDNN));
   }
 
-  return 0;
+  return 0x0;
 
 }
 

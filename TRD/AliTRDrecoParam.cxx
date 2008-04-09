@@ -26,6 +26,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "AliTRDrecoParam.h"
+#include "AliTRDrawStreamBase.h"
 
 ClassImp(AliTRDrecoParam)
 
@@ -33,7 +34,7 @@ ClassImp(AliTRDrecoParam)
 AliTRDrecoParam::AliTRDrecoParam()
   :AliDetectorRecoParam()
   ,fkClusterSharing(0)
-  ,fkPIDMethod(1) // LQ PID
+  ,fkPIDMethod(0) // LQ PID
   ,fkMaxTheta(1.0)
   ,fkMaxPhi(2.0)
   ,fkRoad0y(6.0)
@@ -47,6 +48,12 @@ AliTRDrecoParam::AliTRDrecoParam()
   ,fkChi2Z(30./*14.*//*12.5*/)
   ,fkChi2Y(.25)
   ,fkTrackLikelihood(-15.)
+  ,fClusMaxThresh(4.5)
+  ,fClusSigThresh(3.5)
+  ,fLUTOn(kTRUE)
+  ,fTCOn(kTRUE)
+  ,fTCnexp(1)
+  ,fADCbaseline(0)
 {
   //
   // Default constructor
@@ -73,5 +80,19 @@ AliTRDrecoParam *AliTRDrecoParam::GetHighFluxParam()
   //
 
   return new AliTRDrecoParam();
+
+}
+
+//______________________________________________________________
+AliTRDrecoParam *AliTRDrecoParam::GetCosmicTestParam()
+{
+  //
+  // Parameters for the cosmics data
+  //
+
+  AliTRDrawStreamBase::SetRawStreamVersion("TB");
+  AliTRDrecoParam *par = new AliTRDrecoParam();
+  par->SetADCbaseline(10);
+  return par;
 
 }
