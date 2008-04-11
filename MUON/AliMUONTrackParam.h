@@ -18,7 +18,6 @@
 #include <TMatrixD.h>
 
 class AliMUONVCluster;
-class AliESDMuonTrack;
 
 class AliMUONTrackParam : public TObject 
 {
@@ -28,16 +27,6 @@ class AliMUONTrackParam : public TObject
   
   AliMUONTrackParam(const AliMUONTrackParam& theMUONTrackParam);
   AliMUONTrackParam& operator=(const  AliMUONTrackParam& theMUONTrackParam);
-
-  void GetParamFrom(const AliESDMuonTrack& esdMuonTrack);
-  void SetParamFor(AliESDMuonTrack& esdMuonTrack) const;
-  void GetParamFromDCA(const AliESDMuonTrack& esdMuonTrack);
-  void SetParamForDCA(AliESDMuonTrack& esdMuonTrack) const;
-  void GetParamFromUncorrected(const AliESDMuonTrack& esdMuonTrack);
-  void SetParamForUncorrected(AliESDMuonTrack& esdMuonTrack) const;
-  
-  void GetCovFrom(const AliESDMuonTrack& esdMuonTrack);
-  void SetCovFor(AliESDMuonTrack& esdMuonTrack) const;
 
   // Get and Set methods for data
 	/// return Z coordinate (cm)
@@ -115,11 +104,6 @@ class AliMUONTrackParam : public TObject
   	/// set the flag telling whether the associated cluster can be removed from the track it belongs to or not
   void   SetRemovable(Bool_t removable) {fRemovable = removable;}
   
-	/// return kTRUE if the associated cluster alone in its chamber
-  Bool_t IsAloneInChamber() const {return fAloneInChamber;}
-	/// set the flag telling whether the associated hi alone in its chamber or not
-  void   SetAloneInChamber(Bool_t aloneInChamber) {fAloneInChamber = aloneInChamber;}
-  
   /// return the chi2 of the track when the associated cluster was attached
   Double_t GetTrackChi2() const {return fTrackChi2;}
   	/// set the chi2 of the track when the associated cluster was attached
@@ -171,8 +155,6 @@ class AliMUONTrackParam : public TObject
   
   Bool_t fRemovable; //!< kTRUE if the associated cluster can be removed from the track it belongs to
   
-  Bool_t fAloneInChamber; //!< kTRUE if the associated cluster is alone in its chamber
-
   Double_t fTrackChi2; //!< Chi2 of the track when the associated cluster was attached
   Double_t fLocalChi2; //!< Local chi2 of the associated cluster with respect to the track
   

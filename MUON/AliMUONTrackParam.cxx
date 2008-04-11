@@ -24,7 +24,6 @@
 #include "AliMUONTrackParam.h"
 #include "AliMUONVCluster.h"
 
-#include "AliESDMuonTrack.h"
 #include "AliLog.h"
 
 #include <TMath.h>
@@ -49,7 +48,6 @@ AliMUONTrackParam::AliMUONTrackParam()
     fClusterPtr(0x0),
     fOwnCluster(kFALSE),
     fRemovable(kFALSE),
-    fAloneInChamber(kTRUE),
     fTrackChi2(0.),
     fLocalChi2(0.)
 {
@@ -70,7 +68,6 @@ AliMUONTrackParam::AliMUONTrackParam(const AliMUONTrackParam& theMUONTrackParam)
     fClusterPtr(0x0),
     fOwnCluster(theMUONTrackParam.fOwnCluster),
     fRemovable(theMUONTrackParam.fRemovable),
-    fAloneInChamber(theMUONTrackParam.fAloneInChamber),
     fTrackChi2(theMUONTrackParam.fTrackChi2),
     fLocalChi2(theMUONTrackParam.fLocalChi2)
 {
@@ -148,13 +145,12 @@ AliMUONTrackParam& AliMUONTrackParam::operator=(const AliMUONTrackParam& theMUON
     fSmoothCovariances = 0x0;
   }
   
+  if (fOwnCluster) delete fClusterPtr;
   fOwnCluster = theMUONTrackParam.fOwnCluster;
   if(fOwnCluster) fClusterPtr = static_cast<AliMUONVCluster*>(theMUONTrackParam.fClusterPtr->Clone());
   else fClusterPtr = theMUONTrackParam.fClusterPtr;
   
   fRemovable = theMUONTrackParam.fRemovable;
-  
-  fAloneInChamber = theMUONTrackParam.fAloneInChamber;
   
   fTrackChi2 = theMUONTrackParam.fTrackChi2;
   fLocalChi2 = theMUONTrackParam.fLocalChi2;
@@ -191,187 +187,53 @@ AliMUONTrackParam::Clear(Option_t* /*opt*/)
   }
 }
 
-  //_________________________________________________________________________
-void AliMUONTrackParam::GetParamFrom(const AliESDMuonTrack& esdMuonTrack)
-{
-  /// Get parameters from ESD track
-  fZ = esdMuonTrack.GetZ(); 
-  fParameters(0,0) = esdMuonTrack.GetNonBendingCoor();
-  fParameters(1,0) = TMath::Tan(esdMuonTrack.GetThetaX());
-  fParameters(2,0) = esdMuonTrack.GetBendingCoor(); 
-  fParameters(3,0) = TMath::Tan(esdMuonTrack.GetThetaY());
-  fParameters(4,0) = esdMuonTrack.GetInverseBendingMomentum();
-}
-
-  //_________________________________________________________________________
-void AliMUONTrackParam::SetParamFor(AliESDMuonTrack& esdMuonTrack) const
-{
-  /// Set parameters in ESD track
-  esdMuonTrack.SetZ(fZ);
-  esdMuonTrack.SetNonBendingCoor(fParameters(0,0));
-  esdMuonTrack.SetThetaX(TMath::ATan(fParameters(1,0)));
-  esdMuonTrack.SetBendingCoor(fParameters(2,0)); 
-  esdMuonTrack.SetThetaY(TMath::ATan(fParameters(3,0)));
-  esdMuonTrack.SetInverseBendingMomentum(fParameters(4,0));
-}
-
-  //_________________________________________________________________________
-void AliMUONTrackParam::GetParamFromDCA(const AliESDMuonTrack& esdMuonTrack)
-{
-  /// Get parameters from ESD track
-  fZ = esdMuonTrack.GetZ(); 
-  fParameters(0,0) = esdMuonTrack.GetNonBendingCoorAtDCA();
-  fParameters(1,0) = TMath::Tan(esdMuonTrack.GetThetaXAtDCA());
-  fParameters(2,0) = esdMuonTrack.GetBendingCoorAtDCA(); 
-  fParameters(3,0) = TMath::Tan(esdMuonTrack.GetThetaYAtDCA());
-  fParameters(4,0) = esdMuonTrack.GetInverseBendingMomentumAtDCA();
-}
-
-  //_________________________________________________________________________
-void AliMUONTrackParam::SetParamForDCA(AliESDMuonTrack& esdMuonTrack) const
-{
-  /// Set parameters in ESD track
-  esdMuonTrack.SetNonBendingCoorAtDCA(fParameters(0,0));
-  esdMuonTrack.SetThetaXAtDCA(TMath::ATan(fParameters(1,0)));
-  esdMuonTrack.SetBendingCoorAtDCA(fParameters(2,0)); 
-  esdMuonTrack.SetThetaYAtDCA(TMath::ATan(fParameters(3,0)));
-  esdMuonTrack.SetInverseBendingMomentumAtDCA(fParameters(4,0));
-}
-
-//_________________________________________________________________________
-void AliMUONTrackParam::GetParamFromUncorrected(const AliESDMuonTrack& esdMuonTrack)
-{
-  /// Get parameters from ESD track
-  fZ = esdMuonTrack.GetZUncorrected(); 
-  fParameters(0,0) = esdMuonTrack.GetNonBendingCoorUncorrected();
-  fParameters(1,0) = TMath::Tan(esdMuonTrack.GetThetaXUncorrected());
-  fParameters(2,0) = esdMuonTrack.GetBendingCoorUncorrected(); 
-  fParameters(3,0) = TMath::Tan(esdMuonTrack.GetThetaYUncorrected());
-  fParameters(4,0) = esdMuonTrack.GetInverseBendingMomentumUncorrected();
-}
-
-//_________________________________________________________________________
-void AliMUONTrackParam::SetParamForUncorrected(AliESDMuonTrack& esdMuonTrack) const
-{
-  /// Set parameters in ESD track
-  esdMuonTrack.SetZUncorrected(fZ);
-  esdMuonTrack.SetNonBendingCoorUncorrected(fParameters(0,0));
-  esdMuonTrack.SetThetaXUncorrected(TMath::ATan(fParameters(1,0)));
-  esdMuonTrack.SetBendingCoorUncorrected(fParameters(2,0)); 
-  esdMuonTrack.SetThetaYUncorrected(TMath::ATan(fParameters(3,0)));
-  esdMuonTrack.SetInverseBendingMomentumUncorrected(fParameters(4,0));
-}
-
-//_________________________________________________________________________
-void AliMUONTrackParam::GetCovFrom(const AliESDMuonTrack& esdMuonTrack)
-{
-  /// Get parameters covariances from ESD track
-  
-  // Get ESD covariance matrix
-  if (!fCovariances) fCovariances = new TMatrixD(5,5);
-  esdMuonTrack.GetCovariances(*fCovariances);
-
-  // compute Jacobian to change the coordinate system
-  // from (X,thetaX,Y,thetaY,c/pYZ) to (X,slopeX,Y,slopeY,c/pYZ)
-  Double_t cosThetaX = TMath::Cos(TMath::ATan(fParameters(1,0)));
-  Double_t cosThetaY = TMath::Cos(TMath::ATan(fParameters(3,0)));
-  TMatrixD jacob(5,5);
-  jacob.Zero();
-  jacob(0,0) = 1.;
-  jacob(1,1) = 1. / cosThetaX / cosThetaX;
-  jacob(2,2) = 1.;
-  jacob(3,3) = 1. / cosThetaY / cosThetaY;
-  jacob(4,4) = 1.;
-  
-  // compute covariance matrix in ESD coordinate system
-  TMatrixD tmp(*fCovariances,TMatrixD::kMultTranspose,jacob);
-  *fCovariances = TMatrixD(jacob,TMatrixD::kMult,tmp);
-  
-}
-
-  //_________________________________________________________________________
-void AliMUONTrackParam::SetCovFor(AliESDMuonTrack& esdMuonTrack) const
-{
-  /// Set parameters covariances in ESD track
-  
-  // set null matrix if covariances does not exist
-  if (!fCovariances) {
-    TMatrixD tmp(5,5);
-    tmp.Zero();
-    esdMuonTrack.SetCovariances(tmp);
-    return;
-  }
-  
-  // compute Jacobian to change the coordinate system
-  // from (X,slopeX,Y,slopeY,c/pYZ) to (X,thetaX,Y,thetaY,c/pYZ)
-  Double_t cosThetaX = TMath::Cos(TMath::ATan(fParameters(1,0)));
-  Double_t cosThetaY = TMath::Cos(TMath::ATan(fParameters(3,0)));
-  TMatrixD jacob(5,5);
-  jacob.Zero();
-  jacob(0,0) = 1.;
-  jacob(1,1) = cosThetaX * cosThetaX;
-  jacob(2,2) = 1.;
-  jacob(3,3) = cosThetaY * cosThetaY;
-  jacob(4,4) = 1.;
-  
-  // compute covariance matrix in ESD coordinate system
-  TMatrixD tmp(*fCovariances,TMatrixD::kMultTranspose,jacob);
-  TMatrixD tmp2(jacob,TMatrixD::kMult,tmp);
-  esdMuonTrack.SetCovariances(tmp2);
-
-}
-
   //__________________________________________________________________________
 Double_t AliMUONTrackParam::Px() const
 {
   /// return p_x from track parameters
-  Double_t pYZ, pZ, pX;
-  pYZ = 0;
-  if (  TMath::Abs(fParameters(4,0)) > 0 )
-    pYZ = TMath::Abs(1.0 / fParameters(4,0));
-  pZ = -pYZ / (TMath::Sqrt(1.0 + fParameters(3,0) * fParameters(3,0)));  // spectro. (z<0)
-  pX = pZ * fParameters(1,0); 
-  return pX;
+  Double_t pZ;
+  if (TMath::Abs(fParameters(4,0)) > 0) {
+    Double_t pYZ = (TMath::Abs(fParameters(4,0)) > 0) ? TMath::Abs(1.0 / fParameters(4,0)) : FLT_MAX;
+    pZ = - pYZ / (TMath::Sqrt(1.0 + fParameters(3,0) * fParameters(3,0)));  // spectro. (z<0)
+  } else {
+    pZ = - FLT_MAX / TMath::Sqrt(1.0 + fParameters(3,0) * fParameters(3,0) + fParameters(1,0) * fParameters(1,0));
+  }
+  return pZ * fParameters(1,0); 
 }
 
   //__________________________________________________________________________
 Double_t AliMUONTrackParam::Py() const
 {
   /// return p_y from track parameters
-  Double_t pYZ, pZ, pY;
-  pYZ = 0;
-  if (  TMath::Abs(fParameters(4,0)) > 0 )
-    pYZ = TMath::Abs(1.0 / fParameters(4,0));
-  pZ = -pYZ / (TMath::Sqrt(1.0 + fParameters(3,0) * fParameters(3,0)));  // spectro. (z<0)
-  pY = pZ * fParameters(3,0); 
-  return pY;
+  Double_t pZ;
+  if (TMath::Abs(fParameters(4,0)) > 0) {
+    Double_t pYZ = (TMath::Abs(fParameters(4,0)) > 0) ? TMath::Abs(1.0 / fParameters(4,0)) : FLT_MAX;
+    pZ = - pYZ / (TMath::Sqrt(1.0 + fParameters(3,0) * fParameters(3,0)));  // spectro. (z<0)
+  } else {
+    pZ = - FLT_MAX / TMath::Sqrt(1.0 + fParameters(3,0) * fParameters(3,0) + fParameters(1,0) * fParameters(1,0));
+  }
+  return pZ * fParameters(3,0); 
 }
 
   //__________________________________________________________________________
 Double_t AliMUONTrackParam::Pz() const
 {
   /// return p_z from track parameters
-  Double_t pYZ, pZ;
-  pYZ = 0;
-  if (  TMath::Abs(fParameters(4,0)) > 0 )
-    pYZ = TMath::Abs(1.0 / fParameters(4,0));
-  pZ = -pYZ / (TMath::Sqrt(1.0 + fParameters(3,0) * fParameters(3,0)));  // spectro. (z<0)
-  return pZ;
+  if (TMath::Abs(fParameters(4,0)) > 0) {
+    Double_t pYZ = TMath::Abs(1.0 / fParameters(4,0));
+    return - pYZ / (TMath::Sqrt(1.0 + fParameters(3,0) * fParameters(3,0)));  // spectro. (z<0)
+  } else return - FLT_MAX / TMath::Sqrt(1.0 + fParameters(3,0) * fParameters(3,0) + fParameters(1,0) * fParameters(1,0));
 }
 
   //__________________________________________________________________________
 Double_t AliMUONTrackParam::P() const
 {
   /// return p from track parameters
-  Double_t  pYZ, pZ, p;
-  pYZ = 0;
-  if (  TMath::Abs(fParameters(4,0)) > 0 )
-    pYZ = TMath::Abs(1.0 / fParameters(4,0));
-  pZ = -pYZ / (TMath::Sqrt(1.0 + fParameters(3,0) * fParameters(3,0)));  // spectro. (z<0)
-  p = TMath::Abs(pZ) * 
-    TMath::Sqrt(1.0 + fParameters(3,0) * fParameters(3,0) + fParameters(1,0) * fParameters(1,0));
-  return p;
-  
+  if (TMath::Abs(fParameters(4,0)) > 0) {
+    Double_t pYZ = TMath::Abs(1.0 / fParameters(4,0));
+    Double_t pZ = - pYZ / (TMath::Sqrt(1.0 + fParameters(3,0) * fParameters(3,0)));  // spectro. (z<0)
+    return TMath::Abs(pZ) * TMath::Sqrt(1.0 + fParameters(3,0) * fParameters(3,0) + fParameters(1,0) * fParameters(1,0));
+  } else return FLT_MAX;
 }
 
   //__________________________________________________________________________

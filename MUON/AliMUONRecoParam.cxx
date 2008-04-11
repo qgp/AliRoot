@@ -38,6 +38,7 @@ AliMUONRecoParam::AliMUONRecoParam()
 : AliDetectorRecoParam(),
   fClusteringMode("MLEM"),
   fTrackingMode("KALMAN"),
+  fMostProbBendingMomentum(0.),
   fMinBendingMomentum(0.),
   fMaxBendingMomentum(0.),
   fMaxNonBendingSlope(0.),
@@ -111,10 +112,22 @@ AliMUONRecoParam *AliMUONRecoParam::GetHighFluxParam()
 }
 
 //_____________________________________________________________________________
+AliMUONRecoParam *AliMUONRecoParam::GetCosmicParam() 
+{
+  /// Return default reconstruction parameters for high flux environment
+  
+  AliMUONRecoParam *param = new AliMUONRecoParam();
+  param->SetCosmicParam();
+  
+  return param;
+}
+
+//_____________________________________________________________________________
 void AliMUONRecoParam::SetLowFluxParam() 
 {
   /// Set reconstruction parameters for low flux environment
   
+  fMostProbBendingMomentum = 2.;
   fMinBendingMomentum = 1.;
   fMaxBendingMomentum = 3000.;
   fMaxNonBendingSlope = 0.3;
@@ -126,6 +139,7 @@ void AliMUONRecoParam::SetLowFluxParam()
   fSigmaCutForImprovement = 5.;
   fSigmaCutForTrigger = 8.;
   fMaxNormChi2MatchTrigger = 16.;
+  fCombinedClusterTrackReco = kFALSE;
   fTrackAllTracks = kTRUE;
   fRecoverTracks = kTRUE;
   fMakeTrackCandidatesFast = kFALSE;
@@ -135,6 +149,7 @@ void AliMUONRecoParam::SetLowFluxParam()
   fUseSmoother = kTRUE;
   for (Int_t iCh = 0; iCh < 10; iCh++) fUseChamber[iCh] = kTRUE;
   for (Int_t iSt = 0; iSt < 5; iSt++) fRequestStation[iSt] = kTRUE;
+  fBypassSt45 = kFALSE;
   
 }
 
@@ -143,6 +158,7 @@ void AliMUONRecoParam::SetHighFluxParam()
 {
   /// Set reconstruction parameters for high flux environment
   
+  fMostProbBendingMomentum = 2.;
   fMinBendingMomentum = 1.;
   fMaxBendingMomentum = 3000.;
   fMaxNonBendingSlope = 0.3;
@@ -154,6 +170,7 @@ void AliMUONRecoParam::SetHighFluxParam()
   fSigmaCutForImprovement = 5.;
   fSigmaCutForTrigger = 8.;
   fMaxNormChi2MatchTrigger = 16.;
+  fCombinedClusterTrackReco = kFALSE;
   fTrackAllTracks = kTRUE;
   fRecoverTracks = kTRUE;
   fMakeTrackCandidatesFast = kFALSE;
@@ -163,6 +180,40 @@ void AliMUONRecoParam::SetHighFluxParam()
   fUseSmoother = kTRUE;
   for (Int_t iCh = 0; iCh < 10; iCh++) fUseChamber[iCh] = kTRUE;
   for (Int_t iSt = 0; iSt < 5; iSt++) fRequestStation[iSt] = kTRUE;
+  fBypassSt45 = kFALSE;
+  
+}
+
+//_____________________________________________________________________________
+void AliMUONRecoParam::SetCosmicParam() 
+{
+  /// Set reconstruction parameters for high flux environment
+  
+  fMostProbBendingMomentum = 2.;
+  fMinBendingMomentum = 1.;
+  fMaxBendingMomentum = 10000000.;
+  fMaxNonBendingSlope = 0.3;
+  fNonBendingVertexDispersion = 10.;
+  fBendingVertexDispersion = 10.;
+  fMaxNonBendingDistanceToTrack = 10.;
+  fMaxBendingDistanceToTrack = 10.;
+  fSigmaCutForTracking = 20.;
+  fSigmaCutForImprovement = 20.;
+  fSigmaCutForTrigger = 8.;
+  fMaxNormChi2MatchTrigger = 16.;
+  fPercentOfFullClusterInESD = 100.;
+  fCombinedClusterTrackReco = kFALSE;
+  fTrackAllTracks = kTRUE;
+  fRecoverTracks = kTRUE;
+  fMakeTrackCandidatesFast = kFALSE;
+  fMakeMoreTrackCandidates = kFALSE;
+  fComplementTracks = kTRUE;
+  fImproveTracks = kTRUE;
+  fUseSmoother = kTRUE;
+  fSaveFullClusterInESD = kTRUE;
+  for (Int_t iCh = 0; iCh < 10; iCh++) fUseChamber[iCh] = kTRUE;
+  for (Int_t iSt = 0; iSt < 5; iSt++) fRequestStation[iSt] = kTRUE;
+  fBypassSt45 = kFALSE;
   
 }
 
@@ -185,6 +236,8 @@ void AliMUONRecoParam::Print(Option_t *option) const
   
   if (fSaveFullClusterInESD) cout<<Form("Save all cluster info in ESD for %5.2f %% of events",fPercentOfFullClusterInESD)<<endl;
   else cout<<"Save partial cluster info in ESD"<<endl;
+  
+  cout<<Form("Most probable bending momentum (used only if B=0) = %5.2f",fMostProbBendingMomentum)<<endl;
   
   cout<<Form("Bending momentum range = [%5.2f,%5.2f]",fMinBendingMomentum,fMaxBendingMomentum)<<endl;
   
@@ -273,7 +326,6 @@ void AliMUONRecoParam::Print(Option_t *option) const
     }
   } while (++st < 5);
   if (discardedSt) cout<<endl;
-  
   
   cout<<"\t-------------------------------------"<<endl<<endl;
   
