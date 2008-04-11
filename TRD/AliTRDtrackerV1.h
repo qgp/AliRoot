@@ -67,6 +67,7 @@ public:
   
 	Int_t          Clusters2Tracks(AliESDEvent *esd);
   static TTreeSRedirector* DebugStreamer() {return fgDebugStreamer;}
+  static void SetNTimeBins(Int_t nTimeBins){fgNTimeBins = nTimeBins; }
   AliCluster*    GetCluster(Int_t index) const;
 	static void    GetExtrapolationConfig(Int_t iconfig, Int_t planes[2]);
 	static const Int_t   GetNTimeBins() {return fgNTimeBins;}
@@ -89,6 +90,26 @@ public:
   
   static Int_t   Freq(Int_t n, const Int_t *inlist, Int_t *outlist, Bool_t down); // to be removed 
 
+	class AliTRDLeastSquare{
+	public:
+					AliTRDLeastSquare();
+					~AliTRDLeastSquare(){};
+		
+		void		AddPoint(Double_t *x, Double_t y, Double_t sigmaY);
+		void		RemovePoint(Double_t *x, Double_t y, Double_t sigmaY);
+		void		Eval();
+		
+		Double_t	GetFunctionParameter(Int_t ParNumber) const {return fParams[ParNumber];}
+		Double_t	GetFunctionValue(Double_t *xpos) const;
+		void		GetCovarianceMatrix(Double_t *storage) const;
+	private:
+					AliTRDLeastSquare(const AliTRDLeastSquare &);
+		AliTRDLeastSquare& operator=(const AliTRDLeastSquare &);
+		Double_t 	fParams[2];						// Fitparameter	
+		Double_t 	fCovarianceMatrix[3];			// Covariance Matrix
+		Double_t 	fSums[6];						// Sums
+	};
+
 protected:
   Bool_t         AdjustSector(AliTRDtrackV1 *track); 
 	Double_t       BuildSeedingConfigs(AliTRDtrackingChamber **stack, Int_t *configs);
@@ -108,7 +129,6 @@ private:
 	Double_t       	CookLikelihood(AliTRDseedV1 *cseed, Int_t planes[4], Double_t *chi2);
 	Double_t       	CalculateTrackLikelihood(AliTRDseedV1 *tracklets, Double_t *chi2);
 	Int_t          	ImproveSeedQuality(AliTRDtrackingChamber **stack, AliTRDseedV1 *tracklet);
-	static void 	FitLeastSquare(Int_t nPoints, Float_t *x, Float_t *y, Float_t *errors, Float_t *fitparams);
 	static Float_t	CalculateReferenceX(AliTRDseedV1 *tracklets);
 	
 	Float_t     GetChi2Y(AliTRDseedV1 *tracklets) const;
