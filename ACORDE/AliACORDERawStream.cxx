@@ -23,7 +23,6 @@
 #include "AliRawReader.h"
 #include "AliLog.h"
 #include "AliDAQ.h"
-#include "AliRawReaderRoot.h"
 
 ClassImp(AliACORDERawStream)
 
@@ -200,26 +199,3 @@ UShort_t AliACORDERawStream::GetNextShort()
   return word;
 }
 
-//_____________________________________________________________________________
-
-Int_t AliACORDERawStream::GetNEvents(char* fileName) 
-{
-	// Returns the Total Number of Events recorded by ACORDE 
-	// Note: it may be a better way to do it !!
-	// Input: fileName to Analyze
-	// Output: Number of Total Events (fNEvents) in fileName
-	// Created: 25 March 2008
-	// Author: Mario Rodriguez Cahuantzi <mrodrigu@mail.cern.ch>
-	
-	AliRawReader* rCount = new AliRawReaderRoot(fileName);
-	Int_t DyM=0;
-	Int_t fNEvents=0;
-	while(DyM==0)
-  	{
-  	if (!rCount->NextEvent()) DyM=1;
-	else fNEvents++;
-  	}
-	return fNEvents;
-}
-
-//____________________________________________________________________________

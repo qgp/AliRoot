@@ -1,7 +1,6 @@
-SRCS = AliACORDERawStream.cxx AliACORDEReconstructor.cxx
+SRCS = AliACORDERawStream.cxx
                                                                                
 HDRS:= $(SRCS:.cxx=.h)
 
 DHDR:=ACORDErecLinkDef.h
 
-EINCLUDE := RAW
