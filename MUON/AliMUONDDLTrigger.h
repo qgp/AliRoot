@@ -24,7 +24,7 @@ public:
    virtual ~AliMUONDDLTrigger();
 
 
-   void    AddLocStruct(const AliMUONLocalStruct& loc, Int_t iReg);
+   void    AddLocStruct(AliMUONLocalStruct& loc, Int_t iReg);
    void    AddRegHeader(const AliMUONRegHeader& regHeader);
 
    /// get AliMUONDarcHeader

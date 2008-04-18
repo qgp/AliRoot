@@ -65,6 +65,7 @@ void rec(const char *filename="raw.root")
   muonRecoParam->RequestStation(2,kFALSE);
   muonRecoParam->SetCalibrationMode("NOGAIN");
   AliRecoParam::Instance()->RegisterRecoParam(muonRecoParam);
+  AliMpTriggerCrate::SetPatchLocalBordId(kTRUE);
  
   // Tracking settings
   //  AliMagFMaps* field = new AliMagFMaps("Maps","Maps", 2, 1., 10., 1);

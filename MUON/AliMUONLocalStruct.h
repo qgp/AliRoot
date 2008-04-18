@@ -84,6 +84,9 @@ public:
             /// Return data
    UInt_t* GetData() {return &fData[0];}
 
+            /// Correct bad ID returned by the electronics
+   void    SetId(Int_t id);
+
  // Scaler methods
             /// Return local L0
    UInt_t  GetL0()      const {return fL0;}

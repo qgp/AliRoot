@@ -66,7 +66,7 @@ void AliMUONDDLTrigger::AddRegHeader(const AliMUONRegHeader& regHeader)
 }
 
 //___________________________________________
-void AliMUONDDLTrigger::AddLocStruct(const AliMUONLocalStruct& loc, Int_t iReg)
+void AliMUONDDLTrigger::AddLocStruct(AliMUONLocalStruct& loc, Int_t iReg)
 {
   /// adding local card informations 
   /// for a given regional structure
@@ -77,5 +77,16 @@ void AliMUONDDLTrigger::AddLocStruct(const AliMUONLocalStruct& loc, Int_t iReg)
   TClonesArray* localArray = (TClonesArray*)regHeader->GetLocalArray();
 
   TClonesArray &locArray = *localArray;
+  
+  // temporary (!) workaround for bad local id returned by two local cards
+  // RC5L4B34 (same as B12) and LC2L6B34 (same as B12)
+
+  // skip check for not-notified cards
+  if (!(iReg == 7 && locArray.GetEntriesFast() >= 9)) {
+    if (locArray.GetEntriesFast() != loc.GetId()) {
+      loc.SetId(locArray.GetEntriesFast());
+    }
+  }
+  
   new(locArray[locArray.GetEntriesFast()]) AliMUONLocalStruct(loc);
 }

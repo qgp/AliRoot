@@ -90,6 +90,8 @@ void runDataReconstruction(Int_t calib = 1)
   muonRecoParam->Print("FULL");
   AliRecoParam::Instance()->RegisterRecoParam(muonRecoParam);
   
+  AliMpTriggerCrate::SetPatchLocalBordId(kTRUE);
+  
   MuonRec->Run();
   
   delete MuonRec;

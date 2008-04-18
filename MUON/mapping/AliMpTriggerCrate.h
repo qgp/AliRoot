@@ -26,6 +26,9 @@ class AliMpTriggerCrate : public  TNamed {
     virtual ~AliMpTriggerCrate();
     
     static TString GenerateName(Int_t crateId, Int_t ddlId, Int_t nodDdls);
+    
+    static void SetPatchLocalBordId(Bool_t isPatchLocalBordId);
+    static Bool_t IsPatchLocalBordId();
 
     // methods 
     Bool_t AddLocalBoard(Int_t localBoardId);
@@ -51,6 +54,9 @@ class AliMpTriggerCrate : public  TNamed {
     /// Not implemented
     AliMpTriggerCrate& operator=(const AliMpTriggerCrate& rhs);
 
+    // static data members
+    static Bool_t fgkPatchLocalBordId;
+
     // data members
     UShort_t     fId;         ///< crate number
     Int_t        fDdlId;      ///< DDL to which this bus patch is connected
@@ -64,6 +70,13 @@ class AliMpTriggerCrate : public  TNamed {
 
 // inline functions
 
+/// Activate temporary fix for cosmic data
+inline void AliMpTriggerCrate::SetPatchLocalBordId(Bool_t isPatchLocalBordId)
+{ fgkPatchLocalBordId =  isPatchLocalBordId; }
+
+/// Is activated temporary fix for cosmic data ?
+inline Bool_t AliMpTriggerCrate::IsPatchLocalBordId()
+{ return fgkPatchLocalBordId; }
 
 /// Return the Ddl  Id
 inline Int_t AliMpTriggerCrate::GetDdlId() const

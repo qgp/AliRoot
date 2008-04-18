@@ -33,6 +33,7 @@
 ClassImp(AliMpTriggerCrate)
 /// \endcond
 
+Bool_t  AliMpTriggerCrate::fgkPatchLocalBordId = kFALSE;
 
 //______________________________________________________________________________
 TString AliMpTriggerCrate::GenerateName(Int_t crateId, Int_t ddlId, Int_t nofDDLs)
@@ -144,8 +145,12 @@ Int_t  AliMpTriggerCrate::GetLocalBoardId(Int_t index) const
 {  
 /// Return the local board by index (in loop)
 
-  if (index >= 0 && index < fLocalBoard.GetSize())
+  if (index >= 0 && index < fLocalBoard.GetSize()) {
+    if (  fgkPatchLocalBordId)
+      return (117 + fLocalBoard.GetValue(index) - 1 ) % 234 + 1; 
+    else  
       return fLocalBoard.GetValue(index); 
+  }    
   else 
       return 0; // begin at 1
 }
