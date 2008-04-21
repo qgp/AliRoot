@@ -93,6 +93,11 @@ fIterator(0x0)
   
   ++fgInstanceCounter;
   
+  if ( AliCDBManager::Instance() != NULL &&
+       AliCDBManager::Instance()->GetDefaultStorage() == NULL ) {
+      AliFatal("CDB default storage not defined.");
+  }
+  
   Open(filename);
 
   // Load mapping
