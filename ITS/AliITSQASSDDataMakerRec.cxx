@@ -356,7 +356,7 @@ void AliITSQASSDDataMakerRec::MakeRaws(AliRawReader* rawReader) {
     for(Int_t i = 0; i < fgkNumOfLDCs; i++) {
       if(fSizePerLDC[i] > 0) {
 	(fAliITSQADataMakerRec->GetRawsData(fRawsOffset+21))->Fill(i+6);
-	(fAliITSQADataMakerRec->GetRawsData(fRawsOffset+23+i))->Fill(TMath::Log10(fSizePerLDC[0]));
+	(fAliITSQADataMakerRec->GetRawsData(fRawsOffset+23+i))->Fill(TMath::Log10(fSizePerLDC[i]));
       }
       (fAliITSQADataMakerRec->GetRawsData(fRawsOffset+22))->Fill(i+6,fSizePerLDC[i]/1e+06);
     }
