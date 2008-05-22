@@ -19,9 +19,12 @@
 
 class TClass;
 class TTree;
+class TFile;
+class AliAnalysisSelector;
 class AliAnalysisDataContainer;
 class AliAnalysisTask;
 class AliVEventHandler;
+class AliVEventPool;
 
 
 class AliAnalysisManager : public TNamed {
@@ -62,6 +65,7 @@ enum EAliAnalysisFlags {
    virtual Bool_t      ProcessCut(Long64_t entry) {return Process(entry);}
    virtual Bool_t      Process(Long64_t entry);
    virtual Int_t       GetEntry(Long64_t entry, Int_t getall = 0);
+   TFile              *OpenProofFile(const char *name, const char *option);
    void                PackOutput(TList *target);
    void                UnpackOutput(TList *source);
    virtual void        Terminate();
@@ -90,10 +94,13 @@ enum EAliAnalysisFlags {
    void                SetInputEventHandler(AliVEventHandler*  handler)  {fInputEventHandler   = handler;}
    void                SetOutputEventHandler(AliVEventHandler*  handler) {fOutputEventHandler  = handler;}
    void                SetMCtruthEventHandler(AliVEventHandler* handler) {fMCtruthEventHandler = handler;}
+   void                SetEventPool(AliVEventPool* epool) {fEventPool = epool;}
    void                SetNSysInfo(Long64_t nevents) {fNSysInfo = nevents;}
+   void                SetSelector(AliAnalysisSelector *sel) {fSelector = sel;}
    AliVEventHandler*   GetInputEventHandler()   {return fInputEventHandler;}
    AliVEventHandler*   GetOutputEventHandler()  {return fOutputEventHandler;}
    AliVEventHandler*   GetMCtruthEventHandler() {return fMCtruthEventHandler;}
+   AliVEventPool*      GetEventPool()           {return fEventPool;}
 
    // Container handling
    AliAnalysisDataContainer *CreateContainer(const char *name, TClass *datatype, 
@@ -130,6 +137,7 @@ private:
    AliVEventHandler       *fInputEventHandler;   //  Optional common input  event handler
    AliVEventHandler       *fOutputEventHandler;  //  Optional common output event handler
    AliVEventHandler       *fMCtruthEventHandler; //  Optional common MC Truth event handler
+   AliVEventPool          *fEventPool;           //  Event pool for mixing analysis
    Long64_t                fCurrentEntry;        //! Current processed entry in the tree
    Long64_t                fNSysInfo;            // Event frequency for collecting system information
    EAliAnalysisExecMode    fMode;                // Execution mode
@@ -142,6 +150,7 @@ private:
    TObjArray              *fContainers;          // List of all containers
    TObjArray              *fInputs;              // List of containers with input data
    TObjArray              *fOutputs;             // List of containers with results
+   AliAnalysisSelector    *fSelector;            //! Current selector
 
    static AliAnalysisManager *fgAnalysisManager; //! static pointer to object instance
    ClassDef(AliAnalysisManager,3)  // Analysis manager class

@@ -1066,7 +1066,7 @@ const void AliESDEvent::WriteToTree(TTree* tree) const {
 }
 
 
-void AliESDEvent::ReadFromTree(TTree *tree){
+void AliESDEvent::ReadFromTree(TTree *tree, Option_t* /*opt*/){
 //
 // Connect the ESDEvent to a tree
 //

@@ -22,45 +22,37 @@
 #include <TFile.h>
 #include <TList.h>
 
-#include "AliAnalysisTaskSE.h"
+#include "AliAnalysisTaskME.h"
 #include "AliAnalysisManager.h"
-#include "AliESDEvent.h"
-#include "AliESD.h"
 #include "AliAODEvent.h"
-#include "AliVEvent.h"
 #include "AliAODHandler.h"
-#include "AliMCEventHandler.h"
-#include "AliInputEventHandler.h"
-#include "AliMCEvent.h"
-#include "AliStack.h"
+#include "AliMultiAODInputHandler.h"
 #include "AliLog.h"
 
 
-ClassImp(AliAnalysisTaskSE)
+ClassImp(AliAnalysisTaskME)
 
 ////////////////////////////////////////////////////////////////////////
 
-AliAnalysisTaskSE::AliAnalysisTaskSE():
+AliAnalysisTaskME::AliAnalysisTaskME():
     AliAnalysisTask(),
     fDebug(0),
     fEntry(0),
-    fInputEvent(0x0),
+    fFreshBufferOnly(kFALSE),
     fInputHandler(0x0),
     fOutputAOD(0x0),
-    fMCEvent(0x0),
     fTreeA(0x0)
 {
   // Default constructor
 }
 
-AliAnalysisTaskSE::AliAnalysisTaskSE(const char* name):
-    AliAnalysisTask(name, "AnalysisTaskSE"),
+AliAnalysisTaskME::AliAnalysisTaskME(const char* name):
+    AliAnalysisTask(name, "AnalysisTaskME"),
     fDebug(0),
     fEntry(0),
-    fInputEvent(0x0),
+    fFreshBufferOnly(kFALSE),
     fInputHandler(0x0),
     fOutputAOD(0x0),
-    fMCEvent(0x0),
     fTreeA(0x0)
 {
   // Default constructor
@@ -68,79 +60,60 @@ AliAnalysisTaskSE::AliAnalysisTaskSE(const char* name):
     DefineOutput(0,  TTree::Class());
 }
 
-AliAnalysisTaskSE::AliAnalysisTaskSE(const AliAnalysisTaskSE& obj):
+AliAnalysisTaskME::AliAnalysisTaskME(const AliAnalysisTaskME& obj):
     AliAnalysisTask(obj),
     fDebug(0),
     fEntry(0),
-    fInputEvent(0x0),
+    fFreshBufferOnly(kFALSE),
     fInputHandler(0x0),
     fOutputAOD(0x0),
-    fMCEvent(0x0),
     fTreeA(0x0)
 {
 // Copy constructor
     fDebug        = obj.fDebug;
     fEntry        = obj.fEntry;
-    fInputEvent   = obj.fInputEvent;
     fInputHandler = obj.fInputHandler;
     fOutputAOD    = obj.fOutputAOD;
-    fMCEvent      = obj.fMCEvent;
     fTreeA        = obj.fTreeA;    
-    printf("Constructor (3) \n");
 }
 
 
-AliAnalysisTaskSE& AliAnalysisTaskSE::operator=(const AliAnalysisTaskSE& other)
+AliAnalysisTaskME& AliAnalysisTaskME::operator=(const AliAnalysisTaskME& other)
 {
 // Assignment
     AliAnalysisTask::operator=(other);
-    fDebug        = other.fDebug;
-    fEntry        = other.fEntry;
-    fInputEvent   = other.fInputEvent;
-    fInputHandler = other.fInputHandler;
-    fOutputAOD    = other.fOutputAOD;
-    fMCEvent      = other.fMCEvent;
-    fTreeA        = other.fTreeA;    
+    fDebug           = other.fDebug;
+    fEntry           = other.fEntry;
+    fFreshBufferOnly = other.fFreshBufferOnly;
+    fInputHandler    = other.fInputHandler;
+    fOutputAOD       = other.fOutputAOD;
+    fTreeA           = other.fTreeA;    
     return *this;
 }
 
 
-void AliAnalysisTaskSE::ConnectInputData(Option_t* /*option*/)
+void AliAnalysisTaskME::ConnectInputData(Option_t* /*option*/)
 {
 // Connect the input data
-    if (fDebug > 1) printf("AnalysisTaskSE::ConnectInputData() \n");
+    if (fDebug > 1) printf("AnalysisTaskME::ConnectInputData() \n");
 //
-//  ESD
+//  Multi AOD
 //
-    fInputHandler = (AliInputEventHandler*) 
-         ((AliAnalysisManager::GetAnalysisManager())->GetInputEventHandler());
-//
-//  Monte Carlo
-//
-    AliMCEventHandler*    mcH = 0;
-    mcH = (AliMCEventHandler*) ((AliAnalysisManager::GetAnalysisManager())->GetMCtruthEventHandler());
-    if (mcH) fMCEvent = mcH->MCEvent();
-    
-    
-    if (fInputHandler) {
-         fInputEvent = fInputHandler->GetEvent();
-    } else if( fMCEvent ) {
-         AliWarning("No Input Event Handler connected, only MC Truth Event Handler") ; 
-    } else {
-         AliError("No Input Event Handler connected") ; 
-         return ; 
-    }
+    fInputHandler = dynamic_cast<AliMultiAODInputHandler*> 
+	((AliAnalysisManager::GetAnalysisManager())->GetInputEventHandler());
+    if (fInputHandler == 0) 
+	AliFatal("Event Handler has to be MultiAODHandler !");
 }
 
-void AliAnalysisTaskSE::CreateOutputObjects()
+void AliAnalysisTaskME::CreateOutputObjects()
 {
 // Create the output container
 //
 //  Default AOD
-    if (fDebug > 1) printf("AnalysisTaskSE::CreateOutPutData() \n");
+    if (fDebug > 1) printf("AnalysisTaskME::CreateOutPutData() \n");
 
     AliAODHandler* handler = (AliAODHandler*) 
-         ((AliAnalysisManager::GetAnalysisManager())->GetOutputEventHandler());
+	((AliAnalysisManager::GetAnalysisManager())->GetOutputEventHandler());
     
     if (handler) {
 	fOutputAOD   = handler->GetAOD();
@@ -151,35 +124,35 @@ void AliAnalysisTaskSE::CreateOutputObjects()
     UserCreateOutputObjects();
 }
 
-void AliAnalysisTaskSE::Exec(Option_t* option)
+void AliAnalysisTaskME::Exec(Option_t* option)
 {
 //
 // Exec analysis of one event
-    if (fDebug > 1) AliInfo("AliAnalysisTaskSE::Exec() \n");
+    if (fDebug > 1) AliInfo("AliAnalysisTaskME::Exec() \n");
     if( fInputHandler ) 
        fEntry = fInputHandler->GetReadEntry();
-    else if( fMCEvent )
-       fEntry = fMCEvent->Header()->GetEvent(); 
     if ( !((Entry()-1)%100) && fDebug > 0) 
          AliInfo(Form("%s ----> Processing event # %lld", CurrentFileName(), Entry()));
          
 // Call the user analysis    
-    UserExec(option);
-    PostData(0, fTreeA);
-    
+    if (fInputHandler->IsBufferReady()) {
+	if ((fFreshBufferOnly && fInputHandler->IsFreshBuffer()) || !fFreshBufferOnly)
+	{
+	    UserExec(option);
+	    PostData(0, fTreeA);
+	}
+    }
 }
 
-const char* AliAnalysisTaskSE::CurrentFileName()
+const char* AliAnalysisTaskME::CurrentFileName()
 {
 // Returns the current file name    
-    if( fInputHandler )
-      return fInputHandler->GetTree()->GetCurrentFile()->GetName();
-    else if( fMCEvent )
-      return ((AliMCEventHandler*) ((AliAnalysisManager::GetAnalysisManager())->GetMCtruthEventHandler()))->TreeK()->GetCurrentFile()->GetName();
+    if(fInputHandler )
+	return fInputHandler->GetTree()->GetCurrentFile()->GetName();
     else return "";
 }
 
-void AliAnalysisTaskSE::AddAODBranch(const char* cname, void* addobj)
+void AliAnalysisTaskME::AddAODBranch(const char* cname, void* addobj)
 {
     // Add a new branch to the aod tree
     AliAODHandler* handler = (AliAODHandler*) 
@@ -188,3 +161,10 @@ void AliAnalysisTaskSE::AddAODBranch(const char* cname, void* addobj)
 	handler->AddBranch(cname, addobj);
     }
 }
+
+AliAODEvent*  AliAnalysisTaskME::GetEvent(Int_t iev)
+{
+    // Get an event from the input handler
+    return (fInputHandler->GetEvent(iev));
+}
+
