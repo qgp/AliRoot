@@ -80,7 +80,7 @@ void AliAnalysisTaskESDfilter::UserExec(Option_t */*option*/)
 //
 					    
   Long64_t ientry = Entry();
-  printf("Filter: Analysing event # %5d\n", (Int_t) ientry);
+  if (fDebug > 0) printf("Filter: Analysing event # %5d\n", (Int_t) ientry);
 
   ConvertESDtoAOD();
 }
@@ -109,8 +109,8 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
   // Multiplicity information needed by the header (to be revised!)
     Int_t nTracks    = esd->GetNumberOfTracks();
     Int_t nPosTracks = 0;
-    for (Int_t iTrack = 0; iTrack < nTracks; ++iTrack) 
-	if (esd->GetTrack(iTrack)->GetSign()> 0) nPosTracks++;
+//    for (Int_t iTrack = 0; iTrack < nTracks; ++iTrack) 
+//	if (esd->GetTrack(iTrack)->GetSign()> 0) nPosTracks++;
     
     // Update the header
 
@@ -140,9 +140,6 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
     header->SetZDCN2Energy(esd->GetZDCN2Energy());
     header->SetZDCP2Energy(esd->GetZDCP2Energy());
     header->SetZDCEMEnergy(esd->GetZDCEMEnergy(0),esd->GetZDCEMEnergy(1));
-    header->SetRefMultiplicity(nTracks);
-    header->SetRefMultiplicityPos(nPosTracks);
-    header->SetRefMultiplicityNeg(nTracks - nPosTracks);
 //
 //    
     Int_t nV0s      = esd->GetNumberOfV0s();
@@ -154,7 +151,8 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
     Int_t nFmdClus  = 0;
     Int_t nPmdClus  = esd->GetNumberOfPmdTracks();
     
-    printf("   NV0=%d  NCASCADES=%d  NKINKS=%d\n", nV0s, nCascades, nKinks);
+    if (fDebug > 0) 
+	printf("   NV0=%d  NCASCADES=%d  NKINKS=%d\n", nV0s, nCascades, nKinks);
 
     AODEvent()->ResetStd(nTracks, nVertices, nV0s+nCascades, nJets, nCaloClus, nFmdClus, nPmdClus);
 
@@ -200,7 +198,7 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
     
     AliAODVertex * primary = new(vertices[jVertices++])
 	AliAODVertex(pos, covVtx, vtx->GetChi2toNDF(), NULL, AliAODVertex::kPrimary);
-    primary->Print();
+    if (fDebug > 0) primary->Print();
 
     // Create vertices starting from the most complex objects
     Double_t chi2 = 0.;
@@ -328,6 +326,7 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
 									   kFALSE, // check if this is right
 									   AliAODTrack::kSecondary)
 		);
+       if (esdTrack->GetSign() > 0) nPosTracks++;
 	    aodTrack->ConvertAliPIDtoAODPID();
 	    aodTrack->SetFlags(esdTrack->GetStatus());
 	}
@@ -364,6 +363,7 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
 									   kFALSE, // check if this is right
 									   AliAODTrack::kSecondary)
 		);
+       if (esdTrack->GetSign() > 0) nPosTracks++;
 	    aodTrack->ConvertAliPIDtoAODPID();
 	    aodTrack->SetFlags(esdTrack->GetStatus());	    
 	}
@@ -407,6 +407,7 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
 								     kFALSE, // check if this is right
 								     AliAODTrack::kSecondary)
 		);
+       if (esdTrack->GetSign() > 0) nPosTracks++;
 	    aodTrack->ConvertAliPIDtoAODPID();
 	    aodTrack->SetFlags(esdTrack->GetStatus());
 	}
@@ -478,6 +479,7 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
 								kFALSE, // check if this is right
 								AliAODTrack::kSecondary)
 		);
+       if (esdTrack->GetSign() > 0) nPosTracks++;
 	    aodTrack->ConvertAliPIDtoAODPID();
 	    aodTrack->SetFlags(esdTrack->GetStatus());
 	}
@@ -514,6 +516,7 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
 								kFALSE, // check if this is right
 								AliAODTrack::kSecondary)
 		);
+       if (esdTrack->GetSign() > 0) nPosTracks++;
 	    aodTrack->ConvertAliPIDtoAODPID();
 	    aodTrack->SetFlags(esdTrack->GetStatus());
 	}
@@ -604,8 +607,8 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
 							       kTRUE, // check if this is right
 							       kTRUE, // check if this is right
 							       AliAODTrack::kPrimary);
-			if (esdTrackM->GetSign() > 0) nPosTracks++;
-			mother->SetFlags(esdTrackM->GetStatus());
+         if (esdTrack->GetSign() > 0) nPosTracks++;
+			mother->SetFlags(esdTrack->GetStatus());
 			mother->ConvertAliPIDtoAODPID();
 			primary->AddDaughter(mother);
 			mother->ConvertAliPIDtoAODPID();
@@ -654,8 +657,8 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
 							       kTRUE, // check if this is right
 							       kTRUE, // check if this is right
 							       AliAODTrack::kPrimary);
-			if (esdTrackD->GetSign() > 0) nPosTracks++;
-			daughter->SetFlags(esdTrackD->GetStatus());
+         if (esdTrack->GetSign() > 0) nPosTracks++;
+			daughter->SetFlags(esdTrack->GetStatus());
 			daughter->ConvertAliPIDtoAODPID();
 			vkink->AddDaughter(daughter);
 			daughter->ConvertAliPIDtoAODPID();
@@ -672,7 +675,7 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
   
     // Tracks (primary and orphan)
 
-    printf("NUMBER OF TRACKS %5d\n", nTracks);
+    if (fDebug > 0) printf("NUMBER OF ESD TRACKS %5d\n", nTracks);
     
     for (Int_t nTrack = 0; nTrack < nTracks; ++nTrack) {
 	
@@ -718,6 +721,7 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
 								    AliAODTrack::kPrimary, 
 								    selectInfo)
 		);
+       if (esdTrack->GetSign() > 0) nPosTracks++;
 	    aodTrack->SetFlags(esdTrack->GetStatus());
 	    aodTrack->ConvertAliPIDtoAODPID();
 	}
@@ -742,13 +746,21 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
 					       kFALSE, // check if this is right
 					       AliAODTrack::kOrphan,
 					       selectInfo);
+     if (esdTrack->GetSign() > 0) nPosTracks++;
 	  aodTrack->SetFlags(esdTrack->GetStatus());
 	  aodTrack->ConvertAliPIDtoAODPID();
 	  */
 	}	
     } // end of loop on tracks
     
-    tracks.Expand(jTracks); // remove 'empty slots' due to unwritten tracks
+    // Update number of AOD tracks in header at the end of track loop (M.G.)
+    header->SetRefMultiplicity(jTracks);
+    header->SetRefMultiplicityPos(nPosTracks);
+    header->SetRefMultiplicityNeg(jTracks - nPosTracks);
+    if (fDebug > 0) 
+      printf("   NAODTRACKS=%d  NPOS=%d  NNEG=%d\n", jTracks, nPosTracks, jTracks - nPosTracks);
+    // Do not shrink the array of tracks - other filters may add to it (M.G)
+//    tracks.Expand(jTracks); // remove 'empty slots' due to unwritten tracks
   
     // Access to the AOD container of PMD clusters
     TClonesArray &pmdClusters = *(AODEvent()->GetPmdClusters());
