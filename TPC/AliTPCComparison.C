@@ -24,6 +24,7 @@
   #include <TStyle.h>
   #include <TFile.h>
   #include <TROOT.h>
+  #include <TVector2.h>
 
   #include "AliStack.h"
   #include "AliHeader.h"
@@ -63,6 +64,8 @@ Int_t AliTPCComparison
    TH1F *hp=(TH1F*)gROOT->FindObject("hp");
    if (!hp) hp=new TH1F("hp","PHI resolution",50,-20.,20.); 
    hp->SetFillColor(4);
+
+   TH1F * myhp=new TH1F("myhp","PHI",90,0.,TMath::TwoPi()); 
 
    TH1F *hl=(TH1F*)gROOT->FindObject("hl");
    if (!hl) hl=new TH1F("hl","LAMBDA resolution",50,-20,20);
@@ -240,6 +243,9 @@ Int_t AliTPCComparison
            Float_t phig=TMath::ATan2(ref->Py(),ref->Px());
            hp->Fill((phi - phig)*1000.);
 
+	   TVector2 v2(ref->Py(),ref->Px());
+	   myhp->Fill(v2.Phi());
+
            Float_t lamg=TMath::ATan2(ref->Pz(),ptg);
            hl->Fill((lam - lamg)*1000.);
 
@@ -360,9 +366,13 @@ Int_t AliTPCComparison
    hep->SetXTitle("p (Gev/c)"); hep->SetYTitle("dE/dX (Arb. Units)"); 
    hep->Draw(); c1->cd();
 
+   TCanvas * c3 = new TCanvas();
+   myhp->Draw();
+
    TFile fc("AliTPCComparison.root","RECREATE");
    c1->Write();
    c2->Write();
+   c3->Write();
    fc.Close();
 
    gBenchmark->Stop("AliTPCComparison");

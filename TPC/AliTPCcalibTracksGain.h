@@ -15,14 +15,16 @@
 
 #include <iostream>
 #include <TH1F.h>
+#include <TProfile.h> 
+#include <TProfile2D.h> 
 
 using namespace std;
 
 class TTreeSRedirector;
 class TObjString;
 class TLinearFitter;
-class TProfile; 
-class TProfile2D; 
+/* class TProfile;  */
+/* class TProfile2D;  */
 class TH1F; 
 
 class AliTPCClusterParam; 

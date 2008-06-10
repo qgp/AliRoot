@@ -3,6 +3,7 @@
 
 
 #include <TNamed.h>
+#include <TH2F.h>
 
 
 class TTreeSRedirector;
@@ -12,7 +13,7 @@ class AliESDtrack;
 class AliESD;
 class TH3F;
 class TH1F;
-class TH2F;
+/* class TH2F; */
 class TH1I;
 class TDatabasePDG;
 class AliKFParticle;
