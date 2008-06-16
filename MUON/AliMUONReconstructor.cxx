@@ -69,8 +69,14 @@
 ///
 /// TRIGGERDISABLE : disable the treatment of MUON trigger
 ///
-/// USEFASTDECODER : makes the digit maker class use the high performance decoder
-///                  AliMUONTrackerDDLDecoder instead of AliMUONPayloadTracker.
+/// NOFASTTRKDECODER : makes the digit maker class use the non-high performance decoder
+///                  AliMUONPayloadTracker instead of  AliMUONTrackerDDLDecoder.
+///
+/// NOFASTTRGDECODER : makes the digit maker class use the non-high performance decoder
+///                  AliMUONPayloadTrigger instead of AliMUONTriggerDDLDecoder.
+///
+/// NOFASTDECODERS : makes the digit maker class use the non-high performance decoders
+///                  AliMUONPayloadTracker and AliMUONPayloadTrigger.
 ///
 /// \author Laurent Aphecetche, Subatech
 //-----------------------------------------------------------------------------
@@ -98,7 +104,6 @@
 #include "AliMUONSimpleClusterServer.h"
 #include "AliMUONTracker.h"
 #include "AliMUONTriggerCircuit.h"
-#include "AliMUONTriggerCrateStore.h"
 #include "AliMUONTriggerStoreV1.h"
 #include "AliMUONVClusterFinder.h"
 #include "AliMUONVClusterServer.h"
@@ -129,7 +134,6 @@ AliMUONRecoParam* AliMUONReconstructor::fgRecoParam = 0x0; // reconstruction par
 //_____________________________________________________________________________
 AliMUONReconstructor::AliMUONReconstructor() : 
 AliReconstructor(),
-fCrateManager(0x0),
 fDigitMaker(0x0),
 fTransformer(new AliMUONGeometryTransformer()),
 fDigitStore(0x0),
@@ -159,7 +163,6 @@ AliMUONReconstructor::~AliMUONReconstructor()
   delete fDigitMaker;
   delete fDigitStore;
   delete fTransformer;
-  delete fCrateManager;
   delete fTriggerCircuit;
   delete fCalibrationData;
   delete fDigitCalibrator;
@@ -256,17 +259,6 @@ AliMUONReconstructor::ConvertDigits(AliRawReader* rawReader, TTree* digitsTree) 
 }
 
 //_____________________________________________________________________________
-AliMUONTriggerCrateStore*
-AliMUONReconstructor::CrateManager() const
-{
-  /// Return (and create if necessary) the trigger crate store
-  if (fCrateManager) return fCrateManager;
-  fCrateManager = new AliMUONTriggerCrateStore;
-  fCrateManager->ReadFromFile();
-  return fCrateManager;
-}
-
-//_____________________________________________________________________________
 void
 AliMUONReconstructor::CreateDigitMaker() const
 {
@@ -277,12 +269,23 @@ AliMUONReconstructor::CreateDigitMaker() const
 
   TString option = GetOption();
   Bool_t enableErrorLogging = kTRUE;
-  Bool_t useFastDecoder = kFALSE;
-  if (option.Contains("USEFASTDECODER"))
+  Bool_t useFastTrackerDecoder = kTRUE;
+  Bool_t useFastTriggerDecoder = kTRUE;
+  if (option.Contains("NOFASTTRKDECODER"))
   {
-    useFastDecoder = kTRUE;
+    useFastTrackerDecoder = kFALSE;
   }
-  fDigitMaker = new AliMUONDigitMaker(enableErrorLogging, useFastDecoder);
+  if (option.Contains("NOFASTTRGDECODER"))
+  {
+    useFastTriggerDecoder = kFALSE;
+  }
+  if (option.Contains("NOFASTDECODERS"))
+  {
+    useFastTrackerDecoder = kFALSE;
+    useFastTriggerDecoder = kFALSE;
+  }
+  fDigitMaker = new AliMUONDigitMaker(
+      enableErrorLogging, useFastTrackerDecoder);
   option.ToUpper();
   if ( option.Contains("SAVEDIGITS" ))
     {

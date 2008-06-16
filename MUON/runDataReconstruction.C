@@ -37,9 +37,9 @@
 #endif
 
 // Data file, OCDB on Grid
-TString input="alien:///alice/data/2008/LHC08a/000024841/raw/08000024841010.10.root";
-//TString input="alien:///alice/data/2008/LHC08a/000021931/raw/08000021931001.50.root";
-TString ocdbPath = "alien://folder=/alice/data/2008/LHC08a/OCDB";
+//TString input="alien:///alice/data/2008/LHC08a/000024841/raw/08000024841010.10.root";
+TString input="alien:///alice/data/2008/LHC08b/000036099/raw/08000036099021.10.root";
+TString ocdbPath = "alien://folder=/alice/data/2008/LHC08b/OCDB";
 
 // Data file, OCDB locally
 //TString input="$ALICE_ROOT/MUON/test_out.100/raw.root";
