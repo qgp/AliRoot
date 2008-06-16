@@ -1069,21 +1069,19 @@ Bool_t AliReconstruction::RunEvent(Int_t iEvent)
 	ok = AliTracker::
 	  PropagateTrackTo(tpcTrack,kRadius,track->GetMass(),kMaxStep,kTRUE);
 
-
-
       if (ok) {
 	Int_t n=trkArray.GetEntriesFast();
         selectedIdx[n]=track->GetID();
         trkArray.AddLast(tpcTrack);
       }
 
-      if (track->GetX() < kRadius) continue;
+      //Tracks refitted by ITS should already be at the SPD vertex
+      if (track->IsOn(AliESDtrack::kITSrefit)) continue;
 
-      ok = AliTracker::
-           PropagateTrackTo(track,kRadius,track->GetMass(),kMaxStep,kTRUE);
-      if (ok) {
-         track->RelateToVertex(fesd->GetPrimaryVertexSPD(), kBz, kRadius);
-      }
+      AliTracker::
+         PropagateTrackTo(track,kRadius,track->GetMass(),kMaxStep,kTRUE);
+      track->RelateToVertex(fesd->GetPrimaryVertexSPD(), kBz, kVeryBig);
+
     }
 
     //
@@ -1109,7 +1107,7 @@ Bool_t AliReconstruction::RunEvent(Int_t iEvent)
              fesd->SetPrimaryVertex(pvtx);
              for (Int_t i=0; i<ntracks; i++) {
 	         AliESDtrack *t = fesd->GetTrack(i);
-                 t->RelateToVertex(pvtx, kBz, kRadius);
+                 t->RelateToVertex(pvtx, kBz, kVeryBig);
              } 
           }
        }
@@ -1125,11 +1123,10 @@ Bool_t AliReconstruction::RunEvent(Int_t iEvent)
        if (pvtx) {
           if (pvtx->GetStatus()) {
              fesd->SetPrimaryVertexTPC(pvtx);
-             Int_t nsel=trkArray.GetEntriesFast();
-             for (Int_t i=0; i<nsel; i++) {
-	         AliExternalTrackParam *t = 
-                   (AliExternalTrackParam *)trkArray.UncheckedAt(i);
-                 t->PropagateToDCA(pvtx, kBz, kRadius);
+             for (Int_t i=0; i<ntracks; i++) {
+	         AliESDtrack *t = fesd->GetTrack(i);
+		 AliExternalTrackParam *ttpc = (AliExternalTrackParam *)t->GetTPCInnerParam();
+                 if (ttpc) ttpc->PropagateToDCA(pvtx, kBz, kVeryBig);
              } 
           }
        }
