@@ -3,50 +3,61 @@ void rec(const char *filename="raw.root")
   /////////////////////////////////////////////////////////////////////////////////////////
   //
   // First version of the reconstruction
-  // script for the FDR'08
+  // script for the 2008 cosmic data (LHC08b)
+  //
+  /////////////////////////////////////////////////////////////////////////////////////////
+
+  // Debug options
+  // AliLog::SetGlobalDebugLevel(2);
+  // AliLog::SetModuleDebugLevel("STEER",2);
 
   // Set the CDB storage location
-  // AliLog::SetModuleDebugLevel("STEER",2);
   AliCDBManager * man = AliCDBManager::Instance();
-  //  man->SetDefaultStorage("local://LocalCDB");
-  man->SetDefaultStorage("alien://folder=/alice/data/2008/LHC08a/OCDB/");
+  //  man->SetDefaultStorage("local://$ALICE_ROOT");
+  man->SetDefaultStorage("alien://folder=/alice/data/2008/LHC08b/OCDB/");
   
-  // Files that we can not read from alien...solved
+  // Example in case a specific CDB storage is needed
   //  man->SetSpecificStorage("ITS/Calib/MapsAnodeSDD","local://$ALICE_ROOT");
-  //  man->SetSpecificStorage("ITS/Calib/MapsTimeSDD","local://$ALICE_ROOT");
-  //  man->SetSpecificStorage("TPC/Calib/ExB","local://$ALICE_ROOT");
-
-  // Objects not found if using LHC07w database...solved
-  //  man->SetSpecificStorage("ITS/Calib/MapsAnodeSDD","local:///afs/cern.ch/user/c/cheshkov/public/OCDB");
-  // man->SetSpecificStorage("GRP/GRP/Data","local://$ALICE_ROOT");
-  // man->SetSpecificStorage("ITS/Calib/DDLMapSDD","local://$ALICE_ROOT");
-  // man->SetSpecificStorage("MUON/Calib/Mapping","local://$ALICE_ROOT");
-  // man->SetSpecificStorage("MUON/Calib/DDLStore","local://$ALICE_ROOT");
 
   // ITS settings
   AliITSRecoParam * itsRecoParam = AliITSRecoParam::GetCosmicTestParam();
+  itsRecoParam->SetFactorSAWindowSizes(20);
   itsRecoParam->SetClusterErrorsParam(2);
   itsRecoParam->SetFindV0s(kFALSE);
   itsRecoParam->SetAddVirtualClustersInDeadZone(kFALSE);
   itsRecoParam->SetUseAmplitudeInfo(kFALSE);
   // In case we want to switch off a layer
   //  itsRecoParam->SetLayerToSkip(<N>);
-  itsRecoParam->SetLayerToSkip(4);
+  //  itsRecoParam->SetLayerToSkip(4);
   itsRecoParam->SetLayerToSkip(5);
   itsRecoParam->SetLayerToSkip(2);
   itsRecoParam->SetLayerToSkip(3);
+  //itsRecoParam->SetSAOnePointTracks();
+  itsRecoParam->SetClusterMisalError(1.0); // [cm]
+  itsRecoParam->SetSAUseAllClusters();
   AliITSReconstructor::SetRecoParam(itsRecoParam);
 
   // TPC settings
   AliLog::SetClassDebugLevel("AliTPCclustererMI",2);
-  AliTPCRecoParam * tpcRecoParam = AliTPCRecoParam::GetCosmicTestParam(kTRUE);
+  AliTPCRecoParam * tpcRecoParam = AliTPCRecoParam::GetCosmicTestParam(kFALSE);
   tpcRecoParam->SetTimeInterval(60,940);
   tpcRecoParam->Dump();
   AliTPCReconstructor::SetRecoParam(tpcRecoParam);
   AliTPCReconstructor::SetStreamLevel(1);
 
   // TRD setting
+  // Settings for the TRD Raw Reader
   AliTRDrawStreamBase::SetRawStreamVersion("TB");
+  AliTRDrawStreamTB::SetNoErrorWarning();
+  AliTRDrawStreamTB::AllowCorruptedData();
+  AliTRDrawStreamTB::DisableStackNumberChecker();
+  AliTRDrawStreamTB::DisableStackLinkNumberChecker();
+  AliTRDrawStreamTB::SetSubtractBaseline(10);
+  
+  // TRD reconstruction params
+  AliTRDrecoParam *fTRDrecoParam = AliTRDrecoParam::GetCosmicTestParam();
+  AliTRDReconstructor::SetRecoParam(fTRDrecoParam);
+  AliTRDtrackerV1::SetNTimeBins(30);
 
   // PHOS settings
   AliPHOSRecoParam* recEmc = new AliPHOSRecoParamEmc();
@@ -95,7 +106,7 @@ void rec(const char *filename="raw.root")
   //  rec.SetEquipmentIdMap("EquipmentIdMap.data");
 
   // Detector options if any
-  rec.SetOption("ITS","cosmics,onlyITS");
+  rec.SetOption("ITS","cosmics");
   rec.SetOption("MUON","SAVEDIGITS");
   rec.SetOption("TPC","OldRCUFormat");
   rec.SetOption("PHOS","OldRCUFormat");
@@ -111,9 +122,9 @@ void rec(const char *filename="raw.root")
   rec.SetCleanESD(kFALSE);
 
   // rec.SetEventRange(0,15);
-  // AliLog::SetGlobalDebugLevel(2);
 
   rec.SetRunQA(kFALSE);
+  rec.SetRunGlobalQA(kFALSE);
   AliLog::Flush();
   rec.Run();
 
