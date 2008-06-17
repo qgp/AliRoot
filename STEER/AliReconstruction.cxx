@@ -1867,7 +1867,7 @@ Bool_t AliReconstruction::FillTriggerESD(AliESDEvent*& esd)
     AliCTPRawStream input(fRawReader);
     if (!input.Next()) {
       AliWarning("No valid CTP (trigger) DDL raw data is found ! The trigger mask will be taken from the event header, trigger cluster mask will be empty !");
-      ULong_t mask = (((ULong_t)fRawReader->GetTriggerPattern()[1]) << 32) +
+      ULong64_t mask = (((ULong64_t)fRawReader->GetTriggerPattern()[1]) << 32) +
 	fRawReader->GetTriggerPattern()[0];
       esd->SetTriggerMask(mask);
       esd->SetTriggerCluster(0);
