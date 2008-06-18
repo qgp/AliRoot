@@ -392,5 +392,25 @@ void AliTracker::FillResiduals(const AliExternalTrackParam *t,
   h->Fill(residuals[0]);
   h=(TH1F*)fResiduals->At(2*layer-1);
   h->Fill(residuals[1]);
+
+  if (layer==5) {
+    if (p[1]<0) {  // SSD1 absolute residuals
+       ((TH1F*)fResiduals->At(40))->Fill(t->GetY()-p[0]); //C side
+       ((TH1F*)fResiduals->At(41))->Fill(t->GetZ()-p[1]);
+    } else {             
+       ((TH1F*)fResiduals->At(42))->Fill(t->GetY()-p[0]); //A side
+       ((TH1F*)fResiduals->At(43))->Fill(t->GetZ()-p[1]);
+    }           
+  }
+  if (layer==6) {  // SSD2 absolute residuals
+    if (p[1]<0) {
+       ((TH1F*)fResiduals->At(44))->Fill(t->GetY()-p[0]); //C side
+       ((TH1F*)fResiduals->At(45))->Fill(t->GetZ()-p[1]);
+    } else {
+       ((TH1F*)fResiduals->At(46))->Fill(t->GetY()-p[0]); //A side
+       ((TH1F*)fResiduals->At(47))->Fill(t->GetZ()-p[1]);
+    }
+  }
+
 }
 
