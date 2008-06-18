@@ -673,7 +673,7 @@ void HmpConfig::WriteBatch()
     else if(fRawBG->GetButton(kRoo)->GetState())    fprintf(fp,"  pSim->SetWriteRawData(\"%s\",\"raw.root\");     //raw data as ROOT\n",det.Data());
 
                                                     fprintf(fp,"  pSim->SetRunHLT(\"\");                           //no HLT stuff\n");   
-                                                    fprintf(fp,"  pSim->SetQA(kFALSE);                             //no QA\n");
+                                                    fprintf(fp,"  pSim->SetRunQA(\":\");                             //no QA\n");
                                                     fprintf(fp,"  pSim->Run(iNevt);                                //run iNevt events\n  delete pSim;\n\n");
   }//sim section
                                                     fprintf(fp,"  cout<<\"!!!!!!!!!!!!Info in <sim.C>: Start time: \";time.Print();\n");

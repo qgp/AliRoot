@@ -7,7 +7,7 @@
   rec.SetRunTracking("");
 
   rec.SetNumberOfEventsPerFile(-1);
-  rec.SetRunQA(kFALSE);
+  rec.SetRunQA(":");
 
   //  rec.SetEventRange(0, 1000); 
  

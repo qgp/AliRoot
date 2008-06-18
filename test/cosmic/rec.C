@@ -123,8 +123,8 @@ void rec(const char *filename="raw.root")
 
   // rec.SetEventRange(0,15);
 
-  rec.SetRunQA(kFALSE);
-  rec.SetRunGlobalQA(kFALSE);
+  rec.SetRunQA("ITS TPC:ESD RECPOINT");
+  rec.SetRunGlobalQA(kTRUE);
   AliLog::Flush();
   rec.Run();
 

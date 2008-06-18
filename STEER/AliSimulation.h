@@ -108,8 +108,7 @@ public:
   const Int_t GetQACycles(const char * detector) { return fQACycles[GetDetIndex(detector)] ; }
   void        SetQACycles(const char * detector, const Int_t cycles) { fQACycles[GetDetIndex(detector)] = cycles ; }
   Bool_t      RunQA() ;
-  void        SetQA(const Bool_t val) { fRunQA = val ; } 
-  
+  Bool_t      SetRunQA(TString detAndAction="ALL:ALL") ;   
 private:
   void 		 InitCDB();
   void 		 InitRunNumber();
@@ -158,6 +157,8 @@ private:
   //QA stuff
   static const Int_t   fgkNDetectors = 15 ;             // number of detectors
   static const char *  fgkDetectorName[fgkNDetectors] ; // names of detectors
+  TString              fQADetectors ;                   // list of detectors to be QA'ed 
+  TString              fQATasks ;                       // list of QA tasks to be performed 
   Int_t                fQACycles[fgkNDetectors] ;       // cycle length (# events) over which QA data are accumulated
   Bool_t               fRunQA ;                         // Runs the QA at the end of simulation
 

@@ -251,6 +251,8 @@ AliReconstruction::AliReconstruction(const char* gAliceFilename,
   fSpecCDBUri(), 
   fInitCDBCalled(kFALSE),
   fSetRunNumberFromDataCalled(kFALSE),
+  fQADetectors("ALL"), 
+  fQATasks("ALL"),  
   fRunQA(kTRUE),  
   fRunGlobalQA(kTRUE),
   fInLoopQA(kFALSE),
@@ -340,6 +342,8 @@ AliReconstruction::AliReconstruction(const AliReconstruction& rec) :
   fSpecCDBUri(), 
   fInitCDBCalled(rec.fInitCDBCalled),
   fSetRunNumberFromDataCalled(rec.fSetRunNumberFromDataCalled),
+  fQADetectors(rec.fQADetectors), 
+  fQATasks(rec.fQATasks),   
   fRunQA(rec.fRunQA),  
   fRunGlobalQA(rec.fRunGlobalQA),
   fInLoopQA(rec.fInLoopQA),
@@ -719,14 +723,17 @@ Bool_t AliReconstruction::InitRun(const char* input)
    AliSysInfo::AddStamp("LoadGeom");
 
   //QA
-  AliQADataMakerSteer qas ; 
   if (fRunQA && fRawReader) { 
-    qas.Run(fRunLocalReconstruction, fRawReader) ; 
-	fSameQACycle = kTRUE ; 
+    if (fQATasks.Contains(Form("%d", AliQA::kRAWS))) {
+      TString detStr(fQADetectors);
+      AliQADataMakerSteer qas;
+      qas.Run(detStr, fRawReader);
+    } 
+    fSameQACycle=kTRUE;
   }
   // checking the QA of previous steps
   //CheckQA() ; 
- 
+
   /*
   // local reconstruction
   if (!fRunLocalReconstruction.IsNull()) {
@@ -841,34 +848,52 @@ Bool_t AliReconstruction::InitRun(const char* input)
 
   //Initialize the QA and start of cycle for out-of-cycle QA
   if (fRunQA) {
-//      TString detStr(fFillESD); 
-//      for (Int_t iDet = 0; iDet < fgkNDetectors; iDet++) {
-//         if (!IsSelected(fgkDetectorName[iDet], detStr)) continue;
-//         AliQADataMakerRec *qadm = GetQADataMaker(iDet);  
-//         if (!qadm) continue;
-//         AliInfo(Form("Initializing the QA data maker for %s", 
-//                fgkDetectorName[iDet]));
-//         qadm->Init(AliQA::kRECPOINTS, AliCDBManager::Instance()->GetRun());
-//         qadm->Init(AliQA::kESDS, AliCDBManager::Instance()->GetRun());
-//         if (!fInLoopQA) {
-// 			qadm->StartOfCycle(AliQA::kRECPOINTS, fSameQACycle);
-// 			qadm->StartOfCycle(AliQA::kESDS,"same");
-//         }
-//      }
-	  if (fRunGlobalQA) {
-		  AliQADataMakerRec *qadm = GetQADataMaker(AliQA::kGLOBAL);
-		  AliInfo(Form("Initializing the global QA data maker"));
-		  TObjArray *arr=
-			qadm->Init(AliQA::kRECPOINTS, AliCDBManager::Instance()->GetRun());
-		  AliTracker::SetResidualsArray(arr);
-		  qadm->Init(AliQA::kESDS, AliCDBManager::Instance()->GetRun());
-		  if (!fInLoopQA) {
-			  qadm->StartOfCycle(AliQA::kRECPOINTS, fSameQACycle);
-			  qadm->StartOfCycle(AliQA::kESDS, "same");
-		  }
-	  }
-	  if (!fInLoopQA) 
-		  fSameQACycle = kTRUE; 
+    TString detStr(fQADetectors) ; 
+    for (Int_t iDet = 0; iDet < fgkNDetectors; iDet++) {
+      if (!IsSelected(fgkDetectorName[iDet], detStr)) 
+	continue;
+      AliQADataMakerRec *qadm = GetQADataMaker(iDet);  
+      if (!qadm) 
+	continue;
+      AliInfo(Form("Initializing the QA data maker for %s", fgkDetectorName[iDet]));
+      if (fQATasks.Contains(Form("%d", AliQA::kRECPOINTS))) 
+	qadm->Init(AliQA::kRECPOINTS, AliCDBManager::Instance()->GetRun());
+      if (fQATasks.Contains(Form("%d", AliQA::kESDS)))  
+	qadm->Init(AliQA::kESDS, AliCDBManager::Instance()->GetRun());
+      if (!fInLoopQA) {
+	if (fQATasks.Contains(Form("%d", AliQA::kRECPOINTS))) {
+	  qadm->StartOfCycle(AliQA::kRECPOINTS, fSameQACycle);
+	  fSameQACycle = kTRUE;
+	}
+	if (fQATasks.Contains(Form("%d", AliQA::kESDS))) {  
+	  qadm->StartOfCycle(AliQA::kESDS, fSameQACycle);
+	  fSameQACycle = kTRUE;
+	}
+      }
+    }	  
+  }
+  if (fRunGlobalQA) {
+    AliQADataMakerRec *qadm = GetQADataMaker(AliQA::kGLOBAL);
+    AliInfo(Form("Initializing the global QA data maker"));
+    if (fQATasks.Contains(Form("%d", AliQA::kRECPOINTS))) {
+      TObjArray *arr=
+	qadm->Init(AliQA::kRECPOINTS, AliCDBManager::Instance()->GetRun());
+      AliTracker::SetResidualsArray(arr);
+    }
+    if (fQATasks.Contains(Form("%d", AliQA::kESDS))) {
+      qadm->Init(AliQA::kESDS, AliCDBManager::Instance()->GetRun());
+    }
+    if (!fInLoopQA) {
+      fSameQACycle = kFALSE;
+      if (fQATasks.Contains(Form("%d", AliQA::kRECPOINTS))) {                                 
+	qadm->StartOfCycle(AliQA::kRECPOINTS, fSameQACycle);
+	fSameQACycle = kTRUE;
+      }
+      if (fQATasks.Contains(Form("%d", AliQA::kESDS))) { 
+	qadm->StartOfCycle(AliQA::kESDS, fSameQACycle);
+	fSameQACycle = kTRUE;
+      }
+    }
   }
 
   //Initialize the Plane Efficiency framework
@@ -918,24 +943,38 @@ Bool_t AliReconstruction::RunEvent(Int_t iEvent)
     //Start of cycle for the in-loop QA
     if (fInLoopQA) {
        if (fRunQA) {
-          TString detStr(fFillESD); 
+	  fSameQACycle = kFALSE ;          
+	  TString detStr(fQADetectors); 
           for (Int_t iDet = 0; iDet < fgkNDetectors; iDet++) {
              if (!IsSelected(fgkDetectorName[iDet], detStr)) 
 				 continue;
              AliQADataMakerRec *qadm = GetQADataMaker(iDet);  
              if (!qadm) 
-				 continue;
-             qadm->StartOfCycle(AliQA::kRECPOINTS, fSameQACycle);
-             qadm->StartOfCycle(AliQA::kESDS, "same") ; 	
-          }
-		   if (fRunGlobalQA) {
-			   AliQADataMakerRec *qadm = GetQADataMaker(AliQA::kGLOBAL);
-			   qadm->StartOfCycle(AliQA::kRECPOINTS, fSameQACycle);
-			   qadm->StartOfCycle(AliQA::kESDS, "same");
-		   }		   
-	   }
+	       continue;
+	     if (fQATasks.Contains(Form("%d", AliQA::kRECPOINTS))) {
+	       qadm->StartOfCycle(AliQA::kRECPOINTS, fSameQACycle);
+	       fSameQACycle = kTRUE;
+	     }
+	     if (fQATasks.Contains(Form("%d", AliQA::kESDS))) {
+	       qadm->StartOfCycle(AliQA::kESDS, fSameQACycle) ;
+	       fSameQACycle = kTRUE;
+	     }
+	  }
+	  fSameQACycle = kFALSE;
+       }
+       fSameQACycle = kFALSE;
+       if (fRunGlobalQA) {
+	 AliQADataMakerRec *qadm = GetQADataMaker(AliQA::kGLOBAL);
+	 if (fQATasks.Contains(Form("%d", AliQA::kRECPOINTS))) {
+	   qadm->StartOfCycle(AliQA::kRECPOINTS, fSameQACycle);
+	   fSameQACycle = kTRUE;
+	 }
+	 if (fQATasks.Contains(Form("%d", AliQA::kESDS))) {
+	   qadm->StartOfCycle(AliQA::kESDS, fSameQACycle);
+	   fSameQACycle = kTRUE;
+	 }		   
+       }
     }
-
     fRunLoader->GetEvent(iEvent);
 
     char aFileName[256];
@@ -1152,12 +1191,11 @@ Bool_t AliReconstruction::RunEvent(Int_t iEvent)
     // write ESD
     if (fCleanESD) CleanESD(fesd);
 
-	if (fRunQA) {
-		if (fRunGlobalQA) {
-			AliQADataMakerRec *qadm = GetQADataMaker(AliQA::kGLOBAL);
-			if (qadm) qadm->Exec(AliQA::kESDS, fesd);
-		}
-	}
+    if (fRunGlobalQA) {
+	AliQADataMakerRec *qadm = GetQADataMaker(AliQA::kGLOBAL);
+	if (qadm && fQATasks.Contains(Form("%d", AliQA::kESDS)))
+	  qadm->Exec(AliQA::kESDS, fesd);		
+    }
 
     if (fWriteESDfriend) {
       fesdf->~AliESDfriend();
@@ -1188,25 +1226,28 @@ Bool_t AliReconstruction::RunEvent(Int_t iEvent)
   // End of cycle for the in-loop QA
      if (fInLoopQA) {
         if (fRunQA) {
-           RunQA(fFillESD.Data(), fesd);
-           TString detStr(fFillESD); 
+	   RunQA(fesd);
            for (Int_t iDet = 0; iDet < fgkNDetectors; iDet++) {
-			   if (!IsSelected(fgkDetectorName[iDet], detStr)) 
-				   continue;
-			   AliQADataMakerRec * qadm = GetQADataMaker(iDet);
-			   if (!qadm) 
-				   continue;
-			   qadm->EndOfCycle(AliQA::kRECPOINTS);
-			   qadm->EndOfCycle(AliQA::kESDS);
-			   qadm->Finish();
-		   }
+	       if (!IsSelected(fgkDetectorName[iDet], fQADetectors)) 
+		 continue;
+	       AliQADataMakerRec * qadm = GetQADataMaker(iDet);
+	       if (!qadm) 
+		 continue;
+	       if (fQATasks.Contains(Form("%d", AliQA::kRECPOINTS))) 
+		 qadm->EndOfCycle(AliQA::kRECPOINTS);
+	       if (fQATasks.Contains(Form("%d", AliQA::kESDS))) 
+		 qadm->EndOfCycle(AliQA::kESDS);			   
+	       qadm->Finish();
+	  }
         }
         if (fRunGlobalQA) {
            AliQADataMakerRec *qadm = GetQADataMaker(AliQA::kGLOBAL);
            if (qadm) {
-	      qadm->EndOfCycle(AliQA::kRECPOINTS);
-	      qadm->EndOfCycle(AliQA::kESDS);
-	      qadm->Finish();
+	     if (fQATasks.Contains(Form("%d", AliQA::kRECPOINTS))) 
+	       qadm->EndOfCycle(AliQA::kRECPOINTS);
+	     if (fQATasks.Contains(Form("%d", AliQA::kESDS))) 
+	       qadm->EndOfCycle(AliQA::kESDS);
+	     qadm->Finish();
  	   }
         }
      }
@@ -1298,21 +1339,28 @@ Bool_t AliReconstruction::FinishRun()
 
   //Finish QA and end of cycle for out-of-loop QA
   if (!fInLoopQA) {
-	  if (fRunQA) {
-		  AliQADataMakerSteer qas;
-		  qas.Run(fRunLocalReconstruction.Data(), AliQA::kRECPOINTS, fSameQACycle);
-		  //qas.Reset() ;
-		  qas.Run(fRunLocalReconstruction.Data(), AliQA::kESDS, fSameQACycle);
-		  if (fRunGlobalQA) {
-			 AliQADataMakerRec *qadm = GetQADataMaker(AliQA::kGLOBAL);
-			  if (qadm) {
-				  qadm->EndOfCycle(AliQA::kRECPOINTS);
-				  qadm->EndOfCycle(AliQA::kESDS);
-				  qadm->Finish();
-			  }
-		  }
-	  }
+    if (fRunQA) {
+      AliQADataMakerSteer qas;
+      TString detStr(fQADetectors);
+      if (fQATasks.Contains(Form("%d", AliQA::kRECPOINTS))) 
+	qas.Run(detStr, AliQA::kRECPOINTS, fSameQACycle);		  
+       //qas.Reset() ;
+      if (fQATasks.Contains(Form("%d", AliQA::kESDS))) 		 
+	qas.Run(detStr, AliQA::kESDS, fSameQACycle);		  
+ 
+    }
+    if (fRunGlobalQA) {
+       AliQADataMakerRec *qadm = GetQADataMaker(AliQA::kGLOBAL);
+       if (qadm) {
+	 if (fQATasks.Contains(Form("%d", AliQA::kRECPOINTS))) 
+	   qadm->EndOfCycle(AliQA::kRECPOINTS);
+	 if (fQATasks.Contains(Form("%d", AliQA::kESDS))) 
+	   qadm->EndOfCycle(AliQA::kESDS);
+	  qadm->Finish();
+       }
+    }
   }
+
   
   // Cleanup of CDB manager: cache and active storages!
   AliCDBManager::Instance()->ClearCache();
@@ -1450,7 +1498,9 @@ Bool_t AliReconstruction::RunLocalEventReconstruction(const TString& detectors)
 	  //AliInfo
           //(Form("Running QA data maker for %s", fgkDetectorName[iDet]));
 
-	  qadm->Exec(AliQA::kRECPOINTS, clustersTree) ;
+	   if (fQATasks.Contains(Form("%d", AliQA::kRECPOINTS))) 
+		   qadm->Exec(AliQA::kRECPOINTS, clustersTree) ; 
+		   
  
 	  //AliCodeTimerStop
           //(Form("Running QA data maker for %s", fgkDetectorName[iDet]));
@@ -2475,12 +2525,12 @@ AliQADataMakerRec * AliReconstruction::GetQADataMaker(Int_t iDet)
 }
 
 //_____________________________________________________________________________
-Bool_t AliReconstruction::RunQA(const char* detectors, AliESDEvent *& esd)
+Bool_t AliReconstruction::RunQA(AliESDEvent *& esd)
 {
   // run the Quality Assurance data producer
 
   AliCodeTimerAuto("")
-  TString detStr = detectors;
+  TString detStr = fQADetectors;
   for (Int_t iDet = 0; iDet < fgkNDetectors; iDet++) {
    if (!IsSelected(fgkDetectorName[iDet], detStr)) 
      continue;
@@ -2490,8 +2540,11 @@ Bool_t AliReconstruction::RunQA(const char* detectors, AliESDEvent *& esd)
    AliCodeTimerStart(Form("running quality assurance data maker for %s", fgkDetectorName[iDet]));
    AliInfo(Form("running quality assurance data maker for %s", fgkDetectorName[iDet]));
     
-   qadm->Exec(AliQA::kESDS, esd) ; 
-   qadm->Increment() ; 
+
+   if (fQATasks.Contains(Form("%d", AliQA::kESDS))) {
+	   qadm->Exec(AliQA::kESDS, esd) ; 
+	   qadm->Increment() ; 
+    }
 
    AliCodeTimerStop(Form("running quality assurance data maker for %s", fgkDetectorName[iDet]));
  }
@@ -2555,6 +2608,51 @@ Int_t AliReconstruction::GetDetIndex(const char* detector)
   }	
   return index ; 
 }
+
+//_____________________________________________________________________________
+Bool_t AliReconstruction::SetRunQA(TString detAndAction) 
+{
+	// Allows to run QA for a selected set of detectors
+	// and a selected set of tasks among RAWS, RECPOINTS and ESDS
+	// all selected detectors run the same selected tasks
+
+	if (!detAndAction.Contains(":")) {
+		AliError( Form("%s is a wrong syntax, use \"DetectorList:ActionList\" \n", detAndAction.Data()) ) ;
+		fRunQA = kFALSE ;
+		return kFALSE ; 
+	}
+	Int_t colon = detAndAction.Index(":") ; 
+	fQADetectors = detAndAction(0, colon) ; 
+	if (fQADetectors.Contains("ALL") )
+		fQADetectors = fFillESD ; 
+	fQATasks   = detAndAction(colon+1, detAndAction.Sizeof() ) ; 
+	if (fQATasks.Contains("ALL") ) {
+		fQATasks = Form("%d %d %d", AliQA::kRAWS, AliQA::kRECPOINTS, AliQA::kESDS) ; 
+	} else {
+		fQATasks.ToUpper() ; 
+		TString tempo("") ; 
+		if ( fQATasks.Contains("RAW") ) 
+			tempo = Form("%d ", AliQA::kRAWS) ; 
+			if ( fQATasks.Contains("RECPOINT") ) 
+				tempo += Form("%d ", AliQA::kRECPOINTS) ; 
+			if ( fQATasks.Contains("ESD") ) 
+				tempo += Form("%d ", AliQA::kESDS) ; 
+			fQATasks = tempo ; 
+			if (fQATasks.IsNull()) {
+				AliInfo("No QA requested\n")  ;
+				fRunQA = kFALSE ;
+				return kTRUE ; 
+				}
+	}
+	TString tempo(fQATasks) ; 
+	tempo.ReplaceAll(Form("%d", AliQA::kRAWS), AliQA::GetTaskName(AliQA::kRAWS))      ;
+	tempo.ReplaceAll(Form("%d", AliQA::kRECPOINTS), AliQA::GetTaskName(AliQA::kRECPOINTS)) ;
+	tempo.ReplaceAll(Form("%d", AliQA::kESDS), AliQA::GetTaskName(AliQA::kESDS)) ; 
+	AliInfo( Form("QA will be done on \"%s\" for \"%s\"\n", fQADetectors.Data(), tempo.Data()) ) ;  
+	fRunQA = kTRUE ;
+	return kTRUE; 
+} 
+ 
 //_____________________________________________________________________________
 Bool_t AliReconstruction::FinishPlaneEff() {
  //
