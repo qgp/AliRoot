@@ -62,11 +62,11 @@ ClassImp(AliGRPPreprocessor)
   const Int_t AliGRPPreprocessor::fgknDAQLbPar = 8; // num parameters in the logbook
   const Int_t AliGRPPreprocessor::fgknDCSDP = 10;   // number of dcs dps
   const char* AliGRPPreprocessor::fgkDCSDataPoints[AliGRPPreprocessor::fgknDCSDP] = {
-                   "LHCState",
+                   "LHCState",              // missing in DCS
                    "L3Polarity",
                    "DipolePolarity",
-                   "LHCLuminosity",
-                   "BeamIntensity",
+                   "LHCLuminosity",         // missing in DCS
+                   "BeamIntensity",         // missing in DCS
                    "L3Current",
                    "DipoleCurrent",
                    "CavernTemperature",
@@ -95,12 +95,13 @@ ClassImp(AliGRPPreprocessor)
                    "(DAQ logbook ERROR)",
                    "(DAQ FXS ERROR)",
                    "(DCS FXS ERROR)",
-                   "(DCS data points ERROR)"
+                   "(DCS data points ERROR)",
+                   "(Trigger Configuration ERROR)"
   };
 
 //_______________________________________________________________
 AliGRPPreprocessor::AliGRPPreprocessor(AliShuttleInterface* shuttle):
-  AliPreprocessor("GRP",shuttle), fPressure(0)
+	AliPreprocessor("GRP",shuttle),  fPressure(0)
 {
   // constructor - shuttle must be instantiated!
 
@@ -181,6 +182,61 @@ UInt_t AliGRPPreprocessor::Process(TMap* valueMap)
     error |= 8;
   } else  Log(Form("DCS data points, successful!"));
 
+  //=======================//
+  // Trigger Configuration //
+  //=======================//
+  // either from DAQ logbook.....
+  const char * triggerConf = GetTriggerConfiguration();
+  if (triggerConf!= NULL) {
+    Log("Found trigger configuration in DAQ logbook");
+    AliTriggerConfiguration *runcfg = AliTriggerConfiguration::LoadConfigurationFromString(triggerConf);	  
+    if (!runcfg) {
+      Log("Bad CTP run configuration file from DAQ logbook! The corresponding CDB entry will not be filled!");
+      error |= 16;
+    }
+    else {
+      TString titleCTPcfg = Form("CTP cfg for run %i from DAQ",fRun);
+      runcfg->SetTitle(titleCTPcfg);
+      AliCDBMetaData metaData;
+      metaData.SetBeamPeriod(0);
+      metaData.SetResponsible("Roman Lietava");
+      metaData.SetComment("CTP run configuration from DAQ logbook");
+      if (!Store("CTP","Config", runcfg, &metaData, 0, 0)) {
+        Log("Unable to store the CTP run configuration object to OCDB!");
+	error |= 16;
+      }
+    }
+  }
+  // ...or from DCS FXS
+  else{
+     Log("No trigger configuration found in the DAQ logbook!! Trying reading from DCS FXS...");
+     TString runcfgfile = GetFile(kDCS, "CTP_runconfig", "");
+     if (runcfgfile.IsNull()) {
+       Log("No CTP runconfig files has been found in DCS FXS!");
+       error |= 16;
+     }
+     else {
+       Log(Form("File with Id CTP_runconfig found! Copied to %s",runcfgfile.Data()));
+       AliTriggerConfiguration *runcfg = AliTriggerConfiguration::LoadConfiguration(runcfgfile);
+       if (!runcfg) {
+         Log("Bad CTP run configuration file from DCS FXS! The corresponding CDB entry will not be filled!");
+         error |= 16;;
+       }
+       else {
+	 TString titleCTPcfg = Form("CTP cfg for run %i from DCS",fRun);
+         runcfg->SetTitle(titleCTPcfg);
+         AliCDBMetaData metaData;
+         metaData.SetBeamPeriod(0);
+         metaData.SetResponsible("Roman Lietava");
+         metaData.SetComment("CTP run configuration from DCS FXS");
+         if (!Store("CTP","Config", runcfg, &metaData, 0, 0)) {
+           Log("Unable to store the CTP run configuration object to OCDB!");
+           error |= 16;
+         }
+       }
+     }
+  }
+
   grpmap->SetOwner(1);
   AliInfo(Form("Final list entries: %d",grpmap->GetEntries()));
   
@@ -196,11 +252,12 @@ UInt_t AliGRPPreprocessor::Process(TMap* valueMap)
     Log("GRP Preprocessor Success");
     return 0;
   } else {
-    Log( Form("GRP Preprocessor FAILS!!! %s%s%s%s",
+    Log( Form("GRP Preprocessor FAILS!!! %s%s%s%s%s",
                                  kppError[(error&1)?1:0],
                                  kppError[(error&2)?2:0],
                                  kppError[(error&4)?3:0],
-                                 kppError[(error&8)?4:0]
+	                         kppError[(error&8)?4:0],
+                                 kppError[(error&16)?5:0]
                                   ));
     return error;
   }
@@ -211,8 +268,8 @@ TMap *AliGRPPreprocessor::ProcessDaqLB()
 {
   //Getting the DAQ lb information
   
-  const char* timeStart         = GetRunParameter("time_start");
-  const char* timeEnd           = GetRunParameter("time_end");
+  const char* timeStart         = GetRunParameter("DAQ_time_start");
+  const char* timeEnd           = GetRunParameter("DAQ_time_end");
   const char* beamEnergy        = GetRunParameter("beamEnergy");
   const char* beamType          = GetRunParameter("beamType");
   const char* numberOfDetectors = GetRunParameter("numberOfDetectors");
@@ -364,7 +421,9 @@ UInt_t AliGRPPreprocessor::ProcessDcsFxs()
   // Get the CTP run configuration
   // and scalers from DCS FXS
 
+/*
   {
+
     // Get the CTP run configuration
     TList* list = GetFileSources(kDCS,"CTP_runconfig");  
     if (!list) {
@@ -405,7 +464,7 @@ UInt_t AliGRPPreprocessor::ProcessDcsFxs()
     }
     delete list;
   }
-
+*/
   {
     // Get the CTP counters information
     TList* list = GetFileSources(kDCS,"CTP_xcounters");  
@@ -616,7 +675,7 @@ Int_t AliGRPPreprocessor::ProcessDcsDPs(TMap* valueMap, TMap* mapDCS)
 
    // NEEDS TO BE REVISED, CONFIRMED
    AliInfo(Form("==========P2PressureMap==========="));
-   AliDCSSensorArray *dcsSensorArray = GetPressureMap(valueMap,fPressure);
+   AliDCSSensorArray *dcsSensorArray = GetPressureMap(valueMap);
    if( fPressure->NumFits()==0 ) {
      Log("Problem with the pressure sensor values!!!");
    } 
@@ -647,7 +706,7 @@ Int_t AliGRPPreprocessor::ProcessDcsDPs(TMap* valueMap, TMap* mapDCS)
 }
 
 //_______________________________________________________________
-AliDCSSensorArray *AliGRPPreprocessor::GetPressureMap(TMap* dcsAliasMap, AliDCSSensorArray *fPressure)
+AliDCSSensorArray *AliGRPPreprocessor::GetPressureMap(TMap* dcsAliasMap)
 {
   // extract DCS pressure maps. Perform fits to save space
   

@@ -52,7 +52,7 @@ class AliGRPPreprocessor: public AliPreprocessor {
               UInt_t   ProcessDaqFxs();
               UInt_t   ProcessDcsFxs();
                Int_t   ProcessDcsDPs(TMap* valueSet, TMap* grpmap);
-   AliDCSSensorArray*  GetPressureMap(TMap *dcsAliasMap, AliDCSSensorArray *fPressure);
+   AliDCSSensorArray*  GetPressureMap(TMap *dcsAliasMap);
   
  private:
  
@@ -60,13 +60,13 @@ class AliGRPPreprocessor: public AliPreprocessor {
   static const Int_t   fgknDCSDP;               //! number of dcs dps
   static const char*   fgkDCSDataPoints[];      //! names of dcs dps
   static const char*   fgkLHCState[];           //! names of LHC States
-  
+
   AliDCSSensorArray*   fPressure; //pressure array
 
                        AliGRPPreprocessor(const AliGRPPreprocessor&); // Not implemented
                        AliGRPPreprocessor& operator=(const AliGRPPreprocessor&); // Not implemented
 
-  ClassDef(AliGRPPreprocessor, 1);
+  ClassDef(AliGRPPreprocessor, 0);
 };
 
 #endif
