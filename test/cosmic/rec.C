@@ -108,8 +108,6 @@ void rec(const char *filename="raw.root")
   // Detector options if any
   rec.SetOption("ITS","cosmics");
   rec.SetOption("MUON","SAVEDIGITS");
-  rec.SetOption("TPC","OldRCUFormat");
-  rec.SetOption("PHOS","OldRCUFormat");
   rec.SetOption("T0","cosmic");
 
   // To be enabled when CTP readout starts
