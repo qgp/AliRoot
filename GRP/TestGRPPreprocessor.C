@@ -120,7 +120,7 @@ void TestGRPPreprocessor()
   chkEntry->GetObject()->Print();
   printf("\n\n");
 
-  AliDCSSensor* sen = (AliDCSSensor*)(((TMap*)chkEntry->GetObject())->GetValue("fMeyrinPressure"));
+  AliDCSSensor* sen = (AliDCSSensor*)(((TMap*)chkEntry->GetObject())->GetValue("fP2Pressure"));
   if(sen)
     sen->GetFit()->MakeGraph(1.5, 9.5, 15)->Draw();
 
@@ -143,7 +143,7 @@ TMap* CreateDCSAliasMap()
   //     <valueList> is a TObjArray of AliDCSValue
   //     An AliDCSValue consists of timestamp and a value in form of a AliSimpleValue
   
-  const Int_t fgknDCSDP = 11;
+  const Int_t fgknDCSDP = 10;
   const char* fgkDCSDataPoints[AliGRPPreprocessor::fgknDCSDP] = {
                    "LHCState",
                    "L3Polarity",
@@ -154,8 +154,7 @@ TMap* CreateDCSAliasMap()
                    "DipoleCurrent",
                    "CavernTemperature",
                    "CavernAtmosPressure",
-                   "gva_cr5AtmosphericPressure",
-                   "gva_meyrinAtmosphericPressure"
+                   "SurfaceAtmosPressure"
                  };
 
   TMap* aliasMap;
@@ -188,7 +187,8 @@ TMap* CreateDCSAliasMap()
   
   TRandom random;
 
-  for( int nAlias=3; nAlias<fgknDCSDP-2; nAlias++)  {
+  //  for( int nAlias=3; nAlias<fgknDCSDP-1; nAlias++)  {
+  for( int nAlias=3; nAlias<fgknDCSDP; nAlias++)  {
     valueSet = new TObjArray;
     valueSet->SetOwner(1);
 
