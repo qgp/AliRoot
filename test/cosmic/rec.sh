@@ -55,7 +55,7 @@ echo $CHUNKS
 echo
 
 $DIALOG --clear --no-cancel \
-        --ok-label OK --radiolist "Program to run:" 15 20 5 aliroot \| on alieve \| off 2> $tempfile
+        --ok-label OK --radiolist "Program to run:" 15 20 5 "aliroot -b" \| on alieve \| off 2> $tempfile
 PROGRAM=`cat $tempfile`
  
 for filename in $CHUNKS; do
@@ -66,6 +66,6 @@ for filename in $CHUNKS; do
      rm -rf   $RUNNUM"/"$CHUNK
      mkdir -p $RUNNUM"/"$CHUNK
      cd       $RUNNUM"/"$CHUNK
-     $PROGRAM -b -q $ALICE_ROOT/test/cosmic/rec.C\(\"alien://$filename\"\) 2>&1 | tee rec.log
+     $PROGRAM -q $ALICE_ROOT/test/cosmic/rec.C\(\"alien://$filename\"\) 2>&1 | tee rec.log
      cd ../..
 done
