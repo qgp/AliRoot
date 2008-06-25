@@ -174,3 +174,18 @@ void AliMUONLocalStruct::SetScalersNumbers()
     fScaler[i] = i;
 
 }
+
+//___________________________________________
+void AliMUONLocalStruct::SetId(Int_t id)
+{
+  /// Correct bad ID returned by the electronics
+  /// Place of correction: AliMUONDDLTrigger::AddLocStruct
+
+  UInt_t word = 0;
+  word |= id;
+  word <<= 19;
+  UInt_t mask = ~(0xF << 19);
+  fData[4] &= mask;
+  fData[4] |= word;
+
+}

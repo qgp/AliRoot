@@ -132,6 +132,9 @@ public:
    // set random numbers to fill variable
    void SetScalersNumbers();
 
+            /// Correct bad ID returned by the electronics
+   void    SetId(Int_t id);
+
  private:
   
    // local info
