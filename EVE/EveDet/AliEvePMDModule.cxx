@@ -67,7 +67,11 @@ void AliEvePMDModule::DisplayInit(Int_t ism)
 
   TEveFrameBox *pmdModBox = new TEveFrameBox();
   pmdModBox->SetAAQuadXY(xism, yism, 0, dxism, dyism);
+#if ROOT_VERSION_CODE <= 332548
+  pmdModBox->SetFrameColor((Color_t)31);
+#else
   pmdModBox->SetFrameColor(31);
+#endif
   pmdModBox->SetFrameFill(kTRUE);
   SetFrame(pmdModBox);
 

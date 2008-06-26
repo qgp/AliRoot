@@ -98,7 +98,11 @@ void AliEveITSModuleStepper::Capacity()
   // configuration.
 
   Int_t n = fStepper->GetNx()*fStepper->GetNy();
+#if ROOT_VERSION_CODE <= 332548
+  if (n != GetNChildren())
+#else
   if (n != NumChildren())
+#endif
   {
     DestroyElements();
     for (Int_t m=0; m<n; ++m)

@@ -6,6 +6,7 @@
  * See http://aliceinfo.cern.ch/Offline/AliRoot/License.html for          *
  * full copyright notice.                                                 *
  **************************************************************************/
+#include <RVersion.h>
 
 void esd_v0_init_rectrack(TEveRecTrack& rt, AliExternalTrackParam* tp)
 {
@@ -72,7 +73,11 @@ AliEveV0List* esd_V0(Bool_t onFly=kFALSE)
   AliESDVertex* primVertex = (AliESDVertex*) esd->GetPrimaryVertex();
 
   AliEveV0List* cont = new AliEveV0List("ESD v0");
+#if ROOT_VERSION_CODE <= 332548
+  cont->SetMainColor((Color_t)3); // green
+#else
   cont->SetMainColor(3); // green
+#endif
   TEveTrackPropagator* rnrStyle = cont->GetPropagator();
   rnrStyle->SetMagField( 0.1*esd->GetMagneticField() );
 

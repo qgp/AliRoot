@@ -6,6 +6,7 @@
  * See http://aliceinfo.cern.ch/Offline/AliRoot/License.html for          *
  * full copyright notice.                                                 *
  **************************************************************************/
+#include <RVersion.h>
 
 TEveTrack* esd_make_track(TEveTrackPropagator*   rnrStyle,
 			  Int_t                  index,
@@ -341,7 +342,11 @@ TEveElementList* esd_tracks_vertex_cut()
     //PH    const Text_t* tooltip = Form("N tracks=%d", tc[ti]);
     //MT Modified somewhat.
     char buff[1000];
+#if ROOT_VERSION_CODE <= 332548
+    sprintf(buff, "%s [%d]", tlist->GetName(), tlist->GetNChildren());
+#else
     sprintf(buff, "%s [%d]", tlist->GetName(), tlist->NumChildren());
+#endif
     tlist->SetName(buff);
     sprintf(buff, "N tracks=%d", tc[ti]);
     tlist->SetTitle(buff); // Not broadcasted automatically ...

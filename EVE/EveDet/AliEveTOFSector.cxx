@@ -180,7 +180,11 @@ void AliEveTOFSector::InitStatics()
   fgTOFsectorFrameBox = new TEveFrameBox();
 
   fgTOFsectorFrameBox->SetAABox(-dx*0.5, -dy*0.5, -dz*0.5, dx, dy, dz);
+#if ROOT_VERSION_CODE <= 332548
+  fgTOFsectorFrameBox->SetFrameColor((Color_t)32);//31);
+#else
   fgTOFsectorFrameBox->SetFrameColor(32);//31);
+#endif
 
   //fgTOFsectorPalette  = new TEveRGBAPalette(0, 2048); // TOT
   //fgTOFsectorPalette->SetLimits(0, 2048); 

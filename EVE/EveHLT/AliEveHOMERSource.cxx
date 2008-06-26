@@ -25,7 +25,11 @@ AliEveHOMERSource::AliEveHOMERSource(const Text_t* n, const Text_t* t) :
 /******************************************************************************/
 
 //______________________________________________________________________________
+#if ROOT_VERSION_CODE <= 332548
+void AliEveHOMERSource::SetRnrState(Bool_t rnr)
+#else
 Bool_t AliEveHOMERSource::SetRnrState(Bool_t rnr)
+#endif
 {
    // Set render state of this element and of its children to the same
    // value.
@@ -33,5 +37,9 @@ Bool_t AliEveHOMERSource::SetRnrState(Bool_t rnr)
   if (fSrcState)
     fSrcState->fState = rnr;
 
+#if ROOT_VERSION_CODE <= 332548
+  return;
+#else
   return TEveElement::SetRnrState(rnr);
+#endif
 }

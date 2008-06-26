@@ -1362,7 +1362,11 @@ void SplitGLView::UpdateSummary()
             TString ename  = tracks->GetElementName();
             // ename.Remove(ename.First('\''));
             table = fgHtmlSummary->AddTable(ename.Data(), 5, 
+#if ROOT_VERSION_CODE <= 332548
+                                            tracks->GetNChildren(), kTRUE, "first");
+#else
                                             tracks->NumChildren(), kTRUE, "first");
+#endif
             table->SetLabel(0, "Momentum");
             table->SetLabel(1, "P_t");
             table->SetLabel(2, "Phi");

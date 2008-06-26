@@ -21,6 +21,7 @@
 #include <TEveTrans.h>
 #include <TClonesArray.h>
 #include <TStyle.h>
+#include <RVersion.h>
 
 
 //______________________________________________________________________________
@@ -89,7 +90,11 @@ void AliEveITSModule::InitStatics(AliEveITSDigitsInfo* info)
 
     fgSPDFrameBox = new TEveFrameBox();
     fgSPDFrameBox->SetAAQuadXZ(-dx, 0, -dz, 2*dx, 2*dz);
+#if ROOT_VERSION_CODE <= 332548
+    fgSPDFrameBox->SetFrameColor((Color_t)31);
+#else
     fgSPDFrameBox->SetFrameColor(31);
+#endif
     fgSPDFrameBox->SetFrameFill(kTRUE);
     fgSPDFrameBox->IncRefCount();
     fgSPDPalette  = new TEveRGBAPalette(info->fSPDMinVal,info->fSPDMaxVal);
@@ -102,7 +107,11 @@ void AliEveITSModule::InitStatics(AliEveITSDigitsInfo* info)
 
     fgSDDFrameBox = new TEveFrameBox();
     fgSDDFrameBox->SetAAQuadXZ(-dx, 0, -dz, 2*dx, 2*dz);
+#if ROOT_VERSION_CODE <= 332548
+    fgSDDFrameBox->SetFrameColor((Color_t)32);
+#else
     fgSDDFrameBox->SetFrameColor(32);
+#endif
     fgSDDFrameBox->SetFrameFill(kTRUE);
     fgSDDFrameBox->IncRefCount();
     fgSDDPalette  = new TEveRGBAPalette(info->fSDDMinVal,info->fSDDMaxVal);
@@ -116,7 +125,11 @@ void AliEveITSModule::InitStatics(AliEveITSDigitsInfo* info)
 
     fgSSDFrameBox = new TEveFrameBox();
     fgSSDFrameBox->SetAAQuadXZ(-dx, 0, -dz, 2*dx, 2*dz);
+#if ROOT_VERSION_CODE <= 332548
+    fgSSDFrameBox->SetFrameColor((Color_t)33);
+#else
     fgSSDFrameBox->SetFrameColor(33);
+#endif
     fgSSDFrameBox->SetFrameFill(kTRUE);
     fgSSDFrameBox->IncRefCount();
     fgSSDPalette  = new TEveRGBAPalette(info->fSSDMinVal,info->fSSDMaxVal);

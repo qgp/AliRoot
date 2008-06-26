@@ -10,6 +10,7 @@
 #ifndef AliEveAliEVEHOMERSource_H
 #define AliEveAliEVEHOMERSource_H
 
+#include <RVersion.h>
 #include <TEveElement.h>
 
 #include <TNamed.h>
@@ -76,7 +77,11 @@ public:
   void SetSource(const SourceId* id, SourceState* st) { fSrcId = id; fSrcState = st; TEveElement::SetRnrState(st->fState); }
 
   virtual Bool_t SingleRnrState() const { return kTRUE; }
+#if ROOT_VERSION_CODE <= 332548
+  virtual void SetRnrState(Bool_t rnr);
+#else
   virtual Bool_t SetRnrState(Bool_t rnr);
+#endif
 
 protected:
   const SourceId    *fSrcId;
