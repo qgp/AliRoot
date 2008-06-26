@@ -65,6 +65,10 @@ TEvePointSet* trd_friend_tracks(TEveElement *cont = 0)
     }
   }
 
+  // PH two lines below are resolved	
+  tracks->SetTitle(Form("Tracks %d", tracks->NumChildren()));
+  tracks->SetStamp(TEveElement::kCBObjProps);
+
   printf("kTotalClusters = %d\n", kTotalClusters);
 
   if (friendClusters->Size() == 0 && gEve->GetKeepEmptyCont() == kFALSE)

@@ -27,7 +27,7 @@ void pmd_raw(Int_t mode = 0)
 
   TEveElementList* l = new TEveElementList("PMD");
   //  l->SetTitle("PMD");
-  //  l->SetMainColor((Color_t)3);
+  //  l->SetMainColor(3);
   gEve->AddElement(l);
 
   Int_t NSM       = 0;
@@ -81,47 +81,47 @@ void pmd_raw(Int_t mode = 0)
 	}
 
       TEveElementList* lplane = new TEveElementList(spl.Data());
-      //  l->SetMainColor((Color_t)3);
+      //  l->SetMainColor(3);
       gEve->AddElement(lplane, l);
 
-      for (Int_t iddl = istartDDL; iddl < iendDDL; iddl++)
-      //for (Int_t iddl = 0; iddl < 1; iddl++)
-	{
-	  sddl = bsddl;
-	  sddl += iddl;
-	  TEveElementList* lddl = new TEveElementList(sddl.Data());
-	  //  l->SetMainColor((Color_t)3);
-	  gEve->AddElement(ddl, lplane);
+      Int_t iddl = -1;
 
-	  modnumber = iddl*6;
+      while ((iddl = rawStream.DdlData(&pmdddlcont)) >=0) {
+	  if (iddl >= istartDDL && iddl < iendDDL){
+	      sddl = bsddl;
+	      sddl += iddl;
+	      TEveElementList* lddl = new TEveElementList(sddl.Data());
+	      //  l->SetMainColor(3);
+	      gEve->AddElement(ddl, lplane);
+	      
+	      modnumber = iddl*6;
+	      
+	      if (iddl < 4)
+	      {
+		  NSM = 6;
+	      }
+	      else if (iddl >=4 && iddl < 6)
+	      {
+		  NSM = 12;
+	      }
 
-	  if (iddl < 4)
-	    {
-	      NSM = 6;
-	    }
-	  else if (iddl >=4 && iddl < 6)
-	    {
-	      NSM = 12;
-	    }
-
-	  reader.Select("PMD", iddl, iddl);
-	  Bool_t junk = stream.DdlData(iddl,pmdddlcont);
-
-	  for (Int_t ism = 0; ism < NSM; ism++)
-	    {
-	      AliEvePMDModule *lmodule = new AliEvePMDModule();
-	      lmodule->SetPosition(0.,0.,zpos);
-	      lmodule->DisplayRawData(modnumber,pmdddlcont);
-	      gEve->AddElement(lmodule, lddl);
-	      modnumber++;
-	      if (iddl == 4 && modnumber == 30) modnumber = 42;
-	    }
-
-	  pmdddlcont->Clear();
-	}
+	      for (Int_t ism = 0; ism < NSM; ism++)
+	      {
+		  AliEvePMDModule *lmodule = new AliEvePMDModule();
+		  lmodule->SetPosition(0.,0.,zpos);
+		  lmodule->DisplayRawData(modnumber,pmdddlcont);
+		  gEve->AddElement(lmodule, lddl);
+		  modnumber++;
+		  if (iddl == 4 && modnumber == 30) modnumber = 42;
+	      }
+	      
+	      pmdddlcont->Clear();
+	  }
+      }
+      
+      gEve->EnableRedraw();
     }
-
-  gEve->EnableRedraw();
+  
 }
-
 // ---------------------------------------------------------------------- //
+  
