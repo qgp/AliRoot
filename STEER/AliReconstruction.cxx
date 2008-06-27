@@ -187,6 +187,7 @@
 #include "AliSysInfo.h" // memory snapshots
 #include "AliRawHLTManager.h"
 
+#include "AliMagWrapCheb.h"
 
 ClassImp(AliReconstruction)
 
@@ -200,6 +201,7 @@ AliReconstruction::AliReconstruction(const char* gAliceFilename,
   TNamed(name, title),
 
   fUniformField(kTRUE),
+  fForcedFieldMap(0x0),
   fRunVertexFinder(kTRUE),
   fRunVertexFinderTracks(kTRUE),
   fRunHLTTracking(kFALSE),
@@ -291,6 +293,7 @@ AliReconstruction::AliReconstruction(const AliReconstruction& rec) :
   TNamed(rec),
 
   fUniformField(rec.fUniformField),
+  fForcedFieldMap(0x0),
   fRunVertexFinder(rec.fRunVertexFinder),
   fRunVertexFinderTracks(rec.fRunVertexFinderTracks),
   fRunHLTTracking(rec.fRunHLTTracking),
@@ -379,6 +382,8 @@ AliReconstruction::AliReconstruction(const AliReconstruction& rec) :
   for (Int_t i = 0; i < rec.fSpecCDBUri.GetEntriesFast(); i++) {
     if (rec.fSpecCDBUri[i]) fSpecCDBUri.Add(rec.fSpecCDBUri[i]->Clone());
   }
+
+  fForcedFieldMap=new AliMagWrapCheb(*((AliMagWrapCheb*)rec.fForcedFieldMap));
 }
 
 //_____________________________________________________________________________
@@ -399,6 +404,7 @@ AliReconstruction::~AliReconstruction()
   CleanUp();
   fOptions.Delete();
   fSpecCDBUri.Delete();
+  delete fForcedFieldMap;
 
   AliCodeTimer::Instance()->Print();
 }
@@ -642,6 +648,157 @@ void AliReconstruction::SetOption(const char* detector, const char* option)
 }
 
 //_____________________________________________________________________________
+Bool_t AliReconstruction::SetFieldMap(Float_t l3Current, Float_t diCurrent, Float_t factor, const char *path) {
+  //------------------------------------------------
+  // The magnetic field map, defined externally...
+  // L3 current 30000 A  -> 0.5 T
+  // L3 current 12000 A  -> 0.2 T
+  // dipole current 6000 A
+  // The polarities must be the same
+  //------------------------------------------------
+  const Float_t l3NominalCurrent1=30000.; // (A)
+  const Float_t l3NominalCurrent2=12000.; // (A)
+  const Float_t diNominalCurrent =6000. ; // (A)
+
+  const Float_t tolerance=0.03; // relative current tolerance
+  const Float_t zero=77.;       // "zero" current (A)
+
+  Int_t map=0;
+  Bool_t dipoleON=kFALSE;
+
+  TString s=(factor < 0) ? "L3: -" : "L3: +";
+
+  if (TMath::Abs(l3Current-l3NominalCurrent1)/l3NominalCurrent1 < tolerance) {
+    map=AliMagWrapCheb::k5kG;
+    s+="0.5 T;  ";
+  } else
+  if (TMath::Abs(l3Current-l3NominalCurrent2)/l3NominalCurrent2 < tolerance) {
+    map=AliMagWrapCheb::k2kG;
+    s+="0.2 T;  ";
+  } else
+  if (TMath::Abs(l3Current) < zero) {
+    map=AliMagWrapCheb::k2kG;
+    s+="0.0 T;  ";
+    factor=0.;                  // in fact, this is a global factor...
+  } else {
+    AliError("Wrong L3 current !");
+    return kFALSE;
+  }
+
+  if (TMath::Abs(diCurrent-diNominalCurrent)/diNominalCurrent < tolerance) {
+    // 3% current tolerance...
+    dipoleON=kTRUE;
+    s+="Dipole ON";
+  } else
+  if (TMath::Abs(diCurrent) < zero) { // some small current..
+    dipoleON=kFALSE;
+    s+="Dipole OFF";
+  } else {
+    AliError("Wrong dipole current !");
+    return kFALSE;
+  }
+
+  delete fForcedFieldMap;
+  fForcedFieldMap=
+    new AliMagWrapCheb("B field map  ",s,2,factor,10.,map,dipoleON,path);
+
+  fForcedFieldMap->Print();
+
+  AliTracker::SetFieldMap(fForcedFieldMap,fUniformField);    
+
+  return kTRUE;
+}
+
+
+Bool_t AliReconstruction::InitGRP() {
+  //------------------------------------
+  // Initialization of the GRP entry 
+  //------------------------------------
+  AliCDBEntry* entry = AliCDBManager::Instance()->Get("GRP/GRP/Data");
+
+  if (entry) fGRPData = dynamic_cast<TMap*>(entry->GetObject());  
+
+  if (!fGRPData) {
+     AliError("No GRP entry found in OCDB!");
+     return kFALSE;
+  }
+
+
+  //*** Dealing with the magnetic field map
+  if (AliTracker::GetFieldMap()) {
+    AliInfo("Running with the externally set B field !");
+  } else {
+    // Construct the field map out of the information retrieved from GRP.
+
+    Bool_t ok = kTRUE;
+
+    // L3
+    TObjString *l3Current=
+       dynamic_cast<TObjString*>(fGRPData->GetValue("fL3Current"));
+    if (!l3Current) {
+      AliError("GRP/GRP/Data entry:  missing value for the L3 current !");
+      ok = kFALSE;
+    }
+    TObjString *l3Polarity=
+       dynamic_cast<TObjString*>(fGRPData->GetValue("fL3Polarity"));
+    if (!l3Polarity) {
+      AliError("GRP/GRP/Data entry:  missing value for the L3 polarity !");
+      ok = kFALSE;
+    }
+
+    // Dipole
+    TObjString *diCurrent=
+       dynamic_cast<TObjString*>(fGRPData->GetValue("fDipoleCurrent"));
+    if (!diCurrent) {
+      AliError("GRP/GRP/Data entry:  missing value for the dipole current !");
+      ok = kFALSE;
+    }
+    TObjString *diPolarity=
+       dynamic_cast<TObjString*>(fGRPData->GetValue("fDipolePolarity"));
+    if (!diPolarity) {
+      AliError("GRP/GRP/Data entry:  missing value for the dipole polarity !");
+      ok = kFALSE;
+    }
+
+    if (ok) { 
+       Float_t l3Cur=TMath::Abs(atof(l3Current->GetName()));
+       Float_t diCur=TMath::Abs(atof(diCurrent->GetName()));
+       Float_t l3Pol=atof(l3Polarity->GetName());
+       Float_t factor=1.;
+       if (l3Pol != 0.) factor=-1.;
+    
+
+      if (!SetFieldMap(l3Cur, diCur, factor)) {
+         AliFatal("Failed to creat a B field map ! Exiting...");
+      }
+      AliInfo("Running with the B field constructed out of GRP !");
+    }
+    else {
+      AliFatal("B field is neither set nor constructed from GRP ! Exitig...");
+    }
+
+  }
+
+
+  //*** Get the diamond profile from OCDB
+  entry = AliCDBManager::Instance()->Get("GRP/Calib/MeanVertex");
+  if (entry) {
+     fDiamondProfile = dynamic_cast<AliESDVertex*> (entry->GetObject());  
+  } else {
+     AliError("No diamond profile found in OCDB!");
+  }
+
+  entry = AliCDBManager::Instance()->Get("GRP/Calib/MeanVertexTPC");
+  if (entry) {
+     fDiamondProfileTPC = dynamic_cast<AliESDVertex*> (entry->GetObject());  
+  } else {
+     AliError("No diamond profile found in OCDB!");
+  }
+
+  return kTRUE;
+} 
+
+//_____________________________________________________________________________
 Bool_t AliReconstruction::Run(const char* input)
 {
   // Run Run Run
@@ -743,6 +900,12 @@ Bool_t AliReconstruction::InitRun(const char* input)
   }
   */
 
+  if (!InitGRP()) return kFALSE;
+
+
+  ftVertexer = new AliVertexerTracks(AliTracker::GetBz());
+  if(fDiamondProfile && fMeanVertexConstraint) ftVertexer->SetVtxStart(fDiamondProfile);
+
   // get vertexer
   if (fRunVertexFinder && !CreateVertexer()) {
     if (fStopOnError) {
@@ -806,38 +969,6 @@ Bool_t AliReconstruction::InitRun(const char* input)
     br->SetFile("AliESDfriends.root");
     fesd->AddObject(fesdf);
   }
-
-  // Get the GRP CDB entry
-  AliCDBEntry* entryGRP = AliCDBManager::Instance()->Get("GRP/GRP/Data");
-	
-  if (entryGRP) 
-  	fGRPData = dynamic_cast<TMap*> (entryGRP->GetObject());  
-  
-  if (!fGRPData)
-  	AliError("No GRP entry found in OCDB!");
-
-  // Get the diamond profile from OCDB
-  AliCDBEntry* entry = AliCDBManager::Instance()
-  	->Get("GRP/Calib/MeanVertex");
-	
-  if(entry) {
-  	fDiamondProfile = dynamic_cast<AliESDVertex*> (entry->GetObject());  
-  } else {
-  	AliError("No diamond profile found in OCDB!");
-  }
-
-  entry = 0;
-  entry = AliCDBManager::Instance()
-  	->Get("GRP/Calib/MeanVertexTPC");
-	
-  if(entry) {
-  	fDiamondProfileTPC = dynamic_cast<AliESDVertex*> (entry->GetObject());  
-  } else {
-  	AliError("No diamond profile found in OCDB!");
-  }
-
-  ftVertexer = new AliVertexerTracks(AliTracker::GetBz());
-  if(fDiamondProfile && fMeanVertexConstraint) ftVertexer->SetVtxStart(fDiamondProfile);
 
   if (fRawReader) fRawReader->RewindEvents();
 
