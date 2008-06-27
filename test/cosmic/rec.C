@@ -80,9 +80,12 @@ void rec(const char *filename="raw.root")
   AliRecoParam::Instance()->RegisterRecoParam(muonRecoParam);
  
   // Tracking settings
+  // Not needed anymore - the field is taken from GRP
+  // if not available there - exit w/o reconstruction the run
   //  AliMagFMaps* field = new AliMagFMaps("Maps","Maps", 2, 1., 10., 1);
-  AliMagFMaps* field = new AliMagFMaps("Maps","Maps", 2, 0., 10., 2);
-  AliTracker::SetFieldMap(field,1);
+  //  AliMagFMaps* field = new AliMagFMaps("Maps","Maps", 2, 0., 10., 2);
+
+  //  AliTracker::SetFieldMap(field,1);
   Double_t mostProbPt=0.35;
   AliExternalTrackParam::SetMostProbablePt(mostProbPt);
 
