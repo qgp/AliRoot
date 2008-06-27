@@ -325,7 +325,7 @@ void AliDIPOv3::CreateSpectrometerDipole()
 					 new TGeoTubeSeg(coilRo, coilRo + 3.125, sW/2., 21., 51.),
 					 kMedAlu);
     TGeoVolume* voDCS021 = new TGeoVolume("DCS021", 
-					 new TGeoConeSeg(sW/2., coilRo, 320., coilRo, coilRo + 2., 21., 21.4),
+					 new TGeoConeSeg(sW/2., coilRo + 3.124, 320., coilRo + 3.125, coilRo + 5.125, 21., 21.4),
 					 kMedAlu);
     
 
@@ -415,7 +415,7 @@ void AliDIPOv3::CreateSpectrometerDipole()
     asHS->AddNode(voHS1, 1, gGeoIdentity);
     asHS->AddNode(voHS2, 1, new TGeoTranslation(0., +14., 0.));
     asHS->AddNode(voHS2, 2, new TGeoTranslation(0., -14., 0.));
-    asHS->AddNode(voHS3, 1, new TGeoTranslation(0., -hsH/2. - 14., hsLength/2. - 25./2.));
+    asHS->AddNode(voHS3, 1, new TGeoTranslation(0., -hsH/2. - 14. -1.5, hsLength/2. - 25./2.));
     
     
 
@@ -452,7 +452,7 @@ void AliDIPOv3::CreateSpectrometerDipole()
     // Hanger (Support)
     dy = gapHeight/2. + blockHeight + 14.;
     
-    asDipole->AddNode(asHS, 1, new TGeoTranslation(0., dy, ((zHanger2 - kZDipole - yokeLength/2.) + 25./2.)/2.));
+    asDipole->AddNode(asHS, 1, new TGeoTranslation(0., dy + 1.5, ((zHanger2 - kZDipole - yokeLength/2.) + 25./2.)/2.));
     
     
     asDipole->SetVisContainers(1);

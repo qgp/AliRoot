@@ -140,7 +140,7 @@ void AliHALLv3::CreateGeometry()
 				      new TGeoTrd1(xl +dl, xl, hullen, dh / 2.),
 				      kMedCC);
   r2 = hullen + zHall26;
-  asHall->AddNode(voHUFL, 1, new TGeoCombiTrans(70., -100. - dh / 2., -r2, rot000));
+  asHall->AddNode(voHUFL, 1, new TGeoCombiTrans(70., -100. - dh / 2., -r2 - 0.755, rot000));
 
   //
   // RB24/26 wall 
@@ -167,7 +167,7 @@ void AliHALLv3::CreateGeometry()
   
   TGeoCompositeShape*  shHUWAT = new TGeoCompositeShape("HUWAT", "(shHUWAT1-shHUWAT2:tHUWAT2)-shHUWAT3:tHUWAT3");
   TGeoVolume* voHUWAT = new TGeoVolume("HUWAT", shHUWAT, kMedAir);
-  asHall->AddNode(voHUWAT, 1, new TGeoTranslation(70., 40., -zHall26 - hullen));
+  asHall->AddNode(voHUWAT, 1, new TGeoTranslation(70., 40., -zHall26 - hullen - 0.755));
   
   //
   //  Hall floor 
@@ -271,10 +271,10 @@ void AliHALLv3::CreateGeometry()
   
   
   TGeoVolume* voHHF2 = new TGeoVolume("HHF2", 
-				      new TGeoTrd1(dx1FloorL3, dx2FloorL3, dzL3/2., dyFloorL3/2.), 
+				      new TGeoTrd1(dx1FloorL3 - 0.5, dx2FloorL3 - 0.5, dzL3/2., dyFloorL3/2.), 
 				      kMedCC);
 
-  asHall->AddNode(voHHF2, 1, new TGeoCombiTrans(0., yFloor - dyFloor / 2. + dyFloorL3 / 2.,0., rot000));
+  asHall->AddNode(voHHF2, 1, new TGeoCombiTrans(0., yFloor - dyFloor / 2. + dyFloorL3 / 2. - 0.5,0., rot000));
   //
   // Tunnel roof and pit
   // Roof
@@ -300,6 +300,7 @@ void AliHALLv3::CreateGeometry()
 
   //
   // Pit wall ground level
+  dy = yFloor + 1206. / 2. + dyFloor/2.;
   TGeoTube* shHHCPW1 = new TGeoTube(rPit, rPit + 100., 1206./2.);
   shHHCPW1->SetName("shHHCPW1");
   TGeoCombiTrans* trHHCPW1 = new TGeoCombiTrans("trHHCPW1", 0., 0., 0., rot000);
@@ -307,14 +308,21 @@ void AliHALLv3::CreateGeometry()
 
   TGeoBBox* shHHCPW2 = new TGeoBBox(rPit + 100., 1206./ 2. + 20., rPit + 100.);
   shHHCPW2->SetName("shHHCPW2");
+  
+  TGeoTube* shHHCPW3 = new TGeoTube(0., 60., 60.);
+  shHHCPW3->SetName("shHHCPW3");
 
   
   TGeoTranslation* trHHCPW2 = new TGeoTranslation("trHHCPW2", 0., 0., -(rPit + 100.) - oPit);
   trHHCPW2->RegisterYourself();
 
-  TGeoCompositeShape*  shHHCPW = new TGeoCompositeShape("HHCPW", "shHHCPW1:trHHCPW1-shHHCPW2:trHHCPW2");
+  TGeoTranslation* trHHCPW3 = new TGeoTranslation("trHHCPW3", 0., -dy, rPit + 50.);
+  trHHCPW3->RegisterYourself();
+
+  TGeoCompositeShape*  shHHCPW 
+      = new TGeoCompositeShape("HHCPW", "shHHCPW1:trHHCPW1-(shHHCPW2:trHHCPW2+shHHCPW3:trHHCPW3)");
   TGeoVolume* voHHCPW = new TGeoVolume("HHCPW", shHHCPW, kMedCC);
-  dy = yFloor + 1206. / 2. + dyFloor/2.;
+
   asHall->AddNode(voHHCPW, 1, new TGeoTranslation(0., dy, 2300.));
   // 
   // Foundations of the Muon Spectrometer
@@ -335,7 +343,7 @@ void AliHALLv3::CreateGeometry()
   ys += dy;
   dy = 91.32/2.;
   ys += dy;
-  TGeoVolume* voFmsMfTb1 = new TGeoVolume("FmsMfTb1", new TGeoBBox(330., dy,  90.), kMedCC);
+  TGeoVolume* voFmsMfTb1 = new TGeoVolume("FmsMfTb1", new TGeoBBox(330., dy,  60.), kMedCC);
   asFMS->AddNode(voFmsMfTb1, 1, new TGeoTranslation(0., ys, zFil));
   ys += dy;
   dy = 41.14/2.;
@@ -345,7 +353,7 @@ void AliHALLv3::CreateGeometry()
   //
   // Dipole foundation
   ys = yFloor + dyFloor / 2.;
-  dy = 263.54/2;
+  dy = (263.54 - 6.2)/2.;
   ys += dy;
   TGeoVolume* voFmsDf1 = new TGeoVolume("FmsDf1", new TGeoBBox(370., dy,  448.0 / 2.), kMedCC);
   asFMS->AddNode(voFmsDf1, 1, new TGeoTranslation(0., ys, zFil + 240. + 224.));

@@ -371,8 +371,8 @@ void AliPIPEv3::CreateGeometry()
 //  Central beam pipe support collars
 //  LHCVC2C_0019
 //  Position at z = -46., 40., 150.
-    TGeoVolume* voCpSupC = new TGeoVolume("CpSupC", new TGeoTube(3.0, 4.0, 0.35), kMedAco);
-    voCp1->AddNode(voCpSupC, 1, new TGeoTranslation(0., 0.,  kCP1Length / 2. - 81.5));
+    TGeoVolume* voCpSupC = new TGeoVolume("CpSupC", new TGeoTube(3.051, 4.00, 0.35), kMedAco);
+    voCp1->AddNode(voCpSupC, 1, new TGeoTranslation(0., 0.,  kCP1Length / 2. - 98.2));
     voCp1->AddNode(voCpSupC, 2, new TGeoTranslation(0., 0.,  kCP1Length / 2.- 191.5));
 //  Beam Pipe Protection Tube
 //
@@ -988,8 +988,8 @@ void AliPIPEv3::CreateGeometry()
 // Pos 2.1 RF Contact Flange      LHCVSR__0003
 //
     TGeoPcon* shRB24B1RCTFlange = new TGeoPcon(0., 360., 6);
-    const Float_t kRB24B1RCTFlangeRin  = 8.06/2.;  // Inner radius
-    const Float_t kRB24B1RCTFlangeL    = 1.45;     // Length
+    const Float_t kRB24B1RCTFlangeRin  = 8.06/2. + 0.05;  // Inner radius
+    const Float_t kRB24B1RCTFlangeL    = 1.45;            // Length
     
     z = 0.;
     shRB24B1RCTFlange->DefineSection(0, z, kRB24B1RCTFlangeRin,  8.20/2.);
@@ -1020,7 +1020,7 @@ void AliPIPEv3::CreateGeometry()
     z =  kRB24B1RCTL -  kRB24B1RCTSL;
     // In the (VSR0004) this section is straight in (LHCVC2U_0001) it is conical ????
     shRB24B1RCT->DefineSection(1, z,  kRB24B1RCTRin + 0.35,  kRB24B1RCTRin + 0.35 + kRB24B1RCTd);
-    z = kRB24B1RCTL;
+    z = kRB24B1RCTL - 0.03;
     shRB24B1RCT->DefineSection(2, z,  kRB24B1RCTRin,  kRB24B1RCTRin + kRB24B1RCTd);
 
     TGeoVolume* voRB24B1RCT = new TGeoVolume("RB24B1RCT", shRB24B1RCT, kMedCu);
@@ -1048,7 +1048,7 @@ void AliPIPEv3::CreateGeometry()
     shRB24B1TTF->DefineSection(5, z,  6.30/2.,  6.7/2.);
     // Transition Tube
     z += 3.75;
-    shRB24B1TTF->DefineSection(6, z,  8.2/2.,  8.6/2.);
+    shRB24B1TTF->DefineSection(6, z,  8.05/2.,  8.45/2.);
     TGeoVolume* voRB24B1TTF = new TGeoVolume("RB24B1TTF", shRB24B1TTF, kMedSteel);
     z =  0.;
     voRB24B1BellowM->AddNode(voRB24B1TTF, 1, new TGeoTranslation(0., 0., z));    
@@ -1558,7 +1558,7 @@ void AliPIPEv3::CreateGeometry()
     z += (20.35 - 0.63);
     shRB24VMABCTT->DefineSection(5, z, 6.3/2.,  6.7/2.);
     z += 0.63;
-    shRB24VMABCTT->DefineSection(6, z, 6.5/2.,  6.9/2.);
+    shRB24VMABCTT->DefineSection(6, z, 6.3/2.,  6.7/2.);
     TGeoVolume* voRB24VMABCTT = new TGeoVolume("RB24VMABCTT", shRB24VMABCTT, kMedSteel);
     voRB24VMABCRB->AddNode(voRB24VMABCTT, 1, new TGeoTranslation(0., 0., - kRB24VMABCRBT1L/2.-1.));
 
@@ -2394,7 +2394,7 @@ void AliPIPEv3::CreateGeometry()
       const Float_t kRB26s5CompTubeInnerR    = 10.00/2.;  // Connection tubes inner radius     [Pos 2 + 3]
       const Float_t kRB26s5CompTubeOuterR    = 10.30/2.;  // Connection tubes outer radius     [Pos 2 + 3]
       const Float_t kRB26s5WeldingTubeLeftL  =  3.70/2.;  // Left connection tube half length  [Pos 2]
-      const Float_t kRB26s5WeldingTubeRightL = 13.42/2.;  // Right connection tube half length [Pos 3]   (0.3 cm added for welding)
+      const Float_t kRB26s5WeldingTubeRightL = 13.40/2.;  // Right connection tube half length [Pos 3]   (0.3 cm added for welding)
       const Float_t kRB26s5RingInnerR        = 11.2/2.;   // Ring inner radius                 [Pos 4]
       const Float_t kRB26s5RingOuterR        = 16.0/2.;   // Ring inner radius                 [Pos 4]
       const Float_t kRB26s5RingL             =  0.4/2.;   // Ring half length                  [Pos 4]
