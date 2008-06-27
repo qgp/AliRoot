@@ -430,7 +430,7 @@ const Double_t AliITSv11GeometrySSD::fgkEndCapSideCoverThickness = 0.4*fgkmm;
 const Double_t AliITSv11GeometrySSD::fgkEndCapCardElectBoardBackLength[3] = 
 													   {62.0*fgkmm,21.87*fgkmm};
 const Double_t AliITSv11GeometrySSD::fgkEndCapCardElectBoardBackWidth[2] = 
-													    {47.0*fgkmm,0.35*fgkmm};
+													    {47.1*fgkmm,0.35*fgkmm};
 const Double_t AliITSv11GeometrySSD::fgkEndCapCardElectBoardBackThickness = 
 																	  1.0*fgkmm;
 const Double_t AliITSv11GeometrySSD::fgkEndCapCardElectBoardLength = 61.8*fgkmm;
@@ -4646,7 +4646,7 @@ void AliITSv11GeometrySSD::Layer6(TGeoVolume* moth){
 										+ fgkSSDMountingBlockHeight[1]
 										- 0.5*fgkCoolingTubeSupportHeight
 										- fgkSSDModuleCoolingBlockToSensor
-										- 2.*fgkSSDModuleVerticalDisalignment;
+										- fgkSSDModuleVerticalDisalignment;
 	mountingblockpiecedownxvertex[i][2] = 0.5*fgkSSDMountingBlockLength[0];	
 	mountingblockpiecedownyvertex[i][2] = mountingblockpiecedownyvertex[i][1];
 	mountingblockpiecedownxvertex[i][3] = mountingblockpiecedownxvertex[i][2];	
@@ -4681,7 +4681,7 @@ void AliITSv11GeometrySSD::Layer6(TGeoVolume* moth){
 										+ fgkSSDMountingBlockHeight[1]
 										- 0.5*fgkCoolingTubeSupportHeight
 										- fgkSSDModuleCoolingBlockToSensor
-										- 2.*fgkSSDModuleVerticalDisalignment;
+										- fgkSSDModuleVerticalDisalignment;
 	mountingblockpieceupxvertex[i][2] = 0.5*fgkSSDMountingBlockLength[0];	
 	mountingblockpieceupyvertex[i][2] = mountingblockpieceupyvertex[i][1];
 	mountingblockpieceupxvertex[i][3] = mountingblockpieceupxvertex[i][2];	
@@ -5059,38 +5059,7 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
 		ymothervertex[i][j] = ringsupportvertex[i][j]->Y();
 	}
   }
-////////////////////////////////////////////////////////////////////////////////
-// Start Corrections 13/06/08
-////////////////////////////////////////////////////////////////////////////////
-  char lowerladderpconsupportname[30];
-  TGeoPcon* lowerladderpconsupportshape[fgklayernumber];
-  TGeoVolume* lowerladderpconsupport[fgklayernumber]; 
-  Double_t lowerladderpconezsection[2] = {0.,fgkMountingBlockSupportWidth[1]};
-  Double_t lowerladderpconradiusmax[fgklayernumber];
-  Double_t lowerladderpconradiusmin[fgklayernumber];
-  TGeoRotation* lowerladdersupportrot = new TGeoRotation();
-  lowerladdersupportrot->SetAngles(90.,180.,-90);
-  for(Int_t i=0; i<fgklayernumber; i++){
-	lowerladderpconradiusmax[i] = fgkMountingBlockSupportRadius[i]
-								*			   TMath::Cos(theta[i]);
-    lowerladderpconradiusmin[i] = lowerladderpconradiusmax[i]-fgkLadderSupportHeigth;
-  } 
-  for(Int_t i=0; i<fgklayernumber; i++){
-///////////////////////////  Modified Version ?///////////////////
-    lowerladderpconsupportshape[i] = new TGeoPcon(0.,360.,2);
-	for(Int_t j=0; j<2; j++) lowerladderpconsupportshape[i]->DefineSection(j,
-							 lowerladderpconezsection[j],lowerladderpconradiusmin[i],
-							 lowerladderpconradiusmax[i]);
-	sprintf(lowerladderpconsupportname,"LowerLadderPConSupportNameLay%d",i+5);
-	lowerladderpconsupport[i] = new TGeoVolume(lowerladderpconsupportname,lowerladderpconsupportshape[i],fSSDSupportRingAl);
-    lowerladderpconsupport[i]->SetLineColor(fColorAl);
-	(i==0 ? fLay5LadderSupportRing: fLay6LadderSupportRing)->AddNode(lowerladderpconsupport[i],1);
-	(i==0 ? fLay5LadderSupportRing: fLay6LadderSupportRing)->AddNode(lowerladderpconsupport[i],2,lowerladdersupportrot);
- }
-////////////////////////////////////////////////////////////////////////////////
-// End Corrections 13/06/08
-////////////////////////////////////////////////////////////////////////////////
-  /*char lowerladdersupportname[30];
+  char lowerladdersupportname[30];
   TGeoXtru* lowerladdersupportshape[fgklayernumber];
   TGeoVolume* lowerladdersupport[fgklayernumber];
   TGeoRotation* lowerladdersupportrot = new TGeoRotation();
@@ -5107,7 +5076,7 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
 	lowerladdersupport[i]->SetLineColor(fColorAl);
 	(i==0 ? fLay5LadderSupportRing: fLay6LadderSupportRing)->AddNode(lowerladdersupport[i],1);
 	(i==0 ? fLay5LadderSupportRing: fLay6LadderSupportRing)->AddNode(lowerladdersupport[i],2,lowerladdersupportrot);
-  }*/
+  }
   /////////////////////////////////////////////////////////////
   // Deallocating memory
   /////////////////////////////////////////////////////////////
@@ -7973,7 +7942,7 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
 												ssdcableitsring3BB26pconshape[3],fSSDCopper);
   for(Int_t i=0;i<4;i++){
 	ssdcableitsring3BB26pcon[i]->SetLineColor(9);
-	ssdcablesmother->AddNode(ssdcableitsring3BB26pcon[i],1);
+	ssdcablesmother->AddNode(ssdcableitsring3BB26pcon[i],i+1);
 }
   ////////////////////////////////////
   //cablescapacity[11] = ssdcableitsring3BB26pconshape[0]->Capacity()
@@ -8041,7 +8010,7 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
   ssdcableitsring3BB24pconshape[2] = new TGeoPcon(180.0+fgkSSDCableAngle-0.5*ssdcableangle,ssdcableangle
 								   -			  fgkSSDCableAngle
 								   +			  90.0-fgkSSDCablesPatchPanel2RB24Angle[1],2);
-  ssdcableitsring3BB24pconshape[3] = new TGeoPcon(270.0+fgkSSDCableAngle-0.5*ssdcableangle,
+  ssdcableitsring3BB24pconshape[3] = new TGeoPcon(fgkSSDCableAngle-0.5*ssdcableangle,
 												  ssdcableangle-fgkSSDCableAngle
 								   +			  fgkSSDCablesPatchPanel2RB24Angle[0],2);
   for(Int_t i=0;i<4;i++)
@@ -8059,7 +8028,7 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
 												ssdcableitsring3BB24pconshape[3],fSSDCopper);
   for(Int_t i=0;i<4;i++){
 	ssdcableitsring3BB24pcon[i]->SetLineColor(9);
-	ssdcablesmother->AddNode(ssdcableitsring3BB24pcon[i],1);
+	ssdcablesmother->AddNode(ssdcableitsring3BB24pcon[i],i+1);
 }
   ////////////////////////////////////
   //cablescapacity[13] = ssdcableitsring3BB24pconshape[0]->Capacity()
