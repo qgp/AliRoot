@@ -29,7 +29,7 @@ void rec(const char *filename="raw.root")
   // In case we want to switch off a layer
   //  itsRecoParam->SetLayerToSkip(<N>);
   //  itsRecoParam->SetLayerToSkip(4);
-  itsRecoParam->SetLayerToSkip(5);
+  //  itsRecoParam->SetLayerToSkip(5);
   itsRecoParam->SetLayerToSkip(2);
   itsRecoParam->SetLayerToSkip(3);
   //itsRecoParam->SetSAOnePointTracks();
