@@ -17,7 +17,7 @@ public:
   AliPMDCalibPedestal& operator = (const  AliPMDCalibPedestal &source);
   virtual ~AliPMDCalibPedestal();
 
-  Bool_t ProcessEvent(AliRawReader  *rawReader);
+  Bool_t ProcessEvent(AliRawReader  *rawReader, TObjArray *pmdddlcont);
   void   Analyse(TTree *pedtree);
 
 private:
@@ -33,9 +33,11 @@ private:
   Float_t fPedVal[kDet][kMaxSMN][kMaxRow][kMaxCol];
   Float_t fPedValSq[kDet][kMaxSMN][kMaxRow][kMaxCol];
   Float_t fPedCount[kDet][kMaxSMN][kMaxRow][kMaxCol];
-  
+  Int_t   fPedChain[6][51][25][64];
+  Int_t   fRunNumber;
+  Int_t   fEventNumber;
 
-  ClassDef(AliPMDCalibPedestal,3)
+  ClassDef(AliPMDCalibPedestal,5)
 };
 
 

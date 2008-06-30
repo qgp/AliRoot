@@ -169,9 +169,8 @@ void AliPMDDDLRawData::WritePMDRawData(TTree *treeD)
 	      if (contentsBus[ij] > 0)
 		{
 		  dsp[i] += contentsBus[ij];
-		  dspBus[i]++;
 		}
-	      //ij++;
+	      dspBus[i]++;
 	    }
 	  // Add the patch Bus header to the DSP contents
 	  dsp[i] += 4*dspBus[i];
@@ -179,6 +178,8 @@ void AliPMDDDLRawData::WritePMDRawData(TTree *treeD)
 
       Int_t dspBlockARDL    = 0;
       Int_t dspBlockBRDL    = 0;
+      Int_t remainder       = 0;
+
 
       for (Int_t i = 0; i < 5; i++)
 	{
@@ -187,7 +188,7 @@ void AliPMDDDLRawData::WritePMDRawData(TTree *treeD)
 	  if (dsp[ieven] > 0)
 	    {
 	      dspBlockARDL += dsp[ieven];
-	      Int_t remainder = dsp[ieven]%2;
+	      remainder = dsp[ieven]%2;
 	      if (remainder == 1)
 		{
 		  dspBlockARDL++;
@@ -196,14 +197,17 @@ void AliPMDDDLRawData::WritePMDRawData(TTree *treeD)
 	  if (dsp[iodd] > 0)
 	    {
 	      dspBlockBRDL += dsp[iodd];
-	      Int_t remainder = dsp[ieven]%2;
+	      remainder = dsp[iodd]%2;
 	      if (remainder == 1)
 		{
-		  dspBlockARDL++;
+		  dspBlockBRDL++;
 		}
 	    }
 	}
-      
+
+      dspBlockARDL += 50;
+      dspBlockBRDL += 50;
+
       // Start writing the DDL file
 
       AliPMDBlockHeader blHeader;
@@ -219,6 +223,9 @@ void AliPMDDDLRawData::WritePMDRawData(TTree *treeD)
       UInt_t dspHeaderWord[10];
       UInt_t patchBusHeaderWord[4];
       Int_t  iskip[5];
+      UInt_t ddlEndWord[2] = {0xDEADFACE, 0xDEADFACE};
+
+      Int_t bknJunk = 0;
 
 
       for (Int_t iblock = 0; iblock < 2; iblock++)
@@ -278,19 +285,21 @@ void AliPMDDDLRawData::WritePMDRawData(TTree *treeD)
 		{
 		  dspHeaderWord[i] = 0;
 		}
-	      Int_t remainder = dspRDL%2;
+	      remainder = dspRDL%2;
 	      if (remainder == 1) dspRDL++;
 
 	      dspHeaderWord[1] = dspRDL + kdspHLen;
 	      dspHeaderWord[2] = dspRDL;
 	      dspHeaderWord[3] = dspno;
 	      if (remainder == 1) dspHeaderWord[8] = 1; // setting the padding word
+
+
 	      outfile->WriteBuffer((char*)dspHeaderWord,kdspHLen*sizeof(UInt_t));
 
 	      for (Int_t ibus = 0; ibus < 5; ibus++)
 		{
 		  // Patch Bus Header
-		  // BKN - just added 1
+
 		  Int_t busno = iskip[idsp] + ibus + 1;
 		  Int_t patchbusRDL = contentsBus[busno];
 
@@ -312,6 +321,7 @@ void AliPMDDDLRawData::WritePMDRawData(TTree *treeD)
 
 		  outfile->WriteBuffer((char*)patchBusHeaderWord,4*sizeof(UInt_t));
 
+		  bknJunk += patchbusRDL;
 
 		  for (Int_t iword = 0; iword < patchbusRDL; iword++)
 		    {
@@ -331,6 +341,9 @@ void AliPMDDDLRawData::WritePMDRawData(TTree *treeD)
 		}
 	    }
 	}
+
+      // Write two extra word at the end of each DDL file
+      outfile->WriteBuffer((char*)ddlEndWord,2*sizeof(UInt_t));
 
       // Write real data header
       // take the pointer to the beginning of the data header
@@ -537,9 +550,6 @@ void AliPMDDDLRawData::GetMCMCh(Int_t ddlno, Int_t smn, Int_t row, Int_t col,
 
     UInt_t iCh[16][4];
 
-//    ChMap(ddlno, smn, iCh);
-
-
     static const UInt_t kChDdl01[16][4] = { {6, 4, 5, 7},
 					   {10, 2, 1, 9},
 					   {12, 0, 3, 11},
@@ -693,7 +703,7 @@ void AliPMDDDLRawData::GetMCMCh(Int_t ddlno, Int_t smn, Int_t row, Int_t col,
 	  else if (ddlno == 2 || ddlno == 3)
 	    {
 	      // PRE plane,  SU Mod = 2, 3
-	      Int_t icolnew = (col - scol)/4;
+	      icolnew = (col - scol)/4;
 	      mcmno = tmcm - icolnew;
 	    }
 	  else if (ddlno == 4 )
@@ -778,140 +788,6 @@ void AliPMDDDLRawData::GetMCMCh(Int_t ddlno, Int_t smn, Int_t row, Int_t col,
 } 
 
 //____________________________________________________________________________
-
-/*
-void ChMap(Int_t ddlno, Int_t smn, UInt_t iCh[][4])
-{
-// Row and Col converted to Channel
-
-    static const UInt_t kChDdl01[16][4] = { {6, 4, 5, 7},
-					   {10, 2, 1, 9},
-					   {12, 0, 3, 11},
-					   {14, 8, 13, 15},
-					   {16, 18, 23, 17},
-					   {20, 28, 31, 19},
-					   {22, 30, 29, 21},
-					   {24, 26, 27, 25},
-					   {38, 36, 37, 39},
-					   {42, 34, 33, 41},
-					   {44, 32, 35, 43},
-					   {46, 40, 45, 47},
-					   {48, 50, 55, 49},
-					   {52, 60, 63, 51},
-					   {54, 62, 61, 53},
-					   {56, 58, 59, 57} };
-
-
-    static const UInt_t kChDdl23[16][4] = { {57, 59, 58, 56},
-					    {53, 61, 62, 54},
-					    {51, 63, 60, 52},
-					    {49, 55, 50, 48},
-					    {47, 45, 40, 46},
-					    {43, 35, 32, 44},
-					    {41, 33, 34, 42},
-					    {39, 37, 36, 38},
-					    {25, 27, 26, 24},
-					    {21, 29, 30, 22},
-					    {19, 31, 28, 20},
-					    {17, 23, 18, 16},
-					    {15, 13, 8, 14},
-					    {11, 3, 0, 12},
-					    {9, 1, 2, 10},
-					    {7, 5, 4, 6} };
-    
-    
-    static const UInt_t kChDdl41[16][4] = { {56, 58, 59, 57},
-					   {54, 62, 61, 53},
-					   {52, 60, 63, 51},
-					   {48, 50, 55, 49},
-					   {46, 40, 45, 47},
-					   {44, 32, 35, 43},
-					   {42, 34, 33, 41},
-					   {38, 36, 37, 39},
-					   {24, 26, 27, 25},
-					   {22, 30, 29, 21},
-					   {20, 28, 31, 19},
-					   {16, 18, 23, 17},
-					   {14, 8, 13, 15},
-					   {12, 0, 3, 11},
-					   {10, 2, 1, 9},
-					   {6, 4, 5, 7} };
-
-
-    static const UInt_t kChDdl42[16][4] = { {7, 5, 4, 6},
-					    {9, 1, 2, 10},
-					    {11, 3, 0, 12},
-					    {15, 13, 8, 14},
-					    {17, 23, 18, 16},
-					    {19, 31, 28, 20},
-					    {21, 29, 30, 22},
-					    {25, 27, 26, 24},
-					    {39, 37, 36, 38},
-					    {41, 33, 34, 42},
-					    {43, 35, 32, 44},
-					    {47, 45, 40, 46},
-					    {49, 55, 50, 48},
-					    {51, 63, 60, 52},
-					    {53, 61, 62, 54},
-					    {57, 59, 58, 56} };
-
-
-    static const UInt_t kChDdl51[16][4] = { {7, 5, 4, 6},
-					    {9, 1, 2, 10},
-					    {11, 3, 0, 12},
-					    {15, 13, 8, 14},
-					    {17, 23, 18, 16},
-					    {19, 31, 28, 20},
-					    {21, 29, 30, 22},
-					    {25, 27, 26, 24},
-					    {39, 37, 36, 38},
-					    {41, 33, 34, 42},
-					    {43, 35, 32, 44},
-					    {47, 45, 40, 46},
-					    {49, 55, 50, 48},
-					    {51, 63, 60, 52},
-					    {53, 61, 62, 54},
-					    {57, 59, 58, 56} };
-    
-
-
-    static const UInt_t kChDdl52[16][4] = { {56, 58, 59, 57},
-					    {54, 62, 61, 53},
-					    {52, 60, 63, 51},
-					    {48, 50, 55, 49},
-					    {46, 40, 45, 47},
-					    {44, 32, 35, 43},
-					    {42, 34, 33, 41},
-					    {38, 36, 37, 39},
-					    {24, 26, 27, 25},
-					    {22, 30, 29, 21},
-					    {20, 28, 31, 19},
-					    {16, 18, 23, 17},
-					    {14, 8, 13, 15},
-					    {12, 0, 3, 11},
-					    {10, 2, 1, 9},
-					    {6, 4, 5, 7} };
-    
-    
-    for (Int_t i = 0; i < 16; i++)
-    {
-	for (Int_t j = 0; j < 4; j++)
-	{
-	    if (ddlno == 0 || ddlno == 1) iCh[i][j] = kChDdl01[i][j];
-	    if (ddlno == 2 || ddlno == 3) iCh[i][j] = kChDdl23[i][j];
-	    
-	    if (ddlno == 4 && smn < 6)                iCh[i][j] = kChDdl41[i][j];
-	    if (ddlno == 4 && (smn >= 18 && smn < 24))iCh[i][j] = kChDdl42[i][j];
-	    if (ddlno == 5 && (smn >= 12 && smn < 18))iCh[i][j] = kChDdl51[i][j];
-	    if (ddlno == 0 && (smn >=  6 && smn < 12))iCh[i][j] = kChDdl52[i][j];
-	}
-    }
-    
-}
-*/
-//____________________________________________________________________________
-
-
 
 Int_t AliPMDDDLRawData::ComputeParity(UInt_t baseword)
 {

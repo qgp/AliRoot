@@ -110,7 +110,7 @@ void AliPMDRawToSDigits::Raw2SDigits(AliRunLoader *runLoader, AliRawReader *rawR
   if (!fSDigits) fSDigits = new TClonesArray("AliPMDsdigit", 1000);
   treeS->Branch("PMDSDigit", &fSDigits, bufsize); 
 
-  const Int_t kDDL = AliDAQ::NumberOfDdls("PMD");
+//  const Int_t kDDL = AliDAQ::NumberOfDdls("PMD");
   const Int_t kRow = 48;
   const Int_t kCol = 96;
   const Int_t kSMN = 48;
@@ -137,15 +137,10 @@ void AliPMDRawToSDigits::Raw2SDigits(AliRunLoader *runLoader, AliRawReader *rawR
 	}
     }
   
-  for (Int_t indexDDL = 0; indexDDL < kDDL; indexDDL++)
-    {
-
-      rawReader->Reset();
-      AliPMDRawStream pmdinput(rawReader);
-      rawReader->Select("PMD", indexDDL, indexDDL);
-      
-      pmdinput.DdlData(indexDDL,&pmdddlcont);
-      
+  AliPMDRawStream pmdinput(rawReader);
+  Int_t indexDDL = -1;
+  while ((indexDDL = pmdinput.DdlData(&pmdddlcont)) >=0)
+  {
       Int_t ientries = pmdddlcont.GetEntries();
       for (Int_t ient = 0; ient < ientries; ient++)
 	{
@@ -255,7 +250,7 @@ void AliPMDRawToSDigits::Raw2Digits(AliRunLoader *runLoader, AliRawReader *rawRe
   if (!fDigits) fDigits = new TClonesArray("AliPMDdigit", 1000);
   treeD->Branch("PMDDigit", &fDigits, bufsize); 
   
-  const Int_t kDDL = AliDAQ::NumberOfDdls("PMD");
+//  const Int_t kDDL = AliDAQ::NumberOfDdls("PMD");
   const Int_t kRow = 48;
   const Int_t kCol = 96;
   const Int_t kSMN = 48;
@@ -281,16 +276,11 @@ void AliPMDRawToSDigits::Raw2Digits(AliRunLoader *runLoader, AliRawReader *rawRe
 	    }
 	}
     }
-  for (Int_t indexDDL = 0; indexDDL < kDDL; indexDDL++)
-    {    
-      rawReader->Reset();
-      AliPMDRawStream pmdinput(rawReader);
-      rawReader->Select("PMD", indexDDL, indexDDL);
-      
-      //pmdinput.DdlData(&pmdddlcont);
-      pmdinput.DdlData(indexDDL,&pmdddlcont);
-      
-      
+
+  AliPMDRawStream pmdinput(rawReader);
+  Int_t indexDDL = -1;
+  while ((indexDDL = pmdinput.DdlData(&pmdddlcont)) >=0)
+  {
       Int_t ientries = pmdddlcont.GetEntries();
       for (Int_t ient = 0; ient < ientries; ient++)
 	{
