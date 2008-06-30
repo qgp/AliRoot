@@ -868,7 +868,8 @@ AliESDVertex AliVertexerTracks::TrackletVertexFinder(TClonesArray *lines, Int_t 
       sigma+=GetStrLinMinDist(p0,p1,initPos);
     }
 
-    sigma=TMath::Sqrt(sigma);
+    if (sigma>=0) sigma=TMath::Sqrt(sigma);
+    else sigma=999;
   }else{
     sigma=999;
   }
