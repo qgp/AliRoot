@@ -41,6 +41,8 @@ void rec(const char *filename="raw.root")
   AliLog::SetClassDebugLevel("AliTPCclustererMI",2);
   AliTPCRecoParam * tpcRecoParam = AliTPCRecoParam::GetCosmicTestParam(kFALSE);
   tpcRecoParam->SetTimeInterval(60,940);
+  Double_t sysError[5]={0.3,3, 0.3/150., 3./150.,0.3/(150*150.)};
+  tpcRecoParam->SetSystematicError(sysError);
   tpcRecoParam->Dump();
   AliTPCReconstructor::SetRecoParam(tpcRecoParam);
   AliTPCReconstructor::SetStreamLevel(1);
@@ -57,6 +59,8 @@ void rec(const char *filename="raw.root")
   // TRD reconstruction params
   AliTRDrecoParam *fTRDrecoParam = AliTRDrecoParam::GetCosmicTestParam();
   AliTRDReconstructor::SetRecoParam(fTRDrecoParam);
+  AliTRDReconstructor::SetSeedingOn(kTRUE);
+  AliTRDReconstructor::SetStreamLevel(1);
   AliTRDtrackerV1::SetNTimeBins(30);
 
   // PHOS settings
