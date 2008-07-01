@@ -250,14 +250,18 @@ Int_t AliTRDtrackerV1::PropagateBack(AliESDEvent *event)
 	Float_t foundMin = 20.0;
 	
 	Int_t    nSeed   = event->GetNumberOfTracks();
-	if(!nSeed){
-		// run stand alone tracking
-		if (AliTRDReconstructor::SeedingOn()) Clusters2Tracks(event);
-		return 0;
-	}
+// 	if(!nSeed){
+// 		// run stand alone tracking
+// 		if (AliTRDReconstructor::SeedingOn()) Clusters2Tracks(event);
+// 		return 0;
+// 	}
 	
-	Float_t *quality = new Float_t[nSeed];
-	Int_t   *index   = new Int_t[nSeed];
+	Float_t *quality = 0x0;
+ 	Int_t   *index   = 0x0;
+	if(nSeed){
+	  quality = new Float_t[nSeed];
+	  index   = new Int_t[nSeed];
+	}
 	for (Int_t iSeed = 0; iSeed < nSeed; iSeed++) {
 		AliESDtrack *seed = event->GetTrack(iSeed);
 		Double_t covariance[15];
@@ -419,8 +423,15 @@ Int_t AliTRDtrackerV1::PropagateBack(AliESDEvent *event)
 	AliInfo(Form("Number of seeds: %d", nSeed));
 	AliInfo(Form("Number of back propagated TRD tracks: %d", found));
 			
-	delete [] index;
-	delete [] quality;
+// 	delete [] index;
+// 	delete [] quality;
+	if(nSeed){
+	  delete [] index;
+	  delete [] quality;
+	}
+
+	// Perform standalone tracking on clusters not attached to clusters so far
+	if (AliTRDReconstructor::SeedingOn()) Clusters2Tracks(event);
 	
 	return 0;
 }
