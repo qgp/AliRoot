@@ -59,12 +59,13 @@ private:
   Int_t   fSDDhRecs;                       // number of histo booked for Recs SDD
   Int_t   fRawsOffset;                     // number of histo booked when SDD start
   Int_t   fRecsOffset;                     // number of histo booked when SDD start
+  Int_t   fTimeBinSize;						// time bin width in number of clocks
   AliITSDDLModuleMapSDD  *fDDLModuleMap;// SDD Detector configuration for the decoding
 /*
   TProfile2D *fModuleChargeMap[2*fgknSDDmodules];//module map
   TProfile2D *fModuleChargeMapFSE[2*fgknSDDmodules];//module map for one event 
 */ 
-  ClassDef(AliITSQASDDDataMakerRec,3)      // description 
+  ClassDef(AliITSQASDDDataMakerRec,4)      // description 
 
 };
 
