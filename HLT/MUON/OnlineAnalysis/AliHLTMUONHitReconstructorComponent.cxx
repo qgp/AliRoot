@@ -654,7 +654,7 @@ int AliHLTMUONHitReconstructorComponent::ReadCDB(const char* cdbPath, Int_t run)
 		return -ENOENT;
 	}
 	
-	AliMUONCalibrationData calibData(run);
+	AliMUONCalibrationData calibData(AliCDBManager::Instance()->GetRun());
 	
 	Int_t chamberId;
 	
