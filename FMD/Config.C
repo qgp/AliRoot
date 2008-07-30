@@ -447,6 +447,9 @@ Config()
   field->SetL3ConstField(0); //Using const. field in the barrel
   rl->CdGAFile();
   gAlice->SetField(field);    
+  TFile* magF = TFile::Open("mag.root", "RECREATE");
+  field->Write("mag");
+  magF->Close();
 
   //__________________________________________________________________
   // 
@@ -458,11 +461,11 @@ Config()
   Bool_t useFMD   = kTRUE; 
   Bool_t useFRAME = kFALSE; 
   Bool_t useHALL  = kFALSE; 
-  Bool_t useITS   = kFALSE;
+  Bool_t useITS   = kTRUE;
   Bool_t useMAG   = kFALSE; 
   Bool_t useMUON  = kFALSE; 
   Bool_t usePHOS  = kFALSE; 
-  Bool_t usePIPE  = kTRUE; 
+  Bool_t usePIPE  = kFALSE; 
   Bool_t usePMD   = kFALSE; 
   Bool_t useHMPID = kFALSE; 
   Bool_t useSHIL  = kFALSE; 
