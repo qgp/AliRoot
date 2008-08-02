@@ -19,9 +19,10 @@
 
 class TObjArray;
 class TH1D;
+
 class AliRawReader;
-class AliESDEvent;
 class AliITSQADataMakerRec;
+class AliCDBManager;
 
 class AliITSQASSDDataMakerRec: public TObject {
 
@@ -31,10 +32,8 @@ public:
   AliITSQASSDDataMakerRec& operator = (const AliITSQASSDDataMakerRec& qac);
   virtual void InitRaws();
   virtual void InitRecPoints();
-  //virtual void InitESDs();
   virtual void MakeRaws(AliRawReader *rawReader);
   virtual void MakeRecPoints(TTree *clustersTree);
-  //virtual void MakeESDs(AliESDEvent *esd);
   virtual void StartOfDetectorCycle();
   virtual void EndOfDetectorCycle(AliQA::TASKINDEX_t task, TObjArray * list);
   virtual ~AliITSQASSDDataMakerRec(); // dtor
@@ -43,8 +42,10 @@ public:
 
  private:
 
-  Double_t GetSSDOccupancyRaws(TH1 *lHisto, Int_t stripside); 
-  
+  void GetOccupancyStrip(TH1 *lHisto, Int_t *occupancyMatrix); 
+  Double_t GetOccupancyModule(TH1 *lHisto, Int_t stripside); 
+  void MonitorOCDBObjects();
+
   static const Int_t fgkNumOfLDCs = 3;      //number of SSD LDCs
   static const Int_t fgkNumOfDDLs = 16;      //number of SSD DDLs
   static const Int_t fgkSSDMODULES = 1698;      //total number of SSD modules
@@ -57,15 +58,21 @@ public:
   static const Int_t fgkNumberOfPSideStrips = 768; //number of P-side strips
   
   AliITSQADataMakerRec *fAliITSQADataMakerRec;  //pointer to the main ctor
-  Int_t fSSDEvent;                              //event counter
+  Int_t   fSSDEvent;                            //event counter
+  Int_t   fSSDEventPerCycle;                    //event counter per cycle
   Bool_t  fkOnline;                             //online (1) or offline (0) use
   Int_t   fLDC;                                 //LDC number (0 for offline, 1 to 4 for online) 
-  Int_t   fSSDRawsOffset;                       // SSD raw data plot offset
-  Int_t   fSSDhTask;                            // number of histo booked for each SSD task
-  Int_t   fGenOffset;                           // qachecking offset
-  TH1D *fHistSSDRawSignalModule[fgkSSDMODULES]; //raw signal vs strip number - SSD
-  ClassDef(AliITSQASSDDataMakerRec,2)           // description 
+  Int_t   fSSDRawsOffset;                       //SSD raw data plot offset
+  Int_t   fSSDRawsDAOffset;                     //SSD DA plot offset
+  Int_t   fSSDRawsCommonLevelOffset;            //Raw data QA - top level offset - histos used both online and offline 
+  Int_t   fSSDhTask;                            //number of histo booked for each SSD task
+  Int_t   fGenOffset;                           //qachecking offset
+  TH1D   *fHistSSDRawSignalModule[fgkSSDMODULES]; //raw signal vs strip number - SSD                   
+  Int_t   fOccupancyMatrix[fgkSSDMODULES][2*fgkNumberOfPSideStrips]; //occupancy values per strip
 
+  AliCDBManager *fCDBManager; //CDB manager
+
+  ClassDef(AliITSQASSDDataMakerRec,4)           // description 
 };
 
 #endif
