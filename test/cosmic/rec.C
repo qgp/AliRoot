@@ -1,4 +1,4 @@
-void rec(const char *filename="raw.root", const Int_t mfield=1)
+void rec(const char *filename="raw.root")
 {
   /////////////////////////////////////////////////////////////////////////////////////////
   //
@@ -7,18 +7,20 @@ void rec(const char *filename="raw.root", const Int_t mfield=1)
   //
   /////////////////////////////////////////////////////////////////////////////////////////
   //AliLog::SetGlobalLogLevel(AliLog::kWarning);
-  AliLog::SetGlobalLogLevel(AliLog::kError);
+  //  AliLog::SetGlobalLogLevel(AliLog::kError);
 
-  gSystem->Load("libRAliEn.so");
-  gSystem->Load("libNet.so");
-  gSystem->Load("libMonaLisa.so");
-  new TMonaLisaWriter(0, "GridAliRoot-rec.C", 0, 0, "global");
-  gSystem->Setenv("APMON_INTERVAL", "120");
+//   gSystem->Load("libRAliEn.so");
+//   gSystem->Load("libNet.so");
+//   gSystem->Load("libMonaLisa.so");
+//   new TMonaLisaWriter(0, "GridAliRoot-rec.C", 0, 0, "global");
+//   gSystem->Setenv("APMON_INTERVAL", "120");
 
   // Set the CDB storage location
   AliCDBManager * man = AliCDBManager::Instance();
   //  man->SetDefaultStorage("local://$ALICE_ROOT");
-  man->SetDefaultStorage("alien://folder=/alice/data/2008/LHC08b/OCDB/");
+  man->SetDefaultStorage("alien://folder=/alice/data/2008/LHC08c/OCDB/");
+  man->SetSpecificStorage("MUON/Calib/MappingData","local://$ALICE_ROOT");
+  man->SetSpecificStorage("ZDC/Calib/EMDCalib","local://$ALICE_ROOT");
   
   // Example in case a specific CDB storage is needed
   //  man->SetSpecificStorage("ITS/Calib/MapsAnodeSDD","local://$ALICE_ROOT");
@@ -65,6 +67,8 @@ void rec(const char *filename="raw.root", const Int_t mfield=1)
   
   // TRD reconstruction params
   AliTRDrecoParam *fTRDrecoParam = AliTRDrecoParam::GetCosmicTestParam();
+  fTRDrecoParam->SetSeeding(kTRUE);
+  fTRDrecoParam->SetStreamLevel(1);
   AliTRDReconstructor::SetRecoParam(fTRDrecoParam);
   AliTRDtrackerV1::SetNTimeBins(30);
 
@@ -86,15 +90,9 @@ void rec(const char *filename="raw.root", const Int_t mfield=1)
   //muonRecoParam->SetClusteringMode("PEAKFIT");
   //muonRecoParam->SetClusteringMode("PEAKCOG");
   muonRecoParam->Print("FULL");
-  AliRecoParam::Instance()->RegisterRecoParam(muonRecoParam);
+  AliMUONReconstructor::SetRecoParam(muonRecoParam);
  
   // Tracking settings
-  AliMagFMaps* field;
-  if (mfield)
-     field = new AliMagFMaps("Maps","Maps", 2, 1., 10., AliMagFMaps::k5kG);
-   else
-     field = new AliMagFMaps("Maps","Maps", 2, 0., 10., 2);
-  AliTracker::SetFieldMap(field,1);
   Double_t mostProbPt=0.35;
   AliExternalTrackParam::SetMostProbablePt(mostProbPt);
 
@@ -104,11 +102,11 @@ void rec(const char *filename="raw.root", const Int_t mfield=1)
   rec.SetWriteESDfriend(kTRUE);
   rec.SetWriteAlignmentData();
   rec.SetInput(filename);
-  //  rec.SetRunReconstruction("ALL");
+  rec.SetRunReconstruction("ALL");
   rec.SetUseTrackingErrorsForAlignment("ITS");
 
   // In case some detectors have to be switched off...
-  rec.SetRunReconstruction("ITS TPC TRD TOF HMPID PHOS MUON FMD PMD T0 VZERO ZDC ACORDE");
+  //  rec.SetRunReconstruction("ITS TPC TRD TOF HMPID PHOS MUON FMD PMD T0 VZERO ZDC ACORDE");
 
   // Enable vertex finder - it is needed for cosmic track reco
   rec.SetRunVertexFinder(kTRUE);
