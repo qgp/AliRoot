@@ -990,30 +990,27 @@ Bool_t AliReconstruction::InitRun(const char* input)
 			 }
 		 }
       }
-	  if (fRunGlobalQA) {
-		  AliQADataMakerRec *qadm = GetQADataMaker(AliQA::kGLOBAL);
-		  AliInfo(Form("Initializing the global QA data maker"));
-		  if (fQATasks.Contains(Form("%d", AliQA::kRECPOINTS))) {
-			  TObjArray *arr=
-				qadm->Init(AliQA::kRECPOINTS, AliCDBManager::Instance()->GetRun());
-			  AliTracker::SetResidualsArray(arr);
-		  }
-		  if (fQATasks.Contains(Form("%d", AliQA::kESDS))) {
-			  qadm->Init(AliQA::kESDS, AliCDBManager::Instance()->GetRun());
-		  }
-		  if (!fInLoopQA) {
-			  fSameQACycle = kFALSE;
-			  if (fQATasks.Contains(Form("%d", AliQA::kRECPOINTS))) { 				  
-				  qadm->StartOfCycle(AliQA::kRECPOINTS, fSameQACycle);
-				  fSameQACycle = kTRUE;
-			  }
-			  if (fQATasks.Contains(Form("%d", AliQA::kESDS))) { 
-				  qadm->StartOfCycle(AliQA::kESDS, fSameQACycle);
-				  fSameQACycle = kTRUE;	
-			  }
-		  }
-	  }
   }
+
+  if (fRunGlobalQA) {
+      AliQADataMakerRec *qadm = GetQADataMaker(AliQA::kGLOBAL);
+      if (qadm) {
+         AliInfo(Form("Initializing the global QA data maker"));
+	 TObjArray *arr=
+	    qadm->Init(AliQA::kRECPOINTS, AliCDBManager::Instance()->GetRun());
+	 AliTracker::SetResidualsArray(arr);
+	 qadm->Init(AliQA::kESDS, AliCDBManager::Instance()->GetRun());
+
+         if (!fInLoopQA) {
+	    fSameQACycle = kFALSE;
+	    qadm->StartOfCycle(AliQA::kRECPOINTS, fSameQACycle);
+	    fSameQACycle = kTRUE;
+	    qadm->StartOfCycle(AliQA::kESDS, fSameQACycle);
+	    fSameQACycle = kTRUE;	
+         }
+      }
+  }
+  
 
   //Initialize the Plane Efficiency framework
   if (fRunPlaneEff && !InitPlaneEff()) {
@@ -1079,19 +1076,18 @@ Bool_t AliReconstruction::RunEvent(Int_t iEvent)
 				  fSameQACycle = kTRUE;
 			  }
           }
-		   if (fRunGlobalQA) {
-			   fSameQACycle = kFALSE;
-			   AliQADataMakerRec *qadm = GetQADataMaker(AliQA::kGLOBAL);
-			   if (fQATasks.Contains(Form("%d", AliQA::kRECPOINTS))) {
-				   qadm->StartOfCycle(AliQA::kRECPOINTS, fSameQACycle);
-				   fSameQACycle = kTRUE;
-			   }
-			   if (fQATasks.Contains(Form("%d", AliQA::kESDS))) {
-				   qadm->StartOfCycle(AliQA::kESDS, fSameQACycle);
-				   fSameQACycle = kTRUE;
-			   }
-		   }		   
-	   }
+       }
+
+       if (fRunGlobalQA) {
+	  fSameQACycle = kFALSE;
+	  AliQADataMakerRec *qadm = GetQADataMaker(AliQA::kGLOBAL);
+          if (qadm) {
+	     qadm->StartOfCycle(AliQA::kRECPOINTS, fSameQACycle);
+	     fSameQACycle = kTRUE;
+	     qadm->StartOfCycle(AliQA::kESDS, fSameQACycle);
+	     fSameQACycle = kTRUE;
+	  }
+       }		   
     }
 
     fRunLoader->GetEvent(iEvent);
@@ -1309,13 +1305,10 @@ Bool_t AliReconstruction::RunEvent(Int_t iEvent)
     // write ESD
     if (fCleanESD) CleanESD(fesd);
 
-	if (fRunQA) {
-		if (fRunGlobalQA) {
-			AliQADataMakerRec *qadm = GetQADataMaker(AliQA::kGLOBAL);
-			if (qadm && fQATasks.Contains(Form("%d", AliQA::kESDS)))
-				qadm->Exec(AliQA::kESDS, fesd);
-		}
-	}
+    if (fRunGlobalQA) {
+	AliQADataMakerRec *qadm = GetQADataMaker(AliQA::kGLOBAL);
+	if (qadm) qadm->Exec(AliQA::kESDS, fesd);
+    }
 
     if (fWriteESDfriend) {
       fesdf->~AliESDfriend();
@@ -1364,15 +1357,14 @@ Bool_t AliReconstruction::RunEvent(Int_t iEvent)
 			   qadm->Finish();
 		   }
         }
+
         if (fRunGlobalQA) {
            AliQADataMakerRec *qadm = GetQADataMaker(AliQA::kGLOBAL);
            if (qadm) {
-			   if (fQATasks.Contains(Form("%d", AliQA::kRECPOINTS))) 
-				   qadm->EndOfCycle(AliQA::kRECPOINTS);
-			   if (fQATasks.Contains(Form("%d", AliQA::kESDS))) 
-				   qadm->EndOfCycle(AliQA::kESDS);
-			   qadm->Finish();
-		   }
+	       qadm->EndOfCycle(AliQA::kRECPOINTS);
+	       qadm->EndOfCycle(AliQA::kESDS);
+	       qadm->Finish();
+	   }
         }
      }
 
@@ -1470,16 +1462,15 @@ Bool_t AliReconstruction::FinishRun()
 		  //qas.Reset() ;
 		  if (fQATasks.Contains(Form("%d", AliQA::kESDS))) 
 			  qas.Run(fRunLocalReconstruction.Data(), AliQA::kESDS, fSameQACycle);
-		  if (fRunGlobalQA) {
-			 AliQADataMakerRec *qadm = GetQADataMaker(AliQA::kGLOBAL);
-			  if (qadm) {
-				  if (fQATasks.Contains(Form("%d", AliQA::kRECPOINTS))) 
-					  qadm->EndOfCycle(AliQA::kRECPOINTS);
-				  if (fQATasks.Contains(Form("%d", AliQA::kESDS))) 
-					  qadm->EndOfCycle(AliQA::kESDS);
-				  qadm->Finish();
-			  }
-		  }
+	  }
+		  
+          if (fRunGlobalQA) {
+	      AliQADataMakerRec *qadm = GetQADataMaker(AliQA::kGLOBAL);
+	      if (qadm) {
+		  qadm->EndOfCycle(AliQA::kRECPOINTS);
+		  qadm->EndOfCycle(AliQA::kESDS);
+		  qadm->Finish();
+	      }
 	  }
   }
   
