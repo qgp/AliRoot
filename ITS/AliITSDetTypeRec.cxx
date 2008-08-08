@@ -546,6 +546,19 @@ Bool_t AliITSDetTypeRec::GetCalibration() {
   if(!cacheStatus)entry2SSD->SetObject(NULL);
   entry2SSD->SetOwner(kTRUE);
 
+  // Entry for the AliITSRecoParam object
+  AliCDBEntry *entryRP = AliCDBManager::Instance()->Get("ITS/Calib/RecoParam/");
+  if(!AliITSReconstructor::GetRecoParam()){ 	 
+    if(!entryRP) AliFatal("Calibration object (RecoParam) retrieval from OCDB failed! Hint: as an alternative you can set it in your reconstruction macro ");
+    AliITSRecoParam *rp = (AliITSRecoParam*)entryRP->GetObject();
+    if(!cacheStatus)entryRP->SetObject(NULL);
+    entryRP->SetOwner(kTRUE);
+    AliITSReconstructor::SetRecoParam(rp);
+  }
+  else {	 
+    AliWarning("AliITSRecoParam object has been already set in AliITSReconstructor. The OCDB instance will not be used\n");
+  }
+	 
   // DB entries are deleted. In this way metadeta objects are deleted as well
   if(!cacheStatus){
     delete entrySPD;
