@@ -555,6 +555,10 @@ void AliPHOSClusterizerv1::MakeClusters()
   AliPHOSDigit * digit ; 
   TArrayI clusterdigitslist(1500) ;   
   AliPHOSRecPoint * clu = 0 ; 
+  if (nDigits > 1500) {
+    AliError(Form("Too many digits in event: N(digits)=%d. Event is skipped",nDigits));
+    return;
+  }
   for(Int_t i=0; i<nDigits; i++){
     if(fDigitsUsed[i])
       continue ;
