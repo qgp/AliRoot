@@ -105,11 +105,15 @@ void AliQADataMaker::DefaultEndOfDetectorCycle(AliQA::TASKINDEX_t task)
 }
 
 //____________________________________________________________________________ 
-void AliQADataMaker::Finish() const 
+void AliQADataMaker::Finish() 
 { 
 	// write to the output File
-	if (fOutput) 
+	if (fOutput) {
 		fOutput->Close() ; 
+                // As closing file will destroy our directory, too, 
+                // let's set the pointer to it to 0
+                fDetectorDir = 0;
+        } 
 } 
 
 //____________________________________________________________________________ 

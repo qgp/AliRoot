@@ -47,7 +47,7 @@ public:
 	virtual Int_t Add2SDigitsList(TH1 * hist, const Int_t index)         = 0 ; 
 	virtual void        Exec(AliQA::TASKINDEX_t, TObject * data)                 = 0 ;
 	virtual void        EndOfCycle(AliQA::TASKINDEX_t)                           = 0 ;
-	void                Finish() const ; 
+	void                Finish(); 
     virtual TH1 *       GetDigitsData(const Int_t index)                       = 0 ; 
 	virtual TH1 *       GetESDsData(const Int_t index)                         = 0 ; 
 	virtual TH1 *       GetHitsData(const Int_t index)                         = 0 ; 
