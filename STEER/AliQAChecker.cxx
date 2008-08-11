@@ -321,8 +321,10 @@ Bool_t AliQAChecker::Run(AliQA::DETECTORINDEX_t det, AliQA::TASKINDEX_t task, TO
 	AliQACheckerBase * qac = GetDetQAChecker(det) ; 
 	if (qac)
 		AliDebug(1, Form("QA checker found for %s", AliQA::GetDetName(det).Data())) ;
-	if (!qac)
+	if (!qac) {
 		AliError(Form("QA checker not found for %s", AliQA::GetDetName(det).Data())) ; 
+                return kFALSE;
+        }        
   
 	AliQA::ALITASK_t index = AliQA::kNULLTASK ; 
 	if ( task == AliQA::kRAWS ) 
