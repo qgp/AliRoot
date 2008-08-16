@@ -945,7 +945,6 @@ Bool_t AliSimulation::RunSimulation(Int_t nEvents)
 Bool_t AliSimulation::RunSDigitization(const char* detectors)
 {
 // run the digitization and produce summable digits
-  static Int_t eventNr=0;
   AliCodeTimerAuto("")
 
   // initialize CDB storage, run number, set CDB lock
@@ -965,7 +964,7 @@ Bool_t AliSimulation::RunSDigitization(const char* detectors)
       AliInfo(Form("creating summable digits for %s", det->GetName()));
       AliCodeTimerAuto(Form("creating summable digits for %s", det->GetName()));
       det->Hits2SDigits();
-      AliSysInfo::AddStamp(Form("Digit_%s_%d",det->GetName(),eventNr), 0,1, eventNr);
+      AliSysInfo::AddStamp(Form("Hits2SDigits_%s",det->GetName()));
     }
   }
 
@@ -974,7 +973,6 @@ Bool_t AliSimulation::RunSDigitization(const char* detectors)
                   detStr.Data()));
     if (fStopOnError) return kFALSE;
   }
-  eventNr++;
   delete runLoader;
 
   return kTRUE;
@@ -1071,6 +1069,7 @@ Bool_t AliSimulation::RunHitsDigitization(const char* detectors)
     if (IsSelected(det->GetName(), detStr)) {
       AliInfo(Form("creating digits from hits for %s", det->GetName()));
       det->Hits2Digits();
+      AliSysInfo::AddStamp(Form("Hits2Digits_%s",det->GetName()));
     }
   }
 
