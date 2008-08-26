@@ -81,26 +81,10 @@ TEvePointSet* tpc_clusters(TEveElement* cont=0, Float_t maxR=270)
     return 0;
   }
 
-  char form[1000];
-  sprintf(form,"TPC Clusters");
-  clusters->SetName(form);
-
-  char tip[1000];
-  sprintf(tip,"N=%d", clusters->Size());
-  clusters->SetTitle(tip);
-
   const TString viz_tag("TPC Clusters");
-  if (gEve->FindVizDBEntry(viz_tag) == 0)
-  {
-    TEvePointSet* m = new TEvePointSet();
-    m->SetMarkerColor(4);
-    m->SetMarkerSize(0.2);
-    m->SetMarkerStyle(2);
-    gEve->InsertVizDBEntry(viz_tag, m);
-  }
-  // The above can be removed when going to new root - then call:
-  // clusters->ApplyVizTag(viz_tag, "Clusters");
-  clusters->ApplyVizTag(viz_tag);
+  clusters->SetName(viz_tag);
+  clusters->SetTitle(Form("N=%d", clusters->Size()));
+  clusters->ApplyVizTag(viz_tag, "Clusters");
 
   gEve->AddElement(clusters, cont);
 

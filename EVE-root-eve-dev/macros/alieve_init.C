@@ -25,7 +25,7 @@ void alieve_init(const Text_t* path   = ".", Int_t event=0,
   alieve_init_import_macros();
   gSystem->cd(hack);
 
-  // TEveUtil::AssertMacro("region_marker.C");
+  alieve_init_basic_vizdb();
 
   gSystem->ProcessEvents();
 
@@ -96,4 +96,15 @@ void alieve_init_import_macros()
       br->SetTab(0, 0);
     }
   }
+}
+
+void alieve_init_basic_vizdb()
+{
+  TEvePointSet* ps;
+
+  ps = new TEvePointSet();
+  ps->SetMarkerColor(4);
+  ps->SetMarkerSize(0.2);
+  ps->SetMarkerStyle(2);
+  gEve->InsertVizDBEntry("Clusters", ps);
 }
