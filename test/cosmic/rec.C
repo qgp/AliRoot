@@ -20,20 +20,8 @@ void rec(const char *filename="raw.root")
   AliCDBManager * man = AliCDBManager::Instance();
   //  man->SetDefaultStorage("local://$ALICE_ROOT");
   man->SetDefaultStorage("alien://folder=/alice/data/2008/LHC08c/OCDB/");
-  man->SetSpecificStorage("ITS/Calib/*","local://$ALICE_ROOT");
-  man->SetSpecificStorage("ITS/Calib/BadChannelsSSD","alien://folder=/alice/data/2008/LHC08c/OCDB");
-  man->SetSpecificStorage("ITS/Calib/CalibSDD","alien://folder=/alice/data/2008/LHC08c/OCDB");
-  man->SetSpecificStorage("ITS/Calib/DDLMapSDD","alien://folder=/alice/data/2008/LHC08c/OCDB");
-  man->SetSpecificStorage("ITS/Calib/DriftSpeedSDD","alien://folder=/alice/data/2008/LHC08c/OCDB");
-  man->SetSpecificStorage("ITS/Calib/GainSSD","alien://folder=/alice/data/2008/LHC08c/OCDB");
-  man->SetSpecificStorage("ITS/Calib/HLTforSDD","alien://folder=/alice/data/2008/LHC08c/OCDB");
-  man->SetSpecificStorage("ITS/Calib/MapsTimeSDD","alien://folder=/alice/data/2008/LHC08c/OCDB");
-  man->SetSpecificStorage("ITS/Calib/NoiseSSD","alien://folder=/alice/data/2008/LHC08c/OCDB");
-  man->SetSpecificStorage("ITS/Calib/RecoParam","alien://folder=/alice/data/2008/LHC08c/OCDB");
-  man->SetSpecificStorage("ITS/Calib/SPDDead","alien://folder=/alice/data/2008/LHC08c/OCDB");
-  man->SetSpecificStorage("ITS/Calib/SPDNoisy","alien://folder=/alice/data/2008/LHC08c/OCDB");
-//   man->SetSpecificStorage("FMD/Calib/*","local://$ALICE_ROOT");
-//   man->SetSpecificStorage("VZERO/Calib/*","local://$ALICE_ROOT");
+  man->SetSpecificStorage("ITS/Calib/HLTforSDD","local://$ALICE_ROOT");
+  man->SetSpecificStorage("VZERO/Calib/Data","local://$ALICE_ROOT");
   
   // Example in case a specific CDB storage is needed
   //  man->SetSpecificStorage("ITS/Calib/MapsAnodeSDD","local://$ALICE_ROOT");
@@ -145,7 +133,7 @@ void rec(const char *filename="raw.root")
 
   rec.SetRunQA("ALL:ALL");
   for (Int_t det = 0 ; det < AliReconstruction::fgkNDetectors ; det++) {
-    rec.SetQACycles(det, 1) ;
+    rec.SetQACycles(det, 99999) ;
     rec.SetQAWriteExpert(det) ; 
   }
 
