@@ -37,7 +37,7 @@ THijing/module.mk:	THijing/libTHijing.pkg
 TOF/module.mk:		TOF/libTOFbase.pkg TOF/libTOFrec.pkg TOF/libTOFsim.pkg
 TPC/module.mk:		TPC/libTPCbase.pkg TPC/libTPCfast.pkg TPC/libTPCrec.pkg TPC/libTPCcalib.pkg TPC/libTPCmon.pkg TPC/libTPCsim.pkg
 TPHIC/module.mk:	TPHIC/libTPHIC.pkg
-TRD/module.mk:		TRD/libTRDbase.pkg TRD/libTRDgui.pkg TRD/libTRDsim.pkg TRD/libTRDfast.pkg TRD/libTRDrec.pkg TRD/libTRDqaAnalysis.pkg
+TRD/module.mk:		TRD/libTRDbase.pkg TRD/libTRDgui.pkg TRD/libTRDsim.pkg TRD/libTRDfast.pkg TRD/libTRDrec.pkg TRD/libTRDqaAnalysis.pkg TRD/libTRDqaRec.pkg
 VZERO/module.mk:	VZERO/libVZERObase.pkg VZERO/libVZEROsim.pkg VZERO/libVZEROrec.pkg
 ZDC/module.mk:		ZDC/libZDCbase.pkg ZDC/libZDCrec.pkg ZDC/libZDCsim.pkg
 EVE/module.mk:		EVE/libEveBase.pkg EVE/libEveDet.pkg EVE/libEveHLT.pkg EVE/binalieve.pkg
@@ -67,7 +67,7 @@ $(LIBPATH)/libRAWDatarecOnline.$(SOEXT): $(LIBPATH)/libRAWDatarec.$(SOEXT)
 $(LIBPATH)/libSTEER.$(SOEXT): $(LIBPATH)/libSTEERBase.$(SOEXT) $(LIBPATH)/libRAWDatabase.$(SOEXT) $(LIBPATH)/libRAWDatarec.$(SOEXT) $(LIBPATH)/libCDB.$(SOEXT) $(LIBPATH)/libAOD.$(SOEXT) $(LIBPATH)/libESD.$(SOEXT)
 $(LIBPATH)/libEVGEN.$(SOEXT): $(LIBPATH)/libSTEERBase.$(SOEXT) $(LIBPATH)/libSTEER.$(SOEXT) $(LIBPATH)/libFASTSIM.$(SOEXT) $(LIBPATH)/libESD.$(SOEXT)
 $(LIBPATH)/libpythia6.$(SOEXT): $(LIBPATH)/libmicrocern.$(SOEXT) $(LIBPATH)/liblhapdf.$(SOEXT)
-$(LIBPATH)/libdpmjet.$(SOEXT): $(LIBPATH)/libmicrocern.$(SOEXT)
+$(LIBPATH)/libdpmjet.$(SOEXT): $(LIBPATH)/libmicrocern.$(SOEXT) $(LIBPATH)/libpythia6.$(SOEXT)
 $(LIBPATH)/libAliPythia6.$(SOEXT): $(LIBPATH)/libSTEERBase.$(SOEXT) $(LIBPATH)/libSTEER.$(SOEXT) $(LIBPATH)/libFASTSIM.$(SOEXT) $(LIBPATH)/libpythia6.$(SOEXT) $(LIBPATH)/libEVGEN.$(SOEXT) $(LIBPATH)/liblhapdf.$(SOEXT)
 $(LIBPATH)/libTHijing.$(SOEXT): $(LIBPATH)/libSTEERBase.$(SOEXT) $(LIBPATH)/libSTEER.$(SOEXT) $(LIBPATH)/libhijing.$(SOEXT) $(LIBPATH)/libEVGEN.$(SOEXT)
 $(LIBPATH)/libTHerwig.$(SOEXT): $(LIBPATH)/libSTEER.$(SOEXT) $(LIBPATH)/libherwig.$(SOEXT) $(LIBPATH)/libEVGEN.$(SOEXT)
@@ -117,6 +117,7 @@ $(LIBPATH)/libTRDbase.$(SOEXT): $(LIBPATH)/libSTEERBase.$(SOEXT) $(LIBPATH)/libC
 $(LIBPATH)/libTRDsim.$(SOEXT): $(LIBPATH)/libSTEERBase.$(SOEXT) $(LIBPATH)/libSTEER.$(SOEXT) $(LIBPATH)/libTRDbase.$(SOEXT)
 $(LIBPATH)/libTRDrec.$(SOEXT): $(LIBPATH)/libSTEERBase.$(SOEXT) $(LIBPATH)/libESD.$(SOEXT)  $(LIBPATH)/libCDB.$(SOEXT) $(LIBPATH)/libSTEER.$(SOEXT) $(LIBPATH)/libRAWDatarec.$(SOEXT)  $(LIBPATH)/libRAWDatabase.$(SOEXT) $(LIBPATH)/libTRDbase.$(SOEXT)
 $(LIBPATH)/libTRDqaAnalysis.$(SOEXT): $(LIBPATH)/libANALYSIS.$(SOEXT) $(LIBPATH)/libANALYSISalice.$(SOEXT) $(LIBPATH)/libESD.$(SOEXT)
+$(LIBPATH)/libTRDqaRec.$(SOEXT): $(LIBPATH)/libANALYSIS.$(SOEXT) $(LIBPATH)/libANALYSISalice.$(SOEXT) $(LIBPATH)/libESD.$(SOEXT) $(LIBPATH)/libCDB.$(SOEXT) $(LIBPATH)/libSTEERBase.$(SOEXT) $(LIBPATH)/libTRDrec.$(SOEXT) $(LIBPATH)/libTRDbase.$(SOEXT) $(LIBPATH)/libSTEER.$(SOEXT)
 $(LIBPATH)/libT0base.$(SOEXT): $(LIBPATH)/libSTEERBase.$(SOEXT) $(LIBPATH)/libCDB.$(SOEXT) $(LIBPATH)/libSTEER.$(SOEXT) $(LIBPATH)/libRAWDatarec.$(SOEXT)  $(LIBPATH)/libRAWDatasim.$(SOEXT) $(LIBPATH)/libRAWDatabase.$(SOEXT)
 $(LIBPATH)/libT0sim.$(SOEXT): $(LIBPATH)/libSTEERBase.$(SOEXT) $(LIBPATH)/libCDB.$(SOEXT) $(LIBPATH)/libSTEER.$(SOEXT) $(LIBPATH)/libRAWDatarec.$(SOEXT)  $(LIBPATH)/libRAWDatasim.$(SOEXT) $(LIBPATH)/libRAWDatabase.$(SOEXT) $(LIBPATH)/libT0base.$(SOEXT)
 $(LIBPATH)/libT0rec.$(SOEXT): $(LIBPATH)/libSTEERBase.$(SOEXT) $(LIBPATH)/libCDB.$(SOEXT) $(LIBPATH)/libSTEER.$(SOEXT) $(LIBPATH)/libRAWDatarec.$(SOEXT) $(LIBPATH)/libT0base.$(SOEXT)
