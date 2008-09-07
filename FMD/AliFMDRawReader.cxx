@@ -56,6 +56,7 @@
 #include "AliFMDDebug.h"
 #include "AliFMDCalibSampleRate.h"
 #include "AliFMDCalibStripRange.h"
+#include "AliFMDAltroMapping.h"
 // #include "AliFMDAltroIO.h"	// ALIFMDALTROIO_H 
 #include <TArrayS.h>		// ROOT_TArrayS
 #include <TTree.h>		// ROOT_TTree
@@ -123,8 +124,9 @@ AliFMDRawReader::ReadAdcs(TClonesArray* array)
   //    return kFALSE;
   //  }
   // Get sample rate 
-  AliFMDParameters* pars = AliFMDParameters::Instance();
-  AliFMDRawStream input(fReader);
+  AliFMDParameters*     pars = AliFMDParameters::Instance();
+  AliFMDAltroMapping*   map  = pars->GetAltroMap();
+  AliFMDRawStream       input(fReader);
   AliFMDDebug(5, ("Setting 7 word headers"));
   input.SetShortDataHeader(!pars->HasCompleteHeader());
 
@@ -141,9 +143,6 @@ AliFMDRawReader::ReadAdcs(TClonesArray* array)
 
   Bool_t isGood = kTRUE;
   while (isGood) {
-    // Set data cache to all zero.
-    for (size_t i = 0; i < 2048; i++) data[i] = 0;
-
     isGood = input.ReadChannel(ddl, hwaddr, last, data);
     // if (!isGood) break;
     if (ddl >= UInt_t(-1)) { 
@@ -154,31 +153,40 @@ AliFMDRawReader::ReadAdcs(TClonesArray* array)
 
     AliFMDDebug(5, ("Read channel 0x%x of size %d", hwaddr, last));
 
+    UShort_t det, sec, samp, board, chip, channel;
+    Short_t strbase;
+    Char_t   ring;
     
+    
+    if (map->DDL2Detector(ddl) < 0) break;
+    det = map->DDL2Detector(ddl);
+    map->ChannelAddress(hwaddr, board, chip, channel);
+    if (!map->Channel2StripBase(board, chip, channel, ring, sec, strbase)) {
+      AliError(Form("Failed to get detector id from DDL %d, "
+		    "hardware address 0x%03x", ddl, hwaddr));
+      continue;
+    }
+
+    stripMin = pars->GetMinStrip(det, ring, sec, strbase);
+    stripMax = pars->GetMaxStrip(det, ring, sec, strbase);
+    preSamp  = pars->GetPreSamples(det, ring, sec, strbase);
+    rate     = pars->GetSampleRate(det, ring, sec, strbase);
     
     // Loop over the `timebins', and make the digits
     for (size_t i = 0; i < last; i++) {
       // if (i < preSamp) continue;
 
-      UShort_t det, sec, samp;
-      Short_t str;
-      Char_t   ring;
-      if (!pars->Hardware2Detector(ddl, hwaddr, i, det, ring, sec, str, samp)) {
-	AliError(Form("Failed to get detector id from DDL %d, "
-		      "hardware address 0x%03x, timebin %d", ddl, hwaddr, i));
-	continue;
-      }
-      AliFMDDebug(8, ("0x%04x/0x%03x/%04d maps to FMD%d%c[%2d,%3d]-%d = %d", 
-		       ddl, hwaddr, i, det, ring, sec, str, samp, data[i]));
+      Short_t  stroff = 0;
+      map->Timebin2Strip(sec, i, preSamp, rate, stroff, samp);
+      Short_t  str    = strbase + stroff;
+      
+      AliFMDDebug(10, ("0x%04x/0x%03x/%04d maps to FMD%d%c[%2d,%3d]-%d", 
+		      ddl, hwaddr, i, det, ring, sec, str, samp));
       if (str < 0) { 
 	AliFMDDebug(8, ("Got presamples at timebin %d", i));
 	continue;
       }
       
-      stripMin = pars->GetMinStrip(det, ring, sec, str);
-      stripMax = pars->GetMaxStrip(det, ring, sec, str);
-      preSamp  = pars->GetPreSamples(det, ring, sec, str);
-      rate     = pars->GetSampleRate(det, ring, sec, str);
       Short_t lstrip = (i - preSamp) / rate + stripMin;
       
       AliFMDDebug(15, ("Checking if strip %d (%d) in range [%d,%d]", 
@@ -418,7 +426,8 @@ Bool_t AliFMDRawReader::ReadSODevent(AliFMDCalibSampleRate* sampleRate,
   UInt_t strip_high[18];
   UInt_t pulse_size[18];
   UInt_t pulse_length[18];  
-  AliFMDParameters* param = AliFMDParameters::Instance();
+  AliFMDParameters*   param = AliFMDParameters::Instance();
+  AliFMDAltroMapping* map   = param->GetAltroMap();
   
   while(fReader->ReadNextData(fData)) {
     
@@ -614,8 +623,8 @@ Bool_t AliFMDRawReader::ReadSODevent(AliFMDCalibSampleRate* sampleRate,
       if(ddl==0 && (i==1 || i==3)) continue;
 
       UInt_t chip =0, channel=0;
-      param->Hardware2Detector(ddl,boards[i],chip,channel,
-			       det,ring,sector,strip);
+      det = map->DDL2Detector(ddl);
+      map->Channel2StripBase(boards[i], chip, channel, ring, sector, strip);
      
       UInt_t samplerate = 1;
       if(sample_clk[boards[i]] == 0) {

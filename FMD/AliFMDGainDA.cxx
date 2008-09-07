@@ -37,6 +37,7 @@
 #include "TMath.h"
 #include "TGraphErrors.h"
 #include "AliFMDParameters.h"
+#include "AliFMDAltroMapping.h"
 
 //_____________________________________________________________________
 ClassImp(AliFMDGainDA)
@@ -244,8 +245,10 @@ void AliFMDGainDA::Analyse(UShort_t det,
 //_____________________________________________________________________
 void AliFMDGainDA::Terminate(TFile* diagFile)
 {
-  diagFile->cd();
-  fSummaryGains.Write();
+  if(diagFile) {
+    diagFile->cd();
+    fSummaryGains.Write();
+  }
 }
 
 //_____________________________________________________________________
@@ -306,14 +309,17 @@ void AliFMDGainDA::UpdatePulseAndADC(UShort_t det,
 {
   
   AliFMDParameters* pars = AliFMDParameters::Instance();
-  UInt_t ddl, board,chip,ch;
-  pars->Detector2Hardware(det,ring,sec,strip,ddl,board,chip,ch);
+  // UInt_t ddl, board,chip,ch;
+  UShort_t board = pars->GetAltroMap()->Sector2Board(ring, sec);
+  // pars->Detector2Hardware(det,ring,sec,strip,ddl,board,chip,ch);
+  /// pars->GetAltroMap()->Strip2Channel(
   Int_t halfring = GetHalfringIndex(det,ring,board/16);
   
   if(GetCurrentEvent()> (fNumberOfStripsPerChip*fEventsPerChannel.At(halfring)))
     return;
   if(strip % fNumberOfStripsPerChip) return;
-  if(((GetCurrentEvent()) % fPulseLength.At(halfring)) && GetCurrentEvent() > 0) return;
+  if(((GetCurrentEvent()) % fPulseLength.At(halfring)) 
+     && GetCurrentEvent() > 0) return;
      
   Int_t vaChip = strip/fNumberOfStripsPerChip; 
   TH1S* hChannel = GetChannelHistogram(det,ring,sec,vaChip);
@@ -325,7 +331,8 @@ void AliFMDGainDA::UpdatePulseAndADC(UShort_t det,
   }
   Double_t mean      = hChannel->GetMean();
   Double_t rms       = hChannel->GetRMS();
-  Double_t pulse     = Double_t(fCurrentPulse.At(halfring)) * fPulseSize.At(halfring);
+  Double_t pulse     = (Double_t(fCurrentPulse.At(halfring)) 
+			* fPulseSize.At(halfring));
   Int_t    firstBin  = hChannel->GetXaxis()->GetFirst();
   Int_t    lastBin   = hChannel->GetXaxis()->GetLast();
   hChannel->GetXaxis()->SetRangeUser(mean-4*rms,mean+4*rms);
@@ -335,7 +342,10 @@ void AliFMDGainDA::UpdatePulseAndADC(UShort_t det,
   
   hChannel->GetXaxis()->SetRange(firstBin,lastBin);
   
-  Int_t channelNumber = strip + (GetCurrentEvent()-1)/((fPulseLength.At(halfring)*fHighPulse)/fPulseSize.At(halfring)); 
+  Int_t channelNumber = (strip + 
+			 (GetCurrentEvent()-1)
+			 / ((fPulseLength.At(halfring)*fHighPulse)
+			    / fPulseSize.At(halfring))); 
   
   TGraphErrors* channel = GetChannel(det,ring,sec,channelNumber);
   
