@@ -41,7 +41,7 @@
 #include "MUON/AliMUONv1.h"
 #include "PHOS/AliPHOSv1.h"
 #include "PHOS/AliPHOSSimParam.h"
-#include "PMD/AliPMDv1.h"
+#include "PMD/AliPMDv2008.h"
 #include "T0/AliT0v1.h"
 #include "EMCAL/AliEMCALv2.h"
 #include "ACORDE/AliACORDEv1.h"
@@ -246,7 +246,7 @@ void Config()
   Int_t iMUON  = 1;
   Int_t iPHOS  = 1;
   Int_t iPIPE  = 1;
-  Int_t iPMD   = 0;
+  Int_t iPMD   = 1;
   Int_t iHMPID = 1;
   Int_t iSHIL  = 1;
   Int_t iT0    = 1;
@@ -413,14 +413,18 @@ void Config()
 
         //ADC channel width at +18C.
         simEmc->SetADCchannelW(0.0125);
+ 
+	//EMC threshold
+	simEmc->SetEMCDigitsThreshold(0.045) ;
     }
+
 
 
     if (iPMD)
     {
         //=================== PMD parameters ============================
 
-        AliPMD *PMD = new AliPMDv1("PMD", "normal PMD");
+        AliPMD *PMD = new AliPMDv2008("PMD", "normal PMD");
     }
 
     if (iT0)
