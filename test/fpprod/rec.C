@@ -37,10 +37,8 @@ void rec() {
 // **** The field map settings must be the same as in Config.C !
   AliMagWrapCheb* field = 0x0;
   if (mag == kNoField) {
-    comment = comment.Append(" | L3 field 0.0 T");
     field = new AliMagWrapCheb("Maps","Maps", 2, 0., 10., AliMagWrapCheb::k2kG);
   } else if (mag == k5kG) {
-    comment = comment.Append(" | L3 field 0.5 T");
     field = new AliMagWrapCheb("Maps","Maps", 2, 1., 10., AliMagWrapCheb::k5kG);
   }
   Bool_t uniform=kFALSE;
