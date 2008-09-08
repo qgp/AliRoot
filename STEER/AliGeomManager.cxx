@@ -525,12 +525,31 @@ Bool_t AliGeomManager::CheckSymNamesLUT(const char* detsToBeChecked)
   }
   if(trdActive) detsString+="TRD ";
 
-  if(fgGeometry->CheckPath("ALIC_1/B077_1/BSEGMO0_1/BTRD0_1/UTR1_1")) detsString+="TRD ";
   if(fgGeometry->CheckPath("ALIC_1/Hmp0_0")) detsString+="HMPID ";
-  if(fgGeometry->CheckPath("ALIC_1/PHOS_1")) detsString+="PHOS ";
+  
+  TString phosMod, cpvMod;
+  TString basePhos("ALIC_1/PHOS_");
+  Bool_t phosActive=kFALSE;
+  Bool_t cpvActive=kFALSE;
+  Bool_t phosMods[5];
+  for(Int_t pmod=0; pmod<5; pmod++)
+  {
+    phosMods[pmod]=kFALSE;
+    phosMod = basePhos;
+    phosMod += (pmod+1);
+    cpvMod = phosMod;
+    cpvMod += "/PCPV_1";
+    if(fgGeometry->CheckPath(phosMod.Data()))
+    {
+      phosActive=kTRUE;
+      phosMods[pmod]=kTRUE;
+      if(fgGeometry->CheckPath(cpvMod.Data())) cpvActive=kTRUE;
+    }
+  }
+  if(phosActive) detsString+="PHOS ";
+
   if(fgGeometry->CheckPath("ALIC_1/XEN1_1")) detsString+="EMCAL";
 
-  
   TString symname;
   const char* sname;
   TGeoPNEntry* pne = 0x0;
@@ -1000,15 +1019,14 @@ Bool_t AliGeomManager::CheckSymNamesLUT(const char* detsToBeChecked)
 
     AliDebugClass(2,"Checking consistency of symbolic names for PHOS layers");
     
-    {
       TString str = "PHOS/Module";
       modnum=0;
 
-      for (Int_t iModule=1; iModule <= 5; iModule++) {
+      for (Int_t iModule=0; iModule < 5; iModule++) {
+	if(!phosMods[iModule]) continue;
 	symname = str;
-	symname += iModule;
-	modnum = iModule-1;
-	uid = LayerToVolUID(kPHOS1,modnum);
+	symname += (iModule+1);
+	uid = LayerToVolUID(kPHOS1,iModule);
 	pne = fgGeometry->GetAlignableEntryByUID(uid);
 	if(!pne)
 	{
@@ -1022,20 +1040,10 @@ Bool_t AliGeomManager::CheckSymNamesLUT(const char* detsToBeChecked)
 		"Expected was %s, found was %s!", uid, symname.Data(), sname));
 	  return kFALSE;
 	}
-      }
-    }
-
-    /*********************      PHOS CPV layer   ***********************/
-    {
-      TString str = "PHOS/Module";
-      modnum=0;
-
-      for (Int_t iModule=1; iModule <= 5; iModule++) {
-	symname = str;
-	symname += iModule;
+	/*********************      PHOS CPV layer   ***********************/
+	if(!cpvActive) continue;
 	symname += "/CPV";
-	modnum = iModule-1;
-	uid = LayerToVolUID(kPHOS2,modnum);
+	uid = LayerToVolUID(kPHOS2,iModule);
 	pne = fgGeometry->GetAlignableEntryByUID(uid);
 	if(!pne)
 	{
@@ -1050,8 +1058,6 @@ Bool_t AliGeomManager::CheckSymNamesLUT(const char* detsToBeChecked)
 	  return kFALSE;
 	}
       }
-    }
-
     AliDebugClass(2,"Consistency check for PHOS symbolic names finished successfully.");
   }
 
@@ -1489,6 +1495,65 @@ void AliGeomManager::CheckOverlapsOverPNs(Double_t threshold)
 
   overlaps->Delete();
   delete overlaps;
+}
+
+//_____________________________________________________________________________
+Bool_t AliGeomManager::IsModuleInGeom(const char* module)
+{
+  // Return true if the module passed as argument is present in the current geometry
+  //
+  
+  TString subdet(module);
+
+  if(subdet==TString("ACORDE"))
+  {
+      if(fgGeometry->GetAlignableEntry("ACORDE/Array1")) return kTRUE;
+  }else if(subdet==TString("EMCAL"))
+  {
+      if(fgGeometry->GetAlignableEntry("EMCAL/FullSupermodule0") || fgGeometry->GetAlignableEntry("EMCAL/CosmicTestSupermodule0")) return kTRUE;
+  }else if(subdet==TString("FMD"))
+  {
+      if(fgGeometry->GetAlignableEntry("FMD/FMD1_T")) return kTRUE;
+  }else if(subdet==TString("HMPID"))
+  {
+      if(fgGeometry->GetAlignableEntry("/HMPID/Chamber0")) return kTRUE;
+  }else if(subdet==TString("ITS"))
+  {
+      if(fgGeometry->GetAlignableEntry("ITS")) return kTRUE;
+  }else if(subdet==TString("MUON"))
+  {
+      if(fgGeometry->GetAlignableEntry("/MUON/GM0")) return kTRUE;
+  }else if(subdet==TString("PMD"))
+  {
+      if(fgGeometry->GetAlignableEntry("PMD/Sector1")) return kTRUE;
+  }else if(subdet==TString("PHOS"))
+  {
+      if(fgGeometry->GetAlignableEntry("PHOS/Cradle0")) return kTRUE;
+  }else if(subdet==TString("T0"))
+  {
+      if(fgGeometry->GetAlignableEntry("/ALIC_1/0STR_1")) return kTRUE;
+  }else if(subdet==TString("TRD"))
+  {
+      if(fgGeometry->GetAlignableEntry("TRD/sm00")) return kTRUE;
+  }else if(subdet==TString("TPC"))
+  {
+      if(fgGeometry->GetAlignableEntry("TPC/EndcapA/Sector1/InnerChamber")) return kTRUE;
+  }else if(subdet==TString("TOF"))
+  {
+      if(fgGeometry->GetAlignableEntry("TOF/sm00/strip01")) return kTRUE;
+  }else if(subdet==TString("VZERO"))
+  {
+      if(fgGeometry->GetAlignableEntry("VZERO/V0C")) return kTRUE;
+  }else if(subdet==TString("ZDC"))
+  {
+      if(fgGeometry->GetAlignableEntry("ZDC/NeutronZDC_C")) return kTRUE;
+  }else if(subdet==TString("FRAME"))
+  {
+      if(fgGeometry->GetAlignableEntry("FRAME/Sector0")) return kTRUE;
+  }else
+      AliErrorClass(Form("%s is not a valid ALICE module name",module));
+
+  return kFALSE;
 }
 
 //_____________________________________________________________________________
