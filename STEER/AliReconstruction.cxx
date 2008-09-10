@@ -1696,7 +1696,9 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
 	fReconstructor[iDet]->SetRecoParam(NULL);
     }
 	
-    fQASteer->Increment() ; 
+  if (fRunQA || fRunGlobalQA) 
+      fQASteer->Increment() ; 
+  
     return kTRUE;
 }
 
