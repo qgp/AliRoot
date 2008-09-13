@@ -28,6 +28,7 @@
 #include "AliTPCCalPad.h"
 #include "AliTPCCalROC.h"
 #include "AliTPCcalibDB.h"
+#include "AliTPCParam.h"
 
 
 
@@ -528,6 +529,15 @@ Bool_t AliTPCseed::Update(const AliCluster *c, Double_t chisq, Int_t index)
   Int_t idx=GetClusterIndex(n);    // save the current cluster index
 
   AliCluster cl(*c);  cl.SetSigmaY2(fErrorY2); cl.SetSigmaZ2(fErrorZ2);
+  Float_t dx = ((AliTPCclusterMI*)c)->GetX()-GetX();
+  if (TMath::Abs(dx)>0){
+    Float_t ty = TMath::Tan(TMath::ASin(GetSnp()));
+    Float_t dy = dx*ty;
+    Float_t dz = dx*TMath::Sqrt(1.+ty*ty)*GetTgl();
+    cl.SetY(c->GetY()-dy);  
+    cl.SetZ(c->GetZ()-dz);  
+  }
+
   if (!AliTPCtrack::Update(&cl,chisq,index)) return kFALSE;
   
   if (fCMeanSigmaY2p30<0){
@@ -571,6 +581,12 @@ Float_t AliTPCseed::CookdEdx(Double_t low, Double_t up,Int_t i1, Int_t i2, Bool_
   //
   //
   fNShared =0;
+
+  Float_t gainGG = 1;
+  if (AliTPCcalibDB::Instance()->GetParameters()){
+    gainGG= AliTPCcalibDB::Instance()->GetParameters()->GetGasGain()/20000.;  //relative gas gain
+  }
+
 
   for (Int_t of =0; of<4; of++){    
     for (Int_t i=of+i1;i<i2;i+=4)
@@ -691,6 +707,7 @@ Float_t AliTPCseed::CookdEdx(Double_t low, Double_t up,Int_t i1, Int_t i2, Bool_
 	}
 	if (rsigma>1.5) ampc/=1.3;  // if big backround
 	amp[nc[of]]        = ampc;
+	amp[nc[of]]       /=gainGG;
 	angular[nc[of]]    = TMath::Sqrt(1.+angley*angley+anglez*anglez);
 	weight[nc[of]]     = w;
 	nc[of]++;
@@ -1053,8 +1070,13 @@ Float_t  AliTPCseed::CookdEdxNorm(Double_t low, Double_t up, Int_t type, Int_t i
   Int_t   ncl=0;
   //
   //
+  Float_t gainGG = 1;
+  if (AliTPCcalibDB::Instance()->GetParameters()){
+    gainGG= 20000./AliTPCcalibDB::Instance()->GetParameters()->GetGasGain();  //relative gas gain
+  }
+
   const Float_t ktany = TMath::Tan(TMath::DegToRad()*10);
-  const Float_t kedgey =4.;
+  const Float_t kedgey =3.;
   //
   //
   for (Int_t irow=i1; irow<i2; irow++){
@@ -1089,6 +1111,7 @@ Float_t  AliTPCseed::CookdEdxNorm(Double_t low, Double_t up, Int_t type, Int_t i
       corr  = parcl->Qnorm(ipad,type,dr,ty,tz);
     }
     amp[ncl]=charge/corr;
+    amp[ncl]/=gainGG;
     if (posNorm){
       //
       //
