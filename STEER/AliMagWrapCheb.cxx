@@ -26,7 +26,7 @@ ClassImp(AliMagWrapCheb)
 
 //_______________________________________________________________________
 AliMagWrapCheb::AliMagWrapCheb():
-  AliMagF(),
+  AliMagFC(),
   fMeasuredMap(0),
   fSolenoid(5.)
 {
@@ -38,7 +38,7 @@ AliMagWrapCheb::AliMagWrapCheb():
 AliMagWrapCheb::AliMagWrapCheb(const char *name, const char *title, Int_t integ, 
 			       Float_t factor, Float_t fmax, Int_t map, 
 			       Bool_t dipoleON,const char* path):
-  AliMagF(name, title, integ, factor, fmax),
+  AliMagFC(name, title, integ, factor, fmax),
   fMeasuredMap(0),
   fSolenoid(5.)
 {
@@ -74,7 +74,7 @@ AliMagWrapCheb::AliMagWrapCheb(const char *name, const char *title, Int_t integ,
 
 //_______________________________________________________________________
 AliMagWrapCheb::AliMagWrapCheb(const AliMagWrapCheb &src):
-  AliMagF(src),
+  AliMagFC(src),
   fMeasuredMap(0),
   fSolenoid(src.fSolenoid)
 {
@@ -92,6 +92,7 @@ void AliMagWrapCheb::GetTPCInt(Float_t *xyz, Float_t *b) const
 {
   // Method to calculate the integral of magnetic integral from xyz to nearest cathode plane
   //
+  b[0]=b[1]=b[2]=0.0;
   if (fMeasuredMap) fMeasuredMap->GetTPCInt(xyz,b);
   for (int i=3;i--;) b[i] *= fFactor;
 }
@@ -101,6 +102,7 @@ void AliMagWrapCheb::GetTPCIntCyl(Float_t *rphiz, Float_t *b) const
 {
   // Method to calculate the integral of magnetic integral from point to nearest cathode plane
   // in cylindrical coordiates ( -pi<phi<pi convention )
+  b[0]=b[1]=b[2]=0.0;
   if (fMeasuredMap) fMeasuredMap->GetTPCIntCyl(rphiz,b);
   for (int i=3;i--;) b[i] *= fFactor;
 }
@@ -110,7 +112,13 @@ void AliMagWrapCheb::Field(Float_t *xyz, Float_t *b) const
 {
   // Method to calculate the field at point  xyz
   //
-  if (fMeasuredMap) fMeasuredMap->Field(xyz,b);
+  b[0]=b[1]=b[2]=0.0;
+    if (xyz[2] > 919. || xyz[2] < -1972.) {
+	ZDCField(xyz, b);
+    } else {
+	if (fMeasuredMap) fMeasuredMap->Field(xyz,b);
+    }
+    
   for (int i=3;i--;) b[i] *= fFactor;
 }
 
