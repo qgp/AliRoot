@@ -43,14 +43,16 @@
 // --- AliRoot header files ---
 #include "AliPHOSRawDecoder.h"
 #include "AliRawReader.h"
+#include "AliPHOSCalibData.h"
+#include "AliLog.h"
 
 ClassImp(AliPHOSRawDecoder)
 
 //-----------------------------------------------------------------------------
 AliPHOSRawDecoder::AliPHOSRawDecoder():
   fRawReader(0),fCaloStream(0),fPedSubtract(kFALSE),fEnergy(-111),fTime(-111),fQuality(0.),fPedestalRMS(0.),
-  fModule(-1),fColumn(-1),fRow(-1),fNewModule(-1),fNewColumn(-1),fNewRow(-1),fNewAmp(0),fNewTime(0), 
-  fLowGainFlag(kFALSE),fNewLowGainFlag(kFALSE),fOverflow(kFALSE),fSamples(0),fTimes(0)
+  fAmpOffset(0),fModule(-1),fColumn(-1),fRow(-1),fNewModule(-1),fNewColumn(-1),fNewRow(-1),fNewAmp(0),fNewTime(0), 
+  fLowGainFlag(kFALSE),fNewLowGainFlag(kFALSE),fOverflow(kFALSE),fSamples(0),fTimes(0),fCalibData(0)
 {
   //Default constructor.
 }
@@ -58,8 +60,8 @@ AliPHOSRawDecoder::AliPHOSRawDecoder():
 //-----------------------------------------------------------------------------
 AliPHOSRawDecoder::AliPHOSRawDecoder(AliRawReader* rawReader,  AliAltroMapping **mapping):
   fRawReader(0),fCaloStream(0),fPedSubtract(kFALSE),fEnergy(-111),fTime(-111),fQuality(0.),fPedestalRMS(0.),
-  fModule(-1),fColumn(-1),fRow(-1),fNewModule(-1),fNewColumn(-1),fNewRow(-1),fNewAmp(0),fNewTime(0),
-  fLowGainFlag(kFALSE),fNewLowGainFlag(kFALSE),fOverflow(kFALSE),fSamples(0),fTimes(0)
+  fAmpOffset(0),fModule(-1),fColumn(-1),fRow(-1),fNewModule(-1),fNewColumn(-1),fNewRow(-1),fNewAmp(0),fNewTime(0),
+  fLowGainFlag(kFALSE),fNewLowGainFlag(kFALSE),fOverflow(kFALSE),fSamples(0),fTimes(0),fCalibData(0)
 {
   //Construct a decoder object.
   //Is is user responsibility to provide next raw event 
@@ -86,12 +88,12 @@ AliPHOSRawDecoder::AliPHOSRawDecoder(const AliPHOSRawDecoder &phosDecoder ):
   fRawReader(phosDecoder.fRawReader),fCaloStream(phosDecoder.fCaloStream),
   fPedSubtract(phosDecoder.fPedSubtract),
   fEnergy(phosDecoder.fEnergy),fTime(phosDecoder.fTime),fQuality(phosDecoder.fQuality),fPedestalRMS(phosDecoder.fPedestalRMS),
-  fModule(phosDecoder.fModule),fColumn(phosDecoder.fColumn),
+  fAmpOffset(phosDecoder.fAmpOffset),fModule(phosDecoder.fModule),fColumn(phosDecoder.fColumn),
   fRow(phosDecoder.fRow),fNewModule(phosDecoder.fNewModule),fNewColumn(phosDecoder.fNewColumn),
   fNewRow(phosDecoder.fNewRow),fNewAmp(phosDecoder.fNewAmp),fNewTime(phosDecoder.fNewTime),
   fLowGainFlag(phosDecoder.fLowGainFlag),fNewLowGainFlag(phosDecoder.fNewLowGainFlag),
   fOverflow(phosDecoder.fOverflow),fSamples(phosDecoder.fSamples),
-  fTimes(phosDecoder.fTimes)
+  fTimes(phosDecoder.fTimes),fCalibData(phosDecoder.fCalibData) 
 {
   //Copy constructor.
 }
@@ -110,6 +112,8 @@ AliPHOSRawDecoder& AliPHOSRawDecoder::operator = (const AliPHOSRawDecoder &phosD
     fEnergy = phosDecode.fEnergy;
     fTime = phosDecode.fTime;
     fQuality = phosDecode.fQuality ;
+    fPedestalRMS = phosDecode.fPedestalRMS ;
+    fAmpOffset = phosDecode.fAmpOffset ;
     fModule = phosDecode.fModule;
     fColumn = phosDecode.fColumn;
     fRow = phosDecode.fRow;
@@ -127,6 +131,7 @@ AliPHOSRawDecoder& AliPHOSRawDecoder::operator = (const AliPHOSRawDecoder &phosD
 
     if(fTimes) delete fTimes;
     fTimes = phosDecode.fTimes;
+    fCalibData = phosDecode.fCalibData; 
   }
 
   return *this;
@@ -179,7 +184,7 @@ Bool_t AliPHOSRawDecoder::NextDigit()
        // Time is not evaluated for the moment (12.01.2007). 
        // Take is as a first time bin multiplied by the sample tick time
        
-       if(fPedSubtract) 
+       if(fPedSubtract) {
 	 if (nPed > 0){
            fPedestalRMS=(pedRMS-pedMean*pedMean/nPed)/nPed ;
            if(fPedestalRMS > 0.) 
@@ -188,6 +193,20 @@ Bool_t AliPHOSRawDecoder::NextDigit()
          }
 	 else
 	   return kFALSE;
+       }
+       else{
+         //take pedestals from DB
+         Double_t pedestal = (Double_t) fAmpOffset ;
+         if(fCalibData){
+           Float_t truePed = fCalibData->GetADCpedestalEmc(fModule, fColumn, fRow) ;
+           Int_t   altroSettings = fCalibData->GetAltroOffsetEmc(fModule, fColumn, fRow) ;
+           pedestal += truePed - altroSettings ;
+         }
+         else{
+//           printf("AliPHOSRawDecoder::NextDigit() Can not read data from OCDB \n") ;
+         }
+         fEnergy-=pedestal ;
+       }
        if (fEnergy < baseLine) fEnergy = 0;
 
        return kTRUE;

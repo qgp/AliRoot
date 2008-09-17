@@ -41,6 +41,7 @@
 #include "TList.h"
 #include "TMath.h"
 #include "TMinuit.h"
+#include "AliPHOSCalibData.h"
 
 #include "TCanvas.h"
 #include "TH1.h"
@@ -215,6 +216,18 @@ Bool_t AliPHOSRawDecoderv1::NextDigit()
 	else
 	  return kFALSE;
       }
+      else{
+        //take pedestals from DB
+        pedestal = fAmpOffset ;
+        if(fCalibData){
+           Float_t truePed = fCalibData->GetADCpedestalEmc(fModule, fColumn, fRow) ;
+           Int_t   altroSettings = fCalibData->GetAltroOffsetEmc(fModule, fColumn, fRow) ;
+           pedestal += truePed - altroSettings ;
+         }
+         else{
+//           printf("AliPHOSRawDecoderv1::NextDigit(): Can not read data from OCDB \n") ;
+         }
+      }
 
       //calculate time and energy
       Int_t maxBin=0 ;
@@ -224,7 +237,7 @@ Bool_t AliPHOSRawDecoderv1::NextDigit()
       Double_t wts=0 ;                                                                                                                       
       Int_t tStart = 0 ;                                                                                                                   
       for(Int_t i=iBin; i<fSamples->GetSize(); i++){
-        if(fSamples->At(i)>0){                                                                                                             
+        if(fSamples->At(i)>pedestal){                                                                                                             
           Double_t de=fSamples->At(i)-pedestal ;                                                                                           
           if(de>1.){
             aMean+=de*i ;                                                                                                                      
@@ -293,7 +306,7 @@ Bool_t AliPHOSRawDecoderv1::NextDigit()
 	gMinuit->SetFCN(AliPHOSRawDecoderv1::UnfoldingChiSquare) ;  
 	// To set the address of the minimization function 
  	
-       fToFit->Clear() ;
+       fToFit->Clear("nodelete") ;
        Double_t b,bmin,bmax ;
        if(fLowGainFlag){
          fSampleParamsLow->AddAt(pedestal,4) ;
@@ -483,7 +496,7 @@ Bool_t AliPHOSRawDecoderv1::NextDigit()
       pedRMS += in->GetSignal()*in->GetSignal() ;
       nPed++;
     }
-    fSamples->AddAt(in->GetSignal(),iBin);
+    fSamples->AddAt(in->GetSignal()-10,iBin);
     fTimes->AddAt(in->GetTime(),iBin);
  
 //Debug==============
