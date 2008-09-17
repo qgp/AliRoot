@@ -75,7 +75,7 @@ void visscan_init()
   TEveUtil::LoadMacro("trd_clusters.C+");
   TEveUtil::LoadMacro("tof_clusters.C+");
 
-  TEveLine::SetDefaultSmooth(1);
+  // TEveLine::SetDefaultSmooth(1);
 
   TEveBrowser* browser = gEve->GetBrowser();
 
@@ -125,7 +125,11 @@ void on_new_event()
     printf("Exception loading ITS/TPC clusters: %s\n", exc.Data());
   }
 
-  primary_vertex(1, 1);
+  primary_vertex();
+  primary_vertex_ellipse();
+  primary_vertex_spd();
+  primary_vertex_ellipse_spd();
+
   esd_V0_points();
   esd_V0();
 
@@ -139,7 +143,8 @@ void on_new_event()
   g_trkcnt->Reset();
   g_trkcnt->SetEventId(gAliEveEvent->GetEventId());
   TEveElement::List_i i = cont->BeginChildren();
-  while (i != cont->EndChildren()) {
+  while (i != cont->EndChildren())
+  {
     TEveTrackList* l = dynamic_cast<TEveTrackList*>(*i);
     if (l != 0) {
       // l->SetLineWidth(2);
@@ -179,32 +184,4 @@ void on_new_event()
   }
 
   gROOT->ProcessLine("SplitGLView::UpdateSummary()");
-}
-
-/******************************************************************************/
-
-TParticle* id(Int_t label=0, Bool_t showParents=kTRUE)
-{
-  AliRunLoader* rl = AliEveEventManager::AssertRunLoader();
-  rl->LoadKinematics();
-  AliStack* stack = rl->Stack();
-
-  printf("Number primaries %d, all particles %d, label %d\n",
-	 stack->GetNprimary(), stack->GetNtrack(), label);
-  if (label < 0 || label >= stack->GetNtrack()) {
-    printf("  Label exceeds available range.\n");
-    return 0;
-  }
-
-  TParticle* part = stack->Particle(label);
-  if (part != 0) {
-    part->Print();
-    if (showParents) {
-      while (part->GetMother(0) >= 0) {
-	part = stack->Particle(part->GetMother(0));
-	part->Print();
-      }
-    }
-  }
-  return stack->Particle(label);
 }

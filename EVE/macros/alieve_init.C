@@ -25,7 +25,8 @@ void alieve_init(const Text_t* path   = ".", Int_t event=0,
   alieve_init_import_macros();
   gSystem->cd(hack);
 
-  // TEveUtil::AssertMacro("region_marker.C");
+  // Temporarily assert default vizdb
+  TEveUtil::AssertMacro("VizDB_scan.C");
 
   gSystem->ProcessEvents();
 
