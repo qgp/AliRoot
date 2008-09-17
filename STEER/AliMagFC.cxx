@@ -65,28 +65,6 @@ AliMagFC::AliMagFC(const char *name, const char *title, Int_t integ,
   fType = kConst;
   fMap  = 1;
   
-  //////////////////////////////////////////////////////////////////////
-  // ---- Magnetic field values (according to beam type and energy) ----
-  // p-p @ 5+5 TeV
-  if(fBeamType==kBeamTypepp && fBeamEnergy==5000.){
-    fQuadGradient = 15.7145;
-    fDipoleField  = 27.0558;
-    // SIDE C
-    fCCorrField   = 9.7017; 
-    // SIDE A
-    fACorr1Field  = -13.2143; 
-    fACorr2Field  = -11.9909; 
-  }
-  // Pb-Pb @ 2.7+2.7 TeV or p-p @ 7+7 TeV
-  else{
-    fQuadGradient = 22.0002;
-    fDipoleField  = 37.8781;
-    // SIDE C
-    fCCorrField   = 9.6908; 
-    // SIDE A
-    fACorr1Field  = -13.2014; 
-    fACorr2Field  = -9.6908; 
-  }
 }
 
 //________________________________________
@@ -104,16 +82,17 @@ void AliMagFC::Field(Float_t *x, Float_t *b) const
       if(-725 >= x[2] && x[2] >= -1225 ){
 	Float_t dz = TMath::Abs(-975-x[2])*0.01;
 	b[0] = - (1-0.1*dz*dz)*7;
+	if(fFactor!=1) {
+	    b[0]*=fFactor;
+	    b[1]*=fFactor;
+	    b[2]*=fFactor;
+	}
       }
       else {
 	  ZDCField(x, b);
       }
     }
-    if(fFactor!=1) {
-	b[0]*=fFactor;
-	b[1]*=fFactor;
-	b[2]*=fFactor;
-    }
+
   } 
   else {
       AliFatal(Form("Invalid field map for constant field %d",fMap));
@@ -126,13 +105,57 @@ void AliMagFC::ZDCField(Float_t *x, Float_t *b) const
   // ---- This is the ZDC part
   
   Float_t rad2 = x[0] * x[0] + x[1] * x[1];
+  static Bool_t init = kFALSE;
+
+  if (! init) {
+      init = kTRUE;
+      //////////////////////////////////////////////////////////////////////
+      // ---- Magnetic field values (according to beam type and energy) ----
+      if(fBeamType==kBeamTypepp && fBeamEnergy == 5000.){
+	  // p-p @ 5+5 TeV
+	  fQuadGradient = 15.7145;
+	  fDipoleField  = 27.0558;
+	  // SIDE C
+	  fCCorrField   = 9.7017;
+	  // SIDE A
+	  fACorr1Field  = -13.2143;
+	  fACorr2Field  = -11.9909;
+      } else if (fBeamType == kBeamTypepp && fBeamEnergy == 450.) {
+	  // p-p 0.45+0.45 TeV
+	  Float_t const kEnergyRatio = fBeamEnergy / 7000.;
+	  
+	  fQuadGradient = 22.0002 * kEnergyRatio;
+	  fDipoleField  = 37.8781 * kEnergyRatio;
+	  // SIDE C
+	  fCCorrField   =  9.6908;
+	  // SIDE A
+	  fACorr1Field  = -13.2014;
+	  fACorr2Field  = -9.6908;
+      } else if ((fBeamType == kBeamTypepp && fBeamEnergy == 7000.) ||
+		 (fBeamType == kBeamTypeAA))
+      {
+	  // Pb-Pb @ 2.7+2.7 TeV or p-p @ 7+7 TeV
+	  fQuadGradient = 22.0002;
+	  fDipoleField  = 37.8781;
+	  // SIDE C
+	  fCCorrField   = 9.6908;
+	  // SIDE A
+	  fACorr1Field  = -13.2014;
+	  fACorr2Field  = -9.6908;
+      }
+      
+      printf("Machine field %5d %13.3f %13.3f \n", fBeamType, fBeamEnergy, fDipoleField);
+  }
+  
   
   // SIDE C **************************************************
   if(x[2]<0.){  
     if(x[2] < kCCorrBegin && x[2] > kCCorrEnd && rad2 < kCCorrSqRadius){
-	b[0] = fCCorrField;
-	b[1] = 0.;
-	b[2] = 0.;
+	if (fFactor != 0.) {
+	    b[0] = fCCorrField;
+	    b[1] = 0.;
+	    b[2] = 0.;
+	} 
     }
     else if(x[2] < kCQ1Begin && x[2] > kCQ1End && rad2 < kCQ1SqRadius){
 	b[0] = fQuadGradient*x[1];
@@ -173,16 +196,20 @@ void AliMagFC::ZDCField(Float_t *x, Float_t *b) const
   else{        
     if(fCompensator && (x[2] > kACorr1Begin && x[2] < kACorr1End) && rad2 < kCCorr1SqRadius) {
       // Compensator magnet at z = 1075 m 
-	b[0] = fACorr1Field;
-	b[1] = 0.;
-	b[2] = 0.;
+	if (fFactor != 0.) {
+	    b[0] = fACorr1Field;
+	    b[1] = 0.;
+	    b[2] = 0.;
+	}
 	return;
     }
     
     if(x[2] > kACorr2Begin && x[2] < kACorr2End && rad2 < kCCorr2SqRadius){
-	b[0] = fACorr2Field;
-	b[1] = 0.;
-	b[2] = 0.;
+	if (fFactor != 0.) {
+	    b[0] = fACorr2Field;
+	    b[1] = 0.;
+	    b[2] = 0.;
+	}
     }          
     else if(x[2] > kAQ1Begin && x[2] < kAQ1End && rad2 < kAQ1SqRadius){
 	// First quadrupole of inner triplet de-focussing in x-direction
@@ -217,6 +244,5 @@ void AliMagFC::ZDCField(Float_t *x, Float_t *b) const
 	}
     }
   }
-    
 }
 
