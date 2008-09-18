@@ -1489,7 +1489,9 @@ AliTPCclusterMI *AliTPCtrackerMI::GetClusterMI(Int_t index) const {
   }
 
   if (sec<fkNIS*2){
-    tpcrow = &(fInnerSec[sec%fkNIS][row]);
+    AliTPCtrackerSector& tracksec = fInnerSec[sec%fkNIS];
+    if (tracksec.GetNRows()<=row) return 0;
+    tpcrow = &(tracksec[row]);
     if (tpcrow==0) return 0;
 
     if (sec<fkNIS) {
@@ -1502,7 +1504,9 @@ AliTPCclusterMI *AliTPCtrackerMI::GetClusterMI(Int_t index) const {
     }
   }
   else {
-    tpcrow = &(fOuterSec[(sec-fkNIS*2)%fkNOS][row]);
+    AliTPCtrackerSector& tracksec = fOuterSec[(sec-fkNIS*2)%fkNOS];
+    if (tracksec.GetNRows()<=row) return 0;
+    tpcrow = &(tracksec[row]);
     if (tpcrow==0) return 0;
 
     if (sec-2*fkNIS<fkNOS) {
@@ -2750,13 +2754,15 @@ Int_t AliTPCtrackerMI::PropagateBack(AliESDEvent *event)
       AliExternalTrackParam paramIn;
       AliExternalTrackParam paramOut;
       Int_t ncl = seed->RefitTrack(seed,&paramIn,&paramOut);
-      (*fDebugStreamer)<<"RecoverBack"<<
-	"seed.="<<seed<<
-	"esd.="<<esd<<
-	"pin.="<<&paramIn<<
-	"pout.="<<&paramOut<<
-	"ncl="<<ncl<<
-	"\n";
+      if (AliTPCReconstructor::StreamLevel()>0) {
+	(*fDebugStreamer)<<"RecoverBack"<<
+	  "seed.="<<seed<<
+	  "esd.="<<esd<<
+	  "pin.="<<&paramIn<<
+	  "pout.="<<&paramOut<<
+	  "ncl="<<ncl<<
+	  "\n";
+      }
       if (ncl>15) {
 	seed->Set(paramOut.GetX(),paramOut.GetAlpha(),paramOut.GetParameter(),paramOut.GetCovariance());
 	seed->SetNumberOfClusters(ncl);
