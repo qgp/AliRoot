@@ -51,6 +51,7 @@ public:
 	Int_t GetCurrentRun() const;
 	UInt_t GetCurrentStartTime() const;
 	UInt_t GetCurrentEndTime() const;
+	UInt_t GetCurrentTimeCreated() const;
 	UInt_t GetCurrentYear() const;
 	
 	const char* GetLHCPeriod() const;
@@ -65,6 +66,8 @@ public:
 	virtual TList* GetFileSources(Int_t system, const char* detector, const char* id = 0);
 	virtual TList* GetFileIDs(Int_t system, const char* detector, const char* source);
 	virtual const char* GetRunParameter(const char* lbEntry);
+	virtual const UInt_t GetStartTimeDCSQuery();
+	virtual const UInt_t GetEndTimeDCSQuery();
 	virtual AliCDBEntry* GetFromOCDB(const char* detector, const AliCDBPath& path);
 	virtual const char* GetRunType();
     	virtual Bool_t GetHLTStatus();
@@ -104,6 +107,7 @@ private:
 	Bool_t RetrieveFile(UInt_t system, const char* daqFileName, const char* localFileName);
 
 	Bool_t UpdateTable();
+	Bool_t UpdateTableSkippedCase(const char* detector="ALL");
 	Bool_t UpdateTableFailCase();
 
 	Bool_t StoreLocally(const TString& localUri, const AliCDBPath& path, TObject* object,

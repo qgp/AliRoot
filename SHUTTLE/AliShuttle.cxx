@@ -1638,6 +1638,10 @@ Int_t AliShuttle::ProcessCurrentDetector()
 	{
 		UpdateShuttleStatus(AliShuttleStatus::kSkipped);
 		UpdateShuttleLogbook(fCurrentDetector, "DONE");
+		if (!UpdateTableSkippedCase(fCurrentDetector.Data()))
+		{
+			AliError(Form("Could not update FXS tables for run %d !", GetCurrentRun()));
+		}
 		Log(fCurrentDetector, Form("ProcessCurrentDetector - %s preprocessor is not interested in this run type", fCurrentDetector.Data()));
 	
 		return 2;
@@ -1804,6 +1808,8 @@ void AliShuttle::CountOpenRuns()
 {
 	// Query DAQ's Shuttle logbook and sends the number of open runs to ML
 	
+	SendAlive();
+	
 	// check connection, in case connect
 	if (!Connect(3)) 
 		return;
@@ -1968,7 +1974,7 @@ AliShuttleLogbookEntry* AliShuttle::QueryRunParameters(Int_t run)
 	
 	UInt_t now = time(0);
 	// TODO make this a configuration parameter
-	Int_t dcsDelay = 120;
+	Int_t dcsDelay = fConfig->GetDCSDelay()+fConfig->GetDCSQueryOffset();
 	
 	// runs are accepted if they have ecsSuccess set or more than 1 event
 	if (startTime != 0 && endTime != 0 && endTime > startTime && (totEvents > 1 || ecsSuccess) && (endTime < now - dcsDelay))
@@ -2004,6 +2010,10 @@ AliShuttleLogbookEntry* AliShuttle::QueryRunParameters(Int_t run)
 		{
 			AliError(Form("Could not update logbook for run %d !", run));
 		}
+		if (!UpdateTableSkippedCase("ALL"))
+		{
+			AliError(Form("Could not update FXS tables for run %d !", run));
+		}
 		fLogbookEntry = 0;
 	}
 			
@@ -2026,13 +2036,17 @@ TMap* AliShuttle::GetValueSet(const char* host, Int_t port, const TSeqCollection
 	TMap* result = 0;
 	if (type == kAlias)
 	{
-		result = client.GetAliasValues(entries, GetCurrentStartTime(), 
-			GetCurrentEndTime());
+		//result = client.GetAliasValues(entries, GetCurrentStartTime()-offset, 
+		//      GetCurrentEndTime()+offset);
+		result = client.GetAliasValues(entries, GetStartTimeDCSQuery(), 
+			GetEndTimeDCSQuery());
 	} 
 	else if (type == kDP)
 	{
-		result = client.GetDPValues(entries, GetCurrentStartTime(), 
-			GetCurrentEndTime());
+		//result = client.GetDPValues(entries, GetCurrentStartTime()-offset, 
+		//	GetCurrentEndTime()+offset);
+       		result = client.GetDPValues(entries, GetStartTimeDCSQuery(), 
+			GetEndTimeDCSQuery());
 	}
 
 	if (result == 0)
@@ -2597,6 +2611,59 @@ Bool_t AliShuttle::UpdateTable()
 	return result;
 }
 
+//_______________________________________________________________________________
+Bool_t AliShuttle::UpdateTableSkippedCase(const char* detector)
+{
+	//
+	// Update FXS table filling time_processed field in all rows corresponding to current run and detector
+	// if detector = "ALL" update all detectors
+	//
+
+	Bool_t result = kTRUE;
+
+	for (UInt_t system=0; system<3; system++)
+	{
+
+		// check connection, in case connect
+		if (!Connect(system))
+		{
+			Log(fCurrentDetector, Form("UpdateTableSkippedCase - Couldn't connect to %s FXS database", GetSystemName(system)));
+			result = kFALSE;
+			continue;
+		}
+
+		TTimeStamp now; // now
+
+		// Loop on FXS list entries
+		TIter iter(&fFXSlist[system]);
+			
+		TString whereClause;
+		if (detector == "ALL") whereClause = Form("where run=%d and time_processed IS NULL;",GetCurrentRun());
+		else whereClause = Form("where run=%d and detector=\"%s\" and time_processed IS NULL;",GetCurrentRun(), detector);
+
+		Log("SHUTTLE",Form(" whereClause = %s ",whereClause.Data()));
+
+		TString sqlQuery = Form("update %s set time_processed=%d %s", fConfig->GetFXSdbTable(system),
+					now.GetSec(), whereClause.Data());
+
+		AliDebug(2, Form("SQL query: \n%s",sqlQuery.Data()));
+
+		// Query execution
+		TSQLResult* aResult;
+		aResult = dynamic_cast<TSQLResult*> (fServer[system]->Query(sqlQuery));
+		if (!aResult)
+		{
+			Log("SHUTTLE", Form("UpdateTableSkippedCase - %s db: can't execute SQL query <%s>",
+							GetSystemName(system), sqlQuery.Data()));
+			result = kFALSE;
+			continue;
+		}
+		delete aResult;
+		
+	}
+
+	return result;
+}
 //______________________________________________________________________________________________
 Bool_t AliShuttle::UpdateTableFailCase()
 {
@@ -2740,6 +2807,15 @@ UInt_t AliShuttle::GetCurrentEndTime() const
 
 	return fLogbookEntry ? fLogbookEntry->GetEndTime() : 0;
 }
+//______________________________________________________________________________________________
+UInt_t AliShuttle::GetCurrentTimeCreated() const
+{
+	//
+	// get current end time from logbook entry
+	//
+
+	return fLogbookEntry ? fLogbookEntry->GetTimeCreated() : 0;
+}
 
 //______________________________________________________________________________________________
 UInt_t AliShuttle::GetCurrentYear() const
@@ -2873,7 +2949,6 @@ Bool_t AliShuttle::Collect(Int_t run)
 	if (!fMonaLisa)
 		fMonaLisa = new TMonaLisaWriter(fConfig->GetMonitorHost(), fConfig->GetMonitorTable());
 		
-	SendAlive();
 	CountOpenRuns();
 
 	TString whereClause("where shuttle_done=0");
@@ -3442,6 +3517,24 @@ Bool_t AliShuttle::TouchFile()
 	resultTouch = 0x0; 
 	Log("SHUTTLE", "Sucessfully touched the file");
 	return kTRUE;
+}
+//______________________________________________________________________________________________
+const UInt_t AliShuttle::GetStartTimeDCSQuery()
+{
+	// Return Start Time for the DCS query
+	//
+	// The call is delegated to AliShuttleInterface
+
+	return GetCurrentTimeCreated()-fConfig->GetDCSQueryOffset();
+}
+//______________________________________________________________________________________________
+const UInt_t AliShuttle::GetEndTimeDCSQuery()
+{
+	// Return End Time for the DCS query
+	//
+	// The call is delegated to AliShuttleInterface
+
+	return GetCurrentEndTime()+fConfig->GetDCSQueryOffset();
 }
 
 
