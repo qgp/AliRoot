@@ -19,6 +19,7 @@ void rec(const char *filename="raw.root")
   AliCDBManager * man = AliCDBManager::Instance();
   //  man->SetDefaultStorage("local://$ALICE_ROOT");
   man->SetDefaultStorage("alien://folder=/alice/data/2008/LHC08c/OCDB/");
+  man->SetSpecificStorage("TPC/Calib/ExB","local://$ALICE_ROOT");
   man->SetSpecificStorage("MUON/Calib/MappingData","local://$ALICE_ROOT");
   man->SetSpecificStorage("ZDC/Calib/EMDCalib","local://$ALICE_ROOT");
   
