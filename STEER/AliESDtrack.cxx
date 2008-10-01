@@ -1303,7 +1303,6 @@ Bool_t AliESDtrack::GetITSModuleIndexInfo(Int_t ilayer,Int_t &idet,Int_t &status
   //----------------------------------------------------------------------
 
   if(fITSModule[ilayer]==-1) {
-    AliError("fModule was not set !");
     idet = -1;
     status=0;
     xloc=-99.; zloc=-99.;
