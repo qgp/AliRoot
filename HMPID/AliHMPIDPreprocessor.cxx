@@ -98,55 +98,69 @@ Bool_t AliHMPIDPreprocessor::ProcDcs(TMap* pMap)
 // evaluate Environment Pressure
   
   TObjArray *pPenv=(TObjArray*)pMap->GetValue("HMP_DET/HMP_ENV/HMP_ENV_PENV.actual.value");
-  Log(Form(" Environment Pressure data              ---> %3i entries",pPenv->GetEntries()));
-  if(pPenv->GetEntries()) {
-    TIter nextPenv(pPenv);
-    TGraph *pGrPenv=new TGraph; cnt=0;
-    while((pVal=(AliDCSValue*)nextPenv())) pGrPenv->SetPoint(cnt++,pVal->GetTimeStamp(),pVal->GetFloat());        //P env
-    if( cnt==1) {
-      pGrPenv->GetPoint(0,xP,yP);
-      new TF1("Penv",Form("%f",yP),fStartTime,fEndTime);
-    } else {
-      pGrPenv->Fit(new TF1("Penv","1000+x*[0]",fStartTime,fEndTime),"Q");
-    }
-    delete pGrPenv;
-  } else {AliWarning(" No Data Points from HMP_ENV_PENV.actual.value!");return kFALSE;}
-    
+  if(!pPenv) {
+    AliWarning(" No Data Points from HMP_ENV_PENV.actual.value!");
+    return kFALSE;
+  } else {
+    Log(Form(" Environment Pressure data              ---> %3i entries",pPenv->GetEntries()));
+    if(pPenv->GetEntries()) {
+      TIter nextPenv(pPenv);
+      TGraph *pGrPenv=new TGraph; cnt=0;
+      while((pVal=(AliDCSValue*)nextPenv())) pGrPenv->SetPoint(cnt++,pVal->GetTimeStamp(),pVal->GetFloat());        //P env
+      if( cnt==1) {
+        pGrPenv->GetPoint(0,xP,yP);
+        new TF1("Penv",Form("%f",yP),fStartTime,fEndTime);
+      } else {
+        pGrPenv->Fit(new TF1("Penv","1000+x*[0]",fStartTime,fEndTime),"Q");
+      }
+      delete pGrPenv;
+    } else {AliWarning(" No Data Points from HMP_ENV_PENV.actual.value!");return kFALSE;}
+  }  
 // evaluate Pressure
   
   for(Int_t iCh=0;iCh<7;iCh++){                   
     TObjArray *pP =(TObjArray*)pMap->GetValue(Form("HMP_DET/HMP_MP%i/HMP_MP%i_GAS/HMP_MP%i_GAS_PMWPC.actual.value",iCh,iCh,iCh));
-      Log(Form(" Pressure for module %i data             ---> %3i entries",iCh,pP->GetEntries()));
-    if(pP->GetEntries()) {
-      TIter nextP(pP);    
-      TGraph *pGrP=new TGraph; cnt=0; 
-      while((pVal=(AliDCSValue*)nextP())) pGrP->SetPoint(cnt++,pVal->GetTimeStamp(),pVal->GetFloat());            //P
-      if( cnt==1) {
-        pGrP->GetPoint(0,xP,yP);
-        new TF1(Form("P%i",iCh),Form("%f",yP),fStartTime,fEndTime);
-      } else {
-        pGrP->Fit(new TF1(Form("P%i",iCh),"[0] + x*[1]",fStartTime,fEndTime),"Q");
-      }
-      delete pGrP;
-    } else {AliWarning(" No Data Points from HMP_MP0-6_GAS_PMWPC.actual.value!");return kFALSE;}
+    if(!pP) {
+      AliWarning(Form(" No Data Points from HMP_MP%1i_GAS_PMWPC.actual.value!",iCh));
+      return kFALSE;
+    } else {
+        Log(Form(" Pressure for module %i data             ---> %3i entries",iCh,pP->GetEntries()));
+      if(pP->GetEntries()) {
+        TIter nextP(pP);    
+        TGraph *pGrP=new TGraph; cnt=0; 
+        while((pVal=(AliDCSValue*)nextP())) pGrP->SetPoint(cnt++,pVal->GetTimeStamp(),pVal->GetFloat());            //P
+        if( cnt==1) {
+          pGrP->GetPoint(0,xP,yP);
+          new TF1(Form("P%i",iCh),Form("%f",yP),fStartTime,fEndTime);
+        } else {
+          pGrP->Fit(new TF1(Form("P%i",iCh),"[0] + x*[1]",fStartTime,fEndTime),"Q");
+        }
+        delete pGrP;
+      } else {AliWarning(" No Data Points from HMP_MP0-6_GAS_PMWPC.actual.value!");return kFALSE;}
+    }
     
 // evaluate High Voltage
     
     for(Int_t iSec=0;iSec<6;iSec++){
       TObjArray *pHV=(TObjArray*)pMap->GetValue(Form("HMP_DET/HMP_MP%i/HMP_MP%i_PW/HMP_MP%i_SEC%i/HMP_MP%i_SEC%i_HV.actual.vMon",iCh,iCh,iCh,iSec,iCh,iSec));
-      Log(Form(" HV for module %i and secto %i data       ---> %3i entries",iCh,iSec,pHV->GetEntries()));
-      if(pHV->GetEntries()) {
-        TIter nextHV(pHV);
-        TGraph *pGrHV=new TGraph; cnt=0;
-        while((pVal=(AliDCSValue*)nextHV())) pGrHV->SetPoint(cnt++,pVal->GetTimeStamp(),pVal->GetFloat());            //HV
-        if( cnt==1) {
-          pGrHV->GetPoint(0,xP,yP);
-          new TF1(Form("HV%i_%i",iCh,iSec),Form("%f",yP),fStartTime,fEndTime);               
-        } else {
-          pGrHV->Fit(new TF1(Form("HV%i_%i",iCh,iSec),"[0]+x*[1]",fStartTime,fEndTime),"Q");               
-        }
-        delete pGrHV;
-      } else {AliWarning(" No Data Points from HMP_MP0-6_SEC0-5_HV.actual.vMon!");return kFALSE;}
+      if(!pHV) {
+        AliWarning(Form(" No Data Points from HMP_MP%1i_SEC%1i_HV.actual.vMon!",iCh,iSec));
+        return kFALSE;
+      } else {
+        Log(Form(" HV for module %i and secto %i data       ---> %3i entries",iCh,iSec,pHV->GetEntries()));
+        if(pHV->GetEntries()) {
+          TIter nextHV(pHV);
+          TGraph *pGrHV=new TGraph; cnt=0;
+          while((pVal=(AliDCSValue*)nextHV())) pGrHV->SetPoint(cnt++,pVal->GetTimeStamp(),pVal->GetFloat());            //HV
+          if( cnt==1) {
+            pGrHV->GetPoint(0,xP,yP);
+            new TF1(Form("HV%i_%i",iCh,iSec),Form("%f",yP),fStartTime,fEndTime);               
+          } else {
+            pGrHV->Fit(new TF1(Form("HV%i_%i",iCh,iSec),"[0]+x*[1]",fStartTime,fEndTime),"Q");               
+          }
+          delete pGrHV;
+        } else {AliWarning(" No Data Points from HMP_MP0-6_SEC0-5_HV.actual.vMon!");return kFALSE;}
+      }
      
 // evaluate Qthre
      
@@ -160,35 +174,45 @@ Bool_t AliHMPIDPreprocessor::ProcDcs(TMap* pMap)
       pTin[3*iCh+iRad]  = new TF1(Form("Tin%i%i" ,iCh,iRad),"[0]+[1]*x",fStartTime,fEndTime);
       pTout[3*iCh+iRad] = new TF1(Form("Tout%i%i",iCh,iRad),"[0]+[1]*x",fStartTime,fEndTime);          
       
-      TObjArray *pT1=(TObjArray*)pMap->GetValue(Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iIn_Temp",iCh,iCh,iRad));  
-      Log(Form(" Temperatures for module %i inside data  ---> %3i entries",iCh,pT1->GetEntries()));
-      if(pT1->GetEntries()) {
-        TIter nextT1(pT1);//Tin
-        TGraph *pGrT1=new TGraph; cnt=0;  while((pVal=(AliDCSValue*)nextT1())) pGrT1->SetPoint(cnt++,pVal->GetTimeStamp(),pVal->GetFloat()); //T inlet
-        if(cnt==1) { 
-          pGrT1->GetPoint(0,xP,yP);
-          pTin[3*iCh+iRad]->SetParameter(0,yP);
-          pTin[3*iCh+iRad]->SetParameter(1,0);
-        } else {
-          pGrT1->Fit(pTin[3*iCh+iRad],"Q");
-        }
-        delete pGrT1;
-      } else {AliWarning(" No Data Points from HMP_MP0-6_LIQ_LOOP.actual.sensors.Rad0-2In_Temp!");return kFALSE;}
+      TObjArray *pT1=(TObjArray*)pMap->GetValue(Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iIn_Temp",iCh,iCh,iRad));
+      if(!pT1) {
+        AliWarning(Form(" No Data Points from HMP_MP%1i_LIQ_LOOP.actual.sensors.Rad%1iIn_Temp!",iCh,iRad));
+        return kFALSE;
+      } else {
+        Log(Form(" Temperatures for module %i inside data  ---> %3i entries",iCh,pT1->GetEntries()));
+        if(pT1->GetEntries()) {
+          TIter nextT1(pT1);//Tin
+          TGraph *pGrT1=new TGraph; cnt=0;  while((pVal=(AliDCSValue*)nextT1())) pGrT1->SetPoint(cnt++,pVal->GetTimeStamp(),pVal->GetFloat()); //T inlet
+          if(cnt==1) { 
+            pGrT1->GetPoint(0,xP,yP);
+            pTin[3*iCh+iRad]->SetParameter(0,yP);
+            pTin[3*iCh+iRad]->SetParameter(1,0);
+          } else {
+            pGrT1->Fit(pTin[3*iCh+iRad],"Q");
+          }
+          delete pGrT1;
+        } else {AliWarning(" No Data Points from HMP_MP0-6_LIQ_LOOP.actual.sensors.Rad0-2In_Temp!");return kFALSE;}
+      }
     // T out
       TObjArray *pT2=(TObjArray*)pMap->GetValue(Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iOut_Temp",iCh,iCh,iRad)); 
-      Log(Form(" Temperatures for module %i outside data ---> %3i entries",iCh,pT2->GetEntries()));
-      if(pT2->GetEntries()) {
-        TIter nextT2(pT2);//Tout      
-        TGraph *pGrT2=new TGraph; cnt=0;  while((pVal=(AliDCSValue*)nextT2())) pGrT2->SetPoint(cnt++,pVal->GetTimeStamp(),pVal->GetFloat()); //T outlet 
-        if(cnt==1) { 
-          pGrT2->GetPoint(0,xP,yP);
-          pTout[3*iCh+iRad]->SetParameter(0,yP);
-          pTout[3*iCh+iRad]->SetParameter(1,0);
-        } else {
-          pGrT2->Fit(pTout[3*iCh+iRad],"Q");
-        }
-        delete pGrT2;
-      } else {AliWarning(" No Data Points from HMP_MP0-6_LIQ_LOOP.actual.sensors.Rad0-2Out_Temp!");return kFALSE;}
+      if(!pT2) {
+        AliWarning(Form(" No Data Points from HMP_MP%1i_LIQ_LOOP.actual.sensors.Rad%1iOut_Temp!",iCh,iRad));
+        return kFALSE;
+      } else {
+        Log(Form(" Temperatures for module %i outside data ---> %3i entries",iCh,pT2->GetEntries()));
+        if(pT2->GetEntries()) {
+          TIter nextT2(pT2);//Tout      
+          TGraph *pGrT2=new TGraph; cnt=0;  while((pVal=(AliDCSValue*)nextT2())) pGrT2->SetPoint(cnt++,pVal->GetTimeStamp(),pVal->GetFloat()); //T outlet 
+          if(cnt==1) { 
+            pGrT2->GetPoint(0,xP,yP);
+            pTout[3*iCh+iRad]->SetParameter(0,yP);
+            pTout[3*iCh+iRad]->SetParameter(1,0);
+          } else {
+            pGrT2->Fit(pTout[3*iCh+iRad],"Q");
+          }
+          delete pGrT2;
+        } else {AliWarning(" No Data Points from HMP_MP0-6_LIQ_LOOP.actual.sensors.Rad0-2Out_Temp!");return kFALSE;}
+      }
 	
 // evaluate Mean Refractive Index
       
@@ -293,7 +317,6 @@ Bool_t AliHMPIDPreprocessor::ProcPed()
 Double_t AliHMPIDPreprocessor::ProcTrans(TMap* pMap)
 {
   //  Process transparency monitoring data and calculates Emean  
-
   
   Double_t sEnergProb=0, sProb=0;
 
@@ -308,11 +331,11 @@ Double_t AliHMPIDPreprocessor::ProcTrans(TMap* pMap)
     // evaluate wavelenght 
     TObjArray *pWaveLenght = (TObjArray*)pMap->GetValue(Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.waveLenght",i));
     if(!pWaveLenght){ 
-        AliWarning(Form("No Data Point values for HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.waveLenght  -----> Default E mean set to 6.75!!!!!",i));
-        return 6.75; // to be fixed
+        AliWarning(Form("No Data Point values for HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.waveLenght  -----> Default E mean used!!!!!",i));
+        return DefaultEMean(); // to be checked
       } 
-    
-    TIter NextWl(pWaveLenght); pVal=(AliDCSValue*)NextWl();
+        
+    pVal=(AliDCSValue*)pWaveLenght->At(0);
     Double_t lambda = pVal->GetFloat();
 
     Double_t photEn = 1239.842609/lambda;     // 1239.842609 from nm to eV
@@ -322,37 +345,41 @@ Double_t AliHMPIDPreprocessor::ProcTrans(TMap* pMap)
     // evaluate phototube current for argon reference
     TObjArray *pArgonRef  = (TObjArray*)pMap->GetValue(Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.argonReference",i));
     if(!pArgonRef){ 
-        AliWarning(Form("No Data Point values for HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.argonReference  -----> Default E mean set to 6.75!!!!!",i));
-        return 6.75; // to be fixed
+        AliWarning(Form("No Data Point values for HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.argonReference  -----> Default E mean used!!!!!",i));
+        return DefaultEMean(); // to be checked
       } 
-    
-    TIter NextArRef(pArgonRef); pVal=(AliDCSValue*)NextArRef();
+
+    pVal=(AliDCSValue*)pArgonRef->At(0);    
     Double_t aRefArgon = pVal->GetFloat();
 
     // evaluate phototube current for argon cell
     TObjArray *pArgonCell = (TObjArray*)pMap->GetValue(Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.argonCell",i));
     if(!pArgonCell){ 
-        AliWarning(Form("No Data Point values for HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.argonCell  -----> Default E mean set to 6.75!!!!!",i));
-        return 6.75; // to be fixed
+        AliWarning(Form("No Data Point values for HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.argonCell  -----> Default E mean used!!!!!",i));
+        return DefaultEMean(); // to be checked
       } 
       
-    TIter NextArCell(pArgonCell); pVal=(AliDCSValue*)NextArCell();
+    pVal=(AliDCSValue*)pArgonRef->At(0);
     Double_t aCellArgon = pVal->GetFloat();
 
     //evaluate phototube current for freon reference
     TObjArray *pFreonRef  = (TObjArray*)pMap->GetValue(Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.c6f14Reference",i));
     if(!pFreonRef){ 
-        AliWarning(Form("No Data Point values for HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.c6f14Reference  -----> Default E mean set to 6.75!!!!!",i));
-        return 6.75; // to be fixed
+        AliWarning(Form("No Data Point values for HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.c6f14Reference  -----> Default E mean used!!!!!",i));
+        return DefaultEMean(); // to be checked
       } 
-    
-    
-    TIter NextFrRef(pFreonRef); pVal=(AliDCSValue*)NextFrRef();
+        
+    pVal=(AliDCSValue*)pFreonRef->At(0);
     Double_t aRefFreon = pVal->GetFloat();
 
     //evaluate phototube current for freon cell
     TObjArray *pFreonCell = (TObjArray*)pMap->GetValue(Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.c6f14Cell",i));
-    TIter NextFrCell(pFreonCell); pVal=(AliDCSValue*)NextFrCell();
+    if(!pFreonCell){
+        AliWarning(Form("No Data Point values for HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.c6f14Cell  -----> Default E mean used!!!!!",i));
+        return DefaultEMean(); // to be checked
+      }
+
+    pVal=(AliDCSValue*)pFreonCell->At(0);
     Double_t aCellFreon = pVal->GetFloat();
  
    //evaluate correction factor to calculate trasparency (Ref. NIMA 486 (2002) 590-609)
@@ -392,19 +419,16 @@ Double_t AliHMPIDPreprocessor::ProcTrans(TMap* pMap)
   
     sProb+=aTotConvolution;  
 }
-
   if(sProb>0) {
     eMean = sEnergProb/sProb;
   } else {
     return DefaultEMean();
   }
-
   Log(Form(" Mean energy photon calculated ---> %f eV ",eMean));
 
   if(eMean<AliHMPIDParam::EPhotMin() || eMean>AliHMPIDParam::EPhotMax()) return DefaultEMean();
   
   return eMean;
-
 }   
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Double_t AliHMPIDPreprocessor::DefaultEMean()
