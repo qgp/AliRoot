@@ -15,6 +15,16 @@
 
 /*
 $Log$
+Revision 1.19.1  2008/09/19  preghenella
+  Decode method updated:
+  it reads the CDH from the rawReader and sends it to the decoder;
+ LoadRawDataBuffers modified:
+     it corrects tof hit infos per ddlBC and deltaBC offsets
+     (in case of the static member fgApplyBCCorrections
+      has been setted to kTRUE);
+ Added static member fgApplyBCCorrections (kTRUE by default)
+ and the related static method ApplyBCCorrections;
+
 Revision 1.19  2007/05/18 13:07:53  decaro
 Error messages stored in the global raw-reader error log (Cvetan, Chiara)
 
@@ -106,6 +116,7 @@ Revision 0.01  2005/07/22 A. De Caro
 #include "AliTOFHitData.h"
 
 #include "AliRawEventHeaderBase.h"
+#include "AliRawDataHeader.h"
 
 ClassImp(AliTOFRawStream)
 
@@ -131,7 +142,7 @@ const Int_t AliTOFRawStream::fgkddlBCshift[72] =
   2, 2, -1, -1
 };
 
-
+Bool_t AliTOFRawStream::fgApplyBCCorrections = kTRUE;
 //_____________________________________________________________________________
 AliTOFRawStream::AliTOFRawStream(AliRawReader* rawReader):
   fRawReader(rawReader),
@@ -167,6 +178,7 @@ AliTOFRawStream::AliTOFRawStream(AliRawReader* rawReader):
   fLocalEventCounterLTM(-1),
   fLocalEventCounterTRM(0x0),
   fLocalEventCounterChain(0x0),
+  fChainBunchID(0x0),
   fCableLengthMap(0x0),
   fEventID(0)
 {
@@ -185,19 +197,23 @@ AliTOFRawStream::AliTOFRawStream(AliRawReader* rawReader):
   fRawReader->Reset();
   fRawReader->Select("TOF");
 
-  fLocalEventCounterTRM = new Int_t[13];//adc
-  fLocalEventCounterChain = new Int_t*[13];//adc
-  for (Int_t j=0;j<13;j++){//adc
-    fLocalEventCounterTRM[j] = -1;//adc
-    fLocalEventCounterChain[j] = new Int_t[2];//adc
-    for (Int_t k=0;k<2;k++){//adc
-      fLocalEventCounterChain[j][k] = -1;//adc
-    }//adc
-  }//adc
+  fLocalEventCounterTRM = new Int_t[13];
+  fLocalEventCounterChain = new Int_t*[13];
+  fChainBunchID = new Int_t*[13];
+  for (Int_t j=0;j<13;j++){
+    fLocalEventCounterTRM[j] = -1;
+    fLocalEventCounterChain[j] = new Int_t[2];
+    fChainBunchID[j] = new Int_t[2];
+    for (Int_t k=0;k<2;k++){
+      fLocalEventCounterChain[j][k] = -1;
+      fChainBunchID[j][k] = -1;
+    }
+  }
 
   fCableLengthMap = new AliTOFCableLengthMap();
 
-  fEventID = fRawReader->GetBCID(); //bunch crossing
+  fEventID = (Int_t)fRawReader->GetBCID(); //bunch crossing
+
 }
 
 //_____________________________________________________________________________
@@ -235,6 +251,7 @@ AliTOFRawStream::AliTOFRawStream():
   fLocalEventCounterLTM(-1),
   fLocalEventCounterTRM(0x0),
   fLocalEventCounterChain(0x0),
+  fChainBunchID(0x0),
   fCableLengthMap(0x0),
   fEventID(0)
 {
@@ -249,15 +266,18 @@ AliTOFRawStream::AliTOFRawStream():
   fTOFrawData = new TClonesArray("AliTOFrawData",1000);
   fTOFrawData->SetOwner();
 
-  fLocalEventCounterTRM = new Int_t[13];//adc
-  fLocalEventCounterChain = new Int_t*[13];//adc
-  for (Int_t j=0;j<13;j++){//adc
-    fLocalEventCounterTRM[j] = -1;//adc
-    fLocalEventCounterChain[j] = new Int_t[2];//adc
-    for (Int_t k=0;k<2;k++){//adc
-      fLocalEventCounterChain[j][k] = -1;//adc
-    }//adc
-  }//adc
+  fLocalEventCounterTRM = new Int_t[13];
+  fLocalEventCounterChain = new Int_t*[13];
+  fChainBunchID = new Int_t*[13];
+  for (Int_t j=0;j<13;j++){
+    fLocalEventCounterTRM[j] = -1;
+    fLocalEventCounterChain[j] = new Int_t[2];
+    fChainBunchID[j] = new Int_t[2];
+    for (Int_t k=0;k<2;k++){
+      fLocalEventCounterChain[j][k] = -1;
+      fChainBunchID[j][k] = -1;
+    }
+  }
 
   fCableLengthMap = new AliTOFCableLengthMap();
 
@@ -299,6 +319,7 @@ AliTOFRawStream::AliTOFRawStream(const AliTOFRawStream& stream) :
   fLocalEventCounterLTM(-1),
   fLocalEventCounterTRM(0x0),
   fLocalEventCounterChain(0x0),
+  fChainBunchID(0x0),
   fCableLengthMap(0x0),
   fEventID(0)
 {
@@ -348,14 +369,15 @@ AliTOFRawStream::AliTOFRawStream(const AliTOFRawStream& stream) :
 
   fTOFrawData = new TClonesArray(*stream.fTOFrawData);
 
-  fLocalEventCounterDRM = stream.fLocalEventCounterDRM;//adc
-  fLocalEventCounterLTM = stream.fLocalEventCounterLTM;//adc
-  for (Int_t j=0;j<13;j++){//adc
-    fLocalEventCounterTRM[j] = stream.fLocalEventCounterTRM[j];//adc
-    for (Int_t k=0;k<2;k++){//adc
-      fLocalEventCounterChain[j][k] = stream.fLocalEventCounterChain[j][k];//adc
-    }//adc
-  }//adc
+  fLocalEventCounterDRM = stream.fLocalEventCounterDRM;
+  fLocalEventCounterLTM = stream.fLocalEventCounterLTM;
+  for (Int_t j=0;j<13;j++){
+    fLocalEventCounterTRM[j] = stream.fLocalEventCounterTRM[j];
+    for (Int_t k=0;k<2;k++){
+      fLocalEventCounterChain[j][k] = stream.fLocalEventCounterChain[j][k];
+      fChainBunchID[j][k] = stream.fChainBunchID[j][k];
+    }
+  }
 
   fCableLengthMap = stream.fCableLengthMap;
 
@@ -411,14 +433,15 @@ AliTOFRawStream& AliTOFRawStream::operator = (const AliTOFRawStream& stream)
   
   fTOFrawData = stream.fTOFrawData;
 
-  fLocalEventCounterDRM = stream.fLocalEventCounterDRM;//adc
-  fLocalEventCounterLTM = stream.fLocalEventCounterLTM;//adc
-  for (Int_t j=0;j<13;j++){//adc
-    fLocalEventCounterTRM[j] = stream.fLocalEventCounterTRM[j];//adc
-    for (Int_t k=0;k<2;k++){//adc
-      fLocalEventCounterChain[j][k] = stream.fLocalEventCounterChain[j][k];//adc
-    }//adc
-  }//adc
+  fLocalEventCounterDRM = stream.fLocalEventCounterDRM;
+  fLocalEventCounterLTM = stream.fLocalEventCounterLTM;
+  for (Int_t j=0;j<13;j++){
+    fLocalEventCounterTRM[j] = stream.fLocalEventCounterTRM[j];
+    for (Int_t k=0;k<2;k++){
+      fLocalEventCounterChain[j][k] = stream.fLocalEventCounterChain[j][k];
+      fChainBunchID[j][k] = stream.fChainBunchID[j][k];
+    }
+  }
 
   fCableLengthMap = stream.fCableLengthMap;
 
@@ -446,9 +469,10 @@ AliTOFRawStream::~AliTOFRawStream()
   delete fTOFrawData;
 
   delete [] fLocalEventCounterTRM;
-  for (Int_t ii=0; ii<2; ii++) 
+  for (Int_t ii=0; ii<2; ii++) {
     delete [] fLocalEventCounterChain[ii];
-
+    delete [] fChainBunchID[ii];
+  }
   delete fCableLengthMap;
 
 }
@@ -628,7 +652,7 @@ Bool_t AliTOFRawStream::Next()
       }
       dummy = 0x0000fff0;
       //AliInfo(Form("  DRM local event counter = %i", GetField(data,dummy,4)));
-      fLocalEventCounterDRM = GetField(data,dummy,4);//adc
+      fLocalEventCounterDRM = GetField(data,dummy,4);
       fInsideDRM = kFALSE; // DRM global trailer accepted
       fInsideTRM = kFALSE;
       fInsideLTM = kFALSE;
@@ -659,7 +683,7 @@ Bool_t AliTOFRawStream::Next()
       }
       dummy = 0x0fff0000;
       //AliInfo(Form("  LTM local event counter = %i", GetField(data,dummy,16)));
-      fLocalEventCounterLTM = GetField(data,dummy,16);//adc
+      fLocalEventCounterLTM = GetField(data,dummy,16);
       fInsideLTM = kFALSE; // LTM global trailer accepted
       break;
     case 15: //TRM global trailer
@@ -668,7 +692,7 @@ Bool_t AliTOFRawStream::Next()
       }
       dummy = 0x0fff0000;
       //AliInfo(Form("  TRM local event counter = %i", GetField(data,dummy,16)));
-      fLocalEventCounterTRM[fTRM] = GetField(data,dummy,16);//adc
+      fLocalEventCounterTRM[fTRM] = GetField(data,dummy,16);
       fInsideTRM = kFALSE; // TRM global trailer accepted
       break;
     default: // unexpected global trailer slot ID
@@ -700,6 +724,9 @@ Bool_t AliTOFRawStream::Next()
 	}
 	fInsideTRMchain0 = kTRUE;
 	fTRMchain = 0;
+        dummy = 0x0000fff0;
+        //AliInfo(Form("  chain bunch ID = %i", GetField(data,dummy,4)));
+        fChainBunchID[fTRM][fTRMchain] = GetField(data,dummy,4);
 	break;
       case TRM_CHAIN0_TRAILER_TYPE: // TRM chain0 trailer
 	if (!fInsideTRMchain0) { // unexpected TRM chain0 trailer
@@ -707,7 +734,7 @@ Bool_t AliTOFRawStream::Next()
 	}
         dummy = 0x0fff0000;
         //AliInfo(Form("  chain local event counter = %i", GetField(data,dummy,16)));
-        fLocalEventCounterChain[fTRM][fTRMchain] = GetField(data,dummy,16);//adc
+        fLocalEventCounterChain[fTRM][fTRMchain] = GetField(data,dummy,16);
 	fInsideTRMchain0 = kFALSE;
 	fTRMchain = -1;
 	break;
@@ -717,6 +744,9 @@ Bool_t AliTOFRawStream::Next()
 	}
 	fInsideTRMchain1 = kTRUE;
 	fTRMchain = 1;
+        dummy = 0x0000fff0;
+        //AliInfo(Form("  chain bunch ID = %i", GetField(data,dummy,4)));
+        fChainBunchID[fTRM][fTRMchain] = GetField(data,dummy,4);
 	break;
       case TRM_CHAIN1_TRAILER_TYPE: // TRM chain1 trailer
 	if (!fInsideTRMchain1) { // unexpected TRM chain1 trailer
@@ -724,7 +754,7 @@ Bool_t AliTOFRawStream::Next()
 	}
         dummy = 0x0fff0000;
         //AliInfo(Form("  chain local event counter = %i", GetField(data,dummy,16)));
-        fLocalEventCounterChain[fTRM][fTRMchain] = GetField(data,dummy,16);//adc
+        fLocalEventCounterChain[fTRM][fTRMchain] = GetField(data,dummy,16);
 	fInsideTRMchain1 = kFALSE;
 	fTRMchain = -1;
 	break;
@@ -758,11 +788,16 @@ Bool_t AliTOFRawStream::Next()
 	fTime = GetField(data,TRM_DIGIT_TIME_MASK,TRM_DIGIT_TIME_POSITION)
 	  /*-
 	  fCableLengthMap->GetCableTimeShiftBin(fDDL, fTRM, fTRMchain, fTDC)*/
-	  /*+
-	  (Int_t)(fgkddlBCshift[fDDL]*25.*1000./AliTOFGeometry::TdcBinWidth())
-	  +
-	  (Int_t)((fLocalEventCounterChain[fTRM][fTRMchain]-fEventID)*25.*1000./AliTOFGeometry::TdcBinWidth())*/
 	  ;
+	if (fgApplyBCCorrections) {
+	  AliDebug(2,"Apply nominal DDL BC time-shift correction");
+	  AliDebug(2,"Apply deltaBC time-shift correction");
+	  AliDebug(2,Form(" fChainBunchID[%d][%d] = %d ,fEventID = %d",fTRM,fTRMchain,fChainBunchID[fTRM][fTRMchain],fEventID));
+	  fTime +=
+	    (Int_t)(fgkddlBCshift[fDDL]*25./AliTOFGeometry::TdcBinWidth()*1.E+03)
+	    +
+	    (Int_t)((fChainBunchID[fTRM][fTRMchain]-fEventID)*25./AliTOFGeometry::TdcBinWidth()*1.E+03);
+	}
 	break;
 
       case 1: // leading edge digit, long digit time, no TOT
@@ -771,11 +806,16 @@ Bool_t AliTOFRawStream::Next()
 	fLeadingEdge = GetField(data,TRM_LONG_DIGIT_TIME_MASK,TRM_LONG_DIGIT_TIME_POSITION)
 	  /*-
 	  fCableLengthMap->GetCableTimeShiftBin(fDDL, fTRM, fTRMchain, fTDC)*/
-	  /*+
-	  (Int_t)(fgkddlBCshift[fDDL]*25.*1000./AliTOFGeometry::TdcBinWidth())
-	  +
-	  (Int_t)((fLocalEventCounterChain[fTRM][fTRMchain]-fEventID)*25.*1000./AliTOFGeometry::TdcBinWidth())*/
 	  ;
+	if (fgApplyBCCorrections) {
+	  AliDebug(2,"Apply nominal DDL BC time-shift correction");
+	  AliDebug(2,"Apply deltaBC time-shift correction");
+	  AliDebug(2,Form(" fChainBunchID[%d][%d] = %d ,fEventID = %d",fTRM,fTRMchain,fChainBunchID[fTRM][fTRMchain],fEventID));
+	  fLeadingEdge +=
+	    (Int_t)(fgkddlBCshift[fDDL]*25./AliTOFGeometry::TdcBinWidth()*1.E+03)
+	    +
+	    (Int_t)((fChainBunchID[fTRM][fTRMchain]-fEventID)*25./AliTOFGeometry::TdcBinWidth()*1.E+03);
+	}
 	break;
 
       case 2: // trailing edge digit, long digit time, no TOT
@@ -784,11 +824,16 @@ Bool_t AliTOFRawStream::Next()
 	fTrailingEdge = GetField(data,TRM_LONG_DIGIT_TIME_MASK,TRM_LONG_DIGIT_TIME_POSITION)
 	  /*-
 	  fCableLengthMap->GetCableTimeShiftBin(fDDL, fTRM, fTRMchain, fTDC)*/
-	  /*+
-	  (Int_t)(fgkddlBCshift[fDDL]*25.*1000./AliTOFGeometry::TdcBinWidth())
-	  +
-	  (Int_t)((fLocalEventCounterChain[fTRM][fTRMchain]-fEventID)*25.*1000./AliTOFGeometry::TdcBinWidth())*/
 	  ;
+	if (fgApplyBCCorrections) {
+	  AliDebug(2,"Apply nominal DDL BC time-shift correction");
+	  AliDebug(2,"Apply deltaBC time-shift correction");
+	  AliDebug(2,Form(" fChainBunchID[%d][%d] = %d ,fEventID = %d",fTRM,fTRMchain,fChainBunchID[fTRM][fTRMchain],fEventID));
+	  fTrailingEdge +=
+	    (Int_t)(fgkddlBCshift[fDDL]*25./AliTOFGeometry::TdcBinWidth()*1.E+03)
+	    +
+	    (Int_t)((fChainBunchID[fTRM][fTRMchain]-fEventID)*25./AliTOFGeometry::TdcBinWidth()*1.E+03);
+	}
 	break;
 
       case 3: // TOT overflow
@@ -796,11 +841,16 @@ Bool_t AliTOFRawStream::Next()
 	fTime = GetField(data,TRM_DIGIT_TIME_MASK,TRM_DIGIT_TIME_POSITION)
 	  /*-
 	  fCableLengthMap->GetCableTimeShiftBin(fDDL, fTRM, fTRMchain, fTDC)*/
-	  /*+
-	  (Int_t)(fgkddlBCshift[fDDL]*25.*1000./AliTOFGeometry::TdcBinWidth())
-	  +
-	  (Int_t)((fLocalEventCounterChain[fTRM][fTRMchain]-fEventID)*25.*1000./AliTOFGeometry::TdcBinWidth())*/
 	  ;
+	if (fgApplyBCCorrections) {
+	  AliDebug(2,"Apply nominal DDL BC time-shift correction");
+	  AliDebug(2,"Apply deltaBC time-shift correction");
+	  AliDebug(2,Form(" fChainBunchID[%d][%d] = %d ,fEventID = %d",fTRM,fTRMchain,fChainBunchID[fTRM][fTRMchain],fEventID));
+	  fTime +=
+	    (Int_t)(fgkddlBCshift[fDDL]*25./AliTOFGeometry::TdcBinWidth()*1.E+03)
+	    +
+	    (Int_t)((fChainBunchID[fTRM][fTRMchain]-fEventID)*25./AliTOFGeometry::TdcBinWidth()*1.E+03);
+	}
 	break;
 
       } // end switch PS bits inside TRM chains
@@ -1340,6 +1390,7 @@ Bool_t AliTOFRawStream::Decode(Int_t verbose = 0) {
 
   Int_t currentEquipment;
   Int_t currentDDL;
+  const AliRawDataHeader *currentCDH;
 
   //pointers
   UChar_t *data = 0x0;
@@ -1354,6 +1405,7 @@ Bool_t AliTOFRawStream::Decode(Int_t verbose = 0) {
     //get equipment infos
     currentEquipment = fRawReader->GetEquipmentId();
     currentDDL = fRawReader->GetDDLID();
+    currentCDH = fRawReader->GetDataHeader();
     const Int_t kDataSize = fRawReader->GetDataSize();
     const Int_t kDataWords = kDataSize / 4;
     data = new UChar_t[kDataSize];
@@ -1385,7 +1437,7 @@ Bool_t AliTOFRawStream::Decode(Int_t verbose = 0) {
     fDecoder->SetPackedDataBuffer(fPackedDataBuffer[currentDDL]);
     
     //start decoding
-    if (fDecoder->Decode((UInt_t *)data, kDataWords) == kTRUE) {
+    if (fDecoder->Decode((UInt_t *)data, kDataWords, currentCDH) == kTRUE) {
       fRawReader->AddMajorErrorLog(kDDLDecoder,Form("DDL # = %d",currentDDL));
       AliWarning(Form("Error while decoding DDL # %d: decoder returned with errors", currentDDL));
     }
@@ -1445,6 +1497,12 @@ AliTOFRawStream::LoadRawDataBuffers(Int_t indexDDL, Int_t verbose)
   if (verbose > 0)
     AliInfo("Filling TClonesArray ...");
 
+  if (verbose > 0)
+    if (fgApplyBCCorrections) {
+      AliInfo("Apply nominal DDL BC time-shift correction");
+      AliInfo("Apply deltaBC time-shift correction");
+    }
+
   //loop over DDL packed hits
   for (Int_t iHit = 0; iHit < fPackedDataBuffer[indexDDL]->GetEntries(); iHit++){
     hitData = fPackedDataBuffer[indexDDL]->GetHit(iHit); //get hit data
@@ -1456,10 +1514,15 @@ AliTOFRawStream::LoadRawDataBuffers(Int_t indexDDL, Int_t verbose)
     Int_t   hitChan = hitData->GetChan();
     Int_t   hitTimeBin = hitData->GetTimeBin();
     Int_t   hitTOTBin = hitData->GetTOTBin();
-    
-    Int_t hitLeading = hitData->GetTimeBin()
-      /*-
-      fCableLengthMap->GetCableTimeShiftBin(indexDDL, hitSlotID, hitChain, hitTDC)*/;//-1; // adc
+
+    if (fgApplyBCCorrections) {
+      /* DDL BC shift time correction */
+      hitTimeBin += fgkddlBCshift[indexDDL];
+      /* deltaBC shift time correction */
+      hitTimeBin += hitData->GetDeltaBunchID();
+    }
+
+    Int_t hitLeading = hitData->GetTimeBin();
     Int_t hitTrailing = -1;
     Int_t hitError = -1;
     
