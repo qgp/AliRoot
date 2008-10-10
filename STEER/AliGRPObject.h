@@ -15,7 +15,7 @@
 class AliGRPObject : public TObject {
  public:
 
-	enum Stats {kMean = 0, kTruncMedian = 1, kMedian = 2, kSDMean = 3, kSDMedian = 4};
+	enum Stats {kMean = 0, kTruncMean = 1, kMedian = 2, kSDMean = 3, kSDMedian = 4};
 
 	enum DP_HallProbes { 
 		 k_HP_L3_BSF17_H1= 0 , k_HP_L3_BSF17_H2, k_HP_L3_BSF17_H3, k_HP_L3_BSF17_Temperature, 
@@ -164,9 +164,8 @@ class AliGRPObject : public TObject {
 	Float_t*  fBeamIntensity   ;      // [fPoints]
 	                                  // BeamIntensity entry from DCS DB
 	AliSplineFit*  fBeamIntensitySplineFit;       // BeamIntensity SplineFit from DCS DB
-	Char_t    fL3Polarity;             // L3Polarity entry from DCS DB
-	Char_t    fDipolePolarity;         // [fPoints]
-	                                  // DipolePolarity entry from DCS DB
+	Char_t    fL3Polarity;            // L3Polarity entry from DCS DB
+	Char_t    fDipolePolarity;        // DipolePolarity entry from DCS DB 	                                  
 	Float_t*  fL3Current;             // [fPoints]
 	                                  // L3Current entry from DCS DB
 	Float_t*  fDipoleCurrent;         // [fPoints]
