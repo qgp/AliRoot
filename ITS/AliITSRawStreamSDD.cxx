@@ -34,12 +34,11 @@ AliITSRawStreamSDD::AliITSRawStreamSDD(AliRawReader* rawReader) :
   AliITSRawStream(rawReader),
 fDDLModuleMap(0),
 fData(0),
+fResetSkip(kTRUE),
 fEventId(0),
 fCarlosId(-1),
 fChannel(0),
 fJitter(0),
-fDDL(0),
-fResetSkip(0),
 fEightBitSignal(0),
 fDecompressAmbra(kTRUE)
 {
@@ -63,12 +62,11 @@ AliITSRawStreamSDD::AliITSRawStreamSDD(const AliITSRawStreamSDD& rs) :
 AliITSRawStream(rs.fRawReader),
 fDDLModuleMap(rs.fDDLModuleMap),
 fData(0),
+fResetSkip(kTRUE),
 fEventId(0),
 fCarlosId(-1),
 fChannel(0),
 fJitter(0),
-fDDL(0),
-fResetSkip(0),
 fEightBitSignal(0),
 fDecompressAmbra(kTRUE)
 {
@@ -123,28 +121,21 @@ Bool_t AliITSRawStreamSDD::Next()
 // returns kTRUE and fCompletedModule=kTRUE  when a module is completed (=3x3FFFFFFF footer words)
 
   fPrevModuleID = fModuleID;
-  fDDL=fRawReader->GetDDLID();
   fCompletedModule=kFALSE;
 
   while (kTRUE) {
-    if(fResetSkip==0){
+    if(fResetSkip){
+      Reset();
       Bool_t kSkip = SkipHeaderWord();
-      fResetSkip=1;
-      if(!kSkip) return kSkip;
+      if(!kSkip) return kSkip;	
+      fResetSkip=kFALSE;
     }
-  
     if ((fChannel < 0) || (fCarlosId < 0) || (fChannel >= 2) || (fCarlosId >= kModulesPerDDL) || (fLastBit[fCarlosId][fChannel] < fReadBits[fCarlosId][fChannel]) ) {
       if (!fRawReader->ReadNextInt(fData)) return kFALSE;  // read next word
-      Int_t ddln = fRawReader->GetDDLID();
-      if(ddln!=fDDL) { 
-	Reset();
-	fDDL=fRawReader->GetDDLID();
-      }
 
-      fChannel = -1;
+
       if((fData >> 16) == 0x7F00){ // jitter word
-	fResetSkip=0;
-	fEndWords=0;
+	fResetSkip=kTRUE;
 	continue;
       }
 
@@ -154,30 +145,24 @@ Bool_t AliITSRawStreamSDD::Next()
 
       if (nData28== 0x02) {           // header
 	fEventId = (fData >> 3) & 0x07FF; 
-      } else if (nData28== 0x04) {
-	// JTAG word -- do nothing
       } else if (nData28== 0x03) {    // Carlos and FIFO words or Footers
 	if(fData>=fICarlosWord[0]&&fData<=fICarlosWord[11]) { // Carlos Word
-	  if(fEndWords==12) continue; // out of event
 	  fCarlosId = fData-fICarlosWord[0];
 	  Int_t iFifoIdx = fCarlosId/3;
 	  fNfifo[iFifoIdx] = fCarlosId;
 	} else if (fData>=fIFifoWord[0]&&fData<=fIFifoWord[3]){ // FIFO word
-	  if(fEndWords==12) continue; // out of event
 	  fCarlosId = fNfifo[fData-fIFifoWord[0]];	    
 	} else if(fData==0x3FFFFFFF){ // Carlos footer
 	  fICountFoot[fCarlosId]++; // stop before the last word (last word=jitter)
 	  if(fICountFoot[fCarlosId]==3){
 	    fCompletedModule=kTRUE;
-	    //	      printf("Completed module %d DDL %d\n",fCarlosId,ddln);
 	    return kTRUE;
 	  }
 	} else if(fData==0x3F1F1F1F){ // CarlosRX footer
-	  fEndWords++;
-	  if(fEndWords<=12) continue;
+	  // CARLOSRX footer -- do nothing
 	}else{
-	  fRawReader->AddMajorErrorLog(kDataError,"Too many footers");
-	  AliWarning(Form("invalid data: too many footers\n", fData));
+	  fRawReader->AddMajorErrorLog(kDataError,"Bad footer");
+	  AliWarning(Form("Invalid data: bad footer %08X\n", fData));
 	  return kFALSE;	    
 	}
       } else if (nData30 == 0x02 || nData30 == 0x03) {
@@ -185,14 +170,17 @@ Bool_t AliITSRawStreamSDD::Next()
 	fChannelData[fCarlosId][fChannel] += 
 	  (ULong64_t(fData & 0x3FFFFFFF) << fLastBit[fCarlosId][fChannel]);
 	fLastBit[fCarlosId][fChannel] += 30;
+      } else if (nData28== 0x04) {
+	// JTAG word -- do nothing
       } else {                               // unknown data format
 	fRawReader->AddMajorErrorLog(kDataFormatErr,Form("Invalid data %8.8x",fData));
-	AliWarning(Form("invalid data: %8.8x\n", fData));
+	AliWarning(Form("Invalid data: %08X\n", fData));
 	return kFALSE;
       }
       
       if(fCarlosId>=0 && fCarlosId <kModulesPerDDL){
-	 fModuleID = GetModuleNumber(ddln,fCarlosId);
+	Int_t nDDL=fRawReader->GetDDLID();
+	fModuleID = GetModuleNumber(nDDL,fCarlosId);
       }
     } else {  // decode data
       if (fReadCode[fCarlosId][fChannel]) {// read the next code word
@@ -235,10 +223,9 @@ void AliITSRawStreamSDD::Reset(){
       fReadBits[ic][i]=3;
       fTimeBin[ic][i]=0;
       fAnode[ic][i]=0;     
+      fICountFoot[ic]=0;
     }
-    fLowThreshold[i]=0;
   }
-  for(Int_t i=0;i<kModulesPerDDL;i++) fICountFoot[i]=0;
 }
 
 //______________________________________________________________________

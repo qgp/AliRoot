@@ -69,6 +69,7 @@ class AliITSRawStreamSDD: public AliITSRawStream {
 
     AliITSDDLModuleMapSDD* fDDLModuleMap; // mapping DDL/module -> module number 
     UInt_t           fData;         // data read for file
+    Bool_t           fResetSkip;    // flag for end of DDL data
     Int_t            fSkip[kDDLsNumber];// obsolete -- needed to compile AliITSRawStreamSDDv2
     Int_t            fEventId;      // event ID from header
     Int_t            fCarlosId;     // carlos ID
@@ -84,16 +85,13 @@ class AliITSRawStreamSDD: public AliITSRawStream {
     Int_t            fNfifo[kFifoWords];  // FIFO number
     Int_t            fTimeBin[kModulesPerDDL][2];  // current timebin [ncarlos][nchannels]
     Int_t            fAnode[kModulesPerDDL][2]; // current anode [ncarlos][nchannels]
-    Int_t            fDDL;        //current ddl number
     UInt_t           fICarlosWord[kCarlosWords]; // Carlos words
     UInt_t           fIFifoWord[kFifoWords];     // FIFO words
     Int_t            fICountFoot[kModulesPerDDL]; // counter for carlos footer words
-    Int_t            fEndWords;      //number of 3f1f1f1f
-    Int_t            fResetSkip;     //if it is 0, the ResetSkip Funcion is called
     Int_t            fEightBitSignal;    // signal at 8 bit
     Bool_t           fDecompressAmbra; //flag to switch off decompression
 
-    ClassDef(AliITSRawStreamSDD, 12) // class for reading ITS SDD raw digits
+    ClassDef(AliITSRawStreamSDD, 14) // class for reading ITS SDD raw digits
 };
 
 #endif
