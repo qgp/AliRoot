@@ -38,22 +38,22 @@ void visscan_init()
   TEveBrowser* browser = gEve->GetBrowser();
   browser->ExecPlugin("SplitGLView", 0, "new SplitGLView(gClient->GetRoot(), 600, 450, kTRUE)");
 
-   if (gRPhiMgr) {
-      TEveProjectionAxes* a = new TEveProjectionAxes(gRPhiMgr);
-      a->SetNumTickMarks(3);
-      a->SetText("R-Phi");
-      a->SetFontFile("comicbd");
-      a->SetFontSize(10);
-      gEve->GetScenes()->FindChild("R-Phi Projection")->AddElement(a);
-   }
-   if (gRhoZMgr) {
-      TEveProjectionAxes* a = new TEveProjectionAxes(gRhoZMgr);
-      a->SetNumTickMarks(3);
-      a->SetText("Rho-Z");
-      a->SetFontFile("comicbd");
-      a->SetFontSize(10);
-      gEve->GetScenes()->FindChild("Rho-Z Projection")->AddElement(a);
-   }
+  if (gRPhiMgr) {
+    TEveProjectionAxes* a = new TEveProjectionAxes(gRPhiMgr);
+    a->SetTitle("R-Phi");
+    a->SetTitleSize(0.08);
+    a->SetTitleFontName("comicbd");
+    a->SetLabelFontName("comicbd");
+    gEve->GetScenes()->FindChild("R-Phi Projection")->AddElement(a);
+  }
+  if (gRhoZMgr) {
+    TEveProjectionAxes* a = new TEveProjectionAxes(gRhoZMgr);
+    a->SetTitle("Rho-Z");
+    a->SetTitleSize(0.08);
+    a->SetTitleFontName("comicbd");
+    a->SetLabelFontName("comicbd");
+    gEve->GetScenes()->FindChild("Rho-Z Projection")->AddElement(a);
+  }
 
   // geometry
   TEveUtil::LoadMacro("geom_gentle.C");
