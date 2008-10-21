@@ -47,17 +47,21 @@ void anyscan_init()
 
   if (gRPhiMgr) {
     TEveProjectionAxes* a = new TEveProjectionAxes(gRPhiMgr);
+    a->SetMainColor(kWhite);
     a->SetTitle("R-Phi");
-    a->SetTitleSize(0.08);
+    a->SetTitleSize(0.05);
     a->SetTitleFontName("comicbd");
+    a->SetLabelSize(0.025);
     a->SetLabelFontName("comicbd");
     gEve->GetScenes()->FindChild("R-Phi Projection")->AddElement(a);
   }
   if (gRhoZMgr) {
     TEveProjectionAxes* a = new TEveProjectionAxes(gRhoZMgr);
+    a->SetMainColor(kWhite);
     a->SetTitle("Rho-Z");
-    a->SetTitleSize(0.08);
+    a->SetTitleSize(0.05);
     a->SetTitleFontName("comicbd");
+    a->SetLabelSize(0.025);
     a->SetLabelFontName("comicbd");
     gEve->GetScenes()->FindChild("Rho-Z Projection")->AddElement(a);
   }
