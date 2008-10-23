@@ -3,9 +3,10 @@ MTR DA for online
 
 Contact: Franck Manso <manso@clermont.in2p3.fr>
 Link: http://aliceinfo.cern.ch/static/Offline/dimuon/muon_html/README_mtrda.html
-Run Type:  ELECTRONICS_CALIBRATION_RUN (calib), DETECTOR_CALIBRATION_RUN (ped)
-DA Type: LDC
-Number of events needed: 100 events for ped and calib
+Reference run: 61898, 61945 (dead channels), 61963 (noisy channels)
+Run Type:  PHYSICS (noisy channels), STANDALONE (dead channels)
+DA Type: MON
+Number of events needed: 1000 events for noisy and dead channels
 Input Files: Rawdata file (DATE format)
 Input Files from DB:
 MtgGlobalCrate-<version>.dat
@@ -133,9 +134,10 @@ AliMUONTriggerIO gTriggerIO;
 Bool_t gAlgoNoisyInput = false;
 Bool_t gAlgoDeadInput  = false;
 
-Int_t gkGlobalInputs = 4;
-Int_t gkGlobalInputLength = 32;
+Int_t   gkGlobalInputs = 4;
+Int_t   gkGlobalInputLength = 32;
 Float_t gkThreshold = 0.1;
+Int_t   gkMinEvents = 10;
 
 Int_t gAccGlobalInputN[4][32] = {0};
 Int_t gAccGlobalInputD[4][32] = {0};
@@ -455,9 +457,11 @@ void ReadMaskFiles()
 //______________________________________________________________
 UInt_t GetFetMode()
 {
-  // FET mode = 3 to run algorithm for noisy/dead global inputs
+  // FET mode = 3 to run algorithm for dead global inputs
+  // 0x3 prepulse
+  // 0x0 internal
 
-  return gGlobalMasks->GetFetRegister(4);
+  return gGlobalMasks->GetFetRegister(3);
 
 }
 
@@ -488,31 +492,67 @@ void UpdateGlobalMasks()
   
   Float_t rateN = 0.0, rateD = 0.0;
   UInt_t gmask[4], omask;
-  Bool_t noise, deadc, updated = false;
+  Bool_t noise, deadc, withEvN, withEvD, updated = false;
 
   for (Int_t ii = 0; ii < gkGlobalInputs; ii++) {
     gmask[ii] = 0;
+
     for (Int_t ib = 0; ib < gkGlobalInputLength; ib++) {
       // lsb -> msb
       noise = false;
       deadc = false;
-      if (gNEventsN > 0) {
+      withEvN = false;
+      withEvD = false;
+      if (gNEventsN > gkMinEvents) {
 	rateN = (Float_t)gAccGlobalInputN[ii][ib]/(Float_t)gNEventsN;
-	noise = (rateN > gkThreshold);
+	noise = (rateN > gkThreshold);	
+	withEvN = true;
       }
-      if (gNEventsD > 0) {
+      if (gNEventsD > gkMinEvents) {
 	rateD = (Float_t)gAccGlobalInputD[ii][ib]/(Float_t)gNEventsD;
 	deadc = (rateD < (1.0 - gkThreshold));
+	withEvD = true;
       }
-      if (!noise && !deadc) {
-	// - modify the existing mask
-	//gmask[ii] |= ((gGlobalMasks->GetGlobalMask(ii) >> ib) & 0x1) << ib;
-	// - create a new mask
-	gmask[ii] |= 0x1 << ib;
+      if (!withEvN && !withEvD) {
+	// - copy the bit from the old mask
+	gmask[ii] |= ((gGlobalMasks->GetGlobalMask(ii) >> ib) & 0x1) << ib;
+	printf("Mask not changed (just copy the old values)\n");
+      }
+      if (!withEvN && withEvD) {
+	if (!deadc) {
+	  // - create a new mask, set the bit to 1
+	  gmask[ii] |= 0x1 << ib;
+	} else {
+	  // - create a new mask, set the bit to 0
+	  gmask[ii] |= 0x0 << ib;
+	  printf("Found dead channel %1d:%02d \n",ii,ib);
+	}
+      }
+      if (withEvN && !withEvD) {
+	if (!noise) {
+	  // - create a new mask, set the bit to 1
+	  gmask[ii] |= 0x1 << ib;
+	} else {
+	  // - create a new mask, set the bit to 0
+	  gmask[ii] |= 0x0 << ib;
+	  printf("Found noisy channel %1d:%02d \n",ii,ib);
+	}
+      }
+      if (withEvN && withEvD) {
+	if (!noise && !deadc) {
+	  // - create a new mask, set the bit to 1
+	  gmask[ii] |= 0x1 << ib;
+	} else {
+	  // - create a new mask, set the bit to 0
+	  gmask[ii] |= 0x0 << ib;
+	  if (noise)
+	    printf("Found noisy channel %1d:%02d \n",ii,ib);
+	  if (deadc)
+	    printf("Found dead channel %1d:%02d \n",ii,ib);
+	}
       }
     }
     printf("gmask %08x \n",gmask[ii]);
-
   }
 
   // check if at least one mask value has been changed from previous version
@@ -736,6 +776,10 @@ int main(Int_t argc, Char_t **argv)
       return -1;
     }
   
+    // make sure to catch the "rare" calib events (1 every 50s in physics)
+    const Char_t* tableSOD[]  = {"ALL", "yes", "CAL", "all", NULL, NULL};
+    monitorDeclareTable(const_cast<char**>(tableSOD));
+
     status = monitorSetDataSource(inputFile);
     if (status) {
       cerr << "ERROR : monitorSetDataSource status (hex) = " << hex << status
@@ -802,7 +846,7 @@ int main(Int_t argc, Char_t **argv)
 	gAlgoDeadInput  = true;
 	doUpdate = true;
 	gNEventsD++;
-	if (gRunNumber == 61963) {   // false FET
+	if (gRunNumber == 61963) {   // FET overwrite, not used for dead channels
 	  gAlgoNoisyInput = true;
 	  gNEventsN++;
 	  gAlgoDeadInput  = false;
