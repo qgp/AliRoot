@@ -8,10 +8,8 @@ void embed_init()
   // ------------------------------------------------------------------------
 
   Info("embed_init", "Opening background event ...");
-  // Need strings as CINT can't properly convert "raw-string" to const TString&.
-  TString name("Background Event");
-  TString path("Background");
-  AliEveEventManager* bkg = AliEveEventManager::AddDependentManager(name, path);
+  AliEveEventManager* bkg =
+    AliEveEventManager::AddDependentManager("Background Event", "Background");
   bkg->IncDenyDestroy();
   bkg->AddNewEventCommand("background_event()");
   gEve->AddToListTree(bkg, kTRUE);
