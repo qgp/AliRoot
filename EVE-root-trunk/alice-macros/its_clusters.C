@@ -26,8 +26,6 @@ class TEvePointSet;
 
 TEvePointSet* its_clusters(TEveElement* cont=0, Float_t maxR=50)
 {
-  throw TEveException("Bugger");
-
   AliEveEventManager::AssertGeometry();
 
   AliRunLoader* rl = AliEveEventManager::AssertRunLoader();
