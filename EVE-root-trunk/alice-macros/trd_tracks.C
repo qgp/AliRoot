@@ -1,10 +1,10 @@
-void trd_friend_tracks(TEveElement *cont = 0)
+void trd_tracks(TEveElement *cont = 0)
 {
 
   // Link data containers
   AliESDfriend *eventESDfriend = 0x0;
   if(!(eventESDfriend = AliEveEventManager::AssertESDfriend())){
-    Warning("trd_friend_tracks", "AliESDfriend not found");
+    Warning("trd_tracks", "AliESDfriend not found");
     return 0x0;
   }
 
