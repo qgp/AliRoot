@@ -147,7 +147,7 @@ void run(Char_t *tasks="ALL", const Char_t *files=0x0, Int_t nmax=-1)
 
   //____________________________________________
   // TRD detector checker
-	if(TESTBIT(fSteerTask, kCheckDetector)){
+	if(TSTBIT(fSteerTask, kCheckDetector)){
     mgr->AddTask(task = new AliTRDcheckDetector());
     taskPtr[(Int_t)kCheckDetector] = task;
     task->SetDebugLevel(4);
@@ -161,7 +161,7 @@ void run(Char_t *tasks="ALL", const Char_t *files=0x0, Int_t nmax=-1)
 
   //____________________________________________
   // TRD barrel tracking efficiency
-  if(fHasMCdata && TESTBIT(fSteerTask, kTrackingEfficiency)){
+  if(fHasMCdata && TSTBIT(fSteerTask, kTrackingEfficiency)){
     mgr->AddTask(task = new AliTRDtrackingEfficiency());
     taskPtr[(Int_t)kTrackingEfficiency] = task;
     task->SetDebugLevel(0);
@@ -173,7 +173,7 @@ void run(Char_t *tasks="ALL", const Char_t *files=0x0, Int_t nmax=-1)
 
   //____________________________________________
   // TRD combined tracking efficiency
-  if(fHasMCdata && TESTBIT(fSteerTask, kTrackingCombinedEfficiency)){
+  if(fHasMCdata && TSTBIT(fSteerTask, kTrackingCombinedEfficiency)){
     mgr->AddTask(task = new AliTRDtrackingEfficiencyCombined());
     taskPtr[(Int_t)kTrackingCombinedEfficiency] = task;
     task->SetDebugLevel(0);
@@ -185,7 +185,7 @@ void run(Char_t *tasks="ALL", const Char_t *files=0x0, Int_t nmax=-1)
 
   //____________________________________________
   // TRD tracking resolution
-  if(TESTBIT(fSteerTask, kTrackingResolution)){
+  if(TSTBIT(fSteerTask, kTrackingResolution)){
     mgr->AddTask(task = new AliTRDtrackingResolution());
     taskPtr[(Int_t)kTrackingResolution] = task;
     task->SetMCdata(fHasMCdata);
@@ -199,7 +199,7 @@ void run(Char_t *tasks="ALL", const Char_t *files=0x0, Int_t nmax=-1)
 
   //____________________________________________
   // TRD calibration
-  if(TESTBIT(fSteerTask, kCalibration)){
+  if(TSTBIT(fSteerTask, kCalibration)){
     mgr->AddTask(task = new AliTRDcalibration());
     taskPtr[(Int_t)kCalibration] = task;
     ((AliTRDcalibration*)task)->SetLow(0);
@@ -214,7 +214,7 @@ void run(Char_t *tasks="ALL", const Char_t *files=0x0, Int_t nmax=-1)
   
   //____________________________________________
   // TRD pid checker
-  if(TESTBIT(fSteerTask, kPIDChecker)){
+  if(TSTBIT(fSteerTask, kPIDChecker)){
     mgr->AddTask(task = new AliTRDpidChecker());
     taskPtr[(Int_t)kPIDChecker] = task;
     task->SetDebugLevel(0);
@@ -228,7 +228,7 @@ void run(Char_t *tasks="ALL", const Char_t *files=0x0, Int_t nmax=-1)
 
   //____________________________________________
   // TRD pid reference 
-  if(TESTBIT(fSteerTask, kPIDRefMaker)){
+  if(TSTBIT(fSteerTask, kPIDRefMaker)){
     mgr->AddTask(task = new AliTRDpidRefMaker());
     taskPtr[(Int_t)kPIDRefMaker] = task;
     task->SetDebugLevel(0);
@@ -245,7 +245,7 @@ void run(Char_t *tasks="ALL", const Char_t *files=0x0, Int_t nmax=-1)
   if (!mgr->InitAnalysis()) return;
   printf("\n\tRUNNING TRAIN FOR TASKS:\n");
   for(Int_t itask = 1; itask < NTRDTASKS; itask++){
-    if(TESTBIT(fSteerTask, itask)) printf("\t   %s [%s]\n", taskPtr[itask]->GetTitle(), taskPtr[itask]->GetName());
+    if(TSTBIT(fSteerTask, itask)) printf("\t   %s [%s]\n", taskPtr[itask]->GetTitle(), taskPtr[itask]->GetName());
   }
   printf("\n\n");
   //mgr->PrintStatus();
