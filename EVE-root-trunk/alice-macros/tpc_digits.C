@@ -56,7 +56,7 @@ void tpc_digits(Int_t mode=1)
 	s->SetDataSource(x);
 	s->SetFrameColor(col);
 	s->SetAutoTrans(kTRUE);
-	gEve->AddElement(s, l);
+	l->AddElement(s);
       }
     }
     {
@@ -72,7 +72,7 @@ void tpc_digits(Int_t mode=1)
 	s->SetDataSource(x);
 	s->SetFrameColor(col);
 	s->SetAutoTrans(kTRUE);
-	gEve->AddElement(s, l);
+	l->AddElement(s);
       }
     }
     gEve->EnableRedraw();
@@ -104,7 +104,7 @@ void tpc_digits(Int_t mode=1)
 	s->SetDataSource(x);
 	s->SetFrameColor(col);
 	s->SetAutoTrans(kTRUE);
-	gEve->AddElement(s, l);
+	l->AddElement(s);
       }
     }
     {
@@ -120,7 +120,7 @@ void tpc_digits(Int_t mode=1)
 	s->SetDataSource(x);
 	s->SetFrameColor(col);
 	s->SetAutoTrans(kTRUE);
-	gEve->AddElement(s, l);
+	l->AddElement(s);
       }
     }
     gEve->EnableRedraw();
