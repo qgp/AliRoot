@@ -53,6 +53,7 @@ AliHLTMessage::AliHLTMessage(UInt_t what)
   fBufComp(0),
   fBufCompCur(0),
   fCompPos(0)
+  , fBufUncompressed(0)
 {
    // Create a AliHLTMessage object for storing objects. The "what" integer
    // describes the type of message. Predifined ROOT system message types
@@ -90,6 +91,7 @@ AliHLTMessage::AliHLTMessage(void *buf, Int_t bufsize)
   fBufComp(0),
   fBufCompCur(0),
   fCompPos(0)
+  , fBufUncompressed(0)
 {
    // Create a AliHLTMessage object for reading objects. The objects will be
    // read from buf. Use the What() method to get the message type.
@@ -105,6 +107,13 @@ AliHLTMessage::AliHLTMessage(void *buf, Int_t bufsize)
       fBufCompCur = fBuffer + bufsize;
       fBuffer     = 0;
       Uncompress();
+      // Matthias Sep 2008
+      // NOTE: this is not done in TMessage and will lead to the deletion
+      // of the buffer. This is not allowed in case of HLT where the
+      // buffer is handled by the framework. In general, I think this
+      // is a very bad idea to do it like that in TMessage
+      fBufComp    = NULL;
+      fBufCompCur = 0;
    }
 
    if (fWhat == kMESS_OBJECT) {
@@ -121,7 +130,7 @@ AliHLTMessage::AliHLTMessage(void *buf, Int_t bufsize)
 AliHLTMessage::~AliHLTMessage()
 {
    // Clean up compression buffer.
-   delete [] fBufComp;
+  Reset();
 }
 
 //______________________________________________________________________________
@@ -154,6 +163,10 @@ void AliHLTMessage::Reset()
       fBufCompCur = 0;
       fCompPos    = 0;
    }
+   if (fBufUncompressed) {
+     delete [] fBufUncompressed;
+     fBufUncompressed=NULL;
+   }
 }
 
 //______________________________________________________________________________
@@ -167,7 +180,7 @@ void AliHLTMessage::SetLength() const
 
       if (fBufComp) {
          buf = fBufComp;
-	 *((UInt_t*)buf) = (UInt_t)(Length() - sizeof(UInt_t));
+	 *((UInt_t*)buf) = (UInt_t)(CompLength() - sizeof(UInt_t));
       }
    }
 }
@@ -307,6 +320,7 @@ Int_t AliHLTMessage::Uncompress()
    UChar_t *bufcur = (UChar_t*)fBufComp + hdrlen;
    frombuf((char *&)bufcur, &buflen);
    fBuffer  = new char[buflen];
+   fBufUncompressed = fBuffer;
    fBufSize = buflen;
    fBufCur  = fBuffer + sizeof(UInt_t) + sizeof(fWhat);
    fBufMax  = fBuffer + fBufSize;
