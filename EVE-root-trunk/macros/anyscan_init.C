@@ -175,8 +175,13 @@ void on_new_event()
     Warning("on_new_event", "g_esd_tracks_by_category_container not initialized.");
   }
 
-  AliESDEvent* esd = AliEveEventManager::AssertESD();
+  Double_t x[3] = { 0, 0, 0};
+
+  if (AliEveEventManager::HasESD())
   {
+    AliESDEvent* esd = AliEveEventManager::AssertESD();
+    esd->GetPrimaryVertex()->GetXYZ(x);
+
     TTimeStamp ts(esd->GetTimeStamp());
     TString win_title("Eve Main Window -- Timestamp: ");
     win_title += ts.AsString("s");
@@ -184,8 +189,6 @@ void on_new_event()
     win_title += esd->GetEventNumberInFile();
     gEve->GetBrowser()->SetWindowName(win_title);
   }
-  Double_t x[3];
-  esd->GetPrimaryVertex()->GetXYZ(x);
 
   TEveElement* top = gEve->GetCurrentEvent();
 
