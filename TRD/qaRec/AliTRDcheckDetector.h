@@ -6,16 +6,13 @@
 #endif
 
 class TObjArray;
+class TH1;
 class TMap;
 class AliESDHeader;
 class AliTRDcheckDetector : public AliTRDrecoTask{
 // common constants
 enum{
-  kNDetectors = 540,
-  kNDetectorsSector = 30,
-  kNSectors = 18,
-  kNLayers = 6,
-  kNTimebins = 30
+  kNTimeBins = 30
 };
 // The Histogram number
 enum{
@@ -42,6 +39,19 @@ public:
   virtual void Exec(Option_t *);
   virtual void Terminate(Option_t *);
   
+  virtual TObjArray *Histos();
+  
+  // Plotting Functions:
+  TH1 *PlotMeanNClusters(const AliTRDtrackV1 *t = 0x0);
+  TH1 *PlotNClusters(const AliTRDtrackV1 *t = 0x0);
+  TH1 *PlotNTracklets(const AliTRDtrackV1 *t = 0x0);
+  TH1 *PlotTracksSector(const AliTRDtrackV1 *t = 0x0);
+  TH1 *PlotPulseHeight(const AliTRDtrackV1 *t = 0x0);
+	TH1 *PlotChi2(const AliTRDtrackV1 *t = 0x0);
+	TH1 *PlotNormalizedChi2(const AliTRDtrackV1 *t = 0x0);
+	TH1 *PlotClusterCharge(const AliTRDtrackV1 *t = 0x0);
+	TH1 *PlotChargeDeposit(const AliTRDtrackV1 *t = 0x0);
+
   virtual Bool_t PostProcess();
   virtual void  GetRefFigure(Int_t ifig);
   
