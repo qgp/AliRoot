@@ -5,9 +5,9 @@ root2date.cxx
 deroot.cxx
 )
 
-Set(LIBS STEERBase ESD AOD CDB STEER RAWDatabase RAWDatarec RAWDatasim TPCbase
+Set(LIBS STEERBase ESD AOD CDB STEER RAWDatabase RAWDatarec TPCbase
          TPCsim TPCrec HLTbase ITSbase ITSsim ITSrec MUONsim MUONrec MUONbase
          MUONgeometry MUONraw MUONcalib MUONmapping MUONtrigger MUONevaluation
-         MUONcore)
+         MUONcore RAWDatasim)
 
 AddExecutable(deroot "${SRCS}" "${LIBS}")

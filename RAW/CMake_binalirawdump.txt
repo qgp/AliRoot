@@ -5,8 +5,9 @@ alirawdump_main.cxx
 )
 
 Set(LIBS
-         STEERBase ESD AOD RAWDatabase RAWDatarec RAWDatasim MDC CDB STEER TPCbase
-         TPCsim TPCrec HLTbase ITSbase ITSsim ITSrec MUONevaluation MUONsim MUONrec
-          MUONbase MUONtrigger MUONgeometry MUONraw MUONcalib MUONmapping MUONcore)
+  STEERBase ESD AOD RAWDatabase RAWDatarec MDC CDB STEER TPCbase
+  TPCsim TPCrec HLTbase ITSbase ITSsim ITSrec MUONevaluation MUONsim MUONrec
+  MUONbase MUONtrigger MUONgeometry MUONraw MUONcalib MUONmapping MUONcore
+  RAWDatasim)
 
 AddExecutable(alirawdump "${SRCS}" "${LIBS}")
