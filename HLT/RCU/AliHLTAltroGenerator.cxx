@@ -136,7 +136,7 @@ int AliHLTAltroGenerator::Generate()
     // minus its length.
     // Data is now simulated in the right order in order to fullfil this check.
     for (bunch=0; bunch<nofBunches && bunchEndTime<fMaxTimebin-3; bunch++) {
-      while ((bunchEndTime+=GetRandom(0, fMaxTimebin-bunchEndTime))-lastBunchEndTime<3);
+      while ((bunchEndTime+=GetRandom(0, fMaxTimebin-bunchEndTime))-lastBunchEndTime<3) {/*empty body*/};
       int bunchLength=GetRandom(0, bunchEndTime-lastBunchEndTime<fMaxBunchLength?bunchEndTime-lastBunchEndTime:fMaxBunchLength);
       if (bunchLength==0) continue;
       totalBunches++;
@@ -420,13 +420,13 @@ bool AliHLTAltroGenerator::Next()
   bool haveData=false;
   if (!fpSimData) return false;
   do {
-    if (haveData=(fCurrentTimeOffset>=0 &&
-		  fCurrentBunch>0 &&
-		  ++fCurrentTimeOffset<GetBunchSize())) {
+    if ((haveData=(fCurrentTimeOffset>=0 &&
+		   fCurrentBunch>0 &&
+		   ++fCurrentTimeOffset<GetBunchSize()))) {
       break;
     }
 
-    if (haveData=(NextBunch() && GetBunchSize()>0)) {
+    if ((haveData=(NextBunch()) && GetBunchSize()>0)) {
       fCurrentTimeOffset=0;
       break;
     }
@@ -499,7 +499,7 @@ bool AliHLTAltroGenerator::NextBunch()
     if (fDirection==kBackwards) {
       if (fCurrentBunch<0) {
 	// bunch count in channel end - 1
-	if (haveData=(fpSimData->At(fChannelPositions[fCurrentPosition].fEnd-1))>0) {
+	if ((haveData=(fpSimData->At(fChannelPositions[fCurrentPosition].fEnd-1))>0)) {
 	  // first bunch length at channel end - 2
 	  fCurrentBunch=fChannelPositions[fCurrentPosition].fEnd-2;
 	}
@@ -515,7 +515,7 @@ bool AliHLTAltroGenerator::NextBunch()
     } else if (fDirection==kForwards) {
       if (fCurrentBunch<0) {
 	// bunch count in channel start + 1
-	if (haveData=(fpSimData->At(fChannelPositions[fCurrentPosition].fPosition+1))>0) {
+	if ((haveData=(fpSimData->At(fChannelPositions[fCurrentPosition].fPosition+1))>0)) {
 	  // first bunch length at channel start + 2
 	  fCurrentBunch=fChannelPositions[fCurrentPosition].fPosition+2;
 	}
