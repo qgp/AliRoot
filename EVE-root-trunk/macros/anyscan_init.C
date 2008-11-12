@@ -40,9 +40,10 @@ void anyscan_init()
   AliEveTrackCounter* g_trkcnt = new AliEveTrackCounter("Primary Counter");
   gEve->AddToListTree(g_trkcnt, kFALSE);
 
+  TEveBrowser* browser = gEve->GetBrowser();
+  browser->ShowCloseTab(kFALSE);
 
   gROOT->ProcessLine(".L SplitGLView.C+");
-  TEveBrowser* browser = gEve->GetBrowser();
   browser->ExecPlugin("SplitGLView", 0, "new SplitGLView(gClient->GetRoot(), 600, 450, kTRUE)");
 
   if (gRPhiMgr) {
@@ -113,7 +114,6 @@ void anyscan_init()
   exec->AddMacro(new AliEveMacro(AliEveMacro::kRunLoader, "REC Clus TRD", "trd_clusters.C+", "trd_clusters"));
   exec->AddMacro(new AliEveMacro(AliEveMacro::kRunLoader, "REC Clus TOF", "tof_clusters.C+", "tof_clusters"));
 
-  TEveBrowser* browser = gEve->GetBrowser();
 
   browser->StartEmbedding(TRootBrowser::kRight);
   AliEveMacroExecutorWindow* exewin = new AliEveMacroExecutorWindow(exec);
@@ -123,6 +123,8 @@ void anyscan_init()
   browser->StartEmbedding();
   new AliQAHistViewer(gClient->GetRoot(), 600, 400, kTRUE);
   browser->StopEmbedding("QA histograms");
+
+  browser->ShowCloseTab(kTRUE);
 
   browser->GetTabRight()->SetTab(1);
 

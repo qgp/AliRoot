@@ -34,9 +34,13 @@ void visscan_init()
   gEve->AddToListTree(g_trkcnt, kFALSE);
 
 
-  gROOT->ProcessLine(".L SplitGLView.C+");
   TEveBrowser* browser = gEve->GetBrowser();
+  browser->ShowCloseTab(kFALSE);
+
+  gROOT->ProcessLine(".L SplitGLView.C+");
   browser->ExecPlugin("SplitGLView", 0, "new SplitGLView(gClient->GetRoot(), 600, 450, kTRUE)");
+
+  browser->ShowCloseTab(kTRUE);
 
   if (gRPhiMgr) {
     TEveProjectionAxes* a = new TEveProjectionAxes(gRPhiMgr);
@@ -81,8 +85,6 @@ void visscan_init()
   TEveUtil::LoadMacro("tof_clusters.C+");
 
   // TEveLine::SetDefaultSmooth(1);
-
-  TEveBrowser* browser = gEve->GetBrowser();
 
   browser->StartEmbedding(TRootBrowser::kBottom);
   new AliEveEventManagerWindow(AliEveEventManager::GetMaster());
