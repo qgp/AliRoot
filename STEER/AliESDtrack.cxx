@@ -437,7 +437,8 @@ AliESDtrack::AliESDtrack(const AliVTrack *track) :
 
   // AliESD track label
   SetLabel(track->GetLabel());
-
+  // Set the status
+  SetStatus(track->GetStatus());
 }
 
 //_______________________________________________________________________
