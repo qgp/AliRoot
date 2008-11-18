@@ -359,7 +359,7 @@ void AliEveTRDTrackListEditor::NewMacros()
   // thanks to Jacek Otwinowski<J.Otwinowski@GSI.DE> for this suggestion
 
   AliEveTRDMacroWizzard *wizz = new AliEveTRDMacroWizzard();
-  wizz->Connect("Done(Char_t*)", "AliEveTRDTrackListEditor", this, "AddMacro(Char_t*)");
+  wizz->Connect("Create(Char_t*)", "AliEveTRDTrackListEditor", this, "AddMacro(Char_t*)");
 }
 
 
@@ -1189,7 +1189,7 @@ AliEveTRDMacroWizzard::AliEveTRDMacroWizzard(const TGWindow* p)
   fCombo->Connect("Selected(Int_t)", "AliEveTRDMacroWizzard", this, "Create(Int_t)");
 }  
 
-Char_t *fIncludes = 
+const Char_t *fIncludes = 
 "#if !defined(__CINT__) || defined(__MAKECINT__)\n"
 "#include <TROOT.h>\n"
 "#include <TH1.h>\n"
@@ -1199,7 +1199,7 @@ Char_t *fIncludes =
 "#include <TRD/AliTRDtrackV1.h>\n"
 "#endif\n";
 
-Char_t *fMacroTemplate[7] = {
+const Char_t *fMacroTemplate[7] = {
 ""
 ,"  if (!track) return kFALSE;\n"
 
@@ -1285,6 +1285,14 @@ void AliEveTRDMacroWizzard::Create(Int_t typ)
   fprintf(fp, "{\n%s\n", fMacroTemplate[typ]);
   fprintf(fp, "// add your own code here\n\n\n}\n");
   fclose(fp);
-  Done(Form("%s.C", name));
+
+  Emit("Create(Int_t)", typ);
+  Create((Char_t*)name);
   CloseWindow();
+}
+
+//______________________________________________________
+void AliEveTRDMacroWizzard::Create(Char_t *name)
+{
+  Emit("Create(Char_t*)", Form("%s.C", name));
 }

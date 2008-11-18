@@ -18,18 +18,23 @@
 #include <TEveQuadSet.h>
 
 class AliT0digit;
+class AliRawReader;
 class AliT0RawReader;
 class TTree;
 
 class AliEveT0Module : public TEveQuadSet
 {
 public:
-  AliEveT0Module(const Text_t* n="AliEveT0Module", Int_t sigType=0, AliT0digit *digits=0,AliT0RawReader *start=0);
+  AliEveT0Module(const Text_t* n="AliEveT0Module", Int_t sigType=0,
+		 AliT0digit *digits=0, AliT0RawReader *start=0,
+		 Double_t zvertex=0);
   virtual ~AliEveT0Module() {}
 
   virtual void DigitSelected(Int_t idx);
 
-  void LoadRaw(TString fileName, Int_t ievt);
+  void PrintEventInfo(); // *MENU*
+
+  static void LoadRaw(AliRawReader* reader);
 
   static void MakeModules(AliT0digit *digits);
 
@@ -37,6 +42,8 @@ protected:
   Int_t           fSigType; // 0 ~ ADC, 1 ~ TDC
   AliT0digit     *fDigits;  // Digits.
   AliT0RawReader *fStart;   // Reader.
+
+  Double_t        fZVertex; // Reconstructed vertex position.
 
 private:
   AliEveT0Module(const AliEveT0Module&);
