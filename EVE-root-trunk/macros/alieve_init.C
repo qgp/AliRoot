@@ -7,11 +7,6 @@
  * full copyright notice.                                                 *
  **************************************************************************/
 
-#ifndef __CINT_
-#include <list>
-#include <string>
-#endif
-
 void alieve_init(const Text_t* path   = ".", Int_t event=0,
                  const Text_t* esdfile = 0,
                  const Text_t* aodfile = 0,
@@ -62,8 +57,8 @@ void alieve_init_import_macros()
   if (dirhandle != 0)
   {
     char* filename;
-    TPRegexp re("\.C$");
-    std::list<string> names;
+    TPMERegexp re("\\.C$");
+    std::list<string> names; // This form understood by cint (fails with std::string).
     while ((filename = gSystem->GetDirEntry(dirhandle)) != 0)
     {
       if (re.Match(filename))
