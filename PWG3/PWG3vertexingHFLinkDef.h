@@ -13,6 +13,7 @@
 #pragma link C++ class AliAnalysisTaskVertexingHF+;
 #pragma link C++ class AliAnalysisTaskSEVertexingHF+;
 #pragma link C++ class AliAnalysisTaskSESelectHF+;
+#pragma link C++ class AliAnalysisTaskSECompareHF+;
 
 #endif
 
