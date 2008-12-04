@@ -936,15 +936,15 @@ Bool_t AliReconstruction::InitGRP() {
   // Process the list of active detectors
   if (activeDetectors) {
     UInt_t detMask = activeDetectors;
+    fRunLocalReconstruction = MatchDetectorList(fRunLocalReconstruction,detMask);
+    fRunTracking = MatchDetectorList(fRunTracking,detMask);
+    fFillESD = MatchDetectorList(fFillESD,detMask);
+    fQADetectors = MatchDetectorList(fQADetectors,detMask);
     fLoadCDB.Form("%s %s %s %s",
 		  fRunLocalReconstruction.Data(),
 		  fRunTracking.Data(),
 		  fFillESD.Data(),
 		  fQADetectors.Data());
-    fRunLocalReconstruction = MatchDetectorList(fRunLocalReconstruction,detMask);
-    fRunTracking = MatchDetectorList(fRunTracking,detMask);
-    fFillESD = MatchDetectorList(fFillESD,detMask);
-    fQADetectors = MatchDetectorList(fQADetectors,detMask);
     fLoadCDB = MatchDetectorList(fLoadCDB,detMask);
     if (!((detMask >> AliDAQ::DetectorID("ITSSPD")) & 0x1)) {
       // switch off the vertexer
@@ -1347,13 +1347,23 @@ void AliReconstruction::SlaveBegin(TTree*)
   ftree = new TTree("esdTree", "Tree with ESD objects");
   fesd = new AliESDEvent();
   fesd->CreateStdContent();
+
+  fesd->WriteToTree(ftree);
   if (fWriteESDfriend) {
+    // careful:
+    // Since we add the branch manually we must 
+    // book and add it after WriteToTree
+    // otherwise it is created twice,
+    // once via writetotree and once here.
+    // The case for AliESDfriend is now 
+    // caught also in AlIESDEvent::WriteToTree but 
+    // be careful when changing the name (AliESDfriend is not 
+    // a TNamed so we had to hardwire it)
     fesdf = new AliESDfriend();
     TBranch *br=ftree->Branch("ESDfriend.","AliESDfriend", &fesdf);
     br->SetFile("AliESDfriends.root");
     fesd->AddObject(fesdf);
   }
-  fesd->WriteToTree(ftree);
   ftree->GetUserInfo()->Add(fesd);
 
   fhlttree = new TTree("HLTesdTree", "Tree with HLT ESD objects");
@@ -1618,7 +1628,7 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
     UShort_t *selectedIdx=new UShort_t[ntracks];
 
     for (Int_t itrack=0; itrack<ntracks; itrack++){
-      const Double_t kMaxStep = 5;   //max step over the material
+      const Double_t kMaxStep = 1;   //max step over the material
       Bool_t ok;
 
       AliESDtrack *track = fesd->GetTrack(itrack);
