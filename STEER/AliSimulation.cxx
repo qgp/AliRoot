@@ -1945,6 +1945,10 @@ void AliSimulation::WriteGRPEntry()
       nDets++;
     }
   }
+  // CTP
+  if (!fMakeTrigger.IsNull() || strcmp(gAlice->GetTriggerDescriptor(),""))
+    detectorPattern |= (1 << AliDAQ::DetectorID("TRG"));
+
   // HLT
   if (!fRunHLT.IsNull())
     detectorPattern |= (1 << AliDAQ::kHLTId);
@@ -1983,7 +1987,7 @@ void AliSimulation::WriteGRPEntry()
   // Now store the entry in OCDB
   AliCDBManager* man = AliCDBManager::Instance();
 
-  AliCDBId id("GRP/GRP/Data", man->GetRun(), man->GetRun());
+  AliCDBId id("GRP/GRP/Data", man->GetRun(), man->GetRun(), 1, 1);
   AliCDBMetaData *metadata= new AliCDBMetaData();
 
   metadata->SetResponsible("alice-off@cern.ch");
