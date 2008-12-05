@@ -327,6 +327,9 @@ void AliT0Reconstructor::Reconstruct(AliRawReader* rawReader, TTree*recTree) con
        
        Float_t time[24], adc[24];
        for (Int_t ipmt=0; ipmt<24; ipmt++) {
+	 time[ipmt] = 0; //PH initialize whatever is done later
+	 adc[ipmt]  = 0;
+
 	 if(timeCFD[ipmt]>0 && timeLED[ipmt]>0){
 	   //for simulated data
 	   if(option == "pdc"){
