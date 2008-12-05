@@ -314,8 +314,8 @@ void Config()
     //
     //gener->SetVertexSmear(perTrack); 
     // Field (L3 0.5 T)
-    AliMagFMaps* field = new AliMagFMaps("Maps","Maps", 2, 1., 10., 2);
-    field->SetL3ConstField(1); //Using const. field in the barrel if 0
+    AliMagWrapCheb* field = new AliMagWrapCheb("Maps","Maps", 2, 1., 10., AliMagWrapCheb::k5kG);
+
     gAlice->SetField(field);    
 
 
