@@ -20,9 +20,9 @@ class AliTRDcluster : public AliCluster {
   enum { kInChamber = BIT(14)
        , kShared    = BIT(15)
   };
-  enum { kMaskedLeft = BIT(0)
-      , kMaskedCenter= BIT(1)
-      , kMaskedRight = BIT(2)
+  enum { kMaskedLeft = 0
+      , kMaskedCenter= 1
+      , kMaskedRight = 2
   };
 
   AliTRDcluster();

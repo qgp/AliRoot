@@ -824,6 +824,8 @@ Bool_t AliTRDclusterizer::MakeClusters(Int_t det)
   UChar_t status[3]={0, 0, 0}, ipos = 0;
   fIndexesOut->ResetCounters();
   while (fIndexesOut->NextRCTbinIndex(row, col, time)) {
+    // reset pad status
+    ipos = 0; for(Int_t is=3; is--;) status[is] = 0;
 
     Float_t signalM = TMath::Abs(digitsOut->GetDataUnchecked(row,col,time));
     status[1] = digitsIn->GetPadStatus(row,col,time);
