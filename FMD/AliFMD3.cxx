@@ -46,7 +46,8 @@ ClassImp(AliFMD3)
 //____________________________________________________________________
 AliFMD3::AliFMD3(AliFMDRing* inner, AliFMDRing* outer) 
   : AliFMDDetector(3, inner, outer),
-    fNoseZ(16.54667),    // From drawing
+    // fNoseZ(16.54667)
+    fNoseZ(18.13 - inner->GetModuleDepth()-inner->GetModuleSpacing()/2),    // From drawing
     fFlangeDepth(0),
     fFlangeHighR(49.25), // From drawing 
     fFlangeLength(0),
@@ -54,22 +55,23 @@ AliFMD3::AliFMD3(AliFMDRing* inner, AliFMDRing* outer)
     fFiducialRadius(.25),
     fConeInnerAngle(0),
     fConeOuterAngle(0),
-    fHoleOffset(7),      // From drawing
+    fHoleOffset(6.9),    // From drawing
     fHoleDepth(2),       // What's needed
-    fHoleLength(0),      
-    fHoleLowWidth(4),    // What's needed
-    fHoleHighWidth(18),  // What's needed
+    fHoleLength(31.2),   // From drawing
+    fHoleLowWidth(3), // 4),    // What's needed
+    fHoleHighWidth(18.5), // 17.5), // 18),  // What's needed
     fBoltLength(1),      // Guessed
     fBoltRadius(0.15),   // Estimate
     fConeRadii(6),    
     fFiducialHoles(4)
 {
   // Constructor. 
-  // SetInnerZ(-62.8);             // By design
-  // SetOuterZ(-75.2);             // By design
-  AliWarning("Z position of FMD3 rings may be off by 0.25cm!");
-  SetInnerZ(-63.05);             // Slightly off (2.5mm) from design
-  SetOuterZ(-75.45);             // Slightly off (2.5mm) from design
+  Double_t off = -0.39615-0.10185; // -0.25;
+  if (off != 0) 
+    AliWarning(Form("Z position of FMD3 rings may be off by %fcm!", off));
+
+  SetInnerZ(-62.8+off);             // By design
+  SetOuterZ(-75.2+off);             // By design
 
   SetInnerHoneyLowR(4.18207);   // From drawing
   SetInnerHoneyHighR(19.74922); // From drawing
@@ -110,9 +112,11 @@ AliFMD3::Init()
   fConeInnerAngle  = TMath::ATan2(v4.Z()-v1.Z(), v4.X()-v1.X());
   fConeOuterAngle  = TMath::ATan2(v3.Y()-v2.Y(), v3.X()-v2.X());
   
+#if 0
   Double_t    hz1  = -fHoleOffset+fInnerZ+fNoseZ;
   fHoleLength      = TMath::Sqrt(TMath::Power(v4.Z()-ConeR(hz1),2) + 
 				 TMath::Power(v4.X()-fHoleOffset,2));  
+#endif
 }
 
 //____________________________________________________________________
