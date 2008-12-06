@@ -28,6 +28,9 @@
 #include "AliHLTOUT.h"
 #include "AliHLTOUTHandlerChain.h"
 #include "AliRunLoader.h"
+#include "AliCDBManager.h"
+#include "AliCDBEntry.h"
+#include "AliTPCParam.h"
 
 /** global instance for agent registration */
 AliHLTTPCAgent gAliHLTTPCAgent;
@@ -62,7 +65,7 @@ AliHLTTPCAgent gAliHLTTPCAgent;
 #include "AliHLTTPCNoiseMapComponent.h"
 #include "AliHLTTPCHistogramHandlerComponent.h"
 #include "AliHLTTPCCalibTracksComponent.h"
-
+#include "AliHLTTPCHWCFDataReverterComponent.h"
 
 /** ROOT macro for the implementation of ROOT specific class methods */
 ClassImp(AliHLTTPCAgent)
@@ -91,6 +94,18 @@ int AliHLTTPCAgent::CreateConfigurations(AliHLTConfigurationHandler* handler,
 {
   // see header file for class documentation
   if (handler) {
+    const char* cdbEntry="TPC/Calib/Parameters";
+    AliCDBManager* pMan=AliCDBManager::Instance();
+    AliTPCParam* pTPCParam=NULL;
+    if (pMan) {
+      AliCDBEntry *pEntry = pMan->Get(cdbEntry);
+      if (pEntry && 
+	  pEntry->GetObject() &&
+	  (pTPCParam=dynamic_cast<AliTPCParam*>(pEntry->GetObject()))) {
+      } else {
+	HLTWarning("can not load AliTPCParam from CDB entry %s", cdbEntry);
+      }
+    }
 
     // This the tracking configuration for the full TPC
     // - 216 clusterfinders (1 per partition)
@@ -103,6 +118,7 @@ int AliHLTTPCAgent::CreateConfigurations(AliHLTConfigurationHandler* handler,
     int iMinPart=0;
     int iMaxPart=5;
     TString mergerInput;
+    TString sinkClusterInput;
     for (int slice=iMinSlice; slice<=iMaxSlice; slice++) {
       TString trackerInput;
       for (int part=iMinPart; part<=iMaxPart; part++) {
@@ -123,13 +139,20 @@ int AliHLTTPCAgent::CreateConfigurations(AliHLTConfigurationHandler* handler,
 
 	// cluster finder components
 	cf.Form("TPC-CF_%02d_%d", slice, part);
+	arg="";
+	if (pTPCParam) {
+	  arg+=" -timebins "; arg+=pTPCParam->GetMaxTBin()+1;
+	}
 	if (!rawReader) {
-	  handler->CreateConfiguration(cf.Data(), "TPCClusterFinderUnpacked", publisher.Data(), "-timebins 446 -sorted");
+	  arg+=" -sorted";
+	  handler->CreateConfiguration(cf.Data(), "TPCClusterFinderUnpacked", publisher.Data(), arg.Data());
 	} else {
-	  handler->CreateConfiguration(cf.Data(), "TPCClusterFinderDecoder", publisher.Data(), "-timebins 446");
+	  handler->CreateConfiguration(cf.Data(), "TPCClusterFinderDecoder", publisher.Data(), arg.Data());
 	}
 	if (trackerInput.Length()>0) trackerInput+=" ";
 	trackerInput+=cf;
+	if (sinkClusterInput.Length()>0) sinkClusterInput+=" ";
+	sinkClusterInput+=cf;
       }
       TString tracker;
       // tracker finder components
@@ -146,6 +169,9 @@ int AliHLTTPCAgent::CreateConfigurations(AliHLTConfigurationHandler* handler,
 
     // the esd converter configuration
     handler->CreateConfiguration("TPC-esd-converter", "TPCEsdConverter"   , "TPC-globalmerger", "");
+
+    // cluster dump collection
+    handler->CreateConfiguration("TPC-clusters", "BlockFilter"   , sinkClusterInput.Data(), "-datatype 'CLUSTERS' 'TPC '");
 
     /////////////////////////////////////////////////////////////////////////////////////
     //
@@ -184,7 +210,7 @@ const char* AliHLTTPCAgent::GetReconstructionChains(AliRawReader* /*rawReader*/,
     // Note: run loader is only available while running embedded into
     // AliRoot simulation
     if (runloader->GetLoader("TPCLoader") != NULL)
-      return "TPC-esd-converter";
+      return "TPC-esd-converter TPC-clusters";
   }
   return NULL;
 }
@@ -236,7 +262,8 @@ int AliHLTTPCAgent::RegisterComponents(AliHLTComponentHandler* pHandler) const
   pHandler->AddComponent(new AliHLTTPCNoiseMapComponent);
   pHandler->AddComponent(new AliHLTTPCHistogramHandlerComponent);
   pHandler->AddComponent(new AliHLTTPCCalibTracksComponent);
-  
+  pHandler->AddComponent(new AliHLTTPCHWCFDataReverterComponent);
+
   return 0;
 }
 
@@ -261,6 +288,12 @@ int AliHLTTPCAgent::GetHandlerDescription(AliHLTComponentDataType dt,
 		 part, AliHLTTPCDefinitions::GetMaxPatchNr(spec));
       return 0;
     }
+  }
+
+  // dump for {'CLUSTERS':'TPC '} currently not used any more
+  if (dt==AliHLTTPCDefinitions::fgkClustersDataType) {
+      desc=AliHLTOUTHandlerDesc(kProprietary, dt, GetModuleId());
+      return 1;
   }
 
   // afterburner for {'TRAKSEGS':'TPC '} blocks to be converted to ESD format

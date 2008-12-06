@@ -69,6 +69,11 @@ AliHLTTPCClusterFinderComponent::AliHLTTPCClusterFinderComponent(int mode)
   // refer to README to build package
   // or
   // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
+  if (fModeSwitch!=kClusterFinderPacked &&
+      fModeSwitch!=kClusterFinderUnpacked &&
+      fModeSwitch!=kClusterFinderDecoder) {
+    HLTFatal("unknown digit reader type");
+  }
 }
 
 AliHLTTPCClusterFinderComponent::~AliHLTTPCClusterFinderComponent()
@@ -86,14 +91,10 @@ const char* AliHLTTPCClusterFinderComponent::GetComponentID()
   case kClusterFinderPacked:
     return "TPCClusterFinderPacked";
     break;
-  case kClusterFinderUnpacked:
-    return "TPCClusterFinderUnpacked";
-    break;
   case kClusterFinderDecoder:
     return "TPCClusterFinderDecoder";
     break;
   }
-  HLTFatal("unknown digit reader type");
   return "";
 }
 
@@ -104,9 +105,6 @@ void AliHLTTPCClusterFinderComponent::GetInputDataTypes( vector<AliHLTComponentD
   switch(fModeSwitch){
   case kClusterFinderPacked:
     list.push_back( kAliHLTDataTypeDDLRaw | kAliHLTDataOriginTPC );
-    break;
-  case kClusterFinderUnpacked:
-    list.push_back( AliHLTTPCDefinitions::fgkUnpackedRawDataType );
     break;
   case kClusterFinderDecoder:
     list.push_back( kAliHLTDataTypeDDLRaw | kAliHLTDataOriginTPC );
@@ -162,23 +160,12 @@ int AliHLTTPCClusterFinderComponent::DoInit( int argc, const char** argv )
 
   fClusterFinder = new AliHLTTPCClusterFinder();
 
-  //  Int_t sigthresh = -1;
-  //  Double_t sigmathresh= -1;
   Float_t occulimit = 1.0;
-  //  Int_t oldRCUFormat=0;
-  // Data Format version numbers:
-  // 0: RCU Data format as delivered during TPC commissioning, pads/padrows are sorted, RCU trailer is one 32 bit word.
-  // 1: As 0, but pads/padrows are delivered "as is", without sorting
-  // 2: As 0, but RCU trailer is 3 32 bit words.
-  // 3: As 1, but RCU trailer is 3 32 bit words.
-  // -1: use offline raw reader
 
   Int_t i = 0;
   Char_t* cpErr;
 
   while ( i < argc ) {      
-
-
 
     // -- deconvolute-time option
     if ( !strcmp( argv[i], "-deconvolute-time" ) ) {
@@ -284,7 +271,6 @@ int AliHLTTPCClusterFinderComponent::DoInit( int argc, const char** argv )
       continue;
     }
 
-
     // -- raw reader mode option
     if ( !strcmp( argv[i], "rawreadermode" ) ) {
       if ( argc <= i+1 ) {
@@ -297,7 +283,6 @@ int AliHLTTPCClusterFinderComponent::DoInit( int argc, const char** argv )
       i += 2;
       continue;
     }
-
 
     // -- pp-run option
     if ( !strcmp( argv[i], "pp-run") ) {
@@ -318,7 +303,6 @@ int AliHLTTPCClusterFinderComponent::DoInit( int argc, const char** argv )
       i+=2;
       continue;
     }
-
 
     // -- checking for rcu format
     if ( !strcmp( argv[i], "oldrcuformat" ) ) {
@@ -379,23 +363,8 @@ int AliHLTTPCClusterFinderComponent::DoInit( int argc, const char** argv )
   if (fModeSwitch==kClusterFinderPacked) {
       HLTDebug("using AliHLTTPCDigitReaderPacked");
       fReader = new AliHLTTPCDigitReaderPacked();
-      /*
-	if(oldRCUFormat==1){
-	fReader->SetOldRCUFormat(kTRUE);
-	}
-	else if(oldRCUFormat!=0){
-	HLTWarning("Wrong oldrcuformat specifier %d; oldrcuformat set to default(kFALSE)",oldRCUFormat);
-	}
-      */
-      if(fUnsorted==1){
-	fReader->SetUnsorted(kTRUE);
-      }
+      if(fUnsorted==1){	fReader->SetUnsorted(kTRUE); }
       fClusterFinder->SetReader(fReader);
-  }
-  else if(fModeSwitch==kClusterFinderUnpacked){
-    HLTDebug("using AliHLTTPCDigitReaderUnpacked");
-    fReader = new AliHLTTPCDigitReaderUnpacked();
-    fClusterFinder->SetReader(fReader);
   }
   else if(fModeSwitch==kClusterFinderDecoder){
     HLTDebug("using AliHLTTPCDigitReaderDecoder");
@@ -420,8 +389,6 @@ int AliHLTTPCClusterFinderComponent::DoInit( int argc, const char** argv )
   if ( (fXYClusterError>0) && (fZClusterError>0) ){
     fClusterFinder->SetCalcErr( false );
   }
-  //  fClusterFinder->SetSignalThreshold(sigthresh);
-  //  fClusterFinder->SetNSigmaThreshold(sigmathresh);
 
   if(fFirstTimeBin>0){
     fClusterFinder->SetFirstTimeBin(fFirstTimeBin);
@@ -456,6 +423,12 @@ int AliHLTTPCClusterFinderComponent::DoEvent( const AliHLTComponentEventData& ev
 {
   // see header file for class documentation
 
+  if(fReader == NULL){
+    HLTFatal("Digit reader not initialized, aborting event.");
+    size=0;
+    return 0;    
+  }
+
   if(GetFirstInputBlock( kAliHLTDataTypeSOR ) || GetFirstInputBlock( kAliHLTDataTypeEOR )){
     size=0;
     return 0;
@@ -474,7 +447,7 @@ int AliHLTTPCClusterFinderComponent::DoEvent( const AliHLTComponentEventData& ev
   outBPtr = outputPtr;
   outPtr = (AliHLTTPCClusterData*)outBPtr;
 
-  Int_t slice, patch, row[2];
+  Int_t slice, patch;
   unsigned long maxPoints, realPoints = 0;
 
   for ( ndx = 0; ndx < evtData.fBlockCnt; ndx++ )
@@ -513,9 +486,6 @@ int AliHLTTPCClusterFinderComponent::DoEvent( const AliHLTComponentEventData& ev
 
       slice = AliHLTTPCDefinitions::GetMinSliceNr( *iter );
       patch = AliHLTTPCDefinitions::GetMinPatchNr( *iter );
-      row[0] = AliHLTTPCTransform::GetFirstRow( patch );
-      row[1] = AliHLTTPCTransform::GetLastRow( patch );
-
 
       if(fUnsorted){
 	fClusterFinder->SetUnsorted(fUnsorted);
@@ -526,14 +496,13 @@ int AliHLTTPCClusterFinderComponent::DoEvent( const AliHLTComponentEventData& ev
 
       maxPoints = (size-tSize-sizeof(AliHLTTPCClusterData))/sizeof(AliHLTTPCSpacePointData);
 
-      fClusterFinder->InitSlice( slice, patch, row[0], row[1], maxPoints );
+      fClusterFinder->InitSlice( slice, patch, maxPoints );
       fClusterFinder->SetOutputArray( (AliHLTTPCSpacePointData*)outPtr->fSpacePoints );
 	
       if(fUnsorted){
       	if(fGetActivePads){
 	  fClusterFinder->SetDoPadSelection(kTRUE);
-	}
-	
+	}	
 	if(fDeconvTime){
 	  fClusterFinder->ReadDataUnsortedDeconvoluteTime(iter->fPtr, iter->fSize);
 	}
@@ -547,6 +516,7 @@ int AliHLTTPCClusterFinderComponent::DoEvent( const AliHLTComponentEventData& ev
 	fClusterFinder->Read(iter->fPtr, iter->fSize );
 	fClusterFinder->ProcessDigits();
       }
+
       realPoints = fClusterFinder->GetNumberOfClusters();
 	
       outPtr->fSpacePointCnt = realPoints;
@@ -555,14 +525,13 @@ int AliHLTTPCClusterFinderComponent::DoEvent( const AliHLTComponentEventData& ev
 
       Logging( kHLTLogDebug, "HLT::TPCClusterFinder::DoEvent", "Spacepoints", 
 	       "Number of spacepoints: %lu Slice/Patch/RowMin/RowMax: %d/%d/%d/%d.",
-	       realPoints, slice, patch, row[0], row[1] );
+	       realPoints, slice, patch,AliHLTTPCTransform::GetFirstRow( patch ) , AliHLTTPCTransform::GetLastRow( patch ) );
       AliHLTComponentBlockData bd;
       FillBlockData( bd );
       bd.fOffset = offset;
       bd.fSize = mysize;
       bd.fSpecification = iter->fSpecification;
       bd.fDataType = AliHLTTPCDefinitions::fgkClustersDataType;
-      //AliHLTSubEventDescriptor::FillBlockAttributes( bd.fAttributes );
       outputBlocks.push_back( bd );
 	
       tSize += mysize;
