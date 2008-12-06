@@ -25,7 +25,9 @@
 #include <TEveLine.h>
 
 
+#ifndef ALITRDDATAARRAYI_H
 #include "AliTRDdataArrayI.h"
+#endif
 
 class AliEveTRDChamber;
 class AliEveTRDHits : public TEvePointSet
@@ -80,8 +82,10 @@ class AliEveTRDClusters : public AliEveTRDHits
 public:
   AliEveTRDClusters();
 
+  void Load(Char_t *what="all", Bool_t stkwise=kTRUE) const; // *MENU*
   void PointSelected(Int_t n);
   void Print(Option_t *o = "") const; // *MENU*
+
 private:
   AliEveTRDClusters(const AliEveTRDClusters&);            // Not implemented
   AliEveTRDClusters& operator=(const AliEveTRDClusters&); // Not implemented
@@ -111,6 +115,7 @@ private:
 
 class AliTrackPoint;
 class AliTRDtrackV1;
+class AliRieman;
 class AliEveTRDTrack : public TEveLine
 {
 public:
@@ -129,6 +134,7 @@ public:
   AliEveTRDTrack(AliTRDtrackV1 *trk);
   virtual ~AliEveTRDTrack();
   //AliEveTRDTracklet*  GetTracklet(Int_t plane) const {return plane <6 && plane >= 0 ? fTracklet[plane] : 0x0;}
+  void    Print(Option_t *opt="a") const; // *MENU*
   void    SetStatus(UChar_t s);
   void    SetESDstatus(ULong_t stat) {fESDStatus = stat;} 
 private:
@@ -138,8 +144,8 @@ private:
   UChar_t        fTrackState;   // bit map for the track drawing state
   ULong_t        fESDStatus;    // ESD status bit for this track
   Float_t        fAlpha;        // sector angle for this track  
-  AliTrackPoint* fPoints;       // track crossing points
-
+  AliTrackPoint *fPoints;       // track crossing points
+  AliRieman     *fRim;          // rieman fitter
   ClassDef(AliEveTRDTrack, 0);  // TRD track visualisation
 };
 

@@ -9,14 +9,21 @@
 
 #include "TVector.h"
 #include "TLinearFitter.h"
+
 #include "TEveTrans.h"
+#include "TEveManager.h"
+
+#include "EveBase/AliEveEventManager.h"
 
 #include "AliEveTRDData.h"
 #include "AliEveTRDModuleImp.h"
+#include "AliEveTRDLoader.h"
+#include "AliEveTRDLoaderImp.h"
 
 #include "AliLog.h"
 #include "AliPID.h"
 #include "AliTrackPointArray.h"
+#include "AliRieman.h"
 
 #include "AliTRDhit.h"
 #include "AliTRDcluster.h"
@@ -180,7 +187,7 @@ AliEveTRDHits::AliEveTRDHits() : TEvePointSet("hits", 20)
 {
   // Constructor.
   SetMarkerSize(.1);
-  SetMarkerColor(2);
+  SetMarkerColor(kGreen);
   SetOwnIds(kTRUE);
 }
 
@@ -255,6 +262,76 @@ void AliEveTRDClusters::Print(Option_t *o) const
   }
 }
 
+//______________________________________________________________________________
+void AliEveTRDClusters::Load(Char_t *w, Bool_t stk) const
+{
+  Int_t typ = -1;
+  if(strcmp(w, "hit")==0) typ = 0;
+  else if(strcmp(w, "dig")==0) typ = 1;
+  else if(strcmp(w, "cls")==0) typ = 2;
+  else if(strcmp(w, "all")==0) typ = 3;
+  else{
+    AliInfo("The following arguments are accepted:");
+    AliInfo("   \"hit\" : loading of MC hits");
+    AliInfo("   \"dig\" : loading of digits");
+    AliInfo("   \"cls\" : loading of reconstructed clusters");
+    AliInfo("   \"all\" : loading of MC hits+digits+clusters");
+    return;
+  }
+
+  AliTRDcluster *c = 0x0;
+  Int_t n = 0;
+  while((n = GetN() && !(c = dynamic_cast<AliTRDcluster*>(GetPointId(n))))) n++;
+  if(!c) return;
+
+  Int_t det = c->GetDetector();
+  AliEveTRDLoader *loader = 0x0;
+  switch(typ){
+  case 0:  
+    loader = new AliEveTRDLoader("Hits");
+    if(!loader->Open("TRD.Hits.root")){ 
+      delete loader;
+      return;
+    }
+    loader->SetDataType(AliEveTRDLoader::kTRDHits);
+    break;
+  case 1:
+    loader = new AliEveTRDLoader("Digits");
+    if(!loader->Open("TRD.Digits.root")){ 
+      delete loader;
+      return;
+    }
+    loader->SetDataType(AliEveTRDLoader::kTRDDigits);
+    break;
+  case 2:
+    loader = new AliEveTRDLoader("Clusters");
+    if(!loader->Open("TRD.RecPoints.root")){ 
+      delete loader;
+      return;
+    }
+    loader->SetDataType(AliEveTRDLoader::kTRDClusters);
+    break;
+  case 3:
+    loader = new AliEveTRDLoaderSim("MC");
+    if(!loader->Open("galice.root")){ 
+      delete loader;
+      return;
+    }
+    loader->SetDataType(AliEveTRDLoader::kTRDHits | AliEveTRDLoader::kTRDDigits | AliEveTRDLoader::kTRDClusters);
+    break;
+  default: return;
+  }
+
+  loader->AddChambers(AliTRDgeometry::GetSector(det),AliTRDgeometry::GetStack(det), stk ? -1 : AliTRDgeometry::GetLayer(det));
+  // load first event
+  loader->GoToEvent(AliEveEventManager::GetCurrent()->GetEventId());
+  
+  // register loader with alieve
+  gEve->AddElement(loader);
+  //loader->SpawnEditor();
+  gEve->Redraw3D();
+}
+
 ///////////////////////////////////////////////////////////
 /////////////   AliEveTRDTracklet         /////////////////////
 ///////////////////////////////////////////////////////////
@@ -267,46 +344,60 @@ AliEveTRDTracklet::AliEveTRDTracklet(AliTRDseedV1 *trklt):TEveLine()
   SetName("tracklet");
   
   SetUserData(trklt);
-  Int_t det = -1, sec;
+  Float_t dx;
+  Float_t x0   = trklt->GetX0();
+  Float_t y0   = trklt->GetYref(0);
+  Float_t z0   = trklt->GetZref(0);
+  Float_t dydx = trklt->GetYref(1);
+  Float_t dzdx = trklt->GetZref(1);
+  Float_t tilt = trklt->GetTilt();
   Float_t g[3];
   AliTRDcluster *c = 0x0;
   for(Int_t ic=0; ic<AliTRDseed::knTimebins; ic++){
     if(!(c = trklt->GetClusters(ic))) continue;
     if(!fClusters) AddElement(fClusters = new AliEveTRDClusters());
-    det = c->GetDetector();
+    dx = x0 - c->GetX();
+    //Float_t yt = y0 - dx*dydx;
+    Float_t zt = z0 - dx*dzdx;
+    // backup yc - for testing purposes
+    Float_t yc = c->GetY(); 
+    c->SetY(yc-tilt*(c->GetZ()-zt));
     c->GetGlobalXYZ(g); 
     Int_t id = fClusters->SetNextPoint(g[0], g[1], g[2]);    
     //Int_t id = fClusters->SetNextPoint(c->GetX(), c->GetY(), c->GetZ());    
+    c->SetY(yc);
     fClusters->SetPointId(id, new AliTRDcluster(*c));
   } 
-  if(fClusters) fClusters->SetTitle(Form("N[%d]", trklt->GetN2()));
+  if(fClusters){
+    fClusters->SetTitle(Form("N[%d]", trklt->GetN2()));
+    fClusters->SetMarkerColor(kMagenta);
+  }
 
-
-  SetTitle(Form("Det[%d] Plane[%d] P[%7.3f]", det, trklt->GetPlane(), trklt->GetMomentum()));
+  SetTitle(Form("Det[%d] Plane[%d] P[%7.3f]", trklt->GetDetector(), trklt->GetPlane(), trklt->GetMomentum()));
   SetLineColor(kRed);
   //SetOwnIds(kTRUE);
   
-  sec = det/30;
+  // init tracklet line
+  Int_t sec = AliTRDgeometry::GetSector(trklt->GetDetector());
   Double_t alpha = AliTRDgeometry::GetAlpha() * (sec<9 ? sec + .5 : sec - 17.5); 
-  Double_t x0 = trklt->GetX0(), 
-    y0f = trklt->GetYfit(0), 
-    ysf = trklt->GetYfit(1),
-    z0r = trklt->GetZref(0), 
-    zsr = trklt->GetZref(1);
-  Double_t xg =  x0 * TMath::Cos(alpha) - y0f * TMath::Sin(alpha); 
-  Double_t yg = x0 * TMath::Sin(alpha) + y0f * TMath::Cos(alpha);
-  SetPoint(0, xg, yg, z0r);
-  //SetPoint(0, x0, y0f, z0r);
+
+  trklt->Fit(kTRUE);
+  y0   = trklt->GetYfit(0);
+  dydx = trklt->GetYfit(1);
+  Double_t xg =  x0 * TMath::Cos(alpha) - y0 * TMath::Sin(alpha); 
+  Double_t yg = x0 * TMath::Sin(alpha) + y0 * TMath::Cos(alpha);
+  SetPoint(0, xg, yg, z0); 
+  //SetPoint(0, x0, y0, z0);
 
 
-  //SetPointId(0, new AliTRDseedV1(*trackletObj));
-  Double_t x1 = x0-3.5, 
-    y1f = y0f - ysf*3.5,
-    z1r = z0r - zsr*3.5; 
-  xg =  x1 * TMath::Cos(alpha) - y1f * TMath::Sin(alpha); 
-  yg = x1 * TMath::Sin(alpha) + y1f * TMath::Cos(alpha);
-  SetPoint(1, xg, yg, z1r);
-  //SetPoint(1, x1, y1f, z1r);
+  dx = .5*AliTRDgeometry::CamHght()+AliTRDgeometry::CdrHght();
+  x0 -= dx; 
+  y0 -= dydx*dx,
+  z0 -= dzdx*dx; 
+  xg = x0 * TMath::Cos(alpha) - y0 * TMath::Sin(alpha); 
+  yg = x0 * TMath::Sin(alpha) + y0 * TMath::Cos(alpha);
+  SetPoint(1, xg, yg, z0);
+  //SetPoint(1, x0, y0, z0);
 }
 
 //______________________________________________________________________________
@@ -328,6 +419,7 @@ AliEveTRDTrack::AliEveTRDTrack(AliTRDtrackV1 *trk)
   ,fESDStatus(0)
   ,fAlpha(0.)
   ,fPoints(0x0)
+  ,fRim(0x0)
 {
   // Constructor.
   SetUserData(trk);
@@ -335,13 +427,26 @@ AliEveTRDTrack::AliEveTRDTrack(AliTRDtrackV1 *trk)
 
   AliTRDtrackerV1::SetNTimeBins(24);
 
+
+  fRim = new AliRieman(trk->GetNumberOfClusters());
   AliTRDseedV1 *tracklet = 0x0;
   for(Int_t il=0; il<AliTRDgeometry::kNlayer; il++){
     if(!(tracklet = trk->GetTracklet(il))) continue;
     if(!tracklet->IsOK()) continue;
     AddElement(new AliEveTRDTracklet(tracklet));
-  }
 
+    AliTRDcluster *c = 0x0;
+    tracklet->ResetClusterIter(kFALSE);
+    while((c = tracklet->PrevCluster())){
+      Float_t xc = c->GetX();
+      Float_t yc = c->GetY();
+      Float_t zc = c->GetZ();
+      Float_t zt = tracklet->GetZref(0) - (tracklet->GetX0()-xc)*tracklet->GetZref(1); 
+      yc -= tracklet->GetTilt()*(zc-zt);
+      fRim->AddPoint(xc, yc, zc, 1, 10);
+    }
+  }
+  fRim->Update();
   SetStatus(fTrackState);
 }
 
@@ -352,6 +457,13 @@ AliEveTRDTrack::~AliEveTRDTrack()
   //delete dynamic_cast<AliTRDtrackV1*>(GetUserData());
 }
 
+//______________________________________________________________________________
+void AliEveTRDTrack::Print(Option_t *o) const
+{
+  AliTRDtrackV1 *track = (AliTRDtrackV1*)GetUserData();
+  if(!track) return;
+  track->Print(o);
+}
 
 //______________________________________________________________________________
 void AliEveTRDTrack::SetStatus(UChar_t s)
@@ -390,7 +502,12 @@ void AliEveTRDTrack::SetStatus(UChar_t s)
         if(trk->GetNumberOfTracklets() >=4) AliTRDtrackerV1::FitKalman(trk, 0x0, kFALSE, nc, fPoints);
       } else { 
         //printf("Rieman track\n");
-        if(trk->GetNumberOfTracklets() >=4) AliTRDtrackerV1::FitRiemanTilt(trk, 0x0, kTRUE, nc, fPoints);
+        // if(trk->GetNumberOfTracklets() >=4) AliTRDtrackerV1::FitRiemanTilt(trk, 0x0, kTRUE, nc, fPoints);
+        Float_t x = 0.;
+        for(Int_t ip = nc; ip--;){
+          x = fPoints[ip].GetX();
+          fPoints[ip].SetXYZ(x, fRim->GetYat(x), fRim->GetZat(x));
+        }
       }
     }
   
