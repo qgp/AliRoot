@@ -337,7 +337,7 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
 	
 	// Add the positive tracks from the V0
 	
-	if (posFromV0>-1 && !usedTrack[posFromV0]) {
+	if (posFromV0>-1 && posFromV0<nTracks && !usedTrack[posFromV0]) {
 	    
 	    usedTrack[posFromV0] = kTRUE;
 	    
@@ -383,7 +383,7 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
 	
 	// Add the negative tracks from the V0
 	
-	if (negFromV0>-1 && !usedTrack[negFromV0]) {
+	if (negFromV0>-1 && negFromV0<nTracks && !usedTrack[negFromV0]) {
 	    
 	    usedTrack[negFromV0] = kTRUE;
 	    
@@ -433,7 +433,7 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
 	
 	Int_t bachelor = cascade->GetBindex();
 	
-	if(bachelor>-1 && !usedTrack[bachelor]) {
+	if(bachelor>-1 && bachelor<nTracks && !usedTrack[bachelor]) {
 	    
 	    usedTrack[bachelor] = kTRUE;
 	    
@@ -700,7 +700,7 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
 			if (!selectInfo) continue;
 		    }
 		    
-		    if (!usedTrack[imother]) {
+		    if (imother>-1 && imother<nTracks && !usedTrack[imother]) {
 			
 			usedTrack[imother] = kTRUE;
 			
