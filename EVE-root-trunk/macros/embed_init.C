@@ -1,3 +1,6 @@
+TEveViewer *gSignalView     = 0;
+TEveViewer *gBackgroundView = 0;
+
 void embed_init()
 {
   TEveUtil::LoadMacro("alieve_init.C");
@@ -21,13 +24,31 @@ void embed_init()
 
   // ------------------------------------------------------------------------
 
-  TEveUtil::LoadMacro("SplitGLView.C+"); // Needed for dependencies.
+  TEveBrowser* browser = gEve->GetBrowser();
+
+  TEveWindowSlot *slot = 0;
+  TEveWindowPack *pack = 0;
+
+  slot = TEveWindow::CreateWindowInTab(browser->GetTabRight());
+  pack = slot->MakePack();
+  pack->SetElementName("Parallel View");
+  pack->SetHorizontal();
+  pack->SetShowTitleBar(kFALSE);
+
+  pack->NewSlot()->MakeCurrent();
+  gSignalView = gEve->SpawnNewViewer("Signal View", "");
+  gSignalView->AddScene(gEve->GetEventScene());
+
+  pack->NewSlot()->MakeCurrent();
+  gBackgroundView = gEve->SpawnNewViewer("Background View", "");
+  gBackgroundView->AddScene(bs);
+
+  // ------------------------------------------------------------------------
+
   TEveUtil::LoadMacro("its_clusters.C+");
   TEveUtil::LoadMacro("tpc_clusters.C+");
 
   // ------------------------------------------------------------------------
-
-  TEveBrowser* browser = gEve->GetBrowser();
 
   browser->StartEmbedding(TRootBrowser::kBottom);
   new AliEveEventManagerWindow(AliEveEventManager::GetMaster());
