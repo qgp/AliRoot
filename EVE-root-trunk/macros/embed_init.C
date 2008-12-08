@@ -17,7 +17,7 @@ void embed_init()
   TEveScene* bs = gEve->SpawnNewScene("Background");
   bs->AddElement(bkg);
 
-  gEve->GetDefViewer()->AddScene(bs);
+  gEve->GetDefaultViewer()->AddScene(bs);
 
   // ------------------------------------------------------------------------
 

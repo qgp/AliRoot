@@ -13,15 +13,26 @@ class TEveProjectionManager;
 class TEveGeoShape;
 class TEveUtil;
 
-R__EXTERN TEveProjectionManager *gRPhiMgr;
-R__EXTERN TEveProjectionManager *gRhoZMgr;
-
 TEveGeoShape *gGeomGentle     = 0;
 TEveGeoShape *gGeomGentleRPhi = 0;
 TEveGeoShape *gGeomGentleRhoZ = 0;
 TEveGeoShape *gGeomGentleTRD  = 0;
 
+TEveScene *gRPhiGeomScene  = 0;
+TEveScene *gRhoZGeomScene  = 0;
+TEveScene *gRPhiEventScene = 0;
+TEveScene *gRhoZEventScene = 0;
+
+TEveProjectionManager *gRPhiMgr = 0;
+TEveProjectionManager *gRhoZMgr = 0;
+
+TEveViewer *g3DView   = 0;
+TEveViewer *gRPhiView = 0;
+TEveViewer *gRhoZView = 0;
+
 Bool_t gShowTRD = kFALSE;
+
+Bool_t gCenterProjectionsAtPrimaryVertex = kFALSE;
 
 void anyscan_init()
 {
@@ -33,41 +44,15 @@ void anyscan_init()
   TEveUtil::AssertMacro("VizDB_scan.C");
 
 
-  AliEveTrackFitter* fitter = new AliEveTrackFitter();
-  gEve->AddToListTree(fitter, 1);
-  gEve->AddElement(fitter, gEve->GetEventScene());
-
-  AliEveTrackCounter* g_trkcnt = new AliEveTrackCounter("Primary Counter");
-  gEve->AddToListTree(g_trkcnt, kFALSE);
+  //==============================================================================
+  // Geometry, scenes, projections and viewers
+  //==============================================================================
 
   TEveBrowser* browser = gEve->GetBrowser();
   browser->ShowCloseTab(kFALSE);
 
-  gROOT->ProcessLine(".L SplitGLView.C+");
-  browser->ExecPlugin("SplitGLView", 0, "new SplitGLView(gClient->GetRoot(), 600, 450, kTRUE)");
+  // Geometry
 
-  if (gRPhiMgr) {
-    TEveProjectionAxes* a = new TEveProjectionAxes(gRPhiMgr);
-    a->SetMainColor(kWhite);
-    a->SetTitle("R-Phi");
-    a->SetTitleSize(0.05);
-    a->SetTitleFontName("comicbd");
-    a->SetLabelSize(0.025);
-    a->SetLabelFontName("comicbd");
-    gEve->GetScenes()->FindChild("R-Phi Projection")->AddElement(a);
-  }
-  if (gRhoZMgr) {
-    TEveProjectionAxes* a = new TEveProjectionAxes(gRhoZMgr);
-    a->SetMainColor(kWhite);
-    a->SetTitle("Rho-Z");
-    a->SetTitleSize(0.05);
-    a->SetTitleFontName("comicbd");
-    a->SetLabelSize(0.025);
-    a->SetLabelFontName("comicbd");
-    gEve->GetScenes()->FindChild("Rho-Z Projection")->AddElement(a);
-  }
-
-  // geometry
   TEveUtil::LoadMacro("geom_gentle.C");
   gGeomGentle = geom_gentle();
   gGeomGentleRPhi = geom_gentle_rphi(); gGeomGentleRPhi->IncDenyDestroy();
@@ -77,6 +62,84 @@ void anyscan_init()
     gGeomGentleTRD = geom_gentle_trd();
   }
 
+  // Scenes
+
+  gRPhiGeomScene  = gEve->SpawnNewScene("RPhi Geometry",
+                    "Scene holding projected geometry for the RPhi view.");
+  gRhoZGeomScene  = gEve->SpawnNewScene("RhoZ Geometry",
+		    "Scene holding projected geometry for the RhoZ view.");
+  gRPhiEventScene = gEve->SpawnNewScene("RPhi Event Data",
+		    "Scene holding projected geometry for the RPhi view.");
+  gRhoZEventScene = gEve->SpawnNewScene("RhoZ Event Data",
+		    "Scene holding projected geometry for the RhoZ view.");
+
+  // Projection managers
+
+  gRPhiMgr = new TEveProjectionManager();
+  gRPhiMgr->SetProjection(TEveProjection::kPT_RPhi);
+  {
+    TEveProjectionAxes* a = new TEveProjectionAxes(gRPhiMgr);
+    a->SetMainColor(kWhite);
+    a->SetTitle("R-Phi");
+    a->SetTitleSize(0.05);
+    a->SetTitleFontName("comicbd");
+    a->SetLabelSize(0.025);
+    a->SetLabelFontName("comicbd");
+    gRPhiGeomScene->AddElement(a);
+  }
+  gRPhiMgr->ImportElements(gGeomGentleRPhi, gRPhiGeomScene);
+  if (gShowTRD)
+    gRPhiMgr->ImportElements(gGeomGentleTRD, gRPhiGeomScene);
+
+  gRhoZMgr = new TEveProjectionManager();
+  gRhoZMgr->SetProjection(TEveProjection::kPT_RhoZ);
+  {
+    TEveProjectionAxes* a = new TEveProjectionAxes(gRhoZMgr);
+    a->SetMainColor(kWhite);
+    a->SetTitle("Rho-Z");
+    a->SetTitleSize(0.05);
+    a->SetTitleFontName("comicbd");
+    a->SetLabelSize(0.025);
+    a->SetLabelFontName("comicbd");
+    gRhoZGeomScene->AddElement(a);
+  }
+  gRhoZMgr->ImportElements(gGeomGentleRhoZ, gRhoZGeomScene);
+  if (gShowTRD)
+    gRhoZMgr->ImportElements(gGeomGentleTRD, gRhoZGeomScene);
+
+  // Viewers
+
+  TEveWindowSlot *slot = 0;
+  TEveWindowPack *pack = 0;
+
+  slot = TEveWindow::CreateWindowInTab(browser->GetTabRight());
+  pack = slot->MakePack();
+  pack->SetElementName("Multi View");
+  pack->SetHorizontal();
+  pack->SetShowTitleBar(kFALSE);
+  pack->NewSlot()->MakeCurrent();
+  g3DView = gEve->SpawnNewViewer("3D View", "");
+  g3DView->AddScene(gEve->GetGlobalScene());
+  g3DView->AddScene(gEve->GetEventScene());
+
+  pack = pack->NewSlot()->MakePack();
+  pack->SetShowTitleBar(kFALSE);
+  pack->NewSlot()->MakeCurrent();
+  gRPhiView = gEve->SpawnNewViewer("RPhi View", "");
+  gRPhiView->GetGLViewer()->SetCurrentCamera(TGLViewer::kCameraOrthoXOY);
+  gRPhiView->AddScene(gRPhiGeomScene);
+  gRPhiView->AddScene(gRPhiEventScene);
+
+  pack->NewSlot()->MakeCurrent();
+  gRhoZView = gEve->SpawnNewViewer("RhoZ View", "");
+  gRhoZView->GetGLViewer()->SetCurrentCamera(TGLViewer::kCameraOrthoXOY);
+  gRhoZView->AddScene(gRhoZGeomScene);
+  gRhoZView->AddScene(gRhoZEventScene);
+
+
+  //==============================================================================
+  // Registration of per-event macros
+  //==============================================================================
 
   AliEveMacroExecutor *exec = AliEveEventManager::GetMaster()->GetExecutor();
 
@@ -120,6 +183,10 @@ void anyscan_init()
   exec->AddMacro(new AliEveMacro(AliEveMacro::kRunLoader, "REC Clus TOF", "tof_clusters.C+", "tof_clusters"));
 
 
+  //==============================================================================
+  // Additional GUI components
+  //==============================================================================
+
   browser->StartEmbedding(TRootBrowser::kRight);
   AliEveMacroExecutorWindow* exewin = new AliEveMacroExecutorWindow(exec);
   browser->StopEmbedding("DataSelection");
@@ -137,7 +204,24 @@ void anyscan_init()
   new AliEveEventManagerWindow(AliEveEventManager::GetMaster());
   browser->StopEmbedding("EventCtrl");
 
-  // event
+
+  //==============================================================================
+  // AliEve objects - global tools
+  //==============================================================================
+
+  AliEveTrackFitter* fitter = new AliEveTrackFitter();
+  gEve->AddToListTree(fitter, 1);
+  gEve->AddElement(fitter, gEve->GetEventScene());
+
+  AliEveTrackCounter* g_trkcnt = new AliEveTrackCounter("Primary Counter");
+  gEve->AddToListTree(g_trkcnt, kFALSE);
+
+
+  //==============================================================================
+  // Final stuff
+  //==============================================================================
+
+  // Register command to call on each event.
   AliEveEventManager::GetMaster()->AddNewEventCommand("on_new_event();");
   AliEveEventManager::GetMaster()->GotoEvent(0);
 
@@ -201,20 +285,16 @@ void on_new_event()
 
   if (gRPhiMgr && top)
   {
-    gRPhiMgr->DestroyElements();
-    gRPhiMgr->SetCenter(x[0], x[1], x[2]);
-    gRPhiMgr->ImportElements(gGeomGentleRPhi);
-    if (gShowTRD) gRPhiMgr->ImportElements(gGeomGentleTRD);
-    gRPhiMgr->ImportElements(top);
+    gRPhiEventScene->DestroyElements();
+    if (gCenterProjectionsAtPrimaryVertex)
+      gRPhiMgr->SetCenter(x[0], x[1], x[2]);
+    gRPhiMgr->ImportElements(top, gRPhiEventScene);
   }
   if (gRhoZMgr && top)
   {
-    gRhoZMgr->DestroyElements();
-    gRhoZMgr->SetCenter(x[0], x[1], x[2]);
-    gRhoZMgr->ImportElements(gGeomGentleRhoZ);
-    if (gShowTRD) gRhoZMgr->ImportElements(gGeomGentleTRD);
-    gRhoZMgr->ImportElements(top);
+    gRhoZEventScene->DestroyElements();
+    if (gCenterProjectionsAtPrimaryVertex)
+      gRhoZMgr->SetCenter(x[0], x[1], x[2]);
+    gRhoZMgr->ImportElements(top, gRhoZEventScene);
   }
-
-  SplitGLView::UpdateSummary();
 }
