@@ -33,9 +33,43 @@ void visscan_init()
   AliEveTrackCounter* g_trkcnt = new AliEveTrackCounter("Primary Counter");
   gEve->AddToListTree(g_trkcnt, kFALSE);
 
+  // Geometry
+  TEveUtil::LoadMacro("geom_gentle.C");
+  gGeomGentle     = geom_gentle();
+  gGeomGentleRPhi = geom_gentle_rphi(); gGeomGentleRPhi->IncDenyDestroy();
+  gGeomGentleRhoZ = geom_gentle_rhoz(); gGeomGentleRhoZ->IncDenyDestroy();
+  if (gShowTRD) {
+    TEveUtil::LoadMacro("geom_gentle_trd.C");
+    gGeomGentleTRD = geom_gentle_trd();
+  }
+
+  // Per event data
+  TEveUtil::LoadMacro("primary_vertex.C");
+  TEveUtil::LoadMacro("esd_V0_points.C");
+  TEveUtil::LoadMacro("esd_V0.C");
+  TEveUtil::LoadMacro("esd_cascade_points.C");
+  TEveUtil::LoadMacro("esd_cascade.C");
+  TEveUtil::LoadMacro("esd_tracks.C");
+  TEveUtil::LoadMacro("its_clusters.C+");
+  TEveUtil::LoadMacro("tpc_clusters.C+");
+  TEveUtil::LoadMacro("trd_clusters.C+");
+  TEveUtil::LoadMacro("tof_clusters.C+");
+
+  // TEveLine::SetDefaultSmooth(1);
 
   TEveBrowser* browser = gEve->GetBrowser();
+  browser->ShowCloseTab(kFALSE);
 
+  gROOT->ProcessLine(".L SplitGLView.C+");
+  browser->ExecPlugin("SplitGLView", 0, "new SplitGLView(gClient->GetRoot(), 600, 450, kTRUE)");
+
+  browser->ShowCloseTab(kTRUE);
+
+  browser->StartEmbedding(TRootBrowser::kBottom);
+  new AliEveEventManagerWindow(AliEveEventManager::GetMaster());
+  browser->StopEmbedding("EventCtrl");
+
+  // Projections
   if (gRPhiMgr) {
     TEveProjectionAxes* a = new TEveProjectionAxes(gRPhiMgr);
     a->SetMainColor(kWhite);
@@ -57,42 +91,7 @@ void visscan_init()
     gEve->GetScenes()->FindChild("Rho-Z Projection")->AddElement(a);
   }
 
-  // geometry
-  TEveUtil::LoadMacro("geom_gentle.C");
-  gGeomGentle     = geom_gentle();
-  gGeomGentleRPhi = geom_gentle_rphi(); gGeomGentleRPhi->IncDenyDestroy();
-  gGeomGentleRhoZ = geom_gentle_rhoz(); gGeomGentleRhoZ->IncDenyDestroy();
-  if (gShowTRD) {
-    TEveUtil::LoadMacro("geom_gentle_trd.C");
-    gGeomGentleTRD = geom_gentle_trd();
-  }
-
-  // event data
-  TEveUtil::LoadMacro("primary_vertex.C");
-  TEveUtil::LoadMacro("esd_V0_points.C");
-  TEveUtil::LoadMacro("esd_V0.C");
-  TEveUtil::LoadMacro("esd_cascade_points.C");
-  TEveUtil::LoadMacro("esd_cascade.C");
-  TEveUtil::LoadMacro("esd_tracks.C");
-  TEveUtil::LoadMacro("its_clusters.C+");
-  TEveUtil::LoadMacro("tpc_clusters.C+");
-  TEveUtil::LoadMacro("trd_clusters.C+");
-  TEveUtil::LoadMacro("tof_clusters.C+");
-
-  // TEveLine::SetDefaultSmooth(1);
-
-  browser->ShowCloseTab(kFALSE);
-
-  gROOT->ProcessLine(".L SplitGLView.C+");
-  browser->ExecPlugin("SplitGLView", 0, "new SplitGLView(gClient->GetRoot(), 600, 450, kTRUE)");
-
-  browser->ShowCloseTab(kTRUE);
-
-  browser->StartEmbedding(TRootBrowser::kBottom);
-  new AliEveEventManagerWindow(AliEveEventManager::GetMaster());
-  browser->StopEmbedding("EventCtrl");
-
-  // event
+  // Event
   AliEveEventManager::GetMaster()->AddNewEventCommand("on_new_event();");
   AliEveEventManager::GetMaster()->GotoEvent(0);
 
