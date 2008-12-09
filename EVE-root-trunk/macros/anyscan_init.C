@@ -43,12 +43,13 @@ void anyscan_init()
 
   TEveUtil::AssertMacro("VizDB_scan.C");
 
+  AliEveMacroExecutor *exec    = AliEveEventManager::GetMaster()->GetExecutor();
+  TEveBrowser         *browser = gEve->GetBrowser();
 
   //==============================================================================
   // Geometry, scenes, projections and viewers
   //==============================================================================
 
-  TEveBrowser* browser = gEve->GetBrowser();
   browser->ShowCloseTab(kFALSE);
 
   // Geometry
@@ -138,10 +139,42 @@ void anyscan_init()
 
 
   //==============================================================================
-  // Registration of per-event macros
+  // Additional GUI components
   //==============================================================================
 
-  AliEveMacroExecutor *exec = AliEveEventManager::GetMaster()->GetExecutor();
+  slot = TEveWindow::CreateWindowInTab(browser->GetTabRight());
+  slot->StartEmbedding();
+  AliEveMacroExecutorWindow* exewin = new AliEveMacroExecutorWindow(exec);
+  slot->StopEmbedding("DataSelection");
+  exewin->PopulateMacros();
+
+  slot = TEveWindow::CreateWindowInTab(browser->GetTabRight());
+  slot->StartEmbedding();
+  new AliQAHistViewer(gClient->GetRoot(), 600, 400, kTRUE);
+  slot->StopEmbedding("QA histograms");
+
+  browser->GetTabRight()->SetTab(1);
+
+  browser->StartEmbedding(TRootBrowser::kBottom);
+  new AliEveEventManagerWindow(AliEveEventManager::GetMaster());
+  browser->StopEmbedding("EventCtrl");
+
+
+  //==============================================================================
+  // AliEve objects - global tools
+  //==============================================================================
+
+  AliEveTrackFitter* fitter = new AliEveTrackFitter();
+  gEve->AddToListTree(fitter, 1);
+  gEve->AddElement(fitter, gEve->GetEventScene());
+
+  AliEveTrackCounter* g_trkcnt = new AliEveTrackCounter("Primary Counter");
+  gEve->AddToListTree(g_trkcnt, kFALSE);
+
+
+  //==============================================================================
+  // Registration of per-event macros
+  //==============================================================================
 
   exec->AddMacro(new AliEveMacro(AliEveMacro::kRunLoader, "SIM Track",   "kine_tracks.C", "kine_tracks", "", kFALSE));
 
@@ -185,42 +218,12 @@ void anyscan_init()
 
 
   //==============================================================================
-  // Additional GUI components
-  //==============================================================================
-
-  browser->StartEmbedding(TRootBrowser::kRight);
-  AliEveMacroExecutorWindow* exewin = new AliEveMacroExecutorWindow(exec);
-  browser->StopEmbedding("DataSelection");
-  exewin->PopulateMacros();
-
-  browser->StartEmbedding();
-  new AliQAHistViewer(gClient->GetRoot(), 600, 400, kTRUE);
-  browser->StopEmbedding("QA histograms");
-
-  browser->ShowCloseTab(kTRUE);
-
-  browser->GetTabRight()->SetTab(1);
-
-  browser->StartEmbedding(TRootBrowser::kBottom);
-  new AliEveEventManagerWindow(AliEveEventManager::GetMaster());
-  browser->StopEmbedding("EventCtrl");
-
-
-  //==============================================================================
-  // AliEve objects - global tools
-  //==============================================================================
-
-  AliEveTrackFitter* fitter = new AliEveTrackFitter();
-  gEve->AddToListTree(fitter, 1);
-  gEve->AddElement(fitter, gEve->GetEventScene());
-
-  AliEveTrackCounter* g_trkcnt = new AliEveTrackCounter("Primary Counter");
-  gEve->AddToListTree(g_trkcnt, kFALSE);
-
-
-  //==============================================================================
   // Final stuff
   //==============================================================================
+
+  // A refresh to show proper window.
+  gEve->Redraw3D(kTRUE);
+  gSystem->ProcessEvents();
 
   // Register command to call on each event.
   AliEveEventManager::GetMaster()->AddNewEventCommand("on_new_event();");
