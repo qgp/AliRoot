@@ -139,40 +139,6 @@ void anyscan_init()
 
 
   //==============================================================================
-  // Additional GUI components
-  //==============================================================================
-
-  slot = TEveWindow::CreateWindowInTab(browser->GetTabRight());
-  slot->StartEmbedding();
-  AliEveMacroExecutorWindow* exewin = new AliEveMacroExecutorWindow(exec);
-  slot->StopEmbedding("DataSelection");
-  exewin->PopulateMacros();
-
-  slot = TEveWindow::CreateWindowInTab(browser->GetTabRight());
-  slot->StartEmbedding();
-  new AliQAHistViewer(gClient->GetRoot(), 600, 400, kTRUE);
-  slot->StopEmbedding("QA histograms");
-
-  browser->GetTabRight()->SetTab(1);
-
-  browser->StartEmbedding(TRootBrowser::kBottom);
-  new AliEveEventManagerWindow(AliEveEventManager::GetMaster());
-  browser->StopEmbedding("EventCtrl");
-
-
-  //==============================================================================
-  // AliEve objects - global tools
-  //==============================================================================
-
-  AliEveTrackFitter* fitter = new AliEveTrackFitter();
-  gEve->AddToListTree(fitter, 1);
-  gEve->AddElement(fitter, gEve->GetEventScene());
-
-  AliEveTrackCounter* g_trkcnt = new AliEveTrackCounter("Primary Counter");
-  gEve->AddToListTree(g_trkcnt, kFALSE);
-
-
-  //==============================================================================
   // Registration of per-event macros
   //==============================================================================
 
@@ -215,6 +181,46 @@ void anyscan_init()
   exec->AddMacro(new AliEveMacro(AliEveMacro::kRunLoader, "REC Clus TPC", "tpc_clusters.C+", "tpc_clusters"));
   exec->AddMacro(new AliEveMacro(AliEveMacro::kRunLoader, "REC Clus TRD", "trd_clusters.C+", "trd_clusters"));
   exec->AddMacro(new AliEveMacro(AliEveMacro::kRunLoader, "REC Clus TOF", "tof_clusters.C+", "tof_clusters"));
+
+
+  //==============================================================================
+  // Additional GUI components
+  //==============================================================================
+
+  slot = TEveWindow::CreateWindowInTab(browser->GetTabRight());
+  slot->StartEmbedding();
+  AliEveMacroExecutorWindow* exewin = new AliEveMacroExecutorWindow(exec);
+  slot->StopEmbedding("DataSelection");
+  exewin->PopulateMacros();
+
+  slot = TEveWindow::CreateWindowInTab(browser->GetTabRight());
+  slot->StartEmbedding();
+  new AliQAHistViewer(gClient->GetRoot(), 600, 400, kTRUE);
+  slot->StopEmbedding("QA histograms");
+
+  browser->GetTabRight()->SetTab(1);
+
+  browser->StartEmbedding(TRootBrowser::kBottom);
+  new AliEveEventManagerWindow(AliEveEventManager::GetMaster());
+  browser->StopEmbedding("EventCtrl");
+
+  slot = TEveWindow::CreateWindowInTab(browser->GetTabRight());
+  TEveWindowTab *store_tab = slot->MakeTab();
+  store_tab->SetElementNameTitle("WindowStore",
+    "Undocked windows whose previous container is not known\n"
+    "are placed here when the main-frame is closed.");
+  gEve->GetWindowManager()->SetDefaultContainer(store_tab);
+
+  //==============================================================================
+  // AliEve objects - global tools
+  //==============================================================================
+
+  AliEveTrackFitter* fitter = new AliEveTrackFitter();
+  gEve->AddToListTree(fitter, 1);
+  gEve->AddElement(fitter, gEve->GetEventScene());
+
+  AliEveTrackCounter* g_trkcnt = new AliEveTrackCounter("Primary Counter");
+  gEve->AddToListTree(g_trkcnt, kFALSE);
 
 
   //==============================================================================
