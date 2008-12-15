@@ -1500,6 +1500,8 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
 
   AliInfo(Form("processing event %d", iEvent));
 
+  fRunLoader->GetEvent(iEvent);
+
   // Fill Event-info object
   GetEventInfo();
   fRecoParam.SetEventSpecie(fRunInfo,fEventInfo);
@@ -1516,8 +1518,6 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
       }
     }
   }
-
-  fRunLoader->GetEvent(iEvent);
 
     // QA on single raw 
     if (fRunQA) 
