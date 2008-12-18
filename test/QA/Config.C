@@ -43,7 +43,7 @@
 #include "STEER/AliConfig.h"
 #include "PYTHIA6/AliDecayerPythia.h"
 #include "PYTHIA6/AliGenPythia.h"
-#include "STEER/AliMagFMaps.h"
+#include "STEER/AliMagWrapCheb.h"
 #include "STRUCT/AliBODY.h"
 #include "STRUCT/AliMAG.h"
 #include "STRUCT/AliABSOv3.h"

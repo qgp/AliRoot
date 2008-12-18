@@ -19,7 +19,7 @@
 #include "EVGEN/AliGenHIJINGpara.h"
 #include "EVGEN/AliGenFixed.h"
 #include "EVGEN/AliGenBox.h"
-#include "STEER/AliMagFMaps.h"
+#include "STEER/AliMagWrapCheb.h"
 #include "STRUCT/AliBODY.h"
 #include "STRUCT/AliMAG.h"
 #include "STRUCT/AliABSOv3.h"
