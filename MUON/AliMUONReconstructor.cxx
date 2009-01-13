@@ -110,6 +110,8 @@
 #include "AliMpArea.h"
 #include "AliMpCDB.h"
 #include "AliMpConstants.h"
+#include "AliMpDDLStore.h"
+#include "AliMpSegmentation.h"
 
 #include "AliRawReader.h"
 #include "AliCDBManager.h"
@@ -141,6 +143,12 @@ fTrackStore(0x0),
 fClusterStore(0x0)
 {
   /// normal ctor
+
+  // Unload and delete old mapping
+  AliCDBManager::Instance()->UnloadFromCache("MUON/Calib/Mapping");
+  AliCDBManager::Instance()->UnloadFromCache("MUON/Calib/DDLStore");
+  delete AliMpDDLStore::Instance();
+  delete AliMpSegmentation::Instance();
 
   // Load mapping
   if ( ! AliMpCDB::LoadDDLStore() ) {
