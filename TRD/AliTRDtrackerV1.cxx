@@ -2102,7 +2102,7 @@ Int_t AliTRDtrackerV1::Clusters2TracksStack(AliTRDtrackingChamber **stack, TClon
       
   AliTRDtrackV1 *track = MakeTrack(&sseed[trackIndex*kNPlanes], trackParams);
   if(!track){
-    AliWarning("Fail to build a TRD Track.");
+    //AliWarning("Fail to build a TRD Track.");
     continue;
   }
 
