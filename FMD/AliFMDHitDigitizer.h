@@ -30,6 +30,7 @@ class AliFMD;
 class AliLoader;
 class AliRunLoader;
 class AliFMDDigit;
+class AliStack;
 
 
 
@@ -50,7 +51,9 @@ public:
   /** CTOR */
   AliFMDHitDigitizer() 
     : AliFMDBaseDigitizer(), 
-      fOutput(kDigits) 
+      fOutput(kDigits), 
+      fHoldTime(2e-6),
+      fStack(0)
   {}
   /** CTOR 
       @param name Name */
@@ -59,12 +62,22 @@ public:
   virtual ~AliFMDHitDigitizer() {}
   /** Run over the input events (retrieved via run loader) */
   void Exec(Option_t* option="");
+  /** 
+   * Set the end of integration
+   * 
+   * @param holdT Time when integration ends (nominally @f$
+   *        2\mu{}s@f$) 
+   */
+  void SetHoldTime(Double_t holdT=2e-6) { fHoldTime = holdT; }
+  Double_t GetHoldTime() const { return fHoldTime; }
 protected:
   /** Copy constructor 
       @param o Object to copy from */
   AliFMDHitDigitizer(const AliFMDHitDigitizer& o) 
     : AliFMDBaseDigitizer(o),
-      fOutput(o.fOutput)
+      fOutput(o.fOutput), 
+      fHoldTime(2e-6),
+      fStack(o.fStack)
   {}
   /** Assignment operator
       @param o Object to assign from 
@@ -72,7 +85,9 @@ protected:
   AliFMDHitDigitizer& operator=(const AliFMDHitDigitizer& o) 
   {
     AliFMDBaseDigitizer::operator=(o);
+    fHoldTime    = o.fHoldTime;
     fOutput      = o.fOutput;
+    fStack       = o.fStack;
     return *this;
   }
   /** Make the output tree using the passed loader 
@@ -103,15 +118,18 @@ protected:
       @param count2   ADC count 2 (-1 if not used)
       @param count3   ADC count 3 (-1 if not used) 
       @param count4   ADC count 4 (-1 if not used) */
-  void AddDigit(UShort_t  detector, 
-		Char_t    ring,
-		UShort_t  sector, 
-		UShort_t  strip, 
-		Float_t   edep, 
-		UShort_t  count1, 
-		Short_t   count2, 
-		Short_t   count3,
-		Short_t   count4) const;
+  void AddDigit(UShort_t       detector, 
+		Char_t         ring,
+		UShort_t       sector, 
+		UShort_t       strip, 
+		Float_t        edep, 
+		UShort_t       count1, 
+		Short_t        count2, 
+		Short_t        count3,
+		Short_t        count4, 
+		UShort_t       ntot, 
+		UShort_t       nprim,
+		const TArrayI& trackrefs) const;
   /** Check that digit data is consistent
       @param digit   Digit
       @param nhits   Number of hits
@@ -125,6 +143,8 @@ protected:
   
 
   Output_t      fOutput;           // Output mode
+  Double_t      fHoldTime;         // Stop of integration
+  AliStack*     fStack;            // Kinematics
 
   ClassDef(AliFMDHitDigitizer,1) // Make Digits from Hits
 };

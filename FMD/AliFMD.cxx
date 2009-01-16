@@ -120,6 +120,8 @@
 // #include "AliFMDGeometryBuilder.h"
 #include "AliFMDRawWriter.h"	// ALIFMDRAWWRITER_H
 #include "AliFMDPoints.h"       // ALIFMDPOINTS_H
+#include "AliTrackReference.h" 
+#include "AliFMDStripIndex.h"
 
 //____________________________________________________________________
 ClassImp(AliFMD)
@@ -876,7 +878,19 @@ AliFMD::AddHitByFields(Int_t    track,
   hit = new (a[fNhits]) AliFMDHit(fIshunt, track, detector, ring, sector, 
 				  strip, x, y, z, px, py, pz, edep, pdg, t, 
 				  l, stop);
+  // gMC->AddTrackReference(track, 12);
   fNhits++;
+  
+  //Reference track
+
+  AliMC *mcApplication = (AliMC*)gAlice->GetMCApp();
+  
+  AliTrackReference* trackRef = AddTrackReference(mcApplication->GetCurrentTrackNumber(), 12); // should be AliTrackReference::kFMD
+  UInt_t stripId = AliFMDStripIndex::Pack(detector,ring,sector,strip);
+  trackRef->SetUserId(stripId);
+  
+  
+  
   return hit;
 }
 
@@ -956,28 +970,33 @@ AliFMD::AddSDigit(Int_t* digits)
   //    digits[6]  [Short_t]  ADC Count, -1 if not used
   //    digits[7]  [Short_t]  ADC Count, -1 if not used 
   // 
-  AddSDigitByFields(UShort_t(digits[0]),  // Detector #
-		    Char_t(digits[1]),    // Ring ID
-		    UShort_t(digits[2]),  // Sector #
-		    UShort_t(digits[3]),  // Strip #
-		    Float_t(digits[4]),   // Edep
-		    UShort_t(digits[5]),  // ADC Count1 
-		    Short_t(digits[6]),   // ADC Count2 
-		    Short_t(digits[7]),   // ADC Count3 
-		    Short_t(digits[8]));
+  AddSDigitByFields(UShort_t(digits[0]),   // Detector #
+		    Char_t(digits[1]),     // Ring ID
+		    UShort_t(digits[2]),   // Sector #
+		    UShort_t(digits[3]),   // Strip #
+		    Float_t(digits[4]),    // Edep
+		    UShort_t(digits[5]),   // ADC Count1 
+		    Short_t(digits[6]),    // ADC Count2 
+		    Short_t(digits[7]),    // ADC Count3 
+		    Short_t(digits[8]),    // ADC Count4
+		    UShort_t(digits[9]),   // N particles
+		    UShort_t(digits[10])); // N primaries
 }
 
 //____________________________________________________________________
 void 
-AliFMD::AddSDigitByFields(UShort_t detector, 
-			  Char_t   ring, 
-			  UShort_t sector, 
-			  UShort_t strip, 
-			  Float_t  edep,
-			  UShort_t count1, 
-			  Short_t  count2,
-			  Short_t  count3, 
-			  Short_t  count4)
+AliFMD::AddSDigitByFields(UShort_t       detector, 
+			  Char_t         ring, 
+			  UShort_t       sector, 
+			  UShort_t       strip, 
+			  Float_t        edep,
+			  UShort_t       count1, 
+			  Short_t        count2,
+			  Short_t        count3, 
+			  Short_t        count4, 
+			  UShort_t       ntot, 
+			  UShort_t       nprim,
+			  const TArrayI& refs)
 {
   // add a summable digit
   // 
@@ -997,7 +1016,7 @@ AliFMD::AddSDigitByFields(UShort_t detector,
   
   new (a[fNsdigits++]) 
     AliFMDSDigit(detector, ring, sector, strip, edep, 
-		 count1, count2, count3, count4);
+		 count1, count2, count3, count4, ntot, nprim, refs);
 }
 
 //____________________________________________________________________

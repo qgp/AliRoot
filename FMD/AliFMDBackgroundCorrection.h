@@ -17,7 +17,9 @@
 
 #include "AliFMDInput.h"
 #include "TObjArray.h"
+#include "AliRunLoader.h"
 
+class AliTrackReference;
 
 class AliFMDBackgroundCorrection : public TNamed {
   
@@ -25,7 +27,8 @@ public:
   
   AliFMDBackgroundCorrection() ;
   ~AliFMDBackgroundCorrection() {};
-  void GenerateBackgroundCorrection(Int_t nvtxbins=10,
+  void GenerateBackgroundCorrection(Bool_t from_hits=kFALSE,
+				    Int_t nvtxbins=10,
 				    Float_t zvtxcut=10,
 				    Int_t nBinsEta=100, 
 				    Bool_t storeInAlien = kFALSE, 
@@ -33,13 +36,15 @@ public:
 				    Int_t endRunNo=999999999, 
 				    const Char_t* filename="background.root", 
 				    Bool_t simulate = kFALSE, 
-				    Int_t nEvents=10);
+				    Int_t nEvents=10,
+				    Bool_t inFile = kFALSE,
+				    const Char_t* infilename="");
   
   class AliFMDInputBG : public AliFMDInput {
     
   public :
-    AliFMDInputBG() ; 
-   
+    //AliFMDInputBG() ; 
+    AliFMDInputBG(Bool_t hits_not_trackrefs);
     Bool_t Init();
     
     Int_t GetNprim() {return fPrim;}
@@ -49,8 +54,18 @@ public:
     void  SetNbinsEta(Int_t nBins) { fNbinsEta = nBins;}
     TObjArray*  GetHits() {return &fHitArray;}
     TObjArray*  GetPrimaries() {return &fPrimaryArray;}
+    AliRunLoader* GetRunLoader() {return fLoader; }
   private:
-    Bool_t ProcessTrack(Int_t i, TParticle* p, AliFMDHit* h );
+    Bool_t ProcessHit(AliFMDHit* h, TParticle* p );
+    Bool_t ProcessTrackRef(AliTrackReference* tr, TParticle* p );
+    Bool_t ProcessEvent(UShort_t det,
+			Char_t ring, 
+			UShort_t sector, 
+			UShort_t strip,
+			Int_t nTrack,
+			Float_t charge);
+		
+    Bool_t Begin(Int_t event );
     TObjArray fPrimaryArray;
     TObjArray fHitArray;
     Int_t fPrim;
@@ -67,10 +82,11 @@ private:
   
   void Simulate(Int_t);
   void ProcessPrimaries(AliRunLoader*);
-  void ProcessHits();
   TObjArray fCorrectionArray;
-   
-  
+  TList     fPrimaryList;
+  //Double_t fZvtxCut;
+  // Int_t fNvtxBins;
+  //Int_t fNbinsEta;
   ClassDef(AliFMDBackgroundCorrection,0)
   
 };

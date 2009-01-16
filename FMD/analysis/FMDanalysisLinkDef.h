@@ -27,7 +27,10 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-
+#pragma link C++ class AliFMDAnalysisTaskSE+;
+#pragma link C++ class AliFMDAnalysisTaskDndeta+;
+#pragma link C++ class AliFMDAnaCalibBackgroundCorrection+;
+#pragma link C++ class AliFMDAnaCalibEnergyDistribution+;
 #pragma link C++ class AliFMDAnaParameters+;
 #pragma link C++ class AliFMDAnalysisTaskESDReader+;
 #pragma link C++ class AliFMDAnalysisTaskSharing+;

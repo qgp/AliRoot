@@ -1,3 +1,5 @@
+#ifndef ALIFMDSTRIPINDEX_H
+#define ALIFMDSTRIPINDEX_H
 /**************************************************************************
  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  *                                                                        *
@@ -12,32 +14,35 @@
  * about the suitability of this software for any purpose. It is          *
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
-/* $Id$ */
-/** @file    Simulate.C
-    @author  Christian Holm Christensen <cholm@nbi.dk>
-    @date    Mon Mar 27 14:20:24 2006
-    @brief   Script to do simulation 
-*/
-/** Script to do test the FMD digitization class.  
- */
-void
-Simulate(Int_t n=1)
-{
-  AliSimulation sim;
-  AliLog::SetModuleDebugLevel("FMD", 2);
-  sim.SetConfigFile("$(ALICE_ROOT)/FMD/Config.C");
-  sim.SetMakeSDigits("FMD");
-  sim.SetMakeDigits("FMD"); 
-  sim.SetWriteRawData("FMD"); 
-  // sim.SetMakeDigitsFromHits("FMD"); 
-  sim.SetRunQA(":");
-  TStopwatch w; 
-  w.Start(); 
-  sim.Run(n);  
-  w.Stop(); 
-  w.Print(); 
-}
 
-//
-// EOF
-//
+//Struct to encode a strip address into one integer
+//developed by Christian Holm Christensen (cholm@nbi.dk).
+// The functions are static
+// to ensure applicability from anywhere. This is needed to smoothly store
+//strip addresses in track references.
+// Added by Hans H. Dalsgaard (hans.dalsgaard@cern.ch) 
+
+
+struct AliFMDStripIndex
+{
+  static UInt_t Pack(UShort_t det, Char_t rng, UShort_t sec, UShort_t str) 
+  {
+    UInt_t irg  = (rng == 'I' || rng == 'i' ? 0 : 1);
+    UInt_t id   = (((str & 0x1FF) <<  0) | 
+		   ((sec & 0x03F) <<  9) | 
+		   ((irg & 0x001) << 16) | 
+		   ((det & 0x003) << 17));
+    return id;
+  }
+  static void Unpack(UInt_t id, 
+	      UShort_t& det, Char_t& rng, UShort_t& sec, UShort_t& str)
+  {
+    str = ((id >>  0) & 0x1FF);
+    sec = ((id >>  9) & 0x03F);
+    rng = ((id >> 16) & 0x001) ? 'O' : 'I';
+    det = ((id >> 17) & 0x003);
+  }
+
+  ClassDef(AliFMDStripIndex,0)
+};
+#endif

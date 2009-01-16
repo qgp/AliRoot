@@ -15,6 +15,10 @@
 #ifndef ALIFMDBASEDIGIT_H
 # include <AliFMDBaseDigit.h>
 #endif
+#ifndef ROOT_TArrayI
+# include <TArrayI.h>
+#endif
+
 //____________________________________________________________________
 /** @class AliFMDSDigit AliFMDDigit.h <FMD/AliFMDDigit.h>
     @brief class for summable digits 
@@ -34,15 +38,18 @@ public:
       @param count    ADC (first sample)
       @param count2   ADC (second sample, or -1 if not used)
       @param count3   ADC (third sample, or -1 if not used) */
-  AliFMDSDigit(UShort_t detector, 
-	       Char_t   ring='\0', 
-	       UShort_t sector=0, 
-	       UShort_t strip=0, 
-	       Float_t  edep=0,
-	       UShort_t count=0, 
-	       Short_t  count2=-1, 
-	       Short_t  count3=-1,
-	       Short_t  count4=-1);
+  AliFMDSDigit(UShort_t       detector, 
+	       Char_t         ring='\0', 
+	       UShort_t       sector=0, 
+	       UShort_t       strip=0, 
+	       Float_t        edep=0,
+	       UShort_t       count=0, 
+	       Short_t        count2=-1, 
+	       Short_t        count3=-1,
+	       Short_t        count4=-1,
+	       UShort_t       npart=0,
+	       UShort_t       nprim=0, 
+	       const TArrayI& refs=TArrayI());
   /** DTOR */
   virtual ~AliFMDSDigit() {}
   /** @return ADC count (first sample) */
@@ -57,6 +64,12 @@ public:
   UShort_t Counts()                const;
   /** @return Energy deposited */
   Float_t  Edep()                  const { return fEdep;     }
+  /** @return Number of particles that hit this strip */
+  UShort_t NParticles() const { return fNParticles; }
+  /** @return Number of primary particles that hit this strip */
+  UShort_t NPrimaries() const { return fNPrimaries; }
+  /** @return the track labels */
+  const TArrayI& TrackLabels() const { return fLabels; }
   /** Print info 
       @param opt Not used */
   void     Print(Option_t* opt="") const;
@@ -66,7 +79,10 @@ protected:
   Short_t  fCount2;     // Digital signal (-1 if not used)
   Short_t  fCount3;     // Digital signal (-1 if not used)
   Short_t  fCount4;     // Digital signal (-1 if not used)
-  ClassDef(AliFMDSDigit,2)     // Summable FMD digit
+  UShort_t fNParticles; // Total number of particles that hit this strip
+  UShort_t fNPrimaries; // Number of primary particles that his this strip
+  TArrayI  fLabels;     // MC-truth track labels
+  ClassDef(AliFMDSDigit,4)     // Summable FMD digit
 };
   
 inline UShort_t 

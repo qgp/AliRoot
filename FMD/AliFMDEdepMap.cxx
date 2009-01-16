@@ -93,8 +93,9 @@ AliFMDEdepMap::Reset()
 {
   // Reset to zero
   for (Int_t i = 0; i < fTotal; i++) { 
-    fData[i].fEdep = 0; 
-    fData[i].fN = 0; 
+    fData[i].fEdep  = 0; 
+    fData[i].fN     = 0; 
+    fData[i].fNPrim = 0;
   };
 }
 
@@ -104,14 +105,17 @@ AliFMDEdepMap::Reset(const AliFMDEdepHitPair& val)
 {
   // Reset to val
   for (Int_t i = 0; i < fTotal; i++) { 
-    fData[i].fEdep = val.fEdep; 
-    fData[i].fN = val.fN; 
+    fData[i].fEdep  = val.fEdep; 
+    fData[i].fN     = val.fN; 
+    fData[i].fNPrim = val.fNPrim;
+    fData[i].fLabels.Set(0);
   };
 }
 
 //____________________________________________________________________
 AliFMDEdepHitPair& 
-AliFMDEdepMap::operator()(UShort_t det, Char_t ring, UShort_t sec, UShort_t str) 
+AliFMDEdepMap::operator()(UShort_t det, Char_t ring, 
+			  UShort_t sec, UShort_t str) 
 {
   // Get data 
   // 
@@ -128,7 +132,8 @@ AliFMDEdepMap::operator()(UShort_t det, Char_t ring, UShort_t sec, UShort_t str)
 
 //____________________________________________________________________
 const AliFMDEdepHitPair& 
-AliFMDEdepMap::operator()(UShort_t det, Char_t ring, UShort_t sec, UShort_t str) const
+AliFMDEdepMap::operator()(UShort_t det, Char_t ring, 
+			  UShort_t sec, UShort_t str) const
 {
   // Get data 
   // 

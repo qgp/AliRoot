@@ -213,10 +213,14 @@
 #ifndef ALIDETECTOR_H  
 # include <AliDetector.h>
 #endif
+#ifndef ROOT_TArrayI
+# include <TArrayI.h>
+#endif
 class TBranch;
 class TClonesArray;
 class TBrowser;
 class TMarker3DBox;
+class TArrayI;
 class AliDigitizer;
 class AliFMDHit;
 
@@ -456,9 +460,14 @@ public:
       - digits[1]  [Char_t]   Ring ID
       - digits[2]  [UShort_t] Sector #
       - digits[3]  [UShort_t] Strip #
-      - digits[4]  [UShort_t] ADC Count 
-      - digits[5]  [Short_t]  ADC Count, -1 if not used
-      - digits[6]  [Short_t]  ADC Count, -1 if not used  */
+      - digits[4]  [Float_t]  Edep
+      - digits[5]  [UShort_t] ADC Count 
+      - digits[6]  [Short_t]  ADC Count, -1 if not used
+      - digits[7]  [Short_t]  ADC Count, -1 if not used  
+      - digits[8]  [Short_t]  ADC Count, -1 if not used
+      - digits[9]  [UShort_t] N total particles
+      - digits[10] [UShort_t] N total primary particles
+  */
   virtual        void   AddSDigit(Int_t *digits);
   /** add a summable digit - as coming from data
       @param detector  Detector # (1, 2, or 3)                      
@@ -469,15 +478,18 @@ public:
       @param count1    ADC count (a 10-bit word)
       @param count2    ADC count (a 10-bit word), or -1 if not used 
       @param count3    ADC count (a 10-bit word), or -1 if not used */
-  virtual        void   AddSDigitByFields(UShort_t detector=0, 
-					  Char_t   ring='\0', 
-					  UShort_t sector=0, 
-					  UShort_t strip=0, 
-					  Float_t  edep=0,
-					  UShort_t count1=0, 
-					  Short_t  count2=-1, 
-					  Short_t  count3=-1,
-					  Short_t  count4=-1);
+  virtual        void   AddSDigitByFields(UShort_t       detector=0, 
+					  Char_t         ring='\0', 
+					  UShort_t       sector=0, 
+					  UShort_t       strip=0, 
+					  Float_t        edep=0,
+					  UShort_t       count1=0, 
+					  Short_t        count2=-1, 
+					  Short_t        count3=-1,
+					  Short_t        count4=-1, 
+					  UShort_t       ntot=0, 
+					  UShort_t       nprim=0,
+					  const TArrayI& refs=TArrayI());
   /** @}*/
 
   /** @{ */
