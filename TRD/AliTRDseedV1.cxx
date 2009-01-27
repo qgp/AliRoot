@@ -32,7 +32,10 @@
 
 #include "AliLog.h"
 #include "AliMathBase.h"
+#include "AliCDBManager.h"
+#include "AliTracker.h"
 
+#include "AliTRDpadPlane.h"
 #include "AliTRDcluster.h"
 #include "AliTRDseedV1.h"
 #include "AliTRDtrackV1.h"
@@ -42,7 +45,10 @@
 #include "AliTRDtrackerV1.h"
 #include "AliTRDReconstructor.h"
 #include "AliTRDrecoParam.h"
+
 #include "Cal/AliTRDCalPID.h"
+#include "Cal/AliTRDCalROC.h"
+#include "Cal/AliTRDCalDet.h"
 
 ClassImp(AliTRDseedV1)
 
@@ -57,14 +63,18 @@ AliTRDseedV1::AliTRDseedV1(Int_t det)
   ,fSnp(0.)
   ,fTgl(0.)
   ,fdX(0.)
+  ,fXref(0.)
+  ,fExB(0.)
 {
   //
   // Constructor
   //
-  //printf("AliTRDseedV1::AliTRDseedV1()\n");
-
   for(int islice=0; islice < knSlices; islice++) fdEdx[islice] = 0.;
   for(int ispec=0; ispec<AliPID::kSPECIES; ispec++) fProb[ispec]  = -1.;
+  fRefCov[0] = 1.; fRefCov[1] = 0.; fRefCov[2] = 1.;
+  // covariance matrix [diagonal]
+  // default sy = 200um and sz = 2.3 cm 
+  fCov[0] = 4.e-4; fCov[1] = 0.; fCov[2] = 5.3; 
 }
 
 //____________________________________________________________________
@@ -78,6 +88,8 @@ AliTRDseedV1::AliTRDseedV1(const AliTRDseedV1 &ref)
   ,fSnp(ref.fSnp)
   ,fTgl(ref.fTgl)
   ,fdX(ref.fdX)
+  ,fXref(ref.fXref)
+  ,fExB(ref.fExB)
 {
   //
   // Copy Constructor performing a deep copy
@@ -87,6 +99,8 @@ AliTRDseedV1::AliTRDseedV1(const AliTRDseedV1 &ref)
   SetBit(kOwner, kFALSE);
   for(int islice=0; islice < knSlices; islice++) fdEdx[islice] = ref.fdEdx[islice];
   for(int ispec=0; ispec<AliPID::kSPECIES; ispec++) fProb[ispec] = ref.fProb[ispec];
+  memcpy(fRefCov, ref.fRefCov, 3*sizeof(Double_t));
+  memcpy(fCov, ref.fCov, 3*sizeof(Double_t));
 }
 
 
@@ -100,6 +114,8 @@ AliTRDseedV1& AliTRDseedV1::operator=(const AliTRDseedV1 &ref)
   if(this != &ref){
     ref.Copy(*this);
   }
+  SetBit(kOwner, kFALSE);
+
   return *this;
 
 }
@@ -139,10 +155,14 @@ void AliTRDseedV1::Copy(TObject &ref) const
   target.fSnp           = fSnp;
   target.fTgl           = fTgl;
   target.fdX            = fdX;
+  target.fXref          = fXref;
+  target.fExB           = fExB;
   target.fReconstructor = fReconstructor;
   
   for(int islice=0; islice < knSlices; islice++) target.fdEdx[islice] = fdEdx[islice];
   for(int ispec=0; ispec<AliPID::kSPECIES; ispec++) target.fProb[ispec] = fProb[ispec];
+  memcpy(target.fRefCov, fRefCov, 3*sizeof(Double_t));
+  memcpy(target.fCov, fCov, 3*sizeof(Double_t));
   
   AliTRDseed::Copy(target);
 }
@@ -167,15 +187,28 @@ Bool_t AliTRDseedV1::Init(AliTRDtrackV1 *track)
 
   Double_t y, z; 
   if(!track->GetProlongation(fX0, y, z)) return kFALSE;
-  fYref[0] = y;
-  fYref[1] = track->GetSnp()/(1. - track->GetSnp()*track->GetSnp());
-  fZref[0] = z;
-  fZref[1] = track->GetTgl();
-
-  //printf("Tracklet ref x[%7.3f] y[%7.3f] z[%7.3f], snp[%f] tgl[%f]\n", fX0, fYref[0], fZref[0], track->GetSnp(), track->GetTgl());
+  UpDate(track);
   return kTRUE;
 }
 
+
+//____________________________________________________________________
+void AliTRDseedV1::UpDate(const AliTRDtrackV1 *trk)
+{ 
+  // update tracklet reference position from the TRD track
+  // Funny name to avoid the clash with the function AliTRDseed::Update() (has to be made obselete)
+
+  fSnp = trk->GetSnp();
+  fTgl = trk->GetTgl();
+  fMom = trk->GetP();
+  fYref[1] = fSnp/(1. - fSnp*fSnp);
+  fZref[1] = fTgl;
+  SetCovRef(trk->GetCovariance());
+
+  Double_t dx = trk->GetX() - fX0;
+  fYref[0] = trk->GetY() - dx*fYref[1];
+  fZref[0] = trk->GetZ() - dx*fZref[1];
+}
 
 //____________________________________________________________________
 void AliTRDseedV1::CookdEdx(Int_t nslices)
@@ -191,9 +224,7 @@ void AliTRDseedV1::CookdEdx(Int_t nslices)
 // Detailed description
 // Calculates average dE/dx for all slices. Depending on the PID methode 
 // the number of slices can be 3 (LQ) or 8(NN). 
-// The calculation of dQ/dl are done using the tracklet fit results (see AliTRDseedV1::GetdQdl(Int_t)) i.e.
-//
-// dQ/dl = qc/(dx * sqrt(1 + dy/dx^2 + dz/dx^2))
+// The calculation of dQ/dl are done using the tracklet fit results (see AliTRDseedV1::GetdQdl(Int_t))
 //
 // The following effects are included in the calculation:
 // 1. calibration values for t0 and vdrift (using x coordinate to calculate slice)
@@ -206,22 +237,22 @@ void AliTRDseedV1::CookdEdx(Int_t nslices)
     fdEdx[i]     = 0.;
     nclusters[i] = 0;
   }
-  Float_t clength = (/*.5 * */AliTRDgeometry::AmThick() + AliTRDgeometry::DrThick());
+  Float_t pathLength = (.5 * AliTRDgeometry::AmThick() + AliTRDgeometry::DrThick());
 
-  AliTRDcluster *cluster = 0x0;
+  AliTRDcluster *c = 0x0;
   for(int ic=0; ic<AliTRDtrackerV1::GetNTimeBins(); ic++){
-    if(!(cluster = fClusters[ic])) continue;
-    Float_t x = cluster->GetX();
+    if(!(c = fClusters[ic]) && !(c = fClusters[ic+kNtb])) continue;
+    Float_t x = c->GetX();
     
     // Filter clusters for dE/dx calculation
     
     // 1.consider calibration effects for slice determination
     Int_t slice; 
-    if(cluster->IsInChamber()) slice = Int_t(TMath::Abs(fX0 - x) * nslices / clength);
+    if(c->IsInChamber()) slice = Int_t(TMath::Abs(fX0 - x) * nslices / pathLength);
     else slice = x < fX0 ? 0 : nslices-1;
     
     // 2. take sharing into account
-    Float_t w = cluster->IsShared() ? .5 : 1.;
+    Float_t w = c->IsShared() ? .5 : 1.;
     
     // 3. take into account large clusters TODO
     //w *= c->GetNPads() > 3 ? .8 : 1.;
@@ -240,11 +271,60 @@ void AliTRDseedV1::CookdEdx(Int_t nslices)
   }
 }
 
+//____________________________________________________________________
+void AliTRDseedV1::GetClusterXY(const AliTRDcluster *c, Double_t &x, Double_t &y)
+{
+// Return corrected position of the cluster taking into 
+// account variation of the drift velocity with drift length.
+
+
+  // drift velocity correction TODO to be moved to the clusterizer
+  const Float_t cx[] = {
+    -9.6280e-02, 1.3091e-01,-1.7415e-02,-9.9221e-02,-1.2040e-01,-9.5493e-02,
+    -5.0041e-02,-1.6726e-02, 3.5756e-03, 1.8611e-02, 2.6378e-02, 3.3823e-02,
+     3.4811e-02, 3.5282e-02, 3.5386e-02, 3.6047e-02, 3.5201e-02, 3.4384e-02,
+     3.2864e-02, 3.1932e-02, 3.2051e-02, 2.2539e-02,-2.5154e-02,-1.2050e-01,
+    -1.2050e-01
+  };
+
+  // PRF correction TODO to be replaced by the gaussian 
+  // approximation with full error parametrization and // moved to the clusterizer
+  const Float_t cy[AliTRDgeometry::kNlayer][3] = {
+    { 4.014e-04, 8.605e-03, -6.880e+00},
+    {-3.061e-04, 9.663e-03, -6.789e+00},
+    { 1.124e-03, 1.105e-02, -6.825e+00},
+    {-1.527e-03, 1.231e-02, -6.777e+00},
+    { 2.150e-03, 1.387e-02, -6.783e+00},
+    {-1.296e-03, 1.486e-02, -6.825e+00}
+  }; 
+
+  Int_t ily = AliTRDgeometry::GetLayer(c->GetDetector());
+  x = c->GetX() - cx[c->GetLocalTimeBin()];
+  y = c->GetY() + cy[ily][0] + cy[ily][1] * TMath::Sin(cy[ily][2] * c->GetCenter());
+  return;
+}
 
 //____________________________________________________________________
 Float_t AliTRDseedV1::GetdQdl(Int_t ic) const
 {
-  return fClusters[ic] ? TMath::Abs(fClusters[ic]->GetQ()) /fdX / TMath::Sqrt(1. + fYfit[1]*fYfit[1] + fZref[1]*fZref[1]) : 0.;
+// Using the linear approximation of the track inside one TRD chamber (TRD tracklet) 
+// the charge per unit length can be written as:
+// BEGIN_LATEX
+// #frac{dq}{dl} = #frac{q_{c}}{dx * #sqrt{1 + #(){#frac{dy}{dx}}^{2}_{fit} + #(){#frac{dy}{dx}}^{2}_{ref}}}
+// END_LATEX
+// where qc is the total charge collected in the current time bin and dx is the length 
+// of the time bin. For the moment (Jan 20 2009) only pad row cross corrections are 
+// considered for the charge but none are applied for drift velocity variations along 
+// the drift region or assymetry of the TRF
+// 
+// Author : Alex Bercuci <A.Bercuci@gsi.de>
+//
+  Float_t dq = 0.;
+  if(fClusters[ic]) dq += TMath::Abs(fClusters[ic]->GetQ());
+  if(fClusters[ic+kNtb]) dq += TMath::Abs(fClusters[ic+kNtb]->GetQ());
+  if(dq<1.e-3 || fdX < 1.e-3) return 0.;
+
+  return dq/fdX/TMath::Sqrt(1. + fYfit[1]*fYfit[1] + fZref[1]*fZref[1]);
 }
 
 //____________________________________________________________________
@@ -311,31 +391,111 @@ Float_t AliTRDseedV1::GetQuality(Bool_t kZcorr) const
 }
 
 //____________________________________________________________________
-void AliTRDseedV1::GetCovAt(Double_t /*x*/, Double_t *cov) const
+void AliTRDseedV1::GetCovAt(Double_t x, Double_t *cov) const
 {
-// Computes covariance in the y-z plane at radial point x
+// Computes covariance in the y-z plane at radial point x (in tracking coordinates) 
+// and returns the results in the preallocated array cov[3] as :
+//   cov[0] = Var(y)
+//   cov[1] = Cov(yz)
+//   cov[2] = Var(z)
+//
+// Details
+//
+// For the linear transformation
+// BEGIN_LATEX
+// Y = T_{x} X^{T}
+// END_LATEX
+//   The error propagation has the general form
+// BEGIN_LATEX
+// C_{Y} = T_{x} C_{X} T_{x}^{T} 
+// END_LATEX
+//  We apply this formula 2 times. First to calculate the covariance of the tracklet 
+// at point x we consider: 
+// BEGIN_LATEX
+// T_{x} = (1 x); X=(y0 dy/dx); C_{X}=#(){#splitline{Var(y0) Cov(y0, dy/dx)}{Cov(y0, dy/dx) Var(dy/dx)}} 
+// END_LATEX
+// and secondly to take into account the tilt angle
+// BEGIN_LATEX
+// T_{#alpha} = #(){#splitline{cos(#alpha) __ sin(#alpha)}{-sin(#alpha) __ cos(#alpha)}}; X=(y z); C_{X}=#(){#splitline{Var(y)    0}{0   Var(z)}} 
+// END_LATEX
+//
+// using simple trigonometrics one can write for this last case
+// BEGIN_LATEX
+// C_{Y}=#frac{1}{1+tg^{2}#alpha} #(){#splitline{(#sigma_{y}^{2}+tg^{2}#alpha#sigma_{z}^{2}) __ tg#alpha(#sigma_{z}^{2}-#sigma_{y}^{2})}{tg#alpha(#sigma_{z}^{2}-#sigma_{y}^{2}) __ (#sigma_{z}^{2}+tg^{2}#alpha#sigma_{y}^{2})}} 
+// END_LATEX
+// which can be aproximated for small alphas (2 deg) with
+// BEGIN_LATEX
+// C_{Y}=#(){#splitline{#sigma_{y}^{2} __ (#sigma_{z}^{2}-#sigma_{y}^{2})tg#alpha}{((#sigma_{z}^{2}-#sigma_{y}^{2})tg#alpha __ #sigma_{z}^{2}}} 
+// END_LATEX
+//
+// before applying the tilt rotation we also apply systematic uncertainties to the tracklet 
+// position which can be tunned from outside via the AliTRDrecoParam::SetSysCovMatrix(). They might 
+// account for extra misalignment/miscalibration uncertainties. 
+//
+// Author :
+// Alex Bercuci <A.Bercuci@gsi.de> 
+// Date : Jan 8th 2009
+//
 
-  Int_t ic = 0; while (!fClusters[ic]) ic++; 
-  AliTRDcalibDB *fCalib = AliTRDcalibDB::Instance();
-  Double_t exB         = fCalib->GetOmegaTau(fCalib->GetVdriftAverage(fClusters[ic]->GetDetector()), -AliTracker::GetBz()*0.1);
 
-  Double_t sy2    = fSigmaY2*fSigmaY2 + .2*(fYfit[1]-exB)*(fYfit[1]-exB);
-  Double_t sz2    = fPadLength/12.;
+  Double_t xr     = fX0-x; 
+  Double_t sy2    = fCov[0] +2.*xr*fCov[1] + xr*xr*fCov[2];
+  Double_t sz2    = fPadLength*fPadLength/12.;
 
-
-  //printf("Yfit[1] %f sy20 %f SigmaY2 %f\n", fYfit[1], sy20, fSigmaY2);
-
-  cov[0] = sy2;
-  cov[1] = fTilt*(sy2-sz2);
-  cov[2] = sz2;
-
-  // insert systematic uncertainties calibration and misalignment
+  // insert systematic uncertainties
   Double_t sys[15];
   fReconstructor->GetRecoParam()->GetSysCovMatrix(sys);
-  cov[0] += (sys[0]*sys[0]);
-  cov[2] += (sys[1]*sys[1]);
+  sy2 += sys[0];
+  sz2 += sys[1];
+
+  // rotate covariance matrix
+  Double_t t2 = fTilt*fTilt;
+  Double_t correction = 1./(1. + t2);
+  cov[0] = (sy2+t2*sz2)*correction;
+  cov[1] = fTilt*(sz2 - sy2)*correction;
+  cov[2] = (t2*sy2+sz2)*correction;
 }
 
+
+//____________________________________________________________________
+void AliTRDseedV1::SetExB()
+{
+// Retrive the tg(a_L) from OCDB. The following information are used
+//  - detector index
+//  - column and row position of first attached cluster. 
+// 
+// If no clusters are attached to the tracklet a random central chamber 
+// position (c=70, r=7) will be used to retrieve the drift velocity.
+//
+// Author :
+// Alex Bercuci <A.Bercuci@gsi.de> 
+// Date : Jan 8th 2009
+//
+
+  AliCDBManager *cdb = AliCDBManager::Instance();
+  if(cdb->GetRun() < 0){
+    AliError("OCDB manager not properly initialized");
+    return;
+  }
+
+  AliTRDcalibDB *fCalib = AliTRDcalibDB::Instance();
+  AliTRDCalROC  *fCalVdriftROC = fCalib->GetVdriftROC(fDet);
+  const AliTRDCalDet  *fCalVdriftDet = fCalib->GetVdriftDet();
+
+  Int_t col = 70, row = 7;
+  AliTRDcluster **c = &fClusters[0];
+  if(fN){ 
+    Int_t ic = 0;
+    while (ic<AliTRDseed::knTimebins && !(*c)){ic++; c++;} 
+    if(*c){
+      col = (*c)->GetPadCol();
+      row = (*c)->GetPadRow();
+    }
+  }
+
+  Double_t vd = fCalVdriftDet->GetValue(fDet) * fCalVdriftROC->GetValue(col, row);
+  fExB   = fCalib->GetOmegaTau(vd, -0.1*AliTracker::GetBz());
+}
 
 //____________________________________________________________________
 void AliTRDseedV1::SetOwner()
@@ -368,9 +528,11 @@ Bool_t	AliTRDseedV1::AttachClustersIter(AliTRDtrackingChamber *chamber, Float_t 
 
   AliTRDchamberTimeBin *layer = 0x0;
   if(fReconstructor->GetStreamLevel(AliTRDReconstructor::kTracker)>=7){
-    AliTRDtrackingChamber *ch = new AliTRDtrackingChamber(*chamber); 
-    (*AliTRDtrackerV1::DebugStreamer()) << "AttachClustersIter"
-      << "chamber.="   << ch
+    AliTRDtrackingChamber ch(*chamber);
+    ch.SetOwner(); 
+    TTreeSRedirector &cstreamer = *fReconstructor->GetDebugStream(AliTRDReconstructor::kTracker);
+    cstreamer << "AttachClustersIter"
+      << "chamber.="   << &ch
       << "tracklet.="  << this
       << "\n";	
   }
@@ -452,7 +614,7 @@ Bool_t	AliTRDseedV1::AttachClustersIter(AliTRDtrackingChamber *chamber, Float_t 
       // update x reference positions (calibration/alignment aware)
       for (Int_t iTime = 0; iTime < AliTRDtrackerV1::GetNTimeBins(); iTime++) {
         if(!fClusters[iTime]) continue;
-        fX[iTime] = fClusters[iTime]->GetX() - fX0;
+        fX[iTime] = fX0 - fClusters[iTime]->GetX();
       } 
       
       AliTRDseed::Update();
@@ -469,13 +631,15 @@ Bool_t	AliTRDseedV1::AttachClustersIter(AliTRDtrackingChamber *chamber, Float_t 
   if (!IsOK()) return kFALSE;
 
   if(fReconstructor->GetStreamLevel(AliTRDReconstructor::kTracker)>=1) CookLabels();
+
+  // set ExB angle
+  SetExB();
   UpdateUsed();
   return kTRUE;	
 }
 
 //____________________________________________________________________
-Bool_t	AliTRDseedV1::AttachClusters(AliTRDtrackingChamber *chamber
-                                      ,Bool_t kZcorr)
+Bool_t	AliTRDseedV1::AttachClusters(AliTRDtrackingChamber *chamber, Bool_t tilt)
 {
   //
   // Projective algorithm to attach clusters to seeding tracklets
@@ -492,132 +656,242 @@ Bool_t	AliTRDseedV1::AttachClusters(AliTRDtrackingChamber *chamber
   // 5. purge clusters
   // 6. fit tracklet
   //	
-
+  Bool_t kPRINT = kFALSE;
   if(!fReconstructor->GetRecoParam() ){
     AliError("Seed can not be used without a valid RecoParam.");
     return kFALSE;
   }
+  // Initialize reco params for this tracklet
+  // 1. first time bin in the drift region
+  Int_t t0 = 4;
+  Int_t kClmin = Int_t(fReconstructor->GetRecoParam() ->GetFindableClusters()*AliTRDtrackerV1::GetNTimeBins());
 
-  const Int_t kClusterCandidates = 2 * knTimebins;
-  
+  Double_t syRef  = TMath::Sqrt(fRefCov[0]);
   //define roads
-  Double_t kroady = fReconstructor->GetRecoParam() ->GetRoad1y();
+  Double_t kroady = 1.; 
+  //fReconstructor->GetRecoParam() ->GetRoad1y();
   Double_t kroadz = fPadLength * 1.5 + 1.;
-  // correction to y for the tilting angle
-  Float_t zcorr = kZcorr ? fTilt * (fZProb - fZref[0]) : 0.;
+  if(kPRINT) printf("AttachClusters() sy[%f] road[%f]\n", syRef, kroady);
 
   // working variables
-  AliTRDcluster *clusters[kClusterCandidates];
-  Double_t cond[4], yexp[knTimebins], zexp[knTimebins],
-    yres[kClusterCandidates], zres[kClusterCandidates];
-  Int_t ncl, *index = 0x0, tboundary[knTimebins];
-  
+  const Int_t kNrows = 16;
+  AliTRDcluster *clst[kNrows][knTimebins];
+  Double_t cond[4], dx, dy, yt, zt,
+    yres[kNrows][knTimebins];
+  Int_t idxs[kNrows][knTimebins], ncl[kNrows], ncls = 0;
+  memset(ncl, 0, kNrows*sizeof(Int_t));
+  memset(clst, 0, kNrows*knTimebins*sizeof(AliTRDcluster*));
+
   // Do cluster projection
+  AliTRDcluster *c = 0x0;
   AliTRDchamberTimeBin *layer = 0x0;
-  Int_t nYclusters = 0; Bool_t kEXIT = kFALSE;
-  for (Int_t iTime = 0; iTime < AliTRDtrackerV1::GetNTimeBins(); iTime++) {
-    if(!(layer = chamber->GetTB(iTime))) continue;
+  Bool_t kBUFFER = kFALSE;
+  for (Int_t it = 0; it < AliTRDtrackerV1::GetNTimeBins(); it++) {
+    if(!(layer = chamber->GetTB(it))) continue;
     if(!Int_t(*layer)) continue;
     
-    fX[iTime] = layer->GetX() - fX0;
-    zexp[iTime] = fZref[0] + fZref[1] * fX[iTime];
-    yexp[iTime] = fYref[0] + fYref[1] * fX[iTime] - zcorr;
-    
-    // build condition and process clusters
-    cond[0] = yexp[iTime] - kroady; cond[1] = yexp[iTime] + kroady;
-    cond[2] = zexp[iTime] - kroadz; cond[3] = zexp[iTime] + kroadz;
-    layer->GetClusters(cond, index, ncl);
-    for(Int_t ic = 0; ic<ncl; ic++){
-      AliTRDcluster *c = layer->GetCluster(index[ic]);
-      clusters[nYclusters] = c;
-      yres[nYclusters++] = c->GetY() - yexp[iTime];
-      if(nYclusters >= kClusterCandidates) {
-        AliWarning(Form("Cluster candidates reached limit %d. Some may be lost.", kClusterCandidates));
-        kEXIT = kTRUE;
+    dx   = fX0 - layer->GetX();
+    yt = fYref[0] - fYref[1] * dx;
+    zt = fZref[0] - fZref[1] * dx;
+    if(kPRINT) printf("\t%2d dx[%f] yt[%f] zt[%f]\n", it, dx, yt, zt);
+
+    // select clusters on a 5 sigmaKalman level
+    cond[0] = yt; cond[2] = kroady;
+    cond[1] = zt; cond[3] = kroadz;
+    Int_t n=0, idx[6];
+    layer->GetClusters(cond, idx, n, 6);
+    for(Int_t ic = n; ic--;){
+      c  = (*layer)[idx[ic]];
+      dy = yt - c->GetY();
+      dy += tilt ? fTilt * (c->GetZ() - zt) : 0.;
+      // select clusters on a 3 sigmaKalman level
+/*      if(tilt && TMath::Abs(dy) > 3.*syRef){ 
+        printf("too large !!!\n");
+        continue;
+      }*/
+      Int_t r = c->GetPadRow();
+      if(kPRINT) printf("\t\t%d dy[%f] yc[%f] r[%d]\n", ic, TMath::Abs(dy), c->GetY(), r);
+      clst[r][ncl[r]] = c;
+      idxs[r][ncl[r]] = idx[ic];
+      yres[r][ncl[r]] = dy;
+      ncl[r]++; ncls++;
+
+      if(ncl[r] >= knTimebins) {
+        AliWarning(Form("Cluster candidates reached limit %d. Some may be lost.", knTimebins));
+        kBUFFER = kTRUE;
         break;
       }
     }
-    tboundary[iTime] = nYclusters;
-    if(kEXIT) break;
+    if(kBUFFER) break;
   }
-  
-  // Evaluate truncated mean on the y direction
-  Double_t mean, sigma;
-  AliMathBase::EvaluateUni(nYclusters, yres, mean, sigma, Int_t(nYclusters*.8)-2);
-  // purge cluster candidates
-  Int_t nZclusters = 0;
-  for(Int_t ic = 0; ic<nYclusters; ic++){
-    if(yres[ic] - mean > 4. * sigma){
-      clusters[ic] = 0x0;
-      continue;
+  if(kPRINT) printf("Found %d clusters\n", ncls);
+  if(ncls<kClmin) return kFALSE;
+ 
+  // analyze each row individualy
+  Double_t mean, syDis;
+  Int_t nrow[] = {0, 0, 0}, nr = 0, lr=-1;
+  for(Int_t ir=kNrows; ir--;){
+    if(!(ncl[ir])) continue;
+    if(lr>0 && lr-ir != 1){
+      if(kPRINT) printf("W - gap in rows attached !!\n"); 
     }
-    zres[nZclusters++] = clusters[ic]->GetZ() - zexp[clusters[ic]->GetLocalTimeBin()];
-  }
-  
-  // Evaluate truncated mean on the z direction
-  AliMathBase::EvaluateUni(nZclusters, zres, mean, sigma, Int_t(nZclusters*.8)-2);
-  // purge cluster candidates
-  for(Int_t ic = 0; ic<nZclusters; ic++){
-    if(zres[ic] - mean > 4. * sigma){
-      clusters[ic] = 0x0;
-      continue;
-    }
-  }
+    if(kPRINT) printf("\tir[%d] lr[%d] n[%d]\n", ir, lr, ncl[ir]);
+    // Evaluate truncated mean on the y direction
+    if(ncl[ir] > 3) AliMathBase::EvaluateUni(ncl[ir], yres[ir], mean, syDis, Int_t(ncl[ir]*.8));
+    else {
+      mean = 0.; syDis = 0.;
+    } 
 
-  
-  // Select only one cluster/TimeBin
-  Int_t lastCluster = 0;
-  fN2 = 0;
-  for (Int_t iTime = 0; iTime < AliTRDtrackerV1::GetNTimeBins(); iTime++) {
-    ncl = tboundary[iTime] - lastCluster;
-    if(!ncl) continue;
-    Int_t iptr = lastCluster;
-    if(ncl > 1){
-      Float_t dold = 9999.;
-      for(int ic=lastCluster; ic<tboundary[iTime]; ic++){
-        if(!clusters[ic]) continue;
-        Float_t y = yexp[iTime] - clusters[ic]->GetY();
-        Float_t z = zexp[iTime] - clusters[ic]->GetZ();
-        Float_t d = y * y + z * z;
-        if(d > dold) continue;
-        dold = d;
-        iptr = ic;
+    // TODO check mean and sigma agains cluster resolution !!
+    if(kPRINT) printf("\tr[%2d] m[%f %5.3fsigma] s[%f]\n", ir, mean, TMath::Abs(mean/syRef), syDis);
+    // select clusters on a 3 sigmaDistr level
+    Bool_t kFOUND = kFALSE;
+    for(Int_t ic = ncl[ir]; ic--;){
+      if(yres[ir][ic] - mean > 3. * syDis){ 
+        clst[ir][ic] = 0x0; continue;
       }
+      nrow[nr]++; kFOUND = kTRUE;
     }
-    fIndexes[iTime]  = chamber->GetTB(iTime)->GetGlobalIndex(iptr);
-    fClusters[iTime] = clusters[iptr];
-    fY[iTime]        = clusters[iptr]->GetY();
-    fZ[iTime]        = clusters[iptr]->GetZ();
-    lastCluster      = tboundary[iTime];
-    fN2++;
+    // exit loop
+    if(kFOUND) nr++; 
+    lr = ir; if(nr>=3) break;
   }
+  if(kPRINT) printf("lr[%d] nr[%d] nrow[0]=%d nrow[1]=%d nrow[2]=%d\n", lr, nr, nrow[0], nrow[1], nrow[2]);
+
+  // classify cluster rows
+  Int_t row = -1;
+  switch(nr){
+  case 1:
+    row = lr;
+    break;
+  case 2:
+    SetBit(kRowCross, kTRUE); // mark pad row crossing
+    if(nrow[0] > nrow[1]){ row = lr+1; lr = -1;}
+    else{ 
+      row = lr; lr = 1;
+      nrow[2] = nrow[1];
+      nrow[1] = nrow[0];
+      nrow[0] = nrow[2];
+    }
+    break;
+  case 3:
+    SetBit(kRowCross, kTRUE); // mark pad row crossing
+    break;
+  }
+  if(kPRINT) printf("\trow[%d] n[%d]\n\n", row, nrow[0]);
+  if(row<0) return kFALSE;
+
+  // Select and store clusters 
+  // We should consider here :
+  //  1. How far is the chamber boundary
+  //  2. How big is the mean
+  fN2 = 0;
+  for (Int_t ir = 0; ir < nr; ir++) {
+    Int_t jr = row + ir*lr; 
+    if(kPRINT) printf("\tattach %d clusters for row %d\n", ncl[jr], jr);
+    for (Int_t ic = 0; ic < ncl[jr]; ic++) {
+      if(!(c = clst[jr][ic])) continue;
+      Int_t it = c->GetPadTime();
+      // TODO proper indexing of clusters !!
+      fIndexes[it+35*ir]  = chamber->GetTB(it)->GetGlobalIndex(idxs[jr][ic]);
+      fClusters[it+35*ir] = c;
   
+      //printf("\tid[%2d] it[%d] idx[%d]\n", ic, it, fIndexes[it]);
+  
+      fN2++;
+    }
+  }  
+
   // number of minimum numbers of clusters expected for the tracklet
-  Int_t kClmin = Int_t(fReconstructor->GetRecoParam() ->GetFindableClusters()*AliTRDtrackerV1::GetNTimeBins());
   if (fN2 < kClmin){
     AliWarning(Form("Not enough clusters to fit the tracklet %d [%d].", fN2, kClmin));
     fN2 = 0;
     return kFALSE;
   }
 
-  // update used clusters
+  // update used clusters and select
   fNUsed = 0;
-  for (Int_t iTime = 0; iTime < AliTRDtrackerV1::GetNTimeBins(); iTime++) {
-    if(!fClusters[iTime]) continue;
-    if((fClusters[iTime]->IsUsed())) fNUsed++;
+  for (Int_t it = 0; it < AliTRDtrackerV1::GetNTimeBins(); it++) {
+    if(fClusters[it] && fClusters[it]->IsUsed()) fNUsed++;
+    if(fClusters[it+35] && fClusters[it+35]->IsUsed()) fNUsed++;
   }
-
   if (fN2-fNUsed < kClmin){
-    AliWarning(Form("Too many clusters already in use %d (from %d).", fNUsed, fN2));
+    //AliWarning(Form("Too many clusters already in use %d (from %d).", fNUsed, fN2));
     fN2 = 0;
     return kFALSE;
   }
-  
+
+  // set the Lorentz angle for this tracklet  
+  SetExB();
+
+  // calculate dx for time bins in the drift region (calibration aware)
+  Int_t irp = 0; Float_t x[2]; Int_t tb[2];
+  for (Int_t it = t0; it < AliTRDtrackerV1::GetNTimeBins(); it++) {
+    if(!fClusters[it]) continue;
+    x[irp]  = fClusters[it]->GetX();
+    tb[irp] = it;
+    irp++;
+    if(irp==2) break;
+  } 
+  fdX = (x[1] - x[0]) / (tb[0] - tb[1]);
+
+  // update X0 from the clusters (calibration/alignment aware) TODO remove dependence on x0 !!
+  for (Int_t it = 0; it < AliTRDtrackerV1::GetNTimeBins(); it++) {
+    if(!(layer = chamber->GetTB(it))) continue;
+    if(!layer->IsT0()) continue;
+    if(fClusters[it]){ 
+      fX0 = fClusters[it]->GetX();
+      break;
+    } else { // we have to infere the position of the anode wire from the other clusters
+      for (Int_t jt = it+1; jt < AliTRDtrackerV1::GetNTimeBins(); jt++) {
+        if(!fClusters[jt]) continue;
+        fX0 = fClusters[jt]->GetX() + fdX * (jt - it);
+        break;
+      }
+    }
+  }	
+
   return kTRUE;
 }
 
+//____________________________________________________________
+void AliTRDseedV1::Bootstrap(const AliTRDReconstructor *rec)
+{
+//   Fill in all derived information. It has to be called after recovery from file or HLT.
+//   The primitive data are
+//   - list of clusters
+//   - detector (as the detector will be removed from clusters)
+//   - position of anode wire (fX0) - temporary
+//   - track reference position and direction
+//   - momentum of the track
+//   - time bin length [cm]
+// 
+//   A.Bercuci <A.Bercuci@gsi.de> Oct 30th 2008
+//
+  fReconstructor = rec;
+  AliTRDgeometry g;
+  AliTRDpadPlane *pp = g.GetPadPlane(fDet);
+  fTilt      = TMath::Tan(TMath::DegToRad()*pp->GetTiltingAngle());
+  fPadLength = pp->GetLengthIPad();
+  fSnp = fYref[1]/TMath::Sqrt(1+fYref[1]*fYref[1]);
+  fTgl = fZref[1];
+  fN = 0; fN2 = 0; fMPads = 0.;
+  AliTRDcluster **cit = &fClusters[0];
+  for(Int_t ic = knTimebins; ic--; cit++){
+    if(!(*cit)) return;
+    fN++; fN2++;
+    fX[ic] = (*cit)->GetX() - fX0;
+    fY[ic] = (*cit)->GetY();
+    fZ[ic] = (*cit)->GetZ();
+  }
+  Update(); // Fit();
+  CookLabels();
+  GetProbability();
+}
+
+
 //____________________________________________________________________
-Bool_t AliTRDseedV1::Fit(Bool_t tilt)
+Bool_t AliTRDseedV1::Fit(Bool_t tilt, Int_t errors)
 {
   //
   // Linear fit of the tracklet
@@ -634,9 +908,37 @@ Bool_t AliTRDseedV1::Fit(Bool_t tilt)
   //
 
   const Int_t kClmin = 8;
-  const Float_t q0 = 100.;
-  const Float_t clSigma0 = 2.E-2;    //[cm]
-  const Float_t clSlopeQ = -1.19E-2; //[1/cm]
+
+
+  // cluster error parametrization parameters 
+  // 1. sy total charge
+  const Float_t sq0inv = 0.019962; // [1/q0]
+  const Float_t sqb    = 1.0281564;    //[cm]
+  // 2. sy for the PRF
+  const Float_t scy[AliTRDgeometry::kNlayer][4] = {
+    {2.827e-02, 9.600e-04, 4.296e-01, 2.271e-02},
+    {2.952e-02,-2.198e-04, 4.146e-01, 2.339e-02},
+    {3.090e-02, 1.514e-03, 4.020e-01, 2.402e-02},
+    {3.260e-02,-2.037e-03, 3.946e-01, 2.509e-02},
+    {3.439e-02,-3.601e-04, 3.883e-01, 2.623e-02},
+    {3.510e-02, 2.066e-03, 3.651e-01, 2.588e-02},
+  };
+  // 3. sy parallel to the track
+  const Float_t sy0 =  2.649e-02; // [cm]
+  const Float_t sya = -8.864e-04; // [cm]
+  const Float_t syb = -2.435e-01; // [cm]
+
+  // 4. sx parallel to the track
+  const Float_t sxgc = 5.427e-02;
+  const Float_t sxgm = 7.783e-01;
+  const Float_t sxgs = 2.743e-01;
+  const Float_t sxe0 =-2.065e+00;
+  const Float_t sxe1 =-2.978e-02;
+
+  // 5. sx perpendicular to the track
+//   const Float_t sxd0 = 1.881e-02;
+//   const Float_t sxd1 =-4.101e-01;
+//   const Float_t sxd2 = 1.572e+00;
 
   // get track direction
   Double_t y0   = fYref[0];
@@ -646,33 +948,37 @@ Bool_t AliTRDseedV1::Fit(Bool_t tilt)
   Double_t yt, zt;
 
   const Int_t kNtb = AliTRDtrackerV1::GetNTimeBins();
-  AliTRDtrackerV1::AliTRDLeastSquare fitterY, fitterZ;
-
+  //AliTRDtrackerV1::AliTRDLeastSquare fitterZ;
+  TLinearFitter  fitterY(1, "pol1");
   // convertion factor from square to gauss distribution for sigma
-  Double_t convert = 1./TMath::Sqrt(12.);
+  //Double_t convert = 1./TMath::Sqrt(12.);
   
   // book cluster information
-  Double_t xc[knTimebins], yc[knTimebins], zc[knTimebins], sy[knTimebins], sz[knTimebins];
-  Int_t zRow[knTimebins];
-
-
-  fN = 0;
+  Double_t q, xc[knTimebins], yc[knTimebins], zc[knTimebins], sy[knTimebins]/*, sz[knTimebins]*/;
+//   Int_t zRow[knTimebins];
+  
+  Int_t ily = AliTRDgeometry::GetLayer(fDet);
+  fN = 0; //fXref = 0.; Double_t ssx = 0.;
   AliTRDcluster *c=0x0, **jc = &fClusters[0];
   for (Int_t ic=0; ic<kNtb; ic++, ++jc) {
-    zRow[ic] = -1;
+    //zRow[ic] = -1;
     xc[ic]  = -1.;
     yc[ic]  = 999.;
     zc[ic]  = 999.;
     sy[ic]  = 0.;
-    sz[ic]  = 0.;
+    //sz[ic]  = 0.;
     if(!(c = (*jc))) continue;
     if(!c->IsInChamber()) continue;
+
     Float_t w = 1.;
     if(c->GetNPads()>4) w = .5;
     if(c->GetNPads()>5) w = .2;
-    zRow[fN] = c->GetPadRow();
-    xc[fN]   = fX0 - c->GetX();
-    yc[fN]   = c->GetY();
+
+    //zRow[fN] = c->GetPadRow();
+    // correct cluster position for PRF and v drift
+    Double_t x, y; GetClusterXY(c, x, y);
+    xc[fN]   = fX0 - x;
+    yc[fN]   = y;
     zc[fN]   = c->GetZ();
 
     // extrapolated y value for the track
@@ -682,117 +988,209 @@ Bool_t AliTRDseedV1::Fit(Bool_t tilt)
     // tilt correction
     if(tilt) yc[fN] -= fTilt*(zc[fN] - zt); 
 
-    // elaborate cluster error
-    Float_t qr = c->GetQ() - q0;
-    sy[fN]   = qr < 0. ? clSigma0*TMath::Exp(clSlopeQ*qr) : clSigma0;
+    // ELABORATE CLUSTER ERROR
+    // TODO to be moved to AliTRDcluster
+    q = TMath::Abs(c->GetQ());
+    Double_t tgg = (dydx-fExB)/(1.+dydx*fExB); tgg *= tgg;
+    // basic y error (|| to track).
+    sy[fN]  = xc[fN] < AliTRDgeometry::CamHght() ? 2. : sy0 + sya*TMath::Exp(1./(xc[fN]+syb));
+    //printf("cluster[%d]\n\tsy[0] = %5.3e [um]\n", fN,  sy[fN]*1.e4);
+    // y error due to total charge
+    sy[fN] += sqb*(1./q - sq0inv);
+    //printf("\tsy[1] = %5.3e [um]\n", sy[fN]*1.e4);
+    // y error due to PRF
+    sy[fN] += scy[ily][0]*TMath::Gaus(c->GetCenter(), scy[ily][1], scy[ily][2]) - scy[ily][3];
+    //printf("\tsy[2] = %5.3e [um]\n", sy[fN]*1.e4);
 
-    fitterY.AddPoint(&xc[fN], yc[fN]-yt, sy[fN]);
+    sy[fN] *= sy[fN];
 
-    sz[fN]   = fPadLength*convert;
-    fitterZ.AddPoint(&xc[fN], zc[fN], sz[fN]);
+    // ADD ERROR ON x
+    // error of drift length parallel to the track
+    Double_t sx = sxgc*TMath::Gaus(xc[fN], sxgm, sxgs) + TMath::Exp(sxe0+sxe1*xc[fN]); // [cm]
+    //printf("\tsx[0] = %5.3e [um]\n", sx*1.e4);
+    // error of drift length perpendicular to the track
+    //sx += sxd0 + sxd1*d + sxd2*d*d;
+    sx *= sx; // square sx
+    // update xref
+    //fXref += xc[fN]/sx; ssx+=1./sx;
+
+    // add error from ExB 
+    if(errors>0) sy[fN] += fExB*fExB*sx;
+    //printf("\tsy[3] = %5.3e [um^2]\n", sy[fN]*1.e8);
+
+    // global radial error due to misalignment/miscalibration
+    Double_t sx0  = 0.; sx0 *= sx0;
+    // add sx contribution to sy due to track angle
+    if(errors>1) sy[fN] += tgg*(sx+sx0);
+    // TODO we should add tilt pad correction here
+    //printf("\tsy[4] = %5.3e [um^2]\n", sy[fN]*1.e8);
+    c->SetSigmaY2(sy[fN]);
+
+    sy[fN]  = TMath::Sqrt(sy[fN]);
+    fitterY.AddPoint(&xc[fN], yc[fN]/*-yt*/, sy[fN]);
     fN++;
   }
   // to few clusters
   if (fN < kClmin) return kFALSE; 
 
-  // fit XY plane
+  // fit XY
   fitterY.Eval();
-  fYfit[0] = y0+fitterY.GetFunctionParameter(0);
-  fYfit[1] = dydx-fitterY.GetFunctionParameter(1);
+  fYfit[0] = fitterY.GetParameter(0);
+  fYfit[1] = -fitterY.GetParameter(1);
+  // store covariance
+  Double_t *p = fitterY.GetCovarianceMatrix();
+  fCov[0] = p[0]; // variance of y0
+  fCov[1] = p[1]; // covariance of y0, dydx
+  fCov[2] = p[3]; // variance of dydx
+  // the ref radial position is set at the minimum of 
+  // the y variance of the tracklet
+  fXref = -fCov[1]/fCov[2]; //fXref = fX0 - fXref;
 
-  // check par row crossing
-  Int_t zN[2*AliTRDseed::knTimebins];
-  Int_t nz = AliTRDtrackerV1::Freq(fN, zRow, zN, kFALSE);
-  // more than one pad row crossing
-  if(nz>2) return kFALSE; 
-
-
-  // determine z offset of the fit
-  Float_t zslope = 0.;
-  Int_t nchanges = 0, nCross = 0;
-  if(nz==2){ // tracklet is crossing pad row
-    // Find the break time allowing one chage on pad-rows
-    // with maximal number of accepted clusters
-    Int_t padRef = zRow[0];
-    for (Int_t ic=1; ic<fN; ic++) {
-      if(zRow[ic] == padRef) continue;
-      
-      // debug
-      if(zRow[ic-1] == zRow[ic]){
-        printf("ERROR in pad row change!!!\n");
-      }
-    
-      // evaluate parameters of the crossing point
-      Float_t sx = (xc[ic-1] - xc[ic])*convert;
-      fCross[0] = .5 * (xc[ic-1] + xc[ic]);
-      fCross[2] = .5 * (zc[ic-1] + zc[ic]);
-      fCross[3] = TMath::Max(dzdx * sx, .01);
-      zslope    = zc[ic-1] > zc[ic] ? 1. : -1.;
-      padRef    = zRow[ic];
-      nCross    = ic;
-      nchanges++;
-    }
+  // fit XZ
+  if(IsRowCross()){ 
+    // TODO pad row cross position estimation !!!
+    //AliInfo(Form("Padrow cross in detector %d", fDet));
+    fZfit[0] = .5*(zc[0]+zc[fN-1]); fZfit[1] = 0.;
+  } else {
+    fZfit[0] = zc[0]; fZfit[1] = 0.;
   }
 
-  // condition on nCross and reset nchanges TODO
 
-  if(nchanges==1){
-    if(dzdx * zslope < 0.){
-      AliInfo("tracklet direction does not correspond to the track direction. TODO.");
-    }
-    SetBit(kRowCross, kTRUE); // mark pad row crossing
-    fitterZ.AddPoint(&fCross[0], fCross[2], fCross[3]);
-    fitterZ.Eval();
-    //zc[nc] = fitterZ.GetFunctionParameter(0); 
-    fCross[1] = fYfit[0] - fCross[0] * fYfit[1];
-    fCross[0] = fX0 - fCross[0];
-  } else if(nchanges > 1){ // debug
-    AliError("N pad row crossing > 1.");
-    return kFALSE;
-  }
+//   // determine z offset of the fit
+//   Float_t zslope = 0.;
+//   Int_t nchanges = 0, nCross = 0;
+//   if(nz==2){ // tracklet is crossing pad row
+//     // Find the break time allowing one chage on pad-rows
+//     // with maximal number of accepted clusters
+//     Int_t padRef = zRow[0];
+//     for (Int_t ic=1; ic<fN; ic++) {
+//       if(zRow[ic] == padRef) continue;
+//       
+//       // debug
+//       if(zRow[ic-1] == zRow[ic]){
+//         printf("ERROR in pad row change!!!\n");
+//       }
+//     
+//       // evaluate parameters of the crossing point
+//       Float_t sx = (xc[ic-1] - xc[ic])*convert;
+//       fCross[0] = .5 * (xc[ic-1] + xc[ic]);
+//       fCross[2] = .5 * (zc[ic-1] + zc[ic]);
+//       fCross[3] = TMath::Max(dzdx * sx, .01);
+//       zslope    = zc[ic-1] > zc[ic] ? 1. : -1.;
+//       padRef    = zRow[ic];
+//       nCross    = ic;
+//       nchanges++;
+//     }
+//   }
+// 
+//   // condition on nCross and reset nchanges TODO
+// 
+//   if(nchanges==1){
+//     if(dzdx * zslope < 0.){
+//       AliInfo("Tracklet-Track mismatch in dzdx. TODO.");
+//     }
+// 
+// 
+//     //zc[nc] = fitterZ.GetFunctionParameter(0); 
+//     fCross[1] = fYfit[0] - fCross[0] * fYfit[1];
+//     fCross[0] = fX0 - fCross[0];
+//   }
 
   UpdateUsed();
-
   return kTRUE;
 }
 
 
 //___________________________________________________________________
-void AliTRDseedV1::Print(Option_t*) const
+void AliTRDseedV1::Print(Option_t *o) const
 {
   //
   // Printing the seedstatus
   //
 
-  AliInfo(Form("Tracklet X0[%7.2f] Det[%d]", fX0, fDet));
-  printf("  Tilt[%+6.2f] PadLength[%5.2f]\n", fTilt, fPadLength);
+  AliInfo(Form("Det[%3d] Tilt[%+6.2f] Pad[%5.2f]", fDet, fTilt, fPadLength));
+  AliInfo(Form("Nattach[%2d] Nfit[%2d] Nuse[%2d] pads[%f]", fN, fN2, fNUsed, fMPads));
+  AliInfo(Form("x[%7.2f] y[%7.2f] z[%7.2f] dydx[%5.2f] dzdx[%5.2f]", fX0, fYfit[0], fZfit[0], fYfit[1], fZfit[1]));
+  AliInfo(Form("Ref        y[%7.2f] z[%7.2f] dydx[%5.2f] dzdx[%5.2f]", fYref[0], fZref[0], fYref[1], fZref[1]))
+
+
+  if(strcmp(o, "a")!=0) return;
+
   AliTRDcluster* const* jc = &fClusters[0];
   for(int ic=0; ic<AliTRDtrackerV1::GetNTimeBins(); ic++, jc++) {
     if(!(*jc)) continue;
-    printf("  %2d X[%7.2f] Y[%7.2f] Z[%7.2f] Idx[%d] c[%p] usable[%s]\n", 
-      ic, (*jc)->GetX(), (*jc)->GetY(), (*jc)->GetZ(), 
-      fIndexes[ic], (void*)(*jc), fUsable[ic]?"y":"n");
+    (*jc)->Print(o);
   }
-
-  printf("  fYref[0] =%f fYref[1] =%f\n", fYref[0], fYref[1]);
-  printf("  fZref[0] =%f fZref[1] =%f\n", fZref[0], fZref[1]);
-  printf("  fYfit[0] =%f fYfit[1] =%f\n", fYfit[0], fYfit[1]);
-  printf("  fZfit[0] =%f fZfit[1] =%f\n", fZfit[0], fZfit[1]);
-  printf("  fSigmaY =%f\n", fSigmaY);
-  printf("  fSigmaY2=%f\n", fSigmaY2);            
-  printf("  fMeanz  =%f\n", fMeanz);
-  printf("  fZProb  =%f\n", fZProb);
-  printf("  fLabels[0]=%d fLabels[1]=%d\n", fLabels[0], fLabels[1]);
-  printf("  fN      =%d\n", fN);
-  printf("  fN2     =%d (>4 isOK - to be redesigned)\n",fN2);
-  printf("  fNUsed  =%d\n", fNUsed);
-  printf("  fFreq   =%d\n", fFreq);
-  printf("  fNChange=%d\n",  fNChange);
-  printf("  fMPads  =%f\n", fMPads);
-  
-  printf("  fC      =%f\n", fC);        
-  printf("  fCC     =%f\n",fCC);      
-  printf("  fChi2   =%f\n", fChi2);  
-  printf("  fChi2Z  =%f\n", fChi2Z);
 }
 
+
+//___________________________________________________________________
+Bool_t AliTRDseedV1::IsEqual(const TObject *o) const
+{
+  // Checks if current instance of the class has the same essential members
+  // as the given one
+
+  if(!o) return kFALSE;
+  const AliTRDseedV1 *inTracklet = dynamic_cast<const AliTRDseedV1*>(o);
+  if(!inTracklet) return kFALSE;
+
+  for (Int_t i = 0; i < 2; i++){
+    if ( fYref[i] != inTracklet->GetYref(i) ) return kFALSE;
+    if ( fZref[i] != inTracklet->GetZref(i) ) return kFALSE;
+  }
+  
+  if ( fSigmaY != inTracklet->GetSigmaY() ) return kFALSE;
+  if ( fSigmaY2 != inTracklet->GetSigmaY2() ) return kFALSE;
+  if ( fTilt != inTracklet->GetTilt() ) return kFALSE;
+  if ( fPadLength != inTracklet->GetPadLength() ) return kFALSE;
+  
+  for (Int_t i = 0; i < knTimebins; i++){
+    if ( fX[i] != inTracklet->GetX(i) ) return kFALSE;
+    if ( fY[i] != inTracklet->GetY(i) ) return kFALSE;
+    if ( fZ[i] != inTracklet->GetZ(i) ) return kFALSE;
+    if ( fIndexes[i] != inTracklet->GetIndexes(i) ) return kFALSE;
+    if ( fUsable[i] != inTracklet->IsUsable(i) ) return kFALSE;
+  }
+
+  for (Int_t i=0; i < 2; i++){
+    if ( fYfit[i] != inTracklet->GetYfit(i) ) return kFALSE;
+    if ( fZfit[i] != inTracklet->GetZfit(i) ) return kFALSE;
+    if ( fYfitR[i] != inTracklet->GetYfitR(i) ) return kFALSE;
+    if ( fZfitR[i] != inTracklet->GetZfitR(i) ) return kFALSE;
+    if ( fLabels[i] != inTracklet->GetLabels(i) ) return kFALSE;
+  }
+  
+  if ( fMeanz != inTracklet->GetMeanz() ) return kFALSE;
+  if ( fZProb != inTracklet->GetZProb() ) return kFALSE;
+  if ( fN2 != inTracklet->GetN2() ) return kFALSE;
+  if ( fNUsed != inTracklet->GetNUsed() ) return kFALSE;
+  if ( fFreq != inTracklet->GetFreq() ) return kFALSE;
+  if ( fNChange != inTracklet->GetNChange() ) return kFALSE;
+  if ( fNChange != inTracklet->GetNChange() ) return kFALSE;
+   
+  if ( fC != inTracklet->GetC() ) return kFALSE;
+  if ( fCC != inTracklet->GetCC() ) return kFALSE;
+  if ( fChi2 != inTracklet->GetChi2() ) return kFALSE;
+  //  if ( fChi2Z != inTracklet->GetChi2Z() ) return kFALSE;
+
+  if ( fDet != inTracklet->GetDetector() ) return kFALSE;
+  if ( fMom != inTracklet->GetMomentum() ) return kFALSE;
+  if ( fdX != inTracklet->GetdX() ) return kFALSE;
+  
+  for (Int_t iCluster = 0; iCluster < knTimebins; iCluster++){
+    AliTRDcluster *curCluster = fClusters[iCluster];
+    AliTRDcluster *inCluster = inTracklet->GetClusters(iCluster);
+    if (curCluster && inCluster){
+      if (! curCluster->IsEqual(inCluster) ) {
+        curCluster->Print();
+        inCluster->Print();
+        return kFALSE;
+      }
+    } else {
+      // if one cluster exists, and corresponding 
+      // in other tracklet doesn't - return kFALSE
+      if(curCluster || inCluster) return kFALSE;
+    }
+  }
+  return kTRUE;
+}

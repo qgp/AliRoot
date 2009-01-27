@@ -43,7 +43,9 @@ public:
     UChar_t     GetPidQuality() const {return fTRDpidQuality;}
     Int_t       GetNSlices() const {return fTRDnSlices;}
     Double32_t* GetSliceIter() const {return fTRDslices;}
-    Double32_t* GetResponseIter() {return &fTRDr[0];}
+    const Double32_t* GetResponseIter() const {return &fTRDr[0];}
+    AliExternalTrackParam* GetOuterParam() const { return fOP;}
+
   protected:
     Int_t       fId;            // ESD track id
     ULong_t     fStatus;        // ESD track status
@@ -53,8 +55,9 @@ public:
     UChar_t     fTRDpidQuality; // TRD PID quality
     Int_t       fTRDnSlices;    // number of slices used for PID
     Double32_t *fTRDslices;     //[fTRDnSlices] 
+    AliExternalTrackParam *fOP; // outer param
 
-    ClassDef(AliESDinfo, 1)     // ESD info related to TRD
+    ClassDef(AliESDinfo, 2)     // ESD info related to TRD
   };
 
   class AliMCinfo{
@@ -68,8 +71,9 @@ public:
     Int_t   GetLabel() const {return fLabel;}
     Int_t   GetNTrackRefs() const {return fNTrackRefs;}
     Int_t   GetPDG() const {return fPDG;}
-    Bool_t  GetDirections(Float_t x0, Float_t &y0, Float_t &z0, Float_t &dydx, Float_t &dzdx) const;
+    Bool_t  GetDirections(Float_t &x0, Float_t &y0, Float_t &z0, Float_t &dydx, Float_t &dzdx, Float_t &pt, UChar_t &s) const;
     AliTrackReference const* GetTrackRef(Int_t ref=0) const {return fTrackRefs[ref];}
+    void    PropagateKalman(Double_t dx[kNTrackRefs], Double_t dy[kNTrackRefs], Double_t dz[kNTrackRefs], Double_t dpt[kNTrackRefs], Double_t c[kNTrackRefs][15], Double_t step = 2.) const;
 
   protected:
     Int_t   fLabel;             // MC label  
@@ -104,11 +108,10 @@ public:
   ULong_t            GetStatus() const {return fESD.fStatus;}
   AliTRDtrackV1*     GetTrack() const { return fTRDtrack; }
   AliTrackReference* GetTrackRef(Int_t entry) const;
-  AliExternalTrackParam* GetOuterParam() const {return fOP;}
 
   Bool_t             IsCurved() const {return TestBit(kCurv);}
   Bool_t             IsPrimary() const {return TestBit(kPrim);}
-	Bool_t             HasESDtrack() const{return ((fTRDtrack != 0x0) ||(fOP != 0));}
+	Bool_t             HasESDtrack() const{return ((fTRDtrack != 0x0) ||(fESD.fOP != 0));}
 	Bool_t             HasMCinfo() const { return (Bool_t)fMC; }
 
   void               SetCurved(Bool_t curv = kTRUE) {SetBit(kCurv, curv);}
@@ -122,10 +125,10 @@ public:
   void               SetKinkIndex(Int_t kinkIndex) {fESD.fKinkIndex = kinkIndex;}
   void               SetTPCncls(UShort_t TPCncls) {fESD.fTPCncls = TPCncls;}
   void               SetTrackId(Int_t id) {fESD.fId = id;}
-  void               SetTRDtrack(const AliTRDtrackV1 *track);
-  void               SetPidQuality(UChar_t q) { fESD.fTRDpidQuality = q;}
+  void               SetTrack(const AliTRDtrackV1 *track);
+  void               SetESDpidQuality(UChar_t q) { fESD.fTRDpidQuality = q;}
   void               SetSlices(Int_t n, Double32_t*);
-  inline void        SetResponse(Double32_t *);
+  inline void        SetESDpid(Double_t *);
   
 private:
     enum{
@@ -135,11 +138,10 @@ private:
   // this 2 data members have to go to ESD header.
   Int_t              fNClusters;     	// Numer of clusters from refit
   AliTRDtrackV1      *fTRDtrack; 	    // tracklets data array
-  AliExternalTrackParam *fOP;       	// outer param if no tracklets
   AliMCinfo          *fMC;            // MC extract for TRD
   AliESDinfo         fESD;            // ESD extract for TRD
  
-  ClassDef(AliTRDtrackInfo, 2)        // TRD track info
+  ClassDef(AliTRDtrackInfo, 3)        // TRD track info
 };
 
 
@@ -150,9 +152,9 @@ inline void AliTRDtrackInfo::SetMC()
 }
 
 //________________________________________________________
-inline void AliTRDtrackInfo::SetResponse(Double32_t *r)
-{
-  memcpy(fESD.fTRDr, r, AliPID::kSPECIES*sizeof(Double32_t));
+inline void AliTRDtrackInfo::SetESDpid(Double_t *r)
+{ 
+  for(Int_t is = AliPID::kSPECIES; is--;) fESD.fTRDr[is] = r[is];
 }
 
 #endif

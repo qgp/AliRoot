@@ -25,12 +25,16 @@
 //                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
+#include "TDatabasePDG.h"
+
 #include "AliTrackReference.h"
 #include "AliExternalTrackParam.h"
 #include "AliLog.h"
 
 #include "AliTRDseedV1.h"
 #include "AliTRDtrackV1.h"
+#include "AliTRDgeometry.h"
+#include "AliTRDtrackerV1.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -46,7 +50,6 @@ AliTRDtrackInfo::AliTRDtrackInfo():
   TObject()
   ,fNClusters(0)
   ,fTRDtrack(0x0)
-  ,fOP(0x0)
   ,fMC(0x0)
   ,fESD()
 {
@@ -61,15 +64,12 @@ AliTRDtrackInfo::AliTRDtrackInfo(const AliTRDtrackInfo &trdInfo):
   TObject((const TObject&)trdInfo)  
   ,fNClusters(trdInfo.fNClusters)
   ,fTRDtrack(0x0)
-  ,fOP(0x0)
   ,fMC(new AliMCinfo(*trdInfo.fMC))
   ,fESD(trdInfo.fESD)
 {
   //
   // copy Entries
   //
-
-  if(trdInfo.fOP) fOP = new AliExternalTrackParam(*trdInfo.fOP);
 
   if(trdInfo.fMC) fMC = new AliMCinfo(*trdInfo.fMC);
 
@@ -111,6 +111,7 @@ AliTRDtrackInfo::AliESDinfo::AliESDinfo()
   ,fTRDpidQuality(0)
   ,fTRDnSlices(0)
   ,fTRDslices(0x0)
+  ,fOP(0x0)
 {
   memset(fTRDr, 0, AliPID::kSPECIES*sizeof(Double32_t));
 }
@@ -124,6 +125,7 @@ AliTRDtrackInfo::AliESDinfo::AliESDinfo(const AliESDinfo &esd)
   ,fTRDpidQuality(esd.fTRDpidQuality)
   ,fTRDnSlices(esd.fTRDnSlices)
   ,fTRDslices(0x0)
+  ,fOP(0x0)
 {
   memcpy(fTRDr, esd.fTRDr, AliPID::kSPECIES*sizeof(Double32_t));
 
@@ -131,6 +133,7 @@ AliTRDtrackInfo::AliESDinfo::AliESDinfo(const AliESDinfo &esd)
     fTRDslices = new Double32_t[fTRDnSlices];
     memcpy(fTRDslices, esd.fTRDslices, fTRDnSlices*sizeof(Double32_t));
   }
+  if(esd.fOP) fOP = new AliExternalTrackParam(*esd.fOP);
 }
 
 
@@ -140,8 +143,7 @@ AliTRDtrackInfo::~AliTRDtrackInfo()
   //
   // Destructor
   //
-
-  if(fOP) delete fOP;
+  if(fMC) delete fMC;
   if(fTRDtrack) delete fTRDtrack;
 }
 
@@ -163,6 +165,7 @@ AliTRDtrackInfo::AliESDinfo::~AliESDinfo()
     fTRDslices = 0x0;
     fTRDnSlices = 0;
   }
+  if(fOP) delete fOP; fOP = 0x0;
 }
 
 
@@ -175,14 +178,6 @@ AliTRDtrackInfo& AliTRDtrackInfo::operator=(const AliTRDtrackInfo &trdInfo)
 
   fNClusters  = trdInfo.fNClusters;
   fESD = trdInfo.fESD;
-
-  // copy Entries
-  if(trdInfo.fOP){
-    if(!fOP)
-      fOP = new AliExternalTrackParam(*trdInfo.fOP);
-    else
-      new(fOP) AliExternalTrackParam(*trdInfo.fOP);
-  }
 
   if(trdInfo.fMC){
     if(!fMC)
@@ -235,6 +230,10 @@ AliTRDtrackInfo::AliESDinfo& AliTRDtrackInfo::AliESDinfo::operator=(const AliESD
     fTRDslices = new Double32_t[fTRDnSlices];
     memcpy(fTRDslices, esd.fTRDslices, fTRDnSlices*sizeof(Double32_t));
   }
+  if(esd.fOP){
+    if(fOP) new(fOP) AliExternalTrackParam(esd.fOP);
+    else fOP = new AliExternalTrackParam(esd.fOP);
+  } else fOP = 0x0;
 
   return *this;
 }
@@ -247,13 +246,12 @@ void AliTRDtrackInfo::Delete(const Option_t *)
   //
 
   fNClusters  = 0;
-  if(fOP) delete fOP; fOP = 0x0;
   if(fMC) delete fMC; fMC = 0x0;
   if(fTRDtrack) delete fTRDtrack; fTRDtrack = 0x0;
 }
 
 //___________________________________________________
-void AliTRDtrackInfo::SetTRDtrack(const AliTRDtrackV1 *track)
+void AliTRDtrackInfo::SetTrack(const AliTRDtrackV1 *track)
 {
   //
   // Set the TRD track
@@ -320,9 +318,8 @@ void  AliTRDtrackInfo::SetOuterParam(const AliExternalTrackParam *op)
   //
 
   if(!op) return;
-  if(fOP) new(fOP) AliExternalTrackParam(*op);
-  else
-    fOP = new AliExternalTrackParam(*op);
+  if(fESD.fOP) new(fESD.fOP) AliExternalTrackParam(*op);
+  else fESD.fOP = new AliExternalTrackParam(*op);
 }
 
 //___________________________________________________
@@ -352,12 +349,19 @@ void AliTRDtrackInfo::SetSlices(Int_t n, Double32_t *s)
 
   memcpy(fESD.fTRDslices, s, n*sizeof(Double32_t));
 }
-
+ 
 //___________________________________________________
-Bool_t AliTRDtrackInfo::AliMCinfo::GetDirections(Float_t x0, Float_t &y0, Float_t &z0, Float_t &dydx, Float_t &dzdx) const
+Bool_t AliTRDtrackInfo::AliMCinfo::GetDirections(Float_t &x0, Float_t &y0, Float_t &z0, Float_t &dydx, Float_t &dzdx, Float_t &pt, UChar_t &status) const
 {
-  // check for 2 track ref where the radial position has a distance less than 3.7mm and are close to the x0
+// Check for 2 track ref for the tracklet defined bythe radial position x0
+// The "status" is a bit map and gives a more informative output in case of failure:
+//   - 0 : everything is OK
+//   - BIT(0) : 0 track refs found
+//   - BIT(1) : 1 track reference found
+//   - BIT(2) : dx <= 0 between track references
+//   - BIT(3) : dx > 0 && dx < 3.7 - tangent tracks 
 
+  status = 0;
   Int_t nFound = 0;
   AliTrackReference *tr[2] = {0x0, 0x0};
   AliTrackReference * const* jtr = &fTrackRefs[0];
@@ -371,19 +375,80 @@ Bool_t AliTRDtrackInfo::AliMCinfo::GetDirections(Float_t x0, Float_t &y0, Float_
   } 
   if(nFound < 2){ 
     AliWarningGeneral("AliTRDtrackInfo::AliMCinfo::GetDirections()", Form("Missing track ref x0[%6.3f] nref[%d]\n", x0, nFound));
+    if(!nFound) SETBIT(status, 0);
+    else SETBIT(status, 1);
     return kFALSE;
   }
+  if((pt=tr[1]->Pt()) < 1.e-3) return kFALSE;
+
   Double_t dx = tr[1]->LocalX() - tr[0]->LocalX();
-  if(dx <= 0. || TMath::Abs(dx-3.7)>1.E-3){
+  if(dx <= 0.){
     AliWarningGeneral("AliTRDtrackInfo::AliMCinfo::GetDirections()", Form("Track ref with wrong radial distances refX0[%6.3f] refX1[%6.3f]", tr[0]->LocalX(), tr[1]->LocalX()));
+    SETBIT(status, 2);
     return kFALSE;
   }
+  if(TMath::Abs(dx-AliTRDgeometry::CamHght()-AliTRDgeometry::CdrHght())>1.E-3) SETBIT(status, 3); 
 
   dydx = (tr[1]->LocalY() - tr[0]->LocalY()) / dx;
   dzdx = (tr[1]->Z() - tr[0]->Z()) / dx;
-  Float_t dx0 = tr[1]->LocalX() - x0;
-  y0   =  tr[1]->LocalY() - dydx*dx0;
-  z0   =  tr[1]->Z() - dzdx*dx0;
+  //Float_t dx0 = tr[1]->LocalX() - x0;
+  y0   =  tr[1]->LocalY()/* - dydx*dx0*/;
+  z0   =  tr[1]->Z()/* - dzdx*dx0*/;
+  x0   =  tr[1]->LocalX();
   return kTRUE;
 }
 
+//___________________________________________________
+void AliTRDtrackInfo::AliMCinfo::PropagateKalman(Double_t dx[kNTrackRefs], Double_t dy[kNTrackRefs], Double_t dz[kNTrackRefs], Double_t dp[kNTrackRefs], Double_t c[kNTrackRefs][15], Double_t step) const
+{
+// Propagate Kalman from the first TRD track reference to 
+// last one and save residuals in the y, z and pt.
+// 
+// This is to calibrate the dEdx and MS corrections
+
+  for(Int_t itr=kNTrackRefs; itr--;){
+    dx[itr] = -1.; dy[itr] = 100.; dz[itr] = 100.; dp[itr] = 100.;
+  }
+  if(!fNTrackRefs) return;
+
+  // Initialize TRD track to the first track reference
+  AliTrackReference *tr = fTrackRefs[0];
+  if(tr->Pt()<1.e-3) return;
+
+  AliTRDtrackV1 tt;
+  Double_t xyz[3]={tr->X(),tr->Y(),tr->Z()};
+  Double_t pxyz[3]={tr->Px(),tr->Py(),tr->Pz()};
+  Double_t var[6] = {1.e-4, 1.e-4, 1.e-4, 1.e-4, 1.e-4, 1.e-4};
+  Double_t cov[21]={
+    var[0],  0.,  0.,  0.,  0.,  0.,
+         var[1],  0.,  0.,  0.,  0.,
+              var[2],  0.,  0.,  0.,
+                   var[3],  0.,  0.,
+                        var[4],  0.,
+                             var[5]
+  };
+  TDatabasePDG db;
+  const TParticlePDG *pdg=db.GetParticle(fPDG);
+  if(!pdg){
+    AliWarningGeneral("AliTRDtrackInfo::AliMCinfo::PropagateKalman()", Form("PDG entry missing for code %d. References for track %d", fPDG, fNTrackRefs));
+    return;
+  }
+  tt.Set(xyz, pxyz, cov, Short_t(pdg->Charge()));
+  tt.SetMass(pdg->Mass());
+  
+  Double_t x0 = tr->LocalX();
+  const Double_t *cc = 0x0;
+  for(Int_t itr=1, ip=0; itr<fNTrackRefs; itr++){
+    tr = fTrackRefs[itr];
+    if(!AliTRDtrackerV1::PropagateToX(tt, tr->LocalX(), step)) continue;
+
+    //if(update) ...
+    dx[ip] = tt.GetX() - x0;
+    dy[ip] = tt.GetY() - tr->LocalY();
+    dz[ip] = tt.GetZ() - tr->Z();
+    dp[ip] = tt.Pt()- tr->Pt();
+    cc = tt.GetCovariance();
+    memcpy(c[ip], cc, 15*sizeof(Double_t));
+    ip++;
+  }
+}

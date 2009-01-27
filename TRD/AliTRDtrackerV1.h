@@ -70,7 +70,6 @@ public:
   AliTRDtrackingSector* GetTrackingSector(Int_t sec) {return &fTrSec[sec];}
   
   Int_t           Clusters2Tracks(AliESDEvent *esd);
-  static TTreeSRedirector* DebugStreamer() {return fgDebugStreamer;}
   AliCluster*     GetCluster(Int_t index) const;
   AliTRDseedV1*   GetTracklet(Int_t index) const;
   AliKalmanTrack* GetTrack(Int_t index) const;
@@ -88,8 +87,8 @@ public:
   static Float_t  FitTiltedRiemanConstraint(AliTRDseedV1 *tracklets, Double_t zVertex);
   static Float_t  FitTiltedRieman(AliTRDseedV1 *tracklets, Bool_t sigError);
   
- 	static Double_t FitRiemanTilt(AliTRDtrackV1 *trk, AliTRDseedV1 *tracklets = 0x0, Bool_t err=0, Int_t np = 0, AliTrackPoint *points = 0x0);
- 	static Double_t FitLine(AliTRDtrackV1 *trk, AliTRDseedV1 *tracklets = 0x0, Bool_t err=0, Int_t np = 0, AliTrackPoint *points = 0x0);
+ 	static Double_t FitRiemanTilt(const AliTRDtrackV1 *trk, AliTRDseedV1 *tracklets = 0x0, Bool_t err=0, Int_t np = 0, AliTrackPoint *points = 0x0);
+ 	static Double_t FitLine(const AliTRDtrackV1 *trk, AliTRDseedV1 *tracklets = 0x0, Bool_t err=0, Int_t np = 0, AliTrackPoint *points = 0x0);
  	static Double_t FitKalman(AliTRDtrackV1 *trk, AliTRDseedV1 *tracklets = 0x0, Bool_t up=0, Int_t np = 0, AliTrackPoint *points = 0x0);
 
   Bool_t          IsClustersOwner() const {return TestBit(kOwner);}
@@ -100,11 +99,13 @@ public:
   Int_t           LoadClusters(TTree *cTree);
   Int_t           LoadClusters(TClonesArray *clusters);
   Int_t           PropagateBack(AliESDEvent *event);
+  static Int_t    PropagateToX(AliTRDtrackV1 &t, Double_t xToGo, Double_t maxStep);
   Int_t           ReadClusters(TClonesArray* &array, TTree *in) const;
   Int_t           RefitInward(AliESDEvent *event);
   static void     SetNTimeBins(Int_t nTimeBins){fgNTimeBins = nTimeBins; }
-  void            SetReconstructor(const AliTRDReconstructor *rec); 
+  void            SetReconstructor(const AliTRDReconstructor *rec){ fReconstructor = rec; }
   void            UnloadClusters();
+  void            UseClusters(const AliKalmanTrack *t, Int_t from = 0) const;
   
   static Int_t    Freq(Int_t n, const Int_t *inlist, Int_t *outlist, Bool_t down); // to be removed 
 
@@ -139,7 +140,6 @@ protected:
   Bool_t         GetTrackPoint(Int_t index, AliTrackPoint &p) const;	
   Int_t          MakeSeeds(AliTRDtrackingChamber **stack, AliTRDseedV1 *sseed, Int_t *ipar);
   AliTRDtrackV1* MakeTrack(AliTRDseedV1 *seeds, Double_t *params);
-  static Int_t   PropagateToX(AliTRDtrackV1 &t, Double_t xToGo, Double_t maxStep);
   AliTRDtrackV1* SetTrack(AliTRDtrackV1 *track);
   AliTRDseedV1*  SetTracklet(AliTRDseedV1 *tracklet);
 
@@ -181,8 +181,6 @@ private:
 	static TLinearFitter *fgTiltedRieman;                 //  Fitter for the tilted Rieman fit without vertex constriant
 	static TLinearFitter *fgTiltedRiemanConstrained;      //  Fitter for the tilted Rieman fit with vertex constraint	
 	static AliRieman     *fgRieman;                       //  Fitter for the untilted Rieman fit
-  
-	static TTreeSRedirector *fgDebugStreamer;             //!Debug streamer
 	
 	ClassDef(AliTRDtrackerV1, 2)                          //  TRD tracker development class
 

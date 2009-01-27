@@ -56,7 +56,7 @@ public:
   Bool_t         CookLabel(Float_t wrong);
   AliTRDtrackV1* GetBackupTrack() const {return fBackupTrack;}
   Double_t       GetBudget(Int_t i) const { return fBudget[i];}
-  Double_t       GetC() const { return AliExternalTrackParam::GetC(GetBz());}
+  Double_t       GetBz() const;
   AliTRDcluster* GetCluster(Int_t id);
   Int_t          GetClusterIndex(Int_t id) const;
   Float_t        GetEdep() const {return fDE;}
@@ -73,17 +73,23 @@ public:
   Int_t          GetTrackletIndex(Int_t plane) const          { return (plane>=0 && plane<kNplane) ? fTrackletIndex[plane] : -1;} 
   UShort_t*      GetTrackletIndexes() {return &fTrackletIndex[0];}
   
+  Bool_t         IsEqual(const TObject *inTrack) const;
   Bool_t         IsOwner() const {return TestBit(kOwner);};
   Bool_t         IsStopped() const {return TestBit(kStopped);};
   Bool_t         IsElectron() const;
   
   void           MakeBackupTrack();
+  void           Print(Option_t *o="") const;
+
   Bool_t         PropagateTo(Double_t xr, Double_t x0 = 8.72, Double_t rho = 5.86e-3);
   Int_t          PropagateToR(Double_t xr, Double_t step);
   Bool_t         Rotate(Double_t angle, Bool_t absolute = kFALSE);
   void           SetBudget(Int_t i, Double_t b) {if(i>=0 && i<3) fBudget[i] = b;}
+  void           SetEdep(Double32_t inDE){fDE = inDE;};
   void           SetNumberOfClusters();
   void           SetOwner();
+  void           SetPID(Short_t is, Double_t inPID){if (is >=0 && is < AliPID::kSPECIES) fPID[is]=inPID;};
+  void           SetPIDquality(UChar_t inPIDquality){fPIDquality = inPIDquality;};
   void           SetStopped(Bool_t stop) {SetBit(kStopped, stop);}
   void           SetTracklet(AliTRDseedV1 *trklt,  Int_t index);
   inline void    SetReconstructor(const AliTRDReconstructor *rec);
@@ -93,9 +99,6 @@ public:
   //Bool_t         Update(const AliTRDcluster *c, Double_t chi2, Int_t index, Double_t h01){ return AliTRDtrack::Update(c,chi2,index,h01); };
   Bool_t         Update(const AliCluster *, Double_t, Int_t)                        { return kFALSE; };
   void           UpdateESDtrack(AliESDtrack *t);
-
-protected:
-  Double_t       GetBz() const;
 
 private:
   UChar_t      fPIDquality;           //  No of planes used for PID calculation	
