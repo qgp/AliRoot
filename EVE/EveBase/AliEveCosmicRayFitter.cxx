@@ -240,11 +240,19 @@ void AliEveCosmicRayFitter::FitTrack()
 
   TEveTrackPropagator* tp = fTrackList->GetPropagator();
 
+#if  ROOT_VERSION_CODE < ROOT_VERSION(5,21,7)
   tp->InitTrack(rc.fV, rc.fP, 1, 0);
+#else
+  tp->InitTrack(rc.fV, 0);
+#endif
   tp->GoToBounds(rc.fP);
 
   rc.fP.Set(-1, -params1(1), -params2(1));
+#if  ROOT_VERSION_CODE < ROOT_VERSION(5,21,7)
   tp->InitTrack(rc.fV, rc.fP, 1, 0);
+#else
+  tp->InitTrack(rc.fV, 0);
+#endif
   tp->GoToBounds(rc.fP);
   tp->FillPointSet(track);
   tp->ResetTrack();

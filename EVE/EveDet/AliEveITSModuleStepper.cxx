@@ -74,14 +74,22 @@ AliEveITSModuleStepper::AliEveITSModuleStepper(AliEveITSDigitsInfo* di) :
   fScaleInfo = new AliEveDigitScaleInfo();
   fScaleInfo->IncRefCount();
 
+#if  ROOT_VERSION_CODE < ROOT_VERSION(5,21,7)
   gEve->GetGLViewer()->AddOverlayElement(this);
+#else
+  gEve->GetDefaultGLViewer()->AddOverlayElement(this);
+#endif
 }
 
 AliEveITSModuleStepper::~AliEveITSModuleStepper()
 {
   // Destructor.
 
+#if  ROOT_VERSION_CODE < ROOT_VERSION(5,21,7)
   gEve->GetGLViewer()->RemoveOverlayElement(this);
+#else
+  gEve->GetDefaultGLViewer()->RemoveOverlayElement(this);
+#endif
 
   fScaleInfo->DecRefCount();
   fDigitsInfo->DecRefCount();
