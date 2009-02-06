@@ -1,16 +1,8 @@
-#-*- Mode: Makefile -*-
+SRCS:=  
+     
+HDRS:= $(SRCS:.cxx=.h)
 
-SRCS=AliESDtrackCuts.cxx
+DHDR:= PWG2LinkDef.h
 
-HDRS= $(SRCS:.cxx=.h) 
+EINCLUDE:=  
 
-DHDR:=PWG2LinkDef.h
-
-EXPORT:=
-
-EINCLUDE:= PYTHIA6
-
-ifeq (win32gcc,$(ALICE_TARGET))
-PACKSOFLAGS:= $(SOFLAGS) -L$(ALICE_ROOT)/lib/tgt_$(ALICE_TARGET) -lSTEERBase \
-                         -lESD -lAOD
-endif
