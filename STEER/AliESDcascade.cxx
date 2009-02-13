@@ -21,15 +21,16 @@
 //              which contains the result of the reconstruction
 //              and is the main set of classes for analaysis
 //    Origin: Christian Kuhn, IReS, Strasbourg, christian.kuhn@ires.in2p3.fr
+//     Modified by: Antonin Maire,IPHC, Antonin.Maire@ires.in2p3.fr
+//            and  Boris Hippolyte,IPHC, hippolyt@in2p3.fr 
 //-------------------------------------------------------------------------
 
 #include <TDatabasePDG.h>
 #include <TMath.h>
+#include <TVector3.h>
 
-#include "AliLog.h"
-#include "AliExternalTrackParam.h"
-#include "AliESDv0.h"
 #include "AliESDcascade.h"
+#include "AliLog.h"
 
 ClassImp(AliESDcascade)
 
@@ -62,7 +63,25 @@ AliESDcascade::AliESDcascade() :
   fBachMomCov[5]=1024;
 }
 
-AliESDcascade::~AliESDcascade() {
+AliESDcascade::AliESDcascade(const AliESDcascade& cas) :
+  AliESDv0(cas),
+  fEffMassXi(cas.fEffMassXi),
+  fChi2Xi(cas.fChi2Xi),
+  fDcaXiDaughters(cas.fDcaXiDaughters),
+  fPdgCodeXi(cas.fPdgCodeXi),
+  fBachIdx(cas.fBachIdx)
+{
+  //--------------------------------------------------------------------
+  // The copy constructor
+  //--------------------------------------------------------------------
+  for (int i=0; i<3; i++) {
+    fPosXi[i]     = cas.fPosXi[i];
+    fBachMom[i] = cas.fBachMom[i];
+  }
+  for (int i=0; i<6; i++) {
+    fPosCovXi[i]   = cas.fPosCovXi[i];
+    fBachMomCov[i] = cas.fBachMomCov[i];
+  }
 }
 
 AliESDcascade::AliESDcascade(const AliESDv0 &v,
@@ -74,9 +93,9 @@ AliESDcascade::AliESDcascade(const AliESDv0 &v,
   fPdgCodeXi(kXiMinus),
   fBachIdx(i)
 {
-  //---------------------------------------------------------------------------------------------
+  //--------------------------------------------------------------------
   // Main constructor  (Xi-)
-  //---------------------------------------------------------------------------------------------
+  //--------------------------------------------------------------------
 
   Double_t r[3]; t.GetXYZ(r);
   Double_t x1=r[0], y1=r[1], z1=r[2]; // position of the bachelor
@@ -93,10 +112,6 @@ AliESDcascade::AliESDcascade(const AliESDv0 &v,
   Double_t xm=x2+a2*px2;
   Double_t ym=y2+a2*py2;
   Double_t zm=z2+a2*pz2;
-
-  //dca between V0 and bachelor
-  
-  fDcaXiDaughters = TMath::Sqrt((x1-xm)*(x1-xm) + (y1-ym)*(y1-ym) + (z1-zm)*(z1-zm));
 
   // position of the cascade decay
   
@@ -116,6 +131,12 @@ AliESDcascade::AliESDcascade(const AliESDv0 &v,
   
   fBachMom[0]=px1; fBachMom[1]=py1; fBachMom[2]=pz1; 
 
+  // Setting pdg code and fixing charge
+  if (t.Charge()<0)
+    fPdgCodeXi = kXiMinus;
+  else
+    fPdgCodeXi = kXiPlusBar;
+
   //PH Covariance matrices: to be calculated correctly in the future
   fPosCovXi[0]=1024;
   fPosCovXi[1]=fPosCovXi[2]=0.;
@@ -129,34 +150,15 @@ AliESDcascade::AliESDcascade(const AliESDv0 &v,
   fBachMomCov[4]=0.;
   fBachMomCov[5]=1024;
 
-  fChi2Xi=1024.;   
+  fChi2Xi=1024.; 
 
 }
 
-AliESDcascade::AliESDcascade(const AliESDcascade& cas) :
-  AliESDv0(cas),
-  fEffMassXi(cas.fEffMassXi),
-  fChi2Xi(cas.fChi2Xi),
-  fDcaXiDaughters(cas.fDcaXiDaughters),
-  fPdgCodeXi(cas.fPdgCodeXi),
-  fBachIdx(cas.fBachIdx)
+AliESDcascade& AliESDcascade::operator=(const AliESDcascade& cas)
 {
-  //copy constructor
-  for (int i=0; i<3; i++) {
-    fPosXi[i]     = cas.fPosXi[i];
-    fBachMom[i] = cas.fBachMom[i];
-  }
-  for (int i=0; i<6; i++) {
-    fPosCovXi[i]   = cas.fPosCovXi[i];
-    fBachMomCov[i] = cas.fBachMomCov[i];
-  }
-}
-
-AliESDcascade& AliESDcascade::operator=(const AliESDcascade& cas){
-
-  // -------
-  // Assigmnet oeprator
-  // -----
+  //--------------------------------------------------------------------
+  // The assignment operator
+  //--------------------------------------------------------------------
 
   if(this==&cas) return *this;
   AliESDv0::operator=(cas);
@@ -187,9 +189,85 @@ void AliESDcascade::Copy(TObject &obj) const {
   AliESDcascade *robj = dynamic_cast<AliESDcascade*>(&obj);
   if(!robj)return; // not an AliESDcascade
   *robj = *this;
-
 }
 
+AliESDcascade::~AliESDcascade() {
+  //--------------------------------------------------------------------
+  // Empty destructor
+  //--------------------------------------------------------------------
+}
+
+// Start with AliVParticle functions
+Double_t AliESDcascade::E() const {
+  //--------------------------------------------------------------------
+  // This gives the energy assuming the ChangeMassHypothesis was called
+  //--------------------------------------------------------------------
+  return E(fPdgCodeXi);
+}
+
+Double_t AliESDcascade::Y() const {
+  //--------------------------------------------------------------------
+  // This gives the energy assuming the ChangeMassHypothesis was called
+  //--------------------------------------------------------------------
+  return Y(fPdgCodeXi);
+}
+
+// Then extend AliVParticle functions
+Double_t AliESDcascade::E(Int_t pdg) const {
+  //--------------------------------------------------------------------
+  // This gives the energy with the particle hypothesis as argument 
+  //--------------------------------------------------------------------
+  Double_t mass = TDatabasePDG::Instance()->GetParticle(pdg)->Mass();
+  return TMath::Sqrt(mass*mass+P()*P());
+}
+
+Double_t AliESDcascade::Y(Int_t pdg) const {
+  //--------------------------------------------------------------------
+  // This gives the rapidity with the particle hypothesis as argument 
+  //--------------------------------------------------------------------
+  return 0.5*TMath::Log((E(pdg)+Pz())/(E(pdg)-Pz()+1.e-13));
+}
+
+// Now the functions for analysis consistency
+Double_t AliESDcascade::RapXi() const {
+  //--------------------------------------------------------------------
+  // This gives the pseudorapidity assuming a (Anti) Xi particle
+  //--------------------------------------------------------------------
+  return Y(kXiMinus);
+}
+
+Double_t AliESDcascade::RapOmega() const {
+  //--------------------------------------------------------------------
+  // This gives the pseudorapidity assuming a (Anti) Omega particle
+  //--------------------------------------------------------------------
+  return Y(kOmegaMinus);
+}
+
+Double_t AliESDcascade::AlphaXi() const {
+  //--------------------------------------------------------------------
+  // This gives the Armenteros-Podolanski alpha
+  //--------------------------------------------------------------------
+  TVector3 momBach(fBachMom[0],fBachMom[1],fBachMom[2]);
+  TVector3 momV0(fNmom[0]+fPmom[0],fNmom[1]+fPmom[1],fNmom[2]+fPmom[2]);
+  TVector3 momTot(Px(),Py(),Pz());
+
+  Double_t lQlBach = momBach.Dot(momTot)/momTot.Mag();
+  Double_t lQlV0 = momV0.Dot(momTot)/momTot.Mag();
+
+  return 1.-2./(1.+lQlBach/lQlV0);
+}
+
+Double_t AliESDcascade::PtArmXi() const {
+  //--------------------------------------------------------------------
+  // This gives the Armenteros-Podolanski ptarm
+  //--------------------------------------------------------------------
+  TVector3 momBach(fBachMom[0],fBachMom[1],fBachMom[2]);
+  TVector3 momTot(Px(),Py(),Pz());
+
+  return momBach.Perp(momTot);
+}
+
+// Then the older functions
 Double_t AliESDcascade::ChangeMassHypothesis(Double_t &v0q, Int_t code) {
   //--------------------------------------------------------------------
   // This function changes the mass hypothesis for this cascade
@@ -199,12 +277,14 @@ Double_t AliESDcascade::ChangeMassHypothesis(Double_t &v0q, Int_t code) {
   Double_t nmass=0.13957, pmass=0.93827, ps0=0.101; 
   Double_t bmass=0.13957, mass =1.3213,  ps =0.139;
 
-  fPdgCodeXi=code;
+  if (Charge()*code<0)
+    fPdgCodeXi = code;
+  else {
+    AliWarning("Chosen PDG code does not match the sign of the bachelor... Corrected !!");
+    fPdgCodeXi = -code;
+  }
 
-  switch (code) {
-  case 213: 
-       bmass=0.93827; 
-       break;
+  switch (fPdgCodeXi) {
   case kXiMinus:
        break;
   case kXiPlusBar:
@@ -218,8 +298,14 @@ Double_t AliESDcascade::ChangeMassHypothesis(Double_t &v0q, Int_t code) {
        bmass=0.49368; mass=1.67245; ps=0.211;
        break;
   default:
-       AliError("Invalide PDG code !  Assuming XiMinus's...");
-       fPdgCodeXi=kXiMinus;
+       AliError("Invalide PDG code !  Assuming a Xi particle...");
+       if (Charge()<0) {
+	 fPdgCodeXi=kXiMinus;
+       }
+       else {
+	 fPdgCodeXi=kXiPlusBar;
+	 nmass=0.93827; pmass=0.13957; 
+       }
     break;
   }
 
@@ -249,7 +335,7 @@ Double_t AliESDcascade::ChangeMassHypothesis(Double_t &v0q, Int_t code) {
   Double_t pxl=px0+pxb, pyl=py0+pyb, pzl=pz0+pzb;
   Double_t pl=TMath::Sqrt(pxl*pxl + pyl*pyl + pzl*pzl);
   
-  fEffMassXi=TMath::Sqrt((e0+eb)*(e0+eb) - pl*pl);
+  fEffMassXi=TMath::Sqrt(((e0+eb)-pl)*((e0+eb)+pl));
 
   Double_t beta=pl/(e0+eb);
   Double_t pl0=(px0*pxl + py0*pyl + pz0*pzl)/pl;
@@ -300,7 +386,7 @@ Double_t AliESDcascade::GetDcascade(Double_t x0, Double_t y0, Double_t z0) const
   return d;
 }
 
-Double_t AliESDcascade::GetCascadeCosineOfPointingAngle(Double_t& refPointX, Double_t& refPointY, Double_t& refPointZ) const {
+Double_t AliESDcascade::GetCascadeCosineOfPointingAngle(Double_t refPointX, Double_t refPointY, Double_t refPointZ) const {
   // calculates the pointing angle of the cascade wrt a reference point
 
   Double_t momCas[3]; //momentum of the cascade

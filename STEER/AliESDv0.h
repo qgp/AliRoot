@@ -14,39 +14,76 @@
 //            and  Boris Hippolyte,IPHC, hippolyt@in2p3.fr 
 //-------------------------------------------------------------------------
 
-#include <TObject.h>
 #include <TPDGCode.h>
-#include "AliESDV0Params.h"
-#include "AliExternalTrackParam.h"
 
-class AliESDv0 : public TObject {
+#include "AliExternalTrackParam.h"
+#include "AliVParticle.h"
+
+class AliESDV0Params;
+
+class AliESDv0 : public AliVParticle {
 public:
   AliESDv0();
   AliESDv0(const AliExternalTrackParam &t1, Int_t i1,
            const AliExternalTrackParam &t2, Int_t i2);
 
-  AliESDv0(const AliESDv0&);
+  AliESDv0(const AliESDv0& v0);
   virtual ~AliESDv0();
-  AliESDv0& operator=(const AliESDv0&);
+  AliESDv0& operator=(const AliESDv0& v0);
   virtual void Copy(TObject &obj) const;
 
+// Start with AliVParticle functions
+  virtual Double_t Px() const { return fNmom[0]+fPmom[0]; }
+  virtual Double_t Py() const { return fNmom[1]+fPmom[1]; }
+  virtual Double_t Pz() const { return fNmom[2]+fPmom[2]; }
+  virtual Double_t Pt() const { return TMath::Sqrt(Px()*Px()+Py()*Py()); }
+  virtual Double_t P()  const { 
+     return TMath::Sqrt(Px()*Px()+Py()*Py()+Pz()*Pz()); 
+  }
+  virtual Bool_t   PxPyPz(Double_t p[3]) const { p[0] = Px(); p[1] = Py(); p[2] = Pz(); return kTRUE; }
+  virtual Double_t Xv() const { return fPos[0]; }
+  virtual Double_t Yv() const { return fPos[1]; }
+  virtual Double_t Zv() const { return fPos[2]; }
+  virtual Bool_t   XvYvZv(Double_t x[3]) const { x[0] = Xv(); x[1] = Yv(); x[2] = Zv(); return kTRUE; }
+  virtual Double_t OneOverPt() const { return (Pt() != 0.) ? 1./Pt() : -999.; }
+  virtual Double_t Phi() const {return TMath::Pi()+TMath::ATan2(-Py(),-Px()); }
+  virtual Double_t Theta() const {return 0.5*TMath::Pi()-TMath::ATan(Pz()/(Pt()+1.e-13)); }
+  virtual Double_t E() const; // default is KOs but can be changed via ChangeMassHypothesis (defined in the .cxx)
+  virtual Double_t M() const { return GetEffMass(); }
+  virtual Double_t Eta() const { return 0.5*TMath::Log((P()+Pz())/(P()-Pz()+1.e-13)); }
+  virtual Double_t Y() const;
+  virtual Short_t  Charge() const { return 0; }
+  virtual Int_t    GetLabel() const { return -1; }  // temporary
+  virtual const Double_t *PID() const { return 0; } // return PID object ? (to be discussed!)
+
+  // Then extend the AliVParticle functions
+  Double_t E(Int_t pdg) const;
+  Double_t Y(Int_t pdg) const;
+
+  // Now the functions for analysis consistency
+  Double_t RapK0Short() const;
+  Double_t RapLambda() const;
+  Double_t AlphaV0() const;
+  Double_t PtArmV0() const;
+
+  // Eventually the older functions
   Double_t ChangeMassHypothesis(Int_t code=kK0Short); 
 
   Int_t    GetPdgCode() const {return fPdgCode;}
-  Float_t  GetEffMass(UInt_t p1, UInt_t p2);
+  Double_t  GetEffMass(UInt_t p1, UInt_t p2) const;
   Double_t  GetEffMass() const {return fEffMass;}
   Double_t  GetChi2V0()  const {return fChi2V0;}
   void     GetPxPyPz(Double_t &px, Double_t &py, Double_t &pz) const;
   void     GetNPxPyPz(Double_t &px, Double_t &py, Double_t &pz) const;
   void     GetPPxPyPz(Double_t &px, Double_t &py, Double_t &pz) const;
   void     GetXYZ(Double_t &x, Double_t &y, Double_t &z) const;
-  Float_t  GetD(Double_t x0=0.,Double_t y0=0.,Double_t z0=0.) const;
+  Float_t  GetD(Double_t x0,Double_t y0,Double_t z0) const;
   Int_t    GetNindex() const {return fNidx;}
   Int_t    GetPindex() const {return fPidx;}
   void     SetDcaV0Daughters(Double_t rDcaV0Daughters=0.);
-  Double_t  GetDcaV0Daughters() {return fDcaV0Daughters;}
-  Float_t  GetV0CosineOfPointingAngle(Double_t&, Double_t&, Double_t&) const;
-  Double_t  GetV0CosineOfPointingAngle() const {return fPointAngle;}
+  Double_t GetDcaV0Daughters() const {return fDcaV0Daughters;}
+  Float_t  GetV0CosineOfPointingAngle(Double_t refPointX, Double_t refPointY, Double_t refPointZ) const;
+  Double_t GetV0CosineOfPointingAngle() const {return fPointAngle;}
   void     SetV0CosineOfPointingAngle(Double_t cpa) {fPointAngle=cpa;}
   void     SetOnFlyStatus(Bool_t status){fOnFlyStatus=status;}
   Bool_t   GetOnFlyStatus() const {return fOnFlyStatus;}
@@ -68,7 +105,7 @@ public:
   Double_t GetMinimaxSigmaD0();     // calculate mini-max sigma of dca resolution
   Double_t GetLikelihoodAP(Int_t mode0, Int_t mode1);   // get likelihood for point angle
   Double_t GetLikelihoodD(Int_t mode0, Int_t mode1);    // get likelihood for DCA
-  Double_t GetLikelihoodC(Int_t mode0, Int_t mode1);    // get likelihood for Causality
+  Double_t GetLikelihoodC(Int_t mode0, Int_t mode1) const;    // get likelihood for Causality
   //
   //
   static const AliESDV0Params & GetParameterization(){return fgkParams;}
@@ -77,8 +114,8 @@ public:
   void SetStatus(Int_t status){fStatus=status;}
   Int_t GetStatus() const {return fStatus;}
   Int_t GetIndex(Int_t i) const {return (i==0) ? fNidx : fPidx;}
-  void SetIndex(Int_t i, Int_t ind) {(i==0) ? (fNidx=ind) : (fPidx=ind);}
-  Double_t *GetAnglep() {return fAngle;}
+  void SetIndex(Int_t i, Int_t ind);
+  const Double_t *GetAnglep() const {return fAngle;}
   Double_t GetRr() const {return fRr;}
   Double_t GetDistSigma() const {return fDistSigma;}
   void SetDistSigma(Double_t ds) {fDistSigma=ds;}
@@ -92,7 +129,7 @@ public:
   void SetNBefore(Short_t nb) {fNBefore=nb;}  
   void SetCausality(Float_t pb0, Float_t pb1, Float_t pa0, Float_t pa1);
   const Double_t * GetCausalityP() const {return fCausality;}
-  void SetClusters(Int_t *clp, Int_t *clm);
+  void SetClusters(const Int_t *clp, const Int_t *clm);
   const Int_t * GetClusters(Int_t i) const {return fClusters[i];}
   void SetNormDCAPrim(Float_t nd0, Float_t nd1){fNormDCAPrim[0] = nd0; fNormDCAPrim[1]=nd1;}
   const Double_t  *GetNormDCAPrimP() const {return fNormDCAPrim;}
@@ -110,7 +147,7 @@ protected:
   Double32_t   fPosCov[6];      // covariance matrix of the vertex position
   Double32_t   fNmom[3];        // momentum of the negative daughter (global)
   Double32_t   fPmom[3];        // momentum of the positive daughter (global)
-  Double32_t   fNormDCAPrim[2];  // normalize distance to the priary vertex CKBrev
+  Double32_t   fNormDCAPrim[2];  // normalize distance to the primary vertex CKBrev
   Double32_t   fRr;         //rec position of the vertex CKBrev
   Double32_t   fDistSigma; //sigma of distance CKBrev
   Double32_t        fChi2Before;   //chi2 of the tracks before V0 CKBrev
@@ -144,7 +181,7 @@ protected:
 
 private:
 
-  ClassDef(AliESDv0,4)      // ESD V0 vertex
+  ClassDef(AliESDv0,5)      // ESD V0 vertex
 };
 
 inline 
@@ -160,6 +197,14 @@ px=fPmom[0]; py=fPmom[1]; pz=fPmom[2];
 inline
 void AliESDv0::SetDcaV0Daughters(Double_t rDcaV0Daughters){
   fDcaV0Daughters=rDcaV0Daughters;
+}
+
+inline 
+void AliESDv0::SetIndex(Int_t i, Int_t ind) {
+  if(i==0)
+    fNidx=ind;
+  else
+    fPidx=ind;
 }
 
 #endif

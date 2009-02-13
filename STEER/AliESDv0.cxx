@@ -25,22 +25,21 @@
 //            and  Boris Hippolyte,IPHC, hippolyt@in2p3.fr 
 //-------------------------------------------------------------------------
 
-#include <Riostream.h>
 #include <TMath.h>
 #include <TDatabasePDG.h>
-#include <TPDGCode.h>
 #include <TParticlePDG.h>
+#include <TVector3.h>
 
 #include "AliLog.h"
 #include "AliESDv0.h"
-#include "AliExternalTrackParam.h"
+#include "AliESDV0Params.h"
 
 ClassImp(AliESDv0)
 
 const AliESDV0Params  AliESDv0::fgkParams;
 
 AliESDv0::AliESDv0() :
-  TObject(),
+  AliVParticle(),
   fParamN(),
   fParamP(),
   fEffMass(TDatabasePDG::Instance()->GetParticle(kK0Short)->Mass()),
@@ -82,7 +81,7 @@ AliESDv0::AliESDv0() :
 }
 
 AliESDv0::AliESDv0(const AliESDv0& v0) :
-  TObject(v0),
+  AliVParticle(v0),
   fParamN(v0.fParamN),
   fParamP(v0.fParamP),
   fEffMass(v0.fEffMass),
@@ -132,7 +131,7 @@ AliESDv0::AliESDv0(const AliESDv0& v0) :
 
 AliESDv0::AliESDv0(const AliExternalTrackParam &t1, Int_t i1,
                    const AliExternalTrackParam &t2, Int_t i2) :
-  TObject(),
+  AliVParticle(),
   fParamN(t1),
   fParamP(t2),
   fEffMass(TDatabasePDG::Instance()->GetParticle(kK0Short)->Mass()),
@@ -195,15 +194,14 @@ AliESDv0::AliESDv0(const AliExternalTrackParam &t1, Int_t i1,
   for (Int_t i=0;i<4;i++){fCausality[i]=0;}
 }
 
-AliESDv0& AliESDv0::operator=(const AliESDv0 &v0){
-
-
+AliESDv0& AliESDv0::operator=(const AliESDv0 &v0)
+{
   //--------------------------------------------------------------------
-  // The assingment operator
+  // The assignment operator
   //--------------------------------------------------------------------
 
   if(this==&v0)return *this;
-  TObject::operator=(v0);
+  AliVParticle::operator=(v0);
   fParamN  = v0.fParamN;
   fParamP  = v0.fParamP;
   fEffMass = v0.fEffMass;
@@ -249,7 +247,7 @@ AliESDv0& AliESDv0::operator=(const AliESDv0 &v0){
 
 void AliESDv0::Copy(TObject& obj) const {
 
-   // this overwrites the virtual TOBject::Copy()
+  // this overwrites the virtual TOBject::Copy()
   // to allow run time copying without casting
   // in AliESDEvent
 
@@ -259,15 +257,83 @@ void AliESDv0::Copy(TObject& obj) const {
   *robj = *this;
 }
 
-
 AliESDv0::~AliESDv0(){
   //--------------------------------------------------------------------
   // Empty destructor
   //--------------------------------------------------------------------
 }
 
+// Start with AliVParticle functions
+Double_t AliESDv0::E() const {
+  //--------------------------------------------------------------------
+  // This gives the energy assuming the ChangeMassHypothesis was called
+  //--------------------------------------------------------------------
+  return E(fPdgCode);
+}
 
+Double_t AliESDv0::Y() const {
+  //--------------------------------------------------------------------
+  // This gives the energy assuming the ChangeMassHypothesis was called
+  //--------------------------------------------------------------------
+  return Y(fPdgCode);
+}
 
+// Then extend AliVParticle functions
+Double_t AliESDv0::E(Int_t pdg) const {
+  //--------------------------------------------------------------------
+  // This gives the energy with the particle hypothesis as argument 
+  //--------------------------------------------------------------------
+  Double_t mass = TDatabasePDG::Instance()->GetParticle(pdg)->Mass();
+  return TMath::Sqrt(mass*mass+P()*P());
+}
+
+Double_t AliESDv0::Y(Int_t pdg) const {
+  //--------------------------------------------------------------------
+  // This gives the rapidity with the particle hypothesis as argument 
+  //--------------------------------------------------------------------
+  return 0.5*TMath::Log((E(pdg)+Pz())/(E(pdg)-Pz()+1.e-13));
+}
+
+// Now the functions for analysis consistency
+Double_t AliESDv0::RapK0Short() const {
+  //--------------------------------------------------------------------
+  // This gives the pseudorapidity assuming a K0s particle
+  //--------------------------------------------------------------------
+  return Y(kK0Short);
+}
+
+Double_t AliESDv0::RapLambda() const {
+  //--------------------------------------------------------------------
+  // This gives the pseudorapidity assuming a (Anti) Lambda particle
+  //--------------------------------------------------------------------
+  return Y(kLambda0);
+}
+
+Double_t AliESDv0::AlphaV0() const {
+  //--------------------------------------------------------------------
+  // This gives the Armenteros-Podolanski alpha
+  //--------------------------------------------------------------------
+  TVector3 momNeg(fNmom[0],fNmom[1],fNmom[2]);
+  TVector3 momPos(fPmom[0],fPmom[1],fPmom[2]);
+  TVector3 momTot(Px(),Py(),Pz());
+
+  Double_t lQlNeg = momNeg.Dot(momTot)/momTot.Mag();
+  Double_t lQlPos = momNeg.Dot(momTot)/momTot.Mag();
+
+  return 1.-2./(1.+lQlNeg/lQlPos);
+}
+
+Double_t AliESDv0::PtArmV0() const {
+  //--------------------------------------------------------------------
+  // This gives the Armenteros-Podolanski ptarm
+  //--------------------------------------------------------------------
+  TVector3 momNeg(fNmom[0],fNmom[1],fNmom[2]);
+  TVector3 momTot(Px(),Py(),Pz());
+
+  return momNeg.Perp(momTot);
+}
+
+// Eventually the older functions
 Double_t AliESDv0::ChangeMassHypothesis(Int_t code) {
   //--------------------------------------------------------------------
   // This function changes the mass hypothesis for this V0
@@ -357,8 +423,7 @@ Float_t AliESDv0::GetD(Double_t x0, Double_t y0, Double_t z0) const {
   return d;
 }
 
-
-Float_t AliESDv0::GetV0CosineOfPointingAngle(Double_t& refPointX, Double_t& refPointY, Double_t& refPointZ) const {
+Float_t AliESDv0::GetV0CosineOfPointingAngle(Double_t refPointX, Double_t refPointY, Double_t refPointZ) const {
   // calculates the pointing angle of the V0 wrt a reference point
 
   Double_t momV0[3]; //momentum of the V0
@@ -573,7 +638,7 @@ Double_t AliESDv0::GetLikelihoodD(Int_t mode0, Int_t mode1){
 
 }
 
-Double_t AliESDv0::GetLikelihoodC(Int_t mode0, Int_t /*mode1*/){
+Double_t AliESDv0::GetLikelihoodC(Int_t mode0, Int_t /*mode1*/) const {
   //
   // get likelihood for Causality
   // !!!  Causality variables defined in AliITStrackerMI !!! 
@@ -608,7 +673,7 @@ void AliESDv0::SetCausality(Float_t pb0, Float_t pb1, Float_t pa0, Float_t pa1)
   fCausality[2] = pa0;     // probability - track 0 exist close after vertex
   fCausality[3] = pa1;     // probability - track 1 exist close after vertex
 }
-void  AliESDv0::SetClusters(Int_t *clp, Int_t *clm)
+void  AliESDv0::SetClusters(const Int_t *clp, const Int_t *clm)
 {
   //
   // Set its clusters indexes
@@ -617,18 +682,21 @@ void  AliESDv0::SetClusters(Int_t *clp, Int_t *clm)
   for (Int_t i=0;i<6;i++) fClusters[1][i] = clm[i]; 
 }
 
-Float_t AliESDv0::GetEffMass(UInt_t p1, UInt_t p2){
+Double_t AliESDv0::GetEffMass(UInt_t p1, UInt_t p2) const{
   //
   // calculate effective mass
   //
-  const Float_t kpmass[5] = {5.10000000000000037e-04,1.05660000000000004e-01,1.39570000000000000e-01,
-		      4.93599999999999983e-01, 9.38270000000000048e-01};
+  const Float_t kpmass[5] = {TDatabasePDG::Instance()->GetParticle(kElectron)->Mass(),
+			     TDatabasePDG::Instance()->GetParticle(kMuonMinus)->Mass(),
+			     TDatabasePDG::Instance()->GetParticle(kPiPlus)->Mass(),
+			     TDatabasePDG::Instance()->GetParticle(kKPlus)->Mass(),
+			     TDatabasePDG::Instance()->GetParticle(kProton)->Mass()};
   if (p1>4) return -1;
   if (p2>4) return -1;
   Float_t mass1 = kpmass[p1]; 
   Float_t mass2 = kpmass[p2];   
-  Double_t *m1 = fPmom;
-  Double_t *m2 = fNmom;
+  const Double_t *m1 = fPmom;
+  const Double_t *m2 = fNmom;
   //
   //if (fRP[p1]+fRM[p2]<fRP[p2]+fRM[p1]){
   //  m1 = fPM;

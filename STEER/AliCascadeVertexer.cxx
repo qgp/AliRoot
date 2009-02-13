@@ -24,16 +24,9 @@
 //modified by R. Vernet  3/7/2006 : causality
 //modified by I. Belikov 24/11/2006 : static setter for the default cuts
 
-
-#include <TObjArray.h>
-#include <TTree.h>
-
 #include "AliESDEvent.h"
-#include "AliESDv0.h"
 #include "AliESDcascade.h"
 #include "AliCascadeVertexer.h"
-#include "AliESDtrack.h"
-#include "AliESDVertex.h"
 
 ClassImp(AliCascadeVertexer)
 
@@ -61,20 +54,11 @@ Int_t AliCascadeVertexer::V0sTracks2CascadeVertices(AliESDEvent *event) {
   // This function reconstructs cascade vertices
   //      Adapted to the ESD by I.Belikov (Jouri.Belikov@cern.ch)
   //--------------------------------------------------------------------
-   const AliESDVertex *vtxSPD=event->GetVertex();
    const AliESDVertex *vtxT3D=event->GetPrimaryVertex();
 
-   Double_t xPrimaryVertex=999, yPrimaryVertex=999, zPrimaryVertex=999;
-   if (vtxT3D->GetStatus()) {
-     xPrimaryVertex=vtxT3D->GetXv();
-     yPrimaryVertex=vtxT3D->GetYv();
-     zPrimaryVertex=vtxT3D->GetZv();
-   }
-   else {
-     xPrimaryVertex=vtxSPD->GetXv();
-     yPrimaryVertex=vtxSPD->GetYv();
-     zPrimaryVertex=vtxSPD->GetZv();
-   }
+   Double_t xPrimaryVertex=vtxT3D->GetXv();
+   Double_t yPrimaryVertex=vtxT3D->GetYv();
+   Double_t zPrimaryVertex=vtxT3D->GetZv();
 
    Double_t b=event->GetMagneticField();
    Int_t nV0=(Int_t)event->GetNumberOfV0s();
@@ -146,6 +130,7 @@ Int_t AliCascadeVertexer::V0sTracks2CascadeVertices(AliESDEvent *event) {
 
   	 if (cascade.GetCascadeCosineOfPointingAngle(xPrimaryVertex,yPrimaryVertex,zPrimaryVertex) <fCPAmin) continue; //condition on the cascade pointing angle 
 	 
+         cascade.SetDcaXiDaughters(dca);
 	 event->AddCascade(&cascade);
          ncasc++;
       } // end loop tracks
@@ -185,9 +170,10 @@ Int_t AliCascadeVertexer::V0sTracks2CascadeVertices(AliESDEvent *event) {
 
          Double_t x1,y1,z1; pv0->GetXYZ(x1,y1,z1);
          if (r2 > (x1*x1+y1*y1)) continue;
-         if (z*z > z1*z1) continue;
 
 	 if (cascade.GetCascadeCosineOfPointingAngle(xPrimaryVertex,yPrimaryVertex,zPrimaryVertex) < fCPAmin) continue; //condition on the cascade pointing angle 
+
+         cascade.SetDcaXiDaughters(dca);
 	 event->AddCascade(&cascade);
          ncasc++;
 
@@ -200,24 +186,26 @@ Info("V0sTracks2CascadeVertices","Number of reconstructed cascades: %d",ncasc);
 }
 
 
-Double_t det(Double_t a00, Double_t a01, Double_t a10, Double_t a11){
-  // determinant 2x2
+Double_t AliCascadeVertexer::Det(Double_t a00, Double_t a01, Double_t a10, Double_t a11) const {
+  //--------------------------------------------------------------------
+  // This function calculates locally a 2x2 determinant
+  //--------------------------------------------------------------------
   return a00*a11 - a01*a10;
 }
 
-Double_t det (Double_t a00,Double_t a01,Double_t a02,
-                     Double_t a10,Double_t a11,Double_t a12,
-                     Double_t a20,Double_t a21,Double_t a22) {
-  // determinant 3x3
-  return 
-  a00*det(a11,a12,a21,a22)-a01*det(a10,a12,a20,a22)+a02*det(a10,a11,a20,a21);
+Double_t AliCascadeVertexer::Det(Double_t a00,Double_t a01,Double_t a02,
+				 Double_t a10,Double_t a11,Double_t a12,
+				 Double_t a20,Double_t a21,Double_t a22) const {
+  //--------------------------------------------------------------------
+  // This function calculates locally a 3x3 determinant
+  //--------------------------------------------------------------------
+  return  a00*Det(a11,a12,a21,a22)-a01*Det(a10,a12,a20,a22)+a02*Det(a10,a11,a20,a21);
 }
 
 
 
 
-Double_t AliCascadeVertexer::
-PropagateToDCA(AliESDv0 *v, AliExternalTrackParam *t, Double_t b) {
+Double_t AliCascadeVertexer::PropagateToDCA(AliESDv0 *v, AliExternalTrackParam *t, Double_t b) {
   //--------------------------------------------------------------------
   // This function returns the DCA between the V0 and the track
   //--------------------------------------------------------------------
@@ -235,16 +223,16 @@ PropagateToDCA(AliESDv0 *v, AliExternalTrackParam *t, Double_t b) {
  
 // calculation dca
    
-  Double_t dd= det(x2-x1,y2-y1,z2-z1,px1,py1,pz1,px2,py2,pz2);
-  Double_t ax= det(py1,pz1,py2,pz2);
-  Double_t ay=-det(px1,pz1,px2,pz2);
-  Double_t az= det(px1,py1,px2,py2);
+  Double_t dd= Det(x2-x1,y2-y1,z2-z1,px1,py1,pz1,px2,py2,pz2);
+  Double_t ax= Det(py1,pz1,py2,pz2);
+  Double_t ay=-Det(px1,pz1,px2,pz2);
+  Double_t az= Det(px1,py1,px2,py2);
 
   Double_t dca=TMath::Abs(dd)/TMath::Sqrt(ax*ax + ay*ay + az*az);
 
 //points of the DCA
-  Double_t t1 = det(x2-x1,y2-y1,z2-z1,px2,py2,pz2,ax,ay,az)/
-                det(px1,py1,pz1,px2,py2,pz2,ax,ay,az);
+  Double_t t1 = Det(x2-x1,y2-y1,z2-z1,px2,py2,pz2,ax,ay,az)/
+                Det(px1,py1,pz1,px2,py2,pz2,ax,ay,az);
   
   x1 += px1*t1; y1 += py1*t1; //z1 += pz1*t1;
   
