@@ -87,7 +87,7 @@ class AliMUONTrack : public TObject
   /// set the chi2 of trigger/track matching 
   void     SetChi2MatchTrigger(Double_t chi2MatchTrigger) {fChi2MatchTrigger = chi2MatchTrigger;}
 
-  Int_t ClustersInCommon(AliMUONTrack* track) const;
+  Int_t ClustersInCommon(AliMUONTrack* track, Bool_t inSt345 = kFALSE) const;
 
   Double_t GetNormalizedChi2() const;
 

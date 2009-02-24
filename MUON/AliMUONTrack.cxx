@@ -971,26 +971,31 @@ void AliMUONTrack::ComputeMCSCovariances(TMatrixD& mcsCovariances) const
 }
 
   //__________________________________________________________________________
-Int_t AliMUONTrack::ClustersInCommon(AliMUONTrack* track) const
+Int_t AliMUONTrack::ClustersInCommon(AliMUONTrack* track, Bool_t inSt345) const
 {
   /// Returns the number of clusters in common between the current track ("this")
   /// and the track pointed to by "track".
+  /// If inSt345=kTRUE only stations 3, 4 and 5 are considered.
   if (!fTrackParamAtCluster || !this->fTrackParamAtCluster) return 0;
   Int_t clustersInCommon = 0;
   AliMUONTrackParam *trackParamAtCluster1, *trackParamAtCluster2;
   // Loop over clusters of first track
   trackParamAtCluster1 = (AliMUONTrackParam*) this->fTrackParamAtCluster->First();
   while (trackParamAtCluster1) {
-    // Loop over clusters of second track
-    trackParamAtCluster2 = (AliMUONTrackParam*) track->fTrackParamAtCluster->First();
-    while (trackParamAtCluster2) {
-      // Increment "clustersInCommon" if both trackParamAtCluster1 & 2 point to the same cluster
-      if ((trackParamAtCluster1->GetClusterPtr()) == (trackParamAtCluster2->GetClusterPtr())) {
-        clustersInCommon++;
-	break;
-      }
-      trackParamAtCluster2 = (AliMUONTrackParam*) track->fTrackParamAtCluster->After(trackParamAtCluster2);
-    } // trackParamAtCluster2
+    if ((!inSt345) || (trackParamAtCluster1->GetClusterPtr()->GetChamberId() > 3)) {
+      // Loop over clusters of second track
+      trackParamAtCluster2 = (AliMUONTrackParam*) track->fTrackParamAtCluster->First();
+      while (trackParamAtCluster2) {
+	if ((!inSt345) || (trackParamAtCluster2->GetClusterPtr()->GetChamberId() > 3)) {
+	  // Increment "clustersInCommon" if both trackParamAtCluster1 & 2 point to the same cluster
+	  if ((trackParamAtCluster1->GetClusterPtr()) == (trackParamAtCluster2->GetClusterPtr())) {
+	    clustersInCommon++;
+	    break;
+	  }
+	}
+	trackParamAtCluster2 = (AliMUONTrackParam*) track->fTrackParamAtCluster->After(trackParamAtCluster2);
+      } // trackParamAtCluster2
+    }
     trackParamAtCluster1 = (AliMUONTrackParam*) this->fTrackParamAtCluster->After(trackParamAtCluster1);
   } // trackParamAtCluster1
   return clustersInCommon;
