@@ -91,6 +91,9 @@ const char* AliHLTTPCClusterFinderComponent::GetComponentID()
   case kClusterFinderPacked:
     return "TPCClusterFinderPacked";
     break;
+  case kClusterFinderUnpacked: 	 
+    return "TPCClusterFinderUnpacked"; 	 
+    break;
   case kClusterFinderDecoder:
     return "TPCClusterFinderDecoder";
     break;
@@ -105,6 +108,9 @@ void AliHLTTPCClusterFinderComponent::GetInputDataTypes( vector<AliHLTComponentD
   switch(fModeSwitch){
   case kClusterFinderPacked:
     list.push_back( kAliHLTDataTypeDDLRaw | kAliHLTDataOriginTPC );
+    break;
+  case kClusterFinderUnpacked: 	 
+    list.push_back( AliHLTTPCDefinitions::fgkUnpackedRawDataType ); 	 
     break;
   case kClusterFinderDecoder:
     list.push_back( kAliHLTDataTypeDDLRaw | kAliHLTDataOriginTPC );
