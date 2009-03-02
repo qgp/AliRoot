@@ -52,13 +52,12 @@ AliPoints::AliPoints():
 //_______________________________________________________________________
 AliPoints::AliPoints(const AliPoints &pts):
   TPolyMarker3D(pts),
-  fDetector(0),
-  fIndex(0)
+  fDetector(pts.fDetector),
+  fIndex(pts.fIndex)
 {
   //
   // Copy constructor
   //
-  pts.Copy(*this);
 }
 
 //_______________________________________________________________________
@@ -73,27 +72,20 @@ AliPoints::AliPoints(Int_t nhits):
   ResetBit(kCanDelete);
 }
 	 
+AliPoints &           AliPoints::operator=(const AliPoints &pts) {
+  
+  TPolyMarker3D::operator=(pts);
+  fDetector=pts.fDetector;
+  fIndex = pts.fIndex;
+
+    return *this;
+}
 //_______________________________________________________________________
 AliPoints::~AliPoints()
 {
   //
-  // Default destructor
+  // 
   //
-}
-
-//_______________________________________________________________________
-void AliPoints::Copy(TObject &pts) const
-{
-  //
-  // Copy *this onto pts
-  //
-  if((TObject*)this != &pts) {
-    ((TPolyMarker3D*)this)->Copy(dynamic_cast<TPolyMarker3D&>(pts));
-    (dynamic_cast<AliPoints&>(pts)).fGLList = fGLList;
-    (dynamic_cast<AliPoints&>(pts)).fLastPoint = fLastPoint;
-    (dynamic_cast<AliPoints&>(pts)).fDetector = fDetector;
-    (dynamic_cast<AliPoints&>(pts)).fIndex = fIndex;
-  }
 }
 
 //_______________________________________________________________________

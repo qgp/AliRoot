@@ -16,7 +16,6 @@ class TParticle;
 class AliPoints : public TPolyMarker3D {
 public:
   AliPoints();
-  AliPoints(const AliPoints& pts);
   AliPoints(Int_t nhits);
   virtual ~AliPoints();
   virtual Int_t         DistancetoPrimitive(Int_t px, Int_t py);
@@ -28,14 +27,13 @@ public:
   virtual void          InspectParticle() const; // *MENU*
   virtual void          DumpParticle() const; // *MENU*
   virtual Text_t       *GetObjectInfo(Int_t px, Int_t py) const;
-  AliPoints &           operator=(const AliPoints &pts)
-    {pts.Copy(*this); return (*this);}
   virtual void          Propagate(); // *MENU*
   virtual void          SetDetector(AliDetector *det) {fDetector = det;}
   virtual void          SetParticle(Int_t index) {fIndex = index;}
   
 protected:
-  void Copy(TObject &pts) const;
+  AliPoints(const AliPoints& pts);
+  AliPoints &           operator=(const AliPoints &pts);
 
   AliDetector     *fDetector;    //Pointer to AliDetector object
   Int_t            fIndex;       //Particle number in AliRun::fParticles
