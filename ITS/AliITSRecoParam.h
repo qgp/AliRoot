@@ -255,6 +255,9 @@ class AliITSRecoParam : public AliDetectorRecoParam
   void   SetFindV0s(Bool_t find=kTRUE) { fFindV0s=find; return; }
   Bool_t GetFindV0s() const { return fFindV0s; }
 
+  void SetStoreLikeSignV0s(Bool_t like=kFALSE) { fStoreLikeSignV0s=like; return; } 
+  Bool_t GetStoreLikeSignV0s() const { return fStoreLikeSignV0s; } 
+
   void   SetLayersParameters();
 
   void   SetLayerToSkip(Int_t i) { fLayersToSkip[i]=1; return; }
@@ -444,6 +447,7 @@ class AliITSRecoParam : public AliDetectorRecoParam
   Bool_t fSAUseAllClusters; // do not skip clusters used by MI (same track twice in AliESDEvent!)
 
   Bool_t fFindV0s;  // flag to enable V0 finder (MI)
+  Bool_t fStoreLikeSignV0s; // flag to store like-sign V0s (MI)
 
   // cluster unfolding in ITS cluster finders
   Bool_t fUseUnfoldingInClusterFinderSPD; // SPD
@@ -461,7 +465,7 @@ class AliITSRecoParam : public AliDetectorRecoParam
   Float_t fTrackleterZetaOverlapCut;               // Fiducial window in eta for overlap cut
   Bool_t fUseCosmicRunShiftsSSD; // SSD time shifts for cosmic run 2007/2008 (use for data taken up to 18 sept 2008)
 
-  ClassDef(AliITSRecoParam,13) // ITS reco parameters
+  ClassDef(AliITSRecoParam,16) // ITS reco parameters
 };
 
 #endif
