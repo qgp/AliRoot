@@ -62,6 +62,8 @@ AliTRDReconstructor::AliTRDReconstructor()
   SETFLG(fSteerParam, kSeeding);
   // PID method in reconstruction (NN) [nn]
   SETFLG(fSteerParam, kSteerPID);
+  // number of dEdx slices in the ESD track [8s]
+  SETFLG(fSteerParam, kEightSlices);
 
   memset(fStreamLevel, 0, 5*sizeof(UChar_t));
   memset(fDebugStream, 0, sizeof(TTreeSRedirector *) * 4);
