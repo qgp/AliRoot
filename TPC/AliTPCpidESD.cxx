@@ -42,11 +42,26 @@ ClassImp(AliTPCpidESD)
 Double_t AliTPCpidESD::Bethe(Double_t bg) {
   //
   // This is the Bethe-Bloch function normalised to 1 at the minimum
+  // WARNING
+  // Simulated and reconstructed Bethe-Bloch differs 
+  //           Simulated  curve is the dNprim/dx
+  //           Reconstructed is proportianal dNtot/dx
+  // Temporary fix for production -  Simple linear correction function
+  // Future    2 Bethe Bloch formulas needed
+  //           1. for simulation
+  //           2. for reconstructed PID
   //
   Double_t bg2=bg*bg;
   Double_t beta2 = bg2/(1.+ bg2);
-
-  return 8.62702e-2*(9.14550 - beta2 - TMath::Log(3.51000e-5 + 1./bg2))/beta2;
+  Double_t bb = 8.62702e-2*(9.14550 - beta2 - TMath::Log(3.51000e-5 + 1./bg2))/beta2;
+  //
+  const Float_t kmeanCorrection =0.1;
+  //Double_t bb = AliMathBase::BetheBlochAleph(betaGamma);
+  Double_t meanCorrection =(1+(bb-1)*kmeanCorrection);
+  bb *= meanCorrection;
+  return bb;
+  
+ 
 }
 
 //_________________________________________________________________________
