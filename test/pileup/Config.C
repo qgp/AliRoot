@@ -21,7 +21,7 @@
 #include "PYTHIA6/AliDecayerPythia.h"
 #include "PYTHIA6/AliGenPythia.h"
 #include "TDPMjet/AliGenDPMjet.h"
-#include "STEER/AliMagFCheb.h"
+#include "STEER/AliMagWrapCheb.h"
 #include "STRUCT/AliBODY.h"
 #include "STRUCT/AliMAG.h"
 #include "STRUCT/AliABSOv3.h"
@@ -239,13 +239,13 @@ void Config()
 
   // FIELD
   //
-  AliMagFCheb* field = 0x0;
+  AliMagWrapCheb* field = 0x0;
   if (mag == kNoField) {
     comment = comment.Append(" | L3 field 0.0 T");
-    field = new AliMagFCheb("Maps","Maps", 2, 0., 10., AliMagFCheb::k2kG);
+    field = new AliMagWrapCheb("Maps","Maps", 2, 0., 10., AliMagWrapCheb::k2kG);
   } else if (mag == k5kG) {
     comment = comment.Append(" | L3 field 0.5 T");
-    field = new AliMagFCheb("Maps","Maps", 2, 1., 10., AliMagFCheb::k5kG);
+    field = new AliMagWrapCheb("Maps","Maps", 2, 1., 10., AliMagWrapCheb::k5kG);
   }
   printf("\n \n Comment: %s \n \n", comment.Data());
     
@@ -257,7 +257,7 @@ void Config()
   Int_t iABSO  = 1;
   Int_t iACORDE= 0;
   Int_t iDIPO  = 1;
-  Int_t iEMCAL = 0;
+  Int_t iEMCAL = 1;
   Int_t iFMD   = 1;
   Int_t iFRAME = 1;
   Int_t iHALL  = 1;
@@ -378,22 +378,18 @@ void Config()
 
         AliTRD *TRD = new AliTRDv1("TRD", "TRD slow simulator");
         AliTRDgeometry *geoTRD = TRD->GetGeometry();
-	// Partial geometry: modules at 0,8,9,17
+	// Partial geometry: modules at 0,1,7,8,9,10,16,17
 	// starting at 3h in positive direction
-        geoTRD->SetSMstatus(1,0);
 	geoTRD->SetSMstatus(2,0);
 	geoTRD->SetSMstatus(3,0);
 	geoTRD->SetSMstatus(4,0);
         geoTRD->SetSMstatus(5,0);
 	geoTRD->SetSMstatus(6,0);
-        geoTRD->SetSMstatus(7,0);
-        geoTRD->SetSMstatus(10,0);
         geoTRD->SetSMstatus(11,0);
         geoTRD->SetSMstatus(12,0);
         geoTRD->SetSMstatus(13,0);
         geoTRD->SetSMstatus(14,0);
         geoTRD->SetSMstatus(15,0);
-        geoTRD->SetSMstatus(16,0);
     }
 
     if (iFMD)
@@ -416,23 +412,6 @@ void Config()
         //=================== PHOS parameters ===========================
 
         AliPHOS *PHOS = new AliPHOSv1("PHOS", "IHEP");
-        //Set simulation parameters different from the default ones.
-        AliPHOSSimParam* simEmc = AliPHOSSimParam::GetInstance() ;
-  
-        // APD noise of warm (+20C) PHOS:
-        // a2 = a1*(Y1/Y2)*(M1/M2), where a1 = 0.012 is APD noise at -25C,
-        // Y1 = 4.3 photo-electrons/MeV, Y2 = 1.7 p.e/MeV - light yields at -25C and +20C,
-        // M1 = 50, M2 = 50 - APD gain factors chosen for t1 = -25C and t2 = +20C,
-        // Y = MeanLightYield*APDEfficiency.
-
-        Float_t apdNoise = 0.012*2.5; 
-        simEmc->SetAPDNoise(apdNoise);
-
-        //Raw Light Yield at +20C
-        simEmc->SetMeanLightYield(18800);
-
-        //ADC channel width at +18C.
-        simEmc->SetADCchannelW(0.0125);
     }
 
 
