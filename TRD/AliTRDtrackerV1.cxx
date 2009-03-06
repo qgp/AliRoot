@@ -469,7 +469,7 @@ Int_t AliTRDtrackerV1::RefitInward(AliESDEvent *event)
     // Prolongate to TPC without update
     if(!kUPDATE) {
       AliTRDtrackV1 tt(*seed);
-      if (PropagateToX(tt, xTPC, fgkMaxStep)) seed->UpdateTrackParams(&tt, AliESDtrack::kTRDrefit);
+      PropagateToX(tt, xTPC, fgkMaxStep);
     }
   }
   AliInfo(Form("Number of loaded seeds: %d",nseed));
