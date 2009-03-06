@@ -372,6 +372,11 @@ int AliHLTTPCClusterFinderComponent::DoInit( int argc, const char** argv )
       if(fUnsorted==1){	fReader->SetUnsorted(kTRUE); }
       fClusterFinder->SetReader(fReader);
   }
+  else if(fModeSwitch==kClusterFinderUnpacked){ 	 
+    HLTDebug("using AliHLTTPCDigitReaderUnpacked"); 	 
+    fReader = new AliHLTTPCDigitReaderUnpacked(); 	 
+    fClusterFinder->SetReader(fReader);
+  }
   else if(fModeSwitch==kClusterFinderDecoder){
     HLTDebug("using AliHLTTPCDigitReaderDecoder");
     fReader = new AliHLTTPCDigitReaderDecoder();
@@ -430,7 +435,7 @@ int AliHLTTPCClusterFinderComponent::DoEvent( const AliHLTComponentEventData& ev
   // see header file for class documentation
 
   if(fReader == NULL){
-    HLTFatal("Digit reader not initialized, aborting event.");
+    HLTFatal("Digit reader not initialized, skipping HLT TPC cluster reconstruction.");
     size=0;
     return 0;    
   }
