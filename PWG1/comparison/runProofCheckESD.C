@@ -1,11 +1,11 @@
-void runProofCheckESD(const char * dataset = "/PWG0/COMMON/run30000X_10TeV_0.5T",Long64_t nentries=1000, Long64_t firstentry=0)
+void runProofCheckESD(const char * dataset = "/COMMON/COMMON/LHC09a4_10TeV",Long64_t nentries=10000000, Long64_t firstentry=0)
 {
   // Connect to Proof
-  TProof::Open("lxb6046");
+  TProof::Open("alicecaf");
 
   // Upload and enable packages: please use the correct version!
-  gProof->UploadPackage("AF-v4-14");
-  gProof->EnablePackage("AF-v4-14");
+  gProof->UploadPackage("AF-v4-16");
+  gProof->EnablePackage("AF-v4-16");
 
   // Create the analysis manager
   AliAnalysisManager *mgr = new AliAnalysisManager("AliAnalysisTaskCheckESD");
@@ -43,6 +43,10 @@ void runProofCheckESD(const char * dataset = "/PWG0/COMMON/run30000X_10TeV_0.5T"
     return;
 
   mgr->PrintStatus();
+  
+  TString myset(dataset);
+
+  myset+="#esdTree";
 
   mgr->StartAnalysis("proof",dataset,nentries,firstentry);
 }
