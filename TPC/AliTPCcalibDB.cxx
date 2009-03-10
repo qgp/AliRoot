@@ -175,7 +175,9 @@ AliTPCcalibDB::AliTPCcalibDB():
   fParam(0),
   fClusterParam(0),  
   fGRPArray(100000),            //! array of GRPs  -  per run  - JUST for calibration studies
+  fGRPMaps(100000),            //! array of GRPs  -  per run  - JUST for calibration studies
   fGoofieArray(100000),         //! array of GOOFIE values -per run - Just for calibration studies
+  fVoltageArray(100000),
   fTemperatureArray(100000),    //! array of temperature sensors - per run - Just for calibration studies
   fVdriftArray(100000),                 //! array of v drift interfaces
   fRunList(100000)              //! run list - indicates try to get the run param 
@@ -203,7 +205,9 @@ AliTPCcalibDB::AliTPCcalibDB(const AliTPCcalibDB& ):
   fParam(0),
   fClusterParam(0),
   fGRPArray(0),          //! array of GRPs  -  per run  - JUST for calibration studies
+  fGRPMaps(0),          //! array of GRPs  -  per run  - JUST for calibration studies
   fGoofieArray(0),        //! array of GOOFIE values -per run - Just for calibration studies
+  fVoltageArray(0),
   fTemperatureArray(0),   //! array of temperature sensors - per run - Just for calibration studies
   fVdriftArray(0),         //! array of v drift interfaces
   fRunList(0)              //! run list - indicates try to get the run param 
@@ -363,6 +367,7 @@ void AliTPCcalibDB::Update(){
      //
   if (!fTransform) {
     fTransform=new AliTPCTransform(); 
+    fTransform->SetCurrentRun(AliCDBManager::Instance()->GetRun());
   }
 
   //
@@ -684,7 +689,7 @@ void AliTPCcalibDB::RegisterExB(Int_t index, Float_t bz, Bool_t bdelete){
 
   Float_t factor =  bz/(-5.);  // default b filed in Cheb with minus sign
   
-  AliMagF*   bmap = new AliMagWrapCheb("Maps","Maps", 2, factor, 10., AliMagWrapCheb::k5kG,kTRUE,"$(ALICE_ROOT)/data/maps/mfchebKGI_sym.root");
+  AliMagF*   bmap = new AliMagWrapCheb("MapsExB","MapsExB", 2, factor, 10., AliMagWrapCheb::k5kG,kTRUE,"$(ALICE_ROOT)/data/maps/mfchebKGI_sym.root");
   
   AliTPCExBFirst *exb  = new  AliTPCExBFirst(bmap,0.88*2.6400e+04,50,50,50);
   AliTPCExB::SetInstance(exb);
@@ -729,20 +734,39 @@ void AliTPCcalibDB::GetRunInformations( Int_t run){
   if (run>= fRunList.GetSize()){
     fRunList.Set(run*2+1);
     fGRPArray.Expand(run*2+1);
-    fGoofieArray.Expand(run*2+1); 
+    fGRPMaps.Expand(run*2+1);
+    fGoofieArray.Expand(run*2+1);
+    fVoltageArray.Expand(run*2+1); 
     fTemperatureArray.Expand(run*2+1);
     fVdriftArray.Expand(run*2+1);
   }
   if (fRunList[run]>0) return;
   entry = AliCDBManager::Instance()->Get("GRP/GRP/Data",run);
-  if (entry)  fGRPArray.AddAt(entry->GetObject(),run);
+  if (entry)  {
+    AliGRPObject * grpRun = dynamic_cast<AliGRPObject*>(entry->GetObject());
+    if (!grpRun){
+      TMap* map = dynamic_cast<TMap*>(entry->GetObject());
+      if (map){
+	//grpRun = new AliGRPObject; 
+	//grpRun->ReadValuesFromMap(map);
+	grpRun =  MakeGRPObjectFromMap(map);
+
+	fGRPMaps.AddAt(map,run);
+      }
+    }
+    fGRPArray.AddAt(grpRun,run);
+  }
   entry = AliCDBManager::Instance()->Get("TPC/Calib/Goofie",run);
   if (entry)  fGoofieArray.AddAt(entry->GetObject(),run);
+  //
+  entry = AliCDBManager::Instance()->Get("TPC/Calib/HighVoltage",run);
+  if (entry)  fVoltageArray.AddAt(entry->GetObject(),run);
+  //
   entry = AliCDBManager::Instance()->Get("TPC/Calib/Temperature",run);
   if (entry)  fTemperatureArray.AddAt(entry->GetObject(),run);
   fRunList[run]=1;  // sign as used
 
-  AliDCSSensor * press = GetPressureSensor(run);
+  AliDCSSensor * press = GetPressureSensor(run,0);
   AliTPCSensorTempArray * temp = GetTemperatureSensor(run);
   if (press && temp){
     AliTPCCalibVdrift * vdrift = new AliTPCCalibVdrift(temp, press,0);
@@ -759,10 +783,57 @@ Float_t AliTPCcalibDB::GetGain(Int_t sector, Int_t row, Int_t pad){
   return calPad->GetCalROC(sector)->GetValue(row,pad);
 }
 
+
+AliGRPObject *AliTPCcalibDB::GetGRP(Int_t run){
+  //
+  // Get GRP object for given run 
+  //
+  AliGRPObject * grpRun = dynamic_cast<AliGRPObject *>((Instance()->fGRPArray).At(run));
+  if (!grpRun) {
+    Instance()->GetRunInformations(run);
+    grpRun = dynamic_cast<AliGRPObject *>(Instance()->fGRPArray.At(run));
+    if (!grpRun) return 0; 
+  }
+  return grpRun;
+}
+
+TMap *  AliTPCcalibDB::GetGRPMap(Int_t run){
+  //
+  //
+  //
+  TMap * grpRun = dynamic_cast<TMap *>((Instance()->fGRPMaps).At(run));
+  if (!grpRun) {
+    Instance()->GetRunInformations(run);
+    grpRun = dynamic_cast<TMap *>(Instance()->fGRPMaps.At(run));
+    if (!grpRun) return 0; 
+  }
+  return grpRun;
+}
+
+
 AliDCSSensor * AliTPCcalibDB::GetPressureSensor(Int_t run, Int_t type){
   //
+  // Get Pressure sensor
+  // run  = run number
+  // type = 0 - Cavern pressure
+  //        1 - Suface pressure
+  // First try to get if trom map - if existing  (Old format of data storing)
   //
-  AliGRPObject * grpRun = dynamic_cast<AliGRPObject *>(fGRPArray.At(run));
+
+
+  TMap *map = GetGRPMap(run);  
+  if (map){
+    AliDCSSensor * sensor = 0;
+    TObject *osensor=0;
+    if (type==0) osensor = ((*map)("fCavernPressure"));
+    if (type==1) osensor = ((*map)("fP2Pressure"));
+    sensor =dynamic_cast<AliDCSSensor *>(osensor); 
+    if (sensor) return sensor;
+  }
+  //
+  // If not map try to get it from the GRPObject
+  //
+  AliGRPObject * grpRun = dynamic_cast<AliGRPObject *>(fGRPArray.At(run)); 
   if (!grpRun) {
     GetRunInformations(run);
     grpRun = dynamic_cast<AliGRPObject *>(fGRPArray.At(run));
@@ -797,6 +868,18 @@ AliDCSSensorArray * AliTPCcalibDB::GetGoofieSensors(Int_t run){
   return goofieArray;
 }
 
+AliDCSSensorArray * AliTPCcalibDB::GetVoltageSensors(Int_t run){
+  //
+  // Get temperature sensor array
+  //
+  AliDCSSensorArray * voltageArray = (AliDCSSensorArray *)fVoltageArray.At(run);
+  if (!voltageArray) {
+    GetRunInformations(run);
+    voltageArray = (AliDCSSensorArray *)fVoltageArray.At(run);
+  }
+  return voltageArray;
+}
+
 AliTPCCalibVdrift *     AliTPCcalibDB::GetVdrift(Int_t run){
   //
   // Get the interface to the the vdrift 
@@ -810,7 +893,17 @@ AliTPCCalibVdrift *     AliTPCcalibDB::GetVdrift(Int_t run){
 }
 
 
-
+Float_t AliTPCcalibDB::GetChamberHighVoltage(Int_t timeStamp, Int_t run, Int_t sector) {
+  //
+  // return the chamber HV for given run and time: 0-35 IROC, 36-72 OROC
+  //
+  TTimeStamp stamp(timeStamp);
+  AliDCSSensorArray* voltageArray = AliTPCcalibDB::Instance()->GetVoltageSensors(run);
+  if (!voltageArray) return 0;
+  AliDCSSensor *sensor = voltageArray->GetSensor((sector+1)*3);
+  if (!sensor) return 0;
+  return sensor->GetValue(stamp);
+}
 
 Float_t AliTPCcalibDB::GetPressure(Int_t timeStamp, Int_t run, Int_t type){
   //
@@ -819,7 +912,6 @@ Float_t AliTPCcalibDB::GetPressure(Int_t timeStamp, Int_t run, Int_t type){
   TTimeStamp stamp(timeStamp);
   AliDCSSensor * sensor = Instance()->GetPressureSensor(run,type);
   if (!sensor) return 0;
-  if (!sensor->GetFit()) return 0;
   return sensor->GetValue(stamp);
 }
 
@@ -862,7 +954,7 @@ Float_t AliTPCcalibDB::GetTemperature(Int_t timeStamp, Int_t run, Int_t side){
   //
   //
   //
-  TVectorD vec;
+  TVectorD vec(5);
   if (side==0) {
     GetTemperatureFit(timeStamp,run,0,vec);
     return vec[0];
@@ -1026,4 +1118,39 @@ void AliTPCcalibDB::ProcessGoofie( AliDCSSensorArray* goofieArray, TVectorD & ve
     }
   }
 }
+
+
+
+AliGRPObject * AliTPCcalibDB::MakeGRPObjectFromMap(TMap *map){
+  //
+  // Function to covert old GRP run information from TMap to GRPObject
+  //
+  //  TMap * map = AliTPCcalibDB::GetGRPMap(52406);
+  if (!map) return 0;
+  AliDCSSensor * sensor = 0;
+  TObject *osensor=0;
+  osensor = ((*map)("fP2Pressure"));
+  sensor  =dynamic_cast<AliDCSSensor *>(osensor); 
+  //
+  if (!sensor) return 0;
+  //
+  AliDCSSensor * sensor2 = new AliDCSSensor(*sensor);
+  osensor = ((*map)("fCavernPressure"));
+  TGraph * gr = new TGraph(2);
+  gr->GetX()[0]= -100000.;
+  gr->GetX()[1]= 1000000.;
+  gr->GetY()[0]= atof(osensor->GetName());
+  gr->GetY()[1]= atof(osensor->GetName());
+  sensor2->SetGraph(gr);
+  sensor2->SetFit(0);
+  
+
+  AliGRPObject *grpRun = new AliGRPObject; 
+  grpRun->ReadValuesFromMap(map);
+  grpRun->SetCavernAtmosPressure(sensor2);
+  grpRun->SetSurfaceAtmosPressure(sensor);
+  return grpRun;
+}
+
+
 

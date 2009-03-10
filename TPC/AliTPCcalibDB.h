@@ -27,6 +27,8 @@ class AliTPCClusterParam;
 class AliDCSSensor;
 class AliDCSSensorArray;
 class AliTPCCalibVdrift;
+class AliGRPObject;
+class TMap;
 //class AliCDBStorage;
 
 class AliTPCcalibDB : public TObject
@@ -53,14 +55,19 @@ class AliTPCcalibDB : public TObject
   AliTPCClusterParam *GetClusterParam(){ return fClusterParam;}
   //
   //
+  static AliGRPObject * GetGRP(Int_t run);
+  static TMap *  GetGRPMap(Int_t run);
   static Float_t GetPressure(Int_t timeStamp, Int_t run, Int_t type=0);
+  static Float_t GetChamberHighVoltage(Int_t timeStamp, Int_t run, Int_t sector);
   static Float_t GetValueGoofie(Int_t timeStamp, Int_t run, Int_t type);
   static Bool_t  GetTemperatureFit(Int_t timeStamp, Int_t run, Int_t side,TVectorD& fit);
   static Float_t GetTemperature(Int_t timeStamp, Int_t run, Int_t side);
   static Double_t GetPTRelative(UInt_t timeSec, Int_t run,  Int_t side);
   AliDCSSensor * GetPressureSensor(Int_t run, Int_t type=0);
+  //AliDCSSensor * GetVoltageSensor(Int_t run, Int_t type=0);
   AliTPCSensorTempArray * GetTemperatureSensor(Int_t run);
   AliDCSSensorArray *     GetGoofieSensors(Int_t run);
+  AliDCSSensorArray *     GetVoltageSensors(Int_t run);
   AliTPCCalibVdrift *     GetVdrift(Int_t run);
   static Float_t GetGain(Int_t sector, Int_t row, Int_t pad);
   //
@@ -72,8 +79,10 @@ class AliTPCcalibDB : public TObject
   static  void ProcessGoofie( AliDCSSensorArray* goofieArray, TVectorD & vecEntries, TVectorD & vecMedian, TVectorD &vecMean, TVectorD &vecRMS);
   static void ProcessEnv(const char * runList);
 
+  AliGRPObject * MakeGRPObjectFromMap(TMap *map);
   //
 protected:
+  
   void         Update();  //update entries
   AliCDBEntry* GetCDBEntry(const char* cdbPath);   
   void GetRunInformations(Int_t run); // JUST FOR CALIBRATION STUDIES
@@ -99,7 +108,9 @@ protected:
   // Get the corssrun information
   //
   TObjArray      fGRPArray;           //! array of GRPs  -  per run
+  TObjArray      fGRPMaps;            //! array of GRPs maps  -  per run - old data  
   TObjArray      fGoofieArray;        //! array of GOOFIE values -per run
+  TObjArray      fVoltageArray;       //! array of Chamber HV values -per run
   TObjArray      fTemperatureArray;   //! array of temperature sensors - per run
   TObjArray      fVdriftArray;        //! array of v drift interfaces
   TArrayI        fRunList;            //! run list - indicates try to get the run param
