@@ -3566,8 +3566,8 @@ TGeoVolume* AliITSv11GeometrySSD::GetSSDCoolingBlock(Int_t nedges){
   // Deallocating memory
   /////////////////////////////////////////////////////////////
   delete [] vertexposition;
-  delete xvertexpoints;
-  delete yvertexpoints;
+  delete [] xvertexpoints;
+  delete [] yvertexpoints;
   /////////////////////////////////////////////////////////////
   return ssdcoolingblock;
 }
@@ -4453,7 +4453,7 @@ void AliITSv11GeometrySSD::SetLayer(){
   /////////////////////////////////////////////////////////////
   // Deallocating memory
   /////////////////////////////////////////////////////////////
-  for(Int_t i=0; i<fgklayernumber; i++) delete ladderindex[i];
+  for(Int_t i=0; i<fgklayernumber; i++) delete [] ladderindex[i];
 }
 ////////////////////////////////////////////////////////////////////////////////
 void AliITSv11GeometrySSD::Layer5(TGeoVolume* moth){
@@ -5149,8 +5149,8 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
 	delete [] xmothervertex[i];
 	delete [] ymothervertex[i];
   }
-  delete xmothervertex;
-  delete ymothervertex; 
+  delete [] xmothervertex;
+  delete [] ymothervertex; 
   delete globalrot;
   for(Int_t i=0; i<fgklayernumber; i++){
 	for(Int_t j=0; j<kssdlayladdernumber[i]; j++)
@@ -7275,7 +7275,7 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
 	for(Int_t j=0; j<kssdlayladdernumber[i]+2; j++){
 		delete endcapassemblyrot[i][j];
 	}
-	delete endcapassemblyrot[i];
+	delete [] endcapassemblyrot[i];
 	delete endcapassemblymatrix[i][0];
 	delete endcapassemblymatrix[i][1];
   }
