@@ -3739,6 +3739,7 @@ Int_t AliTRDtracker::Freq(Int_t n, const Int_t *inlist
   Int_t *sindexF = new Int_t[2*n];   
   for (Int_t i = 0; i < n; i++) {
     sindexF[i] = 0;
+    outlist[i] = 0; //PH avoid uninitialized values
   }
 
   TMath::Sort(n,inlist,sindexS,down); 

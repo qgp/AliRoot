@@ -2206,6 +2206,7 @@ Double_t AliTRDtrackerV1::BuildSeedingConfigs(AliTRDtrackingChamber **stack, Int
   Double_t chamberQ[kNPlanes];
   AliTRDtrackingChamber *chamber = 0x0;
   for(int iplane=0; iplane<kNPlanes; iplane++){
+    chamberQ[iplane] = 0.;
     if(!(chamber = stack[iplane])) continue;
     chamberQ[iplane] = (chamber = stack[iplane]) ?  chamber->GetQuality() : 0.;
   }

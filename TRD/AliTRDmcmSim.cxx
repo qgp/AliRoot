@@ -837,8 +837,8 @@ void AliTRDmcmSim::FilterTail()
     break;
   }
 
-  delete dtarg;
-  delete itarg;
+  delete [] dtarg;
+  delete [] itarg;
 }
 
 //_____________________________________________________________________________
