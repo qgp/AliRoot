@@ -409,7 +409,8 @@ void AliTRDComparisonTask::Terminate(Option_t *) {
   p6->cd(); p6->SetFillColor(42); p6->SetFrameFillColor(10);
   he->SetFillColor(2); he->SetFillStyle(3005);
   he->SetXTitle("Arbitrary Units");
-  if (he->GetEntries() < minc) he->Draw(); else he->Fit("gaus"); c2->cd();
+  //  if (he->GetEntries() < minc) he->Draw(); else he->Fit("gaus"); c2->cd();
+  he->Draw(); c2->cd();
 
   TPad* p7 = new TPad("p7", "", 0., 0.5, 1., 1.); p7->Draw();
   p7->cd(); p7->SetFillColor(42); p7->SetFrameFillColor(10);
