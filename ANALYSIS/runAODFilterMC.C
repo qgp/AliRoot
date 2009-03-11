@@ -69,11 +69,16 @@ void runAODFilterMC()
       esdTrackCutsL->SetRequireTPCRefit(kTRUE);
       esdTrackCutsL->SetDCAToVertexZ(3.0);
       esdTrackCutsL->SetDCAToVertexXY(3.0);
+      esdTrackCutsL->SetDCAToVertex2D(kTRUE);
       esdTrackCutsL->SetRequireSigmaToVertex(kFALSE);
       esdTrackCutsL->SetAcceptKingDaughters(kFALSE);
+
+      AliESDtrackCuts* esdTrackCutsITSsa = new AliESDtrackCuts("AliESDtrackCuts", "ITS stand-alone");
+      esdTrackCutsITSsa->SetRequireITSStandAlone(kTRUE);
       
       AliAnalysisFilter* trackFilter = new AliAnalysisFilter("trackFilter");
       trackFilter->AddCuts(esdTrackCutsL);
+      trackFilter->AddCuts(esdTrackCutsITSsa);
       
       AliAnalysisTaskESDfilter *esdfilter = new AliAnalysisTaskESDfilter("ESD Filter");
       esdfilter->SetTrackFilter(trackFilter);
@@ -83,11 +88,8 @@ void runAODFilterMC()
     
       //
       // Create containers for input/output
-      AliAnalysisDataContainer *cinput1 = mgr->CreateContainer("cchain",TChain::Class(), 
-							       AliAnalysisManager::kInputContainer);
-      
-      AliAnalysisDataContainer *coutput1 = mgr->CreateContainer("tree", TTree::Class(),
-							      AliAnalysisManager::kOutputContainer, "default");
+      AliAnalysisDataContainer *cinput1 = mgr->GetCommonInputContainer();
+      AliAnalysisDataContainer *coutput1 = mgr->GetCommonOutputContainer();
       
       coutput1->SetSpecialOutput();
 
@@ -107,3 +109,4 @@ void runAODFilterMC()
       mgr->StartAnalysis("proof",dataset,10000);
 
 }
+

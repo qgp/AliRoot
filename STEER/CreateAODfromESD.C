@@ -9,7 +9,7 @@
 #endif
 
 void CreateAODfromESD(const char *inFileName = "AliESDs.root",
-		      const char *outFileName = "AliAOD.root") {
+		      const char *outFileName = "AliAODs.root") {
   
     gSystem->Load("libTree");
     gSystem->Load("libGeom");
@@ -52,12 +52,18 @@ void CreateAODfromESD(const char *inFileName = "AliESDs.root",
     esdTrackCutsL->SetMaxChi2PerClusterTPC(3.5);
     esdTrackCutsL->SetMaxCovDiagonalElements(2, 2, 0.5, 0.5, 2);
     esdTrackCutsL->SetRequireTPCRefit(kTRUE);
-    esdTrackCutsL->SetDCAToVertex(3.0);
+    esdTrackCutsL->SetMaxDCAToVertexXY(3.0);
+    esdTrackCutsL->SetMaxDCAToVertexZ(3.0);
+    esdTrackCutsL->SetDCAToVertex2D(kTRUE);
     esdTrackCutsL->SetRequireSigmaToVertex(kFALSE);
     esdTrackCutsL->SetAcceptKingDaughters(kFALSE);
+    // ITS stand-alone tracks
+    AliESDtrackCuts* esdTrackCutsITSsa = new AliESDtrackCuts("AliESDtrackCuts", "ITS stand-alone");
+    esdTrackCutsITSsa->SetRequireITSStandAlone(kTRUE);
 
     AliAnalysisFilter* trackFilter = new AliAnalysisFilter("trackFilter");
     trackFilter->AddCuts(esdTrackCutsL);
+    trackFilter->AddCuts(esdTrackCutsITSsa);
 
     // Cuts on V0s
     AliESDv0Cuts*   esdV0Cuts = new AliESDv0Cuts("AliESDv0Cuts", "Standard pp");
@@ -106,3 +112,4 @@ void CreateAODfromESD(const char *inFileName = "AliESDs.root",
     mgr->PrintStatus();
     mgr->StartAnalysis("local", chain);
 }
+
