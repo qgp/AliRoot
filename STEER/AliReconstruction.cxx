@@ -2698,6 +2698,7 @@ void AliReconstruction::WriteAlignmentData(AliESDEvent* esd)
       AliESDtrack *track = esd->GetTrack(itrack);
       Int_t nsp = 0;
       Int_t idx[200];
+      for (Int_t i=0; i<200; ++i) idx[i] = -1; //PH avoid uninitialized values
       for (Int_t iDet = 3; iDet >= 0; iDet--) {// TOF, TRD, TPC, ITS clusters
           nsp += track->GetNcls(iDet);
 
