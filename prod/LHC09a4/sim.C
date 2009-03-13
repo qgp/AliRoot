@@ -1,4 +1,5 @@
 void sim(Int_t nev=200) {
+  AliLog::SetGlobalLogLevel(AliLog::kError);
 
   AliSimulation simu;
   simu.SetMakeSDigits("TRD TOF PHOS HMPID EMCAL MUON FMD ZDC PMD T0 VZERO");

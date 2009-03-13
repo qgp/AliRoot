@@ -1,4 +1,5 @@
 void rec() {
+  AliLog::SetGlobalLogLevel(AliLog::kError);
 
   AliReconstruction reco;
 
@@ -6,7 +7,9 @@ void rec() {
   reco.SetWriteAlignmentData();
 
 
-  reco.SetRecoParam("ITS",AliITSRecoParam::GetLowFluxParam());
+  AliITSRecoParam * itspar = AliITSRecoParam::GetLowFluxParam();
+  itspar->SetStoreLikeSignV0s(kTRUE);
+  reco.SetRecoParam("ITS",itspar);
   reco.SetRecoParam("TPC",AliTPCRecoParam::GetLowFluxParam());
   reco.SetRecoParam("TRD",AliTRDrecoParam::GetLowFluxParam());
   reco.SetRecoParam("PHOS",AliPHOSRecoParam::GetDefaultParameters());
