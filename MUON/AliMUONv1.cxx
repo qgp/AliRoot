@@ -169,6 +169,14 @@ void AliMUONv1::CreateMaterials()
 }
 
 //________________________________________________________________
+void AliMUONv1::UpdateInternalGeometry()
+{
+/// Update geometry after applying mis-alignment
+
+  fGeometryBuilder->UpdateInternalGeometry();
+}
+
+//________________________________________________________________
 void AliMUONv1::AddAlignableVolumes() const
 {
 /// Construct materials using geometry builder
