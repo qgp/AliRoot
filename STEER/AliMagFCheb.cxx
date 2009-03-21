@@ -179,7 +179,7 @@ void AliMagFCheb::CopyFrom(const AliMagFCheb& src)
   if (src.fNParamsDip) {
     memcpy(fSegZDip   = new Float_t[fNZSegDip], src.fSegZDip, sizeof(Float_t)*fNZSegDip);
     memcpy(fSegYDip   = new Float_t[fNYSegDip], src.fSegYDip, sizeof(Float_t)*fNYSegDip);
-    memcpy(fSegXDip   = new Float_t[fNXSegDip], src.fSegZDip, sizeof(Float_t)*fNXSegDip);
+    memcpy(fSegXDip   = new Float_t[fNXSegDip], src.fSegXDip, sizeof(Float_t)*fNXSegDip);
     memcpy(fBegSegYDip= new Int_t[fNZSegDip], src.fBegSegYDip, sizeof(Int_t)*fNZSegDip);
     memcpy(fNSegYDip  = new Int_t[fNZSegDip], src.fNSegYDip, sizeof(Int_t)*fNZSegDip);
     memcpy(fBegSegXDip= new Int_t[fNYSegDip], src.fBegSegXDip, sizeof(Int_t)*fNYSegDip);
