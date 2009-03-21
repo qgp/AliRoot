@@ -50,9 +50,9 @@ void anyscan_init()
     a->SetMainColor(kWhite);
     a->SetTitle("R-Phi");
     a->SetTitleSize(0.05);
-    a->SetTitleFontName("comicbd");
+    a->SetTitleFont(102);
     a->SetLabelSize(0.025);
-    a->SetLabelFontName("comicbd");
+    a->SetLabelFont(102);
     gEve->GetScenes()->FindChild("R-Phi Projection")->AddElement(a);
   }
   if (gRhoZMgr) {
@@ -60,9 +60,9 @@ void anyscan_init()
     a->SetMainColor(kWhite);
     a->SetTitle("Rho-Z");
     a->SetTitleSize(0.05);
-    a->SetTitleFontName("comicbd");
+    a->SetTitleFont(102);
     a->SetLabelSize(0.025);
-    a->SetLabelFontName("comicbd");
+    a->SetLabelFont(102);
     gEve->GetScenes()->FindChild("Rho-Z Projection")->AddElement(a);
   }
 
