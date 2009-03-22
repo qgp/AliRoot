@@ -57,6 +57,7 @@
 #include "AliCDBStorage.h"
 #include "AliCDBManager.h"
 #include "AliCDBEntry.h"
+#include "AliTrackReference.h"
 
 ClassImp(AliT0v1)
 
@@ -464,29 +465,6 @@ void AliT0v1::AddAlignableVolumes() const
        AliFatal(Form("Alignable entry %s not created. Volume path %s not valid",
 symName.Data(),volPath.Data()));
    }
-  /*
-  for (Int_t imod=0; imod<24; imod++)
-    {
-       if (imod < 12)
-         { volPath  = vpC; sn="T0/C/PMT";}
-        else
-          { volPath  = vpA; sn="T0/A/PMT";}
-      volPath += imod+1;
-      volPath += vpInside;
-      symName = sn;
-      symName += imod+1;
-    
-
-      AliDebug(2,"--------------------------------------------");
-      AliDebug(2,Form("Alignable object %d", imod));
-      AliDebug(2,Form("volPath=%s\n",volPath.Data()));
-      AliDebug(2,Form("symName=%s\n",symName.Data()));
-      AliDebug(2,"--------------------------------------------");
-      if(!gGeoManager->SetAlignableEntry(symName.Data(),volPath.Data()))
-       AliFatal(Form("Alignable entry %s not created. Volume path %s not valid",
-symName.Data(),volPath.Data()));
-   }
-  */
 }   
 //------------------------------------------------------------------------
 void AliT0v1::CreateMaterials()
@@ -698,46 +676,47 @@ void AliT0v1::StepManager()
   static Float_t hits[6];
   static Int_t vol[2];
   TLorentzVector pos;
+  TLorentzVector mom;
   
   //   TClonesArray &lhits = *fHits;
   
   if(!gMC->IsTrackAlive()) return; // particle has disappeared
   
+  id=gMC->CurrentVolID(copy);
   
-    // If particles is photon then ...
-  
- if (gMC->TrackPid() == 50000050)
-  {
-      id=gMC->CurrentVolID(copy);
+  // Check the sensetive volume
+  if(id==fIdSens1 ) { 
+    if(gMC->IsTrackEntering()) {
+      gMC->CurrentVolOffID(2,copy);
+      vol[1]=copy;
+      gMC->CurrentVolOffID(3,copy1);
+      vol[0]=copy1;
+      gMC->TrackPosition(pos);
+      hits[0] = pos[0];
+      hits[1] = pos[1];
+      hits[2] = pos[2];
+      if(pos[2]<0) vol[0] = 2;
+      if(pos[2]>=0) vol[0] = 1; 
       
+      Float_t etot=gMC->Etot();
+      hits[3]=etot;
+      Int_t iPart= gMC->TrackPid();
+      Int_t partID=gMC->IdFromPDG(iPart);
+      hits[4]=partID;
+      Float_t ttime=gMC->TrackTime();
+      hits[5]=ttime*1e12;
+      if (gMC->TrackPid() == 50000050)   // If particles is photon then ...
+	{
+	  if(RegisterPhotoE(vol[1]-1,hits[3])) {
+	    AddHit(gAlice->GetMCApp()->GetCurrentTrackNumber(),vol,hits);
+	    // Create a track reference at the exit of photocatode
+	  }	    
+	}
+
+      //charge particle 
+      if ( gMC->TrackCharge() )
+	AddTrackReference(gAlice->GetMCApp()->GetCurrentTrackNumber(), AliTrackReference::kT0);
       
-      // Check the sensetive volume
-      if(id==fIdSens1 ) { 
-	if(gMC->IsTrackEntering()) {
-	    gMC->CurrentVolOffID(2,copy);
-	    vol[1]=copy;
-	    gMC->CurrentVolOffID(3,copy1);
-	    vol[0]=copy1;
-	    gMC->TrackPosition(pos);
-	    hits[0] = pos[0];
-	    hits[1] = pos[1];
-	    hits[2] = pos[2];
-	    if(pos[2]<0) vol[0]=2;
-	    if(pos[2]>=0) vol[0]=1; 
-	    
-	    Float_t etot=gMC->Etot();
-	    hits[3]=etot;
-	    Int_t iPart= gMC->TrackPid();
-	    Int_t partID=gMC->IdFromPDG(iPart);
-	    hits[4]=partID;
-	    Float_t ttime=gMC->TrackTime();
-	    hits[5]=ttime*1e12;
-	    if(RegisterPhotoE(vol[1]-1,hits[3])) 
-	      AddHit(fIshunt,vol,hits);
-	    
-	  }
-	  //  cout<< gAlice->GetMCApp()->GetCurrentTrackNumber()<<" hit added "<<endl;
-	
 	/*		
 		printf("track(%i) alive(%i) disap(%i) enter(%i) exit(%i) inside(%i) out(%i) stop(%i) new(%i) \n",
 		       gAlice->GetMCApp()->GetCurrentTrackNumber(),
@@ -749,9 +728,10 @@ void AliT0v1::StepManager()
 	       gMC->IsTrackOut(),
 	       gMC->IsTrackStop(),
 	       gMC->IsNewTrack());
-	*/		
-      } //sensitive
-  } //photon
+	*/
+    }// trck entering		
+  } //sensitive
+  
 }
 
 
