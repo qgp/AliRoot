@@ -107,7 +107,7 @@ void AliPHOSQADataMakerRec::InitESDs()
   h2->Sumw2() ;
   Add2ESDsList(h2, kESDNtot, !expert) ;
  
-  TH1F * h3 = new TH1F("hESDPhosEtot",      "ESDs total energy"                     , 100, 0,  1000.) ; 
+  TH1F * h3 = new TH1F("hESDPhosEtot",      "ESDs total energy"                     , 2000, 0,  200.) ; 
   h3->Sumw2() ;
   Add2ESDsList(h3, kESDEtot, !expert) ;  //Expert histo
  
