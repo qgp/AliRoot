@@ -161,8 +161,8 @@ Float_t  AliCheb3DCalc::Eval(Float_t  *par) const
   Float_t  &y = par[1];
   Float_t  &x = par[0];
   //
+  if (fNRows<1) return 0;
   int ncfRC;
-  if (!fNRows) return 0.;
   for (int id0=fNRows;id0--;) {
     int nCLoc = fNColsAtRow[id0];                   // number of significant coefs on this row
     int Col0  = fColAtRowBg[id0];                   // beginning of local column in the 2D boundary matrix
