@@ -1668,7 +1668,14 @@ void AliTPC::DigitizeRow(Int_t irow,Int_t isec,TObjArray **rows)
     
     } // end of loop over time buckets
   }  // end of lop over pads 
+  //
+  // test
+  //
+  //
 
+  // glitch filters if normal simulated digits
+  //
+  if(!fDigitsSwitch) ((AliSimDigits*)dig)->GlitchFilter();
   //
   //  This row has been digitized, delete nonused stuff
   //
