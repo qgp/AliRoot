@@ -1738,11 +1738,11 @@ Bool_t AliSimulation::RunHLT()
   }
 
   // print compile info
-  typedef void (*CompileInfo)( char*& date, char*& time);
+  typedef void (*CompileInfo)( const char*& date, const char*& time);
   CompileInfo fctInfo=(CompileInfo)gSystem->DynFindSymbol(ALIHLTSIMULATION_LIBRARY, "CompileInfo");
   if (fctInfo) {
-    char* date="";
-    char* time="";
+    const char* date="";
+    const char* time="";
     (*fctInfo)(date, time);
     if (!date) date="unknown";
     if (!time) time="unknown";
