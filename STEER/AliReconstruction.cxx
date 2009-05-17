@@ -181,6 +181,7 @@
 #include "AliPlaneEff.h"
 
 #include "AliSysInfo.h" // memory snapshots
+#include "AliRawVEvent.h"
 #include "AliRawHLTManager.h"
 
 #include "AliMagWrapCheb.h"
@@ -1456,7 +1457,7 @@ Bool_t AliReconstruction::Process(Long64_t entry)
   AliCodeTimerAuto("");
 
   TTree *currTree = fChain->GetTree();
-  AliRawEvent *event = new AliRawEvent;
+  AliRawVEvent *event = NULL;
   currTree->SetBranchAddress("rawevent",&event);
   currTree->GetEntry(entry);
   fRawReader = new AliRawReaderRoot(event);
