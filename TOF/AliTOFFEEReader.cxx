@@ -40,7 +40,8 @@ ClassImp(AliTOFFEEReader)
 AliTOFFEEReader::AliTOFFEEReader() :
   TObject(),
   fFEEConfig(new AliTOFFEEConfig()),
-  fChannelEnabled()
+  fChannelEnabled(),
+  fMatchingWindow()
 {
   /* 
    * 
@@ -48,6 +49,7 @@ AliTOFFEEReader::AliTOFFEEReader() :
    *
    */
 
+  Reset();
 }
 
 //_______________________________________________________________
@@ -112,6 +114,23 @@ AliTOFFEEReader::ResetChannelEnabledArray()
 //_______________________________________________________________
 
 void
+AliTOFFEEReader::Reset()
+{
+  /*
+   *
+   * reset 
+   *
+   */
+
+  for (Int_t iIndex = 0; iIndex < GetNumberOfIndexes(); iIndex++) {
+    fChannelEnabled[iIndex] = kFALSE;
+    fMatchingWindow[iIndex] = 0;
+  }
+}
+
+//_______________________________________________________________
+
+void
 AliTOFFEEReader::LoadFEEConfig(const Char_t *FileName) const
 {
   /*
@@ -148,7 +167,7 @@ AliTOFFEEReader::ParseFEEConfig()
   Int_t volume[5], index;
   Int_t temp;
 
-  ResetChannelEnabledArray();
+  Reset();
 
   /* loop over all FEE channels */
   for (Int_t iDDL = 0; iDDL < GetNumberOfDDLs(); iDDL++)
@@ -162,12 +181,20 @@ AliTOFFEEReader::ParseFEEConfig()
 	      rawStream.EquipmentId2VolumeId(iDDL, iTRM + 3, iChain, iTDC, iChannel, volume);
 	      /* swap padx and padz to fit AliTOFGeometry::GetIndex behaviour */
 	      temp = volume[4]; volume[4] = volume[3]; volume[3] = temp; 
+	      /* check if index is ok */
+	      if (volume[0] < 0 || volume[0] > 17 ||
+		  volume[1] < 0 || volume[1] > 4 ||
+		  volume[2] < 0 || volume[2] > 18 ||
+		  volume[3] < 0 || volume[3] > 1 ||
+		  volume[4] < 0 || volume[4] > 47)
+		continue;
 	      /* convert detector indexes into calibration index */
 	      index = AliTOFGeometry::GetIndex(volume);
 	      /* check calibration index */
 	      if (index != -1 && index < GetNumberOfIndexes()) {
 		/* set calibration channel enabled */
 		fChannelEnabled[index] = kTRUE;
+		fMatchingWindow[index] = GetMatchingWindow(iDDL, iTRM + 3, iChain, iTDC, iChannel);
 		nEnabled++;
 	      }
 	    }
@@ -191,7 +218,7 @@ AliTOFFEEReader::IsChannelEnabled(Int_t iDDL, Int_t iTRM, Int_t iChain, Int_t iT
   AliTOFFEEConfig *feeConfig;
   AliTOFCrateConfig *crateConfig;
   AliTOFTRMConfig *trmConfig;
-  Int_t maskPB, maskTDC;
+  Int_t maskPB, maskTDC, activeChip;
   
   /* get and check fee config */
   if (!(feeConfig = GetFEEConfig()))
@@ -220,6 +247,8 @@ AliTOFFEEReader::IsChannelEnabled(Int_t iDDL, Int_t iTRM, Int_t iChain, Int_t iT
     /* check chain enabled */
     if (trmConfig->GetChainAFlag() != 1)
       return kFALSE;
+    /* get active chip mask */
+    activeChip = trmConfig->GetActiveChipA();
     /* switch TDC */
     switch (iTDC) {
     case 0: case 1: case 2:
@@ -247,6 +276,8 @@ AliTOFFEEReader::IsChannelEnabled(Int_t iDDL, Int_t iTRM, Int_t iChain, Int_t iT
     /* check chain enabled */
     if (trmConfig->GetChainBFlag() != 1)
       return kFALSE;
+    /* get active chip mask */
+    activeChip = trmConfig->GetActiveChipB();
     /* switch TDC */
     switch (iTDC) {
     case 0: case 1: case 2:
@@ -274,6 +305,10 @@ AliTOFFEEReader::IsChannelEnabled(Int_t iDDL, Int_t iTRM, Int_t iChain, Int_t iT
     break;
   } /* switch chain */
 
+  /* check chip enabled */
+  if (!(activeChip & (0x1 << iTDC)))
+    return kFALSE;
+
   /* check channel enabled */
   maskTDC = (maskPB & (0xFF << ((iTDC % 3) * 8))) >> ((iTDC % 3) * 8);
   if (maskTDC & (0x1 << iChannel))
@@ -281,6 +316,50 @@ AliTOFFEEReader::IsChannelEnabled(Int_t iDDL, Int_t iTRM, Int_t iChain, Int_t iT
   else
     return kFALSE;
   
+}
+
+//_______________________________________________________________
+
+Int_t 
+AliTOFFEEReader::GetMatchingWindow(Int_t iDDL, Int_t iTRM, Int_t iChain, Int_t iTDC, Int_t iChannel) const
+{
+  /*
+   *
+   * get matching window
+   *
+   * checks whether a FEE channel is enabled using the
+   * TOF FEE config object and return the associated
+   * matching window
+   *
+   */
+  
+  AliTOFFEEConfig *feeConfig;
+  AliTOFCrateConfig *crateConfig;
+  AliTOFTRMConfig *trmConfig;
+
+  iChain = 0; iTDC = 0; iChannel = 0; /* dummy for the time being */
+  
+  /* get and check fee config */
+  if (!(feeConfig = GetFEEConfig()))
+    return 0;
+  
+  /* get and check crate config */
+  if (!(crateConfig = feeConfig->GetCrateConfig(iDDL)))
+    return 0;
+  
+  /* get and check TRM config */
+  if (!(trmConfig = crateConfig->GetTRMConfig(iTRM - 3)))
+    return 0;
+
+  /* check DRM enabled */
+  if (!crateConfig->IsDRMEnabled())
+    return 0;
+
+  /* check TRM enabled */
+  if (!crateConfig->IsTRMEnabled(iTRM - 3))
+    return 0;
+
+  return trmConfig->GetMatchingWindow();
 }
 
 
@@ -355,12 +434,12 @@ AliTOFFEEReader::DumpFEEConfig()
       
       /* check TRM chain A flag */
       if (trmConfig->GetChainAFlag() == 1) {
-	AliInfo(Form("TRM%02d chainA is enabled: PB0=%06X, PB1=%06X, PB2=%06X, PB3=%06X, PB4=%06X", iTRM + 3, trmConfig->GetMaskPB0(), trmConfig->GetMaskPB1(), trmConfig->GetMaskPB2(), trmConfig->GetMaskPB3(), trmConfig->GetMaskPB4()));
+	AliInfo(Form("TRM%02d chainA is enabled: activeChip=%04X, PB0=%06X, PB1=%06X, PB2=%06X, PB3=%06X, PB4=%06X", iTRM + 3, trmConfig->GetActiveChipA(), trmConfig->GetMaskPB0(), trmConfig->GetMaskPB1(), trmConfig->GetMaskPB2(), trmConfig->GetMaskPB3(), trmConfig->GetMaskPB4()));
       }
 
       /* check TRM chain B flag */
       if (trmConfig->GetChainBFlag() == 1) {
-	AliInfo(Form("TRM%02d chainB is enabled: PB5=%06X, PB6=%06X, PB7=%06X, PB8=%06X, PB9=%06X", iTRM + 3, trmConfig->GetMaskPB5(), trmConfig->GetMaskPB6(), trmConfig->GetMaskPB7(), trmConfig->GetMaskPB8(), trmConfig->GetMaskPB9()));
+	AliInfo(Form("TRM%02d chainB is enabled: activeChip=%04X, PB5=%06X, PB6=%06X, PB7=%06X, PB8=%06X, PB9=%06X", iTRM + 3, trmConfig->GetActiveChipB(), trmConfig->GetMaskPB5(), trmConfig->GetMaskPB6(), trmConfig->GetMaskPB7(), trmConfig->GetMaskPB8(), trmConfig->GetMaskPB9()));
       }
       
 
