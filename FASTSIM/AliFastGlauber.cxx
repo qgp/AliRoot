@@ -85,7 +85,8 @@ TF1*    AliFastGlauber::fgWParticipants  = NULL;
 TF2*    AliFastGlauber::fgWAlmondCurrent = NULL;    
 TF2*    AliFastGlauber::fgWAlmondFixedB[40]; 
 const Int_t AliFastGlauber::fgkMCInts = 100000;
-Int_t AliFastGlauber::fgCounter = 0;       
+AliFastGlauber* AliFastGlauber::fgGlauber = NULL;
+
 
 AliFastGlauber::AliFastGlauber(): 
     fWSr0(0.),
@@ -101,14 +102,12 @@ AliFastGlauber::AliFastGlauber():
     fName()     
 {
   //  Default Constructor 
-  fgCounter++;
-  if(fgCounter>1)
-    Error("AliFastGlauber","More than one instance (%d) is not supported, check your code!",fgCounter);
-
   //  Defaults for Pb
   SetMaxImpact();
   SetLengthDefinition();
   SetPbPbLHC();
+  fXY[0] = fXY[1] = 0;
+  fI0I1[0] = fI0I1[1] = 0;
 }
 
 AliFastGlauber::AliFastGlauber(const AliFastGlauber & gl)
@@ -127,12 +126,24 @@ AliFastGlauber::AliFastGlauber(const AliFastGlauber & gl)
 {
 // Copy constructor
     gl.Copy(*this);
+    fXY[0] = fXY[1] = 0;
+    fI0I1[0] = fI0I1[1] = 0;
+}
+
+AliFastGlauber* AliFastGlauber::Instance()
+{ 
+// Set random number generator 
+    if (fgGlauber) {
+	return fgGlauber;
+    } else {
+	fgGlauber = new AliFastGlauber();
+	return fgGlauber;
+    }
 }
 
 AliFastGlauber::~AliFastGlauber()
 {
 // Destructor
-  fgCounter--;
   for(Int_t k=0; k<40; k++) delete fgWAlmondFixedB[k];
 }
 
@@ -917,11 +928,11 @@ Double_t AliFastGlauber::WPathLength0(Double_t* x, Double_t* par)
   } // radial steps
 
   Double_t y=0.;
-  if (!kiopt)  // My length definition (is exact for hard disk)
-    if(w) y= 2. * rw / w; 
-  else {
-    const Double_t knorm=fgWSta->Eval(1e-4);
-    if(knorm) y =  TMath::Sqrt(2. * rw * kDr / knorm / knorm);
+  if (!kiopt) { // My length definition (is exact for hard disk)
+      if(w) y= 2. * rw / w; 
+  } else {
+      const Double_t knorm=fgWSta->Eval(1e-4);
+      if(knorm) y =  TMath::Sqrt(2. * rw * kDr / knorm / knorm);
   }
   return y; //fm
 }
