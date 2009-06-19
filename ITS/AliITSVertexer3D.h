@@ -46,6 +46,8 @@ class AliITSVertexer3D : public AliITSVertexer {
   void SetMeanPSelTracks(Float_t pGeV=0.875){fMeanPSelTrk = pGeV;}
   void SetMeanPtSelTracks(Float_t ptGeV=0.630){fMeanPtSelTrk = ptGeV;}
   void SetMeanPPtSelTracks(Float_t fieldTesla);
+  void SetBinSizeR(Float_t siz=0.1){fBinSizeR=siz;}
+  void SetBinSizeZ(Float_t siz=0.8){fBinSizeZ=siz;}
 
 protected:
   AliITSVertexer3D(const AliITSVertexer3D& vtxr);
@@ -67,8 +69,10 @@ protected:
   Float_t fDiffPhiMax;     // Maximum delta phi allowed among corr. pixels
   Float_t fMeanPSelTrk; // GeV, mean P for tracks with dphi<0.01 rad
   Float_t fMeanPtSelTrk; // GeV, mean Pt for tracks with dphi<0.01 rad
+  Float_t  fBinSizeR;      // Histo3D bin size along radius
+  Float_t  fBinSizeZ;      // Histo3D bin size along z
 
-  ClassDef(AliITSVertexer3D,6);
+  ClassDef(AliITSVertexer3D,7);
 
 };
 
