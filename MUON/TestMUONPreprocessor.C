@@ -24,6 +24,31 @@
 /// This macro runs the test preprocessor for MUON.
 /// It uses AliTestShuttle to simulate a full Shuttle process
 ///
+/// You must load relevant libraries (besides normal MUON ones -which is done
+/// easily by executing root from the $ALICE_ROOT/MUON directory to use
+/// the rootlogon.C there) before compiling this macro :
+/// <pre>
+/// gSystem->Load("$ALICE_ROOT/SHUTTLE/TestShuttle/libTestShuttle");
+/// </pre>
+///
+/// Having $ALICE_ROOT/SHUTTLE/TestShuttle directory in your LD_LIBRARY_PATH
+/// (or DYLD_LIBRARY_PATH on Mac OS X) won't hurt either...
+///
+/// You must also make a link of some OCDB entries to have the mapping loaded 
+/// correctly :
+///
+/// cd $ALICE_ROOT/OCDB/SHUTTLE/TestShuttle/TestCDB
+/// mkdir -p MUON/Calib
+/// cd MUON/Calib
+/// ln -si $ALICE_ROOT/OCDB/MUON/Calib/MappingData .
+///
+/// and Align/Baseline if you'd like to test GMS subprocessor :
+///
+/// cd $ALICE_ROOT/OCDB/SHUTTLE/TestShuttle/TestCDB
+/// mkdir -p MUON/Align/Baseline
+/// cd MUON/Align
+/// ln -si $ALICE_ROOT/OCDB/MUON/Align/Baseline .
+///
 /// The input data has to be created first by other processes (or is created
 /// here by CreateDCSAliasMap() for tracker HV).
 ///
