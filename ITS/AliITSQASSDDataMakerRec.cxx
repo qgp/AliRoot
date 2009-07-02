@@ -297,7 +297,7 @@ void AliITSQASSDDataMakerRec::InitRaws() {
     AliInfo("Book Offline Histograms for SSD\n ");
   }
   AliInfo(Form("Number of histograms (SPD+SDD): %d\n",fGenRawsOffset));
-  TString gTitle = 0;
+  TString gTitle;
   //book online-offline QA histos
   TH1D *fHistSSDEventType = new TH1D("SSD/DataSize/fHistSSDEventType",
 				     ";Event type;Events",

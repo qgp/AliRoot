@@ -169,9 +169,9 @@ TChain *AliTagAnalysis::QueryTags(AliRunTagCuts *runTagCuts,
   AliEventTag *evTag   = new AliEventTag;
   fChain->SetBranchAddress("AliTAG",&tag);
 
-  TString guid = 0;
-  TString turl = 0;
-  TString path = 0;
+  TString guid;
+  TString turl;
+  TString path;
 
   Int_t iAccepted = 0;
   for(Int_t iTagFiles = 0; iTagFiles < fChain->GetEntries(); iTagFiles++) {
@@ -232,9 +232,9 @@ TChain *AliTagAnalysis::QueryTags(const char *fRunCut,
   AliEventTag *evTag = new AliEventTag; 	 
   fChain->SetBranchAddress("AliTAG",&tag); 	 
   
-  TString guid = 0; 	 
-  TString turl = 0; 	 
-  TString path = 0; 	 
+  TString guid; 	 
+  TString turl; 	 
+  TString path; 	 
   
   TTreeFormula *fRunFormula = new TTreeFormula("fRun",fRunCut,fChain); 	 
   TTreeFormula *fLHCFormula = new TTreeFormula("fLHC",fLHCCut,fChain); 	 
@@ -298,9 +298,9 @@ Bool_t AliTagAnalysis::CreateXMLCollection(const char* name,
   collection->SetCollectionName(name);
   collection->WriteHeader();
 
-  TString guid = 0x0;
-  TString turl = 0x0;
-  TString lfn = 0x0;
+  TString guid;
+  TString turl;
+  TString lfn;
   
   //Defining tag objects
   AliRunTag *tag = new AliRunTag;
@@ -349,9 +349,9 @@ Bool_t AliTagAnalysis::CreateXMLCollection(const char* name,
   collection->SetCollectionName(name);
   collection->WriteHeader();
 
-  TString guid = 0x0;
-  TString turl = 0x0;
-  TString lfn = 0x0;
+  TString guid;
+  TString turl;
+  TString lfn;
   
   //Defining tag objects
   AliRunTag *tag = new AliRunTag;
@@ -411,11 +411,11 @@ Bool_t AliTagAnalysis::CreateAsciiCollection(const char* name,
   ofstream fout;
   fout.open(name);
 
-  TString guid = 0x0;
-  TString turl = 0x0;
-  TString lfn = 0x0;
+  TString guid;
+  TString turl;
+  TString lfn;
 
-  TString line0 = 0;
+  TString line0;
 
   //Defining tag objects
   AliRunTag *tag = new AliRunTag;
@@ -469,11 +469,11 @@ Bool_t AliTagAnalysis::CreateAsciiCollection(const char* name,
   ofstream fout;
   fout.open(name);
 
-  TString guid = 0x0;
-  TString turl = 0x0;
-  TString lfn = 0x0;
+  TString guid;
+  TString turl;
+  TString lfn;
 
-  TString line0 = 0;
+  TString line0;
   
   //Defining tag objects
   AliRunTag *tag = new AliRunTag;

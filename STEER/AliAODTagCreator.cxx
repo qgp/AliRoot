@@ -335,7 +335,7 @@ void AliAODTagCreator::CreateTags(const char* type)
 	evTag->SetEventId(iEventNumber+1);
 	evTag->SetGUID(fguid);
 	if(!strcmp(type,"grid")) {
-	    evTag->SetMD5(0);
+	    evTag->SetMD5("");
 	    evTag->SetTURL(fturl);
 	    evTag->SetSize(0);
 	    }

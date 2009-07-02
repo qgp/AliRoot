@@ -771,7 +771,7 @@ TString AliQADataMakerSteer::Run(const char * detectors, AliRawReader * rawReade
 	
 	if (!fCycleSame) 
     if ( !Init(AliQA::kRAWS) ) 
-      return kFALSE ; 
+      return "" ; 
   fRawReaderDelete = kFALSE ; 
 
 	DoIt(AliQA::kRAWS) ; 
@@ -806,7 +806,7 @@ TString AliQADataMakerSteer::Run(const char * detectors, const char * fileName, 
 	
 	if (!fCycleSame) 
     if ( !Init(AliQA::kRAWS, fileName) ) 
-      return kFALSE ; 
+      return "" ; 
 	
 	DoIt(AliQA::kRAWS) ; 
 	return 	fDetectorsW ;
@@ -843,14 +843,14 @@ TString AliQADataMakerSteer::Run(const char * detectors, const AliQA::TASKINDEX_
 		for (UInt_t task = 0; task < AliQA::kNTASKINDEX; task++) {
 			if ( fTasks.Contains(Form("%d", task)) && ! fCycleSame ) {
 				if ( !Init(AliQA::GetTaskIndex(AliQA::GetTaskName(task)), fileName) ) 
-					return kFALSE ; 
+					return "" ; 
 				DoIt(AliQA::GetTaskIndex(AliQA::GetTaskName(task))) ;
 			}
 		}
 	} else {
     if (! fCycleSame )
       if ( !Init(taskIndex, fileName) ) 
-        return kFALSE ; 
+        return "" ; 
       DoIt(taskIndex) ; 
   } 		
 	
