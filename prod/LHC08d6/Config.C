@@ -274,6 +274,8 @@ void Config()
       //field = new AliMagWrapCheb("Maps","Maps", 2, 1., 10., AliMagWrapCheb::k5kG);
       AliMagWrapCheb * field = new AliMagWrapCheb("Maps","Maps", 2, 1., 10., AliMagWrapCheb::k5kG,kTRUE,"$(ALICE_ROOT)/data/maps/mfchebKGI_sym.root");
     }
+    rl->CdGAFile();
+    gAlice->SetField(field);    
 
     Int_t   iABSO   = 1;
     Int_t   iDIPO   = 1;
@@ -296,7 +298,7 @@ void Config()
     Int_t   iEMCAL  = 1;
     Int_t   iACORDE = 1;
     Int_t   iVZERO  = 1;
-    rl->CdGAFile();
+
     //=================== Alice BODY parameters =============================
     AliBODY *BODY = new AliBODY("BODY", "Alice envelop");
 
