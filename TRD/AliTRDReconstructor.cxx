@@ -188,6 +188,7 @@ void AliTRDReconstructor::ConvertDigits(AliRawReader *rawReader
   AliTRDrawData rawData;
   rawReader->Reset();
   rawReader->Select("TRD");
+  rawData.OpenOutput();
   AliTRDdigitsManager *manager = rawData.Raw2Digits(rawReader);
   manager->MakeBranch(digitsTree);
   manager->WriteDigits();
@@ -213,6 +214,7 @@ void AliTRDReconstructor::Reconstruct(AliRawReader *rawReader
   AliTRDclusterizer clusterer(fgTaskNames[kClusterizer], fgTaskNames[kClusterizer]);
   clusterer.SetReconstructor(this);
   clusterer.OpenOutput(clusterTree);
+  clusterer.OpenTrackletOutput();
   clusterer.SetUseLabels(kFALSE);
   clusterer.Raw2ClustersChamber(rawReader);
   
