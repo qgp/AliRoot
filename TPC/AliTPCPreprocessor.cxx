@@ -782,7 +782,7 @@ UInt_t AliTPCPreprocessor::ExtractRaw(Int_t sourceFXS)
  UInt_t result=0;
  TObjArray* rawArray = new TObjArray;
 
- TList* list = GetFileSources(sourceFXS,"AliTPCCalibRaw");
+ TList* list = GetFileSources(sourceFXS,"tpcCalibRaw");
  
  if (list && list->GetEntries()>0) {
 
@@ -808,7 +808,6 @@ UInt_t AliTPCPreprocessor::ExtractRaw(Int_t sourceFXS)
 	  break;
 	}
        rawArray->Add(calRaw);
-       delete calRaw;
        f->Close();
       }
      ++index;
@@ -1013,7 +1012,7 @@ UInt_t AliTPCPreprocessor::ExtractAltro(Int_t sourceFXS)
  AliTPCCalPad *FPED=0;
  AliTPCCalPad *masked=0;
 
- AliCDBEntry* entry = GetFromOCDB("Calib", "Altro");
+ AliCDBEntry* entry = GetFromOCDB("Calib", "AltroConfig");
  if (entry) altroObjects = (TObjArray*)entry->GetObject();
  if ( altroObjects==NULL ) {
      Log("AliTPCPreprocsessor: No previous TPC altro calibration entry available.\n");
