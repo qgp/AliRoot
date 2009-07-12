@@ -61,7 +61,7 @@ AliZDCReconstructor:: AliZDCReconstructor() :
   fNRun(0),
   fIsCalibrationMB(kFALSE),
   fPedSubMode(0),
-  fSignalThreshold(0)
+  fSignalThreshold(7)
 {
   // **** Default constructor
 
@@ -615,19 +615,13 @@ void AliZDCReconstructor::ReconstructEventpp(TTree *clustersTree, Float_t* corrA
   UInt_t recoFlag=0;
   UInt_t rFlags[32];
   for(Int_t ifl=0; ifl<32; ifl++) rFlags[ifl]=0;
-  Float_t sumZNAhg=0, sumZPAhg=0, sumZNChg=0, sumZPChg=0;
-  for(Int_t jj=0; jj<5; jj++){
-    sumZNAhg += corrADCZN2[jj];
-    sumZPAhg += corrADCZP2[jj];
-    sumZNChg += corrADCZN1[jj];
-    sumZPChg += corrADCZP1[jj];
-  }
-  if(sumZNAhg>fSignalThreshold)       rFlags[0] = 0x1;
-  if(sumZPAhg>fSignalThreshold)       rFlags[1] = 0x1;
+
+  if(corrADCZN2[0]>fSignalThreshold)  rFlags[0] = 0x1;
+  if(corrADCZP2[0]>fSignalThreshold)  rFlags[1] = 0x1;
   if(corrADCZEM1[0]>fSignalThreshold) rFlags[2] = 0x1;
   if(corrADCZEM2[0]>fSignalThreshold) rFlags[3] = 0x1;
-  if(sumZNChg>fSignalThreshold)       rFlags[4] = 0x1;
-  if(sumZPChg>fSignalThreshold)       rFlags[5] = 0x1;
+  if(corrADCZN1[0]>fSignalThreshold)  rFlags[4] = 0x1;
+  if(corrADCZP1[0]>fSignalThreshold)  rFlags[5] = 0x1;
   //
   if(channelsOff==kTRUE)   rFlags[8] = 0x1;
   if(chUnderflow == kTRUE) rFlags[9] = 0x1;
@@ -654,10 +648,18 @@ void AliZDCReconstructor::ReconstructEventpp(TTree *clustersTree, Float_t* corrA
   // ******	Equalization of detector responses
   Float_t equalTowZN1[10], equalTowZN2[10], equalTowZP1[10], equalTowZP2[10];
   for(Int_t gi=0; gi<10; gi++){
-     equalTowZN1[gi] = corrADCZN1[gi]*equalCoeffZN1[gi];
-     equalTowZP1[gi] = corrADCZP1[gi]*equalCoeffZP1[gi];
-     equalTowZN2[gi] = corrADCZN2[gi]*equalCoeffZN2[gi];
-     equalTowZP2[gi] = corrADCZP2[gi]*equalCoeffZP2[gi];
+     if(gi<5){
+       equalTowZN1[gi] = corrADCZN1[gi]*equalCoeffZN1[gi];
+       equalTowZP1[gi] = corrADCZP1[gi]*equalCoeffZP1[gi];
+       equalTowZN2[gi] = corrADCZN2[gi]*equalCoeffZN2[gi];
+       equalTowZP2[gi] = corrADCZP2[gi]*equalCoeffZP2[gi];
+     }
+     else{
+       equalTowZN1[gi] = corrADCZN1[gi]*equalCoeffZN1[gi-5];
+       equalTowZP1[gi] = corrADCZP1[gi]*equalCoeffZP1[gi-5];
+       equalTowZN2[gi] = corrADCZN2[gi]*equalCoeffZN2[gi-5];
+       equalTowZP2[gi] = corrADCZP2[gi]*equalCoeffZP2[gi-5];
+     }
   }
   
   // ******	Summed response for hadronic calorimeter (SUMMED and then CALIBRATED!)
@@ -745,19 +747,13 @@ void AliZDCReconstructor::ReconstructEventPbPb(TTree *clustersTree,
   UInt_t recoFlag=0;
   UInt_t rFlags[32];
   for(Int_t ifl=0; ifl<32; ifl++) rFlags[ifl]=0;
-  Float_t sumZNAhg=0, sumZPAhg=0, sumZNChg=0, sumZPChg=0;
-  for(Int_t jj=0; jj<5; jj++){
-    sumZNAhg += corrADCZN2[jj];
-    sumZPAhg += corrADCZP2[jj];
-    sumZNChg += corrADCZN1[jj];
-    sumZPChg += corrADCZP1[jj];
-  }
-  if(sumZNAhg>fSignalThreshold)       rFlags[0] = 0x1;
-  if(sumZPAhg>fSignalThreshold)       rFlags[1] = 0x1;
+
+  if(corrADCZN2[0]>fSignalThreshold)  rFlags[0] = 0x1;
+  if(corrADCZP2[0]>fSignalThreshold)  rFlags[1] = 0x1;
   if(corrADCZEM1[0]>fSignalThreshold) rFlags[2] = 0x1;
   if(corrADCZEM2[0]>fSignalThreshold) rFlags[3] = 0x1;
-  if(sumZNChg>fSignalThreshold)       rFlags[4] = 0x1;
-  if(sumZPChg>fSignalThreshold)       rFlags[5] = 0x1;
+  if(corrADCZN1[0]>fSignalThreshold)  rFlags[4] = 0x1;
+  if(corrADCZP1[0]>fSignalThreshold)  rFlags[5] = 0x1;
   //
   if(channelsOff==kTRUE)   rFlags[8] = 0x1;
   if(chUnderflow == kTRUE) rFlags[9] = 0x1;
@@ -789,10 +785,18 @@ void AliZDCReconstructor::ReconstructEventPbPb(TTree *clustersTree,
   // ******	Equalization of detector responses
   Float_t equalTowZN1[10], equalTowZN2[10], equalTowZP1[10], equalTowZP2[10];
   for(Int_t gi=0; gi<10; gi++){
-     equalTowZN1[gi] = corrADCZN1[gi]*equalCoeffZN1[gi];
-     equalTowZP1[gi] = corrADCZP1[gi]*equalCoeffZP1[gi];
-     equalTowZN2[gi] = corrADCZN2[gi]*equalCoeffZN2[gi];
-     equalTowZP2[gi] = corrADCZP2[gi]*equalCoeffZP2[gi];
+     if(gi<5){
+       equalTowZN1[gi] = corrADCZN1[gi]*equalCoeffZN1[gi];
+       equalTowZP1[gi] = corrADCZP1[gi]*equalCoeffZP1[gi];
+       equalTowZN2[gi] = corrADCZN2[gi]*equalCoeffZN2[gi];
+       equalTowZP2[gi] = corrADCZP2[gi]*equalCoeffZP2[gi];
+     }
+     else{
+       equalTowZN1[gi] = corrADCZN1[gi]*equalCoeffZN1[gi-5];
+       equalTowZP1[gi] = corrADCZP1[gi]*equalCoeffZP1[gi-5];
+       equalTowZN2[gi] = corrADCZN2[gi]*equalCoeffZN2[gi-5];
+       equalTowZP2[gi] = corrADCZP2[gi]*equalCoeffZP2[gi-5];
+     }
   }
   
   // ******	Summed response for hadronic calorimeter (SUMMED and then CALIBRATED!)

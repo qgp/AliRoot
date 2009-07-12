@@ -36,6 +36,7 @@
 #include "AliGenHijingEventHeader.h"
 #include "AliRunDigitizer.h"
 #include "AliRunLoader.h"
+#include "AliGRPObject.h"
 #include "AliCDBManager.h"
 #include "AliCDBEntry.h"
 #include "AliZDCSDigit.h"
@@ -62,7 +63,7 @@ AliZDCDigitizer::AliZDCDigitizer() :
   fTowCalibData(0),
   fSpectators2Track(kFALSE)
 {
-// Default constructor    
+  // Default constructor    
 
 }
 
@@ -79,7 +80,10 @@ AliZDCDigitizer::AliZDCDigitizer(AliRunDigitizer* manager):
 {
   // Get calibration data
   if(fIsCalibration!=0) printf("\n\t AliZDCDigitizer -> Creating calibration data (pedestals)\n");
-
+  for(Int_t i=0; i<6; i++){
+    for(Int_t j=0; j<5; j++)
+       fPMGain[i][j] = 0.;
+  }
 }
 
 //____________________________________________________________________________
@@ -110,22 +114,70 @@ AliZDCDigitizer::AliZDCDigitizer(const AliZDCDigitizer &digitizer):
   }
   for(Int_t i=0; i<2; i++) fADCRes[i] = digitizer.fADCRes[i];
 
+
 }
 
 //____________________________________________________________________________
 Bool_t AliZDCDigitizer::Init()
 {
   // Initialize the digitizer
-  // NB -> PM gain vs. HV & ADC resolutions will move to DCDB ***************
-   for(Int_t j = 0; j < 5; j++){
-     fPMGain[0][j] = 50000.;
-     fPMGain[1][j] = 100000.;
-     fPMGain[2][j] = 100000.;
-     fPMGain[3][j] = 50000.;
-     fPMGain[4][j] = 100000.;
-     fPMGain[5][j] = 100000.;
-   }
-   // ADC Caen V965
+  
+  AliCDBEntry*  entry = AliCDBManager::Instance()->Get("GRP/GRP/Data");
+  AliGRPObject* grpData = 0x0;
+  if(entry){
+    TMap* m = dynamic_cast<TMap*>(entry->GetObject());  // old GRP entry
+    if(m){
+      //m->Print();
+      grpData = new AliGRPObject();
+      grpData->ReadValuesFromMap(m);
+    }
+    else{
+      grpData = dynamic_cast<AliGRPObject*>(entry->GetObject());  // new GRP entry
+    }
+    entry->SetOwner(0);
+    AliCDBManager::Instance()->UnloadFromCache("GRP/GRP/Data");
+  }
+  if(!grpData) AliError("No GRP entry found in OCDB!");
+  
+  TString beamType = grpData->GetBeamType();
+  if(beamType==AliGRPObject::GetInvalidString()){
+    AliError("\t UNKNOWN beam type from GRP obj -> PMT gains not set in ZDC digitizer!!!\n");
+  }
+  
+  Float_t beamEnergy = grpData->GetBeamEnergy()/2.;
+  if(beamEnergy==AliGRPObject::GetInvalidFloat()){
+    AliWarning("GRP/GRP/Data entry:  missing value for the beam energy ! Using 0.");
+    AliError("\t UNKNOWN beam type from GRP obj -> PMT gains not set in ZDC digitizer!!!\n");
+    beamEnergy = 0.;
+  }
+  
+  if((beamType.CompareTo("P-P")) == 0){
+    //PTM gains rescaled to beam energy for p-p
+    if(beamEnergy != 0){
+      for(Int_t j = 0; j < 5; j++){
+        fPMGain[0][j] = (661.444/beamEnergy+0.000740671)*10000000;
+        fPMGain[1][j] = (864.350/beamEnergy+0.002344)*10000000;
+        fPMGain[2][j] = (1.32312-0.000101515*beamEnergy)*10000000;
+        fPMGain[3][j] = fPMGain[0][j];
+        fPMGain[4][j] = fPMGain[1][j] ;
+      }
+      AliInfo(Form("    PMT gains for p-p @ %1.0f+%1.0f: ZN(%1.0f), ZP(%1.0f), ZEM(%1.0f)\n",
+      	beamEnergy, beamEnergy, fPMGain[0][0], fPMGain[1][0], fPMGain[2][0]));
+    }
+  }
+  else if((beamType.CompareTo("A-A")) == 0){
+    // PTM gains for Pb-Pb @ 2.7_2.7 A TeV ***************
+    for(Int_t j = 0; j < 5; j++){
+      fPMGain[0][j] = 50000.;
+      fPMGain[1][j] = 100000.;
+      fPMGain[2][j] = 100000.;
+      fPMGain[3][j] = 50000.;
+      fPMGain[4][j] = 100000.;
+      fPMGain[5][j] = 100000.;
+    }
+  }
+    
+  // ADC Caen V965
   fADCRes[0] = 0.0000008; // ADC Resolution high gain: 200 fC/adcCh
   fADCRes[1] = 0.0000064; // ADC Resolution low gain:  25  fC/adcCh
 
@@ -209,6 +261,7 @@ void AliZDCDigitizer::Exec(Option_t* /*option*/)
 	  fFracLostSignal = (sdigit.GetTrackTime()-30)*(sdigit.GetTrackTime()-30)/280.;
 	}
       }
+      
       Float_t sdSignal = sdigit.GetLightPM();
       if(fIsSignalInADCGate == kFALSE){
         AliDebug(2,Form("\t Signal time %f -> fraction %f of ZDC signal for det.(%d, %d) out of ADC gate\n",
@@ -217,9 +270,10 @@ void AliZDCDigitizer::Exec(Option_t* /*option*/)
       }
       
       pm[(sdigit.GetSector(0))-1][sdigit.GetSector(1)] += sdigit.GetLightPM();
-      /*printf("\n\t Detector %d, Tower %d -> pm[%d][%d] = %.0f \n",
+      //Ch. debug
+      /*printf("\t Detector %d, Tower %d -> pm[%d][%d] = %.0f \n",
       	  sdigit.GetSector(0), sdigit.GetSector(1),sdigit.GetSector(0)-1,
-      	  sdigit.GetSector(1), pm[sdigit.GetSector(0)-1][sdigit.GetSector(1)]); // Chiara debugging!
+      	  sdigit.GetSector(1), pm[sdigit.GetSector(0)-1][sdigit.GetSector(1)]); 
       */
       
     }
@@ -295,12 +349,13 @@ void AliZDCDigitizer::Exec(Option_t* /*option*/)
            digi[res] = Phe2ADCch(sector[0], sector[1], pm[sector[0]-1][sector[1]], res) 
 	            + Pedestal(sector[0], sector[1], res);
       	}
-	/*printf("\t DIGIT added -> det %d quad %d - digi[0,1] = [%d, %d]\n",
-	     sector[0], sector[1], digi[0], digi[1]); // Chiara debugging!
-	*/
-	//
 	new(pdigit) AliZDCDigit(sector, digi);
         treeD->Fill();
+
+	//Ch. debug
+	//printf("\t DIGIT added -> det %d quad %d - digi[0,1] = [%d, %d]\n",
+	//     sector[0], sector[1], digi[0], digi[1]); // Chiara debugging!
+	
     }
   } // Loop over detector
   // Adding in-time digits for 2 reference PTM signals (after signal ch.)
@@ -317,11 +372,12 @@ void AliZDCDigitizer::Exec(Option_t* /*option*/)
      for(Int_t res=0; res<2; res++){
        sigRef[res] += Pedestal(sectorRef[0], sectorRef[1], res);
      }
-     /*printf("\t RefDigit added -> det = %d, quad = %d - digi[0,1] = [%d, %d]\n",
-         sectorRef[0], sectorRef[1], sigRef[0], sigRef[1]); // Chiara debugging!
-     */
      new(pdigit) AliZDCDigit(sectorRef, sigRef);
      treeD->Fill();     
+     
+     //Ch. debug
+     //printf("\t RefDigit added -> det = %d, quad = %d - digi[0,1] = [%d, %d]\n",
+     //    sectorRef[0], sectorRef[1], sigRef[0], sigRef[1]); // Chiara debugging!     
   }
   //
   // --- Adding digits for out-of-time channels after signal digits
@@ -331,12 +387,12 @@ void AliZDCDigitizer::Exec(Option_t* /*option*/)
         for(Int_t res=0; res<2; res++){
            digioot[res] = Pedestal(sector[0], sector[1], res); // out-of-time ADCs
       	}
-	/*printf("\t DIGIToot added -> det = %d, quad = %d - digi[0,1] = [%d, %d]\n",
-	     sector[0], sector[1], digioot[0], digioot[1]); // Chiara debugging!
-	*/
-	//
 	new(pdigit) AliZDCDigit(sector, digioot);
         treeD->Fill();
+
+        //Ch. debug
+	//printf("\t DIGIToot added -> det = %d, quad = %d - digi[0,1] = [%d, %d]\n",
+	//     sector[0], sector[1], digioot[0], digioot[1]); // Chiara debugging!	
     }
   }
   // Adding out-of-time digits for 2 reference PTM signals (after out-of-time ch.)
@@ -346,11 +402,12 @@ void AliZDCDigitizer::Exec(Option_t* /*option*/)
      for(Int_t res=0; res<2; res++){
        sigRefoot[res] = Pedestal(sectorRef[0], sectorRef[1], res);
      }
-     /*printf("\t RefDigitoot added -> det = %d, quad = %d - digi[0,1] = [%d, %d]\n",
-         sectorRef[0], sectorRef[1], sigRefoot[0], sigRefoot[1]); // Chiara debugging!
-     */
      new(pdigit) AliZDCDigit(sectorRef, sigRefoot);
      treeD->Fill();
+     //Ch. debug
+     //printf("\t RefDigitoot added -> det = %d, quad = %d - digi[0,1] = [%d, %d]\n",
+     //    sectorRef[0], sectorRef[1], sigRefoot[0], sigRefoot[1]); // Chiara debugging!
+     
   }
   //printf("\t AliZDCDigitizer -> TreeD has %d entries\n",(Int_t) treeD->GetEntries());
 
@@ -470,7 +527,9 @@ Int_t AliZDCDigitizer::Phe2ADCch(Int_t Det, Int_t Quad, Float_t Light,
 {
   // Evaluation of the ADC channel corresponding to the light yield Light
   Int_t vADCch = (Int_t) (Light * fPMGain[Det-1][Quad] * fADCRes[Res]);
-  //printf("\t Phe2ADCch -> det %d quad %d - phe %.0f  ADC %d\n", Det,Quad,Light,vADCch);
+  // Ch. debug
+  //printf("\t Phe2ADCch -> det %d quad %d - PMGain[%d][%d] %1.0f phe %1.2f  ADC %d\n", 
+  //	Det,Quad,Det-1,Quad,fPMGain[Det-1][Quad],Light,vADCch);
 
   return vADCch;
 }
