@@ -23,7 +23,7 @@ void rec(const char *filename="raw.root")
 
   // QA options
   rec.SetRunQA("ALL:ALL") ;
-  rec.SetQARefDefaultStorage("local://$ALICE_ROOT/QAref") ;
+  //  rec.SetQARefDefaultStorage("local://$ALICE_ROOT/QAref") ;
 
   AliGRPRecoParam *grpRecoParam = AliGRPRecoParam::GetLowFluxParam();
   grpRecoParam->SetVertexerTracksConstraintITS(kFALSE);
