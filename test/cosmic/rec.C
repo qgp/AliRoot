@@ -15,7 +15,6 @@ void rec(const char *filename="raw.root")
   // Set the CDB storage location
   AliCDBManager * man = AliCDBManager::Instance();
   man->SetDefaultStorage("raw://");
-  man->SetSpecificStorage("T0/*/*","local://$ALICE_ROOT/OCDB");
   
   // Reconstruction settings
   AliReconstruction rec;
@@ -27,7 +26,7 @@ void rec(const char *filename="raw.root")
   AliGRPRecoParam *grpRecoParam = AliGRPRecoParam::GetLowFluxParam();
   grpRecoParam->SetVertexerTracksConstraintITS(kFALSE);
   grpRecoParam->SetVertexerTracksConstraintTPC(kFALSE);
-  grpRecoParam->SetMostProbablePt(0.35);
+  grpRecoParam->SetMostProbablePt(3.0);
   rec.SetRecoParam("GRP",grpRecoParam);
 
   // AliReconstruction settings
