@@ -15,7 +15,6 @@ void rec(const char *filename="raw.root")
   // Set the CDB storage location
   AliCDBManager * man = AliCDBManager::Instance();
   man->SetDefaultStorage("raw://");
-  man->SetSpecificStorage("ZDC/*/*","local://$ALICE_ROOT/OCDB");
   man->SetSpecificStorage("T0/*/*","local://$ALICE_ROOT/OCDB");
   
   // Reconstruction settings
