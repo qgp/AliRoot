@@ -32,7 +32,7 @@ void rec(const char *filename="raw.root")
   // AliReconstruction settings
   rec.SetWriteESDfriend(kTRUE);
   rec.SetWriteAlignmentData();
-  rec.SetInput(Form("%s?EventType=7",filename));
+  rec.SetInput(filename);
   rec.SetRunReconstruction("ALL");
   rec.SetUseTrackingErrorsForAlignment("ITS");
 
