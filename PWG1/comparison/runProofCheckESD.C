@@ -1,11 +1,12 @@
-void runProofCheckESD(const char * dataset = "/PWG0/COMMON/run30000X_10TeV_0.5T",Long64_t nentries=1000, Long64_t firstentry=0)
+void runProofCheckESD(const char * dataset = "/COMMON/COMMON/LHC09a14_run9300x",Long64_t nentries=1000000, Long64_t firstentry=0)
 {
   // Connect to Proof
-  TProof::Open("lxb6046");
+  gEnv->SetValue("XSec.GSI.DelegProxy","2");
+  TProof::Open("alicecaf");
 
   // Upload and enable packages: please use the correct version!
-  gProof->UploadPackage("AF-v4-14");
-  gProof->EnablePackage("AF-v4-14");
+  gProof->UploadPackage("AF-v4-17");
+  gProof->EnablePackage("AF-v4-17");
 
   // Create the analysis manager
   AliAnalysisManager *mgr = new AliAnalysisManager("AliAnalysisTaskCheckESD");
