@@ -1635,6 +1635,7 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
       if (reconstructor && fRecoParam.GetDetRecoParamArray(iDet)) {
         const AliDetectorRecoParam *par = fRecoParam.GetDetRecoParam(iDet);
         reconstructor->SetRecoParam(par);
+	reconstructor->SetEventInfo(&fEventInfo);
         if (fRunQA) {
           AliQAManager::QAManager()->SetRecoParam(iDet, par) ; 
           AliQAManager::QAManager()->SetEventSpecie(AliRecoParam::Convert(par->GetEventSpecie())) ;
@@ -1913,8 +1914,11 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
   
     fEventInfo.Reset();
     for (Int_t iDet = 0; iDet < kNDetectors; iDet++) {
-      if (fReconstructor[iDet])
+      if (fReconstructor[iDet]) {
 	fReconstructor[iDet]->SetRecoParam(NULL);
+	fReconstructor[iDet]->SetEventInfo(NULL);
+      }
+      if (fTracker[iDet]) fTracker[iDet]->SetEventInfo(NULL);
     }
 	
   if (fRunQA || fRunGlobalQA) 
@@ -2344,7 +2348,16 @@ Bool_t AliReconstruction::RunTracking(AliESDEvent*& esd)
 
   AliInfo("running tracking");
 
-  
+  // Set the event info which is used
+  // by the trackers in order to obtain
+  // information about read-out detectors,
+  // trigger etc.
+  AliDebug(1, "Setting event info");
+  for (Int_t iDet = 0; iDet < kNDetectors; iDet++) {
+    if (!fTracker[iDet]) continue;
+    fTracker[iDet]->SetEventInfo(&fEventInfo);
+  }
+
   //Fill the ESD with the T0 info (will be used by the TOF) 
   if (fReconstructor[11] && fLoader[11]) {
     fLoader[11]->LoadRecPoints("READ");
@@ -2740,6 +2753,7 @@ AliReconstructor* AliReconstruction::GetReconstructor(Int_t iDet)
     if (fRecoParam.GetDetRecoParamArray(iDet) && !AliReconstructor::GetRecoParam(iDet)) {
       const AliDetectorRecoParam *par = fRecoParam.GetDetRecoParam(iDet);
       fReconstructor[iDet]->SetRecoParam(par);
+      fReconstructor[iDet]->SetRunInfo(fRunInfo);
     }
     return fReconstructor[iDet];
   }
@@ -2821,6 +2835,7 @@ AliReconstructor* AliReconstruction::GetReconstructor(Int_t iDet)
   if (fRecoParam.GetDetRecoParamArray(iDet) && !AliReconstructor::GetRecoParam(iDet)) {
     const AliDetectorRecoParam *par = fRecoParam.GetDetRecoParam(iDet);
     reconstructor->SetRecoParam(par);
+    reconstructor->SetRunInfo(fRunInfo);
   }
   return reconstructor;
 }
