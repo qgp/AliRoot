@@ -40,8 +40,9 @@ AliFMDAnalysisTaskDndeta::AliFMDAnalysisTaskDndeta()
   fNMCevents(),
   fStandalone(kTRUE),
   fMCevent(0),
-  fLastTrackByStrip(),
-  fPrimary(kTRUE)
+  fLastTrackByStrip(0),
+  fPrimary(kTRUE),
+  fRecordHits(kFALSE)
 {
   // Default constructor
   DefineInput (0, TList::Class());
@@ -60,8 +61,9 @@ AliFMDAnalysisTaskDndeta::AliFMDAnalysisTaskDndeta(const char* name, Bool_t SE):
     fNMCevents(),
     fStandalone(kTRUE),
     fMCevent(0),
-    fLastTrackByStrip(),
-    fPrimary(kTRUE)
+    fLastTrackByStrip(0),
+    fPrimary(kTRUE),
+    fRecordHits(kFALSE)
 {
   fStandalone = SE;
   if(fStandalone) {
@@ -244,12 +246,17 @@ void AliFMDAnalysisTaskDndeta::ProcessPrimary() {
   Int_t    vertexBin       = (Int_t)vertexBinDouble;
   
   Bool_t firstTrack = kTRUE;
-  Int_t nTracks = fMCevent->GetNumberOfTracks();
+  
+  // we loop over the primaries only unless we need the hits (diagnostics running slowly)
+  Int_t nTracks = stack->GetNprimary();
+  if(fRecordHits)
+    nTracks = stack->GetNtrack();
+  
   for(Int_t i = 0 ;i<nTracks;i++) {
     particle = fMCevent->GetTrack(i);
     if(!particle)
       continue;
-    
+   
     if(stack->IsPhysicalPrimary(i) && particle->Charge() != 0) {
       hPrimary->Fill(particle->Eta());
       
@@ -260,9 +267,10 @@ void AliFMDAnalysisTaskDndeta::ProcessPrimary() {
 	fNMCevents.Fill(vertexBin);
 	firstTrack = kFALSE;
       }
-    }
     
-    for(Int_t j=0; j<particle->GetNumberOfTrackReferences();j++) {
+    }
+    if(fRecordHits) {
+      for(Int_t j=0; j<particle->GetNumberOfTrackReferences();j++) {
       
       AliTrackReference* ref = particle->GetTrackReference(j);
       UShort_t det,sec,strip;
@@ -270,7 +278,7 @@ void AliFMDAnalysisTaskDndeta::ProcessPrimary() {
       if(ref->DetectorId() != AliTrackReference::kFMD)
 	continue;
       AliFMDStripIndex::Unpack(ref->UserId(),det,ring,sec,strip);
-      Float_t thisStripTrack = fLastTrackByStrip.operator()(det,ring,sec,strip);
+      Float_t thisStripTrack = fLastTrackByStrip(det,ring,sec,strip);
       if(particle->Charge() != 0 && i != thisStripTrack ) {
 	//Double_t x,y,z;
 	
@@ -279,21 +287,19 @@ void AliFMDAnalysisTaskDndeta::ProcessPrimary() {
 	hHits->Fill(eta);
 	Float_t nstrips = (ring =='O' ? 256 : 512);
 	
-	//if(det == 1 && ring == 'I')
-	//	std::cout<<"hit in "<<det<<"   "<<ring<<"   "<<sec<<"   "<<strip<<"   "<<std::endl;
-	fLastTrackByStrip.operator()(det,ring,sec,strip) = (Float_t)i;
+	fLastTrackByStrip(det,ring,sec,strip) = (Float_t)i;
 	
 	if(strip >0)
-	  fLastTrackByStrip.operator()(det,ring,sec,strip-1) = (Float_t)i;
+	  fLastTrackByStrip(det,ring,sec,strip-1) = (Float_t)i;
 	if(strip < (nstrips - 1))
-	  fLastTrackByStrip.operator()(det,ring,sec,strip+1) = (Float_t)i;
+	  fLastTrackByStrip(det,ring,sec,strip+1) = (Float_t)i;
 	
 	
       }
       }
+    }
     
-    
-      }
+  }
   
 }
 //_____________________________________________________________________
