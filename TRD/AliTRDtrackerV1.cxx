@@ -3496,7 +3496,8 @@ void AliTRDtrackerV1::AliTRDLeastSquare::AddPoint(Double_t *x, Double_t y, Doubl
   //
   // Adding Point to the fitter
   //
-  Double_t weight = 1/(sigmaY * sigmaY);
+  Double_t weight = 1/(sigmaY > 1e-9 ? sigmaY : 1e-9);
+  weight *= weight;
   Double_t &xpt = *x;
   //	printf("Adding point x = %f, y = %f, sigma = %f\n", xpt, y, sigmaY);
   fSums[0] += weight;
@@ -3512,7 +3513,9 @@ void AliTRDtrackerV1::AliTRDLeastSquare::RemovePoint(Double_t *x, Double_t y, Do
   //
   // Remove Point from the sample
   //
-  Double_t weight = 1/(sigmaY * sigmaY);
+  
+  Double_t weight = 1/(sigmaY > 1e-9 ? sigmaY : 1e-9);
+  weight *= weight;
   Double_t &xpt = *x; 
   fSums[0] -= weight;
   fSums[1] -= weight * xpt;
@@ -3541,9 +3544,9 @@ void AliTRDtrackerV1::AliTRDLeastSquare::Eval(){
   //	printf("fParams[0] = %f, fParams[1] = %f\n", fParams[0], fParams[1]);
   
   // Covariance matrix
-  fCovarianceMatrix[0] = fSums[4] - fSums[1] * fSums[1] / fSums[0];
-  fCovarianceMatrix[1] = fSums[5] - fSums[2] * fSums[2] / fSums[0];
-  fCovarianceMatrix[2] = fSums[3] - fSums[1] * fSums[2] / fSums[0];
+  fCovarianceMatrix[0] = fSums[4] / fSums[0] - fSums[1] * fSums[1] / (fSums[0] * fSums[0]);
+  fCovarianceMatrix[1] = fSums[5] / fSums[0] - fSums[2] * fSums[2] / (fSums[0] * fSums[0]);
+  fCovarianceMatrix[2] = fSums[3] / fSums[0] - fSums[1] * fSums[2] / (fSums[0] * fSums[0]);
 }
 
 //_____________________________________________________________________________
