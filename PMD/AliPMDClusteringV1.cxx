@@ -956,9 +956,9 @@ void AliPMDClusteringV1::FindIsoCell(Int_t idet, Int_t ismn, Double_t celladc[][
   Int_t neiby[6] = {0,1,1,0,-1,-1};
 
 
-  for(Int_t irow = 0; irow < kMaxRow; irow++)
+  for(Int_t irow = 1; irow < kMaxRow-1; irow++)
     {
-      for(Int_t icol = 0; icol < kMaxCol; icol++)
+      for(Int_t icol = 1; icol < kMaxCol-1; icol++)
 	{
 	  if(celladc[irow][icol] > 0)
 	    {
