@@ -100,7 +100,7 @@ class AliTRDclusterizer : public TNamed
   Int_t            GetAddedClusters() {return fNoOfClusters;}
 
   Bool_t   IsClustersOwner() const {return TestBit(kClOwner);}
-  virtual void     SetClustersOwner(Bool_t own=kTRUE) {SetBit(kTrOwner, own); if(!own) {fRecPoints = 0x0; fNoOfClusters=0;} }
+  virtual void     SetClustersOwner(Bool_t own=kTRUE) {SetBit(kClOwner, own); if(!own) {fRecPoints = 0x0; fNoOfClusters=0;} }
   void     SetTrackletsOwner(Bool_t own=kTRUE) {SetBit(kTrOwner, own); if(!own) {fTracklets = 0x0; } }
 
 protected:
