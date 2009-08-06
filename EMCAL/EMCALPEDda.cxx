@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
      path2 += i;
      path2 +=side[j]; 
      path2 += ".data";
-     mapping[i] = new AliCaloAltroMapping(path2.Data());
+     mapping[j*2 + i] = new AliCaloAltroMapping(path2.Data());
    }
  }
   /* set up our analysis class */  

@@ -121,7 +121,7 @@ TString side[] = {"A","C"};//+ and - pseudorapidity supermodules
     path2 += i;
     path2 += side[j]; 
     path2 += ".data";
-    mapping[i] = new AliCaloAltroMapping(path2.Data());
+    mapping[j*2 + i] = new AliCaloAltroMapping(path2.Data());
   }
  }
 
