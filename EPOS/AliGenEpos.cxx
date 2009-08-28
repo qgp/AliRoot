@@ -46,6 +46,7 @@ void AliGenEpos::Init() {
 	epos->SetBminim(this->fBmin);
 	epos->SetBmaxim(this->fBmax);
 	epos->SetEcms(this->fEnergyCMS);
+	epos->SetSplitting(kTRUE);
 	GetTEpos()->Initialize();
 }
 
