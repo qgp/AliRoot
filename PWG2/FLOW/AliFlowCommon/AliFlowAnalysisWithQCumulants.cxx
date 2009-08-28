@@ -145,8 +145,6 @@ AliFlowAnalysisWithQCumulants::AliFlowAnalysisWithQCumulants():
   
   // list to hold histograms with phi, pt and eta weights:      
   fWeightsList = new TList();
-  fWeightsList->SetName("Weights");
-  fWeightsList->SetOwner(kTRUE);
     
   // analysis label;
   fAnalysisLabel = new TString();
@@ -182,9 +180,9 @@ void AliFlowAnalysisWithQCumulants::Init()
  this->AccessConstants();
  
  // booking:
+ this->BookAndFillWeightsHistograms();
  this->BookAndNestAllLists();
  this->BookCommonHistograms();
- this->BookAndFillWeightsHistograms(); 
  this->BookEverythingForIntegratedFlow(); 
  this->BookEverythingForDifferentialFlow(); 
  this->BookEverythingForDistributions();
@@ -1513,14 +1511,16 @@ void AliFlowAnalysisWithQCumulants::GetOutputHistograms(TList *outputListHistos)
   AliFlowCommonHistResults *commonHistRes8th = dynamic_cast<AliFlowCommonHistResults*>
                                                (outputListHistos->FindObject("AliFlowCommonHistResults8thOrderQC"));  
   if(commonHistRes8th) this->SetCommonHistsResults8th(commonHistRes8th);
- 
+  
   // 2.) weights: 
   TList *weightsList = dynamic_cast<TList*>(outputListHistos->FindObject("Weights"));
   if(weightsList) this->SetWeightsList(weightsList);
   Bool_t bUsePhiWeights = kFALSE;
   Bool_t bUsePtWeights = kFALSE;
   Bool_t bUseEtaWeights = kFALSE;
-  TProfile *useParticleWeights = dynamic_cast<TProfile*>(weightsList->FindObject("fUseParticleWeights"));
+  TString fUseParticleWeightsName = "fUseParticleWeightsQC";
+  fUseParticleWeightsName += fAnalysisLabel->Data();
+  TProfile *useParticleWeights = dynamic_cast<TProfile*>(weightsList->FindObject(fUseParticleWeightsName.Data()));
   if(useParticleWeights)
   {
    this->SetUseParticleWeights(useParticleWeights);  
@@ -3252,7 +3252,9 @@ void AliFlowAnalysisWithQCumulants::BookAndFillWeightsHistograms()
   exit(0);  
  }
     
- fUseParticleWeights = new TProfile("fUseParticleWeights","1 = weight used, 0 = weight not used",3,0,3);
+ TString fUseParticleWeightsName = "fUseParticleWeightsQC";
+ fUseParticleWeightsName += fAnalysisLabel->Data();
+ fUseParticleWeights = new TProfile(fUseParticleWeightsName.Data(),"0 = particle weight not used, 1 = particle weight used ",3,0,3);
  fUseParticleWeights->SetLabelSize(0.06);
  (fUseParticleWeights->GetXaxis())->SetBinLabel(1,"w_{#phi}");
  (fUseParticleWeights->GetXaxis())->SetBinLabel(2,"w_{p_{T}}");
@@ -5920,7 +5922,7 @@ void AliFlowAnalysisWithQCumulants::InitializeArraysForIntFlow()
 {
  // initialize all arrays needed to calculate the integrated flow
  
- for(Int_t pW=0;pW<1+(Int_t)(fUsePhiWeights||fUsePtWeights||fUseEtaWeights);pW++) // not weighted or weighted
+ for(Int_t pW=0;pW<2;pW++) // particle weights not used (0) or used (1)
  {
   fQCorrelationsEBE[pW] = NULL;
   for(Int_t sc=0;sc<2;sc++)
@@ -5967,7 +5969,7 @@ void AliFlowAnalysisWithQCumulants::InitializeArraysForDiffFlow()
  for(Int_t t=0;t<2;t++)
  {
   fDFPType[t] = NULL;
-  for(Int_t pW=0;pW<1+(Int_t)(fUsePhiWeights||fUsePtWeights||fUseEtaWeights);pW++)
+  for(Int_t pW=0;pW<2;pW++) // particle weights not used (0) or used (1)
   {
    fDFPParticleWeights[t][pW] = NULL;
    for(Int_t eW=0;eW<2;eW++)
@@ -5986,7 +5988,7 @@ void AliFlowAnalysisWithQCumulants::InitializeArraysForDiffFlow()
  // profiles in nested lists in fDiffFlowProfiles:
  for(Int_t t=0;t<2;t++) // type: RP or POI
  { 
-  for(Int_t pW=0;pW<1+(Int_t)(fUsePhiWeights||fUsePtWeights||fUseEtaWeights);pW++) // particle weights: not used or used 
+  for(Int_t pW=0;pW<2;pW++) // particle weights not used (0) or used (1)
   {
    for(Int_t eW=0;eW<2;eW++)
    {
@@ -6016,7 +6018,7 @@ void AliFlowAnalysisWithQCumulants::InitializeArraysForDiffFlow()
  for(Int_t t=0;t<2;t++)
  {
   fDFRType[t] = NULL;
-  for(Int_t pW=0;pW<1+(Int_t)(fUsePhiWeights||fUsePtWeights||fUseEtaWeights);pW++)
+  for(Int_t pW=0;pW<2;pW++) // particle weights not used (0) or used (1)
   {
    fDFRParticleWeights[t][pW] = NULL;
    for(Int_t eW=0;eW<2;eW++)
@@ -6043,7 +6045,7 @@ void AliFlowAnalysisWithQCumulants::InitializeArraysForDiffFlow()
   {
    fNonEmptyBins1D[t][pe] = NULL;
   }
-  for(Int_t pW=0;pW<1+(Int_t)(fUsePhiWeights||fUsePtWeights||fUseEtaWeights);pW++)
+  for(Int_t pW=0;pW<2;pW++) // particle weights not used (0) or used (1)
   {
    for(Int_t eW=0;eW<2;eW++)
    {
@@ -7303,7 +7305,7 @@ void AliFlowAnalysisWithQCumulants::InitializeArraysForDistributions()
 {
  // initialize arrays used for distributions:
  
- for(Int_t pW=0;pW<1+(Int_t)(fUsePhiWeights||fUsePtWeights||fUseEtaWeights);pW++) // non-weighted or weighted
+ for(Int_t pW=0;pW<2;pW++) // particle weights not used (0) or used (1)
  {
   for(Int_t eW=0;eW<2;eW++)
   {
@@ -7361,6 +7363,8 @@ void AliFlowAnalysisWithQCumulants::BookAndNestAllLists()
  // book and nest all lists in fHistList 
  
  // booking and nesting:  
+ fWeightsList->SetName("Weights");
+ fWeightsList->SetOwner(kTRUE);   
  fHistList->Add(fWeightsList); 
  
  fIntFlowList = new TList();
