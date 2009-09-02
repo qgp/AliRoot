@@ -206,11 +206,8 @@ int main(int argc, char **argv) {
       // get the run number
       runNb = event->eventRunNb;
       //  CE calibration
-      AliRawReader *rawReader = new AliRawReaderDate((void*)event);
-      if ( fastDecoding ) calibCE.ProcessEventFast(rawReader);
-      else calibCE.ProcessEvent(rawReader);
-      delete rawReader;
-
+        calibCE.ProcessEvent(event);
+      
       /* free resources */
       free(event);
     }
