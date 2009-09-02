@@ -696,6 +696,8 @@ void AliTRDQADataMakerRec::MakeRaws(AliRawReader* rawReader)
   //
   
   AliInfo("Execution of QA for Raw data");
+
+  Int_t niter = 0;
  
   //printf("Execution of QA for Raw data\n");
 
@@ -792,6 +794,11 @@ void AliTRDQADataMakerRec::MakeRaws(AliRawReader* rawReader)
 	    // fill ADC error bits
 	    Int_t nErrAdc = FillBits(fErrorADC, data->GetADCErrorCode(), 0);
 	    if (!nErrAdc) fErrorADC->Fill(-1);
+	    niter++;
+	    if (niter >1000000) {
+	      AliError("More than 1000000 iterations, skip event");
+	      return;
+	    }
 	  }
 	} // mcm 
       }
