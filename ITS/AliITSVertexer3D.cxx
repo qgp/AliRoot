@@ -54,6 +54,7 @@ AliITSVertexer3D::AliITSVertexer3D():
   fUsedCluster(kMaxCluPerMod*kNSPDMod),
   fZHisto(0),
   fDCAforPileup(0.),
+  fDiffPhiforPileup(0.),
   fBinSizeR(0.),
   fBinSizeZ(0.),
   fPileupAlgo(0)
@@ -71,6 +72,7 @@ AliITSVertexer3D::AliITSVertexer3D():
   SetMeanPSelTracks();
   SetMeanPtSelTracks();
   SetMinDCAforPileup();
+  SetDeltaPhiforPileup();
   SetPileupAlgo();
   SetBinSizeR();
   SetBinSizeZ();
@@ -305,7 +307,7 @@ Int_t AliITSVertexer3D::FindTracklets(TTree *itsClusterTree, Int_t optCuts){
   } else if(optCuts==2){
     xbeam=fVert3D.GetXv();
     ybeam=fVert3D.GetYv();
-    deltaPhi = fDiffPhiMax; 
+    deltaPhi = fDiffPhiforPileup;
     deltaR=fMaxRCut;
   }
 
@@ -336,9 +338,9 @@ Int_t AliITSVertexer3D::FindTracklets(TTree *itsClusterTree, Int_t optCuts){
   Double_t a[3]={xbeam,ybeam,0.}; 
   Double_t b[3]={xbeam,ybeam,10.};
   AliStrLine zeta(a,b,kTRUE);
-  static Double_t bField=AliTracker::GetBz()/10.; //T
+  static Double_t bField=TMath::Abs(AliTracker::GetBz()/10.); //T
   SetMeanPPtSelTracks(bField);
-
+  
   Int_t nolines = 0;
   // Loop on modules of layer 1
   for(Int_t modul1= firstL1; modul1<=lastL1;modul1++){   // Loop on modules of layer 1
