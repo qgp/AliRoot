@@ -65,6 +65,7 @@
 #include "AliRun.h"
 #include "AliRunLoader.h"
 #include "AliRunTag.h"
+#include "AliSysInfo.h" // memory snapshots
 
 ClassImp(AliQAManager) 
 AliQAManager* AliQAManager::fgQAInstance = 0x0;
@@ -325,6 +326,9 @@ Bool_t AliQAManager::DoIt(const AliQAv1::TASKINDEX_t taskIndex)
 Bool_t AliQAManager::Finish(const AliQAv1::TASKINDEX_t taskIndex) 
 {
 	// write output to file for all detectors
+  
+  AliQAChecker::Instance()->SetRunNumber(fRunNumber) ; 
+
 	for (UInt_t iDet = 0; iDet < fgkNDetectors ; iDet++) {
 		if (IsSelected(AliQAv1::GetDetName(iDet))) {
 			AliQADataMaker * qadm = GetQADataMaker(iDet) ;
@@ -512,7 +516,8 @@ void  AliQAManager::EndOfCycle(TObjArray * detArray)
 {
 	// End of cycle QADataMakers 
 	
-  if (fPrintImage) {
+  AliQAChecker::Instance()->SetRunNumber(fRunNumber) ; 
+ if (fPrintImage) {
     TCanvas fakeCanvas ; 
     fakeCanvas.Print(Form("%s%s%d.%s[", AliQAv1::GetImageFileName(), GetMode(), fRunNumber, AliQAv1::GetImageFileFormat())) ; 
   }
@@ -1217,6 +1222,7 @@ TString AliQAManager::Run(const Char_t * detectors, const AliQAv1::TASKINDEX_t t
 void AliQAManager::RunOneEvent(AliRawReader * rawReader) 
 {
 	//Runs all the QA data Maker for Raws only and on one event only (event loop done by calling method)
+  static Int_t ievt = 0 ; 
   if ( ! rawReader ) 
     return ; 
 	AliCodeTimerAuto("") ;
@@ -1237,7 +1243,9 @@ void AliQAManager::RunOneEvent(AliRawReader * rawReader)
           qadm->SetEventSpecie(qadm->GetRecoParam()->GetEventSpecie()) ; 
 			qadm->Exec(AliQAv1::kRAWS, rawReader) ;
       AliCodeTimerStop(Form("running RAW quality assurance data maker for %s", AliQAv1::GetDetName(iDet)));
-		}
+      AliSysInfo::AddStamp(Form("QA_RunOneEventRaw_%s_%d ",AliQAv1::GetDetName(iDet), ievt));
+      ievt++ ; 
+    }
   }
 }
 
@@ -1245,7 +1253,7 @@ void AliQAManager::RunOneEvent(AliRawReader * rawReader)
 void AliQAManager::RunOneEvent(AliESDEvent *& esd) 
 {
 	//Runs all the QA data Maker for ESDs only and on one event only (event loop done by calling method)
-	
+  static Int_t ievt = 0 ; 	
   AliCodeTimerAuto("") ;
   if (fTasks.Contains(Form("%d", AliQAv1::kESDS))) {
     for (UInt_t iDet = 0; iDet < fgkNDetectors; iDet++) {
@@ -1264,6 +1272,8 @@ void AliQAManager::RunOneEvent(AliESDEvent *& esd)
       AliCodeTimerStart(Form("running ESD quality assurance data maker for %s", AliQAv1::GetDetName(iDet)));
 			qadm->Exec(AliQAv1::kESDS, esd) ;
       AliCodeTimerStop(Form("running ESD quality assurance data maker for %s", AliQAv1::GetDetName(iDet)));
+      AliSysInfo::AddStamp(Form("QA_RunOneEventESD_%s_%d ",AliQAv1::GetDetName(iDet), ievt));
+      ievt++ ; 
 		}
 	}
 }
@@ -1273,6 +1283,7 @@ void AliQAManager::RunOneEventInOneDetector(Int_t det, TTree * tree)
 {
 	// Runs all the QA data Maker for ESDs only and on one event only (event loop done by calling method)
   
+  static Int_t ievt = 0 ; 
   TString test(tree->GetName()) ; 
 	AliCodeTimerAuto("") ;
   if (fTasks.Contains(Form("%d", AliQAv1::kRECPOINTS))) {
@@ -1294,6 +1305,8 @@ void AliQAManager::RunOneEventInOneDetector(Int_t det, TTree * tree)
           AliCodeTimerStop(Form("running RecPoints quality assurance data maker for %s", AliQAv1::GetDetName(det)));
         }
       }
+      AliSysInfo::AddStamp(Form("QA_RunOneEvent_%s_%d ",AliQAv1::GetDetName(det), ievt));
+      ievt++ ; 
     }
   }
 }
