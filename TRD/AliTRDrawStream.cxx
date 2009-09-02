@@ -2085,7 +2085,7 @@ const char *AliTRDrawStream::DumpHCinfoH0(const struct AliTRDrawHC *hc)
     return Form("Unable to dump. Null received as parameter!?!");
   else
     return Form("[ HC[0] at 0x%08x ] : 0x%08x Info is : RawV %d SM %d Stack %d Layer %d Side %d DCSboard %d",
-    hc->fPos[0], *(hc->fPos[0]), hc->fRawVMajor, hc->fSM, hc->fStack, hc->fLayer, hc->fSide, hc->fDCSboard);
+    hc->fPos[0], (hc->fPos[0]) ? *(hc->fPos[0]) : 0, hc->fRawVMajor, hc->fSM, hc->fStack, hc->fLayer, hc->fSide, hc->fDCSboard);
 }
 
 //--------------------------------------------------------
@@ -2098,7 +2098,7 @@ const char *AliTRDrawStream::DumpHCinfoH1(const struct AliTRDrawHC *hc)
     return Form("Unable to dump. Null received as parameter!?!");
   else
     return Form("[ HC[1] at 0x%08x ] : 0x%08x Info is : TBins %d BCcount %d PreTrigCount %d PreTrigPhase %d",
-    hc->fPos[1], *(hc->fPos[1]), hc->fTimeBins, hc->fBunchCrossCounter, hc->fPreTriggerCounter, hc->fPreTriggerPhase);
+    hc->fPos[1], (hc->fPos[1]) ? *(hc->fPos[1]) : 0, hc->fTimeBins, hc->fBunchCrossCounter, hc->fPreTriggerCounter, hc->fPreTriggerPhase);
 }
 
 //--------------------------------------------------------
