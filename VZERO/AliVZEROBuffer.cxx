@@ -131,7 +131,7 @@ void AliVZEROBuffer::WriteBunchNumbers() {
 }
 
 //_____________________________________________________________________________
-void AliVZEROBuffer::WriteChannel(Int_t cell, UInt_t ADC, UInt_t /*Time*/){
+void AliVZEROBuffer::WriteChannel(Int_t cell, UInt_t ADC, Float_t /*Time*/, Bool_t integrator){
   // It writes VZERO charge information into a raw data file. 
   // Being called by Digits2Raw
   
@@ -149,7 +149,8 @@ void AliVZEROBuffer::WriteChannel(Int_t cell, UInt_t ADC, UInt_t /*Time*/){
     { for(Int_t i = 0; i < 5; i++)
          { data = 0; 
            f->WriteBuffer((char*)&data,sizeof(data)); }      
-      data = ADC | 0x400; 
+      data = ADC & 0x3ff;
+      data |= (integrator & 0x1) << 10; 
       f->WriteBuffer((char*)&data,sizeof(data)); }
   else
   // Information about previous 10 interaction 
@@ -157,7 +158,8 @@ void AliVZEROBuffer::WriteChannel(Int_t cell, UInt_t ADC, UInt_t /*Time*/){
     { for(Int_t i = 0; i < 4; i++)
          { data = 0;
            f->WriteBuffer((char*)&data,sizeof(data)); }       	   
-      data |= (ADC & 0x3ff) << 16;
+      data = (ADC & 0x3ff) << 16;
+      data |= (integrator & 0x1) << 26;
       f->WriteBuffer((char*)&data,sizeof(data)); }
     
   data = 0;
@@ -227,14 +229,24 @@ void AliVZEROBuffer::WriteBeamScalers() {
 }
 
 //_____________________________________________________________________________
-void AliVZEROBuffer::WriteTiming(Int_t /*cell*/, UInt_t /* ADC*/, UInt_t Time){
+void AliVZEROBuffer::WriteTiming(Int_t /*cell*/, UInt_t /* ADC*/, Float_t Time){
   // It writes the timing information into a raw data file. 
   // Being called by Digits2Raw
 
   UInt_t data = 0;
+  Int_t  coarse1, coarse2, fine;
 
   // Writes the timing information
-  data = Time & 0xfff;
+//  data = Time & 0xfff;
+  
+  coarse1 = int( Time/25.0 );
+  coarse2 = int( (Time - 25*coarse1)/(25.0/8.0) );
+  fine    = int( (Time - 25*coarse1 -(25.0/8.0)*coarse2)/(25.0/256.0) );
+  
+  data  = (coarse1 & 0xf) << 8;
+  data |= (coarse2 & 0x7) << 5;  
+  data |= (fine & 0x1f);   
+  
   // The signal width is not available the digits!
   // To be added soon
   // data |= (width & 0x7f) << 12;
