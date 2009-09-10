@@ -797,6 +797,7 @@ void AliTRDQADataMakerRec::MakeRaws(AliRawReader* rawReader)
 	    niter++;
 	    if (niter >1000000) {
 	      AliError("More than 1000000 iterations, skip event");
+	      delete data;
 	      return;
 	    }
 	  }
@@ -809,6 +810,7 @@ void AliTRDQADataMakerRec::MakeRaws(AliRawReader* rawReader)
   
   // clean up
 
+  delete data;
   AliInfo("sucessfull execution of QA for TRD raw data");
   //printf("sucessfull execution of QA for TRD raw data\n");
   
