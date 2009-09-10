@@ -730,7 +730,7 @@ void AliTRDQADataMakerRec::MakeRaws(AliRawReader* rawReader)
 
 
   // loop over super-modules
-  while (data->NextBuffer()) {
+  while (data->NextBuffer()>0) {
     
     //printf("processing next buffer\n");
     // check sm
