@@ -20,11 +20,12 @@
 
 #pragma link C++ class  AliTRDdigit+;
 #pragma link C++ class  AliTRDdigitsManager+;
+#pragma link C++ class  AliTRDdigitsParam+;
 
 #pragma link C++ class  AliTRDrawData+;
-#pragma link C++ class  AliTRDrawOldStream+;
 
 #pragma link C++ class  AliTRDrawStream+;
+#pragma link C++ class  AliTRDrawFastStream+;
 #pragma link C++ class  AliTRDrawTPStream+;
 #pragma link C++ class  AliTRDrawStreamBase+;
 #pragma link C++ class  AliTRDtestBeam+;

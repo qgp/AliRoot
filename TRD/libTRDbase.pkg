@@ -7,10 +7,11 @@ SRCS= AliTRDarraySignal.cxx \
       AliTRDgeometry.cxx \
       AliTRDdigit.cxx \
       AliTRDdigitsManager.cxx \
+      AliTRDdigitsParam.cxx \
       AliTRDrawData.cxx \
       AliTRDpadPlane.cxx \
-      AliTRDrawOldStream.cxx \
       AliTRDrawStream.cxx \
+      AliTRDrawFastStream.cxx \
       AliTRDrawTPStream.cxx \
       AliTRDrawStreamBase.cxx \
       AliTRDtestBeam.cxx \
