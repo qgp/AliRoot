@@ -32,8 +32,10 @@ AliESDfriend::AliESDfriend(): TObject(), fTracks("AliESDfriendTrack",15000),
  //
 }
 
-AliESDfriend::AliESDfriend(const AliESDfriend &f):TObject(f),fTracks(f.fTracks),
-						  fESDVZEROfriend(f.fESDVZEROfriend)
+AliESDfriend::AliESDfriend(const AliESDfriend &f) :
+  TObject(f),
+  fTracks(f.fTracks),
+  fESDVZEROfriend(f.fESDVZEROfriend ? new AliESDVZEROfriend(*f.fESDVZEROfriend) : NULL)
 {
  //
  // Copy constructor
@@ -47,7 +49,9 @@ AliESDfriend& AliESDfriend::operator=(const AliESDfriend& esd)
     if(&esd == this) return *this;
     TObject::operator=(esd);
     fTracks = esd.fTracks;
-    fESDVZEROfriend = esd.fESDVZEROfriend;
+
+    delete fESDVZEROfriend; fESDVZEROfriend = NULL;
+    if (!esd.fESDVZEROfriend) fESDVZEROfriend = new AliESDVZEROfriend(*esd.fESDVZEROfriend);
 
     return *this;
 }
