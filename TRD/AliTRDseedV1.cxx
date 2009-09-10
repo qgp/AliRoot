@@ -62,6 +62,9 @@
 
 ClassImp(AliTRDseedV1)
 
+TLinearFitter *AliTRDseedV1::fgFitterY = 0x0;
+TLinearFitter *AliTRDseedV1::fgFitterZ = 0x0;
+
 //____________________________________________________________________
 AliTRDseedV1::AliTRDseedV1(Int_t det) 
   :AliTRDtrackletBase()
@@ -90,7 +93,7 @@ AliTRDseedV1::AliTRDseedV1(Int_t det)
   //
   // Constructor
   //
-  for(Int_t ic=kNclusters; ic--;) fIndexes[ic] = -1;
+  memset(fIndexes,0xFF,kNclusters*sizeof(fIndexes[0]));
   memset(fClusters, 0, kNclusters*sizeof(AliTRDcluster*));
   memset(fPad, 0, 3*sizeof(Float_t));
   fYref[0] = 0.; fYref[1] = 0.; 
@@ -593,10 +596,9 @@ Bool_t AliTRDseedV1::CookPID()
   CookdEdx(fReconstructor->GetNdEdxSlices());
   
   // Sets the a priori probabilities
-  for(int ispec=0; ispec<AliPID::kSPECIES; ispec++) {
-    fProb[ispec] = pd->GetProbability(ispec, GetMomentum(), &fdEdx[0], length, GetPlane());	
-  }
-
+  for(int ispec=0; ispec<AliPID::kSPECIES; ispec++)
+    fProb[ispec] = pd->GetProbability(ispec, GetMomentum(), &fdEdx[0], length, GetPlane());
+  
   return kTRUE;
 }
 
@@ -763,6 +765,21 @@ UShort_t AliTRDseedV1::GetVolumeId() const
   return fClusters[ic] ? fClusters[ic]->GetVolumeId() : 0;
 }
 
+//____________________________________________________________________
+TLinearFitter* AliTRDseedV1::GetFitterY()
+{
+  if(!fgFitterY) fgFitterY = new TLinearFitter(1, "pol1");
+  fgFitterY->ClearPoints();
+  return fgFitterY;
+}
+
+//____________________________________________________________________
+TLinearFitter* AliTRDseedV1::GetFitterZ()
+{
+  if(!fgFitterZ) fgFitterZ = new TLinearFitter(1, "pol1");
+  fgFitterZ->ClearPoints();
+  return fgFitterZ;
+}
 
 //____________________________________________________________________
 void AliTRDseedV1::Calibrate()
@@ -808,7 +825,7 @@ void AliTRDseedV1::Calibrate()
     }
   }
 
-  fT0    = t0Det->GetValue(fDet) + t0ROC->GetValue(col,row);
+  fT0    = (t0Det->GetValue(fDet) + t0ROC->GetValue(col,row)) / AliTRDCommonParam::Instance()->GetSamplingFrequency();
   fVD    = vdDet->GetValue(fDet) * vdROC->GetValue(col, row);
   fS2PRF = calib->GetPRFWidth(fDet, col, row); fS2PRF *= fS2PRF;
   fExB   = AliTRDCommonParam::Instance()->GetOmegaTau(fVD);
@@ -881,6 +898,7 @@ Bool_t	AliTRDseedV1::AttachClusters(AliTRDtrackingChamber *chamber, Bool_t tilt)
   Int_t t0 = 14;
   Int_t kClmin = Int_t(fReconstructor->GetRecoParam() ->GetFindableClusters()*AliTRDtrackerV1::GetNTimeBins());
 
+  Double_t sysCov[5]; fReconstructor->GetRecoParam()->GetSysCovMatrix(sysCov);	
   Double_t s2yTrk= fRefCov[0], 
            s2yCl = 0., 
            s2zCl = GetPadLength()*GetPadLength()/12., 
@@ -921,7 +939,7 @@ Bool_t	AliTRDseedV1::AttachClusters(AliTRDtrackingChamber *chamber, Bool_t tilt)
     // get standard cluster error corrected for tilt
     cp.SetLocalTimeBin(it);
     cp.SetSigmaY2(0.02, fDiffT, fExB, dx, -1./*zt*/, fYref[1]);
-    s2yCl = (cp.GetSigmaY2() + t2*s2zCl)/(1.+t2);
+    s2yCl = (cp.GetSigmaY2() + sysCov[0] + t2*s2zCl)/(1.+t2);
     // get estimated road
     kroady = 3.*TMath::Sqrt(12.*(s2yTrk + s2yCl));
 
@@ -1219,9 +1237,9 @@ Bool_t AliTRDseedV1::Fit(Bool_t tilt, Bool_t zcorr)
   Double_t yt, zt;
 
   //AliTRDtrackerV1::AliTRDLeastSquare fitterZ;
-  TLinearFitter  fitterY(1, "pol1");
-  TLinearFitter  fitterZ(1, "pol1");
-  
+  TLinearFitter& fitterY=*GetFitterY();
+  TLinearFitter& fitterZ=*GetFitterZ();
+
   // book cluster information
   Double_t qc[kNclusters], xc[kNclusters], yc[kNclusters], zc[kNclusters], sy[kNclusters];
 
