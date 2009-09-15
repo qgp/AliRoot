@@ -142,7 +142,7 @@ Bool_t AliGRPManager::SetMagField()
     if (beamType==AliGRPObject::GetInvalidString()) {
       AliError("GRP/GRP/Data entry:  missing value for the beam type ! Using UNKNOWN");
       beamType = "UNKNOWN";
-      ok = kFALSE;
+      //      ok = kFALSE;   // temporary suppressed to make cosmics data readable
     }
 
     Float_t beamEnergy = fGRPData->GetBeamEnergy();
