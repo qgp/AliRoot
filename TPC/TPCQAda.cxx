@@ -219,3 +219,31 @@ int main(int argc, char **argv) {
 
   return status;
 }
+
+void SendToAmoreDB(TObject *o, unsigned long32 runNb)
+{
+  //AMORE
+  const char *amoreDANameorig=gSystem->Getenv("AMORE_DA_NAME");
+  //cheet a little -- temporary solution (hopefully)
+  //
+  //currently amoreDA uses the environment variable AMORE_DA_NAME to create the mysql
+  //table in which the calib objects are stored. This table is dropped each time AmoreDA
+  //is initialised. This of course makes a problem if we would like to store different
+  //calibration entries in the AMORE DB. Therefore in each DA which writes to the AMORE DB
+  //the AMORE_DA_NAME env variable is overwritten.
+  
+  gSystem->Setenv("AMORE_DA_NAME","TPC-dataQA");
+  //
+  // end cheet
+  TDatime time;
+  TObjString info(Form("Run: %u; Date: %s",runNb,time.AsSQLString()));
+  
+  amore::da::AmoreDA amoreDA(amore::da::AmoreDA::kSender);
+  Int_t statusDA=0;
+  statusDA+=amoreDA.Send("DataQA",o);
+  statusDA+=amoreDA.Send("Info",&info);
+  if ( statusDA!=0 )
+    printf("Waring: Failed to write one of the calib objects to the AMORE database\n");
+  // reset env var
+  if (amoreDANameorig) gSystem->Setenv("AMORE_DA_NAME",amoreDANameorig);
+}
