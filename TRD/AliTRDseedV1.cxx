@@ -906,7 +906,7 @@ Bool_t	AliTRDseedV1::AttachClusters(AliTRDtrackingChamber *chamber, Bool_t tilt)
            t2    = GetTilt()*GetTilt();
   //define roads
   Double_t kroady = 1., //fReconstructor->GetRecoParam() ->GetRoad1y();
-           kroadz = GetPadLength() * 1.5 + 1.;
+           kroadz = GetPadLength() * fReconstructor->GetRecoParam()->GetRoadzMultiplicator() + 1.;
   // define probing cluster (the perfect cluster) and default calibration
   Short_t sig[] = {0, 0, 10, 30, 10, 0,0};
   AliTRDcluster cp(fDet, 6, 75, 0, sig, 0);
@@ -993,8 +993,8 @@ Bool_t	AliTRDseedV1::AttachClusters(AliTRDtrackingChamber *chamber, Bool_t tilt)
       continue;
     } 
 
-    if(fReconstructor->GetStreamLevel(AliTRDReconstructor::kTracker) > 3){
-      TTreeSRedirector &cstreamer = *fReconstructor->GetDebugStream(AliTRDReconstructor::kTracker);
+    if(fReconstructor->GetRecoParam()->GetStreamLevel(AliTRDrecoParam::kTracker) > 3 && fReconstructor->IsDebugStreaming()){
+      TTreeSRedirector &cstreamer = *fReconstructor->GetDebugStream(AliTRDrecoParam::kTracker);
       TVectorD vdy(ncl[ir], yres[ir]);
       UChar_t stat(0);
       if(IsKink()) SETBIT(stat, 0);
@@ -1274,7 +1274,7 @@ Bool_t AliTRDseedV1::Fit(Bool_t tilt, Bool_t zcorr)
     c->SetSigmaY2(fS2PRF, fDiffT, fExB, xc[n], zcorr?zt:-1., dydx);
     sy[n]  = TMath::Sqrt(c->GetSigmaY2());
 
-    yc[n]   = fReconstructor->UseGAUS() ? 
+    yc[n]   = fReconstructor->GetRecoParam()->UseGAUS() ? 
       c->GetYloc(y0, sy[n], GetPadWidth()): c->GetY();
     zc[n]   = c->GetZ();
     //optional tilt correction

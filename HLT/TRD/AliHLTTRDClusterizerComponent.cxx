@@ -266,9 +266,9 @@ int AliHLTTRDClusterizerComponent::DoInit( int argc, const char** argv )
       return -1;
     }
 
+  fRecoParam->SetStreamLevel(AliTRDrecoParam::kClusterizer, 0);
   fReconstructor = new AliTRDReconstructor();
   fReconstructor->SetRecoParam(fRecoParam);
-  fReconstructor->SetStreamLevel(0, AliTRDReconstructor::kClusterizer); // default value
   HLTInfo("Not writing clusters. I.e. output is a TClonesArray of clusters");
   TString recoOptions="hlt,!cw,sl_cf_0,!gs,!lut";
   switch(iRecoDataType){

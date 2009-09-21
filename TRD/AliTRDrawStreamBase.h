@@ -54,6 +54,10 @@ class AliTRDrawStreamBase : public TObject
   static  void      SetRawStreamVersion(Int_t iver) { fgRawStreamVersion = iver; }
   static  void      SetRawStreamVersion(const char *opt);
 
+  // this is a temporary solution!
+  // baseline should come with the HC header word 2 (count from 0!)
+  static void    SetSubtractBaseline(Int_t baseline) {fgCommonAdditive = baseline;}
+
   virtual Bool_t    Next() {TRD_NOIMP(); return 0;}          
   //virtual Int_t     NextChamber(AliTRDdigitsManager */*man*/) {TRD_NOIMP(); return 0;} 
   //virtual Int_t     NextChamber(AliTRDdigitsManager */*man*/, UInt_t **/*trackletContainer*/=NULL) {TRD_NOIMP(); return 0;}
@@ -89,7 +93,7 @@ class AliTRDrawStreamBase : public TObject
   virtual Int_t     GetSide() const {TRD_NOIMP(); return 0;} 
   virtual Int_t     GetDCS() const {TRD_NOIMP(); return 0;}  
 
-  virtual Int_t     GetROC() const {TRD_NOIMP(); return 0;}  
+  virtual Int_t     GetROC() const {TRD_NOIMP(); return 0;} 
   virtual Int_t     GetNumberOfTimeBins() const {TRD_NOIMP(); return 0;} 
   virtual UInt_t    GetBunchCrossCounter() const {TRD_NOIMP(); return 0;}
   virtual UInt_t    GetPreTriggerCounter() const {TRD_NOIMP(); return 0;}
@@ -100,7 +104,7 @@ class AliTRDrawStreamBase : public TObject
   virtual Int_t     GetRowMax() const {TRD_NOIMP(); return 0;}
   virtual Int_t     GetColMax() const {TRD_NOIMP(); return 0;}
 
-  // compatibility
+  // compatibilit
   virtual Int_t     GetMaxRow() const {TRD_NOIMP(); return 0;}
   virtual Int_t     GetMaxCol() const {TRD_NOIMP(); return 0;}
 
@@ -121,6 +125,8 @@ class AliTRDrawStreamBase : public TObject
   //----------------------------------------------------------
  
  protected:
+
+  static Int_t fgCommonAdditive;             // baseline to be subtracted
 
  private:
 

@@ -30,6 +30,7 @@
 
 ClassImp(AliTRDrecoParam)
 
+
 //______________________________________________________________
 AliTRDrecoParam::AliTRDrecoParam()
   :AliDetectorRecoParam()
@@ -43,6 +44,7 @@ AliTRDrecoParam::AliTRDrecoParam()
   ,fkRoad2y(3.0)
   ,fkRoad2z(20.0)
   ,fkPlaneQualityThreshold(5.0)// 4.2? under Investigation
+  ,fkRoadzMultiplicator(1.5)
   ,fkFindable(.333)
   ,fkChi2Z(30./*14.*//*12.5*/)
   ,fkChi2Y(.25)
@@ -55,6 +57,8 @@ AliTRDrecoParam::AliTRDrecoParam()
   ,fkNClusterNoise(0.)
   ,fkNMeanTracklets(5.5)
   ,fkTrackLikelihood(-15.)
+  ,fFlags(0)
+  ,fRawStreamVersion("REAL")
   ,fMinMaxCutSigma(4.)
   ,fMinLeftRightCutSigma(8.)
   ,fClusMaxThresh(4.5)
@@ -72,7 +76,25 @@ AliTRDrecoParam::AliTRDrecoParam()
   fSysCovMatrix[3] = 0.; // tgl
   fSysCovMatrix[4] = 0.; // 1/pt
 
+  // Xe tail cancellation parameters
+  fTCParams[0] = 1.156; // r1
+  fTCParams[1] = 0.130; // r2
+  fTCParams[2] = 0.114; // c1
+  fTCParams[3] = 0.624; // c2
+  // Ar tail cancellation parameters
+  fTCParams[4] = 6.;    // r1
+  fTCParams[5] = 0.62;  // r2
+  fTCParams[6] = 0.0087;// c1
+  fTCParams[7] = 0.07;  // c2
+
   memset(fPIDThreshold, 0, AliTRDCalPID::kNMom*sizeof(Double_t));
+  memset(fStreamLevel, 0, kTRDreconstructionTasks * sizeof(Int_t));
+
+  SetPIDNeuralNetwork();
+  SetEightSlices();
+  SetImproveTracklets();
+  SetLUT();
+  SetTailCancelation();
 }
 
 //______________________________________________________________
@@ -88,6 +110,7 @@ AliTRDrecoParam::AliTRDrecoParam(const AliTRDrecoParam &ref)
   ,fkRoad2y(ref.fkRoad2y)
   ,fkRoad2z(ref.fkRoad2z)
   ,fkPlaneQualityThreshold(ref.fkPlaneQualityThreshold)
+  ,fkRoadzMultiplicator(ref.fkRoadzMultiplicator)
   ,fkFindable(ref.fkFindable)
   ,fkChi2Z(ref.fkChi2Z)
   ,fkChi2Y(ref.fkChi2Y)
@@ -100,6 +123,8 @@ AliTRDrecoParam::AliTRDrecoParam(const AliTRDrecoParam &ref)
   ,fkNClusterNoise(ref.fkNClusterNoise)
   ,fkNMeanTracklets(ref.fkNMeanTracklets)
   ,fkTrackLikelihood(ref.fkTrackLikelihood)
+  ,fFlags(ref.fFlags)
+  ,fRawStreamVersion(ref.fRawStreamVersion)
   ,fMinMaxCutSigma(ref.fMinMaxCutSigma)
   ,fMinLeftRightCutSigma(ref.fMinLeftRightCutSigma)
   ,fClusMaxThresh(ref.fClusMaxThresh)
@@ -112,7 +137,9 @@ AliTRDrecoParam::AliTRDrecoParam(const AliTRDrecoParam &ref)
   // Copy constructor
   //
   memcpy(fSysCovMatrix, ref.fSysCovMatrix, 5*sizeof(Double_t));
+  memcpy(fTCParams, ref.fTCParams, 8*sizeof(Double_t));
   memcpy(fPIDThreshold, ref.fPIDThreshold, AliTRDCalPID::kNMom*sizeof(Double_t));
+  memcpy(fStreamLevel, ref.fStreamLevel, kTRDreconstructionTasks * sizeof(Int_t));
 }
 
 //______________________________________________________________
@@ -124,6 +151,7 @@ AliTRDrecoParam *AliTRDrecoParam::GetLowFluxParam()
 
   AliTRDrecoParam *rec = new AliTRDrecoParam();
   rec->fkdNchdy = 12.; // pp in TRD
+  rec->SetVertexConstrained();
   return rec;
 
 }
@@ -137,7 +165,7 @@ AliTRDrecoParam *AliTRDrecoParam::GetHighFluxParam()
 
   AliTRDrecoParam *rec = new AliTRDrecoParam();
   rec->fkdNchdy = 4000.; // PbPb in TRD
-
+  rec->SetVertexConstrained();
   return rec;
 
 }
@@ -149,7 +177,6 @@ AliTRDrecoParam *AliTRDrecoParam::GetCosmicTestParam()
   // Parameters for the cosmics data
   //
 
-  AliTRDrawStreamBase::SetRawStreamVersion("TB");
   AliTRDrecoParam *par = new AliTRDrecoParam();
   par->fSysCovMatrix[0] = 2.; // y direction (1 cm)
   par->fSysCovMatrix[1] = 2.; // z direction (1 cm)
@@ -161,6 +188,9 @@ AliTRDrecoParam *AliTRDrecoParam::GetCosmicTestParam()
   par->fkMaxPhi         = 2.7475;
   par->fkNMeanClusters  = 12.89;
   par->fkNSigmaClusters = 2.095;
+  par->fkRoadzMultiplicator = 3.;
+  par->fStreamLevel[kTracker] = 1;
+  par->SetArgon();
   return par;
 
 }
