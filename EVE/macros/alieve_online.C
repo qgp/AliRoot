@@ -38,6 +38,7 @@ void alieve_online_init()
   gROOT->LoadMacro("tpc_clusters.C++");
   gROOT->LoadMacro("tof_clusters.C++");
   gROOT->LoadMacro("hmpid_clusters.C++");
+  gROOT->LoadMacro("emcal_digits.C++");
 
   gROOT->LoadMacro("acorde_raw.C");
   gROOT->LoadMacro("its_raw.C");
@@ -155,6 +156,8 @@ void alieve_online_on_new_event()
 
   if (AliEveEventManager::HasRawReader())
     acorde_raw();
+
+  emcal_digits();
 
   primary_vertex();
   esd_tracks();
