@@ -28,11 +28,11 @@
 #include <AliRawReader.h>
 #include <AliITSRawStreamSPD.h>
 #include <AliITSRawStreamSDD.h>
+#include <AliITSRawStreamSDDCompressed.h>
 #include <AliITSRawStreamSSD.h>
 
 #include <TGeoMatrix.h>
 #include <TEveTrans.h>
-//#include <TClonesArray.h>
 
 #include <TMath.h>
 #include <TVector3.h>
@@ -73,6 +73,8 @@ AliEveITSModuleSelection::AliEveITSModuleSelection():
 
 ClassImp(AliEveITSDigitsInfo)
 
+AliITSDDLModuleMapSDD* AliEveITSDigitsInfo::fgDDLMapSDD = 0;
+
 /******************************************************************************/
 
 AliEveITSDigitsInfo::AliEveITSDigitsInfo() :
@@ -80,7 +82,6 @@ AliEveITSDigitsInfo::AliEveITSDigitsInfo() :
   TEveRefCnt(),
   fTree       (0),
   fSegSPD     (0), fSegSDD     (0), fSegSSD     (0),
-  fDDLMapSDD  (0),
   fSPDMinVal  (0), fSSDMinVal  (0), fSDDMinVal  (0),
   fSPDMaxVal  (0), fSSDMaxVal  (0), fSDDMaxVal  (0),
   fSPDHighLim (0), fSDDHighLim (0), fSSDHighLim (0),
@@ -148,31 +149,42 @@ void AliEveITSDigitsInfo::InitInternals()
   fSSDScale[2] = 9;
   fSSDScale[3] = 20;
   fSSDScale[4] = 30;
-  
-  fDDLMapSDD = new AliITSDDLModuleMapSDD();
-  AliCDBManager *man       = AliCDBManager::Instance();
-  Bool_t cacheStatus = man->GetCacheFlag();
-  AliCDBEntry   *ddlMapSDD = man->Get("ITS/Calib/DDLMapSDD");
-  ddlMapSDD->SetOwner(kTRUE);
-  if (!ddlMapSDD) {
-    AliWarning("SDD DDL map file retrieval from OCDB failed! - Use default DDL map");
-  } else {
-    AliITSDDLModuleMapSDD *ddlsdd = (AliITSDDLModuleMapSDD*)ddlMapSDD->GetObject();
-    if (!ddlsdd) {
-      AliWarning("SDD DDL map object not found in OCDB file! - Use default DDL map");
-    } else {
-      if(!cacheStatus)ddlMapSDD->SetObject(NULL);
-      ddlMapSDD->SetOwner(kTRUE);
-      fDDLMapSDD->SetDDLMap(ddlsdd);
+
+  if (fgDDLMapSDD == 0)
+  {
+    fgDDLMapSDD = new AliITSDDLModuleMapSDD();
+    AliCDBManager *man = AliCDBManager::Instance();
+    Bool_t cacheStatus = man->GetCacheFlag();
+    AliCDBEntry   *ddlMapSDD = man->Get("ITS/Calib/DDLMapSDD");
+
+    if (!ddlMapSDD)
+    {
+      AliWarning("SDD DDL map file retrieval from OCDB failed! - Use default DDL map");
     }
+    else
+    {
+      AliITSDDLModuleMapSDD *ddlsdd = (AliITSDDLModuleMapSDD*)ddlMapSDD->GetObject();
+      if (!ddlsdd)
+      {
+	AliWarning("SDD DDL map object not found in OCDB file! - Use default DDL map");
+      }
+      else
+      {
+	if (!cacheStatus)
+	  ddlMapSDD->SetObject(0);
+	ddlMapSDD->SetOwner(kTRUE);
+	fgDDLMapSDD->SetDDLMap(ddlsdd);
+      }
+    }
+
+    if (!cacheStatus)
+      delete ddlMapSDD;
   }
-  if(!cacheStatus)
-    delete ddlMapSDD;
 }
 
 /******************************************************************************/
 
-AliEveITSDigitsInfo:: ~AliEveITSDigitsInfo()
+AliEveITSDigitsInfo::~AliEveITSDigitsInfo()
 {
   // Destructor.
   // Deletes the data-maps.
@@ -185,7 +197,7 @@ AliEveITSDigitsInfo:: ~AliEveITSDigitsInfo()
     delete j->second;
   for (j = fSSDmap.begin(); j != fSSDmap.end(); ++j)
     delete j->second;
-  delete fDDLMapSDD;
+
   delete fSegSPD; delete fSegSDD; delete fSegSSD;
 }
 
@@ -233,25 +245,22 @@ void AliEveITSDigitsInfo::ReadRaw(AliRawReader* raw, Int_t mode)
 
   if ((mode & 4) || (mode & 8))
   {
-    AliITSRawStreamSDD input(raw);
-    input.SetDDLModuleMap(fDDLMapSDD);
+    AliITSRawStream* inputSDD = AliITSRawStreamSDD::CreateRawStreamSDD(raw);
+    inputSDD->SetDDLModuleMap(fgDDLMapSDD);
     TClonesArray* digits = 0;
-    while (input.Next())
+    while (inputSDD->Next())
     {
-      Int_t module = input.GetModuleID();
+      Int_t module = inputSDD->GetModuleID();
 
-      if (input.IsNewModule())
-      {
-	digits = fSDDmap[module];
-	if (digits == 0)
-	  fSDDmap[module] = digits = new TClonesArray("AliITSdigit", 0);
-      }
+      digits = fSDDmap[module];
+      if (digits == 0)
+	fSDDmap[module] = digits = new TClonesArray("AliITSdigit", 0);      
 
-      if (input.IsCompletedModule()==kFALSE)
+      if (inputSDD->IsCompletedModule()==kFALSE && inputSDD->IsCompletedDDL()==kFALSE)
       {
-	Int_t anode  = input.GetAnode()+input.GetChannel()*AliITSsegmentationSDD::GetNAnodesPerHybrid();
-	Int_t time   = input.GetTime();
-	Int_t signal = input.GetSignal();
+	Int_t anode  = inputSDD->GetCoord1()+inputSDD->GetChannel()*AliITSsegmentationSDD::GetNAnodesPerHybrid();
+	Int_t time   = inputSDD->GetCoord2();
+	Int_t signal = inputSDD->GetSignal();
 	AliITSdigit* d = new ((*digits)[digits->GetEntriesFast()]) AliITSdigit();
 	d->SetCoord1(anode);
 	d->SetCoord2(time);
@@ -259,6 +268,7 @@ void AliEveITSDigitsInfo::ReadRaw(AliRawReader* raw, Int_t mode)
       }
       // printf("SDD: %d %d %d %d\n",module,anode,time,signal);
     }
+    delete inputSDD;
     raw->Reset();
   }
 
@@ -303,24 +313,29 @@ void AliEveITSDigitsInfo::SetITSSegmentation()
   // SPD
   fSegSPD = new AliITSsegmentationSPD("TGeo");
 
-  Int_t m;
-  Float_t fNzSPD=160;
-  Float_t fZ1pitchSPD=0.0425; Float_t fZ2pitchSPD=0.0625;
-  Float_t fHlSPD=3.48;
+  Float_t fNzSPD = 160;
+  Float_t fHlSPD = 3.48;
+  Float_t fZ1pitchSPD = 0.0425, fZ2pitchSPD = 0.0625;
 
   fSPDZCoord[0] = fZ1pitchSPD - fHlSPD;
-  for (m=1; m<fNzSPD; m++) {
-    Double_t dz=fZ1pitchSPD;
-    if (m==31 || m==32 || m==63  || m==64  || m==95 || m==96 ||
-        m==127 || m==128) dz=fZ2pitchSPD;
-    fSPDZCoord[m]=fSPDZCoord[m-1]+dz;
+  for (Int_t m=1; m<fNzSPD; m++)
+  {
+    Float_t dz = fZ1pitchSPD;
+    if (m==31 || m==32 || m==63 || m==64 || m==95 || m==96 || m==127 || m==128)
+    {
+      dz = fZ2pitchSPD;
+    }
+    fSPDZCoord[m] = fSPDZCoord[m-1] + dz;
   }
 
-  for (m=0; m<fNzSPD; m++) {
-    Double_t dz=1.*fZ1pitchSPD;
-    if (m==31 || m==32 || m==63  || m==64  || m==95 || m==96 ||
-	m==127 || m==128) dz=1.*fZ2pitchSPD;
-    fSPDZCoord[m]-=dz;
+  for (Int_t m=0; m<fNzSPD; m++)
+  {
+    Float_t dz = fZ1pitchSPD;
+    if (m==31 || m==32 || m==63 || m==64 || m==95 || m==96 || m==127 || m==128)
+    {
+      dz = fZ2pitchSPD;
+    }
+    fSPDZCoord[m] -= dz;
   }
 
   // SDD
@@ -342,65 +357,62 @@ TClonesArray* AliEveITSDigitsInfo::GetDigits(Int_t mod, Int_t subdet)
   {
     case 0:
     {
-      TClonesArray* digitsSPD = 0;
       std::map<Int_t, TClonesArray*>::iterator i = fSPDmap.find(mod);
-      if (i == fSPDmap.end()) {
-	if (fTree) {
-	  TBranch* br =  fTree->GetBranch("ITSDigitsSPD");
-	  br->SetAddress(&digitsSPD);
-	  br->GetEntry(mod);
-	  fSPDmap[mod] = digitsSPD;
-	  return digitsSPD;
-	}
-	else
-	  return NULL;
-      } else {
+      if (i != fSPDmap.end())
+      {
 	return i->second;
+      }
+      else if (fTree)
+      {
+	TClonesArray *digitsSPD = 0;
+	TBranch *br = fTree->GetBranch("ITSDigitsSPD");
+	br->SetAddress(&digitsSPD);
+	br->GetEntry(mod);
+	fSPDmap[mod] = digitsSPD;
+	return digitsSPD;
       }
       break;
     }
+
     case 1:
     {
-      TClonesArray* digitsSDD = 0;
       std::map<Int_t, TClonesArray*>::iterator i = fSDDmap.find(mod);
-      if (i == fSDDmap.end()) {
-	if (fTree) {
-	  TBranch* br =  fTree->GetBranch("ITSDigitsSDD");
-	  br->SetAddress(&digitsSDD);
-	  br->GetEntry(mod);
-	  fSDDmap[mod] = digitsSDD;
-	  return digitsSDD;
-	}
-	else
-	  return NULL;
-       } else {
+      if (i != fSDDmap.end())
+      {
 	return i->second;
+      }
+      else if (fTree)
+      {
+	TClonesArray *digitsSDD = 0;
+	TBranch *br = fTree->GetBranch("ITSDigitsSDD");
+	br->SetAddress(&digitsSDD);
+	br->GetEntry(mod);
+	fSDDmap[mod] = digitsSDD;
+	return digitsSDD;
       }
       break;
     }
+
     case 2:
     {
-      TClonesArray* digitsSSD = 0;
       std::map<Int_t, TClonesArray*>::iterator i = fSSDmap.find(mod);
-      if (i == fSSDmap.end()) {
-	if (fTree) {
-	  TBranch* br =  fTree->GetBranch("ITSDigitsSSD");
-	  br->SetAddress(&digitsSSD);
-	  br->GetEntry(mod);
-
-	  fSSDmap[mod] = digitsSSD;
-	  return digitsSSD;
-	}
-	else
-	  return NULL;
-       } else {
+      if (i != fSSDmap.end())
+      {
 	return i->second;
+      }
+      else if (fTree)
+      {
+	TClonesArray *digitsSSD = 0;
+	TBranch *br = fTree->GetBranch("ITSDigitsSSD");
+	br->SetAddress(&digitsSSD);
+	br->GetEntry(mod);
+	fSSDmap[mod] = digitsSSD;
+	return digitsSSD;
       }
       break;
     }
-    default:
-      return 0;
   }
+
   return 0;
 }
 
