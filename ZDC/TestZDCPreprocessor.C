@@ -8,7 +8,7 @@
 //   ReadDCSAliasMap() reads from a file
 //   CreateInputFilesMap() creates a list of local files, that can be accessed by the shuttle
 
-void TestZDCPreprocessor(Int_t obj=0)
+void TestZDCPreprocessor(const char* runType="PHYSICS")
 {
   // load library
   gSystem->Load("libTestShuttle.so");
@@ -19,11 +19,12 @@ void TestZDCPreprocessor(Int_t obj=0)
 
   // TODO if needed, change location of OCDB and Reference test folders
   // by default they are set to $ALICE_ROOT/SHUTTLE/TestShuttle/TestCDB and TestReference
-  AliTestShuttle::SetMainCDB("local://$ALICE_ROOT/OCDB/SHUTTLE/TestShuttle/TestCDB");
-  AliTestShuttle::SetMainRefStorage("local://$ALICE_ROOT/OCDB/SHUTTLE/TestShuttle/TestReference");
+  AliTestShuttle::SetMainCDB("local://$ALICE_ROOT/SHUTTLE/TestShuttle/TestCDB");
+  //AliTestShuttle::SetMainCDB("alien://folder=/alice/data/2009/OCDB/");
+  AliTestShuttle::SetMainRefStorage("local://$ALICE_ROOT/SHUTTLE/TestShuttle/TestReference");
 
-  printf("Test OCDB storage Uri: %s\n", AliShuttleInterface::GetMainCDB().Data());
-  printf("Test Reference storage Uri: %s\n", AliShuttleInterface::GetMainRefStorage().Data());
+  printf("\n Test OCDB storage Uri: %s\n", AliShuttleInterface::GetMainCDB().Data());
+  printf(" Test Reference storage Uri: %s\n\n", AliShuttleInterface::GetMainRefStorage().Data());
 
   // TODO(1)
   //
@@ -35,13 +36,14 @@ void TestZDCPreprocessor(Int_t obj=0)
   //     the format of the file is explained in ReadDCSAliasMap()
   //     To use it uncomment the following line:
   //
-  //TMap* dcsAliasMap = ReadDCSAliasMap();
+  TMap* dcsAliasMap = ReadDCSAliasMap();
   //
   // (b) generated in this macro: Use CreateDCSAliasMap() and its documentation
   //     To use it uncomment the following line:
   //
-  TMap* dcsAliasMap = CreateDCSAliasMap();
-  WriteDCSAliasMap();
+  //TMap* dcsAliasMap = CreateDCSAliasMap();
+  //dcsAliasMap->Print("");
+  //WriteDCSAliasMap();
 
   // now give the alias map to the shuttle
   shuttle->SetDCSInput(dcsAliasMap);
@@ -61,38 +63,31 @@ void TestZDCPreprocessor(Int_t obj=0)
   // Note that the test preprocessor name is TPC. The name of the detector's preprocessor must follow
   // the "online" naming convention ALICE-INT-2003-039.
   //
-  shuttle->AddInputFile(AliTestShuttle::kDAQ, "ZDC", "PEDESTALDATA", "LDC0", "ZDCPedestal.dat");
-  shuttle->AddInputFile(AliTestShuttle::kDAQ, "ZDC", "PEDHISTOS",    "LDC0", "ZDCPedHisto.root");
+  shuttle->AddInputFile(AliTestShuttle::kDAQ, "ZDC", "PEDESTALDATA", "LDC", "ZDCPedestal.dat");
+  shuttle->AddInputFile(AliTestShuttle::kDAQ, "ZDC", "PEDESTALHISTOS", "LDC", "ZDCPedHisto.root");
   //
-  shuttle->AddInputFile(AliTestShuttle::kDAQ, "ZDC", "LASERDATA",   "LDC0", "ZDCLaserCalib.dat");
-  shuttle->AddInputFile(AliTestShuttle::kDAQ, "ZDC", "LASERHISTOS", "LDC0", "ZDCLasHisto.root");
+  shuttle->AddInputFile(AliTestShuttle::kDAQ, "ZDC", "LASERDATA", "LDC", "ZDCLaserCalib.dat");
+  shuttle->AddInputFile(AliTestShuttle::kDAQ, "ZDC", "LASERHISTOS", "LDC", "ZDCLaserHisto.root");
   //
-  shuttle->AddInputFile(AliTestShuttle::kDAQ, "ZDC", "ENERGYCALIB", "LDC0", "ZDCEnergyCalib.dat");
-  shuttle->AddInputFile(AliTestShuttle::kDAQ, "ZDC", "TOWERCALIB", "LDC0", "ZDCTowerCalib.dat");
+  shuttle->AddInputFile(AliTestShuttle::kDAQ, "ZDC", "EMDENERGYCALIB", "LDC", "ZDCEnergyCalib.dat");
+  shuttle->AddInputFile(AliTestShuttle::kDAQ, "ZDC", "EMDTOWERCALIB", "LDC", "ZDCTowerCalib.dat");
   //
-  shuttle->AddInputFile(AliTestShuttle::kDAQ, "ZDC", "PHYSICS", "LDC0", "ZDCChMapping.dat");
-  //
-  shuttle->AddInputFile(AliTestShuttle::kDAQ, "ZDC", "BC", "LDC0", "ZDCChMapping.dat");
+  shuttle->AddInputFile(AliTestShuttle::kDAQ, "ZDC", "MAPPING", "MON", "ZDCChMapping.dat");
 
   // TODO(3)
   //
   // The shuttle can read run type stored in the DAQ logbook.
   // To test it, we must provide the run type manually. They will be retrieved in the preprocessor
   // using GetRunType function.
-  if(obj==1)      shuttle->SetInputRunType("STANDALONE_PEDESTAL");
-  else if(obj==2) shuttle->SetInputRunType("STANDALONE_LASER");
-  else if(obj==3) shuttle->SetInputRunType("CALIBRATION_EMD");
-  else if(obj==4) shuttle->SetInputRunType("STANDALONE_COSMIC");
-  else if(obj==5) shuttle->SetInputRunType("CALIBRATION_BC");
-  else if(obj==6) shuttle->SetInputRunType("PHYSICS");
-
+  shuttle->SetInputRunType(runType);
+  
   // TODO(4)
   //
   // The shuttle can read run parameters stored in the DAQ run logbook.
   // To test it, we must provide the run parameters manually. They will be retrieved in the preprocessor
   // using GetRunParameter function.
   // In real life the parameters will be retrieved automatically from the run logbook;
-  //shuttle->AddInputRunParameter("beamType", "Pb-Pb");
+  //shuttle->AddInputRunParameter("beamType", "A-A");
   shuttle->AddInputRunParameter("beamType", "p-p");
   shuttle->AddInputRunParameter("totalEvents", "1000");
   shuttle->AddInputRunParameter("NumberOfGDCs", "1");
@@ -124,7 +119,8 @@ void TestZDCPreprocessor(Int_t obj=0)
   // TODO(6)
   // Create the preprocessor that should be tested, it registers itself automatically to the shuttle
   AliPreprocessor* test = new AliZDCPreprocessor(shuttle);
-
+  shuttle->Print();
+  
   // Test the preprocessor
   shuttle->Process();
 
@@ -136,12 +132,13 @@ void TestZDCPreprocessor(Int_t obj=0)
   // Check the file which should have been created
   AliCDBEntry* chkEntry0 = AliCDBManager::Instance()->GetStorage(AliShuttleInterface::GetMainCDB())
   			->Get("ZDC/Calib/ChMap", 0);
+  TString str(runType);
   AliCDBEntry* chkEntry1;
-  if(obj==1) chkEntry1 = AliCDBManager::Instance()->GetStorage(AliShuttleInterface::GetMainCDB())
+  if((str.CompareTo("STANDALONE_PEDESTAL")) == 0) chkEntry1 = AliCDBManager::Instance()->GetStorage(AliShuttleInterface::GetMainCDB())
   			->Get("ZDC/Calib/Pedestals", 0);
-  else if(obj==2) chkEntry1 = AliCDBManager::Instance()->GetStorage(AliShuttleInterface::GetMainCDB())
+  else if((str.CompareTo("STANDALONE_LASER")) == 0) chkEntry1 = AliCDBManager::Instance()->GetStorage(AliShuttleInterface::GetMainCDB())
   			->Get("ZDC/Calib/LaserCalib", 0);
-  else if(obj==3) chkEntry1 = AliCDBManager::Instance()->GetStorage(AliShuttleInterface::GetMainCDB())
+  else if((str.CompareTo("CALIBRATION_EMD")) == 0) chkEntry1 = AliCDBManager::Instance()->GetStorage(AliShuttleInterface::GetMainCDB())
   			->Get("ZDC/Calib/EnergyCalib", 0);
   
   
@@ -150,9 +147,9 @@ void TestZDCPreprocessor(Int_t obj=0)
     return;
   }
   if(!chkEntry1){
-    if(obj==1) printf("No file in ZDC/Calib/Pedestal\n");
-    else if(obj==2) printf("No file in ZDC/Calib/LaserCalib\n");
-    else if(obj==3) printf("No file in ZDC/Calib/EnergyCalib\n");
+    if((str.CompareTo("STANDALONE_PEDESTAL")) == 0)  printf("No file in ZDC/Calib/Pedestal\n");
+    else if((str.CompareTo("STANDALONE_LASER")) == 0) printf("No file in ZDC/Calib/LaserCalib\n");
+    else if((str.CompareTo("CALIBRATION_EMD")) == 0)  printf("No file in ZDC/Calib/EnergyCalib\n");
     return;
   }
   
@@ -188,8 +185,7 @@ TMap* CreateDCSAliasMap()
   aliasNames[2] = "ZDC_ZNC_POS.actual.position";
   aliasNames[3] = "ZDC_ZPC_POS.actual.position";
   //
-  for(int nAlias=0; nAlias<4; nAlias++)
-  {
+  for(int nAlias=0; nAlias<4; nAlias++){
     TObjArray* valueSet = new TObjArray;
     valueSet->SetOwner(1);
 
@@ -197,9 +193,8 @@ TMap* CreateDCSAliasMap()
     //printf("\n\n alias: %s\n\n",aliasName.Data());
 
     Float_t simVal = (Float_t) (random.Rndm()*0.025+random.Rndm()*0.1);
-    for(int i=0;i<3;i++)
-    {
-      int timeStamp1[3] = {0,500,1000};
+    int timeStamp1[5] = {0,500,1000,1500,2000};
+    for(int i=0;i<5;i++){
       AliDCSValue* dcsVal = new AliDCSValue(simVal, timeStamp1[i]);
       //printf("%s\n",dcsVal->ToString());
       valueSet->Add(dcsVal);
@@ -237,22 +232,22 @@ TMap* CreateDCSAliasMap()
   aliasNames[26]  = "ZDC_REFA_HV.actual.vMon";
   aliasNames[27]  = "ZDC_REFC_HV.actual.vMon";
   //
-  for(int nAlias=4;nAlias<28;nAlias++)
-  {
-    TObjArray* valueSet = new TObjArray;
-    valueSet->SetOwner(1);
+  for(int nAlias=4;nAlias<28;nAlias++){
+   if(nAlias<14 || nAlias>18){
+     TObjArray* valueSet = new TObjArray;
+     valueSet->SetOwner(1);
    
-    TString aliasName = aliasNames[nAlias];
-    //printf("\n\n alias: %s\n\n",aliasName.Data());
+     TString aliasName = aliasNames[nAlias];
+     printf("\n\n alias: %s\n\n",aliasName.Data());
 
-    for(int timeStamp=0;timeStamp<=1000;timeStamp+=500)
-    {
-      Float_t simVal = (Float_t) (random.Gaus()*600.+1800.);
-      AliDCSValue* dcsVal = new AliDCSValue(simVal, timeStamp);
-      //printf("%s\n",dcsVal->ToString());
-      valueSet->Add(dcsVal);
-    }
-    aliasMap->Add(new TObjString(aliasName), valueSet);
+     for(int timeStamp=0;timeStamp<=2000;timeStamp+=500){
+       Float_t simVal = (Float_t) (random.Gaus()*600.+1800.);
+       AliDCSValue* dcsVal = new AliDCSValue(simVal, timeStamp);
+       //printf("%s\n",dcsVal->ToString());
+       valueSet->Add(dcsVal);
+     }
+     aliasMap->Add(new TObjString(aliasName), valueSet);
+   }
   }
 
   return aliasMap;
@@ -266,7 +261,11 @@ TMap* ReadDCSAliasMap()
   // The file contains an AliCDBEntry that contains a TMap with the DCS structure.
   // An explanation of the structure can be found in CreateDCSAliasMap()
 
-  AliCDBEntry *entry = AliCDBManager::Instance()->Get("ZDC/DCS/Data", 0);
+  AliCDBManager *manager = AliCDBManager::Instance();
+  AliCDBStorage *sto = manager->GetStorage("local://$ALICE_ROOT/SHUTTLE/TestShuttle/TestCDB/");
+  AliCDBId id("ZDC/DCS/Data",0,999999999);
+  AliCDBEntry *entry = sto->Get("ZDC/DCS/Data", 0);
+  if(!entry) printf("TestZDCPreprocessor.C -> ERROR! No entry found as DCS Map! \n");
   return dynamic_cast<TMap*> (entry->GetObject());
 }
 
@@ -281,7 +280,7 @@ void WriteDCSAliasMap()
 	metaData.SetResponsible("Chiara Oppedisano");
 	metaData.SetComment("Test object for TestZDCPreprocessor.C");
 
-  AliCDBId id("ZDC/DCS/Data", 0, 0);
+  AliCDBId id("ZDC/DCS/Data", 0, 999999999);
 
   // initialize location of CDB
   AliCDBManager::Instance()->SetDefaultStorage("local://$ALICE_ROOT/OCDB/SHUTTLE/TestShuttle/TestCDB");
