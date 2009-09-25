@@ -26,10 +26,22 @@ class AliEMCALQADataMakerRec: public AliQADataMakerRec {
 
 public:
   //Histograms for Raw data control
-  enum HRawType_t {kNsmodLG,kNsmodHG,kTimeLG,kTimeHG,
-		   kSigLG,kSigHG,kNtotLG,kNtotHG,
-		   kPedLG,kPedHG,
-		   kPedRMSLG,kPedRMSHG} ;
+  enum HRawType_t { 
+    // first normal Low Gain and High Gain info
+    kNsmodLG,kNsmodHG,kTimeLG,kTimeHG,
+    kSigLG,kSigHG,kNtotLG,kNtotHG,
+    kPedLG,kPedHG,
+    kPedRMSLG,kPedRMSHG,
+    // then TRU info
+    kNsmodTRU,kTimeTRU,
+    kSigTRU,kNtotTRU,
+    kPedTRU,kPedRMSTRU,
+    // and also LED Mon info
+    kNsmodLGLEDMon,kNsmodHGLEDMon,kTimeLGLEDMon,kTimeHGLEDMon,
+    kSigLGLEDMon,kSigHGLEDMon,kNtotLGLEDMon,kNtotHGLEDMon,
+    kPedLGLEDMon,kPedHGLEDMon,
+    kPedRMSLGLEDMon,kPedRMSHGLEDMon
+  } ;
 
   //Histograms for RecPoints  control
   enum HRPType_t {kRecPE,kRecPM,kRecPDigM};
@@ -46,8 +58,19 @@ public:
 
   void SetSuperModules(int i) {fSuperModules = i;}; //The number of SuperModules
   int GetSuperModules() const {return fSuperModules;}; //The number of SuperModules
-  
-private:
+
+  // for pedestal calculation with raw data
+  void SetFirstPedestalSample(int i) {fFirstPedestalSample = i;}; // first sample 
+  int GetFirstPedestalSample() const {return fFirstPedestalSample;}; // first sample 
+  void SetLastPedestalSample(int i) {fLastPedestalSample = i;}; // last sample 
+  int GetLastPedestalSample() const {return fLastPedestalSample;}; // last sample 
+  // for selection of interesting signal (max-min) range for High Gain channels
+  // (useful for MIP/cosmic studies) 
+  void SetMinSignalHG(int i) {fMinSignalHG = i;}; // minimum signal
+  int GetMinSignalHG() const {return fMinSignalHG;}; // minimum signal
+  void SetMaxSignalHG(int i) {fMaxSignalHG = i;}; // maximum signal
+  int GetMaxSignalHG() const {return fMaxSignalHG;}; // maximum signal
+
   virtual void   EndOfDetectorCycle(AliQAv1::TASKINDEX_t, TObjArray ** list) ;
   virtual void   InitESDs() ; 
   virtual void   InitDigits() ; 
@@ -60,9 +83,14 @@ private:
   virtual void   MakeRaws(AliRawReader* rawReader) ; 
   virtual void   StartOfDetectorCycle() ; 
 
+private:
   int fSuperModules; //The number of SuperModules activated
+  int fFirstPedestalSample; // first sample for pedestal calculation
+  int fLastPedestalSample; // last sample for pedestal calculation
+  int fMinSignalHG; // minimum signal, for High Gain channels
+  int fMaxSignalHG; // maximum signal, for High Gain channels
 
-  ClassDef(AliEMCALQADataMakerRec,2)  // description 
+  ClassDef(AliEMCALQADataMakerRec,4)  // description 
 
 };
 
