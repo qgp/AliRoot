@@ -7,16 +7,22 @@
  * full copyright notice.                                                 *
  **************************************************************************/
 
-void alieve_init(const Text_t* path   = ".", Int_t event=0,
+void alieve_init(const TString& cdburi = "",
+		 const TString& path   = ".", Int_t event=0,
                  const Text_t* esdfile = 0,
                  const Text_t* aodfile = 0,
                  const Text_t* rawfile = 0,
-		 const Text_t* cdburi  = 0,
 		 Bool_t assert_runloader = kFALSE,
                  Bool_t assert_esd       = kFALSE,
                  Bool_t assert_aod       = kFALSE,
                  Bool_t assert_raw       = kFALSE)
 {
+  if (cdburi.IsNull() && ! AliCDBManager::Instance()->IsDefaultStorageSet())
+  {
+    gEnv->SetValue("Root.Stacktrace", "no");
+    Fatal("alieve_init.C", "OCDB path MUST be specified as the first argument.");
+  }
+
   Info("alieve_init", "Adding standard macros.");
   TString  hack = gSystem->pwd(); // Problem with TGFileBrowser cding
   alieve_init_import_macros();
@@ -35,13 +41,32 @@ void alieve_init(const Text_t* path   = ".", Int_t event=0,
 					assert_aod, assert_raw);
 
   // Open event
-  if (path != 0)
+  if (path.BeginsWith("alien:") || ! cdburi.BeginsWith("local:"))
   {
-    Info("alieve_init", "Opening event %d from '%s' ...", event, path);
-    TString name("Event"); // CINT has trouble with direct "Event".
-    new AliEveEventManager(name, path, event);
-    gEve->AddEvent(AliEveEventManager::GetMaster());
+    if (gGrid != 0)
+    {
+      Info("alieve_init", "TGrid already initializied. Skiping checks and initialization.");
+    }
+    else
+    {
+      Info("alieve_init", "AliEn requested - connecting.");
+      if (gSystem->Getenv("alien_API_VO") == 0)
+      {
+	Error("alieve_init", "AliEn environment not initialized. Aborting.");
+	gSystem->Exit(1);
+      }
+      if (TGrid::Connect("alien") == 0)
+      {
+	Error("alieve_init", "TGrid::Connect() failed. Aborting.");
+	gSystem->Exit(1);
+      }
+    }
   }
+
+  Info("alieve_init", "Opening event %d from '%s' ...", event, path.Data());
+  TString name("Event"); // CINT has trouble with direct "Event".
+  new AliEveEventManager(name, path, event);
+  gEve->AddEvent(AliEveEventManager::GetMaster());
 }
 
 void alieve_init_import_macros()

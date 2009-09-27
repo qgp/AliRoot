@@ -42,6 +42,7 @@
 #include <TTimeStamp.h>
 #include <TPRegexp.h>
 #include <TError.h>
+#include <TEnv.h>
 
 //==============================================================================
 //==============================================================================
@@ -83,7 +84,7 @@ Bool_t AliEveEventManager::fgAssertRaw       = kFALSE;
 TString  AliEveEventManager::fgESDFileName("AliESDs.root");
 TString  AliEveEventManager::fgAODFileName("AliAOD.root");
 TString  AliEveEventManager::fgRawFileName("raw.root");
-TString  AliEveEventManager::fgCdbUri("local://$ALICE_ROOT/OCDB");
+TString  AliEveEventManager::fgCdbUri;
 
 TList*   AliEveEventManager::fgAODfriends = 0;
 
@@ -234,7 +235,7 @@ void AliEveEventManager::SetRawFileName(const TString& raw)
 
 void AliEveEventManager::SetCdbUri(const TString& cdb)
 {
-  // Set path to CDB, default "local://$ALICE_ROOT/OCDB".
+  // Set path to CDB, there is no default.
 
   if ( ! cdb.IsNull()) fgCdbUri = cdb;
 }
@@ -522,14 +523,29 @@ void AliEveEventManager::Open()
     }
     else
     {
-      cdb->SetDefaultStorage(fgCdbUri);
+      if (fgCdbUri.IsNull())
+      {
+	gEnv->SetValue("Root.Stacktrace", "no");
+	Fatal("Open()", "OCDB path was not specified.");
+      }
+
+      // Handle some special cases for MC (should be in OCDBManager).
+      if (fgCdbUri == "mcideal://")
+	cdb->SetDefaultStorage("MC", "Ideal");
+      else if (fgCdbUri == "mcresidual://")
+	cdb->SetDefaultStorage("MC", "Residual");
+      else if (fgCdbUri == "mcfull://")
+	cdb->SetDefaultStorage("MC", "Full");
+      else if (fgCdbUri == "local://") {
+	fgCdbUri = "local://$ALICE_ROOT/OCDB";
+	cdb->SetDefaultStorage(fgCdbUri);
+      } else
+	cdb->SetDefaultStorage(fgCdbUri);
       if (cdb->IsDefaultStorageSet() == kFALSE)
-	throw (kEH + "CDB initialization failed.");
+	throw kEH + "CDB initialization failed.";
     }
     
-    TString expCDB(fgCdbUri);
-    gSystem->ExpandPathName(expCDB);
-    if (cdb->GetDefaultStorage()->GetURI() == expCDB)
+    if (fgCdbUri.BeginsWith("local://"))
     {
       TString grp     = "GRP/GRP/Data";
       TString grppath = fPath + "/" + grp;
