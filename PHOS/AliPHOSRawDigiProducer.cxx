@@ -52,6 +52,7 @@ AliPHOSRawDigiProducer::AliPHOSRawDigiProducer():
   fEmcMinE(0.),
   fCpvMinE(0.),
   fSampleQualityCut(1.),
+  fSampleToSec(0.),
   fEmcCrystals(0),
   fGeom(0),
   fPulseGenerator(0),
@@ -75,6 +76,7 @@ AliPHOSRawDigiProducer::AliPHOSRawDigiProducer(AliRawReader *rawReader,
   fEmcMinE(0.),
   fCpvMinE(0.),
   fSampleQualityCut(1.),
+  fSampleToSec(0.),
   fEmcCrystals(0),
   fGeom(0),
   fPulseGenerator(0),
@@ -99,6 +101,7 @@ AliPHOSRawDigiProducer::AliPHOSRawDigiProducer(const AliPHOSRawDigiProducer &dp)
   fEmcMinE(0.),
   fCpvMinE(0.),
   fSampleQualityCut(1.),
+  fSampleToSec(0.),
   fEmcCrystals(0),
   fGeom(0),
   fPulseGenerator(0),
@@ -110,6 +113,7 @@ AliPHOSRawDigiProducer::AliPHOSRawDigiProducer(const AliPHOSRawDigiProducer &dp)
   fEmcMinE = dp.fEmcMinE ;
   fCpvMinE = dp.fCpvMinE ;
   fSampleQualityCut = dp.fSampleQualityCut;
+  fSampleToSec = dp.fSampleToSec ;
   fEmcCrystals = dp.fEmcCrystals ;
   fPulseGenerator = new AliPHOSPulseGenerator();
   fGeom = dp.fGeom ;
@@ -124,6 +128,7 @@ AliPHOSRawDigiProducer& AliPHOSRawDigiProducer::operator= (const AliPHOSRawDigiP
   fEmcMinE = dp.fEmcMinE ;
   fCpvMinE = dp.fCpvMinE ;
   fSampleQualityCut = dp.fSampleQualityCut ;
+  fSampleToSec = dp.fSampleToSec ;
   fEmcCrystals = dp.fEmcCrystals ;
   fGeom = dp.fGeom ;
   if(fPulseGenerator) delete fPulseGenerator ;
@@ -148,10 +153,17 @@ void AliPHOSRawDigiProducer::MakeDigits(TClonesArray *digits, AliPHOSRawFitterv0
  
   Int_t iDigit=0 ;
   Int_t relId[4], absId=-1, caloFlag=-1;
-
+  
   const Double_t baseLine=1. ; //Minimal energy of digit in ADC ch. 
-  const Double_t highLowDiff=2.; //Maximal difference between High and Low channels in LG adc channels 
 
+  //Calculate conversion coeff. from Sample time step to seconds
+  //If OCDB contains negative or zero value - use one from RCU trailer
+  //Negative value in OCDB is used only for simulation of raw digits
+  if(fgCalibData->GetSampleTimeStep()>0.)
+    fSampleToSec=fgCalibData->GetSampleTimeStep() ;
+  else
+    fSampleToSec=fRawStream->GetTSample() ;
+  
   //Temporary array for LowGain digits
   TClonesArray tmpLG("AliPHOSDigit",10000) ;
   Int_t ilgDigit=0 ;
@@ -168,6 +180,18 @@ void AliPHOSRawDigiProducer::MakeDigits(TClonesArray *digits, AliPHOSRawFitterv0
       caloFlag = fRawStream->GetCaloFlag();   // 0=LG, 1=HG, 2=TRU
       
       if(caloFlag!=0 && caloFlag!=1) continue; //TRU data!
+      
+      if(fitter->GetAmpOffset()==0 && fitter->GetAmpThreshold()==0) {
+	short value = fRawStream->GetAltroCFG1();
+	bool ZeroSuppressionEnabled = (value >> 15) & 0x1;
+	if(ZeroSuppressionEnabled) {
+	  short offset = (value >> 10) & 0xf;
+	  short threshold = value & 0x3ff;
+	  fitter->SubtractPedestals(kFALSE);
+	  fitter->SetAmpOffset(offset);
+	  fitter->SetAmpThreshold(threshold);
+	}
+      }
       
       fGeom->RelToAbsNumbering(relId, absId);
       
@@ -200,6 +224,9 @@ void AliPHOSRawDigiProducer::MakeDigits(TClonesArray *digits, AliPHOSRawFitterv0
       
 //       energy = CalibrateE(energy,relId,lowGainFlag) ;
 //       time   = CalibrateT(time,relId,lowGainFlag) ;
+
+      //convert time from sample bin units to s
+      time*=fSampleToSec ;
       
       if(energy <= 0.) 
 	continue;
@@ -242,19 +269,10 @@ void AliPHOSRawDigiProducer::MakeDigits(TClonesArray *digits, AliPHOSRawFitterv0
 	  digHG->SetTime(digLG->GetTime()) ;
 	  digHG->SetEnergy(digLG->GetEnergy()) ;
 	}
-	else{ //Make approximate comparison of HG and LG energies
-	  Double_t de = (digHG->GetEnergy()-digLG->GetEnergy()) ; 
-	  if(TMath::Abs(de)>CalibrateE(double(highLowDiff),relId,1)){ //too strong difference, remove digit
-	    digits->RemoveAt(iDig) ;
-	  }
-	}
       }
       else{ //no pair - remove
-	// temporary fix for dead LG channels
-	if(relId[2]%2==1 && relId[3]%16==4) 
-	  continue ;
-	if(digHG->GetEnergy()>CalibrateE(double(5.),relId,1)) //One can not always find LG with Amp<5 ADC ch.
-	  digits->RemoveAt(iDig) ;                                                                                                            
+	if(digHG->GetEnergy()<0.) //no pair, in saturation
+	  digits->RemoveAt(iDig) ;                                                          
       }
     }
   } // End of NextDDL()
