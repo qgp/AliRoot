@@ -40,6 +40,7 @@ ClassImp(AliZDCRawStream)
 AliZDCRawStream::AliZDCRawStream(AliRawReader* rawReader) :
   fRawReader(rawReader),
   fBuffer(0),
+  fReadOutCard(-1),
   fEvType(0),
   fPosition(0),
   fIsCalib(kFALSE),
@@ -51,10 +52,8 @@ AliZDCRawStream::AliZDCRawStream(AliRawReader* rawReader) :
   fIsADCEOB(kFALSE),
   fSODReading(kFALSE),
   fIsMapRead(kFALSE),
-  fDARCEvBlockLenght(0),  
-  fDARCBlockAttributes(0),
-  fDeadfaceOffset(0),
-  fDeadbeefOffset(0),
+  fDeadfaceOffset(-1),
+  fDeadbeefOffset(-1),
   fDataOffset(0),
   fModType(-1),
   fADCModule(-1),
@@ -125,6 +124,7 @@ AliZDCRawStream::AliZDCRawStream(const AliZDCRawStream& stream) :
   TObject(stream),
   fRawReader(stream.fRawReader),
   fBuffer(stream.GetRawBuffer()),
+  fReadOutCard(stream.GetReadOutCard()),
   fEvType(stream.fEvType),
   fPosition(stream.fPosition),
   fIsCalib(stream.fIsCalib),
@@ -136,8 +136,6 @@ AliZDCRawStream::AliZDCRawStream(const AliZDCRawStream& stream) :
   fIsADCEOB(stream.fIsADCEOB), 
   fSODReading(stream.fSODReading),
   fIsMapRead(stream.fIsMapRead),
-  fDARCEvBlockLenght(stream.fDARCEvBlockLenght),  
-  fDARCBlockAttributes(stream.fDARCBlockAttributes),
   fDeadfaceOffset(stream.GetDeadfaceOffset()),
   fDeadbeefOffset(stream.GetDeadbeefOffset()),
   fDataOffset(stream.GetDataOffset()),
@@ -224,7 +222,7 @@ void AliZDCRawStream::ReadChMap()
 {
   // Reading channel map
   const int kNch = 48;
-  //printf("\t Reading ZDC ADC mapping from OCDB\n");
+  AliDebug(2,"\t Reading ZDC ADC mapping from OCDB\n");
   AliZDCChMap * chMap = GetChMap();
   //chMap->Print("");
   for(Int_t i=0; i<kNch; i++){
@@ -248,11 +246,8 @@ void AliZDCRawStream::ReadCDHHeader()
       return;
   }
   else{
-    //printf("\t AliZDCRawStream::ReadCDHHeader -> Data Size = %d\n",fRawReader->GetDataSize());
+    //printf("\t AliZDCRawStream::ReadCDHHeader -> Data Size = %x\n",fRawReader->GetDataSize());
 
-    fDARCEvBlockLenght = header->fSize;
-    //printf("\t AliZDCRawStream::ReadCDHHeader -> fDARCEvBlockLenght = %d\n",fDARCEvBlockLenght);
-    
     UChar_t message = header->GetAttributes();
     //printf("\t AliZDCRawStream::ReadCDHHeader -> Attributes %x\n",message);
     
@@ -280,7 +275,18 @@ void AliZDCRawStream::ReadCDHHeader()
     else if(message == 0x70){ // CALIBRATION_EMD
        //printf("\t CALIBRATION_EMD RUN raw data found\n");
     }
-    
+    // *** Checking the bit indicating the used readout card
+    // (the payload is different in the 2 cases!)
+    if((message & 0x08) == 0){  // ** DARC card
+       fReadOutCard = 0;
+       fIsDARCHeader = kTRUE;
+       AliInfo("\t ZDC readout card used: DARC");
+    }
+    else if((message & 0x08) == 1){  // ** ZRC card
+       fReadOutCard = 1;
+       AliInfo("\t ZDC readout card used: ZRC");
+    }
+
     if(header->GetL1TriggerMessage() & 0x1){ // Calibration bit set in CDH
       fIsCalib = kTRUE;
     }
@@ -333,8 +339,7 @@ void AliZDCRawStream::ReadCDHHeader()
       fRawReader->AddMajorErrorLog(kDARCError);
     }
   }
-  //
-  fIsDARCHeader = kTRUE;
+  
 }
 
 //_____________________________________________________________________________
@@ -356,7 +361,6 @@ Bool_t AliZDCRawStream::Next()
   fEvType = fRawReader->GetType();
   if(fPosition==0){
     //if(fEvType==7 || fEvType ==8){ //Physics or calibration event
-      //ReadEventHeader();
       ReadCDHHeader();
     //}
     fCurrentCh=0; fCurrScCh=0; fNChannelsOn=0;
@@ -369,7 +373,7 @@ Bool_t AliZDCRawStream::Next()
   
   // *** End of ZDC event
   if(fBuffer == 0xcafefade){
-    //printf("\n-> AliZDCRawStream::Next() ***** End of ZDC event *****\n\n");
+    //printf("\n  AliZDCRawStream::Next() ***** End of ZDC event *****\n\n");
     return kFALSE;
   }
   
@@ -378,7 +382,7 @@ Bool_t AliZDCRawStream::Next()
   // -------------------------------------------
   // If the CDH has been read then 
   // the DARC header must follow
-  if(fIsDARCHeader){
+  if(fReadOutCard==0 && fIsDARCHeader){
     //printf("\t ---- DARC header ----\n");
     if(fIsCalib){
       fDeadfaceOffset = 9;
@@ -393,10 +397,10 @@ Bool_t AliZDCRawStream::Next()
   }
 
     
-  // -------------------------------------------
-  // --- Start of data event
-  // --- decoding mapping of connected ADC ch.
-  // -------------------------------------------
+  // ---------------------------------------------
+  // --- Start of data event (SOD)             ---
+  // --- decoding mapping of connected ADC ch. ---
+  // ---------------------------------------------
   // In the SOD event ADC ch. mapping is written
   if(fEvType==10 && fSODReading){
     //printf("\n-> AliZDCRawStream::Next() - fBuffer[%d] = %x\n",fPosition, fBuffer);
@@ -415,7 +419,7 @@ Bool_t AliZDCRawStream::Next()
       }
       else if((fBuffer&0xff000002) == 0xff000002){ // ************** Threshold settings
         fPosition++;
-	return kFALSE;
+	return kFALSE; // !!!!!!!!!!!!!!!!!!!!!  For the moment thresholds are not read
       }
       else if((fBuffer&0x80000000)>>31 == 1){ // --- Mapping header
         fIsHeaderMapping = kTRUE;
@@ -429,7 +433,7 @@ Bool_t AliZDCRawStream::Next()
 	fADCChannel = ((fBuffer & 0x3fff0000)>>16);
 	fCabledSignal = (fBuffer&0xffff);
         //
-	if(fModType==1){ // ******** ADCs ********************************
+	if(fModType == kV965){ // ******** ADCs ********************************
            // Channel signal
 	  if((fBuffer&0x40000000)>>30==0){ // high range chain ADC
             fIsChMapping = kTRUE;
@@ -448,7 +452,7 @@ Bool_t AliZDCRawStream::Next()
 	      || fCabledSignal==24 || fCabledSignal==48){
 	      fMapADC[fCurrentCh][3] = 4; //ZNA
 	      //
-	      if(fCabledSignal==2 || fCabledSignal==26)       fMapADC[fCurrentCh][4]=0;
+	      if(fCabledSignal==kZNAC || fCabledSignal==kZNACoot)   fMapADC[fCurrentCh][4]=0;
 	      else if(fCabledSignal==3 || fCabledSignal==27)  fMapADC[fCurrentCh][4]=1;
 	      else if(fCabledSignal==4 || fCabledSignal==28)  fMapADC[fCurrentCh][4]=2;
 	      else if(fCabledSignal==5 || fCabledSignal==29)  fMapADC[fCurrentCh][4]=3;
@@ -498,7 +502,7 @@ Bool_t AliZDCRawStream::Next()
 	    //
 	  } // high range channels
         }// ModType=1 (ADC mapping)
-        else if(fModType==2){  // ******** VME scaler **************************
+        else if(fModType == kV830){  // ******** VME scaler **************************
           fIsChMapping = kTRUE;
 	  fScalerMap[fCurrScCh][0] = fADCModule;
 	  fScalerMap[fCurrScCh][1] = fADCChannel;
@@ -559,59 +563,57 @@ Bool_t AliZDCRawStream::Next()
 	  
           fCurrScCh++;
         }
-	else if(fModType==3){ // **** scalers from trigger card
+	/*else if(fModType == kTRG){ // **** scalers from trigger card
       	  //printf("\t Trigger scaler mod. %d ch. %d, signal %d\n",fADCModule,fADCChannel,fCabledSignal);	  
         }
-	else if(fModType==4){ // **** trigger history from trigger card
+	else if(fModType == kTRGI){ // **** trigger history from trigger card
       	  //printf("\t Trigger card ch. %d, signal %d\n",fADCChannel,fCabledSignal);
         }
-	else if(fModType==5){ // **** pattern unit
+	else if(fModType == kPU){ // **** pattern unit
       	  //printf("\t P.U. mod. %d ch. %d, signal %d\n",fADCModule,fADCChannel,fCabledSignal);
-        }
+        }*/
       }//reading channel mapping
     }
     fPosition++;
     return kTRUE;
-  } // SOD event
+  } // ------------------------------- SOD event
   
   // -------------------------------------------
   // --- DARC data
   // -------------------------------------------
-  if(fPosition<fDeadfaceOffset){
-    fPosition++;
-    return kTRUE;
-  }
-  else if(fPosition==fDeadfaceOffset){
-    if(fBuffer != 0xdeadface){
-      AliWarning(" NO deadface after DARC data");
-      fRawReader->AddMajorErrorLog(kDARCError); 
-    }
-    else{
+  if(fReadOutCard == 0){
+    if(fPosition<fDeadfaceOffset){
       fPosition++;
       return kTRUE;
     }
-  }
+    else if(fPosition==fDeadfaceOffset){
+      if(fBuffer != 0xdeadface){
+        AliWarning(" NO deadface after DARC data");
+        fRawReader->AddMajorErrorLog(kDARCError); 
+      }
+      else{
+        fPosition++;
+        return kTRUE;
+      }
+    }
+    else if(fPosition>fDeadfaceOffset && fPosition<fDeadbeefOffset){
+      fPosition++;
+      return kTRUE;
+    }
+    else if(fPosition==fDeadbeefOffset){
+      if(fBuffer != 0xdeadbeef){
+        AliWarning(" NO deadbeef after DARC global data");
+        fRawReader->AddMajorErrorLog(kDARCError);  
+        fPosition++;
+        return kFALSE;
+      }
+      else{
+        fPosition++;
+        return kTRUE;
+      }
+    }
+  } // ------------------------------- DARC data
   
-  // -------------------------------------------
-  // --- DARC global data
-  // -------------------------------------------
-  else if(fPosition>fDeadfaceOffset && fPosition<fDeadbeefOffset){
-    fPosition++;
-    return kTRUE;
-  }
-  else if(fPosition==fDeadbeefOffset){
-    if(fBuffer != 0xdeadbeef){
-      AliWarning(" NO deadbeef after DARC global data");
-      fRawReader->AddMajorErrorLog(kDARCError);  
-      fPosition++;
-      return kFALSE;
-    }
-    else{
-      fPosition++;
-      return kTRUE;
-    }
-  }
-
   // -------------------------------------------
   // --- ZDC data
   // --- ADCs + VME scaler + trigger card + P.U.
@@ -621,27 +623,30 @@ Bool_t AliZDCRawStream::Next()
     //printf("AliZDCRawStream: fSODReading = %d\n", fSODReading);
     if(!fSODReading && !fIsMapRead) ReadChMap();
     
+    //  !!!!!!!!!!!!!!! DARC readout card only !!!!!!!!!!!
     // Not valid datum before the event 
     // there MUST be a NOT valid datum before the event!!!
-    if(fPosition==fDataOffset){
-      //printf("\t **** ZDC data begin ****\n");
-      if((fBuffer & 0x07000000) != 0x06000000){
-        fRawReader->AddMajorErrorLog(kZDCDataError);
+    if(fReadOutCard==0){
+      if(fPosition==fDataOffset){ // and con la darc
+        //printf("\t **** ZDC data begin ****\n");
+        if((fBuffer & 0x07000000) != 0x06000000){
+          fRawReader->AddMajorErrorLog(kZDCDataError);
+        }
+        else if((fBuffer & 0x07000000) == 0x06000001){ // Corrupted event!!!
+          fIsADCEventGood = kFALSE;
+        }
       }
-      else if((fBuffer & 0x07000000) == 0x06000001){ // Corrupted event!!!
-        fIsADCEventGood = kFALSE;
-      }
-    }
     
-    // If the not valid datum isn't followed by the 1st ADC header
-    // the event is corrupted (i.e., 2 gates arrived before trigger)
-    else if(fPosition==fDataOffset+1){
-      if((fBuffer & 0x07000000) != 0x02000000){
-        AliWarning("ZDC ADC -> The not valid datum is NOT followed by an ADC header!");
-        fRawReader->AddMajorErrorLog(kZDCDataError);
-        fIsADCEventGood = kFALSE;
-	fPosition++;
-	return kFALSE;
+      // If the not valid datum isn't followed by the 1st ADC header
+      // the event is corrupted (i.e., 2 gates arrived before trigger)
+      else if(fPosition==fDataOffset+1){ // and con la darc
+        if((fBuffer & 0x07000000) != 0x02000000){
+          AliWarning("ZDC ADC -> The not valid datum is NOT followed by an ADC header!");
+          fRawReader->AddMajorErrorLog(kZDCDataError);
+          fIsADCEventGood = kFALSE;
+	  fPosition++;
+	  return kFALSE;
+        }
       }
     }
      

@@ -68,6 +68,7 @@ int main(int argc, char **argv) {
 
   int status = 0;
   int const kNChannels = 24;
+  int const kNScChannels = 32;
 
   /* log start of process */
   printf("\n ZDC LASER program started\n");  
@@ -188,6 +189,9 @@ int main(int argc, char **argv) {
   int nevents_physics=0;
   int nevents_total=0;
 
+  struct eventHeaderStruct *event;
+  eventTypeType eventT;
+
   /* read the data files */
   int n;
   for(n=1;n<argc;n++) {
@@ -204,8 +208,6 @@ int main(int argc, char **argv) {
 
     /* read the file */
     for(;;) {
-      struct eventHeaderStruct *event;
-      eventTypeType eventT;
 
       /* get next event */
       status=monitorGetEventDynamic((void **)&event);
@@ -234,41 +236,75 @@ int main(int argc, char **argv) {
       /* use event - here, just write event id to result file */
       eventT=event->eventType;
       
+  
       Int_t ich=0;
-      Int_t adcMod[2*kNChannels], adcCh[2*kNChannels];
-      Int_t sigCode[2*kNChannels], det[2*kNChannels], sec[2*kNChannels];
-
+      Int_t adcMod[2*kNChannels], adcCh[2*kNChannels], sigCode[2*kNChannels];
+      Int_t det[2*kNChannels], sec[2*kNChannels];
+      for(Int_t y=0; y<2*kNChannels; y++){
+        adcMod[y]=adcCh[y]=sigCode[y]=det[y]=sec[y]=0;
+      }
+      
+      Int_t iScCh=0;
+      Int_t scMod[kNScChannels], scCh[kNScChannels], scSigCode[kNScChannels];
+      Int_t scDet[kNScChannels], scSec[kNScChannels];
+      for(Int_t y=0; y<kNScChannels; y++){
+        scMod[y]=scCh[y]=scSigCode[y]=scDet[y]=scSec[y]=0;
+      }
+      //
+      Int_t modNum=-1, modType=-1;
+      
       if(eventT==START_OF_DATA){
-
-	rawStreamZDC->SetSODReading(kTRUE);
 	  	
+	rawStreamZDC->SetSODReading(kTRUE);
+	
 	// --------------------------------------------------------
 	// --- Writing ascii data file for the Shuttle preprocessor
         mapFile4Shuttle = fopen(MAPDATA_FILE,"w");
 	if(!rawStreamZDC->Next()) printf(" \t No raw data found!! \n");
         else{
-	  while((rawStreamZDC->Next()) && (ich<2*kNChannels)){
-            if(rawStreamZDC->IsChMapping()){
-	      adcMod[ich] = rawStreamZDC->GetADCModFromMap(ich);
-	      adcCh[ich] = rawStreamZDC->GetADCChFromMap(ich);
-	      sigCode[ich] = rawStreamZDC->GetADCSignFromMap(ich);
-	      det[ich] = rawStreamZDC->GetDetectorFromMap(ich);
-	      sec[ich] = rawStreamZDC->GetTowerFromMap(ich);
-	      //
-	      fprintf(mapFile4Shuttle,"\t%d\t%d\t%d\t%d\t%d\t%d\n",
-	        ich,adcMod[ich],adcCh[ich],sigCode[ich],det[ich],sec[ich]);
-	      //
-	      //printf("ZDCPEDESTALda.cxx -> %d mod %d ch %d, code %d det %d, sec %d\n",
-	      //   ich,adcMod[ich],adcCh[ich],sigCode[ich],det[ich],sec[ich]);
-	      //
-	      ich++;
+	  while((rawStreamZDC->Next())){
+            if(rawStreamZDC->IsHeaderMapping()){ // mapping header
+	       modNum = rawStreamZDC->GetADCModule();
+	       modType = rawStreamZDC->GetModType();
+	    }
+            if(rawStreamZDC->IsChMapping()){ 
+	      if(modType==1){ // ADC mapping ----------------------
+	        adcMod[ich]  = rawStreamZDC->GetADCModFromMap(ich);
+	        adcCh[ich]   = rawStreamZDC->GetADCChFromMap(ich);
+	        sigCode[ich] = rawStreamZDC->GetADCSignFromMap(ich);
+	        det[ich]     = rawStreamZDC->GetDetectorFromMap(ich);
+	        sec[ich]     = rawStreamZDC->GetTowerFromMap(ich);
+	        //
+	        fprintf(mapFile4Shuttle,"\t%d\t%d\t%d\t%d\t%d\t%d\n",
+	          ich,adcMod[ich],adcCh[ich],sigCode[ich],det[ich],sec[ich]);
+	        //
+	        //printf("  Mapping in DA -> %d ADC: mod %d ch %d, code %d det %d, sec %d\n",
+	        //  ich,adcMod[ich],adcCh[ich],sigCode[ich],det[ich],sec[ich]);
+	        //
+	        ich++;
+	      }
+	      else if(modType==2){ //VME scaler mapping --------------------
+	        scMod[iScCh]     = rawStreamZDC->GetScalerModFromMap(iScCh);
+	        scCh[iScCh]      = rawStreamZDC->GetScalerChFromMap(iScCh);
+	        scSigCode[iScCh] = rawStreamZDC->GetScalerSignFromMap(iScCh);
+	        scDet[iScCh]     = rawStreamZDC->GetScDetectorFromMap(iScCh);
+	        scSec[iScCh]    = rawStreamZDC->GetScTowerFromMap(iScCh);
+	        //
+	        fprintf(mapFile4Shuttle,"\t%d\t%d\t%d\t%d\t%d\t%d\n",
+	          iScCh,scMod[iScCh],scCh[iScCh],scSigCode[iScCh],scDet[iScCh],scSec[iScCh]);
+	        //
+	        //printf("  Mapping in DA -> %d Scaler: mod %d ch %d, code %d det %d, sec %d\n",
+	        //  iScCh,scMod[iScCh],scCh[iScCh],scSigCode[iScCh],scDet[iScCh],scSec[iScCh]);
+	        //
+	        iScCh++;
+	      }
 	    }
 	  }
 	}
         fclose(mapFile4Shuttle);
       }// SOD event
 
-      if(eventT==PHYSICS_EVENT){
+      else if(eventT==PHYSICS_EVENT){
  	// --- Reading data header
         reader->ReadHeader();
         const AliRawDataHeader* header = reader->GetDataHeader();
@@ -383,12 +419,20 @@ int main(int argc, char **argv) {
          delete rawStreamZDC;
 
       }//(if PHYSICS_EVENT) 
-      nevents_total++;
 
-      /* free resources */
-      free(event);
+      /* exit when last event received, no need to wait for TERM signal */
+      else if(eventT==END_OF_RUN) {
+        printf(" -> EOR event detected\n");
+        break;
+      }
+      
+      
+      nevents_total++;
     
     }
+	  
+    /* free resources */
+    free(event);
   }  
   
   /* Analysis of the histograms */
@@ -663,20 +707,20 @@ int main(int argc, char **argv) {
   
   /* store the result file on FES */
   // [1] File with mapping
-  status = daqDA_FES_storeFile(MAPDATA_FILE,MAPDATA_FILE);
+  status = daqDA_FES_storeFile(MAPDATA_FILE, "MAPPING");
   if(status){
     printf("Failed to export file : %d\n",status);
     return -1;
   }
   //
   // [2] File with laser data
-  status = daqDA_FES_storeFile(LASDATA_FILE,LASDATA_FILE);
+  status = daqDA_FES_storeFile(LASDATA_FILE, "LASERDATA");
   if(status){
     printf("Failed to export file : %d\n",status);
     return -1;
   }
   // [3] File with laser histos
-  status = daqDA_FES_storeFile(LASHISTO_FILE,LASHISTO_FILE);
+  status = daqDA_FES_storeFile(LASHISTO_FILE, "LASERHISTOS");
   if(status){
     printf("Failed to export pedestal histos file to DAQ FES\n");
     return -1;

@@ -2,7 +2,6 @@
 
 This program reads the DAQ data files passed as argument using the monitoring library.
 
-
 The program reports about its processing progress.
 
 Messages on stdout are exported to DAQ log system.
@@ -14,7 +13,7 @@ Link:
 Run Type: STANDALONE_PEDESTAL_RUN
 DA Type: LDC
 Number of events needed: no constraint (tipically ~10^3)
-Input Files:  
+Input Files: none
 Output Files: ZDCPedestal.dat, ZDCChMapping.dat
 Trigger Types Used: Standalone Trigger
 
@@ -182,6 +181,9 @@ int main(int argc, char **argv) {
   int nevents_physics=0;
   int nevents_total=0;
 
+  struct eventHeaderStruct *event;
+  eventTypeType eventT;
+
   /* read the data files */
   int n;
   for(n=1;n<argc;n++){
@@ -198,8 +200,6 @@ int main(int argc, char **argv) {
 
     /* read the file */
     for(;;) {
-      struct eventHeaderStruct *event;
-      eventTypeType eventT;
 
       /* get next event */
       status=monitorGetEventDynamic((void **)&event);
@@ -229,9 +229,9 @@ int main(int argc, char **argv) {
       eventT=event->eventType;
       
       Int_t iScCh=0;
-      Int_t scMod[2*kNScChannels], scCh[2*kNScChannels], scSigCode[2*kNScChannels];
-      Int_t scDet[2*kNScChannels], scSec[2*kNScChannels];
-      for(Int_t y=0; y<2*kNScChannels; y++){
+      Int_t scMod[kNScChannels], scCh[kNScChannels], scSigCode[kNScChannels];
+      Int_t scDet[kNScChannels], scSec[kNScChannels];
+      for(Int_t y=0; y<kNScChannels; y++){
         scMod[y]=scCh[y]=scSigCode[y]=scDet[y]=scSec[y]=0;
       }
       //
@@ -288,7 +288,7 @@ int main(int argc, char **argv) {
         fclose(mapFile4Shuttle);
       }// SOD event
       
-      if(eventT==PHYSICS_EVENT){
+      else if(eventT==PHYSICS_EVENT){
 	// --- Reading data header
         reader->ReadHeader();
         const AliRawDataHeader* header = reader->GetDataHeader();
@@ -389,20 +389,26 @@ int main(int argc, char **argv) {
   	      hPedCorrlg[k]->Fill(RawADCootlg[k], RawADClg[k]);
   	    }
   	  }
-         }
-         //
-         nevents_physics++;
-         //
-	 delete reader;
-         delete rawStreamZDC;
+        }
+        nevents_physics++;
+        //
+	delete reader;
+        delete rawStreamZDC;
 
       }//(if PHYSICS_EVENT) 
+      
+      /* exit when last event received, no need to wait for TERM signal */
+      else if(eventT==END_OF_RUN) {
+        printf(" -> EOR event detected\n");
+        break;
+      }
+      
       nevents_total++;
-
-      /* free resources */
-      free(event);
     
     }
+	  
+    /* free resources */
+    free(event);
   }  
   
   /* Analysis of the histograms */
@@ -457,7 +463,7 @@ int main(int argc, char **argv) {
   
   // --- Correlations
 
-/*  Float_t CorrCoeff0[2*kNChannels], CorrCoeff1[2*kNChannels];
+  Float_t CorrCoeff0[2*kNChannels], CorrCoeff1[2*kNChannels];
   TProfile *hPedCorrProfhg[kNChannels], *hPedCorrProflg[kNChannels];
   TF1 *ffunchg[kNChannels], *ffunclg[kNChannels];
   char namhist4[50];
@@ -484,7 +490,7 @@ int main(int argc, char **argv) {
      //printf("\t CorrCoeff0[%d] = %f, CorrCoeff1[%d] = %f\n",
      //		i+kNChannels, CorrCoeff0[i+kNChannels], i+kNChannels, CorrCoeff1[i+kNChannels]);
   }    
-*/
+
   //						       
   fclose(fileShuttle);
   //
@@ -524,26 +530,26 @@ int main(int argc, char **argv) {
 
   /* store the result files on FES */
   // [1] File with mapping
-  status = daqDA_FES_storeFile(MAPDATA_FILE,MAPDATA_FILE);
+  status = daqDA_FES_storeFile(MAPDATA_FILE, "MAPPING");
   if(status){
     printf("Failed to export mapping data file to DAQ FES\n");
     return -1;
   }
   // [2] File with pedestal data
-  status = daqDA_FES_storeFile(PEDDATA_FILE,PEDDATA_FILE);
+  status = daqDA_FES_storeFile(PEDDATA_FILE, "PEDESTALDATA");
   if(status){
     printf("Failed to export pedestal data file to DAQ FES\n");
     return -1;
   }
   // [3] File with pedestal histos
-  status = daqDA_FES_storeFile(PEDHISTO_FILE,PEDHISTO_FILE);
+  status = daqDA_FES_storeFile(PEDHISTO_FILE, "PEDESTALHISTOS");
   if(status){
     printf("Failed to export pedestal histos file to DAQ FES\n");
     return -1;
   }
   
   /* store the result files on DB */
-  status = daqDA_DB_storeFile(PEDDATA_FILE,PEDDATA_FILE);  
+  status = daqDA_DB_storeFile(PEDDATA_FILE, PEDDATA_FILE);  
   if(status){
     printf("Failed to store pedestal data file to DAQ DB\n");
     return -1;
