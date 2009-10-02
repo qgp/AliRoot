@@ -113,7 +113,7 @@ Double_t * AliT0QAChecker::Check(AliQAv1::ALITASK_t index, TObjArray ** list)
             fhRawEff[ir] = hdata;
           }
         }
-	if((ir>207 && ir<210)  && specie == 4) {
+	if((ir>207 && ir<210)  && specie == AliRecoParam::kCalib) {
 	  h =  (TH2*) list[specie]->UncheckedAt(ir);
 	  if(h) {
 	    cname = h->GetName();
@@ -146,7 +146,7 @@ Double_t * AliT0QAChecker::Check(AliQAv1::ALITASK_t index, TObjArray ** list)
 
     //raw data
 
-      if (index == AliQAv1::kRAW && specie == 4){
+      if (index == AliQAv1::kRAW && specie == AliRecoParam::kCalib){
 	test[specie] = CheckRaw(list[specie],dynamic_cast<TObjArray*>(dynamic_cast<TList *>(QARefRec->GetObject())->First()));
       }
       
@@ -204,13 +204,19 @@ Double_t * AliT0QAChecker::Check(AliQAv1::ALITASK_t index, TObjArray ** list)
 Double_t AliT0QAChecker::CheckRaw(TObjArray *listrec , TObjArray *listref) const
 {
   
+  TH1 *fhRawEff;
+  TH1 *fhRawRef;
   TH2 *fhRawRec2d;
   TH2 *fhTime;
 
   TIter next(listref) ;
+  Int_t counter=0;
   Float_t refmean[50][25]; 
   Float_t refrms[50][25]; 
   Float_t checkr = 0;
+  
+  Int_t nref = listref->GetEntries(); 
+  Int_t nrec = listrec->GetEntries(); 
   
   for (Int_t iii=4; iii<6; iii++){
     fhRawRec2d =(TH2*) listref->At(iii); 
@@ -236,6 +242,10 @@ Double_t AliT0QAChecker::CheckRaw(TObjArray *listrec , TObjArray *listref) const
       Double_t binmean = fhTime->
 	ProjectionY(Form("%s_py_%i_%i",                                                              fhTime ->GetName(), idet,icase),
 		    idet,idet+1)->GetMean();
+      Double_t rms= fhTime ->
+	ProjectionY(Form("%s_py%i_%i", 
+			 fhTime ->GetName(), idet,icase),
+		    idet,idet+1)->GetRMS();
       Double_t diffmean = binmean-refmean[icase-208][idet];
       
       if (TMath::Abs(diffmean) < 2 ) {
@@ -248,7 +258,7 @@ Double_t AliT0QAChecker::CheckRaw(TObjArray *listrec , TObjArray *listref) const
        checkr = 0.5;
        // printf(" Laser calibration signal shifted by  %f ps for PMT %s %i : check = %f\n",  diffmean*24.4, nameDev[icase-208].Data(),idet, checkr);
        AliDebug(AliQAv1::GetQADebugLevel(),
-		Form(" Laser calibration signal shifted by  %f ps (%f channels) for PMT %s %i : check = %f\n",  diffmean*24.4 ,diffmean , nameDev[icase-208].Data(),idet, checkr)) ; 
+		Form(" Laser calibration signal shifted by  %f ps (%f channels) for PMT %s %i : check = %f\n",  diffmean*24.4 ,diffmean , nameDev[icase-208],idet, checkr)) ; 
       }
      if (TMath::Abs(diffmean) > 5) { 
        checkr = 0.25;

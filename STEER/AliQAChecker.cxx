@@ -153,26 +153,6 @@ void AliQAChecker::GetRefSubDir(const char * det, const char * task, TDirectory 
   // Opens and returns the file with the reference data 
   dirFile = NULL ; 
   TString refStorage(AliQAv1::GetQARefStorage()) ;
-//  if (refStorage.Contains(AliQAv1::GetLabLocalFile())) {	
-//    refStorage.ReplaceAll(AliQAv1::GetLabLocalFile(), "") ; 
-//    refStorage += AliQAv1::GetQARefFileName() ;
-//    if ( fRefFile ) 
-//      if ( fRefFile->IsOpen() ) 
-//					fRefFile->Close() ; 
-//    fRefFile = TFile::Open(refStorage.Data()) ; 
-//    if (!fRefFile) { 
-//      AliError(Form("Cannot find reference file %s", refStorage.Data())) ; 
-//      dirFile = NULL ; 
-//    }
-//    dirFile = fRefFile->GetDirectory(det) ; 
-//    if (!dirFile) {
-//      AliWarning(Form("Directory %s not found in %d", det, refStorage.Data())) ; 
-//    } else {
-//			dirFile = dirFile->GetDirectory(task) ; 
-//      if (!dirFile) 
-//				AliWarning(Form("Directory %s/%s not found in %s", det, task, refStorage.Data())) ; 
-//    }  
-//  } else 
   if (!refStorage.Contains(AliQAv1::GetLabLocalOCDB()) && !refStorage.Contains(AliQAv1::GetLabAliEnOCDB())) {
     AliError(Form("%s is not a valid location for reference data", refStorage.Data())) ; 
     return ; 
@@ -180,15 +160,10 @@ void AliQAChecker::GetRefSubDir(const char * det, const char * task, TDirectory 
     AliQAManager* manQA = AliQAManager::QAManager(AliQAv1::GetTaskIndex(task)) ;
     dirOCDB = new TObjArray*[AliRecoParam::kNSpecies] ;	
     for (Int_t specie = 0 ; specie < AliRecoParam::kNSpecies ; specie++) {
-      dirOCDB[specie] = 0x0;
+      dirOCDB[specie] = NULL ; 
       if ( !AliQAv1::Instance()->IsEventSpecieSet(specie) ) 
         continue ; 
-      //if ( strcmp(AliQAv1::GetRefDataDirName(), "") == 0 ) { // the name of the last level of the directory is not set (EventSpecie)
-        // Get it from RunInfo
-        //if (!fRunInfo)  // not yet set, get the info from GRP
-        //  LoadRunInfoFromGRP() ; 
       AliQAv1::SetQARefDataDirName(specie) ;
-      //}
       if ( ! manQA->GetLock() ) { 
         manQA->SetDefaultStorage(AliQAv1::GetQARefStorage()) ; 
         manQA->SetSpecificStorage("*", AliQAv1::GetQARefStorage()) ;
@@ -205,9 +180,9 @@ void AliQAChecker::GetRefSubDir(const char * det, const char * task, TDirectory 
         }       
         TIter next(listDetQAD) ;
         TObjArray * ar ; 
-        while ( (ar = (TObjArray*)next()) )
+        while ( (ar = (TObjArray*)next()) ) 
           if ( listDetQAD ) 
-          dirOCDB[specie] = static_cast<TObjArray *>(listDetQAD->FindObject(Form("%s/%s", task, AliRecoParam::GetEventSpecieName(specie)))) ; 
+            dirOCDB[specie] = static_cast<TObjArray *>(listDetQAD->FindObject(Form("%s/%s", task, AliRecoParam::GetEventSpecieName(specie)))) ;             
       }
     }
   }
@@ -317,13 +292,13 @@ void AliQAChecker::LoadRunInfoFromGRP()
 }
 
 //_____________________________________________________________________________
-Bool_t AliQAChecker::Run(const char * fileName)
+Bool_t AliQAChecker::Run(const char * fileName, AliDetectorRecoParam * recoParam)
 {
   // run the Quality Assurance Checker for all tasks Hits, SDigits, Digits, DigitsR, RecPoints, TrackSegments, RecParticles and ESDs
   // starting from data in file  
   TStopwatch stopwatch;
   stopwatch.Start();
-
+  
   //search for all detectors QA directories
   TList * detKeyList = AliQAv1::GetQADataFile(fileName)->GetListOfKeys() ; 
   TIter nextd(detKeyList) ; 
@@ -364,6 +339,8 @@ Bool_t AliQAChecker::Run(const char * fileName)
         index = AliQAv1::kSIM ; 
       if ( taskName == AliQAv1::GetTaskName(AliQAv1::kDIGITS) ) 
         index = AliQAv1::kSIM ; 
+      if ( taskName == AliQAv1::GetTaskName(AliQAv1::kRAWS) ) 
+        index = AliQAv1::kRAW ;       
       if ( taskName == AliQAv1::GetTaskName(AliQAv1::kDIGITSR) ) 
         index = AliQAv1::kREC ; 
       if ( taskName == AliQAv1::GetTaskName(AliQAv1::kRECPOINTS) ) 
@@ -380,22 +357,24 @@ Bool_t AliQAChecker::Run(const char * fileName)
       TObjArray ** refOCDBDir = NULL ;	
       GetRefSubDir(detNameQA.Data(), taskName.Data(), refDir, refOCDBDir) ;
 		  qac->SetRefandData(refDir, refOCDBDir, taskDir) ;
-		  qac->Run(index) ; 
+		  qac->Run(index, recoParam) ; 
     }
   }
-  AliInfo("QA performed for following detectors:") ; 
+  TString detList ; 
   for ( Int_t det = 0; det < AliQAv1::kNDET; det++) {
     if (fFoundDetectors.Contains(AliQAv1::GetDetName(det))) {
-      AliInfoClass(Form("%s, ",AliQAv1::GetDetName(det))) ; 
+      detList += AliQAv1::GetDetName(det) ; 
+      detList += " " ; 
       fFoundDetectors.ReplaceAll(AliQAv1::GetDetName(det), "") ; 
+      AliQAv1::Instance()->Show(AliQAv1::GetDetIndex(AliQAv1::GetDetName(det))) ; 
     }	
   }
-  printf("\n") ; 
+  AliInfo(Form("QA performed for following detectors: %s", detList.Data())) ; 
   return kTRUE ; 
 }
 
 //_____________________________________________________________________________
-Bool_t AliQAChecker::Run(AliQAv1::DETECTORINDEX_t det, AliQAv1::TASKINDEX_t task, TObjArray ** list)
+Bool_t AliQAChecker::Run(AliQAv1::DETECTORINDEX_t det, AliQAv1::TASKINDEX_t task, TObjArray ** list, AliDetectorRecoParam * recoParam)
 {
 	// run the Quality Assurance Checker for detector det, for task task starting from data in list
 
@@ -430,7 +409,7 @@ Bool_t AliQAChecker::Run(AliQAv1::DETECTORINDEX_t det, AliQAv1::TASKINDEX_t task
   qac->Init(det) ; 
   GetRefSubDir(AliQAv1::GetDetName(det), AliQAv1::GetTaskName(task), refDir, refOCDBDir) ;
   qac->SetRefandData(refDir, refOCDBDir) ; 
-  qac->Run(index, list) ; 
+  qac->Run(index, list, recoParam) ; 
   
   // make the image 
   qac->MakeImage(list, task, AliQAv1::Mode(task)) ; 
@@ -439,7 +418,7 @@ Bool_t AliQAChecker::Run(AliQAv1::DETECTORINDEX_t det, AliQAv1::TASKINDEX_t task
 }
 
 //_____________________________________________________________________________
-Bool_t AliQAChecker::Run(AliQAv1::DETECTORINDEX_t det, AliQAv1::TASKINDEX_t task, TNtupleD ** list)
+Bool_t AliQAChecker::Run(AliQAv1::DETECTORINDEX_t det, AliQAv1::TASKINDEX_t task, TNtupleD ** list, AliDetectorRecoParam * recoParam)
 {
 	// run the Quality Assurance Checker for detector det, for task task starting from data in list
   
@@ -474,7 +453,7 @@ Bool_t AliQAChecker::Run(AliQAv1::DETECTORINDEX_t det, AliQAv1::TASKINDEX_t task
   qac->Init(det) ; 
   GetRefSubDir(AliQAv1::GetDetName(det), AliQAv1::GetTaskName(task), refDir, refOCDBDir) ;
   qac->SetRefandData(refDir, refOCDBDir) ; 
-  qac->Run(index, list) ; 
+  qac->Run(index, list, recoParam) ; 
 
   return kTRUE ; 
 }

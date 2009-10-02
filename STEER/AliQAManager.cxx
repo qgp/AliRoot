@@ -1011,7 +1011,7 @@ Bool_t AliQAManager::MergeData(const Int_t runNumber, const char *fileName) cons
   
   TFileMerger merger(kFALSE) ; 
   TString outFileName = fileName;
-  if (outFileName.IsNull()) outFileName.Form("Merged.%s.Data.root",AliQAv1::GetQADataFileName());
+  if (outFileName.IsNull()) outFileName.Form("Merged.%s.Data.%d.root",AliQAv1::GetQADataFileName(), runNumber);
   merger.OutputFile(outFileName.Data()) ; 
   for (UInt_t iDet = 0; iDet < fgkNDetectors ; iDet++) {
     Char_t * file = gSystem->Which(gSystem->WorkingDirectory(), Form("%s.%s.%d.root", AliQAv1::GetDetName(iDet), AliQAv1::GetQADataFileName(), runNumber)); 
