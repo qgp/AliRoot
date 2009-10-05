@@ -1,4 +1,5 @@
-// @(#) $Id$
+//-*- Mode: C++ -*-
+// $Id$
 
 #ifndef ALIHLTLOGGING_H
 #define ALIHLTLOGGING_H
@@ -26,15 +27,16 @@ class AliHLTComponentHandler;
 /* the logging macros can be used inside methods of classes which inherit from 
  * AliHLTLogging
  */
-// HLTMessage is not filtered
-#define HLTMessage( ... )   LoggingVarargs(kHLTLogNone,      NULL , NULL , __FILE__ , __LINE__ , __VA_ARGS__ )
-
 // function name
 #if defined(__GNUC__) || defined(__ICC) || defined(__ECC) || defined(__APPLE__)
 #define FUNCTIONNAME() __FUNCTION__
 #else
 #define FUNCTIONNAME() "???"
 #endif
+
+#ifndef ALIHLTLOGGINGVARIADICFREE_H
+// HLTMessage is not filtered
+#define HLTMessage( ... )   LoggingVarargs(kHLTLogNone,      NULL , NULL , __FILE__ , __LINE__ , __VA_ARGS__ )
 
 // the following macros are filtered by the Global and Local Log Filter
 #define HLTBenchmark( ... ) LoggingVarargs(kHLTLogBenchmark, Class_Name() , FUNCTIONNAME() , __FILE__ , __LINE__ , __VA_ARGS__ )
@@ -48,6 +50,23 @@ class AliHLTComponentHandler;
 #define HLTError( ... )     if (CheckFilter(kHLTLogError))   LoggingVarargs(kHLTLogError,     Class_Name() , FUNCTIONNAME() , __FILE__ , __LINE__ , __VA_ARGS__ )
 #define HLTFatal( ... )     if (CheckFilter(kHLTLogFatal))   LoggingVarargs(kHLTLogFatal,     Class_Name() , FUNCTIONNAME() , __FILE__ , __LINE__ , __VA_ARGS__ )
 #define HLTImportant( ... ) if (CheckFilter(kHLTLogImportant))LoggingVarargs(kHLTLogImportant,Class_Name() , FUNCTIONNAME() , __FILE__ , __LINE__ , __VA_ARGS__ )
+
+// the same macros are defined variadic free, in that case the message must be complete
+// include AliHLTLoggingVariadicFree.h
+#else //ALIHLTLOGGINGVARIADICFREE_H
+#define HLTMessage( message )   LoggingVarargs(kHLTLogNone,      NULL , NULL , __FILE__ , __LINE__ , message )
+#define HLTBenchmark( message ) LoggingVarargs(kHLTLogBenchmark, Class_Name() , FUNCTIONNAME() , __FILE__ , __LINE__ , message )
+#ifdef __DEBUG
+#define HLTDebug( message )     if (CheckFilter(kHLTLogDebug) && CheckGroup(Class_Name())) LoggingVarargs(kHLTLogDebug,     Class_Name() , FUNCTIONNAME() , __FILE__ , __LINE__ , message )
+#else
+#define HLTDebug( message )
+#endif
+#define HLTInfo( message )      if (CheckFilter(kHLTLogInfo))    LoggingVarargs(kHLTLogInfo,      Class_Name() , FUNCTIONNAME() , __FILE__ , __LINE__ , message )
+#define HLTWarning( message )   if (CheckFilter(kHLTLogWarning)) LoggingVarargs(kHLTLogWarning,   Class_Name() , FUNCTIONNAME() , __FILE__ , __LINE__ , message )
+#define HLTError( message )     if (CheckFilter(kHLTLogError))   LoggingVarargs(kHLTLogError,     Class_Name() , FUNCTIONNAME() , __FILE__ , __LINE__ , message )
+#define HLTFatal( message )     if (CheckFilter(kHLTLogFatal))   LoggingVarargs(kHLTLogFatal,     Class_Name() , FUNCTIONNAME() , __FILE__ , __LINE__ , message )
+#define HLTImportant( message ) if (CheckFilter(kHLTLogImportant))LoggingVarargs(kHLTLogImportant,Class_Name() , FUNCTIONNAME() , __FILE__ , __LINE__ , message )
+#endif //ALIHLTLOGGINGVARIADICFREE_H
 
 // helper macro to set the keyword
 #define HLTLogKeyword(a)    AliHLTKeyword hltlogTmpkey(this, a)
