@@ -42,6 +42,7 @@
 #include "AliQAChecker.h"
 #include "AliQACheckerBase.h"
 #include "AliQADataMaker.h"
+#include "AliDetectorRecoParam.h"
 
 ClassImp(AliQACheckerBase)
 
@@ -51,7 +52,7 @@ AliQACheckerBase::AliQACheckerBase(const char * name, const char * title) :
   TNamed(name, title), 
   fDataSubDir(0x0),
   fRefSubDir(0x0), 
-  fRefOCDBSubDir(0x0), 
+  fRefOCDBSubDir(new TObjArray*[AliRecoParam::kNSpecies]), 
   fLowTestValue(0x0),
   fUpTestValue(0x0),
   fImage(new TCanvas*[AliRecoParam::kNSpecies]), 
@@ -79,8 +80,10 @@ AliQACheckerBase::AliQACheckerBase(const char * name, const char * title) :
     AliInfo(Form("%s", text)) ; 
   }
   
-  for (Int_t specie = 0 ; specie < AliRecoParam::kNSpecies ; specie++) 
+  for (Int_t specie = 0 ; specie < AliRecoParam::kNSpecies ; specie++) {
     fImage[specie] = NULL ; 
+    fRefOCDBSubDir[specie] = NULL ;
+  }
 }
 
 //____________________________________________________________________________ 
@@ -99,8 +102,10 @@ AliQACheckerBase::AliQACheckerBase(const AliQACheckerBase& qac) :
     fLowTestValue[index]  = qac.fLowTestValue[index] ; 
     fUpTestValue[index] = qac.fUpTestValue[index] ; 
   }
-  for (Int_t specie = 0 ; specie < AliRecoParam::kNSpecies ; specie++) 
-    fImage[specie] = qac.fImage[specie] ; 
+    for (Int_t specie = 0 ; specie < AliRecoParam::kNSpecies ; specie++) {
+      fImage[specie] = qac.fImage[specie] ; 
+      fRefOCDBSubDir[specie] = qac.fRefOCDBSubDir[specie] ; 
+    }
 }
 
 //____________________________________________________________________________
@@ -120,63 +125,56 @@ AliQACheckerBase::~AliQACheckerBase()
   for (Int_t esIndex = 0 ; esIndex < AliRecoParam::kNSpecies ; esIndex++) {
     if ( fImage[esIndex] ) 
       delete fImage[esIndex] ;
+    if ( fRefOCDBSubDir[esIndex] ) 
+      delete fRefOCDBSubDir[esIndex] ; 
   }
   delete[] fImage ; 
+  delete[] fRefOCDBSubDir ; 
 }
 
 //____________________________________________________________________________
-Double_t * AliQACheckerBase::Check(AliQAv1::ALITASK_t /*index*/) 
+Double_t * AliQACheckerBase::Check(AliQAv1::ALITASK_t index, AliDetectorRecoParam * recoParam) 
 {
   // Performs a basic checking
   // Compares all the histograms stored in the directory
   // With reference histograms either in a file of in OCDB  
 
-	Double_t * test = new Double_t[AliRecoParam::kNSpecies] ;
-	Int_t count[AliRecoParam::kNSpecies]   = { 0 }; 
-
-  for (Int_t specie = 0 ; specie < AliRecoParam::kNSpecies ; specie++) {
-    test[specie] = 1.0 ; 
+  TObjArray ** list = new TObjArray *[AliRecoParam::kNSpecies] ; 
+  Int_t specie ;
+  for (specie = 0 ; specie < AliRecoParam::kNSpecies ; specie++) {
+    list[specie] =  new TObjArray(AliQAv1::GetMaxQAObj()) ; 
     if ( !AliQAv1::Instance()->IsEventSpecieSet(specie) ) 
       continue ; 
-    if (!fDataSubDir) {
-      test[specie] = 0. ; // nothing to check
-    } else if (!fRefSubDir && !fRefOCDBSubDir) {
-        test[specie] = -1 ; // no reference data
-    } else {
+    if (fDataSubDir) {
       TList * keyList = fDataSubDir->GetListOfKeys() ; 
       TIter next(keyList) ; 
       TKey * key ;
-      count[specie] = 0 ; 
       while ( (key = static_cast<TKey *>(next())) ) {
-        TObject * odata = fRefSubDir->Get(key->GetName()) ; 
-        if ( odata->IsA()->InheritsFrom("TH1") ) {
-          TH1 * hdata = static_cast<TH1*>(odata) ;
-          TH1 * href = NULL ; 
-          if (fRefSubDir) 
-            href  = static_cast<TH1*>(fRefSubDir->Get(key->GetName())) ;
-          else if (fRefOCDBSubDir[specie]) {  
-            href  = static_cast<TH1*>(fRefOCDBSubDir[specie]->FindObject(key->GetName())) ;
-          }
-          if (!href) 
-            test[specie] = -1 ; // no reference data ; 
-          else {
-            Double_t rv =  DiffK(hdata, href) ;
-            AliDebug(AliQAv1::GetQADebugLevel(), Form("%s ->Test = %f", hdata->GetName(), rv)) ; 
-            test[specie] += rv ; 
-            count[specie]++ ; 
-          }
-        } else
-          AliError(Form("%s Is a Classname that cannot be processed", key->GetClassName())) ;
+        TDirectory * specieDir = fDataSubDir->GetDirectory(key->GetName()) ; 
+        TList * keykeyList = specieDir->GetListOfKeys() ; 
+        TIter next2(keykeyList) ; 
+        TKey * keykey ;
+        while ( (keykey = static_cast<TKey *>(next2())) ) {
+          TObject * odata = specieDir->Get(keykey->GetName()) ; 
+          if ( odata->IsA()->InheritsFrom("TH1") ) {
+            TH1 * hdata = static_cast<TH1*>(odata) ;
+            list[specie]->Add(hdata) ; 
+          } else if (!odata->IsA()->InheritsFrom("TDirectory")) // skip the expert directory
+            AliError(Form("%s Is a Classname that cannot be processed", key->GetClassName())) ;
+        }
       }
-      if (count[specie] != 0) 
-        test[specie] /= count[specie] ;
     }
   }
- 	return test ;
+ 
+  Double_t * test = Check(index, list, recoParam) ;
+  
+  delete[] list ; 
+    
+  return test ;
 }  
 
 //____________________________________________________________________________
-Double_t * AliQACheckerBase::Check(AliQAv1::ALITASK_t /*index*/, TObjArray ** list) 
+Double_t * AliQACheckerBase::Check(AliQAv1::ALITASK_t /*index*/, TObjArray ** list, AliDetectorRecoParam * recoParam) 
 {
   // Performs a basic checking
   // Compares all the histograms in the list
@@ -199,34 +197,33 @@ Double_t * AliQACheckerBase::Check(AliQAv1::ALITASK_t /*index*/, TObjArray ** li
         count[specie] = 0 ; 
         while ( (hdata = static_cast<TH1 *>(next())) ) {
           TString cln(hdata->ClassName()) ; 
-          if ( ! cln.Contains("TH1") )
-            continue ;           
-          if ( hdata) { 
-            if ( hdata->TestBit(AliQAv1::GetExpertBit()) )  // does not perform the test for expert data
-              continue ; 
-            TH1 * href = NULL ; 
-            if (fRefSubDir) 
-              href  = static_cast<TH1*>(fRefSubDir->Get(hdata->GetName())) ;
-            else if (fRefOCDBSubDir[specie])
-              href  = static_cast<TH1*>(fRefOCDBSubDir[specie]->FindObject(hdata->GetName())) ;
-            if (!href) 
-              test[specie] = -1 ; // no reference data ; 
-            else {
-              Double_t rv =  DiffK(hdata, href) ;
-              AliDebug(AliQAv1::GetQADebugLevel(), Form("%s ->Test = %f", hdata->GetName(), rv)) ; 
-              test[specie] += rv ; 
-              count[specie]++ ; 
+          if ( cln.Contains("TH1") ) {
+            if ( hdata) { 
+              if ( hdata->TestBit(AliQAv1::GetExpertBit()) )  // does not perform the test for expert data
+                continue ; 
+              TH1 * href = NULL ; 
+              if (fRefSubDir) 
+                href  = static_cast<TH1*>(fRefSubDir->Get(hdata->GetName())) ;
+              else if (fRefOCDBSubDir[specie])
+                href  = static_cast<TH1*>(fRefOCDBSubDir[specie]->FindObject(hdata->GetName())) ;
+              if (!href) 
+                test[specie] = -1 ; // no reference data ; 
+              else {
+                Double_t rv =  DiffK(hdata, href) ;
+                AliDebug(AliQAv1::GetQADebugLevel(), Form("%s ->Test = %f", hdata->GetName(), rv)) ; 
+                test[specie] += rv ; 
+                count[specie]++ ;
+              }
             }
-          } 
-          else
+          } else
             AliError("Data type cannot be processed") ;
+          if (count[specie] != 0) 
+            test[specie] /= count[specie] ;
         }
-        if (count[specie] != 0) 
-          test[specie] /= count[specie] ;
       }
     }
   }
-	return test ;
+  return test ;
 }  
 
 
@@ -255,15 +252,28 @@ Double_t AliQACheckerBase::DiffK(const TH1 * href, const TH1 * hin) const
 }
 
 //____________________________________________________________________________
-void AliQACheckerBase::Run(AliQAv1::ALITASK_t index, TObjArray ** list) 
+void AliQACheckerBase::Run(AliQAv1::ALITASK_t index, AliDetectorRecoParam * recoParam) 
 { 
 	AliDebug(AliQAv1::GetQADebugLevel(), Form("Processing %s", AliQAv1::GetAliTaskName(index))) ; 
   
 	Double_t * rv = NULL ;
-  if ( !list) 
-    rv = Check(index) ;
-  else 
-    rv = Check(index, list) ;
+  rv = Check(index, recoParam) ;
+	SetQA(index, rv) ; 	
+	
+  AliDebug(AliQAv1::GetQADebugLevel(), Form("Test result of %s", AliQAv1::GetAliTaskName(index))) ;
+	
+  if (rv) 
+    delete [] rv ; 
+  Finish() ; 
+}
+
+//____________________________________________________________________________
+void AliQACheckerBase::Run(AliQAv1::ALITASK_t index, TObjArray ** list, AliDetectorRecoParam * recoParam) 
+{ 
+	AliDebug(AliQAv1::GetQADebugLevel(), Form("Processing %s", AliQAv1::GetAliTaskName(index))) ; 
+  
+	Double_t * rv = NULL ;
+  rv = Check(index, list, recoParam) ;
 	SetQA(index, rv) ; 	
 	
   AliDebug(AliQAv1::GetQADebugLevel(), Form("Test result of %s", AliQAv1::GetAliTaskName(index))) ;
@@ -308,7 +318,7 @@ void AliQACheckerBase::MakeImage( TObjArray ** list, AliQAv1::TASKINDEX_t task, 
   } else {
     AliDebug(AliQAv1::GetQADebugLevel(), Form("%d histograms will be plotted for %s %s\n", nImages, GetName(), AliQAv1::GetTaskName(task).Data())) ;  
     for (Int_t esIndex = 0 ; esIndex < AliRecoParam::kNSpecies ; esIndex++) {
-      if (! AliQAv1::Instance(AliQAv1::GetDetIndex(GetName()))->IsEventSpecieSet(AliRecoParam::ConvertIndex(esIndex)) ) 
+      if (! AliQAv1::Instance(AliQAv1::GetDetIndex(GetName()))->IsEventSpecieSet(AliRecoParam::ConvertIndex(esIndex)) || list[esIndex]->GetEntries() == 0) 
         continue ;
       const Char_t * title = Form("QA_%s_%s_%s", GetName(), AliQAv1::GetTaskName(task).Data(), AliRecoParam::GetEventSpecieName(esIndex)) ; 
       if ( !fImage[esIndex] ) {

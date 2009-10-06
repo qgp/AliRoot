@@ -14,7 +14,7 @@
 #include "AliDAQ.h"
 #include "AliLog.h"
 #include "AliQA.h"
-#include "AliQADataMakerSteer.h"
+#include "AliQAManager.h"
 #include "AliRawReader.h"
 #include "AliRawReaderRoot.h"
 #include "AliTRDrawStreamBase.h"
@@ -23,7 +23,7 @@
 TString ClassName() { return "rawqa" ; } 
 
 //________________________________qa______________________________________
-void rawqa(const Int_t runNumber, Int_t maxFiles = 10, const char* year = "08") 
+void rawqa(const Int_t runNumber, Int_t maxFiles = 10, const char* year = "09") 
 {	
 //	char * kDefaultOCDBStorage = Form("alien://folder=/alice/data/20%s/LHC%sd/OCDB/", year, year) ; 
 	char * kDefaultOCDBStorage = Form("local://$ALICE_ROOT/OCDB") ; 
@@ -83,7 +83,8 @@ void rawqa(const Int_t runNumber, Int_t maxFiles = 10, const char* year = "08")
 	AliCDBManager* man = AliCDBManager::Instance();
 	man->SetDefaultStorage(kDefaultOCDBStorage) ;  
 	man->SetRun(runNumber) ; 
-	AliQAManager qam("rec") ; 
+  AliQAManager * qam = AliQAManager::QAManager(AliQAv1::kRECMODE) ; 
+  qam->SetWriteExpert() ; 
   qam->SetDefaultStorage(AliQA::GetQARefStorage()) ; 
   qam->SetRun(runNumber) ; 
     
