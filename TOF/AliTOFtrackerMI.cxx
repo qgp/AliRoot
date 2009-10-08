@@ -354,10 +354,10 @@ void AliTOFtrackerMI::MatchTracksMI(Bool_t mLastStep){
     Float_t scalefact=3.;    
     Double_t dphi=
       scalefact*
-      ((5*TMath::Sqrt(cov[0]) + 3.*fDy + 10.*TMath::Abs(par[2]))/fR); 
+      ((5*TMath::Sqrt(TMath::Abs(cov[0])) + 3.*fDy + 10.*TMath::Abs(par[2]))/fR); 
     Double_t dz=
       scalefact*
-      (5*TMath::Sqrt(cov[2]) + 3.*fDz + 10.*TMath::Abs(par[3]));
+      (5*TMath::Sqrt(TMath::Abs(cov[2])) + 3.*fDz + 10.*TMath::Abs(par[3]));
     
     Double_t phi=TMath::ATan2(par[0],x) + trackTOFin->GetAlpha();
     if (phi<-TMath::Pi())phi+=2*TMath::Pi();
@@ -758,8 +758,8 @@ void    AliTOFtrackerMI::GetLikelihood(Float_t dy, Float_t dz, const Double_t *c
 
   
   Float_t normwidth, normd, p0,p1;  
-  Float_t sigmay = TMath::Max(TMath::Sqrt(cov[0]+kMeanSigmaY*kMeanSigmaY),kMaxSigmaY);
-  Float_t sigmaz = TMath::Max(TMath::Sqrt(cov[2]+kMeanSigmaZ*kMeanSigmaZ),kMaxSigmaZ);
+  Float_t sigmay = TMath::Max(TMath::Sqrt(TMath::Abs(cov[0])+kMeanSigmaY*kMeanSigmaY),kMaxSigmaY);
+  Float_t sigmaz = TMath::Max(TMath::Sqrt(TMath::Abs(cov[2])+kMeanSigmaZ*kMeanSigmaZ),kMaxSigmaZ);
 
   py=0;
   pz=0;  
