@@ -1,7 +1,6 @@
 #-*- Mode: Makefile -*-
-# $Id$
 
-SRCS:=monitorCheck.cxx
+SRCS  := alionlinemonitor.cxx
 
 EINCLUDE+= TPC ITS RAW
 
@@ -16,6 +15,8 @@ ELIBSDIR:=
 
 EINCLUDE+= ${DATE_COMMON_DEFS} ${DATE_MONITOR_DIR}
 
+endif
+
 ifdef DIMDIR
 
 EINCLUDE += $(DIMDIR)/dim
@@ -24,8 +25,6 @@ ELIBSDIR += $(DIMDIR)/$(ODIR)
 
 endif
 
-endif
-
 ifneq (,$(findstring macosx,$(ALICE_TARGET)))
-PACKLDFLAGS:=$(LDFLAGS) $(ELIBS:%=-Wl,-u,_G__cpp_setupG__%)
+PACKLDFLAGS:=$(LDFLAGS) $($(filter-out dim,$(ELIBS)):%=-Wl,-u,_G__cpp_setupG__%)
 endif
