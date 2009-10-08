@@ -39,7 +39,7 @@
 
 ClassImp(AliRecoParam)
 
-TString AliRecoParam::fkgEventSpecieName[] = {"Default", "LowMultiplicity", "HighMultiplicity", "Cosmic", "Calib", "Unknown"} ; 
+TString AliRecoParam::fkgEventSpecieName[] = {"Default", "LowMultiplicity", "HighMultiplicity", "Cosmic", "Calibration", "Unknown"} ; 
 
 AliRecoParam::AliRecoParam(): 
   TObject(),
