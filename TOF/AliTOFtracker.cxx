@@ -394,10 +394,10 @@ void AliTOFtracker::MatchTracks( Bool_t mLastStep){
 
     Double_t dphi=
       scaleFact*
-      ((5*TMath::Sqrt(cov[0]) + 0.5*dY + 2.5*TMath::Abs(par[2]))/sensRadius); 
+      ((5*TMath::Sqrt(TMath::Abs(cov[0])) + 0.5*dY + 2.5*TMath::Abs(par[2]))/sensRadius); 
     Double_t dz=
        scaleFact*
-       (5*TMath::Sqrt(cov[2]) + 0.5*dZ + 2.5*TMath::Abs(par[3]));
+      (5*TMath::Sqrt(TMath::Abs(cov[2])) + 0.5*dZ + 2.5*TMath::Abs(par[3]));
 
     Double_t phi=TMath::ATan2(par[0],x) + trackTOFin->GetAlpha();
     if (phi<-TMath::Pi())phi+=2*TMath::Pi();
@@ -675,8 +675,8 @@ void AliTOFtracker::MatchTracks( Bool_t mLastStep){
     // Fill Reco-QA histos for Reconstruction
     fHRecNClus->Fill(nc);
     fHRecDist->Fill(mindist);
-    fHRecSigYVsP->Fill(mom,TMath::Sqrt(cov[0]));
-    fHRecSigZVsP->Fill(mom,TMath::Sqrt(cov[2]));
+    fHRecSigYVsP->Fill(mom,TMath::Sqrt(TMath::Abs(cov[0])));
+    fHRecSigZVsP->Fill(mom,TMath::Sqrt(TMath::Abs(cov[2])));
     fHRecSigYVsPWin->Fill(mom,dphi*sensRadius);
     fHRecSigZVsPWin->Fill(mom,dz);
 
