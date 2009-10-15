@@ -532,8 +532,6 @@ class AliTRDrawStream : public AliTRDrawStreamBase
 
   // this is a temporary solution!
   // baseline should come with the HC header word 2 (count from 0!)
-  static void    SetSubtractBaseline(Int_t baseline) {fgCommonAdditive = baseline;}
-  Int_t          GetCommonAdditive() const {return fgCommonAdditive;} // return the common additive
 
   static void    EnableDecodeConfigData() {fgEnableDecodeConfigData = kTRUE;} // allow configuration data decoding
   static Bool_t  fgEnableDecodeConfigData; // flag to decode configuration data
@@ -639,6 +637,7 @@ class AliTRDrawStream : public AliTRDrawStreamBase
   AliRawReader   *fRawReader; //! raw reader    
 
   AliTRDfeeParam      *fTRDfeeParam; // pointer to the fee params
+  Int_t   fCommonAdditive;
 
   // STATIC 
 
@@ -666,10 +665,6 @@ class AliTRDrawStream : public AliTRDrawStreamBase
   static Int_t  fgDumpingLayer; // layer number to dump MCM data words
   static Int_t  fgDumpingROB; // rob number to dump MCM data words
   static Int_t  fgDumpingMCM; // mcm number to dump MCM data words
-
-  // this is a temporary solution!
-  // baseline should come with the HC header word 2 (count from 0!)
-  static Int_t   fgCommonAdditive; // common additive  - should be decoded! from HC word2
 
   // ----------------- DATA MEMBERS STOP
 

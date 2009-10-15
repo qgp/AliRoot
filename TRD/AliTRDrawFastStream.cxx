@@ -89,7 +89,7 @@
 #define HC_NTIMEBINS(w) GET_VALUE_AT(w,0x3f,26)
 #define HC_BUNCH_CROSS_COUNTER(w) GET_VALUE_AT(w,0xffff,10)
 #define HC_PRETRIGGER_COUNTER(w) GET_VALUE_AT(w,0xf,6)
-#define HC_PRETRIGGER_PHASE(w) GET_VALUE_AT(w,0xf,6)
+#define HC_PRETRIGGER_PHASE(w) GET_VALUE_AT(w,0xf,2)
 
 // MCM word and ADC mask
 #define MCM_HEADER_MASK_ERR(w) ( ((w) & (0xf)) == (0xc) ? 0 : 1) // 0 if OK!!!
@@ -120,7 +120,6 @@ Bool_t AliTRDrawFastStream::fgStackLinkNumberChecker = kFALSE;
 Bool_t AliTRDrawFastStream::fgSkipData = kTRUE;
 Bool_t AliTRDrawFastStream::fgEnableDecodeConfigData = kFALSE;
 Int_t AliTRDrawFastStream::fgDumpHead = -1;
-Int_t  AliTRDrawFastStream::fgCommonAdditive = 0;
 Short_t AliTRDrawFastStream::fgMCMordering[] =
   {
     12, 13, 14, 15, 8, 9, 10, 11, 4, 5, 6, 7, 0, 1, 2, 3 
@@ -175,6 +174,7 @@ AliTRDrawFastStream::AliTRDrawFastStream()
   , fGeometry(0)
   , fRawReader(0)
   , fTRDfeeParam(0)
+  , fCommonAdditive(0)
 {
   //
   // default constructor
@@ -220,6 +220,7 @@ AliTRDrawFastStream::AliTRDrawFastStream(AliRawReader *rawReader)
   , fGeometry(0)
   , fRawReader(rawReader)
   , fTRDfeeParam(0)
+  , fCommonAdditive(0)
 {
   //
   // default constructor
@@ -269,6 +270,7 @@ AliTRDrawFastStream::AliTRDrawFastStream(const AliTRDrawFastStream& /*st*/)
   , fGeometry(0)
   , fRawReader(0)
   , fTRDfeeParam(0)
+  , fCommonAdditive(0)
 {
   //
   // Copy constructor
@@ -670,15 +672,18 @@ Int_t AliTRDrawFastStream::NextChamber(AliTRDdigitsManager *digitsManager, UInt_
 
       if (!digits) return -1;
 
-      Int_t rowMax = GetRowMax();
+      //Int_t rowMax = GetRowMax();
+      Int_t rowMax = fGeometry->RowmaxC1(); // we use maximum row number among all detectors to reuse memory
       Int_t colMax = GetColMax();
       Int_t ntbins = GetGlobalNTimeBins(); 
 
-      // Set number of timebin into digitparam
+      // Set digitparam variables
+      digitsparam = (AliTRDdigitsParam *) digitsManager->GetDigitsParam();
       if (!fIsGlobalDigitsParamSet){
-        digitsparam = (AliTRDdigitsParam *) digitsManager->GetDigitsParam();
         digitsparam->SetCheckOCDB(kFALSE);
         digitsparam->SetNTimeBins(ntbins);
+	fCommonAdditive=10;
+        digitsparam->SetADCbaseline(fCommonAdditive);
         fIsGlobalDigitsParamSet = kTRUE;
       } 
 
@@ -739,6 +744,9 @@ Int_t AliTRDrawFastStream::NextChamber(AliTRDdigitsManager *digitsManager, UInt_
 */ // [mj temp]
 	  }
     else SeekEndOfData(); // make sure that finish off with the end of data markers
+
+    // set pritrigger phase since it is only avaliable after decoding HC header 
+    digitsparam->SetPretiggerPhase(det,GetPreTriggerPhase());
 
     // copy tracklets in memory into tracklet container
     if (trackletContainer) {
@@ -1622,23 +1630,19 @@ Bool_t AliTRDrawFastStream::DecodeADC(AliTRDdigitsManager *digitsManager, AliTRD
      }
      // decode and put into the digit container
      Int_t adcSignals[3];
-     adcSignals[0] = ((*fpPos & 0x00000ffc) >>  2) - fgCommonAdditive;
-     adcSignals[1] = ((*fpPos & 0x003ff000) >> 12) - fgCommonAdditive;
-     adcSignals[2] = ((*fpPos & 0xffc00000) >> 22) - fgCommonAdditive;
+     adcSignals[0] = ((*fpPos & 0x00000ffc) >>  2);
+     adcSignals[1] = ((*fpPos & 0x003ff000) >> 12);
+     adcSignals[2] = ((*fpPos & 0xffc00000) >> 22);
 
      if(GetCol() < 0 || (!fSharedPadsOn & fIsShared)) {fpPos++; continue;};	
+
      for (Int_t i = 0; i < 3; i++) {
-        if (adcSignals[i] > 0) { 
-	        if (fSharedPadsOn) 
-            digits->SetDataByAdcCol(GetRow(), GetExtendedCol(), fTbinADC + i, adcSignals[i]);
-	        else 
-            digits->SetData(GetRow(), GetCol(), fTbinADC + i, adcSignals[i]);
-	        indexes->AddIndexRC(GetRow(), GetCol());
-	      }	
+        digits->SetDataByAdcCol(GetRow(), GetExtendedCol(), fTbinADC + i, adcSignals[i]);
+        indexes->AddIndexRC(GetRow(), GetCol());
         if (digitsManager->UsesDictionaries()) {
-          track0->SetData(GetRow(), GetCol(), fTbinADC + i, 0);
-          track1->SetData(GetRow(), GetCol(), fTbinADC + i, 0);
-          track2->SetData(GetRow(), GetCol(), fTbinADC + i, 0);
+	  track0->SetData(GetRow(), GetCol(), fTbinADC + i, 0);
+	  track1->SetData(GetRow(), GetCol(), fTbinADC + i, 0);
+	  track2->SetData(GetRow(), GetCol(), fTbinADC + i, 0);
         }
      } // i
      fTbinADC += 3;
@@ -1665,17 +1669,12 @@ Bool_t AliTRDrawFastStream::DecodeADCExtended(AliTRDdigitsManager *digitsManager
   fMCM.fSingleADCwords  = ((*fpPos & 0x00000f00) >>  8);
   
   Int_t adcFirst2Signals[2];
-  adcFirst2Signals[0] = ((*fpPos & 0x003ff000) >> 12) - fgCommonAdditive;
-  adcFirst2Signals[1] = ((*fpPos & 0xffc00000) >> 22) - fgCommonAdditive;
+  adcFirst2Signals[0] = ((*fpPos & 0x003ff000) >> 12);
+  adcFirst2Signals[1] = ((*fpPos & 0xffc00000) >> 22);
 
   for (Int_t i = 0; i < 2; i++) {
-     if (adcFirst2Signals[i] > 0) {
-       if (fSharedPadsOn)
-         digits->SetDataByAdcCol(GetRow(), GetExtendedCol(), fTbinADC + i, adcFirst2Signals[i]);
-       else
-         digits->SetData(GetRow(), GetCol(), fTbinADC + i, adcFirst2Signals[i]);
-         indexes->AddIndexRC(GetRow(), GetCol());
-     }
+     digits->SetDataByAdcCol(GetRow(), GetExtendedCol(), fTbinADC + i, adcFirst2Signals[i]);
+     indexes->AddIndexRC(GetRow(), GetCol());
      if (digitsManager->UsesDictionaries()) {
        track0->SetData(GetRow(), GetCol(), fTbinADC + i, 0);
        track1->SetData(GetRow(), GetCol(), fTbinADC + i, 0);
@@ -1710,23 +1709,18 @@ Bool_t AliTRDrawFastStream::DecodeADCExtended(AliTRDdigitsManager *digitsManager
      }
      // decode and put into the digit container
      Int_t adcSignals[3];
-     adcSignals[0] = ((*fpPos & 0x00000ffc) >>  2) - fgCommonAdditive;
-     adcSignals[1] = ((*fpPos & 0x003ff000) >> 12) - fgCommonAdditive;
-     adcSignals[2] = ((*fpPos & 0xffc00000) >> 22) - fgCommonAdditive;
+     adcSignals[0] = ((*fpPos & 0x00000ffc) >>  2);
+     adcSignals[1] = ((*fpPos & 0x003ff000) >> 12);
+     adcSignals[2] = ((*fpPos & 0xffc00000) >> 22);
 
      if(GetCol() < 0 || (!fSharedPadsOn & fIsShared)) {fpPos++; continue;};	
      for (Int_t i = 0; i < 3; i++) {
-        if (adcSignals[i] > 0) { 
-	        if (fSharedPadsOn) 
-            digits->SetDataByAdcCol(GetRow(), GetExtendedCol(), fTbinADC + 2 + i, adcSignals[i]);
-	        else 
-            digits->SetData(GetRow(), GetCol(), fTbinADC + 2 + i, adcSignals[i]);
-	        indexes->AddIndexRC(GetRow(), GetCol());
-	      }	
+        digits->SetDataByAdcCol(GetRow(), GetExtendedCol(), fTbinADC + 2 + i, adcSignals[i]);
+        indexes->AddIndexRC(GetRow(), GetCol());
         if (digitsManager->UsesDictionaries()) {
-          track0->SetData(GetRow(), GetCol(), fTbinADC + 2 + i, 0);
-          track1->SetData(GetRow(), GetCol(), fTbinADC + 2 + i, 0);
-          track2->SetData(GetRow(), GetCol(), fTbinADC + 2 + i, 0);
+ 	  track0->SetData(GetRow(), GetCol(), fTbinADC + 2 + i, 0);
+	  track1->SetData(GetRow(), GetCol(), fTbinADC + 2 + i, 0);
+	  track2->SetData(GetRow(), GetCol(), fTbinADC + 2 + i, 0);
         }
      } // i
      fTbinADC += 3;
@@ -1946,4 +1940,5 @@ const char *AliTRDrawFastStream::DumpMCMadcMask(const struct AliTRDrawMCM *mcm)
   tsreturn += "";
   return tsreturn.Data();
 }
+
 

@@ -240,6 +240,7 @@ void AliTRDdigitsManager::CreateArrays()
     }
   fDigitsParam = new AliTRDdigitsParam();
   fDigitsParam->SetNTimeBins(AliTRDSimParam::Instance()->GetNTimeBins());
+  fDigitsParam->SetADCbaseline(AliTRDSimParam::Instance()->GetADCbaseline());
 
 }
 
@@ -337,6 +338,36 @@ void AliTRDdigitsManager::ResetArrays(Int_t det)
     }
   
   fSignalIndexes->AddAt(new AliTRDSignalIndex(),recoDet);
+
+}
+
+//_____________________________________________________________________________
+void AliTRDdigitsManager::ClearArrays(Int_t det)
+{
+  //
+  // Reset the data arrays
+  //
+
+  Int_t recoDet = fRawRec ? 0 : det;
+
+  if (fHasSDigits)
+    {
+      ((AliTRDarraySignal*)fDigits->At(recoDet))->Reset();
+    }
+  else
+    {
+      ((AliTRDarrayADC*)fDigits->At(recoDet))->ConditionalReset((AliTRDSignalIndex*)fSignalIndexes->At(recoDet));
+    }
+
+  if (fUseDictionaries) 
+    {
+      for (Int_t iDict = 0; iDict < kNDict; iDict++)
+	{
+	  ((AliTRDarrayDictionary*)fDict[iDict]->At(recoDet))->Reset();
+	}
+    }
+  
+  ((AliTRDSignalIndex*)fSignalIndexes->At(recoDet))->ResetContent();
 
 }
 
@@ -522,6 +553,7 @@ Bool_t AliTRDdigitsManager::ReadDigits(TTree * const tree)
 		   ,AliTRDSimParam::Instance()->GetNTimeBins()));
     fDigitsParam = new AliTRDdigitsParam();
     fDigitsParam->SetNTimeBins(AliTRDSimParam::Instance()->GetNTimeBins());
+    fDigitsParam->SetADCbaseline(AliTRDSimParam::Instance()->GetADCbaseline());
   }
 
   return status;

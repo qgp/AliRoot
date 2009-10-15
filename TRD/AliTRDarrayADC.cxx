@@ -27,10 +27,10 @@
 #include "AliTRDarrayADC.h"
 #include "Cal/AliTRDCalPadStatus.h"
 #include "AliTRDfeeParam.h"
-
+#include "AliTRDSignalIndex.h"
 ClassImp(AliTRDarrayADC)
 
-Short_t *AliTRDarrayADC::fLutPadNumbering = 0x0;
+Short_t *AliTRDarrayADC::fgLutPadNumbering = 0x0;
 
 //____________________________________________________________________________________
 AliTRDarrayADC::AliTRDarrayADC()
@@ -567,34 +567,25 @@ void AliTRDarrayADC::Reset()
   //
  
   memset(fADC,0,sizeof(Short_t)*fNAdim);
-
 }
 //________________________________________________________________________________
-Short_t AliTRDarrayADC::GetData(Int_t nrow, Int_t ncol, Int_t ntime) const
+void AliTRDarrayADC::ConditionalReset(AliTRDSignalIndex* idx)
 {
   //
-  // Get the data using the pad numbering.
-  // To access data using the mcm scheme use instead
-  // the method GetDataByAdcCol
+  // Reset the array, the old contents are deleted
+  // The array keeps the same dimensions as before
   //
-
-  Int_t corrcolumn = fLutPadNumbering[ncol];
-
-  return fADC[(nrow*fNumberOfChannels+corrcolumn)*fNtime+ntime];
-
-}
-//________________________________________________________________________________
-void AliTRDarrayADC::SetData(Int_t nrow, Int_t ncol, Int_t ntime, Short_t value)
-{
-  //
-  // Set the data using the pad numbering.
-  // To write data using the mcm scheme use instead
-  // the method SetDataByAdcCol
-  //
-
-  Int_t colnumb = fLutPadNumbering[ncol];
-
-  fADC[(nrow*fNumberOfChannels+colnumb)*fNtime+ntime]=value;
+ 
+  if(idx->GetNoOfIndexes()>25)
+    memset(fADC,0,sizeof(Short_t)*fNAdim);
+  else
+    {
+      Int_t row, col;
+      while(idx->NextRCIndex(row, col)){
+	for(Int_t time=0; time<fNtime; time++)
+	  SetData(row, col, time, 0);
+      }
+    }
 
 }
 
@@ -606,10 +597,10 @@ void AliTRDarrayADC::CreateLut()
   // pad numbering and mcm channel numbering
   //
 
-  if(fLutPadNumbering)  return;
+  if(fgLutPadNumbering)  return;
   
-   fLutPadNumbering = new Short_t[AliTRDfeeParam::GetNcol()];
-   memset(fLutPadNumbering,0,sizeof(Short_t)*AliTRDfeeParam::GetNcol());
+   fgLutPadNumbering = new Short_t[AliTRDfeeParam::GetNcol()];
+   memset(fgLutPadNumbering,0,sizeof(Short_t)*AliTRDfeeParam::GetNcol());
 
   for(Int_t mcm=0; mcm<8; mcm++)
     {
@@ -618,7 +609,7 @@ void AliTRDarrayADC::CreateLut()
       Int_t shiftposition = 1+3*mcm;
       for(Int_t index=lowerlimit;index<upperlimit;index++)
 	{
-	  fLutPadNumbering[index]=index+shiftposition;
+	  fgLutPadNumbering[index]=index+shiftposition;
 	}
     }
 }

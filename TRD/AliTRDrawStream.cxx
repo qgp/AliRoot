@@ -119,7 +119,6 @@ Bool_t AliTRDrawStream::fgStackLinkNumberChecker = kFALSE;
 Bool_t AliTRDrawStream::fgSkipData = kTRUE;
 Bool_t AliTRDrawStream::fgEnableDecodeConfigData = kFALSE;
 Int_t AliTRDrawStream::fgDumpHead = -1;
-Int_t  AliTRDrawStream::fgCommonAdditive = 0;
 Int_t AliTRDrawStream::fgEmptySignals[] = 
   {
     -1, -1, -1, -1, -1,  -1, -1, -1, -1, -1,  -1, -1, -1, -1, -1
@@ -175,6 +174,7 @@ AliTRDrawStream::AliTRDrawStream()
   , fGeometry(0)
   , fRawReader(0)
   , fTRDfeeParam(0)
+  , fCommonAdditive(0)
 {
   //
   // default constructor
@@ -216,6 +216,7 @@ AliTRDrawStream::AliTRDrawStream(AliRawReader *rawReader)
   , fGeometry(0)
   , fRawReader(rawReader)
   , fTRDfeeParam(0)
+  , fCommonAdditive(0)
 {
   //
   // default constructor
@@ -263,6 +264,7 @@ AliTRDrawStream::AliTRDrawStream(const AliTRDrawStream& /*st*/)
   , fGeometry(0)
   , fRawReader(0)
   , fTRDfeeParam(0)
+  , fCommonAdditive(0)
 {
   //
   // Copy constructor
@@ -671,7 +673,7 @@ Bool_t AliTRDrawStream::Next()
 }
 
 //------------------------------------------------------------
-Int_t AliTRDrawStream::NextChamber(AliTRDdigitsManager *const digitsManager, UInt_t **trackletContainer, UShort_t **errorCodeContainer) 
+Int_t AliTRDrawStream::NextChamber(AliTRDdigitsManager *const digitsManager, UInt_t **trackletContainer, UShort_t **/*errorCodeContainer*/) 
 {
   //
   // Fills single chamber digit array 
@@ -757,15 +759,19 @@ Int_t AliTRDrawStream::NextChamber(AliTRDdigitsManager *const digitsManager, UIn
         return -1;
       }
 
-      Int_t rowMax = GetRowMax();
+      //Int_t rowMax = GetRowMax();
+      Int_t rowMax = fGeometry->RowmaxC1(); // we use maximum row number among all detectors to reuse memory
       Int_t colMax = GetColMax();
       Int_t ntbins = GetNumberOfTimeBins();
 
-      // Set number of timebin into digitparam
+      // Set digitparam variables
+      digitsparam = (AliTRDdigitsParam *) digitsManager->GetDigitsParam();
+      digitsparam->SetPretiggerPhase(det,GetPreTriggerPhase());
       if (!fIsGlobalDigitsParamSet){
-        digitsparam = (AliTRDdigitsParam *) digitsManager->GetDigitsParam();
         digitsparam->SetCheckOCDB(kFALSE);
         digitsparam->SetNTimeBins(ntbins);
+	fCommonAdditive=10;
+        digitsparam->SetADCbaseline(fCommonAdditive);
         fIsGlobalDigitsParamSet = kTRUE;
       }
 
@@ -790,19 +796,12 @@ Int_t AliTRDrawStream::NextChamber(AliTRDdigitsManager *const digitsManager, UIn
 
     // ntimebins data are ready to read
     for (it = 0; it < GetNumberOfTimeBins(); it++) {
-       if (GetSignals()[it] > 0) {
-
-         if (fSharedPadsOn) 
-           digits->SetDataByAdcCol(GetRow(), GetExtendedCol(), it, GetSignals()[it]);
-         else 
-           digits->SetData(GetRow(), GetCol(), it, GetSignals()[it]);
-
-         indexes->AddIndexRC(GetRow(), GetCol());
-         if (digitsManager->UsesDictionaries()) {
-           track0->SetData(GetRow(), GetCol(), it, 0);
-           track1->SetData(GetRow(), GetCol(), it, 0);
-           track2->SetData(GetRow(), GetCol(), it, 0);
-         }
+       digits->SetDataByAdcCol(GetRow(), GetExtendedCol(), it, GetSignals()[it]);
+       if (!(GetCol()<0)) indexes->AddIndexRC(GetRow(), GetCol());
+       if (digitsManager->UsesDictionaries()) {
+         track0->SetData(GetRow(), GetCol(), it, 0);
+         track1->SetData(GetRow(), GetCol(), it, 0);
+         track2->SetData(GetRow(), GetCol(), it, 0);
        }
     } // it
   } // while Next()
@@ -1644,6 +1643,7 @@ Bool_t AliTRDrawStream::DecodeADC()
   //
   // decode single ADC channel
   //
+
   fADC->fCorrupted = 0;
   if(fADC->fADCnumber%2==1) fMaskADCword = ADC_WORD_MASK(ADCDATA_VAL1);
   if(fADC->fADCnumber%2==0) fMaskADCword = ADC_WORD_MASK(ADCDATA_VAL2);
@@ -1671,10 +1671,9 @@ Bool_t AliTRDrawStream::DecodeADC()
        continue;
      }
 
-     // here we subtract the baseline ( == common additive)
-     fADC->fSignals[fTbinADC + 0] = ((*fpPos & 0x00000ffc) >>  2) - fgCommonAdditive;
-     fADC->fSignals[fTbinADC + 1] = ((*fpPos & 0x003ff000) >> 12) - fgCommonAdditive;
-     fADC->fSignals[fTbinADC + 2] = ((*fpPos & 0xffc00000) >> 22) - fgCommonAdditive;
+     fADC->fSignals[fTbinADC + 0] = ((*fpPos & 0x00000ffc) >>  2);
+     fADC->fSignals[fTbinADC + 1] = ((*fpPos & 0x003ff000) >> 12);
+     fADC->fSignals[fTbinADC + 2] = ((*fpPos & 0xffc00000) >> 22);
 
      fTbinADC += 3;
      fpPos++;
@@ -1719,6 +1718,7 @@ Bool_t AliTRDrawStream::DecodeADCExtended()
   //
   // decode single ADC channel
   //
+
   fADC->fCorrupted = 0;
   if(fADC->fADCnumber%2==1) fMaskADCword = ADC_WORD_MASK(ADCDATA_VAL1);
   if(fADC->fADCnumber%2==0) fMaskADCword = ADC_WORD_MASK(ADCDATA_VAL2);
@@ -1727,8 +1727,8 @@ Bool_t AliTRDrawStream::DecodeADCExtended()
 
   fTbinADC = ((*fpPos & 0x000000fc) >>  2);
   fMCM->fSingleADCwords  = ((*fpPos & 0x00000f00) >>  8);
-  fADC->fSignals[fTbinADC] = ((*fpPos & 0x003ff000) >> 12) - fgCommonAdditive;
-  fADC->fSignals[fTbinADC+1] = ((*fpPos & 0xffc00000) >> 22) - fgCommonAdditive;
+  fADC->fSignals[fTbinADC] = ((*fpPos & 0x003ff000) >> 12);
+  fADC->fSignals[fTbinADC+1] = ((*fpPos & 0xffc00000) >> 22);
 
   fpPos++; 
   for (Int_t iw = 0; iw < fMCM->fSingleADCwords-1; iw++) { // it goes up to fMCM->fSingleADCwords-1 since the first word was already decoded above
@@ -1747,10 +1747,9 @@ Bool_t AliTRDrawStream::DecodeADCExtended()
        continue;
      }
 
-     // here we subtract the baseline ( == common additive)
-     fADC->fSignals[fTbinADC + 2] = ((*fpPos & 0x00000ffc) >>  2) - fgCommonAdditive;
-     fADC->fSignals[fTbinADC + 3] = ((*fpPos & 0x003ff000) >> 12) - fgCommonAdditive;
-     fADC->fSignals[fTbinADC + 4] = ((*fpPos & 0xffc00000) >> 22) - fgCommonAdditive;
+     fADC->fSignals[fTbinADC + 2] = ((*fpPos & 0x00000ffc) >>  2);
+     fADC->fSignals[fTbinADC + 3] = ((*fpPos & 0x003ff000) >> 12);
+     fADC->fSignals[fTbinADC + 4] = ((*fpPos & 0xffc00000) >> 22);
 
      fTbinADC += 3;
      fpPos++;

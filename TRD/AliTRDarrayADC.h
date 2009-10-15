@@ -13,6 +13,7 @@
 
 #include <TObject.h>
 
+class AliTRDSignalIndex;
 class AliTRDarrayADC: public TObject
 {
  public:
@@ -27,7 +28,7 @@ class AliTRDarrayADC: public TObject
   void    SetNdet(Int_t ndet) {fNdet=ndet;};  
   Int_t   GetNdet()  const {return fNdet;};
   void    SetDataByAdcCol(Int_t nrow, Int_t ncol, Int_t ntime, Short_t value)
-                        {fADC[(nrow*fNumberOfChannels+ncol)*fNtime+ntime]=value;};
+                         {fADC[(nrow*fNumberOfChannels+ncol)*fNtime+ntime]=value;}
   Bool_t  HasData() const {return fNtime ? 1 : 0;};
   Short_t GetDataByAdcCol(Int_t nrow, Int_t ncol, Int_t ntime) const
                          {return fADC[(nrow*fNumberOfChannels+ncol)*fNtime+ntime];};
@@ -44,8 +45,9 @@ class AliTRDarrayADC: public TObject
   Int_t   GetDim() const {return fNAdim;};
   void    DeleteNegatives();
   void    Reset();
-  Short_t GetData(Int_t nrow, Int_t ncol, Int_t ntime) const;
-  void    SetData(Int_t nrow, Int_t ncol, Int_t ntime, Short_t value);
+  void    ConditionalReset(AliTRDSignalIndex* idx);
+  inline  Short_t GetData(Int_t nrow, Int_t ncol, Int_t ntime) const;
+  inline  void    SetData(Int_t nrow, Int_t ncol, Int_t ntime, Short_t value);
   static  void    CreateLut(); 
 
  protected:
@@ -57,16 +59,45 @@ class AliTRDarrayADC: public TObject
   Int_t fNtime;   //Number of time bins
   Int_t fNAdim;   //Dimension of the ADC array
   Short_t* fADC;  //[fNAdim]   //Pointer to adc values
-  static Short_t *fLutPadNumbering;   //  [fNcol] Look Up Table
+  static Short_t *fgLutPadNumbering;   //  [fNcol] Look Up Table
 
-  ClassDef(AliTRDarrayADC,2) //ADC container class
+  ClassDef(AliTRDarrayADC,4) //ADC container class
     
 };
 
-inline void AliTRDarrayADC::GetData(Int_t r, Int_t c, Int_t t, Int_t n, Short_t *vals) const
+//________________________________________________________________________________
+Short_t AliTRDarrayADC::GetData(Int_t nrow, Int_t ncol, Int_t ntime) const
 {
-  Int_t ColNum = fLutPadNumbering[c];
-  for(Int_t ic=n, idx = (r*fNumberOfChannels+ColNum)*fNtime+t; ic--; idx+=fNtime) vals[ic] = fADC[idx];
+  //
+  // Get the data using the pad numbering.
+  // To access data using the mcm scheme use instead
+  // the method GetDataByAdcCol
+  //
+
+  Int_t corrcolumn = fgLutPadNumbering[ncol];
+
+  return fADC[(nrow*fNumberOfChannels+corrcolumn)*fNtime+ntime];
+
+}
+//________________________________________________________________________________
+void AliTRDarrayADC::SetData(Int_t nrow, Int_t ncol, Int_t ntime, Short_t value)
+{
+  //
+  // Set the data using the pad numbering.
+  // To write data using the mcm scheme use instead
+  // the method SetDataByAdcCol
+  //
+
+  Int_t colnumb = fgLutPadNumbering[ncol];
+
+  fADC[(nrow*fNumberOfChannels+colnumb)*fNtime+ntime] = value;
+
+}
+
+void AliTRDarrayADC::GetData(Int_t r, Int_t c, Int_t t, Int_t n, Short_t *vals) const
+{
+  Int_t colNum = fgLutPadNumbering[c];
+  for(Int_t ic=n, idx = (r*fNumberOfChannels+colNum)*fNtime+t; ic--; idx+=fNtime) vals[ic] = fADC[idx];
  }
 
 #endif 

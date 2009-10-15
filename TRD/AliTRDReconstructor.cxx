@@ -88,20 +88,6 @@ AliTRDReconstructor::AliTRDReconstructor()
 }
 
 //_____________________________________________________________________________
-AliTRDReconstructor::AliTRDReconstructor(const AliTRDReconstructor &r)
-  :AliReconstructor(r)
-  ,fSteerParam(r.fSteerParam)
-{
-  //
-  // Copy constructor
-  //
-
-  memcpy(fDebugStream, r.fDebugStream, sizeof(TTreeSRedirector *) *AliTRDrecoParam::kTRDreconstructionTasks);
-  // ownership of debug streamers is not taken
-  CLRFLG(fSteerParam, kOwner);
-}
-
-//_____________________________________________________________________________
 AliTRDReconstructor::~AliTRDReconstructor()
 {
   //
@@ -155,7 +141,6 @@ void AliTRDReconstructor::ConvertDigits(AliRawReader *rawReader
   rawReader->Select("TRD");
   rawData.OpenOutput();
   AliTRDrawStreamBase::SetRawStreamVersion(GetRecoParam()->GetRawStreamVersion()->Data());
-  AliTRDrawStreamBase::SetSubtractBaseline(10);
   AliTRDdigitsManager *manager = rawData.Raw2Digits(rawReader);
   manager->MakeBranch(digitsTree);
   manager->WriteDigits();

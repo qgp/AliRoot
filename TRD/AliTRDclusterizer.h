@@ -31,6 +31,7 @@ class AliTRDtransform;
 class AliTRDCalROC;
 class AliTRDReconstructor;
 class AliTRDCalSingleChamberStatus;
+class AliTRDrawStreamBase;
 
 class AliTRDclusterizer : public TNamed 
 {
@@ -40,26 +41,26 @@ class AliTRDclusterizer : public TNamed
   // steering flags
   enum{
     kTrOwner= BIT(13)  //  toggle online tracklets ownership
-   ,kClOwner= BIT(14)  //  toggle cluster ownership
-   ,kLabels = BIT(15)  //  toggle MC labels for clusters
-   ,kHLT    = BIT(16)  //  HLT mode
-   ,kLUT    = BIT(17)  //  using look up table for cluster's r-phi position
-   ,kGAUS   = BIT(18)  //  using gauss approx. for cluster's r-phi position
+    ,kClOwner= BIT(14)  //  toggle cluster ownership
+    ,kLabels = BIT(15)  //  toggle MC labels for clusters
+    ,kHLT    = BIT(16)  //  HLT mode
+    ,kLUT    = BIT(17)  //  using look up table for cluster's r-phi position
+    ,kGAUS   = BIT(18)  //  using gauss approx. for cluster's r-phi position
+    ,knewDM  = BIT(19)  //  was the digitsmanger created by raw2clusters?
   };
 
   struct MaxStruct
   {
-    Int_t       Row;
-    Int_t       Col;
-    Int_t       Time;
+    Int_t       row;
+    Int_t       col;
+    Int_t       time;
+    Short_t     signals[3];
     UChar_t     padStatus;
-    Short_t     Signals[3];
-    Bool_t      FivePad;
-  MaxStruct():Row(-1),Col(0),Time(0),padStatus(0),FivePad(kFALSE)
-      {memset(Signals, 0, 3*sizeof(Short_t));}
+    Bool_t      fivePad;
+  MaxStruct():row(-1),col(0),time(0),padStatus(0),fivePad(kFALSE)
+      {memset(signals, 0, 3*sizeof(Short_t));}
     MaxStruct &operator=(const MaxStruct &a)
-    {Row=a.Row; Col=a.Col; Time=a.Time; padStatus=a.padStatus; FivePad=a.FivePad;
-     memcpy(Signals, a.Signals, 3*sizeof(Short_t)); return *this;}
+    {memcpy(this, &a, sizeof(MaxStruct)); return *this;}
   };
   
   AliTRDclusterizer(const AliTRDReconstructor *const rec = 0x0);
@@ -118,10 +119,14 @@ protected:
   Bool_t           IsMaximum(const MaxStruct &Max, UChar_t &padStatus, Short_t *const Signals);       //for const correctness reasons not const parameters are given separately
   Bool_t           FivePadCluster(MaxStruct &ThisMax, MaxStruct &NeighbourMax);
   void             CreateCluster(const MaxStruct &Max); 
-  inline void      CalcAdditionalInfo(const MaxStruct &Max, Short_t *const signals, Int_t &nPadCount);
+
   virtual void     AddClusterToArray(AliTRDcluster* cluster);
   virtual void     AddTrackletsToArray();
 
+private:
+  inline void      CalcAdditionalInfo(const MaxStruct &Max, Short_t *const signals, Int_t &nPadCount);
+
+protected:
   const AliTRDReconstructor *fReconstructor; //! reconstructor
   AliRunLoader        *fRunLoader;           //! Run Loader
   TTree               *fClusterTree;         //! Tree with the cluster
@@ -140,7 +145,6 @@ protected:
 
   AliTRDarrayADC      *fDigits;               // Array holding the digits
   AliTRDSignalIndex   *fIndexes;              // Array holding the indexes to the digits
-  Float_t              fADCthresh;            // ADC thresholds: There is no ADC threshold anymore, and simParam should not be used in clusterizer. KO
   Float_t              fMaxThresh;            // Threshold value for the maximum
   Float_t              fSigThresh;            // Threshold value for the digit signal
   Float_t              fMinMaxCutSigma;       // Threshold value for the maximum (cut noise)
@@ -158,6 +162,8 @@ protected:
   Int_t                fClusterROC;           // The index to the first cluster of a given ROC
   Int_t                firstClusterROC;       // The number of cluster in a given ROC
   Int_t                fNoOfClusters;         // Number of Clusters already processed and still owned by the clusterizer
+  Int_t                fBaseline;             // Baseline of the ADC values
+  AliTRDrawStreamBase *fRawStream;            // Currently used RawStream
 
   ClassDef(AliTRDclusterizer,6)               //  TRD clusterfinder
 

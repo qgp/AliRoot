@@ -443,9 +443,6 @@ class AliTRDrawFastStream : public AliTRDrawStreamBase
   static void    DisableSkipData() {fgSkipData = kFALSE;} // keep reading next words even previous words were corrupted - debugging purpose  
   static void    SetDumpingEnable() {fDumpingEnable = kTRUE;} 
 
-  static void    SetSubtractBaseline(Int_t baseline) {fgCommonAdditive = baseline;}
-  Int_t          GetCommonAdditive() const {return fgCommonAdditive;}           // return the common additive
-
   static void    EnableDecodeConfigData() {fgEnableDecodeConfigData = kTRUE;} // allow configuration data decoding
   static Bool_t  fgEnableDecodeConfigData;
 
@@ -556,6 +553,7 @@ class AliTRDrawFastStream : public AliTRDrawStreamBase
   AliRawReader   *fRawReader; //! raw reader    
 
   AliTRDfeeParam      *fTRDfeeParam; // pointer to the fee params
+  Int_t   fCommonAdditive;
 
   // STATIC 
 
@@ -582,10 +580,6 @@ class AliTRDrawFastStream : public AliTRDrawStreamBase
   static Int_t  fDumpingLayer;
   static Int_t  fDumpingROB;
   static Int_t  fDumpingMCM;
-
-  // this is a temporary solution!
-  // baseline should come with the HC header word 2 (count from 0!)
-  static Int_t   fgCommonAdditive; // common additive  - should be decoded! from HC word2
 
   // ----------------- DATA MEMBERS STOP
 
