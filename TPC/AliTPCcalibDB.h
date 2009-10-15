@@ -16,8 +16,11 @@ class AliTPCExB;
 #include "TObjArray.h"
 #include "TArrayI.h"
 #include "TVectorD.h"
+#include "TGraph.h"
+#include "AliTPCCalPad.h"
+#include "TString.h"
+#include "AliSplineFit.h"
 
-class AliTPCCalPad;
 class AliTPCSensorTempArray;
 class AliDCSSensorArray;
 class AliCDBEntry;
@@ -28,6 +31,7 @@ class AliDCSSensor;
 class AliDCSSensorArray;
 class AliTPCCalibVdrift;
 class AliGRPObject;
+class AliTPCCalibRaw;
 class TMap;
 class AliMagF;
 //class AliCDBStorage;
@@ -43,6 +47,7 @@ class AliTPCcalibDB : public TObject
   void   Update();  //update entries
   void   UpdateRunInformations(Int_t run, Bool_t force=kFALSE);
   //
+  Long64_t GetRun() const {return fRun;}
   //
   //
   //
@@ -56,18 +61,59 @@ class AliTPCcalibDB : public TObject
   AliTPCCalPad* GetPadTime0() {return fPadTime0;}
   AliTPCCalPad* GetPadNoise() {return fPadNoise;}
   AliTPCCalPad* GetPedestals() {return fPedestals;}
+  //ALTRO config data
+  TObjArray* GetAltroConfigData()  const {return fALTROConfigData;}
+  AliTPCCalPad* GetALTROAcqStart() const {return fALTROConfigData?static_cast<AliTPCCalPad*>(fALTROConfigData->FindObject("AcqStart")):0;}
+  AliTPCCalPad* GetALTROZsThr()    const {return fALTROConfigData?static_cast<AliTPCCalPad*>(fALTROConfigData->FindObject("ZsThr")):0;}
+  AliTPCCalPad* GetALTROFPED()     const {return fALTROConfigData?static_cast<AliTPCCalPad*>(fALTROConfigData->FindObject("FPED")):0;}
+  AliTPCCalPad* GetALTROAcqStop()  const {return fALTROConfigData?static_cast<AliTPCCalPad*>(fALTROConfigData->FindObject("AcqStop")):0;}
+  AliTPCCalPad* GetALTROMasked()   const {return fALTROConfigData?static_cast<AliTPCCalPad*>(fALTROConfigData->FindObject("Masked")):0;}
+  //Pulser data
+  TObjArray*    GetPulserData()  const {return fPulserData;}
+  AliTPCCalPad* GetPulserTmean() const {return fPulserData?static_cast<AliTPCCalPad*>(fPulserData->FindObject("PulserTmean")):0;}
+  AliTPCCalPad* GetPulserTrms()  const {return fPulserData?static_cast<AliTPCCalPad*>(fPulserData->FindObject("PulserTrms")):0;}
+  AliTPCCalPad* GetPulserQmean() const {return fPulserData?static_cast<AliTPCCalPad*>(fPulserData->FindObject("PulserQmean")):0;}
+  //CE data
+  TObjArray*    GetCEData()     const {return fCEData;}
+  AliTPCCalPad* GetCETmean()    const {return fCEData?static_cast<AliTPCCalPad*>(fCEData->FindObject("CETmean")):0;}
+  AliTPCCalPad* GetCETrms()     const {return fCEData?static_cast<AliTPCCalPad*>(fCEData->FindObject("CETrms")):0;}
+  AliTPCCalPad* GetCEQmean()    const {return fCEData?static_cast<AliTPCCalPad*>(fCEData->FindObject("CEQmean")):0;}
+  TObjArray*    GetCErocTtime() const {return fCEData?static_cast<TObjArray*>(fCEData->FindObject("rocTtime")):0;}
+  TObjArray*    GetCErocQtime() const {return fCEData?static_cast<TObjArray*>(fCEData->FindObject("rocQtime")):0;}
+  TGraph*       GetCErocTgraph(const Int_t roc)const {return GetCErocTtime()?static_cast<TGraph*>(GetCErocTtime()->At(roc)):0;}
+  TGraph*       GetCErocQgraph(const Int_t roc)const {return GetCErocQtime()?static_cast<TGraph*>(GetCErocQtime()->At(roc)):0;}
+  static Float_t GetCEdriftTime(Int_t run, Int_t sector, Double_t timeStamp=-1., Int_t *entries=0);
+  static Float_t GetCEchargeTime(Int_t run, Int_t sector, Double_t timeStamp=-1., Int_t *entries=0);
+  //Raw calibration
+  AliTPCCalibRaw* GetCalibRaw() const {return fCalibRaw;}
+  //
   AliTPCSensorTempArray* GetTemperature() {return fTemperature;}
   AliTPCParam*  GetParameters(){return fParam;}
   AliTPCAltroMapping ** GetMapping(){ return fMapping;}
   AliTPCClusterParam *GetClusterParam(){ return fClusterParam;}
   TObjArray *GetTimeGainSplines(){ return fTimeGainSplines;}  
   //
-  //
+  //GRP information
   static AliGRPObject * GetGRP(Int_t run);
   static TMap *  GetGRPMap(Int_t run);
   static Float_t GetPressure(Int_t timeStamp, Int_t run, Int_t type=0);
-  static Float_t GetChamberHighVoltage(Int_t timeStamp, Int_t run, Int_t sector);
+  static Float_t GetL3Current(Int_t run, Int_t statType=0);
+  static Float_t GetBz(Int_t run);
+  static Char_t  GetL3Polarity(Int_t run);
+  static TString GetRunType(Int_t run);
+  //
+  static Float_t GetDCSSensorValue(AliDCSSensorArray *arr, Int_t timeStamp, const char * sensorName, Int_t sigDigits=-1);
+  static Float_t GetDCSSensorMeanValue(AliDCSSensorArray *arr, const char * sensorName, Int_t sigDigits=-1);
+  //Voltage information
+  static Float_t GetChamberHighVoltage(Int_t run, Int_t sector, Int_t timeStamp=-1, Int_t sigDigits=0);
+  static Float_t GetSkirtVoltage(Int_t run, Int_t sector, Int_t timeStamp=-1, Int_t sigDigits=0);
+  static Float_t GetCoverVoltage(Int_t run, Int_t sector, Int_t timeStamp=-1, Int_t sigDigits=0);
+  static Float_t GetGGoffsetVoltage(Int_t run, Int_t sector, Int_t timeStamp=-1, Int_t sigDigits=0);
+  static Float_t GetGGnegVoltage(Int_t run, Int_t sector, Int_t timeStamp=-1, Int_t sigDigits=0);
+  static Float_t GetGGposVoltage(Int_t run, Int_t sector, Int_t timeStamp=-1, Int_t sigDigits=0);
+  //Goofie Values
   static Float_t GetValueGoofie(Int_t timeStamp, Int_t run, Int_t type);
+  //
   static Bool_t  GetTemperatureFit(Int_t timeStamp, Int_t run, Int_t side,TVectorD& fit);
   static Float_t GetTemperature(Int_t timeStamp, Int_t run, Int_t side);
   static Double_t GetPTRelative(UInt_t timeSec, Int_t run,  Int_t side);
@@ -78,17 +124,26 @@ class AliTPCcalibDB : public TObject
   AliDCSSensorArray *     GetVoltageSensors(Int_t run);
   AliTPCCalibVdrift *     GetVdrift(Int_t run);
 	TObjArray *							GetTimeGainSplinesRun(Int_t run);
+  TObjArray*              GetTimeVdriftSplineRun(Int_t run);
   static Float_t GetGain(Int_t sector, Int_t row, Int_t pad);
+  //
+  Double_t      GetVDriftCorrectionTime(Int_t timeStamp, Int_t run, Int_t side, Int_t mode);
+  Double_t      GetTime0CorrectionTime(Int_t timeStamp, Int_t run, Int_t side, Int_t mode);
+  Double_t      GetVDriftCorrectionGy(Int_t timeStamp, Int_t run, Int_t side, Int_t mode);
+  //
+  AliSplineFit* GetVdriftSplineFit(const char* name, Int_t run);
+  AliSplineFit* CreateVdriftSplineFit(const char* graphName, Int_t run);
   //
   static void     CreateObjectList(const Char_t *filename, TObjArray *calibObjects);
   static void MakeTree(const char * fileName, TObjArray * array, const char * mapFileName = 0, AliTPCCalPad* outlierPad = 0, Float_t ltmFraction = 0.9);
   static void RegisterExB(Int_t index, Float_t bz, Bool_t bdelete);
   //
   //
-  static  void ProcessGoofie( AliDCSSensorArray* goofieArray, TVectorD & vecEntries, TVectorD & vecMedian, TVectorD &vecMean, TVectorD &vecRMS);
-  static void ProcessEnv(const char * runList);
 
   AliGRPObject * MakeGRPObjectFromMap(TMap *map);
+  //Create a tree suited for diplaying with the AliTPCCalibViewerGUI
+  static Bool_t CreateGUITree(Int_t run, const char* filename="");
+  static Bool_t CreateRefFile(Int_t run, const char* filename="");
   //
 protected:
   
@@ -105,6 +160,11 @@ protected:
   AliTPCCalPad* fPadTime0;        // Time0 calibration entry
   AliTPCCalPad* fPadNoise;        // Noise calibration entry
   AliTPCCalPad* fPedestals;       // Pedestal calibration entry
+  AliTPCCalibRaw *fCalibRaw;      // raw data calibration entry
+  TObjArray *fALTROConfigData;    // ALTRO configuration data
+  TObjArray *fPulserData;         // Calibration Pulser data
+  TObjArray *fCEData;             // CE data
+  //
   AliTPCSensorTempArray* fTemperature; // Temperature calibration entry
   AliTPCAltroMapping **fMapping;   // Altro mapping   
   //
@@ -123,6 +183,7 @@ protected:
   TObjArray      fTemperatureArray;			//! array of temperature sensors - per run
   TObjArray      fVdriftArray;					//! array of v drift interfaces
   TObjArray      fDriftCorrectionArray;                //! array of drift correction
+  
 
   TArrayI        fRunList;							//! run list - indicates try to get the run param
   //

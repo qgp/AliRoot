@@ -84,6 +84,7 @@
 #include <AliCDBEntry.h>
 #include <AliLog.h>
 #include <AliMagF.h>
+#include <AliSplineFit.h>
 
 #include "AliTPCcalibDB.h"
 #include "AliTPCAltroMapping.h"
@@ -106,6 +107,7 @@ class AliTPCCalDet;
 #include "TObjArray.h"
 #include "TObjString.h"
 #include "TString.h"
+#include "TDirectory.h"
 #include "AliTPCCalPad.h"
 #include "AliTPCCalibPulser.h"
 #include "AliTPCCalibPedestal.h"
@@ -113,8 +115,9 @@ class AliTPCCalDet;
 #include "AliTPCExBFirst.h"
 #include "AliTPCTempMap.h"
 #include "AliTPCCalibVdrift.h"
+#include "AliTPCCalibRaw.h"
 
-
+#include "AliTPCPreprocessorOnline.h"
 
 
 ClassImp(AliTPCcalibDB)
@@ -169,6 +172,10 @@ AliTPCcalibDB::AliTPCcalibDB():
   fPadTime0(0),
   fPadNoise(0),
   fPedestals(0),
+  fCalibRaw(0),
+  fALTROConfigData(0),
+  fPulserData(0),
+  fCEData(0),
   fTemperature(0),
   fMapping(0),
   fParam(0),
@@ -202,6 +209,10 @@ AliTPCcalibDB::AliTPCcalibDB(const AliTPCcalibDB& ):
   fPadTime0(0),
   fPadNoise(0),
   fPedestals(0),
+  fCalibRaw(0),
+  fALTROConfigData(0),
+  fPulserData(0),
+  fCEData(0),
   fTemperature(0),
   fMapping(0),
   fParam(0),
@@ -347,11 +358,38 @@ void AliTPCcalibDB::Update(){
 
   entry          = GetCDBEntry("TPC/Calib/ClusterParam");
   if (entry){
-    //if (fPadNoise) delete fPadNoise;
     entry->SetOwner(kTRUE);
     fClusterParam = (AliTPCClusterParam*)(entry->GetObject()->Clone());
   }
 
+  //ALTRO configuration data
+  entry          = GetCDBEntry("TPC/Calib/AltroConfig");
+  if (entry){
+    entry->SetOwner(kTRUE);
+    fALTROConfigData=(TObjArray*)(entry->GetObject());
+  }
+  
+  //Calibration Pulser data
+  entry          = GetCDBEntry("TPC/Calib/Pulser");
+  if (entry){
+    entry->SetOwner(kTRUE);
+    fPulserData=(TObjArray*)(entry->GetObject());
+  }
+  
+  //CE data
+  entry          = GetCDBEntry("TPC/Calib/CE");
+  if (entry){
+    entry->SetOwner(kTRUE);
+    fCEData=(TObjArray*)(entry->GetObject());
+  }
+  //RAW calibration data
+  entry          = GetCDBEntry("TPC/Calib/Raw");
+  if (entry){
+    entry->SetOwner(kTRUE);
+    TObjArray *arr=(TObjArray*)(entry->GetObject());
+    if (arr) fCalibRaw=(AliTPCCalibRaw*)arr->At(0);
+  }
+  
   entry          = GetCDBEntry("TPC/Calib/Mapping");
   if (entry){
     //if (fPadNoise) delete fPadNoise;
@@ -360,7 +398,7 @@ void AliTPCcalibDB::Update(){
     if (array && array->GetEntriesFast()==6){
       fMapping = new AliTPCAltroMapping*[6];
       for (Int_t i=0; i<6; i++){
-	fMapping[i] =  dynamic_cast<AliTPCAltroMapping*>(array->At(i));
+        fMapping[i] =  dynamic_cast<AliTPCAltroMapping*>(array->At(i));
       }
     }
   }
@@ -373,9 +411,9 @@ void AliTPCcalibDB::Update(){
   //  fExB=dynamic_cast<AliTPCExB*>(entry->GetObject()->Clone());
   //}
   //
-  // ExB  - calculate during initialization 
-  //      - 
-  fExB =  GetExB(-5,kTRUE);
+  // ExB  - calculate during initialization - in simulation /reconstruction
+  //      - not invoked here anymore
+  //fExB =  GetExB(-5,kTRUE);
      //
   if (!fTransform) {
     fTransform=new AliTPCTransform(); 
@@ -827,6 +865,30 @@ Float_t AliTPCcalibDB::GetGain(Int_t sector, Int_t row, Int_t pad){
   return calPad->GetCalROC(sector)->GetValue(row,pad);
 }
 
+AliSplineFit* AliTPCcalibDB::GetVdriftSplineFit(const char* name, Int_t run){
+  //
+  //
+  //
+  TObjArray *arr=GetTimeVdriftSplineRun(run);
+  if (!arr) return 0;
+  return dynamic_cast<AliSplineFit*>(arr->FindObject(name));
+}
+
+AliSplineFit* AliTPCcalibDB::CreateVdriftSplineFit(const char* graphName, Int_t run){
+  //
+  // create spline fit from the drift time graph in TimeDrift
+  //
+  TObjArray *arr=GetTimeVdriftSplineRun(run);
+  if (!arr) return 0;
+  TGraph *graph=dynamic_cast<TGraph*>(arr->FindObject(graphName));
+  if (!graph) return 0;
+  AliSplineFit *fit = new AliSplineFit();
+  fit->SetGraph(graph);
+  fit->SetMinPoints(graph->GetN()+1);
+  fit->InitKnots(graph,2,0,0.001);
+  fit->SplineFit(0);
+  return fit;
+}
 
 AliGRPObject *AliTPCcalibDB::GetGRP(Int_t run){
   //
@@ -913,6 +975,18 @@ TObjArray * AliTPCcalibDB::GetTimeGainSplinesRun(Int_t run){
   return gainSplines;
 }
 
+TObjArray * AliTPCcalibDB::GetTimeVdriftSplineRun(Int_t run){
+  //
+  // Get drift spline array
+  //
+  TObjArray * driftSplines = (TObjArray *)fDriftCorrectionArray.At(run);
+  if (!driftSplines) {
+    UpdateRunInformations(run);
+    driftSplines = (TObjArray *)fDriftCorrectionArray.At(run);
+  }
+  return driftSplines;
+}
+
 AliDCSSensorArray * AliTPCcalibDB::GetVoltageSensors(Int_t run){
   //
   // Get temperature sensor array
@@ -951,17 +1025,304 @@ AliTPCCalibVdrift *     AliTPCcalibDB::GetVdrift(Int_t run){
   return vdrift;
 }
 
+Float_t AliTPCcalibDB::GetCEdriftTime(Int_t run, Int_t sector, Double_t timeStamp, Int_t *entries)
+{
+  //
+  // GetCE drift time information for 'sector'
+  // sector 72 is the mean drift time of the A-Side
+  // sector 73 is the mean drift time of the C-Side
+  // it timestamp==-1 return mean value
+  //
+  AliTPCcalibDB::Instance()->SetRun(run);
+  TGraph *gr=AliTPCcalibDB::Instance()->GetCErocTgraph(sector);
+  if (!gr||sector<0||sector>73) {
+    if (entries) *entries=0;
+    return 0.;
+  }
+  Float_t val=0.;
+  if (timeStamp==-1.){
+    val=gr->GetMean(2);
+  }else{
+    for (Int_t ipoint=0;ipoint<gr->GetN();++ipoint){
+      Double_t x,y;
+      gr->GetPoint(ipoint,x,y);
+      if (x<timeStamp) continue;
+      val=y;
+      break;
+    }
+  }
+  return val;
+}
+  
+Float_t AliTPCcalibDB::GetCEchargeTime(Int_t run, Int_t sector, Double_t timeStamp, Int_t *entries)
+{
+  //
+  // GetCE mean charge for 'sector'
+  // it timestamp==-1 return mean value
+  //
+  AliTPCcalibDB::Instance()->SetRun(run);
+  TGraph *gr=AliTPCcalibDB::Instance()->GetCErocQgraph(sector);
+  if (!gr||sector<0||sector>71) {
+    if (entries) *entries=0;
+    return 0.;
+  }
+  Float_t val=0.;
+  if (timeStamp==-1.){
+    val=gr->GetMean(2);
+  }else{
+    for (Int_t ipoint=0;ipoint<gr->GetN();++ipoint){
+      Double_t x,y;
+      gr->GetPoint(ipoint,x,y);
+      if (x<timeStamp) continue;
+      val=y;
+      break;
+    }
+  }
+  return val;
+}
 
-Float_t AliTPCcalibDB::GetChamberHighVoltage(Int_t timeStamp, Int_t run, Int_t sector) {
+Float_t AliTPCcalibDB::GetDCSSensorValue(AliDCSSensorArray *arr, Int_t timeStamp, const char * sensorName, Int_t sigDigits)
+{
+  //
+  // Get Value for a DCS sensor 'sensorName', run 'run' at time 'timeStamp'
+  //
+  Float_t val=0;
+  const TString sensorNameString(sensorName);
+  AliDCSSensor *sensor = arr->GetSensor(sensorNameString);
+  if (!sensor) return val;
+  //use the dcs graph if possible
+  TGraph *gr=sensor->GetGraph();
+  if (gr){
+    for (Int_t ipoint=0;ipoint<gr->GetN();++ipoint){
+      Double_t x,y;
+      gr->GetPoint(ipoint,x,y);
+      Int_t time=TMath::Nint(sensor->GetStartTime()+x*3600); //time in graph is hours
+      if (time<timeStamp) continue;
+      val=y;
+      break;
+    }
+    //if val is still 0, test if if the requested time if within 5min of the first/last
+    //data point. If this is the case return the firs/last entry
+    //the timestamps might not be syncronised for all calibration types, sometimes a 'pre'
+    //and 'pos' period is requested. Especially to the HV this is not the case!
+    //first point
+    if (val==0 ){
+      Double_t x,y;
+      gr->GetPoint(0,x,y);
+      Int_t time=TMath::Nint(sensor->GetStartTime()+x*3600); //time in graph is hours
+      if ((time-timeStamp)<5*60) val=y;
+    }
+    //last point
+    if (val==0 ){
+      Double_t x,y;
+      gr->GetPoint(gr->GetN()-1,x,y);
+      Int_t time=TMath::Nint(sensor->GetStartTime()+x*3600); //time in graph is hours
+      if ((timeStamp-time)<5*60) val=y;
+    }
+  } else {
+    val=sensor->GetValue(timeStamp);
+  }
+  if (sigDigits>=0){
+    val=(Float_t)TMath::Floor(val * TMath::Power(10., sigDigits) + .5) / TMath::Power(10., sigDigits);
+  }
+  return val;
+}
+
+Float_t AliTPCcalibDB::GetDCSSensorMeanValue(AliDCSSensorArray *arr, const char * sensorName, Int_t sigDigits)
+{
+  //
+  // Get mean Value for a DCS sensor 'sensorName' during run 'run'
+  //
+  Float_t val=0;
+  const TString sensorNameString(sensorName);
+  AliDCSSensor *sensor = arr->GetSensor(sensorNameString);
+  if (!sensor) return val;
+
+  //use dcs graph if it exists
+  TGraph *gr=sensor->GetGraph();
+  if (gr){
+    val=gr->GetMean(2);
+  } else {
+    //if we don't have the dcs graph, try to get some meaningful information
+    if (!sensor->GetFit()) return val;
+    Int_t nKnots=sensor->GetFit()->GetKnots();
+    Double_t tMid=(sensor->GetEndTime()-sensor->GetStartTime())/2.;
+    for (Int_t iKnot=0;iKnot<nKnots;++iKnot){
+      if (sensor->GetFit()->GetX()[iKnot]>tMid/3600.) break;
+      val=(Float_t)sensor->GetFit()->GetY0()[iKnot];
+    }
+  }
+  if (sigDigits>=0){
+    val/=10;
+    val=(Float_t)TMath::Floor(val * TMath::Power(10., sigDigits) + .5) / TMath::Power(10., sigDigits);
+    val*=10;
+  }
+  return val;
+}
+
+Float_t AliTPCcalibDB::GetChamberHighVoltage(Int_t run, Int_t sector, Int_t timeStamp, Int_t sigDigits) {
   //
   // return the chamber HV for given run and time: 0-35 IROC, 36-72 OROC
+  // if timeStamp==-1 return mean value
   //
+  Float_t val=0;
+  TString sensorName="";
   TTimeStamp stamp(timeStamp);
   AliDCSSensorArray* voltageArray = AliTPCcalibDB::Instance()->GetVoltageSensors(run);
-  if (!voltageArray) return 0;
-  AliDCSSensor *sensor = voltageArray->GetSensor((sector+1)*3);
-  if (!sensor) return 0;
-  return sensor->GetValue(stamp);
+  if (!voltageArray || (sector<0) || (sector>71)) return val;
+  Char_t sideName='A';
+  if ((sector/18)%2==1) sideName='C';
+  if (sector<36){
+    //IROC
+    sensorName=Form("TPC_ANODE_I_%c%02d_VMEAS",sideName,sector%18);
+  }else{
+    //OROC
+    sensorName=Form("TPC_ANODE_O_%c%02d_0_VMEAS",sideName,sector%18);
+  }
+  if (timeStamp==-1){
+    val=AliTPCcalibDB::GetDCSSensorMeanValue(voltageArray, sensorName.Data(),sigDigits);
+  } else {
+    val=AliTPCcalibDB::GetDCSSensorValue(voltageArray, timeStamp, sensorName.Data(),sigDigits);
+  }
+  return val;
+}
+Float_t AliTPCcalibDB::GetSkirtVoltage(Int_t run, Int_t sector, Int_t timeStamp, Int_t sigDigits)
+{
+  //
+  // Get the skirt voltage for 'run' at 'timeStamp' and 'sector': 0-35 IROC, 36-72 OROC
+  // type corresponds to the following: 0 - IROC A-Side; 1 - IROC C-Side; 2 - OROC A-Side; 3 - OROC C-Side
+  // if timeStamp==-1 return the mean value for the run
+  //
+  Float_t val=0;
+  TString sensorName="";
+  TTimeStamp stamp(timeStamp);
+  AliDCSSensorArray* voltageArray = AliTPCcalibDB::Instance()->GetVoltageSensors(run);
+  if (!voltageArray || (sector<0) || (sector>71)) return val;
+  Char_t sideName='A';
+  if ((sector/18)%2==1) sideName='C';
+  sensorName=Form("TPC_SKIRT_%c_VMEAS",sideName);
+  if (timeStamp==-1){
+    val=AliTPCcalibDB::GetDCSSensorMeanValue(voltageArray, sensorName.Data(),sigDigits);
+  } else {
+    val=AliTPCcalibDB::GetDCSSensorValue(voltageArray, timeStamp, sensorName.Data(),sigDigits);
+  }
+  return val;
+}
+
+Float_t AliTPCcalibDB::GetCoverVoltage(Int_t run, Int_t sector, Int_t timeStamp, Int_t sigDigits)
+{
+  //
+  // Get the cover voltage for run 'run' at time 'timeStamp'
+  // type corresponds to the following: 0 - IROC A-Side; 1 - IROC C-Side; 2 - OROC A-Side; 3 - OROC C-Side
+  // if timeStamp==-1 return the mean value for the run
+  //
+  Float_t val=0;
+  TString sensorName="";
+  TTimeStamp stamp(timeStamp);
+  AliDCSSensorArray* voltageArray = AliTPCcalibDB::Instance()->GetVoltageSensors(run);
+  if (!voltageArray || (sector<0) || (sector>71)) return val;
+  Char_t sideName='A';
+  if ((sector/18)%2==1) sideName='C';
+  if (sector<36){
+    //IROC
+    sensorName=Form("TPC_COVER_I_%c_VMEAS",sideName);
+  }else{
+    //OROC
+    sensorName=Form("TPC_COVER_O_%c_VMEAS",sideName);
+  }
+  if (timeStamp==-1){
+    val=AliTPCcalibDB::GetDCSSensorMeanValue(voltageArray, sensorName.Data(),sigDigits);
+  } else {
+    val=AliTPCcalibDB::GetDCSSensorValue(voltageArray, timeStamp, sensorName.Data(),sigDigits);
+  }
+  return val;
+}
+
+Float_t AliTPCcalibDB::GetGGoffsetVoltage(Int_t run, Int_t sector, Int_t timeStamp, Int_t sigDigits)
+{
+  //
+  // Get the GG offset voltage for run 'run' at time 'timeStamp'
+  // type corresponds to the following: 0 - IROC A-Side; 1 - IROC C-Side; 2 - OROC A-Side; 3 - OROC C-Side
+  // if timeStamp==-1 return the mean value for the run
+  //
+  Float_t val=0;
+  TString sensorName="";
+  TTimeStamp stamp(timeStamp);
+  AliDCSSensorArray* voltageArray = AliTPCcalibDB::Instance()->GetVoltageSensors(run);
+  if (!voltageArray || (sector<0) || (sector>71)) return val;
+  Char_t sideName='A';
+  if ((sector/18)%2==1) sideName='C';
+  if (sector<36){
+    //IROC
+    sensorName=Form("TPC_GATE_I_%c_OFF_VMEAS",sideName);
+  }else{
+    //OROC
+    sensorName=Form("TPC_GATE_O_%c_OFF_VMEAS",sideName);
+  }
+  if (timeStamp==-1){
+    val=AliTPCcalibDB::GetDCSSensorMeanValue(voltageArray, sensorName.Data(),sigDigits);
+  } else {
+    val=AliTPCcalibDB::GetDCSSensorValue(voltageArray, timeStamp, sensorName.Data(),sigDigits);
+  }
+  return val;
+}
+
+Float_t AliTPCcalibDB::GetGGnegVoltage(Int_t run, Int_t sector, Int_t timeStamp, Int_t sigDigits)
+{
+  //
+  // Get the GG offset voltage for run 'run' at time 'timeStamp'
+  // type corresponds to the following: 0 - IROC A-Side; 1 - IROC C-Side; 2 - OROC A-Side; 3 - OROC C-Side
+  // if timeStamp==-1 return the mean value for the run
+  //
+  Float_t val=0;
+  TString sensorName="";
+  TTimeStamp stamp(timeStamp);
+  AliDCSSensorArray* voltageArray = AliTPCcalibDB::Instance()->GetVoltageSensors(run);
+  if (!voltageArray || (sector<0) || (sector>71)) return val;
+  Char_t sideName='A';
+  if ((sector/18)%2==1) sideName='C';
+  if (sector<36){
+    //IROC
+    sensorName=Form("TPC_GATE_I_%c_NEG_VMEAS",sideName);
+  }else{
+    //OROC
+    sensorName=Form("TPC_GATE_O_%c_NEG_VMEAS",sideName);
+  }
+  if (timeStamp==-1){
+    val=AliTPCcalibDB::GetDCSSensorMeanValue(voltageArray, sensorName.Data(),sigDigits);
+  } else {
+    val=AliTPCcalibDB::GetDCSSensorValue(voltageArray, timeStamp, sensorName.Data(),sigDigits);
+  }
+  return val;
+}
+
+Float_t AliTPCcalibDB::GetGGposVoltage(Int_t run, Int_t sector, Int_t timeStamp, Int_t sigDigits)
+{
+  //
+  // Get the GG offset voltage for run 'run' at time 'timeStamp'
+  // type corresponds to the following: 0 - IROC A-Side; 1 - IROC C-Side; 2 - OROC A-Side; 3 - OROC C-Side
+  // if timeStamp==-1 return the mean value for the run
+  //
+  Float_t val=0;
+  TString sensorName="";
+  TTimeStamp stamp(timeStamp);
+  AliDCSSensorArray* voltageArray = AliTPCcalibDB::Instance()->GetVoltageSensors(run);
+  if (!voltageArray || (sector<0) || (sector>71)) return val;
+  Char_t sideName='A';
+  if ((sector/18)%2==1) sideName='C';
+  if (sector<36){
+    //IROC
+    sensorName=Form("TPC_GATE_I_%c_POS_VMEAS",sideName);
+  }else{
+    //OROC
+    sensorName=Form("TPC_GATE_O_%c_POS_VMEAS",sideName);
+  }
+  if (timeStamp==-1){
+    val=AliTPCcalibDB::GetDCSSensorMeanValue(voltageArray, sensorName.Data(),sigDigits);
+  } else {
+    val=AliTPCcalibDB::GetDCSSensorValue(voltageArray, timeStamp, sensorName.Data(),sigDigits);
+  }
+  return val;
 }
 
 Float_t AliTPCcalibDB::GetPressure(Int_t timeStamp, Int_t run, Int_t type){
@@ -972,6 +1333,48 @@ Float_t AliTPCcalibDB::GetPressure(Int_t timeStamp, Int_t run, Int_t type){
   AliDCSSensor * sensor = Instance()->GetPressureSensor(run,type);
   if (!sensor) return 0;
   return sensor->GetValue(stamp);
+}
+
+Float_t AliTPCcalibDB::GetL3Current(Int_t run, Int_t statType){
+  //
+  // return L3 current
+  // stat type is: AliGRPObject::Stats: kMean = 0, kTruncMean = 1, kMedian = 2, kSDMean = 3, kSDMedian = 4
+  //
+  Float_t current=-1;
+  AliGRPObject *grp=AliTPCcalibDB::GetGRP(run);
+  if (grp) current=grp->GetL3Current((AliGRPObject::Stats)statType);
+  return current;
+}
+
+Float_t AliTPCcalibDB::GetBz(Int_t run){
+  //
+  // calculate BZ in T from L3 current
+  //
+  Float_t bz=-1;
+  Float_t current=AliTPCcalibDB::GetL3Current(run);
+  if (current>-1) bz=5*current/30000.*.1;
+  return bz;
+}
+
+Char_t  AliTPCcalibDB::GetL3Polarity(Int_t run) {
+  //
+  // get l3 polarity from GRP
+  //
+  Char_t pol=-100;
+  AliGRPObject *grp=AliTPCcalibDB::GetGRP(run);
+  if (grp) pol=grp->GetL3Polarity();
+  return pol;
+}
+
+TString AliTPCcalibDB::GetRunType(Int_t run){
+  //
+  // return run type from grp
+  //
+
+//   TString type("UNKNOWN");
+  AliGRPObject *grp=AliTPCcalibDB::GetGRP(run);
+  if (grp) return grp->GetRunType();
+  return "UNKNOWN";
 }
 
 Float_t AliTPCcalibDB::GetValueGoofie(Int_t timeStamp, Int_t run, Int_t type){
@@ -1037,149 +1440,6 @@ Double_t AliTPCcalibDB::GetPTRelative(UInt_t timeSec, Int_t run, Int_t side){
   return vdrift->GetPTRelative(timeSec,side);
 }
 
-
-void AliTPCcalibDB::ProcessEnv(const char * runList){
-  //
-  // Example test function  - how to use the environment variables
-  // runList  -  ascii file with run numbers
-  // output   -  dcsTime.root file with tree 
-
-  ifstream in;
-  in.open(runList);
-  Int_t irun=0;
-  TTreeSRedirector *pcstream = new TTreeSRedirector("dcsTime.root");
-  while(in.good()) {
-    in >> irun;
-    if (irun==0) continue;
-    printf("Processing run %d\n",irun);
-    AliDCSSensor * sensorPressure = AliTPCcalibDB::Instance()->GetPressureSensor(irun);
-    if (!sensorPressure) continue;
-    AliTPCSensorTempArray * tempArray = AliTPCcalibDB::Instance()->GetTemperatureSensor(irun);
-    AliTPCTempMap * tempMap = new AliTPCTempMap(tempArray);
-    AliDCSSensorArray* goofieArray = AliTPCcalibDB::Instance()->GetGoofieSensors(irun);
-    //
-    Int_t startTime = sensorPressure->GetStartTime();
-    Int_t endTime = sensorPressure->GetEndTime();
-    Int_t dtime = TMath::Max((endTime-startTime)/20,10*60);
-    for (Int_t itime=startTime; itime<endTime; itime+=dtime){
-      //
-      TTimeStamp tstamp(itime);
-      Float_t valuePressure = sensorPressure->GetValue(tstamp);
-
-      TLinearFitter * fitter = 0;
-      TVectorD vecTemp[10];
-      if (itime<tempArray->GetStartTime().GetSec() || itime>tempArray->GetEndTime().GetSec()){	
-      }else{
-	for (Int_t itype=0; itype<5; itype++)
-	  for (Int_t iside=0; iside<2; iside++){
-	    fitter= tempMap->GetLinearFitter(itype,iside,tstamp);
-	    if (!fitter) continue;
-	    fitter->Eval(); fitter->GetParameters(vecTemp[itype+iside*5]);
-	    delete fitter;
-	  }
-      }
-      
-      TVectorD vecGoofie, vecEntries, vecMean, vecMedian,vecRMS;
-      if (goofieArray){	
-	vecGoofie.ResizeTo(goofieArray->NumSensors());
-	ProcessGoofie(goofieArray, vecEntries ,vecMedian, vecMean, vecRMS);
-  //
-	for (Int_t isensor=0; isensor<goofieArray->NumSensors();isensor++){
-	  AliDCSSensor *gsensor = goofieArray->GetSensor(isensor);
-	  if (gsensor){
-	    vecGoofie[isensor] = gsensor->GetValue(tstamp);
-	  }
-	}
-      }
-
-
-      //tempMap->GetLinearFitter(0,0,itime);
-      (*pcstream)<<"dcs"<<
-	"run="<<irun<<
-	"time="<<itime<<
-	"goofie.="<<&vecGoofie<<
-	"goofieE.="<<&vecEntries<<
-	"goofieMean.="<<&vecMean<<
-	"goofieMedian.="<<&vecMedian<<
-	"goofieRMS.="<<&vecRMS<<
-	"press="<<valuePressure<<
-	"temp00.="<<&vecTemp[0]<<
-	"temp10.="<<&vecTemp[1]<<
-	"temp20.="<<&vecTemp[2]<<
-	"temp30.="<<&vecTemp[3]<<
-	"temp40.="<<&vecTemp[4]<<
-	"temp01.="<<&vecTemp[5]<<
-	"temp11.="<<&vecTemp[6]<<
-	"temp21.="<<&vecTemp[7]<<
-	"temp31.="<<&vecTemp[8]<<
-	"temp41.="<<&vecTemp[9]<<
-	"\n";
-    }
-  }
-  delete pcstream;
-}
-
-
-void AliTPCcalibDB::ProcessGoofie( AliDCSSensorArray* goofieArray, TVectorD & vecEntries, TVectorD & vecMedian, TVectorD &vecMean, TVectorD &vecRMS){
-  /*
-    
-  1       TPC_ANODE_I_A00_STAT
-  2       TPC_DVM_CO2
-  3       TPC_DVM_DriftVelocity
-  4       TPC_DVM_FCageHV
-  5       TPC_DVM_GainFar
-  6       TPC_DVM_GainNear
-  7       TPC_DVM_N2
-  8       TPC_DVM_NumberOfSparks
-  9       TPC_DVM_PeakAreaFar
-  10      TPC_DVM_PeakAreaNear
-  11      TPC_DVM_PeakPosFar
-  12      TPC_DVM_PeakPosNear
-  13      TPC_DVM_PickupHV
-  14      TPC_DVM_Pressure
-  15      TPC_DVM_T1_Over_P
-  16      TPC_DVM_T2_Over_P
-  17      TPC_DVM_T_Over_P
-  18      TPC_DVM_TemperatureS1
-   */
-  //
-  //
-  //  TVectorD  vecMedian; TVectorD  vecEntries; TVectorD  vecMean; TVectorD  vecRMS;
-  Double_t kEpsilon=0.0000000001;
-  Double_t kBig=100000000000.;
-  Int_t nsensors = goofieArray->NumSensors();
-  vecEntries.ResizeTo(nsensors);
-  vecMedian.ResizeTo(nsensors);
-  vecMean.ResizeTo(nsensors);
-  vecRMS.ResizeTo(nsensors);
-  TVectorF values;
-  for (Int_t isensor=0; isensor<goofieArray->NumSensors();isensor++){
-    AliDCSSensor *gsensor = goofieArray->GetSensor(isensor);
-    if (gsensor &&  gsensor->GetGraph()){
-      Int_t npoints = gsensor->GetGraph()->GetN();
-      // filter zeroes
-      values.ResizeTo(npoints);
-      Int_t nused =0;
-      for (Int_t ipoint=0; ipoint<npoints; ipoint++){
-	if (TMath::Abs(gsensor->GetGraph()->GetY()[ipoint])>kEpsilon && 
-	   TMath::Abs(gsensor->GetGraph()->GetY()[ipoint])<kBig ){
-	  values[nused]=gsensor->GetGraph()->GetY()[ipoint];
-	  nused++;
-	}
-      }
-      //
-      vecEntries[isensor]= nused;      
-      if (nused>1){
-	vecMedian[isensor] = TMath::Median(nused,values.GetMatrixArray());
-	vecMean[isensor]   = TMath::Mean(nused,values.GetMatrixArray());
-	vecRMS[isensor]    = TMath::RMS(nused,values.GetMatrixArray());
-      }
-    }
-  }
-}
-
-
-
 AliGRPObject * AliTPCcalibDB::MakeGRPObjectFromMap(TMap *map){
   //
   // Function to covert old GRP run information from TMap to GRPObject
@@ -1211,5 +1471,137 @@ AliGRPObject * AliTPCcalibDB::MakeGRPObjectFromMap(TMap *map){
   return grpRun;
 }
 
+Bool_t AliTPCcalibDB::CreateGUITree(Int_t run, const char* filename)
+{
+  //
+  // Create a gui tree for run number 'run'
+  //
+
+  if (!AliCDBManager::Instance()->GetDefaultStorage()){
+    AliLog::Message(AliLog::kError, "Default Storage not set. Cannot create Calibration Tree!",
+                    MODULENAME(), "AliTPCcalibDB", FUNCTIONNAME(), __FILE__, __LINE__);
+    return kFALSE;
+  }
+  //db instance
+  AliTPCcalibDB *db=AliTPCcalibDB::Instance();
+  // retrieve cal pad objects
+  db->SetRun(run);
+  AliTPCPreprocessorOnline prep;
+  //noise and pedestals
+  prep.AddComponent(db->GetPedestals());
+  prep.AddComponent(db->GetPadNoise());
+  //pulser data
+  prep.AddComponent(db->GetPulserTmean());
+  prep.AddComponent(db->GetPulserTrms());
+  prep.AddComponent(db->GetPulserQmean());
+  //CE data
+  prep.AddComponent(db->GetCETmean());
+  prep.AddComponent(db->GetCETrms());
+  prep.AddComponent(db->GetCEQmean());
+  //Altro data
+  prep.AddComponent(db->GetALTROAcqStart() );
+  prep.AddComponent(db->GetALTROZsThr()    );
+  prep.AddComponent(db->GetALTROFPED()     );
+  prep.AddComponent(db->GetALTROAcqStop()  );
+  prep.AddComponent(db->GetALTROMasked()   );
+  //
+  TString file(filename);
+  if (file.IsNull()) file=Form("guiTreeRun_%d.root",run);
+  prep.DumpToFile(file.Data());
+  return kTRUE;
+}
+
+Bool_t AliTPCcalibDB::CreateRefFile(Int_t run, const char* filename)
+{
+  //
+  // Create a gui tree for run number 'run'
+  //
+  
+  if (!AliCDBManager::Instance()->GetDefaultStorage()){
+    AliLog::Message(AliLog::kError, "Default Storage not set. Cannot create Calibration Tree!",
+                    MODULENAME(), "AliTPCcalibDB", FUNCTIONNAME(), __FILE__, __LINE__);
+    return kFALSE;
+  }
+  TString file(filename);
+  if (file.IsNull()) file=Form("RefCalPads_%d.root",run);
+  TDirectory *currDir=gDirectory;
+  //db instance
+  AliTPCcalibDB *db=AliTPCcalibDB::Instance();
+  // retrieve cal pad objects
+  db->SetRun(run);
+  //open file
+  TFile f(file.Data(),"recreate");
+  //noise and pedestals
+  db->GetPedestals()->Write("Pedestals");
+  db->GetPadNoise()->Write("PadNoise");
+  //pulser data
+  db->GetPulserTmean()->Write("PulserTmean");
+  db->GetPulserTrms()->Write("PulserTrms");
+  db->GetPulserQmean()->Write("PulserQmean");
+  //CE data
+  db->GetCETmean()->Write("CETmean");
+  db->GetCETrms()->Write("CETrms");
+  db->GetCEQmean()->Write("CEQmean");
+  //Altro data
+  db->GetALTROAcqStart() ->Write("ALTROAcqStart");
+  db->GetALTROZsThr()    ->Write("ALTROZsThr");
+  db->GetALTROFPED()     ->Write("ALTROFPED");
+  db->GetALTROAcqStop()  ->Write("ALTROAcqStop");
+  db->GetALTROMasked()   ->Write("ALTROMasked");
+  //
+  f.Close();
+  currDir->cd();
+  return kTRUE;
+}
 
 
+
+Double_t AliTPCcalibDB::GetVDriftCorrectionTime(Int_t timeStamp, Int_t run, Int_t side, Int_t mode){
+  //
+  // Get time dependent drift velocity correction
+  // multiplication factor        vd = vdnom *(1+vdriftcorr)
+  // Arguments:
+  // mode determines the algorith how to combine the Laser Track, LaserCE and physics tracks
+  // timestamp - timestamp
+  // run       - run number
+  // side      - the drift velocity per side (possible for laser and CE)
+  //
+  // Notice - Extrapolation outside of calibration range  - using constant function
+  //
+  return 0;
+}
+
+Double_t AliTPCcalibDB::GetTime0CorrectionTime(Int_t timeStamp, Int_t run, Int_t side, Int_t mode){
+  //
+  // Get time dependent time 0 (trigger delay) correction
+  // additive correction        time0 = time0+ GetTime0CorrectionTime
+  // Value etracted combining the vdrift correction using laser tracks and CE and the physics track matchin
+  // Arguments:
+  // mode determines the algorith how to combine the Laser Track and physics tracks
+  // timestamp - timestamp
+  // run       - run number
+  // side      - the drift velocity per side (possible for laser and CE)
+  //
+  // Notice - Extrapolation outside of calibration range  - using constant function
+  //
+  return 0;
+}
+
+
+
+
+Double_t AliTPCcalibDB::GetVDriftCorrectionGy(Int_t timeStamp, Int_t run, Int_t side, Int_t mode){
+  //
+  // Get global y correction drift velocity correction factor
+  // additive factor        vd = vdnom*(1+GetVDriftCorrectionGy *gy)
+  // Value etracted combining the vdrift correction using laser tracks and CE
+  // Arguments:
+  // mode determines the algorith how to combine the Laser Track, LaserCE
+  // timestamp - timestamp
+  // run       - run number
+  // side      - the drift velocity gy correction per side (CE and Laser tracks)
+  //
+  // Notice - Extrapolation outside of calibration range  - using constant function
+  //
+  return 0;
+}

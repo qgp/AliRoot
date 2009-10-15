@@ -14,6 +14,7 @@
 #include "AliTPCcalibBase.h"
 #include "TH1.h"
 #include "TH2F.h"
+#include "THnSparse.h"
 
 
 class AliExternalTrackParam;
@@ -46,6 +47,8 @@ public:
   virtual void DumpLaser(Int_t id);
   virtual void RefitLaserJW(Int_t id);
   void         FitDriftV();
+  Bool_t       FitDriftV(Float_t minFraction);
+  //
   void         MakeDistHisto(Int_t id);
   void         AddCut(Double_t xcut, Double_t ycut, Double_t ncl){fEdgeXcuts[fNcuts]=xcut; fEdgeYcuts[fNcuts]=ycut; fNClCuts[fNcuts]=ncl; fNcuts++;}
 
@@ -86,6 +89,7 @@ public:
   //
   // Refit residuals histogram
   //
+  THnSparseS     *fHisLaser;      //  N dim histogram of laser 
   TH2F           *fHisNclIn;      //->Number of clusters inner
   TH2F           *fHisNclOut;     //->Number of clusters outer
   TH2F           *fHisNclIO;      //->Number of cluster inner outer
@@ -163,7 +167,7 @@ public:
   Bool_t         fInverseSlopeZ;    //! invert slope in z - mismatch between database and lasers
   //
 private:
-  ClassDef(AliTPCcalibLaser,3)
+  ClassDef(AliTPCcalibLaser,4)
 };
 
 
