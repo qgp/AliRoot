@@ -35,6 +35,7 @@
 #pragma link C++ class AliTPCCalPad+;
 #pragma link C++ class AliTPCCalDet+;
 #pragma link C++ class AliTPCcalibDB+;
+#pragma link C++ class AliTPCcalibDButil+;
 #pragma link C++ class AliTPCLaserTracks+;
 #pragma link C++ class AliTPCSensorTemp+;
 #pragma link C++ class AliTPCSensorTempArray+;
@@ -57,7 +58,9 @@
 #pragma link C++ class AliTPCPreprocessorOnline+;
 #pragma link C++ class AliTPCCalibViewer+;
 #pragma link C++ class AliTPCCalibViewerGUI+;
+#pragma link C++ class AliTPCCalibViewerGUItime+;
 #pragma link C++ class AliTPCConfigDA+;
+#pragma link C++ class AliTPCConfigParser+;
 
 #pragma link C++ class AliTPCCalibVdrift+;
 #pragma link C++ class AliTPCGoofieValues+;

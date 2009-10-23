@@ -87,6 +87,7 @@
 #include <AliSplineFit.h>
 
 #include "AliTPCcalibDB.h"
+#include "AliTPCcalibDButil.h"
 #include "AliTPCAltroMapping.h"
 #include "AliTPCExB.h"
 
@@ -103,6 +104,7 @@ class AliTPCCalDet;
 
 #include "TFile.h"
 #include "TKey.h"
+#include "TGraphErrors.h"
 
 #include "TObjArray.h"
 #include "TObjString.h"
@@ -116,6 +118,7 @@ class AliTPCCalDet;
 #include "AliTPCTempMap.h"
 #include "AliTPCCalibVdrift.h"
 #include "AliTPCCalibRaw.h"
+#include "AliTPCParam.h"
 
 #include "AliTPCPreprocessorOnline.h"
 
@@ -294,8 +297,7 @@ void AliTPCcalibDB::SetRun(Long64_t run)
 
 void AliTPCcalibDB::Update(){
 	//
-	AliCDBEntry * entry=0;
-  
+  AliCDBEntry * entry=0;
   Bool_t cdbCache = AliCDBManager::Instance()->GetCacheFlag(); // save cache status
   AliCDBManager::Instance()->SetCacheFlag(kTRUE); // activate CDB cache
   
@@ -422,7 +424,6 @@ void AliTPCcalibDB::Update(){
 
   //
   AliCDBManager::Instance()->SetCacheFlag(cdbCache); // reset original CDB cache
-  
 }
 
 
@@ -741,7 +742,7 @@ void AliTPCcalibDB::RegisterExB(Int_t index, Float_t bz, Bool_t bdelete){
   Float_t factor =  bz/(5.);  // default b filed in Cheb with minus sign
                               // was chenged in the Revision ???? (Ruben can you add here number)
   
-  AliMagF*   bmap = new AliMagF("MapsExB","MapsExB", 2,factor,1., 10.,AliMagF::k5kG,"$(ALICE_ROOT)/data/maps/mfchebKGI_sym.root");
+  AliMagF*   bmap = new AliMagF("MapsExB","MapsExB", factor,TMath::Sign(1.f,factor),AliMagF::k5kG);
   
   AliTPCExBFirst *exb  = new  AliTPCExBFirst(bmap,0.88*2.6400e+04,50,50,50);
   AliTPCExB::SetInstance(exb);
@@ -780,9 +781,11 @@ void  AliTPCcalibDB::SetExBField(const AliMagF*   bmap){
   //
   // Set magnetic field for ExB correction
   //
-  AliTPCExBFirst *exb  = new  AliTPCExBFirst(bmap,0.88*2.6400e+04,50,50,50);
-  AliTPCExB::SetInstance(exb);
-  fExB=exb;
+  if (!fExB) {
+    AliTPCExBFirst *exb  = new  AliTPCExBFirst(bmap,0.88*2.6400e+04,50,50,50);
+    AliTPCExB::SetInstance(exb);
+    fExB=exb;
+  }
 }
 
 
@@ -1556,7 +1559,7 @@ Bool_t AliTPCcalibDB::CreateRefFile(Int_t run, const char* filename)
 
 
 
-Double_t AliTPCcalibDB::GetVDriftCorrectionTime(Int_t timeStamp, Int_t run, Int_t side, Int_t mode){
+Double_t AliTPCcalibDB::GetVDriftCorrectionTime(Int_t timeStamp, Int_t run, Int_t /*side*/, Int_t mode){
   //
   // Get time dependent drift velocity correction
   // multiplication factor        vd = vdnom *(1+vdriftcorr)
@@ -1568,12 +1571,19 @@ Double_t AliTPCcalibDB::GetVDriftCorrectionTime(Int_t timeStamp, Int_t run, Int_
   //
   // Notice - Extrapolation outside of calibration range  - using constant function
   //
-  return 0;
+  Double_t result;
+  // mode TPC crossing and laser 
+  if (mode==1) {
+    result=AliTPCcalibDButil::GetVDriftTPC(run,timeStamp);
+    
+  }
+
+  return result;
 }
 
-Double_t AliTPCcalibDB::GetTime0CorrectionTime(Int_t timeStamp, Int_t run, Int_t side, Int_t mode){
+Double_t AliTPCcalibDB::GetTime0CorrectionTime(Int_t timeStamp, Int_t run, Int_t /*side*/, Int_t mode){
   //
-  // Get time dependent time 0 (trigger delay) correction
+  // Get time dependent time 0 (trigger delay in cm) correction
   // additive correction        time0 = time0+ GetTime0CorrectionTime
   // Value etracted combining the vdrift correction using laser tracks and CE and the physics track matchin
   // Arguments:
@@ -1584,13 +1594,18 @@ Double_t AliTPCcalibDB::GetTime0CorrectionTime(Int_t timeStamp, Int_t run, Int_t
   //
   // Notice - Extrapolation outside of calibration range  - using constant function
   //
-  return 0;
+  Double_t result=0;
+  if (mode==1) result=AliTPCcalibDButil::GetTriggerOffsetTPC(run,timeStamp);    
+  result  *=fParam->GetZLength();
+
+  return result;
+
 }
 
 
 
 
-Double_t AliTPCcalibDB::GetVDriftCorrectionGy(Int_t timeStamp, Int_t run, Int_t side, Int_t mode){
+Double_t AliTPCcalibDB::GetVDriftCorrectionGy(Int_t timeStamp, Int_t run, Int_t side, Int_t /*mode*/){
   //
   // Get global y correction drift velocity correction factor
   // additive factor        vd = vdnom*(1+GetVDriftCorrectionGy *gy)
@@ -1602,6 +1617,23 @@ Double_t AliTPCcalibDB::GetVDriftCorrectionGy(Int_t timeStamp, Int_t run, Int_t 
   // side      - the drift velocity gy correction per side (CE and Laser tracks)
   //
   // Notice - Extrapolation outside of calibration range  - using constant function
-  //
-  return 0;
+  // 
+  if (run<=0 && fTransform) run = fTransform->GetCurrentRunNumber();
+  UpdateRunInformations(run,kFALSE);
+  TObjArray *array =AliTPCcalibDB::Instance()->GetTimeVdriftSplineRun(run);
+  if (!array) return 0;
+  TGraphErrors *laserA= (TGraphErrors*)array->FindObject("GRAPH_MEAN_GLOBALYGRADIENT_LASER_ALL_A");
+  TGraphErrors *laserC= (TGraphErrors*)array->FindObject("GRAPH_MEAN_GLOBALYGRADIENT_LASER_ALL_C");
+  
+  Double_t result=0;
+  if (laserA && laserC){
+   result= (laserA->Eval(timeStamp)+laserC->Eval(timeStamp))*0.5;
+  }
+  if (laserA && side==0){
+    result = (laserA->Eval(timeStamp));
+  }
+  if (laserC &&side==1){
+    result = (laserC->Eval(timeStamp));
+  }
+  return -result/250.; //normalized before
 }
