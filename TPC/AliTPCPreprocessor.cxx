@@ -49,7 +49,12 @@ const TString kDaqRunType = "DAQ"; // DAQ run identifier
 const TString kAmandaTemp = "TPC_PT_%d_TEMPERATURE"; // Amanda string for temperature entries
 //const Double_t kFitFraction = 0.7;                 // Fraction of DCS sensor fits required              
 const Double_t kFitFraction = -1.0;          // Don't require minimum number of fits in commissioning run 
-
+const Int_t   kNumPressureSensors = 3;    // number of pressure sensors
+const char* kPressureSensorNames[kNumPressureSensors] = {
+                   "CavernAtmosPressure",
+                   "CavernAtmosPressure2",
+                   "SurfaceAtmosPressure" };
+      
 
 //
 // This class is the SHUTTLE preprocessor for the TPC detector.
@@ -60,7 +65,8 @@ ClassImp(AliTPCPreprocessor)
 //______________________________________________________________________________________________
 AliTPCPreprocessor::AliTPCPreprocessor(AliShuttleInterface* shuttle) :
   AliPreprocessor("TPC",shuttle),
-  fConfEnv(0), fTemp(0), fHighVoltage(0), fHighVoltageStat(0), fGoofie(0), fConfigOK(kTRUE), fROC(0)
+  fConfEnv(0), fTemp(0), fHighVoltage(0), fHighVoltageStat(0), fGoofie(0),
+  fPressure(0), fConfigOK(kTRUE), fROC(0)
 {
   // constructor
   fROC = AliTPCROC::Instance();
@@ -78,7 +84,8 @@ AliTPCPreprocessor::AliTPCPreprocessor(AliShuttleInterface* shuttle) :
 //______________________________________________________________________________________________
  AliTPCPreprocessor::AliTPCPreprocessor(const AliTPCPreprocessor&  ) :
    AliPreprocessor("TPC",0),
-   fConfEnv(0), fTemp(0), fHighVoltage(0), fHighVoltageStat(0), fGoofie(0), fConfigOK(kTRUE), fROC(0)
+   fConfEnv(0), fTemp(0), fHighVoltage(0), fHighVoltageStat(0), fGoofie(0),
+   fPressure(0), fConfigOK(kTRUE), fROC(0)
  {
 
    Fatal("AliTPCPreprocessor", "copy constructor not implemented");
@@ -95,6 +102,7 @@ AliTPCPreprocessor::~AliTPCPreprocessor()
   delete fHighVoltage;
   delete fHighVoltageStat;
   delete fGoofie;
+  delete fPressure;
 }
 //______________________________________________________________________________________________
 AliTPCPreprocessor& AliTPCPreprocessor::operator = (const AliTPCPreprocessor& )
@@ -108,12 +116,8 @@ AliTPCPreprocessor& AliTPCPreprocessor::operator = (const AliTPCPreprocessor& )
 void AliTPCPreprocessor::Initialize(Int_t run, UInt_t startTime,
 	UInt_t endTime)
 {
-  // Creates AliTestDataDCS object -- start maps half an hour beforre actual run start
 
-  UInt_t startTimeLocal = startTime-3600;
-  UInt_t endTimeLocal = endTime+1800;
-
-  AliPreprocessor::Initialize(run, startTimeLocal, endTimeLocal);
+  AliPreprocessor::Initialize(run, startTime, endTime);
 
 	AliInfo(Form("\n\tRun %d \n\tStartTime %s \n\tEndTime %s", run,
 		TTimeStamp((time_t)startTime,0).AsString(),
@@ -143,7 +147,7 @@ void AliTPCPreprocessor::Initialize(Int_t run, UInt_t startTime,
 	   fConfigOK = kFALSE;
 	   return;
         }
-        fTemp = new AliTPCSensorTempArray(startTimeLocal, endTimeLocal, confTree, kAmandaTemp);
+        fTemp = new AliTPCSensorTempArray(startTime, endTime, confTree, kAmandaTemp);
 	fTemp->SetValCut(kValCutTemp);
 	fTemp->SetDiffCut(kDiffCutTemp);
        }
@@ -162,7 +166,10 @@ void AliTPCPreprocessor::Initialize(Int_t run, UInt_t startTime,
            fConfigOK = kFALSE;
            return;
         }
-        fHighVoltage = new AliDCSSensorArray(startTime, endTime, confTree);
+        time_t timeStart = (time_t)(((TString)GetRunParameter("DAQ_time_start")).Atoi());
+	time_t timeEnd = (time_t)(((TString)GetRunParameter("DAQ_time_end")).Atoi());
+        fHighVoltage = new AliDCSSensorArray (UInt_t(timeStart), 
+	                                    UInt_t(timeEnd), confTree);
       }
 
    // High voltage status values
@@ -196,10 +203,26 @@ void AliTPCPreprocessor::Initialize(Int_t run, UInt_t startTime,
            fConfigOK = kFALSE;
            return;
         }
-        fGoofie = new AliDCSSensorArray(startTimeLocal, endTimeLocal, confTree);
+        fGoofie = new AliDCSSensorArray(startTime, endTime, confTree);
       }
 
+   // Pressure values
+     
+       TString runType = GetRunType();
 
+       if( runType == kPhysicsRunType || 
+        runType == kLaserRunType ) {    
+       TString pressureConf = fConfEnv->GetValue("Pressure","ON");
+       pressureConf.ToUpper();
+       if (pressureConf != "OFF" ) { 
+         TClonesArray * array = new TClonesArray("AliDCSSensor",kNumPressureSensors); 
+         for(Int_t j = 0; j < kNumPressureSensors; j++) {
+           AliDCSSensor * sens = new ((*array)[j])AliDCSSensor;
+           sens->SetStringID(kPressureSensorNames[j]);
+         }
+         fPressure = new AliDCSSensorArray(startTime, endTime, array);
+       }
+     }
 }
 
 //______________________________________________________________________________________________
@@ -234,7 +257,7 @@ UInt_t AliTPCPreprocessor::Process(TMap* dcsAliasMap)
     tempConf.ToUpper();
     if (tempConf != "OFF" ) {
       UInt_t tempResult = MapTemperature(dcsAliasMap);
-      result=tempResult;
+      if ( tempConf != "TRY") result+=tempResult;
       status = new TParameter<int>("tempResult",tempResult);
       resultArray->Add(status);
     }
@@ -246,7 +269,7 @@ UInt_t AliTPCPreprocessor::Process(TMap* dcsAliasMap)
     hvConf.ToUpper();
     if (hvConf != "OFF" ) { 
      UInt_t hvResult = MapHighVoltage(dcsAliasMap);
-     result+=hvResult;
+     if (hvConf != "TRY") result+=hvResult;
      status = new TParameter<int>("hvResult",hvResult);
      resultArray->Add(status);
     }
@@ -258,9 +281,23 @@ UInt_t AliTPCPreprocessor::Process(TMap* dcsAliasMap)
     goofieConf.ToUpper();
     if (goofieConf != "OFF" ) { 
      UInt_t goofieResult = MapGoofie(dcsAliasMap);
-     result+=goofieResult;
+     if (goofieConf != "TRY") result+=goofieResult;
      status = new TParameter<int>("goofieResult",goofieResult);
      resultArray->Add(status);
+    }
+
+    // Pressure values
+
+    if( runType == kPhysicsRunType || 
+      runType == kLaserRunType ) {    
+
+      TString pressureConf = fConfEnv->GetValue("Pressure","ON");
+      pressureConf.ToUpper();
+      if (pressureConf != "OFF" ) { 
+       UInt_t pressureResult = MapPressure(dcsAliasMap);
+       status = new TParameter<int>("pressureResult",pressureResult);
+       resultArray->Add(status);
+      }
     }
   }
   // Other calibration information will be retrieved through FXS files
@@ -314,12 +351,13 @@ UInt_t AliTPCPreprocessor::Process(TMap* dcsAliasMap)
  	 pulserSource[1] = AliShuttleInterface::kDAQ;
      }
      if (source == "DAQHLT" ) numSources=2;
+     if (source == "TRY" ) numSources=2;
      UInt_t pulserResult=0;
      for (Int_t i=0; i<numSources; i++ ) {	
        pulserResult = ExtractPulser(pulserSource[i]);
        if ( pulserResult == 0 ) break;
      }
-     result += pulserResult;
+     if (source != "TRY") result += pulserResult;
      status = new TParameter<int>("pulserResult",pulserResult);
      resultArray->Add(status);
     }
@@ -342,12 +380,13 @@ UInt_t AliTPCPreprocessor::Process(TMap* dcsAliasMap)
  	 rawSource[1] = AliShuttleInterface::kDAQ;
      }
      if (source == "DAQHLT" ) numSources=2;
+     if (source == "TRY" ) numSources=2;
      UInt_t rawResult=0;
      for (Int_t i=0; i<numSources; i++ ) {	
        rawResult = ExtractRaw(rawSource[i]);
        if ( rawResult == 0 ) break;
      }
-     result += rawResult;
+     if (source != "TRY" )result += rawResult;
      status = new TParameter<int>("rawResult",rawResult);
      resultArray->Add(status);
     }
@@ -361,7 +400,7 @@ UInt_t AliTPCPreprocessor::Process(TMap* dcsAliasMap)
   altroConf.ToUpper();
   if (altroConf != "OFF" ) { 
    UInt_t altroResult = ExtractAltro(AliShuttleInterface::kDCS);
-   result+=altroResult;
+   if (altroConf != "TRY" ) result+=altroResult;
    status = new TParameter<int>("altroResult",altroResult);
    resultArray->Add(status);
  }
@@ -385,6 +424,7 @@ UInt_t AliTPCPreprocessor::Process(TMap* dcsAliasMap)
 	ceSource[1] = AliShuttleInterface::kDAQ;
      }
      if (source == "DAQHLT" ) numSources=2;
+     if (source == "TRY" ) numSources=2;
      UInt_t ceResult=0;
      for (Int_t i=0; i<numSources; i++ ) {	
        ceResult = ExtractCE(ceSource[i]);
@@ -394,7 +434,7 @@ UInt_t AliTPCPreprocessor::Process(TMap* dcsAliasMap)
    // only flag error if CE result is missing from LASER runs
    //    -- for PHYSICS run do CE processing if data available
    
-     if ( runType == kLaserRunType ) result += ceResult;
+     if ( runType == kLaserRunType && source != "TRY" ) result += ceResult;
      status = new TParameter<int>("ceResult",ceResult);
      resultArray->Add(status);
 
@@ -411,6 +451,7 @@ UInt_t AliTPCPreprocessor::Process(TMap* dcsAliasMap)
 	qaSource[1] = AliShuttleInterface::kDAQ;
      }
      if (source == "DAQHLT" ) numSources=2;
+     if (source == "TRY" ) numSources=2;
      UInt_t qaResult=0;
      for (Int_t i=0; i<numSources; i++ ) {	
        qaResult = ExtractQA(qaSource[i]);
@@ -424,20 +465,20 @@ UInt_t AliTPCPreprocessor::Process(TMap* dcsAliasMap)
    }
   }
   
-  if (errorHandling == "OFF" ) {
-    AliCDBMetaData metaData;
-    metaData.SetBeamPeriod(0);
-    metaData.SetResponsible("Haavard Helstrup");
-    metaData.SetAliRootVersion(ALIROOT_SVN_BRANCH);
-    metaData.SetComment("Preprocessor AliTPC status.");
-    Store("Calib", "PreprocStatus", resultArray, &metaData, 0, kFALSE);
-    resultArray->Delete();
-    delete resultArray;
-    return 0;
-  } else { 
-    delete resultArray;
-    return result;
-  }
+// Store component status to OCDB
+
+  AliCDBMetaData metaData;
+  metaData.SetBeamPeriod(0);
+  metaData.SetResponsible("Haavard Helstrup");
+  metaData.SetAliRootVersion(ALIROOT_SVN_BRANCH);
+  metaData.SetComment("Preprocessor AliTPC status.");
+  Store("Calib", "PreprocStatus", resultArray, &metaData, 0, kFALSE);
+  resultArray->Delete();
+  delete resultArray;
+
+  if (errorHandling == "OFF" ) return 0;
+  return result;
+  
 }
 //______________________________________________________________________________________________
 UInt_t AliTPCPreprocessor::MapTemperature(TMap* dcsAliasMap)
@@ -477,6 +518,30 @@ UInt_t AliTPCPreprocessor::MapTemperature(TMap* dcsAliasMap)
 
    return result;
 
+}
+//______________________________________________________________________________________________
+UInt_t AliTPCPreprocessor::MapPressure(TMap* dcsAliasMap)
+{
+
+   // extract DCS pressure maps. Perform fits to save space
+
+  UInt_t result=0;
+  TMap *map = fPressure->ExtractDCS(dcsAliasMap);
+  if (map) {
+    fPressure->MakeSplineFit(map);
+    Double_t fitFraction = 1.0*fPressure->NumFits()/fPressure->NumSensors(); 
+    if (fitFraction > kFitFraction ) {
+      AliInfo(Form("Pressure values extracted, fits performed.\n"));
+    } else { 
+      Log ("Too few pressure maps fitted. \n");
+      result = 9;
+    }
+  } else {
+    Log("No pressure map extracted. \n");
+    result=9;
+  }
+  delete map;
+  return result;
 }
 
 //______________________________________________________________________________________________
@@ -873,7 +938,24 @@ UInt_t AliTPCPreprocessor::ExtractCE(Int_t sourceFXS)
  rocQtime = new TObjArray(nSectors);
  rocQtime->SetName("rocQtime");
  ceObjects->Add(rocQtime);
- 
+
+// Temperature maps 
+
+ if (fTemp) {
+    fTemp->SetNameTitle("TempMap","TempMap");
+    ceObjects->Add(fTemp);
+ }
+
+// Pressure maps
+
+ if (fPressure) {
+   AliDCSSensor *sensor=0;
+   for (Int_t isensor=0; isensor<kNumPressureSensors; ++isensor ) {
+      sensor = fPressure->GetSensor(kPressureSensorNames[isensor]);
+      sensor->SetNameTitle(kPressureSensorNames[isensor],kPressureSensorNames[isensor]);       
+      ceObjects->Add(sensor);
+   }
+ }   
 
  UInt_t result=0;
 
@@ -1243,7 +1325,7 @@ UInt_t AliTPCPreprocessor::ExtractAltro(Int_t sourceFXS)
      metaData.SetAliRootVersion(ALIROOT_SVN_BRANCH);
      metaData.SetComment("Preprocessor AliTPC data base entries.");
 
-     Bool_t storeOK = Store("Calib", "AltroConfig", altroObjects, &metaData, 0, kTRUE);
+     Bool_t storeOK = Store("Calib", "AltroConfig", altroObjects, &metaData, 0, kFALSE);
      if ( !storeOK ) ++result;
     }  
 
