@@ -34,6 +34,12 @@
 #include <TROOT.h>
 #include <TStyle.h>
 
+#include "AliMpDataProcessor.h"
+#include "AliMpDataMap.h"
+#include "AliMpDataStreams.h"
+#include "AliMpDDLStore.h"
+#include "AliMpManuStore.h"
+
 //______________________________________________________________________________
 Int_t Usage()
 {
@@ -43,6 +49,9 @@ Int_t Usage()
   cout << "  --use filename.root : reuse a previously saved (from this program) root file. Several --use can be used ;-)" << endl;
   cout << "  --geometry #x#+#+# : manually specify the geometry of the window, ala X11..., e.g. --geometry 1280x900+1600+0 will" << endl;
   cout << "    get a window of size 1280x900, located at (1600,0) from the top-left of the (multihead) display " << endl;
+  cout << "  --asciimapping : load mapping from ASCII files instead of OCDB (for debug and experts only...)" << endl;
+  cout << "  --de detElemId : start by displaying the given detection element instead of the default view (which is all the chambers)" << endl;
+  cout << "  --chamber chamberId (from 1 to 10) : start by displaying the given chamber instead of the default view (which is all the chambers)" << endl;
   return -1;
 }
 
@@ -63,7 +72,8 @@ int main(int argc, char** argv)
   Bool_t isGeometryFixed(kFALSE);
   Int_t gix, giy;
   Int_t gox,goy;
-
+  Bool_t ASCIImapping(kFALSE);
+  
   for ( Int_t i = 0; i <= args.GetLast(); ++i ) 
   {
     TString a(static_cast<TObjString*>(args.At(i))->String());
@@ -87,7 +97,17 @@ int main(int argc, char** argv)
       nok += 2;
       ++i;
     }
-    
+    else if ( a == "--asciimapping" )
+    {
+      ++nok;
+      ASCIImapping = kTRUE;
+    }
+    else if ( a == "--de" || a == "--chamber" )
+    {
+      // do nothing. Let AliMUONMchViewApplication handle that one. (and the next one as well).
+      nok += 2;
+      ++i;      
+    }
     else
     {
       return Usage();
@@ -104,6 +124,24 @@ int main(int argc, char** argv)
   AliCDBManager::Instance()->SetDefaultStorage("local://$ALICE_ROOT/OCDB");
   AliCDBManager::Instance()->SetRun(0);
  
+  if ( ASCIImapping ) 
+  {
+    AliMpDataProcessor mp;
+    {
+      AliMpDataMap* datamap = mp.CreateDataMap("data");
+      AliMpDataStreams dataStreams(datamap);
+      AliMpDDLStore::ReadData(dataStreams);
+    }
+    {
+      AliMpDataMap* datamap = mp.CreateDataMap("data_run");
+      AliMpDataStreams dataStreams(datamap);
+      AliMpManuStore::ReadData(dataStreams);
+    }
+    
+    AliCDBManager::Instance()->SetSpecificStorage("MUON/Calib/Neighbours","local://$ALICE_ROOT/OCDB");
+
+  }
+  
   gROOT->SetStyle("Plain");  
   gStyle->SetPalette(1);
   Int_t n = gStyle->GetNumberOfColors();
