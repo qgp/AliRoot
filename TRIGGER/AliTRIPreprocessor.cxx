@@ -58,6 +58,7 @@ AliTRIPreprocessor::AliTRIPreprocessor(AliShuttleInterface* shuttle) :
 	//
 	
 	AddRunType("PHYSICS");
+	AddRunType("STANDALONE_PULSER");
 }
 
 //______________________________________________________________________________________________
@@ -111,7 +112,7 @@ UInt_t AliTRIPreprocessor::Process(TMap* /*dcsAliasMap*/)
 		&AliTRIPreprocessor::ProcessEmptyTriggerData,
 		&AliTRIPreprocessor::ProcessEmptyTriggerData,
 		&AliTRIPreprocessor::ProcessEmptyTriggerData,
-		&AliTRIPreprocessor::ProcessTOFTriggerData,
+		&AliTRIPreprocessor::ProcessEmptyTriggerData,
 		&AliTRIPreprocessor::ProcessEmptyTriggerData,
 		&AliTRIPreprocessor::ProcessEmptyTriggerData,
 		&AliTRIPreprocessor::ProcessEmptyTriggerData,
@@ -174,7 +175,7 @@ Short_t AliTRIPreprocessor::ProcessSPDTriggerData()
 
 	// Read new conditions from dcs fxs
 	AliITSTriggerConditions* newCond = new AliITSTriggerConditions();
-	TString fxsID = "PITConditions";
+	TString fxsID = "pit_conditions";
 	TList* list = GetFileSources(kDCS, fxsID.Data());
 	if (!list) {
 		AliError("FXS file not found.");
