@@ -1,82 +1,122 @@
 //
-// Macro to be invoked before Calibration analysis 
-// Setup TPC OCDB entries
-// 
-// This is just example macro  - some path are hardwired
-//  TO BE MODIFIED BY USERS 
+// Macro to Setup OCDB  
+// This is just example macro
+// Responsible: marian.ivanov@cern.ch
+// To be used:
+// 1. Before invocation of the calibration - in the calibration trains
+// 2. To setup calibration viewer.
+//  
+// ConfigOCDB  - setup default and specific data storage
+// SetupCustom - user sepcific configuration 
+//             - Values in local cache of OCDB are overwritten
 
 
+ 
+void SetupCustom(Int_t run);
 
-void ConfigOCDB(Float_t bfield){
+void ConfigOCDB(Int_t crun=-1){
   // 
+  printf("SETUP OCBD for TPC\n");
   //
-  // import geometry
-  //
+  TGrid::Connect("alien://",0,0,"t");
+  AliCDBManager::Instance()->SetDefaultStorage("alien://folder=/alice/data/2009/OCDB");
+ 
+  Int_t run =crun;
+  if (run<0) run =0;
+  AliCDBManager::Instance()->SetRun(run);
+  //SetupCustom(run);
+  AliTPCcalibDB::Instance()->SetRun(run);
+}
 
-  printf("SETUP OCBD for PROOF\n");
-  TGeoManager::Import("/u/miranov/proof/geometry.root");
-  AliGeomManager::LoadGeometry("/u/miranov/proof/geometry.root");
+
+void SetupCustom(Int_t run){
+  //
+  //
+  // Custom part - to be empty once we are happy with the calibration
   //
   //
   // Setup magnetic field
   //
-  TGeoGlobalMagField::Instance()->SetField(new AliMagF("Maps","Maps", 2, 1., 1., 10., AliMagF::k5kG));
+  AliGRPObject *grp = AliTPCcalibDB::GetGRP(run);
+  Float_t current = 0;
+  Float_t bz      = 0;
+  if (grp){
+    current = grp->GetL3Current((AliGRPObject::Stats)0);
+    bz = 5*current/30000.;
+    printf("Run%d\tL3 current%f\tBz\t%f\n",run,current,bz);
+  }
+  else{
+    printf("Run%d\tL3 current%f\tBz\t%f\n",run,current,bz);
+  }
+  AliMagF::BMap_t smag = AliMagF::k5kG;
+  Double_t bzfac = bz/5;
+  Double_t bzfacOrig=bzfac;
+  if (TMath::Abs(bzfac)<0.01) {  // force default magnetic field if 0 field used
+    bzfac=1;
+    bz=5;
+  }
+  AliMagF* magF= new AliMagF("Maps","Maps", bzfac, 1., smag);
+  TGeoGlobalMagField::Instance()->SetField(magF);  
+  printf("\n\nSET EXB FIELD\t\n\n");
+  AliTPCcalibDB::Instance()->SetExBField(magF);
   //
   //
+  // import geometry
   //
-  AliCDBManager::Instance()->SetDefaultStorage("local://$ALICE_ROOT/OCDB");
-  AliCDBManager::Instance()->SetSpecificStorage("TPC/Calib/Parameters","local://$ALICE_ROOT/OCDB");
-  AliCDBManager::Instance()->SetSpecificStorage("TPC/Calib/ClusterParam","local://$ALICE_ROOT/OCDB");
-  //  AliCDBManager::Instance()->SetSpecificStorage("TPC/Calib/PadTime0","local://$ALICE_ROOT/OCDB");
-  AliCDBManager::Instance()->SetSpecificStorage("TPC/Calib/PadTime0","local:///u/miranov/OCDB0");
-
-  AliCDBManager::Instance()->SetSpecificStorage("GRP/GRP/Data","local:///lustre_alpha/alice/alien/alice/data/2008/LHC08d/OCDB/");
-  AliCDBManager::Instance()->SetSpecificStorage("TPC/Calib/Temperature","local:///lustre_alpha/alice/alien/alice/data/2008/LHC08d/OCDB/");
-  AliCDBManager::Instance()->SetSpecificStorage("TPC/Calib/Goofie","local:///lustre_alpha/alice/alien/alice/data/2008/LHC08d/OCDB/");
-
-
-  AliCDBManager::Instance()->SetRun(1);
+  //
+  TGeoManager::Import("/u/miranov/proof/geometry.root");
+  AliGeomManager::LoadGeometry("/u/miranov/proof/geometry.root");
 
   AliTPCClusterParam * paramCl = AliTPCcalibDB::Instance()->GetClusterParam(); 
   AliTPCParam   * paramTPC = AliTPCcalibDB::Instance()->GetParameters();
   paramCl->SetInstance(paramCl);
-  //paramTPC->Dump();
-  printf("\n\nSET EXB FIELD\t%f\n\n", bfield);
-  AliTPCcalibDB::Instance()->SetExBField(bfield);
-  //
-  //
-  //
-  printf("END of SETUP OCBD for PROOF\n");
-}
 
-
-void ConfigAlien(){
   //
-  // Setup-activate alien
+  // Setup reco param
   //
-
-  //myvar=342
-  //while [ $myvar -ne 360 ] ; do  echo enable alien on lxb$myvar; lsrun -m lxb$myvar  /u/miranov/.aliensetup;  myvar=$(( $myvar + 1 )) ; echo $myvar ; done 
-  gSystem->Exec("/u/miranov/.aliensetup >setup.log"); 
-  //ifstream in;
-  //in.open("path.txt");
-  
-  TString envString;
-  
-  gSystem->Setenv("LD_LIBRARY_PATH",envString.Data());
-  gSystem->Setenv("GBBOX_ENVFILE","/tmp/xxxxxxx");
-  printf("LOAD LIBRARIES start\n\n\n");
-  gSystem->Load("libANALYSIS.so");
-  gSystem->Load("libSTAT.so");
-  gSystem->Load("libTPCcalib.so");
+  AliTPCTransform *transform     = AliTPCcalibDB::Instance()->GetTransform() ;
+  AliTPCRecoParam * tpcRecoParam = AliTPCRecoParam::GetCosmicTestParam(kTRUE);
+  transform->SetCurrentRecoParam(tpcRecoParam);
+  tpcRecoParam->SetUseRPHICorrection(kTRUE); 
+  tpcRecoParam->SetUseTOFCorrection(kFALSE);
   //
-  gSystem->Load("libXrdClient.so");
-  gSystem->Load("libNetx.so");
-  printf("LOAD LIBRARIES end\n\n\n");
-  TGrid * alien = TGrid::Connect("alien://",0,0,"t");
-  if (alien) {
-    printf("Alien activated\n");
-  }else{
-    printf("Alien not activated\n");
+  tpcRecoParam->SetUseDriftCorrectionTime(1);
+  tpcRecoParam->SetUseDriftCorrectionGY(1);
+  //
+  tpcRecoParam->SetUseRadialCorrection(kFALSE);
+  tpcRecoParam->SetUseQuadrantAlignment(kTRUE);
+  //
+  tpcRecoParam->SetUseSectorAlignment(kFALSE);
+  tpcRecoParam->SetUseGainCorrectionTime(kFALSE);
+  tpcRecoParam->SetUseFieldCorrection(kFALSE);
+  tpcRecoParam->SetUseExBCorrection(kTRUE);
+  if (TMath::Abs(bzfacOrig)<0.05){
+    tpcRecoParam->SetUseExBCorrection(kFALSE);
   }
+  //
+  //
+  //
+  TFile fposcor("~/OCDB/calibUnlin.root");
+  AliTPCPointCorrection *pcorr = fposcor.Get("correction");
+  if (pcorr) pcorr->SetInstance(pcorr); 
+  //
+  //
+  //
+  printf("END of SETUP OCBD for TPC\n");
 }
+
+void DumpInfo(){
+  AliTPCcalibDB::Instance()->GetParameters();
+  AliDCSSensorArray *arrHV=AliTPCcalibDB::Instance()->GetVoltageSensors(run);
+  //
+  //
+  Float_t vcorStart=AliTPCcalibDB::Instance()->GetVDriftCorrectionTime(arrHV->GetStartTime().GetSec(),run,0,1);
+  Float_t vcorrEnd=AliTPCcalibDB::Instance()->GetVDriftCorrectionTime(arrHV->GetEndTime().GetSec(),run,0,1);
+  Float_t tcorStart=AliTPCcalibDB::Instance()->GetTime0CorrectionTime(arrHV->GetStartTime().GetSec(),run,0,1);
+  Float_t tcorrEnd=AliTPCcalibDB::Instance()->GetTime0CorrectionTime(arrHV->GetEndTime().GetSec(),run,0,1);
+
+
+}
+
+
+

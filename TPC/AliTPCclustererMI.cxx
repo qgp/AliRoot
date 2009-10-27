@@ -903,13 +903,16 @@ void AliTPCclustererMI::Digits2Clusters(AliRawReader* rawReader)
   fRowDig = NULL;
   AliTPCROC * roc = AliTPCROC::Instance();
   AliTPCCalPad * gainTPC = AliTPCcalibDB::Instance()->GetPadGainFactor();
-  AliTPCAltroMapping** mapping =AliTPCcalibDB::Instance()->GetMapping();
+  AliTPCAltroMapping** mapping =AliTPCcalibDB::Instance()->GetMapping();  
   //
   AliTPCRawStreamV3 input(rawReader,(AliAltroMapping**)mapping);
   fEventHeader = (AliRawEventHeaderBase*)rawReader->GetEventHeader();
   if (fEventHeader){
     fTimeStamp = fEventHeader->Get("Timestamp");
     fEventType = fEventHeader->Get("Type");
+    AliTPCTransform *transform = AliTPCcalibDB::Instance()->GetTransform() ;
+    transform->SetCurrentTimeStamp(fTimeStamp);
+    transform->SetCurrentRun(rawReader->GetRunNumber());
   }
   
   // creaate one TClonesArray for all clusters
