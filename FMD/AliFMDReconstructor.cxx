@@ -53,10 +53,7 @@
 #include <TH2.h>
 #include <TFile.h>
 #include <climits>
-// Import revertexer into a private namespace (to prevent conflicts) 
-namespace { 
-# include "AliFMDESDRevertexer.h"
-}
+#include "AliFMDESDRevertexer.h"
 
 
 class AliRawReader;
@@ -301,6 +298,7 @@ AliFMDReconstructor::Reconstruct(AliRawReader* reader, TTree*) const
   // Parameters: 
   //   reader	Raw event reader 
   //   ctree    Not used. 
+  AliFMDDebug(1, ("Reconstructing from raw reader"));
   AliFMDRawReader rawReader(reader, 0);
 
   UShort_t det, sec, str, fac;
@@ -365,15 +363,16 @@ AliFMDReconstructor::Reconstruct(TTree* digitsTree,
   //   digitsTree	Pointer to a tree containing digits 
   //   clusterTree	Pointer to output tree 
   // 
-  AliFMDDebug(2, ("Reconstructing from digits in a tree"));
+  AliFMDDebug(1, ("Reconstructing from digits in a tree"));
   GetVertex(fESD);
-  
+
+  static TClonesArray* digits = new TClonesArray("AliFMDDigit");
   TBranch *digitBranch = digitsTree->GetBranch("FMD");
   if (!digitBranch) {
     Error("Exec", "No digit branch for the FMD found");
     return;
   }
-  TClonesArray* digits = new TClonesArray("AliFMDDigit");
+  // TClonesArray* digits = new TClonesArray("AliFMDDigit");
   digitBranch->SetAddress(&digits);
 
   if (fMult)   fMult->Clear();
@@ -386,7 +385,7 @@ AliFMDReconstructor::Reconstruct(TTree* digitsTree,
   AliFMDDebug(5, ("Getting entry 0 from digit branch"));
   digitBranch->GetEntry(0);
   
-  AliFMDDebug(1, ("Processing digits"));
+  AliFMDDebug(5, ("Processing digits"));
   UseRecoParam(kTRUE);
   ProcessDigits(digits);
   UseRecoParam(kFALSE);
@@ -394,7 +393,7 @@ AliFMDReconstructor::Reconstruct(TTree* digitsTree,
   Int_t written = clusterTree->Fill();
   AliFMDDebug(10, ("Filled %d bytes into cluster tree", written));
   digits->Delete();
-  delete digits;
+  // delete digits;
 }
  
 
@@ -410,7 +409,7 @@ AliFMDReconstructor::ProcessDigits(TClonesArray* digits) const
   //    digits	Array of digits
   // 
   Int_t nDigits = digits->GetEntries();
-  AliFMDDebug(1, ("Got %d digits", nDigits));
+  AliFMDDebug(2, ("Got %d digits", nDigits));
   fESDObj->SetNoiseFactor(fNoiseFactor);
   fESDObj->SetAngleCorrected(fAngleCorrect);
   for (Int_t i = 0; i < nDigits; i++) {
@@ -429,7 +428,7 @@ AliFMDReconstructor::ProcessDigit(AliFMDDigit* digit) const
   UShort_t sec = digit->Sector();
   UShort_t str = digit->Strip();
   Short_t  adc = digit->Counts();
-  
+ 
   ProcessSignal(det, rng, sec, str, adc);
 }
 
@@ -453,7 +452,7 @@ AliFMDReconstructor::ProcessSignal(UShort_t det,
   AliFMDParameters* param  = AliFMDParameters::Instance();
   // Check that the strip is not marked as dead 
   if (param->IsDead(det, rng, sec, str)) {
-    AliFMDDebug(10, ("FMD%d%c[%2d,%3d] is dead", det, rng, sec, str));
+    AliFMDDebug(1, ("FMD%d%c[%2d,%3d] is dead", det, rng, sec, str));
     return;
   }
   
@@ -474,8 +473,13 @@ AliFMDReconstructor::ProcessSignal(UShort_t det,
   // Make rough multiplicity 
   Double_t mult     = Energy2Multiplicity(det, rng, sec, str, edep);
   // Get rid of nonsense mult
+  //if (mult > 20) { 
+  //  AliWarning(Form("The mutliplicity in FMD%d%c[%2d,%3d]=%f > 20 "
+  //		    "(ADC: %d, Energy: %f)", det, rng, sec, str, mult, 
+  //		    counts, edep));
+  // }
   if (mult < 0)  return; 
-  AliFMDDebug(5, ("FMD%d%c[%2d,%3d]: "
+  AliFMDDebug(10, ("FMD%d%c[%2d,%3d]: "
 		    "ADC: %d, Counts: %d, Energy: %f, Mult: %f",
 		  det, rng, sec, str, adc, counts, edep, mult));
   
@@ -586,7 +590,8 @@ AliFMDReconstructor::SubtractPedestal(UShort_t det,
   if (counts < noise * nf) counts = 0;
   if (counts > 0) AliDebugClass(15, "Got a hit strip");
 
-  return counts;
+  UShort_t ret = counts < 0 ? 0 : counts;
+  return ret;
 }
 
 
@@ -845,7 +850,7 @@ AliFMDReconstructor::FillESD(TTree*  /* digitsTree */,
   // - That's OK.  We just use it for the name of the directory -
   // nothing else.  Christian
   Int_t evno = esd->GetEventNumberInFile(); 
-  AliFMDDebug(1, ("Writing diagnostics histograms to FMD.Diag.root/%03d",evno));
+  AliFMDDebug(3, ("Writing diagnostics histograms to FMD.Diag.root/%03d",evno));
   TFile f("FMD.Diag.root", (first ? "RECREATE" : "UPDATE"));
   first = false;
   f.cd(); 
@@ -876,7 +881,69 @@ AliFMDReconstructor::FillESD(AliRawReader*, TTree* clusterTree,
   TTree* dummy = 0;
   FillESD(dummy, clusterTree, esd);
 }
+//_____________________________________________________________________
+Bool_t AliFMDReconstructor::GetFMDAsideBit(AliESDFMD* fmd) {
 
+  AliFMDParameters* pars = AliFMDParameters::Instance();
+  Float_t totalMult = 0;
+  for(UShort_t det=1;det<=2;det++) {
+    Int_t nRings = (det == 1 ? 1 : 2);
+    for (UShort_t ir = 0; ir < nRings; ir++) {
+      Char_t   ring = (ir == 0 ? 'I' : 'O');
+      UShort_t nsec = (ir == 0 ? 20  : 40);
+      UShort_t nstr = (ir == 0 ? 512 : 256);
+      for(UShort_t sec =0; sec < nsec;  sec++)  {
+	for(UShort_t strip = 0; strip < nstr; strip++) {
+	  Float_t mult = fmd->Multiplicity(det,ring,sec,strip);
+	  if(mult == AliESDFMD::kInvalidMult) continue;
+	  
+	  if(mult > pars->GetOfflineTriggerLowCut())
+	    totalMult = totalMult + mult;
+	  else
+	    {
+	      if( totalMult > pars->GetOfflineTriggerHitCut()) {
+		return kTRUE;
+	      }
+	      else totalMult = 0 ;
+	    }
+	}
+      }
+    }
+  }
+  return kFALSE;
+  
+}
+//_____________________________________________________________________
+Bool_t AliFMDReconstructor::GetFMDCsideBit(AliESDFMD* fmd) {
+  
+  AliFMDParameters* pars = AliFMDParameters::Instance();
+  Float_t totalMult = 0;
+  UShort_t det = 3;
+  Int_t nRings = 2;
+  for (UShort_t ir = 0; ir < nRings; ir++) {
+    Char_t   ring = (ir == 0 ? 'I' : 'O');
+    UShort_t nsec = (ir == 0 ? 20  : 40);
+    UShort_t nstr = (ir == 0 ? 512 : 256);
+    for(UShort_t sec =0; sec < nsec;  sec++)  {
+      for(UShort_t strip = 0; strip < nstr; strip++) {
+	Float_t mult = fmd->Multiplicity(det,ring,sec,strip);
+	if(mult == AliESDFMD::kInvalidMult) continue;
+	
+	if(mult > pars->GetOfflineTriggerLowCut())
+	  totalMult = totalMult + mult;
+	else
+	  {
+	    if( totalMult > pars->GetOfflineTriggerHitCut()) {
+	      return kTRUE;
+	    }
+	    else totalMult = 0 ;
+	  }
+      }
+    }
+  }
+ 
+  return kFALSE;
+}
 //____________________________________________________________________
 //
 // EOF
