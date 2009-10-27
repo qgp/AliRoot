@@ -30,6 +30,7 @@
 #include "AliRawReader.h"
 #include "AliLog.h"
 #include "AliAltroRawStream.h"
+#include "AliRawEventHeaderBase.h"
 
 ClassImp(AliAltroRawStreamV3)
 
@@ -48,6 +49,7 @@ AliAltroRawStreamV3::AliAltroRawStreamV3(AliRawReader* rawReader) :
   fBunchLength(-1),
   fBadChannel(kFALSE),
   fPayloadSize(-1),
+  fChannelPayloadSize(-1),
   fBunchDataPointer(NULL),
   fBunchDataIndex(-1),
   fRCUTrailerData(NULL),
@@ -92,6 +94,7 @@ AliAltroRawStreamV3::AliAltroRawStreamV3(const AliAltroRawStreamV3& stream) :
   fBunchLength(stream.fBunchLength),
   fBadChannel(stream.fBadChannel),
   fPayloadSize(stream.fPayloadSize),
+  fChannelPayloadSize(stream.fChannelPayloadSize),
   fBunchDataPointer(stream.fBunchDataPointer),
   fBunchDataIndex(stream.fBunchDataIndex),
   fRCUTrailerData(stream.fRCUTrailerData),
@@ -134,6 +137,7 @@ AliAltroRawStreamV3& AliAltroRawStreamV3::operator = (const AliAltroRawStreamV3&
   fBunchLength       = stream.fBunchLength;
   fBadChannel        = stream.fBadChannel;
   fPayloadSize       = stream.fPayloadSize;
+  fChannelPayloadSize= stream.fChannelPayloadSize;
   fBunchDataPointer  = stream.fBunchDataPointer;
   fBunchDataIndex    = stream.fBunchDataIndex;
   fRCUTrailerData    = stream.fRCUTrailerData;
@@ -171,6 +175,7 @@ void AliAltroRawStreamV3::Reset()
   fBunchLength = fStartTimeBin = -1;
   fBadChannel = kFALSE;
   fPayloadSize = -1;
+  fChannelPayloadSize = -1;
   fBunchDataPointer = NULL;
   fBunchDataIndex = -1;
 
@@ -200,6 +205,7 @@ Bool_t AliAltroRawStreamV3::NextDDL()
   } while (fRawReader->GetDataSize() == 0);
 
   fDDLNumber = fRawReader->GetDDLID();
+  fChannelPayloadSize = -1;
 
   UChar_t rcuVer = fRawReader->GetBlockAttributes();
 
@@ -224,6 +230,8 @@ Bool_t AliAltroRawStreamV3::NextDDL()
       fActiveFECsB = fOldStream->GetActiveFECsB();
       fAltroCFG1 = fOldStream->GetAltroCFG1();
       fAltroCFG2 = fOldStream->GetAltroCFG2();
+      if (fRawReader->GetType() == AliRawEventHeaderBase::kStartOfData)
+	fPayloadSize = fOldStream->GetRCUPayloadSizeInSOD();
     }
     return status;
   }
@@ -241,7 +249,10 @@ Bool_t AliAltroRawStreamV3::NextChannel()
   // RCU signals readout error in this channel
   if (fOldStream) {
     Bool_t status = fOldStream->NextChannel();
-    if (status) fHWAddress = fOldStream->GetHWAddress();
+    if (status) {
+      fHWAddress = fOldStream->GetHWAddress();
+      fChannelPayloadSize = fOldStream->GetChannelPayloadSize();
+    }
     return status;
   }
 
@@ -262,6 +273,7 @@ Bool_t AliAltroRawStreamV3::NextChannel()
 
   // extract channel payload and hw address
   fCount = (word >> 16) & 0x3FF; 
+  fChannelPayloadSize = fCount;
   fHWAddress = word & 0xFFF;
 
   // Now unpack the altro data
@@ -676,4 +688,30 @@ void AliAltroRawStreamV3::AddMappingErrorLog(const char *message)
   // classes in order to log an error related to bad altro mapping
 
   if (fRawReader) fRawReader->AddMinorErrorLog(kBadAltroMapping,message);
+}
+
+//_____________________________________________________________________________
+UChar_t *AliAltroRawStreamV3::GetRCUPayloadInSOD() const
+{
+  // Get a pointer to the data in case
+  // of SOD events
+  if (fRawReader) {
+    if (fRawReader->GetType() == AliRawEventHeaderBase::kStartOfData) {
+      return fData;
+    }
+  }
+  return NULL;
+}
+
+//_____________________________________________________________________________
+Int_t AliAltroRawStreamV3::GetRCUPayloadSizeInSOD() const
+{
+  // Get the size of the RCU data in case
+  // of SOD events
+  if (fRawReader) {
+    if (fRawReader->GetType() == AliRawEventHeaderBase::kStartOfData) {
+      return fPayloadSize;
+    }
+  }
+  return -1;
 }

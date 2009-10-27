@@ -29,6 +29,7 @@
 #include "AliAltroRawStream.h"
 #include "AliRawReader.h"
 #include "AliLog.h"
+#include "AliRawEventHeaderBase.h"
 
 ClassImp(AliAltroRawStream)
 
@@ -50,6 +51,7 @@ AliAltroRawStream::AliAltroRawStream(AliRawReader* rawReader) :
   fData(NULL),
   fPosition(0),
   fCount(0),
+  fChannelPayloadSize(-1),
   fBunchLength(0),
   fRCUTrailerData(NULL),
   fRCUTrailerSize(0),
@@ -84,6 +86,7 @@ AliAltroRawStream::AliAltroRawStream(const AliAltroRawStream& stream) :
   fData(stream.fData),
   fPosition(stream.fPosition),
   fCount(stream.fCount),
+  fChannelPayloadSize(stream.fChannelPayloadSize),
   fBunchLength(stream.fBunchLength),
   fRCUTrailerData(stream.fRCUTrailerData),
   fRCUTrailerSize(stream.fRCUTrailerSize),
@@ -119,6 +122,7 @@ AliAltroRawStream& AliAltroRawStream::operator = (const AliAltroRawStream& strea
   fData              = stream.fData;
   fPosition          = stream.fPosition;
   fCount             = stream.fCount;
+  fChannelPayloadSize= stream.fChannelPayloadSize;
   fBunchLength       = stream.fBunchLength;
   fRCUTrailerData    = stream.fRCUTrailerData;
   fRCUTrailerSize    = stream.fRCUTrailerSize;
@@ -148,6 +152,7 @@ void AliAltroRawStream::Reset()
 // reset altro raw stream params
 
   fPosition = fCount = fBunchLength = 0;
+  fChannelPayloadSize = -1;
 
   fRCUTrailerData = NULL;
   fRCUTrailerSize = 0;
@@ -207,6 +212,7 @@ Bool_t AliAltroRawStream::NextDDL(UChar_t *data)
   }
 
   fDDLNumber = fRawReader->GetDDLID();
+  fChannelPayloadSize = -1;
   fPosition = GetPosition();
 
   return kTRUE;
@@ -330,6 +336,7 @@ Bool_t AliAltroRawStream::ReadTrailer()
     return kFALSE;
   }
   fCount |= ((temp & 0x3FF) >> 6);
+  fChannelPayloadSize = fCount;
 
   if (fCount >= fPosition) {
     fRawReader->AddMajorErrorLog(kAltroTrailerErr,"invalid size");
@@ -448,25 +455,33 @@ Int_t AliAltroRawStream::GetPosition()
     }
 
     Int_t position = ReadRCUTrailer(index,trailerSize);
-    // The size is specified in a number of 40bits
-    // Therefore we need to transform it to number of bytes
-    position *= 5;
+    if (fRawReader->GetType() != AliRawEventHeaderBase::kStartOfData) {
+      // The size is specified in a number of 40bits
+      // Therefore we need to transform it to number of bytes
+      position *= 5;
 
-    // Check the consistency of the header and trailer
-    if (((fRawReader->GetDataSize() - trailerSize*4) < position) ||
-	((fRawReader->GetDataSize() - trailerSize*4) >= (position + 4))) {
-      fRawReader->AddMajorErrorLog(kRCUTrailerSizeErr,Form("h=%d tr=%d rcu=%d bytes",
-							   fRawReader->GetDataSize(),
-							   trailerSize*4,
-							   position));
-      AliWarning(Form("Inconsistent raw data size ! Raw data size - %d bytes (from the header), RCU trailer - %d bytes, raw data paylod - %d bytes !",
-		    fRawReader->GetDataSize(),
-		    trailerSize*4,
-		    position));
-      position = fRawReader->GetDataSize() - trailerSize*4;
+      // Check the consistency of the header and trailer
+      if (((fRawReader->GetDataSize() - trailerSize*4) < position) ||
+	  ((fRawReader->GetDataSize() - trailerSize*4) >= (position + 4))) {
+	fRawReader->AddMajorErrorLog(kRCUTrailerSizeErr,Form("h=%d tr=%d rcu=%d bytes",
+							     fRawReader->GetDataSize(),
+							     trailerSize*4,
+							     position));
+	AliWarning(Form("Inconsistent raw data size ! Raw data size - %d bytes (from the header), RCU trailer - %d bytes, raw data paylod - %d bytes !",
+			fRawReader->GetDataSize(),
+			trailerSize*4,
+			position));
+	position = fRawReader->GetDataSize() - trailerSize*4;
+      }
+
+      return position * 8 / 10;
     }
-
-    return position * 8 / 10;
+    else {
+      // Special RCU payload in case of SOD events
+      // The decoding is left to the user code
+      // Here we just retrieve the payload size
+      return position;
+    }
   }
   else {
     // In case of the Old RCU trailer format
@@ -791,4 +806,17 @@ void AliAltroRawStream::AddMappingErrorLog(const char *message)
   // classes in order to log an error related to bad altro mapping
 
   if (fRawReader) fRawReader->AddMinorErrorLog(kBadAltroMapping,message);
+}
+
+//_____________________________________________________________________________
+Int_t AliAltroRawStream::GetRCUPayloadSizeInSOD() const
+{
+  // Get the size of the RCU data in case
+  // of SOD events
+  if (fRawReader) {
+    if (fRawReader->GetType() == AliRawEventHeaderBase::kStartOfData) {
+      return fPosition;
+    }
+  }
+  return -1;
 }
