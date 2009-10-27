@@ -1429,6 +1429,7 @@ void AliReconstruction::SlaveBegin(TTree*)
   TProofOutputFile *outProofFile = NULL;
   if (fInput) {
     if (AliDebugLevel() > 0) fInput->Print();
+    if (AliDebugLevel() > 10) fInput->Dump();
     if (AliReconstruction *reco = (AliReconstruction*)fInput->FindObject("AliReconstruction")) {
       *this = *reco;
     }
@@ -1446,7 +1447,13 @@ void AliReconstruction::SlaveBegin(TTree*)
       }
     }
     if (AliMagF *map = (AliMagF*)fInput->FindObject("MagneticFieldMap")) {
-      TGeoGlobalMagField::Instance()->SetField(map);
+      AliMagF *newMap = new AliMagF(*map);
+      if (!newMap->LoadParameterization()) {
+	Abort("AliMagF::LoadParameterization", TSelector::kAbortProcess);
+	return;
+      }
+      TGeoGlobalMagField::Instance()->SetField(newMap);
+      TGeoGlobalMagField::Instance()->Lock();
     }
     if (TNamed *outputFileName = (TNamed*)fInput->FindObject("PROOF_OUTPUTFILE"))
       fProofOutputFileName = outputFileName->GetTitle();
