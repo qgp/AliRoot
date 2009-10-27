@@ -209,6 +209,7 @@ void AnalyzeSDDInjectorsAllMod(Char_t *datafil,
     for(Int_t imod=0; imod<kModPerDDL;imod++){
       for(Int_t isid=0;isid<kSides;isid++){
 	Int_t index=kSides*(kModPerDDL*iddl+imod)+isid;
+	anal[index]->WriteInjectorStatusToASCII();
 	anal[index]->WriteToROOT(outfil1);
       }
     }
