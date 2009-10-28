@@ -1,3 +1,5 @@
+void MyLoad(const char * name);
+
 void loadlibs () 
 {
   // Macro which loads the libraries needed for simulation and reconstruction
@@ -23,86 +25,91 @@ void loadlibs ()
   gSystem->Load("libEG");
   gSystem->Load("libGeom");
   gSystem->Load("libVMC");
-
-  gSystem->Load("libEGPythia6");
-
-  gSystem->Load("libNet");
-  gSystem->Load("libTree");
-  gSystem->Load("libGui");
- 
   gSystem->Load("libSTEERBase");
-  gSystem->Load("libESD");
-  gSystem->Load("libCDB");
-  gSystem->Load("libRAWDatabase");
-  gSystem->Load("libRAWDatarec");
-  gSystem->Load("libAOD");
-  gSystem->Load("libSTEER");
-  gSystem->Load("libRAWDatasim");
-  gSystem->Load("libFASTSIM");
-  gSystem->Load("libEVGEN");
-  gSystem->Load("libAliPythia6");
 
-  gSystem->Load("libhijing");
-  gSystem->Load("libTHijing");// AliGenHijingEventHeader needed by libZDCsim.so
+  AliSysInfo::AddStamp("Start");
+  MyLoad("libEGPythia6");
 
-  gSystem->Load("libSTRUCT");
-  gSystem->Load("libPHOSUtils");
-  gSystem->Load("libPHOSbase");
-  gSystem->Load("libPHOSsim");
-  gSystem->Load("libPHOSrec");
-  gSystem->Load("libMUONcore");
-  gSystem->Load("libMUONmapping");
-  gSystem->Load("libMUONgeometry");
-  gSystem->Load("libMUONcalib");
-  gSystem->Load("libMUONraw");
-  gSystem->Load("libMUONtrigger");
-  gSystem->Load("libMUONbase");
-  gSystem->Load("libMUONsim");
-  gSystem->Load("libMUONrec");
-  gSystem->Load("libMUONevaluation");
-  gSystem->Load("libFMDbase");
-  gSystem->Load("libFMDsim");
-  gSystem->Load("libFMDrec");
-  gSystem->Load("libPMDbase");
-  gSystem->Load("libPMDsim");
-  gSystem->Load("libPMDrec");
-  gSystem->Load("libHMPIDbase");
-  gSystem->Load("libHMPIDsim");
-  gSystem->Load("libHMPIDrec");
-  gSystem->Load("libT0base");
-  gSystem->Load("libT0sim");
-  gSystem->Load("libT0rec");
-  gSystem->Load("libZDCbase");
-  gSystem->Load("libZDCsim");
-  gSystem->Load("libZDCrec");
-  gSystem->Load("libACORDEbase");
-  gSystem->Load("libACORDErec");
-  gSystem->Load("libACORDEsim");
-  gSystem->Load("libVZERObase");
-  gSystem->Load("libVZEROrec");
-  gSystem->Load("libVZEROsim");
-  gSystem->Load("libEMCALbase");
-  gSystem->Load("libEMCALsim");
-  gSystem->Load("libEMCALrec");
+  MyLoad("libNet");
+  MyLoad("libTree");
+  MyLoad("libGui");
+ 
+  MyLoad("libESD");
+  MyLoad("libCDB");
+  MyLoad("libRAWDatabase");
+  MyLoad("libRAWDatarec");
+  MyLoad("libAOD");
+  MyLoad("libSTEER");
+  MyLoad("libRAWDatasim");
+  MyLoad("libFASTSIM");
+  MyLoad("libEVGEN");
+  MyLoad("libAliPythia6");
+
+  MyLoad("libhijing");
+  MyLoad("libTHijing");// AliGenHijingEventHeader needed by libZDCsim.so
+
+  MyLoad("libSTRUCT");
+  MyLoad("libPHOSUtils");
+  MyLoad("libPHOSbase");
+  MyLoad("libPHOSsim");
+  MyLoad("libPHOSrec");
+  MyLoad("libMUONcore");
+  MyLoad("libMUONmapping");
+  MyLoad("libMUONgeometry");
+  MyLoad("libMUONcalib");
+  MyLoad("libMUONraw");
+  MyLoad("libMUONtrigger");
+  MyLoad("libMUONbase");
+  MyLoad("libMUONsim");
+  MyLoad("libMUONrec");
+  MyLoad("libMUONevaluation");
+  MyLoad("libFMDbase");
+  MyLoad("libFMDsim");
+  MyLoad("libFMDrec");
+  MyLoad("libPMDbase");
+  MyLoad("libPMDsim");
+  MyLoad("libPMDrec");
+  MyLoad("libHMPIDbase");
+  MyLoad("libHMPIDsim");
+  MyLoad("libHMPIDrec");
+  MyLoad("libT0base");
+  MyLoad("libT0sim");
+  MyLoad("libT0rec");
+  MyLoad("libZDCbase");
+  MyLoad("libZDCsim");
+  MyLoad("libZDCrec");
+  MyLoad("libACORDEbase");
+  MyLoad("libACORDErec");
+  MyLoad("libACORDEsim");
+  MyLoad("libVZERObase");
+  MyLoad("libVZEROrec");
+  MyLoad("libVZEROsim");
+  MyLoad("libEMCALbase");
+  MyLoad("libEMCALsim");
+  MyLoad("libEMCALrec");
 
   // The following lines have to be commented on Darwin
   // for the moment due to cross dependencies
-  gSystem->Load("libTPCbase");
-  gSystem->Load("libTPCrec");
-  gSystem->Load("libTPCsim");
-  gSystem->Load("libTPCfast");
-  gSystem->Load("libITSbase");
-  gSystem->Load("libITSsim");
-  gSystem->Load("libITSrec");
-  gSystem->Load("libTRDbase");
-  gSystem->Load("libTRDsim");
-  gSystem->Load("libTRDrec");
-  gSystem->Load("libTOFbase");
-  gSystem->Load("libTOFrec");
-  gSystem->Load("libTOFsim");
+  MyLoad("libTPCbase");
+  MyLoad("libTPCrec");
+  MyLoad("libTPCsim");
+  MyLoad("libTPCfast");
+  MyLoad("libITSbase");
+  MyLoad("libITSsim");
+  MyLoad("libITSrec");
+  MyLoad("libTRDbase");
+  MyLoad("libTRDsim");
+  MyLoad("libTRDrec");
+  MyLoad("libTOFbase");
+  MyLoad("libTOFrec");
+  MyLoad("libTOFsim");
 
-  gSystem->Load("libHLTbase");
-  gSystem->Load("libHLTinterface");
-  gSystem->Load("libHLTsim");
-  gSystem->Load("libHLTrec");
+  MyLoad("libHLTbase");
+  MyLoad("libHLTinterface");
+  MyLoad("libHLTsim");
+  MyLoad("libHLTrec");
+}
+void MyLoad(const char * name) {
+  gSystem->Load(name);
+  AliSysInfo::AddStamp(name) ;
 }
