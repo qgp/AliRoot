@@ -19,15 +19,14 @@ class AliMagF : public TVirtualMagField
 {
  public:
   enum BMap_t      {k2kG, k5kG, k5kGUniform};
-  enum BeamType_t  {kBeamTypeAA, kBeamTypepp, kNoBeamField};
+  enum BeamType_t  {kNoBeamField, kBeamTypepp, kBeamTypeAA};
   enum PolarityConvention_t {kConvLHC,kConvDCS2008,kConvMap2005};
+  enum             {kOverrideGRP=BIT(14)}; // don't recreate from GRP if set
   //
   AliMagF();
-  AliMagF(const char *name, const char* title, Int_t integ, 
-	  Double_t factorSol=1., Double_t factorDip=1., 
-	  Double_t fmax=15, BMap_t maptype = k5kG,
-	  const char* path="$(ALICE_ROOT)/data/maps/mfchebKGI_sym.root",
-	  BeamType_t btype=kBeamTypepp, Double_t benergy=7000.);
+  AliMagF(const char *name, const char* title,Double_t factorSol=1., Double_t factorDip=1., 
+	  BMap_t maptype = k5kG, BeamType_t btype=kBeamTypepp, Double_t benergy=-1,	
+	  Int_t integ=2, Double_t fmax=10,const char* path="$(ALICE_ROOT)/data/maps/mfchebKGI_sym.root");
   AliMagF(const AliMagF& src);             
   AliMagF& operator=(const AliMagF& src);
   virtual ~AliMagF();
@@ -45,11 +44,14 @@ class AliMagF : public TVirtualMagField
   Double_t     GetFactorSol()                                   const;
   Double_t     GetFactorDip()                                   const;
   Double_t     Factor()                                         const {return GetFactorSol();}
+  Double_t     GetCurrentSol()                                  const {return GetFactorSol()*(fMapType==k2kG ? 12000:30000);}
+  Double_t     GetCurrentDip()                                  const {return GetFactorDip()*6000;}
   Bool_t       IsUniform()                                      const {return fMapType == k5kGUniform;}
   //
   void         MachineField(const Double_t  *x, Double_t *b)    const;
   BMap_t       GetMapType()                                     const {return fMapType;}
   BeamType_t   GetBeamType()                                    const {return fBeamType;}
+  const char*  GetBeamTypeText()                                const;
   Double_t     GetBeamEnergy()                                  const {return fBeamEnergy;}
   Double_t     Max()                                            const {return fMax;}
   Int_t        Integ()                                          const {return fInteg;}
@@ -63,6 +65,10 @@ class AliMagF : public TVirtualMagField
   //
   Bool_t       LoadParameterization();
   static Int_t GetPolarityConvention()                                {return Int_t(fgkPolarityConvention);}
+  static AliMagF* CreateFieldMap(Float_t l3Current=-30000., Float_t diCurrent=-6000., 
+				 Int_t convention=0, Bool_t uniform = kFALSE, 
+				 Float_t sqrts=14000, const Char_t* btype="pp",
+				 const Char_t* path="$(ALICE_ROOT)/data/maps/mfchebKGI_sym.root");
   //
  protected:
   // not supposed to be changed during the run, set only at the initialization via constructor

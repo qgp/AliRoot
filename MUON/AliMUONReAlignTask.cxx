@@ -433,7 +433,7 @@ void AliMUONReAlignTask::Prepare(const char* geoFilename, const char* defaultOCD
   
   // set mag field
   printf("Loading field map...\n");
-  AliMagF* field = new AliMagF("Maps","Maps",2,0.,0., 10.,AliMagF::k5kG);
+  AliMagF* field = new AliMagF("Maps","Maps",0.,0.,AliMagF::k5kG);
   TGeoGlobalMagField::Instance()->SetField(field);
   TGeoGlobalMagField::Instance()->Lock();
   

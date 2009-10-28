@@ -278,10 +278,11 @@ int AliHLTTRDTrackerV1Component::DoInit( int argc, const char** argv )
     }
   
   if (!TGeoGlobalMagField::Instance()->IsLocked()) {
+    AliMagF* field;
     if (iMagneticField == 0)
       {
 	// magnetic field OFF
-	AliMagF* field = new AliMagF("Maps","Maps",2,0.,0., 10.,AliMagF::k5kGUniform);
+	field = new AliMagF("Maps","Maps",0.,0.,AliMagF::k5kGUniform);
 	TGeoGlobalMagField::Instance()->SetField(field);
 	HLTDebug("Magnetic field is OFF.");
       }
@@ -289,7 +290,7 @@ int AliHLTTRDTrackerV1Component::DoInit( int argc, const char** argv )
     if (iMagneticField == 1)
       {
 	// magnetic field ON
-	AliMagF* field = new AliMagF("Maps","Maps",2,1.,1., 10.,AliMagF::k5kG);
+	field = new AliMagF("Maps","Maps",1.,1.,AliMagF::k5kG);
 	TGeoGlobalMagField::Instance()->SetField(field);
 	HLTDebug("Magnetic field is ON.");
       }

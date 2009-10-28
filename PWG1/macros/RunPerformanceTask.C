@@ -92,7 +92,7 @@ void RunPerformanceTask(TChain *chain, Bool_t bUseMCInfo=kTRUE, Bool_t bProof=kT
 
   }
   // set magnetic field
-  TGeoGlobalMagField::Instance()->SetField(new AliMagF("Maps","Maps", 2, 1., 1., 10., AliMagF::k5kG));
+  TGeoGlobalMagField::Instance()->SetField(new AliMagF("Maps","Maps", 1., 1., AliMagF::k5kG));
 
   //
   // Create global cuts objects 

@@ -206,7 +206,7 @@ void AliMUONAlignmentTask::LocalInit()
   // waiting for mag field in CDB 
   if (!TGeoGlobalMagField::Instance()->GetField()) {
     printf("Loading field map...\n");
-    AliMagF* field = new AliMagF("Maps","Maps",2,0.,0., 10.,AliMagF::k5kG);
+    AliMagF* field = new AliMagF("Maps","Maps",0.,0.,AliMagF::k5kG);
     TGeoGlobalMagField::Instance()->SetField(field);
   }
   // set the magnetic field for track extrapolations
