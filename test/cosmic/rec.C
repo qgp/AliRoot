@@ -6,11 +6,6 @@ void rec(const char *filename="raw.root")
   // script for the 2009 data (LHC09b) 
   //
   /////////////////////////////////////////////////////////////////////////////////////////
-  gSystem->Load("libRAliEn.so");
-  gSystem->Load("libNet.so");
-  gSystem->Load("libMonaLisa.so");
-  new TMonaLisaWriter(0, "GridAliRoot-rec.C", 0, 0, "global");
-  gSystem->Setenv("APMON_INTERVAL", "120");
 
   // Set the CDB storage location
   AliCDBManager * man = AliCDBManager::Instance();
@@ -27,7 +22,7 @@ void rec(const char *filename="raw.root")
   rec.SetWriteESDfriend(kTRUE);
   rec.SetWriteAlignmentData();
   rec.SetInput(filename);
-  rec.SetRunReconstruction("ALL");
+  rec.SetRunReconstruction("ALL -HLT"); //HLT temporarily off
   rec.SetUseTrackingErrorsForAlignment("ITS");
 
   // switch off cleanESD
