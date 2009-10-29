@@ -51,6 +51,9 @@ const AliHLTComponentDataType kAliHLTDataTypeFXSCalib = AliHLTComponentDataTypeI
 const char kAliHLTDDLDataTypeIDstring[8] = kAliHLTDDLDataTypeID;
 const AliHLTComponentDataType kAliHLTDataTypeDDL = AliHLTComponentDataTypeInitializer(kAliHLTDDLDataTypeIDstring, kAliHLTDataOriginOut);
 
+/** DAQ readout list */
+const AliHLTComponentDataType kAliHLTDataTypeDAQRDOUT = AliHLTComponentDataTypeInitializer(kAliHLTDAQRDOUTDataTypeID, kAliHLTDataOriginAny);
+
 /** SOR data type */
 const char kAliHLTSORDataTypeIDstring[8] = kAliHLTSORDataTypeID;
 const AliHLTComponentDataType kAliHLTDataTypeSOR = AliHLTComponentDataTypeInitializer(kAliHLTSORDataTypeIDstring, kAliHLTDataOriginPrivate);
@@ -127,6 +130,14 @@ const AliHLTComponentDataType kAliHLTDataTypeRunStatistics = AliHLTComponentData
 const char kAliHLTRunSummaryDataTypeIDstring[8] = kAliHLTRunSummaryDataTypeID;
 const AliHLTComponentDataType kAliHLTDataTypeRunSummary = AliHLTComponentDataTypeInitializer(kAliHLTRunSummaryDataTypeIDstring, kAliHLTDataOriginOut);
 
+/** Trigger decision */
+const char kAliHLTTriggerDecisionDataTypeIDstring[8] = kAliHLTTriggerDecisionDataTypeID;
+const AliHLTComponentDataType kAliHLTDataTypeTriggerDecision = AliHLTComponentDataTypeInitializer(kAliHLTTriggerDecisionDataTypeIDstring, kAliHLTDataOriginOut);
+
+/** Global trigger decision */
+const char kAliHLTGlobalTriggerDataTypeIDstring[8] = kAliHLTGlobalTriggerDataTypeID;
+const AliHLTComponentDataType kAliHLTDataTypeGlobalTrigger = AliHLTComponentDataTypeInitializer(kAliHLTGlobalTriggerDataTypeIDstring, kAliHLTDataOriginOut);
+
 /** Component statistics */
 const char  kAliHLTComponentStatisticsDataTypeIDstring[8] = kAliHLTComponentStatisticsDataTypeID;
 const AliHLTComponentDataType kAliHLTDataTypeComponentStatistics = AliHLTComponentDataTypeInitializer(kAliHLTComponentStatisticsDataTypeIDstring, kAliHLTDataOriginPrivate);
@@ -138,6 +149,10 @@ const AliHLTComponentDataType kAliHLTDataTypeComponentTable = AliHLTComponentDat
 /** general ROOT TObject */
 const char kAliHLTTObjectDataTypeIDstring[8] = kAliHLTTObjectDataTypeID;
 const AliHLTComponentDataType kAliHLTDataTypeTObject = AliHLTComponentDataTypeInitializer(kAliHLTTObjectDataTypeIDstring, kAliHLTDataOriginAny);
+
+/** ROOT streamer info */
+const char kAliHLTStreamerInfoDataTypeIDstring[8] = kAliHLTStreamerInfoDataTypeID;
+const AliHLTComponentDataType kAliHLTDataTypeStreamerInfo = AliHLTComponentDataTypeInitializer(kAliHLTStreamerInfoDataTypeIDstring, kAliHLTDataOriginHLT);
 
 /** ROOT TObjArray */
 const char kAliHLTTObjArrayDataTypeIDstring[8] = kAliHLTTObjArrayDataTypeID;
@@ -173,6 +188,9 @@ const AliHLTComponentDataType kAliHLTDataTypeJet = AliHLTComponentDataTypeInitia
 
 /** Container of HLT ITS tracks */
 const AliHLTComponentDataType fgkITSTracksDataType = AliHLTComponentDataTypeInitializer( "ITSTRACK", kAliHLTDataOriginITS );
+
+/** Container of HLT calorimeter clusters */
+const AliHLTComponentDataType kAliHLTDataTypeCaloCluster = AliHLTComponentDataTypeInitializer( "CALOCLU", kAliHLTDataOriginAny );
 
 //////////////////////////////////////////////////////////////////////////
 //

@@ -25,6 +25,10 @@
 #include <TObjString.h>
 #include "TFile.h"
 #include "TTree.h"
+#include "TObject.h"
+#include "TObjArray.h"
+#include "TClass.h"
+#include "TStreamerInfo.h"
 #include "AliHLTReconstructor.h"
 #include "AliLog.h"
 #include "AliRawReader.h"
@@ -34,6 +38,11 @@
 #include "AliHLTOUTDigitReader.h"
 #include "AliHLTEsdManager.h"
 #include "AliHLTPluginBase.h"
+#include "AliHLTMisc.h"
+#include "AliCDBManager.h"
+#include "AliCDBEntry.h"
+
+class AliCDBEntry;
 
 ClassImp(AliHLTReconstructor)
 
@@ -43,6 +52,7 @@ AliHLTReconstructor::AliHLTReconstructor()
   fFctProcessHLTOUT(NULL),
   fpEsdManager(NULL),
   fpPluginBase(new AliHLTPluginBase)
+  , fFlags(0)
 { 
   //constructor
 }
@@ -53,6 +63,7 @@ AliHLTReconstructor::AliHLTReconstructor(const char* options)
   fFctProcessHLTOUT(NULL),
   fpEsdManager(NULL),
   fpPluginBase(new AliHLTPluginBase)
+  , fFlags(0)
 { 
   //constructor
   if (options) Init(options);
@@ -104,6 +115,8 @@ void AliHLTReconstructor::Init()
     return;
   }
 
+  TString esdManagerOptions;
+
   // the options scan has been moved to AliHLTSystem, the old code
   // here is kept to be able to run an older version of the HLT code
   // with newer AliRoot versions.
@@ -129,6 +142,13 @@ void AliHLTReconstructor::Init()
 	}
       } else if (token.Contains("alilog=off")) {
 	pSystem->SwitchAliLog(0);
+      } else if (token.CompareTo("ignore-hltout")==0) {
+	fFlags|=kAliHLTReconstructorIgnoreHLTOUT;
+      } else if (token.Contains("esdmanager=")) {
+	token.ReplaceAll("esdmanager=", "");
+	token.ReplaceAll(","," ");
+	token.ReplaceAll("'","");
+	esdManagerOptions=token;
       } else if (token.BeginsWith("lib") && token.EndsWith(".so")) {
 	libs+=token;
 	libs+=" ";
@@ -170,6 +190,81 @@ void AliHLTReconstructor::Init()
   fFctProcessHLTOUT=(void (*)())gSystem->DynFindSymbol("libHLTinterface.so", "AliHLTSystemProcessHLTOUT");
 
   fpEsdManager=AliHLTEsdManager::New();
+  fpEsdManager->SetOption(esdManagerOptions.Data());
+
+  InitStreamerInfos();
+}
+
+const char* AliHLTReconstructor::fgkCalibStreamerInfoEntry="HLT/Calib/StreamerInfo";
+
+int AliHLTReconstructor::InitStreamerInfos()
+{
+  // init streamer infos for HLT reconstruction
+  // Root schema evolution is not enabled for AliHLTMessage and all streamed objects.
+  // Objects in the raw data payload rely on the availability of the correct stream info.
+  // The relevant streamer info for a specific run is stored in the OCDB.
+  // The method evaluates the following entries:
+  // - HLT/Calib/StreamerInfo
+
+  // to be activated later, this is supposed to go as patch into the v4-17-Release branch
+  // which doe snot have the AliHLTMisc implementation
+  //AliCDBEntry* pEntry=AliHLTMisc::Instance().LoadOCDBEntry(fgkCalibStreamerInfoEntry);
+  AliCDBEntry* pEntry=AliCDBManager::Instance()->Get(fgkCalibStreamerInfoEntry);
+  TObject* pObject=NULL;
+  //if (pEntry && (pObject=AliHLTMisc::Instance().ExtractObject(pEntry))!=NULL)
+  if (pEntry && (pObject=pEntry->GetObject())!=NULL)
+    {
+    TObjArray* pSchemas=dynamic_cast<TObjArray*>(pObject);
+    if (pSchemas) {
+      for (int i=0; i<pSchemas->GetEntriesFast(); i++) {
+	if (pSchemas->At(i)) {
+	  TStreamerInfo* pSchema=dynamic_cast<TStreamerInfo*>(pSchemas->At(i));
+	  if (pSchema) {
+	    int version=pSchema->GetClassVersion();
+	    TClass* pClass=TClass::GetClass(pSchema->GetName());
+	    if (pClass) {
+	      if (pClass->GetClassVersion()==version) {
+		AliDebug(0,Form("skipping schema definition %d version %d to class %s as this is the native version", i, version, pSchema->GetName()));
+		continue;
+	      }
+	      TObjArray* pInfos=pClass->GetStreamerInfos();
+	      if (pInfos /*&& version<pInfos->GetEntriesFast()*/) {
+		if (pInfos->At(version)==NULL) {
+		  TStreamerInfo* pClone=(TStreamerInfo*)pSchema->Clone();
+		  if (pClone) {
+		    pClone->SetClass(pClass);
+		    pClone->BuildOld();
+		    pInfos->AddAtAndExpand(pClone, version);
+		    AliDebug(0,Form("adding schema definition %d version %d to class %s", i, version, pSchema->GetName()));
+		  } else {
+		    AliError(Form("skipping schema definition %d (%s), unable to create clone object", i, pSchema->GetName()));
+		  }
+		} else {
+		  TStreamerInfo* pInfo=dynamic_cast<TStreamerInfo*>(pInfos->At(version));
+		  if (pInfo && pInfo->GetClassVersion()==version) {
+		    AliDebug(0,Form("schema definition %d version %d already available in class %s", i, version, pSchema->GetName()));
+		  } else {
+		    AliError(Form("can not verify version for already existing schema definition %d (%s) version %d: version of existing definition is %d", i, pSchema->GetName(), version, pInfo?pInfo->GetClassVersion():-1));
+		  }
+		}
+	      } else {
+		AliError(Form("skipping schema definition %d (%s), unable to set version %d in info array of size %d", i, pSchema->GetName(), version, pInfos?pInfos->GetEntriesFast():-1));
+	      }
+	    } else {
+	      AliError(Form("skipping schema definition %d (%s), unable to find class", i, pSchema->GetName()));
+	    }
+	  } else {
+	    AliError(Form("skipping schema definition %d, not of TStreamerInfo", i));
+	  }
+	}
+      }
+    } else {
+      AliError(Form("internal mismatch in OCDB entry %s: wrong class type", fgkCalibStreamerInfoEntry));
+    }
+  } else {
+    AliWarning(Form("missing HLT reco data (%s), skipping initialization of streamer info for TObjects in HLT raw data payload", fgkCalibStreamerInfoEntry));
+  }
+  return 0;
 }
 
 void AliHLTReconstructor::Reconstruct(AliRawReader* rawReader, TTree* /*clustersTree*/) const 
@@ -227,7 +322,11 @@ void AliHLTReconstructor::FillESD(AliRawReader* rawReader, TTree* /*clustersTree
     }
     pSystem->FillESD(-1, NULL, esd);
 
-    AliHLTOUTRawReader* pHLTOUT=new AliHLTOUTRawReader(rawReader, esd->GetEventNumberInFile(), fpEsdManager);
+    AliRawReader* input=NULL;
+    if ((fFlags&kAliHLTReconstructorIgnoreHLTOUT) == 0 ) {
+      input=rawReader;
+    }
+    AliHLTOUTRawReader* pHLTOUT=new AliHLTOUTRawReader(input, esd->GetEventNumberInFile(), fpEsdManager);
     if (pHLTOUT) {
       ProcessHLTOUT(pHLTOUT, esd);
       delete pHLTOUT;
@@ -370,6 +469,20 @@ void AliHLTReconstructor::ProcessHLTOUT(AliRawReader* pRawReader, AliESDEvent* p
     AliHLTOUTRawReader* pHLTOUT=new AliHLTOUTRawReader(pRawReader, event, fpEsdManager);
     if (pHLTOUT) {
       AliInfo(Form("event %d", event));
+      // the two event fields contain: period - orbit - bunch crossing counter
+      //        id[0]               id[1]
+      // |32                0|32                0|
+      //
+      // |      28 bit    |       24 bit     | 12|
+      //        period          orbit         bcc
+      AliHLTUInt64_t eventId=0;
+      const UInt_t* rawreaderEventId=pRawReader->GetEventId();
+      if (rawreaderEventId) {
+	eventId=rawreaderEventId[0];
+	eventId=eventId<<32;
+	eventId|=rawreaderEventId[1];
+      }
+      AliInfo(Form("Event Id from rawreader:\t 0x%016llx", eventId));
       ProcessHLTOUT(pHLTOUT, pEsd, true);
       delete pHLTOUT;
     } else {
@@ -384,6 +497,7 @@ void AliHLTReconstructor::PrintHLTOUTContent(AliHLTOUT* pHLTOUT) const
   if (!pHLTOUT) return;
   int iResult=0;
 
+  AliInfo(Form("Event Id from hltout:\t 0x%016llx", pHLTOUT->EventId()));
   for (iResult=pHLTOUT->SelectFirstDataBlock();
        iResult>=0;
        iResult=pHLTOUT->SelectNextDataBlock()) {
