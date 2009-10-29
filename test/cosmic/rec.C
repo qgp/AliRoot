@@ -22,7 +22,7 @@ void rec(const char *filename="raw.root")
   rec.SetWriteESDfriend(kTRUE);
   rec.SetWriteAlignmentData();
   rec.SetInput(filename);
-  rec.SetRunReconstruction("ALL -HLT"); //HLT temporarily off
+  rec.SetRunReconstruction("ALL");
   rec.SetUseTrackingErrorsForAlignment("ITS");
 
   // switch off cleanESD
