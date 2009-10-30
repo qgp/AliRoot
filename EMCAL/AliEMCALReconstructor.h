@@ -12,13 +12,16 @@
 //*--         Dmitri Peressounko (SUBATECH & Kurchatov Institute)
 
 // --- ROOT system ---
-#include "AliEMCALRecParam.h"
-#include "AliReconstructor.h" 
-#include "AliEMCALTracker.h" 
-
 class TList;
 class TClonesArray;
 class TTree;
+
+
+// --- AliRoot header files ---
+#include "AliReconstructor.h" 
+#include "AliEMCALTracker.h" 
+#include "AliEMCALRecParam.h"
+
 
 class AliEMCALDigitizer ;
 class AliEMCALClusterizer ;
@@ -28,17 +31,17 @@ class AliESDEvent ;
 class AliRawReader ;
 class AliEMCALRawUtils;
 class AliEMCALGeometry;
+class AliEMCALCalibData ;
 
 // --- Standard library ---
 
-// --- AliRoot header files ---
+
 
 class AliEMCALReconstructor : public AliReconstructor {
 
 public:
 
   AliEMCALReconstructor() ; //ctor            
-  AliEMCALReconstructor(const AliEMCALReconstructor & rec);
    
   virtual ~AliEMCALReconstructor() ; //dtor
 
@@ -56,13 +59,6 @@ public:
   virtual Bool_t             HasDigitConversion() const {return kTRUE;};
   virtual void               ConvertDigits(AliRawReader* rawReader, TTree* digitsTree) const;
   
-  
-  AliEMCALReconstructor & operator = (const AliEMCALReconstructor & /*rvalue*/)  {
-    // assignement operator requested by coding convention but not needed
-    Fatal("operator =", "not implemented") ;
-    return *this ; 
-  }
-  
   static void   SetRecParam(AliEMCALRecParam * recParam){ fgkRecParam = recParam;}
 
   void   ReadDigitsArrayFromTree(TTree *digitsTree) const;
@@ -74,8 +70,13 @@ public:
 
   static TClonesArray* GetDigitsArr() {return fgDigitsArr;}
 
+  void FillMisalMatrixes(AliESDEvent* esd)const ;
+
 private:
   
+  AliEMCALReconstructor(const AliEMCALReconstructor &); //Not implemented
+  AliEMCALReconstructor & operator = (const AliEMCALReconstructor &); //Not implemented
+
   Bool_t fDebug; //! verbosity controller
 
   TList *fList;  //! List of hists (only for trigger now)
@@ -87,8 +88,9 @@ private:
   static AliEMCALRawUtils*   fgRawUtils;  // raw utilities class -
 					  // only need one per reco
   static TClonesArray*       fgDigitsArr; // Array with EMCAL digits
+  AliEMCALCalibData * fCalibData  ;   //! Calibration database if aval
 
-  ClassDef(AliEMCALReconstructor,6)  // Reconstruction algorithm class (Base Class)
+  ClassDef(AliEMCALReconstructor,7)  // Reconstruction algorithm class (Base Class)
 
 }; 
 
