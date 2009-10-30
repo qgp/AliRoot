@@ -6,7 +6,7 @@
  Run Type: PHYSICS STANDALONE
  DA Type: MON
  Number of events needed: all (or at least as much as possible...)
- Input Files:
+ Input Files: 09000094301009.10.raw
  Output Files: mch.occupancy, to be exported to the DAQ FXS
  Trigger types used: PHYSICS_EVENT
 */
@@ -60,7 +60,7 @@
 #endif
 
 const char* OUTPUT_FILE = "mch.occupancy";
-const char* DAVERSION = "MUONTRKOCCda v1.0";
+const char* DAVERSION = "MUONTRKOCCda v1.2 ($Id$)";
 
 //______________________________________________________________________________
 void Add(AliMUONVStore& destStore, const AliMUONVStore& srcStore)
@@ -86,7 +86,7 @@ void Add(AliMUONVStore& destStore, const AliMUONVStore& srcStore)
       {
         for ( Int_t j = 0; j  < source->Dimension(); ++j ) 
         {
-          dest->SetValueAsInt(i,j,dest->ValueAsInt(i,j)+source->ValueAsInt(i,j));
+          dest->SetValueAsIntFast(i,j,dest->ValueAsIntFast(i,j)+source->ValueAsIntFast(i,j));
         }
       }
     }
@@ -201,34 +201,40 @@ int main(int argc, char **argv)
     
     for(;;)
     {
-      struct eventHeaderStruct *event;
+      struct eventHeaderStruct *event(0x0);
       eventTypeType eventT;
       
       status=monitorGetEventDynamic((void **)&event);
       if (status!=0)
       {
-	printf("MCH Occupancy DA ERROR: %s\n", monitorDecodeError(status));
-	break;
+        printf("MCH Occupancy DA ERROR: %s\n", monitorDecodeError(status));
+        delete event;
+        break;
       }
 
       /* check shutdown condition */
-      if (daqDA_checkShutdown()) break;
-      
-// Check if one gets the event properly
-      if (status!=0)
+      if (daqDA_checkShutdown())
       {
-        printf("MCH Occupancy DA ERROR: monitorGetEventDynamic() failed: %s\n", monitorDecodeError(status));
-        return -1;
+        delete event;
+        break;
       }
-
+      
       /* retry if got no event */
       if (event==NULL) continue;
 
       ++numberOfEvents;
 
       eventT=event->eventType;
-      if ((eventT == END_OF_RUN)||(eventT == END_OF_RUN_FILES)) break;
-      if (eventT != PHYSICS_EVENT) continue;
+      if ((eventT == END_OF_RUN)||(eventT == END_OF_RUN_FILES)) 
+      {
+        delete event;
+        break;
+      }
+      if (eventT != PHYSICS_EVENT) 
+      {
+        delete event;
+        continue;
+      }
                  
       ++numberOfPhysicsEvent;
       
@@ -239,6 +245,8 @@ int main(int argc, char **argv)
         if ( runNumber != 0 ) 
         {
           cout << "Uh oh. That's bad... Changing of run number ???" << endl;
+          delete event;
+          delete rawReader;
           return -9999;
         }
         runNumber = rawReader->GetRunNumber();
@@ -247,7 +255,6 @@ int main(int argc, char **argv)
       AliMUONRawStreamTrackerHP stream(rawReader);
       
       stream.DisableWarnings();
-      stream.EnabbleErrorLogger();
       
       oneEventData.Clear();
       
@@ -282,9 +289,11 @@ int main(int argc, char **argv)
       {
         ++numberOfBadEvents;
       }
-    }
-    
-    delete rawReader;
+
+      delete event;
+      
+      delete rawReader;
+    }    
   }
   
   
