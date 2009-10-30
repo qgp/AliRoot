@@ -130,7 +130,6 @@ Bool_t AliPHOSPreprocessor::ProcessLEDRun()
   
   TIter iter(list);
   TObjString *source;
-  Bool_t firedOK = kFALSE;
   
   while ((source = dynamic_cast<TObjString *> (iter.Next()))) {
     
@@ -145,26 +144,14 @@ Bool_t AliPHOSPreprocessor::ProcessLEDRun()
       Log(Form("File %s is not opened, something goes wrong!",fileName.Data()));
       return kFALSE;
     }
-
+    
     TH1I* fFiredCells = (TH1I*)f.Get("fFiredCells");
-
-    if(!fFiredCells) {
-      Log(Form("fFiredCells histogram not found in %s, skip this source.",fileName.Data()));
-      firedOK=kFALSE;
-    }
-    else {
+    
+    if(fFiredCells) {
       const Double_t nFiredCells = fFiredCells->GetMean();
-      if(nFiredCells>100 && nFiredCells<600) { 
-	firedOK = kTRUE;
-	Log(Form("Number of fired cells per event is %d.",nFiredCells));
-      }
-      else {
-	Log(Form("Number of fired cells per event is %d, possibly not a LED run!",nFiredCells));
-	firedOK = kFALSE;
-      }
-      
+      Log(Form("Number of fired cells per event is %.1f",nFiredCells));
     }
-
+    
     const Int_t nMod=5; // 1:5 modules
     const Int_t nCol=56; //1:56 columns in each module
     const Int_t nRow=64; //1:64 rows in each module
@@ -174,20 +161,18 @@ Bool_t AliPHOSPreprocessor::ProcessLEDRun()
 	for(Int_t row=0; row<nRow; row++) {
 
 	  //High Gain to Low Gain ratio
-	  if(firedOK) {
-	    Float_t ratio = HG2LG(mod,row,col,&f);
-	    calibData.SetHighLowRatioEmc(mod+1,col+1,row+1,ratio);
-	    if(ratio != 16.)
-	      AliInfo(Form("mod %d iX %d iZ %d  ratio %.3f\n",mod,row,col,ratio));
-	  }	  
-
+	  Float_t ratio = HG2LG(mod,row,col,&f);
+	  calibData.SetHighLowRatioEmc(mod+1,col+1,row+1,ratio);
+	  if(ratio != 16.)
+	    AliInfo(Form("mod %d iX %d iZ %d  ratio %.3f\n",mod,row,col,ratio));
+	  
 	  if(clb) {
 	    Double_t coeff = clb->GetADCchannelEmc(mod+1,col+1,row+1);
 	    calibData.SetADCchannelEmc(mod+1,col+1,row+1,coeff);
 	  }
 	  else
 	    calibData.SetADCchannelEmc(mod+1,col+1,row+1,0.005);
-
+	  
 	}
       }
     }
@@ -240,7 +225,7 @@ Float_t AliPHOSPreprocessor::HG2LG(Int_t mod, Int_t X, Int_t Z, TFile* f)
   Double_t hg2lg = gaus1->GetParameter("Mean");
   if( (hg2lg-mean_min<0.001) || (mean_max-hg2lg<0.001)) hg2lg=max;
   
-  AliInfo(Form("%s: %d entries, mean=%.3f, peak=%.3f, rms= %.3f. HG/LG = %.3f\n",
+  AliInfo(Form("%s: %.1f entries, mean=%.3f, peak=%.3f, rms= %.3f. HG/LG = %.3f\n",
 	  h1->GetTitle(),h1->GetEntries(),h1->GetMean(),max,h1->GetRMS(),hg2lg)); 
 
   return hg2lg;
@@ -326,26 +311,12 @@ Bool_t AliPHOSPreprocessor::DoFindBadChannelsEmc(Int_t system, TList* list, AliP
       return kFALSE;
     }
 
-    TH1I* fFiredCells = (TH1I*)f.Get("fFiredCells");
+    Log(Form("Begin check for bad channels."));
 
-    if(!fFiredCells) {
-      Log(Form("fFiredCells histogram not found in %s, skip this source.",fileName.Data()));
-      continue;
-    }
-
-    const Double_t nFiredCells = fFiredCells->GetMean();
-
-    if(nFiredCells<100. || nFiredCells>600. ) {
-      Log(Form("Number of fired cells per event is %d, possibly not a LED run!",nFiredCells));
-      continue; // not a LED run!
-    }
-    
-    Log(Form("Number of fired cells per event %d. Begin check for bad channels.",nFiredCells));
-    
     for(Int_t mod=0; mod<5; mod++) {
       for(Int_t iX=0; iX<64; iX++) {
 	for(Int_t iZ=0; iZ<56; iZ++) {
-
+	  
 	  sprintf(hnam,"%d_%d_%d_%d",mod,iX,iZ,1); // high gain	
 	  h1 = (TH1F*)f.Get(hnam);
 
