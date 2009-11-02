@@ -46,9 +46,9 @@
 #include <TParticle.h>
 #include <TSystem.h>
 #include <TGeoManager.h>
+#include "AliMUONCDB.h"
 #include "AliMUONRecoCheck.h"
 #include "AliMUONTrack.h"
-#include "AliMUONTrackParam.h"
 #include "AliMUONTrackLight.h"
 #include "AliMUONPairLight.h"
 #include "AliMUONVTrackStore.h"
@@ -57,12 +57,12 @@
 #include "AliESDVertex.h"
 #include "AliMCEventHandler.h"
 #include "AliMCEvent.h"
-#include "AliMagF.h"
+#include "AliStack.h"
+#include "AliCDBManager.h"
 /*TODO: need to update this with changes made to ITS
 #include "AliITSVertexerPPZ.h"
 #include "AliITSLoader.h"
 */
-#include "AliTracker.h"
 #endif
 
 
@@ -101,13 +101,10 @@ void DecodeRecoCocktail(
     }
   }
   
-  // set  mag field 
-  // waiting for mag field in CDB 
-  if (!TGeoGlobalMagField::Instance()->GetField()) {
-    printf("Loading field map...\n");
-    AliMagF* field = new AliMagF("Maps","Maps",1.,1.,AliMagF::k5kG);
-    TGeoGlobalMagField::Instance()->SetField(field);
-  }
+  // load necessary data from OCDB
+  AliCDBManager::Instance()->SetDefaultStorage("local://$ALICE_ROOT/OCDB");
+  AliCDBManager::Instance()->SetRun(0);
+  if (!AliMUONCDB::LoadField()) return;
   // set the magnetic field for track extrapolations
   AliMUONTrackExtrap::SetField();
 
@@ -141,7 +138,7 @@ void DecodeRecoCocktail(
     muonArray->Clear();     // clean muon and dimuon arrays 
     dimuonArray->Clear(); 
     
-    AliMUONVTrackStore* recoTracks = rc->ReconstructedTracks(ievent);  // Use tracks from actual reconstruction, but this does not work anymore.
+    AliMUONVTrackStore* recoTracks = rc->ReconstructedTracks(ievent, kFALSE);  // Use tracks from actual reconstruction.
     //AliMUONVTrackStore* trackRefs = rc->ReconstructibleTracks(ievent);  // Only use reconstructible reference tracks.
     AliMUONVTrackStore* trackRefs = rc->TrackRefs(ievent);
     AliStack* pstack = (const_cast<AliMCEventHandler*>(rc->GetMCEventHandler()))->MCEvent()->Stack();

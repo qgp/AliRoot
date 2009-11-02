@@ -72,7 +72,9 @@ AliMUONRecoParam::AliMUONRecoParam()
   fRemoveConnectedTracksInSt12(kFALSE),
   fMaxTriggerTracks(0),
   fMaxTrackCandidates(0),
-  fSelectTrackOnSlope(kFALSE)
+  fSelectTrackOnSlope(kFALSE),
+  fMissingPadFractionLimit(0),
+  fFractionOfBuspatchOutsideOccupancyLimit(0)
 {
   /// Constructor
   
@@ -170,8 +172,8 @@ void AliMUONRecoParam::SetLowFluxParam()
   
   SetNameTitle("Low Flux","Low Flux");
   SetEventSpecie(AliRecoParam::kLowMult);
-  fMinBendingMomentum = 1.;
-  fMaxBendingMomentum = 3000.;
+  fMinBendingMomentum = 0.8;
+  fMaxBendingMomentum = 1.e10;
   fMaxNonBendingSlope = 0.3;
   fMaxBendingSlope = 0.4;
   fSelectTrackOnSlope = kFALSE;
@@ -202,8 +204,7 @@ void AliMUONRecoParam::SetLowFluxParam()
   for (Int_t iSt = 0; iSt < 5; iSt++) fRequestStation[iSt] = kTRUE;
   fBypassSt45 = 0;
   fMaxTriggerTracks = 100;
-  fMaxTrackCandidates = 10000;
-  
+  fMaxTrackCandidates = 10000;  
 }
 
 //_____________________________________________________________________________
@@ -213,8 +214,8 @@ void AliMUONRecoParam::SetHighFluxParam()
   
   SetNameTitle("High Flux","High Flux");
   SetEventSpecie(AliRecoParam::kHighMult);
-  fMinBendingMomentum = 1.;
-  fMaxBendingMomentum = 3000.;
+  fMinBendingMomentum = 0.8;
+  fMaxBendingMomentum = 1.e10;
   fMaxNonBendingSlope = 0.3;
   fMaxBendingSlope = 0.4;
   fSelectTrackOnSlope = kFALSE;
@@ -256,13 +257,13 @@ void AliMUONRecoParam::SetCosmicParam()
   
   SetNameTitle("Cosmic","Cosmic");
   SetEventSpecie(AliRecoParam::kCosmic);
-  fMinBendingMomentum = 1.;
-  fMaxBendingMomentum = 10000000.;
-  fMaxNonBendingSlope = 0.4;
-  fMaxBendingSlope = 0.7;
+  fMinBendingMomentum = 0.8;
+  fMaxBendingMomentum = 1.e10;
+  fMaxNonBendingSlope = 0.3;
+  fMaxBendingSlope = 0.4;
   fSelectTrackOnSlope = kTRUE;
-  fNonBendingVertexDispersion = 200.;
-  fBendingVertexDispersion = 200.;
+  fNonBendingVertexDispersion = 170.;
+  fBendingVertexDispersion = 170.;
   fMaxNonBendingDistanceToTrack = 1.;
   fMaxBendingDistanceToTrack = 1.;
   fSigmaCutForTracking = 7.;
@@ -284,12 +285,12 @@ void AliMUONRecoParam::SetCosmicParam()
   fSaveFullClusterInESD = kTRUE;
   for (Int_t iCh = 0; iCh < 10; iCh++) {
     fUseChamber[iCh] = kTRUE;
-    fDefaultNonBendingReso[iCh] = 0.152;
-    fDefaultBendingReso[iCh] = 0.027;
+    fDefaultNonBendingReso[iCh] = 0.4;
+    fDefaultBendingReso[iCh] = 0.4;
   }
-  fRequestStation[0] = kFALSE;
-  fRequestStation[1] = kFALSE;
-  fRequestStation[2] = kFALSE;
+  fRequestStation[0] = kTRUE;
+  fRequestStation[1] = kTRUE;
+  fRequestStation[2] = kTRUE;
   fRequestStation[3] = kTRUE;
   fRequestStation[4] = kTRUE;
   fBypassSt45 = 0;
@@ -298,7 +299,10 @@ void AliMUONRecoParam::SetCosmicParam()
   fMaxTrackCandidates = 10000;
   SetPedMeanLimits(20, 700);
   SetManuOccupancyLimits(-1.,0.01); // reject manu above occ=1%
-  
+
+  SetBuspatchOccupancyLimits(-1,0.01);  
+  SetMissingPadFractionLimit(0.1); // 10 %   
+  SetFractionOfBuspatchOutsideOccupancyLimit(0.05); // 5 %   
 }
 
 
@@ -483,9 +487,13 @@ void AliMUONRecoParam::Print(Option_t *option) const
   
   cout << "Occupancy limits are :" << endl;
   
-  cout << Form("%7.2f <= Manu occupancy < %7.2f",ManuOccupancyLowLimit(),ManuOccupancyHighLimit()) << endl;
-  cout << Form("%7.2f <= Buspatch occupancy < %7.2f",BuspatchOccupancyLowLimit(),BuspatchOccupancyHighLimit()) << endl;
-  cout << Form("%7.2f <= DE occupancy < %7.2f",DEOccupancyLowLimit(),DEOccupancyHighLimit()) << endl;
+  cout << Form("%e <= Manu occupancy < %7.2f",ManuOccupancyLowLimit(),ManuOccupancyHighLimit()) << endl;
+  cout << Form("%e <= Buspatch occupancy < %7.2f",BuspatchOccupancyLowLimit(),BuspatchOccupancyHighLimit()) << endl;
+  cout << Form("%e <= DE occupancy < %7.2f",DEOccupancyLowLimit(),DEOccupancyHighLimit()) << endl;
+  
+  cout << "'QAChecker' limits" << endl;  
+  cout << Form("MissingPadFractionLimit = %5.2f %%",MissingPadFractionLimit()*100.0) << endl;  
+  cout << Form("FractionOfBuspatchOutsideOccupancyLimit = %5.2f %%",FractionOfBuspatchOutsideOccupancyLimit()*100.0) << endl;
   
   cout << "chamber non bending resolution = |";
   for (Int_t iCh = 0; iCh < 10; iCh++) cout << Form(" %6.3f |",fDefaultNonBendingReso[iCh]);
@@ -532,12 +540,16 @@ AliMUONRecoParam::SetDefaultLimits()
   fManuOccupancyLimits[0] = -1.0; 
   fManuOccupancyLimits[1] = 1.0;
 
-  fBuspatchOccupancyLimits[0] = -1.0; 
+  fBuspatchOccupancyLimits[0] = 1E-6; 
   fBuspatchOccupancyLimits[1] = 1.0;
 
   fDEOccupancyLimits[0] = -1.0; 
   fDEOccupancyLimits[1] = 1.0;
 
   fChargeSigmaCut = 4.0;
+  
+  fMissingPadFractionLimit = 0.1; // 10 % 
+  fFractionOfBuspatchOutsideOccupancyLimit = 0.05; // 5 % 
+
 }
 

@@ -40,15 +40,14 @@
 
 #include "AliMUONAlignment.h"
 #include "AliMUONTrack.h"
-#include "AliMUONTrackExtrap.h"
+#include "AliMUONRecoParam.h"
 #include "AliMUONTrackParam.h"
 #include "AliMUONGeometryTransformer.h"
 #include "AliMUONESDInterface.h"
+#include "AliMUONCDB.h"
 
 #include "AliESDEvent.h"
 #include "AliESDMuonTrack.h"
-#include "AliMagF.h"
-#include "AliTracker.h"
 #include "AliCDBManager.h"
 #include "AliCDBMetaData.h"
 #include "AliCDBId.h"
@@ -79,16 +78,16 @@ void MUONAlignment(Int_t nEvents = 100000, char* geoFilename = "geometry.root", 
     }
   }
   
-  // set  mag field 
-  // waiting for mag field in CDB 
-  if (!TGeoGlobalMagField::Instance()->GetField()) {
-    printf("Loading field map...\n");
-    //    AliMagF* field = new AliMagF("Maps","Maps",2,1.,1., 10.,AliMagF::k5kG);
-    AliMagF* field = new AliMagF("Maps","Maps",0.,0., AliMagF::k5kG);
-    TGeoGlobalMagField::Instance()->SetField(field);
-  }
-  // set the magnetic field for track extrapolations
-  AliMUONTrackExtrap::SetField();
+  // load necessary data from OCDB
+  AliCDBManager* cdbManager = AliCDBManager::Instance();
+  cdbManager->SetDefaultStorage("local://$ALICE_ROOT/OCDB");
+  cdbManager->SetRun(0);
+  if (!AliMUONCDB::LoadField()) return;
+  AliMUONRecoParam* recoParam = AliMUONCDB::LoadRecoParam();
+  if (!recoParam) return;
+  
+  // reset tracker for restoring initial track parameters at cluster
+  AliMUONESDInterface::ResetTracker(recoParam);
 
   Double_t parameters[4*156];
   Double_t errors[4*156];
@@ -307,10 +306,8 @@ void MUONAlignment(Int_t nEvents = 100000, char* geoFilename = "geometry.root", 
 
   // 100 mum residual resolution for chamber misalignments?
   alig->SetAlignmentResolution(array,-1,0.01,0.01,0.004,0.003);
-   
-  // CDB manager
-  AliCDBManager* cdbManager = AliCDBManager::Instance();
-  cdbManager->SetDefaultStorage("local://ReAlignCDB");
+
+  cdbManager->SetSpecificStorage("MUON/Align/Data","local://ReAlignCDB");
   
   AliCDBMetaData* cdbData = new AliCDBMetaData();
   cdbData->SetResponsible("Dimuon Offline project");

@@ -35,13 +35,11 @@
 #pragma link C++ class AliMUONTriggerCircuit+;
 #pragma link C++ class AliMUONVTriggerStore+;
 #pragma link C++ class AliMUONTriggerStoreV1+;
+#pragma link C++ class AliMUONTriggerElectronics+;
 
 // raw data
 #pragma link C++ class AliMUONDigitMaker+;
 #pragma link C++ class AliMUONRawWriter+;
-
-// calibration access
-#pragma link C++ class AliMUONCDB+;
 
 #endif
 

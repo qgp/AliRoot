@@ -37,12 +37,12 @@
 
 // STEER includes
 #include "AliCDBManager.h"
+#include "AliGRPManager.h"
 #include "AliESDEvent.h"
 #include "AliESDInputHandler.h"
 #include "AliESDtrack.h"
 #include "AliESDMuonTrack.h"
 #include "AliLog.h"
-#include "AliMagF.h"
 #include "AliRecoParam.h"
 #include "AliTracker.h"
 
@@ -76,21 +76,20 @@ ClassImp( AliMUONChamberCalibrationTask )
 //______________________________________________________________
 AliMUONChamberCalibrationTask::AliMUONChamberCalibrationTask():
   AliAnalysisTaskSE( "AliMUONChamberCalibrationTask" ),
+  fOCDBPath( "local://$ALICE_ROOT/OCDB" ),
   fCalibChoice(NOGAIN),
-  fCalibData(0x0),
   fClusterInfoTree(0x0),
+  fMuonRecoParam(0x0),
+  fClusterInfo(0x0),
+  fCalibData(0x0),
+  fESDInterface(0x0),
   fDigitStore(0x0),
   fESDInputHandler(0x0),
-  fESDInputEvent(0x0),
-  fMuonRecoParam(0x0),
-  fOCDBPath( "local://$ALICE_ROOT/OCDB" )
+  fESDInputEvent(0x0)
 {
   //
   /// Default constructor
   //
-
-  fClusterInfo = new AliMUONClusterInfo();
-  fESDInterface = new AliMUONESDInterface();
 
 }
 
@@ -99,19 +98,21 @@ AliMUONChamberCalibrationTask::AliMUONChamberCalibrationTask( const char* name,
 							      char* ocdbpath,
 							      const Int_t my_calib_option ):
   AliAnalysisTaskSE( name ),
-  fCalibData(0x0),
+  fOCDBPath( "local://$ALICE_ROOT/OCDB" ),
+  fCalibChoice(NOGAIN),
   fClusterInfoTree(0x0),
+  fMuonRecoParam(0x0),
+  fClusterInfo(0x0),
+  fCalibData(0x0),
+  fESDInterface(0x0),
   fDigitStore(0x0),
   fESDInputHandler(0x0),
-  fESDInputEvent(0x0),
-  fMuonRecoParam(0x0)
+  fESDInputEvent(0x0)
 {
   //
   /// constructor
   //
 
-  fClusterInfo = new AliMUONClusterInfo();
-  fESDInterface = new AliMUONESDInterface();
   fOCDBPath = ocdbpath;
   if ( (my_calib_option >= ((Int_t)NOGAIN)) && (my_calib_option <= ((Int_t)INJECTIONGAIN)) ) 
     fCalibChoice = (Calibration_t)my_calib_option;
@@ -129,9 +130,9 @@ AliMUONChamberCalibrationTask::~AliMUONChamberCalibrationTask()
   /// destructor
   //
 
-  if ( fMuonRecoParam ) delete fMuonRecoParam;
-  if ( fClusterInfo ) delete fClusterInfo;
-  if ( fESDInterface ) delete fESDInterface;
+  delete fMuonRecoParam;
+  delete fClusterInfo;
+  delete fESDInterface;
 
 }
 //______________________________________________________________
@@ -156,10 +157,16 @@ void AliMUONChamberCalibrationTask::LocalInit()
 {
   //
   /// Initialization
+  /// Initialize the cluster info and the ESD interface
   /// Set the magnetic field, the mapping and the reconstruction parameters
   //
 
   AliDebug( 1, "" );
+
+  // initialize the cluster info and the ESD interface
+
+  fClusterInfo = new AliMUONClusterInfo();
+  fESDInterface = new AliMUONESDInterface();
 
   gRandom->SetSeed(0);
   
@@ -167,9 +174,10 @@ void AliMUONChamberCalibrationTask::LocalInit()
 
   if ( !TGeoGlobalMagField::Instance()->GetField() ) {
     AliInfo( "Loading field map..." );
-    AliMagF* field = new AliMagF( "Maps","Maps", 1., 1., AliMagF::k5kG );
-    TGeoGlobalMagField::Instance()->SetField( field );
-    TGeoGlobalMagField::Instance()->Lock();
+    AliGRPManager *grpMan = new AliGRPManager();
+    grpMan->ReadGRPEntry();
+    grpMan->SetMagField();
+    delete grpMan;
   }
   
   // Load mapping
@@ -177,10 +185,9 @@ void AliMUONChamberCalibrationTask::LocalInit()
   AliCDBManager* man = AliCDBManager::Instance();
   man->SetDefaultStorage( fOCDBPath );
   man->SetSpecificStorage( "MUON/Calib/MappingData", fOCDBPath );
-  man->SetSpecificStorage( "MUON/Calib/Mapping", fOCDBPath );
-  man->SetSpecificStorage( "MUON/Calib/DDLStore", fOCDBPath );
-  man->Print();
+  man->SetSpecificStorage( "MUON/Calib/MappingRunData", fOCDBPath ); // for the manu serial numbers
   man->SetRun(0);
+  man->Print();
   if ( ! AliMpCDB::LoadDDLStore() ) {
     AliFatal( "Could not access mapping from OCDB !" );
     exit(-1); 
@@ -361,8 +368,8 @@ void AliMUONChamberCalibrationTask::Exec( Option_t* /*option*/ )
 			     ped->ValueAsFloatFast(manuChannel,1) ); // sigma
 	padInfo.SetGain( gain->ValueAsFloatFast(manuChannel,0), // a0
 			 gain->ValueAsFloatFast(manuChannel,1), // a1
-			 gain->ValueAsFloatFast(manuChannel,2), // threshold
-			 gain->ValueAsFloatFast(manuChannel,3) ); // fit quality
+			 (Int_t)gain->ValueAsFloatFast(manuChannel,2), // threshold
+			 (Int_t)gain->ValueAsFloatFast(manuChannel,3) ); // fit quality
 	
 	fClusterInfo->AddPad( padInfo );
       }

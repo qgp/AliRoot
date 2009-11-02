@@ -55,6 +55,7 @@ public:
 	void                Finish() const ; 
 	virtual TH1 *       GetDigitsData(const Int_t index)                       = 0 ; 
 	virtual TH1 *       GetESDsData(const Int_t index)                         = 0 ; 
+  AliRecoParam::EventSpecie_t GetEventSpecie() const { return fEventSpecie ; }
 	virtual TH1 *       GetHitsData(const Int_t index)                         = 0 ; 
 	virtual TH1 *       GetRecPointsData(const Int_t index)                    = 0 ; 
 	virtual TH1 *       GetRawsData(const Int_t index)                         = 0 ; 
@@ -62,12 +63,12 @@ public:
 	const Char_t *      GetDetectorDirName() const { return fDetectorDirName.Data() ; }
   TList *             GetParameterList() const { return fParameterList[AliRecoParam::AConvert(fEventSpecie)] ; }
   virtual const AliDetectorRecoParam * GetRecoParam() { return NULL ; }
+  Int_t               GetRun() const { return fRun ; } 
 	Int_t               Increment() { return ++fCycleCounter ; } 
 	virtual TObjArray** Init(AliQAv1::TASKINDEX_t, Int_t cycles = -1)                                 = 0 ;
   TObjArray*          Init(AliQAv1::TASKINDEX_t, AliRecoParam::EventSpecie_t es, Int_t cycles = -1) ;
 	virtual void        Init(AliQAv1::TASKINDEX_t, TObjArray ** list, Int_t run, Int_t cycles = -1)   = 0 ;
 	virtual void        InitRaws()          = 0 ; 
-	virtual void        InitESDs()          = 0 ; 
   virtual void        InitRecPoints()     = 0 ; 
   Bool_t              IsCycleDone() const { return fCycleCounter > fCycle ? kTRUE : kFALSE ; }
   Bool_t              IsValidEventSpecie(Int_t eventSpecieIndex, TObjArray ** list) ; 
@@ -91,6 +92,7 @@ protected:
 	virtual void   DefaultEndOfDetectorCycle(AliQAv1::TASKINDEX_t task ) ; 
 	TObject *      GetData(TObjArray ** list, const Int_t index) ;
 	virtual void   InitDigits()        = 0 ; 
+	virtual void   InitESDs()          = 0 ; 
 	virtual void   InitHits()          = 0 ; 
   //virtual void   InitRecParticles()  = 0 ; 
 	virtual void   InitSDigits()       = 0 ; 

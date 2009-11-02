@@ -26,15 +26,20 @@ class AliESDEvent;
 
 #include "AliAnalysisTaskSE.h"
 #include "TTree.h" 
+#include "TString.h" 
 
 class AliMUONChamberCalibrationTask : public AliAnalysisTaskSE
 {
 
  public:
 
-  // enumarate the list of the available modes for the calibration
-  enum Calibration_t { NOGAIN, GAINCONSTANTCAPA, GAIN, INJECTIONGAIN }; 
-  typedef Calibration_t Calibration_t;
+  /// enumerate the list of the available modes for the calibration
+  enum Calibration_t { 
+    NOGAIN, 
+    GAINCONSTANTCAPA, 
+    GAIN, 
+    INJECTIONGAIN 
+  }; 
 
   // Constructors
   AliMUONChamberCalibrationTask();
@@ -53,20 +58,25 @@ class AliMUONChamberCalibrationTask : public AliAnalysisTaskSE
   virtual void Terminate( Option_t* option = "" ); 
 
   // Getters
+  /// Return TTree filled with the cluster information
   TTree* OutputTree() { return fClusterInfoTree; }
 
   UInt_t BuildClusterMap( AliMUONTrack &track );
 
  private:
+  /// Not implemented
+  AliMUONChamberCalibrationTask(const AliMUONChamberCalibrationTask& right);
+  /// Not implemented
+  AliMUONChamberCalibrationTask&  operator = (const AliMUONChamberCalibrationTask& right);
 
-  char* fOCDBPath;                      //!< default path to the condition database
+  TString fOCDBPath;                    //!< default path to the condition database
   Calibration_t fCalibChoice;           //!< calibration option
   TTree* fClusterInfoTree;              //!< TTree filled with the cluster information
   AliMUONRecoParam* fMuonRecoParam;     //!< reconstruction parameters for track refitting
   AliMUONClusterInfo* fClusterInfo;     //!< cluster info used to fill the output TTree
   AliMUONCalibrationData* fCalibData;   //!< needed to access to the calibration data for each pad within each cluster
   AliMUONESDInterface* fESDInterface;   //!< interface to easily access to the ESD content
-  AliMUONVDigitStore* fDigitStore;      //<! pointer to the digit stored for the current input ESD event 
+  AliMUONVDigitStore* fDigitStore;      //!< pointer to the digit stored for the current input ESD event 
   AliESDInputHandler* fESDInputHandler; //!< ESD input handler
   AliESDEvent* fESDInputEvent;          //!< pointer to the current input ESD event
 

@@ -36,6 +36,7 @@
 // --- ROOT system ---
 #include <TClass.h>
 #include <TFile.h>
+#include <TH1.h>
 #include <TSystem.h>
 #include <TROOT.h>
 
@@ -341,6 +342,25 @@ const char * AliQAv1::GetBitName(QABIT_t bit) const
 }
 
 //_______________________________________________________________
+TH1 * AliQAv1::GetData(TObjArray** list, Int_t index, AliRecoParam::EventSpecie_t eventSpecie)
+{
+    // retrieve QA data from the list at a given index and for a given event specie 
+  TH1 * rv = NULL ; 
+  Int_t esindex = AliRecoParam::AConvert(eventSpecie) ; 
+  TObjArray * arr = list[esindex] ;
+  if (arr) {
+    if ( index > AliQAv1::GetMaxQAObj() ) {
+			AliErrorClass(Form("Max number of authorized QA objects is %d", AliQAv1::GetMaxQAObj())) ; 
+		} else {
+      if ( arr->At(index) )  {
+        rv = static_cast<TH1*>(arr->At(index)) ; 
+      } 	
+    }
+  }  
+  return rv ; 
+}
+
+//_______________________________________________________________
 AliQAv1::DETECTORINDEX_t AliQAv1::GetDetIndex(const char * name) 
 {
 	// returns the detector index corresponding to a given name
@@ -428,6 +448,7 @@ AliQAv1::MODE_t AliQAv1::Mode(TASKINDEX_t task) {
     default:
       break;
   }
+  return AliQAv1::kNULLMODE;
 }
 
 //_____________________________________________________________________________
