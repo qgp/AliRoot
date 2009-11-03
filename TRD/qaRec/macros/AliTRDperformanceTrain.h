@@ -1,10 +1,11 @@
 #ifndef ALITRDPERFORMANCETRAIN_H
 #define ALITRDPERFORMANCETRAIN_H
 
-#define BIT(n)      (1 << (n))
-#define SETBIT(n,i) ((n) |= BIT(i))
+#include <Rtypes.h>
+/* #define BIT(n)      (1 << (n)) */
+/* #define SETBIT(n,i) ((n) |= BIT(i)) */
 #define TSTBIT(n,i) ((Bool_t)(((n) & BIT(i)) != 0))
-#define CLRBIT(n,i) ((n) &= ~BIT(i))
+/* #define CLRBIT(n,i) ((n) &= ~BIT(i)) */
 
 #define NTRDQATASKS 6
 #define NTRDCALIBTASKS 6
