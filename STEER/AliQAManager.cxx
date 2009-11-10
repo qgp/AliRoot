@@ -91,7 +91,8 @@ AliQAManager::AliQAManager() :
   fRunLoader(NULL), 
   fTasks(""),  
   fEventSpecie(AliRecoParam::kDefault), 
-  fPrintImage(kTRUE) 
+  fPrintImage(kTRUE), 
+  fSaveData(kTRUE) 
 {
 	// default ctor
 	fMaxEvents = fNumberOfEvents ; 
@@ -126,7 +127,8 @@ AliQAManager::AliQAManager(AliQAv1::MODE_t mode, const Char_t* gAliceFilename) :
 	fRunLoader(NULL), 
   fTasks(""), 
   fEventSpecie(AliRecoParam::kDefault), 
-  fPrintImage(kTRUE) 
+  fPrintImage(kTRUE), 
+  fSaveData(kTRUE) 
 {
 	// default ctor
 	fMaxEvents = fNumberOfEvents ; 
@@ -161,7 +163,8 @@ AliQAManager::AliQAManager(const AliQAManager & qas) :
 	fRunLoader(NULL), 
   fTasks(qas.fTasks), 
   fEventSpecie(qas.fEventSpecie), 
-  fPrintImage(qas.fPrintImage) 
+  fPrintImage(qas.fPrintImage), 
+  fSaveData(qas.fSaveData) 
 
 {
 	// cpy ctor
@@ -535,10 +538,12 @@ void  AliQAManager::EndOfCycle(TObjArray * detArray)
 			}
       qac->SetPrintImage(fPrintImage) ;
       
-			for (UInt_t taskIndex = 0; taskIndex < AliQAv1::kNTASKINDEX; taskIndex++) {
-				if ( fTasks.Contains(Form("%d", taskIndex)) ) 
-					qadm->EndOfCycle(AliQAv1::GetTaskIndex(AliQAv1::GetTaskName(taskIndex))) ;
-			}
+      if (IsSaveData()) {
+        for (UInt_t taskIndex = 0; taskIndex < AliQAv1::kNTASKINDEX; taskIndex++) {
+          if ( fTasks.Contains(Form("%d", taskIndex)) ) 
+            qadm->EndOfCycle(AliQAv1::GetTaskIndex(AliQAv1::GetTaskName(taskIndex))) ;
+        }
+      }
 			qadm->Finish();
 		}
 	}
@@ -564,10 +569,12 @@ void  AliQAManager::EndOfCycle(TString detectors)
       if (!detectors.Contains(AliQAv1::GetDetName(iDet))) 
         continue ;
       qac->SetPrintImage(fPrintImage) ;
-   		for (UInt_t taskIndex = 0; taskIndex < AliQAv1::kNTASKINDEX; taskIndex++) {
-				if ( fTasks.Contains(Form("%d", taskIndex)) ) 
-					qadm->EndOfCycle(AliQAv1::GetTaskIndex(AliQAv1::GetTaskName(taskIndex))) ;
-			}
+      if (IsSaveData()) {
+        for (UInt_t taskIndex = 0; taskIndex < AliQAv1::kNTASKINDEX; taskIndex++) {
+          if ( fTasks.Contains(Form("%d", taskIndex)) ) 
+            qadm->EndOfCycle(AliQAv1::GetTaskIndex(AliQAv1::GetTaskName(taskIndex))) ;
+        }
+      }
 			qadm->Finish();
 		}
 	}
@@ -1291,9 +1298,12 @@ void AliQAManager::RunOneEventInOneDetector(Int_t det, TTree * tree)
       AliQADataMaker *qadm = GetQADataMaker(det);  
       if (qadm) { 
         qadm->SetEventSpecie(fEventSpecie) ;  
-        if ( qadm->GetRecoParam() ) 
+        if ( qadm->GetRecoParam() ) {
           if ( AliRecoParam::Convert(qadm->GetRecoParam()->GetEventSpecie()) != AliRecoParam::kDefault)  
-            qadm->SetEventSpecie(qadm->GetRecoParam()->GetEventSpecie()) ;         
+            qadm->SetEventSpecie(qadm->GetRecoParam()->GetEventSpecie()) ; 
+          else
+            AliFatal(Form("%d is not an event specie", qadm->GetRecoParam()->GetEventSpecie())) ; 
+        }                    
         if ( qadm->IsCycleDone() ) {
           qadm->EndOfCycle() ;
         }
