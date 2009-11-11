@@ -175,7 +175,7 @@ Double_t * AliQACheckerBase::Check(AliQAv1::ALITASK_t index, AliDetectorRecoPara
 }  
 
 //____________________________________________________________________________
-Double_t * AliQACheckerBase::Check(AliQAv1::ALITASK_t /*index*/, TObjArray ** list, AliDetectorRecoParam * recoParam) 
+Double_t * AliQACheckerBase::Check(AliQAv1::ALITASK_t /*index*/, TObjArray ** list, AliDetectorRecoParam * /*recoParam*/) 
 {
   // Performs a basic checking
   // Compares all the histograms in the list
@@ -197,9 +197,7 @@ Double_t * AliQACheckerBase::Check(AliQAv1::ALITASK_t /*index*/, TObjArray ** li
         TH1 * hdata ;
         count[specie] = 0 ; 
         while ( (hdata = static_cast<TH1 *>(next())) ) {
-          TString cln(hdata->ClassName()) ; 
-          if ( cln.Contains("TH1") ) {
-            if ( hdata) { 
+          if ( hdata->IsA()->InheritsFrom("TH1") ) {
               if ( hdata->TestBit(AliQAv1::GetExpertBit()) )  // does not perform the test for expert data
                 continue ; 
               TH1 * href = NULL ; 
@@ -215,7 +213,6 @@ Double_t * AliQACheckerBase::Check(AliQAv1::ALITASK_t /*index*/, TObjArray ** li
                 test[specie] += rv ; 
                 count[specie]++ ;
               }
-            }
           } else
             AliError("Data type cannot be processed") ;
           if (count[specie] != 0) 
@@ -388,7 +385,10 @@ void AliQACheckerBase::SetQA(AliQAv1::ALITASK_t index, Double_t * value) const
 	// sets the QA according the return value of the Check
 
   AliQAv1 * qa = AliQAv1::Instance(index) ;
+
   for (Int_t specie = 0 ; specie < AliRecoParam::kNSpecies ; specie++) {
+    if (! qa->IsEventSpecieSet(AliRecoParam::ConvertIndex(specie)))
+      continue ;
     if (  value == NULL ) { // No checker is implemented, set all QA to Fatal
       qa->Set(AliQAv1::kFATAL, specie) ; 
     } else {
