@@ -1205,7 +1205,8 @@ AliZDCPedestals* AliZDCReconstructor::GetPedestalData() const
   // Getting pedestal calibration object for ZDC set
 
   AliCDBEntry  *entry = AliCDBManager::Instance()->Get("ZDC/Calib/Pedestals");
-  if(!entry) AliFatal("No calibration data loaded!");  
+  if(!entry) AliFatal("No calibration data loaded!");
+  entry->SetOwner(kFALSE);
 
   AliZDCPedestals *calibdata = dynamic_cast<AliZDCPedestals*>  (entry->GetObject());
   if(!calibdata)  AliFatal("Wrong calibration object in calibration  file!");
@@ -1221,6 +1222,7 @@ AliZDCEnCalib* AliZDCReconstructor::GetEnergyCalibData() const
 
   AliCDBEntry  *entry = AliCDBManager::Instance()->Get("ZDC/Calib/EnergyCalib");
   if(!entry) AliFatal("No calibration data loaded!");  
+  entry->SetOwner(kFALSE);
 
   AliZDCEnCalib *calibdata = dynamic_cast<AliZDCEnCalib*> (entry->GetObject());
   if(!calibdata)  AliFatal("Wrong calibration object in calibration  file!");
@@ -1236,6 +1238,7 @@ AliZDCTowerCalib* AliZDCReconstructor::GetTowerCalibData() const
 
   AliCDBEntry  *entry = AliCDBManager::Instance()->Get("ZDC/Calib/TowerCalib");
   if(!entry) AliFatal("No calibration data loaded!");  
+  entry->SetOwner(kFALSE);
 
   AliZDCTowerCalib *calibdata = dynamic_cast<AliZDCTowerCalib*> (entry->GetObject());
   if(!calibdata)  AliFatal("Wrong calibration object in calibration  file!");
