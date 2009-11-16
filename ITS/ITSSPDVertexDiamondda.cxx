@@ -140,7 +140,7 @@ int main(int argc, char **argv) {
 
   // Global initializations
   AliLog::SetGlobalLogLevel(AliLog::kError);
-  if (!gSystem->AccessPathName("/local/cdb",kFileExists)) {
+  if (gSystem->AccessPathName("/local/cdb",kFileExists)) {
     printf("Local OCDB directory (/local/cdb) does not exist");
     return -1;
   }
