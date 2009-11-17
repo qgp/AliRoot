@@ -52,7 +52,11 @@ AliVZERODataDCS::AliVZERODataDCS():
 
 {
   // Default constructor
-  for(int i=0;i<kNHvChannel;i++) fDeadChannel[i] = kFALSE;
+	for(int i=0;i<kNHvChannel;i++) {
+		fDeadChannel[i] = kFALSE;
+		fMeanHV[i]      = 100.0;
+		fWidthHV[i]     = 0.0; 
+	}
 }
 
 //_____________________________________________________________________________
@@ -68,8 +72,11 @@ AliVZERODataDCS::AliVZERODataDCS(Int_t nRun, UInt_t startTime, UInt_t endTime):
 {
 
   // constructor with arguments
-  	for(int i=0;i<kNHvChannel;i++) fDeadChannel[i] = kFALSE;
-
+  	for(int i=0;i<kNHvChannel;i++) {
+	 fDeadChannel[i] = kFALSE;        
+	 fMeanHV[i]      = 100.0;
+     fWidthHV[i]     = 0.0; 
+	}
 	AliInfo(Form("\n\tRun %d \n\tStartTime %s \n\tEndTime %s", nRun,
 		TTimeStamp(startTime).AsString(),
 		TTimeStamp(endTime).AsString()));
@@ -104,7 +111,7 @@ void AliVZERODataDCS::ProcessData(TMap& aliasMap){
     aliasArr = (TObjArray*) aliasMap.GetValue(fAliasNames[iAlias].Data());
     if(!aliasArr){
       AliError(Form("Alias %s not found!", fAliasNames[iAlias].Data()));
-      return;
+      continue;
     }
 
     //Introduce(iAlias, aliasArr);
@@ -138,6 +145,12 @@ void AliVZERODataDCS::ProcessData(TMap& aliasMap){
     	}      
     	CreateGraph(iAlias, aliasArr->GetEntries(), times, values); // fill graphs 
 
+  	// calculate mean and rms of the first two histos
+	// and convert index to aliroot channel
+	Int_t iChannel     = GetOfflineChannel(iAlias);	
+	fMeanHV[iChannel]  = fHv[iAlias]->GetMean();
+	fWidthHV[iChannel] = fHv[iAlias]->GetRMS();
+
     	delete[] values;
     	delete[] times;	
 	} else { // Treating FEE Parameters
@@ -147,14 +160,6 @@ void AliVZERODataDCS::ProcessData(TMap& aliasMap){
 	}      
   }
   
-  	// calculate mean and rms of the first two histos
-	// and convert index to aliroot channel
-	for(int i=0;i<kNHvChannel;i++){
-	    Int_t iChannel     = GetOfflineChannel(i);	
-		fMeanHV[iChannel]  = fHv[i]->GetMean();
-		fWidthHV[iChannel] = fHv[i]->GetRMS();
-	}
-    
   fIsProcessed=kTRUE;
 }
 
@@ -174,7 +179,7 @@ void AliVZERODataDCS::Init(){
 			sindex.Form("%d/RING%d",iSector,iRing);
 			fAliasNames[iAlias] += sindex;
 			
-			fHv[iAlias] = new TH1F(fAliasNames[iAlias].Data(),fAliasNames[iAlias].Data(), 2000, kHvMin, kHvMax);
+			fHv[iAlias] = new TH1F(fAliasNames[iAlias].Data(),fAliasNames[iAlias].Data(), 3000, kHvMin, kHvMax);
 			fHv[iAlias]->GetXaxis()->SetTitle("Hv");
 			iAlias++;
   		}
