@@ -330,9 +330,13 @@ void AliEMCALRawUtils::Raw2Digits(AliRawReader* reader,TClonesArray *digitsArr)
   // start loop over input stream 
   while (in.NextDDL()) {
     while (in.NextChannel()) {
-      
-      id =  fGeom->GetAbsCellIdFromCellIndexes(in.GetModule(), in.GetRow(), in.GetColumn()) ;
+
+      //Check if the signal  is high or low gain and then do the fit, 
+      //if it  is from TRU do not fit
       caloFlag = in.GetCaloFlag();
+      if (caloFlag != 0 && caloFlag != 1) continue; 
+	      
+      id =  fGeom->GetAbsCellIdFromCellIndexes(in.GetModule(), in.GetRow(), in.GetColumn()) ;
       lowGain = in.IsLowGain();
 
       // There can be zero-suppression in the raw data, 
@@ -342,7 +346,8 @@ void AliEMCALRawUtils::Raw2Digits(AliRawReader* reader,TClonesArray *digitsArr)
       }
 		
       Int_t maxTime = 0;
-
+      Int_t min = 0x3ff; // init to 10-bit max
+      Int_t max = 0; // init to 10-bit min
       while (in.NextBunch()) {
 	const UShort_t *sig = in.GetSignals();
 	startBin = in.GetStartTimeBin();
@@ -358,20 +363,24 @@ void AliEMCALRawUtils::Raw2Digits(AliRawReader* reader,TClonesArray *digitsArr)
 
 	for (i = 0; i < in.GetBunchLength(); i++) {
 	  time = startBin--;
-	  gSig->SetPoint(time, time, sig[i]) ;
+	  gSig->SetPoint(time, time, (Double_t) sig[i]) ;
+	  if (max < sig[i]) max= sig[i];
+	  if (min > sig[i]) min = sig[i];
+
 	}
       } // loop over bunches
     
       gSig->Set(maxTime+1);
-      FitRaw(gSig, signalF, amp, time) ; 
+
+      if ( (max - min) > fNoiseThreshold) FitRaw(gSig, signalF, amp, time) ; 
     
-      if (caloFlag == 0 || caloFlag == 1) { // low gain or high gain 
-	if (amp > 0 && amp < 2000) {  //check both high and low end of
+      //      if (caloFlag == 0 || caloFlag == 1) { // low gain or high gain 
+      if (amp > 0 && amp < 2000) {  //check both high and low end of
 	//result, 2000 is somewhat arbitrary - not nice with magic numbers in the code..
-	  AliDebug(2,Form("id %d lowGain %d amp %g", id, lowGain, amp));
+	AliDebug(2,Form("id %d lowGain %d amp %g", id, lowGain, amp));
 	
-	  AddDigit(digitsArr, id, lowGain, (Int_t)amp, time);
-	}
+	AddDigit(digitsArr, id, lowGain, (Int_t)amp, time);
+       //}
 	
       }
 
@@ -468,6 +477,7 @@ void AliEMCALRawUtils::FitRaw(TGraph * gSig, TF1* signalF, Float_t & amp, Float_
   for (Int_t i=fNPedSamples; i < gSig->GetN(); i++) {
     Double_t ttime, signal;
     gSig->GetPoint(i, ttime, signal) ; 
+
     if (!maxFound && signal > max) {
       iMax = i;
       max = signal;
@@ -477,10 +487,11 @@ void AliEMCALRawUtils::FitRaw(TGraph * gSig, TF1* signalF, Float_t & amp, Float_
       minAfterSig = signal;
       tminAfterSig = i;
     }
+
     if (maxFound) {
       if ( signal < minAfterSig) {
         minAfterSig = signal;
-	tminAfterSig = i;
+        tminAfterSig = i;
       }
       if (i > tminAfterSig + 5) {  // Two close peaks; end fit at minimum
         maxFit = tminAfterSig;
@@ -514,6 +525,7 @@ void AliEMCALRawUtils::FitRaw(TGraph * gSig, TF1* signalF, Float_t & amp, Float_
 
   if ( max - ped > fNoiseThreshold ) { // else its noise 
     AliDebug(2,Form("Fitting max %d ped %d", max, ped));
+
     signalF->SetRange(0,maxFit);
 
     if(max-ped > 50) 
@@ -524,8 +536,10 @@ void AliEMCALRawUtils::FitRaw(TGraph * gSig, TF1* signalF, Float_t & amp, Float_
     signalF->SetParameter(0, max);
     
     gSig->Fit(signalF, "QROW"); // Note option 'W': equal errors on all points
+
     amp = signalF->GetParameter(0); 
     time = signalF->GetParameter(1)*GetRawFormatTimeBinWidth() - fgTimeTrigger;
+
   }
   return;
 }
