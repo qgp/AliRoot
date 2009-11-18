@@ -28,24 +28,19 @@
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <TMath.h>
-#include <TRandom.h>
 #include <TClonesArray.h>
+#include <TObjArray.h>
 
 #include "AliCDBManager.h"
-#include "AliCDBStorage.h"
 #include "AliCDBEntry.h"
 #include "AliLog.h"
 
 #include "AliTRDcalibDB.h"
-#include "AliTRDrecoParam.h"
-#include "AliTRDgeometry.h"
-#include "AliTRDpadPlane.h"
-#include "AliTRDCommonParam.h"
 
 #include "Cal/AliTRDCalROC.h"
 #include "Cal/AliTRDCalPad.h"
 #include "Cal/AliTRDCalDet.h"
+#include "Cal/AliTRDCalDCS.h"
 #include "Cal/AliTRDCalFEE.h"
 #include "Cal/AliTRDCalPID.h"
 #include "Cal/AliTRDCalMonitoring.h"
@@ -252,6 +247,9 @@ const TObject *AliTRDcalibDB::GetCachedCDBObject(Int_t id)
       break;
     case kIDFEE : 
       return CacheCDBEntry(kIDFEE               ,"TRD/Calib/FEE"); 
+      break;
+    case kIDDCS :
+      return CacheCDBEntry(kIDDCS               ,"TRD/Calib/DCS");
       break;
     case kIDPIDNN : 
       return CacheCDBEntry(kIDPIDNN             ,"TRD/Calib/PIDNN");
@@ -757,6 +755,39 @@ Int_t AliTRDcalibDB::GetNumberOfTimeBins()
 }
 
 //_____________________________________________________________________________
+Int_t AliTRDcalibDB::GetNumberOfTimeBinsDCS(){
+  //
+  // Returns Number of time bins from the DCS
+  //
+  const TObjArray *dcsArr = dynamic_cast<const TObjArray *>(GetCachedCDBObject(kIDDCS));
+  if(!dcsArr){
+    return -1;
+  }
+  const AliTRDCalDCS *calDCS = dynamic_cast<const AliTRDCalDCS *>(dcsArr->At(1)); // Take EOR
+  
+  if(!calDCS){
+    return -1;
+  }
+  return calDCS->GetGlobalNumberOfTimeBins();
+}
+
+//_____________________________________________________________________________
+void AliTRDcalibDB::GetFilterType(TString &filterType){
+  const TObjArray *dcsArr = dynamic_cast<const TObjArray *>(GetCachedCDBObject(kIDDCS));
+  if(!dcsArr){
+    filterType = "";
+    return;
+  }
+  const AliTRDCalDCS *calDCS = dynamic_cast<const AliTRDCalDCS *>(dcsArr->At(1)); // Take EOR
+  
+  if(!calDCS){
+    filterType = "";
+    return;
+  } 
+  filterType = calDCS->GetGlobalFilterType();
+}
+
+//_____________________________________________________________________________
 Char_t AliTRDcalibDB::GetPadStatus(Int_t det, Int_t col, Int_t row)
 {
   //
@@ -821,14 +852,19 @@ Char_t AliTRDcalibDB::GetChamberStatus(Int_t det)
 //_____________________________________________________________________________
 AliTRDrecoParam* AliTRDcalibDB::GetRecoParam(Int_t */*eventtype*/)
 {
+  //
+  // Returns the TRD reconstruction parameters from the OCDB
+  //
+
   const TClonesArray *recos = dynamic_cast<const TClonesArray*>(GetCachedCDBObject(kIDRecoParam));
-  if(!recos) return 0x0;
+  if (!recos) return 0x0;
 
   // calculate entry based on event type info
   Int_t n = 0; //f(eventtype[0], eventtype[1], ....)
-  return (AliTRDrecoParam*)recos->UncheckedAt(n);
-}
 
+  return (AliTRDrecoParam*)recos->UncheckedAt(n);
+
+}
 
 //_____________________________________________________________________________
 Bool_t AliTRDcalibDB::IsPadMasked(Int_t det, Int_t col, Int_t row)

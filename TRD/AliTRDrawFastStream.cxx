@@ -29,9 +29,7 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "TString.h"
 #include "TFile.h"
-#include "TTreeStream.h"
 
 #include "AliTRDrawFastStream.h"
 #include "AliTRDgeometry.h"
@@ -43,7 +41,6 @@
 #include "AliTRDdigitsParam.h"
 #include "AliTRDrawTPStream.h"
 
-#include "AliLog.h"
 #include "AliRawReader.h"
 
 #define END_OF_TRACKLET_MARKEROLD 0xaaaaaaaa
@@ -111,7 +108,6 @@ ClassImp(AliTRDrawFastStream)
 
 Bool_t AliTRDrawFastStream::fgExtraSkip = kFALSE;
 Bool_t AliTRDrawFastStream::fgSkipCDH = kFALSE;
-Bool_t AliTRDrawFastStream::fgWarnError = kTRUE;
 Bool_t AliTRDrawFastStream::fgCleanDataOnly = kFALSE;
 Bool_t AliTRDrawFastStream::fgDebugFlag = kTRUE;
 Bool_t AliTRDrawFastStream::fgEnableMemoryReset = kTRUE;
@@ -128,12 +124,6 @@ Short_t AliTRDrawFastStream::fgROBordering[] =
   {
     0, 1, 2, 3
   };
-Bool_t  AliTRDrawFastStream::fDumpingEnable = kFALSE;
-Int_t  AliTRDrawFastStream::fDumpingSM = -1;
-Int_t  AliTRDrawFastStream::fDumpingStack = -1;
-Int_t  AliTRDrawFastStream::fDumpingLayer = -1;
-Int_t  AliTRDrawFastStream::fDumpingROB = -1;
-Int_t  AliTRDrawFastStream::fDumpingMCM = -1;
 
 Int_t  AliTRDrawFastStream::fgLastHC = -1;
 Int_t  AliTRDrawFastStream::fgLastROB = -1;
@@ -170,6 +160,7 @@ AliTRDrawFastStream::AliTRDrawFastStream()
   , fCOL(0)
   , fExtendedCOL(0)
   , fIsShared(0)
+  , fWarnError(kTRUE)
   , fBufferRead(0)
   , fGeometry(0)
   , fRawReader(0)
@@ -216,6 +207,7 @@ AliTRDrawFastStream::AliTRDrawFastStream(AliRawReader *rawReader)
   , fCOL(0)
   , fExtendedCOL(0)
   , fIsShared(0)
+  , fWarnError(kTRUE)
   , fBufferRead(0)
   , fGeometry(0)
   , fRawReader(rawReader)
@@ -266,6 +258,7 @@ AliTRDrawFastStream::AliTRDrawFastStream(const AliTRDrawFastStream& /*st*/)
   , fCOL(0)
   , fExtendedCOL(0)
   , fIsShared(0)
+  , fWarnError(kTRUE)
   , fBufferRead(0)
   , fGeometry(0)
   , fRawReader(0)
@@ -347,7 +340,7 @@ Bool_t AliTRDrawFastStream::SkipWords(UInt_t iw)
     return kTRUE;
   }
   else {
-    if (fgWarnError) AliWarning(Form("Skip %d words failed. %d available", iw, fpEnd - fpPos - 1));
+    if (fWarnError) AliWarning(Form("Skip %d words failed. %d available", iw, fpEnd - fpPos - 1));
     return kFALSE;
   }
 
@@ -357,7 +350,9 @@ Bool_t AliTRDrawFastStream::SkipWords(UInt_t iw)
 //------------------------------------------------------------
 Bool_t AliTRDrawFastStream::SetReader(AliRawReader *reader)
 {
-
+  // 
+  // set raw reader pointer
+  // 
   if (reader != 0) {
     fRawReader = reader;
     if (fRawReader) {
@@ -710,7 +705,7 @@ Int_t AliTRDrawFastStream::NextChamber(AliTRDdigitsManager *digitsManager, UInt_
       if (DecodeTracklets() == kFALSE) {
         SeekEndOfData();
 
-        if (fgWarnError) AliError(Form("Tracklet decoding failed stack %d link %d", GetStack(), fStackLinkNumber));
+        if (fWarnError) AliError(Form("Tracklet decoding failed stack %d link %d", GetStack(), fStackLinkNumber));
 
         // copy error codes in memory into error container
         if (errorCodeContainer) {
@@ -737,7 +732,7 @@ Int_t AliTRDrawFastStream::NextChamber(AliTRDdigitsManager *digitsManager, UInt_
 	    if (fHC->fEOTECorrupted != kTRUE)  SeekEndOfData();
 
 /*
-      if (fgWarnError) {
+      if (fWarnError) {
         AliError(Form("Failed HC : %s", DumpHCinfoH0(fHC)));
         AliError(Form("Failed HC : %s", DumpHCinfoH1(fHC)));
       }
@@ -852,7 +847,7 @@ Bool_t AliTRDrawFastStream::DecodeSMHeader(void *buffer, UInt_t length)
   ResetIterators(); 
 
   if (InitBuffer(buffer, length) == kFALSE) {
-    if (fgWarnError) AliError("InitBuffer failed.");      
+    if (fWarnError) AliError("InitBuffer failed.");      
     return kFALSE;
   }
 
@@ -879,7 +874,7 @@ Bool_t AliTRDrawFastStream::DecodeSMHeader(void *buffer, UInt_t length)
 
   	    if (fpPos >= fpEnd) {
           if (fRawReader) fRawReader->AddMajorErrorLog(kLinkDataMissing, "Link data missing");          
-          if (fgWarnError) AliError("Link data missing.");
+          if (fWarnError) AliError("Link data missing.");
           break;
         }
 
@@ -953,7 +948,7 @@ Bool_t AliTRDrawFastStream::DecodeGTUheader()
     }
   }
   else {
-    if (fgWarnError) AliWarning("No additional sm headers and stack index words present.");
+    if (fWarnError) AliWarning("No additional sm headers and stack index words present.");
     if (fRawReader) fRawReader->AddMajorErrorLog(kDecodeStackInfo, "Stack info missing");
     return kFALSE;
   }
@@ -962,7 +957,7 @@ Bool_t AliTRDrawFastStream::DecodeGTUheader()
     if (fgDebugFlag)  AliDebug(5, "GTU headers are OK.");
   }
   else {
-    if (fgWarnError) AliWarning("No data just after GTU headers.");
+    if (fWarnError) AliWarning("No data just after GTU headers.");
     if (fRawReader) fRawReader->AddMajorErrorLog(kMissingData, "Missing sm data");
     return kFALSE;
   }
@@ -1108,19 +1103,19 @@ Bool_t AliTRDrawFastStream::DecodeHC(AliTRDdigitsManager *digitsManager, AliTRDa
   //
   if (fpPos >= fpEnd) {
     fHC->fCorrupted += 1; 
-    if (fgWarnError) AliError("No data(including HC header) in the buffer");
+    if (fWarnError) AliError("No data(including HC header) in the buffer");
     return kFALSE;;
   }
 
   if (DecodeHCheader() == kFALSE) {
-    if (fgWarnError) AliWarning(Form("HC Header decode failed. H0 Error: %d H1 Error: %d",fHC->fH0Corrupted,fHC->fH1Corrupted));
+    if (fWarnError) AliWarning(Form("HC Header decode failed. H0 Error: %d H1 Error: %d",fHC->fH0Corrupted,fHC->fH1Corrupted));
     return kFALSE;
   }
   else {
     fpPos++;
     if (fpPos >= fpEnd) {
       fHC->fCorrupted += 2; 
-      if (fgWarnError) AliError("No data right after HC header in the buffer");
+      if (fWarnError) AliError("No data right after HC header in the buffer");
       return kFALSE;
     }
   }
@@ -1128,7 +1123,7 @@ Bool_t AliTRDrawFastStream::DecodeHC(AliTRDdigitsManager *digitsManager, AliTRDa
   if ((fHC->fRawVMajor & 64) == 64) { // test pattern data
     AliTRDrawTPStream *tpStream = new AliTRDrawTPStream(fHC->fRawVMajorOpt, fpPos);
     if (tpStream->DecodeTPdata() == kFALSE) {
-      if (fgWarnError) AliError("Failed to decode test pattern data");
+      if (fWarnError) AliError("Failed to decode test pattern data");
       return kFALSE;
     }
     return kTRUE;
@@ -1209,7 +1204,7 @@ Bool_t AliTRDrawFastStream::DecodeHC(AliTRDdigitsManager *digitsManager, AliTRDa
            }
          }
          else { // nsamples = 31, 32 are not implemented in the TRAP and should never happen  
-           if (fgWarnError) AliError("nsamples are 31 or 32. These are not implemented in the TRAP and should never happen!");
+           if (fWarnError) AliError("nsamples are 31 or 32. These are not implemented in the TRAP and should never happen!");
          }
 
       } // iadc
@@ -1442,7 +1437,7 @@ void AliTRDrawFastStream::DecodeMCMheader(const UInt_t *word, struct AliTRDrawMC
   UInt_t vword = *word;
 
   if (vword == END_OF_TRACKLET_MARKERNEW) {
-    if (fgWarnError) AliError(Form("There should be MCM header. We meet END_OF_TRACKLET_MARKER 0x%08x",vword));
+    if (fWarnError) AliError(Form("There should be MCM header. We meet END_OF_TRACKLET_MARKER 0x%08x",vword));
     fHC->fEOTECorrupted = kTRUE; //to finish data reading of this HC
   }
 
@@ -1471,7 +1466,7 @@ UInt_t AliTRDrawFastStream::GetMCMadcMask(const UInt_t *word, struct AliTRDrawMC
   mcm->fADCMaskWord = vword;
 
   if (vword == END_OF_TRACKLET_MARKERNEW) {
-    if (fgWarnError) AliError(Form("There should be MCMadcMask. We meet END_OF_TRACKLET_MARKER 0x%08x",vword));
+    if (fWarnError) AliError(Form("There should be MCMadcMask. We meet END_OF_TRACKLET_MARKER 0x%08x",vword));
     fHC->fEOTECorrupted = kTRUE; //to finish data reading of this HC
   }
 
@@ -1606,7 +1601,7 @@ Bool_t AliTRDrawFastStream::DecodeADC(AliTRDdigitsManager *digitsManager, AliTRD
 
   for (Int_t iw = 0; iw < fMCM.fSingleADCwords; iw++) {
      if (HC_HEADER_MASK_ERR(*fpPos) == 0 || *fpPos == END_OF_TRACKLET_MARKERNEW) {
-       if (fgWarnError) AliError(Form("There should be ADC data. We meet HC header or END_OF_TRACKLET_MARKER 0x%08x",*fpPos));
+       if (fWarnError) AliError(Form("There should be ADC data. We meet HC header or END_OF_TRACKLET_MARKER 0x%08x",*fpPos));
        fHC->fEOTECorrupted = kTRUE; 
        fpPos--;
        return kFALSE;
@@ -1685,7 +1680,7 @@ Bool_t AliTRDrawFastStream::DecodeADCExtended(AliTRDdigitsManager *digitsManager
   fpPos++;
   for (Int_t iw = 0; iw < fMCM.fSingleADCwords-1; iw++) {
      if (HC_HEADER_MASK_ERR(*fpPos) == 0 || *fpPos == END_OF_TRACKLET_MARKERNEW) {
-       if (fgWarnError) AliError(Form("There should be ADC data. We meet HC header or END_OF_TRACKLET_MARKER 0x%08x",*fpPos));
+       if (fWarnError) AliError(Form("There should be ADC data. We meet HC header or END_OF_TRACKLET_MARKER 0x%08x",*fpPos));
        fHC->fEOTECorrupted = kTRUE; 
        fpPos--;
        return kFALSE;
@@ -1805,6 +1800,7 @@ Bool_t AliTRDrawFastStream::SkipMCMdata(UInt_t iw)
 //------------------------------------------------------------
 Bool_t AliTRDrawFastStream::SetGlobalNTimebins()
 {
+  // get number of time bin info from HC headers then set 
   Int_t nHCs=0;
   while (SetNTimebins()==kFALSE){
     if (fgDebugFlag) AliDebug(11,Form("Failed to get number of time bin information from the %sth HC",nHCs));

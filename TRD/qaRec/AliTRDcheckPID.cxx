@@ -501,7 +501,7 @@ TH1 *AliTRDcheckPID::PlotdEdxSlice(const AliTRDtrackV1 *track)
   fReconstructor -> SetOption("!nn");
   Int_t iMomBin = fMomentumAxis->FindBin(momentum);
   Int_t species = AliTRDpidUtil::Pdg2Pid(pdg);
-  Float_t *fdEdx;
+  const Float_t *fdEdx;
   AliTRDseedV1 *tracklet = 0x0;
   for(Int_t iChamb = 0; iChamb < AliTRDgeometry::kNlayer; iChamb++){
     tracklet = cTrack.GetTracklet(iChamb);

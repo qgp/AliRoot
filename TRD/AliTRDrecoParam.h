@@ -38,8 +38,9 @@ public:
     kGAUS,
     kClusterSharing,
     kSteerPID,
-    kEightSlices  
-   };
+    kEightSlices,
+    kCheckTimeConsistency
+  };
   AliTRDrecoParam();
   AliTRDrecoParam(const AliTRDrecoParam &rec);
   ~AliTRDrecoParam() { }
@@ -69,18 +70,20 @@ public:
   inline void GetSysCovMatrix(Double_t *sys) const;  
   inline void GetTCParams(Double_t *par) const;
   inline Int_t GetStreamLevel(ETRDReconstructionTask task) const;
-  const TString *GetRawStreamVersion() const  { return &fRawStreamVersion; };
+  const TString *GetRawStreamVersion() const{ return &fRawStreamVersion; };
+  Int_t    GetADCBaseline() const           { return fADCBaseline; }
   Double_t GetMinMaxCutSigma() const        { return fMinMaxCutSigma;     };
   Double_t GetMinLeftRightCutSigma() const  { return fMinLeftRightCutSigma;  };
   Double_t GetClusMaxThresh() const         { return fClusMaxThresh;   };
   Double_t GetClusSigThresh() const         { return fClusSigThresh;   };
   Int_t    GetTCnexp() const                { return fTCnexp;          };
-  Int_t    GetNumberOfPresamples()  const   {return fNumberOfPresamples;}
-  Int_t    GetNumberOfPostsamples() const   {return fNumberOfPostsamples;}
-  Bool_t   IsArgon() const { return TESTBIT(fFlags, kDriftGas); }
-  Bool_t   IsXenon() const { return !TESTBIT(fFlags, kDriftGas); }
+  Int_t    GetNumberOfPresamples()  const   { return fNumberOfPresamples;}
+  Int_t    GetNumberOfPostsamples() const   { return fNumberOfPostsamples;}
+  Bool_t   IsArgon() const                  { return TESTBIT(fFlags, kDriftGas); }
+  Bool_t   IsCheckTimeConsistency() const   { return kCheckTimeConsistency;}
+  Bool_t   IsXenon() const                  { return !TESTBIT(fFlags, kDriftGas); }
   Bool_t   IsPIDNeuralNetwork() const       { return TESTBIT(fFlags, kSteerPID);}
-  Bool_t   IsVertexConstrained() const       { return TESTBIT(fFlags, kVertexConstraint); }
+  Bool_t   IsVertexConstrained() const      { return TESTBIT(fFlags, kVertexConstraint); }
   Bool_t   IsEightSlices() const            { return TESTBIT(fFlags, kEightSlices);}
   Bool_t   HasImproveTracklets() const      { return TESTBIT(fFlags, kImproveTracklet);}
   Bool_t   UseClusterSharing() const        { return TESTBIT(fFlags, kClusterSharing);}
@@ -92,15 +95,16 @@ public:
   static   AliTRDrecoParam *GetHighFluxParam();
   static   AliTRDrecoParam *GetCosmicTestParam();
 
-  void     SetArgon()                                         {SETBIT(fFlags, kDriftGas);}
-  void     SetClusterSharing()                                {SETBIT(fFlags, kClusterSharing);}
-  void     SetEightSlices()                                   {SETBIT(fFlags, kEightSlices);}
-  void     SetImproveTracklets()                              {SETBIT(fFlags, kImproveTracklet);}
-  void     SetLUT()                                           {SETBIT(fFlags, kLUT);}
-  void     SetGAUS()                                          {SETBIT(fFlags, kGAUS);}
-  void     SetPIDNeuralNetwork()                              {SETBIT(fFlags, kSteerPID);}
-  void     SetTailCancelation()                               {SETBIT(fFlags, kTailCancelation);}
-  void     SetXenon()                                         {CLRBIT(fFlags, kDriftGas);}
+  void     SetArgon(Bool_t b = kTRUE)                         {if(b) SETBIT(fFlags, kDriftGas); else CLRBIT(fFlags, kDriftGas);}
+  void     SetCheckTimeConsistency(Bool_t b = kTRUE)          {if(b) SETBIT(fFlags, kCheckTimeConsistency); else CLRBIT(fFlags, kCheckTimeConsistency);}
+  void     SetClusterSharing(Bool_t b = kTRUE)                {if(b) SETBIT(fFlags, kClusterSharing); else CLRBIT(fFlags, kClusterSharing);}
+  void     SetEightSlices(Bool_t b = kTRUE)                   {if(b) SETBIT(fFlags, kEightSlices); else CLRBIT(fFlags, kEightSlices);}
+  void     SetImproveTracklets(Bool_t b = kTRUE)              {if(b) SETBIT(fFlags, kImproveTracklet); else CLRBIT(fFlags, kImproveTracklet);}
+  void     SetLUT(Bool_t b=kTRUE)                             {if(b) SETBIT(fFlags, kLUT); else CLRBIT(fFlags, kLUT);}
+  void     SetGAUS(Bool_t b=kTRUE)                            {if(b) SETBIT(fFlags, kGAUS); else CLRBIT(fFlags, kGAUS);}
+  void     SetPIDNeuralNetwork(Bool_t b=kTRUE)                {if(b) SETBIT(fFlags, kSteerPID); else CLRBIT(fFlags, kSteerPID);}
+  void     SetTailCancelation(Bool_t b=kTRUE)                 {if(b) SETBIT(fFlags, kTailCancelation); else CLRBIT(fFlags, kTailCancelation);}
+  void     SetXenon(Bool_t b = kTRUE)                         {if(b) CLRBIT(fFlags, kDriftGas); else SETBIT(fFlags, kDriftGas);}
   void     SetVertexConstrained()                             {SETBIT(fFlags, kVertexConstraint);}
   void     SetMaxTheta(Double_t maxTheta)                     {fkMaxTheta = maxTheta;}
   void     SetMaxPhi(Double_t maxPhi)                         {fkMaxPhi = maxPhi;}
@@ -113,7 +117,9 @@ public:
   void     SetPhiSlope(Double_t phiSlope)                     {fkPhiSlope = phiSlope;}
   void     SetNMeanClusters(Double_t meanNclusters)           {fkNMeanClusters = meanNclusters;}
   void     SetNSigmaClusters(Double_t sigmaNclusters)         {fkNSigmaClusters = sigmaNclusters;} 
-  void     SetRawStreamVersion(const Char_t *version)         { fRawStreamVersion = version; }
+  void     SetRawStreamVersion(const Char_t *version)         {fRawStreamVersion = version; }
+  void     SetRoadzMultiplicator(Double_t mult)               {fkRoadzMultiplicator = mult; } 
+  void     SetADCBaseline(Int_t baseline)                     { fADCBaseline = baseline; }
   void     SetMinMaxCutSigma(Float_t minMaxCutSigma)          { fMinMaxCutSigma   = minMaxCutSigma; }
   void     SetMinLeftRightCutSigma(Float_t minLeftRightCutSigma) { fMinLeftRightCutSigma   = minLeftRightCutSigma; };
   void     SetClusMaxThresh(Float_t thresh)                   { fClusMaxThresh   = thresh; };
@@ -165,6 +171,7 @@ private:
   
   // Raw Reader Params
   TString   fRawStreamVersion;       // Raw Reader version
+  Int_t     fADCBaseline;            // ADC Baseline
 
   // Clusterization parameter
   Double_t  fMinMaxCutSigma;         // Threshold sigma noise pad middle
@@ -178,7 +185,7 @@ private:
   Int_t     fNumberOfPresamples;     // number of presamples 
   Int_t     fNumberOfPostsamples;     // number of postsamples 
 
-  ClassDef(AliTRDrecoParam, 9)       // Reconstruction parameters for TRD detector
+  ClassDef(AliTRDrecoParam, 10)       // Reconstruction parameters for TRD detector
 
 };
 

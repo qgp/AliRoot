@@ -113,7 +113,7 @@ private:
   Int_t         fMinTrain;                 // minimum of events needed for training
   Int_t         fDate;                     // date stamp for training of the NNs
   Float_t       fMom;                      // momentum
-  Float_t       *fdEdx[10];                // dEdx array
+  Float_t       fdEdx[10];                 // dEdx array
   Float_t       fv0pid[AliPID::kSPECIES];  // pid from v0s
   Bool_t        fDoTraining;               // checks if training will be done
   Bool_t        fContinueTraining;         // checks if training from an older run should be continued

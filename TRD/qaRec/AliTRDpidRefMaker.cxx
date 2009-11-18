@@ -213,7 +213,7 @@ void AliTRDpidRefMaker::Exec(Option_t *)
     }
 
     // set reconstructor
-    Float_t *dedx;
+    const Float_t *dedx;
     TRDtrack -> SetReconstructor(fReconstructor);
 
     // fill the dE/dx information for NN
@@ -222,9 +222,7 @@ void AliTRDpidRefMaker::Exec(Option_t *)
       if(!(TRDtracklet = TRDtrack -> GetTracklet(ily))) continue;
       TRDtracklet->CookdEdx(AliTRDpidUtil::kNNslices);
       dedx = TRDtracklet->GetdEdx();
-      for(Int_t iSlice = 0; iSlice < AliTRDpidUtil::kNNslices; iSlice++)
-	dedx[iSlice] = dedx[iSlice]/AliTRDCalPIDNN::kMLPscale;
-      memcpy(fdEdx, dedx, AliTRDpidUtil::kNNslices*sizeof(Float_t));
+      for(Int_t iSlice = 0; iSlice < AliTRDpidUtil::kNNslices; iSlice++) fdEdx[iSlice] = dedx[iSlice]/AliTRDCalPIDNN::kMLPscale;
       if(fDebugLevel>=2) Printf("LayerNN : %d", ily);
       fLayer = ily;
       fNN->Fill();

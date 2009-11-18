@@ -453,23 +453,29 @@ Bool_t AliTRDclusterizer::WriteClusters(Int_t det)
       ioArray->AddLast(c);
     }
     fClusterTree->Fill();
+    ioArray->Clear();
   } else {
-    
-    Int_t detOld = -1;
+    Int_t detOld = -1, nw(0);
     for (Int_t i = 0; i < nRecPoints; i++) {
       AliTRDcluster *c = (AliTRDcluster *) RecPoints()->UncheckedAt(i);
       if(c->GetDetector() != detOld){
+        nw += ioArray->GetEntriesFast();
         fClusterTree->Fill();
         ioArray->Clear();
         detOld = c->GetDetector();
       } 
       ioArray->AddLast(c);
     }
+    if(ioArray->GetEntriesFast()){
+      nw += ioArray->GetEntriesFast();
+      fClusterTree->Fill();
+      ioArray->Clear();
+    }
+    AliDebug(2, Form("Clusters FOUND[%d] WRITTEN[%d] STATUS[%s]", nRecPoints, nw, nw==nRecPoints?"OK":"FAILED"));
   }
   delete ioArray;
 
   return kTRUE;  
-
 }
 
 //_____________________________________________________________________________
@@ -610,6 +616,7 @@ Bool_t AliTRDclusterizer::MakeClusters()
     fDigitsManager->RemoveDictionaries(i);      
     fDigitsManager->ClearIndexes(i);  
   }
+  fReconstructor->SetDigitsParam(fDigitsManager->GetDigitsParam());
   
   if(fReconstructor->IsWritingClusters()) WriteClusters(-1);
 
@@ -660,10 +667,12 @@ Bool_t AliTRDclusterizer::Raw2ClustersChamber(AliRawReader *rawReader)
   else
     fRawStream->SetReader(rawReader);
 
-  if(fReconstructor->IsHLT())
+  if(fReconstructor->IsHLT()){
     fRawStream->SetSharedPadReadout(kFALSE);
+    fRawStream->SetNoErrorWarning();
+  }
 
-  AliInfo(Form("Stream version: %s", fRawStream->IsA()->GetName()));
+  AliDebug(1,Form("Stream version: %s", fRawStream->IsA()->GetName()));
   
   Int_t det    = 0;
   while ((det = fRawStream->NextChamber(fDigitsManager,fTrackletContainer)) >= 0){
@@ -677,6 +686,7 @@ Bool_t AliTRDclusterizer::Raw2ClustersChamber(AliRawReader *rawReader)
     if (!fReconstructor->IsWritingTracklets()) continue;
     if (*(fTrackletContainer[0]) > 0 || *(fTrackletContainer[1]) > 0) WriteTracklets(det);
   }
+  fReconstructor->SetDigitsParam(fDigitsManager->GetDigitsParam());
   
   if (fTrackletContainer){
     delete [] fTrackletContainer[0];
@@ -774,6 +784,7 @@ Bool_t AliTRDclusterizer::MakeClusters(Int_t det)
     return kFALSE;
   }
 
+
   fMaxThresh            = fReconstructor->GetRecoParam()->GetClusMaxThresh();
   fSigThresh            = fReconstructor->GetRecoParam()->GetClusSigThresh();
   fMinMaxCutSigma       = fReconstructor->GetRecoParam()->GetMinMaxCutSigma();
@@ -791,6 +802,8 @@ Bool_t AliTRDclusterizer::MakeClusters(Int_t det)
     return kFALSE;
   }
 
+  AliDebug(2, Form("Det[%d] @ Sec[%d] Stk[%d] Ly[%d]", fDet, isector, istack, fLayer));
+
   // TRD space point transformation
   fTransform->SetDetector(det);
 
@@ -804,6 +817,14 @@ Bool_t AliTRDclusterizer::MakeClusters(Int_t det)
   fColMax    = fDigits->GetNcol();
   //Int_t nRowMax    = fDigits->GetNrow();
   fTimeTotal = fDigits->GetNtime();
+
+  // Check consistency between OCDB and raw data
+  Int_t nTimeOCDB = calibration->GetNumberOfTimeBinsDCS();
+  if ((nTimeOCDB  >         -1) &&
+      (fTimeTotal != nTimeOCDB)) {
+    AliError(Form("Number of timebins does not match OCDB value (RAW[%d] OCDB[%d])"
+                ,fTimeTotal,calibration->GetNumberOfTimeBinsDCS()));
+  }
 
   // Detector wise calibration object for the gain factors
   const AliTRDCalDet *calGainFactorDet = calibration->GetGainFactorDet();
@@ -1191,11 +1212,9 @@ Float_t AliTRDclusterizer::Unfold(Double_t eps, Int_t layer, const Double_t *con
 
     // Set cluster charge ratio
     irc = calibration->PadResponse(1.0, maxLeft, layer, newSignal);
-    Double_t ampLeft  = 0.0;
-    if (newSignal[1]) ampLeft  = padSignal[1] / newSignal[1];
+    Double_t ampLeft  = padSignal[1] / newSignal[1];
     irc = calibration->PadResponse(1.0, maxRight, layer, newSignal);
-    Double_t ampRight = 0.0;
-    if (newSignal[1]) ampRight = padSignal[3] / newSignal[1];
+    Double_t ampRight = padSignal[3] / newSignal[1];
 
     // Apply pad response to parameters
     irc = calibration->PadResponse(ampLeft ,maxLeft ,layer,newLeftSignal );

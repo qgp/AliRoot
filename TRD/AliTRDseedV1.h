@@ -7,7 +7,9 @@
 
 ////////////////////////////////////////////////////////////////////////////
 //                                                                        //
-//  The TRD offline tracklet                                              //
+// \class AliTRDseedV1
+// \brief The TRD offline tracklet
+// \author Alexandru Bercuci
 //                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
@@ -47,9 +49,13 @@ class AliTRDtrackV1;
 class AliTRDpadPlane;
 class AliTRDseedV1 : public AliTRDtrackletBase
 {
+  friend class AliHLTTRDTracklet;
+
 public:
   enum ETRDtrackletBuffers {    
-    kNtb       = 31     // max clusters/pad row
+    kNbits     = 6      // bits to store number of clusters
+   ,kMask      = 0x3f   // bit mask
+   ,kNtb       = 31     // max clusters/pad row
    ,kNclusters = 2*kNtb // max number of clusters/tracklet
    ,kNslices   = 10     // max dEdx slices
   };
@@ -63,13 +69,22 @@ public:
    ,kKink       = BIT(18) // kink prolongation tracklet
    ,kStandAlone = BIT(19) // tracklet build during stand alone track finding
   };
+  enum ETRDtrackletError {
+    kAttachClFound = 1  // not enough clusters found
+   ,kAttachRowGap       // found gap attached rows
+   ,kAttachRow          // found 3 rows
+   ,kAttachMultipleCl   // multiple clusters attached to time bin
+   ,kAttachClAttach     // not enough clusters attached
+   ,kFitFailed          // fit failed det=0
+   ,kFitOutside         // ref radial position outside chamber - wrong covariance
+  };
 
   AliTRDseedV1(Int_t det = -1);
   ~AliTRDseedV1();
   AliTRDseedV1(const AliTRDseedV1 &ref);
   AliTRDseedV1& operator=(const AliTRDseedV1 &ref);
 
-  Bool_t    AttachClusters(AliTRDtrackingChamber *chamber, Bool_t tilt = kFALSE);
+  Bool_t    AttachClusters(AliTRDtrackingChamber *const chamber, Bool_t tilt = kFALSE);
   void      Bootstrap(const AliTRDReconstructor *rec);
   void      Calibrate();
   void      CookdEdx(Int_t nslices);
@@ -96,27 +111,28 @@ public:
   void      GetCovAt(Double_t x, Double_t *cov) const;
   void      GetCovXY(Double_t *cov) const { memcpy(cov, &fCov[0], 3*sizeof(Double_t));}
   void      GetCovRef(Double_t *cov) const { memcpy(cov, &fRefCov, 7*sizeof(Double_t));}
-  static Double_t GetCovSqrt(Double_t *c, Double_t *d);
-  static Double_t GetCovInv(Double_t *c, Double_t *d);
+  static Double_t GetCovSqrt(const Double_t * const c, Double_t *d);
+  static Double_t GetCovInv(const Double_t * const c, Double_t *d);
+  UChar_t   GetErrorMsg() const      { return fErrorMsg;}
   Float_t   GetdX() const            { return fdX;}
-  Float_t*  GetdEdx()                { return &fdEdx[0];}
-  Float_t   GetdQdl(Int_t ic, Float_t *dx=0x0) const;
+  const Float_t*  GetdEdx() const    { return &fdEdx[0];}
+  Float_t   GetdQdl(Int_t ic, Float_t *dx=NULL) const;
   Float_t   GetdYdX() const          { return fYfit[1]; } 
   Float_t   GetdZdX() const          { return fZref[1]; }
   Int_t     GetdY() const            { return Int_t(GetY()/0.014);}
   Int_t     GetDetector() const      { return fDet;}
   void      GetCalibParam(Float_t &exb, Float_t &vd, Float_t &t0, Float_t &s2, Float_t &dl, Float_t &dt) const    { 
               exb = fExB; vd = fVD; t0 = fT0; s2 = fS2PRF; dl = fDiffL; dt = fDiffT;}
-  AliTRDcluster*  GetClusters(Int_t i) const               { return i<0 || i>=kNclusters ? 0x0 : fClusters[i];}
+  AliTRDcluster*  GetClusters(Int_t i) const               { return i<0 || i>=kNclusters ? NULL: fClusters[i];}
   static TLinearFitter*  GetFitterY();
   static TLinearFitter*  GetFitterZ();
   Int_t     GetIndexes(Int_t i) const{ return i<0 || i>=kNclusters ? -1 : fIndexes[i];}
   Int_t     GetLabels(Int_t i) const { return fLabels[i];}  
-  Float_t   GetMomentum(Float_t *err = 0x0) const;
-  Int_t     GetN() const             { return (Int_t)fN&0x1f;}
+  Float_t   GetMomentum(Float_t *err = NULL) const;
+  Int_t     GetN() const             { return (Int_t)fN&kMask;}
   Int_t     GetN2() const            { return GetN();}
-  Int_t     GetNUsed() const         { return Int_t((fN>>5)&0x1f);}
-  Int_t     GetNShared() const       { return Int_t((fN>>10)&0x1f);}
+  Int_t     GetNUsed() const         { return Int_t((fN>>kNbits)&kMask);}
+  Int_t     GetNShared() const       { return Int_t(((fN>>kNbits)>>kNbits)&kMask);}
   Float_t   GetQuality(Bool_t kZcorr) const;
   Float_t   GetPadLength() const     { return fPad[0];}
   Float_t   GetPadWidth() const      { return fPad[1];}
@@ -150,11 +166,12 @@ public:
   inline AliTRDcluster* PrevCluster();
   void      Print(Option_t *o = "") const;
   inline void ResetClusterIter(Bool_t forward = kTRUE);
-  void      Reset();
+  void      Reset(Option_t *opt="");
 
   void      SetC(Float_t c)          { fC = c;}
   void      SetChi2(Float_t chi2)    { fChi2 = chi2;}
   inline void SetCovRef(const Double_t *cov);
+  void      SetErrorMsg(Int_t err)   { fErrorMsg = err;}
   void      SetIndexes(Int_t i, Int_t idx) { fIndexes[i]  = idx; }
   void      SetLabels(Int_t *lbls)   { memcpy(fLabels, lbls, 3*sizeof(Int_t)); }
   void      SetKink(Bool_t k = kTRUE){ SetBit(kKink, k);}
@@ -168,7 +185,7 @@ public:
   void      SetTilt(Float_t tilt)    { fPad[2] = tilt; }
   void      SetDetector(Int_t d)     { fDet = d;  }
   void      SetDX(Float_t inDX)      { fdX = inDX;}
-  void      SetReconstructor(const AliTRDReconstructor *rec) {fReconstructor = rec;}
+  void      SetReconstructor(const AliTRDReconstructor *rec) {fkReconstructor = rec;}
   void      SetX0(Float_t x0)        { fX0 = x0; }
   void      SetYref(Int_t i, Float_t y) { fYref[i]     = y;}
   void      SetZref(Int_t i, Float_t z) { fZref[i]     = z;}
@@ -184,8 +201,10 @@ private:
   inline void SetN(Int_t n);
   inline void SetNUsed(Int_t n);
   inline void SetNShared(Int_t n);
+  inline void Swap(Int_t &n1, Int_t &n2);
+  inline void Swap(Double_t &d1, Double_t &d2);
 
-  const AliTRDReconstructor *fReconstructor;//! local reconstructor
+  const AliTRDReconstructor *fkReconstructor;//! local reconstructor
   AliTRDcluster  **fClusterIter;            //! clusters iterator
   Int_t            fIndexes[kNclusters];    //! Indexes
   Float_t          fExB;                    //! tg(a_L) @ tracklet location
@@ -195,7 +214,8 @@ private:
   Float_t          fDiffL;                  //! longitudinal diffusion coefficient
   Float_t          fDiffT;                  //! transversal diffusion coefficient
   Char_t           fClusterIdx;             //! clusters iterator
-  UShort_t         fN;                      // number of clusters attached/used/shared
+  UChar_t          fErrorMsg;               // processing error
+  UInt_t           fN;                      // number of clusters attached/used/shared
   Short_t          fDet;                    // TRD detector
   AliTRDcluster   *fClusters[kNclusters];   // Clusters
   Float_t          fPad[3];                 // local pad definition : length/width/tilt 
@@ -218,10 +238,10 @@ private:
   Int_t            fLabels[3];              // most frequent MC labels and total number of different labels
   Double_t         fRefCov[7];              // covariance matrix of the track in the yz plane + the rest of the diagonal elements
   Double_t         fCov[3];                 // covariance matrix of the tracklet in the xy plane
-  static TLinearFitter   *fgFitterY;
-  static TLinearFitter   *fgFitterZ;
+  static TLinearFitter   *fgFitterY;        // Linear Fitter for tracklet fit in xy-plane
+  static TLinearFitter   *fgFitterZ;        // Linear Fitter for tracklet fit in xz-plane
 
-  ClassDef(AliTRDseedV1, 7)                 // The offline TRD tracklet 
+  ClassDef(AliTRDseedV1, 8)                 // The offline TRD tracklet 
 };
 
 //____________________________________________________________
@@ -268,7 +288,7 @@ inline void AliTRDseedV1::Init(const AliRieman *rieman)
   fZref[1] = rieman->GetDZat(fX0);
   fYref[0] = rieman->GetYat(fX0);
   fYref[1] = rieman->GetDYat(fX0);
-  if(fReconstructor && fReconstructor->IsHLT()){
+  if(fkReconstructor && fkReconstructor->IsHLT()){
     fRefCov[0] = 1;
     fRefCov[2] = 10;
   }else{
@@ -294,7 +314,7 @@ inline AliTRDcluster* AliTRDseedV1::NextCluster()
     }
     return *fClusterIter;
   }
-  return 0x0;
+  return NULL;
 }
 
 //____________________________________________________________
@@ -312,7 +332,7 @@ inline AliTRDcluster* AliTRDseedV1::PrevCluster()
     }
     return *fClusterIter;
   }
-  return 0x0;
+  return NULL;
 }
 
 //____________________________________________________________
@@ -352,25 +372,43 @@ inline void AliTRDseedV1::SetCovRef(const Double_t *cov)
 //____________________________________________________________
 inline void AliTRDseedV1::SetN(Int_t n)
 {
-  if(n<0 || n>= (1<<5)) return; 
-  fN &= ~0x1f;
-  fN |= n;
+  if(n<0 || n>kNclusters) return; 
+  fN &= ~kMask; 
+  fN |= (n&kMask);
 }
 
 //____________________________________________________________
 inline void AliTRDseedV1::SetNUsed(Int_t n)
 {
-  if(n<0 || n>= (1<<5)) return; 
-  fN &= ~(0x1f<<5);
-  n <<= 5; fN |= n;
+  if(n<0 || n>kNclusters) return; 
+  UInt_t mask(kMask<<kNbits); 
+  fN &= ~mask;
+  n=n<<kNbits; fN |= (n&mask);
 }
 
 //____________________________________________________________
 inline void AliTRDseedV1::SetNShared(Int_t n)
 {
-  if(n<0 || n>= (1<<5)) return; 
-  fN &= ~(0x1f<<10);
-  n <<= 10; fN |= n;
+  if(n<0 || n>kNclusters) return; 
+  UInt_t mask((kMask<<kNbits)<<kNbits); 
+  fN &= ~mask;
+  n = (n<<kNbits)<<kNbits; fN|=(n&mask);
+}
+
+//____________________________________________________________
+inline void AliTRDseedV1::Swap(Int_t &n1, Int_t &n2)
+{
+// swap values of n1 with n2
+  Int_t tmp(n1);
+  n1=n2; n2=tmp;
+}
+
+//____________________________________________________________
+inline void AliTRDseedV1::Swap(Double_t &d1, Double_t &d2)
+{
+// swap values of d1 with d2
+  Double_t tmp(d1);
+  d1=d2; d2=tmp;
 }
 
 

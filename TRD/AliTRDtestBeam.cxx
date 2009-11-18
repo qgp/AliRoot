@@ -501,11 +501,11 @@ AliTRDrawStream *AliTRDtestBeam::GetTRDrawStream()
   reader->ReadHeader();
   //AliTRDrawStream::RawBufferMissAligned(kTRUE);
 
-  AliTRDrawStream::SetNoErrorWarning();
   AliTRDrawStream::SetExtraWordsFix();
   AliTRDrawStream::AllowCorruptedData();
   
   AliTRDrawStream *tb = new AliTRDrawStream(reader); 
+  tb->SetNoErrorWarning();
   //tb->Init();
   return tb;
   /*
@@ -522,7 +522,7 @@ AliTRDrawStream *AliTRDtestBeam::GetTRDrawStream()
 }
 
 //____________________________________________________________________________ 
-Int_t AliTRDtestBeam::Int(Int_t i, Char_t *start) const
+Int_t AliTRDtestBeam::Int(Int_t i, const Char_t * const start) const
 {
   //
   // ?????

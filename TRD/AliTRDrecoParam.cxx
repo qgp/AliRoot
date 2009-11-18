@@ -59,6 +59,7 @@ AliTRDrecoParam::AliTRDrecoParam()
   ,fkTrackLikelihood(-15.)
   ,fFlags(0)
   ,fRawStreamVersion("REAL")
+  ,fADCBaseline(0)
   ,fMinMaxCutSigma(4.)
   ,fMinLeftRightCutSigma(8.)
   ,fClusMaxThresh(4.5)
@@ -125,6 +126,7 @@ AliTRDrecoParam::AliTRDrecoParam(const AliTRDrecoParam &ref)
   ,fkTrackLikelihood(ref.fkTrackLikelihood)
   ,fFlags(ref.fFlags)
   ,fRawStreamVersion(ref.fRawStreamVersion)
+  ,fADCBaseline(ref.fADCBaseline)
   ,fMinMaxCutSigma(ref.fMinMaxCutSigma)
   ,fMinLeftRightCutSigma(ref.fMinLeftRightCutSigma)
   ,fClusMaxThresh(ref.fClusMaxThresh)
@@ -152,6 +154,7 @@ AliTRDrecoParam *AliTRDrecoParam::GetLowFluxParam()
   AliTRDrecoParam *rec = new AliTRDrecoParam();
   rec->fkdNchdy = 12.; // pp in TRD
   rec->SetVertexConstrained();
+  rec->SetCheckTimeConsistency();
   return rec;
 
 }
@@ -166,6 +169,7 @@ AliTRDrecoParam *AliTRDrecoParam::GetHighFluxParam()
   AliTRDrecoParam *rec = new AliTRDrecoParam();
   rec->fkdNchdy = 4000.; // PbPb in TRD
   rec->SetVertexConstrained();
+  rec->SetCheckTimeConsistency();
   return rec;
 
 }
@@ -189,8 +193,9 @@ AliTRDrecoParam *AliTRDrecoParam::GetCosmicTestParam()
   par->fkNMeanClusters  = 12.89;
   par->fkNSigmaClusters = 2.095;
   par->fkRoadzMultiplicator = 3.;
+  par->fADCBaseline = 10;
   par->fStreamLevel[kTracker] = 1;
-  par->SetArgon();
+  par->SetCheckTimeConsistency();
   return par;
 
 }
