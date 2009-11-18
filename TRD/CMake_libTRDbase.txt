@@ -65,6 +65,11 @@ set(SRCS
       AliTRDhit.cxx
       AliTRDrecoParam.cxx
       AliTRDSimParam.cxx
+      Cal/AliTRDCalDCSGTUBoardInfo.cxx
+      Cal/AliTRDCalDCSGTUCtpOpc.cxx
+      Cal/AliTRDCalDCSGTUSegment.cxx
+      Cal/AliTRDCalDCSGTUTgu.cxx
+      Cal/AliTRDCalDCSGTUTmu.cxx
 )
 
 # fill list of header files from list of source files

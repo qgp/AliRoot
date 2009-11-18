@@ -32,15 +32,14 @@
 //                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
+#include <fstream>
+
 #include <TFile.h>
 #include <TProfile2D.h>
-#include <TStopwatch.h>
 #include <TObjString.h>
 #include <TString.h>
 #include <TList.h>
-#include <TCollection.h>
 #include <TSAXParser.h>
-#include <fstream>
 
 #include "AliCDBMetaData.h"
 #include "AliLog.h"
@@ -51,13 +50,12 @@
 #include "AliTRDCalibraMode.h"
 #include "AliTRDCalibPadStatus.h"
 #include "AliTRDSaxHandler.h"
-#include "Cal/AliTRDCalDet.h"
+#include "AliTRDgeometry.h"
 #include "Cal/AliTRDCalPad.h"
 #include "Cal/AliTRDCalPadStatus.h"
 #include "Cal/AliTRDCalDCS.h"
 #include "Cal/AliTRDCalSingleChamberStatus.h"
 #include "Cal/AliTRDCalROC.h"
-
 
 ClassImp(AliTRDPreprocessor)
 
@@ -108,7 +106,8 @@ UInt_t AliTRDPreprocessor::Process(TMap* dcsAliasMap)
   Log(Form("runtype %s\n",runType.Data()));
   
   // always process the configuration data
-  /*  Int_t resultDCSC = */ProcessDCSConfigData(); // for testing!
+  Int_t DCSConfigReturn = ProcessDCSConfigData();
+  if(DCSConfigReturn) return DCSConfigReturn; 
   
   if (runType=="PEDESTAL"){
     if(ExtractPedestals()) return 1;
@@ -117,17 +116,19 @@ UInt_t AliTRDPreprocessor::Process(TMap* dcsAliasMap)
 
   if ((runType=="PHYSICS") || (runType=="STANDALONE") || (runType=="DAQ")){
     // DCS
-    /*if(*/ProcessDCS(dcsAliasMap)/*) return 1*/; // for testing!
+    if(ProcessDCS(dcsAliasMap)) return 1; 
     if(runType=="PHYSICS"){
       // HLT if On
       //TString runPar = GetRunParameter("HLTStatus");
       //if(runPar=="1") {
       if(GetHLTStatus()) {
-	/*if(*/ExtractHLT()/*) return 1*/; // for testing!
+	//if(ExtractHLT()) return 1; // for testing!
+	ExtractHLT();
       } 
       // DAQ if HLT failed
       if(!fVdriftHLT) {
-	/*if(*/ExtractDriftVelocityDAQ()/*) return 1*/; // for testing!
+	//if(ExtractDriftVelocityDAQ()) return 1; 
+	ExtractDriftVelocityDAQ(); // for testing!
       }
     }
   }
@@ -198,19 +199,19 @@ Bool_t AliTRDPreprocessor::ProcessDCS(TMap *dcsAliasMap)
     if (nGraph [iAlias] == 0) {
       Log("No TGraph for this dcsDatapointAlias : not stored");
       results [iAlias] = kFALSE;
-      error  = kTRUE;
+      //error  = kTRUE;
       continue;
     }
 		
     oneTRDDCS->SetGraph(map);
-    results[iAlias]=Store("Calib", oneTRDDCS->GetStoreName().Data(), oneTRDDCS, &metaData, 0, kTRUE); 
+    results[iAlias]=Store("Calib", oneTRDDCS->GetStoreName().Data(), oneTRDDCS, &metaData, 0, kFALSE); 
     delete map;		
 
     //results [iAlias] = StoreReferenceData("Calib", oneTRDDCS->GetStoreName ().Data (), oneTRDDCS, &metaData); 
 
     if (!results[iAlias]) {
       AliError("Problem during StoreRef DCS");
-      error=kTRUE;
+      //error=kTRUE;
     }
 
     //BEGIN TEST (should not be removed ...)
@@ -246,6 +247,16 @@ Bool_t AliTRDPreprocessor::ProcessDCS(TMap *dcsAliasMap)
     //END TEST
 
   }
+
+  // Check errors
+  Int_t nbCount = 0;
+  for (Int_t iAlias = 0; iAlias < nEntries; iAlias++) {
+    if (results[iAlias]) {
+      nbCount++;
+    }
+  }
+  if(nbCount == 0) error = kTRUE;
+
 		
   Log ("         Summury of DCS :\n");
   Log (Form("%30s %10s %10s", "dcsDatapointAlias", "Stored ?", "# graph"));
@@ -343,9 +354,12 @@ Bool_t AliTRDPreprocessor::ExtractPedestals()
 	    }
 	  }// det loop
 
-	  if((ldc==0) || (ldc==1) || (ldc==2) || (ldc==9) || (ldc==10) || (ldc==11)) ldc = 1;
-	  if((ldc==3) || (ldc==4) || (ldc==5) || (ldc==12) || (ldc==13) || (ldc==14)) ldc = 2;
-	  if((ldc==6) || (ldc==7) || (ldc==8) || (ldc==15) || (ldc==16) || (ldc==17)) ldc = 3;
+	  if((ldc==0) || (ldc==1) || (ldc==2)) ldc = 1;
+	  if((ldc==3) || (ldc==4) || (ldc==5)) ldc = 2;
+	  if((ldc==6) || (ldc==7) || (ldc==8)) ldc = 3;
+	  if((ldc==9) || (ldc==10) || (ldc==11)) ldc = 4;
+	  if((ldc==12) || (ldc==13) || (ldc==14)) ldc = 5;
+	  if((ldc==15) || (ldc==16) || (ldc==17)) ldc = 6;
 	
 	  // store as reference data
 	  TString name("PadStatus");
@@ -481,8 +495,11 @@ Bool_t AliTRDPreprocessor::ExtractPedestals()
   return error; 
   
 }
+
 //__________________________________________________________________
-Bool_t AliTRDPreprocessor::AreThereDataPedestal(AliTRDCalSingleChamberStatus *calROCStatus, Bool_t second){
+Bool_t AliTRDPreprocessor::AreThereDataPedestal(AliTRDCalSingleChamberStatus * const calROCStatus
+                                              , Bool_t second)
+{
 
   //
   // Data for this half chamber
@@ -668,7 +685,7 @@ Bool_t AliTRDPreprocessor::ExtractDriftVelocityDAQ()
       
       // if enough statistics store the results
       if ((nbtg >                  0) && 
-	  (nbfit        >= 0.5*nbE)) {
+	  (nbfit        >= 0.5*nbE) && (nbE > 30)) {
 	// create the cal objects
 	calibra->PutMeanValueOtherVectorFit(1,kTRUE);
 	calibra->PutMeanValueOtherVectorFit2(1,kTRUE);
@@ -781,7 +798,7 @@ Bool_t AliTRDPreprocessor::ExtractHLT()
       Int_t nbE         = calibra->GetNumberEnt();
       // enough statistics
       if ((nbtg >                  0) && 
-	  (nbfit        >= 0.5*nbE)) {
+	  (nbfit        >= 0.5*nbE) && (nbE > 30)) {
 	// create the cal objects
 	calibra->PutMeanValueOtherVectorFit(1,kTRUE);
 	TObjArray object           = calibra->GetVectorFit();
@@ -820,7 +837,7 @@ Bool_t AliTRDPreprocessor::ExtractHLT()
       Int_t nbE          = calibra->GetNumberEnt();
       // enough statistics
       if ((nbtg >                  0) && 
-	  (nbfit        >= 0.5*nbE)) {
+	  (nbfit        >= 0.5*nbE) && (nbE > 30)) {
 	// create the cal objects
 	calibra->PutMeanValueOtherVectorFit(1,kTRUE);
 	calibra->PutMeanValueOtherVectorFit2(1,kTRUE);
@@ -871,7 +888,7 @@ Bool_t AliTRDPreprocessor::ExtractHLT()
       Int_t nbE          = calibra->GetNumberEnt();
       // enough statistics
       if ((nbtg >                  0) && 
-	  (nbfit        >= 0.95*nbE)) {
+	  (nbfit        >= 0.95*nbE) && (nbE > 30)) {
 	// create cal pad objects 
 	TObjArray object            = calibra->GetVectorFit();
 	TObject *objPRFpad          = calibra->CreatePadObjectPRF(&object);
@@ -899,107 +916,154 @@ UInt_t AliTRDPreprocessor::ProcessDCSConfigData()
   // parse it/them and store TObjArrays in the CDB
   //
   // return 0 for success, otherwise:
-  //  5 : could not get the SOR file from the FXS
-  //  6 : could not get the EOR file from the FXS
-  //  7 : 
-  //  8 : something wrong with the SOR file
-  //  9 : something wrong with the EOR file
+  //  5 : Could not get the (SOR and EOR) or SOR file from the FXS
+  //  8 : Both files are not valid
   // 10 : SOR XML is not well-formed
   // 11 : EOR XML is not well-formed
-  // 12 : ERROR in XML SAX validation: something wrong with the content
-  // 13 :
-  // 14 : ERROR while creating calibration objects in the handler
-  // 15 : error while storing data in the CDB
+  // 12 : ERROR in SOR XML SAX validation: something wrong with the content
+  // 12 : ERROR in EOR XML SAX validation: something wrong with the content
+  // 14 : ERROR while creating SOR calibration objects in the handler
+  // 15 : ERROR while creating EOR calibration objects in the handler
+  // 16 : ERROR while storing data in the CDB
   //
 
   Log("Processing the DCS config summary files.");
 
   // get the XML files
   Log("Requesting the 2 summaryfiles from the FXS..");
-  const char *xmlFileS = GetFile(kDCS,"CONFIGSUMMARYSOR","");
-  const char *xmlFileE = GetFile(kDCS,"CONFIGSUMMARYEOR","");
-  // for the time being just request BOTH files from the FXS
-  // THEN it can be created online (otherwise the FXS would be messed up)
-  // the next step is to actually read BOTH files and store their informations
-  if (xmlFileS == NULL) {
-    Log(Form("ERROR: SOR File %s not found!",xmlFileS));
+  TString xmlFileS = GetFile(kDCS,"CONFIGSUMMARYSOR","");
+  TString xmlFileE = GetFile(kDCS,"CONFIGSUMMARYEOR","");
+  // Request EOR and SOR files from the fxs, if both are not found exit
+
+  Bool_t fileExistE = kTRUE, fileExistS = kTRUE;
+
+  // check if the files are there
+  if (xmlFileS.IsNull()) {
+	  Log(Form("Warning: SOR file %s not found!", xmlFileS.Data()));
+    fileExistS = kFALSE;
+  } else Log(Form("SOR file found: %s", xmlFileS.Data()));
+
+  if (xmlFileE.IsNull()) {
+    Log(Form("Warning: EOR file %s not found!", xmlFileE.Data()));
+    fileExistE = kFALSE;
+  } else Log(Form("EOR file found: %s", xmlFileE.Data()));
+
+  if (fileExistS==0 && fileExistE==0) {
+    Log(Form("ERROR: SOR and EOR files not found: %s and %s", xmlFileS.Data(), xmlFileE.Data()));
     return 5;
-  } else if (xmlFileE == NULL) {
-    Log(Form("ERROR: EOR File %s not found!",xmlFileE));
-    return 6;
-  } else {
-    Log(Form("Both Files (%s and %s) found.",xmlFileS,xmlFileE));
   }
-  
+
   // test the files
-  std::ifstream fileTestS, fileTestE;
-  fileTestS.open(xmlFileS, std::ios_base::binary | std::ios_base::in);
-  fileTestE.open(xmlFileE, std::ios_base::binary | std::ios_base::in);
-  if (!fileTestS.good() || fileTestS.eof() || !fileTestS.is_open()) {
-    Log(Form("ERROR: File %s not valid!",xmlFileS));
+  if (fileExistS) {
+    Log("Checking if SOR file is valid.");
+    std::ifstream fileTestS;
+    fileTestS.open(xmlFileS.Data(), std::ios_base::binary | std::ios_base::in);
+    if (!fileTestS.good() || fileTestS.eof() || !fileTestS.is_open()) {
+      Log(Form("Warning: File %s not valid!",xmlFileS.Data()));
+      fileExistS = kFALSE;
+      return 5;
+    }
+    Log("Checking if SOR file is not empty.");
+    fileTestS.seekg(0, std::ios_base::end);
+    if (static_cast<int>(fileTestS.tellg()) < 2) {
+      Log(Form("Warning: File %s is empty!",xmlFileS.Data()));
+      fileExistS = kFALSE;
+      return 5;
+    }
+  }
+
+
+  if (fileExistE) {
+    Log("Checking if EOR file is valid.");
+    std::ifstream fileTestE;
+    fileTestE.open(xmlFileE.Data(), std::ios_base::binary | std::ios_base::in);
+    if (!fileTestE.good() || fileTestE.eof() || !fileTestE.is_open()) {
+      Log(Form("Warning: File %s not valid!",xmlFileE.Data()));
+      fileExistE = kFALSE;
+    }
+    Log("Checking if EOR file is not empty.");
+    fileTestE.seekg(0, std::ios_base::end);
+    if (static_cast<int>(fileTestE.tellg()) < 2) {
+      Log(Form("Warning: File %s is empty!",xmlFileE.Data()));
+      fileExistE = kFALSE;
+    }
+  }
+
+  if (fileExistS==0 && fileExistE==0) {
+    Log("ERROR: Both files (SOR/EOR) are not valid!");
     return 8;
   }
-  if (!fileTestE.good() || fileTestE.eof() || !fileTestE.is_open()) {
-    Log(Form("ERROR: File %s not valid!",xmlFileE));
-    return 9;
-  }
-  fileTestS.seekg(0, std::ios_base::end);
-  fileTestE.seekg(0, std::ios_base::end);
-  if (static_cast<int>(fileTestS.tellg()) < 2) {
-    Log(Form("ERROR: File %s is empty!",xmlFileS));
-    return 8;
-  }
-  if (static_cast<int>(fileTestE.tellg()) < 2) {
-    Log(Form("ERROR: File %s is empty!",xmlFileE));
-    return 9;
-  }
-  Log("Files are tested valid.");   
+
+  Log("One or both of the tested files are valid.");
 
   // make a robust XML validation
   TSAXParser testParser;
-  if (testParser.ParseFile(xmlFileS) < 0 ) {
+  if (fileExistS && testParser.ParseFile(xmlFileS.Data()) < 0 ) {
     Log("ERROR: XML content (SOR) is not well-formed.");
     return 10;
-  } else if (testParser.ParseFile(xmlFileE) < 0 ) {
+  } else if (fileExistE && testParser.ParseFile(xmlFileE.Data()) < 0 ) {
     Log("ERROR: XML content (EOR) is not well-formed.");
     return 11;
   }
   Log("XML contents are well-formed.");
-      
+
   // create parser and parse
   TSAXParser saxParserS, saxParserE;
   AliTRDSaxHandler saxHandlerS, saxHandlerE;
-  saxParserS.ConnectToHandler("AliTRDSaxHandler", &saxHandlerS);
-  saxParserS.ParseFile(xmlFileS);
-  saxParserE.ConnectToHandler("AliTRDSaxHandler", &saxHandlerE);
-  saxParserE.ParseFile(xmlFileE);
-
-  // report errors if present
-  if ((saxParserS.GetParseCode() == 0) && (saxParserE.GetParseCode() == 0)) {
-    Log("XML file validation OK.");
-  } else {
-    Log(Form("ERROR in XML file validation. Parsecodes: SOR: %s, EOR: %s", saxParserS.GetParseCode(), saxParserE.GetParseCode()));
+  if (fileExistS) {
+    saxParserS.ConnectToHandler("AliTRDSaxHandler", &saxHandlerS);
+    saxParserS.ParseFile(xmlFileS.Data());
+  }
+  if (fileExistE) {
+    saxParserE.ConnectToHandler("AliTRDSaxHandler", &saxHandlerE);
+    saxParserE.ParseFile(xmlFileE.Data());
+  }
+  // report errors of the parser if present
+  if (fileExistS && saxParserS.GetParseCode() != 0) {
+    Log(Form("ERROR in XML file validation. SOR Parse Code: %s", saxParserS.GetParseCode()));
     return 12;
   }
-  if ((saxHandlerS.GetHandlerStatus() == 0) && (saxHandlerE.GetHandlerStatus() == 0)) {
-    Log("SAX handler reports no errors.");
-  } else  {
-    Log(Form("ERROR while creating calibration objects. Error codes: SOR: %s, EOR: %s", saxHandlerS.GetHandlerStatus(), saxHandlerE.GetHandlerStatus()));
-    return 14;
+  if (fileExistE && saxParserE.GetParseCode() != 0) {
+    Log(Form("ERROR in XML file validation. EOR Parse Code: %s", saxParserE.GetParseCode()));
+    return 13;
   }
+  Log("XML file validation OK.");
+  // report errors of the handler if present
+  if (fileExistS && saxHandlerS.GetHandlerStatus() != 0) {
+    Log(Form("ERROR while creating calibration objects. SOR Error code: %s", saxHandlerS.GetHandlerStatus()));
+    return 14;  
+  }
+  if (fileExistE && saxHandlerE.GetHandlerStatus() != 0) {
+    Log(Form("ERROR while creating calibration objects. EOR Error code: %s", saxHandlerE.GetHandlerStatus()));
+    return 15;
+  }
+  Log("SAX handler reports no errors.");
 
-  // get the calibration object storing the data from the handler
-  AliTRDCalDCS* fCalDCSObjSOR = saxHandlerS.GetCalDCSObj();
-  AliTRDCalDCS* fCalDCSObjEOR = saxHandlerE.GetCalDCSObj();
-  fCalDCSObjSOR->EvaluateGlobalParameters();
-  fCalDCSObjEOR->EvaluateGlobalParameters();
-  
   // put both objects in one TObjArray to store them
   TObjArray* fCalObjArray = new TObjArray(2);
   fCalObjArray->SetOwner();
-  fCalObjArray->AddAt(fCalDCSObjSOR,0);
-  fCalObjArray->AddAt(fCalDCSObjEOR,1);
-  
+
+  // get the calibration object storing the data from the handler
+  if (fileExistS) {
+    AliTRDCalDCS* fCalDCSObjSOR = saxHandlerS.GetCalDCSObj();
+    fCalDCSObjSOR->EvaluateGlobalParameters();
+    fCalDCSObjSOR->SetRunType(GetRunType());
+    fCalDCSObjSOR->SetStartTime(GetStartTimeDCSQuery());
+    fCalDCSObjSOR->SetEndTime(GetEndTimeDCSQuery());
+    fCalObjArray->AddAt(fCalDCSObjSOR,0);
+    Log("TRDCalDCS object for SOR created.");
+  }
+
+  if (fileExistE) {
+    AliTRDCalDCS* fCalDCSObjEOR = saxHandlerE.GetCalDCSObj();
+    fCalDCSObjEOR->EvaluateGlobalParameters();
+    fCalDCSObjEOR->SetRunType(GetRunType());
+    fCalDCSObjEOR->SetStartTime(GetStartTimeDCSQuery());
+    fCalDCSObjEOR->SetEndTime(GetEndTimeDCSQuery());
+    fCalObjArray->AddAt(fCalDCSObjEOR,1);
+    Log("TRDCalDCS object for EOR created.");
+  }
+
   // store the DCS calib data in the CDB
   AliCDBMetaData metaData1;
   metaData1.SetBeamPeriod(0);
@@ -1007,14 +1071,15 @@ UInt_t AliTRDPreprocessor::ProcessDCSConfigData()
   metaData1.SetComment("DCS configuration data in two AliTRDCalDCS objects in one TObjArray (0:SOR, 1:EOR).");
   if (!Store("Calib", "DCS", fCalObjArray, &metaData1, 0, kTRUE)) {
     Log("problems while storing DCS config data object");
-    return 15;
+    return 16;
   } else {
     Log("DCS config data object stored.");
   }
 
   //delete fCalObjArray;
 
-  Log("Processing of the DCS config summary file DONE.");  
+  Log("SUCCESS: Processing of the DCS config summary file DONE.");  
   return 0;
 }
+
 

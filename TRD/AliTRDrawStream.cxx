@@ -399,7 +399,7 @@ Int_t AliTRDrawStream::NextBuffer()
   // return  0 DecodeSM failed (clean data required for example) but still maybe more data to come
   // return  1 DecodeSM OK
   // 
-  if (fRawReader != 0) {
+  if (fRawReader) {
     UChar_t *buffer = 0;
     UInt_t length = 0;
     Bool_t kBufferSet = fRawReader->ReadNextData(buffer);

@@ -23,6 +23,7 @@
 
 #include "AliTRDCalDCS.h"
 #include "AliTRDCalDCSFEE.h"
+#include "AliTRDCalDCSGTU.h"
 
 ClassImp(AliTRDCalDCS)
   
@@ -47,9 +48,12 @@ AliTRDCalDCS::AliTRDCalDCS()
   ,fGTrackletDef(0)
   ,fGTriggerSetup(0)
   ,fGAddOptions(0)
+  ,fRunType("")
+  ,fStartTime(0)
+  ,fEndTime(0)
   ,fFEEArr(new TObjArray(540))
   ,fPTRArr(new TObjArray(6))
-  ,fGTUArr(new TObjArray(19))
+  ,fGTUObj(new AliTRDCalDCSGTU())
 {
   //
   // AliTRDCalDCS default constructor
@@ -77,9 +81,12 @@ AliTRDCalDCS::AliTRDCalDCS(const Text_t *name, const Text_t *title)
   ,fGTrackletDef(0)
   ,fGTriggerSetup(0)
   ,fGAddOptions(0)
+  ,fRunType("")
+  ,fStartTime(0)
+  ,fEndTime(0)
   ,fFEEArr(new TObjArray(540))
   ,fPTRArr(new TObjArray(6))
-  ,fGTUArr(new TObjArray(19))
+  ,fGTUObj(new AliTRDCalDCSGTU())
 {
   //
   // AliTRDCalDCS constructor
@@ -107,9 +114,12 @@ AliTRDCalDCS::AliTRDCalDCS(const AliTRDCalDCS &cd)
   ,fGTrackletDef(0)
   ,fGTriggerSetup(0)
   ,fGAddOptions(0)
-  ,fFEEArr(0)
-  ,fPTRArr(0)
-  ,fGTUArr(0)
+  ,fRunType("")
+  ,fStartTime(0)
+  ,fEndTime(0)
+  ,fFEEArr(new TObjArray(540))
+  ,fPTRArr(new TObjArray(6))
+  ,fGTUObj(new AliTRDCalDCSGTU())
 {
   //
   // AliTRDCalDCS copy constructor
@@ -131,6 +141,10 @@ AliTRDCalDCS &AliTRDCalDCS::operator=(const AliTRDCalDCS &cd)
 //_____________________________________________________________________________
 void AliTRDCalDCS::EvaluateGlobalParameters()
 {
+  //
+  // Do an evaluation of all global parameters
+  //
+
   for(Int_t i=0; i<540; i++) {
     AliTRDCalDCSFEE *iDCSFEEObj;
     iDCSFEEObj = GetCalDCSFEEObj(i);
@@ -188,4 +202,5 @@ void AliTRDCalDCS::EvaluateGlobalParameters()
     }
   }
 }
+
 

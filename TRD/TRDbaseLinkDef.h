@@ -90,4 +90,9 @@
 
 #pragma link C++ class  AliTRDrecoParam+;
 #pragma link C++ class  AliTRDSimParam+;
+#pragma link C++ class  AliTRDCalDCSGTUBoardInfo+;
+#pragma link C++ class  AliTRDCalDCSGTUCtpOpc+;
+#pragma link C++ class  AliTRDCalDCSGTUSegment+;
+#pragma link C++ class  AliTRDCalDCSGTUTgu+;
+#pragma link C++ class  AliTRDCalDCSGTUTmu+;
 #endif

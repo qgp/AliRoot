@@ -1,5 +1,5 @@
-#ifndef AliTRDCALDCS_H
-#define AliTRDCALDCS_H
+#ifndef ALITRDCALDCS_H
+#define ALITRDCALDCS_H
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
 
@@ -31,9 +31,12 @@ class AliTRDCalDCS : public TNamed {
   virtual ~AliTRDCalDCS() { };
 
   void    EvaluateGlobalParameters();
-  void    SetFEEArr(TObjArray *fa)             { fFEEArr              = fa;    }
-  void    SetPTRArr(TObjArray *pa)             { fPTRArr              = pa;    }
-  void    SetGTUArr(TObjArray *ga)             { fGTUArr              = ga;    }
+  void    SetFEEArr(TObjArray * const fa)      { fFEEArr              = fa;    }
+  void    SetPTRArr(TObjArray * const pa)      { fPTRArr              = pa;    }
+  void    SetGTUObj(AliTRDCalDCSGTU *go)       { fGTUObj              = go;    }
+  void    SetRunType(TString rt)               { fRunType = rt;                }
+  void    SetStartTime(UInt_t st)              { fStartTime = st;              }
+  void    SetEndTime(UInt_t et)                { fEndTime = et;                }
   
   Int_t   GetGlobalNumberOfTimeBins() const    { return fGNumberOfTimeBins;    }
   Int_t   GetGlobalConfigTag() const           { return fGConfigTag;           }
@@ -52,16 +55,18 @@ class AliTRDCalDCS : public TNamed {
   TString GetGlobalTrackletMode() const        { return fGTrackletMode;        }
   TString GetGlobalTrackletDef() const         { return fGTrackletDef;         }
   TString GetGlobalTriggerSetup() const        { return fGTriggerSetup;        }
-  TString GetGlobalAddOptions() const          { return fGAddOptions;           } 
+  TString GetGlobalAddOptions() const          { return fGAddOptions;          }
+  TString GetRunType() const                   { return fRunType;              }
+  UInt_t  GetStartTime() const                 { return fStartTime;            }
+  UInt_t  GetEndTime() const                   { return fEndTime;              }
   TObjArray*       GetFEEArr() const           { return fFEEArr;               }
   TObjArray*       GetPTRArr() const           { return fPTRArr;               }
-  TObjArray*       GetGTUArr() const           { return fGTUArr;               }
   AliTRDCalDCSFEE* GetCalDCSFEEObj(Int_t det) 
   		  	          { return (AliTRDCalDCSFEE*)fFEEArr->At(det); }
   AliTRDCalDCSPTR* GetCalDCSPTRObj(Int_t det) 
   			          { return (AliTRDCalDCSPTR*)fPTRArr->At(det); }
-  AliTRDCalDCSGTU* GetCalDCSGTUObj(Int_t det) 
-           		          { return (AliTRDCalDCSGTU*)fGTUArr->At(det); }
+  AliTRDCalDCSGTU* GetGTUObj() 
+           		          { return (AliTRDCalDCSGTU*)fGTUObj;          }
 
  protected:
 
@@ -84,13 +89,18 @@ class AliTRDCalDCS : public TNamed {
   TString fGTrackletDef;         // definition for tracklet mode trk (empty if diverse)
   TString fGTriggerSetup;        // trigger setup (ptrg, autotrg, autol0) (empty if diverse)
   TString fGAddOptions;          // additional options (nopm, nion) (empty if diverse)
+  TString fRunType;              // the type of run (physics, pedestal, ...)
+  UInt_t  fStartTime;            // value from GetStartTimeDCSQuery
+  UInt_t  fEndTime;              // value from GetiEndTimeDCSQuery
   
-  //individual configuration parameters
-  TObjArray *fFEEArr; // config param of the individual chambers
-  TObjArray *fPTRArr; // config param of the pretrigger
-  TObjArray *fGTUArr; // config param of the GTU
+  // individual configuration parameters
+  TObjArray *fFEEArr;            // config param of the individual chambers
+  TObjArray *fPTRArr;            // config param of the pretrigger
 
-  ClassDef(AliTRDCalDCS,2)         //  TRD calibration class for TRD DCS parameters
+  AliTRDCalDCSGTU *fGTUObj;      // GTU object
+
+  ClassDef(AliTRDCalDCS,4)       //  TRD calibration class for TRD DCS parameters
 
 };
 #endif
+

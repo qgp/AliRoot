@@ -1599,11 +1599,11 @@ void AliTRDCalibraFit::PutMeanValueOtherVectorFit2(Int_t ofwhat, Bool_t perdetec
       for (Int_t col = 0; col < colMax; col++) {
 	value = coef[(Int_t)(col*rowMax+row)];
 	if(value > 70.0) {
-	  if((ofwhat == 0) && (meanAll > 0.0)) coef[(Int_t)(col*rowMax+row)] = meanAll+100.0;
+	  if((ofwhat == 0) && (meanAll > -1.5)) coef[(Int_t)(col*rowMax+row)] = meanAll+100.0;
 	  if(ofwhat == 1){
-	    if(meanDetector[detector] > 0.0) coef[(Int_t)(col*rowMax+row)] = meanDetector[detector]+100.0;
-	    else if(meanSupermodule[sector] > 0.0) coef[(Int_t)(col*rowMax+row)] = meanSupermodule[sector]+100.0;
-	    else if(meanAll > 0.0) coef[(Int_t)(col*rowMax+row)] = meanAll+100.0;
+	    if(meanDetector[detector] > -1.5) coef[(Int_t)(col*rowMax+row)] = meanDetector[detector]+100.0;
+	    else if(meanSupermodule[sector] > -1.5) coef[(Int_t)(col*rowMax+row)] = meanSupermodule[sector]+100.0;
+	    else if(meanAll > -1.5) coef[(Int_t)(col*rowMax+row)] = meanAll+100.0;
 	  }  
 	}
 	// Debug
@@ -4600,6 +4600,7 @@ void AliTRDCalibraFit::FitLagrangePoly(TH1* projPH)
       (fPhd[1] > fPhd[0]) &&
       (put)) {
     fCurrentCoef[0] = (kDrWidth) / (fPhd[2]-fPhd[1]);
+    if(fCurrentCoef[0] > 2.5) fCurrentCoef[0] =  -TMath::Abs(fCurrentCoef[1]);
     fNumberFitSuccess++;
     if (fPhdt0 >= 0.0) {
       fCurrentCoef2[0] = (fPhdt0 - t0Shift) / widbins;
@@ -4612,6 +4613,9 @@ void AliTRDCalibraFit::FitLagrangePoly(TH1* projPH)
     }
   }
   else {
+    //printf("Put default %f\n",-TMath::Abs(fCurrentCoef[1]));
+    fCurrentCoef[0]      = -TMath::Abs(fCurrentCoef[1]);
+    
     if((fPhd[1] > fPhd[0]) &&
        (put)) {
       if (fPhdt0 >= 0.0) {
@@ -4625,7 +4629,6 @@ void AliTRDCalibraFit::FitLagrangePoly(TH1* projPH)
       }
     }
     else{
-      fCurrentCoef[0]      = -TMath::Abs(fCurrentCoef[1]);
       fCurrentCoef2[0]     = fCurrentCoef2[1] + 100.0;
       //printf("Fit failed!\n");
     }
