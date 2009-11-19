@@ -281,7 +281,7 @@ UInt_t AliZDCPreprocessor::ProcessChMap()
     // 
     AliCDBMetaData metaData;
     metaData.SetBeamPeriod(0);
-    metaData.SetResponsible("Chiara Oppedisano");
+    //metaData.SetResponsible("Chiara Oppedisano");
     metaData.SetComment("Filling AliZDCChMap object");  
     //
     resChMapStore = Store("Calib","ChMap",mapCalib, &metaData, 0, kTRUE);
@@ -571,6 +571,7 @@ UInt_t AliZDCPreprocessor::ProcessPedestalData()
      Log(Form("\t Getting file #%d: %s from %s\n",++iH, pedFileName, sourceH->GetName()));
      resPedHist = StoreReferenceFile(pedFileName, "pedestalReference.root");
      if(resPedHist==kFALSE) return 13;
+     if(resPedHist==kFALSE) return 9;
   }
   delete daqSourceH; daqSourceH=0;
   
@@ -640,6 +641,7 @@ UInt_t AliZDCPreprocessor::ProcessLaserData()
      //
      resLaserCal = Store("Calib","LaserCalib",lCalib, &metaData, 0, kTRUE);
      if(resLaserCal==kFALSE) return 15;
+     if(resLaserCal==kFALSE) return 10;
   }
   delete daqSources; daqSources = 0;
 
@@ -653,6 +655,7 @@ UInt_t AliZDCPreprocessor::ProcessLaserData()
   TIter iter2H(daqSourceH);
   TObjString* sourceH = 0;
   Int_t iH=0;
+  Bool_t resPedHist = kTRUE;
   while((sourceH = dynamic_cast<TObjString*> (iter2H.Next()))){
      Log(Form("\t Getting file #%d\n",++iH));
      TString stringLaserFileName = GetFile(kDAQ, "LASERHISTOS", sourceH->GetName());
@@ -663,6 +666,8 @@ UInt_t AliZDCPreprocessor::ProcessLaserData()
      resLaserHist = StoreReferenceFile(stringLaserFileName.Data(), "laserReference.root");
      //
      if(resLaserHist==kFALSE) return 17;
+     //
+     if(resPedHist==kFALSE) return 11;
   }
   delete daqSourceH; daqSourceH = 0;
   

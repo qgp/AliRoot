@@ -19,9 +19,7 @@ void TestZDCPreprocessor(const char* runType="PHYSICS")
 
   // TODO if needed, change location of OCDB and Reference test folders
   // by default they are set to $ALICE_ROOT/SHUTTLE/TestShuttle/TestCDB and TestReference
-  //AliTestShuttle::SetMainCDB("local://$ALICE_ROOT/SHUTTLE/TestShuttle/TestCDB");
-  AliTestShuttle::SetMainCDB("local://$ALICE_ROOT/OCDB");
-  //AliTestShuttle::SetMainCDB("alien://folder=/alice/data/2009/OCDB/");
+  AliTestShuttle::SetMainCDB("local://$ALICE_ROOT/SHUTTLE/TestShuttle/TestCDB");
   AliTestShuttle::SetMainRefStorage("local://$ALICE_ROOT/SHUTTLE/TestShuttle/TestReference");
 
   printf("\n Test OCDB storage Uri: %s\n", AliShuttleInterface::GetMainCDB().Data());
