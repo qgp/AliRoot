@@ -33,6 +33,13 @@
     AliTPCcalibCosmic * cosmic = ( AliTPCcalibCosmic *)array->FindObject("cosmicTPC");
     
 
+    //
+    //
+    gSystem->AddIncludePath("-I$ALICE_ROOT/TPC/macros");
+    gROOT->LoadMacro("$ALICE_ROOT/TPC/macros/AliXRDPROOFtoolkit.cxx+")
+    AliXRDPROOFtoolkit tool;
+    TChain * chainCosmic = tool.MakeChainRandom("cosmic.txt","Track0",0,10000); 
+  
 
 */
 
@@ -326,11 +333,11 @@ void AliTPCcalibCosmic::Process(AliESDEvent *event) {
   Int_t ntracks=event->GetNumberOfTracks(); 
   fHistNTracks->Fill(ntracks);
   if (ntracks==0) return;
-  AliESDcosmic cosmicESD;    
-  TTreeSRedirector * cstream =  GetDebugStreamer();
-  cosmicESD.SetDebugStreamer(cstream);
-  cosmicESD.ProcessEvent(event);
-  if (cstream) cosmicESD.DumpToTree();
+ //  AliESDcosmic cosmicESD;    
+//   TTreeSRedirector * cstream =  GetDebugStreamer();
+//   cosmicESD.SetDebugStreamer(cstream);
+//   cosmicESD.ProcessEvent(event);
+//   if (cstream) cosmicESD.DumpToTree();
       
   
 }

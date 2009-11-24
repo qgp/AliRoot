@@ -20,6 +20,7 @@ class AliESDtrack;
 class AliTPCcalibLaser;
 class TGraphErrors;
 class AliSplineFit;
+class AliESDfriendTrack;
 
 #include "TTreeStream.h"
 #include "TMap.h"
@@ -42,6 +43,10 @@ public:
   Bool_t                 IsPair(AliExternalTrackParam *tr0, AliExternalTrackParam *tr1);
   Bool_t                 IsCross(AliESDtrack *tr0, AliESDtrack *tr1);
   Bool_t                 IsSame (AliESDtrack *tr0, AliESDtrack *tr1);
+  void                   ProcessSame(AliESDtrack* track, AliESDfriendTrack *friendTrack,AliESDEvent *event);
+  void                   ProcessAlignITS(AliESDtrack* track, AliESDfriendTrack *friendTrack);
+  void                   ProcessAlignTRD(AliESDtrack* track, AliESDfriendTrack *friendTrack);
+  void                   ProcessAlignTOF(AliESDtrack* track, AliESDfriendTrack *friendTrack);
 
   THnSparse*    GetHistVdriftLaserA(Int_t index=1){return fHistVdriftLaserA[index];};
   THnSparse*    GetHistVdriftLaserC(Int_t index=1){return fHistVdriftLaserC[index];};
@@ -55,6 +60,11 @@ public:
   
   void     Process(AliESDtrack *track, Int_t runNo=-1){AliTPCcalibBase::Process(track,runNo);};
   void     Process(AliTPCseed *track){return AliTPCcalibBase::Process(track);}
+  TObjArray* GetAlignITSTPC() {return fAlignITSTPC;}              // alignemnt array ITS TPC match
+  TObjArray* GetAlignTRDTPC() {return fAlignTRDTPC;}              // alignemnt array TRD TPC match
+  TObjArray* GetAlignTOFTPC() {return fAlignTOFTPC;}              // alignemnt array TOF TPC match
+
+
 private:
   void ResetCurrent();                  // reset current values
 
@@ -83,7 +93,9 @@ private:
   // DELTA Z histo
 //  TMap*      fMapDz;			//Tmap of V drifts for different triggers
   TObjArray* fArrayDz;                  // array of DZ histograms for different triggers
-
+  TObjArray* fAlignITSTPC;              // alignemnt array ITS TPC match
+  TObjArray* fAlignTRDTPC;              // alignemnt array TRD TPC match
+  TObjArray* fAlignTOFTPC;              // alignemnt array TOF TPC match
   Int_t    fTimeBins;			//Bins time
   Double_t fTimeStart;			//Start time
   Double_t fTimeEnd;			//End time

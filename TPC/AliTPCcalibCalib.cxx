@@ -147,28 +147,31 @@ void     AliTPCcalibCalib::Process(AliESDEvent *event){
   //
 
   for (Int_t i=0;i<ntracks;++i) {
-    AliESDtrack *track = event->GetTrack(i);  
-    const AliExternalTrackParam * trackIn = track->GetInnerParam();
+    AliESDtrack *track = event->GetTrack(i);     
+    AliESDfriendTrack *friendTrack = ESDfriend->GetTrack(i);
+ 
+    const AliExternalTrackParam * trackIn  = track->GetInnerParam();
     const AliExternalTrackParam * trackOut = track->GetOuterParam();
+    AliExternalTrackParam * tpcOut   = (AliExternalTrackParam *)friendTrack->GetTPCOut();
     if (!trackIn) continue;
     if (!trackOut) continue;
-   
-    AliESDfriendTrack *friendTrack = ESDfriend->GetTrack(i);
+    if (!tpcOut) continue;   
     TObject *calibObject;
     AliTPCseed *seed = 0;
     for (Int_t l=0;(calibObject=friendTrack->GetCalibObject(l));++l) {
       if ((seed=dynamic_cast<AliTPCseed*>(calibObject))) break;
     }
     if (!seed) continue;
-    RefitTrack(track, seed);
+    RefitTrack(track, seed,event->GetMagneticField());
+    (*tpcOut)=*(track->GetOuterParam());  
   }
   return;
 }
 
-Bool_t  AliTPCcalibCalib::RefitTrack(AliESDtrack * track, AliTPCseed *seed){
+Bool_t  AliTPCcalibCalib::RefitTrack(AliESDtrack * track, AliTPCseed *seed, Float_t magesd){
   //
   // Refit track
-  //
+  // if magesd==0 forget the curvature
 
   //
   // 0 - Setup transform object
@@ -278,16 +281,22 @@ Bool_t  AliTPCcalibCalib::RefitTrack(AliESDtrack * track, AliTPCseed *seed){
   covar[2]=10.*10.;
   covar[5]=10.*10./(64.*64.);
   covar[9]=10.*10./(64.*64.);
-  covar[14]=1*1;
-
+  covar[14]=0.3*0.3;
+  if (TMath::Abs(magesd)<0.05) {
+     covar[14]=0.025*0.025;
+  }
   // 
   // And now do refit
   //
   AliExternalTrackParam * trackInOld  = (AliExternalTrackParam*)track->GetInnerParam();
   AliExternalTrackParam * trackOutOld = (AliExternalTrackParam*)track->GetOuterParam();
 
+
   AliExternalTrackParam trackIn  = *trackOutOld;
-  trackIn.ResetCovariance(200.);
+  if (TMath::Abs(magesd)<0.05) {
+    ((Double_t&)(trackIn.GetParameter()[4]))=0.000000001;
+  }  
+  trackIn.ResetCovariance(20.);
   trackIn.AddCovariance(covar);
   Double_t xyz[3];
   Int_t nclIn=0,nclOut=0;
@@ -301,8 +310,9 @@ Bool_t  AliTPCcalibCalib::RefitTrack(AliESDtrack * track, AliTPCseed *seed){
     if (cl->GetX()<80) continue;
     Int_t sector = cl->GetDetector();
     Float_t dalpha = TMath::DegToRad()*(sector%18*20.+10.)-trackIn.GetAlpha();
-    if (TMath::Abs(dalpha)>0.01)
-      trackIn.Rotate(TMath::DegToRad()*(sector%18*20.+10.));
+    if (TMath::Abs(dalpha)>0.01){
+      if (!trackIn.Rotate(TMath::DegToRad()*(sector%18*20.+10.))) break;
+    }
     Double_t r[3]={cl->GetX(),cl->GetY(),cl->GetZ()};
     Double_t cov[3]={0.01,0.,0.01}; //TODO: correct error parametrisation
     AliTPCseed::GetError(cl, &trackIn,cov[0],cov[2]);
@@ -318,7 +328,10 @@ Bool_t  AliTPCcalibCalib::RefitTrack(AliESDtrack * track, AliTPCseed *seed){
   }
   //
   AliExternalTrackParam trackOut = trackIn;
-  trackOut.ResetCovariance(200.);
+  if (TMath::Abs(magesd)<0.05) {
+    ((Double_t&)(trackOut.GetParameter()[4]))=0.000000001;
+  }
+  trackOut.ResetCovariance(20.);
   trackOut.AddCovariance(covar);
   //
   // Refit out
@@ -331,8 +344,9 @@ Bool_t  AliTPCcalibCalib::RefitTrack(AliESDtrack * track, AliTPCseed *seed){
     Int_t sector = cl->GetDetector();
     Float_t dalpha = TMath::DegToRad()*(sector%18*20.+10.)-trackOut.GetAlpha();
 
-    if (TMath::Abs(dalpha)>0.01)
-      trackOut.Rotate(TMath::DegToRad()*(sector%18*20.+10.));
+    if (TMath::Abs(dalpha)>0.01){
+      if (!trackOut.Rotate(TMath::DegToRad()*(sector%18*20.+10.))) break;
+    }
     Double_t r[3]={cl->GetX(),cl->GetY(),cl->GetZ()};
 
     Double_t cov[3]={0.01,0.,0.01}; //TODO: correct error parametrisation    
@@ -363,8 +377,9 @@ Bool_t  AliTPCcalibCalib::RefitTrack(AliESDtrack * track, AliTPCseed *seed){
     if (cl->GetX()<80) continue;
     Int_t sector = cl->GetDetector();
     Float_t dalpha = TMath::DegToRad()*(sector%18*20.+10.)-trackIn.GetAlpha();
-    if (TMath::Abs(dalpha)>0.01)
-      trackIn.Rotate(TMath::DegToRad()*(sector%18*20.+10.));
+    if (TMath::Abs(dalpha)>0.01){
+      if (!trackIn.Rotate(TMath::DegToRad()*(sector%18*20.+10.))) break;
+    }
     Double_t r[3]={cl->GetX(),cl->GetY(),cl->GetZ()};
     Double_t cov[3]={0.01,0.,0.01}; //TODO: correct error parametrisation
     AliTPCseed::GetError(cl, &trackIn,cov[0],cov[2]);
@@ -443,6 +458,10 @@ Bool_t AliTPCcalibCalib::RejectCluster(AliTPCclusterMI* cl, AliExternalTrackPara
 
   Double_t cov[3]={0.01,0.,0.01}; //TODO: correct error parametrisation    
   AliTPCseed::GetError(cl, param,cov[0],cov[2]);
+  if (param->GetSigmaY2()<0 || param->GetSigmaZ2()<0){
+    AliError("Wrong parameters");
+    return kFALSE;
+  }
   Double_t py = (cl->GetY()-param->GetY())/TMath::Sqrt(cov[0]*cov[0]+param->GetSigmaY2());
   Double_t pz = (cl->GetZ()-param->GetZ())/TMath::Sqrt(cov[2]*cov[2]+param->GetSigmaZ2());
   //
