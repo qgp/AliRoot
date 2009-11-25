@@ -1,5 +1,5 @@
 //-*- Mode: C++ -*-
-// $Id:$
+// $Id$
 #ifndef ALIHLTDOMAINENTRY_H
 #define ALIHLTDOMAINENTRY_H
 /* This file is property of and copyright by the ALICE HLT Project        *
@@ -205,6 +205,7 @@ class AliHLTDomainEntry : public TObject
    * \return  true if the domain entries are identical or if they overlap (match)
    *    due to wild card values. False is returned if there is absolutely no
    *    overlap between this and the right hand side domain entries.
+   * \note No comparison is done for the exclude flag.
    */
   bool operator == (const AliHLTDomainEntry& rhs) const
   {
@@ -217,6 +218,7 @@ class AliHLTDomainEntry : public TObject
    * \return  true if the domain entries do not overlap (match) in any way, also
    *    after considering any wild card values. False is returned if the entries
    *    are identical or if they overlap due to wild card values.
+   * \note No comparison is done for the exclude flag.
    */
   bool operator != (const AliHLTDomainEntry& rhs) const
   {
@@ -324,7 +326,14 @@ class AliHLTDomainEntry : public TObject
    * \returns  A string in the format \<type\>:\<origin\>:\<specification\>
    */
   TString AsString() const;
-  
+
+  /**
+   * Converts the three parameters into a 32 byte buffer
+   * As the PubSub expects the data type id and origin in reverse byte order
+   * those two are swapped. 
+   */
+  int AsBinary(AliHLTUInt32_t buffer[4]) const;
+
  private:
   
   Bool_t fExclude;  /// Indicates if the domain entry is exclusive, indicating data blocks that should not be readout.

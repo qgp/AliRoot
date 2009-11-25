@@ -128,7 +128,7 @@ int AliHLTFileWriter::DoInit( int argc, const char** argv )
       fBaseName=argv[i];
       TObjArray* pTokens=fBaseName.Tokenize(".");
       if (pTokens) {
-	int iEntries=pTokens->GetEntries();
+	int iEntries=pTokens->GetEntriesFast();
 	if (iEntries>1) {
 	  int n=0;
 	  fBaseName=((TObjString*)pTokens->At(n++))->GetString();
@@ -394,8 +394,10 @@ int AliHLTFileWriter::BuildFileName(const AliHLTEventID_t eventID, const int blo
   }
 
   IsDataEvent(&eventType);
-  if (eventType==gkAliEventTypeStartOfRun && CheckMode(kWriteAllEvents)) filename+="SOR_";
-  else if (eventType==gkAliEventTypeEndOfRun && CheckMode(kWriteAllEvents)) filename+="EOR_";
+  if (CheckMode(kWriteAllEvents) && !CheckMode(kConcatenateEvents)) {
+    if (eventType==gkAliEventTypeStartOfRun) filename+="SOR_";
+    else if (eventType==gkAliEventTypeEndOfRun) filename+="EOR_";
+  }
 
   if (!fBaseName.IsNull())
     filename+=fBaseName;

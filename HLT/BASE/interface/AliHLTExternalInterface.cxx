@@ -26,7 +26,9 @@
 #include "AliHLTComponentHandler.h"
 #include "AliHLTComponent.h"
 #include "AliHLTSystem.h"
+#include "AliHLTMisc.h"
 #include <cerrno>
+#include <cstring>
 /////////////////////////////////////////////////////////////////////////////////////
 //
 // AliHLT external interface functions
@@ -76,6 +78,13 @@ int AliHLTAnalysisInitSystem( unsigned long version, AliHLTAnalysisEnvironment* 
       strcpy(gRunType, runType);
     }
   }
+
+  // the AliRoot dependent code is implemented by the
+  // AliHLTMiscImplementation class in libHLTrec
+  AliHLTMisc::Instance().InitCDB(getenv("ALIHLT_HCDBDIR"));
+  AliHLTMisc::Instance().SetCDBRunNo(gRunDesc.fRunNo);
+  AliHLTMisc::Instance().InitMagneticField();
+
   return 0;
 }
 
@@ -122,13 +131,11 @@ int AliHLTAnalysisCreateComponent( const char* componentType, void* environParam
   if (!handle) return EINVAL;
 
   AliHLTComponent* comp=NULL;
-  const char* cdbPath = getenv("ALIHLT_HCDBDIR");
-  if (!cdbPath) cdbPath = getenv("ALICE_ROOT");
+
   int ret = gComponentHandler->CreateComponent( componentType, comp);
   if (ret>=0 && comp) {
     const AliHLTAnalysisEnvironment* comenv=gComponentHandler->GetEnvironment();
     comp->SetComponentEnvironment(comenv, environParam);
-    comp->InitCDB(cdbPath, gComponentHandler);
     if (comenv) {
       if (description) {
 	comp->SetComponentDescription(description);
@@ -188,8 +195,8 @@ int AliHLTAnalysisGetOutputSize( AliHLTComponentHandle handle, unsigned long* co
   AliHLTComponent* comp = reinterpret_cast<AliHLTComponent*>( handle );
   if (!comp) return ENXIO;
   // TODO: extend component interface
-  if (constEventBase) *constEventBase=0;
-  comp->GetOutputDataSize( *constBlockBase, *inputBlockMultiplier );
+  if (constBlockBase) *constBlockBase=0;
+  comp->GetOutputDataSize( *constEventBase, *inputBlockMultiplier );
   return 0;
 }
 

@@ -146,6 +146,11 @@ extern const char kAliHLTDataOriginTRD[kAliHLTComponentDataTypefOriginSize];
  */
 extern const char kAliHLTDataOriginITS[kAliHLTComponentDataTypefOriginSize];
 
+/** Data origin ITSOut 
+ * @ingroup alihlt_component_datatypes
+ */
+extern const char kAliHLTDataOriginITSOut[kAliHLTComponentDataTypefOriginSize];
+
 /** Data origin ITS SPD
  * @ingroup alihlt_component_datatypes
  */
@@ -244,6 +249,11 @@ const int kAliHLTComponentDataTypefIDsize=8;
  */
 # define kAliHLTDAQRDOUTDataTypeID "DAQRDOUT"
 
+/** HLT readout list.
+ * @ingroup alihlt_component_datatypes
+ */
+# define kAliHLTReadoutListDataTypeID {'H','L','T','R','D','L','S','T'}
+
 /** EventType event 
  * - empty payload, specification gives eventType
  * @ingroup alihlt_component_datatypes
@@ -275,6 +285,13 @@ const int kAliHLTComponentDataTypefIDsize=8;
  * @ingroup alihlt_component_datatypes
  */
 # define kAliHLTMCObjectDataTypeID    {'A','L','I','M','C','_','V','0'}
+
+/** ESDVertex data block
+ * an AliESDVertex object of varying origin
+ * The 'V0' at the end allows a versioning
+ * @ingroup alihlt_component_datatypes
+ */
+# define kAliHLTESDVertexDataTypeID    {'E','S','D','V','T','X','V','0'}
 
 /** ESD data block
  * an AliESD object of varying origin
@@ -429,6 +446,13 @@ const int kAliHLTComponentDataTypefIDsize=8;
  * @ingroup alihlt_component_datatypes
  */
 #define kAliHLTJetDataTypeID                  {'H','L','T','J','E','T','V','0'}
+
+/** dEdx  data
+ * Common data type for the dEdx 
+ * format depends on the origin (detector)
+ * @ingroup alihlt_component_datatypes
+ */
+# define kAliHLTdEdxDataTypeID {'D','E','D','X',' ',' ',' ',' '}
 
 using namespace std;
 
@@ -891,6 +915,11 @@ extern "C" {
    */
   extern const AliHLTComponentDataType kAliHLTDataTypeMCObject;
 
+  /** ESD vertex object data specification, origin is 'any' 
+   * @ingroup alihlt_component_datatypes
+   */
+  extern const AliHLTComponentDataType kAliHLTDataTypeESDVertex;
+
   /** ESD object data specification, origin is 'any' 
    * @ingroup alihlt_component_datatypes
    */
@@ -941,6 +970,12 @@ extern "C" {
    * @ingroup alihlt_component_datatypes
    */
   extern const AliHLTComponentDataType kAliHLTDataTypeTriggerDecision;   // {TRIG_DEC:HLT }
+
+  /** Trigger decision
+   * - origin : kAliHLTDataOriginOut ( HLT )
+   * @ingroup alihlt_component_datatypes
+   */
+  extern const AliHLTComponentDataType kAliHLTDataTypeReadoutList;   // {HLTRDLST:HLT }
 
   /** Global trigger decision
    * - origin : kAliHLTDataOriginOut ( HLT )
@@ -1029,6 +1064,11 @@ extern "C" {
    * @ingroup alihlt_component_datatypes
    */	
   extern const AliHLTComponentDataType kAliHLTDataTypeCaloCluster; 
+
+  /** Container of dEdx
+   * @ingroup alihlt_component_datatypes
+   */
+  extern const AliHLTComponentDataType kAliHLTDataTypedEdx;
 
   //////////////////////////////////////////////////////////////////////////
   //

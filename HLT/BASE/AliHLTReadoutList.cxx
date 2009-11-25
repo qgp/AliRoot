@@ -1,4 +1,4 @@
-// $Id:$
+// $Id$
 /**************************************************************************
  * This file is property of and copyright by the ALICE HLT Project        *
  * ALICE Experiment at CERN, All rights reserved.                         *
@@ -41,7 +41,7 @@ ClassImp(AliHLTReadoutList)
 
 
 AliHLTReadoutList::AliHLTReadoutList() :
-	TObject(),
+        TNamed("AliHLTReadoutList", "Readout list object used for manipulating and storing an AliHLTEventDDL structure."),
 	fReadoutList()
 {
   // Default constructor.
@@ -52,7 +52,7 @@ AliHLTReadoutList::AliHLTReadoutList() :
 
 
 AliHLTReadoutList::AliHLTReadoutList(Int_t enabledDetectors) :
-	TObject(),
+        TNamed("AliHLTReadoutList", "Readout list object used for manipulating and storing an AliHLTEventDDL structure."),
 	fReadoutList()
 {
   // Constructor to select which detectors to enable for readout.
@@ -65,7 +65,7 @@ AliHLTReadoutList::AliHLTReadoutList(Int_t enabledDetectors) :
 
 
 AliHLTReadoutList::AliHLTReadoutList(const char* enabledList) :
-	TObject(),
+        TNamed("AliHLTReadoutList", "Readout list object used for manipulating and storing an AliHLTEventDDL structure."),
 	fReadoutList()
 {
   // Constructor to select which detectors and DDLs to enable for readout.
@@ -114,18 +114,20 @@ AliHLTReadoutList::AliHLTReadoutList(const char* enabledList) :
 
 
 AliHLTReadoutList::AliHLTReadoutList(const AliHLTEventDDL& list) :
-	TObject(),
+        TNamed("AliHLTReadoutList", "Readout list object used for manipulating and storing an AliHLTEventDDL structure."),
 	fReadoutList()
 {
   // Constructor to create readout list from AliHLTEventDDL structure.
   // See header file for more details.
-  
-  memcpy(&fReadoutList, &list, sizeof(fReadoutList));
+  memset(&fReadoutList, 0, sizeof(fReadoutList));
+  // handle lists of different sizes, copy only the overlapping part of the list
+  fReadoutList.fCount=sizeof(fReadoutList.fList)/sizeof(AliHLTUInt32_t);
+  memcpy(&fReadoutList.fList, &list.fList, (fReadoutList.fCount<list.fCount?fReadoutList.fCount:list.fCount)*sizeof(AliHLTUInt32_t));
 }
 
 
 AliHLTReadoutList::AliHLTReadoutList(const AliHLTReadoutList& list) :
-	TObject(list),
+	TNamed(list),
 	fReadoutList()
 {
   // Copy constructor performs a deep copy.
@@ -170,26 +172,33 @@ bool AliHLTReadoutList::DecodeDDLID(Int_t ddlId, Int_t& wordIndex, Int_t& bitInd
   
   if (detNum < 3)
   {
+    // the 3 ITS detectors have one word each
     wordIndex = detNum;
   }
   else if (detNum == 3)
   {
+    // the TPC bitfield has in total 8 words
     wordIndex = detNum + (ddlNum >> 5);
   }
   else if (detNum == 4)
   {
+    // the TRD bitfield starts at position 11 (3 ITS + 8 TPC)
     wordIndex = detNum + 7;
   }
   else if (detNum == 5)
   {
+    // TOF has 72 DDLs, the bitfield is 3 words starting at position 12
     wordIndex = detNum + 7 + (ddlNum >> 5);
   }
   else if (detNum == 30)
   {
+    // the HLT bitfield is in the last word 
     wordIndex = 29;
   }
   else
   {
+    // all other detectors fit into one word, the offset is due to
+    // TPC and TOF
     wordIndex = detNum + 9;
   }
   
@@ -405,8 +414,16 @@ AliHLTReadoutList& AliHLTReadoutList::operator |= (const AliHLTReadoutList& list
 {
   // This operator performs a bitwise inclusive or operation on all DDL bits.
   // See header file for more details.
+  this->OrEq(list);
+  return *this;
+}
+
+AliHLTReadoutList& AliHLTReadoutList::OrEq(const AliHLTReadoutList& list)
+{
+  // a bitwise inclusive or operation on all DDL bits.
+  // See header file for more details.
   
-  assert( fReadoutList.fCount == gkAliHLTDDLListSize );
+  assert( fReadoutList.fCount == (unsigned)gkAliHLTDDLListSize );
   for (Int_t i = 0; i < gkAliHLTDDLListSize; i++)
   {
     fReadoutList.fList[i] |= list.fReadoutList.fList[i];
@@ -419,8 +436,17 @@ AliHLTReadoutList& AliHLTReadoutList::operator ^= (const AliHLTReadoutList& list
 {
   // This operator performs a bitwise exclusive or (xor) operation on all DDL bits.
   // See header file for more details.
+
+  this->XorEq(list);
+  return *this;
+}
+
+AliHLTReadoutList& AliHLTReadoutList::XorEq(const AliHLTReadoutList& list)
+{
+  // bitwise exclusive or (xor) operation on all DDL bits.
+  // See header file for more details.
   
-  assert( fReadoutList.fCount == gkAliHLTDDLListSize );
+  assert( fReadoutList.fCount == (unsigned)gkAliHLTDDLListSize );
   for (Int_t i = 0; i < gkAliHLTDDLListSize; i++)
   {
     fReadoutList.fList[i] ^= list.fReadoutList.fList[i];
@@ -433,8 +459,17 @@ AliHLTReadoutList& AliHLTReadoutList::operator &= (const AliHLTReadoutList& list
 {
   // This operator performs a bitwise and operation on all DDL bits.
   // See header file for more details.
-  
-  assert( fReadoutList.fCount == gkAliHLTDDLListSize );
+
+  this->AndEq(list);
+  return *this;
+}
+
+AliHLTReadoutList& AliHLTReadoutList::AndEq(const AliHLTReadoutList& list)
+{
+  // bitwise and operation on all DDL bits.
+  // See header file for more details.
+
+  assert( fReadoutList.fCount == (unsigned)gkAliHLTDDLListSize );
   for (Int_t i = 0; i < gkAliHLTDDLListSize; i++)
   {
     fReadoutList.fList[i] &= list.fReadoutList.fList[i];
@@ -442,13 +477,12 @@ AliHLTReadoutList& AliHLTReadoutList::operator &= (const AliHLTReadoutList& list
   return *this;
 }
 
-
 AliHLTReadoutList& AliHLTReadoutList::operator -= (const AliHLTReadoutList& list)
 {
   // This operator removes all the DDLs specified in list from this readout list.
   // See header file for more details.
   
-  assert( fReadoutList.fCount == gkAliHLTDDLListSize );
+  assert( fReadoutList.fCount == (unsigned)gkAliHLTDDLListSize );
   for (Int_t i = 0; i < gkAliHLTDDLListSize; i++)
   {
     // Effectively apply: this = this & (~ (this & list))

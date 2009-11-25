@@ -147,7 +147,7 @@ AliHLTTriggerDomain::AliHLTTriggerDomain(const AliHLTTriggerDomain& domain) :
   
   for (Int_t i = 0; i < domain.fEntries.GetEntriesFast(); i++)
   {
-    const AliHLTDomainEntry* entry = static_cast<const AliHLTDomainEntry*>( domain.fEntries[i] );
+    const AliHLTDomainEntry* entry = static_cast<const AliHLTDomainEntry*>( domain.fEntries.UncheckedAt(i) );
     new (fEntries[fEntries.GetEntriesFast()]) AliHLTDomainEntry(*entry);
   }
 }
@@ -178,14 +178,14 @@ void AliHLTTriggerDomain::Add(const AliHLTReadoutList& list)
   {
     if (list.DetectorEnabled(detId[deti]))
     {
-      Add("DAQRDOUT", AliHLTDAQ::OnlineName(deti));
+      Add(kAliHLTDAQRDOUTDataTypeID, AliHLTDAQ::OnlineName(deti));
     }
     else
     {
       for (Int_t i = 0; i < AliHLTDAQ::NumberOfDdls(deti); i++)
       {
         Int_t ddlId = AliHLTDAQ::DdlID(deti, i);
-        if (list.IsDDLEnabled(ddlId)) Add("DAQRDOUT", AliHLTDAQ::OnlineName(deti), ddlId);
+        if (list.IsDDLEnabled(ddlId)) Add(kAliHLTDAQRDOUTDataTypeID, AliHLTDAQ::OnlineName(deti), ddlId);
       }
     }
   }
@@ -209,7 +209,7 @@ void AliHLTTriggerDomain::Add(const AliHLTDomainEntry& entry)
   // because it is already part of the trigger domain.
   for (Int_t i = 0; i < count; i++)
   {
-    AliHLTDomainEntry* ientry = static_cast<AliHLTDomainEntry*>(fEntries[i]);
+    AliHLTDomainEntry* ientry = static_cast<AliHLTDomainEntry*>(fEntries.UncheckedAt(i));
     if (ientry->Inclusive())
     {
       if (entry.SubsetOf(*ientry))
@@ -218,14 +218,14 @@ void AliHLTTriggerDomain::Add(const AliHLTDomainEntry& entry)
       }
       else if (ientry->SubsetOf(entry))
       {
-        ientry->SetBit(14, true);  // mark for removal.
+        ientry->SetBit(BIT(14), true);  // mark for removal.
       }
     }
     else
     {
       if (ientry->SubsetOf(entry))
       {
-        ientry->SetBit(14, true);  // mark for removal.
+        ientry->SetBit(BIT(14), true);  // mark for removal.
       }
       else if (entry.SubsetOf(*ientry))
       {
@@ -308,14 +308,14 @@ void AliHLTTriggerDomain::Remove(const AliHLTReadoutList& list)
   {
     if (list.DetectorEnabled(detId[deti]))
     {
-      Remove("DAQRDOUT", AliHLTDAQ::OnlineName(deti));
+      Remove(kAliHLTDAQRDOUTDataTypeID, AliHLTDAQ::OnlineName(deti));
     }
     else
     {
       for (Int_t i = 0; i < AliHLTDAQ::NumberOfDdls(deti); i++)
       {
         Int_t ddlId = AliHLTDAQ::DdlID(deti, i);
-        if (list.IsDDLEnabled(ddlId)) Remove("DAQRDOUT", AliHLTDAQ::OnlineName(deti), ddlId);
+        if (list.IsDDLEnabled(ddlId)) Remove(kAliHLTDAQRDOUTDataTypeID, AliHLTDAQ::OnlineName(deti), ddlId);
       }
     }
   }
@@ -342,12 +342,12 @@ void AliHLTTriggerDomain::Remove(const AliHLTDomainEntry& entry)
   // inclusive trigger domain entries (rules / patterns).
   for (Int_t i = 0; i < count; i++)
   {
-    AliHLTDomainEntry* ientry = static_cast<AliHLTDomainEntry*>(fEntries[i]);
+    AliHLTDomainEntry* ientry = static_cast<AliHLTDomainEntry*>(fEntries.UncheckedAt(i));
     if (ientry->Inclusive())
     {
       if (ientry->SubsetOf(entry))
       {
-        ientry->SetBit(14, true);  // mark for removal.
+        ientry->SetBit(BIT(14), true);  // mark for removal.
       }
       else if (entry.SubsetOf(*ientry))
       {
@@ -366,7 +366,7 @@ void AliHLTTriggerDomain::Remove(const AliHLTDomainEntry& entry)
       }
       else if (ientry->SubsetOf(entry))
       {
-        ientry->SetBit(14, true);  // mark for removal.
+        ientry->SetBit(BIT(14), true);  // mark for removal.
       }
     }
   }
@@ -432,7 +432,7 @@ bool AliHLTTriggerDomain::Contains(const AliHLTDomainEntry& entry) const
   bool result = false;
   for (Int_t i = 0; i < fEntries.GetEntriesFast(); i++)
   {
-    const AliHLTDomainEntry* ientry = static_cast<const AliHLTDomainEntry*>(fEntries[i]);
+    const AliHLTDomainEntry* ientry = static_cast<const AliHLTDomainEntry*>(fEntries.UncheckedAt(i));
     if (ientry->Inclusive())
     {
       if (*ientry == entry) result = true;
@@ -458,7 +458,7 @@ bool AliHLTTriggerDomain::IncludeInReadout(const AliHLTComponentBlockData* block
   bool result = false;
   for (Int_t i = 0; i < fEntries.GetEntriesFast(); i++)
   {
-    const AliHLTDomainEntry* entry = static_cast<const AliHLTDomainEntry*>(fEntries[i]);
+    const AliHLTDomainEntry* entry = static_cast<const AliHLTDomainEntry*>(fEntries.UncheckedAt(i));
     if (entry->Inclusive())
     {
       if (*entry == block) result = true;
@@ -488,7 +488,7 @@ void AliHLTTriggerDomain::Print(Option_t* /*option*/) const
   cout << "Trigger domain rules (applied in order of first to last):" << endl;
   for (Int_t i = 0; i < fEntries.GetEntriesFast(); i++)
   {
-    const AliHLTDomainEntry* entry = static_cast<const AliHLTDomainEntry*>( fEntries[i] );
+    const AliHLTDomainEntry* entry = static_cast<const AliHLTDomainEntry*>( fEntries.UncheckedAt(i) );
     if (entry->Inclusive())
     {
       cout << "Include ";
@@ -516,7 +516,7 @@ AliHLTTriggerDomain& AliHLTTriggerDomain::operator = (const AliHLTTriggerDomain&
   fEntries.Clear();
   for (Int_t i = 0; i < domain.fEntries.GetEntriesFast(); i++)
   {
-    const AliHLTDomainEntry* entry = static_cast<const AliHLTDomainEntry*>( domain.fEntries[i] );
+    const AliHLTDomainEntry* entry = static_cast<const AliHLTDomainEntry*>( domain.fEntries.UncheckedAt(i) );
     new (fEntries[fEntries.GetEntriesFast()]) AliHLTDomainEntry(*entry);
   }
   return *this;
@@ -555,10 +555,10 @@ AliHLTTriggerDomain& AliHLTTriggerDomain::operator |= (const AliHLTTriggerDomain
   // intersections to the end of fEntries.
   for (Int_t i = 0; i < domain.fEntries.GetEntriesFast(); i++)
   {
-    const AliHLTDomainEntry* newEntry = static_cast<const AliHLTDomainEntry*>( domain.fEntries[i] );
+    const AliHLTDomainEntry* newEntry = static_cast<const AliHLTDomainEntry*>( domain.fEntries.UncheckedAt(i) );
     for (Int_t j = 0; j < count; j++)
     {
-      const AliHLTDomainEntry* currentEntry = static_cast<const AliHLTDomainEntry*>( fEntries[j] );
+      const AliHLTDomainEntry* currentEntry = static_cast<const AliHLTDomainEntry*>( fEntries.UncheckedAt(j) );
       if (currentEntry->Inclusive() and newEntry->Inclusive())
       {
         // If either entry is a subset of the other then we do not need to add
@@ -637,10 +637,10 @@ AliHLTTriggerDomain& AliHLTTriggerDomain::operator ^= (const AliHLTTriggerDomain
   // IncludeInReadout() or Contains().
   for (Int_t i = 0; i < domain.fEntries.GetEntriesFast(); i++)
   {
-    const AliHLTDomainEntry* newEntry = static_cast<const AliHLTDomainEntry*>( domain.fEntries[i] );
+    const AliHLTDomainEntry* newEntry = static_cast<const AliHLTDomainEntry*>( domain.fEntries.UncheckedAt(i) );
     for (Int_t j = 0; j < count; j++)
     {
-      const AliHLTDomainEntry* currentEntry = static_cast<const AliHLTDomainEntry*>( fEntries[j] );
+      const AliHLTDomainEntry* currentEntry = static_cast<const AliHLTDomainEntry*>( fEntries.UncheckedAt(j) );
       if (newEntry->IntersectWith(*currentEntry, intersect))
       {
         // We can remove all intersections that were already added that will
@@ -688,7 +688,7 @@ AliHLTTriggerDomain& AliHLTTriggerDomain::operator -= (const AliHLTTriggerDomain
   // parts of the two trigger domains.
   for (Int_t i = 0; i < domain.fEntries.GetEntriesFast(); i++)
   {
-    const AliHLTDomainEntry* checkEntry = static_cast<const AliHLTDomainEntry*>( domain.fEntries[i] );
+    const AliHLTDomainEntry* checkEntry = static_cast<const AliHLTDomainEntry*>( domain.fEntries.UncheckedAt(i) );
     if (checkEntry->Inclusive())
     {
       // For inclusive entries we need to find the overlaps with the inclusive
@@ -696,7 +696,7 @@ AliHLTTriggerDomain& AliHLTTriggerDomain::operator -= (const AliHLTTriggerDomain
       // part of the trigger domain set.
       for (Int_t j = 0; j < startOfIntersects; j++)
       {
-        AliHLTDomainEntry* currentEntry = static_cast<AliHLTDomainEntry*>( fEntries[j] );
+        AliHLTDomainEntry* currentEntry = static_cast<AliHLTDomainEntry*>( fEntries.UncheckedAt(j) );
         
         // We only need to consider the case where both entries are inclusive,
         // since an exclusion in fEntries already eliminates those data blocks
@@ -712,7 +712,7 @@ AliHLTTriggerDomain& AliHLTTriggerDomain::operator -= (const AliHLTTriggerDomain
           new (fEntries[newIndex++]) AliHLTDomainEntry(kTRUE, intersect);
           if (currentEntry->IdenticalTo(intersect))
           {
-            currentEntry->SetBit(14, true);
+            currentEntry->SetBit(BIT(14), true);
           }
         }
       }
@@ -723,7 +723,7 @@ AliHLTTriggerDomain& AliHLTTriggerDomain::operator -= (const AliHLTTriggerDomain
       // all of fEntries and re-apply these with the same exclude flags.
       for (Int_t j = 0; j < startOfIntersects; j++)
       {
-        AliHLTDomainEntry* currentEntry = static_cast<AliHLTDomainEntry*>( fEntries[j] );
+        AliHLTDomainEntry* currentEntry = static_cast<AliHLTDomainEntry*>( fEntries.UncheckedAt(j) );
         if (checkEntry->IntersectWith(*currentEntry, intersect))
         {
           // We can remove all intersections that were already added that will
@@ -756,7 +756,7 @@ AliHLTTriggerDomain AliHLTTriggerDomain::operator ~ () const
   result.Add(kAliHLTAnyDataType);
   for (Int_t i = 0; i < fEntries.GetEntriesFast(); i++)
   {
-    const AliHLTDomainEntry* entry = static_cast<const AliHLTDomainEntry*>( fEntries[i] );
+    const AliHLTDomainEntry* entry = static_cast<const AliHLTDomainEntry*>( fEntries.UncheckedAt(i) );
     if (entry->Inclusive())
     {
       result.Remove(*entry);
@@ -792,12 +792,12 @@ AliHLTTriggerDomain AliHLTTriggerDomain::operator & (const AliHLTTriggerDomain& 
   // makes sure that all exclusion entries are always subsets of inclusion entries.
   for (Int_t i = 0; i < domain.fEntries.GetEntriesFast(); i++)
   {
-    const AliHLTDomainEntry* checkEntry = static_cast<const AliHLTDomainEntry*>( domain.fEntries[i] );
+    const AliHLTDomainEntry* checkEntry = static_cast<const AliHLTDomainEntry*>( domain.fEntries.UncheckedAt(i) );
     if (checkEntry->Inclusive())
     {
       for (Int_t j = 0; j < fEntries.GetEntriesFast(); j++)
       {
-        AliHLTDomainEntry* currentEntry = static_cast<AliHLTDomainEntry*>( fEntries[j] );
+        AliHLTDomainEntry* currentEntry = static_cast<AliHLTDomainEntry*>( fEntries.UncheckedAt(j) );
         if (checkEntry->IntersectWith(*currentEntry, intersect))
         {
           // We can remove all entries that were already added to the result that
@@ -812,7 +812,7 @@ AliHLTTriggerDomain AliHLTTriggerDomain::operator & (const AliHLTTriggerDomain& 
     {
       for (Int_t j = 0; j < fEntries.GetEntriesFast(); j++)
       {
-        AliHLTDomainEntry* currentEntry = static_cast<AliHLTDomainEntry*>( fEntries[j] );
+        AliHLTDomainEntry* currentEntry = static_cast<AliHLTDomainEntry*>( fEntries.UncheckedAt(j) );
         if (checkEntry->IntersectWith(*currentEntry, intersect))
         {
           // We can remove all entries that were already added to the result that
@@ -831,6 +831,72 @@ AliHLTTriggerDomain AliHLTTriggerDomain::operator & (const AliHLTTriggerDomain& 
 }
 
 
+bool AliHLTTriggerDomain::operator == (const AliHLTTriggerDomain& domain) const
+{
+  // Checks if two domains are the same.
+  
+  if (fEntries.GetEntriesFast() != domain.fEntries.GetEntriesFast()) return false;
+  
+  // We need to find for each entry in this domain an identical entry in the domain
+  // that we are comparing to. Both entries cannot have subset entries further down
+  // in the entries lists. i.e. for fEntries[n], there cannot be any entry fEntries[m]
+  // that is a subset of fEntries[n] where m > n. Similarly for domain.fEntries.
+  // If two such entries are matched and they respect the subset rule mentioned,
+  // then they are marked. We keep finding matching pairs until no more pairs are
+  // found and check if there are any unmarked entries in either list. If there are
+  // any unmatched pairs then the two domains do not match.
+  //
+  // Note: We use bit 14 in fBits to mark the entries.
+  // 2) We traverse fEntries from back to front (i.e. from N-1 down to 0) so that
+  //    we are guaranteed that fEntries[n] has no subset entries above it that are
+  //    not marked.
+  for (Int_t i = fEntries.GetEntriesFast() - 1; i >= 0; --i)
+  {
+    AliHLTDomainEntry* entry1 = static_cast<const AliHLTDomainEntry*>( fEntries.UncheckedAt(i) );
+    // Find identical domain entry in domain.fEntries.
+    AliHLTDomainEntry* entry2 = NULL;
+    Int_t entry2index = -1;
+    for (Int_t j = fEntries.GetEntriesFast() - 1; j >= 0; --j)
+    {
+      AliHLTDomainEntry* current = static_cast<const AliHLTDomainEntry*>( domain.fEntries.UncheckedAt(j) );
+      if (current->TestBit(BIT(14))) continue;  // skip marked entries.
+      if (entry1->IdenticalTo(*current) and entry1->Exclusive() == current->Exclusive())
+      {
+        entry2 = current;
+        entry2index = j;
+        break;
+      }
+    }
+    if (entry2 == NULL)
+    {
+      // Could not find identical entry in domain.fEntries for fEntries[i] so we
+      // will have at least one unmatched entry and thus the domains do not match.
+      return false;
+    }
+    // Now check if entry2 has any subset entries below it. If it does then
+    // it fails our ordering requirements and the domains cannot match.
+    for (Int_t j = entry2index + 1; j < fEntries.GetEntriesFast(); ++j)
+    {
+      AliHLTDomainEntry* current = static_cast<const AliHLTDomainEntry*>( domain.fEntries.UncheckedAt(j) );
+      if (current->TestBit(BIT(14))) continue;  // skip marked entries.
+      if (entry1->SubsetOf(*current)) return false;
+    }
+    // If we got to this point then entry1 and entry2 are a match and obey the
+    // ordering rules, so mark them.
+    entry1->SetBit(BIT(14), true);
+    entry2->SetBit(BIT(14), true);
+  }
+  // At this point we could find all pairs so the domains match.
+  // We now just need to clear the bits that we set.
+  for (Int_t i = 0; i < fEntries.GetEntriesFast() - 1; ++i)
+  {
+    fEntries[i]->SetBit(BIT(14), false);
+    domain.fEntries[i]->SetBit(BIT(14), false);
+  }
+  return true;
+}
+
+
 AliHLTTriggerDomain::operator AliHLTReadoutList () const
 {
   // Typecast operator which constructs a readout list from the trigger domain.
@@ -841,7 +907,7 @@ AliHLTTriggerDomain::operator AliHLTReadoutList () const
     for (Int_t i = 0; i < AliHLTDAQ::NumberOfDdls(deti); i++)
     {
       Int_t ddlId = AliHLTDAQ::DdlID(deti, i);
-      if (Contains(AliHLTDomainEntry("DAQRDOUT", AliHLTDAQ::OnlineName(deti), ddlId)))
+      if (Contains(AliHLTDomainEntry(kAliHLTDAQRDOUTDataTypeID, AliHLTDAQ::OnlineName(deti), ddlId)))
       {
         result.EnableDDLBit(ddlId);
       }
@@ -892,7 +958,7 @@ void AliHLTTriggerDomain::MergeEntries(
     }
     else
     {
-      const AliHLTDomainEntry* newEntry = static_cast<const AliHLTDomainEntry*>( domain.fEntries[i] );
+      const AliHLTDomainEntry* newEntry = static_cast<const AliHLTDomainEntry*>( domain.fEntries.UncheckedAt(i) );
       new (fEntries[entriesCount+i]) AliHLTDomainEntry(*newEntry);
     }
   }
@@ -901,8 +967,8 @@ void AliHLTTriggerDomain::MergeEntries(
   // the MarkForDeletionSubsetsOf method.
   for (Int_t i = startOfIntersects; i < fEntries.GetEntriesFast(); i++)
   {
-    const AliHLTDomainEntry* ientry = static_cast<const AliHLTDomainEntry*>( fEntries[i] );
-    if (ientry->TestBit(14))
+    const AliHLTDomainEntry* ientry = static_cast<const AliHLTDomainEntry*>( fEntries.UncheckedAt(i) );
+    if (ientry->TestBit(BIT(14)))
     {
       fEntries.RemoveAt(i);
       anythingRemoved = true;
@@ -921,11 +987,11 @@ void AliHLTTriggerDomain::MarkForDeletionSubsetsOf(const AliHLTDomainEntry& entr
   AliHLTDomainEntry intersect;
   for (Int_t i = min; i < fEntries.GetEntriesFast(); i++)
   {
-    AliHLTDomainEntry* ientry = static_cast<AliHLTDomainEntry*>( fEntries[i] );
-    if (ientry->TestBit(14)) continue;
+    AliHLTDomainEntry* ientry = static_cast<AliHLTDomainEntry*>( fEntries.UncheckedAt(i) );
+    if (ientry->TestBit(BIT(14))) continue;
     if (ientry->SubsetOf(entry))
     {
-      ientry->SetBit(14, true);
+      ientry->SetBit(BIT(14), true);
     }
   }
 }
@@ -939,8 +1005,8 @@ void AliHLTTriggerDomain::RemoveMarkedEntries()
   bool anythingRemoved = false;
   for (Int_t i = 0; i < fEntries.GetEntriesFast(); i++)
   {
-    const AliHLTDomainEntry* ientry = static_cast<const AliHLTDomainEntry*>( fEntries[i] );
-    if (ientry->TestBit(14))
+    const AliHLTDomainEntry* ientry = static_cast<const AliHLTDomainEntry*>( fEntries.UncheckedAt(i) );
+    if (ientry->TestBit(BIT(14)))
     {
       fEntries.RemoveAt(i);
       anythingRemoved = true;
@@ -960,25 +1026,25 @@ void AliHLTTriggerDomain::Optimise()
   // Check that the first entry is not and exclusion which would be redundent.
   if (fEntries.GetEntriesFast() == 0) return;
   AliHLTDomainEntry* firstEntry = static_cast<AliHLTDomainEntry*>( fEntries[0] );
-  if (firstEntry->Exclusive()) firstEntry->SetBit(14, true);
+  if (firstEntry->Exclusive()) firstEntry->SetBit(BIT(14), true);
   
   for (Int_t i = 1; i < fEntries.GetEntriesFast(); i++)
   {
-    AliHLTDomainEntry* ientry = static_cast<AliHLTDomainEntry*>( fEntries[i] );
+    AliHLTDomainEntry* ientry = static_cast<AliHLTDomainEntry*>( fEntries.UncheckedAt(i) );
     
     // For the i'th entry in fEntries, compare it in reverse order with all other
     // entries that are before it and look for redundant ones, i.e. that are subsets
     // of the i'th entry.
     for (Int_t j = i-1; j >= 0; j--)
     {
-      AliHLTDomainEntry* jentry = static_cast<AliHLTDomainEntry*>( fEntries[j] );
-      if (jentry->TestBit(14)) continue;
+      AliHLTDomainEntry* jentry = static_cast<AliHLTDomainEntry*>( fEntries.UncheckedAt(j) );
+      if (jentry->TestBit(BIT(14))) continue;
       // Find entries that intersect
       if (jentry->SubsetOf(*ientry))
       {
         // jentry is a subset of ientry so it is redundant because for all values
         // ientry will override jentry when calling IncludeInReadout.
-        jentry->SetBit(14, true);
+        jentry->SetBit(BIT(14), true);
       }
       else if (*ientry == *jentry)
       {
@@ -988,7 +1054,7 @@ void AliHLTTriggerDomain::Optimise()
         
         if (ientry->SubsetOf(*jentry))
         {
-          ientry->SetBit(14, true);
+          ientry->SetBit(BIT(14), true);
           goto processNextEntry;
         }
       }
@@ -998,7 +1064,7 @@ void AliHLTTriggerDomain::Optimise()
     // (pattern matching) list without hitting any and overlapping entries.
     // So now we need to check if ientry is an exclusion. If it is, then it is
     // redundant and we can mark it for removal.
-    if (ientry->Exclusive()) ientry->SetBit(14, true);
+    if (ientry->Exclusive()) ientry->SetBit(BIT(14), true);
     
     processNextEntry: ;
   }
@@ -1006,3 +1072,8 @@ void AliHLTTriggerDomain::Optimise()
   RemoveMarkedEntries();
 }
 
+const AliHLTDomainEntry& AliHLTTriggerDomain::operator[](int index) const
+{
+  // Access individual entry of the domain
+  return static_cast<AliHLTDomainEntry&>(*fEntries[index]);
+}

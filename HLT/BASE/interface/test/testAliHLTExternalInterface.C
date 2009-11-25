@@ -24,7 +24,15 @@
 
 #include "AliHLTDataTypes.h"
 #include "AliHLTExternalInterface.h"
+#include "AliHLTTest.h"
+#include "AliCDBManager.h"
+#include "AliCDBPath.h"
+#include "AliCDBId.h"
+#include "AliCDBMetaData.h"
+#include "AliCDBRunRange.h"
+#include "AliGRPObject.h"
 #include <cstring>
+#include <cstdlib>
 #include <dlfcn.h>
 #include <iostream>
 
@@ -54,9 +62,43 @@ void* AllocMemory( void* param, unsigned long size )
   return new AliHLTUInt8_t[size];
 }
 
+int CreateGRP() {
+  AliCDBManager* man = AliCDBManager::Instance();
+  if (!man) {
+    cerr << "can not get AliCDBManager" << endl;
+    return -1;
+  }
+  TString storage;
+  man->SetDefaultStorage("local://$PWD");
+
+  // generate GRP object
+  AliGRPObject* grpObj=new AliGRPObject;
+  float cmsEnergy=14000;
+  grpObj->SetBeamEnergy(cmsEnergy/0.120); // LHC convention
+  grpObj->SetBeamType("p-p");
+  grpObj->SetLHCLuminosity(0,(AliGRPObject::Stats)0);
+  grpObj->SetBeamIntensity(0,(AliGRPObject::Stats)0);
+  grpObj->SetL3Current(30000,(AliGRPObject::Stats)0);
+  grpObj->SetDipoleCurrent(0,(AliGRPObject::Stats)0);  
+  grpObj->SetL3Polarity(1);  
+  grpObj->SetDipolePolarity(0);
+  grpObj->SetPolarityConventionLHC();                    // LHC convention +/+ current -> -/- field main components
+
+  // write object to OCDB
+  AliCDBPath cdbPath("GRP/GRP/Data");
+  AliCDBId cdbId(cdbPath, 0, AliCDBRunRange::Infinity());
+  AliCDBMetaData cdbMetaData;
+  cdbMetaData.SetResponsible("ALICE HLT");
+  cdbMetaData.SetComment("Automatically produced GRP entry (AliHLTSimulation) for the magnetic field initialization of HLT components");
+  man->Put(grpObj, cdbId, &cdbMetaData);
+  return 0;
+}
+
 int main(int /*argc*/, const char** /*argv*/)
 {
   int iResult=0;
+
+  if ((iResult=CreateGRP()) < 0) return iResult;
 
   string libraryPath=gBasePath;
   libraryPath+="/";
@@ -199,6 +241,18 @@ int main(int /*argc*/, const char** /*argv*/)
   }
 #endif //HLT_RCU
 
+#ifdef HLT_GLOBAL
+  module="Global";
+  libraryPath="../../../";
+  libraryPath+="global";
+  libraryPath+="/.libs/libAliHLT";
+  libraryPath+=module;
+  libraryPath+=".so";
+  if ((iResult=fctLoadLibrary(libraryPath.c_str()))<0) {
+    return iResult;
+  }
+#endif //HLT_GLOBAL
+
   libraryPath=".libs/libAliHLTTest.so";
   if ((iResult=fctLoadLibrary(libraryPath.c_str()))<0) {
     return iResult;
@@ -218,6 +272,7 @@ int main(int /*argc*/, const char** /*argv*/)
 
   // Matthias 2009-05-29: here the check whether the setup is really
   // working needs to be implemented, postponing it for the moment
+//   AliHLTTest* pCheck=reinterpret_cast<AliHLTTest*>(handle);
 //   if (!pCheck->CheckRunNo(0xbeef)) {
 //     cerr << "error: propagation of run number failed " << hex << gRunNo << " vs. 0xbeef" << endl;
 //     return -1;
@@ -226,6 +281,10 @@ int main(int /*argc*/, const char** /*argv*/)
 //   // can be used in the new interface again
 //   if (!pCheck->CheckChainId("test")) {
 //     cerr << "propagation of chain id failed: '" << gChainId << "' vs. test" << endl;
+//     return -1;
+//   }
+//   if (!pCheck->CheckMagneticField(-5)) {
+//     cerr << "initialization of magnetic field failed" << endl;
 //     return -1;
 //   }
 

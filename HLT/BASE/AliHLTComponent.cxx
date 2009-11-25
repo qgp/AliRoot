@@ -30,6 +30,7 @@ using namespace std;
 #include "AliHLTComponent.h"
 #include "AliHLTComponentHandler.h"
 #include "AliHLTMessage.h"
+#include "AliHLTCTPData.h"
 #include "TString.h"
 #include "TMath.h"
 #include "TObjArray.h"
@@ -40,6 +41,7 @@ using namespace std;
 #include "AliHLTMemoryFile.h"
 #include "AliHLTMisc.h"
 #include <cassert>
+#include <ctime>
 #include <stdint.h>
 
 /**
@@ -91,7 +93,9 @@ AliHLTComponent::AliHLTComponent()
   fEventDoneDataSize(0),
   fCompressionLevel(ALIHLTCOMPONENT_DEFAULT_OBJECT_COMPRESSION)
   , fLastObjectSize(0)
-  , fpTriggerClasses(NULL)
+  , fpCTPData(NULL)
+  , fPushbackPeriod(0)
+  , fLastPushBackTime(-1)
 {
   // see header file for class documentation
   // or
@@ -134,11 +138,10 @@ AliHLTComponent::~AliHLTComponent()
     delete [] reinterpret_cast<AliHLTUInt8_t*>( fEventDoneData );
   fEventDoneData=NULL;
 
-  if (fpTriggerClasses) {
-    fpTriggerClasses->Delete();
-    delete fpTriggerClasses;
+  if (fpCTPData) {
+    delete fpCTPData;
   }
-  fpTriggerClasses=NULL;
+  fpCTPData=NULL;
 }
 
 AliHLTComponentHandler* AliHLTComponent::fgpComponentHandler=NULL;
@@ -182,6 +185,9 @@ int AliHLTComponent::Init(const AliHLTAnalysisEnvironment* comenv, void* environ
   if (comenv) {
     SetComponentEnvironment(comenv, environParam);
   }
+  fPushbackPeriod=0;
+  fLastPushBackTime=-1;
+
   fComponentArgs="";
   const char** pArguments=NULL;
   int iNofChildArgs=0;
@@ -223,6 +229,14 @@ int AliHLTComponent::Init(const AliHLTAnalysisEnvironment* comenv, void* environ
 	    }
 	  } else {
 	    HLTError("wrong parameter for argument -object-compression, number expected");
+	  }
+	  // -pushback-period=
+	} else if (argument.BeginsWith("-pushback-period=")) {
+	  argument.ReplaceAll("-pushback-period=", "");
+	  if (argument.IsDigit()) {
+	    fPushbackPeriod=argument.Atoi();
+	  } else {
+	    HLTError("wrong parameter for argument -pushback-period, number expected");
 	  }
 	} else {
 	  pArguments[iNofChildArgs++]=argv[i];
@@ -277,16 +291,17 @@ int AliHLTComponent::Deinit()
     // AliHLTRunDesc is set before the SOR event in the SetRunDescription
     // method. A couple of state flags should be defined but that is a bit more
     // work to do. For the moment disable the warning (2009-07-01)
+    // 2009-09-08: now, the info is not cleared in the ProcessEvent, because it
+    // might be needed by components during the event processing.
     //HLTWarning("did not receive EOR for run %d", fpRunDesc->fRunNo);
     AliHLTRunDesc* pRunDesc=fpRunDesc;
     fpRunDesc=NULL;
     delete pRunDesc;
   }
-  if (fpTriggerClasses) {
-    fpTriggerClasses->Delete();
-    delete fpTriggerClasses;
+  if (fpCTPData) {
+    delete fpCTPData;
   }
-  fpTriggerClasses=NULL;
+  fpCTPData=NULL;
 
   fEventCount=0;
   return iResult;
@@ -373,7 +388,7 @@ int AliHLTComponent::SetComponentDescription(const char* desc)
   TString descriptor=desc;
   TObjArray* pTokens=descriptor.Tokenize(" ");
   if (pTokens) {
-    for (int i=0; i<pTokens->GetEntries() && iResult>=0; i++) {
+    for (int i=0; i<pTokens->GetEntriesFast() && iResult>=0; i++) {
       TString argument=((TObjString*)pTokens->At(i++))->GetString();
       if (!argument || argument.IsNull()) continue;
 
@@ -394,6 +409,100 @@ int AliHLTComponent::SetComponentDescription(const char* desc)
   }
   
   return iResult;
+}
+
+int AliHLTComponent::ConfigureFromArgumentString(int argc, const char** argv)
+{
+  // see header file for function documentation
+  int iResult=0;
+  vector<const char*> array;
+  TObjArray choppedArguments;
+  TString argument="";
+  int i=0;
+  for (i=0; i<argc && iResult>=0; i++) {
+    argument=argv[i];
+    if (argument.IsNull()) continue;
+    TObjArray* pTokens=argument.Tokenize(" ");
+    if (pTokens) {
+      if (pTokens->GetEntriesFast()>0) {
+	for (int n=0; n<pTokens->GetEntriesFast(); n++) {
+	  choppedArguments.AddLast(pTokens->At(n));
+	  TString data=((TObjString*)pTokens->At(n))->GetString();
+	  if (!data.IsNull()) {
+	    array.push_back(data.Data());
+	  }
+	}
+	pTokens->SetOwner(kFALSE);
+      }
+      delete pTokens;
+    }
+  }
+
+  for (i=0; (unsigned)i<array.size() && iResult>=0;) {
+    int result=ScanConfigurationArgument(array.size()-i, &array[i]);
+    if (result==0) {
+      HLTWarning("unknown component argument %s", array[i]);
+      i++;
+    } else if (result>0) {
+      i+=result;
+    } else {
+      iResult=result;
+      if (iResult==-EINVAL) {
+	HLTError("unknown argument %s", array[i]);
+      } else if (iResult==-EPROTO) {
+	HLTError("missing/wrong parameter for argument %s (%s)", array[i], (array.size()>(unsigned)i+1)?array[i+1]:"missing");
+      } else {
+	HLTError("scan of argument %s failed (%d)", array[i], iResult);
+      }
+    }
+  }
+
+  return iResult;
+}
+
+int AliHLTComponent::ConfigureFromCDBTObjString(const char* entries)
+{
+  // see header file for function documentation
+  int iResult=0;
+  TString arguments;
+  TString confEntries=entries;
+  TObjArray* pTokens=confEntries.Tokenize(" ");
+  if (pTokens) {
+    for (int n=0; n<pTokens->GetEntriesFast(); n++) {
+      const char* path=((TObjString*)pTokens->At(n))->GetString().Data();
+      const char* chainId=GetChainId();
+      HLTInfo("configure from entry %s, chain id %s", path, (chainId!=NULL && chainId[0]!=0)?chainId:"<none>");
+      TObject* pOCDBObject = LoadAndExtractOCDBObject(path);
+      if (pOCDBObject) {
+	TObjString* pString=dynamic_cast<TObjString*>(pOCDBObject);
+	if (pString) {
+	  HLTInfo("received configuration object string: \'%s\'", pString->GetString().Data());
+	  arguments+=pString->GetString().Data();
+	  arguments+=" ";
+	} else {
+	  HLTError("configuration object \"%s\" has wrong type, required TObjString", path);
+	  iResult=-EINVAL;
+	}
+      } else {
+	HLTError("can not fetch object \"%s\" from OCDB", path);
+	iResult=-ENOENT;
+      }
+    }
+    delete pTokens;
+  }
+  if (iResult>=0 && !arguments.IsNull())  {
+    const char* array=arguments.Data();
+    iResult=ConfigureFromArgumentString(1, &array);
+  }
+  return iResult;
+}
+
+TObject* AliHLTComponent::LoadAndExtractOCDBObject(const char* path, int version, int subVersion)
+{
+  // see header file for function documentation
+  AliCDBEntry* pEntry=AliHLTMisc::Instance().LoadOCDBEntry(path, GetRunNo(), version, subVersion);
+  if (!pEntry) return NULL;
+  return AliHLTMisc::Instance().ExtractObject(pEntry);
 }
 
 int AliHLTComponent::DoInit( int /*argc*/, const char** /*argv*/)
@@ -421,6 +530,14 @@ int AliHLTComponent::ReadPreprocessorValues(const char* /*modules*/)
 {
   // default implementation, childs can overload
   HLTLogKeyword("dummy");
+  return 0;
+}
+
+int AliHLTComponent::ScanConfigurationArgument(int /*argc*/, const char** /*argv*/)
+{
+  // default implementation, childs can overload
+  HLTLogKeyword("dummy");
+  HLTWarning("The function needs to be implemented by the component");
   return 0;
 }
 
@@ -573,9 +690,11 @@ int AliHLTComponent::ReserveEventDoneData( unsigned long size )
   // see header file for function documentation
   int iResult=0;
 
-  
-  if (size>fEventDoneDataSize) {
-    AliHLTComponentEventDoneData* newEDD = reinterpret_cast<AliHLTComponentEventDoneData*>( new AliHLTUInt8_t[ sizeof(AliHLTComponentEventDoneData)+size ] );
+  unsigned long capacity=fEventDoneDataSize;
+  if (fEventDoneData) capacity-=sizeof(AliHLTComponentEventDoneData)+fEventDoneData->fDataSize;
+  if (size>capacity) {
+    unsigned long newSize=sizeof(AliHLTComponentEventDoneData)+size+(fEventDoneDataSize-capacity);
+    AliHLTComponentEventDoneData* newEDD = reinterpret_cast<AliHLTComponentEventDoneData*>( new AliHLTUInt8_t[newSize] );
     if (!newEDD)
       return -ENOMEM;
     newEDD->fStructSize = sizeof(AliHLTComponentEventDoneData);
@@ -587,7 +706,7 @@ int AliHLTComponent::ReserveEventDoneData( unsigned long size )
       delete [] reinterpret_cast<AliHLTUInt8_t*>( fEventDoneData );
     }
     fEventDoneData = newEDD;
-    fEventDoneDataSize = size;
+    fEventDoneDataSize = newSize;
   }
   return iResult;
 
@@ -918,7 +1037,7 @@ int AliHLTComponent::CleanupInputObjects()
   if (!fpInputObjects) return 0;
   TObjArray* array=fpInputObjects;
   fpInputObjects=NULL;
-  for (int i=0; i<array->GetEntries(); i++) {
+  for (int i=0; i<array->GetEntriesFast(); i++) {
     TObject* pObj=array->At(i);
     // grrr, garbage collection strikes back: When read via AliHLTMessage
     // (CreateInputObject), and written to a TFile afterwards, the
@@ -1111,6 +1230,11 @@ int AliHLTComponent::PushBack(TObject* pObject, const AliHLTComponentDataType& d
   ALIHLTCOMPONENT_BASE_STOPWATCH();
   int iResult=0;
   fLastObjectSize=0;
+  if (fPushbackPeriod>0) {
+    // suppress the output
+    TDatime time;
+    if (fLastPushBackTime<0 || (int)time.Get()-fLastPushBackTime<fPushbackPeriod) return 0;
+  }
   if (pObject) {
     AliHLTMessage msg(kMESS_OBJECT);
     msg.SetCompressionLevel(fCompressionLevel);
@@ -1166,6 +1290,12 @@ int AliHLTComponent::PushBack(const void* pBuffer, int iSize, const AliHLTCompon
 {
   // see header file for function documentation
   ALIHLTCOMPONENT_BASE_STOPWATCH();
+  if (fPushbackPeriod>0) {
+    // suppress the output
+    TDatime time;
+    if (fLastPushBackTime<0 || (int)time.Get()-fLastPushBackTime<fPushbackPeriod) return 0;
+  }
+
   return InsertOutputBlock(pBuffer, iSize, dt, spec, pHeader, headerSize);
 }
 
@@ -1581,6 +1711,7 @@ int AliHLTComponent::ProcessEvent( const AliHLTComponentEventData& evtData,
       }
     }
     if (indexEOREvent>=0) {
+      fLastPushBackTime=0; // always send at EOR
       bAddComponentTableEntry=true;
       if (fpRunDesc!=NULL) {
 	if (fpRunDesc) {
@@ -1592,9 +1723,10 @@ int AliHLTComponent::ProcessEvent( const AliHLTComponentEventData& evtData,
 	      HLTDebug("EOR run no %d", fpRunDesc->fRunNo);
 	    }
 	  }
-	  AliHLTRunDesc* pRunDesc=fpRunDesc;
-	  fpRunDesc=NULL;
-	  delete pRunDesc;
+	  // we do not unload the fpRunDesc struct here in order to have the run information
+	  // available during the event processing
+	  // https://savannah.cern.ch/bugs/?39711
+	  // the info will be cleared in DeInit
 	}
       } else {
 	HLTWarning("did not receive SOR, ignoring EOR");
@@ -1631,6 +1763,13 @@ int AliHLTComponent::ProcessEvent( const AliHLTComponentEventData& evtData,
   // data processing is not skipped if the component explicitly asks
   // for the private blocks
   if (fRequireSteeringBlocks) bSkipDataProcessing=0;
+
+  if (fpCTPData) {
+    // set the active triggers for this event
+    fpCTPData->SetTriggers(trigData);
+    // increment CTP trigger counters if available
+    if (IsDataEvent()) fpCTPData->Increment(trigData);
+  }
 
   AliHLTComponentBlockDataList blockData;
   if (iResult>=0 && !bSkipDataProcessing)
@@ -1710,7 +1849,22 @@ int AliHLTComponent::ProcessEvent( const AliHLTComponentEventData& evtData,
     // no output blocks, set size to 0
     size=0;
   }
+
+  // reset the internal EventData struct
   FillEventData(fCurrentEventData);
+
+  // reset the active triggers
+  if (fpCTPData) fpCTPData->SetTriggers(0);
+
+  // set the time for the pushback period
+  if (fPushbackPeriod>0) {
+    // suppress the output
+    TDatime time;
+    if (fLastPushBackTime<0 || (int)time.Get()-fLastPushBackTime>=fPushbackPeriod) {
+      fLastPushBackTime=time.Get();
+    }
+  }
+
   return iResult;
 }
 
@@ -1969,7 +2123,7 @@ int AliHLTComponent::SetStopwatches(TObjArray* pStopwatches)
   if (pStopwatches==NULL) return -EINVAL;
 
   int iResult=0;
-  for (int i=0 ; i<(int)kSWTypeCount && pStopwatches->GetEntries(); i++)
+  for (int i=0 ; i<(int)kSWTypeCount && pStopwatches->GetEntriesFast(); i++)
     SetStopwatch(pStopwatches->At(i), (AliHLTStopwatchType)i);
   return iResult;
 }
@@ -1986,6 +2140,34 @@ AliHLTUInt32_t AliHLTComponent::GetRunType() const
   // see header file for function documentation
   if (fpRunDesc==NULL) return kAliHLTVoidRunType;
   return fpRunDesc->fRunType;
+}
+
+AliHLTUInt32_t    AliHLTComponent::GetTimeStamp() const
+{
+  // see header file for function documentation
+  if (fCurrentEventData.fEventCreation_s) {
+    return  fCurrentEventData.fEventCreation_s;
+  }
+  // using the actual UTC if the time stamp was not set by the framework
+  return static_cast<AliHLTUInt32_t>(time(NULL));
+}
+
+AliHLTUInt32_t    AliHLTComponent::GetPeriodNumber() const
+{
+  // see header file for function documentation
+  return (GetEventId()>>36)&0xfffffff;
+}
+
+AliHLTUInt32_t    AliHLTComponent::GetOrbitNumber() const
+{
+  // see header file for function documentation
+  return (GetEventId()>>12)&0xffffff;
+}
+
+AliHLTUInt16_t    AliHLTComponent::GetBunchCrossNumber() const
+{
+  // see header file for function documentation
+  return GetEventId()&0xfff;
 }
 
 bool AliHLTComponent::IsDataEvent(AliHLTUInt32_t* pTgt)
@@ -2183,20 +2365,20 @@ int AliHLTComponent::ExtractComponentTableEntry(const AliHLTUInt8_t* pBuffer, Al
   TObjArray* pTokens=descriptor.Tokenize("{");
   if (pTokens) {
     int n=0;
-    if (pTokens->GetEntries()>n) {
+    if (pTokens->GetEntriesFast()>n) {
       retChainId=((TObjString*)pTokens->At(n++))->GetString();
     }
-    if (pTokens->GetEntries()>n) {
+    if (pTokens->GetEntriesFast()>n) {
       compId=((TObjString*)pTokens->At(n++))->GetString();
     }
     delete pTokens;
   }
   if (!compId.IsNull() && (pTokens=compId.Tokenize(":"))!=NULL) {
     int n=0;
-    if (pTokens->GetEntries()>n) {
+    if (pTokens->GetEntriesFast()>n) {
       compId=((TObjString*)pTokens->At(n++))->GetString();
     }
-    if (pTokens->GetEntries()>n) {
+    if (pTokens->GetEntriesFast()>n) {
       compArgs=((TObjString*)pTokens->At(n++))->GetString();
     }
     delete pTokens;
@@ -2226,9 +2408,9 @@ int AliHLTComponent::LoggingVarargs(AliHLTComponentLogSeverity severity,
   // without problems. But at this point we face the problem with virtual members which
   // are not necessarily const.
   AliHLTComponent* nonconst=const_cast<AliHLTComponent*>(this);
-  AliHLTLogging::SetLogString("%s (%s, %p): ", 
+  AliHLTLogging::SetLogString(this, ", %p", "%s (%s_pfmt_): ", 
 			      fChainId[0]!=0?fChainId.c_str():nonconst->GetComponentID(),
-			      nonconst->GetComponentID(), this);
+			      nonconst->GetComponentID());
   iResult=SendMessage(severity, originClass, originFunc, file, line, AliHLTLogging::BuildLogString(NULL, args, true /*append*/));
   va_end(args);
 
@@ -2242,16 +2424,27 @@ int AliHLTComponent::ScanECSParam(const char* ecsParam)
   // format of the parameter string from ECS
   // <command>;<parameterkey>=<parametervalue>;<parameterkey>=<parametervalue>;...
   // search for a subset of the parameterkeys
+  //   RUN_TYPE=
+  //   RUN_NUMBER=
+  //   HLT_IN_DDL_LIST=
+  //   CTP_TRIGGER_CLASS=
+  //   DATA_FORMAT_VERSION=
+  //   BEAM_TYPE=
+  //   HLT_OUT_DDL_LIST=
+  //   HLT_TRIGGER_CODE=
+  //   DETECTOR_LIST=
+  //   HLT_MODE=
+  // The command apears not to be sent by the online framework
   int iResult=0;
   TString string=ecsParam;
   TObjArray* parameter=string.Tokenize(";");
   if (parameter) {
-    for (int i=0; i<parameter->GetEntries(); i++) {
+    for (int i=0; i<parameter->GetEntriesFast(); i++) {
       TString entry=((TObjString*)parameter->At(i))->GetString();
       HLTDebug("scanning ECS entry: %s", entry.Data());
       TObjArray* entryParams=entry.Tokenize("=");
       if (entryParams) {
-	if (entryParams->GetEntries()>1) {
+	if (entryParams->GetEntriesFast()>1) {
 	  if ((((TObjString*)entryParams->At(0))->GetString()).CompareTo("CTP_TRIGGER_CLASS")==0) {
 	    int result=InitCTPTriggerClasses((((TObjString*)entryParams->At(1))->GetString()).Data());
 	    if (iResult>=0 && result<0) iResult=result;
@@ -2269,96 +2462,49 @@ int AliHLTComponent::ScanECSParam(const char* ecsParam)
   return iResult;
 }
 
+int AliHLTComponent::SetupCTPData()
+{
+  // see header file for function documentation
+  if (fpCTPData) delete fpCTPData;
+  fpCTPData=new AliHLTCTPData;
+  if (!fpCTPData) return -ENOMEM;
+  return 0;
+}
+
 int AliHLTComponent::InitCTPTriggerClasses(const char* ctpString)
 {
   // see header file for function documentation
-  if (!ctpString) return -EINVAL;
-
-  if (fpTriggerClasses) {
-    fpTriggerClasses->Delete();
-  } else {
-    fpTriggerClasses=new TObjArray(gkNCTPTriggerClasses);
-  }
-  if (!fpTriggerClasses) return -ENOMEM;
-
-  // general format of the CTP_TRIGGER_CLASS parameter
-  // <bit position>:<Trigger class identifier string>:<detector-id-nr>-<detector-id-nr>-...,<bit position>:<Trigger class identifier string>:<detector-id-nr>-<detector-id-nr>-...,...
-  // the detector ids are ignored for the moment
-  HLTDebug(": %s", ctpString);
-  TString string=ctpString;
-  TObjArray* classEntries=string.Tokenize(",");
-  if (classEntries) {
-    for (int i=0; i<classEntries->GetEntries(); i++) {
-      TString entry=((TObjString*)classEntries->At(i))->GetString();
-      TObjArray* entryParams=entry.Tokenize(":");
-      if (entryParams) {
-	if (entryParams->GetEntries()==3 &&
-	    (((TObjString*)entryParams->At(0))->GetString()).IsDigit()) {
-	  int index=(((TObjString*)entryParams->At(0))->GetString()).Atoi();
-	  if (index<gkNCTPTriggerClasses) {
-	    fpTriggerClasses->AddAt(new TNamed("TriggerClass", (((TObjString*)entryParams->At(1))->GetString()).Data()), index);
-	  } else {
-	    // the trigger bitfield is fixed to 50 bits (gkNCTPTriggerClasses)
-	    HLTError("invalid trigger class entry %s, index width of trigger bitfield", entry.Data());
-	  }
-	} else {
-	  HLTError("invalid trigger class entry %s", entry.Data());
-	}
-	delete entryParams;
-      }
-    }
-    delete classEntries;
-  }
-  return 0;
+  if (!fpCTPData) return 0; // silently accept as the component has to announce that it want's the CTP info
+  return fpCTPData->InitCTPTriggerClasses(ctpString);
 }
 
 bool AliHLTComponent::EvaluateCTPTriggerClass(const char* expression, AliHLTComponentTriggerData& trigData) const
 {
   // see header file for function documentation
-  if (!fpTriggerClasses) {
-    HLTError("trigger classes not initialized");
+  if (!fpCTPData) {
+    static bool bWarningThrown=false;
+    if (!bWarningThrown) HLTError("Trigger classes not initialized, use SetupCTPData from DoInit()");
+    bWarningThrown=true;
     return false;
   }
 
-  if (trigData.fDataSize != sizeof(AliHLTEventTriggerData)) {
-    HLTError("invalid trigger data size: %d expected %d", trigData.fDataSize, sizeof(AliHLTEventTriggerData));
-    return false;
-  }
+  return fpCTPData->EvaluateCTPTriggerClass(expression, trigData);
+}
 
-  // trigger mask is 50 bit wide and is stored in word 5 and 6 of the CDH
-  AliHLTEventTriggerData* evtData=reinterpret_cast<AliHLTEventTriggerData*>(trigData.fData);
-  AliHLTUInt64_t triggerMask=evtData->fCommonHeader[6];
-  triggerMask<<=32;
-  triggerMask|=evtData->fCommonHeader[5];
+Double_t AliHLTComponent::GetBz()
+{
+  // Returns Bz.
+  return AliHLTMisc::Instance().GetBz();
+}
 
-  // use a TFormula to interprete the expression
-  // all classname are replaced by '[n]' which means the n'th parameter in the formula
-  // the parameters are set to 0 or 1 depending on the bit in the trigger mask
-  //
-  // TODO: this will most likely fail for class names like 'base', 'baseA', 'baseB'
-  // the class names must be fully unique, none must be contained as substring in
-  // another class name. Probably not needed for the moment but needs to be extended.
-  vector<Double_t> par;
-  TString condition=expression;
-  for (int i=0; i<gkNCTPTriggerClasses; i++) {
-    if (fpTriggerClasses->At(i)) {
-      TString className=fpTriggerClasses->At(i)->GetTitle();
-      //HLTDebug("checking trigger class %s", className.Data());
-      if (condition.Contains(className)) {
-	TString replace; replace.Form("[%d]", par.size());
-	//HLTDebug("replacing %s with %s in \"%s\"", className.Data(), replace.Data(), condition.Data());
-	condition.ReplaceAll(className, replace);
-	if (triggerMask&((AliHLTUInt64_t)0x1<<i)) par.push_back(1.0);
-	else par.push_back(0.0);
-      }
-    }
-  }
+Double_t AliHLTComponent::GetBz(const Double_t *r)
+{
+  // Returns Bz (kG) at the point "r" .
+  return AliHLTMisc::Instance().GetBz(r);
+}
 
-  TFormula form("trigger expression", condition);
-  if (form.Compile()!=0) {
-    HLTError("invalid expression %s", expression);
-    return false;
-  }
-  if (form.EvalPar(&par[0], &par[0])>0.5) return true;
-  return false;
+void AliHLTComponent::GetBxByBz(const Double_t r[3], Double_t b[3])
+{
+  // Returns Bx, By and Bz (kG) at the point "r" .
+  AliHLTMisc::Instance().GetBxByBz(r, b);
 }

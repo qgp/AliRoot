@@ -76,7 +76,7 @@ void AliHLTGlobalTriggerDecision::Print(Option_t* option) const
     cout << "#################### Input trigger decisions ####################" << endl;
     for (Int_t i = 0; i < NumberOfTriggerInputs(); i++)
     {
-      TriggerInput(i)->Print(option);
+      if (TriggerInput(i)) TriggerInput(i)->Print(option);
     }
     if (NumberOfTriggerInputs() == 0)
     {
@@ -103,7 +103,7 @@ void AliHLTGlobalTriggerDecision::Print(Option_t* option) const
     for (Int_t i = 0; i < NumberOfTriggerInputs(); i++)
     {
       cout << "-------------------- Input trigger decision " << i << " --------------------" << endl;
-      TriggerInput(i)->Print(option);
+      if (TriggerInput(i)) TriggerInput(i)->Print(option);
     }
     if (NumberOfTriggerInputs() == 0)
     {
@@ -113,7 +113,7 @@ void AliHLTGlobalTriggerDecision::Print(Option_t* option) const
     for (Int_t i = 0; i < NumberOfInputObjects(); i++)
     {
       cout << "------------------------ Input object " << i << " ------------------------" << endl;
-      InputObject(i)->Print(option);
+      if (InputObject(i)) InputObject(i)->Print(option);
     }
     if (NumberOfInputObjects() == 0)
     {
@@ -194,4 +194,16 @@ AliHLTGlobalTriggerDecision& AliHLTGlobalTriggerDecision::operator=(const AliHLT
   SetCounters(src.Counters());
 
   return *this;
+}
+
+void AliHLTGlobalTriggerDecision::SetCounters(const TArrayL64& counters, Long64_t eventCount)
+{
+  // Sets the counter array.
+  // If the number of events is specified, an additional counter is added at the end.
+  fCounters = counters;
+  if (eventCount>=0) {
+    int size=fCounters.GetSize();
+    fCounters.Set(size+1);
+    fCounters[size]=eventCount;
+  }
 }

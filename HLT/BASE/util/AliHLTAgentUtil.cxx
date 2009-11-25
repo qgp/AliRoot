@@ -34,12 +34,15 @@
 #include "AliHLTRootFileStreamerComponent.h"
 #include "AliHLTRootFileWriterComponent.h"
 #include "AliHLTRootFilePublisherComponent.h"
+#include "AliHLTRootSchemaEvolutionComponent.h"
 //#include "AliHLTMCGeneratorComponent.h"
 #include "AliHLTESDMCEventPublisherComponent.h"
 #include "AliHLTFileWriter.h"
 #include "AliHLTFilePublisher.h"
 #include "AliHLTBlockFilterComponent.h"
+#include "AliHLTMonitoringRelay.h"
 #include "AliHLTEsdCollectorComponent.h"
+#include "AliHLTReadoutListDumpComponent.h"
 #include "AliHLTOUTPublisherComponent.h"
 #include "AliHLTCompStatCollector.h"
 
@@ -50,9 +53,9 @@ AliHLTAgentUtil gAliHLTAgentUtil;
 ClassImp(AliHLTAgentUtil)
 
 AliHLTAgentUtil::AliHLTAgentUtil()
-  :
-  AliHLTModuleAgent("Util"),
-  fCompStatDataHandler(NULL)
+  : AliHLTModuleAgent("Util")
+  , fCompStatDataHandler(NULL)
+  , fStreamerInfoDataHandler(NULL)
 {
   // see header file for class documentation
   // or
@@ -114,12 +117,15 @@ int AliHLTAgentUtil::RegisterComponents(AliHLTComponentHandler* pHandler) const
   pHandler->AddComponent(new AliHLTRootFileStreamerComponent);
   pHandler->AddComponent(new AliHLTRootFileWriterComponent);
   pHandler->AddComponent(new AliHLTRootFilePublisherComponent);
+  pHandler->AddComponent(new AliHLTRootSchemaEvolutionComponent);
   //  pHandler->AddComponent(new AliHLTMCGeneratorComponent);
   pHandler->AddComponent(new AliHLTESDMCEventPublisherComponent);
   pHandler->AddComponent(new AliHLTFileWriter);
   pHandler->AddComponent(new AliHLTFilePublisher);
   pHandler->AddComponent(new AliHLTBlockFilterComponent);
+  pHandler->AddComponent(new AliHLTMonitoringRelay);
   pHandler->AddComponent(new AliHLTEsdCollectorComponent);
+  pHandler->AddComponent(new AliHLTReadoutListDumpComponent);
   pHandler->AddComponent(new AliHLTOUTPublisherComponent);
   pHandler->AddComponent(new AliHLTCompStatCollector);
   return 0;
@@ -139,6 +145,11 @@ int AliHLTAgentUtil::GetHandlerDescription(AliHLTComponentDataType dt,
       return 1;
   }
 
+  // handler for the component statistics data blocks {'ROOTSTRI':'HLT '}
+  if (dt==kAliHLTDataTypeStreamerInfo) {
+      desc=AliHLTOUTHandlerDesc(kProprietary, dt, GetModuleId());
+      return 1;
+  }
   return 0;
 }
 
@@ -156,6 +167,13 @@ AliHLTOUTHandler* AliHLTAgentUtil::GetOutputHandler(AliHLTComponentDataType dt,
     return fCompStatDataHandler;
   }
 
+  // handler for the component statistics data blocks {'ROOTSTRI':'HLT '}
+  if (dt==kAliHLTDataTypeStreamerInfo) {
+    if (fStreamerInfoDataHandler==NULL)
+      fStreamerInfoDataHandler=new AliHLTStreamerInfoHandler;
+    return fStreamerInfoDataHandler;
+  }
+
   return NULL;
 }
 
@@ -167,6 +185,11 @@ int AliHLTAgentUtil::DeleteOutputHandler(AliHLTOUTHandler* pInstance)
   if (pInstance==fCompStatDataHandler) {
     delete fCompStatDataHandler;
     fCompStatDataHandler=NULL;
+  }
+
+  if (pInstance==fStreamerInfoDataHandler) {
+    delete fStreamerInfoDataHandler;
+    fStreamerInfoDataHandler=NULL;
   }
   return 0;
 }

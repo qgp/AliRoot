@@ -1,5 +1,4 @@
 // $Id$
-
 //**************************************************************************
 //* This file is property of and copyright by the ALICE HLT Project        * 
 //* ALICE Experiment at CERN, All rights reserved.                         *
@@ -42,6 +41,7 @@ using namespace std;
 #include "AliHLTOUTTask.h"
 #include "AliHLTControlTask.h"
 #include "AliHLTDataBuffer.h"
+#include "AliHLTMisc.h"
 #include <TObjArray.h>
 #include <TObjString.h>
 #include <TStopwatch.h>
@@ -56,7 +56,7 @@ const char* AliHLTSystem::fgkHLTDefaultLibs[]= {
   "libAliHLTRCU.so", 
   "libAliHLTTPC.so", 
   //  "libAliHLTSample.so",
-  "libAliHLTPHOS.so",
+  //  "libAliHLTPHOS.so",
   "libAliHLTMUON.so",
   "libAliHLTTRD.so",
   "libAliHLTITS.so",
@@ -84,6 +84,7 @@ AliHLTSystem::AliHLTSystem(AliHLTComponentLogSeverity loglevel, const char* name
   fpHLTOUTTask(NULL),
   fpControlTask(NULL),
   fName(name)
+  , fECSParams()
 {
   // see header file for class documentation
   // or
@@ -104,6 +105,7 @@ AliHLTSystem::AliHLTSystem(AliHLTComponentLogSeverity loglevel, const char* name
     memset(&env, 0, sizeof(AliHLTAnalysisEnvironment));
     env.fStructSize=sizeof(AliHLTAnalysisEnvironment);
     env.fAllocMemoryFunc=AliHLTSystem::AllocMemory;
+    env.fGetEventDoneDataFunc=AliHLTSystem::AllocEventDoneData;
     env.fLoggingFunc=NULL;
     fpComponentHandler->SetEnvironment(&env);
     InitAliLogFunc(fpComponentHandler);
@@ -381,7 +383,7 @@ void AliHLTSystem::PrintTaskList()
   }
 }
 
-int AliHLTSystem::Run(Int_t iNofEvents, int bStop)
+int AliHLTSystem::Run(Int_t iNofEvents, int bStop, AliHLTUInt64_t trgMask)
 {
   // see header file for class documentation
   int iResult=0;
@@ -405,7 +407,7 @@ int AliHLTSystem::Run(Int_t iNofEvents, int bStop)
 	  // reset and prepare for new data
 	  fpHLTOUTTask->Reset();
 	}
-	if ((iResult=ProcessTasks(i))>=0) {
+	if ((iResult=ProcessTasks(i, trgMask))>=0) {
 	  fGoodEvents++;
 	  iCount++;
 	} else {
@@ -617,7 +619,7 @@ int AliHLTSystem::StartTasks()
   return iResult;
 }
 
-int AliHLTSystem::ProcessTasks(Int_t eventNo)
+int AliHLTSystem::ProcessTasks(Int_t eventNo, AliHLTUInt64_t trgMask)
 {
   // see header file for class documentation
   int iResult=0;
@@ -627,7 +629,7 @@ int AliHLTSystem::ProcessTasks(Int_t eventNo)
     TObject* obj=lnk->GetObject();
     if (obj) {
       AliHLTTask* pTask=(AliHLTTask*)obj;
-      iResult=pTask->ProcessTask(eventNo);
+      iResult=pTask->ProcessTask(eventNo, gkAliEventTypeData, trgMask);
 //       ProcInfo_t ProcInfo;
 //       gSystem->GetProcInfo(&ProcInfo);
 //       HLTInfo("task %s processed (%d), current memory usage %d %d", pTask->GetName(), iResult, ProcInfo.fMemResident, ProcInfo.fMemVirtual);
@@ -684,10 +686,31 @@ int AliHLTSystem::SendControlEvent(AliHLTComponentDataType dt)
   // see header file for class documentation
   int iResult=0;
 
+  AliHLTComponentBlockDataList controlBlocks;
+  AliHLTComponentBlockData bd;
+
+  // run decriptor block of type kAliHLTDataTypeSOR/kAliHLTDataTypeEOR 
+  AliHLTComponent::FillBlockData(bd);
   AliHLTRunDesc runDesc;
   memset(&runDesc, 0, sizeof(AliHLTRunDesc));
   runDesc.fStructSize=sizeof(AliHLTRunDesc);
-  AliHLTControlTask::AliHLTControlEventGuard g(fpControlTask, dt, kAliHLTVoidDataSpec, (AliHLTUInt8_t*)&runDesc, sizeof(AliHLTRunDesc));
+  bd.fPtr=&runDesc;
+  bd.fSize=sizeof(AliHLTRunDesc);
+  bd.fDataType=dt;
+  bd.fSpecification=kAliHLTVoidDataSpec;
+  controlBlocks.push_back(bd);
+
+  // ECS parameter of type kAliHLTDataTypeECSParam
+  if (fECSParams.IsNull())
+    fECSParams="CTP_TRIGGER_CLASS=00:DUMMY-TRIGGER-ALL:00-01-02-03-04-05-06-07-08-09-10-11-12-13-14-15-16-17";
+  AliHLTComponent::FillBlockData(bd);
+  bd.fPtr=(void*)fECSParams.Data();
+  bd.fSize=fECSParams.Length()+1;
+  bd.fDataType=kAliHLTDataTypeECSParam;
+  bd.fSpecification=kAliHLTVoidDataSpec;
+  controlBlocks.push_back(bd);  
+
+  AliHLTControlTask::AliHLTControlEventGuard g(fpControlTask, controlBlocks);
   HLTDebug("sending event %s, run descriptor %p", AliHLTComponent::DataType2Text(dt).c_str(), &runDesc);
   TObjLink *lnk=fTaskList.FirstLink();
   while (lnk && iResult>=0) {
@@ -716,7 +739,7 @@ int AliHLTSystem::DeinitTasks()
 {
   // see header file for class documentation
   int iResult=0;
-  TObjLink *lnk=fTaskList.FirstLink();
+  TObjLink *lnk=fTaskList.LastLink();
   while (lnk) {
     TObject* obj=lnk->GetObject();
     if (obj) {
@@ -728,7 +751,7 @@ int AliHLTSystem::DeinitTasks()
 //       HLTInfo("task %s cleaned (%d), current memory usage %d %d", pTask->GetName(), iResult, ProcInfo.fMemResident, ProcInfo.fMemVirtual);
     } else {
     }
-    lnk = lnk->Next();
+    lnk = lnk->Prev();
   }
   fEventCount=-1;
   fGoodEvents=-1;
@@ -788,6 +811,21 @@ void* AliHLTSystem::AllocMemory( void* /*param*/, unsigned long size )
   return p;
 }
 
+int AliHLTSystem::AllocEventDoneData( void* /*param*/, AliHLTEventID_t /*eventID*/, unsigned long size, AliHLTComponentEventDoneData** edd )
+{
+  // see header file for class documentation
+  unsigned long blocksize=sizeof(AliHLTComponentEventDoneData)+size;
+  void* block=AllocMemory(NULL, blocksize);
+  if (!block) return -ENOMEM;
+  memset(block, 0, blocksize);
+  *edd=reinterpret_cast<AliHLTComponentEventDoneData*>(block);
+  (*edd)->fStructSize=sizeof(AliHLTComponentEventDoneData);
+  (*edd)->fDataSize=size;
+  (*edd)->fData=reinterpret_cast<AliHLTUInt8_t*>(block)+sizeof(AliHLTComponentEventDoneData);
+  
+  return 0;
+}
+
 int AliHLTSystem::Reconstruct(int nofEvents, AliRunLoader* runLoader, 
 			      AliRawReader* rawReader)
 {
@@ -805,9 +843,18 @@ int AliHLTSystem::Reconstruct(int nofEvents, AliRunLoader* runLoader,
 	}
       } else {
       if ((iResult=AliHLTOfflineInterface::SetParamsToComponents(runLoader, rawReader))>=0) {
+	AliHLTUInt64_t trgMask=0x1;
+	if (runLoader==NULL) {
+	  // this is a quick workaround for the case of simulation
+	  // the trigger framework is still under development, secondly, AliHLTSimulation
+	  // does not yet add the emulated ECS parameters, so no CTP trigger is known in the HLT
+	  // AliHLTTask will initialize one dummy CTP trigger class with bit 0, that's why the
+	  // default trigger mask is 0x1
+	  trgMask=AliHLTMisc::Instance().GetTriggerMask(rawReader);
+	}
 	// the system always remains started after event processing, a specific
 	// call with nofEvents==0 is needed to execute the stop sequence
-	if ((iResult=Run(nofEvents, 0))<0) SetStatusFlags(kError);
+	if ((iResult=Run(nofEvents, 0, trgMask))<0) SetStatusFlags(kError);
       }
       }
     } else {
@@ -1050,7 +1097,7 @@ int AliHLTSystem::LoadComponentLibraries(const char* libraries)
       TString libs(libraries);
       TObjArray* pTokens=libs.Tokenize(" ");
       if (pTokens) {
-	int iEntries=pTokens->GetEntries();
+	int iEntries=pTokens->GetEntriesFast();
 	for (int i=0; i<iEntries && iResult>=0; i++) {
 	  iResult=fpComponentHandler->LoadLibrary((((TObjString*)pTokens->At(i))->GetString()).Data());
 	}
@@ -1122,7 +1169,7 @@ int AliHLTSystem::ScanOptions(const char* options)
     TString alloptions(options);
     TObjArray* pTokens=alloptions.Tokenize(" ");
     if (pTokens) {
-      int iEntries=pTokens->GetEntries();
+      int iEntries=pTokens->GetEntriesFast();
       for (int i=0; i<iEntries; i++) {
 	TString token=(((TObjString*)pTokens->At(i))->GetString());
 	if (token.Contains("loglevel=")) {
@@ -1177,6 +1224,8 @@ int AliHLTSystem::ScanOptions(const char* options)
 	      HLTWarning("wrong argument for option \'libmode=\', use \'static\' or \'dynamic\'");
 	    }
 	  }
+	} else if (token.BeginsWith("ECS=")) {
+	  fECSParams=token.ReplaceAll("ECS=", "");
 	} else if (token.BeginsWith("lib") && token.EndsWith(".so")) {
 	  libs+=token;
 	  libs+=" ";
@@ -1334,7 +1383,7 @@ int AliHLTSystem::BuildTaskListsFromReconstructionChains(AliRawReader* rawReader
   // build task list for chains
   TObjArray* pTokens=chains.Tokenize(" ");
   if (pTokens) {
-    int iEntries=pTokens->GetEntries();
+    int iEntries=pTokens->GetEntriesFast();
     for (int i=0; i<iEntries && iResult>=0; i++) {
       const char* pCID=((TObjString*)pTokens->At(i))->GetString().Data();
       AliHLTConfiguration* pConf=fpConfigurationHandler->FindConfiguration(pCID);
@@ -1413,7 +1462,7 @@ int AliHLTSystem::AddHLTOUTTask(const char* hltoutchains)
   TString chains=hltoutchains;
   TObjArray* pTokens=chains.Tokenize(" ");
   if (pTokens) {
-    int iEntries=pTokens->GetEntries();
+    int iEntries=pTokens->GetEntriesFast();
     for (int i=0; i<iEntries && iResult>=0; i++) {
       const char* token=((TObjString*)pTokens->At(i))->GetString().Data();
       AliHLTConfiguration* pConf=fpConfigurationHandler->FindConfiguration(token);
@@ -1520,7 +1569,7 @@ int AliHLTSystem::LoggingVarargs(AliHLTComponentLogSeverity severity,
   va_start(args, line);
 
   if (!fName.IsNull())
-    AliHLTLogging::SetLogString("%s (%p): ", fName.Data(), this);
+    AliHLTLogging::SetLogString(this, " (%p)", "%s_pfmt_: ", fName.Data());
   iResult=SendMessage(severity, originClass, originFunc, file, line, AliHLTLogging::BuildLogString(NULL, args, !fName.IsNull() /*append if non empty*/));
   va_end(args);
 

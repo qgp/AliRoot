@@ -94,6 +94,10 @@ const AliHLTComponentDataType kAliHLTDataTypeClusters = AliHLTComponentDataTypeI
 const char kAliHLTMCObjectDataTypeIDstring[8] = kAliHLTMCObjectDataTypeID;
 const AliHLTComponentDataType kAliHLTDataTypeMCObject = AliHLTComponentDataTypeInitializer(kAliHLTMCObjectDataTypeIDstring, kAliHLTDataOriginOffline);
 
+/** ESD vertex data specification */
+const char kAliHLTESDVertexDataTypeIDstring[8] = kAliHLTESDVertexDataTypeID;
+const AliHLTComponentDataType kAliHLTDataTypeESDVertex = AliHLTComponentDataTypeInitializer(kAliHLTESDVertexDataTypeIDstring, kAliHLTDataOriginAny);
+
 /** ESD data specification */
 const char kAliHLTESDObjectDataTypeIDstring[8] = kAliHLTESDObjectDataTypeID;
 const AliHLTComponentDataType kAliHLTDataTypeESDObject = AliHLTComponentDataTypeInitializer(kAliHLTESDObjectDataTypeIDstring, kAliHLTDataOriginAny);
@@ -133,6 +137,10 @@ const AliHLTComponentDataType kAliHLTDataTypeRunSummary = AliHLTComponentDataTyp
 /** Trigger decision */
 const char kAliHLTTriggerDecisionDataTypeIDstring[8] = kAliHLTTriggerDecisionDataTypeID;
 const AliHLTComponentDataType kAliHLTDataTypeTriggerDecision = AliHLTComponentDataTypeInitializer(kAliHLTTriggerDecisionDataTypeIDstring, kAliHLTDataOriginOut);
+
+/** HLT readout list from trigger component */
+const char kAliHLTReadoutListDataTypeIDstring[8] = kAliHLTReadoutListDataTypeID;
+const AliHLTComponentDataType kAliHLTDataTypeReadoutList = AliHLTComponentDataTypeInitializer(kAliHLTReadoutListDataTypeIDstring, kAliHLTDataOriginOut);
 
 /** Global trigger decision */
 const char kAliHLTGlobalTriggerDataTypeIDstring[8] = kAliHLTGlobalTriggerDataTypeID;
@@ -192,6 +200,9 @@ const AliHLTComponentDataType fgkITSTracksDataType = AliHLTComponentDataTypeInit
 /** Container of HLT calorimeter clusters */
 const AliHLTComponentDataType kAliHLTDataTypeCaloCluster = AliHLTComponentDataTypeInitializer( "CALOCLU", kAliHLTDataOriginAny );
 
+/** Container of dEdx */
+const AliHLTComponentDataType kAliHLTDataTypedEdx = AliHLTComponentDataTypeInitializer( "DEDX    ", kAliHLTDataOriginAny );
+
 //////////////////////////////////////////////////////////////////////////
 //
 // Data origin variables, to be used with the operator|
@@ -230,6 +241,9 @@ const char kAliHLTDataOriginTRD[kAliHLTComponentDataTypefOriginSize]     = {'T',
 
 /** ITS */
 const char kAliHLTDataOriginITS[kAliHLTComponentDataTypefOriginSize]     = {'I','T','S',' '};
+
+/** ITSOut */
+const char kAliHLTDataOriginITSOut[kAliHLTComponentDataTypefOriginSize]     = {'I','T','S','O'};
 
 /** ITS-SPD */
 const char kAliHLTDataOriginITSSPD[kAliHLTComponentDataTypefOriginSize]  = {'I','S','P','D'};

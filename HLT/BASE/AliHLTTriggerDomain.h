@@ -1,5 +1,5 @@
 //-*- Mode: C++ -*-
-// $Id:$
+// $Id$
 #ifndef ALIHLTTRIGGERDOMAIN_H
 #define ALIHLTTRIGGERDOMAIN_H
 /* This file is property of and copyright by the ALICE HLT Project        *
@@ -375,9 +375,27 @@ class AliHLTTriggerDomain : public TObject
   }
   
   /**
+   * Checks if two domains are equal, i.e. have the same domain rules.
+   */
+  bool operator == (const AliHLTTriggerDomain& domain) const;
+  
+  /**
+   * Checks if two domains are not equal, i.e. have different domain rules.
+   */
+  bool operator != (const AliHLTTriggerDomain& domain) const { return not this->operator==(domain); }
+  
+  /**
    * Typecase operator to create a DDL readout list object from the trigger domain.
    */
   operator AliHLTReadoutList () const;
+
+  /**
+   * access of the individual entries
+   */
+  const AliHLTDomainEntry& operator[](int index) const;
+
+  /** get number of entries in the domain */
+  int GetNofEntries()const  {return fEntries.GetEntriesFast();}
   
  private:
   
@@ -406,7 +424,7 @@ class AliHLTTriggerDomain : public TObject
    * indicated by 'min' to the end of the list and marks for deletion all entries
    * in fEntries that are subsets of 'entry'.
    * The entries are marked by setting the 14'th bit in fBits with a call to
-   * AliHLTDomainEntry::SetBit(14, true).
+   * AliHLTDomainEntry::SetBit(BIT(14), true).
    * \param entry  The entry that should be the super set of the entries we mark
    *    for removal.
    * \param min  This is the first entry we consider, all the way up to
@@ -417,7 +435,7 @@ class AliHLTTriggerDomain : public TObject
   /**
    * Removes all entries in this trigger domain which were marked for removal.
    * These are all domain entries that have the 14'th bit set in their fBits field
-   * with a call to AliHLTDomainEntry::SetBit(14, true).
+   * with a call to AliHLTDomainEntry::SetBit(BIT(14), true).
    */
   void RemoveMarkedEntries();
   

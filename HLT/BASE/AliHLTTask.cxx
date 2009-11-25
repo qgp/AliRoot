@@ -36,6 +36,7 @@ using namespace std;
 #include <cassert>
 #include <iostream>
 #include <string>
+#include <ctime>
 #include "AliHLTTask.h"
 #include "AliHLTConfiguration.h"
 #include "AliHLTComponent.h"
@@ -444,7 +445,7 @@ int AliHLTTask::EndRun()
   return iResult;
 }
 
-int AliHLTTask::ProcessTask(Int_t eventNo, AliHLTUInt32_t eventType)
+int AliHLTTask::ProcessTask(Int_t eventNo, AliHLTUInt32_t eventType, AliHLTUInt64_t trgMask)
 {
   // see header file for function documentation
   int iResult=0;
@@ -462,6 +463,11 @@ int AliHLTTask::ProcessTask(Int_t eventNo, AliHLTUInt32_t eventType)
     // instances of SOR and EOR events to be kept
     int iSOR=-1;
     int iEOR=-1;
+    // TODO 2009-09-30
+    // generalize handling of the special blocks to be forwarded on SOR and EOR
+    // just adding a new specific handling for the ECS parameter block as a quick
+    // solution
+    int iECS=-1;
 
     // subscribe to all source tasks
     fBlockDataArray.clear();
@@ -477,12 +483,13 @@ int AliHLTTask::ProcessTask(Int_t eventNo, AliHLTUInt32_t eventType)
 	  HLTDebug("source task %s (%p) does not provide any matching data type for task %s (%p)", pSrcTask->GetName(), pSrcTask, GetName(), this);
 	}
 	if ((iResult=pSrcTask->Subscribe(this, fBlockDataArray))>=0) {
-	  iSOR=iEOR=-1;
+	  iSOR=iEOR=iECS=-1;
 	  AliHLTComponentBlockDataList::iterator block=fBlockDataArray.begin();
 	  for (int i=0; block!=fBlockDataArray.end(); i++) {
 	    bool bRemove=0;
 	    bRemove|=(*block).fDataType==kAliHLTDataTypeSOR && !(iSOR<0 && (iSOR=i)>=0);
 	    bRemove|=(*block).fDataType==kAliHLTDataTypeEOR && !(iEOR<0 && (iEOR=i)>=0);
+	    bRemove|=(*block).fDataType==kAliHLTDataTypeECSParam && !(iECS<0 && (iECS=i)>=0);
 	    //HLTInfo("block %d, iSOR=%d iEOR=%d remove=%d", i, iSOR, iEOR, bRemove);
 	    if (i<iSourceDataBlock) {
 	      assert(!bRemove);
@@ -560,10 +567,17 @@ int AliHLTTask::ProcessTask(Int_t eventNo, AliHLTUInt32_t eventType)
       AliHLTComponent::FillEventData(evtData);
       if (eventNo>=0)
 	evtData.fEventID=(AliHLTEventID_t)eventNo;
+      evtData.fEventCreation_s=static_cast<AliHLTUInt32_t>(time(NULL));
       AliHLTComponentTriggerData trigData;
+      AliHLTEventTriggerData evtTrigData;
       trigData.fStructSize=sizeof(trigData);
-      trigData.fDataSize=0;
-      trigData.fData=NULL;
+      trigData.fDataSize=sizeof(AliHLTEventTriggerData);
+      memset(&evtTrigData, 0, trigData.fDataSize);
+      evtTrigData.fCommonHeaderWordCnt=gkAliHLTCommonHeaderCount;
+      evtTrigData.fCommonHeader[5]=trgMask&0xffffffff;
+      trgMask>>=32;
+      evtTrigData.fCommonHeader[6]=trgMask&0x3ffff;
+      trigData.fData=&evtTrigData;
       iLastOutputDataSize=iOutputDataSize;
       AliHLTUInt32_t size=iOutputDataSize;
       AliHLTUInt32_t outputBlockCnt=0;
@@ -583,6 +597,13 @@ int AliHLTTask::ProcessTask(Int_t eventNo, AliHLTUInt32_t eventType)
 	evtData.fBlockCnt=fBlockDataArray.size();
 	iResult=pComponent->ProcessEvent(evtData, &fBlockDataArray[0], trigData, pTgtBuffer, size, outputBlockCnt, outputBlocks, edd);
 	HLTDebug("component %s ProcessEvent finnished (%d): size=%d blocks=%d", pComponent->GetComponentID(), iResult, size, outputBlockCnt);
+
+	// EventDoneData is for the moment ignored in AliHLTSystem
+	if (edd) {
+	  HLTDebug("got EventDoneData size %d", edd->fDataSize);
+	  delete [] reinterpret_cast<char*>(edd);
+	  edd=NULL;
+	}
 
 	// remove event data block
 	fBlockDataArray.pop_back();
@@ -675,6 +696,11 @@ int AliHLTTask::ProcessTask(Int_t eventNo, AliHLTUInt32_t eventType)
 	    HLTDebug("forward EOR event (%s) segment %d (source task %s %p) to data buffer %p", AliHLTComponent::DataType2Text(fBlockDataArray[iEOR].fDataType).c_str(), iEOR, pSrcTask->GetName(), pSrcTask, fpDataBuffer);
 	    fpDataBuffer->Forward(subscribedTaskList[iEOR], &fBlockDataArray[iEOR]);
 	    subscribedTaskList[iEOR]=NULL; // not to be released in the loop further down
+	  }
+	  if (iECS>=0 && subscribedTaskList[iECS]!=NULL) {
+	    HLTDebug("forward EOR event (%s) segment %d (source task %s %p) to data buffer %p", AliHLTComponent::DataType2Text(fBlockDataArray[iECS].fDataType).c_str(), iECS, pSrcTask->GetName(), pSrcTask, fpDataBuffer);
+	    fpDataBuffer->Forward(subscribedTaskList[iECS], &fBlockDataArray[iECS]);
+	    subscribedTaskList[iECS]=NULL; // not to be released in the loop further down
 	  }
 	}
       } else {
@@ -836,7 +862,7 @@ int AliHLTTask::LoggingVarargs(AliHLTComponentLogSeverity severity,
   va_list args;
   va_start(args, line);
 
-  AliHLTLogging::SetLogString("%s (%p): ", GetName(), this);
+  AliHLTLogging::SetLogString(this, " (%p)", "%s_pfmt_: ", GetName());
   iResult=SendMessage(severity, originClass, originFunc, file, line, AliHLTLogging::BuildLogString(NULL, args, true /*append*/));
   va_end(args);
 

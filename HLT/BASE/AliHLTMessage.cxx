@@ -29,13 +29,17 @@
 //////////////////////////////////////////////////////////////////////////
 
 #include "AliHLTMessage.h"
+#include "TVirtualStreamerInfo.h"
 #include "Bytes.h"
 #include "TFile.h"
+#include "TProcessID.h"
 #include "TClass.h"
 
 extern "C" void R__zip (Int_t cxlevel, Int_t *nin, char *bufin, Int_t *lout, char *bufout, Int_t *nout);
 extern "C" void R__unzip(Int_t *nin, UChar_t *bufin, Int_t *lout, char *bufout, Int_t *nout);
 const Int_t kMAXBUF = 0xffffff;
+
+Bool_t AliHLTMessage::fgEvolution = kFALSE;
 
 ClassImp(AliHLTMessage)
 
@@ -55,6 +59,9 @@ AliHLTMessage::AliHLTMessage(UInt_t what)
   fBufCompCur(0),
   fCompPos(0)
   , fBufUncompressed(0)
+  , fBitsPIDs(0)
+  , fInfos(NULL)
+  , fEvolution(kFALSE)
 {
    // Create a AliHLTMessage object for storing objects. The "what" integer
    // describes the type of message. Predifined ROOT system message types
@@ -72,6 +79,7 @@ AliHLTMessage::AliHLTMessage(UInt_t what)
 
    *this << what;
 
+   SetBit(kCannotHandleMemberWiseStreaming);
 }
 
 const Int_t AliHLTMessage::fgkMinimumSize=30;
@@ -93,6 +101,9 @@ AliHLTMessage::AliHLTMessage(void *buf, Int_t bufsize)
   fBufCompCur(0),
   fCompPos(0)
   , fBufUncompressed(0)
+  , fBitsPIDs(0)
+  , fInfos(NULL)
+  , fEvolution(kFALSE)
 {
    // Create a AliHLTMessage object for reading objects. The objects will be
    // read from buf. Use the What() method to get the message type.
@@ -135,6 +146,36 @@ AliHLTMessage::~AliHLTMessage()
 }
 
 //______________________________________________________________________________
+void AliHLTMessage::EnableSchemaEvolutionForAll(Bool_t enable)
+{
+   // Static function enabling or disabling the automatic schema evolution.
+   // By default schema evolution support is off.
+
+   fgEvolution = enable;
+}
+
+//______________________________________________________________________________
+Bool_t AliHLTMessage::UsesSchemaEvolutionForAll()
+{
+   // Static function returning status of global schema evolution.
+
+   return fgEvolution;
+}
+
+//______________________________________________________________________________
+void AliHLTMessage::ForceWriteInfo(TVirtualStreamerInfo *info, Bool_t /* force */)
+{
+   // Force writing the TStreamerInfo to the message.
+
+   if (fgEvolution || fEvolution) {
+      if (!fInfos) fInfos = new TList();
+      if (fInfos->FindObject(info->GetName())==NULL) {
+	fInfos->Add(info);
+      }
+   }
+}
+
+//______________________________________________________________________________
 void AliHLTMessage::Forward()
 {
    // Change a buffer that was received into one that can be send, i.e.
@@ -143,9 +184,29 @@ void AliHLTMessage::Forward()
    if (IsReading()) {
       SetWriteMode();
       SetBufferOffset(fBufSize);
+      SetBit(kCannotHandleMemberWiseStreaming);
 
       if (fBufComp) {
          fCompPos = fBufCur;
+      }
+   }
+}
+
+//______________________________________________________________________________
+void AliHLTMessage::IncrementLevel(TVirtualStreamerInfo *info)
+{
+   // Increment level.
+
+   TBufferFile::IncrementLevel(info);
+
+   if (!info) return;
+   if (fgEvolution || fEvolution) {
+      if (!fInfos) fInfos = new TList();
+
+      // add the streamer info, but only once
+      // this assumes that there is only one version
+      if (fInfos->FindObject(info->GetName())==NULL) {
+	fInfos->Add(info);
       }
    }
 }
@@ -346,6 +407,47 @@ Int_t AliHLTMessage::Uncompress()
    return 0;
 }
 
+//______________________________________________________________________________
+void AliHLTMessage::WriteObject(const TObject *obj)
+{
+   // Write object to message buffer.
+   // When support for schema evolution is enabled the list of TStreamerInfo
+   // used to stream this object is kept in fInfos. This information is used
+   // by TSocket::Send that sends this list through the socket. This list is in
+   // turn used by TSocket::Recv to store the TStreamerInfo objects in the
+   // relevant TClass in case the TClass does not know yet about a particular
+   // class version. This feature is implemented to support clients and servers
+   // with either different ROOT versions or different user classes versions.
+
+   if (fgEvolution || fEvolution) {
+      if (fInfos)
+         fInfos->Clear();
+      else
+         fInfos = new TList();
+   }
+
+   fBitsPIDs.ResetAllBits();
+   WriteObjectAny(obj, TObject::Class());
+}
+
+//______________________________________________________________________________
+UShort_t AliHLTMessage::WriteProcessID(TProcessID *pid)
+{
+   // Check if the ProcessID pid is already in the message.
+   // If not, then:
+   //   - mark bit 0 of fBitsPIDs to indicate that a ProcessID has been found
+   //   - mark bit uid+1 where uid id the uid of the ProcessID
+
+   if (fBitsPIDs.TestBitNumber(0)) return 0;
+   if (!pid)
+      pid = TProcessID::GetPID();
+   if (!pid) return 0;
+   fBitsPIDs.SetBitNumber(0);
+   UInt_t uid = pid->GetUniqueID();
+   fBitsPIDs.SetBitNumber(uid+1);
+   return 1;
+}
+
 AliHLTMessage* AliHLTMessage::Stream(TObject* pSrc, Int_t compression, unsigned verbosity)
 {
   /// Helper function to stream an object into an AliHLTMessage
@@ -421,4 +523,31 @@ TObject* AliHLTMessage::Extract(const void* pBuffer, unsigned bufferSize, unsign
     if (verbosity>0) log.LoggingVarargs(kHLTLogWarning, "AliHLTMessage", "Extract" , __FILE__ , __LINE__ , "not a streamed TObject: block size %d, indicated %d", bufferSize, firstWord+sizeof(AliHLTUInt32_t));
   }
   return NULL;
+}
+
+TObject* AliHLTMessage::Extract(const char* filename, unsigned verbosity)
+{
+   /// Helper function to extract an object from a file containing the streamed object.
+   /// The returned object must be cleaned by the caller
+  if (!filename) return NULL;
+  
+  AliHLTLogging log;
+  TString input=filename;
+  input+="?filetype=raw";
+  TFile* pFile=new TFile(input);
+  if (!pFile) return NULL;
+  TObject* pObject=NULL;
+  if (!pFile->IsZombie()) {
+    pFile->Seek(0);
+    TArrayC buffer;
+    buffer.Set(pFile->GetSize());
+    if (pFile->ReadBuffer(buffer.GetArray(), buffer.GetSize())==0) {
+      pObject=Extract(buffer.GetArray(), buffer.GetSize(), verbosity);
+    } else {
+      log.LoggingVarargs(kHLTLogError, "AliHLTMessage", "Extract" , __FILE__ , __LINE__ , "failed reading %d byte(s) from file %s", pFile->GetSize(), filename);
+    }
+  }
+
+  delete pFile;
+  return pObject;
 }

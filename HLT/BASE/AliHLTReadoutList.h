@@ -1,5 +1,5 @@
 //-*- Mode: C++ -*-
-// $Id:$
+// $Id$
 #ifndef ALIHLTREADOUTLIST_H
 #define ALIHLTREADOUTLIST_H
 /* This file is property of and copyright by the ALICE HLT Project        *
@@ -11,7 +11,7 @@
 /// @date   19 Nov 2008
 /// @brief  Declaration of the AliHLTReadoutList class used to handle AliHLTEventDDL structures.
 
-#include "TObject.h"
+#include "TNamed.h"
 #include "AliHLTDataTypes.h"
 
 /**
@@ -32,7 +32,7 @@
  *  -  unsets the bits in readout list A that are set in readout list B.
  *      This effectively applies A & (A ^ B).
  */
-class AliHLTReadoutList : public TObject
+class AliHLTReadoutList : public TNamed
 {
  public:
   
@@ -213,6 +213,24 @@ class AliHLTReadoutList : public TObject
    * \return  Reference to the AliHLTEventDDL raw structure.
    */
   operator AliHLTEventDDL& () { return fReadoutList; }
+
+  /**
+   * Access method to the binary buffer.
+   * \return pointer to the binary buffer.
+   */
+  AliHLTEventDDL* Buffer() { return &fReadoutList; }
+
+  /**
+   * Access method to the binary buffer.
+   * \return const pointer to the binary buffer.
+   */
+  const AliHLTEventDDL* Buffer() const { return &fReadoutList; }
+
+  /**
+   * Access to the size of the binary buffer.
+   * \return size of the binary buffer
+   */
+  unsigned BufferSize() const { return sizeof(fReadoutList); }
   
   /**
    * Assignment operator performs a deep copy.
@@ -228,6 +246,9 @@ class AliHLTReadoutList : public TObject
    * \return  A reference to this object.
    */
   AliHLTReadoutList& operator |= (const AliHLTReadoutList& list);
+
+  /// same as operator |=
+  AliHLTReadoutList& OrEq(const AliHLTReadoutList& list);
   
   /**
    * This operator performs a bitwise exclusive or (xor) operation on all DDL
@@ -236,6 +257,9 @@ class AliHLTReadoutList : public TObject
    * \return  A reference to this object.
    */
   AliHLTReadoutList& operator ^= (const AliHLTReadoutList& list);
+
+  /// same as operator ^=
+  AliHLTReadoutList& XorEq(const AliHLTReadoutList& list);
   
   /**
    * This operator performs a bitwise and operation on all DDL bits between
@@ -244,6 +268,9 @@ class AliHLTReadoutList : public TObject
    * \return  A reference to this object.
    */
   AliHLTReadoutList& operator &= (const AliHLTReadoutList& list);
+
+  /// same as operator &=
+  AliHLTReadoutList& AndEq(const AliHLTReadoutList& list);
   
   /**
    * This operator performs the effective operation of "this and (this xor list)".
@@ -326,7 +353,7 @@ class AliHLTReadoutList : public TObject
   
   AliHLTEventDDL fReadoutList; /// The DDL readout list structure.
   
-  ClassDef(AliHLTReadoutList, 1) // Readout list object used for manipulating and storing an AliHLTEventDDL structure.
+  ClassDef(AliHLTReadoutList, 2) // Readout list object used for manipulating and storing an AliHLTEventDDL structure.
 
 };
 

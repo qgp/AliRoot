@@ -1,4 +1,5 @@
-// @(#) $Id$
+//-*- Mode: C++ -*-
+// $Id$
 
 #ifndef ALIHLTMISC_H
 #define ALIHLTMISC_H
@@ -6,12 +7,52 @@
 //* ALICE Experiment at CERN, All rights reserved.                         *
 //* See cxx source for full Copyright notice                               */
 
-/** @file   AliHLTMisc.h
-    @author Matthias Richter
-    @date   
-    @brief  Definition of various glue functions implemented in dynamically
-            loaded libraries
-*/
+/// @file   AliHLTMisc.h
+/// @author Matthias Richter
+/// @date   
+/// @brief  Definition of various glue functions implemented in dynamically
+///         loaded libraries
+
+#include "TObject.h"
+#include "AliHLTStdIncludes.h"
+#include "AliHLTDataTypes.h"
+
+class AliCDBManager;
+class AliCDBEntry;
+class AliRawReader;
+class AliHLTComponentDataType;
+
+class AliHLTMisc : public TObject {
+ public:
+  AliHLTMisc();
+  ~AliHLTMisc();
+
+  template<class T>
+  static T* LoadInstance(const T* dummy, const char* classname, const char* library);
+
+  static AliHLTMisc& Instance();
+
+  virtual int InitCDB(const char* cdbpath);
+
+  virtual int SetCDBRunNo(int runNo);
+
+  virtual AliCDBEntry* LoadOCDBEntry(const char* path, int runNo=-1, int version = -1, int subVersion = -1);
+
+  virtual TObject* ExtractObject(AliCDBEntry* entry);
+
+  virtual int InitMagneticField() const;
+
+  virtual AliHLTUInt64_t GetTriggerMask(AliRawReader* rawReader) const;
+
+  virtual Double_t GetBz();
+  virtual Double_t GetBz(const Double_t *r);
+  virtual void GetBxByBz(const Double_t r[3], Double_t b[3]);
+
+ private:
+  static AliHLTMisc* fgInstance;
+
+  ClassDef(AliHLTMisc, 0)
+};
 
 #define ALIHLTMISC_LIBRARY "libHLTrec.so"
 #define ALIHLTMISC_INIT_CDB "AliHLTMiscInitCDB"
@@ -48,4 +89,8 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
+
+// direct printout of data type struct
+ostream  &operator<<(ostream &str, const AliHLTComponentDataType&);
+
 #endif //ALIHLTMISC_H

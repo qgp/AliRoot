@@ -131,6 +131,8 @@ AliHLTConfiguration::~AliHLTConfiguration()
   // see header file for function documentation
   if (fgConfigurationHandler) {
     if (fgConfigurationHandler->FindConfiguration(fID.Data())!=NULL) {
+      // remove the configuration from the handler if it exists
+      // but DO NOT remove the clone configuration
       fgConfigurationHandler->RemoveConfiguration(this);
     }
   }
