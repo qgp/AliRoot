@@ -29,7 +29,7 @@
 
 #include  "AliHLTPHOSOnlineDisplay.h"
 #include  "AliHLTDataTypes.h"
-#include  "AliHLTPHOSRcuCellEnergyDataStruct.h"
+//#include  "AliHLTPHOSRcuCellEnergyDataStruct.h"
 #include  <vector>
 #include  "stdio.h"
 #include <string>
@@ -42,6 +42,7 @@
 #include <iostream>
 #include "AliHLTPHOSOnlineDisplayEventTab.h"
 #include "AliHLTPHOSOnlineDisplayCalibTab.h"
+#include "AliHLTPHOSOnlineDisplayFourierTab.h"
 
 //#include "AliHLTPHOSFourier.h"
 
@@ -74,14 +75,17 @@ AliHLTPHOSOnlineDisplay::Instance(int argc, char** argv)
 }
 
 
-AliHLTPHOSOnlineDisplay::AliHLTPHOSOnlineDisplay() : AliHLTPHOSBase(), fRunNumber(-1)
+//AliHLTPHOSOnlineDisplay::AliHLTPHOSOnlineDisplay() : AliHLTPHOSBase(), fRunNumber(-1)
+AliHLTPHOSOnlineDisplay::AliHLTPHOSOnlineDisplay() : fRunNumber(-1)
+
 {
   // See header file for documentation
   cout << "ERROR ! level: FATAL, you cannot invoke the onlinedisplay without arguments" << endl;
 }
 
 
-AliHLTPHOSOnlineDisplay::AliHLTPHOSOnlineDisplay(int argc, char** argv) : AliHLTPHOSBase()
+//AliHLTPHOSOnlineDisplay::AliHLTPHOSOnlineDisplay(int argc, char** argv) : AliHLTPHOSBase()
+AliHLTPHOSOnlineDisplay::AliHLTPHOSOnlineDisplay(int argc, char** argv) 
 {
   // See header file for documentation
   gStyle->SetOptStat(false);

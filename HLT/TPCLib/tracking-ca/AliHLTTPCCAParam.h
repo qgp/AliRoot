@@ -28,20 +28,18 @@
 class AliHLTTPCCAParam
 {
   public:
+	AliHLTTPCCAParam();
+    ~AliHLTTPCCAParam() {}
 
 #if !defined(HLTCA_GPUCODE)
-    GPUd() AliHLTTPCCAParam();
-#endif
-
-    ~AliHLTTPCCAParam() {;}
-
-    GPUd() void Initialize( int iSlice, int nRows, float rowX[],
+    void Initialize( int iSlice, int nRows, float rowX[],
                             float alpha, float dAlpha,
                             float rMin, float rMax, float zMin, float zMax,
                             float padPitch, float zSigma, float bz );
-    GPUd() void Update();
+    void Update();
+#endif //!HLTCA_GPUCODE
 
-    GPUd() void Slice2Global( float x, float y,  float z,
+	GPUd() void Slice2Global( float x, float y,  float z,
                               float *X, float *Y,  float *Z ) const;
 
     GPUd() void Global2Slice( float x, float y,  float z,
@@ -70,11 +68,14 @@ class AliHLTTPCCAParam
     GPUd() float BzkG() const { return fBzkG;}
     GPUd() float ConstBz() const { return fConstBz;}
 
+    GPUd() float NeighboursSearchArea() const { return fNeighboursSearchArea; }
     GPUd() float TrackConnectionFactor() const { return fTrackConnectionFactor; }
     GPUd() float TrackChiCut()  const { return fTrackChiCut; }
     GPUd() float TrackChi2Cut() const { return fTrackChi2Cut; }
     GPUd() int   MaxTrackMatchDRow() const { return fMaxTrackMatchDRow; }
     GPUd() float HitPickUpFactor() const { return fHitPickUpFactor; }
+  GPUd() float ClusterError2CorrectionY() const { return fClusterError2CorrectionY; }
+  GPUd() float ClusterError2CorrectionZ() const { return fClusterError2CorrectionZ; }
 
 
 
@@ -95,11 +96,15 @@ class AliHLTTPCCAParam
     GPUd() void SetErrX( float v ) {  fErrX = v;}
     GPUd() void SetErrY( float v ) {  fErrY = v;}
     GPUd() void SetBzkG( float v ) {  fBzkG = v;}
+
+  GPUd() void SetNeighboursSearchArea( float v ) { fNeighboursSearchArea = v;}
     GPUd() void SetTrackConnectionFactor( float v ) { fTrackConnectionFactor = v;}
     GPUd() void SetTrackChiCut( float v ) {  fTrackChiCut = v; }
-    GPUd() void SetTrackChi2Cut( float v ) {  fTrackChi2Cut = v; }
+  GPUd() void SetTrackChi2Cut( float v ) {  fTrackChi2Cut = v; }
     GPUd() void SetMaxTrackMatchDRow( int v ) {  fMaxTrackMatchDRow = v; }
     GPUd() void SetHitPickUpFactor( float v ) {  fHitPickUpFactor = v; }
+    GPUd() void SetClusterError2CorrectionY( float v ) { fClusterError2CorrectionY = v; }
+    GPUd() void SetClusterError2CorrectionZ( float v ) { fClusterError2CorrectionZ = v; }
 
 
     GPUd() float GetClusterError2( int yz, int type, float z, float angle ) const;
@@ -118,7 +123,6 @@ class AliHLTTPCCAParam
     GPUd()  float GetBz( const AliHLTTPCCATrackParam &t ) const;
 
   protected:
-
     int fISlice; // slice number
     int fNRows; // number of rows
 
@@ -135,10 +139,14 @@ class AliHLTTPCCAParam
     float fHitPickUpFactor;// multiplier for the chi2 window for hit pick up procedure
 
     int   fMaxTrackMatchDRow;// maximal jump in TPC row for connecting track segments
+
+  float fNeighboursSearchArea; // area in cm for the search of neighbours
+
     float fTrackConnectionFactor; // allowed distance in Chi^2/3.5 for neighbouring tracks
     float fTrackChiCut; // cut for track Sqrt(Chi2/NDF);
     float fTrackChi2Cut;// cut for track Chi^2/NDF
-
+  float fClusterError2CorrectionY; // correction for the squared cluster error during tracking
+  float fClusterError2CorrectionZ; // correction for the squared cluster error during tracking
     float fRowX[200];// X-coordinate of rows
     float fParamS0Par[2][3][7];    // cluster error parameterization coeficients
     float fPolinomialFieldBz[6];   // field coefficients
@@ -160,4 +168,4 @@ GPUd() inline float AliHLTTPCCAParam::GetBz( const AliHLTTPCCATrackParam &t ) co
   return GetBz( t.X(), t.Y(), t.Z() );
 }
 
-#endif
+#endif //ALIHLTTPCCAPARAM_H

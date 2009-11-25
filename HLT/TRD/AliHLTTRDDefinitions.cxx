@@ -27,8 +27,6 @@
 
 ClassImp(AliHLTTRDDefinitions)
 
-const AliHLTComponentDataType AliHLTTRDDefinitions::fgkDDLRawDataType = { sizeof(AliHLTComponentDataType), {'D','D','L','_','R','A','W',' '},{'T','R','D',' '}};;
-
 const AliHLTComponentDataType AliHLTTRDDefinitions::fgkClusterDataType = { sizeof(AliHLTComponentDataType), {'C','L','U','S','T','E','R','S'},{'T','R','D',' '}};;
 
 const AliHLTComponentDataType AliHLTTRDDefinitions::fgkTRDSATracksDataType = { sizeof(AliHLTComponentDataType), {'T','R','A','C','K','S','S','A'},{'T','R','D',' '}};;
@@ -41,6 +39,8 @@ const AliHLTComponentDataType AliHLTTRDDefinitions::fgkMCMcalibrationDataType = 
 
 const AliHLTComponentDataType AliHLTTRDDefinitions::fgkCalibrationDataType = { sizeof(AliHLTComponentDataType), {'C','A','L','I','B','R','A','H'},{'T','R','D',' '}};;
 
+const AliHLTComponentDataType AliHLTTRDDefinitions::fgkEORCalibrationDataType = { sizeof(AliHLTComponentDataType), {'C','A','L','I','B','E','O','R'},{'T','R','D',' '}};;
+
 AliHLTTRDDefinitions::AliHLTTRDDefinitions()
 {
   // see header file for class documentation
@@ -52,3 +52,4 @@ AliHLTTRDDefinitions::~AliHLTTRDDefinitions()
 {
   // see header file for class documentation
 }
+

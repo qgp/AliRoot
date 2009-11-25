@@ -17,12 +17,14 @@
 
 
 #include "AliPHOSRcuDA1.h"
-#include "AliHLTPHOSSharedMemoryInterface.h"
+#include "AliHLTPHOSSharedMemoryInterfacev2.h"
 #include "AliHLTPHOSRcuDAComponent.h"
 #include "AliHLTPHOSDefinitions.h"
 #include "AliHLTPHOSConstants.h"
-#include "AliHLTPHOSRcuCellEnergyDataStruct.h"
+//#include "AliHLTPHOSRcuCellEnergyDataStruct.h"
 #include "TObjArray.h"
+#include "AliHLTPHOSUtilities.h"
+#include "AliHLTReadoutList.h"
 
 //#include <iostream>
 
@@ -42,14 +44,14 @@ using namespace PhosHLTConst;
 
 AliHLTPHOSRcuDAComponent gAliHLTPHOSRcuDAComponent;
 
-AliHLTPHOSRcuDAComponent::AliHLTPHOSRcuDAComponent() : AliHLTPHOSRcuProperties(),
+AliHLTPHOSRcuDAComponent::AliHLTPHOSRcuDAComponent() : //AliHLTPHOSRcuProperties(),
 						       AliHLTCalibrationProcessor(),
 						       fPhosEventCount(0),
 						       fPHOSDAPtr(0),
 						       fShmPtr(0) 
 						       //    fTest(-2)
 {
-  fShmPtr = new AliHLTPHOSSharedMemoryInterface();
+  fShmPtr = new AliHLTPHOSSharedMemoryInterfacev2();
 }
 
 
@@ -103,18 +105,18 @@ AliHLTPHOSRcuDAComponent::GetComponentID()
 
 
 Int_t
-AliHLTPHOSRcuDAComponent::ScanArgument( Int_t argc, const char** argv)
+AliHLTPHOSRcuDAComponent::ScanArgument( Int_t /*argc*/, const char** /*argv*/)
 {
-  ScanArguments(argc, argv);
-  return 0;
+  //CRAP PTH
+  //  AliHLTPHOSUtilities::ScanArguments(argc, argv);
+ 
+
+ return 0;
 }
 
 
 Int_t AliHLTPHOSRcuDAComponent::InitCalibration()
 {  
-  //CRAP PT just to get something working by 5 May 2008
-  const int tmpModule = 2;
-  fPHOSDAPtr = new AliPHOSRcuDA1(tmpModule ,GetRCUID()); 
   return 0;
 }
 
@@ -141,8 +143,9 @@ Int_t AliHLTPHOSRcuDAComponent::DeinitCalibration()
 
 
 
-Int_t AliHLTPHOSRcuDAComponent::ProcessCalibration(const AliHLTComponentEventData& evtData, AliHLTComponentTriggerData& trigData)
+Int_t AliHLTPHOSRcuDAComponent::ProcessCalibration(const AliHLTComponentEventData& /*evtData*/, AliHLTComponentTriggerData& /*trigData*/)
 {
+  /*
   fPhosEventCount ++;
   const  AliHLTComponentEventData eDta  = evtData;
   AliHLTComponentTriggerData  tDta =  trigData;
@@ -196,7 +199,7 @@ Int_t AliHLTPHOSRcuDAComponent::ProcessCalibration(const AliHLTComponentEventDat
   fPHOSDAPtr->FillHistograms(energyArray, timeArray);
 
   ResetArrays(energyArray, timeArray);
-
+  */
   return 0; 
 }
 
@@ -215,7 +218,8 @@ AliHLTPHOSRcuDAComponent::ShipDataToFXS( const AliHLTComponentEventData& /*evtDa
   TFile *outFile =  new TFile(filename, "recreate");
   calibPtr->Write(); 
   outFile->Close();
-  PushToFXS( (TObject*)fPHOSDAPtr->GetHistoContainer(), "PHOS",  filename);
+  static AliHLTReadoutList rdList(AliHLTReadoutList::kPHOS);
+  PushToFXS( (TObject*)fPHOSDAPtr->GetHistoContainer(), "PHOS",  filename, rdList.Buffer());
   cout << "Finnished pushing data to HLT FXS" << endl;
   return 0;
 }  

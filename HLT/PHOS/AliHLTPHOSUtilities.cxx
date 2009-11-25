@@ -19,7 +19,7 @@
  **************************************************************************/
 #include "AliHLTPHOSUtilities.h"
 #include <cstdlib>
-
+#include <cstdio>
 
 AliHLTPHOSUtilities::AliHLTPHOSUtilities()
 {
@@ -170,7 +170,7 @@ AliHLTPHOSUtilities::CheckFile(const char *fileName, const char *opt) const
 // returns the index if the argument if it exists
 // returns a negative value if it doesnt exist
 int 
-AliHLTPHOSUtilities::DoExistArgument(const int argc, const char** argv, const char *name) const
+AliHLTPHOSUtilities::DoExistArgument(const int argc, const char** argv, const char *name) 
 {
   string s1;
 

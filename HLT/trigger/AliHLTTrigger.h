@@ -1,3 +1,5 @@
+//-*- Mode: C++ -*-
+// $Id$
 #ifndef ALIHLTTRIGGER_H
 #define ALIHLTTRIGGER_H
 /* This file is property of and copyright by the ALICE HLT Project        *
@@ -18,6 +20,48 @@ class AliHLTTriggerDecision;
 /**
  * \class AliHLTTrigger
  * This is the base class from which all HLT trigger components should inherit.
+ *
+ * The class implements an AliHLTProcessor and implements specific functions
+ * for the implementation of a trigger component.
+ *
+ * Mandatory functions to be implemented by the child class
+ * - GetTriggerName()                                        <br>
+ *   must return a unique char string, serves also as component id
+ * - DoTrigger()
+ *   this is the processing method. Can loop over all input blocks and
+ *   calculate a trigger decision based on the input
+ * - Spawn()
+ *   refer to AliHLTComponent::Spawn() for more details
+ *
+ * The class provides default methods for the following methods of the
+ * component interface. The methods can still be overloaded if needed:
+ * - AliHLTComponent::GetNumberOfInputBlocks()
+ * - AliHLTComponent::GetInputDataTypes()
+ * - AliHLTComponent::GetOutputDataType()
+ * - AliHLTComponent::GetOutputDataTypes()
+ * - AliHLTComponent::GetOutputDataSize()
+ *
+ * Within the DoTrigger() function, the component has access to the input
+ * data via:
+ * - AliHLTComponent::GetFirstInputObject()
+ * - AliHLTComponent::GetNextInputObject()
+ * - AliHLTComponent::GetFirstInputBlock()
+ * - AliHLTComponent::GetNextInputBlock()
+ * - GetEventData()
+ * - GetTriggerData()
+ *
+ * Further information about the event and the external trigger classes
+ * can be checked by the base class methods:
+ * - AliHLTComponent::EvaluateCTPTriggerClass()
+ * - AliHLTComponent::GetRunNo() const;
+ * - AliHLTComponent::GetRunType() const;
+ * - AliHLTComponent::GetEventId()
+ *
+ * Inside DoTrigger() the component can call TriggerEvent() to create a
+ * trigger. The trigger information is stored and propagated in an
+ * AliHLTTriggerDecision object.
+ *
+ * \ingroup alihlt_trigger_components
  */
 class AliHLTTrigger : public AliHLTProcessor
 {
@@ -30,6 +74,11 @@ class AliHLTTrigger : public AliHLTProcessor
    * Returns the name of the trigger. This must be unique across the system.
    * This method is pure virtual and must be implemented by child classes.
    * @return string containing the trigger name.
+   * \note The name returned by this method should be a valid C++ symbol name.
+   *    Otherwise the global trigger component will not be able to handle the
+   *    derived trigger component properly.
+   *    As an extention the '-' character is allowed in the symbol name,
+   *    but not as the first character.
    */
   virtual const char* GetTriggerName() const = 0;
   
@@ -44,19 +93,16 @@ class AliHLTTrigger : public AliHLTProcessor
    * This method returns kAliHLTAnyDataType by default.
    * @param list <i>[out]</i>: The list of data types to be filled.
    */
-  virtual void GetInputDataTypes(AliHLTComponentDataTypeList& list) const
-  {
-    list.push_back(kAliHLTAnyDataType);
-  }
+  virtual void GetInputDataTypes(AliHLTComponentDataTypeList& list) const;
 
   /**
    * Returns extra output data types this trigger generates.
-   * This returns an empty list by default.
+   * This returns kAliHLTDataTypeTriggerDecision by default.
    * @param list <i>[out]</i>: The list of data types to be filled.
    * \note The underlying non const version of GetOutputDataTypes adds the value
-   *    kAliHLTDataTypeTObject to the list.
+   *    kAliHLTDataTypeReadoutList to the list automatically.
    */
-  virtual void GetOutputDataTypes(AliHLTComponentDataTypeList& /*list*/) const {}
+  virtual void GetOutputDataTypes(AliHLTComponentDataTypeList& list) const;
 
   /**
    * Get a ratio by how much the data volume is shrunk or enhanced.
@@ -104,8 +150,8 @@ class AliHLTTrigger : public AliHLTProcessor
   /**
    * Fills the output with the given trigger decision. This should be called in the
    * DoTrigger method when a custom trigger decision has been constructed.
-   * @param value  The custom trigger decision object.
-   * @param datatype  The data block type to use (set to
+   * @param result    The custom trigger decision object.
+   * @param type  The data block type to use (set to
    *    kAliHLTDataTypeTObject|kAliHLTDataOriginOut by default).
    * @param spec  The data block specification to use (set to kAliHLTVoidDataSpec
    *    by default).
@@ -120,6 +166,12 @@ class AliHLTTrigger : public AliHLTProcessor
       const AliHLTComponentDataType& type = kAliHLTDataTypeTObject|kAliHLTDataOriginOut,
       AliHLTUInt32_t spec = kAliHLTVoidDataSpec
     );
+  
+  /**
+   * This method allows one to completely ignore an event. The DoEvent method will
+   * not even generate a false trigger decision if this method is called.
+   */
+  void IgnoreEvent(bool value = true) { fDecisionMade = value; }
   
   /**
    * Method for finding out the result of the last call to TriggerEvent.
@@ -222,6 +274,15 @@ class AliHLTTrigger : public AliHLTProcessor
    * \param value  The new value to use for the flag.
    */
   void ClearInfoForNewEvent(bool value = true) { fClearInfo = value; }
+
+  /**
+   * Create the EventDoneData and add the specified readout list
+   * from a Trigger domain object.
+   * @param domain   the domain as calculated by the (Global)trigger
+   * @param type     type of the readout list, defined by PubSub
+   *                  4 monitoring filter
+   */
+  int CreateEventDoneReadoutFilter(const AliHLTTriggerDomain& domain, unsigned type);
 
  private:
  

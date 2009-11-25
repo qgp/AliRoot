@@ -27,9 +27,9 @@
 GPUd() AliHLTTPCCAParam::AliHLTTPCCAParam()
     : fISlice( 0 ), fNRows( 63 ), fAlpha( 0.174533 ), fDAlpha( 0.349066 ),
     fCosAlpha( 0 ), fSinAlpha( 0 ), fAngleMin( 0 ), fAngleMax( 0 ), fRMin( 83.65 ), fRMax( 133.3 ),
-    fZMin( 0.0529937 ), fZMax( 249.778 ), fErrX( 0 ), fErrY( 0 ), fErrZ( 0.228808 ), fPadPitch( 0.4 ), fBzkG( 5. ),
-    fConstBz( 5.*0.000299792458 ), fHitPickUpFactor( 1. ),
-    fMaxTrackMatchDRow( 4 ), fTrackConnectionFactor( 3.5 ), fTrackChiCut( 3.5 ), fTrackChi2Cut( 10 )
+    fZMin( 0.0529937 ), fZMax( 249.778 ), fErrX( 0 ), fErrY( 0 ), fErrZ( 0.228808 ), fPadPitch( 0.4 ), fBzkG( -5.00668 ),
+    fConstBz( -5.00668*0.000299792458 ), fHitPickUpFactor( 1. ),
+      fMaxTrackMatchDRow( 4 ), fNeighboursSearchArea(3.), fTrackConnectionFactor( 3.5 ), fTrackChiCut( 3.5 ), fTrackChi2Cut( 10 ), fClusterError2CorrectionY(1.), fClusterError2CorrectionZ(1.)
 {
   // constructor
   fParamS0Par[0][0][0] = 0.00047013;
@@ -78,9 +78,8 @@ GPUd() AliHLTTPCCAParam::AliHLTTPCCAParam()
 
   Update();
 }
-#endif
 
-GPUd() void AliHLTTPCCAParam::Initialize( int iSlice,
+void AliHLTTPCCAParam::Initialize( int iSlice,
     int nRows, float rowX[],
     float alpha, float dAlpha,
     float rMin, float rMax,
@@ -110,7 +109,7 @@ GPUd() void AliHLTTPCCAParam::Initialize( int iSlice,
   Update();
 }
 
-GPUd() void AliHLTTPCCAParam::Update()
+void AliHLTTPCCAParam::Update()
 {
   // update of calculated values
 
@@ -126,11 +125,14 @@ GPUd() void AliHLTTPCCAParam::Update()
 
   fCosAlpha = CAMath::Cos( fAlpha );
   fSinAlpha = CAMath::Sin( fAlpha );
-  fAngleMin = fAlpha - fDAlpha / 2.;
-  fAngleMax = fAlpha + fDAlpha / 2.;
+  fAngleMin = fAlpha - fDAlpha / 2.f;
+  fAngleMax = fAlpha + fDAlpha / 2.f;
   fErrX = fPadPitch / CAMath::Sqrt( 12. );
   fTrackChi2Cut = fTrackChiCut * fTrackChiCut;
 }
+
+#endif
+
 
 GPUd() void AliHLTTPCCAParam::Slice2Global( float x, float y,  float z,
     float *X, float *Y,  float *Z ) const
@@ -176,7 +178,7 @@ GPUd() void AliHLTTPCCAParam::GetClusterErrors2( int iRow, float z, float sinPhi
   Err2Z = GetClusterError2( 1, type, z, angleZ );
 }
 
-
+#ifndef HLTCA_GPUCODE
 GPUh() void AliHLTTPCCAParam::WriteSettings( std::ostream &out ) const
 {
   // write settings to the file
@@ -247,3 +249,4 @@ GPUh() void AliHLTTPCCAParam::ReadSettings( std::istream &in )
       for ( int k = 0; k < 7; k++ )
         in >> fParamS0Par[i][j][k];
 }
+#endif

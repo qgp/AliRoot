@@ -124,16 +124,12 @@ Int_t AliHLTJETConeFinder::Initialize() {
 void AliHLTJETConeFinder::Reset() {
   // see header file for class documentation
 
-  // -- Reset reader
-  (dynamic_cast<AliHLTJETReader*> (fReader))->ResetEvent();
-
   // -- Reset output container
   if (fJets)
     fJets->Reset();
   
   return;
 }
-
 
 /*
  * ---------------------------------------------------------------------------------
@@ -179,8 +175,11 @@ Bool_t AliHLTJETConeFinder::ProcessEvent() {
 }
 
 // #################################################################################
-Bool_t AliHLTJETConeFinder::ProcessConeEvent() {
+Bool_t AliHLTJETConeFinder::ProcessHLTEvent() {
   // see header file for class documentation
+
+  // -- Reset
+  Reset();
 
   // -- Find Leading
   if ( FindConeLeading()  ) {
@@ -218,7 +217,7 @@ Int_t AliHLTJETConeFinder::FindConeLeading() {
 
   // -- Pick up jet canidates
   TClonesArray* jetCandidates = reader->GetJetCandidates();
-  
+
   // -- Check for more than 1 jet candidate
   if ( reader->GetNJetCandidates() > 1 ) {
     
@@ -239,7 +238,7 @@ Int_t AliHLTJETConeFinder::FindConeLeading() {
 
   // -- Resize the seed TClonesArray
   jetCandidates->Compress();
-  
+
   return 0;
 }
 
@@ -315,7 +314,8 @@ Int_t AliHLTJETConeFinder::FillConeJets() {
     
   } // for ( Int_t iter = 0; iter < reader->GetNJetCandidates(); iter++ ) {
   
-  HLTDebug( "Added %d jets", fJets->GetNAODJets());
+  // xxx  HLTDebug( "Added %d jets", fJets->GetNAODJets());
+  HLTInfo( "Added %d jets", fJets->GetNAODJets());
 
   return iResult;
 }

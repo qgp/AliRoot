@@ -86,12 +86,19 @@ AliHLTTPCClusterFinder::AliHLTTPCClusterFinder()
   fDoMC(kFALSE),
   fClusterMCVector(),
   fOfflineTransform(NULL),
-  fTimeMeanDiff(2)
+  fOfflineTPCRecoParam(),
+  fTimeMeanDiff(2),
+  fReleaseMemory(0)
 {
   //constructor  
   fOfflineTransform = AliTPCcalibDB::Instance()->GetTransform(); 
   if(!fOfflineTransform){
     HLTError("AliHLTTPCClusterFinder():  Offline transform not in AliTPCcalibDB.");
+  }
+  else{
+    fOfflineTPCRecoParam.SetUseExBCorrection(1);
+    fOfflineTPCRecoParam.SetUseTOFCorrection(1);
+    fOfflineTransform->SetCurrentRecoParam(&fOfflineTPCRecoParam);
   }
 }
 
@@ -143,6 +150,8 @@ void AliHLTTPCClusterFinder::InitializePadArray(){
 
   memset( fNumberOfPadsInRow, 0, sizeof(Int_t)*(fNumberOfRows));
 
+  fRowPadVector.clear();
+
   for(UInt_t i=0;i<fNumberOfRows;i++){
     fNumberOfPadsInRow[i]=AliHLTTPCTransform::GetNPads(i+fFirstRow);
     AliHLTTPCPadVector tmpRow;
@@ -159,17 +168,21 @@ void AliHLTTPCClusterFinder::InitializePadArray(){
 Int_t AliHLTTPCClusterFinder::DeInitializePadArray(){
   // see header file for class documentation
 
-  for(UInt_t i=0;i<fNumberOfRows;i++){
-    for(UInt_t j=0;j<=fNumberOfPadsInRow[i];j++){
-      delete fRowPadVector[i][j];
-      fRowPadVector[i][j]=NULL;
+  if( fVectorInitialized ){
+    for(UInt_t i=0;i<fNumberOfRows;i++){
+      for(UInt_t j=0;j<=fNumberOfPadsInRow[i];j++){
+	delete fRowPadVector[i][j];
+	fRowPadVector[i][j]=NULL;
+      }
+      fRowPadVector[i].clear();
     }
-    fRowPadVector[i].clear();
+    fRowPadVector.clear();
+    delete[] fNumberOfPadsInRow;
+    fNumberOfPadsInRow = 0;
   }
-  fRowPadVector.clear();
+  fVectorInitialized=kFALSE;
   return 1;
-} 
-
+}
 
 
 void AliHLTTPCClusterFinder::SetOutputArray(AliHLTTPCSpacePointData *pt){
@@ -614,8 +627,24 @@ void AliHLTTPCClusterFinder::FindClusters(){
   WriteClusters(fClusters.size(),clusterlist);
   delete [] clusterlist;
   fClusters.clear();
+  if( fReleaseMemory ) DeInitializePadArray();// call this when  the -releaseMemory flag is set
 }
 
+
+Bool_t AliHLTTPCClusterFinder::UpdateCalibDB(){
+  
+  //update the db
+  AliTPCcalibDB::Instance()->Update();
+
+  //uptate the transform class
+  AliTPCTransform * tmp = AliTPCcalibDB::Instance()->GetTransform(); 
+  if(!tmp){
+    HLTError("AliHLTTPCClusterFinder::UpdateCAlibDB: Offline transform not in AliTPCcalibDB.");
+    return 0;
+  }
+  fOfflineTransform = tmp;
+  return 1;
+}
 
 //---------------------------------- Under this line the old sorted clusterfinder functions can be found --------------------------------
 

@@ -1,4 +1,4 @@
-// $Id$
+ // $Id$
 
  /**************************************************************************
  * This file is property of and copyright by the ALICE HLT Project        *
@@ -17,13 +17,9 @@
 
 #include "AliHLTPHOSDigitMakerComponent.h"
 #include "AliHLTPHOSDigitMaker.h"
-#include "TTree.h"
-#include "AliHLTPHOSProcessor.h"
-#include "AliHLTPHOSRcuCellEnergyDataStruct.h"
 #include "AliHLTPHOSDigitDataStruct.h"
 #include "AliHLTPHOSChannelDataHeaderStruct.h"
 #include "AliHLTPHOSChannelDataStruct.h"
-#include "TClonesArray.h"
 #include "TFile.h"
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -43,15 +39,12 @@
 // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
 
 
-const AliHLTComponentDataType AliHLTPHOSDigitMakerComponent::fgkInputDataTypes[]={kAliHLTVoidDataType,{0,"",""}};
-
 AliHLTPHOSDigitMakerComponent gAliHLTPHOSDigitMakerComponent;
 
 AliHLTPHOSDigitMakerComponent::AliHLTPHOSDigitMakerComponent() :
   AliHLTPHOSProcessor(),
   fDigitMakerPtr(0),
   fDigitContainerPtr(0)
-  //  fEvtCnt(0)
 {
   //see header file for documentation
 }
@@ -88,12 +81,6 @@ AliHLTPHOSDigitMakerComponent::GetInputDataTypes(vector<AliHLTComponentDataType>
   //see header file for documentation
   list.clear();
   list.push_back(AliHLTPHOSDefinitions::fgkChannelDataType);
-
-//   const AliHLTComponentDataType* pType=fgkInputDataTypes;
-//   while (pType->fID!=0) {
-//     list.push_back(*pType); 
-//     pType++;
-//   }
 }
 
 AliHLTComponentDataType 
@@ -118,7 +105,6 @@ AliHLTPHOSDigitMakerComponent::DoEvent(const AliHLTComponentEventData& evtData, 
 					std::vector<AliHLTComponentBlockData>& outputBlocks)
 {
   //see header file for documentation
-  UInt_t tSize            = 0;
   UInt_t offset           = 0; 
   UInt_t mysize           = 0;
   Int_t digitCount        = 0;
@@ -132,7 +118,7 @@ AliHLTPHOSDigitMakerComponent::DoEvent(const AliHLTComponentEventData& evtData, 
   UInt_t specification = 0;
   AliHLTPHOSChannelDataHeaderStruct* tmpChannelData = 0;
   
-  fDigitMakerPtr->SetDigitDataPtr(reinterpret_cast<AliHLTPHOSDigitDataStruct*>(outputPtr));
+  fDigitMakerPtr->SetDigitHeaderPtr(reinterpret_cast<AliHLTPHOSDigitHeaderStruct*>(outputPtr));
 
   for( ndx = 0; ndx < evtData.fBlockCnt; ndx++ )
     {
@@ -156,22 +142,19 @@ AliHLTPHOSDigitMakerComponent::DoEvent(const AliHLTComponentEventData& evtData, 
       digitCount += ret; 
     }
   
-  mysize = digitCount*sizeof(AliHLTPHOSDigitDataStruct);
+  mysize += digitCount*sizeof(AliHLTPHOSDigitDataStruct);
 
   HLTDebug("# of digits: %d, used memory size: %d, available size: %d", digitCount, mysize, size);
-  
-  AliHLTComponentBlockData bd;
-  FillBlockData( bd );
-  bd.fOffset = offset;
-  bd.fSize = mysize;
-  bd.fDataType = AliHLTPHOSDefinitions::fgkDigitDataType;
-  bd.fSpecification = specification;
-  outputBlocks.push_back(bd);
-       
-  if( tSize > size )
+
+  if(mysize > 0) 
     {
-      Logging( kHLTLogFatal, "HLT::AliHLTPHOSDigitMakerComponent::DoEvent", "Too much data", "Data written over allowed buffer. Amount written: %lu, allowed amount: %lu.", tSize, size );
-      return EMSGSIZE;
+      AliHLTComponentBlockData bd;
+      FillBlockData( bd );
+      bd.fOffset = offset;
+      bd.fSize = mysize;
+      bd.fDataType = AliHLTPHOSDefinitions::fgkDigitDataType;
+      bd.fSpecification = specification;
+      outputBlocks.push_back(bd);
     }
 
   fDigitMakerPtr->Reset();

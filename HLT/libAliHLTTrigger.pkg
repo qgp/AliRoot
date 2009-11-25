@@ -11,9 +11,13 @@
 CLASS_HDRS:= \
                 AliHLTTrigger.h                             \
                 AliHLTGlobalTrigger.h                       \
+                AliHLTGlobalTriggerWrapper.h                \
                 AliHLTGlobalTriggerConfig.h                 \
                 AliHLTGlobalTriggerComponent.h              \
 		AliHLTTriggerBarrelMultiplicity.h           \
+		AliHLTD0Trigger.h                           \
+		AliHLTD0toKpi.h                             \
+		AliHLTTriggerITSMultiplicity.h              \
 		AliHLTTriggerBarrelCosmic.h                 \
                 AliHLTTriggerAgent.h                        \
                 AliHLTEventSummary.h                        \
@@ -21,8 +25,17 @@ CLASS_HDRS:= \
                 AliHLTRunSummary.h                          \
                 AliHLTRunSummaryProducerComponent.h         \
                 AliHLTTriggerSelectiveReadoutComponent.h    \
-                AliHLTTriggerMonitoringComponent.h
-
+                AliHLTTriggerMonitoringComponent.h          \
+		AliHLTTriggerPhosClusterEnergy.h            \
+		AliHLTTriggerPhosMip.h                      \
+		AliHLTTriggerTrdClusterMultiplicity.h       \
+		AliHLTTriggerBarrelGeomMultiplicity.h	    \
+		AliHLTTriggerDetectorGeom.h		    \
+		AliHLTTriggerDetectorGeomRectangle.h	    \
+		AliHLTTriggerDecisionParameters.h           \
+		AliHLTTriggerGammaConversion.h              \
+		AliHLTMuonSpectroScalars.h                  \
+		AliHLTMuonSpectroTriggerComponent.h
 
 # library sources
 MODULE_SRCS:= 	$(CLASS_HDRS:.h=.cxx)
@@ -44,9 +57,9 @@ MODULE_HDRS:= 	$(CLASS_HDRS)
 # enable automatic generation. 
 MODULE_DHDR:= 	AliHLTTriggerLinkDef.h
 
-EINCLUDE := HLT/BASE HLT/trigger HLT/TPCLib
+EINCLUDE := HLT/BASE HLT/BASE/util HLT/trigger HLT/TPCLib HLT/TRD TRD HLT/ITS HLT/MUON MUON
 
-LIBRARY_DEP := -lHLTbase
+LIBRARY_DEP := -lHLTbase 
 
 ###############################################################################
 #
@@ -56,6 +69,7 @@ include $(MODDIR)/hlt.conf
 
 SRCS:=$(patsubst %,trigger/%,$(MODULE_SRCS))
 CINTHDRS:=$(patsubst %,trigger/%,$(CLASS_HDRS))
+CINTSTUBS:=$(patsubst %,trigger/%,$(STUB_HDRS))
 HDRS:=$(patsubst %,trigger/%,$(MODULE_HDRS))
 DHDR:=$(patsubst %,trigger/%,$(MODULE_DHDR))
 CINTAUTOLINK:= $(shell test "x$(MODULE_DHDR)" = "x" && echo 1)

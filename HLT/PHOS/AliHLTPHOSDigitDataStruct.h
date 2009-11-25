@@ -20,6 +20,8 @@
 #ifndef ALIHLTPHOSDIGITDATASTRUCT_H
 #define ALIHLTPHOSDIGITDATASTRUCT_H
 
+#include "Rtypes.h"
+
 /**
  * Digit struct for PHOS HLT
  *
@@ -36,6 +38,27 @@
 // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
 
 /**
+ * @struct AliHLTPHOSDigitHeaderStruct 
+ * Header used to pass digits around
+ * @ingroup alihlt_phos
+ */
+struct AliHLTPHOSDigitHeaderStruct
+{
+  /** Number of digits */
+  UInt_t fNDigits;
+
+  /** Start pointer */
+  Char_t *fStartPtr;
+  
+  /** The relative offset in bytes to the first digit in the list */
+  Int_t fFirstDigitOffset;
+
+  /** The relative offset in bytes to the last digit in the list */
+  Int_t fLastDigitOffset;
+      
+};
+
+/**
  * @struct AliHLTPHOSDigitDataStruct
  * Digit struct for PHOS HLT
  *
@@ -46,8 +69,14 @@ struct AliHLTPHOSDigitDataStruct
   /** The x coordinate */
   Int_t fX;
 
-  /** The x coordinate */
+  /** The z coordinate */
   Int_t fZ;
+
+  /** The local x coordinate */
+  Float_t fLocX;
+
+  /** The local z coordinate */
+  Float_t fLocZ;
 
   /** The module number */
   Int_t fModule;
@@ -69,6 +98,12 @@ struct AliHLTPHOSDigitDataStruct
 
   /** The baseline */
   Float_t fBaseline;
+  
+  /** Relative offset in memory to next digit */
+  Int_t fMemOffsetNext;
+
+  /** Digit ID */
+  UInt_t fID;
 
 };
 

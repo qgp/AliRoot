@@ -1,0 +1,73 @@
+#-*- Mode: Makefile -*-
+# $Id$
+
+
+include $(MODDIR)/hlt.conf
+
+
+## header files of all classes
+## optionally, the link def file of the library is generated
+## automatically from those header files
+CLASS_HDRS:= AliHLTCaloRawAnalyzerChiSquareFit.h \
+AliHLTCaloRawAnalyzerComponentv3.h \
+AliHLTCaloRawAnalyzerCrudeComponent.h \
+AliHLTCaloRawAnalyzerCrude.h \
+AliHLTCaloRawAnalyzer.h \
+AliHLTCaloRawAnalyzerPeakFinderComponent.h \
+AliHLTCaloRawAnalyzerPeakFinder.h \
+AliHLTCaloUtilities.h \
+AliHLTCaloMapper.h \
+AliHLTCaloDefinitions.h \
+AliHLTCaloSanityInspector.h \
+AliHLTCaloSharedMemoryInterfacev2.h \
+AliHLTCaloFourier.h \
+AliHLTCaloConstants.h \
+AliHLTCaloClusterizer.h \
+AliHLTCaloDigitMaker.h \
+AliHLTCaloClusterAnalyser.h \
+AliHLTCaloRcuProcessor.h \
+AliHLTCaloProcessor.h 
+
+## all source files of this module
+## all source files corresponding to the class headers
+## and eventually additional sources not considered in
+## the dictionary
+MODULE_SRCS= 	$(CLASS_HDRS:.h=.cxx)
+
+## all header files of this module
+MODULE_HDRS:= 	$(CLASS_HDRS) \
+		AliHLTCaloConstant.h \
+		AliHLTCaloDigitDataStruct.h \
+		AliHLTCaloDigitContainerDataStruct.h \
+		AliHLTCaloRecPointDataStruct.h \
+		AliHLTCaloRecPointContainerStruct.h \
+		AliHLTCaloRecPointHeaderStruct.h 
+##		AliHLTCaloChannelDataStruct.h \
+##		AliHLTCaloChannelDataHeaderStruct.h 
+
+## the link def file for this module
+## generated automatically if empty
+MODULE_DHDR:=
+
+## AliRoot include paths
+EINCLUDE := HLT/BASE HLT/BASE/util STEER RAW HLT/PHOS EMCAL CALO
+
+LIBRARY_DEP  := -lHLTbase -lCalo -CALOshuttle -lESD -lSTEER -lRAWDatarec
+
+###############################################################################
+#
+# do not change anything below this line
+#
+include $(MODDIR)/hlt.conf
+
+SRCS:=$(patsubst %,CALO/%,$(MODULE_SRCS))
+CINTHDRS:=$(patsubst %,CALO/%,$(CLASS_HDRS))
+HDRS:=$(patsubst %,CALO/%,$(MODULE_HDRS))
+DHDR:=$(patsubst %,CALO/%,$(MODULE_DHDR))
+CINTAUTOLINK:= $(shell test "x$(MODULE_DHDR)" = "x" && echo 1)
+
+EDEFINE      := ${HLTDEFS}
+PACKCXXFLAGS := ${HLTCXXFLAGS}
+PACKCFLAGS   := ${HLTCLFAGS}
+PACKDCXXFLAGS:= ${HLTDCXXFLAGS}
+PACKSOFLAGS  := $(HLTSOFLAGS)

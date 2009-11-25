@@ -11,7 +11,7 @@
 
 
 #include "AliHLTTPCCADef.h"
-#include "AliHLTTPCCAGrid.h"
+#include "AliHLTTPCCARow.h"
 class AliHLTTPCCATracker;
 
 /**
@@ -27,15 +27,14 @@ class AliHLTTPCCANeighboursFinder
       public:
 #if !defined(HLTCA_GPUCODE)
         AliHLTTPCCASharedMemory()
-            : fGridUp(), fGridDn(), fNHits( 0 ), fUpNHits( 0 ), fDnNHits( 0 ), fUpDx( 0 ), fDnDx( 0 ), fUpTx( 0 ), fDnTx( 0 ), fIRow( 0 ), fIRowUp( 0 ), fIRowDn( 0 ), fNRows( 0 ) {}
+            : fNHits( 0 ), fUpNHits( 0 ), fDnNHits( 0 ), fUpDx( 0 ), fDnDx( 0 ), fUpTx( 0 ), fDnTx( 0 ), fIRow( 0 ), fIRowUp( 0 ), fIRowDn( 0 ), fNRows( 0 ), fRow(), fRowUp(), fRowDown() {}
 
         AliHLTTPCCASharedMemory( const AliHLTTPCCASharedMemory& /*dummy*/ )
-            : fGridUp(), fGridDn(), fNHits( 0 ), fUpNHits( 0 ), fDnNHits( 0 ), fUpDx( 0 ), fDnDx( 0 ), fUpTx( 0 ), fDnTx( 0 ), fIRow( 0 ), fIRowUp( 0 ), fIRowDn( 0 ), fNRows( 0 ) {}
+            : fNHits( 0 ), fUpNHits( 0 ), fDnNHits( 0 ), fUpDx( 0 ), fDnDx( 0 ), fUpTx( 0 ), fDnTx( 0 ), fIRow( 0 ), fIRowUp( 0 ), fIRowDn( 0 ), fNRows( 0 ), fRow(), fRowUp(), fRowDown() {}
         AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
-#endif
+#endif //!HLTCA_GPUCODE
+
       protected:
-        AliHLTTPCCAGrid fGridUp; // grid for the next row
-        AliHLTTPCCAGrid fGridDn; // grid for the previous row
         int fNHits; // n hits
         int fUpNHits; // n hits in the next row
         int fDnNHits; // n hits in the prev row
@@ -47,10 +46,9 @@ class AliHLTTPCCANeighboursFinder
         int fIRowUp; // next row number
         int fIRowDn;// previous row number
         int fNRows; // number of rows
-        float2 fA[256][20]; // temp memory
-        unsigned short fB[256][20]; // temp memory
-        unsigned short fGridContentUp[7000]; // grid content for the next row
-        unsigned short fGridContentDn[7000];// grid content for the previous row
+        float2 fA[256][ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
+        unsigned short fB[256][ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP]; // temp memory
+		AliHLTTPCCARow fRow, fRowUp, fRowDown;
     };
 
     GPUd() static int NThreadSyncPoints() { return 2; }
@@ -61,4 +59,4 @@ class AliHLTTPCCANeighboursFinder
 };
 
 
-#endif
+#endif //ALIHLTTPCCANEIGHBOURSFINDER_H

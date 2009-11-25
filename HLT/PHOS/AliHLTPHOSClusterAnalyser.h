@@ -1,3 +1,4 @@
+
 //-*- Mode: C++ -*-
 // $Id$
 
@@ -19,6 +20,8 @@
 #ifndef ALIHLTPHOSCLUSTERANALYSER_H
 #define ALIHLTPHOSCLUSTERANALYSER_H
 
+#include "Rtypes.h"
+
 /**
  * Class calculates properties of rec points
  *
@@ -34,15 +37,14 @@
 // or
 // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
 
-#include "AliHLTPHOSBase.h"
+//#include "AliHLTPHOSBase.h"
 
-class AliHLTPHOSPhysicsAnalyzer;
 class AliHLTPHOSRecPointHeaderStruct;
 class AliHLTPHOSRecPointDataStruct;
-class AliHLTPHOSCaloClusterHeaderStruct;
-class AliHLTPHOSCaloClusterDataStruct;
-class AliPHOSGeometry;
-
+class AliHLTCaloClusterHeaderStruct;
+class AliHLTCaloClusterDataStruct;
+class AliPHOSGeoUtils;
+class AliHLTPHOSDigitHeaderStruct;
 /** 
  * @class AliHLTPHOSClusterAnalyser
  * ClusterAnalyser for PHOS HLT. Algorithms for center of gravity
@@ -51,7 +53,8 @@ class AliPHOSGeometry;
  *
  * @ingroup alihlt_phos
  */
-class AliHLTPHOSClusterAnalyser : public AliHLTPHOSBase
+//class AliHLTPHOSClusterAnalyser : public AliHLTPHOSBase
+class AliHLTPHOSClusterAnalyser 
 {
 public:
 
@@ -63,19 +66,18 @@ public:
   
   /** Copy constructor */
   AliHLTPHOSClusterAnalyser(const AliHLTPHOSClusterAnalyser &) : 
-    AliHLTPHOSBase(),
+    //   AliHLTPHOSBase(),
     fLogWeight(0),
     fRecPointDataPtr(0),
     fNRecPoints(0),
     fCaloClusterDataPtr(0),
     fCaloClusterHeaderPtr(0),
     fPHOSGeometry(0),
-    fAnalyzerPtr(0),
     fDoClusterFit(false),
     fHaveCPVInfo(false),
     fDoPID(false),
-    fHaveDistanceToBadChannel(false)
-    
+    fHaveDistanceToBadChannel(false),
+    fDigitHeaderPtr(0)
   {
     //Copy constructor not implemented
   }
@@ -91,14 +93,14 @@ public:
    * Set the rec point data buffer
    * @param recPointDataPtr is a pointer to the rec points
    */
-  void SetRecPointDataPtr(AliHLTPHOSRecPointHeaderStruct *recPointDataPtr);
+  void SetRecPointDataPtr(AliHLTPHOSRecPointHeaderStruct *recPointDataPtr, AliHLTPHOSDigitHeaderStruct *digitHeader);
 
 
   /** 
    * Set the calo cluster output buffer
    * @param caloClusterDataPtr is a pointer to the calo cluster buffer
    */
-  void SetCaloClusterDataPtr(AliHLTPHOSCaloClusterDataStruct *caloClusterDataPtr);
+  void SetCaloClusterDataPtr(AliHLTCaloClusterDataStruct *caloClusterDataPtr);
 
   /** 
    * Calculates the center of gravity for the reconstruction points in the container
@@ -116,7 +118,7 @@ public:
    * Calculates the moments for a certain cluster
    * @return 
    */
-  Int_t CalculateClusterMoments(AliHLTPHOSRecPointDataStruct *recPointPtr, AliHLTPHOSCaloClusterDataStruct* clusterPtr);
+  Int_t CalculateClusterMoments(AliHLTPHOSRecPointDataStruct *recPointPtr, AliHLTCaloClusterDataStruct* clusterPtr);
 
   /** 
    * Deconvolute the clusters in an AliHLTPHOSRecPointContainerStruct
@@ -149,14 +151,14 @@ public:
    * param clusterPtr is the pointer to the emc cluster
    * @return 
    */
-  Int_t DoParticleIdentification(AliHLTPHOSCaloClusterDataStruct* /*clusterPtr*/) { return 0; }
+  Int_t DoParticleIdentification(AliHLTCaloClusterDataStruct* /*clusterPtr*/) { return 0; }
   
   /**
    * Get the distance to the neares bad channel
    * param clusterPtr is a pointer to the calo cluster
    * @return the distance
    */
-  Float_t GetDistanceToBadChannel(AliHLTPHOSCaloClusterDataStruct* /*clusterPtr*/) { return 0; }
+  Float_t GetDistanceToBadChannel(AliHLTCaloClusterDataStruct* /*clusterPtr*/) { return 0; }
 
   /**
    * Set do cluster fit
@@ -178,6 +180,11 @@ public:
    */
   void SetHaveDistanceToBadChannel() { fHaveDistanceToBadChannel = true; }
 
+  /**
+   * Set the PHOS Geometry
+   */
+  void SetGeometry(AliPHOSGeoUtils *geom) { fPHOSGeometry = geom; }
+
 private:
   
   /** Used for calculation of center of gravity */
@@ -190,17 +197,13 @@ private:
   Int_t fNRecPoints;                                      //COMMENT
 
   /** Pointer to the cluster buffer */
-  AliHLTPHOSCaloClusterDataStruct *fCaloClusterDataPtr;   //! transient
+  AliHLTCaloClusterDataStruct *fCaloClusterDataPtr;   //! transient
 
   /** Pointer to the cluster header */
-  AliHLTPHOSCaloClusterHeaderStruct *fCaloClusterHeaderPtr;   //! transient
+  AliHLTCaloClusterHeaderStruct *fCaloClusterHeaderPtr;   //! transient
 
   /** Instance of the PHOS geometry */
-  AliPHOSGeometry *fPHOSGeometry;                           //! transient
-
-  //TODO: should not use PhysicsAnalyzer for global coord!
-  /** */
-  AliHLTPHOSPhysicsAnalyzer *fAnalyzerPtr;                  //! transient
+  AliPHOSGeoUtils *fPHOSGeometry;                           //! transient
 
   /** Should we do cluster fitting? */
   Bool_t fDoClusterFit;                                     //COMMENT
@@ -213,7 +216,9 @@ private:
 
   /** Do we have distance to bad channel? */
   Bool_t fHaveDistanceToBadChannel;                         //COMMENT
-  
+
+  /** Pointer to the digit header */
+  AliHLTPHOSDigitHeaderStruct *fDigitHeaderPtr;             //COMMENT
   
 };
 

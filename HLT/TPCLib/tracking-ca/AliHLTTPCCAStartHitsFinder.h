@@ -32,12 +32,13 @@ class AliHLTTPCCAStartHitsFinder
         AliHLTTPCCASharedMemory( const AliHLTTPCCASharedMemory& /*dummy*/ )
             : fIRow( 0 ), fNRows( 0 ), fNHits( 0 ), fNOldStartHits( 0 ), fNRowStartHits( 0 ) {}
         AliHLTTPCCASharedMemory& operator=( const AliHLTTPCCASharedMemory& /*dummy*/ ) { return *this; }
-#endif
+#endif //!HLTCA_GPUCODE
+
       protected:
         int fIRow; // row index
         int fNRows; // n rows
         int fNHits; // n hits in the row
-        AliHLTTPCCAHitId fRowStartHits[10240]; // temp. array for the start hits
+        AliHLTTPCCAHitId fRowStartHits[ALIHLTTPCCASTARTHITSFINDER_MAX_FROWSTARTHITS]; // temp. array for the start hits
         int fNOldStartHits; // n start hits from other jobs
         int fNRowStartHits; // n start hits for this row
     };
@@ -49,4 +50,4 @@ class AliHLTTPCCAStartHitsFinder
 };
 
 
-#endif
+#endif //ALIHLTTPCCASTARTHITSFINDER_H

@@ -36,20 +36,16 @@
 // or
 // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
 
-#include "AliHLTPHOSBase.h"
-#include "AliPHOSLoader.h"
 
 #include "AliHLTPHOSRecPointContainerStruct.h"
 #include "AliHLTPHOSRecPointDataStruct.h"
 #include "AliHLTPHOSDigitContainerDataStruct.h"
 #include "AliHLTPHOSDigitDataStruct.h"
+#include "AliHLTLogging.h"
 
 #include "AliPHOSGeometry.h"
 
-class TClonesArray;
-class AliPHOSDigit;
-class AliPHOSRecoParamEmc;
-class AliPHOSRecoParam;
+class AliHLTPHOSDigitReader;
 
 /** 
  * @class AliHLTPHOSClusterizer
@@ -59,7 +55,8 @@ class AliPHOSRecoParam;
  *
  * @ingroup alihlt_phos
  */
-class AliHLTPHOSClusterizer : public AliHLTPHOSBase
+//class AliHLTPHOSClusterizer : public AliHLTPHOSBase
+class AliHLTPHOSClusterizer : public AliHLTLogging
 {
   
 public:
@@ -72,15 +69,20 @@ public:
 
   /** Copy constructor */  
   AliHLTPHOSClusterizer(const AliHLTPHOSClusterizer &) : 
-    AliHLTPHOSBase(),
+    AliHLTLogging(),
     fRecPointDataPtr(0),
     fDigitDataPtr(0),
+    fCurrentDigit(0),
+    fStartDigit(0),
+    fPreviousDigit(0),
     fEmcClusteringThreshold(0),
     fEmcMinEnergyThreshold(0),
     fEmcTimeGate(0),
     fDigitsInCluster(0),
     fDigitContainerPtr(0),
-    fMaxDigitIndexDiff(2*NZROWSMOD)
+    fMaxDigitIndexDiff(2*NZROWSMOD),
+    fAvailableSize(0),
+    fDigitReader(0)
   {
     //Copy constructor not implemented
   }
@@ -99,9 +101,6 @@ public:
   /** Set rec point data buffer */
   void SetRecPointDataPtr(AliHLTPHOSRecPointDataStruct* recPointDataPtr);
 
-  /** Set reco parameters */
-  void SetRecoParameters(AliPHOSRecoParam* recoPars);
-
   /** Set emc clustering threshold */
   void SetEmcClusteringThreshold(Float_t threshold) { fEmcClusteringThreshold = threshold; }
 
@@ -112,16 +111,15 @@ public:
   void SetEmcTimeGate(Float_t gate) { fEmcTimeGate = gate; }
   
   /** Starts clusterization of the event */ 
-  virtual Int_t ClusterizeEvent(UInt_t availableSize, UInt_t& totSize);
-  
+  virtual Int_t ClusterizeEvent(AliHLTPHOSDigitHeaderStruct *digitHeader, UInt_t availableSize, UInt_t& totSize);
+
   /**
    * For a given digit this digit scans for neighbouring digits which 
    * passes the threshold for inclusion in a rec point. If one is found 
    * it is added to the current rec point
-   * @param digIndex index of the digit in the digit container
    * @param recPoint pointer to the current rec point
    */
-  virtual void ScanForNeighbourDigits(Int_t digIndex, AliHLTPHOSRecPointDataStruct* recPoint);
+  virtual Int_t ScanForNeighbourDigits(AliHLTPHOSRecPointDataStruct* recPoint, AliHLTPHOSDigitDataStruct *digit);
 
   /**
    * Checks if two digits are neighbours
@@ -139,6 +137,14 @@ protected:
   /** Pointer to the digit output */
   AliHLTPHOSDigitDataStruct* fDigitDataPtr;                    //! transient
 
+  /** Pointer to the digit output */
+  AliHLTPHOSDigitDataStruct* fCurrentDigit;                    //! transient
+
+  /** Pointer to the digit output */
+  AliHLTPHOSDigitDataStruct* fStartDigit;                    //! transient
+
+  /** Pointer to the digit output */
+  AliHLTPHOSDigitDataStruct* fPreviousDigit;                    //! transient
   /** Energy threshold for starting a cluster for the calorimeter */
   Float_t fEmcClusteringThreshold;                             //COMMENT
 
@@ -157,7 +163,13 @@ protected:
   /** Maximum difference in index to be a neighbour */
   Int_t fMaxDigitIndexDiff;                                    //COMMENT
 
-  ClassDef(AliHLTPHOSClusterizer, 1);
+  /** Current available buffer size */
+  UInt_t fAvailableSize;                                       //COMMENT
+
+  /** object reading the digit */
+  AliHLTPHOSDigitReader *fDigitReader;                         //COMMENT
+
+  ClassDef(AliHLTPHOSClusterizer, 0);
 };
 
 #endif

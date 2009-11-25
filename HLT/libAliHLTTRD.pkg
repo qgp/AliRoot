@@ -15,7 +15,10 @@ CLASS_HDRS:= \
 	AliHLTTRDTracklet.h \
 	AliHLTTRDTrack.h \
 	AliHLTTRDAgent.h \
-	AliHLTTRDUtils.h
+	AliHLTTRDUtils.h \
+	AliHLTTRDOfflineClusterizerComponent.h \
+	AliHLTTRDOfflineTrackerV1Component.h \
+	AliHLTTRDClusterHistoComponent.h
 
 # library sources
 MODULE_SRCS= \
@@ -26,7 +29,9 @@ MODULE_SRCS= \
 # the CLASS_HDRS variable. So we just use the content of this. You
 # can simply add more header files which don't contain classes with
 # ROOT dictionary support
-MODULE_HDRS:= 	$(CLASS_HDRS)
+MODULE_HDRS:= \
+	AliHLTTRDTrackletWordArray.h \
+	$(CLASS_HDRS)
 
 # The LinkDef file required by the ROOT dictionary generation can be
 # generated automatically. For the all header files specified in
@@ -38,7 +43,7 @@ MODULE_HDRS:= 	$(CLASS_HDRS)
 # enable automatic generation. 
 MODULE_DHDR:=
 
-EINCLUDE := HLT/BASE HLT/BASE/util HLT/TRD TRD STEER RAW
+EINCLUDE := HLT/BASE HLT/BASE/util HLT/TRD TRD TRD/Cal STEER RAW
 
 LIBRARY_DEP := -lHLTbase -lAliHLTUtil -lESD -lCDB -lTRDrec -lTRDbase \
                -lSTEER -lSTEERBase -lRAWDatarec

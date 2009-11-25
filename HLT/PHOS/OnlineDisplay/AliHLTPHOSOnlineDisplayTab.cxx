@@ -2,14 +2,14 @@
 
 #include "AliHLTPHOSOnlineDisplayTab.h"
 #include "AliHLTHOMERReader.h"
-#include <iostream>
+//#include <iostream>
 #include "AliHLTDataTypes.h"
 
 
 using namespace std;
 
 
-AliHLTPHOSOnlineDisplayTab::AliHLTPHOSOnlineDisplayTab():AliHLTPHOSBase(),
+AliHLTPHOSOnlineDisplayTab::AliHLTPHOSOnlineDisplayTab()://AliHLTPHOSBase(),
 							 fgSyncronize(kFALSE), 
 							 fRunNumber(-1)
 {
@@ -65,6 +65,7 @@ AliHLTPHOSOnlineDisplayTab::GetEventInfo(AliHLTHOMERReader *homeReaderPtr, int i
 int 
 AliHLTPHOSOnlineDisplayTab::DoGetNextEvent()
 {
+  
   AliHLTHOMERReader* CurrentReaderPtr;
   int ret = 0;
   unsigned long ndx;
@@ -108,4 +109,5 @@ AliHLTPHOSOnlineDisplayTab::DoGetNextEvent()
 	  ReadBlockData(CurrentReaderPtr);
 	}
     }
+  
 }

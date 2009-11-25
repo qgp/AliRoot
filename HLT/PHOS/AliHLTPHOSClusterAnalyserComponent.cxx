@@ -16,9 +16,15 @@
 
 #include "AliHLTPHOSClusterAnalyserComponent.h"
 #include "AliHLTPHOSClusterAnalyser.h"
-#include "AliHLTPHOSRecPointContainerStruct.h"
-#include "AliHLTPHOSCaloClusterDataStruct.h"
-#include "AliHLTPHOSCaloClusterHeaderStruct.h"
+#include "AliHLTPHOSRecPointHeaderStruct.h"
+#include "AliHLTPHOSDigitDataStruct.h"
+#include "AliHLTCaloClusterDataStruct.h"
+#include "AliPHOSGeoUtils.h"
+#include "TGeoManager.h"
+#include "AliCDBEntry.h"
+#include "AliCDBManager.h"
+#include "AliCDBPath.h"
+
 
 /** @file   AliHLTPHOSClusterAnalyserComponent.cxx
     @author Oystein Djuvsland
@@ -36,10 +42,7 @@
 using namespace std;
 #endif
 
-const AliHLTComponentDataType AliHLTPHOSClusterAnalyserComponent::fgkInputDataTypes[]=
-  {
-    kAliHLTVoidDataType,{0,"",""}
-  };
+TGeoManager* gGeoManager = NULL;
 
 AliHLTPHOSClusterAnalyserComponent gAliHLTPHOSClusterAnalyserComponent;
 
@@ -47,9 +50,11 @@ AliHLTPHOSClusterAnalyserComponent gAliHLTPHOSClusterAnalyserComponent;
 AliHLTPHOSClusterAnalyserComponent::AliHLTPHOSClusterAnalyserComponent(): AliHLTPHOSProcessor(), 
 									  fClusterAnalyserPtr(0),
 									  fDoDeconvolution(0),
-									  fDoCalculateMoments(0)
+									  fDoCalculateMoments(0),
+									  fPHOSGeometry(0)
 {
   //See headerfile for documentation
+   
 }
 
 AliHLTPHOSClusterAnalyserComponent::~AliHLTPHOSClusterAnalyserComponent()
@@ -97,7 +102,7 @@ AliHLTPHOSClusterAnalyserComponent::GetOutputDataType()
 {
   //See headerfile for documentation
 
-  return AliHLTPHOSDefinitions::fgkClusterDataType;
+  return kAliHLTDataTypeCaloCluster;
 }
 
 void
@@ -106,7 +111,7 @@ AliHLTPHOSClusterAnalyserComponent::GetOutputDataSize(unsigned long& constBase, 
 {
   //See headerfile for documentation
 
-  constBase = sizeof(AliHLTPHOSCaloClusterHeaderStruct) + sizeof(AliHLTPHOSCaloClusterDataStruct) + (6 << 7); //Reasonable estimate... (6 = sizeof(Short_t) + sizeof(Float_t);
+  constBase = sizeof(AliHLTCaloClusterHeaderStruct) + sizeof(AliHLTCaloClusterDataStruct) + (6 << 7); //Reasonable estimate... (6 = sizeof(Short_t) + sizeof(Float_t);
   inputMultiplier = 1.2;
 }
 
@@ -137,9 +142,9 @@ AliHLTPHOSClusterAnalyserComponent::DoEvent(const AliHLTComponentEventData& evtD
 
   UInt_t specification = 0;
 
-  AliHLTPHOSCaloClusterHeaderStruct* caloClusterHeaderPtr = reinterpret_cast<AliHLTPHOSCaloClusterHeaderStruct*>(outBPtr);
+  //  AliHLTCaloClusterHeaderStruct* caloClusterHeaderPtr = reinterpret_cast<AliHLTCaloClusterHeaderStruct*>(outBPtr);
 
-  fClusterAnalyserPtr->SetCaloClusterDataPtr(reinterpret_cast<AliHLTPHOSCaloClusterDataStruct*>(outBPtr + sizeof(AliHLTPHOSCaloClusterHeaderStruct)));
+  fClusterAnalyserPtr->SetCaloClusterDataPtr(reinterpret_cast<AliHLTCaloClusterDataStruct*>(outBPtr + sizeof(AliHLTCaloClusterHeaderStruct)));
   for ( ndx = 0; ndx < evtData.fBlockCnt; ndx++ )
     {
       iter = blocks+ndx; 
@@ -148,7 +153,8 @@ AliHLTPHOSClusterAnalyserComponent::DoEvent(const AliHLTComponentEventData& evtD
 	  continue;
         }
       specification = specification|iter->fSpecification;
-      fClusterAnalyserPtr->SetRecPointDataPtr(reinterpret_cast<AliHLTPHOSRecPointHeaderStruct*>(iter->fPtr));
+      AliHLTPHOSDigitHeaderStruct *digitHeader = reinterpret_cast<AliHLTPHOSDigitHeaderStruct*>(iter->fPtr);
+      fClusterAnalyserPtr->SetRecPointDataPtr(reinterpret_cast<AliHLTPHOSRecPointHeaderStruct*>(reinterpret_cast<Long_t>(iter->fPtr) + sizeof(AliHLTPHOSDigitHeaderStruct) + digitHeader->fNDigits*sizeof(AliHLTPHOSDigitDataStruct)), digitHeader);
       if(fDoDeconvolution)
 	{
 	  fClusterAnalyserPtr->DeconvoluteClusters();
@@ -166,15 +172,21 @@ AliHLTPHOSClusterAnalyserComponent::DoEvent(const AliHLTComponentEventData& evtD
       HLTError("Running out of buffer, exiting for safety.");
       return -ENOBUFS;
     }
-  HLTDebug("Number of clusters: %d", nClusters); 
-  caloClusterHeaderPtr->fNClusters = nClusters;
-  mysize += sizeof(AliHLTPHOSCaloClusterHeaderStruct); 
+  for(int i = 0; i < nClusters; i++)
+    {
+
+    }
+
+  HLTDebug("Number of clusters: %d", nClusters);
+  //  caloClusterHeaderPtr->fNClusters = nClusters;
+  reinterpret_cast<AliHLTCaloClusterHeaderStruct*>(outBPtr)->fNClusters = nClusters;
+  mysize += sizeof(AliHLTCaloClusterHeaderStruct); 
   
   AliHLTComponentBlockData bd;
   FillBlockData( bd );
   bd.fOffset = offset;
   bd.fSize = mysize;
-  bd.fDataType = AliHLTPHOSDefinitions::fgkCaloClusterDataType;
+  bd.fDataType = kAliHLTDataTypeCaloCluster;
   bd.fSpecification = specification;
   outputBlocks.push_back( bd );
  
@@ -191,39 +203,117 @@ AliHLTPHOSClusterAnalyserComponent::DoEvent(const AliHLTComponentEventData& evtD
 
 }
 
+int 
+AliHLTPHOSClusterAnalyserComponent::Reconfigure(const char *cdbEntry, const char */*chainId*/)
+{
+  // see header file for class documentation
+
+  // configure from the specified entry or the default
+
+  ConfigureFromCDBTObjString(cdbEntry);
+  
+  return 0;
+} 
+
+
+int 
+AliHLTPHOSClusterAnalyserComponent::ScanConfigurationArgument(int argc, const char **argv)
+{
+  //See header file for documentation
+
+  if(argc <= 0) return 0;
+
+  int i=0;
+
+  TString argument=argv[i];
+
+  if (argument.CompareTo("-dodeconvolution") == 0)
+    {
+      fDoDeconvolution = true;
+      return 1;
+    }
+  if (argument.CompareTo("-doclusterfit") == 0)
+    {
+      fClusterAnalyserPtr->SetDoClusterFit();
+      fDoCalculateMoments = true;
+      return 1;
+    }
+  if (argument.CompareTo("-haveCPV") == 0)
+    {
+      fClusterAnalyserPtr->SetHaveCPVInfo();
+      return 1;
+    }
+  if (argument.CompareTo("-doPID") == 0)
+    {
+      fClusterAnalyserPtr->SetDoPID();
+      return 1;
+    }
+  if (argument.CompareTo("-havedistbadchannel") == 0)
+    {
+      fClusterAnalyserPtr->SetHaveDistanceToBadChannel();
+      return 1;
+    }
+
+  return 0;
+}
+
 int
 AliHLTPHOSClusterAnalyserComponent::DoInit(int argc, const char** argv )
 {
 
   //See headerfile for documentation
   
+  HLTError("Doing init...");
+
   fClusterAnalyserPtr = new AliHLTPHOSClusterAnalyser();
-  ScanArgumentsModule(argc, argv);
+
+  //  const char *path = "HLT/ConfigPHOS/ClusterAnalyserComponent";
+
+  GetGeometryFromCDB();
+
+  //  ConfigureFromCDBTObjString(path);
+
   for (int i = 0; i < argc; i++)
     {
-      if(!strcmp("-dodeconvolution", argv[i]))
-	{
-	  fDoDeconvolution = true;
-	}
-      if(!strcmp("-doclusterfit", argv[i]))
-	{
-	  fClusterAnalyserPtr->SetDoClusterFit();
-	  fDoCalculateMoments = true;
-	}
-      if(!strcmp("-haveCPV", argv[i]))
-	{
-	  fClusterAnalyserPtr->SetHaveCPVInfo();
-	}
-      if(!strcmp("-doPID", argv[i]))
-	{
-	  fClusterAnalyserPtr->SetDoPID();
-	} 
-      if(!strcmp("-havedistbadchannel", argv[i]))
-	{
-	  fClusterAnalyserPtr->SetHaveDistanceToBadChannel();
-	}
-
+      ScanConfigurationArgument(i, argv);
     }
 
+  return 0;
+}
+
+int 
+AliHLTPHOSClusterAnalyserComponent::GetGeometryFromCDB()
+{
+  HLTError("Getting geometry...");
+
+  AliCDBManager::Instance()->SetDefaultStorage("local://$ALICE_ROOT/OCDB");
+
+  AliCDBPath path("GRP","Geometry","Data");
+  if(path.GetPath())
+    {
+      //      HLTInfo("configure from entry %s", path.GetPath());
+      AliCDBEntry *pEntry = AliCDBManager::Instance()->Get(path/*,GetRunNo()*/);
+      if (pEntry) 
+	{
+	  if(!fPHOSGeometry) 
+	    {
+	      delete fPHOSGeometry;
+	      fPHOSGeometry = 0;
+	    }
+
+	  gGeoManager = (TGeoManager*) pEntry->GetObject();
+	  HLTError("gGeoManager = 0x%x", gGeoManager);
+	  if(gGeoManager)
+	    {
+	      fPHOSGeometry = new AliPHOSGeoUtils("PHOS", "noCPV");
+	      fClusterAnalyserPtr->SetGeometry(fPHOSGeometry);
+	    }
+
+	}
+      else
+	{
+	  //	  HLTError("can not fetch object \"%s\" from OCDB", path);
+	}
+    }
   return 0;
 }

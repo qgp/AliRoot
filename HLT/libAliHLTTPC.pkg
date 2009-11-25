@@ -6,6 +6,7 @@ TRACKING_CA:=	tracking-ca/AliHLTTPCCATrack.h \
 		tracking-ca/AliHLTTPCCATracker.h \
 		tracking-ca/AliHLTTPCCAOutTrack.h  \
 		tracking-ca/AliHLTTPCCATrackParam.h \
+		tracking-ca/AliHLTTPCCATrackParam2.h \
 		tracking-ca/AliHLTTPCCATrackConvertor.h \
 		tracking-ca/AliHLTTPCCAParam.h     \
 		tracking-ca/AliHLTTPCCARow.h \
@@ -27,7 +28,10 @@ TRACKING_CA:=	tracking-ca/AliHLTTPCCATrack.h \
 		tracking-ca/AliHLTTPCCASliceData.h \
 		tracking-ca/AliHLTTPCCASliceOutput.h \
 		tracking-ca/AliHLTTPCCAStandaloneFramework.h \
-		tracking-ca/AliTPCtrackerCA.h 
+		tracking-ca/AliTPCtrackerCA.h \
+		tracking-ca/AliHLTTPCCATrackerFramework.h \
+                tracking-ca/AliHLTTPCCAInputDataCompressorComponent.h \
+                tracking-ca/AliHLTTPCCAGPUTracker.h
 #TRACKING_CA:=	
 
 CLASS_HDRS:=  	AliHLTTPCTransform.h \
@@ -91,9 +95,6 @@ CLASS_HDRS:=  	AliHLTTPCTransform.h \
 		comp/AliHLTTPCCompModelDeflaterComponent.h \
 		comp/AliHLTTPCCompModelInflater.h \
 		comp/AliHLTTPCCompModelInflaterComponent.h \
-		AliHLTTPCCalibPedestalComponent.h \
-		AliHLTTPCCalibPulserComponent.h \
-		AliHLTTPCCalibCEComponent.h \
                 AliHLTTPCEventStatistics.h \
                 AliHLTTPCEventStatisticsProducerComponent.h \
                 AliHLTTPCRunStatistics.h \
@@ -104,9 +105,10 @@ CLASS_HDRS:=  	AliHLTTPCTransform.h \
 		AliHLTTPCTrackHistoComponent.h \
 		AliHLTTPCTrackDumpComponent.h \
 		AliHLTTPCClusterDumpComponent.h \
-		AliHLTTPCCalibTracksComponent.h \
 		AliHLTTPCHWCFDataReverterComponent.h \
-		AliHLTTPCTrackMCMarkerComponent.h
+		AliHLTTPCTrackMCMarkerComponent.h \
+		AliHLTTPCdEdxComponent.h		
+
 
 
 
@@ -123,7 +125,8 @@ CLASS_HDRS:=  	AliHLTTPCTransform.h \
 # 		tracking/AliHLTTPCHistogram1D.h \
 # 		tracking/AliHLTTPCHistogramAdaptive.h
 
-MODULE_SRCS= 	$(CLASS_HDRS:.h=.cxx) \
+
+MODULE_SRCS = 	$(CLASS_HDRS:.h=.cxx) \
 		AliHLTTPCLog.cxx
 
 MODULE_HDRS:= 	$(CLASS_HDRS) \
@@ -151,11 +154,12 @@ EINCLUDE 	:= HLT/TPCLib \
 		   TPC \
 		   RAW \
 		   STEER 
+ELIBS		:= dl
 
 LIBRARY_DEP := -lHLTbase -lAliHLTRCU -lAliHLTUtil \
                -lCDB -lESD -lSTEER -lSTEERBase -lTPCrec -lTPCcalib -lTPCbase \
                -lRAWDatarec -lRAWDatabase \
-               -L$(shell root-config --libdir) -lEG
+               -L$(ROOTLIBDIR) -lEG
 
 ###############################################################################
 #
@@ -164,12 +168,14 @@ LIBRARY_DEP := -lHLTbase -lAliHLTRCU -lAliHLTUtil \
 include $(MODDIR)/hlt.conf
 
 SRCS:=$(patsubst %,TPCLib/%,$(MODULE_SRCS))
+CUSRCS:=$(patsubst %,TPCLib/%,$(MODULE_CUSRCS))
 CINTHDRS:=$(patsubst %,TPCLib/%,$(CLASS_HDRS))
 HDRS:=$(patsubst %,TPCLib/%,$(MODULE_HDRS))
+CUHDRS:=$(patsubst %,TPCLib/%,$(MODULE_CUHDRS))
 DHDR:=$(patsubst %,TPCLib/%,$(MODULE_DHDR))
 CINTAUTOLINK:= $(shell test "x$(MODULE_DHDR)" = "x" && echo 1)
 
-EDEFINE      := ${HLTDEFS}
+EDEFINE      = ${HLTDEFS}
 PACKCXXFLAGS := ${HLTCXXFLAGS} -Wshadow
 PACKCFLAGS   := ${HLTCLFAGS}
 PACKDCXXFLAGS:= ${HLTDCXXFLAGS}

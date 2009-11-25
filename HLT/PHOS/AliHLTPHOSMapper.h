@@ -28,6 +28,11 @@
 //using namespace PhosHLTConst;
 #include "Rtypes.h"
 #include "AliHLTLogging.h"
+
+#include "AliPHOSEMCAGeometry.h"
+
+class AliHLTPHOSCoordinate;
+
 class AliHLTPHOSMapper : public AliHLTLogging
 //class AliHLTPHOSMapper 
 {
@@ -40,7 +45,11 @@ class AliHLTPHOSMapper : public AliHLTLogging
   char* GetFilePath();
 
   UShort_t GetChannelID(Int_t specification, Int_t hwAddress);
-  static void GetChannelCoord(UShort_t channelId, UShort_t* channelCoord);
+  static void GetChannelCoord(const UShort_t channelId, UShort_t* channelCoord);
+  static void ChannelId2Coordinate(const UShort_t channelId, AliHLTPHOSCoordinate &channelCoord );
+  static void GetLocalCoord(const UShort_t channelId, Float_t* localCoord);
+  int GetDDLFromSpec(Int_t specification);
+  int GetModuleFromSpec(Int_t specification);
 
   struct fAltromap{ 
     int fZRow; // Coordinate in Z direction (beam direction) relatve too one RCU
@@ -67,7 +76,8 @@ class AliHLTPHOSMapper : public AliHLTLogging
   AliHLTPHOSMapper & operator = (const AliHLTPHOSMapper &);
   
   fDDLSpecificationMap* fSpecificationMapPtr;
-  
+  //AliPHOSEMCAGeometry fPHOSGeometry;
+  static const Float_t fCellStep = 2.2;//2.*fPHOSGeometry.GetAirCellHalfSize()[0];
 };
 
 #endif

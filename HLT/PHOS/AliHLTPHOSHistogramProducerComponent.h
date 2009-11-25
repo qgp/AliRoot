@@ -39,10 +39,15 @@
 
 #include "AliHLTPHOSProcessor.h"
 
-class TH1D;
-class TNtuple;
-class AliHLTPHOSHistogramProducer;
-class AliHLTPHOSCaloClusterContainerStruct;
+class AliHLTPHOSPhysicsHistogramProducer;
+
+class AliHLTPHOSHistoProdCellEnergy;
+
+class AliHLTPHOSHistoProdClusterEnergy;
+
+class AliHLTPHOSHistoProdInvMass;
+
+class AliHLTPHOSHistoProdMatchedTracks;
 
 /**
  * @class AliHLTPHOSHistogramProducerComponent
@@ -61,15 +66,19 @@ class AliHLTPHOSHistogramProducerComponent: public AliHLTPHOSProcessor
   virtual ~AliHLTPHOSHistogramProducerComponent();
 
   /** Copy constructor */  
-  AliHLTPHOSHistogramProducerComponent(const AliHLTPHOSHistogramProducerComponent &) : 
+  AliHLTPHOSHistogramProducerComponent(const AliHLTPHOSHistogramProducerComponent & ) : 
     AliHLTPHOSProcessor(),
-    fClusterEnergiesHistPtr(0),
-    fMultiplicitiesHistPtr(0),
-    fClusterNtuplePtr(0),
-    fDoFillClusterEnergies(false),
-    fDoFillMultiplicities(false),
-    fDoFillNtuple(false),
-    fHistogramProducerPtr(0)
+    fPhysicsHistogramProducerPtr(0),
+    fPushModulo(0),
+    fCellEnergy(0),
+    fClusterEnergy(0),
+    fInvariantMass(0),
+    fMatchedTracks(0),
+    fCellEnergyHistProducer(0),
+    fClusterEnergyHistProducer(0),
+    fInvariantMassHistProducer(0),
+    fMatchedTracksHistProducer(0)
+
   {
     //Copy constructor not implemented
   }
@@ -114,18 +123,23 @@ protected:
 
  private:
 
-  TH1D* fClusterEnergiesHistPtr; 
-  TH1D* fMultiplicitiesHistPtr; 
-  TNtuple* fClusterNtuplePtr; 
+  AliHLTPHOSPhysicsHistogramProducer* fPhysicsHistogramProducerPtr;
+  UInt_t fPushModulo;
+  
+  
+  Bool_t fCellEnergy; // make the cell energy histograms?
+  Bool_t fClusterEnergy; // make the cluster energy histograms?
+  Bool_t fInvariantMass; // make the invariant mass histograms?
+  Bool_t fMatchedTracks; // make the matched tracks histograms?
+  
+  AliHLTPHOSHistoProdCellEnergy *fCellEnergyHistProducer; // cell energy histogram producer
 
-  bool fDoFillClusterEnergies;
-  bool fDoFillMultiplicities;
-  bool fDoFillNtuple;
+  AliHLTPHOSHistoProdClusterEnergy *fClusterEnergyHistProducer; // cluster energy histogram producer
 
-  AliHLTPHOSHistogramProducer* fHistogramProducerPtr;
+  AliHLTPHOSHistoProdInvMass *fInvariantMassHistProducer; // invariant mass histogram producer
 
-  /** interface function, see @ref AliHLTComponent for description */
-  static const AliHLTComponentDataType fgkInputDataTypes[];     //COMMENT
+  AliHLTPHOSHistoProdMatchedTracks *fMatchedTracksHistProducer; // matched tracks histogram producer
+
 };
 
 #endif

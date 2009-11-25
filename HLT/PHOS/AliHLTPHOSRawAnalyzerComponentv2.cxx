@@ -46,6 +46,7 @@ AliHLTPHOSRawAnalyzerComponentv2::AliHLTPHOSRawAnalyzerComponentv2():
   fAltroBunchPtr = new AliAltroBunch();
   fDecoderPtr = new AliAltroDecoder();
   fSanityInspectorPtr = new AliHLTPHOSSanityInspector();
+
 }
 
 
@@ -184,7 +185,7 @@ AliHLTPHOSRawAnalyzerComponentv2::DoIt(const AliHLTComponentBlockData* iter, Ali
 
   //Adding to the total size of data written
   totSize += sizeof(AliHLTPHOSChannelDataHeaderStruct);
- 
+  
   //Decoding data
   fDecoderPtr->SetMemory(reinterpret_cast<UChar_t*>( iter->fPtr ), iter->fSize);
   fDecoderPtr->Decode();

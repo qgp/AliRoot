@@ -9,15 +9,20 @@ CLASS_HDRS:=  	AliHLTFilePublisher.h \
 		AliHLTESDMCEventPublisherComponent.h \
 		AliHLTRootFileWriterComponent.h \
 		AliHLTRootFileStreamerComponent.h \
+		AliHLTRootSchemaEvolutionComponent.h \
 		AliHLTLoaderPublisherComponent.h \
 		AliHLTRawReaderPublisherComponent.h \
 		AliHLTOUTPublisherComponent.h \
 		AliHLTEsdCollectorComponent.h \
+		AliHLTReadoutListDumpComponent.h \
 		AliHLTDataGenerator.h \
 		AliHLTBlockFilterComponent.h \
+		AliHLTMonitoringRelay.h \
 		AliHLTCompStatCollector.h \
 		AliHLTGlobalBarrelTrack.h \
-		AliHLTAgentUtil.h
+		AliHLTAgentUtil.h \
+		AliHLTESDCaloClusterMaker.h \
+		AliHLTCaloClusterReader.h  
 
 #		AliHLTMCGeneratorComponent.h
 

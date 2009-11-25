@@ -28,6 +28,7 @@
  */
 class AliHLTTPCCATrackLinearisation
 {
+
   public:
 
     AliHLTTPCCATrackLinearisation()
@@ -57,7 +58,6 @@ class AliHLTTPCCATrackLinearisation
     GPUd() void SetQPt( float v )   {  fQPt = v; }
 
   private:
-
     float fSinPhi; // SinPhi
     float fCosPhi; // CosPhi
     float fDzDs;   // DzDs
@@ -65,7 +65,7 @@ class AliHLTTPCCATrackLinearisation
 };
 
 
-inline AliHLTTPCCATrackLinearisation::AliHLTTPCCATrackLinearisation( const AliHLTTPCCATrackParam &t )
+GPUd() inline AliHLTTPCCATrackLinearisation::AliHLTTPCCATrackLinearisation( const AliHLTTPCCATrackParam &t )
     : fSinPhi( t.SinPhi() ), fCosPhi( 0 ), fDzDs( t.DzDs() ), fQPt( t.QPt() )
 {
   if ( fSinPhi > .999 ) fSinPhi = .999;
@@ -84,4 +84,4 @@ GPUd() inline void AliHLTTPCCATrackLinearisation::Set( float SinPhi1, float CosP
   SetQPt( QPt1 );
 }
 
-#endif
+#endif //ALIHLTTPCCATRACKLINEARISATION_H

@@ -32,11 +32,12 @@
 
 // header file of the module preprocessor
 #include "AliHLTITSCompressRawDataSDDComponent.h"
-#include "AliHLTITSClusterFinderSPDComponent.h"
-#include "AliHLTITSClusterFinderSSDComponent.h"
-#include "AliHLTITSClusterFinderSDDComponent.h"
+#include "AliHLTITSSSDQARecPointsComponent.h"
+#include "AliHLTITSQAComponent.h"
+#include "AliHLTITSClusterFinderComponent.h"
 #include "AliHLTITSClusterHistoComponent.h"
 #include "AliHLTITSTrackerComponent.h"
+#include "AliHLTITSVertexerSPDComponent.h"
 
 /** global instance for agent registration */
 AliHLTITSAgent gAliHLTITSAgent;
@@ -130,11 +131,14 @@ int AliHLTITSAgent::RegisterComponents(AliHLTComponentHandler* pHandler) const
   assert(pHandler);
   if (!pHandler) return -EINVAL;
   pHandler->AddComponent(new AliHLTITSCompressRawDataSDDComponent);
-  pHandler->AddComponent(new AliHLTITSClusterFinderSPDComponent);
-  pHandler->AddComponent(new AliHLTITSClusterFinderSSDComponent);
-  pHandler->AddComponent(new AliHLTITSClusterFinderSDDComponent);
+  pHandler->AddComponent(new AliHLTITSSSDQARecPointsComponent);
+  pHandler->AddComponent(new AliHLTITSQAComponent);
+  pHandler->AddComponent(new AliHLTITSClusterFinderComponent(AliHLTITSClusterFinderComponent::kClusterFinderSPD));
+  pHandler->AddComponent(new AliHLTITSClusterFinderComponent(AliHLTITSClusterFinderComponent::kClusterFinderSDD));
+  pHandler->AddComponent(new AliHLTITSClusterFinderComponent(AliHLTITSClusterFinderComponent::kClusterFinderSSD));
   pHandler->AddComponent(new AliHLTITSClusterHistoComponent);
   pHandler->AddComponent(new AliHLTITSTrackerComponent);
+  pHandler->AddComponent(new AliHLTITSVertexerSPDComponent);
 
   return 0;
 }

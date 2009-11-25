@@ -16,12 +16,16 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-#include "AliHLTPHOSRcuCellEnergyDataStruct.h"
+//#include "AliHLTPHOSRcuCellEnergyDataStruct.h"
 #include "AliHLTPHOSRcuHistogramProducer.h"
 #include "AliHLTPHOSRcuHistogramProducerComponent.h"
 #include "AliHLTPHOSRcuCellAccumulatedEnergyDataStruct.h"
-#include "AliHLTPHOSSharedMemoryInterface.h"
-#include "AliHLTPHOSValidCellDataStruct.h" 
+#include "AliHLTPHOSSharedMemoryInterfacev2.h"
+//#include "AliHLTPHOSValidCellDataStruct.h" 
+#include "AliHLTPHOSChannelDataHeaderStruct.h"
+#include "AliHLTPHOSChannelDataStruct.h"
+//#include "AliHLTPHOSUtilities.h"
+
 
 AliHLTPHOSRcuHistogramProducerComponent gAliHLTPHOSRcuHistogramProducerComponent;
 /*************************************************************************
@@ -37,7 +41,7 @@ AliHLTPHOSRcuHistogramProducerComponent:: AliHLTPHOSRcuHistogramProducerComponen
 										      fOutPtr(0),
 										      fShmPtr(0)
 {
-  fShmPtr = new AliHLTPHOSSharedMemoryInterface();
+  fShmPtr = new AliHLTPHOSSharedMemoryInterfacev2();
  //Default constructor
 } 
 
@@ -99,10 +103,11 @@ AliHLTPHOSRcuHistogramProducerComponent::GetOutputDataSize(unsigned long& constB
 
 
 
-int  AliHLTPHOSRcuHistogramProducerComponent::DoEvent( const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, 
-					      AliHLTComponentTriggerData& trigData, AliHLTUInt8_t* outputPtr, 
-					      AliHLTUInt32_t& size, vector<AliHLTComponentBlockData>& outputBlocks )
+int  AliHLTPHOSRcuHistogramProducerComponent::DoEvent( const AliHLTComponentEventData& /*evtData*/, const AliHLTComponentBlockData* /*blocks*/, 
+						       AliHLTComponentTriggerData& /*trigData*/, AliHLTUInt8_t* /*outputPtr*/, 
+						       AliHLTUInt32_t& /*size*/, vector<AliHLTComponentBlockData>& /*outputBlocks*/ )
 {
+  /*
   
   cout <<  "  AliHLTPHOSRcuHistogramProducerComponent::Doevent, entering event loop" << endl;
 
@@ -115,12 +120,16 @@ int  AliHLTPHOSRcuHistogramProducerComponent::DoEvent( const AliHLTComponentEven
   trDta.fDataSize++;
   trDta.fDataSize--; //shutting up the compiler, we dont use trigData now but will do in near future
 
-  AliHLTPHOSValidCellDataStruct *currentChannel =0;
+  // AliHLTPHOSValidCellDataStruct *currentChannel =0;
+ 
+  AliHLTPHOSChannelDataStruct  *currentChannel =0;
+   
   unsigned long ndx       = 0;
   UInt_t offset           = 0; 
   UInt_t mysize           = 0;
   UInt_t tSize            = 0;
   const AliHLTComponentBlockData* iter = NULL;   
+
   AliHLTPHOSRcuCellEnergyDataStruct *cellDataPtr;
   AliHLTUInt8_t* outBPtr;
 
@@ -136,7 +145,7 @@ int  AliHLTPHOSRcuHistogramProducerComponent::DoEvent( const AliHLTComponentEven
 	  continue;
 	}
       
-      cellDataPtr = (AliHLTPHOSRcuCellEnergyDataStruct*)( iter->fPtr);
+      cellDataPtr = (AliHLTPHOSChannelDataStruct*)( iter->fPtr);
       fShmPtr->SetMemory(cellDataPtr);
       currentChannel = fShmPtr->NextChannel();
       
@@ -208,24 +217,35 @@ int  AliHLTPHOSRcuHistogramProducerComponent::DoEvent( const AliHLTComponentEven
       fRcuHistoProducerPtr->WriteAllHistograms(arg);
     }
   return 0;
+
+  */
+  return 0;
 }//end DoEvent
 
 
 int
-AliHLTPHOSRcuHistogramProducerComponent::DoInit( int argc, const char** argv )
+AliHLTPHOSRcuHistogramProducerComponent::DoInit( int /*argc*/, const char** /*argv*/ )
 {
   //See html documentation of base class
-  fPrintInfo = kFALSE;
+  //  fPrintInfo = kFALSE;
   int iResult=0;
   TString argument="";
-  iResult = ScanArguments(argc, argv);
+ 
+  // iResult = ScanArguments(argc, argv);
+
+  /*
   if(fIsSetEquippmentID == kFALSE)
     {
       Logging( kHLTLogFatal, "HLT::AliHLTPHOSRcuHistogramProducerComponent::DoInt( int argc, const char** argv )", "Missing argument",
 	       "The argument equippmentID is not set: set it with a component argumet like this: -equippmentID  <number>");
       iResult = -2; 
     }
-  fRcuHistoProducerPtr = new AliHLTPHOSRcuHistogramProducer( fModuleID, fRcuX, fRcuZ);
+  */
+
+  
+  //fRcuHistoProducerPtr = new AliHLTPHOSRcuHistogramProducer( fModuleID, fRcuX, fRcuZ);
+ 
+
   return iResult; 
   
 }

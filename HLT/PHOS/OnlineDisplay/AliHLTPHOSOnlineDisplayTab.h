@@ -9,13 +9,17 @@
 #include "AliHLTHOMERReader.h"
 #include "AliHLTPHOSCommonDefs.h"
 #include "AliHLTPHOSConstants.h"
-#include "AliHLTPHOSBase.h"
+
+#include <iostream>
+using namespace std;
+
+//#include "AliHLTPHOSBase.h"
 
 //#define XRANGESTART 120
 //#define XRANGELENGTH 80
 
 #define XRANGESTART 128
-#define XRANGELENGTH 64
+#define XRANGELENGTH 64*3
 
 #define XRANGEEND  XRANGESTART + XRANGELENGTH
 
@@ -25,7 +29,8 @@ using namespace PhosHLTConst;
 class AliHLTHOMERReader;
 
 
-class AliHLTPHOSOnlineDisplayTab : public TGTab, public AliHLTPHOSBase
+//class AliHLTPHOSOnlineDisplayTab : public TGTab, public AliHLTPHOSBase
+class AliHLTPHOSOnlineDisplayTab : public TGTab
 {
  public:
   virtual ~AliHLTPHOSOnlineDisplayTab();

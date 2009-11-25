@@ -30,10 +30,9 @@ class AliHLTTPCCAHit
     GPUhd() void SetZ( float v ) { fZ = v;    }
 
   protected:
-
     float fY, fZ;       // Y and Z position of the TPC cluster
 
 };
 
 
-#endif
+#endif //ALIHLTTPCCAHIT_H

@@ -2,8 +2,19 @@
 # $Id$
 
 CLASS_HDRS:=	AliHLTGlobalEsdConverterComponent.h \
+		AliHLTGlobalTrackMergerComponent.h \
+		AliHLTGlobalTrackMerger.h \
 		AliHLTGlobalAgent.h \
-		AliHLTVertexer.h
+		AliHLTGlobalVertexerComponent.h \
+		AliHLTGlobalTrackMatcher.h \
+		physics/AliHLTV0HistoComponent.h 
+# 	        physics/AliHLTPHOSHistoProdInvMass.h \
+# 		physics/AliHLTPHOSHistoProdMatchedTracks.h \
+# 		physics/AliHLTPHOSHistoProdClusterEnergy.h \
+# 		physics/AliHLTPHOSHistoProdCellEnergy.h
+
+#	        physics/AliHLTPHOSHistogramProducerComponent.h \
+#physics/AliHLTPHOSHistogramProducerComponent.h 
 
 # 		
 MODULE_SRCS= 	$(CLASS_HDRS:.h=.cxx)
@@ -12,7 +23,7 @@ MODULE_HDRS:= 	$(CLASS_HDRS)
 
 MODULE_DHDR:= 
 
-EINCLUDE 	:= HLT/global \
+EINCLUDE 	:= HLT/global HLT/global/physics \
 		   HLT/BASE \
 		   HLT/BASE/util \
 		   TPC \
@@ -23,7 +34,7 @@ EINCLUDE 	:= HLT/global \
 LIBRARY_DEP := -lHLTbase -lAliHLTUtil \
                -lCDB -lESD -lSTEER -lSTEERBase -lTPCrec -lTPCcalib -lTPCbase \
                -lRAWDatarec -lRAWDatabase -lTRDbase \
-               -L$(shell root-config --libdir) -lEG
+               -L$(ROOTLIBDIR) -lEG
 
 ###############################################################################
 #

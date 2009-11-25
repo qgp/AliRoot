@@ -25,13 +25,13 @@
 #include "AliHLTHOMERData.h"
 #include "AliHLTHOMERReader.h"
 #include "AliHLTHOMERWriter.h"
-#include "AliHLTPHOSRcuCellEnergyDataStruct.h"
-//#include "AliHLTPHOSRcuCellEnergyDataStruct.h"
-#include "AliHLTPHOSRcuCellEnergyDataStruct.h" 
+#include "TRootEmbeddedCanvas.h"
 #include "AliHLTPHOSOnlineDisplay.h"
-#include "AliHLTPHOSSharedMemoryInterface.h"
-
-//#include "TStyle.h"
+#include "AliHLTPHOSChannelDataStruct.h"
+#include "AliHLTPHOSChannelDataHeaderStruct.h"
+#include "AliHLTPHOSSharedMemoryInterfacev2.h"
+#include "AliHLTPHOSCoordinate.h"
+#include "AliHLTPHOSChannelRawDataStruct.h"
 
 using namespace std;
 
@@ -39,10 +39,12 @@ using namespace std;
 #include <TMath.h>
 #include "AliHLTPHOSOnlineDisplayTH2D.h"
 
-//#include <TEveManager.h>
-//#include <TEveBoxSet.h>
+#include <TEveManager.h>
+#include <TEveBoxSet.h>
 
-//TEveBoxSet* gAliEveBoxSet = 0;
+TEveBoxSet* gAliEveBoxSet = 0;
+
+//gEve = new TEveManager(300, 300);
 
 AliHLTPHOSOnlineDisplayEventTab::AliHLTPHOSOnlineDisplayEventTab()
 {
@@ -54,6 +56,10 @@ AliHLTPHOSOnlineDisplayEventTab::AliHLTPHOSOnlineDisplayEventTab(AliHLTPHOSOnlin
 								 AliHLTHOMERReader * homerSyncPtr, AliHLTHOMERReader * homerPtrs[MAXHOSTS], 
 								 int nHosts,  int runnumber) :  AliHLTPHOSOnlineDisplayTab()
 {
+  
+  //  gEve = new TEveManager(300, 300, kFALSE);
+  
+
   //comment
   /*
   if(fIsSetRunNumber == true)
@@ -66,7 +72,8 @@ AliHLTPHOSOnlineDisplayEventTab::AliHLTPHOSOnlineDisplayEventTab(AliHLTPHOSOnlin
   */
 
 
-  fShmPtr = new AliHLTPHOSSharedMemoryInterface();
+  // fShmPtr = new AliHLTPHOSSharedMemoryInterface();
+  fShmPtr = new AliHLTPHOSSharedMemoryInterfacev2();
   fOnlineDisplayPtr =  onlineDisplayPtr;
 
 
@@ -75,23 +82,18 @@ AliHLTPHOSOnlineDisplayEventTab::AliHLTPHOSOnlineDisplayEventTab(AliHLTPHOSOnlin
       fgCanvasPtr[gain] = 0;
       fgLegoPlotPtr[gain] = 0;
  
+      
       for(int mod =0; mod <NMODULES; mod ++)
 	{
-	  for(int rcuxcoord = 0; rcuxcoord < NZRCUCOORD; rcuxcoord ++)
-	    {
-	      for(int rcuzcoord = 0; rcuzcoord < NXRCUCOORD; rcuzcoord ++) 
-		{
-		  for(int z = 0; z < NZROWSRCU; z ++)
-		    {
-		      for(int x = 0; x < NXCOLUMNSRCU; x ++)
-			{
-			  fChannelData[mod][rcuzcoord][rcuxcoord][x][z][gain] = new int[ALTROMAXSAMPLES];
-			  fNChannelSamples[mod][rcuzcoord][rcuxcoord][x][z][gain] = 0;
-			  fChannelEnergy[mod][rcuzcoord][rcuxcoord][x][z][gain] = 0;
-			}
-		    }	   
-		}
-	    }
+	  for(int z = 0; z < NZROWSMOD ; z ++)
+	      {
+		for(int x = 0; x < NXCOLUMNSMOD; x ++)
+		  {
+		    fChannelData[mod][z][x][gain] = new int[ALTROMAXSAMPLES];
+		    fNChannelSamples[mod][z][x][gain] = 0;
+		    fChannelEnergy[mod][z][x][gain] = 0;
+		  }
+	      }
 	}
     }
 
@@ -119,46 +121,35 @@ AliHLTPHOSOnlineDisplayEventTab::~AliHLTPHOSOnlineDisplayEventTab()
 }
 
 
+
 Int_t
 AliHLTPHOSOnlineDisplayEventTab::GetRawData(TH1D *histPtr, int x, int z, int gain)
 {
+  
   int tmpModID = x/64;
-  int tmpRcuZ = z/32;
-  int tmpRcuX = (x%64)/32;
-  int tmpZ = z%28;
-  int tmpX = x%32;
 
-  for(int i=0;  i < fNChannelSamples[tmpModID][tmpRcuX][tmpRcuZ][tmpX][tmpZ][gain] ; i++)
+  /* 
+     int tmpRcuZ = z/32;
+     int tmpRcuX = (x%64)/32;
+     int tmpZ = z%28;
+     int tmpX = x%32;
+  */
+
+  for(  int i=0;  i <  fNChannelSamples[tmpModID][z][x][gain] ; i++)
     {
-      histPtr->SetBinContent(i, fChannelData[tmpModID][tmpRcuX][tmpRcuZ][tmpX][tmpZ][gain][i]);  
+      histPtr->SetBinContent(i, fChannelData[tmpModID][z][x][gain][i]);  
     }
-  return fNChannelSamples[tmpModID][tmpRcuX][tmpRcuZ][tmpX][tmpZ][gain];
+  return fNChannelSamples [tmpModID][z][x][gain];
 }
+
 
 
 int
 AliHLTPHOSOnlineDisplayEventTab::GetNextEvent()
 {
-  //comment
   ResetDisplay();
-  // MT crap
-  Bool_t is_first = false;
- //  if (gAliEveBoxSet == 0)
-//   {
-//     is_first = true;
-//     gAliEveBoxSet = new TEveBoxSet("PHOS module");
-//     // gAliEveBoxSet->SetSecSelectCommand("Draw()");
-//     // gAliEveBoxSet->SetSecSelectCommand("phos_histo_draw"); 
-//     gEve->AddElement(gAliEveBoxSet);
-//   }
-//   gAliEveBoxSet->Reset(TEveBoxSet::kBT_AABox, kFALSE, 128);
-
   DoGetNextEvent();
   UpdateDisplay();
-
-  //  gAliEveBoxSet->ElementChanged();
-  // gEve->Redraw3D(is_first);
-
   fgEvntCnt ++;
 }
 
@@ -174,111 +165,72 @@ AliHLTPHOSOnlineDisplayEventTab::FindFourierBlocks(AliHLTHOMERReader * const hom
   while ( blk != ~(unsigned long)0 )
     {
       cout << "AliHLTPHOSOnlineDisplayEventTab::FindFourierBlocks(homerReaderPtr) FOUND FOURIER DATA !!!!!!!!!!!!!!" << endl;
-
-
       blk = homerReaderPtr->FindBlockNdx("TREIRUOF","SOHP", 0xFFFFFFFF );
     }
-
 }
 
 
 void 
 AliHLTPHOSOnlineDisplayEventTab::ReadBlockData(AliHLTHOMERReader *homeReaderPtr)
 {  
-  //comment
-  AliHLTPHOSValidCellDataStruct *currentChannel =0;
+  AliHLTPHOSChannelDataStruct *currentChannel =0;
   cout << "AliHLTPHOSOnlineDisplayEventTab::ReadBlockDat, Reading block data, therere are " <<  homeReaderPtr->GetBlockCnt() << " blocks " <<endl;
-
   FindFourierBlocks(homeReaderPtr);
-
-  unsigned long blk = homeReaderPtr->FindBlockNdx("RENELLEC","SOHP", 0xFFFFFFFF );
-
+  // unsigned long blk = homeReaderPtr->FindBlockNdx("RENELLEC","SOHP", 0xFFFFFFFF );
+  unsigned long blk = homeReaderPtr->FindBlockNdx("TLENNAHC","SOHP", 0xFFFFFFFF );
+  cout << __FILE__ << ":" << __LINE__ << "blk"  << blk  << endl ;
   int cnt = 0;
-
-  //CRAP PT
-  //  FindFourierBlocks(homeReaderPtr);
+  AliHLTPHOSCoordinate tmpCoord;
 
   while ( blk != ~(unsigned long)0 ) 
     {
-      Int_t moduleID;
-      Int_t rcuX = 0;
-      Int_t rcuZ = 0;
-      AliHLTPHOSRcuCellEnergyDataStruct* cellEnergiesPtr = (AliHLTPHOSRcuCellEnergyDataStruct*)homeReaderPtr->GetBlockData( blk ); 
-      
-      unsigned int *t = (unsigned int*)cellEnergiesPtr;
-      
-      moduleID = cellEnergiesPtr->fModuleID ;
-      rcuX = cellEnergiesPtr->fRcuX;
-      rcuZ = cellEnergiesPtr->fRcuZ;
-
-      cout << "AliHLTPHOSOnlineDisplayEventTab::ReadBlockData,  fModuleID =" <<moduleID << endl; 
-
-      Int_t tmpZ;
-      Int_t tmpX;
-      Int_t tmpGain;
-      int cnt = 0;
+      AliHLTPHOSChannelDataHeaderStruct* cellEnergiesPtr = (AliHLTPHOSChannelDataHeaderStruct*)homeReaderPtr->GetBlockData( blk ); 
       Int_t* tmpPtr = 0;
-
       fShmPtr->SetMemory(cellEnergiesPtr);
       currentChannel = fShmPtr->NextChannel();
 
       while(currentChannel != 0)
 	{
 	  cnt ++;
-	  tmpZ = currentChannel->fZ;
-	  tmpX = currentChannel->fX;
-	  tmpGain =  currentChannel->fGain;
-	  fgLegoPlotPtr[tmpGain]->Fill(moduleID*NXCOLUMNSMOD + tmpX +  NXCOLUMNSRCU*cellEnergiesPtr->fRcuX,  
-				    tmpZ + NZROWSRCU*cellEnergiesPtr->fRcuZ, currentChannel->fEnergy);
-	      
-	  // CRAP PTH
-	  if(tmpGain == HIGHGAIN)
-	    {
-	    //   gAliEveBoxSet->AddBox(2.2*(tmpX + N_XCOLUMNS_RCU*cellEnergiesPtr->fRcuX) - 1.1,
-// 				    0,
-// 				    2.2*(tmpZ + N_ZROWSRCU*cellEnergiesPtr->fRcuZ) - 1.1,
-// 				    2.2,
-// 				    0.4*140*currentChannel->fEnergy/1024,
-// 				    2.2);
-// 	      gAliEveBoxSet->DigitValue(TMath::Nint(currentChannel->fEnergy));
-	    }
- 
+	  AliHLTPHOSMapper::ChannelId2Coordinate( currentChannel->fChannelID, tmpCoord );
+	  fgLegoPlotPtr[ tmpCoord.fGain ]->Fill(  tmpCoord.fModuleId*NXCOLUMNSMOD +   tmpCoord.fX,   tmpCoord.fZ, currentChannel->fEnergy );
+	  fChannelEnergy[tmpCoord.fModuleId][tmpCoord.fZ][ tmpCoord.fX][tmpCoord.fGain] =  currentChannel->fEnergy;
+	  
 	  if(cellEnergiesPtr->fHasRawData == true)
-	    //if(0)
 	    {
-	      Int_t nSamples = 0;
-	      Int_t* rawPtr = 0;
-	      rawPtr = fShmPtr->GetRawData(nSamples);
-	      fNChannelSamples[moduleID][rcuX][rcuZ][tmpX][tmpZ][tmpGain] = nSamples;
-
-	      //	      cout << __FILE__ << ":" <<  __LINE__  <<" gain = " << tmpGain << " z = "<< tmpZ << " x = " << tmpX;
-	      //	      cout << " nsamples = " << nSamples;
-	      //	      cout << __FILE__ << ":" << __LINE__ << " the address of raw ptr = " << rawPtr  << endl;
-	      
-	      
-	      if(nSamples > ALTROMAXSAMPLES || nSamples < 0 )
-		{
-		  cout << __FILE__<< ":" <<__LINE__ <<"ERROR, nsamples = "<< nSamples <<" exeeds allowd range, max number of samples is  "<< ALTROMAXSAMPLES << endl;
-		}
-	      else
-		{
-		  for(int j= 0; j< nSamples; j++)
-		    {
-		      //		      cout << __FILE__ << ":" << __LINE__ << " nsamples = " << nSamples << "  j =" << j << endl;
-		      fChannelData[moduleID][cellEnergiesPtr->fRcuX][cellEnergiesPtr->fRcuZ][tmpX][tmpZ][tmpGain][j] = rawPtr[j];  
-		    }
-	      
-		}
+	      FillRawData(fShmPtr->GetRawData());
 	    }
-	
 	  currentChannel = fShmPtr->NextChannel();
 	}
-      
-      blk = homeReaderPtr->FindBlockNdx("RENELLEC","SOHP", 0xFFFFFFFF, blk+1);
-
+      //      blk = homeReaderPtr->FindBlockNdx("RENELLEC","SOHP", 0xFFFFFFFF, blk+1);
+      blk = homeReaderPtr->FindBlockNdx("TLENNAHC","SOHP", 0xFFFFFFFF, blk+1 );
     }
 }
 
+
+void 
+AliHLTPHOSOnlineDisplayEventTab::FillRawData(const AliHLTPHOSChannelRawDataStruct &rawStr)
+{
+  fNChannelSamples[ rawStr.fCoordinate.fModuleId ][ rawStr.fCoordinate.fZ ]  [ rawStr.fCoordinate.fX ][ rawStr.fCoordinate.fGain ] = rawStr.nSamplesUsed;
+  fChannelEnergy[ rawStr.fCoordinate.fModuleId ][ rawStr.fCoordinate.fZ ]  [ rawStr.fCoordinate.fX ][ rawStr.fCoordinate.fGain ] = rawStr.fEnergy;
+
+
+  /*
+  cout << __FILE__ << __LINE__<< "module ID = " << rawStr.fCoordinate.fModuleId  << endl;
+  cout << __FILE__ << __LINE__<< "fZ = " << rawStr.fCoordinate.fZ   << endl;
+  cout << __FILE__ << __LINE__<< "fX = " << rawStr.fCoordinate.fX   << endl;
+  cout << __FILE__ << __LINE__<< "fGain = " << rawStr.fCoordinate.fGain   << endl; 
+  cout << __FILE__ << __LINE__<< "nSamples = " <<    rawStr.nSamplesUsed   << endl; 
+  */
+
+  for(int i=0; i <  rawStr.nSamplesUsed; i++ )
+    {
+      //     cout <<  "i = "  << i << endl;
+      fChannelData[ rawStr.fCoordinate.fModuleId ][ rawStr.fCoordinate.fZ ]  [ rawStr.fCoordinate.fX ][ rawStr.fCoordinate.fGain ][i] =  rawStr.fDataPtr[i];  
+    }
+
+
+}
 
 
 
@@ -322,7 +274,7 @@ AliHLTPHOSOnlineDisplayEventTab::InitDisplay(TGTab  * tabPtr, int runnumber)
       fgLegoPlotPtr[gain]->SetRunNumber(runnumber);
       fgLegoPlotPtr[gain]->SetMaximum(1023);
       fgLegoPlotPtr[gain]->Reset();
-      fgLegoPlotPtr[gain]->GetXaxis()->SetRange(XRANGESTART, XRANGEEND);
+      //    fgLegoPlotPtr[gain]->GetXaxis()->SetRange(XRANGESTART, XRANGEEND);
     }
   
 

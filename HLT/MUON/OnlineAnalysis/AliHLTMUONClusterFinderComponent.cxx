@@ -14,7 +14,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/* $Id:  $ */
+// $Id:  $
 
 ///
 /// @file   AliHLTMUONClusterFinderComponent.cxx
@@ -517,6 +517,8 @@ int AliHLTMUONClusterFinderComponent::ReadConfigFromCDB(
 		AliMUONRecoParam* recoParam = NULL;
 		try
 		{
+			//TODO:
+			HLTWarning("Have not yet implemented loading reco params from CDB! Using AliMUONRecoParam::GetLowFluxParam().");
 			//result = LoadRecoParamsFromCDB(recoParam);
 			//if (result != 0) return result;
 			recoParam = AliMUONRecoParam::GetLowFluxParam();

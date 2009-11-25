@@ -18,6 +18,7 @@
 #include "AliHLTTPCTransform.h"
 #include "AliHLTTPCDigitData.h"
 #include "AliHLTTPCDigitReader.h"
+#include "AliTPCRecoParam.h"
 
 class AliHLTTPCPad;
 class AliHLTTPCSpacePointData;
@@ -186,6 +187,7 @@ class AliHLTTPCClusterFinder : public AliHLTLogging {
   void SetDoPadSelection(Bool_t input){fDoPadSelection=input;}
   void SetLastTimeBin(Int_t ltb){fLastTimeBin=ltb;}
   void SetFirstTimeBin(Int_t ftb){fFirstTimeBin=ftb;}
+  void SetReleaseMemory( Bool_t v ){ fReleaseMemory = v;}
   void UpdateLastTimeBin(){fLastTimeBin=AliHLTTPCTransform::GetNTimeBins();}
 
 //---------------------------------- Under this line the old sorted clusterfinder functions can be found --------------------------------
@@ -217,6 +219,8 @@ class AliHLTTPCClusterFinder : public AliHLTLogging {
   void FillMCClusterVector(vector<AliHLTTPCDigitData> digitData);
 
   vector<AliHLTTPCClusterFinder::MCWeight> GetClusterMCInfo(){return fClusterMCVector;}
+
+  Bool_t UpdateCalibDB();
 
  protected: 
   /** copy constructor prohibited */
@@ -283,12 +287,16 @@ class AliHLTTPCClusterFinder : public AliHLTLogging {
 
   AliTPCTransform * fOfflineTransform;                             //! transient
 
+  AliTPCRecoParam fOfflineTPCRecoParam;                            //! transient
+
   Float_t fTimeMeanDiff;                                           //! transient
+
+  Bool_t fReleaseMemory; //! flag to release the memory after each event
 
 #ifdef do_mc
   void GetTrackID(Int_t pad,Int_t time,Int_t *trackID);
 #endif
   
-  ClassDef(AliHLTTPCClusterFinder,9) //Fast cluster finder
+  ClassDef(AliHLTTPCClusterFinder,11) //Fast cluster finder
 };
 #endif

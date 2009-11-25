@@ -59,7 +59,7 @@ ClassImp( AliHLTTPCCAGlobalMergerComponent )
 
 
 AliHLTTPCCAGlobalMergerComponent::AliHLTTPCCAGlobalMergerComponent()
-    : fGlobalMerger( 0 ), fSolenoidBz( 0 )
+  : fGlobalMerger( 0 ), fSolenoidBz( 0 ), fClusterErrorCorrectionY(0), fClusterErrorCorrectionZ(0)
 {
   // see header file for class documentation
 }
@@ -111,7 +111,9 @@ void AliHLTTPCCAGlobalMergerComponent::SetDefaultConfiguration()
   // Set default configuration for the CA merger component
   // Some parameters can be later overwritten from the OCDB
 
-  fSolenoidBz = 5.;
+  fSolenoidBz = -5.00668;
+  fClusterErrorCorrectionY = 0;
+  fClusterErrorCorrectionZ = 1.1;
 }
 
 int AliHLTTPCCAGlobalMergerComponent::ReadConfigurationString(  const char* arguments )
@@ -135,8 +137,21 @@ int AliHLTTPCCAGlobalMergerComponent::ReadConfigurationString(  const char* argu
 
     if ( argument.CompareTo( "-solenoidBz" ) == 0 ) {
       if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
-      fSolenoidBz = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
-      HLTInfo( "Magnetic Field set to: %f", fSolenoidBz );
+      HLTWarning("argument -solenoidBz is deprecated, magnetic field set up globally (%f)", GetBz());
+      continue;
+    }
+
+    if ( argument.CompareTo( "-errorCorrectionY" ) == 0 ) {
+      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+      fClusterErrorCorrectionY = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
+      HLTInfo( "Cluster Y error correction factor set to: %f", fClusterErrorCorrectionY );
+      continue;
+    }
+
+   if ( argument.CompareTo( "-errorCorrectionZ" ) == 0 ) {
+      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+      fClusterErrorCorrectionZ = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
+      HLTInfo( "Cluster Z error correction factor set to: %f", fClusterErrorCorrectionZ );
       continue;
     }
 
@@ -204,7 +219,8 @@ int AliHLTTPCCAGlobalMergerComponent::Configure( const char* cdbEntry, const cha
 
   //* read magnetic field
 
-  int iResult2 = ReadCDBEntry( kAliHLTCDBSolenoidBz, chainId );
+  int iResult2 = 0;//ReadCDBEntry( kAliHLTCDBSolenoidBz, chainId );
+  fSolenoidBz = GetBz();
 
   //* read the actual CDB entry if required
 
@@ -248,6 +264,11 @@ int AliHLTTPCCAGlobalMergerComponent::Configure( const char* cdbEntry, const cha
 
     param.Initialize( iSec, nRows, rowX, alpha, dalpha,
                       inRmin, outRmax, zMin, zMax, padPitch, sigmaZ, fSolenoidBz );
+
+    if( fClusterErrorCorrectionY>1.e-4 ) param.SetClusterError2CorrectionY( fClusterErrorCorrectionY*fClusterErrorCorrectionY );
+    if( fClusterErrorCorrectionZ>1.e-4 ) param.SetClusterError2CorrectionZ( fClusterErrorCorrectionZ*fClusterErrorCorrectionZ );
+    param.Update();
+
     delete[] rowX;
   }
 
@@ -339,6 +360,13 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
     AliHLTTPCCASliceOutput *sliceOut =  reinterpret_cast<AliHLTTPCCASliceOutput *>( block->fPtr );
     sliceOut->SetPointers();
     fGlobalMerger->SetSliceData( slice, sliceOut );
+
+	/*char filename[256];
+	sprintf(filename, "debug%d.out", slice);
+	FILE* fp = fopen(filename, "w+b");
+	if (fp == NULL) printf("Error!!!\n");
+	fwrite(sliceOut, 1, sliceOut->EstimateSize(sliceOut->NTracks(), sliceOut->NTrackClusters()), fp);
+	fclose(fp);*/
   }
   fGlobalMerger->Reconstruct();
 
@@ -379,7 +407,9 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
       AliHLTTPCCATrackConvertor::GetExtParam( track.InnerParam(), tp,  track.InnerAlpha() );
       AliHLTTPCCATrackConvertor::GetExtParam( track.OuterParam(), tpEnd, track.OuterAlpha() );
       
-      currOutTrack->fAlpha = tp.GetAlpha();
+      // normalize the angle to +-Pi
+	      
+      currOutTrack->fAlpha = tp.GetAlpha() - CAMath::Nint(tp.GetAlpha()/CAMath::TwoPi())*CAMath::TwoPi();      
       currOutTrack->fX = tp.GetX();
       currOutTrack->fY = tp.GetY();
       currOutTrack->fZ = tp.GetZ();      
@@ -507,9 +537,9 @@ int AliHLTTPCCAGlobalMergerComponent::DoEvent( const AliHLTComponentEventData &e
   resultData.fSpecification = AliHLTTPCDefinitions::EncodeDataSpecification( 0, 35, 0, 5 );
   outputBlocks.push_back( resultData );
   size = resultData.fSize;
+
+  HLTInfo( "CAGlobalMerger:: output %d tracks", mergerOutput->NTracks() );
   */
-
-
   return iResult;
 }
 

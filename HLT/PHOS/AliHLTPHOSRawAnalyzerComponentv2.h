@@ -93,7 +93,7 @@ class AliHLTPHOSDigitContainerDataStruct;
  * <h2>Output size:</h2>
  * Depends on the amount of data...
  *
- * More detailed description. (Soon)
+ * More detailed description. (At some point...)
  *
  * @ingroup alihlt_phos
  */ 

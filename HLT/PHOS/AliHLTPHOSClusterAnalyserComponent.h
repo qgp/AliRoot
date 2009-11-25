@@ -40,7 +40,7 @@
 #include "AliHLTPHOSProcessor.h"
 
 class AliHLTPHOSClusterAnalyser;
-
+class AliPHOSGeoUtils;
 /**
  * @class AliHLTPHOSClusterAnalyserComponent
  *
@@ -95,19 +95,32 @@ protected:
   /** interface function, see @ref AliHLTComponent for description */
   int Deinit();
 
+  /** interface function, see @ref AliHLTComponent for description */
+  int Reconfigure(const char* cdbEntry, const char* chainId);
+
+  /** interface function, see @ref AliHLTComponent for description */
+  int ScanConfigurationArgument(int argc, const char** argv);
+
+  /** Get the PHOS geometry from OCDB */
+  int GetGeometryFromCDB();
+
 private:
   /** Copy constructor */
- AliHLTPHOSClusterAnalyserComponent(const AliHLTPHOSClusterAnalyserComponent &);
- /** Assignment */
- AliHLTPHOSClusterAnalyserComponent & operator = (const AliHLTPHOSClusterAnalyserComponent);
+  AliHLTPHOSClusterAnalyserComponent(const AliHLTPHOSClusterAnalyserComponent &);
+  /** Assignment */
+  AliHLTPHOSClusterAnalyserComponent & operator = (const AliHLTPHOSClusterAnalyserComponent);
  
- AliHLTPHOSClusterAnalyser* fClusterAnalyserPtr;
+  /** The cluster analyser */
+  AliHLTPHOSClusterAnalyser* fClusterAnalyserPtr;  //COMMENT
  
- Bool_t fDoDeconvolution;
- Bool_t fDoCalculateMoments;
- 
- static const AliHLTComponentDataType fgkInputDataTypes[];
-   
+  /** Do we do deconvolution? */
+  Bool_t fDoDeconvolution;                         //COMMENT
+  
+  /** Do we calculate moments? */ 
+  Bool_t fDoCalculateMoments;                      //COMMENT
+  
+  /** The PHOS geometry */
+  AliPHOSGeoUtils *fPHOSGeometry;                  //!transient
 };
 
 #endif

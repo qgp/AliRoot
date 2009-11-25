@@ -11,6 +11,7 @@ class AliESDtrack;
 
 class AliITSChannelStatus;
 class AliITSDetTypeRec;
+class AliITSRecoParam;
 #include "AliHLTITSTrack.h" 
 #include "AliHLTITSDetector.h"
 #include "AliHLTITSLayer.h"
@@ -20,21 +21,23 @@ class AliITSDetTypeRec;
 #include "AliITSRecPoint.h"
 #include "AliTracker.h"
 #include "AliHLTITSTrack.h"
-#include <vector>
 
 //-------------------------------------------------------------------------
 class AliITStrackerHLT : public AliTracker {
 public:
 
   
-  void LoadClusters( std::vector<AliITSRecPoint> clusters );
-  void Reconstruct( std::vector<AliExternalTrackParam> tracksTPC );
-  std::vector< AliHLTITSTrack > &Tracks(){ return fTracks;}
+  void StartLoadClusters( Int_t NClusters );
+  void LoadCluster( const AliITSRecPoint &cluster);
+  void Reconstruct( AliExternalTrackParam *tracksTPC, int nTPCTracks );
+
+  AliHLTITSTrack *Tracks(){ return fTracks;}
+  Int_t NTracks(){ return fNTracks;}
+  AliHLTITSTrack *ITSOutTracks(){ return fITSOutTracks;}
+  Int_t NITSOutTracks(){ return fNITSOutTracks;}
 
   Bool_t TransportToX( AliExternalTrackParam *t, double x ) const;
   Bool_t TransportToPhiX( AliExternalTrackParam *t, double phi, double x ) const;
-  
-  void GetClusterErrors2( Int_t layer, const AliITSRecPoint *cluster, AliHLTITSTrack* track, double &err2Y, double &err2Z ) const ;
 
   AliITStrackerHLT();
   AliITStrackerHLT(const Char_t *geom);
@@ -44,23 +47,17 @@ public:
   virtual Bool_t GetTrackPointTrackingError(Int_t index, 
 			AliTrackPoint& p, const AliESDtrack *t);
   AliITSRecPoint *GetClusterLayer(Int_t layn, Int_t ncl) const
-                  {return fgLayers[layn].GetCluster(ncl);}
+                  {return fLayers[layn].GetCluster(ncl);}
   Int_t GetNumberOfClustersLayer(Int_t layn) const 
-                        {return fgLayers[layn].GetNumberOfClusters();}
+                        {return fLayers[layn].GetNumberOfClusters();}
   Int_t LoadClusters(TTree *cf);
   void UnloadClusters();
   
   Int_t Clusters2Tracks(AliESDEvent *event);
   Int_t PropagateBack(AliESDEvent *event);
   Int_t RefitInward(AliESDEvent *event);
+  
 
-  void SetLayersNotToSkip(const Int_t *l);
-
-  Double_t GetPredictedChi2MI(AliHLTITSTrack* track, const AliITSRecPoint *cluster,Int_t layer);
-  Int_t UpdateMI(AliHLTITSTrack* track, const AliITSRecPoint* cl,Double_t chi2,Int_t layer) const;  
-  void SetDetTypeRec(const AliITSDetTypeRec *detTypeRec) {fkDetTypeRec = detTypeRec; ReadBadFromDetTypeRec(); }
-
-  TTreeSRedirector *GetDebugStreamer() {return fDebugStreamer;}
   static Int_t CorrectForTPCtoITSDeadZoneMaterial(AliHLTITSTrack *t);
 
 
@@ -68,36 +65,40 @@ public:
   AliHLTITSDetector & GetDetector(Int_t layer, Int_t n) const {return GetLayer(layer).GetDetector(n); }
  
   void FollowProlongationTree(AliHLTITSTrack * otrack);
+  Int_t FitOutward(AliHLTITSTrack * track );
 
+  void Init();
 
 
 protected:
 
+  const AliITSRecoParam *GetRecoParam(){ return fRecoParam; }
   Bool_t ComputeRoad(AliHLTITSTrack* track,Int_t ilayer,Int_t idet,Double_t &zmin,Double_t &zmax,Double_t &ymin,Double_t &ymax) const;
   
   
   void CookLabel(AliKalmanTrack *t,Float_t wrong) const;
   void CookLabel(AliHLTITSTrack *t,Float_t wrong) const;
 
-  void       SignDeltas(const TObjArray *clusterArray, Float_t zv);
   void BuildMaterialLUT(TString material);
   
-  Int_t CorrectForPipeMaterial(AliHLTITSTrack *t, TString direction="inward");
-  Int_t CorrectForShieldMaterial(AliHLTITSTrack *t, TString shield, TString direction="inward");
-  Int_t CorrectForLayerMaterial(AliHLTITSTrack *t, Int_t layerindex, Double_t oldGlobXYZ[3], TString direction="inward");
+  Int_t CorrectForPipeMaterial(AliHLTITSTrack *t, bool InwardDirection=1);
+  Int_t CorrectForShieldMaterial(AliHLTITSTrack *t, Int_t  shieldindex, bool InwardDirection=1);
+  Int_t CorrectForLayerMaterial(AliHLTITSTrack *t, Int_t layerindex, bool InwardDirection=1);
   void UpdateESDtrack(AliESDtrack *tESD,AliHLTITSTrack* track, ULong_t flags) const;
-  void ReadBadFromDetTypeRec();
   
-  Int_t CheckDeadZone(AliHLTITSTrack *track,Int_t ilayer,Int_t idet,Double_t dz,Double_t dy,Bool_t noClusters=kFALSE) const;
   Bool_t LocalModuleCoord(Int_t ilayer,Int_t idet,const AliHLTITSTrack *track,
 			  Float_t &xloc,Float_t &zloc) const;
+
+
+
 // method to be used for Plane Efficiency evaluation
 
   // 
 
-  static AliHLTITSLayer fgLayers[AliITSgeomTGeo::kNLayers];// ITS layers
+  const AliITSRecoParam *fRecoParam;
+
+  AliHLTITSLayer* fLayers; //!
   
-  AliESDEvent  * fEsd;                   //! pointer to the ESD event
   Double_t fSPDdetzcentre[4];            // centres of SPD modules in z
   
   Int_t fUseTGeo;                        // use TGeo to get material budget
@@ -109,10 +110,15 @@ protected:
   Float_t fxOverX0Layer[6];              // material budget
   Float_t fxTimesRhoLayer[6];            // material budget
 
-  TTreeSRedirector *fDebugStreamer;      //!debug streamer
-  AliITSChannelStatus *fITSChannelStatus;//! bitmaps with channel status for SPD and SDD
-  const AliITSDetTypeRec *fkDetTypeRec;         //! ITS det type rec, from AliITSReconstructor
-  std::vector< AliHLTITSTrack > fTracks;
+  AliHLTITSTrack *fTracks; // array of its-updated tracks
+  AliHLTITSTrack *fITSOutTracks; // array of tracks, fitted outward with ITS only
+  int fNTracks;// n tracks
+  int fNITSOutTracks;// n out tracks
+  double fLoadTime;
+  double fRecoTime;
+  int fNEvents;
+  AliITSRecPoint *fClusters;
+  int fNClusters;
 
 private:
   AliITStrackerHLT(const AliITStrackerHLT &tracker);

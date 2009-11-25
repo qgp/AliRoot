@@ -6,12 +6,14 @@
 
 /* $Id$ */
 
+#include "Rtypes.h"
 
 
-#include "AliHLTPHOSBase.h"
+//#include "AliHLTPHOSBase.h"
 class AliHLTPHOSUtilities;
 
-class AliHLTPHOSRawAnalyzer: public AliHLTPHOSBase
+//class AliHLTPHOSRawAnalyzer: public AliHLTPHOSBase
+class AliHLTPHOSRawAnalyzer
 //class AliHLTPHOSRawAnalyzer
 {
  public:
@@ -26,7 +28,7 @@ class AliHLTPHOSRawAnalyzer: public AliHLTPHOSBase
 
 
   //  void BaselineCorrection(double *dataPtr, int N);
-  void BaselineCorrection(double *dataPtr, double baselineValue);  
+ void BaselineCorrection(double *dataPtr, double baselineValue);  
 
   int FindStartIndex(double treshold);
   float GetTiming() const;
@@ -34,6 +36,7 @@ class AliHLTPHOSRawAnalyzer: public AliHLTPHOSBase
 
   //  void SetData(const double *data);
   void SetData(const UInt_t *data, const int length);
+  void SetData(const UShort_t *data, const int length);
   // void SetData(UInt_t *data, const int length);
 
   // void SetData(double *data, const int length);
@@ -65,6 +68,7 @@ class AliHLTPHOSRawAnalyzer: public AliHLTPHOSBase
 
   double   *fDoubleDataPtr;   /**<Float representation of data that should be fitted */
   UInt_t   *fIntDataPtr;     /**<data that should be fitted */
+  UShort_t   *fShortDataPtr;     /**<data that should be fitted */
  //  int      *fIntDataPtr;     /**<data that should be fitted */
 
 
@@ -79,6 +83,8 @@ class AliHLTPHOSRawAnalyzer: public AliHLTPHOSBase
   int        fStartIndex;      /**<Starindex of the time dependent altro signal*/
 
   //  double unsigned fTest;
+
+  bool fUseShortValues;
 
  protected:
   AliHLTPHOSUtilities *fUtilitiesPtr;

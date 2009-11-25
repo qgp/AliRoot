@@ -80,8 +80,11 @@ struct AliHLTPHOSRecPointDataStruct
   /** Distance to nearest bad channel */
   Float_t fDistanceToBadChannel;              //COMMENT
 
-  /** Digits in the rec point */
-  AliHLTPHOSDigitDataStruct fDigits;          //COMMENT
+  /** 
+   * Digit offset for the first digit in the 
+   * rec point.
+   */
+  Int_t fStartDigitOffset;                    //COMMENT
 
 };
 

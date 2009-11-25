@@ -34,10 +34,12 @@
 // or
 // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
 
-#include "AliHLTPHOSBase.h"
+//#include "AliHLTPHOSBase.h"
 #include "AliHLTPHOSConstants.h"
 #include "AliHLTPHOSDigitDataStruct.h"
 #include "AliHLTPHOSChannelDataStruct.h"
+#include "AliHLTDataTypes.h"
+#include "AliHLTLogging.h"
 
 /**
  * @class AliHLTPHOSDigitMaker
@@ -53,7 +55,8 @@ class AliHLTPHOSMapper;
        
 using namespace PhosHLTConst;
 
-class AliHLTPHOSDigitMaker : public AliHLTPHOSBase
+//class AliHLTPHOSDigitMaker : public AliHLTPHOSBase
+class AliHLTPHOSDigitMaker : public AliHLTLogging
 {
 public:
 
@@ -65,12 +68,15 @@ public:
 
   /** Copy constructor */  
   AliHLTPHOSDigitMaker(const AliHLTPHOSDigitMaker &) : 
-    AliHLTPHOSBase(),
+    AliHLTLogging(),
     fShmPtr(0),
     fDigitStructPtr(0),
+    fDigitHeaderPtr(0),
     fDigitCount(0),
     fOrdered(true),
-    fMapperPtr(0)
+    fMapperPtr(0),
+    fDigitPtrArray(0),
+    fAvailableSize(0)
   {
     //Copy constructor not implemented
   }
@@ -86,8 +92,11 @@ public:
    * Sets the pointer to the output
    * @param the output pointer
    */
-  void SetDigitDataPtr(AliHLTPHOSDigitDataStruct *digitDataPtr) 
-  { fDigitStructPtr = digitDataPtr; }
+  void SetDigitHeaderPtr(AliHLTPHOSDigitHeaderStruct *digitHeaderPtr) 
+  { 
+    fDigitHeaderPtr = digitHeaderPtr;
+    fDigitStructPtr = reinterpret_cast<AliHLTPHOSDigitDataStruct*>(reinterpret_cast<Long_t>(digitHeaderPtr) + sizeof(AliHLTPHOSDigitHeaderStruct));
+  }
 
   /**
    * Set the global high gain conversion factory 
@@ -121,28 +130,71 @@ public:
    * Set ordering of gains or not
    */
   void SetOrdered(bool val) { fOrdered = val; }
-  
+
+  /**
+   * Reset the digit maker
+   */
   void Reset() { fDigitCount = 0; }
 
+  /**
+   * Sort the digits and make internal links between them
+   */
+  void SortDigits();
+
+  /** 
+   * Compare two digits, used during the sorting
+   */
+  static Int_t CompareDigits(const void *dig0, const void *dig);
+
+  
 private:
 
   /**
    * Add a new digit
    * @param channelData is the channel data
    * @param coordinates is the coordinates of the channel, including gain and module
+   * @return true if the digit is added correctly, false if out of buffer
    */
-  void AddDigit(AliHLTPHOSChannelDataStruct* channelData, UShort_t* coordinates) 
+  bool AddDigit(AliHLTPHOSChannelDataStruct* channelData, UShort_t* channelCoordinates, Float_t* localCoordinates)
   {
-    fDigitStructPtr->fX = coordinates[0];
-    fDigitStructPtr->fZ = coordinates[1];
-    if(coordinates[2] == HIGHGAIN)
-      fDigitStructPtr->fAmplitude = channelData->fEnergy*fHighGainFactors[coordinates[0]][coordinates[1]];
+    //    HLTError("Available size: %d", fAvailableSize);
+
+    if(fAvailableSize < sizeof(AliHLTPHOSDigitDataStruct))
+      {
+	HLTError("Output buffer is full, stopping digit making.");
+	return false;
+      }
+
+
+
+    fAvailableSize -= sizeof(AliHLTPHOSDigitDataStruct);
+
+    fDigitStructPtr->fX = channelCoordinates[0];
+    fDigitStructPtr->fZ = channelCoordinates[1];
+
+    fDigitStructPtr->fID = fDigitStructPtr->fZ * NXCOLUMNSRCU + fDigitStructPtr->fX;
+
+    fDigitStructPtr->fLocX = localCoordinates[0];
+    fDigitStructPtr->fLocZ = localCoordinates[1];
+
+    if(channelCoordinates[2] == HIGHGAIN)
+      {
+	fDigitStructPtr->fEnergy = channelData->fEnergy*fHighGainFactors[channelCoordinates[0]][channelCoordinates[1]];
+	//	HLTError("HG channel (x = %d, z = %d) with amplitude: %f --> Digit with energy: %f \n", channelCoordinates[0], channelCoordinates[1], channelData->fEnergy, fDigitStructPtr->fEnergy);
+      }
     else
-      fDigitStructPtr->fAmplitude = channelData->fEnergy*fLowGainFactors[coordinates[0]][coordinates[1]];
-    fDigitStructPtr->fTime = channelData->fTime * 0.0000001; //CRAP
+      {
+	fDigitStructPtr->fEnergy = channelData->fEnergy*fLowGainFactors[channelCoordinates[0]][channelCoordinates[1]];
+	//	HLTError("LG channel (x = %d, z = %d) with amplitude: %f --> Digit with energy: %f\n", channelCoordinates[0], channelCoordinates[1], channelData->fEnergy, fDigitStructPtr->fEnergy); 
+      }
+    fDigitStructPtr->fTime = channelData->fTime * 0.0000001; //TODO
     fDigitStructPtr->fCrazyness = channelData->fCrazyness;
-    fDigitStructPtr->fModule = coordinates[3];
+    fDigitStructPtr->fModule = channelCoordinates[3];
+
+    fDigitPtrArray[fDigitCount] = fDigitStructPtr;
+    fDigitCount++;
     fDigitStructPtr++;
+    return true;
   }
 
   /** Pointer to shared memory interface */
@@ -150,6 +202,9 @@ private:
 
   /** Pointer to the AliHLTPHOSDigitDataStruct */
   AliHLTPHOSDigitDataStruct *fDigitStructPtr;                    //! transient
+
+  /** Pointer to the AliHLTPHOSDigitDataStruct */
+  AliHLTPHOSDigitHeaderStruct *fDigitHeaderPtr;                  //! transient
 
   /** Digit count */
   Int_t fDigitCount;                                             //COMMENT
@@ -169,7 +224,13 @@ private:
   /** Bad channel mask */
   Float_t fBadChannelMask[NXCOLUMNSMOD][NZROWSMOD][NGAINS]; //COMMENT
 
-  ClassDef(AliHLTPHOSDigitMaker, 1); 
+  /** Array of digit pointers */
+  AliHLTPHOSDigitDataStruct **fDigitPtrArray;               //COMMENT
+  
+  /** The available size of the output buffer */
+  AliHLTUInt32_t fAvailableSize;                            //COMMENT
+
+  ClassDef(AliHLTPHOSDigitMaker, 0); 
 
 };
 

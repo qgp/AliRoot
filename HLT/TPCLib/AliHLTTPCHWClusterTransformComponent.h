@@ -21,6 +21,7 @@
 // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
 
 #include "AliHLTProcessor.h"
+#include "AliTPCRecoParam.h"
 #include <vector>
 
 class AliTPCTransform;
@@ -130,22 +131,29 @@ protected:
 		     AliHLTUInt32_t& size, vector<AliHLTComponentBlockData>& outputBlocks );
   int DoDeinit();
   
-  //int Reconfigure(const char* cdbEntry, const char* chainId);
+  int Reconfigure(const char* cdbEntry, const char* chainId);
 
   using AliHLTProcessor::DoEvent;
   AliTPCTransform *fOfflineTransform;
+  Bool_t fDataId;
 
 private:
    
-  //int Configure(const char* arguments);
+  int Configure(const char* arguments);
+
+  int ScanConfigurationArgument(int argc, const char** argv);
           
   /** copy constructor prohibited */
   AliHLTTPCHWClusterTransformComponent(const AliHLTTPCHWClusterTransformComponent&);
 
   /** assignment operator prohibited */
   AliHLTTPCHWClusterTransformComponent& operator=(const AliHLTTPCHWClusterTransformComponent&);
-             
-  ClassDef(AliHLTTPCHWClusterTransformComponent, 1)
+
+  AliTPCRecoParam fOfflineTPCRecoParam;  //! transient
+
+  static const char* fgkOCDBEntryHWTransform;  //!transient
+          
+  ClassDef(AliHLTTPCHWClusterTransformComponent, 3)
 };
 
 #endif

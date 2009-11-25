@@ -17,6 +17,8 @@
 
 
 #include "AliHLTITSLayer.h"
+#include <algorithm>
+
 
 //------------------------------------------------------------------------
 AliHLTITSLayer::AliHLTITSLayer():
@@ -47,13 +49,6 @@ fRoad(0){
   //--------------------------------------------------------------------
   //default AliHLTITSLayer constructor
   //--------------------------------------------------------------------
-  for (Int_t i=0; i<AliITSRecoParam::GetMaxClusterPerLayer(); i++) {
-    fClusterWeight[i]=0;
-    fClusterTracks[0][i]=-1;
-    fClusterTracks[1][i]=-1;
-    fClusterTracks[2][i]=-1;    
-    fClusterTracks[3][i]=-1;    
-  }
 }
 //------------------------------------------------------------------------
 AliHLTITSLayer::
@@ -122,50 +117,18 @@ AliHLTITSLayer::~AliHLTITSLayer() {
   // AliHLTITSLayer destructor
   //--------------------------------------------------------------------
   delete [] fDetectors;
-  for (Int_t i=0; i<fN; i++) delete fClusters[i];
-  for (Int_t i=0; i<AliITSRecoParam::GetMaxClusterPerLayer(); i++) {
-    fClusterWeight[i]=0;
-    fClusterTracks[0][i]=-1;
-    fClusterTracks[1][i]=-1;
-    fClusterTracks[2][i]=-1;    
-    fClusterTracks[3][i]=-1;    
-  }
 }
 //------------------------------------------------------------------------
 void AliHLTITSLayer::ResetClusters() {
   //--------------------------------------------------------------------
   // This function removes loaded clusters
   //--------------------------------------------------------------------
-  for (Int_t i=0; i<fN; i++) delete fClusters[i];
-  for (Int_t i=0; i<AliITSRecoParam::GetMaxClusterPerLayer(); i++){
-    fClusterWeight[i]=0;
-    fClusterTracks[0][i]=-1;
-    fClusterTracks[1][i]=-1;
-    fClusterTracks[2][i]=-1;    
-    fClusterTracks[3][i]=-1;  
-  }
   
   fN=0;
   fI=0;
 }
-//------------------------------------------------------------------------
-void AliHLTITSLayer::ResetWeights() {
-  //--------------------------------------------------------------------
-  // This function reset weights of the clusters
-  //--------------------------------------------------------------------
-  for (Int_t i=0; i<AliITSRecoParam::GetMaxClusterPerLayer(); i++) {
-    fClusterWeight[i]=0;
-    fClusterTracks[0][i]=-1;
-    fClusterTracks[1][i]=-1;
-    fClusterTracks[2][i]=-1;    
-    fClusterTracks[3][i]=-1;  
-  }
-  for (Int_t i=0; i<fN;i++) {
-    AliITSRecPoint * cl = (AliITSRecPoint*)GetCluster(i);
-    if (cl&&cl->IsUsed()) cl->Use();
-  }
 
-}
+
 //------------------------------------------------------------------------
 void AliHLTITSLayer::ResetRoad() {
   //--------------------------------------------------------------------
@@ -197,12 +160,15 @@ Int_t AliHLTITSLayer::InsertCluster(AliITSRecPoint *cl) {
 			     
   return 0;
 }
+
+
 //------------------------------------------------------------------------
 void  AliHLTITSLayer::SortClusters()
 {
   //
   //sort clusters
   //
+ 
   AliITSRecPoint **clusters = new AliITSRecPoint*[fN];
   Float_t *z                = new Float_t[fN];
   Int_t   * index           = new Int_t[fN];
@@ -211,6 +177,7 @@ void  AliHLTITSLayer::SortClusters()
     z[i] = fClusters[i]->GetZ();
   }
   TMath::Sort(fN,z,index,kFALSE);
+  
   for (Int_t i=0;i<fN;i++){
     clusters[i] = fClusters[index[i]];
   }

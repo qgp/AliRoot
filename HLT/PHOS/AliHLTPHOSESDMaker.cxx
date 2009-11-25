@@ -31,8 +31,8 @@
 
 #include "AliHLTPHOSESDMaker.h"
 #include "AliHLTPHOSCaloClusterContainerStruct.h"
-#include "AliHLTPHOSBase.h"
-#include "AliHLTPHOSCaloClusterDataStruct.h"
+//#include "AliHLTPHOSBase.h"
+#include "AliHLTCaloClusterDataStruct.h"
 #include "AliESDEvent.h"
 #include "AliESDCaloCluster.h"
 #include "TClonesArray.h"
@@ -40,7 +40,7 @@
 ClassImp(AliHLTPHOSESDMaker);
 
 AliHLTPHOSESDMaker::AliHLTPHOSESDMaker() : 
-  AliHLTPHOSBase(),
+  //  AliHLTPHOSBase(),
   fNCaloClusters(0),
   fCaloClustersPtr(0),
   fESDEventPtr(0),
@@ -66,7 +66,7 @@ AliHLTPHOSESDMaker::FillESDCaloClusters()
   //See header file for documentation
 
 //   AliESDCaloCluster *caloCluster = 0;
-//   AliHLTPHOSCaloClusterDataStruct* caloClusterStruct = 0;
+//   AliHLTCaloClusterDataStruct* caloClusterStruct = 0;
 
   for(UInt_t i = 0; i < fCaloClusterContainerPtr->fNCaloClusters; i++)
     {
@@ -101,7 +101,7 @@ AliHLTPHOSESDMaker::FillESDEvent()
   //See header file for documentation
   
 //   AliESDCaloCluster *caloCluster = 0;
-//   AliHLTPHOSCaloClusterDataStruct* caloClusterStruct = 0;
+//   AliHLTCaloClusterDataStruct* caloClusterStruct = 0;
   for(UInt_t i = 0; i < fCaloClusterContainerPtr->fNCaloClusters; i++)
     {
 //       //      caloCluster = (AliESDCaloCluster*)fCaloClustersPtr->New(i + fNCaloClusters);
@@ -136,7 +136,7 @@ AliHLTPHOSESDMaker::FillESDEvent(AliHLTPHOSCaloClusterContainerStruct* caloClust
   //See header file for documentation
   
 //   AliESDCaloCluster *caloCluster = 0;
-//   AliHLTPHOSCaloClusterDataStruct* caloClusterStruct = 0;
+//   AliHLTCaloClusterDataStruct* caloClusterStruct = 0;
   
   //cout << "ESD: # of clusters: " << caloClusterContainerPtr->fNCaloClusters << endl; 
   for(UInt_t i = 0; i < caloClusterContainerPtr->fNCaloClusters; i++)

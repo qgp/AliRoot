@@ -29,11 +29,9 @@
  * @brief  Sanity inspector for PHOS HLT
  */
 
-#include "AliHLTPHOSBase.h"
+//#include "AliHLTPHOSBase.h"
 #include "Rtypes.h"
 
-
-class AliHLTAltroData;
 
 /** 
  * @class AliHLTPHOSSanityInspector
@@ -43,7 +41,8 @@ class AliHLTAltroData;
  * @ingroup alihlt_phos
  */
 
-class AliHLTPHOSSanityInspector : public AliHLTPHOSBase
+//class AliHLTPHOSSanityInspector : public AliHLTPHOSBase
+class AliHLTPHOSSanityInspector
 {
   
 public:
@@ -56,7 +55,7 @@ public:
 
   /** Copy constructor */  
   AliHLTPHOSSanityInspector(const AliHLTPHOSSanityInspector &) : 
-    AliHLTPHOSBase(),
+    //    AliHLTPHOSBase(),
     fMaxDifference(0)
   {
     //Copy constructor not implemented
@@ -78,13 +77,10 @@ public:
   
   
   /** Check for insanity */
-  Int_t CheckInsanity(const UInt_t* data, const Int_t nSamples) const;
+  Int_t CheckInsanity(const UShort_t* data, const Int_t nSamples) const;
   
   /** Check for and heal insanity */
-  Int_t CheckAndHealInsanity(UInt_t* data, Int_t nSamples);  //Not completely reliable
-
-  /** Check for and heal insanity */
-  Int_t CheckAndHealInsanity(Int_t* data, Int_t nSamples);  //Not completely reliable
+  Int_t CheckAndHealInsanity(UShort_t* data, Int_t nSamples);  //Not completely reliable
 
   /** Set the max difference between 2 samples before flagging insanity */
   void SetMaxDifference(Int_t maxDiff) { fMaxDifference = maxDiff; }

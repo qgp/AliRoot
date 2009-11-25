@@ -19,14 +19,21 @@
 #include "AliHLTPHOSProcessor.h"
 #include "TH1D.h"
 #include "TNtuple.h"
+#include "TFile.h"
 #include "AliHLTPHOSHistogramProducer.h"
+#include "AliHLTPHOSPhysicsHistogramProducer.h"
 #include "AliHLTPHOSCaloClusterContainerStruct.h"
+#include "TClonesArray.h"
+#include "AliHLTPHOSHistoProdCellEnergy.h"
+#include "AliHLTPHOSHistoProdClusterEnergy.h"
+#include "AliHLTPHOSHistoProdInvMass.h"
+#include "AliHLTPHOSHistoProdMatchedTracks.h"
 
 /** 
  * @file   AliHLTPHOSHistogramProducerComponent.cxx
  * @author Oystein Djuvsland
  * @date   
- * @brief  A digit maker component for PHOS HLT
+ * @brief  A histogram producer component for PHOS HLT
 */
 
 // see below for class documentation
@@ -36,19 +43,21 @@
 // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
 
 
-const AliHLTComponentDataType AliHLTPHOSHistogramProducerComponent::fgkInputDataTypes[]={kAliHLTVoidDataType,{0,"",""}};
-
 AliHLTPHOSHistogramProducerComponent gAliHLTPHOSHistogramProducerComponent;
 
 AliHLTPHOSHistogramProducerComponent::AliHLTPHOSHistogramProducerComponent() :
   AliHLTPHOSProcessor(),
-  fClusterEnergiesHistPtr(0),
-  fMultiplicitiesHistPtr(0),
-  fClusterNtuplePtr(0),
-  fDoFillClusterEnergies(false),
-  fDoFillMultiplicities(false),
-  fDoFillNtuple(false),
-  fHistogramProducerPtr(0)
+  fPhysicsHistogramProducerPtr(0),
+  fPushModulo(1),
+  fCellEnergy(0),
+  fClusterEnergy(0),
+  fInvariantMass(0),
+  fMatchedTracks(0),
+  fCellEnergyHistProducer(0),
+  fClusterEnergyHistProducer(0),
+  fInvariantMassHistProducer(0),
+  fMatchedTracksHistProducer(0)
+
 {
   //see header file for documentation
 }
@@ -62,6 +71,12 @@ int
 AliHLTPHOSHistogramProducerComponent::Deinit()
 { 
   //see header file for documentation
+  if(fPhysicsHistogramProducerPtr != 0)
+    {
+      delete fPhysicsHistogramProducerPtr;
+      fPhysicsHistogramProducerPtr = 0;
+    }
+
   return 0;
 }
 
@@ -78,13 +93,9 @@ AliHLTPHOSHistogramProducerComponent::GetInputDataTypes(vector<AliHLTComponentDa
 { 
   //see header file for documentation
   list.clear();
-  list.push_back(AliHLTPHOSDefinitions::fgkChannelDataType);
+  list.push_back(AliHLTPHOSDefinitions::fgkESDCaloClusterDataType);
+  list.push_back(AliHLTPHOSDefinitions::fgkESDCaloCellsDataType);
 
-//   const AliHLTComponentDataType* pType=fgkInputDataTypes;
-//   while (pType->fID!=0) {
-//     list.push_back(*pType); 
-//     pType++;
-//   }
 }
 
 AliHLTComponentDataType 
@@ -115,32 +126,44 @@ AliHLTPHOSHistogramProducerComponent::DoEvent(const AliHLTComponentEventData& /*
 
 {
   //see header file for documentation
-
-  //  UInt_t specification = 0;
-
-  //  AliHLTPHOSCaloClusterContainerStruct* tmpClusters = 0;
-
-  const AliHLTComponentBlockData* block = GetFirstInputBlock(AliHLTPHOSDefinitions::fgkClusterDataType);
-  
-  while(block != 0)
+  for (const AliHLTComponentBlockData* pBlock=GetFirstInputBlock(kAliHLTDataTypeCaloCluster | kAliHLTDataOriginPHOS); pBlock!=NULL; pBlock=GetNextInputBlock()) 
     {
-      fHistogramProducerPtr->Fill(reinterpret_cast<AliHLTPHOSCaloClusterContainerStruct*>(block->fPtr));
-      block = GetNextInputBlock();
+      AliHLTCaloClusterHeaderStruct *caloClusterHeaderPtr = reinterpret_cast<AliHLTCaloClusterHeaderStruct*>(pBlock->fPtr);
+      
+      if(fCellEnergy)
+	{
+	  fCellEnergyHistProducer->DoEvent(caloClusterHeaderPtr);
+	}
+      if(fClusterEnergy)
+	{
+	  fClusterEnergyHistProducer->DoEvent(caloClusterHeaderPtr);
+	}
+      if(fInvariantMass)
+	{
+	  fInvariantMassHistProducer->DoEvent(caloClusterHeaderPtr);
+	}
+      if(fMatchedTracks)
+	{
+	  fMatchedTracksHistProducer->DoEvent(caloClusterHeaderPtr);
+	}
     }
-  
-  if(fDoFillClusterEnergies)
+  if(fCellEnergy)
     {
-      PushBack(fClusterEnergiesHistPtr, AliHLTPHOSDefinitions::fgkPhosHistDataType);
+      PushBack(fCellEnergyHistProducer->GetHistograms(), AliHLTPHOSDefinitions::fgkPhysicsHistogramsDataType);
     }
-  if(fDoFillMultiplicities)
+  if(fClusterEnergy)
     {
-      PushBack(fMultiplicitiesHistPtr, AliHLTPHOSDefinitions::fgkPhosHistDataType);
+      PushBack(fClusterEnergyHistProducer->GetHistograms(), AliHLTPHOSDefinitions::fgkPhysicsHistogramsDataType);
     }
-  if(fDoFillNtuple)
+  if(fInvariantMass)
     {
-      PushBack(fClusterNtuplePtr, AliHLTPHOSDefinitions::fgkPhosHistDataType);
+      PushBack(fInvariantMassHistProducer->GetHistograms(), AliHLTPHOSDefinitions::fgkPhysicsHistogramsDataType);
     }
-    
+  if(fMatchedTracks)
+    {
+      PushBack(fMatchedTracksHistProducer->GetHistograms(), AliHLTPHOSDefinitions::fgkPhysicsHistogramsDataType);
+    }
+      
   return 0;
 }
 
@@ -150,47 +173,31 @@ AliHLTPHOSHistogramProducerComponent::DoInit(int argc, const char** argv )
 {
   //see header file for documentation
 
-  fHistogramProducerPtr = new AliHLTPHOSHistogramProducer();
-  
+   
   for(int i = 0; i < argc; i++)
     {
-      if(!strcmp("-dofillclusterenergies", argv[i]))
-	{
-	  fHistogramProducerPtr->SetFillClusterEnergies(true);
-	  fDoFillClusterEnergies = true;
-	}
-      if(!strcmp("-dofillmultiplicities", argv[i]))
-	{
-	  fHistogramProducerPtr->SetFillMultiplicities(true);
-	  fDoFillMultiplicities = true;
-	}
-      if(!strcmp("-dofillntuple", argv[i]))
-	{
-	  fHistogramProducerPtr->SetFillClusterNtuple(true);
-	  fDoFillNtuple = true;
-	}
-      if(!strcmp("-maxntupleentries", argv[i]))
-	{
-	  fHistogramProducerPtr->SetMaxNtupleEntries(atoi(argv[i+1]));
-	}
+      if(!strcmp("-cellenergy", argv[i+1])) fCellEnergy = true;
+      if(!strcmp("-clusterenergy", argv[i+1])) fClusterEnergy = true;
+      if(!strcmp("-invariantmass", argv[i+1])) fInvariantMass= true;
+      if(!strcmp("-matchedtracks", argv[i+1])) fMatchedTracks = true;
     }
- 
-  fHistogramProducerPtr->InitializeObjects();
-
-  if(fDoFillClusterEnergies)
+  
+  if(fCellEnergy)
     {
-      fClusterEnergiesHistPtr = fHistogramProducerPtr->GetClusterEnergiesHistogram();
+      fCellEnergyHistProducer = new AliHLTPHOSHistoProdCellEnergy();
     }
-  if(fDoFillMultiplicities)
+  if(fClusterEnergy)
     {
-      fMultiplicitiesHistPtr = fHistogramProducerPtr->GetMultiplicitiesHistogram();
+      fClusterEnergyHistProducer = new AliHLTPHOSHistoProdClusterEnergy();
     }
-  if(fDoFillNtuple)
+  if(fInvariantMass)
     {
-      fClusterNtuplePtr = fHistogramProducerPtr->GetClusterNtuple();
+      fInvariantMassHistProducer = new AliHLTPHOSHistoProdInvMass();
     }
-
-  //fDigitMakerPtr->SetDigitThreshold(2);
+  if(fMatchedTracks)
+    {
+      fMatchedTracksHistProducer = new AliHLTPHOSHistoProdMatchedTracks();
+    }
 
   return 0;
 }

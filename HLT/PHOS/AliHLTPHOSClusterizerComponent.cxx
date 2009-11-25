@@ -37,25 +37,13 @@
 // or
 // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
 
-#if __GNUC__>= 3
-using namespace std;
-#endif
-
-const AliHLTComponentDataType AliHLTPHOSClusterizerComponent::fgkInputDataTypes[]=
-  {
-    kAliHLTVoidDataType,{0,"",""}
-  };
-
 AliHLTPHOSClusterizerComponent gAliHLTPHOSClusterizerComponent;
-
 
 AliHLTPHOSClusterizerComponent::AliHLTPHOSClusterizerComponent(): 
   AliHLTPHOSProcessor(), 
   fAllDigitsPtr(0),
   fClusterizerPtr(0),
-  fRecPointStructArrayPtr(0),
   fDigitCount(0),
-  fModuleClusterizationMode(true),
   fNoCrazyness(0)
 {
   //See headerfile for documentation
@@ -69,15 +57,6 @@ AliHLTPHOSClusterizerComponent::~AliHLTPHOSClusterizerComponent()
     {
       delete fClusterizerPtr;
       fClusterizerPtr = 0;
-    }
-  if(fRecPointStructArrayPtr)
-    {
-      for (int i = 0; i < 1000; i++)
-        {
-          //	  fRecPointStructArrayPtr[i].Del();
-        }
-      delete fRecPointStructArrayPtr;
-      fRecPointStructArrayPtr = 0;
     }
   if(fAllDigitsPtr)
     {
@@ -97,20 +76,6 @@ AliHLTPHOSClusterizerComponent::Deinit()
       delete fClusterizerPtr;
       fClusterizerPtr = 0;
     }
-  for (int i = 0; i < 1000; i++)
-    {
-      //    fRecPointStructArrayPtr[i].Del();
-    }
-
-  if (fRecPointStructArrayPtr)
-    {
-      for (int i = 0; i < 1000; i++)
-        {
-          //	  fRecPointStructArrayPtr[i].Del();
-        }
-      delete fRecPointStructArrayPtr;
-      fRecPointStructArrayPtr = 0;
-    }
 
   return 0;
 }
@@ -119,13 +84,13 @@ const Char_t*
 AliHLTPHOSClusterizerComponent::GetComponentID()
 {
   //See headerfile for documentation
-
   return "PhosClusterizer";
 }
 
 void
 AliHLTPHOSClusterizerComponent::GetInputDataTypes( vector<AliHLTComponentDataType>& list)
 {
+  //See headerfile for documentation
   list.clear();
   list.push_back(AliHLTPHOSDefinitions::fgkDigitDataType);
 }
@@ -152,14 +117,15 @@ AliHLTPHOSClusterizerComponent::DoEvent(const AliHLTComponentEventData& evtData,
                                         std::vector<AliHLTComponentBlockData>& outputBlocks)
 {
   //See headerfile for documentation
+
+  if(blocks == 0) return 0;
   
-  UInt_t tSize            = 0;
   UInt_t offset           = 0;
   UInt_t mysize           = 0;
   Int_t nRecPoints        = 0;
   Int_t nDigits           = 0;
-  Int_t j                 = 0;
-  
+
+  UInt_t availableSize = size;
   AliHLTUInt8_t* outBPtr;
   outBPtr = outputPtr;
   const AliHLTComponentBlockData* iter = 0;
@@ -167,66 +133,182 @@ AliHLTPHOSClusterizerComponent::DoEvent(const AliHLTComponentEventData& evtData,
   
   UInt_t specification = 0;
   
-  AliHLTPHOSDigitDataStruct *digitDataPtr = 0;
-  
-  AliHLTPHOSRecPointHeaderStruct* recPointHeaderPtr = reinterpret_cast<AliHLTPHOSRecPointHeaderStruct*>(outBPtr);
+  AliHLTPHOSDigitHeaderStruct *digitHeaderPtr = 0;
+  AliHLTPHOSDigitHeaderStruct *outputDigitHeaderPtr = reinterpret_cast<AliHLTPHOSDigitHeaderStruct*>(outBPtr);
 
-  fClusterizerPtr->SetRecPointDataPtr(reinterpret_cast<AliHLTPHOSRecPointDataStruct*>(outBPtr+sizeof(AliHLTPHOSRecPointHeaderStruct)));
+  //  HLTError("Header pointer before screwing around: 0x%x", outputDigitHeaderPtr);
+
+  AliHLTPHOSDigitDataStruct *firstDigitPtr = 0;
+  AliHLTPHOSDigitDataStruct *lastDigitPtr = 0;
   
+  // Adding together all the digits, should be put in standalone method  
   for ( ndx = 0; ndx < evtData.fBlockCnt; ndx++ )
     {
       iter = blocks+ndx;
       if (iter->fDataType == AliHLTPHOSDefinitions::fgkDigitDataType)
 	{
+	  // Get the digit header
+	  digitHeaderPtr = reinterpret_cast<AliHLTPHOSDigitHeaderStruct*>(iter->fPtr);
+
+	  // Update the number of digits
+	  nDigits += digitHeaderPtr->fNDigits;
+
+	  // Get the specification
 	  specification = specification|iter->fSpecification;
-	  nDigits = iter->fSize/sizeof(AliHLTPHOSDigitDataStruct);
-	  //HLTDebug("Number of digits in block: %d", nDigits);
-	  digitDataPtr = reinterpret_cast<AliHLTPHOSDigitDataStruct*>(iter->fPtr);
-	  for (Int_t i = 0; i < nDigits; i++)
+	  
+	  // Check if we have the first buffer in the event
+	  if(!firstDigitPtr)
 	    {
-	      fAllDigitsPtr->fDigitDataStruct[j].fX = digitDataPtr->fX;
-	      fAllDigitsPtr->fDigitDataStruct[j].fZ = digitDataPtr->fZ;
-	      fAllDigitsPtr->fDigitDataStruct[j].fEnergy = digitDataPtr->fEnergy;
-	      //  HLTDebug("Digit energy: %f", digitDataPtr->fEnergy);
-	      fAllDigitsPtr->fDigitDataStruct[j].fTime = digitDataPtr->fTime;
-	      fAllDigitsPtr->fDigitDataStruct[j].fCrazyness = digitDataPtr->fCrazyness;
-	      j++;
-	      digitDataPtr++;
+	      if(availableSize < digitHeaderPtr->fNDigits*sizeof(AliHLTPHOSDigitDataStruct) + sizeof(AliHLTPHOSDigitHeaderStruct))
+		{
+		  // HLTError("Buffer overflow: Trying to write data of size: %d bytes. Output buffer available: %d bytes.", totSize, size);
+		  HLTError("Buffer overflow: Trying to write data of size: %d bytes. Output buffer available: %d bytes.", mysize, size);
+		  return -1;
+		}
+	      // If so, lets copy the header and the corresponding digits to the output
+	      memcpy(outBPtr, iter->fPtr, digitHeaderPtr->fNDigits*sizeof(AliHLTPHOSDigitDataStruct) + sizeof(AliHLTPHOSDigitHeaderStruct));
+
+	      // Set the pointer to the first digit in the list
+	      //	      firstDigitPtr = reinterpret_cast<AliHLTPHOSDigitDataStruct*>(outBPtr + sizeof(AliHLTPHOSDigitHeaderStruct) + digitHeaderPtr->fFirstDigitOffset);
+	      firstDigitPtr = reinterpret_cast<AliHLTPHOSDigitDataStruct*>(outBPtr + digitHeaderPtr->fFirstDigitOffset);
+
+	      //	      lastDigitPtr = reinterpret_cast<AliHLTPHOSDigitDataStruct*>(outBPtr + sizeof(AliHLTPHOSDigitHeaderStruct) + digitHeaderPtr->fLastDigitOffset);
+	      lastDigitPtr = reinterpret_cast<AliHLTPHOSDigitDataStruct*>(outBPtr + digitHeaderPtr->fLastDigitOffset);
+	      
+	      // Update the amount of the output buffer we have used
+	      mysize += digitHeaderPtr->fNDigits*sizeof(AliHLTPHOSDigitDataStruct) + sizeof(AliHLTPHOSDigitHeaderStruct);
 	    }
+	  else
+	    {
+	      // Check if we have space for 
+	      if(availableSize < digitHeaderPtr->fNDigits*sizeof(AliHLTPHOSDigitDataStruct))
+		{
+		  HLTError("Buffer overflow: Trying to write data of size: %d bytes. Output buffer available: %d bytes.", mysize, size);
+		  return -1;
+		}
+
+	      // If we already have copied the first buffer to the output copy only the digits
+	      memcpy(outBPtr, reinterpret_cast<const void*>(reinterpret_cast<UChar_t*>(iter->fPtr)+sizeof(AliHLTPHOSDigitHeaderStruct)), digitHeaderPtr->fNDigits*sizeof(AliHLTPHOSDigitDataStruct));
+
+	      // Check if the first digit in this buffer has a ID less than the first digit in the previous
+	      //	      if(firstDigitPtr->fID > reinterpret_cast<AliHLTPHOSDigitDataStruct*>(reinterpret_cast<UChar_t*>(iter->fPtr) + sizeof(AliHLTPHOSDigitDataStruct) + digitHeaderPtr->fFirstDigitOffset)->fID)
+	      AliHLTPHOSDigitDataStruct *thisFirst = 
+		reinterpret_cast<AliHLTPHOSDigitDataStruct*>(reinterpret_cast<UChar_t*>(iter->fPtr) + digitHeaderPtr->fFirstDigitOffset);
+	      if(firstDigitPtr->fID > thisFirst->fID)
+		{
+		  // If that is the case we have to take care of the ordering
+		  		  
+		  HLTError("Re-ordering digit blocks...");
+		  // The last digit in the current buffer has to link to the first digit in the previous buffer
+		  //		  AliHLTPHOSDigitDataStruct *thisLast = reinterpret_cast<AliHLTPHOSDigitDataStruct*>(outBPtr + sizeof(AliHLTPHOSDigitHeaderStruct) + digitHeaderPtr->fLastDigitOffset);
+		  AliHLTPHOSDigitDataStruct *thisLast = reinterpret_cast<AliHLTPHOSDigitDataStruct*>(outBPtr - sizeof(AliHLTPHOSDigitHeaderStruct) + digitHeaderPtr->fLastDigitOffset);
+		  thisLast->fMemOffsetNext = reinterpret_cast<Long_t>(firstDigitPtr) - reinterpret_cast<Long_t>(thisLast);
+
+		  // Setting the pointer to the new first digit
+		  firstDigitPtr = reinterpret_cast<AliHLTPHOSDigitDataStruct*>(outBPtr + digitHeaderPtr->fFirstDigitOffset - sizeof(AliHLTPHOSDigitHeaderStruct));
+		}
+	      else
+		{
+		  // Previous last digit need to link to the current first digit
+		  lastDigitPtr->fMemOffsetNext = reinterpret_cast<Long_t>(lastDigitPtr) - (reinterpret_cast<Long_t>(outBPtr) + digitHeaderPtr->fFirstDigitOffset - sizeof(AliHLTPHOSDigitHeaderStruct));		  
+		  
+		  // We need to change the last digit pointer
+		  lastDigitPtr = reinterpret_cast<AliHLTPHOSDigitDataStruct*>(reinterpret_cast<Long_t>(outBPtr) + digitHeaderPtr->fLastDigitOffset - sizeof(AliHLTPHOSDigitHeaderStruct));
+		}
+	      // Update the amount of the output buffer we have used
+	      mysize += digitHeaderPtr->fNDigits*sizeof(AliHLTPHOSDigitDataStruct);
+	    }
+
+	  outBPtr += mysize;
 	}
     }
-  fAllDigitsPtr->fNDigits = j;
-  nRecPoints = fClusterizerPtr->ClusterizeEvent(size, mysize);
-
-  if(nRecPoints == -1)
-    {
-      HLTError("Running out of buffer, exiting for safety.");
-      return -ENOBUFS;
-    }
-
-  recPointHeaderPtr->fNRecPoints = nRecPoints;
-  mysize += sizeof(AliHLTPHOSRecPointHeaderStruct);
   
-  HLTDebug("Number of clusters: %d", nRecPoints);
-
-  AliHLTComponentBlockData bd;
-  FillBlockData( bd );
-  bd.fOffset = offset;
-  bd.fSize = mysize;
-  bd.fDataType = AliHLTPHOSDefinitions::fgkClusterDataType;
-  bd.fSpecification = specification;
-  outputBlocks.push_back( bd );
-     
-  if ( tSize > size )
+  // The digit header in the output needs to know about the position of the new first digit
+  //  outputDigitHeaderPtr->fFirstDigitOffset = reinterpret_cast<Long_t>(firstDigitPtr) - reinterpret_cast<Long_t>(outputDigitHeaderPtr) + sizeof(AliHLTPHOSDigitHeaderStruct);
+  outputDigitHeaderPtr->fFirstDigitOffset = reinterpret_cast<Long_t>(firstDigitPtr) - reinterpret_cast<Long_t>(outputDigitHeaderPtr);
+  
+  // The digit header in the output needs to know about the position of the new last digit
+  //  outputDigitHeaderPtr->fLastDigitOffset = reinterpret_cast<Long_t>(lastDigitPtr) - reinterpret_cast<Long_t>(outputDigitHeaderPtr) + sizeof(AliHLTPHOSDigitHeaderStruct);
+  outputDigitHeaderPtr->fLastDigitOffset = reinterpret_cast<Long_t>(lastDigitPtr) - reinterpret_cast<Long_t>(outputDigitHeaderPtr);
+  if(firstDigitPtr)
     {
-      Logging( kHLTLogFatal, "HLT::AliHLTPHOSClusterizerComponent::DoEvent", "Too much data",
-               "Data written over allowed buffer. Amount written: %lu, allowed amount: %lu."
-               , tSize, size );
-      return EMSGSIZE;
+      //      HLTError("Header pointer after screwing around: 0x%x", outputDigitHeaderPtr);
+      //      HLTError("First/last offset: %d / %d, first digit ID: %d, energy: %f", outputDigitHeaderPtr->fFirstDigitOffset, outputDigitHeaderPtr->fLastDigitOffset, firstDigitPtr->fID, firstDigitPtr->fEnergy);
     }
 
+  HLTDebug("Number of digits: %d", nDigits);
+
+  if(nDigits > 0)
+    {
+
+      AliHLTPHOSRecPointHeaderStruct* recPointHeaderPtr = reinterpret_cast<AliHLTPHOSRecPointHeaderStruct*>(outBPtr);
+
+      fClusterizerPtr->SetRecPointDataPtr(reinterpret_cast<AliHLTPHOSRecPointDataStruct*>(outBPtr+sizeof(AliHLTPHOSRecPointHeaderStruct)));
+
+      nRecPoints = fClusterizerPtr->ClusterizeEvent(outputDigitHeaderPtr, availableSize, mysize);
+      recPointHeaderPtr->fNRecPoints = nRecPoints;
+
+      mysize += sizeof(AliHLTPHOSRecPointHeaderStruct);
+  
+      HLTDebug("Number of clusters: %d", nRecPoints);
+    }
+  AliHLTComponentBlockData clusterBd;
+  FillBlockData( clusterBd );
+  clusterBd.fOffset = offset;
+  clusterBd.fSize = mysize;
+  clusterBd.fDataType = AliHLTPHOSDefinitions::fgkRecPointDataType;
+  clusterBd.fSpecification = specification;
+  outputBlocks.push_back( clusterBd );
+
+  if(false)
+    {
+      AliHLTComponentBlockData digitBd;
+      FillBlockData(digitBd);
+    }
+       
   size = mysize;
   
+  return 0;
+}
+
+int 
+AliHLTPHOSClusterizerComponent::Reconfigure(const char* cdbEntry, const char* /*chainId*/)
+{  
+  // see header file for class documentation
+
+  const char* path="HLT/ConfigPHOS/ClusterizerComponent";
+
+  if (cdbEntry) path = cdbEntry;
+
+  return ConfigureFromCDBTObjString(cdbEntry);
+}
+
+int 
+AliHLTPHOSClusterizerComponent::ScanConfigurationArgument(int argc, const char **argv)
+{
+  //See header file for documentation
+
+  if(argc <= 0) return 0;
+
+  int i=0;
+
+  TString argument=argv[i];
+
+  if (argument.CompareTo("-digitthreshold") == 0)
+    {
+      if (++i >= argc) return -EPROTO;
+      argument = argv[i];
+      fClusterizerPtr->SetEmcMinEnergyThreshold(argument.Atof());
+      return 1;
+    }
+
+  if (argument.CompareTo("-recpointthreshold") == 0)
+    {
+      if (++i >= argc) return -EPROTO;
+      argument = argv[i];
+      fClusterizerPtr->SetEmcClusteringThreshold(argument.Atof());
+      return 1;
+    }
   return 0;
 }
 
@@ -241,22 +323,15 @@ AliHLTPHOSClusterizerComponent::DoInit(int argc, const char** argv )
   fNoCrazyness = false;
   //
 
-  ScanArgumentsModule(argc, argv);
+  //  const char *path = "HLT/ConfigPHOS/ClusterizerComponent";
+
+  //  ConfigureFromCDBTObjString(path);
+
   for (int i = 0; i < argc; i++)
     {
-      if(!strcmp("-digitthreshold", argv[i]))
-	{
-	  fClusterizerPtr->SetEmcMinEnergyThreshold(atof(argv[i+1]));
-	}
-      if(!strcmp("-recpointthreshold", argv[i]))
-	{
-	  fClusterizerPtr->SetEmcClusteringThreshold(atof(argv[i+1]));
-	}
-      if(!strcmp("-partitionmode", argv[i]))
-	{
-	  fModuleClusterizationMode = false;
-	}
+      ScanConfigurationArgument(i, argv);
     }
+
   return 0;
 }
 

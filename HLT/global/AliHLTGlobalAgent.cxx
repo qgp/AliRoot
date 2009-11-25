@@ -29,8 +29,10 @@
 #include "TObjArray.h"
 
 // header files of library components
-//#include "AliHLTGlobalTrackMergerComponent.h"
+#include "AliHLTGlobalTrackMergerComponent.h"
 #include "AliHLTGlobalEsdConverterComponent.h"
+#include "AliHLTGlobalVertexerComponent.h"
+#include "AliHLTV0HistoComponent.h"
 
 /** global instance for agent registration */
 AliHLTGlobalAgent gAliHLTGlobalAgent;
@@ -59,11 +61,10 @@ int AliHLTGlobalAgent::RegisterComponents(AliHLTComponentHandler* pHandler) cons
   // see header file for class documentation
   assert(pHandler);
   if (!pHandler) return -EINVAL;
-  // Matthias 2009-07-02 disable the AliHLTGlobalTrackMergerComponent
-  // until it is free of TPC and TRD dependencies, i.e. using only
-  // common data types as input
-  //pHandler->AddComponent(new AliHLTGlobalTrackMergerComponent);
+  pHandler->AddComponent(new AliHLTGlobalTrackMergerComponent);
   pHandler->AddComponent(new AliHLTGlobalEsdConverterComponent);
+  pHandler->AddComponent(new AliHLTGlobalVertexerComponent);
+  pHandler->AddComponent(new AliHLTV0HistoComponent );
   return 0;
 }
 

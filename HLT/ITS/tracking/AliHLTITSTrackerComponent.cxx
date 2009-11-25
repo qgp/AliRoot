@@ -48,6 +48,7 @@ using namespace std;
 #include "AliHLTDataTypes.h"
 #include "AliHLTExternalTrackParam.h"
 #include "AliHLTGlobalBarrelTrack.h"
+#include "AliGeomManager.h"
 
 
 
@@ -118,14 +119,23 @@ void AliHLTITSTrackerComponent::GetInputDataTypes( vector<AliHLTComponentDataTyp
 AliHLTComponentDataType AliHLTITSTrackerComponent::GetOutputDataType()
 {
   // see header file for class documentation  
-  return kAliHLTDataTypeTrack|kAliHLTDataOriginITS;
+  return kAliHLTMultipleDataType;
+}
+
+int AliHLTITSTrackerComponent::GetOutputDataTypes(AliHLTComponentDataTypeList& tgtList)
+{
+  // see header file for class documentation  
+  tgtList.clear();
+  tgtList.push_back(kAliHLTDataTypeTrack|kAliHLTDataOriginITS);
+  tgtList.push_back(kAliHLTDataTypeTrack|kAliHLTDataOriginITSOut);
+  return tgtList.size();
 }
 
 void AliHLTITSTrackerComponent::GetOutputDataSize( unsigned long& constBase, double& inputMultiplier )
 {
   // define guess for the output data size
   constBase = 200;       // minimum size
-  inputMultiplier = 0.5; // size relative to input
+  inputMultiplier = 2.; // size relative to input
 }
 
 AliHLTComponent* AliHLTITSTrackerComponent::Spawn()
@@ -139,11 +149,10 @@ void AliHLTITSTrackerComponent::SetDefaultConfiguration()
   // Set default configuration for the CA tracker component
   // Some parameters can be later overwritten from the OCDB
 
-  fSolenoidBz = 5.;
+  fSolenoidBz = -5.00668;
   fFullTime = 0;
   fRecoTime = 0;
   fNEvents = 0;
-  fTracker = 0;
 }
 
 int AliHLTITSTrackerComponent::ReadConfigurationString(  const char* arguments )
@@ -167,8 +176,7 @@ int AliHLTITSTrackerComponent::ReadConfigurationString(  const char* arguments )
 
     if ( argument.CompareTo( "-solenoidBz" ) == 0 ) {
       if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
-      fSolenoidBz = ( ( TObjString* )pTokens->At( i ) )->GetString().Atof();
-      HLTInfo( "Magnetic Field set to: %f", fSolenoidBz );
+      HLTWarning("argument -solenoidBz is deprecated, magnetic field set up globally (%f)", GetBz());
       continue;
     }
 
@@ -200,6 +208,7 @@ int AliHLTITSTrackerComponent::ReadCDBEntry( const char* cdbEntry, const char* c
   const char* defaultNotify = "";
 
   if ( !cdbEntry ) {
+    return 0;// need to add the HLT/ConfigITS/ITSTracker directory to cdb SG!!!
     cdbEntry = "HLT/ConfigITS/ITSTracker";
     defaultNotify = " (default)";
     chainId = 0;
@@ -242,7 +251,8 @@ int AliHLTITSTrackerComponent::Configure( const char* cdbEntry, const char* chai
 
   //* read magnetic field
 
-  int iResult2 = ReadCDBEntry( kAliHLTCDBSolenoidBz, chainId );
+  int iResult2 = 0; //ReadCDBEntry( kAliHLTCDBSolenoidBz, chainId );
+  fSolenoidBz = GetBz();
 
   //* read the actual CDB entry if required
 
@@ -268,8 +278,12 @@ int AliHLTITSTrackerComponent::DoInit( int argc, const char** argv )
 {
   // Configure the ITS tracker component
 
-  if ( fTracker ) return EINPROGRESS;
-  fTracker = new AliITStrackerHLT(0);
+  if ( fTracker ) return -EINPROGRESS;
+
+  if(AliGeomManager::GetGeometry()==NULL){
+    AliGeomManager::LoadGeometry();
+  }
+  AliGeomManager::ApplyAlignObjsFromCDB("ITS");
 
   TString arguments = "";
   for ( int i = 0; i < argc; i++ ) {
@@ -277,7 +291,18 @@ int AliHLTITSTrackerComponent::DoInit( int argc, const char** argv )
     arguments += argv[i];
   }
 
-  return Configure( NULL, NULL, arguments.Data() );
+  int ret = Configure( NULL, NULL, arguments.Data() );
+
+  // Check field
+  if (!TGeoGlobalMagField::Instance()) {
+    HLTError("magnetic field not initialized, please set up TGeoGlobalMagField and AliMagF");
+    return -ENODEV;
+  }
+  fSolenoidBz=GetBz();
+
+  fTracker = new AliITStrackerHLT(0);
+
+  return ret;
 }
 
 
@@ -313,7 +338,7 @@ int AliHLTITSTrackerComponent::DoEvent
 
   AliHLTUInt32_t maxBufferSize = size;
   size = 0; // output size
-
+  
   if (!IsDataEvent()) return 0;
 
   if ( evtData.fBlockCnt <= 0 ) {
@@ -333,9 +358,24 @@ int AliHLTITSTrackerComponent::DoEvent
   
   vector< AliExternalTrackParam > tracksTPC;
   vector< int > tracksTPCId;
-  std::vector<AliITSRecPoint> clusters;
 
-  //int currentTrackID = 0;
+  int nClustersTotal = 0;
+
+  for (int ndx=0; ndx<nBlocks && iResult>=0; ndx++) {
+
+    const AliHLTComponentBlockData* iter = blocks+ndx;
+ 
+    if ( (iter->fDataType == (kAliHLTDataTypeClusters|kAliHLTDataOriginITSSSD) ) || 
+	 (iter->fDataType == (kAliHLTDataTypeClusters|kAliHLTDataOriginITSSPD) ) ||
+	 (iter->fDataType == (kAliHLTDataTypeClusters|kAliHLTDataOriginITSSDD) ) 
+	 ){      
+      AliHLTITSClusterData *inPtr=reinterpret_cast<AliHLTITSClusterData*>( iter->fPtr );
+      nClustersTotal+=inPtr->fSpacePointCnt;
+    }         
+  }
+
+
+  fTracker->StartLoadClusters(nClustersTotal);
 
   for (int ndx=0; ndx<nBlocks && iResult>=0; ndx++) {
 
@@ -368,97 +408,114 @@ int AliHLTITSTrackerComponent::DoEvent
       int nClusters = inPtr->fSpacePointCnt;
       for( int icl=0; icl<nClusters; icl++ ){
 	AliHLTITSSpacePointData &d = inPtr->fSpacePoints[icl];
-	AliITSRecPoint p;
-	p.SetY( d.fY );
-	p.SetZ( d.fZ );
-	p.SetSigmaY2( d.fSigmaY2 );
-	p.SetSigmaZ2( d.fSigmaZ2 );
-	p.SetSigmaYZ( d.fSigmaYZ );
-	p.SetQ( d.fQ );
-	p.SetNy( d.fNy );
-	p.SetNz( d.fNz );
-	p.SetLayer( d.fLayer );
-	p.SetDetectorIndex( d.fIndex );
-	p.SetLabel(0, d.fTracks[0] );
-	p.SetLabel(1, d.fTracks[1] );
-	p.SetLabel(2, d.fTracks[2] );
-	clusters.push_back( p );
+
+	Int_t lab[4] = { d.fTracks[0], d.fTracks[1], d.fTracks[2], d.fIndex };
+	Int_t info[3] = { d.fNy, d.fNz, d.fLayer };
+	Float_t hit[6] = { d.fY, d.fZ, d.fSigmaY2, d.fSigmaZ2, d.fQ, d.fSigmaYZ };
+	if( d.fLayer==4 ) hit[5] = -hit[5];
+	fTracker->LoadCluster( AliITSRecPoint( lab, hit, info ) );
       }   
     }
     
   }// end read input blocks
   
-  // set clusters to tracker
-
-  fTracker->LoadClusters( clusters );
-
   // Reconstruct the event
 
   TStopwatch timerReco;
   
-  fTracker->Reconstruct( tracksTPC );
-
+  fTracker->Reconstruct( &(tracksTPC[0]), tracksTPC.size() );
+  
   timerReco.Stop();
   
   // Fill output tracks
-
+  int nITSUpdated = 0;
   {
-    unsigned int mySize = 0;    
-     
-    AliHLTTracksData* outPtr = ( AliHLTTracksData* )( outputPtr );
-
-    AliHLTExternalTrackParam* currOutTrack = outPtr->fTracklets;
-
-    mySize =   ( ( AliHLTUInt8_t * )currOutTrack ) -  ( ( AliHLTUInt8_t * )outputPtr );
-
-    outPtr->fCount = 0;
     
-    int nTracks = fTracker->Tracks().size();
+    for( int iOut=0; iOut<=1; iOut++ ){
 
-    for ( int itr = 0; itr < nTracks; itr++ ) {
+      unsigned int blockSize = 0;
 
-      const AliExternalTrackParam &tp = fTracker->Tracks()[itr];
-      int id =  tracksTPCId[fTracker->Tracks()[itr].TPCtrackId()];
+      AliHLTTracksData* outPtr = ( AliHLTTracksData* )( outputPtr + size );
+      AliHLTExternalTrackParam* currOutTrack = outPtr->fTracklets;
 
-      int nClusters = 0;
+      blockSize =   ( ( AliHLTUInt8_t * )currOutTrack ) -  ( ( AliHLTUInt8_t * )outPtr );
 
-      unsigned int dSize = sizeof( AliHLTExternalTrackParam ) + nClusters * sizeof( unsigned int );
-
-      if ( mySize + dSize > maxBufferSize ) {
-        HLTWarning( "Output buffer size exceed (buffer size %d, current size %d), %d tracks are not stored", maxBufferSize, mySize, nTracks - itr + 1 );
-        iResult = -ENOSPC;
-        break;
+      if ( size + blockSize  > maxBufferSize ) {
+	HLTWarning( "Output buffer size exceed (buffer size %d, current size %d), tracks are not stored", maxBufferSize, size + blockSize );
+	iResult = -ENOSPC;
+	break;
       }
 
-      currOutTrack->fAlpha = tp.GetAlpha();
-      currOutTrack->fX = tp.GetX();
-      currOutTrack->fY = tp.GetY();
-      currOutTrack->fZ = tp.GetZ();            
-      currOutTrack->fLastX = 0;
-      currOutTrack->fLastY = 0;
-      currOutTrack->fLastZ = 0;      
-      currOutTrack->fq1Pt = tp.GetSigned1Pt();
-      currOutTrack->fSinPsi = tp.GetSnp();
-      currOutTrack->fTgl = tp.GetTgl();
-      for( int i=0; i<15; i++ ) currOutTrack->fC[i] = tp.GetCovariance()[i];
-      currOutTrack->fTrackID = id;
-      currOutTrack->fFlags = 0;
-      currOutTrack->fNPoints = nClusters;    
-      currOutTrack = ( AliHLTExternalTrackParam* )( (( Byte_t * )currOutTrack) + dSize );
-      mySize += dSize;
-      outPtr->fCount++;
-    }
+      outPtr->fCount = 0;
+       AliHLTITSTrack *tracks=0;
+      int nTracks = 0;
+      if( iOut==0 ){
+	tracks = fTracker->Tracks();
+	nTracks = fTracker->NTracks();
+      } else{
+	tracks = fTracker->ITSOutTracks();
+	nTracks = fTracker->NITSOutTracks();
+      }
+      
+      for ( int itr = 0; itr < nTracks; itr++ ) {
+	AliHLTITSTrack &t = tracks[itr];
+	int id =  tracksTPCId[t.TPCtrackId()];      
+	int nClusters = t.GetNumberOfClusters();
+	if( iOut==0 && nClusters>0 ) nITSUpdated++;
+	
+	unsigned int dSize = sizeof( AliHLTExternalTrackParam ) + nClusters * sizeof( unsigned int );
+	
+	if ( size + blockSize + dSize > maxBufferSize ) {
+	  HLTWarning( "Output buffer size exceed (buffer size %d, current size %d), %d tracks are not stored", maxBufferSize, size + blockSize + dSize, nTracks - itr + 1 );
+	  iResult = -ENOSPC;
+	  break;
+	}
+	
+	currOutTrack->fAlpha = t.GetAlpha();
+	currOutTrack->fX = t.GetX();
+	currOutTrack->fY = t.GetY();
+	currOutTrack->fZ = t.GetZ();            
+	currOutTrack->fLastX = 0;
+	currOutTrack->fLastY = 0;
+	currOutTrack->fLastZ = 0;      
+	currOutTrack->fq1Pt = t.GetSigned1Pt();
+	currOutTrack->fSinPsi = t.GetSnp();
+	currOutTrack->fTgl = t.GetTgl();
+	for( int i=0; i<15; i++ ) currOutTrack->fC[i] = t.GetCovariance()[i];
+	currOutTrack->fTrackID = id;
+	currOutTrack->fFlags = 0;
+	currOutTrack->fNPoints = nClusters;    
+	for ( int i = 0; i < nClusters; i++ ) currOutTrack->fPointIDs[i] = t.GetClusterIndex( i );
+	currOutTrack = ( AliHLTExternalTrackParam* )( (( Byte_t * )currOutTrack) + dSize );
+	blockSize += dSize;
+	outPtr->fCount++;
+      }
   
 
-    AliHLTComponentBlockData resultData;
-    FillBlockData( resultData );
-    resultData.fOffset = 0;
-    resultData.fSize = mySize;
-    resultData.fDataType = kAliHLTDataTypeTrack|kAliHLTDataOriginITS;
-    outputBlocks.push_back( resultData );
-    size = resultData.fSize;  
-    
-    HLTInfo( "ITS tracker:: output %d tracks",nTracks );
+      AliHLTComponentBlockData resultData;
+      FillBlockData( resultData );
+      resultData.fOffset = 0;
+      resultData.fSize = blockSize;
+      if( iOut==0 ){
+	resultData.fDataType = kAliHLTDataTypeTrack|kAliHLTDataOriginITS;
+      } else {
+	resultData.fDataType = kAliHLTDataTypeTrack|kAliHLTDataOriginITSOut;
+      }
+      outputBlocks.push_back( resultData );
+      size += resultData.fSize;       
+    }  
   }
+  
+  timer.Stop();
+  fFullTime += timer.RealTime();
+  fRecoTime += timerReco.RealTime();
+  fNEvents++;
+
+  // Set log level to "Warning" for on-line system monitoring
+  int hz = ( int ) ( fFullTime > 1.e-10 ? fNEvents / fFullTime : 100000 );
+  int hz1 = ( int ) ( fRecoTime > 1.e-10 ? fNEvents / fRecoTime : 100000 );
+  HLTInfo( "ITS Tracker: output %d tracks;  input %d clusters, %d tracks; time: full %d / reco %d Hz",
+	      nITSUpdated, nClustersTotal, tracksTPC.size(), hz, hz1 );
+
   return iResult;
 }

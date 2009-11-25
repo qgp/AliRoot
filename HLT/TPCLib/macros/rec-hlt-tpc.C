@@ -16,7 +16,8 @@
  *   aliroot -b -q rec-hlt-tpc.C'("input.root")'
  * </pre>
  *
- * The second parameter changes which clusterfinder you use:
+ * The ClusterFinder uses the offline altro decoder v3 by default. The former
+ * CF components can be selected by means of the second parameter:
  *    - decoder, uses TPCClusterFinderDecoder. This is default.
  *    - packed, uses TPCClusterFinderPacked
  *
@@ -38,7 +39,7 @@
  * @ingroup alihlt_tpc
  * @author Matthias.Richter@ift.uib.no
  */
-void rec_hlt_tpc(const char* input="./", char* opt="decoder ESD")
+void rec_hlt_tpc(const char* input="./", char* opt="ESD")
 {
   
   if(!gSystem->AccessPathName("galice.root")){
@@ -61,7 +62,8 @@ void rec_hlt_tpc(const char* input="./", char* opt="decoder ESD")
   //
   // Setting up which output to give
   //
-  Bool_t bUseClusterFinderDecoder=kTRUE;
+  int clusterFinderType=0; // 0 = v3; 1 = decoder; 2 = packed (offline v1)
+  bool bUseCA=true;   // use the CA tracker and merger
   TString option="libAliHLTUtil.so libAliHLTRCU.so libAliHLTTPC.so loglevel=0x7c chains=";
   Bool_t esdout=kFALSE, dumpout=kFALSE, histout=kFALSE, chout=kFALSE, cdout=kFALSE;
   TString allArgs=opt;
@@ -84,12 +86,20 @@ void rec_hlt_tpc(const char* input="./", char* opt="decoder ESD")
 	}
 	continue;
       }
+      if (argument.CompareTo("ca", TString::kIgnoreCase)==0) {
+	bUseCA=true;
+	continue;
+      } 
+      if (argument.CompareTo("cm", TString::kIgnoreCase)==0) {
+	bUseCA=false;
+	continue;
+      }
       if (argument.CompareTo("decoder",TString::kIgnoreCase)==0) {
-	bUseClusterFinderDecoder = kTRUE;
+	clusterFinderType = 1;
 	continue;
       }
       if (argument.CompareTo("packed",TString::kIgnoreCase)==0) {
-	bUseClusterFinderDecoder = kFALSE;
+	clusterFinderType = 2;
 	continue;
       }
       if (argument.CompareTo("trackhistogram",TString::kIgnoreCase)==0) {
@@ -107,9 +117,15 @@ void rec_hlt_tpc(const char* input="./", char* opt="decoder ESD")
       if (argument.CompareTo("esd",TString::kIgnoreCase)==0) {
 	esdout = kTRUE;
 	if (option.Length()>0) option+=",";
-	option+="sink1";
+	option+="esd-converter";
 	continue;
-      }      
+      }
+      if (argument.CompareTo("esdwrite",TString::kIgnoreCase)==0) {
+	esdout = kTRUE;
+	if (option.Length()>0) option+=",";
+	option+="esdfile";
+	continue;
+      }
       if (argument.CompareTo("clusterdump",TString::kIgnoreCase)==0) {
 	cdout = kTRUE;
 	if (option.Length()>0) option+=",";
@@ -129,7 +145,7 @@ void rec_hlt_tpc(const char* input="./", char* opt="decoder ESD")
 	chout = kTRUE;
 	cdout = kTRUE;
 	if (option.Length()>0) option+=",";
-	option+="sink1,histFile,dump,cdump,chhisto";
+	option+="esd-converter,histFile,dump,cdump,chhisto";
 	continue;
       }
       else {
@@ -173,10 +189,12 @@ void rec_hlt_tpc(const char* input="./", char* opt="decoder ESD")
 
       // cluster finder components
       cf.Form("CF_%02d_%d", slice, part);
-      if (bUseClusterFinderDecoder) {
+      if (clusterFinderType==1) {
 	AliHLTConfiguration cfconf(cf.Data(), "TPCClusterFinderDecoder", publisher.Data(), "-timebins 1001");
-      } else {
+      } else if (clusterFinderType==2) {
 	AliHLTConfiguration cfconf(cf.Data(), "TPCClusterFinderPacked", publisher.Data(), "-timebins 1001 -sorted");
+      } else {
+	AliHLTConfiguration cfconf(cf.Data(), "TPCClusterFinder32Bit", publisher.Data(), "");
       }
       if (trackerInput.Length()>0) trackerInput+=" ";
       trackerInput+=cf;
@@ -195,9 +213,14 @@ void rec_hlt_tpc(const char* input="./", char* opt="decoder ESD")
       }
     }
     TString tracker;
-    // tracker finder components
+    // tracker components
     tracker.Form("TR_%02d", slice);
-    AliHLTConfiguration trackerconf(tracker.Data(), "TPCSliceTracker", trackerInput.Data(), "-pp-run -solenoidBz 0.5");
+    if (bUseCA) {
+      AliHLTConfiguration trackerconf(tracker.Data(), "TPCCATracker", trackerInput.Data(), "");
+    } else {
+      AliHLTConfiguration trackerconf(tracker.Data(), "TPCSliceTracker", trackerInput.Data(), "-pp-run");
+    }
+
     if (writerInput.Length()>0) writerInput+=" ";
     writerInput+=tracker;
     if (mergerInput.Length()>0) mergerInput+=" ";
@@ -208,7 +231,11 @@ void rec_hlt_tpc(const char* input="./", char* opt="decoder ESD")
   }
 
   // GlobalMerger component
-  AliHLTConfiguration mergerconf("globalmerger","TPCGlobalMerger",mergerInput.Data(),"");
+  if (bUseCA) {
+    AliHLTConfiguration mergerconf("globalmerger","TPCCAGlobalMerger",mergerInput.Data(),"");
+  } else {
+    AliHLTConfiguration mergerconf("globalmerger","TPCGlobalMerger",mergerInput.Data(),"");
+  }
   
   //add all global tracks to histo input
   if (histoInput.Length()>0) histoInput+=" ";
@@ -221,16 +248,14 @@ void rec_hlt_tpc(const char* input="./", char* opt="decoder ESD")
   if(esdout){
     if (writeBlocks) {
       // the writer configuration
-      AliHLTConfiguration fwconf("sink1", "FileWriter"   , writerInput.Data(), "-specfmt=_%d -subdir=out_%d -blcknofmt=_0x%x -idfmt=_0x%08x");
+      AliHLTConfiguration fwconf("esdfile", "FileWriter"   , writerInput.Data(), "-specfmt=_%d -subdir=out_%d -blcknofmt=_0x%x -idfmt=_0x%08x");
     } else {
            
-      //AliHLTConfiguration sink("sink1", "TPCEsdWriter"   , "globalmerger", "-datafile AliHLTESDs.root");
-      
       // the esd converter configuration
       AliHLTConfiguration esdcconf("esd-converter", "TPCEsdConverter"   , "globalmerger", "");
       
       // the root file writer configuration
-      AliHLTConfiguration sink("sink1", "EsdCollector"   , "esd-converter", "-directory hlt-tpc-esd");
+      AliHLTConfiguration sink("esdfile", "EsdCollector"   , "esd-converter", "-directory hlt-tpc-esd");
 
       // optional component statistics
       AliHLTConfiguration statroot("statroot", "StatisticsCollector"   , "esd-converter", "-file HLT.statistics.root -publish 0");
@@ -263,17 +288,11 @@ void rec_hlt_tpc(const char* input="./", char* opt="decoder ESD")
   AliReconstruction rec;
   rec.SetInput(input);
   rec.SetRunVertexFinder(kFALSE);
-  rec.SetRunLocalReconstruction("HLT");
-  rec.SetRunTracking("");
+  rec.SetRunReconstruction("HLT");
   rec.SetLoadAlignFromCDB(0);
   rec.SetRunQA(":");
-
-  // NOTE: FillESD is a step in the AliReconstruction sequence and has
-  // nothing to do with the fact that this macro writes ESD output
-  // HLT processes the HLTOUT during FillESD and extracts data which
-  // has already been prepared. This step is currently not necessary for
-  // this macro
-  rec.SetFillESD("");
+  rec.SetDefaultStorage("local://$ALICE_ROOT/OCDB");   
+  rec.SetSpecificStorage("GRP/GRP/Data", Form("local://%s",gSystem->pwd()));
   rec.SetOption("HLT", option);
   rec.Run();
 }

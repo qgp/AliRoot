@@ -31,7 +31,7 @@ class AliHLTTPCCAGrid
      * returns -1 if the row is empty == no hits
      */
     GPUd() int GetBinBounded( float Y, float Z ) const;
-    GPUd() void GetBin( float Y, float Z, int *bY, int *bZ ) const;
+    GPUd() void GetBin( float Y, float Z, int* const bY, int* const bZ ) const;
 
     GPUd() unsigned int  N()        const { return fN;  }
     GPUd() unsigned int  Ny()       const { return fNy; }
@@ -44,7 +44,6 @@ class AliHLTTPCCAGrid
     GPUd() float StepZInv() const { return fStepZInv; }
 
   private:
-
     unsigned int fNy;        //* N bins in Y
     unsigned int fNz;        //* N bins in Z
     unsigned int fN;         //* total N bins
@@ -57,4 +56,4 @@ class AliHLTTPCCAGrid
 
 };
 
-#endif
+#endif //ALIHLTTPCCAGRID_H

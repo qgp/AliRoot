@@ -38,21 +38,21 @@
  *      <pre>jetFinder->Init();</pre> 
  *  * Set the input event via the reader
  *      <pre>jetReader->SetInputEvent( ... )</pre>
- *  * Process one event
+ *  * Process one event (contains reset per event)
  *      <pre>jetFinder->ProcessEvent();</pre>
- *
+ * 
  * <b>Usage in on-line</b><br>
  *  * Initialization phase :
  *      <pre>jetFinder->Initialize();</pre> 
- *  * Reset
-        <pre>jetFinder->Reset();</pre>
  *  * Set the input event via the reader
  *      <pre>jetReader->SetInputEvent( ... )</pre>
- *  * Process one event
- *      <pre>jetReader->FillGridXXX();</pre> 
- *       Where XXX is has to be replaced by MC, ESD or AOD, depending
- *       on the input object
- *      <pre>jetFinder->ProcessConeEvent();</pre>
+ *  * Process one event 
+ *      * Fill grid (contains reset per event)
+ *           <pre>jetReader->FillGridXXX();</pre> 
+ *           Where XXX is has to be replaced by MC, ESD or AOD, 
+ *           depending, on the input object 
+ *      * Process one event (contains reset per event)
+ *          <pre>jetFinder->ProcessConeEvent();</pre>
  *   
  * @ingroup alihlt_jet_cone
  */
@@ -116,12 +116,7 @@ public:
   /** Process one event
    *  @return kTRUE on success, kFALSE on failure
    */
-  Bool_t ProcessConeEvent();
-
-  /** Find jets in one event
-   *  ONLY for use in off-line ... it inherits from a virtual void ?!?!
-   */
-  void FindJets() { FindConeJets(); }
+  Bool_t ProcessHLTEvent();
 
   ///////////////////////////////////////////////////////////////////////////////////
 
@@ -164,6 +159,7 @@ private:
   /** Grid for cone finder */
   AliHLTJETConeGrid           *fGrid;           //! transient
 
+  /** Container of AliAODJets */
   AliHLTJets                  *fJets;           //! transient
 
   ClassDef(AliHLTJETConeFinder, 1)

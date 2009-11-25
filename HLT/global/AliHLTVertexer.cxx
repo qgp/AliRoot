@@ -28,13 +28,17 @@ ClassImp(AliHLTVertexer)
 
 AliHLTVertexer::AliHLTVertexer():
   fESD(0),
-  fTrackInfos(0)
+  fTrackInfos(0),
+  fPrimaryVtx(),
+  fFillVtxConstrainedTracks(1)
 {
 }
 
 AliHLTVertexer::AliHLTVertexer(const AliHLTVertexer & ):
   fESD(0),
-  fTrackInfos(0)
+  fTrackInfos(0),
+  fPrimaryVtx(),
+  fFillVtxConstrainedTracks(1)
 {
 }
 
@@ -44,7 +48,7 @@ void AliHLTVertexer::SetESD( AliESDEvent *event )
 
   delete[] fTrackInfos;
   fESD = event;
-    
+
   AliKFParticle::SetField( fESD->GetMagneticField() );
 
   Int_t nESDTracks=event->GetNumberOfTracks(); 
@@ -65,11 +69,10 @@ void AliHLTVertexer::SetESD( AliESDEvent *event )
     
     //* Construct KFParticle for the track
 
-    info.fParticle = AliKFParticle( *pTrack, 211 );
-    info.fOK = 1;   
+    info.fParticle = AliKFParticle( *pTrack->GetInnerParam(), 211 );    
+    info.fOK = 1;
   }
 }
-
 
 void AliHLTVertexer::FindPrimaryVertex(  )
 {
@@ -80,107 +83,145 @@ void AliHLTVertexer::FindPrimaryVertex(  )
   const AliKFParticle **vSelected = new const AliKFParticle*[nTracks]; //* Selected particles for vertex fit
   Int_t *vIndex = new int [nTracks];                    //* Indices of selected particles
   Bool_t *vFlag = new bool [nTracks];                    //* Flags returned by the vertex finder
+
+  fPrimaryVtx.Initialize();
+  fPrimaryVtx.SetBeamConstraint(fESD->GetDiamondX(),fESD->GetDiamondY(),0,
+				TMath::Sqrt(fESD->GetSigma2DiamondX()),TMath::Sqrt(fESD->GetSigma2DiamondY()),5.3);
   
   Int_t nSelected = 0;
   for( Int_t i = 0; i<nTracks; i++){ 
-    if(fTrackInfos[i].fOK ){
-      vSelected[nSelected] = &(fTrackInfos[i].fParticle);
-      vIndex[nSelected] = i;
-      nSelected++;
-    }
+    if(!fTrackInfos[i].fOK ) continue;
+    //if( fESD->GetTrack(i)->GetTPCNcls()<60  ) continue;
+    const AliKFParticle &p = fTrackInfos[i].fParticle;
+    Double_t chi = p.GetDeviationFromVertex( fPrimaryVtx );      
+    if( chi > 3.5 ) continue;
+    vSelected[nSelected] = &(fTrackInfos[i].fParticle);
+    vIndex[nSelected] = i;
+    nSelected++;  
   }
-
-  AliKFVertex primVtx;  
-  primVtx.SetBeamConstraint(fESD->GetDiamondX(),fESD->GetDiamondY(),0,
-			    TMath::Sqrt(fESD->GetSigma2DiamondX()),TMath::Sqrt(fESD->GetSigma2DiamondY()),5.3);
-
-  primVtx.ConstructPrimaryVertex( vSelected, nSelected, vFlag, 3. );
+  fPrimaryVtx.ConstructPrimaryVertex( vSelected, nSelected, vFlag, 3. );
   for( Int_t i = 0; i<nSelected; i++){ 
     if( vFlag[i] ) fTrackInfos[vIndex[i]].fPrimUsedFlag = 1;
   }
   
-  
-  AliESDVertex vESD( primVtx.Parameters(), primVtx.CovarianceMatrix(), primVtx.GetChi2(), primVtx.GetNContributors() );
-  fESD->SetPrimaryVertexTracks( &vESD );
+  if( fPrimaryVtx.GetNContributors()>3 ){
+    AliESDVertex vESD( fPrimaryVtx.Parameters(), fPrimaryVtx.CovarianceMatrix(), fPrimaryVtx.GetChi2(), fPrimaryVtx.GetNContributors() );
+    fESD->SetPrimaryVertexTracks( &vESD );
+
+    // relate the tracks to vertex
+
+    if( fFillVtxConstrainedTracks ){      
+      for( Int_t i = 0; i<nTracks; i++ ){
+	if( !fTrackInfos[i].fPrimUsedFlag ) continue;	
+	fESD->GetTrack(i)->RelateToVertex( &vESD, fESD->GetMagneticField(),100. );
+      }
+    }
+
+  } else {
+    for( Int_t i = 0; i<nTracks; i++)
+      fTrackInfos[i].fPrimUsedFlag = 0;
+  }
+
 
   delete[] vSelected;
   delete[] vIndex;
   delete[] vFlag;
 }
 
-
 void AliHLTVertexer::FindV0s(  )
 {
   //* V0 finder
 
   int nTracks = fESD->GetNumberOfTracks();
-  AliKFVertex primVtx( *fESD->GetPrimaryVertexTracks() );
+  //AliKFVertex primVtx( *fESD->GetPrimaryVertexTracks() );
+  AliKFVertex &primVtx = fPrimaryVtx;
+  if( primVtx.GetNContributors()<3 ) return;
+
+  bool *constrainedV0   = new bool[nTracks];
+  for( Int_t iTr = 0; iTr<nTracks; iTr++ ){ 
+    AliESDTrackInfo &info = fTrackInfos[iTr];
+    info.fPrimDeviation = info.fParticle.GetDeviationFromVertex( primVtx );
+    constrainedV0[iTr] = 0;
+  }
+  
 
   for( Int_t iTr = 0; iTr<nTracks; iTr++ ){ //* first daughter
 
     AliESDTrackInfo &info = fTrackInfos[iTr];
     if( !info.fOK ) continue;    
+    if( info.fParticle.GetQ() >0 ) continue;    
+    if( info.fPrimDeviation <2.5 ) continue;
 
-    for( Int_t jTr = iTr+1; jTr<nTracks; jTr++ ){  //* second daughter
+    for( Int_t jTr = 0; jTr<nTracks; jTr++ ){  //* second daughter
+
       AliESDTrackInfo &jnfo = fTrackInfos[jTr];
       if( !jnfo.fOK ) continue;
-      
-      //* check for different charge
-
-      if( info.fParticle.GetQ() == jnfo.fParticle.GetQ() ) continue;      
-
+      if( jnfo.fParticle.GetQ() < 0 ) continue;
+      if( jnfo.fPrimDeviation <2.5 ) continue;
+   
       //* construct V0 mother
 
-      AliKFParticle V0( info.fParticle, jnfo.fParticle );     
+      AliKFParticle v0( info.fParticle, jnfo.fParticle );     
 
       //* check V0 Chi^2
-
-      if( V0.GetNDF()<1 ) continue;
-      if( TMath::Sqrt(TMath::Abs(V0.GetChi2()/V0.GetNDF())) >3. ) continue;
+      
+      if( v0.GetChi2()<0 || v0.GetChi2() > 9.*v0.GetNDF() ) continue;
 
       //* subtruct daughters from primary vertex 
 
-      AliKFVertex primVtxCopy = primVtx;
+      AliKFVertex primVtxCopy = primVtx;    
        
-      if( info.fPrimUsedFlag ) primVtxCopy -= info.fParticle;
-      if( jnfo.fPrimUsedFlag ) primVtxCopy -= jnfo.fParticle;
+      if( info.fPrimUsedFlag ){	
+	if( primVtxCopy.GetNContributors()<=2 ) continue;
+	primVtxCopy -= info.fParticle;
+      }
+      if( jnfo.fPrimUsedFlag ){
+	if( primVtxCopy.GetNContributors()<=2 ) continue;
+	primVtxCopy -= jnfo.fParticle;
+      }
+      //* Check v0 Chi^2 deviation from primary vertex 
 
-      //* Check V0 Chi^2 deviation from primary vertex 
-
-      if( V0.GetDeviationFromVertex( primVtxCopy ) >3. ) continue;
+      if( v0.GetDeviationFromVertex( primVtxCopy ) >3. ) continue;
 
       //* Add V0 to primary vertex to improve the primary vertex resolution
 
-      primVtxCopy += V0;      
+      primVtxCopy += v0;      
 
       //* Set production vertex for V0
 
-      V0.SetProductionVertex( primVtxCopy );
+      v0.SetProductionVertex( primVtxCopy );
 
       //* Check chi^2 for a case
 
-      if( TMath::Sqrt( TMath::Abs(V0.GetChi2()/V0.GetNDF()) >3. )) continue;
-
+      if( v0.GetChi2()<0 || v0.GetChi2()> 9.*v0.GetNDF() ) continue;
+      
       //* Get V0 decay length with estimated error
 
       Double_t length, sigmaLength;
-      if( V0.GetDecayLength( length, sigmaLength ) ) continue;
+      if( v0.GetDecayLength( length, sigmaLength ) ) continue;
 
-      //* Reject V0 if it decays too close to the primary vertex
+      //* Reject V0 if it decays too close[sigma] to the primary vertex
 
-      if( length  <3.*sigmaLength ) continue;
+      if( length  <3.5*sigmaLength ) continue;
 
-      //* Get V0 invariant mass 
-
-      // Double_t mass, sigmaMass;
-      //if( V0.GetMass( mass, sigmaMass ) ) continue;   
-      
       //* add ESD v0 
       
-      AliESDv0 v0ESD( *fESD->GetTrack( iTr ), iTr, *fESD->GetTrack( jTr ), jTr );
-      
+      AliESDv0 v0ESD( *fESD->GetTrack( iTr ), iTr, *fESD->GetTrack( jTr ), jTr );  
       fESD->AddV0( &v0ESD );
+
+      // relate the tracks to vertex
+
+      if( fFillVtxConstrainedTracks ){
+	if( constrainedV0[iTr] || constrainedV0[jTr]
+	    || info.fPrimDeviation < 4. || jnfo.fPrimDeviation <4. ) continue;
+	AliESDVertex vESD(v0.Parameters(), v0.CovarianceMatrix(), v0.GetChi2(), 2);
+	fESD->GetTrack(iTr)->RelateToVertex( &vESD, fESD->GetMagneticField(),100. );
+	fESD->GetTrack(jTr)->RelateToVertex( &vESD, fESD->GetMagneticField(),100. );
+	constrainedV0[iTr] = 1;
+	constrainedV0[jTr] = 1;	
+      }
     }
   }
+  delete[] constrainedV0;
 }
 

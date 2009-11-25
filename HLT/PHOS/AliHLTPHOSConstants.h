@@ -27,16 +27,16 @@ namespace PhosHLTConst
   const int MAXHOSTS = 20;
   const int DEFAULTEVENTPORT = 42001;
   const int MAXBINVALUE = 1023;
-  const int HIGHGAIN    =   1;
-  const int LOWGAIN     =   0;
+  const int HIGHGAIN    =   0;
+  const int LOWGAIN     =   1;
 
   const int ALTROMAXSAMPLES = 1008;                           /**<The maximum number of samples of the ALTRO*/
   const int ALTROMAXPRESAMPLES = 15;        
  //  const int ALTROMAXTRALERSIZE = 7;  
   //  const int  DDLBLOCKSIZE = 5;
 
-  const int NZROWSRCU     =   28;                    /**<Number of rows per module*/       
-  const int NXCOLUMNSRCU  =   32; 
+  const int NZROWSRCU     =   56;                    /**<Number of rows per module*/       
+  const int NXCOLUMNSRCU  =   16; 
   const int NZROWSMOD      =  56;                    /**<Number of rows per module*/       
   const int NXCOLUMNSMOD   =  64;                 /**<Number of columns per module*/ 
   const int NGAINS         =   2;                             /**<Number of gains per ALTRO channel*/

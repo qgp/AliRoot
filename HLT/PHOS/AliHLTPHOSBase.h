@@ -32,7 +32,7 @@
 #include "AliHLTLogging.h"
 
 using namespace PhosHLTConst;
-using namespace std;
+
 
 //
 // Base class for all PHOS HLT classes.

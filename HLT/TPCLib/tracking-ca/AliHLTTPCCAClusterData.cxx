@@ -16,6 +16,9 @@
 
 #include "AliHLTTPCCAClusterData.h"
 #include "AliHLTTPCCAMath.h"
+#include <algorithm>
+#include "AliHLTArray.h"
+#include "AliHLTTPCCAGPUConfig.h"
 
 void AliHLTTPCCAClusterData::StartReading( int sliceIndex, int guessForNumberOfClusters )
 {
@@ -25,8 +28,8 @@ void AliHLTTPCCAClusterData::StartReading( int sliceIndex, int guessForNumberOfC
   fFirstRow = 0;
   fLastRow = 0;
   fData.clear();
-  fNumberOfClusters.reserve( 160 );
-  fRowOffset.reserve( 160 );
+  fNumberOfClusters.reserve( HLTCA_ROW_COUNT + 1 );
+  fRowOffset.reserve( HLTCA_ROW_COUNT + 1 );
   fData.reserve( CAMath::Max( 64, guessForNumberOfClusters ) );
 }
 
@@ -59,4 +62,48 @@ void AliHLTTPCCAClusterData::FinishReading()
   fLastRow = row; // the last seen row is the last row in this slice
 }
 
+template <class T> void AliHLTTPCCAClusterData::WriteEventVector(const std::vector<T> &data, std::ostream &out) const
+{
+	AliHLTResizableArray<T> tmpData(data.size());
+	unsigned i;
+	for (i = 0;i < data.size();i++)
+	{
+		tmpData[i] = data[i];
+	}
+	i = data.size();
+	out.write((char*) &i, sizeof(i));
+	out.write((char*) &tmpData[0], i * sizeof(T));
+}
+
+template <class T> void AliHLTTPCCAClusterData::ReadEventVector(std::vector<T> &data, std::istream &in, int MinSize)
+{
+	int i;
+	in.read((char*) &i, sizeof(i));
+	data.reserve(AliHLTTPCCAMath::Max(MinSize, i));
+	data.resize(i);
+	AliHLTResizableArray<T> tmpData(i);
+	in.read((char*) &tmpData[0], i * sizeof(T));
+	for (int j = 0;j < i;j++)
+	{
+#ifdef HLTCA_STANDALONE
+		if (tmpData[j].fRow < 0 || tmpData[j].fRow >= HLTCA_ROW_COUNT)
+		{
+			printf("Invalid Row Read %d at Cluster %d\n", tmpData[j].fRow, j);
+			exit(1);
+		}
+#endif
+		data[j] = tmpData[j];
+	}
+}
+
+void AliHLTTPCCAClusterData::WriteEvent(std::ostream &out) const
+{
+	WriteEventVector<Data>(fData, out);
+}
+
+void AliHLTTPCCAClusterData::ReadEvent(std::istream &in)
+{
+    fData.clear();
+	ReadEventVector<Data>(fData, in, 64);
+}
 

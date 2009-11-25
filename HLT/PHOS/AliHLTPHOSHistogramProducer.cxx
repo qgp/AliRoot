@@ -1,5 +1,3 @@
-// $Id$
-
 /**************************************************************************
  * This file is property of and copyright by the ALICE HLT Project        * 
  * All rights reserved.                                                   *
@@ -29,15 +27,15 @@
 // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
 
 #include "AliHLTPHOSHistogramProducer.h"
-#include "AliHLTPHOSBase.h"
+//#include "AliHLTPHOSBase.h"
 #include "AliHLTPHOSCaloClusterContainerStruct.h"
-#include "AliHLTPHOSCaloClusterDataStruct.h"
+#include "AliHLTCaloClusterDataStruct.h"
 
 #include "TH1D.h"
 #include "TNtuple.h"
 
 AliHLTPHOSHistogramProducer::AliHLTPHOSHistogramProducer():
-  AliHLTPHOSBase(),
+  //  AliHLTPHOSBase(),
   fClusterEnergiesHistPtr(0),
   fMultiplicitiesHistPtr(0),
   fClusterNtuplePtr(0),
@@ -73,7 +71,7 @@ Int_t
 AliHLTPHOSHistogramProducer::Fill(AliHLTPHOSCaloClusterContainerStruct* clusterContainerPtr)
 {
   //comment
-  AliHLTPHOSCaloClusterDataStruct* tmpClusterPtr = 0;
+  AliHLTCaloClusterDataStruct* tmpClusterPtr = 0;
 
   for(UInt_t i = 0; i < clusterContainerPtr->fNCaloClusters; i++)
     {

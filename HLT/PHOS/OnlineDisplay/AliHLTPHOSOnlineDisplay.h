@@ -12,8 +12,8 @@
 //#include "AliHLTHOMERReader.h"
 //#include "AliHLTHOMERWriter.h"
 #include "Rtypes.h"
-//#include <TGFrame.h>
-//#include "TH2.h"
+#include <TGFrame.h>
+#include "TH2.h"
 //#include "AliHLTPHOSGetEventButton.h" 
 //#include "TGTab.h"
 //#include <TRootEmbeddedCanvas.h>
@@ -26,7 +26,7 @@
 
 //#include "AliHLTPHOSOnlineDisplayEventTab.h"
 //#include "AliHLTPHOSOnlineDisplayFourierTab.h"
-#include "AliHLTPHOSBase.h"
+//#include "AliHLTPHOSBase.h"
 
 //#include "TSystem.h"
 //#include "TStyle.h"
@@ -60,7 +60,8 @@ using namespace PhosHLTConst;
 
 class TCanvas;
 
-class AliHLTPHOSOnlineDisplay : public  TGMainFrame, public AliHLTPHOSBase
+//class AliHLTPHOSOnlineDisplay : public  TGMainFrame, public AliHLTPHOSBase
+class AliHLTPHOSOnlineDisplay : public  TGMainFrame
 {
  public:
   ~AliHLTPHOSOnlineDisplay();
@@ -68,7 +69,7 @@ class AliHLTPHOSOnlineDisplay : public  TGMainFrame, public AliHLTPHOSBase
   /** Copy constructor */  
   AliHLTPHOSOnlineDisplay(const AliHLTPHOSOnlineDisplay &) : 
     TGMainFrame(),
-    AliHLTPHOSBase(),
+    //   AliHLTPHOSBase(),
     fRunNumber(0),
     fgRawDataCanvas(0)
   {

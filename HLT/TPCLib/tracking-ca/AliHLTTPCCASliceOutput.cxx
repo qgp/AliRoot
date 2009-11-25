@@ -18,6 +18,8 @@
 //***************************************************************************
 
 #include "AliHLTTPCCASliceOutput.h"
+#include "MemoryAssignmentHelpers.h"
+
 
 GPUhd() int AliHLTTPCCASliceOutput::EstimateSize( int nOfTracks, int nOfTrackClusters )
 {
@@ -28,6 +30,8 @@ GPUhd() int AliHLTTPCCASliceOutput::EstimateSize( int nOfTracks, int nOfTrackClu
   return sizeof( AliHLTTPCCASliceOutput ) + sizeof( AliHLTTPCCASliceTrack )*nOfTracks + kClusterDataSize*nOfTrackClusters;
 }
 
+#ifndef HLTCA_GPUCODE
+
 template<typename T> inline void AssignNoAlignment( T *&dst, char *&mem, int count )
 {
   // assign memory to the pointer dst
@@ -35,18 +39,60 @@ template<typename T> inline void AssignNoAlignment( T *&dst, char *&mem, int cou
   mem = ( char * )( dst + count );
 }
 
-GPUhd() void AliHLTTPCCASliceOutput::SetPointers()
+void AliHLTTPCCASliceOutput::SetPointers(int nTracks, int nTrackClusters, const outputControlStruct* outputControl)
 {
   // set all pointers
+	if (nTracks == -1) nTracks = fNTracks;
+	if (nTrackClusters == -1) nTrackClusters = fNTrackClusters;
 
-  char *mem = &fMemory[0];
-  AssignNoAlignment( fTracks,            mem, fNTracks );
-  AssignNoAlignment( fClusterUnpackedYZ, mem, fNTrackClusters );
-  AssignNoAlignment( fClusterUnpackedX,  mem, fNTrackClusters );
-  AssignNoAlignment( fClusterId,         mem, fNTrackClusters );
-  AssignNoAlignment( fClusterPackedYZ,   mem, fNTrackClusters );
-  AssignNoAlignment( fClusterRow,        mem, fNTrackClusters );
-  AssignNoAlignment( fClusterPackedAmp,  mem, fNTrackClusters );
+  char *mem = fMemory;
 
+  if (outputControl == NULL || outputControl->fDefaultOutput)
+  {
+	  AssignNoAlignment( fTracks,            mem, nTracks );
+	  AssignNoAlignment( fClusterUnpackedYZ, mem, nTrackClusters );
+	  AssignNoAlignment( fClusterUnpackedX,  mem, nTrackClusters );
+	  AssignNoAlignment( fClusterId,         mem, nTrackClusters );
+	  AssignNoAlignment( fClusterRow,        mem, nTrackClusters );
+  }
+
+  if (outputControl == NULL || outputControl->fObsoleteOutput)
+  {
+	  // memory for output tracks
+	  AssignMemory( fOutTracks, mem, nTracks );
+	  // arrays for track hits
+	  AssignMemory( fOutTrackHits, mem, nTrackClusters );
+  }
+  if ((size_t) (mem - fMemory) + sizeof(AliHLTTPCCASliceOutput) > fMemorySize)
+  {
+	  fMemorySize = NULL;
+	  //printf("\nINTERNAL ERROR IN AliHLTTPCCASliceOutput MEMORY MANAGEMENT req: %d avail: %d\n", (int) ((size_t) (mem - fMemory) + sizeof(AliHLTTPCCASliceOutput)), (int) fMemorySize);
+  }
 }
 
+void AliHLTTPCCASliceOutput::Allocate(AliHLTTPCCASliceOutput* &ptrOutput, int nTracks, int nTrackHits, outputControlStruct* outputControl)
+{
+	//Allocate All memory needed for slice output
+  const int memsize = (outputControl->fDefaultOutput ? EstimateSize(nTracks, nTrackHits) : sizeof(AliHLTTPCCASliceOutput)) +
+	  (outputControl->fObsoleteOutput? (nTracks * sizeof(AliHLTTPCCAOutTrack) + nTrackHits * sizeof(int)) : 0);
+  if (outputControl->fOutputPtr)
+  {
+	  if (outputControl->fOutputMaxSize < memsize)
+	  {
+                  outputControl->fEndOfSpace = 1;
+		  ptrOutput = NULL;
+		  return;
+	  }
+	ptrOutput = (AliHLTTPCCASliceOutput*) outputControl->fOutputPtr;
+	outputControl->fOutputPtr += memsize;
+	outputControl->fOutputMaxSize -= memsize;
+  }
+  else
+  {
+    if (ptrOutput) free(ptrOutput);
+	ptrOutput = (AliHLTTPCCASliceOutput*) malloc(memsize);
+  }
+  ptrOutput->SetMemorySize(memsize);
+  ptrOutput->SetPointers(nTracks, nTrackHits, outputControl); // set pointers
+}
+#endif

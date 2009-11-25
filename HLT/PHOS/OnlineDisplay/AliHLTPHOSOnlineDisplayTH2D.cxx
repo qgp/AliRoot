@@ -19,6 +19,7 @@
  **************************************************************************/
 #include "AliHLTPHOSOnlineDisplayTH2D.h"
 #include "AliHLTPHOSOnlineDisplay.h"
+#include "AliHLTPHOSOnlineDisplayEventTab.h"
 //#include "AliHLTPHOSBase.h"
 
 #include <iostream>

@@ -5,6 +5,7 @@
 
 
 #include "AliKFParticle.h"
+#include "AliKFVertex.h"
 
 class AliESDtrack;
 class AliESDVertex;
@@ -19,9 +20,10 @@ public:
   class AliESDTrackInfo
     {
     public:
-      AliESDTrackInfo(): fParticle(),fPrimUsedFlag(0),fOK(0){}
+      AliESDTrackInfo(): fParticle(),fPrimDeviation(0),fPrimUsedFlag(0),fOK(0){}
       
       AliKFParticle fParticle; //* assigned KFParticle
+      Double_t fPrimDeviation; //* deviation from the primary vertex
       Bool_t fPrimUsedFlag;    //* flag shows that the particle was used for primary vertex fit
       Bool_t fOK;              //* is the track good enough
     };
@@ -30,20 +32,22 @@ public:
   virtual ~AliHLTVertexer(){ delete[] fTrackInfos; }
 
   void SetESD( AliESDEvent *event );
-
   void FindPrimaryVertex();
   void FindV0s();
+  void SetFillVtxConstrainedTracks( bool v ){ fFillVtxConstrainedTracks = v; }
+  const AliESDTrackInfo *TrackInfos(){ return fTrackInfos; }  
 
  private:
   
   AliHLTVertexer(const AliHLTVertexer &t);
   AliHLTVertexer &operator = (const AliHLTVertexer & ){ return *this; }
 
-  AliESDEvent *fESD;
-  AliESDTrackInfo *fTrackInfos;
+  AliESDEvent *fESD; // pointer to esd event
+  AliESDTrackInfo *fTrackInfos; // information about esd tracks
+  AliKFVertex fPrimaryVtx; // reconstructed KF primary vertex
+  bool fFillVtxConstrainedTracks; // flag to fill vtx constrained tracks to esd
 
   ClassDef(AliHLTVertexer,0)   //HLT vertex finder
-
 };
 
 

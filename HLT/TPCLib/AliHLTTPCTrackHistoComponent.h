@@ -17,9 +17,9 @@
 #include "AliHLTTPCSpacePointData.h"
 #include "AliHLTTPCTrackSegmentData.h"
 
-class AliHLTTPCConfMapper;
 class TNtuple;
-class AliHLTTPCTrackArray;
+class TH1F;
+class TProfile;
 
 /**
  * @class AliHLTTPCTrackHistoComponent
@@ -53,9 +53,7 @@ class AliHLTTPCTrackArray;
  * Not Tested
  *
  * <h2>Output size:</h2>
- * Size varibles in Ntuple
- *
- * 
+ * Size variables in Ntuple
  *
  * @ingroup alihlt_tpc_components
  */
@@ -77,6 +75,8 @@ public:
   /** interface function, see AliHLTComponent for description */
   AliHLTComponentDataType GetOutputDataType();
   /** interface function, see AliHLTComponent for description */
+  int GetOutputDataTypes(AliHLTComponentDataTypeList& tgtList);
+  /** interface function, see AliHLTComponent for description */
   virtual void GetOutputDataSize( unsigned long& constBase, double& inputMultiplier );
   /** interface function, see AliHLTComponent for description */
   AliHLTComponent* Spawn();
@@ -93,6 +93,10 @@ protected:
   int DoDeinit();
   /** interface function, see AliHLTComponent for description */
   int DoEvent( const AliHLTComponentEventData& /*evtData*/, AliHLTComponentTriggerData& trigData );
+  /** inherited from AliHLTComponent: handle re-configuration event */
+  int Reconfigure(const char* cdbEntry, const char* chainId);
+  /** inherited from AliHLTComponent, scan one argument and its parameters */
+  int ScanConfigurationArgument(int argc, const char** argv);
 
   using AliHLTProcessor::DoEvent;
   
@@ -106,23 +110,43 @@ private:
    * Parse a string for the configuration arguments and set the component
    * properties.
    */ 
-  int Configure(const char* arguments);
- 
+  
   void ReadTracks(const AliHLTComponentBlockData* iter,Int_t &tt);
 
   void PushHisto();
-  void FillResidual( UInt_t pos,AliHLTUInt8_t slice,AliHLTUInt8_t patch,Float_t& resy,Float_t& resz);
  
-  TNtuple *fClusters;                                              //! transient  
-  TNtuple *fTracks;                                                //! transient
+  AliHLTUInt8_t fMinSlice;     //! transient
+  AliHLTUInt8_t fMaxSlice;     //! transient
+  AliHLTUInt8_t fMinPartition; //! transient
+  AliHLTUInt8_t fMaxPartition; //! transient
 
-  vector<UInt_t> fTrackClusterID[36][6];                           //! transient
+  Int_t fNEvents;    //! transient
+  Int_t fNtotTracks; //! transient
 
-  AliHLTTPCTrackArray *fTracksArray;                               //! transient
-  AliHLTTPCSpacePointData *fClustersArray[36][6];                  //! transient
-  UInt_t fNcl[36][6];                                              //! transient
+  Int_t fEvtMod;     //! number of events reached to reset the counter
+  Int_t fBufferSize; //! size of circular buffer (number of entries) for the ntuples
+  Bool_t fdEdx;      //! plot dEdx
+  //  Bool_t fReset;  //! Reset track counter every certain events
+
+  TH1F *fMeanMultiplicity; //! transient (mean multiplicity for every 20 evts vs. #evt by Z.Y.)
+  TH1F *fMultiplicity;     //! transient (track multiplicity by Z.Y.)
+     
+  //TH2F *fNClusterVsXY;   //! transient (#Clusters vs. x, y positions, by ZY)
+  //TH2F *fChargeVsXY;     //! transient (Charge distr. vs. x, y added by ZY)
+  TProfile *fDeDxVsP;    //! transient (dEdX vs. p)
+
+  TNtuple *fClusters;                             //! transient  
+  TNtuple *fTracks;                               //! transient
+
+  vector<UInt_t> fTrackClusterID[36][6];          //! transient
+
+  AliHLTTPCSpacePointData *fClustersArray[36][6]; //! transient
+  UInt_t                   fNSpacePoints[36][6];  //! transient
   
-  ClassDef(AliHLTTPCTrackHistoComponent, 1);
+  /** the default configuration entry for this component */
+  static const char* fgkOCDBEntry; //!transient
+
+  ClassDef(AliHLTTPCTrackHistoComponent, 4);
 
 };
 #endif

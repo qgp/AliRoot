@@ -58,6 +58,53 @@ class AliHLTPHOSDigitContainerDataStruct;
  *                         rec point
  * @ingroup alihlt_phos
  */
+
+/**
+ * @class AliHLTPHOSClusterizerComponent
+ *
+ * Class for running clusterization for PHOS in HLT. 
+ *
+ * <h2>General properties:</h2>
+ *
+ * Component ID: \b PhosClusterizer <br>
+ * Library: \b libAliHLTPHOS.so     <br>
+ * Input Data Types: @ref AliHLTPHOSDefinitions::fgkDigitDataType<br>
+ * Output Data Types: @ref AliHLTPHOSDefinitions::fgkRecPointDataType<br>
+ *
+ * <h2>Mandatory arguments:</h2>
+ * <!-- NOTE: ignore the \li. <i> and </i>: it's just doxygen formatting -->
+ * \li No mandatory arguments for component                           <br>
+ *
+ * <h2>Optional arguments:</h2>
+ * <!-- NOTE: ignore the \li. <i> and </i>: it's just doxygen formatting -->
+ * \li -digitthreshold      <i> value </i> <br>
+ *      threshold for a digit to be added to a rec point in GeV (default value: 0.03)
+ * \li -recpointthreshold <i> value </i> <br>
+ *      threshold for starting a new rec point  (default value: 0.2)
+ * \li -partitionmode
+ *      if we want to do clusterisation on the partition level (not available...) (defaul value: false)
+ *
+ * <h2>Configuration:</h2>
+ * <!-- NOTE: ignore the \li. <i> and </i>: it's just doxygen formatting -->
+ * \li No configuration arguments 
+ *
+ * <h2>Default CDB entries:</h2>
+ * \li No CDB entry yet, will come.
+ *
+ * <h2>Performance:</h2>
+ * Pretty good (~ 3 kHz), depends on amount of data...
+ *
+ * <h2>Memory consumption:</h2>
+ * Depends on the amount of data, but pretty godd
+ *
+ * <h2>Output size:</h2>
+ * Depends on the amount of data...
+ *
+ * More detailed description. (At some point...)
+ *
+ * @ingroup alihlt_phos
+ */ 
+
 class AliHLTPHOSClusterizerComponent: public AliHLTPHOSProcessor
 {
  public:
@@ -73,9 +120,8 @@ class AliHLTPHOSClusterizerComponent: public AliHLTPHOSProcessor
     AliHLTPHOSProcessor(),
     fAllDigitsPtr(0),
     fClusterizerPtr(0),
-    fRecPointStructArrayPtr(0),
+    //    fRecPointStructArrayPtr(0),
     fDigitCount(0),
-    fModuleClusterizationMode(0),
     fNoCrazyness(0)
   {
     //Copy constructor not implemented
@@ -118,6 +164,12 @@ protected:
   /** interface function, see @ref AliHLTComponent for description */
   int Deinit();
 
+  /** interface function, see @ref AliHLTComponent for description */
+  int Reconfigure(const char* cdbEntry, const char* chainId);
+
+  /** interface function, see @ref AliHLTComponent for description */
+  int ScanConfigurationArgument(int argc, const char** argv);
+
  private:
 
   /** All digits in the event */
@@ -126,20 +178,15 @@ protected:
   /** Pointer to the clusterizer it self */
   AliHLTPHOSClusterizer* fClusterizerPtr;                       //! transient
 
-  /** Pointer to rec points used in clusterization */
-  AliHLTPHOSRecPointDataStruct* fRecPointStructArrayPtr;        //! transient
+//   /** Pointer to rec points used in clusterization */
+//   AliHLTPHOSRecPointDataStruct* fRecPointStructArrayPtr;        //! transient
 
   /** Number of digits in event */
-  Int_t fDigitCount;              
-
-  /** If the clusterizer is doing clusterization of the whole module */
-  Bool_t fModuleClusterizationMode;                             //COMMENT
+  Int_t fDigitCount;                                            //COMMENT
 
   /** If one should consider crazyness or not */                              
   Bool_t fNoCrazyness;                                          //COMMENT
 
-  /** interface function, see @ref AliHLTComponent for description */
-  static const AliHLTComponentDataType fgkInputDataTypes[];     //COMMENT
 };
 
 #endif

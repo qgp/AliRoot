@@ -77,11 +77,32 @@ class AliHLTTPCDigitReader;
  * \li nsigma-threshold <br>  
  *
  * <h2>Default CDB entries:</h2>
- * The component has two default CDB entries
- * \li <tt>TPC/Calib/PadTime0</tt>.
- * \li <tt>TPC/Calib/Parameters</tt>.
+ * The component has these default CDB entries
+ * \li <tt>GRP/GRP/Data</tt>.               
+ * \li <tt>TPC/Calib/PadTime0</tt>.         
+ * \li <tt>TPC/Calib/Parameters</tt>.       
+ * \li <tt>TPC/Calib/TimeDrift</tt>.        
+ * \li <tt>TPC/Calib/Temperature</tt>.      
  *
- * These entries are used by the AliTPCTransform class to correct for T0 and drift.
+ * TODO: pad by pad gain calibration also has to be added to the clusterfinder
+ *
+ * And it also needs these below to avoid warnings during initialization and update of calibDB
+ * \li <tt>TPC/Calib/PadGainFactor</tt>.    
+ * \li <tt>TPC/Calib/TimeGain</tt>.
+ * \li <tt>TPC/Calib/GainFactorDedx</tt>.
+ * \li <tt>TPC/Calib/PadNoise</tt>.
+ * \li <tt>TPC/Calib/Pedestals</tt>.
+ * \li <tt>TPC/Calib/ClusterParam</tt>.
+ * \li <tt>TPC/Calib/AltroConfig</tt>.
+ * \li <tt>TPC/Calib/Pulser</tt>.
+ * \li <tt>TPC/Calib/CE</tt>.
+ * \li <tt>TPC/Calib/Raw</tt>.
+ * \li <tt>TPC/Calib/QA</tt>.
+ * \li <tt>TPC/Calib/Mapping</tt>.
+ * \li <tt>TPC/Calib/Goofie</tt>.
+ * \li <tt>TPC/Calib/HighVoltage</tt>.
+ *
+ * These entries are used by the AliTPCTransform class to correct for T0, drift and ExB.
  * @ingroup alihlt_tpc_components
  */
 class AliHLTTPCClusterFinderComponent : public AliHLTProcessor
@@ -140,6 +161,7 @@ class AliHLTTPCClusterFinderComponent : public AliHLTProcessor
 		     AliHLTComponentTriggerData& trigData, AliHLTUInt8_t* outputPtr, 
 		     AliHLTUInt32_t& size, vector<AliHLTComponentBlockData>& outputBlocks );
 	int Configure(const char* arguments);
+	int ScanConfigurationArgument(int argc, const char** argv);
 	int Reconfigure(const char* cdbEntry, const char* chainId);
 	
 	using AliHLTProcessor::DoEvent;
@@ -199,9 +221,15 @@ class AliHLTTPCClusterFinderComponent : public AliHLTProcessor
 	/** Last timebin taken in to account when reading the data */
 	Int_t fLastTimeBin;                                                            //!transient
 
-	Bool_t fDoMC;
+	Bool_t fDoMC; // flag to provide MC labels
+	Bool_t fReleaseMemory; // flag to release the memory after each event
+	/// the default configuration entry for this component
+	static const char* fgkOCDBEntryPacked; //!transient
+	static const char* fgkOCDBEntryUnpacked; //!transient
+	static const char* fgkOCDBEntryDecoder; //!transient
+	static const char* fgkOCDBEntry32Bit; //!transient
 
-	ClassDef(AliHLTTPCClusterFinderComponent, 6)
+	ClassDef(AliHLTTPCClusterFinderComponent, 8)
 
 };
 #endif

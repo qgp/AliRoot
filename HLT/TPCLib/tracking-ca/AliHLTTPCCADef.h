@@ -17,14 +17,40 @@
 #define HLTCA_INTERNAL_PERFORMANCE
 
 #ifdef __CUDACC__
-
 #define HLTCA_GPUCODE
+#endif //__CUDACC__
 
-#endif
+#ifdef WIN32
+#ifndef R__WIN32
+#define R__WIN32
+#endif //!R__WIN32
+#endif //WIN32
 
-#if defined(HLTCA_STANDALONE) || defined(HLTCA_GPUCODE)
+#ifdef R__WIN32
+#ifdef INTEL_RUNTIME
+#pragma warning(disable : 1786)
+#pragma warning(disable : 1478)
+#pragma warning(disable : 161)
+#endif //INTEL_RUNTIME
+
+#ifdef VSNET_RUNTIME
+#pragma warning(disable : 4616)
+#pragma warning(disable : 4996)
+#pragma warning(disable : 1684)
+#endif //VSNET_RUNTIME
+#endif //R__WIN32
+
+#ifdef HLTCA_STANDALONE
 
 // class TObject{};
+
+#ifdef ClassDef
+#undef ClassDef
+#endif //ClassDef
+
+#ifdef ClassTmp
+#undef ClassTmp
+#endif //ClassTmp
 
 #define ClassDef(name,id)
 #define ClassImp(name)
@@ -38,7 +64,7 @@ typedef unsigned long  ULong_t;     //Unsigned long integer 8 bytes (unsigned lo
 typedef int            Seek_t;      //File pointer (int)
 typedef long           Long_t;      //Signed long integer 4 bytes (long)
 typedef unsigned long  ULong_t;     //Unsigned long integer 4 bytes (unsigned long)
-#endif
+#endif //R__B64
 typedef float          Float16_t;   //Float 4 bytes written with a truncated mantissa
 typedef double         Double32_t;  //Double 8 bytes in memory, written as a 4 bytes float
 typedef char           Text_t;      //General string (char)
@@ -53,7 +79,7 @@ typedef unsigned __int64 ULong64_t; //Portable unsigned long integer 8 bytes
 #else
 typedef long long          Long64_t; //Portable signed long integer 8 bytes
 typedef unsigned long long ULong64_t;//Portable unsigned long integer 8 bytes
-#endif
+#endif //R__WIN32 && !__CINT__
 typedef double         Axis_t;      //Axis values type (double)
 typedef double         Stat_t;      //Statistics type (double)
 typedef short          Font_t;      //Font number (short)
@@ -74,10 +100,27 @@ typedef float          Size_t;      //Attribute size (float)
 namespace AliHLTTPCCADefinitions
 {
   extern const AliHLTComponentDataType fgkTrackletsDataType;
+  extern const AliHLTComponentDataType fgkCompressedInputDataType;
 }
 
-#endif
+#endif //HLTCA_STANDALONE
 
+//#define EXTERN_ROW_HITS
+#define TRACKLET_SELECTOR_MIN_HITS 10
+#define REPRODUCIBLE_CLUSTER_SORTING
+//#define FAST_NEIGHBOURS_FINDER
+
+#ifdef HLTCA_GPUCODE
+#define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP 6
+#define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_FGRIDCONTENTUPDOWN 1000
+#define ALIHLTTPCCASTARTHITSFINDER_MAX_FROWSTARTHITS 3500
+#define ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM 1536					//Max amount of hits in a row that can be stored in shared memory, make sure this is divisible by ROW ALIGNMENT
+#else
+#define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_NNEIGHUP 20
+#define ALIHLTTPCCANEIGHBOURS_FINDER_MAX_FGRIDCONTENTUPDOWN 7000
+#define ALIHLTTPCCASTARTHITSFINDER_MAX_FROWSTARTHITS 10000
+#define ALIHLTTPCCATRACKLET_CONSTRUCTOR_TEMP_MEM 15000
+#endif //HLTCA_GPUCODE
 
 #ifdef HLTCA_GPUCODE
 
@@ -89,8 +132,6 @@ namespace AliHLTTPCCADefinitions
 #define GPUshared() __shared__
 #define GPUsync() __syncthreads()
 
-__constant__ float4 gAliHLTTPCCATracker[30000/sizeof( float4 )];
-
 #else
 
 #define GPUd()
@@ -101,16 +142,33 @@ __constant__ float4 gAliHLTTPCCATracker[30000/sizeof( float4 )];
 #define GPUsync()
 
 struct float2 { float x; float y; };
-struct uchar2 { unsigned char x; unsigned char y; };
-struct ushort2 { unsigned short x; unsigned short y; };
+struct uchar2 { unsigned char x, y; };
+struct short2 { short x, y; };
+struct ushort2 { unsigned short x, y; };
+struct int2 { int x, y; };
+struct int3 { int x, y, z; };
+struct int4 { int x, y, z, w; };
 struct uint1 { unsigned int x; };
+struct uint2 { unsigned int x, y; };
+struct uint3 { unsigned int x, y, z; };
 struct uint4 { unsigned int x, y, z, w; };
 
-#endif
+#ifdef R__WIN32
+#include <float.h>
+
+inline bool finite(float x)
+{
+	return(x <= FLT_MAX);
+}
+#endif //R__WIN32
+
+#endif //HLTCA_GPUCODE
 
 /*
  * Helper for compile-time verification of correct API usage
  */
+
+#ifndef HLTCA_GPUCODE
 namespace
 {
   template<bool> struct HLTTPCCA_STATIC_ASSERT_FAILURE;
@@ -123,6 +181,9 @@ namespace
   typedef HLTTPCCA_STATIC_ASSERT_FAILURE<cond> HLTTPCCA_STATIC_ASSERT_CONCAT(_STATIC_ASSERTION_FAILED_##msg, __LINE__); \
   HLTTPCCA_STATIC_ASSERT_CONCAT(_STATIC_ASSERTION_FAILED_##msg, __LINE__) Error_##msg; \
   (void) Error_##msg
+#else
+#define STATIC_ASSERT(a, b)
+#endif //!HLTCA_GPUCODE
 
 namespace
 {
@@ -146,4 +207,10 @@ namespace
   void UNUSED_PARAM9( const T1 &, const T2 &, const T3 &, const T4 &, const T5 &, const T6 &, const T7 &, const T8 &, const T9 & ) {}
 }
 
-#endif
+#define UNROLL2(var, code) code;var++;code;var++;
+#define UNROLL4(var, code) UNROLL2(var, code) UNROLL2(var, code)
+#define UNROLL8(var, code) UNROLL4(var, code) UNROLL4(var, code)
+#define UNROLL16(var, code) UNROLL8(var, code) UNROLL8(var, code)
+#define UNROLL32(var, code) UNROLL16(var, code) UNROLL16(var, code)
+
+#endif //ALIHLTTPCCADEF_H
