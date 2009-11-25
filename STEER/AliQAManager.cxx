@@ -39,6 +39,7 @@
 #include <TROOT.h>
 #include <TString.h>
 #include <TSystem.h>
+#include <TStopwatch.h>
 
 #include "AliCDBManager.h"
 #include "AliCDBEntry.h"
@@ -205,7 +206,7 @@ AliQAManager::~AliQAManager()
 	}
   TCanvas fakeCanvas ; 
   if (fPrintImage) 
-    fakeCanvas.Print(Form("%s%s%d.%s]", AliQAv1::GetImageFileName(), GetMode(), fRunNumber, AliQAv1::GetImageFileFormat())); 
+    fakeCanvas.Print(Form("%s%s%d.%s]", AliQAv1::GetImageFileName(), GetMode(), fRunNumber, AliQAv1::GetImageFileFormat()), "ps"); 
 }
 
 //_____________________________________________________________________________
@@ -537,12 +538,9 @@ void  AliQAManager::EndOfCycle(TObjArray * detArray)
 					continue ;
 			}
       qac->SetPrintImage(fPrintImage) ;
-      
-      if (IsSaveData()) {
-        for (UInt_t taskIndex = 0; taskIndex < AliQAv1::kNTASKINDEX; taskIndex++) {
-          if ( fTasks.Contains(Form("%d", taskIndex)) ) 
-            qadm->EndOfCycle(AliQAv1::GetTaskIndex(AliQAv1::GetTaskName(taskIndex))) ;
-        }
+      for (UInt_t taskIndex = 0; taskIndex < AliQAv1::kNTASKINDEX; taskIndex++) {
+        if ( fTasks.Contains(Form("%d", taskIndex)) ) 
+          qadm->EndOfCycle(AliQAv1::GetTaskIndex(AliQAv1::GetTaskName(taskIndex))) ;
       }
 			qadm->Finish();
 		}
@@ -569,11 +567,9 @@ void  AliQAManager::EndOfCycle(TString detectors)
       if (!detectors.Contains(AliQAv1::GetDetName(iDet))) 
         continue ;
       qac->SetPrintImage(fPrintImage) ;
-      if (IsSaveData()) {
-        for (UInt_t taskIndex = 0; taskIndex < AliQAv1::kNTASKINDEX; taskIndex++) {
-          if ( fTasks.Contains(Form("%d", taskIndex)) ) 
-            qadm->EndOfCycle(AliQAv1::GetTaskIndex(AliQAv1::GetTaskName(taskIndex))) ;
-        }
+      for (UInt_t taskIndex = 0; taskIndex < AliQAv1::kNTASKINDEX; taskIndex++) {
+        if ( fTasks.Contains(Form("%d", taskIndex)) ) 
+          qadm->EndOfCycle(AliQAv1::GetTaskIndex(AliQAv1::GetTaskName(taskIndex))) ;
       }
 			qadm->Finish();
 		}
@@ -666,6 +662,12 @@ Bool_t AliQAManager::InitQA(const AliQAv1::TASKINDEX_t taskIndex, const  Char_t 
 	InitQADataMaker(fRunNumber, detArray) ; //, fCycleSame, kTRUE, detArray) ; 
   if (fPrintImage) {
     TCanvas fakeCanvas ; 
+    TStopwatch timer ; 
+    timer.Start() ; 
+    while (timer.CpuTime()<5) {
+      timer.Continue();
+      gSystem->ProcessEvents();
+    }
     fakeCanvas.Print(Form("%s%s%d.%s[", AliQAv1::GetImageFileName(), GetMode(), fRunNumber, AliQAv1::GetImageFileFormat())) ;    
   }    
 	return kTRUE ; 
@@ -764,7 +766,7 @@ Bool_t AliQAManager::IsSelected(const Char_t * det)
 	Bool_t rv = kFALSE;
 	const TString detName(det) ;
   // always activates Correlation
-  if ( detName.Contains(AliQAv1::GetDetName(AliQAv1::kCORR))) {
+  if ( detName.Contains(AliQAv1::GetDetName(AliQAv1::kCORR)) || detName.Contains(AliQAv1::GetDetName(AliQAv1::kGLOBAL))) {
     rv = kTRUE ; 
   } else {
     // check if all detectors are selected
@@ -1443,6 +1445,16 @@ Bool_t AliQAManager::SaveIt2OCDB(const Int_t runNumber, TFile * inputFile, const
 	}
 	return rv ; 
 }	
+
+//_____________________________________________________________________________
+
+void AliQAManager::SetCheckerExternParam(AliQAv1::DETECTORINDEX_t detIndex, TList * parameterList) 
+{
+  // set the external parameters list for the detector checkers 
+  AliQACheckerBase * qac = AliQAChecker::Instance()->GetDetQAChecker(detIndex) ; 
+  qac->SetExternParamlist(parameterList) ; 
+  qac->PrintExternParam() ;  
+}
 
 //_____________________________________________________________________________
 void AliQAManager::SetEventSpecie(AliRecoParam::EventSpecie_t es) 

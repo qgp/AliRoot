@@ -32,6 +32,7 @@
 #include <TFile.h> 
 #include <TList.h>
 #include <TNtupleD.h>
+#include <TParameter.h>
 #include <TPaveText.h>
 
 // --- Standard library ---
@@ -56,7 +57,8 @@ AliQACheckerBase::AliQACheckerBase(const char * name, const char * title) :
   fLowTestValue(0x0),
   fUpTestValue(0x0),
   fImage(new TCanvas*[AliRecoParam::kNSpecies]), 
-  fPrintImage(kTRUE)
+  fPrintImage(kTRUE), 
+  fExternParamList(NULL)
 {
   // ctor
   fLowTestValue = new Float_t[AliQAv1::kNBIT] ; 
@@ -95,7 +97,8 @@ AliQACheckerBase::AliQACheckerBase(const AliQACheckerBase& qac) :
   fLowTestValue(qac.fLowTestValue),
   fUpTestValue(qac.fLowTestValue), 
   fImage(NULL),  
-  fPrintImage(kTRUE)
+  fPrintImage(kTRUE), 
+  fExternParamList(NULL)  
 {
   //copy ctor
   for (Int_t index = 0 ; index < AliQAv1::kNBIT ; index++) {
@@ -106,6 +109,13 @@ AliQACheckerBase::AliQACheckerBase(const AliQACheckerBase& qac) :
       fImage[specie] = qac.fImage[specie] ; 
       fRefOCDBSubDir[specie] = qac.fRefOCDBSubDir[specie] ; 
     }
+  if (qac.fExternParamList) {
+    fExternParamList = new TList() ;
+    TIter next(qac.fExternParamList) ; 
+    TParameter<double> * p ; 
+    while ( (p = (TParameter<double>*)next()) )
+      fExternParamList->Add(p) ;
+  }
 }
 
 //____________________________________________________________________________
@@ -131,6 +141,10 @@ AliQACheckerBase::~AliQACheckerBase()
   delete[] fImage ; 
   delete[] fRefOCDBSubDir ; 
   AliQAv1::GetQAResultFile()->Close() ; 
+  if (fExternParamList) {
+    fExternParamList->Clear() ; 
+    delete fExternParamList ; 
+  }
 }
 
 //____________________________________________________________________________
@@ -249,6 +263,18 @@ Double_t AliQACheckerBase::DiffK(const TH1 * href, const TH1 * hin) const
   return hin->KolmogorovTest(href) ;  
 }
 
+//____________________________________________________________________________
+void AliQACheckerBase::PrintExternParam() 
+{
+    // Print the list of external parameter list
+  TIter next(fExternParamList) ; 
+  TParameter<double> *pp ; 
+  TString printit("\n") ;
+  while( (pp = (TParameter<double>*)next()) )
+    printit += Form("%s = %f\n", pp->GetName(), pp->GetVal());  
+  AliInfo(Form("%s", printit.Data())) ;
+}
+  
 //____________________________________________________________________________
 void AliQACheckerBase::Run(AliQAv1::ALITASK_t index, AliDetectorRecoParam * recoParam) 
 { 
