@@ -27,9 +27,11 @@
 /////////////////////////////////////////////////////////////////
 // this class implements a method to determine
 // the 3 coordinates of the primary vertex
-// for p-p collisions 
-// It can be used successfully with Pb-Pb collisions
+// optimized for 
+// p-p collisions
 ////////////////////////////////////////////////////////////////
+
+const Int_t    AliITSVertexer3D::fgkMaxNumOfClDefault = 500;
 
 ClassImp(AliITSVertexer3D)
 
@@ -57,7 +59,8 @@ AliITSVertexer3D::AliITSVertexer3D():
   fDiffPhiforPileup(0.),
   fBinSizeR(0.),
   fBinSizeZ(0.),
-  fPileupAlgo(0)
+  fPileupAlgo(0),
+  fMaxNumOfCl(fgkMaxNumOfClDefault)
 {
   // Default constructor
   SetCoarseDiffPhiCut();
@@ -335,6 +338,10 @@ Int_t AliITSVertexer3D::FindTracklets(TTree *itsClusterTree, Int_t optCuts){
     return -1;
   }
   AliDebug(1,Form("RecPoints on Layer 1,2 = %d, %d\n",nrpL1,nrpL2));
+  if(nrpL1>fMaxNumOfCl || nrpL2>fMaxNumOfCl){
+    AliWarning(Form("Too many recpoints on SPD(%d %d ), call vertexerZ",nrpL1,nrpL2));
+    return -1;
+  }
 
   Double_t a[3]={xbeam,ybeam,0.}; 
   Double_t b[3]={xbeam,ybeam,10.};
@@ -780,5 +787,6 @@ void AliITSVertexer3D::PrintStatus() const {
   printf("Max Phi difference: %f\n",fDiffPhiMax);
   printf("Pileup algo: %d\n",fPileupAlgo);
   printf("Min DCA to 1st vetrtex for pileup: %f\n",fDCAforPileup);
+  printf("Maximum number of clusters allowed on L1 or L2: %d\n",fMaxNumOfCl);
   printf("=======================================================\n");
 }
