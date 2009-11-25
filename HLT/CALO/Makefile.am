@@ -1,4 +1,4 @@
-# $Id$
+# $Id: Makefile.am 34927 2009-09-22 12:48:47Z richterm $
 # Makefile template for the AliHLTCalo library.
 
 # be aware of the two different meanings of 'MODULE'
