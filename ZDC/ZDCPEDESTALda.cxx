@@ -68,6 +68,7 @@ int main(int argc, char **argv) {
   int status = 0;
   int const kNChannels = 24;
   int const kNScChannels = 32;
+  Int_t kFirstADCGeo=0, kLastADCGeo=3;
   
   Int_t ich=0;
   Int_t adcMod[2*kNChannels], adcCh[2*kNChannels], sigCode[2*kNChannels];
@@ -117,13 +118,13 @@ int main(int argc, char **argv) {
        sprintf(namhist3lg,"PedCorrZPClg_%d",j-5);       
      }
      else if(j==10 || j==11){ // ZEM
-       sprintf(namhist1hg,"PedZEMhg_%d",j-10);
-       sprintf(namhist2hg,"PedZEMhgOutOfTime_%d",j-10);
-       sprintf(namhist3hg,"PedCorrZEMhg_%d",j-10);
+       sprintf(namhist1hg,"PedZEMhg_%d",j-9);
+       sprintf(namhist2hg,"PedZEMhgOutOfTime_%d",j-9);
+       sprintf(namhist3hg,"PedCorrZEMhg_%d",j-9);
        //
-       sprintf(namhist1lg,"PedZEMlg_%d",j-10);
-       sprintf(namhist2lg,"PedZEMlgOutOfTime_%d",j-10);
-       sprintf(namhist3lg,"PedCorrZEMlg_%d",j-10);
+       sprintf(namhist1lg,"PedZEMlg_%d",j-9);
+       sprintf(namhist2lg,"PedZEMlgOutOfTime_%d",j-9);
+       sprintf(namhist3lg,"PedCorrZEMlg_%d",j-9);
      }
      else if(j>=12 && j<=16){ // ZNA
        sprintf(namhist1hg,"PedZNAhg_%d",j-12);
@@ -143,7 +144,7 @@ int main(int argc, char **argv) {
        sprintf(namhist2lg,"PedZPAlgOutOfTime_%d",j-17);
        sprintf(namhist3lg,"PedCorrZPAlg_%d",j-17);
      }
-     else if(j==22 || j==24){ //Reference PMs
+     else if(j==22 || j==23){ //Reference PMs
        sprintf(namhist1hg,"PedRefhg_%d",j-22);
        sprintf(namhist2hg,"PedRefhgOutOfTime_%d",j-22);
        sprintf(namhist3hg,"PedCorrRefhg_%d",j-22);
@@ -294,12 +295,12 @@ int main(int argc, char **argv) {
         const AliRawDataHeader* header = reader->GetDataHeader();
         if(header){
          UChar_t message = header->GetAttributes();
-	 //printf("   message from L1 %x\n", message);
-         if(message == 0x20){ // PEDESTAL RUN
+         if((message & 0x20) == 0x20){ // PEDESTAL RUN
             //printf("\t STANDALONE_PEDESTAL RUN raw data found\n");
          }
          else{
             printf("ZDCPEDESTALda.cxx -> NO STANDALONE_PEDESTAL RUN raw data found\n");
+    	    printf("   CDH attributes: %x\n", message);
             return -1;
          }
         }
@@ -335,8 +336,12 @@ int main(int argc, char **argv) {
   	 Int_t index=-1;
 	 Int_t detector = rawStreamZDC->GetSector(0);
 	 Int_t sector = rawStreamZDC->GetSector(1);
+	 //
+	 //printf(" rawData: det %d sec %d  value %d\n", 
+	 //	detector, sector,rawStreamZDC->GetADCGain(),rawStreamZDC->GetADCValue() );
 	 
-  	 if(rawStreamZDC->IsADCDataWord() && (detector!=-1)){
+  	 if((rawStreamZDC->IsADCDataWord()) && (detector!=-1) &&
+            (rawStreamZDC->GetADCModule()>=kFirstADCGeo && rawStreamZDC->GetADCModule()<=kLastADCGeo)){
 	  if(sector!=5){ // Physics signals
     	    if(detector==1) index = sector; // *** ZNC
 	    else if(detector==2) index = sector+5; // *** ZPC
@@ -382,14 +387,15 @@ int main(int argc, char **argv) {
   	   }
   	    iraw++;
   	  }//IsADCDataWord()
-  	  //
-  	  if(iraw == 4*kNChannels){ // Last ADC channel -> Filling correlation histos
-  	    for(Int_t k=0; k<kNChannels; k++){
-  	      hPedCorrhg[k]->Fill(RawADCoothg[k], RawADChg[k]);
-  	      hPedCorrlg[k]->Fill(RawADCootlg[k], RawADClg[k]);
-  	    }
-  	  }
         }
+  	//
+  	if(iraw==4*kNChannels ){ // Last ADC channel -> Filling correlation histos
+  	  for(Int_t k=0; k<kNChannels; k++){
+  	    hPedCorrhg[k]->Fill(RawADCoothg[k], RawADChg[k]);
+  	    hPedCorrlg[k]->Fill(RawADCootlg[k], RawADClg[k]);
+  	  }
+          //printf(" ev. %d -> Filling correlation histo %d\n",nevents_physics, kNChannels);
+  	}
         nevents_physics++;
         //
 	delete reader;
@@ -444,6 +450,10 @@ int main(int argc, char **argv) {
   // --- Out-of-time pedestals
   TF1 *ADCootfunchg[kNChannels];
   for(Int_t i=0; i<kNChannels; i++){
+     if(hPedOutOfTimehg[i]->GetEntries() == 0){
+       printf("\n WARNING! Empty histos for out-of-time channels!!!\n\n");
+       return -1;
+     } 
      hPedOutOfTimehg[i]->Fit("gaus","Q");
      ADCootfunchg[i] = hPedOutOfTimehg[i]->GetFunction("gaus");
      MeanPedOOT[i] = (Double_t)  ADCootfunchg[i]->GetParameter(1);
@@ -462,8 +472,9 @@ int main(int argc, char **argv) {
   }
   
   // --- Correlations
-
-  Float_t CorrCoeff0[2*kNChannels], CorrCoeff1[2*kNChannels];
+  // NB -> The correlations are NOT fitted since at the moment
+  // (Sptember 2009) they are NOT correlations and the DA would fail!!!
+/*  Float_t CorrCoeff0[2*kNChannels], CorrCoeff1[2*kNChannels];
   TProfile *hPedCorrProfhg[kNChannels], *hPedCorrProflg[kNChannels];
   TF1 *ffunchg[kNChannels], *ffunclg[kNChannels];
   char namhist4[50];
@@ -490,7 +501,7 @@ int main(int argc, char **argv) {
      //printf("\t CorrCoeff0[%d] = %f, CorrCoeff1[%d] = %f\n",
      //		i+kNChannels, CorrCoeff0[i+kNChannels], i+kNChannels, CorrCoeff1[i+kNChannels]);
   }    
-
+*/
   //						       
   fclose(fileShuttle);
   //

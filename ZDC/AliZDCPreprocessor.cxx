@@ -136,19 +136,15 @@ UInt_t AliZDCPreprocessor::ProcessDCSData(TMap* dcsAliasMap)
     return 1;
   }  
   
-  // ------------------------------------------------------
-  // Change introduced 26/9/09 in order NOT to process the
-  // HV DP since some of them are never found in amanda DB
-  // ------------------------------------------------------
   // Store DCS data as reference
-/*  AliCDBMetaData metadata;
+  AliCDBMetaData metadata;
   metadata.SetResponsible("Chiara Oppedisano");
   metadata.SetComment("DCS DP TMap for ZDC");
   Bool_t resDCSRef = kTRUE;
   resDCSRef = StoreReferenceData("DCS","Data", dcsAliasMap, &metadata);
   
   if(resDCSRef==kFALSE) return 2;
-*/
+
   // --- Writing ZDC table positions into alignment object
   TClonesArray *array = new TClonesArray("AliAlignObjParams",10);
   TClonesArray &alobj = *array;
@@ -187,7 +183,7 @@ UInt_t AliZDCPreprocessor::ProcessDCSData(TMap* dcsAliasMap)
 //______________________________________________________________________________________________
 UInt_t AliZDCPreprocessor::ProcessChMap()
 { 
-  const int kNch = 48;
+  const int kNch=48; const int kNScch=32;
   
   // Reading the file for mapping from FXS
   TList* daqSource = GetFileSources(kDAQ, "MAPPING");
@@ -234,7 +230,6 @@ UInt_t AliZDCPreprocessor::ProcessChMap()
        return 4;
      }
   }
-  delete daqSource; daqSource=0;
   
   // Store the currently read map ONLY IF it is different
   // from the entry in the OCDB
@@ -254,10 +249,13 @@ UInt_t AliZDCPreprocessor::ProcessChMap()
 	&& (readMap[i][5] == chMap->GetSector(i))){
 	 updateOCDB = kFALSE;
       }
-      else updateOCDB = kTRUE;
+      else{
+        updateOCDB = kTRUE;
+        break;
+      }
     }
   }
-  //
+
   Bool_t resChMapStore = kTRUE;
   if(updateOCDB==kTRUE){
     Log(" A new entry ZDC/Calib/ChMap will be created");
@@ -271,10 +269,10 @@ UInt_t AliZDCPreprocessor::ProcessChMap()
       mapCalib->SetDetector(k,readMap[k][4]);
       mapCalib->SetSector(k,readMap[k][5]);
       // TEMPORARY!!!! Until no mapping from scaler is provided!!!!!!!
-      for(Int_t il=0; il<32; il++){
-         mapCalib->SetScChannel(il, 0);
-	 mapCalib->SetScDetector(il, 0);
-	 mapCalib->SetScSector(il, 0);
+      if(k<kNScch){
+         mapCalib->SetScChannel(k, 0);
+	 mapCalib->SetScDetector(k, 0);
+	 mapCalib->SetScSector(k, 0);
       }
     }
     //mapCalib->Print("");
@@ -282,7 +280,7 @@ UInt_t AliZDCPreprocessor::ProcessChMap()
     AliCDBMetaData metaData;
     metaData.SetBeamPeriod(0);
     //metaData.SetResponsible("Chiara Oppedisano");
-    metaData.SetComment("Filling AliZDCChMap object");  
+    metaData.SetComment("Filling AliZDCChMap object"); 
     //
     resChMapStore = Store("Calib","ChMap",mapCalib, &metaData, 0, kTRUE);
     printf("  Mapping object stored in OCDB\n");
@@ -291,10 +289,11 @@ UInt_t AliZDCPreprocessor::ProcessChMap()
     Log(" ZDC/Calib/ChMap entry in OCDB is valid and won't be updated");
     resChMapStore = kTRUE;
   }
+
+  delete daqSource; daqSource=0;
   
   if(resChMapStore==kFALSE) return 5;
-  
-  return 0;
+  else return 0;
 
 }
 
@@ -571,7 +570,6 @@ UInt_t AliZDCPreprocessor::ProcessPedestalData()
      Log(Form("\t Getting file #%d: %s from %s\n",++iH, pedFileName, sourceH->GetName()));
      resPedHist = StoreReferenceFile(pedFileName, "pedestalReference.root");
      if(resPedHist==kFALSE) return 13;
-     if(resPedHist==kFALSE) return 9;
   }
   delete daqSourceH; daqSourceH=0;
   
@@ -641,7 +639,6 @@ UInt_t AliZDCPreprocessor::ProcessLaserData()
      //
      resLaserCal = Store("Calib","LaserCalib",lCalib, &metaData, 0, kTRUE);
      if(resLaserCal==kFALSE) return 15;
-     if(resLaserCal==kFALSE) return 10;
   }
   delete daqSources; daqSources = 0;
 
@@ -655,7 +652,6 @@ UInt_t AliZDCPreprocessor::ProcessLaserData()
   TIter iter2H(daqSourceH);
   TObjString* sourceH = 0;
   Int_t iH=0;
-  Bool_t resPedHist = kTRUE;
   while((sourceH = dynamic_cast<TObjString*> (iter2H.Next()))){
      Log(Form("\t Getting file #%d\n",++iH));
      TString stringLaserFileName = GetFile(kDAQ, "LASERHISTOS", sourceH->GetName());
@@ -666,8 +662,6 @@ UInt_t AliZDCPreprocessor::ProcessLaserData()
      resLaserHist = StoreReferenceFile(stringLaserFileName.Data(), "laserReference.root");
      //
      if(resLaserHist==kFALSE) return 17;
-     //
-     if(resPedHist==kFALSE) return 11;
   }
   delete daqSourceH; daqSourceH = 0;
   

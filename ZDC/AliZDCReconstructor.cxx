@@ -90,7 +90,7 @@ void AliZDCReconstructor::Init()
     
   TString beamType = GetRunInfo()->GetBeamType();
   // This is a temporary solution to allow reconstruction in tests without beam
-  if(((beamType.CompareTo("UNKNOWN"))==0) && ((runType.CompareTo("PHYSICS")) == 0)){
+  if(((beamType.CompareTo("UNKNOWN"))==0)){
     fRecoMode=1;
   }
   /*else if((beamType.CompareTo("UNKNOWN"))==0){
@@ -107,10 +107,7 @@ void AliZDCReconstructor::Init()
   }
     
   fBeamEnergy = GetRunInfo()->GetBeamEnergy();
-  if(fBeamEnergy==0.){
-    AliWarning(" Beam energy value missing -> E_beam = 0");
-    fBeamEnergy = 0.;
-  }
+  if(fBeamEnergy==0.) AliWarning(" Beam energy value missing -> E_beam = 0");
     
   if(fIsCalibrationMB==kFALSE)  
     printf("\n\n ***** ZDC reconstruction initialized for %s @ %1.0f GeV *****\n\n",beamType.Data(), fBeamEnergy);
@@ -477,9 +474,12 @@ void AliZDCReconstructor::Reconstruct(AliRawReader* rawReader, TTree* clustersTr
    }// ADC DATA
    // ***************************** Reading Scaler
    else if(rawData.GetADCModule()==kScalerGeo){
-     if(rawData.IsScHeaderRead()==kTRUE && rawData.IsScEventGood()==kTRUE){
+     if(rawData.IsScalerWord()==kTRUE && rawData.IsScEventGood()==kTRUE){
        isScalerOn = kTRUE;
        scalerData[jsc] = rawData.GetTriggerCount();
+       // Ch. debug
+       //printf("   Reconstructed VME Scaler: %d %d  ",jsc,scalerData[jsc]);
+       //
        jsc++;
      }
    }// VME SCALER DATA
@@ -647,7 +647,7 @@ void AliZDCReconstructor::ReconstructEventpp(TTree *clustersTree, Float_t* corrA
   Float_t calibEne[4];
   // **** Energy calibration coefficient set to 1 
   // **** (no trivial way to calibrate in p-p runs)
-  for(Int_t ij=0; ij<4; ij++) calibEne[ij] = fEnCalibData->GetEnCalib(ij);
+  for(Int_t ij=0; ij<6; ij++) calibEne[ij] = fEnCalibData->GetEnCalib(ij);
   
   // ******	Equalization of detector responses
   Float_t equalTowZN1[10], equalTowZN2[10], equalTowZP1[10], equalTowZP2[10];
