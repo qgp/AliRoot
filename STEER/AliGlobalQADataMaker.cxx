@@ -140,7 +140,9 @@ void AliGlobalQADataMaker::InitESDs() {
   // as a part of global QA
   //------------------------------------------------------
 
-  {// Cluster related QA
+  const Bool_t expert   = kTRUE ; 
+  const Bool_t image    = kTRUE ; 
+ {// Cluster related QA
     const Char_t *name[]={
       "hGlobalFractionAssignedClustersITS",
       "hGlobalFractionAssignedClustersTPC",
@@ -151,9 +153,9 @@ void AliGlobalQADataMaker::InitESDs() {
       "Fraction of the assigned clusters in TPC",
       "Fraction of the assigned clusters in TRD"
     };
-    Add2ESDsList(new TH1F(name[0],title[0],100,0.,2.),kClr0);
-    Add2ESDsList(new TH1F(name[1],title[1],100,0.,2.),kClr1);
-    Add2ESDsList(new TH1F(name[2],title[2],100,0.,2.),kClr2);
+    Add2ESDsList(new TH1F(name[0],title[0],100,0.,2.),kClr0, !expert, image);
+    Add2ESDsList(new TH1F(name[1],title[1],100,0.,2.),kClr1, !expert, image);
+    Add2ESDsList(new TH1F(name[2],title[2],100,0.,2.),kClr2, !expert, image);
   }
 
   {// Track related QA
@@ -164,7 +166,11 @@ void AliGlobalQADataMaker::InitESDs() {
       "hGlobalTPCITSMatchedpT",                             // kTrk3
       "hGlobalTPCTOFMatchedpT",                             // kTrk4
       "hGlobalTPCITSMatchingProbability",                   // kTrk5
-      "hGlobalTPCTOFMatchingProbability"                    // kTrk6
+      "hGlobalTPCTOFMatchingProbability",                   // kTrk6
+      "hGlobalTPCsideAposDCA",                              // kTrk7
+      "hGlobalTPCsideAnegDCA",                              // kTrk8
+      "hGlobalTPCsideCposDCA",                              // kTrk9
+      "hGlobalTPCsideCnegDCA"                               // kTrk10
   };
     const Char_t *title[]={
       "Track azimuthal distribution (rad)",                   // kTrk0
@@ -173,15 +179,23 @@ void AliGlobalQADataMaker::InitESDs() {
       "TPC-ITS matched: track momentum distribution (GeV)",   // kTrk3
       "TPC-TOF matched: track momentum distribution (GeV)",   // kTrk4
       "TPC-ITS track-matching probability",                   // kTrk5
-      "TPC-TOF track-matching probability"                    // kTrk6
+      "TPC-TOF track-matching probability",                   // kTrk6
+      "TPC side A: DCA for the positive tracks (mm)",         // kTrk7
+      "TPC side A: DCA for the negative tracks (mm)",         // kTrk8
+      "TPC side C: DCA for the positive tracks (mm)",         // kTrk9
+      "TPC side C: DCA for the negative tracks (mm)"          // kTrk10
     };
-  Add2ESDsList(new TH1F(name[0],title[0],100, 0.,TMath::TwoPi()),kTrk0);
-  Add2ESDsList(new TH1F(name[1],title[1],100,-2.00,2.00),kTrk1);
-  Add2ESDsList(new TH1F(name[2],title[2],50,  0.20,5.00),kTrk2);
-  Add2ESDsList(new TH1F(name[3],title[3],50,  0.20,5.00),kTrk3);
-  Add2ESDsList(new TH1F(name[4],title[4],50,  0.20,5.00),kTrk4);
-  Add2ESDsList(new TH1F(name[5],title[5],50,  0.20,5.00),kTrk5);
-  Add2ESDsList(new TH1F(name[6],title[6],50,  0.20,5.00),kTrk6);
+  Add2ESDsList(new TH1F(name[0],title[0],100, 0.,TMath::TwoPi()),kTrk0, !expert, image);
+  Add2ESDsList(new TH1F(name[1],title[1],100,-2.00,2.00),kTrk1, !expert, image);
+  Add2ESDsList(new TH1F(name[2],title[2],50,  0.20,5.00),kTrk2, !expert, image);
+  Add2ESDsList(new TH1F(name[3],title[3],50,  0.20,5.00),kTrk3, !expert, image);
+  Add2ESDsList(new TH1F(name[4],title[4],50,  0.20,5.00),kTrk4, !expert, image);
+  Add2ESDsList(new TH1F(name[5],title[5],50,  0.20,5.00),kTrk5, !expert, image);
+  Add2ESDsList(new TH1F(name[6],title[6],50,  0.20,5.00),kTrk6, !expert, image);
+  Add2ESDsList(new TH1F(name[7],title[7],50, -25.0,25.0),kTrk7, !expert, image);
+  Add2ESDsList(new TH1F(name[8],title[8],50, -25.0,25.0),kTrk8, !expert, image);
+  Add2ESDsList(new TH1F(name[9],title[9],50, -25.0,25.0),kTrk9, !expert, image);
+  Add2ESDsList(new TH1F(name[10],title[10],50, -25.0,25.0),kTrk10, !expert, image);
   }
 
   {// V0 related QA
@@ -197,10 +211,10 @@ void AliGlobalQADataMaker::InitESDs() {
       "On-the-fly Lambda0 + Lambda0Bar mass (GeV)",
       "Offline Lambda0 + Lambda0Bar mass (GeV)"
     };
-    Add2ESDsList(new TH1F(name[0],title[0],50,  0.4477,0.5477),kK0on);
-    Add2ESDsList(new TH1F(name[1],title[1],50,  0.4477,0.5477),kK0off);
-    Add2ESDsList(new TH1F(name[2],title[2],50,  1.0657,1.1657),kL0on);
-    Add2ESDsList(new TH1F(name[3],title[3],50,  1.0657,1.1657),kL0off);
+    Add2ESDsList(new TH1F(name[0],title[0],50,  0.4477,0.5477),kK0on, !expert, image);
+    Add2ESDsList(new TH1F(name[1],title[1],50,  0.4477,0.5477),kK0off, !expert, image);
+    Add2ESDsList(new TH1F(name[2],title[2],50,  1.0657,1.1657),kL0on, !expert, image);
+    Add2ESDsList(new TH1F(name[3],title[3],50,  1.0657,1.1657),kL0off, !expert, image);
   }
 
   {// PID related QA
@@ -214,9 +228,9 @@ void AliGlobalQADataMaker::InitESDs() {
       "TPC: dEdx (ADC) for particles with momentum 0.4 - 0.5 (GeV)",
       "TOF: tracking - measured (ps)"
     };
-    Add2ESDsList(new TH1F(name[0],title[0],50,0.00,200.),kPid0);
-    Add2ESDsList(new TH1F(name[1],title[1],50,0.00,100.),kPid1);
-    Add2ESDsList(new TH1F(name[2],title[2],50,-3500.,3500.),kPid2);
+    Add2ESDsList(new TH1F(name[0],title[0],50,0.00,200.),kPid0, !expert, image);
+    Add2ESDsList(new TH1F(name[1],title[1],50,0.00,100.),kPid1, !expert, image);
+    Add2ESDsList(new TH1F(name[2],title[2],50,-3500.,3500.),kPid2, !expert, image);
   }
 
 }
@@ -285,6 +299,28 @@ void AliGlobalQADataMaker::MakeESDs(AliESDEvent * event) {
 	   if (track->GetTOFsignal()>0) GetESDsData(kTrk4)->Fill(p);
 	}
       }
+    }
+    const AliExternalTrackParam *tpcTrack=track->GetTPCInnerParam();
+    const AliExternalTrackParam *innTrack=track->GetInnerParam();
+    if (tpcTrack)
+    if (innTrack) {
+       const AliESDVertex *vtx=esd->GetPrimaryVertex();
+       Double_t xv=vtx->GetXv();
+       Double_t yv=vtx->GetYv();
+       Double_t zv=vtx->GetZv();
+       Float_t dz[2];
+       tpcTrack->GetDZ(xv,yv,zv,esd->GetMagneticField(),dz);
+       dz[0]*=10.; // in mm
+       if (innTrack->GetZ()  > 0)
+       if (innTrack->GetTgl()> 0) { // TPC side A
+	  if (tpcTrack->GetSign() > 0) GetESDsData(kTrk7)->Fill(dz[0]);
+          else                         GetESDsData(kTrk8)->Fill(dz[0]);
+       }
+       if (innTrack->GetZ()  < 0)
+       if (innTrack->GetTgl()< 0) { // TPC side C
+	  if (tpcTrack->GetSign() > 0) GetESDsData(kTrk9)->Fill(dz[0]);
+          else                         GetESDsData(kTrk10)->Fill(dz[0]);
+       }
     }
 
     // PID related QA

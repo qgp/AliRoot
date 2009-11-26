@@ -204,9 +204,9 @@ AliQAManager::~AliQAManager()
 		delete fRawReader ;
 		fRawReader = NULL ;
 	}
-  TCanvas fakeCanvas ; 
-  if (fPrintImage) 
-    fakeCanvas.Print(Form("%s%s%d.%s]", AliQAv1::GetImageFileName(), GetMode(), fRunNumber, AliQAv1::GetImageFileFormat()), "ps"); 
+//  TCanvas fakeCanvas ; 
+//  if (fPrintImage) 
+//    fakeCanvas.Print(Form("%s%s%d.%s]", AliQAv1::GetImageFileName(), GetMode(), fRunNumber, AliQAv1::GetImageFileFormat()), "ps"); 
 }
 
 //_____________________________________________________________________________
@@ -521,10 +521,9 @@ void  AliQAManager::EndOfCycle(TObjArray * detArray)
 	// End of cycle QADataMakers 
 	
   AliQAChecker::Instance()->SetRunNumber(fRunNumber) ; 
- if (fPrintImage) {
-    TCanvas fakeCanvas ; 
+  TCanvas fakeCanvas ; 
+  if (fPrintImage) 
     fakeCanvas.Print(Form("%s%s%d.%s[", AliQAv1::GetImageFileName(), GetMode(), fRunNumber, AliQAv1::GetImageFileFormat())) ; 
-  }
 	for (UInt_t iDet = 0; iDet < fgkNDetectors ; iDet++) {
 		if (IsSelected(AliQAv1::GetDetName(iDet))) {
 			AliQADataMaker * qadm = GetQADataMaker(iDet) ;
@@ -545,6 +544,8 @@ void  AliQAManager::EndOfCycle(TObjArray * detArray)
 			qadm->Finish();
 		}
 	}
+  if (fPrintImage) 
+    fakeCanvas.Print(Form("%s%s%d.%s]", AliQAv1::GetImageFileName(), GetMode(), fRunNumber, AliQAv1::GetImageFileFormat()), "ps"); 
 }
 
 //_____________________________________________________________________________
@@ -553,10 +554,9 @@ void  AliQAManager::EndOfCycle(TString detectors)
 	// End of cycle QADataMakers 
 	
   AliQAChecker::Instance()->SetRunNumber(fRunNumber) ; 
-  if (fPrintImage) {
-    TCanvas fakeCanvas ; 
+  TCanvas fakeCanvas ; 
+  if (fPrintImage) 
     fakeCanvas.Print(Form("%s%s%d.%s[", AliQAv1::GetImageFileName(), GetMode(), fRunNumber, AliQAv1::GetImageFileFormat())) ; 
-  }
   for (UInt_t iDet = 0; iDet < fgkNDetectors ; iDet++) {
 		if (IsSelected(AliQAv1::GetDetName(iDet))) {
 			AliQADataMaker * qadm = GetQADataMaker(iDet) ;
@@ -574,6 +574,8 @@ void  AliQAManager::EndOfCycle(TString detectors)
 			qadm->Finish();
 		}
 	}
+  if (fPrintImage) 
+    fakeCanvas.Print(Form("%s%s%d.%s]", AliQAv1::GetImageFileName(), GetMode(), fRunNumber, AliQAv1::GetImageFileFormat()), "ps"); 
 }
 
 //_____________________________________________________________________________
