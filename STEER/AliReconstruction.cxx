@@ -3101,9 +3101,10 @@ Bool_t AliReconstruction::FinishPlaneEff() {
  //  Return: kTRUE if all operations have been done properly, kFALSE otherwise
  //
  Bool_t ret=kFALSE;
+ TString detStr = fLoadCDB;
  //for (Int_t iDet = 0; iDet < fgkNDetectors; iDet++) {
  for (Int_t iDet = 0; iDet < 1; iDet++) { // for the time being only ITS
-   //if (!IsSelected(fgkDetectorName[iDet], detStr)) continue;
+   if (!IsSelected(fgkDetectorName[iDet], detStr)) continue;
    if(fTracker[iDet] && fTracker[iDet]->GetPlaneEff()) {
       AliPlaneEff *planeeff=fTracker[iDet]->GetPlaneEff();
       TString name=planeeff->GetName();
