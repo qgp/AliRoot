@@ -119,9 +119,10 @@ void alieve_online_init()
   glv->DoDraw();
 }
 
-Int_t g_pic_id  = 0;
-Int_t g_pic_max = 10;
-TTime g_pic_prev;
+
+Int_t      g_pic_id  = 0;
+Int_t      g_pic_max = 10;
+TTimeStamp g_pic_prev(0, 0);
 
 void alieve_online_on_new_event()
 {
@@ -143,25 +144,39 @@ void alieve_online_on_new_event()
 
   // Register image to amore.
   const TString pichost("aldaqacrs3");
-  TTime now = gSystem->Now();
-  Long_t delta = now - g_pic_prev;  delta /= 1000;
+  TTimeStamp now;
+  Double_t delta = now.AsDouble() - g_pic_prev.AsDouble();
+
+  printf("Pre image dump: host='%s', delta=%f.\n",
+	 gSystem->HostName(), delta);
+
   if (pichost == gSystem->HostName() && delta >= 30)
   {
     TString id;      id.Form("online-viz-%03d", g_pic_id);
     TString pic(id); pic += ".png";
 
+    printf("In image dump: file='%s'.\n", pic.Data());
+
     gEve->GetBrowser()->RaiseWindow();
     gEve->FullRedraw3D();
     gSystem->ProcessEvents();
-    gSystem->Exec(TString::Format("xwd -id %u | convert - %s",
-		  gEve->GetBrowser()->GetId(), pic.Data()));
 
-    gSystem->Exec(TString::Format("SendImageToAmore %s %s %d",
-		  id.Data(), pic.Data(),
-		  AliEveEventManager::AssertRawReader()->GetRunNumber()));
+    Int_t status;
+
+    status = gSystem->Exec(TString::Format("xwd -id %u | convert - %s",
+			   gEve->GetBrowser()->GetId(), pic.Data()));
+
+    printf("Post capture -- status=%d.\n", status);
+
+    status = gSystem->Exec(TString::Format("SendImageToAmore %s %s %d",
+		          id.Data(), pic.Data(),
+		          AliEveEventManager::AssertRawReader()->GetRunNumber()));
+
+    printf("Post AMORE reg -- status=%d, run=%d.\n", status,
+	   AliEveEventManager::AssertRawReader()->GetRunNumber());
 
     if (++g_pic_id >= g_pic_max)
       g_pic_id = 0;
-    g_pic_prev = now;
+    g_pic_prev.Set();
   }
 }
