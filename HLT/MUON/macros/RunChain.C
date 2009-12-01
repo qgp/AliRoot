@@ -43,6 +43,7 @@
 #if !defined(__CINT__) || defined(__MAKECINT__)
 #include "AliRawReader.h"
 #include "AliHLTOfflineInterface.h"
+#include "AliCDBStorage.h"
 #include "AliCDBManager.h"
 #include "AliHLTSystem.h"
 #include "AliHLTConfiguration.h"
@@ -424,17 +425,18 @@ void RunChain(
 			string name = (k <= 20) ? "MUONHitReconstructor" : "MUONTriggerReconstructor";
 			string parent = Form("pubDDL%d", k);
 			string cmd;
+			const char* extraInfoFlags = k < 21 ? "-makeclusters -makechannels" : "-makedebuginfo";
 			if (TString(lutDir) == "CDB")
 			{
 				const char* path = cdbManager->GetDefaultStorage()->GetURI().Data();
-				cmd = Form("-ddl %d -cdbpath %s -run %d %s",
-					k, path, cdbManager->GetRun(), recoverFlag
+				cmd = Form("-ddl %d -cdbpath %s -run %d %s %s",
+					k, path, cdbManager->GetRun(), recoverFlag, extraInfoFlags
 				);
 			}
 			else
 			{
-				cmd = Form("-ddl %d -lut %s/Lut%d.dat %s",
-					k, lutDir, k, recoverFlag
+				cmd = Form("-ddl %d -lut %s/Lut%d.dat %s %s",
+					k, lutDir, k, recoverFlag, extraInfoFlags
 				);
 			}
 			if (k >= 21)
@@ -484,7 +486,12 @@ void RunChain(
 	// full chains.
 	if (buildTrackerComp)
 	{
-		AliHLTConfiguration tracker("tracker", "MUONMansoTrackerFSM", "recDDL13 recDDL14 recDDL15 recDDL16 recDDL17 recDDL18 recDDL19 recDDL20 recDDL21 recDDL22", "");
+		AliHLTConfiguration tracker(
+			"tracker",
+			"MUONMansoTrackerFSM",
+			"recDDL13 recDDL14 recDDL15 recDDL16 recDDL17 recDDL18 recDDL19 recDDL20 recDDL21 recDDL22",
+			"-makecandidates"
+		);
 	}
 	
 	// Build the dHLT trigger decision component if enabled.

@@ -32,8 +32,10 @@
 #include "AliHLTMUONTriggerRecord.h"
 #include "AliHLTMUONMansoTrack.h"
 #include "AliHLTMUONDecision.h"
+#include "AliMUONTriggerDDLDecoderEventHandler.h"
 #include "TClonesArray.h"
 #include <cassert>
+#include <map>
 
 ClassImp(AliHLTMUONRootifierComponent);
 
@@ -192,6 +194,7 @@ int AliHLTMUONRootifierComponent::DoEvent(
 	AliHLTMUONEvent event(evtData.fEventID);
 	const AliHLTComponentBlockData* block = NULL;
 	AliHLTUInt32_t specification = 0;  // Contains the output data block spec bits.
+	std::map<AliHLTInt32_t, AliHLTMUONTriggerRecord*> triggerMap;
 
 	// First process the blocks of reconstructed hits and trigger records.
 	for (int i = 0; i < GetNumberOfInputBlocks(); i++)
@@ -302,13 +305,22 @@ int AliHLTMUONRootifierComponent::DoEvent(
 						t.fId, sign, t.fPx, t.fPy, t.fPz, sourceDDL
 					);
 				for (int k = 0; k < 4; k++)
-					tr->SetHit(k+11, t.fHit[k].fX, t.fHit[k].fY, t.fHit[k].fZ);
+				{
+					if (not hitset[k]) continue;
+					Int_t detElemId = AliHLTMUONUtils::GetDetElemIdFromFlags(t.fHit[k].fFlags);
+					tr->SetHit(k+11, t.fHit[k].fX, t.fHit[k].fY, t.fHit[k].fZ, detElemId);
+				}
 				event.Add(tr);
+				triggerMap[t.fId] = tr;
 			}
 		}
 		else
 		{
-			if (block->fDataType != AliHLTMUONConstants::MansoTracksBlockDataType() and
+			if (block->fDataType != AliHLTMUONConstants::TrigRecsDebugBlockDataType() and
+			    block->fDataType != AliHLTMUONConstants::ClusterBlockDataType() and
+			    block->fDataType != AliHLTMUONConstants::ChannelBlockDataType() and
+			    block->fDataType != AliHLTMUONConstants::MansoTracksBlockDataType() and
+			    block->fDataType != AliHLTMUONConstants::MansoCandidatesBlockDataType() and
 			    block->fDataType != AliHLTMUONConstants::SinglesDecisionBlockDataType() and
 			    block->fDataType != AliHLTMUONConstants::PairsDecisionBlockDataType()
 			   )
@@ -328,6 +340,126 @@ int AliHLTMUONRootifierComponent::DoEvent(
 			}
 		}
 	}
+	
+	// We need to check if there are any trigger record debug data blocks
+	// and add their information to the AliHLTMUONTriggerRecord objects.
+	for (block = GetFirstInputBlock(AliHLTMUONConstants::TrigRecsDebugBlockDataType());
+	     block != NULL;
+	     block = GetNextInputBlock()
+	    )
+	{
+		specification |= block->fSpecification;
+		AliHLTMUONTrigRecsDebugBlockReader inblock(block->fPtr, block->fSize);
+		if (not BlockStructureOk(inblock))
+		{
+			if (DumpDataOnError()) DumpEvent(evtData, trigData);
+			continue;
+		}
+		
+		for (AliHLTUInt32_t n = 0; n < inblock.Nentries(); n++)
+		{
+			const AliHLTMUONTrigRecInfoStruct& triginfo = inblock[n];
+			
+			AliHLTMUONTriggerRecord* trigrec = triggerMap[triginfo.fTrigRecId];
+			if (trigrec == NULL)
+			{
+				// Decode the source DDL from the specification bits.
+				Int_t sourceDDL = -1;
+				bool ddl[22];
+				AliHLTMUONUtils::UnpackSpecBits(block->fSpecification, ddl);
+				for (int k = 0; k < 22; k++)
+				{
+					if (ddl[k])
+					{
+						if (sourceDDL == -1)
+						{
+							sourceDDL = k+1;
+						}
+						else
+						{
+							HLTWarning("An trigger debug information data block"
+								" contains data from multiple DDL sources."
+							);
+						}
+					}
+				}
+				if (sourceDDL != -1 and (sourceDDL < 21 or sourceDDL > 22))
+				{
+					HLTWarning("The source DDL for a trigger debug information data"
+						" block is %d. The expected range for the DDL is [21..22].",
+						sourceDDL
+					);
+				}
+				
+				trigrec = new AliHLTMUONTriggerRecord(
+						0, 0, 0, 0, 0, sourceDDL
+					);
+			}
+			else
+			{
+				for (Int_t j = 0; j < 4; ++j)
+				{
+					if (trigrec->DetElemId(j+11) != -1 and triginfo.fDetElemId[j] != trigrec->DetElemId(j+11))
+					{
+						HLTWarning("Found a trigger record with a hit on chamber %d with a different"
+							" detector element ID %d than the debug information %d.",
+							j, trigrec->DetElemId(j+11), triginfo.fDetElemId[j]
+						);
+					}
+				}
+			}
+			
+			typedef AliMUONTriggerDDLDecoderEventHandler Handler;
+			
+			trigrec->SetDebugInfo(triginfo.fZmiddle, triginfo.fBl);
+			
+			UShort_t patternX[4][3] = {
+				{
+					Handler::GetLocalX1(&triginfo.fL0StructPrev),
+					Handler::GetLocalX1(&triginfo.fL0Struct),
+					Handler::GetLocalX1(&triginfo.fL0StructNext)
+				},{
+					Handler::GetLocalX2(&triginfo.fL0StructPrev),
+					Handler::GetLocalX2(&triginfo.fL0Struct),
+					Handler::GetLocalX2(&triginfo.fL0StructNext)
+				},{
+					Handler::GetLocalX3(&triginfo.fL0StructPrev),
+					Handler::GetLocalX3(&triginfo.fL0Struct),
+					Handler::GetLocalX3(&triginfo.fL0StructNext)
+				},{
+					Handler::GetLocalX4(&triginfo.fL0StructPrev),
+					Handler::GetLocalX4(&triginfo.fL0Struct),
+					Handler::GetLocalX4(&triginfo.fL0StructNext)
+				}
+			};
+			UShort_t patternY[4][3] = {
+				{
+					Handler::GetLocalY1(&triginfo.fL0StructPrev),
+					Handler::GetLocalY1(&triginfo.fL0Struct),
+					Handler::GetLocalY1(&triginfo.fL0StructNext)
+				},{
+					Handler::GetLocalY2(&triginfo.fL0StructPrev),
+					Handler::GetLocalY2(&triginfo.fL0Struct),
+					Handler::GetLocalY2(&triginfo.fL0StructNext)
+				},{
+					Handler::GetLocalY3(&triginfo.fL0StructPrev),
+					Handler::GetLocalY3(&triginfo.fL0Struct),
+					Handler::GetLocalY3(&triginfo.fL0StructNext)
+				},{
+					Handler::GetLocalY4(&triginfo.fL0StructPrev),
+					Handler::GetLocalY4(&triginfo.fL0Struct),
+					Handler::GetLocalY4(&triginfo.fL0StructNext)
+				}
+			};
+			
+			for (Int_t j = 0; j < 4; ++j)
+			{
+				trigrec->SetHitDebugInfo(j+11, patternX[j], patternY[j]);
+			}
+		}
+	}
+	
+	std::map<AliHLTInt32_t, AliHLTMUONRecHit*> clusterMap;
 	
 	// We need to check if there are any cluster data blocks and add their
 	// information to the AliHLTMUONRecHit objects.
@@ -407,10 +539,11 @@ int AliHLTMUONRootifierComponent::DoEvent(
 						sourceDDL
 					);
 				}
-				event.Add(new AliHLTMUONRecHit(
+				hit = new AliHLTMUONRecHit(
 						clust.fHit.fX, clust.fHit.fY, clust.fHit.fZ,
 						sourceDDL, detElemId
-					));
+					);
+				event.Add(hit);
 			}
 			else
 			{
@@ -421,8 +554,73 @@ int AliHLTMUONRootifierComponent::DoEvent(
 						  hit->SourceDDL()
 				);
 			}
+			
+			clusterMap[clust.fId] = hit;
 		}
 	}
+	
+	// We need to check if there are any channel data blocks and add their
+	// information to the AliHLTMUONRecHit objects.
+	for (block = GetFirstInputBlock(AliHLTMUONConstants::ChannelBlockDataType());
+	     block != NULL;
+	     block = GetNextInputBlock()
+	    )
+	{
+		specification |= block->fSpecification;
+		AliHLTMUONChannelsBlockReader inblock(block->fPtr, block->fSize);
+		if (not BlockStructureOk(inblock))
+		{
+			if (DumpDataOnError()) DumpEvent(evtData, trigData);
+			continue;
+		}
+		
+		for (AliHLTUInt32_t n = 0; n < inblock.Nentries(); n++)
+		{
+			const AliHLTMUONChannelStruct& channel = inblock[n];
+			
+			AliHLTMUONRecHit* hit = clusterMap[channel.fClusterId];
+			if (hit == NULL)
+			{
+				// Decode the source DDL from the specification bits.
+				Int_t sourceDDL = -1;
+				bool ddl[22];
+				AliHLTMUONUtils::UnpackSpecBits(block->fSpecification, ddl);
+				for (int k = 0; k < 22; k++)
+				{
+					if (ddl[k])
+					{
+						if (sourceDDL == -1)
+						{
+							sourceDDL = k+1;
+						}
+						else
+						{
+							HLTWarning("An input block of cluster data contains"
+								" data from multiple DDL sources."
+							);
+						}
+					}
+				}
+				if (sourceDDL > 20)
+				{
+					HLTWarning("The source DDL of a cluster data input block is %d."
+						" The expected range for the DDL is [1..20].",
+						sourceDDL
+					);
+				}
+				hit = new AliHLTMUONRecHit(0, 0, 0, sourceDDL, -1);
+				event.Add(hit);
+			}
+			
+			hit->AddChannel(
+					channel.fBusPatch, channel.fManu,
+					channel.fChannelAddress, channel.fSignal,
+					channel.fRawDataWord
+				);
+		}
+	}
+	
+	std::map<AliHLTInt32_t, AliHLTMUONMansoTrack*> trackMap;
 	
 	// Now we can look for tracks to add. We needed the ROOT trigger records
 	// and reco hits created before we can create track objects.
@@ -442,93 +640,40 @@ int AliHLTMUONRootifierComponent::DoEvent(
 		for (AliHLTUInt32_t n = 0; n < inblock.Nentries(); n++)
 		{
 			const AliHLTMUONMansoTrackStruct& t = inblock[n];
-			
-			AliHLTMUONParticleSign sign;
-			bool hitset[4];
-			AliHLTMUONUtils::UnpackMansoTrackFlags(
-					t.fFlags, sign, hitset
-				);
-			
-			// Try find the trigger record in 'event'.
-			const AliHLTMUONTriggerRecord* trigrec = NULL;
-			for (Int_t k = 0; k < event.Array().GetEntriesFast(); k++)
-			{
-				if (event.Array()[k]->IsA() != AliHLTMUONTriggerRecord::Class())
-					continue;
-				const AliHLTMUONTriggerRecord* tk =
-					static_cast<const AliHLTMUONTriggerRecord*>(event.Array()[k]);
-				if (tk->Id() == t.fTrigRec)
-				{
-					trigrec = tk;
-					break;
-				}
-			}
-			
-			// Now try find the hits in 'event'.
-			// If they cannot be found then create new ones.
-			const AliHLTMUONRecHit* hit7 = NULL;
-			const AliHLTMUONRecHit* hit8 = NULL;
-			const AliHLTMUONRecHit* hit9 = NULL;
-			const AliHLTMUONRecHit* hit10 = NULL;
-			for (Int_t k = 0; k < event.Array().GetEntriesFast(); k++)
-			{
-				if (event.Array()[k]->IsA() != AliHLTMUONRecHit::Class())
-					continue;
-				const AliHLTMUONRecHit* h =
-					static_cast<const AliHLTMUONRecHit*>(event.Array()[k]);
-				
-				if (hitset[0] and h->X() == t.fHit[0].fX and h->Y() == t.fHit[0].fY
-					and h->Z() == t.fHit[0].fZ)
-				{
-					hit7 = h;
-				}
-				if (hitset[1] and h->X() == t.fHit[1].fX and h->Y() == t.fHit[1].fY
-					and h->Z() == t.fHit[1].fZ)
-				{
-					hit8 = h;
-				}
-				if (hitset[2] and h->X() == t.fHit[2].fX and h->Y() == t.fHit[2].fY
-					and h->Z() == t.fHit[2].fZ)
-				{
-					hit9 = h;
-				}
-				if (hitset[3] and h->X() == t.fHit[3].fX and h->Y() == t.fHit[3].fY
-					and h->Z() == t.fHit[3].fZ)
-				{
-					hit10 = h;
-				}
-			}
-			AliHLTMUONRecHit* newhit;
-			if (hitset[0] and hit7 == NULL)
-			{
-				newhit = new AliHLTMUONRecHit(t.fHit[0].fX, t.fHit[0].fY, t.fHit[0].fZ);
-				event.Add(newhit);
-				hit7 = newhit;
-			}
-			if (hitset[1] and hit8 == NULL)
-			{
-				newhit = new AliHLTMUONRecHit(t.fHit[1].fX, t.fHit[1].fY, t.fHit[1].fZ);
-				event.Add(newhit);
-				hit8 = newhit;
-			}
-			if (hitset[2] and hit9 == NULL)
-			{
-				newhit = new AliHLTMUONRecHit(t.fHit[2].fX, t.fHit[2].fY, t.fHit[2].fZ);
-				event.Add(newhit);
-				hit9 = newhit;
-			}
-			if (hitset[3] and hit10 == NULL)
-			{
-				newhit = new AliHLTMUONRecHit(t.fHit[3].fX, t.fHit[3].fY, t.fHit[3].fZ);
-				event.Add(newhit);
-				hit10 = newhit;
-			}
+			trackMap[t.fId] = AddTrack(event, t);
+		}
+	}
+	
+	// Look for Manso track candidates to add the debug info to the tracks.
+	for (block = GetFirstInputBlock(AliHLTMUONConstants::MansoCandidatesBlockDataType());
+	     block != NULL;
+	     block = GetNextInputBlock()
+	    )
+	{
+		specification |= block->fSpecification;
+		AliHLTMUONMansoCandidatesBlockReader inblock(block->fPtr, block->fSize);
+		if (not BlockStructureOk(inblock))
+		{
+			if (DumpDataOnError()) DumpEvent(evtData, trigData);
+			continue;
+		}
 		
-			AliHLTMUONMansoTrack* tr = new AliHLTMUONMansoTrack(
-					t.fId, sign, t.fPx, t.fPy, t.fPz, t.fChi2,
-					trigrec, hit7, hit8, hit9, hit10
-				);
-			event.Add(tr);
+		for (AliHLTUInt32_t n = 0; n < inblock.Nentries(); n++)
+		{
+			const AliHLTMUONMansoCandidateStruct& tc = inblock[n];
+			AliHLTMUONMansoTrack* mtrack = trackMap[tc.fTrack.fId];
+			if (mtrack == NULL)
+			{
+				// If we got here then we could not find the corresponding Manso
+				// track. So we need to create and add a new track object.
+				mtrack = AddTrack(event, tc.fTrack);
+			}
+			mtrack->SetDebugData(tc.fZmiddle, tc.fBl);
+			for (AliHLTUInt32_t i = 0; i < 4; ++i)
+			{
+				if (tc.fRoI[i] == AliHLTMUONConstants::NilMansoRoIStruct()) continue;
+				mtrack->SetRoI(i+7, tc.fRoI[i].fX, tc.fRoI[i].fY, tc.fRoI[i].fZ, tc.fRoI[i].fRadius);
+			}
 		}
 	}
 	
@@ -675,7 +820,6 @@ int AliHLTMUONRootifierComponent::DoEvent(
 		}
 	}
 	
-	
 	// Do not add the decision if no decision blocks were found.
 	if (decisionBlockFound)
 	{
@@ -705,3 +849,98 @@ int AliHLTMUONRootifierComponent::DoEvent(
 	return 0;
 }
 
+
+AliHLTMUONMansoTrack* AliHLTMUONRootifierComponent::AddTrack(
+		AliHLTMUONEvent& event, const AliHLTMUONMansoTrackStruct& track
+	)
+{
+	// Converts the track structure and adds it to the event object.
+	
+	AliHLTMUONParticleSign sign;
+	bool hitset[4];
+	AliHLTMUONUtils::UnpackMansoTrackFlags(
+			track.fFlags, sign, hitset
+		);
+	
+	// Try find the trigger record in 'event'.
+	const AliHLTMUONTriggerRecord* trigrec = NULL;
+	for (Int_t k = 0; k < event.Array().GetEntriesFast(); k++)
+	{
+		if (event.Array()[k]->IsA() != AliHLTMUONTriggerRecord::Class())
+			continue;
+		const AliHLTMUONTriggerRecord* tk =
+			static_cast<const AliHLTMUONTriggerRecord*>(event.Array()[k]);
+		if (tk->Id() == track.fTrigRec)
+		{
+			trigrec = tk;
+			break;
+		}
+	}
+	
+	// Now try find the hits in 'event'.
+	// If they cannot be found then create new ones.
+	const AliHLTMUONRecHit* hit7 = NULL;
+	const AliHLTMUONRecHit* hit8 = NULL;
+	const AliHLTMUONRecHit* hit9 = NULL;
+	const AliHLTMUONRecHit* hit10 = NULL;
+	for (Int_t k = 0; k < event.Array().GetEntriesFast(); k++)
+	{
+		if (event.Array()[k]->IsA() != AliHLTMUONRecHit::Class())
+			continue;
+		const AliHLTMUONRecHit* h =
+			static_cast<const AliHLTMUONRecHit*>(event.Array()[k]);
+		
+		if (hitset[0] and h->X() == track.fHit[0].fX and h->Y() == track.fHit[0].fY
+			and h->Z() == track.fHit[0].fZ)
+		{
+			hit7 = h;
+		}
+		if (hitset[1] and h->X() == track.fHit[1].fX and h->Y() == track.fHit[1].fY
+			and h->Z() == track.fHit[1].fZ)
+		{
+			hit8 = h;
+		}
+		if (hitset[2] and h->X() == track.fHit[2].fX and h->Y() == track.fHit[2].fY
+			and h->Z() == track.fHit[2].fZ)
+		{
+			hit9 = h;
+		}
+		if (hitset[3] and h->X() == track.fHit[3].fX and h->Y() == track.fHit[3].fY
+			and h->Z() == track.fHit[3].fZ)
+		{
+			hit10 = h;
+		}
+	}
+	AliHLTMUONRecHit* newhit;
+	if (hitset[0] and hit7 == NULL)
+	{
+		newhit = new AliHLTMUONRecHit(track.fHit[0].fX, track.fHit[0].fY, track.fHit[0].fZ);
+		event.Add(newhit);
+		hit7 = newhit;
+	}
+	if (hitset[1] and hit8 == NULL)
+	{
+		newhit = new AliHLTMUONRecHit(track.fHit[1].fX, track.fHit[1].fY, track.fHit[1].fZ);
+		event.Add(newhit);
+		hit8 = newhit;
+	}
+	if (hitset[2] and hit9 == NULL)
+	{
+		newhit = new AliHLTMUONRecHit(track.fHit[2].fX, track.fHit[2].fY, track.fHit[2].fZ);
+		event.Add(newhit);
+		hit9 = newhit;
+	}
+	if (hitset[3] and hit10 == NULL)
+	{
+		newhit = new AliHLTMUONRecHit(track.fHit[3].fX, track.fHit[3].fY, track.fHit[3].fZ);
+		event.Add(newhit);
+		hit10 = newhit;
+	}
+
+	AliHLTMUONMansoTrack* tr = new AliHLTMUONMansoTrack(
+			track.fId, sign, track.fPx, track.fPy, track.fPz, track.fChi2,
+			trigrec, hit7, hit8, hit9, hit10
+		);
+	event.Add(tr);
+	return tr;
+}

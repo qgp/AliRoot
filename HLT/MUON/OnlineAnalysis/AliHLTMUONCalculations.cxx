@@ -210,6 +210,30 @@ bool AliHLTMUONCalculations::FitLineToTriggerRecord(
 	/// \param hitset  Flags indicating which hits were set in the trigger record.
 	/// \return  true if the line could be fitted or false otherwise.
 	
+	bool lineOk = FitLine(trigger, hitset);
+	if (lineOk)
+	{
+		// Calculate ideal points on chambers 11 and 13:
+		fgIdealX1 = fgMzx * fgIdealZ1 + fgCzx;
+		fgIdealY1 = fgMzy * fgIdealZ1 + fgCzy;
+		fgIdealX2 = fgMzx * fgIdealZ2 + fgCzx;
+		fgIdealY2 = fgMzy * fgIdealZ2 + fgCzy;
+	}
+	return lineOk;
+}
+
+
+bool AliHLTMUONCalculations::FitLine(
+		const AliHLTMUONTriggerRecordStruct& trigger,
+		const bool hitset[4]
+	)
+{
+	/// Performs a straight line fit to the trigger record hits which are indicated
+	/// by the hitset flags array.
+	/// \param trigger  The trigger record structure to which we fit a line.
+	/// \param hitset  Flags indicating which hits to use and were set in the trigger record.
+	/// \return  true if the line could be fitted or false otherwise.
+	
 	AliHLTFloat32_t sumX = 0;
 	AliHLTFloat32_t sumY = 0;
 	AliHLTFloat32_t sumZ = 0;
@@ -248,12 +272,6 @@ bool AliHLTMUONCalculations::FitLineToTriggerRecord(
 	fgMzy = vSSzy / vSSzz;
 	fgCzx = meanX - fgMzx * meanZ;
 	fgCzy = meanY - fgMzy * meanZ;
-	
-	// Calculate ideal points on chambers 11 and 13:
-	fgIdealX1 = fgMzx * fgIdealZ1 + fgCzx;
-	fgIdealY1 = fgMzy * fgIdealZ1 + fgCzy;
-	fgIdealX2 = fgMzx * fgIdealZ2 + fgCzx;
-	fgIdealY2 = fgMzy * fgIdealZ2 + fgCzy;
 	
 	return true;
 }
@@ -315,6 +333,50 @@ bool AliHLTMUONCalculations::FitLineToData(
 }
 
 
+bool AliHLTMUONCalculations::FitLineToData(
+		const AliHLTFloat32_t* x, const AliHLTFloat32_t* z, AliHLTUInt32_t n
+	)
+{
+	/// A straight line is fitted in the X, Z data points using a least squares fit.
+	/// http://mathworld.wolfram.com/LeastSquaresFitting.html
+	/// If this method returns true, then the fitted parameters can fetched using the
+	/// method calls Mzx() and Czx(). The line is then given by: x = Mzx() * z + Czx()
+	/// \param x  This must point to the array of x data values.
+	/// \param z  This must point to the array of z data values.
+	/// \param n  Specifies the number of data points in the x and z arrays.
+	/// \return  true if the line could be fitted or false otherwise.
+	///     The reason for failure could be either too few data points or the slopes
+	///     Mzx() would be infinite, implying a line that is perpendicular to the z axis.
+	
+	if (n < 2) return false;
+	
+	AliHLTFloat32_t sumX = 0;
+	AliHLTFloat32_t sumZ = 0;
+	for (AliHLTUInt32_t i = 0; i < n; i++)
+	{
+		sumX += x[i];
+		sumZ += z[i];
+	}
+	AliHLTFloat32_t meanX = sumX / AliHLTFloat32_t(n);
+	AliHLTFloat32_t meanZ = sumZ / AliHLTFloat32_t(n);
+	
+	AliHLTFloat32_t vSSzz = 0;
+	AliHLTFloat32_t vSSzx = 0;
+	for (AliHLTUInt32_t i = 0; i < n; i++)
+	{
+		vSSzz += (z[i] - meanZ)*(z[i] - meanZ);
+		vSSzx += (z[i] - meanZ)*(x[i] - meanX);
+	}
+	
+	// Calculate params for line x = fgMzx * z + fgCzx.
+	if (vSSzz == 0) return false;
+	fgMzx = vSSzx / vSSzz;
+	fgCzx = meanX - fgMzx * meanZ;
+	
+	return true;
+}
+
+
 AliHLTFloat32_t AliHLTMUONCalculations::AliHLTMUONCalculations::ComputeChi2(
 		const AliHLTFloat32_t* x, const AliHLTFloat32_t* y,
 		const AliHLTFloat32_t* z, AliHLTUInt32_t n
@@ -322,7 +384,7 @@ AliHLTFloat32_t AliHLTMUONCalculations::AliHLTMUONCalculations::ComputeChi2(
 {
 	/// Calculates the chi squared value for the set of data points given
 	/// the fitted slope and coefficient parameters previously fitted by
-	/// LineFit(x, y, z, n);
+	/// one of FitLine(x, y, z, n) or FitLineToTriggerRecord
 	/// The fgSigmaX2 and fgSigmaY2 are used as the variance for the X and
 	/// Y coordinates respectively. Note we assume that the covariance terms
 	/// are zero.
@@ -338,6 +400,32 @@ AliHLTFloat32_t AliHLTMUONCalculations::AliHLTMUONCalculations::ComputeChi2(
 		AliHLTFloat32_t residualX = fgMzx * z[i] + fgCzx - x[i];
 		AliHLTFloat32_t residualY = fgMzy * z[i] + fgCzy - y[i];
 		chi2 += residualX*residualX/fgSigmaX2 + residualY*residualY/fgSigmaY2;
+	}
+	return chi2;
+}
+
+
+AliHLTFloat32_t AliHLTMUONCalculations::AliHLTMUONCalculations::ComputeChi2(
+		const AliHLTMUONTriggerRecordStruct& trigger,
+		const bool hitset[4]
+	)
+{
+	/// Calculates the chi squared value for trigger record using the hits
+	/// indicated by the hitset array.
+	/// \param trigger  The trigger record structure for which we compute the chi squared value.
+	/// \param hitset  Flags indicating which hits to use and were set in the trigger record.
+	/// \return  The chi squared value or -1 if it could not be calculated.
+	
+	if (not FitLine(trigger, hitset)) return -1;
+	AliHLTFloat32_t chi2 = 0;
+	for (AliHLTUInt32_t i = 0; i < 4; i++)
+	{
+		if (hitset[i])
+		{
+			AliHLTFloat32_t residualX = fgMzx * trigger.fHit[i].fZ + fgCzx - trigger.fHit[i].fX;
+			AliHLTFloat32_t residualY = fgMzy * trigger.fHit[i].fZ + fgCzy - trigger.fHit[i].fY;
+			chi2 += residualX*residualX/fgSigmaX2 + residualY*residualY/fgSigmaY2;
+		}
 	}
 	return chi2;
 }
