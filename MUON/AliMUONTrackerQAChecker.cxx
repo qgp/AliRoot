@@ -29,8 +29,8 @@
 #include "AliCDBManager.h"
 #include "AliCodeTimer.h"
 #include "AliLog.h"
+#include "AliMUONQAIndices.h"
 #include "AliMUONRecoParam.h"
-#include "AliMUONTrackerQADataMakerRec.h"
 #include "AliMpBusPatch.h"
 #include "AliMpDDLStore.h"
 #include "AliQAv1.h"
@@ -170,9 +170,10 @@ AliMUONTrackerQAChecker::CheckRecPoints(TObjArray ** list, AliMUONRecoParam* /*r
   for (Int_t specie = 0 ; specie < AliRecoParam::kNSpecies ; specie++) 
     rv[specie] =  AliMUONVQAChecker::kInfo; 
   
+  
   for (Int_t specie = 0 ; specie < AliRecoParam::kNSpecies ; specie++) 
   {
-    TH1* h = AliQAv1::GetData(list,AliMUONTrackerQADataMakerRec::kTrackerNumberOfClustersPerDE,AliRecoParam::ConvertIndex(specie));
+    TH1* h = AliQAv1::GetData(list,AliMUONQAIndices::kTrackerNumberOfClustersPerDE,AliRecoParam::ConvertIndex(specie));
 
     if ( !h ) rv[specie] = AliMUONVQAChecker::kWarning; // only a warning if histo not found, in order not to kill anything because QA failed...
   
@@ -209,13 +210,13 @@ AliMUONTrackerQAChecker::CheckESD(TObjArray ** list, AliMUONRecoParam* /*recoPar
   
   for (Int_t specie = 0 ; specie < AliRecoParam::kNSpecies ; specie++) {
     
-    TH1* h = AliQAv1::GetData(list,AliMUONTrackerQADataMakerRec::kESDnTracks,AliRecoParam::ConvertIndex(specie));
+    TH1* h = AliQAv1::GetData(list,AliMUONQAIndices::kESDnTracks,AliRecoParam::ConvertIndex(specie));
   
     if (!h) rv[specie] = AliMUONVQAChecker::kWarning;
   
     else if ( h->GetMean() == 0.0 ) rv[specie] =  MarkHisto(*h,AliMUONVQAChecker::kFatal); // no track -> fatal
   
-    h = AliQAv1::GetData(list,AliMUONTrackerQADataMakerRec::kESDMatchTrig,AliRecoParam::ConvertIndex(specie));
+    h = AliQAv1::GetData(list,AliMUONQAIndices::kESDMatchTrig,AliRecoParam::ConvertIndex(specie));
   
     if (!h) rv[specie] = AliMUONVQAChecker::kWarning;
   
@@ -243,18 +244,22 @@ AliMUONTrackerQAChecker::CheckRaws(TObjArray ** list, AliMUONRecoParam* recoPara
   
   for (Int_t specie = 0 ; specie < AliRecoParam::kNSpecies ; specie++) 
   {
-    TH1* hbp = AliQAv1::GetData(list,AliMUONTrackerQADataMakerRec::kTrackerBusPatchOccupancy,AliRecoParam::ConvertIndex(specie));    
+    TH1* hbp = AliQAv1::GetData(list,AliMUONQAIndices::kTrackerBusPatchOccupancy,AliRecoParam::ConvertIndex(specie));    
 
-    TH1* hnpads = AliQAv1::GetData(list,AliMUONTrackerQADataMakerRec::kTrackerBusPatchNofPads,AliRecoParam::ConvertIndex(specie));
+    TH1* hnpads = AliQAv1::GetData(list,AliMUONQAIndices::kTrackerBusPatchNofPads,AliRecoParam::ConvertIndex(specie));
 
-    TH1* hbpconfig = AliQAv1::GetData(list,AliMUONTrackerQADataMakerRec::kTrackerBusPatchConfig,AliRecoParam::ConvertIndex(specie));
+    TH1* hbpconfig = AliQAv1::GetData(list,AliMUONQAIndices::kTrackerBusPatchConfig,AliRecoParam::ConvertIndex(specie));
 
-    if (!hbp || !hnpads ) 
+    TH1* hnevents = AliQAv1::GetData(list,AliMUONQAIndices::kTrackerNofRawEventSeen,AliRecoParam::ConvertIndex(specie));
+
+    if ( !hbp || !hnpads || !hnevents ) 
     {
       continue;
     }
 
-    rv[specie] = BeautifyTrackerBusPatchOccupancy(*hbp,hbpconfig,*hnpads,*recoParam);    
+    Int_t nevents = TMath::Nint(hnevents->GetBinContent(1));
+    
+    rv[specie] = BeautifyTrackerBusPatchOccupancy(*hbp,hbpconfig,*hnpads,nevents,*recoParam);    
   }
   
   return rv;
@@ -265,6 +270,7 @@ AliMUONVQAChecker::ECheckCode
 AliMUONTrackerQAChecker::BeautifyTrackerBusPatchOccupancy(TH1& hbp, 
                                                           const TH1* hbuspatchconfig, 
                                                           const TH1& hnpads, 
+                                                          Int_t nevents,
                                                           AliMUONRecoParam& recoParam)
 {
   /// Put labels, limits and so on on the TrackerBusPatchOccupancy histogram
@@ -313,7 +319,7 @@ AliMUONTrackerQAChecker::BeautifyTrackerBusPatchOccupancy(TH1& hbp,
   while ( ( bp = static_cast<AliMpBusPatch*>(next())) )
   {
     Int_t bin = hbp.FindBin(bp->GetId());
-    Int_t n = hnpads.GetBinContent(bin);
+    Int_t n = TMath::Nint(hnpads.GetBinContent(bin));
     
     ++nBusPatches;
     
@@ -384,15 +390,19 @@ AliMUONTrackerQAChecker::BeautifyTrackerBusPatchOccupancy(TH1& hbp,
   
   hbp.SetMaximum(ymax*1.4);
   
-  TPaveText* text = new TPaveText(0.50,0.80,0.99,0.99,"NDC");
+  TPaveText* text = new TPaveText(0.50,0.60,0.99,0.99,"NDC");
   
-  if (ok < 0 ) 
+  text->AddText(Form("MCH RUN %d - %d events",AliCDBManager::Instance()->GetRun(),nevents));
+  
+  if ( ok < 0 ) 
   {
     text->AddText("Could not compute truncated mean. Not enough events ?");
+    text->AddText(Form("nBusPatches=%d n=%d",nBusPatches,n));
   }
   else if (!nPads || !nBusPatches)
   {
-    text->AddText("Could not get the total number of pads. ERROR !!!");
+    text->AddText(Form("Could not get the total number of pads (%d) or total number of buspatches (%d). ERROR !!!",
+                       nPads,nBusPatches));
   }
   else
   {
@@ -401,7 +411,6 @@ AliMUONTrackerQAChecker::BeautifyTrackerBusPatchOccupancy(TH1& hbp,
     Float_t aboveLimitFraction = nBusPatchesAboveLimit*100.0/nBusPatches;
     Float_t belowLimitFraction = nBusPatchesBelowLimit*100.0/nBusPatches;
     
-    text->AddText(Form("MCH RUN %d",AliCDBManager::Instance()->GetRun()));
     text->AddText(Form("%5.2f %% of missing buspatches (%d out of %d)",missingBusPatchFraction,nMissingBusPatches,nBusPatches));
     text->AddText(Form("%5.2f %% of missing pads (%d out of %d)",missingPadFraction,nMissingPads,nPads));
     text->AddText(Form("%5.2f %% bus patches above the %5.2f %% limit",aboveLimitFraction,maxToleratedOccupancy));
