@@ -27,7 +27,6 @@
 #include "AliMUONGeometryTransformer.h"
 #include "AliMUONManuContourMaker.h"
 #include "AliMUONPainterEnv.h"
-#include "AliMUONPainterMatrix.h"
 #include "AliMUONPainterRegistry.h"
 #include "AliMUONPadStatusMaker.h"
 #include "AliMUONVCalibParam.h"
@@ -60,6 +59,7 @@
 #include <TLine.h>
 #include <TList.h>
 #include <TMap.h>
+#include <TMath.h>
 #include <TObjArray.h>
 #include <TObjString.h>
 #include <TStyle.h>
@@ -86,7 +86,6 @@ AliMUONPainterHelper* AliMUONPainterHelper::fgInstance(0x0);
 //_____________________________________________________________________________
 AliMUONPainterHelper::AliMUONPainterHelper() : 
 TObject(),
-fPainterMatrices(0x0),
 fEnv(0x0),
 fReal(0x0),
 fExploded(0x0)
@@ -102,20 +101,35 @@ fExploded(0x0)
   if ( ! AliMpCDB::LoadDDLStore() ) 
   {
     AliFatal("Could not access DDL Store from OCDB !");
-  }
-  
-  fExploded = new AliMUONContourHandler(kTRUE);
+  }  
 }
 
 //_____________________________________________________________________________
 AliMUONPainterHelper::~AliMUONPainterHelper()
 {
   /// dtor
-  delete fPainterMatrices;
   delete fReal;
   delete fExploded;
   fEnv->Save();
   fgInstance = 0;
+}
+
+//_____________________________________________________________________________
+AliMUONContourHandler*
+AliMUONPainterHelper::Exploded() const
+{
+  /// Create exploded contour handler
+  if (!fExploded) fExploded = new AliMUONContourHandler(kTRUE);
+  return fExploded;
+}
+
+//_____________________________________________________________________________
+AliMUONContourHandler*
+AliMUONPainterHelper::Real() const
+{
+  /// Create real contour handler
+  if (!fReal) fReal = new AliMUONContourHandler(kFALSE);
+  return fReal;
 }
 
 //_____________________________________________________________________________
@@ -125,7 +139,7 @@ AliMUONPainterHelper::GetContour(const char* contourName, Bool_t explodedView) c
   /// Get a contour by name  
   if (explodedView) 
   {
-    return fExploded->GetContour(contourName);
+    return Exploded()->GetContour(contourName);
   }
   else
   {
@@ -137,54 +151,6 @@ AliMUONPainterHelper::GetContour(const char* contourName, Bool_t explodedView) c
   return 0x0;
 }
 
-//_____________________________________________________________________________
-void
-AliMUONPainterHelper::GenerateDefaultMatrices()
-{
-  /// Kind of bootstrap method to trigger the generation of all contours
-  
-  AliCodeTimerAuto("");
-  
-  fPainterMatrices = new TObjArray;
-  fPainterMatrices->SetOwner(kFALSE);
-  
-  TObjArray attributes;
-  
-  AliMUONAttPainter att;
-  
-  att.SetViewPoint(kTRUE,kFALSE);
-  att.SetCathode(kFALSE,kFALSE);
-  att.SetPlane(kTRUE,kFALSE);
-  attributes.Add(new AliMUONAttPainter(att));
-
-  TIter next(&attributes);
-  AliMUONAttPainter* a;
-  
-  while ( ( a = static_cast<AliMUONAttPainter*>(next()) ) )
-  {
-    AliMUONPainterMatrix* matrix = new AliMUONPainterMatrix("Tracker",5,2);
-    
-    for ( Int_t i = 0; i < 10; ++i )
-    {
-      AliMUONVPainter* painter = new AliMUONChamberPainter(*a,i);
-      
-      painter->SetResponder("Chamber");
-      
-      painter->SetOutlined("*",kFALSE);
-      
-      painter->SetOutlined("MANU",kTRUE);
-      
-      for ( Int_t j = 0; j < 3; ++j ) 
-      {
-        painter->SetLine(j,1,4-j);
-      }
-      
-      matrix->Adopt(painter);    
-    }
-    AliMUONPainterRegistry::Instance()->Register(matrix);
-    fPainterMatrices->Add(matrix);
-  }
-}
 
 //_____________________________________________________________________________
 AliMp::CathodType
@@ -319,7 +285,7 @@ AliMUONPainterHelper::Global2Local(Int_t detElemId,
 {
   /// Local to global transformation of coordinates
   
-  TGeoHMatrix* matrix = static_cast<TGeoHMatrix*>(fExploded->GetTransformations()->GetValue(detElemId));
+  TGeoHMatrix* matrix = static_cast<TGeoHMatrix*>(Exploded()->GetTransformations()->GetValue(detElemId));
   Double_t pg[3] = { xg, yg, zg };
   Double_t pl[3] = { 0., 0., 0. };
   matrix->MasterToLocal(pg, pl);
@@ -336,7 +302,7 @@ AliMUONPainterHelper::Local2Global(Int_t detElemId,
 {
   /// Local to (exploded) global transformation of coordinates
   
-  TGeoHMatrix* matrix = static_cast<TGeoHMatrix*>(fExploded->GetTransformations()->GetValue(detElemId));
+  TGeoHMatrix* matrix = static_cast<TGeoHMatrix*>(Exploded()->GetTransformations()->GetValue(detElemId));
   Double_t pl[3] = { xl, yl, zl };
   Double_t pg[3] = { 0., 0., 0. };
   matrix->LocalToMaster(pl, pg);
@@ -357,7 +323,8 @@ AliMUONPainterHelper::ColorFromValue(Double_t value, Double_t min, Double_t max)
   else if (value <= min) rv = 0;
   else
   {
-    if  ( max == min ) return gStyle->GetColorPalette(1);
+//    if  ( TMath::AreEqualRel(max,min,1E-6) ) return gStyle->GetColorPalette(1);
+    if ( TMath::Abs(max-min) < 0.5*1E-6*TMath::Abs(max)+TMath::Abs(min) ) return gStyle->GetColorPalette(1);
     Double_t range = max - min;
     Double_t offset = value - min;
     rv = gStyle->GetColorPalette( 1 + int( offset*(gStyle->GetNumberOfColors()-2)/range - 0.5 ) );
@@ -395,12 +362,7 @@ AliMUONPainterHelper::Print(Option_t* opt) const
   {
     if ( fExploded ) fExploded->Print();
     if ( fReal ) fReal->Print();
-  }
-  
-  if ( fPainterMatrices && ( sopt.Contains("MATRI") || sopt.Contains("FULL") ) )
-  {
-    fPainterMatrices->Print(opt);
-  }
+  }  
 }
 
 //_____________________________________________________________________________
@@ -413,7 +375,7 @@ AliMUONPainterHelper::RegisterContour(AliMUONContour* contour, Bool_t explodedVi
   AliMUONContourHandler* ch = fReal;
   if ( explodedView ) 
   {
-    ch = fExploded;
+    ch = Exploded();
   }
   if (!ch)
   {
@@ -563,11 +525,14 @@ AliMUONPainterHelper::GetAllContoursAsArray(Bool_t explodedView) const
 {
   /// Get the contours in a specially arranged array (orderer by hierarchy level)
   
-  if ( explodedView ) return fExploded->AllContourArray(); // fExploded should always be created
-  
-  if (!fReal) fReal = new AliMUONContourHandler(kFALSE); // fReal might be first asked here.
-  
-  return fReal->AllContourArray();
+  if ( explodedView ) 
+  {
+    return Exploded()->AllContourArray();
+  }
+  else
+  {
+    return Real()->AllContourArray();
+  }
 }
 
 
