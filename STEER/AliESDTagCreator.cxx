@@ -1323,7 +1323,8 @@ void AliESDTagCreator::CreateESDTags(Int_t fFirstEvent, Int_t fLastEvent, AliGRP
   Int_t iInitRunNumber = esd->GetRunNumber();
   
   Int_t iNumberOfEvents = (Int_t)b->GetEntries();
-  if(fLastEvent == -1) lastEvent = (Int_t)b->GetEntries();
+  if ((fLastEvent == -1) || ((Int_t) b->GetEntries() < fLastEvent))
+    lastEvent = (Int_t)b->GetEntries();
   else lastEvent = fLastEvent;
 
   char fileName[256];
@@ -1340,7 +1341,8 @@ void AliESDTagCreator::CreateESDTags(Int_t fFirstEvent, Int_t fLastEvent, AliGRP
   TBranch * btag = ttag->Branch("AliTAG", &tag);
   btag->SetCompressionLevel(9);
 
-  if(fLastEvent != -1) iNumberOfEvents = fLastEvent + 1;
+  if ((fLastEvent != -1) && ((Int_t) b->GetEntries() > fLastEvent)) 
+    iNumberOfEvents = fLastEvent + 1;
   for (Int_t iEventNumber = fFirstEvent; iEventNumber < iNumberOfEvents; iEventNumber++) {
     ntrack = 0;
     nPos = 0;
