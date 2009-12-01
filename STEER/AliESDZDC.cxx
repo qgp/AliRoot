@@ -21,7 +21,7 @@
 //   Origin: Christian Klein-Boesing, CERN, Christian.Klein-Boesing@cern.ch 
 //-------------------------------------------------------------------------
 
-
+#include <TMath.h>
 
 #include "AliESDZDC.h"
 
@@ -191,54 +191,107 @@ void AliESDZDC::Print(const Option_t *) const
 }
 
 //______________________________________________________________________________
-Double32_t * AliESDZDC::GetZNCCentroid() 
+Bool_t AliESDZDC::GetZNCentroidInPbPb(Float_t beamEne, Double_t centrZNC[2], Double_t centrZNA[2]) 
 {
   // Provide coordinates of centroid over ZN (side C) front face
-  Float_t x[4] = {-1.75, 1.75, -1.75, 1.75};
-  Float_t y[4] = {-1.75, -1.75, 1.75, 1.75};
-  Float_t numX=0., numY=0., den=0.;
-  Float_t c, alpha=0.395, w;
+  if(beamEne==0){
+    printf(" ZDC centroid in PbPb can't be calculated with E_beam = 0 !!!\n");
+    for(Int_t jj=0; jj<2; jj++) fZNCCentrCoord[jj] = 999.;
+    return kFALSE;
+  }
+
+  const Float_t x[4] = {-1.75, 1.75, -1.75, 1.75};
+  const Float_t y[4] = {-1.75, -1.75, 1.75, 1.75};
+  const Float_t alpha=0.395;
+  Float_t numXZNC=0., numYZNC=0., denZNC=0., cZNC, wZNC; 
+  Float_t numXZNA=0., numYZNA=0., denZNA=0., cZNA, wZNA; 
   //
   for(Int_t i=0; i<4; i++){
-    if(fZN1TowerEnergy[i+1]<0.) fZN1TowerEnergy[i+1]=0.;
-    w = TMath::Power(fZN1TowerEnergy[i+1], alpha);
-    numX += x[i]*w;
-    numY += y[i]*w;
-    den += w;
+    if(fZN1TowerEnergy[i+1]>0.) {
+      wZNC = TMath::Power(fZN1TowerEnergy[i+1], alpha);
+      numXZNC += x[i]*wZNC;
+      numYZNC += y[i]*wZNC;
+      denZNC += wZNC;
+    }
+    if(fZN2TowerEnergy[i+1]>0.) {
+      wZNA = TMath::Power(fZN1TowerEnergy[i+1], alpha);
+      numXZNA += x[i]*wZNA;
+      numYZNA += y[i]*wZNA;
+      denZNA += wZNA;
+    }
   }
-  if(den!=0){
-    // ATTENTION! Needs to be changed if E_beam(A-A) != 2.76 A TeV !!!!
-    Float_t nSpecn = fZDCN1Energy/2760.;
-    c = 1.89358-0.71262/(nSpecn+0.71789);
-    fZNCCentrCoord[0] = c*numX/den;
-    fZNCCentrCoord[1] = c*numY/den;
+  //
+  if(denZNC!=0){
+    Float_t nSpecnC = fZDCN1Energy/beamEne;
+    cZNC = 1.89358-0.71262/(nSpecnC+0.71789);
+    fZNCCentrCoord[0] = cZNC*numXZNC/denZNC;
+    fZNCCentrCoord[1] = cZNC*numYZNC/denZNC;
+  } 
+  else{
+    fZNCCentrCoord[0] = fZNCCentrCoord[1] = 999.;
   }
-  return fZNCCentrCoord;
+  if(denZNA!=0){
+    Float_t nSpecnA = fZDCN1Energy/beamEne;
+    cZNA = 1.89358-0.71262/(nSpecnA+0.71789);
+    fZNCCentrCoord[0] = cZNA*numXZNA/denZNA;
+    fZNCCentrCoord[1] = cZNA*numYZNA/denZNA;
+  } 
+  else{
+    fZNACentrCoord[0] = fZNACentrCoord[1] = 999.;
+  }
+  //
+  for(Int_t il=0; il<2; il++){
+    centrZNC[il] = fZNCCentrCoord[il];
+    centrZNA[il] = fZNACentrCoord[il];
+  }
+  
+  return kTRUE;
 }
 
 //______________________________________________________________________________
-Double32_t * AliESDZDC::GetZNACentroid() 
+Bool_t AliESDZDC::GetZNCentroidInpp(Double_t centrZNC[2], Double_t centrZNA[2]) 
 {
-  // Provide coordinates of centroid over ZN (side A) front face
-  Float_t x[4] = {-1.75, 1.75, -1.75, 1.75};
-  Float_t y[4] = {-1.75, -1.75, 1.75, 1.75};
-  Float_t numX=0., numY=0., den=0.;
-  Float_t c, alpha=0.395, w;
-
+  // Provide coordinates of centroid over ZN (side C) front face
+  const Float_t x[4] = {-1.75, 1.75, -1.75, 1.75};
+  const Float_t y[4] = {-1.75, -1.75, 1.75, 1.75};
+  const Float_t alpha=0.5;
+  Float_t numXZNC=0., numYZNC=0., denZNC=0., wZNC; 
+  Float_t numXZNA=0., numYZNA=0., denZNA=0., wZNA; 
+  //
   for(Int_t i=0; i<4; i++){
-    if(fZN2TowerEnergy[i+1]<0.) fZN2TowerEnergy[i+1]=0.;
-    w = TMath::Power(fZN2TowerEnergy[i+1], alpha);
-    numX += x[i]*w;
-    numY += y[i]*w;
-    den += w;
+    if(fZN1TowerEnergy[i+1]>0.) {
+      wZNC = TMath::Power(fZN1TowerEnergy[i+1], alpha);
+      numXZNC += x[i]*wZNC;
+      numYZNC += y[i]*wZNC;
+      denZNC += wZNC;
+    }
+    if(fZN2TowerEnergy[i+1]>0.) {
+      wZNA = TMath::Power(fZN2TowerEnergy[i+1], alpha);
+      numXZNA += x[i]*wZNA;
+      numYZNA += y[i]*wZNA;
+      denZNA += wZNA;
+    }
   }
   //
-  if(den!=0){
-    // ATTENTION! Needs to be changed if E_beam(A-A) != 2.76 A TeV !!!!
-    Float_t nSpecn = fZDCN2Energy/2760.;
-    c = 1.89358-0.71262/(nSpecn+0.71789);
-    fZNACentrCoord[0] = c*numX/den;
-    fZNACentrCoord[1] = c*numY/den;
+  if(denZNC!=0){
+    fZNCCentrCoord[0] = numXZNC/denZNC;
+    fZNCCentrCoord[1] = numYZNC/denZNC;
+  } 
+  else{
+    fZNCCentrCoord[0] = fZNCCentrCoord[1] = 999.;
   }
-  return fZNACentrCoord;
+  if(denZNA!=0){
+    fZNACentrCoord[0] = numXZNA/denZNA;
+    fZNACentrCoord[1] = numYZNA/denZNA;
+  } 
+  else{
+    fZNACentrCoord[0] = fZNACentrCoord[1] = 999.;
+  }
+  //
+  for(Int_t il=0; il<2; il++){
+    centrZNC[il] = fZNCCentrCoord[il];
+    centrZNA[il] = fZNACentrCoord[il];
+  }
+  
+  return kTRUE;
 }
