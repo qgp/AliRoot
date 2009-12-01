@@ -59,6 +59,7 @@
 #pragma link C++ class AliTPCCalibViewer+;
 #pragma link C++ class AliTPCCalibViewerGUI+;
 #pragma link C++ class AliTPCCalibViewerGUItime+;
+#pragma link C++ class AliTPCCalibViewerGUItimeAddAliasFrame+;
 #pragma link C++ class AliTPCCalibViewerGUIAlarms+;
 #pragma link C++ class AliTPCCalibQAChecker+;
 #pragma link C++ class AliTPCConfigDA+;

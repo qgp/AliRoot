@@ -903,7 +903,7 @@ void AliTPCclustererMI::Digits2Clusters(AliRawReader* rawReader)
   fRowDig = NULL;
   AliTPCROC * roc = AliTPCROC::Instance();
   AliTPCCalPad * gainTPC = AliTPCcalibDB::Instance()->GetPadGainFactor();
-  AliTPCAltroMapping** mapping =AliTPCcalibDB::Instance()->GetMapping();  
+  AliTPCAltroMapping** mapping =AliTPCcalibDB::Instance()->GetMapping();
   //
   AliTPCRawStreamV3 input(rawReader,(AliAltroMapping**)mapping);
   fEventHeader = (AliRawEventHeaderBase*)rawReader->GetEventHeader();
@@ -981,7 +981,7 @@ void AliTPCclustererMI::Digits2Clusters(AliRawReader* rawReader)
     if (input.GetSector() != fSector)
       AliFatal(Form("Sector index mismatch ! Expected (%d), but got (%d) !",fSector,input.GetSector()));
     
-    Int_t nRows = fParam->GetNRow(fSector);
+    //Int_t nRows = fParam->GetNRow(fSector);
     
     AliTPCCalROC * gainROC    = gainTPC->GetCalROC(fSector);  // pad gains per given sector
     // Begin loop over altro data
@@ -1075,8 +1075,17 @@ void AliTPCclustererMI::Digits2Clusters(AliRawReader* rawReader)
   delete [] allSigBins;
   delete [] allNSigBins;
   
-  Info("Digits2Clusters", "Number of found clusters : %d\n", fNclusters);
+  if (rawReader->GetEventId() && fOutput ){
+    Info("Digits2Clusters", "File  %s Event\t%d\tNumber of found clusters : %d\n", fOutput->GetName(),*(rawReader->GetEventId()), fNclusters);
+  }
   
+  if(rawReader->GetEventId()) {
+    Info("Digits2Clusters", "Event\t%d\tNumber of found clusters : %d\n",*(rawReader->GetEventId()), fNclusters);
+  }
+  
+  if(fBClonesArray) {
+    //Info("Digits2Clusters", "Number of found clusters : %d\n",fOutputClonesArray->GetEntriesFast());
+  }
 }
 
 
