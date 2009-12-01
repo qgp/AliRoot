@@ -358,22 +358,23 @@ void AliT0QADataMakerRec::InitRaws()
   TH1F* fhHitsOrC= new TH1F("fhHitsOrC","T0_OR C hit multiplicitie",10, 0 ,10);
   Add2RawsList(fhHitsOrC ,214, expert, !image, !saveCorr);
 
-  TH1F* fhOrCminOrA= new TH1F("fhOrCminOrA","T0_OR C - T0_OR A",Int_t( high[215]-low[215]),low[215],high[215]);
+
+  TH1F* fhOrCminOrA= new TH1F("fhOrCminOrA","T0_OR C - T0_OR A",10000,-5000,5000);
   Add2RawsList( fhOrCminOrA,215, expert, !image, !saveCorr);
 
-  TH1F* fhOrCminOrAcal= new TH1F("fhOrCminOrAcal","T0_OR C - T0_OR A",Int_t( high[219]-low[219]),low[219],high[219]);
+  TH1F* fhOrCminOrAcal= new TH1F("fhOrCminOrAcal","T0_OR C - T0_OR A",10000,-5000,5000);
   Add2RawsList( fhOrCminOrAcal,219, expert, !image, !saveCorr);
 
-  TH1F* fhOrCminOrATvdcOn= new TH1F("fhOrCminOrATvdcOn","T0_OR C - T0_OR A TVDC on",Int_t( high[350]-low[350]),low[350],high[350]);
+  TH1F* fhOrCminOrATvdcOn= new TH1F("fhOrCminOrATvdcOn","T0_OR C - T0_OR A TVDC on",10000,-5000,5000);
   Add2RawsList( fhOrCminOrATvdcOn,350, expert, !image, !saveCorr);
 
-  TH1F* fhOrCminOrATvdcOncal= new TH1F("fhOrCminOrATvdcOncal","T0_OR C - T0_OR A TVDC on laser",Int_t( high[351]-low[351]),low[351],high[351]);
+  TH1F* fhOrCminOrATvdcOncal= new TH1F("fhOrCminOrATvdcOncal","T0_OR C - T0_OR A TVDC on laser",10000,-5000,5000);
   Add2RawsList( fhOrCminOrATvdcOncal,351, expert, !image, !saveCorr);
 
-  TH1F* fhOrCminOrATvdcOff= new TH1F("fhOrCminOrATvdcOff","T0_OR C - T0_OR A TVDC off",Int_t( high[352]-low[352]),low[352],high[352]);
+  TH1F* fhOrCminOrATvdcOff= new TH1F("fhOrCminOrATvdcOff","T0_OR C - T0_OR A TVDC off",10000,-5000,5000);
   Add2RawsList( fhOrCminOrATvdcOff,352, expert, !image, !saveCorr);
 
-  TH1F* fhOrCminOrATvdcOffcal= new TH1F("fhOrCminOrATvdcOffcal","T0_OR C - T0_OR ATVDC off laser",Int_t( high[353]-low[353]),low[353],high[353]);
+  TH1F* fhOrCminOrATvdcOffcal= new TH1F("fhOrCminOrATvdcOffcal","T0_OR C - T0_OR ATVDC off laser",10000,-5000,5000);
   Add2RawsList( fhOrCminOrATvdcOffcal,353, expert, !image, !saveCorr);
 
   TH1F* fhCFD1abs= new TH1F("fhCFD1abs"," CFD 1 pure ( L1) ", 20000, 575000, 595000 );
@@ -594,7 +595,8 @@ void AliT0QADataMakerRec::MakeRaws( AliRawReader* rawReader)
        if(type == 7  ) GetRawsData(211)->Fill(numPmtA);
 
       Int_t trChannel[6] = {49,50,51,52,55,56};  
-       
+ 
+      Float_t ch2cm = 24.4*0.029979;     
       if(type == 7)
 	{
 	  Int_t nhitsOrA=0;
@@ -606,10 +608,10 @@ void AliT0QADataMakerRec::MakeRaws( AliRawReader* rawReader)
 
 	    //orA-orC phys tvdc 1 
 	    if((allData[51][iHt]>0 && allData[52][iHt]>0) && allData[50][iHt]>0)
-	      GetRawsData(350)->Fill(allData[52][iHt]-allData[51][iHt]);
+	      GetRawsData(350)->Fill((allData[52][iHt]-allData[51][iHt])*ch2cm);
 	    //orA-orC phys tvdc 0 
 	    if((allData[51][iHt]>0 && allData[52][iHt]>0) && allData[50][iHt]<=0)
-	      GetRawsData(352)->Fill(allData[52][iHt]-allData[51][iHt]);
+	      GetRawsData(352)->Fill((allData[52][iHt]-allData[51][iHt])*ch2cm);
 	    for (Int_t itr=0; itr<6; itr++) {
 	      if (allData[trChannel[itr]][iHt] >0) {
 		fNumTriggers[itr]++;
@@ -626,7 +628,7 @@ void AliT0QADataMakerRec::MakeRaws( AliRawReader* rawReader)
 	      if(allData[56][iHt]>0) GetRawsData(218)->Fill(allData[53][iHt]-allData[54][iHt]);
 	    }
 	    if(allData[51][iHt]>0 && allData[52][iHt]>0)
-	      GetRawsData(215)->Fill(allData[52][iHt]-allData[51][iHt]);
+	      GetRawsData(215)->Fill((allData[52][iHt]-allData[51][iHt])*ch2cm);
 	  }
 	  GetRawsData(213)->Fill(nhitsOrA);
 	  GetRawsData(214)->Fill(nhitsOrC);
@@ -642,18 +644,17 @@ void AliT0QADataMakerRec::MakeRaws( AliRawReader* rawReader)
 
 	      //orA-orC laser
 	    if(allData[51][iHt]>0 && allData[52][iHt]>0)
-	      GetRawsData(219)->Fill(allData[52][iHt]-allData[51][iHt]);
+	      GetRawsData(219)->Fill((allData[52][iHt]-allData[51][iHt])*ch2cm);
 	    //orA-orC laser tvdc 1 
 	    if((allData[51][iHt]>0 && allData[52][iHt]>0) && allData[50][iHt]>0)
-	      GetRawsData(351)->Fill(allData[52][iHt]-allData[51][iHt]);
+	      GetRawsData(351)->Fill((allData[52][iHt]-allData[51][iHt])*ch2cm);
 	    //orA-orC laser tvdc 0 
 	    if((allData[51][iHt]>0 && allData[52][iHt]>0) && allData[50][iHt]<=0)
-	      GetRawsData(353)->Fill(allData[52][iHt]-allData[51][iHt]);
+	      GetRawsData(353)->Fill((allData[52][iHt]-allData[51][iHt])*ch2cm);
 	    //trigger laser
 	      for (Int_t itr=0; itr<6; itr++) {
 		if(allData[trChannel[itr]][iHt]>0)
 		  {
-		    
 		    GetRawsData(198+itr)->
 		      Fill(allData[trChannel[itr]][iHt]-refpoint);
 		    fNumTriggersCal[itr]++;
