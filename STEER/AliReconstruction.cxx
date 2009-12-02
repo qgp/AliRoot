@@ -1864,7 +1864,7 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
 
   if (fRunQA && IsInTasks(AliQAv1::kESDS)) {
     AliQAManager::QAManager()->SetEventSpecie(fRecoParam.GetEventSpecie()) ;
-    AliQAManager::QAManager()->RunOneEvent(fesd) ; 
+    AliQAManager::QAManager()->RunOneEvent(fesd, fhltesd) ; 
   }
   if (fRunGlobalQA) {
     AliQADataMaker *qadm = AliQAManager::QAManager()->GetQADataMaker(AliQAv1::kGLOBAL);
@@ -1977,30 +1977,18 @@ void AliReconstruction::SlaveTerminate()
   }
 
   // End of cycle for the in-loop  
-  if (fRunQA) 
-    AliQAManager::QAManager()->EndOfCycle() ;
   
-  if (fRunGlobalQA) {
-    AliQADataMaker *qadm = AliQAManager::QAManager()->GetQADataMaker(AliQAv1::kGLOBAL);
-    if (qadm) {
-      if (IsInTasks(AliQAv1::kRECPOINTS)) 
-        qadm->EndOfCycle(AliQAv1::kRECPOINTS);
-      if (IsInTasks(AliQAv1::kESDS)) 
-        qadm->EndOfCycle(AliQAv1::kESDS);
-      qadm->Finish();
-    }
-  }
-
   if (fRunQA || fRunGlobalQA) {
+    AliQAManager::QAManager()->EndOfCycle() ;
     if (fInput &&
-	!fProofOutputLocation.IsNull() &&
-	fProofOutputArchive.IsNull() &&
-	!fProofOutputDataset) {
+        !fProofOutputLocation.IsNull() &&
+        fProofOutputArchive.IsNull() &&
+        !fProofOutputDataset) {
       TString qaOutputFile(Form("%sMerged.%s.Data.root",
-				fProofOutputLocation.Data(),
-				AliQAv1::GetQADataFileName()));
+                                fProofOutputLocation.Data(),
+                                AliQAv1::GetQADataFileName()));
       TProofOutputFile *qaProofFile = new TProofOutputFile(Form("Merged.%s.Data.root",
-								AliQAv1::GetQADataFileName()));
+                                                                AliQAv1::GetQADataFileName()));
       qaProofFile->SetOutputFileName(qaOutputFile.Data());
       if (AliDebugLevel() > 0) qaProofFile->Dump();
       fOutput->Add(qaProofFile);
@@ -2010,7 +1998,7 @@ void AliReconstruction::SlaveTerminate()
       MergeQA();
     }
   }
-
+  
   gROOT->cd();
   CleanUp();
 

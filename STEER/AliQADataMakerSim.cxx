@@ -142,27 +142,29 @@ void AliQADataMakerSim::EndOfCycle(AliQAv1::TASKINDEX_t task)
   for (Int_t specie = 0 ; specie < AliRecoParam::kNSpecies ; specie++) {
     if (! AliQAv1::Instance(AliQAv1::GetDetIndex(GetName()))->IsEventSpecieSet(AliRecoParam::ConvertIndex(specie)) ) 
       continue ;
-    TDirectory * eventSpecieDir = subDir->GetDirectory(AliRecoParam::GetEventSpecieName(specie)) ;
-    if (!eventSpecieDir) 
-      eventSpecieDir = subDir->mkdir(AliRecoParam::GetEventSpecieName(specie)) ; 
-    eventSpecieDir->cd() ; 
-    TIter next(list[specie]) ; 
-    TObject * obj ; 
-    while ( (obj = next()) )  {
-      if (!obj->TestBit(AliQAv1::GetExpertBit()))
-        obj->Write() ;
-    }
-    if (WriteExpert()) {
-      TDirectory * expertDir = eventSpecieDir->GetDirectory(AliQAv1::GetExpert()) ; 
-      if (!expertDir) 
-        expertDir = eventSpecieDir->mkdir(AliQAv1::GetExpert()) ; 
-      expertDir->cd() ;
-      next.Reset() ; 
-      while ( (obj = next()) ) {
+    if (list[specie]->GetEntries() != 0 ) {
+      TDirectory * eventSpecieDir = subDir->GetDirectory(AliRecoParam::GetEventSpecieName(specie)) ;
+      if (!eventSpecieDir) 
+        eventSpecieDir = subDir->mkdir(AliRecoParam::GetEventSpecieName(specie)) ; 
+      eventSpecieDir->cd() ; 
+      TIter next(list[specie]) ; 
+      TObject * obj ; 
+      while ( (obj = next()) )  {
         if (!obj->TestBit(AliQAv1::GetExpertBit()))
-          continue ; 
-        obj->Write() ;
-      }      
+          obj->Write() ;
+      }
+      if (WriteExpert()) {
+        TDirectory * expertDir = eventSpecieDir->GetDirectory(AliQAv1::GetExpert()) ; 
+        if (!expertDir) 
+          expertDir = eventSpecieDir->mkdir(AliQAv1::GetExpert()) ; 
+        expertDir->cd() ;
+        next.Reset() ; 
+        while ( (obj = next()) ) {
+          if (!obj->TestBit(AliQAv1::GetExpertBit()))
+            continue ; 
+          obj->Write() ;
+        }      
+      }
     }
     fOutput->Save() ; 
   }
@@ -267,6 +269,35 @@ void AliQADataMakerSim::Init(AliQAv1::TASKINDEX_t task, TObjArray ** list, Int_t
 	} 
 }
 
+//____________________________________________________________________________ 
+void AliQADataMakerSim::ResetDetector(AliQAv1::TASKINDEX_t task)
+{
+    // default reset that resets all the QA objects.
+    // to be overloaded by detectors, if necessary
+  
+  TObjArray ** list = NULL ; 
+  if ( task == AliQAv1::kHITS ) {
+		list = fHitsQAList ;	 
+	} else if ( task == AliQAv1::kSDIGITS ) {
+		list = fSDigitsQAList ; 
+	} else if ( task == AliQAv1::kDIGITS ) {
+		list = fDigitsQAList ; 
+	}
+    //list was not initialized, skip
+  if (!list) 
+    return ; 
+  
+  for (int spec = 0; spec < AliRecoParam::kNSpecies; spec++) {
+    if (!AliQAv1::Instance()->IsEventSpecieSet(AliRecoParam::ConvertIndex(spec)))
+      continue;
+    TIter next(list[spec]) ; 
+    TH1 * histo = NULL ; 
+    while ( (histo = dynamic_cast<TH1*> (next())) ) {
+      histo->Reset() ;
+    }
+  }
+}
+  
 //____________________________________________________________________________
 void AliQADataMakerSim::StartOfCycle(Int_t run) 
 { 

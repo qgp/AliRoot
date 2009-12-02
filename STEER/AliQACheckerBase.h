@@ -49,15 +49,14 @@ public:
   void           SetExternParamlist(TList * list) { fExternParamList = list ;}
   void           SetHiLo(Float_t * hiValue, Float_t * lowValue) ; 
   void           SetPrintImage(Bool_t opt = kTRUE) { fPrintImage = opt ; }
-  void           SetRefandData(TDirectory * ref, TObjArray ** refOCDB, TDirectory * data=NULL) { fRefSubDir = ref ;  fRefOCDBSubDir = refOCDB, fDataSubDir = data ; }
 
 protected:
-  virtual      Double_t * Check(AliQAv1::ALITASK_t index, AliDetectorRecoParam * recoParam) ;
   virtual      Double_t * Check(AliQAv1::ALITASK_t, TObjArray **, AliDetectorRecoParam * recoParam) ; 
 
   Double_t     DiffC(const TH1 * href, const TH1 * hin) const ;   
   Double_t     DiffK(const TH1 * href, const TH1 * hin) const ;   
   void         Finish() const ; 
+  void         GetRefSubDir(const char * det, const char * task, TDirectory *& dirFile, TObjArray **& dirOCDB) ;
   virtual void SetQA(AliQAv1::ALITASK_t index, Double_t * value) const ;	
 
   TDirectory  * fDataSubDir     ; //! directory for the current task directory in the current detector directory in the data file
@@ -68,6 +67,9 @@ protected:
   TCanvas **    fImage          ; //[AliRecoParam::kNSpecies] 
   Bool_t        fPrintImage     ; //! flag to print the images or not
   TList       * fExternParamList; //List of external parameters (TParameter<double>)  
+
+private:
+  Double_t * Check(AliQAv1::ALITASK_t index, AliDetectorRecoParam * recoParam) ;
 
   ClassDef(AliQACheckerBase,3)  // description 
 
