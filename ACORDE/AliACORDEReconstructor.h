@@ -54,7 +54,9 @@ private:
   AliACORDEReconstructor& operator = (const AliACORDEReconstructor& reconstructor);
   
   AliACORDECalibData* fCalibData;      //! calibration data
- 
+
+  mutable TClonesArray *fDigitsArray;  // clones-array for ConvertDigits() and FillESD()
+
   ClassDef(AliACORDEReconstructor, 1)  // class for the ACORDE reconstruction
 };
 
