@@ -3467,6 +3467,7 @@ AliCluster* AliTRDtrackerV1::GetCluster(Int_t idx) const
 //____________________________________________________________________
 AliTRDseedV1* AliTRDtrackerV1::GetTracklet(Int_t idx) const
 {
+  if(!fTracklets) return NULL;
   Int_t ntrklt = fTracklets->GetEntriesFast();
   return idx >= 0 && idx < ntrklt ? (AliTRDseedV1*)fTracklets->UncheckedAt(idx) : NULL;
 }
