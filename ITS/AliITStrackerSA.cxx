@@ -387,10 +387,18 @@ Int_t AliITStrackerSA::FindTracks(AliESDEvent* event){
       }
     }
     dmar[i]=0;
-    delete fCluLayer[i];
-    fCluLayer[i] = new TClonesArray("AliITSRecPoint",nclusters[i]);
-    delete fCluCoord[i];
-    fCluCoord[i] = new TClonesArray("AliITSclusterTable",nclusters[i]);
+    if(!fCluLayer[i]){
+      fCluLayer[i] = new TClonesArray("AliITSRecPoint",nclusters[i]);
+    }else{
+      fCluLayer[i]->Delete();
+      fCluLayer[i]->Expand(nclusters[i]);
+    }
+    if(!fCluCoord[i]){
+      fCluCoord[i] = new TClonesArray("AliITSclusterTable",nclusters[i]);
+    }else{
+      fCluCoord[i]->Delete();
+      fCluCoord[i]->Expand(nclusters[i]);
+    }
   }
 
   for(Int_t ilay=0;ilay<AliITSgeomTGeo::GetNLayers();ilay++){
@@ -475,7 +483,10 @@ Int_t AliITStrackerSA::FindTracks(AliESDEvent* event){
 	      AliDebug(2,Form("---NPOINTS: %d; MAP: %d %d %d %d %d %d\n",layOK,nClusLay[0],nClusLay[1],nClusLay[2],nClusLay[3],nClusLay[4],nClusLay[5]));
 	      AliITStrackV2* tr2 = 0;
 	      tr2 = FitTrack(trs,primaryVertex);
-	      if(!tr2) continue;
+	      if(!tr2){ 
+		delete trs;
+		continue;
+	      }
 	      AliDebug(2,Form("---NPOINTS fit: %d\n",tr2->GetNumberOfClusters()));
 	      
 	      StoreTrack(tr2,event);
@@ -537,7 +548,10 @@ Int_t AliITStrackerSA::FindTracks(AliESDEvent* event){
 	      AliDebug(2,Form("---NPOINTS: %d; MAP: %d %d %d %d %d %d\n",layOK,nClusLay[0],nClusLay[1],nClusLay[2],nClusLay[3],nClusLay[4],nClusLay[5]));
 	      AliITStrackV2* tr2 = 0;
 	      tr2 = FitTrack(trs,primaryVertex);
-	      if(!tr2) continue;
+	      if(!tr2){ 
+		delete trs;
+		continue;
+	      }
 	      AliDebug(2,Form("---NPOINTS fit: %d\n",tr2->GetNumberOfClusters()));
 	      
 	      StoreTrack(tr2,event);
@@ -599,7 +613,10 @@ Int_t AliITStrackerSA::FindTracks(AliESDEvent* event){
 	    AliITStrackV2* tr2 = 0;
 	    Bool_t onePoint = kTRUE;
 	    tr2 = FitTrack(trs,primaryVertex,onePoint);
-	    if(!tr2) continue;
+	    if(!tr2){
+	      delete trs;
+	      continue;
+	    }
 	    AliDebug(2,Form("----NPOINTS fit: %d\n",tr2->GetNumberOfClusters()));
 	    
 	    StoreTrack(tr2,event);
@@ -614,7 +631,8 @@ Int_t AliITStrackerSA::FindTracks(AliESDEvent* event){
     } //end loop on innLay
   } // end search 1-point tracks
   
-  Info("FindTracks","Number of found tracks: %d",event->GetNumberOfTracks());
+  AliInfo(Form("Number of found tracks: %d",event->GetNumberOfTracks()));
+  ResetForFinding();
   return 0;
 
 }
