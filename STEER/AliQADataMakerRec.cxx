@@ -147,7 +147,7 @@ void AliQADataMakerRec::EndOfCycle()
 void AliQADataMakerRec::EndOfCycle(AliQAv1::TASKINDEX_t task) 
 {
 	// Finishes a cycle of QA 
-	
+    
     
   TObjArray ** list = NULL ; 
 	
@@ -176,19 +176,9 @@ void AliQADataMakerRec::EndOfCycle(AliQAv1::TASKINDEX_t task)
   if (!subDir)
     subDir = fDetectorDir->mkdir(AliQAv1::GetTaskName(task)) ;  
   subDir->cd() ; 
-    // BEG FIXME
   for (Int_t specie = 0 ; specie < AliRecoParam::kNSpecies ; specie++) { // skip Default except for Global 
-//    if (! AliQAv1::Instance(AliQAv1::GetDetIndex(GetName()))->IsEventSpecieSet(AliRecoParam::ConvertIndex(specie)) || AliRecoParam::ConvertIndex(specie) == AliRecoParam::kDefault) 
-//      continue ; 
-    TString test(GetName()) ;
-    if ( !test.Contains(AliQAv1::GetDetName(AliQAv1::kGLOBAL)) ) 
-      if (! AliQAv1::Instance(AliQAv1::GetDetIndex(GetName()))->IsEventSpecieSet(AliRecoParam::ConvertIndex(specie)) || AliRecoParam::ConvertIndex(specie) == AliRecoParam::kDefault) 
-        continue ; 
-    if ( test.Contains(AliQAv1::GetDetName(AliQAv1::kGLOBAL)) ) 
-      if ( AliRecoParam::ConvertIndex(specie) != AliRecoParam::kDefault)
-        continue ; 
-   // END FIXME
-    
+    if (! AliQAv1::Instance(AliQAv1::GetDetIndex(GetName()))->IsEventSpecieSet(AliRecoParam::ConvertIndex(specie)) || AliRecoParam::ConvertIndex(specie) == AliRecoParam::kDefault) 
+      continue ; 
     TDirectory * eventSpecieDir = subDir->GetDirectory(AliRecoParam::GetEventSpecieName(specie)) ;
     if (!eventSpecieDir) 
       eventSpecieDir = subDir->mkdir(AliRecoParam::GetEventSpecieName(specie)) ; 
