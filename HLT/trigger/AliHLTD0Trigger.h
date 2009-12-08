@@ -12,7 +12,13 @@
 /// @brief  HLT trigger component for D0->Kpi
 
 #include "AliHLTTrigger.h"
+#include <vector>
+#include "AliHLTD0toKpi.h"
+
 class TH1F;
+class TObjArray;
+class AliESDVertex;
+class AliExternalTrackParam;
 
 /**
  * @class  AliHLTD0Trigger
@@ -94,6 +100,10 @@ class AliHLTD0Trigger : public AliHLTTrigger
 
   /// inherited from AliHLTTrigger: calculate the trigger
   virtual int DoTrigger();
+  
+  void SingleTrackSelect(AliExternalTrackParam*);
+  Int_t RecV0(const TObject* iter);
+  Int_t RecD0();
 
   /// pt cut for decay, minimum [GeV/c]
   float fPtMin;                                            //! transient
@@ -111,10 +121,23 @@ class AliHLTD0Trigger : public AliHLTTrigger
   float fcosPoint;                                         //! transient 
 
   bool fplothisto;                                         //! transient 
+  bool fUseV0;                                             //! transient 
+
+  Double_t mD0PDG;                                         //! transient
 
   /// D0 inv. mass plot
-  TH1F *fD0mass;   //! transient  
+  TH1F *fD0mass;                                           //! transient  
 
+  vector<AliExternalTrackParam*> fPos;                       //! transient
+  vector<AliExternalTrackParam*> fNeg;                       //! transient
+
+  AliHLTD0toKpi *fd0calc;                                   //! transient
+  TObjArray *ftwoTrackArray;                                //! transient
+
+  Int_t fTotalD0;                                           //! transient
+  AliESDVertex *fVertex;                                 //! transient
+  Double_t fField;                                         //!transient
+  
   /// the default configuration entry for this component
   static const char* fgkOCDBEntry; //!transient
 
