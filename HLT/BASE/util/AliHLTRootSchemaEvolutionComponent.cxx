@@ -27,6 +27,14 @@
 #include "TObjArray.h"
 #include "TStreamerInfo.h"
 #include "TList.h"
+#include "TFile.h"
+
+#include "AliCDBStorage.h"
+#include "AliCDBManager.h"
+#include "AliCDBPath.h"
+#include "AliCDBId.h"
+#include "AliCDBMetaData.h"
+#include "AliCDBEntry.h"
 
 /** ROOT macro for the implementation of ROOT specific class methods */
 ClassImp(AliHLTRootSchemaEvolutionComponent)
@@ -36,6 +44,7 @@ AliHLTRootSchemaEvolutionComponent::AliHLTRootSchemaEvolutionComponent()
   , fFlags(0)
   , fpStreamerInfos(NULL)
   , fFXSPrescaler(0)
+  , fFileName()
 {
   // see header file for class documentation
   // or
@@ -100,6 +109,11 @@ int AliHLTRootSchemaEvolutionComponent::DoInit(int argc, const char** argv)
 int AliHLTRootSchemaEvolutionComponent::DoDeinit()
 {
   // see header file for class documentation
+  if (fFileName.IsNull()==0) {
+    WriteToFile(fFileName, fpStreamerInfos);
+    fFileName.Clear();
+  }
+
   if (fpStreamerInfos) {
     fpStreamerInfos->Clear();
     delete fpStreamerInfos;
@@ -135,10 +149,15 @@ int AliHLTRootSchemaEvolutionComponent::DoEvent( const AliHLTComponentEventData&
 	(TestBits(kHLTOUTatEOR) && eventType==gkAliEventTypeEndOfRun)) {
       PushBack(fpStreamerInfos, kAliHLTDataTypeStreamerInfo);
     }
+  }
 
-    if (TestBits(kFXS) && eventType==gkAliEventTypeEndOfRun) {
-      // push to FXS, needs to be implemented in the base class
-    }
+  if (TestBits(kFXS) && eventType==gkAliEventTypeEndOfRun) {
+    // push to FXS, needs to be implemented in the base class
+  }
+
+  if (fFileName.IsNull()==0 && eventType==gkAliEventTypeEndOfRun) {
+    WriteToFile(fFileName, fpStreamerInfos);
+    fFileName.Clear();
   }
 
   return iResult;
@@ -159,6 +178,7 @@ int AliHLTRootSchemaEvolutionComponent::UpdateStreamerInfos(const TList* list, T
     if (!pInfo) continue;
     TString name=pInfo->GetName();
     int i=0;
+    if (pInfo->GetClassVersion()==0) continue; // skip classes which are not for storage
     for (; i<infos->GetEntriesFast(); i++) {
       if (name.CompareTo(infos->At(i)->GetName())==0 &&
 	  pInfo->GetClassVersion() == ((TStreamerInfo*)infos->At(i))->GetClassVersion()) {
@@ -167,8 +187,10 @@ int AliHLTRootSchemaEvolutionComponent::UpdateStreamerInfos(const TList* list, T
       }
     }
 
-    // Add streamer info
-    infos->Add(pInfo);
+    // Add streamer info if not yet there
+    if (i>=infos->GetEntriesFast()) {
+      infos->Add(pInfo);
+    }
   }
 
   return iResult;
@@ -205,8 +227,8 @@ int AliHLTRootSchemaEvolutionComponent::ScanConfigurationArgument(int argc, cons
   if (argument.Contains("-fxs")) {
     argument.ReplaceAll("-fxs", "");
     argument.ReplaceAll("=", "");
+    SetBits(kFXS);
     if (argument.IsNull()) {
-      SetBits(kFXS);
     } else if (argument.CompareTo("off")) {
       ClearBits(kFXS);
     } else if (argument.IsDigit()) {
@@ -217,6 +239,56 @@ int AliHLTRootSchemaEvolutionComponent::ScanConfigurationArgument(int argc, cons
     }
     return 1;
   }
+
+  // -file=<filename>
+  if (argument.Contains("-file=")) {
+    argument.ReplaceAll("-file=", "");
+    if (!argument.IsNull()) {
+      fFileName=argument;
+    } else {
+      HLTError("argument -file= expects file name");
+      return -EINVAL;
+    }
+    return 1;
+  }
   
   return iResult;
+}
+
+int AliHLTRootSchemaEvolutionComponent::WriteToFile(const char* filename, const TObjArray* infos) const
+{
+  // write aray of streamer infos to file
+  if (!filename || !infos) return -EINVAL;
+
+  TFile out(filename, "RECREATE");
+  if (out.IsZombie()) {
+    HLTError("failed to open file %s", filename);
+    return -EBADF;
+  }
+
+  const char* entrypath="HLT/Calib/StreamerInfo";
+  int version = -1;
+  AliCDBStorage* store = AliCDBManager::Instance()->GetDefaultStorage();
+  if (store) {
+    version = store->GetLatestVersion(entrypath, GetRunNo());
+  }
+  version++;
+
+  AliCDBPath cdbPath(entrypath);
+  AliCDBId cdbId(cdbPath, AliCDBManager::Instance()->GetRun(), AliCDBRunRange::Infinity(), version, 0);
+  AliCDBMetaData* cdbMetaData=new AliCDBMetaData;
+  cdbMetaData->SetResponsible("ALICE HLT Matthias.Richter@cern.ch");
+  cdbMetaData->SetComment("Streamer info for HLTOUT payload");
+  AliCDBEntry* entry=new AliCDBEntry(infos->Clone(), cdbId, cdbMetaData, kTRUE);
+
+  out.cd();
+  entry->Write();
+  // this is a small memory leak
+  // seg fault in ROOT object handling if the two objects are deleted
+  // investigate later
+  //delete entry;
+  //delete cdbMetaData;
+  out.Close();
+
+  return 0;
 }
