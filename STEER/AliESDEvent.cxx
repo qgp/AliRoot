@@ -63,6 +63,8 @@
 #include "AliRawDataErrorLog.h"
 #include "AliLog.h"
 #include "AliESDACORDE.h"
+#include "AliESDHLTDecision.h"
+
 ClassImp(AliESDEvent)
 
 
@@ -505,6 +507,9 @@ void AliESDEvent::Print(Option_t *) const
   printf("                 emcal     %d\n", GetNumberOfEMCALClusters());
   printf("                 FMD       %s\n", (fESDFMD ? "yes" : "no"));
   printf("                 VZERO     %s\n", (fESDVZERO ? "yes" : "no"));
+  TObject* pHLTDecision=GetHLTTriggerDecision();
+  printf("HLT trigger decision: %s\n", pHLTDecision?pHLTDecision->GetOption():"not available");
+  if (pHLTDecision) pHLTDecision->Print("compact");
 
   return;
 }
