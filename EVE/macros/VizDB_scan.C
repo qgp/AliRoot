@@ -21,7 +21,7 @@ void VizDB_scan()
   gEve->InsertVizDBEntry("TPC Clusters", ps);
 
   ps = new TEvePointSet();
-  ps->SetMarkerColor(7);
+  ps->SetMarkerColor(kRed);
   ps->SetMarkerSize(0.5);
   ps->SetMarkerStyle(4);
   gEve->InsertVizDBEntry("TRD Clusters", ps);

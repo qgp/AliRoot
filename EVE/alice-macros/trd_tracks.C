@@ -27,7 +27,7 @@ void trd_tracks(TEveElement *cont = 0)
 
   AliTRDReconstructor *reco = new AliTRDReconstructor();
   reco->SetRecoParam(AliTRDrecoParam::GetLowFluxParam());
-  reco->SetOption("!nn");
+//  reco->SetOption("!nn");
 
   AliEveTRDTrackList *tracks = new AliEveTRDTrackList("TRD Tracks");
   for (Int_t n=0; n<esd->GetNumberOfTracks(); n++){
