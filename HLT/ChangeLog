@@ -1,7 +1,6 @@
 Change log of HLT module of AliRoot v4-17-Release branch
 
 
-
 2009-11-25 migration of HLT online software to release branch
 	https://savannah.cern.ch/bugs/?59201
 	porting all major development since creation of the branch
@@ -9,7 +8,7 @@ Change log of HLT module of AliRoot v4-17-Release branch
 	except most recent TPC calibration code:
 	 r36652, r36662, r36629, r36533 due to dependencies to TPC code
 
-2009-11-30 to be discussed in the offline meeting
+2009-11-30 update uo to r37400
 	--- 37284 37400
 	  support for upcoming AliESDHLTDecision
 	  https://savannah.cern.ch/bugs/?59823
@@ -33,4 +32,72 @@ Change log of HLT module of AliRoot v4-17-Release branch
 	--- 37045 37046 37078 37105 37114
 	  update of global HLT online software
 	  https://savannah.cern.ch/bugs/index.php?59833
+
+	not merged:
+	=== 37056		fix for a cmake problem in the trunk, not propagated
+	=== 37106 37107 37391	PHOS development
+	=== 37119 37183	37246 37247 37279	HOMER manager/display development
+	=== 37239               QA development
+	=== 37287		D0 trigger development
+	=== 37293 37294		TRD development
+	=== 37326 37328		TPC calibration not yet propagated at all
+	=== 37335 37336 37337 37374 37395 37399  new default configurations for simulation
+	=== 37347		MUON update depends on other revisions, needs investigation
+	
+2009-12-07 update up to r37669
+	--- 37411 37485 37611 37614 37648
+	  update of HLT ITS software
+	  https://savannah.cern.ch/bugs/index.php?60213
+
+	--- 37443 37444 37540
+	  bugfixes in the SchemaEvolution handling
+	  inclusion of StreamerInfo generation into AliSimulation
+	  https://savannah.cern.ch/bugs/index.php?60214
+
+	--- 37486
+	  Multiple instances of BarelMultiplicityTrigger
+	  https://savannah.cern.ch/bugs/index.php?60215
+
+	--- 37487 37489 37581 37584
+	  HLT global trigger menu and definition of corresponding trigger
+	  components for the default AliRoot HLT chain
+	  https://savannah.cern.ch/bugs/index.php?60223
+
+	--- 37568 37592 37594
+	  Monitoring trigger, fixing bugs
+	     https://savannah.cern.ch/bugs/index.php?60082
+	     https://savannah.cern.ch/bugs/index.php?60083
+	  https://savannah.cern.ch/bugs/index.php?60217
+
+	--- 37619 37649 37653 37658
+	  update of vertexer and v0 histograms, histogram handler component added
+	  https://savannah.cern.ch/bugs/index.php?60220
+	
+	--- 37638
+	  bugfix HLT TPC tracker: output buffer size announcement corrected
+	  https://savannah.cern.ch/bugs/index.php?60222
+
+	--- 37287 37667
+	  update of D0trigger
+	  https://savannah.cern.ch/bugs/index.php?60248
+
+	--- 37669
+	  enable support for AliESDHLTDecision
+	  https://savannah.cern.ch/bugs/index.php?60258
+	
+	--- 37573 37656
+	  update of HLT analysis framework
+	  https://savannah.cern.ch/bugs/index.php?60259
+
+	not merged:
+	=== 37422 37636		HOMER manager development
+	=== 37575 37577		TRD development
+	=== 37505		QA development
+	=== 37445		AliHLTSystem memory management development
+	=== 37412		MUON development (depends on missing propagation 2009-11-30)
+
+2009-12-08
+	--- 37239 37693
+	  HLT QA
+	  https://savannah.cern.ch/bugs/index.php?60321
 
