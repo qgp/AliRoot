@@ -145,7 +145,7 @@ AliHLTComponent* AliHLTITSClusterFinderComponent::Spawn() {
   return new AliHLTITSClusterFinderComponent(fModeSwitch);
 }
 	
-Int_t AliHLTITSClusterFinderComponent::DoInit( int /*argc*/, const char** /*argv*/ ) {
+Int_t AliHLTITSClusterFinderComponent::DoInit( int argc, const char** argv ) {
   // see header file for class documentation
   /*
   fStatTime = 0;
@@ -216,7 +216,13 @@ Int_t AliHLTITSClusterFinderComponent::DoInit( int /*argc*/, const char** /*argv
   fSPD = new AliHLTITSClusterFinderSPD( fDettype );
   fSSD = new AliHLTITSClusterFinderSSD( fDettype, fRawReader );
 
-  return 0;
+  TString arguments = "";
+  for ( int i = 0; i < argc; i++ ) {
+    if ( !arguments.IsNull() ) arguments += " ";
+    arguments += argv[i];
+  }
+
+  return Configure( arguments.Data() );
 }
 
 Int_t AliHLTITSClusterFinderComponent::DoDeinit() {
@@ -288,7 +294,7 @@ int AliHLTITSClusterFinderComponent::DoEvent
     HLTDebug("Event 0x%08LX (%Lu) received datatype: %s - required datatype: %s",
 	       evtData.fEventID, evtData.fEventID, 
 	       DataType2Text(iter->fDataType).c_str(), 
-	       DataType2Text(datatype).c_str());
+	       DataType2Text(fInputDataType).c_str());
     
     // -- Check for the correct data type
     if ( iter->fDataType != (fInputDataType) )  
