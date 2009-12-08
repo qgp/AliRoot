@@ -856,13 +856,23 @@ Bool_t AliEMCALGeometry::RelPosCellInSModule(Int_t absId, Double_t &xr, Double_t
   GetCellIndex(absId, nSupMod, nModule, nIphi, nIeta);
   GetCellPhiEtaIndexInSModule(nSupMod,nModule,nIphi,nIeta, iphi, ieta); 
  
-  xr = fCentersOfCellsXDir.At(ieta);
-  zr = fCentersOfCellsEtaDir.At(ieta);
+  //Get eta position. Careful with ALICE conventions (increase index decrease eta)	
+  Int_t ieta2 = ieta;
+  if(nSupMod%2 == 0)		  
+	  ieta2 = (fCentersOfCellsEtaDir.GetSize()-1)-ieta;// 47-ieta, revert the ordering on A side in order to keep convention.
+  zr = fCentersOfCellsEtaDir.At(ieta2);
+  xr = fCentersOfCellsXDir.At(ieta2);
 
+  //Get phi position. Careful with ALICE conventions (increase index increase phi)
+  Int_t iphi2 = iphi;
   if(nSupMod<10) {
-    yr = fCentersOfCellsPhiDir.At(iphi);
+	if(nSupMod%2 != 0) 
+		iphi2 = (fCentersOfCellsPhiDir.GetSize()-1)-iphi;// 23-iphi, revert the ordering on C side in order to keep convention.
+    yr = fCentersOfCellsPhiDir.At(iphi2);
   } else {
-    yr = fCentersOfCellsPhiDir.At(iphi + kphiIndexShift);
+	if(nSupMod%2 != 0) 
+		iphi2 = (fCentersOfCellsPhiDir.GetSize()/2-1)-iphi;// 11-iphi, revert the ordering on C side in order to keep convention.
+    yr = fCentersOfCellsPhiDir.At(iphi2 + kphiIndexShift);
   }
   AliDebug(1,Form("absId %i nSupMod %i iphi %i ieta %i xr %f yr %f zr %f ",absId,nSupMod,iphi,ieta,xr,yr,zr));
 
