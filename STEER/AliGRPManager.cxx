@@ -163,8 +163,6 @@ Bool_t AliGRPManager::SetMagField()
     beamEnergy = 0;
     //ok = kFALSE;  // temprorary suppressed to make read cosmics data
   }
-  // LHC: "multiply by 120 to get the energy in MeV"
-  beamEnergy *= 0.120;
   
   // read special bits for the polarity convention and map type
   Int_t  polConvention = fGRPData->IsPolarityConventionLHC() ? AliMagF::kConvLHC : AliMagF::kConvDCS2008;
@@ -232,3 +230,16 @@ AliRunInfo* AliGRPManager::GetRunInfo()
 
   return new AliRunInfo(lhcState, beamType, beamEnergy, runType, activeDetectors);
 }
+
+//_____________________________________________________________________________
+void AliGRPManager::SetGRPEntry(AliGRPObject* source)
+{
+  // Create a GRP entry from the extrnaly provide GRP object
+  // To be used by HLT to create an online GRP instance
+  if (!source) return;
+  if (fGRPData) delete fGRPData;
+  fGRPData = new AliGRPObject(*source);
+  AliInfo("Created GRP Data from external object");
+  //
+}
+ 

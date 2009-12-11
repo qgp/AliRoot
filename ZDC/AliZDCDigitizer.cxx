@@ -144,7 +144,7 @@ Bool_t AliZDCDigitizer::Init()
     AliError("\t UNKNOWN beam type from GRP obj -> PMT gains not set in ZDC digitizer!!!\n");
   }
   
-  Float_t beamEnergy = grpData->GetBeamEnergy()/2.;
+  Float_t beamEnergy = grpData->GetBeamEnergy();
   if(beamEnergy==AliGRPObject::GetInvalidFloat()){
     AliWarning("GRP/GRP/Data entry:  missing value for the beam energy ! Using 0.");
     AliError("\t UNKNOWN beam type from GRP obj -> PMT gains not set in ZDC digitizer!!!\n");
