@@ -67,7 +67,7 @@ class AliEMCALRawUtils : public TObject {
   void SetOption(Option_t* opt) { fOption = opt; }
 
   // Signal shape functions
-  void FitRaw(TGraph * gSig, TF1* signalF, Float_t & amp, Float_t & time) const ;
+  void FitRaw(TGraph * gSig, TF1* signalF, const Int_t lastTimeBin, Float_t & amp, Float_t & time) const ;
   static Double_t RawResponseFunction(Double_t *x, Double_t *par); 
   Bool_t   RawSampledResponse(Double_t dtime, Double_t damp, Int_t * adcH, Int_t * adcL) const;  
 

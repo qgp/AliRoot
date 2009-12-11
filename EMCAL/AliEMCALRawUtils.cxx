@@ -344,47 +344,49 @@ void AliEMCALRawUtils::Raw2Digits(AliRawReader* reader,TClonesArray *digitsArr)
       for (i=0; i < GetRawFormatTimeBins(); i++) {
 	gSig->SetPoint(i, i , 0);
       }
-		
+
       Int_t maxTime = 0;
       Int_t min = 0x3ff; // init to 10-bit max
       Int_t max = 0; // init to 10-bit min
+      Int_t lastTimeBin = 0;
       while (in.NextBunch()) {
+
 	const UShort_t *sig = in.GetSignals();
 	startBin = in.GetStartTimeBin();
-
+	if(lastTimeBin < startBin) lastTimeBin = startBin;
 	if (((UInt_t) maxTime) < in.GetStartTimeBin()) {
 	  maxTime = in.GetStartTimeBin(); // timebins come in reverse order
 	}
-
+	
 	if (maxTime < 0 || maxTime >= GetRawFormatTimeBins()) {
 	  AliWarning(Form("Invalid time bin %d",maxTime));
 	  maxTime = GetRawFormatTimeBins();
 	}
-
+	
 	for (i = 0; i < in.GetBunchLength(); i++) {
 	  time = startBin--;
-	  gSig->SetPoint(time, time, (Double_t) sig[i]) ;
+	  gSig->SetPoint((Int_t)time, time, (Double_t) sig[i]) ;
 	  if (max < sig[i]) max= sig[i];
 	  if (min > sig[i]) min = sig[i];
-
+	  
 	}
       } // loop over bunches
-    
-      gSig->Set(maxTime+1);
-		  
-	  //Initialize the variables, do not keep previous value.
-	  amp  = -1. ;
-	  time = -1. ;
-	  if ( (max - min) > fNoiseThreshold) FitRaw(gSig, signalF, amp, time) ; 
-	
-	if (amp > 0 && amp < 2000) {  //check both high and low end of
-	  //result, 2000 is somewhat arbitrary - not nice with magic numbers in the code..
-	AliDebug(2,Form("id %d lowGain %d amp %g", id, lowGain, amp));
-	
-	AddDigit(digitsArr, id, lowGain, (Int_t)amp, time);
 
+      gSig->Set(maxTime+1);
+      
+      //Initialize the variables, do not keep previous value.
+      amp  = -1. ;
+      time = -1. ;
+      if ( (max - min) > fNoiseThreshold) FitRaw(gSig, signalF, lastTimeBin, amp, time) ; 
+      
+           
+      if (amp > 0 && amp < 2000) {  //check both high and low end of
+	//result, 2000 is somewhat arbitrary - not nice with magic numbers in the code..
+	AliDebug(2,Form("id %d lowGain %d amp %g", id, lowGain, amp));
+	//printf("Added tower: SM %d, row %d, column %d, amp %3.2f\n",in.GetModule(), in.GetRow(), in.GetColumn(),amp);
+	AddDigit(digitsArr, id, lowGain, (Int_t)amp, time);
       }
-	
+      
       // Reset graph
       for (Int_t index = 0; index < gSig->GetN(); index++) {
 	gSig->SetPoint(index, index, 0) ;  
@@ -440,7 +442,7 @@ void AliEMCALRawUtils::AddDigit(TClonesArray *digitsArr, Int_t id, Int_t lowGain
 }
 
 //____________________________________________________________________________ 
-void AliEMCALRawUtils::FitRaw(TGraph * gSig, TF1* signalF, Float_t & amp, Float_t & time) const 
+void AliEMCALRawUtils::FitRaw(TGraph * gSig, TF1* signalF, const Int_t lastTimeBin, Float_t & amp, Float_t & time) const 
 {
   // Fits the raw signal time distribution; from AliEMCALGetter 
 
@@ -509,6 +511,7 @@ void AliEMCALRawUtils::FitRaw(TGraph * gSig, TF1* signalF, Float_t & amp, Float_
         break;
       }
     }
+
     //Add check on plateau
     if (signal >= fgkRawSignalOverflow - fNoiseThreshold) {
       if(plateauWidth == 0) plateauStart = i;
@@ -525,6 +528,40 @@ void AliEMCALRawUtils::FitRaw(TGraph * gSig, TF1* signalF, Float_t & amp, Float_
   }
 
   if ( max - ped > fNoiseThreshold ) { // else its noise 
+
+    //Check that maximum is not at the end or beguining of time sample
+    Double_t timemax = -1;
+    Double_t tmp =-1;
+    gSig->GetPoint(iMax, timemax, tmp) ;
+    if(timemax < 2 || timemax > lastTimeBin-2) {
+      //printf("Skip fit, maximum of the sample close to the edges : time %3.2f, amp %3.2f\n",timemax,max);
+      AliDebug(1,Form("Skip fit, maximum of the sample close to the edges : time %3.2f, amp %3.2f",timemax,max));
+      return;
+    }
+
+    //remove zeroes from signal sample
+    //maybe there is a smarter way to do this, but this is what I found. 
+    while (1){
+      Double_t ttime=0, signal;
+      Bool_t next = kFALSE;
+      for (Int_t i=0; i < gSig->GetN(); i++) {
+	gSig->GetPoint(i, ttime, signal) ; 
+	if(signal < 1)  {
+	  gSig->RemovePoint(i);
+	  next = kTRUE;
+	  //printf("remove point %d of n %d\n",i, gSig->GetN());
+	break;
+	}
+      }
+      if(!next) break;
+    }
+
+    if(gSig->GetN() < 3) {
+      AliDebug(2,Form("Skip fit, number of entries in sample smaller than number of fitting parameters: in sample %d, fitting param 3", 
+		      gSig->GetN() ));
+      return;
+    }
+
     AliDebug(2,Form("Fitting max %d ped %d", max, ped));
 
     signalF->SetRange(0,maxFit);
@@ -536,6 +573,13 @@ void AliEMCALRawUtils::FitRaw(TGraph * gSig, TF1* signalF, Float_t & amp, Float_
     signalF->SetParameter(1, iMax);
     signalF->SetParameter(0, max);
     
+    //printf("***********Do fit\n");
+    //for (Int_t i=0; i < gSig->GetN(); i++) {
+    //Double_t ttime, signal;
+    //gSig->GetPoint(i, ttime, signal) ; 
+    //printf("fit this: i %d, time %f, amp %f\n",i, ttime, signal);
+    //}
+
     gSig->Fit(signalF, "QROW"); // Note option 'W': equal errors on all points
 
     amp = signalF->GetParameter(0); 
