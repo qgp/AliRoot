@@ -169,6 +169,7 @@ Int_t AliITSVertexerZ::GetPeakRegion(TH1F*h, Int_t &binmin, Int_t &binmax){
 //______________________________________________________________________
 AliESDVertex* AliITSVertexerZ::FindVertexForCurrentEvent(TTree *itsClusterTree){
   // Defines the AliESDVertex for the current event
+  ClusPerLayer(itsClusterTree);
   VertexZFinder(itsClusterTree);
   Int_t ntrackl=0;
   for(Int_t iteraz=0;iteraz<fMaxIter;iteraz++){
@@ -212,21 +213,10 @@ void AliITSVertexerZ::VertexZFinder(TTree *itsClusterTree){
     return;
   }
 
-  Int_t nrpL1 = 0;
-  Int_t nrpL2 = 0;
+  Int_t nrpL1 = fNClusters[0];    // number of rec points on layer 1
+  Int_t nrpL2 = fNClusters[1];    // number of rec points on layer 2
 
-  // By default fFirstL1=0 and fLastL1=79
-  for(Int_t module= fFirstL1; module<=fLastL1;module++){
-    branch->GetEvent(module);
-    nrpL1+= itsRec->GetEntries();
-    fDetTypeRec->ResetRecPoints();
-  }
-  //By default fFirstL2=80 and fLastL2=239
-  for(Int_t module= fFirstL2; module<=fLastL2;module++){
-    branch->GetEvent(module);
-    nrpL2+= itsRec->GetEntries();
-    fDetTypeRec->ResetRecPoints();
-  }
+
   if(nrpL1 == 0 || nrpL2 == 0){
     AliDebug(1,Form("No RecPoints in at least one SPD layer (%d %d)",nrpL1,nrpL2));
     ResetHistograms();

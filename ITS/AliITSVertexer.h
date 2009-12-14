@@ -20,6 +20,7 @@ class AliITSVertexer : public AliVertexer {
     // default constructor
     AliITSVertexer();   
     virtual ~AliITSVertexer();
+    void ClusPerLayer(TTree* rp);
     virtual AliESDVertex *FindVertexForCurrentEvent(TTree *itsClusterTree)=0;
     virtual void PrintStatus() const = 0;
 
@@ -72,6 +73,7 @@ class AliITSVertexer : public AliVertexer {
     Float_t fZpuv;             // Z of second pile-up vertex
     Int_t fNoVertices;         //! number of vertices found 
     AliESDVertex* fVertArray;    //! vertices (main+pileupped)
+    UInt_t fNClusters[6];       //! number of clusters per layer
 
  private:
     // copy constructor (NO copy allowed: the constructor is protected
@@ -83,7 +85,7 @@ class AliITSVertexer : public AliVertexer {
     Int_t fFirstEvent;          // First event to be processed by FindVertices
     Int_t fLastEvent;           // Last event to be processed by FindVertices
 
-  ClassDef(AliITSVertexer,10);
+  ClassDef(AliITSVertexer,11);
 };
 
 #endif

@@ -1,4 +1,5 @@
 #include <string.h>
+#include "AliLog.h"
 #include "AliMultiplicity.h"
 
 ClassImp(AliMultiplicity)
@@ -21,6 +22,7 @@ AliMultiplicity::AliMultiplicity():
   // Default Constructor
   fFiredChips[0] = 0;
   fFiredChips[1] = 0;
+  for(Int_t ilayer = 0; ilayer < 6; ilayer++)fITSClusters[ilayer] = 0;
 }
 
 //______________________________________________________________________
@@ -66,6 +68,7 @@ AliMultiplicity::AliMultiplicity(Int_t ntr, Float_t *th,  Float_t *ph, Float_t *
   fFiredChips[0] = nfcL1;
   fFiredChips[1] = nfcL2;
   fFastOrFiredChips = fFastOr;
+  for(Int_t ilayer = 0; ilayer < 6; ilayer++)fITSClusters[ilayer] = 0;
 }
 
 //______________________________________________________________________
@@ -160,6 +163,9 @@ void AliMultiplicity::Duplicate(const AliMultiplicity& m){
 
   fFiredChips[0] = m.fFiredChips[0];
   fFiredChips[1] = m.fFiredChips[1];
+  for(Int_t ilayer = 0; ilayer < 6; ilayer++){
+    fITSClusters[ilayer] = m.fITSClusters[ilayer];
+  }
 
   fFastOrFiredChips = m.fFastOrFiredChips;
 }
@@ -175,5 +181,27 @@ AliMultiplicity::~AliMultiplicity(){
   if(fLabelsL2)delete [] fLabelsL2;fLabelsL2 = 0;
   if(fThsingle)delete [] fThsingle;fThsingle = 0;
   if(fPhisingle)delete [] fPhisingle;fPhisingle = 0;
+
+}
+
+//______________________________________________________________________
+UInt_t AliMultiplicity::GetNumberOfITSClusters(Int_t layMin, Int_t layMax) const {
+
+  if(layMax < layMin) {
+    AliError("layer min > layer max");
+    return 0;
+  }
+  if(layMin < 0) {
+    AliError("layer min < 0");
+    return 0;
+  }
+  if(layMax < 0) {
+    AliError("layer max > 0");
+    return 0;
+  }
+
+  Int_t sum=0; 
+  for (Int_t i=layMin; i<=layMax; i++) sum+=fITSClusters[i]; 
+  return sum; 
 
 }

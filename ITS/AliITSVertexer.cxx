@@ -1,6 +1,7 @@
 #include "AliLog.h"
 #include "AliMultiplicity.h"
 #include "AliITSgeomTGeo.h"
+#include "AliITSRecPoint.h"
 #include "AliITSVertexer.h"
 #include "AliITSLoader.h"
 #include "AliITSMultReconstructor.h"
@@ -36,6 +37,7 @@ fLastEvent(-1)
   SetLaddersOnLayer2();
   SetMinTrackletsForPilup();
   for(Int_t i=0; i<kNSPDMod;i++) fUseModule[i]=kTRUE;
+  for(Int_t i=0;i<6;i++)fNClusters[i]=0;
 }
 
 //______________________________________________________________________
@@ -46,6 +48,34 @@ AliITSVertexer::~AliITSVertexer() {
     delete []fVertArray;
     fVertArray = NULL;
     fNoVertices = 0;
+  }
+}
+
+//______________________________________________________________________
+void AliITSVertexer::ClusPerLayer(TTree* rp){
+  // this method computes the number of clusters per each layer
+  // the result is stored in fNClusters[]
+  for(Int_t i=0;i<6;i++)fNClusters[i]=0;
+  fDetTypeRec->ResetRecPoints();
+  fDetTypeRec->SetTreeAddressR(rp);
+  TClonesArray *itsRec  = 0;
+  itsRec = fDetTypeRec->RecPoints();
+  TBranch *branch = NULL;
+  branch = rp->GetBranch("ITSRecPoints");
+  if(!branch){
+    AliError("Null pointer for RecPoints branch!");
+    return;
+  }
+  Int_t nmodules=(Int_t)rp->GetEntries();
+  for(Int_t mod=0;mod<nmodules;mod++){
+    if(!branch->GetEvent(mod))continue;
+    Int_t ncl = itsRec->GetEntries();
+    if(ncl>0){
+      AliITSRecPoint* cluster = (AliITSRecPoint*)itsRec->UncheckedAt(0);
+      Int_t layer = cluster->GetLayer();
+      fNClusters[layer]+=ncl;
+    }
+    fDetTypeRec->ResetRecPoints();
   }
 }
 
@@ -94,6 +124,7 @@ void AliITSVertexer::FindMultiplicity(TTree *itsClusterTree){
     Short_t nfcL1 = multReco.GetNFiredChips(0);
     Short_t nfcL2 = multReco.GetNFiredChips(1);
     fMult = new AliMultiplicity(0,0,0,0,0,0,0,0,0,0,nfcL1,nfcL2,fastOrFiredMap);
+    for(Int_t kk=0;kk<6;kk++)fMult->SetITSClusters(kk,fNClusters[kk]);
     return;
   }
 
@@ -132,6 +163,7 @@ void AliITSVertexer::FindMultiplicity(TTree *itsClusterTree){
   Short_t nfcL1 = multReco.GetNFiredChips(0);
   Short_t nfcL2 = multReco.GetNFiredChips(1);
   fMult = new AliMultiplicity(notracks,tht,phi,dtht,dphi,labels,labelsL2,nosingleclus,ths,phs,nfcL1,nfcL2,fastOrFiredMap);
+  for(Int_t kk=0;kk<6;kk++)fMult->SetITSClusters(kk,fNClusters[kk]);
 
   delete [] tht;
   delete [] phi;
