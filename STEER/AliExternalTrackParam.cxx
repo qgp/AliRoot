@@ -25,6 +25,9 @@
 // are implemented.
 // Origin: I.Belikov, CERN, Jouri.Belikov@cern.ch                            //
 ///////////////////////////////////////////////////////////////////////////////
+#include <cassert>
+
+#include <TVectorD.h>
 #include <TMatrixDSym.h>
 #include <TPolyMarker3D.h>
 #include <TVector3.h>
@@ -62,6 +65,7 @@ AliExternalTrackParam::AliExternalTrackParam(const AliExternalTrackParam &track)
   //
   for (Int_t i = 0; i < 5; i++) fP[i] = track.fP[i];
   for (Int_t i = 0; i < 15; i++) fC[i] = track.fC[i];
+  CheckCovariance();
 }
 
 //_____________________________________________________________________________
@@ -78,6 +82,7 @@ AliExternalTrackParam& AliExternalTrackParam::operator=(const AliExternalTrackPa
 
     for (Int_t i = 0; i < 5; i++) fP[i] = trkPar.fP[i];
     for (Int_t i = 0; i < 15; i++) fC[i] = trkPar.fC[i];
+    CheckCovariance();
   }
 
   return *this;
@@ -96,6 +101,7 @@ AliExternalTrackParam::AliExternalTrackParam(Double_t x, Double_t alpha,
   //
   for (Int_t i = 0; i < 5; i++)  fP[i] = param[i];
   for (Int_t i = 0; i < 15; i++) fC[i] = covar[i];
+  CheckCovariance();
 }
 
 //_____________________________________________________________________________
@@ -234,6 +240,8 @@ void AliExternalTrackParam::Set(Double_t xyz[3],Double_t pxpypz[3],
   fC[13] = b1/b3-b2*fC[8]/b3;
   fC[9 ] = TMath::Abs((cv[20]-fC[14]*(m45*m45)-fC[13]*2.*m35*m45)/(m35*m35));
 
+  CheckCovariance();
+
   return;
 }
 
@@ -258,6 +266,7 @@ void AliExternalTrackParam::AddCovariance(const Double_t c[15]) {
     fC[3] +=c[3];  fC[4] +=c[4];  fC[5] +=c[5];
     fC[6] +=c[6];  fC[7] +=c[7];  fC[8] +=c[8];  fC[9] +=c[9];
     fC[10]+=c[10]; fC[11]+=c[11]; fC[12]+=c[12]; fC[13]+=c[13]; fC[14]+=c[14];
+    CheckCovariance();
 }
 
 
@@ -294,8 +303,8 @@ Double_t AliExternalTrackParam::GetD(Double_t x,Double_t y,Double_t b) const {
   y = -x*sn + y*cs; x=a;
   xt-=x; yt-=y;
 
-  sn=rp4*xt - fP[2]; cs=rp4*yt + TMath::Sqrt(1.- fP[2]*fP[2]);
-  a=2*(xt*fP[2] - yt*TMath::Sqrt(1.- fP[2]*fP[2]))-rp4*(xt*xt + yt*yt);
+  sn=rp4*xt - fP[2]; cs=rp4*yt + TMath::Sqrt((1.- fP[2])*(1.+fP[2]));
+  a=2*(xt*fP[2] - yt*TMath::Sqrt((1.-fP[2])*(1.+fP[2])))-rp4*(xt*xt + yt*yt);
   return  -a/(1 + TMath::Sqrt(sn*sn + cs*cs));
 }
 
@@ -307,7 +316,7 @@ GetDZ(Double_t x, Double_t y, Double_t z, Double_t b, Float_t dz[2]) const {
   // with respect to a point with global coordinates (x,y)
   // in the magnetic field "b" (kG)
   //------------------------------------------------------------------
-  Double_t f1 = fP[2], r1 = TMath::Sqrt(1. - f1*f1);
+  Double_t f1 = fP[2], r1 = TMath::Sqrt((1.-f1)*(1.+f1));
   Double_t xt=fX, yt=fP[0];
   Double_t sn=TMath::Sin(fAlpha), cs=TMath::Cos(fAlpha);
   Double_t a = x*cs + y*sn;
@@ -325,7 +334,7 @@ GetDZ(Double_t x, Double_t y, Double_t z, Double_t b, Float_t dz[2]) const {
   a=2*(xt*f1 - yt*r1)-rp4*(xt*xt + yt*yt);
   Double_t rr=TMath::Sqrt(sn*sn + cs*cs);
   dz[0] = -a/(1 + rr);
-  Double_t f2 = -sn/rr, r2 = TMath::Sqrt(1. - f2*f2);
+  Double_t f2 = -sn/rr, r2 = TMath::Sqrt((1.-f2)*(1.+f2));
   dz[1] = fP[1] + fP[3]/rp4*TMath::ASin(f2*r1 - f1*r2) - z;
 }
 
@@ -340,7 +349,7 @@ Double_t AliExternalTrackParam::GetLinearD(Double_t xv,Double_t yv) const {
   Double_t x= xv*cs + yv*sn;
   Double_t y=-xv*sn + yv*cs;
 
-  Double_t d = (fX-x)*fP[2] - (fP[0]-y)*TMath::Sqrt(1.- fP[2]*fP[2]);
+  Double_t d = (fX-x)*fP[2] - (fP[0]-y)*TMath::Sqrt((1.-fP[2])*(1.+fP[2]));
 
   return -d;
 }
@@ -365,7 +374,7 @@ Bool_t AliExternalTrackParam::CorrectForMeanMaterial
 
   //Apply angle correction, if requested
   if(anglecorr) {
-    Double_t angle=TMath::Sqrt((1.+ fP3*fP3)/(1.- fP2*fP2));
+    Double_t angle=TMath::Sqrt((1.+ fP3*fP3)/((1-fP2)*(1.+fP2)));
     xOverX0 *=angle;
     xTimesRho *=angle;
   } 
@@ -383,7 +392,7 @@ Bool_t AliExternalTrackParam::CorrectForMeanMaterial
      Double_t theta2=14.1*14.1/(beta2*p2*1e6)*TMath::Abs(xOverX0);
      //Double_t theta2=1.0259e-6*14*14/28/(beta2*p2)*TMath::Abs(d)*9.36*2.33;
      if(theta2>TMath::Pi()*TMath::Pi()) return kFALSE;
-     cC22 = theta2*(1.- fP2*fP2)*(1. + fP3*fP3);
+     cC22 = theta2*((1.-fP2)*(1.+fP2))*(1. + fP3*fP3);
      cC33 = theta2*(1. + fP3*fP3)*(1. + fP3*fP3);
      cC43 = theta2*fP3*fP4*(1. + fP3*fP3);
      cC44 = theta2*fP3*fP4*fP3*fP4;
@@ -413,6 +422,8 @@ Bool_t AliExternalTrackParam::CorrectForMeanMaterial
   fC44 += cC44;
   fP4  *= cP4;
 
+  CheckCovariance();
+
   return kTRUE;
 }
 
@@ -440,7 +451,7 @@ Bool_t AliExternalTrackParam::CorrectForMaterial
   Double_t p=GetP();
   Double_t p2=p*p;
   Double_t beta2=p2/(p2 + mass*mass);
-  d*=TMath::Sqrt((1.+ fP3*fP3)/(1.- fP2*fP2));
+  d*=TMath::Sqrt((1.+ fP3*fP3)/((1.-fP2)*(1.+fP2)));
 
   //Multiple scattering******************
   Double_t cC22 = 0.;
@@ -451,7 +462,7 @@ Bool_t AliExternalTrackParam::CorrectForMaterial
      Double_t theta2=14.1*14.1/(beta2*p2*1e6)*TMath::Abs(d);
      //Double_t theta2=1.0259e-6*14*14/28/(beta2*p2)*TMath::Abs(d)*9.36*2.33;
      if(theta2>TMath::Pi()*TMath::Pi()) return kFALSE;
-     cC22 = theta2*(1.- fP2*fP2)*(1. + fP3*fP3);
+     cC22 = theta2*(1.-fP2)*(1.+fP2)*(1. + fP3*fP3);
      cC33 = theta2*(1. + fP3*fP3)*(1. + fP3*fP3);
      cC43 = theta2*fP3*fP4*(1. + fP3*fP3);
      cC44 = theta2*fP3*fP4*fP3*fP4;
@@ -478,6 +489,8 @@ Bool_t AliExternalTrackParam::CorrectForMaterial
   fC43 += cC43;
   fC44 += cC44;
   fP4  *= cP4;
+
+  CheckCovariance();
 
   return kTRUE;
 }
@@ -608,10 +621,10 @@ Bool_t AliExternalTrackParam::Rotate(Double_t alpha) {
 
   Double_t x=fX;
   Double_t ca=TMath::Cos(alpha-fAlpha), sa=TMath::Sin(alpha-fAlpha);
-  Double_t sf=fP2, cf=TMath::Sqrt(1.- fP2*fP2);
+  Double_t sf=fP2, cf=TMath::Sqrt((1.- fP2)*(1.+fP2)); // Improve precision
 
   Double_t tmp=sf*ca - cf*sa;
-  if (TMath::Abs(tmp) >= kAlmost1) {
+  if (TMath::Abs(tmp) > 1.) {   // 1 is a quite acceptable value for tmp
      AliError(Form("Rotation failed ! %.10e",tmp)); 
      return kFALSE;
   }
@@ -638,6 +651,8 @@ Bool_t AliExternalTrackParam::Rotate(Double_t alpha) {
   fC40 *= ca;
   fC42 *= rr;
 
+  CheckCovariance();
+
   return kTRUE;
 }
 
@@ -663,7 +678,7 @@ Bool_t AliExternalTrackParam::PropagateTo(Double_t xk, Double_t b) {
   &fC30=fC[6],   &fC31=fC[7],   &fC32=fC[8],   &fC33=fC[9],  
   &fC40=fC[10],  &fC41=fC[11],  &fC42=fC[12],  &fC43=fC[13], &fC44=fC[14];
 
-  Double_t r1=TMath::Sqrt(1.- f1*f1), r2=TMath::Sqrt(1.- f2*f2);
+  Double_t r1=TMath::Sqrt((1.-f1)*(1.+f1)), r2=TMath::Sqrt((1.-f2)*(1.+f2));
 
   fX=xk;
   fP0 += dx*(f1+f2)/(r1+r2);
@@ -709,6 +724,8 @@ Bool_t AliExternalTrackParam::PropagateTo(Double_t xk, Double_t b) {
   fC22 += b22 + b22 + a22;
   fC32 += b32;
   fC42 += b42;
+
+  CheckCovariance();
 
   return kTRUE;
 }
@@ -847,7 +864,7 @@ GetPredictedChi2(Double_t p[3],Double_t covyz[3],Double_t covxyz[3]) const {
 
   Double_t f=GetSnp();
   if (TMath::Abs(f) >= kAlmost1) return kVeryBig;
-  Double_t r=TMath::Sqrt(1.- f*f);
+  Double_t r=TMath::Sqrt((1.-f)*(1.+f));
   Double_t a=f/r, b=GetTgl()/r;
 
   Double_t s2=333.*333.;  //something reasonably big (cm^2)
@@ -888,7 +905,7 @@ PropagateTo(Double_t p[3],Double_t covyz[3],Double_t covxyz[3],Double_t bz) {
 
   Double_t f=GetSnp();
   if (TMath::Abs(f) >= kAlmost1) return kFALSE;
-  Double_t r=TMath::Sqrt(1.- f*f);
+  Double_t r=TMath::Sqrt((1.-f)*(1.+f));
   Double_t a=f/r, b=GetTgl()/r;
 
   Double_t s2=333.*333.;  //something reasonably big (cm^2)
@@ -1026,6 +1043,8 @@ Bool_t AliExternalTrackParam::Update(Double_t p[2], Double_t cov[3]) {
   fC43-=k30*c04+k31*c14; 
 
   fC44-=k40*c04+k41*c14; 
+
+  CheckCovariance();
 
   return kTRUE;
 }
@@ -1214,15 +1233,15 @@ Double_t b, Double_t maxd, Double_t dz[2], Double_t covar[3]) {
   x-=xv; y-=yv;
 
   //Estimate the impact parameter neglecting the track curvature
-  Double_t d=TMath::Abs(x*snp - y*TMath::Sqrt(1.- snp*snp));
+  Double_t d=TMath::Abs(x*snp - y*TMath::Sqrt((1.-snp)*(1.+snp)));
   if (d > maxd) return kFALSE; 
 
   //Propagate to the DCA
   Double_t crv=GetC(b);
   if (TMath::Abs(b) < kAlmost0Field) crv=0.;
 
-  Double_t tgfv=-(crv*x - snp)/(crv*y + TMath::Sqrt(1.-snp*snp));
-  sn=tgfv/TMath::Sqrt(1.+ tgfv*tgfv); cs=TMath::Sqrt(1.- sn*sn);
+  Double_t tgfv=-(crv*x - snp)/(crv*y + TMath::Sqrt((1.-snp)*(1.+snp)));
+  sn=tgfv/TMath::Sqrt(1.+ tgfv*tgfv); cs=TMath::Sqrt((1.-sn)*(1.+sn));
   if (TMath::Abs(tgfv)>0.) cs = sn/tgfv;
   else cs=1.;
 
@@ -1249,7 +1268,6 @@ Double_t b, Double_t maxd, Double_t dz[2], Double_t covar[3]) {
   return kTRUE;
 }
 
-
 void AliExternalTrackParam::GetDirection(Double_t d[3]) const {
   //----------------------------------------------------------------
   // This function returns a unit vector along the track direction
@@ -1257,7 +1275,7 @@ void AliExternalTrackParam::GetDirection(Double_t d[3]) const {
   //----------------------------------------------------------------
   Double_t cs=TMath::Cos(fAlpha), sn=TMath::Sin(fAlpha);
   Double_t snp=fP[2];
-  Double_t csp =TMath::Sqrt((1.- snp)*(1.+snp));
+  Double_t csp =TMath::Sqrt((1.-snp)*(1.+snp));
   Double_t norm=TMath::Sqrt(1.+ fP[3]*fP[3]);
   d[0]=(csp*cs - snp*sn)/norm; 
   d[1]=(snp*cs + csp*sn)/norm; 
@@ -1668,6 +1686,7 @@ void AliExternalTrackParam::g3helx3(Double_t qfield,
  *                                                                *
  ******************************************************************/
   const Int_t ix=0, iy=1, iz=2, ipx=3, ipy=4, ipz=5, ipp=6;
+  const Double_t kOvSqSix=TMath::Sqrt(1./6.);
 
   Double_t cosx=vect[ipx], cosy=vect[ipy], cosz=vect[ipz];
 
@@ -1683,7 +1702,7 @@ void AliExternalTrackParam::g3helx3(Double_t qfield,
      cos1t = 2*t*t/tet;
   } else {
      tsint = tet*tet/6.;
-     sintt = 1.- tsint;
+     sintt = (1.-tet*kOvSqSix)*(1.+tet*kOvSqSix); // 1.- tsint;
      sint  = tet*sintt;
      cos1t = 0.5*tet; 
   }
@@ -1731,7 +1750,7 @@ Bool_t AliExternalTrackParam::PropagateToBxByBz(Double_t xk, const Double_t b[3]
   &fC30=fC[6],   &fC31=fC[7],   &fC32=fC[8],   &fC33=fC[9],  
   &fC40=fC[10],  &fC41=fC[11],  &fC42=fC[12],  &fC43=fC[13], &fC44=fC[14];
 
-  Double_t r1=TMath::Sqrt(1.- f1*f1), r2=TMath::Sqrt(1.- f2*f2);
+  Double_t r1=TMath::Sqrt((1.-f1)*(1.+f1)), r2=TMath::Sqrt((1.-f2)*(1.+f2));
 
   //f = F - 1
   Double_t f02=    dx/(r1*r1*r1);            Double_t cc=crv/fP4;
@@ -1772,6 +1791,7 @@ Bool_t AliExternalTrackParam::PropagateToBxByBz(Double_t xk, const Double_t b[3]
   fC32 += b32;
   fC42 += b42;
 
+  CheckCovariance();
   
   // Appoximate step length
   Double_t step=dx*TMath::Abs(r2 + f2*(f1+f2)/(r1+r2));
@@ -1937,3 +1957,74 @@ Bool_t AliExternalTrackParam::Translate(Double_t *vTrasl,Double_t *covV){
 
   return kTRUE;
  }
+
+void AliExternalTrackParam::CheckCovariance() {
+
+  // This function forces the diagonal elements of the covariance matrix to be positive.
+  // In case the diagonal element is bigger than the maximal allowed value, it is set to
+  // the limit and the off-diagonal elements that correspond to it are set to zero.
+
+    fC[0] = TMath::Abs(fC[0]);
+    if (fC[0]>kC0max) {
+      fC[0] = kC0max;
+      fC[1] = 0;
+      fC[3] = 0;
+      fC[6] = 0;
+      fC[10] = 0;
+    }
+    fC[2] = TMath::Abs(fC[2]);
+    if (fC[2]>kC2max) {
+      fC[2] = kC2max;
+      fC[1] = 0;
+      fC[4] = 0;
+      fC[7] = 0;
+      fC[11] = 0;
+    }
+    fC[5] = TMath::Abs(fC[5]);
+    if (fC[5]>kC5max) {
+      fC[5] = kC5max;
+      fC[3] = 0;
+      fC[4] = 0;
+      fC[8] = 0;
+      fC[12] = 0;
+    }
+    fC[9] = TMath::Abs(fC[9]);
+    if (fC[9]>kC9max) {
+      fC[9] = kC9max;
+      fC[6] = 0;
+      fC[7] = 0;
+      fC[8] = 0;
+      fC[13] = 0;
+    }
+    fC[14] = TMath::Abs(fC[14]);
+    if (fC[14]>kC14max) {
+      fC[14] = kC14max;
+      fC[10] = 0;
+      fC[11] = 0;
+      fC[12] = 0;
+      fC[13] = 0;
+    }
+
+    // The part below is used for tests and normally is commented out    
+//     TMatrixDSym m(5);
+//     TVectorD eig(5);
+    
+//     m(0,0)=fC[0];
+//     m(1,0)=fC[1];  m(1,1)=fC[2];
+//     m(2,0)=fC[3];  m(2,1)=fC[4];  m(2,2)=fC[5];
+//     m(3,0)=fC[6];  m(3,1)=fC[7];  m(3,2)=fC[8];  m(3,3)=fC[9];
+//     m(4,0)=fC[10]; m(4,1)=fC[11]; m(4,2)=fC[12]; m(4,3)=fC[13]; m(4,4)=fC[14];
+    
+//     m(0,1)=m(1,0);
+//     m(0,2)=m(2,0); m(1,2)=m(2,1);
+//     m(0,3)=m(3,0); m(1,3)=m(3,1); m(2,3)=m(3,2);
+//     m(0,4)=m(4,0); m(1,4)=m(4,1); m(2,4)=m(4,2); m(3,4)=m(4,3);
+//     m.EigenVectors(eig);
+
+//     //    assert(eig(0)>=0 && eig(1)>=0 && eig(2)>=0 && eig(3)>=0 && eig(4)>=0);
+//     if (!(eig(0)>=0 && eig(1)>=0 && eig(2)>=0 && eig(3)>=0 && eig(4)>=0)) {
+//       AliWarning("Negative eigenvalues of the covariance matrix!");
+//       this->Print();
+//       eig.Print();
+//     }
+}
