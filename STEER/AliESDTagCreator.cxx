@@ -468,6 +468,9 @@ void AliESDTagCreator::CreateTag(TChain* chain, const char *type) {
     evTag->SetTriggerMask(esd->GetTriggerMask());
     evTag->SetTriggerCluster(esd->GetTriggerCluster());
     
+    evTag->SetEventType(esd->GetEventType());
+    evTag->SetFiredTriggerClasses(esd->GetFiredTriggerClasses());
+
     evTag->SetZDCNeutron1Energy(esd->GetZDCN1Energy());
     evTag->SetZDCProton1Energy(esd->GetZDCP1Energy());
     evTag->SetZDCEMEnergy(esd->GetZDCEMEnergy(0),esd->GetZDCEMEnergy(1));
