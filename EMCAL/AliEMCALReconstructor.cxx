@@ -1,5 +1,5 @@
 /**************************************************************************
- * CopyrightAl(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+ * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  *                                                                        *
  * Author: The ALICE Off-line Project.                                    *
  * Contributors are mentioned in the code where appropriate.              *
@@ -118,6 +118,9 @@ AliEMCALReconstructor::~AliEMCALReconstructor()
 {
   // dtor
   delete fGeom;
+  delete fgRawUtils;
+  delete fgClusterizer;
+	
   AliCodeTimer::Instance()->Print();
 } 
 
@@ -137,7 +140,7 @@ void AliEMCALReconstructor::Reconstruct(TTree* digitsTree, TTree* clustersTree) 
   // the global tracking.
   // Works on the current event.
 
-  AliCodeTimerAuto("");
+  AliCodeTimerAuto("")
 
   ReadDigitsArrayFromTree(digitsTree);
   fgClusterizer->InitParameters();
@@ -181,7 +184,7 @@ void AliEMCALReconstructor::ConvertDigits(AliRawReader* rawReader, TTree* digits
   fgRawUtils->SetNoiseThreshold(GetRecParam()->GetNoiseThreshold());
   fgRawUtils->SetNPedSamples(GetRecParam()->GetNPedSamples());
 
-  fgRawUtils->Raw2Digits(rawReader,digitsArr);
+  fgRawUtils->Raw2Digits(rawReader,digitsArr,fPedestalData);
 
   digitsTree->Fill();
   digitsArr->Delete();
@@ -472,7 +475,7 @@ void AliEMCALReconstructor::FillMisalMatrixes(AliESDEvent* esd)const{
 	}
 	//Note, that owner of copied marixes will be header
 	char path[255] ;
-	TGeoHMatrix * m ;
+	TGeoHMatrix * m = 0x0;
 	for(Int_t sm = 0; sm < 12; sm++){
 		sprintf(path,"/ALIC_1/XEN1_1/SMOD_%d",sm+1) ; //In Geometry modules numbered 1,2,.,5
 		if(sm >= 10) sprintf(path,"/ALIC_1/XEN1_1/SM10_%d",sm-10+1) ;
@@ -485,7 +488,6 @@ void AliEMCALReconstructor::FillMisalMatrixes(AliESDEvent* esd)const{
 			esd->SetEMCALMatrix(NULL,sm) ;
 		}
 	}
-	
 }
 
 
