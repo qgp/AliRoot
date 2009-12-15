@@ -29,7 +29,6 @@ void rec(const char *filename="raw.root")
   rec.SetCleanESD(kFALSE);
 
   AliLog::Flush();
-  rec.SetEventRange(100,300) ; 
   rec.Run();
 
 }
