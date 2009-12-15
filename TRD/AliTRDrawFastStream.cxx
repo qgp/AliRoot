@@ -1823,7 +1823,11 @@ Bool_t AliTRDrawFastStream::SetNTimebins()
   // skip H0 
   fpPosTemp++;
 
-  UInt_t vword = *fpPosTemp;
+  UInt_t vword = 0;
+  if (!(vword = *fpPosTemp)) {
+    fGlobalNTimeBins = 30; // default number of timebins
+    return kFALSE;
+  }
 
   // get the number of time bins 
   if (HC_HEADER_MASK_ERR(vword) == 0) {
