@@ -1,4 +1,4 @@
-void runPilot(Int_t run) {
+void runPilot() {
   TStopwatch timer;
   timer.Start();
   gSystem->SetIncludePath("-I$ROOTSYS/include -I$ALICE_ROOT/include -I$ALICE_ROOT/ITS");
@@ -14,7 +14,7 @@ void runPilot(Int_t run) {
   
  
 
-  
+  gROOT->LoadMacro("AliESDInputHandlerRPITS.cxx++g");  
 
   Bool_t doQAsym        = 1;   // output ok
   Bool_t doVZERO        = 1;   // output ok but there is a 2nd file
@@ -30,14 +30,16 @@ void runPilot(Int_t run) {
   mgr->SetDebugLevel(2);
   
 
-  AliInputEventHandler* esdH = new AliESDInputHandlerRP();
+  AliInputEventHandler* esdH = new AliESDInputHandlerRPITS();
   esdH->SetActiveBranches("ESDfriend");
   mgr->SetInputEventHandler(esdH);  
 
   // Chain 
-  TChain* chain = new TChain("esdTree");
-  chain->AddFile("~/104321/AliESDs.root");
+  TGrid::Connect("alien://");
   
+  TChain* chain = new TChain("esdTree");
+  chain->AddFile("alien:///alice/data/2009/LHC09d/000104321/ESDs/pass1/09000104321018.10/AliESDs.root");
+  chain->AddFile("alien:///alice/data/2009/LHC09d/000104321/ESDs/pass1/09000104321018.20/AliESDs.root");
   //
   // Wagons
   //
@@ -90,7 +92,7 @@ void runPilot(Int_t run) {
   //
   if (doSDD) {
       gROOT->LoadMacro("AddSDDPoints.C");
-      AliAnalysisTaskSE* task5 = AddSDDPoints(run);
+      AliAnalysisTaskSE* task5 = AddSDDPoints();
       task5->SelectCollisionCandidates();
   }
   
