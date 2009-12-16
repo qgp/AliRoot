@@ -10,6 +10,8 @@
 #define AliEveKink_H
 
 #include <TEvePointSet.h>
+#include <TEveVector.h>
+#include <TEveVSDStructs.h>
 
 class TEveTrack;
 class TEveTrackPropagator;
