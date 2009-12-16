@@ -10,7 +10,24 @@
 // Import tracks from kinematics-tree / particle-stack.
 // Preliminary/minimal solution.
 
-#include "TParticlePDG.h"
+#if !defined(__CINT__) || defined(__MAKECINT__)
+
+#include <TParticle.h>
+#include <TParticlePDG.h>
+
+#include <TEveManager.h>
+#include <TEveTrackPropagator.h>
+
+#include <EveBase/AliEveEventManager.h>
+#include <EveBase/AliEveMagField.h>
+#include <EveBase/AliEveTrack.h>
+#include <EveBase/AliEveKineTools.h>
+
+#include <AliRunLoader.h>
+#include <AliStack.h>
+#include <AliMagF.h>
+
+#endif
 
 // Use magnetic-field as retrieved from GRP.
 Bool_t g_kine_tracks_true_field = kTRUE;
