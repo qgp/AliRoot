@@ -854,6 +854,7 @@ Bool_t AliTRDrawFastStream::DecodeSMHeader(void *buffer, UInt_t length)
   if (DecodeGTUheader()== kFALSE)
     return kFALSE;
 
+  Int_t nLinkErrors=0;
   for (Int_t istack = 0; istack < 5; istack++) {
      fStackNumber = istack; 
      if (fSM.fStackActive[istack] == kFALSE) continue;
@@ -869,6 +870,7 @@ Bool_t AliTRDrawFastStream::DecodeSMHeader(void *buffer, UInt_t length)
         if (!(fStack->fLinksDataType[ilink] == 0 && fStack->fLinksMonitor[ilink] == 0)) {
           fStack->fLinkMonitorError[ilink] = 1;
           fStack->fLinkMonitorError[ilink] += fNWordsCounter; // counts words of given hc having link monitor error
+          nLinkErrors++;
           //continue;
         }
 
@@ -878,7 +880,7 @@ Bool_t AliTRDrawFastStream::DecodeSMHeader(void *buffer, UInt_t length)
           break;
         }
 
-	      // HLT streamer set det number using SM header 
+	      // set det number using SM header 
         fHC = &fStack->fHalfChambers[ilink];
 	      fHC->fSM = fRawReader->GetEquipmentId() - 1024;
 	      fHC->fStack = fStackNumber;
@@ -892,7 +894,8 @@ Bool_t AliTRDrawFastStream::DecodeSMHeader(void *buffer, UInt_t length)
   }	
 
   // set number of timebin to be used in the digit container 
-  if (!fIsTimeBinSet) {
+  if (nLinkErrors>30) fGlobalNTimeBins=30;
+  else if (!fIsTimeBinSet) {
     fpPosTemp = fpPos;
     SetGlobalNTimebins();
     fIsTimeBinSet = kTRUE;
