@@ -1,6 +1,6 @@
 AliAnalysisTaskCheckCascade *AddTaskCheckCascade(Short_t lCollidingSystems=0  /*0 = pp, 1 = AA*/,
 						 Short_t lRealData=0 /* 0 = MC data or 1 = real data (needed for trigger issues) */,
-						 const TString* lMasterJobSessionFlag = "")
+						 TString lMasterJobSessionFlag = "")
 
 {
 // Creates, configures and attaches to the train a cascades check task.
@@ -35,9 +35,9 @@ AliAnalysisTaskCheckCascade *AddTaskCheckCascade(Short_t lCollidingSystems=0  /*
    // User file name (if need be)
    /*
    TString lCommonFileName = "sLHC09dxx-CheckCascade";
-   if(lMasterJobSessionFlag->Length()){
+   if(lMasterJobSessionFlag.Length()){
         lCommonFileName += "-";
-        lCommonFileName += lMasterJobSessionFlag->Data();
+        lCommonFileName += lMasterJobSessionFlag.Data();
    }
         lCommonFileName += ".root"; 
    mgr->SetCommonFileName( lCommonFileName.Data );
@@ -48,7 +48,7 @@ AliAnalysisTaskCheckCascade *AddTaskCheckCascade(Short_t lCollidingSystems=0  /*
    if (lCollidingSystems) outputFileName += "_AA_";
    else outputFileName += "_PP_";
    if (mgr->GetMCtruthEventHandler()) outputFileName += "MC_";
-   if(lMasterJobSessionFlag->Length()) outputFileName += lMasterJobSessionFlag->Data();
+   if(lMasterJobSessionFlag.Length()) outputFileName += lMasterJobSessionFlag.Data();
 
    AliAnalysisDataContainer *coutput1 = mgr->CreateContainer("clistCasc",
 							     TList::Class(),
