@@ -132,7 +132,9 @@ Int_t AliPHOSTracker::LoadClusters(TTree *cTree) {
   arr->Delete();
   Info("LoadClusters","Number of loaded clusters: %d",nclusters);
 
-  return 0;
+  return 0 ; //At this stage we can not strore result 
+             // the closest track and distance to it
+             //We perform same task later in AliPHOSTrackSegmentMakerv1
 }
 
 //____________________________________________________________________________
@@ -237,7 +239,9 @@ Int_t AliPHOSTracker::PropagateBack(AliESDEvent *esd) {
   delete[] quality;
   delete[] index;
 
-  return 0;
+  return 0 ; //At this stage we can not strore result 
+             // the closest track and distance to it
+             //We perform same task later in AliPHOSTrackSegmentMakerv1
 }
 
 //____________________________________________________________________________
