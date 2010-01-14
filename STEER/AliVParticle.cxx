@@ -52,7 +52,7 @@ Bool_t AliVParticle::Local2GlobalMomentum(Double_t p[3], Double_t alpha) const {
   // Results for (nearly) straight tracks are meaningless !
   //----------------------------------------------------------------
   if (TMath::Abs(p[0])<=kAlmost0) return kFALSE;
-  if (TMath::Abs(p[1])> kAlmost1) return kFALSE;
+  if (TMath::Abs(p[1])> 1) return kFALSE;
 
   Double_t pt=1./TMath::Abs(p[0]);
   Double_t cs=TMath::Cos(alpha), sn=TMath::Sin(alpha);
