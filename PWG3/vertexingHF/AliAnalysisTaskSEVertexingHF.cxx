@@ -102,7 +102,7 @@ void AliAnalysisTaskSEVertexingHF::UserCreateOutputObjects()
   if(fDebug > 1) printf("AnalysisTaskSEVertexingHF::UserCreateOutPutData() \n");
   // Support both the case when the AOD + deltaAOD are produced in an ESD
   // analysis or if the deltaAOD is produced on an analysis on AOD's. (A.G. 27/04/09)
-  if (!AODEvent()) {
+  if (!AliAnalysisManager::GetAnalysisManager()->GetOutputEventHandler()) {
      Fatal("UserCreateOutputObjects", "This task needs an AOD handler");
      return;
   }   
