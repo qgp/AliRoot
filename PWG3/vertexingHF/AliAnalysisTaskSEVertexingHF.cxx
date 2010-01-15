@@ -107,7 +107,9 @@ void AliAnalysisTaskSEVertexingHF::UserCreateOutputObjects()
      return;
   }   
   TString filename = "AliAOD.VertexingHF.root";
-  if (!IsStandardAOD()) filename = "";
+  // When running on standard AOD to produce deltas, IsStandardAOD is never set,
+  // If AODEvent is NULL, new branches have to be added to the new file(s) (A.G. 15/01/10)
+  if (!IsStandardAOD() && AODEvent()) filename = "";
   if(!fVHF) {
     printf("AnalysisTaskSEVertexingHF::UserCreateOutPutData() \n ERROR! no fvHF!\n");
     return;
