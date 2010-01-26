@@ -57,7 +57,7 @@ ClassImp(AliTOFtrackerV1)
 
 //_____________________________________________________________________________
 AliTOFtrackerV1::AliTOFtrackerV1():
-  fRecoParam(0x0),
+  fkRecoParam(0x0),
   fN(0),
   fNseeds(0),
   fNseedsTOF(0),
@@ -93,7 +93,7 @@ AliTOFtrackerV1::~AliTOFtrackerV1() {
   SaveCheckHists();
 
   if(!(AliCDBManager::Instance()->GetCacheFlag())){
-    delete fRecoParam;
+    delete fkRecoParam;
   }
   delete fHDigClusMap;
   delete fHDigNClus;
@@ -122,13 +122,13 @@ void AliTOFtrackerV1::GetPidSettings(AliESDpid *esdPID) {
   // 
   // Sets TOF resolution from RecoParams
   //
-  if (fRecoParam)
-    esdPID->GetTOFResponse().SetTimeResolution(fRecoParam->GetTimeResolution());
+  if (fkRecoParam)
+    esdPID->GetTOFResponse().SetTimeResolution(fkRecoParam->GetTimeResolution());
   else
-    AliWarning("fRecoParam not yet set; cannot set PID settings");
+    AliWarning("fkRecoParam not yet set; cannot set PID settings");
 }
 //_____________________________________________________________________________
-Int_t AliTOFtrackerV1::PropagateBack(AliESDEvent* event) {
+Int_t AliTOFtrackerV1::PropagateBack(AliESDEvent * const event) {
   //
   // Gets seeds from ESD event and Match with TOF Clusters
   //
@@ -136,19 +136,14 @@ Int_t AliTOFtrackerV1::PropagateBack(AliESDEvent* event) {
   // initialize RecoParam for current event
   AliDebug(1,"Initializing params for TOF");
 
-  fRecoParam = AliTOFReconstructor::GetRecoParam();  // instantiate reco param from STEER...
+  fkRecoParam = AliTOFReconstructor::GetRecoParam();  // instantiate reco param from STEER...
 
-  if (fRecoParam == 0x0) { 
+  if (fkRecoParam == 0x0) { 
     AliFatal("No Reco Param found for TOF!!!");
   }
-  //fRecoParam->Dump();
-  //if(fRecoParam->GetApplyPbPbCuts())fRecoParam=fRecoParam->GetPbPbparam();
-  //fRecoParam->PrintParameters();
-
-  //Handle Time Zero information
-
-  Double_t timeZero=0.;
-  Double_t timeZeroMax=99999.;
+  //fkRecoParam->Dump();
+  //if(fkRecoParam->GetApplyPbPbCuts())fkRecoParam=fkRecoParam->GetPbPbparam();
+  //fkRecoParam->PrintParameters();
 
   //Initialise some counters
 
@@ -372,12 +367,12 @@ void AliTOFtrackerV1::MatchTracks( ){
   const Float_t kTimeOffset = 32.; // time offset for tracking algorithm [ps]
 
   const Int_t kncmax = 100;
-  Float_t sensRadius = fRecoParam->GetSensRadius();
-  Float_t scaleFact   = fRecoParam->GetWindowScaleFact();
-  Float_t dyMax=fRecoParam->GetWindowSizeMaxY(); 
-  Float_t dzMax=fRecoParam->GetWindowSizeMaxZ();
-  Double_t maxChi2=fRecoParam->GetMaxChi2();
-  Bool_t timeWalkCorr    = fRecoParam->GetTimeWalkCorr();
+  Float_t sensRadius = fkRecoParam->GetSensRadius();
+  Float_t scaleFact   = fkRecoParam->GetWindowScaleFact();
+  Float_t dyMax=fkRecoParam->GetWindowSizeMaxY(); 
+  Float_t dzMax=fkRecoParam->GetWindowSizeMaxZ();
+  Double_t maxChi2=fkRecoParam->GetMaxChi2();
+  Bool_t timeWalkCorr    = fkRecoParam->GetTimeWalkCorr();
   AliDebug(1,"++++++++++++++TOF Reconstruction Parameters:++++++++++++ \n");
   AliDebug(1,Form("TOF sens radius: %f",sensRadius));
   AliDebug(1,Form("TOF Window scale factor: %f",scaleFact));
@@ -858,7 +853,7 @@ void AliTOFtrackerV1::SaveCheckHists() {
 
   }
 //_________________________________________________________________________
-Float_t AliTOFtrackerV1::CorrectTimeWalk( Float_t dist, Float_t tof) {
+Float_t AliTOFtrackerV1::CorrectTimeWalk( Float_t dist, Float_t tof) const {
 
   //dummy, for the moment
   Float_t tofcorr=0.;
@@ -871,7 +866,7 @@ Float_t AliTOFtrackerV1::CorrectTimeWalk( Float_t dist, Float_t tof) {
   return tofcorr;
 }
 //_________________________________________________________________________
-Float_t AliTOFtrackerV1::GetTimeZerofromT0(AliESDEvent *event) const {
+Float_t AliTOFtrackerV1::GetTimeZerofromT0(const AliESDEvent * const event) const {
 
   //Returns TimeZero as measured by T0 detector
 
