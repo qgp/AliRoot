@@ -686,23 +686,32 @@ AliMUONTriggerIO::WriteLocalMasks(const char* localFile, AliMUONVStore& localMas
     }   
 
     UShort_t maskBuffer[8];
-    Int_t localBoardIndex(0);
-    while (localBoardIndex < NofLocalBoards()) {
 
-      Int_t localBoardId = fRegionalTrigger.LocalBoardId(localBoardIndex);
+    TIter next(regionalConfig->CreateCrateIterator());
+    AliMUONTriggerCrateConfig* crate;
+    
+    while ( ( crate = static_cast<AliMUONTriggerCrateConfig*>(next()) ) )
+    {      
+      UShort_t mask = crate->GetMask(); // getting mask from current config
 
-      AliMUONVCalibParam* localMask = 
-	static_cast<AliMUONVCalibParam*>(localMasks.FindObject(localBoardId));
+      for (Int_t iLocal = 0; iLocal < crate->GetNofLocalBoards(); ++iLocal) 
+      {
+	Int_t localBoardId = crate->GetLocalBoardId(iLocal);
 
-      for (Int_t index = 0; index < 8; ++index) 
+	if ( (mask >> iLocal ) & 0x1 ) 
 	{
-	  maskBuffer[index] = localMask->ValueAsInt(index,0); 
+	  AliMUONVCalibParam* localMask = 
+	      static_cast<AliMUONVCalibParam*>(localMasks.FindObject(localBoardId));
+
+	  for (Int_t index = 0; index < 8; ++index) 
+	  {
+	    maskBuffer[index] = localMask->ValueAsInt(index,0); 
+	  }
+
+	  fwrite ( maskBuffer, 2, 8, fp); 
 	}
-      
-      fwrite ( maskBuffer, 2, 8, fp); 
 
-      ++localBoardIndex;
-
+      }
     }
 
     fclose(fp);

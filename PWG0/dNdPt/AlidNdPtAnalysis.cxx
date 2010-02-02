@@ -993,7 +993,6 @@ void AlidNdPtAnalysis::Process(AliESDEvent *const esdEvent, AliMCEvent *const mc
 
     Int_t entries = allChargedTracks->GetEntries();
     //printf("entries %d \n",entries);
-     Bool_t isCosmic = kFALSE;
 
     labelsAll = new Int_t[entries];
     labelsAcc = new Int_t[entries];
@@ -1004,6 +1003,13 @@ void AlidNdPtAnalysis::Process(AliESDEvent *const esdEvent, AliMCEvent *const mc
       if(!track) continue;
       if(track->Charge()==0) continue;
 
+      /*
+      // cosmics analysis
+      if( GetParticleMode()==AlidNdPtHelper::kCosmics  && 
+          AlidNdPtHelper::IsCosmicTrack(allChargedTracks, track, i, accCuts, esdTrackCuts)==kFALSE ) 
+        continue;
+      */
+
       // only postive charged 
       if(GetParticleMode() == AlidNdPtHelper::kPlus && track->Charge() < 0) 
         continue;
@@ -1012,46 +1018,19 @@ void AlidNdPtAnalysis::Process(AliESDEvent *const esdEvent, AliMCEvent *const mc
       if(GetParticleMode() == AlidNdPtHelper::kMinus && track->Charge() > 0) 
         continue;
 
-      // esd track selection 
-      if(!esdTrackCuts->AcceptTrack(track))
-       continue;
-
       FillHistograms(track,stack,AlidNdPtHelper::kAllTracks); 
       labelsAll[multAll] = TMath::Abs(track->GetLabel());
       multAll++;
 
+       //if(accCuts->AcceptTrack(track)) {
          //FillHistograms(track,stack,AlidNdPtHelper::kAccTracks); 
 	 //labelsAcc[multAcc] = TMath::Abs(track->GetLabel());
 	 //multAcc++;
 
-         // cosmics analysis
-         isCosmic = kFALSE;
-         if( GetParticleMode()==AlidNdPtHelper::kCosmics )
-         {
-           Int_t mult = 0;
-           if(accCuts->AcceptTrack(track) ) 
-	   { 
-             for(Int_t j=0; j<entries;++j) 
-             {
-               AliESDtrack *track1 = (AliESDtrack*)allChargedTracks->At(j);
-               if(!track1) continue;
-               if(track1->Charge()==0) continue;
-
-               if( esdTrackCuts->AcceptTrack(track1) && accCuts->AcceptTrack(track1) ) 
-               { 
-                 mult++;
-                 isCosmic = AlidNdPtHelper::IsCosmicTrack(track,track1);
-	       }
-	     }
-	   }
-	   if(isCosmic) 
-	      printf("evt. number %d , mult %d \n", esdEvent->GetEventNumberInFile(), mult);
-
-           if(!isCosmic) continue;
-         }
-
-	 if(GetAnalysisMode() == AlidNdPtHelper::kTPCSPDvtxUpdate) {
-	   // update track parameters
+         if(esdTrackCuts->AcceptTrack(track)) 
+	 {
+	   if(GetAnalysisMode() == AlidNdPtHelper::kTPCSPDvtxUpdate) {
+	     // update track parameters
              AliExternalTrackParam cParam;
 	     track->RelateToVertexTPC(esdEvent->GetPrimaryVertexSPD(),esdEvent->GetMagneticField(),kVeryBig,&cParam);
 	     track->Set(cParam.GetX(),cParam.GetAlpha(),cParam.GetParameter(),cParam.GetCovariance());
@@ -1061,8 +1040,8 @@ void AlidNdPtAnalysis::Process(AliESDEvent *const esdEvent, AliMCEvent *const mc
 	       labelsRec[multRec] = TMath::Abs(track->GetLabel());
 	       multRec++;
 	     }  
-	  }
-          else {
+	   }
+           else {
              if(accCuts->AcceptTrack(track)) {
                FillHistograms(track,stack,AlidNdPtHelper::kRecTracks); 
 	       labelsRec[multRec] = TMath::Abs(track->GetLabel());
@@ -1070,7 +1049,8 @@ void AlidNdPtAnalysis::Process(AliESDEvent *const esdEvent, AliMCEvent *const mc
 	     }
 	   }
          }
-
+       //}
+     } 
      // fill track multiplicity histograms
      FillHistograms(allChargedTracks,labelsAll,multAll,labelsAcc,multAcc,labelsRec,multRec);
 

@@ -454,11 +454,8 @@ void AliAnalysisManager::PackOutput(TList *target)
             if (strlen(filename) && !isManagedByHandler) {
                // Backup current folder
                TDirectory *opwd = gDirectory;
-               // File resident outputs. 
-               // Check first if the file exists.
-               TString open_option = "RECREATE";
-               if (!gSystem->AccessPathName(output->GetFileName())) open_option = "UPDATE";
-               TFile *file = AliAnalysisManager::OpenFile(output, open_option, kTRUE);
+               // File resident outputs
+               TFile *file = AliAnalysisManager::OpenFile(output, "RECREATE", kTRUE);
                // Clear file list to release object ownership to user.
                file->Clear();
                // Save data to file, then close.
@@ -754,10 +751,6 @@ void AliAnalysisManager::Terminate()
    if (fOutputEventHandler)  fOutputEventHandler ->TerminateIO();
    if (fMCtruthEventHandler) fMCtruthEventHandler->TerminateIO();
    TIter next1(fOutputs);
-   TString handlerFile = "";
-   if (fOutputEventHandler) {
-      handlerFile = fOutputEventHandler->GetOutputFileName();
-   }
    while ((output=(AliAnalysisDataContainer*)next1())) {
       // Special outputs or grid files have the files already closed and written.
       if (fMode == kGridAnalysis) continue;
@@ -765,17 +758,13 @@ void AliAnalysisManager::Terminate()
         if (output->IsSpecialOutput() || output->IsRegisterDataset()) continue;
       }  
       const char *filename = output->GetFileName();
-      TString open_option = "RECREATE";
       if (!(strcmp(filename, "default"))) continue;
       if (!strlen(filename)) continue;
       if (!output->GetData()) continue;
       TDirectory *opwd = gDirectory;
       TFile *file = output->GetFile();
       if (!file) file = (TFile*)gROOT->GetListOfFiles()->FindObject(filename);
-      if (!file) {
-         if (handlerFile == filename && !gSystem->AccessPathName(filename)) open_option = "UPDATE";
-         file = new TFile(filename, open_option);
-      }
+      if (!file) file = new TFile(filename, "RECREATE");
       if (file->IsZombie()) {
          Error("Terminate", "Cannot open output file %s", filename);
          continue;
@@ -1294,7 +1283,7 @@ TFile *AliAnalysisManager::OpenFile(AliAnalysisDataContainer *cont, const char *
       TString opt(option);
       opt.ToUpper();
       if ((opt=="UPDATE") && (opt!=f->GetOption())) 
-        ::Info("AliAnalysisManager::OpenFile", "File %s already opened in %s mode!", cont->GetFileName(), f->GetOption());
+        ::Fatal("AliAnalysisManager::OpenFile", "File %s already opened, but not in UPDATE mode!", cont->GetFileName());
     } else {
       f = TFile::Open(filename, option);
     }    
@@ -1338,7 +1327,7 @@ TFile *AliAnalysisManager::OpenProofFile(AliAnalysisDataContainer *cont, const c
       TString opt(option);
       opt.ToUpper();
       if ((opt=="UPDATE") && (opt!=f->GetOption()))
-        ::Info("OpenProofFile", "File %s already opened in %s mode!", cont->GetFileName(), f->GetOption());
+        Fatal("OpenProofFile", "File %s already opened, but not in UPDATE mode!", cont->GetFileName());
     } else {
       f = new TFile(filename, option);
     }

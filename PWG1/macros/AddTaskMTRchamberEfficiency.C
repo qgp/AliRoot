@@ -11,16 +11,9 @@ AliAnalysisTaskTrigChEff *AddTaskMTRchamberEfficiency(Bool_t useGhosts = kFALSE)
   //==============================================================================
   AliAnalysisManager *mgr = AliAnalysisManager::GetAnalysisManager();
   if (!mgr) {
-    ::Error("AddTaskMTRchamberEfficiency", "No analysis manager to connect to.");
+    ::Error("AddTask", "No analysis manager to connect to.");
     return NULL;
   }   
-
-  // Check the analysis type using the event handlers connected to the analysis manager.
-  //==============================================================================
-  if (!mgr->GetInputEventHandler()) {
-    ::Error("AliAnalysisTaskTrigChEff", "This task requires an input event handler");
-    return NULL;
-  }
 
   // Create the task
   AliAnalysisTaskTrigChEff* taskTrigChEff = new AliAnalysisTaskTrigChEff("TriggerChamberEfficiency");
@@ -35,7 +28,7 @@ AliAnalysisTaskTrigChEff *AddTaskMTRchamberEfficiency(Bool_t useGhosts = kFALSE)
   // Attach input
   mgr->ConnectInput(taskTrigChEff,0,mgr->GetCommonInputContainer());
   // Attach output
-  mgr->ConnectOutput(taskTrigChEff,1,cOutputTrigChEff);
+  mgr->ConnectOutput(taskTrigChEff,0,cOutputTrigChEff);
   
   return taskTrigChEff;
 }

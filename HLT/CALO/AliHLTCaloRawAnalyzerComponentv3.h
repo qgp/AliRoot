@@ -37,7 +37,7 @@
 //#include "AliHLTCaloRcuProcessor.h"
 
 
-class AliCaloRawAnalyzer;
+class AliHLTCaloRawAnalyzer;
 class AliHLTCaloRcuCellEnergyDataStruct;
 class AliHLTCaloMapper;
 class AliHLTCaloSanityInspector;
@@ -45,7 +45,6 @@ class AliHLTCaloDigitMaker;
 class AliHLTCaloDigitContainerDataStruct;
 class AliRawReaderMemory;
 class AliAltroRawStreamV3;
-
 
 /**
  * @class AliHLTCaloRawAnalyzerComponentv3
@@ -126,17 +125,13 @@ class AliHLTCaloRawAnalyzerComponentv3 : public AliHLTCaloConstantsHandler, publ
   virtual const char* GetComponentID() = 0;
 
   /** interface function, see @ref AliHLTComponent for description */
-  //  virtual void GetInputDataTypes( vector <AliHLTComponentDataType>& list);
-  virtual void GetInputDataTypes( vector <AliHLTComponentDataType>& list) = 0; 
-
+  virtual void GetInputDataTypes( vector <AliHLTComponentDataType>& list);
 
   /** interface function, see @ref AliHLTComponent for description */
-  //  virtual AliHLTComponentDataType GetOutputDataType();
-  virtual AliHLTComponentDataType GetOutputDataType() = 0;
+  virtual AliHLTComponentDataType GetOutputDataType();
 
   /** interface function, see @ref AliHLTComponent for description */
-  //  virtual void GetOutputDataSize(unsigned long& constBase, double& inputMultiplier);
-  virtual void GetOutputDataSize(unsigned long& constBase, double& inputMultiplier) = 0 ;
+  virtual void GetOutputDataSize(unsigned long& constBase, double& inputMultiplier);
 
   /** interface function, see @ref AliHLTComponent for description */
   virtual AliHLTComponent* Spawn() = 0; 
@@ -163,10 +158,10 @@ class AliHLTCaloRawAnalyzerComponentv3 : public AliHLTCaloConstantsHandler, publ
    */
   virtual Int_t DoIt(const AliHLTComponentBlockData* iter, AliHLTUInt8_t* outputPtr, const AliHLTUInt32_t size, UInt_t& totSize); 
 
-  // unsigned long fCaloEventCount;
+  unsigned long fCaloEventCount;
 
   /** Pointer to an analyzer object used for raw data anlysis */ 
-  AliCaloRawAnalyzer *fAnalyzerPtr;   //COMMENT
+  AliHLTCaloRawAnalyzer *fAnalyzerPtr;   //COMMENT
 
   //** Pointer to a mapper opbject */
   AliHLTCaloMapper *fMapperPtr;          //COMMENT

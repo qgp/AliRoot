@@ -1,14 +1,11 @@
-#ifndef ALICALORAWANALYZERCRUDE_H
-#define ALICALORAWANALYZERCRUDE_H
+// $Id: AliHLTPHOSRawAnalyzerChiSquareFit.cxx 30036 2008-11-24 16:43:44Z odjuvsla $
+
 
 /**************************************************************************
- * This file is property of and copyright by the Experimental Nuclear     *
- * Physics Group, Dep. of Physics                                         *
- * University of Oslo, Norway, 2007                                       *
+ * Copyright(c) 2006, ALICE Experiment at CERN, All rights reserved.      *
  *                                                                        *
- * Author: Per Thomas Hille <perthi@fys.uio.no> for the ALICE HLT Project.*
+ * Author: Per Thomas Hille for the ALICE HLT Project.                    *
  * Contributors are mentioned in the code where appropriate.              *
- * Please report bugs to perthi@fys.uio.no                                *
  *                                                                        *
  * Permission to use, copy, modify and distribute this software and its   *
  * documentation strictly for non-commercial purposes is hereby granted   *
@@ -19,20 +16,43 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-#include "AliCaloRawAnalyzer.h"
 
-class AliCaloFitResults;
-class AliCaloBunchInfo;
+#include "AliHLTCaloRawAnalyzerChiSquareFit.h"
+#include <iostream>
 
+using std::cout;
+using std::endl;
 
-class  AliCaloRawAnalyzerCrude : public  AliCaloRawAnalyzer
+ClassImp(AliHLTCaloRawAnalyzerChiSquareFit) 
+
+AliHLTCaloRawAnalyzerChiSquareFit::AliHLTCaloRawAnalyzerChiSquareFit(const AliHLTCaloRawAnalyzerChiSquareFit&):AliHLTCaloRawAnalyzer()
 {
- public:
-   virtual AliCaloFitResults Evaluate( const vector<AliCaloBunchInfo> &bunchvector, 
-				       const UInt_t altrocfg1,  const UInt_t altrocfg2 );
-  AliCaloRawAnalyzerCrude();
-  virtual ~AliCaloRawAnalyzerCrude();
+  //comment
+}
 
-};
+AliHLTCaloRawAnalyzerChiSquareFit::AliHLTCaloRawAnalyzerChiSquareFit():AliHLTCaloRawAnalyzer()
+{
+  //comment
+}
 
-#endif
+
+AliHLTCaloRawAnalyzerChiSquareFit::~AliHLTCaloRawAnalyzerChiSquareFit()
+{
+
+} //end AliHLTCaloRawAnalyzerChiSquareFit
+
+
+void 
+AliHLTCaloRawAnalyzerChiSquareFit::Evaluate(int /*start*/, int /*length*/)
+{
+  /*
+
+  */
+
+  //thats all for the moment 
+} //end FitChiSquareFit
+
+
+
+
+

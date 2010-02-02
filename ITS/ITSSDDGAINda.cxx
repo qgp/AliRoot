@@ -1,10 +1,10 @@
 /*
 - Contact: - prino@to.infn.it
-- Link: - alien:///alice/data/2009/LHC09c_SDD/000079095/raw/09000079095024.10.root
+- Link: - http://www.to.infn.it/~prino/alice/RawData/run11173.date
 - Run Type: - PULSER_RUN
 - DA Type: - LDC
 - Number of events needed: >15
-- Input Files: - SDDbase_step1_ddl*c*_sid*.data (output of previous PEDESTAL run)
+- Input Files: - SDDbase_step1_ddl*c*_sid*.data
 - Output Files: - SDDbase_ddl*c*_sid*.data
 - Trigger types used: 
 */

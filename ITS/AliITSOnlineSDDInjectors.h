@@ -65,9 +65,6 @@ class AliITSOnlineSDDInjectors : public AliITSOnlineSDD {
   void SetUseTimeZeroSignal(Bool_t useTZ=kTRUE){
     fUseTimeZeroSignal=useTZ;
   }
-  void SetUseLine(Int_t iLine, Bool_t use=kTRUE){
-    if(iLine>=0 && iLine<kInjLines) fUseLine[iLine]=use;
-  }
   TH1F* GetMeanDriftSpeedVsPadHisto() const;
   TGraphErrors* GetTimeVsDistGraph(Int_t jpad) const;
   TGraphErrors* GetDriftSpeedGraph() const;
@@ -159,7 +156,6 @@ class AliITSOnlineSDDInjectors : public AliITSOnlineSDD {
   Float_t fLowThreshold;             // Low threshold for injector signal
   Float_t fHighThreshold;            // High threshold for injector signal
 
-  Bool_t fUseLine[kInjLines];        // Flag to use/not use a line
   Int_t fFirstPadForFit;             // first injector pad used in fit
   Int_t fLastPadForFit;              // last injector pad used in fit
   Int_t fPadStatusCutForFit;         // minimum value of pad status for fit
@@ -168,6 +164,6 @@ class AliITSOnlineSDDInjectors : public AliITSOnlineSDD {
   Bool_t fUseTimeZeroSignal;         // flag for usage of time zero signal
                                      // in drift speed calculation
 
-  ClassDef(AliITSOnlineSDDInjectors,7)
+  ClassDef(AliITSOnlineSDDInjectors,6)
 };
 #endif

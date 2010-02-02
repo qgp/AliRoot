@@ -1,5 +1,5 @@
-#ifndef ALIHLTEMCALRAWANALYZERLMSCOMPONENT_H
-#define ALIHLTEMCALRAWANALYZERLMSCOMPONENT_H
+#ifndef ALIHLTCALODECODERWRAPPER_H
+#define ALIHLTCALODECODERWRAPPER_H
 
 /**************************************************************************
  * This file is property of and copyright by the Experimental Nuclear     *
@@ -19,32 +19,41 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-//Evaluation of Amplitude and Peak position using Least Mean Square (LMS) fit
-//-----------
-//-----------
-//-----------
-//-----------
+#include "Rtypes.h"
 
-#include "AliHLTEMCALRawAnalyzerComponent.h"
+/*
+class AliAltroRawStreamV3;
+class AliCaloRawStreamV3;
+class AliRawReaderMemory;
+*/
+ 
+#include "AliAltroRawStreamV3.h"
+#include "AliCaloRawStreamV3.h"
+#include "AliRawReaderMemory.h"
 
-class  AliCaloRawAnalyzerLMS;
+class AliHLTComponentBlockData;
 
-//      AliHLTEMCALRawAnalyzerLMSComponent.h:
-class  AliHLTEMCALRawAnalyzerLMSComponent : public AliHLTEMCALRawAnalyzerComponent
+
+class  AliHLTCaloDecoderWrapper
 {
-
  public:
-  AliHLTEMCALRawAnalyzerLMSComponent();
-  virtual ~AliHLTEMCALRawAnalyzerLMSComponent();
-  virtual const char* GetComponentID() ;
-  virtual AliHLTComponent* Spawn();
-  virtual int Deinit();
+  AliHLTCaloDecoderWrapper();
+  virtual ~AliHLTCaloDecoderWrapper();
+  void SetMemory( AliHLTComponentBlockData *dtaptr );
+  inline bool  NextChannel          ( )       { return  fAltroRawStream->NextChannel();  };
+  inline bool NextBunch             ( )       { return  fAltroRawStream->NextBunch();    };
+  inline const UShort_t *GetSignals ( )       { return  fAltroRawStream->GetSignals();   };
+  inline Int_t  GetHWAddress        ( ) const { return  fAltroRawStream->GetHWAddress();}; 
+  inline Int_t  GetBunchLength      ( ) const { return  fAltroRawStream->GetBunchLength();  };
+  inline UInt_t GetStartTimeBin     ( ) const { return  fAltroRawStream->GetEndTimeBin(); };
+  inline UInt_t GetEndTimeBin       ( ) const { return  fAltroRawStream->GetStartTimeBin(); };
 
  private:
-  AliHLTEMCALRawAnalyzerLMSComponent              (   const AliHLTEMCALRawAnalyzerLMSComponent &,  TString det ); 
-  AliHLTEMCALRawAnalyzerLMSComponent & operator = (   const AliHLTEMCALRawAnalyzerLMSComponent );
-  //  AliEMCALRawAnalyzerLMS *fRawAnalyzer;
+  AliAltroRawStreamV3 *fAltroRawStream;
+  //  AliCaloRawStreamV3  *fCaloRawStream;
+  AliRawReaderMemory  *fReaderMemory;
 
+  ClassDef(AliHLTCaloDecoderWrapper, 1);
 };
 
 #endif

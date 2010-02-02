@@ -93,7 +93,7 @@ fFiredDisplayHistoList(0x0)
 }
 
 //__________________________________________________________________________
-AliMUONTriggerEfficiencyCells::AliMUONTriggerEfficiencyCells(const Char_t* filename, const Char_t* listname)
+AliMUONTriggerEfficiencyCells::AliMUONTriggerEfficiencyCells(const Char_t* filename)
 :
 TObject(),
 fCountHistoList(0x0),
@@ -108,7 +108,7 @@ fFiredDisplayHistoList(0x0)
   CheckConstants();
   Reset();
   InitHistos();
-  ReadFile(filename, listname);
+  ReadFile(filename);
 }
 
 
@@ -181,6 +181,9 @@ AliMUONTriggerEfficiencyCells& AliMUONTriggerEfficiencyCells::operator=(const Al
 AliMUONTriggerEfficiencyCells::~AliMUONTriggerEfficiencyCells()
 {
 ///  Destructor.
+
+  delete [] fBoardEfficiency;
+  delete [] fSlatEfficiency;
   Reset();
 }
 
@@ -214,13 +217,13 @@ AliMUONTriggerEfficiencyCells::IsTriggered(Int_t detElemId, Int_t localBoard, Bo
 
 
 //__________________________________________________________________________
-void AliMUONTriggerEfficiencyCells::ReadFile(const Char_t* filename, const Char_t* listname)
+void AliMUONTriggerEfficiencyCells::ReadFile(const Char_t* filename)
 {
 ///  Reads a file containing the efficiency map.
 
   TString fileName = gSystem->ExpandPathName(filename);
   if(fileName.EndsWith(".root")){
-      ReadHistoBoards(fileName.Data(), listname);
+      ReadHistoBoards(fileName.Data());
       return;
   }
 
@@ -263,7 +266,7 @@ void AliMUONTriggerEfficiencyCells::ReadFileBoards(ifstream &file)
 
 
 //__________________________________________________________________________
-void AliMUONTriggerEfficiencyCells::ReadHistoBoards(const Char_t *filename, const Char_t* listname)
+void AliMUONTriggerEfficiencyCells::ReadHistoBoards(const Char_t *filename)
 {
 ///  Structure of file (.root) containing local board efficency
     TFile *file = new TFile(filename, "read");
@@ -277,31 +280,19 @@ void AliMUONTriggerEfficiencyCells::ReadHistoBoards(const Char_t *filename, cons
     enum {kAllChEff, kChNonEff, kNumOfHistoTypes};
     TString histoTypeName[2] = {"CountInCh", "NonCountInCh"};
 
-    if ( ! fCountHistoList ) {
-      fCountHistoList = new TList();
-      fCountHistoList->SetOwner();
-    }
+    if(!fCountHistoList) fCountHistoList = new TList();
     else fCountHistoList->Delete();
-    if( ! fNoCountHistoList) {
-      fNoCountHistoList = new TList();
-      fNoCountHistoList->SetOwner();
-    }
+    if(!fNoCountHistoList) fNoCountHistoList = new TList();
     else fNoCountHistoList->Delete();
 
     TList *currList[2] = {fCountHistoList, fNoCountHistoList};
 
     TH1F *histo = 0x0;
-
-    TList* listInFile = 0x0;
-    TString listNameString(listname);
-    if ( ! listNameString.IsNull() )
-      listInFile = (TList*)file->Get(listname);
     
     for(Int_t cath=0; cath<fgkNcathodes; cath++){
       for(Int_t hType=0; hType<kNumOfHistoTypes; hType++){
 	histoName = Form("%sChamber%s", cathCode[cath].Data(), histoTypeName[hType].Data());
-	histo = ( listInFile ) ? (TH1F*)listInFile->FindObject(histoName.Data()) : (TH1F*)file->Get(histoName.Data());
-	histo->SetDirectory(0);
+	histo = (TH1F*)file->Get(histoName.Data());
 	currList[hType]->Add(histo);
       }
     }
@@ -310,8 +301,7 @@ void AliMUONTriggerEfficiencyCells::ReadHistoBoards(const Char_t *filename, cons
       for(Int_t ch=0; ch<fgkNchambers; ch++){
 	for(Int_t hType=0; hType<kNumOfHistoTypes; hType++){
 	  histoName = Form("%sSlat%s%i", cathCode[cath].Data(), histoTypeName[hType].Data(), 11+ch);
-	  histo = ( listInFile ) ? (TH1F*)listInFile->FindObject(histoName.Data()) : (TH1F*)file->Get(histoName.Data());
-	  histo->SetDirectory(0);
+	  histo = (TH1F*)file->Get(histoName.Data());
 	  currList[hType]->Add(histo);
 	}
       }
@@ -321,14 +311,11 @@ void AliMUONTriggerEfficiencyCells::ReadHistoBoards(const Char_t *filename, cons
       for(Int_t ch=0; ch<fgkNchambers; ch++){
 	for(Int_t hType=0; hType<kNumOfHistoTypes; hType++){
 	  histoName = Form("%sBoard%s%i", cathCode[cath].Data(), histoTypeName[hType].Data(), 11+ch);
-	  histo = ( listInFile ) ? (TH1F*)listInFile->FindObject(histoName.Data()) : (TH1F*)file->Get(histoName.Data());
-	  histo->SetDirectory(0);
+	  histo = (TH1F*)file->Get(histoName.Data());
 	  currList[hType]->Add(histo);
 	}
       }
     }
-
-    file->Close();
 
     FillHistosFromList();
 }

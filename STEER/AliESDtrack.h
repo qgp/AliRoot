@@ -49,8 +49,7 @@ public:
     kTOFin=0x1000,kTOFout=0x2000,kTOFrefit=0x4000,kTOFpid=0x8000,
     kHMPIDout=0x10000,kHMPIDpid=0x20000,
     kEMCALmatch=0x40000,
-    kPHOSmatch=0x200000,
-    kTRDbackup =0x80000,
+    kTRDbackup=0x80000,
     kTRDStop=0x20000000,
     kESDpid=0x40000000,
     kTIME=0x80000000,
@@ -204,12 +203,8 @@ public:
      for (Int_t i=0;i<4;i++) fTPCPoints[i]=points[i];
   }
   void    SetTPCPointsF(UChar_t  findable){fTPCnclsF = findable;}
-  void    SetTPCPointsFIter1(UChar_t  findable){fTPCnclsFIter1 = findable;}
   UShort_t   GetTPCNcls() const { return fTPCncls;}
   UShort_t   GetTPCNclsF() const { return fTPCnclsF;}
-  UShort_t   GetTPCNclsIter1() const { return fTPCnclsIter1;}
-  UShort_t   GetTPCNclsFIter1() const { return fTPCnclsFIter1;}
-  UShort_t   GetTPCnclsS(Int_t i0=0,Int_t i1=159) const;
   Double_t GetTPCPoints(Int_t i) const {return fTPCPoints[i];}
   void    SetKinkIndexes(Int_t points[3]) {
      for (Int_t i=0;i<3;i++) fKinkIndexes[i] = points[i];
@@ -224,7 +219,6 @@ public:
   Double_t GetTPCsignalSigma() const {return fTPCsignalS;}
   UShort_t GetTPCsignalN() const {return fTPCsignalN;}
   Double_t GetTPCchi2() const {return fTPCchi2;}
-  Double_t GetTPCchi2Iter1() const {return fTPCchi2Iter1;}
   UShort_t   GetTPCclusters(Int_t *idx) const;
   Double_t GetTPCdensity(Int_t row0, Int_t row1) const;
   Int_t   GetTPCLabel() const {return fTPCLabel;}
@@ -326,17 +320,9 @@ public:
   Bool_t  IsPureITSStandalone() const {return fFlags&kITSpureSA;}
 
 
-  Int_t GetEMCALcluster() {return fCaloIndex;}
-  void SetEMCALcluster(Int_t index) {fCaloIndex=index;}
+  Int_t GetEMCALcluster() {return fEMCALindex;}
+  void SetEMCALcluster(Int_t index) {fEMCALindex=index;}
   Bool_t IsEMCAL() const {return fFlags&kEMCALmatch;}
-
-  Int_t GetPHOScluster() {return fCaloIndex;}
-  void SetPHOScluster(Int_t index) {fCaloIndex=index;}
-  Bool_t IsPHOS() const {return fFlags&kPHOSmatch;}
-  Double_t GetPHOSdx()const{return fCaloDx ;}
-  Double_t GetPHOSdz()const{return fCaloDz ;}
-  void SetPHOSdxdz(Double_t dx, Double_t dz){fCaloDx=dx,fCaloDz=dz;}
-
 
   void SetTrackPointArray(AliTrackPointArray *points) {
     fFriendTrack->SetTrackPointArray(points);
@@ -398,7 +384,7 @@ protected:
   Int_t     fTOFindex;       // index of the assigned TOF cluster
   Int_t     fHMPIDqn;         // 1000000*number of photon clusters + QDC
   Int_t     fHMPIDcluIdx;     // 1000000*chamber id + cluster idx of the assigned MIP cluster
-  Int_t     fCaloIndex;       // index of associated EMCAL/PHOS cluster (AliESDCaloCluster)
+  Int_t     fEMCALindex;     // index of associated EMCAL cluster (AliESDCaloCluster)
 
 
   Int_t     fKinkIndexes[3]; // array of indexes of posible kink candidates 
@@ -431,7 +417,6 @@ protected:
 
   Double32_t   fITSchi2;        // [0.,0.,8] chi2 in the ITS
   Double32_t   fTPCchi2;        // [0.,0.,8] chi2 in the TPC
-  Double32_t   fTPCchi2Iter1;  // [0.,0.,8] chi2 in the TPC
   Double32_t   fTRDchi2;        // [0.,0.,8] chi2 in the TRD
   Double32_t   fTOFchi2;        // [0.,0.,8] chi2 in the TOF
   Double32_t fHMPIDchi2;        // [0.,0.,8] chi2 in the HMPID
@@ -456,9 +441,6 @@ protected:
   Double32_t fTOFsignalDx;    // local x  of track's impact on the TOF pad 
   Double32_t fTOFInfo[10];    //! TOF informations
 
-  Double32_t fCaloDx ;        // [0.,0.,8] distance to calorimeter cluster in calo plain (phi direction)
-  Double32_t fCaloDz ;        // [0.,0.,8] distance to calorimeter cluster in calo plain (z direction)
-
   Double32_t fHMPIDtrkX;       // x of the track impact, LORS 
   Double32_t fHMPIDtrkY;       // y of the track impact, LORS 
   Double32_t fHMPIDmipX;       // x of the MIP in LORS
@@ -468,8 +450,6 @@ protected:
   UShort_t fTPCncls;       // number of clusters assigned in the TPC
   UShort_t fTPCnclsF;      // number of findable clusters in the TPC
   UShort_t fTPCsignalN;    // number of points used for dEdx
-  UShort_t fTPCnclsIter1;  // number of clusters assigned in the TPC - iteration 1
-  UShort_t fTPCnclsFIter1; // number of findable clusters in the TPC - iteration 1
 
   Char_t  fITSncls;        // number of clusters assigned in the ITS
   UChar_t fITSClusterMap;  // map of clusters, one bit per a layer
@@ -487,7 +467,7 @@ protected:
  private:
 
   AliESDtrack & operator=(const AliESDtrack & );
-  ClassDef(AliESDtrack,56)  //ESDtrack 
+  ClassDef(AliESDtrack,54)  //ESDtrack 
 };
 
 

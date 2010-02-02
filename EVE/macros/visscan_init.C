@@ -233,11 +233,6 @@ void visscan_init(const TString& cdburi = "",
   gEve->EditElement(g_trkcnt);
 
   gEve->Redraw3D(kTRUE);
-
-  // Assure 3D view rotates around the origin.
-  gSystem->ProcessEvents();
-  AliEveMultiView::Instance()->Get3DView()->GetGLViewer()->CurrentCamera().SetCenterVec(0,0,0);
-  AliEveMultiView::Instance()->Get3DView()->GetGLViewer()->RequestDraw();
 }
 
 /******************************************************************************/

@@ -290,13 +290,15 @@ return kFALSE;
 */
 
 //____________________________________________________________________
-Bool_t AlidNdPtHelper::IsCosmicTrack(AliESDtrack *track1, AliESDtrack *track2)
+Bool_t AlidNdPtHelper::IsCosmicTrack(AliESDtrack *track1, AliESDtrack *track2, Int_t /*trackIdx*/, AlidNdPtAcceptanceCuts *accCuts, AliESDtrackCuts *trackCuts)
 {
 //
 // check cosmic tracks
 //
   if(!track1) return kFALSE;
   if(!track2) return kFALSE;
+  if(!accCuts) return kFALSE;
+  if(!trackCuts) return kFALSE;
 
   /*
   if(track1->Pt() > 6. && track2->Pt() > 6. && (track1->Charge() + track2->Charge()) == 0 ) 
@@ -316,8 +318,7 @@ Bool_t AlidNdPtHelper::IsCosmicTrack(AliESDtrack *track1, AliESDtrack *track2)
       //  ((TMath::Abs(track1->Phi()-track2->Phi()) - TMath::Pi() )<0.004) && 
 
       if( (track1->Pt()-track2->Pt()) < 0.2 && track1->Pt() > 3.0 && 
-      	     (track1->Charge()+track2->Charge()) == 0 )
-      //if( track1->Pt() > 6. || track2->Pt() > 6. )
+	     (track1->Charge()+track2->Charge()) == 0 )
       {
         //printf("COSMIC  candidate \n");
 	/*

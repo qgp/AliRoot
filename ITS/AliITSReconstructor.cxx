@@ -25,8 +25,6 @@
 #include "AliITSReconstructor.h"
 #include "AliRun.h"
 #include "AliRawReader.h"
-#include "AliESDEvent.h"
-#include "AliESDpid.h"
 #include "AliITSDetTypeRec.h"
 #include "AliITSgeom.h"
 #include "AliITSLoader.h"
@@ -39,6 +37,7 @@
 #include "AliITSVertexer3D.h"
 #include "AliITSVertexerZ.h"
 #include "AliITSVertexerCosmics.h"
+#include "AliESDEvent.h"
 #include "AliITSInitGeometry.h"
 #include "AliITSTrackleterSPDEff.h"
 
@@ -56,22 +55,7 @@ AliITSReconstructor::~AliITSReconstructor(){
 // destructor
   if(fDetTypeRec) delete fDetTypeRec;
 } 
-//____________________________________________________________________________
-void AliITSReconstructor::GetPidSettings(AliESDpid *ESDpid) {
-  //
-  // pass PID settings from AliITSRecoParam to AliESDpid
-  //
-  Int_t pidOpt = GetRecoParam()->GetPID();
 
-  if(pidOpt==1){
-    AliInfo("ITS LandauFitPID option has been selected\n");
-    ESDpid->SetITSPIDmethod(AliESDpid::kITSLikelihood);
-  }
-  else{
-    AliInfo("ITS default PID\n");
-    ESDpid->SetITSPIDmethod(AliESDpid::kITSTruncMean);
-  }
-}
 //______________________________________________________________________
 void AliITSReconstructor::Init() {
     // Initalize this constructor bet getting/creating the objects
@@ -168,6 +152,20 @@ AliTracker* AliITSReconstructor::CreateTracker() const
     sat->SetMinNPoints(GetRecoParam()->GetMinNPointsSA());
   }
 
+  Int_t pidOpt = GetRecoParam()->GetPID();
+
+  AliITSReconstructor* nc = const_cast<AliITSReconstructor*>(this);
+  /*
+  if(pidOpt==1){
+    Info("FillESD","ITS LandauFitPID option has been selected\n");
+    nc->fItsPID = new AliITSpidESD2();
+  }
+  else{
+    Info("FillESD","ITS default PID\n");
+    Double_t parITS[] = {79.,0.13, 5.}; //IB: this is  "pp tuning"
+    nc->fItsPID = new AliITSpidESD1(parITS);
+  }
+  */ 
   return tracker;
   
 }
@@ -231,7 +229,7 @@ AliVertexer* AliITSReconstructor::CreateVertexer() const
 
 //_____________________________________________________________________________
 void AliITSReconstructor::FillESD(TTree * /*digitsTree*/, TTree * /*clustersTree*/, 
-				  AliESDEvent* /* esd */) const
+				  AliESDEvent* esd) const
 {
 // make PID, find V0s and cascade
 /* Now done in AliESDpid

@@ -143,7 +143,6 @@ AliT0RawData::~AliT0RawData()
   delete fADC1;
   delete fTimeLED;
   delete fADC0;
-  delete fFile;
 }
 
 //_____________________________________________________________________________

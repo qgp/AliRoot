@@ -23,8 +23,6 @@ using namespace std;
 #endif
 
 #include "AliHLTMUONFullTrackerComponent.h"
-#include "AliHLTMUONDataBlockReader.h"
-#include "AliHLTMUONDataBlockWriter.h"
 #include "TString.h"
 #include "TObjString.h"
 #include "TObjArray.h"

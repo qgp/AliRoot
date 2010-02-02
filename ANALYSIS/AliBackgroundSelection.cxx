@@ -14,25 +14,25 @@
 ClassImp(AliBackgroundSelection)
 
 AliBackgroundSelection::AliBackgroundSelection():
-  AliAnalysisCuts(), fOutputHist(0), fACut(0), fBCut(0), fDeltaPhiCut(10)
+  AliAnalysisCuts(), fOutputHist(0), fACut(0), fBCut(0), fDeltaPhiCut(0)
 {
   
   fOutputHist = new TList();
   fOutputHist->SetOwner();
   fACut = 65;
   fBCut = 4;
-  fDeltaPhiCut = 10; // effectively disabling delta phi cut by default
+  fDeltaPhiCut = 0.02;
 }
 
 AliBackgroundSelection::AliBackgroundSelection(const char* name, const char* title):
-  AliAnalysisCuts(name,title), fOutputHist(0), fACut(0), fBCut(0), fDeltaPhiCut(10)
+  AliAnalysisCuts(name,title), fOutputHist(0), fACut(0), fBCut(0), fDeltaPhiCut(0)
 {
 
   fOutputHist = new TList();
   fOutputHist->SetOwner();
   fACut = 65;
   fBCut = 4;
-  fDeltaPhiCut = 10; //  effectively disabling delta phi cut by default
+  fDeltaPhiCut = 0.02;
 
 }
 
@@ -54,8 +54,7 @@ AliBackgroundSelection::~AliBackgroundSelection() {
 
 }
 
-Bool_t AliBackgroundSelection::IsSelected(TObject* obj) 
-{
+Bool_t AliBackgroundSelection::IsSelected(TObject* obj){
 
   // reset fSelected
   SetSelected(kFALSE);

@@ -31,10 +31,6 @@ public:
   //  void MakeHMPIDPID(AliESDtrack *track);
   //  void MakeTRDPID(AliESDtrack *track);
   void CombinePID(AliESDtrack *track) const;
-
-  enum ITSPIDmethod { kITSTruncMean, kITSLikelihood };
-  void SetITSPIDmethod(ITSPIDmethod pmeth) { fITSPIDmethod = pmeth; }
-
   Float_t NumberOfSigmasTPC(const AliESDtrack *track, AliPID::EParticleType type) const;
   Float_t NumberOfSigmasTOF(const AliESDtrack *track, AliPID::EParticleType type, const Float_t TimeZeroTOF) const;
   Float_t NumberOfSigmasITS(const AliESDtrack *track, AliPID::EParticleType type) const;
@@ -43,6 +39,7 @@ public:
   AliTPCPIDResponse &GetTPCResponse() {return fTPCResponse;}
   AliTOFPIDResponse &GetTOFResponse() {return fTOFResponse;}
 
+  enum ITSPIDmethod { kITSTruncMean, kITSLikelihood };
 
 private:
   Float_t           fRange;          // nSigma max in likelihood
