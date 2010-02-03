@@ -159,20 +159,20 @@ Bool_t AliPHOSPreprocessor::ProcessLEDRun()
     for(Int_t mod=0; mod<nMod; mod++) {
       for(Int_t col=0; col<nCol; col++) {
 	for(Int_t row=0; row<nRow; row++) {
-
-	  //High Gain to Low Gain ratio
-	  Float_t ratio = HG2LG(mod,row,col,&f);
-	  calibData.SetHighLowRatioEmc(mod+1,col+1,row+1,ratio);
-	  if(ratio != 16.)
-	    AliInfo(Form("mod %d iX %d iZ %d  ratio %.3f\n",mod,row,col,ratio));
 	  
 	  if(clb) {
-	    Double_t coeff = clb->GetADCchannelEmc(mod+1,col+1,row+1);
-	    calibData.SetADCchannelEmc(mod+1,col+1,row+1,coeff);
+	    Float_t  hg2lg = clb->GetHighLowRatioEmc(5-mod,col+1,row+1);
+	    Double_t coeff = clb->GetADCchannelEmc(5-mod,col+1,row+1);
+	    calibData.SetADCchannelEmc(5-mod,col+1,row+1,coeff);
+	    calibData.SetHighLowRatioEmc(5-mod,col+1,row+1,hg2lg);
+	  }	
+  
+	  //High Gain to Low Gain ratio
+	  Float_t ratio = HG2LG(mod,row,col,&f);
+	  if(ratio != 16.) {
+	    calibData.SetHighLowRatioEmc(5-mod,col+1,row+1,ratio);
+	    AliInfo(Form("mod %d iX %d iZ %d  ratio %.3f\n",mod,row,col,ratio));
 	  }
-	  else
-	    calibData.SetADCchannelEmc(mod+1,col+1,row+1,0.005);
-	  
 	}
       }
     }
@@ -199,7 +199,7 @@ Float_t AliPHOSPreprocessor::HG2LG(Int_t mod, Int_t X, Int_t Z, TFile* f)
   TH1F* h1 = (TH1F*)f->Get(hname);
   if(!h1) return 16.;
   
-  if(!h1->GetEntries()) return 16.;
+  if(h1->GetEntries()<2000.) return 16.;
   
   if(h1->GetMaximum()<10.) h1->Rebin(4);
   if(h1->GetMaximum()<10.) return 16.;
@@ -503,9 +503,9 @@ Bool_t AliPHOSPreprocessor::DoCalibrateEmc(Int_t system, TList* list, const AliP
 	  const Int_t Z   = ((TObjString*)tks->At(2))->GetString().Atoi();
 
 	  if(badMap) {
-	    if(badMap->IsBadChannel(md+1,Z+1,X+1)) {
+	    if(badMap->IsBadChannel(5-md,Z+1,X+1)) {
 	      AliInfo(Form("Cell mod=%d col=%d row=%d is bad. Histogram %s rejected.",
-			   md+1,Z+1,X+1,hRef->GetName()));
+			   5-md,Z+1,X+1,hRef->GetName()));
 	      ok=kFALSE;
 	    }
 	  }
@@ -542,14 +542,10 @@ Bool_t AliPHOSPreprocessor::DoCalibrateEmc(Int_t system, TList* list, const AliP
 	    h1->GetXaxis()->SetRangeUser(10.,1000.); //to cut off saturation peak and noise
 	    coeff = h1->GetMean()/refMean;
 	    if(coeff>0 && h1->GetEntries()>minEntries) {
-	      calibData.SetADCchannelEmc(mod+1,col+1,row+1,0.005/coeff);
+	      calibData.SetADCchannelEmc(5-mod,col+1,row+1,0.005/coeff);
 	      AliInfo(Form("mod %d col %d row %d  coeff %f\n",mod,col,row,coeff));
 	    }
-	    else 
-	      calibData.SetADCchannelEmc(mod+1,col+1,row+1,0.005);
 	  }
-	  else
-	    calibData.SetADCchannelEmc(mod+1,col+1,row+1,0.005); 
 	}
       }
     }
