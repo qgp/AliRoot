@@ -1,7 +1,7 @@
 Executable = "aliroot_new";
 Jobtag={"Clone Runs EPISODE 1"};
 
-Packages={"VO_ALICE@AliRoot::v4-18-Rev-01","VO_ALICE@GEANT3::v1-11-8","VO_ALICE@ROOT::v5-26-00a-1","VO_ALICE@APISCONFIG::V1.1x"};
+Packages={"VO_ALICE@AliRoot::v4-18-Rev-02","VO_ALICE@GEANT3::v1-11-8","VO_ALICE@ROOT::v5-26-00a-1","VO_ALICE@APISCONFIG::V1.1x"};
 
 TTL = "72000";
 
