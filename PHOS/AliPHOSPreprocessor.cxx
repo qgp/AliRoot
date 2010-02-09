@@ -364,6 +364,8 @@ Bool_t AliPHOSPreprocessor::CalibrateEmc()
 
   for (Int_t i=0; i<2; i++) {
 
+    if(system[i] == kHLT) continue;
+
     AliPHOSEmcCalibData calibData;
     list = GetFileSources(system[i], "AMPLITUDES");
   
@@ -405,24 +407,44 @@ Bool_t AliPHOSPreprocessor::CalibrateEmc()
     else
       lastCalib = (AliPHOSEmcCalibData*)entryEmc->GetObject();
 
-    if(lastCalib)
-      result[i] *= DoCalibrateEmc(system[i],list,badMap,*lastCalib);
-    else
+    if(lastCalib) 
+      result[i] *= DoCalibrateEmc(system[i],list,badMap,*lastCalib);    
+    else 
       result[i] *= DoCalibrateEmc(system[i],list,badMap,calibData);
-
+    
     //Store EMC calibration data
-
     AliCDBMetaData emcMetaData;
     
     if(lastCalib)
-      result[i] *= Store(path.Data(), "EmcGainPedestals", lastCalib, &emcMetaData, 0, kTRUE);
+      result[i] *= Store(path.Data(), "EmcGainPedestals", lastCalib, &emcMetaData, 0, kFALSE);
     else
-      result[i] *= Store(path.Data(), "EmcGainPedestals", &calibData, &emcMetaData, 0, kTRUE);
+      result[i] *= Store(path.Data(), "EmcGainPedestals", &calibData, &emcMetaData, 0, kFALSE);
+
+    //Store reference data
+    Bool_t refOK = StoreReferenceEmc(system[i],list);
+    if(refOK) Log(Form("Reference data for %s amplitudes successfully stored.",sysn[i]));
     
   }
   
   if(result[0] || result[1]) return kTRUE;
   else return kFALSE;
+}
+
+Bool_t AliPHOSPreprocessor::StoreReferenceEmc(Int_t system, TList* list)
+{
+  //Put 2D calibration histograms (E vs Time) prepared by DAQ/HLT to the reference storage.
+  //system is DAQ or HLT, TList is the list of FES sources.
+
+  if(system!=kDAQ) return kFALSE;
+
+  TObjString *source = dynamic_cast<TObjString *> (list->First());
+  if(!source) return kFALSE;
+
+  TString fileName = GetFile(system, "AMPLITUDES", source->GetName());
+
+  Bool_t resultRef = StoreReferenceFile(fileName.Data(),"CalibRefPHOS.root");
+  return resultRef;
+
 }
 
 
@@ -436,7 +458,7 @@ Bool_t AliPHOSPreprocessor::DoCalibrateEmc(Int_t system, TList* list, const AliP
   // It is a responsibility of the SHUTTLE framework to form the fileName.
 
   gRandom->SetSeed(0); //the seed is set to the current  machine clock!
-  Int_t minEntries=100; // recalculate calibration coeff. if Nentries > minEntries.
+  Int_t minEntries=1000; // recalculate calibration coeff. if Nentries > minEntries.
 
   TIter iter(list);
   TObjString *source;
