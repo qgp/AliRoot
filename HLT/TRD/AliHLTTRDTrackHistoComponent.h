@@ -1,16 +1,14 @@
 //-*- Mode: C++ -*-
 // $Id$
 
-#ifndef ALIHLTTRDCLUSTERHISTOCOMPONENT_H
-#define ALIHLTTRDCLUSTERHISTOCOMPONENT_H
+#ifndef ALIHLTTRDTRACKHISTOCOMPONENT_H
+#define ALIHLTTRDTRACKHISTOCOMPONENT_H
 //* This file is property of and copyright by the ALICE HLT Project        * 
 //* ALICE Experiment at CERN, All rights reserved.                         *
 //* See cxx source for full Copyright notice                               *
 
 
 #include "AliHLTProcessor.h"
-#include "TH1D.h"
-#include "TH2F.h"
 
 /**
  * @class AliHLTTRDQHistoComponent
@@ -27,14 +25,16 @@
  *
  * @ingroup alihlt_tpc_components
  */
+
+class TH1F;
 class TClonesArray;
-class AliHLTTRDClusterHistoComponent : public AliHLTProcessor
+class AliHLTTRDTrackHistoComponent : public AliHLTProcessor
 {
 public:
   /** default constructor */
-  AliHLTTRDClusterHistoComponent();
+  AliHLTTRDTrackHistoComponent();
   /** destructor */
-  virtual ~AliHLTTRDClusterHistoComponent();
+  virtual ~AliHLTTRDTrackHistoComponent();
 
   // Public functions to implement AliHLTComponent's interface.
   // These functions are required for the registration process
@@ -69,9 +69,9 @@ protected:
   
 private:
   /** copy constructor prohibited */
-  AliHLTTRDClusterHistoComponent(const AliHLTTRDClusterHistoComponent&);
+  AliHLTTRDTrackHistoComponent(const AliHLTTRDTrackHistoComponent&);
   /** assignment operator prohibited */
-  AliHLTTRDClusterHistoComponent& operator=(const AliHLTTRDClusterHistoComponent&);
+  AliHLTTRDTrackHistoComponent& operator=(const AliHLTTRDTrackHistoComponent&);
   /**
    * Configure the component.
    * Parse a string for the configuration arguments and set the component
@@ -79,19 +79,11 @@ private:
    */ 
 
   AliHLTUInt32_t fOutputSize;   // output size
-  TClonesArray* fClusterArray;  // input array
+  TClonesArray* fTracksArray;  // input array
 
-  TH1D *fNClsDet;
-  TH1D *fClsAmp;
-  TH1D *fClsAmpDrift;
-  TH1D *fClsTB;
+  TH1F *fClPerTrkl;
+  TH1F *fTrklPerTrk;
 
-  TH1D *fClsAmpDriftDet[540];
-  TH1D *fClsAmpDist; 
-
-  TH1D *fSClsDist;
-  TH1D *fNScls;
-
-  ClassDef(AliHLTTRDClusterHistoComponent, 0);
+  ClassDef(AliHLTTRDTrackHistoComponent, 0);
 };
 #endif
