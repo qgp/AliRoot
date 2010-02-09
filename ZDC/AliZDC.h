@@ -46,7 +46,10 @@ public:
   // Switching off the shower development in ZDCs
   void  NoShower(){fNoShower=1;}
   void  Shower()  {fNoShower=0;}
-
+  
+  virtual void SetVCollAperture(Float_t /*aperture*/) {}
+  virtual void SetVCollCentre(Float_t /*centre*/) {}
+  virtual void SetLumiLength(Float_t /*length*/) {}
 
   //Calibration methods 
   void    SetZDCCalibFName(const char *name);
