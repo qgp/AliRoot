@@ -290,13 +290,34 @@ int AliHLTMUONProcessor::FetchMappingStores() const
 	Int_t runUsed = cdbManager->GetRun();
 	
 	// Now we can try load the DDL and DE store objects.
+	if (cdbManager->GetId("MUON/Calib/MappingData", runUsed) == NULL)
+	{
+		HLTError("Could not find entry in CDB path '%s/MUON/Calib/MappingData' and run no. %d.",
+			cdbPathUsed, runUsed
+		);
+		return -ENOENT;
+	}
+	if (cdbManager->GetId("MUON/Calib/Gains", runUsed) == NULL)
+	{
+		HLTError("Could not find entry in CDB path '%s/MUON/Calib/Gains' and run no. %d.",
+			cdbPathUsed, runUsed
+		);
+		return -ENOENT;
+	}
+	if (cdbManager->GetId("MUON/Calib/Pedestals", runUsed) == NULL)
+	{
+		HLTError("Could not find entry in CDB path '%s/MUON/Calib/Pedestals' and run no. %d.",
+			cdbPathUsed, runUsed
+		);
+		return -ENOENT;
+	}
 	if (not AliMpCDB::LoadDDLStore(warn))
 	{
 		HLTError("Failed to load DDL or detector element store specified"
 			 " for CDB path '%s' and run no. %d.",
 			cdbPathUsed, runUsed
 		);
-		return -ENOENT;
+		return -EIO;
 	}
 	
 	if (AliMpDDLStore::Instance(warn) == NULL or AliMpDEStore::Instance(warn) == NULL)
@@ -329,10 +350,16 @@ int AliHLTMUONProcessor::FetchTMapFromCDB(const char* pathToEntry, TMap*& map) c
 
 	Int_t version = store->GetLatestVersion(pathToEntry, GetRunNo());
 	Int_t subVersion = store->GetLatestSubVersion(pathToEntry, GetRunNo(), version);
-	AliCDBEntry* entry = AliCDBManager::Instance()->Get(pathToEntry, GetRunNo(), version, subVersion);
+	AliCDBId* entryId = AliCDBManager::Instance()->GetId(pathToEntry, GetRunNo(), version, subVersion);
+	if (entryId == NULL)
+	{
+		HLTError("Could not find the CDB entry for \"%s\".", pathToEntry);
+		return -ENOENT;
+	}
+	AliCDBEntry* entry = AliCDBManager::Instance()->Get(*entryId);
 	if (entry == NULL)
 	{
-		HLTError("Could not get the CDB entry for \"%s\".", pathToEntry);
+		HLTError("Could not fetch the CDB entry for \"%s\".", pathToEntry);
 		return -EIO;
 	}
 	
@@ -691,10 +718,16 @@ int AliHLTMUONProcessor::LoadRecoParamsFromCDB(AliMUONRecoParam*& params) const
 	const char* pathToEntry = "MUON/Calib/RecoParam";
 	Int_t version = store->GetLatestVersion(pathToEntry, GetRunNo());
 	Int_t subVersion = store->GetLatestSubVersion(pathToEntry, GetRunNo(), version);
-	AliCDBEntry* entry = AliCDBManager::Instance()->Get(pathToEntry, GetRunNo(), version, subVersion);
+	AliCDBId* entryId = AliCDBManager::Instance()->GetId(pathToEntry, GetRunNo(), version, subVersion);
+	if (entryId == NULL)
+	{
+		HLTError("Could not find the CDB entry for \"%s\".", pathToEntry);
+		return -ENOENT;
+	}
+	AliCDBEntry* entry = AliCDBManager::Instance()->Get(*entryId);
 	if (entry == NULL)
 	{
-		HLTError("Could not get the CDB entry for \"%s\".", pathToEntry);
+		HLTError("Could not fetch the CDB entry for \"%s\".", pathToEntry);
 		return -EIO;
 	}
 	
