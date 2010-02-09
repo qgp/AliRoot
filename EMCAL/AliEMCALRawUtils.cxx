@@ -747,6 +747,7 @@ void AliEMCALRawUtils::FitRaw(TGraph * gSig, TF1* signalF, const Int_t lastTimeB
 						Double_t a  = (sy-b*sx-c*sx2)/kN  ;
 						Double_t xmax = -b/(2*c) ; 
 						ymax = a + b*xmax + c*xmax*xmax ;//<========== This is the maximum amplitude
+						amp  = ymax;
 					}
 				}
 				
