@@ -1,5 +1,5 @@
-#ifndef ALIHLTCALOCHANNELRAWDATASTRUCT_H
-#define ALIHLTCALOCHANNELRAWDATASTRUCT_H
+#ifndef ALIHLTEMCALRAWANALYZERPEAKFINDERCOMPONENT_H
+#define ALIHLTEMCALRAWANALYZERPEAKFINDERCOMPONENT_H
 
 /**************************************************************************
  * This file is property of and copyright by the Experimental Nuclear     *
@@ -19,22 +19,23 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-#include "AliHLTCaloChannelDataStruct.h"
-#include "AliHLTCaloCoordinate.h"
-#include "Rtypes.h"
-#include "AliHLTCaloConstant.h"
+// Evaluation of amplitude and peak
+// position using  statisticall optimal
+// weight of the samples
 
-///comment
+#include  "AliHLTEMCALRawAnalyzerComponent.h"
 
-using namespace CaloHLTConst;
 
-struct  AliHLTCaloChannelRawDataStruct : public AliHLTCaloChannelDataStruct
+class  AliHLTEMCALRawAnalyzerPeakFinderComponent : public AliHLTEMCALRawAnalyzerComponent 
 {
-  AliHLTCaloCoordinate fCoordinate;
-  int nSamplesUsed;
-  // UShort_t fDataPtr[ALTROMAXSAMPLES] = {0,};
-  UShort_t fData;
-
+ public:
+  AliHLTEMCALRawAnalyzerPeakFinderComponent();
+  virtual ~AliHLTEMCALRawAnalyzerPeakFinderComponent();
+  virtual const char* GetComponentID();
+  virtual AliHLTComponent* Spawn(); 
+ private:
+  AliHLTEMCALRawAnalyzerPeakFinderComponent( const AliHLTEMCALRawAnalyzerPeakFinderComponent  & );
+  AliHLTEMCALRawAnalyzerPeakFinderComponent & operator = (const AliHLTEMCALRawAnalyzerPeakFinderComponent  &);
 };
 
 #endif

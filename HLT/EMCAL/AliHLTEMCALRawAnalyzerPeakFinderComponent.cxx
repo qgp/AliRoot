@@ -15,52 +15,43 @@
  * about the suitability of this software for any purpose. It is          *
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
-#include "AliHLTCaloDecoderWrapper.h"
+
+// Evaluation of amplitude and peak
+// position using  statisticall optimal
+// weight of the samples
+// ---------------
+// ---------------
 
 
-/*
-#include "AliAltroRawStreamV3.h"
-#include "AliCaloRawStreamV3.h"
-#include "AliRawReaderMemory.h"
-*/
-
-#include "AliHLTDataTypes.h"
+#include "AliHLTEMCALRawAnalyzerPeakFinderComponent.h"
+#include "AliCaloRawAnalyzerPeakFinder.h"
 
 
-ClassImp(AliHLTCaloDecoderWrapper);
+AliHLTEMCALRawAnalyzerPeakFinderComponent  gAliHLTEMCALRawAnalyzerPeakFinderComponent;
 
-AliHLTCaloDecoderWrapper::AliHLTCaloDecoderWrapper() : fAltroRawStream(0),
-						       //      fCaloRawStream(0),
-						       fReaderMemory(0)
+
+AliHLTEMCALRawAnalyzerPeakFinderComponent::AliHLTEMCALRawAnalyzerPeakFinderComponent (): AliHLTEMCALRawAnalyzerComponent()
 {
-  fReaderMemory  = new AliRawReaderMemory();
+  fAnalyzerPtr = new    AliCaloRawAnalyzerPeakFinder();
 }
 
 
-AliHLTCaloDecoderWrapper::~AliHLTCaloDecoderWrapper()
+AliHLTEMCALRawAnalyzerPeakFinderComponent::~AliHLTEMCALRawAnalyzerPeakFinderComponent()
 {
 
 }
 
 
-void 
-AliHLTCaloDecoderWrapper::SetMemory( AliHLTComponentBlockData *dtaptr    ) 
+const char* 
+AliHLTEMCALRawAnalyzerPeakFinderComponent::GetComponentID()
 {
-  if ( fAltroRawStream   !=  0 )
-    {
-      delete  fAltroRawStream;
-    }
-  
-  fAltroRawStream  = new AliCaloRawStreamV3( fReaderMemory, TString("PHOS"));
-  //  fAltroRawStreamPtr = new   AliAltroRawStreamV3( fReaderMemory, TString("PHOS"));
-  fReaderMemory->NextEvent();
-  fAltroRawStream->NextDDL();
+  return "EmcalRawPeakFinder";
 }
 
 
-
-
-
-
-
-
+AliHLTComponent* 
+AliHLTEMCALRawAnalyzerPeakFinderComponent::Spawn()
+{
+  return new AliHLTEMCALRawAnalyzerPeakFinderComponent();
+}
+ 

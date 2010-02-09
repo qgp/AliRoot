@@ -1,6 +1,3 @@
-#ifndef ALIHLTCALOCHANNELRAWDATASTRUCT_H
-#define ALIHLTCALOCHANNELRAWDATASTRUCT_H
-
 /**************************************************************************
  * This file is property of and copyright by the Experimental Nuclear     *
  * Physics Group, Dep. of Physics                                         *
@@ -19,22 +16,49 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-#include "AliHLTCaloChannelDataStruct.h"
-#include "AliHLTCaloCoordinate.h"
-#include "Rtypes.h"
-#include "AliHLTCaloConstant.h"
+#include "AliHLTEMCALRawAnalyzerLMSComponent.h"
+#include "AliCaloRawAnalyzerLMS.h"
 
-///comment
+//Evaluation of Amplitude and Peak position using Least Mean Square (LMS) fit
+//-----------
+//-----------
+//-----------
+//-----------
 
-using namespace CaloHLTConst;
 
-struct  AliHLTCaloChannelRawDataStruct : public AliHLTCaloChannelDataStruct
+AliHLTEMCALRawAnalyzerLMSComponent  gAliHLTEMCALRawAnalyzerLMSComponent;
+
+AliHLTEMCALRawAnalyzerLMSComponent::AliHLTEMCALRawAnalyzerLMSComponent() : AliHLTEMCALRawAnalyzerComponent()
 {
-  AliHLTCaloCoordinate fCoordinate;
-  int nSamplesUsed;
-  // UShort_t fDataPtr[ALTROMAXSAMPLES] = {0,};
-  UShort_t fData;
+  // fAnalyzerPtr
+  fAnalyzerPtr = new AliCaloRawAnalyzerLMS();
+}
 
-};
 
-#endif
+AliHLTEMCALRawAnalyzerLMSComponent::~AliHLTEMCALRawAnalyzerLMSComponent()
+{
+  delete fAnalyzerPtr;
+}
+
+
+
+const char* 
+AliHLTEMCALRawAnalyzerLMSComponent::GetComponentID()
+{
+  return "EmcalRawLms";
+}
+
+
+
+AliHLTComponent* 
+AliHLTEMCALRawAnalyzerLMSComponent::Spawn()
+{
+  return new AliHLTEMCALRawAnalyzerLMSComponent();
+}
+
+
+int 
+AliHLTEMCALRawAnalyzerLMSComponent::Deinit()
+{
+  return 0;
+}

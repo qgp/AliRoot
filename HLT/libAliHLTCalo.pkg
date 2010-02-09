@@ -8,13 +8,7 @@ include $(MODDIR)/hlt.conf
 ## header files of all classes
 ## optionally, the link def file of the library is generated
 ## automatically from those header files
-CLASS_HDRS:= AliHLTCaloRawAnalyzerChiSquareFit.h \
-AliHLTCaloRawAnalyzerComponentv3.h \
-AliHLTCaloRawAnalyzerCrudeComponent.h \
-AliHLTCaloRawAnalyzerCrude.h \
-AliHLTCaloRawAnalyzer.h \
-AliHLTCaloRawAnalyzerPeakFinderComponent.h \
-AliHLTCaloRawAnalyzerPeakFinder.h \
+CLASS_HDRS:= AliHLTCaloRawAnalyzerComponentv3.h \
 AliHLTCaloUtilities.h \
 AliHLTCaloMapper.h \
 AliHLTCaloDefinitions.h \
@@ -23,10 +17,10 @@ AliHLTCaloSharedMemoryInterfacev2.h \
 AliHLTCaloFourier.h \
 AliHLTCaloConstantsHandler.h \
 AliHLTCaloClusterizer.h \
+AliHLTCaloClusterizerComponent.h \
 AliHLTCaloDigitMaker.h \
 AliHLTCaloClusterAnalyser.h \
 AliHLTCaloRcuProcessor.h \
-AliHLTCaloConstants.h \
 AliHLTCaloProcessor.h 
 
 ## all source files of this module
@@ -42,7 +36,8 @@ MODULE_HDRS:= 	$(CLASS_HDRS) \
 		AliHLTCaloDigitContainerDataStruct.h \
 		AliHLTCaloRecPointDataStruct.h \
 		AliHLTCaloRecPointContainerStruct.h \
-		AliHLTCaloRecPointHeaderStruct.h 
+		AliHLTCaloRecPointHeaderStruct.h \
+		AliHLTCaloConstants.h 
 ##		AliHLTCaloChannelDataStruct.h \
 ##		AliHLTCaloChannelDataHeaderStruct.h 
 
@@ -53,7 +48,9 @@ MODULE_DHDR:=
 ## AliRoot include paths
 EINCLUDE := HLT/BASE HLT/BASE/util STEER RAW HLT/PHOS EMCAL CALO PHOS
 
-LIBRARY_DEP  := -lHLTbase -lCalo -CALOshuttle -lESD -lSTEER -lRAWDatarec
+## LIBRARY_DEP  := -lHLTbase -lCalo -CALOshuttle -lESD -lSTEER -lRAWDatarec -lEMCALrec
+LIBRARY_DEP  := -lHLTbase  -lEMCALrec   -lESD -lSTEER -lRAWDatarec 
+
 
 ###############################################################################
 #

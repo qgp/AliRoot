@@ -37,13 +37,13 @@ public:
 
   AliHLTCaloMapper(const unsigned long specification, TString det);
   virtual ~AliHLTCaloMapper();
-  virtual void InitAltroMapping( const unsigned long specification ) = 0; 
+  virtual Bool_t InitAltroMapping( const unsigned long specification ) = 0; 
   virtual void InitDDLSpecificationMapping() = 0;
   bool GetIsInitializedMapping();
-  char* GetFilePath();
+  virtual char* GetFilePath();
  
-  int  GetChannelID(const AliHLTUInt32_t spec, const Int_t hadd);
-  void GetChannelCoord(const UShort_t channelId, UShort_t* channelCoord);
+  virtual int  GetChannelID(const AliHLTUInt32_t spec, const Int_t hadd);
+  static void GetChannelCoord(const UShort_t channelId, UShort_t* channelCoord);
   static void ChannelId2Coordinate(const int channelId,    AliHLTCaloCoordinate &channelCoord);
   virtual void GetLocalCoord(const int channelId, Float_t* localCoord) const; 
   int GetDDLFromSpec( const AliHLTUInt32_t spec );
@@ -56,10 +56,17 @@ public:
     char fXCol; // Coordinate in X direction (perpendicular too beam direction an parallell to ground) relatve to one Module
     char fGain; // Gain (high gain = 1, low gain = 0)
   };
-  
   struct fDDLSpecificationMap{ 
-    char fModId; 
+    UInt_t fRcuX; // Coordinate in Z direction (beam direction) relatve too one RCU
+    UInt_t fRcuZ; // Coordinate in X direction (perpendicular too beam direction an parallell to ground) relatve too one RCU
+    UInt_t fRcuXOffset;
+    UInt_t fRcuZOffset;
+    int fModId; 
   };
+  
+//   struct fDDLSpecificationMap{ 
+//     char fModId; 
+//   };
   
 
   fAltromap *fHw2geomapPtr; //pointer to structure holding information about geometrical address 

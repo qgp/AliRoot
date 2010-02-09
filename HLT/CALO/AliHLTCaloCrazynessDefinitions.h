@@ -1,6 +1,5 @@
-//-*- Mode: C++ -*-
-// $Id: AliHLTCaloDigitDataStruct.h 35319 2009-10-07 15:27:09Z odjuvsla $
-
+#ifndef ALIHLTCALOCRAZYDEFINITIONS_H
+#define ALIHLTCALOCRAZYDEFINITIONS_H
 
 /**************************************************************************
  * This file is property of and copyright by the ALICE HLT Project        *
@@ -17,69 +16,62 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-#ifndef ALIHLTCALODIGITDATASTRUCT_H
-#define ALIHLTCALODIGITDATASTRUCT_H
-
-#include "Rtypes.h"
-
 /**
- * Digit struct for Calo HLT
- *
- * @file   AliHLTCaloDigitDataStruct.h
+ * @file   AliHLTCaloCrazynessDefinitions.h
  * @author Oystein Djuvsland
  * @date
- * @brief  Digit struct for calo HLT
+ * @brief  Defines the crazyness variable
  */
 
-// see below for class documentation
+// see header file for class documentation
 // or
 // refer to README to build package
 // or
 // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
 
-/**
- * @struct AliHLTCaloDigitDataStruct
- * Digit struct for Calo HLT
- *
- * @ingroup alihlt_calo
- */
-struct AliHLTCaloDigitDataStruct
-{
 
-  /** Unique ID (in the module) for this digit */
-  UInt_t fID;
-  
-  /** The x coordinate */
-  UShort_t fX;
+#include "Rtypes.h"
 
-  /** The z coordinate */
-  UShort_t fZ;
+class AliHLTCaloCrazynessDefinitions
+  {
 
-  /** The module number */
-  Int_t fModule;
+  public:
 
-  /** The amplitude in ADC counts */
-  Float_t fAmplitude;
+    /** Always set if crazy */
+    static const Short_t fgkCrazyBit   = 0x0001;
 
-  /** The time in sample count */ 
-  Float_t fTime;
+    /** Specifies if raw data is included */
+    static const Short_t fgkRawDataBit = 0x8000;
 
-  /* The energy in GeV */
-  Float_t fEnergy;
+    /**
+     * These bits are not taken at the moment,
+     * feel free to take one!
+     */
+    static const Short_t fkDummyBits  =
+      0x4000 |
+      0x2000 |
+      0x1000 |
+      0x0800 |
+      0x0400 |
+      0x0200 |
+      0x0100 |
+      0x0080 |
+      0x0040 |
+      0x0020 ;
 
-  /** The gain */
-  Int_t fGain;
-  
-  /** The crazyness */
-  Int_t fCrazyness; 
+    /** If the channel is completely crazy */
+    static const Short_t fgkBadShitBit = 0x0010|fgkCrazyBit;
 
-  /** The baseline */
-  Float_t fBaseline;
+    /** If the channel has been healed from crazyness */
+    static const Short_t fgkHealedBit  = 0x0008|fgkCrazyBit;
 
-  /** Energy from overflow in channel? */
-  Bool_t fOverflow;
+    /** If the crazyness is due to a spike */
+    static const Short_t fgkSpikeBit   = 0x0004|fgkCrazyBit;
 
-};
+    /** If the crazyness is due to a bad E/T estimate */
+    static const Short_t fgkBadEstBit  = 0x0002|fgkCrazyBit;
+
+
+  };
 
 #endif
-

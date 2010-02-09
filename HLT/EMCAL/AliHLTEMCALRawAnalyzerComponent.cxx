@@ -16,17 +16,28 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
+// Base class fro anlyzing EMCAL raww data
+// Further documentation found in base class
+// --------------
+// --------------
+// --------------
+// --------------
+
 
 #include "AliHLTEMCALRawAnalyzerComponent.h"
 #include "AliHLTEMCALMapper.h"
 #include "AliHLTEMCALDefinitions.h"
 #include "AliHLTCaloChannelDataHeaderStruct.h"
+//#include "unistd.h"
 
-AliHLTEMCALRawAnalyzerComponent::AliHLTEMCALRawAnalyzerComponent() : 
-AliHLTCaloRawAnalyzerComponentv3("EMCAL")
+//#include  "TStopwatch.h"
+//TStopwatch  fgWatch; //CRAP PTH
+
+
+AliHLTEMCALRawAnalyzerComponent::AliHLTEMCALRawAnalyzerComponent() : AliHLTCaloRawAnalyzerComponentv3("EMCAL")
 {
   
-
+  
 }
 
 
@@ -66,12 +77,14 @@ AliHLTEMCALRawAnalyzerComponent::GetOutputDataSize(unsigned long& constBase, dou
 void 
 AliHLTEMCALRawAnalyzerComponent::DoInit() 
 {
-  
+  //  fgWatch.Start();
+ 
 }
 
 bool 
 AliHLTEMCALRawAnalyzerComponent::CheckInputDataType(const AliHLTComponentDataType &datatype)
 {
+  // Cheking if datatype is the correct one before processing 
   if ( datatype  == AliHLTEMCALDefinitions::fgkDDLRawDataType  )
      {
        return true;
@@ -83,12 +96,10 @@ AliHLTEMCALRawAnalyzerComponent::CheckInputDataType(const AliHLTComponentDataTyp
 }
 
 
-
-
 void 
 AliHLTEMCALRawAnalyzerComponent::InitMapping( const int specification )
 {
-
+  //-------------
   if ( fMapperPtr == 0 )
     {
       fMapperPtr =  new   AliHLTEMCALMapper( specification );
@@ -101,21 +112,33 @@ AliHLTEMCALRawAnalyzerComponent::InitMapping( const int specification )
     }
 }
 
+
 int 
 AliHLTEMCALRawAnalyzerComponent::DoEvent( const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, AliHLTComponentTriggerData& /*trigData*/, 
 					 AliHLTUInt8_t* outputPtr, AliHLTUInt32_t& size, vector<AliHLTComponentBlockData>& outputBlocks )
 {
+  //-----------------------
+  static int evntcnt = 0;
+  static double wlast = -1;
+  static double wcurrent = 0;
 
+  evntcnt  ++;
+  
   /*
-
-  if( fPhosEventCount%300 == 0 )
+  if( evntcnt %100 == 0  )
     {
-      cout << __FILE__<<__LINE__<< " Processing event " << fPhosEventCount << endl;
+      
+      cout << __FILE__ << __LINE__ << " : Processing event "  << evntcnt   << endl; 
+      wlast =  wcurrent;
+      wcurrent = fgWatch.RealTime();
+      cout << wlast << ":" << wcurrent << endl;
+      cout << __FILE__ << __LINE__ << "The event rate is " <<  100/( wcurrent  -  wlast ) << "  Hz" << endl; 
+      fgWatch.Start(kFALSE); 
+      //     wlast =  fgWatch.RealTime(); 
     }
   */
+  
 
-  //  Int_t blockSize          = 0;
- 
   Int_t blockSize          = -1;
   UInt_t totSize           = 0;
   const AliHLTComponentBlockData* iter = NULL; 
@@ -131,11 +154,8 @@ AliHLTEMCALRawAnalyzerComponent::DoEvent( const AliHLTComponentEventData& evtDat
       else
 	{
 	  InitMapping( iter->fSpecification); 
-	  
 	  blockSize = DoIt(iter, outputPtr, size, totSize); // Processing the block
 	  
-	  //  blockSize = 1;
-
 	  if(blockSize == -1) // If the processing returns -1 we are out of buffer and return an error msg.
 	    {
 	      return -ENOBUFS;
