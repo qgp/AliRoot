@@ -144,6 +144,7 @@ void AliTPCcalibDButil::UpdateFromCalibDB()
   // Update pointers from calibDB
   //
   if (!fCalibDB) fCalibDB=AliTPCcalibDB::Instance();
+  fCalibDB->UpdateNonRec();  // load all infromation now
   fPadNoise=fCalibDB->GetPadNoise();
   fPedestals=fCalibDB->GetPedestals();
   fPulserTmean=fCalibDB->GetPulserTmean();
