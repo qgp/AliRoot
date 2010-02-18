@@ -1,4 +1,4 @@
-// $Id: AliHLTTRDTrackerV1Component.cxx 23618 2008-01-29 13:07:38Z hristov $
+// $Id$
 
 //**************************************************************************
 //* This file is property of and copyright by the ALICE HLT Project        * 
@@ -17,7 +17,7 @@
 //**************************************************************************
 
 /** @file   AliHLTTRDTrackerV1Component.cxx
-    @author 
+    @author Theodor Rascanu
     @date   
     @brief  A TRDTrackerV1 processing component for the HLT.
 */
@@ -51,7 +51,20 @@ using namespace std;
 #include <string>
 
 ClassImp(AliHLTTRDTrackerV1Component)
-    
+
+void AliHLTTRDTrackerV1Component::AliHLTTRDESDEvent::CreateStdContent()
+{
+  TClonesArray* tracksArray = new TClonesArray("AliESDtrack",0);
+  tracksArray->SetName(AliESDEvent::fgkESDListName[AliESDEvent::kTracks]);
+  AddObject(tracksArray);
+  GetStdContent();
+}
+
+void AliHLTTRDTrackerV1Component::AliHLTTRDESDEvent::Streamer(TBuffer &/*R__b*/)
+{
+  AliFatal("class is for internal us only and not for streaming");
+}
+
 AliHLTTRDTrackerV1Component::AliHLTTRDTrackerV1Component():
   AliHLTProcessor(),
   fOutputPercentage(100), // By default we copy to the output exactly what we got as input 
@@ -128,10 +141,9 @@ int AliHLTTRDTrackerV1Component::DoInit( int argc, const char** argv )
 
   fReconstructor = new AliTRDReconstructor();
   HLTDebug("TRDReconstructor at 0x%x", fReconstructor);
-
-  fESD = new AliESDEvent;
+  fESD = new AliHLTTRDESDEvent();
   fESD->CreateStdContent();
-  
+
   TString configuration="";
   TString argument="";
   for (int i=0; i<argc && iResult>=0; i++) {
@@ -429,19 +441,19 @@ int AliHLTTRDTrackerV1Component::Configure(const char* arguments){
 	}
 	continue;
       }
-      else if (argument.CompareTo("-emulateHLTTracks")==0) {
+      else if (argument.CompareTo("-emulateHLToutput")==0) {
 	if ((bMissingParam=(++i>=pTokens->GetEntries()))) break;
 	TString toCompareTo=((TObjString*)pTokens->At(i))->GetString();
 	if (toCompareTo.CompareTo("yes")==0){
-	  HLTWarning("Setting emulateHLTTracks to: %s", toCompareTo.Data());
+	  HLTWarning("Setting emulateHLToutput to: %s", toCompareTo.Data());
 	  fEmulateHLTTracks=kTRUE;
 	}
 	else if (toCompareTo.CompareTo("no")==0){
-	  HLTInfo("Setting emulateHLTTracks to: %s", toCompareTo.Data());
+	  HLTInfo("Setting emulateHLToutput to: %s", toCompareTo.Data());
 	  fEmulateHLTTracks=kFALSE;
 	}
 	else {
-	  HLTError("unknown argument for emulateHLTTracks: %s", toCompareTo.Data());
+	  HLTError("unknown argument for emulateHLToutput: %s", toCompareTo.Data());
 	  iResult=-EINVAL;
 	  break;
 	}

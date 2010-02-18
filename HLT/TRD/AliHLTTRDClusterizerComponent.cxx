@@ -17,7 +17,7 @@
 //**************************************************************************
 
 /** @file   AliHLTTRDClusterizerComponent.cxx
-    @author 
+    @author Theodor Rascanu
     @date   
     @brief  A TRDClusterizer processing component for the HLT. 
 */
@@ -54,8 +54,8 @@ using namespace std;
 #ifdef HAVE_VALGRIND_CALLGRIND_H
 #include <valgrind/callgrind.h>
 #else
-#define CALLGRIND_START_INSTRUMENTATION do { } while (0)
-#define CALLGRIND_STOP_INSTRUMENTATION do { } while (0)
+#define CALLGRIND_START_INSTRUMENTATION (void)0
+#define CALLGRIND_STOP_INSTRUMENTATION (void)0
 #endif
 
 #include <cstdlib>
@@ -69,7 +69,7 @@ ClassImp(AliHLTTRDClusterizerComponent)
    
 AliHLTTRDClusterizerComponent::AliHLTTRDClusterizerComponent()
 : AliHLTProcessor(),
-  fOutputPercentage(500),
+  fOutputPercentage(100),
   fOutputConst(0),
   fClusterizer(NULL),
   fRecoParam(NULL),
@@ -131,7 +131,7 @@ void AliHLTTRDClusterizerComponent::GetOutputDataSize( unsigned long& constBase,
 {
   // Get the output data size
   constBase = fOutputConst;
-  inputMultiplier = ((double)fOutputPercentage)/100.0;
+  inputMultiplier = ((double)fOutputPercentage)*4/100.0;
 }
 
 AliHLTComponent* AliHLTTRDClusterizerComponent::Spawn()
@@ -209,7 +209,7 @@ int AliHLTTRDClusterizerComponent::DoEvent( const AliHLTComponentEventData& evtD
 {
   // Process an event
 
-  if (evtData.fEventID == 1)
+  if (evtData.fEventID == 10)
     CALLGRIND_START_INSTRUMENTATION;
 
   HLTDebug( "NofBlocks %i", evtData.fBlockCnt );
@@ -424,7 +424,7 @@ int AliHLTTRDClusterizerComponent::Configure(const char* arguments){
 	continue;
       }
       else if (argument.CompareTo("-noZS")==0) {
-	fOutputPercentage = 100;
+	fOutputPercentage = 10;
 	HLTInfo("Awaiting non zero surpressed data");
 	continue;
       }
@@ -485,19 +485,19 @@ int AliHLTTRDClusterizerComponent::Configure(const char* arguments){
 	}
 	continue;
       }
-      else if (argument.CompareTo("-emulateHLTClusters")==0) {
+      else if (argument.CompareTo("-emulateHLToutput")==0) {
 	if ((bMissingParam=(++i>=pTokens->GetEntries()))) break;
 	TString toCompareTo=((TObjString*)pTokens->At(i))->GetString();
 	if (toCompareTo.CompareTo("yes")==0){
-	  HLTWarning("Setting emulateHLTTracks to: %s", toCompareTo.Data());
+	  HLTWarning("Setting emulateHLToutput to: %s", toCompareTo.Data());
 	  fEmulateHLTClusters=kTRUE;
 	}
 	else if (toCompareTo.CompareTo("no")==0){
-	  HLTInfo("Setting emulateHLTTracks to: %s", toCompareTo.Data());
+	  HLTInfo("Setting emulateHLToutput to: %s", toCompareTo.Data());
 	  fEmulateHLTClusters=kFALSE;
 	}
 	else {
-	  HLTError("unknown argument for emulateHLTTracks: %s", toCompareTo.Data());
+	  HLTError("unknown argument for emulateHLToutput: %s", toCompareTo.Data());
 	  iResult=-EINVAL;
 	  break;
 	}

@@ -15,7 +15,6 @@ class AliHLTTRDCluster
  public:
   AliHLTTRDCluster();
   AliHLTTRDCluster(const AliTRDcluster* const inCluster);
-  virtual ~AliHLTTRDCluster() {};
   void ExportTRDCluster(AliTRDcluster* const outCluster) const;
   void Print() const;
   
@@ -29,7 +28,7 @@ class AliHLTTRDCluster
   Short_t  fSignals[3];     // Signals in the cluster
   Short_t  fDetector;       // TRD detector number 
   Char_t   fLocalTimeBin;   // T0-calibrated time bin number
-  UChar_t  fClusterMasking; // Bit field containing cluster status information;
+  UChar_t  fClusterMasking; // Bit field containing cluster status information
 
   UChar_t  fPadCol;         // Central pad number in column direction 
   UChar_t  fPadRow;         // Central pad number in row direction 
