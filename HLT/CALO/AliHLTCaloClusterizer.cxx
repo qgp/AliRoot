@@ -40,7 +40,13 @@ ClassImp(AliHLTCaloClusterizer);
 
 AliHLTCaloClusterizer::AliHLTCaloClusterizer(TString det):
   AliHLTCaloConstantsHandler(det),
+  fRecPointArray(0),
   fRecPointDataPtr(0),
+  fFirstRecPointPtr(0),
+  fArraySize(0),
+  fAvailableSize(0),
+  fUsedSize(0),
+  fNRecPoints(0),
   fDigitIndexPtr(0),
   fEmcClusteringThreshold(0),
   fEmcMinEnergyThreshold(0),
@@ -57,25 +63,16 @@ AliHLTCaloClusterizer::AliHLTCaloClusterizer(TString det):
   fEmcTimeGate = 1.e-6 ;
   
   fMaxDigitIndexDiff = 2*fCaloConstants->GetNZROWSMOD();
+  
+  
+  fArraySize = 10;
+  fRecPointArray = new AliHLTCaloRecPointDataStruct*[fArraySize];
+  
+  fAvailableSize = sizeof(AliHLTCaloRecPointDataStruct) * 20;
+  fRecPointDataPtr = reinterpret_cast<AliHLTCaloRecPointDataStruct*>(new UChar_t[fAvailableSize]);
+  fFirstRecPointPtr = fRecPointDataPtr;  
 
 }//end
-
-
-//BALLE how do you set the right detector?
-// AliHLTCaloClusterizer::AliHLTCaloClusterizer(const AliHLTCaloClusterizer &) :
-//   AliHLTCaloConstantsHandler("BALLE"),
-//   fRecPointDataPtr(0),
-//   fDigitDataPtr(0),
-//   fEmcClusteringThreshold(0),
-//   fEmcMinEnergyThreshold(0),
-//   fEmcTimeGate(0),
-//   fDigitsInCluster(0),
-//   fDigitContainerPtr(0),
-//   fMaxDigitIndexDiff(0)
-// {
-//   // dummy copy constructor
-// }//end
-
 
 AliHLTCaloClusterizer::~AliHLTCaloClusterizer()  
 {
@@ -90,38 +87,37 @@ AliHLTCaloClusterizer::SetRecPointDataPtr(AliHLTCaloRecPointDataStruct* recPoint
 }
 
 Int_t 
-AliHLTCaloClusterizer::ClusterizeEvent(Int_t nDigits, UInt_t availableSize, UInt_t& totSize)
+AliHLTCaloClusterizer::ClusterizeEvent(Int_t nDigits)
 {
   //see header file for documentation
   Int_t nRecPoints = 0;
-
+  fNRecPoints = 0;
+  fUsedSize = 0;
   fNDigits = nDigits;
-
-  UInt_t maxRecPointSize = sizeof(AliHLTCaloRecPointDataStruct) + (sizeof(AliHLTCaloDigitDataStruct) << 7); //Reasonable estimate... 
-
+  fRecPointDataPtr = fFirstRecPointPtr;
   //Clusterization starts
   for(Int_t i = 0; i < nDigits; i++)
     { 
       fDigitsInCluster = 0;
-      //      printf("ENERGY: %f\n", fDigitsPointerArray[i]->fEnergy);
+
       if(fDigitsPointerArray[i]->fEnergy < fEmcClusteringThreshold)
 	{
 	  continue;
 	}
-      if(availableSize < (totSize + maxRecPointSize)) 
-	{
-	  return -1; //Might get out of buffer, exiting
-	}
-      //            printf("cluster candidate!\n");
+      CheckArray();
+      CheckBuffer();
+
       // First digit is placed at the fDigits member variable in the recpoint
       fDigitIndexPtr = &(fRecPointDataPtr->fDigits);
-
+      fUsedSize += sizeof(AliHLTCaloRecPointDataStruct);
+      
       fRecPointDataPtr->fAmp = 0;
       fRecPointDataPtr->fModule = fDigitsPointerArray[i]->fModule;
 
       // Assigning the digit to this rec point
       fRecPointDataPtr->fDigits = i;
-
+      fUsedSize += sizeof(AliHLTCaloRecPointDataStruct);
+      
       // Incrementing the pointer to be ready for new entry
       fDigitIndexPtr++;
 
@@ -131,19 +127,26 @@ AliHLTCaloClusterizer::ClusterizeEvent(Int_t nDigits, UInt_t availableSize, UInt
       nRecPoints++;
 
       // Scanning for the neighbours
-      ScanForNeighbourDigits(i, fRecPointDataPtr);
+      if(ScanForNeighbourDigits(i, fRecPointDataPtr) != 0)
+      {
+	 return -1;
+      }
 
-      totSize += sizeof(AliHLTCaloRecPointDataStruct) + (fDigitsInCluster-1)*sizeof(AliHLTCaloDigitDataStruct);   
+      //fUsedSize += sizeof(AliHLTCaloRecPointDataStruct) + (fDigitsInCluster-1)*sizeof(AliHLTCaloDigitDataStruct);   
+      
       fRecPointDataPtr->fMultiplicity = fDigitsInCluster;     
-      //      printf("Rec point energy: %f\n", fRecPointDataPtr->fAmp);
+      fRecPointArray[fNRecPoints] = fRecPointDataPtr; 
+      
       fRecPointDataPtr = reinterpret_cast<AliHLTCaloRecPointDataStruct*>(fDigitIndexPtr);
 
+      fNRecPoints++;
+      
     }//end of clusterization
 
    return nRecPoints;
 }
 
-void
+Int_t
 AliHLTCaloClusterizer::ScanForNeighbourDigits(Int_t index, AliHLTCaloRecPointDataStruct* recPoint)
 {
   //see header file for documentation
@@ -161,8 +164,23 @@ AliHLTCaloClusterizer::ScanForNeighbourDigits(Int_t index, AliHLTCaloRecPointDat
 	      if(AreNeighbours(fDigitsPointerArray[index],
 			       fDigitsPointerArray[j]))
 		{
-		  // Assigning value to digit ptr
+// 		  if((fAvailableSize - fUsedSize) < sizeof(Int_t))
+// 		     {
+// 			UChar_t *tmp = new UChar_t[fAvailableSize*2];
+// 			memcpy(tmp, fRecPointDataPtr, fAvailableSize);
+// 			for(Int_t n = 0; n < fNRecPoints; n++)
+// 			{
+// 			   fRecPointArray[n] = reinterpret_cast<AliHLTCaloRecPointDataStruct*>(reinterpret_cast<UChar_t*>(fRecPointArray[n]) - reinterpret_cast<UChar_t*>(fFirstRecPointPtr) + reinterpret_cast<UChar_t*>(tmp));
+// 			}
+// 			fRecPointDataPtr = reinterpret_cast<AliHLTCaloRecPointDataStruct*>(tmp);
+// 			fFirstRecPointPtr = fRecPointDataPtr;
+// 			fUsedSize = 0;
+// 		     }	
+		  CheckBuffer();
+		  // Assigning index to digit
 		  *fDigitIndexPtr = j;
+		  fUsedSize += sizeof(Int_t);
+		  
 		  // Incrementing digit pointer to be ready for new entry
 		  fDigitIndexPtr++;
 
@@ -174,7 +192,7 @@ AliHLTCaloClusterizer::ScanForNeighbourDigits(Int_t index, AliHLTCaloRecPointDat
 	    }
 	}
     }
-  return;
+  return 0;
 }
 
 Int_t 
@@ -184,20 +202,20 @@ AliHLTCaloClusterizer::AreNeighbours(AliHLTCaloDigitDataStruct* digit1,
   //see header file for documentation
   if ( (digit1->fModule == digit2->fModule) /*&& (coord1[1]==coord2[1])*/ ) // inside the same PHOS module
     { 
-//       Int_t rowdiff = TMath::Abs( digit1->fZ - digit2->fZ );  
-//       Int_t coldiff = TMath::Abs( digit1->fX - digit2->fX ); 
-//       if (( coldiff <= 1   &&  rowdiff == 0 ) || ( coldiff == 0 &&  rowdiff <= 1 ))
-// 	{
-// 	  cout << "Are neighbours: digit (E = "  << digit1->fEnergy << ") with x = " << digit1->fX << " and z = " << digit1->fZ << 
-// 	    " is neighbour with digit (E = " << digit2->fEnergy << ") with x = " << digit2->fX << " and z = " << digit2->fZ << endl;
+      Int_t rowdiff = TMath::Abs( digit1->fZ - digit2->fZ );  
+      Int_t coldiff = TMath::Abs( digit1->fX - digit2->fX ); 
+      if (( coldiff <= 1   &&  rowdiff == 0 ) || ( coldiff == 0 &&  rowdiff <= 1 ))
+	{
+//	  cout << "Are neighbours: digit (E = "  << digit1->fEnergy << ") with x = " << digit1->fX << " and z = " << digit1->fZ << 
+//	    " is neighbour with digit (E = " << digit2->fEnergy << ") with x = " << digit2->fX << " and z = " << digit2->fZ << endl;
 
-// 	  if(TMath::Abs(digit1->fTime - digit2->fTime ) < fEmcTimeGate)
-// 	    {
-// 	      return 1; 
-// 	    }
-// 	}
+	  if(TMath::Abs(digit1->fTime - digit2->fTime ) < fEmcTimeGate)
+	    {
+	      return 1; 
+	    }
+	}
 
-      Float_t rowdiff = TMath::Abs( digit1->fZ - digit2->fZ );  
+   /*   Float_t rowdiff = TMath::Abs( digit1->fZ - digit2->fZ );  
       Float_t coldiff = TMath::Abs( digit1->fX - digit2->fX ); 
       if (( coldiff <= 2.4   &&  rowdiff < 0.4 ) || ( coldiff < 0.4 &&  rowdiff <= 2.4 ))
 	{
@@ -209,11 +227,120 @@ AliHLTCaloClusterizer::AreNeighbours(AliHLTCaloDigitDataStruct* digit1,
 	      return 1; 
 	    }
 	}
+   */
       else
 	{
-	  //  cout << "Not neighbours: digit (E = "  << digit1->fEnergy << ") with x = " << digit1->fX << " and z = " << digit1->fZ << 
-	  //  " is not neighbour with digit (E = " << digit2->fEnergy << ") with x = " << digit2->fX << " and z = " << digit2->fZ << endl;
+//	    cout << "Not neighbours: digit (E = "  << digit1->fEnergy << ") with x = " << digit1->fX << " and z = " << digit1->fZ << 
+//	    " is not neighbour with digit (E = " << digit2->fEnergy << ") with x = " << digit2->fX << " and z = " << digit2->fZ << endl;
 	}
     }
   return 0;
+}
+
+
+
+Int_t AliHLTCaloClusterizer::CheckArray()
+{
+      if(fArraySize == fNRecPoints)
+	{
+	   fArraySize *= 2;
+	   AliHLTCaloRecPointDataStruct **tmp = new AliHLTCaloRecPointDataStruct*[fArraySize];
+	   memcpy(tmp, fRecPointArray, fArraySize/2 * sizeof(AliHLTCaloRecPointDataStruct*));
+	   delete fRecPointArray;
+	   fRecPointArray = tmp;
+	}
+   return 0;
+}
+
+Int_t AliHLTCaloClusterizer::CheckBuffer()
+{
+   // See header file for class documentation 
+	if((fAvailableSize - fUsedSize) < sizeof(AliHLTCaloRecPointDataStruct))
+	{
+	    Int_t recPointOffset = reinterpret_cast<UChar_t*>(fRecPointDataPtr) - reinterpret_cast<UChar_t*>(fFirstRecPointPtr);
+	    fAvailableSize *= 2;
+	    UChar_t *tmp = new UChar_t[fAvailableSize];
+	    memcpy(tmp, fRecPointDataPtr, fAvailableSize/2);
+	    for(Int_t n = 0; n < fNRecPoints; n++)
+	    {
+	       fRecPointArray[n] = reinterpret_cast<AliHLTCaloRecPointDataStruct*>(reinterpret_cast<UChar_t*>(fRecPointArray[n]) - reinterpret_cast<UChar_t*>(fFirstRecPointPtr) + reinterpret_cast<UChar_t*>(tmp));
+	    }
+	    delete fRecPointDataPtr;
+	    fFirstRecPointPtr = reinterpret_cast<AliHLTCaloRecPointDataStruct*>(tmp);
+	    fRecPointDataPtr = reinterpret_cast<AliHLTCaloRecPointDataStruct*>(tmp + recPointOffset);
+	    fUsedSize = 0;
+	}
+   return 0;
+}
+
+Int_t AliHLTCaloClusterizer::CheckDigits(AliHLTCaloRecPointDataStruct** recArray, AliHLTCaloDigitDataStruct** digitArray, Int_t nRP)
+{
+  AliHLTCaloRecPointDataStruct **recpoints = recArray;
+  AliHLTCaloDigitDataStruct **digits = digitArray;
+  Int_t nRecPoints = nRP;
+  
+  if(recArray == 0)
+  {
+     recpoints = fRecPointArray;
+  }
+  if(digitArray == 0)
+  {
+     digits = fDigitsPointerArray;
+  }
+  if(nRP == 0)
+  {
+     nRecPoints = fNRecPoints;
+  }
+  for(Int_t i = 0; i < nRecPoints; i++)
+  {
+          
+     AliHLTCaloRecPointDataStruct *recPoint = recpoints[i];
+
+     //AliHLTCaloRecPointDataStruct *recPoint = fRecPointArray[0];
+     Int_t multiplicity = recPoint->fMultiplicity;
+     Int_t *digitIndexPtr = &(recPoint->fDigits);
+     for(Int_t j = 0; j < multiplicity; j++)
+     {
+	//AliHLTCaloRecPointDataStruct *recPoint = fRecPointArray[j];
+//	AliHLTCaloDigitDataStruct *digit = digits[*digitIndexPtr];
+	digitIndexPtr++;
+	//recPoint = reinterpret_cast<AliHLTCaloRecPointDataStruct*>(digitIndexPtr);
+     }
+  }
+     
+     return 0;
+}
+
+Int_t AliHLTCaloClusterizer::CheckDigits(AliHLTCaloRecPointDataStruct** recArray, AliHLTCaloDigitDataStruct* digitArray, Int_t nRP)
+{
+  AliHLTCaloRecPointDataStruct **recpoints = recArray;
+  AliHLTCaloDigitDataStruct *digits = digitArray;
+  Int_t nRecPoints = nRP;
+  
+  if(recArray == 0)
+  {
+     recpoints = fRecPointArray;
+  }
+    if(nRP == 0)
+  {
+     nRecPoints = fNRecPoints;
+  }
+  for(Int_t i = 0; i < nRecPoints; i++)
+  {
+          
+     AliHLTCaloRecPointDataStruct *recPoint = recpoints[i];
+
+     //AliHLTCaloRecPointDataStruct *recPoint = fRecPointArray[0];
+     Int_t multiplicity = recPoint->fMultiplicity;
+     Int_t *digitIndexPtr = &(recPoint->fDigits);
+     for(Int_t j = 0; j < multiplicity; j++)
+     {
+	//AliHLTCaloRecPointDataStruct *recPoint = fRecPointArray[j];
+	AliHLTCaloDigitDataStruct digit = digits[*digitIndexPtr];
+	digitIndexPtr++;
+	//recPoint = reinterpret_cast<AliHLTCaloRecPointDataStruct*>(digitIndexPtr);
+     }
+  }
+   return 0;
+     
 }

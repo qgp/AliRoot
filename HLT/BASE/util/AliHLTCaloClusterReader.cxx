@@ -15,6 +15,7 @@
 
 #include "AliHLTCaloClusterReader.h"
 #include "AliHLTCaloClusterDataStruct.h"
+#include "AliHLTCaloDigitDataStruct.h"
 
 AliHLTCaloClusterReader::AliHLTCaloClusterReader(): 
   fCurrentClusterPtr(0),
@@ -95,8 +96,9 @@ void
 AliHLTCaloClusterReader::SetMemory(const AliHLTCaloClusterHeaderStruct* clusterHeaderPtr)
 {
   //See header file for documentation
+  
   fMaxCnt = clusterHeaderPtr->fNClusters;
-  fCurrentClusterPtr = reinterpret_cast<AliHLTCaloClusterDataStruct*>((UChar_t*)(clusterHeaderPtr) + sizeof(AliHLTCaloClusterHeaderStruct));
+  fCurrentClusterPtr = reinterpret_cast<AliHLTCaloClusterDataStruct*>((UChar_t*)(clusterHeaderPtr) + sizeof(AliHLTCaloClusterHeaderStruct) + sizeof(AliHLTCaloDigitDataStruct)*clusterHeaderPtr->fNDigits);
   fIsSetMemory = true;
 }
 
