@@ -56,6 +56,7 @@ struct AliHLTMUONHitRecoLutRow
 	AliHLTInt32_t fIX, fIY;    // The X,Y number of the pad.
 	AliHLTFloat32_t fRealX, fRealY, fRealZ;  // The real coordinate of the pad.
 	AliHLTFloat32_t fHalfPadSize; // half padsize in X for bending and Y for nonbending
+	AliHLTFloat32_t fPadSizeXY; // padsize in Y for bending plane and X for nonbending
 	AliHLTInt32_t fPlane;  // The plane and PCB zone ID numbers.
 	AliHLTFloat32_t fPed, fSigma, fA0, fA1; // Calibration values
 	AliHLTInt32_t fThres, fSat; //Calibration values
@@ -142,6 +143,7 @@ enum AliHLTMUONDataBlockType
 	kChannelsDataBlock = 2002,
 	kMansoTracksDataBlock = 3000,
 	kMansoCandidatesDataBlock = 3001,
+	kTracksDataBlock = 3100,
 	kSinglesDecisionDataBlock = 4000,
 	kPairsDecisionDataBlock = 4001
 };
@@ -207,6 +209,7 @@ inline std::ostream& operator << (std::ostream& stream, AliHLTMUONDataBlockType 
 	case kChannelsDataBlock:        stream << "kChannelsDataBlock";        break;
 	case kMansoTracksDataBlock:     stream << "kMansoTracksDataBlock";     break;
 	case kMansoCandidatesDataBlock: stream << "kMansoCandidatesDataBlock"; break;
+	case kTracksDataBlock:          stream << "kTracksDataBlock";          break;
 	case kSinglesDecisionDataBlock: stream << "kSinglesDecisionDataBlock"; break;
 	case kPairsDecisionDataBlock:   stream << "kPairsDecisionDataBlock";   break;
 	default:                        stream << "INVALID";

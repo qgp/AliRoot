@@ -61,13 +61,12 @@ ClassImp(AliHLTMUONAgent);
 
 bool AliHLTMUONAgent::IsMuonModuleLoaded()
 {
-	// Checks to see if the MUON module is loaded or not.
+	/// Checks to see if the MUON module is loaded or not.
 
 	// If the check was already done then use the cached value.
 	if (fgMuonModuleLoaded > 0) return true;
 	if (fgMuonModuleLoaded < 0) return false;
 	
-	bool haveMuonModule = false;
 	if (gAlice != NULL)
 	{
 		// Search for a module in gAlice deriving from AliMUON.
@@ -82,11 +81,9 @@ bool AliHLTMUONAgent::IsMuonModuleLoaded()
 			}
 		}
 	}
-	else
-	{
-		fgMuonModuleLoaded = -1;
-		return false;
-	}
+	
+	fgMuonModuleLoaded = -1;
+	return false;
 }
 
 
@@ -345,11 +342,11 @@ int AliHLTMUONAgent::CreateConfigurations(
 			" RecoRawDDL7 RecoRawDDL8 RecoRawDDL9 RecoRawDDL10 RecoRawDDL11 RecoRawDDL12 "
 			" RecoRawDDL13 RecoRawDDL14 RecoRawDDL15 RecoRawDDL16 RecoRawDDL17 "
 			" RecoRawDDL18 RecoRawDDL19 RecoRawDDL20 RecoRawDDL21 RecoRawDDL22 ";
-		handler->CreateConfiguration("FullTrackerForRaw", fullTrackerId, recoSrcsFull, "");
+		handler->CreateConfiguration("FullTrackerForRaw", fullTrackerId, recoSrcsFull, "-cdb");
 		
 		handler->CreateConfiguration("DecisionForRawFullTrk", decCompId, "FullTrackerForRaw", "");
 		
-		TString outputSrcsFull = " DecisionForRawFullTrk FullTrackerForRaw ";
+		TString outputSrcsFull = "DecisionForRawFullTrk FullTrackerForRaw ";
 		outputSrcsFull += recoSrcsFull;
 		handler->CreateConfiguration("dHLT-sim-fromRaw-fullTracker", "BlockFilter", outputSrcsFull, "");
 	}
@@ -421,10 +418,11 @@ int AliHLTMUONAgent::CreateConfigurations(
 	// Create a chain for generating AliESDEvent objects from dHLT raw reconstructed data.
 	handler->CreateConfiguration("HLTOUTPubTrigRecs", "AliHLTOUTPublisher", NULL, "-datatype 'TRIGRECS' 'MUON'");
 	handler->CreateConfiguration("HLTOUTPubMansoTracks", "AliHLTOUTPublisher", NULL, "-datatype 'MANTRACK' 'MUON'");
+	handler->CreateConfiguration("HLTOUTPubTracks", "AliHLTOUTPublisher", NULL, "-datatype 'TRACKS  ' 'MUON'");
 	handler->CreateConfiguration(
 			"dHLT-make-esd",
 			AliHLTMUONConstants::ESDMakerId(),
-			"HLTOUTPubTrigRecs HLTOUTPubMansoTracks",
+			"HLTOUTPubTrigRecs HLTOUTPubMansoTracks HLTOUTPubTracks",
 			"-make_minimal_esd"
 		);
 	
@@ -442,7 +440,7 @@ int AliHLTMUONAgent::CreateConfigurations(
 			AliHLTMUONConstants::RootifierComponentId(),
 			"HLTOUTPubTrigRecs HLTOUTPubTrigDbg HLTOUTPubHits HLTOUTPubClusters"
 			 " HLTOUTPubChannels HLTOUTPubMansoTracks HLTOUTPubCandidates"
-			 " HLTOUTPubSingles HLTOUTPubPairs",
+			 " HLTOUTPubTracks HLTOUTPubSingles HLTOUTPubPairs",
 			""
 		);
 	handler->CreateConfiguration(
@@ -496,7 +494,8 @@ int AliHLTMUONAgent::GetHandlerDescription(
 	/// Get handler decription for MUON data in the HLTOUT data stream.
 	
 	if (dt == AliHLTMUONConstants::TriggerRecordsBlockDataType() or
-	    dt == AliHLTMUONConstants::MansoTracksBlockDataType()
+	    dt == AliHLTMUONConstants::MansoTracksBlockDataType() or
+	    dt == AliHLTMUONConstants::TracksBlockDataType()
 	   )
 	{
 		HLTDebug("Indicating we can handle data type = %s and specification"
@@ -515,6 +514,7 @@ int AliHLTMUONAgent::GetHandlerDescription(
 	    dt == AliHLTMUONConstants::ChannelBlockDataType() or
 	    dt == AliHLTMUONConstants::MansoTracksBlockDataType() or
 	    dt == AliHLTMUONConstants::MansoCandidatesBlockDataType() or
+	    dt == AliHLTMUONConstants::TracksBlockDataType() or
 	    dt == AliHLTMUONConstants::SinglesDecisionBlockDataType() or
 	    dt == AliHLTMUONConstants::PairsDecisionBlockDataType()
 	   )
@@ -550,12 +550,13 @@ AliHLTOUTHandler* AliHLTMUONAgent::GetOutputHandler(
 	);
 	
 	if (dt == AliHLTMUONConstants::TriggerRecordsBlockDataType() or
-	    dt == AliHLTMUONConstants::MansoTracksBlockDataType()
+	    dt == AliHLTMUONConstants::MansoTracksBlockDataType() or
+	    dt == AliHLTMUONConstants::TracksBlockDataType()
 	   )
 	{
 		return &fgkESDMakerChain;
 	}
-	
+
 	if (dt == AliHLTMUONConstants::TriggerRecordsBlockDataType() or
 	    dt == AliHLTMUONConstants::TrigRecsDebugBlockDataType() or
 	    dt == AliHLTMUONConstants::RecHitsBlockDataType() or
@@ -563,6 +564,7 @@ AliHLTOUTHandler* AliHLTMUONAgent::GetOutputHandler(
 	    dt == AliHLTMUONConstants::ChannelBlockDataType() or
 	    dt == AliHLTMUONConstants::MansoTracksBlockDataType() or
 	    dt == AliHLTMUONConstants::MansoCandidatesBlockDataType() or
+	    dt == AliHLTMUONConstants::TracksBlockDataType() or
 	    dt == AliHLTMUONConstants::SinglesDecisionBlockDataType() or
 	    dt == AliHLTMUONConstants::PairsDecisionBlockDataType()
 	   )
