@@ -77,10 +77,11 @@ AliHLTUInt32_t AliHLTDataBuffer::fgEventCount=0;
 AliHLTDataBuffer::~AliHLTDataBuffer()
 {
   // see header file for function documentation
+  CleanupConsumerList();
+
   if (--fgNofInstances<=0) {
     DeleteRawBuffers();
   }
-  CleanupConsumerList();
 }
 
 int AliHLTDataBuffer::SetConsumer(AliHLTComponent* pConsumer)
