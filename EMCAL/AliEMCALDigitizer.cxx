@@ -427,11 +427,17 @@ void AliEMCALDigitizer::Digitize(Int_t event)
   delete sdigArray ; //We should not delete its contents
 
   //remove digits below thresholds
+  // until 10-02-2010 remove digits with energy smaller than fDigitThreshold 3*fPinNoise
+  // now, remove digits with Digitized ADC smaller than fDigitThreshold = 3
+  Float_t energy=0;
   for(i = 0 ; i < nEMC ; i++){
     digit = dynamic_cast<AliEMCALDigit*>( digits->At(i) ) ;
-    Float_t threshold = fDigitThreshold ; //this is in GeV
-    //need to calibrate digit amplitude to energy in GeV for comparison
-    if(sDigitizer->Calibrate( digit->GetAmp() ) < threshold)
+    //First get the energy in GeV units.
+    energy = sDigitizer->Calibrate(digit->GetAmp()) ;
+    //Then digitize using the calibration constants of the ocdb
+    Int_t ampADC = DigitizeEnergy(energy, digit->GetId())  ; 	  
+    //if(ampADC>2)printf("Digit energy %f, amp %d, amp cal %d, threshold %d\n",energy,digit->GetAmp(),ampADC,fDigitThreshold);
+    if(ampADC < fDigitThreshold)
       digits->RemoveAt(i) ;
     else 
       digit->SetTime(gRandom->Gaus(digit->GetTime(),fTimeResolution) ) ;
@@ -440,12 +446,11 @@ void AliEMCALDigitizer::Digitize(Int_t event)
   digits->Compress() ;  
   
   Int_t ndigits = digits->GetEntriesFast() ; 
-
+  
   //JLK 26-June-2008
   //After we have done the summing and digitizing to create the
   //digits, now we want to calibrate the resulting amplitude to match
   //the dynamic range of our real data.  
-  Float_t energy=0;
   for (i = 0 ; i < ndigits ; i++) { 
     digit = dynamic_cast<AliEMCALDigit *>( digits->At(i) ) ; 
     digit->SetIndexInList(i) ; 
@@ -627,20 +632,31 @@ Bool_t AliEMCALDigitizer::Init()
 void AliEMCALDigitizer::InitParameters()
 { 
   // Parameter initialization for digitizer
- 
-  fMeanPhotonElectron = AliEMCALSimParam::GetInstance()->GetMeanPhotonElectron();//4400;  // electrons per GeV 
-  fPinNoise           = AliEMCALSimParam::GetInstance()->GetPinNoise();//0.012; // pin noise in GeV from analysis test beam data 
+  
+  // Get the parameters from the OCDB via the loader
+  AliRunLoader *rl = AliRunLoader::Instance();
+  AliEMCALLoader *emcalLoader = dynamic_cast<AliEMCALLoader*>(rl->GetDetectorLoader("EMCAL"));
+  AliEMCALSimParam * simParam = 0x0;
+  if(emcalLoader) simParam = emcalLoader->SimulationParameters();
+	
+  if(!simParam){
+	  simParam = AliEMCALSimParam::GetInstance();
+	  AliWarning("Simulation Parameters not available in OCDB?");
+  }
+	
+  fMeanPhotonElectron = simParam->GetMeanPhotonElectron();//4400;  // electrons per GeV 
+  fPinNoise           = simParam->GetPinNoise();//0.012; // pin noise in GeV from analysis test beam data 
   if (fPinNoise < 0.0001 ) 
     Warning("InitParameters", "No noise added\n") ; 
-  fDigitThreshold     = AliEMCALSimParam::GetInstance()->GetDigitThreshold(); //fPinNoise * 3; // 3 * sigma
-  fTimeResolution     = AliEMCALSimParam::GetInstance()->GetTimeResolution(); //0.6e-9 ; // 600 psc
+  fDigitThreshold     = simParam->GetDigitThreshold(); //fPinNoise * 3; // 3 * sigma
+  fTimeResolution     = simParam->GetTimeResolution(); //0.6e-9 ; // 600 psc
 
   // These defaults are normally not used. 
   // Values are read from calibration database instead
   fADCchannelEC       = 0.0153; // Update 24 Apr 2007: 250./16/1024 - width of one ADC channel in GeV
   fADCpedestalEC      = 0.0 ;  // GeV
 
-  fNADCEC          = AliEMCALSimParam::GetInstance()->GetNADCEC();//(Int_t) TMath::Power(2,16) ;  // number of channels in Tower ADC - 65536
+  fNADCEC          = simParam->GetNADCEC();//(Int_t) TMath::Power(2,16) ;  // number of channels in Tower ADC - 65536
 
   AliDebug(2,Form("Mean Photon Electron %d, Noise %f, E Threshold %f,Time Resolution %g,NADCEC %d",
 		fMeanPhotonElectron,fPinNoise,fDigitThreshold,fTimeResolution,fNADCEC));
@@ -748,7 +764,7 @@ void AliEMCALDigitizer::Print(Option_t*)const
     printf("\nWith following parameters:\n") ;
     
     printf("    Electronics noise in EMC (fPinNoise) = %f\n", fPinNoise) ;
-    printf("    Threshold  in EMC  (fDigitThreshold) = %f\n", fDigitThreshold)  ;
+    printf("    Threshold  in Tower  (fDigitThreshold) = %d\n", fDigitThreshold)  ;
     printf("---------------------------------------------------\n")  ;
   }
   else
