@@ -1673,3 +1673,11 @@ Int_t AliITSQASSDDataMakerRec::GetTaskHisto(AliQAv1::TASKINDEX_t task) {
 
   return histotot;
 }
+
+//____________________________________________________________________________ 
+void AliITSQASSDDataMakerRec::ResetDetector(AliQAv1::TASKINDEX_t task)
+{
+  if(task==AliQAv1::kRAWS)ResetRawsMonitoredObjects();
+
+
+}
