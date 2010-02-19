@@ -26,7 +26,10 @@ SRCS  = AliTOFGeometry.cxx  \
 	AliTOFCableLengthMap.cxx \
 	AliTOFNoiseConfigHandler.cxx \
 	AliTOFcalibHisto.cxx \
-	AliTOFArray.cxx
+	AliTOFArray.cxx \
+	AliTOFDeltaBCOffset.cxx \
+	AliTOFCTPLatency.cxx \
+	AliTOFT0Fill.cxx
 
 
 HDRS:= $(SRCS:.cxx=.h)
