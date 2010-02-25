@@ -63,7 +63,7 @@ private:
   void FindClusters(AliTPCCalROC * noiseROC);
   Bool_t AcceptCluster(AliTPCclusterMI*c);
   Double_t  ProcesSignal(Float_t * signal, Int_t nchannels, Int_t id[3], Double_t &rms, Double_t &pedestalCalib);
-  void ProcessSectorData(Float_t** allBins, Int_t** allSigBins, Int_t*  allNSigBins);
+  void ProcessSectorData();
   
   Float_t * fBins;       //!digits array
   Int_t   * fSigBins; //!digits array containg only timebins above threshold
@@ -97,7 +97,14 @@ private:
   Bool_t  fBDumpSignal; // dump signal flag
   Bool_t  fBClonesArray; // output clusters stored in TClonesArray 
 
-  ClassDef(AliTPCclustererMI,2)  // Time Projection Chamber digits
+  // Non-persistent arrays
+
+  Float_t** fAllBins; //! All sector bins
+  Int_t** fAllSigBins;//! All signal bins in a sector
+  Int_t*  fAllNSigBins;//! Number of signal bins in a sector
+
+
+  ClassDef(AliTPCclustererMI,3)  // Time Projection Chamber digits
 };
 
 inline Bool_t AliTPCclustererMI::IsMaximum(Float_t q,Int_t max,const Float_t *bins) const {
