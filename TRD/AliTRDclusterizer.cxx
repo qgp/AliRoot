@@ -1358,8 +1358,9 @@ void AliTRDclusterizer::ResetRecPoints()
   //
 
   if (fRecPoints) {
-    fRecPoints->Delete();
-    delete fRecPoints;
+    fRecPoints->Clear();
+    fNoOfClusters = 0;
+    //    delete fRecPoints;
   }
 }
 
