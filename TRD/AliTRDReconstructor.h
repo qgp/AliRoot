@@ -21,6 +21,7 @@
 class TClonesArray;
 class TTreeSRedirector;
 class AliRawReader;
+class AliTRDclusterizer;
 class AliTRDReconstructor: public AliReconstructor 
 {
 public:
@@ -86,7 +87,9 @@ private:
   static TClonesArray *fgClusters;    // list of clusters for local reconstructor
   static TClonesArray *fgTracklets;   // list of online tracklets for local reconstructor
 
-  ClassDef(AliTRDReconstructor, 2)    //  Class for the TRD reconstruction
+  AliTRDclusterizer   *fClusterizer;  //! Non-persistent
+
+  ClassDef(AliTRDReconstructor, 3)    //  Class for the TRD reconstruction
 
 };
 

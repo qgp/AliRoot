@@ -76,6 +76,7 @@ Char_t const * AliTRDReconstructor::fgTaskFlags[AliTRDrecoParam::kTRDreconstruct
 AliTRDReconstructor::AliTRDReconstructor()
   :AliReconstructor()
   ,fSteerParam(0)
+  ,fClusterizer(NULL)
 {
   // setting default "ON" steering parameters
   // owner of debug streamers 
@@ -113,6 +114,10 @@ AliTRDReconstructor::~AliTRDReconstructor()
     for(Int_t itask = 0; itask < AliTRDrecoParam::kTRDreconstructionTasks; itask++)
       if(fDebugStream[itask]) delete fDebugStream[itask];
   }
+  if(fClusterizer){
+    delete fClusterizer;
+    fClusterizer = NULL;
+  }
 }
 
 
@@ -124,6 +129,11 @@ void AliTRDReconstructor::Init(){
   SetOption(GetOption());
   Options(fSteerParam);
 
+  if(!fClusterizer){
+    fClusterizer = new AliTRDclusterizer(fgTaskNames[AliTRDrecoParam::kClusterizer], fgTaskNames[AliTRDrecoParam::kClusterizer]);
+    fClusterizer->SetReconstructor(this);
+  }
+  
   // Make Debug Streams when Debug Streaming
   if(IsDebugStreaming()){
     for(Int_t task = 0; task < AliTRDrecoParam::kTRDreconstructionTasks; task++){
@@ -172,23 +182,25 @@ void AliTRDReconstructor::Reconstruct(AliRawReader *rawReader
   rawReader->Select("TRD");
   AliTRDrawStreamBase::SetRawStreamVersion(GetRecoParam()->GetRawStreamVersion()->Data());
 
-  // New (fast) cluster finder
-  AliTRDclusterizer clusterer(fgTaskNames[AliTRDrecoParam::kClusterizer], fgTaskNames[AliTRDrecoParam::kClusterizer]);
-  clusterer.SetReconstructor(this);
-  clusterer.OpenOutput(clusterTree);
-  clusterer.OpenTrackletOutput();
-  clusterer.SetUseLabels(kFALSE);
-  clusterer.Raw2ClustersChamber(rawReader);
+  if(!fClusterizer){
+    AliFatal("Clusterizer not available!");
+    return;
+  }
+
+  fClusterizer->OpenOutput(clusterTree);
+  fClusterizer->OpenTrackletOutput();
+  fClusterizer->SetUseLabels(kFALSE);
+  fClusterizer->Raw2ClustersChamber(rawReader);
   
   if(IsWritingClusters()) return;
 
   // take over ownership of clusters
-  fgClusters = clusterer.RecPoints();
-  clusterer.SetClustersOwner(kFALSE);
+  fgClusters = fClusterizer->RecPoints();
+  fClusterizer->SetClustersOwner(kFALSE);
 
   // take over ownership of online tracklets
-  fgTracklets = clusterer.TrackletsArray();
-  clusterer.SetTrackletsOwner(kFALSE);
+  fgTracklets = fClusterizer->TrackletsArray();
+  fClusterizer->SetTrackletsOwner(kFALSE);
 }
 
 //_____________________________________________________________________________
@@ -201,21 +213,24 @@ void AliTRDReconstructor::Reconstruct(TTree *digitsTree
 
   //AliInfo("Reconstruct TRD clusters from Digits [Digit TTree -> Cluster TTree]");
   
-  AliTRDclusterizer clusterer(fgTaskNames[AliTRDrecoParam::kClusterizer], fgTaskNames[AliTRDrecoParam::kClusterizer]);
-  clusterer.SetReconstructor(this);
-  clusterer.OpenOutput(clusterTree);
-  clusterer.ReadDigits(digitsTree);
-  clusterer.MakeClusters();
+  if(!fClusterizer){
+    AliFatal("Clusterizer not available!");
+    return;
+  }
+
+  fClusterizer->OpenOutput(clusterTree);
+  fClusterizer->ReadDigits(digitsTree);
+  fClusterizer->MakeClusters();
 
   if(IsWritingClusters()) return;
 
   // take over ownership of clusters
-  fgClusters = clusterer.RecPoints();
-  clusterer.SetClustersOwner(kFALSE);
+  fgClusters = fClusterizer->RecPoints();
+  fClusterizer->SetClustersOwner(kFALSE);
 
   // take over ownership of online tracklets
-  fgTracklets = clusterer.TrackletsArray();
-  clusterer.SetTrackletsOwner(kFALSE);
+  fgTracklets = fClusterizer->TrackletsArray();
+  fClusterizer->SetTrackletsOwner(kFALSE);
 }
 
 //_____________________________________________________________________________
