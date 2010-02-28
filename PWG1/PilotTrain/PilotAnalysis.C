@@ -12,6 +12,14 @@ Bool_t doFMD          = 1;   // output ok
 Bool_t doTPC          = 1;   // output ok
 Bool_t doEventStat    = 1;   // output ok
 Bool_t doSDD          = 1;   // outout ok needs RP
+// new 
+Bool_t doTRD          = 1;   // TRD 
+Bool_t doITS          = 1;   // ITS
+Bool_t doCALO         = 1;   // Calorimeter
+Bool_t doMUONTrig     = 1;   // MUON trigger
+Bool_t doMUONEff      = 0;   // MUON efficiency  NEEDS geometry
+Bool_t doV0           = 0;   // V0 recosntruction performance NEEDS MCtruth 
+
 
 TString     train_name         = "QA001_PASS4";
 TString     job_tag            = "QA001: PWG1 QA train";
@@ -177,7 +185,77 @@ void AddAnalysisTasks()
       AliPhysicsSelection* physSel = physSelTask->GetPhysicsSelection();
       physSel->AddBackgroundIdentification(new AliBackgroundSelection());
       AliAnalysisManager::GetAnalysisManager()->RegisterExtraFile("event_stat.root");
-  }    
+
+  }
+   
+
+  //
+  // TRD (Alex Bercuci, M. Fasel) 
+  //
+  if(doTRD) {
+      AliAnalysisDataContainer *ci[] = {0x0, 0x0, 0x0};
+      //
+      // Check ESD
+      gROOT->LoadMacro("$ALICE_ROOT/PWG1/TRD/macros/AddTRDcheckESD.C++");
+      AddTRDcheckESD(mgr);
+      //
+      // Info top task
+      gROOT->LoadMacro("$ALICE_ROOT/PWG1/TRD/macros/AddTRDinfoGen.C++");
+      AddTRDinfoGen(mgr, "ALL", 0x0, ci);
+      //
+      // check DET
+      gROOT->LoadMacro("$ALICE_ROOT/PWG1/TRD/macros/AddTRDcheckDET.C++");
+      AddTRDcheckDET(mgr, "ALL", ci);
+      //
+      // check PID (ref maker ???)
+      gROOT->LoadMacro("$ALICE_ROOT/PWG1/TRD/macros/AddTRDcheckPID.C++");
+      AddTRDcheckPID(mgr, "ALL", ci);
+      //
+      // Efficiency
+      gROOT->LoadMacro("$ALICE_ROOT/PWG1/TRD/macros/AddTRDefficiency.C++");
+      AddTRDefficiency(mgr, "ALL", ci);
+      //
+      // Resolution
+      gROOT->LoadMacro("$ALICE_ROOT/PWG1/TRD/macros/AddTRDresolution.C++");      
+      AddTRDresolution(mgr, "ALL", ci);
+  }
+
+  //
+  // Calorimetry (Gustavo Conesa)
+  //
+
+  if(doCALO) {
+      gROOT->LoadMacro("$ALICE_ROOT/PWG4/macros/QA/AddTaskCalorimeterQA.C");
+      AliAnalysisTaskParticleCorrelation *taskCaloQA = AddTaskCalorimeterQA("ESD", kTRUE, kFALSE);
+      taskCaloQA->SetDebugLevel(0);
+  }
+
+  //
+  // Muon Trigger
+  //
+  
+  if(doMUONTrig) {
+      gROOT->LoadMacro("$ALICE_ROOT/PWG1/macros/AddTaskMTRchamberEfficiency.C");
+      AliAnalysisTaskTrigChEff *taskMuonTrig = AddTaskMTRchamberEfficiency();
+  }
+
+  //
+  // Muon Efficiency
+  //
+
+  if(doMUONEff) {
+      gROOT->LoadMacro("$ALICE_ROOT/PWG3/muondep/AddTaskMUONTrackingEfficiency.C");
+      AliAnalysisTaskMuonTrackingEff *taskMuonTrackEff = AddTaskMUONTrackingEfficiency();
+  }
+  
+  //
+  // V0-Decay Reconstruction (Ana Marin)
+  // 
+
+  if (doV0) {
+      gROOT->LoadMacro("$ALICE_ROOT/PWG1/macros/AddTaskV0QA.C");
+      AliAnalysisTaskV0QA *taskv0QA = AddTaskV0QA(kFALSE);
+  }
 }
 
 //______________________________________________________________________________
