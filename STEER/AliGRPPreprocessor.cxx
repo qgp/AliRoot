@@ -177,11 +177,11 @@ ClassImp(AliGRPPreprocessor)
 
 
   const char* AliGRPPreprocessor::fgkLHCDataPoints[AliGRPPreprocessor::fgknLHCDP] = {
-	  "dip/acc/LHC/Beam/Energy.Energy",
-	  "dip/acc/LHC/RunControl/MachineMode.value",
-	  "dip/acc/LHC/RunControl/BeamMode.value",
-	  "dip/acc/LHC/RunControl/BeamType/Beam1.payload",
-	  "dip/acc/LHC/RunControl/BeamType/Beam2.payload"
+	  "lhcMon_LHCBeam.Energy",
+	  "lhcMon_LHCMachineMode.value",
+	  "lhcMon_LHCBeamMode.value",
+          "dip/acc/LHC/RunControl/BeamType/Beam1.payload",
+          "dip/acc/LHC/RunControl/BeamType/Beam2.payload"
   };
   const char* kppError[] = {
                    "",
@@ -507,6 +507,7 @@ UInt_t AliGRPPreprocessor::Process(TMap* valueMap)
 	//=================//
 
 	UInt_t iLHCData = ProcessLHCData(grpobj);
+
 	if( iLHCData == 0 ) {
 		Log(Form("LHC Data from DCS FXS, successful!"));
 	} else  if (iLHCData == 1) {
@@ -579,11 +580,11 @@ UInt_t AliGRPPreprocessor::ProcessLHCData(AliGRPObject *grpobj)
 
 	TString timeStartString = (TString)GetRunParameter("DAQ_time_start");
 	TString timeEndString = (TString)GetRunParameter("DAQ_time_end");
-	if (timeStartString.IsNull() || timeStartString.IsNull()){
+	if (timeStartString.IsNull() || timeEndString.IsNull()){
 		if (timeStartString.IsNull()){ 
 			AliError("DAQ_time_start not set in logbook! Setting statistical values for current DP to invalid");
 		}
-		else if (timeStartString.IsNull()){
+		else if (timeEndString.IsNull()){
 			AliError("DAQ_time_end not set in logbook! Setting statistical values for current DP to invalid");
 		}
 		return 2;
@@ -592,62 +593,72 @@ UInt_t AliGRPPreprocessor::ProcessLHCData(AliGRPObject *grpobj)
 	Double_t timeStart = timeStartString.Atof();
 	Double_t timeEnd = timeEndString.Atof();
 
-	//	timeStart = 1260646960;
-	//timeEnd = 1260652740;
-
 	TString fileName = GetFile(kDCS, "LHCData","");
 	if (fileName.Length()>0){
 		AliInfo("Got The LHC Data file");
-		AliLHCReader* lhcReader = new AliLHCReader();
-		TMap* lhcMap = (TMap*)lhcReader->ReadLHCDP(fileName.Data());
+		AliLHCReader lhcReader;
+		TMap* lhcMap = (TMap*)lhcReader.ReadLHCDP(fileName.Data());
 		if (lhcMap) {
 			Log(Form("LHCData map entries = %d",lhcMap->GetEntries()));
 			
 			// Processing data to be put in AliGRPObject
 			// Energy
 			TObjArray* energyArray = (TObjArray*)lhcMap->GetValue(fgkLHCDataPoints[0]);
-			Float_t energy = ProcessEnergy(energyArray,timeStart,timeEnd);
-			if (energy != -1) {
-				grpobj->SetBeamEnergy(energy);
-				grpobj->SetBeamEnergyIsSqrtSHalfGeV(kTRUE);
+			if (energyArray){			
+				Float_t energy = ProcessEnergy(energyArray,timeStart,timeEnd);
+				if (energy != -1) {
+					grpobj->SetBeamEnergy(energy);
+					grpobj->SetBeamEnergyIsSqrtSHalfGeV(kTRUE);
+				}
 			}
-			
+			else {
+				AliError("Energy not found in LHC Data file!!!");
+			}	
 			Double_t timeBeamMode = 0;
 			Double_t timeMachineMode = 0;
 			// BeamMode
 			TObjArray* beamModeArray = (TObjArray*)lhcMap->GetValue(fgkLHCDataPoints[2]);
-			if (beamModeArray->GetEntries()==0){
-				AliInfo("No Beam Mode found, setting it to UNKNOWN");
-				grpobj->SetLHCState("UNKNOWN");
+			if (beamModeArray){		
+				if (beamModeArray->GetEntries()==0){
+					AliInfo("No Beam Mode found, setting it to UNKNOWN");
+					grpobj->SetLHCState("UNKNOWN");
+				}
+				else{
+					AliDCSArray* beamMode = (AliDCSArray*)beamModeArray->At(0);
+					TObjString* beamModeString = beamMode->GetStringArray(0);
+					if (beamModeArray->GetEntries()>1){
+						timeBeamMode = beamMode->GetTimeStamp();
+						AliWarning(Form("The beam mode changed at timestamp %f! Setting it to the first value found and setting MaxTimeLHCValidity",timeBeamMode));
+					}
+					AliInfo(Form("LHC State (corresponding to BeamMode) = %s",(beamModeString->String()).Data()));
+					grpobj->SetLHCState(beamModeString->String());
+				}
+				
 			}
 			else{
-				AliDCSArray* beamMode = (AliDCSArray*)beamModeArray->At(0);
-				TObjString* beamModeString = beamMode->GetStringArray(0);
-				if (beamModeArray->GetEntries()>1){
-					timeBeamMode = beamMode->GetTimeStamp();
-					AliWarning(Form("The beam mode changed at timestamp %f! Setting it to the first value found and setting MaxTimeLHCValidity",timeBeamMode));
-				}
-				AliInfo(Form("LHC State (corresponding to BeamMode) = %s",(beamModeString->String()).Data()));
-				grpobj->SetLHCState(beamModeString->String());
+				AliError("Beam mode array not found in LHC Data file!!!");
 			}
-			
 			// MachineMode
 			TObjArray* machineModeArray = (TObjArray*)lhcMap->GetValue(fgkLHCDataPoints[1]);
-			if (machineModeArray->GetEntries()==0){
-				AliInfo("No Machine Mode found, setting it to UNKNOWN");
-				grpobj->SetMachineMode("UNKNOWN");
-			}
-			else{
-				AliDCSArray* machineMode = (AliDCSArray*)machineModeArray->At(0);
-				TObjString* machineModeString = machineMode->GetStringArray(0);
-				if (machineModeArray->GetEntries()>1){
-					timeMachineMode = machineMode->GetTimeStamp();
-					AliWarning(Form("The Machine Mode changed at timestamp %f! Setting it to the first value found and setting MaxTimeLHCValidity",timeMachineMode));
+			if (machineModeArray){
+				if (machineModeArray->GetEntries()==0){
+					AliInfo("No Machine Mode found, setting it to UNKNOWN");
+					grpobj->SetMachineMode("UNKNOWN");
 				}
-				AliInfo(Form("Machine Mode = %s",(machineModeString->String()).Data()));
-				grpobj->SetMachineMode(machineModeString->String());
+				else{
+					AliDCSArray* machineMode = (AliDCSArray*)machineModeArray->At(0);
+					TObjString* machineModeString = machineMode->GetStringArray(0);
+					if (machineModeArray->GetEntries()>1){
+						timeMachineMode = machineMode->GetTimeStamp();
+						AliWarning(Form("The Machine Mode changed at timestamp %f! Setting it to the first value found and setting MaxTimeLHCValidity",timeMachineMode));
+					}
+					AliInfo(Form("Machine Mode = %s",(machineModeString->String()).Data()));
+					grpobj->SetMachineMode(machineModeString->String());
+				}
 			}
-			
+			else {
+				AliError("Machine mode array not found in LHC Data file!!!");
+			}	
 			if (timeBeamMode!=0 || timeMachineMode!=0){
 				Double_t minTimeLHCValidity;
  				if (timeBeamMode == 0){
@@ -665,10 +676,20 @@ UInt_t AliGRPPreprocessor::ProcessLHCData(AliGRPObject *grpobj)
 			
 			// BeamType1 and BeamType2 
 			TObjArray* beam1Array = (TObjArray*)lhcMap->GetValue(fgkLHCDataPoints[3]);
-			AliInfo(Form("%d entries for Beam1",beam1Array->GetEntries()));
-			TObjArray* beam2Array = (TObjArray*)lhcMap->GetValue(fgkLHCDataPoints[4]);
-			AliInfo(Form("%d entries for Beam2",beam2Array->GetEntries()));
-			
+			if (beam1Array){			
+				AliInfo(Form("%d entries for Beam1",beam1Array->GetEntries()));
+			}
+			else{
+				AliError("Beam1 array not found in LHC data file!!!");
+			}			
+			TObjArray* beam2Array = 
+				(TObjArray*)lhcMap->GetValue(fgkLHCDataPoints[4]);
+			if (beam2Array){
+				AliInfo(Form("%d entries for Beam2",beam2Array->GetEntries()));
+			}
+			else{
+				AliError("Beam2 array not found in LHC data file!!!");
+			}	
 			// Processing data to go to AliLHCData object
 			AliLHCData* dt = new AliLHCData(lhcMap,timeStart,timeEnd);
 							
@@ -685,6 +706,7 @@ UInt_t AliGRPPreprocessor::ProcessLHCData(AliGRPObject *grpobj)
 				else return 3;
 			}
 			else return 4;
+			delete lhcMap; 
 		}
 		else {
 			AliError("Cannot read correctly LHCData file");
@@ -995,9 +1017,11 @@ UInt_t AliGRPPreprocessor::ProcessDcsFxs(TString partition, TString detector)
 				metaData.SetComment("CTP scalers");
 				if (!Store("CTP","Scalers", scalers, &metaData, 0, 0)) {
 					Log("Unable to store the CTP scalers object to OCDB!");
+					delete scalers;					
 					return 1;
 				}
 			}
+			delete scalers;
 		}
 	}
 	
@@ -2577,6 +2601,7 @@ Float_t AliGRPPreprocessor::ProcessEnergy(TObjArray* array, Double_t timeStart, 
 
 	Int_t nCounts = array->GetEntries();
 	Float_t energy = -1;
+	Bool_t inRange = kFALSE;
 	AliDebug(2,Form("Energy measurements = %d\n",nCounts));
 	if (nCounts ==0){
 		AliWarning("No Energy values found! Beam Energy remaining invalid!");
@@ -2587,12 +2612,14 @@ Float_t AliGRPPreprocessor::ProcessEnergy(TObjArray* array, Double_t timeStart, 
 			if((dcs->GetTimeStamp() >= timeStart) &&(dcs->GetTimeStamp() <= timeEnd)) {
 				energy = (Float_t)(TMath::Nint(((Double_t)(dcs->GetInt(0)))*120/1000)); // sqrt(s)/2 energy in GeV
 				AliInfo(Form("Energy value found = %d, converting --> sqrt(s)/2 = %f (GeV)", dcs->GetInt(0),energy));
+				inRange = kTRUE;
 				break;
 			}
-			else {
-				AliError("No energy values found between DAQ_time_start and DAQ_time_end - energy will remain invalid!");
-			}
 		}
+		if (inRange == kFALSE){
+				AliInfo("No Energy value found between DAQ_time_start and DAQ_time_end - energy will remain invalid!");
+		}
+	
 	}
 
 	return energy;
