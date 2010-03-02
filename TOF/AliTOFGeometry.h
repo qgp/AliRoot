@@ -73,6 +73,9 @@ class AliTOFGeometry: public TObject{
   static Float_t ToTBinWidth() {return fgkToTBin;};
   static Float_t BunchCrossingBinWidth() {return fgkBunchCrossingBin;};
 
+  static Float_t SlewTOTMin() {return fgkSlewTOTMin;};
+  static Float_t SlewTOTMax() {return fgkSlewTOTMax;};
+
   virtual void    ImportGeometry();
   virtual void    SetHoles(Bool_t holes) {fHoles = holes;};
   virtual Bool_t  GetHoles() const {return fHoles;};
@@ -113,7 +116,8 @@ class AliTOFGeometry: public TObject{
   UShort_t GetAliSensVolIndex(Int_t sec, Int_t pla, Int_t str) const; // Get the index of the TOF alignable volume in the AliGeomManager order
   static Int_t GetStripNumber(Int_t isector, Int_t iplate, Int_t istrip); // Get the serial number of the TOF alignable volume, i.e. the TOF strip
   static Int_t GetStripNumberPerSM(Int_t iplate, Int_t istrip); // Get the serial number of the TOF strip in a TOF SM
-  void PadRF2TrackingRF(Float_t *ctrackPos, Float_t *differenceT);
+  static void GetStripAndModule(Int_t iStripPerSM, Int_t &iplate, Int_t &istrip); // Return the module and strip per module corresponding to the strip number per SM
+  void PadRF2TrackingRF(Float_t *ctrackPos, Float_t *differenceT); // Convert the track coordinates from pad RF to tracking RF
 
 
   private:
@@ -173,6 +177,9 @@ class AliTOFGeometry: public TObject{
   static const Float_t fgkTdcBin;   // time-of-flight bin width [ps]
   static const Float_t fgkToTBin;   // time-over-threshold bin width [ps]
   static const Float_t fgkBunchCrossingBin; // bunch-crossing bin width [ps]
+
+  static const Float_t fgkSlewTOTMin; // min TOT for slewing correction [ns]
+  static const Float_t fgkSlewTOTMax; // max TOT for slewing correction [ns]
 
   ClassDef(AliTOFGeometry,8) // TOF Geometry base class
 };

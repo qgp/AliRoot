@@ -151,6 +151,9 @@ const Float_t AliTOFGeometry::fgkTdcBin = 24.4;     // time-of-flight bin width 
 const Float_t AliTOFGeometry::fgkToTBin = 48.8;     // time-over-threshold bin width [ps]
 const Float_t AliTOFGeometry::fgkBunchCrossingBin = fgkTdcBin * 1024; // bunch-crossing bin width [ps]
 
+const Float_t AliTOFGeometry::fgkSlewTOTMin = 10.; // min TOT for slewing correction [ns]
+const Float_t AliTOFGeometry::fgkSlewTOTMax = 16.; // max TOT for slewing correction [ns]
+
 const Float_t AliTOFGeometry::fgkDeadTime = 25E+03;        // Single channel dead time (ps)
 const Float_t AliTOFGeometry::fgkMatchingWindow = fgkTdcBin*TMath::Power(2,13); // Matching window  (ps)
 
@@ -1965,6 +1968,42 @@ Int_t AliTOFGeometry::GetStripNumber(Int_t isector, Int_t iplate, Int_t istrip)
     index = (2*(kNStripC+kNStripB)+kNStripA)*isector + stripInSM;
 
   return index;
+
+}
+//-------------------------------------------------------------------------
+
+void AliTOFGeometry::GetStripAndModule(Int_t iStripPerSM, Int_t &iplate, Int_t &istrip)
+{
+  //
+  // Convert the serial number of the TOF strip number iStripPerSM [0,90]
+  // in module number iplate [0,4] and strip number istrip [0,14/18].
+  //
+
+  if (iStripPerSM<0 || iStripPerSM>=kNStripC+kNStripB+kNStripA+kNStripB+kNStripC) {
+    iplate = -1;
+    istrip = -1;
+  }
+  else if (iStripPerSM<kNStripC) {
+    iplate = 0;
+    istrip = iStripPerSM;
+  }
+  else if (iStripPerSM>=kNStripC && iStripPerSM<kNStripC+kNStripB) {
+    iplate = 1;
+    istrip = iStripPerSM-kNStripC;
+  }
+  else if (iStripPerSM>=kNStripC+kNStripB && iStripPerSM<kNStripC+kNStripB+kNStripA) {
+    iplate = 2;
+    istrip = iStripPerSM-kNStripC-kNStripB;
+  }
+  else if (iStripPerSM>=kNStripC+kNStripB+kNStripA && iStripPerSM<kNStripC+kNStripB+kNStripA+kNStripB) {
+    iplate = 3;
+    istrip = iStripPerSM-kNStripC-kNStripB-kNStripA;
+  }
+  else if (iStripPerSM>=kNStripC+kNStripB+kNStripA+kNStripB && iStripPerSM<kNStripC+kNStripB+kNStripA+kNStripB+kNStripC) {
+    iplate = 4;
+    istrip = iStripPerSM-kNStripC-kNStripB-kNStripA-kNStripB;
+  }
+
 
 }
 //-------------------------------------------------------------------------

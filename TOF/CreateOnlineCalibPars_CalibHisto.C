@@ -1,10 +1,10 @@
-void CreateCalibPars_CalibHisto(){
+void CreateOnlineCalibPars_CalibHisto(){
   // Create TOF Calibration Object from AliTOFcalibHisto class
   // and write it on CDB
 
   AliTOFcalib *tofcalib = new AliTOFcalib();
   tofcalib->CreateCalArrays();
-  TObjArray *tofCalOffline = (TObjArray*) tofcalib->GetTOFCalArrayOffline(); 
+  TObjArray *tofCalOnline = (TObjArray*) tofcalib->GetTOFCalArrayOnline(); 
 
   /* get calib histo andl and load params */
   AliTOFcalibHisto calibHisto;
@@ -14,30 +14,20 @@ void CreateCalibPars_CalibHisto(){
   calibHisto.SetFullCorrectionFlag(AliTOFcalibHisto::kTimeSlewingCorr, kFALSE);
 
   /* OCDB init */
-  Float_t slewPar[6] = {0.,0.,0.,0.,0.,0.};
-  Float_t par[6] = {0.,0.,0.,0.,0.,0.};
   AliCDBManager *man = AliCDBManager::Instance();
   man->SetDefaultStorage("local://$ALICE_ROOT/OCDB");
   Int_t nChannels = AliTOFGeometry::NSectors()*(2*(AliTOFGeometry::NStripC()+AliTOFGeometry::NStripB())+AliTOFGeometry::NStripA())*AliTOFGeometry::NpadZ()*AliTOFGeometry::NpadX();
   
-  /* common time-slewing params */
-  for (Int_t iSlew = 0; iSlew < 6; iSlew++) 
-    slewPar[iSlew] = calibHisto.GetCalibPar(AliTOFcalibHisto::kTimeSlewingPar, iSlew);
-  
   /* channel-related params */
+  Double_t delay;
   for (Int_t ipad = 0 ; ipad<nChannels; ipad++){
-    AliTOFChannelOffline *calChannelOffline = (AliTOFChannelOffline*)tofCalOffline->At(ipad);
-    par[0] = slewPar[0] + calibHisto.GetFullCorrection(ipad);
-    par[1] = slewPar[1];
-    par[2] = slewPar[2];
-    par[3] = slewPar[3];
-    par[4] = slewPar[4];
-    par[5] = slewPar[5];
-    calChannelOffline->SetSlewPar(par);
+    AliTOFChannelOnline *calChannelOnline = (AliTOFChannelOnline *)tofCalOnline->At(ipad);
+    delay = calibHisto.GetFullCorrection(ipad);
+    calChannelOnline->SetDelay(delay);
   }
 
   /* write */
-  tofcalib->WriteParOfflineOnCDB("TOF/Calib","valid",0,AliCDBRunRange::Infinity());
+  tofcalib->WriteParOnlineDelayOnCDB("TOF/Calib",0,AliCDBRunRange::Infinity());
 }
 
 
