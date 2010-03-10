@@ -73,7 +73,8 @@ AliHLTTRDCalibrationComponent::AliHLTTRDCalibrationComponent()
     fTrgStrings(NULL),
     fAccRejTrg(0),
     fMinClusters(0),
-    fMinTracklets(0)
+    fMinTracklets(0),
+    fTakeAllEvents(kFALSE)
 {
   // Default constructor
 }
@@ -204,6 +205,13 @@ Int_t AliHLTTRDCalibrationComponent::ScanArgument( int argc, const char** argv )
           i += 1;
           continue;
         }
+      if ( !strcmp( argv[i], "-takeAllEvents" ) )
+        {
+	  fTakeAllEvents = kTRUE;
+	  fAccRejTrg = 0;
+          i += 1;
+          continue;
+        }
 
       else {
         HLTError("Unknown option '%s'", argv[i] );
@@ -276,14 +284,13 @@ Int_t AliHLTTRDCalibrationComponent::DeinitCalibration()
   return 0;
 }
 
-Int_t AliHLTTRDCalibrationComponent::ProcessCalibration(const AliHLTComponent_EventData& evtData,
+Int_t AliHLTTRDCalibrationComponent::ProcessCalibration(const AliHLTComponent_EventData& /*evtData*/,
                                                         const AliHLTComponent_BlockData* /*blocks*/,
                                                         AliHLTComponent_TriggerData& trigData,
                                                         AliHLTUInt8_t* /*outputPtr*/,
                                                         AliHLTUInt32_t& /*size*/,
                                                         vector<AliHLTComponent_BlockData>& /*outputBlocks*/)
 {
-  HLTDebug("NofBlocks %lu", evtData.fBlockCnt );
   // Process an event
 	
   TClonesArray* TCAarray[18] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
@@ -331,7 +338,7 @@ Int_t AliHLTTRDCalibrationComponent::ProcessCalibration(const AliHLTComponent_Ev
     fSavedTimeBins=kTRUE;
   }
 
-  Bool_t TriggerPassed=kFALSE;
+  Bool_t TriggerPassed = fTakeAllEvents;
 
   if(fAccRejTrg){
     if(fAccRejTrg>0){
@@ -354,6 +361,7 @@ Int_t AliHLTTRDCalibrationComponent::ProcessCalibration(const AliHLTComponent_Ev
   }
   
   fTRDCalibraFillHisto->SetCH2dOn(TriggerPassed);
+  fTRDCalibraFillHisto->SetPH2dOn(TriggerPassed);
   for(int i=0; i<usedEntries; i++){
     const TClonesArray* inArr = TCAarray[i];
     Int_t nbEntries = inArr->GetEntries();
@@ -362,7 +370,7 @@ Int_t AliHLTTRDCalibrationComponent::ProcessCalibration(const AliHLTComponent_Ev
     for (Int_t ii = 0; ii < nbEntries; ii++){
       HLTDebug("%i/%i: ", ii+1, nbEntries);
       trdTrack = (AliTRDtrackV1*)inArr->At(ii);
-      if(trdTrack->GetNumberOfTracklets()<=fMinTracklets)continue;
+      if(trdTrack->GetNumberOfTracklets()<fMinTracklets)continue;
       fTRDCalibraFillHisto->UpdateHistogramsV1(trdTrack);
       // for(int i3=0; i3<7; i3++)
       //   if(trdTrack->GetTracklet(i3))trdTrack->GetTracklet(i3)->Bootstrap(fReconstructor);
@@ -452,26 +460,14 @@ Int_t AliHLTTRDCalibrationComponent::ShipDataToFXS(const AliHLTComponentEventDat
   //  fOutArray->Add(prf2d);
   //}
 
-
   HLTDebug("Size of the fOutArray is %d\n",fOutArray->GetEntriesFast());
 
-  /*
-  TString fileName="$ALIHLT_TOPDIR/build-debug/output/CalibHistoDump_run";
-  fileName+=".root";
-  HLTInfo("Dumping Histogram file to %s",fileName.Data());
-  TFile* file = TFile::Open(fileName, "RECREATE");
-  //fAfterRunArray->Write();
-  fOutArray->Write();
-  file->Close();
-  HLTInfo("Histogram file dumped");
-  */
-  
   PushToFXS((TObject*)fOutArray, "TRD", "GAINDRIFTPRF", rdList.Buffer() );
   //PushToFXS((TObject*)fOutArray->FindObject("CH2d"), "TRD", "GAINDRIFTPRF", rdList.Buffer() );
 
-	
   return 0;
 }
+
 Int_t AliHLTTRDCalibrationComponent::EORCalibration()
 {
   //Also Fill histograms for the online display
