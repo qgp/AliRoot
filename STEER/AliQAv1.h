@@ -29,7 +29,7 @@ public:
     kNULLBit=-1, kINFO, kWARNING, kERROR, kFATAL, kNBIT };
   enum TASKINDEX_t {
     kNULLTASKINDEX=-1, kRAWS, kHITS, kSDIGITS, kDIGITS, kDIGITSR, kRECPOINTS, kTRACKSEGMENTS, kRECPARTICLES, kESDS, kNTASKINDEX };
-  enum MODE_t {kNULLMODE=0, kSIMMODE, kRECMODE};
+  enum MODE_t {kNULLMODE=0, kSIMMODE, kRECMODE, kQAMODE};
   
   // Creators - destructors
   AliQAv1(); // beware singleton, not to be used
@@ -84,7 +84,7 @@ public:
 
   static     TASKINDEX_t GetTaskIndex(const char * name) ; 
   static       TString   GetTaskName(UInt_t tsk) { return fgTaskNames[tsk] ; }
-  static const char *    GetModeName(MODE_t mode) { return (mode == kSIMMODE || mode == kRECMODE) ? (fgModeNames[mode]).Data() : "" ; }
+  static const char *    GetModeName(MODE_t mode) { return (mode == kSIMMODE || mode == kRECMODE || mode == kQAMODE) ? (fgModeNames[mode]).Data() : "" ; }
   Bool_t                 IsEventSpecieSet(AliRecoParam::EventSpecie_t es) const 
   {Int_t ibit=0; while(es!=1<<ibit) ++ibit; return fEventSpecies[ibit];}
   Bool_t                 IsEventSpecieSet(Int_t es) const { return fEventSpecies[es] ; }
