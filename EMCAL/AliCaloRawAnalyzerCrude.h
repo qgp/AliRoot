@@ -19,19 +19,28 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
+
+
+// Evaluation of amplitude
+// as max sample value - pedestal
+// Not veru accurate, but very robust
+
+
 #include "AliCaloRawAnalyzer.h"
 
 class AliCaloFitResults;
 class AliCaloBunchInfo;
-
 
 class  AliCaloRawAnalyzerCrude : public  AliCaloRawAnalyzer
 {
  public:
    virtual AliCaloFitResults Evaluate( const vector<AliCaloBunchInfo> &bunchvector, 
 				       const UInt_t altrocfg1,  const UInt_t altrocfg2 );
-  AliCaloRawAnalyzerCrude();
-  virtual ~AliCaloRawAnalyzerCrude();
+   
+   AliCaloRawAnalyzerCrude();
+   virtual ~AliCaloRawAnalyzerCrude();
+
+   ClassDef(AliCaloRawAnalyzerCrude, 1)  
 
 };
 

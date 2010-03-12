@@ -6,12 +6,17 @@
 
 #pragma link C++ class AliEMCALTick+;
 #pragma link C++ class AliEMCALTrigger+;
-#pragma link C++ class AliEMCAL+;
 #pragma link C++ class AliEMCALv0+;
 #pragma link C++ class AliEMCALv1+;
 #pragma link C++ class AliEMCALv2+;
 #pragma link C++ class AliEMCALDigitizer+;
-#pragma link C++ class AliEMCALRawUtils+;
 #pragma link C++ class AliEMCALQADataMakerSim+;
+#pragma link C++ class AliEMCALTriggerBoard+;
+#pragma link C++ class AliEMCALTriggerPatch+;
+#pragma link C++ class AliEMCALTriggerSTU+;
+#pragma link C++ class AliEMCALTriggerTRU+;
+#pragma link C++ class AliEMCALTriggerData+;
+#pragma link C++ class AliEMCALTriggerElectronics+;
 
 #endif
+
