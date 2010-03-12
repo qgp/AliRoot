@@ -7,7 +7,6 @@
 #pragma link C++ class AliEMCALGeometry+; 
 #pragma link C++ class AliEMCALHit+;
 #pragma link C++ class AliEMCALLoader+;	
-#pragma link C++ class AliEMCALShishKebabModule+;
 #pragma link C++ class AliEMCALWsuCosmicRaySetUp+;
 #pragma link C++ class AliEMCALRecPoint+;
 #pragma link C++ class AliEMCALClusterizer+;
@@ -28,7 +27,6 @@
 #pragma link C++ class AliEMCALSimParam+;
 #pragma link C++ class AliEMCALQAChecker+;
 #pragma link C++ class AliEMCALSpaceFrame+;
-#pragma link C++ class AliEMCALSTURawStream+;
 #pragma link C++ class AliEMCALCCUSBRawStream+;
 #pragma link C++ class AliEMCALSuperModuleCalibTimeDepCorrection+;
 #pragma link C++ class AliEMCALBiasAPD+;
@@ -41,6 +39,11 @@
 #pragma link C++ class AliEMCALSuperModuleCalibReference+;
 #pragma link C++ class AliEMCALCalibMapAPDVal+;
 #pragma link C++ class AliEMCALSuperModuleCalibMapAPD+;
-// #pragma link C++ class AliEMCALShishKebabTrd1Module+;
+#pragma link C++ class AliEMCALRawDigit+;
+#pragma link C++ class AliEMCALTriggerSTURawStream+;
+#pragma link C++ class AliEMCALRawUtils+;
+#pragma link C++ class AliCaloRawAnalyzerFastFit+;
+#pragma link C++ class AliEMCAL+;
 
 #endif
+
