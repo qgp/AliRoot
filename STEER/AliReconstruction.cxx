@@ -2620,6 +2620,7 @@ Bool_t AliReconstruction::FillESD(AliESDEvent*& esd, const TString& detectors)
     static Int_t eventNr=0; 
   TString detStr = detectors;
   
+  AliSysInfo::AddStamp(Form("FillESDb%d",eventNr), -19,-19, eventNr);
   for (Int_t iDet = 0; iDet < kNDetectors; iDet++) {
   if (!IsSelected(fgkDetectorName[iDet], detStr)) continue;
     AliReconstructor* reconstructor = GetReconstructor(iDet);
@@ -2662,7 +2663,7 @@ Bool_t AliReconstruction::FillESD(AliESDEvent*& esd, const TString& detectors)
                   detStr.Data()));
     if (fStopOnError) return kFALSE;
   }
-  AliSysInfo::AddStamp(Form("FillESD%d",eventNr), 0,1, eventNr);
+  AliSysInfo::AddStamp(Form("FillESDe%d",eventNr), -20,-20, eventNr);
   eventNr++;
   return kTRUE;
 }
