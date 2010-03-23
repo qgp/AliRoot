@@ -1,21 +1,21 @@
 //-*- Mode: C++ -*-
 // $Id$
 
-#ifndef ALIHLTTRDCLUSTERHISTOCOMPONENT_H
-#define ALIHLTTRDCLUSTERHISTOCOMPONENT_H
+#ifndef ALIHLTTRDHISTOMERGERCOMPONENT_H
+#define ALIHLTTRDHISTOMERGERCOMPONENT_H
 //* This file is property of and copyright by the ALICE HLT Project        * 
 //* ALICE Experiment at CERN, All rights reserved.                         *
 //* See cxx source for full Copyright notice                               *
 
 
 #include "AliHLTProcessor.h"
-#include "TH1F.h"
 
 /**
- * @class AliHLTTRDClusterHistoComponent
- * Component for ploting charge in clusters
+ * @class AliHLTTRDHistoMergerComponent
+ * Component for adding histos from the histoComponents if those are running partition wise (SM wise) .
+ * Expects all input blocks to be comparable.
  * 
- * Component ID: \b TRDClusterHisto <br>
+ * Component ID: \b TRDHistoMerger <br>
  * Library: \b libAliHLTTRD.
  *
  * Mandatory arguments: <br>
@@ -26,14 +26,15 @@
  *
  * @ingroup alihlt_tpc_components
  */
-class TClonesArray;
-class AliHLTTRDClusterHistoComponent : public AliHLTProcessor
+
+class TH1;
+class AliHLTTRDHistoMergerComponent : public AliHLTProcessor
 {
 public:
   /** default constructor */
-  AliHLTTRDClusterHistoComponent();
+  AliHLTTRDHistoMergerComponent();
   /** destructor */
-  virtual ~AliHLTTRDClusterHistoComponent();
+  virtual ~AliHLTTRDHistoMergerComponent();
 
   // Public functions to implement AliHLTComponent's interface.
   // These functions are required for the registration process
@@ -63,14 +64,14 @@ protected:
   int DoEvent( const AliHLTComponentEventData& evtData, AliHLTComponentTriggerData& trigData );
 
   using AliHLTProcessor::DoEvent;
-
-  int Configure(const char* arguments);
   
+  int Configure(const char* arguments);
+
 private:
   /** copy constructor prohibited */
-  AliHLTTRDClusterHistoComponent(const AliHLTTRDClusterHistoComponent&);
+  AliHLTTRDHistoMergerComponent(const AliHLTTRDHistoMergerComponent&);
   /** assignment operator prohibited */
-  AliHLTTRDClusterHistoComponent& operator=(const AliHLTTRDClusterHistoComponent&);
+  AliHLTTRDHistoMergerComponent& operator=(const AliHLTTRDHistoMergerComponent&);
   /**
    * Configure the component.
    * Parse a string for the configuration arguments and set the component
@@ -78,21 +79,9 @@ private:
    */ 
 
   AliHLTUInt32_t fOutputSize;   // output size
-  TClonesArray* fClusterArray;  // input array
+  TH1* fHistoArr[9];            // array containing the added histos
+  Bool_t fIncSM[18];            // array for telling which super module was already added
 
-  TH1F *fNClsDet;
-  TH1F *fClsAmp;
-  TH1F *fClsAmpDrift;
-  TH1F *fClsTB;
-
-  TH1F *fClsAmpDriftDet[540];
-  TH1F *fClsAmpDist; 
-
-  TH1F *fSClsDist;
-  TH1F *fNScls;
-
-  TH1F *fEvSize;                // Event size in kbyte
-
-  ClassDef(AliHLTTRDClusterHistoComponent, 0);
+  ClassDef(AliHLTTRDHistoMergerComponent, 0);
 };
 #endif

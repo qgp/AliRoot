@@ -52,7 +52,8 @@ AliHLTTRDTrackHistoComponent::AliHLTTRDTrackHistoComponent()
   fOutputSize(100000),
   fTracksArray(NULL),
   fClPerTrkl(NULL),
-  fTrklPerTrk(NULL)
+  fTrklPerTrk(NULL),
+  fEvSize(NULL)
 {
   // see header file for class documentation
   // or
@@ -123,8 +124,9 @@ int AliHLTTRDTrackHistoComponent::DoInit(int argc, const char** argv)
 
   fTracksArray = new TClonesArray("AliTRDtrackV1");
 
-  fClPerTrkl = new TH1F("fClPerTrkl","Clusters per Tracklet", AliTRDseedV1::kNtb, -0.5, AliTRDseedV1::kNtb - 0.5);
-  fTrklPerTrk = new TH1F("fTrklPerTrk","Tracklets per Track", 7, -0.5, 6.5);
+  fClPerTrkl = new TH1F("TrdClPerTrkl","Clusters per Tracklet", AliTRDseedV1::kNtb, -0.5, AliTRDseedV1::kNtb - 0.5);
+  fTrklPerTrk = new TH1F("TrdTrklPerTrk","Tracklets per Track", 7, -0.5, 6.5);
+  fEvSize = new TH1F("TrdTrEvSize", "Tracks size per event per ddl in kbyte", 512, 0, 512);
   
   return 0;
 }
@@ -162,17 +164,21 @@ int AliHLTTRDTrackHistoComponent::DoEvent(const AliHLTComponentEventData& /*evtD
   //     return 0;
   //   }
 
-  if (GetFirstInputBlock(kAliHLTDataTypeSOR) || GetFirstInputBlock(kAliHLTDataTypeEOR)) return 0;
+  if(!IsDataEvent())return 0;
 
   const AliHLTComponentBlockData* iter = NULL;
+  Bool_t gotData = kFALSE;
   
   for(iter = GetFirstInputBlock(AliHLTTRDDefinitions::fgkTracksDataType); 
 	iter != NULL; iter = GetNextInputBlock() ) {
     
+    fEvSize->Fill((iter->fSize+0.5f)/1024);
     AliHLTTRDUtils::ReadTracks(fTracksArray, iter->fPtr, iter->fSize);
-    HLTDebug("TClonesArray of clusters: nbEntries = %i", fTracksArray->GetEntriesFast());
-    
+    HLTDebug("TClonesArray of tracks: nbEntries = %i", fTracksArray->GetEntriesFast());
+    gotData=kTRUE;
   }
+  
+  if(!gotData) return 0;
   
   AliTRDtrackV1 *trk;
   
@@ -196,6 +202,7 @@ int AliHLTTRDTrackHistoComponent::DoEvent(const AliHLTComponentEventData& /*evtD
   
   PushBack((TObject*)fClPerTrkl, kAliHLTDataTypeHistogram | kAliHLTDataOriginTRD, 0);   
   PushBack((TObject*)fTrklPerTrk, kAliHLTDataTypeHistogram | kAliHLTDataOriginTRD, 0);  
+  PushBack((TObject*)fEvSize, kAliHLTDataTypeHistogram | kAliHLTDataOriginTRD, 0);
   
   return 0;
 }

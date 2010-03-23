@@ -23,20 +23,18 @@
 using namespace std;
 #endif
 
-#include <time.h>
+#include "TFile.h"
+#include "TString.h"
+#include "TObjString.h"
+#include "TClonesArray.h"
+#include "TH1F.h"
 
 #include "AliHLTTRDClusterHistoComponent.h"
 #include "AliHLTTRDDefinitions.h"
 #include "AliTRDcluster.h"
 #include "AliCDBEntry.h"
 #include "AliCDBManager.h"
-#include <TFile.h>
-#include <TString.h>
-#include "TObjString.h"
-#include "TClonesArray.h"
-#include "TTimeStamp.h"
 #include "AliHLTTRDUtils.h"
-#include "TH2F.h"
 
 //#include "AliHLTTRD.h"
 //#include <stdlib.h>
@@ -55,7 +53,8 @@ AliHLTTRDClusterHistoComponent::AliHLTTRDClusterHistoComponent()
   fClsTB(NULL),
   fClsAmpDist(NULL),
   fSClsDist(NULL),
-  fNScls(NULL)
+  fNScls(NULL),
+  fEvSize(NULL)
 {
   // see header file for class documentation
   // or
@@ -126,16 +125,17 @@ int AliHLTTRDClusterHistoComponent::DoInit(int argc, const char** argv)
 
   fClusterArray = new TClonesArray("AliTRDcluster");
 
-  fNClsDet = new TH1D("trdClsDet", ";detector", 540, -0.5, 539.5);
-  fClsAmp  = new TH1D("trdClsAmp", ";amplitude", 200, -0.5, 1999.5);
-  fClsAmpDrift = new TH1D("trdClsAmpDrift", ";amplitude", 200, -0.5, 199.5) ;
-  fClsTB = new TH1D("trdClsTB", ";time bin", 35, -0.5, 34.5);
-  fClsAmpDist = new TH1D("trdClsAmpDist", "mean amplitude", 200, 0, 1000);
-  fSClsDist = new TH1D("sclsdist", "Super cluster spectrum", 200, 0, 8000);
-  fNScls = new TH1D("nscls", "No. of Kr clusters per event", 540, 0, 540);
+  fNClsDet = new TH1F("trdClsDet", ";detector", 540, -0.5, 539.5);
+  fClsAmp  = new TH1F("trdClsAmp", ";amplitude", 200, -0.5, 1999.5);
+  fClsAmpDrift = new TH1F("trdClsAmpDrift", ";amplitude", 200, -0.5, 199.5) ;
+  fClsTB = new TH1F("trdClsTB", ";time bin", 35, -0.5, 34.5);
+  fClsAmpDist = new TH1F("trdClsAmpDist", "mean amplitude", 200, 0, 1000);
+  fSClsDist = new TH1F("sclsdist", "Super cluster spectrum", 200, 0, 8000);
+  fNScls = new TH1F("nscls", "No. of Kr clusters per event", 540, 0, 540);
+  fEvSize = new TH1F("TrdClEvSize", "Clusters size per event per ddl in kbyte", 512, 0, 512);
 
   for(int i=0; i<540; i++) {
-    fClsAmpDriftDet[i] = new TH1D(Form("trdClsDriftDet_%d",i), "", 200, -0.5, 199.5);
+    fClsAmpDriftDet[i] = new TH1F(Form("trdClsDriftDet_%d",i), "", 200, -0.5, 199.5);
   }
   
   return 0;
@@ -156,9 +156,11 @@ int AliHLTTRDClusterHistoComponent::DoDeinit()
   if (fClsAmpDist) delete fClsAmpDist;
   if (fSClsDist) delete fSClsDist;
   if (fNScls) delete fNScls;
+  if (fEvSize) delete fEvSize;
 
-  for(int i=0; i<540; i++)
+  for(int i=0; i<540; i++){
     if (fClsAmpDriftDet[i]) delete fClsAmpDriftDet[i];
+  }
 
   return 0;
 }
@@ -187,21 +189,26 @@ int AliHLTTRDClusterHistoComponent::DoEvent(const AliHLTComponentEventData& /*ev
   //     return 0;
   //   }
 
-  if (GetFirstInputBlock(kAliHLTDataTypeSOR) || GetFirstInputBlock(kAliHLTDataTypeEOR)) return 0;
+  if(!IsDataEvent())return 0;
 
   const AliHLTComponentBlockData* iter = NULL;
-  
-  Float_t sClusterCharge[540] = { 0 };
+  Bool_t gotData = kFALSE;
+  AliHLTUInt32_t spec = 0;
 
   for ( iter = GetFirstInputBlock(AliHLTTRDDefinitions::fgkClusterDataType); 
 	iter != NULL; iter = GetNextInputBlock() ) {
 
-    HLTDebug("We get the right data type: Block Ptr: 0x%x; Block Size: %i",
-	     iter->fPtr, iter->fSize);
-
-    AliHLTTRDUtils::ReadClusters(fClusterArray, iter->fPtr, iter->fSize);
     HLTDebug("TClonesArray of clusters: nbEntries = %i", fClusterArray->GetEntriesFast());
 
+    fEvSize->Fill((iter->fSize+0.5f)/1024);
+    AliHLTTRDUtils::ReadClusters(fClusterArray, iter->fPtr, iter->fSize);
+    gotData = kTRUE;
+    spec = iter->fSpecification;
+  }
+
+  if(!gotData) return 0;
+
+  Float_t sClusterCharge[540] = { 0 };
     AliTRDcluster *cls;
 
     // loop over clusters 
@@ -214,10 +221,11 @@ int AliHLTTRDClusterHistoComponent::DoEvent(const AliHLTComponentEventData& /*ev
       
       int tb = cls->GetPadTime();
       fClsTB->Fill(tb);
-      if (tb > 5 && tb <25)
+    if (tb > 5 && tb <25){
 	fClsAmpDrift->Fill(cls->GetQ()); 
+    }
       
-      fClsAmpDriftDet[cls->GetDetector()]->Fill(cls->GetQ());
+    //fClsAmpDriftDet[cls->GetDetector()]->Fill(cls->GetQ());
 
       Int_t det = cls->GetDetector();
       sClusterCharge[det] += cls->GetQ();
@@ -226,26 +234,25 @@ int AliHLTTRDClusterHistoComponent::DoEvent(const AliHLTComponentEventData& /*ev
     
     fClusterArray->Delete();
     
-  }
-   
-  fClsAmpDist->Reset();
-  Int_t nSClusters = 0;
+  //fClsAmpDist->Reset();
+  //Int_t nSClusters = 0;
   for(int det=0; det<540; det++) {
-    if (fClsAmpDriftDet[det]->GetSum() > 0) 
-      fClsAmpDist->Fill(fClsAmpDriftDet[det]->GetMean());
+    // if (fClsAmpDriftDet[det]->GetSum() > 0) 
+    //   fClsAmpDist->Fill(fClsAmpDriftDet[det]->GetMean());
+    if(sClusterCharge[det])
     fSClsDist->Fill(sClusterCharge[det]);
-
   }
 
-  fNScls->Fill(nSClusters);
+  //fNScls->Fill(nSClusters);
 
-  PushBack((TObject*)fNClsDet, kAliHLTDataTypeHistogram | kAliHLTDataOriginTRD, 0);   
-  PushBack((TObject*)fClsAmp, kAliHLTDataTypeHistogram | kAliHLTDataOriginTRD, 0);  
-  //  PushBack((TObject*)fClsAmpDrift, kAliHLTDataTypeHistogram | kAliHLTDataOriginTRD, 0);   
-  //  PushBack((TObject*)fClsTB, kAliHLTDataTypeHistogram | kAliHLTDataOriginTRD, 0);  
-  //  PushBack((TObject*)fClsAmpDist, kAliHLTDataTypeHistogram | kAliHLTDataOriginTRD, 0);  
-  PushBack((TObject*)fNScls, kAliHLTDataTypeHistogram | kAliHLTDataOriginTRD, 0);  
-  PushBack((TObject*)fSClsDist, kAliHLTDataTypeHistogram | kAliHLTDataOriginTRD, 0);
+  PushBack((TObject*)fNClsDet, kAliHLTDataTypeHistogram | kAliHLTDataOriginTRD, spec);
+  PushBack((TObject*)fClsAmp, kAliHLTDataTypeHistogram | kAliHLTDataOriginTRD, spec);
+  PushBack((TObject*)fClsAmpDrift, kAliHLTDataTypeHistogram | kAliHLTDataOriginTRD, spec);
+  PushBack((TObject*)fClsTB, kAliHLTDataTypeHistogram | kAliHLTDataOriginTRD, spec);
+  //PushBack((TObject*)fClsAmpDist, kAliHLTDataTypeHistogram | kAliHLTDataOriginTRD, spec);
+  //PushBack((TObject*)fNScls, kAliHLTDataTypeHistogram | kAliHLTDataOriginTRD, spec);
+  PushBack((TObject*)fSClsDist, kAliHLTDataTypeHistogram | kAliHLTDataOriginTRD, spec);
+  PushBack((TObject*)fEvSize, kAliHLTDataTypeHistogram | kAliHLTDataOriginTRD, spec);
 
   return 0;
 }
@@ -268,11 +275,6 @@ int AliHLTTRDClusterHistoComponent::Configure(const char* arguments){
 	if ((bMissingParam=(++i>=pTokens->GetEntries()))) break;
 	HLTInfo("Setting output size to: %s", ((TObjString*)pTokens->At(i))->GetString().Data());
 	fOutputSize=((TObjString*)pTokens->At(i))->GetString().Atoi();
-	continue;
-      } 
-      if (argument.CompareTo("-everyNevent")==0) {
-	if ((bMissingParam=(++i>=pTokens->GetEntries()))) break;
-	HLTInfo("Option -everyNevent depreceated");
 	continue;
       } 
       else {

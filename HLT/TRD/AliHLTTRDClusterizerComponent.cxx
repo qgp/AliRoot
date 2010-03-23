@@ -39,6 +39,7 @@ using namespace std;
 #include "AliHLTTRDClusterizerComponent.h"
 #include "AliHLTTRDDefinitions.h"
 #include "AliHLTTRDClusterizer.h"
+#include "AliHLTTRDUtils.h"
 
 #include "AliGeomManager.h"
 #include "AliTRDReconstructor.h"
@@ -61,9 +62,6 @@ using namespace std;
 #include <cstdlib>
 #include <cerrno>
 #include <string>
-
-#include "AliTRDrawStream.h"
-#include "AliTRDrawFastStream.h"
 
 ClassImp(AliHLTTRDClusterizerComponent)
    
@@ -265,17 +263,9 @@ int AliHLTTRDClusterizerComponent::DoEvent( const AliHLTComponentEventData& evtD
 
       AliHLTUInt32_t spec = block.fSpecification;
       
-      Int_t id = 1024;
-      
-      for ( Int_t ii = 0; ii < 18 ; ii++ ) {
-	if ( spec & 0x1 ) {
-	  id += ii;
-	  break;
-	}
-	spec = spec >> 1 ;
-      }
+      Int_t id = AliHLTTRDUtils::GetSM(spec) + 1024;
 
-      fMemReader->SetEquipmentID( id ); 
+      fMemReader->SetEquipmentID(id);
       
       fClusterizer->SetMemBlock(outputPtr+offset);
       Bool_t bclustered = fClusterizer->Raw2ClustersChamber(fMemReader);
@@ -600,24 +590,13 @@ int AliHLTTRDClusterizerComponent::SetParams()
       return -EINVAL;
     }
 
-  // backward compatibility to AliTRDrecoParam < r34995
-# ifndef HAVE_NOT_ALITRDRECOPARAM_r34995
-#   define AliTRDRecoParamSetTailCancelation(b) fRecoParam->SetTailCancelation(b)
-#   define AliTRDRecoParamSetGAUS(b) fRecoParam->SetGAUS(b)
-#   define AliTRDRecoParamSetLUT(b) fRecoParam->SetLUT(b)
-# else
-#   define AliTRDRecoParamSetTailCancelation(b) fRecoParam->SetTailCancelation()
-#   define AliTRDRecoParamSetGAUS(b) fRecoParam->SetGAUS()
-#   define AliTRDRecoParamSetLUT(b) fRecoParam->SetLUT()
-# endif
-
   if(fTC){fRecoParam->SetTailCancelation(kTRUE); HLTDebug("Enableing Tail Cancelation"); }
   else{fRecoParam->SetTailCancelation(kFALSE); HLTDebug("Disableing Tail Cancelation"); }
 
   switch(fyPosMethod){
-  case 0: AliTRDRecoParamSetGAUS(kFALSE); AliTRDRecoParamSetLUT(kFALSE); break;
-  case 1: AliTRDRecoParamSetGAUS(kFALSE); AliTRDRecoParamSetLUT(kTRUE); break;
-  case 2: AliTRDRecoParamSetGAUS(kTRUE); AliTRDRecoParamSetLUT(kFALSE); break;
+  case 0: fRecoParam->SetGAUS(kFALSE); fRecoParam->SetLUT(kFALSE); break;
+  case 1: fRecoParam->SetGAUS(kFALSE); fRecoParam->SetLUT(kTRUE); break;
+  case 2: fRecoParam->SetGAUS(kTRUE); fRecoParam->SetLUT(kFALSE); break;
   }
 
   fRecoParam->SetStreamLevel(AliTRDrecoParam::kClusterizer, 0);
@@ -650,11 +629,20 @@ int AliHLTTRDClusterizerComponent::SetParams()
       HLTDebug("Data type expected is EXPERIMENT!");
     }
 
-  if (fHLTstreamer)
-    {
+#ifndef HAVE_NOT_ALITRD_RAWSTREAM_r39608
+  if(fHLTstreamer){
+    AliTRDrawStreamBase::SetRawStreamVersion("default");
+    HLTDebug("fast rawstreamer used");
+  }else{
+    AliTRDrawStreamBase::SetRawStreamVersion("FAST");
+    HLTDebug("old rawstreamer used");
+  }
+#else
+  if(fHLTstreamer){
       AliTRDrawStreamBase::SetRawStreamVersion("FAST");
       HLTDebug("fast rawstreamer used");  
     }
+#endif
 
   if(!fClusterizer){
     fClusterizer = new AliHLTTRDClusterizer("TRDCclusterizer", "TRDCclusterizer");  
