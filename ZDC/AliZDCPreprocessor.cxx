@@ -224,21 +224,21 @@ UInt_t AliZDCPreprocessor::ProcessChMap()
        }
        Log(Form("File %s connected to process data for ADC mapping", fileName.Data()));
        //
-       for(Int_t j=0; j<kNModules; j++){	  
+       for(Int_t j=0; j<kNch; j++){	  
+           for(Int_t k=0; k<6; k++){
+             int read = fscanf(file,"%d",&adcMap[j][k]);
+	     if(read == 0) AliDebug(3," Failing in reading data from mapping file");
+           }
+       }
+       for(Int_t j=kNch; j<kNch+kNScch; j++){	  
+           for(Int_t k=0; k<6; k++){
+             int read = fscanf(file,"%d",&scMap[j-kNch][k]);
+	     if(read == 0) AliDebug(3," Failing in reading data from mapping file");
+           }
+       }
+       for(Int_t j=kNch+kNScch; j<kNModules+kNch+kNScch; j++){	  
            for(Int_t k=0; k<3; k++){
-             int read = fscanf(file,"%d",&modMap[j][k]);
-	     if(read == 0) AliDebug(3," Failing in reading data from mapping file");
-           }
-       }
-       for(Int_t j=kNModules; j<kNModules+kNch; j++){	  
-           for(Int_t k=0; k<6; k++){
-             int read = fscanf(file,"%d",&adcMap[j-kNModules][k]);
-	     if(read == 0) AliDebug(3," Failing in reading data from mapping file");
-           }
-       }
-       for(Int_t j=kNModules+kNch; j<kNModules+kNch+kNScch; j++){	  
-           for(Int_t k=0; k<6; k++){
-             int read = fscanf(file,"%d",&scMap[j-kNModules-kNch][k]);
+             int read = fscanf(file,"%d",&modMap[j-kNch-kNScch][k]);
 	     if(read == 0) AliDebug(3," Failing in reading data from mapping file");
            }
        }
@@ -263,21 +263,17 @@ UInt_t AliZDCPreprocessor::ProcessChMap()
   else{
     AliZDCChMap *chMap = (AliZDCChMap*) cdbEntry->GetObject();
     for(Int_t i=0; i<kNch; i++){
-      if(  (adcMap[i][1] == chMap->GetADCModule(i)) 
-        && (adcMap[i][2] == chMap->GetADCChannel(i)) 
-	&& (adcMap[i][4] == chMap->GetDetector(i)) 
-	&& (adcMap[i][5] == chMap->GetSector(i))){
-	 adcMapUpdated = kFALSE;
-      }
-      else adcMapUpdated = kTRUE;
+      if(  (adcMap[i][1] != chMap->GetADCModule(i)) 
+        || (adcMap[i][2] != chMap->GetADCChannel(i)) 
+	|| (adcMap[i][4] != chMap->GetDetector(i)) 
+	|| (adcMap[i][5] != chMap->GetSector(i))) 
+	 adcMapUpdated = kTRUE;
     }
     for(Int_t i=0; i<kNScch; i++){
-      if(  (scMap[i][2] == chMap->GetScChannel(i)) 
-	&& (scMap[i][4] == chMap->GetScDetector(i)) 
-	&& (scMap[i][5] == chMap->GetScSector(i))){
-	 scMapUpdated = kFALSE;
-      }
-      else scMapUpdated = kTRUE;
+      if(  (scMap[i][2] != chMap->GetScChannel(i)) 
+	|| (scMap[i][4] != chMap->GetScDetector(i)) 
+	|| (scMap[i][5] != chMap->GetScSector(i)))
+	 scMapUpdated = kTRUE;
     }
   }
   if(adcMapUpdated || scMapUpdated) updateOCDB = kTRUE;
