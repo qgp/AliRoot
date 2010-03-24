@@ -1181,7 +1181,6 @@ Bool_t AliESDtrack::UpdateTrackParams(const AliKalmanTrack *t, ULong_t flags){
   //
   // This function updates track's running parameters 
   //
-  Int_t *index=0;
   Bool_t rc=kTRUE;
 
   SetStatus(flags);
@@ -1201,16 +1200,21 @@ Bool_t AliESDtrack::UpdateTrackParams(const AliKalmanTrack *t, ULong_t flags){
   switch (flags) {
     
   case kITSin: case kITSout: case kITSrefit:
+    {
     fITSClusterMap=0;
     fITSncls=t->GetNumberOfClusters();
-    index=fFriendTrack->GetITSindices(); 
+    Int_t* indexITS = new Int_t[AliESDfriendTrack::kMaxITScluster];
     for (Int_t i=0;i<AliESDfriendTrack::kMaxITScluster;i++) {
-        index[i]=t->GetClusterIndex(i);
+	indexITS[i]=t->GetClusterIndex(i);
+
 	if (i<fITSncls) {
-           Int_t l=(index[i] & 0xf0000000) >> 28;
+	  Int_t l=(indexITS[i] & 0xf0000000) >> 28;
            SETBIT(fITSClusterMap,l);                 
         }
     }
+    fFriendTrack->SetITSIndices(indexITS,AliESDfriendTrack::kMaxITScluster);
+    delete [] indexITS;
+
     fITSchi2=t->GetChi2();
     fITSsignal=t->GetPIDsignal();
     fITSLabel = t->GetLabel();
@@ -1220,9 +1224,11 @@ Bool_t AliESDtrack::UpdateTrackParams(const AliKalmanTrack *t, ULong_t flags){
       else 
         fOp->Set(t->GetX(),t->GetAlpha(),t->GetParameter(),t->GetCovariance());
     }   
+    }
     break;
     
   case kTPCin: case kTPCrefit:
+    {
     fTPCLabel = t->GetLabel();
     if (flags==kTPCin)  {
       fTPCInner=new AliExternalTrackParam(*t); 
@@ -1232,8 +1238,10 @@ Bool_t AliESDtrack::UpdateTrackParams(const AliKalmanTrack *t, ULong_t flags){
     if (!fIp) fIp=new AliExternalTrackParam(*t);
     else 
       fIp->Set(t->GetX(),t->GetAlpha(),t->GetParameter(),t->GetCovariance());
+    }
   case kTPCout:
-    index=fFriendTrack->GetTPCindices(); 
+    {
+    Int_t* indexTPC = new Int_t[AliESDfriendTrack::kMaxTPCcluster];
     if (flags & kTPCout){
       if (!fOp) fOp=new AliExternalTrackParam(*t);
       else 
@@ -1248,8 +1256,8 @@ Bool_t AliESDtrack::UpdateTrackParams(const AliKalmanTrack *t, ULong_t flags){
        //       for (Int_t i=0;i<fTPCncls;i++) 
        for (Int_t i=0;i<AliESDfriendTrack::kMaxTPCcluster;i++) 
         {
-          index[i]=t->GetClusterIndex(i);
-          Int_t idx = index[i];
+	  indexTPC[i]=t->GetClusterIndex(i);
+	  Int_t idx = indexTPC[i];
 
 	  if (idx<0) continue; 
 
@@ -1292,20 +1300,30 @@ Bool_t AliESDtrack::UpdateTrackParams(const AliKalmanTrack *t, ULong_t flags){
            }
           // End Of Piotr's Cluster Map for HBT
         }
+	fFriendTrack->SetTPCIndices(indexTPC,AliESDfriendTrack::kMaxTPCcluster);
+	delete [] indexTPC;
+
      }
     fTPCsignal=t->GetPIDsignal();
+    }
     break;
 
   case kTRDin: case kTRDrefit:
     break;
   case kTRDout:
-    index     = fFriendTrack->GetTRDindices();
+    {
     fTRDLabel = t->GetLabel(); 
     fTRDchi2  = t->GetChi2();
     fTRDncls  = t->GetNumberOfClusters();
-    for (Int_t i=0;i<6;i++) index[i]=t->GetTrackletIndex(i);
+      Int_t* indexTRD = new Int_t[AliESDfriendTrack::kMaxTRDcluster];
+      for (Int_t i=0;i<AliESDfriendTrack::kMaxTRDcluster;i++) indexTRD[i]=-2;
+      for (Int_t i=0;i<6;i++) indexTRD[i]=t->GetTrackletIndex(i);
+      fFriendTrack->SetTRDIndices(indexTRD,AliESDfriendTrack::kMaxTRDcluster);
+      delete [] indexTRD;
+    
     
     fTRDsignal=t->GetPIDsignal();
+    }
     break;
   case kTRDbackup:
     if (!fOp) fOp=new AliExternalTrackParam(*t);
@@ -1571,12 +1589,17 @@ Char_t AliESDtrack::GetITSclusters(Int_t *idx) const {
   //---------------------------------------------------------------------
   // This function returns indices of the assgined ITS clusters 
   //---------------------------------------------------------------------
-  if (idx!=0) {
-     Int_t *index=fFriendTrack->GetITSindices();
-     for (Int_t i=0; i<AliESDfriendTrack::kMaxITScluster; i++) {
-         if ( (i>=fITSncls) && (i<6) ) idx[i]=-1;
-         else idx[i]=index[i];
-     }
+  if (idx) {
+    Int_t *index=fFriendTrack->GetITSindices();
+    for (Int_t i=0; i<AliESDfriendTrack::kMaxITScluster; i++) {
+      if ( (i>=fITSncls) && (i<6) ) idx[i]=-1;
+      else {
+	if (index) {
+	  idx[i]=index[i];
+	}
+	else idx[i]= -2;
+      }
+    }
   }
   return fITSncls;
 }
@@ -1643,9 +1666,15 @@ UShort_t AliESDtrack::GetTPCclusters(Int_t *idx) const {
   //---------------------------------------------------------------------
   // This function returns indices of the assgined ITS clusters 
   //---------------------------------------------------------------------
-  if (idx!=0) {
+  if (idx) {
     Int_t *index=fFriendTrack->GetTPCindices();
-    for (Int_t i=0; i<AliESDfriendTrack::kMaxTPCcluster; i++) idx[i]=index[i];
+
+    if (index){
+      for (Int_t i=0; i<AliESDfriendTrack::kMaxTPCcluster; i++) idx[i]=index[i];
+    }
+    else {
+      for (Int_t i=0; i<AliESDfriendTrack::kMaxTPCcluster; i++) idx[i]=-2;
+    }
   }
   return fTPCncls;
 }
@@ -1687,9 +1716,15 @@ UChar_t AliESDtrack::GetTRDclusters(Int_t *idx) const {
   //---------------------------------------------------------------------
   // This function returns indices of the assgined TRD clusters 
   //---------------------------------------------------------------------
-  if (idx!=0) {
-     Int_t *index=fFriendTrack->GetTRDindices();
-     for (Int_t i=0; i<AliESDfriendTrack::kMaxTRDcluster; i++) idx[i]=index[i];
+  if (idx) {
+    Int_t *index=fFriendTrack->GetTRDindices();
+
+    if (index) {
+      for (Int_t i=0; i<AliESDfriendTrack::kMaxTRDcluster; i++) idx[i]=index[i];
+    }
+    else {
+      for (Int_t i=0; i<AliESDfriendTrack::kMaxTRDcluster; i++) idx[i]=-2;
+    }
   }
   return fTRDncls;
 }
@@ -1707,10 +1742,14 @@ UChar_t AliESDtrack::GetTRDtracklets(Int_t *idx) const {
 //      Therefore tracks with TRD gaps contain default values for indices [-1] 
 
   if (!idx) return GetTRDntracklets();
-  Int_t *index=fFriendTrack->GetTRDindices(), n(0);
+  Int_t *index=fFriendTrack->GetTRDindices();
+  Int_t n = 0;
   for (Int_t i=0; i<kTRDnPlanes; i++){ 
-    if(index[i]>=0) n++;
-    idx[i]=index[i];
+    if (index){
+      if(index[i]>=0) n++;
+      idx[i]=index[i];
+    }
+    else idx[i] = -2;
   }
   return n;
 }
