@@ -19,13 +19,15 @@ void ConfigOCDB(Int_t crun=-1){
   printf("SETUP OCBD for TPC\n");
   //
   AliCDBManager::Instance()->SetDefaultStorage("local:///lustre/alice/alien/alice/data/2009/OCDB/");
+  //AliCDBManager::Instance()->SetDefaultStorage("alien://folder=/alice/data/2009/OCDB");
+  
   //
   //
   // custom calibration to test before committing
   //  
   Int_t run =crun;
   if (run<0) run =0;
-  AliCDBManager::Instance()->SetRun(run);
+  AliCDBMan   ager::Instance()->SetRun(run);
   SetupCustom(run);
   AliTPCcalibDB::Instance()->SetRun(run);
 }
@@ -40,11 +42,13 @@ void SetupCustom(Int_t run){
   // Setup magnetic field
   //
   AliGRPObject *grp = AliTPCcalibDB::GetGRP(run);
+  Char_t l3Polarity = grp->GetL3Polarity();
+  Double_t sign = 1.-(l3Polarity*2);
   Float_t current = 0;
   Float_t bz      = 0;
   if (grp){
     current = grp->GetL3Current((AliGRPObject::Stats)0);
-    bz = 5*current/30000.;
+    bz = sign*5*current/30000.;
     printf("Run%d\tL3 current%f\tBz\t%f\n",run,current,bz);
   }
   else{

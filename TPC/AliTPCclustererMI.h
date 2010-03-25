@@ -104,7 +104,7 @@ private:
   Int_t*  fAllNSigBins;//! Number of signal bins in a sector
 
 
-  ClassDef(AliTPCclustererMI,3)  // Time Projection Chamber digits
+  ClassDef(AliTPCclustererMI,2)  // Time Projection Chamber digits
 };
 
 inline Bool_t AliTPCclustererMI::IsMaximum(Float_t q,Int_t max,const Float_t *bins) const {

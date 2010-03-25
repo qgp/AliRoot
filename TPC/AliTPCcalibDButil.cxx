@@ -55,6 +55,8 @@
 #include "AliMathBase.h"
 #include "AliRelAlignerKalman.h"
 
+const Float_t kAlmost0=1.e-30;
+
 ClassImp(AliTPCcalibDButil)
 AliTPCcalibDButil::AliTPCcalibDButil() :
   TObject(),
@@ -163,7 +165,7 @@ void AliTPCcalibDButil::UpdateFromCalibDB()
 }
 //_____________________________________________________________________________________
 void AliTPCcalibDButil::ProcessCEdata(const char* fitFormula, TVectorD &fitResultsA, TVectorD &fitResultsC,
-                                      Int_t &noutliersCE, Double_t & chi2A, Double_t &chi2C, AliTPCCalPad *outCE)
+                                      Int_t &noutliersCE, Double_t & chi2A, Double_t &chi2C, AliTPCCalPad * const outCE)
 {
   //
   // Process the CE data for this run
@@ -224,7 +226,7 @@ void AliTPCcalibDButil::ProcessCEdata(const char* fitFormula, TVectorD &fitResul
         if (ipad==0||ipad==npads-1) rocOut->SetValue(irow,ipad,1);
         Float_t valTmean=rocData->GetValue(irow,ipad);
         //exclude values that are exactly 0
-        if (valTmean==0) {
+        if ( !(TMath::Abs(valTmean)>kAlmost0) ) {
           rocOut->SetValue(irow,ipad,1);
           ++noutliersCE;
         }
@@ -375,7 +377,7 @@ void AliTPCcalibDButil::ProcessNoiseData(TVectorD &vNoiseMean, TVectorD &vNoiseM
         if (rocMasked && rocMasked->GetValue(irow,ipad)) continue;
         Float_t noiseVal=noiseROC->GetValue(irow,ipad);
         //check if noise==0
-        if (noiseVal==0) {
+        if (noiseVal<kAlmost0) {
           ++nonMaskedZero;
           continue;
         }
@@ -732,7 +734,7 @@ void AliTPCcalibDButil::ProcessPulserVariations(TVectorF &pulserQdeviations, Flo
     AliTPCCalROC *mROC=fALTROMasked->GetCalROC(isec);
     AliTPCCalROC *mRefROC=fRefALTROMasked->GetCalROC(isec);
     AliTPCCalROC *oROC=fPulserOutlier->GetCalROC(isec);
-    Float_t pt_mean=ptROC->GetMean(oROC);
+    Float_t ptmean=ptROC->GetMean(oROC);
     UInt_t nrows=mROC->GetNrows();
     for (UInt_t irow=0;irow<nrows;++irow){
       UInt_t npads=mROC->GetNPads(irow);
@@ -756,7 +758,7 @@ void AliTPCcalibDButil::ProcessPulserVariations(TVectorF &pulserQdeviations, Flo
         if (pqRef>11&&pq<11) ++npadsOffAdd;
         varQMean+=pq-pqRef;
         //comparisons t
-        if (TMath::Abs(pt-pt_mean)>1) ++npadsOutOneTB;
+        if (TMath::Abs(pt-ptmean)>1) ++npadsOutOneTB;
         ++nActive;
       }//end ipad
     }//ind irow
@@ -772,7 +774,7 @@ void AliTPCcalibDButil::ProcessPulserVariations(TVectorF &pulserQdeviations, Flo
 void AliTPCcalibDButil::UpdatePulserOutlierMap()
 {
   //
-  //
+  // Update the outlier map of the pulser data
   //
   PulserOutlierMap(fPulserOutlier,fPulserTmean, fPulserQmean);
 }
@@ -780,7 +782,7 @@ void AliTPCcalibDButil::UpdatePulserOutlierMap()
 void AliTPCcalibDButil::UpdateRefPulserOutlierMap()
 {
   //
-  //
+  // Update the outlier map of the pulser reference data
   //
   PulserOutlierMap(fRefPulserOutlier,fRefPulserTmean, fRefPulserQmean);
 }
@@ -864,7 +866,7 @@ AliTPCCalPad* AliTPCcalibDButil::CreatePadTime0(Int_t model, Double_t &gyA, Doub
       AliTPCCalROC *rocOut=fPulserOutlier->GetCalROC(isec);
       Float_t mean=rocPulTmean->GetMean(rocOut);
       //treat case where a whole partition is masked
-      if (mean==0) mean=rocPulTmean->GetMean();
+      if ( TMath::Abs(mean)<kAlmost0 ) mean=rocPulTmean->GetMean();
       if (model==1) {
         Int_t type=isec/18;
         mean=vMean[type];
@@ -878,7 +880,7 @@ AliTPCCalPad* AliTPCcalibDButil::CreatePadTime0(Int_t model, Double_t &gyA, Doub
           //This should be the most precise guess in that case.
           if (rocOut->GetValue(irow,ipad)) {
             time=GetMeanAltro(rocPulTmean,irow,ipad,rocOut);
-            if (time==0) time=mean;
+            if ( TMath::Abs(time)<kAlmost0 ) time=mean;
           }
           Float_t val=time-mean;
           rocTime0->SetValue(irow,ipad,val);
@@ -913,7 +915,7 @@ AliTPCCalPad* AliTPCcalibDButil::CreatePadTime0(Int_t model, Double_t &gyA, Doub
       rocTime0->GlobalFit(rocOutCE,kFALSE,vFitROC,mFitROC,chi2);
       AliTPCCalROC *rocCEfit=AliTPCCalROC::CreateGlobalFitCalROC(vFitROC, isec);
       Float_t mean=rocPulTmean->GetMean(rocOutPul);
-      if (mean==0) mean=rocPulTmean->GetMean();
+      if ( TMath::Abs(mean)<kAlmost0 ) mean=rocPulTmean->GetMean();
       UInt_t nrows=rocTime0->GetNrows();
       for (UInt_t irow=0;irow<nrows;++irow){
         UInt_t npads=rocTime0->GetNPads(irow);
@@ -937,6 +939,9 @@ AliTPCCalPad* AliTPCcalibDButil::CreatePadTime0(Int_t model, Double_t &gyA, Doub
 //_____________________________________________________________________________________
 Float_t AliTPCcalibDButil::GetMeanAltro(const AliTPCCalROC *roc, const Int_t row, const Int_t pad, AliTPCCalROC *rocOut)
 {
+  //
+  // GetMeanAlto information
+  //
   if (roc==0) return 0.;
   const Int_t sector=roc->GetSector();
   AliTPCROC *tpcRoc=AliTPCROC::Instance();
@@ -1257,7 +1262,7 @@ AliCDBEntry* AliTPCcalibDButil::GetRefEntry(const char* cdbPath)
   return entry;
 }
 //_____________________________________________________________________________________
-const Int_t AliTPCcalibDButil::GetCurrentReferenceRun(const char* type){
+Int_t AliTPCcalibDButil::GetCurrentReferenceRun(const char* type) const {
   //
   // Get reference run number for the specified OCDB path
   //
@@ -1267,7 +1272,7 @@ const Int_t AliTPCcalibDButil::GetCurrentReferenceRun(const char* type){
   return (const Int_t)str->GetString().Atoi();
 }
 //_____________________________________________________________________________________
-const Int_t AliTPCcalibDButil::GetReferenceRun(const char* type) const{
+Int_t AliTPCcalibDButil::GetReferenceRun(const char* type) const{
   //
   // Get reference run number for the specified OCDB path
   //
@@ -1277,7 +1282,7 @@ const Int_t AliTPCcalibDButil::GetReferenceRun(const char* type) const{
   return (const Int_t)str->GetString().Atoi();
 }
 //_____________________________________________________________________________________
-AliTPCCalPad *AliTPCcalibDButil::CreateCEOutlyerMap( Int_t & noutliersCE, AliTPCCalPad *ceOut, Float_t minSignal, Float_t cutTrmsMin,  Float_t cutTrmsMax, Float_t cutMaxDistT){
+AliTPCCalPad *AliTPCcalibDButil::CreateCEOutlyerMap( Int_t & noutliersCE, AliTPCCalPad * const ceOut, Float_t minSignal, Float_t cutTrmsMin,  Float_t cutTrmsMax, Float_t cutMaxDistT){
   //
   // Author:  marian.ivanov@cern.ch
   //
@@ -1347,7 +1352,7 @@ AliTPCCalPad *AliTPCcalibDButil::CreateCEOutlyerMap( Int_t & noutliersCE, AliTPC
         //2. exclude edge pads
         if (ipad==0||ipad==npads-1) rocOut->SetValue(irow,ipad,1);
         //exclude values that are exactly 0
-        if (valTmean==0) {
+        if ( TMath::Abs(valTmean)<kAlmost0) {
           rocOut->SetValue(irow,ipad,1);
           ++noutliersCE;
         }
@@ -1382,7 +1387,7 @@ AliTPCCalPad *AliTPCcalibDButil::CreateCEOutlyerMap( Int_t & noutliersCE, AliTPC
 }
 
 
-AliTPCCalPad *AliTPCcalibDButil::CreatePulserOutlyerMap(Int_t &noutliersPulser, AliTPCCalPad *pulserOut,Float_t cutTime, Float_t cutnRMSQ, Float_t cutnRMSrms){
+AliTPCCalPad *AliTPCcalibDButil::CreatePulserOutlyerMap(Int_t &noutliersPulser, AliTPCCalPad * const pulserOut,Float_t cutTime, Float_t cutnRMSQ, Float_t cutnRMSrms){
   //
   // Author: marian.ivanov@cern.ch
   //
@@ -1631,7 +1636,7 @@ Double_t  AliTPCcalibDButil::GetTriggerOffsetTPC(Int_t run, Int_t timeStamp, Dou
   //
   //
   const Float_t kLaserCut=0.0005;
-  const Int_t   kMaxPeriod=3600*24*30*3; // 3 month max
+  const Int_t   kMaxPeriod=3600*24*30*12; // one year max
   const Int_t   kMinPoints=20;
   //
   TObjArray *array =AliTPCcalibDB::Instance()->GetTimeVdriftSplineRun(run);
@@ -1674,6 +1679,10 @@ Double_t  AliTPCcalibDButil::GetTriggerOffsetTPC(Int_t run, Int_t timeStamp, Dou
     nused++;
   }
   if (nused<kMinPoints &&deltaT<kMaxPeriod) return  AliTPCcalibDButil::GetTriggerOffsetTPC(run, timeStamp, deltaT*2,deltaTLaser);
+  if (nused<kMinPoints) {
+    printf("AliFatal: No time offset calibration available\n");
+    return 0;
+  }
   Double_t median = TMath::Median(nused,tdelta);
   Double_t mean  = TMath::Mean(nused,tdelta);
   delete tdelta;
@@ -2080,7 +2089,7 @@ TGraph* AliTPCcalibDButil::FilterGraphMedianAbs(TGraph * graph, Float_t cut,Doub
 
 
 
-TGraphErrors* AliTPCcalibDButil::FilterGraphMedianErr(TGraphErrors * graph, Float_t sigmaCut,Double_t &medianY){
+TGraphErrors* AliTPCcalibDButil::FilterGraphMedianErr(TGraphErrors * const graph, Float_t sigmaCut,Double_t &medianY){
   //
   // filter outlyer measurement
   // Only points with normalized errors median +- sigmaCut filtered
@@ -2182,7 +2191,7 @@ void AliTPCcalibDButil::SmoothGraph(TGraph *graph, Double_t delta){
   delete[] outy;
 }
 
-Double_t AliTPCcalibDButil::EvalGraphConst(TGraph *graph, Double_t xref){
+Double_t AliTPCcalibDButil::EvalGraphConst(TGraph * const graph, Double_t xref){
   //
   // Use constant interpolation outside of range 
   //
@@ -2299,7 +2308,7 @@ Float_t  AliTPCcalibDButil::FilterTemperature(AliTPCSensorTempArray *tempArray, 
 }
 
 
-void AliTPCcalibDButil::FilterCE(Double_t deltaT, Double_t cutAbs, Double_t cutSigma, TTreeSRedirector *pcstream){
+void AliTPCcalibDButil::FilterCE(Double_t deltaT, Double_t cutAbs, Double_t cutSigma, TTreeSRedirector * const pcstream){
   //
   // Filter CE data
   // Input parameters:
@@ -2501,7 +2510,7 @@ void AliTPCcalibDButil::FilterCE(Double_t deltaT, Double_t cutAbs, Double_t cutS
 }
 
 
-void AliTPCcalibDButil::FilterTracks(Int_t run, Double_t cutSigma, TTreeSRedirector *pcstream){
+void AliTPCcalibDButil::FilterTracks(Int_t run, Double_t cutSigma, TTreeSRedirector * const pcstream){
   //
   // Filter Drift velocity measurement using the tracks
   // 0.  remove outlyers - error based
@@ -2599,7 +2608,7 @@ Double_t AliTPCcalibDButil::GetLaserTime0(Int_t run, Int_t timeStamp, Int_t delt
 
 
 
-void AliTPCcalibDButil::FilterGoofie(AliDCSSensorArray * goofieArray, Double_t deltaT, Double_t cutSigma, Double_t minVd, Double_t maxVd, TTreeSRedirector *pcstream){
+void AliTPCcalibDButil::FilterGoofie(AliDCSSensorArray * goofieArray, Double_t deltaT, Double_t cutSigma, Double_t minVd, Double_t maxVd, TTreeSRedirector * const pcstream){
   //
   // Filter Goofie data
   // goofieArray - points will be filtered
@@ -2769,7 +2778,7 @@ void AliTPCcalibDButil::FilterGoofie(AliDCSSensorArray * goofieArray, Double_t d
 
 
 
-TMatrixD* AliTPCcalibDButil::MakeStatRelKalman(TObjArray *array, Float_t minFraction, Int_t minStat, Float_t maxvd){
+TMatrixD* AliTPCcalibDButil::MakeStatRelKalman(TObjArray * const array, Float_t minFraction, Int_t minStat, Float_t maxvd){
   //
   // Make a statistic matrix
   // Input parameters:
@@ -2813,7 +2822,7 @@ TMatrixD* AliTPCcalibDButil::MakeStatRelKalman(TObjArray *array, Float_t minFrac
 }
 
 
-TObjArray *AliTPCcalibDButil::SmoothRelKalman(TObjArray *array,TMatrixD & stat, Bool_t direction, Float_t sigmaCut){
+TObjArray *AliTPCcalibDButil::SmoothRelKalman(TObjArray * const array, const TMatrixD & stat, Bool_t direction, Float_t sigmaCut){
   //
   // Smooth the array of AliRelKalmanAlign - detector alignment and drift calibration)
   // Input:
@@ -2872,7 +2881,7 @@ TObjArray *AliTPCcalibDButil::SmoothRelKalman(TObjArray *array,TMatrixD & stat, 
   return sArray;
 }
 
-TObjArray *AliTPCcalibDButil::SmoothRelKalman(TObjArray *arrayP, TObjArray *arrayM){
+TObjArray *AliTPCcalibDButil::SmoothRelKalman(TObjArray * const arrayP, TObjArray * const arrayM){
   //
   // Merge 2 RelKalman arrays
   // Input:

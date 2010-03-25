@@ -131,7 +131,7 @@ void AddCalibCalib(TObject* task){
   AliTPCAnalysisTaskcalib* myTask = (AliTPCAnalysisTaskcalib*) task;
   AliTPCcalibCalib *calibCalib = new AliTPCcalibCalib("calibTPC","calibTPC");
   calibCalib->SetDebugLevel(debugLevel);
-  calibCalib->SetStreamLevel(0);
+  calibCalib->SetStreamLevel(streamLevel);
   calibCalib->SetTriggerMask(-1,-1,kFALSE);        //accept everything 
   myTask->AddJob(calibCalib);
 
@@ -145,7 +145,7 @@ void AddCalibTimeGain(TObject* task){
   AliTPCcalibTimeGain *calibTimeGain = new AliTPCcalibTimeGain("calibTimeGain","calibTimeGain", startTime.GetSec(), stopTime.GetSec(), 30*60);
   //calibTimeGain->SetLowMemoryConsumption(kTRUE);
   //calibTimeGain->SetMIP(25.);
-  calibTimeGain->IsCosmic(kFALSE);
+  calibTimeGain->SetIsCosmic(kFALSE);
   calibTimeGain->SetUseCookAnalytical(kTRUE);
   calibTimeGain->SetUseMax(kFALSE);
   calibTimeGain->SetDebugLevel(debugLevel);
@@ -305,7 +305,7 @@ void SetupCalibTaskTrain2(TObject* task){
   AliTPCClusterParam * clusterParam = AliTPCcalibDB::Instance()->GetClusterParam(); 
   AliTPCAnalysisTaskcalib* myTask = (AliTPCAnalysisTaskcalib*) task;
   // AddCalibCalib(task);
-  //AddCalibAlign(task);
+  AddCalibAlign(task);
   AddCalibLaser(task);
   // AddCalibTracks()
   AddCalibPID(task);

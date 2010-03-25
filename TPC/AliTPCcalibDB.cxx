@@ -99,6 +99,7 @@
 #include "AliTPCSensorTempArray.h"
 #include "AliGRPObject.h"
 #include "AliTPCTransform.h"
+#include "AliTPCmapper.h"
 
 class AliCDBStorage;
 class AliTPCCalDet;
@@ -113,6 +114,7 @@ class AliTPCCalDet;
 #include "TObjString.h"
 #include "TString.h"
 #include "TDirectory.h"
+#include "TArrayI.h"
 #include "AliTPCCalPad.h"
 #include "AliTPCCalibPulser.h"
 #include "AliTPCCalibPedestal.h"
@@ -302,7 +304,10 @@ void AliTPCcalibDB::SetRun(Long64_t run)
 
 
 void AliTPCcalibDB::Update(){
-	//
+  //
+  // cache the OCDB entries for simulation, reconstruction, calibration
+  //  
+  //
   AliCDBEntry * entry=0;
   Bool_t cdbCache = AliCDBManager::Instance()->GetCacheFlag(); // save cache status
   AliCDBManager::Instance()->SetCacheFlag(kTRUE); // activate CDB cache
@@ -439,7 +444,7 @@ void AliTPCcalibDB::Update(){
     //entry->SetOwner(kTRUE);
     fCTPTimeParams=dynamic_cast<AliCTPTimeParams*>(entry->GetObject());
   }else{
-    AliFatal("TPC - Missing calibration entry")
+    AliError("TPC - Missing calibration entry")
   }  
   //
   if (!fTransform) {
@@ -978,6 +983,7 @@ void AliTPCcalibDB::UpdateRunInformations( Int_t run, Bool_t force){
 
 Float_t AliTPCcalibDB::GetGain(Int_t sector, Int_t row, Int_t pad){
   //
+  // Get Gain factor for given pad
   //
   AliTPCCalPad *calPad = Instance()->fDedxGainFactor;;
   if (!calPad) return 0;
@@ -986,7 +992,7 @@ Float_t AliTPCcalibDB::GetGain(Int_t sector, Int_t row, Int_t pad){
 
 AliSplineFit* AliTPCcalibDB::GetVdriftSplineFit(const char* name, Int_t run){
   //
-  //
+  // GetDrift velocity spline fit
   //
   TObjArray *arr=GetTimeVdriftSplineRun(run);
   if (!arr) return 0;
@@ -1024,7 +1030,7 @@ AliGRPObject *AliTPCcalibDB::GetGRP(Int_t run){
 
 TMap *  AliTPCcalibDB::GetGRPMap(Int_t run){
   //
-  //
+  // Get GRP map for given run
   //
   TMap * grpRun = dynamic_cast<TMap *>((Instance()->fGRPMaps).At(run));
   if (!grpRun) {
@@ -1514,7 +1520,7 @@ Float_t AliTPCcalibDB::GetValueGoofie(Int_t timeStamp, Int_t run, Int_t type){
 
 Bool_t  AliTPCcalibDB::GetTemperatureFit(Int_t timeStamp, Int_t run, Int_t side,TVectorD& fit){
   //
-  //
+  // GetTmeparature fit at parameter for given time stamp
   //
   TTimeStamp tstamp(timeStamp);
   AliTPCSensorTempArray* tempArray  = Instance()->GetTemperatureSensor(run);
@@ -1533,8 +1539,8 @@ Bool_t  AliTPCcalibDB::GetTemperatureFit(Int_t timeStamp, Int_t run, Int_t side,
 
 Float_t AliTPCcalibDB::GetTemperature(Int_t timeStamp, Int_t run, Int_t side){
   //
-  //
-  //
+  // Get mean temperature
+  // 
   TVectorD vec(5);
   if (side==0) {
     GetTemperatureFit(timeStamp,run,0,vec);
@@ -1720,7 +1726,7 @@ Double_t AliTPCcalibDB::GetVDriftCorrectionTime(Int_t timeStamp, Int_t run, Int_
   //
   // Notice - Extrapolation outside of calibration range  - using constant function
   //
-  Double_t result;
+  Double_t result=0;
   // mode 1  automatic mode - according to the distance to the valid calibration
   //                        -  
   Double_t deltaP=0,  driftP=0,      wP  = 0.;
@@ -1819,5 +1825,72 @@ Double_t AliTPCcalibDB::GetVDriftCorrectionGy(Int_t timeStamp, Int_t run, Int_t 
   return -result/250.; //normalized before
 }
 
+AliTPCCalPad* AliTPCcalibDB::MakeDeadMap(const char* nameMappingFile) {
+//
+//   Read list of active DDLs from OCDB entry
+//   Generate and return AliTPCCalPad containing 1 for all pads in active DDLs,
+//   0 for all pads in non-active DDLs. 
+//
+  char chinfo[1000];
+   
+  TFile *fileMapping = new TFile(nameMappingFile, "read");
+  AliTPCmapper *mapping = (AliTPCmapper*) fileMapping->Get("tpcMapping");
+  if (!mapping) {
+    sprintf(chinfo,"Failed to get mapping object from %s.  ...\n", nameMappingFile);
+    AliError (chinfo);
+    return 0;
+  }
+  
+  AliTPCCalPad *deadMap = new AliTPCCalPad("deadMap","deadMap");
+  if (!deadMap) {
+     AliError("Failed to allocate dead map AliTPCCalPad");
+     return 0;
+  }  
+  
+  /// get list of active DDLs from OCDB entry
+  Int_t idDDL=0;
+  if (!fALTROConfigData ) {
+     AliError("No ALTRO config OCDB entry available");
+     return 0; 
+  }
+  TMap *activeDDL = (TMap*)fALTROConfigData->FindObject("DDLArray");
+  TObjString *ddlArray=0;
+  if (activeDDL) {
+    ddlArray = (TObjString*)activeDDL->GetValue("DDLArray");
+    if (!ddlArray) {
+      AliError("Empty list of active DDLs in OCDB entry");
+      return 0;
+    }
+  } else { 
+    AliError("List of active DDLs not available in OCDB entry");
+    return 0;
+  }
+  TString arrDDL=ddlArray->GetString();
+  Int_t offset = mapping->GetTpcDdlOffset();
+  Double_t active;
+  for (Int_t i=0; i<mapping->GetNumDdl(); i++) {
+    idDDL= i+offset;
+    Int_t patch = mapping->GetPatchFromEquipmentID(idDDL);   
+    Int_t roc=mapping->GetRocFromEquipmentID(idDDL);
+    AliTPCCalROC *calRoc=deadMap->GetCalROC(roc);
+    if (calRoc) {
+     for ( Int_t branch = 0; branch < 2; branch++ ) {
+      for ( Int_t fec = 0; fec < mapping->GetNfec(patch, branch); fec++ ) {
+        for ( Int_t altro = 0; altro < 8; altro++ ) {
+         for ( Int_t channel = 0; channel < 16; channel++ ) {
+           Int_t hwadd     = mapping->CodeHWAddress(branch, fec, altro, channel);
+           Int_t row       = mapping->GetPadRow(patch, hwadd);        // row in a ROC (IROC or OROC)
+//              Int_t globalrow = mapping.GetGlobalPadRow(patch, hwadd);  // row in full sector (IROC plus OROC)
+           Int_t pad       = mapping->GetPad(patch, hwadd);
+           active=TString(arrDDL[i]).Atof();
+           calRoc->SetValue(row,pad,active);
+         } // end channel for loop
+        } // end altro for loop
+      } // end fec for loop
+     } // end branch for loop
+    } // valid calROC 
+   } // end loop on active DDLs
+   return deadMap;
+}
 
 

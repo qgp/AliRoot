@@ -18,18 +18,24 @@ void ConfigOCDB(Int_t crun=-1){
   // 
   printf("SETUP OCBD for TPC\n");
   //
-  AliCDBManager::Instance()->SetDefaultStorage("local://$ALICE_ROOT/OCDB");
-  AliCDBManager::Instance()->SetSpecificStorage("TPC/Calib/Parameters","local://$ALICE_ROOT/OCDB");
-  AliCDBManager::Instance()->SetSpecificStorage("TPC/Calib/ClusterParam","local:///u/miranov/OCDB/TPCcosmic2/");
-  AliCDBManager::Instance()->SetSpecificStorage("TPC/Calib/PadTime0","local://$ALICE_ROOT/OCDB");
-  AliCDBManager::Instance()->SetSpecificStorage("GRP/GRP/Data","local:///lustre/alice/alien/alice/data/2009/OCDB/");
-  AliCDBManager::Instance()->SetSpecificStorage("TPC/Calib/Temperature","local:///lustre/alice/alien/alice/data/2009/OCDB/");
-  AliCDBManager::Instance()->SetSpecificStorage("TPC/Calib/Goofie","local:///lustre/alice/alien/alice/data/2009/OCDB/");
-  AliCDBManager::Instance()->SetSpecificStorage("TPC/Calib/HighVoltage","local:///lustre/alice/alien/alice/data/2009/OCDB/");
+  AliCDBManager::Instance()->SetDefaultStorage("local:///lustre/alice/alien/alice/data/2009/OCDB/");
+   //
+  //
+  // custom calibration to test before committing
+  //
+  AliCDBManager::Instance()->SetSpecificStorage("TPC/Calib/GainFactorDedx","local:///lustre/alice/akalweit/OCDB"); 
+  AliCDBManager::Instance()->SetSpecificStorage("TPC/Calib/ClusterParam","local:///lustre/alice/akalweit/OCDB");
+   AliCDBManager::Instance()->SetSpecificStorage("TPC/Calib/TimeGainKrypton","local:///lustre/alice/miranov/OCDB");
+
+ // AliCDBManager::Instance()->SetSpecificStorage("TPC/Calib/TimeDrift","local:///lustre/alice/miranov/rec/OCDB");
+//   AliCDBManager::Instance()->SetSpecificStorage("TPC/Calib/TimeGain","local:///lustre/alice/akalweit/OCDB");
+ 
+  
   Int_t run =crun;
   if (run<0) run =0;
   AliCDBManager::Instance()->SetRun(run);
   SetupCustom(run);
+  AliTPCcalibDB::Instance()->SetRun(run);
 }
 
 
@@ -54,14 +60,15 @@ void SetupCustom(Int_t run){
   }
   AliMagF::BMap_t smag = AliMagF::k5kG;
   Double_t bzfac = bz/5;
-  if (bzfac==0) {  // force default magnetic field if 0 field used
+  Double_t bzfacOrig=bzfac;
+  if (TMath::Abs(bzfac)<0.01) {  // force default magnetic field if 0 field used
     bzfac=1;
     bz=5;
   }
-  TGeoGlobalMagField::Instance()->SetField(new AliMagF("Maps","Maps", bzfac, 1., smag));
-
-  printf("\n\nSET EXB FIELD\t%f\n\n", -bz);
-  AliTPCcalibDB::Instance()->SetExBField(-bz);
+  AliMagF* magF= new AliMagF("Maps","Maps", bzfac, 1., smag);
+  TGeoGlobalMagField::Instance()->SetField(magF);  
+  printf("\n\nSET EXB FIELD\t\n\n");
+  AliTPCcalibDB::Instance()->SetExBField(magF);
   //
   //
   // import geometry
@@ -69,6 +76,7 @@ void SetupCustom(Int_t run){
   //
   TGeoManager::Import("/u/miranov/proof/geometry.root");
   AliGeomManager::LoadGeometry("/u/miranov/proof/geometry.root");
+  AliGeomManager::ApplyAlignObjsFromCDB("GRP ITS TPC");
 
   AliTPCClusterParam * paramCl = AliTPCcalibDB::Instance()->GetClusterParam(); 
   AliTPCParam   * paramTPC = AliTPCcalibDB::Instance()->GetParameters();
@@ -80,20 +88,28 @@ void SetupCustom(Int_t run){
   AliTPCTransform *transform     = AliTPCcalibDB::Instance()->GetTransform() ;
   AliTPCRecoParam * tpcRecoParam = AliTPCRecoParam::GetCosmicTestParam(kTRUE);
   transform->SetCurrentRecoParam(tpcRecoParam);
-  tpcRecoParam->SetUseRPHICorrection(kTRUE);
+  tpcRecoParam->SetUseGainCorrectionTime(0);
+  tpcRecoParam->SetUseRPHICorrection(kTRUE); 
+  tpcRecoParam->SetUseTOFCorrection(kFALSE);
+  //
+  tpcRecoParam->SetUseDriftCorrectionTime(1);
+  tpcRecoParam->SetUseDriftCorrectionGY(1);
   //
   tpcRecoParam->SetUseRadialCorrection(kFALSE);
   tpcRecoParam->SetUseQuadrantAlignment(kTRUE);
   //
   tpcRecoParam->SetUseSectorAlignment(kFALSE);
-  tpcRecoParam->SetUseDriftCorrectionTime(kFALSE);
-  tpcRecoParam->SetUseDriftCorrectionGY(kTRUE);
   tpcRecoParam->SetUseGainCorrectionTime(kFALSE);
   tpcRecoParam->SetUseFieldCorrection(kFALSE);
   tpcRecoParam->SetUseExBCorrection(kTRUE);
+  if (TMath::Abs(bzfacOrig)<0.05){
+    tpcRecoParam->SetUseExBCorrection(kFALSE);
+  }
   //
   //
   //
+
+
   TFile fposcor("~/OCDB/calibUnlin.root");
   AliTPCPointCorrection *pcorr = fposcor.Get("correction");
   if (pcorr) pcorr->SetInstance(pcorr); 
