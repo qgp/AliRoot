@@ -71,8 +71,7 @@ ClassImp(AliGRPPreprocessor)
 
 //_______________________________________________________________
 
-  const Int_t AliGRPPreprocessor::fgknDAQLbPar = 8; // num parameters in the logbook for PHYSICS runs, when beamType from DAQ logbook == NULL
-  const Int_t AliGRPPreprocessor::fgknDAQLbParReduced = 7; // num parameters in the logbook for the other cases
+  const Int_t AliGRPPreprocessor::fgknDAQLbPar = 6; // num parameters in the logbook used to fill the GRP object
   const Int_t AliGRPPreprocessor::fgknDCSDP = 48;   // number of dcs dps
   const Int_t AliGRPPreprocessor::fgknDCSDPHallProbes = 40;   // number of dcs dps
   const Int_t AliGRPPreprocessor::fgknLHCDP = 5;   // number of dcs dps from LHC data
@@ -177,9 +176,9 @@ ClassImp(AliGRPPreprocessor)
 
 
   const char* AliGRPPreprocessor::fgkLHCDataPoints[AliGRPPreprocessor::fgknLHCDP] = {
-	  "lhcMon_LHCBeam.Energy",
-	  "lhcMon_LHCMachineMode.value",
-	  "lhcMon_LHCBeamMode.value",
+	  "LHC_Beam_Energy",
+	  "LHC_MachineMode",
+	  "LHC_BeamMode",
           "dip/acc/LHC/RunControl/BeamType/Beam1.payload",
           "dip/acc/LHC/RunControl/BeamType/Beam2.payload"
   };
@@ -299,22 +298,27 @@ UInt_t AliGRPPreprocessor::Process(TMap* valueMap)
 	//=================//
 	// DAQ logbook     //
 	//=================//
+
+	Log("*************** Processing DAQ logbook");
+
 	UInt_t error = 0;
 	
 	Int_t iDaqLB = ProcessDaqLB(grpobj);
 	TString runType = (TString)GetRunType();
 	TString beamType = (TString)GetRunParameter("beamType");
-	//if((runType == "PHYSICS" && iDaqLB == fgknDAQLbPar && beamType!="Cosmics") ||  (runType == "PHYSICS" && iDaqLB == fgknDAQLbParReduced && beamType=="Cosmics") || (runType != "PHYSICS" && iDaqLB == fgknDAQLbParReduced)) {
-	if((runType == "PHYSICS" && iDaqLB == fgknDAQLbPar && !beamType.IsNull()) ||  (runType == "PHYSICS" && iDaqLB == fgknDAQLbParReduced && beamType.IsNull()) || (runType != "PHYSICS" && iDaqLB == fgknDAQLbParReduced)) {
-		Log(Form("DAQ Logbook, successful!"));
+	if(iDaqLB == fgknDAQLbPar) {
+		Log(Form("DAQ Logbook, successful! Retrieved %d/%d entries",iDaqLB,fgknDAQLbPar));
 	} else {
-		Log(Form("DAQ Logbook, could not get all expected entries!!!"));
+		Log(Form("DAQ Logbook, could not get all expected entries!!! Retrieved only %d/%d entries",iDaqLB,fgknDAQLbPar));
 		error |= 1;
 	}
 
 	//=================//
 	// DAQ FXS         //
 	//=================//
+
+	Log("*************** Processing DAQ FXS");
+
 	UInt_t iDaqFxs = ProcessDaqFxs();
 	if( iDaqFxs == 0 ) {
 		Log(Form("DAQ FXS, successful!"));
@@ -326,6 +330,9 @@ UInt_t AliGRPPreprocessor::Process(TMap* valueMap)
 	//=================//
 	// DCS FXS         //
 	//=================//
+
+	Log("*************** Processing DCS FXS");
+
 	UInt_t iDcsFxs = ProcessDcsFxs(partition, detector);
 	if( iDcsFxs == 0 ) {
 		Log(Form("DCS FXS, successful!"));
@@ -340,6 +347,9 @@ UInt_t AliGRPPreprocessor::Process(TMap* valueMap)
 	//=================//
 	// DCS data points //
 	//=================//
+
+	Log("*************** Processing DCS DPs");
+
 	Log(Form("Starting DCS Query at %d and finishing at %d",GetStartTimeDCSQuery(),GetEndTimeDCSQuery()));
 	Int_t entries = ProcessDcsDPs( valueMap, grpobj );
 	Log(Form("entries found = %d (should be %d)",entries, fgknDCSDP-fgkDCSDPNonWorking));
@@ -368,6 +378,8 @@ UInt_t AliGRPPreprocessor::Process(TMap* valueMap)
 	//=======================//
 	// Trigger Configuration //
 	//=======================//
+
+	Log("*************** Processing Trigger Configuration");
 
 	const char * triggerConf = GetTriggerConfiguration();
 
@@ -436,6 +448,7 @@ UInt_t AliGRPPreprocessor::Process(TMap* valueMap)
 	// Trigger Timing Parameters //
         //===========================//
 
+	Log("*************** Processing Trigger Time Params");
 	
 	const char * triggerCTPtiming = GetCTPTimeParams();
 
@@ -506,6 +519,8 @@ UInt_t AliGRPPreprocessor::Process(TMap* valueMap)
 	// LHC Data        //
 	//=================//
 
+	Log("*************** Processing LHC Data");
+
 	UInt_t iLHCData = ProcessLHCData(grpobj);
 
 	if( iLHCData == 0 ) {
@@ -525,6 +540,9 @@ UInt_t AliGRPPreprocessor::Process(TMap* valueMap)
 	//==================//
 	// SPD Mean Vertex  //
 	//==================//
+
+	Log("*************** Processing SPD Mean Vertex");
+
 	if (runType == "PHYSICS"){
 		UInt_t iSPDMeanVertex = ProcessSPDMeanVertex();
 		if( iSPDMeanVertex == 1 ) {
@@ -616,51 +634,107 @@ UInt_t AliGRPPreprocessor::ProcessLHCData(AliGRPObject *grpobj)
 			}	
 			Double_t timeBeamMode = 0;
 			Double_t timeMachineMode = 0;
+			Bool_t flagBeamMode = kFALSE;  //flag set true if at least one BeamMode measurement is found within DAQ_time_start and DAQ_time_end
+			Bool_t flagMachineMode = kFALSE;  //flag set true if at least one MachineMode measurement is found within DAQ_time_start and DAQ_time_end
 			// BeamMode
 			TObjArray* beamModeArray = (TObjArray*)lhcMap->GetValue(fgkLHCDataPoints[2]);
-			if (beamModeArray){		
-				if (beamModeArray->GetEntries()==0){
-					AliInfo("No Beam Mode found, setting it to UNKNOWN");
+			Int_t nBeamMode = -1;
+			if (beamModeArray){	
+				nBeamMode = beamModeArray->GetEntries();	
+				if (nBeamMode==0){
+ 					AliInfo("Found zero entries for  the Beam Mode, setting it to UNKNOWN");
 					grpobj->SetLHCState("UNKNOWN");
 				}
 				else{
-					AliDCSArray* beamMode = (AliDCSArray*)beamModeArray->At(0);
-					TObjString* beamModeString = beamMode->GetStringArray(0);
-					if (beamModeArray->GetEntries()>1){
-						AliDCSArray* beamMode1 = (AliDCSArray*)beamModeArray->At(1);
-						timeBeamMode = beamMode1->GetTimeStamp();
-						AliWarning(Form("The beam mode changed at timestamp %f! Setting it to the first value found and setting MaxTimeLHCValidity",timeBeamMode));
+					if (nBeamMode==1){
+						AliDCSArray* beamMode = (AliDCSArray*)beamModeArray->At(0);
+						if (beamMode->GetTimeStamp()>=timeStart && beamMode->GetTimeStamp()<=timeEnd){
+							TObjString* beamModeString = beamMode->GetStringArray(0);
+							AliInfo(Form("LHC State (corresponding to BeamMode) = %s",(beamModeString->String()).Data()));
+							grpobj->SetLHCState(beamModeString->String());
+						}
+						else{
+							AliInfo("No Beam Mode found within DAQ_time_start and DAQ_time_end, setting it to UNKNOWN");
+							grpobj->SetLHCState("UNKNOWN");
+						}
 					}
-					AliInfo(Form("LHC State (corresponding to BeamMode) = %s",(beamModeString->String()).Data()));
-					grpobj->SetLHCState(beamModeString->String());
+					else {
+						for (Int_t iBeamMode = 0; iBeamMode<nBeamMode; iBeamMode++){
+							AliDCSArray* beamMode = (AliDCSArray*)beamModeArray->At(iBeamMode);
+							if (beamMode->GetTimeStamp()>=timeStart && beamMode->GetTimeStamp()<=timeEnd){
+								AliDCSArray* beamMode1 = (AliDCSArray*)beamModeArray->At(iBeamMode+1);
+								if (beamMode1->GetTimeStamp()>=timeStart && beamMode1->GetTimeStamp()<=timeEnd){
+									timeBeamMode = beamMode1->GetTimeStamp();
+									AliWarning(Form("The beam mode changed at timestamp %f! Setting it to the first value found and keeping track of the time of the change to set MaxTimeLHCValidity afterward",timeBeamMode));
+								}
+								TObjString* beamModeString = beamMode->GetStringArray(0);
+								AliInfo(Form("LHC State (corresponding to BeamMode) = %s",(beamModeString->String()).Data()));
+								grpobj->SetLHCState(beamModeString->String());
+								flagBeamMode = kTRUE;
+								break;
+							}
+						}
+						if (!flagBeamMode){
+							AliError("Found values for BeamMode, but none within DAQ_time_start and DAQ_time_end, setting BeamMode to UNKNOWN");
+							grpobj->SetLHCState("UNKONWN");
+						}
+					}
 				}
-				
 			}
 			else{
 				AliError("Beam mode array not found in LHC Data file!!!");
 			}
+
 			// MachineMode
 			TObjArray* machineModeArray = (TObjArray*)lhcMap->GetValue(fgkLHCDataPoints[1]);
+			Int_t nMachineMode = -1;
 			if (machineModeArray){
-				if (machineModeArray->GetEntries()==0){
+				nMachineMode = machineModeArray->GetEntries();
+				if (nMachineMode==0){
 					AliInfo("No Machine Mode found, setting it to UNKNOWN");
 					grpobj->SetMachineMode("UNKNOWN");
 				}
 				else{
-					AliDCSArray* machineMode = (AliDCSArray*)machineModeArray->At(0);
-					TObjString* machineModeString = machineMode->GetStringArray(0);
-					if (machineModeArray->GetEntries()>1){
-						AliDCSArray* machineMode1 = (AliDCSArray*)machineModeArray->At(1);
-						timeMachineMode = machineMode1->GetTimeStamp();
-						AliWarning(Form("The Machine Mode changed at timestamp %f! Setting it to the first value found and setting MaxTimeLHCValidity",timeMachineMode));
+					if (nMachineMode ==1) {
+						AliDCSArray* machineMode = (AliDCSArray*)machineModeArray->At(0);
+						if (machineMode->GetTimeStamp()>=timeStart && machineMode->GetTimeStamp()<=timeEnd){
+							TObjString* machineModeString = machineMode->GetStringArray(0);
+							AliInfo(Form("Machine Mode = %s",(machineModeString->String()).Data()));
+							grpobj->SetMachineMode(machineModeString->String());
+						}
+						else{
+							AliInfo("No Machine Mode found within DAQ_time_start and DAQ_time_end, setting it to UNKNOWN");
+							grpobj->SetMachineMode("UNKNOWN");
+						}
 					}
-					AliInfo(Form("Machine Mode = %s",(machineModeString->String()).Data()));
-					grpobj->SetMachineMode(machineModeString->String());
+					else {
+						for (Int_t iMachineMode = 0; iMachineMode<nMachineMode; iMachineMode++){
+							AliDCSArray* machineMode = (AliDCSArray*)machineModeArray->At(iMachineMode);
+							if (machineMode->GetTimeStamp()>=timeStart && machineMode->GetTimeStamp()<=timeEnd){
+								AliDCSArray* machineMode1 = (AliDCSArray*)machineModeArray->At(iMachineMode+1);
+								if (machineMode1->GetTimeStamp()>=timeStart && machineMode1->GetTimeStamp()<=timeEnd){
+									timeMachineMode = machineMode1->GetTimeStamp();
+									AliWarning(Form("The machine mode changed at timestamp %f! Setting it to the first value found and keeping track of the time of the change to set MaxTimeLHCValidity afterwards",timeMachineMode));
+								}
+								TObjString* machineModeString = machineMode->GetStringArray(0);
+								AliInfo(Form("Machine mode = %s",(machineModeString->String()).Data()));
+								grpobj->SetMachineMode(machineModeString->String());
+								flagMachineMode = kTRUE;
+								break;
+							}
+						}
+						if (!flagMachineMode){
+							AliError("Found values for MachineMode, but none within DAQ_time_start and DAQ_time_end, setting MachineMode to UNKNOWN");
+							grpobj->SetMachineMode("UNKONWN");
+						}
+					}
 				}
 			}
 			else {
 				AliError("Machine mode array not found in LHC Data file!!!");
 			}	
+
+			// Setting minTimeLHCValidity
 			if (timeBeamMode!=0 || timeMachineMode!=0){
 				Double_t minTimeLHCValidity;
  				if (timeBeamMode == 0){
@@ -800,7 +874,7 @@ Int_t AliGRPPreprocessor::ProcessDaqLB(AliGRPObject* grpObj)
 		nparameter++;
 	} 
 	else {
-		Log(Form("Start time not put in logbook, setting to invalid in GRP entry!"));
+		Log(Form("Start time not put in logbook, setting to invalid in GRP entry, and causing an error!"));
 	}
 
 	if (timeEnd != 0){
@@ -809,36 +883,22 @@ Int_t AliGRPPreprocessor::ProcessDaqLB(AliGRPObject* grpObj)
 		nparameter++;
 	} 
 	else {
-		Log(Form("End time not put in logbook, setting to invalid in GRP entry!"));
+		Log(Form("End time not put in logbook, setting to invalid in GRP entry, and causing an error!"));
 	}
 
 	if (beamEnergy != 0){
-		grpObj->SetBeamEnergy(beamEnergy);
-		Log(Form("Beam Energy for run %d: %f",fRun, beamEnergy));
-		//if ((runType == "PHYSICS" && beamType!="Cosmics")){
-		if ((runType == "PHYSICS" && !beamType.IsNull())){   // if beamType is NOT Null, then we're not in a Cosmics run
-			nparameter++; // increasing nparameters only in case we're in PHYSICS runs with beamType != NULL
-		}
+		Log(Form("Beam Energy for run %d: %f (NOT USING IT TO FILL THE GRP OBJECT, taking it from the LHC file)",fRun, beamEnergy));
 	} 
 	else {
-		//if ((runType == "PHYSICS" && beamType!="Cosmics")){
-		if ((runType == "PHYSICS" && !beamType.IsNull())){ // if beamType is NOT Null, then we're not in a Cosmics run
-			Log(Form("Beam Energy not put in logbook, setting to invalid in GRP entry, and producing an error (beamType = %s, runType = %s)",beamType.Data(), runType.Data()));
-		}
-		else{
-			Log(Form("Beam Energy not put in logbook, setting to invalid in GRP entry, but not producing any error (beamType = NULL, runType = %s)", runType.Data()));
-		}
+		Log(Form("Beam Energy not put in logbook, but not using it anyway for the GRP object (taking it from the LHC file)"));
 	}
 
 		
 	if (beamType.Length() != 0){
-		grpObj->SetBeamType(beamType);
-		Log(Form("Beam Type for run %d: %s",fRun, beamType.Data()));
-		nparameter++; 
+		Log(Form("Beam Type for run %d: %s (NOT USING IT TO FILL THE GRP OBJECT, taking it from the LHC file)",fRun, beamType.Data()));
 	} 
 	else {
-		Log(Form("Beam Type not put in logbook, setting to invalid in GRP entry! Not producing any error, considering this as a Cosmics run"));
-		nparameter++;
+		Log(Form("Beam Type not put in logbook, but not using it anyway for the GRP entry (taking it from the LHC file)"));
 	}
 		
 	if (numberOfDetectors != 0){
@@ -847,7 +907,7 @@ Int_t AliGRPPreprocessor::ProcessDaqLB(AliGRPObject* grpObj)
 		nparameter++;
 	} 
 	else {
-		Log(Form("Number Of Detectors not put in logbook, setting to invalid in GRP entry!"));
+		Log(Form("Number Of Detectors not put in logbook, setting to invalid in GRP entry, and causing an error!"));
 	}
 
 	if (detectorMask != 0){
@@ -856,7 +916,7 @@ Int_t AliGRPPreprocessor::ProcessDaqLB(AliGRPObject* grpObj)
 		nparameter++;
 	} 
 	else {
-		Log(Form("Detector Mask not put in logbook, setting to invalid in GRP entry!"));
+		Log(Form("Detector Mask not put in logbook, setting to invalid in GRP entry, and causing an error!"));
 	}
 
 	if (lhcPeriod.Length() != 0) {
@@ -865,7 +925,7 @@ Int_t AliGRPPreprocessor::ProcessDaqLB(AliGRPObject* grpObj)
 		nparameter++;
 	} 
 	else {
-		Log(Form("LHCperiod not put in logbook, setting to invalid in GRP entry!"));
+		Log(Form("LHCperiod not put in logbook, setting to invalid in GRP entry, and causing an error!"));
 	}
 	if (runType.Length() != 0) {
 		grpObj->SetRunType(runType);
@@ -873,7 +933,7 @@ Int_t AliGRPPreprocessor::ProcessDaqLB(AliGRPObject* grpObj)
 		nparameter++;
 	} 
 	else {
-		Log(Form("Run Type not put in logbook, setting to invalid in GRP entry!"));
+		Log(Form("Run Type not put in logbook, setting to invalid in GRP entry, and causing an error!"));
 	}
 
 	return nparameter;
