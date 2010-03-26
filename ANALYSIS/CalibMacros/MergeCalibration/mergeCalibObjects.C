@@ -188,6 +188,9 @@ void Merge(TFile* fileIn, TObjArray * array){
     if (!callEnv.IsValid()) {continue;}
 
     TObject *mergedObject = array->FindObject(currentObject->GetName());
+    if (!mergedObject) continue;
+    TString oname=mergedObject->GetName();
+    if (oname.Contains("esdFriendTree")) continue;
     if (!mergedObject) {
       array->AddLast(currentObject);
       carray->RemoveAt(i);
