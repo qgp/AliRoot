@@ -486,8 +486,10 @@ void AliTPCcalibTime::ProcessLaser(AliESDEvent *event){
       vecDriftLaserA[2]=vdriftA[2]/250.;
       vecDriftLaserC[2]=vdriftC[2]/250.;
     }
-    if (isReject[0]==0) fHistVdriftLaserA[icalib]->Fill(vecDriftLaserA);
-    if (isReject[1]==0) fHistVdriftLaserC[icalib]->Fill(vecDriftLaserC);
+    //if (isReject[0]==0) fHistVdriftLaserA[icalib]->Fill(vecDriftLaserA);
+    //if (isReject[1]==0) fHistVdriftLaserC[icalib]->Fill(vecDriftLaserC);
+    fHistVdriftLaserA[icalib]->Fill(vecDriftLaserA);
+    fHistVdriftLaserC[icalib]->Fill(vecDriftLaserC);
   }
 
 //   THnSparse* curHist=new THnSparseF("","HistVdrift;time;p/T ratio;Vdrift;run",4,fBinsVdrift,fXminVdrift,fXmaxVdrift);
