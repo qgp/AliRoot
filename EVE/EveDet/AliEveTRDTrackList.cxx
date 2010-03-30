@@ -74,7 +74,6 @@
 #include <AliTRDReconstructor.h>
 
 #include <EveDet/AliEveTRDTrackList.h>
-#include <EveDet/AliEveTRDTrackList.h>
 #include <EveDet/AliEveTRDTrackListEditor.h>
 
 #include <../PWG1/TRD/AliTRDrecoTask.h>
@@ -195,6 +194,9 @@ Int_t AliEveTRDTrackList::AddMacro(const Char_t* path, const Char_t* nameC, Bool
  
   gROOT->ProcessLineSync(Form(".L %s+%c", pathname, forceReload ? '+' : ' '));
 
+  // We need this line... otherwise, in some cases, there will be problems concerning ACLIC
+  gROOT->ProcessLineSync(Form(".L %s", pathname));
+
   AliEveTRDTrackListMacroType type = GetMacroType(name, kFALSE);
 
   // Clean up again
@@ -268,8 +270,14 @@ void AliEveTRDTrackList::AddStandardContent()
   // use the return value of AddMacro (NOT_EXIST_ERROR is returned, if file does not exist)
   // (-> You can also check for other return values (see AddMacro(...)))
 
-  if(gSystem->Load("libANALYSIS.so")<0) return;
-  if(gSystem->Load("libTRDqaRec.so")<0) return;
+  const Char_t *libs[] = {"libANALYSIS.so", "libANALYSISalice.so", "libTENDER.so", "libPWG1.so"};
+  Int_t nlibs = static_cast<Int_t>(sizeof(libs)/sizeof(Char_t *));
+  for(Int_t ilib=0; ilib<nlibs; ilib++){
+    if(gSystem->Load(libs[ilib]) >= 0) continue;
+    AliError(Form("Fail loading %s.", libs[ilib]));
+    return;
+  }
+
   AliTRDrecoTask *task = 0x0;
   TList *fPlots = 0x0;
   for(Int_t it=2; it<NTRDQATASKS; it++){
@@ -471,7 +479,7 @@ Bool_t AliEveTRDTrackList::ApplyProcessMacros(const TList* selIterator, const TL
         // Loop over all pairs behind the current one - together with the other loop this will be a loop
         // over all pairs. We have a pair of tracks, if and only if both tracks of the pair are selected (Rnr-state)
         // and are not equal.
-        // The correlated tracks process macro will applied to all pairs that will be additionally selected by
+        // The correlated tracks process macro will be applied to all pairs that will be additionally selected by
         // all correlated tracks selection macros.
         TEveElement::List_i iter2 = iter;
         iter2++;
@@ -527,7 +535,7 @@ Bool_t AliEveTRDTrackList::ApplyProcessMacros(const TList* selIterator, const TL
         // Loop over all pairs behind the current one - together with the other loop this will be a loop
         // over all pairs. We have a pair of tracks, if and only if both tracks of the pair are selected (Rnr-state)
         // and are not equal.
-        // The correlated tracks process macro will applied to all pairs that will be additionally selected by
+        // The correlated tracks process macro will be applied to all pairs that will be additionally selected by
         // all correlated tracks selection macros.
         TEveElement::List_i iter2 = iter;
         iter2++;
@@ -630,9 +638,9 @@ void AliEveTRDTrackList::ApplySTSelectionMacros(const TList* iterator)
   // Clear root
   // A.B. gROOT->Reset();
 
-  // Select all tracks at first. A track is then deselect, if at least one selection macro
-  // returns kFALSE for this track
-  // Enable all tracks (Note: EnableListElements(..) will call "ElementChanged", which will cause unforeseen behavior!)
+  // Select all tracks at first. A track is then deselected, if at least one selection macro
+  // returns kFALSE for this track.
+  // Enable all tracks (Note: EnableListElements(..) will call "ElementChanged", which will cause unforeseen behaviour!)
   for (TEveElement::List_i iter = this->BeginChildren(); iter != this->EndChildren(); ++iter) ((TEveElement*)(*iter))->SetRnrState(kTRUE);
   SetRnrState(kTRUE);
   
@@ -742,12 +750,12 @@ AliEveTRDTrackList::AliEveTRDTrackListMacroType AliEveTRDTrackList::GetMacroType
       if (strstr(f->GetMangledName(), "oPconstsPAliTRDtrackV1mUsP") != 0x0 &&
           strstr(f->GetMangledName(), "cOconstsPAliTRDtrackV1mUsP") != 0x0)
       {
-        // Single track select macro?
+        // Correlated track select macro?
         if (!strcmp(f->GetReturnTypeName(), "Bool_t")) 
         { 
           type = kCorrelTrackSelect;     
         }
-        // single track histo macro?
+        // Correlated track histo macro?
         else if (!strcmp(f->GetReturnTypeName(), "TH1*"))
         {
           type = kCorrelTrackHisto;

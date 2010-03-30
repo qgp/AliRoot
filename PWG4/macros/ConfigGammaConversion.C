@@ -1,5 +1,21 @@
 /** VERSION NUMBER 1.1 */
 
+/**************************************************************************
+ * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+ *                                                                        *
+ * Author: Ana Marin, Kathrin Koch, Kenneth Aamodt
+ * Contact: kenneth.aamodt@cern.ch
+ * Version 1.1                                                            *
+ *                                                                        *
+ * Permission to use, copy, modify and distribute this software and its   *
+ * documentation strictly for non-commercial purposes is hereby granted   *
+ * without fee, provided that the above copyright notice appears in all   *
+ * copies and that both the copyright notice and this permission notice   *
+ * appear in the supporting documentation. The authors make no claims     *
+ * about the suitability of this software for any purpose. It is          *
+ * provided "as is" without express or implied warranty.                  *
+ **************************************************************************/
+
 class AliAnalysisDataContainer;
 class AliGammaConversionHistograms;
 class AliAnalysisTaskGammaConversion;
@@ -18,15 +34,16 @@ Bool_t kGCrunCF           = kFALSE;
 Int_t kGCpidOfNegativeTrack=11;
 Int_t kGCpidOfPositiveTrack=-11;
 
-Double_t kGCLineCutZRSlope = 0.662487;
-Double_t kGCLineCutZValue = 7.;
-
 Double_t kGCmaxRCut   = 180.;
 Double_t kGCetaCut    = 1.2;
 Double_t kGCptCut     = 0.02;
 Double_t kGCmaxZCut     = 240.;
 Double_t kGCchi2CutConversion   = 30.;
 Double_t kGCchi2CutMeson   = 50.;
+
+Double_t kGCLineCutZRSlope = tan(2*atan(exp(-kGCetaCut)));
+Double_t kGCLineCutZValue = 7.;
+
 
 Double_t kGCxVertexCut = 0.;
 Double_t kGCyVertexCut = 0.;
@@ -35,6 +52,8 @@ Double_t kGCzVertexCut = 0.;
 Double_t kGCsigmaCutGammaMass=0.0001;
 
 Bool_t kGCuseImprovedVertex = kTRUE;
+
+Bool_t kGCUseOnFlyV0Finder = kTRUE;
 
 // define masses of different particles, this will be used by the KF particle
 // together with the width to set mass constraints. Units in GeV.
@@ -67,7 +86,7 @@ Double_t kGCmaxPhi      = TMath::Pi();
 
 Bool_t kGCdoOwnXYZCalculation = kFALSE;
 
-Bool_t fWriteStandardAOD =kFALSE;
+Bool_t fWriteStandardAOD =kTRUE; // need to be true for train running? CKB
 
 /** ------------------- define which histograms to plot here --------------------------------*/
 /**   NB: to change the bin numbers, see below the histogram flags                           */
@@ -319,6 +338,7 @@ Bool_t kGCplotResolutionESDZ  = kTRUE;
 
 Bool_t kGCplotESDNumberOfV0s          = kTRUE;
 Bool_t kGCplotESDNumberOfSurvivingV0s = kTRUE;
+Bool_t kGCplotESDNumberOfContributorsVtx = kTRUE;
 
 //  debug histograms
 Bool_t kGCplotESDCutGetOnFly      = kTRUE;
@@ -666,6 +686,10 @@ Bool_t kGCrunOnTrain = kFALSE;
 Bool_t kGCdoMCTruth = kTRUE;
 /** ---------------------------- end Monte Carlo flag ---------------------------------------*/
 
+/** ------------------------------ Selecting trigger CINT1B -----------------------------------*/
+Bool_t kGCtriggerCINT1B = kFALSE;
+/** ---------------------------- end Monte Carlo flag ---------------------------------------*/
+
 /** ------------------------- Choose KFParticle OR ESDTrack  --------------------------------*/
 Bool_t kGCuseKFParticle = kTRUE;
 Bool_t kGCuseESDTrack   = kFALSE;
@@ -674,7 +698,7 @@ Bool_t kGCuseESDTrack   = kFALSE;
 /**------------------------------Flag to apply dEdx cut base on sigmas to electron line----------*/
 Bool_t kGCdodEdxSigmaCut= kTRUE;
 /**------------------------------end Flag to apply NsigmadEdx cut ----------*/
-Double_t kGCPIDnSigmaAboveElectronLine=6;
+Double_t kGCPIDnSigmaAboveElectronLine=10;
 Double_t kGCPIDnSigmaBelowElectronLine=-4;
 Double_t kGCPIDnSigmaAbovePionLine=0;
 Double_t kGCPIDMinPnSigmaAbovePionLine=5;
@@ -719,6 +743,12 @@ Bool_t scanArguments(TString arguments){
 	else{
 	  cout<<"Setting output file name to: "<<kGCoutputFileName<<endl;
 	}
+      }
+      else if (argument.CompareTo("-bg-off") == 0){
+	kGCcalculateBackground =kFALSE;
+      }
+      else if (argument.CompareTo("-use-offline-finder") == 0){
+	kGCUseOnFlyV0Finder = kFALSE;
       }
       else if (argument.CompareTo("-write-ntuple") == 0){
 	cout<<"Writing ntuple to file."<<endl;
@@ -768,6 +798,10 @@ Bool_t scanArguments(TString arguments){
       else if (argument.CompareTo("-mc-off") == 0){
 	cout<<"Switching off kGCdoMCTruth"<<endl;
 	kGCdoMCTruth = kFALSE;
+      }
+      else if (argument.CompareTo("-trigger-CINT1B") == 0){
+        cout<<"Selecting ONLY kGCtriggerCINT1B"<<endl;
+        kGCtriggerCINT1B = kTRUE;
       }
       else if (argument.CompareTo("-use-own-xyz") == 0){
 	cout<<"Switching on use own xyz calculation"<<endl;
@@ -859,11 +893,12 @@ AliAnalysisTaskGammaConversion* ConfigGammaConversion(TString arguments,AliAnaly
     gROOT->LoadMacro("$ALICE_ROOT/PWG0/CreateESDChain.C"); // load the CreateChain macro
   }
 		
-
+  if(!kGCrunOnTrain){
+    // for the train leave this to the steering macro
     AliLog::SetGlobalDebugLevel(0);
     AliLog::SetGlobalLogLevel(AliLog::kFatal);
-		
-    // ------------------------------------------------------------------------
+  }
+  // ------------------------------------------------------------------------
 		
     // for CF
 		
@@ -962,12 +997,13 @@ AliAnalysisTaskGammaConversion* ConfigGammaConversion(TString arguments,AliAnaly
   }
 	
   // Define Output Event Handler and ad
-  //  if(kGCrunOnTrain == kFALSE){
+  if(kGCrunOnTrain == kFALSE){
     if(fWriteStandardAOD == kTRUE){
-    AliAODHandler* aodHandler = new AliAODHandler();
-    TString fileOutAOD = "AOD_"+ kGCoutputFileName + kGCoutputFileAppendix + ".root";
-    aodHandler->SetOutputFileName(fileOutAOD);
-    mgr->SetOutputEventHandler (aodHandler);
+      AliAODHandler* aodHandler = new AliAODHandler();
+      TString fileOutAOD = "AOD_"+ kGCoutputFileName + kGCoutputFileAppendix + ".root";
+      aodHandler->SetOutputFileName(fileOutAOD);
+      mgr->SetOutputEventHandler (aodHandler);
+    }
   }
 	
   if(kGCrunOnTrain == kFALSE){
@@ -981,26 +1017,22 @@ AliAnalysisTaskGammaConversion* ConfigGammaConversion(TString arguments,AliAnaly
   AliAnalysisDataContainer *cinput1 = NULL;
   if(kGCusePWG4PartCorr){
     if(kGCrunOnTrain == kFALSE){
-      cinput1 = mgr->CreateContainer("Chain",TChain::Class(),AliAnalysisManager::kInputContainer);
+      cinput1 = mgr->CreateContainer("GammaConvChain",TChain::Class(),AliAnalysisManager::kInputContainer);
     }
     else{
       cinput1 = cin_esd;
     }
   }
   else{
-    if(kGCrunOnTrain == kFALSE){
-      cinput1 = mgr->GetCommonInputContainer(); // added by kenneth to avoid writing the standard AOD
-    }
-    else{
-      //      cinput = cin_esd;
       cinput1 = mgr->GetCommonInputContainer();
-    }
   }
 	
   // Common Output Tree in common âdefaultâ output file
+  // CKB kGCusePWG4PartCorr and writestandard are not mutually exclusive?
   AliAnalysisDataContainer *coutput1 = NULL;
   if(kGCusePWG4PartCorr){
-    coutput1 = mgr->CreateContainer("tree",TTree::Class(),AliAnalysisManager::kOutputContainer, "default");
+    //    coutput1 = mgr->CreateContainer("GammaConvTree",TTree::Class(),AliAnalysisManager::kOutputContainer, "default");
+    coutput1 = mgr->CreateContainer("GammaConvTree",TTree::Class(),AliAnalysisManager::kOutputContainer, "default");
   }
   else{
     if(fWriteStandardAOD){
@@ -1015,11 +1047,14 @@ AliAnalysisTaskGammaConversion* ConfigGammaConversion(TString arguments,AliAnaly
   if(kGCoutputFileAppendix.Contains(".root")){
     kGCoutputFileAppendix.ReplaceAll(".root","");
   }
-  TString fileOut = kGCoutputFileName + kGCoutputFileAppendix + ".root";
+  //TString fileOut = kGCoutputFileName + kGCoutputFileAppendix + ".root";
+
+  TString outputfile = AliAnalysisManager::GetCommonFileName();  
+  outputfile += ":PWG4_GammaConversion";
 	
-  AliAnalysisDataContainer *coutput2 = mgr->CreateContainer("histogramsAliGammaConversion", TList::Class(),AliAnalysisManager::kOutputContainer, fileOut);
+  AliAnalysisDataContainer *coutput2 = mgr->CreateContainer("histogramsAliGammaConversion", TList::Class(),AliAnalysisManager::kOutputContainer, outputfile);
   // for CF
-  AliAnalysisDataContainer *coutput3 = mgr->CreateContainer("ccontainer0",AliCFContainer::Class(),AliAnalysisManager::kOutputContainer,fileOut);
+  AliAnalysisDataContainer *coutput3 = mgr->CreateContainer("GammaConvccontainer0",AliCFContainer::Class(),AliAnalysisManager::kOutputContainer,outputfile);
 	
   //------------------------ END: Define input/output handlers ---------------------------------------------------
 	
@@ -1069,11 +1104,11 @@ AliAnalysisTaskGammaConversion* ConfigGammaConversion(TString arguments,AliAnaly
   v0Reader->SetPIDnSigmaBelowElectronLine(kGCPIDnSigmaBelowElectronLine);
   v0Reader->SetPIDnSigmaAbovePionLine(kGCPIDnSigmaAbovePionLine);
   v0Reader->SetPIDMinPnSigmaAbovePionLine(kGCPIDMinPnSigmaAbovePionLine);
- 
+  v0Reader->SetOnFlyFlag(kGCUseOnFlyV0Finder);
 	
   // Create the GammaConversionTask
   AliAnalysisTaskGammaConversion *gammaconversion = new AliAnalysisTaskGammaConversion("GammaConversionTask");
-  gammaconversion->SetDebugLevel(10);
+  gammaconversion->SetDebugLevel(0);
 	
   gammaconversion->SetWriteNtuple(kGCwriteNtuple);
 	
@@ -1099,7 +1134,8 @@ AliAnalysisTaskGammaConversion* ConfigGammaConversion(TString arguments,AliAnaly
 	
   gammaconversion->SetHistograms(histograms);
   v0Reader->SetHistograms(histograms);// also give the pointer to the v0reader, for debugging cuts
-	
+
+  gammaconversion->SetTriggerCINT1B(kGCtriggerCINT1B);
   gammaconversion->SetDoMCTruth(kGCdoMCTruth);
 	
   gammaconversion->SetDoNeutralMeson(kGCrunNeutralMeson);
@@ -1116,7 +1152,9 @@ AliAnalysisTaskGammaConversion* ConfigGammaConversion(TString arguments,AliAnaly
 	
   // Connect I/O to the task
   mgr->ConnectInput (gammaconversion, 0, cinput1);
-	
+  
+
+  // CKB Output slot 0 is NOT connected if WriteStandardAOD is false?
   if(fWriteStandardAOD){
     mgr->ConnectOutput(gammaconversion, 0, coutput1);
   }
@@ -1584,6 +1622,7 @@ void AddHistograms(AliGammaConversionHistograms *histograms){
 		
     if(kGCplotESDNumberOfV0s == kTRUE){histograms->AddHistogram("ESD_NumberOfV0s","Number of v0s",100, 0, 100,"","");}
     if(kGCplotESDNumberOfSurvivingV0s == kTRUE){histograms->AddHistogram("ESD_NumberOfSurvivingV0s","Number of surviving v0s",100, 0, 100,"","");}
+    if(kGCplotESDNumberOfContributorsVtx == kTRUE){histograms->AddHistogram("ESD_NumberOfContributorsVtx","Number of contributors to vertex",100, 0, 100,"","");}
 		
     //  debug histograms
     if(kGCplotESDCutGetOnFly == kTRUE){histograms->AddHistogram("ESD_CutGetOnFly_InvMass" ,"Not GetOnFly" , kGCnXBinsGammaMass, kGCfirstXBinGammaMass, kGClastXBinGammaMass,"","");}

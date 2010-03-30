@@ -13,6 +13,7 @@
 // 
 
 #include <time.h>
+#include <TString.h>
 
 class TMap;
 
@@ -25,7 +26,7 @@ class AliGRPObject : public TObject {
 
 	enum Stats {kMean = 0, kTruncMean = 1, kMedian = 2, kSDMean = 3, kSDMedian = 4};
  	
- 	enum StatusBits {kPolConvLHC = BIT(14), kUniformBMap = BIT(15)};
+ 	enum StatusBits {kPolConvLHC = BIT(14), kUniformBMap = BIT(15),kConvSqrtSHalfGeV = BIT(16)};
 
 	enum DP_HallProbes { 
 		 khpL3bsf17H1= 0 , khpL3bsf17H2, khpL3bsf17H3, khpL3bsf17Temperature, 
@@ -46,24 +47,21 @@ class AliGRPObject : public TObject {
 	~AliGRPObject();
 
 	// getters
-
+	Bool_t    IsBeamEnergyIsSqrtSHalfGeV() const {return TestBit(kConvSqrtSHalfGeV);}
  	Bool_t    IsPolarityConventionLHC() const {return TestBit(kPolConvLHC);}
  	Bool_t    IsUniformBMap() const {return TestBit(kUniformBMap);}
 	time_t    GetTimeStart() const {return fTimeStart;}
 	time_t    GetTimeEnd() const {return fTimeEnd;}
-	Float_t   GetBeamEnergy() const {return fBeamEnergy;}
+	Float_t   GetBeamEnergy() const {return IsBeamEnergyIsSqrtSHalfGeV() ? fBeamEnergy : fBeamEnergy/2;}
 	TString   GetBeamType() const {return fBeamType;}
 	Char_t    GetNumberOfDetectors() const {return fNumberOfDetectors;}
 	UInt_t    GetDetectorMask() const {return fDetectorMask;}
 	TString   GetLHCPeriod() const {return fLHCPeriod;}
 	TString   GetRunType() const {return fRunType;}
 	TString   GetLHCState() const {return fLHCState;}
-	Float_t*  GetLHCLuminosity() const {return fLHCLuminosity;}
-	Float_t   GetLHCLuminosity(Stats stat) const {return fLHCLuminosity[stat];}
-	AliSplineFit*  GetLHCLuminositySplineFit() const {return fLHCLuminositySplineFit;}
-	Float_t*  GetBeamIntensity() const {return fBeamIntensity;}
-	Float_t   GetBeamIntensity(Stats stat) const {return fBeamIntensity[stat];}
-	AliSplineFit*  GetBeamIntensitySplineFit() const {return fBeamIntensitySplineFit;}
+	TString   GetMachineMode() const {return fMachineMode;}
+	TObjArray*   GetLHCStateArray() const {return fLHCStateArray;}
+	TObjArray*   GetMachineModeArray() const {return fMachineModeArray;}
 	Char_t    GetL3Polarity() const {return fL3Polarity;}
 	Char_t    GetDipolePolarity() const {return fDipolePolarity;}
 	Float_t*  GetL3Current() const {return fL3Current;}
@@ -83,8 +81,10 @@ class AliGRPObject : public TObject {
 	Int_t    GetPoints() const {return fPoints;}
 	Int_t    GetDimension() const {return fDimension;}
 
-	// setters
+	Double_t GetMaxTimeLHCValidity() const {return fMaxTimeLHCValidity;}
 
+	// setters
+ 	void SetBeamEnergyIsSqrtSHalfGeV(Bool_t v=kTRUE) {SetBit(kConvSqrtSHalfGeV,v);}
  	void SetPolarityConventionLHC(Bool_t v=kTRUE) {return SetBit(kPolConvLHC,v);}
  	void SetUniformBMap(Bool_t v=kTRUE) {return SetBit(kUniformBMap,v);}
 	void SetTimeStart(time_t timeStart)  {fTimeStart = timeStart;}
@@ -96,16 +96,9 @@ class AliGRPObject : public TObject {
 	void SetLHCPeriod(TString lhcPeriod)  {fLHCPeriod = lhcPeriod;}
 	void SetRunType(TString runType)  {fRunType = runType;}
 	void SetLHCState(TString lhcState)  {fLHCState = lhcState;}
-	void SetLHCLuminosity(const Float_t* lhcLuminosity)  {
-  		for (Int_t i = 0;i<fPoints;i++) fLHCLuminosity[i] = lhcLuminosity[i];
-	}
-	void SetLHCLuminosity(Float_t lhcLuminosity, Stats stat)  {fLHCLuminosity[stat] = lhcLuminosity;}
-	void SetLHCLuminositySplineFit(AliSplineFit* const lhcLuminositySplineFit)  {fLHCLuminositySplineFit = lhcLuminositySplineFit;}
-	void SetBeamIntensity(const Float_t* beamIntensity)  {
-  		for (Int_t i = 0;i<fPoints;i++) fBeamIntensity[i] = beamIntensity[i];
-	}
-	void SetBeamIntensity(Float_t beamIntensity, Stats stat)  {fBeamIntensity[stat] = beamIntensity;}
-	void SetBeamIntensitySplineFit(AliSplineFit* const beamIntensitySplineFit)  {fBeamIntensitySplineFit = beamIntensitySplineFit;}
+	void SetMachineMode(TString machineMode)  {fMachineMode = machineMode;}
+	void SetLHCStateArray(TObjArray* lhcStateArray)  {fLHCStateArray = lhcStateArray;}
+	void SetMachineModeArray(TObjArray* machineModeArray)  {fMachineModeArray = machineModeArray;}
 	void SetL3Polarity(Char_t l3Polarity)  {fL3Polarity = l3Polarity;}
 	void SetDipolePolarity(Char_t dipolePolarity)  {fDipolePolarity = dipolePolarity;}
 	void SetL3Current(const Float_t* l3Current)  {
@@ -131,6 +124,7 @@ class AliGRPObject : public TObject {
 	void SetHallProbes(DP_HallProbes hp, const Float_t* hall_probe);  
 	void SetPoints(Int_t points) {fPoints = points;}
 	void SetDimension(Int_t dimension) {fDimension = dimension;}
+	void SetMaxTimeLHCValidity(Double_t maxTimeLHCValidity) {fMaxTimeLHCValidity = maxTimeLHCValidity;}
 
 	// getters for "invalid" flags
 
@@ -168,12 +162,6 @@ class AliGRPObject : public TObject {
 	TString  fLHCPeriod;              // LHCperiod entry from DAQ logbook 
 	TString  fRunType;                // RunType entry from DAQ logbook 
 	TString  fLHCState;               // LHCState entry from DCS DB
-	Float_t*  fLHCLuminosity;         // [fPoints]
-	                                  // LHCLuminosity entry from DCS DB
-	AliSplineFit*  fLHCLuminositySplineFit;       // LHCLuminosity SplineFit from DCS DB
-	Float_t*  fBeamIntensity   ;      // [fPoints]
-	                                  // BeamIntensity entry from DCS DB
-	AliSplineFit*  fBeamIntensitySplineFit;       // BeamIntensity SplineFit from DCS DB
 	Char_t    fL3Polarity;            // L3Polarity entry from DCS DB
 	Char_t    fDipolePolarity;        // DipolePolarity entry from DCS DB 	                                  
 	Float_t*  fL3Current;             // [fPoints]
@@ -191,7 +179,14 @@ class AliGRPObject : public TObject {
 	Float_t* fHallProbes;       //[fDimension] 
 	                            // array containg the values for the Hall Probes
 
-	ClassDef(AliGRPObject,3)
+	TString  fMachineMode;      // Machine Mode from LHC
+
+	TObjArray* fLHCStateArray;     // Array of values for the LHC State
+	TObjArray* fMachineModeArray;  // Array of values for the LHC State
+
+	Double_t fMaxTimeLHCValidity;    // time until which the LHC Data Machine Mode and Beam Mode didn't change 
+
+	ClassDef(AliGRPObject,6)
 
 };
 

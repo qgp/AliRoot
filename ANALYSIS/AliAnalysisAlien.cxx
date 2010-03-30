@@ -54,17 +54,21 @@ AliAnalysisAlien::AliAnalysisAlien()
                   fMaxMergeFiles(0),
                   fNsubmitted(0),
                   fProductionMode(0),
+                  fOutputToRunNo(0),
                   fRunNumbers(),
                   fExecutable(),
                   fExecutableCommand(),
                   fArguments(),
+                  fExecutableArgs(),
                   fAnalysisMacro(),
                   fAnalysisSource(),
+                  fAdditionalRootLibs(),
                   fAdditionalLibs(),
                   fSplitMode(),
                   fAPIVersion(),
                   fROOTVersion(),
                   fAliROOTVersion(),
+                  fExternalPackages(),
                   fUser(),
                   fGridWorkingDir(),
                   fGridDataDir(),
@@ -80,6 +84,8 @@ AliAnalysisAlien::AliAnalysisAlien()
                   fCloseSE(),
                   fFriendChainName(),
                   fJobTag(),
+                  fOutputSingle(),
+                  fRunPrefix(),
                   fInputFiles(0),
                   fPackages(0)
 {
@@ -101,17 +107,21 @@ AliAnalysisAlien::AliAnalysisAlien(const char *name)
                   fMaxMergeFiles(0),
                   fNsubmitted(0),
                   fProductionMode(0),
+                  fOutputToRunNo(0),
                   fRunNumbers(),
                   fExecutable(),
                   fExecutableCommand(),
                   fArguments(),
+                  fExecutableArgs(),
                   fAnalysisMacro(),
                   fAnalysisSource(),
+                  fAdditionalRootLibs(),
                   fAdditionalLibs(),
                   fSplitMode(),
                   fAPIVersion(),
                   fROOTVersion(),
                   fAliROOTVersion(),
+                  fExternalPackages(),
                   fUser(),
                   fGridWorkingDir(),
                   fGridDataDir(),
@@ -127,6 +137,8 @@ AliAnalysisAlien::AliAnalysisAlien(const char *name)
                   fCloseSE(),
                   fFriendChainName(),
                   fJobTag(),
+                  fOutputSingle(),
+                  fRunPrefix(),
                   fInputFiles(0),
                   fPackages(0)
 {
@@ -148,17 +160,21 @@ AliAnalysisAlien::AliAnalysisAlien(const AliAnalysisAlien& other)
                   fMaxMergeFiles(other.fMaxMergeFiles),
                   fNsubmitted(other.fNsubmitted),
                   fProductionMode(other.fProductionMode),
+                  fOutputToRunNo(other.fOutputToRunNo),
                   fRunNumbers(other.fRunNumbers),
                   fExecutable(other.fExecutable),
                   fExecutableCommand(other.fExecutableCommand),
                   fArguments(other.fArguments),
+                  fExecutableArgs(other.fExecutableArgs),
                   fAnalysisMacro(other.fAnalysisMacro),
                   fAnalysisSource(other.fAnalysisSource),
+                  fAdditionalRootLibs(other.fAdditionalRootLibs),
                   fAdditionalLibs(other.fAdditionalLibs),
                   fSplitMode(other.fSplitMode),
                   fAPIVersion(other.fAPIVersion),
                   fROOTVersion(other.fROOTVersion),
                   fAliROOTVersion(other.fAliROOTVersion),
+                  fExternalPackages(other.fExternalPackages),
                   fUser(other.fUser),
                   fGridWorkingDir(other.fGridWorkingDir),
                   fGridDataDir(other.fGridDataDir),
@@ -174,6 +190,8 @@ AliAnalysisAlien::AliAnalysisAlien(const AliAnalysisAlien& other)
                   fCloseSE(other.fCloseSE),
                   fFriendChainName(other.fFriendChainName),
                   fJobTag(other.fJobTag),
+                  fOutputSingle(other.fOutputSingle),
+                  fRunPrefix(other.fRunPrefix),
                   fInputFiles(0),
                   fPackages(0)
 {
@@ -223,17 +241,21 @@ AliAnalysisAlien &AliAnalysisAlien::operator=(const AliAnalysisAlien& other)
       fMaxMergeFiles           = other.fMaxMergeFiles;
       fNsubmitted              = other.fNsubmitted;
       fProductionMode          = other.fProductionMode;
+      fOutputToRunNo           = other.fOutputToRunNo;
       fRunNumbers              = other.fRunNumbers;
       fExecutable              = other.fExecutable;
       fExecutableCommand       = other.fExecutableCommand;
       fArguments               = other.fArguments;
+      fExecutableArgs          = other.fExecutableArgs;
       fAnalysisMacro           = other.fAnalysisMacro;
       fAnalysisSource          = other.fAnalysisSource;
+      fAdditionalRootLibs      = other.fAdditionalRootLibs;
       fAdditionalLibs          = other.fAdditionalLibs;
       fSplitMode               = other.fSplitMode;
       fAPIVersion              = other.fAPIVersion;
       fROOTVersion             = other.fROOTVersion;
       fAliROOTVersion          = other.fAliROOTVersion;
+      fExternalPackages        = other.fExternalPackages;
       fUser                    = other.fUser;
       fGridWorkingDir          = other.fGridWorkingDir;
       fGridDataDir             = other.fGridDataDir;
@@ -249,6 +271,8 @@ AliAnalysisAlien &AliAnalysisAlien::operator=(const AliAnalysisAlien& other)
       fCloseSE                 = other.fCloseSE;
       fFriendChainName         = other.fFriendChainName;
       fJobTag                  = other.fJobTag;
+      fOutputSingle            = other.fOutputSingle;
+      fRunPrefix               = other.fRunPrefix;
       if (other.fInputFiles) {
          fInputFiles = new TObjArray();
          TIter next(other.fInputFiles);
@@ -281,7 +305,7 @@ void AliAnalysisAlien::AddRunNumber(Int_t run)
 {
 // Add a run number to the list of runs to be processed.
    if (fRunNumbers.Length()) fRunNumbers += " ";
-   fRunNumbers += Form("%d", run);
+   fRunNumbers += Form("%s%d", fRunPrefix.Data(), run);
 }   
 
 //______________________________________________________________________________
@@ -300,7 +324,15 @@ void AliAnalysisAlien::AddDataFile(const char *lfn)
    if (!fInputFiles) fInputFiles = new TObjArray();
    fInputFiles->Add(new TObjString(lfn));
 }
-   
+
+//______________________________________________________________________________
+void AliAnalysisAlien::AddExternalPackage(const char *package)
+{
+// Adds external packages w.r.t to the default ones (root,aliroot and gapi)
+   if (fExternalPackages) fExternalPackages += " ";
+   fExternalPackages += package;
+}   
+      
 //______________________________________________________________________________
 Bool_t AliAnalysisAlien::Connect()
 {
@@ -428,7 +460,7 @@ Bool_t AliAnalysisAlien::CheckInputData()
    TObjArray *arr;
    TObjString *os;
    Int_t nruns = 0;
-   TString schunk;
+   TString schunk, schunk2;
    TString path;
    if (!checked) {
       checked = kTRUE;
@@ -472,12 +504,12 @@ Bool_t AliAnalysisAlien::CheckInputData()
    } else {
       Info("CheckDataType", "Using run range [%d, %d]", fRunRange[0], fRunRange[1]);
       for (Int_t irun=fRunRange[0]; irun<=fRunRange[1]; irun++) {
-         path = Form("%s/%d ", fGridDataDir.Data(), irun);
+         path = Form("%s/%s%d ", fGridDataDir.Data(), fRunPrefix.Data(), irun);
          if (!DirectoryExists(path)) {
 //            Warning("CheckInputData", "Run number %d not found in path: <%s>", irun, path.Data());
             continue;
          }
-         path = Form("%s/%d.xml", workdir.Data(),irun);
+         path = Form("%s/%s%d.xml", workdir.Data(),fRunPrefix.Data(),irun);
          TString msg = "\n#####   file: ";
          msg += path;
          msg += " type: xml_collection;";
@@ -485,17 +517,22 @@ Bool_t AliAnalysisAlien::CheckInputData()
          else          msg += " using_tags: No";
          Info("CheckDataType", msg.Data());
          if (fNrunsPerMaster<2) {
-            AddDataFile(Form("%d.xml",irun));
+            AddDataFile(Form("%s%d.xml",fRunPrefix.Data(),irun));
          } else {
             nruns++;
             if (((nruns-1)%fNrunsPerMaster) == 0) {
-               schunk = Form("%d", irun);
+               schunk = Form("%s%d", fRunPrefix.Data(),irun);
             }
+            schunk2 = Form("_%s%d.xml", fRunPrefix.Data(), irun);
             if ((nruns%fNrunsPerMaster)!=0 && irun != fRunRange[1]) continue;
-            schunk += Form("_%d.xml",  irun);
+            schunk += schunk2;
             AddDataFile(schunk);
          }   
       }
+      if (!fInputFiles) {
+         schunk += schunk2;
+         AddDataFile(schunk);
+      }   
    }
    return kTRUE;      
 }   
@@ -524,7 +561,7 @@ Bool_t AliAnalysisAlien::CreateDataset(const char *pattern)
    TString file;
    TString path;
    Int_t nruns = 0;
-   TString schunk;
+   TString schunk, schunk2;
    TGridCollection *cbase=0, *cadd=0;
    if (!fRunNumbers.Length() && !fRunRange[0]) {
       if (fInputFiles && fInputFiles->GetEntries()) return kTRUE;
@@ -632,11 +669,11 @@ Bool_t AliAnalysisAlien::CreateDataset(const char *pattern)
    } else {
       // Process a full run range.
       for (Int_t irun=fRunRange[0]; irun<=fRunRange[1]; irun++) {
-         path = Form("%s/%d ", fGridDataDir.Data(), irun);
+         path = Form("%s/%s%d ", fGridDataDir.Data(), fRunPrefix.Data(), irun);
          if (!DirectoryExists(path)) continue;
 //         CdWork();
          if (TestBit(AliAnalysisGrid::kTest)) file = "wn.xml";
-         else file = Form("%d.xml", irun);
+         else file = Form("%s%d.xml", fRunPrefix.Data(), irun);
          if (FileExists(file) && fNrunsPerMaster<2 && !TestBit(AliAnalysisGrid::kTest)) {
             Info("CreateDataset", "\n#####   Dataset %s exist. Skipping creation...", file.Data());
 //            gGrid->Rm(file); 
@@ -674,17 +711,18 @@ Bool_t AliAnalysisAlien::CreateDataset(const char *pattern)
             if (FileExists(fInputFiles->At(nchunk)->GetName())) continue;
             printf("   Merging collection <%s> into %d runs chunk...\n",file.Data(),fNrunsPerMaster);
             if (((nruns-1)%fNrunsPerMaster) == 0) {
-               schunk = Form("%d", irun);
+               schunk = Form("%s%d", fRunPrefix.Data(), irun);
                cbase = (TGridCollection*)gROOT->ProcessLine(Form("new TAlienCollection(\"%s\", 1000000);",file.Data()));
             } else {
                cadd = (TGridCollection*)gROOT->ProcessLine(Form("new TAlienCollection(\"%s\", 1000000);",file.Data()));
                cbase->Add(cadd);
                delete cadd;
             }
-            if ((nruns%fNrunsPerMaster)!=0 && irun!=fRunRange[1]) {
+            schunk2 = Form("%s_%s%d.xml", schunk.Data(), fRunPrefix.Data(), irun);
+            if ((nruns%fNrunsPerMaster)!=0 && irun!=fRunRange[1] && schunk2 != fInputFiles->Last()->GetName()) {
                continue;
             }   
-            schunk += Form("_%d.xml", irun);
+            schunk = schunk2;
             if (FileExists(schunk)) {
                Info("CreateDataset", "\n#####   Dataset %s exist. Skipping creation...", schunk.Data());
                continue;
@@ -758,6 +796,8 @@ Bool_t AliAnalysisAlien::CreateJDL()
       // Set JDL fields
       fGridJDL->SetValue("User", Form("\"%s\"", fUser.Data()));
       fGridJDL->SetExecutable(fExecutable);
+      if (!fArguments.IsNull())
+         fGridJDL->SetArguments(fArguments, "Arguments for the executable command");
 //      fGridJDL->SetTTL((UInt_t)fTTL);
       fGridJDL->SetValue("TTL", Form("\"%d\"", fTTL));
       if (fMaxInitFailed > 0) 
@@ -773,6 +813,18 @@ Bool_t AliAnalysisAlien::CreateJDL()
          fGridJDL->AddToPackages("ROOT", fROOTVersion);
       if (fAPIVersion.Length()) 
          fGridJDL->AddToPackages("APISCONFIG", fAPIVersion);
+      if (!fExternalPackages.IsNull()) {
+         arr = fExternalPackages.Tokenize(" ");
+         TIter next(arr);
+         while ((os=(TObjString*)next())) {
+            TString pkgname = os->GetString();
+            Int_t index = pkgname.Index("::");
+            TString pkgversion = pkgname(index+2, pkgname.Length());
+            pkgname.Remove(index);
+            fGridJDL->AddToPackages(pkgname, pkgversion);
+         }   
+         delete arr;   
+      }   
       fGridJDL->SetInputDataListFormat(fInputFormat);
       fGridJDL->SetInputDataList("wn.xml");
       fGridJDL->AddToInputSandbox(Form("LF:%s/%s", workdir.Data(), fAnalysisMacro.Data()));
@@ -830,6 +882,30 @@ Bool_t AliAnalysisAlien::CreateJDL()
    }
    // Copy jdl to grid workspace   
    if (copy) {
+      // Check if an output directory was defined and valid
+      if (!fGridOutputDir.Length()) {
+         Error("CreateJDL", "You must define AliEn output directory");
+         return kFALSE;
+      } else {
+         if (!fGridOutputDir.Contains("/")) fGridOutputDir = Form("%s/%s", workdir.Data(), fGridOutputDir.Data());
+         if (!DirectoryExists(fGridOutputDir)) {
+            if (gGrid->Mkdir(fGridOutputDir)) {
+               Info("CreateJDL", "\n#####   Created alien output directory %s", fGridOutputDir.Data());
+            } else {
+               Error("CreateJDL", "Could not create alien output directory %s", fGridOutputDir.Data());
+               return kFALSE;
+            }
+         }
+         gGrid->Cd(workdir);
+      }   
+      if (TestBit(AliAnalysisGrid::kSubmit)) {
+         Info("CreateJDL", "\n#####   Copying JDL file <%s> to your AliEn output directory", fJDLName.Data());
+         TString locjdl = Form("%s/%s", fGridOutputDir.Data(),fJDLName.Data());
+         if (fProductionMode)
+            locjdl = Form("%s/%s", workdir.Data(),fJDLName.Data());
+         if (FileExists(locjdl)) gGrid->Rm(locjdl);
+         TFile::Cp(Form("file:%s",fJDLName.Data()), Form("alien://%s", locjdl.Data()));
+      }
       if (fAdditionalLibs.Length()) {
          arr = fAdditionalLibs.Tokenize(" ");
          TObjString *os;
@@ -870,11 +946,19 @@ Bool_t AliAnalysisAlien::WriteJDL(Bool_t copy)
       TIter next(fInputFiles);
       while ((os=(TObjString*)next()))
          fGridJDL->AddToInputDataCollection(Form("LF:%s,nodownload", os->GetString().Data()));
-      fGridJDL->SetOutputDirectory(Form("%s/#alien_counter_03i#", fGridOutputDir.Data()));
+      if (!fOutputSingle.IsNull())
+         fGridJDL->SetOutputDirectory(Form("#alienfulldir#/../%s",fOutputSingle.Data()));
+      else                                    
+         fGridJDL->SetOutputDirectory(Form("%s/#alien_counter_03i#", fGridOutputDir.Data()));
    } else {
       // One jdl to be submitted with 2 input parameters: data collection name and output dir prefix
       fGridJDL->AddToInputDataCollection(Form("LF:%s/$1,nodownload", workdir.Data()));
-      fGridJDL->SetOutputDirectory(Form("%s/$2/#alien_counter_03i#", fGridOutputDir.Data()));
+      if (!fOutputSingle.IsNull()) {
+         if (!fOutputToRunNo) fGridJDL->SetOutputDirectory(Form("#alienfulldir#/%s",fOutputSingle.Data()));
+         else fGridJDL->SetOutputDirectory(Form("%s/$2",fGridOutputDir.Data()));
+      } else {   
+         fGridJDL->SetOutputDirectory(Form("%s/$2/#alien_counter_03i#", fGridOutputDir.Data()));
+      }   
    }
       
 
@@ -884,7 +968,7 @@ Bool_t AliAnalysisAlien::WriteJDL(Bool_t copy)
    index = sjdl.Index("Executable");
    if (index >= 0) sjdl.Insert(index, "\n# This is the startup script\n");
    index = sjdl.Index("Split ");
-   if (index >= 0) sjdl.Insert(index, "\n# We split per storage element\n");
+   if (index >= 0) sjdl.Insert(index, "\n# We split per SE or file\n");
    index = sjdl.Index("SplitMaxInputFileNumber");
    if (index >= 0) sjdl.Insert(index, "\n# We want each subjob to get maximum this number of input files\n");
    index = sjdl.Index("InputDataCollection");
@@ -1157,6 +1241,13 @@ Bool_t AliAnalysisAlien::IsCollection(const char *lfn) const
 }   
 
 //______________________________________________________________________________
+Bool_t AliAnalysisAlien::IsSingleOutput() const
+{
+// Check if single-ouput option is on.
+   return (!fOutputSingle.IsNull());
+}
+   
+//______________________________________________________________________________
 void AliAnalysisAlien::Print(Option_t *) const
 {
 // Print current plugin settings.
@@ -1175,7 +1266,7 @@ void AliAnalysisAlien::Print(Option_t *) const
    if (fRunNumbers.Length()) 
    printf("=   Run numbers to be processed: _________________ %s\n", fRunNumbers.Data());
    if (fRunRange[0])
-   printf("=   Run range to be processed: ___________________ %d-%d\n", fRunRange[0], fRunRange[1]);
+   printf("=   Run range to be processed: ___________________ %s%d-%s%d\n", fRunPrefix.Data(), fRunRange[0], fRunPrefix.Data(), fRunRange[1]);
    if (!fRunRange[0] && !fRunNumbers.Length()) {
       TIter next(fInputFiles);
       TObject *obj;
@@ -1199,9 +1290,12 @@ void AliAnalysisAlien::Print(Option_t *) const
    if (fNrunsPerMaster>0)
    printf("=   Number of runs per master job: _______________ %d\n", fNrunsPerMaster);
    printf("=   Number of files in one chunk to be merged: ___ %d\n", fMaxMergeFiles);
-   printf("=   Name of the generated execution script: ______ %s\n",fExecutable.Data());
+   printf("=   Name of the generated execution script: ______ %s\n", fExecutable.Data());
+   printf("=   Executable command: __________________________ %s\n", fExecutableCommand.Data());
    if (fArguments.Length()) 
    printf("=   Arguments for the execution script: __________ %s\n",fArguments.Data());
+   if (fExecutableArgs.Length()) 
+   printf("=   Arguments after macro name in executable______ %s\n",fExecutableArgs.Data());
    printf("=   Name of the generated analysis macro: ________ %s\n",fAnalysisMacro.Data());
    printf("=   User analysis files to be deployed: __________ %s\n",fAnalysisSource.Data());
    printf("=   Additional libs to be loaded or souces to be compiled runtime: <%s>\n",fAdditionalLibs.Data());
@@ -1244,6 +1338,7 @@ void AliAnalysisAlien::SetDefaults()
    fExecutable                 = "analysis.sh";
    fExecutableCommand          = "root -b -q";
    fArguments                  = "";
+   fExecutableArgs             = "";
    fAnalysisMacro              = "myAnalysis.C";
    fAnalysisSource             = "";
    fAdditionalLibs             = "";
@@ -1587,7 +1682,12 @@ void AliAnalysisAlien::SubmitNext()
       // Submit for a range of enumeration of runs.
       if (fNsubmitted>=nmasterjobs) {iscalled = kFALSE; return;}
       TString query;
-      query = Form("submit %s %s %03d", fJDLName.Data(), fInputFiles->At(fNsubmitted)->GetName(), fNsubmitted);
+      TString runOutDir = gSystem->BaseName(fInputFiles->At(fNsubmitted)->GetName());
+      runOutDir.ReplaceAll(".xml", "");
+      if (fOutputToRunNo)
+         query = Form("submit %s %s %s", fJDLName.Data(), fInputFiles->At(fNsubmitted)->GetName(), runOutDir.Data());
+      else
+         query = Form("submit %s %s %03d", fJDLName.Data(), fInputFiles->At(fNsubmitted)->GetName(), fNsubmitted);
       printf("********* %s\n",query.Data());
       res = gGrid->Command(query);
       if (res) {
@@ -1636,8 +1736,14 @@ void AliAnalysisAlien::WriteAnalysisFile()
       TDirectory *cdir = gDirectory;
       TFile *file = TFile::Open(analysisFile, "RECREATE");
       if (file) {
+         // Skip task Terminate calls for the grid job
+         mgr->SetSkipTerminate(kTRUE);
+         // Unless merging makes no sense
+         if (IsSingleOutput()) mgr->SetSkipTerminate(kFALSE);
          mgr->Write();
          delete file;
+         // Enable termination for local jobs
+         mgr->SetSkipTerminate(kFALSE);
       }
       if (cdir) cdir->cd();
       Info("WriteAnalysisFile", "\n#####   Analysis manager: %s wrote to file <%s>\n", mgr->GetName(),analysisFile.Data());
@@ -1692,7 +1798,22 @@ void AliAnalysisAlien::WriteAnalysisMacro()
       out << "   gSystem->Load(\"libGeom\");" << endl;
       out << "   gSystem->Load(\"libVMC\");" << endl;
       out << "   gSystem->Load(\"libPhysics\");" << endl << endl;
+      out << "   gSystem->Load(\"libMinuit\");" << endl << endl;
+      if (fAdditionalRootLibs.Length()) {
+	// in principle libtree /lib geom libvmc etc. can go into this list, too
+	out << "// Add aditional libraries" << endl;
+	TObjArray *list = fAdditionalRootLibs.Tokenize(" ");
+	TIter next(list);
+	TObjString *str;
+	while((str=(TObjString*)next())) {
+	  if (str->GetString().Contains(".so"))
+	    out << "   gSystem->Load(\"" << str->GetString().Data() << "\");" << endl;
+         }
+	if (list) delete list;
+      }
       out << "// Load analysis framework libraries" << endl;
+
+
       if (!fPackages) {
          out << "   gSystem->Load(\"libSTEERBase\");" << endl;
          out << "   gSystem->Load(\"libESD\");" << endl;
@@ -1985,11 +2106,20 @@ void AliAnalysisAlien::WriteExecutable()
       out << "echo $ALICE_ROOT" << endl;
       out << "echo \"############## which aliroot : ##############\"" << endl;
       out << "which aliroot" << endl;
+      out << "echo \"############## system limits : ##############\"" << endl;
+      out << "ulimit -a" << endl;
+      out << "echo \"############## memory : ##############\"" << endl;
+      out << "free -m" << endl;
       out << "echo \"=========================================\"" << endl << endl;
-//      if (TestBit(AliAnalysisGrid::kTest)) out << "root ";
+      // Make sure we can properly compile par files
+      if (TObject::TestBit(AliAnalysisGrid::kUsePars)) out << "export LD_LIBRARY_PATH=.:$LD_LIBRARY_PATH" << endl;
       out << fExecutableCommand << " "; 
-      out << fAnalysisMacro.Data() << endl << endl;
-      out << "echo \"======== " << fAnalysisMacro.Data() << " finished ========\"" << endl;
+      out << fAnalysisMacro.Data() << " " << fExecutableArgs.Data() << endl << endl;
+      out << "echo \"======== " << fAnalysisMacro.Data() << " finished with exit code: $? ========\"" << endl;
+      out << "echo \"############## memory after: ##############\"" << endl;
+      out << "free -m" << endl;
+      out << "echo \"############## Last 10 lines from dmesg : ##############\"" << endl;
+      out << "dmesg | tail -n 10" << endl;
    }   
    Bool_t copy = kTRUE;
    if (TestBit(AliAnalysisGrid::kOffline) || TestBit(AliAnalysisGrid::kTest)) copy = kFALSE;

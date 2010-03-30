@@ -35,12 +35,11 @@
 // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
 
 //#include "AliHLTCaloBase.h"
-#include "AliHLTCaloConstants.h"
+#include "AliHLTCaloConstantsHandler.h"
 #include "AliHLTCaloDigitDataStruct.h"
 #include "AliHLTCaloChannelDataStruct.h"
 #include "AliHLTDataTypes.h"
 #include "TString.h"
-#include "AliHLTCaloConstantsHandler.h"
 
 /**
  * @class AliHLTCaloDigitMaker
@@ -53,6 +52,7 @@ class TH2F;
 class AliHLTCaloSharedMemoryInterfacev2; // added by PTH
 class AliHLTCaloChannelDataHeaderStruct;
 class AliHLTCaloMapper;
+class AliHLTCaloCoordinate;
 class TString;
 
 //using namespace CaloHLTConst;
@@ -60,7 +60,7 @@ class TString;
 
 
 
-class AliHLTCaloDigitMaker : public AliHLTCaloConstantsHandler
+class AliHLTCaloDigitMaker : AliHLTCaloConstantsHandler
 {
 
 public:
@@ -71,32 +71,9 @@ public:
   /** Destructor */
   virtual ~AliHLTCaloDigitMaker();
 
-//   /** Copy constructor */  
-//   AliHLTCaloDigitMaker(const AliHLTCaloDigitMaker &) : 
-//     //    AliHLTCaloBase(),
-//     fShmPtr(0),
-//     fDigitStructPtr(0),
-//     fDigitCount(0),
-//     fOrdered(true),
-//     fMapperPtr(0),
-//     fHighGainFactors(0),
-//     fLowGainFactors(0),
-//     fBadChannelMask(0),
-//     fChannelBook(0)
-//   {
-//     //Copy constructor not implemented
-//   }
-  
-  /** Assignment */
-  AliHLTCaloDigitMaker & operator = (const AliHLTCaloDigitMaker)
-  {
-    //Assignment
-    return *this; 
-  }
-
   /**
    * Sets the pointer to the output
-   * @param the output pointer
+   * @param digitDataPtr the output pointer
    */
   void SetDigitDataPtr(AliHLTCaloDigitDataStruct *digitDataPtr) 
   { fDigitStructPtr = digitDataPtr; }
@@ -120,7 +97,6 @@ public:
    */
   Int_t MakeDigits(AliHLTCaloChannelDataHeaderStruct* channelDataHeader, AliHLTUInt32_t availableSize);
 
-
   /**
    * Set the mask for dead channels
    * @param badChannelHGHist is a pointer to a high gain bad channel histogram
@@ -129,12 +105,11 @@ public:
    */
   void SetBadChannelMask(TH2F* badChannelHGHist, TH2F* badChannelLGHist, Float_t qCut);
 
-  /**
-   * Set ordering of gains or not
-   */
-  void SetOrdered(bool val) { fOrdered = val; }
-  
+  /** Reset the channel book */
   void Reset();
+
+  /** Set the mapper */
+  void SetMapper(AliHLTCaloMapper *mapper) { fMapperPtr = mapper; }
 
 private:
   
@@ -145,7 +120,7 @@ private:
    * @param channelData is the channel data
    * @param coordinates is the coordinates of the channel, including gain and module
    */
-  void AddDigit(AliHLTCaloChannelDataStruct* channelData, UShort_t* channelCoordinates, Float_t* localCoordinates);
+  void AddDigit(AliHLTCaloChannelDataStruct* channelData, AliHLTCaloCoordinate &coord);
 
   /**
    * Check if we already have this crystal. If so, keep the high gain as long as it 
@@ -154,8 +129,7 @@ private:
    * @param channel is a pointer to a struct containing channel information
    * @return true if we should use the digit. 
    */
-  bool UseDigit(UShort_t *channelCoordinates, AliHLTCaloChannelDataStruct *channel);
-
+  bool UseDigit(AliHLTCaloCoordinate &coord, AliHLTCaloChannelDataStruct *channel);
 
   /** Pointer to shared memory interface */
   AliHLTCaloSharedMemoryInterfacev2* fShmPtr;                    //! transient
@@ -165,9 +139,6 @@ private:
 
   /** Digit count */
   Int_t fDigitCount;                                             //COMMENT
-
-  /** Are the gains ordered? */
-  bool fOrdered;                                                 //COMMENT
 
   /** Mapper */
   AliHLTCaloMapper* fMapperPtr;                                  //COMMENT
@@ -184,11 +155,16 @@ private:
   /** Channel book keeping variable */
   AliHLTCaloDigitDataStruct ***fChannelBook;                     //! transient
 
+  /** Maximum energy we allow in a channel */
+  Float_t fMaxEnergy;                                            //COMMENT
+
+  /** Assignment operator and copy constructor not implemented */
+  AliHLTCaloDigitMaker(const AliHLTCaloDigitMaker &);
+  AliHLTCaloDigitMaker & operator = (const AliHLTCaloDigitMaker &);
 
   ClassDef(AliHLTCaloDigitMaker, 0); 
 
 };
-
 
 #endif
  

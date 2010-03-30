@@ -14,6 +14,7 @@
 # ---------------------------------------
 export YEAR=09
 # ---------------------------------------
+kill -9 `ps | grep aliroot | awk '{print $1}'`
 
 export RUNNUM=$1
 
@@ -32,8 +33,8 @@ VERSION=1.0
 TITLE="Standalone QA checking of Grid rawdata chunks. v$VERSION"
 
 # Retrieve the list of chunks from AliEn.......
-export BASEDIR="/alice/data/20"$YEAR
-PATTERN="/raw/"$YEAR"0000"$RUNNUM"*0.root"
+export BASEDIR="/alice/data/20"$YEAR/LHC${YEAR}*
+PATTERN="$RUNNUM/raw/${YEAR}*${RUNNUM}*.root"
 #aliensh -c "gbbox find $BASEDIR $PATTERN" | head --lines=-1 > collection.tmp
 aliensh -c "gbbox find $BASEDIR $PATTERN" > collection.tmp
 
@@ -73,14 +74,16 @@ for filename in $CHUNKS; do
      rm $RUNNUM"/"*.QA.$RUNNUM.$SUBCHUNK.root 
      rm $RUNNUM"/"QA.$SUBCHUNK.root 
      cd       $RUNNUM"/"$CHUNK
-$PROGRAM -b <<EOF
-.L $ALICE_ROOT/test/cosmic/rawqa.C+
+$PROGRAM -b<<EOF
+.L $ALICE_ROOT/prod/cosmic/rawqa.C+
 rawqa($filename, $RUNNUM)
+.q 
 EOF
 
 $PROGRAM -b <<EOF
 AliQAManager * qam = AliQAManager::QAManager(AliQAv1::kRECMODE) ; 
  qam.Merge(atoi(gSystem->Getenv("RUNNUM"))) ;
+ .q
 EOF
      rm *QA.$RUNNUM.root
      cd ..
@@ -90,6 +93,7 @@ outfile="Merged.QA.Data."$RUNNUM".root"
 $PROGRAM -b <<EOF
 .L $ALICE_ROOT/test/cosmic/MergeQAMerged.C
 MergeQAMerged("$outfile", "merged.list") ; 
+.q
 EOF
 rm -f merged.list
 #$PROGRAM -b -q $ALICE_ROOT/test/cosmic/qasummary.C 

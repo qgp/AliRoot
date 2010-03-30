@@ -239,105 +239,6 @@ void AliTRDdigitsManager::CreateArrays()
       delete fDigitsParam;
     }
   fDigitsParam = new AliTRDdigitsParam();
-  fDigitsParam->SetNTimeBins(AliTRDSimParam::Instance()->GetNTimeBins());
-  fDigitsParam->SetADCbaseline(AliTRDSimParam::Instance()->GetADCbaseline());
-
-}
-
-//_____________________________________________________________________________
-void AliTRDdigitsManager::ResetArrays()
-{
-  //
-  // Reset the data arrays
-  //
-
-  if (fDigits)
-    {
-      fDigits->Delete();
-      delete fDigits;
-    }
-  if (fHasSDigits)
-    {
-      fDigits = new TObjArray(fDets);     
-      for (Int_t index = 0; index < fDets; index++) 
-	{
-	  fDigits->AddAt(new AliTRDarraySignal(),index);
-	}
-    }
-  else
-    {
-      fDigits = new TObjArray(fDets);
-      for (Int_t index = 0; index < fDets; index++)
-	{
-	  fDigits->AddAt(new AliTRDarrayADC(),index);
-	}
-    }
-  
-  for (Int_t iDict = 0; iDict < kNDict; iDict++)
-    {
-      if (fDict[iDict])
-	{
-	  fDict[iDict]->Delete();
-	  delete fDict[iDict];
-	  fDict[iDict] = NULL;
-	}
-    }
-  if (fUseDictionaries) 
-    {
-      for (Int_t iDict = 0; iDict < kNDict; iDict++)
-	{
-	  fDict[iDict] = new TObjArray(fDets);
-	  for (Int_t index = 0; index < fDets; index++)
-	    {
-	      fDict[iDict]->AddAt(new AliTRDarrayDictionary(),index);
-	    }
-	}
-    }
-  
-  if (fSignalIndexes)
-    {
-      fSignalIndexes->Delete();
-      delete fSignalIndexes;
-    }
-  fSignalIndexes = new TObjArray(fDets);
-  for (Int_t i = 0; i < fDets; i++)
-    {
-      fSignalIndexes->AddLast(new AliTRDSignalIndex());
-    }
-
-}
-
-//_____________________________________________________________________________
-void AliTRDdigitsManager::ResetArrays(Int_t det)
-{
-  //
-  // Reset the data arrays
-  //
-
-  Int_t recoDet = fRawRec ? 0 : det;
-
-  RemoveDigits(recoDet);
-  RemoveDictionaries(recoDet);
-  RemoveIndexes(recoDet);
-
-  if (fHasSDigits)
-    {
-      fDigits->AddAt(new AliTRDarraySignal(),recoDet);
-    }
-  else
-    {
-      fDigits->AddAt(new AliTRDarrayADC(),recoDet);
-    }
-
-  if (fUseDictionaries) 
-    {
-      for (Int_t iDict = 0; iDict < kNDict; iDict++)
-	{
-	  fDict[iDict]->AddAt(new AliTRDarrayDictionary(),recoDet);
-	}
-    }
-  
-  fSignalIndexes->AddAt(new AliTRDSignalIndex(),recoDet);
 
 }
 
@@ -564,7 +465,7 @@ Bool_t AliTRDdigitsManager::ReadDigits(TTree * const tree)
 Bool_t AliTRDdigitsManager::WriteDigits()
 {
   //
-  // Writes out the TRD-digits and the dictionaries
+  // Writes out the TRD-digits, the dictionaries and the digitsPaam
   //
 
   if (!StoreArrayDigits())
@@ -580,6 +481,12 @@ Bool_t AliTRDdigitsManager::WriteDigits()
 	  AliError("Error while storing dictionaries in branch\n");
 	  return kFALSE;
 	}
+    }
+
+  if (!StoreDigitsParam())
+    {
+      AliError("Error while storing digitsParam\n");
+      return kFALSE;
     }
   
   // Write the new tree to the output file

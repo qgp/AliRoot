@@ -11,7 +11,7 @@
  *  @ingroup STEER
  *  @{
  */
-// From STEERBaseLinkDef.h 32242 2009-05-07 10:50:59Z hristov
+// From STEERBaseLinkDef.h 37215 2009-11-25 09:13:40Z morsch
 
     enum  AliLog::EType_t {};
  
@@ -49,6 +49,7 @@
     class AliCollisionGeometry {};
     class AliGenDPMjetEventHeader {};
     class AliGenGeVSimEventHeader {};
+    class AliGenEposEventHeader {};
     class AliStack {};
     class AliMCEventHandler {};
     class AliInputEventHandler {};
@@ -58,6 +59,7 @@
 
     class AliMCEvent {};
     class AliMCParticle {};
+    class AliMCVertex {};
 
     class AliMagF {};
     class AliMagWrapCheb {};
@@ -84,7 +86,7 @@
  *  @ingroup STEER
  *  @{
  */
-// From STEERLinkDef.h 32918 2009-06-15 10:54:49Z cvetan
+// From STEERLinkDef.h 36069 2009-10-28 17:17:04Z shahoian
 
     enum VertexSmear_t {};
     enum VertexSource_t {};
@@ -231,9 +233,15 @@
     class AliVectorSparse {};
     class AliMatrixSq {};
     class AliSymMatrix {};
+    class AliSymBDMatrix {};
     class AliRectMatrix {};
+    class AliParamSolver {};
 
     class AliGRPManager {};
+    class AliDCSArray {};
+    class AliLHCReader {};
+    class AliCTPTimeParams {};
+    class AliCTPInputTimeParams {};
 /** @} */
 
 /** @defgroup ESD ESD
@@ -241,7 +249,7 @@
  *  @ingroup STEER
  *  @{
  */
-// From ESDLinkDef.h 32939 2009-06-16 10:44:00Z cvetan
+// From ESDLinkDef.h 37480 2009-12-01 21:59:07Z cvetan
 
     enum   AliESDEvent::ESDListIndex {};
 
@@ -252,6 +260,7 @@
     class  AliESDInputHandlerRP {};
     class  AliESDRun {};
     class  AliESDHeader {};
+    class  AliESDHLTDecision {};
     class  AliESDZDC {};
     class  AliESDCaloTrigger {};
     class  AliESDfriend {};
@@ -366,7 +375,7 @@
  *  @ingroup STEER
  *  @{
  */
-// From AODLinkDef.h 32064 2009-04-27 14:11:50Z agheata
+// From AODLinkDef.h 37138 2009-11-23 12:19:02Z morsch
 
     enum   AliAODVertex::AODVtx_t {};
     enum   AliAODTrack::AODTrk_t {};
@@ -384,6 +393,7 @@
     class AliAODPmdCluster {};
     class AliAODFmdCluster {};
     class AliAODJet {};
+    class AliAODJetEventBackground {};
     class AliAODPhoton {};
     class AliAODRedCov<3> {};
     class AliAODRedCov<4> {};
@@ -394,13 +404,14 @@
     class AliAODHandler {};
     class AliAODExtension {};
     class AliAODInputHandler {};
-    class AliMultiAODInputHandler {};
     class AliAODTracklets {};
     class AliAODTagCreator {};
     class AliAODCaloCells {};
     class AliAODDiJet {};
     class AliAODMCParticle {};
     class AliAODMCHeader {};
+    class AliAODPWG4Particle {};
+    class AliAODPWG4ParticleCorrelation {};
 
 /** @} */
 

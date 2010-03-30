@@ -17,6 +17,7 @@
 #pragma link C++ class AliVHeader+;
 #pragma link C++ class AliVEventHandler+;
 #pragma link C++ class AliVEventPool+;
+#pragma link C++ class AliVCuts+;
 
 
 #pragma link C++ class AliMixedEvent+;
@@ -44,6 +45,7 @@
 #pragma link C++ class AliGenHijingEventHeader+;
 #pragma link C++ class AliCollisionGeometry+;
 #pragma link C++ class AliGenDPMjetEventHeader+;
+#pragma link C++ class AliGenHerwigEventHeader+;
 #pragma link C++ class AliGenGeVSimEventHeader+;
 #pragma link C++ class AliGenEposEventHeader+;
 #pragma link C++ class AliStack+;
@@ -55,12 +57,12 @@
 
 #pragma link C++ class AliMCEvent+;
 #pragma link C++ class AliMCParticle+;
+#pragma link C++ class AliMCVertex+;
 
 #pragma link C++ class  AliMagF+;
 #pragma link C++ class  AliMagWrapCheb+;
 #pragma link C++ class  AliCheb3DCalc+;
 #pragma link C++ class  AliCheb3D+;
-
 
 #pragma link C++ class AliCodeTimer+;
 #pragma link C++ class AliCodeTimer::AliPair+;
@@ -73,5 +75,11 @@
 
 #pragma link C++ class  AliExternalTrackParam+;
 #pragma link C++ class AliQA+;
+
+#pragma link C++ class AliITSPidParams+;
+#pragma link C++ class AliITSPIDResponse+;
+#pragma link C++ class AliTPCPIDResponse+;
+#pragma link C++ class AliTOFPIDResponse+;
+#pragma link C++ class AliTRDPIDResponse+;
 
 #endif

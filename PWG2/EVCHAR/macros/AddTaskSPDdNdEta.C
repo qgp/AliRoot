@@ -38,14 +38,16 @@ AliAnalysisTaskSPDdNdEta *AddTaskSPDdNdEta()
   //===========================================================================
   taskSPDdNdEta->SetReadMC(kTRUE); // MC
 //  taskSPDdNdEta->SetppAnalysis(kTRUE); //pp analysis
-  taskSPDdNdEta->SetTrigger(1);  //no trigger
+  taskSPDdNdEta->SetTrigger(1);  // 0 = notrigger, 1 = MB1 trigger
   taskSPDdNdEta->SetEvtGen(kTRUE);  //to read Pythia data (kFALSE for Phojet)
   
   // E. Create ONLY the output containers for the data produced by the task.
   // Get and connect other common input/output containers via the manager as below
   //==============================================================================
+  TString outputfile = AliAnalysisManager::GetCommonFileName();  
+  outputfile += ":PWG2EVCHAR";
 
-  AliAnalysisDataContainer *cout_SPDdNdEta= mgr->CreateContainer("cOutput", TList::Class(), AliAnalysisManager::kOutputContainer, "SPDdNdEtaData.root");  
+  AliAnalysisDataContainer *cout_SPDdNdEta= mgr->CreateContainer("evcharlist", TList::Class(), AliAnalysisManager::kOutputContainer,outputfile);  
 
 
    mgr->ConnectInput(taskSPDdNdEta, 0, mgr->GetCommonInputContainer());

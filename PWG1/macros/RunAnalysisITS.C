@@ -10,10 +10,10 @@ void RunAnalysisITS() {
   gSystem->SetIncludePath("-I. -I$ROOTSYS/include -I$ALICE_ROOT -I$ALICE_ROOT/include -I$ALICE_ROOT/ITS -I$ALICE_ROOT/TPC -I$ALICE_ROOT/CONTAINERS -I$ALICE_ROOT/STEER -I$ALICE_ROOT/TRD -I$ALICE_ROOT/macros -I$ALICE_ROOT/ANALYSIS -g"); 
 
   //
-  TString analysisMode = "grid"; // "local", "grid", or "proof" (not yet)
+  TString analysisMode = "local"; // "local", "grid", or "proof" (not yet)
 
   Long64_t nentries=1000000000000000,firstentry=0;
-  Bool_t useAlienPlugin=kTRUE;
+  Bool_t useAlienPlugin=kFALSE;
   Bool_t uselibPWG1=kTRUE;
   TString pluginmode="full";
   TString loadMacroPath="./";
@@ -34,7 +34,7 @@ void RunAnalysisITS() {
   // Load analysis libraries
   gSystem->Load("libANALYSIS.so");
   gSystem->Load("libANALYSISalice.so");
-  if(uselibPWG1) gSystem->Load("libPWG1.so");
+  if(uselibPWG1) {gSystem->Load("libTENDER.so");gSystem->Load("libPWG1.so");}
 
   // Create Alien plugin, if requested
   if(useAlienPlugin) {  
@@ -45,10 +45,10 @@ void RunAnalysisITS() {
   TChain *chainESD = 0;
   if(!useAlienPlugin) {
     // Prepare input chain
-    //    chainESD = CreateESDChain("/home/dainesea/alignData/RAWdata_CosmicsSum09/RecoSPD/chunk.",13,13);
-    chainESD=new TChain("esdTree");
+    chainESD = CreateESDChain("/home/dainesea/alignEvents2/boxTRUNK280909_zero/event.",1,48);
+    //chainESD=new TChain("esdTree");
     //chainESD->Add("alien:///alice/cern.ch/user/s/sitta/output/000088361/ESDs/pass1/09000088361017.10/AliESDs.root");
-    chainESD->Add("AliESDs.root");
+    //chainESD->Add("./AliESDs.root");
   }
 
   // Create the analysis manager
@@ -58,18 +58,24 @@ void RunAnalysisITS() {
   // Connect plug-in to the analysis manager
   if(useAlienPlugin) mgr->SetGridHandler(alienHandler);
 
-  // Add ESD handler
-  AliESDInputHandler *esdH = new AliESDInputHandler();
-  if(readHLT) esdH->SetReadHLT();
-  mgr->SetInputEventHandler(esdH);
   //-------------------------------------------------------------------
 
+  // Add ESD handler
+  Bool_t readRP=kTRUE;
+  AliESDInputHandler *esdH = 0;
+  if(readRP) {
+    esdH = new AliESDInputHandlerRP();
+  } else {
+    esdH = new AliESDInputHandler();
+  }
+  if(readHLT) esdH->SetReadHLT();
+  mgr->SetInputEventHandler(esdH);
   
   //-------------------------------------------------------------------
   // Analysis tasks (wagons of the train)   
   //
   TString taskName;
-    
+  /*
   if(!uselibPWG1) gROOT->LoadMacro("AliAlignmentDataFilterITS.cxx++g");
   taskName="AddTaskAlignmentDataFilterITS.C"; 
   taskName.Prepend(loadMacroPath.Data());
@@ -82,6 +88,24 @@ void RunAnalysisITS() {
   gROOT->LoadMacro(taskName.Data());
   AliTrackMatchingTPCITSCosmics *tpcitsTask = AddTaskTrackMatchingTPCITS();
   if(readHLT) tpcitsTask->SetReadHLTESD(kTRUE);  
+  */
+  Bool_t readMC=kTRUE;
+  if(!uselibPWG1) gROOT->LoadMacro("AliAnalysisTaskVertexESD.cxx++g");
+  taskName="AddTaskVertexESD.C"; 
+  taskName.Prepend(loadMacroPath.Data());
+  gROOT->LoadMacro(taskName.Data());
+  //AliAnalysisTaskVertexESD *vtxTask = AddTaskVertexESD(readMC);
+    
+  if(!uselibPWG1) gROOT->LoadMacro("AliAnalysisTaskITSTrackingCheck.cxx++g");
+  taskName="AddTaskPerformanceITS.C"; 
+  taskName.Prepend(loadMacroPath.Data());
+  gROOT->LoadMacro(taskName.Data());
+  AliAnalysisTaskITSTrackingCheck *itsTask = AddTaskPerformanceITS(readMC,readRP);
+
+  if(readMC) {
+    AliMCEventHandler  *mcH = new AliMCEventHandler();
+    mgr->SetMCtruthEventHandler(mcH); 
+  }
   
   //
   // Run the analysis
@@ -151,7 +175,7 @@ AliAnalysisGrid* CreateAlienHandler(TString pluginmode="test",
    if(!uselibPWG1) {
      plugin->SetAdditionalLibs("AliAlignmentDataFilterITS.h AliAlignmentDataFilterITS.cxx AliTrackMatchingTPCITSCosmics.h AliTrackMatchingTPCITSCosmics.cxx libProof.so libRAWDatabase.so libRAWDatarec.so libCDB.so libSTEER.so libITSbase.so libITSrec.so");
    } else {
-     plugin->SetAdditionalLibs("libGui.so libProof.so libMinuit.so libRAWDatabase.so libRAWDatarec.so libCDB.so libSTEER.so libITSbase.so libITSrec.so libTPCbase.so libTPCrec.so libTRDbase.so libTRDrec.so libPWG1.so");
+     plugin->SetAdditionalLibs("libGui.so libProof.so libMinuit.so libRAWDatabase.so libRAWDatarec.so libCDB.so libSTEER.so libITSbase.so libITSrec.so libTPCbase.so libTPCrec.so libTRDbase.so libTRDrec.so libTENDER.so libPWG1.so");
    }
    // Declare the output file names separated by blancs.
    // (can be like: file.root or file.root@ALICE::Niham::File)
@@ -192,6 +216,16 @@ TChain *CreateESDChain(TString esdpath=".",Int_t ifirst=-1,Int_t ilast=-1) {
     chainESD->Add("AliESDs.root");
   } else {
     for(Int_t i=ifirst; i<=ilast; i++) {
+      TString command=".! ln -s ";
+      command+=esdpath.Data();
+      command+=i;
+      command+= "/AliESDs_def.root ";
+      command+=esdpath.Data();
+      command+=i;
+      command+= "/AliESDs.root ";
+      gROOT->ProcessLine(command.Data());
+      command.ReplaceAll("AliESDs","AliESDfriends");
+      gROOT->ProcessLine(command.Data());
       TString esdfile=esdpath; esdfile+=i; esdfile.Append("/AliESDs.root");
       chainESD->Add(esdfile.Data());
     }

@@ -325,7 +325,7 @@ void AliTPCCalibViewerGUItime::DrawGUI(const TGWindow */*p*/, UInt_t w, UInt_t h
   fLblRunNumber->SetTextJustify(kTextLeft);
   fContValues->AddFrame(fLblRunNumber, new TGLayoutHints(kLHintsNormal, 0, 0, 0, 0));
   //run number
-  fLblRunNumberVal = new TGLabel(fContValues, "00000");
+  fLblRunNumberVal = new TGLabel(fContValues, "000000");
   fLblRunNumberVal->SetTextJustify(kTextLeft);
   fContValues->AddFrame(fLblRunNumberVal, new TGLayoutHints(kLHintsLeft | kLHintsExpandX, 0, 0, 0, 0));
   //time stamp label
@@ -699,7 +699,7 @@ void AliTPCCalibViewerGUItime::GetCutString(TString &cutStr){
   cutStr=cuts.GetTitle();
 }
 //______________________________________________________________________________
-void AliTPCCalibViewerGUItime::UpdateValueArrays(Bool_t withGraph)
+void AliTPCCalibViewerGUItime::UpdateValueArrays(Bool_t withGraph, const Double_t *xArr)
 {
   //
   //
@@ -710,13 +710,20 @@ void AliTPCCalibViewerGUItime::UpdateValueArrays(Bool_t withGraph)
     fRunNumbers.ResizeTo(1);
     fTimeStamps.ResizeTo(1);
   } else {
-    fValuesX.ResizeTo(fTree->GetSelectedRows());
-    fValuesY.ResizeTo(fTree->GetSelectedRows());
-    fRunNumbers.ResizeTo(fTree->GetSelectedRows());
-    fTimeStamps.ResizeTo(fTree->GetSelectedRows());
-    fValuesY.SetElements(fTree->GetV3());
-    fRunNumbers.SetElements(fTree->GetV1());
-    fTimeStamps.SetElements(fTree->GetV2());
+    const Long64_t nrows=fTree->GetSelectedRows();
+    fValuesX.ResizeTo(nrows);
+    fValuesY.ResizeTo(nrows);
+    fRunNumbers.ResizeTo(nrows);
+    fTimeStamps.ResizeTo(nrows);
+    long long *index=new long long[nrows];
+    TMath::Sort(nrows,fTree->GetV2(),index,kFALSE);
+    for (Long64_t i=0; i<nrows; ++i){
+      fValuesX.GetMatrixArray()[i]=xArr[index[i]];
+      fValuesY.GetMatrixArray()[i]=fTree->GetV3()[index[i]];
+      fRunNumbers.GetMatrixArray()[i]=fTree->GetV1()[index[i]];
+      fTimeStamps.GetMatrixArray()[i]=fTree->GetV2()[index[i]];
+    }
+    delete [] index;
   }
 }
 //______________________________________________________________________________
@@ -851,24 +858,29 @@ void AliTPCCalibViewerGUItime::DoDraw() {
   //select data
   fTree->Draw(drawString.Data(),cutString.Data(),optString.Data());
   if (fTree->GetSelectedRows()==-1) return;
-  UpdateValueArrays(graphOutput);
+  
   TString title;
   GetHistogramTitle(title);
   Bool_t drawGraph=kFALSE;
+  Double_t *xArr=0;
   if (graphOutput){
     drawGraph=kTRUE;
     if (fIsCustomDraw&&fDrawString.Contains(":")){
-        fValuesX.SetElements(fTree->GetV4());
+//       fValuesX.SetElements(fTree->GetV4());
+      xArr=fTree->GetV4();
     }else{
       if (fRadioXrun->GetState()==kButtonDown){
-        fValuesX.SetElements(fTree->GetV1());
+//         fValuesX.SetElements(fTree->GetV1());
+        xArr=fTree->GetV1();
       } else if (fRadioXtime->GetState()==kButtonDown){
-        fValuesX.SetElements(fTree->GetV2());
+//         fValuesX.SetElements(fTree->GetV2());
+        xArr=fTree->GetV2();
       } else {
         drawGraph=kFALSE;
       }
     }
   }
+  UpdateValueArrays(graphOutput, xArr);
 //   if (graphOutput){
 //     if (fIsCustomDraw){
 //       if (fDrawString.Contains(":")){
@@ -1128,7 +1140,7 @@ void AliTPCCalibViewerGUItime::MouseMove(Int_t event, Int_t x, Int_t y, TObject 
   UInt_t dd=0,mm=0,yy=0,HH=0,MM=0,SS=0,run=0;
   Double_t valx=0.,valy=0.;
   if (!fCurrentGraph) {
-    fLblRunNumberVal->SetText(Form("%05u",run));
+    fLblRunNumberVal->SetText(Form("%06u",run));
     fLblRunTimeVal->SetText(Form("%02u.%02u.%04u\n%02u:%02u:%02u",dd,mm,yy,HH,MM,SS));
     fLblValueXVal->SetText(Form("%.3e", valx));
     fLblValueYVal->SetText(Form("%.3e", valy));
@@ -1163,7 +1175,7 @@ void AliTPCCalibViewerGUItime::MouseMove(Int_t event, Int_t x, Int_t y, TObject 
     valx=0.;
     valy=0.;
   }
-  fLblRunNumberVal->SetText(Form("%05u",run));
+  fLblRunNumberVal->SetText(Form("%06u",run));
   fLblRunTimeVal->SetText(Form("%02u.%02u.%04u\n%02u.%02u.%02u",dd,mm,yy,HH,MM,SS));
   if (fIsCustomDraw){
     fLblValueXVal->SetText(Form("%.3e", valx));

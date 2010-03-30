@@ -47,9 +47,11 @@
 #include "TGraph.h"
 #include "TGraphErrors.h"
 #include "TF1.h"
+#include "TH1.h"
+#include "THnSparse.h"
 #include "TH1D.h"
 #include "TH2D.h"
-#include "THnSparse.h"
+#include "TAxis.h"
 
 
 #include "AliLog.h"
@@ -72,6 +74,9 @@ AliTPCcalibBase::AliTPCcalibBase():
     fHasLaser(kFALSE),                    //flag the laser is overlayed with given event 
     fRejectLaser(kTRUE),                 //flag- reject laser
     fTriggerClass(),
+    fCurrentEvent(0),           //! current event
+    fCurrentTrack(0),           //! current esd track
+    fCurrentSeed(0),            //! current seed
     fDebugLevel(0)
 {
   //
@@ -93,6 +98,9 @@ AliTPCcalibBase::AliTPCcalibBase(const char * name, const char * title):
   fHasLaser(kFALSE),                    //flag the laser is overlayed with given event 
   fRejectLaser(kTRUE),                 //flag- reject laser
   fTriggerClass(),
+  fCurrentEvent(0),           //! current event
+  fCurrentTrack(0),           //! current esd track
+  fCurrentSeed(0),            //! current seed
   fDebugLevel(0)
 {
   //
@@ -114,6 +122,9 @@ AliTPCcalibBase::AliTPCcalibBase(const AliTPCcalibBase&calib):
   fHasLaser(calib.fHasLaser),                    //flag the laser is overlayed with given event
   fRejectLaser(calib.fRejectLaser),                 //flag- reject laser
   fTriggerClass(calib.fTriggerClass),
+  fCurrentEvent(0),           //! current event
+  fCurrentTrack(0),           //! current esd track
+  fCurrentSeed(0),            //! current seed
   fDebugLevel(calib.fDebugLevel)
 {
   //
@@ -249,7 +260,7 @@ void AliTPCcalibBase::RegisterDebugOutput(const char *path){
 
 
 
-TGraphErrors * AliTPCcalibBase::FitSlices(THnSparse *h, Int_t axisDim1, Int_t axisDim2, Int_t minEntries, Int_t nmaxBin, Float_t fracLow, Float_t fracUp, Bool_t useMedian, TTreeSRedirector *cstream){
+TGraphErrors * AliTPCcalibBase::FitSlices(THnSparse *h, Int_t axisDim1, Int_t axisDim2, Int_t minEntries, Int_t nmaxBin, Float_t fracLow, Float_t fracUp, Bool_t useMedian, TTreeSRedirector *cstream, Int_t ival){
   //
   // Fitting slices of the projection(axisDim1,axisDim2) of a sparse histogram
   // 
@@ -315,9 +326,9 @@ TGraphErrors * AliTPCcalibBase::FitSlices(THnSparse *h, Int_t axisDim1, Int_t ax
       Double_t chi2 = funcGaus.GetChisquare();
       //  
       xvec[counter] = xcenter;
-      yvec[counter] = funcGaus.GetParameter(1);
+      yvec[counter] = funcGaus.GetParameter(ival);
       xerr[counter] = xrms;
-      yerr[counter] = funcGaus.GetParError(1); 
+      yerr[counter] = funcGaus.GetParError(ival); 
       if (useMedian) yvec[counter] = xMedian;
       if (cstream){
 	(*cstream)<<"fitDebug"<<
@@ -348,4 +359,48 @@ TGraphErrors * AliTPCcalibBase::FitSlices(THnSparse *h, Int_t axisDim1, Int_t ax
   delete [] yerr;
   delete hist;
   return graphErrors;
+}
+
+
+void AliTPCcalibBase::BinLogX(THnSparse *h, Int_t axisDim) {
+
+  // Method for the correct logarithmic binning of histograms
+
+  TAxis *axis = h->GetAxis(axisDim);
+  int bins = axis->GetNbins();
+
+  Double_t from = axis->GetXmin();
+  Double_t to = axis->GetXmax();
+  Double_t *new_bins = new Double_t[bins + 1];
+
+  new_bins[0] = from;
+  Double_t factor = pow(to/from, 1./bins);
+
+  for (int i = 1; i <= bins; i++) {
+   new_bins[i] = factor * new_bins[i-1];
+  }
+  axis->Set(bins, new_bins);
+  delete new_bins;
+
+}
+void AliTPCcalibBase::BinLogX(TH1 *h) {
+
+  // Method for the correct logarithmic binning of histograms
+
+  TAxis *axis = h->GetXaxis();
+  int bins = axis->GetNbins();
+
+  Double_t from = axis->GetXmin();
+  Double_t to = axis->GetXmax();
+  Double_t *new_bins = new Double_t[bins + 1];
+
+  new_bins[0] = from;
+  Double_t factor = pow(to/from, 1./bins);
+
+  for (int i = 1; i <= bins; i++) {
+   new_bins[i] = factor * new_bins[i-1];
+  }
+  axis->Set(bins, new_bins);
+  delete new_bins;
+
 }

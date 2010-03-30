@@ -159,20 +159,20 @@ Bool_t AliPHOSPreprocessor::ProcessLEDRun()
     for(Int_t mod=0; mod<nMod; mod++) {
       for(Int_t col=0; col<nCol; col++) {
 	for(Int_t row=0; row<nRow; row++) {
-
-	  //High Gain to Low Gain ratio
-	  Float_t ratio = HG2LG(mod,row,col,&f);
-	  calibData.SetHighLowRatioEmc(mod+1,col+1,row+1,ratio);
-	  if(ratio != 16.)
-	    AliInfo(Form("mod %d iX %d iZ %d  ratio %.3f\n",mod,row,col,ratio));
 	  
 	  if(clb) {
-	    Double_t coeff = clb->GetADCchannelEmc(mod+1,col+1,row+1);
-	    calibData.SetADCchannelEmc(mod+1,col+1,row+1,coeff);
+	    Float_t  hg2lg = clb->GetHighLowRatioEmc(5-mod,col+1,row+1);
+	    Double_t coeff = clb->GetADCchannelEmc(5-mod,col+1,row+1);
+	    calibData.SetADCchannelEmc(5-mod,col+1,row+1,coeff);
+	    calibData.SetHighLowRatioEmc(5-mod,col+1,row+1,hg2lg);
+	  }	
+  
+	  //High Gain to Low Gain ratio
+	  Float_t ratio = HG2LG(mod,row,col,&f);
+	  if(ratio != 16.) {
+	    calibData.SetHighLowRatioEmc(5-mod,col+1,row+1,ratio);
+	    AliInfo(Form("mod %d iX %d iZ %d  ratio %.3f\n",mod,row,col,ratio));
 	  }
-	  else
-	    calibData.SetADCchannelEmc(mod+1,col+1,row+1,0.005);
-	  
 	}
       }
     }
@@ -182,8 +182,8 @@ Bool_t AliPHOSPreprocessor::ProcessLEDRun()
   //Store the updated High Gain/Low Gain ratios
   AliCDBMetaData emcMetaData;
 
-  //Data valid from current run fRun until updated (validityInfinite=kTRUE)
-  Bool_t result = Store("Calib","EmcGainPedestals",&calibData,&emcMetaData,fRun,kTRUE);
+  //Data valid from current run until updated (validityInfinite=kTRUE)
+  Bool_t result = Store("Calib","EmcGainPedestals",&calibData,&emcMetaData,0,kTRUE);
   return result;
 
 }
@@ -199,7 +199,7 @@ Float_t AliPHOSPreprocessor::HG2LG(Int_t mod, Int_t X, Int_t Z, TFile* f)
   TH1F* h1 = (TH1F*)f->Get(hname);
   if(!h1) return 16.;
   
-  if(!h1->GetEntries()) return 16.;
+  if(h1->GetEntries()<2000.) return 16.;
   
   if(h1->GetMaximum()<10.) h1->Rebin(4);
   if(h1->GetMaximum()<10.) return 16.;
@@ -245,7 +245,9 @@ Bool_t AliPHOSPreprocessor::FindBadChannelsEmc()
   Bool_t result[2] = { kTRUE, kTRUE };
 
   for (Int_t i=0; i<2; i++) {
-
+    
+    if(system[i] == kHLT) continue;
+    
     AliPHOSEmcBadChannelsMap badMap;
     list = GetFileSources(system[i], "BAD_CHANNELS");
 
@@ -273,8 +275,8 @@ Bool_t AliPHOSPreprocessor::FindBadChannelsEmc()
     else 
       path = "HLT";
   
-    // Data valid from current run fRun until being updated (validityInfinite=kTRUE)
-    result[i] *= Store(path.Data(), "EmcBadChannels", &badMap, &md, fRun, kTRUE);
+    // Data valid from current run until being updated (validityInfinite=kTRUE)
+    result[i] *= Store(path.Data(), "EmcBadChannels", &badMap, &md, 0, kTRUE);
     
   }
   
@@ -351,8 +353,10 @@ Bool_t AliPHOSPreprocessor::CalibrateEmc()
   //Loop over two systems: DAQ and HLT.
   //For each system the same algorithm implemented in DoCalibrateEmc() invokes.
 
+  AliPHOSEmcCalibData*   lastCalib=0;
   const AliPHOSEmcBadChannelsMap* badMap=0;
   AliCDBEntry* entryBCM=0;
+  AliCDBEntry* entryEmc=0;
   TList* list=0;
   TString path;
   
@@ -361,6 +365,8 @@ Bool_t AliPHOSPreprocessor::CalibrateEmc()
   Bool_t result[2] = { kTRUE, kTRUE };
 
   for (Int_t i=0; i<2; i++) {
+
+    if(system[i] == kHLT) continue;
 
     AliPHOSEmcCalibData calibData;
     list = GetFileSources(system[i], "AMPLITUDES");
@@ -394,17 +400,53 @@ Bool_t AliPHOSPreprocessor::CalibrateEmc()
     if(!badMap)
       Log(Form("WARNING!! Nothing for %s in AliCDBEntry. All cells considered GOOD!",sysn[i]));
 
-    result[i] *= DoCalibrateEmc(system[i],list,badMap,calibData);
+    // Retrieve  the last EMC calibration object
+    
+    entryEmc = GetFromOCDB(path.Data(), "EmcGainPedestals");
+    
+    if(!entryEmc) 
+      Log(Form("Cannot find any EmcGainPedestals entry for this run and path %s",path.Data()));
+    else
+      lastCalib = (AliPHOSEmcCalibData*)entryEmc->GetObject();
 
+    if(lastCalib) 
+      result[i] *= DoCalibrateEmc(system[i],list,badMap,*lastCalib);    
+    else 
+      result[i] *= DoCalibrateEmc(system[i],list,badMap,calibData);
+    
     //Store EMC calibration data
-
     AliCDBMetaData emcMetaData;
-    result[i] *= Store(path.Data(), "EmcGainPedestals", &calibData, &emcMetaData, 0, kTRUE);
-  
+    
+    if(lastCalib)
+      result[i] *= Store(path.Data(), "EmcGainPedestals", lastCalib, &emcMetaData, 0, kFALSE);
+    else
+      result[i] *= Store(path.Data(), "EmcGainPedestals", &calibData, &emcMetaData, 0, kFALSE);
+
+    //Store reference data
+    Bool_t refOK = StoreReferenceEmc(system[i],list);
+    if(refOK) Log(Form("Reference data for %s amplitudes successfully stored.",sysn[i]));
+    
   }
   
   if(result[0] || result[1]) return kTRUE;
   else return kFALSE;
+}
+
+Bool_t AliPHOSPreprocessor::StoreReferenceEmc(Int_t system, TList* list)
+{
+  //Put 2D calibration histograms (E vs Time) prepared by DAQ/HLT to the reference storage.
+  //system is DAQ or HLT, TList is the list of FES sources.
+
+  if(system!=kDAQ) return kFALSE;
+
+  TObjString *source = dynamic_cast<TObjString *> (list->First());
+  if(!source) return kFALSE;
+
+  TString fileName = GetFile(system, "AMPLITUDES", source->GetName());
+
+  Bool_t resultRef = StoreReferenceFile(fileName.Data(),"CalibRefPHOS.root");
+  return resultRef;
+
 }
 
 
@@ -418,6 +460,7 @@ Bool_t AliPHOSPreprocessor::DoCalibrateEmc(Int_t system, TList* list, const AliP
   // It is a responsibility of the SHUTTLE framework to form the fileName.
 
   gRandom->SetSeed(0); //the seed is set to the current  machine clock!
+  Int_t minEntries=1000; // recalculate calibration coeff. if Nentries > minEntries.
 
   TIter iter(list);
   TObjString *source;
@@ -472,9 +515,9 @@ Bool_t AliPHOSPreprocessor::DoCalibrateEmc(Int_t system, TList* list, const AliP
 	TString htitl = h2->GetTitle();
 	if(htitl.Contains("and gain 1")) {
 	  hRef = h2->ProjectionX();
-	  hRef->GetXaxis()->SetRange(10,1000); // to cut off saturation peak and noise
+	  hRef->GetXaxis()->SetRangeUser(10.,1000.); // to cut off saturation peak and noise
 	  // Check if the reference histogram has too little statistics
-	  if(hRef->GetMean() && hRef->GetEntries()>2) ok=kTRUE;
+	  if(hRef->GetMean() && hRef->GetEntries()>minEntries) ok=kTRUE;
 
 	  const TString delim = "_";
 	  TString str = hRef->GetName();
@@ -484,9 +527,9 @@ Bool_t AliPHOSPreprocessor::DoCalibrateEmc(Int_t system, TList* list, const AliP
 	  const Int_t Z   = ((TObjString*)tks->At(2))->GetString().Atoi();
 
 	  if(badMap) {
-	    if(badMap->IsBadChannel(md+1,Z+1,X+1)) {
+	    if(badMap->IsBadChannel(5-md,Z+1,X+1)) {
 	      AliInfo(Form("Cell mod=%d col=%d row=%d is bad. Histogram %s rejected.",
-			   md+1,Z+1,X+1,hRef->GetName()));
+			   5-md,Z+1,X+1,hRef->GetName()));
 	      ok=kFALSE;
 	    }
 	  }
@@ -520,16 +563,13 @@ Bool_t AliPHOSPreprocessor::DoCalibrateEmc(Int_t system, TList* list, const AliP
 	  //TODO: dead channels exclusion!
 	  if(h2) {
 	    h1 = h2->ProjectionX();
-	    h1->GetXaxis()->SetRange(10,1000); //to cut off saturation peak and noise
+	    h1->GetXaxis()->SetRangeUser(10.,1000.); //to cut off saturation peak and noise
 	    coeff = h1->GetMean()/refMean;
-	    if(coeff>0)
-	      calibData.SetADCchannelEmc(mod+1,col+1,row+1,0.005/coeff);
-	    else 
-	      calibData.SetADCchannelEmc(mod+1,col+1,row+1,0.005);
-	    AliInfo(Form("mod %d col %d row %d  coeff %f\n",mod,col,row,coeff));
+	    if(coeff>0 && h1->GetEntries()>minEntries) {
+	      calibData.SetADCchannelEmc(5-mod,col+1,row+1,0.005/coeff);
+	      AliInfo(Form("mod %d col %d row %d  coeff %f\n",mod,col,row,coeff));
+	    }
 	  }
-	  else
-	    calibData.SetADCchannelEmc(mod+1,col+1,row+1,0.005); 
 	}
       }
     }

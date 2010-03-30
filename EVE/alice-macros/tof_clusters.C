@@ -12,6 +12,8 @@ class TEvePointSet;
 
 #else
 
+#include <TMath.h>
+
 #include <TEveManager.h>
 #include <TEvePointSet.h>
 #include <EveBase/AliEveEventManager.h>
@@ -41,11 +43,13 @@ TEvePointSet* tof_clusters(TEveElement* cont=0, Float_t maxR=390)
   Float_t maxRsqr = maxR*maxR;
 
   Int_t nentr=(Int_t)cTree->GetEntries();
-  for (Int_t i=0; i<nentr; i++) {
+  for (Int_t i=0; i<nentr; i++)
+  {
     if (!cTree->GetEvent(i)) continue;
 
     Int_t ncl=cl->GetEntriesFast();
-    while (ncl--) {
+    while (ncl--)
+    {
       AliCluster *c=(AliCluster*)cl->UncheckedAt(ncl);
       Float_t g[3]; //global coordinates
       c->GetGlobalXYZ(g);
@@ -55,31 +59,25 @@ TEvePointSet* tof_clusters(TEveElement* cont=0, Float_t maxR=390)
 	AliCluster *atp = new AliCluster(*c);
 	clusters->SetPointId(atp);
       }
-
     }
   }
 
   rl->UnloadRecPoints("TOF");
 
-  if (clusters->Size() == 0 && gEve->GetKeepEmptyCont() == kFALSE) {
+  if (clusters->Size() == 0 && gEve->GetKeepEmptyCont() == kFALSE)
+  {
     Warning("tof_clusters.C", "No TOF clusters");
     delete clusters;
     return 0;
   }
 
-  char form[1000];
-  sprintf(form,"TOF Clusters");
-  clusters->SetName(form);
+  clusters->SetName("TOF Clusters");
+  clusters->SetTitle(Form("N=%d", clusters->Size()));
 
-  char tip[1000];
-  sprintf(tip,"N=%d", clusters->Size());
-  clusters->SetTitle(tip);
-
-  const TString viz_tag("TOF Clusters");
+  const TString viz_tag("REC Clusters TOF");
   clusters->ApplyVizTag(viz_tag, "Clusters");
 
   gEve->AddElement(clusters, cont);
-
   gEve->Redraw3D();
 
   return clusters;
@@ -142,21 +140,13 @@ TEvePointSet* tof_clusters_sec(Int_t selectedSector,
     return 0;
   }
 
-  char form[1000];
-  sprintf(form,"TOF Clusters");
-  clusters->SetName(form);
+  clusters->SetName(Form("REC Clusters TOF"));
+  clusters->SetTitle(Form("N=%d", clusters->Size()));
 
-  char tip[1000];
-  sprintf(tip,"N=%d", clusters->Size());
-  clusters->SetTitle(tip);
-
-  const TString viz_tag("TOF Clusters");
-  // when going to new root call:
-  // clusters->ApplyVizTag(viz_tag, "Clusters");
-  clusters->ApplyVizTag(viz_tag);
-
+  const TString viz_tag("REC Clusters TOF");
+  clusters->ApplyVizTag(viz_tag, "Clusters");
+  
   gEve->AddElement(clusters, cont);
-
   gEve->Redraw3D();
 
   return clusters;

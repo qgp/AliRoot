@@ -42,12 +42,14 @@
 #include "AliHLTCaloRecPointDataStruct.h"
 #include "AliHLTCaloDigitContainerDataStruct.h"
 #include "AliHLTCaloDigitDataStruct.h"
-#include "AliHLTCaloConstantsHandler.h"
 #include "TString.h"
+#include "AliHLTCaloConstantsHandler.h"
 
 //#include "AliPHOSGeometry.h"
+#include "AliHLTLogging.h"
 
 class TClonesArray;
+class TString;
 //class AliPHOSDigit;
 //class AliPHOSRecoParamEmc;
 //class AliPHOSRecoParam;
@@ -60,47 +62,26 @@ class TClonesArray;
  *
  * @ingroup alihlt_calo
  */
-//class AliHLTCaloClusterizer : public AliHLTCaloBase
 
 
-
-class AliHLTCaloClusterizer : public AliHLTCaloConstantsHandler
+class AliHLTCaloClusterizer : public AliHLTCaloConstantsHandler, public AliHLTLogging
 {
   
 public:
   
   /** Constructor */
   AliHLTCaloClusterizer(TString det);    
-  
+
   /** Destructor */
   virtual ~AliHLTCaloClusterizer();
-
-//   /** Copy constructor */  
-//   AliHLTCaloClusterizer(const AliHLTCaloClusterizer &) : 
-//     //    AliHLTCaloBase(),
-//     AliHLTCaloConstantsHandler(new TString("BALLE")),
-//     fRecPointDataPtr(0),
-//     fDigitDataPtr(0),
-//     fEmcClusteringThreshold(0),
-//     fEmcMinEnergyThreshold(0),
-//     fEmcTimeGate(0),
-//     fDigitsInCluster(0),
-//     fDigitContainerPtr(0),
-//     fMaxDigitIndexDiff(2*NZROWSMOD)
-//   {
-//     //Copy constructor not implemented
-//   }
-  
-  /** Assignment */
-  AliHLTCaloClusterizer & operator = (const AliHLTCaloClusterizer)
-  {
-    //Assignment
-    return *this; 
-  }
   
   /** Set digit container */
   void SetDigitContainer(AliHLTCaloDigitContainerDataStruct* digitContainerPtr)
   { fDigitContainerPtr = digitContainerPtr; }
+
+  /** Set array with digits */
+  void SetDigitArray(AliHLTCaloDigitDataStruct **digitPointerArr)
+  { fDigitsPointerArray = digitPointerArr; } 
 
   /** Set rec point data buffer */
   void SetRecPointDataPtr(AliHLTCaloRecPointDataStruct* recPointDataPtr);
@@ -118,7 +99,7 @@ public:
   void SetEmcTimeGate(Float_t gate) { fEmcTimeGate = gate; }
   
   /** Starts clusterization of the event */ 
-  virtual Int_t ClusterizeEvent(UInt_t availableSize, UInt_t& totSize);
+  virtual Int_t ClusterizeEvent(Int_t nDigits);
   
   /**
    * For a given digit this digit scans for neighbouring digits which 
@@ -127,7 +108,7 @@ public:
    * @param digIndex index of the digit in the digit container
    * @param recPoint pointer to the current rec point
    */
-  virtual void ScanForNeighbourDigits(Int_t digIndex, AliHLTCaloRecPointDataStruct* recPoint);
+  virtual Int_t ScanForNeighbourDigits(Int_t digIndex, AliHLTCaloRecPointDataStruct* recPoint);
 
   /**
    * Checks if two digits are neighbours
@@ -136,14 +117,50 @@ public:
    */
   virtual Int_t AreNeighbours(AliHLTCaloDigitDataStruct* d1, AliHLTCaloDigitDataStruct* d2);
 
+  /**
+  * Get pointer to the rec points array
+  */
+  AliHLTCaloRecPointDataStruct** GetRecPoints() const { return fRecPointArray; }
+
+  Int_t CheckDigits(AliHLTCaloRecPointDataStruct **recArray = 0, AliHLTCaloDigitDataStruct **digArray = 0, Int_t nRP = 0);
+
+  Int_t CheckDigits(AliHLTCaloRecPointDataStruct **recArray, AliHLTCaloDigitDataStruct *digArray, Int_t nRP = 0);
 
 protected:
 
-  /** Pointer to the rec point output */
-  AliHLTCaloRecPointDataStruct* fRecPointDataPtr;              //! transient
+   /** 
+   * Check the rec point buffer size and resize the buffer if necessary
+   */
+  virtual Int_t CheckBuffer(); //COMMENT
+  
+   /** 
+   * Check the rec point array size and resize the array if necessary
+   */
+  virtual Int_t CheckArray(); //COMMENT
 
-  /** Pointer to the digit output */
-  AliHLTCaloDigitDataStruct* fDigitDataPtr;                    //! transient
+  /** Array of pointers to the rec point output */
+  AliHLTCaloRecPointDataStruct **fRecPointArray; //COMMENT
+
+   /** Pointer to the rec point output */
+  AliHLTCaloRecPointDataStruct *fRecPointDataPtr; //COMMENT
+
+  /** The first rec point in the list */
+  AliHLTCaloRecPointDataStruct *fFirstRecPointPtr; //COMMENT
+
+  /** Size of the rec point array */
+  Int_t fArraySize;
+  
+  /** Available size for the rec point output */
+  Int_t fAvailableSize;
+
+  /** The used size for the rec point output */
+  Int_t fUsedSize;
+  
+  /** Number of rec points created so far */
+  Int_t fNRecPoints;
+  
+  /** Pointer to the digit index array in the rec point */
+  Int_t* fDigitIndexPtr;                                       //! transient
 
   /** Energy threshold for starting a cluster for the calorimeter */
   Float_t fEmcClusteringThreshold;                             //COMMENT
@@ -157,17 +174,30 @@ protected:
   /** Counts the digits in a rec point */
   Int_t fDigitsInCluster;                                      //COMMENT
 
+  /** Array of our digits */
+  AliHLTCaloDigitDataStruct **fDigitsPointerArray;             //! transient
+
   /** Contains the digits from one event */
   AliHLTCaloDigitContainerDataStruct *fDigitContainerPtr;      //! transient
 
   /** Maximum difference in index to be a neighbour */
   Int_t fMaxDigitIndexDiff;                                    //COMMENT
 
+  /** Number of digits in event */
+  Int_t fNDigits;                                              //COMMENT
+
 private:
-  AliHLTCaloClusterizer();
+
+  /** Default constructor, prohibited */
+  AliHLTCaloClusterizer();                          // COMMENT
+  
+  /** Copy constructor, prohibited */
+  AliHLTCaloClusterizer (const AliHLTCaloClusterizer &); //COMMENT
+  
+  /** Assignment operator, prohibited */
+  AliHLTCaloClusterizer & operator = (const AliHLTCaloClusterizer &); //COMMENT
 
   ClassDef(AliHLTCaloClusterizer, 0);
-
 
 };
 

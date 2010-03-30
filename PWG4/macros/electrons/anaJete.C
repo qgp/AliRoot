@@ -36,12 +36,12 @@ char * kmydataset = "/COMMON/COMMON/LHC09a4_run8101X";
 //Put name of file containing xsection 
 //Put number of events per ESD file
 //This is an specific case for normalization of Pythia files.
-const Bool_t kGetXSectionFromFileAndScale = kTRUE;
+Bool_t kGetXSectionFromFileAndScale = kTRUE;
 const char * kXSFileName = "pyxsec.root";
 const Int_t kNumberOfEventsPerFile = 200; 
 //---------------------------------------------------------------------------
 
-const Bool_t kMC = kTRUE; //With real data kMC = kFALSE
+Bool_t kMC = kTRUE; //With real data kMC = kFALSE
 TString kInputData = "ESD";//ESD, AOD, MC
 TString kTreeName = "esdTree";
 //const   Bool_t kMergeAODs = kTRUE; //uncomment for AOD merging
@@ -65,7 +65,11 @@ void anaJete()
 
   //Process environmental variables from command line:
   ProcessEnvironment();	
-  printf("Final    Variables: kInputData %s, mode %d, config2 %s, config3 %s, sevent %d\n",kInputData.Data(),mode,sconfig2,sconfig3,sevent);
+  printf("Final    Variables: kInputData %s, kMC %d, mode %d, config2 %s, config3 %s, sevent %d\n",kInputData.Data(),kMC,mode,sconfig2,sconfig3,sevent);
+
+  if(!kMC) {
+    kGetXSectionFromFileAndScale = kFALSE;
+  }
 
   //--------------------------------------------------------------------
   // Load analysis libraries
@@ -112,7 +116,7 @@ void anaJete()
       //plugin->AddRunNumber(30010); //dummy
       plugin->AddDataFile("mycollect.xml");
       plugin->SetGridWorkingDir("work3");
-      plugin->SetAdditionalLibs("anaJet.C ConfigJetAnalysisFastJet.C ConfigAnalysisElectron.C ANALYSIS.par ANALYSISalice.par AOD.par ESD.par STEERBase.par JETAN.par FASTJETAN.par");
+      plugin->SetAdditionalLibs("anaJet.C ConfigJetAnalysisFastJet.C ConfigAnalysisElectron.C ANALYSIS.par ANALYSISalice.par AOD.par EMCALUtils.par ESD.par PHOSUtils.par STEERBase.par JETAN.par FASTJETAN.par");
       plugin->SetJDLName("anaJet.jdl");
       plugin->SetExecutable("anaJet.sh");
       plugin->SetOutputFiles("histos.root");
@@ -337,6 +341,8 @@ void  LoadLibraries(const anaModes mode) {
       SetupPar("AOD");
       SetupPar("ANALYSIS");
       SetupPar("ANALYSISalice");
+      SetupPar("PHOSUtils");
+      SetupPar("EMCALUtils");
       if( kDoJetTask ){
         cerr<<"Now Loading JETAN"<<endl;
         SetupPar("JETAN");
@@ -358,6 +364,8 @@ void  LoadLibraries(const anaModes mode) {
       gSystem->Load("libAOD");
       gSystem->Load("libANALYSIS");
       gSystem->Load("libANALYSISalice");
+      gSystem->Load("libPHOSUtils");
+      gSystem->Load("libEMCALUtils");
       if( kDoJetTask ){
         gSystem->Load("libJETAN");
         gSystem->Load("libFASTJETAN");
@@ -384,7 +392,7 @@ void  LoadLibraries(const anaModes mode) {
     //TProof::Reset("myproofname",kTRUE);
     gEnv->SetValue("XSec.GSI.DelegProxy","2");   
     //TProof::Mgr(myproofname)->ShowROOTVersions();
-    //TProof::Mgr(myproofname)->SetROOTVersion("v5-23-04");
+    //TProof::Mgr(myproofname)->SetROOTVersion("v5-24-00");
     TProof::Open(myproofname);
 
     // gProof->ClearPackages();
@@ -394,10 +402,14 @@ void  LoadLibraries(const anaModes mode) {
     // gProof->ClearPackage("AOD");
     // gProof->ClearPackage("ANALYSIS");
     // gProof->ClearPackage("ANALYSISalice");
+    // gProof->ClearPackage("PHOSUtils");
+    // gProof->ClearPackage("EMCALUtils");
     // if( kDoJetTask ){
     //   gProof->ClearPackage("JETAN");
     //   gProof->ClearPackage("FASTJETAN");
     // }
+    // gProof->ClearPackage("PWG4PartCorrBase");
+    // gProof->ClearPackage("PWG4PartCorrDep");
     // gProof->ShowEnabledPackages();
 
     // Enable the STEERBase Package
@@ -415,6 +427,12 @@ void  LoadLibraries(const anaModes mode) {
     // Enable the Analysis Package
     gProof->UploadPackage("ANALYSISalice.par");
     gProof->EnablePackage("ANALYSISalice");
+    // Enable the PHOSUtils Package
+    gProof->UploadPackage("PHOSUtils.par");
+    gProof->EnablePackage("PHOSUtils");
+    // Enable the EMCALUtils Package
+    gProof->UploadPackage("EMCALUtils.par");
+    gProof->EnablePackage("EMCALUtils");
     if( kDoJetTask ){
       // Enable JETAN analysis
       gProof->UploadPackage("JETAN.par");
@@ -423,6 +441,12 @@ void  LoadLibraries(const anaModes mode) {
       gProof->UploadPackage("FASTJETAN.par");
       gProof->EnablePackage("FASTJETAN");
     }
+    // Enable the PWG4PartCorrBase Package
+    gProof->UploadPackage("PWG4PartCorrBase.par");
+    gProof->EnablePackage("PWG4PartCorrBase");
+    // Enable the PWG4PartCorrDep Package
+    gProof->UploadPackage("PWG4PartCorrDep.par");
+    gProof->EnablePackage("PWG4PartCorrDep");
 
     gProof->ShowEnabledPackages();
   }  
@@ -682,6 +706,9 @@ void ProcessEnvironment(){
   if (gSystem->Getenv("anaInputData"))
      kInputData = gSystem->Getenv("anaInputData");
 
+  if (gSystem->Getenv("anakMC"))
+     kMC = atoi(gSystem->Getenv("anakMC"));
+
   if (gSystem->Getenv("MODE"))
      mode = atoi(gSystem->Getenv("MODE"));
 
@@ -697,6 +724,6 @@ void ProcessEnvironment(){
   if (gSystem->Getenv("SEVENT"))
       sevent = atoi (gSystem->Getenv("SEVENT"));
 	
-      printf("Process: Variables: kInputData %s, mode %d, config2 %s, config3 %s, sevent %d\n",kInputData.Data(),mode,sconfig2,sconfig3,sevent);
+      printf("Process: Variables: kInputData %s, kMC %d, mode %d, config2 %s, config3 %s, sevent %d\n",kInputData.Data(),kMC,mode,sconfig2,sconfig3,sevent);
 
 }

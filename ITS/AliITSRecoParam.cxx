@@ -109,6 +109,7 @@ fZWindowDeadZone(0),
 fSigmaXDeadZoneHit2(0),
 fSigmaZDeadZoneHit2(0),
 fXPassDeadZoneHits(0),
+fSkipSubdetsNotInTriggerCluster(kTRUE),
 fUseTGeoInTracker(3),
 fStepSizeTGeo(5.),
 fAllowSharedClusters(kTRUE),
@@ -231,6 +232,8 @@ fESDV0Params(NULL)
   fESDV0Params->SetMinNormDistForb3(1.0);
   fESDV0Params->SetMinNormDistForb4(4.0);
   fESDV0Params->SetMinNormDistForb5(5.0);
+  fESDV0Params->SetMinNormDistForbProt(2.0);
+  fESDV0Params->SetMaxPidProbPionForb(0.5);
 
   fESDV0Params->SetMinRTPCdensity(40.);
   fESDV0Params->SetMaxRTPCdensity0(110.);
@@ -287,7 +290,8 @@ AliITSRecoParam *AliITSRecoParam::GetHighFluxParam()
   param->SetExtendedEtaAcceptance(kFALSE);
   // allow to skip layer if no cluster and no bad
   param->SetAllowProlongationWithEmptyRoad(kFALSE);
-
+  // set event specie
+  param->SetEventSpecie(AliRecoParam::kHighMult);
 
   param->fMaxSnp = 0.95;
 
@@ -389,7 +393,8 @@ AliITSRecoParam *AliITSRecoParam::GetLowFluxParam()
   param->SetExtendedEtaAcceptance(kTRUE);
   // allow to skip layer if no cluster and no bad
   param->SetAllowProlongationWithEmptyRoad(kTRUE);
-
+  // set event specie
+  param->SetEventSpecie(AliRecoParam::kLowMult);
 
   param->fMaxSnp = 0.95;
 
@@ -482,6 +487,8 @@ AliITSRecoParam *AliITSRecoParam::GetLowFluxParam()
   param->GetESDV0Params()->SetMinPABestConst(0.99);
   param->GetESDV0Params()->SetMinNormDistForbTgl0(1.);
   param->GetESDV0Params()->SetMinNormDistForb1(2.);
+  param->GetESDV0Params()->SetMinNormDistForbProt(1.);
+  param->GetESDV0Params()->SetMaxPidProbPionForb(0.7);
   param->GetESDV0Params()->SetLikelihood01Cut(0.3);
   param->GetESDV0Params()->SetLikelihood1Cut(0.35);
   param->GetESDV0Params()->SetCombinedCut(0.4);
@@ -506,6 +513,9 @@ AliITSRecoParam *AliITSRecoParam::GetCosmicTestParam()
   param->SetAddVirtualClustersInDeadZone(kFALSE);
   param->SetUseAmplitudeInfo(kFALSE);
 
+  // set event specie
+  param->SetEventSpecie(AliRecoParam::kCosmic);
+
   // full use of bads from OCDB
   param->SetUseBadZonesFromOCDB(kTRUE);
   param->SetUseSingleBadChannelsFromOCDB(kTRUE);
@@ -518,6 +528,7 @@ AliITSRecoParam *AliITSRecoParam::GetCosmicTestParam()
 
   // to maximize efficiency
   param->SetAllowProlongationWithEmptyRoad();
+  param->SetMinNPointsSA(2);
 
   // larger seach windows for SA (in case of large misalignments)
   param->SetNLoopsSA(33);

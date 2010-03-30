@@ -131,28 +131,23 @@ Bool_t AliZDCDataDCS::ProcessData(TMap& aliasMap)
    TObjArray   *aliasArr;
    AliDCSValue *aValue;
   
-   // *** ATTENTION!!! Change introduced 26/09/09 ***************
-   // In order not to process HV, only data from table position *
-   // (namely 1st four values) are processed ********************
-   //for(int j=0; j<kNAliases; j++){
-   for(int j=0; j<kNAlignDet; j++){
+   for(int j=0; j<kNAliases; j++){
       //printf(" Processing alias %d  aliasName %s \n", j, fAliasNames[j].Data());
       
       aliasArr = (TObjArray*) (aliasMap.GetValue(fAliasNames[j].Data()));
       if(!aliasArr){
-   	AliWarning(Form("Alias %s not found!", fAliasNames[j].Data()));
-   	//printf(" AliZDCDataDCS: Alias %s not found!\n", fAliasNames[j].Data());
+   	AliWarning(Form("Alias %s: data not found!", fAliasNames[j].Data()));
 	continue;
       }
 
       Introduce(j, aliasArr);
 
       Int_t nentries = aliasArr->GetEntries();
-      if(nentries<=2){
+/*      if(nentries<=2){
         AliWarning(Form("Alias %s has just %d entries!", fAliasNames[j].Data(), nentries));
 //        continue;
       }
-
+*/
       Float_t *time = new Float_t[nentries];
       Float_t *val  = new Float_t[nentries];
 

@@ -4,7 +4,7 @@
  * ALICE Experiment at CERN, All rights reserved.                         *
  * See cxx source for full Copyright notice                               */
 
-/* $Id: $ */
+// $Id: $
 
 ///
 /// @file   AliHLTMUONProcessor.h
@@ -25,6 +25,27 @@ class AliMUONRecoParam;
  * This component class is an abstract base class for dHLT components.
  * Some common methods useful to all dHLT specific components are implemented
  * by this class.
+ *
+ * The following argument can be inherited by components derived from the
+ * AliHLTMUONProcessor class, as long as the protected methods provided are used
+ * properly and the argument evaluation is handled as indicated in DoInit.
+ * \li -cdbpath <i>path</i> <br>
+ *      This allows one to override the path to use for the CDB location.
+ *      <i>path</i> must be a valid CDB URI. By default the HLT system framework
+ *      sets the CDB path. <br>
+ * \li -run <i>number</i> <br>
+ *      This allows one to override the run number to use. <i>number</i> must be
+ *      a positive integer number. By default the HLT system framework sets the
+ *      run number. <br>
+ * \li -delaysetup <br>
+ *      If indicated then part of the initialisation of the component is forcefully
+ *      delayed to the first event received, i.e. the Start-of-Run event. <br>
+ * \li -dumponerror <br>
+ *      This flag will cause the component to dump the data blocks it received if
+ *      an error occurs during the processing of an event. <br>
+ * \li -dumppath <i>path</i> <br>
+ *      Allows one to specify the path in which to dump the received data blocks
+ *      if an error occurs. <br>
  *
  * @ingroup alihlt_dimuon_component
  */
@@ -186,6 +207,15 @@ protected:
 		return BlockStructureOk(block, "Manso track candidates", checkHeader);
 	}
 
+	/// Checks the structure of a tracks data block.
+	bool BlockStructureOk(
+			const AliHLTMUONTracksBlockReader& block,
+			bool checkHeader = true
+		) const
+	{
+		return BlockStructureOk(block, "tracks", checkHeader);
+	}
+
 	/// Checks the structure of a single track trigger decision data block.
 	bool BlockStructureOk(
 			const AliHLTMUONSinglesDecisionBlockReader& block,
@@ -328,6 +358,17 @@ protected:
 			TMap* map, const char* paramName, Double_t& value,
 			const char* pathToEntry = NULL, const char* prettyName = NULL
 		) const;
+	
+	/**
+	 * Loads the appropriate field integral from the CDB based on the currently
+	 * loaded global magnetic field in TGeoGlobalMagField. If the global field is
+	 * not loaded then we try load the GRP entry to figure out the correct integral.
+	 * [out] \param bfieldintegral  Will be filled with the dipole magnetic field
+	 *       integral value to use.
+	 * \return Zero if the field integral could be found and is valid. Otherwise an
+	 *       error code is returned, which is compatible with the HLT framework.
+	 */
+	int FetchFieldIntegral(Double_t& bfieldintegral) const;
 	
 	/**
 	 * Fetches the reconstruction parameters object from the CDB for MUON.

@@ -19,6 +19,12 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
+// Base class fro anlyzing EMCAL raww data
+// Further documentation found in base class
+// --------------
+// --------------
+
+
 #include "AliHLTCaloRawAnalyzerComponentv3.h"
  
 //class AliHLTCaloMapper;
@@ -29,10 +35,18 @@ class  AliHLTEMCALRawAnalyzerComponent : public AliHLTCaloRawAnalyzerComponentv3
   AliHLTEMCALRawAnalyzerComponent();
   virtual ~AliHLTEMCALRawAnalyzerComponent();
   virtual void GetInputDataTypes( vector <AliHLTComponentDataType>& list);
+  virtual AliHLTComponentDataType GetOutputDataType();
+  virtual void GetOutputDataSize(unsigned long& constBase, double& inputMultiplier);
+  virtual void DoInit();
+
   virtual const char* GetComponentID() = 0;
   virtual AliHLTComponent* Spawn() = 0; 
 
  protected:
+  virtual int DoEvent( const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, 
+		     AliHLTComponentTriggerData& trigData, AliHLTUInt8_t* outputPtr, 
+		       AliHLTUInt32_t& size, vector<AliHLTComponentBlockData>& outputBlocks );  
+
   virtual bool CheckInputDataType(const AliHLTComponentDataType &datatype);
  
  private:

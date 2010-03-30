@@ -53,7 +53,10 @@
 ClassImp(AliTPCRecoParam)
 
 
-
+Bool_t AliTPCRecoParam::fgUseTimeCalibration=kTRUE; // flag usage the time dependent calibration
+                                      // to be switched off for pass 0 reconstruction
+                                      // Use static function, other option will be to use 
+                                      // additional specific storage ?
 
 //_____________________________________________________________________________
 AliTPCRecoParam::AliTPCRecoParam():
@@ -62,6 +65,7 @@ AliTPCRecoParam::AliTPCRecoParam():
   fCtgRange(1.05),       
   fMaxSnpTracker(0.95),
   fMaxSnpTrack(0.999),
+  fUseOuterDetectors(kFALSE),
   fDumpSignal(kFALSE),
   fFirstBin(0),
   fLastBin(-1),
@@ -81,7 +85,7 @@ AliTPCRecoParam::AliTPCRecoParam():
   fBSpecialSeeding(kFALSE),
   fBKinkFinder(kTRUE),
   fLastSeedRowSec(120),
-  fUseFieldCorrection(0),      // use field correction
+  fUseFieldCorrection(2),      // use field correction
   fUseRPHICorrection(0),      // use rphi correction
   fUseRadialCorrection(0),    // use radial correction
   fUseQuadrantAlignment(0),   // use quadrant alignment
@@ -102,6 +106,14 @@ AliTPCRecoParam::AliTPCRecoParam():
   SetName("TPC");
   SetTitle("TPC");
   for (Int_t i=0;i<5;i++) fSystematicErrors[i]=0;
+  fCutSharedClusters[0]=0.5; // maximal allowed fraction of shared clusters - shorter track
+  fCutSharedClusters[1]=0.25; // maximal allowed fraction of shared clusters - longer  track
+  fClusterMaxRange[0]=1;     // y - pad      range
+  fClusterMaxRange[1]=1;     // z - time bin range
+  fKinkAngleCutChi2[0]=9;    // angular cut for kink finder - to create a kink
+                             // ~ about 5 % rate  for high pt kink finder
+  fKinkAngleCutChi2[1]=12;    // angular cut for kink finder - to use the partial track                             // form kink 
+                             // ~ about 2 % rate  for high pt kink finder
 }
 
 //_____________________________________________________________________________
@@ -205,4 +217,16 @@ AliTPCRecoParam *AliTPCRecoParam::GetCosmicTestParam(Bool_t bPedestal){
 }
 
 
+Bool_t  AliTPCRecoParam::GetUseTimeCalibration(){ 
+  //
+  // get
+  //
+  return fgUseTimeCalibration;
+}
+void    AliTPCRecoParam::SetUseTimeCalibration(Bool_t useTimeCalibration) {
+  //
+  // set 
+  //
+  fgUseTimeCalibration = useTimeCalibration;
+}
 

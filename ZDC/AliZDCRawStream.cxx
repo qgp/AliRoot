@@ -71,6 +71,7 @@ AliZDCRawStream::AliZDCRawStream(AliRawReader* rawReader) :
   fIsScHeaderRead(kFALSE),
   fScStartCounter(0),
   fScEvCounter(0),
+  fIsScalerWord(kFALSE),
   fDetPattern(0),
   fTrigCountNWords(0),
   fIsTriggerScaler(kFALSE),
@@ -101,7 +102,13 @@ AliZDCRawStream::AliZDCRawStream(AliRawReader* rawReader) :
   fCurrScCh(-1),
   fIsADCEventGood(kTRUE),
   fIsL0BitSet(kTRUE),
-  fIsPileUpEvent(kFALSE)
+  fIsPileUpEvent(kFALSE),
+  fIsZDCTDCHeader(kFALSE),
+  fIsTDCHeaderRead(kFALSE),
+  fTDCStartCounter(0),
+  fIsADDChannel(kFALSE),
+  fIsADDTDCHeader(kFALSE),
+  fIsADDTDCdatum(kFALSE)
 {
   // Create an object to read ZDC raw digits
   fRawReader->Reset();
@@ -155,6 +162,7 @@ AliZDCRawStream::AliZDCRawStream(const AliZDCRawStream& stream) :
   fIsScHeaderRead(stream.fIsScHeaderRead),
   fScStartCounter(stream.fScStartCounter),
   fScEvCounter(stream.fScEvCounter),
+  fIsScalerWord(stream.fIsScalerWord),
   fDetPattern(stream.fDetPattern),
   fTrigCountNWords(stream.fTrigCountNWords),
   fIsTriggerScaler(stream.fIsTriggerScaler),
@@ -185,7 +193,13 @@ AliZDCRawStream::AliZDCRawStream(const AliZDCRawStream& stream) :
   fCurrScCh(stream.fCurrScCh),
   fIsADCEventGood(stream.fIsADCEventGood),
   fIsL0BitSet(stream.fIsL0BitSet),
-  fIsPileUpEvent(stream.fIsPileUpEvent)
+  fIsPileUpEvent(stream.fIsPileUpEvent),
+  fIsZDCTDCHeader(stream.fIsZDCTDCHeader),
+  fIsTDCHeaderRead(stream.fIsTDCHeaderRead),
+  fTDCStartCounter(stream.fTDCStartCounter),
+  fIsADDChannel(stream.fIsADDChannel),
+  fIsADDTDCHeader(stream.fIsADDTDCHeader),
+  fIsADDTDCdatum(stream.fIsADDTDCdatum)
 
 {
   // Copy constructor
@@ -251,28 +265,28 @@ void AliZDCRawStream::ReadCDHHeader()
     UChar_t message = header->GetAttributes();
     //printf("\t AliZDCRawStream::ReadCDHHeader -> Attributes %x\n",message);
     
-    if((message & 0x0) == 0x0){ // PHYSICS RUN
+    if((message & 0xf0) == 0x0){ // PHYSICS RUN
        //printf("\t PHYSICS RUN raw data found\n");
     }
-    else if((message & 0x10) == 0x10){ // COSMIC RUN
+    else if((message & 0xf0) == 0x10){ // COSMIC RUN
        //printf("\t STANDALONE_COSMIC RUN raw data found\n");
     }
-    else if((message & 0x20) == 0x20){ // PEDESTAL RUN
+    else if((message & 0xf0) == 0x20){ // PEDESTAL RUN
        //printf("\t STANDALONE_PEDESTAL RUN raw data found\n");
     }
-    else if((message & 0x30) == 0x30){ // LASER RUN
+    else if((message & 0xf0) == 0x30){ // LASER RUN
        //printf("\t STANDALONE_LASER RUN raw data found\n");
     }
-    else if((message & 0x40) == 0x40){ // CALIBRATION_CENTRAL RUN
+    else if((message & 0xf0) == 0x40){ // CALIBRATION_CENTRAL RUN
        //printf("\t CALIBRATION_CENTRAL RUN raw data found\n");
     }
-    else if((message & 0x50) == 0x50){ // CALIBRATION_SEMICENTRAL
+    else if((message & 0xf0) == 0x50){ // CALIBRATION_SEMICENTRAL
        //printf("\t CALIBRATION_SEMICENTRAL RUN raw data found\n");
     }
-    else if((message & 0x60) == 0x60){ // CALIBRATION_MB
+    else if((message & 0xf0) == 0x60){ // CALIBRATION_MB
        //printf("\t CALIBRATION_MB RUN raw data found\n");
     }
-    else if((message & 0x70) == 0x70){ // CALIBRATION_EMD
+    else if((message & 0xf0) == 0x70){ // CALIBRATION_EMD
        //printf("\t CALIBRATION_EMD RUN raw data found\n");
     }
     // *** Checking the bit indicating the used readout card
@@ -280,11 +294,11 @@ void AliZDCRawStream::ReadCDHHeader()
     if((message & 0x08) == 0){  // ** DARC card
        fReadOutCard = 0;
        fIsDARCHeader = kTRUE;
-       AliInfo("\t ZDC readout card used: DARC");
+       //AliInfo("\t ZDC readout card used: DARC");
     }
     else if((message & 0x08) == 0x08){  // ** ZRC card
        fReadOutCard = 1;
-       AliInfo("\t ZDC readout card used: ZRC");
+       //AliInfo("\t ZDC readout card used: ZRC");
     }
 
     if(header->GetL1TriggerMessage() & 0x1){ // Calibration bit set in CDH
@@ -293,7 +307,7 @@ void AliZDCRawStream::ReadCDHHeader()
     //printf("\t AliZDCRawStream::ReadCDHHeader -> L1TriggerMessage %x\n",header->GetL1TriggerMessage());
     //printf("\t AliZDCRawStream::ReadCDHHeader -> Calibration bit = %d\n",fIsCalib);    
     
-    UInt_t status = header->GetStatus();
+/*    UInt_t status = header->GetStatus();
     //printf("\t AliZDCRawStream::ReadCDHHeader -> status = %d\n",status);
     if((status & 0x000f) == 0x0001){
       AliDebug(2,"CDH -> DARC trg0 overlap error");
@@ -338,6 +352,7 @@ void AliZDCRawStream::ReadCDHHeader()
       AliDebug(2,"CDH -> DARC other error");
       fRawReader->AddMajorErrorLog(kDARCError);
     }
+    */
   }
   
 }
@@ -350,12 +365,16 @@ Bool_t AliZDCRawStream::Next()
 
   if(!fRawReader->ReadNextInt((UInt_t&) fBuffer)) return kFALSE;
   const int kNch = 48;
-  Int_t kFirstADCGeo=0, kLastADCGeo=3, kScalerGeo=8, kPUGeo=29, kTrigScales=30, kTrigHistory=31;
+  Int_t kFirstADCGeo=0, kLastADCGeo=3;
+  Int_t kADDADCGeo=5, kADDTDCGeo=6;
+  Int_t kZDCTDCGeo=8, kScalerGeo=16;
+  Int_t kPUGeo=29, kTrigScales=30, kTrigHistory=31;
+  //
   fIsHeaderMapping = kFALSE; fIsChMapping = kFALSE; 
   fIsADCHeader = kFALSE; fIsADCDataWord = kFALSE; fIsADCEOB = kFALSE;
-  fIsUnderflow = kFALSE; fIsOverflow = kFALSE; 
+  fIsADDChannel = kFALSE; fIsADDTDCHeader= kFALSE; fIsADDTDCdatum=kFALSE;
+  fIsUnderflow = kFALSE; fIsOverflow = kFALSE; fIsScalerWord = kFALSE;
   fSector[0] = fSector[1] = -1;
-//  fTrigCountNWords = 9; fTrigHistNWords = 2;
   for(Int_t kl=0; kl<4; kl++) fCPTInput[kl] = 0;
 
   fEvType = fRawReader->GetType();
@@ -406,7 +425,7 @@ Bool_t AliZDCRawStream::Next()
     
     if(fPosition>=fDataOffset){
       if((fBuffer&0xff000001) == 0xff000001){ // ************** Mapping
-        // DARC 1st datum @ fDataOffset+1 \ ZRC 1st valid datum fDataOffset=0
+        // DARC 1st datum @ fDataOffset+1 \ ZRC 1st valid datum @ fDataOffset=0
         if((fPosition==fDataOffset+1) || (fPosition==fDataOffset)){ 
 	   printf("\n\n ------ AliZDCRawStream -> Reading mapping from StartOfData event ------\n");
 	   fCurrentCh=0; fCurrScCh=0;	
@@ -434,8 +453,8 @@ Bool_t AliZDCRawStream::Next()
 	fCabledSignal = (fBuffer&0xffff);
         //
 	if(fModType == kV965){ // ******** ADCs ********************************
-           // Channel signal
-	  if((fBuffer&0x40000000)>>30==0){ // high range chain ADC
+          // Channel signal
+	  if((fBuffer&0x40000000)>>30==0 && fADCModule<=kLastADCGeo){ // *ZDC* high range chain ADC
             fIsChMapping = kTRUE;
 	    fMapADC[fCurrentCh][0] = fADCModule;
 	    fMapADC[fCurrentCh][1] = fADCChannel;
@@ -514,47 +533,52 @@ Bool_t AliZDCRawStream::Next()
 	  //  look the enum in AliZDCRawStream.h file
 	  // -----------------------------------------
 	  // NOT CONSIDERING OUT OF TIME OR REFERENCE SIGNALS FOR SCALER!!!!!
-	  if(fCabledSignal>=2 && fCabledSignal<=6){
+	  if((fCabledSignal>=2 && fCabledSignal<=6) ||
+	     (fCabledSignal>=61 && fCabledSignal<=65)){
 	    fScalerMap[fCurrScCh][3] = 4; //ZNA
 	    //
-	    if(fCabledSignal==2 )      fScalerMap[fCurrScCh][4]=0;
-	    else if(fCabledSignal==3)  fScalerMap[fCurrScCh][4]=1;
-	    else if(fCabledSignal==4)  fScalerMap[fCurrScCh][4]=2;
-	    else if(fCabledSignal==5)  fScalerMap[fCurrScCh][4]=3;
-	    else if(fCabledSignal==6)  fScalerMap[fCurrScCh][4]=4;
+	    if(fCabledSignal==2 || fCabledSignal==61)      fScalerMap[fCurrScCh][4]=0;
+	    else if(fCabledSignal==3 || fCabledSignal==62)  fScalerMap[fCurrScCh][4]=1;
+	    else if(fCabledSignal==4 || fCabledSignal==63)  fScalerMap[fCurrScCh][4]=2;
+	    else if(fCabledSignal==5 || fCabledSignal==64)  fScalerMap[fCurrScCh][4]=3;
+	    else if(fCabledSignal==6 || fCabledSignal==65)  fScalerMap[fCurrScCh][4]=4;
 	  }
-	  else if(fCabledSignal>=7 && fCabledSignal<=11){
+	  else if((fCabledSignal>=7 && fCabledSignal<=11) ||
+	     (fCabledSignal>=66 && fCabledSignal<=70)){
 	    fScalerMap[fCurrScCh][3] = 5; //ZPA
 	    //
-	    if(fCabledSignal==7 )      fScalerMap[fCurrScCh][4]=0;
-	    else if(fCabledSignal==8)  fScalerMap[fCurrScCh][4]=1;
-	    else if(fCabledSignal==9)  fScalerMap[fCurrScCh][4]=2;
-	    else if(fCabledSignal==10) fScalerMap[fCurrScCh][4]=3;
-	    else if(fCabledSignal==11) fScalerMap[fCurrScCh][4]=4;
+	    if(fCabledSignal==7 || fCabledSignal==66)      fScalerMap[fCurrScCh][4]=0;
+	    else if(fCabledSignal==8 || fCabledSignal==67)  fScalerMap[fCurrScCh][4]=1;
+	    else if(fCabledSignal==9 || fCabledSignal==68)  fScalerMap[fCurrScCh][4]=2;
+	    else if(fCabledSignal==10 || fCabledSignal==69) fScalerMap[fCurrScCh][4]=3;
+	    else if(fCabledSignal==11 || fCabledSignal==70) fScalerMap[fCurrScCh][4]=4;
 	  }
-	  else if(fCabledSignal>=12 && fCabledSignal<=16){
+	  else if((fCabledSignal>=12 && fCabledSignal<=16) ||
+	     (fCabledSignal>=71 && fCabledSignal<=75)){
 	    fScalerMap[fCurrScCh][3] = 1; //ZNC
 	    //
-	    if(fCabledSignal==12)      fScalerMap[fCurrScCh][4]=0;
-	    else if(fCabledSignal==13) fScalerMap[fCurrScCh][4]=1;
-	    else if(fCabledSignal==14) fScalerMap[fCurrScCh][4]=2;
-	    else if(fCabledSignal==15) fScalerMap[fCurrScCh][4]=3;
-	    else if(fCabledSignal==16) fScalerMap[fCurrScCh][4]=4;
+	    if(fCabledSignal==12 || fCabledSignal==71)      fScalerMap[fCurrScCh][4]=0;
+	    else if(fCabledSignal==13 || fCabledSignal==72) fScalerMap[fCurrScCh][4]=1;
+	    else if(fCabledSignal==14 || fCabledSignal==73) fScalerMap[fCurrScCh][4]=2;
+	    else if(fCabledSignal==15 || fCabledSignal==74) fScalerMap[fCurrScCh][4]=3;
+	    else if(fCabledSignal==16 || fCabledSignal==75) fScalerMap[fCurrScCh][4]=4;
 	  }
-	  else if(fCabledSignal>=17 && fCabledSignal<=21){
+	  else if((fCabledSignal>=17 && fCabledSignal<=21) ||
+	     (fCabledSignal>=76 && fCabledSignal<=80)){
 	    fScalerMap[fCurrScCh][3] = 2; //ZPC
 	    //
-	    if(fCabledSignal==17)      fScalerMap[fCurrScCh][4]=0;
-	    else if(fCabledSignal==18) fScalerMap[fCurrScCh][4]=1;
-	    else if(fCabledSignal==19) fScalerMap[fCurrScCh][4]=2;
-	    else if(fCabledSignal==20) fScalerMap[fCurrScCh][4]=3;
-	    else if(fCabledSignal==21) fScalerMap[fCurrScCh][4]=4;
+	    if(fCabledSignal==17 || fCabledSignal==76)      fScalerMap[fCurrScCh][4]=0;
+	    else if(fCabledSignal==18 || fCabledSignal==77) fScalerMap[fCurrScCh][4]=1;
+	    else if(fCabledSignal==19 || fCabledSignal==78) fScalerMap[fCurrScCh][4]=2;
+	    else if(fCabledSignal==20 || fCabledSignal==79) fScalerMap[fCurrScCh][4]=3;
+	    else if(fCabledSignal==21 || fCabledSignal==80) fScalerMap[fCurrScCh][4]=4;
 	  }
-	  else if(fCabledSignal==22 || fCabledSignal==23){
+	  else if(fCabledSignal==22 || fCabledSignal==23 ||
+	          fCabledSignal==81 || fCabledSignal==82){
 	    fScalerMap[fCurrScCh][3] = 3; // ZEM
 	    //
-	    if(fCabledSignal==22 )     fScalerMap[fCurrScCh][4]=1;
-	    else if(fCabledSignal==23) fScalerMap[fCurrScCh][4]=2;
+	    if(fCabledSignal==22 || fCabledSignal==81)     fScalerMap[fCurrScCh][4]=1;
+	    else if(fCabledSignal==23 || fCabledSignal==82) fScalerMap[fCurrScCh][4]=2;
 	  }
       	  // Ch debug.
 	  //printf("\t VME scaler mod. %d ch. %d, signal %d",fScalerMap[fCurrScCh][0],fADCChannel,fCabledSignal);
@@ -588,7 +612,7 @@ Bool_t AliZDCRawStream::Next()
   }
   else if(fPosition==fDeadfaceOffset && fReadOutCard==0){
     if(fBuffer != 0xdeadface){
-      AliWarning(" NO deadface after DARC data");
+      //AliWarning(" NO deadface after DARC data");
       fRawReader->AddMajorErrorLog(kDARCError); 
     }
     else{
@@ -602,7 +626,7 @@ Bool_t AliZDCRawStream::Next()
   }
   else if(fPosition==fDeadbeefOffset && fReadOutCard==0){
     if(fBuffer != 0xdeadbeef){
-      AliWarning(" NO deadbeef after DARC global data");
+      //AliWarning(" NO deadbeef after DARC global data");
       fRawReader->AddMajorErrorLog(kDARCError);  
       fPosition++;
       return kFALSE;
@@ -650,12 +674,8 @@ Bool_t AliZDCRawStream::Next()
     }
      
     // Get geo address of current word
-    // - ADC GEO = 0, 1, 2, 3
-    // - VME scaler GEO = 8
-    // - PU GEO = 29
-    // - Trigger card scales GEO = 30
-    // - Trigger card history GEO = 31
     fADCModule = (Int_t) ((fBuffer & 0xf8000000)>>27);
+    if(fIsTDCHeaderRead)fADCModule = kZDCTDCGeo;
     
     // ************************************ ADC MODULES ************************************
     if(fADCModule>=kFirstADCGeo && fADCModule<=kLastADCGeo){
@@ -733,6 +753,56 @@ Bool_t AliZDCRawStream::Next()
     	//printf("  AliZDCRawStream -> EOB --------------------------\n");
       }
     }//ADC module
+    // ********************************* ADD ADC *********************************
+    else if(fADCModule == kADDADCGeo){
+      // *** ADC header
+      if((fBuffer & 0x07000000) == 0x02000000){
+        fIsADCHeader = kTRUE;
+    	fADCNChannels = ((fBuffer & 0x00003f00)>>8);
+    	//printf("  AliZDCRawStream -> ADD ADC HEADER: mod.%d has %d ch. \n",fADCModule,fADCNChannels);
+      }
+      // *** ADC data word
+      else if((fBuffer & 0x07000000) == 0x00000000){
+        fIsADDChannel = kTRUE;
+        fADCChannel = ((fBuffer & 0x1e0000) >> 17);
+        fADCGain = ((fBuffer & 0x10000) >> 16);       
+        fADCValue = (fBuffer & 0xfff);  
+    	//
+	//printf("  ADD ADC DATUM -> mod. %d ch. %d gain %d value %d\n",
+	//  fADCModule,fADCChannel,fADCGain,fADCValue);
+      }
+      // *** ADC EOB
+      else if((fBuffer & 0x07000000) == 0x04000000){
+        fIsADCEOB = kTRUE;
+    	//printf("  AliZDCRawStream -> EOB --------------------------\n");
+      }
+    }
+    // ********************************* ZDC TDC *********************************
+    else if(fADCModule==kZDCTDCGeo && fIsTDCHeaderRead==kFALSE){
+      fIsZDCTDCHeader = kTRUE;
+      fIsTDCHeaderRead = kTRUE;
+      fTDCStartCounter = fPosition;
+      //Ch. debug
+      //printf("  AliZDCRawStream -> ZDC TDC: mod.%d\n",fADCModule);
+    }
+    // ********************************* ADD TDC *********************************
+    else if(fADCModule == kADDTDCGeo){
+      // *** TDC header
+      if((fBuffer & 0x07000000) == 0x02000000){
+        fIsADDTDCHeader = kTRUE;
+    	fADCNChannels = ((fBuffer & 0x00003f00)>>8);
+        //printf("  AliZDCRawStream -> ADD TDC: mod.%d has %d ch. \n",fADCModule,fADCNChannels);
+      }
+      // *** TDC  word
+      else if((fBuffer & 0x07000000) == 0x00000000){
+        fIsADDTDCdatum = kTRUE;
+      }
+      // *** TDC  EOB
+      if((fBuffer & 0x07000000) == 0x04000000){
+        fIsADCEOB = kTRUE;
+    	//printf("  AliZDCRawStream -> ADD TDC EOB\n");
+      }
+   }
     // ********************************* VME SCALER HEADER *********************************
     else if(fADCModule == kScalerGeo){
       if(fBuffer & 0x04000000 && fIsScHeaderRead==kFALSE){ // *** Scaler header
@@ -782,17 +852,29 @@ Bool_t AliZDCRawStream::Next()
     // ********************************** VME SCALER DATA **********************************
     //  Reading VME scaler data 
     if(fIsScHeaderRead && fPosition>=fScStartCounter+1){ // *** Scaler word
-      fADCModule = kScalerGeo;
+      fADCModule=kScalerGeo; fIsADCDataWord=kFALSE; fIsScalerWord=kTRUE;
       fScEvCounter = fBuffer;
       Int_t nWords = (Int_t) (fScNWords);
       if(fPosition == fScStartCounter+nWords) fIsScHeaderRead = kFALSE;
       //Ch. debug
       //printf("  AliZDCRawStream -> scaler datum %d", fScEvCounter);
     }
+    // ********************************** ZDC TDC DATA **********************************
+    //  ZDC TDC data
+    if(fIsTDCHeaderRead && fPosition>=fTDCStartCounter+1){ 
+      fIsADCDataWord=kFALSE; fIsScalerWord=kFALSE;
+      //printf("  AliZDCRawStream -> ...skipping ZDC TDC datum\n");
+      // For the moment we skip the TDC data
+      if(((fBuffer & 0xf0000000) == 0x80000000) && ((fBuffer & 0x08000000) >> 27) == 0){
+	fIsTDCHeaderRead = kFALSE;
+        // Ch. debug
+        //printf("  AliZDCRawStream -> ZDC TDC trailer\n");
+      }
+    }
     // ******************************** TRIGGER SCALER DATA ********************************
     //  Reading trigger scaler data 
     if(fIsTriggerScaler && fPosition>=fTrigCountStart+1){
-      fADCModule = kTrigScales;
+      fADCModule = kTrigScales; fIsADCDataWord = kFALSE;	
       if(fPosition == fTrigCountStart+1)      fMBTrigInput = fBuffer;		    
       else if(fPosition == fTrigCountStart+2) fCentralTrigInput = fBuffer;		    
       else if(fPosition == fTrigCountStart+3) fSCentralTrigInput = fBuffer;
@@ -811,7 +893,7 @@ Bool_t AliZDCRawStream::Next()
     // ******************************* TRIGGER HISTORY WORDS ******************************
     //  Reading trigger history
     if(fIsTriggerHistory && fPosition>=fTrigHistStart+1){
-	fADCModule = kTrigHistory;	
+	fADCModule = kTrigHistory; fIsADCDataWord = kFALSE;	
 	if(fPosition == fTrigHistStart+1){
 	  fPileUpBit1stWord = (fBuffer & 0x80000000) >> 31;
 	  fL0Bit1stWord = (fBuffer & 0x40000000) >> 30;        

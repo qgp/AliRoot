@@ -42,23 +42,55 @@
 #include "AliQAManager.h"
 
 ClassImp(AliHMPIDQAChecker)
+ //_________________________________________________________________
+AliHMPIDQAChecker::AliHMPIDQAChecker() : 
+AliQACheckerBase("HMPID","HMPID Quality Assurance Data Checker"), 
+fNoReference(kTRUE), 
+fQARefRec(NULL)
+{
+    //ctor, fetches the reference data from OCDB 
+  char * detOCDBDir = Form("HMPID/%s/%s", AliQAv1::GetRefOCDBDirName(), AliQAv1::GetRefDataDirName()) ; 
+  AliCDBEntry * QARefRec = AliQAManager::QAManager()->Get(detOCDBDir);
+  if(QARefRec) {
+    fQARefRec = dynamic_cast<TObjArray*> (QARefRec->GetObject()) ; 
+    if (fQARefRec)
+      if (fQARefRec->GetEntries()) 
+        fNoReference = kFALSE ;            
+    if (fNoReference) 
+      AliInfo("QA reference data NOT retrieved for Reconstruction check. No HMPIDChecker!");
+  }
+}
 
 //_________________________________________________________________
-Double_t * AliHMPIDQAChecker::Check(AliQAv1::ALITASK_t index, TObjArray ** list, AliDetectorRecoParam * /*recoParam*/) 
+AliHMPIDQAChecker::AliHMPIDQAChecker(const AliHMPIDQAChecker& qac) : 
+AliQACheckerBase(qac.GetName(), qac.GetTitle()), 
+fNoReference(qac.fNoReference), 
+fQARefRec(NULL)
+{
+  fNoReference = qac.fNoReference ; 
+  if (qac.fQARefRec) {
+    fQARefRec = new TObjArray(qac.fQARefRec->GetEntries()) ; 
+    for (Int_t index=0; index < qac.fQARefRec->GetEntries(); index++) 
+      fQARefRec->Add(qac.fQARefRec->At(index)) ; 
+  }
+}
+
+//_________________________________________________________________
+AliHMPIDQAChecker::~AliHMPIDQAChecker() 
+{
+  fQARefRec->Delete() ; 
+  delete fQARefRec ; 
+}
+//_________________________________________________________________
+Double_t * AliHMPIDQAChecker::Check(AliQAv1::ALITASK_t index, TObjArray ** list, const AliDetectorRecoParam * /*recoParam*/) 
 {
 //
 // Main check function: Depending on the TASK, different checks are applied
 // At the moment:       check for empty histograms and checks for RecPoints
 
   Double_t * check = new Double_t[AliRecoParam::kNSpecies] ; 
-  
-  AliInfo(Form("Fix needed ....."));
-  char * detOCDBDir = Form("HMPID/%s/%s", AliQAv1::GetRefOCDBDirName(), AliQAv1::GetRefDataDirName()) ; 
-  AliCDBEntry *QARefRec = AliQAManager::QAManager()->Get(detOCDBDir);
-  if(!QARefRec){
-    AliInfo("QA reference data NOT retrieved for Reconstruction check. No HMPIDChecker  ...exiting");
-    return check;
-  }
+  if(fNoReference)  
+  return check;
 
   for (Int_t specie = 0 ; specie < AliRecoParam::kNSpecies ; specie++) {
     check[specie] = 1.0;
@@ -71,17 +103,16 @@ Double_t * AliHMPIDQAChecker::Check(AliQAv1::ALITASK_t index, TObjArray ** list,
     }
   
     //check sim
-    if(index == AliQAv1::kSIM) check[specie] = CheckSim(list[specie],(TObjArray *)QARefRec->GetObject());
+    if(index == AliQAv1::kSIM) check[specie] = CheckSim(list[specie], fQARefRec);
 
     // checking rec points
-    if(index == AliQAv1::kREC) check[specie] = CheckRec(list[specie],(TObjArray *)QARefRec->GetObject());
-
+    if(index == AliQAv1::kREC) check[specie] = CheckRec(list[specie], fQARefRec);
+   
     //default check response. It will be changed when reasonable checks will be considered
     else check[specie] = 0.7 ; // /-> Corresponds to kINFO see AliQACheckerBase::Run 
   } // species loop
 
   return check;
-
 }
 //_________________________________________________________________
 Double_t AliHMPIDQAChecker::CheckEntries(TObjArray * list) const
@@ -137,17 +168,17 @@ Double_t AliHMPIDQAChecker::CheckSim(TObjArray *listsim, TObjArray *listref) con
    TIter next(listsim) ;
    TH1* histo;
    while ( (histo = dynamic_cast<TH1 *>(next())) ) {
-     //PH The histogram should have at least 3 bins with entries
+     //PH The histogram should have at least 10 bins with at least 5 entries
      Int_t nbinsabove = 0;
-     for (Int_t ibin=histo->FindBin(1); ibin<=histo->FindBin(50); ibin++) { //1,50 is the fit region, see histo->Fit("expo","Q0","",1,50);
-       if (histo->GetBinContent(ibin)>0) nbinsabove++;
+     for (Int_t ibin=histo->FindBin(1); ibin<=histo->FindBin(50); ibin++) { 
+       if (histo->GetBinContent(ibin)>5) nbinsabove++;
      }
 
-   if( nbinsabove < 3 ) counter++;
+   if( nbinsabove < 10 ) counter++;
    else {
     TString h = histo->GetTitle();
     if(h.Contains("Zoom")){
-    histo->Fit("expo","LQ0","",1,50);
+    histo->Fit("expo","LQ0","",5,50);
     if(histo->GetFunction("expo")->GetParameter(1) !=0 ) if(TMath::Abs((-1./(histo->GetFunction("expo"))->GetParameter(1)) - 35 ) > 5) counter++;
     }
     if(h.Contains("size  MIP"))   if(TMath::Abs(histo->GetMean()-5) > 2) counter++;
@@ -177,17 +208,17 @@ Double_t AliHMPIDQAChecker::CheckRec(TObjArray *listrec, TObjArray *listref) con
    TIter next(listrec) ;
    TH1* histo;
    while ( (histo = dynamic_cast<TH1 *>(next())) ) {
-     //PH The histogram should have at least 3 bins with entries
+     //PH The histogram should have at least 10 bins with at least 5 entries
      Int_t nbinsabove = 0;
-     for (Int_t ibin=histo->FindBin(1); ibin<=histo->FindBin(50); ibin++) { //1,50 is the fit region, see histo->Fit("expo","Q0","",1,50);
-       if (histo->GetBinContent(ibin)>0) nbinsabove++;
+     for (Int_t ibin=histo->FindBin(1); ibin<=histo->FindBin(50); ibin++) { 
+       if (histo->GetBinContent(ibin)>5) nbinsabove++;
      }
 
-   if( nbinsabove < 3 ) counter++;
+   if( nbinsabove < 10 ) counter++;
    else {
     TString h = histo->GetTitle();
     if(h.Contains("Zoom")){
-    histo->Fit("expo","LQ0","",1,50);
+    histo->Fit("expo","LQ0","",5,50);
     if(histo->GetFunction("expo")->GetParameter(1) !=0 ) if(TMath::Abs((-1./(histo->GetFunction("expo"))->GetParameter(1)) - 35 ) > 5) counter++;
     }
     if(h.Contains("size  MIP"))   if(TMath::Abs(histo->GetMean()-5) > 2) counter++;

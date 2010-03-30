@@ -36,6 +36,7 @@ void ReadOldSSDNoise(TObjArray *array, AliITSNoiseSSDv2 *noiseSSD);
 void ReadOldSSDBadChannels(TObjArray *array, AliITSBadChannelsSSDv2 *badChannelsSSD);
 void ReadOldSSDGain(TObjArray *array, AliITSGainSSDv2 *gainSSD);
 void drawNoiseDistributions(Int_t runNumber);
+void drawPedestalDistributions(Int_t runNumber);
 //====================================================================//
 
 //_____________________________________________________________________//
@@ -49,7 +50,8 @@ void readSSDOCDBEntry(const char* type = "alien", Int_t runNumber = 0) {
   AliCDBManager * man = AliCDBManager::Instance();
   
   if(gType == "alien") {
-    man->SetDefaultStorage("alien://folder=/alice/data/2009/Reference/");
+    //man->SetDefaultStorage("alien://folder=/alice/data/2009/Reference/");
+    man->SetDefaultStorage("alien://folder=/alice/data/2009/OCDB/");
   }
   else if(gType == "local") 
     man->SetDefaultStorage("local://$ALICE_ROOT/OCDB");
@@ -60,10 +62,10 @@ void readSSDOCDBEntry(const char* type = "alien", Int_t runNumber = 0) {
   
   man->SetRun(runNumber);
     
-  Pedestal(man);
-  //Noise(man);
-  //BadChannelMap(man);
-  //GainCalibration(man);
+  //Pedestal(man);
+  Noise(man);
+  BadChannelMap(man);
+  GainCalibration(man);
 }
 
 //_____________________________________________________________________//
@@ -174,6 +176,7 @@ void Pedestal(AliCDBManager * man) {
     //cout<<"Pedestal for module: "<<i+500<<" - Layer: "<<fLayer<<endl;
     for(Int_t j = 0; j < fgkDefaultNStripsSSD; j++) {
       pedestal = pedestalSSD->GetPedestalP(i,j);
+      //Printf("Pedestal value: %lf",pedestal);
       if(fLayer == 5) 
 	gHistPedestalPSideLayer5->Fill(pedestal);
       if(fLayer == 6) 
@@ -463,6 +466,13 @@ void BadChannelMap(AliCDBManager * man) {
   cBadChannel->cd(4)->SetGridx(); cBadChannel->cd(4)->SetGridy();
   cBadChannel->cd(4); fHistNSideBadChannelMapLayer6->Draw("colz");
   cBadChannel->SaveAs("Run-BadChannels.gif");
+
+  TFile *fOutput = new TFile("badChannelsSSD.root","recreate");
+  fHistPSideBadChannelMapLayer5->Write();
+  fHistNSideBadChannelMapLayer5->Write();
+  fHistPSideBadChannelMapLayer6->Write();
+  fHistNSideBadChannelMapLayer6->Write();
+  fOutput->Close();
 }
 
 //_____________________________________________________________________//

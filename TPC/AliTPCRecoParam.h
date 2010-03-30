@@ -17,11 +17,19 @@ class AliTPCRecoParam : public AliDetectorRecoParam
  public: 
   AliTPCRecoParam();
   virtual ~AliTPCRecoParam();
+  static   Bool_t  GetUseTimeCalibration();
+  static   void    SetUseTimeCalibration(Bool_t useTimeCalibration);
   void     SetClusterSharing(Bool_t sharing){fBClusterSharing=sharing;}
   Bool_t   GetClusterSharing() const {return fBClusterSharing;}
   Double_t GetCtgRange() const     { return fCtgRange;}
   Double_t GetMaxSnpTracker() const{ return fMaxSnpTracker;}
   Double_t GetMaxSnpTrack() const  { return fMaxSnpTrack;}
+  Bool_t   GetUseOuterDetectors() const { return fUseOuterDetectors;}
+  void     SetUseOuterDetectors(Bool_t flag)  { fUseOuterDetectors=flag;}
+  Double_t GetCutSharedClusters(Int_t index)const { return fCutSharedClusters[index];}
+  void  SetCutSharedClusters(Int_t index, Float_t value){ fCutSharedClusters[index]=value;}
+  Int_t GetClusterMaxRange(Int_t index)const { return fClusterMaxRange[index];}
+  void     SetClusterMaxRange(Int_t index, Int_t value){ fClusterMaxRange[index]=value;}
   //
   Bool_t   DumpSignal()     const  { return fDumpSignal;}
   void     SetTimeInterval(Int_t first, Int_t last) { fFirstBin=first, fLastBin =last;}
@@ -51,8 +59,13 @@ class AliTPCRecoParam : public AliDetectorRecoParam
   Int_t    GetLastSeedRowSec()       const  { return fLastSeedRowSec;} 
   void     SetDoKinks(Bool_t on)   { fBKinkFinder=on; }
   Bool_t   GetDoKinks() const      { return fBKinkFinder;}
+  Double_t GetKinkAngleCutChi2(Int_t index) const {return fKinkAngleCutChi2[index];}
+  void     SetKinkAngleCutChi2(Int_t index,Double_t value) {fKinkAngleCutChi2[index]=value;}
   Float_t  GetMaxC()    const      { return fMaxC;}
   Bool_t   GetSpecialSeeding() const { return fBSpecialSeeding;}
+  //
+  //
+
   //
   // Correction setup
   //
@@ -98,6 +111,11 @@ class AliTPCRecoParam : public AliDetectorRecoParam
   Double_t fCtgRange;        // +-fCtgRange is the ctg(Theta) window used for clusterization and tracking (MI) 
   Double_t fMaxSnpTracker;   // max sin of local angle  - for TPC tracker
   Double_t fMaxSnpTrack;     // max sin of local angle  - for track 
+  Bool_t   fUseOuterDetectors; // switch - to use the outer detectors
+  //
+  //
+  Double_t fCutSharedClusters[2]; // cut value - maximal amount  of shared clusters  
+  Int_t fClusterMaxRange[2];   // neighborhood  - to define local maxima for cluster  
   //
   //   clusterer parameters
   //
@@ -118,7 +136,8 @@ class AliTPCRecoParam : public AliDetectorRecoParam
   //
   Float_t  fMaxC;            // maximal curvature for tracking
   Bool_t   fBSpecialSeeding; // special seeding with big inclination angles allowed (for Cosmic and laser)
-  Bool_t   fBKinkFinder;     // do kink finder reconstruction
+  Bool_t   fBKinkFinder;       // do kink finder reconstruction
+  Double_t fKinkAngleCutChi2[2];   // angular cut for kinks
   Int_t    fLastSeedRowSec;     // Most Inner Row to make seeding for secondaries
   //
   // Correction switches
@@ -141,10 +160,15 @@ class AliTPCRecoParam : public AliDetectorRecoParam
 
   Bool_t fUseTOFCorrection;  // switch - kTRUE use TOF correction kFALSE - do not use
   //
-  //  misscalibration
+  //  misscalibration 
   //
-  Double_t fSystematicErrors[5];  //systematic errors in the track parameters - to be added to TPC covariance matrix    
-  ClassDef(AliTPCRecoParam, 7)
+  Double_t fSystematicErrors[5];  //systematic errors in the track parameters - to be added to TPC covariance matrix 
+public:   
+  static Bool_t fgUseTimeCalibration; // flag usage the time dependent calibration
+                                      // to be switched off for pass 0 reconstruction
+                                      // Use static function, other option will be to use 
+                                      // additional specific storage ?
+  ClassDef(AliTPCRecoParam, 9)
 };
 
 

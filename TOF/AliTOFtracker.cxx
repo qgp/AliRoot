@@ -39,11 +39,12 @@
 #include "AliGeomManager.h"
 #include "AliESDtrack.h"
 #include "AliESDEvent.h"
+#include "AliESDpid.h"
 #include "AliLog.h"
 #include "AliTrackPointArray.h"
 #include "AliCDBManager.h"
 
-#include "AliTOFpidESD.h"
+//#include "AliTOFpidESD.h"
 #include "AliTOFRecoParam.h"
 #include "AliTOFReconstructor.h"
 #include "AliTOFcluster.h"
@@ -60,7 +61,6 @@ ClassImp(AliTOFtracker)
 AliTOFtracker::AliTOFtracker():
   fRecoParam(0x0),
   fGeom(0x0),
-  fPid(0x0),
   fN(0),
   fNseeds(0),
   fNseedsTOF(0),
@@ -108,7 +108,6 @@ AliTOFtracker::~AliTOFtracker() {
     delete fRecoParam;
   }
   delete fGeom; 
-  delete fPid; 
   delete fHDigClusMap;
   delete fHDigNClus;
   delete fHDigClusTime;
@@ -133,14 +132,23 @@ AliTOFtracker::~AliTOFtracker() {
 
 }
 //_____________________________________________________________________________
+void AliTOFtracker::GetPidSettings(AliESDpid *esdPID) {
+  // 
+  // Sets TOF resolution from RecoParams
+  //
+  if (fRecoParam)
+    esdPID->GetTOFResponse().SetTimeResolution(fRecoParam->GetTimeResolution());
+  else
+    AliWarning("fRecoParam not yet set; cannot set PID settings");
+} 
+//_____________________________________________________________________________
 Int_t AliTOFtracker::PropagateBack(AliESDEvent* event) {
   //
   // Gets seeds from ESD event and Match with TOF Clusters
   //
 
   // initialize RecoParam for current event
-
-  AliInfo("Initializing params for TOF... ");
+  AliDebug(1,"Initializing params for TOF");
 
   fRecoParam = AliTOFReconstructor::GetRecoParam();  // instantiate reco param from STEER...
 
@@ -150,11 +158,6 @@ Int_t AliTOFtracker::PropagateBack(AliESDEvent* event) {
   //fRecoParam->Dump();
   //if(fRecoParam->GetApplyPbPbCuts())fRecoParam=fRecoParam->GetPbPbparam();
   //fRecoParam->PrintParameters();
-
-  Double_t parPID[2];   
-  parPID[0]=fRecoParam->GetTimeResolution();
-  parPID[1]=fRecoParam->GetTimeNSigma();
-  fPid=new AliTOFpidESD(parPID);
 
   //Initialise some counters
 
@@ -186,9 +189,7 @@ Int_t AliTOFtracker::PropagateBack(AliESDEvent* event) {
   //Second Step with Looser Matching Criterion
   MatchTracks(kTRUE);
 
-  AliInfo(Form("Number of matched tracks: %d",fnmatch));
-  AliInfo(Form("Number of good matched tracks: %d",fngoodmatch));
-  AliInfo(Form("Number of bad  matched tracks: %d",fnbadmatch));
+  AliInfo(Form("Number of matched tracks = %d (good = %d, bad = %d)",fnmatch,fngoodmatch,fnbadmatch));
 
   //Update the matched ESD tracks
 
@@ -207,20 +208,90 @@ Int_t AliTOFtracker::PropagateBack(AliESDEvent* event) {
 	t->SetTOFsignalRaw(seed->GetTOFsignalRaw());
 	t->SetTOFsignalDz(seed->GetTOFsignalDz());
 	t->SetTOFsignalDx(seed->GetTOFsignalDx());
+	t->SetTOFDeltaBC(seed->GetTOFDeltaBC());
+	t->SetTOFL0L1(seed->GetTOFL0L1());
 	t->SetTOFCalChannel(seed->GetTOFCalChannel());
 	Int_t tlab[3]; seed->GetTOFLabel(tlab);    
 	t->SetTOFLabel(tlab);
 
-	Float_t info[10]={0.,0.,0.,0.,0.,0.,0.,0.,0.,0.};
-	seed->GetTOFInfo(info);
-	t->SetTOFInfo(info);
-	AliDebug(2,Form(" distance=%f; residual in the pad reference frame: dX=%f, dZ=%f", info[0],info[1],info[2]));
+	Double_t alphaA = dynamic_cast<AliExternalTrackParam*>(t)->GetAlpha();
+	Double_t xA = dynamic_cast<AliExternalTrackParam*>(t)->GetX();
+	Double_t yA = dynamic_cast<AliExternalTrackParam*>(t)->GetY();
+	Double_t zA = dynamic_cast<AliExternalTrackParam*>(t)->GetZ();
+	Double_t p1A = dynamic_cast<AliExternalTrackParam*>(t)->GetSnp();
+	Double_t p2A = dynamic_cast<AliExternalTrackParam*>(t)->GetTgl();
+	Double_t p3A = dynamic_cast<AliExternalTrackParam*>(t)->GetSigned1Pt();
+	const Double_t *covA = dynamic_cast<AliExternalTrackParam*>(t)->GetCovariance();
 
-	AliTOFtrack *track = new AliTOFtrack(*seed);
-	t->UpdateTrackParams(track,AliESDtrack::kTOFout); // to be checked - AdC
-	delete track;
-	Double_t time[10]; t->GetIntegratedTimes(time);
-	AliDebug(2,Form(" %6d  %f %f %f %f %f %6d %3d %f  %f %f %f %f %f",
+	// Make attention, please:
+	//      AliESDtrack::fTOFInfo array does not be stored in the AliESDs.root file
+	//      it is there only for a check during the reconstruction step.
+	Float_t info[10]; seed->GetTOFInfo(info);
+	t->SetTOFInfo(info);
+	AliDebug(3,Form(" distance=%f; residual in the pad reference frame: dX=%f, dZ=%f", info[0],info[1],info[2]));
+
+	// Check done:
+	//       by calling the AliESDtrack::UpdateTrackParams,
+	//       the current track parameters are changed
+	//       and it could cause refit problems.
+	//       We need to update only the following track parameters:
+        //            the track length and expected times.
+	//       Removed AliESDtrack::UpdateTrackParams call
+	//       Called AliESDtrack::SetIntegratedTimes(...) and
+	//       AliESDtrack::SetIntegratedLength() routines.
+	/*
+	  AliTOFtrack *track = new AliTOFtrack(*seed);
+	  t->UpdateTrackParams(track,AliESDtrack::kTOFout); // to be checked - AdC
+	  delete track;
+	  Double_t time[10]; t->GetIntegratedTimes(time);
+	*/
+
+	Double_t time[10]; seed->GetIntegratedTimes(time);
+	t->SetIntegratedTimes(time);
+
+	Double_t length =  seed->GetIntegratedLength();
+	t->SetIntegratedLength(length);
+
+	Double_t alphaB = dynamic_cast<AliExternalTrackParam*>(t)->GetAlpha();
+	Double_t xB = dynamic_cast<AliExternalTrackParam*>(t)->GetX();
+	Double_t yB = dynamic_cast<AliExternalTrackParam*>(t)->GetY();
+	Double_t zB = dynamic_cast<AliExternalTrackParam*>(t)->GetZ();
+	Double_t p1B = dynamic_cast<AliExternalTrackParam*>(t)->GetSnp();
+	Double_t p2B = dynamic_cast<AliExternalTrackParam*>(t)->GetTgl();
+	Double_t p3B = dynamic_cast<AliExternalTrackParam*>(t)->GetSigned1Pt();
+	const Double_t *covB = dynamic_cast<AliExternalTrackParam*>(t)->GetCovariance();
+	AliDebug(2,"Track params -now(before)-:");
+	AliDebug(2,Form("    X: %f(%f), Y: %f(%f), Z: %f(%f) --- alpha: %f(%f)",
+			xB,xA,
+			yB,yA,
+			zB,zA,
+			alphaB,alphaA));
+	AliDebug(2,Form("    p1: %f(%f), p2: %f(%f), p3: %f(%f)",
+			p1B,p1A,
+			p2B,p2A,
+			p3B,p3A));
+	AliDebug(2,Form("    cov1: %f(%f), cov2: %f(%f), cov3: %f(%f)"
+			" cov4: %f(%f), cov5: %f(%f), cov6: %f(%f)"
+			" cov7: %f(%f), cov8: %f(%f), cov9: %f(%f)"
+			" cov10: %f(%f), cov11: %f(%f), cov12: %f(%f)"
+			" cov13: %f(%f), cov14: %f(%f), cov15: %f(%f)",
+			covB[0],covA[0],
+			covB[1],covA[1],
+			covB[2],covA[2],
+			covB[3],covA[3],
+			covB[4],covA[4],
+			covB[5],covA[5],
+			covB[6],covA[6],
+			covB[7],covA[7],
+			covB[8],covA[8],
+			covB[9],covA[9],
+			covB[10],covA[10],
+			covB[11],covA[11],
+			covB[12],covA[12],
+			covB[13],covA[13],
+			covB[14],covA[14]
+			));
+	AliDebug(3,Form(" TOF params: %6d  %f %f %f %f %f %6d %3d %f  %f %f %f %f %f",
 			i,
 			t->GetTOFsignalRaw(),
 			t->GetTOFsignal(),
@@ -237,29 +308,9 @@ Int_t AliTOFtracker::PropagateBack(AliESDEvent* event) {
     }
   }
 
-  //Handle Time Zero information
-
-  Double_t timeZero=0.;
-  Double_t timeZeroMax=99999.;
-  Bool_t usetimeZero     = fRecoParam->UseTimeZero();
-  Bool_t timeZeroFromT0  = fRecoParam->GetTimeZerofromT0();
-  Bool_t timeZeroFromTOF = fRecoParam->GetTimeZerofromTOF();
-
-  AliDebug(2,Form("Use Time Zero?: %d",usetimeZero));
-  AliDebug(2,Form("Time Zero from T0? : %d",timeZeroFromT0));
-  AliDebug(2,Form("Time Zero From TOF? : %d",timeZeroFromTOF));
-
-  if(usetimeZero){
-    if(timeZeroFromT0){
-      timeZero=GetTimeZerofromT0(event); 
-    }
-    if(timeZeroFromTOF && (timeZero>timeZeroMax || !timeZeroFromT0)){
-      timeZero=GetTimeZerofromTOF(event); 
-    }
-  }
-  AliDebug(2,Form("time Zero used in PID: %f",timeZero));
   //Make TOF PID
-  fPid->MakePID(event,timeZero);
+  // Now done in AliESDpid
+  // fPid->MakePID(event,timeZero);
 
   fSeeds->Clear();
   fTracks->Clear();
@@ -318,9 +369,7 @@ void AliTOFtracker::CollectESD() {
     }
   }
 
-  AliInfo(Form("Number of TOF seeds %d",fNseedsTOF));
-  AliInfo(Form("Number of TOF seeds Type 1 %d",seedsTOF1));
-  AliInfo(Form("Number of TOF seeds Type 2 %d",seedsTOF2));
+  AliInfo(Form("Number of TOF seeds = %d (Type 1 = %d, Type 2 = %d)",fNseedsTOF,seedsTOF1,seedsTOF2));
 
   // Sort according uncertainties on track position 
   fTracks->Sort();
@@ -673,6 +722,8 @@ void AliTOFtracker::MatchTracks( Bool_t mLastStep){
     t->SetTOFsignalRaw(rawTime);
     t->SetTOFsignalDz(mindistZ);
     t->SetTOFsignalDx(mindistY);
+    t->SetTOFDeltaBC(c->GetDeltaBC());
+    t->SetTOFL0L1(c->GetL0L1Latency());
 
     Float_t info[10] = {mindist,mindistY,mindistZ,
 			0.,0.,0.,0.,0.,0.,0.};
@@ -783,7 +834,8 @@ Int_t AliTOFtracker::LoadClusters(TTree *cTree) {
 
   for (Int_t i=0; i<nc; i++) {
     AliTOFcluster *c=(AliTOFcluster*)clusters->UncheckedAt(i);
-    fClusters[i]=new AliTOFcluster(*c); fN++;
+//PH    fClusters[i]=new AliTOFcluster(*c); fN++;
+    fClusters[i]=c; fN++;
 
   // Fill Digits QA histos
  
@@ -834,7 +886,7 @@ void AliTOFtracker::UnloadClusters() {
   //This function unloads TOF clusters
   //--------------------------------------------------------------------
   for (Int_t i=0; i<fN; i++) {
-    delete fClusters[i];
+//PH    delete fClusters[i];
     fClusters[i] = 0x0;
   }
   fN=0;
@@ -1025,22 +1077,6 @@ Float_t AliTOFtracker::CorrectTimeWalk( Float_t dist, Float_t tof) {
     tofcorr=tof; 
   } 
   return tofcorr;
-}
-//_________________________________________________________________________
-Float_t AliTOFtracker::GetTimeZerofromT0(AliESDEvent *event) const {
-
-  //Returns TimeZero as measured by T0 detector
-
-  return event->GetT0();
-}
-//_________________________________________________________________________
-Float_t AliTOFtracker::GetTimeZerofromTOF(AliESDEvent * /*event*/) const {
-
-  //dummy, for the moment. T0 algorithm using tracks on TOF
-  {
-    //place T0 algo here...
-  }
-  return 0.;
 }
 //_________________________________________________________________________
 

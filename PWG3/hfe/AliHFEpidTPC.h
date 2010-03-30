@@ -33,7 +33,7 @@ class AliAODTrack;
 class AliAODMCParticle;
 class AliESDtrack;
 class AliMCParticle;
-class AliTPCpidESD;
+class AliESDpid;
 class AliVParticle;
 
 class AliHFEpidTPC : public AliHFEpidBase{
@@ -46,6 +46,8 @@ class AliHFEpidTPC : public AliHFEpidBase{
     virtual Bool_t InitializePID();
     virtual Int_t IsSelected(AliHFEpidObject *track);
     virtual Bool_t HasQAhistos() const { return kTRUE; };
+
+    Int_t GetCrossingType() const {return fLineCrossingType; }
 
     void AddTPCdEdxLineCrossing(Int_t species, Double_t sigma);
     Bool_t HasAsymmetricSigmaCut() const { return TestBit(kAsymmetricSigmaCut);}
@@ -99,6 +101,7 @@ class AliHFEpidTPC : public AliHFEpidBase{
       kRejection = BIT(21)
     };
     Double_t fLineCrossingSigma[AliPID::kSPECIES];          // with of the exclusion point
+    Int_t    fLineCrossingType;                             // 0 for no line crossing, otherwise AliPID of the particle crossing the electron dEdx band
     UChar_t fLineCrossingsEnabled;                          // Bitmap showing which line crossing is set
     Float_t fPAsigCut[2];                                   // Momentum region where to perform asymmetric sigma cut
     Float_t fNAsigmaTPC[2];                                 // Asymmetric TPC Sigma band        
@@ -106,10 +109,10 @@ class AliHFEpidTPC : public AliHFEpidBase{
     Float_t fRejection[4*AliPID::kSPECIES];                 // All informations for Particle Rejection, order pmin, sigmin, pmax, sigmax
     UChar_t fRejectionEnabled;                              // Bitmap for enabled particle rejection
     AliPID *fPID;                                           //! PID Object
-    AliTPCpidESD *fPIDtpcESD;                               //! TPC PID object
+    AliESDpid *fESDpid;                               //! TPC PID object
     TList *fQAList;                                         //! QA histograms
 
-  ClassDef(AliHFEpidTPC, 1)   // TPC Electron ID class
+  ClassDef(AliHFEpidTPC, 2)   // TPC Electron ID class
 };
 
 inline void AliHFEpidTPC::SetAsymmetricTPCsigmaCut(Float_t pmin, Float_t pmax, Float_t sigmaMin, Float_t sigmaMax) { 

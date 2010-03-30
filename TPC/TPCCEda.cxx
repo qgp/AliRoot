@@ -34,13 +34,12 @@ and save results in a file (named from RESULT_FILE define - see below).
 #define MAPPING_FILE "tpcMapping.root"
 #define CONFIG_FILE "TPCCEda.conf"
 
-
 #include <daqDA.h>
 #include "event.h"
 #include "monitor.h"
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <vector>
 //
 //Root includes
 //
@@ -51,6 +50,10 @@ and save results in a file (named from RESULT_FILE define - see below).
 #include "TString.h"
 #include "TObjString.h"
 #include "TDatime.h"
+#include "TStopwatch.h"
+#include "TMap.h"
+#include "TGraph.h"
+#include "TMath.h"
 //
 //AliRoot includes
 //
@@ -75,6 +78,9 @@ and save results in a file (named from RESULT_FILE define - see below).
 #include "AliTPCCalibCE.h"
 
 
+//functios, implementation below
+void SendToAmoreDB(AliTPCCalibCE &calibCE, unsigned long32 runNb);
+//for threaded processing
 
 
 /* Main routine
@@ -82,10 +88,10 @@ and save results in a file (named from RESULT_FILE define - see below).
 */
 int main(int argc, char **argv) {
   /* log start of process */
-  printf("TPC CE DA started - %s\n",__FILE__);
-
+  printf("TPCCEda: DA started - %s\n",__FILE__);
+  
   if (argc<2) {
-    printf("Wrong number of arguments\n");
+    printf("TPCCEda: Wrong number of arguments\n");
     return -1;
   }
   
@@ -93,149 +99,237 @@ int main(int argc, char **argv) {
   AliLog::SetClassDebugLevel("AliRawReaderDate",-5);
   AliLog::SetClassDebugLevel("AliTPCAltroMapping",-5);
   AliLog::SetModuleDebugLevel("RAW",-5);
-
- gROOT->GetPluginManager()->AddHandler("TVirtualStreamerInfo",
-                                         "*",
-                                         "TStreamerInfo",
-                                         "RIO",
-                                         "TStreamerInfo()");
-
+  
+  gROOT->GetPluginManager()->AddHandler("TVirtualStreamerInfo",
+                                        "*",
+                                        "TStreamerInfo",
+                                        "RIO",
+                                        "TStreamerInfo()");
+  
  /* declare monitoring program */
- int i,status;
- status=monitorDeclareMp( __FILE__ );
- if (status!=0) {
-   printf("monitorDeclareMp() failed : %s\n",monitorDecodeError(status));
-   return -1;
- }
- monitorSetNowait();
- monitorSetNoWaitNetworkTimeout(1000);
+  int i,status;
+  status=monitorDeclareMp( __FILE__ );
+  if (status!=0) {
+    printf("TPCCEda: monitorDeclareMp() failed : %s\n",monitorDecodeError(status));
+    return -1;
+  }
+  monitorSetNowait();
+  monitorSetNoWaitNetworkTimeout(1000);
 
-  //variables 
+  //variables
   AliTPCmapper *mapping = 0;   // The TPC mapping
   char localfile[255];
   unsigned long32 runNb=0;      //run number
-  // configuration options 
-  Bool_t fastDecoding = kFALSE;
+  
  
-  // if  test setup get parameters from $DAQDA_TEST_DIR 
+  //
+  // DA configuration from configuration file
+  //
+  //retrieve configuration file
+  sprintf(localfile,"./%s",CONFIG_FILE);
+  status = daqDA_DB_getFile(CONFIG_FILE,localfile);
+  if (status) {
+    printf("TPCCEda: Failed to get configuration file (%s) from DAQdetDB, status=%d\n", CONFIG_FILE, status);
+    return -1;
+  }
+  AliTPCConfigDA config(CONFIG_FILE);
+  // check configuration options
+  TString laserTriggerName("C0LSR-ABCE-NOPF-CENT");
+  TString monitoringType("YES");
+  Int_t   forceTriggerId=-1;
+  
+  if ( config.GetConfigurationMap()->GetValue("LaserTriggerName") ) {
+    laserTriggerName=config.GetConfigurationMap()->GetValue("LaserTriggerName")->GetName();
+    printf("TPCCEda: Laser trigger class name set to: %s.\n",laserTriggerName.Data());
+  }
+
+  if ( config.GetConfigurationMap()->GetValue("MonitoringType") ) {
+    monitoringType=config.GetConfigurationMap()->GetValue("MonitoringType")->GetName();
+    printf("TPCCEda: Monitoring type set to: %s.\n",monitoringType.Data());
+  }
+
+  if ( config.GetConfigurationMap()->GetValue("ForceLaserTriggerId") ) {
+    forceTriggerId=TMath::Nint(config.GetValue("ForceLaserTriggerId"));
+    printf("TPCCEda: Only processing triggers with Id: %d.\n",forceTriggerId);
+  }
+  
+  
+  //subsribe to laser triggers only in physics partition
+  //if the trigger class is not available the return value is -1
+  //in this case we are most probably running as a standalone
+  //  laser run and should request all events
+  unsigned char classIdptr=0;
+  int retClassId=daqDA_getClassIdFromName(laserTriggerName.Data(),&classIdptr);
+  if (retClassId==0){
+    //interleaved laser in physics runs
+    //select proper trigger class id
+    char c[5];
+    snprintf(c,sizeof(c),"%u",(unsigned int)classIdptr);
+    char *table[5] = {"PHY",const_cast<char*>(monitoringType.Data()),"*",c,NULL};
+    monitorDeclareTableExtended(table);
+    printf("TPCCEda: Using monitoring table: (PHY, %s, *, %s)\n",monitoringType.Data(),c);
+  } else if (retClassId==-1){
+    //global partition without laser triggered events
+    //the DA should exit properly without processing
+    printf("TPCCEda: Laser trigger class '%s' was not found among trigger class names. Will stop processing.\n",laserTriggerName.Data());
+    return 0;
+  } else if (retClassId==-2){
+    //standalone case, accept all physics events
+    char *table[5] = {"PHY","Y","*","*",NULL};
+    monitorDeclareTableExtended(table);
+    printf("TPCCEda: Using all trigger class Ids\n");
+  } else {
+    printf("TPCCEda: Unknown return value of 'daqDA_getClassIdFromName': %d\n",retClassId);
+    return -2;
+  }
+
+  //see if we should force the trigger id
+  if (forceTriggerId>-1){
+    char c[5];
+    sprintf(c,"%d",forceTriggerId);
+    char *table[5] = {"PHY","Y","*",c,NULL};
+    monitorDeclareTableExtended(table);
+  }
+  
+  
+  // if  test setup get parameters from $DAQDA_TEST_DIR
   if (!mapping){
     /* copy locally the mapping file from daq detector config db */
     sprintf(localfile,"./%s",MAPPING_FILE);
     status = daqDA_DB_getFile(MAPPING_FILE,localfile);
     if (status) {
-      printf("Failed to get mapping file (%s) from DAQdetDB, status=%d\n", MAPPING_FILE, status);
+      printf("TPCCEda: Failed to get mapping file (%s) from DAQdetDB, status=%d\n", MAPPING_FILE, status);
       return -1;
     }
-
+    
     /* open the mapping file and retrieve mapping object */
     TFile *fileMapping = new TFile(MAPPING_FILE, "read");
     mapping = (AliTPCmapper*) fileMapping->Get("tpcMapping");
     delete fileMapping;
   }
-
+  
   if (mapping == 0) {
-    printf("Failed to get mapping object from %s.  ...\n", MAPPING_FILE);
+    printf("TPCCEda: Failed to get mapping object from %s.  ...\n", MAPPING_FILE);
     return -1;
   } else {
-    printf("Got mapping object from %s\n", MAPPING_FILE);
+    printf("TPCCEda: Got mapping object from %s\n", MAPPING_FILE);
   }
   
-  //
-  // DA configuration from configuration file
-  //
- //retrieve configuration file
-  sprintf(localfile,"./%s",CONFIG_FILE);
-  status = daqDA_DB_getFile(CONFIG_FILE,localfile);
-  if (status) {
-    printf("Failed to get configuration file (%s) from DAQdetDB, status=%d\n", CONFIG_FILE, status);
-    return -1;
-  }
-  AliTPCConfigDA config(CONFIG_FILE);
-  // check configuration
-  if ( (Int_t)config.GetValue("UseFastDecoder") == 1 ){
-    printf("Info: The fast decoder will be used for the processing.\n");
-    fastDecoding=kTRUE;
-  }
-
-  //create calibration object 
+    
+  //create calibration object
   AliTPCCalibCE calibCE(config.GetConfigurationMap());   // central electrode calibration
   calibCE.SetAltroMapping(mapping->GetAltroMapping()); // Use altro mapping we got from daqDetDb
 
+  //amore update interval
+  Double_t updateInterval=300; //seconds
+  Double_t valConf=config.GetValue("AmoreUpdateInterval");
+  if ( valConf>0 ) updateInterval=valConf;
+  //timer
+  TStopwatch stopWatch;
+  
   //===========================//
   // loop over RAW data files //
   //==========================//
   int nevents=0;
+  int neventsOld=0;
+  size_t counter=0;
   for ( i=1; i<argc; i++) {
-
+    
     /* define data source : this is argument i */
-    printf("Processing file %s\n", argv[i]);
+    printf("TPCCEda: Processing file %s\n", argv[i]);
     status=monitorSetDataSource( argv[i] );
     if (status!=0) {
-      printf("monitorSetDataSource() failed : %s\n",monitorDecodeError(status));
+      printf("TPCCEda: monitorSetDataSource() failed : %s\n",monitorDecodeError(status));
       return -1;
     }
 
+    
     /* read until EOF */
     while (true) {
       struct eventHeaderStruct *event;
-
+      
       /* check shutdown condition */
       if (daqDA_checkShutdown()) {break;}
-
+        
       /* get next event (blocking call until timeout) */
       status=monitorGetEventDynamic((void **)&event);
       if (status==MON_ERR_EOF) {
-        printf ("End of File %d detected\n",i);
+        printf ("TPCCEda: End of File %d detected\n",i);
         break; /* end of monitoring file has been reached */
       }
-
+      
       if (status!=0) {
-        printf("monitorGetEventDynamic() failed : %s\n",monitorDecodeError(status));
+        printf("TPCCEda: monitorGetEventDynamic() failed : %s\n",monitorDecodeError(status));
         break;
       }
       
-      /* retry if got no event */
-      if (event==NULL)
+        /* retry if got no event */
+      if (event==NULL){
+        //use time in between bursts to
+        // send the data to AMOREdb
+        if (stopWatch.RealTime()>updateInterval){
+          calibCE.Analyse();
+          SendToAmoreDB(calibCE,runNb);
+          stopWatch.Start();
+        } else {
+          stopWatch.Continue();
+        }
+        //debug output
+        if (nevents>neventsOld){
+          printf ("TPCCEda: %d events processed, %d used\n",nevents,calibCE.GetNeventsProcessed());
+          neventsOld=nevents;
+        }
+        
         continue;
+      }
       
       /* skip start/end of run events */
-      if ( (event->eventType != physicsEvent) && (event->eventType != calibrationEvent) )
+      if ( (event->eventType != physicsEvent) && (event->eventType != calibrationEvent) ){
+        free(event);
         continue;
-
+      }
       
-      nevents++;
+      
       // get the run number
       runNb = event->eventRunNb;
-      //  CE calibration
-        calibCE.ProcessEvent(event);
+      
+      // CE calibration
+      calibCE.ProcessEvent(event);
       
       /* free resources */
       free(event);
+      ++nevents;
     }
   }
-
+  
   //
   // Analyse CE data and write them to rootfile
   //
   calibCE.Analyse();
-  printf ("%d events processed\n",nevents);
-
+  printf ("TPCCEda: %d events processed, %d used\n",nevents,calibCE.GetNeventsProcessed());
+  
   TFile * fileTPC = new TFile (RESULT_FILE,"recreate");
   calibCE.Write("tpcCalibCE");
   delete fileTPC;
-  printf("Wrote %s\n",RESULT_FILE);
-
+  printf("TPCCEda: Wrote %s\n",RESULT_FILE);
+  
   /* store the result file on FES */
-
+  
   status=daqDA_FES_storeFile(RESULT_FILE,FILE_ID);
   if (status) {
     status = -2;
   }
+  
+  SendToAmoreDB(calibCE,runNb);
+  
+  return status;
+}
 
-  //
-  //Send objects to the AMORE DB
-  //
-  printf ("AMORE part\n");
+
+void SendToAmoreDB(AliTPCCalibCE &calibCE, unsigned long32 runNb)
+{
+  //AMORE
+//   printf ("AMORE part\n");
   const char *amoreDANameorig=gSystem->Getenv("AMORE_DA_NAME");
   //cheet a little -- temporary solution (hopefully)
   //
@@ -243,10 +337,12 @@ int main(int argc, char **argv) {
   //table in which the calib objects are stored. This table is dropped each time AmoreDA
   //is initialised. This of course makes a problem if we would like to store different
   //calibration entries in the AMORE DB. Therefore in each DA which writes to the AMORE DB
-  //the AMORE_DA_NAME env variable is overwritten.  
+  //the AMORE_DA_NAME env variable is overwritten.
   gSystem->Setenv("AMORE_DA_NAME",Form("TPC-%s",FILE_ID));
   //
   // end cheet
+  TGraph *grA=calibCE.MakeGraphTimeCE(-1,0,2);
+  TGraph *grC=calibCE.MakeGraphTimeCE(-2,0,2);
   TDatime time;
   TObjString info(Form("Run: %u; Date: %s",runNb,time.AsSQLString()));
   amore::da::AmoreDA amoreDA(amore::da::AmoreDA::kSender);
@@ -254,10 +350,15 @@ int main(int argc, char **argv) {
   statusDA+=amoreDA.Send("CET0",calibCE.GetCalPadT0());
   statusDA+=amoreDA.Send("CEQ",calibCE.GetCalPadQ());
   statusDA+=amoreDA.Send("CERMS",calibCE.GetCalPadRMS());
+  statusDA+=amoreDA.Send("DriftA",grA);
+  statusDA+=amoreDA.Send("DriftC",grC);
   statusDA+=amoreDA.Send("Info",&info);
   if ( statusDA!=0 )
-    printf("Waring: Failed to write one of the calib objects to the AMORE database\n");
+    printf("TPCCEda: Waring: Failed to write one of the calib objects to the AMORE database\n");
+  // reset env var
   if (amoreDANameorig) gSystem->Setenv("AMORE_DA_NAME",amoreDANameorig);
-
-  return status;
+  if (grA) delete grA;
+  if (grC) delete grC;
 }
+
+

@@ -88,6 +88,10 @@ public:
   void     SetCovariances(const TMatrixD& cov);
   void     GetCovarianceXYZPxPyPz(Double_t cov[21]) const;
   
+  // Get and Set methods for the transverse position r of the track at the end of the absorber
+  Double_t GetRAtAbsorberEnd() const { return fRAtAbsorberEnd; }
+  void     SetRAtAbsorberEnd(Double_t r) { fRAtAbsorberEnd = r; }
+  
   // Get and Set methods for global tracking info
   Double_t GetChi2(void) const {return fChi2;}
   void     SetChi2(Double_t Chi2) {fChi2 = Chi2;}
@@ -96,6 +100,7 @@ public:
   
   // Get and Set methods for trigger matching
   Int_t    GetMatchTrigger() const;
+  Bool_t   MatchTriggerDigits() const;
   Double_t GetChi2MatchTrigger() const {return fChi2MatchTrigger;}
   void     SetChi2MatchTrigger(Double_t Chi2MatchTrigger) {fChi2MatchTrigger = Chi2MatchTrigger;}
   UShort_t GetHitsPatternInTrigCh() const {return fHitsPatternInTrigCh;}
@@ -107,6 +112,8 @@ public:
   Int_t    LoDev(void)    const  { return fLocalTrigger >> 17 & 0x1F; }
   Int_t    LoLpt(void)    const  { return fLocalTrigger >> 22 & 0x03; }
   Int_t    LoHpt(void)    const  { return fLocalTrigger >> 24 & 0x03; }
+  Int_t    GetTriggerWithoutChamber(void) const { return fLocalTrigger >> 26 & 0xF; }
+  Bool_t TriggerFiredWithoutChamber(Int_t ich) const { return GetTriggerWithoutChamber() >> (3 - ich) & 0x1; }
 
   // Get and Set methods for the hit strips pattern in the trigger chambers
   UShort_t GetTriggerX1Pattern() const { return fX1Pattern; }
@@ -131,6 +138,10 @@ public:
   void     SetMuonClusterMap(UInt_t muonClusterMap) {fMuonClusterMap = muonClusterMap;}
   void     AddInMuonClusterMap(Int_t chamber) {fMuonClusterMap |= BIT(chamber);}
   Bool_t   IsInMuonClusterMap(Int_t chamber) const {return (Bool_t) ((fMuonClusterMap & BIT(chamber)) != 0);}
+  
+  // Identify the tracks sharing cluster(s) with another (use the last bit of fMuonClusterMap)
+  void     Connected(Bool_t flag = kTRUE) {flag ? SETBIT(fMuonClusterMap,31) : CLRBIT(fMuonClusterMap,31);}
+  Bool_t   IsConnected() const {return TESTBIT(fMuonClusterMap,31);}
   
   // Methods to get, fill and check the array of associated clusters
   Int_t         GetNClusters() const;
@@ -246,6 +257,8 @@ protected:
   /// [10]=<X,InvP_yz> [11]=<ThetaX,InvP_yz> [12]=<Y,InvP_yz> [13]=<ThetaY,InvP_yz> [14]=<InvP_yz,InvP_yz>  </pre>
   Double32_t fCovariances[15]; ///< \brief reduced covariance matrix of parameters AT FIRST CHAMBER
   
+  Double32_t fRAtAbsorberEnd; ///< transverse position r of the track at the end of the absorber
+  
   // global tracking info
   Double32_t fChi2;                ///< chi2 in the MUON track fit
   Double32_t fChi2MatchTrigger;    ///< chi2 of trigger/track matching
@@ -269,7 +282,7 @@ protected:
   
   Int_t fLabel;                    ///< point to the corresponding MC track
   
-  ClassDef(AliESDMuonTrack,11) // MUON ESD track class 
+  ClassDef(AliESDMuonTrack,13) // MUON ESD track class 
 };
 
 #endif 

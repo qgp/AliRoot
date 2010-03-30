@@ -38,6 +38,7 @@
 #include "AliHLTITSClusterHistoComponent.h"
 #include "AliHLTITSTrackerComponent.h"
 #include "AliHLTITSVertexerSPDComponent.h"
+#include "AliHLTITSDigitPublisherComponent.h"
 
 /** global instance for agent registration */
 AliHLTITSAgent gAliHLTITSAgent;
@@ -85,15 +86,33 @@ int AliHLTITSAgent::CreateConfigurations(AliHLTConfigurationHandler* handler,
     // define the ITS cluster finder configurations
     //
 
-    TString trackerInput;
-    for (int detectorId=0; detectorId<3; detectorId++) {
-      iResult=CreateCFConfigurations(handler, detectorId, trackerInput);
-    }
+    TString spdCF;
+    TString ssdCF;
+    TString sddCF;
+    
+    iResult=CreateCFConfigurations(handler, AliHLTDAQ::DetectorID("ITSSPD"), spdCF);
+    handler->CreateConfiguration("ITS-SPD-CF","BlockFilter",spdCF.Data(),"");
+
+    iResult=CreateCFConfigurations(handler, AliHLTDAQ::DetectorID("ITSSDD"), sddCF);
+    handler->CreateConfiguration("ITS-SDD-CF","BlockFilter",sddCF.Data(),"");
+
+    iResult=CreateCFConfigurations(handler, AliHLTDAQ::DetectorID("ITSSSD"), ssdCF);
+    handler->CreateConfiguration("ITS-SSD-CF","BlockFilter",ssdCF.Data(),"");
+
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////
+    //
+    // define the SPD vertexer Z configuration
+    //
+    handler->CreateConfiguration("ITS-SPD-vertexer","ITSVertexerSPD", "ITS-SPD-CF","");
+    
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     //
     // define the ITS tracker configuration
     //
+    TString trackerInput="ITS-SPD-CF ITS-SDD-CF ITS-SSD-CF";
+
     if (handler->FindConfiguration("TPC-globalmerger")) {
       trackerInput+=" TPC-globalmerger";
     }
@@ -136,9 +155,11 @@ int AliHLTITSAgent::RegisterComponents(AliHLTComponentHandler* pHandler) const
   pHandler->AddComponent(new AliHLTITSClusterFinderComponent(AliHLTITSClusterFinderComponent::kClusterFinderSPD));
   pHandler->AddComponent(new AliHLTITSClusterFinderComponent(AliHLTITSClusterFinderComponent::kClusterFinderSDD));
   pHandler->AddComponent(new AliHLTITSClusterFinderComponent(AliHLTITSClusterFinderComponent::kClusterFinderSSD));
+  pHandler->AddComponent(new AliHLTITSClusterFinderComponent(AliHLTITSClusterFinderComponent::kClusterFinderDigits));
   pHandler->AddComponent(new AliHLTITSClusterHistoComponent);
   pHandler->AddComponent(new AliHLTITSTrackerComponent);
   pHandler->AddComponent(new AliHLTITSVertexerSPDComponent);
+  pHandler->AddComponent(new AliHLTITSDigitPublisherComponent);
 
   return 0;
 }
@@ -264,7 +285,7 @@ int AliHLTITSAgent::CreateCFConfigurations(AliHLTConfigurationHandler* pHandler,
   }
 
   int minddl=AliHLTDAQ::DdlIDOffset(detectorId);
-  int maxddl=minddl+=AliHLTDAQ::NumberOfDdls(detectorId);
+  int maxddl=minddl+AliHLTDAQ::NumberOfDdls(detectorId)-1;
   int spec=0x1;
   int ddlno=0;
 
@@ -275,7 +296,8 @@ int AliHLTITSAgent::CreateCFConfigurations(AliHLTConfigurationHandler* pHandler,
     TString arg, publisher, cf;
  
     // the HLT origin defines are 4 chars: ISPD, ISSD, ISDD respectively
-    arg.Form("-minid %d -datatype 'DDL_RAW ' '%s' -dataspec 0x%08x -verbose",ddlno, origin.Data(), spec);
+    arg.Form("-minid %d -datatype 'DDL_RAW ' '%s' -dataspec 0x%08x",ddlno, origin.Data(), spec);
+    if (CheckFilter(kHLTLogDebug)) arg+=" -verbose";
     publisher.Form("ITS-DP_%d", ddlno);
     pHandler->CreateConfiguration(publisher.Data(), "AliRawReaderPublisher", NULL , arg.Data());
 

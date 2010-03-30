@@ -529,7 +529,7 @@ void AliCDBManager::SetSpecificStorage(const char* calibType, AliCDBParam* param
 // calibType must be a valid CDB path! (3 level folder structure)
 
 
-	if(!fDefaultStorage) {
+	if(!fDefaultStorage && !fRaw) {
 		AliError("Please activate a default storage first!");
 		return;
 	}
@@ -644,10 +644,10 @@ AliCDBEntry* AliCDBManager::Get(const AliCDBId& query) {
                 return NULL;
 	}
 
-	if(fLock && query.GetFirstRun() != fRun)
+	if(fLock && !(fRun >= query.GetFirstRun() && fRun <= query.GetLastRun())) 
 		AliFatal("Lock is ON: cannot use different run number than the internal one!");
 	
-	if(fCache && query.GetFirstRun() != fRun)
+	if(fCache && !(fRun >= query.GetFirstRun() && fRun <= query.GetLastRun())) 
 		AliWarning("Run number explicitly set in query: CDB cache temporarily disabled!");
 
   	AliCDBEntry *entry=0;

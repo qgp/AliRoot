@@ -29,19 +29,11 @@ SRCS = 	AliITSDetTypeRec.cxx \
 		AliITSVertexer3DTapan.cxx \
 		AliITSMeanVertexer.cxx \
 		AliITSZPoint.cxx \
-		AliITSPid.cxx \
-		AliITStrackV2Pid.cxx \
 		AliITSreconstruction.cxx \
 		AliITSclusterTable.cxx \
 		AliITStrackSA.cxx \
 		AliITStrackerSA.cxx \
-		AliITSpidESD.cxx \
-		AliITSpidESD1.cxx \
-		AliITSpidESD2.cxx \
 		AliITSdEdxAnalyzer.cxx \
-                AliITSPident.cxx \
-                AliITSSteerPid.cxx \
-                AliITSPidParItem.cxx \
 		AliITSReconstructor.cxx \
 		AliITSRecoParam.cxx \
 		AliITSBeamTestDig.cxx \
@@ -88,6 +80,7 @@ SRCS = 	AliITSDetTypeRec.cxx \
 		AliITSAlignMille2Module.cxx \
 		AliITSAlignMille2Constraint.cxx \
 		AliITSAlignMille2ConstrArray.cxx \
+		AliITSTPArrayFit.cxx \
 		AliITSRealignTracks.cxx \
 		AliITSQAChecker.cxx \
 		AliITSResidualsAnalysis.cxx \
@@ -99,7 +92,8 @@ SRCS = 	AliITSDetTypeRec.cxx \
                 AliITSQASDDChecker.cxx \
                 AliITSQASSDChecker.cxx \
                 AliITSQASSDRefData.cxx \
-		AliITSTrackleterSPDEff.cxx 
+		AliITSTrackleterSPDEff.cxx \
+		AliITSRecPointContainer.cxx 
 
 
 HDRS:=  $(SRCS:.cxx=.h)

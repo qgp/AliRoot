@@ -36,8 +36,6 @@
 ////////////////////////////////////////////////////////////////////////////
 
 #include "TMath.h"
-#include "TLinearFitter.h"
-#include "TClonesArray.h" // tmp
 #include <TTreeStream.h>
 
 #include "AliLog.h"
@@ -61,9 +59,6 @@
 #include "Cal/AliTRDCalDet.h"
 
 ClassImp(AliTRDseedV1)
-
-TLinearFitter *AliTRDseedV1::fgFitterY = NULL;
-TLinearFitter *AliTRDseedV1::fgFitterZ = NULL;
 
 //____________________________________________________________________
 AliTRDseedV1::AliTRDseedV1(Int_t det) 
@@ -301,7 +296,7 @@ void AliTRDseedV1::Update(const AliTRDtrackV1 *trk)
   Double_t fSnp = trk->GetSnp();
   Double_t fTgl = trk->GetTgl();
   fPt = trk->Pt();
-  Double_t norm =1./TMath::Sqrt(1. - fSnp*fSnp); 
+  Double_t norm =1./TMath::Sqrt((1.-fSnp)*(1.+fSnp)); 
   fYref[1] = fSnp*norm;
   fZref[1] = fTgl*norm;
   SetCovRef(trk->GetCovariance());
@@ -392,13 +387,10 @@ void AliTRDseedV1::CookdEdx(Int_t nslices)
 // 3. cluster size
 //
 
-  Int_t nclusters[kNslices]; 
-  memset(nclusters, 0, kNslices*sizeof(Int_t));
   memset(fdEdx, 0, kNslices*sizeof(Float_t));
-
   const Double_t kDriftLength = (.5 * AliTRDgeometry::AmThick() + AliTRDgeometry::DrThick());
 
-  AliTRDcluster *c = NULL;
+  AliTRDcluster *c(NULL);
   for(int ic=0; ic<AliTRDtrackerV1::GetNTimeBins(); ic++){
     if(!(c = fClusters[ic]) && !(c = fClusters[ic+kNtb])) continue;
     Float_t dx = TMath::Abs(fX0 - c->GetX());
@@ -420,16 +412,7 @@ void AliTRDseedV1::CookdEdx(Int_t nslices)
     
     //CHECK !!!
     fdEdx[slice]   += w * GetdQdl(ic); //fdQdl[ic];
-    nclusters[slice]++;
   } // End of loop over clusters
-
-  //if(fkReconstructor->GetPIDMethod() == AliTRDReconstructor::kLQPID){
-  if(nslices == AliTRDpidUtil::kLQslices){
-  // calculate mean charge per slice (only LQ PID)
-    for(int is=0; is<nslices; is++){ 
-      if(nclusters[is]) fdEdx[is] /= nclusters[is];
-    }
-  }
 }
 
 //_____________________________________________________________________________
@@ -512,7 +495,8 @@ Float_t AliTRDseedV1::GetdQdl(Int_t ic, Float_t *dl) const
   }
   dx *= TMath::Sqrt(1. + fYfit[1]*fYfit[1] + fZref[1]*fZref[1]);
   if(dl) (*dl) = dx;
-  return dq/dx;
+  if(dx>1.e-9) return dq/dx;
+  else return 0.;
 }
 
 //____________________________________________________________
@@ -597,12 +581,13 @@ Bool_t AliTRDseedV1::CookPID()
   Float_t length = (AliTRDgeometry::AmThick() + AliTRDgeometry::DrThick())/ TMath::Sqrt((1.0 - GetSnp()*GetSnp()) / (1.0 + GetTgl()*GetTgl()));
   
   //calculate dE/dx
-  CookdEdx(fkReconstructor->GetNdEdxSlices());
-  AliDebug(4, Form("PID p[%f] dEdx[%7.2f %7.2f %7.2f %7.2f %7.2f %7.2f %7.2f %7.2f] l[%f]", GetMomentum(), fdEdx[0], fdEdx[1], fdEdx[2], fdEdx[3], fdEdx[4], fdEdx[5], fdEdx[6], fdEdx[7], length));
+  CookdEdx(AliTRDCalPID::kNSlicesNN);
+  AliDebug(4, Form("p=%6.4f[GeV/c] dEdx{%7.2f %7.2f %7.2f %7.2f %7.2f %7.2f %7.2f %7.2f} l=%4.2f[cm]", GetMomentum(), fdEdx[0], fdEdx[1], fdEdx[2], fdEdx[3], fdEdx[4], fdEdx[5], fdEdx[6], fdEdx[7], length));
 
   // Sets the a priori probabilities
+  Bool_t kPIDNN(fkReconstructor->GetPIDMethod()==AliTRDpidUtil::kNN);
   for(int ispec=0; ispec<AliPID::kSPECIES; ispec++)
-    fProb[ispec] = pd->GetProbability(ispec, GetMomentum(), &fdEdx[0], length, GetPlane());
+    fProb[ispec] = pd->GetProbability(ispec, GetMomentum(), &fdEdx[0], length, kPIDNN?GetPlane():fkReconstructor->GetRecoParam()->GetPIDLQslices());
   
   return kTRUE;
 }
@@ -765,26 +750,12 @@ Double_t AliTRDseedV1::GetCovInv(const Double_t * const c, Double_t *d)
 //____________________________________________________________________
 UShort_t AliTRDseedV1::GetVolumeId() const
 {
-  Int_t ic=0;
-  while(ic<kNclusters && !fClusters[ic]) ic++;
-  return fClusters[ic] ? fClusters[ic]->GetVolumeId() : 0;
+  for(Int_t ic(0);ic<kNclusters; ic++){
+    if(fClusters[ic]) return fClusters[ic]->GetVolumeId();
+  }
+  return 0;
 }
 
-//____________________________________________________________________
-TLinearFitter* AliTRDseedV1::GetFitterY()
-{
-  if(!fgFitterY) fgFitterY = new TLinearFitter(1, "pol1");
-  fgFitterY->ClearPoints();
-  return fgFitterY;
-}
-
-//____________________________________________________________________
-TLinearFitter* AliTRDseedV1::GetFitterZ()
-{
-  if(!fgFitterZ) fgFitterZ = new TLinearFitter(1, "pol1");
-  fgFitterZ->ClearPoints();
-  return fgFitterZ;
-}
 
 //____________________________________________________________________
 void AliTRDseedV1::Calibrate()
@@ -836,6 +807,9 @@ void AliTRDseedV1::Calibrate()
   fExB   = AliTRDCommonParam::Instance()->GetOmegaTau(fVD);
   AliTRDCommonParam::Instance()->GetDiffCoeff(fDiffL,
   fDiffT, fVD);
+  AliDebug(4, Form("Calibration params for Det[%3d] Col[%3d] Row[%2d]\n  t0[%f]  vd[%f]  s2PRF[%f]  ExB[%f]  Dl[%f]  Dt[%f]", fDet, col, row, fT0, fVD, fS2PRF, fExB, fDiffL, fDiffT));
+
+
   SetBit(kCalib, kTRUE);
 }
 
@@ -1183,7 +1157,7 @@ void AliTRDseedV1::Bootstrap(const AliTRDReconstructor *rec)
   AliTRDpadPlane *pp = g.GetPadPlane(fDet);
   fPad[0] = pp->GetLengthIPad();
   fPad[1] = pp->GetWidthIPad();
-  fPad[3] = TMath::Tan(TMath::DegToRad()*pp->GetTiltingAngle());
+  fPad[2] = TMath::Tan(TMath::DegToRad()*pp->GetTiltingAngle());
   //fSnp = fYref[1]/TMath::Sqrt(1+fYref[1]*fYref[1]);
   //fTgl = fZref[1];
   Int_t n = 0, nshare = 0, nused = 0;
@@ -1350,7 +1324,8 @@ Bool_t AliTRDseedV1::Fit(Bool_t tilt, Bool_t zcorr)
     //optional tilt correction
     if(tilt) yc[n] -= (GetTilt()*(zc[n] - zt)); 
 
-    fitterY.AddPoint(&xc[n], yc[n], TMath::Sqrt(sy[n]));
+    AliDebug(5, Form("  tb[%2d] dx[%6.3f] y[%6.2f+-%6.3f]", c->GetLocalTimeBin(), xc[n], yc[n], sy[n]));
+    fitterY.AddPoint(&xc[n], yc[n], sy[n]);
     if(IsRowCross()) fitterZ.AddPoint(&xc[n], qc[n], 1.);
     n++;
   }
@@ -1359,18 +1334,27 @@ Bool_t AliTRDseedV1::Fit(Bool_t tilt, Bool_t zcorr)
   if (n < kClmin) return kFALSE; 
 
   // fit XY
-  fitterY.Eval();
+  if(!fitterY.Eval()){
+    SetErrorMsg(kFitFailed);
+    return kFALSE;
+  }
   fYfit[0] = fitterY.GetFunctionParameter(0);
   fYfit[1] = -fitterY.GetFunctionParameter(1);
   // store covariance
   Double_t p[3];
   fitterY.GetCovarianceMatrix(p);
-  fCov[0] = p[0]; // variance of y0
+  fCov[0] = p[1]; // variance of y0
   fCov[1] = p[2]; // covariance of y0, dydx
-  fCov[2] = p[1]; // variance of dydx
+  fCov[2] = p[0]; // variance of dydx
   // the ref radial position is set at the minimum of 
   // the y variance of the tracklet
   fX   = -fCov[1]/fCov[2];
+  Float_t xs=fX+.5*AliTRDgeometry::CamHght();
+  if(xs < 0. || xs > AliTRDgeometry::CamHght()+AliTRDgeometry::CdrHght()){
+    AliDebug(1, Form("Ref radial position ouside chamber x[%5.2f].", fX));
+    SetErrorMsg(kFitOutside);
+    return kFALSE;
+  }
 
   // collect second row clusters
   Int_t m(0);
@@ -1693,6 +1677,7 @@ void AliTRDseedV1::Print(Option_t *o) const
   AliInfo(Form("Det[%3d] X0[%7.2f] Pad{L[%5.2f] W[%5.2f] Tilt[%+6.2f]}", fDet, fX0, GetPadLength(), GetPadWidth(), GetTilt()));
   AliInfo(Form("N[%2d] Nused[%2d] Nshared[%2d] [%d]", GetN(), GetNUsed(), GetNShared(), fN));
   AliInfo(Form("FLAGS : RC[%c] Kink[%c] SA[%c]", IsRowCross()?'y':'n', IsKink()?'y':'n', IsStandAlone()?'y':'n'));
+  AliInfo(Form("CALIB PARAMS :  T0[%5.2f]  Vd[%5.2f]  s2PRF[%5.2f]  ExB[%5.2f]  Dl[%5.2f]  Dt[%5.2f]", fT0, fVD, fS2PRF, fExB, fDiffL, fDiffT));
 
   Double_t cov[3], x=GetX();
   GetCovAt(x, cov);

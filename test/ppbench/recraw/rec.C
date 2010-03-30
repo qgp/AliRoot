@@ -12,7 +12,9 @@ void rec() {
   reco.SetDefaultStorage("local://$ALICE_ROOT/OCDB");
   reco.SetSpecificStorage("GRP/GRP/Data",
 			  Form("local://%s/..",gSystem->pwd()));
+  reco.SetRunPlaneEff(kTRUE);
 
+  reco.SetRunReconstruction("ALL") ;
   reco.SetRunQA("ALL:ALL") ;
   
   reco.SetQARefDefaultStorage("local://$ALICE_ROOT/QAref") ;

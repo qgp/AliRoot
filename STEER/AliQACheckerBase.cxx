@@ -32,16 +32,19 @@
 #include <TFile.h> 
 #include <TList.h>
 #include <TNtupleD.h>
+#include <TParameter.h>
 #include <TPaveText.h>
 
 // --- Standard library ---
 
 // --- AliRoot header files ---
+#include "AliCDBEntry.h"
 #include "AliLog.h"
 #include "AliQAv1.h"
 #include "AliQAChecker.h"
 #include "AliQACheckerBase.h"
 #include "AliQADataMaker.h"
+#include "AliQAManager.h"
 #include "AliDetectorRecoParam.h"
 
 ClassImp(AliQACheckerBase)
@@ -56,7 +59,8 @@ AliQACheckerBase::AliQACheckerBase(const char * name, const char * title) :
   fLowTestValue(0x0),
   fUpTestValue(0x0),
   fImage(new TCanvas*[AliRecoParam::kNSpecies]), 
-  fPrintImage(kTRUE)
+  fPrintImage(kTRUE), 
+  fExternParamList(new TList())
 {
   // ctor
   fLowTestValue = new Float_t[AliQAv1::kNBIT] ; 
@@ -95,7 +99,8 @@ AliQACheckerBase::AliQACheckerBase(const AliQACheckerBase& qac) :
   fLowTestValue(qac.fLowTestValue),
   fUpTestValue(qac.fLowTestValue), 
   fImage(NULL),  
-  fPrintImage(kTRUE)
+  fPrintImage(kTRUE), 
+  fExternParamList(new TList())  
 {
   //copy ctor
   for (Int_t index = 0 ; index < AliQAv1::kNBIT ; index++) {
@@ -106,6 +111,12 @@ AliQACheckerBase::AliQACheckerBase(const AliQACheckerBase& qac) :
       fImage[specie] = qac.fImage[specie] ; 
       fRefOCDBSubDir[specie] = qac.fRefOCDBSubDir[specie] ; 
     }
+  if (qac.fExternParamList) {
+    TIter next(qac.fExternParamList) ; 
+    TParameter<double> * p ; 
+    while ( (p = (TParameter<double>*)next()) )
+      fExternParamList->Add(p) ;
+  }
 }
 
 //____________________________________________________________________________
@@ -131,10 +142,14 @@ AliQACheckerBase::~AliQACheckerBase()
   delete[] fImage ; 
   delete[] fRefOCDBSubDir ; 
   AliQAv1::GetQAResultFile()->Close() ; 
+  if (fExternParamList) {
+    fExternParamList->Clear() ; 
+    delete fExternParamList ; 
+  }
 }
 
 //____________________________________________________________________________
-Double_t * AliQACheckerBase::Check(AliQAv1::ALITASK_t index, AliDetectorRecoParam * recoParam) 
+Double_t * AliQACheckerBase::Check(AliQAv1::ALITASK_t index, const AliDetectorRecoParam * recoParam) 
 {
   // Performs a basic checking
   // Compares all the histograms stored in the directory
@@ -175,7 +190,7 @@ Double_t * AliQACheckerBase::Check(AliQAv1::ALITASK_t index, AliDetectorRecoPara
 }  
 
 //____________________________________________________________________________
-Double_t * AliQACheckerBase::Check(AliQAv1::ALITASK_t /*index*/, TObjArray ** list, AliDetectorRecoParam * /*recoParam*/) 
+Double_t * AliQACheckerBase::Check(AliQAv1::ALITASK_t task, TObjArray ** list, const AliDetectorRecoParam * /*recoParam*/) 
 {
   // Performs a basic checking
   // Compares all the histograms in the list
@@ -183,6 +198,11 @@ Double_t * AliQACheckerBase::Check(AliQAv1::ALITASK_t /*index*/, TObjArray ** li
 	Double_t * test = new Double_t[AliRecoParam::kNSpecies] ;
 	Int_t count[AliRecoParam::kNSpecies]   = { 0 }; 
 
+//  TDirectory * refDir     = NULL ; 
+//	TObjArray ** refOCDBDir = NULL  ;	
+  GetRefSubDir(GetName(), AliQAv1::GetTaskName(task), fRefSubDir, fRefOCDBSubDir) ;
+ // SetRefandData(refDir, refOCDBDir) ; 
+  
   for (Int_t specie = 0 ; specie < AliRecoParam::kNSpecies ; specie++) {
     test[specie] = 1.0 ; 
     if ( !AliQAv1::Instance()->IsEventSpecieSet(specie)) 
@@ -249,6 +269,61 @@ Double_t AliQACheckerBase::DiffK(const TH1 * href, const TH1 * hin) const
   return hin->KolmogorovTest(href) ;  
 }
 
+  //_____________________________________________________________________________
+void AliQACheckerBase::GetRefSubDir(const char * det, const char * task, TDirectory *& dirFile, TObjArray **& dirOCDB)     
+{ 
+    // Opens and returns the file with the reference data 
+  dirFile = NULL ; 
+  TString refStorage(AliQAv1::GetQARefStorage()) ;
+  if (!refStorage.Contains(AliQAv1::GetLabLocalOCDB()) && !refStorage.Contains(AliQAv1::GetLabAliEnOCDB())) {
+    AliError(Form("%s is not a valid location for reference data", refStorage.Data())) ; 
+    return ; 
+  } else {
+    AliQAManager* manQA = AliQAManager::QAManager(AliQAv1::GetTaskIndex(task)) ;
+    dirOCDB = new TObjArray*[AliRecoParam::kNSpecies] ;	
+    for (Int_t specie = 0 ; specie < AliRecoParam::kNSpecies ; specie++) {
+      dirOCDB[specie] = NULL ; 
+      if ( !AliQAv1::Instance()->IsEventSpecieSet(specie) ) 
+        continue ; 
+      AliQAv1::SetQARefDataDirName(specie) ;
+      if ( ! manQA->GetLock() ) { 
+        manQA->SetDefaultStorage(AliQAv1::GetQARefStorage()) ; 
+        manQA->SetSpecificStorage("*", AliQAv1::GetQARefStorage()) ;
+        manQA->SetRun(AliCDBManager::Instance()->GetRun()) ; 
+        manQA->SetLock() ; 
+      }
+      char * detOCDBDir = Form("%s/%s/%s", det, AliQAv1::GetRefOCDBDirName(), AliQAv1::GetRefDataDirName()) ; 
+      AliCDBEntry * entry = manQA->Get(detOCDBDir, manQA->GetRun()) ;
+      if (entry) {
+        TList * listDetQAD =static_cast<TList *>(entry->GetObject()) ;
+        if ( strcmp(listDetQAD->ClassName(), "TList") != 0 ) {
+          AliError(Form("Expected a Tlist and found a %s for detector %s", listDetQAD->ClassName(), det)) ; 
+          listDetQAD = NULL ; 
+          continue ; 
+        } 
+        if ( listDetQAD ) {
+          TIter next(listDetQAD) ;
+          TObjArray * ar ; 
+          while ( (ar = (TObjArray*)next()) ) 
+            dirOCDB[specie] = static_cast<TObjArray *>(listDetQAD->FindObject(Form("%s/%s", task, AliRecoParam::GetEventSpecieName(specie)))) ;             
+        }
+      }
+    }
+  }
+}
+
+//____________________________________________________________________________
+void AliQACheckerBase::PrintExternParam() 
+{
+    // Print the list of external parameter list
+  TIter next(fExternParamList) ; 
+  TParameter<double> *pp ; 
+  TString printit("\n") ;
+  while( (pp = (TParameter<double>*)next()) )
+    printit += Form("%s = %f\n", pp->GetName(), pp->GetVal());  
+  AliInfo(Form("%s", printit.Data())) ;
+}
+  
 //____________________________________________________________________________
 void AliQACheckerBase::Run(AliQAv1::ALITASK_t index, AliDetectorRecoParam * recoParam) 
 { 
@@ -326,11 +401,11 @@ void AliQACheckerBase::MakeImage( TObjArray ** list, AliQAv1::TASKINDEX_t task, 
       TPaveText someText(0.015, 0.015, 0.98, 0.98) ;
       someText.AddText(title) ;
       someText.Draw() ; 
-      fImage[esIndex]->Print(Form("%s%s%d.%s", AliQAv1::GetImageFileName(), AliQAv1::GetModeName(mode), AliQAChecker::Instance()->GetRunNumber(), AliQAv1::GetImageFileFormat())) ; 
+      fImage[esIndex]->Print(Form("%s%s%d.%s", AliQAv1::GetImageFileName(), AliQAv1::GetModeName(mode), AliQAChecker::Instance()->GetRunNumber(), AliQAv1::GetImageFileFormat()), "ps") ; 
       fImage[esIndex]->Clear() ; 
-      Int_t nx = TMath::Sqrt(nImages) ; 
+      Int_t nx = TMath::Nint(TMath::Sqrt(nImages));
       Int_t ny = nx  ; 
-      while ( nx*ny <= nImages) 
+      if (nx < TMath::Sqrt(nImages))
         ny++ ; 
       
       fImage[esIndex]->Divide(nx, ny) ; 
@@ -347,7 +422,7 @@ void AliQACheckerBase::MakeImage( TObjArray ** list, AliQAv1::TASKINDEX_t task, 
           fImage[esIndex]->cd(++npad) ; 
         }
       }
-      fImage[esIndex]->Print(Form("%s%s%d.%s", AliQAv1::GetImageFileName(), AliQAv1::GetModeName(mode), AliQAChecker::Instance()->GetRunNumber(), AliQAv1::GetImageFileFormat())) ; 
+      fImage[esIndex]->Print(Form("%s%s%d.%s", AliQAv1::GetImageFileName(), AliQAv1::GetModeName(mode), AliQAChecker::Instance()->GetRunNumber(), AliQAv1::GetImageFileFormat()), "ps") ; 
     }
   }  
 }

@@ -19,6 +19,7 @@ AliAnaPartCorrMaker*  ConfigAnalysis()
 //Bool_t kInputIsESD = kFALSE;    //uncomment for input AODs
   Bool_t kFollowsFilter = kTRUE;  //uncomment if follows ESD filter task
 //Bool_t kFollowsFilter = kFALSE; //uncomment if no ESD filter task
+  Bool_t kMC = kTRUE; //set to kFALSE for data
 
   //enum for the different electron cut sets
   //defined for dR and p/E
@@ -56,15 +57,20 @@ AliAnaPartCorrMaker*  ConfigAnalysis()
     }
   }
 
-  //Detector Fidutial Cuts
-  AliFidutialCut * fidCut = new AliFidutialCut();
-  fidCut->DoCTSFidutialCut(kFALSE) ;
-  fidCut->DoEMCALFidutialCut(kFALSE) ;
-  fidCut->DoPHOSFidutialCut(kFALSE) ;
+  //Alternatively, adjust for real data based on kMC value.
+  if (gSystem->Getenv("anakMC")){
+    kMC = atoi(gSystem->Getenv("anakMC"));
+  }
 
-  //fidCut->SetSimpleCTSFidutialCut(0.9,0.,360.);
-  //fidCut->SetSimpleEMCALFidutialCut(0.7,80.,190.);
-  //fidCut->SetSimplePHOSFidutialCut(0.13,220.,320.);
+  //Detector Fiducial Cuts
+  AliFiducialCut * fidCut = new AliFiducialCut();
+  fidCut->DoCTSFiducialCut(kFALSE) ;
+  fidCut->DoEMCALFiducialCut(kFALSE) ;
+  fidCut->DoPHOSFiducialCut(kFALSE) ;
+
+  //fidCut->SetSimpleCTSFiducialCut(0.9,0.,360.);
+  //fidCut->SetSimpleEMCALFiducialCut(0.7,80.,190.);
+  //fidCut->SetSimplePHOSFiducialCut(0.13,220.,320.);
 
   fidCut->Print("");
 
@@ -83,10 +89,13 @@ AliAnaPartCorrMaker*  ConfigAnalysis()
   //reader->SwitchOffPHOSCells();	
 
   //Kine
-  if(!kInputIsESD){
+  if(kMC && !kInputIsESD){
     reader->SwitchOffStack();          // On  by default, remember to SwitchOnMCData() in analysis classes
     reader->SwitchOnAODMCParticles();  // Off by default, remember to SwitchOnMCData() in analysis classes
   }
+
+  //Select Trigger Class for real data
+  if(!kMC) reader->SetFiredTriggerClassName("CINT1B-ABCE-NOPF-ALL");
 
   //Min particle pT
   reader->SetCTSPtMin(0.0);   //new
@@ -97,7 +106,7 @@ AliAnaPartCorrMaker*  ConfigAnalysis()
   //reject events with large difference between ptHard and triggered jet
   //reader->SetPtHardAndJetPtComparison(kTRUE);
 
-  reader->SetFidutialCut(fidCut);
+  reader->SetFiducialCut(fidCut);
 
   if(!kInputIsESD){
     // Analysis with tracks, select only tracks with
@@ -117,13 +126,13 @@ AliAnaPartCorrMaker*  ConfigAnalysis()
   reader->Print("");
 
 
-  //Detector Fidutial Cuts
-  AliFidutialCut * fidCut2 = new AliFidutialCut();
-  fidCut2->DoEMCALFidutialCut(kTRUE) ;
-  fidCut2->SetSimpleEMCALFidutialCut(0.7,80.,190.);
+  //Detector Fiducial Cuts
+  AliFiducialCut * fidCut2 = new AliFiducialCut();
+  fidCut2->DoEMCALFiducialCut(kTRUE) ;
+  fidCut2->SetSimpleEMCALFiducialCut(0.7,80.,190.);
 
-  fidCut2->DoCTSFidutialCut(kTRUE) ;
-  fidCut2->SetSimpleCTSFidutialCut(0.9,0.,360.); 
+  fidCut2->DoCTSFiducialCut(kTRUE) ;
+  fidCut2->SetSimpleCTSFiducialCut(0.9,0.,360.); 
 
   fidCut2->Print("");
 
@@ -134,8 +143,10 @@ AliAnaPartCorrMaker*  ConfigAnalysis()
   AliAnaElectron *anaelectron = new AliAnaElectron();
   anaelectron->SetDebug(-1); //10 for lots of messages
   anaelectron->SetCalorimeter("EMCAL");
-  anaelectron->SwitchOnDataMC();
-  anaelectron->SetMinPt(1.);
+  if(kMC){
+    anaelectron->SwitchOnDataMC();
+    anaelectron->SetMinPt(1.);
+  }
   anaelectron->SetOutputAODName("Electrons");
   anaelectron->SetOutputAODClassName("AliAODPWG4Particle");
   anaelectron->SetWriteNtuple(kFALSE);

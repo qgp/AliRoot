@@ -13,6 +13,33 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
+////////////////////////////////////////////////////////////////////////////
+//                                                                        //
+// Surveyed Laser Track positions                                         //
+// the position and direction information are stored in                   //
+// the AliExternalTrackParam base class                                   //
+// This class extends this information by identification parameters       //
+/*
+
+//Dump positions to a tree:
+AliTPCLaserTrack::LoadTracks();
+TObjArray *arr=AliTPCLaserTrack::GetTracks();
+TTreeSRedirector *s=new TTreeSRedirector("LaserTracks.root");
+TIter next(arr);
+TObject *o=0x0;
+while ( (o=next()) ) (*s) << "tracks" << "l.=" << o << "\n";
+delete s;
+
+//draw something
+TFile f("LaserTracks.root");
+TTree *tracks=(TTree*)f.Get("tracks");
+tracks->Draw("fVecGY.fElements:fVecGX.fElements");
+
+ tracks->Draw("fVecGY.fElements:fVecGX.fElements>>h(500,-250,250,500,-250,250)","fId<7")
+*/
+//                                                                        //
+////////////////////////////////////////////////////////////////////////////
+
 
 #include <TObjArray.h>
 #include <TFile.h>
@@ -20,7 +47,11 @@
 #include <TSystem.h>
 
 #include "AliLog.h"
+#include "AliCDBManager.h"
+#include "AliCDBEntry.h"
+#include "AliCDBPath.h"
 #include "AliTPCLaserTrack.h"
+#include "AliTPCROC.h"
 
 ClassImp(AliTPCLaserTrack)
 
@@ -33,10 +64,19 @@ AliTPCLaserTrack::AliTPCLaserTrack() :
   fRod(-1),
   fBundle(-1),
   fBeam(-1),
-  fRayLength(0)
+  fRayLength(0),
+  fVecSec(0),       // points vectors - sector
+  fVecP2(0),       // points vectors - snp
+  fVecPhi(0),       // points vectors - global phi
+  fVecGX(0),       // points vectors - globalX
+  fVecGY(0),       // points vectors - globalY
+  fVecGZ(0),       // points vectors - globalZ
+  fVecLX(0),       // points vectors - localX
+  fVecLY(0),       // points vectors - localY
+  fVecLZ(0)        // points vectors - localZ
 {
   //
-  // Default constructor
+//   // Default constructor
   //
 
 }
@@ -48,11 +88,29 @@ AliTPCLaserTrack::AliTPCLaserTrack(const AliTPCLaserTrack &ltr) :
   fRod(ltr.fRod),
   fBundle(ltr.fBundle),
   fBeam(ltr.fBeam),
-  fRayLength(ltr.fRayLength)
+  fRayLength(ltr.fRayLength),
+  fVecSec(0),       // points vectors - sector
+  fVecP2(0),       // points vectors - snp
+  fVecPhi(0),       // points vectors - global phi
+  fVecGX(0),       // points vectors - globalX
+  fVecGY(0),       // points vectors - globalY
+  fVecGZ(0),       // points vectors - globalZ
+  fVecLX(0),       // points vectors - localX
+  fVecLY(0),       // points vectors - localY
+  fVecLZ(0)        // points vectors - localZ
 {
   //
   // Default constructor
   //
+  fVecSec=new TVectorD(*ltr.fVecSec);       // points vectors - sector
+  fVecP2 =new TVectorD(*ltr.fVecP2);       // points vectors - snp
+  fVecPhi=new TVectorD(*ltr.fVecPhi);       // points vectors - global phi
+  fVecGX =new TVectorD(*ltr.fVecGX);       // points vectors - globalX
+  fVecGY =new TVectorD(*ltr.fVecGY);       // points vectors - globalY
+  fVecGZ =new TVectorD(*ltr.fVecGZ);       // points vectors - globalZ
+  fVecLX =new TVectorD(*ltr.fVecLX);       // points vectors - localX
+  fVecLY =new TVectorD(*ltr.fVecLY);       // points vectors - localY
+  fVecLZ =new TVectorD(*ltr.fVecLZ);       // points vectors - localY
 
 }
 
@@ -67,12 +125,22 @@ AliTPCLaserTrack::AliTPCLaserTrack(const Int_t id, const Int_t side, const Int_t
   fRod(rod),
   fBundle(bundle),
   fBeam(beam),
-  fRayLength(rayLength)
+  fRayLength(rayLength),
+  fVecSec(new TVectorD(159)),       // points vectors - sector
+  fVecP2(new TVectorD(159)),       // points vectors - snp
+  fVecPhi(new TVectorD(159)),       // points vectors - global phi
+  fVecGX(new TVectorD(159)),       // points vectors - globalX
+  fVecGY(new TVectorD(159)),       // points vectors - globalY
+  fVecGZ(new TVectorD(159)),       // points vectors - globalZ
+  fVecLX(new TVectorD(159)),       // points vectors - localX
+  fVecLY(new TVectorD(159)),       // points vectors - localY
+  fVecLZ(new TVectorD(159))        // points vectors - localZ
+
 {
   //
   // create laser track from arguments
   //
-
+  
 }
 //_____________________________________________________________________
 AliTPCLaserTrack& AliTPCLaserTrack::operator = (const  AliTPCLaserTrack &source)
@@ -86,40 +154,128 @@ AliTPCLaserTrack& AliTPCLaserTrack::operator = (const  AliTPCLaserTrack &source)
   return *this;
 }
 
-void AliTPCLaserTrack::LoadTracks()
-{
-    //
-    // Load all design positions from file into the static array fgArrLaserTracks
-    //
 
-    if ( fgArrLaserTracks ) return;
-
-    TString dataFileName("$ALICE_ROOT/TPC/Calib/LaserTracks.root");  //Path to the Data File
-
-    TFile *f=TFile::Open(gSystem->ExpandPathName(dataFileName.Data()));
-    if ( !f || !f->IsOpen() ){
-//	AliWarning(Form("Could not open laser data file: '%s'",dataFileName.Data()));
-//	AliWarning("Could not open laser data file");
-	return;
-    }
-    TObjArray *arrLaserTracks = (TObjArray*)f->Get("arrLaserTracks");
-    if ( !arrLaserTracks ) {
-//	AliWarning(Form("Could not get laser position data from file: '%s'",fgkDataFileName));
-        return;
-    }
-
-    fgArrLaserTracks = new TObjArray(fgkNLaserTracks);
-    for (Int_t itrack=0; itrack<fgkNLaserTracks; itrack++){
-	AliTPCLaserTrack *ltr = (AliTPCLaserTrack*)arrLaserTracks->At(itrack);
-	if ( !ltr ){
-//	    AliWarning(Form("No informatino found for Track %d!",itrack));
-	    continue;
-	}
-        fgArrLaserTracks->AddAt(new AliTPCLaserTrack(*ltr),itrack);
-    }
-    delete f;
+AliTPCLaserTrack::~AliTPCLaserTrack(){
+  //
+  // destructor
+  //
+  delete fVecSec;      //                - sector numbers  
+  delete fVecP2;       //                - P2  
+  delete fVecPhi;       // points vectors - global phi
+  delete fVecGX;       // points vectors - globalX
+  delete fVecGY;       // points vectors - globalY
+  delete fVecGZ;       // points vectors - globalZ
+  delete fVecLX;       // points vectors - localX
+  delete fVecLY;       // points vectors - localY
+  delete fVecLZ;       // points vectors - localZ
 }
 
+void AliTPCLaserTrack::LoadTracks()
+{
+  //
+  // Load all design positions from file into the static array fgArrLaserTracks
+  //
+  
+  if ( fgArrLaserTracks ) return;
+  
+  AliCDBManager *man=AliCDBManager::Instance();
+  if (!man->GetDefaultStorage()) man->SetDefaultStorage("local://$ALICE_ROOT/OCDB");
+  if (man->GetRun()<0) man->SetRun(0);
+  AliCDBEntry *entry=man->Get(AliCDBPath("TPC/Calib/LaserTracks"));
+  TObjArray *arrLaserTracks = (TObjArray*)entry->GetObject();
+  arrLaserTracks->SetOwner();
+  entry->SetOwner(kTRUE);
+  
+  if ( !arrLaserTracks ) {
+//	AliWarning(Form("Could not get laser position data from file: '%s'",fgkDataFileName));
+    return;
+  }
+  
+  fgArrLaserTracks = new TObjArray(fgkNLaserTracks);
+  for (Int_t itrack=0; itrack<fgkNLaserTracks; itrack++){
+    AliTPCLaserTrack *ltr = (AliTPCLaserTrack*)arrLaserTracks->At(itrack);
+    if ( !ltr ){
+//	    AliWarning(Form("No informatino found for Track %d!",itrack));
+      continue;
+    }
+    ltr->UpdatePoints();
+    fgArrLaserTracks->AddAt(new AliTPCLaserTrack(*ltr),itrack);
+  }
+}
+
+
+void AliTPCLaserTrack::UpdatePoints(){
+  //
+  // update track points
+  //
+  const Double_t kMaxSnp=0.97;
+  AliTPCROC* roc = AliTPCROC::Instance();
+  //
+  //
+  if (!fVecSec){
+    fVecSec=new TVectorD(159);
+    fVecP2 =new TVectorD(159);       //                - P2  
+    fVecPhi=new TVectorD(159);       //                - Phi
+    fVecGX=new TVectorD(159);       // points vectors - globalX
+    fVecGY=new TVectorD(159);       // points vectors - globalY
+    fVecGZ=new TVectorD(159);       // points vectors - globalZ
+    fVecLX=new TVectorD(159);       // points vectors - localX
+    fVecLY=new TVectorD(159);       // points vectors - localY
+    fVecLZ=new TVectorD(159);       // points vectors - localZ
+
+  }
+  for (Int_t irow=158; irow>=0; irow--){
+    (*fVecSec)[irow]= -1;       //                -
+    (*fVecP2)[irow] = 0;       //                - P2  -snp
+    (*fVecPhi)[irow]= 0;       //                - global phi
+    (*fVecGX)[irow] = 0;       // points vectors - globalX
+    (*fVecGY)[irow] = 0;       // points vectors - globalY
+    (*fVecGZ)[irow] = 0;       // points vectors - globalZ
+    (*fVecLX)[irow] = 0;       // points vectors - localX
+    (*fVecLY)[irow] = 0;       // points vectors - localY
+    (*fVecLZ)[irow] = 0;       // points vectors - localZ
+
+  }
+  Double_t gxyz[3];
+  Double_t lxyz[3];
+  AliTPCLaserTrack*ltrp=new AliTPCLaserTrack(*this);  //make temporary track
+
+  for (Int_t irow=158; irow>=0; irow--){
+    UInt_t srow = irow;
+    Int_t sector=0;
+   
+    if (srow >=roc->GetNRows(0)) {
+      srow-=roc->GetNRows(0);
+      sector=36    ;
+    }
+    lxyz[0]= roc->GetPadRowRadii(sector,srow);
+    if (!ltrp->PropagateTo(lxyz[0],5)) break;
+    ltrp->GetXYZ(gxyz);
+    //
+    Double_t alpha=TMath::ATan2(gxyz[1],gxyz[0]);
+    if (alpha<0) alpha+=2*TMath::Pi();
+    sector      +=TMath::Nint(-0.5+9*alpha/TMath::Pi());
+    if (gxyz[2]<0) sector+=18;
+    Double_t salpha   = TMath::Pi()*(sector+0.5)/9.;    
+    if (!ltrp->Rotate(salpha)) break;
+    if (!ltrp->PropagateTo(lxyz[0],5)) break;
+    if (TMath::Abs(ltrp->GetSnp())>kMaxSnp) break;
+    ltrp->GetXYZ(gxyz);
+    lxyz[1]=ltrp->GetY();
+    lxyz[2]=ltrp->GetZ();
+    (*fVecSec)[irow]= sector;
+    (*fVecP2)[irow] = ltrp->GetSnp();                 //                - P2  -snp
+    (*fVecPhi)[irow]= TMath::ATan2(gxyz[1],gxyz[0]);  //                - global phi
+    (*fVecGX)[irow] = gxyz[0];       // points vectors - globalX
+    (*fVecGY)[irow] = gxyz[1];       // points vectors - globalY
+    (*fVecGZ)[irow] = gxyz[2];       // points vectors - globalZ
+    (*fVecLX)[irow] = lxyz[0];       // points vectors - localX
+    (*fVecLY)[irow] = lxyz[1];       // points vectors - localY
+    (*fVecLZ)[irow] = lxyz[2];       // points vectors - localZ
+
+  }
+  delete ltrp;  // delete temporary track
+}
 
 Int_t AliTPCLaserTrack::IdentifyTrack(AliExternalTrackParam *track, Int_t side)
 {

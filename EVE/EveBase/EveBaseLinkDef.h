@@ -11,6 +11,9 @@
 #pragma link off all globals;
 #pragma link off all classes;
 
+// AliEveConfigManager
+#pragma link C++ class AliEveConfigManager+;
+
 // AliEveEventManager
 #pragma link C++ class AliEveEventManager+;
 #pragma link C++ class AliEveEventManagerEditor+;
@@ -26,9 +29,15 @@
 #pragma link C++ class AliEveMacroExecutor+;
 #pragma link C++ class AliEveMacroExecutorWindow+;
 
+// Special GED editor for VizDB interaction.
+#pragma link C++ class AliEveGedEditor+;
+#pragma link C++ class AliEveGedNameFrame+;
+
+// Various
 #pragma link C++ class AliEveKineTools+;
 #pragma link C++ class AliEveMagField+;
 #pragma link C++ class AliEveVSDCreator+;
+#pragma link C++ class AliEveMultiView+;
 
 // AliEveTrack
 #pragma link C++ class AliEveTrack+;

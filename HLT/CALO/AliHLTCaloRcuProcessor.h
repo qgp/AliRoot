@@ -16,11 +16,13 @@ class AliHLTCaloRcuProcessor:public AliHLTCaloProcessor
 public:
   AliHLTCaloRcuProcessor();
   virtual ~AliHLTCaloRcuProcessor();
+  virtual AliHLTComponentDataType GetOutputDataType() =0;
   
 private:
   AliHLTCaloRcuProcessor (const AliHLTCaloRcuProcessor & );
   AliHLTCaloRcuProcessor   & operator = (const  AliHLTCaloRcuProcessor  &);
     
+  ClassDef(AliHLTCaloRcuProcessor, 1);
 };
 
 #endif

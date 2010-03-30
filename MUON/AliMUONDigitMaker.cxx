@@ -55,7 +55,6 @@
 #include "AliMUONRawStreamTrackerHP.h"
 #include "AliMUONRawStreamTriggerHP.h"
 #include "AliMUONRegHeader.h"
-#include "AliMUONTriggerCircuit.h"
 #include "AliMUONVTriggerStore.h"
 #include "AliMpDetElement.h"
 #include "AliMpTriggerCrate.h"
@@ -423,7 +422,7 @@ Int_t AliMUONDigitMaker::TriggerDigits(Int_t nBoard,
           {            
             // not quite sure about this
             Int_t offset = 0;
-            if (iCath && localBoard->GetSwitch(6)) offset = -8;
+            if (iCath && localBoard->GetSwitch(AliMpLocalBoard::kZeroAllYLSB)) offset = -8;
             
             AliMpPad pad = seg->PadByLocation(nBoard,ibitxy+offset,kTRUE);
                         

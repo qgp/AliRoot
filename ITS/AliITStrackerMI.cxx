@@ -50,6 +50,7 @@
 #include "AliITSChannelStatus.h"
 #include "AliITSDetTypeRec.h"
 #include "AliITSRecPoint.h"
+#include "AliITSRecPointContainer.h"
 #include "AliITSgeomTGeo.h"
 #include "AliITSReconstructor.h"
 #include "AliITSClusterParam.h"
@@ -60,6 +61,7 @@
 #include "AliITSPlaneEffSSD.h"
 #include "AliITSV0Finder.h"
 #include "AliITStrackerMI.h"
+#include "AliMathBase.h"
 
 ClassImp(AliITStrackerMI)
 
@@ -143,9 +145,11 @@ fPlaneEff(0) {
     Int_t ndet=AliITSgeomTGeo::GetNDetectors(i);
 
     Double_t xyz[3], &x=xyz[0], &y=xyz[1], &z=xyz[2];
-    AliITSgeomTGeo::GetOrigTranslation(i,1,1,xyz); 
+    AliITSgeomTGeo::GetTranslation(i,1,1,xyz); 
     Double_t poff=TMath::ATan2(y,x);
     Double_t zoff=z;
+
+    AliITSgeomTGeo::GetOrigTranslation(i,1,1,xyz);
     Double_t r=TMath::Sqrt(x*x + y*y);
 
     AliITSgeomTGeo::GetOrigTranslation(i,1,2,xyz);
@@ -207,15 +211,27 @@ fPlaneEff(0) {
   }
 
   // store positions of centre of SPD modules (in z)
+  //  The convetion is that fSPDdetzcentre is ordered from -z to +z
   Double_t tr[3];
-  AliITSgeomTGeo::GetTranslation(1,1,1,tr);
-  fSPDdetzcentre[0] = tr[2];
-  AliITSgeomTGeo::GetTranslation(1,1,2,tr);
-  fSPDdetzcentre[1] = tr[2];
-  AliITSgeomTGeo::GetTranslation(1,1,3,tr);
-  fSPDdetzcentre[2] = tr[2];
-  AliITSgeomTGeo::GetTranslation(1,1,4,tr);
-  fSPDdetzcentre[3] = tr[2];
+  if (tr[2]<0) { // old geom (up to v5asymmPPR)
+    AliITSgeomTGeo::GetTranslation(1,1,1,tr);
+    fSPDdetzcentre[0] = tr[2];
+    AliITSgeomTGeo::GetTranslation(1,1,2,tr);
+    fSPDdetzcentre[1] = tr[2];
+    AliITSgeomTGeo::GetTranslation(1,1,3,tr);
+    fSPDdetzcentre[2] = tr[2];
+    AliITSgeomTGeo::GetTranslation(1,1,4,tr);
+    fSPDdetzcentre[3] = tr[2];
+  } else { // new geom (from v11Hybrid)
+    AliITSgeomTGeo::GetTranslation(1,1,4,tr);
+    fSPDdetzcentre[0] = tr[2];
+    AliITSgeomTGeo::GetTranslation(1,1,3,tr);
+    fSPDdetzcentre[1] = tr[2];
+    AliITSgeomTGeo::GetTranslation(1,1,2,tr);
+    fSPDdetzcentre[2] = tr[2];
+    AliITSgeomTGeo::GetTranslation(1,1,1,tr);
+    fSPDdetzcentre[3] = tr[2];
+  }
 
   fUseTGeo = AliITSReconstructor::GetRecoParam()->GetUseTGeoInTracker();
   if(AliITSReconstructor::GetRecoParam()->GetExtendedEtaAcceptance() && fUseTGeo!=1 && fUseTGeo!=3) {
@@ -346,22 +362,23 @@ Int_t AliITStrackerMI::LoadClusters(TTree *cTree) {
   //--------------------------------------------------------------------
   //This function loads ITS clusters
   //--------------------------------------------------------------------
-  TBranch *branch=cTree->GetBranch("ITSRecPoints");
-  if (!branch) { 
-    Error("LoadClusters"," can't get the branch !\n");
-    return 1;
+ 
+  TClonesArray *clusters = NULL;
+  AliITSRecPointContainer* rpcont=AliITSRecPointContainer::Instance();
+  clusters=rpcont->FetchClusters(0,cTree);
+  if(!(rpcont->IsSPDActive() || rpcont->IsSDDActive() || rpcont->IsSSDActive())){
+      AliError("ITS is not in a known running configuration: SPD, SDD and SSD are not active");
+      return 1;
   }
-
-  static TClonesArray dummy("AliITSRecPoint",10000), *clusters=&dummy;
-  branch->SetAddress(&clusters);
-
   Int_t i=0,j=0,ndet=0;
   Int_t detector=0;
   for (i=0; i<AliITSgeomTGeo::GetNLayers(); i++) {
     ndet=fgLayers[i].GetNdetectors();
     Int_t jmax = j + fgLayers[i].GetNladders()*ndet;
     for (; j<jmax; j++) {           
-      if (!cTree->GetEvent(j)) continue;
+      //      if (!cTree->GetEvent(j)) continue;
+      clusters = rpcont->UncheckedGetClusters(j);
+      if(!clusters)continue;
       Int_t ncl=clusters->GetEntriesFast();
       SignDeltas(clusters,GetZ());
  
@@ -370,12 +387,17 @@ Int_t AliITStrackerMI::LoadClusters(TTree *cTree) {
         detector=c->GetDetectorIndex();
 
 	if (!c->Misalign()) AliWarning("Can't misalign this cluster !");
-
-        fgLayers[i].InsertCluster(new AliITSRecPoint(*c));
+	
+	Int_t retval = fgLayers[i].InsertCluster(new AliITSRecPoint(*c));
+	if(retval) {
+	  AliWarning(Form("Too many clusters on layer %d!",i));
+	  break;  
+	} 
       }
-      clusters->Clear();
+
       // add dead zone "virtual" cluster in SPD, if there is a cluster within 
       // zwindow cm from the dead zone      
+      //  This method assumes that fSPDdetzcentre is ordered from -z to +z
       if (i<2 && AliITSReconstructor::GetRecoParam()->GetAddVirtualClustersInDeadZone()) {
 	for (Float_t xdead = 0; xdead < AliITSRecoParam::GetSPDdetxlength(); xdead += (i+1.)*AliITSReconstructor::GetRecoParam()->GetXPassDeadZoneHits()) {
 	  Int_t lab[4]   = {0,0,0,detector};
@@ -490,11 +512,12 @@ Int_t AliITStrackerMI::Clusters2Tracks(AliESDEvent *event) {
     }
   }
   // temporary
-
+  Int_t noesd = 0;
   {/* Read ESD tracks */
     Double_t pimass = TDatabasePDG::Instance()->GetParticle(211)->Mass();
     Int_t nentr=event->GetNumberOfTracks();
-    Info("Clusters2Tracks", "Number of ESD tracks: %d\n", nentr);
+    noesd=nentr;
+    //    Info("Clusters2Tracks", "Number of ESD tracks: %d\n", nentr);
     while (nentr--) {
       AliESDtrack *esd=event->GetTrack(nentr);
       //  ---- for debugging:
@@ -618,7 +641,7 @@ Int_t AliITStrackerMI::Clusters2Tracks(AliESDEvent *event) {
   fCoefficients=0;
   DeleteTrksMaterialLUT();
 
-  Info("Clusters2Tracks","Number of prolonged tracks: %d\n",ntrk);
+  AliInfo(Form("Number of prolonged tracks: %d out of %d ESD tracks",ntrk,noesd));
 
   fTrackingPhase="Default";
   
@@ -632,7 +655,7 @@ Int_t AliITStrackerMI::PropagateBack(AliESDEvent *event) {
   //--------------------------------------------------------------------
   fTrackingPhase="PropagateBack";
   Int_t nentr=event->GetNumberOfTracks();
-  Info("PropagateBack", "Number of ESD tracks: %d\n", nentr);
+  //  Info("PropagateBack", "Number of ESD tracks: %d\n", nentr);
 
   Int_t ntrk=0;
   for (Int_t i=0; i<nentr; i++) {
@@ -689,7 +712,7 @@ Int_t AliITStrackerMI::PropagateBack(AliESDEvent *event) {
      delete t;
   }
 
-  Info("PropagateBack","Number of back propagated ITS tracks: %d\n",ntrk);
+  AliInfo(Form("Number of back propagated ITS tracks: %d out of %d ESD tracks",ntrk,nentr));
 
   fTrackingPhase="Default";
 
@@ -707,7 +730,7 @@ Int_t AliITStrackerMI::RefitInward(AliESDEvent *event) {
   if(AliITSReconstructor::GetRecoParam()->GetFindV0s()) AliITSV0Finder::RefitV02(event,this);
 
   Int_t nentr=event->GetNumberOfTracks();
-  Info("RefitInward", "Number of ESD tracks: %d\n", nentr);
+  //  Info("RefitInward", "Number of ESD tracks: %d\n", nentr);
 
   Int_t ntrk=0;
   for (Int_t i=0; i<nentr; i++) {
@@ -766,7 +789,7 @@ Int_t AliITStrackerMI::RefitInward(AliESDEvent *event) {
     delete t;
   }
 
-  Info("RefitInward","Number of refitted tracks: %d\n",ntrk);
+  AliInfo(Form("Number of refitted tracks: %d out of %d ESD tracks",ntrk,nentr));
 
   fTrackingPhase="Default";
 
@@ -1237,21 +1260,8 @@ void AliITStrackerMI::FollowProlongationTree(AliITStrackMI * otrack, Int_t esdin
 	vtrack->IncrementNSkipped();
 	ntracks[ilayer]++;
       }
-
-      // allow one prolongation without clusters for tracks with |tgl|>1.1
-      if (constrain && itrack==0 && TMath::Abs(currenttrack1.GetTgl())>1.1) {  //big theta - for low flux
-	AliITStrackMI* vtrack = new (&tracks[ilayer][ntracks[ilayer]]) AliITStrackMI(currenttrack1);
-	// apply correction for material of the current layer
-	CorrectForLayerMaterial(vtrack,ilayer,trackGlobXYZ1,"inward");
-	vtrack->SetClIndex(ilayer,-1);
-	modstatus = 3; // skipped
-	vtrack->SetModuleIndexInfo(ilayer,idet,modstatus,xloc,zloc);
-	vtrack->Improve(budgetToPrimVertex,xyzVtx,ersVtx);
-	vtrack->SetNDeadZone(vtrack->GetNDeadZone()+1);
-	ntracks[ilayer]++;
-      }
-     
       
+
     } // loop over tracks in layer ilayer+1
 
     //loop over track candidates for the current layer
@@ -1586,7 +1596,6 @@ Int_t AliITStrackerMI::AliITSlayer::InsertCluster(AliITSRecPoint *cl) {
   //This function adds a cluster to this layer
   //--------------------------------------------------------------------
   if (fN==AliITSRecoParam::GetMaxClusterPerLayer()) {
-    ::Error("InsertCluster","Too many clusters !\n");
     return 1;
   }
   fCurrentSlice=-1;
@@ -1910,16 +1919,25 @@ FindDetectorIndex(Double_t phi, Double_t z) const {
   Double_t dz=fZOffset-z;
   Double_t nnz = dz*(fNdetectors-1)*0.5/fZOffset+0.5;
   Int_t nz = (nnz<0 ? -1 : (Int_t)nnz);
-  if (nz>=fNdetectors) return -1;
-  if (nz<0)            return -1;
+  if (nz>=fNdetectors || nz<0) {
+    //printf("ndet %d phi %f z %f  np %d nz %d\n",fNdetectors,phi,z,np,nz);
+    return -1;
+  }
 
   // ad hoc correction for 3rd ladder of SDD inner layer,
   // which is reversed (rotated by pi around local y)
   // this correction is OK only from AliITSv11Hybrid onwards
   if (GetR()>12. && GetR()<20.) { // SDD inner
     if(np==2) { // 3rd ladder
-      nz = (fNdetectors-1) - nz;
-    } 
+      Double_t posMod252[3];
+      AliITSgeomTGeo::GetTranslation(252,posMod252);
+      // check the Z coordinate of Mod 252: if negative 
+      // (old SDD geometry in AliITSv11Hybrid)
+      // the swap of numeration whould be applied
+      if(posMod252[2]<0.){
+	nz = (fNdetectors-1) - nz;
+      } 
+    }
   }
   //printf("ndet %d phi %f z %f  np %d nz %d\n",fNdetectors,phi,z,np,nz);
 
@@ -2303,6 +2321,9 @@ Bool_t AliITStrackerMI::RefitAt(Double_t xx,AliITStrackMI *track,
 
 
      const AliITSdetector &det=layer.GetDetector(idet);
+     // only for ITS-SA tracks refit
+     if (ilayer>1 && fTrackingPhase.Contains("RefitInward") && !(track->GetStatus()&AliESDtrack::kTPCin)) track->SetCheckInvariant(kFALSE);
+     // 
      if (!track->Propagate(det.GetPhi(),det.GetR())) return kFALSE;
 
      track->SetDetectorIndex(idet);
@@ -2396,7 +2417,7 @@ Bool_t AliITStrackerMI::RefitAt(Double_t xx,AliITStrackMI *track,
      // cross material
      // add time if going outward
      if(!CorrectForLayerMaterial(track,ilayer,oldGlobXYZ,dir)) return kFALSE;
-                 
+     track->SetCheckInvariant(kTRUE);
   } // end loop on layers
 
   if (!track->PropagateTo(xx,0.,0.)) return kFALSE;
@@ -2504,12 +2525,17 @@ Double_t AliITStrackerMI::GetNormalizedChi2(AliITStrackMI * track, Int_t mode)
   // or there is a dead from OCDB)
   Float_t deadzonefactor = 0.; 
   if (track->GetNDeadZone()>0.) {    
-    Float_t sumDeadZoneProbability=0; 
-    for(Int_t ilay=0;ilay<6;ilay++) sumDeadZoneProbability+=track->GetDeadZoneProbability(ilay);
-    Float_t nDeadZoneWithProbNot1=(Float_t)(track->GetNDeadZone())-sumDeadZoneProbability;
-    if(nDeadZoneWithProbNot1>0.) {
-      Float_t deadZoneProbability = sumDeadZoneProbability - (Float_t)((Int_t)sumDeadZoneProbability);
-      deadZoneProbability /= nDeadZoneWithProbNot1;
+    Int_t sumDeadZoneProbability=0; 
+    for(Int_t ilay=0;ilay<6;ilay++) {
+      if(track->GetDeadZoneProbability(ilay)>0.) sumDeadZoneProbability++;
+    }
+    Int_t nDeadZoneWithProbNot1=(Int_t)(track->GetNDeadZone())-sumDeadZoneProbability;
+    if(nDeadZoneWithProbNot1>0) {
+      Float_t deadZoneProbability = track->GetNDeadZone()-(Float_t)sumDeadZoneProbability;
+      AliDebug(2,Form("nDeadZone %f sumDZProbability %f nDZWithProbNot1 %f deadZoneProb %f\n",track->GetNDeadZone(),sumDeadZoneProbability,nDeadZoneWithProbNot1,deadZoneProbability));
+      deadZoneProbability /= (Float_t)nDeadZoneWithProbNot1;
+      Float_t one = 1.;
+      deadZoneProbability = TMath::Min(deadZoneProbability,one);
       deadzonefactor = 3.*(1.1-deadZoneProbability);  
     }
   }  
@@ -2517,8 +2543,9 @@ Double_t AliITStrackerMI::GetNormalizedChi2(AliITStrackMI * track, Int_t mode)
   Double_t normchi2 = 2*track->GetNSkipped()+match+deadzonefactor+(1+(2*track->GetNSkipped()+deadzonefactor)/track->GetNumberOfClusters())*
     (chi2)/TMath::Max(double(sum-track->GetNSkipped()),
 				1./(1.+track->GetNSkipped()));     
- 
- return normchi2;
+  AliDebug(2,Form("match %f deadzonefactor %f chi2 %f sum %f skipped\n",match,deadzonefactor,chi2,sum,track->GetNSkipped()));
+  AliDebug(2,Form("NormChi2 %f  cls %d\n",normchi2,track->GetNumberOfClusters()));
+  return normchi2;
 }
 //------------------------------------------------------------------------
 Double_t AliITStrackerMI::GetMatchingChi2(const AliITStrackMI * track1,const AliITStrackMI * track2)
@@ -2568,30 +2595,46 @@ Double_t  AliITStrackerMI::GetSPDDeadZoneProbability(Double_t zpos, Double_t zer
   //
   //  return probability that given point (characterized by z position and error) 
   //  is in SPD dead zone
+  //     This method assumes that fSPDdetzcentre is ordered from -z to +z
   //
   Double_t probability = 0.;
-  Double_t absz = TMath::Abs(zpos);
-  Double_t nearestz = (absz<2.) ? 0.5*(fSPDdetzcentre[1]+fSPDdetzcentre[2]) : 
-                                  0.5*(fSPDdetzcentre[2]+fSPDdetzcentre[3]);
-  if (TMath::Abs(absz-nearestz)>0.25+3.*zerr) return probability;
+  Double_t nearestz = 0.,distz=0.;
+  Int_t    nearestzone = -1;
+  Double_t mindistz = 1000.;
+
+  // find closest dead zone
+  for (Int_t i=0; i<3; i++) {
+    distz=TMath::Abs(zpos-0.5*(fSPDdetzcentre[i]+fSPDdetzcentre[i+1]));
+    if (distz<mindistz) {
+      nearestzone=i;
+      nearestz=0.5*(fSPDdetzcentre[i]+fSPDdetzcentre[i+1]);
+      mindistz=distz;
+    }
+  }
+
+  // too far from dead zone
+  if (TMath::Abs(zpos-nearestz)>0.25+3.*zerr) return probability;
+
+
   Double_t zmin, zmax;   
-  if (zpos<-6.) { // dead zone at z = -7
+  if (nearestzone==0) { // dead zone at z = -7
     zmin = fSPDdetzcentre[0] + 0.5*AliITSRecoParam::GetSPDdetzlength();
     zmax = fSPDdetzcentre[1] - 0.5*AliITSRecoParam::GetSPDdetzlength();
-  } else if (zpos>6.) { // dead zone at z = +7
-    zmin = fSPDdetzcentre[2] + 0.5*AliITSRecoParam::GetSPDdetzlength();
-    zmax = fSPDdetzcentre[3] - 0.5*AliITSRecoParam::GetSPDdetzlength();
-  } else if (absz<2.) { // dead zone at z = 0
+  } else if (nearestzone==1) { // dead zone at z = 0
     zmin = fSPDdetzcentre[1] + 0.5*AliITSRecoParam::GetSPDdetzlength();
     zmax = fSPDdetzcentre[2] - 0.5*AliITSRecoParam::GetSPDdetzlength();
+  } else if (nearestzone==2) { // dead zone at z = +7
+    zmin = fSPDdetzcentre[2] + 0.5*AliITSRecoParam::GetSPDdetzlength();
+    zmax = fSPDdetzcentre[3] - 0.5*AliITSRecoParam::GetSPDdetzlength();
   } else {
     zmin = 0.;
     zmax = 0.;
   }
   // probability that the true z is in the range [zmin,zmax] (i.e. inside 
   // dead zone)
-  probability = 0.5*( TMath::Erf((zpos-zmin)/zerr/TMath::Sqrt(2.)) - 
-		      TMath::Erf((zpos-zmax)/zerr/TMath::Sqrt(2.)) );
+  probability = 0.5*( AliMathBase::ErfFast((zpos-zmin)/zerr/TMath::Sqrt(2.)) - 
+		      AliMathBase::ErfFast((zpos-zmax)/zerr/TMath::Sqrt(2.)) );
+  AliDebug(2,Form("zpos %f +- %f nearestzone %d  zmin zmax %f %f prob %f\n",zpos,zerr,nearestzone,zmin,zmax,probability));
   return probability;
 }
 //------------------------------------------------------------------------
@@ -3203,6 +3246,7 @@ void AliITStrackerMI::SortTrackHypothesys(Int_t esdindex, Int_t maxcut, Int_t mo
   for (Int_t itrack=0;itrack<entries;itrack++){
     AliITStrackMI * track = (AliITStrackMI*)array->At(itrack);
     if (track){
+      AliDebug(2,Form("track %d  ncls %d\n",itrack,track->GetNumberOfClusters()));
       track->SetChi2MIP(0,GetNormalizedChi2(track, mode));            
       if (track->GetChi2MIP(0)<AliITSReconstructor::GetRecoParam()->GetMaxChi2PerCluster(0)) 
 	chi2[itrack] = track->GetChi2MIP(0);
@@ -3216,6 +3260,7 @@ void AliITStrackerMI::SortTrackHypothesys(Int_t esdindex, Int_t maxcut, Int_t mo
   //
   TMath::Sort(entries,chi2,index,kFALSE);
   besttrack = (AliITStrackMI*)array->At(index[0]);
+  if(besttrack) AliDebug(2,Form("ncls best track %d\n",besttrack->GetNumberOfClusters()));
   if (besttrack&&besttrack->GetChi2MIP(0)<AliITSReconstructor::GetRecoParam()->GetMaxChi2PerCluster(0)){
     for (Int_t j=0;j<6;j++){
       if (besttrack->GetClIndex(j)>=0){
@@ -3232,7 +3277,8 @@ void AliITStrackerMI::SortTrackHypothesys(Int_t esdindex, Int_t maxcut, Int_t mo
   for (Int_t itrack=0;itrack<entries;itrack++){
     AliITStrackMI * track = (AliITStrackMI*)array->At(itrack);
     if (track){      
-      track->SetChi2MIP(0,GetNormalizedChi2(track,mode));            
+      track->SetChi2MIP(0,GetNormalizedChi2(track,mode));
+      AliDebug(2,Form("track %d  ncls %d\n",itrack,track->GetNumberOfClusters()));            
       if (track->GetChi2MIP(0)<AliITSReconstructor::GetRecoParam()->GetMaxChi2PerCluster(0)) 
 	chi2[itrack] = track->GetChi2MIP(0)-0*(track->GetNumberOfClusters()+track->GetNDeadZone()); 
       else
@@ -3251,6 +3297,7 @@ void AliITStrackerMI::SortTrackHypothesys(Int_t esdindex, Int_t maxcut, Int_t mo
     TMath::Sort(entries,chi2,index,kFALSE);
     besttrack = (AliITStrackMI*)array->At(index[0]);
     if (besttrack){
+      AliDebug(2,Form("ncls best track %d     %f   %f\n",besttrack->GetNumberOfClusters(),besttrack->GetChi2MIP(0),chi2[index[0]]));
       //
       for (Int_t j=0;j<6;j++){
 	if (besttrack->GetNz(j)>0&&besttrack->GetNy(j)>0){
@@ -3603,7 +3650,7 @@ void AliITStrackerMI::CookLabel(AliITStrackMI *track,Float_t wrong) const {
   //--------------------------------------------------------------------
   Int_t tpcLabel=-1; 
      
-  if ( track->GetESDtrack())   tpcLabel =  TMath::Abs(track->GetESDtrack()->GetTPCLabel());
+  if (track->GetESDtrack())   tpcLabel = track->GetESDtrack()->GetTPCLabel();
 
    track->SetChi2MIP(9,0);
    Int_t nwrong=0;
@@ -3613,9 +3660,8 @@ void AliITStrackerMI::CookLabel(AliITStrackMI *track,Float_t wrong) const {
      AliITSRecPoint *cl = (AliITSRecPoint*)GetCluster(cindex);
      Int_t isWrong=1;
      for (Int_t ind=0;ind<3;ind++){
-       if (tpcLabel>0)
-	 if (cl->GetLabel(ind)==tpcLabel) isWrong=0;
-       AliDebug(2,Form("icl %d  ilab %d lab %d",i,ind,cl->GetLabel(ind)));
+       if (cl->GetLabel(ind)==TMath::Abs(tpcLabel)) isWrong=0;
+       //AliDebug(2,Form("icl %d  ilab %d lab %d",i,ind,cl->GetLabel(ind)));
      }
      track->SetChi2MIP(9,track->GetChi2MIP(9)+isWrong*(2<<l));
      nwrong+=isWrong;
@@ -3623,10 +3669,10 @@ void AliITStrackerMI::CookLabel(AliITStrackMI *track,Float_t wrong) const {
    Int_t nclusters = track->GetNumberOfClusters();
    if (nclusters > 0) //PH Some tracks don't have any cluster
      track->SetFakeRatio(double(nwrong)/double(nclusters));
-   if (tpcLabel>0){
-     if (track->GetFakeRatio()>wrong) track->SetLabel(-tpcLabel);
-     else
-       track->SetLabel(tpcLabel);
+   if (tpcLabel>0 && track->GetFakeRatio()>wrong) {
+     track->SetLabel(-tpcLabel);
+   } else {
+     track->SetLabel(tpcLabel);
    }
    AliDebug(2,Form(" nls %d wrong %d  label %d  tpcLabel %d\n",nclusters,nwrong,track->GetLabel(),tpcLabel));
    
@@ -4280,14 +4326,15 @@ void AliITStrackerMI::SetForceSkippingOfLayer() {
   //-----------------------------------------------------------------
 
   const AliEventInfo *eventInfo = GetEventInfo();
- 
+  
   for(Int_t l=0; l<AliITSgeomTGeo::kNLayers; l++) {
     fForceSkippingOfLayer[l] = 0;
     // check reco param
     if(AliITSReconstructor::GetRecoParam()->GetLayersToSkip(l)) fForceSkippingOfLayer[l] = 1;
     // check run info
 
-    if(eventInfo) {
+    if(eventInfo && 
+       AliITSReconstructor::GetRecoParam()->GetSkipSubdetsNotInTriggerCluster()) {
       AliDebug(2,Form("GetEventInfo->GetTriggerCluster: %s",eventInfo->GetTriggerCluster()));
       if(l==0 || l==1)  {
 	if(!strstr(eventInfo->GetTriggerCluster(),"ITSSPD")) fForceSkippingOfLayer[l] = 1;
@@ -4338,6 +4385,7 @@ Int_t AliITStrackerMI::CheckDeadZone(AliITStrackMI *track,
   // without clusters, because there is a dead zone in the road.
   // In this case the return value is > 0:
   // return 1: dead zone at z=0,+-7cm in SPD
+  //     This method assumes that fSPDdetzcentre is ordered from -z to +z
   // return 2: all road is "bad" (dead or noisy) from the OCDB
   // return 3: at least a chip is "bad" (dead or noisy) from the OCDB
   // return 4: at least a single channel is "bad" (dead or noisy) from the OCDB
@@ -4353,8 +4401,8 @@ Int_t AliITStrackerMI::CheckDeadZone(AliITStrackMI *track,
 			  fSPDdetzcentre[3] - 0.5*AliITSRecoParam::GetSPDdetzlength()};
     for (Int_t i=0; i<3; i++)
       if (track->GetZ()-dz<zmaxdead[i] && track->GetZ()+dz>zmindead[i]) {
-	AliDebug(2,Form("crack SPD %d",ilayer));
-	return 1; 
+	AliDebug(2,Form("crack SPD %d track z %f   %f   %f  %f\n",ilayer,track->GetZ(),dz,zmaxdead[i],zmindead[i]));
+	if (GetSPDDeadZoneProbability(track->GetZ(),TMath::Sqrt(track->GetSigmaZ2()))>0.1) return 1; 
       } 
   }
 
@@ -4391,10 +4439,10 @@ Int_t AliITStrackerMI::CheckDeadZone(AliITStrackMI *track,
 
   // check if road goes out of detector
   Bool_t touchNeighbourDet=kFALSE; 
-  if (TMath::Abs(xlocmin)>0.5*detSizeX) {xlocmin=-0.5*detSizeX; touchNeighbourDet=kTRUE;} 
-  if (TMath::Abs(xlocmax)>0.5*detSizeX) {xlocmax=+0.5*detSizeX; touchNeighbourDet=kTRUE;} 
-  if (TMath::Abs(zlocmin)>0.5*detSizeZ) {zlocmin=-0.5*detSizeZ; touchNeighbourDet=kTRUE;} 
-  if (TMath::Abs(zlocmax)>0.5*detSizeZ) {zlocmax=+0.5*detSizeZ; touchNeighbourDet=kTRUE;} 
+  if (TMath::Abs(xlocmin)>0.5*detSizeX) {xlocmin=-0.4999*detSizeX; touchNeighbourDet=kTRUE;} 
+  if (TMath::Abs(xlocmax)>0.5*detSizeX) {xlocmax=+0.4999*detSizeX; touchNeighbourDet=kTRUE;} 
+  if (TMath::Abs(zlocmin)>0.5*detSizeZ) {zlocmin=-0.4999*detSizeZ; touchNeighbourDet=kTRUE;} 
+  if (TMath::Abs(zlocmax)>0.5*detSizeZ) {zlocmax=+0.4999*detSizeZ; touchNeighbourDet=kTRUE;} 
   AliDebug(2,Form("layer %d det %d zmim zmax %f %f xmin xmax %f %f   %f %f",ilayer,idet,zlocmin,zlocmax,xlocmin,xlocmax,detSizeZ,detSizeX));
 
   // check if this detector is bad
@@ -4749,3 +4797,4 @@ void AliITStrackerMI::UseTrackForPlaneEff(const AliITStrackMI* track, Int_t ilay
   }
 return;
 }
+

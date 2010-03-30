@@ -35,7 +35,7 @@
 #include "AliHLTTPCCADataCompressor.h"
 #include "AliHLTTPCCAParam.h"
 #include "AliHLTTPCCATrackLinearisation.h"
-
+#include "AliHLTTPCCADataCompressor.h"
 
 class AliHLTTPCCAMerger::AliHLTTPCCASliceTrackInfo
 {
@@ -146,14 +146,24 @@ AliHLTTPCCAMerger::~AliHLTTPCCAMerger()
   //* destructor
   if ( fTrackInfos ) delete[] fTrackInfos;
   if ( fClusterInfos ) delete[] fClusterInfos;
-  if ( fOutput ) delete[] ( ( char* )( fOutput ) );
+  if ( fOutput ) delete[] ( ( float2* )( fOutput ) );
 }
 
 void AliHLTTPCCAMerger::Clear()
 {
   for ( int i = 0; i < fgkNSlices; ++i ) {
     fkSlices[i] = 0;
+    fSliceNTrackInfos[ i ] = 0;
+    fSliceTrackInfoStart[ i ] = 0;
   }
+  if ( fOutput ) delete[] ( ( float2* )( fOutput ) );
+  if ( fTrackInfos ) delete[] fTrackInfos;
+  if ( fClusterInfos ) delete[] fClusterInfos;
+  fOutput = 0;
+  fTrackInfos = 0;
+  fClusterInfos = 0;
+  fMaxTrackInfos = 0;
+  fMaxClusterInfos = 0;
 }
 
 
@@ -198,7 +208,7 @@ void AliHLTTPCCAMerger::UnpackSlices()
       fClusterInfos = new AliHLTTPCCAClusterInfo [fMaxClusterInfos];
     }
 
-    if ( fOutput ) delete[] ( ( char* )( fOutput ) );
+    if ( fOutput ) delete[] ( ( float2* )( fOutput ) );
     int size = fOutput->EstimateSize( nTracksTotal, nTrackClustersTotal );
     fOutput = ( AliHLTTPCCAMergerOutput* )( new float2[size/sizeof( float2 )+1] );
   }
@@ -236,10 +246,12 @@ void AliHLTTPCCAMerger::UnpackSlices()
         clu.SetIRow( slice.ClusterRow( ic ) );
         clu.SetId( slice.ClusterId( ic ) );
         clu.SetPackedAmp( 0 );
-        float2 yz = slice.ClusterUnpackedYZ( ic );
-        clu.SetX( slice.ClusterUnpackedX( ic ) );
-        clu.SetY( yz.x );
-        clu.SetZ( yz.y );
+	float x,y,z;
+	AliHLTTPCCADataCompressor::UnpackXYZ( clu.IRow(), slice.ClusterPackedXYZ(ic), x, y, z );
+        
+        clu.SetX( x );
+        clu.SetY( y );
+        clu.SetZ( z );
 
         if ( !t0.TransportToX( clu.X(), fSliceParam.GetBz( t0 ), .999 ) ) continue;
 

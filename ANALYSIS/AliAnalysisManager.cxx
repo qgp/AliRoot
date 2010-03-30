@@ -36,6 +36,7 @@
 #include <TSystem.h>
 #include <TROOT.h>
 #include <TCanvas.h>
+#include <TStopwatch.h>
 
 #include "AliAnalysisSelector.h"
 #include "AliAnalysisGrid.h"
@@ -88,6 +89,7 @@ AliAnalysisManager::AliAnalysisManager(const char *name, const char *title)
    fInputs     = new TObjArray();
    fOutputs    = new TObjArray();
    SetEventLoop(kTRUE);
+   TObject::SetObjectStat(kFALSE);
 }
 
 //______________________________________________________________________________
@@ -125,6 +127,7 @@ AliAnalysisManager::AliAnalysisManager(const AliAnalysisManager& other)
    fOutputs    = new TObjArray(*other.fOutputs);
    fgCommonFileName  = "AnalysisResults.root";
    fgAnalysisManager = this;
+   TObject::SetObjectStat(kFALSE);
 }
    
 //______________________________________________________________________________
@@ -172,6 +175,7 @@ AliAnalysisManager::~AliAnalysisManager()
    if (fOutputs) delete fOutputs;
    if (fGridHandler) delete fGridHandler;
    if (fgAnalysisManager==this) fgAnalysisManager = NULL;
+   TObject::SetObjectStat(kTRUE);
 }
 
 //______________________________________________________________________________
@@ -450,8 +454,11 @@ void AliAnalysisManager::PackOutput(TList *target)
             if (strlen(filename) && !isManagedByHandler) {
                // Backup current folder
                TDirectory *opwd = gDirectory;
-               // File resident outputs
-               TFile *file = AliAnalysisManager::OpenFile(output, "RECREATE", kTRUE);
+               // File resident outputs. 
+               // Check first if the file exists.
+               TString open_option = "RECREATE";
+               if (!gSystem->AccessPathName(output->GetFileName())) open_option = "UPDATE";
+               TFile *file = AliAnalysisManager::OpenFile(output, open_option, kTRUE);
                // Clear file list to release object ownership to user.
                file->Clear();
                // Save data to file, then close.
@@ -507,7 +514,8 @@ void AliAnalysisManager::PackOutput(TList *target)
             if (fDebug > 1) printf("PackOutput %s: special output\n", output->GetName());
             if (isManagedByHandler) {
                // Terminate IO for files managed by the output handler
-               if (file) file->Write();
+               // file->Write() moved to AOD handler (A.G. 11.01.10)
+//               if (file) file->Write();
                if (file && fDebug > 2) {
                   printf("   handled file %s listing content:\n", file->GetName());
                   file->ls();
@@ -606,6 +614,7 @@ void AliAnalysisManager::ImportWrappers(TList *source)
    while ((cont=(AliAnalysisDataContainer*)next())) {
       wrap = 0;
       if (cont->GetProducer()->IsPostEventLoop() && !inGrid) continue;
+      if (cont->IsRegisterDataset()) continue;
       const char *filename = cont->GetFileName();
       Bool_t isManagedByHandler = kFALSE;
       if (!(strcmp(filename, "default")) && fOutputEventHandler) {
@@ -712,32 +721,63 @@ void AliAnalysisManager::Terminate()
   // the results graphically.
    if (fDebug > 0) printf("->AliAnalysisManager::Terminate()\n");
    AliAnalysisTask *task;
-   TIter next(fTasks);
-   // Call Terminate() for tasks
-   while ((task=(AliAnalysisTask*)next())) task->Terminate();
-   //
-   TIter next1(fOutputs);
    AliAnalysisDataContainer *output;
+   TIter next(fTasks);
+   TStopwatch timer;
+   // Call Terminate() for tasks
+   while (!IsSkipTerminate() && (task=(AliAnalysisTask*)next())) {
+      // Save all the canvases produced by the Terminate
+      TString pictname = Form("%s_%s", task->GetName(), task->ClassName());
+      task->Terminate();
+      if (TObject::TestBit(kSaveCanvases)) {
+         if (!gROOT->IsBatch()) {
+            Warning("Terminate", "Waiting 5 sec for %s::Terminate() to finish drawing", task->ClassName());
+            timer.Start();
+            while (timer.CpuTime()<5) {
+               timer.Continue();
+               gSystem->ProcessEvents();
+            }
+         }
+         Int_t iend = gROOT->GetListOfCanvases()->GetEntries();
+         if (iend==0) continue;
+         TCanvas *canvas;
+         for (Int_t ipict=0; ipict<iend; ipict++) {
+            canvas = (TCanvas*)gROOT->GetListOfCanvases()->At(ipict);
+            if (!canvas) continue;         
+            canvas->SaveAs(Form("%s_%02d.gif", pictname.Data(),ipict));
+         } 
+         gROOT->GetListOfCanvases()->Delete(); 
+      }
+   }   
+   //
+   if (fInputEventHandler)   fInputEventHandler  ->TerminateIO();
+   if (fOutputEventHandler)  fOutputEventHandler ->TerminateIO();
+   if (fMCtruthEventHandler) fMCtruthEventHandler->TerminateIO();
+   TIter next1(fOutputs);
+   TString handlerFile = "";
+   if (fOutputEventHandler) {
+      handlerFile = fOutputEventHandler->GetOutputFileName();
+   }
    while ((output=(AliAnalysisDataContainer*)next1())) {
       // Special outputs or grid files have the files already closed and written.
       if (fMode == kGridAnalysis) continue;
-      if (output->IsSpecialOutput()&&(fMode == kProofAnalysis)) continue;
+      if (fMode == kProofAnalysis) {
+        if (output->IsSpecialOutput() || output->IsRegisterDataset()) continue;
+      }  
       const char *filename = output->GetFileName();
-      if (!(strcmp(filename, "default"))) {
-         if (fOutputEventHandler) filename = fOutputEventHandler->GetOutputFileName();
-         TFile *aodfile = (TFile*)gROOT->GetListOfFiles()->FindObject(filename);
-         if (aodfile) {
-            if (fDebug > 1) printf("Writing output handler file: %s\n", filename);
-            aodfile->Write();
-            continue;
-         }   
-      }      
+      TString open_option = "RECREATE";
+      if (!(strcmp(filename, "default"))) continue;
       if (!strlen(filename)) continue;
       if (!output->GetData()) continue;
       TDirectory *opwd = gDirectory;
       TFile *file = output->GetFile();
       if (!file) file = (TFile*)gROOT->GetListOfFiles()->FindObject(filename);
-      if (!file) file = new TFile(filename, "RECREATE");
+      if (!file) {
+	      printf("Terminate : handlerFile = %s, filename = %s\n",handlerFile.Data(),filename);
+	      //if (handlerFile == filename && !gSystem->AccessPathName(filename)) open_option = "UPDATE";
+         if (!gSystem->AccessPathName(filename)) open_option = "UPDATE";
+         file = new TFile(filename, open_option);
+      }
       if (file->IsZombie()) {
          Error("Terminate", "Cannot open output file %s", filename);
          continue;
@@ -785,10 +825,6 @@ void AliAnalysisManager::Terminate()
       }   
       if (opwd) opwd->cd();
    }   
-
-   if (fInputEventHandler)   fInputEventHandler  ->TerminateIO();
-   if (fOutputEventHandler)  fOutputEventHandler ->TerminateIO();
-   if (fMCtruthEventHandler) fMCtruthEventHandler->TerminateIO();
 
    Bool_t getsysInfo = ((fNSysInfo>0) && (fMode==kLocalAnalysis))?kTRUE:kFALSE;
    if (getsysInfo) {
@@ -1061,7 +1097,9 @@ void AliAnalysisManager::StartAnalysis(const char *type, TTree *tree, Long64_t n
    anaType.ToLower();
    fMode = kLocalAnalysis;
    Bool_t runlocalinit = kTRUE;
-   if (anaType.Contains("file")) runlocalinit = kFALSE;
+   if (anaType.Contains("file")) {
+      runlocalinit = kFALSE;
+   }   
    if (anaType.Contains("proof"))     fMode = kProofAnalysis;
    else if (anaType.Contains("grid")) fMode = kGridAnalysis;
    else if (anaType.Contains("mix"))  fMode = kMixingAnalysis;
@@ -1133,6 +1171,11 @@ void AliAnalysisManager::StartAnalysis(const char *type, TTree *tree, Long64_t n
                task->CreateOutputObjects();
                if (curdir) curdir->cd();
             }   
+            if (IsExternalLoop()) {
+               Info("StartAnalysis", "Initialization done. Event loop is controlled externally.\
+                     \nSetData for top container, call ExecAnalysis in a loop and then Terminate manually");
+               return;
+            }         
             ExecAnalysis();
             Terminate();
             return;
@@ -1253,7 +1296,7 @@ TFile *AliAnalysisManager::OpenFile(AliAnalysisDataContainer *cont, const char *
       TString opt(option);
       opt.ToUpper();
       if ((opt=="UPDATE") && (opt!=f->GetOption())) 
-        ::Fatal("AliAnalysisManager::OpenFile", "File %s already opened, but not in UPDATE mode!", cont->GetFileName());
+        ::Info("AliAnalysisManager::OpenFile", "File %s already opened in %s mode!", cont->GetFileName(), f->GetOption());
     } else {
       f = TFile::Open(filename, option);
     }    
@@ -1297,7 +1340,7 @@ TFile *AliAnalysisManager::OpenProofFile(AliAnalysisDataContainer *cont, const c
       TString opt(option);
       opt.ToUpper();
       if ((opt=="UPDATE") && (opt!=f->GetOption()))
-        Fatal("OpenProofFile", "File %s already opened, but not in UPDATE mode!", cont->GetFileName());
+        ::Info("OpenProofFile", "File %s already opened in %s mode!", cont->GetFileName(), f->GetOption());
     } else {
       f = new TFile(filename, option);
     }
@@ -1323,6 +1366,9 @@ TFile *AliAnalysisManager::OpenProofFile(AliAnalysisDataContainer *cont, const c
     // Get the actual file
     line = Form("((TProofOutputFile*)0x%lx)->GetFileName();", (ULong_t)pof);
     filename = (const char*)gROOT->ProcessLine(line);
+    if (fDebug>1) {
+      printf("File: %s already booked via TProofOutputFile\n", filename.Data());
+    }  
     f = (TFile*)gROOT->GetListOfFiles()->FindObject(filename);
     if (!f) Fatal("OpenProofFile", "Proof output file found but no file opened for %s", filename.Data());
     // Check if option "UPDATE" was preserved 
@@ -1331,7 +1377,16 @@ TFile *AliAnalysisManager::OpenProofFile(AliAnalysisDataContainer *cont, const c
     if ((opt=="UPDATE") && (opt!=f->GetOption())) 
       Fatal("OpenProofFile", "File %s already opened, but not in UPDATE mode!", cont->GetFileName());
   } else {
-    line = Form("TProofOutputFile *pf = new TProofOutputFile(\"%s\");", filename.Data());
+    if (cont->IsRegisterDataset()) {
+      TString dset_name = filename;
+      dset_name.ReplaceAll(".root", cont->GetTitle());
+      dset_name.ReplaceAll(":","_");
+      if (fDebug>1) printf("Booking dataset: %s\n", dset_name.Data());
+      line = Form("TProofOutputFile *pf = new TProofOutputFile(\"%s\", \"DROV\", \"%s\");", filename.Data(), dset_name.Data());
+    } else {
+      if (fDebug>1) printf("Booking TProofOutputFile: %s to be merged\n", filename.Data());
+      line = Form("TProofOutputFile *pf = new TProofOutputFile(\"%s\");", filename.Data());
+    }
     if (fDebug > 1) printf("=== %s\n", line.Data());
     gROOT->ProcessLine(line);
     line = Form("pf->OpenFile(\"%s\");", option);
@@ -1343,7 +1398,7 @@ TFile *AliAnalysisManager::OpenProofFile(AliAnalysisDataContainer *cont, const c
     }   
     // Add to proof output list
     line = Form("((TList*)0x%lx)->Add(pf);",(ULong_t)fSelector->GetOutputList());
-    if (fDebug > 1) printf("=== %s", line.Data());
+    if (fDebug > 1) printf("=== %s\n", line.Data());
     gROOT->ProcessLine(line);
   }
   if (f && !f->IsZombie() && !f->TestBit(TFile::kRecovered)) {
@@ -1535,10 +1590,13 @@ Bool_t AliAnalysisManager::ValidateOutputFiles() const
    TDirectory *cdir = gDirectory;
    TString openedFiles;
    while ((output=(AliAnalysisDataContainer*)next())) {
+      if (output->IsRegisterDataset()) continue;
       TString filename = output->GetFileName();
       if (filename == "default") {
          if (!fOutputEventHandler) continue;
          filename = fOutputEventHandler->GetOutputFileName();
+         // Main AOD may not be there
+         if (gSystem->AccessPathName(filename)) continue;
       }
       // Check if the file is closed
       if (openedFiles.Contains(filename)) continue;;
@@ -1560,3 +1618,90 @@ Bool_t AliAnalysisManager::ValidateOutputFiles() const
    cdir->cd();
    return kTRUE;
 }   
+
+//______________________________________________________________________________
+void AliAnalysisManager::ProgressBar(const char *opname, Long64_t current, Long64_t size, TStopwatch *watch, Bool_t last, Bool_t refresh)
+{
+// Implements a nice text mode progress bar.
+   static Long64_t icount = 0;
+   static TString oname;
+   static TString nname;
+   static Long64_t ocurrent = 0;
+   static Long64_t osize = 0;
+   static Int_t oseconds = 0;
+   static TStopwatch *owatch = 0;
+   static Bool_t oneoftwo = kFALSE;
+   static Int_t nrefresh = 0;
+   static Int_t nchecks = 0;
+   const char symbol[4] = {'=','\\','|','/'}; 
+   char progress[11] = "          ";
+   Int_t ichar = icount%4;
+   
+   if (!refresh) {
+      nrefresh = 0;
+      if (!size) return;
+      owatch = watch;
+      oname = opname;
+      ocurrent = TMath::Abs(current);
+      osize = TMath::Abs(size);
+      if (ocurrent > osize) ocurrent=osize;
+   } else {
+      nrefresh++;
+      if (!osize) return;
+   }     
+   icount++;
+   Double_t time = 0.;
+   Int_t hours = 0;
+   Int_t minutes = 0;
+   Int_t seconds = 0;
+   if (owatch && !last) {
+      owatch->Stop();
+      time = owatch->RealTime();
+      hours = (Int_t)(time/3600.);
+      time -= 3600*hours;
+      minutes = (Int_t)(time/60.);
+      time -= 60*minutes;
+      seconds = (Int_t)time;
+      if (refresh)  {
+         if (oseconds==seconds) {
+            owatch->Continue();
+            return;
+         }
+         oneoftwo = !oneoftwo;   
+      }
+      oseconds = seconds;   
+   }
+   if (refresh && oneoftwo) {
+      nname = oname;
+      if (nchecks <= 0) nchecks = nrefresh+1;
+      Int_t pctdone = (Int_t)(100.*nrefresh/nchecks);
+      oname = Form("     == %d%% ==", pctdone);
+   }         
+   Double_t percent = 100.0*ocurrent/osize;
+   Int_t nchar = Int_t(percent/10);
+   if (nchar>10) nchar=10;
+   Int_t i;
+   for (i=0; i<nchar; i++)  progress[i] = '=';
+   progress[nchar] = symbol[ichar];
+   for (i=nchar+1; i<10; i++) progress[i] = ' ';
+   progress[10] = '\0';
+   oname += "                    ";
+   oname.Remove(20);
+   if(size<10000) fprintf(stderr, "%s [%10s] %4lld ", oname.Data(), progress, ocurrent);
+   else if(size<100000) fprintf(stderr, "%s [%10s] %5lld ",oname.Data(), progress, ocurrent);
+   else fprintf(stderr, "%s [%10s] %7lld ",oname.Data(), progress, ocurrent);
+   if (time>0.) fprintf(stderr, "[%6.2f %%]   TIME %.2d:%.2d:%.2d             \r", percent, hours, minutes, seconds);
+   else fprintf(stderr, "[%6.2f %%]\r", percent);
+   if (refresh && oneoftwo) oname = nname;
+   if (owatch) owatch->Continue();
+   if (last) {
+      icount = 0;
+      owatch = 0;
+      ocurrent = 0;
+      osize = 0;
+      oseconds = 0;
+      oneoftwo = kFALSE;
+      nrefresh = 0;
+      fprintf(stderr, "\n");
+   }   
+}

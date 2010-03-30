@@ -8,10 +8,8 @@ include $(MODDIR)/hlt.conf
 
 #CLASS_HDRS:=	  AliHLTPHOSAgent.h 
 
-CLASS_HDRS:=	  AliHLTPHOSClusterizer.h \
-		  AliHLTPHOSClusterizerComponent.h \
+CLASS_HDRS:=  AliHLTPHOSClusterizerComponent.h \
 		  AliHLTPHOSDefinitions.h \
-		  AliHLTPHOSEmcCalibData.h \
 		  AliHLTPHOSPhysicsAnalyzer.h \
 		  AliHLTPHOSProcessor.h \
 		  AliHLTPHOSRawAnalyzer.h \
@@ -19,41 +17,29 @@ CLASS_HDRS:=	  AliHLTPHOSClusterizer.h \
 		  AliHLTPHOSRawAnalyzerComponentv3.h \
 		  AliHLTPHOSRawAnalyzerCrude.h \
 		  AliHLTPHOSRawAnalyzerCrudeComponent.h \
-		  AliHLTPHOSRawAnalyzerPeakFinderComponent.h \
-		  AliHLTPHOSRcuHistogramProducer.h \
-		  AliHLTPHOSRcuHistogramProducerComponent.h \
+		  AliHLTPHOSDigitMakerComponent.h \
 		  AliHLTPHOSRcuProcessor.h \
 		  AliHLTPHOSMapper.h \
 		  AliHLTPHOSRawAnalyzerPeakFinder.h \
 		  AliHLTPHOSSanityInspector.h \
-		  AliHLTPHOSDigitMaker.h \
-		  AliHLTPHOSDigitMakerComponent.h \
 		  AliHLTPHOSSharedMemoryInterfacev2.h \
 		  AliHLTPHOSClusterAnalyser.h \
 		  AliHLTPHOSClusterAnalyserComponent.h \
 		  AliHLTPHOSESDMaker.h \
 		  AliHLTPHOSESDMakerComponent.h \
-		  AliHLTPHOSRcuDAComponent.h \
 		  AliHLTPHOSUtilities.h \
-		  AliHLTPHOSHistogramProducer.h \
-		  AliHLTPHOSHistogramProducerComponent.h \
 		  AliHLTPHOSMonitorTriggerComponent.h \
 		  AliHLTPHOSESDEntriesMakerComponent.h \
 		  AliHLTPHOSESDCaloClusterWriterComponent.h \
-		  AliHLTPHOSHistoProdInvMass.h \
-		  AliHLTPHOSHistoProdMatchedTracks.h \
-		  AliHLTPHOSHistoProdClusterEnergy.h \
-		  AliHLTPHOSHistoProdCellEnergy.h \
-		  AliHLTPHOSPhysicsHistogramProducer.h \
-		  AliHLTPHOSFourier.h \
-		  AliHLTPHOSDigitReader.h
+		  AliHLTPHOSDigitReader.h \
+		  AliHLTPHOSConstants.h \
+		  AliHLTPHOSGeometry.h
 
 MODULE_SRCS:=	  $(CLASS_HDRS:.h=.cxx)
 
 MODULE_HDRS:=	  $(CLASS_HDRS) \
 		  AliHLTPHOSCommonDefs.h \
-		  AliHLTPHOSConstants.h \
-		  AliHLTPHOSRcuCellAccumulatedEnergyDataStruct.h \
+		  AliHLTPHOSConstant.h \
 		  AliHLTPHOSRecPointDataStruct.h \
 		  AliHLTPHOSRecPointContainerStruct.h \
 		  AliHLTPHOSDigitContainerDataStruct.h \
@@ -61,15 +47,16 @@ MODULE_HDRS:=	  $(CLASS_HDRS) \
 		  AliHLTPHOSChannelDataStruct.h \
 		  AliHLTPHOSChannelDataHeaderStruct.h \
 		  AliHLTPHOSCoordinate.h \
-	          AliHLTPHOSChannelRawDataStruct.h
+	          AliHLTPHOSChannelRawDataStruct.h 
+
 
 ##Left empty for auto generation:
 MODULE_DHDR:=	  
 
-EINCLUDE     := HLT/BASE HLT/BASE/util STEER RAW PHOS
+EINCLUDE     := HLT/BASE HLT/BASE/util HLT/CALO HLT/PHOS  STEER RAW PHOS EMCAL 
 
 LIBRARY_DEP := -lHLTbase -lPHOSbase -lPHOSshuttle -lESD \
-               -lSTEER -lRAWDatarec
+               -lSTEER -lRAWDatarec -lEMCALrec
 
 ###############################################################################
 #

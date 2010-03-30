@@ -84,10 +84,13 @@ private:
   TClonesArray* fTracksArray;    // array containing the input
   TObjArray* fOutArray;          // array containing the output
   TObjArray* fAfterRunArray;     // array with after run processing output 
-  TObjArray* fDisplayArray;        //array with online display histos
-  Bool_t fRecievedTimeBins;      // already recived the number of time bins?
+  TObjArray* fDisplayArray;      // array with online display histos
+  Bool_t fSavedTimeBins;         // already saved the number of time bins?
   TObjArray *fTrgStrings;        // name of trigger classes to accept or reject
   Int_t  fAccRejTrg;             // do we actually accept or reject the trigger strings?
+  Int_t fMinClusters;           // minimal number of clusters/tracklet accepted to fill histos
+  Int_t fMinTracklets;          // minimal number of tracklets/track accepted to fill histos
+  Bool_t fTakeAllEvents;         // take all events, disregarding the triggers
   
   ClassDef(AliHLTTRDCalibrationComponent, 2)
 

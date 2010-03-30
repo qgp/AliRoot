@@ -15,10 +15,11 @@ class AliESDEvent;
 class AliGlobalQADataMaker: public AliQADataMakerRec {
 public:
   enum {
-    kClr0,kClr1,kClr2,
-    kTrk0,kTrk1,kTrk2,kTrk3,kTrk4,kTrk5,kTrk6,
+    kClr0,kClr1,kClr2,kClr3,
+    kTrk0,kTrk1,kTrk2,kTrk3,kTrk4,kTrk5,kTrk6,kTrk7,kTrk8,kTrk9,kTrk10,
     kK0on,kK0off,kL0on,kL0off,
-    kPid0,kPid1,kPid2,
+    kPid0,kPid1,kPid2,kPid3,
+    kMlt0,kMlt1,
     kLast
   };
   AliGlobalQADataMaker(const Char_t *name="Global", 
@@ -35,6 +36,8 @@ private:
 	void   EndOfDetectorCycle(AliQAv1::TASKINDEX_t, TObjArray ** list) ;
 
 	void InitRaws(); 
+  
+  void InitRecoParams() ; 
   
 	void MakeRaws(AliRawReader* rawReader) ; 
   void MakeESDs(AliESDEvent *event);

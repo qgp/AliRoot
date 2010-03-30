@@ -15,12 +15,12 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/* $Id$ */
+// $Id$
 
 /**
  * @file   AliHLTMUONDataBlockReader.h
  * @author Artur Szostak <artursz@iafrica.com>
- * @date   
+ * @date   19 May 2007
  * @brief  Definition of a reader class for internal dimuon HLT raw data blocks.
  */
 
@@ -34,6 +34,7 @@
 #include "AliHLTMUONChannelsBlockStruct.h"
 #include "AliHLTMUONMansoTracksBlockStruct.h"
 #include "AliHLTMUONMansoCandidatesBlockStruct.h"
+#include "AliHLTMUONTracksBlockStruct.h"
 #include "AliHLTMUONSinglesDecisionBlockStruct.h"
 #include "AliHLTMUONPairsDecisionBlockStruct.h"
 
@@ -245,6 +246,11 @@ typedef AliHLTMUONDataBlockReader<
 		AliHLTMUONMansoCandidatesBlockStruct,
 		AliHLTMUONMansoCandidateStruct
 	> AliHLTMUONMansoCandidatesBlockReader;
+
+typedef AliHLTMUONDataBlockReader<
+		AliHLTMUONTracksBlockStruct,
+		AliHLTMUONTrackStruct
+	> AliHLTMUONTracksBlockReader;
 
 typedef AliHLTMUONDataBlockReader<
 		AliHLTMUONSinglesDecisionBlockStruct,

@@ -173,7 +173,7 @@ void AliPHOSRawDigiProducer::MakeDigits(TClonesArray *digits, AliPHOSRawFitterv0
   
   while (fRawStream->NextDDL()) {
     while (fRawStream->NextChannel()) {
-      relId[0] = fRawStream->GetModule() + 1; // counts from 1 to 5
+      relId[0] = 5 - fRawStream->GetModule() ; // counts from 1 to 5
       relId[1] = 0;
       relId[2] = fRawStream->GetCellX()  + 1; // counts from 1 to 64
       relId[3] = fRawStream->GetCellZ()  + 1; // counts from 1 to 56
@@ -182,6 +182,7 @@ void AliPHOSRawDigiProducer::MakeDigits(TClonesArray *digits, AliPHOSRawFitterv0
       if(caloFlag!=0 && caloFlag!=1) continue; //TRU data!
       
       fitter->SetChannelGeo(relId[0],relId[2],relId[3],caloFlag);
+
       if(fitter->GetAmpOffset()==0 && fitter->GetAmpThreshold()==0) {
 	short value = fRawStream->GetAltroCFG1();
 	bool ZeroSuppressionEnabled = (value >> 15) & 0x1;
@@ -196,17 +197,14 @@ void AliPHOSRawDigiProducer::MakeDigits(TClonesArray *digits, AliPHOSRawFitterv0
       
       fGeom->RelToAbsNumbering(relId, absId);
       
-      Int_t nBunches = 0;
-      while (fRawStream->NextBunch()) {
-	nBunches++;
-	if (nBunches > 1) continue;
+      fitter->SetNBunches(0);
+      while (fRawStream->NextBunch()) { //Take first in time banch
 	const UShort_t *sig = fRawStream->GetSignals();
 	Int_t sigStart  = fRawStream->GetStartTimeBin();
 	Int_t sigLength = fRawStream->GetBunchLength();
 	fitter->Eval(sig,sigStart,sigLength);
       } // End of NextBunch()
 
-      fitter->SetNBunches(nBunches);
       
       Double_t energy = fitter->GetEnergy() ; 
       Double_t time   = fitter->GetTime() ;
@@ -222,7 +220,7 @@ void AliPHOSRawDigiProducer::MakeDigits(TClonesArray *digits, AliPHOSRawFitterv0
       if(fitter->GetSignalQuality() > fSampleQualityCut && !(fitter->IsOverflow()))
 	continue ;
       
-//       energy = CalibrateE(energy,relId,lowGainFlag) ;
+      energy = CalibrateE(energy,relId,!caloFlag) ;
 //       time   = CalibrateT(time,relId,lowGainFlag) ;
 
       //convert time from sample bin units to s

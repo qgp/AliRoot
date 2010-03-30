@@ -15,7 +15,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/* $Id$ */
+// $Id$
 
 ///
 ///  @file   AliHLTMUONHitReconstructorComponent.cxx
@@ -223,7 +223,7 @@ int AliHLTMUONHitReconstructorComponent::DoInit(int argc, const char** argv)
 			
 			if (argc <= i+1)
 			{
-				HLTError("The DDL number was not specified. Must be in the range [13..20].");
+				HLTError("The DDL number was not specified. Must be in the range [1..20].");
 				return -EINVAL;
 			}
 			
@@ -234,12 +234,12 @@ int AliHLTMUONHitReconstructorComponent::DoInit(int argc, const char** argv)
 				HLTError("Cannot convert '%s' to DDL a number.", argv[i+1] );
 				return -EINVAL;
 			}
-			if (num < 13 or 20 < num)
+			if (num < 1 or 20 < num)
 			{
-				HLTError("The DDL number must be in the range [13..20].");
+				HLTError("The DDL number must be in the range [1..20].");
 				return -EINVAL;
 			}
-			fDDL = num - 1;  // convert to range [12..19]
+			fDDL = num - 1;  // convert to range [0..19]
 			
 			i++;
 			continue;
@@ -256,7 +256,7 @@ int AliHLTMUONHitReconstructorComponent::DoInit(int argc, const char** argv)
 			
 			if ( argc <= i+1 )
 			{
-				HLTError("DDL equipment ID number not specified. It must be in the range [2572..2579]" );
+				HLTError("DDL equipment ID number not specified. It must be in the range [2560..2579]" );
 				return -EINVAL;
 			}
 		
@@ -268,9 +268,9 @@ int AliHLTMUONHitReconstructorComponent::DoInit(int argc, const char** argv)
 				return -EINVAL;
 			}
 			fDDL = AliHLTMUONUtils::EquipIdToDDLNumber(num); // Convert to DDL number in the range 0..21
-			if (fDDL < 12 or 19 < fDDL)
+			if (fDDL < 0 or 19 < fDDL)
 			{
-				HLTError("The DDL equipment ID number must be in the range [2572..2579].");
+				HLTError("The DDL equipment ID number must be in the range [2560..2579].");
 				return -EINVAL;
 			}
 			
@@ -511,6 +511,8 @@ int AliHLTMUONHitReconstructorComponent::DoInit(int argc, const char** argv)
 	fHitRec->GenerateClusterInfo(makeClusters);
 	fHitRec->GenerateChannelInfo(makeChannels);
 	fHitRec->DDLNumber(fDDL);
+	//The DDL number has to be set before the following InitDetElemInDDLArray() method
+	fHitRec->InitDetElemInDDLArray();
 	HLTDebug("dHLT hit reconstruction component is initialized.");
 	return 0;
 }
@@ -521,7 +523,7 @@ int AliHLTMUONHitReconstructorComponent::DoDeinit()
 	///
 	/// Inherited from AliHLTComponent. Performs a cleanup of the component.
 	///
-	
+	fHitRec->DeInitDetElemInDDLArray();
 	HLTInfo("Deinitialising dHLT hit reconstruction component.");
 	FreeMemory();
 	return 0;
@@ -998,11 +1000,10 @@ int AliHLTMUONHitReconstructorComponent::ReadLookUpTable(const char* lutFileName
 	}
 
 	MaxEntryPerBusPatch::iterator it;
-	for(it=fMaxEntryPerBusPatch.begin();it!=fMaxEntryPerBusPatch.end();it++){
-	  HLTDebug("fMaxEntryPerBusPatch[%d] : %d",it->first,it->second);
-	  fMaxEntryPerBusPatch[it->first] = AliHLTInt32_t(0.05*(it->second));///< for 10% occupancy 
-	  HLTDebug("fMaxEntryPerBusPatch[%d] : %d",it->first,it->second);
-	  
+	for(it=fMaxEntryPerBusPatch.begin(); it!=fMaxEntryPerBusPatch.end(); it++){
+		HLTDebug("fMaxEntryPerBusPatch[%d] : %d",it->first,it->second);
+		fMaxEntryPerBusPatch[it->first] = AliHLTInt32_t(0.05*(it->second));///< for 10% occupancy 
+		HLTDebug("fMaxEntryPerBusPatch[%d] : %d",it->first,it->second);
 	}
 	
 	return 0;
@@ -1054,13 +1055,13 @@ int AliHLTMUONHitReconstructorComponent::ReadLutFromCDB()
 		HLTError("Failed to load geomerty data.");
 		return -ENOENT;
 	}
-	
+
 	AliMUONCalibrationData calibData(AliCDBManager::Instance()->GetRun());
 	
 	bool skippedPads = false;
 	Int_t chamberId;
 	
-	for(Int_t iCh = 6; iCh < 10; iCh++)
+	for(Int_t iCh = 0; iCh < 10; iCh++)
 	{
 		chamberId = iCh;
 		
@@ -1088,6 +1089,7 @@ int AliHLTMUONHitReconstructorComponent::ReadLutFromCDB()
 				Int_t idManuChannel, manuId, channelId, buspatchId;
 				AliHLTFloat32_t padSizeX, padSizeY;
 				AliHLTFloat32_t halfPadSize;
+				AliHLTFloat32_t padSizeXY;
 				Double_t realX, realY, realZ;
 				Double_t localX, localY, localZ;
 				Float_t calibA0Coeff,calibA1Coeff,pedestal,sigma;
@@ -1194,11 +1196,15 @@ int AliHLTMUONHitReconstructorComponent::ReadLutFromCDB()
 						continue;
 					}
 					
-					if (plane == 0)
+
+					if (plane == 0){
 						halfPadSize = padSizeX;
-					else
+						padSizeXY = padSizeY;
+					}else{
 						halfPadSize = padSizeY;
-					
+						padSizeXY = padSizeX;
+					}
+
 					fIdToEntry[idManuChannel] = iEntry+1;
 					fMaxEntryPerBusPatch[buspatchId] = fMaxEntryPerBusPatch[buspatchId] + 1;  
 					
@@ -1209,6 +1215,7 @@ int AliHLTMUONHitReconstructorComponent::ReadLutFromCDB()
 					lut.fRealY = realY;
 					lut.fRealZ = realZ;
 					lut.fHalfPadSize = halfPadSize;
+					lut.fPadSizeXY = padSizeXY;
 					lut.fPlane = plane;
 					lut.fPed = pedestal;
 					lut.fSigma = sigma;
@@ -1259,6 +1266,7 @@ int AliHLTMUONHitReconstructorComponent::ReadLutFromCDB()
 	fLut[0].fRealY = 0.0;
 	fLut[0].fRealZ = 0.0;
 	fLut[0].fHalfPadSize = 0.0;
+	fLut[0].fPadSizeXY = 0.0;
 	fLut[0].fPlane = -1;
 	fLut[0].fPed = -1;
 	fLut[0].fSigma = -1;
@@ -1272,10 +1280,10 @@ int AliHLTMUONHitReconstructorComponent::ReadLutFromCDB()
 	lutList.clear();
 
 	MaxEntryPerBusPatch::iterator it;
-	for(it=fMaxEntryPerBusPatch.begin();it!=fMaxEntryPerBusPatch.end();it++){
-	  HLTDebug("fMaxEntryPerBusPatch[%d] : %d",it->first,it->second);
-	  fMaxEntryPerBusPatch[it->first] = AliHLTInt32_t(0.05*(it->second));///< for 10% occupancy 
-	  HLTDebug("fMaxEntryPerBusPatch[%d] : %d",it->first,it->second);
+	for(it=fMaxEntryPerBusPatch.begin(); it!=fMaxEntryPerBusPatch.end(); it++){
+		HLTDebug("fMaxEntryPerBusPatch[%d] : %d",it->first,it->second);
+		fMaxEntryPerBusPatch[it->first] = AliHLTInt32_t(0.05*(it->second));///< for 10% occupancy
+		HLTDebug("fMaxEntryPerBusPatch[%d] : %d",it->first,it->second);
 	}
 
 	return 0;
@@ -1313,7 +1321,7 @@ bool AliHLTMUONHitReconstructorComponent::GenerateLookupTable(
 	/// Generates a ASCII text file containing the lookup table (LUT) from
 	/// the CDB, which can be used for the hit reconstructor component later.
 	/// @param ddl  Must be the DDL for which to generate the DDL,
-	///             in the range [13..20].
+	///             in the range [0..19].
 	/// @param filename  The name of the LUT file to generate.
 	/// @param cdbPath  The CDB path to use.
 	/// @param run  The run number to use for the CDB.
@@ -1321,9 +1329,9 @@ bool AliHLTMUONHitReconstructorComponent::GenerateLookupTable(
 	
 	AliHLTMUONHitReconstructorComponent comp;
 	
-	if (ddl < 12 or 19 < ddl)
+	if (ddl < 0 or 19 < ddl)
 	{
-		std::cerr << "ERROR: the DDL number must be in the range [12..19]." << std::endl;
+		std::cerr << "ERROR: the DDL number must be in the range [0..19]." << std::endl;
 		return false;
 	}
 	

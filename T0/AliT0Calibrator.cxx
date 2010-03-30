@@ -55,7 +55,9 @@ ClassImp(AliT0Calibrator)
   for (Int_t i=0; i<24; i++){
     fMaxValue[i]=0;
     fTimeDelayCFD[i] = Int_t (param->GetTimeDelayCFD(i));
-    TGraph* fu = param ->GetWalk(i);
+    //    TGraph* fu = param ->GetWalk(i);
+    // fWalk.AddAtAndExpand(fu,i);
+    TGraph* fu = param ->GetAmpLEDRec(i);
     fWalk.AddAtAndExpand(fu,i);
      
   }
@@ -110,12 +112,14 @@ Int_t  AliT0Calibrator::WalkCorrection(Int_t refAmp,  Int_t ipmt, Int_t qt, Int_
     walk = Int_t (fMaxValue[ipmt]) + Int_t(fu1->Eval(Double_t(qt)));
   }
   
-  timeWalk = time + walk   ;
+  timeWalk = time - walk   ;
   timeEq= timeWalk - fTimeDelayCFD[ipmt];
-  AliDebug(10,Form(" ipmt %i time before %i timeWalk %i , walk %i  qt %i timeEq %i \n ",
-		   ipmt, time,timeWalk, walk, qt, timeEq ));
+  // printf(" ipmt %i time before %i timeWalk %i , walk %i  qt %i fTimeDelayCFD[ipmt] %i timeEq %i \n ",
+  //	 ipmt, time,timeWalk, walk, qt,fTimeDelayCFD[ipmt], timeEq );
+  //   AliDebug(10,Form(" ipmt %i time before %i timeWalk %i , walk %i  qt %i timeEq %i \n ",
+  //   ipmt, time,timeWalk, walk, qt, timeEq ));
   
-  return timeEq;
+   return timeEq;
 }
 
 

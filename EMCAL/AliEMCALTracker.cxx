@@ -287,9 +287,9 @@ Int_t AliEMCALTracker::LoadClusters(TTree *cTree)
         clusters->Delete();
         delete clusters;
         if (fClusters->IsEmpty())
-           AliWarning("No clusters collected");
+           AliDebug(1,"No clusters collected");
 
-	AliInfo(Form("Collected %d clusters (RecPoints)", fClusters->GetEntries()));
+	AliDebug(1,Form("Collected %d clusters (RecPoints)", fClusters->GetEntries()));
 
 	return 0;
 }
@@ -321,9 +321,9 @@ Int_t AliEMCALTracker::LoadClusters(AliESDEvent *esd)
 		fClusters->AddLast(matchCluster);
 	}
         if (fClusters->IsEmpty())
-           AliWarning("No clusters collected");
+           AliDebug(1,"No clusters collected");
 	
-	AliInfo(Form("Collected %d clusters from ESD", fClusters->GetEntries()));
+	AliDebug(1,Form("Collected %d clusters from ESD", fClusters->GetEntries()));
 
 	return 0;
 }
@@ -372,10 +372,10 @@ Int_t AliEMCALTracker::LoadTracks(AliESDEvent *esd)
 		fTracks->AddLast(track);
 	}
 	if (fTracks->IsEmpty()) {
-		AliWarning("No tracks collected");
+		AliDebug(1,"No tracks collected");
 	}
 	
-	AliInfo(Form("Collected %d tracks", fTracks->GetEntries()));
+	AliDebug(1,Form("Collected %d tracks", fTracks->GetEntries()));
 
 	return 0;
 }
@@ -420,17 +420,17 @@ Int_t AliEMCALTracker::PropagateBack(AliESDEvent* esd)
 	// IF no clusters lie within the maximum allowed distance, no matches are assigned.
 	Int_t nMatches = CreateMatches();
 	if (!nMatches) {
-		AliInfo(Form("#clusters = %d -- #tracks = %d --> No good matches found.", nClusters, nTracks));
+		AliDebug(1,Form("#clusters = %d -- #tracks = %d --> No good matches found.", nClusters, nTracks));
 		return 0;
 	}
 	else {
-		AliInfo(Form("#clusters = %d -- #tracks = %d --> Found %d matches.", nClusters, nTracks, nMatches));
+		AliDebug(1,Form("#clusters = %d -- #tracks = %d --> Found %d matches.", nClusters, nTracks, nMatches));
 	}
 	
 	// step 4:
 	// when more than 1 track share the same matched cluster, only the closest one is kept.
 	Int_t nRemoved = SolveCompetitions();
-	AliInfo(Form("Removed %d duplicate matches", nRemoved));
+	AliDebug(1,Form("Removed %d duplicate matches", nRemoved));
 	if (nRemoved >= nMatches) {
 		AliError("Removed ALL matches! Check the algorithm or data. Nothing to save");
 		return 5;
@@ -488,7 +488,7 @@ Int_t AliEMCALTracker::PropagateBack(AliESDEvent* esd)
 		}
 	}
 	*/
-	AliInfo(Form("Saved %d matches [%d good + %d fake]", nSaved, nGood, nFake));
+	AliDebug(1,Form("Saved %d matches [%d good + %d fake]", nSaved, nGood, nFake));
 
 	return 0;
 }
@@ -945,35 +945,6 @@ Int_t AliEMCALTracker::CreateMatches()
 			}
 		}
 	}
-		
-	/*
-	// loop on clusters and tracks
-	Int_t icBest;
-	Double_t dist, distBest;
-	for (it = 0; it < nTracks; it++) {
-		AliEMCALTrack *track = (AliEMCALTrack*)fTracks->At(it);
-		if (!track) continue;
-		icBest = -1;
-		distBest = fMaxDist;
-		for (ic = 0; ic < nClusters; ic++) {
-			AliEMCALMatchCluster *cluster = (AliEMCALMatchCluster*)fClusters->At(ic);
-			if (!cluster) continue;
-			dist = CheckPair(track, cluster);
-			if (dist < distBest) {
-				distBest = dist;
-				icBest = ic;
-			}
-		}
-		if (icBest >= 0) {
-			track->SetMatchedClusterIndex(icBest);
-			track->SetMatchedClusterDist(distBest);
-			count++;
-		}
-		else {
-			track->SetMatchedClusterIndex(-1);
-		}
-	}
-	*/
 	
 	return count;
 }
@@ -1022,29 +993,6 @@ Int_t AliEMCALTracker::SolveCompetitions()
 		}
 	}
 	
-	/*
-	Int_t it1, it2, nTracks = (Int_t)fTracks->GetEntries();
-	AliEMCALTrack *track1 = 0, *track2 = 0;
-	for (it1 = 0; it1 < nTracks; it1++) {
-		track1 = (AliEMCALTrack*)fTracks->At(it1);
-		if (!track1) continue;
-		if (track1->GetMatchedClusterIndex() < 0) continue;
-		for (it2 = it1+1; it2 < nTracks; it2++) {
-			track2 = (AliEMCALTrack*)fTracks->At(it2);
-			if (!track2) continue;
-			if (track2->GetMatchedClusterIndex() < 0) continue;
-			if (track1->GetMatchedClusterIndex() != track2->GetMatchedClusterIndex()) continue;
-			count++;
-			if (track1->GetMatchedClusterDist() < track2->GetMatchedClusterDist()) {
-				track2->SetMatchedClusterIndex(-1);
-			}
-			else if (track2->GetMatchedClusterDist() < track1->GetMatchedClusterDist()) {
-				track1->SetMatchedClusterIndex(-1);
-			}
-		}
-	}
-	*/
-	
 	delete [] usedC;
 	delete [] usedT;
 
@@ -1063,6 +1011,23 @@ void AliEMCALTracker::UnloadClusters()
 	
   	Clear();
 }
+//
+//------------------------------------------------------------------------------
+//
+TVector3 AliEMCALTracker::FindExtrapolationPoint(Double_t x,Double_t y,Double_t z, AliESDtrack *track)
+{
+  //Method to determine extrapolation point of track at location x,y,z
+  AliEMCALTrack *tr = new AliEMCALTrack(*track);
+  TVector3 error(-100.,-100.,-100.);
+  if (!tr->PropagateToGlobal(x,y,z, 0.0, 0.0)) {
+    return error;
+  }
+  Double_t pos[3];
+  tr->GetXYZ(pos);
+  TVector3 ExTrPos(pos[0],pos[1],pos[2]);
+  return ExTrPos;
+}
+
 //
 //------------------------------------------------------------------------------
 //

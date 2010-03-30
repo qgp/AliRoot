@@ -15,6 +15,7 @@
 #pragma link C++ class  AliTOFrawData+;
 #pragma link C++ class  AliTOFRawStream+;
 #pragma link C++ class  AliTOFHitData+;
+#pragma link C++ class  AliTOFHitField+;
 #pragma link C++ class  AliTOFHitDataBuffer+;
 #pragma link C++ class  AliTOFDecoder+;
 #pragma link C++ class  AliTOFChannelOffline+;
@@ -29,11 +30,17 @@
 #pragma link C++ class  AliTOFDataDCS+;
 #pragma link C++ class  AliTOFFormatDCS+;
 #pragma link C++ class  AliTOFFEEReader+;
+#pragma link C++ class  AliTOFFEEDump+;
 #pragma link C++ class  AliTOFCableLengthMap+;
 #pragma link C++ class  AliTOFNoiseConfigHandler+;
 #pragma link C++ class  AliTOFcalibHisto+;
 #pragma link C++ class  AliTOFArray+;
-#pragma link C++ class  AliTOFDaConfigHandler+;
+#pragma link C++ class  AliTOFDeltaBCOffset+;
+#pragma link C++ class  AliTOFCTPLatency+;
+#pragma link C++ class  AliTOFT0Fill+;
+#pragma link C++ class  AliTOFT0FillOnlineCalib+;
+#pragma link C++ class  AliTOFDCSmaps+;
+#pragma link C++ class  AliTOFLvHvDataPoints+;
 
 
 #endif

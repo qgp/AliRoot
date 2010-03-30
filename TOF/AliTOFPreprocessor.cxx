@@ -22,6 +22,8 @@
 
 #include <TFile.h>
 #include <TH2S.h>
+#include <TH1F.h>
+#include <TCanvas.h>
 #include <TMath.h>
 #include <TObjArray.h>
 #include <TObjString.h>
@@ -33,13 +35,24 @@
 #include "AliTOFChannelOnlineArray.h"
 #include "AliTOFChannelOnlineStatusArray.h"
 #include "AliTOFDataDCS.h"
+#include "AliTOFLvHvDataPoints.h"
 #include "AliTOFGeometry.h"
 #include "AliTOFPreprocessor.h"
 #include "AliTOFFEEReader.h"
 #include "AliTOFRawStream.h"
 #include "AliTOFCableLengthMap.h"
 #include "AliTOFcalibHisto.h"
-
+#include "AliTOFFEEDump.h"
+#include "TChain.h"
+#include "AliTOFDeltaBCOffset.h"
+#include "AliTOFCTPLatency.h"
+#include "AliTOFT0Fill.h"
+#include "AliTOFT0FillOnlineCalib.h"
+#include "AliTOFHitField.h"
+#include "AliTOFChannelOffline.h"
+#include "TF1.h"
+#include "TGeoManager.h"
+#include "AliGeomManager.h"
 
 // TOF preprocessor class.
 // It takes data from DCS and passes them to the class AliTOFDataDCS, which
@@ -82,12 +95,15 @@ const Double_t AliTOFPreprocessor::fgkThrPar      = 0.013; // parameter used to 
 AliTOFPreprocessor::AliTOFPreprocessor(AliShuttleInterface* shuttle) :
   AliPreprocessor("TOF", shuttle),
   fData(0),
+  fHVLVmaps(0),
   fCal(0),
   fNChannels(0),
   fStoreRefData(kTRUE),
   fFDRFlag(kFALSE),
   fStatus(0),
-  fMatchingWindow(0)
+  fMatchingWindow(0),
+  fLatencyWindow(0),
+  fIsStatusMapChanged(0)
 {
   // constructor
   AddRunType("PHYSICS");
@@ -116,6 +132,7 @@ void AliTOFPreprocessor::Initialize(Int_t run, UInt_t startTime,
 		TTimeStamp(endTime).AsString(), ((TTimeStamp)GetStartTimeDCSQuery()).AsString(), ((TTimeStamp)GetEndTimeDCSQuery()).AsString()));
 
 	fData = new AliTOFDataDCS(fRun, fStartTime, fEndTime, GetStartTimeDCSQuery(), GetEndTimeDCSQuery());
+	fHVLVmaps = new AliTOFLvHvDataPoints(fRun, fStartTime, fEndTime, GetStartTimeDCSQuery(), GetEndTimeDCSQuery());
 	fNChannels = AliTOFGeometry::NSectors()*(2*(AliTOFGeometry::NStripC()+AliTOFGeometry::NStripB())+AliTOFGeometry::NStripA())*AliTOFGeometry::NpadZ()*AliTOFGeometry::NpadX();
 }
 //_____________________________________________________________________________
@@ -134,7 +151,7 @@ Bool_t AliTOFPreprocessor::ProcessDCS(){
 }
 //_____________________________________________________________________________
 
-UInt_t AliTOFPreprocessor::ProcessDCSDataPoints(TMap* dcsAliasMap)
+UInt_t AliTOFPreprocessor::ProcessDCSDataPoints(TMap *dcsAliasMap)
 {
   // Fills data into a AliTOFDataDCS object
 
@@ -195,6 +212,182 @@ UInt_t AliTOFPreprocessor::ProcessDCSDataPoints(TMap* dcsAliasMap)
   
   return 0;
 }
+//_____________________________________________________________________________
+
+UInt_t AliTOFPreprocessor::ProcessHVandLVdps(TMap *dcsAliasMap)
+{
+  //
+  //Fills data into a AliTOFLvHvDataPoints object
+  // Merges fStatus object with LV and HV status at SOR
+  // Updates fStatus object with LV and HV status
+  //    at EOR in case of correct end of run
+  //    at last but two value in case of end-of-run caused by TOF detector.
+  //
+
+  Log("Processing HV and LV DCS DPs");
+  TH1::AddDirectory(0);
+
+  Bool_t resultDCSMap=kFALSE;
+
+  // processing DCS
+
+  fHVLVmaps->SetFDRFlag(fFDRFlag);
+  
+  if (!dcsAliasMap){
+    Log("No DCS map found: TOF exiting from Shuttle");
+    if (fHVLVmaps){
+      delete fHVLVmaps;
+      fHVLVmaps = 0;
+    }
+    return 1;// return error Code for DCS input data not found 
+  }
+  else {
+
+    // The processing of the DCS input data is forwarded to AliTOFDataDCS
+    if (0) { // AdC
+    resultDCSMap = fHVLVmaps->ProcessData(*dcsAliasMap);
+    if (!resultDCSMap) {
+      Log("Some problems occurred while processing DCS data, TOF exiting from Shuttle");
+      if (fHVLVmaps) {
+	delete fHVLVmaps;
+	fHVLVmaps = 0;
+      }
+      return 2;// return error Code for processed DCS data not stored 
+    }
+    else {
+
+      // check with plots. Start...
+      /*
+      TH1F *hROsor = new TH1F("hROsor","RO status map at SOR",91*96*18,-0.5,91*96*18-0.5);
+      for (Int_t ii=1; ii<=91*96*18; ii++) hROsor->SetBinContent(ii,-1);
+      for (Int_t ii=0; ii<91*96*18; ii++) {
+	if (fStatus->GetHWStatus(ii)==AliTOFChannelOnlineStatusArray::kTOFHWBad)
+	  hROsor->SetBinContent(ii+1,0);
+	else if (fStatus->GetHWStatus(ii)==AliTOFChannelOnlineStatusArray::kTOFHWOk)
+	  hROsor->SetBinContent(ii+1,1);
+      }
+
+      TH1F *hROandHVandLVsor = new TH1F("hROandHVandLVsor","RO.and.HV.andLV status map at SOR",91*96*18,-0.5,91*96*18-0.5);
+      for (Int_t ii=1; ii<=91*96*18; ii++) hROandHVandLVsor->SetBinContent(ii,-1);
+      TH1F *hROandHVandLVeor = new TH1F("hROandHVandLVeor","RO.and.HV.andLV status map at EOR",91*96*18,-0.5,91*96*18-0.5);
+      for (Int_t ii=1; ii<=91*96*18; ii++) hROandHVandLVeor->SetBinContent(ii,-1);
+      */
+
+      AliTOFDCSmaps * lvANDhvMap = (AliTOFDCSmaps*)fHVLVmaps->GetHVandLVmapAtSOR(); // Get LV.and.HV status map at SOR
+      for (Int_t index=0; index<fNChannels; index++) {
+	if ( ( lvANDhvMap->GetCellValue(index)==0 &&
+	       fStatus->GetHWStatus(index) != AliTOFChannelOnlineStatusArray::kTOFHWBad ) ||
+	     ( lvANDhvMap->GetCellValue(index)==1 &&
+	       fStatus->GetHWStatus(index) != AliTOFChannelOnlineStatusArray::kTOFHWOk ) ) {
+	  fStatus->SetHWStatus(index, AliTOFChannelOnlineStatusArray::kTOFHWBad);
+	  fIsStatusMapChanged=kTRUE;
+	}
+      }
+      
+      // check with plots. Start...
+      /*
+      for (Int_t ii=0; ii<91*96*18; ii++) {
+	if (fStatus->GetHWStatus(ii)==AliTOFChannelOnlineStatusArray::kTOFHWBad)
+	  hROandHVandLVsor->SetBinContent(ii+1,0);
+	else if (fStatus->GetHWStatus(ii)==AliTOFChannelOnlineStatusArray::kTOFHWOk)
+	  hROandHVandLVsor->SetBinContent(ii+1,1);
+      }
+      */
+
+      lvANDhvMap = (AliTOFDCSmaps*)fHVLVmaps->GetHVandLVmapAtEOR(); // Get LV.and.HV status map at EOR
+      for (Int_t index=0; index<fNChannels; index++) {
+	if ( ( lvANDhvMap->GetCellValue(index)==0 &&
+	       fStatus->GetHWStatus(index)!=AliTOFChannelOnlineStatusArray::kTOFHWBad ) ||
+	     ( lvANDhvMap->GetCellValue(index)==1 &&
+	       fStatus->GetHWStatus(index) != AliTOFChannelOnlineStatusArray::kTOFHWOk ) ) {
+	  fStatus->SetHWStatus(index, AliTOFChannelOnlineStatusArray::kTOFHWBad);
+	  fIsStatusMapChanged=kTRUE;
+	}
+      }
+
+      // check with plots. Start...
+      /*
+      for (Int_t ii=0; ii<91*96*18; ii++) {
+	if (fStatus->GetHWStatus(ii)==AliTOFChannelOnlineStatusArray::kTOFHWBad)
+	  hROandHVandLVeor->SetBinContent(ii+1,0);
+	else if (fStatus->GetHWStatus(ii)==AliTOFChannelOnlineStatusArray::kTOFHWOk)
+	  hROandHVandLVeor->SetBinContent(ii+1,1);
+      }
+
+      TCanvas *canvas = new TCanvas("canvas","",10,10,1000,1000);
+      canvas->SetFillColor(0);
+      canvas->Divide(2,2);
+      canvas->cd(1);
+      hROsor->SetLineWidth(2);
+      hROsor->Draw();
+      canvas->cd(2);
+      hROandHVandLVsor->SetLineWidth(2);
+      hROandHVandLVsor->Draw();
+      canvas->cd(3);
+      hROandHVandLVeor->SetLineWidth(2);
+      hROandHVandLVeor->Draw();
+      canvas->cd();
+      */
+
+    }
+    } // AdC
+  }
+
+
+  /* check whether we don't need to update OCDB.
+   * in this case we can return without errors. */
+
+  if (!fIsStatusMapChanged) {
+    AliInfo("TOF FEE config has not changed. Do not overwrite stored file.");
+    return 0; // return ok
+  }
+
+  TString runType = GetRunType();
+  if (runType != "PHYSICS") {
+    AliInfo(Form("Run Type = %s, waiting to store status map",GetRunType()));
+    return 0; // return ok
+  }
+
+  // update the OCDB with the current FEE.and.HV.and.LV
+  // since even a little difference has been detected.
+
+  AliCDBMetaData metaData;
+  metaData.SetBeamPeriod(0);
+  metaData.SetResponsible("Roberto Preghenella");
+  //metaData.SetComment("This preprocessor fills an AliTOFChannelOnlineStatusArray object from FEE.and.HV.and.LV data."); // AdC
+  //AliInfo("Storing Status data from current run. Collected RO.and.HV.and.LV infos @ EOR"); // AdC
+  metaData.SetComment("This preprocessor fills an AliTOFChannelOnlineStatusArray object from FEE.and.LV data.");
+  AliInfo("Storing Status data from current run. Collected RO.and.LV infos @ SOR");
+  // store FEE data
+  if (!Store("Calib", "Status", fStatus, &metaData, 0, kTRUE)) {
+    // failed
+    Log("problems while storing RO.and.HV.and.LV Status data object");
+    if (fStatus){
+      delete fStatus;
+      fStatus = 0;
+    }
+    if (fHVLVmaps) {
+      delete fHVLVmaps;
+      fHVLVmaps = 0;
+    }
+    return 17; // return error code for problems  while storing FEE data
+  }
+
+  // everything fine. return
+
+  if (fStatus){
+    delete fStatus;
+    fStatus = 0;
+  }
+
+  if (fHVLVmaps) {
+    delete fHVLVmaps;
+    fHVLVmaps = 0;
+  }
+  
+  return 0;
+}
+
 //_____________________________________________________________________________
 
 UInt_t AliTOFPreprocessor::ProcessOnlineDelays()
@@ -530,6 +723,255 @@ UInt_t AliTOFPreprocessor::ProcessOnlineDelays()
 
   return 0;
 }
+
+//_____________________________________________________________________________
+
+UInt_t 
+AliTOFPreprocessor::ProcessT0Fill()
+{
+  // Processing data from DAQ for T0-fill measurement 
+
+  Log("Processing T0-fill");
+
+#if 0
+  /* instance and setup CDB manager */
+  AliCDBManager *cdb = AliCDBManager::Instance();
+  /* load geometry */
+  if (!gGeoManager) AliGeomManager::LoadGeometry();
+#endif
+
+  /* get params from OCDB */
+  AliCDBEntry *cdbe = NULL;
+
+  /* get T0-fill calibration params */
+  cdbe = GetFromOCDB("Calib", "T0FillOnlineCalib");
+  if (!cdbe) {
+    Log("cannot get \"T0FillOnlineCalib\" entry from OCDB");
+    return 21;
+  }
+  AliTOFT0FillOnlineCalib *t0FillOnlineCalibObject = (AliTOFT0FillOnlineCalib *)cdbe->GetObject();
+  if (!t0FillOnlineCalibObject) {
+    Log("cannot get \"T0FillOnlineCalib\" object from CDB entry");
+    return 21;
+  }
+  Float_t t0FillCalibOffset = t0FillOnlineCalibObject->GetOffset();
+  Float_t t0FillCalibCoefficient = t0FillOnlineCalibObject->GetCoefficient();
+  Log(Form("got \"T0FillOnlineCalib\" object: offset=%f coeff=%f", t0FillCalibOffset, t0FillCalibCoefficient));
+
+  /* get online status from OCDB */
+  cdbe = GetFromOCDB("Calib", "Status");
+  if (!cdbe) {
+    Log("cannot get \"Status\" entry from OCDB");
+    return 21;
+  }
+  AliTOFChannelOnlineStatusArray *statusArray = (AliTOFChannelOnlineStatusArray *)cdbe->GetObject();
+  if (!statusArray) {
+    Log("cannot get \"Status\" object from CDB entry");
+    return 21;
+  }
+  Log("got \"Status\" object");
+
+  /* get offline calibration from OCDB */
+  cdbe = GetFromOCDB("Calib", "ParOffline");
+  if (!cdbe) {
+    Log("cannot get \"ParOffline\" entry from OCDB");
+    return 21;
+  }
+  TObjArray *offlineArray = (TObjArray *)cdbe->GetObject();
+  AliTOFChannelOffline *channelOffline;
+  if (!offlineArray) {
+    Log("cannot get \"ParOffline\" object from CDB entry");
+    return 21;
+  }
+  Log("got \"ParOffline\" object");
+
+  /* get deltaBC offset from OCDB */
+  cdbe = GetFromOCDB("Calib", "DeltaBCOffset");
+  if (!cdbe) {
+    Log("cannot get \"DeltaBCOffset\" entry from OCDB");
+    return 21;
+  }
+  AliTOFDeltaBCOffset *deltaBCOffsetObject = (AliTOFDeltaBCOffset *)cdbe->GetObject();
+  if (!deltaBCOffsetObject) {
+    Log("cannot get \"DeltaBCOffset\" object from CDB entry");
+    return 21;
+  }
+  Int_t deltaBCOffset = deltaBCOffsetObject->GetDeltaBCOffset();
+  Log(Form("got \"DeltaBCOffset\" object: deltaBCOffset=%d (BC bins)", deltaBCOffset));
+
+  /* get CTP latency from OCDB */
+  cdbe = GetFromOCDB("Calib", "CTPLatency");
+  if (!cdbe) {
+    Log("cannot get \"CTPLatency\" entry from OCDB");
+    return 21;
+  }
+  AliTOFCTPLatency *ctpLatencyObject = (AliTOFCTPLatency *)cdbe->GetObject();
+  if (!ctpLatencyObject) {
+    Log("cannot get \"CTPLatency\" object from CDB entry");
+    return 21;
+  }
+  Float_t ctpLatency = ctpLatencyObject->GetCTPLatency();
+  Log(Form("got \"CTPLatency\" object: ctpLatency=%f (ps)", ctpLatency));
+  
+  /* get file sources from FXS */
+  TList *fileList = GetFileSources(kDAQ, "HITS");
+  if (!fileList || fileList->GetEntries() == 0) {
+    Log("cannot get DAQ source file list or empty list");
+    return 21;
+  }
+  Log(Form("got DAQ source file list: %d files", fileList->GetEntries()));
+  fileList->Print();
+  
+  /* create tree chain using file sources */
+  TChain chain("hitTree");
+  for (Int_t ifile = 0; ifile < fileList->GetEntries(); ifile++) {
+    TObjString *str = (TObjString *)fileList->At(ifile);
+    TString filename = GetFile(kDAQ, "HITS", str->GetName());
+    chain.Add(filename);
+    Log(Form("file added to input chain: source=%s, filename=%s", str->String().Data(), filename.Data()));
+  }
+  Int_t nhits = chain.GetEntries();
+  Log(Form("input chain ready: %d hits", nhits));
+
+  /* setup input chain */
+  AliTOFHitField *hit = new AliTOFHitField();
+  chain.SetBranchAddress("hit", &hit);
+
+  /* create calib histo and geometry */
+  AliTOFcalibHisto calibHisto;
+  calibHisto.LoadCalibHisto();
+  AliTOFGeometry tofGeo;
+
+  /* constants */
+  Float_t c = TMath::C() * 1.e2 / 1.e12; /* cm/ps */
+  Float_t c_1 = 1. / c;
+  /* variables */
+  Int_t index, timebin, totbin, deltaBC, l0l1latency, det[5];
+  Float_t timeps, totns, corrps, length, timeexp, timezero, pos[3], latencyWindow;
+
+  /* histos */
+  TH1F *hT0Fill = new TH1F("hT0Fill", "T0 fill;t - t_{exp}^{(c)} (ps);", 2000, -24400., 24400.);
+
+  /* loop over hits */
+  for (Int_t ihit = 0; ihit < nhits; ihit++) {
+
+    /* get entry */
+   chain.GetEntry(ihit);
+    
+    /* get hit info */
+    index = hit->GetIndex();
+    timebin = hit->GetTimeBin();
+    totbin = hit->GetTOTBin();
+    deltaBC = hit->GetDeltaBC();
+    l0l1latency = hit->GetL0L1Latency();
+    latencyWindow = statusArray->GetLatencyWindow(index) * 1.e3;
+    
+    /* convert time in ps and tot in ns */
+    timeps = timebin * AliTOFGeometry::TdcBinWidth();
+    totns = totbin * AliTOFGeometry::ToTBinWidth() * 1.e-3;
+    /* get calibration correction in ps */
+    channelOffline = (AliTOFChannelOffline *)offlineArray->At(index);
+    if (totns < AliTOFGeometry::SlewTOTMin()) totns = AliTOFGeometry::SlewTOTMin();
+    if (totns > AliTOFGeometry::SlewTOTMax()) totns = AliTOFGeometry::SlewTOTMax();
+    corrps = 0.;
+    for (Int_t ipar = 0; ipar < 6; ipar++) corrps += channelOffline->GetSlewPar(ipar) * TMath::Power(totns, ipar);
+    corrps *= 1.e3;
+    /* perform time correction */
+    timeps = timeps + (deltaBC - deltaBCOffset) * AliTOFGeometry::BunchCrossingBinWidth() + l0l1latency * AliTOFGeometry::BunchCrossingBinWidth() + ctpLatency - latencyWindow - corrps;
+    /* compute length and expected time */
+    tofGeo.GetVolumeIndices(index, det);
+    tofGeo.GetPosPar(det, pos);
+    length = 0.;
+    for (Int_t i = 0; i < 3; i++) length += pos[i] * pos[i];
+    length = TMath::Sqrt(length);
+    timeexp = length * c_1;
+    /* compute time zero */
+    timezero = timeps - timeexp;
+    
+    /* fill histos */
+    hT0Fill->Fill(timezero);
+  }
+
+  /* rebin until maximum bin has required minimum entries */
+  Int_t maxBin = hT0Fill->GetMaximumBin();
+  Float_t maxBinContent = hT0Fill->GetBinContent(maxBin);
+  Float_t binWidth = hT0Fill->GetBinWidth(maxBin);
+  while (maxBinContent < 400 && binWidth < 90.) {
+    hT0Fill->Rebin(2);
+    maxBin = hT0Fill->GetMaximumBin();
+    maxBinContent = hT0Fill->GetBinContent(maxBin);
+    binWidth = hT0Fill->GetBinWidth(maxBin);
+  }
+  Float_t maxBinCenter = hT0Fill->GetBinCenter(maxBin);
+
+  /* rough landau fit of the edge */
+  TF1 *landau = (TF1 *)gROOT->GetFunction("landau");
+  landau->SetParameter(1, maxBinCenter);
+  Float_t fitMin = maxBinCenter - 1000.; /* fit from 10 ns before max */
+  Float_t fitMax = maxBinCenter + binWidth; /* fit until a bin width above max */
+  hT0Fill->Fit("landau", "q0", "", fitMin, fitMax);
+  /* get rough landau mean and sigma to set a better fit range */
+  Float_t mean = landau->GetParameter(1);
+  Float_t sigma = landau->GetParameter(2);
+  /* better landau fit of the edge */
+  fitMin = maxBinCenter - 3. * sigma;
+  fitMax = mean;
+  hT0Fill->Fit("landau", "q0", "", fitMin, fitMax);
+  /* print params */
+  mean = landau->GetParameter(1);
+  sigma = landau->GetParameter(2);
+  Float_t meane = landau->GetParError(1);
+  Float_t sigmae = landau->GetParError(2);
+  Log(Form("edge fit: mean  = %f +- %f ps", mean, meane));
+  Log(Form("edge fit: sigma = %f +- %f ps", sigma, sigmae));
+  Float_t edge = mean - 3. * sigma;
+  Float_t edgee = TMath::Sqrt(meane * meane + 3. * sigmae * 3. * sigmae);
+  Log(Form("edge fit: edge = %f +- %f ps", edge, edgee));
+  /* apply calibration to get T0-fill from egde */
+  Float_t t0Fill = edge * t0FillCalibCoefficient + t0FillCalibOffset;
+  Log(Form("estimated T0-fill: %f ps", t0Fill));
+
+  /* create T0-fill object */
+  AliTOFT0Fill *t0FillObject = new AliTOFT0Fill();
+  t0FillObject->SetT0Fill(t0Fill);
+
+  /* store reference data */
+  if(fStoreRefData){
+    AliCDBMetaData metaDataHisto;
+    metaDataHisto.SetBeamPeriod(0);
+    metaDataHisto.SetResponsible("Roberto Preghenella");
+    metaDataHisto.SetComment("online T0-fill histogram");
+    if (!StoreReferenceData("Calib","T0Fill", hT0Fill, &metaDataHisto)) {
+      Log("error while storing reference data");
+      delete hT0Fill;
+      delete hit;
+      delete t0FillObject;
+      return 21;
+    }
+    Log("reference data successfully stored");
+  }
+  
+  AliCDBMetaData metaData;
+  metaData.SetBeamPeriod(0);
+  metaData.SetResponsible("Roberto Preghenella");
+  metaData.SetComment("online T0-fill measurement");
+  if (!Store("Calib", "T0Fill", t0FillObject, &metaData, 0, kFALSE)) {
+    Log("error while storing T0-fill object");
+    delete hT0Fill;
+    delete hit;
+    delete t0FillObject;
+    return 21;
+  }
+  Log("T0-fill object successfully stored");
+
+  delete hT0Fill;
+  delete hit;
+  delete t0FillObject;
+  return 0;
+
+}
+ 
+
 //_____________________________________________________________________________
 
 UInt_t AliTOFPreprocessor::ProcessPulserData()
@@ -983,16 +1425,27 @@ UInt_t AliTOFPreprocessor::ProcessFEEData()
 
   Log("Processing FEE");
 
-  Bool_t updateOCDB = kFALSE;
+  //Bool_t updateOCDB = kFALSE;
   AliTOFFEEReader feeReader;
 
   TH1C hCurrentFEE("hCurrentFEE","histo with current FEE channel status", fNChannels, 0, fNChannels);
   
-  /* load current TOF FEE config from DCS FXS, parse, 
+  /* load current TOF FEE(dump) from DCS FXS, 
+   * setup TOFFEEdump object */
+
+  const char * toffeeFileName = GetFile(kDCS,"TofFeeMap",""); 
+  AliInfo(Form("toffee file name = %s", toffeeFileName));
+  if (toffeeFileName == NULL) {
+    return 15;
+  } 
+  AliTOFFEEDump feedump;
+  feedump.ReadFromFile(toffeeFileName);
+  
+  /* load current TOF FEE(light) config from DCS FXS, parse, 
    * fill current FEE histogram and set FEE status */
   
   const char * nameFile = GetFile(kDCS,"TofFeeLightMap",""); 
-  AliInfo(Form("nameFile = %s",nameFile));
+  AliInfo(Form("toffeeLight file name = %s",nameFile));
   if (nameFile == NULL) {
 	  return 15;
   } 
@@ -1004,7 +1457,8 @@ UInt_t AliTOFPreprocessor::ProcessFEEData()
    * if there is no stored FEE in OCDB set update flag */
   
   fMatchingWindow = new Int_t[fNChannels];
-
+  fLatencyWindow = new Int_t[fNChannels];
+  
   AliCDBEntry *cdbEntry = GetFromOCDB("Calib","Status");
   if (!cdbEntry) {
 	  /* no CDB entry found. set update flag */
@@ -1012,7 +1466,8 @@ UInt_t AliTOFPreprocessor::ProcessFEEData()
 	  Log("No CDB Status entry found, creating a new one!");
 	  Log("     *********************************");
 	  fStatus = new AliTOFChannelOnlineStatusArray(fNChannels);
-	  updateOCDB = kTRUE;
+	  //updateOCDB = kTRUE;
+	  fIsStatusMapChanged = kTRUE;
   }
   else {
 	  if (cdbEntry) cdbEntry->SetOwner(kFALSE);
@@ -1020,6 +1475,17 @@ UInt_t AliTOFPreprocessor::ProcessFEEData()
 	  fStatus = (AliTOFChannelOnlineStatusArray*) cdbEntry->GetObject();
 	  delete cdbEntry;
 	  cdbEntry = 0x0;
+	  /* cehck whether status object has latency window data */
+	  if (!fStatus->HasLatencyWindow()) {
+	    /* create new status object and update OCDB */
+	    Log("     ************ WARNING ************");
+	    Log("CDB Status entry found but has no latency window data, creating a new one!");
+	    Log("     *********************************");
+	    delete fStatus;
+	    fStatus = new AliTOFChannelOnlineStatusArray(fNChannels);
+	    //updateOCDB = kTRUE;
+	    fIsStatusMapChanged = kTRUE;
+	  }
   }
   for (Int_t iChannel = 0; iChannel < fNChannels; iChannel++){
 	  //AliDebug(2,Form("********** channel %i",iChannel));
@@ -1027,17 +1493,26 @@ UInt_t AliTOFPreprocessor::ProcessFEEData()
 	   * if different set update flag and break loop */
 	  //AliDebug(2,Form( " channel %i status before FEE = %i",iChannel,(Int_t)fStatus->GetHWStatus(iChannel)));
 	  fMatchingWindow[iChannel] = feeReader.GetMatchingWindow(iChannel);
+	  fLatencyWindow[iChannel] = feeReader.GetLatencyWindow(iChannel);
 	  if (feeReader.IsChannelEnabled(iChannel)) {
 		  hCurrentFEE.SetBinContent(iChannel + 1, 1);
 		  if (fStatus->GetHWStatus(iChannel)!=AliTOFChannelOnlineStatusArray::kTOFHWOk){
-			  updateOCDB = kTRUE;
+		          //updateOCDB = kTRUE;
+			  fIsStatusMapChanged = kTRUE;
 			  fStatus->SetHWStatus(iChannel,AliTOFChannelOnlineStatusArray::kTOFHWOk);
 			  AliDebug(3,Form( " changed into enabled: channel %i status after FEE = %i",iChannel,(Int_t)fStatus->GetHWStatus(iChannel)));
+		  }
+		  if (fStatus->GetLatencyWindow(iChannel)!=fLatencyWindow[iChannel]){
+		          //updateOCDB = kTRUE;
+			  fIsStatusMapChanged = kTRUE;
+			  fStatus->SetLatencyWindow(iChannel,fLatencyWindow[iChannel]);
+			  AliDebug(3,Form( " changed latency window: channel %i latency window after FEE = %i",iChannel,fStatus->GetLatencyWindow(iChannel)));
 		  }
 	  }
 	  else {
 		  if (fStatus->GetHWStatus(iChannel)!=AliTOFChannelOnlineStatusArray::kTOFHWBad){
-			  updateOCDB = kTRUE;
+		          //updateOCDB = kTRUE;
+			  fIsStatusMapChanged = kTRUE;
 			  fStatus->SetHWStatus(iChannel,AliTOFChannelOnlineStatusArray::kTOFHWBad);
 			  AliDebug(3,Form( " changed into disabled: channel %i status after FEE = %i",iChannel,(Int_t)fStatus->GetHWStatus(iChannel)));
 		  }
@@ -1048,62 +1523,35 @@ UInt_t AliTOFPreprocessor::ProcessFEEData()
   /* check whether we don't have to store reference data.
    * in this case we return without errors. */
   if (fStoreRefData) {
-	  /* store reference data */
-	  AliCDBMetaData metaDataHisto;
-	  metaDataHisto.SetBeamPeriod(0);
-	  metaDataHisto.SetResponsible("Roberto Preghenella");
-	  metaDataHisto.SetComment("This preprocessor stores the FEE Ref data of the current run.");
-	  AliInfo("Storing FEE reference data");
-	  /* store FEE reference data */
-	  if (!StoreReferenceData("Calib", "FEEData", &hCurrentFEE, &metaDataHisto)) {
-		  /* failed */
-		  Log("problems while storing FEE reference data");
-		  if (fStatus){
-			  delete fStatus;
-			  fStatus = 0;
-		  }
-		  return 18; /* error return code for problems while storing FEE reference data */
-	  }
-  }
-
-  /* check whether we don't need to update OCDB.
-   * in this case we can return without errors and
-   * the current FEE is stored in the fStatus object. */
-  if (!updateOCDB) {
-    AliInfo("TOF FEE config has not changed. Do not overwrite stored file.");
-    return 0; /* return ok */
-  }
-
-  TString runType = GetRunType();
-  if (runType != "PHYSICS") {
-	  AliInfo(Form("Run Type = %s, waiting to store status map",GetRunType()));
-    return 0; /* return ok */
-  }
-
-  /* update the OCDB with the current FEE since even 
-   * a little difference has been detected. */
-
-  AliCDBMetaData metaData;
-  metaData.SetBeamPeriod(0);
-  metaData.SetResponsible("Roberto Preghenella");
-  metaData.SetComment("This preprocessor fills an AliTOFChannelOnlineStatusArray object from FEE data.");
-  AliInfo("Storing Status data from current run after FEE parsing");
-  /* store FEE data */
-  if (!Store("Calib", "Status", fStatus, &metaData, 0, kTRUE)) {
-    /* failed */
-    Log("problems while storing FEE data object");
-    if (fStatus){
-	    delete fStatus;
-	    fStatus = 0;
+    /* store reference data */
+    AliCDBMetaData metaDataHisto;
+    metaDataHisto.SetBeamPeriod(0);
+    metaDataHisto.SetResponsible("Roberto Preghenella");
+    metaDataHisto.SetComment("This preprocessor stores the FEE Ref data of the current run.");
+    AliInfo("Storing FEE reference data");
+    /* store FEE reference data */
+    if (!StoreReferenceData("Calib", "FEEData", &hCurrentFEE, &metaDataHisto)) {
+      /* failed */
+      Log("problems while storing FEE reference data");
+      if (fStatus){
+	delete fStatus;
+	fStatus = 0;
+      }
+      return 18; /* error return code for problems while storing FEE reference data */
     }
-    return 17; /* return error code for problems  while storing FEE data */
-  }
-
-  /* everything fine. return */
-
-  if (fStatus){
-    delete fStatus;
-    fStatus = 0;
+    
+    /* store TOF FEE dump reference data */
+    AliCDBMetaData metaDatadump;
+    metaDatadump.SetBeamPeriod(0);
+    metaDatadump.SetResponsible("Roberto Preghenella");
+    metaDatadump.SetComment("This preprocessor stores the TOF FEE dump Ref data of the current run.");
+    AliInfo("Storing TOF FEE dump reference data");
+    /* store FEE reference data */
+    if (!StoreReferenceData("Calib", "FEEDump", &feedump, &metaDatadump)) {
+      /* failed */
+      Log("problems while storing TOF FEE dump reference data");
+      return 18; /* error return code for problems while storing FEE reference data */
+    }
   }
 
   return 0;
@@ -1112,10 +1560,10 @@ UInt_t AliTOFPreprocessor::ProcessFEEData()
 
 //_____________________________________________________________________________
 
-UInt_t AliTOFPreprocessor::Process(TMap* dcsAliasMap)
+UInt_t AliTOFPreprocessor::Process(TMap *dcsAliasMap)
 {
   //
-  //
+  // Main AliTOFPreprocessor method called by SHUTTLE
   //
 
   TString runType = GetRunType();
@@ -1137,15 +1585,17 @@ UInt_t AliTOFPreprocessor::Process(TMap* dcsAliasMap)
     Int_t iresultNoise = ProcessNoiseData();
     return iresultNoise; 
   }
-  
+ 
   if (runType == "PHYSICS") {
-    Int_t iresultDAQ = ProcessOnlineDelays();
+    //    Int_t iresultDAQ = ProcessOnlineDelays();
+    Int_t iresultDAQ = ProcessT0Fill();
     if (iresultDAQ != 0) {
       return iresultDAQ;
     }
     else {
       Int_t iresultDCS = ProcessDCSDataPoints(dcsAliasMap);
-      return iresultDCS;
+      Int_t iResultHVandLVdps = ProcessHVandLVdps(dcsAliasMap);
+      return iresultDCS+iResultHVandLVdps;
     }
   }
 

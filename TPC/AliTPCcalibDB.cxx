@@ -86,6 +86,7 @@
 #include <AliLog.h>
 #include <AliMagF.h>
 #include <AliSplineFit.h>
+#include <AliCTPTimeParams.h>
 
 #include "AliTPCcalibDB.h"
 #include "AliTPCdataQA.h"
@@ -98,6 +99,7 @@
 #include "AliTPCSensorTempArray.h"
 #include "AliGRPObject.h"
 #include "AliTPCTransform.h"
+#include "AliTPCmapper.h"
 
 class AliCDBStorage;
 class AliTPCCalDet;
@@ -112,6 +114,7 @@ class AliTPCCalDet;
 #include "TObjString.h"
 #include "TString.h"
 #include "TDirectory.h"
+#include "TArrayI.h"
 #include "AliTPCCalPad.h"
 #include "AliTPCCalibPulser.h"
 #include "AliTPCCalibPedestal.h"
@@ -175,6 +178,7 @@ AliTPCcalibDB::AliTPCcalibDB():
   fPadGainFactor(0),
   fDedxGainFactor(0),
   fPadTime0(0),
+  fDistortionMap(0),
   fPadNoise(0),
   fPedestals(0),
   fCalibRaw(0),
@@ -196,7 +200,8 @@ AliTPCcalibDB::AliTPCcalibDB():
   fVdriftArray(100000),                 //! array of v drift interfaces
   fDriftCorrectionArray(100000),  //! array of drift correction
   fRunList(100000),              //! run list - indicates try to get the run param 
-  fDButil(0)
+  fDButil(0),
+  fCTPTimeParams(0)
 {
   //
   // constructor
@@ -213,6 +218,7 @@ AliTPCcalibDB::AliTPCcalibDB(const AliTPCcalibDB& ):
   fPadGainFactor(0),
   fDedxGainFactor(0),
   fPadTime0(0),
+  fDistortionMap(0),
   fPadNoise(0),
   fPedestals(0),
   fCalibRaw(0),
@@ -234,7 +240,8 @@ AliTPCcalibDB::AliTPCcalibDB(const AliTPCcalibDB& ):
   fVdriftArray(0),         //! array of v drift interfaces
   fDriftCorrectionArray(0),         //! array of v drift interfaces
   fRunList(0),              //! run list - indicates try to get the run param 
-  fDButil(0)
+  fDButil(0),
+  fCTPTimeParams(0)
 {
   //
   // Copy constructor invalid -- singleton implementation
@@ -260,10 +267,6 @@ AliTPCcalibDB::~AliTPCcalibDB()
   // destructor
   //
   
-  // don't delete anything, CDB cache is active!
-  //if (fPadGainFactor) delete fPadGainFactor;
-  //if (fPadTime0) delete fPadTime0;
-  //if (fPadNoise) delete fPadNoise;
 }
 
 
@@ -301,7 +304,10 @@ void AliTPCcalibDB::SetRun(Long64_t run)
 
 
 void AliTPCcalibDB::Update(){
-	//
+  //
+  // cache the OCDB entries for simulation, reconstruction, calibration
+  //  
+  //
   AliCDBEntry * entry=0;
   Bool_t cdbCache = AliCDBManager::Instance()->GetCacheFlag(); // save cache status
   AliCDBManager::Instance()->SetCacheFlag(kTRUE); // activate CDB cache
@@ -312,6 +318,8 @@ void AliTPCcalibDB::Update(){
     //if (fPadGainFactor) delete fPadGainFactor;
     entry->SetOwner(kTRUE);
     fPadGainFactor = (AliTPCCalPad*)entry->GetObject();
+  }else{
+    AliFatal("TPC - Missing calibration entry")
   }
   //
   entry          = GetCDBEntry("TPC/Calib/TimeGain");
@@ -319,12 +327,16 @@ void AliTPCcalibDB::Update(){
     //if (fTimeGainSplines) delete fTimeGainSplines;
     entry->SetOwner(kTRUE);
     fTimeGainSplines = (TObjArray*)entry->GetObject();
+  }else{
+    AliFatal("TPC - Missing calibration entry")
   }
   //
   entry          = GetCDBEntry("TPC/Calib/GainFactorDedx");
   if (entry){
     entry->SetOwner(kTRUE);
     fDedxGainFactor = (AliTPCCalPad*)entry->GetObject();
+  }else{
+    AliFatal("TPC - Missing calibration entry")
   }
   //
   entry          = GetCDBEntry("TPC/Calib/PadTime0");
@@ -332,7 +344,20 @@ void AliTPCcalibDB::Update(){
     //if (fPadTime0) delete fPadTime0;
     entry->SetOwner(kTRUE);
     fPadTime0 = (AliTPCCalPad*)entry->GetObject();
+  }else{
+    AliFatal("TPC - Missing calibration entry")
   }
+
+  entry          = GetCDBEntry("TPC/Calib/Distortion");
+  if (entry){
+    //if (fPadTime0) delete fPadTime0;
+    entry->SetOwner(kTRUE);
+    fDistortionMap =(TObjArray*)entry->GetObject();
+  }else{
+    //AliFatal("TPC - Missing calibration entry")
+  }
+
+
   //
   //
   entry          = GetCDBEntry("TPC/Calib/PadNoise");
@@ -340,6 +365,8 @@ void AliTPCcalibDB::Update(){
     //if (fPadNoise) delete fPadNoise;
     entry->SetOwner(kTRUE);
     fPadNoise = (AliTPCCalPad*)entry->GetObject();
+  }else{
+    AliFatal("TPC - Missing calibration entry")
   }
 
   entry          = GetCDBEntry("TPC/Calib/Pedestals");
@@ -361,12 +388,16 @@ void AliTPCcalibDB::Update(){
     //if (fPadNoise) delete fPadNoise;
     entry->SetOwner(kTRUE);
     fParam = (AliTPCParam*)(entry->GetObject()->Clone());
+  }else{
+    AliFatal("TPC - Missing calibration entry")
   }
 
   entry          = GetCDBEntry("TPC/Calib/ClusterParam");
   if (entry){
     entry->SetOwner(kTRUE);
     fClusterParam = (AliTPCClusterParam*)(entry->GetObject()->Clone());
+  }else{
+    AliFatal("TPC - Missing calibration entry")
   }
 
   //ALTRO configuration data
@@ -374,6 +405,8 @@ void AliTPCcalibDB::Update(){
   if (entry){
     entry->SetOwner(kTRUE);
     fALTROConfigData=(TObjArray*)(entry->GetObject());
+  }else{
+    AliFatal("TPC - Missing calibration entry")
   }
   
   //Calibration Pulser data
@@ -390,18 +423,7 @@ void AliTPCcalibDB::Update(){
     fCEData=(TObjArray*)(entry->GetObject());
   }
   //RAW calibration data
-  entry          = GetCDBEntry("TPC/Calib/Raw");
-  if (entry){
-    entry->SetOwner(kTRUE);
-    TObjArray *arr=(TObjArray*)(entry->GetObject());
-    if (arr) fCalibRaw=(AliTPCCalibRaw*)arr->At(0);
-  }
-  //QA calibration data
-  entry          = GetCDBEntry("TPC/Calib/QA");
-  if (entry){
-    entry->SetOwner(kTRUE);
-    fDataQA=dynamic_cast<AliTPCdataQA*>(entry->GetObject());
-  }
+ //  entry          = GetCDBEntry("TPC/Calib/Raw");
   
   entry          = GetCDBEntry("TPC/Calib/Mapping");
   if (entry){
@@ -416,18 +438,15 @@ void AliTPCcalibDB::Update(){
     }
   }
 
-
-
-  //entry          = GetCDBEntry("TPC/Calib/ExB");
-  //if (entry) {
-  //  entry->SetOwner(kTRUE);
-  //  fExB=dynamic_cast<AliTPCExB*>(entry->GetObject()->Clone());
-  //}
+  //CTP calibration data
+  entry          = GetCDBEntry("GRP/CTP/CTPtiming");
+  if (entry){
+    //entry->SetOwner(kTRUE);
+    fCTPTimeParams=dynamic_cast<AliCTPTimeParams*>(entry->GetObject());
+  }else{
+    AliError("TPC - Missing calibration entry")
+  }  
   //
-  // ExB  - calculate during initialization - in simulation /reconstruction
-  //      - not invoked here anymore
-  //fExB =  GetExB(-5,kTRUE);
-     //
   if (!fTransform) {
     fTransform=new AliTPCTransform(); 
     fTransform->SetCurrentRun(AliCDBManager::Instance()->GetRun());
@@ -435,6 +454,33 @@ void AliTPCcalibDB::Update(){
 
   //
   AliCDBManager::Instance()->SetCacheFlag(cdbCache); // reset original CDB cache
+}
+
+void AliTPCcalibDB::UpdateNonRec(){
+  //
+  // Update/Load the parameters which are important for QA studies
+  // and not used yet for the reconstruction
+  //
+   //RAW calibration data
+  AliCDBEntry * entry=0;
+  entry          = GetCDBEntry("TPC/Calib/Raw");
+  if (entry){
+    entry->SetOwner(kTRUE);
+    TObjArray *arr=(TObjArray*)(entry->GetObject());
+    if (arr) fCalibRaw=(AliTPCCalibRaw*)arr->At(0);
+  }
+  //QA calibration data
+  entry          = GetCDBEntry("TPC/Calib/QA");
+  if (entry){
+    entry->SetOwner(kTRUE);
+    fDataQA=dynamic_cast<AliTPCdataQA*>(entry->GetObject());
+  }
+  // High voltage
+  entry = AliCDBManager::Instance()->Get("TPC/Calib/HighVoltage",fRun);
+  if (entry)  {
+    fVoltageArray.AddAt(entry->GetObject(),fRun);
+  }
+
 }
 
 
@@ -741,7 +787,44 @@ void AliTPCcalibDB::MakeTree(const char * fileName, TObjArray * array, const cha
    }
 }
 
+Int_t AliTPCcalibDB::GetRCUTriggerConfig() const
+{
+  //
+  // return the RCU trigger configuration register
+  //
+  TMap *map=GetRCUconfig();
+  if (!map) return -1;
+  TVectorF *v=(TVectorF*)map->GetValue("TRGCONF_TRG_MODE");
+  Float_t mode=-1;
+  for (Int_t i=0; i<v->GetNrows(); ++i){
+    Float_t newmode=v->GetMatrixArray()[i];
+    if (newmode>-1){
+      if (mode>-1&&newmode!=mode) AliWarning("Found different RCU trigger configurations!!!");
+      mode=newmode;
+    }
+  }
+  return (Int_t)mode;
+}
 
+Bool_t AliTPCcalibDB::IsTrgL0() 
+{
+  //
+  // return if the FEE readout was triggered on L0
+  //
+  Int_t mode=GetRCUTriggerConfig();
+  if (mode<0) return kFALSE;
+  return (mode==1);
+}
+
+Bool_t AliTPCcalibDB::IsTrgL1()
+{
+  //
+  // return if the FEE readout was triggered on L1
+  //
+  Int_t mode=GetRCUTriggerConfig();
+  if (mode<0) return kFALSE;
+  return (mode==0);
+}
 
 void AliTPCcalibDB::RegisterExB(Int_t index, Float_t bz, Bool_t bdelete){
   //
@@ -805,10 +888,9 @@ void AliTPCcalibDB::UpdateRunInformations( Int_t run, Bool_t force){
   //
   // - > Don't use it for reconstruction - Only for Calibration studies
   //
-  if (run<0) return;
-  if (fRunList[run]>0 &&force==kFALSE) return;
+  if (run<=0) return;
   AliCDBEntry * entry = 0;
-  if (run>= fRunList.GetSize()){
+  if (run>= fRunList.fN){
     fRunList.Set(run*2+1);
     fGRPArray.Expand(run*2+1);
     fGRPMaps.Expand(run*2+1);
@@ -818,7 +900,15 @@ void AliTPCcalibDB::UpdateRunInformations( Int_t run, Bool_t force){
     fVdriftArray.Expand(run*2+1);
     fDriftCorrectionArray.Expand(run*2+1);
     fTimeGainSplinesArray.Expand(run*2+1);
+    //
+    //
+    fALTROConfigData->Expand(run*2+1);    // ALTRO configuration data
+    fPulserData->Expand(run*2+1);         // Calibration Pulser data
+    fCEData->Expand(run*2+1);             // CE data
+    if (!fTimeGainSplines) fTimeGainSplines = new TObjArray(run*2+1);
+    fTimeGainSplines->Expand(run*2+1); // Array of AliSplineFits: at 0 MIP position in
   }
+  if (fRunList[run]>0 &&force==kFALSE) return;
 
   fRunList[run]=1;  // sign as used
 
@@ -843,19 +933,20 @@ void AliTPCcalibDB::UpdateRunInformations( Int_t run, Bool_t force){
     fGoofieArray.AddAt(entry->GetObject(),run);
   }
   //
-  entry = AliCDBManager::Instance()->Get("TPC/Calib/HighVoltage",run);
-  if (entry)  {
-    fVoltageArray.AddAt(entry->GetObject(),run);
-  }
+  
   //
   entry = AliCDBManager::Instance()->Get("TPC/Calib/TimeGain",run);
   if (entry)  {
     fTimeGainSplinesArray.AddAt(entry->GetObject(),run);
+  }else{
+    AliFatal("TPC - Missing calibration entry TimeGain")
   }
   //
   entry = AliCDBManager::Instance()->Get("TPC/Calib/TimeDrift",run);
   if (entry)  {
     fDriftCorrectionArray.AddAt(entry->GetObject(),run);
+  }else{
+    AliFatal("TPC - Missing calibration entry TimeDrift")
   }
   //
   entry = AliCDBManager::Instance()->Get("TPC/Calib/Temperature",run);
@@ -892,6 +983,7 @@ void AliTPCcalibDB::UpdateRunInformations( Int_t run, Bool_t force){
 
 Float_t AliTPCcalibDB::GetGain(Int_t sector, Int_t row, Int_t pad){
   //
+  // Get Gain factor for given pad
   //
   AliTPCCalPad *calPad = Instance()->fDedxGainFactor;;
   if (!calPad) return 0;
@@ -900,7 +992,7 @@ Float_t AliTPCcalibDB::GetGain(Int_t sector, Int_t row, Int_t pad){
 
 AliSplineFit* AliTPCcalibDB::GetVdriftSplineFit(const char* name, Int_t run){
   //
-  //
+  // GetDrift velocity spline fit
   //
   TObjArray *arr=GetTimeVdriftSplineRun(run);
   if (!arr) return 0;
@@ -938,7 +1030,7 @@ AliGRPObject *AliTPCcalibDB::GetGRP(Int_t run){
 
 TMap *  AliTPCcalibDB::GetGRPMap(Int_t run){
   //
-  //
+  // Get GRP map for given run
   //
   TMap * grpRun = dynamic_cast<TMap *>((Instance()->fGRPMaps).At(run));
   if (!grpRun) {
@@ -1428,7 +1520,7 @@ Float_t AliTPCcalibDB::GetValueGoofie(Int_t timeStamp, Int_t run, Int_t type){
 
 Bool_t  AliTPCcalibDB::GetTemperatureFit(Int_t timeStamp, Int_t run, Int_t side,TVectorD& fit){
   //
-  //
+  // GetTmeparature fit at parameter for given time stamp
   //
   TTimeStamp tstamp(timeStamp);
   AliTPCSensorTempArray* tempArray  = Instance()->GetTemperatureSensor(run);
@@ -1447,8 +1539,8 @@ Bool_t  AliTPCcalibDB::GetTemperatureFit(Int_t timeStamp, Int_t run, Int_t side,
 
 Float_t AliTPCcalibDB::GetTemperature(Int_t timeStamp, Int_t run, Int_t side){
   //
-  //
-  //
+  // Get mean temperature
+  // 
   TVectorD vec(5);
   if (side==0) {
     GetTemperatureFit(timeStamp,run,0,vec);
@@ -1520,6 +1612,7 @@ Bool_t AliTPCcalibDB::CreateGUITree(Int_t run, const char* filename)
   // retrieve cal pad objects
   db->SetRun(run);
   db->CreateGUITree(filename);
+  return kTRUE;
 }
 
 Bool_t AliTPCcalibDB::CreateGUITree(const char* filename){
@@ -1530,7 +1623,8 @@ Bool_t AliTPCcalibDB::CreateGUITree(const char* filename){
     AliError("Default Storage not set. Cannot create calibration Tree!");
     return kFALSE;
   }
-  
+  UpdateNonRec();  // load all infromation now
+
   AliTPCPreprocessorOnline prep;
   //noise and pedestals
   if (GetPedestals()) prep.AddComponent(new AliTPCCalPad(*(GetPedestals())));
@@ -1632,27 +1726,36 @@ Double_t AliTPCcalibDB::GetVDriftCorrectionTime(Int_t timeStamp, Int_t run, Int_
   //
   // Notice - Extrapolation outside of calibration range  - using constant function
   //
-  Double_t result;
+  Double_t result=0;
   // mode 1  automatic mode - according to the distance to the valid calibration
   //                        -  
-  Double_t deltaP=0,  driftP=0,  wP  = 0.;
-  Double_t deltaLT=0, driftLT=0, wLT = 0.;
-  Double_t deltaCE=0, driftCE=0, wCE = 0.;
+  Double_t deltaP=0,  driftP=0,      wP  = 0.;
+  Double_t deltaITS=0,driftITS=0,    wITS= 0.;
+  Double_t deltaLT=0, driftLT=0,     wLT = 0.;
+  Double_t deltaCE=0, driftCE=0,     wCE = 0.;
   driftP  = fDButil->GetVDriftTPC(deltaP,run,timeStamp); 
+  driftITS= fDButil->GetVDriftTPCITS(deltaITS,run,timeStamp);
   driftCE = fDButil->GetVDriftTPCCE(deltaCE, run,timeStamp,36000,2);
   driftLT = fDButil->GetVDriftTPCLaserTracks(deltaLT,run,timeStamp,36000,2);
+  deltaITS = TMath::Abs(deltaITS);
   deltaP   = TMath::Abs(deltaP);
   deltaLT  = TMath::Abs(deltaLT);
   deltaCE  = TMath::Abs(deltaCE);
   if (mode==1) {
-    const Double_t kEpsilon=0.0000000001;
-    Double_t meanDist= (deltaP+deltaLT+deltaCE)*0.3;
-    if (meanDist<1.) return driftLT;
-    wP  = meanDist/(deltaP +0.005*meanDist);
-    wLT = meanDist/(deltaLT+0.005*meanDist);
-    wCE = meanDist/(deltaCE+0.001*meanDist);
+    const Double_t kEpsilon=0.00000000001;
+    const Double_t kdeltaT=360.; // 10 minutes
+    wITS  = 64.*kdeltaT/(deltaITS +kdeltaT);
+    wLT   = 16.*kdeltaT/(deltaLT  +kdeltaT);
+    wP    = 0. *kdeltaT/(deltaP   +kdeltaT);
+    wCE   = 1. *kdeltaT/(deltaCE  +kdeltaT);
+    //
+    //
+    if (TMath::Abs(driftP)<kEpsilon)  wP=0;  // invalid calibration
+    if (TMath::Abs(driftITS)<kEpsilon)wITS=0;  // invalid calibration
+    if (TMath::Abs(driftLT)<kEpsilon) wLT=0;  // invalid calibration
     if (TMath::Abs(driftCE)<kEpsilon) wCE=0;  // invalid calibration
-    result = (driftP*wP+driftLT*wLT+driftCE*wCE)/(wP+wLT+wCE);
+    if (wP+wITS+wLT+wCE<kEpsilon) return 0;
+    result = (driftP*wP+driftITS*wITS+driftLT*wLT+driftCE*wCE)/(wP+wITS+wLT+wCE);
   }
 
   return result;
@@ -1672,9 +1775,16 @@ Double_t AliTPCcalibDB::GetTime0CorrectionTime(Int_t timeStamp, Int_t run, Int_t
   // Notice - Extrapolation outside of calibration range  - using constant function
   //
   Double_t result=0;
-  if (mode==1) result=fDButil->GetTriggerOffsetTPC(run,timeStamp);    
-  result  *=fParam->GetZLength();
-
+  if (mode==2) {
+    // TPC-TPC mode
+    result=fDButil->GetTriggerOffsetTPC(run,timeStamp);    
+    result  *=fParam->GetZLength();
+  }
+  if (mode==1){
+    // TPC-ITS mode
+    Double_t dist=0;
+    result= -fDButil->GetTime0TPCITS(dist, run, timeStamp)*fParam->GetDriftV()/1000000.;
+  }
   return result;
 
 }
@@ -1714,4 +1824,73 @@ Double_t AliTPCcalibDB::GetVDriftCorrectionGy(Int_t timeStamp, Int_t run, Int_t 
   }
   return -result/250.; //normalized before
 }
+
+AliTPCCalPad* AliTPCcalibDB::MakeDeadMap(const char* nameMappingFile) {
+//
+//   Read list of active DDLs from OCDB entry
+//   Generate and return AliTPCCalPad containing 1 for all pads in active DDLs,
+//   0 for all pads in non-active DDLs. 
+//
+  char chinfo[1000];
+   
+  TFile *fileMapping = new TFile(nameMappingFile, "read");
+  AliTPCmapper *mapping = (AliTPCmapper*) fileMapping->Get("tpcMapping");
+  if (!mapping) {
+    sprintf(chinfo,"Failed to get mapping object from %s.  ...\n", nameMappingFile);
+    AliError (chinfo);
+    return 0;
+  }
+  
+  AliTPCCalPad *deadMap = new AliTPCCalPad("deadMap","deadMap");
+  if (!deadMap) {
+     AliError("Failed to allocate dead map AliTPCCalPad");
+     return 0;
+  }  
+  
+  /// get list of active DDLs from OCDB entry
+  Int_t idDDL=0;
+  if (!fALTROConfigData ) {
+     AliError("No ALTRO config OCDB entry available");
+     return 0; 
+  }
+  TMap *activeDDL = (TMap*)fALTROConfigData->FindObject("DDLArray");
+  TObjString *ddlArray=0;
+  if (activeDDL) {
+    ddlArray = (TObjString*)activeDDL->GetValue("DDLArray");
+    if (!ddlArray) {
+      AliError("Empty list of active DDLs in OCDB entry");
+      return 0;
+    }
+  } else { 
+    AliError("List of active DDLs not available in OCDB entry");
+    return 0;
+  }
+  TString arrDDL=ddlArray->GetString();
+  Int_t offset = mapping->GetTpcDdlOffset();
+  Double_t active;
+  for (Int_t i=0; i<mapping->GetNumDdl(); i++) {
+    idDDL= i+offset;
+    Int_t patch = mapping->GetPatchFromEquipmentID(idDDL);   
+    Int_t roc=mapping->GetRocFromEquipmentID(idDDL);
+    AliTPCCalROC *calRoc=deadMap->GetCalROC(roc);
+    if (calRoc) {
+     for ( Int_t branch = 0; branch < 2; branch++ ) {
+      for ( Int_t fec = 0; fec < mapping->GetNfec(patch, branch); fec++ ) {
+        for ( Int_t altro = 0; altro < 8; altro++ ) {
+         for ( Int_t channel = 0; channel < 16; channel++ ) {
+           Int_t hwadd     = mapping->CodeHWAddress(branch, fec, altro, channel);
+           Int_t row       = mapping->GetPadRow(patch, hwadd);        // row in a ROC (IROC or OROC)
+//              Int_t globalrow = mapping.GetGlobalPadRow(patch, hwadd);  // row in full sector (IROC plus OROC)
+           Int_t pad       = mapping->GetPad(patch, hwadd);
+           active=TString(arrDDL[i]).Atof();
+           calRoc->SetValue(row,pad,active);
+         } // end channel for loop
+        } // end altro for loop
+      } // end fec for loop
+     } // end branch for loop
+    } // valid calROC 
+   } // end loop on active DDLs
+   return deadMap;
+}
+
 

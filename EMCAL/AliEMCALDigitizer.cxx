@@ -66,6 +66,7 @@
 #include <TBrowser.h>
 #include <TObjectTable.h>
 #include <TRandom.h>
+#include <TF1.h>
 #include <cassert>
 
 // --- AliRoot header files ---
@@ -82,6 +83,46 @@
 #include "AliEMCALSDigitizer.h"
 #include "AliEMCALGeometry.h"
 #include "AliEMCALTick.h"
+#include "AliEMCALCalibData.h"
+#include "AliEMCALSimParam.h"
+#include "AliEMCALRawDigit.h"
+
+namespace
+{
+	Double_t HeavisideTheta(Double_t x)
+	{
+		Double_t signal = 0.;
+		
+		if (x > 0.) signal = 1.;  
+		
+		return signal;  
+	}
+	
+	Double_t AnalogFastORFunction(Double_t *x, Double_t *par)
+	{
+		Double_t v0 = par[0];
+		Double_t t0 = par[1];
+		Double_t tr = par[2];
+		
+		Double_t R1 = 1000.;
+		Double_t C1 = 33e-12;
+		Double_t R2 = 1800;
+		Double_t C2 = 22e-12;
+		
+		Double_t t  =   x[0];
+		
+		return (((0.8*(-((TMath::Power(C1,2)*C2*TMath::Power(TMath::E(),(-t + t0)/(C1*R1))*
+						  TMath::Power(R1,2)*R2)/(C1*R1 - C2*R2)) + 
+					   C1*C2*R1*R2*(1 - (C2*TMath::Power(TMath::E(),(-t + t0)/(C2*R2))*R2)/(-(C1*R1) + C2*R2)))*v0*
+				  HeavisideTheta(t - t0))/tr 
+				 - (0.8*(C1*C2*R1*R2 - 
+						 (TMath::Power(C1,2)*C2*TMath::Power(TMath::E(),(-1.*t + t0 + 1.25*tr)/(C1*R1))*
+						  TMath::Power(R1,2)*R2)/(C1*R1 - C2*R2) + 
+						 (C1*TMath::Power(C2,2)*TMath::Power(TMath::E(),(-1.*t + t0 + 1.25*tr)/(C2*R2))*
+						  R1*TMath::Power(R2,2))/(C1*R1 - C2*R2))*v0*
+					HeavisideTheta(t - t0 - 1.25*tr))/tr)/(C2*R1));
+	}
+}
 
 ClassImp(AliEMCALDigitizer)
 
@@ -97,12 +138,12 @@ AliEMCALDigitizer::AliEMCALDigitizer()
     fEventNames(0x0),
     fDigitThreshold(0),
     fMeanPhotonElectron(0),
-    fPedestal(0),
-    fSlope(0),
+//    fPedestal(0), //Not used, remove?
+//    fSlope(0),    //Not used, remove?
     fPinNoise(0),
     fTimeResolution(0),
-    fTimeThreshold(0),    
-    fTimeSignalLength(0),
+//    fTimeThreshold(0),    //Not used, remove?
+//    fTimeSignalLength(0), //Not used, remove?
     fADCchannelEC(0),
     fADCpedestalEC(0),
     fNADCEC(0),
@@ -127,12 +168,12 @@ AliEMCALDigitizer::AliEMCALDigitizer(TString alirunFileName, TString eventFolder
     fEventNames(0), 
     fDigitThreshold(0),
     fMeanPhotonElectron(0),
-    fPedestal(0),
-    fSlope(0),
+//    fPedestal(0),//Not used, remove?
+//    fSlope(0),   //Not used, remove?
     fPinNoise(0),
     fTimeResolution(0),
-    fTimeThreshold(0),
-    fTimeSignalLength(0),
+//    fTimeThreshold(0),    //Not used, remove?
+//    fTimeSignalLength(0), //Not used, remove?
     fADCchannelEC(0),
     fADCpedestalEC(0),
     fNADCEC(0),
@@ -158,12 +199,12 @@ AliEMCALDigitizer::AliEMCALDigitizer(const AliEMCALDigitizer & d)
     fEventNames(d.fEventNames),
     fDigitThreshold(d.fDigitThreshold),
     fMeanPhotonElectron(d.fMeanPhotonElectron),
-    fPedestal(d.fPedestal),
-    fSlope(d.fSlope),
+//    fPedestal(d.fPedestal), //Not used, remove?
+//    fSlope(d.fSlope),       //Not used, remove?
     fPinNoise(d.fPinNoise),
     fTimeResolution(d.fTimeResolution),
-    fTimeThreshold(d.fTimeThreshold),
-    fTimeSignalLength(d.fTimeSignalLength),
+//    fTimeThreshold(d.fTimeThreshold),       //Not used, remove?
+//    fTimeSignalLength(d.fTimeSignalLength), //Not used, remove?
     fADCchannelEC(d.fADCchannelEC),
     fADCpedestalEC(d.fADCpedestalEC),
     fNADCEC(d.fNADCEC),
@@ -184,14 +225,14 @@ AliEMCALDigitizer::AliEMCALDigitizer(AliRunDigitizer * rd)
     fInput(0),
     fInputFileNames(0),
     fEventNames(0),
-    fDigitThreshold(0.),
+    fDigitThreshold(0),
     fMeanPhotonElectron(0),
-    fPedestal(0),
-    fSlope(0.),
-    fPinNoise(0),
+//    fPedestal(0), //Not used, remove?
+//    fSlope(0.),   //Not used, remove?
+    fPinNoise(0.),
     fTimeResolution(0.),
-    fTimeThreshold(0),
-    fTimeSignalLength(0),
+//    fTimeThreshold(0),    //Not used, remove?
+//    fTimeSignalLength(0), //Not used, remove?
     fADCchannelEC(0),
     fADCpedestalEC(0),
     fNADCEC(0),
@@ -425,11 +466,17 @@ void AliEMCALDigitizer::Digitize(Int_t event)
   delete sdigArray ; //We should not delete its contents
 
   //remove digits below thresholds
+  // until 10-02-2010 remove digits with energy smaller than fDigitThreshold 3*fPinNoise
+  // now, remove digits with Digitized ADC smaller than fDigitThreshold = 3
+  Float_t energy=0;
   for(i = 0 ; i < nEMC ; i++){
     digit = dynamic_cast<AliEMCALDigit*>( digits->At(i) ) ;
-    Float_t threshold = fDigitThreshold ; //this is in GeV
-    //need to calibrate digit amplitude to energy in GeV for comparison
-    if(sDigitizer->Calibrate( digit->GetAmp() ) < threshold)
+    //First get the energy in GeV units.
+    energy = sDigitizer->Calibrate(digit->GetAmp()) ;
+    //Then digitize using the calibration constants of the ocdb
+    Int_t ampADC = DigitizeEnergy(energy, digit->GetId())  ; 	  
+    //if(ampADC>2)printf("Digit energy %f, amp %d, amp cal %d, threshold %d\n",energy,digit->GetAmp(),ampADC,fDigitThreshold);
+    if(ampADC < fDigitThreshold)
       digits->RemoveAt(i) ;
     else 
       digit->SetTime(gRandom->Gaus(digit->GetTime(),fTimeResolution) ) ;
@@ -438,12 +485,11 @@ void AliEMCALDigitizer::Digitize(Int_t event)
   digits->Compress() ;  
   
   Int_t ndigits = digits->GetEntriesFast() ; 
-
+  
   //JLK 26-June-2008
   //After we have done the summing and digitizing to create the
   //digits, now we want to calibrate the resulting amplitude to match
   //the dynamic range of our real data.  
-  Float_t energy=0;
   for (i = 0 ; i < ndigits ; i++) { 
     digit = dynamic_cast<AliEMCALDigit *>( digits->At(i) ) ; 
     digit->SetIndexInList(i) ; 
@@ -533,6 +579,8 @@ void AliEMCALDigitizer::Exec(Option_t *option)
   Int_t nEvents   = fLastEvent - fFirstEvent + 1;
   Int_t ievent;
 
+  TClonesArray* digitsTRG = new TClonesArray("AliEMCALRawDigit", 32 * 96);
+  TClonesArray* digitsTMP = new TClonesArray("AliEMCALDigit",    32 * 96);
   rl->LoadSDigits("EMCAL");
   for (ievent = fFirstEvent; ievent <= fLastEvent; ievent++) {
     
@@ -541,6 +589,21 @@ void AliEMCALDigitizer::Exec(Option_t *option)
     Digitize(ievent) ; //Add prepared SDigits to digits and add the noise
 
     WriteDigits() ;
+	  
+	//Trigger Digits
+	//-------------------------------------
+	Digits2FastOR(digitsTMP, digitsTRG);  
+	  
+	WriteDigits(digitsTRG);
+	  
+	emcalLoader->WriteDigits(   "OVERWRITE");
+	emcalLoader->WriteDigitizer("OVERWRITE");
+	  
+	Unload();
+	  
+	digitsTRG->Clear();
+	digitsTMP->Clear();
+	//-------------------------------------
 
     if(strstr(option,"deb"))
       PrintDigits(option);
@@ -560,26 +623,158 @@ void AliEMCALDigitizer::Exec(Option_t *option)
 }
 
 //____________________________________________________________________________ 
-Float_t AliEMCALDigitizer::FrontEdgeTime(TClonesArray * ticks) 
-{ 
-  //  Returns the shortest time among all time ticks
-
-  ticks->Sort() ; //Sort in accordance with times of ticks
-  TIter it(ticks) ;
-  AliEMCALTick * ctick = (AliEMCALTick *) it.Next() ;
-  Float_t time = ctick->CrossingTime(fTimeThreshold) ;    
-  
-  AliEMCALTick * t ;  
-  while((t=(AliEMCALTick*) it.Next())){
-    if(t->GetTime() < time)  //This tick starts before crossing
-      *ctick+=*t ;
-    else
-      return time ;
-    
-    time = ctick->CrossingTime(fTimeThreshold) ;    
-  }
-  return time ;
+void AliEMCALDigitizer::Digits2FastOR(TClonesArray* digitsTMP, TClonesArray* digitsTRG)
+{
+	// FEE digits afterburner to produce TRG digits 
+	// we are only interested in the FEE digit deposited energy
+	// to be converted later into a voltage value
+	
+	// push the FEE digit to its associated FastOR (numbered from 0:95)
+	// TRU is in charge of summing module digits
+	
+	AliRunLoader *runLoader = AliRunLoader::Instance();
+	
+	AliRun* run = runLoader->GetAliRun();
+	
+	AliEMCALLoader *emcalLoader = dynamic_cast<AliEMCALLoader*>(runLoader->GetDetectorLoader("EMCAL"));
+	
+	AliEMCALGeometry* geom = dynamic_cast<AliEMCAL*>(run->GetDetector("EMCAL"))->GetGeometry();
+	
+	// build FOR from simulated digits
+	// and xfer to the corresponding TRU input (mapping)
+	
+	TClonesArray* digits = emcalLoader->Digits();
+	
+	TIter NextDigit(digits);
+	while (AliEMCALDigit* digit = (AliEMCALDigit*)NextDigit())
+	{
+		Int_t id = digit->GetId();
+		
+		Int_t iSupMod, nModule, nIphi, nIeta, iphi, ieta, iphim, ietam;
+		
+		geom->GetCellIndex(              id, iSupMod, nModule, nIphi, nIeta );
+		geom->GetModulePhiEtaIndexInSModule( iSupMod, nModule, iphim, ietam );		
+		geom->GetCellPhiEtaIndexInSModule(   iSupMod, nModule, nIphi, nIeta, iphi, ieta); 
+		
+		// identify to which TRU this FEE digit belong
+		Int_t itru = (iSupMod < 11) ? iphim / 4 + 3 * iSupMod : 31;
+		
+		//---------
+		//
+		// FIXME: bad numbering solution to deal w/ the last 2 SM which have only 1 TRU each
+		// using the AliEMCALGeometry official numbering
+		// only 1 TRU/SM in SM 10 & SM 11
+		//
+		//---------
+		if ((itru == 31 && iphim < 2) || (itru == 30 && iphim > 5)) continue;
+		
+		// to be compliant with %4 per TRU
+		if (itru == 31) iphim -= 2;
+		
+		Int_t trgid;
+		Bool_t isOK = geom->GetAbsFastORIndexFromPositionInTRU(itru, ietam, iphim % 4, trgid);
+		
+		AliDebug(2,Form("trigger digit id: %d itru: %d isOK: %d\n",trgid,itru,isOK));
+		
+		if (isOK) 
+		{
+			AliEMCALDigit* d = static_cast<AliEMCALDigit*>(digitsTMP->At(trgid));
+			
+			if (!d)
+			{
+				new((*digitsTMP)[trgid]) AliEMCALDigit(*digit);
+				d = (AliEMCALDigit*)digitsTMP->At(trgid);
+				d->SetId(trgid);
+			}	
+			else
+			{
+				*d = *d + *digit;
+			}
+		}
+	}
+	
+	Int_t    nSamples = 32;
+	Int_t *timeSamples = new Int_t[nSamples];
+	
+	NextDigit = TIter(digitsTMP);
+	while (AliEMCALDigit* digit = (AliEMCALDigit*)NextDigit())
+	{
+		if (digit)
+		{
+			Int_t     id = digit->GetId();
+			Float_t time = digit->GetTime();
+						
+			Double_t depositedEnergy = 0.;
+			for (Int_t j = 1; j <= digit->GetNprimary(); j++) depositedEnergy += digit->GetDEPrimary(j);
+			
+			// FIXME: Check digit time!
+			if (depositedEnergy)
+			{
+				DigitalFastOR(time, depositedEnergy, timeSamples, nSamples);
+				
+				for (Int_t j=0;j<nSamples;j++) 
+				{
+					timeSamples[j] = ((j << 12) & 0xFF000) | (timeSamples[j] & 0xFFF);
+				}
+				
+				new((*digitsTRG)[digitsTRG->GetEntriesFast()]) AliEMCALRawDigit(id, timeSamples, nSamples);
+			}
+		}
+	}
 }
+
+//____________________________________________________________________________ 
+void AliEMCALDigitizer::DigitalFastOR( Double_t time, Double_t dE, Int_t timeSamples[], Int_t nSamples )
+{
+	// parameters:	
+	// id: 0..95
+	const Int_t    reso = 11;      // 11-bit resolution ADC
+	const Double_t vFSR = 1;       // Full scale input voltage range
+	const Double_t Ne   = 125;     // signal of the APD per MeV of energy deposit in a tower: 125 photo-e-/MeV @ M=30
+	const Double_t vA   = .136e-6; // CSP output range: 0.136uV/e-
+	const Double_t rise = 40e-9;   // rise time (10-90%) of the FastOR signal before shaping
+	
+	const Double_t kTimeBinWidth = 25E-9; // sampling frequency (40MHz)
+	
+	Double_t vV = 1000. * dE * Ne * vA; // GeV 2 MeV
+	
+	TF1 signalF("signal", AnalogFastORFunction, 0, nSamples * kTimeBinWidth, 3);
+	signalF.SetParameter( 0,   vV ); 
+	signalF.SetParameter( 1, time ); // FIXME: when does the signal arrive? Might account for cable lengths
+	signalF.SetParameter( 2, rise );
+	
+	for (Int_t iTime=0; iTime<nSamples; iTime++) 
+	{
+		// FIXME: add noise (probably not simply Gaussian) according to DA measurements
+		// probably plan an access to OCDB
+		
+		timeSamples[iTime] = int((TMath::Power(2, reso) / vFSR) * signalF.Eval(iTime * kTimeBinWidth) + 0.5);
+	}
+}
+
+
+//____________________________________________________________________________ 
+//Float_t AliEMCALDigitizer::FrontEdgeTime(TClonesArray * ticks) 
+//{ 
+//  //  Returns the shortest time among all time ticks
+//
+//  ticks->Sort() ; //Sort in accordance with times of ticks
+//  TIter it(ticks) ;
+//  AliEMCALTick * ctick = (AliEMCALTick *) it.Next() ;
+//  Float_t time = ctick->CrossingTime(fTimeThreshold) ;    
+//  
+//  AliEMCALTick * t ;  
+//  while((t=(AliEMCALTick*) it.Next())){
+//    if(t->GetTime() < time)  //This tick starts before crossing
+//      *ctick+=*t ;
+//    else
+//      return time ;
+//    
+//    time = ctick->CrossingTime(fTimeThreshold) ;    
+//  }
+//  return time ;
+//}
+//
 
 //____________________________________________________________________________ 
 Bool_t AliEMCALDigitizer::Init()
@@ -624,24 +819,38 @@ Bool_t AliEMCALDigitizer::Init()
 void AliEMCALDigitizer::InitParameters()
 { 
   // Parameter initialization for digitizer
-  // Tune parameters - 24-nov-04; Apr 29, 2007
-  // New parameters JLK 14-Apr-2008
-
-  fMeanPhotonElectron = 4400;  // electrons per GeV 
-  fPinNoise           = 0.037; // pin noise in GEV from analysis test beam data 
-  if (fPinNoise == 0. ) 
+  
+  // Get the parameters from the OCDB via the loader
+  AliRunLoader *rl = AliRunLoader::Instance();
+  AliEMCALLoader *emcalLoader = dynamic_cast<AliEMCALLoader*>(rl->GetDetectorLoader("EMCAL"));
+  AliEMCALSimParam * simParam = 0x0;
+  if(emcalLoader) simParam = emcalLoader->SimulationParameters();
+	
+  if(!simParam){
+	  simParam = AliEMCALSimParam::GetInstance();
+	  AliWarning("Simulation Parameters not available in OCDB?");
+  }
+	
+  fMeanPhotonElectron = simParam->GetMeanPhotonElectron();//4400;  // electrons per GeV 
+  fPinNoise           = simParam->GetPinNoise();//0.012; // pin noise in GeV from analysis test beam data 
+  if (fPinNoise < 0.0001 ) 
     Warning("InitParameters", "No noise added\n") ; 
-  fDigitThreshold     = fPinNoise * 3; // 3 * sigma
-  fTimeResolution     = 0.3e-9 ; // 300 psc
-  fTimeSignalLength   = 1.0e-9 ;
+  fDigitThreshold     = simParam->GetDigitThreshold(); //fPinNoise * 3; // 3 * sigma
+  fTimeResolution     = simParam->GetTimeResolution(); //0.6e-9 ; // 600 psc
 
   // These defaults are normally not used. 
   // Values are read from calibration database instead
-  fADCchannelEC    = 0.0153; // Update 24 Apr 2007: 250./16/1024 - width of one ADC channel in GeV
-  fADCpedestalEC   = 0.0 ;  // GeV
-  fNADCEC          = (Int_t) TMath::Power(2,16) ;  // number of channels in Tower ADC - 65536
+  fADCchannelEC       = 0.0153; // Update 24 Apr 2007: 250./16/1024 - width of one ADC channel in GeV
+  fADCpedestalEC      = 0.0 ;  // GeV
 
-  fTimeThreshold      = 0.001*10000000 ; // Means 1 MeV in terms of SDigits amplitude ??
+  fNADCEC          = simParam->GetNADCEC();//(Int_t) TMath::Power(2,16) ;  // number of channels in Tower ADC - 65536
+
+  AliDebug(2,Form("Mean Photon Electron %d, Noise %f, E Threshold %f,Time Resolution %g,NADCEC %d",
+		fMeanPhotonElectron,fPinNoise,fDigitThreshold,fTimeResolution,fNADCEC));
+
+  // Not used anymore, remove?
+  // fTimeSignalLength   = 1.0e-9 ;
+  // fTimeThreshold      = 0.001*10000000 ; // Means 1 MeV in terms of SDigits amplitude ??
 
 }
 
@@ -742,7 +951,7 @@ void AliEMCALDigitizer::Print(Option_t*)const
     printf("\nWith following parameters:\n") ;
     
     printf("    Electronics noise in EMC (fPinNoise) = %f\n", fPinNoise) ;
-    printf("    Threshold  in EMC  (fDigitThreshold) = %f\n", fDigitThreshold)  ;
+    printf("    Threshold  in Tower  (fDigitThreshold) = %d\n", fDigitThreshold)  ;
     printf("---------------------------------------------------\n")  ;
   }
   else
@@ -837,12 +1046,40 @@ void AliEMCALDigitizer::WriteDigits()
     treeD->Branch("EMCAL","TClonesArray",&digits,bufferSize);
   //digitsBranch->SetTitle(fEventFolderName);
   treeD->Fill() ;
-  
+/*  
   emcalLoader->WriteDigits("OVERWRITE");
   emcalLoader->WriteDigitizer("OVERWRITE");
 
   Unload() ; 
+*/
+}
 
+//__________________________________________________________________
+void AliEMCALDigitizer::WriteDigits(TClonesArray* digits, const char* branchName)
+{
+	//
+	AliEMCALLoader *emcalLoader = dynamic_cast<AliEMCALLoader*>(AliRunLoader::Instance()->GetDetectorLoader("EMCAL"));
+	
+	TTree* treeD = emcalLoader->TreeD(); 
+	if (!treeD) 
+	{
+		emcalLoader->MakeDigitsContainer();
+		treeD = emcalLoader->TreeD(); 
+	}
+	
+	// -- create Digits branch
+	Int_t bufferSize = 32000;
+	
+	if (TBranch* triggerBranch = treeD->GetBranch(branchName)) 
+	{
+		triggerBranch->SetAddress(&digits);
+	}
+	else
+	{
+		treeD->Branch(branchName,"TClonesArray",&digits,bufferSize);
+	}
+	
+	treeD->Fill();
 }
 
 //__________________________________________________________________

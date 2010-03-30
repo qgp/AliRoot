@@ -33,6 +33,8 @@
 #include "AliHLTGlobalEsdConverterComponent.h"
 #include "AliHLTGlobalVertexerComponent.h"
 #include "AliHLTV0HistoComponent.h"
+#include "AliHLTGlobalVertexerHistoComponent.h"
+#include "AliHLTGlobalHistoCollector.h"
 
 /** global instance for agent registration */
 AliHLTGlobalAgent gAliHLTGlobalAgent;
@@ -64,7 +66,9 @@ int AliHLTGlobalAgent::RegisterComponents(AliHLTComponentHandler* pHandler) cons
   pHandler->AddComponent(new AliHLTGlobalTrackMergerComponent);
   pHandler->AddComponent(new AliHLTGlobalEsdConverterComponent);
   pHandler->AddComponent(new AliHLTGlobalVertexerComponent);
+  pHandler->AddComponent(new AliHLTGlobalVertexerHistoComponent);
   pHandler->AddComponent(new AliHLTV0HistoComponent );
+  pHandler->AddComponent(new AliHLTGlobalHistoCollector );
   return 0;
 }
 
@@ -103,6 +107,22 @@ int AliHLTGlobalAgent::CreateConfigurations(AliHLTConfigurationHandler* pHandler
   }
 
   pHandler->CreateConfiguration("GLOBAL-esd-converter", "GlobalEsdConverter", esdInputs.Data(), "");
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+  //
+  // global vertexer component
+  //
+  pHandler->CreateConfiguration("GLOBAL-vertexer","GlobalVertexer","GLOBAL-esd-converter","");
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
+  //
+  // global histograms
+  //
+  TString vertexhistoInput="GLOBAL-vertexer";
+  if (pHandler->FindConfiguration("ITS-SPD-vertexer")) {
+    vertexhistoInput+=" ITS-SPD-vertexer";
+  }
+  pHandler->CreateConfiguration("GLOBAL-vertexhisto","GlobalVertexerHisto", vertexhistoInput.Data(),"");
   
   return 0;
 }

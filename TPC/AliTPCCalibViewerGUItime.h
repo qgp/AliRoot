@@ -94,7 +94,7 @@ public:
   void DoAddAlias();
   void DoDelAlias();
   void UpdateAliasList();
-  
+  TCanvas * GetCanvas(){ return fCanvMain->GetCanvas();}
  private:
   TFile*  fFile;                          //file that keeps the tree
   TChain*  fTree;                         //internal tree
@@ -177,7 +177,7 @@ public:
   void SetInitialValues();
   void CheckDrawGraph();
   Bool_t CheckChain();
-  void UpdateValueArrays(Bool_t withGraph);
+  void UpdateValueArrays(Bool_t withGraph, const Double_t *xArr);
   const char* SubstituteUnderscores(const char* in);
   void GetHistogramTitle(TString &title);
   void AdjustYRange();

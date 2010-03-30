@@ -30,7 +30,7 @@ class AliPMDClusteringV2 : public AliPMDClustering
   
   void     DoClust(Int_t idet, Int_t ismn, Int_t celltrack[][96],
 		   Int_t cellpid[][96], Double_t celladc[][96],
-		   TObjArray *pmdisocell, TObjArray *pmdcont);
+		   TObjArray *pmdcont);
   Int_t    CrClust(Double_t ave, Double_t cutoff, Int_t nmx1,
 		   Int_t iord1[], Double_t edepcell[]);
   void     RefClust(Int_t incr, Double_t edepcell[]);
@@ -41,8 +41,9 @@ class AliPMDClusteringV2 : public AliPMDClustering
 			Double_t rcl[], Double_t rcs[], Double_t cells[],
 			TArrayI &testncl, TArrayI &testindex);
   Double_t Distance(Double_t x1, Double_t y1, Double_t x2, Double_t y2);
-  void     FindIsoCell(Int_t idet, Int_t ismn, Double_t celladc[][96], TObjArray *pmdisocell);
+
   void     SetEdepCut(Float_t decut);
+  void     SetClusteringParam(Int_t cluspar);
   
  protected:
   
@@ -60,9 +61,10 @@ class AliPMDClusteringV2 : public AliPMDClustering
                                        // -- cluster number
   Double_t fCoord[2][kNDIMX][kNDIMY];
 
-  Float_t fCutoff; // Energy(ADC) cutoff per cell before clustering
+  Float_t fCutoff;    // Energy(ADC) cutoff per cell before clustering
+  Float_t fClusParam; // paramater to decide clustering
   
-  ClassDef(AliPMDClusteringV2,6) // Does clustering for PMD
+  ClassDef(AliPMDClusteringV2,8) // Does clustering for PMD
 };
 #endif
     

@@ -36,6 +36,7 @@ AliAODVertex::AliAODVertex() :
   fType(kUndef),
   fNprong(0),
   fIprong(0),
+  fNContributors(0),
   fCovMatrix(NULL),
   fParent(),
   fDaughters(),
@@ -60,6 +61,7 @@ AliAODVertex::AliAODVertex(const Double_t position[3],
   fType(vtype),
   fNprong(nprong),
   fIprong(0),
+  fNContributors(0),
   fCovMatrix(NULL),
   fParent(parent),
   fDaughters(),
@@ -87,6 +89,7 @@ AliAODVertex::AliAODVertex(const Float_t position[3],
   fType(vtype),
   fNprong(nprong),
   fIprong(0),
+  fNContributors(0),
   fCovMatrix(NULL),
   fParent(parent),
   fDaughters(),
@@ -110,6 +113,7 @@ AliAODVertex::AliAODVertex(const Double_t position[3],
   fType(vtype),
   fNprong(nprong),
   fIprong(0),
+  fNContributors(0),
   fCovMatrix(NULL),
   fParent(),
   fDaughters(),
@@ -131,6 +135,7 @@ AliAODVertex::AliAODVertex(const Float_t position[3],
   fType(vtype),
   fNprong(nprong),
   fIprong(0),
+  fNContributors(0),
   fCovMatrix(NULL),
   fParent(),
   fDaughters(),
@@ -159,6 +164,7 @@ AliAODVertex::AliAODVertex(const AliAODVertex& vtx) :
   fType(vtx.fType),
   fNprong(vtx.fNprong),
   fIprong(vtx.fIprong),
+  fNContributors(vtx.fNContributors),
   fCovMatrix(NULL),
   fParent(vtx.fParent),
   fDaughters(vtx.fDaughters),
@@ -258,13 +264,15 @@ template <class T> void AliAODVertex::GetSigmaXYZ(T sigma[3]) const
 Int_t AliAODVertex::GetNContributors() const 
 {
   // Returns the number of tracks used to fit this vertex.
-  
   Int_t cont = 0;
 
-  for (Int_t iDaug = 0; iDaug < GetNDaughters(); iDaug++) {
-    if (((AliAODTrack*)fDaughters.At(iDaug))->GetUsedForVtxFit()) cont++;
+  if (!strcmp(GetTitle(), "vertexer: 3D")) {
+    cont = fNContributors;
+  } else {
+    for (Int_t iDaug = 0; iDaug < GetNDaughters(); iDaug++) {
+      if (((AliAODTrack*)fDaughters.At(iDaug))->GetUsedForVtxFit()) cont++;
+    }
   }
-
   return cont;
 }
 

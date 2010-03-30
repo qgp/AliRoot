@@ -42,7 +42,7 @@ class AliAnalysisTaskJetSpectrum2 : public AliAnalysisTaskSE
     virtual void Terminate(Option_t *option);
     virtual Bool_t Notify();
 
-
+    virtual void SetUseGlobalSelection(Bool_t b){fUseGlobalSelection = b;}
     virtual void SetExternalWeight(Float_t f){fExternalWeight = f;}
     virtual void SetUseExternalWeightOnly(Bool_t b){fUseExternalWeightOnly = b;}
     virtual void SetAODInput(Bool_t b){fUseAODInput = b;}
@@ -97,6 +97,7 @@ class AliAnalysisTaskJetSpectrum2 : public AliAnalysisTaskSE
     TString       fBranchGen;  // AOD brnach for genereated
 
     Bool_t        fUseAODInput;           // take jet from input AOD not from ouptu AOD
+    Bool_t        fUseGlobalSelection;    // Limit the eta of the generated jets
     Bool_t        fUseExternalWeightOnly; // use only external weight
     Bool_t        fLimitGenJetEta;        // Limit the eta of the generated jets
     UInt_t        fFilterMask;             // filter bit for slecected tracks
@@ -114,9 +115,16 @@ class AliAnalysisTaskJetSpectrum2 : public AliAnalysisTaskSE
     TH1F*         fh1PtHardTrials;  // Number of trials 
     TH1F*         fh1NGenJets;      // nr of gen jets
     TH1F*         fh1NRecJets;      // nr of rec jets
-    
+    TH1F*         fh1PtTrackRec;    // track pt
+    TH1F*         fh1SumPtTrackRec; // sum over all track pT    
+    TH1F*         fh1SumPtTrackAreaRec; // sum over all track pT    
+
+
     TH1F*         fh1PtRecIn[kMaxJets];  // Jet pt for all this info is also in the THNsparse      
     TH1F*         fh1PtGenIn[kMaxJets];  // Jet pt with corellated generated jet    
+
+    TH2F*         fh2PhiPt[kMaxJets];    // delta phi correlation of tracks with the jet      
+    TH2F*         fh2PhiEta[kMaxJets];   // eta   phi correlation of tracks with the jet      
 
     TH2F*         fh2FragRec[kMaxJets];     // fragmentation function
     TH2F*         fh2FragLnRec[kMaxJets];   // fragmetation in xi

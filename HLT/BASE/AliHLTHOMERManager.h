@@ -139,15 +139,33 @@ public:
    */
   TList* GetBlockList() { return GetBlockListEventBuffer(fCurrentBufferIdx); }
 
+  /** Get pointer to last asynchrounous BlockList 
+   *  @return     ptr to buffer, NULL if none present
+   */
+  TList* GetAsyncBlockList() { return fAsyncBlockList; }
+
   /** Navigate backwards in event buffer 
    *  @return      index in buffer, -1 if boundary reached                
    */
-  Int_t NavigateEventBufferBack();
+  Int_t  NavigateEventBufferBack();
 
   /** Navigate forwards in event buffer 
    *  @return      index in buffer, -1 if boundary reached                
    */
-  Int_t NavigateEventBufferFwd();
+  Int_t  NavigateEventBufferFwd();
+
+  /* ---------------------------------------------------------------------------------
+   *                          Trigger Handling - public
+   * ---------------------------------------------------------------------------------
+   */
+
+  /** Set and get the string used to select triggers 
+   *  @param triggerString    Trigger selection string
+   */
+  void SetTriggerString ( TString triggerString ) { fTriggerString = triggerString; }
+
+  /** Get TriggerString */
+  TString GetTriggerString () { return fTriggerString; }
 
   ///////////////////////////////////////////////////////////////////////////////////
 
@@ -196,6 +214,9 @@ private:
   /** Create and add Block List to Buffer */
   void AddBlockListToBuffer();
 
+  /** Add bocks to asynchronous BlockList */
+  void AddToAsyncBlockList();
+
   /** Get pointer to block list in event buffer 
    *  @return     ptr to buffer, NULL if not present
    */
@@ -209,6 +230,18 @@ private:
 
   /** Get Number of blocks in current event */
   ULong_t GetNBlks() { return fNBlks; }
+
+  // ----------------------------------------------------
+
+  /** Handle Blocks and fill them in event buffer or asyncronous BlockList
+   *  @return 0 on success, <0 for failure
+   */
+  Int_t HandleBlocks();
+
+  /** Check is block are from syncronous source
+   *  @return kTRUE, if asyncronous kFALSE
+   */
+  Bool_t IsSyncBlocks();
 
   // ----------------------------------------------------
 
@@ -278,6 +311,18 @@ private:
    */
   Bool_t CheckIfRequested( AliHLTHOMERBlockDesc* block );
 
+  /* ---------------------------------------------------------------------------------
+   *                          Trigger Handling - private
+   * ---------------------------------------------------------------------------------
+   */
+  
+  /** Loops over the data block from all the readers in the readerlist until
+   *    a triggerdecsision has been found
+   *    Locates the triggerdecision required by fTriggerString and checks if it triggered 
+   *  @return           returns kTRUE, if event was triggered, kFALSE otherwise
+   */
+  Bool_t CheckTriggerDecision();
+
   /*
    * ---------------------------------------------------------------------------------
    *                            Members - private
@@ -289,8 +334,11 @@ private:
 
   // == connection ==
 
-  /** Pointer to HOMER reader */
-  AliHLTHOMERReader       *fReader;                     //! transient 
+  /** Pointer to current HOMER reader */
+  AliHLTHOMERReader       *fCurrentReader;              //! transient 
+
+  /** List to pointer of HOMER readers */
+  TList                   *fReaderList;                 //! transient
 
   // == sources ==
 
@@ -303,10 +351,15 @@ private:
   ULong_t                  fNBlks;                      //  see above
 
   /** EventID of current event */
-  ULong64_t                fEventID[BUFFERSIZE];                    //  see above
+  ULong64_t                fEventID[BUFFERSIZE];        //  see above
 
   /** Current block in current event */
   ULong_t                  fCurrentBlk;                 //  see above
+
+  // == Asynchronous BlockList ==
+
+  /** List containing asychronous blocks */
+  TList                   *fAsyncBlockList;             //  see above
 
   // == event buffer ==
 
@@ -328,8 +381,18 @@ private:
   // == states ==
   
   /** Shows connection status */
-  Bool_t        fConnected;                              //  see above
+  Bool_t                   fConnected;                  //  see above
 
+  // == trigger selection ==
+
+  /** String indicating which trigger should be used to select events */
+  TString                  fTriggerString;              //  see above
+
+  /** Number Events not triggered, before next triggered event is found */
+  Int_t                    fNEventsNotTriggered;        //  see above
+
+  /** Retry reading next event */
+  Bool_t                   fRetryNextEvent;             //  see above
 
   ClassDef(AliHLTHOMERManager, 1); // Manage connections to HLT data-sources.
 };

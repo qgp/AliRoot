@@ -22,6 +22,8 @@
 /////////////////////////////////////////////////////////////
 
 #include <TTree.h>
+#include <TFile.h>
+#include <TSystem.h>
 #include <TChain.h>
 #include <TNtuple.h>
 #include <TList.h>
@@ -32,8 +34,10 @@
 #include <TGeoManager.h>
 
 #include "AliLog.h"
+#include "AliCDBEntry.h"
 #include "AliGeomManager.h"
 #include "AliITSReconstructor.h"
+#include "AliITSAlignMille2Module.h"
 #include "AliITSgeomTGeo.h"
 #include "AliTrackPointArray.h"
 #include "AliESDInputHandler.h"
@@ -277,24 +281,23 @@ void AliAlignmentDataFilterITS::CreateOutputObjects()
   fListOfHistos->Add(fHistLayer5);
 
 
-  fntExtra = new TNtuple("fntExtra","extra clusters in ITS","ncls:layer:ladder:volid:phi:x:y:z:xloc:zloc:dxy:dz:d0mu:z0mu");
+  fntExtra = new TNtuple("fntExtra","extra clusters in ITS","ncls:layer:ladder:volid:phi:x:y:z:xloc:zloc:dxy:dz:d0mu:z0mu:pt");
   fListOfHistos->Add(fntExtra);
 
   fntCosmicMatching = new TNtuple("fntCosmicMatching","cosmic tracks matching in ITS","ncls1:ncls2:pt1:pt2:sigmad01:sigmad02:sigmaz01:sigmaz02:dxy:dz:phimu:thetamu:d0mu:z0mu");
   fListOfHistos->Add(fntCosmicMatching);
 
   fspTree = new TTree("spTree","Tree with ITS track points");
-  const AliTrackPointArray *array = 0;
-  Float_t curv,curverr,runNumber;
-  const TObjString *itsaligndata = 0;
-  const TObjString *itscalibrespsdd = 0;
+  AliTrackPointArray *array = 0;
+  Float_t curv=0,curverr=0,runNumber=0;
+  TObjString *itsaligndata = 0;
+  TObjString *itscalibrespsdd = 0;
   fspTree->Branch("SP","AliTrackPointArray",&array);
   fspTree->Branch("curv",&curv);
   fspTree->Branch("curverr",&curverr);
   fspTree->Branch("run",&runNumber);
   fspTree->Branch("ITSAlignData",&itsaligndata);
   fspTree->Branch("ITSCalibRespSDD",&itscalibrespsdd);
-  
 
   return;
 }
@@ -383,6 +386,7 @@ void AliAlignmentDataFilterITS::FilterCosmic(const AliESDEvent *esd)
 
 
   runNumber = (Float_t)esd->GetRunNumber();
+  Int_t uid=10000+fESD->GetEventNumberInFile();
 
   TTree* esdTree = dynamic_cast<TTree*> (GetInputData(0));
   // Get the list of OCDB objects used for reco 
@@ -516,11 +520,12 @@ void AliAlignmentDataFilterITS::FilterCosmic(const AliESDEvent *esd)
     for(ipt=0; ipt<array->GetNPoints(); ipt++) {
       array->GetPoint(point,ipt);
       volId = point.GetVolumeID();
+      if(volId<=0) continue;
       layerId = AliGeomManager::VolUIDToLayer(volId,modId);
-      AliDebug(2,Form("%d %d\n",ipt,layerId-1));
+      AliDebug(2,Form("%d %d %d  %f\n",ipt,layerId-1,volId,TMath::Sqrt(point.GetX()*point.GetX()+point.GetY()*point.GetY())));
       if(point.IsExtra() && 
 	 (GetRecoParam()->GetAlignFilterSkipExtra())) continue;
-      if(layerId>6) continue;
+      if(layerId<1 || layerId>6) continue;
       if(!GetRecoParam()->GetAlignFilterUseLayer(layerId-1)) continue;
       // check minAngleWrtITSModulePlanes
       Double_t p[3]; track->GetDirection(p);
@@ -566,9 +571,10 @@ void AliAlignmentDataFilterITS::FilterCosmic(const AliESDEvent *esd)
   Float_t dzOverlap[2];
   Float_t curvArray[2],curverrArray[2];
   Double_t globExtra[3],locExtra[3];
-  if(GetRecoParam()->GetAlignFilterCosmicMergeTracks()) 
+  if(GetRecoParam()->GetAlignFilterCosmicMergeTracks()) {
     arrayForTree = new AliTrackPointArray(jpt);
-  
+    arrayForTree->SetUniqueID(uid);
+  }
   jpt=0;
   for(itrack=0; itrack<2; itrack++) {
     if(itrack==0) {
@@ -582,13 +588,15 @@ void AliAlignmentDataFilterITS::FilterCosmic(const AliESDEvent *esd)
     if(!(GetRecoParam()->GetAlignFilterCosmicMergeTracks())) {
       jpt=0;
       arrayForTree = new AliTrackPointArray(nclsTrk[itrack]);
+      arrayForTree->SetUniqueID(uid);
     }
     array = track->GetTrackPointArray();
     for(ipt=0; ipt<array->GetNPoints(); ipt++) {
       array->GetPoint(point,ipt);
       volId = point.GetVolumeID();
+      if(volId<=0) continue;
       layerId = AliGeomManager::VolUIDToLayer(volId,modId);
-      if(layerId>6 || !layerOK[layerId-1][itrack]) continue;
+      if(layerId<1 || layerId>6 || !layerOK[layerId-1][itrack]) continue;
       arrayForTree->AddPoint(jpt,&point);
       jpt++;
       switch(layerId) {
@@ -628,6 +636,7 @@ void AliAlignmentDataFilterITS::FilterCosmic(const AliESDEvent *esd)
       Float_t radius,radiusT,phiv,phivT,thetav,thetavT;
       for(Int_t lll=0;lll<ipt;lll++) {
 	array->GetPoint(pointT,lll);
+	if(pointT.GetVolumeID()<=0) continue;
 	Int_t layerIdT = AliGeomManager::VolUIDToLayer(pointT.GetVolumeID(),modId);
 	if(layerIdT!=layerId) continue;
 	radius=TMath::Sqrt((point.GetX()-vtxpos[0])*(point.GetX()-vtxpos[0])+(point.GetY()-vtxpos[1])*(point.GetY()-vtxpos[1]));
@@ -640,7 +649,7 @@ void AliAlignmentDataFilterITS::FilterCosmic(const AliESDEvent *esd)
 	dzOverlap[0]=(Float_t)((phivT-phiv)*0.5*(radiusT+radius));
 	if(TMath::Abs(TMath::Tan(0.5*(thetav+thetavT)))<0.00001) continue;
 	dzOverlap[1]=(Float_t)((pointT.GetZ()-point.GetZ())-(radiusT-radius)/TMath::Tan(0.5*(thetav+thetavT)));
-	fntExtra->Fill((Float_t)nclsTrk[itrack],(Float_t)(layerId-1),lad,volId,TMath::ATan2(point.GetY(),point.GetX()),point.GetX(),point.GetY(),point.GetZ(),locExtra[0],locExtra[2],dzOverlap[0],dzOverlap[1],d0z0mu[0],d0z0mu[1]);
+	fntExtra->Fill((Float_t)nclsTrk[itrack],(Float_t)(layerId-1),lad,volId,TMath::ATan2(point.GetY(),point.GetX()),point.GetX(),point.GetY(),point.GetZ(),locExtra[0],locExtra[2],dzOverlap[0],dzOverlap[1],d0z0mu[0],d0z0mu[1],track->Pt());
       }
     }
 
@@ -652,7 +661,7 @@ void AliAlignmentDataFilterITS::FilterCosmic(const AliESDEvent *esd)
   }
 
   if(GetRecoParam()->GetAlignFilterCosmicMergeTracks()) {
-    curv = 0.5*(curvArray[0]+curvArray[1]);
+    curv = 0.5*(curvArray[0]-curvArray[1]);  // the "-" is because the two tracks have opposite curvature!
     curverr = 0.5*TMath::Sqrt(curverrArray[0]*curverrArray[0]+curverrArray[1]*curverrArray[1]);
     fspTree->Fill();
   }
@@ -728,6 +737,7 @@ void AliAlignmentDataFilterITS::FilterCollision(const AliESDEvent *esd)
 
 
   runNumber = (Float_t)esd->GetRunNumber();
+  Int_t uid=20000+fESD->GetEventNumberInFile();
 
   TTree* esdTree = dynamic_cast<TTree*> (GetInputData(0));
   // Get the list of OCDB objects used for reco 
@@ -747,9 +757,11 @@ void AliAlignmentDataFilterITS::FilterCollision(const AliESDEvent *esd)
 
   if(ntracks==0) return;
 
-  if(esd->GetPrimaryVertexTracks()->GetNContributors()<=0) return;
+  if(esd->GetPrimaryVertexSPD()->GetNContributors()<=0) return;
+  TString vtitle = esd->GetPrimaryVertexSPD()->GetTitle();
+  if(!vtitle.Contains("3D")) return;
 
-  Double_t vtxpos[3]; esd->GetPrimaryVertexTracks()->GetXYZ(vtxpos);
+  Double_t vtxpos[3]; esd->GetPrimaryVertexSPD()->GetXYZ(vtxpos);
 
   Int_t ncls=0;
   Double_t pt=-10000.;
@@ -795,6 +807,7 @@ void AliAlignmentDataFilterITS::FilterCollision(const AliESDEvent *esd)
     for(ipt=0; ipt<array->GetNPoints(); ipt++) {
       array->GetPoint(point,ipt);
       volId = point.GetVolumeID();
+      if(volId<=0) continue;
       layerId = AliGeomManager::VolUIDToLayer(volId,modId);
       if(layerId<1 || layerId>6) continue;
       if(point.IsExtra() && 
@@ -812,6 +825,7 @@ void AliAlignmentDataFilterITS::FilterCollision(const AliESDEvent *esd)
     Float_t dzOverlap[2];
     Double_t globExtra[3],locExtra[3];
     arrayForTree = new AliTrackPointArray(jpt);
+    arrayForTree->SetUniqueID(uid);
     jpt=0;
     array = track->GetTrackPointArray();
     if(!array) continue;
@@ -820,6 +834,28 @@ void AliAlignmentDataFilterITS::FilterCollision(const AliESDEvent *esd)
       volId = point.GetVolumeID();
       layerId = AliGeomManager::VolUIDToLayer(volId,modId);
       if(layerId<1 || layerId>6 || !layerOK[layerId-1]) continue;
+      arrayForTree->AddPoint(jpt,&point);
+      switch(layerId) {
+      case 1:
+	fHistLayer0->Fill(TMath::ATan2(point.GetY(),point.GetX()),point.GetZ());
+	break;
+      case 2:
+	fHistLayer1->Fill(TMath::ATan2(point.GetY(),point.GetX()),point.GetZ());
+	break;
+      case 3:
+	fHistLayer2->Fill(TMath::ATan2(point.GetY(),point.GetX()),point.GetZ());
+	break;
+      case 4:
+	fHistLayer3->Fill(TMath::ATan2(point.GetY(),point.GetX()),point.GetZ());
+	break;
+      case 5:
+	fHistLayer4->Fill(TMath::ATan2(point.GetY(),point.GetX()),point.GetZ());
+	break;
+      case 6:
+	fHistLayer5->Fill(TMath::ATan2(point.GetY(),point.GetX()),point.GetZ());
+	break;
+      }
+      jpt++;
       if(!point.IsExtra() || 
 	 !(GetRecoParam()->GetAlignFilterFillQANtuples())) continue;
       ncls--;
@@ -846,30 +882,8 @@ void AliAlignmentDataFilterITS::FilterCollision(const AliESDEvent *esd)
 	dzOverlap[0]=(Float_t)((phivT-phiv)*0.5*(radiusT+radius));
 	if(TMath::Abs(TMath::Tan(0.5*(thetav+thetavT)))<0.00001) continue;
 	dzOverlap[1]=(Float_t)((pointT.GetZ()-point.GetZ())-(radiusT-radius)/TMath::Tan(0.5*(thetav+thetavT)));
-	fntExtra->Fill((Float_t)ncls,(Float_t)(layerId-1),lad,volId,TMath::ATan2(point.GetY(),point.GetX()),point.GetX(),point.GetY(),point.GetZ(),locExtra[0],locExtra[2],dzOverlap[0],dzOverlap[1],d0z0[0],d0z0[1]);
+	fntExtra->Fill((Float_t)ncls,(Float_t)(layerId-1),lad,volId,TMath::ATan2(point.GetY(),point.GetX()),point.GetX(),point.GetY(),point.GetZ(),locExtra[0],locExtra[2],dzOverlap[0],dzOverlap[1],d0z0[0],d0z0[1],track->Pt());
       }
-      arrayForTree->AddPoint(jpt,&point);
-      switch(layerId) {
-      case 1:
-	fHistLayer0->Fill(TMath::ATan2(point.GetY(),point.GetX()),point.GetZ());
-	break;
-      case 2:
-	fHistLayer1->Fill(TMath::ATan2(point.GetY(),point.GetX()),point.GetZ());
-	break;
-      case 3:
-	fHistLayer2->Fill(TMath::ATan2(point.GetY(),point.GetX()),point.GetZ());
-	break;
-      case 4:
-	fHistLayer3->Fill(TMath::ATan2(point.GetY(),point.GetX()),point.GetZ());
-	break;
-      case 5:
-	fHistLayer4->Fill(TMath::ATan2(point.GetY(),point.GetX()),point.GetZ());
-	break;
-      case 6:
-	fHistLayer5->Fill(TMath::ATan2(point.GetY(),point.GetX()),point.GetZ());
-	break;
-      }
-      jpt++;
     }
 
     curv = track->GetC(esd->GetMagneticField());
@@ -919,4 +933,232 @@ void AliAlignmentDataFilterITS::Terminate(Option_t */*option*/)
 
   return;
 }
+//-------------------------------------------------------------------------------
+const AliITSRecoParam *AliAlignmentDataFilterITS::GetRecoParam() const 
+{
+  //
+  // Return the ITSRecoParam object
+  //
+  if(AliITSReconstructor::GetRecoParam()) {
+    return AliITSReconstructor::GetRecoParam();
+  } else if(fITSRecoParam) {
+    return fITSRecoParam;
+  } else return NULL;
+}
+//--------------------------------------------------------------------------------
+Int_t AliAlignmentDataFilterITS::WriteTrackPointsInIdealGeom(Char_t *fin, 
+							     Char_t *fout,
+							     Char_t *fmis,
+							     Char_t *fgeo,
+							     Bool_t prn)
+{
+  //
+  // Convert AliTrackPoints in fin, reconstructed with fmis, back
+  // to ideal geometry
+  //
+  // M. Lunardon
+  //
 
+
+  TGeoHMatrix deltahm;
+
+  // Load geometry
+  if (gSystem->AccessPathName(fgeo)) {
+    printf("couldn't find geometry file %s - skipping...\n",fmis);
+    return -1;
+  }
+  
+  TFile *geofile=TFile::Open(fgeo);
+  TGeoManager *fgGeometry=NULL;
+
+  fgGeometry=(TGeoManager*)geofile->Get("ALICE");
+
+  if (!fgGeometry)
+    fgGeometry=(TGeoManager*)geofile->Get("Geometry");
+
+  if (!fgGeometry) {
+    AliCDBEntry *entry = (AliCDBEntry*)geofile->Get("AliCDBEntry");
+    if (entry)
+      fgGeometry = (TGeoManager*)entry->GetObject();
+  }
+
+  if (!fgGeometry) return -1;
+  AliGeomManager::SetGeometry(fgGeometry);
+  if(!AliGeomManager::GetGeometry()) return -1;
+  
+  
+  // open alignment file
+  if (gSystem->AccessPathName(fmis)) {
+    printf("couldn't open alignment file %s - skipping...\n",fmis);
+    return -2;
+  }
+  TFile *pref = TFile::Open(fmis);
+  if (!pref->IsOpen()) return -2;
+  
+  
+  /// apply alignment to ideal geometry
+  TClonesArray *prea=(TClonesArray*)pref->Get("ITSAlignObjs");
+  if (!prea) {
+    if (pref->Get("AliCDBEntry"))
+      prea = (TClonesArray*) ((AliCDBEntry*)pref->Get("AliCDBEntry"))->GetObject();
+  }
+  if (!prea) return -3;  
+  Int_t nprea=prea->GetEntriesFast();
+  printf("Array of input misalignments with %d entries\n",nprea);
+  AliGeomManager::ApplyAlignObjsToGeom(*prea); // apply all levels of objs
+  
+  AliTrackPointArray *tpain=NULL;
+  TFile *tpainfile=NULL;
+  TTree *treein=NULL;
+  AliTrackPoint point; 
+  AliITSAlignMille2Module *m2[2200];
+  for (Int_t i=0; i<2198; i++)
+    m2[i]=new AliITSAlignMille2Module(AliITSAlignMille2Module::GetVolumeIDFromIndex(i));  
+  
+  // open input file
+  if (gSystem->AccessPathName(fin)) {
+    printf("couldn't open file %s - skipping...\n",fin);
+    return -4;
+  }
+  tpainfile = TFile::Open(fin);
+  if (!tpainfile->IsOpen()) return -4;
+  
+  treein=(TTree*)tpainfile->Get("spTree");
+  if (!treein) return -5;
+  Float_t curv,curverr,runNumber;
+  TObjString *itsaligndata=0;
+  TObjString *itscalibrespsdd = 0;
+  treein->SetBranchAddress("SP", &tpain);
+  treein->SetBranchAddress("curv", &curv);
+  treein->SetBranchAddress("curverr", &curverr);
+  treein->SetBranchAddress("run",&runNumber);
+  treein->SetBranchAddress("ITSAlignData",&itsaligndata);
+  treein->SetBranchAddress("ITSCalibRespSDD",&itscalibrespsdd);
+
+  int ntrks=treein->GetEntries();
+  printf("Reading %d tracks from %s\n",ntrks,fin);
+  
+  
+  // open output file
+  TFile *pointsFile = TFile::Open(fout,"RECREATE");
+  if (!pointsFile || !pointsFile->IsOpen()) {
+    printf("Can't open output file %s !",fout);
+    return -6;
+  }
+  AliTrackPointArray *array = new AliTrackPointArray();
+  
+  // new!
+  TTree *treeout=(TTree*)treein->Clone("spTree");
+  treeout->Reset();
+  treeout->SetBranchAddress("SP", &array);
+  treeout->SetBranchAddress("curv", &curv);
+  treeout->SetBranchAddress("curverr", &curverr);
+  treeout->SetBranchAddress("run",&runNumber);
+  treeout->SetBranchAddress("ITSAlignData",&itsaligndata);
+  treeout->SetBranchAddress("ITSCalibRespSDD",&itscalibrespsdd);
+
+  // tracks main loop
+  for (Int_t it=0; it<ntrks; it++) {    
+    if (!(it%5000) ) printf("...processing track n. %d\n",it);
+    
+    treein->GetEvent(it);
+    
+    //////////////////////////////
+    
+    AliTrackPointArray *atp=tpain;
+    AliTrackPointArray *atps=NULL;
+    Int_t npts=atp->GetNPoints();
+    
+    AliTrackPoint p;
+    // check points in specific places
+    
+    // build a new track
+    atps=new AliTrackPointArray(npts);
+        
+    Int_t npto=0;
+    for (int i=0; i<npts; i++) {
+      atp->GetPoint(p,i);
+      
+      UShort_t volid=atp->GetVolumeID()[i];
+      Int_t index=AliITSAlignMille2Module::GetIndexFromVolumeID(volid);
+      
+      
+      // dealign point
+      // get MODIFIED matrix
+      TGeoHMatrix *svMatrix = m2[index]->GetSensitiveVolumeMatrix(p.GetVolumeID());
+      //TGeoHMatrix *svOrigMatrix = mm->GetSensitiveVolumeOrigGlobalMatrix(p.GetVolumeID());
+      
+      Double_t pg[3],pl[3];
+      pg[0]=p.GetX();
+      pg[1]=p.GetY();
+      pg[2]=p.GetZ();
+      if (prn) printf("Global coordinates of measured point : X=%f  Y=%f  Z=%f \n",pg[0],pg[1],pg[2]);
+      svMatrix->MasterToLocal(pg,pl);
+      
+      // check that things went OK: local y should be 0.
+      if(TMath::Abs(pl[1])>1.e-6) {
+	printf("AliAlignmentDataFilterITS::WriteTrackPointsInIdealGeom: ERROR, local y = %f (should be zero)\n",pl[1]);
+	return -7;
+      }
+
+      if (prn) printf("Local coordinates of measured point : X=%f  Y=%f  Z=%f \n",pl[0],pl[1],pl[2]);
+      
+      // update covariance matrix
+      TGeoHMatrix hcov;
+      Double_t hcovel[9];
+      hcovel[0]=(Double_t)(p.GetCov()[0]);
+      hcovel[1]=(Double_t)(p.GetCov()[1]);
+      hcovel[2]=(Double_t)(p.GetCov()[2]);
+      hcovel[3]=(Double_t)(p.GetCov()[1]);
+      hcovel[4]=(Double_t)(p.GetCov()[3]);
+      hcovel[5]=(Double_t)(p.GetCov()[4]);
+      hcovel[6]=(Double_t)(p.GetCov()[2]);
+      hcovel[7]=(Double_t)(p.GetCov()[4]);
+      hcovel[8]=(Double_t)(p.GetCov()[5]);
+      hcov.SetRotation(hcovel);
+      // now rotate in local system
+      hcov.Multiply(svMatrix);
+      hcov.MultiplyLeft(&svMatrix->Inverse());
+      // now hcov is LOCAL COVARIANCE MATRIX
+      
+      /// get original matrix of sens. vol.
+      TGeoHMatrix *svOrigMatrix = m2[index]->GetSensitiveVolumeOrigGlobalMatrix(p.GetVolumeID());
+      // modify global coordinates according with pre-aligment
+      svOrigMatrix->LocalToMaster(pl,pg);
+      // now rotate in local system
+      hcov.Multiply(&svOrigMatrix->Inverse());
+      hcov.MultiplyLeft(svOrigMatrix);
+      // hcov is back in GLOBAL RF
+      Float_t pcov[6];
+      pcov[0]=hcov.GetRotationMatrix()[0];
+      pcov[1]=hcov.GetRotationMatrix()[1];
+      pcov[2]=hcov.GetRotationMatrix()[2];
+      pcov[3]=hcov.GetRotationMatrix()[4];
+      pcov[4]=hcov.GetRotationMatrix()[5];
+      pcov[5]=hcov.GetRotationMatrix()[8];
+      
+      p.SetXYZ(pg[0],pg[1],pg[2],pcov);
+      if (prn) printf("New global coordinates of measured point : X=%f  Y=%f  Z=%f \n",pg[0],pg[1],pg[2]);
+      atps->AddPoint(npto,&p);
+      if (prn) printf("Adding point[%d] = ( %f , %f , %f )     volid = %d\n",npto,atps->GetX()[npto],atps->GetY()[npto],atps->GetZ()[npto],atps->GetVolumeID()[npto] );
+      if (prn) p.Print("");
+      
+      npto++;
+    }
+    
+    
+    ////////////////////////////////////////////////////////////
+    array = atps;
+    treeout->Fill();
+    
+    delete atps;
+    atps=NULL;
+    
+  } // end loop on tracks
+  
+  pointsFile->Write();
+  pointsFile->Close();
+  tpainfile->Close();
+  
+  return 0;
+}

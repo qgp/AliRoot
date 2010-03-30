@@ -34,12 +34,15 @@ public:
    virtual void        AddRunNumber(Int_t run);
    virtual void        AddRunNumber(const char *run);
    virtual void        AddDataFile(const char *lfn);
+   virtual void        AddExternalPackage(const char *name);
    virtual void        SetExecutable(const char *name="analysis.sh")     {fExecutable = name;}
    virtual void        SetExecutableCommand(const char *command="root -b -q") {fExecutableCommand = command;}
    virtual void        SetArguments(const char *name="")                 {fArguments = name;}
+   virtual void        SetExecutableArgs(const char *name="")            {fExecutableArgs = name;}
    virtual void        SetAnalysisMacro(const char *name="myAnalysis.C") {fAnalysisMacro = name;}
    virtual void        SetAnalysisSource(const char *name="myAnalysisClass.cxx") {fAnalysisSource = name;}
    virtual void        SetAdditionalLibs(const char *list)               {fAdditionalLibs = list;}
+   virtual void        SetAdditionalRootLibs(const char *list)           {fAdditionalRootLibs = list;}
    virtual void        SetPrice(Int_t price=1)                           {fPrice = price;}
    virtual void        SetRunRange(Int_t min, Int_t max)                 {fRunRange[0] = min; fRunRange[1] = max;}
    virtual void        SetJobTag(const char *tag="")                     {fJobTag = tag;}
@@ -60,6 +63,7 @@ public:
    virtual void        SetGridOutputDir(const char *name="output")       {fGridOutputDir = name;}
    virtual void        SetOutputArchive(const char *list="log_archive.zip:stdout,stderr root_archive.zip:*.root") {fOutputArchive = list;}
    virtual void        SetOutputFiles(const char *list)                  {fOutputFiles = list;}
+   virtual void        SetOutputToRunNo(Int_t mode=1)                    {fOutputToRunNo = mode;}
    virtual void        SetInputFormat(const char *format="xml-single")   {fInputFormat = format;}
    virtual void        SetMaxInitFailed(Int_t nfail=5)                   {fMaxInitFailed = nfail;}
    virtual void        SetMergeExcludes(const char *list)                {fMergeExcludes = list;};
@@ -68,6 +72,8 @@ public:
    virtual void        SetJDLName(const char *name="analysis.jdl")       {fJDLName = name;}
    virtual void        SetPreferedSE(const char *se)                     {fCloseSE = se;}
    virtual void        SetProductionMode(Int_t mode=1)                   {fProductionMode = mode;}
+   virtual void        SetRunPrefix(const char *prefix)                  {fRunPrefix = prefix;}
+   virtual void        SetOutputSingleFolder(const char *folder)         {fOutputSingle = folder; fSplitMode="file"; fSplitMaxInputFileNumber=1;}
 
    TGridJDL           *GetGridJDL() {return fGridJDL;}
    const char         *GetGridOutputDir() const                          {return fGridOutputDir;}
@@ -98,6 +104,7 @@ protected:
    void                SubmitNext();
 
    Bool_t              IsCollection(const char *lfn) const;
+   virtual Bool_t      IsSingleOutput() const;
    Bool_t              IsUsingTags() const {return TObject::TestBit(AliAnalysisGrid::kUseTags);}
 
 private:
@@ -113,17 +120,21 @@ private:
    Int_t            fMaxMergeFiles;   // Maximum number of files to be merged in one chunk
    Int_t            fNsubmitted;      // Number of jobs submitted
    Int_t            fProductionMode;  // Production mode (0-off, 1-on)
+   Int_t            fOutputToRunNo;   // Use run number as output directory
    TString          fRunNumbers;      // List of runs to be processed
    TString          fExecutable;      // Executable script for AliEn job
    TString          fExecutableCommand;  // Command(s) to be executed in the executable script
    TString          fArguments;       // Arguments for the executable script
+   TString          fExecutableArgs;  // arguments added to the executable script after the analysis macro
    TString          fAnalysisMacro;   // Root macro steering the analysis
    TString          fAnalysisSource;  // User analysis implementation (.cxx) file(s)
-   TString          fAdditionalLibs;  // List (separated by blacs) of additional libraries needed for the analysis
+   TString          fAdditionalRootLibs;  // List (separated by blacs) of additional libraries needed for/before analysis libs/par file compilation
+   TString          fAdditionalLibs;  // List (separated by blacs) of additional libraries needed for the analysis loaded AFTER all par files
    TString          fSplitMode;       // Job split mode
    TString          fAPIVersion;      // API version
    TString          fROOTVersion;     // ROOT version
    TString          fAliROOTVersion;  // AliROOT version
+   TString          fExternalPackages; // External packages
    TString          fUser;            // AliEn user name
    TString          fGridWorkingDir;  // AliEn directory containing the input packages
    TString          fGridDataDir;     // AliEn data production directory
@@ -139,9 +150,11 @@ private:
    TString          fCloseSE;         // Preffered storage element. Taken from alien_CLOSE_SE environment.
    TString          fFriendChainName; // File name to construct friend chain (for AOD)
    TString          fJobTag;          // Job tag
+   TString          fOutputSingle;    // Directory name for the output when split is per file
+   TString          fRunPrefix;       // Run prefix to be applied to run numbers
    TObjArray       *fInputFiles;      // List of input files to be processed by the job
    TObjArray       *fPackages;        // List of packages to be used
    
-   ClassDef(AliAnalysisAlien, 7)   // Class providing some AliEn utilities
+   ClassDef(AliAnalysisAlien, 10)   // Class providing some AliEn utilities
 };
 #endif

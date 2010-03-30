@@ -44,9 +44,10 @@
 #include "AliAODHandler.h"
 #include "AliAODTrack.h"
 #include "AliAODJet.h"
-#include "AliGenPythiaEventHeader.h"
-#include "AliMCEvent.h"
-#include "AliStack.h"
+#include "AliAODMCParticle.h"
+//#include "AliGenPythiaEventHeader.h"
+//#include "AliMCEvent.h"
+//#include "AliStack.h"
 
 
 #include "AliAnalysisHelperJetTasks.h"
@@ -57,6 +58,7 @@ ClassImp(AliAnalysisTaskThreeJets)
   AliAnalysisTaskThreeJets::AliAnalysisTaskThreeJets() : AliAnalysisTaskSE(),
 						   
 							 fAOD(0x0),
+							 fUseMC(0x0),
 						 
 							 fBranchRec(""),
 							 fBranchGen(""),
@@ -65,6 +67,8 @@ ClassImp(AliAnalysisTaskThreeJets)
 
  							 fR(0x0),
 							 fList(0x0),
+
+							 fhStopHisto(0x0),
 
 							 fGlobVar(1),
 							 fXsection(1),
@@ -134,6 +138,7 @@ AliAnalysisTaskThreeJets::AliAnalysisTaskThreeJets(const char * name):
   AliAnalysisTaskSE(name),
   
   fAOD(0x0),
+  fUseMC(0x0),
   
   fBranchRec(""),
   fBranchGen(""),
@@ -142,6 +147,8 @@ AliAnalysisTaskThreeJets::AliAnalysisTaskThreeJets(const char * name):
 
   fR(0x0),
   fList(0x0),
+
+  fhStopHisto(0x0),
 
   fGlobVar(1),
   fXsection(1),
@@ -214,42 +221,29 @@ Bool_t AliAnalysisTaskThreeJets::Notify()
   // Implemented Notify() to read the cross sections
   // and number of trials from pyxsec.root
   // 
+
+
   TTree *tree = AliAnalysisManager::GetAnalysisManager()->GetTree();
-  UInt_t   ntrials  = 0;
+  Float_t xsection = 0;
+  Float_t ftrials  = 1;
+
+  Float_t fAvgTrials = 1;
   if(tree){
     TFile *curfile = tree->GetCurrentFile();
     if (!curfile) {
       Error("Notify","No current file");
       return kFALSE;
     }
+    AliAnalysisHelperJetTasks::PythiaInfoFromFile(curfile->GetName(),xsection,ftrials);
+    // construct a poor man average trials 
+    Float_t nEntries = (Float_t)tree->GetTree()->GetEntries();
+    if(ftrials>=nEntries)fAvgTrials = ftrials/nEntries; // CKB take this into account for normalisation
+  }  
 
-    TString fileName(curfile->GetName());
-    if(fileName.Contains("AliESDs.root")){
-        fileName.ReplaceAll("AliESDs.root", "pyxsec.root");
-    }
-    else if(fileName.Contains("AliAOD.root")){
-        fileName.ReplaceAll("AliAOD.root", "pyxsec.root");
-    }
-    else if(fileName.Contains("galice.root")){
-        // for running with galice and kinematics alone...                      
-        fileName.ReplaceAll("galice.root", "pyxsec.root");
-    }
-    TFile *fxsec = TFile::Open(fileName.Data());
-    if(!fxsec){
-      Printf("%s:%d %s not found in the Input",(char*)__FILE__,__LINE__,fileName.Data());
-      // no a severe condition
-      return kTRUE;
-    }
-    TTree *xtree = (TTree*)fxsec->Get("Xsection");
-    if(!xtree){
-      Printf("%s:%d tree not found in the pyxsec.root",(char*)__FILE__,__LINE__);
-    }
-    xtree->SetBranchAddress("xsection",&fXsection);
-    xtree->SetBranchAddress("ntrials",&ntrials);
-    xtree->GetEntry(0);
-  }
-  
+  if(xsection>0)fXsection  = xsection;
+
   return kTRUE;
+
 }
 
 
@@ -261,25 +255,14 @@ void AliAnalysisTaskThreeJets::UserCreateOutputObjects()
   //
   //  Printf("Analysing event  %s :: # %5d\n", gSystem->pwd(), (Int_t) fEntry);
 
-  if(fUseAODInput){
-    fAOD = dynamic_cast<AliAODEvent*>(InputEvent());
-    if(!fAOD){
-      Printf("%s:%d AODEvent not found in Input Manager %d",(char*)__FILE__,__LINE__,fUseAODInput);
-      return;
-    }    
-  }
-  else{
-    //  assume that the AOD is in the general output...
-    fAOD  = AODEvent();
-    if(!fAOD){
-      Printf("%s:%d AODEvent not found in the Output",(char*)__FILE__,__LINE__);
-      return;
-    }    
-  }
-
   printf("AnalysisTaskJetSpectrum::UserCreateOutputObjects() \n");
 
   fList = new TList();
+
+  //histogram, that maps were the code returns
+  fhStopHisto = new TH1I("StopHisto", "", 8, 0, 8);
+  fhStopHisto->SetXTitle("No. of the return");
+  fList->Add(fhStopHisto);
 
   fhX3X4Gen = new TH2F("X3vsX4Gen", "", 22, 0.6, 1.02, 33, 0.4, 1.02);
   fhX3X4Gen->SetXTitle("X_{3}");
@@ -463,7 +446,7 @@ void AliAnalysisTaskThreeJets::UserCreateOutputObjects()
   fhdPhiThrustRecALL->Sumw2();
   fList->Add(fhdPhiThrustRecALL);
     
-  Printf("UserCreateOutputObjects finished\n");
+  if(fDebug)Printf("UserCreateOutputObjects finished\n");
 }
 
 //__________________________________________________________________________________________________________________________________________
@@ -475,48 +458,59 @@ void AliAnalysisTaskThreeJets::Init()
 //____________________________________________________________________________________________________________________________________________
 void AliAnalysisTaskThreeJets::UserExec(Option_t * )
 {
-  //  if (fDebug > 1) printf("Analysing event # %5d\n", (Int_t) fEntry);
+  if (fDebug > 1) printf("AliAnlysisTaskThreeJets::Analysing event # %5d\n", (Int_t) fEntry);
 
-  
-  //create an AOD handler
-  AliAODHandler *aodH = dynamic_cast<AliAODHandler*>(AliAnalysisManager::GetAnalysisManager()->GetOutputEventHandler());
-  
-  if(!aodH)
-    {
-      Printf("%s:%d no output aodHandler found Jet",(char*)__FILE__,__LINE__);
+  if(fUseAODInput){
+    fAOD = dynamic_cast<AliAODEvent*>(InputEvent());
+    if(!fAOD){
+      Printf("%s:%d AODEvent not found in Input Manager %d",(char*)__FILE__,__LINE__,fUseAODInput);
       return;
-    }
-  
-  AliMCEvent* mcEvent =MCEvent();
-  if(!mcEvent){
-    Printf("%s:%d no mcEvent",(char*)__FILE__,__LINE__);
-    return;
+    }    
   }
+  else{
+    //  assume that the AOD is in the general output...
+    fAOD  = AODEvent();
+    if(!fAOD){
+      Printf("%s:%d AODEvent not found in the Output",(char*)__FILE__,__LINE__);
+      return;
+    }    
+  }
+
+//   AliMCEvent* mcEvent =MCEvent();
+//   if(!mcEvent){
+//     Printf("%s:%d no mcEvent",(char*)__FILE__,__LINE__);
+//     return;
+//   }
   
   if (fDebug > 10)Printf("%s:%d",(char*)__FILE__,__LINE__);
   
   //primary vertex
   AliAODVertex * pvtx = dynamic_cast<AliAODVertex*>(fAOD->GetPrimaryVertex());
-  if(!pvtx) return;
+  if(!pvtx){
+    //return #1
+    fhStopHisto->Fill(0.5);
+    PostData(1, fList);
+    return;
+  }
   
-  AliAODJet genJetsPythia[kMaxJets];
-  Int_t nPythiaGenJets = 0;
-  
-  AliAODJet genJets[kMaxJets];
-  Int_t nGenJets = 0;
-  
+//   AliAODJet genJetsPythia[kMaxJets];
+//   Int_t nPythiaGenJets = 0;
+
   AliAODJet recJets[kMaxJets];
   Int_t nRecJets = 0;
   
   //array of reconstructed jets from the AOD input
   TClonesArray *aodRecJets = dynamic_cast<TClonesArray*>(fAOD->FindListObject(fBranchRec.Data()));
   if(!aodRecJets){
-    Printf("%s:%d no reconstructed Jet array with name %s in AOD",(char*)__FILE__,__LINE__,fBranchRec.Data());
+    //return #2
+    fhStopHisto->Fill(1.5);  
+    PostData(1, fList);
     return;
   }
   
   // reconstructed jets
   nRecJets = aodRecJets->GetEntries(); 
+  if(fDebug)Printf("--- Jets found in bRec: %d", nRecJets);
   nRecJets = TMath::Min(nRecJets, kMaxJets);
   
   for(int ir = 0;ir < nRecJets;++ir)
@@ -525,39 +519,46 @@ void AliAnalysisTaskThreeJets::UserExec(Option_t * )
      if(!tmp)continue;
      recJets[ir] = *tmp;
     }
- 
+   
+  AliAODJet genJets[kMaxJets];
+  Int_t nGenJets = 0;
+  if(fUseMC){
   // If we set a second branch for the input jets fetch this
   TClonesArray * aodGenJets = dynamic_cast<TClonesArray*>(fAOD->FindListObject(fBranchGen.Data()));
-  
-  if(!aodGenJets)
-    {
-      printf("NO MC jets Found\n");
-      return;
-    }
-  
-  //   //Generated jets
-  nGenJets = aodGenJets->GetEntries();
-  nGenJets = TMath::Min(nGenJets, kMaxJets);
-  
-  for(Int_t ig =0 ; ig < nGenJets; ++ig)
-    {
-      AliAODJet * tmp = dynamic_cast<AliAODJet*>(aodGenJets->At(ig));
-      if(!tmp)continue;
-      genJets[ig] = * tmp;
-    }
-  
-  AliGenPythiaEventHeader*  pythiaGenHeader = AliAnalysisHelperJetTasks::GetPythiaEventHeader(mcEvent);
-  if(!pythiaGenHeader){
-    Printf("!!!NO GEN HEADER AVALABLE!!!");
-    return;
+    
+    if(!aodGenJets)
+      {
+	printf("NO MC jets Found\n");  
+	//return #3
+	fhStopHisto->Fill(2.5);  
+	PostData(1, fList);
+	return;
+      }
+    
+    //   //Generated jets
+    nGenJets = aodGenJets->GetEntries();
+    nGenJets = TMath::Min(nGenJets, kMaxJets);
+
+    for(Int_t ig =0 ; ig < nGenJets; ++ig)
+      {
+	AliAODJet * tmp = dynamic_cast<AliAODJet*>(aodGenJets->At(ig));
+	if(!tmp)continue;
+	genJets[ig] = * tmp;
+      }
   }
+  //   AliGenPythiaEventHeader*  pythiaGenHeader = AliAnalysisHelperJetTasks::GetPythiaEventHeader(mcEvent);
+//   if(!pythiaGenHeader){
+//     Printf("!!!NO GEN HEADER AVALABLE!!!");
+//     return;
+//   }
   
-  // Int_t ProcessType = pythiaGenHeader->ProcessType();
-  // if(ProcessType != 28) return;
-  fhXSec->Fill(pythiaGenHeader->GetPtHard(), fXsection);
-  nPythiaGenJets = pythiaGenHeader->NTriggerJets();
-  nPythiaGenJets = TMath::Min(nPythiaGenJets, kMaxJets);
+//   // Int_t ProcessType = pythiaGenHeader->ProcessType();
+//   // if(ProcessType != 28) return;
+//   nPythiaGenJets = pythiaGenHeader->NTriggerJets();
+//   nPythiaGenJets = TMath::Min(nPythiaGenJets, kMaxJets);
    
+//  fXsection = 1;
+
   Double_t eRec[kMaxJets];
   Double_t eGen[kMaxJets];
  
@@ -595,279 +596,311 @@ void AliAnalysisTaskThreeJets::UserExec(Option_t * )
 
   Double_t psumRestRec = 0;
   //  Double_t psumRestGen = 0;
-  //Pythia_________________________________________________________________________________________________________________
+//   //Pythia_________________________________________________________________________________________________________________
 
-  for(int ip = 0;ip < nPythiaGenJets;++ip)
-    {
-      if(ip>=kMaxJets)continue;
-      Float_t p[4];
-      pythiaGenHeader->TriggerJet(ip,p);
-      genJetsPythia[ip].SetPxPyPzE(p[0],p[1],p[2],p[3]);
-    }
+//   for(int ip = 0;ip < nPythiaGenJets;++ip)
+//     {
+//       if(ip>=kMaxJets)continue;
+//       Float_t p[4];
+//       pythiaGenHeader->TriggerJet(ip,p);
+//       genJetsPythia[ip].SetPxPyPzE(p[0],p[1],p[2],p[3]);
+//     }
   
 //_________________________________________________________________________________________________________________________
  
  
 //________histos for MC___________________________________________________________________________________________________________
-
   Int_t nGenSel = 0;
-  Int_t counter = 0;
-  Int_t tag = 0;
-
-  AliAODJet selJets[kMaxJets];
-
-  for(Int_t i = 0; i < nGenJets; i++)
-    {
-      if(nGenJets == 1)
-	{
-	  selJets[nGenSel] = genJets[i];
-	  nGenSel++;
-	}
-      else
-	{
-	  counter = 0;
-	  tag = 0;
-	  for(Int_t j = 0; j < nGenJets; j++)
-	    {
-	      if(i!=j)
-		{
-		  Double_t dRij = genJets[i].DeltaR(&genJets[j]);
-		  counter++;
-		  if(dRij > 2*fR) tag++;
-		}
-	    }
-	  if(counter!=0)
-	    {
-	      if(tag/counter == 1)
-		{
-		  selJets[nGenSel] = genJets[i];
-		  nGenSel++;
-		}
-	    }
-	}
-    }
-
-  if(nGenSel == 0) return;
-
-  for (Int_t gj = 0; gj < nGenSel; gj++)
-    {
-      eGen[gj] = selJets[gj].E();
-    }
-  
-  TMath::Sort(nGenSel, eGen, idxGen);
-  for (Int_t ig = 0; ig < nGenSel; ig++)
-    {
-      jetGen[ig] = selJets[idxGen[ig]];
-    }
-  AliStack * stack = mcEvent->Stack();
-  Int_t nMCtracks = stack->GetNprimary();
-  Double_t * eTracksMC = new Double_t[kTracks];
-  Double_t pTracksMC[kTracks];
-  Int_t * idxTracksMC = new Int_t[kTracks];
-  TLorentzVector jetTracksMC[kTracks];
-  TLorentzVector jetTracksSortMC[kTracks];
-  TVector3 pTrackMC[kTracks];
-  TLorentzVector vTrackMCAll[kTracks];
-  Double_t pTrackMCAll[kTracks];
-  TLorentzVector vTrackMC[kTracks];
-  TVector3 pTrackMCBoost[kTracks];
-  Double_t eventShapes[4];
-
-  Int_t nAccTr = 0;
-  Int_t nInJet[kMaxJets];
-  TLorentzVector inJetPartV[kMaxJets][kTracks];
-  Int_t nAllTracksMC = 0;
-
-  for(Int_t iTrack = 0; iTrack < nMCtracks; iTrack++)
-    {
-      TParticle * part = (TParticle*)stack->Particle(iTrack);
-      if (!part) continue;
-      Double_t fEta = part->Eta();
-      if(TMath::Abs(fEta) > .9) continue;
-      if(!IsPrimChar(part, nMCtracks, 0)) continue;
-      vTrackMCAll[nAllTracksMC].SetPxPyPzE(part->Px(), part->Py(), part->Pz(), part->Energy());
-      pTrackMCAll[nAllTracksMC] = part->Pt();
-      nAllTracksMC++;
-    }
-  if(nAllTracksMC == 0) return;
-  for(Int_t iJet = 0; iJet < nGenSel; iJet++)
-    {
-      Int_t nJetTracks = 0;
-      for(Int_t i = 0; i < nAllTracksMC; i++)
-	{
-	  Double_t dPhi = (jetGen[iJet].Phi()-vTrackMCAll[i].Phi());
-	  if(dPhi > TMath::Pi()) dPhi = dPhi - 2.*TMath::Pi();
-	  if(dPhi < (-1.*TMath::Pi())) dPhi = dPhi + 2.*TMath::Pi();
-	  Double_t dEta = (jetGen[iJet].Eta()-vTrackMCAll[i].Eta());
-	  Double_t deltaR = TMath::Sqrt(dPhi*dPhi+dEta*dEta);
-	  if(deltaR < fR && vTrackMCAll[i].Pt() > 1.5)
-	    {
-	      jetTracksMC[nAccTr] = vTrackMCAll[i];
-	      eTracksMC[nAccTr] = vTrackMCAll[i].E();
-	      pTracksMC[nAccTr] = vTrackMCAll[i].Pt();
-	      inJetPartV[iJet][nJetTracks].SetPxPyPzE(vTrackMCAll[i].Px(), vTrackMCAll[i].Py(), vTrackMCAll[i].Pz(),vTrackMCAll[i].E());
-	      nAccTr++;
-	      nJetTracks++;
-	    }
-	}
-      nInJet[iJet] = nJetTracks;
-    }
-
-  if(nAccTr == 0) return;
-  Printf("*********** Number of Jets : %d ***************\n", nGenSel);  
-  Double_t pTav[kMaxJets];
-  for(Int_t i = 0; i < nGenSel; i++)
-    {
-      Double_t pTsum = 0;
-      Printf("*********** Number of particles in Jet %d = %d *******************\n", i+3, nInJet[i]);
-      for(Int_t iT = 0; iT < nInJet[i]; iT++)
-	{
-	  Double_t pt = inJetPartV[i][iT].Pt();
-	  pTsum += pt;
-	}
-      pTav[i] = pTsum/nInJet[i]; 
-    }
-  
-  TMath::Sort(nAllTracksMC, pTrackMCAll, idxTracksMC);
-  for(Int_t i = 0; i < nAllTracksMC; i++)
-    {
-      jetTracksSortMC[i] = vTrackMCAll[idxTracksMC[i]];
-      pTrackMC[i].SetXYZ(jetTracksSortMC[i].Px(), jetTracksSortMC[i].Py(), jetTracksSortMC[i].Pz());
-      vTrackMC[i].SetPxPyPzE(jetTracksSortMC[i].Px(), jetTracksSortMC[i].Py(), jetTracksSortMC[i].Pz(), jetTracksSortMC[i].E());
-    }
-
-  TVector3 n01MC = pTrackMC[0].Unit();
-  n01MC.SetZ(0.);
-
-  //Thrust calculation, iterative method
-  if(nGenSel > 1)
-    { 
-//       if(fGlobVar == 1)
-// 	{
-      Printf("**************Shapes for MC*************");
-      AliAnalysisHelperJetTasks::GetEventShapes(n01MC, pTrackMC, nAllTracksMC, eventShapes);
-// 	}
-      if(eventShapes[0] < 2/TMath::Pi()){
-	Double_t eventShapesTest[4];
-	TVector3 n01Test;
-	Int_t rnd_max = nAllTracksMC;
-	Int_t k = (rand()%rnd_max)+3;
-	while(TMath::Abs(pTrackMC[k].X()) < 10e-5 && TMath::Abs(pTrackMC[k].Y()) < 10e-5){
-	  k--;
-	}
-	n01Test = pTrackMC[k].Unit();
-	n01Test.SetZ(0.);
-	AliAnalysisHelperJetTasks::GetEventShapes(n01Test, pTrackMC, nAllTracksMC, eventShapesTest);
-	eventShapes[0] = TMath::Max(eventShapes[0], eventShapesTest[0]);
-	if(TMath::Abs(eventShapes[0]-eventShapesTest[0]) < 10e-7) n01MC = n01Test;
+  if(fUseMC){
+    Int_t counter = 0;
+    Int_t tag = 0;
+    
+    AliAODJet selJets[kMaxJets];
+    
+    for(Int_t i = 0; i < nGenJets; i++)
+      {
+	if(nGenJets == 1)
+	  {
+	    selJets[nGenSel] = genJets[i];
+	    nGenSel++;
+	  }
+	else
+	  {
+	    counter = 0;
+	    tag = 0;
+	    for(Int_t j = 0; j < nGenJets; j++)
+	      {
+		if(i!=j)
+		  {
+		    Double_t dRij = genJets[i].DeltaR(&genJets[j]);
+		    counter++;
+		    if(dRij > 2*fR) tag++;
+		  }
+	      }
+	    if(counter!=0)
+	      {
+		if(tag/counter == 1)
+		  {
+		    selJets[nGenSel] = genJets[i];
+		    nGenSel++;
+		  }
+	      }
+	  }
       }
 
-      Double_t s = eventShapes[1];
-      Double_t a = eventShapes[2];
-      Double_t c = eventShapes[3];
+    if(nGenSel == 0){  
+      //return #4
+      fhStopHisto->Fill(3.5);  
+      PostData(1, fList);
+      return;
+    }
+    
+    for (Int_t gj = 0; gj < nGenSel; gj++)
+      {
+	eGen[gj] = selJets[gj].E();
+      }
+    
+    TMath::Sort(nGenSel, eGen, idxGen);
+    for (Int_t ig = 0; ig < nGenSel; ig++)
+      {
+	jetGen[ig] = selJets[idxGen[ig]];
+      }
+    
+    fhXSec->Fill(jetGen[0].Pt(), fXsection);
+    //  AliStack * stack = mcEvent->Stack();
+    
+    Int_t nMCtracks = 0;
+    Double_t eTracksMC[kTracks];
+    Double_t pTracksMC[kTracks];
+    Int_t idxTracksMC[kTracks];
+    TLorentzVector jetTracksMC[kTracks];
+    TLorentzVector jetTracksSortMC[kTracks];
+    TVector3 pTrackMC[kTracks];
+    TLorentzVector vTrackMCAll[kTracks];
+    Double_t pTrackMCAll[kTracks];
+    TLorentzVector vTrackMC[kTracks];
+    TVector3 pTrackMCBoost[kTracks];
+    Double_t eventShapes[4];
+    
+    Int_t nAccTr = 0;
+    Int_t nInJet[kMaxJets];
+    TLorentzVector inJetPartV[kMaxJets][kTracks];
+    Int_t nAllTracksMC = 0;
+    TVector3 n01MC;
 
-      switch(nGenSel)
+    TClonesArray *tca = dynamic_cast<TClonesArray*>(fAOD->FindListObject(AliAODMCParticle::StdBranchName()));
+    if(!tca){
+      if(fDebug)Printf("NO Ref Tracks\n");
+      tca = 0;
+    }
+    else{
+      nMCtracks = tca->GetEntries();
+      for(Int_t iTrack = 0; iTrack < nMCtracks; iTrack++)
 	{
-	case 2:
-	  {
-	    fhAGen2->Fill(a);
-	    fhSGen2->Fill(s);
-	    fhCGen2->Fill(c);
+	  //      TParticle * part = (TParticle*)stack->Particle(iTrack);
+	  AliAODMCParticle *part = dynamic_cast<AliAODMCParticle*>(tca->At(iTrack));
+	  if (!part) continue;
+	  if(!part->IsPhysicalPrimary())continue;      
+	  Double_t fEta = part->Eta();
+	  if(TMath::Abs(fEta) > .9) continue;
+	  vTrackMCAll[nAllTracksMC].SetPxPyPzE(part->Px(), part->Py(), part->Pz(), part->E());
+	  pTrackMCAll[nAllTracksMC] = part->Pt();
+	  nAllTracksMC++;
+	}
+      if(nAllTracksMC == 0){  
+	//return #5
+	fhStopHisto->Fill(4.5);  
+	PostData(1, fList);
+	return;
+      }
+
+      for(Int_t iJet = 0; iJet < nGenSel; iJet++)
+	{
+	  Int_t nJetTracks = 0;
+	  for(Int_t i = 0; i < nAllTracksMC; i++)
+	    {
+	      Double_t dPhi = (jetGen[iJet].Phi()-vTrackMCAll[i].Phi());
+	      if(dPhi > TMath::Pi()) dPhi = dPhi - 2.*TMath::Pi();
+	      if(dPhi < (-1.*TMath::Pi())) dPhi = dPhi + 2.*TMath::Pi();
+	      Double_t dEta = (jetGen[iJet].Eta()-vTrackMCAll[i].Eta());
+	      Double_t deltaR = TMath::Sqrt(dPhi*dPhi+dEta*dEta);
+	      if(deltaR < fR && vTrackMCAll[i].Pt() > 1.5)
+		{
+		  jetTracksMC[nAccTr] = vTrackMCAll[i];
+		  eTracksMC[nAccTr] = vTrackMCAll[i].E();
+		  pTracksMC[nAccTr] = vTrackMCAll[i].Pt();
+		  inJetPartV[iJet][nJetTracks].SetPxPyPzE(vTrackMCAll[i].Px(), vTrackMCAll[i].Py(), vTrackMCAll[i].Pz(),vTrackMCAll[i].E());
+		  nAccTr++;
+		  nJetTracks++;
+		}
+	    }
+	  nInJet[iJet] = nJetTracks;
+	}
+      
+      if(nAccTr == 0){
+	//return #6
+	fhStopHisto->Fill(5.5);  
+	PostData(1, fList);
+	return;
+      }
+	//      if(fDebug)Printf("*********** Number of Jets : %d ***************\n", nGenSel);  
+      Double_t pTav[kMaxJets];
+      for(Int_t i = 0; i < nGenSel; i++)
+	{
+	  Double_t pTsum = 0;
+	  //	  if(fDebug)Printf("*********** Number of particles in Jet %d = %d *******************\n", i+3, nInJet[i]);
+	  for(Int_t iT = 0; iT < nInJet[i]; iT++)
+	    {
+	      Double_t pt = inJetPartV[i][iT].Pt();
+	      pTsum += pt;
+	    }
+	  pTav[i] = pTsum/nInJet[i]; 
+	}
+      
+      TMath::Sort(nAllTracksMC, pTrackMCAll, idxTracksMC);
+      for(Int_t i = 0; i < nAllTracksMC; i++)
+	{
+	  jetTracksSortMC[i] = vTrackMCAll[idxTracksMC[i]];
+	  pTrackMC[i].SetXYZ(jetTracksSortMC[i].Px(), jetTracksSortMC[i].Py(), jetTracksSortMC[i].Pz());
+	  vTrackMC[i].SetPxPyPzE(jetTracksSortMC[i].Px(), jetTracksSortMC[i].Py(), jetTracksSortMC[i].Pz(), jetTracksSortMC[i].E());
+	}
+      
+      n01MC = pTrackMC[0].Unit();
+      n01MC.SetZ(0.);
+      
+      //Thrust calculation, iterative method
+      if(nGenSel > 1)
+	{ 
+	  //       if(fGlobVar == 1)
+	  // 	{
+	  if(fDebug)Printf("**************Shapes for MC*************");
+	  AliAnalysisHelperJetTasks::GetEventShapes(n01MC, pTrackMC, nAllTracksMC, eventShapes);
+	  // 	}
+	  if(eventShapes[0] < 2/TMath::Pi()){
+	    Double_t eventShapesTest[4];
+	    TVector3 n01Test;
+	    Int_t rnd_max = nAllTracksMC;
+	    Int_t k = (rand()%rnd_max)+3;
+	    while(TMath::Abs(pTrackMC[k].X()) < 10e-5 && TMath::Abs(pTrackMC[k].Y()) < 10e-5){
+	      k--;
+	    }
+	    n01Test = pTrackMC[k].Unit();
+	    n01Test.SetZ(0.);
+	    AliAnalysisHelperJetTasks::GetEventShapes(n01Test, pTrackMC, nAllTracksMC, eventShapesTest);
+	    eventShapes[0] = TMath::Max(eventShapes[0], eventShapesTest[0]);
+	    if(TMath::Abs(eventShapes[0]-eventShapesTest[0]) < 10e-7) n01MC = n01Test;
 	  }
-	  break;
-	case 3:
-	  {
-	    fhAGen3->Fill(a);
-	    fhSGen3->Fill(s);
-	    fhCGen3->Fill(c);
-	  }
-	  break;
-	}
-      Double_t thrust01MC = eventShapes[0];
-      
-      switch(nGenSel)
-	{
-	case 2:
-	  fhThrustGen2->Fill(thrust01MC, fXsection);
-	  break;
-	case 3:
-	  fhThrustGen3->Fill(thrust01MC, fXsection);
-	  break;
-	}
-    }
-  
-  
-  //rest frame MC jets
-  for (Int_t i = 0; i < nGenSel; ++i)
-    {
-      vGen[i].SetPxPyPzE(jetGen[i].Px(), jetGen[i].Py(), jetGen[i].Pz(), jetGen[i].E());
-      pGen[i].SetXYZ(vGen[i].Px(), vGen[i].Py(), vGen[i].Pz());
-      vsumGen += vGen[i];
-    }
-  if(eventShapes[0] > 0.8 && nGenSel > 1)
-    {
-      for(Int_t i = 0; i < nGenSel; i++)
-	fhdPhiThrustGen->Fill(n01MC.DeltaPhi(pGen[i]), jetGen[i].E());
-    }
- 
-  if(eventShapes[0] <= 0.8 && nGenSel > 1)   
-    {
-      for(Int_t i = 0; i < nGenSel; i++)
-	fhdPhiThrustGenALL->Fill(n01MC.DeltaPhi(pGen[i]), jetGen[i].E());
-    }
-      
-  Double_t fPxGen = vsumGen.Px();
-  Double_t fPyGen = vsumGen.Py();
-  Double_t fPzGen = vsumGen.Pz();
-  Double_t fEGen = vsumGen.E();
-
-  Double_t eRestGen[kMaxJets];
-  for (Int_t j = 0; j < nGenSel; j++)
-    {
-      vGen[j].Boost(-fPxGen/fEGen, -fPyGen/fEGen, -fPzGen/fEGen);
-      eRestGen[j] = vGen[j].E();
-    }
-
-  for (Int_t j = 0; j < nAccTr; j++)
-    {
-      vTrackMC[j].Boost(-fPxGen/fEGen, -fPyGen/fEGen, -fPzGen/fEGen);
-      pTrackMCBoost[j].SetXYZ(vTrackMC[j].Px(),vTrackMC[j].Py(),vTrackMC[j].Pz());
-    }
-      
-  Int_t idxRestGen[kMaxJets];
-  TMath::Sort(nGenSel, eRestGen, idxRestGen);
-  for(Int_t j = 0; j < nGenSel; j++)
-    {
-      vRestGen[j] = vGen[idxRestGen[j]];
-      eSumGen += vRestGen[j].E();
-    }
-
-  if (nGenSel == 3)
-    {
-      //      if(nInJet[0] < 3 || nInJet[1] < 3 || nInJet[2] < 3) return;
-      //       if(pRestGen[1].DeltaPhi(pRestGen[2]) > 0.95 && pRestGen[1].DeltaPhi(pRestGen[2]) < 1.15)
-      // 	{
-      
-      for(Int_t i = 0; i < nGenSel; i++)
-	{
-	  xGen[i] = 2*vRestGen[i].E()/eSumGen;
-	}
-      
-      Printf("***************** Values of Dalitz variables are : %f, %f, %f ****************\n", xGen[0], xGen[1], xGen[2]);
-      
-      Printf("***************** fXSection = %f ******************\n", fXsection);
-      if(eSumGen <= 60)
-	fhX3X4Gen60->Fill(xGen[0], xGen[1], fXsection);
-      
-      if(eSumGen > 60 && eSumGen <= 100)
-	fhX3X4Gen60100->Fill(xGen[0], xGen[1], fXsection);
-      
-      if(eSumGen > 100)
-	fhX3X4Gen100->Fill(xGen[0], xGen[1], fXsection);
+	
+	  Double_t s = eventShapes[1];
+	  Double_t a = eventShapes[2];
+	  Double_t c = eventShapes[3];
 	  
-      FillTopology(fhX3X4Gen, fhMu34Gen, fhMu45Gen, fhMu35Gen, xGen, pRestGen, fXsection);
+	  switch(nGenSel)
+	    {
+	    case 2:
+	      {
+		fhAGen2->Fill(a);
+		fhSGen2->Fill(s);
+		fhCGen2->Fill(c);
+	      }
+	      break;
+	    case 3:
+	      {
+		fhAGen3->Fill(a);
+		fhSGen3->Fill(s);
+		fhCGen3->Fill(c);
+	      }
+	      break;
+	    }
+	  Double_t thrust01MC = eventShapes[0];
+	  
+	  switch(nGenSel)
+	    {
+	    case 2:
+	      fhThrustGen2->Fill(thrust01MC, fXsection);
+	      break;
+	    case 3:
+	      fhThrustGen3->Fill(thrust01MC, fXsection);
+	      break;
+	    }
+	}
     }
   
+    
+    //rest frame MC jets
+    for (Int_t i = 0; i < nGenSel; ++i)
+      {
+	vGen[i].SetPxPyPzE(jetGen[i].Px(), jetGen[i].Py(), jetGen[i].Pz(), jetGen[i].E());
+	pGen[i].SetXYZ(vGen[i].Px(), vGen[i].Py(), vGen[i].Pz());
+	vsumGen += vGen[i];
+      }
+    if(tca){
+      if(eventShapes[0] > 0.8 && nGenSel > 1)
+	{
+	  for(Int_t i = 0; i < nGenSel; i++)
+	    fhdPhiThrustGen->Fill(n01MC.DeltaPhi(pGen[i]), jetGen[i].E());
+	}
+ 
+      if(eventShapes[0] <= 0.8 && nGenSel > 1)   
+	{
+	  for(Int_t i = 0; i < nGenSel; i++)
+	    fhdPhiThrustGenALL->Fill(n01MC.DeltaPhi(pGen[i]), jetGen[i].E());
+	}
+    }
+    
+    Double_t fPxGen = vsumGen.Px();
+    Double_t fPyGen = vsumGen.Py();
+    Double_t fPzGen = vsumGen.Pz();
+    Double_t fEGen = vsumGen.E();
+    
+    Double_t eRestGen[kMaxJets];
+    for (Int_t j = 0; j < nGenSel; j++)
+      {
+	vGen[j].Boost(-fPxGen/fEGen, -fPyGen/fEGen, -fPzGen/fEGen);
+	eRestGen[j] = vGen[j].E();
+      }
+    
+    for (Int_t j = 0; j < nAccTr; j++)
+      {
+	vTrackMC[j].Boost(-fPxGen/fEGen, -fPyGen/fEGen, -fPzGen/fEGen);
+	pTrackMCBoost[j].SetXYZ(vTrackMC[j].Px(),vTrackMC[j].Py(),vTrackMC[j].Pz());
+      }
+    
+    Int_t idxRestGen[kMaxJets];
+    TMath::Sort(nGenSel, eRestGen, idxRestGen);
+    for(Int_t j = 0; j < nGenSel; j++)
+      {
+	vRestGen[j] = vGen[idxRestGen[j]];
+	eSumGen += vRestGen[j].E();
+      }
+
+    if (nGenSel == 3)
+      {
+	//      if(nInJet[0] < 3 || nInJet[1] < 3 || nInJet[2] < 3) return;
+	//       if(pRestGen[1].DeltaPhi(pRestGen[2]) > 0.95 && pRestGen[1].DeltaPhi(pRestGen[2]) < 1.15)
+	// 	{
+      
+	for(Int_t i = 0; i < nGenSel; i++)
+	  {
+	    xGen[i] = 2*vRestGen[i].E()/eSumGen;
+	}
+      
+	if(fDebug)Printf("***************** Values of Dalitz variables are : %f, %f, %f ****************\n", xGen[0], xGen[1], xGen[2]);
+	
+	if(fDebug)Printf("***************** fXSection = %f ******************\n", fXsection);
+	if(eSumGen <= 60)
+	  fhX3X4Gen60->Fill(xGen[0], xGen[1], fXsection);
+	
+	if(eSumGen > 60 && eSumGen <= 100)
+	  fhX3X4Gen60100->Fill(xGen[0], xGen[1], fXsection);
+	
+	if(eSumGen > 100)
+	  fhX3X4Gen100->Fill(xGen[0], xGen[1], fXsection);
+	
+	FillTopology(fhX3X4Gen, fhMu34Gen, fhMu45Gen, fhMu35Gen, xGen, pRestGen, fXsection);
+      }
+  }    
+
 
 
 //_______________________________________________histos for MC_____________________________________________________
@@ -882,7 +915,7 @@ void AliAnalysisTaskThreeJets::UserExec(Option_t * )
   Int_t tag1 = 0;
 
   AliAODJet recSelJets[kMaxJets];
-
+  if(fDebug)Printf("---- Number of reco jets: %d\n",nRecJets);
   for(Int_t i = 0; i < nRecJets; i++)
     {
       if(nRecJets == 1)
@@ -914,8 +947,14 @@ void AliAnalysisTaskThreeJets::UserExec(Option_t * )
 	}
     } 
   
-  if(nRecSel == 0) return;
-  
+  if(nRecSel == 0)
+    {
+      //return #7
+      fhStopHisto->Fill(6.5);  
+      PostData(1, fList);
+      return;
+    }
+
   //sort rec/gen jets by energy in C.M.S
   for (Int_t rj = 0; rj < nRecSel; rj++)
     {
@@ -967,7 +1006,12 @@ void AliAnalysisTaskThreeJets::UserExec(Option_t * )
       nAccJets++;
     }
  
-  if (nAccJets == 0) return;
+  if (nAccJets == 0){
+    //return #8
+    fhStopHisto->Fill(7.5); 
+    PostData(1, fList);
+    return;
+  }
 
   for(Int_t i = 0; i < nAODtracks; i++)
     {
@@ -1006,7 +1050,7 @@ void AliAnalysisTaskThreeJets::UserExec(Option_t * )
     {
 //       if(fGlobVar == 1)
 // 	{
-      Printf("*********Shapes for AOD********");
+      if(fDebug)Printf("*********Shapes for AOD********");
       AliAnalysisHelperJetTasks::GetEventShapes(n01, pTrack, nTracksALL, eventShapesRec);
       // 	}
       if(eventShapesRec[0] < 2/TMath::Pi()){
@@ -1108,7 +1152,7 @@ void AliAnalysisTaskThreeJets::UserExec(Option_t * )
     {
 //       if(pRest[1].DeltaPhi(pRest[2]) > 0.95 && pRest[1].DeltaPhi(pRest[2]) < 1.15)
 //  	{
-	  fhInOut->Fill(nGenSel);
+	  if(fUseMC) fhInOut->Fill(nGenSel);
 // 	  for(Int_t j = 0; j < nTracksALL; j++)
 // 	    {
 // 	      vTracksAll[j].Boost(-fPx/fE, -fPy/fE, -fPz/fE);
@@ -1137,18 +1181,18 @@ void AliAnalysisTaskThreeJets::UserExec(Option_t * )
 	  
 	  FillTopology(fhX3X4Rec, fhMu34Rec, fhMu45Rec, fhMu35Rec, xRec, pRestRec, fXsection);
     }
-  Printf("%s:%d",(char*)__FILE__,__LINE__);
+  if(fDebug)Printf("%s:%d",(char*)__FILE__,__LINE__);
   
   PostData(1, fList);
 
-  Printf("%s:%d Data Posted",(char*)__FILE__,__LINE__);
+  if(fDebug)Printf("%s:%d Data Posted",(char*)__FILE__,__LINE__);
   
 }
 
 //__________________________________________________________________________________________________________________________________________________
 void AliAnalysisTaskThreeJets::Terminate(Option_t *)
 {
-  printf("AnalysisJetCorrelation::Terminate()");
+  if(fDebug)printf(" AliAnalysisTaskThreeJets::Terminate()");
 
 } 
 

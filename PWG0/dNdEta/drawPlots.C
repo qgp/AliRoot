@@ -41,7 +41,7 @@ void SetRanges(TAxis* axis)
     axis->SetRangeUser(0, 4.9999);
     axis->SetTitle("p_{T} (GeV/c)");
   }
-  if (strcmp(axis->GetTitle(), "vtx z [cm]") == 0 || strcmp(axis->GetTitle(), "vtx z (cm)") == 0)
+  if (strcmp(axis->GetTitle(), "vtx z [cm]") == 0 || strcmp(axis->GetTitle(), "vtx z (cm)") == 0 || strcmp(axis->GetTitle(), "vtx-z [cm]") == 0 || strcmp(axis->GetTitle(), "vtx-z (cm)") == 0)
   {
     axis->SetRangeUser(-15, 14.9999);
     axis->SetTitle("vtx-z (cm)");
@@ -145,8 +145,7 @@ void PrintInfo(const char* fileName = "correction_map.root", const char* dirName
   for (Int_t i=AlidNdEtaCorrection::kTrack2Particle; i<=AlidNdEtaCorrection::kND; i++)
   {
     Printf("Correction %d", i);
-    dNdEtaCorrection->GetCorrection(i)->PrintInfo(0);
-    return;
+    dNdEtaCorrection->GetCorrection(i)->PrintInfo(0.2);
   }
 }
 
@@ -519,9 +518,11 @@ void dNdEta(Bool_t onlyESD = kFALSE, Bool_t save = kTRUE)
   legend->SetFillColor(0);
   legend->AddEntry(histESDMBVtx, "Triggered, vertex");
   legend->AddEntry(histESDMB, "Triggered");
-  legend->AddEntry(histESD, "All events");
+  legend->AddEntry(histESD, "All INEL events");
+  legend->AddEntry(histESDnsd, "All NSD events");
 
-  TH2F* dummy = new TH2F("dummy", "", 100, -etaPlotLimit, etaPlotLimit, 1000, 2.1, max * 1.1);
+  TH2F* dummy = new TH2F("dummy", "", 100, -etaPlotLimit, etaPlotLimit, 1000, 0, max * 1.1);
+  dummy->GetYaxis()->SetRangeUser(2.1, max * 1.1);
   Prepare1DPlot(dummy);
   dummy->SetStats(kFALSE);
   dummy->SetXTitle("#eta");
@@ -534,6 +535,7 @@ void dNdEta(Bool_t onlyESD = kFALSE, Bool_t save = kTRUE)
   histESDMBVtx->Draw("SAME");
   histESDMB->Draw("SAME");
   histESD->Draw("SAME");
+  histESDnsd->Draw("SAME");
   legend->Draw();
 
   if (save)
@@ -541,6 +543,9 @@ void dNdEta(Bool_t onlyESD = kFALSE, Bool_t save = kTRUE)
     canvas->SaveAs("dNdEta1.gif");
     canvas->SaveAs("dNdEta1.eps");
   }
+  
+  histESD->Fit("pol0", "0", "", -0.45, 0.45);
+  histESDnsd->Fit("pol0", "0", "", -0.45, 0.45);
 
   if (onlyESD)
     return;
@@ -2739,7 +2744,7 @@ void ZeroOutsideAcceptance(TH2* acc, TH3* hist)
   for (Int_t x=0; x<=acc->GetNbinsX()+1; ++x)
     for (Int_t y=0; y<=acc->GetNbinsY()+1; ++y)
     {
-      if (acc->GetBinContent(x, y) > 1.5 || acc->GetBinContent(x, y) == 0)
+      if (acc->GetBinContent(x, y) > 2 || acc->GetBinContent(x, y) == 0)
       {
         for (Int_t z=0; z<=hist->GetNbinsZ()+1; ++z)
         {
@@ -2793,20 +2798,20 @@ void DrawPhi()
   c = new TCanvas;
 
   histG->GetXaxis()->SetRangeUser(-9.9, 9.9);
-  histG->Project3D("z")->Draw();
+  histG->Project3D("z")->DrawCopy();
 
   histM->GetXaxis()->SetRangeUser(-9.9, 9.9);
   proj = histM->Project3D("z2");
   proj->SetLineColor(2);
-  proj->Draw("SAME");
+  proj->DrawCopy("SAME");
 
   histMC->GetXaxis()->SetRangeUser(-9.9, 9.9);
   projMC = histMC->Project3D("z3");
-  projMC->SetLineColor(3);
-  projMC->Draw("SAME");
+  projMC->SetLineColor(4);
+  projMC->DrawCopy("SAME");
 }
 
-void PrintEventStats(Int_t corrID = 3)
+void PrintEventStats(Int_t corrID = 3, const char* fileName = "correction_map.root", const char* dir = "dndeta_correction")
 {
   loadlibs();
 
@@ -2818,8 +2823,8 @@ void PrintEventStats(Int_t corrID = 3)
   eventHist = fdNdEtaAnalysis->GetData()->GetEventCorrection()->GetGeneratedHistogram();
   */
 
-  TFile::Open("correction_map.root");
-  AlidNdEtaCorrection* dNdEtaCorrection = new AlidNdEtaCorrection("dndeta_correction", "dndeta_correction");
+  TFile::Open(fileName);
+  AlidNdEtaCorrection* dNdEtaCorrection = new AlidNdEtaCorrection(dir, dir);
   if (!dNdEtaCorrection->LoadHistograms())
     return;
   trackHist = dNdEtaCorrection->GetCorrection(corrID)->GetTrackCorrection()->GetGeneratedHistogram();
@@ -2857,6 +2862,27 @@ void PrintEventStats(Int_t corrID = 3)
   Printf("SD  = %.1f",  100. * (proj->GetBinContent(4) - stats->GetBinContent(4, 1) - stats->GetBinContent(4, 3)) / proj->GetBinContent(4));
   Printf("DD  = %.1f",  100. * (proj->GetBinContent(5) - stats->GetBinContent(5, 1) - stats->GetBinContent(5, 3)) / proj->GetBinContent(5));
   
+  Printf("+++ VERTEX EFFICIENCIES +++");
+  
+  Printf("INEL = %.1f", 100. * (stats->GetBinContent(1, 3) + stats->GetBinContent(1, 4)) / proj->GetBinContent(1));
+  Printf("NSD  = %.1f", 100. * (stats->GetBinContent(2, 3) + stats->GetBinContent(2, 4)) / proj->GetBinContent(2));
+  
+  Float_t vtxND = 100. * (stats->GetBinContent(3, 3) + stats->GetBinContent(3, 4)) / proj->GetBinContent(3);
+  Float_t vtxSD = 100. * (stats->GetBinContent(4, 3) + stats->GetBinContent(4, 4)) / proj->GetBinContent(4);
+  Float_t vtxDD = 100. * (stats->GetBinContent(5, 3) + stats->GetBinContent(5, 4)) / proj->GetBinContent(5);
+  Printf("ND  = %.1f", vtxND);
+  Printf("SD  = %.1f", vtxSD);
+  Printf("DD  = %.1f", vtxDD);
+  
+  Float_t ua5_SD = 0.153;
+  Float_t ua5_DD = 0.080;
+  Float_t ua5_ND = 0.767;
+  
+  Float_t vtxINELUA5 = ua5_SD * vtxSD + ua5_DD * vtxDD + ua5_ND * vtxND;
+  Float_t vtxNSDUA5  = (ua5_DD * vtxDD + ua5_ND * vtxND) / (ua5_DD + ua5_ND);
+  Printf("INEL (UA5)  = %.1f", vtxINELUA5);
+  Printf("NSD (UA5)  = %.1f", vtxNSDUA5);
+  
   Printf("+++ TRIGGER + VERTEX EFFICIENCIES +++");
   
   Printf("INEL = %.1f", 100. * stats->GetBinContent(1, 4) / proj->GetBinContent(1));
@@ -2864,6 +2890,8 @@ void PrintEventStats(Int_t corrID = 3)
   Printf("ND  = %.1f",  100. * stats->GetBinContent(3, 4) / proj->GetBinContent(3));
   Printf("SD  = %.1f",  100. * stats->GetBinContent(4, 4) / proj->GetBinContent(4));
   Printf("DD  = %.1f",  100. * stats->GetBinContent(5, 4) / proj->GetBinContent(5));
+  
+  
   
   for (Int_t i=7; i<=proj->GetNbinsX(); i++)
     if (proj->GetBinContent(i) > 0)
@@ -3030,6 +3058,8 @@ void VertexDistributions()
   temphist = dNdEtaCorrection->GetCorrection(AlidNdEtaCorrection::kINEL)->GetEventCorrection()->GetGeneratedHistogram();
   //temphist = dNdEtaCorrection->GetCorrection(AlidNdEtaCorrection::kINEL)->GetEventCorrection()->GetMeasuredHistogram();
   
+  temphist = (TH2*) gFile->Get("fTemp1");
+  
   new TCanvas;
   legend = new TLegend(0.7, 0.7, 0.99, 0.99);
   legend->SetFillColor(0);
@@ -3038,6 +3068,7 @@ void VertexDistributions()
   for (Int_t i=0; i<20; i+=5)
   {
     highmult = temphist->ProjectionX("highmult", i+1, i+1+4);
+    highmult->Rebin(10);
     Printf("%f", highmult->Integral());
     if (highmult->Integral() <= 0)
       continue;
@@ -3094,4 +3125,251 @@ void PlotPt1DCorrection()
   }
   
   legend->Draw();
+}
+
+void FitDiamond()
+{
+  TFile::Open("analysis_esd_raw.root");
+  
+  hist = (TH3*) gFile->Get("vertex_check");
+  
+  gStyle->SetOptFit(1);
+  
+  TH1* proj[3];
+  proj[0] = hist->ProjectionX();
+  proj[1] = hist->ProjectionY();
+  proj[2] = hist->ProjectionZ();
+  
+  for (Int_t i=0; i<3; i++)
+  {
+    c = new TCanvas;
+    proj[i]->Draw();
+    proj[i]->Fit("gaus");
+    
+    c->SaveAs(Form("FitDiamond_%d.png", i));
+  }
+}
+
+void FitDiamondVsMult()
+{
+  TFile::Open("analysis_esd_raw.root");
+  
+  fVertexVsMult = (TH3*) gFile->Get("fVertexVsMult");
+  fVertexVsMult->GetZaxis()->SetTitle("multiplicity");
+  
+  TH2* proj[2];
+  proj[0] = (TH2*) fVertexVsMult->Project3D("xz");
+  proj[1] = (TH2*) fVertexVsMult->Project3D("yz");
+  
+  gStyle->SetPadGridX(kTRUE);
+  gStyle->SetPadGridY(kTRUE);
+  
+  Int_t max = 40;
+  
+  for (Int_t i=0; i<2; i++)
+  {
+    proj[i]->Rebin2D(4, 1);
+    proj[i]->FitSlicesY();
+    
+    c = new TCanvas(Form("c_%d", i), Form("c_%d", i), 800, 400);
+    c->Divide(2, 1);
+    
+    c->cd(1);
+    hist = (TH1*) gROOT->FindObject(Form("fVertexVsMult_%sz_1", (i == 0) ? "x" : "y"));
+    hist->GetXaxis()->SetRangeUser(0, max);
+    hist->GetYaxis()->SetRangeUser(-0.4, 0.4);
+    hist->Draw();
+    
+    c->cd(2);
+    hist = (TH1*) gROOT->FindObject(Form("fVertexVsMult_%sz_2", (i == 0) ? "x" : "y"));
+    hist->GetXaxis()->SetRangeUser(0, max);
+    hist->GetYaxis()->SetRangeUser(0, 0.2);
+    hist->Draw();
+    
+    c->SaveAs(Form("FitDiamondVsMult_%d.png", i));
+  }
+}
+
+void CompareQualityHists(const char* fileName1, const char* fileName2, const char* plotName, Int_t rebin1 = 1, Int_t rebin2 = 1, const char* exec = 0)
+{
+  file1 = TFile::Open(fileName1);
+  hist1 = (TH1*) file1->Get(plotName);
+  
+  file2 = TFile::Open(fileName2);
+  hist2 = (TH1*) file2->Get(plotName);
+  
+  if (exec)
+  {
+    hist1 = (TH1*) gROOT->ProcessLine(Form(exec, hist1, "hist1a"));
+    hist2 = (TH1*) gROOT->ProcessLine(Form(exec, hist2, "hist2a"));
+  }
+  
+  CompareQualityHists(hist1, hist2, rebin1, rebin2);
+}
+
+void CompareQualityHists(TH1* hist1, TH1* hist2, Int_t rebin1 = 1, Int_t rebin2 = 1)
+{
+  hist1->SetLineColor(1);
+  hist2->SetLineColor(2);
+ 
+  if (rebin1 != 0 && rebin2 != 0)
+  { 
+    hist1->Rebin(TMath::Abs(rebin1));
+    hist2->Rebin(TMath::Abs(rebin2));
+  }
+  
+  if (rebin1 > 0 && rebin2 > 0)
+  {
+    hist1->Scale(hist2->Integral() / hist1->Integral() / rebin1 * rebin2);
+  
+    //hist1->Scale(0.5);
+    //hist2->Scale(0.5);
+  }
+
+  c = new TCanvas;
+  hist1->GetYaxis()->SetRangeUser(0, hist1->GetMaximum() * 1.3);
+  hist1->DrawCopy();
+  hist2->DrawCopy("SAME");
+  c->SaveAs(Form("%s_1.png", hist1->GetName()));
+  
+  for (Int_t i=1; i<=hist1->GetNbinsX(); i++)
+    if (hist1->GetBinContent(i) == 0 && hist2->GetBinContent(i) > 0 || hist1->GetBinContent(i) > 0 && hist2->GetBinContent(i) == 0)
+      Printf("Inconsistent bin %d: %f %f", i, hist1->GetBinContent(i), hist2->GetBinContent(i));
+  
+  if (rebin1 == rebin2)
+  {
+    c2 = new TCanvas;
+    hist1->Divide(hist2);
+    hist1->DrawCopy();
+    c2->SaveAs(Form("%s_2.png", hist1->GetName()));
+    
+    for (Int_t i=1; i<=hist1->GetNbinsX(); i++)
+      if (hist1->GetBinContent(i) > 0.9 && hist1->GetBinContent(i) < 1.1)
+        hist1->SetBinContent(i, 0);
+        
+    new TCanvas;
+    hist1->SetMarkerStyle(20);
+    hist1->DrawCopy("P");
+  }
+}
+
+void DrawClustersVsTracklets()
+{
+  TFile::Open("analysis_esd_raw.root");
+  
+  hist = (TH2*) gFile->Get("fTrackletsVsClusters");
+  
+  c = new TCanvas("c", "c", 600, 600);
+  c->SetRightMargin(0.05);
+  c->SetTopMargin(0.05);
+  
+  hist->SetStats(0);
+  hist->GetYaxis()->SetRangeUser(0, 400);
+  hist->GetYaxis()->SetTitleOffset(1.3);
+  hist->GetXaxis()->SetRangeUser(0, 30);
+  hist->Draw("BOX");
+  
+  func = new TF1("func", "80 + x * 11", 0, 30);
+  func->Draw("SAME");
+  
+  c->SaveAs("clusters_vs_tracklets.eps");
+}
+  
+void VertexPlotBackgroundNote()
+{
+  TFile::Open("all.root");
+  
+  hist = (TH3*) gFile->Get("vertex_check");
+  proj = (TH1*) hist->ProjectionZ()->Clone("all");
+  proj->Rebin(2);
+  
+  proj->Draw();
+  
+  TFile::Open("analysis_esd_raw.root");
+  hist = (TH3*) gFile->Get("vertex_check");
+  proj = (TH1*) hist->ProjectionZ()->Clone("afterbg");
+  proj->Rebin(2);
+  
+  proj->SetLineColor(2);
+  proj->Draw("SAME");
+  
+  
+}
+
+void BackgroundAnalysis(const char* signal, const char* background)
+{
+  TFile::Open(signal);
+  signalHist = (TH2*) gFile->Get("fTrackletsVsClusters");
+  
+  TFile::Open(background);
+  backgroundHist = (TH2*) gFile->Get("fTrackletsVsClusters");
+  
+  Printf("For events with >= 1 tracklet:");
+  
+  func = new TF1("func", "[0] + x * 11", 0, 30);
+  for (Int_t a = 50; a <= 100; a += 10)
+  {
+    func->SetParameter(0, a);
+    
+    Float_t signalCount = 0;
+    Float_t backgroundCount = 0;
+    for (Int_t x = 2; x <= signalHist->GetNbinsX(); x++)
+    {
+      signalCount += signalHist->Integral(x, x, signalHist->GetYaxis()->FindBin(func->Eval(signalHist->GetXaxis()->GetBinCenter(x))), signalHist->GetNbinsY());
+      backgroundCount += backgroundHist->Integral(x, x, signalHist->GetYaxis()->FindBin(func->Eval(signalHist->GetXaxis()->GetBinCenter(x))), signalHist->GetNbinsY());
+    }
+    
+    Float_t signalFraction = 100.0 * signalCount / signalHist->Integral(2, signalHist->GetNbinsX(), 1, signalHist->GetNbinsY());
+    Float_t backgroundFraction = 100.0 * backgroundCount / backgroundHist->Integral(2, signalHist->GetNbinsX(), 1, signalHist->GetNbinsY());
+    
+    Printf("Cut at a = %d; Removed %.2f %% of the background (%.0f events); Removed %.2f %% of the signal", a, backgroundFraction, backgroundCount, signalFraction);
+  }
+}
+
+void ZPhiPlots()
+{
+  TFile::Open("analysis_esd_raw.root");
+  
+  for (Int_t i=0; i<2; i++)
+  {  
+    hist = (TH2*) gFile->Get(Form("fZPhi_%d", i));
+    
+    c = new TCanvas;
+    hist->SetStats(0);
+    hist->Draw("COLZ");
+    c->SaveAs(Form("ZPhi_%d.png", i));
+  }
+}
+
+void DrawStats(Bool_t all = kFALSE)
+{
+  if (all)
+  {
+    Int_t count = 4;
+    const char* list[] = { "CINT1B-ABCE-NOPF-ALL/spd", "CINT1A-ABCE-NOPF-ALL/spd", "CINT1C-ABCE-NOPF-ALL/spd", "CINT1-E-NOPF-ALL/spd" };
+  }
+  else
+  {
+    Int_t count = 1;
+    const char* list[] = { "." };
+  }
+  
+  for (Int_t i=0; i<count; i++)
+  {
+    TFile::Open(Form("%s/analysis_esd_raw.root", list[i]));
+  
+    hist = (TH2*) gFile->Get("fStats2");
+    
+    c = new TCanvas(list[i], list[i], 800, 600);
+    gPad->SetBottomMargin(0.2);
+    gPad->SetLeftMargin(0.2);
+    gPad->SetRightMargin(0.2);
+    hist->Draw("TEXT");
+    hist->SetMarkerSize(2);
+    //hist->GetYaxis()->SetRangeUser(0, 0);
+    
+    gROOT->Macro("increaseFonts.C");
+  
+    c->SaveAs(Form("%s/stats.png", list[i]));
+  }
 }

@@ -42,6 +42,7 @@
 #include "TInterpreter.h"
 #include "TDatime.h"
 #include "TClass.h"
+#include "TNamed.h"
 #include <fstream>
 #include <cerrno>
 #include <cassert>
@@ -70,7 +71,6 @@ AliHLTGlobalTriggerComponent::AliHLTGlobalTriggerComponent() :
 	fTrigger(NULL),
 	fDebugMode(false),
 	fRuntimeCompile(true),
-	fSkipCTPCounters(false),
 	fDeleteCodeFile(false),
 	fCodeFileName(),
 	fClassName(),
@@ -79,7 +79,9 @@ AliHLTGlobalTriggerComponent::AliHLTGlobalTriggerComponent() :
 	fBufferSizeMultiplier(1.),
 	fIncludePaths(TObjString::Class()),
 	fIncludeFiles(TObjString::Class()),
-	fLibStateAtLoad()
+	fLibStateAtLoad(),
+	fBits(0),
+	fDataEventsOnly(true)
 {
   // Default constructor.
   
@@ -97,6 +99,13 @@ AliHLTGlobalTriggerComponent::~AliHLTGlobalTriggerComponent()
     fCTPDecisions->Delete();
     delete fCTPDecisions;
   }
+}
+
+
+void AliHLTGlobalTriggerComponent::GetOutputDataTypes(AliHLTComponentDataTypeList& list) const
+{
+  // Returns the kAliHLTDataTypeGlobalTrigger type as output.
+  list.push_back(kAliHLTDataTypeGlobalTrigger);
 }
 
 
@@ -121,6 +130,8 @@ Int_t AliHLTGlobalTriggerComponent::DoInit(int argc, const char** argv)
   const char* codeFileName = NULL;
   fIncludePaths.Clear();
   fIncludeFiles.Clear();
+  SetBit(kIncludeInput);
+  fDataEventsOnly = true;
   
   for (int i = 0; i < argc; i++)
   {
@@ -149,7 +160,15 @@ Int_t AliHLTGlobalTriggerComponent::DoInit(int argc, const char** argv)
         HLTError("The include path was not specified." );
         return -EINVAL;
       }
-      new (fIncludePaths[fIncludePaths.GetEntriesFast()]) TObjString(argv[i+1]);
+      try
+      {
+        new (fIncludePaths[fIncludePaths.GetEntriesFast()]) TObjString(argv[i+1]);
+      }
+      catch (const std::bad_alloc&)
+      {
+        HLTError("Could not allocate more memory for the fIncludePaths array.");
+        return -ENOMEM;
+      }
       i++;
       continue;
     }
@@ -161,7 +180,15 @@ Int_t AliHLTGlobalTriggerComponent::DoInit(int argc, const char** argv)
         HLTError("The include file name was not specified." );
         return -EINVAL;
       }
-      new (fIncludeFiles[fIncludeFiles.GetEntriesFast()]) TObjString(argv[i+1]);
+      try
+      {
+        new (fIncludeFiles[fIncludeFiles.GetEntriesFast()]) TObjString(argv[i+1]);
+      }
+      catch (const std::bad_alloc&)
+      {
+        HLTError("Could not allocate more memory for the fIncludeFiles array.");
+        return -ENOMEM;
+      }
       i++;
       continue;
     }
@@ -209,10 +236,61 @@ Int_t AliHLTGlobalTriggerComponent::DoInit(int argc, const char** argv)
     if (strcmp(argv[i], "-skipctp") == 0)
     {
       HLTInfo("Skipping CTP counters in trigger decision");
-      fSkipCTPCounters=true;
+      SetBit(kSkipCTP);
       continue;
     }
-        
+
+    if (strcmp(argv[i], "-forward-input") == 0)
+    {
+      HLTInfo("Forwarding input objects and trigger decisions");
+      SetBit(kForwardInput);
+      SetBit(kIncludeShort);
+      SetBit(kIncludeInput, false);
+      continue;
+    }
+
+    if (strstr(argv[i], "-include-input") == argv[i])
+    {
+      SetBit(kForwardInput,false);
+      TString param=argv[i];
+      param.ReplaceAll("-include-input", "");
+      if (param.CompareTo("=none")==0) 
+      {
+        HLTInfo("skipping objects and trigger decisions");
+        SetBit(kIncludeShort, false);
+        SetBit(kIncludeInput, false);
+      }
+      else if (param.CompareTo("=short")==0) 
+      {
+        HLTInfo("including short info on objects and trigger decisions");
+        SetBit(kIncludeShort);
+        SetBit(kIncludeInput, false);
+      }
+      else if (param.CompareTo("=both")==0) 
+      {
+        HLTInfo("including input objects, trigger decisions and short info");
+        SetBit(kIncludeShort);
+        SetBit(kIncludeInput);
+      }
+      else if (param.CompareTo("=objects")==0 || param.IsNull())
+      {
+        HLTInfo("including input objects and trigger decisions");
+        SetBit(kIncludeShort, false);
+        SetBit(kIncludeInput);
+      }
+      else
+      {
+        HLTError("unknown parameter '%s' for argument '-include-input'", param.Data());
+      }
+      continue;
+    }
+
+    if (strcmp(argv[i], "-process-all-events") == 0)
+    {
+      fDataEventsOnly = false;
+      continue;
+    }
+    
     HLTError("Unknown option '%s'.", argv[i]);
     return -EINVAL;
   } // for loop
@@ -251,7 +329,15 @@ Int_t AliHLTGlobalTriggerComponent::DoInit(int argc, const char** argv)
   }
   if (result != 0) return result;
   
-  fTrigger = AliHLTGlobalTrigger::CreateNew(fClassName.Data());
+  try
+  {
+    fTrigger = AliHLTGlobalTrigger::CreateNew(fClassName.Data());
+  }
+  catch (const std::bad_alloc&)
+  {
+    HLTError("Could not allocate memory for the AliHLTGlobalTrigger instance.");
+    return -ENOMEM;
+  }
   if (fTrigger == NULL)
   {
     HLTError("Could not create a new instance of '%s'.", fClassName.Data());
@@ -306,8 +392,17 @@ Int_t AliHLTGlobalTriggerComponent::DoDeinit()
 AliHLTComponent* AliHLTGlobalTriggerComponent::Spawn()
 {
   // Creates a new object instance.
-  
-  return new AliHLTGlobalTriggerComponent;
+  AliHLTComponent* comp = NULL;
+  try
+  {
+    comp = new AliHLTGlobalTriggerComponent;
+  }
+  catch (const std::bad_alloc&)
+  {
+    HLTError("Could not allocate memory for a new instance of AliHLTGlobalTriggerComponent.");
+    return NULL;
+  }
+  return comp;
 }
 
 
@@ -324,7 +419,11 @@ int AliHLTGlobalTriggerComponent::DoTrigger()
   AliHLTUInt32_t eventType=0;
   if (!IsDataEvent(&eventType)) {
     if (eventType==gkAliEventTypeEndOfRun) PrintStatistics(fTrigger, kHLTLogImportant, 0);
-    return 0;
+    if (fDataEventsOnly)
+    {
+      IgnoreEvent();
+      return 0;
+    }
   }
 
   // Copy the trigger counters in case we need to set them back to their original
@@ -380,15 +479,32 @@ int AliHLTGlobalTriggerComponent::DoTrigger()
   
   static UInt_t lastTime=0;
   TDatime time;
-  if (time.Get()-lastTime>5) {
+  if (time.Get()-lastTime>60) {
     lastTime=time.Get();
-    PrintStatistics(fTrigger);
+    PrintStatistics(fTrigger, kHLTLogImportant);
   }
   
   // Add the input objects used to the global decision.
+  TClonesArray* pShortInfo=NULL;
+  if (TestBit(kIncludeShort)) {
+    try
+    {
+      pShortInfo=new TClonesArray(TNamed::Class(), GetNumberOfInputBlocks());
+    }
+    catch (const std::bad_alloc&)
+    {
+      HLTError("Could not allocate memory for a short list of input objects.");
+      delete pShortInfo;
+      return -ENOMEM;
+    }
+  }
   obj = GetFirstInputObject();
   while (obj != NULL)
   {
+    if (TestBit(kForwardInput)) {
+      Forward(obj);
+    }
+    if (TestBit(kIncludeInput)) {
     if (obj->IsA() == AliHLTTriggerDecision::Class())
     {
       decision.AddTriggerInput( *static_cast<const AliHLTTriggerDecision*>(obj) );
@@ -397,13 +513,45 @@ int AliHLTGlobalTriggerComponent::DoTrigger()
     {
       decision.AddInputObject(obj);
     }
+    }
+
+    if (TestBit(kIncludeShort)) {
+      int entries=pShortInfo->GetEntriesFast();
+      try
+      {
+        new ((*pShortInfo)[entries]) TNamed(obj->GetName(), obj->GetTitle());
+      }
+      catch (const std::bad_alloc&)
+      {
+        HLTError("Could not allocate more memory for the short list of input objects.");
+        delete pShortInfo;
+        return -ENOMEM;
+      }
+      if (obj->IsA() == AliHLTTriggerDecision::Class()) {
+	(*pShortInfo)[entries]->SetBit(BIT(16)); // indicate that this is a trigger decision
+	(*pShortInfo)[entries]->SetBit(BIT(15), ((AliHLTTriggerDecision*)obj)->Result());
+      }
+    }
+
     obj = GetNextInputObject();
   }
+  if (pShortInfo) {
+    decision.AddInputObject(pShortInfo);
+    pShortInfo->Delete();
+    delete pShortInfo;
+    pShortInfo=NULL;
+  }
 
-  if (!fSkipCTPCounters && CTPData()) decision.AddInputObject(CTPData());
+  if (!TestBit(kSkipCTP) && CTPData()) decision.AddInputObject(CTPData());
 
+  // add readout filter to event done data
   CreateEventDoneReadoutFilter(decision.TriggerDomain(), 3);
+  // add monitoring filter to event done data
   CreateEventDoneReadoutFilter(decision.TriggerDomain(), 4);
+  if (decision.Result()) {
+    // add monitoring event command for triggered events
+    CreateEventDoneReadoutFilter(decision.TriggerDomain(), 5);
+  }
   if (TriggerEvent(&decision) == -ENOSPC)
   {
     // Increase the estimated buffer space required if the PushBack methods in TriggerEvent
@@ -440,7 +588,16 @@ int AliHLTGlobalTriggerComponent::Reconfigure(const char* cdbEntry, const char* 
   result = GenerateTrigger(menu, className, codeFileName, fIncludePaths, fIncludeFiles);
   if (result != 0) return result;
   
-  AliHLTGlobalTrigger* trigger = AliHLTGlobalTrigger::CreateNew(className.Data());
+  AliHLTGlobalTrigger* trigger = NULL;
+  try
+  {
+    trigger = AliHLTGlobalTrigger::CreateNew(className.Data());
+  }
+  catch (const std::bad_alloc&)
+  {
+    HLTError("Could not allocate memory for the AliHLTGlobalTrigger instance.");
+    return -ENOMEM;
+  }
   if (trigger == NULL)
   {
     HLTError("Could not create a new instance of '%s'.", className.Data());
@@ -686,11 +843,11 @@ int AliHLTGlobalTriggerComponent::GenerateTrigger(
   for (Int_t i = 0; i < symbols.GetEntriesFast(); i++)
   {
     AliHLTTriggerMenuSymbol* symbol = static_cast<AliHLTTriggerMenuSymbol*>( symbols.UncheckedAt(i) );
-    code << "      if (strcmp(symbol->Name(), \"" << symbol->RealName() << "\") == 0) {" << endl;
+    code << "      if (strcmp(symbol->RealName(), \"" << symbol->RealName() << "\") == 0) {" << endl;
     if (fDebugMode)
     {
       code << "        HLTDebug(Form(\"Assinging domain entry value corresponding with symbol '%s' to '%s'.\","
-              " symbol->Name(), symbol->BlockType().AsString().Data()));" << endl;
+              " symbol->RealName(), symbol->BlockType().AsString().Data()));" << endl;
     }
     code << "        " << symbol->Name() << "DomainEntry = symbol->BlockType();" << endl;
     code << "        continue;" << endl;
@@ -739,7 +896,25 @@ int AliHLTGlobalTriggerComponent::GenerateTrigger(
   code << "  }" << endl;
   
   // Generate the Add method.
-  code << "  virtual void Add(const TObject* _object_, const AliHLTComponentDataType& _type_, AliHLTUInt32_t _spec_) {" << endl;
+  bool haveAssignments = false;
+  for (Int_t i = 0; i < symbols.GetEntriesFast(); i++)
+  {
+    // First check if we have any symbols with assignment expressions.
+    // This is needed to get rid of the on the fly compilation warning about '_object_' not being used.
+    AliHLTTriggerMenuSymbol* symbol = static_cast<AliHLTTriggerMenuSymbol*>( symbols.UncheckedAt(i) );
+    TString expr = symbol->AssignExpression();
+    if (expr == "") continue; // Skip entries that have no assignment expression.
+    haveAssignments = true;
+    break;
+  }
+  if (haveAssignments or fDebugMode)
+  {
+    code << "  virtual void Add(const TObject* _object_, const AliHLTComponentDataType& _type_, AliHLTUInt32_t _spec_) {" << endl;
+  }
+  else
+  {
+    code << "  virtual void Add(const TObject* /*_object_*/, const AliHLTComponentDataType& _type_, AliHLTUInt32_t _spec_) {" << endl;
+  }
   if (fDebugMode)
   {
     code << "#ifdef __CINT__" << endl;
@@ -1268,6 +1443,12 @@ int AliHLTGlobalTriggerComponent::BuildSymbolList(const AliHLTTriggerMenu* menu,
   // implementation class.
   // See header for more details.
   
+  // Note: when we build the symbol list we must use the symbol name as returned
+  // by the Name() method and not the RealName() method when using FindSymbol.
+  // This is so that we avoid problems with the generated code not compiling
+  // because names like "abc-xyz" and "abc_xyz" are synonymous.
+  // Name() returns the converted C++ symbol name as used in the generated code.
+  
   for (UInt_t i = 0; i < menu->NumberOfSymbols(); i++)
   {
     const AliHLTTriggerMenuSymbol* symbol = menu->Symbol(i);
@@ -1276,7 +1457,15 @@ int AliHLTGlobalTriggerComponent::BuildSymbolList(const AliHLTTriggerMenu* menu,
       HLTError("Multiple symbols with the name '%s' defined in the trigger menu.", symbol->Name());
       return -EIO;
     }
-    new (list[list.GetEntriesFast()]) AliHLTTriggerMenuSymbol(*symbol);
+    try
+    {
+      new (list[list.GetEntriesFast()]) AliHLTTriggerMenuSymbol(*symbol);
+    }
+    catch (const std::bad_alloc&)
+    {
+      HLTError("Could not allocate more memory for the symbols list when adding a trigger menu symbol.");
+      return -ENOMEM;
+    }
   }
   
   TRegexp exp("[_a-zA-Z][-_a-zA-Z0-9]*");
@@ -1323,15 +1512,25 @@ int AliHLTGlobalTriggerComponent::BuildSymbolList(const AliHLTTriggerMenu* menu,
         continue;
       }
 
-      if (FindSymbol(s.Data(), list) == -1)
+      // Need to create the symbols first and check if its name is in the list
+      // before actually adding it to the symbols list.
+      AliHLTTriggerMenuSymbol newSymbol;
+      newSymbol.Name(s.Data());
+      newSymbol.Type("bool");
+      newSymbol.ObjectClass("AliHLTTriggerDecision");
+      newSymbol.AssignExpression("this->Result()");
+      newSymbol.DefaultValue("false");
+      if (FindSymbol(newSymbol.Name(), list) == -1)
       {
-        AliHLTTriggerMenuSymbol newSymbol;
-        newSymbol.Name(s.Data());
-        newSymbol.Type("bool");
-        newSymbol.ObjectClass("AliHLTTriggerDecision");
-        newSymbol.AssignExpression("this->Result()");
-        newSymbol.DefaultValue("false");
-        new (list[list.GetEntriesFast()]) AliHLTTriggerMenuSymbol(newSymbol);
+        try
+        {
+          new (list[list.GetEntriesFast()]) AliHLTTriggerMenuSymbol(newSymbol);
+        }
+        catch (const std::bad_alloc&)
+        {
+          HLTError("Could not allocate more memory for the symbols list when adding a trigger name symbol.");
+          return -ENOMEM;
+        }
       }
     }
     while (start < str.Length());
@@ -1420,10 +1619,26 @@ int AliHLTGlobalTriggerComponent::AddCTPDecisions(AliHLTGlobalTrigger* pTrigger,
   AliHLTUInt64_t triggerMask=pCTPData->Mask();
   AliHLTUInt64_t bit0=0x1;
   if (!fCTPDecisions) {
-    fCTPDecisions=new TClonesArray(AliHLTTriggerDecision::Class(), gkNCTPTriggerClasses);
+    try
+    {
+      fCTPDecisions=new TClonesArray(AliHLTTriggerDecision::Class(), gkNCTPTriggerClasses);
+    }
+    catch (const std::bad_alloc&)
+    {
+      HLTError("Could not allocate memory for the CTP decisions array.");
+      return -ENOMEM;
+    }
     if (!fCTPDecisions) return -ENOMEM;
 
-    fCTPDecisions->ExpandCreate(gkNCTPTriggerClasses);
+    try
+    {
+      fCTPDecisions->ExpandCreate(gkNCTPTriggerClasses);
+    }
+    catch (const std::bad_alloc&)
+    {
+      HLTError("Could not allocate more memory for the CTP decisions array.");
+      return -ENOMEM;
+    }
     for (int i=0; i<gkNCTPTriggerClasses; i++) {
       const char* name=pCTPData->Name(i);
       if (triggerMask&(bit0<<i) && name) {

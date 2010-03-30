@@ -3,7 +3,8 @@
 
 ###############################################################################
 
-CLASS_HDRS := 	OfflineInterface/AliHLTMUONAgent.h \
+CLASS_HDRS := 	AliHLTMUONUtils.h \
+		OfflineInterface/AliHLTMUONAgent.h \
 		OfflineInterface/AliHLTMUONTriggerRecordsSource.h \
 		OfflineInterface/AliHLTMUONRecHitsSource.h \
 		OfflineInterface/AliHLTMUONDigitPublisherComponent.h \
@@ -12,12 +13,13 @@ CLASS_HDRS := 	OfflineInterface/AliHLTMUONAgent.h \
 		OnlineAnalysis/AliHLTMUONTriggerReconstructorComponent.h \
 		OnlineAnalysis/AliHLTMUONHitReconstructorComponent.h \
 		OnlineAnalysis/AliHLTMUONMansoTrackerFSMComponent.h \
+		OnlineAnalysis/AliHLTMUONFullTrackerComponent.h \
 		OnlineAnalysis/AliHLTMUONDecisionComponent.h \
 		OnlineAnalysis/AliHLTMUONClusterFinderComponent.h \
 		utils/AliHLTMUONEmptyEventFilterComponent.h \
 		utils/AliHLTMUONDataCheckerComponent.h \
 		utils/AliHLTMUONRawDataHistoComponent.h \
-		AliHLTMUONUtils.h \
+		utils/AliHLTMUONClusterHistoComponent.h \
 		AliHLTMUONConstants.h \
 		AliHLTMUONProcessor.h \
 		AliHLTMUONRecHit.h \
@@ -35,12 +37,14 @@ MODULE_SRCS :=	$(CLASS_HDRS:.h=.cxx) \
 		AliHLTMUONChannelsBlockStruct.cxx \
 		AliHLTMUONMansoTracksBlockStruct.cxx \
 		AliHLTMUONMansoCandidatesBlockStruct.cxx \
+		AliHLTMUONTracksBlockStruct.cxx \
 		AliHLTMUONSinglesDecisionBlockStruct.cxx \
 		AliHLTMUONPairsDecisionBlockStruct.cxx \
 		OnlineAnalysis/AliHLTMUONCalculations.cxx \
 		OnlineAnalysis/AliHLTMUONTriggerReconstructor.cxx \
 		OnlineAnalysis/AliHLTMUONHitReconstructor.cxx \
-		OnlineAnalysis/AliHLTMUONMansoTrackerFSM.cxx
+		OnlineAnalysis/AliHLTMUONMansoTrackerFSM.cxx \
+		OnlineAnalysis/AliHLTMUONFullTracker.cxx
 
 MODULE_HDRS := 	$(MODULE_SRCS:.cxx=.h) \
 		AliHLTMUONDataBlockReader.h \

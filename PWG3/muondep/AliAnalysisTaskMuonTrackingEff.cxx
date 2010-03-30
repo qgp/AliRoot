@@ -28,6 +28,7 @@
 #include <TH2F.h>
 #include <TH1F.h>
 #include <TMath.h>
+#include "Riostream.h"
 
 //ANALYSIS includes
 #include "AliAnalysisManager.h"
@@ -57,7 +58,6 @@ const Int_t AliAnalysisTaskMuonTrackingEff::fTotNbrOfChamber  = 10;
 //________________________________________________________________________
 AliAnalysisTaskMuonTrackingEff::AliAnalysisTaskMuonTrackingEff()
   :
-  fIsCosmicData(kFALSE),
   AliAnalysisTask(),
   fTransformer(0x0),
   fESD(0x0),
@@ -66,14 +66,15 @@ AliAnalysisTaskMuonTrackingEff::AliAnalysisTaskMuonTrackingEff()
   fDetEltTTHistList(0x0),
   fChamberEffHistList(0x0),
   fChamberTDHistList(0x0),
-  fChamberTTHistList(0x0)
+  fChamberTTHistList(0x0),
+  fChamberEff(0x0),
+  fIsCosmicData(kFALSE)
 {
 /// Default constructor
 }
 //________________________________________________________________________
 AliAnalysisTaskMuonTrackingEff::AliAnalysisTaskMuonTrackingEff(const AliAnalysisTaskMuonTrackingEff& src)
   :
-  fIsCosmicData(kFALSE),
   AliAnalysisTask(src),
   fTransformer(0x0),
   fESD(0x0),
@@ -82,7 +83,9 @@ AliAnalysisTaskMuonTrackingEff::AliAnalysisTaskMuonTrackingEff(const AliAnalysis
   fDetEltTTHistList(0x0),
   fChamberEffHistList(0x0),
   fChamberTDHistList(0x0),
-  fChamberTTHistList(0x0)
+  fChamberTTHistList(0x0),
+  fChamberEff(0x0),
+  fIsCosmicData(kFALSE)
 {
   /// copy ctor
   src.Copy(*this);
@@ -103,21 +106,23 @@ AliAnalysisTaskMuonTrackingEff::AliAnalysisTaskMuonTrackingEff(const char* name,
 							       const AliMUONGeometryTransformer* transformer,
 							       Bool_t isCosmic)
   :
-  fIsCosmicData(kFALSE),
   AliAnalysisTask(name, "AnalysisTaskESD"),
-  fTransformer(transformer),
+  fTransformer(0x0),
   fESD(0x0),
   fDetEltEffHistList(0x0),
   fDetEltTDHistList(0x0),
   fDetEltTTHistList(0x0),
   fChamberEffHistList(0x0),
   fChamberTDHistList(0x0),
-  fChamberTTHistList(0x0)
+  fChamberTTHistList(0x0),
+  fChamberEff(0x0),
+  fIsCosmicData(kFALSE)
 {
 //Constructor
 //-----------
     
   fIsCosmicData = isCosmic;
+  fTransformer = transformer;
 
 //Define detection element efficiency histograms
 //----------------------------------------------
@@ -262,6 +267,12 @@ AliAnalysisTaskMuonTrackingEff::AliAnalysisTaskMuonTrackingEff(const char* name,
     ((TH1F*) fChamberEffHistList->UncheckedAt(fTotNbrOfChamber + 2)) -> Sumw2();    
     ((TH1F*) fChamberEffHistList->UncheckedAt(fTotNbrOfChamber + 2)) -> SetOption("");    
 
+
+
+    //fChamberEff = new AliCheckMuonDetEltResponse(fTransformer, fESD, fDetEltTDHistList, fDetEltTTHistList, fChamberTDHistList, fChamberTTHistList);
+
+
+
 //Define input & output
 //---------------------
 
@@ -289,6 +300,7 @@ AliAnalysisTaskMuonTrackingEff::~AliAnalysisTaskMuonTrackingEff()
     delete fChamberEffHistList;
     delete fChamberTDHistList;
     delete fChamberTTHistList;
+    delete fChamberEff;
 }
 
 
@@ -323,10 +335,9 @@ void AliAnalysisTaskMuonTrackingEff::Exec(Option_t */*option*/)
 {
 //Execute analysis for current event
     
-   
-    AliCheckMuonDetEltResponse* chamberEff;
-    chamberEff = new AliCheckMuonDetEltResponse(fTransformer, fESD, fDetEltTDHistList, fDetEltTTHistList, fChamberTDHistList, fChamberTTHistList);
-    chamberEff->CheckDetEltResponse();
+  if (fChamberEff == 0x0)
+    fChamberEff = new AliCheckMuonDetEltResponse(fTransformer, fESD, fDetEltTDHistList, fDetEltTTHistList, fChamberTDHistList, fChamberTTHistList);
+  fChamberEff->CheckDetEltResponse();
 
 
     for( Int_t i = 0; i<156; ++i)
@@ -365,7 +376,6 @@ void AliAnalysisTaskMuonTrackingEff::Exec(Option_t */*option*/)
 
     ComputeErrors();
 
-
 //Post the output data:
     PostData(0, fDetEltTDHistList);  
     PostData(1, fDetEltTTHistList);  
@@ -395,7 +405,7 @@ void AliAnalysisTaskMuonTrackingEff::ComputeErrors()
   for (Int_t ii = 0; ii < 10; ii++)
     {
       Int_t NumberOfBins = ((TH1F*) fChamberEffHistList->UncheckedAt(ii))->GetNbinsX();
-      for (Int_t jj = 0; jj < NumberOfBins; jj++)
+      for (Int_t jj = 1; jj <= NumberOfBins; jj++)
 	{
 	  Double_t Ntd = ((TH1F*) fChamberTDHistList->UncheckedAt(ii))->GetBinContent(jj);
 	  Double_t Ntt = ((TH1F*) fChamberTTHistList->UncheckedAt(ii))->GetBinContent(jj);

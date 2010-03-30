@@ -36,6 +36,12 @@ class AliProtonAnalysisBase;
 
 class AliProtonAnalysis : public TObject {
  public:
+  enum {
+    kStepIdentified      = 0,
+    kStepSurvived        = 1,
+    kStepInPhaseSpace    = 2,
+    kNSteps = 3
+  };
   AliProtonAnalysis();
   AliProtonAnalysis(Int_t nbinsY, Float_t fLowY, Float_t fHighY,
 		    Int_t nbinsPt, Float_t fLowPt, Float_t fHighPt);
@@ -58,6 +64,13 @@ class AliProtonAnalysis : public TObject {
   void Analyze(AliAODEvent *fAOD);
   void Analyze(AliStack *stack, Bool_t iInclusive);
   
+  //QA for real data
+  void InitQA();
+  void FillQA(AliESDEvent *esd,
+	      const AliESDVertex *vertex, 
+	      AliESDtrack* track);
+  TList *GetQAList() {return fGlobalQAList;}
+
   AliCFContainer *GetProtonContainer() const {return fProtonContainer;}
   AliCFContainer *GetAntiProtonContainer() const {return fAntiProtonContainer;}
 
@@ -72,6 +85,8 @@ class AliProtonAnalysis : public TObject {
   TH1D *GetProtonCorrectedPtHistogram();
   TH1D *GetAntiProtonCorrectedPtHistogram();
   
+  TH1F *GetEventStatistics() {return fHistEventStats;}
+
   TH1D *GetYRatioHistogram();
   TH1D *GetYRatioCorrectedHistogram(TH2D *gCorrectionMapProtons,
 				    TH2D *gCorrectionMapAntiProtons);
@@ -120,6 +135,7 @@ class AliProtonAnalysis : public TObject {
   TH1I *fHistEvents; //event counter
   TH2D *fHistYPtProtons; //Y-Pt of Protons
   TH2D *fHistYPtAntiProtons; // Y-Pt of Antiprotons
+  TH1F *fHistEventStats;//Event statistics
 
   //Corrections
   TList *fEffGridListProtons; //list for the efficiency grid - protons 
@@ -132,6 +148,15 @@ class AliProtonAnalysis : public TObject {
   TList *fCorrectionListAntiProtons1D; //list for the 1d corrections 
   AliCFDataGrid *fCorrectProtons; //corrected data grid for protons
   AliCFDataGrid *fCorrectAntiProtons; //corrected data grid for antiprotons
+
+  //QA lists
+  TList *fGlobalQAList; //global list
+  TList *fQA2DList; //QA 2D list
+  TList *fQAProtonsAcceptedList; //accepted protons
+  TList *fQAProtonsRejectedList; //rejected protons
+  TList *fQAAntiProtonsAcceptedList; //accepted antiprotons
+  TList *fQAAntiProtonsRejectedList; //rejected antiprotons
+  Bool_t fInitQAFlag;//Init flag
 
   ClassDef(AliProtonAnalysis,1);
 };

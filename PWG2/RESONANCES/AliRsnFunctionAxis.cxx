@@ -175,7 +175,7 @@ void AliRsnFunctionAxis::SetBins(Double_t min, Double_t max, Double_t step)
 }
 
 //_____________________________________________________________________________
-Double_t AliRsnFunctionAxis::Eval(AliRsnDaughter* daughter) const
+Double_t AliRsnFunctionAxis::Eval(AliRsnDaughter*const daughter) const
 {
 //
 // EValuation method for single tracks
@@ -204,6 +204,8 @@ Double_t AliRsnFunctionAxis::Eval(AliRsnPairParticle * const pair, AliRsnPairDef
 // Requires also the pair definitions, in order to retrieve mass.
 //
 
+  Double_t mass = pairDef->GetMotherMass();
+
   switch (fType)
   {
     case kTrack1P:
@@ -230,11 +232,15 @@ Double_t AliRsnFunctionAxis::Eval(AliRsnPairParticle * const pair, AliRsnPairDef
     case kPairEta:
       return pair->GetEta();
     case kPairMt:
-      if (TMath::Abs(fMass) < 1E-5) AliWarning(Form("Suspicious mass value specified: %f", fMass));
-      return TMath::Sqrt(pair->GetPt()*pair->GetPt() + fMass*fMass);
+      //if (TMath::Abs(fMass) < 1E-5) AliWarning(Form("Suspicious mass value specified: %f", fMass));
+      //return TMath::Sqrt(pair->GetPt()*pair->GetPt() + fMass*fMass);
+      if (TMath::Abs(mass) < 1E-5) AliWarning(Form("Suspicious mass value specified: %f", mass));
+      return (TMath::Sqrt(pair->GetPt()*pair->GetPt() + mass*mass) - mass);
     case kPairY:
-      if (TMath::Abs(fMass) < 1E-5) AliWarning(Form("Suspicious mass value specified: %f", fMass));
-      return pair->GetY(fMass);
+      //if (TMath::Abs(fMass) < 1E-5) AliWarning(Form("Suspicious mass value specified: %f", fMass));
+      //return pair->GetY(fMass);
+      if (TMath::Abs(mass) < 1E-5) AliWarning(Form("Suspicious mass value specified: %f", mass));
+      return pair->GetY(mass);
     default:
       AliWarning("This axis type cannot be applied to pairs");
       return -999.0;

@@ -302,7 +302,7 @@ void AliT0Digitizer::Exec(Option_t* /*option*/)
 	  // channel 25ps
 	  qt= al/ph2Mip;  // 50mv/Mip amp in mV 
 	  // before will we have calibration for high multiplicity 
-	  if (qt > 115.) qt =115.; //must be fix!!!
+	  //	  if (qt > 115.) qt =115.; //must be fix!!!
 	  //  fill TDC
 	  timeDelayCFD[i] = fParam->GetTimeDelayCFD(i);
  	  trCFD = Int_t (timeGaus[i]/channelWidth + timeDelayCFD[i]); 
@@ -322,7 +322,7 @@ void AliT0Digitizer::Exec(Option_t* /*option*/)
 	  Float_t slew=fu->Eval(Float_t(qtCh));
 
 	  //	  trCFD=trCFD-Int_t(fMaxValue[i]-slew);
-	  trCFD = trCFD - slew; //for the same channel as cosmic
+	  trCFD = trCFD + slew; //for the same channel as cosmic
 	  ftimeCFD->AddAt(Int_t (trCFD),i);
 	  trLED = Int_t(trCFD  + sl );
 	  ftimeLED->AddAt(trLED,i); 

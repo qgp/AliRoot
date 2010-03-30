@@ -53,6 +53,20 @@ AliHLTTrigger::~AliHLTTrigger()
 }
 
 
+void AliHLTTrigger::GetInputDataTypes(AliHLTComponentDataTypeList& list) const
+{
+  // Returns the kAliHLTAnyDataType type as input.
+  list.push_back(kAliHLTAnyDataType);
+}
+
+
+void AliHLTTrigger::GetOutputDataTypes(AliHLTComponentDataTypeList& list) const
+{
+  // Returns the kAliHLTDataTypeTriggerDecision type as output.
+  list.push_back(kAliHLTDataTypeTriggerDecision);
+}
+
+
 void AliHLTTrigger::GetOutputDataSize(unsigned long& constBase, double& inputMultiplier)
 {
   // Returns output data size estimate.
@@ -124,7 +138,7 @@ int AliHLTTrigger::TriggerEvent(
   if (fTriggerEventResult != 0) return fTriggerEventResult;  // Do not do anything if a previous call failed.
   fTriggerEventResult = PushBack(result, type, spec);
   if (fTriggerEventResult == 0) {
-    fTriggerEventResult = PushBack(result->ReadoutList().Buffer(), result->ReadoutList().BufferSize(), "HLTRDLST", "HLT "/*kAliHLTDataTypeDAQRDOUT|kAliHLTDataOriginOut*/);
+    fTriggerEventResult = PushBack(result->ReadoutList().Buffer(), result->ReadoutList().BufferSize(), kAliHLTDataTypeReadoutList);
   }
   
   if (fTriggerEventResult == 0) fDecisionMade = true;
@@ -151,7 +165,7 @@ int AliHLTTrigger::GetOutputDataTypes(AliHLTComponentDataTypeList& list)
   // of the GetOutputDataTypes method.
   const AliHLTTrigger* t = this;
   t->GetOutputDataTypes(list);
-  list.push_back(kAliHLTDataTypeTObject|kAliHLTDataOriginOut);
+  list.push_back(kAliHLTDataTypeReadoutList);
   return list.size();
 }
 
@@ -159,21 +173,30 @@ int AliHLTTrigger::CreateEventDoneReadoutFilter(const AliHLTTriggerDomain& domai
 {
   // add a readout filter to the EventDoneData
   int iResult=0;
-  unsigned nofEntries=domain.GetNofEntries();
-  // we need:
-  //   1 word eventually for the monitor event command
-  //   1 word for the readout filter command
-  //   1 word for the readout filter size
-  // 4*n words for the filter list
-  if ((iResult=ReserveEventDoneData((nofEntries*4 + 3) * sizeof(AliHLTUInt32_t)))<0) return iResult;
-  AliHLTUInt32_t eddbuffer[4];
-  if (type==4) {
-    // in the case of the monitoring filter we also add the monitor event command
-    eddbuffer[0]=5;
-    if ((iResult=PushEventDoneData(eddbuffer[0]))<0) return iResult;
+  unsigned nofEntries=0;
+  switch (type) {
+  /* readout filter */
+  case 3:
+  /* monitoring filter */
+  case 4:
+    nofEntries=domain.GetNofEntries();
+    break;
+  /* monitoring event command */
+  case 5:
+    break;
+  default:
+    HLTError("unknown event done data command code 0x%08x", type);
+    return -EINVAL;
   }
 
-  // now the readout list command and the block count
+  // we need:
+  //   1 word for the filter command: readout filter, monitoring filter, monitoring event
+  //   1 word for the readout filter size
+  // 4*n words for the filter list
+  if ((iResult=ReserveEventDoneData((nofEntries*4 + 2) * sizeof(AliHLTUInt32_t)))<0) return iResult;
+  AliHLTUInt32_t eddbuffer[4];
+
+  // add the specific command
   eddbuffer[0]=type;
   if ((iResult=PushEventDoneData(eddbuffer[0]))<0) return iResult;
 
@@ -182,15 +205,27 @@ int AliHLTTrigger::CreateEventDoneReadoutFilter(const AliHLTTriggerDomain& domai
   vector<const AliHLTDomainEntry*> entries;
   for (block=0; block<nofEntries; block++) {
     // skip all DAQ readout entries as they are handled by the readout list
-    if (domain[block]==AliHLTDomainEntry(kAliHLTDataTypeDAQRDOUT)) continue;
+    // 2009-12-03: this turned out to cause a bug, since all blocks with data type
+    // id 'any' will also match this condition. In fact, it is not necessary to
+    // filter the entries, disable this condition. Code can be cleaned up later
+    // if this schema has been established and tested
+    // https://savannah.cern.ch/bugs/index.php?60082
+    //if (domain[block]==AliHLTDomainEntry(kAliHLTDataTypeDAQRDOUT)) continue;
     if (domain[block].Exclusive()) {
-      HLTWarning("exclusive trigger domain entries are currently not handled, skipping entry %s", domain[block].AsString().Data());
+      // 2009-12-03 comment out that warning for the moment
+      // there are suddenly exclusive entries in the list
+      // https://savannah.cern.ch/bugs/index.php?60083
+      //HLTWarning("exclusive trigger domain entries are currently not handled, skipping entry %s", domain[block].AsString().Data());
       continue;
     }
     entries.push_back(&(domain[block]));
   }
-  eddbuffer[0]=entries.size();
-  if ((iResult=PushEventDoneData(eddbuffer[0]))<0) return iResult;
+
+  // add the number of blocks if not monitoring event command
+  if (type!=5) {
+    eddbuffer[0]=entries.size();
+    if ((iResult=PushEventDoneData(eddbuffer[0]))<0) return iResult;
+  }
 
   for (vector<const AliHLTDomainEntry*>::iterator entry=entries.begin();
        entry!=entries.end(); entry++) {

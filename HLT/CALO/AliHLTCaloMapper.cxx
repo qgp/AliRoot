@@ -33,11 +33,11 @@
 #include "AliHLTCaloConstantsHandler.h"
 #include "AliHLTCaloConstants.h"
 
-//ClassImp(AliHLTCaloMapper)
+ClassImp(AliHLTCaloMapper);
 
 AliHLTCaloMapper::AliHLTCaloMapper( const unsigned long  specification , TString det) :  
-  AliHLTLogging(), 
   AliHLTCaloConstantsHandler(det),
+  AliHLTLogging(), 
   fHw2geomapPtr(0),
   fCellSize(0),
   fSpecification(specification),
@@ -85,7 +85,7 @@ AliHLTCaloMapper::GetChannelID(const AliHLTUInt32_t spec, const Int_t hadd)
   Short_t index = GetDDLFromSpec(spec);
   if( index < 0 )
     {
-      //      HLTError("Specification 0x%X not consistent with single DDL in PHOS", spec);
+      HLTError("Specification 0x%X not consistent with single DDL in PHOS", spec);
       return index;
     }
   else
@@ -188,6 +188,7 @@ AliHLTCaloMapper::GetDDLFromSpec( const AliHLTUInt32_t spec )
     {
       //   HLTError("Specification %d, not consistent with any DDL in PHOS or EMCAL", spec  );
     }
+
   return tmpIndex;
 }
 

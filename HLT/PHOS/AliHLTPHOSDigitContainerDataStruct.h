@@ -37,7 +37,7 @@ x * without fee, provided that the above copyright notice appears in all   *
 
 #include "Rtypes.h"
 #include "AliHLTPHOSDigitDataStruct.h"
-#include "AliHLTPHOSConstants.h"
+#include "AliHLTPHOSConstant.h"
 
 
 using namespace PhosHLTConst;
@@ -58,7 +58,7 @@ struct AliHLTPHOSDigitContainerDataStruct
   UInt_t fPHOSModule;                                  //COMMENT
 
   /** Array of digits in container */
-  AliHLTPHOSDigitDataStruct fDigitDataStruct[NXCOLUMNSRCU*NZROWSRCU*NGAINS];    //COMMENT
+  AliHLTPHOSDigitDataStruct fDigitDataStruct[1000];    //COMMENT
 
 };
 

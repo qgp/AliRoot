@@ -16,10 +16,12 @@
 #pragma link C++ class AliAnalysisTaskSESelectHF+;
 #pragma link C++ class AliAnalysisTaskSECompareHF+;
 #pragma link C++ class AliAnalysisTaskSEDplus+;
+#pragma link C++ class AliAnalysisTaskSEDs+;
 #pragma link C++ class AliAnalysisTaskSED0Mass+;
-#pragma link C++ class AliAnalysisTaskCharmFraction+;
 #pragma link C++ class AliAnalysisTaskSECharmFraction+;
 #pragma link C++ class AliCFHeavyFlavourTaskMultiVarMultiStep+;
+#pragma link C++ class AliAnalysisTaskSEDStar+;
+#pragma link C++ class AliAnalysisTaskSEDStarJets+;
 #pragma link C++ class AliMultiDimVector+;
 #pragma link C++ class AliSignificanceCalculator+;
 #pragma link C++ class AliHFMassFitter+;

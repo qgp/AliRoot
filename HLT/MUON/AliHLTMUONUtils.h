@@ -3,7 +3,7 @@
 /* Copyright(c) 1998-2007, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
 
-/* $Id$ */
+// $Id$
 
 ///
 /// @file   AliHLTMUONUtils.h
@@ -32,6 +32,8 @@ struct AliHLTMUONMansoTrackStruct;
 struct AliHLTMUONMansoTracksBlockStruct;
 struct AliHLTMUONMansoCandidateStruct;
 struct AliHLTMUONMansoCandidatesBlockStruct;
+struct AliHLTMUONTrackStruct;
+struct AliHLTMUONTracksBlockStruct;
 struct AliHLTMUONTrackDecisionStruct;
 struct AliHLTMUONSinglesDecisionBlockStruct;
 struct AliHLTMUONPairDecisionStruct;
@@ -98,6 +100,15 @@ public:
 		);
 
 	/**
+	 * Returns the detector element ID from the flags bits.
+	 * [in]  @param flags  The flags from an AliHLTMUONRecHitStruct structure.
+	 */
+	static AliHLTUInt16_t GetDetElemIdFromFlags(AliHLTUInt32_t flags)
+	{
+		return flags & 0xFFF;
+	}
+
+	/**
 	 * This packs the given parameters into the bits of a word appropriate
 	 * for AliHLTMUONMansoTrackStruct::fFlags.
 	 * @param sign    The particle sign.
@@ -128,6 +139,32 @@ public:
 	{
 		UnpackTriggerRecordFlags(flags, sign, hitset);
 	}
+
+	/**
+	 * This packs the given parameters into the bits of a word appropriate
+	 * for AliHLTMUONTrackStruct::fFlags.
+	 * @param sign    The particle sign.
+	 * @param hitset  Flags to indicate if the corresponding fHits[i] elements
+	 *                was set/filled.
+	 * @return  Returns the 32 bit packed word.
+	 */
+	static AliHLTUInt32_t PackTrackFlags(
+			AliHLTMUONParticleSign sign, const bool hitset[16]
+		);
+
+	/**
+	 * This unpacks the AliHLTMUONTrackStruct::fFlags bits into
+	 * its component fields.
+	 * @param flags  The flags from an AliHLTMUONTrackStruct structure.
+	 * @param sign    Sets this to the particle sign.
+	 * @param hitset  Sets the array elements to indicate if the corresponding
+	 *                fHits[i] element was set/filled.
+	 */
+	static void UnpackTrackFlags(
+			AliHLTUInt32_t flags, // [in]
+			AliHLTMUONParticleSign& sign, // [out]
+			bool hitset[16] // [out]
+		);
 	
 	/**
 	 * This packs the given parameters into the bits of a word appropriate
@@ -304,7 +341,7 @@ public:
 	 */
 	static bool IsSpecValid(AliHLTUInt32_t spec)
 	{
-		AliHLTUInt32_t mask = ~((1 << 22) - 1);  // First 22 bits indicate DDL number.
+		AliHLTUInt32_t mask = ~AliHLTUInt32_t((1 << 22) - 1);  // First 22 bits indicate DDL number.
 		return (spec & mask) == 0x0;
 	}
 
@@ -314,7 +351,7 @@ public:
 	 */
 	static bool ContainsDataFromTrigger(AliHLTUInt32_t spec)
 	{
-		AliHLTUInt32_t mask = ((1 << 22) - 1) & ~((1 << 20) - 1);
+		AliHLTUInt32_t mask = AliHLTUInt32_t((1 << 22) - 1) & ~AliHLTUInt32_t((1 << 20) - 1);
 		return (spec & mask) != 0x0;
 	}
 
@@ -324,7 +361,7 @@ public:
 	 */
 	static bool ContainsDataFromTracker(AliHLTUInt32_t spec)
 	{
-		AliHLTUInt32_t mask = ((1 << 20) - 1);
+		AliHLTUInt32_t mask = AliHLTUInt32_t((1 << 20) - 1);
 		return (spec & mask) != 0x0;
 	}
 	
@@ -372,6 +409,8 @@ public:
 		kDataWordDifferent, ///< The raw data word is different from the unpacked values.
 		kChiSquareInvalid,  ///< The chi squared value must be a positive value or -1 indicating a fitting error.
 		kMomentumVectorNotZero, ///< The chi sqaured value is set to -1, but momentum vector not zero.
+		kMomentumParamsNotZero, ///< The chi sqaured value is set to -1, but fitted momentum parameters are not zero.
+		kDCAVertexNotZero, ///< The chi sqaured value is set to -1, but DCA vertex is not zero.
 		kRoiRadiusInvalid, ///< The region of interest radius is invalid.
 		kHitNotWithinRoi, ///< A tracks hit is not within the corresponding region of interest.
 		kPtValueNotValid,  ///< The pT value is not positive nor -1 indicating an invalid value.
@@ -523,6 +562,24 @@ public:
 	
 	/**
 	 * Method used to check if the header information corresponds to the
+	 * supposed type of the tracks data block given.
+	 * This method will return either kHeaderContainsWrongType or
+	 * kHeaderContainsWrongRecordWidth as the reason code.
+	 * [in]  \param block  The data block to check.
+	 * [out] \param reason  If this is not NULL, then the variable pointed to
+	 *      by this pointer will be filled with the reason code describing why
+	 *      the header is not valid, if and only if a problem is found with
+	 *      the data.
+	 * \returns  true if there is no problem with the header and false otherwise.
+	 */
+	static bool HeaderOk(const AliHLTMUONTracksBlockStruct& block, WhyNotValid* reason = NULL)
+	{
+		AliHLTUInt32_t count = 1;
+		return HeaderOk(block, reason, count);
+	}
+	
+	/**
+	 * Method used to check if the header information corresponds to the
 	 * supposed type of the single tracks dHLT trigger decision data block.
 	 * This method will return either kHeaderContainsWrongType or
 	 * kHeaderContainsWrongRecordWidth as the reason code.
@@ -598,6 +655,11 @@ public:
 	
 	static bool HeaderOk(
 			const AliHLTMUONMansoCandidatesBlockStruct& block,
+			WhyNotValid* reason, AliHLTUInt32_t& reasonCount
+		);
+	
+	static bool HeaderOk(
+			const AliHLTMUONTracksBlockStruct& block,
 			WhyNotValid* reason, AliHLTUInt32_t& reasonCount
 		);
 	
@@ -893,6 +955,46 @@ public:
 	
 	/**
 	 * This method is used to check more extensively if the integrity of the
+	 * full track structure is OK and returns true in that case.
+	 * [in] \param track  The track structure to check.
+	 * [out] \param reason  If this is not NULL, then it will be filled with
+	 *      the reason code describing why the structure is not valid, if and
+	 *      only if a problem is found with the data.
+	 * \returns  true if there is no problem with the structure and false otherwise.
+	 */
+	static bool IntegrityOk(
+			const AliHLTMUONTrackStruct& track,
+			WhyNotValid* reason = NULL
+		)
+	{
+		AliHLTUInt32_t count = 1;
+		return IntegrityOk(track, reason, count);
+	}
+	
+	/**
+	 * This method is used to check more extensively if the integrity of the
+	 * dHLT raw internal data block is OK and returns true in that case.
+	 * [in] \param block  The track data block to check.
+	 * [out] \param reason  If this is not NULL, then it will be filled with
+	 *      the reason code describing why the data block is not valid, if and
+	 *      only if a problem is found with the data.
+	 * [out] \param recordNum  If this is not NULL, then it will be filled with
+	 *      the number of the Manso track structure that had a problem.
+	 *      This value will only contain a valid value if the method
+	 *      RecordNumberWasSet(*reason) returns true. Thus, 'reason' must be set.
+	 * \returns  true if there is no problem with the data and false otherwise.
+	 */
+	static bool IntegrityOk(
+			const AliHLTMUONTracksBlockStruct& block,
+			WhyNotValid* reason = NULL, AliHLTUInt32_t* recordNum = NULL
+		)
+	{
+		AliHLTUInt32_t count = 1;
+		return IntegrityOk(block, reason, recordNum, count);
+	}
+	
+	/**
+	 * This method is used to check more extensively if the integrity of the
 	 * single track trigger decision structure is OK and returns true in that case.
 	 * [in] \param decision  The trigger decision structure to check.
 	 * [out] \param reason  If this is not NULL, then it will be filled with
@@ -1051,6 +1153,17 @@ public:
 	
 	static bool IntegrityOk(
 			const AliHLTMUONMansoCandidatesBlockStruct& block,
+			WhyNotValid* reason, AliHLTUInt32_t* recordNum,
+			AliHLTUInt32_t& reasonCount
+		);
+	
+	static bool IntegrityOk(
+			const AliHLTMUONTrackStruct& track,
+			WhyNotValid* reason, AliHLTUInt32_t& reasonCount
+		);
+	
+	static bool IntegrityOk(
+			const AliHLTMUONTracksBlockStruct& block,
 			WhyNotValid* reason, AliHLTUInt32_t* recordNum,
 			AliHLTUInt32_t& reasonCount
 		);

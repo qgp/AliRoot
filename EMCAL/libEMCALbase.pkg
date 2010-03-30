@@ -4,7 +4,6 @@ SRCS = \
 AliEMCALGeometry.cxx \
 AliEMCALHit.cxx \
 AliEMCALLoader.cxx \
-AliEMCALShishKebabModule.cxx \
 AliEMCALWsuCosmicRaySetUp.cxx \
 AliEMCALRecPoint.cxx \
 AliEMCALClusterizer.cxx \
@@ -22,22 +21,27 @@ AliCaloCalibPedestal.cxx \
 AliCaloCalibSignal.cxx \
 AliEMCALSurvey.cxx \
 AliEMCALRecParam.cxx \
+AliEMCALSimParam.cxx \
 AliEMCALQAChecker.cxx \
 AliEMCALSpaceFrame.cxx \
-AliEMCALSTURawStream.cxx \
 AliEMCALBiasAPD.cxx \
 AliEMCALCalibAbs.cxx \
 AliEMCALCalibReference.cxx \
 AliEMCALCalibMapAPD.cxx \
-SMcalib/AliEMCALCCUSBRawStream.cxx 
-# AliEMCALShishKebabTrd1Module.cxx \
+SMcalib/AliEMCALCCUSBRawStream.cxx \
+AliEMCALRawDigit.cxx \
+AliEMCALTriggerSTURawStream.cxx \
+AliEMCAL.cxx \
+AliEMCALRawUtils.cxx \
+AliCaloRawAnalyzerFastFit.cxx 
+
 
 
 HDRS= $(SRCS:.cxx=.h) 
 
 DHDR:=EMCALbaseLinkDef.h
 # have to tune
-EINCLUDE:=PYTHIA6 RAW EVGEN THijing 
+EINCLUDE:=PYTHIA6 RAW EVGEN THijing EMCAL/SMcalib
 
 ifeq (win32gcc,$(ALICE_TARGET))
 PACKSOFLAGS:= $(SOFLAGS) -L$(ALICE_ROOT)/lib/tgt_$(ALICE_TARGET) \
@@ -46,3 +50,4 @@ PACKSOFLAGS:= $(SOFLAGS) -L$(ALICE_ROOT)/lib/tgt_$(ALICE_TARGET) \
                          -lRAWDatarec -lRAWDatabase \
                          -L$(ROOTLIBDIR) -lVMC -lGeom -lMinuit
 endif
+

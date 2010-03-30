@@ -233,8 +233,15 @@ AliCDBEntry* AliCDBStorage::Get(const AliCDBId& query) {
     			AliDebug(2, Form("CDB object retrieved: %s", entry->GetId().ToString().Data()));
   	} else {
 		// this is to make the SHUTTLE output lighter
-		if(!(query.GetPath().Contains("SHUTTLE/STATUS")))
-    			AliInfo(Form("No valid CDB object found! request was: %s", query.ToString().Data()));
+		if(!(query.GetPath().Contains("SHUTTLE/STATUS"))){
+
+			if(!(query.GetPath().Contains("SHUTTLE"))){
+				AliFatal(Form("No valid CDB object found! request was: %s", query.ToString().Data()));
+			}
+			else {
+				AliInfo(Form("No valid CDB object found! request was: %s", query.ToString().Data()));
+			}
+		}
   	}
 
 	// if drain storage is set, drain entry into drain storage
@@ -414,9 +421,6 @@ Bool_t AliCDBStorage::Put(AliCDBEntry* entry, AliCDBManager::DataType type) {
 			return 0;
 	}
 
-	// set object's class name into metaData!
-	entry->GetMetaData()->SetObjectClassName(entry->GetObject()->ClassName());
-
 	return PutEntry(entry);
 }
 
@@ -448,7 +452,6 @@ void AliCDBStorage::QueryCDB(Int_t run, const char* pathFilter,
 	if(md) fMetaDataFilter = dynamic_cast<AliCDBMetaData*> (md->Clone());
 
 	QueryValidFiles();
-	AliCDBId queryId(pathFilter,run,run,version);
 
 	AliInfo(Form("%d valid files found!", fValidFileIds.GetEntriesFast()));
 

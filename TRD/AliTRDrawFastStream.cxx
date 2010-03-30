@@ -532,7 +532,6 @@ void AliTRDrawFastStream::ResetPerMCM()
   fMCM.fADCMaskWord = 0;
   fMCM.fADCmax = 0;
   fMCM.fADCcount = 0;
-  fMCM.fMCMADCWords = 0;
   fMCM.fSingleADCwords = 0;
   fMCM.fMCMhdCorrupted = 0;
   fMCM.fADCmaskCorrupted = 0;
@@ -675,7 +674,6 @@ Int_t AliTRDrawFastStream::NextChamber(AliTRDdigitsManager *digitsManager, UInt_
       // Set digitparam variables
       digitsparam = (AliTRDdigitsParam *) digitsManager->GetDigitsParam();
       if (!fIsGlobalDigitsParamSet){
-        digitsparam->SetCheckOCDB(kFALSE);
         digitsparam->SetNTimeBins(ntbins);
 	fCommonAdditive=10;
         digitsparam->SetADCbaseline(fCommonAdditive);
@@ -854,6 +852,7 @@ Bool_t AliTRDrawFastStream::DecodeSMHeader(void *buffer, UInt_t length)
   if (DecodeGTUheader()== kFALSE)
     return kFALSE;
 
+  Int_t nLinkErrors=0;
   for (Int_t istack = 0; istack < 5; istack++) {
      fStackNumber = istack; 
      if (fSM.fStackActive[istack] == kFALSE) continue;
@@ -869,6 +868,7 @@ Bool_t AliTRDrawFastStream::DecodeSMHeader(void *buffer, UInt_t length)
         if (!(fStack->fLinksDataType[ilink] == 0 && fStack->fLinksMonitor[ilink] == 0)) {
           fStack->fLinkMonitorError[ilink] = 1;
           fStack->fLinkMonitorError[ilink] += fNWordsCounter; // counts words of given hc having link monitor error
+          nLinkErrors++;
           //continue;
         }
 
@@ -878,7 +878,7 @@ Bool_t AliTRDrawFastStream::DecodeSMHeader(void *buffer, UInt_t length)
           break;
         }
 
-	      // HLT streamer set det number using SM header 
+	      // set det number using SM header 
         fHC = &fStack->fHalfChambers[ilink];
 	      fHC->fSM = fRawReader->GetEquipmentId() - 1024;
 	      fHC->fStack = fStackNumber;
@@ -892,7 +892,8 @@ Bool_t AliTRDrawFastStream::DecodeSMHeader(void *buffer, UInt_t length)
   }	
 
   // set number of timebin to be used in the digit container 
-  if (!fIsTimeBinSet) {
+  if (nLinkErrors>30) fGlobalNTimeBins=30;
+  else if (!fIsTimeBinSet) {
     fpPosTemp = fpPos;
     SetGlobalNTimebins();
     fIsTimeBinSet = kTRUE;
@@ -1490,7 +1491,6 @@ void AliTRDrawFastStream::DecodeMask(const UInt_t *word, struct AliTRDrawMCM *mc
   //
   // decode the adc mask - adcs to be read out
   //
-  mcm->fMCMADCWords = 0;
   mcm->fSingleADCwords = 0;
   mcm->fADCmax = 0;
   mcm->fADCMask = GetMCMadcMask(word, mcm);
@@ -1518,11 +1518,8 @@ void AliTRDrawFastStream::MCMADCwordsWithTbins(UInt_t fTbins, struct AliTRDrawMC
   //
   //  count the expected mcm words for a given tbins
   //
-  mcm->fMCMADCWords = ( mcm->fADCmax ) * ( fTbins / 3 );
   mcm->fSingleADCwords = 0;
-  if (mcm->fADCmax > 0) {
-    mcm->fSingleADCwords = mcm->fMCMADCWords/mcm->fADCmax;
-  }
+  mcm->fSingleADCwords = (fTbins-1)/3+1;
   if (fTbins > 32) mcm->fSingleADCwords = 10; // if the timebin is more than 30, then fix the number of adc words to 10
 }
 
@@ -1823,7 +1820,11 @@ Bool_t AliTRDrawFastStream::SetNTimebins()
   // skip H0 
   fpPosTemp++;
 
-  UInt_t vword = *fpPosTemp;
+  UInt_t vword = 0;
+  if (!(vword = *fpPosTemp)) {
+    fGlobalNTimeBins = 30; // default number of timebins 
+    return kFALSE;
+  }
 
   // get the number of time bins 
   if (HC_HEADER_MASK_ERR(vword) == 0) {

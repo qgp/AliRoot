@@ -23,7 +23,8 @@
 #define ALIEMCALTRACKER_H
 
 #include "AliTracker.h"
-#include "TMath.h"
+#include <TMath.h>
+#include <TVector3.h>
 class TList;
 class TTree;
 class TObjArray;
@@ -66,7 +67,8 @@ public:
 	void                SetCutNTPC(Double_t value) {fCutNTPC=value;}
 	void                SetNumberOfSteps(Int_t n) {fNPropSteps=n;if(!n)SetTrackCorrectionMode("NONE");}
 	void                SetTrackCorrectionMode(Option_t *option);
-	
+        TVector3            FindExtrapolationPoint(Double_t x, Double_t y, Double_t z, AliESDtrack *track);
+
 	enum {
 		kUnmatched = -99999
 	};

@@ -31,6 +31,7 @@ public:
   enum EPadyData{kPadPcY=48,kMinPy=0,kMaxPy=47,kMaxPcy=143};   //Segmentation structure along y 
   enum EPedestalData{kPadMeanZeroCharge=4000,kPadSigmaZeroCharge=1000,kPadMeanMasked=4001,kPadSigmaMasked=1001}; //Pedestal pad data information
       
+  static Float_t r2d         (                               )     {return 57.2957795;                               }
   static Float_t SizePadX    (                               )     {return fgCellX;                                  }  //pad size x, [cm]  
   static Float_t SizePadY    (                               )     {return fgCellY;                                  }  //pad size y, [cm]  
 
@@ -44,8 +45,13 @@ public:
   static Float_t SizeAllX    (                               )     {return fgAllX;                                   }  //all PCs size x, [cm]        
   static Float_t SizeAllY    (                               )     {return fgAllY;                                   }  //all PCs size y, [cm]    
 
-  static Float_t LorsX       (Int_t pc,Int_t padx             )    {return (padx    +0.5)*SizePadX()+fgkMinPcX[pc]; }   //center of the pad x, [cm]
+  static Float_t LorsX       (Int_t pc,Int_t padx             )    {return (padx    +0.5)*SizePadX()+fgkMinPcX[pc];  }  //center of the pad x, [cm]
   static Float_t LorsY       (Int_t pc,Int_t pady            )     {return (pady    +0.5)*SizePadY()+fgkMinPcY[pc];  }  //center of the pad y, [cm]
+
+  Float_t ChPhiMin    (Int_t ch                       ) {return Lors2Mars(ch,LorsX(ch,kMinPx)-fX,LorsY(ch,kMinPy)-fY).Phi()*r2d();}      //PhiMin (degree) of the camber ch
+  Float_t ChThMin     (Int_t ch                       ) {return Lors2Mars(ch,LorsX(ch,kMinPx)-fX,LorsY(ch,kMinPy)-fY).Theta()*r2d();}    //ThMin  (degree) of the camber ch
+  Float_t ChPhiMax    (Int_t ch                       ) {return Lors2Mars(ch,LorsX(ch,kMaxPcx)-fX,LorsY(ch,kMaxPcy)-fY).Phi()*r2d();}    //PhiMax (degree) of the camber ch
+  Float_t ChThMax     (Int_t ch                       ) {return Lors2Mars(ch,LorsX(ch,kMaxPcx)-fX,LorsY(ch,kMaxPcy)-fY).Theta()*r2d();}  //ThMax  (degree) of the camber ch
 
   inline static void   Lors2Pad(Float_t x,Float_t y,Int_t &pc,Int_t &px,Int_t &py);                                     //(x,y)->(pc,px,py) 
 
@@ -246,9 +252,14 @@ Double_t AliHMPIDParam::FindTemp(Double_t tLow,Double_t tHigh,Double_t y)
 //  Double_t gradT = (t2-t1)/SizePcY();  // linear gradient
 //  return gradT*y+t1;
   Double_t halfPadSize = 0.5*SizePadY();
-  Double_t gradT = (TMath::Log(SizePcY()) - TMath::Log(halfPadSize))/(TMath::Log(tHigh)-TMath::Log(tLow));
-  if(y<0) y = 0;
-  return tLow + TMath::Power(y/halfPadSize,1./gradT);  
+  Double_t result = tLow;
+  Double_t delta = (TMath::Log(tHigh)-TMath::Log(tLow));
+  if (TMath::Abs(delta)>0) {
+    Double_t gradT = (TMath::Log(SizePcY()) - TMath::Log(halfPadSize))/delta;
+    if(y<0) y = 0;
+    result += TMath::Power(y/halfPadSize,1./gradT);
+  }
+  return result;  
 }
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #endif

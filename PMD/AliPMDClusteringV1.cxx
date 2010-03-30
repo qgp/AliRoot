@@ -50,7 +50,6 @@
 
 #include "AliPMDcludata.h"
 #include "AliPMDcluster.h"
-#include "AliPMDisocell.h"
 #include "AliPMDClustering.h"
 #include "AliPMDClusteringV1.h"
 #include "AliLog.h"
@@ -62,7 +61,8 @@ const Double_t AliPMDClusteringV1::fgkSqroot3by2=0.8660254;  // sqrt(3.)/2.
 
 AliPMDClusteringV1::AliPMDClusteringV1():
   fPMDclucont(new TObjArray()),
-  fCutoff(0.0)
+  fCutoff(0.0),
+  fClusParam(0)
 {
   for(Int_t i = 0; i < kNDIMX; i++)
     {
@@ -77,7 +77,8 @@ AliPMDClusteringV1::AliPMDClusteringV1():
 AliPMDClusteringV1::AliPMDClusteringV1(const AliPMDClusteringV1& pmdclv1):
   AliPMDClustering(pmdclv1),
   fPMDclucont(0),
-  fCutoff(0)
+  fCutoff(0),
+  fClusParam(0)
 {
   // copy constructor
   AliError("Copy constructor not allowed ");
@@ -100,7 +101,7 @@ void AliPMDClusteringV1::DoClust(Int_t idet, Int_t ismn,
 				 Int_t celltrack[48][96],
 				 Int_t cellpid[48][96],
 				 Double_t celladc[48][96],
-				 TObjArray *pmdisocell, TObjArray *pmdcont)
+				 TObjArray *pmdcont)
 {
   // main function to call other necessary functions to do clustering
   //
@@ -121,11 +122,6 @@ void AliPMDClusteringV1::DoClust(Int_t idet, Int_t ismn,
   
   Double_t cellenergy[11424];
   
-
-  // call the isolated cell search method
-
-  FindIsoCell(idet, ismn, celladc, pmdisocell);
-
   // ndimXr and ndimYr are different because of different module size
 
   Int_t ndimXr = 0;
@@ -517,8 +513,8 @@ void AliPMDClusteringV1::RefClust(Int_t incr, Double_t edepcell[])
 	  clusdata[1] = fCoord[1][i1][i2];
 	  clusdata[2] = edepcell[i12];
 	  clusdata[3] = 1.;
-	  clusdata[4] = 0.5;
-	  clusdata[5] = 0.0;
+	  clusdata[4] = 999.5;
+	  clusdata[5] = 999.5;
 
 	  clxy[0] = i1*10000 + i2;
 	  
@@ -655,6 +651,43 @@ void AliPMDClusteringV1::RefClust(Int_t incr, Double_t edepcell[])
 		    }
 		}
 	    }
+
+	  if (fClusParam == 1)
+	    {
+	      // Clustering algorithm returns from here for PP collisions
+	      // for pp, only the output of crude clusterng is taken
+	      // sigx and sigy are not calculated at this moment
+
+	      Double_t supx=0., supy=0., supz=0.;
+	  
+	      for(j = 0;j <= ncl[i]; j++)
+		{
+		  supx += x[iord[j]]*z[iord[j]];
+		  supy += y[iord[j]]*z[iord[j]];
+		  supz += z[iord[j]];
+		  if(j < 19)
+		    {
+		      clxy[j] = t[iord[j]];
+		    }
+		}
+	      
+	      if( ncl[i] + 1 < 19)
+		{
+		  for(Int_t ncel = ncl[i] + 1; ncel < kNmaxCell; ncel ++ )
+		    {
+		      clxy[ncel] = -1;
+		    }
+		}
+	      clusdata[0] = supx/supz;
+	      clusdata[1] = supy/supz;
+	      clusdata[2] = supz;
+	      clusdata[3] = ncl[i]+1;
+	      clusdata[4] = 0.5;
+	      clusdata[5] = 0.0;
+	      pmdcludata  = new AliPMDcludata(clusdata,clxy);
+	      fPMDclucont->Add(pmdcludata);
+	    }
+
 	  /* MODIFICATION PART STARTS (Tapan July 2008)
 	     iord[0] is the cell with highest ADC in the crude-cluster
 	     ig is the number of local maxima in the crude-cluster
@@ -663,245 +696,266 @@ void AliPMDClusteringV1::RefClust(Int_t incr, Double_t edepcell[])
 	     more of the cells form local maxima. The definition of local 
 	     maxima is that all its neighbours are of less ADC compared to it. 
 	  */
-	  ig = 0;
-	  xc[ig] = x[iord[0]];
-	  yc[ig] = y[iord[0]];
-	  zc[ig] = z[iord[0]];
-	  tc[ig] = t[iord[0]];
-	  Int_t ivalid = 0,  icount = 0;
-	  
-	  for(j=1;j<=ncl[i];j++)
+
+	  if (fClusParam == 2)
 	    {
-	      x1  = x[iord[j]];
-	      y1  = y[iord[j]]; 
-	      z1  = z[iord[j]];
-	      t1  = t[iord[j]];
-	      rr=Distance(x1,y1,xc[ig],yc[ig]);
-	      
-	      // Check the cells which are outside the neighbours (rr>1.2)
-	      if(rr>1.2 ) 
+	      // This part is to split the supercluster
+	      //
+	      ig = 0;
+	      xc[ig] = x[iord[0]];
+	      yc[ig] = y[iord[0]];
+	      zc[ig] = z[iord[0]];
+	      tc[ig] = t[iord[0]];
+	      Int_t ivalid = 0,  icount = 0;
+	  
+	      for(j=1;j<=ncl[i];j++)
 		{
-		  ivalid=0;
-		  icount=0;
-		  for(Int_t j1=1;j1<j;j1++)
-		    {
-		      icount++;
-		      Float_t rr1=Distance(x1,y1,x[iord[j1]],y[iord[j1]]);		
-		      if(rr1>1.2) ivalid++;
-		    }
-		  if(ivalid == icount && z1>0.5*zc[ig])
-		    {
-		      ig++;
-		      xc[ig]=x1; 
-		      yc[ig]=y1; 
-		      zc[ig]=z1;
-		      tc[ig]=t1;
-		    }
-		}	  
-	    }
-	  
-	  icl=icl+ig+1;
-	  
-	  //  We use simple Gaussian weighting. (Tapan Jan 2005)
-	  // compute the number of cells belonging to each cluster.
-	  // cell can be shared between several clusters  
-	  // in the ratio of cluster energy deposition
-	  // To calculate: 
-	  // (1) number of cells belonging to a cluster (ig) and 
-	  // (2) total ADC of the cluster (ig) 
-	  // (3) x and y positions of the cluster
-	  
-	  
-	  Int_t *cellCount;
-	  Int_t **cellXY;
-	  
-	  Int_t    *status;
-	  Double_t *totaladc, *totaladc2, *ncell,*weight;
-	  Double_t *xclust, *yclust, *sigxclust, *sigyclust;
-	  Double_t *ax, *ay, *ax2, *ay2;
-	  
-	  
-	  status    = new Int_t [ncl[i]+1];
-	  cellXY    = new Int_t *[ncl[i]+1];
-	  
-	  cellCount = new Int_t [ig+1];
-	  totaladc  = new Double_t [ig+1];
-	  totaladc2 = new Double_t [ig+1];
-	  ncell     = new Double_t [ig+1];
-	  weight    = new Double_t [ig+1];
-	  xclust    = new Double_t [ig+1];
-	  yclust    = new Double_t [ig+1];
-	  sigxclust = new Double_t [ig+1];
-	  sigyclust = new Double_t [ig+1];
-	  ax        = new Double_t [ig+1];
-	  ay        = new Double_t [ig+1];
-	  ax2       = new Double_t [ig+1];
-	  ay2       = new Double_t [ig+1];
-	  
-	  for(j = 0; j < ncl[i]+1; j++) 
-	    {
-	      status[j]     = 0;
-	      cellXY[j] = new Int_t[ig+1];
-	    }
-	  //initialization
-	  for(Int_t kcl = 0; kcl < ig+1; kcl++)
-	    {
-	      cellCount[kcl] = 0;
-	      totaladc[kcl]  = 0.;
-	      totaladc2[kcl] = 0.;
-	      ncell[kcl]     = 0.;
-	      weight[kcl]    = 0.;	
-	      xclust[kcl]    = 0.; 
-	      yclust[kcl]    = 0.;
-	      sigxclust[kcl] = 0.; 
-	      sigyclust[kcl] = 0.;
-	      ax[kcl]        = 0.;      
-	      ay[kcl]        = 0.;      
-	      ax2[kcl]       = 0.;      
-	      ay2[kcl]       = 0.;    
-	      for(j = 0; j < ncl[i]+1; j++)
-		{
-		  cellXY[j][kcl] = 0;
-		}
-	    }
-	  Double_t sumweight, gweight; 
-	  
-	  for(j = 0;j <= ncl[i]; j++)
-	    {
-	      x1 = x[iord[j]];
-	      y1 = y[iord[j]];
-	      z1 = z[iord[j]];
-	      t1 = t[iord[j]];
-	      
-	      for(Int_t kcl=0; kcl<=ig; kcl++)
-		{
-		  x2 = xc[kcl];
-		  y2 = yc[kcl];
-		  rr = Distance(x1,y1,x2,y2);
-		  t2 = tc[kcl];		  
+		  x1  = x[iord[j]];
+		  y1  = y[iord[j]]; 
+		  z1  = z[iord[j]];
+		  t1  = t[iord[j]];
+		  rr=Distance(x1,y1,xc[ig],yc[ig]);
 		  
-		  if(rr==0)
+		  // Check the cells which are outside the neighbours (rr>1.2)
+		  if(rr>1.2 ) 
 		    {
-		      ncell[kcl]     = 1.;
-		      totaladc[kcl]  = z1;
-		      totaladc2[kcl] = z1*z1;
-		      ax[kcl]        = x1 * z1;
-		      ay[kcl]        = y1 * z1;
-		      ax2[kcl]       = 0.;
-		      ay2[kcl]       = 0.;
-		      status[j]      = 1;
+		      ivalid=0;
+		      icount=0;
+		      for(Int_t j1=1;j1<j;j1++)
+			{
+			  icount++;
+			  Float_t rr1=Distance(x1,y1,x[iord[j1]],y[iord[j1]]);
+			  if(rr1>1.2) ivalid++;
+			}
+		      if(ivalid == icount && z1>0.5*zc[ig])
+			{
+			  ig++;
+			  xc[ig]=x1; 
+			  yc[ig]=y1; 
+			  zc[ig]=z1;
+			  tc[ig]=t1;
+			}
+		    }	  
+		}
+	  
+	      icl=icl+ig+1;
+	  
+	      //  We use simple Gaussian weighting. (Tapan Jan 2005)
+	      // compute the number of cells belonging to each cluster.
+	      // cell can be shared between several clusters  
+	      // in the ratio of cluster energy deposition
+	      // To calculate: 
+	      // (1) number of cells belonging to a cluster (ig) and 
+	      // (2) total ADC of the cluster (ig) 
+	      // (3) x and y positions of the cluster
+	  
+	      
+	      Int_t *cellCount;
+	      Int_t **cellXY;
+	      
+	      Int_t    *status;
+	      Double_t *totaladc, *totaladc2, *ncell,*weight;
+	      Double_t *xclust, *yclust, *sigxclust, *sigyclust;
+	      Double_t *ax, *ay, *ax2, *ay2;
+	  
+	  
+	      status    = new Int_t [ncl[i]+1];
+	      cellXY    = new Int_t *[ncl[i]+1];
+	  
+	      cellCount = new Int_t [ig+1];
+	      totaladc  = new Double_t [ig+1];
+	      totaladc2 = new Double_t [ig+1];
+	      ncell     = new Double_t [ig+1];
+	      weight    = new Double_t [ig+1];
+	      xclust    = new Double_t [ig+1];
+	      yclust    = new Double_t [ig+1];
+	      sigxclust = new Double_t [ig+1];
+	      sigyclust = new Double_t [ig+1];
+	      ax        = new Double_t [ig+1];
+	      ay        = new Double_t [ig+1];
+	      ax2       = new Double_t [ig+1];
+	      ay2       = new Double_t [ig+1];
+	      
+	      for(j = 0; j < ncl[i]+1; j++) 
+		{
+		  status[j]     = 0;
+		  cellXY[j] = new Int_t[ig+1];
+		}
+	      //initialization
+	      for(Int_t kcl = 0; kcl < ig+1; kcl++)
+		{
+		  cellCount[kcl] = 0;
+		  totaladc[kcl]  = 0.;
+		  totaladc2[kcl] = 0.;
+		  ncell[kcl]     = 0.;
+		  weight[kcl]    = 0.;	
+		  xclust[kcl]    = 0.; 
+		  yclust[kcl]    = 0.;
+		  sigxclust[kcl] = 0.; 
+		  sigyclust[kcl] = 0.;
+		  ax[kcl]        = 0.;      
+		  ay[kcl]        = 0.;      
+		  ax2[kcl]       = 0.;      
+		  ay2[kcl]       = 0.;    
+		  for(j = 0; j < ncl[i]+1; j++)
+		    {
+		      cellXY[j][kcl] = 0;
 		    }
 		}
-	    }
-	  
-	  for(j = 0; j <= ncl[i]; j++)
-	    {
-	      Int_t   maxweight = 0;
-	      Double_t     max  = 0.;
+	      Double_t sumweight, gweight; 
 	      
-	      if(status[j] == 0)
-		{ 
-		  x1 = x[iord[j]]; 
+	      for(j = 0;j <= ncl[i]; j++)
+		{
+		  x1 = x[iord[j]];
 		  y1 = y[iord[j]];
 		  z1 = z[iord[j]];
 		  t1 = t[iord[j]];
-		  sumweight = 0.;
-
-		  for(Int_t kcl = 0; kcl <= ig; kcl++)
+		  
+		  for(Int_t kcl=0; kcl<=ig; kcl++)
 		    {
-		      x2 = xc[kcl]; 
-		      y2 = yc[kcl]; 
+		      x2 = xc[kcl];
+		      y2 = yc[kcl];
 		      rr = Distance(x1,y1,x2,y2);
-		      gweight     = exp(-(rr*rr)/(2*(1.2*1.2)));
-		      weight[kcl] = zc[kcl] * gweight;
-		      sumweight   = sumweight + weight[kcl];
+		      t2 = tc[kcl];		  
 		      
-		      if(weight[kcl] > max)
+		      if(rr==0)
 			{
-			  max       =  weight[kcl];
-			  maxweight =  kcl;
+			  ncell[kcl]     = 1.;
+			  totaladc[kcl]  = z1;
+			  totaladc2[kcl] = z1*z1;
+			  ax[kcl]        = x1 * z1;
+			  ay[kcl]        = y1 * z1;
+			  ax2[kcl]       = 0.;
+			  ay2[kcl]       = 0.;
+			  status[j]      = 1;
 			}
 		    }
-		  
-		  cellXY[cellCount[maxweight]][maxweight] = iord[j];
-		  		  
-		  cellCount[maxweight]++;
-		  
-		  x2 = xc[maxweight];
-		  y2 = yc[maxweight];
-		  totaladc[maxweight]  +=  z1;
-		  ax[maxweight]        +=  x1*z1;
-		  ay[maxweight]        +=  y1*z1;
-		  totaladc2[maxweight] +=  z1*z1;
-		  ax2[maxweight]       +=  z1*(x1-x2)*(x1-x2);
-		  ay2[maxweight]       +=  z1*(y1-y2)*(y1-y2);
-		  ncell[maxweight]++;
-
 		}
-	    }
 	  
-	  for(Int_t kcl = 0; kcl <= ig; kcl++)
-	    {
-	      
-	      if(totaladc[kcl] > 0.)
+	      for(j = 0; j <= ncl[i]; j++)
 		{
-		  xclust[kcl] = (ax[kcl])/ totaladc[kcl];
-		  yclust[kcl] = (ay[kcl])/ totaladc[kcl];
+		  Int_t   maxweight = 0;
+		  Double_t     max  = 0.;
 		  
-		  //natasha
-		  Float_t sqtotadc = totaladc[kcl]*totaladc[kcl];
-		  if(totaladc2[kcl] >= sqtotadc)
+		  if(status[j] == 0)
+		    { 
+		      x1 = x[iord[j]]; 
+		      y1 = y[iord[j]];
+		      z1 = z[iord[j]];
+		      t1 = t[iord[j]];
+		      sumweight = 0.;
+
+		      for(Int_t kcl = 0; kcl <= ig; kcl++)
+			{
+			  x2 = xc[kcl]; 
+			  y2 = yc[kcl]; 
+			  rr = Distance(x1,y1,x2,y2);
+			  gweight     = exp(-(rr*rr)/(2*(1.2*1.2)));
+			  weight[kcl] = zc[kcl] * gweight;
+			  sumweight   = sumweight + weight[kcl];
+			  
+			  if(weight[kcl] > max)
+			    {
+			      max       =  weight[kcl];
+			      maxweight =  kcl;
+			    }
+			}
+		      
+		      cellXY[cellCount[maxweight]][maxweight] = iord[j];
+		      
+		      cellCount[maxweight]++;
+		      
+		      x2 = xc[maxweight];
+		      y2 = yc[maxweight];
+		      totaladc[maxweight]  +=  z1;
+		      ax[maxweight]        +=  x1*z1;
+		      ay[maxweight]        +=  y1*z1;
+		      totaladc2[maxweight] +=  z1*z1;
+		      ax2[maxweight]       +=  z1*(x1-x2)*(x1-x2);
+		      ay2[maxweight]       +=  z1*(y1-y2)*(y1-y2);
+		      ncell[maxweight]++;
+		      
+		    }
+		}
+	  
+	      for(Int_t kcl = 0; kcl <= ig; kcl++)
+		{
+		  if(totaladc[kcl] > 0.)
 		    {
-		      sigxclust[kcl] = 0.25;
-		      sigyclust[kcl] = 0.25;
+		      xclust[kcl] = (ax[kcl])/ totaladc[kcl];
+		      yclust[kcl] = (ay[kcl])/ totaladc[kcl];
+		      
+		      //natasha
+		      Float_t sqtotadc = totaladc[kcl]*totaladc[kcl];
+		      if(totaladc2[kcl] >= sqtotadc)
+			{
+			  sigxclust[kcl] = 0.25;
+			  sigyclust[kcl] = 0.25;
+			}
+		      else
+			{
+			  sigxclust[kcl] = (totaladc[kcl]/(sqtotadc-totaladc2[kcl]))*ax2[kcl];
+			  sigyclust[kcl] = (totaladc[kcl]/(sqtotadc-totaladc2[kcl]))*ay2[kcl];
+			}	
+		    }
+		  
+		  for(j = 0; j < cellCount[kcl]; j++) clno++; 
+		  
+		  if (clno >= 4608) 
+		    {
+		      AliWarning("RefClust: Too many clusters! more than 4608");
+		      return;
+		    }
+		  clusdata[0] = xclust[kcl];
+		  clusdata[1] = yclust[kcl];
+		  clusdata[2] = totaladc[kcl];
+		  clusdata[3] = ncell[kcl];
+		  
+		  if(sigxclust[kcl] > sigyclust[kcl]) 
+		    {
+		      clusdata[4] = TMath::Sqrt(sigxclust[kcl]);
+		      clusdata[5] = TMath::Sqrt(sigyclust[kcl]);
 		    }
 		  else
 		    {
-		      sigxclust[kcl] = (totaladc[kcl]/(sqtotadc-totaladc2[kcl]))*ax2[kcl];
-		      sigyclust[kcl] = (totaladc[kcl]/(sqtotadc-totaladc2[kcl]))*ay2[kcl];
-		    }	
-		}
-	      
-	      for(j = 0; j < cellCount[kcl]; j++) clno++; 
-	      
-	      if (clno >= 4608) 
-		{
-		  AliWarning("RefClust: Too many clusters! more than 4608");
-		  return;
-		}
-	      clusdata[0] = xclust[kcl];
-	      clusdata[1] = yclust[kcl];
-	      clusdata[2] = totaladc[kcl];
-	      clusdata[3] = ncell[kcl];
-	      
-	      
-	      if(sigxclust[kcl] > sigyclust[kcl]) 
-		{
-		  clusdata[4] = TMath::Sqrt(sigxclust[kcl]);
-		  clusdata[5] = TMath::Sqrt(sigyclust[kcl]);
-		}
-	      else
-		{
-		  clusdata[4] = TMath::Sqrt(sigyclust[kcl]);
-		  clusdata[5] = TMath::Sqrt(sigxclust[kcl]);
-		}
-	      
-	      clxy[0] = tc[kcl];
-	      
-	      Int_t Ncell=1;
-	      for (Int_t ii = 0; ii < cellCount[kcl]; ii++)
-		{
-		  if(ii<18) 
-		    {	
-		      clxy[Ncell] = t[cellXY[ii][kcl]];
-		      Ncell++;
+		      clusdata[4] = TMath::Sqrt(sigyclust[kcl]);
+		      clusdata[5] = TMath::Sqrt(sigxclust[kcl]);
 		    }
-		} 
+		  
+		  clxy[0] = tc[kcl];
+		  
+		  Int_t Ncell=1;
+		  for (Int_t ii = 0; ii < cellCount[kcl]; ii++)
+		    {
+		      if(ii<18) 
+			{	
+			  clxy[Ncell] = t[cellXY[ii][kcl]];
+			  Ncell++;
+			}
+		    } 
+		  
+		  pmdcludata = new AliPMDcludata(clusdata,clxy);
+		  fPMDclucont->Add(pmdcludata);
+		}
+	      delete [] cellCount;
+	      for(Int_t jj = 0; jj < ncl[i]+1; jj++) delete [] cellXY[jj];
 	      
-	      pmdcludata = new AliPMDcludata(clusdata,clxy);
-	      fPMDclucont->Add(pmdcludata);
+	      delete [] status;
+	      delete [] totaladc;
+	      delete [] totaladc2;
+	      delete [] ncell;
+	      delete [] xclust;
+	      delete [] yclust;
+	      delete [] sigxclust;
+	      delete [] sigyclust;
+	      delete [] ax;
+	      delete [] ay;
+	      delete [] ax2;
+	      delete [] ay2;
+	      delete [] weight;
+
 	    }
-	  
+
 	  delete [] iord;
 	  delete [] tc;	  
 	  delete [] t;
@@ -911,23 +965,8 @@ void AliPMDClusteringV1::RefClust(Int_t incr, Double_t edepcell[])
 	  delete [] xc;
 	  delete [] yc;
 	  delete [] zc;
-	  
-	  delete [] cellCount;
-	  for(Int_t jj = 0; jj < ncl[i]+1; jj++) delete [] cellXY[jj];
-	  
-	  delete [] status;
-	  delete [] totaladc;
-	  delete [] totaladc2;
-	  delete [] ncell;
-	  delete [] xclust;
-	  delete [] yclust;
-	  delete [] sigxclust;
-	  delete [] sigyclust;
-	  delete [] ax;
-	  delete [] ay;
-	  delete [] ax2;
-	  delete [] ay2;
-	  delete [] weight;
+
+
 	}
     }
   delete [] ncl;
@@ -940,60 +979,13 @@ Double_t AliPMDClusteringV1::Distance(Double_t x1, Double_t y1,
   return TMath::Sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
 }
 // ------------------------------------------------------------------------ //
-void AliPMDClusteringV1::FindIsoCell(Int_t idet, Int_t ismn, Double_t celladc[][96], TObjArray *pmdisocell)
-{
-  // Does isolated cell search for offline calibration
-
-  AliPMDisocell *isocell = 0;
-
-  const Int_t kMaxRow = 48;
-  const Int_t kMaxCol = 96;
-  const Int_t kCellNeighbour = 6;
-
-  Int_t id1, jd1;
-
-  Int_t neibx[6] = {1,0,-1,-1,0,1};
-  Int_t neiby[6] = {0,1,1,0,-1,-1};
-
-
-  for(Int_t irow = 0; irow < kMaxRow; irow++)
-    {
-      for(Int_t icol = 0; icol < kMaxCol; icol++)
-	{
-	  if(celladc[irow][icol] > 0)
-	    {
-	      Int_t isocount = 0;
-	      for(Int_t ii = 0; ii < kCellNeighbour; ii++)
-		{
-		  id1 = irow + neibx[ii];
-		  jd1 = icol + neiby[ii];
-		  if (id1 < 0) id1 = 0;
-		  if (id1 > kMaxRow-1) id1 = kMaxRow - 1;
-		  if (jd1 < 0) jd1 = 0;
-		  if (jd1 > kMaxCol-1) jd1 = kMaxCol - 1;
-		  Float_t adc = (Float_t) celladc[id1][jd1];
-		  if(adc < 1.)
-		    {
-		      isocount++;
-		      if(isocount == kCellNeighbour)
-			{
-			  Float_t cadc = (Float_t) celladc[irow][icol];
-
-			  isocell = new AliPMDisocell(idet,ismn,irow,icol,cadc);
-			  pmdisocell->Add(isocell);
-			  
-			}
-		    }
-		}  // neigh cell cond.
-	    }
-	}
-    }
-
-
-}
-// ------------------------------------------------------------------------ //
 void AliPMDClusteringV1::SetEdepCut(Float_t decut)
 {
   fCutoff = decut;
+}
+// ------------------------------------------------------------------------ //
+void AliPMDClusteringV1::SetClusteringParam(Int_t cluspar)
+{
+  fClusParam = cluspar;
 }
 // ------------------------------------------------------------------------ //

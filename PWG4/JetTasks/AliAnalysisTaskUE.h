@@ -4,7 +4,7 @@
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
 
-#include "AliAnalysisTaskSE.h"
+#include "AliAnalysisTask.h"
 
 class AliESDEvent;
 class AliAODEvent;
@@ -27,7 +27,10 @@ class  AliAnalysisTaskUE : public AliAnalysisTask
     virtual     void   CreateOutputObjects();
     virtual     void   Exec(Option_t *option);
     virtual     void   Terminate(Option_t *);
-    
+
+    //Select the trigger
+    void SelectTrigger(Int_t trig) { fTrigger = trig; }
+
     //  Setters
     virtual     void   SetDebugLevel( Int_t level )  { fDebug = level; }
     void   SetPtRangeInHist( Int_t bin, Double_t min, Double_t max ) {
@@ -35,6 +38,12 @@ class  AliAnalysisTaskUE : public AliAnalysisTask
       fMinJetPtInHist = min; 
       fMaxJetPtInHist = max; 
     }
+
+    // Read deltaAODs
+    void   ReadDeltaAOD()                   { fDeltaAOD = kTRUE; }
+    void   SelectDeltaAODBranch(const char* val)     { fDeltaAODBranch = val;   }
+    void   SelectAODBranch(const char* val)     { fAODBranch = val;   }
+
     // Setters for MC
     void  SetUseMCBranch(){fUseMCParticleBranch = kTRUE;}
     void  SetConstrainDistance(Bool_t val1, Double_t val2){ fMinDistance = val2; fConstrainDistance = val1;}
@@ -44,7 +53,8 @@ class  AliAnalysisTaskUE : public AliAnalysisTask
     void   SetAnaTopology( Int_t val )    { fAnaType = val;    }
     void   SetRegionType( Int_t val )     { fRegionType = val; }
     void   SetUseChPartJet( Int_t val )   { fUseChPartJet = val; }
-    void   SetPtSumOrdering( Bool_t val ) { fOrdering = val;   }
+    void   SetUseChargeHadrons( Bool_t val ){ fUseChargeHadrons = val; }
+    void   SetPtSumOrdering( Int_t val ) { fOrdering = val;   }
     void   SetFilterBit( UInt_t val )     { fFilterBit = val;  }
     void   SetJetsOnFly( Bool_t val )     { fJetsOnFly = val;  }
     void   SetConeRadius( Double_t val )  { fConeRadius = val; }
@@ -64,7 +74,6 @@ class  AliAnalysisTaskUE : public AliAnalysisTask
   private:
     AliAnalysisTaskUE(const  AliAnalysisTaskUE &det);
     AliAnalysisTaskUE&   operator=(const  AliAnalysisTaskUE &det);
-    
     void   AnalyseUE();
     Int_t   IsTrackInsideRegion(TVector3 *jetVect, TVector3 *partVect);
     void   CreateHistos();
@@ -76,7 +85,13 @@ class  AliAnalysisTaskUE : public AliAnalysisTask
     void   QSortTracks(TObjArray &a, Int_t first, Int_t last);
     void   WriteSettings();
     
-    Int_t   fDebug;           //  Debug flag
+    Int_t      fTrigger;         //Trigger flag as defined in AliAnalysisHelperJetTasks.h
+    Int_t      fDebug;           //  Debug flag
+    Bool_t      fDeltaAOD;        //  Read jets from delta AOD 
+    TString     fDeltaAODBranch;  //  Jet branch name from delta AOD
+    TString     fAODBranch;       //  Jet branch name from standard AOD
+    TClonesArray*  fArrayJets;       //  Array of Jets from delta AOD
+
     AliAODEvent*  fAOD;             //! AOD Event 
     AliAODEvent*  fAODjets;         //! AOD Event for reconstructed on the fly (see ConnectInputData()
     TList*  fListOfHistos;    //  Output list of histograms
@@ -121,13 +136,13 @@ class  AliAnalysisTaskUE : public AliAnalysisTask
     // if fRegionType = 2 not always it is included within eta range
     Bool_t   fUseChPartJet;     // Use "Charged Particle Jet" instead of jets from AOD
     // see FindChargedParticleJets()
+    Bool_t     fUseChargeHadrons;   // Only use charge hadrons
     
     // Theoreticians ask for tools charge-aware
     // especially those which are related to multiplicity and MC-tunings
     // see arXiv:hep-ph/0507008v3
     Bool_t   fUseSingleCharge;     //Make analysis for a single type of charge (=kFALSE default)
     Bool_t   fUsePositiveCharge;   //If Single type of charge used then set which one (=kTRUE default positive)
-    
     Int_t   fOrdering;         //  Pt and multiplicity summation ordering:
     //     1=CDF-like -independent sorting according quantity to be scored: Double sorting- (default)
     //       if Pt summation will be scored take Pt minimum between both zones and 
@@ -154,7 +169,7 @@ class  AliAnalysisTaskUE : public AliAnalysisTask
     Double_t   fTrackPtCut;       // Pt cut of tracks in the regions
     Double_t   fTrackEtaCut;      // Eta cut on tracks in the regions (fRegionType=1)
     Double_t   fAvgTrials;        // average trials used to fill the fh1Triasl histogram in case we do not have trials on a event by event basis
-    
+    	  	 
     // Histograms    ( are owned by fListOfHistos TList )
     TH1F*  fhNJets;                  //!
     TH1F*  fhEleadingPt;             //!
@@ -166,7 +181,7 @@ class  AliAnalysisTaskUE : public AliAnalysisTask
     TH1F*  fhMinRegMaxPtPart;        //!
     TH1F*  fhMinRegSumPtvsMult;      //!
     
-    TH1F*  fhdNdEtaPhiDist;         //!
+    TH2F*  fhdNdEtaPhiDist;          //!
     TH2F*  fhFullRegPartPtDistVsEt;  //!
     TH2F*  fhTransRegPartPtDistVsEt; //!
     
@@ -191,7 +206,7 @@ class  AliAnalysisTaskUE : public AliAnalysisTask
     
     
     
-    ClassDef( AliAnalysisTaskUE, 2); // Analysis task for Underlying Event analysis
+    ClassDef( AliAnalysisTaskUE, 4); // Analysis task for Underlying Event analysis
   };
 
 #endif

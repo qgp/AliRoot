@@ -18,24 +18,25 @@
 
 
 #include "AliHLTPHOSRawAnalyzerCrudeComponent.h"
-#include "AliHLTPHOSRawAnalyzerCrude.h"
+#include "AliCaloRawAnalyzerCrude.h"
 
 AliHLTPHOSRawAnalyzerCrudeComponent gAliHLTPHOSRawAnalyzerCrudeComponent;
 
 //___________________________________________________________________________
 AliHLTPHOSRawAnalyzerCrudeComponent::AliHLTPHOSRawAnalyzerCrudeComponent()
 {
-  fAnalyzerPtr = new AliHLTPHOSRawAnalyzerCrude();
+  HLTError("Creating raw analyzer");
+  fAnalyzerPtr = new AliCaloRawAnalyzerCrude();
 } 
 
 //___________________________________________________________________________
 AliHLTPHOSRawAnalyzerCrudeComponent::~AliHLTPHOSRawAnalyzerCrudeComponent()
 {
-  if(fAnalyzerPtr)
-    {
-      delete fAnalyzerPtr;
-      fAnalyzerPtr = 0;
-    }
+//   if(fAnalyzerPtr)
+//     {
+//       delete fAnalyzerPtr;
+//       fAnalyzerPtr = 0;
+//     }
 }
 
 //___________________________________________________________________________

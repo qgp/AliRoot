@@ -10,8 +10,18 @@ SRCS= SPECTRA/AliProtonAnalysisBase.cxx \
       SPECTRA/AliAnalysisTaskCheckCascade.cxx \
       SPECTRA/AliAnalysisTaskCheckPerformanceCascade.cxx \
       SPECTRA/AliAnalysisTaskStrange.cxx \
+      SPECTRA/AliAnalysisTaskPerformanceStrange.cxx \
       SPECTRA/AliProtonFeedDownAnalysisTask.cxx \
-      SPECTRA/AliProtonFeedDownAnalysis.cxx 
+      SPECTRA/AliProtonFeedDownAnalysis.cxx \
+      SPECTRA/AliProtonAbsorptionCorrection.cxx \
+      SPECTRA/AliProtonSpectraCorrection.cxx \
+      SPECTRA/AliProtonCorrectionAnalysisTask.cxx \
+      SPECTRA/AliAnalysisCentralCutMC.cxx \
+      SPECTRA/AliAnalysisCentralCutESD.cxx \
+      SPECTRA/AliAnalysisCentralCutEvtMC.cxx \
+      SPECTRA/AliAnalysisCentralCutEvtESD.cxx \
+      SPECTRA/AliAnalysisCentralExtrapolate.cxx \
+      SPECTRA/AliAnalysisTaskCentral.cxx
 
 HDRS= $(SRCS:.cxx=.h) 
 
@@ -19,7 +29,7 @@ DHDR:=PWG2spectraLinkDef.h
 
 EXPORT:=
 
-EINCLUDE:= 
+EINCLUDE:= PWG2/SPECTRA 
 
 ifeq (win32gcc,$(ALICE_TARGET))
 PACKSOFLAGS:= $(SOFLAGS) -L$(ALICE_ROOT)/lib/tgt_$(ALICE_TARGET) \

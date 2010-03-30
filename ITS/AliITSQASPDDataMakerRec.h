@@ -38,15 +38,19 @@ public:
   virtual void  StartOfDetectorCycle();
   virtual void  EndOfDetectorCycle(AliQAv1::TASKINDEX_t task, TObjArray * list);
   virtual ~AliITSQASPDDataMakerRec();   // dtor
-  Int_t GetOffset(AliQAv1::TASKINDEX_t task);
+  Int_t GetOffset(AliQAv1::TASKINDEX_t task,Int_t specie=0);
   void  SetOffset(AliQAv1::TASKINDEX_t task, Int_t offset, Int_t specie = 0);
   Int_t GetTaskHisto(AliQAv1::TASKINDEX_t task);
+  virtual void ResetDetector(AliQAv1::TASKINDEX_t){;};
+
+  enum {kAmoreFoOffset = 8, kAmoreErrorsOffset=21};
 
 private: 
 
-  static const Int_t fgknSPDmodules = 240;   //number of SPD modules
-  static const Int_t fgkLADDonLay1 = 80;     //number of modules on layer 1
-  static const Int_t fgkLADDonLay2 = 160;    //number of modules on layer 2
+  static const Short_t fgknSPDmodules = 240;    //number of SPD modules
+  static const Short_t fgkLADDonLay1  = 80;     //number of modules on layer 1
+  static const Short_t fgkLADDonLay2  = 160;    //number of modules on layer 2
+  static const Short_t fgkSPDchips    = 1200;   //number of chips
 
   AliITSQADataMakerRec *fAliITSQADataMakerRec;//pointer to the main ctor
   Bool_t  fkOnline;                           //online (1) or offline (0) use

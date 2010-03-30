@@ -28,7 +28,7 @@
 ///
 /// For more information, please see READMEcalib
 ///
-// \author Laurent Aphecetche
+/// \author Laurent Aphecetche
 //-----------------------------------------------------------------------------
 
 #include "AliMUONCDB.h"
@@ -72,6 +72,7 @@
 #include "AliGRPManager.h"
 #include "AliDCSValue.h"
 #include "AliLog.h"
+#include "AliMpBusPatch.h"
 
 #include <Riostream.h>
 #include <TArrayI.h>
@@ -86,7 +87,8 @@
 #include <TSystem.h>
 #include <TMath.h>
 #include <TGeoGlobalMagField.h>
-
+#include <TClonesArray.h>
+#include <sstream>
 
 namespace
 {
@@ -303,6 +305,30 @@ AliMUONRecoParam* AliMUONCDB::LoadRecoParam()
   
   return recoParam;
   
+}
+
+//_____________________________________________________________________________
+TClonesArray* AliMUONCDB::LoadAlignmentData()
+{
+  /// Load and return the array of alignment objects.
+  
+  AliInfoGeneral("AliMUONCDB", "Loading Alignemnt from OCDB...");
+  
+  if (!AliMUONCDB::CheckOCDB()) return kFALSE;
+  
+  TClonesArray* alignmentArray = 0x0;
+  AliCDBEntry* entry = AliCDBManager::Instance()->Get("MUON/Align/Data");
+  
+  if (entry) {
+    // load alignement array
+    alignmentArray = dynamic_cast<TClonesArray*>(entry->GetObject());
+  }
+  
+  if (!alignmentArray) { 
+    AliErrorGeneral("AliMUONCDB", "failed to load Alignemnt from OCDB");
+  }  
+  
+  return alignmentArray;
 }
 
 //_____________________________________________________________________________
@@ -1361,6 +1387,29 @@ AliMUONCDB::WriteTrigger(Bool_t defaultValues, Int_t startRun, Int_t endRun)
 
 //_____________________________________________________________________________
 void
+AliMUONCDB::WriteConfig(Int_t startRun, Int_t endRun)
+{
+  /// Write complete tracker configuration to OCDB
+  ostringstream lines;
+  TIter next(AliMpDDLStore::Instance()->CreateBusPatchIterator());
+  AliMpBusPatch* bp;
+  while ( ( bp = static_cast<AliMpBusPatch*>(next()) ) )
+  {
+    for (Int_t imanu = 0; imanu < bp->GetNofManus(); ++imanu) 
+    {
+      lines << bp->GetId() << " " << bp->GetManuId(imanu) << endl;
+    }
+  }
+  
+  AliMUON2DMap config(kTRUE);
+  
+  AliMUONTrackerIO::DecodeConfig(lines.str().c_str(),config);
+  
+  WriteToCDB("MUON/Calib/Config",&config,startRun,endRun,kTRUE);
+}
+
+//_____________________________________________________________________________
+void
 AliMUONCDB::WriteTracker(Bool_t defaultValues, Int_t startRun, Int_t endRun)
 {
   /// Writes all Tracker related calibration to CDB
@@ -1371,5 +1420,6 @@ AliMUONCDB::WriteTracker(Bool_t defaultValues, Int_t startRun, Int_t endRun)
   WriteNeighbours(startRun,endRun);
   WriteOccupancyMap(defaultValues,startRun,endRun);
   WriteRejectList(defaultValues,startRun,endRun);
+  WriteConfig(startRun,endRun);
 }
 

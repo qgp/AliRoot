@@ -78,6 +78,11 @@
 #include "AliMpDEManager.h"
 #include "AliMpArea.h"
 
+#include "AliMpDDLStore.h"
+#include "AliMpVSegmentation.h"
+#include "AliMpSegmentation.h"
+#include "AliMpPad.h"
+
 #include "AliLog.h"
 #include "AliCodeTimer.h"
 #include "AliTracker.h"
@@ -172,14 +177,16 @@ void AliMUONVTrackReconstructor::EventReconstruct(AliMUONVClusterStore& clusterS
   if (GetRecoParam()->ImproveTracks()) ImproveTracks();
   
   // Remove connected tracks
-  if (GetRecoParam()->RemoveConnectedTracksInSt12()) RemoveConnectedTracks(kFALSE);
-  else RemoveConnectedTracks(kTRUE);
+  RemoveConnectedTracks(3, 4, kFALSE);
+  RemoveConnectedTracks(2, 2, kFALSE);
+  if (GetRecoParam()->RemoveConnectedTracksInSt12()) RemoveConnectedTracks(0, 1, kFALSE);
   
   // Fill AliMUONTrack data members
   Finalize();
+  if (!GetRecoParam()->RemoveConnectedTracksInSt12()) TagConnectedTracks(0, 1, kTRUE);
   
   // Add tracks to MUON data container 
-  for (Int_t i=0; i<fNRecTracks; ++i) 
+  for (Int_t i=0; i<fNRecTracks; ++i)
   {
     AliMUONTrack * track = (AliMUONTrack*) fRecTracksPtr->At(i);
     if (track->GetGlobalChi2() < AliMUONTrack::MaxChi2()) {
@@ -530,54 +537,80 @@ void AliMUONVTrackReconstructor::RemoveDoubleTracks()
 }
 
   //__________________________________________________________________________
-void AliMUONVTrackReconstructor::RemoveConnectedTracks(Bool_t inSt345)
+void AliMUONVTrackReconstructor::RemoveConnectedTracks(Int_t stMin, Int_t stMax, Bool_t all)
 {
-  /// To remove double tracks:
-  /// Tracks are considered identical if they share 1 cluster or more.
-  /// If inSt345=kTRUE only stations 3, 4 and 5 are considered.
-  /// Among two identical tracks, one keeps the track with the larger number of clusters
-  /// or, if these numbers are equal, the track with the minimum chi2.
-  AliMUONTrack *track1, *track2, *trackToRemove;
-  Int_t clustersInCommon, nClusters1, nClusters2;
-  Bool_t removedTrack1;
+  /// Find and remove tracks sharing 1 cluster or more in station(s) [stMin, stMax].
+  /// For each couple of connected tracks, one removes the one with the smallest
+  /// number of clusters or with the highest chi2 value in case of equality.
+  /// If all=kTRUE: both tracks are removed.
+  
+  // tag the tracks to be removed
+  TagConnectedTracks(stMin, stMax, all);
+  
+  // remove them
+  Int_t nTracks = fRecTracksPtr->GetEntriesFast();
+  for (Int_t i = 0; i < nTracks; i++) {
+    if (((AliMUONTrack*) fRecTracksPtr->UncheckedAt(i))->IsConnected()) {
+      fRecTracksPtr->RemoveAt(i);
+      fNRecTracks--;
+    }
+  }
+  
+  // remove holes in the array if any
+  fRecTracksPtr->Compress();
+}
+
+  //__________________________________________________________________________
+void AliMUONVTrackReconstructor::TagConnectedTracks(Int_t stMin, Int_t stMax, Bool_t all)
+{
+  /// Find and tag tracks sharing 1 cluster or more in station(s) [stMin, stMax].
+  /// For each couple of connected tracks, one tags the one with the smallest
+  /// number of clusters or with the highest chi2 value in case of equality.
+  /// If all=kTRUE: both tracks are tagged.
+  
+  AliMUONTrack *track1, *track2;
+  Int_t nClusters1, nClusters2;
+  Int_t nTracks = fRecTracksPtr->GetEntriesFast();
+  
+  // reset the tags
+  for (Int_t i = 0; i < nTracks; i++) ((AliMUONTrack*) fRecTracksPtr->UncheckedAt(i))->Connected(kFALSE);
+    
   // Loop over first track of the pair
-  track1 = (AliMUONTrack*) fRecTracksPtr->First();
-  while (track1) {
-    removedTrack1 = kFALSE;
-    nClusters1 = track1->GetNClusters();
+  for (Int_t iTrack1 = 0; iTrack1 < nTracks; iTrack1++) {
+    track1 = (AliMUONTrack*) fRecTracksPtr->UncheckedAt(iTrack1);
+    
     // Loop over second track of the pair
-    track2 = (AliMUONTrack*) fRecTracksPtr->After(track1);
-    while (track2) {
-      nClusters2 = track2->GetNClusters();
-      // number of clusters in common between two tracks
-      if (inSt345) clustersInCommon = track1->ClustersInCommonInSt345(track2);
-      else clustersInCommon = track1->ClustersInCommon(track2);
-      // check for identical tracks
-      if (clustersInCommon > 0) {
-        // decide which track to remove
-        if ((nClusters1 > nClusters2) || ((nClusters1 == nClusters2) && (track1->GetGlobalChi2() <= track2->GetGlobalChi2()))) {
-	  // remove track2 and continue the second loop with the track next to track2
-	  trackToRemove = track2;
-	  track2 = (AliMUONTrack*) fRecTracksPtr->After(track2);
-	  fRecTracksPtr->Remove(trackToRemove);
-	  fRecTracksPtr->Compress(); // this is essential to retrieve the TClonesArray afterwards
-	  fNRecTracks--;
-        } else {
-	  // else remove track1 and continue the first loop with the track next to track1
-	  trackToRemove = track1;
-	  track1 = (AliMUONTrack*) fRecTracksPtr->After(track1);
-          fRecTracksPtr->Remove(trackToRemove);
-	  fRecTracksPtr->Compress(); // this is essential to retrieve the TClonesArray afterwards
-	  fNRecTracks--;
-	  removedTrack1 = kTRUE;
-	  break;
-        }
-      } else track2 = (AliMUONTrack*) fRecTracksPtr->After(track2);
-    } // track2
-    if (removedTrack1) continue;
-    track1 = (AliMUONTrack*) fRecTracksPtr->After(track1);
-  } // track1
-  return;
+    for (Int_t iTrack2 = iTrack1+1; iTrack2 < nTracks; iTrack2++) {
+      track2 = (AliMUONTrack*) fRecTracksPtr->UncheckedAt(iTrack2);
+      
+      // check for connected tracks and tag them
+      if (track1->ClustersInCommon(track2, stMin, stMax) > 0) {
+        
+	if (all) {
+	  
+	  // tag both tracks
+	  track1->Connected();
+	  track2->Connected();
+	  
+	} else {
+	  
+	  // tag only the worst track
+	  nClusters1 = track1->GetNClusters();
+	  nClusters2 = track2->GetNClusters();
+	  if ((nClusters1 > nClusters2) || ((nClusters1 == nClusters2) && (track1->GetGlobalChi2() <= track2->GetGlobalChi2()))) {
+	    track2->Connected();
+	  } else {
+	    track1->Connected();
+	  }
+	  
+	}
+	
+      }
+      
+    }
+    
+  }
+  
 }
 
   //__________________________________________________________________________
@@ -1193,7 +1226,7 @@ void AliMUONVTrackReconstructor::ImproveTracks()
 //__________________________________________________________________________
 void AliMUONVTrackReconstructor::Finalize()
 {
-  /// Recompute track parameters and covariances at each attached cluster from those at the first one
+  /// Recompute track parameters and covariances at each attached cluster
   /// Set the label pointing to the corresponding MC track
   /// Remove the track if finalization failed
   
@@ -1241,7 +1274,7 @@ void AliMUONVTrackReconstructor::EventReconstructTrigger(const AliMUONTriggerCir
   /// To make the trigger tracks from Local Trigger
   AliDebug(1, "");
   AliCodeTimerAuto("",0);
-  
+
   AliMUONGlobalTrigger* globalTrigger = triggerStore.Global();
   
   UChar_t gloTrigPat = 0;
@@ -1254,57 +1287,61 @@ void AliMUONVTrackReconstructor::EventReconstructTrigger(const AliMUONTriggerCir
   TIter next(triggerStore.CreateIterator());
   AliMUONLocalTrigger* locTrg(0x0);
 
-  Float_t z11 = AliMUONConstants::DefaultChamberZ(10);
-  Float_t z21 = AliMUONConstants::DefaultChamberZ(12);
+  const Double_t kTrigNonBendReso = AliMUONConstants::TriggerNonBendingReso();
+  const Double_t kTrigBendReso = AliMUONConstants::TriggerBendingReso();
+  const Double_t kSqrt12 = TMath::Sqrt(12.);
       
   AliMUONTriggerTrack triggerTrack;
+  TMatrixD trigCov(3,3);
   
   while ( ( locTrg = static_cast<AliMUONLocalTrigger*>(next()) ) )
   {
-    Bool_t xTrig=locTrg->IsTrigX();
-    Bool_t yTrig=locTrg->IsTrigY();
-    
-    Int_t localBoardId = locTrg->LoCircuit();
-    
-    if (xTrig && yTrig) 
+    if ( locTrg->IsTrigX() && locTrg->IsTrigY() ) 
     { // make Trigger Track if trigger in X and Y
-      
+
+      Int_t localBoardId = locTrg->LoCircuit();
+
       Float_t y11 = circuit.GetY11Pos(localBoardId, locTrg->LoStripX()); 
+      Float_t z11 = circuit.GetZ11Pos(localBoardId, locTrg->LoStripX());
       // need first to convert deviation to [0-30] 
       // (see AliMUONLocalTriggerBoard::LocalTrigger)
       Int_t deviation = locTrg->GetDeviation(); 
       Int_t stripX21 = locTrg->LoStripX()+deviation+1;
       Float_t y21 = circuit.GetY21Pos(localBoardId, stripX21);       
+      Float_t z21 = circuit.GetZ21Pos(localBoardId, stripX21);
       Float_t x11 = circuit.GetX11Pos(localBoardId, locTrg->LoStripY());
       
-      AliDebug(1, Form(" MakeTriggerTrack %d %d %d %d %f %f %f \n",locTrg->LoCircuit(),
-                       locTrg->LoStripX(),locTrg->LoStripX()+locTrg->LoDev()+1,locTrg->LoStripY(),y11, y21, x11));
-      
-      Float_t thetax = TMath::ATan2( x11 , z11 );
-      Float_t thetay = TMath::ATan2( (y21-y11) , (z21-z11) );
+      AliDebug(1, Form(" MakeTriggerTrack %3d %2d %2d %2d (%f %f %f) (%f %f)\n",locTrg->LoCircuit(),
+                       locTrg->LoStripX(),locTrg->LoStripX()+deviation+1,locTrg->LoStripY(),x11, y11, z11, y21, z21));
 
-      CorrectThetaRange(thetax);
-      CorrectThetaRange(thetay);
+ 
+      Double_t deltaZ = z11 - z21;
       
+      Float_t slopeX = x11/z11;
+      Float_t slopeY = (y11-y21) / deltaZ;
+
+      Float_t sigmaX = circuit.GetX11Width(localBoardId, locTrg->LoStripY()) / kSqrt12;
+      Float_t sigmaY = circuit.GetY11Width(localBoardId, locTrg->LoStripX()) / kSqrt12;
+      Float_t sigmaY21 = circuit.GetY21Width(localBoardId, locTrg->LoStripX()) / kSqrt12;
+
+      trigCov.Zero();
+      trigCov(0,0) = kTrigNonBendReso * kTrigNonBendReso + sigmaX * sigmaX;
+      trigCov(1,1) = kTrigBendReso * kTrigBendReso + sigmaY * sigmaY;
+      trigCov(2,2) = 
+	(2. * kTrigBendReso * kTrigBendReso + sigmaY * sigmaY + sigmaY21 * sigmaY21 ) / deltaZ / deltaZ;
+      trigCov(1,2) = trigCov(2,1) = trigCov(1,1) / deltaZ;
+
       triggerTrack.SetX11(x11);
       triggerTrack.SetY11(y11);
-      triggerTrack.SetThetax(thetax);
-      triggerTrack.SetThetay(thetay);
+      triggerTrack.SetZ11(z11);
+      triggerTrack.SetZ21(z21);
+      triggerTrack.SetSlopeX(slopeX);
+      triggerTrack.SetSlopeY(slopeY);
       triggerTrack.SetGTPattern(gloTrigPat);
       triggerTrack.SetLoTrgNum(localBoardId);
-      
+      triggerTrack.SetCovariances(trigCov);
+
       triggerTrackStore.Add(triggerTrack);
     } // board is fired 
   } // end of loop on Local Trigger
-}
-
-//__________________________________________________________________________
-void AliMUONVTrackReconstructor::CorrectThetaRange(Float_t& theta)
-{
-  /// The angles of the trigger tracks, obtained with ATan2, 
-  /// have values around +pi and -pi. On the contrary, the angles 
-  /// used in the tracker tracks have values around 0.
-  /// This function sets the same range for the trigger tracks angles.
-  if (theta < -TMath::PiOver2()) theta += TMath::Pi();
-  else if(theta > TMath::PiOver2()) theta -= TMath::Pi();
 }

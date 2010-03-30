@@ -43,14 +43,16 @@ ClassImp(AliAnalysisTaskESDMuonFilter)
 
 AliAnalysisTaskESDMuonFilter::AliAnalysisTaskESDMuonFilter():
   AliAnalysisTaskSE(),
-  fTrackFilter(0x0)
+  fTrackFilter(0x0),
+  fEnableMuonAOD(kFALSE)
 {
   // Default constructor
 }
 
 AliAnalysisTaskESDMuonFilter::AliAnalysisTaskESDMuonFilter(const char* name):
   AliAnalysisTaskSE(name),
-  fTrackFilter(0x0)
+  fTrackFilter(0x0),
+  fEnableMuonAOD(kFALSE)
 {
   // Constructor
 }
@@ -65,6 +67,10 @@ void AliAnalysisTaskESDMuonFilter::Init()
 {
   // Initialization
   if (fDebug > 1) AliInfo("Init() \n");
+  // From Andrei
+  AliAODHandler *aodH = (AliAODHandler*)((AliAnalysisManager::GetAnalysisManager())->GetOutputEventHandler());
+  if (!aodH) Fatal("UserCreateOutputObjects", "No AOD handler. Aborting.");
+  if(fEnableMuonAOD)aodH->AddFilteredAOD("AliAOD.Muons.root", "MuonEvents");
 }
 
 
@@ -72,7 +78,7 @@ void AliAnalysisTaskESDMuonFilter::UserExec(Option_t */*option*/)
 {
   // Execute analysis for current event					    
   Long64_t ientry = Entry();
-  printf("Muon Filter: Analysing event # %5d\n", (Int_t) ientry);
+  if(fDebug)printf("Muon Filter: Analysing event # %5d\n", (Int_t) ientry);
   
   ConvertESDtoAOD();
 }
@@ -109,7 +115,7 @@ void AliAnalysisTaskESDMuonFilter::ConvertESDtoAOD()
   
   // Read primary vertex from AOD event 
   AliAODVertex *primary = AODEvent()->GetPrimaryVertex();
-  primary->Print();
+  if(fDebug)primary->Print();
   
   // Loop on muon tracks to fill the AOD track branch
   Int_t nMuTracks = esd->GetNumberOfMuonTracks();
@@ -118,6 +124,8 @@ void AliAnalysisTaskESDMuonFilter::ConvertESDtoAOD()
   Int_t nPosTracks = header->GetRefMultiplicityPos();
   Int_t nNegTracks = header->GetRefMultiplicityNeg();
   
+  Bool_t MuonsExist = kFALSE;
+
   for (Int_t nMuTrack = 0; nMuTrack < nMuTracks; ++nMuTrack) {
     esdMuTrack = esd->GetMuonTrack(nMuTrack);
     
@@ -131,6 +139,8 @@ void AliAnalysisTaskESDMuonFilter::ConvertESDtoAOD()
      	  continue;
      	}  
      }
+
+    if(!MuonsExist) MuonsExist=kTRUE;
 
     p[0] = esdMuTrack->Px(); 
     p[1] = esdMuTrack->Py(); 
@@ -160,12 +170,14 @@ void AliAnalysisTaskESDMuonFilter::ConvertESDtoAOD()
     
     aodTrack->SetXYAtDCA(esdMuTrack->GetNonBendingCoorAtDCA(), esdMuTrack->GetBendingCoorAtDCA());
     aodTrack->SetPxPyPzAtDCA(esdMuTrack->PxAtDCA(), esdMuTrack->PyAtDCA(), esdMuTrack->PzAtDCA());
+    aodTrack->SetRAtAbsorberEnd(esdMuTrack->GetRAtAbsorberEnd());
     aodTrack->ConvertAliPIDtoAODPID();
     aodTrack->SetChi2perNDF(esdMuTrack->GetChi2() / (2.*esdMuTrack->GetNHit() - 5.));
     aodTrack->SetChi2MatchTrigger(esdMuTrack->GetChi2MatchTrigger());
     aodTrack->SetHitsPatternInTrigCh(esdMuTrack->GetHitsPatternInTrigCh());
     aodTrack->SetMuonClusterMap(esdMuTrack->GetMuonClusterMap());
     aodTrack->SetMatchTrigger(esdMuTrack->GetMatchTrigger());
+    aodTrack->Connected(esdMuTrack->IsConnected());
     
     primary->AddDaughter(aodTrack);
     
@@ -176,6 +188,14 @@ void AliAnalysisTaskESDMuonFilter::ConvertESDtoAOD()
   header->SetRefMultiplicity(jTracks); 
   header->SetRefMultiplicityPos(nPosTracks);
   header->SetRefMultiplicityNeg(nNegTracks);
+
+  // From Andrei
+  if(fEnableMuonAOD && MuonsExist){
+    AliAODExtension *extMuons = dynamic_cast<AliAODHandler*>
+    ((AliAnalysisManager::GetAnalysisManager())->GetOutputEventHandler())->GetFilteredAOD("AliAOD.Muons.root");
+    extMuons->SelectEvent();
+  }
+
 }
 
 void AliAnalysisTaskESDMuonFilter::Terminate(Option_t */*option*/)

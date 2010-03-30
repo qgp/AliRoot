@@ -131,6 +131,10 @@ Revision 0.01  2005/07/25 A. De Caro
 #include "AliTOFrawData.h"
 //#include "AliTOFRawStream.h"
 
+#include "AliTOFDeltaBCOffset.h"
+#include "AliTOFCTPLatency.h"
+#include "AliTOFT0Fill.h"
+
 //extern TFile *gFile;
 
 ClassImp(AliTOFClusterFinder)
@@ -284,7 +288,7 @@ void AliTOFClusterFinder::Digits2RecPoints(Int_t iEvent)
 
   Int_t ii;
   Int_t dig[5]; //cluster detector indeces
-  Int_t  parTOF[5]; //The TOF signal parameters
+  Int_t  parTOF[7]; //The TOF signal parameters
   Bool_t status=kTRUE; // assume all sim channels ok in the beginning...
   for (ii=0; ii<nDigits; ii++) {
     AliTOFdigit *d = (AliTOFdigit*)digits->UncheckedAt(ii);
@@ -312,16 +316,18 @@ void AliTOFClusterFinder::Digits2RecPoints(Int_t iEvent)
     parTOF[2] = d->GetAdc(); // the adc charge
     parTOF[3] = d->GetTdcND(); // non decalibrated sim time
     parTOF[4] = d->GetTdc(); // raw time, == Tdc time for the moment
+    parTOF[5] = 0; // deltaBC
+    parTOF[6] = 0; // L0-L1 latency
     Double_t posClus[3];
     Double_t covClus[6];
     UShort_t volIdClus=GetClusterVolIndex(dig);
     GetClusterPars(dig, posClus,covClus);
     AliTOFcluster *tofCluster = new AliTOFcluster(volIdClus,posClus[0],posClus[1],posClus[2],covClus[0],covClus[1],covClus[2],covClus[3],covClus[4],covClus[5],d->GetTracks(),dig,parTOF,status,ii);
     InsertCluster(tofCluster);
-    
+
   }
 
-  AliInfo(Form("Number of found clusters: %d for event: %d", fNumberOfTofClusters, iEvent));
+  AliDebug(1,Form("Number of found clusters: %d for event: %d", fNumberOfTofClusters, iEvent));
 
   CalibrateRecPoint();
   FillRecPoint();
@@ -332,8 +338,8 @@ void AliTOFClusterFinder::Digits2RecPoints(Int_t iEvent)
   fTOFLoader = fRunLoader->GetLoader("TOFLoader");  
   fTOFLoader->WriteRecPoints("OVERWRITE");
 
-  AliInfo(Form("Execution time to read TOF digits and to write TOF clusters : R:%.4fs C:%.4fs",
-	       stopwatch.RealTime(),stopwatch.CpuTime()));
+  AliDebug(1,Form("Execution time to read TOF digits and to write TOF clusters : R:%.4fs C:%.4fs",
+		  stopwatch.RealTime(),stopwatch.CpuTime()));
   if (inholes) AliWarning(Form("Clusters in the TOF holes: %d",inholes));
 
 }
@@ -381,7 +387,7 @@ void AliTOFClusterFinder::Digits2RecPoints(TTree* digitsTree, TTree* clusterTree
 
   Int_t ii;
   Int_t dig[5]; //cluster detector indeces
-  Int_t  parTOF[5]; //The TOF signal parameters
+  Int_t  parTOF[7]; //The TOF signal parameters
   Bool_t status=kTRUE; // assume all sim channels ok in the beginning...
   for (ii=0; ii<nDigits; ii++) {
     AliTOFdigit *d = (AliTOFdigit*)digits->UncheckedAt(ii);
@@ -409,6 +415,8 @@ void AliTOFClusterFinder::Digits2RecPoints(TTree* digitsTree, TTree* clusterTree
     parTOF[2] = d->GetAdc(); // the adc charge
     parTOF[3] = d->GetTdcND(); // non decalibrated sim time
     parTOF[4] = d->GetTdc(); // raw time, == Tdc time for the moment
+    parTOF[5] = 0; // deltaBC
+    parTOF[6] = 0; // L0-L1 latency
     
     Double_t posClus[3];
     Double_t covClus[6];
@@ -419,7 +427,7 @@ void AliTOFClusterFinder::Digits2RecPoints(TTree* digitsTree, TTree* clusterTree
 
   }
 
-  AliInfo(Form("Number of found clusters: %d", fNumberOfTofClusters));
+  AliDebug(1,Form("Number of found clusters: %d", fNumberOfTofClusters));
 
   CalibrateRecPoint();
   FillRecPoint();
@@ -427,8 +435,8 @@ void AliTOFClusterFinder::Digits2RecPoints(TTree* digitsTree, TTree* clusterTree
   clusterTree->Fill();
   ResetRecpoint();
 
-  AliInfo(Form("Execution time to read TOF digits and to write TOF clusters : R:%.4fs C:%.4fs",
-	       stopwatch.RealTime(),stopwatch.CpuTime()));
+  AliDebug(1,Form("Execution time to read TOF digits and to write TOF clusters : R:%.4fs C:%.4fs",
+		  stopwatch.RealTime(),stopwatch.CpuTime()));
   if (inholes) AliWarning(Form("Clusters in the TOF holes: %d",inholes));
 
 }
@@ -458,7 +466,7 @@ void AliTOFClusterFinder::Digits2RecPoints(AliRawReader *rawReader,
   Int_t dummy = -1;
 
   Int_t detectorIndex[5];
-  Int_t parTOF[5];
+  Int_t parTOF[7];
 
   ofstream ftxt;
   if (fVerbose==2) ftxt.open("TOFdigitsRead.txt",ios::app);
@@ -467,14 +475,15 @@ void AliTOFClusterFinder::Digits2RecPoints(AliRawReader *rawReader,
   fTOFRawStream.Clear();
   fTOFRawStream.SetRawReader(rawReader);
 
+  if (fDecoderVersion)
+    AliInfo("Using New Decoder");
+
   Int_t indexDDL = 0;
   for (indexDDL = 0; indexDDL < kDDL; indexDDL++) {
 
     rawReader->Reset();
-    if (fDecoderVersion) {
-      AliInfo("Using New Decoder \n"); 
+    if (fDecoderVersion)
       fTOFRawStream.LoadRawDataBuffers(indexDDL,fVerbose);
-    }
     else fTOFRawStream.LoadRawData(indexDDL);
 
     clonesRawData = (TClonesArray*)fTOFRawStream.GetRawData();
@@ -530,6 +539,8 @@ void AliTOFClusterFinder::Digits2RecPoints(AliRawReader *rawReader,
       parTOF[2] = tofRawDatum->GetTOT(); //ADC==TOF
       parTOF[3] = -1;//raw data: no track of undecalib sim time
       parTOF[4] = tofRawDatum->GetTOF(); // RAW time
+      parTOF[5] = tofRawDatum->GetDeltaBC(); // deltaBC
+      parTOF[6] = tofRawDatum->GetL0L1Latency(); // L0-L1 latency
       Double_t posClus[3];
       Double_t covClus[6];
       UShort_t volIdClus=GetClusterVolIndex(detectorIndex);
@@ -557,7 +568,7 @@ void AliTOFClusterFinder::Digits2RecPoints(AliRawReader *rawReader,
 
   if (fVerbose==2) ftxt.close();
 
-  AliInfo(Form("Number of found clusters: %d", fNumberOfTofClusters));
+  AliDebug(1,Form("Number of found clusters: %d", fNumberOfTofClusters));
 
   CalibrateRecPoint();
   FillRecPoint();
@@ -605,7 +616,7 @@ void AliTOFClusterFinder::Digits2RecPoints(Int_t iEvent, AliRawReader *rawReader
   Int_t dummy = -1;
 
   Int_t detectorIndex[5] = {-1, -1, -1, -1, -1};
-  Int_t parTOF[5];
+  Int_t parTOF[7];
   ofstream ftxt;
   if (fVerbose==2) ftxt.open("TOFdigitsRead.txt",ios::app);
 
@@ -613,14 +624,15 @@ void AliTOFClusterFinder::Digits2RecPoints(Int_t iEvent, AliRawReader *rawReader
   fTOFRawStream.Clear();
   fTOFRawStream.SetRawReader(rawReader);
 
+  if (fDecoderVersion)
+    AliInfo("Using New Decoder");
+
   Int_t indexDDL = 0;
   for (indexDDL = 0; indexDDL < kDDL; indexDDL++) {
 
     rawReader->Reset();
-    if (fDecoderVersion) {
-      AliInfo("Using New Decoder \n"); 
+    if (fDecoderVersion)
       fTOFRawStream.LoadRawDataBuffers(indexDDL,fVerbose);
-    }
     else fTOFRawStream.LoadRawData(indexDDL);
 
     clonesRawData = (TClonesArray*)fTOFRawStream.GetRawData();
@@ -676,6 +688,8 @@ void AliTOFClusterFinder::Digits2RecPoints(Int_t iEvent, AliRawReader *rawReader
       parTOF[2] = tofRawDatum->GetTOT(); // raw data have ADC=TOT
       parTOF[3] = -1; //raw data: no track of the undecalib sim time
       parTOF[4] = tofRawDatum->GetTOF(); // Raw time == TDC
+      parTOF[5] = tofRawDatum->GetDeltaBC(); // deltaBC
+      parTOF[6] = tofRawDatum->GetL0L1Latency(); // L0-L1 latency
       Double_t posClus[3];
       Double_t covClus[6];
       UShort_t volIdClus=GetClusterVolIndex(detectorIndex);
@@ -703,7 +717,7 @@ void AliTOFClusterFinder::Digits2RecPoints(Int_t iEvent, AliRawReader *rawReader
 
   if (fVerbose==2) ftxt.close();
 
-  AliInfo(Form("Number of found clusters: %d for event: %d", fNumberOfTofClusters, iEvent));
+  AliDebug(1,Form("Number of found clusters: %d for event: %d", fNumberOfTofClusters, iEvent));
 
   CalibrateRecPoint();
   FillRecPoint();
@@ -764,14 +778,15 @@ void AliTOFClusterFinder::Raw2Digits(Int_t iEvent, AliRawReader *rawReader)
   fTOFRawStream.Clear();
   fTOFRawStream.SetRawReader(rawReader);
 
+  if (fDecoderVersion)
+    AliInfo("Using New Decoder");
+
   Int_t indexDDL = 0;
   for (indexDDL = 0; indexDDL < kDDL; indexDDL++) {
 
     rawReader->Reset();
-    if (fDecoderVersion) {
-      AliInfo("Using New Decoder \n"); 
+    if (fDecoderVersion)
       fTOFRawStream.LoadRawDataBuffers(indexDDL,fVerbose);
-    }
     else fTOFRawStream.LoadRawData(indexDDL);
 
     clonesRawData = (TClonesArray*)fTOFRawStream.GetRawData();
@@ -853,14 +868,15 @@ void AliTOFClusterFinder::Raw2Digits(AliRawReader *rawReader, TTree* digitsTree)
   fTOFRawStream.Clear();
   fTOFRawStream.SetRawReader(rawReader);
 
+  if (fDecoderVersion)
+    AliInfo("Using New Decoder");
+
   Int_t indexDDL = 0;
   for (indexDDL = 0; indexDDL < kDDL; indexDDL++) {
 
     rawReader->Reset();
-    if (fDecoderVersion) {
-      AliInfo("Using New Decoder \n"); 
+    if (fDecoderVersion)
       fTOFRawStream.LoadRawDataBuffers(indexDDL,fVerbose);
-    }
     else fTOFRawStream.LoadRawData(indexDDL);
 
     clonesRawData = (TClonesArray*)fTOFRawStream.GetRawData();
@@ -959,7 +975,7 @@ void AliTOFClusterFinder::FillRecPoint()
   Int_t ii, jj;
 
   Int_t detectorIndex[5];
-  Int_t parTOF[5];
+  Int_t parTOF[7];
   Int_t trackLabels[3];
   Int_t digitIndex = -1;
   Bool_t status=kTRUE;
@@ -976,6 +992,8 @@ void AliTOFClusterFinder::FillRecPoint()
     parTOF[2] = fTofClusters[ii]->GetADC(); // ADC=TOT
     parTOF[3] = fTofClusters[ii]->GetTDCND(); // TDCND
     parTOF[4] = fTofClusters[ii]->GetTDCRAW();//RAW
+    parTOF[5] = fTofClusters[ii]->GetDeltaBC();//deltaBC
+    parTOF[6] = fTofClusters[ii]->GetL0L1Latency();//L0-L1 latency
     status=fTofClusters[ii]->GetStatus();
     Double_t posClus[3];
     Double_t covClus[6];
@@ -1016,22 +1034,30 @@ void AliTOFClusterFinder::CalibrateRecPoint()
   Double_t tToT;
   Double_t timeCorr;
   Int_t   tdcCorr;
-  AliInfo(" Calibrating TOF Clusters: ")
-  
+  Float_t tdcLatencyWindow;
+  AliDebug(1," Calibrating TOF Clusters");
+
   AliTOFChannelOnlineArray *calDelay = fTOFcalib->GetTOFOnlineDelay();  
   AliTOFChannelOnlineStatusArray *calStatus = fTOFcalib->GetTOFOnlineStatus();  
   TObjArray *calTOFArrayOffline = fTOFcalib->GetTOFCalArrayOffline();
+  
+  AliTOFDeltaBCOffset *deltaBCOffsetObj = fTOFcalib->GetDeltaBCOffset();
+  Int_t deltaBCOffset = deltaBCOffsetObj->GetDeltaBCOffset();
+  AliTOFCTPLatency *ctpLatencyObj = fTOFcalib->GetCTPLatency();
+  Float_t ctpLatency = ctpLatencyObj->GetCTPLatency();
+  AliTOFT0Fill *t0FillObj = fTOFcalib->GetT0Fill();
+  Float_t t0Fill = t0FillObj->GetT0Fill();
+
   TString validity = (TString)fTOFcalib->GetOfflineValidity();
-  AliInfo(Form(" validity = %s",validity.Data()));
   Int_t calibration = -1;
   if (validity.CompareTo("valid")==0) {
-    AliInfo(" Using offline calibration parameters");
+    AliInfo(Form(" validity = %s - Using offline calibration parameters",validity.Data()));
     calibration = 1;
-  }
-  else {
-    AliInfo(" Using online calibration parameters");
+  } else {
+    AliInfo(Form(" validity = %s - Using online calibration parameters",validity.Data()));
     calibration = 0 ;
   }
+
   for (ii=0; ii<fNumberOfTofClusters; ii++) {
     digitIndex = fTofClusters[ii]->GetIndex();
     for(jj=0; jj<5; jj++) detectorIndex[jj] = fTofClusters[ii]->GetDetInd(jj);
@@ -1042,7 +1068,8 @@ void AliTOFClusterFinder::CalibrateRecPoint()
     UChar_t statusNoise=calStatus->GetNoiseStatus(index);
     UChar_t statusHW=calStatus->GetHWStatus(index);
     UChar_t status=calStatus->GetStatus(index);
-
+    tdcLatencyWindow = calStatus->GetLatencyWindow(index) * 1.e3; /* ns -> ps */
+    
     //check the status, also unknown is fine!!!!!!!
 
     AliDebug(2, Form(" Status for channel %d = %d",index, (Int_t)status));
@@ -1067,6 +1094,11 @@ void AliTOFClusterFinder::CalibrateRecPoint()
       AliDebug(2,Form(" The ToT and Time, uncorr (counts) = %d , %d", fTofClusters[ii]->GetToT(),fTofClusters[ii]->GetTDC()));
       tToT = (Double_t)(fTofClusters[ii]->GetToT()*AliTOFGeometry::ToTBinWidth());    
       tToT*=1.E-3; //ToT in ns
+
+      /* check TOT limits and set new TOT in case */
+      if (tToT < AliTOFGeometry::SlewTOTMin()) tToT = AliTOFGeometry::SlewTOTMin();
+      if (tToT > AliTOFGeometry::SlewTOTMax()) tToT = AliTOFGeometry::SlewTOTMax();
+
       AliDebug(2,Form(" The ToT and Time, uncorr (ns)= %e, %e",fTofClusters[ii]->GetTDC()*AliTOFGeometry::TdcBinWidth()*1.E-3,tToT));
       timeCorr=par[0]+par[1]*tToT+par[2]*tToT*tToT+par[3]*tToT*tToT*tToT+par[4]*tToT*tToT*tToT*tToT+par[5]*tToT*tToT*tToT*tToT*tToT; // the time correction (ns)
     }
@@ -1078,6 +1110,38 @@ void AliTOFClusterFinder::CalibrateRecPoint()
     timeCorr=(Double_t)(fTofClusters[ii]->GetTDC())*AliTOFGeometry::TdcBinWidth()*1.E-3-timeCorr;//redefine the time
     timeCorr*=1.E3;
     AliDebug(2,Form(" The channel time, corr (ps)= %e",timeCorr ));
+
+    /* here timeCorr should be already corrected for calibration. 
+     * we now go into further corrections keeping in mind that timeCorr
+     * is in ps.
+     *
+     * the following corrections are performed in this way:
+     *
+     *    time = timeRaw - deltaBC + L0L1Latency + CTPLatency - TDCLatencyWindow - T0Fill
+     *
+     */
+
+    AliDebug(2, Form("applying further corrections (DeltaBC): DeltaBC=%d (BC bins), DeltaBCoffset=%d (BC bins)", fTofClusters[ii]->GetDeltaBC(), deltaBCOffset));
+    AliDebug(2, Form("applying further corrections (L0L1Latency): L0L1Latency=%d (BC bins)", fTofClusters[ii]->GetL0L1Latency()));
+    AliDebug(2, Form("applying further corrections (CTPLatency): CTPLatency=%f (ps)", ctpLatency));
+    AliDebug(2, Form("applying further corrections (TDCLatencyWindow): TDCLatencyWindow=%f (ps)", tdcLatencyWindow));
+    AliDebug(2, Form("applying further corrections (T0Fill): T0Fill=%f (ps)", t0Fill));
+
+    /* deltaBC correction */
+    timeCorr -= (fTofClusters[ii]->GetDeltaBC() - deltaBCOffset) * AliTOFGeometry::BunchCrossingBinWidth();
+    /* L0L1-latency correction */
+    timeCorr += fTofClusters[ii]->GetL0L1Latency() * AliTOFGeometry::BunchCrossingBinWidth();
+    /* CTP-latency correction (from OCDB) */
+    timeCorr += ctpLatency;
+    /* TDC latency-window correction (from OCDB) */
+    timeCorr -= tdcLatencyWindow;
+    /* T0Fill correction (from OCDB) */
+    timeCorr -= t0Fill;
+
+    /*
+     * end of furhter corrections
+     */
+
     tdcCorr=(Int_t)(timeCorr/AliTOFGeometry::TdcBinWidth()); //the corrected time (tdc counts)
     fTofClusters[ii]->SetTDC(tdcCorr);
   } // loop on clusters
@@ -1142,7 +1206,7 @@ void AliTOFClusterFinder::UnLoadClusters()
 
 }
 //-------------------------------------------------------------------------
-UShort_t AliTOFClusterFinder::GetClusterVolIndex(Int_t *ind) const {
+UShort_t AliTOFClusterFinder::GetClusterVolIndex(const Int_t * const ind) const {
 
   //First of all get the volume ID to retrieve the l2t transformation...
   //

@@ -1,13 +1,19 @@
 AliProtonAnalysisBase *GetProtonAnalysisBaseObject(const char* analysisLevel = "ESD",
+						   Bool_t kAnalyzeMC = kTRUE,
 						   const char* esdAnalysisType = "Hybrid",
-						   const char* pidMode = "Bayesian") {
-						   
+						   const char* pidMode = "Bayesian",
+						   UInt_t runNumberForOfflineTrigger = -1) {
+  
   //Function to setup the AliProtonAnalysisBase object and return it
   AliProtonAnalysisBase *baseAnalysis = new AliProtonAnalysisBase();
   //baseAnalysis->SetDebugMode();
   baseAnalysis->SetAnalysisLevel(analysisLevel);
-  if(analysisLevel == "ESD") {  
-    baseAnalysis->SetTriggerMode(AliProtonAnalysisBase::kMB2);
+  if(analysisLevel == "ESD") {
+    if(kAnalyzeMC)
+      baseAnalysis->SetTriggerMode(AliProtonAnalysisBase::kMB2);
+    //use the offline trigger
+    if(runNumberForOfflineTrigger != -1)
+      baseAnalysis->OfflineTriggerInit(runNumberForOfflineTrigger);
     baseAnalysis->SetMinTPCClusters(110);
     baseAnalysis->SetMaxChi2PerTPCCluster(2.2);
     baseAnalysis->SetMaxCov11(0.5);
@@ -28,6 +34,7 @@ AliProtonAnalysisBase *GetProtonAnalysisBaseObject(const char* analysisLevel = "
     case "Hybrid":
       baseAnalysis->SetAnalysisMode(AliProtonAnalysisBase::kHybrid);
       baseAnalysis->SetPhaseSpace(10, -0.5, 0.5, 16, 0.5, 0.9);
+      //baseAnalysis->SetPhaseSpace(18, -0.9, 0.9, 32, 0.5, 1.3);
       baseAnalysis->SetTPCpid();
       baseAnalysis->SetMaxSigmaToVertex(2.0);
       /*baseAnalysis->SetMaxDCAXY(1.5);
@@ -61,7 +68,7 @@ AliProtonAnalysisBase *GetProtonAnalysisBaseObject(const char* analysisLevel = "
     default:
       break;
     }
-    baseAnalysis->SetAcceptedVertexDiamond(5.,5.,15.);
+    baseAnalysis->SetAcceptedVertexDiamond(5.,5.,25.);
     baseAnalysis->SetEtaMode();
     switch(pidMode) {
     case "Bayesian":
@@ -101,6 +108,8 @@ AliProtonAnalysisBase *GetProtonAnalysisBaseObject(const char* analysisLevel = "
     }//PID mode
   }//ESD
   if(analysisLevel == "MC") 
+    baseAnalysis->SetPhaseSpace(10, -0.5, 0.5, 16, 0.5, 0.9);
+  if(analysisLevel == "AOD")
     baseAnalysis->SetPhaseSpace(10, -0.5, 0.5, 16, 0.5, 0.9);
 
   return baseAnalysis;

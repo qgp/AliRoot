@@ -33,7 +33,7 @@
 #include "AliCaloTrackReader.h"
 #include "AliAODPWG4Particle.h"
 #include "AliStack.h"
-#include "AliFidutialCut.h"
+#include "AliFiducialCut.h"
 #include "AliAODTrack.h"
 #include "AliAODMCParticle.h"
 
@@ -102,9 +102,9 @@ TList *  AliAnaChargedParticles::GetCreateOutputObjects()
   TList * outputContainer = new TList() ; 
   outputContainer->SetName("ExampleHistos") ; 
   
-  Int_t nptbins  = GetHistoNPtBins();
-  Int_t nphibins = GetHistoNPhiBins();
-  Int_t netabins = GetHistoNEtaBins();
+  Int_t nptbins  = GetHistoPtBins();
+  Int_t nphibins = GetHistoPhiBins();
+  Int_t netabins = GetHistoEtaBins();
   Float_t ptmax  = GetHistoPtMax();
   Float_t phimax = GetHistoPhiMax();
   Float_t etamax = GetHistoEtaMax();
@@ -256,8 +256,8 @@ void  AliAnaChargedParticles::MakeAnalysisFillAOD()
     p3.SetXYZ(mom[0],mom[1],mom[2]);
     
     //Acceptance selection
-    Bool_t in =  GetFidutialCut()->IsInFidutialCut(mom,"CTS") ;
-    if(GetDebug() > 1) printf("AliAnaChargedParticles::MakeAnalysisFillAOD() - Track pt %2.2f, phi %2.2f, in fidutial cut %d\n",p3.Pt(), p3.Phi(), in);
+    Bool_t in =  GetFiducialCut()->IsInFiducialCut(mom,"CTS") ;
+    if(GetDebug() > 1) printf("AliAnaChargedParticles::MakeAnalysisFillAOD() - Track pt %2.2f, phi %2.2f, in fiducial cut %d\n",p3.Pt(), p3.Phi(), in);
     if(p3.Pt() > GetMinPt() && in) {
       //Keep only particles identified with fPdg
       //Selection not done for the moment

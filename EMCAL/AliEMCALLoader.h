@@ -27,6 +27,8 @@ class TTask ;
 // --- AliRoot header files ---
 #include "AliLoader.h"
 #include "AliEMCALCalibData.h"
+#include "AliCaloCalibPedestal.h"
+#include "AliEMCALSimParam.h"
 
 class AliLoader ;
 class AliEMCAL ; 
@@ -66,7 +68,7 @@ class AliEMCALLoader : public AliLoader {
 
   // ************    TClonesArrays Access functions
 
-  TClonesArray*  Hits(void) { return fHits;}
+  TClonesArray*  Hits(void) const { return fHits;}
 
   const AliEMCALHit*    Hit(Int_t index) {
     if (fHits)
@@ -74,21 +76,21 @@ class AliEMCALLoader : public AliLoader {
     return 0x0; 
   }
 
-  TClonesArray*  SDigits()  { return fSDigits;}
+  TClonesArray*  SDigits() const { return fSDigits;}
   const AliEMCALDigit*  SDigit(Int_t index)  {
     if (fSDigits)
       return (const AliEMCALDigit*) fSDigits->At(index);
     return 0x0; 
   }
 
-  TClonesArray*   Digits()  { return fDigits;}
+  TClonesArray*   Digits() const { return fDigits;}
   const AliEMCALDigit *  Digit(Int_t index)  {
     if (fDigits)
       return (const AliEMCALDigit*) fDigits->At(index);
     return 0x0; 
   }
 
-  TObjArray * RecPoints()  { return fRecPoints;}
+  TObjArray * RecPoints() const { return fRecPoints;}
   const AliEMCALRecPoint * RecPoint(Int_t index)  {
     if (fRecPoints)
       return (const AliEMCALRecPoint*) fRecPoints->At(index);
@@ -98,12 +100,18 @@ class AliEMCALLoader : public AliLoader {
   void   SetDebug(Int_t level) {fDebug = level;} // Set debug level
 
   //Calibration
-
   Int_t CalibrateRaw (Double_t energy, Int_t module, Int_t column, Int_t row);//take real calibration coefficients
-  
+	
   void  SetCalibData(AliEMCALCalibData* calibda)  { fgCalibData = calibda; }
   AliEMCALCalibData * CalibData(); // to get the calibration CDB object
+	
+  void  SetPedestalData(AliCaloCalibPedestal* caloped)  { fgCaloPed = caloped; }
+  AliCaloCalibPedestal* PedestalData(); // to get the pedestal CDB object
 
+  void  SetSimParam(AliEMCALSimParam* simparam)  { fgSimParam = simparam; }
+  AliEMCALSimParam* SimulationParameters(); // to get the simulation parameter CDB object
+
+	
 private:
  
   // assignement operator requested by coding convention, but not needed
@@ -122,9 +130,11 @@ private:
   TClonesArray     *fSDigits;      //! TClonesArray of sdigits (for tree reading)
   TObjArray        *fRecPoints;    //! TClonesArray of recpoints (for tree reading)   
   
-  static AliEMCALCalibData * fgCalibData;  //  calibration data 
+  static AliEMCALCalibData    * fgCalibData;  //  calibration data 
+  static AliCaloCalibPedestal * fgCaloPed;    //  dead map
+  static AliEMCALSimParam     * fgSimParam;   //  sim param 
 
-  ClassDef(AliEMCALLoader,2)  // Algorithm class that provides methods to retrieve objects from a list knowing the index 
+  ClassDef(AliEMCALLoader,4)  // Algorithm class that provides methods to retrieve objects from a list knowing the index 
    
 };
 

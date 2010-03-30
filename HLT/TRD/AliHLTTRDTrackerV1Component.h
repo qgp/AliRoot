@@ -6,23 +6,22 @@
  * See cxx source for full Copyright notice                               */
 
 /** @file   AliHLTTRDTrackerV1Component.h
-    @author 
+    @author Theodor Rascanu
     @date   
     @brief  Declaration of a TRDTracker component. */
 
 #include "AliHLTProcessor.h"
+#include "AliESDEvent.h"
 
 class TFile;
-class TTree;
-
 class TGeoManager;
 class AliCDBManager;
 class AliMagF;
 class AliTRDtrackerV1;
 class AliTRDrecoParam;
 class AliTRDReconstructor;
-class AliESDEvent;
 class TClonesArray;
+class TBuffer;
 
 /**
  * @class AliHLTTRDTrackerV1Component
@@ -33,6 +32,19 @@ class TClonesArray;
 
 class AliHLTTRDTrackerV1Component : public AliHLTProcessor
 {
+protected:
+
+  class AliHLTTRDESDEvent : public AliESDEvent
+  {
+    // Here we use our own slim version of AliESDEvent 
+    // by overwriting AliESDEvent::CreateStdContent
+  public:
+    void CreateStdContent();
+
+    // streamer function is prohibited, class for internal use only
+    void Streamer(TBuffer &R__b);
+  };
+
 public:
   AliHLTTRDTrackerV1Component();
   virtual ~AliHLTTRDTrackerV1Component();
@@ -67,8 +79,8 @@ protected:
   
   int Configure(const char* arguments);
   int SetParams();
-	
-private:
+
+protected:
   /** copy constructor prohibited */
   AliHLTTRDTrackerV1Component(const AliHLTTRDTrackerV1Component&);
   /** assignment operator prohibited */
@@ -80,21 +92,22 @@ private:
 	
   AliTRDtrackerV1 *fTracker;//! Offline-pure/HLT tracker V1
   AliTRDrecoParam *fRecoParam; //! Offline reco params
-  AliTRDReconstructor * fReconstructor;
-  AliESDEvent*     fESD;
+  AliTRDReconstructor* fReconstructor;
+  AliHLTTRDESDEvent* fESD;
 
   TClonesArray* fClusterArray;
 
-  Int_t fRecoParamType;     // default will be the low flux
-  Int_t fNtimeBins;         // number of time bins for the tracker to use
-  Int_t fMagneticField;     // magnetic field: 0==OFF and 1==ON
-  Int_t fPIDmethod;          // 0=LikelyHood(LH) 1=NeuronalNetwork(NN) 2=TruncatedMean(TM)
+  Int_t fRecoParamType;       // default will be the low flux
+  Int_t fNtimeBins;           // number of time bins for the tracker to use
+  Int_t fPIDmethod;           // 0=LikelyHood(LH) 1=NeuronalNetwork(NN) 2=TruncatedMean(TM)
   TString fgeometryFileName;
-  Double_t fieldStrength;
-  Bool_t fSlowTracking;
-  Bool_t fOutputV1Tracks;
+  Bool_t fHLTflag;            // use HLT flag in reconstructor
+  Bool_t fOutputV1Tracks;     // output TRD tracks, needed for calibration and ESDfriends
+  Bool_t fHighLevelOutput;    // do we what to have high level output (only for debuging)
+  Bool_t fEmulateHLTTracks;   // for debugging data containers
+  Bool_t fImproveTracklets;   // improve tracklets?
 
-  ClassDef(AliHLTTRDTrackerV1Component, 3)
+  ClassDef(AliHLTTRDTrackerV1Component, 4)
 
 };
 #endif

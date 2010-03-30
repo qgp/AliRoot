@@ -18,6 +18,7 @@ class TTreeSRedirector;
 class TGraph;
 class TGraphErrors;
 class THnSparse;
+class TH1;
 
 class AliTPCcalibBase:public TNamed {
 public:
@@ -26,9 +27,9 @@ public:
   AliTPCcalibBase(const AliTPCcalibBase&calib);
   AliTPCcalibBase &operator=(const AliTPCcalibBase&calib);
   virtual ~AliTPCcalibBase();
-  virtual void     Process(AliESDEvent */*event*/){return;}
-  virtual void     Process(AliTPCseed */*track*/){return;}
-  virtual void     Process(AliESDtrack */*track*/, Int_t /*runNo=-1*/){return;}
+  virtual void     Process(AliESDEvent *event){ fCurrentEvent = event; return;}
+  virtual void     Process(AliTPCseed *track){fCurrentSeed = track; return;}
+  virtual void     Process(AliESDtrack *track, Int_t /*runNo=-1*/){fCurrentTrack=track; return;}
   virtual Long64_t Merge(TCollection */*li*/){return 0;}
   virtual void     Analyze(){return;}
   virtual void     Terminate();
@@ -45,8 +46,9 @@ public:
   Int_t      GetDebugLevel() const {return fDebugLevel;}
   virtual void RegisterDebugOutput(const char *path);
   static     Bool_t HasLaser(AliESDEvent *event);
-  static TGraphErrors *        FitSlices(THnSparse *h, Int_t axisDim1, Int_t axisDim2, Int_t minEntries, Int_t nmaxBin, Float_t fracLow=0.1, Float_t fracUp=0.9, Bool_t useMedian=kFALSE, TTreeSRedirector *cstream=0);
-
+  static TGraphErrors *        FitSlices(THnSparse *h, Int_t axisDim1, Int_t axisDim2, Int_t minEntries, Int_t nmaxBin, Float_t fracLow=0.1, Float_t fracUp=0.9, Bool_t useMedian=kFALSE, TTreeSRedirector *cstream=0, Int_t ival=1);
+  static void            BinLogX(THnSparse *h, Int_t axisDim);
+  static void            BinLogX(TH1 *h);
 protected: 
   TTreeSRedirector *fDebugStreamer;     //! debug streamer
   Int_t  fStreamLevel;                  //  debug stream level
@@ -59,7 +61,10 @@ protected:
   Int_t   fTriggerMaskAccept;           //trigger mask - accept
   Bool_t  fHasLaser;                    //flag the laser is overlayed with given event
   Bool_t  fRejectLaser;                 //flag- reject laser
-  TObjString fTriggerClass;                // trigger class
+  TObjString fTriggerClass;             // trigger class
+  AliESDEvent  *fCurrentEvent;          //! current event
+  AliESDtrack *fCurrentTrack;           //! current esd track
+  AliTPCseed   *fCurrentSeed;           //! current seed
 private:
   Int_t  fDebugLevel;                   //  debug level
 

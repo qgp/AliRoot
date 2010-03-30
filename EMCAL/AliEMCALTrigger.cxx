@@ -205,6 +205,9 @@ void AliEMCALTrigger::CreateInputs()
    fInputs.AddLast( new AliTriggerInput( det+"_GammaHPt_L1", det, 0x04 ) );
    fInputs.AddLast( new AliTriggerInput( det+"_GammaMPt_L1", det, 0x08 ) );
    fInputs.AddLast( new AliTriggerInput( det+"_GammaLPt_L1", det, 0x016 ) );
+   fInputs.AddLast( new AliTriggerInput( det+"_JetHPt_L1", det, 0x032 ) );
+   fInputs.AddLast( new AliTriggerInput( det+"_JetMPt_L1", det, 0x048 ) );
+   fInputs.AddLast( new AliTriggerInput( det+"_JetLPt_L1", det, 0x064 ) );
 
    if(fNJetThreshold<=0) return;
    // Jet Trigger(s)
@@ -809,7 +812,7 @@ void AliEMCALTrigger::FillTRU(const TClonesArray * digits, TClonesArray * ampmat
     amp    = Float_t(dig->GetAmp()); // Energy of the digit (arbitrary units)
     id     = dig->GetId() ;          // Id label of the cell
     timeR  = dig->GetTimeR() ;       // Earliest time of the digit
-    if(amp<=0.0) AliInfo(Form(" id %i amp %f \n", id, amp));
+    if(amp<=0.0) AliDebug(1,Form(" id %i amp %f \n", id, amp));
     // printf(" FILLTRU : timeR %10.5e time %10.5e : amp %10.5e \n", timeR, dig->GetTime(), amp);
     // Get eta and phi cell position in supermodule
     Bool_t bCell = fGeom->GetCellIndex(id, iSupMod, nModule, nIphi, nIeta) ;
@@ -1011,13 +1014,13 @@ void AliEMCALTrigger::FillJetMatrixFromSMs(TClonesArray *ampmatrixsmod, TMatrixD
           (*jetMat)(jrow,jcol) += amp;
           ampSum += amp; // For controling
         } else if(amp<0.0) {
-          AliInfo(Form(" jrow %2.2i : jcol %2.2i : amp %f (jetMat: amp<0) \n", jrow, jcol, amp)); 
+          AliDebug(1,Form(" jrow %2.2i : jcol %2.2i : amp %f (jetMat: amp<0) \n", jrow, jcol, amp)); 
 	  assert(0);
         }
       }
     }
   } // cycle on SM
-  if(ampSum <= 0.0) AliWarning(Form("FillJetMatrixFromSMs","ampSum %f (<=0.0) ", ampSum));
+  if(ampSum <= 0.0) AliDebug(1,Form("FillJetMatrixFromSMs","ampSum %f (<=0.0) ", ampSum));
 }
 
 //____________________________________________________________________________
@@ -1163,14 +1166,14 @@ Bool_t AliEMCALTrigger::CheckConsistentOfMatrixes(const Int_t pri)
       sumTru += sumTruInSM;
 
       if(sumTruInSM != smCur) {
-        AliInfo(Form(" sm %i : smCur %f -> sumTruInSM %f \n", i, smCur, sumTruInSM));
+        AliDebug(1,Form(" sm %i : smCur %f -> sumTruInSM %f \n", i, smCur, sumTruInSM));
         return kFALSE;
       }
     }
   }
   Double_t sumJetMat = fAmpJetMatrix->Sum();
   if(pri || sumSM != sumTru || sumSM !=  sumJetMat) 
-  AliInfo(Form(" sumSM %f : sumTru %f : sumJetMat %f \n", sumSM, sumTru, sumJetMat)); 
+   AliDebug(1,Form(" sumSM %f : sumTru %f : sumJetMat %f \n", sumSM, sumTru, sumJetMat)); 
   if(sumSM != sumTru || sumSM !=  sumJetMat) return kFALSE; 
   else                                       return kTRUE; 
 }

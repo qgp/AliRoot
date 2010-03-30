@@ -41,6 +41,7 @@ void loadlibs ()
   gSystem->Load("libFASTSIM");
   gSystem->Load("libEVGEN");
   gSystem->Load("libAliPythia6");
+  gSystem->Load("libSTAT");
 
   gSystem->Load("libhijing");
   gSystem->Load("libTHijing");// AliGenHijingEventHeader needed by libZDCsim.so
@@ -81,6 +82,7 @@ void loadlibs ()
   gSystem->Load("libVZERObase");
   gSystem->Load("libVZEROrec");
   gSystem->Load("libVZEROsim");
+  gSystem->Load("libEMCALUtils");
   gSystem->Load("libEMCALbase");
   gSystem->Load("libEMCALsim");
   gSystem->Load("libEMCALrec");

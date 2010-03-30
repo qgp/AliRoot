@@ -24,26 +24,19 @@
 //
 //
 
-#include "AliPHOSEMCAGeometry.h"
 #include "AliHLTPHOSMapper.h"
-#include "AliHLTPHOSConstants.h"
-#include "AliHLTLogging.h"
-#include "Rtypes.h"
 #include "unistd.h"
 #include <iostream>
 #include "AliHLTPHOSCoordinate.h"
 
-using namespace PhosHLTConst;
-AliHLTPHOSMapper::AliHLTPHOSMapper():  AliHLTLogging(), 
-				       fHw2geomapPtr(0),
-				       fIsInitializedMapping(false),
-				       fSpecificationMapPtr(0)
-				       //			       fPHOSGeometry(0)
+AliHLTPHOSMapper::AliHLTPHOSMapper():  
+   AliHLTCaloMapper(0,"PHOS") 
+   ,fIsInitializedMapping(false)
+   ,fModuleId(-1)
+   ,fDDLId(-1)
 {
-  InitAltroMapping(); 
   InitDDLSpecificationMapping();
-  //  fPHOSGeometry = new AliPHOSEMCAGeometry();
-
+  sprintf(fFilepath, "./");
 }
 
 
@@ -53,70 +46,91 @@ AliHLTPHOSMapper::~AliHLTPHOSMapper()
   fHw2geomapPtr = 0;
 }
 
-void
-AliHLTPHOSMapper::InitAltroMapping()
+
+Bool_t
+AliHLTPHOSMapper::InitAltroMapping(const unsigned long specification)
 {
   // Loads mapping between Altro addresses and geometrical addresses from file
 
-  //  char filename[256];
+  //  HLTError("Initialising ALTRO map");
+
+  fDDLId = GetDDLFromSpec(specification);
+  Int_t modId = GetModuleFromSpec(specification);
+
   char *base =  getenv("ALICE_ROOT");
-  int nChannels = 0;
-  int maxaddr = 0;
-  int tmpHwaddr = 0;
-  int tmpZRow = 0;
-  int tmpXCol = 0;
-  int tmpGain = 0;
-  int res = 0; 
-  if(base !=0)
+
+  if ( base )
     {
-      sprintf(fFilepath,"%s/PHOS/mapping/RCU0.data", base);
-      
-      FILE *fp = fopen(fFilepath, "r");
-      if(fp != 0)
-	{
-	  res = fscanf(fp, "%d", &nChannels);
-	  res = fscanf(fp, "%d", &maxaddr);
-	  fHw2geomapPtr = new fAltromap[maxaddr +1]; 
+      if ( modId != fModuleId )
+        {
+          fModuleId = modId;
+          if ( base )
+            {
+              sprintf ( fFilepath,"%s/PHOS/mapping/Mod%dRCU0.data", base, GetModuleFromSpec ( specification ) );
+              int nChannels = 0;
+              int maxaddr = 0;
+              int tmpHwaddr = 0;
+              int tmpZRow = 0;
+              int tmpXCol = 0;
+              int tmpGain = 0;
+              int res = 0;
 
-	  for(int i=0; i< maxaddr + 1 ; i ++)
-	    {
-	      fHw2geomapPtr[i].fXCol = 0;
-	      fHw2geomapPtr[i].fZRow = 0;
-	      fHw2geomapPtr[i].fGain = 0;
-	    }
+              FILE *fp = fopen ( fFilepath, "r" );
+              if ( fp != 0 )
+                {
+                  res = fscanf ( fp, "%d", &nChannels );
+                  res = fscanf ( fp, "%d", &maxaddr );
+                  if (fHw2geomapPtr)
+                    {
+                      delete fHw2geomapPtr;
+                    }
+                  fHw2geomapPtr = new fAltromap[maxaddr +1];
 
-	  for(int i=0; i<nChannels; i ++)
-	    {
-	      res = fscanf(fp, "%d %d %d %d\n", &tmpHwaddr, &tmpXCol, &tmpZRow,  &tmpGain);
-	      if(tmpGain < 2)
-		{
-		  fHw2geomapPtr[tmpHwaddr].fXCol   = tmpXCol;
-		  fHw2geomapPtr[tmpHwaddr].fZRow   = tmpZRow;
-		  fHw2geomapPtr[tmpHwaddr].fGain  = tmpGain;
-		} 
+                  for ( int i=0; i< maxaddr + 1 ; i ++ )
+                    {
+                      fHw2geomapPtr[i].fXCol = 0;
+                      fHw2geomapPtr[i].fZRow = 0;
+                      fHw2geomapPtr[i].fGain = 0;
+                    }
+
+                  for ( int i=0; i<nChannels; i ++ )
+                    {
+                      res = fscanf ( fp, "%d %d %d %d\n", &tmpHwaddr, &tmpXCol, &tmpZRow,  &tmpGain );
+                      if ( tmpGain < 2 )
+                        {
+                          fHw2geomapPtr[tmpHwaddr].fXCol   = tmpXCol;
+                          fHw2geomapPtr[tmpHwaddr].fZRow   = tmpZRow;
+                          fHw2geomapPtr[tmpHwaddr].fGain  = tmpGain;
+                        }
+                    }
+                  fIsInitializedMapping = true;
+                  fclose ( fp );
+                }
+              else
+                {
+                  fIsInitializedMapping = false;
+                }
 	    }
-	  fIsInitializedMapping = true;	  
-	  fclose(fp);
-	}
-      else
-	{
-	  fIsInitializedMapping = false;	  
 	}
     }
-  else
-    {
+   else 
+   {
       fIsInitializedMapping = false;
-    }
-} 
+   }
+   
+   return fIsInitializedMapping;
+}
+   
 
 void
 AliHLTPHOSMapper::InitDDLSpecificationMapping()
 {
-  fSpecificationMapPtr = new fDDLSpecificationMap[PhosHLTConst::NMODULES*PhosHLTConst::NRCUSPERMODULE];
-  for(Int_t ddl = 0; ddl < PhosHLTConst::NMODULES*PhosHLTConst::NRCUSPERMODULE; ddl++)
+  fSpecificationMapPtr = new fDDLSpecificationMap[fCaloConstants->GetNMODULES()*fCaloConstants->GetNRCUSPERMODULE()];
+  //  HLTError("NUMBER OF DDLs: %d, map ptr: %d", fCaloConstants->GetNMODULES()*fCaloConstants->GetNRCUSPERMODULE(), fSpecificationMapPtr);
+  for(Int_t ddl = 0; ddl < fCaloConstants->GetNMODULES()*fCaloConstants->GetNRCUSPERMODULE(); ddl++)
     {
       
-      fSpecificationMapPtr[ddl].fModId = ddl/PhosHLTConst::NRCUSPERMODULE;
+      fSpecificationMapPtr[ddl].fModId = ddl/fCaloConstants->GetNRCUSPERMODULE();
       
       if(ddl%4 == 0)
 	{
@@ -141,8 +155,9 @@ AliHLTPHOSMapper::InitDDLSpecificationMapping()
 	  fSpecificationMapPtr[ddl].fRcuZ = 0;
 	}
       
-      fSpecificationMapPtr[ddl].fRcuZOffset = NZROWSRCU*(fSpecificationMapPtr[ddl].fRcuZ);
-      fSpecificationMapPtr[ddl].fRcuXOffset = NXCOLUMNSRCU*(fSpecificationMapPtr[ddl].fRcuX);
+      fSpecificationMapPtr[ddl].fRcuZOffset = fCaloConstants->GetNZROWSRCU()*(fSpecificationMapPtr[ddl].fRcuZ);
+      fSpecificationMapPtr[ddl].fRcuXOffset = fCaloConstants->GetNXCOLUMNSRCU()*(fSpecificationMapPtr[ddl].fRcuX);
+
     }
 }
 
@@ -153,15 +168,22 @@ AliHLTPHOSMapper::GetIsInitializedMapping()
   return  fIsInitializedMapping;
 }
 
-
-char* 
-AliHLTPHOSMapper::GetFilePath()
+Int_t
+AliHLTPHOSMapper::GetChannelID(Int_t hwAddress)
 {
-  return  fFilepath;
+
+  //  HLTError("HW add: %d -> x: %d, z: %d, gain: %d", fHw2geomapPtr[hwAddress].fXCol + fSpecificationMapPtr[fDDLId].fRcuXOffset,
+  //	   fHw2geomapPtr[hwAddress].fZRow + fSpecificationMapPtr[fDDLId].fRcuZOffset,
+  //	   fHw2geomapPtr[hwAddress].fGain);
+  return ((fHw2geomapPtr[hwAddress].fXCol + fSpecificationMapPtr[fDDLId].fRcuXOffset) |
+
+	  ((fHw2geomapPtr[hwAddress].fZRow + fSpecificationMapPtr[fDDLId].fRcuZOffset) << 6) |
+	  (fHw2geomapPtr[hwAddress].fGain << 12) |
+	  fSpecificationMapPtr[fDDLId].fModId << 13);
 }
 
-UShort_t
-AliHLTPHOSMapper::GetChannelID(Int_t specification, Int_t hwAddress)
+Int_t
+AliHLTPHOSMapper::GetChannelID(AliHLTUInt32_t specification, Int_t hwAddress)
 {
   
   Short_t index = 0;
@@ -192,10 +214,17 @@ AliHLTPHOSMapper::GetChannelID(Int_t specification, Int_t hwAddress)
   else if(specification == 0x80000) index = 19;
 
   else HLTError("Specification 0x%X not consistent with single DDL in PHOS", specification);
+
   //  HLTError("Channel ID: 0x%X Coordinates: x = %d, z = %d, gain = %d", ((fHw2geomapPtr[hwAddress].fXCol + fSpecificationMapPtr[index].fRcuXOffset) |((fHw2geomapPtr[hwAddress].fZRow + fSpecificationMapPtr[index].fRcuZOffset) << 6) | (fHw2geomapPtr[hwAddress].fGain << 12) | fSpecificationMapPtr[index].fModId << 13),
-  //	   fHw2geomapPtr[hwAddress].fXCol,
-  //	   fHw2geomapPtr[hwAddress].fZRow, 
+  //  	   fHw2geomapPtr[hwAddress].fXCol,
+  //     fHw2geomapPtr[hwAddress].fZRow, 
+  //  	   fHw2geomapPtr[hwAddress].fGain);
+
+  //  HLTError("HW add: %d -> x: %d, z: %d, gain: %d", hwAddress, fHw2geomapPtr[hwAddress].fXCol + fSpecificationMapPtr[index].fRcuXOffset,
+  //	   fHw2geomapPtr[hwAddress].fZRow + fSpecificationMapPtr[index].fRcuZOffset,
   //	   fHw2geomapPtr[hwAddress].fGain);
+  //  HLTError("RCU X offset: %d", fSpecificationMapPtr[index].fRcuXOffset);
+  //  HLTError("RCU Z offset: %d", fSpecificationMapPtr[index].fRcuZOffset);
   return ((fHw2geomapPtr[hwAddress].fXCol + fSpecificationMapPtr[index].fRcuXOffset) |
 	  ((fHw2geomapPtr[hwAddress].fZRow + fSpecificationMapPtr[index].fRcuZOffset) << 6) |
 	  (fHw2geomapPtr[hwAddress].fGain << 12) |
@@ -204,41 +233,40 @@ AliHLTPHOSMapper::GetChannelID(Int_t specification, Int_t hwAddress)
 
 
 
-void
-AliHLTPHOSMapper::GetChannelCoord(const UShort_t channelId, UShort_t* channelCoord)
-{
-  channelCoord[0] = channelId&0x3f;
-  channelCoord[1] = (channelId >> 6)&0x3f;
-  channelCoord[2] = (channelId >> 12)&0x1;
-  channelCoord[3] = (channelId >> 13)&0x1f;
-  //  printf("Channel ID: 0x%X Coordinates: x = %d, z = %d, gain = %d\n", channelId, channelCoord[0], channelCoord[1], channelCoord[2]);
-}
-
-
-
-void
-//AliHLTPHOSMapper::GetChannelCoord(const UShort_t channelId,    &AliHLTPHOSCoordinate channelCoord)
-AliHLTPHOSMapper::ChannelId2Coordinate(const UShort_t channelId,    AliHLTPHOSCoordinate &channelCoord)
-{
-  channelCoord.fX = channelId&0x3f;
-  channelCoord.fZ = (channelId >> 6)&0x3f;
-  channelCoord.fGain = (channelId >> 12)&0x1;
-  channelCoord.fModuleId  = (channelId >> 13)&0x1f;
-  //  printf("Channel ID: 0x%X Coordinates: x = %d, z = %d, gain = %d\n", channelId, channelCoord[0], channelCoord[1], channelCoord[2]);
-}
-
-
-
-void
-AliHLTPHOSMapper::GetLocalCoord(const UShort_t channelId, Float_t* channelCoord)
-{
-  channelCoord[0] = (static_cast<Float_t>(channelId&0x3f) - NXCOLUMNSMOD/2)* fCellStep;
-  channelCoord[1] = (static_cast<Float_t>((channelId >> 6)&0x3f) - NZROWSMOD/2) * fCellStep;
-  //  printf("Local coordinates: x = %f, z = %f\n", channelCoord[0], channelCoord[1]);
-}
+// void
+// AliHLTPHOSMapper::GetChannelCoord(const UShort_t channelId, UShort_t* channelCoord)
+// {
+//   channelCoord[0] = channelId&0x3f;
+//   channelCoord[1] = (channelId >> 6)&0x3f;
+//   channelCoord[2] = (channelId >> 12)&0x1;
+//   channelCoord[3] = (channelId >> 13)&0x1f;
+//   //  printf("Channel ID: 0x%X Coordinates: x = %d, z = %d, gain = %d\n", channelId, channelCoord[0], channelCoord[1], channelCoord[2]);
+// }
+// 
+// 
+// 
+// void
+// AliHLTPHOSMapper::ChannelId2Coordinate(const UShort_t channelId,    AliHLTPHOSCoordinate &channelCoord)
+// {
+//   channelCoord.fX = channelId&0x3f;
+//   channelCoord.fZ = (channelId >> 6)&0x3f;
+//   channelCoord.fGain = (channelId >> 12)&0x1;
+//   channelCoord.fModuleId  = (channelId >> 13)&0x1f;
+//   //  printf("Channel ID: 0x%X Coordinates: x = %d, z = %d, gain = %d\n", channelId, channelCoord[0], channelCoord[1], channelCoord[2]);
+// }
+// 
+// 
+// 
+// void
+// AliHLTPHOSMapper::GetLocalCoord(const UShort_t channelId, Float_t* channelCoord)
+// {
+//   channelCoord[0] = (static_cast<Float_t>(channelId&0x3f) - NXCOLUMNSMOD/2)* fCellStep;
+//   channelCoord[1] = (static_cast<Float_t>((channelId >> 6)&0x3f) - NZROWSMOD/2) * fCellStep;
+//   //  printf("Local coordinates: x = %f, z = %f\n", channelCoord[0], channelCoord[1]);
+// }
 
 Int_t 
-AliHLTPHOSMapper::GetDDLFromSpec(Int_t specification)
+AliHLTPHOSMapper::GetDDLFromSpec(AliHLTUInt32_t specification)
 {
   Int_t index = -1;
   if(specification == 0x00001) index = 0;
@@ -272,7 +300,7 @@ AliHLTPHOSMapper::GetDDLFromSpec(Int_t specification)
 }
 
 Int_t 
-AliHLTPHOSMapper::GetModuleFromSpec(Int_t specification)
+AliHLTPHOSMapper::GetModuleFromSpec(AliHLTUInt32_t specification)
 {
   Int_t module = -1;
       

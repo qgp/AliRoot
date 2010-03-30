@@ -21,9 +21,6 @@ class AliAODEvent ;
 class AliESDEvent ;
 #include "AliAnaPartCorrBaseClass.h"
 
-class AliPHOSGeoUtils;
-class AliEMCALGeoUtils;
-
 class AliAnaPi0 : public AliAnaPartCorrBaseClass {
   
   public: 
@@ -38,7 +35,7 @@ class AliAnaPi0 : public AliAnaPartCorrBaseClass {
   
   void Print(const Option_t * opt) const;
   
-  void Init();
+  //void Init();
   void InitParameters();
   
   //void MakeAnalysisFillAOD() {;} //Not needed
@@ -46,7 +43,8 @@ class AliAnaPi0 : public AliAnaPartCorrBaseClass {
   
   //    void SetBadRunsList(){;} ;     //Set list of runs which can be used for this analysis
   //To be defined in future.
-  void SetEtalonHisto(TH3D * h);//Provide etalon of binning for histograms
+  
+  //void SetEtalonHisto(TH3D * h);//Provide etalon of binning for histograms
   
   //Setters for parameters of event buffers
   void SetNCentrBin(Int_t n=5){fNCentrBin=n ;} //number of bins in centrality 
@@ -59,12 +57,15 @@ class AliAnaPi0 : public AliAnaPartCorrBaseClass {
   
   TString GetCalorimeter()   const {return fCalorimeter ; }
   void SetCalorimeter(TString det)    {fCalorimeter = det ; }
-  
-  void SetEMCALGeometryName(TString name)   { fEMCALGeoName = name ; }
-  TString EMCALGeometryName() const { return fEMCALGeoName ; }
-	
+  	
   void Terminate(TList* outputList);
   void ReadHistograms(TList * outputList); //Fill histograms with histograms in ouput list, needed in Terminate.
+	
+  Int_t GetModuleNumber(AliAODPWG4Particle * particle);
+  void SetNumberOfModules(Int_t nmod) {fNModules = nmod;}
+	
+  Int_t GetNPID()   const {return fNPID ; }
+  void SetNPID(Int_t n)    {fNPID = n ; }
 	
   private:
   Bool_t IsBadRun(Int_t /*iRun*/) const {return kFALSE;} //Tests if this run bad according to private list
@@ -77,14 +78,16 @@ class AliAnaPi0 : public AliAnaPartCorrBaseClass {
   Int_t fNmaxMixEv ;	  // Maximal number of events stored in buffer for mixing
   Float_t fZvtxCut ;	  // Cut on vertex position
   TString fCalorimeter ;  // Select Calorimeter for IM
-  TString fEMCALGeoName;  // Name of geometry to use.
+  Int_t fNModules ;       // Number of EMCAL/PHOS modules, set as many histogras as modules 
 
   TList ** fEventsList ;  //! containers for photons in stored events
   
   //Histograms
   
-  TH3D * fhEtalon ; //Etalon histo, all distributions will have same binning as this one
+  //TH3D * fhEtalon ; //Etalon histo, all distributions will have same binning as this one
   
+  TH3D ** fhReMod ;  //!REAL two-photon invariant mass distribution for different calorimeter modules.
+	
   TH3D ** fhRe1 ;  //!REAL two-photon invariant mass distribution for different centralities and PID 
   TH3D ** fhMi1 ;  //!MIXED two-photon invariant mass distribution for different centralities and PID
   TH3D ** fhRe2 ;  //!REAL two-photon invariant mass distribution for different centralities and PID 
@@ -92,7 +95,7 @@ class AliAnaPi0 : public AliAnaPartCorrBaseClass {
   TH3D ** fhRe3 ;  //!REAL two-photon invariant mass distribution for different centralities and PID 
   TH3D ** fhMi3 ;  //!MIXED two-photon invariant mass distribution for different centralities and PID
   TH3D * fhEvents;  //!Number of events per centrality, RP, zbin
-  
+
   //Acceptance
   TH1D * fhPrimPt ;    //! Spectrum of Primary 
   TH1D * fhPrimAccPt ; //! Spectrum of primary with accepted daughters 
@@ -100,11 +103,8 @@ class AliAnaPi0 : public AliAnaPartCorrBaseClass {
   TH1D * fhPrimAccY ;  //! Rapidity distribution of primary with accepted daughters
   TH1D * fhPrimPhi ;   //! Azimutal distribution of primary particles
   TH1D * fhPrimAccPhi; //! Azimutal distribution of primary with accepted daughters	
-  
-  AliPHOSGeoUtils  * fPHOSGeo  ; //! PHOS geometry pointer  
-  AliEMCALGeoUtils * fEMCALGeo ; //! EMCAL geometry pointer
 
-  ClassDef(AliAnaPi0,4)
+  ClassDef(AliAnaPi0,7)
 } ;
 
 

@@ -1,5 +1,5 @@
 /**************************************************************************
- * This file is property of and copyright by the ALICE HLT Project        * 
+ * This file is property of and copyright by the ALICE HLT Project        *
  * All rights reserved.                                                   *
  *                                                                        *
  * Primary Authors:                                                       *
@@ -11,11 +11,11 @@
  * without fee, provided that the above copyright notice appears in all   *
  * copies and that both the copyright notice and this permission notice   *
  * appear in the supporting documentation. The authors make no claims     *
- * about the suitability of this software for any purpose. It is          * 
+ * about the suitability of this software for any purpose. It is          *
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/* $Id$ */
+// $Id$
 
 /**
  * @file   AliHLTMUONConstants.cxx
@@ -33,6 +33,7 @@
 #include "AliHLTMUONChannelsBlockStruct.h"
 #include "AliHLTMUONMansoTracksBlockStruct.h"
 #include "AliHLTMUONMansoCandidatesBlockStruct.h"
+#include "AliHLTMUONTracksBlockStruct.h"
 #include "AliHLTMUONSinglesDecisionBlockStruct.h"
 #include "AliHLTMUONPairsDecisionBlockStruct.h"
 
@@ -50,7 +51,10 @@ AliHLTMUONConstants::fgkNilTriggerRecordStruct = {
 };
 
 const AliHLTMUONTrigRecInfoStruct
-AliHLTMUONConstants::fgkNilTrigRecInfoStruct = {0, {0, 0, 0, 0}, 0, 0, {0, 0, 0, 0, 0}};
+AliHLTMUONConstants::fgkNilTrigRecInfoStruct = {
+	0, {0, 0, 0, 0}, 0, 0,
+	{0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}
+};
 	
 const AliHLTMUONRecHitStruct
 AliHLTMUONConstants::fgkNilRecHitStruct = {0, 0, 0, 0};
@@ -89,6 +93,29 @@ AliHLTMUONConstants::fgkNilMansoCandidateStruct = {
 	0, 0
 };
 
+const AliHLTMUONTrackStruct
+AliHLTMUONConstants::fgkNilTrackStruct = {
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	{
+	 AliHLTMUONConstants::fgkNilRecHitStruct,
+	 AliHLTMUONConstants::fgkNilRecHitStruct,
+	 AliHLTMUONConstants::fgkNilRecHitStruct,
+	 AliHLTMUONConstants::fgkNilRecHitStruct,
+	 AliHLTMUONConstants::fgkNilRecHitStruct,
+	 AliHLTMUONConstants::fgkNilRecHitStruct,
+	 AliHLTMUONConstants::fgkNilRecHitStruct,
+	 AliHLTMUONConstants::fgkNilRecHitStruct,
+	 AliHLTMUONConstants::fgkNilRecHitStruct,
+	 AliHLTMUONConstants::fgkNilRecHitStruct,
+	 AliHLTMUONConstants::fgkNilRecHitStruct,
+	 AliHLTMUONConstants::fgkNilRecHitStruct,
+	 AliHLTMUONConstants::fgkNilRecHitStruct,
+	 AliHLTMUONConstants::fgkNilRecHitStruct,
+	 AliHLTMUONConstants::fgkNilRecHitStruct,
+	 AliHLTMUONConstants::fgkNilRecHitStruct
+	}
+};
+
 const AliHLTMUONTrackDecisionStruct
 AliHLTMUONConstants::fgkNilTrackDecisionStruct = {0, 0, 0};
 
@@ -121,6 +148,9 @@ const AliHLTComponentDataType
 AliHLTMUONConstants::fgkMansoCandidatesBlockDataType = AliHLTComponentDataTypeInitializer("MNCANDID", kAliHLTDataOriginMUON);
 
 const AliHLTComponentDataType
+AliHLTMUONConstants::fgkTracksBlockDataType = AliHLTComponentDataTypeInitializer("TRACKS  ", kAliHLTDataOriginMUON);
+
+const AliHLTComponentDataType
 AliHLTMUONConstants::fgkSinglesDecisionBlockDataType = AliHLTComponentDataTypeInitializer("DECIDSIN", kAliHLTDataOriginMUON);
 
 const AliHLTComponentDataType
@@ -145,6 +175,7 @@ const char* AliHLTMUONConstants::fgkDigitPublisherId = "MUONDigitPublisher";
 const char* AliHLTMUONConstants::fgkTriggerReconstructorId = "MUONTriggerReconstructor";
 const char* AliHLTMUONConstants::fgkHitReconstructorId = "MUONHitReconstructor";
 const char* AliHLTMUONConstants::fgkMansoTrackerFSMId = "MUONMansoTrackerFSM";
+const char* AliHLTMUONConstants::fgkFullTrackerId = "MUONFullTracker";
 const char* AliHLTMUONConstants::fgkDecisionComponentId = "MUONDecisionComponent";
 const char* AliHLTMUONConstants::fgkESDMakerId = "MUONESDMaker";
 const char* AliHLTMUONConstants::fgkRootifierComponentId = "MUONRootifier";
@@ -152,9 +183,10 @@ const char* AliHLTMUONConstants::fgkEmptyEventFilterComponentId = "MUONEmptyEven
 const char* AliHLTMUONConstants::fgkDataCheckerComponentId = "MUONDataChecker";
 const char* AliHLTMUONConstants::fgkClusterFinderId = "MUONClusterFinder";
 const char* AliHLTMUONConstants::fgkRawDataHistogrammerId = "MUONRawDataHistogrammer";
+const char* AliHLTMUONConstants::fgkClusterHistogrammerId = "MUONClusterHistogrammer";
 
 const char* AliHLTMUONConstants::fgkTriggerReconstructorCDBPath = "HLT/ConfigMUON/TriggerReconstructor";
 const char* AliHLTMUONConstants::fgkHitReconstructorCDBPath = "HLT/ConfigMUON/HitReconstructor";
 const char* AliHLTMUONConstants::fgkMansoTrackerFSMCDBPath = "HLT/ConfigMUON/MansoTrackerFSM";
 const char* AliHLTMUONConstants::fgkDecisionComponentCDBPath = "HLT/ConfigMUON/DecisionComponent";
-
+const char* AliHLTMUONConstants::fgkFieldIntegralsCDBPath = "HLT/ConfigMUON/FieldIntegrals";

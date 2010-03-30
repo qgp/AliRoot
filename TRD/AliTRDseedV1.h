@@ -75,6 +75,8 @@ public:
    ,kAttachRow          // found 3 rows
    ,kAttachMultipleCl   // multiple clusters attached to time bin
    ,kAttachClAttach     // not enough clusters attached
+   ,kFitFailed          // fit failed det=0
+   ,kFitOutside         // ref radial position outside chamber - wrong covariance
   };
 
   AliTRDseedV1(Int_t det = -1);
@@ -122,8 +124,6 @@ public:
   void      GetCalibParam(Float_t &exb, Float_t &vd, Float_t &t0, Float_t &s2, Float_t &dl, Float_t &dt) const    { 
               exb = fExB; vd = fVD; t0 = fT0; s2 = fS2PRF; dl = fDiffL; dt = fDiffT;}
   AliTRDcluster*  GetClusters(Int_t i) const               { return i<0 || i>=kNclusters ? NULL: fClusters[i];}
-  static TLinearFitter*  GetFitterY();
-  static TLinearFitter*  GetFitterZ();
   Int_t     GetIndexes(Int_t i) const{ return i<0 || i>=kNclusters ? -1 : fIndexes[i];}
   Int_t     GetLabels(Int_t i) const { return fLabels[i];}  
   Float_t   GetMomentum(Float_t *err = NULL) const;
@@ -205,12 +205,12 @@ private:
   const AliTRDReconstructor *fkReconstructor;//! local reconstructor
   AliTRDcluster  **fClusterIter;            //! clusters iterator
   Int_t            fIndexes[kNclusters];    //! Indexes
-  Float_t          fExB;                    //! tg(a_L) @ tracklet location
-  Float_t          fVD;                     //! drift velocity @ tracklet location
-  Float_t          fT0;                     //! time 0 @ tracklet location
-  Float_t          fS2PRF;                  //! sigma^2 PRF for xd->0 and phi=a_L 
-  Float_t          fDiffL;                  //! longitudinal diffusion coefficient
-  Float_t          fDiffT;                  //! transversal diffusion coefficient
+  Float_t          fExB;                    // tg(a_L) @ tracklet location
+  Float_t          fVD;                     // drift velocity @ tracklet location
+  Float_t          fT0;                     // time 0 @ tracklet location
+  Float_t          fS2PRF;                  // sigma^2 PRF for xd->0 and phi=a_L 
+  Float_t          fDiffL;                  // longitudinal diffusion coefficient
+  Float_t          fDiffT;                  // transversal diffusion coefficient
   Char_t           fClusterIdx;             //! clusters iterator
   UChar_t          fErrorMsg;               // processing error
   UInt_t           fN;                      // number of clusters attached/used/shared
@@ -236,10 +236,8 @@ private:
   Int_t            fLabels[3];              // most frequent MC labels and total number of different labels
   Double_t         fRefCov[7];              // covariance matrix of the track in the yz plane + the rest of the diagonal elements
   Double_t         fCov[3];                 // covariance matrix of the tracklet in the xy plane
-  static TLinearFitter   *fgFitterY;        // Linear Fitter for tracklet fit in xy-plane
-  static TLinearFitter   *fgFitterZ;        // Linear Fitter for tracklet fit in xz-plane
 
-  ClassDef(AliTRDseedV1, 8)                 // The offline TRD tracklet 
+  ClassDef(AliTRDseedV1, 10)                 // The offline TRD tracklet 
 };
 
 //____________________________________________________________

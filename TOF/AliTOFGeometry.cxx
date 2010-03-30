@@ -149,6 +149,10 @@ const Float_t AliTOFGeometry::fgkPhiSec= 20;//sector Phi width (deg)
 
 const Float_t AliTOFGeometry::fgkTdcBin = 24.4;     // time-of-flight bin width [ps]
 const Float_t AliTOFGeometry::fgkToTBin = 48.8;     // time-over-threshold bin width [ps]
+const Float_t AliTOFGeometry::fgkBunchCrossingBin = fgkTdcBin * 1024; // bunch-crossing bin width [ps]
+
+const Float_t AliTOFGeometry::fgkSlewTOTMin = 10.; // min TOT for slewing correction [ns]
+const Float_t AliTOFGeometry::fgkSlewTOTMax = 16.; // max TOT for slewing correction [ns]
 
 const Float_t AliTOFGeometry::fgkDeadTime = 25E+03;        // Single channel dead time (ps)
 const Float_t AliTOFGeometry::fgkMatchingWindow = fgkTdcBin*TMath::Power(2,13); // Matching window  (ps)
@@ -169,6 +173,8 @@ const Float_t AliTOFGeometry::fgkAngles[kNPlates][kMaxNstrip] = {
     {-12.33, -29.24, -30.19, -31.13, -32.05, -32.96, -33.87, -34.76, -35.65, -36.53,
      -37.40, -38.25, -39.11, -39.94, -40.77, -41.59, -42.40, -43.20, -43.99,  0.00}
   };
+
+/*
 const Float_t AliTOFGeometry::fgkHeights[kNPlates][kMaxNstrip] = {
     {-8.2,  -7.5,  -8.2,  -7.7,  -8.1,  -7.6,  -7.7,  -7.7,  -7.7,  -7.7,
      -7.5,  -7.2,  -7.3,  -7.5,  -7.6,  -7.8,  -8.3,  -9.3,  -3.1,   0.0},
@@ -180,13 +186,57 @@ const Float_t AliTOFGeometry::fgkHeights[kNPlates][kMaxNstrip] = {
      -4.8,  -9.9,  -5.0, -10.4,  -2.5,   0.0,   0.0,   0.0,   0.0,   0.0},
 
     {-10.4, -7.4,  -4.6, -10.2,  -7.2,  -4.4, -10.4,  -8.0,  -5.8,  -3.6,
-     -10.1,  -7.7, -5.9,  -3.9, -10.1,  -9.0,  -8.5,  -8.1,  -7.9,   0.0},
+     -10.1, -7.7,  -5.9,  -3.9, -10.1,  -9.0,  -8.5,  -8.1,  -7.9,   0.0},
 
-    { -3.1,  -9.3, -8.3,  -7.8,  -7.6,  -7.5,  -7.3,  -7.2,  -7.5,  -7.7,
-      -7.7,  -7.7, -7.7,  -7.6,  -8.1,  -7.7,  -8.2,  -7.5,  -8.2,   0.0}
+    { -3.1, -9.3,  -8.3,  -7.8,  -7.6,  -7.5,  -7.3,  -7.2,  -7.5,  -7.7,
+      -7.7, -7.7,  -7.7,  -7.6,  -8.1,  -7.7,  -8.2,  -7.5,  -8.2,   0.0}
   };
+*/
+/*
+const Float_t AliTOFGeometry::fgkHeights[kNPlates][kMaxNstrip] = {
+  {  -8.405, -10.885,  -8.405,  -7.765,  -8.285,  -7.745,  -7.865,  -7.905,  -7.895,  -7.885,
+     -7.705,  -7.395,  -7.525,  -7.645, -11.285, -10.355,  -8.365,  -9.385,  -3.255,   0.000 },
+  {  -7.905,  -8.235,  -8.605,  -9.045, -10.205,  -3.975,  -5.915,  -7.765, -10.205,  -3.635,
+     -5.885,  -8.005, -10.505,  -4.395,  -7.325, -10.235,  -4.655,  -7.495, -10.515,   0.000 },
+  {  -2.705, -10.645,  -5.165, -10.095,  -4.995, -10.815,  -4.835, -10.385,  -4.835, -10.815,
+     -4.995, -10.095,  -5.165, -10.645,  -2.705,   0.000,   0.000,   0.000,   0.000,   0.000 },
+  { -10.515,  -7.495,  -4.655, -10.235,  -7.325,  -4.395, -10.505,  -8.005,  -5.885,  -3.635,
+    -10.205,  -7.765,  -5.915,  -3.975, -10.205,  -9.045,  -8.605,  -8.235,  -7.905,   0.000 },
+  {  -3.255,  -9.385,  -8.365, -10.355, -11.285,  -7.645,  -7.525,  -7.395,  -7.705,  -7.885,
+     -7.895,  -7.905,  -7.865,  -7.745,  -8.285,  -7.765,  -8.405, -10.885,  -8.405,   0.000 }
+};
+*/
 
 
+const Float_t AliTOFGeometry::fgkHeights[kNPlates][kMaxNstrip] = {
+  { -8.405,  -7.725,  -8.405,  -7.765,  -8.285,  -7.745,  -7.865,  -7.905,  -7.895,  -7.885,
+    -7.705,  -7.395,  -7.525,  -7.645,  -7.835,  -7.965,  -8.365,  -9.385,  -3.255,   0.000 },
+  { -7.905,  -8.235,  -8.605,  -9.045, -10.205,  -3.975,  -5.915,  -7.765, -10.205,  -3.635,
+    -5.885,  -8.005, -10.505,  -4.395,  -7.325, -10.235,  -4.655,  -7.495, -10.515,   0.000 },
+  { -2.705, -10.645,  -5.165, -10.095,  -4.995, -10.085,  -4.835, -10.385,  -4.835, -10.085,
+    -4.995, -10.095,  -5.165, -10.645,  -2.705,   0.000,   0.000,   0.000,   0.000,   0.000 },
+  {-10.515,  -7.495,  -4.655, -10.235,  -7.325,  -4.395, -10.505,  -8.005,  -5.885,  -3.635,
+   -10.205,  -7.765,  -5.915,  -3.975, -10.205,  -9.045,  -8.605,  -8.235,  -7.905,   0.000 },
+  { -3.255,  -9.385,  -8.365,  -7.965,  -7.835,  -7.645,  -7.525,  -7.395,  -7.705,  -7.885,
+    -7.895,  -7.905,  -7.865,  -7.745,  -8.285,  -7.765,  -8.405,  -7.725,  -8.405,   0.000 }
+};
+
+
+
+const Float_t AliTOFGeometry::fgkDistances[kNPlates][kMaxNstrip] = {
+  { 364.14,  354.88,  344.49,  335.31,  325.44,  316.51,  307.11,  297.91,  288.84,  279.89,
+    271.20,  262.62,  253.84,  245.20,  236.56,  228.06,  219.46,  210.63,  206.09,    0.00 },
+  { 194.57,  186.38,  178.25,  170.13,  161.78,  156.62,  148.10,  139.72,  131.23,  125.87,
+    117.61,  109.44,  101.29,   95.46,   87.36,   79.37,   73.17,   65.33,   57.71,    0.00 },
+  {  49.28,   41.35,   35.37,   27.91,   21.20,   13.94,    7.06,    0.00,   -7.06,  -13.94,
+    -21.20,  -27.91,  -35.37,  -41.35,  -49.28,    0.00,    0.00,    0.00,    0.00,    0.00 },
+  { -57.71,  -65.33,  -73.17,  -79.37,  -87.36,  -95.46, -101.29, -109.44, -117.61, -125.87,
+   -131.23, -139.72, -148.10, -156.62, -161.78, -170.13, -178.25, -186.38, -194.57,    0.00 },
+  {-206.09, -210.63, -219.46, -228.06, -236.56, -245.20, -253.84, -262.62, -271.20, -279.89,
+   -288.84, -297.91, -307.11, -316.51, -325.44, -335.31, -344.49, -354.88, -364.14,    0.00 }
+};
+
+/*
 const Float_t AliTOFGeometry::fgkDistances[kNPlates][kMaxNstrip] = {
     { 364.1,  354.9,  344.5,  335.4,  325.5,  316.6,  307.2,  298.0,  288.9,  280.0,
       271.3,  262.7,  254.0,  244.8,  236.1,  227.7,  219.1,  210.3,  205.7,    0.0},
@@ -203,6 +253,7 @@ const Float_t AliTOFGeometry::fgkDistances[kNPlates][kMaxNstrip] = {
     {-205.7, -210.3, -219.1, -227.7, -236.1, -244.8, -254.0, -262.7, -271.3, -280.0,
      -288.9, -298.0, -307.2, -316.6, -325.5, -335.4, -344.5, -354.9, -364.1,    0.0}
   };
+*/
 //_____________________________________________________________________________
 AliTOFGeometry::AliTOFGeometry():
   fHoles(1)
@@ -278,7 +329,7 @@ void AliTOFGeometry::DetToStripRF(Int_t nPadX, Int_t nPadZ, Float_t &x,  Float_t
 
 }
 //_____________________________________________________________________________
-Float_t AliTOFGeometry::DistanceToPadPar(Int_t *det, Float_t *pos, Float_t *dist3d) const
+Float_t AliTOFGeometry::DistanceToPadPar(Int_t *det, const Float_t * const pos, Float_t *dist3d) const
 {
 //
 // Returns distance of  space point with coor pos (x,y,z) (cm) wrt 
@@ -341,7 +392,7 @@ Float_t AliTOFGeometry::DistanceToPadPar(Int_t *det, Float_t *pos, Float_t *dist
 
 }
 //_____________________________________________________________________________
-Bool_t AliTOFGeometry::IsInsideThePadPar(Int_t *det, Float_t *pos) const
+Bool_t AliTOFGeometry::IsInsideThePadPar(Int_t *det, const Float_t * const pos) const
 {
 //
 // Returns true if space point with coor pos (x,y,z) (cm) falls 
@@ -412,7 +463,7 @@ Bool_t AliTOFGeometry::IsInsideThePadPar(Int_t *det, Float_t *pos) const
 
 }
 //_____________________________________________________________________________
-Bool_t AliTOFGeometry::IsInsideThePad(TGeoHMatrix mat, Float_t *pos, Float_t *dist3d) const
+Bool_t AliTOFGeometry::IsInsideThePad(TGeoHMatrix mat, const Float_t * const pos, Float_t *dist3d) const
 {
   //
   // Returns true if space point with coor pos (x,y,z) [cm] falls inside
@@ -470,7 +521,7 @@ Bool_t AliTOFGeometry::IsInsideThePad(TGeoHMatrix mat, Float_t *pos, Float_t *di
 
 }
 //_____________________________________________________________________________
-void AliTOFGeometry::GetVolumePath(Int_t *ind, Char_t *path ) {
+void AliTOFGeometry::GetVolumePath(const Int_t * const ind, Char_t *path ) {
   //--------------------------------------------------------------------
   // This function returns the colume path of a given pad 
   //--------------------------------------------------------------------
@@ -570,7 +621,7 @@ void AliTOFGeometry::GetPos(Int_t *det, Float_t *pos)
   pos[2]=tr[2];
 }
 //_____________________________________________________________________________
-Int_t AliTOFGeometry::GetPlate(Float_t *pos) const
+Int_t AliTOFGeometry::GetPlate(const Float_t * const pos) const
 {
   //
   // Returns the Plate index 
@@ -666,7 +717,7 @@ Int_t AliTOFGeometry::GetPlate(Float_t *pos) const
 }
 
 //_____________________________________________________________________________
-Int_t AliTOFGeometry::GetSector(Float_t *pos) const
+Int_t AliTOFGeometry::GetSector(const Float_t * const pos) const
 {
   //
   // Returns the Sector index 
@@ -694,7 +745,7 @@ Int_t AliTOFGeometry::GetSector(Float_t *pos) const
 
 }
 //_____________________________________________________________________________
-Int_t AliTOFGeometry::GetStrip(Float_t *pos) const
+Int_t AliTOFGeometry::GetStrip(const Float_t * const pos) const
 {
   //
   // Returns the Strip index 
@@ -828,7 +879,7 @@ Int_t AliTOFGeometry::GetStrip(Float_t *pos) const
   
 }
 //_____________________________________________________________________________
-Int_t AliTOFGeometry::GetPadZ(Float_t *pos) const
+Int_t AliTOFGeometry::GetPadZ(const Float_t * const pos) const
 {
   //
   // Returns the Pad index along Z 
@@ -921,7 +972,7 @@ Int_t AliTOFGeometry::GetPadZ(Float_t *pos) const
 
 }
 //_____________________________________________________________________________
-Int_t AliTOFGeometry::GetPadX(Float_t *pos) const
+Int_t AliTOFGeometry::GetPadX(const Float_t * const pos) const
 {
   //
   // Returns the Pad index along X 
@@ -1014,7 +1065,7 @@ Int_t AliTOFGeometry::GetPadX(Float_t *pos) const
 
 }
 //_____________________________________________________________________________
-Float_t AliTOFGeometry::GetX(Int_t *det) const
+Float_t AliTOFGeometry::GetX(const Int_t * const det) const
 {
   //
   // Returns X coordinate (cm)
@@ -1125,7 +1176,7 @@ Float_t AliTOFGeometry::GetX(Int_t *det) const
 
 }
 //_____________________________________________________________________________
-Float_t AliTOFGeometry::GetY(Int_t *det) const
+Float_t AliTOFGeometry::GetY(const Int_t * const det) const
 {
   //
   // Returns Y coordinate (cm)
@@ -1238,7 +1289,7 @@ Float_t AliTOFGeometry::GetY(Int_t *det) const
 }
 
 //_____________________________________________________________________________
-Float_t AliTOFGeometry::GetZ(Int_t *det) const
+Float_t AliTOFGeometry::GetZ(const Int_t * const det) const
 {
   //
   // Returns Z coordinate (cm)
@@ -1400,7 +1451,7 @@ void AliTOFGeometry::DetToSectorRF(Int_t vol[5], Double_t **coord)
 
 }
 //_____________________________________________________________________________
-Float_t AliTOFGeometry::GetPadDx(Float_t *pos)
+Float_t AliTOFGeometry::GetPadDx(const Float_t * const pos)
 {
   //
   // Returns the x coordinate in the Pad reference frame
@@ -1501,7 +1552,7 @@ Float_t AliTOFGeometry::GetPadDx(Float_t *pos)
 
 }
 //_____________________________________________________________________________
-Float_t AliTOFGeometry::GetPadDy(Float_t *pos)
+Float_t AliTOFGeometry::GetPadDy(const Float_t * const pos)
 {
   //
   // Returns the y coordinate in the Pad reference frame
@@ -1602,7 +1653,7 @@ Float_t AliTOFGeometry::GetPadDy(Float_t *pos)
 
 }
 //_____________________________________________________________________________
-Float_t AliTOFGeometry::GetPadDz(Float_t *pos)
+Float_t AliTOFGeometry::GetPadDz(const Float_t * const pos)
 {
   //
   // Returns the z coordinate in the Pad reference frame
@@ -1753,7 +1804,7 @@ void AliTOFGeometry::Rotation(Float_t *xyz, Double_t rotationAngles[6]) const
 void AliTOFGeometry::InverseRotation(Float_t *xyz, Double_t rotationAngles[6]) const
 {
   //
-  //
+  // Rotates the vector xyz acordint to the rotationAngles
   //
 
   Int_t ii=0;
@@ -1784,7 +1835,7 @@ void AliTOFGeometry::InverseRotation(Float_t *xyz, Double_t rotationAngles[6]) c
 }
 //_____________________________________________________________________________
 
-Int_t AliTOFGeometry::GetIndex(Int_t *detId)
+Int_t AliTOFGeometry::GetIndex(const Int_t * const detId)
 {
   //Retrieve calibration channel index 
   Int_t isector = detId[0];
@@ -1917,6 +1968,42 @@ Int_t AliTOFGeometry::GetStripNumber(Int_t isector, Int_t iplate, Int_t istrip)
     index = (2*(kNStripC+kNStripB)+kNStripA)*isector + stripInSM;
 
   return index;
+
+}
+//-------------------------------------------------------------------------
+
+void AliTOFGeometry::GetStripAndModule(Int_t iStripPerSM, Int_t &iplate, Int_t &istrip)
+{
+  //
+  // Convert the serial number of the TOF strip number iStripPerSM [0,90]
+  // in module number iplate [0,4] and strip number istrip [0,14/18].
+  //
+
+  if (iStripPerSM<0 || iStripPerSM>=kNStripC+kNStripB+kNStripA+kNStripB+kNStripC) {
+    iplate = -1;
+    istrip = -1;
+  }
+  else if (iStripPerSM<kNStripC) {
+    iplate = 0;
+    istrip = iStripPerSM;
+  }
+  else if (iStripPerSM>=kNStripC && iStripPerSM<kNStripC+kNStripB) {
+    iplate = 1;
+    istrip = iStripPerSM-kNStripC;
+  }
+  else if (iStripPerSM>=kNStripC+kNStripB && iStripPerSM<kNStripC+kNStripB+kNStripA) {
+    iplate = 2;
+    istrip = iStripPerSM-kNStripC-kNStripB;
+  }
+  else if (iStripPerSM>=kNStripC+kNStripB+kNStripA && iStripPerSM<kNStripC+kNStripB+kNStripA+kNStripB) {
+    iplate = 3;
+    istrip = iStripPerSM-kNStripC-kNStripB-kNStripA;
+  }
+  else if (iStripPerSM>=kNStripC+kNStripB+kNStripA+kNStripB && iStripPerSM<kNStripC+kNStripB+kNStripA+kNStripB+kNStripC) {
+    iplate = 4;
+    istrip = iStripPerSM-kNStripC-kNStripB-kNStripA-kNStripB;
+  }
+
 
 }
 //-------------------------------------------------------------------------

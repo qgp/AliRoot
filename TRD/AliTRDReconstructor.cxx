@@ -40,9 +40,10 @@
 
 ClassImp(AliTRDReconstructor)
 
-TClonesArray *AliTRDReconstructor::fgClusters = 0x0;
-TClonesArray *AliTRDReconstructor::fgTracklets = 0x0;
-Char_t* AliTRDReconstructor::fgSteerNames[kNsteer] = {
+TClonesArray *AliTRDReconstructor::fgClusters = NULL;
+TClonesArray *AliTRDReconstructor::fgTracklets = NULL;
+AliTRDdigitsParam *AliTRDReconstructor::fgDigitsParam = NULL;
+Char_t const * AliTRDReconstructor::fgSteerNames[kNsteer] = {
   "DigitsConversion       "
  ,"Write Clusters         "
  ,"Write Online Tracklets "
@@ -51,7 +52,7 @@ Char_t* AliTRDReconstructor::fgSteerNames[kNsteer] = {
  ,"Process Online Tracklets"
  ,"Debug Streaming        "
 };
-Char_t* AliTRDReconstructor::fgSteerFlags[kNsteer] = {
+Char_t const * AliTRDReconstructor::fgSteerFlags[kNsteer] = {
   "dc"// digits conversion [false]
  ,"cw"// write clusters [true]
  ,"tw"// write online tracklets [false]
@@ -60,12 +61,12 @@ Char_t* AliTRDReconstructor::fgSteerFlags[kNsteer] = {
  ,"tp"// also use online tracklets for reconstruction [false]
  ,"deb"// Write debug stream [false]
 };
-Char_t* AliTRDReconstructor::fgTaskNames[AliTRDrecoParam::kTRDreconstructionTasks] = {
+Char_t const * AliTRDReconstructor::fgTaskNames[AliTRDrecoParam::kTRDreconstructionTasks] = {
   "Clusterizer"
  ,"Tracker"
  ,"PID"
 };
-Char_t* AliTRDReconstructor::fgTaskFlags[AliTRDrecoParam::kTRDreconstructionTasks] = {
+Char_t const * AliTRDReconstructor::fgTaskFlags[AliTRDrecoParam::kTRDreconstructionTasks] = {
   "cl"
  ,"tr"
  ,"pd"
@@ -75,6 +76,7 @@ Char_t* AliTRDReconstructor::fgTaskFlags[AliTRDrecoParam::kTRDreconstructionTask
 AliTRDReconstructor::AliTRDReconstructor()
   :AliReconstructor()
   ,fSteerParam(0)
+  ,fClusterizer(NULL)
 {
   // setting default "ON" steering parameters
   // owner of debug streamers 
@@ -94,15 +96,27 @@ AliTRDReconstructor::~AliTRDReconstructor()
   // Destructor
   //
 
+  if(fgDigitsParam){
+    delete fgDigitsParam;
+    fgDigitsParam = NULL;
+  }
   if(fgClusters) {
-    fgClusters->Delete(); delete fgClusters;
+    fgClusters->Delete();
+    delete fgClusters;
+    fgClusters = NULL;
   }
   if(fgTracklets) {
-    fgTracklets->Delete(); delete fgTracklets;
+    fgTracklets->Delete();
+    delete fgTracklets;
+    fgTracklets = NULL;
   }
   if(fSteerParam&kOwner){
     for(Int_t itask = 0; itask < AliTRDrecoParam::kTRDreconstructionTasks; itask++)
       if(fDebugStream[itask]) delete fDebugStream[itask];
+  }
+  if(fClusterizer){
+    delete fClusterizer;
+    fClusterizer = NULL;
   }
 }
 
@@ -115,6 +129,11 @@ void AliTRDReconstructor::Init(){
   SetOption(GetOption());
   Options(fSteerParam);
 
+  if(!fClusterizer){
+    fClusterizer = new AliTRDclusterizer(fgTaskNames[AliTRDrecoParam::kClusterizer], fgTaskNames[AliTRDrecoParam::kClusterizer]);
+    fClusterizer->SetReconstructor(this);
+  }
+  
   // Make Debug Streams when Debug Streaming
   if(IsDebugStreaming()){
     for(Int_t task = 0; task < AliTRDrecoParam::kTRDreconstructionTasks; task++){
@@ -163,23 +182,27 @@ void AliTRDReconstructor::Reconstruct(AliRawReader *rawReader
   rawReader->Select("TRD");
   AliTRDrawStreamBase::SetRawStreamVersion(GetRecoParam()->GetRawStreamVersion()->Data());
 
-  // New (fast) cluster finder
-  AliTRDclusterizer clusterer(fgTaskNames[AliTRDrecoParam::kClusterizer], fgTaskNames[AliTRDrecoParam::kClusterizer]);
-  clusterer.SetReconstructor(this);
-  clusterer.OpenOutput(clusterTree);
-  clusterer.OpenTrackletOutput();
-  clusterer.SetUseLabels(kFALSE);
-  clusterer.Raw2ClustersChamber(rawReader);
+  if(!fClusterizer){
+    AliFatal("Clusterizer not available!");
+    return;
+  }
+
+  fClusterizer->ResetRecPoints();
+
+  fClusterizer->OpenOutput(clusterTree);
+  fClusterizer->OpenTrackletOutput();
+  fClusterizer->SetUseLabels(kFALSE);
+  fClusterizer->Raw2ClustersChamber(rawReader);
   
   if(IsWritingClusters()) return;
 
   // take over ownership of clusters
-  fgClusters = clusterer.RecPoints();
-  clusterer.SetClustersOwner(kFALSE);
+  fgClusters = fClusterizer->RecPoints();
+  fClusterizer->SetClustersOwner(kFALSE);
 
   // take over ownership of online tracklets
-  fgTracklets = clusterer.TrackletsArray();
-  clusterer.SetTrackletsOwner(kFALSE);
+  fgTracklets = fClusterizer->TrackletsArray();
+  fClusterizer->SetTrackletsOwner(kFALSE);
 }
 
 //_____________________________________________________________________________
@@ -232,6 +255,13 @@ void AliTRDReconstructor::FillESD(TTree* /*digitsTree*/
   // Fill ESD
   //
 
+}
+
+//_____________________________________________________________________________
+void AliTRDReconstructor::SetDigitsParam(AliTRDdigitsParam const *par)
+{ 
+  if(fgDigitsParam) (*fgDigitsParam) = (*par);
+  else fgDigitsParam = new AliTRDdigitsParam(*par);
 }
 
 

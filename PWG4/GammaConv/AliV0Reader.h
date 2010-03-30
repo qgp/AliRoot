@@ -19,7 +19,7 @@
 #include "AliGammaConversionHistograms.h"
 #include <vector>
 #include "AliCFManager.h"
-
+#include "AliGammaConversionBGHandler.h"
 
 class TClonesArray; 
 class TFormula;
@@ -39,7 +39,7 @@ class TChain;
 class TChain;
 class AliCFManager;   // for CF
 class AliCFContainer;  // for CF
-class AliTPCpidESD; // for dEdx cut based on nSigma to particle lines 
+class AliESDpid; // for dEdx cut based on nSigma to particle lines 
 
 
 class AliV0Reader : public TObject {
@@ -96,6 +96,11 @@ class AliV0Reader : public TObject {
    */
   Int_t GetNumberOfV0s() const{return fESDEvent->GetNumberOfV0s();}
 	
+  /*
+   *Returns the number of contributors to the vertex
+   */
+  Int_t GetNumberOfContributorsVtx() const{return fESDEvent->GetPrimaryVertex()->GetNContributors();}
+  
   /*
    * Check if there are any more good v0s left in the v0 stack
    * if so, fCurrent v0 is set to this v0 and can be retrieved
@@ -536,6 +541,11 @@ class AliV0Reader : public TObject {
    * Sets the flag to enable/disable the usage of MC information. 
    */
   void SetDoMCTruth(Bool_t doMC){fDoMC = doMC;}
+
+  /*
+   * Sets the flag to enable/disable the usage of MC information. 
+   */
+  Bool_t GetDoMCTruth(){return fDoMC;}
 	
   /*
    * Sets the flag to enable/disable the cut dedx N sigma 
@@ -567,12 +577,13 @@ class AliV0Reader : public TObject {
   /*
    * Gets a vector of good v0s.
    */
-  vector<AliKFParticle> GetCurrentEventGoodV0s() const{return fCurrentEventGoodV0s;}
+  TClonesArray* GetCurrentEventGoodV0s() const{return fCurrentEventGoodV0s;}
 	
   /*
    * Gets the vector of previous events v0s (for bacground analysis)
    */
-  vector<AliKFParticle> GetPreviousEventGoodV0s() const{return fPreviousEventGoodV0s;}
+  AliGammaConversionKFVector* GetBGGoodV0s(Int_t event);
+  //  vector<AliKFParticle> GetPreviousEventGoodV0s() const{return fPreviousEventGoodV0s;}
 
   void SetUseOwnXYZCalculation(Bool_t flag){fUseOwnXYZCalculation=flag;}
 
@@ -583,6 +594,12 @@ class AliV0Reader : public TObject {
   Double_t GetConvPosZ(AliESDtrack* ptrack,AliESDtrack* ntrack, Double_t b);
 
   void SetDoCF(Bool_t flag){fDoCF = flag;}
+
+  Bool_t CheckV0FinderStatus(Int_t index);
+
+  void SetOnFlyFlag(Bool_t flag){fUseOnFlyV0Finder = flag;}
+
+ Int_t GetNBGEvents(){return fBGEventHandler->GetNBGEvents();}
 
  private:
   AliStack * fMCStack;           // pointer to MonteCarlo particle stack 
@@ -599,7 +616,7 @@ class AliV0Reader : public TObject {
   //  AliCFContainer *container;
 	
   // for dEdx cut based on nSigma to a particle line
-  AliTPCpidESD * fTPCpid; 
+  AliESDpid * fESDpid; 
 	
   AliGammaConversionHistograms *fHistograms; //! pointer to histogram handling class
 	
@@ -662,12 +679,17 @@ class AliV0Reader : public TObject {
 
   Bool_t fDoCF; //flag
 
+  Bool_t fUseOnFlyV0Finder;
+
   Bool_t fUpdateV0AlreadyCalled; //flag
 	
-  vector<AliKFParticle> fCurrentEventGoodV0s; //vector of good v0s
-  vector<AliKFParticle> fPreviousEventGoodV0s; // vector of good v0s from prevous events
+  TClonesArray* fCurrentEventGoodV0s; //vector of good v0s
+  //  vector<AliKFParticle> fPreviousEventGoodV0s; // vector of good v0s from prevous events
+
+  AliGammaConversionBGHandler *fBGEventHandler;
+  Bool_t fBGEventInitialized;
 	
-  ClassDef(AliV0Reader,6)
+  ClassDef(AliV0Reader,8)
 };
 #endif
 

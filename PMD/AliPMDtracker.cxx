@@ -245,6 +245,7 @@ void AliPMDtracker::Clusters2Tracks(AliESDEvent *event)
 
   const Float_t kzpos = 361.5;    // middle of the PMD
 
+  Int_t   ix = -1, iy = -1;
   Int_t   det,smn,trno,trpid,mstat;
   Float_t xpos,ypos;
   Float_t adc, ncell, radx, rady;
@@ -269,7 +270,28 @@ void AliPMDtracker::Clusters2Tracks(AliESDEvent *event)
       adc   = fPMDclout->GetClusADC();
       ncell = fPMDclout->GetClusCells();
       radx  = fPMDclout->GetClusSigmaX();
-      rady  = fPMDclout->GetClusSigmaY();
+      // Here in the variable "rady" we are keeping the row and col
+      // of the single isolated cluster having ncell = 1 for offline
+      // calibration
+      
+      if ((radx > 999. && radx < 1000.) && ncell == 1)
+	{
+	  if (smn < 12)
+	    {
+	      ix = (Int_t) (ypos +0.5);
+	      iy = (Int_t) xpos;
+	    }
+	  else if (smn > 12 && smn < 24)
+	    {
+	      ix = (Int_t) xpos;
+	      iy = (Int_t) (ypos +0.5);
+	    }
+	  rady = (Float_t) (ix*100 + iy);
+	}
+      else
+	{
+	  rady  = fPMDclout->GetClusSigmaY();
+	}
       pid   = fPMDclout->GetClusPID();
       
       //
@@ -332,20 +354,32 @@ void AliPMDtracker::AssignTrPidToCluster(Int_t nentry, Int_t *itra,
   // split cluster part will be done at the time of calculating eff/pur
 
   Int_t *phentry = new Int_t [nentry];
+  Int_t *hadentry = new Int_t [nentry];
   Int_t *trenergy = 0x0;
+  Int_t *trpid    = 0x0;
   Int_t *sortcoord = 0x0;
 
   Int_t ngtrack = 0;
+  Int_t nhtrack = 0;
   for (Int_t i = 0; i < nentry; i++)
     {
       phentry[i] = -1;
+      hadentry[i] = -1;
+
       if (ipid[i] == 22)
 	{
 	  phentry[ngtrack] = i;
 	  ngtrack++;
 	}
+      else if (ipid[i] != 22)
+	{
+	  hadentry[nhtrack] = i;
+	  nhtrack++;
+	}
     }
   
+  Int_t nghadtrack = ngtrack + nhtrack;
+
   if (ngtrack == 0)
     {
       // hadron track
@@ -353,42 +387,62 @@ void AliPMDtracker::AssignTrPidToCluster(Int_t nentry, Int_t *itra,
       trackpid = 8;
       trackno  = -1;
     }
-  else if (ngtrack == 1)
+  else if (ngtrack >= 1)
     {
-      // only one photon track
-      // track number set to photon track
-      trackpid = 1;
-      trackno  = itra[phentry[0]];
-    }
-  else if (ngtrack > 1)
-    {
-      // more than one photon track
-      
-      trenergy  = new Int_t [ngtrack];
-      sortcoord = new Int_t [ngtrack];
+      // one or more than one photon track + charged track
+      // find out which track deposits maximum energy and
+      // assign that track number and track pid
+
+      trenergy  = new Int_t [nghadtrack];
+      trpid     = new Int_t [nghadtrack];
+      sortcoord = new Int_t [nghadtrack];
       for (Int_t i = 0; i < ngtrack; i++)
 	{
 	  trenergy[i] = 0.;
+	  trpid[i]    = -1;
 	  for (Int_t j = 0; j < nentry; j++)
 	    {
 	      if (ipid[j] == 22 && itra[j] == itra[phentry[i]])
 		{
 		  trenergy[i] += cadc[j];
+		  trpid[i]     = 22;
+		}
+	    }
+	}
+      for (Int_t i = ngtrack; i < nghadtrack; i++)
+	{
+	  trenergy[i] = 0.;
+	  trpid[i]    = -1;
+	  for (Int_t j = 0; j < nentry; j++)
+	    {
+	      if (ipid[j] != 22 && itra[j] == itra[hadentry[i-ngtrack]])
+		{
+		  trenergy[i] += cadc[j];
+		  trpid[i]     = ipid[j];
 		}
 	    }
 	}
       
       Bool_t jsort = true;
-      TMath::Sort(ngtrack,trenergy,sortcoord,jsort);
+      TMath::Sort(nghadtrack,trenergy,sortcoord,jsort);
       
       Int_t gtr = sortcoord[0];   
-      trackno  = itra[phentry[gtr]];   // highest adc track
-      trackpid = 1;
+      if (trpid[gtr] == 22)
+	{
+	  trackpid = 22;
+	  trackno  = itra[phentry[gtr]];   // highest adc track
+	}
+      else
+	{
+	  trackpid = 8;
+	  trackno = -1;
+	}
       
       delete [] trenergy;
+      delete [] trpid;
       delete [] sortcoord;
       
-    }   // end of ngtrack > 1
+    }   // end of ngtrack >= 1
   
 }
 //--------------------------------------------------------------------//

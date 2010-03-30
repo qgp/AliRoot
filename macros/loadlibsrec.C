@@ -11,10 +11,6 @@ void loadlibsrec ()
   gSystem->Load("libMinuit");
   gSystem->Load("libProof");
 
-  // Uncomment the following line for macosx
-  // Waiting for a better solution
-  //  gSystem->Load("libg2c_sh");
-
   gSystem->Load("libGeom");
   gSystem->Load("libVMC");
 
@@ -65,18 +61,17 @@ void loadlibsrec ()
   gSystem->Load("libVZERObase");
   gSystem->Load("libVZEROrec");
   gSystem->Load("libVZEROsim");
+  gSystem->Load("libEMCALUtils");
   gSystem->Load("libEMCALbase");
   gSystem->Load("libEMCALsim");
   gSystem->Load("libEMCALrec");
-
-  // The following lines have to be commented on Darwin
-  // for the moment due to cross dependencies
   gSystem->Load("libTPCbase");
   gSystem->Load("libTPCrec");
   gSystem->Load("libTPCsim");
   gSystem->Load("libITSbase");
   gSystem->Load("libITSsim");
   gSystem->Load("libITSrec");
+  gSystem->Load("libSTAT");
   gSystem->Load("libTRDbase");
   gSystem->Load("libTRDsim");
   gSystem->Load("libTRDrec");

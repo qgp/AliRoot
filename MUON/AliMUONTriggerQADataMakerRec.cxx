@@ -34,6 +34,7 @@ ClassImp(AliMUONTriggerQADataMakerRec)
 #include "AliMpConstants.h"
 #include "AliMUONTriggerDisplay.h"
 #include "TH2.h"
+#include "TH1F.h"
 #include "TString.h"
 #include "AliRecoParam.h"
 #include "AliMUONDigitStoreV2R.h"
@@ -59,10 +60,13 @@ ClassImp(AliMUONTriggerQADataMakerRec)
 #include "AliMUONGlobalTriggerBoard.h"
 #include "AliMUONGlobalTrigger.h"
 #include "AliMUONGlobalCrateConfig.h"
+#include "AliMUONQAIndices.h"
 
 //____________________________________________________________________________ 
 AliMUONTriggerQADataMakerRec::AliMUONTriggerQADataMakerRec(AliQADataMakerRec* master) : 
 AliMUONVQADataMakerRec(master),
+fNumberOf34Dec(0x0),
+fNumberOf44Dec(0x0),
 fDigitMaker(new AliMUONDigitMaker(kFALSE)),
 fCalibrationData(new AliMUONCalibrationData(AliCDBManager::Instance()->GetRun())),
 fTriggerProcessor(new AliMUONTriggerElectronics(fCalibrationData)),
@@ -80,6 +84,8 @@ AliMUONTriggerQADataMakerRec::~AliMUONTriggerQADataMakerRec()
   delete fDigitStore;
   delete fTriggerProcessor;
   delete fCalibrationData;
+  delete fNumberOf34Dec;
+  delete fNumberOf44Dec;
 }
 
 //____________________________________________________________________________ 
@@ -104,18 +110,18 @@ void AliMUONTriggerQADataMakerRec::EndOfDetectorCycleRaws(Int_t /*specie*/, TObj
   DisplayTriggerInfo();
 
   // Normalize RawData histos
-  Float_t nbevent = GetRawsData(kRawNAnalyzedEvents)->GetBinContent(1);
+  Float_t nbevent = GetRawsData(AliMUONQAIndices::kTriggerRawNAnalyzedEvents)->GetBinContent(1);
   Int_t histoRawsIndex[] = {
-    kTriggerErrorSummary,
-    kTriggerCalibSummary,
-    kTriggerReadOutErrors,
-    kTriggerGlobalOutput
+    AliMUONQAIndices::kTriggerErrorSummary,
+    AliMUONQAIndices::kTriggerCalibSummary,
+    AliMUONQAIndices::kTriggerReadOutErrors,
+    AliMUONQAIndices::kTriggerGlobalOutput
   };
   Int_t histoRawsScaledIndex[] = {
-    kTriggerErrorSummaryNorm,
-    kTriggerCalibSummaryNorm,
-    kTriggerReadOutErrorsNorm,
-    kTriggerGlobalOutputNorm
+    AliMUONQAIndices::kTriggerErrorSummaryNorm,
+    AliMUONQAIndices::kTriggerCalibSummaryNorm,
+    AliMUONQAIndices::kTriggerReadOutErrorsNorm,
+    AliMUONQAIndices::kTriggerGlobalOutputNorm
   };
   const Int_t kNrawsHistos = sizeof(histoRawsIndex)/sizeof(histoRawsIndex[0]);
   Float_t scaleFactor[kNrawsHistos] = {100., 100., 100., 1.};
@@ -129,16 +135,26 @@ void AliMUONTriggerQADataMakerRec::EndOfDetectorCycleRaws(Int_t /*specie*/, TObj
     }
   } // loop on histos
 
-  TH1* hYCopy = GetRawsData(kTriggerErrorLocalYCopy); //number of YCopy error per board
-  TH1* hYCopyTests = GetRawsData(kTriggerErrorLocalYCopyTest); //contains the number of YCopy test per board
-  TH1* hYCopyNorm = GetRawsData(kTriggerErrorLocalYCopyNorm); 
+  TH1* hYCopy = GetRawsData(AliMUONQAIndices::kTriggerErrorLocalYCopy); //number of YCopy error per board
+  TH1* hYCopyTests = GetRawsData(AliMUONQAIndices::kTriggerErrorLocalYCopyTest); //contains the number of YCopy test per board
+  TH1* hYCopyNorm = GetRawsData(AliMUONQAIndices::kTriggerErrorLocalYCopyNorm); 
   hYCopyNorm->Reset();
   hYCopyNorm->Divide(hYCopy, hYCopyTests, 100., 1.);
      
   Float_t mean = hYCopyNorm->Integral();
       
-  TH1* hSummary = GetRawsData(kTriggerErrorSummary);
-  hSummary->SetBinContent(kAlgoLocalYCopy+1,mean/192.); //put the mean of the % of YCopy error in the kTriggerError's corresponding bin
+  TH1* hSummary = GetRawsData(AliMUONQAIndices::kTriggerErrorSummary);
+  hSummary->SetBinContent(AliMUONQAIndices::kAlgoLocalYCopy+1,mean/192.); //put the mean of the % of YCopy error in the kTriggerError's corresponding bin
+
+  ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerLocalRatio4434))->Divide(fNumberOf44Dec,fNumberOf34Dec);
+
+  //reset bins temporary used to store informations
+  ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerRatio4434AllEvents))->SetBinContent(1,0); 
+  ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerRatio4434AllEvents))->SetBinContent(2,0);
+
+  ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerLocalRatio4434))->SetMaximum(1.1);
+  ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerRatio4434AllEvents))->SetMaximum(1.1);
+  ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerRatio4434SinceLastUpdate))->SetMaximum(1.1);
 }
 
 //____________________________________________________________________________ 
@@ -166,7 +182,7 @@ void AliMUONTriggerQADataMakerRec::InitRaws()
     histo1D = new TH1F("hTriggerScalersTime", "Acquisition time from trigger scalers", 1, 0.5, 1.5);
     histo1D->GetXaxis()->SetBinLabel(1, "One-bin histogram: bin is filled at each scaler event.");
     histo1D->GetYaxis()->SetTitle("Cumulated scaler time (s)");
-    Add2RawsList(histo1D, kTriggerScalersTime, expert, !image, !saveCorr);
+    Add2RawsList(histo1D, AliMUONQAIndices::kTriggerScalersTime, expert, !image, !saveCorr);
 
     for(Int_t iCath=0; iCath<AliMpConstants::NofCathodes(); iCath++){
       TString cathName = ( iCath==0 ) ? "BendPlane" : "NonBendPlane";
@@ -179,7 +195,7 @@ void AliMUONTriggerQADataMakerRec::InitRaws()
 	histo2D->GetXaxis()->SetTitle(boardName.Data());
 	histo2D->GetYaxis()->SetTitle("Strip");	
 	histo2D->SetOption("COLZ");	
-	Add2RawsList(histo2D, kTriggerScalers + AliMpConstants::NofTriggerChambers()*iCath + iChamber, expert, !image, !saveCorr);
+	Add2RawsList(histo2D, AliMUONQAIndices::kTriggerScalers + AliMpConstants::NofTriggerChambers()*iCath + iChamber, expert, !image, !saveCorr);
       } // loop on chambers
     } // loop on cathodes
 	
@@ -191,14 +207,14 @@ void AliMUONTriggerQADataMakerRec::InitRaws()
 	histo2D = (TH2F*)triggerDisplay.GetEmptyDisplayHisto(histoName, AliMUONTriggerDisplay::kDisplayStrips, 
 							     iCath, iChamber, histoTitle);
 	histo2D->SetOption("COLZ");
-	Add2RawsList(histo2D, kTriggerScalersDisplay + AliMpConstants::NofTriggerChambers()*iCath + iChamber, expert, !image, !saveCorr);
+	Add2RawsList(histo2D, AliMUONQAIndices::kTriggerScalersDisplay + AliMpConstants::NofTriggerChambers()*iCath + iChamber, expert, !image, !saveCorr);
       } // loop on chambers
     } // loop on cathodes    
 
-    TString axisLabel[kNtrigCalibSummaryBins] = {"#splitline{Dead}{Channels}", "#splitline{Dead}{Local Boards}", "#splitline{Dead}{Regional Boards}", "#splitline{Dead}{Global Board}", "#splitline{Noisy}{Strips}"};
+    TString axisLabel[AliMUONQAIndices::kNtrigCalibSummaryBins] = {"#splitline{Dead}{Channels}", "#splitline{Dead}{Local Boards}", "#splitline{Dead}{Regional Boards}", "#splitline{Dead}{Global Board}", "#splitline{Noisy}{Strips}"};
 
-    TH1F* histoCalib = new TH1F("hTriggerCalibSummaryAll", "MTR calibration summary counts", kNtrigCalibSummaryBins, -0.5, (Float_t)kNtrigCalibSummaryBins - 0.5);
-    for (Int_t ibin=1; ibin<=kNtrigCalibSummaryBins; ibin++){
+    TH1F* histoCalib = new TH1F("hTriggerCalibSummaryAll", "MTR calibration summary counts", AliMUONQAIndices::kNtrigCalibSummaryBins, -0.5, (Float_t)AliMUONQAIndices::kNtrigCalibSummaryBins - 0.5);
+    for (Int_t ibin=1; ibin<=AliMUONQAIndices::kNtrigCalibSummaryBins; ibin++){
       histoCalib->GetXaxis()->SetBinLabel(ibin, axisLabel[ibin-1].Data());
     }
     histoCalib->SetFillColor(kBlue);
@@ -209,91 +225,112 @@ void AliMUONTriggerQADataMakerRec::InitRaws()
     histoCalibNorm->SetOption("bar2");
     histoCalibNorm->GetYaxis()->SetTitle("Percentage per event (%)");
     // Adding both histos after cloning to avoid problems with the expert bit
-    Add2RawsList(histoCalib,     kTriggerCalibSummary,      expert, !image, !saveCorr);
-    Add2RawsList(histoCalibNorm, kTriggerCalibSummaryNorm, !expert,  image, !saveCorr);
+    Add2RawsList(histoCalib,     AliMUONQAIndices::kTriggerCalibSummary,      expert, !image, !saveCorr);
+    Add2RawsList(histoCalibNorm, AliMUONQAIndices::kTriggerCalibSummaryNorm, !expert,  image, !saveCorr);
   } // Calibration reco param
 	
-  Char_t *globalXaxisName[6] = {"US HPt", "US LPt", "LS HPt", "LS LPt", "SGL HPt", "SGL LPt"};
-  Char_t *allLevelXaxisName[kNtrigAlgoErrorBins] = {"Local algo X", "Local algo Y", "Local LUT","Local Y Copy" , "Local2Regional", "Regional", "Regional2Global", "GlobalFromInGlobal", "GlobalFromInLocal", "GlobalFromOutLocal"};
-  Char_t *readoutErrNames[kNtrigStructErrorBins]={"Local","Regional","Global","DARC"};
+  const char *globalXaxisName[6] = {"US HPt", "US LPt", "LS HPt", "LS LPt", "SGL HPt", "SGL LPt"};
+  const char *allLevelXaxisName[AliMUONQAIndices::kNtrigAlgoErrorBins] = {"Local algo X", "Local algo Y", "Local LUT","Local Y Copy" , "Local2Regional", "Regional", "Regional2Global", "GlobalFromInGlobal", "GlobalFromInLocal", "GlobalFromOutLocal"};
+  const char *readoutErrNames[AliMUONQAIndices::kNtrigStructErrorBins]={"Local","Regional","Global","DARC"};
 
   TString errorAxisTitle = "Number of errors";
 
-  histo1D = new TH1F("ErrorLocalXPos", "ErrorLocalXPos",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
+  histo1D = new TH1F("hTriggerErrorLocalXPos", "ErrorLocalXPos",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
   histo1D->GetXaxis()->SetTitle(boardName.Data());
   histo1D->GetYaxis()->SetTitle(errorAxisTitle.Data());
-  Add2RawsList(histo1D, kTriggerErrorLocalXPos, expert, !image, !saveCorr);
+  Add2RawsList(histo1D, AliMUONQAIndices::kTriggerErrorLocalXPos, expert, !image, !saveCorr);
 
-  histo1D = new TH1F("ErrorLocalYPos", "ErrorLocalYPos",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
+  histo1D = new TH1F("hTriggerErrorLocalYPos", "ErrorLocalYPos",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
   histo1D->GetXaxis()->SetTitle(boardName.Data());
   histo1D->GetYaxis()->SetTitle(errorAxisTitle.Data());
-  Add2RawsList(histo1D, kTriggerErrorLocalYPos, expert, !image, !saveCorr);
+  Add2RawsList(histo1D, AliMUONQAIndices::kTriggerErrorLocalYPos, expert, !image, !saveCorr);
 
-  histo1D = new TH1F("ErrorLocalDev", "ErrorLocalDev",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
+  histo1D = new TH1F("hTriggerErrorLocalDev", "ErrorLocalDev",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
   histo1D->GetXaxis()->SetTitle(boardName.Data());
   histo1D->GetYaxis()->SetTitle(errorAxisTitle.Data());
-  Add2RawsList(histo1D, kTriggerErrorLocalDev, expert, !image, !saveCorr);
+  Add2RawsList(histo1D, AliMUONQAIndices::kTriggerErrorLocalDev, expert, !image, !saveCorr);
 
-  histo1D = new TH1F("ErrorLocalTriggerDec", "ErrorLocalTriggerDec",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
+  histo1D = new TH1F("hTriggerErrorLocalTriggerDec", "ErrorLocalTriggerDec",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
   histo1D->GetXaxis()->SetTitle(boardName.Data());
   histo1D->GetYaxis()->SetTitle(errorAxisTitle.Data());
-  Add2RawsList(histo1D, kTriggerErrorLocalTriggerDec, expert, !image, !saveCorr);
+  Add2RawsList(histo1D, AliMUONQAIndices::kTriggerErrorLocalTriggerDec, expert, !image, !saveCorr);
 
-  histo1D = new TH1F("ErrorLocalLPtLSB", "ErrorLocalLPtLSB",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
+  histo1D = new TH1F("hTriggerErrorLocalLPtLSB", "ErrorLocalLPtLSB",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
   histo1D->GetXaxis()->SetTitle(boardName.Data());
   histo1D->GetYaxis()->SetTitle(errorAxisTitle.Data());
-  Add2RawsList(histo1D, kTriggerErrorLocalLPtLSB, expert, !image, !saveCorr);
+  Add2RawsList(histo1D, AliMUONQAIndices::kTriggerErrorLocalLPtLSB, expert, !image, !saveCorr);
 
-  histo1D = new TH1F("ErrorLocalLPtMSB", "ErrorLocalLPtMSB",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
+  histo1D = new TH1F("hTriggerErrorLocalLPtMSB", "ErrorLocalLPtMSB",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
   histo1D->GetXaxis()->SetTitle(boardName.Data());
   histo1D->GetYaxis()->SetTitle(errorAxisTitle.Data());
-  Add2RawsList(histo1D, kTriggerErrorLocalLPtMSB, expert, !image, !saveCorr);
+  Add2RawsList(histo1D, AliMUONQAIndices::kTriggerErrorLocalLPtMSB, expert, !image, !saveCorr);
 
-  histo1D = new TH1F("ErrorLocalHPtLSB", "ErrorLocalHPtLSB",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
+  histo1D = new TH1F("hTriggerErrorLocalHPtLSB", "ErrorLocalHPtLSB",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
   histo1D->GetXaxis()->SetTitle(boardName.Data());
   histo1D->GetYaxis()->SetTitle(errorAxisTitle.Data());
-  Add2RawsList(histo1D, kTriggerErrorLocalHPtLSB, expert, !image, !saveCorr);
+  Add2RawsList(histo1D, AliMUONQAIndices::kTriggerErrorLocalHPtLSB, expert, !image, !saveCorr);
 
-  histo1D = new TH1F("ErrorLocalHPtMSB", "ErrorLocalHPtMSB",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
+  histo1D = new TH1F("hTriggerErrorLocalHPtMSB", "ErrorLocalHPtMSB",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
   histo1D->GetXaxis()->SetTitle(boardName.Data());
   histo1D->GetYaxis()->SetTitle(errorAxisTitle.Data());
-  Add2RawsList(histo1D, kTriggerErrorLocalHPtMSB, expert, !image, !saveCorr);
+  Add2RawsList(histo1D, AliMUONQAIndices::kTriggerErrorLocalHPtMSB, expert, !image, !saveCorr);
 
-  histo1D = new TH1F("ErrorLocalTrigY", "ErrorLocalTrigY",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
+  histo1D = new TH1F("hTriggerErrorLocalTrigY", "ErrorLocalTrigY",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
   histo1D->GetXaxis()->SetTitle(boardName.Data());
   histo1D->GetYaxis()->SetTitle(errorAxisTitle.Data());
-  Add2RawsList(histo1D, kTriggerErrorLocalTrigY, expert, !image, !saveCorr);
+  Add2RawsList(histo1D, AliMUONQAIndices::kTriggerErrorLocalTrigY, expert, !image, !saveCorr);
 
-  histo1D = new TH1F("ErrorLocal2RegionalLPtLSB", "ErrorLocal2RegionalLPtLSB",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
+  histo1D = new TH1F("hTriggerRatio4434Local", "Ratio4434Local",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
+  histo1D->GetXaxis()->SetTitle(boardName.Data());
+  histo1D->GetYaxis()->SetTitle("ratio 44/34");
+  Add2RawsList(histo1D, AliMUONQAIndices::kTriggerLocalRatio4434, expert, !image, !saveCorr);                                               
+  histo1D = new TH1F("hTriggerRatio4434AllEvents", "Ratio4434AllEvents",1,0,1);
+  histo1D->GetXaxis()->SetTitle("Event number");
+  histo1D->GetYaxis()->SetTitle("ratio 44/34");
+  histo1D->SetLineColor(4);                           
+  Add2RawsList(histo1D, AliMUONQAIndices::kTriggerRatio4434AllEvents, expert, !image, !saveCorr);                                               
+  histo1D = new TH1F("hTriggerRatio4434SinceLastUpdate", "Ratio4434SinceLastUpdate",1,0,1);
+  histo1D->GetXaxis()->SetTitle("Event number");
+  histo1D->GetYaxis()->SetTitle("ratio 44/34");                           
+  Add2RawsList(histo1D, AliMUONQAIndices::kTriggerRatio4434SinceLastUpdate, expert, !image, !saveCorr);
+
+  histo1D = new TH1F("hTriggerErrorLocal2RegionalLPtLSB", "ErrorLocal2RegionalLPtLSB",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
   histo1D->GetXaxis()->SetTitle(boardName.Data());
   histo1D->GetYaxis()->SetTitle(errorAxisTitle.Data());
-  Add2RawsList(histo1D, kTriggerErrorLocal2RegionalLPtLSB, expert, !image, !saveCorr);
+  Add2RawsList(histo1D, AliMUONQAIndices::kTriggerErrorLocal2RegionalLPtLSB, expert, !image, !saveCorr);
 
-  histo1D = new TH1F("ErrorLocal2RegionalLPtMSB", "ErrorLocal2RegionalLPtMSB",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
+  histo1D = new TH1F("hTriggerErrorLocal2RegionalLPtMSB", "ErrorLocal2RegionalLPtMSB",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
   histo1D->GetXaxis()->SetTitle(boardName.Data());
   histo1D->GetYaxis()->SetTitle(errorAxisTitle.Data());
-  Add2RawsList(histo1D, kTriggerErrorLocal2RegionalLPtMSB, expert, !image, !saveCorr);
+  Add2RawsList(histo1D, AliMUONQAIndices::kTriggerErrorLocal2RegionalLPtMSB, expert, !image, !saveCorr);
 
-  histo1D = new TH1F("ErrorLocal2RegionalHPtLSB", "ErrorLocal2RegionalHPtLSB",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
+  histo1D = new TH1F("hTriggerErrorLocal2RegionalHPtLSB", "ErrorLocal2RegionalHPtLSB",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
   histo1D->GetXaxis()->SetTitle(boardName.Data());
   histo1D->GetYaxis()->SetTitle(errorAxisTitle.Data());
-  Add2RawsList(histo1D, kTriggerErrorLocal2RegionalHPtLSB, expert, !image, !saveCorr);
+  Add2RawsList(histo1D, AliMUONQAIndices::kTriggerErrorLocal2RegionalHPtLSB, expert, !image, !saveCorr);
 
-  histo1D = new TH1F("ErrorLocal2RegionalHPtMSB", "ErrorLocal2RegionalHPtMSB",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
+  histo1D = new TH1F("hTriggerErrorLocal2RegionalHPtMSB", "ErrorLocal2RegionalHPtMSB",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
   histo1D->GetXaxis()->SetTitle(boardName.Data());
   histo1D->GetYaxis()->SetTitle(errorAxisTitle.Data());
-  Add2RawsList(histo1D, kTriggerErrorLocal2RegionalHPtMSB, expert, !image, !saveCorr);
+  Add2RawsList(histo1D, AliMUONQAIndices::kTriggerErrorLocal2RegionalHPtMSB, expert, !image, !saveCorr);
 
-  histo1D = new TH1F("ErrorOutGlobalFromInGlobal", "ErrorOutGlobalFromInGlobal",6,-0.5,6-0.5);
+  histo1D = new TH1F("hTriggerErrorOutGlobalFromInGlobal", "ErrorOutGlobalFromInGlobal",6,-0.5,6-0.5);
   histo1D->GetYaxis()->SetTitle(errorAxisTitle.Data());
   for (int ibin=0;ibin<6;ibin++){
     histo1D->GetXaxis()->SetBinLabel(ibin+1,globalXaxisName[ibin]);
   }
-  Add2RawsList(histo1D, kTriggerErrorOutGlobalFromInGlobal, expert, !image, !saveCorr);
+  Add2RawsList(histo1D, AliMUONQAIndices::kTriggerErrorOutGlobalFromInGlobal, expert, !image, !saveCorr);
 
-  TH1F* histoAlgoErr = new TH1F("hTriggerAlgoNumOfErrors", "Trigger Algorithm total errors",kNtrigAlgoErrorBins,-0.5,(Float_t)kNtrigAlgoErrorBins-0.5);
+  histo1D = new TH1F("hTriggerErrorOutGlobalFromInLocal", "ErrorOutGlobalFromInLocal",6,-0.5,6-0.5);
+  histo1D->GetYaxis()->SetTitle(errorAxisTitle.Data());
+  for (int ibin=0;ibin<6;ibin++){
+    histo1D->GetXaxis()->SetBinLabel(ibin+1,globalXaxisName[ibin]);
+  }
+  Add2RawsList(histo1D, AliMUONQAIndices::kTriggerErrorOutGlobalFromInLocal, expert, !image, !saveCorr);
+
+  TH1F* histoAlgoErr = new TH1F("hTriggerAlgoNumOfErrors", "Trigger Algorithm total errors",AliMUONQAIndices::kNtrigAlgoErrorBins,-0.5,(Float_t)AliMUONQAIndices::kNtrigAlgoErrorBins-0.5);
   histoAlgoErr->GetYaxis()->SetTitle("Number of events with errors");
-  for (int ibin=0;ibin<kNtrigAlgoErrorBins;ibin++){
+  for (int ibin=0;ibin<AliMUONQAIndices::kNtrigAlgoErrorBins;ibin++){
     histoAlgoErr->GetXaxis()->SetBinLabel(ibin+1,allLevelXaxisName[ibin]);
   }
   histoAlgoErr->SetFillColor(kBlue);
@@ -303,35 +340,35 @@ void AliMUONTriggerQADataMakerRec::InitRaws()
   histoAlgoErrNorm->SetTitle("Trigger algorithm errors");
   histoAlgoErrNorm->GetYaxis()->SetTitle("% of events with errors");
   // Adding both histos after cloning to avoid problems with the expert bit
-  Add2RawsList(histoAlgoErr,     kTriggerErrorSummary,      expert, !image, !saveCorr);
-  Add2RawsList(histoAlgoErrNorm, kTriggerErrorSummaryNorm, !expert,  image, !saveCorr);  
+  Add2RawsList(histoAlgoErr,     AliMUONQAIndices::kTriggerErrorSummary,      expert, !image, !saveCorr);
+  Add2RawsList(histoAlgoErrNorm, AliMUONQAIndices::kTriggerErrorSummaryNorm, !expert,  image, !saveCorr);  
 
-  histo1D = new TH1F("hTriggeredBoards", "Triggered boards", nbLocalBoard, 0.5, (Float_t)nbLocalBoard + 0.5);
-  Add2RawsList(histo1D, kTriggeredBoards, expert, !image, !saveCorr);
+  histo1D = new TH1F("hTriggerTriggeredBoards", "Triggered boards", nbLocalBoard, 0.5, (Float_t)nbLocalBoard + 0.5);
+  Add2RawsList(histo1D, AliMUONQAIndices::kTriggeredBoards, expert, !image, !saveCorr);
 
-  histo2D = (TH2F*)triggerDisplay.GetEmptyDisplayHisto("hFiredBoardsDisplay", AliMUONTriggerDisplay::kDisplayBoards,
+  histo2D = (TH2F*)triggerDisplay.GetEmptyDisplayHisto("hTriggerFiredBoardsDisplay", AliMUONTriggerDisplay::kDisplayBoards,
 						       0, 0, "Local board triggers / event");
   histo2D->SetOption("COLZ");
-  Add2RawsList(histo2D, kTriggerBoardsDisplay, expert, !image, !saveCorr);
+  Add2RawsList(histo2D, AliMUONQAIndices::kTriggerBoardsDisplay, expert, !image, !saveCorr);
 
-  TH1F* histoYCopyErr = new TH1F("ErrorLocalYCopy", "Number of YCopy errors",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
+  TH1F* histoYCopyErr = new TH1F("hTriggerErrorLocalYCopy", "Number of YCopy errors",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
   histoYCopyErr->GetXaxis()->SetTitle(boardName.Data());
   histoYCopyErr->GetYaxis()->SetTitle(errorAxisTitle.Data());
   // Copy of previous histo for scaling purposes
-  TH1F* histoYCopyErrTest = (TH1F*)histoYCopyErr->Clone("ErrorLocalYCopyTest");
+  TH1F* histoYCopyErrTest = (TH1F*)histoYCopyErr->Clone("hTriggerErrorLocalYCopyTest");
   histoYCopyErrTest->SetTitle("Number of YCopy tested");
   // Copy of previous histo for scaling purposes
-  TH1F* histoYCopyErrNorm = (TH1F*)histoYCopyErr->Clone("ErrorLocalYCopyNorm");
+  TH1F* histoYCopyErrNorm = (TH1F*)histoYCopyErr->Clone("hTriggerErrorLocalYCopyNorm");
   histoYCopyErrNorm->SetTitle("% of YCopy errors");
   // Adding both histos after cloning to avoid problems with the expert bit
-  Add2RawsList(histoYCopyErr,     kTriggerErrorLocalYCopy,     expert, !image, !saveCorr);
-  Add2RawsList(histoYCopyErrTest, kTriggerErrorLocalYCopyTest, expert, !image, !saveCorr);
-  Add2RawsList(histoYCopyErrNorm, kTriggerErrorLocalYCopyNorm, expert, !image, !saveCorr);
+  Add2RawsList(histoYCopyErr,     AliMUONQAIndices::kTriggerErrorLocalYCopy,     expert, !image, !saveCorr);
+  Add2RawsList(histoYCopyErrTest, AliMUONQAIndices::kTriggerErrorLocalYCopyTest, expert, !image, !saveCorr);
+  Add2RawsList(histoYCopyErrNorm, AliMUONQAIndices::kTriggerErrorLocalYCopyNorm, expert, !image, !saveCorr);
 
-  TH1F* histoROerr = new TH1F("hTriggerReadoutNumOfErrors","Trigger Read-Out total errors", kNtrigStructErrorBins, -0.5, (Float_t)kNtrigStructErrorBins-0.5);
+  TH1F* histoROerr = new TH1F("hTriggerReadoutNumOfErrors","Trigger Read-Out total errors", AliMUONQAIndices::kNtrigStructErrorBins, -0.5, (Float_t)AliMUONQAIndices::kNtrigStructErrorBins-0.5);
   histoROerr->GetYaxis()->SetTitle("Fraction of errors");
   histoROerr->SetFillColor(kBlue);
-  for (int ibin=0;ibin<kNtrigStructErrorBins;ibin++){
+  for (int ibin=0;ibin<AliMUONQAIndices::kNtrigStructErrorBins;ibin++){
     histoROerr->GetXaxis()->SetBinLabel(ibin+1,readoutErrNames[ibin]);
   }
   // Copy of previous histo for scaling purposes
@@ -340,8 +377,8 @@ void AliMUONTriggerQADataMakerRec::InitRaws()
   histoROerrNorm->SetOption("bar2");
   histoROerrNorm->GetYaxis()->SetTitle("% of errors per event");
   // Adding both histos after cloning to avoid problems with the expert bit
-  Add2RawsList(histoROerr,     kTriggerReadOutErrors,      expert, !image, !saveCorr);
-  Add2RawsList(histoROerrNorm, kTriggerReadOutErrorsNorm, !expert,  image, !saveCorr);
+  Add2RawsList(histoROerr,     AliMUONQAIndices::kTriggerReadOutErrors,      expert, !image, !saveCorr);
+  Add2RawsList(histoROerrNorm, AliMUONQAIndices::kTriggerReadOutErrorsNorm, !expert,  image, !saveCorr);
 
   TH1F* histoGlobalMult = new TH1F("hTriggerGlobalOutMultiplicity","Trigger global outputs multiplicity", 6, -0.5, 6.-0.5);
   histoGlobalMult->GetYaxis()->SetTitle("Number of triggers"); 
@@ -358,14 +395,19 @@ void AliMUONTriggerQADataMakerRec::InitRaws()
   histoGlobalMultNorm->SetBarOffset(0.25);
   histoGlobalMultNorm->GetYaxis()->SetTitle("Triggers per event");
   // Adding both histos after cloning to avoid problems with the expert bit
-  Add2RawsList(histoGlobalMult,     kTriggerGlobalOutput,     expert, !image, !saveCorr);
-  Add2RawsList(histoGlobalMultNorm, kTriggerGlobalOutputNorm, expert, !image, !saveCorr);
+  Add2RawsList(histoGlobalMult,     AliMUONQAIndices::kTriggerGlobalOutput,     expert, !image, !saveCorr);
+  Add2RawsList(histoGlobalMultNorm, AliMUONQAIndices::kTriggerGlobalOutputNorm, expert, !image, !saveCorr);
 
-  histo1D = new TH1F("hRawNAnalyzedEvents", "Number of analyzed events per specie", 1, 0.5, 1.5);
+  histo1D = new TH1F("hTriggerRawNAnalyzedEvents", "Number of analyzed events per specie", 1, 0.5, 1.5);
   Int_t esindex = AliRecoParam::AConvert(CurrentEventSpecie());
   histo1D->GetXaxis()->SetBinLabel(1, AliRecoParam::GetEventSpecieName(esindex));
   histo1D->GetYaxis()->SetTitle("Number of analyzed events");
-  Add2RawsList(histo1D, kRawNAnalyzedEvents, expert, !image, !saveCorr);
+  Add2RawsList(histo1D, AliMUONQAIndices::kTriggerRawNAnalyzedEvents, expert, !image, !saveCorr);
+
+  fNumberOf34Dec = new TH1F("hTriggerNumberOf34Dec", "hNumberOf34Dec",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
+  fNumberOf34Dec->SetDirectory(0); // Detach histo from file to avoid double delete
+  fNumberOf44Dec = new TH1F("hTriggerNumberOf44Dec", "hNumberOf44Dec",nbLocalBoard,0.5,(Float_t)nbLocalBoard+0.5);
+  fNumberOf44Dec->SetDirectory(0); // Detach histo from file to avoid double delete
 }
 
 //__________________________________________________________________
@@ -375,7 +417,7 @@ void AliMUONTriggerQADataMakerRec::InitDigits()
   const Bool_t expert   = kTRUE ; 
   const Bool_t image    = kTRUE ; 
   
-  TH1I* h0 = new TH1I("hDigitsDetElem", "Detection element distribution in Digits;Detection element Id;Counts",  400, 1100, 1500); 
+  TH1I* h0 = new TH1I("hTriggerDigitsDetElem", "Detection element distribution in Digits;Detection element Id;Counts",  400, 1100, 1500); 
   Add2DigitsList(h0, 0, !expert, image);
 } 
 
@@ -390,18 +432,18 @@ void AliMUONTriggerQADataMakerRec::InitRecPoints()
 
   TH1F* histo1D = 0x0;
 
-  histo1D = new TH1F("hNAnalyzedEvents", "Number of analyzed events per specie", 1, 0.5, 1.5);
+  histo1D = new TH1F("hTriggerNAnalyzedEvents", "Number of analyzed events per specie", 1, 0.5, 1.5);
   Int_t esindex = AliRecoParam::AConvert(CurrentEventSpecie());
   histo1D->GetXaxis()->SetBinLabel(1, AliRecoParam::GetEventSpecieName(esindex));
   histo1D->GetYaxis()->SetTitle("Number of analyzed events");
-  Add2RecPointsList(histo1D, kNAnalyzedEvents, expert, !image);
+  Add2RecPointsList(histo1D, AliMUONQAIndices::kTriggerNAnalyzedEvents, expert, !image);
 
   histo1D = new TH1F("hTriggerTrippedChambers", "Trigger RPCs in trip", 418, 1100-0.5, 1417+0.5);
   histo1D->GetXaxis()->SetTitle("DetElemId");
   histo1D->GetYaxis()->SetTitle("# of trips");
   histo1D->SetFillColor(kRed);
   histo1D->SetLineColor(kRed);
-  Add2RecPointsList(histo1D, kTriggerRPCtrips, !expert, image);
+  Add2RecPointsList(histo1D, AliMUONQAIndices::kTriggerRPCtrips, !expert, image);
 
   FillTriggerDCSHistos();	
 }
@@ -420,8 +462,6 @@ void AliMUONTriggerQADataMakerRec::MakeRaws(AliRawReader* rawReader)
 
     AliCodeTimerAuto("",0);
 	
-    GetRawsData(kRawNAnalyzedEvents)->Fill(1.);
-
     // Init Local/Regional/Global decision with fake values
 
     UInt_t globalInput[4];
@@ -438,12 +478,8 @@ void AliMUONTriggerQADataMakerRec::MakeRaws(AliRawReader* rawReader)
     //}
 
     AliMUONDigitStoreV2R digitStore;
-    digitStore.Create();
-    digitStore.Clear();
 
     AliMUONDigitStoreV2R digitStoreAll;
-    digitStoreAll.Create();
-    digitStoreAll.Clear();
     TArrayS xyPatternAll[2];
     for(Int_t icath=0; icath<AliMpConstants::NofCathodes(); icath++){
       xyPatternAll[icath].Set(AliMpConstants::NofTriggerChambers());
@@ -451,12 +487,8 @@ void AliMUONTriggerQADataMakerRec::MakeRaws(AliRawReader* rawReader)
     }
     
     AliMUONTriggerStoreV1 recoTriggerStore;
-    recoTriggerStore.Create();
-    recoTriggerStore.Clear();
 
     AliMUONTriggerStoreV1 inputTriggerStore;
-    inputTriggerStore.Create();
-    inputTriggerStore.Clear();
 
     AliMUONGlobalTrigger inputGlobalTrigger;
 
@@ -477,9 +509,12 @@ void AliMUONTriggerQADataMakerRec::MakeRaws(AliRawReader* rawReader)
     // This should allow to correctly count the local boards
     Int_t countNotifiedBoards = 0, countAllBoards = 0;
 
+    Bool_t containTriggerData = kFALSE;
     AliMUONRawStreamTriggerHP rawStreamTrig(rawReader);
     while (rawStreamTrig.NextDDL()) 
     {
+      containTriggerData = kTRUE;
+
       Bool_t scalerEvent =  rawReader->GetDataHeader()->GetL1TriggerMessage() & 0x1;
 
       Bool_t fillScalerHistos = ( scalerEvent && 
@@ -496,21 +531,21 @@ void AliMUONTriggerQADataMakerRec::MakeRaws(AliRawReader* rawReader)
 	if ( fillScalerHistos ) {
 	  UInt_t nOfClocks = darcHeader->GetGlobalClock();
 	  Double_t nOfSeconds = ((Double_t) nOfClocks) / 40e6; // 1 clock each 25 ns
-	  ((TH1F*)GetRawsData(kTriggerScalersTime))->Fill(1., nOfSeconds);
+	  ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerScalersTime))->Fill(1., nOfSeconds);
 	}
 
 	//Get Global datas
 	inputGlobalTrigger.SetFromGlobalResponse(darcHeader->GetGlobalOutput());
 	Bool_t resp[6] = {inputGlobalTrigger.PairUnlikeHpt(), inputGlobalTrigger.PairUnlikeLpt(),
 			  inputGlobalTrigger.PairLikeHpt(), inputGlobalTrigger.PairLikeLpt(),
-			  inputGlobalTrigger.SingleHpt(), inputGlobalTrigger.SingleHpt()}; 
+			  inputGlobalTrigger.SingleHpt(), inputGlobalTrigger.SingleLpt()}; 
 	for (Int_t bit=0; bit<6; bit++){
 	  if ( ! resp[bit] ){
 	    if ( fillScalerHistos )
 	      nDeadGlobal++;
 	  }
 	  else
-	    ((TH1F*)GetRawsData(kTriggerGlobalOutput))->Fill(bit);
+	    ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerGlobalOutput))->Fill(bit);
 	}
 
 	//for (Int_t Bit=0; Bit<32; Bit++){
@@ -588,7 +623,7 @@ void AliMUONTriggerQADataMakerRec::MakeRaws(AliRawReader* rawReader)
 
 	  //Get local in/outputs
 	  if (Int_t(localStruct->GetDec())!=0){
-	      ((TH1F*)GetRawsData(kTriggeredBoards))->Fill(loCircuit);
+	      ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggeredBoards))->Fill(loCircuit);
 	  }
 	  else if ( fillScalerHistos ){
 	    nDeadLocal++;
@@ -611,7 +646,7 @@ void AliMUONTriggerQADataMakerRec::MakeRaws(AliRawReader* rawReader)
 
 	      for(Int_t ich=0; ich<AliMpConstants::NofTriggerChambers(); ich++){
 		if ( scalerVal[ich] > 0 )
-		  ((TH2F*)GetRawsData(kTriggerScalers + AliMpConstants::NofTriggerChambers()*cathode + ich))
+		  ((TH2F*)GetRawsData(AliMUONQAIndices::kTriggerScalers + AliMpConstants::NofTriggerChambers()*cathode + ich))
 		    ->Fill(loCircuit, ibitxy, 2*(Float_t)scalerVal[ich]);
 
 		if ( scalerVal[ich] >= maxNcounts )
@@ -624,23 +659,26 @@ void AliMUONTriggerQADataMakerRec::MakeRaws(AliRawReader* rawReader)
 	  nDeadRegional++; // Not necessary when regional output will work
       } // iReg
 
-      Float_t readoutErrors[kNtrigStructErrorBins] = {
+      Float_t readoutErrors[AliMUONQAIndices::kNtrigStructErrorBins] = {
 	((Float_t)rawStreamTrig.GetLocalEoWErrors())/((Float_t)countAllBoards),
 	((Float_t)rawStreamTrig.GetRegEoWErrors())/16.,
 	((Float_t)rawStreamTrig.GetGlobalEoWErrors())/6.,
 	((Float_t)rawStreamTrig.GetDarcEoWErrors())/2.
       };
     
-      for (Int_t ibin=0; ibin<kNtrigStructErrorBins; ibin++){
+      for (Int_t ibin=0; ibin<AliMUONQAIndices::kNtrigStructErrorBins; ibin++){
 	if ( readoutErrors[ibin] > 0 )
-	  ((TH1F*)GetRawsData(kTriggerReadOutErrors))->Fill(ibin, readoutErrors[ibin]);
+	  ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerReadOutErrors))->Fill(ibin, readoutErrors[ibin]);
       }
     } // NextDDL
+
+    if ( ! containTriggerData ) return;
+    GetRawsData(AliMUONQAIndices::kTriggerRawNAnalyzedEvents)->Fill(1.);
 
     nDeadLocal += AliMUONConstants::NTriggerCircuit() - countNotifiedBoards;
     Int_t nStripsTot = digitStoreAll.GetSize();
     if ( nStripsTot > 0 ) { // The value is != 0 only for scaler events
-      Float_t fraction[kNtrigCalibSummaryBins] = {
+      Float_t fraction[AliMUONQAIndices::kNtrigCalibSummaryBins] = {
 	((Float_t)(nStripsTot - digitStore.GetSize())) / ((Float_t)nStripsTot),
 	//(Float_t)nDeadLocal / ((Float_t)countNotifiedBoards),
 	(Float_t)nDeadLocal / ((Float_t)AliMUONConstants::NTriggerCircuit()),
@@ -649,23 +687,31 @@ void AliMUONTriggerQADataMakerRec::MakeRaws(AliRawReader* rawReader)
 	(Float_t)nNoisyStrips / ((Float_t)nStripsTot),
       };
 
-      for(Int_t ibin = 0; ibin < kNtrigCalibSummaryBins; ibin++){
+      for(Int_t ibin = 0; ibin < AliMUONQAIndices::kNtrigCalibSummaryBins; ibin++){
 	if ( fraction[ibin] > 0. )
-	  ((TH1F*)GetRawsData(kTriggerCalibSummary))->Fill(ibin, fraction[ibin]);
+	  ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerCalibSummary))->Fill(ibin, fraction[ibin]);
       }
     }
 
   fTriggerProcessor->Digits2Trigger(digitStore,recoTriggerStore);
 
+  AliMUONGlobalTrigger* recoGlobalTriggerFromLocal;
+  recoGlobalTriggerFromLocal = recoTriggerStore.Global();
+
   //Reconstruct Global decision from Global inputs
   UChar_t recoResp = RawTriggerInGlobal2OutGlobal(globalInput);
-  AliMUONGlobalTrigger recoGlobalTrigger;
-  recoGlobalTrigger.SetFromGlobalResponse(recoResp);
+  AliMUONGlobalTrigger recoGlobalTriggerFromGlobal;
+  recoGlobalTriggerFromGlobal.SetFromGlobalResponse(recoResp);
 
   // Compare data and reconstructed decisions and fill histos
   RawTriggerMatchOutLocal(inputTriggerStore, recoTriggerStore);
+  //Fill ratio 44/34 histos
+  FillRatio4434Histos();
   //RawTriggerMatchOutLocalInRegional(); // Not tested, hardware read-out doesn't work
-  RawTriggerMatchOutGlobalFromInGlobal(inputGlobalTrigger, recoGlobalTrigger);
+  RawTriggerMatchOutGlobal(inputGlobalTrigger, recoGlobalTriggerFromGlobal, 'G');
+  // Global, reconstruction from Local inputs: compare data and reconstructed decisions and fill histos
+  RawTriggerMatchOutGlobal(inputGlobalTrigger, *recoGlobalTriggerFromLocal, 'L');
+  // Global, reconstruction from Global inputs: compare data and reconstructed decisions and fill histos
 }
 
 //__________________________________________________________________
@@ -690,7 +736,6 @@ void AliMUONTriggerQADataMakerRec::MakeDigits(TTree* digitsTree)
   while ( ( dig = static_cast<AliMUONVDigit*>(next()) ) )
     {
     GetDigitsData(0)->Fill(dig->DetElemId());
-    GetDigitsData(1)->Fill(dig->ADC());
     }
 }
 
@@ -702,7 +747,7 @@ void AliMUONTriggerQADataMakerRec::MakeRecPoints(TTree* /*clustersTree*/)
   // Do nothing in case of calibration event
   if ( GetRecoParam()->GetEventSpecie() == AliRecoParam::kCalib ) return;
 	
-  GetRecPointsData(kNAnalyzedEvents)->Fill(1.);
+  GetRecPointsData(AliMUONQAIndices::kTriggerNAnalyzedEvents)->Fill(1.);
 }
 
 //____________________________________________________________________________
@@ -724,32 +769,32 @@ void AliMUONTriggerQADataMakerRec::DisplayTriggerInfo()
   
   TH2F* histoStrips=0x0;
   TH2F* histoDisplayStrips=0x0;
-  if ( GetRawsData(kTriggerScalers) ) {
+  if ( GetRawsData(AliMUONQAIndices::kTriggerScalers) ) {
     AliMUONTriggerDisplay::EDisplayOption displayOption = AliMUONTriggerDisplay::kNormalizeToArea;
     for (Int_t iCath = 0; iCath < AliMpConstants::NofCathodes(); iCath++)
       {    
 	for (Int_t iChamber = 0; iChamber < AliMpConstants::NofTriggerChambers(); iChamber++)
 	  {
-	    histoStrips = (TH2F*)GetRawsData(kTriggerScalers + AliMpConstants::NofTriggerChambers()*iCath + iChamber);
+	    histoStrips = (TH2F*)GetRawsData(AliMUONQAIndices::kTriggerScalers + AliMpConstants::NofTriggerChambers()*iCath + iChamber);
 
 	    if(histoStrips->GetEntries()==0) continue; // No events found => No need to display
 
-	    histoDisplayStrips = (TH2F*)GetRawsData(kTriggerScalersDisplay + AliMpConstants::NofTriggerChambers()*iCath + iChamber);
+	    histoDisplayStrips = (TH2F*)GetRawsData(AliMUONQAIndices::kTriggerScalersDisplay + AliMpConstants::NofTriggerChambers()*iCath + iChamber);
 
 	    triggerDisplay.FillDisplayHistogram(histoStrips, histoDisplayStrips,
 						AliMUONTriggerDisplay::kDisplayStrips, iCath, iChamber, displayOption);
 
-	    Float_t scaleValue = ((TH1F*)GetRawsData(kTriggerScalersTime))->GetBinContent(1);
+	    Float_t scaleValue = ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerScalersTime))->GetBinContent(1);
 	    if(scaleValue>0.) histoDisplayStrips->Scale(1./scaleValue);
 	  } // iChamber
       } // iCath
   }
 
-  if ( GetRawsData(kTriggeredBoards) ){
-    TH1F* histoBoards = (TH1F*)GetRawsData(kTriggeredBoards);
-    TH2F* histoDisplayBoards = (TH2F*)GetRawsData(kTriggerBoardsDisplay);
+  if ( GetRawsData(AliMUONQAIndices::kTriggeredBoards) ){
+    TH1F* histoBoards = (TH1F*)GetRawsData(AliMUONQAIndices::kTriggeredBoards);
+    TH2F* histoDisplayBoards = (TH2F*)GetRawsData(AliMUONQAIndices::kTriggerBoardsDisplay);
     triggerDisplay.FillDisplayHistogram(histoBoards, histoDisplayBoards, AliMUONTriggerDisplay::kDisplayBoards, 0, 0);
-    Float_t scaleValue = GetRawsData(kRawNAnalyzedEvents)->GetBinContent(1);
+    Float_t scaleValue = GetRawsData(AliMUONQAIndices::kTriggerRawNAnalyzedEvents)->GetBinContent(1);
     if(scaleValue>0.) histoDisplayBoards->Scale(1./scaleValue);
   }
 }
@@ -894,8 +939,8 @@ AliMUONTriggerQADataMakerRec::FillTriggerDCSHistos()
       Int_t iChamber = AliMpDEManager::GetChamberId(detElemId);
       Int_t ich = iChamber - AliMpConstants::NofTrackingChambers();
 
-      histoIndex = kTriggerRPChv + ich;
-      histoName = Form("hRPCHVChamber%i", 11+ich);
+      histoIndex = AliMUONQAIndices::kTriggerRPChv + ich;
+      histoName = Form("hTriggerRPCHVChamber%i", 11+ich);
       histoTitle = Form("Chamber %i: RPC HV (kV)", 11+ich);
 
       currHisto = (TH2F*)GetRecPointsData(histoIndex);
@@ -970,7 +1015,7 @@ AliMUONTriggerQADataMakerRec::FillTriggerDCSHistos()
 	previousVal = currVal;
       } // loop on values
       currHisto->SetBinContent(previousBin, slatBin, scaleFactor*sumValuesPerBin/((Double_t)nValuesPerBin)); // Fill last value
-      if ( isTrip ) ((TH1F*)GetRecPointsData(kTriggerRPCtrips))->Fill(detElemId);
+      if ( isTrip ) ((TH1F*)GetRecPointsData(AliMUONQAIndices::kTriggerRPCtrips))->Fill(detElemId);
     } // if ( values ) 
     deIt.Next();
   } // loop on detElem
@@ -995,15 +1040,15 @@ AliMUONTriggerQADataMakerRec::GetDCSValues(Int_t iMeas, Int_t detElemId,
 
   if (!triggerDcsPair)
   {
-    printf(Form("Did not find expected alias (%s) for DE %d\n",
-		currAlias.Data(),detElemId));
+    AliError(Form("Did not find expected alias (%s) for DE %d\n",
+                  currAlias.Data(),detElemId));
     return 0x0;
   }
 
   TObjArray* values = static_cast<TObjArray*>(triggerDcsPair->Value());
   if (!values)
   {
-    printf(Form("Could not get values for alias %s\n",currAlias.Data()));
+    AliError(Form("Could not get values for alias %s\n",currAlias.Data()));
     return 0x0;
   }
 
@@ -1058,7 +1103,7 @@ void AliMUONTriggerQADataMakerRec::RawTriggerMatchOutLocal(AliMUONVTriggerStore&
     loCircuit = recoLocalTrigger->LoCircuit();
     Int_t iboard = loCircuit - 1;
 
-    ((TH1F*)GetRawsData(kTriggerErrorLocalYCopyTest))->Fill(loCircuit);
+    ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerErrorLocalYCopyTest))->Fill(loCircuit);
   
     inputLocalTrigger = inputTriggerStore.FindLocal(loCircuit);
 
@@ -1082,31 +1127,36 @@ void AliMUONTriggerQADataMakerRec::RawTriggerMatchOutLocal(AliMUONVTriggerStore&
       }
     } // loop on chambers
     if ( errorInCopyBoard )
-      ((TH1F*)GetRawsData(kTriggerErrorLocalYCopy))->Fill(loCircuit);    
+      ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerErrorLocalYCopy))->Fill(loCircuit);    
   } // loop on local boards
 
   if (errorInYCopy)
-    ((TH1F*)GetRawsData(kTriggerErrorSummary))->Fill(kAlgoLocalYCopy);
+    ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerErrorSummary))->Fill(AliMUONQAIndices::kAlgoLocalYCopy);
   
   Bool_t errorInXPosDev = kFALSE;
   Bool_t errorInYPosTrigY = kFALSE;
   Bool_t errorInLUT = kFALSE;
 
   next.Reset();
+  Bool_t respBendPlane, respNonBendPlane;
   while ( ( recoLocalTrigger = static_cast<AliMUONLocalTrigger*>(next()) ) )
   {  
     loCircuit = recoLocalTrigger->LoCircuit();
     Int_t iboard = loCircuit - 1;
   
+    // Fill ratio 44/34 histos
+    if (recoLocalTrigger->GetLoDecision()!=0) fNumberOf34Dec->Fill(loCircuit);
+    if (fTriggerProcessor->ModifiedLocalResponse(loCircuit, respBendPlane, respNonBendPlane, kTRUE)) fNumberOf44Dec->Fill(loCircuit);
+    
     inputLocalTrigger = inputTriggerStore.FindLocal(loCircuit);
 
     if ( recoLocalTrigger->LoStripX() != inputLocalTrigger->LoStripX() ) {
-      ((TH1F*)GetRawsData(kTriggerErrorLocalXPos))->Fill(loCircuit);
+      ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerErrorLocalXPos))->Fill(loCircuit);
       errorInXPosDev = kTRUE;
     }
 
     if ( recoLocalTrigger->GetDeviation() != inputLocalTrigger->GetDeviation() ) {
-      ((TH1F*)GetRawsData(kTriggerErrorLocalDev))->Fill(loCircuit);
+      ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerErrorLocalDev))->Fill(loCircuit);
       errorInXPosDev = kTRUE;
     }
 
@@ -1114,14 +1164,14 @@ void AliMUONTriggerQADataMakerRec::RawTriggerMatchOutLocal(AliMUONVTriggerStore&
     if ( (!skipBoard[iboard]) || ( (recoLocalTrigger->LoStripY() == inputLocalTrigger->LoStripY()) && (recoLocalTrigger->LoTrigY() == inputLocalTrigger->LoTrigY())) ) {
 	
 	if ( recoLocalTrigger->GetLoDecision() != inputLocalTrigger->GetLoDecision() ) {
-	    ((TH1F*)GetRawsData(kTriggerErrorLocalTriggerDec))->Fill(loCircuit);
+	    ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerErrorLocalTriggerDec))->Fill(loCircuit);
 	}
 	
 	// Test Hpt and LPT
 	Int_t recoLut[2]  = { recoLocalTrigger->LoLpt(),  recoLocalTrigger->LoHpt() };
 	Int_t inputLut[2] = {inputLocalTrigger->LoLpt(), inputLocalTrigger->LoHpt() };
-	Int_t currIndex[2][2] = {{kTriggerErrorLocalLPtLSB, kTriggerErrorLocalLPtMSB},
-				 {kTriggerErrorLocalHPtMSB, kTriggerErrorLocalHPtMSB}};
+	Int_t currIndex[2][2] = {{AliMUONQAIndices::kTriggerErrorLocalLPtLSB, AliMUONQAIndices::kTriggerErrorLocalLPtMSB},
+				 {AliMUONQAIndices::kTriggerErrorLocalHPtMSB, AliMUONQAIndices::kTriggerErrorLocalHPtMSB}};
 	for (Int_t ilut=0; ilut<2; ilut++){
 	    Int_t bitDiff = recoLut[ilut]^inputLut[ilut];
 	    if ( bitDiff == 0 ) continue;
@@ -1140,24 +1190,24 @@ void AliMUONTriggerQADataMakerRec::RawTriggerMatchOutLocal(AliMUONVTriggerStore&
     if ( skipBoard[iboard] ) continue;
 
     if ( recoLocalTrigger->LoStripY() != inputLocalTrigger->LoStripY() ) {
-      ((TH1F*)GetRawsData(kTriggerErrorLocalYPos))->Fill(loCircuit);
+      ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerErrorLocalYPos))->Fill(loCircuit);
       errorInYPosTrigY = kTRUE;
     }
 
     if ( recoLocalTrigger->LoTrigY() != inputLocalTrigger->LoTrigY()  ) {
-      ((TH1F*)GetRawsData(kTriggerErrorLocalTrigY))->Fill(loCircuit);	
+      ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerErrorLocalTrigY))->Fill(loCircuit);	
       errorInYPosTrigY = kTRUE;
     }
   } // loop on local boards
 
   if (errorInXPosDev)
-    ((TH1F*)GetRawsData(kTriggerErrorSummary))->Fill(kAlgoLocalX);
+    ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerErrorSummary))->Fill(AliMUONQAIndices::kAlgoLocalX);
 
   if (errorInLUT)
-    ((TH1F*)GetRawsData(kTriggerErrorSummary))->Fill(kAlgoLocalLUT);
+    ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerErrorSummary))->Fill(AliMUONQAIndices::kAlgoLocalLUT);
 
   if (errorInYPosTrigY)
-    ((TH1F*)GetRawsData(kTriggerErrorSummary))->Fill(kAlgoLocalY);
+    ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerErrorSummary))->Fill(AliMUONQAIndices::kAlgoLocalY);
 
 }
 /*
@@ -1188,28 +1238,98 @@ void AliMUONTriggerQADataMakerRec::RawTriggerMatchOutLocalInRegional()
 
 
 //____________________________________________________________________________ 
-void AliMUONTriggerQADataMakerRec::RawTriggerMatchOutGlobalFromInGlobal(AliMUONGlobalTrigger& inputGlobalTrigger, 
-									AliMUONGlobalTrigger& recoGlobalTrigger)
+void AliMUONTriggerQADataMakerRec::RawTriggerMatchOutGlobal(AliMUONGlobalTrigger& inputGlobalTrigger, 
+									AliMUONGlobalTrigger& recoGlobalTrigger, 
+									Char_t histo)
 {
   //
-  /// Match data and reconstructed Global Trigger decision for a reconstruction from Global inputs
+  /// Match data and reconstructed Global Trigger decision for a reconstruction from Global inputs.
+  /// histo='G': fill FromGlobalInput histo='F': fill from Local input;
   //
 
   if ( recoGlobalTrigger.GetGlobalResponse() == inputGlobalTrigger.GetGlobalResponse() )
     return;
+  Int_t histoToFill;
+  Int_t binToFill;
+  
+  if (histo=='G'){
+      histoToFill=AliMUONQAIndices::kTriggerErrorOutGlobalFromInGlobal;
+      binToFill=AliMUONQAIndices::kAlgoGlobalFromGlobal;
+  }else{
+      if (histo=='L'){
+	  histoToFill=AliMUONQAIndices::kTriggerErrorOutGlobalFromInLocal;
+	  binToFill=AliMUONQAIndices::kAlgoGlobalFromLocal;
+      }else{
+	  AliWarning(Form("Global histos not filled, 3rd argument must be 'G' or 'F'"));
+	  return;
+      } 
+  }
 
-  ((TH1F*)GetRawsData(kTriggerErrorSummary))->Fill(kAlgoGlobalFromGlobal);
+  ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerErrorSummary))->Fill(binToFill);
 
   Bool_t inputResp[6] = {inputGlobalTrigger.PairUnlikeHpt(), inputGlobalTrigger.PairUnlikeLpt(),
 			 inputGlobalTrigger.PairLikeHpt(), inputGlobalTrigger.PairLikeLpt(),
-			 inputGlobalTrigger.SingleHpt(), inputGlobalTrigger.SingleHpt()};
+			 inputGlobalTrigger.SingleHpt(), inputGlobalTrigger.SingleLpt()};
 
   Bool_t recoResp[6] = {recoGlobalTrigger.PairUnlikeHpt(), recoGlobalTrigger.PairUnlikeLpt(),
 			recoGlobalTrigger.PairLikeHpt(), recoGlobalTrigger.PairLikeLpt(),
-			recoGlobalTrigger.SingleHpt(), recoGlobalTrigger.SingleHpt()};
+			recoGlobalTrigger.SingleHpt(), recoGlobalTrigger.SingleLpt()};
 
   for (int bit=0;bit<6;bit++){
     if ( recoResp[bit] != inputResp[bit] )
-      ((TH1F*)GetRawsData(kTriggerErrorOutGlobalFromInGlobal))->Fill(bit);
+      ((TH1F*)GetRawsData(histoToFill))->Fill(bit);
   }
 }
+
+//____________________________________________________________________________ 
+void AliMUONTriggerQADataMakerRec::FillRatio4434Histos()
+{
+  /// Fill ratio 44/34 histos
+
+  Int_t numEvent = Int_t(((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerRawNAnalyzedEvents))->GetBinContent(1));
+
+  if (numEvent % fgkUpdateRatio4434 == 0){
+      Float_t totalNumberOf44 = fNumberOf44Dec->GetSumOfWeights();
+      Float_t totalNumberOf34 = fNumberOf34Dec->GetSumOfWeights();
+      Float_t ratio4434;
+      Float_t errorRatio4434;
+
+    if(totalNumberOf34!=0){
+      ratio4434 = totalNumberOf44/totalNumberOf34;
+      errorRatio4434 = sqrt(totalNumberOf44*(1-ratio4434))/totalNumberOf34;
+    }else{
+      ratio4434 = 0;
+      errorRatio4434 = 0;
+    }
+    
+      ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerRatio4434AllEvents))->SetBinContent(numEvent,ratio4434);
+      ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerRatio4434AllEvents))->SetBinError(numEvent,errorRatio4434);
+
+
+      Float_t NumberOf44Update = totalNumberOf44 - ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerRatio4434AllEvents))->GetBinContent(2);
+      Float_t NumberOf34Update = totalNumberOf34 - ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerRatio4434AllEvents))->GetBinContent(1);
+      Float_t ratio4434Update;
+      Float_t errorRatio4434Update;
+
+    if(NumberOf34Update!=0){
+      ratio4434Update = NumberOf44Update/NumberOf34Update;
+      errorRatio4434Update = sqrt(NumberOf44Update*(1-ratio4434Update))/NumberOf34Update;
+    }else{
+      ratio4434Update = 0;
+      errorRatio4434Update = 0;
+    }
+    
+      ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerRatio4434SinceLastUpdate))->SetBinContent(numEvent,ratio4434Update);
+      ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerRatio4434SinceLastUpdate))->SetBinError(numEvent,errorRatio4434Update);
+
+      ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerRatio4434AllEvents))->SetBinContent(1,totalNumberOf34);
+      ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerRatio4434AllEvents))->SetBinContent(2,totalNumberOf44);
+   
+  }
+  
+  Int_t newNBins = ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerRatio4434AllEvents))->GetNbinsX()+1;
+  
+  ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerRatio4434AllEvents))->SetBins(newNBins,0,newNBins);
+  ((TH1F*)GetRawsData(AliMUONQAIndices::kTriggerRatio4434SinceLastUpdate))->SetBins(newNBins,0,newNBins);
+}
+

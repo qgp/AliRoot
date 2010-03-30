@@ -16,6 +16,7 @@
 #include "AliITSOnlineSDDInjectors.h"
 #include "AliLog.h"
 #include <TH2F.h>
+#include <TF1.h>
 #include <TGraphErrors.h>
 #include <TMath.h>
 
@@ -36,13 +37,13 @@ const Float_t AliITSOnlineSDDInjectors::fgkDefaultHThreshold = 25.;
 const Float_t AliITSOnlineSDDInjectors::fgkDefaultMinSpeed = 5.5;
 const Float_t AliITSOnlineSDDInjectors::fgkDefaultMaxSpeed = 9.0;
 const Float_t AliITSOnlineSDDInjectors::fgkDefaultMaxErr = 1.5;
-const Int_t   AliITSOnlineSDDInjectors::fgkDefaultPolOrder = 3;
+const Int_t   AliITSOnlineSDDInjectors::fgkDefaultPolDegree = 3;
 const Float_t AliITSOnlineSDDInjectors::fgkDefaultTimeStep = 50.;
 const UShort_t AliITSOnlineSDDInjectors::fgkDefaultTbMin[kInjLines] = {10,50,100};
 const UShort_t AliITSOnlineSDDInjectors::fgkDefaultTbMax[kInjLines] = {20,70,120};
 
 //______________________________________________________________________
-AliITSOnlineSDDInjectors::AliITSOnlineSDDInjectors():AliITSOnlineSDD(),fHisto(),fTbZero(0.),fRMSTbZero(0.),fNEvents(0),fParam(),fPolOrder(0),fMinDriftSpeed(0.),fMaxDriftSpeed(0.),fMaxDriftSpeedErr(0.),fLowThreshold(0.),fHighThreshold(0.),fFirstPadForFit(0),fLastPadForFit(0),fPadStatusCutForFit(0),fTimeStep(0.),fUseTimeZeroSignal(kFALSE)
+AliITSOnlineSDDInjectors::AliITSOnlineSDDInjectors():AliITSOnlineSDD(),fHisto(),fTbZero(0.),fRMSTbZero(0.),fNEvents(0),fParam(),fPolDegree(0),fActualPolDegree(0),fMinDriftSpeed(0.),fMaxDriftSpeed(0.),fMaxDriftSpeedErr(0.),fLowThreshold(0.),fHighThreshold(0.),fFirstPadForFit(0),fLastPadForFit(0),fPadStatusCutForFit(0),fTimeStep(0.),fUseTimeZeroSignal(kFALSE)
 {
   // default constructor
   SetPositions();
@@ -50,7 +51,7 @@ AliITSOnlineSDDInjectors::AliITSOnlineSDDInjectors():AliITSOnlineSDD(),fHisto(),
   SetTimeStep(fgkDefaultTimeStep);
 }
 //______________________________________________________________________
-AliITSOnlineSDDInjectors::AliITSOnlineSDDInjectors(Int_t nddl, Int_t ncarlos, Int_t sid):AliITSOnlineSDD(nddl,ncarlos,sid),fHisto(),fTbZero(0.),fRMSTbZero(0.),fNEvents(0),fParam(),fPolOrder(0),fMinDriftSpeed(0.),fMaxDriftSpeed(0.),fMaxDriftSpeedErr(0.),fLowThreshold(0.),fHighThreshold(0.),fFirstPadForFit(0),fLastPadForFit(0),fPadStatusCutForFit(0),fTimeStep(0.),fUseTimeZeroSignal(kFALSE)
+AliITSOnlineSDDInjectors::AliITSOnlineSDDInjectors(Int_t nddl, Int_t ncarlos, Int_t sid):AliITSOnlineSDD(nddl,ncarlos,sid),fHisto(),fTbZero(0.),fRMSTbZero(0.),fNEvents(0),fParam(),fPolDegree(0),fActualPolDegree(0),fMinDriftSpeed(0.),fMaxDriftSpeed(0.),fMaxDriftSpeedErr(0.),fLowThreshold(0.),fHighThreshold(0.),fFirstPadForFit(0),fLastPadForFit(0),fPadStatusCutForFit(0),fTimeStep(0.),fUseTimeZeroSignal(kFALSE)
 { 
 // standard constructor
   SetPositions();
@@ -67,10 +68,12 @@ AliITSOnlineSDDInjectors::~AliITSOnlineSDDInjectors(){
 }
 //______________________________________________________________________
 void AliITSOnlineSDDInjectors::SetDefaults(){
-  for(Int_t i=0;i<kInjLines;i++) 
+  for(Int_t i=0;i<kInjLines;i++) {
     SetInjLineRange(i,fgkDefaultTbMin[i],fgkDefaultTbMax[i]);
+    SetUseLine(i,kTRUE);
+  }
   SetThresholds(fgkDefaultLThreshold,fgkDefaultHThreshold);
-  SetPolOrder(fgkDefaultPolOrder);
+  SetPolDegree(fgkDefaultPolDegree);
   SetMinDriftSpeed(fgkDefaultMinSpeed);
   SetMaxDriftSpeed(fgkDefaultMaxSpeed);
   SetMaxDriftSpeedErr(fgkDefaultMaxErr);
@@ -231,10 +234,61 @@ void AliITSOnlineSDDInjectors::CalcTimeBinZero(){
   }
   if(nTbUsed==1) fRMSTbZero=0.5; 
 }
+
 //______________________________________________________________________
 void AliITSOnlineSDDInjectors::FitDriftSpeedVsAnode(){
+  // fits the anode dependence of drift speed
+
+  Float_t rangeForMax[2]={78.,178.};
+  PolyFit(fPolDegree);
+  fActualPolDegree=fPolDegree;
+  if(fPolDegree==3){
+    Double_t deltasq=fParam[2]*fParam[2]-3*fParam[1]*fParam[3];
+    Double_t zero1=-999.;
+    Double_t zero2=-999.;
+    if(deltasq>=0. && TMath::Abs(fParam[3])>0.){
+      Double_t delta=TMath::Sqrt(deltasq);
+      zero1=(-fParam[2]+delta)/3./fParam[3];
+      zero2=(-fParam[2]-delta)/3./fParam[3];
+    }
+    Bool_t twoZeroes=kFALSE;
+    Bool_t oneZero=kFALSE;
+    if(zero1>0. && zero1<256. && zero2>0. && zero2<256.) twoZeroes=kTRUE;
+    if(zero1>rangeForMax[0] && zero1<rangeForMax[1]) oneZero=kTRUE;
+    if(zero2>rangeForMax[0] && zero2<rangeForMax[1]) oneZero=kTRUE;
+    if(!oneZero || twoZeroes){
+      PolyFit(2);
+      Double_t xmax=-999.;
+      if(fParam[2]<0.) xmax=-fParam[1]/2./fParam[2];
+      if(xmax>rangeForMax[0] && xmax<rangeForMax[1]){
+	fActualPolDegree=2;
+      }else{
+	Double_t averSpeed=0.;
+	Double_t sumWei=0.;
+	Int_t nUsedPts=0;
+	for(Int_t jpad=fFirstPadForFit; jpad<=fLastPadForFit; jpad++){
+	  if(fDriftSpeed[jpad]>0 && GetInjPadStatus(jpad)>fPadStatusCutForFit){
+	    Double_t wei=1./fDriftSpeedErr[jpad]/fDriftSpeedErr[jpad];
+	    averSpeed+=wei*fDriftSpeed[jpad];
+	    sumWei+=wei;
+	    nUsedPts++;
+	  }
+	}
+	if(sumWei>0.) averSpeed/=sumWei;
+	if(nUsedPts<fPolDegree+1) averSpeed=0;
+	fParam[0]=averSpeed;
+	for(Int_t i=1; i < fPolDegree+1; i++) fParam[i]=0.;
+	fActualPolDegree=0;
+      }
+    }
+  }
+}
+//______________________________________________________________________
+void AliITSOnlineSDDInjectors::PolyFit(Int_t degree){
   // fits the anode dependence of drift speed with a polynomial function
-  const Int_t kNn=fPolOrder+1;
+  const Int_t kNn=degree+1;
+  const Int_t kDimens=fPolDegree+1;
+
   Double_t **mat = new Double_t*[kNn];
   for(Int_t i=0; i < kNn; i++) mat[i] = new Double_t[kNn];
   Double_t *vect = new Double_t[kNn];
@@ -258,10 +312,10 @@ void AliITSOnlineSDDInjectors::FitDriftSpeedVsAnode(){
       }
     }
   }
-  if(npts<fPolOrder+1){ 
+  if(npts<fPolDegree+1){ 
     if(fParam) delete [] fParam;
-    fParam=new Double_t[kNn];
-    for(Int_t i=0; i<kNn;i++)fParam[i]=0;
+    fParam=new Double_t[kDimens];
+    for(Int_t i=0; i<kDimens;i++)fParam[i]=0;
   }else{
     Int_t *iPivot = new Int_t[kNn];
     Int_t *indxR = new Int_t[kNn];
@@ -317,8 +371,9 @@ void AliITSOnlineSDDInjectors::FitDriftSpeedVsAnode(){
     
   
     if(fParam) delete [] fParam;
-    fParam=new Double_t[kNn];
+    fParam=new Double_t[kDimens];
     for(Int_t i=0; i<kNn;i++)fParam[i]=vect[i];
+    if(degree<fPolDegree) for(Int_t i=kNn; i<kDimens;i++)fParam[i]=0.;
   }
 
   for(Int_t i=0; i < kNn; i++) delete [] mat[i];
@@ -337,6 +392,7 @@ void AliITSOnlineSDDInjectors::CalcDriftSpeed(Int_t jpad){
     ey[i]=fRMSCentroid[jpad][i];
   }
   for(Int_t i=0;i<kInjLines;i++){
+    if(!fUseLine[i]) continue;
     if(fGoodInj[jpad][i] && ey[i]!=0){
       sumY+=y[i]/ey[i]/ey[i];
       sumX+=fPosition[i]/ey[i]/ey[i];
@@ -517,11 +573,11 @@ void AliITSOnlineSDDInjectors::WriteToASCII(Int_t evNumb, UInt_t timeStamp, Int_
   FILE* outf;
   if(optAppend==0){ 
     outf=fopen(outfilnam,"w");
-    fprintf(outf,"%d\n",fPolOrder);
+    fprintf(outf,"%d\n",fActualPolDegree);
   }
   else outf=fopen(outfilnam,"a");
   fprintf(outf,"%d   %d   ",evNumb,timeStamp);
-  for(Int_t ic=0;ic<fPolOrder+1;ic++){
+  for(Int_t ic=0;ic<fPolDegree+1;ic++){
     fprintf(outf,"%G ",fParam[ic]);
   }
   fprintf(outf,"\n");

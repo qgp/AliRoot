@@ -35,6 +35,7 @@
 #include "AliESDVZEROfriend.h"
 #include "AliVZEROdigit.h"
 #include "AliVZEROCalibData.h"
+#include "AliRunInfo.h"
 
 ClassImp(AliVZEROReconstructor)
 
@@ -45,7 +46,8 @@ AliVZEROReconstructor:: AliVZEROReconstructor(): AliReconstructor(),
                         fESDVZEROfriend(0x0),
                         fCalibData(GetCalibData()),
                         fCollisionMode(0),
-                        fBeamEnergy(0.)
+                        fBeamEnergy(0.),
+                        fDigitsArray(0)
 {
   // Default constructor  
   // Get calibration data
@@ -72,6 +74,7 @@ AliVZEROReconstructor::~AliVZEROReconstructor()
 
    delete fESDVZERO;
    delete fESDVZEROfriend;
+   delete fDigitsArray;
 }
 
 //_____________________________________________________________________________
@@ -88,43 +91,79 @@ void AliVZEROReconstructor::Init()
 //______________________________________________________________________
 void AliVZEROReconstructor::ConvertDigits(AliRawReader* rawReader, TTree* digitsTree) const
 {
-// converts RAW to digits - pedestal is subtracted 
+// converts RAW to digits 
 
   if (!digitsTree) {
     AliError("No digits tree!");
     return;
   }
 
-  TClonesArray* digitsArray = new TClonesArray("AliVZEROdigit");
-  digitsTree->Branch("VZERODigit", &digitsArray);
+  if (!fDigitsArray)
+    fDigitsArray = new TClonesArray("AliVZEROdigit", 64);
+  digitsTree->Branch("VZERODigit", &fDigitsArray);
 
   fESDVZEROfriend->Reset();
 
   rawReader->Reset();
   AliVZERORawStream rawStream(rawReader);
-  if (rawStream.Next()) {  
-     Float_t ADC_max[64], adc[64]; 
-     Bool_t BBFlag[64], BGFlag[64], integrator[64]; 
+  if (rawStream.Next()) { 
+     Float_t adc[64]; 
      Float_t time[64], width[64];  
+     Bool_t BBFlag[64], BGFlag[64], integrator[64];
      for(Int_t i=0; i<64; i++) {
-         // Search for the maximum charge in the train of 21 LHC clocks 
-         // regardless of the integrator which has been operated:
-         ADC_max[i] = 0.0;
-	 Int_t imax = 0;
-         for(Int_t iClock=0; iClock<21; iClock++){
-             if(rawStream.GetPedestal(i,iClock) > ADC_max[i])  
-	        {ADC_max[i]= rawStream.GetPedestal(i,iClock);
-		 imax      = iClock;}
-         }
-	 // Convert i (FEE channel numbering) to j (aliroot channel numbering)
-	 Int_t j       =  rawStream.GetOfflineChannel(i);
+       Int_t j   =  rawStream.GetOfflineChannel(i);
+       adc[j]    = 0.0;
+       time[j]   = 0.0;
+       width[j]  = 0.0;
+       BBFlag[j] = kFALSE;
+       BGFlag[j] = kFALSE;
+       integrator[j] = kFALSE;
+       // Search for the maximum charge in the train of 21 LHC clocks 
+       // regardless of the integrator which has been operated:
+       Float_t maxadc = 0;
+       Int_t imax = -1;
+       Float_t adcPedSub[21];
+       for(Int_t iClock=0; iClock<21; iClock++){
+	 Bool_t iIntegrator = rawStream.GetIntegratorFlag(i,iClock);
+	 Int_t k = j+64*iIntegrator;
+	 adcPedSub[iClock] = rawStream.GetPedestal(i,iClock) - fCalibData->GetPedestal(k);
+	 if(adcPedSub[iClock] <= GetRecoParam()->GetNSigmaPed()*fCalibData->GetSigma(k)) {
+	   adcPedSub[iClock] = 0;
+	   continue;
+	 }
+	 if(iClock < GetRecoParam()->GetStartClock() || iClock > GetRecoParam()->GetEndClock()) continue;
+	 if(adcPedSub[iClock] > maxadc) {
+	   maxadc = adcPedSub[iClock];
+	   imax   = iClock;
+	 }
+       }
+
+       AliDebug(2,Form("Channel %d (online), %d (offline)",i,j)); 
+	 if (imax != -1) {
+	   Int_t start = imax - GetRecoParam()->GetNPreClocks();
+	   if (start < 0) start = 0;
+	   Int_t end = imax + GetRecoParam()->GetNPostClocks();
+	   if (end > 20) end = 20;
+	   for(Int_t iClock = start; iClock <= end; iClock++) {
+	     if (iClock >= imax) {
+	       BBFlag[j] |= rawStream.GetBBFlag(i,iClock);
+	       BGFlag[j] |= rawStream.GetBGFlag(i,iClock);
+	     }
+	     if (iClock == imax)
+	       adc[j] += rawStream.GetPedestal(i,iClock);
+	     else 
+	       adc[j] += adcPedSub[iClock];
+
+	     AliDebug(2,Form("clock = %d adc = %f",iClock,rawStream.GetPedestal(i,iClock))); 
+	   }
+	   // Convert i (FEE channel numbering) to j (aliroot channel numbering)
+
+	   integrator[j] =  rawStream.GetIntegratorFlag(i,imax); 
+	 }
+
 	 Int_t board   = j / 8;
-	 adc[j]        =  ADC_max[i];
-         time[j]       =  rawStream.GetTime(i)/ (25./256.) * fCalibData->GetTimeResolution(board);
+	 time[j]       =  rawStream.GetTime(i)/ (25./256.) * fCalibData->GetTimeResolution(board);
 	 width[j]      =  rawStream.GetWidth(i) / 0.4 * fCalibData->GetWidthResolution(board);
-	 BBFlag[j]     =  rawStream.GetBBFlag(i,imax);
-	 BGFlag[j]     =  rawStream.GetBGFlag(i,imax); 
-	 integrator[j] =  rawStream.GetIntegratorFlag(i,imax); 
 
 	 // Filling the esd friend object
 	 fESDVZEROfriend->SetBBScalers(j,rawStream.GetBBScalers(i));
@@ -162,29 +201,31 @@ void AliVZEROReconstructor::ConvertDigits(AliRawReader* rawReader, TTree* digits
 	    adc[iChannel]  = (Float_t) kInvalidADC; 
 	    time[iChannel] = (Float_t) kInvalidTime;	 
          }
-         new ((*digitsArray)[digitsArray->GetEntriesFast()])
+	 if (adc[iChannel] > 0)
+	   new ((*fDigitsArray)[fDigitsArray->GetEntriesFast()])
              AliVZEROdigit(iChannel, adc[iChannel], time[iChannel],
 	                   width[iChannel], BBFlag[iChannel], BGFlag[iChannel],integrator[iChannel]);
         
      }          
      digitsTree->Fill();
   }
+
+  fDigitsArray->Clear();
 }
 
 //______________________________________________________________________
 void AliVZEROReconstructor::FillESD(TTree* digitsTree, TTree* /*clustersTree*/,
 				    AliESDEvent* esd) const
 {
-// fills multiplicities to the ESD
+// fills multiplicities to the ESD - pedestal is now subtracted
     
   if (!digitsTree) {
       AliError("No digits tree!");
       return;
   }
 
-  TClonesArray* digitsArray = NULL;
   TBranch* digitBranch = digitsTree->GetBranch("VZERODigit");
-  digitBranch->SetAddress(&digitsArray);
+  digitBranch->SetAddress(&fDigitsArray);
 
   Float_t   mult[64];  
   Float_t    adc[64]; 
@@ -207,28 +248,25 @@ void AliVZEROReconstructor::FillESD(TTree* digitsTree, TTree* /*clustersTree*/,
   for (Int_t e=0; e<nEntries; e++) {
     digitsTree->GetEvent(e);
 
-    Int_t nDigits = digitsArray->GetEntriesFast();
+    Int_t nDigits = fDigitsArray->GetEntriesFast();
     
     for (Int_t d=0; d<nDigits; d++) {    
-        AliVZEROdigit* digit = (AliVZEROdigit*)digitsArray->At(d);      
+        AliVZEROdigit* digit = (AliVZEROdigit*) fDigitsArray->At(d);      
         Int_t  pmNumber      = digit->PMNumber(); 
         // Pedestal retrieval and suppression: 
-        Float_t  pedestal      = fCalibData->GetPedestal(d);
+	Bool_t   integrator  = digit->Integrator();
+	Int_t k = pmNumber+64*integrator;
+        Float_t  pedestal    = fCalibData->GetPedestal(k);
         adc[pmNumber]   =  digit->ADC() - pedestal; 
         time[pmNumber]  =  digit->Time();
 	width[pmNumber] =  digit->Width();
 	BBFlag[pmNumber]=  digit->BBFlag();
 	BGFlag[pmNumber]=  digit->BGFlag();
-        // printf("PM = %d,  MIP per ADC channel = %f \n",pmNumber, fCalibData->GetMIPperADC(pmNumber));
-		//AliInfo(Form("PM = %d,  ADC = %f TDC %f",pmNumber, digit->ADC(),digit->Time()));
-        // cut of ADC at 1MIP/2 
-	if(fCollisionMode >0) { 
-	   Float_t MIP = 2.0;  
-           if (adc[pmNumber] > (MIP/2.) ) mult[pmNumber] += adc[pmNumber]*(1.0/MIP) ;
-	   }
-           else{    
-           if (adc[pmNumber] > (1.0/fCalibData->GetMIPperADC(pmNumber) /2.) ) 
-	       mult[pmNumber] += adc[pmNumber]*fCalibData->GetMIPperADC(pmNumber);
+
+	AliDebug(2,Form("PM = %d ADC = %f TDC %f",pmNumber, digit->ADC(),digit->Time()));
+
+	if(adc[pmNumber] > (fCalibData->GetPedestal(k) + GetRecoParam()->GetNSigmaPed()*fCalibData->GetSigma(k))) {
+	    mult[pmNumber] += adc[pmNumber]*fCalibData->GetMIPperADC(pmNumber);
         } 	    
     } // end of loop over digits
   } // end of loop over events in digits tree
@@ -248,7 +286,7 @@ void AliVZEROReconstructor::FillESD(TTree* digitsTree, TTree* /*clustersTree*/,
   TriggerMask->SetTimeWindowWidthBGA(20);
   TriggerMask->SetTimeWindowWidthBBC(50);
   TriggerMask->SetTimeWindowWidthBGC(20);
-  TriggerMask->FillMasks(digitsTree,digitsArray);
+  TriggerMask->FillMasks(digitsTree, fDigitsArray);
 
   fESDVZERO->SetBBtriggerV0A(TriggerMask->GetBBtriggerV0A());
   fESDVZERO->SetBGtriggerV0A(TriggerMask->GetBGtriggerV0A());
@@ -267,6 +305,8 @@ void AliVZEROReconstructor::FillESD(TTree* digitsTree, TTree* /*clustersTree*/,
         fr->SetVZEROfriend(fESDVZEROfriend);
     }
   }
+
+  fDigitsArray->Clear();
 }
 
 //_____________________________________________________________________________
@@ -298,51 +338,28 @@ AliCDBStorage* AliVZEROReconstructor::SetStorage(const char *uri)
 //____________________________________________________________________________
 void AliVZEROReconstructor::GetCollisionMode()
 {
-// Retrieves the collision mode from GRP data
+  // Retrieval of collision mode 
 
-// Initialization of the GRP entry 
-// To be replace by a call to AliRunInfo object
-  
-  AliCDBEntry*  entry = AliCDBManager::Instance()->Get("GRP/GRP/Data");
-  AliGRPObject* grpData = 0x0;
-   
-  if(entry){
-    TMap* m = dynamic_cast<TMap*>(entry->GetObject());  // old GRP entry
-    if(m){
-       grpData = new AliGRPObject();
-       grpData->ReadValuesFromMap(m);
-    }
-    else{
-       grpData = dynamic_cast<AliGRPObject*>(entry->GetObject());  // new GRP entry
-    }
-  }
-
-  if(!grpData) { AliError("No GRP entry found in OCDB!");
-                  return; }
-
-// Retrieval of simulated collision mode 
-
-  TString beamType = grpData->GetBeamType();
+  TString beamType = GetRunInfo()->GetBeamType();
   if(beamType==AliGRPObject::GetInvalidString()){
-     AliError("GRP/GRP/Data entry:  missing value for the beam type !");
-     AliError("\t VZERO cannot retrieve beam type\n");
+     AliError("VZERO cannot retrieve beam type");
      return;
   }
 
-   if( (beamType.CompareTo("P-P") ==0)  || (beamType.CompareTo("p-p") ==0) ){
-       fCollisionMode=0;
+  if( (beamType.CompareTo("P-P") ==0)  || (beamType.CompareTo("p-p") ==0) ){
+    fCollisionMode=0;
   }
-   else if( (beamType.CompareTo("Pb-Pb") ==0)  || (beamType.CompareTo("A-A") ==0) ){
-       fCollisionMode=1;
-   }
+  else if( (beamType.CompareTo("Pb-Pb") ==0)  || (beamType.CompareTo("A-A") ==0) ){
+    fCollisionMode=1;
+  }
     
-  fBeamEnergy = grpData->GetBeamEnergy();
+  fBeamEnergy = GetRunInfo()->GetBeamEnergy();
   if(fBeamEnergy==AliGRPObject::GetInvalidFloat()) {
-     AliError("GRP/GRP/Data entry:  missing value for the beam energy ! Using 0");
+     AliError("Missing value for the beam energy ! Using 0");
      fBeamEnergy = 0.;
   }
   
-//    printf("\n ++++++ Beam type and collision mode retrieved as %s %d @ %1.3f GeV ++++++\n\n",beamType.Data(), fCollisionMode, fBeamEnergy);
+  AliDebug(1,Form("\n ++++++ Beam type and collision mode retrieved as %s %d @ %1.3f GeV ++++++\n\n",beamType.Data(), fCollisionMode, fBeamEnergy));
 
 }
 

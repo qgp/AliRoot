@@ -38,12 +38,13 @@
 #include "AliCaloTrackReader.h"
 #include "AliCaloPID.h"
 #include "AliStack.h"
-#include "AliFidutialCut.h"
+#include "AliFiducialCut.h"
 #include "TParticle.h"
 #include "AliAODCaloCluster.h"
 #include "AliVEvent.h"
-#include "AliPHOSGeoUtils.h"
-#include "AliEMCALGeoUtils.h"
+#include "AliESDCaloCluster.h"
+#include "AliESDEvent.h"
+#include "AliAODEvent.h"
 
 ClassImp(AliAnaPi0)
 
@@ -51,10 +52,9 @@ ClassImp(AliAnaPi0)
 AliAnaPi0::AliAnaPi0() : AliAnaPartCorrBaseClass(),
 fNCentrBin(0),fNZvertBin(0),fNrpBin(0),
 fNPID(0),fNmaxMixEv(0), fZvtxCut(0.),fCalorimeter(""),
-fEMCALGeoName("EMCAL_COMPLETE"),fEventsList(0x0), fhEtalon(0x0),
-fhRe1(0x0),fhMi1(0x0),fhRe2(0x0),fhMi2(0x0),fhRe3(0x0),fhMi3(0x0),fhEvents(0x0),
-fhPrimPt(0x0), fhPrimAccPt(0x0), fhPrimY(0x0), fhPrimAccY(0x0), fhPrimPhi(0x0), fhPrimAccPhi(0x0), 
-fPHOSGeo(0x0),fEMCALGeo(0x0)
+fNModules(12), fEventsList(0x0), //fhEtalon(0x0), 
+fhReMod(0x0), fhRe1(0x0),fhMi1(0x0),fhRe2(0x0),fhMi2(0x0),fhRe3(0x0),fhMi3(0x0),fhEvents(0x0),
+fhPrimPt(0x0), fhPrimAccPt(0x0), fhPrimY(0x0), fhPrimAccY(0x0), fhPrimPhi(0x0), fhPrimAccPhi(0x0)
 {
 //Default Ctor
  InitParameters();
@@ -65,11 +65,11 @@ fPHOSGeo(0x0),fEMCALGeo(0x0)
 AliAnaPi0::AliAnaPi0(const AliAnaPi0 & ex) : AliAnaPartCorrBaseClass(ex),  
 fNCentrBin(ex.fNCentrBin),fNZvertBin(ex.fNZvertBin),fNrpBin(ex.fNrpBin),
 fNPID(ex.fNPID),fNmaxMixEv(ex.fNmaxMixEv),fZvtxCut(ex.fZvtxCut), fCalorimeter(ex.fCalorimeter),
-fEMCALGeoName(ex.fEMCALGeoName), fEventsList(ex.fEventsList), fhEtalon(ex.fhEtalon),
-fhRe1(ex.fhRe1),fhMi1(ex.fhMi1),fhRe2(ex.fhRe2),fhMi2(ex.fhMi2),fhRe3(ex.fhRe3),fhMi3(ex.fhMi3),fhEvents(ex.fhEvents),
+fNModules(ex.fNModules), fEventsList(ex.fEventsList), //fhEtalon(ex.fhEtalon), 
+fhReMod(ex.fhReMod), fhRe1(ex.fhRe1),fhMi1(ex.fhMi1),fhRe2(ex.fhRe2),fhMi2(ex.fhMi2),
+fhRe3(ex.fhRe3),fhMi3(ex.fhMi3),fhEvents(ex.fhEvents),
 fhPrimPt(ex.fhPrimPt), fhPrimAccPt(ex.fhPrimAccPt), fhPrimY(ex.fhPrimY), 
-fhPrimAccY(ex.fhPrimAccY), fhPrimPhi(ex.fhPrimPhi), fhPrimAccPhi(ex.fhPrimAccPhi),
-fPHOSGeo(ex.fPHOSGeo),fEMCALGeo(ex.fEMCALGeo)
+fhPrimAccY(ex.fhPrimAccY), fhPrimPhi(ex.fhPrimPhi), fhPrimAccPhi(ex.fhPrimAccPhi)
 {
   // cpy ctor
   //Do not need it
@@ -85,8 +85,8 @@ AliAnaPi0 & AliAnaPi0::operator = (const AliAnaPi0 & ex)
   
   fNCentrBin = ex.fNCentrBin  ; fNZvertBin = ex.fNZvertBin  ; fNrpBin = ex.fNrpBin  ; 
   fNPID = ex.fNPID  ; fNmaxMixEv = ex.fNmaxMixEv  ; fZvtxCut = ex.fZvtxCut  ;  fCalorimeter = ex.fCalorimeter  ;  
-  fEMCALGeoName = ex.fEMCALGeoName ; fEventsList = ex.fEventsList  ;  fhEtalon = ex.fhEtalon  ; 
-  fhRe1 = ex.fhRe1  ; fhMi1 = ex.fhMi1  ; fhRe2 = ex.fhRe2  ; fhMi2 = ex.fhMi2  ; 
+ fNModules = ex.fNModules; fEventsList = ex.fEventsList  ;  //fhEtalon = ex.fhEtalon  ; 
+  fhRe1 = ex.fhRe1  ; fhMi1 = ex.fhMi1  ; fhRe2 = ex.fhRe2  ; fhMi2 = ex.fhMi2  ; fhReMod = ex.fhReMod; 
   fhRe3 = ex.fhRe3  ; fhMi3 = ex.fhMi3  ; fhEvents = ex.fhEvents  ; 
   fhPrimPt = ex.fhPrimPt  ;  fhPrimAccPt = ex.fhPrimAccPt  ;  fhPrimY = ex.fhPrimY  ;  
   fhPrimAccY = ex.fhPrimAccY  ;  fhPrimPhi = ex.fhPrimPhi  ;  fhPrimAccPhi = ex.fhPrimAccPhi ;
@@ -110,9 +110,6 @@ AliAnaPi0::~AliAnaPi0() {
     delete[] fEventsList; 
     fEventsList=0 ;
   }
-  
-  if(fPHOSGeo)  delete fPHOSGeo  ;
-  if(fEMCALGeo) delete fEMCALGeo ;
 	
 }
 
@@ -124,7 +121,7 @@ void AliAnaPi0::InitParameters()
   SetInputAODName("PWG4Particle");
   
   AddToHistogramsName("AnaPi0_");
-
+  fNModules = 12; // set maximum to maximum number of EMCAL modules
   fNCentrBin = 1;
   fNZvertBin = 1;
   fNrpBin    = 1;
@@ -132,22 +129,21 @@ void AliAnaPi0::InitParameters()
   fNmaxMixEv = 10;
   fZvtxCut   = 40;
   fCalorimeter  = "PHOS";
-  fEMCALGeoName = "EMCAL_COMPLETE";
 }
 //________________________________________________________________________________________________________________________________________________
-void AliAnaPi0::Init()
-{  
+//void AliAnaPi0::Init()
+//{  
   //Init some data members needed in analysis
   
   //Histograms binning and range
-  if(!fhEtalon){                                                   //  p_T      alpha   d m_gg    
-    fhEtalon = new TH3D("hEtalon","Histo with binning parameters",50,0.,25.,10,0.,1.,200,0.,1.) ; 
-    fhEtalon->SetXTitle("P_{T} (GeV)") ;
-    fhEtalon->SetYTitle("#alpha") ;
-    fhEtalon->SetZTitle("m_{#gamma#gamma} (GeV)") ;
-  }
+ // if(!fhEtalon){                                                   //  p_T      alpha   d m_gg    
+ //   fhEtalon = new TH3D("hEtalon","Histo with binning parameters",50,0.,25.,10,0.,1.,200,0.,1.) ; 
+ //   fhEtalon->SetXTitle("P_{T} (GeV)") ;
+ //   fhEtalon->SetYTitle("#alpha") ;
+ //   fhEtalon->SetZTitle("m_{#gamma#gamma} (GeV)") ;
+ // }
   
-}
+//}
 
 //________________________________________________________________________________________________________________________________________________
 TList * AliAnaPi0::GetCreateOutputObjects()
@@ -167,15 +163,20 @@ TList * AliAnaPi0::GetCreateOutputObjects()
   }
   
   //If Geometry library loaded, do geometry selection during analysis.
-  printf("AliAnaPi0::GetCreateOutputObjects() - PHOS geometry initialized!\n");
-  fPHOSGeo = new AliPHOSGeoUtils("PHOSgeo") ;
-  
-  printf("AliAnaPi0::GetCreateOutputObjects() - EMCAL geometry initialized!\n");
-  fEMCALGeo = new AliEMCALGeoUtils(fEMCALGeoName) ;
-
+  if(fCalorimeter=="PHOS"){
+    if(!GetReader()->GetPHOSGeometry()) printf("AliAnaPi0::GetCreateOutputObjects() - Initialize PHOS geometry!\n");
+    GetReader()->InitPHOSGeometry();
+    
+  }
+  else if(fCalorimeter=="EMCAL"){
+    if(!GetReader()->GetEMCALGeometry()) printf("AliAnaPi0::GetCreateOutputObjects() - Initialize EMCAL geometry!\n");
+    GetReader()->InitEMCALGeometry();
+  }
+	
   TList * outputContainer = new TList() ; 
   outputContainer->SetName(GetName()); 
-  
+	
+  fhReMod = new TH3D*[fNModules] ;
   fhRe1 = new TH3D*[fNCentrBin*fNPID] ;
   fhRe2 = new TH3D*[fNCentrBin*fNPID] ;
   fhRe3 = new TH3D*[fNCentrBin*fNPID] ;
@@ -185,55 +186,77 @@ TList * AliAnaPi0::GetCreateOutputObjects()
   
   char key[255] ;
   char title[255] ;
-  
+  Int_t nptbins   = GetHistoPtBins();
+  Int_t nphibins  = GetHistoPhiBins();
+  Int_t netabins  = GetHistoEtaBins();
+  Float_t ptmax   = GetHistoPtMax();
+  Float_t phimax  = GetHistoPhiMax();
+  Float_t etamax  = GetHistoEtaMax();
+  Float_t ptmin   = GetHistoPtMin();
+  Float_t phimin  = GetHistoPhiMin();
+  Float_t etamin  = GetHistoEtaMin();	
+	
+  Int_t nmassbins = GetHistoMassBins();
+  Int_t nasymbins = GetHistoAsymmetryBins();
+  Float_t massmax = GetHistoMassMax();
+  Float_t asymmax = GetHistoAsymmetryMax();
+  Float_t massmin = GetHistoMassMin();
+  Float_t asymmin = GetHistoAsymmetryMin();
+	
   for(Int_t ic=0; ic<fNCentrBin; ic++){
     for(Int_t ipid=0; ipid<fNPID; ipid++){
-      
+		
       //Distance to bad module 1
       sprintf(key,"hRe_cen%d_pid%d_dist1",ic,ipid) ;
       sprintf(title,"Real m_{#gamma#gamma} distr. for centrality=%d and PID=%d",ic,ipid) ;
       
-      fhEtalon->Clone(key);
-      fhRe1[ic*fNPID+ipid]=(TH3D*)fhEtalon->Clone(key) ;
-      fhRe1[ic*fNPID+ipid]->SetName(key) ;
-      fhRe1[ic*fNPID+ipid]->SetTitle(title) ;
+      //fhEtalon->Clone(key);
+      //fhRe1[ic*fNPID+ipid]=(TH3D*)fhEtalon->Clone(key) ;
+      //fhRe1[ic*fNPID+ipid]->SetName(key) ;
+      //fhRe1[ic*fNPID+ipid]->SetTitle(title) ;
+	  fhRe1[ic*fNPID+ipid] = new TH3D(key,title,nptbins,ptmin,ptmax,nasymbins,asymmin,asymmax,nmassbins,massmin,massmax) ;
       outputContainer->Add(fhRe1[ic*fNPID+ipid]) ;
       
       sprintf(key,"hMi_cen%d_pid%d_dist1",ic,ipid) ;
       sprintf(title,"Mixed m_{#gamma#gamma} distr. for centrality=%d and PID=%d",ic,ipid) ;
-      fhMi1[ic*fNPID+ipid]=(TH3D*)fhEtalon->Clone(key) ;
-      fhMi1[ic*fNPID+ipid]->SetName(key) ;
-      fhMi1[ic*fNPID+ipid]->SetTitle(title) ;
+      //fhMi1[ic*fNPID+ipid]=(TH3D*)fhEtalon->Clone(key) ;
+      //fhMi1[ic*fNPID+ipid]->SetName(key) ;
+      //fhMi1[ic*fNPID+ipid]->SetTitle(title) ;
+	  fhMi1[ic*fNPID+ipid] = new TH3D(key,title,nptbins,ptmin,ptmax,nasymbins,asymmin,asymmax,nmassbins,massmin,massmax) ;
       outputContainer->Add(fhMi1[ic*fNPID+ipid]) ;
       
       //Distance to bad module 2
       sprintf(key,"hRe_cen%d_pid%d_dist2",ic,ipid) ;
       sprintf(title,"Real m_{#gamma#gamma} distr. for centrality=%d and PID=%d",ic,ipid) ;
-      fhRe2[ic*fNPID+ipid]=(TH3D*)fhEtalon->Clone(key) ;
-      fhRe2[ic*fNPID+ipid]->SetName(key) ;
-      fhRe2[ic*fNPID+ipid]->SetTitle(title) ;
+      //fhRe2[ic*fNPID+ipid]=(TH3D*)fhEtalon->Clone(key) ;
+      //fhRe2[ic*fNPID+ipid]->SetName(key) ;
+      //fhRe2[ic*fNPID+ipid]->SetTitle(title) ;
+	  fhRe2[ic*fNPID+ipid] = new TH3D(key,title,nptbins,ptmin,ptmax,nasymbins,asymmin,asymmax,nmassbins,massmin,massmax) ;
       outputContainer->Add(fhRe2[ic*fNPID+ipid]) ;
       
       sprintf(key,"hMi_cen%d_pid%d_dist2",ic,ipid) ;
       sprintf(title,"Mixed m_{#gamma#gamma} distr. for centrality=%d and PID=%d",ic,ipid) ;
-      fhMi2[ic*fNPID+ipid]=(TH3D*)fhEtalon->Clone(key) ;
-      fhMi2[ic*fNPID+ipid]->SetName(key) ;
-      fhMi2[ic*fNPID+ipid]->SetTitle(title) ;
+      //fhMi2[ic*fNPID+ipid]=(TH3D*)fhEtalon->Clone(key) ;
+      //fhMi2[ic*fNPID+ipid]->SetName(key) ;
+      //fhMi2[ic*fNPID+ipid]->SetTitle(title) ;
+	  fhMi2[ic*fNPID+ipid] = new TH3D(key,title,nptbins,ptmin,ptmax,nasymbins,asymmin,asymmax,nmassbins,massmin,massmax) ;
       outputContainer->Add(fhMi2[ic*fNPID+ipid]) ;
       
       //Distance to bad module 3
       sprintf(key,"hRe_cen%d_pid%d_dist3",ic,ipid) ;
       sprintf(title,"Real m_{#gamma#gamma} distr. for centrality=%d and PID=%d",ic,ipid) ;
-      fhRe3[ic*fNPID+ipid]=(TH3D*)fhEtalon->Clone(key) ;
-      fhRe3[ic*fNPID+ipid]->SetName(key) ; 
-      fhRe3[ic*fNPID+ipid]->SetTitle(title) ;
+      //fhRe3[ic*fNPID+ipid]=(TH3D*)fhEtalon->Clone(key) ;
+      //fhRe3[ic*fNPID+ipid]->SetName(key) ; 
+      //fhRe3[ic*fNPID+ipid]->SetTitle(title) ;
+	  fhRe3[ic*fNPID+ipid] = new TH3D(key,title,nptbins,ptmin,ptmax,nasymbins,asymmin,asymmax,nmassbins,massmin,massmax) ;
       outputContainer->Add(fhRe3[ic*fNPID+ipid]) ;
       
       sprintf(key,"hMi_cen%d_pid%d_dist3",ic,ipid) ;
       sprintf(title,"Mixed m_{#gamma#gamma} distr. for centrality=%d and PID=%d",ic,ipid) ;
-      fhMi3[ic*fNPID+ipid]=(TH3D*)fhEtalon->Clone(key) ;
-      fhMi3[ic*fNPID+ipid]->SetName(key) ;
-      fhMi3[ic*fNPID+ipid]->SetTitle(title) ;
+      //fhMi3[ic*fNPID+ipid]=(TH3D*)fhEtalon->Clone(key) ;
+      //fhMi3[ic*fNPID+ipid]->SetName(key) ;
+      //fhMi3[ic*fNPID+ipid]->SetTitle(title) ;
+	  fhMi3[ic*fNPID+ipid] = new TH3D(key,title,nptbins,ptmin,ptmax,nasymbins,asymmin,asymmax,nmassbins,massmin,massmax) ;
       outputContainer->Add(fhMi3[ic*fNPID+ipid]) ;
     }
   }
@@ -245,32 +268,48 @@ TList * AliAnaPi0::GetCreateOutputObjects()
   
   //Histograms filled only if MC data is requested 	
   if(IsDataMC() || (GetReader()->GetDataType() == AliCaloTrackReader::kMC) ){
-    if(fhEtalon->GetXaxis()->GetXbins() && fhEtalon->GetXaxis()->GetXbins()->GetSize()){ //Variable bin size
-      fhPrimPt = new TH1D("hPrimPt","Primary pi0 pt",fhEtalon->GetXaxis()->GetNbins(),fhEtalon->GetXaxis()->GetXbins()->GetArray()) ;
-      fhPrimAccPt = new TH1D("hPrimAccPt","Primary pi0 pt with both photons in acceptance",fhEtalon->GetXaxis()->GetNbins(),
-			     fhEtalon->GetXaxis()->GetXbins()->GetArray()) ;
-    }
-    else{
-      fhPrimPt = new TH1D("hPrimPt","Primary pi0 pt",fhEtalon->GetXaxis()->GetNbins(),fhEtalon->GetXaxis()->GetXmin(),fhEtalon->GetXaxis()->GetXmax()) ;
-      fhPrimAccPt = new TH1D("hPrimAccPt","Primary pi0 pt with both photons in acceptance",
-			     fhEtalon->GetXaxis()->GetNbins(),fhEtalon->GetXaxis()->GetXmin(),fhEtalon->GetXaxis()->GetXmax()) ;
-    }
+   // if(fhEtalon->GetXaxis()->GetXbins() && fhEtalon->GetXaxis()->GetXbins()->GetSize()){ //Variable bin size
+   //   fhPrimPt = new TH1D("hPrimPt","Primary pi0 pt",fhEtalon->GetXaxis()->GetNbins(),fhEtalon->GetXaxis()->GetXbins()->GetArray()) ;
+   //   fhPrimAccPt = new TH1D("hPrimAccPt","Primary pi0 pt with both photons in acceptance",fhEtalon->GetXaxis()->GetNbins(),
+	//		     fhEtalon->GetXaxis()->GetXbins()->GetArray()) ;
+   // }
+   // else{
+   //   fhPrimPt = new TH1D("hPrimPt","Primary pi0 pt",fhEtalon->GetXaxis()->GetNbins(),fhEtalon->GetXaxis()->GetXmin(),fhEtalon->GetXaxis()->GetXmax()) ;
+   //   fhPrimAccPt = new TH1D("hPrimAccPt","Primary pi0 pt with both photons in acceptance",
+	//		     fhEtalon->GetXaxis()->GetNbins(),fhEtalon->GetXaxis()->GetXmin(),fhEtalon->GetXaxis()->GetXmax()) ;
+   // }
+
+	fhPrimPt     = new TH1D("hPrimPt","Primary pi0 pt",nptbins,ptmin,ptmax) ;
+    fhPrimAccPt  = new TH1D("hPrimAccPt","Primary pi0 pt with both photons in acceptance",nptbins,ptmin,ptmax) ;
     outputContainer->Add(fhPrimPt) ;
     outputContainer->Add(fhPrimAccPt) ;
     
-    fhPrimY = new TH1D("hPrimaryRapidity","Rapidity of primary pi0",100,-5.,5.) ; 
+    fhPrimY      = new TH1D("hPrimaryRapidity","Rapidity of primary pi0",netabins,etamin,etamax) ; 
     outputContainer->Add(fhPrimY) ;
     
-    fhPrimAccY = new TH1D("hPrimAccRapidity","Rapidity of primary pi0",100,-5.,5.) ; 
+    fhPrimAccY   = new TH1D("hPrimAccRapidity","Rapidity of primary pi0",netabins,etamin,etamax) ; 
     outputContainer->Add(fhPrimAccY) ;
     
-    fhPrimPhi = new TH1D("hPrimaryPhi","Azimithal of primary pi0",180,0.,360.) ; 
+	fhPrimPhi    = new TH1D("hPrimaryPhi","Azimithal of primary pi0",nphibins,phimin*TMath::RadToDeg(),phimax*TMath::RadToDeg()) ; 
     outputContainer->Add(fhPrimPhi) ;
     
-    fhPrimAccPhi = new TH1D("hPrimAccPhi","Azimithal of primary pi0 with accepted daughters",180,-0.,360.) ; 
+    fhPrimAccPhi = new TH1D("hPrimAccPhi","Azimithal of primary pi0 with accepted daughters",nphibins,phimin*TMath::RadToDeg(),phimax*TMath::RadToDeg()) ; 
     outputContainer->Add(fhPrimAccPhi) ;
   }
 
+  for(Int_t imod=0; imod<fNModules; imod++){
+	//Module dependent invariant mass
+	sprintf(key,"hReMod_%d",imod) ;
+	sprintf(title,"Real m_{#gamma#gamma} distr. for Module %d",imod) ;
+	//fhEtalon->Clone(key);
+	//fhReMod[imod]=(TH3D*)fhEtalon->Clone(key) ;
+	//fhReMod[imod]->SetName(key) ;
+	//fhReMod[imod]->SetTitle(title) ;
+	fhReMod[imod]  = new TH3D(key,title,nptbins,ptmin,ptmax,nasymbins,asymmin,asymmax,nmassbins,massmin,massmax) ;
+	outputContainer->Add(fhReMod[imod]) ;
+  }
+	
+	
   //Save parameters used for analysis
   TString parList ; //this will be list of parameters used for this analysis.
   char onePar[255] ;
@@ -291,6 +330,8 @@ TList * AliAnaPi0::GetCreateOutputObjects()
   sprintf(onePar,"Z vertex position: -%f < z < %f \n",fZvtxCut,fZvtxCut) ;
   parList+=onePar ;
   sprintf(onePar,"Calorimeter: %s \n",fCalorimeter.Data()) ;
+  parList+=onePar ;
+  sprintf(onePar,"Number of modules: %d \n",fNModules) ;
   parList+=onePar ;
   
   TObjString *oString= new TObjString(parList) ;
@@ -313,9 +354,57 @@ void AliAnaPi0::Print(const Option_t * /*opt*/) const
   printf("Number of different PID used:  %d \n",fNPID) ;
   printf("Cuts: \n") ;
   printf("Z vertex position: -%2.3f < z < %2.3f \n",fZvtxCut,fZvtxCut) ;
+  printf("Number of modules: %d \n",fNModules) ;
   printf("------------------------------------------------------\n") ;
 } 
 
+//____________________________________________________________________________________________________________________________________________________
+Int_t AliAnaPi0::GetModuleNumber(AliAODPWG4Particle * particle) 
+{
+	//Get the EMCAL/PHOS module number that corresponds to this particle
+	
+	Int_t absId = -1;
+	if(fCalorimeter=="EMCAL"){
+		GetReader()->GetEMCALGeometry()->GetAbsCellIdFromEtaPhi(particle->Eta(),particle->Phi(), absId);
+		if(GetDebug() > 2) 
+			printf("AliAnaPi0::GetModuleNumber() - EMCAL: cluster eta %f, phi %f, absid %d, SuperModule %d\n",
+				   particle->Eta(), particle->Phi()*TMath::RadToDeg(),absId, GetReader()->GetEMCALGeometry()->GetSuperModuleNumber(absId));
+		return GetReader()->GetEMCALGeometry()->GetSuperModuleNumber(absId) ;
+	}//EMCAL
+	else{//PHOS
+		Int_t    relId[4];
+		if(!strcmp((GetReader()->GetInputEvent())->GetName(),"AliESDEvent"))   {
+			AliESDCaloCluster *cluster = ((AliESDEvent*)GetReader()->GetInputEvent())->GetCaloCluster(particle->GetCaloLabel(0));
+			if ( cluster->GetNCells() > 0) {
+				absId = cluster->GetCellAbsId(0);
+				if(GetDebug() > 2) 
+					printf("AliAnaPi0::GetModuleNumber(ESD) - PHOS: cluster eta %f, phi %f, e %f, e cluster %f, absId %d\n",
+						   particle->Eta(), particle->Phi()*TMath::RadToDeg(), particle->E(), cluster->E(), absId);
+			}
+			else return -1;
+		}//ESDs
+		else{
+			AliAODCaloCluster *cluster = ((AliAODEvent*)GetReader()->GetInputEvent())->GetCaloCluster(particle->GetCaloLabel(0));
+			if ( cluster->GetNCells() > 0) {
+				absId = cluster->GetCellAbsId(0);
+				if(GetDebug() > 2) 
+					printf("AliAnaPi0::GetModuleNumber(AOD) - PHOS: cluster eta %f, phi %f, e %f, e cluster %f, absId %d\n",
+						   particle->Eta(), particle->Phi()*TMath::RadToDeg(), particle->E(), cluster->E(), absId);
+			}
+			else return -1;
+		}//AODs
+
+		if ( absId >= 0) {
+			GetReader()->GetPHOSGeometry()->AbsToRelNumbering(absId,relId);
+			if(GetDebug() > 2) 
+				printf("PHOS: Module %d\n",relId[0]-1);
+			return relId[0]-1;
+		}
+		else return -1;
+	}//PHOS
+	
+	return -1;
+}
 
 //____________________________________________________________________________________________________________________________________________________
 void AliAnaPi0::MakeAnalysisFillHistograms() 
@@ -345,19 +434,29 @@ void AliAnaPi0::MakeAnalysisFillHistograms()
   
   Int_t nPhot = GetInputAODBranch()->GetEntriesFast() ;
   if(GetDebug() > 1) printf("AliAnaPi0::MakeAnalysisFillHistograms() - Photon entries %d\n", nPhot);
-  
+  Int_t module1 = -1;
+  Int_t module2 = -1;
   for(Int_t i1=0; i1<nPhot-1; i1++){
     AliAODPWG4Particle * p1 = (AliAODPWG4Particle*) (GetInputAODBranch()->At(i1)) ;
     TLorentzVector photon1(p1->Px(),p1->Py(),p1->Pz(),p1->E());
+    //Get Module number
+    module1 = GetModuleNumber(p1);
     for(Int_t i2=i1+1; i2<nPhot; i2++){
       AliAODPWG4Particle * p2 = (AliAODPWG4Particle*) (GetInputAODBranch()->At(i2)) ;
       TLorentzVector photon2(p2->Px(),p2->Py(),p2->Pz(),p2->E());
+      //Get module number
+      module2 = GetModuleNumber(p2);
       Double_t m  = (photon1 + photon2).M() ;
       Double_t pt = (photon1 + photon2).Pt();
       Double_t a  = TMath::Abs(p1->E()-p2->E())/(p1->E()+p2->E()) ;
       if(GetDebug() > 2)
 	printf("AliAnaPi0::MakeAnalysisFillHistograms() - Current Event: pT: photon1 %2.2f, photon2 %2.2f; Pair: pT %2.2f, mass %2.3f, a %f2.3\n",
 	       p1->Pt(), p2->Pt(), pt,m,a);
+      //Fill module dependent histograms
+      //if(module1==module2) printf("mod1 %d\n",module1);
+      if(module1==module2 && module1 >=0 && module1<fNModules)
+	fhReMod[module1]->Fill(pt,a,m) ;
+      
       for(Int_t ipid=0; ipid<fNPID; ipid++)
 	{
 	  if((p1->IsPIDOK(ipid,AliCaloPID::kPhoton)) && (p2->IsPIDOK(ipid,AliCaloPID::kPhoton))){ 
@@ -430,7 +529,7 @@ void AliAnaPi0::MakeAnalysisFillHistograms()
   }
   
   //Acceptance
-  if(GetReader()->ReadStack()){	
+  if(IsDataMC() && GetReader()->ReadStack()){	
 	  AliStack * stack = GetMCStack();
 	  if(stack && (IsDataMC() || (GetReader()->GetDataType() == AliCaloTrackReader::kMC)) ){
 	     for(Int_t i=0 ; i<stack->GetNprimary(); i++){
@@ -459,10 +558,10 @@ void AliAnaPi0::MakeAnalysisFillHistograms()
 	           Bool_t inacceptance = kFALSE;
 
 			   if(fCalorimeter == "PHOS"){
-				   if(fPHOSGeo){
+				   if(GetReader()->GetPHOSGeometry()){
 					   Int_t mod ;
 					   Double_t x,z ;
-					   if(fPHOSGeo->ImpactOnEmc(phot1,mod,z,x) && fPHOSGeo->ImpactOnEmc(phot2,mod,z,x)) 
+					   if(GetReader()->GetPHOSGeometry()->ImpactOnEmc(phot1,mod,z,x) && GetReader()->GetPHOSGeometry()->ImpactOnEmc(phot2,mod,z,x)) 
 						   inacceptance = kTRUE;
 					   if(GetDebug() > 2) printf("In %s Real acceptance? %d\n",fCalorimeter.Data(),inacceptance);
 				   }
@@ -470,15 +569,15 @@ void AliAnaPi0::MakeAnalysisFillHistograms()
 					   TLorentzVector lv1, lv2;
 					   phot1->Momentum(lv1);
 					   phot2->Momentum(lv2);
-					   if(GetFidutialCut()->IsInFidutialCut(lv1,fCalorimeter) && GetFidutialCut()->IsInFidutialCut(lv2,fCalorimeter)) 
+					   if(GetFiducialCut()->IsInFiducialCut(lv1,fCalorimeter) && GetFiducialCut()->IsInFiducialCut(lv2,fCalorimeter)) 
 					   inacceptance = kTRUE ;
 					   if(GetDebug() > 2) printf("In %s fiducial cut acceptance? %d\n",fCalorimeter.Data(),inacceptance);
 				   }
 				   
 			   }	   
 			   else if(fCalorimeter == "EMCAL"){
-				   if(fEMCALGeo){
-					   if(fEMCALGeo->Impact(phot1) && fEMCALGeo->Impact(phot2)) 
+				   if(GetReader()->GetEMCALGeometry()){
+					   if(GetReader()->GetEMCALGeometry()->Impact(phot1) && GetReader()->GetEMCALGeometry()->Impact(phot2)) 
 						   inacceptance = kTRUE;
 					   if(GetDebug() > 2) printf("In %s Real acceptance? %d\n",fCalorimeter.Data(),inacceptance);
 					}
@@ -486,7 +585,7 @@ void AliAnaPi0::MakeAnalysisFillHistograms()
 					   TLorentzVector lv1, lv2;
 					   phot1->Momentum(lv1);
 					   phot2->Momentum(lv2);
-					   if(GetFidutialCut()->IsInFidutialCut(lv1,fCalorimeter) && GetFidutialCut()->IsInFidutialCut(lv2,fCalorimeter)) 
+					   if(GetFiducialCut()->IsInFiducialCut(lv1,fCalorimeter) && GetFiducialCut()->IsInFiducialCut(lv2,fCalorimeter)) 
 						   inacceptance = kTRUE ;
 					   if(GetDebug() > 2) printf("In %s fiducial cut acceptance? %d\n",fCalorimeter.Data(),inacceptance);
 				   }
@@ -525,6 +624,7 @@ void AliAnaPi0::ReadHistograms(TList* outputList)
 	if(!fhMi1) fhMi1 = new TH3D*[fNCentrBin*fNPID] ;
 	if(!fhMi2) fhMi2 = new TH3D*[fNCentrBin*fNPID] ;
 	if(!fhMi3) fhMi3 = new TH3D*[fNCentrBin*fNPID] ;	
+	if(!fhReMod) fhReMod = new TH3D*[fNModules] ;	
 	
     for(Int_t ic=0; ic<fNCentrBin; ic++){
         for(Int_t ipid=0; ipid<fNPID; ipid++){
@@ -546,9 +646,12 @@ void AliAnaPi0::ReadHistograms(TList* outputList)
 		 fhPrimY      = (TH1D*)  outputList->At(index++);
 		 fhPrimAccY   = (TH1D*)  outputList->At(index++);
 		 fhPrimPhi    = (TH1D*)  outputList->At(index++);
-		 fhPrimAccPhi = (TH1D*)  outputList->At(index);
+		 fhPrimAccPhi = (TH1D*)  outputList->At(index++);
 	}
 	
+	for(Int_t imod=0; imod < fNModules; imod++)
+			fhReMod[imod] = (TH3D*) outputList->At(index++);
+			
 }
 
 
@@ -576,31 +679,31 @@ void AliAnaPi0::Terminate(TList* outputList)
 
   cIM->cd(1) ; 
   //gPad->SetLogy();
-  TH1D * hIMAllPt = (TH1D*) fhRe1[0]->ProjectionZ();
+  TH1D * hIMAllPt = (TH1D*) fhRe1[0]->ProjectionZ(Form("IMPtAll_%s",fCalorimeter.Data()));
   hIMAllPt->SetLineColor(2);
   hIMAllPt->SetTitle("No cut on  p_{T, #gamma#gamma} ");
   hIMAllPt->Draw();
 
   cIM->cd(2) ; 
-  TH3F * hRe1Pt5 = (TH3F*)fhRe1[0]->Clone("IMPt5");
+  TH3F * hRe1Pt5 = (TH3F*)fhRe1[0]->Clone(Form("IMPt5_%s",fCalorimeter.Data()));
   hRe1Pt5->GetXaxis()->SetRangeUser(0,5);
-  TH1D * hIMPt5 = (TH1D*) hRe1Pt5->Project3D("z");
+  TH1D * hIMPt5 = (TH1D*) hRe1Pt5->Project3D(Form("IMPt5_%s_pz",fCalorimeter.Data()));
   hIMPt5->SetLineColor(2);  
   hIMPt5->SetTitle("0 < p_{T, #gamma#gamma} < 5 GeV/c");
   hIMPt5->Draw();
   
   cIM->cd(3) ; 
-  TH3F * hRe1Pt10 =  (TH3F*)fhRe1[0]->Clone("IMPt10");
+  TH3F * hRe1Pt10 =  (TH3F*)fhRe1[0]->Clone(Form("IMPt10_%s",fCalorimeter.Data()));
   hRe1Pt10->GetXaxis()->SetRangeUser(5,10);
-  TH1D * hIMPt10 = (TH1D*) hRe1Pt10->Project3D("z");
+  TH1D * hIMPt10 = (TH1D*) hRe1Pt10->Project3D(Form("IMPt10_%s_pz",fCalorimeter.Data()));
   hIMPt10->SetLineColor(2);  
   hIMPt10->SetTitle("5 < p_{T, #gamma#gamma} < 10 GeV/c");
   hIMPt10->Draw();
   
   cIM->cd(4) ; 
-  TH3F * hRe1Pt20 =  (TH3F*)fhRe1[0]->Clone("IMPt20");
+  TH3F * hRe1Pt20 =  (TH3F*)fhRe1[0]->Clone(Form("IMPt20_%s",fCalorimeter.Data()));
   hRe1Pt20->GetXaxis()->SetRangeUser(10,20);
-  TH1D * hIMPt20 = (TH1D*) hRe1Pt20->Project3D("z");
+  TH1D * hIMPt20 = (TH1D*) hRe1Pt20->Project3D(Form("IMPt20_%s_pz",fCalorimeter.Data()));
   hIMPt20->SetLineColor(2);  
   hIMPt20->SetTitle("10 < p_{T, #gamma#gamma} < 20 GeV/c");
   hIMPt20->Draw();
@@ -622,7 +725,7 @@ void AliAnaPi0::Terminate(TList* outputList)
   hPt->Draw();
 
   cPt->cd(2) ; 
-  TH3F * hRe1IM1 = (TH3F*)fhRe1[0]->Clone("PtIM1");
+  TH3F * hRe1IM1 = (TH3F*)fhRe1[0]->Clone(Form("Pt1_%s",fCalorimeter.Data()));
   hRe1IM1->GetZaxis()->SetRangeUser(0.05,0.21);
   TH1D * hPtIM1 = (TH1D*) hRe1IM1->Project3D("x");
   hPtIM1->SetLineColor(2);  
@@ -630,7 +733,7 @@ void AliAnaPi0::Terminate(TList* outputList)
   hPtIM1->Draw();
   
   cPt->cd(3) ; 
-  TH3F * hRe1IM2 = (TH3F*)fhRe1[0]->Clone("PtIM2");
+  TH3F * hRe1IM2 = (TH3F*)fhRe1[0]->Clone(Form("Pt2_%s",fCalorimeter.Data()));
   hRe1IM2->GetZaxis()->SetRangeUser(0.09,0.17);
   TH1D * hPtIM2 = (TH1D*) hRe1IM2->Project3D("x");
   hPtIM2->SetLineColor(2);  
@@ -638,7 +741,7 @@ void AliAnaPi0::Terminate(TList* outputList)
   hPtIM2->Draw();
 
   cPt->cd(4) ; 
-  TH3F * hRe1IM3 = (TH3F*)fhRe1[0]->Clone("PtIM3");
+  TH3F * hRe1IM3 = (TH3F*)fhRe1[0]->Clone(Form("Pt3_%s",fCalorimeter.Data()));
   hRe1IM3->GetZaxis()->SetRangeUser(0.11,0.15);
   TH1D * hPtIM3 = (TH1D*) hRe1IM1->Project3D("x");
   hPtIM3->SetLineColor(2);  

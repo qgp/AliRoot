@@ -29,6 +29,7 @@
 #include <TObjString.h>
 #include <TObjArray.h>
 #include <TProcessID.h>
+#include <TSystem.h>
 
 #include "AliESDInputHandlerRP.h"
 #include "AliESDEvent.h"
@@ -41,6 +42,7 @@ ClassImp(AliESDInputHandlerRP)
 AliESDInputHandlerRP::AliESDInputHandlerRP() :
     AliESDInputHandler(),
     fRTrees(   new TObjArray()),
+    fRDirs (   new TObjArray()),
     fRFiles(   new TList()),
     fDetectors(new TList()),
     fDirR(0),
@@ -59,6 +61,7 @@ AliESDInputHandlerRP::AliESDInputHandlerRP() :
 AliESDInputHandlerRP::AliESDInputHandlerRP(const char* name, const char* title):
     AliESDInputHandler(name, title),
     fRTrees(   new TObjArray()),
+    fRDirs (   new TObjArray()),
     fRFiles(   new TList()),
     fDetectors(new TList()),
     fDirR(0),
@@ -110,16 +113,14 @@ Bool_t AliESDInputHandlerRP::Init(Option_t* opt)
     fEventNumber      = -1;
     fFileNumber       =  0;
     // Get number of events from esd tree 
-    printf("AliESDInputHandler::Init() %d %d\n",__LINE__, fNEvents);
+    printf("AliESDInputHandlerRP::Init() %d %d\n",__LINE__, fNEvents);
     return kTRUE;
 }
 
 Bool_t AliESDInputHandlerRP::BeginEvent(Long64_t entry)
 {
     // Begin the next event
-    // Delegate first to base class
-    AliESDInputHandler::BeginEvent(entry);
-//
+    //
     if (entry == -1) {
 	fEventNumber++;
 	entry = fEventNumber;
@@ -131,7 +132,12 @@ Bool_t AliESDInputHandlerRP::BeginEvent(Long64_t entry)
 	AliWarning(Form("AliESDInputHandlerRP: Event number out of range %5d %5d\n", entry, fNEvents));
 	return kFALSE;
     }
-    return LoadEvent(entry);
+    
+    LoadEvent(entry);
+
+    // Delegate to base class
+    return AliESDInputHandler::BeginEvent(entry);
+
 }
 
 Bool_t AliESDInputHandlerRP::LoadEvent(Int_t iev)
@@ -152,18 +158,20 @@ Bool_t AliESDInputHandlerRP::LoadEvent(Int_t iev)
     // Tree R
     TIter next(fRFiles);
     TFile* file;
-    Int_t idx = 0;
+    Int_t idx  = 0;
     
     while ((file = (TFile*) next()))
     {
 	file->GetObject(folder, fDirR);
+	
 	if (!fDirR) {
 	    AliWarning(Form("AliESDInputHandlerRP: Event #%5d not found\n", iev));
 	    return kFALSE;
 	}
 	TTree* tree = 0;
 	fDirR->GetObject("TreeR", tree);
-	fRTrees->AddAt(tree, idx++);
+	fRDirs ->AddAt(fDirR, idx  );
+	fRTrees->AddAt(tree,  idx++);
     }
     return kTRUE;
 }
@@ -200,35 +208,43 @@ Bool_t AliESDInputHandlerRP::Notify(const char *path)
   // Notify about directory change
   // The directory is taken from the 'path' argument
   // 
+    AliInfo(Form("Directory change %s \n", path));
     // Get path to directory
     TString fileName(path);
-    if(fileName.Contains("AliESDs.root")){
-	fileName.ReplaceAll("AliESDs.root", "");
-    }
-    // If this is an archive it will contain a # 
+
     if(fileName.Contains("#")){
-	fileName.ReplaceAll("#", "");
+    // If this is an archive it will contain a # 
+      fIsArchive = kTRUE;
+    } else  if(fileName.Contains("AliESDs.root")){
+      fileName.ReplaceAll("AliESDs.root", "");
     }
+
     //
-    // At this point we have a path to the directory or to the archive
+    // At this point we have a path to the directory or to the archive anchor
     *fPathName = fileName;
     //
     // Now filter the files containing RecPoints *.RecPoints.*
-    fIsArchive = kFALSE;
-    if (fPathName->Contains(".zip")) fIsArchive = kTRUE;
 
     TSeqCollection* members;
 
     
     if (fIsArchive) {
 	// Archive
-	TFile* file = TFile::Open(fPathName->Data());
-	TArchiveFile* arch = file->GetArchive();
-	members = arch->GetMembers();
+      TFile* file = TFile::Open(fPathName->Data());
+      TArchiveFile* arch = file->GetArchive();
+      members = arch->GetMembers();
     } else {
-	// Directory
-	TSystemDirectory dir(".", fPathName->Data());
-	members = dir.GetListOfFiles();
+	// Directory or alien archive
+      if (fileName.BeginsWith("alien:")) {
+        TFile* file = TFile::Open(Form("%s/root_archive.zip", fPathName->Data()));
+        TArchiveFile* arch = file->GetArchive();
+        members = arch->GetMembers();
+      } else {  
+        TString wd = gSystem->WorkingDirectory();
+        TSystemDirectory dir(".", fPathName->Data());
+        members = dir.GetListOfFiles();
+        gSystem->cd(wd);
+      }  
     }
 
     TIter next(members);
@@ -251,6 +267,7 @@ Bool_t AliESDInputHandlerRP::Notify(const char *path)
 	    ent->SetUniqueID(ien++);
 	    fDetectors->Add(ent);
 	}
+	if(tokens) delete tokens;
     } // loop over files
 
 
@@ -269,7 +286,7 @@ Bool_t AliESDInputHandlerRP::Notify(const char *path)
 Bool_t AliESDInputHandlerRP::FinishEvent()
 {
     // Clean-up after each event
-    delete fDirR;  fDirR = 0;
+    fRDirs->Delete();
     AliESDInputHandler::FinishEvent();
     return kTRUE;
 }
@@ -277,11 +294,11 @@ Bool_t AliESDInputHandlerRP::FinishEvent()
 void AliESDInputHandlerRP::ResetIO()
 {
 // Delete trees and files
-    fRFiles->Delete();
+    fRFiles->Clear("nodelete");
     fExtension="";
 }
 
-TTree* AliESDInputHandlerRP::GetTreeR(char* det)
+TTree* AliESDInputHandlerRP::GetTreeR(const char* det)
 {
 // Return pointer to RecPoint tree for detector det
     TNamed* entry = (TNamed*) (fDetectors->FindObject(det));

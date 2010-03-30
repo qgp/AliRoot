@@ -28,7 +28,7 @@
 #include "AliRawReader.h"
 #include "AliTPCclustererMI.h"
 #include "AliTPCtrackerMI.h"
-#include "AliTPCpidESD.h"
+//#include "AliTPCpidESD.h"
 #include "AliTPCParam.h"
 #include "AliTPCParamSR.h"
 #include "AliTPCcalibDB.h"
@@ -117,13 +117,14 @@ AliTracker* AliTPCReconstructor::CreateTracker() const
 
 //_____________________________________________________________________________
 void AliTPCReconstructor::FillESD(TTree */*digitsTree*/, TTree */*clustersTree*/,
-				  AliESDEvent* esd) const
+				  AliESDEvent* /*esd*/) const
 {
 // make PID
-
+/*  Now done in AliESDpid
   Double_t parTPC[] = {50., 0.07, 5.};  // MIP nnormalized to channel 50 -MI
   AliTPCpidESD tpcPID(parTPC);
   tpcPID.MakePID(esd);
+*/
 }
 
 

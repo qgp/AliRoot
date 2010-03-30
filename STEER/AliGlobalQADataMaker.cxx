@@ -7,13 +7,20 @@
 
 #include <TPDGCode.h>
 #include <TH1F.h>
+#include <TH2F.h>
 
+#include "AliCDBPath.h"
+#include "AliCDBEntry.h"
+#include "AliCDBManager.h"
+#include "AliDetectorRecoParam.h"
 #include "AliQAChecker.h"
 #include "AliGlobalQADataMaker.h"
 #include "AliGeomManager.h"
 #include "AliESDEvent.h"
 #include "AliESDv0.h"
 #include "AliRawReader.h"
+#include "AliESDVZERO.h"
+#include "AliMultiplicity.h" 
 
 ClassImp(AliGlobalQADataMaker)
  
@@ -31,12 +38,55 @@ void AliGlobalQADataMaker::InitRaws()
   // create Raws histograms in Raws subdir
 }
 
+//____________________________________________________________________________
+void AliGlobalQADataMaker::InitRecoParams() 
+{
+  // Get the recoparam form the OCDB 
+  if (!fRecoParam) {
+    TString name("GRP") ; 
+    AliDebug(AliQAv1::GetQADebugLevel(), Form("Loading reconstruction parameter objects for detector %s", name.Data()));
+    AliCDBPath path(name.Data(),"Calib","RecoParam");
+    AliCDBEntry *entry=AliCDBManager::Instance()->Get(path.GetPath());
+    if(!entry) {
+      fRecoParam = NULL ; 
+      AliDebug(AliQAv1::GetQADebugLevel(), Form("Couldn't find RecoParam entry in OCDB for detector %s",name.Data()));
+    }
+    else {
+      TObject * recoParamObj = entry->GetObject() ; 
+      if ( strcmp(recoParamObj->ClassName(), "TObjArray") == 0 ) {
+          // The detector has only one set of reco parameters
+        AliDebug(AliQAv1::GetQADebugLevel(), Form("Array of reconstruction parameters found for detector %s",name.Data()));
+        TObjArray *recoParamArray = static_cast<TObjArray*>(recoParamObj) ;
+        for (Int_t iRP=0; iRP<recoParamArray->GetEntriesFast(); iRP++) {
+          fRecoParam = static_cast<AliDetectorRecoParam*>(recoParamArray->At(iRP)) ;
+          if (!fRecoParam) 
+            break ; 
+          else if (fRecoParam->IsDefault()) 
+            break ; 
+        }
+      }
+      else if (recoParamObj->InheritsFrom("AliDetectorRecoParam")) {
+          // The detector has only one set of reco parameters
+          // Registering it in AliRecoParam
+        AliDebug(AliQAv1::GetQADebugLevel(), Form("Single set of reconstruction parameters found for detector %s",name.Data()));
+        fRecoParam = static_cast<AliDetectorRecoParam*>(recoParamObj) ;
+        static_cast<AliDetectorRecoParam*>(recoParamObj)->SetAsDefault();
+      } else { 
+        AliError(Form("No valid RecoParam object found in the OCDB for detector %s",name.Data()));
+      }
+    }
+  }
+}
+
 //____________________________________________________________________________ 
 void AliGlobalQADataMaker::InitRecPoints() {
   //------------------------------------------------------
   // This function books the histograms of *track*residuals*
   // as a part of global QA
   //------------------------------------------------------
+  static Bool_t first = kTRUE ; 
+  if ( ! first ) 
+    return ; 
   const Char_t *name[]={
     "hGlobalSPD1ResidualsY","SPD1ResidualsZ",
     "hGlobalSPD2ResidualsY","SPD2ResidualsZ",
@@ -131,6 +181,7 @@ void AliGlobalQADataMaker::InitRecPoints() {
   new TH1F("hGlobalSSD2AbsoluteResidualsZPosZ",
            "SSD2Absolute Residuals Z Pos Z",100,-3.,3.),47);
   
+  first = kFALSE ; 
 }
 
 //____________________________________________________________________________ 
@@ -140,20 +191,25 @@ void AliGlobalQADataMaker::InitESDs() {
   // as a part of global QA
   //------------------------------------------------------
 
-  {// Cluster related QA
+  const Bool_t expert   = kTRUE ; 
+  const Bool_t image    = kTRUE ; 
+ {// Cluster related QA
     const Char_t *name[]={
       "hGlobalFractionAssignedClustersITS",
       "hGlobalFractionAssignedClustersTPC",
-      "hGlobalFractionAssignedClustersTRD"
+      "hGlobalFractionAssignedClustersTRD",
+      "hGlobalClustersPerITSModule"
     };
     const Char_t *title[]={
       "Fraction of the assigned clusters in ITS",
       "Fraction of the assigned clusters in TPC",
-      "Fraction of the assigned clusters in TRD"
+      "Fraction of the assigned clusters in TRD",
+      "Number of clusters per an ITS module"
     };
-    Add2ESDsList(new TH1F(name[0],title[0],100,0.,2.),kClr0);
-    Add2ESDsList(new TH1F(name[1],title[1],100,0.,2.),kClr1);
-    Add2ESDsList(new TH1F(name[2],title[2],100,0.,2.),kClr2);
+    Add2ESDsList(new TH1F(name[0],title[0],100,0.,2.),kClr0, !expert, image);
+    Add2ESDsList(new TH1F(name[1],title[1],100,0.,2.),kClr1, !expert, image);
+    Add2ESDsList(new TH1F(name[2],title[2],100,0.,2.),kClr2, !expert, image);
+    Add2ESDsList(new TH1F(name[3],title[3],2201,-0.5,2200.5),kClr3, !expert, image);
   }
 
   {// Track related QA
@@ -164,7 +220,11 @@ void AliGlobalQADataMaker::InitESDs() {
       "hGlobalTPCITSMatchedpT",                             // kTrk3
       "hGlobalTPCTOFMatchedpT",                             // kTrk4
       "hGlobalTPCITSMatchingProbability",                   // kTrk5
-      "hGlobalTPCTOFMatchingProbability"                    // kTrk6
+      "hGlobalTPCTOFMatchingProbability",                   // kTrk6
+      "hGlobalTPCsideAposDCA",                              // kTrk7
+      "hGlobalTPCsideAnegDCA",                              // kTrk8
+      "hGlobalTPCsideCposDCA",                              // kTrk9
+      "hGlobalTPCsideCnegDCA"                               // kTrk10
   };
     const Char_t *title[]={
       "Track azimuthal distribution (rad)",                   // kTrk0
@@ -173,15 +233,23 @@ void AliGlobalQADataMaker::InitESDs() {
       "TPC-ITS matched: track momentum distribution (GeV)",   // kTrk3
       "TPC-TOF matched: track momentum distribution (GeV)",   // kTrk4
       "TPC-ITS track-matching probability",                   // kTrk5
-      "TPC-TOF track-matching probability"                    // kTrk6
+      "TPC-TOF track-matching probability",                   // kTrk6
+      "TPC side A: DCA for the positive tracks (mm)",         // kTrk7
+      "TPC side A: DCA for the negative tracks (mm)",         // kTrk8
+      "TPC side C: DCA for the positive tracks (mm)",         // kTrk9
+      "TPC side C: DCA for the negative tracks (mm)"          // kTrk10
     };
-  Add2ESDsList(new TH1F(name[0],title[0],100, 0.,TMath::TwoPi()),kTrk0);
-  Add2ESDsList(new TH1F(name[1],title[1],100,-2.00,2.00),kTrk1);
-  Add2ESDsList(new TH1F(name[2],title[2],50,  0.20,5.00),kTrk2);
-  Add2ESDsList(new TH1F(name[3],title[3],50,  0.20,5.00),kTrk3);
-  Add2ESDsList(new TH1F(name[4],title[4],50,  0.20,5.00),kTrk4);
-  Add2ESDsList(new TH1F(name[5],title[5],50,  0.20,5.00),kTrk5);
-  Add2ESDsList(new TH1F(name[6],title[6],50,  0.20,5.00),kTrk6);
+  Add2ESDsList(new TH1F(name[0],title[0],100, 0.,TMath::TwoPi()),kTrk0, !expert, image);
+  Add2ESDsList(new TH1F(name[1],title[1],100,-2.00,2.00),kTrk1, !expert, image);
+  Add2ESDsList(new TH1F(name[2],title[2],50,  0.20,5.00),kTrk2, !expert, image);
+  Add2ESDsList(new TH1F(name[3],title[3],50,  0.20,5.00),kTrk3, !expert, image);
+  Add2ESDsList(new TH1F(name[4],title[4],50,  0.20,5.00),kTrk4, !expert, image);
+  Add2ESDsList(new TH1F(name[5],title[5],50,  0.20,5.00),kTrk5, !expert, image);
+  Add2ESDsList(new TH1F(name[6],title[6],50,  0.20,5.00),kTrk6, !expert, image);
+  Add2ESDsList(new TH1F(name[7],title[7],50, -25.0,25.0),kTrk7, !expert, image);
+  Add2ESDsList(new TH1F(name[8],title[8],50, -25.0,25.0),kTrk8, !expert, image);
+  Add2ESDsList(new TH1F(name[9],title[9],50, -25.0,25.0),kTrk9, !expert, image);
+  Add2ESDsList(new TH1F(name[10],title[10],50, -25.0,25.0),kTrk10, !expert, image);
   }
 
   {// V0 related QA
@@ -197,26 +265,43 @@ void AliGlobalQADataMaker::InitESDs() {
       "On-the-fly Lambda0 + Lambda0Bar mass (GeV)",
       "Offline Lambda0 + Lambda0Bar mass (GeV)"
     };
-    Add2ESDsList(new TH1F(name[0],title[0],50,  0.4477,0.5477),kK0on);
-    Add2ESDsList(new TH1F(name[1],title[1],50,  0.4477,0.5477),kK0off);
-    Add2ESDsList(new TH1F(name[2],title[2],50,  1.0657,1.1657),kL0on);
-    Add2ESDsList(new TH1F(name[3],title[3],50,  1.0657,1.1657),kL0off);
+    Add2ESDsList(new TH1F(name[0],title[0],50,  0.4477,0.5477),kK0on, !expert, image);
+    Add2ESDsList(new TH1F(name[1],title[1],50,  0.4477,0.5477),kK0off, !expert, image);
+    Add2ESDsList(new TH1F(name[2],title[2],50,  1.0657,1.1657),kL0on, !expert, image);
+    Add2ESDsList(new TH1F(name[3],title[3],50,  1.0657,1.1657),kL0off, !expert, image);
   }
 
   {// PID related QA
   const Char_t *name[]={
     "hGlobalITSdEdx",
     "hGlobalTPCdEdx",
-    "hGlobalTOFTrackingvsMeasured"
-  };
+    "hGlobalTOFTrackingvsMeasured",
+    "hGlobalTPCdEdxvsMomentum"
+   };
     const Char_t *title[]={
       "ITS: dEdx (ADC) for particles with momentum 0.4 - 0.5 (GeV)",
       "TPC: dEdx (ADC) for particles with momentum 0.4 - 0.5 (GeV)",
-      "TOF: tracking - measured (ps)"
+      "TOF: tracking - measured (ps)",
+      "TPC: dEdx (A.U.) vs momentum (GeV)"
+     };
+    Add2ESDsList(new TH1F(name[0],title[0],50,0.00,200.),kPid0, !expert, image);
+    Add2ESDsList(new TH1F(name[1],title[1],50,0.00,100.),kPid1, !expert, image);
+    Add2ESDsList(new TH1F(name[2],title[2],50,-3500.,3500.),kPid2, !expert, image);
+    Add2ESDsList(new TH2F(name[3],title[3],1500,0.05,15.,700,0.,700.),kPid3,!expert,image);
+   }
+  {// Multiplicity related QA
+    const Char_t *name[]={
+      "hGlobalV0AvsITS",
+      "hGlobalV0CvsITS"
     };
-    Add2ESDsList(new TH1F(name[0],title[0],50,0.00,200.),kPid0);
-    Add2ESDsList(new TH1F(name[1],title[1],50,0.00,100.),kPid1);
-    Add2ESDsList(new TH1F(name[2],title[2],50,-3500.,3500.),kPid2);
+    const Char_t *title[]={
+      "Multiplicity: V0A vs ITS",
+      "Multiplicity: V0C vs ITS"
+    };
+    TH2F *h0=new TH2F(name[0],title[0],41,-0.5,40.5, 33,-0.5,32.5);
+    Add2ESDsList(h0,kMlt0, !expert, image);
+    TH2F *h1=new TH2F(name[1],title[1],41,-0.5,40.5, 33,-0.5,32.5);
+    Add2ESDsList(h1,kMlt1, !expert, image);
   }
 
 }
@@ -235,10 +320,6 @@ void AliGlobalQADataMaker::MakeESDs(AliESDEvent * event) {
   // This function fills the ESD QA histograms
   // as a part of global QA
   //-----------------------------------------------------------
-  // Check id histograms already created for this Event Specie
-  if ( ! GetESDsData(kClr0) )
-    InitESDs() ;
-
 
   const AliESDEvent *esd=event;
 
@@ -250,6 +331,15 @@ void AliGlobalQADataMaker::MakeESDs(AliESDEvent * event) {
     if (track->IsOn(AliESDtrack::kITSrefit)) {
       Int_t n=track->GetITSclusters(0);
       GetESDsData(kClr0)->Fill(Float_t(n)/6.); //6 is the number of ITS layers
+    }
+
+    for (Int_t j=0; j<6; ++j) {
+      Int_t idet, sts;
+      Float_t xloc,zloc;
+      if (!track->GetITSModuleIndexInfo(j,idet,sts,xloc,zloc)) continue;
+      if (j>=2) idet+=240;
+      if (j>=4) idet+=260;
+      if ((sts==1)||(sts==2)||(sts==4)) GetESDsData(kClr3)->Fill(idet);  
     }
 
     if (track->IsOn(AliESDtrack::kTPCrefit)) {
@@ -286,6 +376,28 @@ void AliGlobalQADataMaker::MakeESDs(AliESDEvent * event) {
 	}
       }
     }
+    const AliExternalTrackParam *tpcTrack=track->GetTPCInnerParam();
+    const AliExternalTrackParam *innTrack=track->GetInnerParam();
+    if (tpcTrack)
+    if (innTrack) {
+       const AliESDVertex *vtx=esd->GetPrimaryVertex();
+       Double_t xv=vtx->GetXv();
+       Double_t yv=vtx->GetYv();
+       Double_t zv=vtx->GetZv();
+       Float_t dz[2];
+       tpcTrack->GetDZ(xv,yv,zv,esd->GetMagneticField(),dz);
+       dz[0]*=10.; // in mm
+       if (innTrack->GetZ()  > 0)
+       if (innTrack->GetTgl()> 0) { // TPC side A
+	  if (tpcTrack->GetSign() > 0) GetESDsData(kTrk7)->Fill(dz[0]);
+          else                         GetESDsData(kTrk8)->Fill(dz[0]);
+       }
+       if (innTrack->GetZ()  < 0)
+       if (innTrack->GetTgl()< 0) { // TPC side C
+	  if (tpcTrack->GetSign() > 0) GetESDsData(kTrk9)->Fill(dz[0]);
+          else                         GetESDsData(kTrk10)->Fill(dz[0]);
+       }
+    }
 
     // PID related QA
     if ((p>0.4) && (p<0.5)) {
@@ -306,7 +418,30 @@ void AliGlobalQADataMaker::MakeESDs(AliESDEvent * event) {
         GetESDsData(kPid2)->Fill(times[2]-tof);
       }
     }
+    const AliExternalTrackParam *par=track->GetInnerParam();
+    if (par) {
+      Double_t pp=par->GetP();
+      Double_t dedx=track->GetTPCsignal();
+      TH2F *h = dynamic_cast<TH2F*>(GetESDsData(kPid3));
+      h->Fill(pp,dedx);
+    }
+ 
   }
+
+  // Multiplicity related QA
+  AliESDVZERO     *mltV0 =esd->GetVZEROData();
+  const AliMultiplicity *mltITS=esd->GetMultiplicity();
+  if (mltV0)
+    if (mltITS) {
+       Short_t nv0a=mltV0->GetNbPMV0A();
+       Short_t nv0c=mltV0->GetNbPMV0C();
+       Int_t   nits=mltITS->GetNumberOfTracklets();
+       TH2F *h0=dynamic_cast<TH2F*>(GetESDsData(kMlt0));
+       h0->Fill(nits,nv0a);
+       TH2F *h1=dynamic_cast<TH2F*>(GetESDsData(kMlt1));
+       h1->Fill(nits,nv0c);
+    }
+
 
   TH1 *tpc=GetESDsData(kTrk2); tpc->Sumw2();
   TH1 *its=GetESDsData(kTrk3); its->Sumw2();

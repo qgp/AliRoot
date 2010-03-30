@@ -33,6 +33,8 @@
 
 #include "AliESDInputHandler.h"
 #include "AliESDEvent.h"
+#include "AliESDfriend.h"
+#include "AliVCuts.h"
 #include "AliESD.h"
 #include "AliRunTag.h"
 #include "AliEventTag.h"
@@ -46,6 +48,8 @@ static Option_t *gESDDataType = "ESD";
 AliESDInputHandler::AliESDInputHandler() :
   AliInputEventHandler(),
   fEvent(0x0),
+  fFriend(0x0),
+  fESDpid(0x0),
   fAnalysisType(0),
   fNEvents(0),
   fHLTEvent(0x0),
@@ -55,7 +59,9 @@ AliESDInputHandler::AliESDInputHandler() :
   fUseTags(kFALSE),
   fChainT(0),
   fTreeT(0),
-  fRunTag(0)
+  fRunTag(0),
+  fReadFriends(1),
+  fFriendFileName("AliESDfriends.root")
 {
   // default constructor
 }
@@ -69,8 +75,8 @@ AliESDInputHandler::~AliESDInputHandler()
 
 //______________________________________________________________________________
 AliESDInputHandler::AliESDInputHandler(const char* name, const char* title):
-    AliInputEventHandler(name, title), fEvent(0x0), fAnalysisType(0),
-    fNEvents(0),  fHLTEvent(0x0), fHLTTree(0x0), fUseHLT(kFALSE), fTagCutSumm(0x0), fUseTags(kFALSE), fChainT(0), fTreeT(0), fRunTag(0)
+    AliInputEventHandler(name, title), fEvent(0x0), fFriend(0x0), fESDpid(0x0), fAnalysisType(0),
+    fNEvents(0),  fHLTEvent(0x0), fHLTTree(0x0), fUseHLT(kFALSE), fTagCutSumm(0x0), fUseTags(kFALSE), fChainT(0), fTreeT(0), fRunTag(0), fReadFriends(1), fFriendFileName("AliESDfriends.root")
 {
     // Constructor
 }
@@ -88,16 +94,27 @@ Bool_t AliESDInputHandler::Init(TTree* tree,  Option_t* opt)
     SwitchOffBranches();
     SwitchOnBranches();
     
+    if (!fTree->FindBranch("ESDfriend.") && fReadFriends) {
+      // Try to add ESDfriend. branch as friend
+      TString esdTreeFName, esdFriendTreeFName;    
+      TTree* theTree = fTree->GetTree();
+      if (!theTree) theTree = tree;
+      esdTreeFName = (theTree->GetCurrentFile())->GetName();
+      esdFriendTreeFName = esdTreeFName;
+      esdFriendTreeFName.ReplaceAll("AliESDs.root", fFriendFileName.Data());
+      theTree->AddFriend("esdFriendTree", esdFriendTreeFName.Data());
+    }
+
     if (!fEvent) fEvent = new AliESDEvent();
     fEvent->ReadFromTree(fTree);
     fNEvents = fTree->GetEntries();
-
-
+    fFriend = (AliESDfriend*)(fEvent->FindListObject("AliESDfriend"));
     return kTRUE;
 }
 
 Bool_t AliESDInputHandler::BeginEvent(Long64_t entry)
 {
+    
     // Copy from old to new format if necessary
   AliESD* old = ((AliESDEvent*) fEvent)->GetAliESDOld();
   if (old) {
@@ -108,6 +125,16 @@ Bool_t AliESDInputHandler::BeginEvent(Long64_t entry)
   if (fHLTTree) {
       fHLTTree->GetEntry(entry);
   }
+  
+  fNewEvent = kTRUE;
+  //
+  // Event selection
+  // 
+  if (fEventCuts)
+    fIsSelected = fEventCuts->IsSelected((AliESDEvent*)fEvent); 
+  //
+  // Friends
+  ((AliESDEvent*)fEvent)->SetESDfriend(fFriend);
   
   return kTRUE;
 }
@@ -337,7 +364,7 @@ Bool_t AliESDInputHandler::GetCutSummaryForChain(Int_t *aTotal, Int_t *aAccepted
   Int_t iTotList=0, iAccList=0, iRejList=0;
 
   TObject *cobj;
-  while (cobj = tIter->Next()) {
+  while ((cobj = tIter->Next())) {
     TObjString *kstr = (TObjString *) cobj;
     TObjString *vstr = (TObjString *) fTagCutSumm->GetValue(kstr->GetString().Data());
     //    printf("Got object value %s %s\n", kstr->GetString().Data(), vstr->GetString().Data());
@@ -385,7 +412,7 @@ Int_t AliESDInputHandler::GetNFilesEmpty()
   Int_t iFilesEmpty = 0;
 
   TObject *cobj;
-  while (cobj = tIter->Next()) {
+  while ((cobj = tIter->Next())) {
     TObjString *kstr = (TObjString *) cobj;
     TObjString *vstr = (TObjString *) fTagCutSumm->GetValue(kstr->GetString().Data());
     //    printf("Got object value %s %s\n", kstr->GetString().Data(), vstr->GetString().Data());

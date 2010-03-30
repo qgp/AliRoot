@@ -1,18 +1,28 @@
-void runProtonAnalysis(const char* esdAnalysisType = "Hybrid",
-		       const char* pidMode = "Bayesian") {
+void runProtonAnalysis(Bool_t kAnalyzeMC = kTRUE,
+		       const char* esdAnalysisType = "Hybrid",
+		       const char* pidMode = "Bayesian",
+		       Int_t runNumberForOfflineTtrigger = -1) {
   //Macro to run the proton analysis tested for local, proof & GRID.
-  //Local: Takes four arguments, the analysis mode, the type of the ESD 
-  //       analysis, the PID mode and the path where the tag and ESD or 
-  //       AOD files reside.
-  //Interactive: Takes four arguments, the analysis mode, the type of the ESD 
-  //             analysis, the PID mode and the name of the collection of tag 
+  //Local: Takes six arguments, the analysis mode, a boolean to define the ESD
+  //       analysis of MC data, the type of the ESD analysis, the PID mode, 
+  //       the run number for the offline trigger in case of real data 
+  //       analysis and the path where the tag and ESD or AOD files reside.
+  //Interactive: Takes six arguments, the analysis mode, a boolean to define 
+  //             the ESD analysis of MC data, the type of the ESD analysis, 
+  //             the PID mode, the run number for the offline trigger in case 
+  //             of real data analysis and the name of the collection of tag 
   //             files.
-  //Batch: Takes four arguments, the analysis mode, the type of the ESD 
-  //       analysis, the PID mode and the name of the collection file with 
+  //Batch: Takes six arguments, the analysis mode, a boolean to define 
+  //       the ESD analysis of MC data, the type of the ESD analysis, 
+  //       the PID mode, the run number for the offline trigger in case 
+  //       of real data analysis and the name of the collection file with 
   //       the event list for each file.
-  //Proof: Takes five arguments, the analysis level, the analysis mode in 
-  //       case of ESD, the PID mode, the number of events and the dataset 
-  //       name and .  
+  //Proof: Takes eight arguments, the analysis mode, a boolean to define 
+  //       the ESD analysis of MC data, the type of the ESD analysis, 
+  //       the PID mode, the run number for the offline trigger in case 
+  //       of real data analysis, the number of events to be analyzed, 
+  //       the event number from where we start the analysis and the dataset 
+  //========================================================================
   //Analysis mode can be: "MC", "ESD", "AOD"
   //ESD analysis type can be one of the three: "TPC", "Hybrid", "Global"
   //PID mode can be one of the four: "Bayesian" (standard Bayesian approach) 
@@ -22,23 +32,27 @@ void runProtonAnalysis(const char* esdAnalysisType = "Hybrid",
   TStopwatch timer;
   timer.Start();
   
-  /*runLocal("ESD",
+  runLocal("ESD", 
+	   kAnalyzeMC,
 	   esdAnalysisType,
-	   pidMode,
-	   "/home/pchrist/ALICE/Baryons/QA/Local");*/
-  //runInteractive("ESD",esdAnalysisType,pidMode,"tag.xml");
-  //runBatch("ESD",esdAnalysisType,pidMode,"wn.xml");  
-  runProof("ESD",esdAnalysisType,pidMode,
-	   500000,0,"/COMMON/COMMON/LHC09a4_run8100X#esdTree");
-  
+	   pidMode, runNumberForOfflineTtrigger,
+	   "/home/pchrist/ALICE/Baryons/Data/104070");
+  //runInteractive("ESD", kAnalyzeMC, esdAnalysisType, pidMode, runNumberForOfflineTtrigger, "tag.xml");
+  //runBatch("ESD", kAnalyzeMC, esdAnalysisType, pidMode, runNumberForOfflineTtrigger, "wn.xml");  
+  //runProof("ESD", kAnalyzeMC, esdAnalysisType, pidMode,
+  //runNumberForOfflineTtrigger,
+  //500000,0,"/COMMON/COMMON/LHC09d1_0.9TeV_0.5T#esdTree");
+
   timer.Stop();
   timer.Print();
 }
 
 //_________________________________________________//
 void runLocal(const char* mode = "ESD",
+	      Bool_t kAnalyzeMC = kTRUE,
 	      const char* analysisType = 0x0,
 	      const char* pidMode = 0x0,
+	      UInt_t runNumberForOfflineTtrigger = -1,
 	      const char* path = "/home/pchrist/ALICE/Alien/Tutorial/November2007/Tags") {
   TString smode = mode;
   TString outputFilename = "Protons."; outputFilename += mode;
@@ -82,9 +96,10 @@ void runLocal(const char* mode = "ESD",
 
   //____________________________________________//
   gROOT->LoadMacro("configProtonAnalysis.C");
-  AliProtonAnalysis *analysis = GetProtonAnalysisObject(mode,
+  AliProtonAnalysis *analysis = GetProtonAnalysisObject(mode,kAnalyzeMC,
 							analysisType,
-							pidMode);
+							pidMode,
+							runNumberForOfflineTtrigger);
   //____________________________________________//
   // Make the analysis manager
   AliAnalysisManager *mgr = new AliAnalysisManager("protonAnalysisManager");
@@ -102,10 +117,12 @@ void runLocal(const char* mode = "ESD",
   mgr->AddTask(taskProtons);
 
   // Create containers for input/output
-  AliAnalysisDataContainer *cinput1 = mgr->CreateContainer("dataChain",
-							   TChain::Class(),
-							   AliAnalysisManager::kInputContainer);
+  AliAnalysisDataContainer *cinput1 = mgr->GetCommonInputContainer();
   AliAnalysisDataContainer *coutput1 = mgr->CreateContainer("outputList",
+                                                            TList::Class(),
+							    AliAnalysisManager::kOutputContainer,
+                                                            outputFilename.Data());
+  AliAnalysisDataContainer *coutput2 = mgr->CreateContainer("outputQAList",
                                                             TList::Class(),
 							    AliAnalysisManager::kOutputContainer,
                                                             outputFilename.Data());
@@ -113,6 +130,7 @@ void runLocal(const char* mode = "ESD",
   //____________________________________________//
   mgr->ConnectInput(taskProtons,0,cinput1);
   mgr->ConnectOutput(taskProtons,0,coutput1);
+  mgr->ConnectOutput(taskProtons,1,coutput2);
   if (!mgr->InitAnalysis()) return;
   mgr->PrintStatus();
   mgr->StartAnalysis("local",chain);
@@ -120,8 +138,10 @@ void runLocal(const char* mode = "ESD",
 
 //_________________________________________________//
 void runInteractive(const char* mode = "ESD",
+		    Bool_t kAnalyzeMC = kTRUE,
 		    const char* analysisType = 0x0,
 		    const char* pidMode = 0x0,
+		    UInt_t runNumberForOfflineTtrigger = -1,
 		    const char* collectionName = "tag.xml") {
   gSystem->Load("libProofPlayer.so");
 
@@ -173,9 +193,10 @@ void runInteractive(const char* mode = "ESD",
   
   //____________________________________________//
   gROOT->LoadMacro("configProtonAnalysis.C");
-  AliProtonAnalysis *analysis = GetProtonAnalysisObject(mode,
+  AliProtonAnalysis *analysis = GetProtonAnalysisObject(mode,kAnalyzeMC,
 							analysisType,
-							pidMode);
+							pidMode,
+							runNumberForOfflineTtrigger);
   //____________________________________________//
   // Make the analysis manager
   AliAnalysisManager *mgr = new AliAnalysisManager("protonAnalysisManager");
@@ -193,17 +214,20 @@ void runInteractive(const char* mode = "ESD",
   mgr->AddTask(taskProtons);
 
   // Create containers for input/output
-  AliAnalysisDataContainer *cinput1 = mgr->CreateContainer("dataChain",
-							   TChain::Class(),
-							   AliAnalysisManager::kInputContainer);
+  AliAnalysisDataContainer *cinput1 = mgr->GetCommonInputContainer();
   AliAnalysisDataContainer *coutput1 = mgr->CreateContainer("outputList",
                                                             TList::Class(),
 							    AliAnalysisManager::kOutputContainer,
                                                             outputFilename.Data());
-  
+  AliAnalysisDataContainer *coutput2 = mgr->CreateContainer("outputQAList",
+                                                            TList::Class(),
+							    AliAnalysisManager::kOutputContainer,
+                                                            outputFilename.Data());
+
   //____________________________________________//
   mgr->ConnectInput(taskProtons,0,cinput1);
   mgr->ConnectOutput(taskProtons,0,coutput1);
+  mgr->ConnectOutput(taskProtons,1,coutput2);
   if (!mgr->InitAnalysis()) return;
   mgr->PrintStatus();
   mgr->StartAnalysis("local",chain);
@@ -211,8 +235,10 @@ void runInteractive(const char* mode = "ESD",
 
 //_________________________________________________//
 void runBatch(const char* mode = "ESD",
+	      Bool_t kAnalyzeMC = kTRUE,
 	      const char* analysisType = 0x0,
 	      const char* pidMode = 0x0,
+	      UInt_t runNumberForOfflineTtrigger = -1,
 	      const char *collectionfile = "wn.xml") {
   TString smode = mode;
   TString outputFilename = "Protons."; outputFilename += mode;
@@ -254,9 +280,10 @@ void runBatch(const char* mode = "ESD",
 
   //____________________________________________//
   gROOT->LoadMacro("configProtonAnalysis.C");
-  AliProtonAnalysis *analysis = GetProtonAnalysisObject(mode,
+  AliProtonAnalysis *analysis = GetProtonAnalysisObject(mode,kAnalyzeMC,
 							analysisType,
-							pidMode);
+							pidMode,
+							runNumberForOfflineTtrigger);
   //____________________________________________//
   // Make the analysis manager
   AliAnalysisManager *mgr = new AliAnalysisManager("protonAnalysisManager");
@@ -274,17 +301,20 @@ void runBatch(const char* mode = "ESD",
   mgr->AddTask(taskProtons);
 
   // Create containers for input/output
-  AliAnalysisDataContainer *cinput1 = mgr->CreateContainer("dataChain",
-							   TChain::Class(),
-							   AliAnalysisManager::kInputContainer);
+  AliAnalysisDataContainer *cinput1 = mgr->GetCommonInputContainer();
   AliAnalysisDataContainer *coutput1 = mgr->CreateContainer("outputList",
                                                             TList::Class(),
 							    AliAnalysisManager::kOutputContainer,
                                                             outputFilename.Data());
-
+  AliAnalysisDataContainer *coutput2 = mgr->CreateContainer("outputQAList",
+                                                            TList::Class(),
+							    AliAnalysisManager::kOutputContainer,
+                                                            outputFilename.Data());
+  
   //____________________________________________//
   mgr->ConnectInput(taskProtons,0,cinput1);
   mgr->ConnectOutput(taskProtons,0,coutput1);
+  mgr->ConnectOutput(taskProtons,1,coutput2);
   if (!mgr->InitAnalysis()) return;
   mgr->PrintStatus();
   mgr->StartAnalysis("grid",chain);
@@ -292,8 +322,10 @@ void runBatch(const char* mode = "ESD",
 
 //_________________________________________________//
 void runProof(const char* mode = "ESD",
+	      Bool_t kAnalyzeMC = kTRUE,
 	      const char* analysisType = 0x0,
 	      const char* pidMode = 0x0,
+	      UInt_t runNumberForOfflineTtrigger = -1,
 	      Int_t stats = 0, Int_t startingPoint = 0,
 	      const char* dataset = 0x0) {  
   TString smode = mode;
@@ -326,9 +358,10 @@ void runProof(const char* mode = "ESD",
   
   //____________________________________________//
   gROOT->LoadMacro("configProtonAnalysis.C");
-  AliProtonAnalysis *analysis = GetProtonAnalysisObject(mode,
+  AliProtonAnalysis *analysis = GetProtonAnalysisObject(mode,kAnalyzeMC,
 							analysisType,
-							pidMode);
+							pidMode,
+							runNumberForOfflineTtrigger);
   //____________________________________________//
 
   //____________________________________________//
@@ -347,11 +380,12 @@ void runProof(const char* mode = "ESD",
   mgr->AddTask(taskProtons);
 
   // Create containers for input/output
-  /*AliAnalysisDataContainer *cinput1 = mgr->CreateContainer("dataChain",
-							   TChain::Class(),
-							   AliAnalysisManager::kInputContainer);*/
   AliAnalysisDataContainer *cinput1 = mgr->GetCommonInputContainer();
   AliAnalysisDataContainer *coutput1 = mgr->CreateContainer("outputList",
+                                                            TList::Class(),
+							    AliAnalysisManager::kOutputContainer,
+                                                            outputFilename.Data());
+  AliAnalysisDataContainer *coutput2 = mgr->CreateContainer("outputQAList",
                                                             TList::Class(),
 							    AliAnalysisManager::kOutputContainer,
                                                             outputFilename.Data());
@@ -359,6 +393,7 @@ void runProof(const char* mode = "ESD",
   //____________________________________________//
   mgr->ConnectInput(taskProtons,0,cinput1);
   mgr->ConnectOutput(taskProtons,0,coutput1);
+  mgr->ConnectOutput(taskProtons,1,coutput2);
   if (!mgr->InitAnalysis()) return;
   mgr->PrintStatus();
 

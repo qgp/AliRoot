@@ -168,6 +168,7 @@ fVTimeStampEvent(100000)
   fLastTimeBin=1020;
   if (config->GetValue("FirstTimeBin")) fFirstTimeBin = ((TObjString*)config->GetValue("FirstTimeBin"))->GetString().Atoi();
   if (config->GetValue("LastTimeBin")) fLastTimeBin = ((TObjString*)config->GetValue("LastTimeBin"))->GetString().Atoi();
+  if (config->GetValue("DebugLevel")) fDebugLevel = ((TObjString*)config->GetValue("DebugLevel"))->GetString().Atoi();
 }
 
 //_____________________________________________________________________
@@ -317,7 +318,7 @@ void AliTPCCalibRaw::EndEvent()
     }
   }
   // store phase of current event
-  if (fArrALTROL1Phase.GetNrows()<=GetNevents())
+  if (fArrALTROL1Phase.GetNrows()-1<=GetNevents())
     fArrALTROL1Phase.ResizeTo(GetNevents()+10000);
   (fArrALTROL1Phase.GetMatrixArray())[GetNevents()]=phaseMaxEntries;
   
@@ -328,7 +329,7 @@ void AliTPCCalibRaw::EndEvent()
     if (phase<0) continue;
     if (phase!=phaseMaxEntries){
       TVectorF *arr=MakeArrL1PhaseRCU(fCurrDDLNum,kTRUE);
-      if (arr->GetNrows()<=(Int_t)fNFailL1PhaseEvent) arr->ResizeTo(arr->GetNrows()+100);
+      if (arr->GetNrows()-1<=(Int_t)fNFailL1PhaseEvent) arr->ResizeTo(arr->GetNrows()+100);
       (arr->GetMatrixArray())[fNFailL1PhaseEvent]=phase;
       ++fNFailL1Phase;
       fail=1;
@@ -337,7 +338,7 @@ void AliTPCCalibRaw::EndEvent()
     fArrCurrentPhase[ircu]=-1;
   }
   if (fail){
-    if (fArrFailEventNumber.GetNrows()<=(Int_t)fNFailL1PhaseEvent) fArrFailEventNumber.ResizeTo(fArrFailEventNumber.GetNrows()+100);
+    if (fArrFailEventNumber.GetNrows()-1<=(Int_t)fNFailL1PhaseEvent) fArrFailEventNumber.ResizeTo(fArrFailEventNumber.GetNrows()+100);
     fArrFailEventNumber.GetMatrixArray()[fNFailL1PhaseEvent]=GetNevents();
   }
   fNFailL1PhaseEvent+=fail;
@@ -345,7 +346,7 @@ void AliTPCCalibRaw::EndEvent()
   fVTimeStampEvent.GetMatrixArray()[GetNevents()]=GetTimeStamp()-fFirstTimeStamp+fNanoSec*1e-9;
   fNanoSec=0;
   //occupance related
-  if (fVOccupancyEvent.GetNrows()<=GetNevents()){
+  if (fVOccupancyEvent.GetNrows()-1<=GetNevents()){
     fVOccupancyEvent.ResizeTo(GetNevents()+10000);
     fVSignalSumEvent.ResizeTo(GetNevents()+10000);
     fVOccupancySenEvent.ResizeTo(GetNevents()+10000);
@@ -500,13 +501,22 @@ void AliTPCCalibRaw::Analyse()
 //    TVectorF *arrF=MakeArrL1PhaseFailRCU(ircu);
 //     arrF->ResizeTo(1);
   }
-  //resize occupancy arrays
-  fVTimeStampEvent.ResizeTo(GetNevents());
-  fVOccupancyEvent.ResizeTo(GetNevents());
+  //resize occupancy arrays only save event occupancy in sensitive regions by default
+  //save the rest in debub mode
   fVOccupancySenEvent.ResizeTo(GetNevents());
-  fVSignalSumEvent.ResizeTo(GetNevents());
-  fVSignalSumSenEvent.ResizeTo(GetNevents());
-  fVNfiredPadsSenEvent.ResizeTo(GetNevents());
+  if (fDebugLevel>0){
+    fVOccupancyEvent.ResizeTo(GetNevents());
+    fVSignalSumEvent.ResizeTo(GetNevents());
+    fVSignalSumSenEvent.ResizeTo(GetNevents());
+    fVNfiredPadsSenEvent.ResizeTo(GetNevents());
+    fVTimeStampEvent.ResizeTo(GetNevents());
+  } else {
+    fVOccupancyEvent.ResizeTo(0);
+    fVSignalSumEvent.ResizeTo(0);
+    fVSignalSumSenEvent.ResizeTo(0);
+    fVNfiredPadsSenEvent.ResizeTo(0);
+    fVTimeStampEvent.ResizeTo(0);
+  }
   //Analyse drift velocity TODO
   
 }
@@ -528,7 +538,7 @@ TGraph* AliTPCCalibRaw::MakeGraphOccupancy(const Int_t type, const Int_t xType)
   // type=11:  mean data volume (ADC counts/sample)
   // type=12:  data volume (ADC counts)
   // type=13:  samples per ADC count
-  // type=14:   sample occupancy
+  // type=14:  sample occupancy
   //
   // type=16: number of samples sensitive / number of pads sensitive
   // type=17: pad occupancy in sensitive regions
@@ -540,10 +550,15 @@ TGraph* AliTPCCalibRaw::MakeGraphOccupancy(const Int_t type, const Int_t xType)
   TString xTitle("Time");
   TString yTitle("number of samples");
   TGraph *gr=new TGraph(GetNevents());
+  if (fVSignalSumEvent.GetNrows()==0&&!(type==10||type==14)) return 0;
   TVectorF *vOcc=&fVOccupancyEvent;
   TVectorF *vSum=&fVSignalSumEvent;
   TVectorF *vPads=&fVNfiredPadsSenEvent;
   Double_t norm=557568.;
+  if (type!=14&&fVOccupancyEvent.GetNrows()==0){
+    AliWarning("In non debug mode only occupancy in sensitive regions vs. event awailable!!!");
+    return 0;
+  }
   if (type>=10){
     vOcc=&fVOccupancySenEvent;
     vSum=&fVSignalSumSenEvent;
@@ -552,9 +567,16 @@ TGraph* AliTPCCalibRaw::MakeGraphOccupancy(const Int_t type, const Int_t xType)
   }
   for (Int_t i=0;i<GetNevents(); ++i){
     Double_t nAboveThreshold=vOcc->GetMatrixArray()[i];
-    Double_t nSumADC        =vSum->GetMatrixArray()[i];
-    Double_t timestamp      =fVTimeStampEvent.GetMatrixArray()[i]+fFirstTimeStamp;
-    Double_t nPads          =vPads->GetMatrixArray()[i];
+    
+    Double_t nSumADC        =1;
+    Double_t timestamp      =1;
+    Double_t nPads          =1;
+
+    if (fVOccupancyEvent.GetNrows()>0){
+      nSumADC        =vSum->GetMatrixArray()[i];
+      timestamp      =fVTimeStampEvent.GetMatrixArray()[i]+fFirstTimeStamp;
+      nPads          =vPads->GetMatrixArray()[i];
+    }
     Double_t x=timestamp;
     Double_t y=0;
     //
@@ -587,13 +609,13 @@ TGraph* AliTPCCalibRaw::MakeGraphOccupancy(const Int_t type, const Int_t xType)
   return gr;
 }
 //_____________________________________________________________________
-TGraph* AliTPCCalibRaw::MakeGraphNoiseEvents()
-{
+// TGraph* AliTPCCalibRaw::MakeGraphNoiseEvents()
+// {
   //
+  // Not implemented for the moment
   //
-  //
-  return 0;  
-}
+//   return 0;  
+// }
 //_____________________________________________________________________
 TCanvas* AliTPCCalibRaw::MakeCanvasOccupancy(const Int_t xType, Bool_t sen)
 {
@@ -628,5 +650,45 @@ TCanvas* AliTPCCalibRaw::MakeCanvasOccupancy(const Int_t xType, Bool_t sen)
     gr->Draw("alp");
   }
   return c;
+}
+
+//_____________________________________________________________________
+void AliTPCCalibRaw::Merge(AliTPCCalibRaw * const sig)
+{
+  //
+  // Merge sig with this instance
+  //
+
+  if (!sig) return;
+
+  //Add last time bin distribution histogram
+  fHnDrift->Add(sig->fHnDrift);
+
+  //Add occupancy data
+  
+}
+
+//_____________________________________________________________________
+Long64_t AliTPCCalibRaw::Merge(TCollection * const list)
+{
+  //
+  // Merge all objects of this type in list
+  //
+  
+  Long64_t nmerged=1;
+  
+  TIter next(list);
+  AliTPCCalibRaw *ce=0;
+  TObject *o=0;
+  
+  while ( (o=next()) ){
+    ce=dynamic_cast<AliTPCCalibRaw*>(o);
+    if (ce){
+      Merge(ce);
+      ++nmerged;
+    }
+  }
+  
+  return nmerged;
 }
 

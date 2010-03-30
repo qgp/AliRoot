@@ -35,8 +35,9 @@ private:
 
   virtual void   EndOfDetectorCycle(AliQAv1::TASKINDEX_t, TObjArray ** list) ;
   virtual void   InitESDs() ; 
-  virtual void   InitRecPoints() ; 
   virtual void   InitRaws() ; 
+  virtual void   InitRecPoints() ; 
+  virtual void   InitRecoParams() ; 
   virtual void   MakeESDs(AliESDEvent * esd) ;
   virtual void   MakeRecPoints(TTree * recpoTree) ; 
   virtual void   MakeRaws(AliRawReader *) ; 
@@ -44,6 +45,7 @@ private:
 
   Int_t fMaxRawVar ;              //! number of raw parameters in the ntuple
   AliQADataMaker **    fqadm ;    //! array of detectors QA data makers pointers
+  Double_t  * fVarvalue ;         //! array of value of the raw parameters
   ClassDef(AliCorrQADataMakerRec,1)  // description 
 
 };

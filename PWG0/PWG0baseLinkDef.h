@@ -22,5 +22,4 @@
 
 #pragma link C++ class AliMultiplicityCorrection+;
 
-
 #endif

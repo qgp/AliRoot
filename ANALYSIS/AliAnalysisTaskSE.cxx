@@ -24,8 +24,11 @@
 
 #include "AliAnalysisTaskSE.h"
 #include "AliAnalysisManager.h"
+#include "AliAnalysisCuts.h"
 #include "AliAnalysisDataSlot.h"
+
 #include "AliESDEvent.h"
+#include "AliESDfriend.h"
 #include "AliESD.h"
 #include "AliAODEvent.h"
 #include "AliAODHeader.h"
@@ -37,6 +40,7 @@
 #include "AliAODInputHandler.h"
 #include "AliMCEventHandler.h"
 #include "AliInputEventHandler.h"
+#include "AliESDInputHandler.h"
 #include "AliMCEvent.h"
 #include "AliStack.h"
 #include "AliLog.h"
@@ -45,29 +49,32 @@
 ClassImp(AliAnalysisTaskSE)
 
 ////////////////////////////////////////////////////////////////////////
-AliAODHeader*    AliAnalysisTaskSE::fgAODHeader        = NULL;
-TClonesArray*    AliAnalysisTaskSE::fgAODTracks        = NULL;
-TClonesArray*    AliAnalysisTaskSE::fgAODVertices      = NULL;
-TClonesArray*    AliAnalysisTaskSE::fgAODV0s           = NULL;
-TClonesArray*    AliAnalysisTaskSE::fgAODPMDClusters   = NULL;
-TClonesArray*    AliAnalysisTaskSE::fgAODJets          = NULL;
-TClonesArray*    AliAnalysisTaskSE::fgAODFMDClusters   = NULL;
-TClonesArray*    AliAnalysisTaskSE::fgAODCaloClusters  = NULL;
-TClonesArray*    AliAnalysisTaskSE::fgAODMCParticles   = NULL;
-AliAODTracklets* AliAnalysisTaskSE::fgAODTracklets     = NULL;
-AliAODCaloCells* AliAnalysisTaskSE::fgAODEmcalCells    = NULL;
-AliAODCaloCells* AliAnalysisTaskSE::fgAODPhosCells     = NULL;
-
+AliAODHeader*    AliAnalysisTaskSE::fgAODHeader         = NULL;
+TClonesArray*    AliAnalysisTaskSE::fgAODTracks         = NULL;
+TClonesArray*    AliAnalysisTaskSE::fgAODVertices       = NULL;
+TClonesArray*    AliAnalysisTaskSE::fgAODV0s            = NULL;
+TClonesArray*    AliAnalysisTaskSE::fgAODPMDClusters    = NULL;
+TClonesArray*    AliAnalysisTaskSE::fgAODJets           = NULL;
+TClonesArray*    AliAnalysisTaskSE::fgAODFMDClusters    = NULL;
+TClonesArray*    AliAnalysisTaskSE::fgAODCaloClusters   = NULL;
+TClonesArray*    AliAnalysisTaskSE::fgAODMCParticles    = NULL;
+AliAODTracklets* AliAnalysisTaskSE::fgAODTracklets      = NULL;
+AliAODCaloCells* AliAnalysisTaskSE::fgAODEmcalCells     = NULL;
+AliAODCaloCells* AliAnalysisTaskSE::fgAODPhosCells      = NULL;
 
 AliAnalysisTaskSE::AliAnalysisTaskSE():
     AliAnalysisTask(),
     fDebug(0),
     fEntry(0),
     fInputEvent(0x0),
+    fESDfriend(0x0),
     fInputHandler(0x0),
     fOutputAOD(0x0),
     fMCEvent(0x0),
-    fTreeA(0x0)
+    fTreeA(0x0),
+    fCurrentRunNumber(-1),
+    fHistosQA(0x0),
+    fSelectCollisions(0)
 {
   // Default constructor
 }
@@ -77,10 +84,14 @@ AliAnalysisTaskSE::AliAnalysisTaskSE(const char* name):
     fDebug(0),
     fEntry(0),
     fInputEvent(0x0),
+    fESDfriend(0x0),
     fInputHandler(0x0),
     fOutputAOD(0x0),
     fMCEvent(0x0),
-    fTreeA(0x0)
+    fTreeA(0x0),
+    fCurrentRunNumber(-1),
+    fHistosQA(0x0),
+    fSelectCollisions(0)
 {
   // Default constructor
     DefineInput (0, TChain::Class());
@@ -92,19 +103,27 @@ AliAnalysisTaskSE::AliAnalysisTaskSE(const AliAnalysisTaskSE& obj):
     fDebug(0),
     fEntry(0),
     fInputEvent(0x0),
+    fESDfriend(0x0),
     fInputHandler(0x0),
     fOutputAOD(0x0),
     fMCEvent(0x0),
-    fTreeA(0x0)
+    fTreeA(0x0),
+    fCurrentRunNumber(-1),
+    fHistosQA(0x0),
+    fSelectCollisions(0)
 {
 // Copy constructor
-    fDebug        = obj.fDebug;
-    fEntry        = obj.fEntry;
-    fInputEvent   = obj.fInputEvent;
-    fInputHandler = obj.fInputHandler;
-    fOutputAOD    = obj.fOutputAOD;
-    fMCEvent      = obj.fMCEvent;
-    fTreeA        = obj.fTreeA;    
+    fDebug            = obj.fDebug;
+    fEntry            = obj.fEntry;
+    fInputEvent       = obj.fInputEvent;
+    fESDfriend        = obj.fESDfriend;
+    fInputHandler     = obj.fInputHandler;
+    fOutputAOD        = obj.fOutputAOD;
+    fMCEvent          = obj.fMCEvent;
+    fTreeA            = obj.fTreeA;    
+    fCurrentRunNumber = obj.fCurrentRunNumber;
+    fHistosQA         = obj.fHistosQA;
+
 }
 
 
@@ -112,13 +131,17 @@ AliAnalysisTaskSE& AliAnalysisTaskSE::operator=(const AliAnalysisTaskSE& other)
 {
 // Assignment
     AliAnalysisTask::operator=(other);
-    fDebug        = other.fDebug;
-    fEntry        = other.fEntry;
-    fInputEvent   = other.fInputEvent;
-    fInputHandler = other.fInputHandler;
-    fOutputAOD    = other.fOutputAOD;
-    fMCEvent      = other.fMCEvent;
-    fTreeA        = other.fTreeA;    
+    fDebug            = other.fDebug;
+    fEntry            = other.fEntry;
+    fInputEvent       = other.fInputEvent;
+    fESDfriend        = other.fESDfriend;
+    fInputHandler     = other.fInputHandler;
+    fOutputAOD        = other.fOutputAOD;
+    fMCEvent          = other.fMCEvent;
+    fTreeA            = other.fTreeA;    
+    fCurrentRunNumber = other.fCurrentRunNumber;
+    fHistosQA         = other.fHistosQA;
+    fSelectCollisions = other.fSelectCollisions;
     return *this;
 }
 
@@ -142,7 +165,10 @@ void AliAnalysisTaskSE::ConnectInputData(Option_t* /*option*/)
     } 
     
     if (fInputHandler) {
-         fInputEvent = fInputHandler->GetEvent();
+	if ((fInputHandler->GetTree())->GetBranch("ESDfriend."))
+	    fESDfriend = ((AliESDInputHandler*)fInputHandler)->GetESDfriend();
+
+	fInputEvent = fInputHandler->GetEvent();
     } else if( fMCEvent ) {
          AliWarning("No Input Event Handler connected, only MC Truth Event Handler") ; 
     } else {
@@ -167,12 +193,13 @@ void AliAnalysisTaskSE::CreateOutputObjects()
 	if (aodIH->GetMergeEvents()) merging = kTRUE;
     }
     
+
     // Check if AOD replication has been required
     
     if (handler) {
 	fOutputAOD   = handler->GetAOD();
 	fTreeA = handler->GetTree();
-	if (!(handler->IsStandard())) {
+	if (fOutputAOD && !(handler->IsStandard())) {
 	    if ((handler->NeedsHeaderReplication()) && !(fgAODHeader)) 
 		{
 		 if (fDebug > 1) AliInfo("Replicating header");
@@ -263,20 +290,35 @@ void AliAnalysisTaskSE::Exec(Option_t* option)
 //
 // Exec analysis of one event
     if (fDebug > 1) AliInfo("AliAnalysisTaskSE::Exec() \n");
-
-    if( fInputHandler ) {
-       fEntry = fInputHandler->GetReadEntry();
+//
+    AliAODHandler* handler = (AliAODHandler*) 
+	((AliAnalysisManager::GetAnalysisManager())->GetOutputEventHandler());
+    AliAODInputHandler* aodH = dynamic_cast<AliAODInputHandler*>(fInputHandler);
+//
+// Was event selected ?
+    Bool_t isSelected = kTRUE;
+    if( fInputHandler && fInputHandler->GetEventSelection() && fSelectCollisions) {
+      isSelected = fInputHandler->IsEventSelected();
     }
-    
+
+    if (handler) handler->SetFillAOD(isSelected);
+
+    if( fInputHandler ) fEntry = fInputHandler->GetReadEntry();
+  
+
+// Notify the change of run number
+    if (InputEvent()->GetRunNumber() != fCurrentRunNumber) {
+	fCurrentRunNumber = InputEvent()->GetRunNumber();
+	NotifyRun();
+    }    
 	   
     else if( fMCEvent )
        fEntry = fMCEvent->Header()->GetEvent(); 
     if ( !((Entry()-1)%100) && fDebug > 0) 
          AliInfo(Form("%s ----> Processing event # %lld", CurrentFileName(), Entry()));
 
-    AliAODHandler* handler = (AliAODHandler*) 
-	((AliAnalysisManager::GetAnalysisManager())->GetOutputEventHandler());
-    AliAODInputHandler* aodH = dynamic_cast<AliAODInputHandler*>(fInputHandler);
+    
+    
 
     if (handler && aodH) {
 	fMCEvent = aodH->MCEvent();
@@ -400,8 +442,10 @@ void AliAnalysisTaskSE::Exec(Option_t* option)
     }
 
 // Call the user analysis    
-    UserExec(option);
-    // Added protection in case the derived task is not an AOD producer.
+    if (!fSelectCollisions || isSelected) 
+	UserExec(option);
+    
+// Added protection in case the derived task is not an AOD producer.
     AliAnalysisDataSlot *out0 = GetOutputSlot(0);
     if (out0 && out0->IsConnected()) PostData(0, fTreeA);    
 }
@@ -438,3 +482,10 @@ Bool_t AliAnalysisTaskSE::IsStandardAOD() const
     }
     return handler->IsStandard();   
 }
+
+Bool_t AliAnalysisTaskSE::Notify()
+{
+    return (UserNotify());
+}
+
+

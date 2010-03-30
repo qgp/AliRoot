@@ -33,6 +33,7 @@ endif
 
 CXXFLAGS     += $(ALICEINC) -g
 
+CHECKXML      := $(shell root-config --has-xml)
 include lib$(PACKAGE).pkg
 
 DHDR_ANALYSIS := $(DHDR)

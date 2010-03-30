@@ -44,6 +44,7 @@ Preliminary test version (T.Malkiewicz)
 
 #include "AliCDBMetaData.h"
 #include "AliDCSValue.h"
+#include "AliCDBEntry.h"
 #include "AliLog.h"
 
 #include <TTimeStamp.h>
@@ -51,6 +52,7 @@ Preliminary test version (T.Malkiewicz)
 #include <TObjString.h>
 #include <TNamed.h>
 #include "AliT0Dqclass.h"
+#include "TClass.h"
 
 
 ClassImp(AliT0Preprocessor)
@@ -63,7 +65,7 @@ AliT0Preprocessor::AliT0Preprocessor(AliShuttleInterface* shuttle) :
   //constructor
   AddRunType("PHYSICS");
   AddRunType("STANDALONE");
-  AddRunType("LASER");
+  AddRunType("AMPLITUDE_CALIBRATION");
 }
 //____________________________________________________
 
@@ -90,10 +92,11 @@ Bool_t AliT0Preprocessor::ProcessDCS(){
 	Log(Form("ProcessDCS - RunType: %s",runType.Data()));
 
 	if((runType == "STANDALONE")||
-	   (runType == "PHYSICS")||
-	   (runType == "LASER")){
-	  //		return kFALSE;
-		return kTRUE;
+	   (runType == "PHYSICS") 
+	   || (runType == "AMPLITUDE_CALIBRATION")){
+
+	  //	  return kFALSE;
+	  	return kTRUE;
 	}else{
 	return kFALSE;
 	}
@@ -138,56 +141,62 @@ UInt_t AliT0Preprocessor::ProcessDCSDataPoints(TMap* dcsAliasMap){
 }
 //____________________________________________________
 
-UInt_t AliT0Preprocessor::ProcessLaser(){
-	// Processing data from DAQ Standalone run
-	Log("Processing Laser calibration - Walk Correction");
-	
-	Bool_t resultLaser=kFALSE;
-	//processing DAQ
-        TList* list = GetFileSources(kDAQ, "LASER");
-        if (list)
-        {
-            TIter iter(list);
-            TObjString *source;
-            while ((source = dynamic_cast<TObjString *> (iter.Next())))
-            {
-              const char *laserFile = GetFile(kDAQ, "LASER", source->GetName());
-              if (laserFile)
-              {
-                Log(Form("File with Id LASER found in source %s!", source->GetName()));
-                AliT0CalibWalk *laser = new AliT0CalibWalk();
-                laser->MakeWalkCorrGraph(laserFile);
-                AliCDBMetaData metaData;
-                metaData.SetBeamPeriod(0);
-                metaData.SetResponsible("Tomek&Michal");
-                metaData.SetComment("Walk correction from laser runs.");
-		resultLaser=Store("Calib","Slewing_Walk", laser, &metaData, 0, 1);
-                delete laser;
-		Log(Form("resultLaser = %d",resultLaser));
-              }
-              else
-              {
-                Log(Form("Could not find file with Id LASER in source %s!", source->GetName()));
-                return 1;
-              }
-            }
-            if (!resultLaser)
-            {
-              Log("No Laser Data stored");
-              return 3;//return error code for failure in storing Laser Data
-            }
-          } else {
-	  	Log("No sources found for id LASER!");
-		return 1;
-	  }
+UInt_t AliT0Preprocessor::ProcessLaser()
+{
+  // Processing data from DAQ Standalone run
+  Log("Processing Laser calibration - Walk Correction");
+  Bool_t resultLaser = kFALSE;
+  Bool_t writeok = kFALSE;
+  //processing DAQ
+  TList* list = GetFileSources(kDAQ, "AMPLITUDE_CALIBRATION");
+  AliT0CalibWalk *laser = new AliT0CalibWalk();
+  TObjString *source;
+  if (list)
+    {
+      TIter iter(list);
+      while ((source = dynamic_cast<TObjString *> (iter.Next())))
+	{
+	  const char *laserFile = GetFile(kDAQ, "AMPLITUDE_CALIBRATION", source->GetName());
+	  if (laserFile)
+	    {
+	      Log(Form("File with Id AMPLITUDE_CALIBRAION found in source %s!", source->GetName()));
+	     writeok = laser->MakeWalkCorrGraph(laserFile);
+	      
+	    }
+	}
+      
+      AliCDBMetaData metaData;
+      metaData.SetBeamPeriod(0);
+      metaData.SetResponsible("Tomek&Michal");
+      metaData.SetComment("Walk correction from laser runs.");
+      if (writeok) resultLaser=Store("Calib","Slewing_Walk", laser, &metaData, 0, 1);
+      else {
+ 	
+	Log(Form("writeok = %d no peaks in CFD spectra",writeok));
 	return 0;
+      }		  
+      Log(Form("resultLaser = %d",resultLaser));
+      if (!resultLaser)
+	{
+	  Log("No Laser Data stored");
+	  return 3;//return error code for failure in storing Laser Data
+	}
+    }
+  else
+    {
+      Log(Form("Could not find file with Id  AMPLITUDE_CALIBRAION "));
+      return 1;
+    }
+  
+   return 0;
 }
+
 //____________________________________________________
 
 UInt_t AliT0Preprocessor::ProcessPhysics(){
 	//Processing data from DAQ Physics run
 	Log("Processing Physics");
-
+	
 	Bool_t resultOnline=kFALSE; 
 	//processing DAQ
 	TList* listPhys = GetFileSources(kDAQ, "PHYSICS");
@@ -202,12 +211,18 @@ UInt_t AliT0Preprocessor::ProcessPhysics(){
               {
                 AliT0CalibTimeEq *online = new AliT0CalibTimeEq();
                 online->Reset();
-                online->ComputeOnlineParams(filePhys);
+                Bool_t writeok = online->ComputeOnlineParams(filePhys);
                 AliCDBMetaData metaData;
                 metaData.SetBeamPeriod(0);
-                metaData.SetResponsible("Tomek&Michal");
+                metaData.SetResponsible("Alla Maevskaya");
                 metaData.SetComment("Time equalizing result.");
-                resultOnline = Store("Calib","TimeDelay", online, &metaData, 0, 1);
+
+                if (writeok) resultOnline = Store("Calib","TimeDelay", online, &metaData, 0, 1);
+		else {
+		  
+		  Log(Form("writeok = %d not enough data for equalizing",resultOnline));
+		  return 0;
+		}		  
 		Log(Form("resultOnline = %d",resultOnline));
                 delete online;
               }
@@ -231,53 +246,6 @@ UInt_t AliT0Preprocessor::ProcessPhysics(){
 }
 //____________________________________________________
 
-UInt_t AliT0Preprocessor::ProcessCosmic(){
-	//Processing data from DAQ Physics run
-	Log("Processing Laser Physics");
-
-	Bool_t resultLaserOnline=kFALSE; 
-	//processing DAQ
-	TList* listLaser = GetFileSources(kDAQ, "COSMIC");
-        if (listLaser)
-          {
-            TIter iter(listLaser);
-            TObjString *sourceLaser;
-            while ((sourceLaser = dynamic_cast<TObjString *> (iter.Next())))
-            {
-              const char *fileLaser = GetFile(kDAQ, "COSMIC", sourceLaser->GetName());
-              if (fileLaser)
-              {
-                AliT0CalibTimeEq *onlineLaser = new AliT0CalibTimeEq();
-                onlineLaser->Reset();
-                onlineLaser->ComputeOnlineParams(fileLaser);
-                AliCDBMetaData metaData;
-                metaData.SetBeamPeriod(0);
-                metaData.SetResponsible("Tomek&Michal");
-                metaData.SetComment("Time equalizing result.");
-                resultLaserOnline = Store("Calib","LaserTimeDelay", onlineLaser, &metaData, 0, 1);
-		Log(Form("resultLaserOnline = %d",resultLaserOnline));
-                delete onlineLaser;
-              }
-		else
-              {
-                Log(Form("Could not find file with Id COSMIC in source %s!", sourceLaser->GetName()));
-                return 0;
-              }
-              
-            }
-            if (!resultLaserOnline)
-            {
-              Log("No Laser Data stored");
-              return 0;//return error code for failure in storing OCDB Data
-            }
-          } else {
-	  	Log("No sources found for id COSMIC!");
-		return 0;
-	  }
-	return 0;
-}
-//____________________________________________________
-
 UInt_t AliT0Preprocessor::Process(TMap* dcsAliasMap )
 {
   // T0 preprocessor return codes:
@@ -289,38 +257,41 @@ UInt_t AliT0Preprocessor::Process(TMap* dcsAliasMap )
   // return=5 : no DAQ input for OCDB
   // return=6 : failed to retrieve DAQ data from OCDB
   // return=7 : failed to store T0 OCDB data
-	Bool_t dcsDP = ProcessDCS();
-	Log(Form("dcsDP = %d",dcsDP));	
-        TString runType = GetRunType();
-	Log(Form("RunType: %s",runType.Data()));
-	//processing
- 	if(runType == "STANDALONE"){
-	  if(dcsDP==1){
-	    Int_t iresultDCS = ProcessDCSDataPoints(dcsAliasMap);
-	    return iresultDCS;
-	  }
-	}
- 	if(runType == "LASER"){
-	  Int_t iresultLaser = ProcessLaser();
-	  if(dcsDP==1){
-            Int_t iresultDCS = ProcessDCSDataPoints(dcsAliasMap);
-            return iresultDCS;
-          }
-	  Log(Form("iresultLaser = %d",iresultLaser));
-	  return iresultLaser;
-	}
-	else if(runType == "PHYSICS"){
-	  Int_t iresultPhysics = ProcessPhysics();
-	 //	 Int_t iresultCosmic = ProcessCosmic();
-	  if(dcsDP==1){
-	    Int_t iresultDCS = ProcessDCSDataPoints(dcsAliasMap);
-	    return iresultDCS;
-	  }
-	  Log(Form("iresultPhysics = %d",iresultPhysics));
+  // return=8 : not enough data for equalizing
+  Bool_t dcsDP = ProcessDCS();
+  Log(Form("dcsDP = %d",dcsDP));	
+  TString runType = GetRunType();
+  Log(Form("RunType: %s",runType.Data()));
+  //processing
+  if(runType == "STANDALONE"){
+    if(dcsDP==1){
+      Int_t iresultDCS = ProcessDCSDataPoints(dcsAliasMap);
+      return iresultDCS;
+    }
+  }
+  
+  if(runType == "AMPLITUDE_CALIBRATION"){
+    Int_t iresultLaser = ProcessLaser();
+    if(dcsDP==1){
+      Int_t iresultDCS = ProcessDCSDataPoints(dcsAliasMap);
+      return iresultDCS;
+    }
+    
+    Log(Form("iresultLaser = %d",iresultLaser));
+    return iresultLaser;
+  }
+  
+  else if(runType == "PHYSICS"){
+    Int_t iresultPhysics = ProcessPhysics();
+    if(dcsDP==1){
+      Int_t iresultDCS = ProcessDCSDataPoints(dcsAliasMap);
+      return iresultDCS;
+    }
+    Log(Form("iresultPhysics = %d",iresultPhysics));
 	  return iresultPhysics; 
-	  //		Log(Form("iresultPhysics =iresultCosmic %d",iresultCosmic));
-	  //	return iresultCosmic; 
-	}	
+      }
+  
+	
 	
 	return 0;
 }

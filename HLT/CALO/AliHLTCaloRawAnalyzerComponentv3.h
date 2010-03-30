@@ -37,7 +37,7 @@
 //#include "AliHLTCaloRcuProcessor.h"
 
 
-class AliHLTCaloRawAnalyzer;
+class AliCaloRawAnalyzer;
 class AliHLTCaloRcuCellEnergyDataStruct;
 class AliHLTCaloMapper;
 class AliHLTCaloSanityInspector;
@@ -45,6 +45,7 @@ class AliHLTCaloDigitMaker;
 class AliHLTCaloDigitContainerDataStruct;
 class AliRawReaderMemory;
 class AliAltroRawStreamV3;
+
 
 /**
  * @class AliHLTCaloRawAnalyzerComponentv3
@@ -98,21 +99,18 @@ class AliAltroRawStreamV3;
 #include "AliHLTProcessor.h"
 #include "AliHLTCaloDefinitions.h"
 #include "AliHLTCaloConstantsHandler.h"
+#include "AliHLTCaloRcuProcessor.h"
 
-class AliHLTCaloConstants;
 class AliHLTCaloMapper;
 
 
-//class AliHLTCaloRawAnalyzerComponentv3 : public AliHLTCaloRcuProcessor
-class AliHLTCaloRawAnalyzerComponentv3 : public AliHLTCaloConstantsHandler, public AliHLTProcessor 
+class AliHLTCaloRawAnalyzerComponentv3 : public AliHLTCaloConstantsHandler, public AliHLTCaloRcuProcessor 
 {
  public:
 
   /** Constructor must be initialized to specific calorimeter */
   AliHLTCaloRawAnalyzerComponentv3(TString det);
   
-
-
   /** Destructor */
   virtual ~AliHLTCaloRawAnalyzerComponentv3();
 
@@ -122,33 +120,38 @@ class AliHLTCaloRawAnalyzerComponentv3 : public AliHLTCaloConstantsHandler, publ
   virtual int DoInit(int argc =0, const char** argv  = 0);
 
   /** interface function, see @ref AliHLTComponent for description */
-  virtual int Deinit();
+  virtual int DoDeinit();
 
   /** interface function, see @ref AliHLTComponent for description */
   virtual const char* GetComponentID() = 0;
 
   /** interface function, see @ref AliHLTComponent for description */
-  virtual void GetInputDataTypes( vector <AliHLTComponentDataType>& list) = 0;
+  //  virtual void GetInputDataTypes( vector <AliHLTComponentDataType>& list);
+  virtual void GetInputDataTypes( vector <AliHLTComponentDataType>& list) = 0; 
+
 
   /** interface function, see @ref AliHLTComponent for description */
-  virtual AliHLTComponentDataType GetOutputDataType();
+  //  virtual AliHLTComponentDataType GetOutputDataType();
+  virtual AliHLTComponentDataType GetOutputDataType() = 0;
 
   /** interface function, see @ref AliHLTComponent for description */
-  virtual void GetOutputDataSize(unsigned long& constBase, double& inputMultiplier);
+  //  virtual void GetOutputDataSize(unsigned long& constBase, double& inputMultiplier);
+  virtual void GetOutputDataSize(unsigned long& constBase, double& inputMultiplier) = 0 ;
 
   /** interface function, see @ref AliHLTComponent for description */
   virtual AliHLTComponent* Spawn() = 0; 
 
  protected:
-virtual bool CheckInputDataType(const AliHLTComponentDataType &datatype) = 0;
+
+  //virtual bool CheckInputDataType(const AliHLTComponentDataType &datatype) = 0;
   /** interface function, see @ref AliHLTComponent for description */
 
-//  using AliHLTCaloRcuProcessor::DoEvent;
+  using AliHLTCaloRcuProcessor::DoEvent;
 
   /** interface function, see @ref AliHLTComponent for description */
   virtual int DoEvent( const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, 
 		     AliHLTComponentTriggerData& trigData, AliHLTUInt8_t* outputPtr, 
-		       AliHLTUInt32_t& size, vector<AliHLTComponentBlockData>& outputBlocks );  
+		       AliHLTUInt32_t& size, vector<AliHLTComponentBlockData>& outputBlocks ) = 0;  
 
   /** 
    * Do the real processing in the component 
@@ -160,10 +163,16 @@ virtual bool CheckInputDataType(const AliHLTComponentDataType &datatype) = 0;
    */
   virtual Int_t DoIt(const AliHLTComponentBlockData* iter, AliHLTUInt8_t* outputPtr, const AliHLTUInt32_t size, UInt_t& totSize); 
 
+  // unsigned long fCaloEventCount;
 
   /** Pointer to an analyzer object used for raw data anlysis */ 
-  AliHLTCaloRawAnalyzer *fAnalyzerPtr;   //COMMENT
-  AliHLTCaloMapper *fMapperPtr;     
+  AliCaloRawAnalyzer *fAnalyzerPtr;   //COMMENT
+
+  //** Pointer to a mapper opbject */
+  AliHLTCaloMapper *fMapperPtr;          //COMMENT
+
+  virtual void InitMapping(const int specification ) = 0;
+
  private:
 
 /** Keep default constructor private since it should not be used */
@@ -175,12 +184,12 @@ virtual bool CheckInputDataType(const AliHLTComponentDataType &datatype) = 0;
   /** Keep the assignement operator private since it should not be used */
   AliHLTCaloRawAnalyzerComponentv3 & operator = (const AliHLTCaloRawAnalyzerComponentv3 &);
 
-  virtual void InitMapping(const int specification ) = 0;
-  const bool fkDoPushRawData;
+  //virtual void InitMapping(const int specification ) = 0;
+  
   /** Mapping from harware address to geometrical address */
   //  AliHLTCaloMapper *fMapperPtr;                       //!transient 
 
-  unsigned long fPhosEventCount;
+
 
   /** Pointer to object which may check the integrity of the data */
   AliHLTCaloSanityInspector *fSanityInspectorPtr;     //!transient
@@ -207,6 +216,12 @@ virtual bool CheckInputDataType(const AliHLTComponentDataType &datatype) = 0;
   Int_t fMaxPeakPosition;                             //COMMENT
   
   // AliHLTCaloMapper *fMapperPtr;
+
+  /** Should we push the raw data when the channel is crazy? */
+  Bool_t fDoPushBadRawData;                             //COMMENT
+      
+  /** Should we push all raw data (using the raw data writer) */
+  Bool_t fDoPushRawData;                              //COMMENT
 
   class RawDataWriter 
   {
@@ -241,6 +256,8 @@ virtual bool CheckInputDataType(const AliHLTComponentDataType &datatype) = 0;
   };
 
   RawDataWriter *fRawDataWriter; 
+
+  ClassDef(AliHLTCaloRawAnalyzerComponentv3, 1)
 
 };
 

@@ -16,7 +16,9 @@ YEAR=09
 DIALOG=`which dialog`
 # ---------------------------------------
 
-RUNNUM=$1
+kill -9 `ps | grep aliroot | awk '{print $1}'`
+
+export RUNNUM=$1
 
 [ -z $RUNNUM ] && { echo "Please provide a run number..."; exit 1; }
 
@@ -31,8 +33,8 @@ VERSION=1.0
 TITLE="Standalone reconstruction of Grid rawdata chunks. v$VERSION"
 
 # Retrieve the list of chunks from AliEn.......
-BASEDIR="/alice/data/20"$YEAR
-PATTERN="/raw/"$YEAR"0000"$RUNNUM"*0.root"
+export BASEDIR="/alice/data/20"$YEAR/LHC${YEAR}*
+PATTERN="$RUNNUM/raw/${YEAR}*${RUNNUM}*.root"
 gbbox find $BASEDIR $PATTERN | head -n 500 > collection.tmp
 
 [ $(wc -l collection.tmp) -eq 0 ] && { echo "No chunks found for the given run"; exit 1; }
@@ -66,6 +68,6 @@ for filename in $CHUNKS; do
      rm -rf   $RUNNUM"/"$CHUNK
      mkdir -p $RUNNUM"/"$CHUNK
      cd       $RUNNUM"/"$CHUNK
-     $PROGRAM -q $ALICE_ROOT/test/cosmic/rec.C\(\"alien://$filename\"\) 2>&1 | tee rec.log
+     $PROGRAM -q $ALICE_ROOT/prod/cosmic/rec.C\(\"alien://$filename\"\) 2>&1 | tee rec.log
      cd ../..
 done

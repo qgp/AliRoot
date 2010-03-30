@@ -28,9 +28,9 @@ if (!mgr->GetMCtruthEventHandler()) {
 // Setup the analysis object
   
   AliResonanceKink  *kinkResonanceObjectLMC=new AliResonanceKink();
-  kinkResonanceObjectLMC->InitOutputHistograms(100,1.4,1.8);
+  kinkResonanceObjectLMC->InitOutputHistograms(100,1.4,1.8, 36, -0.9, 0.9, 100, 0.0, 10.0);
   kinkResonanceObjectLMC->SetPDGCodes(kProton, kKPlus, AliResonanceKink::kLambda1520); 
-  kinkResonanceObjectLMC->SetAnalysisType("MC"); // "ESD" or "MC"
+  kinkResonanceObjectLMC->SetAnalysisType("MC"); // "ESD" or "MC" or "DATA"
   kinkResonanceObjectLMC->SetMaxNsigmaToVertex(4.0);
   kinkResonanceObjectLMC->SetMaxDCAxy(3.0);
   kinkResonanceObjectLMC->SetMaxDCAzaxis(3.0);
@@ -42,6 +42,10 @@ if (!mgr->GetMCtruthEventHandler()) {
   kinkResonanceObjectLMC->SetMaxCov5(0.5);
   kinkResonanceObjectLMC->SetMaxCov9(0.5);
   kinkResonanceObjectLMC->SetMaxCov14(2.0);
+  kinkResonanceObjectLMC->SetMinKinkRadius(120.);
+  kinkResonanceObjectLMC->SetMaxKinkRadius(220.);
+  kinkResonanceObjectLMC->SetQtLimits(0.05, 0.5);
+  kinkResonanceObjectLMC->SetUpperAbsEtaCut(0.9);
 
 // Create and configure the task
 AliAnalysisTaskKinkResonance *taskresonanceL1520MC = new AliAnalysisTaskKinkResonance("TaskResL1520MCKinkPID");
@@ -51,14 +55,16 @@ mgr->AddTask(taskresonanceL1520MC);
 // Create ONLY the output containers for the data produced by the task.
 // Get and connect other common input/output containers via the manager as below
 //==============================================================================
-TString outname = "PP";
-if (lCollidingSystems) outname = "AA";
-if (mgr->GetMCtruthEventHandler()) outname += "-MC-";
-outname += "KinkResonanceList.root";
-AliAnalysisDataContainer *coutput1 = mgr->CreateContainer("KinkResL1520MC",
-							   TList::Class(),
-							   AliAnalysisManager::kOutputContainer,
-						 	   outname );
+   TString outputFileName = AliAnalysisManager::GetCommonFileName();
+   outputFileName += ":PWG2KINKResonanceL1520MC";
+   if (lCollidingSystems) outputFileName += "_AA";
+   else outputFileName += "_PP";
+   if (mgr->GetMCtruthEventHandler()) outputFileName += "_MC";
+
+   AliAnalysisDataContainer *coutput1 = mgr->CreateContainer("KinkResL1520MC",
+							     TList::Class(),
+							     AliAnalysisManager::kOutputContainer,
+							     outputFileName );
 
 mgr->ConnectInput(taskresonanceL1520MC, 0, mgr->GetCommonInputContainer());
 mgr->ConnectOutput(taskresonanceL1520MC, 1, coutput1);

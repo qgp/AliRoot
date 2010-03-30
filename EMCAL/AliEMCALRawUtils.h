@@ -23,23 +23,28 @@
 class AliCaloRawStreamV3;
 class AliAltroMapping;
 class TGraph;
-class TF1;
 class AliRawReader;
 class AliEMCALGeometry;
+class AliCaloCalibPedestal;
+class AliCaloRawAnalyzer;
 
 class AliEMCALRawUtils : public TObject {
  public:
-  AliEMCALRawUtils();
-  AliEMCALRawUtils(AliEMCALGeometry *pGeometry);
+  enum fitAlgorithm {kStandard = 0, kFastFit= 1, kNeuralNet = 2, kLogFit = 3, kLMS = 4, kPeakFinder = 5, kCrude = 6};
+	
+ AliEMCALRawUtils(fitAlgorithm fitAlgo = kStandard);
+  AliEMCALRawUtils(AliEMCALGeometry *pGeometry, fitAlgorithm fitAlgo = kStandard);
   virtual ~AliEMCALRawUtils();
-
+	
   AliEMCALRawUtils(const AliEMCALRawUtils& rawUtils);  //copy ctor
   AliEMCALRawUtils& operator =(const AliEMCALRawUtils& rawUtils);
 
   void Digits2Raw();
-  void Raw2Digits(AliRawReader *reader,TClonesArray *digitsArr);
+  void Raw2Digits(AliRawReader *reader, TClonesArray *digitsArr, const AliCaloCalibPedestal* pedbadmap,
+				  TClonesArray *digitsTRG=0x0);
 
   void AddDigit(TClonesArray *digitsArr, Int_t id, Int_t lowGain, Int_t amp, Float_t time);
+  void AddDigit(TClonesArray *digitsArr, Int_t id, Int_t timeSamples[], Int_t nSamples);
 
   // Signal shape parameters
   Double_t GetRawFormatHighLowGainFactor() const { return fHighLowGainFactor ;}
@@ -51,15 +56,23 @@ class AliEMCALRawUtils : public TObject {
   Double_t GetPedestalValue()  const {return fgPedestalValue;}
   Double_t GetFEENoise()       const {return fgFEENoise;}
 
+  Bool_t GetRemoveBadChannels() const {return fRemoveBadChannels;}
+  Int_t  GetFittingAlgorithm()  const {return fFittingAlgorithm; }
+  Bool_t UseFALTRO()            const {return fUseFALTRO; }
+	
   void SetRawFormatHighLowGainFactor(Double_t val) {fHighLowGainFactor=val;}
   void SetRawFormatOrder(Int_t val)                {fOrder=val; }   
   void SetRawFormatTau(Double_t val)               {fTau=val; }    
   void SetNoiseThreshold(Int_t val)                {fNoiseThreshold=val; }
   void SetNPedSamples(Int_t val)                   {fNPedSamples=val; }
+  void SetRemoveBadChannels(Bool_t val)            {fRemoveBadChannels=val; }
+  void SetFittingAlgorithm(Int_t val) ;             
+  void SetFALTROUsage(Bool_t val)                  {fUseFALTRO=val; }
+	
   // set methods for fast fit simulation
   void SetFEENoise(Double_t val)                   {fgFEENoise = val;}
   void SetRawFormatTimeBins(Int_t val)             {fgTimeBins = val;}
-
+  
   static Int_t GetRawFormatTimeBins() { return fgTimeBins ; }    
   static Double_t GetRawFormatTimeMax() { return fgTimeBins*fgTimeBinWidth; }   
   static Double_t GetRawFormatTimeBinWidth() { return fgTimeBinWidth; }   
@@ -68,14 +81,18 @@ class AliEMCALRawUtils : public TObject {
   Double_t GetRawFormatTimeTrigger() const { return fgTimeTrigger ; }
   Int_t GetRawFormatThreshold() const { return fgThreshold ; }       
   Int_t GetRawFormatDDLPerSuperModule() const { return fgDDLPerSuperModule ; } 
+  AliCaloRawAnalyzer *GetRawAnalyzer() const { return fRawAnalyzer;}
 
   virtual Option_t* GetOption() const { return fOption.Data(); }
-  void SetOption(Option_t* opt) { fOption = opt; }
+  void SetOption(const Option_t* opt) { fOption = opt; }
 
   // Signal shape functions
-  void FitRaw(TGraph * gSig, TF1* signalF, Float_t & amp, Float_t & time) const ;
+	
+  void FitRaw(const Int_t firstTimeBin, const Int_t lastTimeBin, Float_t & amp, Float_t & time, Bool_t & fitDone) const ;
+  void FitParabola(const TGraph *gSig, Float_t & amp) const ; 
   static Double_t RawResponseFunction(Double_t *x, Double_t *par); 
-  Bool_t   RawSampledResponse(Double_t dtime, Double_t damp, Int_t * adcH, Int_t * adcL) const;  
+  static Double_t RawResponseFunctionLog(Double_t *x, Double_t *par); 
+  Bool_t   RawSampledResponse(Double_t dtime, Double_t damp, Int_t * adcH, Int_t * adcL, const Int_t keyErr=0) const;  
 
 
  private:
@@ -87,7 +104,7 @@ class AliEMCALRawUtils : public TObject {
 
   static const Int_t fgkOverflowCut = 950;  // cut to discriminate overflowed channels
   static const Int_t fgkRawSignalOverflow = 0x3FF; // maximum signal (10 bits)
-  static Int_t fgTimeBins; // number of sampling bins of the raw RO signal  
+  static Int_t fgTimeBins; // number of sampling bins of the raw RO signal
 
   static Double_t fgTimeTrigger ;       // time of the trigger for the RO signal 
   static Double_t fgTimeBinWidth;       // maximum sampled time of the raw RO signal                             
@@ -96,12 +113,18 @@ class AliEMCALRawUtils : public TObject {
   static Int_t fgPedestalValue;         // pedestal value for Digits2Raw
   static Double_t fgFEENoise;           // electronics noise in ADC units
 
-  AliEMCALGeometry* fGeom;         //geometry
-  AliAltroMapping*  fMapping[4];   //only two for now
+  AliEMCALGeometry* fGeom;              //geometry
+  AliAltroMapping*  fMapping[4];        //only two for now
 
   TString fOption;                      //! option passed from Reconstructor
 
-  ClassDef(AliEMCALRawUtils,3)          // utilities for raw signal fitting
+  Bool_t fRemoveBadChannels;            // select if bad channels are removed before fitting
+  Int_t  fFittingAlgorithm;             // select the fitting algorithm
+  Bool_t fUseFALTRO;					// use FALTRO and pass it to the digits
+	
+  AliCaloRawAnalyzer *fRawAnalyzer;     // e.g. for sample selection for fits
+
+  ClassDef(AliEMCALRawUtils,6)          // utilities for raw signal fitting
 };
 
 #endif

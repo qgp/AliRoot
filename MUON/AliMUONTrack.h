@@ -77,19 +77,16 @@ class AliMUONTrack : public TObject
   
   /// return 1,2,3 if track matches with trigger track, 0 if not
   Int_t    GetMatchTrigger(void) const {return fMatchTrigger;}
-  /// returns the local trigger number corresponding to the trigger track 
-  Int_t    GetLoTrgNum(void) const {return floTrgNum;}
+  /// returns the local trigger number corresponding to the trigger track (obsolete)
+  Int_t    GetLoTrgNum(void) const {return LoCircuit();}
   /// set the flag telling whether track matches with trigger track or not
   void	   SetMatchTrigger(Int_t matchTrigger) {fMatchTrigger = matchTrigger;}
-  /// set the local trigger number corresponding to the trigger track
-  void	   SetLoTrgNum(Int_t loTrgNum) {floTrgNum = loTrgNum;}
   /// return the chi2 of trigger/track matching 
   Double_t GetChi2MatchTrigger(void) const {return fChi2MatchTrigger;}
   /// set the chi2 of trigger/track matching 
   void     SetChi2MatchTrigger(Double_t chi2MatchTrigger) {fChi2MatchTrigger = chi2MatchTrigger;}
 
-  Int_t ClustersInCommon(AliMUONTrack* track) const;
-  Int_t ClustersInCommonInSt345(AliMUONTrack* track) const;
+  Int_t ClustersInCommon(AliMUONTrack* track, Int_t stMin = 0, Int_t stMax = 4) const;
 
   Int_t    GetNDF() const;
   Double_t GetNormalizedChi2() const;
@@ -107,7 +104,7 @@ class AliMUONTrack : public TObject
   void     SetHitsPatternInTrigCh(UShort_t hitsPatternInTrigCh) {fHitsPatternInTrigCh = hitsPatternInTrigCh;}
 
   /// set local trigger information for the matched trigger track
-  void  SetLocalTrigger(Int_t loCirc, Int_t loStripX, Int_t loStripY, Int_t loDev, Int_t loLpt, Int_t loHpt);
+  void  SetLocalTrigger(Int_t loCirc, Int_t loStripX, Int_t loStripY, Int_t loDev, Int_t loLpt, Int_t loHpt, UChar_t respWithoutChamber=0);
   /// return local trigger information for the matched trigger track
   Int_t GetLocalTrigger(void) const { return fLocalTrigger;        }
   /// number of triggering circuit
@@ -122,6 +119,10 @@ class AliMUONTrack : public TObject
   Int_t LoLpt(void)    const  { return fLocalTrigger >> 22 & 0x03; }
   /// high pt decision local trigger 
   Int_t LoHpt(void)    const  { return fLocalTrigger >> 24 & 0x03; }
+  /// Word stating if trigger would be fired without one chamber
+  Int_t GetTriggerWithoutChamber(void) const { return fLocalTrigger >> 26 & 0xF; }
+  /// Check if trigger would be fired without chamber (ich [0,3])
+  Bool_t TriggerFiredWithoutChamber(Int_t ich) const { return GetTriggerWithoutChamber() >> (3 - ich) & 0x1; }
 
   void  FindMCLabel();
   /// set the corresponding MC track number
@@ -137,6 +138,9 @@ class AliMUONTrack : public TObject
   
   /// return the maximum chi2 above which the track can be considered as abnormal (due to extrapolation failure, ...)
   static Double_t MaxChi2() {return fgkMaxChi2;}
+  
+  void   Connected(Bool_t flag = kTRUE) {fConnected = flag;}
+  Bool_t IsConnected() const {return fConnected;}
 
 
  private:
@@ -163,7 +167,6 @@ class AliMUONTrack : public TObject
                         ///<  1 track match but does not pass pt cut
                         ///<  2 track match Low pt cut
                         ///<  3 track match High pt cut
-  Int_t floTrgNum; ///< the number of the corresponding loTrg, -1 if no matching
   Double_t fChi2MatchTrigger; ///< chi2 of trigger/track matching 
   
   Int_t fTrackID; ///< Point to the corresponding MC track
@@ -174,6 +177,7 @@ class AliMUONTrack : public TObject
 
   Int_t fLocalTrigger;    ///< packed local trigger information
   
+  Bool_t fConnected; ///< kTRUE if that track shares cluster(s) with another
   
   // methods
   Bool_t ComputeClusterWeights(TMatrixD& clusterWeightsNB, TMatrixD& clusterWeightsB,
@@ -181,7 +185,7 @@ class AliMUONTrack : public TObject
   void   ComputeMCSCovariances(TMatrixD& mcsCovariances) const;
   
   
-  ClassDef(AliMUONTrack, 8) // Reconstructed track in ALICE dimuon spectrometer
+  ClassDef(AliMUONTrack, 9) // Reconstructed track in ALICE dimuon spectrometer
 };
 	
 #endif

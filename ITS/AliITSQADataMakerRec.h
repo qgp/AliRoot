@@ -21,6 +21,7 @@
 #include "AliQADataMakerRec.h"
 #include "AliDetectorRecoParam.h"
 #include "AliReconstructor.h"
+#include "AliITSDDLModuleMapSDD.h"
 
 class AliITSQASPDDataMakerRec;
 class AliITSQASDDDataMakerRec;
@@ -28,6 +29,7 @@ class AliITSQASSDDataMakerRec;
 class AliITSRecPoint;
 class AliRawReader;
 class TH2F;
+//class AliITSDDLModuleMapSDD;
 
 class AliITSQADataMakerRec: public AliQADataMakerRec {
 
@@ -54,15 +56,21 @@ public:
   virtual void MakeESDs(AliESDEvent *esd);
   virtual void FillRecPoint(AliITSRecPoint rcp);
 
+  virtual void ResetDetector(AliQAv1::TASKINDEX_t task);
+
   virtual ~AliITSQADataMakerRec(); // dtor
  Short_t GetSubDet(){return fSubDetector;};
- Int_t GetDetTaskOffset(Int_t subdet,AliQAv1::TASKINDEX_t task);
+ Int_t GetDetTaskOffset(Int_t subdet,AliQAv1::TASKINDEX_t task,Int_t specie=0);
+ Int_t GetDetTaskHisto(Int_t subdet,AliQAv1::TASKINDEX_t task);
  TH2F *GetITSGlobalHisto(Int_t layer);
  Bool_t AreEqual(Double_t a1, Double_t a2);
 
- virtual void SetRunNumber(Int_t runnumber=0){fRunNumber=runnumber;};
+ virtual void SetRunNumber(Int_t runnumber){fRunNumber=runnumber;};
  Int_t GetRunNumber(){return fRunNumber;};
 
+ virtual void SetEventNumber(Int_t eventnumber){fEventNumber=eventnumber;};
+ Int_t GetEventNumber() const {return fEventNumber;};
+ AliITSDDLModuleMapSDD *GetDDLSDDModuleMap();
 
 private:
 
@@ -70,12 +78,13 @@ private:
   Short_t fSubDetector;                    // subDetector: 0 (ALL), 1 (SPD), 2 (SDD), 3 (SSD)
   Short_t fLDC;				   // number of LDC: 0 (one LDC for the whole subdetector)
   Int_t fRunNumber;                        //run number
+  Int_t fEventNumber;                        //Event number (online mode)
 
   AliITSQASPDDataMakerRec *fSPDDataMaker;  // SPD Data Maker 
   AliITSQASDDDataMakerRec *fSDDDataMaker;  // SDD Data Maker 
   AliITSQASSDDataMakerRec *fSSDDataMaker;  // SSD Data Maker 
 
-  ClassDef(AliITSQADataMakerRec,6)         // description 
+  ClassDef(AliITSQADataMakerRec,7)         // description 
 
 };
 

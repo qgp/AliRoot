@@ -23,6 +23,7 @@ class TObjArray ;
 class TDirectory ; 
 class TNtupleD ;
 class AliDetectorRecoParam ; 
+class TList ; 
 
 // --- Standard library ---
 
@@ -36,23 +37,26 @@ public:
   AliQACheckerBase& operator = (const AliQACheckerBase& qac) ;
   virtual ~AliQACheckerBase() ; // dtor
  
+  TList *        GetExternParamlist() { return fExternParamList ;}
   TCanvas **     GetImage() { return fImage ; }
   TCanvas *      GetImage(AliRecoParam::EventSpecie_t es) { return fImage[AliRecoParam::AConvert(es)] ; }
   virtual void   Init(const AliQAv1::DETECTORINDEX_t det)   { AliQAv1::Instance(det) ; }
   virtual void   MakeImage( TObjArray ** list, AliQAv1::TASKINDEX_t task, AliQAv1::MODE_t mode) ; 
+  void           PrintExternParam() ; 
   void           Run(AliQAv1::ALITASK_t tsk, AliDetectorRecoParam * recoParam = NULL); 
   void           Run(AliQAv1::ALITASK_t tsk, TObjArray ** list, AliDetectorRecoParam * recoParam = NULL); 
   void           Run(AliQAv1::ALITASK_t /*tsk*/, TNtupleD ** /*nt*/, AliDetectorRecoParam * /*recoParam*/) {;} 
+  void           SetExternParamlist(TList * list) { fExternParamList = list ;}
   void           SetHiLo(Float_t * hiValue, Float_t * lowValue) ; 
   void           SetPrintImage(Bool_t opt = kTRUE) { fPrintImage = opt ; }
-  void           SetRefandData(TDirectory * ref, TObjArray ** refOCDB, TDirectory * data=NULL) { fRefSubDir = ref ;  fRefOCDBSubDir = refOCDB, fDataSubDir = data ; }
 
 protected:
-  virtual      Double_t * Check(AliQAv1::ALITASK_t, TObjArray **, AliDetectorRecoParam * recoParam) ; 
+  virtual      Double_t * Check(AliQAv1::ALITASK_t, TObjArray **, const AliDetectorRecoParam * recoParam) ; 
 
   Double_t     DiffC(const TH1 * href, const TH1 * hin) const ;   
   Double_t     DiffK(const TH1 * href, const TH1 * hin) const ;   
   void         Finish() const ; 
+  void         GetRefSubDir(const char * det, const char * task, TDirectory *& dirFile, TObjArray **& dirOCDB) ;
   virtual void SetQA(AliQAv1::ALITASK_t index, Double_t * value) const ;	
 
   TDirectory  * fDataSubDir     ; //! directory for the current task directory in the current detector directory in the data file
@@ -60,13 +64,14 @@ protected:
   TObjArray   ** fRefOCDBSubDir ; //! Entry in OCDB for the current detector 
   Float_t     * fLowTestValue   ; // array of lower bounds for INFO, WARNING, ERROR, FATAL   
   Float_t     * fUpTestValue    ; // array of upper bounds for INFO, WARNING, ERROR, FATAL   
-  TCanvas **    fImage          ;//[AliRecoParam::kNSpecies] 
-  Bool_t        fPrintImage     ;//! flag to print the images or not
+  TCanvas **    fImage          ; //[AliRecoParam::kNSpecies] 
+  Bool_t        fPrintImage     ; //! flag to print the images or not
+  TList       * fExternParamList; //List of external parameters (TParameter<double>)  
 
 private:
-  Double_t * Check(AliQAv1::ALITASK_t index, AliDetectorRecoParam * recoParam) ;
+  Double_t * Check(AliQAv1::ALITASK_t index, const AliDetectorRecoParam * recoParam) ;
 
-  ClassDef(AliQACheckerBase,2)  // description 
+  ClassDef(AliQACheckerBase,3)  // description 
 
 };
 

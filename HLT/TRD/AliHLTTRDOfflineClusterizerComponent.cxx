@@ -17,9 +17,9 @@
 //**************************************************************************
 
 /** @file   AliHLTTRDOfflineClusterizerComponent.cxx
-    @author 
+    @author Theodor Rascanu
     @date   
-    @brief  
+    @brief  Processes digits (with MC) and raw data (without MC). For debug purposes only
 */
 
 // see header file for class documentation                                   //
@@ -29,15 +29,21 @@
 // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt                          //
 
 #include "AliHLTTRDOfflineClusterizerComponent.h"
+#include "AliHLTTRDDefinitions.h"
+#include "AliHLTTRDClusterizer.h"
+#include "AliHLTTRDUtils.h"
 #include "AliCDBManager.h"
+#include "TTree.h"
+#include "TClonesArray.h"
+#include "TObjString.h"
 
 ClassImp(AliHLTTRDOfflineClusterizerComponent)
    
-AliHLTTRDOfflineClusterizerComponent::AliHLTTRDOfflineClusterizerComponent():
-  AliHLTTRDClusterizerComponent()
+AliHLTTRDOfflineClusterizerComponent::AliHLTTRDOfflineClusterizerComponent()
+  :AliHLTTRDClusterizerComponent()
+  ,fOffClusterizer(NULL)
 {
   // Default constructor
-
 }
 
 AliHLTTRDOfflineClusterizerComponent::~AliHLTTRDOfflineClusterizerComponent()
@@ -58,40 +64,101 @@ const char* AliHLTTRDOfflineClusterizerComponent::GetComponentID()
   return "TRDOfflineClusterizer"; // The ID of this component
 }
 
+void AliHLTTRDOfflineClusterizerComponent::GetInputDataTypes( vector<AliHLTComponent_DataType>& list)
+{
+  // Get the list of input data
+  list.clear(); 
+  AliHLTTRDClusterizerComponent::GetInputDataTypes(list);
+  list.push_back(AliHLTTRDDefinitions::fgkDigitsDataType);
+}
+
+AliHLTComponentDataType AliHLTTRDOfflineClusterizerComponent::GetOutputDataType()
+{
+  // Get the output data type
+  return kAliHLTMultipleDataType;
+}
+
+int AliHLTTRDOfflineClusterizerComponent::GetOutputDataTypes(AliHLTComponentDataTypeList& tgtList)
+{
+  // Get the output data types
+  tgtList.clear();
+  AliHLTTRDClusterizerComponent::GetOutputDataTypes(tgtList);
+  tgtList.push_back(AliHLTTRDDefinitions::fgkHiLvlClusterDataType);
+  return tgtList.size();
+}
+
+void AliHLTTRDOfflineClusterizerComponent::GetOutputDataSize( unsigned long& constBase, double& inputMultiplier )
+{
+  // Get the output data size
+  AliHLTTRDClusterizerComponent::GetOutputDataSize(constBase, inputMultiplier);
+  constBase += 500;
+  inputMultiplier *= 10;
+}
+
 int AliHLTTRDOfflineClusterizerComponent::DoInit( int argc, const char** argv )
 {
-  SetOfflineParams();
-  return AliHLTTRDClusterizerComponent::DoInit(argc, argv);
-}
+  int iResult = 0;
+  iResult=AliHLTTRDClusterizerComponent::DoInit(argc, argv);
 
-void AliHLTTRDOfflineClusterizerComponent::SetOfflineParams(){
-  HLTFatal("You have entered the OFFLINE configuration!");
-  HLTFatal("This program shall NOT run on the HLT cluster like this!");
-  if(!AliCDBManager::Instance()->IsDefaultStorageSet()){
-    HLTFatal("You are resetting the Default Storage of the CDBManager!");
-    HLTFatal("Let's hope that this program is NOT running on the HLT cluster!");
-    AliCDBManager::Instance()->SetDefaultStorage("local://$ALICE_ROOT/OCDB");
-  }else{
-    HLTError("DefaultStorage was already set!");
-  }
-  if(AliCDBManager::Instance()->GetRun()<0){
-    HLTFatal("You are resetting the CDB run number to 0!");
-    HLTFatal("Let's hope that this program is NOT running on the HLT cluster!");
-    AliCDBManager::Instance()->SetRun(0);
-  }else{
-    HLTError("Run Number was already set!");
-  }
-}
-
-int AliHLTTRDOfflineClusterizerComponent::DoDeinit()
-{
-  return AliHLTTRDClusterizerComponent::DoDeinit();
+  return iResult;
 }
 
 int AliHLTTRDOfflineClusterizerComponent::DoEvent(const AliHLTComponent_EventData& evtData, const AliHLTComponent_BlockData* blocks, 
 						  AliHLTComponent_TriggerData& trigData, AliHLTUInt8_t* outputPtr, 
 						  AliHLTUInt32_t& size, vector<AliHLTComponent_BlockData>& outputBlocks )
 {
-  return AliHLTTRDClusterizerComponent::DoEvent(evtData, blocks, trigData, outputPtr, size, outputBlocks );
-}
+  if ( GetFirstInputBlock( kAliHLTDataTypeSOR ) || GetFirstInputBlock( kAliHLTDataTypeEOR ) )
+    return 0;
 
+  if(!GetFirstInputBlock(AliHLTTRDDefinitions::fgkDigitsDataType))
+    return AliHLTTRDClusterizerComponent::DoEvent(evtData, blocks, trigData, outputPtr, size, outputBlocks );
+
+  AliHLTUInt32_t offset = 0;
+
+  for(const TObject *iter = GetFirstInputObject(AliHLTTRDDefinitions::fgkDigitsDataType); iter; iter = GetNextInputObject()) 
+    {
+      AliTRDclusterizer* clusterizer = new AliTRDclusterizer("TRDCclusterizer", "TRDCclusterizer");
+      clusterizer->SetReconstructor(fReconstructor);
+      clusterizer->SetUseLabels(kTRUE);
+
+      TTree* digitsTree = dynamic_cast<TTree*>(const_cast<TObject*>(iter));
+      clusterizer->ReadDigits(digitsTree);
+      clusterizer->MakeClusters();
+      TClonesArray* clusterArray = clusterizer->RecPoints();
+      clusterizer->SetClustersOwner(kFALSE);
+      
+      AliHLTUInt32_t spec = GetSpecification(iter);
+      if(fHighLevelOutput){
+	if(fEmulateHLTClusters){
+	  TClonesArray* temp = clusterArray;
+	  clusterArray = new TClonesArray(*temp);
+	  temp->Delete();
+	  delete temp;
+	  AliHLTTRDUtils::EmulateHLTClusters(clusterArray);
+	}
+	TObjString strg;
+	strg.String() += clusterizer->GetNTimeBins();
+	PushBack(clusterArray, AliHLTTRDDefinitions::fgkHiLvlClusterDataType, spec);
+	PushBack(&strg, AliHLTTRDDefinitions::fgkHiLvlClusterDataType, spec);
+      } else {
+	Int_t nTimeBins = clusterizer->GetNTimeBins();
+	Int_t addedSize = AliHLTTRDUtils::AddClustersToOutput(clusterArray, outputPtr+offset, nTimeBins);
+	
+	AliHLTComponentBlockData bd;
+	FillBlockData( bd );
+	bd.fOffset = offset;
+	bd.fSize = addedSize;
+	bd.fSpecification = spec;
+	bd.fDataType = AliHLTTRDDefinitions::fgkClusterDataType;
+	outputBlocks.push_back( bd );
+	HLTDebug( "BD ptr 0x%x, offset %i, size %i, dataType %s, spec 0x%x ", bd.fPtr, bd.fOffset, bd.fSize, DataType2Text(bd.fDataType).c_str(), bd.fSpecification);
+	offset += addedSize;
+      }
+      clusterArray->Delete();
+      delete clusterArray;
+      delete clusterizer;
+    }
+
+  return 0;
+
+}

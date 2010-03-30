@@ -7,11 +7,10 @@
 //
 /////////////////////////////////////////////////
 
-void plotPIDCompare(char* which = "TTE") {
+void plotPIDCompare(char* which = "EMC") {
 
   gROOT->LoadMacro("makeCombinedData.C");
-  makeData("data/scaled25Oct09/histosLHC08d6.root",
-	   "data/scaled25Oct09/TOTALhistosscaled-LHC09b2-0.root",
+  makeData("data/scaled25Oct09/TOTALhistosscaled-LHC09b2-0.root",
 	   "data/scaled25Oct09/histosscaledLHC09b4AODc.root",
 	   "data/scaled25Oct09/histosWboson.root");
 
@@ -19,8 +18,8 @@ void plotPIDCompare(char* which = "TTE") {
   TLegend* leg = new TLegend(0.5,0.6,0.9,0.9);
   leg->SetFillColor(0);
   leg->SetTextSize(leg->GetTextSize()*1.2);
-  //leg->AddEntry(alltte,"All N-P e candidates","l");
-  leg->AddEntry(sumtte,"All N-P electrons","l");
+  leg->AddEntry(alltte,"All N-P e candidates","l");
+  //leg->AddEntry(sumtte,"All N-P electrons","l");
   leg->AddEntry(btte,"Bottom e","l");
   leg->AddEntry(ctte,"Charm e","l");
   leg->AddEntry(cbtte,"B-->C e","l");
@@ -43,24 +42,22 @@ void plotPIDCompare(char* which = "TTE") {
   alltrk->SetXTitle("p_{T} (GeV/c)");
   alltrk->SetYTitle("Annual yield in EMCAL dN/dp_{T} (GeV/c)^{-1}");
   alltrk->SetTitle("PID comparison: Tracking only vs. EMCAL only");
-  alltrk->Smooth(2);
-  alltrk->Rebin(2); alltrk->Scale(0.5);
+  alltrk->Rebin(5); alltrk->Scale(0.2);
   alltrk->GetYaxis()->SetRangeUser(10.,alltrk->GetMaximum()*2.);
   alltrk->GetXaxis()->SetRangeUser(10.,49.);
   alltrk->Draw();
-  htrk->Smooth(2);
-  htrk->Rebin(2); htrk->Scale(0.5);
+  htrk->Rebin(5); htrk->Scale(0.2);
   htrk->Draw("same");
   TH1F* tempallemc = (TH1F*)allemc->Clone();
   tempallemc->SetNameTitle("tempallemc","tempallemc");
   tempallemc->SetLineColor(kBlue);
-  tempallemc->Rebin(2); tempallemc->Scale(0.5);
+  tempallemc->Rebin(5); tempallemc->Scale(0.2);
   tempallemc->Draw("same");
   
   TH1F* temphemc = (TH1F*)hemc->Clone();
   temphemc->SetNameTitle("temphemc","temphemc");
   temphemc->SetLineColor(kOrange-3);
-  temphemc->Rebin(2); temphemc->Scale(0.5);
+  temphemc->Rebin(5); temphemc->Scale(0.2);
   temphemc->Draw("same");
 
   TLegend* leg2 = new TLegend(0.35,0.6,0.9,0.9);
@@ -89,8 +86,6 @@ void plotPIDCompare(char* which = "TTE") {
   subtrk->SetLineColor(kRed);
   subtrk->SetMarkerStyle(20); subtrk->SetMarkerColor(kRed);
   subtrk->Draw();
-  //  sumtrk->Rebin(2); sumtrk->Scale(0.5);
-  //sumtrk->Draw("same");
 
   TH1F* subemc = (TH1F*)tempallemc->Clone();
   for(Int_t i = 1; i <= tempallemc->GetNbinsX(); i++) {
@@ -106,7 +101,7 @@ void plotPIDCompare(char* which = "TTE") {
 
   TFile* effic = new TFile("elec_eff.root");
   TH1F* heff = (TH1F*)effic->Get("h111");
-  heff->Rebin(2); heff->Scale(0.5);
+  heff->Rebin(5); heff->Scale(0.2);
   TH1F* hcorr = (TH1F*)subemc->Clone();
   hcorr->SetName("hcorr");
   for(Int_t i = 1; i < heff->GetNbinsX(); i++) {
@@ -117,12 +112,18 @@ void plotPIDCompare(char* which = "TTE") {
     hcorr->SetBinContent(i,corr);
   }
 
-  Double_t efinal = 0.258;
+  Double_t efinal = 0.4;
   TGraphErrors* eerr = new TGraphErrors();
   eerr->SetName("emcErr");
+  int count=0;
   for(Int_t i = 1; i <= hcorr->GetNbinsX(); i++) {
-    eerr->SetPoint(i-1,hcorr->GetBinCenter(i),hcorr->GetBinContent(i));
-    eerr->SetPointError(i-1,0.,efinal*hcorr->GetBinContent(i));
+    if (hcorr->GetBinCenter(i) <10.0) continue;
+    if (hcorr->GetBinCenter(i) >50.0) break;
+    cout <<"bin:"<< i << ", bin-center:"<< hcorr->GetBinCenter(i)<< endl;
+    eerr->SetPoint(count,hcorr->GetBinCenter(i),hcorr->GetBinContent(i));
+    eerr->SetPointError(count,0.,efinal*hcorr->GetBinContent(i));
+    //    if(hcorr->GetBinCenter(i) <20.0) eerr->SetPointError(count,0.,1.5*efinal*hcorr->GetBinContent(i));
+    count++;
   }
   eerr->SetFillColor(kRed-8);
   eerr->Draw("3same");
@@ -131,7 +132,7 @@ void plotPIDCompare(char* which = "TTE") {
   hcorr->SetLineColor(kBlue);
   hcorr->Draw("same");
   
-  allmc->Draw("same");
+  allMC->Draw("same");
   mchad->Draw("same");
 
   TLegend *legx = new TLegend(0.3,0.7,0.9,0.9);
@@ -139,15 +140,90 @@ void plotPIDCompare(char* which = "TTE") {
   legx->AddEntry(subtrk,"Signal (candidates - contam) (Tracking PID only)","pl");
   legx->AddEntry(hcorr,"Eff. corrected signal (EMCAL PID)","pl");
   legx->AddEntry(eerr,"Systematic uncertainty","f");
-  legx->AddEntry(allmc,"MC Electrons","l");
+  legx->AddEntry(allMC,"MC Electrons","l");
   legx->AddEntry(mchad,"MC Hadrons","l");
   legx->Draw();
 
   
   TLatex* latex = new TLatex(0.5,0.6,"Unc = #frac{S}{#sqrt{S+2B}}");
   latex->SetNDC();
-  latex->Draw();
+  //  latex->Draw();
 
   crates->Print("NPERates_PIDCompare_all.pdf");
+
+  TCanvas* ccomp = new TCanvas("ccomp","",0,0,600,800);
+  ccomp->SetFillColor(0);
+  ccomp->SetBorderMode(0);
+  ccomp->SetBorderSize(2);
+  ccomp->SetFrameBorderMode(0);
+  ccomp->SetFrameBorderMode(0);
+  TPad*    upperPad = new TPad("upperPad", "upperPad", 
+			       .005, .2525, .995, .995);
+  upperPad->SetFillColor(0);
+  upperPad->SetBorderMode(0);
+  upperPad->SetBorderSize(2);
+  upperPad->SetFrameBorderMode(0);
+  upperPad->SetFrameBorderMode(0);
+  TPad*    lowerPad = new TPad("lowerPad", "lowerPad", 
+			       .005, .005, .995, .2525);
+  lowerPad->SetFillColor(0);
+  lowerPad->SetFillColor(0);
+  lowerPad->SetBorderMode(0);
+  lowerPad->SetBorderSize(2);
+  lowerPad->SetFrameBorderMode(0);
+  lowerPad->SetFrameBorderMode(0);
+  upperPad->Draw();        
+  lowerPad->Draw(); 
+  upperPad->cd();
+  gPad->SetLogy();
+  hcorr->SetTitle("Efficiency corrected non-photonic electrons");
+  hcorr->SetYTitle("Annual yield in EMCAL dN/dp_{T} (GeV/c)^{-1}");
+  hcorr->SetXTitle("p_{T} (GeV/c)");
+  hcorr->GetXaxis()->SetRangeUser(10.,49.);
+  hcorr->GetYaxis()->SetTitleOffset(1.2);
+  hcorr->Draw();
+  eerr->Draw("3same");
+  hcorr->Draw("same");
+  allMC->Draw("same");
+  TLegend *myleg = new TLegend(0.3,0.7,0.9,0.9);
+  myleg->SetFillColor(0);
+  myleg->AddEntry(allMC,"MC Electrons","l");
+  myleg->AddEntry(hcorr,"Eff. corrected EMCAL N-P electrons","pl");
+  myleg->AddEntry(eerr,"Systematic uncertainty","f");
+  myleg->Draw();
+  lowerPad->cd();
+  TH1F* hmc = (TH1F*)allMC->Clone(); hmc->SetName("hmc");
+  hmc->Rebin(5); hmc->Scale(0.2);
+  TH1F* hmcratio = (TH1F*)hcorr->Clone();  hmcratio->SetName("hmcratio");
+  hmcratio->Divide(hmc);
+  hmcratio->SetTitle();
+  hmcratio->SetYTitle("MC/Data");
+  hmcratio->GetYaxis()->SetRangeUser(0.,2.);
+  hmcratio->GetYaxis()->SetNdivisions(505);
+  hmcratio->GetYaxis()->SetLabelSize(2.*hmcratio->GetYaxis()->GetLabelSize());
+  hmcratio->GetYaxis()->SetTitleSize(3.*hmcratio->GetYaxis()->GetTitleSize());
+  hmcratio->GetYaxis()->SetTitleOffset(0.3);
+  hmcratio->SetXTitle("");
+  hmcratio->GetXaxis()->SetLabelSize(2.*hmcratio->GetXaxis()->GetLabelSize());
+  hmcratio->Draw();
+  TGraphErrors* rerr = new TGraphErrors();
+  rerr->SetName("ratioErr");
+  count=0;
+  for(Int_t i = 1; i <= hmcratio->GetNbinsX(); i++) {
+    if (hmcratio->GetBinCenter(i) <10.0) continue;
+    if (hmcratio->GetBinCenter(i) >50.0) break;
+    rerr->SetPoint(count,hmcratio->GetBinCenter(i),hmcratio->GetBinContent(i));
+    rerr->SetPointError(count,0.,efinal*hmcratio->GetBinContent(i));
+    //if(hmcratio->GetBinCenter(i) <20.0) rerr->SetPointError(count,0.,1.5*efinal*hmcratio->GetBinContent(i));
+    count++;
+  }
+  rerr->SetFillColor(kRed-8);
+  rerr->Draw("3same");
+  hmcratio->Draw("same");
+  TLine* line = new TLine(10.,1.,50.,1.);
+  line->SetLineStyle(2);
+  line->Draw();
+  ccomp->Print("EMCAL_NPE.pdf");
+  crates->cd();
 }
 

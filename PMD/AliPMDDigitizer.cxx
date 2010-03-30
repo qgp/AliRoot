@@ -332,7 +332,8 @@ void AliPMDDigitizer::Hits2SDigits(Int_t ievt)
 		  statusOld   = -1;
 		}
 	      Int_t igstatus = 0;
-	      //------------------modified by Mriganka ----------------------
+
+	      Int_t trnotemp = trackno;    // Modified on 25th Nov 2009
 	      if(ks==1||(imo = mparticle->GetFirstMother())<0 ){
 		vx = mparticle->Vx();
 		vy = mparticle->Vy();
@@ -353,9 +354,19 @@ void AliPMDDigitizer::Hits2SDigits(Int_t ievt)
 		  vy = mparticle->Vy();
 		  vz = mparticle->Vz();
 		  
-		  trackno=imo;
-		  		
+		  // Modified on 25th Nov 2009
+
+		  trnotemp = trackno;
+                  if(trackpid == 111)
+		    {
+		      trackno = trnotemp;
 		    }
+                  if(trackpid != 111)
+		    {
+		      trackno=imo;
+		    }
+		  // end of modification on 25th Nov 2009
+		}
 	 
 	      if(trackpid==kGamma||trackpid==11||trackpid==-11||
 		 trackpid==kPi0)igstatus=1;
@@ -365,10 +376,13 @@ void AliPMDDigitizer::Hits2SDigits(Int_t ievt)
 	      trackno=tracknoOld;
 	      
 	      //-----------------end of modification----------------
+	      Float_t ptime = fPMDHit->GetTime()*1e6;   // time in microsec
+	      if (ptime < 0. || ptime > 1.2) continue;  
+
 	      xPos = fPMDHit->X();
 	      yPos = fPMDHit->Y();
 	      zPos = fPMDHit->Z();
-	      
+
 	      edep       = fPMDHit->GetEnergy();
 	      Int_t vol1 = fPMDHit->GetVolume(1); // Column
 	      Int_t vol2 = fPMDHit->GetVolume(2); // Row
@@ -405,18 +419,18 @@ void AliPMDDigitizer::Hits2SDigits(Int_t ievt)
 		}
 
 	      AliDebug(2,Form("Zposition = %f Edeposition = %f",zPos,edep));
-	      //Float_t zposition = TMath::Abs(zPos);
-	      if (zPos < fZPos)
+
+	      if (vol7 < 24)
+		{
+		  // PRE
+		  fDetNo = 0;
+		}
+	      else
 		{
 		  // CPV
 		  fDetNo = 1;
 		}
-	      else if (zPos > fZPos)
-		{
-		  // PMD
-		  fDetNo = 0;
-		}
-	      //Int_t smn = smnumber - 1;
+
 	      Int_t smn = smnumber;
 	      Int_t ixx = xpad     - 1;
 	      Int_t iyy = ypad     - 1;
@@ -569,7 +583,8 @@ void AliPMDDigitizer::Hits2Digits(Int_t ievt)
 		}
 
 	      Int_t igstatus = 0;
-	      //-----------------------modified by Mriganka ------------------
+
+	      Int_t trnotemp = trackno;   // modified on 25th Nov 2009
 	      if(ks==1||(imo = mparticle->GetFirstMother())<0 ){
 		vx = mparticle->Vx();
 		vy = mparticle->Vy();
@@ -590,9 +605,18 @@ void AliPMDDigitizer::Hits2Digits(Int_t ievt)
 		  vy = mparticle->Vy();
 		  vz = mparticle->Vz();
 		  
-		  trackno=imo;
-		  		
+		  // Modified on 25th Nov 2009
+		  
+		  trnotemp = trackno;
+                  if(trackpid == 111)
+		    {
+		      trackno = trnotemp;
 		    }
+                  if(trackpid != 111)
+		    {
+		      trackno=imo;
+		    }
+		}
 	 
 	      if(trackpid==kGamma||trackpid==11||trackpid==-11||trackpid==kPi0)
 		igstatus=1;
@@ -600,8 +624,10 @@ void AliPMDDigitizer::Hits2Digits(Int_t ievt)
 	      mtrackno=trackno;
 	      trackpid=trackpidOld;
 	      trackno=tracknoOld;
+
+	      Float_t ptime = fPMDHit->GetTime()*1e6;
+	      if (ptime < 0. || ptime > 1.2) continue;
 	      
-	      //-----------------end of modification----------------
 	      xPos = fPMDHit->X();
 	      yPos = fPMDHit->Y();
 	      zPos = fPMDHit->Z();
@@ -640,20 +666,28 @@ void AliPMDDigitizer::Hits2Digits(Int_t ievt)
 		}
 
 	      AliDebug(2,Form("ZPosition = %f Edeposition = %d",zPos,edep));
-	      //Float_t zposition = TMath::Abs(zPos);
 
-	      if (zPos < fZPos)
+	      if (vol7 < 24)
 		{
-		  // CPV
-		  fDetNo = 1;
-		}
-	      else if (zPos > fZPos)
-		{
-		  // PMD
+		  // PRE
 		  fDetNo = 0;
 		}
-
-	      //Int_t smn = smnumber - 1;
+	      else
+		{
+		  fDetNo = 1;
+		}
+	      /*
+		if (zPos < fZPos)
+		{
+		// CPV
+		fDetNo = 1;
+		}
+		else if (zPos > fZPos)
+		{
+		// PMD
+		fDetNo = 0;
+		}
+	      */
 	      Int_t smn = smnumber;
 	      Int_t ixx = xpad     - 1;
 	      Int_t iyy = ypad     - 1;
@@ -1412,15 +1446,14 @@ void AliPMDDigitizer::MeV2ADC(Float_t mev, Float_t & adc) const
 {
   // This converts the simulated edep to ADC according to the
   // Test Beam Data
-  //PS Test in May 2009
+  //PS Test in May 2009, Voltage @ 1350 V
   // KeV - ADC conversion for 12bit ADC
-  // Data provided by Ajay and agreed by Dr. Viyogi
   // MPV data used for the fit and taken here
 
-  const Float_t kConstant   = -9.22;
-  const Float_t kErConstant =  0.602225;
-  const Float_t kSlope      = 79.1119;
-  const Float_t kErSlope    =  0.844047;
+  const Float_t kConstant   = -0.1602;
+  const Float_t kErConstant =  0.9914;
+  const Float_t kSlope      = 77.47;
+  const Float_t kErSlope    =  3.16;
   
   Float_t cons   = gRandom->Gaus(kConstant,kErConstant);
   Float_t slop   = gRandom->Gaus(kSlope,kErSlope);

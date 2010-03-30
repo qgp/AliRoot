@@ -45,7 +45,8 @@ ClassImp(AliCorrQADataMakerRec)
 AliCorrQADataMakerRec::AliCorrQADataMakerRec(AliQADataMaker ** qadm ) : 
 AliQADataMakerRec(AliQAv1::GetDetName(AliQAv1::kCORR), "Corr Quality Assurance Data Maker"),
   fMaxRawVar(0),  
-  fqadm(qadm)
+  fqadm(qadm),
+  fVarvalue(NULL)
 {
   // ctor
   fCorrNt = new TNtupleD *[AliRecoParam::kNSpecies] ; 
@@ -57,11 +58,19 @@ AliQADataMakerRec(AliQAv1::GetDetName(AliQAv1::kCORR), "Corr Quality Assurance D
 AliCorrQADataMakerRec::AliCorrQADataMakerRec(const AliCorrQADataMakerRec& qadm) :
   AliQADataMakerRec(),
   fMaxRawVar(qadm.fMaxRawVar), 
-  fqadm(qadm.fqadm)
+  fqadm(qadm.fqadm),
+  fVarvalue(NULL)
 {
   //copy ctor 
   SetName((const char*)qadm.GetName()) ; 
   SetTitle((const char*)qadm.GetTitle()); 
+  if ( fMaxRawVar > 0 ) 
+    fVarvalue = new Double_t[fMaxRawVar] ;
+
+  fCorrNt = new TNtupleD *[AliRecoParam::kNSpecies] ; 
+  for (Int_t specie = 0 ; specie < AliRecoParam::kNSpecies ; specie++) 
+    fCorrNt[specie] = qadm.fCorrNt[specie] ; 
+
 }
 
 //__________________________________________________________________
@@ -78,13 +87,15 @@ AliCorrQADataMakerRec::~AliCorrQADataMakerRec()
 {
   // dtor only destroy the ntuple 
   if ( fCorrNt ) {
-    for (Int_t specie = 0 ; specie < AliRecoParam::kNSpecies ; specie++) {
-      if ( fCorrNt[specie] != NULL ) 
-        delete fCorrNt[specie] ; 
-    }
+//    for (Int_t specie = 0 ; specie < AliRecoParam::kNSpecies ; specie++) {
+//      if ( fCorrNt[specie] != NULL ) 
+//        delete fCorrNt[specie] ; 
+//    }
 		delete[] fCorrNt ; 
     fCorrNt = 0x0;
 	}  
+  if ( fMaxRawVar > 0 ) 
+    delete [] fVarvalue ;
 }
   
 //____________________________________________________________________________ 
@@ -105,22 +116,25 @@ void AliCorrQADataMakerRec::InitESDs()
   AliInfo("TO BE IMPLEMENTED") ; 
 }
 
-//____________________________________________________________________________ 
-void AliCorrQADataMakerRec::InitRecPoints()
-{
-  // create Reconstructed Points histograms in RecPoints subdir
-
-  AliInfo("TO BE IMPLEMENTED") ; 
-}
 
 //____________________________________________________________________________ 
 void AliCorrQADataMakerRec::InitRaws()
 {
   // createa ntuple taking all the parameters declared by detectors
-  if (fCorrNt[AliRecoParam::AConvert(fEventSpecie)]) 
+  if (fCorrNt && fCorrNt[AliRecoParam::AConvert(fEventSpecie)]) 
     return ; 
-  delete fRawsQAList ; // not needed for the time being 
-  fRawsQAList = NULL ; 
+
+  if (!fCorrNt) {
+    fCorrNt = new TNtupleD *[AliRecoParam::kNSpecies] ; ;
+    for (Int_t specie = 0 ; specie < AliRecoParam::kNSpecies ; specie++) 
+      fCorrNt[specie] = NULL ;
+  } 
+
+  if ( fRawsQAList ) 
+  {
+    delete[] fRawsQAList ; // not needed for the time being 
+    fRawsQAList = NULL ; 
+  }
   TString varlist("") ;
   for ( Int_t detIndex = 0 ; detIndex < AliQAv1::kNDET ; detIndex++ ) {
     AliQADataMaker * qadm = fqadm[detIndex] ; 
@@ -143,7 +157,24 @@ void AliCorrQADataMakerRec::InitRaws()
   } else {
     char * name = Form("%s_%s", AliQAv1::GetQACorrName(), AliRecoParam::GetEventSpecieName(fEventSpecie)) ; 
     fCorrNt[AliRecoParam::AConvert(fEventSpecie)] = new TNtupleD(name, "Raws data correlation among detectors", varlist.Data()) ;  
+    fVarvalue = new Double_t[fMaxRawVar] ;
   }  
+}
+
+//____________________________________________________________________________ 
+void AliCorrQADataMakerRec::InitRecPoints()
+{
+    // create Reconstructed Points histograms in RecPoints subdir
+  
+  AliInfo("TO BE IMPLEMENTED") ; 
+}
+
+//____________________________________________________________________________ 
+void AliCorrQADataMakerRec::InitRecoParams()
+{
+    // Get the recoparam form the OCDB for every detector involved in CORR
+  
+  AliInfo("TO BE IMPLEMENTED") ; 
 }
 
 //____________________________________________________________________________
@@ -160,26 +191,30 @@ void AliCorrQADataMakerRec::MakeRaws(AliRawReader *)
 {
   //Fill prepared histograms with Raw digit properties
   
-  if ( ! fCorrNt[AliRecoParam::AConvert(fEventSpecie)])
+  if ( !fCorrNt || ! fCorrNt[AliRecoParam::AConvert(fEventSpecie)])
       InitRaws() ; 
   
   if ( fMaxRawVar > 0 ) {
-    const Int_t kSize = fMaxRawVar ; 
-    Double_t  *varvalue = new Double_t[kSize] ;
     Int_t index = 0 ;
     for ( Int_t detIndex = 0 ; detIndex < AliQAv1::kNDET ; detIndex++ ) {
       AliQADataMaker * qadm = fqadm[detIndex] ; 
       if ( ! qadm ) 
         continue ;
       TList * list = qadm->GetParameterList() ; 
-      TIter next(list) ; 
-      TParameter<double> * p ; 
-      while ( (p = static_cast<TParameter<double>*>(next()) ) ) {
-        varvalue[index++] = p->GetVal() ; 
+      if (list) {
+	TIter next(list) ; 
+	TParameter<double> * p ; 
+	while ( (p = static_cast<TParameter<double>*>(next()) ) ) {
+	  if (index >= fMaxRawVar) {
+	    AliError(Form("Variables list size exceeded (%d) !",index));
+	    break;
+	  }
+	  fVarvalue[index] = p->GetVal() ; 
+	  index++ ; 
+	}
       }
     }
-    static_cast<TNtupleD*>(fCorrNt[AliRecoParam::AConvert(fEventSpecie)])->Fill(varvalue);
-    delete [] varvalue;
+    static_cast<TNtupleD*>(fCorrNt[AliRecoParam::AConvert(fEventSpecie)])->Fill(fVarvalue);
   }
 }
 

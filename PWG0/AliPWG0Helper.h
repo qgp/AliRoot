@@ -4,6 +4,7 @@
 #define ALIPWG0HELPER_H
 
 #include <TObject.h>
+#include <AliTriggerAnalysis.h>
 
 // static helper functions
 
@@ -17,20 +18,18 @@ class AliHeader;
 class AliGenEventHeader;
 class AliStack;
 class TTree;
+class AliOfflineTrigger;
 
 class AliPWG0Helper : public TObject
 {
   public:
-    enum Trigger { kAcceptAll = -1, kMB1 = 0, kMB2, kMB3, kSPDFASTOR, kOfflineMB1, kOfflineMB2, kOfflineMB3, kOfflineFASTOR }; // MB1, MB2, MB3 definition from ALICE-INT-2005-025
     enum AnalysisMode { kInvalid = -1, kSPD = 0x1, kTPC = 0x2, kTPCITS = 0x4, kFieldOn = 0x8 };
     // in case we want to use bitmaps...
     enum MCProcessType { kInvalidProcess = -1, kND = 0x1, kDD = 0x2, kSD = 0x4 };
 
-    static Bool_t IsEventTriggered(const AliESDEvent* aEsd, Trigger trigger);
-    static Bool_t IsEventTriggered(ULong64_t triggerMask, Trigger trigger);
     static const AliESDVertex* GetVertex(AliESDEvent* aEsd, AnalysisMode analysisMethod, Bool_t debug = kFALSE, Bool_t bRedoTPC = kFALSE);
     static Bool_t TestVertex(const AliESDVertex* vertex, AnalysisMode analysisMode, Bool_t debug = kFALSE);
-
+    
     static Bool_t IsPrimaryCharged(TParticle* aParticle, Int_t aTotalPrimaries, Bool_t adebug = kFALSE);
 
     static AliPWG0Helper::MCProcessType GetEventProcessType(AliHeader* aHeader, Bool_t adebug = kFALSE);
@@ -48,8 +47,8 @@ class AliPWG0Helper : public TObject
     static void NormalizeToBinWidth(TH1* hist);
     static void NormalizeToBinWidth(TH2* hist);
 
-    static void PrintConf(AnalysisMode analysisMode, Trigger trigger);
-
+    static void PrintConf(AnalysisMode analysisMode, AliTriggerAnalysis::Trigger trigger);
+    
   protected:
     static Int_t fgLastProcessType;    // stores the raw value of the last process type extracnted
  

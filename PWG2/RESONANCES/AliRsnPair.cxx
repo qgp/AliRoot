@@ -181,6 +181,10 @@ void AliRsnPair::LoopPair(TArrayI *a1, TArrayI *a2, AliRsnEvent *ev1, AliRsnEven
     ev2 = ev1;
   }
 
+  if (!(ev1 == ev2)) {
+    AliDebug(AliLog::kDebug+1,"ev1 is different then ev2 ...");
+  }
+
   if (!a1) {AliDebug(AliLog::kDebug+1, "No TArrayI 1 from currentEvent->GetTracksArray(...)"); return;}
   if (!a2) {AliDebug(AliLog::kDebug+1, "No TArrayI 2 from currentEvent->GetTracksArray(...)"); return;}
 
@@ -219,6 +223,8 @@ void AliRsnPair::LoopPair(TArrayI *a1, TArrayI *a2, AliRsnEvent *ev1, AliRsnEven
       AliDebug(AliLog::kDebug+1,"daughter2 is OK ...");
       // assign the required PID type to track #2
       fTrack2.SetRequiredPID(fPairDef->GetType(1));
+      // skip by default the case where the two tracks have the same index
+      if (ev1 == ev2 && a1->At(i) == a2->At(j)) continue;
       // cuts on track #2
       if (!CutPass(&fTrack2)) continue;
       AliDebug(AliLog::kDebug+1,"daughter2 cut passed ...");
@@ -237,7 +243,7 @@ void AliRsnPair::LoopPair(TArrayI *a1, TArrayI *a2, AliRsnEvent *ev1, AliRsnEven
 
       if (AliLog::GetDebugLevel("",GetName()) == AliLog::kDebug)
         fPairParticle.PrintInfo();
-
+      AliDebug(AliLog::kDebug, "================= FILLING TO HISTOGRAM ==================");
       // fill all histograms
       TObjArrayIter nextFcn(&fFunctions);
       while ((fcn = (AliRsnFunction*)nextFcn())) {
@@ -274,7 +280,9 @@ TList * AliRsnPair::GenerateHistograms(TString prefix,TList *list)
     sprintf(hName, "%s_%s", prefix.Data(), GetPairHistName(fcn).Data());
     sprintf(hTitle, "%s", GetPairHistTitle(fcn).Data());
     //TList *histos = fcn->Init(hName, hTitle);
-    list->Add(fcn->CreateHistogram(hName, hTitle));
+    //list->Add(fcn->CreateHistogram(hName, hTitle));
+    if (fcn->IsUsingTH1()) list->Add(fcn->CreateHistogram(hName, hTitle));
+    else list->Add(fcn->CreateHistogramSparse(hName, hTitle));
     //histos->Print();
     //list->Add(histos);
   }

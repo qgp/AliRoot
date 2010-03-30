@@ -496,6 +496,19 @@ void AliFlowAnalysisWithFittingQDistribution::WriteHistograms(TString outputFile
 //================================================================================================================
 
 
+void AliFlowAnalysisWithFittingQDistribution::WriteHistograms(TDirectoryFile *outputFileName)
+{
+ //store the final results in output .root file
+ fHistList->SetName("cobjFQD");
+ fHistList->SetOwner(kTRUE);
+ outputFileName->Add(fHistList);
+ outputFileName->Write(outputFileName->GetName(), TObject::kSingleKey);
+}
+
+
+//================================================================================================================
+
+
 void AliFlowAnalysisWithFittingQDistribution::InitializeArrays()
 {
  // initialize all arrays
@@ -626,17 +639,17 @@ void AliFlowAnalysisWithFittingQDistribution::AccessConstants()
 {
  // access needed common constants from AliFlowCommonConstants
  
- fnBinsPhi = AliFlowCommonConstants::GetNbinsPhi();
- fPhiMin = AliFlowCommonConstants::GetPhiMin();	     
- fPhiMax = AliFlowCommonConstants::GetPhiMax();
+ fnBinsPhi = AliFlowCommonConstants::GetMaster()->GetNbinsPhi();
+ fPhiMin = AliFlowCommonConstants::GetMaster()->GetPhiMin();	     
+ fPhiMax = AliFlowCommonConstants::GetMaster()->GetPhiMax();
  if(fnBinsPhi) fPhiBinWidth = (fPhiMax-fPhiMin)/fnBinsPhi;  
- fnBinsPt = AliFlowCommonConstants::GetNbinsPt();
- fPtMin = AliFlowCommonConstants::GetPtMin();	     
- fPtMax = AliFlowCommonConstants::GetPtMax();
+ fnBinsPt = AliFlowCommonConstants::GetMaster()->GetNbinsPt();
+ fPtMin = AliFlowCommonConstants::GetMaster()->GetPtMin();	     
+ fPtMax = AliFlowCommonConstants::GetMaster()->GetPtMax();
  if(fnBinsPt) fPtBinWidth = (fPtMax-fPtMin)/fnBinsPt;  
- fnBinsEta = AliFlowCommonConstants::GetNbinsEta();
- fEtaMin = AliFlowCommonConstants::GetEtaMin();	     
- fEtaMax = AliFlowCommonConstants::GetEtaMax();
+ fnBinsEta = AliFlowCommonConstants::GetMaster()->GetNbinsEta();
+ fEtaMin = AliFlowCommonConstants::GetMaster()->GetEtaMin();	     
+ fEtaMax = AliFlowCommonConstants::GetMaster()->GetEtaMax();
  if(fnBinsEta) fEtaBinWidth = (fEtaMax-fEtaMin)/fnBinsEta;  
  
 } // end of void AliFlowAnalysisWithFittingQDistribution::AccessConstants()

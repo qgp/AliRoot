@@ -114,10 +114,12 @@ const Char_t *AliHLTHOMERProxyHandler::fgkHOMERProxyNode[] = {
   "alihlt-dcs0.cern.ch",
   "alihlt-vobox0.cern.ch",
   "alihlt-gw0.kip.uni-heidelberg.de",
+  "localhost",
   "portal-dcs1.internal", 
   "alihlt-dcs1.cern.ch",
   "alihlt-vobox1.cern.ch",
-  "alihlt-gw1.kip.uni-heidelberg.de"
+  "alihlt-gw1.kip.uni-heidelberg.de",
+  "localhost"
 };
 
 //##################################################################################
@@ -132,9 +134,15 @@ void AliHLTHOMERProxyHandler::IdentifyRealm() {
     fRealm = kACR;
   else if ( hostIP.Contains("129.206.") )
     fRealm = kKIP;
-  else 
+  else  if ( hostIP.Contains("137.138") 
+	     || hostIP.Contains("128.141") 
+	     || hostIP.Contains("127.0.") 
+	     )
     fRealm = kGPN;
-  
+  else {
+    fRealm = kLoc;
+  }
+
   return;
 }
 
@@ -376,7 +384,7 @@ Int_t AliHLTHOMERProxyHandler::AddService(TXMLNode *innerNode) {
 
 
   // -- Change hostame from service with proxy, if outside HLT
-  if ( fRealm != kHLT || fRealm != kHLT+kHOMERRealmsMax )
+  if ( fRealm != kHLT && fRealm != kHLT+kHOMERRealmsMax )
     hostname = fgkHOMERProxyNode[fRealm];
 
 

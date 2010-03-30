@@ -34,11 +34,13 @@ class AliEMCALRecParam : public AliDetectorRecoParam
   Float_t GetW0                 () const     {return fW0                  ;}
   Float_t GetMinECut            () const     {return fMinECut             ;}
   Float_t GetLocMaxCut          () const     {return fLocMaxCut           ;}
+  Float_t GetTimeCut            () const     {return fTimeCut             ;}
   Bool_t  GetUnfold             () const     {return fUnfold              ;}
   void SetClusteringThreshold(Float_t thrsh)     {fClusteringThreshold = thrsh;}
   void SetW0                 (Float_t w0)        {fW0 = w0                ;}
   void SetMinECut            (Float_t minEcut)   {fMinECut = minEcut      ;}
   void SetLocMaxCut          (Float_t locMaxCut) {fLocMaxCut = locMaxCut  ;}
+  void SetTimeCut            (Float_t timeCut)   {fTimeCut = timeCut  ;}
   void SetUnfold             (Bool_t unfold)     {fUnfold = unfold ; if(fUnfold) AliWarning("Cluster Unfolding ON. Implementing only for eta=0 case!!!");}
   
   //PID (Guenole)
@@ -88,15 +90,22 @@ class AliEMCALRecParam : public AliDetectorRecoParam
   void SetOrderParameter(Int_t value)       {fOrderParameter = value;}
   void SetTau(Double_t value)               {fTau = value;}
   void SetNoiseThreshold(Int_t value)       {fNoiseThreshold = value;}
-  void SetNPedSamples(Int_t value)          {fNPedSamples = value;}
+  void SetNPedSamples(Int_t value)          {fNPedSamples = value;} 
+  void SetRemoveBadChannels(Bool_t val)     {fRemoveBadChannels=val; }
+  void SetFittingAlgorithm(Int_t val)       {fFittingAlgorithm=val; }
+  void SetFALTROUsage(Bool_t val)           {fUseFALTRO=val; }
+	
   /* raw signal getters */
   Double_t GetHighLowGainFactor() const {return fHighLowGainFactor;}
   Int_t    GetOrderParameter()    const {return fOrderParameter;}
   Double_t GetTau()               const {return fTau;}
   Int_t    GetNoiseThreshold()    const {return fNoiseThreshold;}
   Int_t    GetNPedSamples()       const {return fNPedSamples;}
-  
-  virtual void Print(Option_t * option="") const ;
+  Bool_t   GetRemoveBadChannels() const {return fRemoveBadChannels;}
+  Int_t    GetFittingAlgorithm()  const {return fFittingAlgorithm; }
+  Bool_t   UseFALTRO()            const {return fUseFALTRO; }
+	
+	virtual void Print(Option_t * option="") const ;
   
   static AliEMCALRecParam* GetDefaultParameters();
   static AliEMCALRecParam* GetLowFluxParam();
@@ -108,12 +117,13 @@ class AliEMCALRecParam : public AliDetectorRecoParam
   
  private:
   //Clustering
-  Float_t fClusteringThreshold ; // minimum energy to seed a EC digit in a cluster
-  Float_t fW0 ;                  // logarithmic weight for the cluster center of gravity calculation
+  Float_t fClusteringThreshold ; // Minimum energy to seed a EC digit in a cluster
+  Float_t fW0 ;                  // Logarithmic weight for the cluster center of gravity calculation
   Float_t fMinECut;              // Minimum energy for a digit to be a member of a cluster
-  Bool_t fUnfold;                // flag to perform cluster unfolding
-  Float_t fLocMaxCut;            // minimum energy difference to consider local maxima in a cluster
-  
+  Bool_t  fUnfold;               // Flag to perform cluster unfolding
+  Float_t fLocMaxCut;            // Minimum energy difference to consider local maxima in a cluster
+  Float_t fTimeCut ;             // Maximum time of digits in EMC cluster
+
   //PID (Guenole)
   Double_t fGamma[6][6];         // Parameter to Compute PID for photons     
   Double_t fGamma1to10[6][6];    // Parameter to Compute PID not used
@@ -137,15 +147,18 @@ class AliEMCALRecParam : public AliDetectorRecoParam
   Double_t  fTrkCutNTPC;           // Number of TPC hits for track matching
   
   //Raw signal fitting parameters (Jenn)
-  Double_t fHighLowGainFactor;     //gain factor to convert between high and low gain
-  Int_t    fOrderParameter;        //order parameter for raw signal fit
-  Double_t fTau;                   //decay constant for raw signal fit
-  Int_t    fNoiseThreshold;        //threshold to consider signal or noise
-  Int_t    fNPedSamples;           //number of time samples to use in pedestal calculation
-  
+  Double_t fHighLowGainFactor;     // gain factor to convert between high and low gain
+  Int_t    fOrderParameter;        // order parameter for raw signal fit
+  Double_t fTau;                   // decay constant for raw signal fit
+  Int_t    fNoiseThreshold;        // threshold to consider signal or noise
+  Int_t    fNPedSamples;           // number of time samples to use in pedestal calculation
+  Bool_t   fRemoveBadChannels;     // select if bad channels are removed before fitting
+  Int_t    fFittingAlgorithm;      // select the fitting algorithm
+  Bool_t   fUseFALTRO;             // get FALTRO (trigger) and put it on trigger digits.
+		
   static TObjArray* fgkMaps;       // ALTRO mappings for RCU0..RCUX
   
-  ClassDef(AliEMCALRecParam,7)     // Reconstruction parameters
+  ClassDef(AliEMCALRecParam,10)     // Reconstruction parameters
     
     } ;
 

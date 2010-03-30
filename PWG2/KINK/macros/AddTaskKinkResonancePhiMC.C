@@ -28,9 +28,9 @@ if (!mgr->GetMCtruthEventHandler()) {
 // Setup the analysis object
   
   AliResonanceKink  *kinkResonanceObjectPMC=new AliResonanceKink();
-  kinkResonanceObjectPMC->InitOutputHistograms(70,0.99,1.088);
+  kinkResonanceObjectPMC->InitOutputHistograms(70,0.99,1.088, 36, -0.9, 0.9, 100, 0.0, 10.0);
   kinkResonanceObjectPMC->SetPDGCodes(kKPlus, kKPlus, AliResonanceKink::kPhi); 
-  kinkResonanceObjectPMC->SetAnalysisType("MC"); // "ESD" or "MC"
+  kinkResonanceObjectPMC->SetAnalysisType("MC"); // "ESD" or "MC" or "DATA"
   kinkResonanceObjectPMC->SetMaxNsigmaToVertex(4.0);
   kinkResonanceObjectPMC->SetMaxDCAxy(3.0);
   kinkResonanceObjectPMC->SetMaxDCAzaxis(3.0);
@@ -42,6 +42,10 @@ if (!mgr->GetMCtruthEventHandler()) {
   kinkResonanceObjectPMC->SetMaxCov5(0.5);
   kinkResonanceObjectPMC->SetMaxCov9(0.5);
   kinkResonanceObjectPMC->SetMaxCov14(2.0);
+  kinkResonanceObjectPMC->SetMinKinkRadius(120.);
+  kinkResonanceObjectPMC->SetMaxKinkRadius(220.);
+  kinkResonanceObjectPMC->SetQtLimits(0.05, 0.5);
+  kinkResonanceObjectPMC->SetUpperAbsEtaCut(0.9);
 
 // Create and configure the task
 AliAnalysisTaskKinkResonance *taskresonancePhiMC = new AliAnalysisTaskKinkResonance("TaskResPhiMCKinkPID");
@@ -51,14 +55,16 @@ mgr->AddTask(taskresonancePhiMC);
 // Create ONLY the output containers for the data produced by the task.
 // Get and connect other common input/output containers via the manager as below
 //==============================================================================
-TString outname = "PP";
-if (lCollidingSystems) outname = "AA";
-if (mgr->GetMCtruthEventHandler()) outname += "-MC-";
-outname += "KinkResonanceList.root";
-AliAnalysisDataContainer *coutput1 = mgr->CreateContainer("KinkResPhiMC",
-							   TList::Class(),
-							   AliAnalysisManager::kOutputContainer,
-						 	   outname );
+   TString outputFileName = AliAnalysisManager::GetCommonFileName();
+   outputFileName += ":PWG2KINKResonancePhiMC";
+   if (lCollidingSystems) outputFileName += "_AA";
+   else outputFileName += "_PP";
+   if (mgr->GetMCtruthEventHandler()) outputFileName += "_MC";
+
+   AliAnalysisDataContainer *coutput1 = mgr->CreateContainer("KinkResPhiMC",
+							     TList::Class(),
+							     AliAnalysisManager::kOutputContainer,
+							     outputFileName );
 
 mgr->ConnectInput(taskresonancePhiMC, 0, mgr->GetCommonInputContainer());
 mgr->ConnectOutput(taskresonancePhiMC, 1, coutput1);

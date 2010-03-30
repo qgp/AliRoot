@@ -11,6 +11,7 @@
 //-------------------------------------------------------------------------
 
 #include <TRef.h>
+#include <TBits.h>
 
 #include "AliVTrack.h"
 #include "AliAODVertex.h"
@@ -186,6 +187,8 @@ class AliAODTrack : public AliVTrack {
   Double_t PAtDCA() const { return TMath::Sqrt(PxAtDCA()*PxAtDCA() + PyAtDCA()*PyAtDCA() + PzAtDCA()*PzAtDCA()); }
   Bool_t   PxPyPzAtDCA(Double_t p[3]) const { p[0] = PxAtDCA(); p[1] = PyAtDCA(); p[2] = PzAtDCA(); return kTRUE; }
   
+  Double_t GetRAtAbsorberEnd() const { return fRAtAbsorberEnd; }
+  
   UChar_t  GetITSClusterMap() const       { return (UChar_t)(fITSMuonClusterMap&0xff); }
   UShort_t GetHitsPatternInTrigCh() const { return (UShort_t)((fITSMuonClusterMap&0xff00)>>8); }
   UInt_t   GetMUONClusterMap() const      { return (fITSMuonClusterMap&0x3ff0000)>>16; }
@@ -194,6 +197,11 @@ class AliAODTrack : public AliVTrack {
   Bool_t  TestFilterBit(UInt_t filterBit) const {return (Bool_t) ((filterBit & fFilterMap) != 0);}
   Bool_t  TestFilterMask(UInt_t filterMask) const {return (Bool_t) ((filterMask & fFilterMap) == filterMask);}
 
+  const TBits& GetTPCClusterMap() const {return fTPCClusterMap;}
+  const TBits& GetTPCSharedMap() const {return fTPCSharedMap;}
+  void    SetTPCClusterMap(const TBits amap) {fTPCClusterMap = amap;}
+  void    SetTPCSharedMap(const TBits amap) {fTPCSharedMap = amap;}
+  
   AliAODPid    *GetDetPid() const { return fDetPid; }
   AliAODVertex *GetProdVertex() const { return (AliAODVertex*)fProdVertex.GetObject(); }
   
@@ -223,6 +231,8 @@ class AliAODTrack : public AliVTrack {
   void SetXYAtDCA(Double_t x, Double_t y) {fPositionAtDCA[0] = x; fPositionAtDCA[1] = y;}
   void SetPxPyPzAtDCA(Double_t pX, Double_t pY, Double_t pZ) {fMomentumAtDCA[0] = pX; fMomentumAtDCA[1] = pY; fMomentumAtDCA[2] = pZ;}
   
+  void SetRAtAbsorberEnd(Double_t r) { fRAtAbsorberEnd = r; }
+  
   void SetCharge(Short_t q) { fCharge = q; }
   void SetChi2perNDF(Double_t chi2perNDF) { fChi2perNDF = chi2perNDF; }
 
@@ -237,15 +247,17 @@ class AliAODTrack : public AliVTrack {
 					//  2 Muon track match Low pt cut
 					//  3 Muon track match High pt cut
   void     SetMatchTrigger(Int_t MatchTrigger);
-  Int_t    MatchTrigger() const { return (GetMatchTrigger()>0)?1:0; }	//  Muon track matches trigger track
-  Int_t    MatchTriggerAnyPt()   const  { return (GetMatchTrigger()>0)?1:0; }	//  Muon track matches trigger track
-  Int_t    MatchTriggerLowPt()   const  { return (GetMatchTrigger()>1)?1:0; }	//  Muon track matches trigger track and passes Low pt cut
-  Int_t    MatchTriggerHighPt()  const  { return (GetMatchTrigger()>2)?1:0; }	//  Muon track matches trigger track and passes High pt cut
+  Bool_t   MatchTrigger() const { return (GetMatchTrigger()>0); }	  //  Muon track matches trigger track
+  Bool_t   MatchTriggerLowPt()   const  { return (GetMatchTrigger()>1); } //  Muon track matches trigger track and passes Low pt cut
+  Bool_t   MatchTriggerHighPt()  const  { return (GetMatchTrigger()>2); } //  Muon track matches trigger track and passes High pt cut
+  Bool_t   MatchTriggerDigits()  const;                                   //  Muon track matches trigger digits
   Double_t GetChi2MatchTrigger() const  { return fChi2MatchTrigger;}
   void     SetChi2MatchTrigger(Double_t Chi2MatchTrigger) {fChi2MatchTrigger = Chi2MatchTrigger; }
-  Int_t    HitsMT(Int_t istation, Int_t iplane, Option_t *cathode=0);  // Check if track hits Muon chambers
-  Int_t    HitsMuonChamber(Int_t MuonChamber);  // Check if track hits Muon chambers
+  Bool_t   HitsMuonChamber(Int_t MuonChamber, Int_t cathode = -1) const;  // Check if track hits Muon chambers
   Bool_t   IsMuonTrack() const { return (GetMUONClusterMap()>0) ? kTRUE : kFALSE; }
+  
+  void     Connected(Bool_t flag) {flag ? SETBIT(fITSMuonClusterMap,26) : CLRBIT(fITSMuonClusterMap,26);}
+  Bool_t   IsConnected() const {return TESTBIT(fITSMuonClusterMap,26);}
 
   void     SetProdVertex(TObject *vertex) { fProdVertex = vertex; }
   void     SetType(AODTrk_t ttype) { fType=ttype; }
@@ -260,6 +272,8 @@ class AliAODTrack : public AliVTrack {
   Double32_t    fMomentumAtDCA[3];  // momentum (px,py,pz) at DCA
   Double32_t    fPositionAtDCA[2];  // trasverse position (x,y) at DCA
   
+  Double32_t    fRAtAbsorberEnd;    // transverse position r at the end of the muon absorber
+  
   Double32_t    fChi2perNDF;        // chi2/NDF of momentum fit
   Double32_t    fChi2MatchTrigger;  // chi2 of trigger/track matching
   Double32_t    fPID[10];           // [0.,1.,8] pointer to PID object
@@ -271,16 +285,19 @@ class AliAODTrack : public AliVTrack {
                                     // (ITS: bit 1-8, muon trigger: bit 9-16, muon tracker: bit 17-26, muon match trigger: bit 31-32) 
   UInt_t        fFilterMap;         // filter information, one bit per set of cuts
 
+  TBits         fTPCClusterMap;     // Map of clusters, one bit per padrow; 1 if has a cluster on given padrow
+  TBits         fTPCSharedMap;      // Map of clusters, one bit per padrow; 1 if has a shared cluster on given padrow
+
   Short_t       fID;                // unique track ID, points back to the ESD track
 
   Char_t        fCharge;            // particle charge
   Char_t        fType;              // Track Type
-
+  
   AliAODRedCov<6> *fCovMatrix;      // covariance matrix (x, y, z, px, py, pz)
   AliAODPid    *fDetPid;            // more detailed or detector specific pid information
   TRef          fProdVertex;        // vertex of origin
 
-  ClassDef(AliAODTrack,8);
+  ClassDef(AliAODTrack, 10);
 };
 
 inline Bool_t  AliAODTrack::IsPrimaryCandidate() const

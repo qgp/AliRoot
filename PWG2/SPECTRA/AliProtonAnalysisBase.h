@@ -17,7 +17,9 @@
 #include "TString.h"
 class TF1;
 class TCanvas;
+class TList;
 
+#include "AliPhysicsSelection.h"
 #include "AliPID.h"
 class AliESDEvent;
 class AliESDtrack;
@@ -35,7 +37,8 @@ class AliProtonAnalysisBase : public TObject {
   void SetAnalysisLevel(const char* type) {fProtonAnalysisLevel = type;}
   void SetAnalysisMode(AnalysisMode analysismode) {fProtonAnalysisMode = analysismode;}
   void SetEtaMode() {fAnalysisEtaMode = kTRUE;}
-  void SetTriggerMode(TriggerMode triggermode) {fTriggerMode = triggermode;}
+  void SetTriggerMode(TriggerMode triggermode) {
+    fAnalysisMC = kTRUE; fTriggerMode = triggermode;}
   void SetPIDMode(PIDMode pidmode) {fProtonPIDMode = pidmode;}
 
   const char *GetAnalysisLevel() {return fProtonAnalysisLevel.Data();}
@@ -43,6 +46,7 @@ class AliProtonAnalysisBase : public TObject {
   Bool_t GetEtaMode() const {return fAnalysisEtaMode;}
   TriggerMode GetTriggerMode() const {return fTriggerMode;}
   PIDMode GetPIDMode() const {return fProtonPIDMode;}
+  Bool_t GetMCAnalysisMode() {return fAnalysisMC;}
 
   const  AliESDVertex *GetVertex(AliESDEvent *esd,
 				 AnalysisMode mode,
@@ -67,8 +71,15 @@ class AliProtonAnalysisBase : public TObject {
   Double_t GetMaxX() const {return fMaxX;}
   Double_t GetMaxY() const {return fMaxY;}
 
-  static Bool_t IsEventTriggered(const AliESDEvent *esd,
-                                 TriggerMode trigger = kMB2);
+  Bool_t IsEventTriggered(const AliESDEvent *esd,
+			  TriggerMode trigger = kMB2);
+  void OfflineTriggerInit(UInt_t runNumber) {
+    kUseOfflineTrigger = kTRUE;
+    fPhysicsSelection = new AliPhysicsSelection();
+    fPhysicsSelection->Initialize(runNumber);
+  }
+  Bool_t IsOfflineTriggerUsed() {return kUseOfflineTrigger;}
+  AliPhysicsSelection *GetPhysicsSelectionObject() {return fPhysicsSelection;}
   Bool_t IsAccepted(AliESDEvent *esd,
 		    const AliESDVertex *vertex, 
 		    AliESDtrack *track);
@@ -245,12 +256,17 @@ class AliProtonAnalysisBase : public TObject {
   void SetDebugMode() {fDebugMode = kTRUE;}
   Bool_t GetDebugMode() const {return fDebugMode;}
 
+  TList *GetVertexQAList() {return fListVertexQA;}
+
  private:
   AliProtonAnalysisBase(const AliProtonAnalysisBase&); // Not implemented
   AliProtonAnalysisBase& operator=(const AliProtonAnalysisBase&); // Not implemented
 
   TString fProtonAnalysisLevel;//"ESD", "AOD" or "MC"
+  Bool_t fAnalysisMC; //kTRUE if MC analysis while reading the ESDs
   TriggerMode fTriggerMode; //Trigger mode
+  Bool_t kUseOfflineTrigger; //use the offline trigger or not
+  AliPhysicsSelection *fPhysicsSelection; //Trigger selection: offline
   AnalysisMode fProtonAnalysisMode; //Analysis mode: TPC-Hybrid-Global
   PIDMode fProtonPIDMode; //PID mode: Bayesian-dE/dx ratio-Nsigma areas
   Bool_t fAnalysisEtaMode; //run the analysis in eta or y
@@ -303,6 +319,9 @@ class AliProtonAnalysisBase : public TObject {
 
   //Debug
   Bool_t fDebugMode; //Enable the debug mode
+
+  //QA list
+  TList *fListVertexQA; //vertex QA list
 
   ClassDef(AliProtonAnalysisBase,1);
 };

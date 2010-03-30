@@ -55,6 +55,7 @@
 #include "AliESDtrack.h"
 #include "AliTracker.h"
 #include "AliTPCClusterParam.h"
+#include "AliTPCParam.h"
 
 #include "AliTPCcalibDB.h"
 #include "AliTPCTransform.h"
@@ -62,6 +63,8 @@
 #include "AliTPCclusterMI.h"
 #include "AliTPCseed.h"
 #include "AliTPCPointCorrection.h"
+#include <TGeoManager.h>
+#include <TGeoPhysicalNode.h>
 
 ClassImp(AliTPCcalibCalib)
 
@@ -147,13 +150,15 @@ void     AliTPCcalibCalib::Process(AliESDEvent *event){
   //
 
   for (Int_t i=0;i<ntracks;++i) {
-    AliESDtrack *track = event->GetTrack(i);  
-    const AliExternalTrackParam * trackIn = track->GetInnerParam();
+    AliESDtrack *track = event->GetTrack(i);     
+    AliESDfriendTrack *friendTrack = ESDfriend->GetTrack(i);
+ 
+    const AliExternalTrackParam * trackIn  = track->GetInnerParam();
     const AliExternalTrackParam * trackOut = track->GetOuterParam();
+    AliExternalTrackParam * tpcOut   = (AliExternalTrackParam *)friendTrack->GetTPCOut();
     if (!trackIn) continue;
     if (!trackOut) continue;
-   
-    AliESDfriendTrack *friendTrack = ESDfriend->GetTrack(i);
+    if (!tpcOut) continue;   
     TObject *calibObject;
     AliTPCseed *seed = 0;
     for (Int_t l=0;(calibObject=friendTrack->GetCalibObject(l));++l) {
@@ -161,6 +166,7 @@ void     AliTPCcalibCalib::Process(AliESDEvent *event){
     }
     if (!seed) continue;
     RefitTrack(track, seed,event->GetMagneticField());
+    (*tpcOut)=*(track->GetOuterParam());  
   }
   return;
 }
@@ -174,6 +180,7 @@ Bool_t  AliTPCcalibCalib::RefitTrack(AliESDtrack * track, AliTPCseed *seed, Floa
   // 0 - Setup transform object
   //
   AliTPCTransform *transform = AliTPCcalibDB::Instance()->GetTransform() ;
+  AliTPCParam     *param     = AliTPCcalibDB::Instance()->GetParameters();
   transform->SetCurrentRun(fRun);
   transform->SetCurrentTimeStamp((UInt_t)fTime);
   if(!fApplyExBCorrection) { // disable ExB correction in transform
@@ -188,7 +195,7 @@ Bool_t  AliTPCcalibCalib::RefitTrack(AliESDtrack * track, AliTPCseed *seed, Floa
   //
   // First apply calibration
   //
-  AliTPCPointCorrection * corr =  AliTPCPointCorrection::Instance();
+  //  AliTPCPointCorrection * corr =  AliTPCPointCorrection::Instance();
   for (Int_t irow=0;irow<159;irow++) {
     AliTPCclusterMI *cluster=seed->GetClusterPointer(irow);
     if (!cluster) continue; 
@@ -202,8 +209,8 @@ Bool_t  AliTPCcalibCalib::RefitTrack(AliESDtrack * track, AliTPCseed *seed, Floa
     //
     Int_t ipad=0;
     if (cluster->GetDetector()>35) ipad=1;
-    Float_t dy =AliTPCClusterParam::SPosCorrection(0,ipad,cluster->GetPad(),cluster->GetTimeBin(),cluster->GetZ(),cluster->GetSigmaY2(),cluster->GetSigmaZ2(),cluster->GetMax());
-    Float_t dz =AliTPCClusterParam::SPosCorrection(1,ipad,cluster->GetPad(),cluster->GetTimeBin(),cluster->GetZ(),cluster->GetSigmaY2(),cluster->GetSigmaZ2(),cluster->GetMax());
+    Float_t dy =0;//AliTPCClusterParam::SPosCorrection(0,ipad,cluster->GetPad(),cluster->GetTimeBin(),cluster->GetZ(),cluster->GetSigmaY2(),cluster->GetSigmaZ2(),cluster->GetMax());
+    Float_t dz =0;//AliTPCClusterParam::SPosCorrection(1,ipad,cluster->GetPad(),cluster->GetTimeBin(),cluster->GetZ(),cluster->GetSigmaY2(),cluster->GetSigmaZ2(),cluster->GetMax());
     // if(fApplyPositionCorrection) {
     //x[1]-=dy;
     //x[2]-=dz;
@@ -217,27 +224,27 @@ Bool_t  AliTPCcalibCalib::RefitTrack(AliESDtrack * track, AliTPCseed *seed, Floa
 							       cluster->GetY(),cluster->GetZ());
     Double_t dzq = AliTPCPointCorrection::SGetCorrectionSector(2,cluster->GetDetector()%36,cluster->GetX(),
 							       cluster->GetY(),cluster->GetZ());
-    if (fApplySectorAlignment){
+    if (0&fApplySectorAlignment){
       x[0]-=dxq;
       x[1]-=dyq;
       x[2]-=dzq;
     }
-    //
-    // Apply r-phi correction  - To be done on track level- knowing the track angle !!!
-    //
-    Double_t corrclY =  
-      corr->RPhiCOGCorrection(cluster->GetDetector(),cluster->GetRow(), cluster->GetPad(),
-				  cluster->GetY(),cluster->GetY(), cluster->GetZ(), 0., cluster->GetMax(),2.5);
-    // R correction
-    Double_t corrR   = corr->CorrectionOutR0(kFALSE,kFALSE,cluster->GetX(),cluster->GetY(),cluster->GetZ(),cluster->GetDetector());
+//     //
+//     // Apply r-phi correction  - To be done on track level- knowing the track angle !!!
+//     //
+//     Double_t corrclY =  
+//       corr->RPhiCOGCorrection(cluster->GetDetector(),cluster->GetRow(), cluster->GetPad(),
+// 				  cluster->GetY(),cluster->GetY(), cluster->GetZ(), 0., cluster->GetMax(),2.5);
+//     // R correction
+//     Double_t corrR   = corr->CorrectionOutR0(kFALSE,kFALSE,cluster->GetX(),cluster->GetY(),cluster->GetZ(),cluster->GetDetector());
 
-    if (fApplyRPhiCorrection){
-      if (cluster->GetY()>0) x[1]+=corrclY;  // rphi correction
-      if (cluster->GetY()<0) x[1]-=corrclY;  // rphi correction
-    }
-    if (fApplyRCorrection){      
-      x[0]+=corrR;                           // radial correction
-    }
+//     if (0&fApplyRPhiCorrection){
+//       if (cluster->GetY()>0) x[1]+=corrclY;  // rphi correction
+//       if (cluster->GetY()<0) x[1]-=corrclY;  // rphi correction
+//     }
+//     if (0&fApplyRCorrection){      
+//       x[0]+=corrR;                           // radial correction
+//     }
 
     //
     //
@@ -245,6 +252,27 @@ Bool_t  AliTPCcalibCalib::RefitTrack(AliESDtrack * track, AliTPCseed *seed, Floa
     cluster->SetX(x[0]);
     cluster->SetY(x[1]);
     cluster->SetZ(x[2]);
+    
+    //
+    // Apply alignemnt
+    //
+    if (1){
+      if (!param->IsGeoRead()) param->ReadGeoMatrices();
+      TGeoHMatrix  *mat = param->GetClusterMatrix(cluster->GetDetector());
+      //TGeoHMatrix  mat;
+      Double_t pos[3]= {cluster->GetX(),cluster->GetY(),cluster->GetZ()};
+      Double_t posC[3]={cluster->GetX(),cluster->GetY(),cluster->GetZ()};
+      if (mat) mat->LocalToMaster(pos,posC);
+      else{
+	// chack Loading of Geo matrices from GeoManager - TEMPORARY FIX
+      }
+      cluster->SetX(posC[0]);
+      cluster->SetY(posC[1]);
+      cluster->SetZ(posC[2]);
+    }
+
+
+
     if (fStreamLevel>2){
       TTreeSRedirector *cstream = GetDebugStreamer();
       if (cstream){
@@ -259,8 +287,8 @@ Bool_t  AliTPCcalibCalib::RefitTrack(AliESDtrack * track, AliTPCseed *seed, Floa
 	  "cl.="<<cluster<<
 	  "cy="<<dy<<
 	  "cz="<<dz<<
-	  "cY="<<corrclY<<
-	  "cR="<<corrR<<
+	  //	  "cY="<<corrclY<<
+	  //	  "cR="<<corrR<<
 	  "dxq="<<dxq<<
 	  "dyq="<<dyq<<
 	  "dzq="<<dzq<<
@@ -272,13 +300,15 @@ Bool_t  AliTPCcalibCalib::RefitTrack(AliESDtrack * track, AliTPCseed *seed, Floa
   //
   //
   Int_t ncl = seed->GetNumberOfClusters();
+  const Double_t kResetCov=4.;
+  const Double_t kSigma=5.;
   Double_t covar[15];
   for (Int_t i=0;i<15;i++) covar[i]=0;
-  covar[0]=10.*10.;
-  covar[2]=10.*10.;
-  covar[5]=10.*10./(64.*64.);
-  covar[9]=10.*10./(64.*64.);
-  covar[14]=0.3*0.3;
+  covar[0]=kSigma*kSigma;
+  covar[2]=kSigma*kSigma;
+  covar[5]=kSigma*kSigma/Float_t(ncl*ncl);
+  covar[9]=kSigma*kSigma/Float_t(ncl*ncl);
+  covar[14]=0.2*0.2;
   if (TMath::Abs(magesd)<0.05) {
      covar[14]=0.025*0.025;
   }
@@ -288,12 +318,15 @@ Bool_t  AliTPCcalibCalib::RefitTrack(AliESDtrack * track, AliTPCseed *seed, Floa
   AliExternalTrackParam * trackInOld  = (AliExternalTrackParam*)track->GetInnerParam();
   AliExternalTrackParam * trackOutOld = (AliExternalTrackParam*)track->GetOuterParam();
 
+
   AliExternalTrackParam trackIn  = *trackOutOld;
+  trackIn.ResetCovariance(kResetCov);
+  trackIn.AddCovariance(covar);
   if (TMath::Abs(magesd)<0.05) {
     ((Double_t&)(trackIn.GetParameter()[4]))=0.000000001;
+    ((Double_t&)(trackIn.GetCovariance()[14]))=covar[14];  // fix the line
   }  
-  trackIn.ResetCovariance(20.);
-  trackIn.AddCovariance(covar);
+
   Double_t xyz[3];
   Int_t nclIn=0,nclOut=0;
   //
@@ -324,11 +357,13 @@ Bool_t  AliTPCcalibCalib::RefitTrack(AliESDtrack * track, AliTPCseed *seed, Floa
   }
   //
   AliExternalTrackParam trackOut = trackIn;
+  trackOut.ResetCovariance(kResetCov);
+  trackOut.AddCovariance(covar);
   if (TMath::Abs(magesd)<0.05) {
     ((Double_t&)(trackOut.GetParameter()[4]))=0.000000001;
+    ((Double_t&)(trackOut.GetCovariance()[14]))=covar[14];  // fix the line
   }
-  trackOut.ResetCovariance(20.);
-  trackOut.AddCovariance(covar);
+
   //
   // Refit out
   //
@@ -363,7 +398,11 @@ Bool_t  AliTPCcalibCalib::RefitTrack(AliESDtrack * track, AliTPCseed *seed, Floa
   //
   nclIn=0;
   trackIn  = trackOut;
-  trackIn.ResetCovariance(10.);
+  trackIn.ResetCovariance(kResetCov);
+  if (TMath::Abs(magesd)<0.05) {
+    ((Double_t&)(trackIn.GetParameter()[4]))=0.000000001;
+    ((Double_t&)(trackIn.GetCovariance()[14]))=covar[14];  // fix the line
+  }
   //
   // Refit in one more time
   //

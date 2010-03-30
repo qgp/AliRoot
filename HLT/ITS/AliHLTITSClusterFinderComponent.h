@@ -19,6 +19,12 @@
 #include "AliITSgeom.h"
 #include "AliITSInitGeometry.h"
 #include "TClonesArray.h"
+#include "AliHLTDataTypes.h"
+#include "TTree.h"
+
+class AliHLTITSClusterFinderSPD;
+class AliHLTITSClusterFinderSSD;
+
 
 /**
  * @class AliHLTITSClusterFinderComponent
@@ -48,7 +54,18 @@
  *      a configuration argument without parameters
  *
  * <h2>Default CDB entries:</h2>
- * TODO
+ * ITS/Calib/SPDNoisy
+ * ITS/Calib/SPDDead
+ * TRIGGER/SPD/PITConditions
+ * ITS/Calib/CalibSDD
+ * ITS/Calib/RespSDD
+ * ITS/Calib/DriftSpeedSDD
+ * ITS/Calib/DDLMapSDD
+ * ITS/Calib/MapsTimeSDD
+ * ITS/Calib/NoiseSSD
+ * ITS/Calib/GainSSD
+ * ITS/Calib/BadChannelsSSD
+ * GRP/CTP/Scalers
  *
  * <h2>Performance:</h2>
  * TODO
@@ -70,7 +87,8 @@ class AliHLTITSClusterFinderComponent : public AliHLTProcessor
   enum {
     kClusterFinderSPD,
     kClusterFinderSDD,
-    kClusterFinderSSD
+    kClusterFinderSSD,
+    kClusterFinderDigits    
   };
   /*
    * ---------------------------------------------------------------------------------
@@ -125,11 +143,16 @@ class AliHLTITSClusterFinderComponent : public AliHLTProcessor
   Int_t DoDeinit();
   
   /** EventLoop */
-  //Int_t DoEvent( const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, 
-  //	 AliHLTComponentTriggerData& trigData, AliHLTUInt8_t* outputPtr
-  //	 ,AliHLTUInt32_t& size, AliHLTComponentBlockList& outputBlocks);
+ 
+  Int_t DoEvent(
+		const AliHLTComponentEventData& evtData,
+		const AliHLTComponentBlockData* blocks,
+		AliHLTComponentTriggerData& /*trigData*/,
+		AliHLTUInt8_t* outputPtr,
+		AliHLTUInt32_t& size,
+		vector<AliHLTComponentBlockData>& outputBlocks );
 
-  Int_t DoEvent( const AliHLTComponentEventData& /*evtData*/, AliHLTComponentTriggerData& /*trigData*/);
+  //Int_t DoEvent( const AliHLTComponentEventData& /*evtData*/, AliHLTComponentTriggerData& /*trigData*/);
 
   int Reconfigure(const char* cdbEntry, const char* chainId);
 		
@@ -150,6 +173,8 @@ class AliHLTITSClusterFinderComponent : public AliHLTProcessor
    * properties.
    */
   int Configure(const char* arguments);
+
+  void RecPointToSpacePoint(AliHLTUInt8_t* outputPtr,AliHLTUInt32_t& size);
   /*
    * ---------------------------------------------------------------------------------
    *                             Members - private
@@ -161,9 +186,13 @@ class AliHLTITSClusterFinderComponent : public AliHLTProcessor
    * use fModeSwitch = 0 for SPD
    * use fModeSwitch = 1 for SDD
    * use fModeSwitch = 2 for SSD
+   * use fModeSwitch = 3 for ClusterFinding on Digits (Full ITS)
    */
-  Int_t fModeSwitch;      
-
+  Int_t fModeSwitch;      // !
+  AliHLTComponentDataType fInputDataType; // !
+  AliHLTComponentDataType fOutputDataType; // !
+  
+  Bool_t fUseOfflineFinder; // flag to use the offline clusterfinder
   Int_t fNModules;             // total number of modules
   Int_t fId;                   // ddl offset
   Int_t fNddl;                 // number of ddl's
@@ -171,15 +200,28 @@ class AliHLTITSClusterFinderComponent : public AliHLTProcessor
    TClonesArray** fClusters;                                  //!transient
   
   /** the reader object for data decoding */
+
   AliRawReaderMemory* fRawReader;                             //!transient
-
   AliITSDetTypeRec* fDettype;                                 //!transient
-
   AliITSgeom* fgeom;                                          //!transient
-
   AliITSInitGeometry* fgeomInit;                              //!transient
+ 
+  AliHLTITSClusterFinderSPD *fSPD;                            //!transient
+  AliHLTITSClusterFinderSSD *fSSD;                            //!transient
+
+  TTree *tD;                                                  //!transient
+  TTree *tR;                                                  //!transient
+
+  std::vector<AliITSRecPoint> fclusters;                      //!transient
+  /*
+  int fStatNEv;
+  double fStatTime;
+  double fStatTimeAll;
+  double fStatTimeC;
+  double fStatTimeAllC;
+  */
 
   ClassDef(AliHLTITSClusterFinderComponent, 0)
     
-    };
+};
 #endif

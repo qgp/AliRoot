@@ -105,13 +105,10 @@ AliEveTRDTrackListEditor::AliEveTRDTrackListEditor(const TGWindow* p, Int_t widt
 
   frbTrack[0] = new TGRadioButton(fbgStyleTrack, "Rieman", 0);
   frbTrack[0]->SetToolTipText("Set the track model to \"Rieman\" (i.e. the used fit method)");
-  fbgStyleTrack->AddFrame(frbTrack[0]);
   frbTrack[1] = new TGRadioButton(fbgStyleTrack, "Kalman", 1);
   frbTrack[1]->SetToolTipText("Set the track model to \"Kalman\" (i.e. the used fit method)");
-  fbgStyleTrack->AddFrame(frbTrack[1]);
   frbTrack[2] = new TGRadioButton(fbgStyleTrack, "Line", 2);
   frbTrack[2]->SetToolTipText("Set the track model to \"Line\" (i.e. the used fit method)");
-  fbgStyleTrack->AddFrame(frbTrack[2]);  
 
   // Style - Color model
   fbgStyleColor = new TGButtonGroup(fStyleFrame, "Color model");
@@ -121,15 +118,11 @@ AliEveTRDTrackListEditor::AliEveTRDTrackListEditor(const TGWindow* p, Int_t widt
 
   frbColor[0] = new TGRadioButton(fbgStyleColor, "PID LQ", 0);
   frbColor[0]->SetToolTipText("Set color model to \"PID LQ\" -> 2 dimensional likelihood particle identification");
-  fbgStyleColor->AddFrame(frbColor[0]);
   frbColor[1] = new TGRadioButton(fbgStyleColor, "PID NN", 1);
   frbColor[1]->SetToolTipText("Set color model to \"PID NN\" -> Neural network particle identification");
-  fbgStyleColor->AddFrame(frbColor[1]);
   frbColor[2] = new TGRadioButton(fbgStyleColor, "ESD Source", 2);
   frbColor[2]->SetToolTipText("Set color model to \"ESD Source\" -> By source (TPC track prolongation or TRD stand alone)");
-  fbgStyleColor->AddFrame(frbColor[2]);  
   
-
   // Functionality for adding macros  
   fMainFrame = CreateEditorTabSubFrame("Process");
    
@@ -148,7 +141,7 @@ AliEveTRDTrackListEditor::AliEveTRDTrackListEditor(const TGWindow* p, Int_t widt
   fBrowseFrame->AddFrame(fbBrowse);
   
   fbNew = new TGTextButton(fBrowseFrame, "New");
-  fbNew->SetToolTipText("Start macro creation wizzard");
+  fbNew->SetToolTipText("Start macro creation wizard");
   fbNew->Connect("Clicked()", "AliEveTRDTrackListEditor", this, "NewMacros()");
   fBrowseFrame->AddFrame(fbNew);
   fMainFrame->AddFrame(fBrowseFrame);
@@ -355,10 +348,10 @@ void AliEveTRDTrackListEditor::ApplyMacros()
 //______________________________________________________
 void AliEveTRDTrackListEditor::NewMacros()
 {
-  // Start the macro creation wizzard.
+  // Start the macro creation wizard.
   // thanks to Jacek Otwinowski<J.Otwinowski@GSI.DE> for this suggestion
 
-  AliEveTRDMacroWizzard *wizz = new AliEveTRDMacroWizzard();
+  AliEveTRDMacroWizard *wizz = new AliEveTRDMacroWizard();
   wizz->Connect("Create(Char_t*)", "AliEveTRDTrackListEditor", this, "AddMacro(Char_t*)");
 }
 
@@ -826,6 +819,37 @@ void AliEveTRDTrackListEditor::RemoveMacros()
 }
 
 //______________________________________________________
+void AliEveTRDTrackListEditor::SaveMacroList(TMap* list)
+{
+  // Saves the provided macro list in an interior list. This list will be used by
+  // InheritMacroList() to restore the data in "list". With this method one is able
+  // to inherit the macro list from track list to track list (i.e. from event to event).
+
+  if (fInheritedMacroList != 0)
+  {
+    fInheritedMacroList->Delete();
+    delete fInheritedMacroList;
+  }
+  fInheritedMacroList = new TMap();
+  fInheritedMacroList->SetOwnerKeyValue(kTRUE, kTRUE);
+
+  TMapIter* iter = (TMapIter*)list->MakeIterator();
+  TObject* key = 0;
+  TMacroData* macro = 0;
+  
+  while ((key = iter->Next()) != 0)
+  {
+    macro = (TMacroData*)fM->fMacroList->GetValue(key);
+    if (macro != 0) fInheritedMacroList->Add(new TObjString(key->GetName()), 
+                                             new TMacroData(macro->GetName(), macro->GetPath(), macro->GetType()));
+    else
+    {
+      Error("AliEveTRDTrackListEditor::SaveMacroList", Form("Failed to inherit the macro \"%s\"!", key));
+    }
+  }
+}
+
+//______________________________________________________
 void AliEveTRDTrackListEditor::SetDrawingToHistoCanvasTab()
 {
   // Sets gPad to the tab with the name of the current AliEveTRDTrackList. If this tab does
@@ -900,37 +924,6 @@ void AliEveTRDTrackListEditor::SetModel(TObject* obj)
 
   // View correct tab
   GetGedEditor()->GetTab()->SetTab(fM->GetSelectedTab()); 
-}
-
-//______________________________________________________
-void AliEveTRDTrackListEditor::SaveMacroList(TMap* list)
-{
-  // Saves the provided macro list in an interior list. This list will be used by
-  // InheritMacroList() to restore the data in "list". With this method one is able
-  // to inherit the macro list from track list to track list (i.e. from event to event).
-
-  if (fInheritedMacroList != 0)
-  {
-    fInheritedMacroList->Delete();
-    delete fInheritedMacroList;
-  }
-  fInheritedMacroList = new TMap();
-  fInheritedMacroList->SetOwnerKeyValue(kTRUE, kTRUE);
-
-  TMapIter* iter = (TMapIter*)list->MakeIterator();
-  TObject* key = 0;
-  TMacroData* macro = 0;
-  
-  while ((key = iter->Next()) != 0)
-  {
-    macro = (TMacroData*)fM->fMacroList->GetValue(key);
-    if (macro != 0) fInheritedMacroList->Add(new TObjString(key->GetName()), 
-                                             new TMacroData(macro->GetName(), macro->GetPath(), macro->GetType()));
-    else
-    {
-      Error("AliEveTRDTrackListEditor::SaveMacroList", Form("Failed to inherit the macro \"%s\"!", key));
-    }
-  }
 }
 
 //______________________________________________________
@@ -1071,7 +1064,7 @@ void AliEveTRDTrackListEditor::UpdateMacroList()
       else
       {
         Error("AliEveTRDTrackListEditor::UpdateMacroList()", 
-              Form("Macro \"%s/%s.C\" has neither a selection macro nor a process macro!",
+              Form("Macro \"%s/%s.C\" is neither a selection macro nor a process macro!",
                    macro->GetPath(), macro->GetName()));                                        
       }
     }
@@ -1100,10 +1093,10 @@ void AliEveTRDTrackListEditor::UpdateMacroListSelection(Int_t ind)
 
 
 /////////////////////////////////////////////////
-ClassImp(AliEveTRDMacroWizzard)
+ClassImp(AliEveTRDMacroWizard)
 
 //______________________________________________________
-AliEveTRDMacroWizzard::AliEveTRDMacroWizzard(const TGWindow* p)
+AliEveTRDMacroWizard::AliEveTRDMacroWizard(const TGWindow* p)
   :TGMainFrame(p ? p : gClient->GetRoot(), 10, 10, kMainFrame | kVerticalFrame)
   ,fText(0x0)
   ,fCombo(0x0)
@@ -1162,7 +1155,7 @@ AliEveTRDMacroWizzard::AliEveTRDMacroWizzard(const TGWindow* p)
   // horizontal frame
   TGHorizontalFrame *fFrameAction = new TGHorizontalFrame(this,10,10,kHorizontalFrame);
   fbCancel = new TGTextButton(fFrameAction, "Cancel");
-  fbCancel->SetToolTipText("Exit macro creation wizzard");
+  fbCancel->SetToolTipText("Exit macro creation wizard");
   fFrameAction->AddFrame(fbCancel, new TGLayoutHints(kLHintsRight | kLHintsTop,2,2,2,2)); 
   fbCreate = new TGTextButton(fFrameAction, "Done");
   fbCreate->SetToolTipText("Use settings to create the macro");
@@ -1188,7 +1181,7 @@ AliEveTRDMacroWizzard::AliEveTRDMacroWizzard(const TGWindow* p)
   AddFrame(fFrameText, new TGLayoutHints(kLHintsLeft | kLHintsTop | kLHintsExpandX,2,2,2,2));
 
 
-  SetWindowName("TRD Macro Wizzard");
+  SetWindowName("TRD Macro Wizard");
   SetMWMHints(kMWMDecorAll,
               kMWMFuncAll,
               kMWMInputModeless);
@@ -1198,9 +1191,9 @@ AliEveTRDMacroWizzard::AliEveTRDMacroWizzard(const TGWindow* p)
   MapWindow();
 
   // Do the linking
-  //fCombo->Connect("Selected(Int_t)", "AliEveTRDMacroWizzard", this, "Create(Int_t)");
-  fbCreate->Connect("Clicked()", "AliEveTRDMacroWizzard", this, "HandleCreate()");
-  fbCancel->Connect("Clicked()", "AliEveTRDMacroWizzard", this, "CloseWindow()");
+  //fCombo->Connect("Selected(Int_t)", "AliEveTRDMacroWizard", this, "Create(Int_t)");
+  fbCreate->Connect("Clicked()", "AliEveTRDMacroWizard", this, "HandleCreate()");
+  fbCancel->Connect("Clicked()", "AliEveTRDMacroWizard", this, "CloseWindow()");
 
   // Standard choice
   fCombo->Select(1, kFALSE);
@@ -1258,7 +1251,7 @@ const Char_t *fMacroTemplate[7] = {
 "  } else h->Reset();\n"
 };
 //______________________________________________________
-void AliEveTRDMacroWizzard::Create(Int_t typ)
+void AliEveTRDMacroWizard::Create(Int_t type)
 {
   const Char_t *name = fText->GetText();
   if(strcmp(name,"")==0){
@@ -1294,7 +1287,7 @@ void AliEveTRDMacroWizzard::Create(Int_t typ)
 
   fprintf(fp, "\n%s\n", fIncludes);
 
-  switch(typ){
+  switch(type){
   case AliEveTRDTrackList::kSingleTrackSelect:
     fprintf(fp, "Bool_t %s(const AliTRDtrackV1 *track)\n", name);
     break;
@@ -1314,32 +1307,32 @@ void AliEveTRDMacroWizzard::Create(Int_t typ)
     fprintf(fp, "TH1* %s(const AliTRDtrackV1 *track, const AliTRDtrackV1 *track2)\n", name);
     break;
   default:
-    AliInfo(Form("Unknown typ[%d]", typ));
+    AliInfo(Form("Unknown type[%d]", type));
     new TGMsgBox(gClient->GetRoot(), GetMainFrame(), "Error", 
-                 Form("Unknown typ[%d]", typ), kMBIconExclamation, kMBOk);
+                 Form("Unknown type[%d]", type), kMBIconExclamation, kMBOk);
     fclose(fp);
     gSystem->Exec(Form("rm -f %s.C", name));
     //fCombo->Select(-1);
     return;
   }
   
-  fprintf(fp, "{\n%s\n", fMacroTemplate[typ]);
+  fprintf(fp, "{\n%s\n", fMacroTemplate[type]);
   fprintf(fp, "// add your own code here\n\n\n}\n");
   fclose(fp);
 
-  Emit("Create(Int_t)", typ);
+  Emit("Create(Int_t)", type);
   Create((Char_t*)name);
   CloseWindow();
 }
 
 //______________________________________________________
-void AliEveTRDMacroWizzard::Create(Char_t *name)
+void AliEveTRDMacroWizard::Create(Char_t *name)
 {
   Emit("Create(Char_t*)", Form("%s.C", name));
 }
 
 //______________________________________________________
-void AliEveTRDMacroWizzard::HandleCreate()
+void AliEveTRDMacroWizard::HandleCreate()
 {
   Create(fCombo->GetSelected());
 }

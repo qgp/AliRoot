@@ -9,6 +9,7 @@ SRCS= RESONANCES/AliRsnDaughter.cxx \
       RESONANCES/AliRsnCutBetheBloch.cxx \
       RESONANCES/AliRsnCutPrimaryVertex.cxx \
       RESONANCES/AliRsnCutESDPrimary.cxx \
+      RESONANCES/AliRsnCutESDTrigger.cxx \
       RESONANCES/AliRsnCutSet.cxx \
       RESONANCES/AliRsnCutMgr.cxx \
       RESONANCES/AliRsnPIDIndex.cxx \
@@ -35,7 +36,7 @@ DHDR:=PWG2resonancesLinkDef.h
 
 EXPORT:=
 
-EINCLUDE:= PYTHIA6
+EINCLUDE:= PYTHIA6 PWG2/RESONANCES CORRFW
 
 ifeq (win32gcc,$(ALICE_TARGET))
 PACKSOFLAGS:= $(SOFLAGS) -L$(ALICE_ROOT)/lib/tgt_$(ALICE_TARGET) -lSTEERBase \

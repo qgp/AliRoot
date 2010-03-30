@@ -24,6 +24,8 @@
 
 #include "AliHLTGlobalTriggerDecision.h"
 #include "Riostream.h"
+#include "TClass.h"
+#include "AliHLTMisc.h"
 
 ClassImp(AliHLTGlobalTriggerDecision)
 
@@ -76,7 +78,7 @@ void AliHLTGlobalTriggerDecision::Print(Option_t* option) const
     cout << "#################### Input trigger decisions ####################" << endl;
     for (Int_t i = 0; i < NumberOfTriggerInputs(); i++)
     {
-      TriggerInput(i)->Print(option);
+      if (TriggerInput(i)) TriggerInput(i)->Print(option);
     }
     if (NumberOfTriggerInputs() == 0)
     {
@@ -103,7 +105,7 @@ void AliHLTGlobalTriggerDecision::Print(Option_t* option) const
     for (Int_t i = 0; i < NumberOfTriggerInputs(); i++)
     {
       cout << "-------------------- Input trigger decision " << i << " --------------------" << endl;
-      TriggerInput(i)->Print(option);
+      if (TriggerInput(i)) TriggerInput(i)->Print(option);
     }
     if (NumberOfTriggerInputs() == 0)
     {
@@ -113,7 +115,7 @@ void AliHLTGlobalTriggerDecision::Print(Option_t* option) const
     for (Int_t i = 0; i < NumberOfInputObjects(); i++)
     {
       cout << "------------------------ Input object " << i << " ------------------------" << endl;
-      InputObject(i)->Print(option);
+      if (InputObject(i)) InputObject(i)->Print(option);
     }
     if (NumberOfInputObjects() == 0)
     {
@@ -135,6 +137,11 @@ void AliHLTGlobalTriggerDecision::Print(Option_t* option) const
 void AliHLTGlobalTriggerDecision::Copy(TObject &object) const
 {
   // copy this to the specified object
+
+  if (object.IsA() == AliHLTMisc::Instance().IsAliESDHLTDecision()) {
+    AliHLTMisc::Instance().Copy(this, &object);
+    return;
+  }
 
   AliHLTGlobalTriggerDecision* pDecision=dynamic_cast<AliHLTGlobalTriggerDecision*>(&object);
   if (pDecision)

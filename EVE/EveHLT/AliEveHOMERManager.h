@@ -22,11 +22,12 @@
     from AliHLTHOMERManager, with small additions for alieve interface
 */
 #include <AliHLTHOMERManager.h>
-#include <TEveEventManager.h>
+//\#include <TEveElementList.h>
 #include "AliEveHOMERSourceList.h"
+#include "TString.h"
+class TEveElementList;
 
-
-class AliEveHOMERManager : public AliHLTHOMERManager, public TEveElementList
+class AliEveHOMERManager : public TEveElementList, public AliHLTHOMERManager
 {
 public:
 

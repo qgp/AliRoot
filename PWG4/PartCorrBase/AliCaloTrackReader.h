@@ -30,8 +30,10 @@ class AliGenEventHeader ;
 class AliVEvent;
 class AliAODEvent;
 class AliMCEvent;
-class AliFidutialCut;
+class AliFiducialCut;
 class AliAODMCHeader;
+#include "AliPHOSGeoUtils.h"
+#include "AliEMCALGeoUtils.h"
 
 class AliCaloTrackReader : public TObject {
 
@@ -130,8 +132,8 @@ class AliCaloTrackReader : public TObject {
 
   virtual void ResetLists();
 
-  virtual AliFidutialCut * GetFidutialCut() const {return  fFidutialCut ;}
-  virtual void SetFidutialCut(AliFidutialCut * const fc) { fFidutialCut = fc ;}
+  virtual AliFiducialCut * GetFiducialCut() const {return  fFiducialCut ;}
+  virtual void SetFiducialCut(AliFiducialCut * const fc) { fFiducialCut = fc ;}
 	
   virtual void SetInputOutputMCEvent(AliVEvent* /*esd*/, AliAODEvent* /*aod*/, AliMCEvent* /*mc*/) {;}
 	
@@ -165,18 +167,32 @@ class AliCaloTrackReader : public TObject {
   Bool_t ReadStack()          const { return fReadStack            ; }
   Bool_t ReadAODMCParticles() const { return fReadAODMCParticles   ; }
 	
-  void SwitchOnWriteStdAOD()  {fWriteOutputStdAOD = kTRUE;}
-  void SwitchOffWriteStdAOD() {fWriteOutputStdAOD = kFALSE;}
-
+  void SwitchOnCleanStdAOD()  {fCleanOutputStdAOD = kTRUE;}
+  void SwitchOffCleanStdAOD() {fCleanOutputStdAOD = kFALSE;}
+	
   void SetDeltaAODFileName(TString name ) {fDeltaAODFileName = name ; }
   TString GetDeltaAODFileName() const {return fDeltaAODFileName ; }
+
+  void SetFiredTriggerClassName(TString name ) {fFiredTriggerClassName = name ; }
+  TString GetFiredTriggerClassName() const {return fFiredTriggerClassName ; }
+  virtual TString GetFiredTriggerClasses() {return "";}
+	
+  void SetEMCALGeometryName(TString name)   { fEMCALGeoName = name ; }
+  TString EMCALGeometryName() const { return fEMCALGeoName ; }
+	void InitEMCALGeometry() {if (!fEMCALGeo) fEMCALGeo = new AliEMCALGeoUtils(fEMCALGeoName); }
+  AliEMCALGeoUtils * GetEMCALGeometry() const {return fEMCALGeo;}
+	
+  void SetPHOSGeometryName(TString name)   { fPHOSGeoName = name ; }
+  TString PHOSGeometryName() const { return fPHOSGeoName ; }
+  void InitPHOSGeometry() {if (!fPHOSGeo) fPHOSGeo = new AliPHOSGeoUtils(fPHOSGeoName); }
+  AliPHOSGeoUtils * GetPHOSGeometry() const {return fPHOSGeo;}
 	
  protected:
   Int_t	           fEventNumber; // Event number
   TString          fCurrentFileName; // Current file name under analysis
   Int_t            fDataType ;   // Select MC:Kinematics, Data:ESD/AOD, MCData:Both
   Int_t            fDebug;       // Debugging level
-  AliFidutialCut * fFidutialCut; // Acceptance cuts
+  AliFiducialCut * fFiducialCut; // Acceptance cuts
 	
   Bool_t           fComparePtHardAndJetPt;  // In MonteCarlo, jet events, reject fake events with wrong jet energy.
   Float_t          fPtHardAndJetPtFactor;   // Factor between ptHard and jet pT to reject/accept event.
@@ -214,10 +230,16 @@ class AliCaloTrackReader : public TObject {
   Bool_t         fReadStack          ; // Access kine information from stack
   Bool_t	     fReadAODMCParticles ; // Access kine information from filtered AOD MC particles
 	
-  Bool_t	     fWriteOutputStdAOD;   // Write selected standard tracks and caloclusters in output AOD
+  Bool_t	     fCleanOutputStdAOD;   // clean the written standard tracks and caloclusters in output AOD
   TString        fDeltaAODFileName ;   // Delta AOD file name
+  TString        fFiredTriggerClassName  ;  // Name of trigger event type used to do the analysis
 
-  ClassDef(AliCaloTrackReader,7)
+  TString        fEMCALGeoName;  // Name of geometry to use for EMCAL.
+  TString        fPHOSGeoName;   // Name of geometry to use for PHOS.	
+  AliEMCALGeoUtils * fEMCALGeo ; //! EMCAL geometry pointer
+  AliPHOSGeoUtils  * fPHOSGeo  ; //! PHOS geometry pointer  
+
+  ClassDef(AliCaloTrackReader,10)
 } ;
 
 

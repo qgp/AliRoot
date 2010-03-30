@@ -5,6 +5,7 @@
 
 #include "AliAnalysisTask.h"
 #include "AliPWG0Helper.h"
+#include "AliTriggerAnalysis.h"
 #include <TString.h>
 
 class AliESDtrackCuts;
@@ -14,6 +15,8 @@ class TH2F;
 class TH3F;
 class AliESDEvent;
 class TGraph;
+class AliPhysicsSelection;
+class AliTriggerAnalysis;
 
 class AlidNdEtaTask : public AliAnalysisTask {
   public:
@@ -32,28 +35,37 @@ class AlidNdEtaTask : public AliAnalysisTask {
     void SetUseMCVertex(Bool_t flag = kTRUE) { fUseMCVertex = flag; }
     void SetOnlyPrimaries(Bool_t flag = kTRUE) { fOnlyPrimaries = flag; }
     void SetUseMCKine(Bool_t flag = kTRUE) { fUseMCKine = flag; }
-    void SetTrigger(AliPWG0Helper::Trigger trigger) { fTrigger = trigger; }
+    void SetTrigger(AliTriggerAnalysis::Trigger trigger) { fTrigger = trigger; }
+    void SetTriggerClasses(const char* require, const char* reject) { fRequireTriggerClass = require; fRejectTriggerClass = reject; }
     void SetFillPhi(Bool_t flag = kTRUE) { fFillPhi = flag; }
     void SetDeltaPhiCut(Float_t cut) { fDeltaPhiCut = cut; }
+    void SetCheckEventType(Bool_t flag = kTRUE) { fCheckEventType = flag; }
+    void SetSymmetrize(Bool_t flag = kTRUE) { fSymmetrize = flag; }
     
     void SetOption(const char* opt) { fOption = opt; }
 
  protected:
-    AliESDEvent *fESD;    //! ESD object
-    TList* fOutput;                  //! list send on output slot 0
+    AliESDEvent *fESD;                         //! ESD object
+    TList* fOutput;                            //! list send on output slot 0
 
-    TString fOption;      // option string
+    TString fOption;                           // option string
     AliPWG0Helper::AnalysisMode fAnalysisMode; // detector that is used for analysis
-    AliPWG0Helper::Trigger fTrigger;           // trigger that is used
+    AliTriggerAnalysis::Trigger fTrigger;      // trigger that is used
+    TString fRequireTriggerClass;              // trigger class that is required
+    TString fRejectTriggerClass;               // trigger class that is rejected
     Bool_t fFillPhi;                           // if true phi is filled as 3rd coordinate in all maps
     Float_t fDeltaPhiCut;                      // cut in delta phi (only SPD)
 
-    Bool_t  fReadMC;       // if true reads MC data (to build correlation maps)
-    Bool_t  fUseMCVertex;  // the MC vtx is used instead of the ESD vertex (for syst. check)
-    Bool_t  fOnlyPrimaries;// Process only primaries by using the MC information (for syst. check)
-    Bool_t  fUseMCKine;    // use the MC values for each found track/tracklet (for syst. check)
+    Bool_t  fReadMC;          // if true reads MC data (to build correlation maps)
+    Bool_t  fUseMCVertex;     // the MC vtx is used instead of the ESD vertex (for syst. check)
+    Bool_t  fOnlyPrimaries;   // Process only primaries by using the MC information (for syst. check)
+    Bool_t  fUseMCKine;       // use the MC values for each found track/tracklet (for syst. check)
+    Bool_t  fCheckEventType;  // check if event type is physics (for real data)
+    Bool_t  fSymmetrize;      // move all negative to positive eta
 
     AliESDtrackCuts* fEsdTrackCuts;         // Object containing the parameters of the esd track cuts
+    AliPhysicsSelection* fPhysicsSelection; // Event Selection object
+    AliTriggerAnalysis* fTriggerAnalysis;
 
     // Gathered from ESD
     dNdEtaAnalysis* fdNdEtaAnalysisESD;     //! contains the dndeta from the ESD
@@ -77,15 +89,20 @@ class AlidNdEtaTask : public AliAnalysisTask {
 
     // control histograms (ESD)
     TH3F* fVertex;                //! 3d vertex distribution
+    TH3F* fVertexVsMult;          //! x-vtx vs y-vtx vs multiplicity
     TH1F* fPhi;                   //! raw phi distribution
     TH1F* fRawPt;                 //! raw pt distribution
     TH2F* fEtaPhi;                //! raw eta - phi distribution
     TH2F* fZPhi[2];               //! raw z - phi distribution from tracklets per layer (only SPD)
+    TH1F* fModuleMap;             //! count clusters as function of module number (only SPD)
     TH1F* fDeltaPhi;              //! histogram of delta_phi values for tracklets (only for SPD analysis)
     TH1F* fDeltaTheta;            //! histogram of delta_theta values for tracklets (only for SPD analysis)
     TH2F* fFiredChips;            //! fired chips l1+l2 vs. number of tracklets (only for SPD analysis)
+    TH2F* fTrackletsVsClusters;   //! number of tracklets vs. clusters in all ITS detectors (only for SPD analysis)
+    TH2F* fTrackletsVsUnassigned; //! number of tracklets vs. number of unassigned clusters in L1 (only for SPD analysis)
     TGraph* fTriggerVsTime;       //! trigger as function of event time
-    TH1F* fStats;                 //! further statistics : bin 1 = vertexer 3d, bin 2 = vertexer z
+    TH1F* fStats;                 //! further statistics : bin 1 = vertexer 3d, bin 2 = vertexer z, etc (see CreateOutputObjects)
+    TH2F* fStats2;                //! V0 vs SPD statistics
 
  private:
     AlidNdEtaTask(const AlidNdEtaTask&);

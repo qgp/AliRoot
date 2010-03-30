@@ -1,9 +1,11 @@
-AliJetReader *CreateJetReader(Char_t *jr); // Common config
+AliJetReader *CreateJetReader(Char_t *jr,UInt_t filterMask); // Common config
 AliJetFinder *CreateJetFinder(Char_t *jf,Float_t radius = -1);
 
-AliAnalysisTaskJets *AddTaskJets(Char_t *jr, Char_t *jf,Float_t radius = -1); // for the new AF
+AliAnalysisTaskJets *AddTaskJets(Char_t *jr, Char_t *jf,Float_t radius = -1,UInt_t filterMask = 0); // for the new AF
+Int_t AddTaskJetsDelta(char *nonStdFile = "",UInt_t filterMask = 0,Bool_t kUseAODMC = kTRUE,UInt_t runFlag = 1|4|32|128|256);     
+AliAnalysisTaskJets *AddTaskJets(UInt_t filterMask = 0);
 
-AliAnalysisTaskJets *AddTaskJets(){
+AliAnalysisTaskJets *AddTaskJets(UInt_t filterMask ){
   // fills the standard "jets" branch in the AOD
   // need the ESDFilter to run before, to access the AODtracks
   // Tracks selected by the first Filter (1<<0)
@@ -15,13 +17,13 @@ AliAnalysisTaskJets *AddTaskJets(){
   // Acceptance of jets not limited by the Jet Finder but should be done
   // by user to abs(eta) < 0.5 
 
-  return AddTaskJets("AOD","UA1",0.4);
+  return AddTaskJets("AOD","UA1",0.4,filterMask);
 
 }
 
 
 
-Int_t AddTaskJetsDelta(char *nonStdFile = ""){
+Int_t AddTaskJetsDelta(char *nonStdFile,UInt_t filterMask,Bool_t kUseAODMC,UInt_t runFlag){
 
   // Adds a whole set of jet finders  all to be written
   // to a delta AOD
@@ -55,23 +57,27 @@ Int_t AddTaskJetsDelta(char *nonStdFile = ""){
   AliAnalysisTaskJets *jetana = 0;
   Int_t iCount = 0;
 
-
-  const char *cJF[7]        = {"UA1","UA1","UA1","CDF","DA","SISCONE","FASTJET"};
-  const Float_t radius[7]   = {  0.4,  0.7,  1.0,  0.7, 0.7,      0.4,      0.4};
-  const UInt_t  flag[7]     = {    6,    7,    7,    7,   7,        7,        7};
+  // Jet Fidners Selected by run flag first bit 2^0 second by 2^1 etc
+  const char *cJF[9]        = {"UA1","UA1","UA1","CDF","DA","SISCONE","FASTJET","FASTKT","UA1LO"};
+  const Float_t radius[9]   = {  0.4,  0.7,  1.0,  0.7, 0.7,      0.4,      0.4,     0.4,    0.7};
+  UInt_t  flag[9]           = {    6,    7,    7,    7,   7,        7,        7,       7,      7};
+  // flag[5] = 0; // set siscone to 0 for proof mode...
   // flag first bit AOD, second bit AODMC2 third bit AODMC2
   // i.e. 7 all, 6 only MC2 and MC
   // this stay at three
   const char *cReader[3] = {"AOD","AODMC","AODMC2"};  
 
-  for(int i = 0; i< 7;i++){
-    for(int ib = 0;ib<3;ib++){
+  
+
+  for(int i = 0; i< 9;i++){
+    if(!(runFlag&(1<<i)))continue;
+    if(!kUseAODMC)flag[i]&=1; // switch OFF MC if we do not have it
+    for(int ib = 0;ib<3;ib++){      
       if(flag[i]&(1<<ib)){
-	jetana = AddTaskJets(cReader[ib],cJF[i],radius[i]);
+	jetana = AddTaskJets(cReader[ib],cJF[i],radius[i],filterMask);
 	if(jetana){
 	  char *cRadius = "";
 	  if(radius[i]>0)cRadius = Form("%02d",(int)((radius[i]+0.01)*10.)); // add an offset beacuse of precision
-	  Printf(cRadius);
 	  jetana->SetNonStdBranch(Form("jets%s_%s%s",cReader[ib],cJF[i],cRadius));
 	  if(outFile.Length()>0)jetana->SetNonStdOutputFile(outFile.Data());
 	  iCount++;
@@ -88,7 +94,7 @@ Int_t AddTaskJetsDelta(char *nonStdFile = ""){
 
 
 
-AliAnalysisTaskJets *AddTaskJets(Char_t *jr, Char_t *jf, Float_t radius)
+AliAnalysisTaskJets *AddTaskJets(Char_t *jr, Char_t *jf, Float_t radius,UInt_t filterMask)
 {
   // Creates a jet finder task, configures it and adds it to the analysis manager.
 
@@ -117,7 +123,7 @@ AliAnalysisTaskJets *AddTaskJets(Char_t *jr, Char_t *jf, Float_t radius)
    // Create the task and configure it.
    //===========================================================================
    AliAnalysisTaskJets *jetana;
-   AliJetReader *er = CreateJetReader(jr);
+   AliJetReader *er = CreateJetReader(jr,filterMask);
     // Define jet header and jet finder
    AliJetFinder *jetFinder = CreateJetFinder(jf,radius);
 
@@ -139,7 +145,11 @@ AliAnalysisTaskJets *AddTaskJets(Char_t *jr, Char_t *jf, Float_t radius)
 
    AliAnalysisDataContainer *cout_jet = mgr->CreateContainer(Form("jethist_%s_%s%s",c_jr.Data(),c_jf.Data(),cRadius), TList::Class(),
 							     AliAnalysisManager::kOutputContainer, Form("%s:PWG4_jethist_%s_%s%s",AliAnalysisManager::GetCommonFileName(),
-													c_jr.Data(),c_jf.Data(),cRadius));
+							     c_jr.Data(),c_jf.Data(),cRadius));
+   /*
+   AliAnalysisDataContainer *cout_jet = mgr->CreateContainer(Form("jethist_%s_%s%s",c_jr.Data(),c_jf.Data(),cRadius), TList::Class(),
+							     AliAnalysisManager::kOutputContainer,"ckb_test.root");
+   */
    // Connect jet finder to task.
    jetana->SetJetFinder(jetFinder);
    jetana->SetConfigFile("");
@@ -165,6 +175,8 @@ AliJetFinder *CreateJetFinder(Char_t *jf,Float_t radius){
     AliCdfJetHeader *jh = new AliCdfJetHeader();
     jh->SetRadius(0.7);
     if(radius>0)jh->SetRadius(radius);    
+    jh->SetAODwrite(kTRUE);
+    //    jh->SetDebugCDF(1);
     jetFinder = new AliCdfJetFinder();
     if (jh) jetFinder->SetJetHeader(jh);
     break;
@@ -175,6 +187,7 @@ AliJetFinder *CreateJetFinder(Char_t *jf,Float_t radius){
     jh->SelectJets(kTRUE);
     jh->SetRadius(0.7);
     if(radius>0)jh->SetRadius(radius);
+    jh->SetEtMin(5.);
     jetFinder = new AliDAJetFinder();
     if (jh) jetFinder->SetJetHeader(jh);
     break;
@@ -186,6 +199,7 @@ AliJetFinder *CreateJetFinder(Char_t *jf,Float_t radius){
     if(radius>0)jh->SetRparam(radius);
     jh->SetAlgorithm(2); // antikt from fastjet/JetDefinition.hh
     jetFinder = new AliFastJetFinder();
+    jh->SetPtMin(1);
     if (jh) jetFinder->SetJetHeader(jh);
     break;
 
@@ -194,6 +208,7 @@ AliJetFinder *CreateJetFinder(Char_t *jf,Float_t radius){
     jh->SetRparam(0.4); // setup parameters                                  
     if(radius>0)jh->SetRparam(radius);
     jh->SetAlgorithm(0); // kt from fastjet/JetDefinition.hh
+    jh->SetPtMin(1);
     jetFinder = new AliFastJetFinder();
     if (jh) jetFinder->SetJetHeader(jh);
     break;
@@ -210,7 +225,7 @@ AliJetFinder *CreateJetFinder(Char_t *jf,Float_t radius){
 
     jh->SetOverlapThreshold(0.75);            // overlap parameter, between 0 and 1 excluded!! 0.75 value is advised
     jh->SetPtProtojetMin(0);                  // pt min of protojets
-    jh->SetMinJetPt(10);                      // Ptmin of jets (GeV)
+    jh->SetMinJetPt(5);                      // Ptmin of jets (GeV)
 
     //do you want to subtract BG (0 = no, 1 = yes)
     jh->SetBGMode(0);
@@ -236,7 +251,6 @@ AliJetFinder *CreateJetFinder(Char_t *jf,Float_t radius){
     jh->SetRadius(0.4);
     if(radius>0)jh->SetRadius(radius);
     jh->SetEtSeed(4.);
-    jh->SetEtSeed(4.);
     jh->SetNAcceptJets(6);
     jh->SetLegoNbinPhi(432);
     jh->SetLegoNbinEta(274);
@@ -249,6 +263,27 @@ AliJetFinder *CreateJetFinder(Char_t *jf,Float_t radius){
     jetFinder = new AliUA1JetFinderV1();
     if (jh) jetFinder->SetJetHeader(jh);
     break;
+  case "UA1LO":
+    AliUA1JetHeaderV1 *jh=new AliUA1JetHeaderV1();
+    jh->SetComment("UA1 jet code with Lo Pt settings parameters");
+    jh->BackgMode(0);
+    jh->SetRadius(0.4);
+    if(radius>0)jh->SetRadius(radius);
+    jh->SetEtSeed(1.);
+    jh->SetNAcceptJets(6);
+    jh->SetLegoNbinPhi(432);
+    jh->SetLegoNbinEta(274);
+    jh->SetLegoEtaMin(-2);
+    jh->SetLegoEtaMax(+2);
+    jh->SetMinJetEt(1.);
+    jh->SetJetEtaMax(1.5);
+    jh->SetJetEtaMin(-1.5);
+
+    jetFinder = new AliUA1JetFinderV1();
+    if (jh) jetFinder->SetJetHeader(jh);
+    break;
+
+
 
   case "UA1MC":
     AliUA1JetHeaderV1 *jh=new AliUA1JetHeaderV1();
@@ -277,7 +312,7 @@ AliJetFinder *CreateJetFinder(Char_t *jf,Float_t radius){
 
 }
 
-AliJetReader *CreateJetReader(Char_t *jr){
+AliJetReader *CreateJetReader(Char_t *jr,UInt_t filterMask){
   AliJetReader *er = 0;
 
   switch (jr) {
@@ -321,6 +356,7 @@ AliJetReader *CreateJetReader(Char_t *jr){
     jrh->SetComment("AOD Reader");
     jrh->SetPtCut(0.);
     jrh->SetTestFilterMask(16); // Change this one for a different set of cuts
+    if(filterMask>0)jrh->SetTestFilterMask(filterMask); 
     // Define reader and set its header
     er = new AliJetAODReader();
     er->SetReaderHeader(jrh);

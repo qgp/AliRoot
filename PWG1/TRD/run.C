@@ -81,44 +81,45 @@ Bool_t MEM = kFALSE;
 
 TChain* MakeChainLST(const char* filename = 0x0);
 TChain* MakeChainXML(const char* filename = 0x0);
-void run(Char_t *trd="ALL", const Char_t *files=0x0, Long64_t nev=1234567890, Long64_t first = 0)
+void run(Char_t *optList="ALL", const Char_t *files=0x0, Long64_t nev=1234567890, Long64_t first = 0, Int_t runNo=0, const Char_t *ocdb_uri="local://$ALICE_ROOT/OCDB", const Char_t *grp_uri=Form("local://%s", gSystem->pwd()))
 {
   TMemStat *mem = 0x0;
   if(MEM){ 
-    gSystem->Load("libMemStat.so");
-    gSystem->Load("libMemStatGui.so");
+    if(gSystem->Load("libMemStat.so")<0) return;
+    if(gSystem->Load("libMemStatGui.so")<0) return;
     mem = new TMemStat("new, gnubuildin");
     mem->AddStamp("Start");
   }
   TStopwatch timer;
   timer.Start();
 
-
-
   // VERY GENERAL SETTINGS
   AliLog::SetGlobalLogLevel(AliLog::kError);
   if(gSystem->Load("libANALYSIS.so")<0) return;
   if(gSystem->Load("libANALYSISalice.so")<0) return;
+  if(gSystem->Load("libTENDER.so")<0) return;
   if(gSystem->Load("libPWG1.so")<0) return;
 
-  Bool_t fHasMCdata =  HasReadMCData(trd);
-  Bool_t fHasFriends = HasReadFriendData(trd);
+  Bool_t fHasMCdata =  HasReadMCData(optList);
+  Bool_t fHasFriends = HasReadFriendData(optList);
   
   // INITIALIZATION OF RUNNING ENVIRONMENT
-  //TODO We should use the GRP if available similar to AliReconstruction::InitGRP()!
   // initialize OCDB manager
   AliCDBManager *cdbManager = AliCDBManager::Instance();
-  cdbManager->SetDefaultStorage("local://$ALICE_ROOT/OCDB");
-  cdbManager->SetSpecificStorage("GRP/GRP/Data", Form("local://%s",gSystem->pwd()));
-  cdbManager->SetRun(0);
+  cdbManager->SetDefaultStorage(ocdb_uri);
+  if(!cdbManager->IsDefaultStorageSet()){
+    Error("run.C", "Error setting OCDB.");
+    return;
+  }
+  cdbManager->SetRun(runNo);
+  cdbManager->SetSpecificStorage("GRP/GRP/Data", grp_uri);
   cdbManager->SetCacheFlag(kFALSE);
   // initialize magnetic field from the GRP manager.
   AliGRPManager grpMan;
-  grpMan.ReadGRPEntry();
-  grpMan.SetMagField();
+  if(!grpMan.ReadGRPEntry()) return;
+  if(!grpMan.SetMagField()) return;
   //AliRunInfo *runInfo = grpMan.GetRunInfo();
   AliGeomManager::LoadGeometry();
-
 
   // DEFINE DATA CHAIN
   TChain *chain = 0x0;
@@ -135,38 +136,40 @@ void run(Char_t *trd="ALL", const Char_t *files=0x0, Long64_t nev=1234567890, Lo
   chain->SetBranchStatus("ESDfriend*",1);
   chain->Lookup();
   chain->GetListOfFiles()->Print();
-  printf("\n ----> CHAIN HAS %d ENTRIES <----\n\n", (Int_t)chain->GetEntries());
+  printf("\tFOUND %d ENTRIES\n", (Int_t)chain->GetEntries());
 
 
   // BUILD ANALYSIS MANAGER
-  AliAnalysisManager *mgr = new AliAnalysisManager("Post Reconstruction Calibration/QA");
+  AliAnalysisManager *mgr = new AliAnalysisManager("TRD Reconstruction Performance & Calibration");
   AliVEventHandler *esdH = 0x0, *mcH = 0x0;
   mgr->SetInputEventHandler(esdH = new AliESDInputHandler);
   if(fHasMCdata) mgr->SetMCtruthEventHandler(mcH = new AliMCEventHandler());
   //mgr->SetDebugLevel(10);
 
   gROOT->LoadMacro("$ALICE_ROOT/PWG1/macros/AddTrainPerformanceTRD.C");
-  if(! AddTrainPerformanceTRD(fHasMCdata, fHasFriends, trd)) {
+  if(!AddTrainPerformanceTRD(fHasMCdata, fHasFriends, optList)) {
     Error("run.C", "Error loading TRD train.");
     return;
   }
 
   if (!mgr->InitAnalysis()) return;
   // verbosity
-  printf("\n\tRUNNING TRAIN FOR TASKS:\n");
-  mgr->GetTasks()->ls();
+  printf("\tRUNNING TRAIN FOR TASKS:\n");
+  TObjArray *taskList=mgr->GetTasks();
+  for(Int_t itask=0; itask<taskList->GetEntries(); itask++){ 
+    AliAnalysisTask *task=(AliAnalysisTask*)taskList->At(itask);
+    printf(" %s [%s]\n", task->GetName(), task->GetTitle());
+  }
   //mgr->PrintStatus();
-
   mgr->StartAnalysis("local", chain, nev, first);
 
   timer.Stop();
   timer.Print();  
 
-  TGeoGlobalMagField::Instance()->SetField(NULL);
   delete cdbManager;
 
   // verbosity
-  printf("\n\tCLEANING UP TRAIN:\n");
+  printf("\tCLEANING TASK LIST:\n");
   mgr->GetTasks()->Delete();
 
   if(mcH) delete mcH;

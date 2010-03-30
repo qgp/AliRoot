@@ -72,12 +72,17 @@ public:
     AliHLTLogging(),
     fRecPointDataPtr(0),
     fDigitDataPtr(0),
+    fCurrentDigit(0),
+    fStartDigit(0),
+    fPreviousDigit(0),
     fEmcClusteringThreshold(0),
     fEmcMinEnergyThreshold(0),
     fEmcTimeGate(0),
     fDigitsInCluster(0),
     fDigitContainerPtr(0),
-    fMaxDigitIndexDiff(2*NZROWSMOD)
+    fMaxDigitIndexDiff(2*56),
+    fAvailableSize(0),
+    fDigitReader(0)
   {
     //Copy constructor not implemented
   }
@@ -104,7 +109,7 @@ public:
 
   /** Set emc time gate */
   void SetEmcTimeGate(Float_t gate) { fEmcTimeGate = gate; }
-  
+
   /** Starts clusterization of the event */ 
   virtual Int_t ClusterizeEvent(AliHLTPHOSDigitHeaderStruct *digitHeader, UInt_t availableSize, UInt_t& totSize);
 
@@ -114,7 +119,7 @@ public:
    * it is added to the current rec point
    * @param recPoint pointer to the current rec point
    */
-  virtual Int_t ScanForNeighbourDigits(AliHLTPHOSRecPointDataStruct* recPoint);
+  virtual Int_t ScanForNeighbourDigits(AliHLTPHOSRecPointDataStruct* recPoint, AliHLTPHOSDigitDataStruct *digit);
 
   /**
    * Checks if two digits are neighbours

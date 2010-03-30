@@ -42,6 +42,7 @@
 #include "AliITSgeomTGeo.h"
 #include "AliRawEventHeaderBase.h"
 #include "AliITSRecPoint.h"
+#include "AliITSRecPointContainer.h"
 #include "AliITSdigitSSD.h"
 #include "AliITSBadChannelsSSDv2.h"
 
@@ -421,37 +422,33 @@ Int_t AliITSQASSDDataMakerRec::InitRaws() {
   TH1D *fHistSSDEventType = new TH1D("fHistSSDEventType",
 				     "SSD Event Type;Event type;Events",
 				     31,-1,30);
-  rv = fAliITSQADataMakerRec->Add2RawsList((new TH1D(*fHistSSDEventType)), 
+  rv = fAliITSQADataMakerRec->Add2RawsList(fHistSSDEventType, 
 					   fGenRawsOffset[specie]+fSSDRawsOffset, expert, !image, !saveCorr);
   fSSDRawsOffset += 1;
-  delete fHistSSDEventType;
   //cout<<"(AliITSQASSDDataMakerRec::InitRaws): "<<fGenRawsOffset[specie]+fSSDRawsOffset-1<<" - Name: "<<(fAliITSQADataMakerRec->GetRawsData(fGenRawsOffset[specie]))->GetName()<<endl;
   TH1D *fHistSSDDataSize = new TH1D("fHistSSDDataSize",
 				    "SSD Data Size;(SSD data size) [KB];Events",
 				    1000,0,500);
-  rv = fAliITSQADataMakerRec->Add2RawsList((new TH1D(*fHistSSDDataSize)), 
+  rv = fAliITSQADataMakerRec->Add2RawsList(fHistSSDDataSize, 
 					   fGenRawsOffset[specie]+fSSDRawsOffset, expert, !image, !saveCorr);
-  delete fHistSSDDataSize;
   fSSDRawsOffset += 1;
   TH1D *fHistSSDDataSizePercentage = new TH1D("fHistSSDDataSizePercentage",
 					      "SSD Data Size Percentage;SSD data size [%];Events",
 					      1000,0,100);
-  rv = fAliITSQADataMakerRec->Add2RawsList((new TH1D(*fHistSSDDataSizePercentage)), 
+  rv = fAliITSQADataMakerRec->Add2RawsList(fHistSSDDataSizePercentage, 
 					   fGenRawsOffset[specie]+fSSDRawsOffset, expert, !image, !saveCorr);
-  delete fHistSSDDataSizePercentage;
   fSSDRawsOffset += 1;
   TH1D *fHistSSDDDLId = new TH1D("fHistSSDDDLId",
 				 "SSD DDL Id;DDL id;Events",16,511.5,527.5);
-  rv = fAliITSQADataMakerRec->Add2RawsList((new TH1D(*fHistSSDDDLId)), 
+  rv = fAliITSQADataMakerRec->Add2RawsList(fHistSSDDDLId, 
 					   fGenRawsOffset[specie]+fSSDRawsOffset, expert, !image, !saveCorr);
-  delete fHistSSDDDLId;
   fSSDRawsOffset += 1;
   TH1D *fHistSSDDataSizePerDDL = new TH1D("fHistSSDDataSizePerDDL",
 					  "SSD Data Size Per DDL;DDL id;<SSD data size> [KB]",
 					  16,511.5,527.5);
-  rv = fAliITSQADataMakerRec->Add2RawsList((new TH1D(*fHistSSDDataSizePerDDL)), 
+  rv = fAliITSQADataMakerRec->Add2RawsList(fHistSSDDataSizePerDDL, 
 					   fGenRawsOffset[specie]+fSSDRawsOffset, !expert, image, !saveCorr);
-  delete fHistSSDDataSizePerDDL;
+
   fSSDRawsOffset += 1;
   TH1D *fHistSSDDataSizeDDL[fgkNumOfDDLs];
   for(Int_t i = 1; i < fgkNumOfDDLs+1; i++) {
@@ -460,24 +457,20 @@ Int_t AliITSQASSDDataMakerRec::InitRaws() {
     fHistSSDDataSizeDDL[i-1] = new TH1D(gName.Data(),
 					Form("%s;(SSD data size) [KB];Events", gTitle.Data()),
 					100,0,50);
-    rv = fAliITSQADataMakerRec->Add2RawsList((new TH1D(*fHistSSDDataSizeDDL[i-1])), 
+    rv = fAliITSQADataMakerRec->Add2RawsList(fHistSSDDataSizeDDL[i-1], 
 					     fGenRawsOffset[specie]+fSSDRawsOffset, expert, !image, !saveCorr);
     fSSDRawsOffset += 1;
   }
-  for(Int_t i = 1; i < fgkNumOfDDLs+1; i++) delete fHistSSDDataSizeDDL[i-1];
   
   TH1D *fHistSSDLDCId = new TH1D("fHistSSDLDCId","SSD LDC Id;LDC id;Events",8,169.5,177.5);
-  rv = fAliITSQADataMakerRec->Add2RawsList((new TH1D(*fHistSSDLDCId)), 
+  rv = fAliITSQADataMakerRec->Add2RawsList(fHistSSDLDCId, 
 					   fGenRawsOffset[specie]+fSSDRawsOffset, expert, !image, !saveCorr);
-  delete fHistSSDLDCId;
   fSSDRawsOffset += 1;
   TH1D *fHistSSDDataSizePerLDC = new TH1D("fHistSSDDataSizePerLDC",
 					  "SSD Data Size Per LDC;LDC id;<SSD data size> [KB]",
 					  8,169.5,177.5);
-  rv = fAliITSQADataMakerRec->Add2RawsList((new TH1D(*fHistSSDDataSizePerLDC)), 
-					   fGenRawsOffset[specie]+fSSDRawsOffset, !expert, image, !saveCorr);
-  delete fHistSSDDataSizePerLDC;
-  fSSDRawsOffset += 1;
+  rv = fAliITSQADataMakerRec->Add2RawsList(fHistSSDDataSizePerLDC, 
+					   fGenRawsOffset[specie]+fSSDRawsOffset, !expert, image, !saveCorr);  fSSDRawsOffset += 1;
   TH1D *fHistSSDDataSizeLDC[fgkNumOfLDCs];
   for(Int_t i = 1; i < fgkNumOfLDCs+1; i++) {
     gName = "fHistSSDDataSizeLDC"; 
@@ -494,11 +487,10 @@ Int_t AliITSQASSDDataMakerRec::InitRaws() {
     fHistSSDDataSizeLDC[i-1] = new TH1D(gName.Data(),
 					Form("%s;SSD data size [KB];Events", gTitle.Data()),
 					1000,0,100);
-    rv = fAliITSQADataMakerRec->Add2RawsList((new TH1D(*fHistSSDDataSizeLDC[i-1])), 
+    rv = fAliITSQADataMakerRec->Add2RawsList(fHistSSDDataSizeLDC[i-1], 
 					     fGenRawsOffset[specie]+fSSDRawsOffset, expert, !image, !saveCorr);
     fSSDRawsOffset += 1;
   }
-  for(Int_t i = 1; i < fgkNumOfLDCs+1; i++) delete fHistSSDDataSizeLDC[i-1];
   fSSDRawsCommonLevelOffset = fSSDRawsOffset;
   
   if(fkOnline) {
@@ -1536,23 +1528,23 @@ Int_t AliITSQASSDDataMakerRec::MakeRecPoints(TTree *clustersTree)
   Int_t rv = 0 ; 
   Int_t gLayer = 0, gLadder = 0, gModule = 0;
   Int_t lLadderLocationY = 0;
-  TBranch *branchRecP = clustersTree->GetBranch("ITSRecPoints");
-  if (!branchRecP) { 
-    AliError("can't get the branch with the ITS clusters !");
+  AliITSRecPointContainer* rpcont=AliITSRecPointContainer::Instance();
+  TClonesArray *recpoints = rpcont->FetchClusters(0,clustersTree); 
+  if(!rpcont->GetStatusOK() || !rpcont->IsSSDActive()){
+    AliError("can't get SSD clusters !");
     return rv;
   }
  
   //AliInfo(Form("fAliITSQADataMakerRec->GetEventSpecie() %d\n",fAliITSQADataMakerRec->GetEventSpecie()));
   //AliInfo(Form("fGenRecPointsOffset[fAliITSQADataMakerRec->GetEventSpecie()] %d\n",fGenRecPointsOffset[fAliITSQADataMakerRec->GetEventSpecie()]));
-  static TClonesArray statRecpoints("AliITSRecPoint");
-  TClonesArray *recpoints = &statRecpoints;
-  branchRecP->SetAddress(&recpoints);
   Int_t nClustersLayer5 = 0, nClustersLayer6 = 0;
   Int_t npoints = 0;      
   Float_t cluglo[3]={0.,0.,0.}; 
   //printf("*-*-*-*-*-*-*---*-*-*-------*-*-*-*-*-*-***************AliITSQASSDataMakerRec::MakeRecpoints STEP1 \n");
-  for(Int_t module = 0; module < clustersTree->GetEntries(); module++){
-    branchRecP->GetEvent(module);
+  Int_t firMod = AliITSgeomTGeo::GetModuleIndex(5,1,1);
+  Int_t lasMod =  AliITSgeomTGeo::GetNModules();
+  for(Int_t module = firMod; module < lasMod; module++){
+    recpoints = rpcont->UncheckedGetClusters(module);
     npoints += recpoints->GetEntries();
     AliITSgeomTGeo::GetModuleId(module,gLayer,gLadder,gModule);
     //printf("SSDDataMAkerRec:::::::::::::::::::::::gLayer ========== %d \n\n",gLayer);
@@ -1626,22 +1618,21 @@ Int_t AliITSQASSDDataMakerRec::MakeRecPoints(TTree *clustersTree)
   fAliITSQADataMakerRec->GetRecPointsData(fGenRecPointsOffset[fAliITSQADataMakerRec->GetEventSpecie()] + 2)->Fill(nClustersLayer5);
   fAliITSQADataMakerRec->GetRecPointsData(fGenRecPointsOffset[fAliITSQADataMakerRec->GetEventSpecie()] + 3)->Fill(nClustersLayer6);
 
-  statRecpoints.Clear();
   return rv ; 
 }
 
 //____________________________________________________________________________ 
-Int_t AliITSQASSDDataMakerRec::GetOffset(AliQAv1::TASKINDEX_t task) {
+Int_t AliITSQASSDDataMakerRec::GetOffset(AliQAv1::TASKINDEX_t task,Int_t specie) {
   // Returns offset number according to the specified task 
   Int_t offset=0;
   if( task == AliQAv1::kRAWS ) {
-    offset=fGenRawsOffset[fAliITSQADataMakerRec->GetEventSpecie()];  
+    offset=fGenRawsOffset[specie];  
   }
   else if( task == AliQAv1::kDIGITSR ) {
-    offset=fGenDigitsOffset[fAliITSQADataMakerRec->GetEventSpecie()];   
+    offset=fGenDigitsOffset[specie];   
   }
   else if( task == AliQAv1::kRECPOINTS ) {
-    offset=fGenRecPointsOffset[fAliITSQADataMakerRec->GetEventSpecie()];   
+    offset=fGenRecPointsOffset[specie];   
   }
 
   return offset;
@@ -1681,4 +1672,12 @@ Int_t AliITSQASSDDataMakerRec::GetTaskHisto(AliQAv1::TASKINDEX_t task) {
   }
 
   return histotot;
+}
+
+//____________________________________________________________________________ 
+void AliITSQASSDDataMakerRec::ResetDetector(AliQAv1::TASKINDEX_t task)
+{
+  if(task==AliQAv1::kRAWS)ResetRawsMonitoredObjects();
+
+
 }

@@ -120,7 +120,7 @@ AliTPCCalibRawBase::~AliTPCCalibRawBase()
     return *this;
   }
 //_____________________________________________________________________
-Bool_t AliTPCCalibRawBase::ProcessEventFast(AliTPCRawStreamFast *rawStreamFast)
+Bool_t AliTPCCalibRawBase::ProcessEventFast(AliTPCRawStreamFast * const rawStreamFast)
 {
   //
   // Event Processing loop - AliTPCRawStreamFast
@@ -150,7 +150,7 @@ Bool_t AliTPCCalibRawBase::ProcessEventFast(AliTPCRawStreamFast *rawStreamFast)
   return withInput;
 }
 //_____________________________________________________________________
-Bool_t AliTPCCalibRawBase::ProcessEventFast(AliRawReader *rawReader)
+Bool_t AliTPCCalibRawBase::ProcessEventFast(AliRawReader * const rawReader)
 {
   //
   //  Event processing loop - AliRawReader
@@ -167,7 +167,7 @@ Bool_t AliTPCCalibRawBase::ProcessEventFast(AliRawReader *rawReader)
   return res;
 }
 //_____________________________________________________________________
-Bool_t AliTPCCalibRawBase::ProcessEvent(AliTPCRawStreamV3 *rawStreamV3)
+Bool_t AliTPCCalibRawBase::ProcessEvent(AliTPCRawStreamV3 * const rawStreamV3)
 {
   //
   // Event Processing loop - AliTPCRawStreamV3
@@ -194,10 +194,11 @@ Bool_t AliTPCCalibRawBase::ProcessEvent(AliTPCRawStreamV3 *rawStreamV3)
       Int_t iRow     = rawStreamV3->GetRow();                          //  current row
       Int_t iPad     = rawStreamV3->GetPad();                          //  current pad
       while ( rawStreamV3->NextBunch() ){
-        Int_t  startTbin    = (Int_t)rawStreamV3->GetStartTimeBin();
+        UInt_t  startTbin    = rawStreamV3->GetStartTimeBin();
 //         Int_t  endTbin      = (Int_t)rawStreamV3->GetEndTimeBin();
-        Int_t  bunchlength  = (Int_t)rawStreamV3->GetBunchLength();
+        Int_t  bunchlength  = rawStreamV3->GetBunchLength();
         const UShort_t *sig = rawStreamV3->GetSignals();
+        ProcessBunch(isector,iRow,iPad,bunchlength,startTbin,sig);
         for (Int_t iTimeBin = 0; iTimeBin<bunchlength; iTimeBin++){
           Float_t signal=(Float_t)sig[iTimeBin];
 //            printf("%02d - %03d - %03d - %04d: %.1f\n",isector,iRow,iPad,startTbin,signal);
@@ -215,7 +216,7 @@ Bool_t AliTPCCalibRawBase::ProcessEvent(AliTPCRawStreamV3 *rawStreamV3)
   return withInput;
 }
 //_____________________________________________________________________
-Bool_t AliTPCCalibRawBase::ProcessEvent(AliRawReader *rawReader)
+Bool_t AliTPCCalibRawBase::ProcessEvent(AliRawReader * const rawReader)
 {
   //
   //  Event processing loop - AliRawReader
@@ -232,7 +233,7 @@ Bool_t AliTPCCalibRawBase::ProcessEvent(AliRawReader *rawReader)
   return res;
 }
 //_____________________________________________________________________
-Bool_t AliTPCCalibRawBase::ProcessEvent(AliTPCRawStream *rawStream)
+Bool_t AliTPCCalibRawBase::ProcessEvent(AliTPCRawStream * const rawStream)
 {
   //
   // Event Processing loop - AliTPCRawStream
@@ -269,7 +270,7 @@ Bool_t AliTPCCalibRawBase::ProcessEvent(AliTPCRawStream *rawStream)
   return withInput;
 }
 //_____________________________________________________________________
-Bool_t AliTPCCalibRawBase::ProcessEventOld(AliRawReader *rawReader)
+Bool_t AliTPCCalibRawBase::ProcessEventOld(AliRawReader * const rawReader)
 {
   //
   //  Event processing loop - AliRawReader
@@ -286,7 +287,7 @@ Bool_t AliTPCCalibRawBase::ProcessEventOld(AliRawReader *rawReader)
   return ProcessEvent(&rawStream);
 }
 //_____________________________________________________________________
-Bool_t AliTPCCalibRawBase::ProcessEvent(eventHeaderStruct *event)
+Bool_t AliTPCCalibRawBase::ProcessEvent(eventHeaderStruct * const event)
 {
   //
   //  Event processing loop - date event

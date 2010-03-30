@@ -58,6 +58,9 @@
 #include "AliCDBManager.h"
 #include "AliRunLoader.h"
 #include "AliRun.h"
+#include "AliEMCALTriggerData.h"
+#include "AliEMCALTriggerElectronics.h"
+#include "AliVZEROLoader.h"
 
 ClassImp(AliEMCALReconstructor) 
 
@@ -65,9 +68,10 @@ const AliEMCALRecParam* AliEMCALReconstructor::fgkRecParam = 0;  // EMCAL rec. p
 AliEMCALRawUtils* AliEMCALReconstructor::fgRawUtils = 0;   // EMCAL raw utilities class
 AliEMCALClusterizer* AliEMCALReconstructor::fgClusterizer = 0;   // EMCAL clusterizer class
 TClonesArray*     AliEMCALReconstructor::fgDigitsArr = 0;  // shoud read just once at event
+AliEMCALTriggerElectronics* AliEMCALReconstructor::fgTriggerProcessor = 0x0;
 //____________________________________________________________________________
 AliEMCALReconstructor::AliEMCALReconstructor() 
-  : fDebug(kFALSE), fList(0), fGeom(0),fCalibData(0) 
+  : fDebug(kFALSE), fList(0), fGeom(0),fCalibData(0),fPedestalData(0) 
 {
   // ctor
 
@@ -94,11 +98,24 @@ AliEMCALReconstructor::AliEMCALReconstructor()
   if(!fCalibData)
 		AliFatal("Calibration parameters not found in CDB!");
 	
+  //Get calibration parameters	
+  if(!fPedestalData)
+    {
+		AliCDBEntry *entry = (AliCDBEntry*) 
+		AliCDBManager::Instance()->Get("EMCAL/Calib/Pedestals");
+		if (entry) fPedestalData =  (AliCaloCalibPedestal*) entry->GetObject();
+    }
+	
+	if(!fPedestalData)
+		AliFatal("Dead map not found in CDB!");
+	
+	
   //Init the clusterizer with geometry and calibration pointers, avoid doing it twice.
-  fgClusterizer = new AliEMCALClusterizerv1(fGeom, fCalibData); 
+  fgClusterizer = new AliEMCALClusterizerv1(fGeom, fCalibData,fPedestalData); 
 	
   if(!fGeom) AliFatal(Form("Could not get geometry!"));
 
+  fgTriggerProcessor = new AliEMCALTriggerElectronics();
 } 
 
 //____________________________________________________________________________
@@ -106,6 +123,10 @@ AliEMCALReconstructor::~AliEMCALReconstructor()
 {
   // dtor
   delete fGeom;
+  delete fgRawUtils;
+  delete fgClusterizer;
+  delete fgTriggerProcessor;
+
   AliCodeTimer::Instance()->Print();
 } 
 
@@ -130,6 +151,40 @@ void AliEMCALReconstructor::Reconstruct(TTree* digitsTree, TTree* clustersTree) 
   ReadDigitsArrayFromTree(digitsTree);
   fgClusterizer->InitParameters();
   fgClusterizer->SetOutput(clustersTree);
+
+  AliEMCALTriggerData* trgData = new AliEMCALTriggerData();
+	
+  Int_t bufferSize = 32000;
+
+  if (TBranch* triggerBranch = clustersTree->GetBranch("EMTRG"))
+	  triggerBranch->SetAddress(&trgData);
+  else
+	  clustersTree->Branch("EMTRG","AliEMCALTriggerData",&trgData,bufferSize);
+
+  AliVZEROLoader* vzeroLoader = dynamic_cast<AliVZEROLoader*>(AliRunLoader::Instance()->GetDetectorLoader("VZERO"));
+  
+  TTree* treeV0 = 0x0;
+	
+  if (vzeroLoader) 
+  {
+	  vzeroLoader->LoadDigits("READ");
+      treeV0 = vzeroLoader->TreeD();
+  }
+
+  TClonesArray *trgDigits = new TClonesArray("AliEMCALRawDigit",1000);
+  TBranch *branchdig = digitsTree->GetBranch("EMTRG");
+  if (!branchdig) 
+  { 
+	  AliError("Can't get the branch with the EMCAL trigger digits !");
+	  return;
+  }
+
+  branchdig->SetAddress(&trgDigits);
+  branchdig->GetEntry(0);
+
+  fgTriggerProcessor->Digits2Trigger(trgDigits, treeV0, trgData);
+	
+  trgDigits->Delete();
 	
   if(fgDigitsArr && fgDigitsArr->GetEntries()) {
 
@@ -144,6 +199,14 @@ void AliEMCALReconstructor::Reconstruct(TTree* digitsTree, TTree* clustersTree) 
 
   }
 
+  if (vzeroLoader) 
+  {
+	  vzeroLoader->UnloadDigits();
+  }
+
+  clustersTree->Fill();	
+
+  delete trgData;
 }
 
 //____________________________________________________________________________
@@ -157,8 +220,11 @@ void AliEMCALReconstructor::ConvertDigits(AliRawReader* rawReader, TTree* digits
   rawReader->Reset() ; 
 
   TClonesArray *digitsArr = new TClonesArray("AliEMCALDigit",200);
+  TClonesArray *digitsTrg = new TClonesArray("AliEMCALRawDigit", 200);
+
   Int_t bufsize = 32000;
   digitsTree->Branch("EMCAL", &digitsArr, bufsize);
+  digitsTree->Branch("EMTRG", &digitsTrg, bufsize);
 
   //must be done here because, in constructor, option is not yet known
   fgRawUtils->SetOption(GetOption());
@@ -168,12 +234,17 @@ void AliEMCALReconstructor::ConvertDigits(AliRawReader* rawReader, TTree* digits
   fgRawUtils->SetRawFormatTau(GetRecParam()->GetTau());
   fgRawUtils->SetNoiseThreshold(GetRecParam()->GetNoiseThreshold());
   fgRawUtils->SetNPedSamples(GetRecParam()->GetNPedSamples());
-
-  fgRawUtils->Raw2Digits(rawReader,digitsArr);
+  fgRawUtils->SetRemoveBadChannels(GetRecParam()->GetRemoveBadChannels());
+  fgRawUtils->SetFittingAlgorithm(GetRecParam()->GetFittingAlgorithm());
+  fgRawUtils->SetFALTROUsage(GetRecParam()->UseFALTRO());
+	
+  fgRawUtils->Raw2Digits(rawReader,digitsArr,fPedestalData,digitsTrg);
 
   digitsTree->Fill();
   digitsArr->Delete();
+  digitsTrg->Delete();
   delete digitsArr;
+  delete digitsTrg;
 
 }
 
@@ -191,7 +262,7 @@ void AliEMCALReconstructor::FillESD(TTree* digitsTree, TTree* clustersTree,
   //######################################################
   //#########Calculate trigger and set trigger info###########
   //######################################################
- 
+  // Obsolete, to be changed with new trigger emulator when consensus is achieved about what is stored in ESDs.
   AliEMCALTrigger tr;
   //   tr.SetPatchSize(1);  // create 4x4 patches
   tr.SetSimulation(kFALSE); // Reconstruction mode
@@ -294,8 +365,10 @@ void AliEMCALReconstructor::FillESD(TTree* digitsTree, TTree* clustersTree,
     const AliEMCALDigit * dig = (const AliEMCALDigit*)digits->At(idig);
     if(dig->GetAmp() > 0 ){
 	  energy = (static_cast<AliEMCALClusterizerv1*> (fgClusterizer))->Calibrate(dig->GetAmp(),dig->GetId());
-      emcCells.SetCell(idignew,dig->GetId(),energy, dig->GetTime());   
-      idignew++;
+	  if(energy > 0){ //Digits tagged as bad (dead, hot, not alive) are set to 0 in calibrate, remove them	
+		  emcCells.SetCell(idignew,dig->GetId(),energy, dig->GetTime());   
+		  idignew++;
+	  }
     }
   }
   emcCells.SetNumberOfCells(idignew);
@@ -311,8 +384,6 @@ void AliEMCALReconstructor::FillESD(TTree* digitsTree, TTree* clustersTree,
 
   Int_t nClusters = clusters->GetEntries(),  nClustersNew=0;
   AliDebug(1,Form("%d clusters",nClusters));
-  esd->SetFirstEMCALCluster(esd->GetNumberOfCaloClusters()); // Put after Phos clusters 
-
 
   //######################################################
   //#######################TRACK MATCHING###############
@@ -336,7 +407,6 @@ void AliEMCALReconstructor::FillESD(TTree* digitsTree, TTree* clustersTree,
   //########################################
   //##############Fill CaloClusters#############
   //########################################
-  esd->SetNumberOfEMCALClusters(nClusters);
   for (Int_t iClust = 0 ; iClust < nClusters ; iClust++) {
     const AliEMCALRecPoint * clust = (const AliEMCALRecPoint*)clusters->At(iClust);
     //if(clust->GetClusterType()== AliESDCaloCluster::kEMCALClusterv1) nRP++; else nPC++;
@@ -383,6 +453,10 @@ void AliEMCALReconstructor::FillESD(TTree* digitsTree, TTree* clustersTree,
       ec->SetClusterType(AliESDCaloCluster::kEMCALClusterv1);
       ec->SetPosition(xyz);
       ec->SetE(clust->GetEnergy());
+		
+	  //Distance to the nearest bad crystal
+	  ec->SetDistanceToBadChannel(clust->GetDistanceToBadTower()); 
+
       ec->SetNCells(newCellMult);
       //Change type of list from short to ushort
       UShort_t *newAbsIdList  = new UShort_t[newCellMult];
@@ -416,24 +490,18 @@ void AliEMCALReconstructor::FillESD(TTree* digitsTree, TTree* clustersTree,
 
  delete [] matchedTrack;
 
- esd->SetNumberOfEMCALClusters(nClustersNew);
- //if(nClustersNew != nClusters)
- //printf(" ##### nClusters %i -> new %i ##### \n", nClusters, nClustersNew );
-
  //Fill ESDCaloCluster with PID weights
-  AliEMCALPID *pid = new AliEMCALPID;
-  //pid->SetPrintInfo(kTRUE);
-  pid->SetReconstructor(kTRUE);
-  pid->RunPID(esd);
-  delete pid;
+ AliEMCALPID *pid = new AliEMCALPID;
+ //pid->SetPrintInfo(kTRUE);
+ pid->SetReconstructor(kTRUE);
+ pid->RunPID(esd);
+ delete pid;
   
-  delete digits;
-  delete clusters;
+ delete digits;
+ delete clusters;
   
-  // printf(" ## AliEMCALReconstructor::FillESD() is ended : ncl %i -> %i ### \n ",nClusters, nClustersNew); 
-
-  //Store EMCAL misalignment matrixes
-  FillMisalMatrixes(esd) ;
+ //Store EMCAL misalignment matrixes
+ FillMisalMatrixes(esd) ;
 
 }
 
@@ -442,7 +510,7 @@ void AliEMCALReconstructor::FillMisalMatrixes(AliESDEvent* esd)const{
 	//Store EMCAL matrixes in ESD Header
 	
 	//Check, if matrixes was already stored
-	for(Int_t sm = 0 ; sm < 12; sm++){
+	for(Int_t sm = 0 ; sm < fGeom->GetNumberOfSuperModules(); sm++){
 		if(esd->GetEMCALMatrix(sm)!=0)
 			return ;
 	}
@@ -454,20 +522,24 @@ void AliEMCALReconstructor::FillMisalMatrixes(AliESDEvent* esd)const{
 	}
 	//Note, that owner of copied marixes will be header
 	char path[255] ;
-	TGeoHMatrix * m ;
-	for(Int_t sm = 0; sm < 12; sm++){
+	TGeoHMatrix * m = 0x0;
+	for(Int_t sm = 0; sm < fGeom->GetNumberOfSuperModules(); sm++){
 		sprintf(path,"/ALIC_1/XEN1_1/SMOD_%d",sm+1) ; //In Geometry modules numbered 1,2,.,5
 		if(sm >= 10) sprintf(path,"/ALIC_1/XEN1_1/SM10_%d",sm-10+1) ;
 		
-		if (gGeoManager->cd(path)){
+		if (gGeoManager->CheckPath(path)){
+			gGeoManager->cd(path);
 			m = gGeoManager->GetCurrentMatrix() ;
+//			printf("================================================= \n");
+//			printf("AliEMCALReconstructor::FixMisalMatrixes(), sm %d, \n",sm);
+//			m->Print("");
 			esd->SetEMCALMatrix(new TGeoHMatrix(*m),sm) ;
+//			printf("================================================= \n");
 		}
 		else{
 			esd->SetEMCALMatrix(NULL,sm) ;
 		}
 	}
-	
 }
 
 
@@ -491,4 +563,5 @@ void AliEMCALReconstructor::ReadDigitsArrayFromTree(TTree *digitsTree) const
   branch->SetAddress(&fgDigitsArr);
   branch->GetEntry(0);
 }
+
 

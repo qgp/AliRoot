@@ -19,6 +19,7 @@
 #include "AliZDCLaserCalib.h"
 #include "AliZDCEnCalib.h"
 #include "AliZDCTowerCalib.h"
+#include "AliZDCMBCalib.h"
 
 /////////////////////////////////////////////////////////////////////
 //								   //
@@ -48,6 +49,8 @@
 // return 15: error storing laser calibration obj. in OCDB
 // return 16: error in ZDCLaserHisto.root file retrieved from DAQ FXS 
 // return 17: error storing laser histos in RefData 
+// return 18: error in ZDCMBCalib.root file retrieved from DAQ FXS 
+// return 19: error storing MB calibration obj. in OCDB
 // ******************************************************************
 
 ClassImp(AliZDCPreprocessor)
@@ -141,14 +144,14 @@ UInt_t AliZDCPreprocessor::ProcessDCSData(TMap* dcsAliasMap)
   // HV DP since some of them are never found in amanda DB
   // ------------------------------------------------------
   // Store DCS data as reference
-/*  AliCDBMetaData metadata;
+  AliCDBMetaData metadata;
   metadata.SetResponsible("Chiara Oppedisano");
   metadata.SetComment("DCS DP TMap for ZDC");
   Bool_t resDCSRef = kTRUE;
   resDCSRef = StoreReferenceData("DCS","Data", dcsAliasMap, &metadata);
   
   if(resDCSRef==kFALSE) return 2;
-*/
+
   // --- Writing ZDC table positions into alignment object
   TClonesArray *array = new TClonesArray("AliAlignObjParams",10);
   TClonesArray &alobj = *array;
@@ -187,7 +190,7 @@ UInt_t AliZDCPreprocessor::ProcessDCSData(TMap* dcsAliasMap)
 //______________________________________________________________________________________________
 UInt_t AliZDCPreprocessor::ProcessChMap()
 { 
-  const int kNch = 48;
+  const int kNModules=10, kNch=48, kNScch=32;
   
   // Reading the file for mapping from FXS
   TList* daqSource = GetFileSources(kDAQ, "MAPPING");
@@ -201,7 +204,7 @@ UInt_t AliZDCPreprocessor::ProcessChMap()
   TIter iter(daqSource);
   TObjString* source = 0;
   Int_t isou = 0;
-  Int_t readMap[kNch][6]; 
+  Int_t modMap[kNModules][3], adcMap[kNch][6], scMap[kNScch][6]; 
   //
   while((source = dynamic_cast<TObjString*> (iter.Next()))){
      TString fileName = GetFile(kDAQ, "MAPPING", source->GetName());
@@ -223,7 +226,19 @@ UInt_t AliZDCPreprocessor::ProcessChMap()
        //
        for(Int_t j=0; j<kNch; j++){	  
            for(Int_t k=0; k<6; k++){
-             int read = fscanf(file,"%d",&readMap[j][k]);
+             int read = fscanf(file,"%d",&adcMap[j][k]);
+	     if(read == 0) AliDebug(3," Failing in reading data from mapping file");
+           }
+       }
+       for(Int_t j=kNch; j<kNch+kNScch; j++){	  
+           for(Int_t k=0; k<6; k++){
+             int read = fscanf(file,"%d",&scMap[j-kNch][k]);
+	     if(read == 0) AliDebug(3," Failing in reading data from mapping file");
+           }
+       }
+       for(Int_t j=kNch+kNScch; j<kNModules+kNch+kNScch; j++){	  
+           for(Int_t k=0; k<3; k++){
+             int read = fscanf(file,"%d",&modMap[j-kNch-kNScch][k]);
 	     if(read == 0) AliDebug(3," Failing in reading data from mapping file");
            }
        }
@@ -234,10 +249,10 @@ UInt_t AliZDCPreprocessor::ProcessChMap()
        return 4;
      }
   }
-  delete daqSource; daqSource=0;
   
   // Store the currently read map ONLY IF it is different
   // from the entry in the OCDB
+  Bool_t adcMapUpdated=kFALSE, scMapUpdated=kFALSE;
   Bool_t updateOCDB = kFALSE;
   
   AliCDBEntry *cdbEntry = GetFromOCDB("Calib","ChMap");
@@ -248,15 +263,20 @@ UInt_t AliZDCPreprocessor::ProcessChMap()
   else{
     AliZDCChMap *chMap = (AliZDCChMap*) cdbEntry->GetObject();
     for(Int_t i=0; i<kNch; i++){
-      if(  (readMap[i][1] == chMap->GetADCModule(i)) 
-        && (readMap[i][2] == chMap->GetADCChannel(i)) 
-	&& (readMap[i][4] == chMap->GetDetector(i)) 
-	&& (readMap[i][5] == chMap->GetSector(i))){
-	 updateOCDB = kFALSE;
-      }
-      else updateOCDB = kTRUE;
+      if(  (adcMap[i][1] != chMap->GetADCModule(i)) 
+        || (adcMap[i][2] != chMap->GetADCChannel(i)) 
+	|| (adcMap[i][4] != chMap->GetDetector(i)) 
+	|| (adcMap[i][5] != chMap->GetSector(i))) 
+	 adcMapUpdated = kTRUE;
+    }
+    for(Int_t i=0; i<kNScch; i++){
+      if(  (scMap[i][2] != chMap->GetScChannel(i)) 
+	|| (scMap[i][4] != chMap->GetScDetector(i)) 
+	|| (scMap[i][5] != chMap->GetScSector(i)))
+	 scMapUpdated = kTRUE;
     }
   }
+  if(adcMapUpdated || scMapUpdated) updateOCDB = kTRUE;
   //
   Bool_t resChMapStore = kTRUE;
   if(updateOCDB==kTRUE){
@@ -265,23 +285,26 @@ UInt_t AliZDCPreprocessor::ProcessChMap()
     // --- Initializing mapping calibration object
     AliZDCChMap *mapCalib = new AliZDCChMap("ZDC");
     // Writing channel map in the OCDB
-    for(Int_t k=0; k<kNch; k++){
-      mapCalib->SetADCModule(k,readMap[k][1]);
-      mapCalib->SetADCChannel(k,readMap[k][2]);
-      mapCalib->SetDetector(k,readMap[k][4]);
-      mapCalib->SetSector(k,readMap[k][5]);
-      // TEMPORARY!!!! Until no mapping from scaler is provided!!!!!!!
-      for(Int_t il=0; il<32; il++){
-         mapCalib->SetScChannel(il, 0);
-	 mapCalib->SetScDetector(il, 0);
-	 mapCalib->SetScSector(il, 0);
-      }
+    for(Int_t k=0; k<kNModules; k++){
+      mapCalib->SetModuleMap(k, modMap[k][0], modMap[k][1], modMap[k][2]);
     }
-    //mapCalib->Print("");
+    for(Int_t k=0; k<kNch; k++){
+      mapCalib->SetADCModule(k,adcMap[k][1]);
+      mapCalib->SetADCChannel(k,adcMap[k][2]);
+      mapCalib->SetDetector(k,adcMap[k][4]);
+      mapCalib->SetSector(k,adcMap[k][5]);
+    }
+    for(Int_t k=0; k<kNScch; k++){
+       mapCalib->SetScChannel(k, scMap[k][2]);
+       mapCalib->SetScDetector(k, scMap[k][4]);
+       mapCalib->SetScSector(k, scMap[k][5]);
+    }
+    //
+    mapCalib->Print("");
     // 
     AliCDBMetaData metaData;
     metaData.SetBeamPeriod(0);
-    //metaData.SetResponsible("Chiara Oppedisano");
+    metaData.SetResponsible("Chiara Oppedisano");
     metaData.SetComment("Filling AliZDCChMap object");  
     //
     resChMapStore = Store("Calib","ChMap",mapCalib, &metaData, 0, kTRUE);
@@ -292,9 +315,10 @@ UInt_t AliZDCPreprocessor::ProcessChMap()
     resChMapStore = kTRUE;
   }
   
-  if(resChMapStore==kFALSE) return 5;
+  delete daqSource; daqSource=0;
   
-  return 0;
+  if(resChMapStore==kFALSE) return 5;
+  else return 0;
 
 }
 
@@ -669,12 +693,77 @@ UInt_t AliZDCPreprocessor::ProcessLaserData()
   return 0;
 }
 
+
+//______________________________________________________________________________________________
+UInt_t AliZDCPreprocessor::ProcessMBCalibData()
+{
+  TList* daqSources = GetFileSources(kDAQ, "MBCALIB");
+  if(!daqSources){
+    AliError(Form("No sources for CALIBRATION_MB run %d !", fRun));
+    return 18;
+  }
+  if(daqSources->GetEntries()==0) return 18;
+  Log("\t List of DAQ sources for MBCALIB id: "); daqSources->Print();
+  //
+  TIter iter2(daqSources);
+  TObjString* source = 0;
+  Int_t i=0;
+  Bool_t resMBCal=kTRUE;
+  
+  while((source = dynamic_cast<TObjString*> (iter2.Next()))){
+     TString stringMBFileName = GetFile(kDAQ, "MBCALIB", source->GetName());
+     if(stringMBFileName.Length() <= 0){
+       Log(Form("No MBCALIB file from source %s!", source->GetName()));
+       return 18;
+     }
+     const char* mbFileName = stringMBFileName.Data();
+     Log(Form("\t Getting file #%d: %s from %s\n",++i,mbFileName,source->GetName()));
+     //
+     // --- Initializing calibration object
+     AliZDCMBCalib *mbCalib = new AliZDCMBCalib("ZDC");
+     // --- Reading file with calibration data
+     if(mbFileName){
+       TFile * fileHistos = TFile::Open(mbFileName);
+       Log(Form("File %s connected to process data from CALIBRATION_MB events", mbFileName));
+       //
+       fileHistos->cd();
+       TH2F *hZDCvsZEM = (TH2F*)  fileHistos->Get("hZDCvsZEM");
+       TH2F *hZDCCvsZEM = (TH2F*) fileHistos->Get("hZDCCvsZEM");
+       TH2F *hZDCAvsZEM = (TH2F*) fileHistos->Get("hZDCAvsZEM");
+       //
+       mbCalib->SetZDCvsZEM(hZDCvsZEM);
+       mbCalib->SetZDCCvsZEM(hZDCCvsZEM);
+       mbCalib->SetZDCAvsZEM(hZDCAvsZEM);
+       //
+       //fileHistos->Close();
+     }
+     else{
+       Log(Form("File %s not found", mbFileName));
+       return 14;
+     }
+     // 
+     AliCDBMetaData metaData;
+     metaData.SetBeamPeriod(0);
+     metaData.SetResponsible("Chiara Oppedisano");
+     metaData.SetComment("Filling AliZDCMBCalib object");  
+     //
+     //mbCalib->Dump();
+     //
+     resMBCal = Store("Calib","MBCalib",mbCalib, &metaData, 0, kTRUE);
+       printf(" here 1000\n");
+     if(resMBCal==kFALSE) return 19;
+  }
+  delete daqSources; daqSources = 0;
+  
+  return 0;
+}
+
 //______________________________________________________________________________________________
 UInt_t AliZDCPreprocessor::Process(TMap* dcsAliasMap)
 {
  UInt_t resDCS = 0;
  UInt_t resChMap=0;
- UInt_t resEnergyCalib=0, resPedestalCalib=0, resLaserCalib=0;
+ UInt_t resEnergyCalib=0, resPedestalCalib=0, resLaserCalib=0, resMBCalib=0;
 
  // ************************* Process DCS data ****************************
  if(ProcessDCS()) resDCS = ProcessDCSData(dcsAliasMap);
@@ -686,21 +775,21 @@ UInt_t AliZDCPreprocessor::Process(TMap* dcsAliasMap)
  printf("\t **** AliZDCPreprocessor -> beamType %s, runType %s ****\n",beamType,runType.Data());
 
  // ******************************************
- //   ADC channel mapping
+ // ADC channel mapping
  // ******************************************
  resChMap = ProcessChMap();
  
  // ******************************************
- //   Calibration param. for p-p data (all = 1)
+ // Calibration param. for p-p data (all = 1)
  // ******************************************
  // NO ENERGY CALIBRATION -> coefficients set to 1.
  // Temp -> also inter-calibration coefficients are set to 1.
  if((strcmp(beamType,"p-p")==0) || (strcmp(beamType,"P-P")==0)) resEnergyCalib = ProcessppData();
  
  // *****************************************************
- //  EMD EVENTS -> Energy calibration and equalization
+ // CALIBRATION_EMD -> Energy calibration and equalization
  // *****************************************************
- else if((strcmp(beamType,"A-A")==0) && (runType.CompareTo("CALIBRATION_EMD")==0)) 
+ if((strcmp(beamType,"A-A")==0) && (runType.CompareTo("CALIBRATION_EMD")==0)) 
    resEnergyCalib =  ProcessCalibData();
  
  // *****************************************************
@@ -711,7 +800,12 @@ UInt_t AliZDCPreprocessor::Process(TMap* dcsAliasMap)
  // *****************************************************
  // STANDALONE_LASER -> Signal stability and ageing 
  // *****************************************************
- if(runType.CompareTo("STANDALONE_LASER")==0) resLaserCalib = ProcessLaserData();
+ else if(runType.CompareTo("STANDALONE_LASER")==0) resLaserCalib = ProcessLaserData();
+
+ // *****************************************************
+ // CALIBRATION_MB -> Signal stability and ageing 
+ // *****************************************************
+ else if(runType.CompareTo("CALIBRATION_MB")==0) resMBCalib = ProcessMBCalibData();
  
 
  if(resDCS!=0)  	      return resDCS;
@@ -719,6 +813,7 @@ UInt_t AliZDCPreprocessor::Process(TMap* dcsAliasMap)
  else if(resEnergyCalib!=0)   return resEnergyCalib;
  else if(resPedestalCalib!=0) return resPedestalCalib;
  else if(resLaserCalib!=0)    return resLaserCalib;
+ else if(resMBCalib!=0)       return resMBCalib;
  
  return 0;
   

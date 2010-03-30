@@ -37,7 +37,7 @@
 #include "AliCaloTrackReader.h"
 #include "AliCaloPID.h"
 #include "AliAODPWG4ParticleCorrelation.h"
-#include "AliFidutialCut.h"
+#include "AliFiducialCut.h"
 #include "AliAODTrack.h"
 #include "AliAODCaloCluster.h"
 #include "AliMCAnalysisUtils.h"
@@ -175,9 +175,9 @@ TList *  AliAnaParticleHadronCorrelation::GetCreateOutputObjects()
   TList * outputContainer = new TList() ; 
   outputContainer->SetName("CorrelationHistos") ; 
   
-  Int_t nptbins  = GetHistoNPtBins();
-  Int_t nphibins = GetHistoNPhiBins();
-  Int_t netabins = GetHistoNEtaBins();
+  Int_t nptbins  = GetHistoPtBins();
+  Int_t nphibins = GetHistoPhiBins();
+  Int_t netabins = GetHistoEtaBins();
   Float_t ptmax  = GetHistoPtMax();
   Float_t phimax = GetHistoPhiMax();
   Float_t etamax = GetHistoEtaMax();
@@ -328,13 +328,13 @@ TList *  AliAnaParticleHadronCorrelation::GetCreateOutputObjects()
       ("DeltaPhiNeutralPt","#phi_{trigger} - #phi_{#pi^{0}} vs p_{T #pi^{0}}}",
        nptbins,ptmin,ptmax,700,-2.,5.); 
     fhDeltaPhiNeutralPt->SetYTitle("#Delta #phi");
-    fhDeltaPhiNeutralPt->SetXTitle("p_{T h^{0} (GeV/c)");
+    fhDeltaPhiNeutralPt->SetXTitle("p_{T h^{0}} (GeV/c)");
 
     fhDeltaPhiUeNeutralPt  = new TH2F
       ("DeltaPhiUeNeutralPt","#phi_{trigger} - #phi_{#pi^{0}} vs p_{T #pi^{0}}}",
        nptbins,ptmin,ptmax,700,-2.,5.); 
     fhDeltaPhiUeNeutralPt->SetYTitle("#Delta #phi");
-    fhDeltaPhiUeNeutralPt->SetXTitle("p_{T h^{0} (GeV/c)");
+    fhDeltaPhiUeNeutralPt->SetXTitle("p_{T h^{0}} (GeV/c)");
     
     fhDeltaEtaNeutral  = new TH2F
       ("DeltaEtaNeutral","#eta_{trigger} - #eta_{#pi^{0}} vs p_{T trigger}",
@@ -619,8 +619,8 @@ void  AliAnaParticleHadronCorrelation::MakeChargedCorrelation(AliAODPWG4Particle
     // printf("rat = %f, xE = %f, cosi =%f \n", rat, xE, cosi);
      // printf("phi = %f \n", phi);
     
-     if(IsFidutialCutOn()){
-       Bool_t in = GetFidutialCut()->IsInFidutialCut(mom,"CTS") ;
+     if(IsFiducialCutOn()){
+       Bool_t in = GetFiducialCut()->IsInFiducialCut(mom,"CTS") ;
        if(! in ) continue ;
      }    
 
@@ -721,7 +721,7 @@ void  AliAnaParticleHadronCorrelation::MakeNeutralCorrelationFillAOD(AliAODPWG4P
 	if     (aodParticle->GetDetector() == "EMCAL" && GetReader()->GetAODEMCALNormalInputEntries() <= iclus) inputi = 1 ;
 	else if(aodParticle->GetDetector() == "PHOS"  && GetReader()->GetAODPHOSNormalInputEntries()  <= iclus) inputi = 1;
 	  
-	//Cluster selection, not charged, with photon or pi0 id and in fidutial cut
+	//Cluster selection, not charged, with photon or pi0 id and in fiducial cut
     Int_t pdg=0;
 	if     (inputi == 0 && !SelectCluster(calo, vertex,  gammai, pdg))  continue ;
 	else if(inputi == 1 && !SelectCluster(calo, vertex2, gammai, pdg))  continue ;
@@ -772,7 +772,7 @@ void  AliAnaParticleHadronCorrelation::MakeNeutralCorrelationFillAOD(AliAODPWG4P
 	if     (aodParticle->GetDetector() == "EMCAL" && GetReader()->GetAODEMCALNormalInputEntries() <= jclus) inputj = 1;
 	else if(aodParticle->GetDetector() == "PHOS"  && GetReader()->GetAODPHOSNormalInputEntries()  <= jclus) inputj = 1;
 		  
-	//Cluster selection, not charged with photon or pi0 id and in fidutial cut
+	//Cluster selection, not charged with photon or pi0 id and in fiducial cut
 	Int_t pdgj=0;
 	if     (inputj == 0 && !SelectCluster(calo2, vertex,  gammaj, pdgj))  continue ;
 	else if(inputj == 1 && !SelectCluster(calo2, vertex2, gammaj, pdgj))  continue ;
@@ -975,8 +975,8 @@ Bool_t  AliAnaParticleHadronCorrelation::SelectCluster(AliAODCaloCluster * calo,
   }//PID on
   
   //Check acceptance selection
-  if(IsFidutialCutOn()){
-    Bool_t in = GetFidutialCut()->IsInFidutialCut(mom,detector) ;
+  if(IsFiducialCutOn()){
+    Bool_t in = GetFiducialCut()->IsInFiducialCut(mom,detector) ;
     if(! in ) return kFALSE ;
   }
   

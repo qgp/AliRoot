@@ -1,7 +1,7 @@
 #ifndef AliHLTMUONMANSOTRACKERFSMCOMPONENT_H
 #define AliHLTMUONMANSOTRACKERFSMCOMPONENT_H
 /**************************************************************************
- * This file is property of and copyright by the ALICE HLT Project        * 
+ * This file is property of and copyright by the ALICE HLT Project        *
  * All rights reserved.                                                   *
  *                                                                        *
  * Primary Authors:                                                       *
@@ -13,11 +13,11 @@
  * without fee, provided that the above copyright notice appears in all   *
  * copies and that both the copyright notice and this permission notice   *
  * appear in the supporting documentation. The authors make no claims     *
- * about the suitability of this software for any purpose. It is          * 
+ * about the suitability of this software for any purpose. It is          *
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/* $Id$ */
+// $Id$
 
 ///
 ///  @file   AliHLTMUONMansoTrackerFSMComponent.h
@@ -115,6 +115,26 @@ struct AliHLTMUONRecHitStruct;
  *      This will cause the component to generate warnings when it receives data block
  *      types it does not know how to handle. Without this option the component only
  *      generates debug messages when they are compiled in. <br>
+ * \li -cdbpath <i>path</i> <br>
+ *      This allows one to override the path to use for the CDB location.
+ *      <i>path</i> must be a valid CDB URI. By default the HLT system framework
+ *      sets the CDB path. <br>
+ * \li -run <i>number</i> <br>
+ *      This allows one to override the run number to use. <i>number</i> must be
+ *      a positive integer number. By default the HLT system framework sets the
+ *      run number. <br>
+ * \li -delaysetup <br>
+ *      If indicated then part of the initialisation of the component is forcefully
+ *      delayed to the first event received, i.e. the Start-of-Run event. <br>
+ * \li -dumponerror <br>
+ *      This flag will cause the component to dump the data blocks it received if
+ *      an error occurs during the processing of an event. <br>
+ * \li -dumppath <i>path</i> <br>
+ *      Allows one to specify the path in which to dump the received data blocks
+ *      if an error occurs. <br>
+ * \li -makecandidates <br>
+ *      Indicates if the Manso track candidates data block should be generated.
+ *      This kind of information is useful for debugging. <br>
  *
  * <h2>Standard configuration:</h2>
  * This component should normally be configured with no extra options.

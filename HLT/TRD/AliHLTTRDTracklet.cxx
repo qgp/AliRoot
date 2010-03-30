@@ -1,25 +1,35 @@
 #include "AliHLTTRDTracklet.h"
+
 /**
  * Default Constructor
  */
 //============================================================================
 AliHLTTRDTracklet::AliHLTTRDTracklet():
   fN(0),
-  fDet(-1),
   fdX(-1),
   fS2Y(-1),
   fPt(-1),
-  fPad3(-1),
-  fPad2(-1),
   fX0(-1),
   fC(-1),
   fChi2(-1),
+  // fExB(-1),
+  // fVD(-1),
+  // fT0(-1),
+  // fS2PRF(-1),
+  // fDiffL(-1),
+  // fDiffT(-1),
+  // fX(-1),
+  // fY(-1),
+  // fZ(-1),
+  // fS2Z(-1),
+  fDet(-1),
+  fBits(0),
+  fCount(0),
 #if defined(__HP_aCC) || defined(__DECCXX) || defined(__SUNPRO_CC)
-  fSize(sizeof(AliHLTTRDTracklet)-sizeof(IndexAndCluster)),
+  fSize(sizeof(AliHLTTRDTracklet)-sizeof(AliHLTTRDCluster)),
 #else
-  fSize(sizeof(AliHLTTRDTracklet)),
+  fSize(sizeof(AliHLTTRDTracklet))
 #endif
-  fCount(0)
 {
   InitArrays();
 }
@@ -30,21 +40,30 @@ AliHLTTRDTracklet::AliHLTTRDTracklet():
 //============================================================================
 AliHLTTRDTracklet::AliHLTTRDTracklet(const AliTRDseedV1* const inTracklet):
   fN(inTracklet->fN),
-  fDet(inTracklet->fDet),
   fdX(inTracklet->fdX),
   fS2Y(inTracklet->fS2Y),
   fPt(inTracklet->fPt),
-  fPad3(inTracklet->fPad[3]),
-  fPad2(inTracklet->fPad[2]),
   fX0(inTracklet->fX0),
   fC(inTracklet->fC),
   fChi2(inTracklet->fChi2),
+  // fExB(inTracklet->fExB),
+  // fVD(inTracklet->fVD),
+  // fT0(inTracklet->fT0),
+  // fS2PRF(inTracklet->fS2PRF),
+  // fDiffL(inTracklet->fDiffL),
+  // fDiffT(inTracklet->fDiffT),
+  // fX(inTracklet->fX),
+  // fY(inTracklet->fY),
+  // fZ(inTracklet->fZ),
+  // fS2Z(inTracklet->fS2Z),
+  fDet(inTracklet->fDet),
+  fBits(0),
+  fCount(0),
 #if defined(__HP_aCC) || defined(__DECCXX) || defined(__SUNPRO_CC)
-  fSize(sizeof(AliHLTTRDTracklet)-sizeof(IndexAndCluster)),
+  fSize(sizeof(AliHLTTRDTracklet)-sizeof(AliHLTTRDCluster)),
 #else
-  fSize(sizeof(AliHLTTRDTracklet)),
+  fSize(sizeof(AliHLTTRDTracklet))
 #endif
-  fCount(0)
 {
   CopyDataMembers(inTracklet);
 }
@@ -55,31 +74,42 @@ AliHLTTRDTracklet::AliHLTTRDTracklet(const AliTRDseedV1* const inTracklet):
 //============================================================================  
 void AliHLTTRDTracklet::CopyDataMembers(const AliTRDseedV1* const inTracklet)
 {
-  //fChi2Z = inTracklet->GetChi2Z();
-
   for (Int_t i=0; i < 2; i++){
     fYref[i]   = inTracklet->fYref[i];
     fZref[i]   = inTracklet->fZref[i];
     fYfit[i]   = inTracklet->fYfit[i];
     fZfit[i]   = inTracklet->fZfit[i];
   }
+
+  for (Int_t i=0; i < 3; i++){
+    fPad[i] = inTracklet->fPad[i];
+    // fCov[i] = inTracklet->fCov[i];
+  }
+
+  // for (Int_t i=0; i < 7; i++){
+  //   fRefCov[i] = inTracklet->fRefCov[i];
+  // }
+
+  // for (Int_t i=0; i < AliTRDseedV1::kNslices; i++){
+  //   fdEdx[i] = inTracklet->fdEdx[i];
+  // }
   
   for (Int_t i=0; i < AliPID::kSPECIES; i++){
     fProb[i] = inTracklet->fProb[i];
   }
 
-  for (Int_t iTimeBin = 0; iTimeBin < AliTRDseedV1::kNclusters; iTimeBin++)
-    {
-      AliTRDcluster* trdCluster = inTracklet->GetClusters(iTimeBin);
-      if (trdCluster){
-	fClusters[fCount].Index = inTracklet->fIndexes[iTimeBin];
-  	new (&fClusters[fCount].Cluster) AliHLTTRDCluster(trdCluster);
-  	fCount++;
-  	fSize += sizeof(IndexAndCluster);
-      }
+  fBits = UInt_t(inTracklet->TestBits(-1)) >> 14;
+
+  for (Int_t iTimeBin = 0; iTimeBin < AliTRDseedV1::kNclusters; iTimeBin++){
+    AliTRDcluster* trdCluster = inTracklet->GetClusters(iTimeBin);
+    if (trdCluster){
+      fPos[fCount] = iTimeBin;
+      new (&fClusters[fCount]) AliHLTTRDCluster(trdCluster);
+      fCount++;
+      fSize += sizeof(AliHLTTRDCluster);
     }
-  
-  //if((void*)&fClusters[fCount].Index!=(void*)GetEndPointer()){printf("ERRR");return;}
+  }  
+  //if((void*)&fClusters[fCount]!=(void*)GetEndPointer()){printf("ERRR");return;}
 }
 
 /**
@@ -92,15 +122,23 @@ void AliHLTTRDTracklet::ExportTRDTracklet(AliTRDseedV1* const outTracklet) const
   outTracklet->SetBit(AliTRDseedV1::kOwner);
 
   outTracklet->fN      = fN;
-  outTracklet->fDet    = fDet;
-  outTracklet->fPad[3] = fPad3;
-  outTracklet->fPad[2] = fPad2;
   outTracklet->fdX     = fdX;
   outTracklet->fX0     = fX0;
   outTracklet->fS2Y    = fS2Y;
   outTracklet->fPt     = fPt;
   outTracklet->fC      = fC;
   outTracklet->fChi2   = fChi2;
+  // outTracklet->fExB    = fExB;
+  // outTracklet->fVD     = fVD;
+  // outTracklet->fT0     = fT0;
+  // outTracklet->fS2PRF  = fS2PRF;
+  // outTracklet->fDiffL  = fDiffL;
+  // outTracklet->fDiffT  = fDiffT;
+  // outTracklet->fX      = fX;
+  // outTracklet->fY      = fY;
+  // outTracklet->fZ      = fZ;
+  // outTracklet->fS2Z    = fS2Z;
+  outTracklet->fDet    = fDet;
 
   for (Int_t i=0; i < 2; i++){
     outTracklet->fYref[i]   = fYref[i];
@@ -109,16 +147,30 @@ void AliHLTTRDTracklet::ExportTRDTracklet(AliTRDseedV1* const outTracklet) const
     outTracklet->fZfit[i]   = fZfit[i];
   }
 
+  for (Int_t i=0; i < 3; i++){
+    outTracklet->fPad[i] = fPad[i];
+    // outTracklet->fCov[i] = fCov[i];
+  }
+
+  // for (Int_t i=0; i < 7; i++){
+  //   outTracklet->fRefCov[i] = fRefCov[i];
+  // }
+
+  // for (Int_t i=0; i < AliTRDseedV1::kNslices; i++){
+  //   outTracklet->fdEdx[i] = fdEdx[i];
+  // }
+
   for (Int_t i=0; i < AliPID::kSPECIES; i++){
     outTracklet->fProb[i] = fProb[i];
   }
 
-  for (UInt_t iCluster=0; iCluster < fCount; iCluster++){
+  outTracklet->SetBit(UInt_t(fBits)<<14);
+
+  for(Int_t iCluster=0; iCluster < fCount; iCluster++){
     AliTRDcluster *trdCluster = new AliTRDcluster();
-    fClusters[iCluster].Cluster.ExportTRDCluster(trdCluster);
-    outTracklet->fClusters[iCluster] = trdCluster;
-    outTracklet->fIndexes[iCluster] = fClusters[iCluster].Index;
-    iCluster++;
+    fClusters[iCluster].ExportTRDCluster(trdCluster);
+    outTracklet->fClusters[fPos[iCluster]] = trdCluster;
+    outTracklet->fIndexes[fPos[iCluster]] = iCluster;
   }
 }
 
@@ -149,10 +201,9 @@ void AliHLTTRDTracklet::Print(Bool_t printClusters) const
   printf("      fDet %i; fPt %f; fdX %f fN %i\n", fDet, fPt, fdX, fN);
 
   if(!printClusters) return;
-  for (UInt_t iCount=0, iCluster = 0; iCluster < fCount; iCount++){
-    printf(" [%i] ",iCount);
-    fClusters[iCluster].Cluster.Print();
-    iCluster++;
+  for (UInt_t iCluster = 0; iCluster < fCount; iCluster++){
+    printf(" [%i] ",iCluster);
+    fClusters[iCluster].Print();
   }
 }
 

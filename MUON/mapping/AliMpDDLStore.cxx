@@ -99,7 +99,7 @@ AliMpDDLStore* AliMpDDLStore::ReadData(const AliMpDataStreams& dataStreams,
     }
 
     if ( dataStreams.GetReadFromFiles() )
-      AliInfoClass("Reading Manu Store from ASCII files.");
+      AliInfoClass("Reading DDL Store from ASCII files.");
 
     fgInstance = new AliMpDDLStore(dataStreams);
     return fgInstance;
@@ -545,6 +545,7 @@ Bool_t AliMpDDLStore::ReadBusPatchSpecial()
         }
       }
     }
+    delete stringList;
   }
   
   delete &in;

@@ -28,6 +28,7 @@
 
 #include "AliHLTCaloChannelRawDataStruct.h"
 #include "AliHLTDataTypes.h"
+#include "AliHLTCaloConstantsHandler.h"
 
 
 
@@ -38,10 +39,10 @@ class AliHLTCaloMapper;
 
 //class AliHLTCaloChannelRawDataStruct;
 
-class  AliHLTCaloSharedMemoryInterfacev2
+class  AliHLTCaloSharedMemoryInterfacev2 : public AliHLTCaloConstantsHandler
 {
  public:
-  AliHLTCaloSharedMemoryInterfacev2();
+  AliHLTCaloSharedMemoryInterfacev2(TString det);
   virtual ~AliHLTCaloSharedMemoryInterfacev2();
   AliHLTCaloChannelDataStruct*   NextChannel();
   void  NextRawChannel();
@@ -56,6 +57,7 @@ protected:
   AliHLTCaloMapper  *fMapperPtr[32];
   
  private:
+  AliHLTCaloSharedMemoryInterfacev2();
   AliHLTCaloSharedMemoryInterfacev2(const  AliHLTCaloSharedMemoryInterfacev2 & );
   AliHLTCaloSharedMemoryInterfacev2 & operator = (const  AliHLTCaloSharedMemoryInterfacev2 &);
   void Reset(AliHLTCaloChannelRawDataStruct &str);
@@ -68,6 +70,8 @@ protected:
   UShort_t *fRawDataPtr;
   AliHLTCaloChannelRawDataStruct fRawData;
   // unsigned long fSpecification;
+
+  ClassDef(AliHLTCaloSharedMemoryInterfacev2, 1);
 };
 
 #endif

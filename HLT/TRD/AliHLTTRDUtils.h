@@ -27,6 +27,9 @@ public:
   static AliHLTUInt32_t ReadClusters(TClonesArray *outArray, void* inputPtr, AliHLTUInt32_t size, Int_t* nTimeBins=0x0);
   static AliHLTUInt32_t ReadTracks(TClonesArray *outArray, void* inputPtr, AliHLTUInt32_t size, Int_t* nTimeBins=0x0);
   static AliHLTUInt32_t AddESDToOutput(const AliESDEvent* const esd, AliHLTUInt8_t* const outBlockPtr);
+  static void EmulateHLTClusters(TClonesArray *clusterArray);
+  static void EmulateHLTTracks(TClonesArray *trackArray);
+  static AliHLTUInt32_t GetSM(AliHLTUInt32_t spec);
 
   ClassDef(AliHLTTRDUtils, 0)
 

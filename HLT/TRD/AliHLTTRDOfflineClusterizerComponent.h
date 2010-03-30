@@ -14,6 +14,8 @@
 
 #include "AliHLTTRDClusterizerComponent.h"
 
+class AliTRDclusterizer;
+
 class AliHLTTRDOfflineClusterizerComponent : public AliHLTTRDClusterizerComponent
 {
 public:
@@ -21,16 +23,25 @@ public:
   virtual ~AliHLTTRDOfflineClusterizerComponent();
 
   const char* GetComponentID();
+  void GetInputDataTypes( vector<AliHLTComponentDataType>& list);
+  AliHLTComponentDataType GetOutputDataType();
+  int GetOutputDataTypes(AliHLTComponentDataTypeList& tgtList);
+  virtual void GetOutputDataSize( unsigned long& constBase, double& inputMultiplier );
   AliHLTComponent* Spawn();
 
   int DoInit( int argc, const char** argv );
-  int DoDeinit();
   int DoEvent( const AliHLTComponent_EventData& evtData, const AliHLTComponent_BlockData* blocks, 
 	       AliHLTComponent_TriggerData& trigData, AliHLTUInt8_t* outputPtr, 
 	       AliHLTUInt32_t& size, vector<AliHLTComponent_BlockData>& outputBlocks );
 
-protected:
-  void SetOfflineParams();
+protected:  
+  AliTRDclusterizer* fOffClusterizer;
+
+private:
+  /// copy constructor prohibited
+  AliHLTTRDOfflineClusterizerComponent(const AliHLTTRDOfflineClusterizerComponent&);
+  /// assignment operator prohibited
+  AliHLTTRDOfflineClusterizerComponent& operator=(const AliHLTTRDOfflineClusterizerComponent&);
 
   ClassDef(AliHLTTRDOfflineClusterizerComponent, 1)
 

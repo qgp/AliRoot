@@ -45,6 +45,7 @@
 #pragma link C++ class AliITSVertexerFixed+;
 #pragma link C++ class  AliITSMeanVertexer+;
 #pragma link C++ class  AliITSZPoint+;
+#pragma link C++ class  AliITSRecPointContainer+;
 
 // Tasks
 #pragma link C++ class AliITSreconstruction+;
@@ -61,14 +62,6 @@
 #pragma link C++ class AliITSCorrectSDDPoints+;
 
 // Classes for PID
-#pragma link C++ class  AliITSPid+;
-#pragma link C++ class  AliITStrackV2Pid+;
-#pragma link C++ class AliITSPidParItem+;
-#pragma link C++ class AliITSPident+;
-#pragma link C++ class AliITSSteerPid+;
-#pragma link C++ class AliITSpidESD+;
-#pragma link C++ class AliITSpidESD1+;
-#pragma link C++ class AliITSpidESD2+;
 #pragma link C++ class AliITSdEdxAnalyzer+;
 //beam test classes
 #pragma link C++ class AliITSBeamTestDig+;
@@ -121,6 +114,7 @@
 #pragma link C++ class AliITSAlignMille2Constraint+;
 #pragma link C++ class AliITSAlignMille2ConstrArray+;
 #pragma link C++ class AliITSAlignMilleData+;
+#pragma link C++ class AliITSTPArrayFit+;
 #pragma link C++ class AliITSResidualsAnalysis+;
 #pragma link C++ class AliITSRealignTracks+;
 // Classes for QA

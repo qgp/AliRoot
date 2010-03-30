@@ -39,14 +39,15 @@ class AliTRDclusterizer : public TNamed
  public:
 
   // steering flags
+  // bits from 0-13 are reserved by ROOT (see TObject.h)
   enum{
-    kTrOwner= BIT(13)  //  toggle online tracklets ownership
-    ,kClOwner= BIT(14)  //  toggle cluster ownership
-    ,kLabels = BIT(15)  //  toggle MC labels for clusters
-    ,kHLT    = BIT(16)  //  HLT mode
-    ,kLUT    = BIT(17)  //  using look up table for cluster's r-phi position
-    ,kGAUS   = BIT(18)  //  using gauss approx. for cluster's r-phi position
-    ,knewDM  = BIT(19)  //  was the digitsmanger created by raw2clusters?
+    kTrOwner = BIT(14)  //  toggle online tracklets ownership
+    ,kClOwner= BIT(15)  //  toggle cluster ownership
+    ,kLabels = BIT(16)  //  toggle MC labels for clusters
+    ,kHLT    = BIT(17)  //  HLT mode
+    ,kLUT    = BIT(18)  //  using look up table for cluster's r-phi position
+    ,kGAUS   = BIT(19)  //  using gauss approx. for cluster's r-phi position
+    ,knewDM  = BIT(20)  //  was the digitsmanger created by raw2clusters?
   };
 
   struct MaxStruct
@@ -99,6 +100,7 @@ class AliTRDclusterizer : public TNamed
   void             SetReconstructor(const AliTRDReconstructor *rec) {fReconstructor = rec;}
   static UChar_t   GetStatus(Short_t &signal);
   Int_t            GetAddedClusters() const {return fNoOfClusters;}
+  Int_t            GetNTimeBins() const {return fTimeTotal;}
 
   Bool_t   IsClustersOwner() const {return TestBit(kClOwner);}
   virtual void     SetClustersOwner(Bool_t own=kTRUE) {SetBit(kClOwner, own); if(!own) {fRecPoints = 0x0; fNoOfClusters=0;} }
@@ -106,8 +108,7 @@ class AliTRDclusterizer : public TNamed
 
 protected:
 
-  void             DeConvExp (const Double_t *const source, Double_t *const target
-			     ,const Int_t nTimeTotal, const Int_t nexp);
+  void             DeConvExp (Float_t *const arr, const Int_t nTimeTotal, const Int_t nexp);
   void             TailCancelation();
 
   Float_t  Unfold(Double_t eps, Int_t layer, const Double_t *const padSignal) const;

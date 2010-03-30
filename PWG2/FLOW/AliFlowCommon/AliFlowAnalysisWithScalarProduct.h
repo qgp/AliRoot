@@ -33,18 +33,19 @@ class AliFlowAnalysisWithScalarProduct {
  
    virtual  ~AliFlowAnalysisWithScalarProduct();  //destructor
  
-   void    Init();                                       //defines variables and histograms
-   void    Make(AliFlowEventSimple* anEvent);            //calculates variables and fills histograms
-   void    GetOutputHistograms(TList *outputListHistos); //get pointers to all output histograms (called before Finish()) 
-   void    Finish();                                     //saves histograms
-   void    WriteHistograms(TString* outputFileName);     //writes histograms locally
-   void    WriteHistograms(TString outputFileName);      //writes histograms locally
-
-   void      SetDebug(Bool_t kt)   { this->fDebug = kt ; }
-   Bool_t    GetDebug() const      { return this->fDebug ; }
+   void    Init();                                          //defines variables and histograms
+   void    Make(AliFlowEventSimple* anEvent);               //calculates variables and fills histograms
+   void    GetOutputHistograms(TList *outputListHistos);    //get pointers to all output histograms (called before Finish()) 
+   void    Finish();                                        //saves histograms
+   void    WriteHistograms(TString* outputFileName);        //writes histograms locally
+   void    WriteHistograms(TString outputFileName);         //writes histograms locally
+   void    WriteHistograms(TDirectoryFile *outputFileName); //writes histograms locally
+   
+   void    SetDebug(Bool_t kt)   { this->fDebug = kt ; }
+   Bool_t  GetDebug() const      { return this->fDebug ; }
 
    // Output 
-   TList*   GetHistList() const    { return this->fHistList ; }     // Gets output histogram list
+   TList*    GetHistList() const    { return this->fHistList ; }     // Gets output histogram list
   
    TProfile* GetHistProUQetaRP() const {return this->fHistProUQetaRP;}   
    void      SetHistProUQetaRP(TProfile* const aHistProUQetaRP) {this->fHistProUQetaRP = aHistProUQetaRP;}

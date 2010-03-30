@@ -13,12 +13,14 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 #include <TTree.h>
+#include "AliRunLoader.h"
 #include "AliESDVertex.h"
 #include "AliLog.h"
 #include "AliStrLine.h"
 #include "AliTracker.h"
 #include "AliITSDetTypeRec.h"
 #include "AliITSRecPoint.h"
+#include "AliITSRecPointContainer.h"
 #include "AliITSgeomTGeo.h"
 #include "AliVertexerTracks.h"
 #include "AliITSVertexer3D.h"
@@ -27,9 +29,11 @@
 /////////////////////////////////////////////////////////////////
 // this class implements a method to determine
 // the 3 coordinates of the primary vertex
-// for p-p collisions 
-// It can be used successfully with Pb-Pb collisions
+// optimized for 
+// p-p collisions
 ////////////////////////////////////////////////////////////////
+
+const Int_t    AliITSVertexer3D::fgkMaxNumOfClDefault = 500;
 
 ClassImp(AliITSVertexer3D)
 
@@ -58,7 +62,8 @@ AliITSVertexer3D::AliITSVertexer3D():
   fDiffPhiforPileup(0.),
   fBinSizeR(0.),
   fBinSizeZ(0.),
-  fPileupAlgo(0)
+  fPileupAlgo(0),
+  fMaxNumOfCl(fgkMaxNumOfClDefault)
 {
   // Default constructor
   SetCoarseDiffPhiCut();
@@ -139,6 +144,7 @@ AliESDVertex* AliITSVertexer3D::FindVertexForCurrentEvent(TTree *itsClusterTree)
       Double_t chi2=99999.;
       Int_t    nContr=vtxz->GetNContributors();
       fCurrentVertex = new AliESDVertex(position,covmatrix,chi2,nContr);    
+      fCurrentVertex->SetDispersion(vtxz->GetDispersion());
       fCurrentVertex->SetTitle("vertexer: Z");
       fCurrentVertex->SetName("SPDVertexZ");
       delete vtxz;
@@ -467,11 +473,6 @@ Int_t AliITSVertexer3D::FindTracklets(TTree *itsClusterTree, Int_t optCuts){
   // considered. Straight lines (=tracklets)are formed. 
   // The tracklets are processed in Prepare3DVertex
 
-  if(!GetDetTypeRec())AliFatal("DetTypeRec pointer has not been set");
-
-  TTree *tR = itsClusterTree;
-  fDetTypeRec->ResetRecPoints();
-  fDetTypeRec->SetTreeAddressR(tR);
   TClonesArray *itsRec  = 0;
   if(optCuts==0) fZHisto->Reset();
  // gc1 are local and global coordinates for layer 1
@@ -480,12 +481,10 @@ Int_t AliITSVertexer3D::FindTracklets(TTree *itsClusterTree, Int_t optCuts){
   // gc2 are local and global coordinates for layer 2
   Float_t gc2f[3]={0.,0.,0.};
   Double_t gc2[3]={0.,0.,0.};
-
-  itsRec = fDetTypeRec->RecPoints();
-  TBranch *branch = NULL;
-  branch = tR->GetBranch("ITSRecPoints");
-  if(!branch){
-    AliWarning("Null pointer for RecPoints branch, vertex not calculated");
+  AliITSRecPointContainer* rpcont=AliITSRecPointContainer::Instance();
+  itsRec=rpcont->FetchClusters(0,itsClusterTree);
+  if(!rpcont->IsSPDActive()){
+    AliWarning("No SPD rec points found, 3D vertex not calculated");
     return -1;
   }
 
@@ -516,28 +515,17 @@ Int_t AliITSVertexer3D::FindTracklets(TTree *itsClusterTree, Int_t optCuts){
 
   Int_t nrpL1 = 0;    // number of rec points on layer 1
   Int_t nrpL2 = 0;    // number of rec points on layer 2
-
-  // By default irstL1=0 and lastL1=79
-  Int_t firstL1 = AliITSgeomTGeo::GetModuleIndex(1,1,1);
-  Int_t lastL1 = AliITSgeomTGeo::GetModuleIndex(2,1,1)-1;
-  for(Int_t module= firstL1; module<=lastL1;module++){  // count number of recopints on layer 1
-    branch->GetEvent(module);
-    nrpL1+= itsRec->GetEntries();
-    fDetTypeRec->ResetRecPoints();
-  }
-  //By default firstL2=80 and lastL2=239
-  Int_t firstL2 = AliITSgeomTGeo::GetModuleIndex(2,1,1);
-  Int_t lastL2 = AliITSgeomTGeo::GetModuleIndex(3,1,1)-1;
-  for(Int_t module= firstL2; module<=lastL2;module++){  // count number of recopints on layer 2
-    branch->GetEvent(module);
-    nrpL2+= itsRec->GetEntries();
-    fDetTypeRec->ResetRecPoints();
-  }
+  nrpL1=rpcont->GetNClustersInLayerFast(1);
+  nrpL2=rpcont->GetNClustersInLayerFast(2);
   if(nrpL1 == 0 || nrpL2 == 0){
     AliDebug(1,Form("No RecPoints in at least one SPD layer (%d %d)",nrpL1,nrpL2));
     return -1;
   }
   AliDebug(1,Form("RecPoints on Layer 1,2 = %d, %d\n",nrpL1,nrpL2));
+  if(nrpL1>fMaxNumOfCl || nrpL2>fMaxNumOfCl){
+    AliWarning(Form("Too many recpoints on SPD(%d %d ), call vertexerZ",nrpL1,nrpL2));
+    return -1;
+  }
 
   Double_t a[3]={xbeam,ybeam,0.}; 
   Double_t b[3]={xbeam,ybeam,10.};
@@ -547,23 +535,18 @@ Int_t AliITSVertexer3D::FindTracklets(TTree *itsClusterTree, Int_t optCuts){
 
   Int_t nolines = 0;
   // Loop on modules of layer 1
+  Int_t firstL1 = AliITSgeomTGeo::GetModuleIndex(1,1,1);
+  Int_t lastL1 = AliITSgeomTGeo::GetModuleIndex(2,1,1)-1;
   for(Int_t modul1= firstL1; modul1<=lastL1;modul1++){   // Loop on modules of layer 1
     if(!fUseModule[modul1]) continue;
-    UShort_t ladder=int(modul1/4)+1; // ladders are numbered starting from 1
-    branch->GetEvent(modul1);
-    Int_t nrecp1 = itsRec->GetEntries();
-    static TClonesArray prpl1("AliITSRecPoint",nrecp1);
-    prpl1.SetOwner();
-    for(Int_t j=0;j<nrecp1;j++){
-      AliITSRecPoint *recp = (AliITSRecPoint*)itsRec->At(j);
-      new(prpl1[j])AliITSRecPoint(*recp);
-    }
-    fDetTypeRec->ResetRecPoints();
+    UShort_t ladder=modul1/4+1; // ladders are numbered starting from 1
+    TClonesArray *prpl1=rpcont->UncheckedGetClusters(modul1);
+    Int_t nrecp1 = prpl1->GetEntries();
     for(Int_t j=0;j<nrecp1;j++){
       if(j>kMaxCluPerMod) continue;
       UShort_t idClu1=modul1*kMaxCluPerMod+j;
       if(fUsedCluster.TestBitNumber(idClu1)) continue;
-      AliITSRecPoint *recp1 = (AliITSRecPoint*)prpl1.At(j);
+      AliITSRecPoint *recp1 = (AliITSRecPoint*)prpl1->At(j);
       recp1->GetGlobalXYZ(gc1f);
       for(Int_t ico=0;ico<3;ico++)gc1[ico]=gc1f[ico];
 
@@ -575,7 +558,7 @@ Int_t AliITSVertexer3D::FindTracklets(TTree *itsClusterTree, Int_t optCuts){
  	  if(ladmod>AliITSgeomTGeo::GetNLadders(2)) ladmod=ladmod-AliITSgeomTGeo::GetNLadders(2);
 	  Int_t modul2=AliITSgeomTGeo::GetModuleIndex(2,ladmod,k+1);
 	  if(!fUseModule[modul2]) continue;
-	  branch->GetEvent(modul2);
+	  itsRec=rpcont->UncheckedGetClusters(modul2);
 	  Int_t nrecp2 = itsRec->GetEntries();
 	  for(Int_t j2=0;j2<nrecp2;j2++){
 	    if(j2>kMaxCluPerMod) continue;
@@ -652,11 +635,9 @@ Int_t AliITSVertexer3D::FindTracklets(TTree *itsClusterTree, Int_t optCuts){
 	    new(fLines[nolines++])AliStrLine(gc1,sigmasq,wmat,gc2,kTRUE,idClu1,idClu2);
 
 	  }
-	  fDetTypeRec->ResetRecPoints();
 	}
       }
     }
-    prpl1.Clear();
   }
   if(nolines == 0)return -2;
   return nolines;
@@ -787,10 +768,33 @@ Int_t  AliITSVertexer3D::Prepare3DVertex(Int_t optCuts){
     // make a further selection on tracklets based on this first candidate
     fVert3D.GetXYZ(peak);
     AliDebug(1,Form("FIRST V candidate: %f ; %f ; %f",peak[0],peak[1],peak[2]));
+    Int_t *validate2 = new Int_t [fLines.GetEntriesFast()];
+    for(Int_t i=0; i<fLines.GetEntriesFast();i++) validate2[i]=1; 
     for(Int_t i=0; i<fLines.GetEntriesFast();i++){
+      if(validate2[i]==0) continue; 
       AliStrLine *l1 = (AliStrLine*)fLines.At(i);
       if(l1->GetDistFromPoint(peak)> fDCAcut)fLines.RemoveAt(i);
+      if(optCuts==2){ // temporarily only for pileup
+	for(Int_t j=i+1; j<fLines.GetEntriesFast();j++){
+	  AliStrLine *l2 = (AliStrLine*)fLines.At(j);
+	  if(l1->GetDCA(l2)<0.00001){ 
+	    Int_t delta1=(Int_t)l1->GetIdPoint(0)-(Int_t)l2->GetIdPoint(0);
+	    Int_t delta2=(Int_t)l1->GetIdPoint(1)-(Int_t)l2->GetIdPoint(1);
+	    Int_t deltamod1=(Int_t)l1->GetIdPoint(0)/kMaxCluPerMod
+	      -(Int_t)l2->GetIdPoint(0)/kMaxCluPerMod;
+	    Int_t deltamod2=(Int_t)l1->GetIdPoint(1)/kMaxCluPerMod
+	      -(Int_t)l2->GetIdPoint(1)/kMaxCluPerMod;
+	    // remove tracklets sharing a point
+	    if( (delta1==0 && deltamod2==0)  || 
+		(delta2==0 && deltamod1==0)  ) validate2[j]=0; 
+	  }
+	}
+      }
     }
+    for(Int_t i=0; i<fLines.GetEntriesFast();i++){
+      if(validate2[i]==0)  fLines.RemoveAt(i);
+    }
+    delete [] validate2;
     fLines.Compress();
     AliDebug(1,Form("Number of tracklets (after 3rd compression) %d",fLines.GetEntriesFast()));
     if(fLines.GetEntriesFast()>1){// this new tracklet selection is used
@@ -983,5 +987,7 @@ void AliITSVertexer3D::PrintStatus() const {
   printf("Pileup algo: %d\n",fPileupAlgo);
   printf("Min DCA to 1st vertex for pileup (algo 0 and 1): %f\n",fDCAforPileup);
   printf("Cut on distance between pair-vertices  (algo 2): %f\n",fCutOnPairs);
+  printf("Maximum number of clusters allowed on L1 or L2: %d\n",fMaxNumOfCl);
   printf("=======================================================\n");
 }
+

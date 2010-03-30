@@ -23,7 +23,9 @@
 
 #include "AliInputEventHandler.h"
 #include "AliVEvent.h"
+#include "AliVCuts.h"
 #include "AliLog.h"
+
 
 ClassImp(AliInputEventHandler)
 
@@ -32,7 +34,10 @@ AliInputEventHandler::AliInputEventHandler() :
     AliVEventHandler(),
     fTree(0),
     fBranches(""),
-    fBranchesOn("")
+    fBranchesOn(""),
+    fNewEvent(kTRUE),
+    fEventCuts(0),
+    fIsSelected(kFALSE)
 {
   // default constructor
 }
@@ -48,7 +53,10 @@ AliInputEventHandler::AliInputEventHandler(const char* name, const char* title):
   AliVEventHandler(name, title),
   fTree(0),
   fBranches(""),
-  fBranchesOn("")
+  fBranchesOn(""),
+  fNewEvent(kTRUE),
+  fEventCuts(0),
+  fIsSelected(kFALSE)
 {
 }
 
@@ -80,3 +88,8 @@ void AliInputEventHandler::SwitchOnBranches() const {
       AliInfo(Form("Branch %s switched on \n", str.Data()));
   }
 }
+
+
+
+Long64_t AliInputEventHandler::GetReadEntry() const 
+{return fTree->GetReadEntry();}

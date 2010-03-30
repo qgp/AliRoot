@@ -114,6 +114,7 @@
 #include <TSystem.h>
 #include <TVirtualMC.h>
 #include <TVirtualMCApplication.h>
+#include <TDatime.h>
 
 #include "AliAlignObj.h"
 #include "AliCDBEntry.h"
@@ -2116,9 +2117,21 @@ Bool_t AliSimulation::SetRunQA(TString detAndAction)
 	}
 	Int_t colon = detAndAction.Index(":") ; 
 	fQADetectors = detAndAction(0, colon) ; 
-	if (fQADetectors.Contains("ALL") )
-		fQADetectors = Form("%s %s", fMakeDigits.Data(), fMakeDigitsFromHits.Data()) ; 
-		fQATasks   = detAndAction(colon+1, detAndAction.Sizeof() ) ; 
+	if (fQADetectors.Contains("ALL") ){
+    TString tmp = Form("%s %s", fMakeDigits.Data(), fMakeDigitsFromHits.Data()) ; 
+    Int_t minus = fQADetectors.Last('-') ; 
+    TString toKeep = Form("%s %s", fMakeDigits.Data(), fMakeDigitsFromHits.Data()) ; 
+    TString toRemove("") ;
+    while (minus >= 0) {
+      toRemove = fQADetectors(minus+1, fQADetectors.Length()) ; 
+      toRemove = toRemove.Strip() ; 
+      toKeep.ReplaceAll(toRemove, "") ; 
+      fQADetectors.ReplaceAll(Form("-%s", toRemove.Data()), "") ; 
+      minus = fQADetectors.Last('-') ; 
+    }
+    fQADetectors = toKeep ; 
+  }
+  fQATasks   = detAndAction(colon+1, detAndAction.Sizeof() ) ; 
 	if (fQATasks.Contains("ALL") ) {
 		fQATasks = Form("%d %d %d", AliQAv1::kHITS, AliQAv1::kSDIGITS, AliQAv1::kDIGITS) ; 
 	} else {
@@ -2204,11 +2217,14 @@ void AliSimulation::WriteGRPEntry()
 
   grpObj->SetRunType("PHYSICS");
   grpObj->SetTimeStart(0);
-  grpObj->SetTimeEnd(9999);
+  TDatime curtime;
+  grpObj->SetTimeStart(0);
+  grpObj->SetTimeEnd(curtime.Convert()); 
+  grpObj->SetBeamEnergyIsSqrtSHalfGeV(); // new format of GRP: store sqrt(s)/2 in GeV
 
   const AliGenerator *gen = gAlice->GetMCApp()->Generator();
   if (gen) {
-    grpObj->SetBeamEnergy(gen->GetEnergyCMS()/0.120);
+    grpObj->SetBeamEnergy(gen->GetEnergyCMS()/2);
     TString projectile;
     Int_t a,z;
     gen->GetProjectile(projectile,a,z);
@@ -2260,8 +2276,6 @@ void AliSimulation::WriteGRPEntry()
   grpObj->SetDetectorMask((Int_t)detectorPattern);
   grpObj->SetLHCPeriod("LHC08c");
   grpObj->SetLHCState("STABLE_BEAMS");
-  grpObj->SetLHCLuminosity(0,(AliGRPObject::Stats)0);
-  grpObj->SetBeamIntensity(0,(AliGRPObject::Stats)0);
   //
   AliMagF *field = (AliMagF*)TGeoGlobalMagField::Instance()->GetField();
   Float_t solenoidField = field ? TMath::Abs(field->SolenoidField()) : 0;

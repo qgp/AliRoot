@@ -14,7 +14,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/* $Id: $ */
+// $Id: $
 
 ///
 /// @file   AliHLTMUONDecision.cxx
@@ -296,6 +296,7 @@ void AliHLTMUONDecision::Print(Option_t* option) const
 			if (decision == NULL) continue;
 			decision->Print("all");
 		}
+		if (NumberOfTracks() == 0) cout << "(None)" << endl;
 		cout << "===============================================" << endl;
 		cout << "========== Triggers for track pairs: ==========" << endl;
 		for (Int_t j = 0; j < NumberOfPairs(); j++)
@@ -304,6 +305,7 @@ void AliHLTMUONDecision::Print(Option_t* option) const
 			if (decision == NULL) continue;
 			decision->Print("all");
 		}
+		if (NumberOfPairs() == 0) cout << "(None)" << endl;
 	}
 	else
 	{

@@ -16,11 +16,15 @@
 #include "TObject.h"
 #include "AliHLTStdIncludes.h"
 #include "AliHLTDataTypes.h"
+#include "AliHLTLogging.h"
+#include "TClass.h"
+#include "TSystem.h"
 
 class AliCDBManager;
 class AliCDBEntry;
 class AliRawReader;
 class AliHLTComponentDataType;
+class AliHLTGlobalTriggerDecision;
 
 class AliHLTMisc : public TObject {
  public:
@@ -35,6 +39,7 @@ class AliHLTMisc : public TObject {
   virtual int InitCDB(const char* cdbpath);
 
   virtual int SetCDBRunNo(int runNo);
+  virtual int GetCDBRunNo();
 
   virtual AliCDBEntry* LoadOCDBEntry(const char* path, int runNo=-1, int version = -1, int subVersion = -1);
 
@@ -47,6 +52,9 @@ class AliHLTMisc : public TObject {
   virtual Double_t GetBz();
   virtual Double_t GetBz(const Double_t *r);
   virtual void GetBxByBz(const Double_t r[3], Double_t b[3]);
+
+  virtual const TClass* IsAliESDHLTDecision() const;
+  virtual int Copy(const AliHLTGlobalTriggerDecision* pDecision, TObject* pESDHLTDecision) const;
 
  private:
   static AliHLTMisc* fgInstance;
@@ -89,6 +97,38 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
+
+template<class T>
+T* AliHLTMisc::LoadInstance(const T* /*t*/, const char* classname, const char* library)
+{
+  // see header file for function documentation
+  int iLibResult=0;
+  T* pInstance=NULL;
+  AliHLTLogging log;
+  TClass* pCl=NULL;
+  ROOT::NewFunc_t pNewFunc=NULL;
+  do {
+    pCl=TClass::GetClass(classname);
+  } while (!pCl && (iLibResult=gSystem->Load(library))==0);
+  if (iLibResult>=0) {
+    if (pCl && (pNewFunc=pCl->GetNew())!=NULL) {
+      void* p=(*pNewFunc)(NULL);
+      if (p) {
+	pInstance=reinterpret_cast<T*>(p);
+	if (!pInstance) {
+	  log.Logging(kHLTLogError, "AliHLTMisc::LoadInstance", "HLT Analysis", "type cast (%s) to instance failed", classname);
+	}
+      } else {
+	log.Logging(kHLTLogError, "AliHLTMisc::LoadInstance", "HLT Analysis", "can not create instance of type %s from class descriptor", classname);
+      }
+    } else {
+      log.Logging(kHLTLogError, "AliHLTMisc::LoadInstance", "HLT Analysis", "can not find class descriptor %s", classname);
+    }
+  } else {
+    log.Logging(kHLTLogError, "AliHLTMisc::LoadInstance", "HLT Analysis", "can not load %s library in order to find class descriptor %s", library, classname);
+  }
+  return pInstance;
+}
 
 // direct printout of data type struct
 ostream  &operator<<(ostream &str, const AliHLTComponentDataType&);

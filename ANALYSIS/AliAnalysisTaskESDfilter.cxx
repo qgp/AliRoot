@@ -25,6 +25,7 @@
 #include "AliAnalysisTaskESDfilter.h"
 #include "AliAnalysisManager.h"
 #include "AliESDEvent.h"
+#include "AliESDRun.h"
 #include "AliStack.h"
 #include "AliAODEvent.h"
 #include "AliMCEvent.h"
@@ -74,7 +75,9 @@ AliAnalysisTaskESDfilter::AliAnalysisTaskESDfilter(const char* name):
 
 void AliAnalysisTaskESDfilter::UserCreateOutputObjects()
 {
-// Create the output container
+  //
+  // Create Output Objects conenct filter to outputtree
+  // 
     OutputTree()->GetUserInfo()->Add(fTrackFilter);
 }
 
@@ -92,10 +95,13 @@ void AliAnalysisTaskESDfilter::UserExec(Option_t */*option*/)
 //
 					    
   Long64_t ientry = Entry();
-  if (fDebug > 0) printf("Filter: Analysing event # %5d\n", (Int_t) ientry);
-  if (fHighPthreshold == 0) AliInfo("detector PID signals are stored in each track");
-  if (!fPtshape) AliInfo("detector PID signals are not stored below the pt threshold");
-
+  
+  if (fDebug > 0) {
+      printf("Filter: Analysing event # %5d\n", (Int_t) ientry);
+      if (fHighPthreshold == 0) AliInfo("detector PID signals are stored in each track");
+      if (!fPtshape) AliInfo("detector PID signals are not stored below the pt threshold");
+  }
+  
   ConvertESDtoAOD();
 }
 
@@ -131,27 +137,26 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
 
     
     // loop over events and fill them
-    
     // Multiplicity information needed by the header (to be revised!)
     Int_t nTracks    = esd->GetNumberOfTracks();
+    for (Int_t iTrack=0; iTrack<nTracks; ++iTrack) esd->GetTrack(iTrack)->SetESDEvent(esd);
+
     //    if (fDebug > 0) printf("-------------------Bo: Number of ESD tracks %d \n",nTracks);
 
     Int_t nPosTracks = 0;
-//    for (Int_t iTrack = 0; iTrack < nTracks; ++iTrack) 
-//	if (esd->GetTrack(iTrack)->GetSign()> 0) nPosTracks++;
     
     // Update the header
 
     AliAODHeader* header = AODEvent()->GetHeader();
-
+    
     header->SetRunNumber(esd->GetRunNumber());
     if (old) {
 	header->SetBunchCrossNumber(0);
 	header->SetOrbitNumber(0);
 	header->SetPeriodNumber(0);
 	header->SetEventType(0);
-	header->SetMuonMagFieldScale(-999.); // FIXME
-	header->SetCentrality(-999.);        // FIXME
+	header->SetMuonMagFieldScale(-999.);
+	header->SetCentrality(-999.);       
     } else {
 	header->SetBunchCrossNumber(esd->GetBunchCrossNumber());
 	header->SetOrbitNumber(esd->GetOrbitNumber());
@@ -159,9 +164,12 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
 	header->SetEventType(esd->GetEventType());
 	header->SetCentrality(-999.);        // FIXME
     }
-    
+    // Trigger
+    header->SetFiredTriggerClasses(esd->GetFiredTriggerClasses());
     header->SetTriggerMask(esd->GetTriggerMask()); 
     header->SetTriggerCluster(esd->GetTriggerCluster());
+    
+
     header->SetMagneticField(esd->GetMagneticField());
     header->SetMuonMagFieldScale(esd->GetCurrentDip()/6000.);
     header->SetZDCN1Energy(esd->GetZDCN1Energy());
@@ -169,6 +177,8 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
     header->SetZDCN2Energy(esd->GetZDCN2Energy());
     header->SetZDCP2Energy(esd->GetZDCP2Energy());
     header->SetZDCEMEnergy(esd->GetZDCEMEnergy(0),esd->GetZDCEMEnergy(1));
+
+    
     Float_t diamxy[2]={esd->GetDiamondX(),esd->GetDiamondY()};
     Float_t diamcov[3]; esd->GetDiamondCovXY(diamcov);
     header->SetDiamond(diamxy,diamcov);
@@ -258,6 +268,8 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
 	AliAODVertex(pos, covVtx, vtx->GetChi2toNDF(), NULL, -1, AliAODVertex::kPrimary);
     primary->SetName(vtx->GetName());
     primary->SetTitle(vtx->GetTitle());
+    
+    if (!strcmp(vtx->GetTitle(), "vertexer: 3D")) primary->SetNContributors(vtx->GetNContributors());
 
     if (fDebug > 0) primary->Print();
 
@@ -391,8 +403,10 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
 							  vtx->UsesTrack(esdCascadeBach->GetID()),
 							  AliAODTrack::kSecondary,
 							  selectInfo);
+	    aodTrack->SetTPCClusterMap(esdCascadeBach->GetTPCClusterMap());
+	    aodTrack->SetTPCSharedMap (esdCascadeBach->GetTPCSharedMap());
 	    aodTrackRefs->AddAt(aodTrack,idxBachFromCascade);
-	   
+	    
 	    if (esdCascadeBach->GetSign() > 0) nPosTracks++;
 	    aodTrack->ConvertAliPIDtoAODPID();
 	    aodTrack->SetFlags(esdCascadeBach->GetStatus());
@@ -470,6 +484,8 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
 								vtx->UsesTrack(esdCascadePos->GetID()),
 								AliAODTrack::kSecondary,
 								selectInfo);
+		aodTrack->SetTPCClusterMap(esdCascadePos->GetTPCClusterMap());
+		aodTrack->SetTPCSharedMap (esdCascadePos->GetTPCSharedMap());
 		aodTrackRefs->AddAt(aodTrack,idxPosFromV0Dghter);
 		
 		if (esdCascadePos->GetSign() > 0) nPosTracks++;
@@ -512,7 +528,8 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
 								vtx->UsesTrack(esdCascadeNeg->GetID()),
 								AliAODTrack::kSecondary,
 								selectInfo);
-		
+		aodTrack->SetTPCClusterMap(esdCascadeNeg->GetTPCClusterMap());
+		aodTrack->SetTPCSharedMap (esdCascadeNeg->GetTPCSharedMap());
 		aodTrackRefs->AddAt(aodTrack,idxNegFromV0Dghter);
 		
 		if (esdCascadeNeg->GetSign() > 0) nPosTracks++;
@@ -727,6 +744,8 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
 							  vtx->UsesTrack(esdV0Pos->GetID()),
 							  AliAODTrack::kSecondary,
 							  selectInfo);
+	    aodTrack->SetTPCClusterMap(esdV0Pos->GetTPCClusterMap());
+	    aodTrack->SetTPCSharedMap (esdV0Pos->GetTPCSharedMap());
 	    aodTrackRefs->AddAt(aodTrack,posFromV0);
 	    //	    if (fDebug > 0) printf("-------------------Bo: pos track from original pt %.3f \n",aodTrack->Pt());
 	    if (esdV0Pos->GetSign() > 0) nPosTracks++;
@@ -767,6 +786,8 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
 							  vtx->UsesTrack(esdV0Neg->GetID()),
 							  AliAODTrack::kSecondary,
 							  selectInfo);
+	    aodTrack->SetTPCClusterMap(esdV0Neg->GetTPCClusterMap());
+	    aodTrack->SetTPCSharedMap (esdV0Neg->GetTPCSharedMap());
 	    
 	    aodTrackRefs->AddAt(aodTrack,negFromV0);
 	    //	    if (fDebug > 0) printf("-------------------Bo: neg track from original pt %.3f \n",aodTrack->Pt());
@@ -898,6 +919,8 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
 							       vtx->UsesTrack(esdTrack->GetID()),
 							       AliAODTrack::kPrimary,
 							       selectInfo);
+			mother->SetTPCClusterMap(esdTrackM->GetTPCClusterMap());
+			mother->SetTPCSharedMap (esdTrackM->GetTPCSharedMap());
 			aodTrackRefs->AddAt(mother, imother);
 			
 			if (esdTrackM->GetSign() > 0) nPosTracks++;
@@ -954,7 +977,8 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
 							       vtx->UsesTrack(esdTrack->GetID()),
 							       AliAODTrack::kSecondary,
 							       selectInfo);
-			
+			daughter->SetTPCClusterMap(esdTrackD->GetTPCClusterMap());
+			daughter->SetTPCSharedMap (esdTrackD->GetTPCSharedMap());
 			aodTrackRefs->AddAt(daughter, idaughter);
 			
 			if (esdTrackD->GetSign() > 0) nPosTracks++;
@@ -1015,7 +1039,10 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
 								AliAODTrack::kPrimary, 
 								selectInfo)
 			     );
+	aodTrack->SetTPCClusterMap(esdTrack->GetTPCClusterMap());
+	aodTrack->SetTPCSharedMap (esdTrack->GetTPCSharedMap());
 	aodTrackRefs->AddAt(aodTrack, nTrack);
+
 	
 	if (esdTrack->GetSign() > 0) nPosTracks++;
 	aodTrack->SetFlags(esdTrack->GetStatus());
@@ -1216,17 +1243,30 @@ void AliAnalysisTaskESDfilter::SetDetectorRawSignals(AliAODPid *aodpid, AliESDtr
  AliInfo("no ESD track found. .....exiting");
  return;
  }
+ // TPC momentum
+ const AliExternalTrackParam *in=track->GetInnerParam();
+ if (in) {
+   aodpid->SetTPCmomentum(in->GetP());
+ }else{
+   aodpid->SetTPCmomentum(-1.);
+ }
+
 
  aodpid->SetITSsignal(track->GetITSsignal());
  aodpid->SetTPCsignal(track->GetTPCsignal());
- //n TRD planes = 6
 
+ //n TRD planes = 6
  Int_t nslices = track->GetNumberOfTRDslices()*6;
  Double_t *trdslices = new Double_t[nslices];
  for(Int_t iSl =0; iSl < track->GetNumberOfTRDslices(); iSl++) {
-     for(Int_t iPl =0; iPl<6; iPl++) trdslices[iPl*track->GetNumberOfTRDslices()+iSl] = track->GetTRDslice(iPl,iSl);
-    }
-
+   for(Int_t iPl =0; iPl<6; iPl++) trdslices[iPl*track->GetNumberOfTRDslices()+iSl] = track->GetTRDslice(iPl,iSl);
+ }
+ 
+//TRD momentum
+ for(Int_t iPl=0;iPl<6;iPl++){
+   Double_t trdmom=track->GetTRDmomentum(iPl);
+   aodpid->SetTRDmomentum(iPl,trdmom);
+ }
 
  aodpid->SetTRDsignal(track->GetNumberOfTRDslices()*6,trdslices);
  Double_t times[AliAODPid::kSPECIES]; track->GetIntegratedTimes(times);

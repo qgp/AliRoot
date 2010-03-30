@@ -66,11 +66,15 @@ public :
 
   // getters
   //
-  THnSparse *GetTPCHisto() const  { return fTPCHisto; }
+  THnSparse *GetTPCClustHisto() const  { return fTPCClustHisto; }
+  THnSparse *GetTPCEventHisto() const  { return fTPCEventHisto; }
+  THnSparse *GetTPCTrackHisto() const  { return fTPCTrackHisto; }
 private:
 
   // TPC histogram
-  THnSparseF *fTPCHisto; //-> nClust:chi2PerClust:nClust/nFindableClust:eta:phi:pt
+  THnSparseF *fTPCClustHisto; //-> gclX:gclY:TPCSide
+  THnSparseF *fTPCEventHisto; //-> Xv:Yv:Zv:mult:multP:multN:vertStatus
+  THnSparseF *fTPCTrackHisto; //-> nClust:chi2PerClust:nClust/nFindableClust:DCAr:DCAz:eta:phi:pt:charge
 
   // Global cuts objects
   AliRecInfoCuts* fCutsRC;  // selection cuts for reconstructed tracks

@@ -27,6 +27,7 @@ class AliTRDCalMonitoring;
 class AliTRDCalROC;
 class AliTRDCalDet;
 class AliTRDCalSingleChamberStatus;
+class TString;
 class AliTRDcalibDB : public TObject {
 
  public:
@@ -69,7 +70,8 @@ class AliTRDcalibDB : public TObject {
   Float_t                             GetPRFlo() const      { return fPRFlo;  };
   Float_t                             GetPRFhi() const      { return fPRFhi;  };
 
-  Int_t                               GetNumberOfTimeBins();
+  Int_t                               GetNumberOfTimeBinsDCS();
+  void                                GetFilterType(TString &filterType);
 
   Char_t                              GetPadStatus(Int_t det, Int_t col, Int_t row);
   AliTRDCalSingleChamberStatus       *GetPadStatusROC(Int_t det);
@@ -95,7 +97,7 @@ class AliTRDcalibDB : public TObject {
  protected:
 
   // For caching see also implentation of GetCachedCDBObject in the .cxx file
-  enum { kCDBCacheSize = 19 };   // Number of cached objects
+  enum { kCDBCacheSize = 20 };   // Number of cached objects
   enum { kIDVdriftPad = 0
        , kIDVdriftChamber
        , kIDT0Pad
@@ -114,7 +116,8 @@ class AliTRDcalibDB : public TObject {
        , kIDRecoParam
        , kIDMonitoringData
        , kIDChamberStatus
-       , kIDPadStatus };         // IDs of cached objects
+       , kIDPadStatus
+       , kIDDCS };         // IDs of cached objects
 
   const TObject *GetCachedCDBObject(Int_t id);
   

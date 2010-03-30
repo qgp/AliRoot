@@ -148,7 +148,8 @@ void AliQADataMakerRec::EndOfCycle(AliQAv1::TASKINDEX_t task)
 {
 	// Finishes a cycle of QA 
 	
-	TObjArray ** list = NULL ; 
+    
+  TObjArray ** list = NULL ; 
 	
 	if ( task == AliQAv1::kRAWS )     
 		list = fRawsQAList ; 
@@ -165,6 +166,9 @@ void AliQADataMakerRec::EndOfCycle(AliQAv1::TASKINDEX_t task)
   //DefaultEndOfDetectorCycle(task) ;
 	EndOfDetectorCycle(task, list) ;
   
+  if (! AliQAManager::QAManager(AliQAv1::kRECMODE)->IsSaveData())
+    return ; 
+
   fDetectorDir = fOutput->GetDirectory(GetDetectorDirName()) ; 
   if (!fDetectorDir)
     fDetectorDir = fOutput->mkdir(GetDetectorDirName()) ; 
@@ -323,6 +327,7 @@ void AliQADataMakerRec::Init(AliQAv1::TASKINDEX_t task, TObjArray ** list, Int_t
 //____________________________________________________________________________
 void AliQADataMakerRec::InitRecoParams() 
 {
+  // Get the recoparam form the OCDB 
   if (!fRecoParam) {
     AliDebug(AliQAv1::GetQADebugLevel(), Form("Loading reconstruction parameter objects for detector %s", GetName()));
     AliCDBPath path(GetName(),"Calib","RecoParam");
@@ -354,6 +359,37 @@ void AliQADataMakerRec::InitRecoParams()
       } else { 
         AliError(Form("No valid RecoParam object found in the OCDB for detector %s",GetName()));
       }
+    }
+  }
+}
+
+//____________________________________________________________________________ 
+void AliQADataMakerRec::ResetDetector(AliQAv1::TASKINDEX_t task)
+{
+    // default reset that resets all the QA objects.
+    // to be overloaded by detectors, if necessary
+
+  TObjArray ** list = NULL ; 
+  if ( task == AliQAv1::kRAWS ) {
+		list = fRawsQAList ;	 
+	} else if ( task == AliQAv1::kDIGITSR ) {
+		list = fDigitsQAList ; 
+	} else if ( task == AliQAv1::kRECPOINTS ) {
+		list = fRecPointsQAList ; 
+	} else if ( task == AliQAv1::kESDS ) {
+		list = fESDsQAList ; 
+	}
+    //list was not initialized, skip
+  if (!list) 
+    return ; 
+  
+  for (int spec = 0; spec < AliRecoParam::kNSpecies; spec++) {
+    if (!AliQAv1::Instance()->IsEventSpecieSet(AliRecoParam::ConvertIndex(spec)))
+      continue;
+    TIter next(list[spec]) ; 
+    TH1 * histo = NULL ; 
+    while ( (histo = dynamic_cast<TH1*> (next())) ) {
+      histo->Reset() ;
     }
   }
 }

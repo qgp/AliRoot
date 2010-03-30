@@ -23,7 +23,7 @@ SRCS:=  AliSegmentID.cxx  AliSegmentArray.cxx AliDigits.cxx AliH2F.cxx \
         AliTransform.cxx AliTPCTransform.cxx AliTPCAlign.cxx AliTPCGoofieValues.cxx \
 	AliTPCdataQA.cxx AliTPCQAChecker.cxx AliTPCConfigDA.cxx AliTPCConfigParser.cxx AliExternalComparison.cxx \
 	AliTPCkalmanTime.cxx AliESDcosmic.cxx AliTPCPointCorrection.cxx AliTPCTransformation.cxx \
-        AliTPCkalmanFit.cxx 
+        AliTPCkalmanFit.cxx AliTPCLaserTrack.cxx AliTPCcalibBase.cxx  
 
 HDRS:= $(SRCS:.cxx=.h)
 
@@ -35,5 +35,5 @@ ifeq (win32gcc,$(ALICE_TARGET))
 PACKSOFLAGS:= $(SOFLAGS) -L$(ALICE_ROOT)/lib/tgt_$(ALICE_TARGET) \
                          -lSTEER -lCDB -lSTEERBase \
                          -lRAWDatasim -lRAWDatarec -lRAWDatabase \
-                         -L$(ROOTLIBDIR) -lMinuit -lVMC -lEG -lGeom -lGui
+                         -L$(shell root-config --libdir) -lMinuit -lVMC -lEG -lGeom -lGui
 endif

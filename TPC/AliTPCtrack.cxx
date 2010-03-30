@@ -28,7 +28,9 @@
 #include "AliTracker.h"
 #include "AliESDtrack.h"
 #include "AliESDVertex.h"
-
+#include "TTreeStream.h"
+#include  "AliTPCRecoParam.h"
+#include  "AliTPCReconstructor.h"
 ClassImp(AliTPCtrack)
 
 //_________________________________________________________________________
@@ -120,7 +122,7 @@ AliTPCtrack::AliTPCtrack(Double_t x, Double_t alpha, const Double_t p[5],
 }
 
 //_____________________________________________________________________________
-AliTPCtrack::AliTPCtrack(const AliESDtrack& t) :
+AliTPCtrack::AliTPCtrack(const AliESDtrack& t, TTreeSRedirector *pcstream) :
   AliKalmanTrack(),
   fdEdx(t.GetTPCsignal()),
   fSdEdx(1e10),
@@ -137,6 +139,7 @@ AliTPCtrack::AliTPCtrack(const AliESDtrack& t) :
   //-----------------------------------------------------------------
   // Conversion AliESDtrack -> AliTPCtrack.
   //-----------------------------------------------------------------
+  const Double_t kmaxC[4]={10,10,0.1,0.1};  // cuts on the rms /fP0,fP1,fP2,fP3
   SetNumberOfClusters(t.GetTPCclusters(fIndex));
   SetLabel(t.GetLabel());
   SetMass(t.GetMass());
@@ -144,13 +147,69 @@ AliTPCtrack::AliTPCtrack(const AliESDtrack& t) :
   for (Int_t i=0; i<12;i++) fKinkPoint[i]=0.;
   for (Int_t i=0; i<3;i++) fKinkIndexes[i]=0;
   for (Int_t i=0; i<3;i++) fV0Indexes[i]=0;
+  //
+  // choose parameters to start
+  //
+  const AliTPCRecoParam * recoParam = AliTPCReconstructor::GetRecoParam();
+  Int_t reject=0;
+  AliExternalTrackParam param(t);
 
-  Set(t.GetX(),t.GetAlpha(),t.GetParameter(),t.GetCovariance());
+  const AliExternalTrackParam  *tpcout=(t.GetFriendTrack())? ((AliESDfriendTrack*)(t.GetFriendTrack()))->GetTPCOut():0;
+  const AliExternalTrackParam  *tpcin = t.GetInnerParam();
+  const AliExternalTrackParam  *tpc=(tpcout)?tpcout:tpcin;
+  if (!tpc) tpc=&param;
+  Bool_t isOK=recoParam->GetUseOuterDetectors();
+  if (param.GetCovariance()[0]>kmaxC[0]*kmaxC[0]) isOK=kFALSE;
+  if (param.GetCovariance()[2]>kmaxC[1]*kmaxC[1]) isOK=kFALSE;
+  if (param.GetCovariance()[5]>kmaxC[2]*kmaxC[2]) isOK=kFALSE;
+  if (param.GetCovariance()[9]>kmaxC[3]*kmaxC[3]) isOK=kFALSE;
+  param.Rotate(tpc->GetAlpha());
+  Double_t oldX=param.GetX(),  oldY=param.GetY(),  oldZ=param.GetZ();
+  if (!isOK ){
+    param=*tpc;
+    isOK=kTRUE;
+    reject=1;
+  }
+  isOK=AliTracker::PropagateTrackToBxByBz(&param,tpc->GetX(),t.GetMass(),2.,kFALSE);
+  if (param.GetCovariance()[0]>kmaxC[0]*kmaxC[0]) isOK=kFALSE;
+  if (param.GetCovariance()[2]>kmaxC[1]*kmaxC[1]) isOK=kFALSE;
+  if (param.GetCovariance()[5]>kmaxC[2]*kmaxC[2]) isOK=kFALSE;
+  if (param.GetCovariance()[9]>kmaxC[3]*kmaxC[3]) isOK=kFALSE;
+  if (!isOK){
+    param=*tpc;
+    isOK=kTRUE;
+    reject=2;
+  }
+  if (reject>0){
+    param.ResetCovariance(4.);  // reset covariance if start from backup param
+  }
+  //
+  //
+  if (pcstream){
+    AliExternalTrackParam dummy;
+    AliExternalTrackParam *ptpc=(AliExternalTrackParam *)tpc;
+    if (!ptpc) ptpc=&dummy;
+    AliESDtrack *esd= (AliESDtrack *)&t;
+    (*pcstream)<<"trackP"<<
+      "reject="<<reject<<   // flag - rejection of current esd track parameters
+      "esd.="<<esd<<        // original esd track
+      "tr.="<<&param<<      // starting track parameters
+      "out.="<<ptpc<<       // backup tpc parameters
+      "\n";
+  }
+
+  Set(param.GetX(),param.GetAlpha(),param.GetParameter(),param.GetCovariance());
 
   if ((t.GetStatus()&AliESDtrack::kTIME) == 0) return;
   StartTimeIntegral();
   Double_t times[10]; t.GetIntegratedTimes(times); SetIntegratedTimes(times);
   SetIntegratedLength(t.GetIntegratedLength());
+
+  if (GetX()>oldX) {
+     Double_t dX=GetX()-oldX, dY=GetY()-oldY, dZ=GetZ()-oldZ;
+     Double_t d=TMath::Sqrt(dX*dX + dY*dY + dZ*dZ);
+     AddTimeStep(d);
+  }
 }
 
 //_____________________________________________________________________________

@@ -73,8 +73,8 @@ void TestPreprocessor()
     // the "online" naming convention ALICE-INT-2003-039.
     
     shuttle->AddInputFile(AliShuttleInterface::kDAQ, "PMD", "PMD_PED.root", "GDC0", "PMD_PED.root");
-    shuttle->AddInputFile(AliShuttleInterface::kDAQ, "PMD", "PMDGAINS.root", "GDC0", "xy.root");
-    shuttle->AddInputFile(AliShuttleInterface::kDAQ, "PMD", "PMD_HOT.root", "GDC0", "hot.root");
+    shuttle->AddInputFile(AliShuttleInterface::kDAQ, "PMD", "PMDGAINS.root", "GDC0", "PMDGAINS.root");
+    shuttle->AddInputFile(AliShuttleInterface::kDAQ, "PMD", "PMD_HOT.root", "GDC0", "PMD_HOT.root");
     
     // TODO(3)
     //

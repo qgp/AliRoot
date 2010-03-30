@@ -154,6 +154,7 @@ AliTRDrecoParam *AliTRDrecoParam::GetLowFluxParam()
   AliTRDrecoParam *rec = new AliTRDrecoParam();
   rec->fkdNchdy = 12.; // pp in TRD
   rec->SetVertexConstrained();
+  rec->SetCheckTimeConsistency();
   return rec;
 
 }
@@ -168,6 +169,7 @@ AliTRDrecoParam *AliTRDrecoParam::GetHighFluxParam()
   AliTRDrecoParam *rec = new AliTRDrecoParam();
   rec->fkdNchdy = 4000.; // PbPb in TRD
   rec->SetVertexConstrained();
+  rec->SetCheckTimeConsistency();
   return rec;
 
 }
@@ -193,7 +195,7 @@ AliTRDrecoParam *AliTRDrecoParam::GetCosmicTestParam()
   par->fkRoadzMultiplicator = 3.;
   par->fADCBaseline = 10;
   par->fStreamLevel[kTracker] = 1;
-  par->SetArgon();
+  par->SetCheckTimeConsistency();
   return par;
 
 }
@@ -208,3 +210,29 @@ Float_t AliTRDrecoParam::GetNClusters() const
   nclusters *= 1.+fkNClusterNoise;
   return nclusters;
 }
+
+//______________________________________________________________
+void AliTRDrecoParam::SetPIDLQslices(Int_t s)
+{
+// Setting number of slices used by the PID LQ method s={1, 2}
+// If PID NN is set this function will change to PID LQ.
+ 
+  if(IsPIDNeuralNetwork()){
+    AliWarning("PID set to NN. Changing to LQ.");
+    SetPIDNeuralNetwork(kFALSE);
+  } 
+
+  switch(s){
+  case 1: 
+    if(TESTBIT(fFlags, kLQ2D)) CLRBIT(fFlags, kLQ2D);
+    break;
+  case 2:
+    SETBIT(fFlags, kLQ2D);
+    break;
+  default:
+    AliWarning(Form("N[%d] PID LQ slices not implemented. Using default 2.", s));
+    SETBIT(fFlags, kLQ2D);
+    break;
+  }
+}
+

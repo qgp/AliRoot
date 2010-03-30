@@ -45,7 +45,8 @@ public:
     kNeventsTriggerTracks=14,
     kTriggerPurity      = 15,
     kTrackStatus        = 16,
-    kTrackletStatus     = 17
+    kTrackletStatus     = 17,
+    kNTrackletsP        = 18
   };
 
   AliTRDcheckDET();
@@ -75,23 +76,29 @@ public:
   virtual Bool_t PostProcess();
   virtual Bool_t GetRefFigure(Int_t ifig);
   
+  Bool_t IsUsingClustersOutsideChamber() const {return TESTBIT(fFlags, kUseClustersOutsideChamber);}
+  void UseClustersOutsideChamber(Bool_t b = kTRUE) {if(b) SETBIT(fFlags, kUseClustersOutsideChamber); else CLRBIT(fFlags, kUseClustersOutsideChamber);}
   void SetRecoParam(AliTRDrecoParam *r);
 
 private:
+  enum{
+    kUseClustersOutsideChamber
+  };
   AliTRDcheckDET(const AliTRDcheckDET &);
   AliTRDcheckDET& operator=(const AliTRDcheckDET &);
   void GetDistanceToTracklet(Double_t *dist, AliTRDseedV1 * const tracklet, AliTRDcluster * const c);
   TH1* MakePlotChi2();
   TH1* MakePlotNTracklets();
   TH1* MakePlotPulseHeight();
+  void MakePlotnTrackletsVsP();
   Bool_t MakeBarPlot(TH1 *histo, Int_t Color);
 
   AliTRDeventInfo *fEventInfo;         //! ESD Header
   TMap *fTriggerNames;                 //! Containing trigger class names
   AliTRDReconstructor *fReconstructor; // TRD Reconstructor
   AliTRDgeometry *fGeo;                // TRD Geometry object
+  UChar_t fFlags;                      // Flags for setting
     
   ClassDef(AliTRDcheckDET, 1)
 };
 #endif
-

@@ -35,6 +35,7 @@
 
 class TParticle;
 class AliESDVertex;
+class AliESDEvent;
 class AliKalmanTrack;
 class AliTrackPointArray;
 class TPolyMarker3D;
@@ -48,11 +49,13 @@ public:
     kTOFin=0x1000,kTOFout=0x2000,kTOFrefit=0x4000,kTOFpid=0x8000,
     kHMPIDout=0x10000,kHMPIDpid=0x20000,
     kEMCALmatch=0x40000,
-    kTRDbackup=0x80000,
+    kPHOSmatch=0x200000,
+    kTRDbackup =0x80000,
     kTRDStop=0x20000000,
     kESDpid=0x40000000,
     kTIME=0x80000000,
-    kGlobalMerge=0x08000000
+    kGlobalMerge=0x08000000,
+    kITSpureSA=0x10000000
   }; 
   enum {
     kTRDnPlanes = 6,
@@ -201,8 +204,12 @@ public:
      for (Int_t i=0;i<4;i++) fTPCPoints[i]=points[i];
   }
   void    SetTPCPointsF(UChar_t  findable){fTPCnclsF = findable;}
+  void    SetTPCPointsFIter1(UChar_t  findable){fTPCnclsFIter1 = findable;}
   UShort_t   GetTPCNcls() const { return fTPCncls;}
   UShort_t   GetTPCNclsF() const { return fTPCnclsF;}
+  UShort_t   GetTPCNclsIter1() const { return fTPCnclsIter1;}
+  UShort_t   GetTPCNclsFIter1() const { return fTPCnclsFIter1;}
+  UShort_t   GetTPCnclsS(Int_t i0=0,Int_t i1=159) const;
   Double_t GetTPCPoints(Int_t i) const {return fTPCPoints[i];}
   void    SetKinkIndexes(Int_t points[3]) {
      for (Int_t i=0;i<3;i++) fKinkIndexes[i] = points[i];
@@ -217,6 +224,7 @@ public:
   Double_t GetTPCsignalSigma() const {return fTPCsignalS;}
   UShort_t GetTPCsignalN() const {return fTPCsignalN;}
   Double_t GetTPCchi2() const {return fTPCchi2;}
+  Double_t GetTPCchi2Iter1() const {return fTPCchi2Iter1;}
   UShort_t   GetTPCclusters(Int_t *idx) const;
   Double_t GetTPCdensity(Int_t row0, Int_t row1) const;
   Int_t   GetTPCLabel() const {return fTPCLabel;}
@@ -281,6 +289,10 @@ public:
   Double_t GetTOFsignalDz() const {return fTOFsignalDz;}
   void    SetTOFsignalDx(Double_t dx) {fTOFsignalDx=dx;}
   Double_t GetTOFsignalDx() const {return fTOFsignalDx;}
+  void     SetTOFDeltaBC(Short_t deltaBC) {fTOFdeltaBC=deltaBC;};
+  Short_t  GetTOFDeltaBC() const {return fTOFdeltaBC;}
+  void     SetTOFL0L1(Short_t l0l1) {fTOFl0l1=l0l1;};
+  Short_t  GetTOFL0L1() const {return fTOFl0l1;}
   Double_t GetTOFchi2() const {return fTOFchi2;}
   void    SetTOFpid(const Double_t *p);
   void    SetTOFLabel(const Int_t *p);
@@ -315,11 +327,20 @@ public:
      x=fHMPIDmipX; y=fHMPIDmipY; q=fHMPIDqn%1000000; nph=fHMPIDqn/1000000;
   }
   Bool_t  IsHMPID() const {return fFlags&kHMPIDpid;}
+  Bool_t  IsPureITSStandalone() const {return fFlags&kITSpureSA;}
 
 
-  Int_t GetEMCALcluster() {return fEMCALindex;}
-  void SetEMCALcluster(Int_t index) {fEMCALindex=index;}
+  Int_t GetEMCALcluster() {return fCaloIndex;}
+  void SetEMCALcluster(Int_t index) {fCaloIndex=index;}
   Bool_t IsEMCAL() const {return fFlags&kEMCALmatch;}
+
+  Int_t GetPHOScluster() {return fCaloIndex;}
+  void SetPHOScluster(Int_t index) {fCaloIndex=index;}
+  Bool_t IsPHOS() const {return fFlags&kPHOSmatch;}
+  Double_t GetPHOSdx()const{return fCaloDx ;}
+  Double_t GetPHOSdz()const{return fCaloDz ;}
+  void SetPHOSdxdz(Double_t dx, Double_t dz){fCaloDx=dx,fCaloDz=dz;}
+
 
   void SetTrackPointArray(AliTrackPointArray *points) {
     fFriendTrack->SetTrackPointArray(points);
@@ -347,7 +368,9 @@ public:
   void GetImpactParameters(Float_t p[2], Float_t cov[3]) const {
     p[0]=fD; p[1]=fZ; cov[0]=fCdd; cov[1]=fCdz; cov[2]=fCzz;
   }
-  virtual void Print(Option_t * opt) const ; 
+  virtual void Print(Option_t * opt) const ;
+  AliESDEvent* GetESDEvent() const {return fESDEvent;}
+  void         SetESDEvent(AliESDEvent* evt) {fESDEvent = evt;}  
   //
   // visualization (M. Ivanov)
   //
@@ -379,7 +402,7 @@ protected:
   Int_t     fTOFindex;       // index of the assigned TOF cluster
   Int_t     fHMPIDqn;         // 1000000*number of photon clusters + QDC
   Int_t     fHMPIDcluIdx;     // 1000000*chamber id + cluster idx of the assigned MIP cluster
-  Int_t     fEMCALindex;     // index of associated EMCAL cluster (AliESDCaloCluster)
+  Int_t     fCaloIndex;       // index of associated EMCAL/PHOS cluster (AliESDCaloCluster)
 
 
   Int_t     fKinkIndexes[3]; // array of indexes of posible kink candidates 
@@ -412,6 +435,7 @@ protected:
 
   Double32_t   fITSchi2;        // [0.,0.,8] chi2 in the ITS
   Double32_t   fTPCchi2;        // [0.,0.,8] chi2 in the TPC
+  Double32_t   fTPCchi2Iter1;  // [0.,0.,8] chi2 in the TPC
   Double32_t   fTRDchi2;        // [0.,0.,8] chi2 in the TRD
   Double32_t   fTOFchi2;        // [0.,0.,8] chi2 in the TOF
   Double32_t fHMPIDchi2;        // [0.,0.,8] chi2 in the HMPID
@@ -435,6 +459,11 @@ protected:
   Double32_t fTOFsignalDz;    // local z  of track's impact on the TOF pad 
   Double32_t fTOFsignalDx;    // local x  of track's impact on the TOF pad 
   Double32_t fTOFInfo[10];    //! TOF informations
+  Short_t    fTOFdeltaBC;     // detector's Delta Bunch Crossing correction
+  Short_t    fTOFl0l1;        // detector's L0L1 latency correction
+
+  Double32_t fCaloDx ;        // [0.,0.,8] distance to calorimeter cluster in calo plain (phi direction)
+  Double32_t fCaloDz ;        // [0.,0.,8] distance to calorimeter cluster in calo plain (z direction)
 
   Double32_t fHMPIDtrkX;       // x of the track impact, LORS 
   Double32_t fHMPIDtrkY;       // y of the track impact, LORS 
@@ -445,6 +474,8 @@ protected:
   UShort_t fTPCncls;       // number of clusters assigned in the TPC
   UShort_t fTPCnclsF;      // number of findable clusters in the TPC
   UShort_t fTPCsignalN;    // number of points used for dEdx
+  UShort_t fTPCnclsIter1;  // number of clusters assigned in the TPC - iteration 1
+  UShort_t fTPCnclsFIter1; // number of findable clusters in the TPC - iteration 1
 
   Char_t  fITSncls;        // number of clusters assigned in the ITS
   UChar_t fITSClusterMap;  // map of clusters, one bit per a layer
@@ -457,11 +488,12 @@ protected:
 
   Char_t  fTRDTimBin[kTRDnPlanes];   // Time bin of Max cluster from all six planes
   Char_t  fVertexID; // ID of the primary vertex this track belongs to
-
+  AliESDEvent*   fESDEvent; //!Pointer back to event to which the track belongs
+  
  private:
 
   AliESDtrack & operator=(const AliESDtrack & );
-  ClassDef(AliESDtrack,53)  //ESDtrack 
+  ClassDef(AliESDtrack,57)  //ESDtrack 
 };
 
 

@@ -77,7 +77,8 @@ AliITSAlignMille2Module::AliITSAlignMille2Module() :
 } 
 
 //-------------------------------------------------------------
-AliITSAlignMille2Module::AliITSAlignMille2Module(Int_t index,UShort_t volid,char* symname,TGeoHMatrix *m,Int_t nsv,UShort_t *volidsv) : 
+AliITSAlignMille2Module::AliITSAlignMille2Module(Int_t index, UShort_t volid, const char* symname,
+						 const TGeoHMatrix *m, Int_t nsv, const UShort_t *volidsv) : 
   TNamed(), 
   fNSensVol(0), 
   fIndex(-1),  
@@ -252,7 +253,8 @@ AliITSAlignMille2Module::~AliITSAlignMille2Module() {
 } 
 
 //-------------------------------------------------------------
-Int_t AliITSAlignMille2Module::Set(Int_t index, UShort_t volid, char* symname, TGeoHMatrix *m, Int_t nsv, UShort_t *volidsv) 
+Int_t AliITSAlignMille2Module::Set(Int_t index, UShort_t volid, const char* symname, 
+				   const TGeoHMatrix *m, Int_t nsv, const UShort_t *volidsv) 
 {
   // initialize a custom supermodule
   // index, volid, symname and matrix must be given
@@ -332,7 +334,7 @@ void AliITSAlignMille2Module::AddSensitiveVolume(UShort_t voluid)
   if (GetIndexFromVolumeID(voluid)<0) return; // bad volid
   //
   // in principle, the correct size of fSensVol... arrays was set outside but check anyway
-  if (fSensVolVolumeID.GetSize()<fNSensVol) {
+  if (fSensVolVolumeID.GetSize()<fNSensVol+1) {
     fSensVolVolumeID.Set(fNSensVol+1);
     fSensVolIndex.Set(fNSensVol+1);
   }
@@ -962,6 +964,36 @@ void AliITSAlignMille2Module::GetGeomParamsLoc(Double_t *pars)
   //
 }
 
+
+//-------------------------------------------------------------
+void AliITSAlignMille2Module::CalcDerivDPosDPar(Int_t sensVol,const Double_t* pl, Double_t *deriv)
+{
+  // calculate jacobian of the global position vs Parameters (dPos/dParam) 
+  // for the point in the sensor sensVol
+  const double kDel = 0.01;
+  double pos0[3],pos1[3],pos2[3],pos3[3];
+  double delta[kMaxParGeom];
+  //
+  for (int ip=kMaxParGeom;ip--;) delta[ip] = 0;
+  //
+  for (int ip=kMaxParGeom;ip--;) {
+    //
+    delta[ip] -= kDel;
+    GetSensitiveVolumeModifiedMatrix(sensVol,delta,!GeomParamsGlobal())->LocalToMaster(pl,pos0);    
+    delta[ip] += kDel/2;
+    GetSensitiveVolumeModifiedMatrix(sensVol,delta,!GeomParamsGlobal())->LocalToMaster(pl,pos1);    
+    delta[ip] += kDel;
+    GetSensitiveVolumeModifiedMatrix(sensVol,delta,!GeomParamsGlobal())->LocalToMaster(pl,pos2);    
+    delta[ip] += kDel/2;
+    GetSensitiveVolumeModifiedMatrix(sensVol,delta,!GeomParamsGlobal())->LocalToMaster(pl,pos3);    
+    //
+    delta[ip] = 0;
+    double *curd = deriv + ip*3;
+    for (int i=3;i--;) curd[i] = (8.*(pos2[i]-pos1[i]) - (pos3[i]-pos0[i]))/6./kDel;
+  }
+  //
+}
+
 //-------------------------------------------------------------
 void AliITSAlignMille2Module::CalcDerivGloLoc(Int_t idx,Double_t *deriv)
 {
@@ -1161,4 +1193,3 @@ void AliITSAlignMille2Module::GetLocalParams(const Double_t* glot, const Double_
   fgTempAlignObj.SetMatrix(*fSensVolMatrix);
   fgTempAlignObj.GetPars(t,r);
 }
-

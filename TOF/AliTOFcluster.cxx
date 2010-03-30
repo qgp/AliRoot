@@ -48,7 +48,9 @@ AliTOFcluster::AliTOFcluster():
   fADC(0),
   fTdcND(0),
   fTdcRAW(0),
-  fStatus(kTRUE) 
+  fStatus(kTRUE),
+  fDeltaBC(0),
+  fL0L1Latency(0)
  {
   //
   // default ctor
@@ -63,7 +65,9 @@ AliTOFcluster::AliTOFcluster(UShort_t volId,
    Float_t x,   Float_t y,   Float_t z,
    Float_t sx2, Float_t sxy, Float_t sxz,
                 Float_t sy2, Float_t syz,
-                             Float_t sz2, Int_t *lab, Int_t *ind, Int_t *par, Bool_t status, Int_t idx):
+                             Float_t sz2,
+			     Int_t *lab, Int_t * const ind,
+			     Int_t *par, Bool_t status, Int_t idx):
   AliCluster3D(volId,x,y,z,sx2,sxy,sxz,sy2,syz,sz2,lab),
   fIdx(idx),
   fQuality(-100), 
@@ -74,7 +78,9 @@ AliTOFcluster::AliTOFcluster(UShort_t volId,
   fADC(par[2]),
   fTdcND(par[3]),
   fTdcRAW(par[4]),
-  fStatus(status) 
+  fStatus(status),
+  fDeltaBC(par[5]),
+  fL0L1Latency(par[6])
  {
   //
   // constructor
@@ -101,7 +107,9 @@ AliTOFcluster::AliTOFcluster(const AliTOFcluster & cluster):
   fADC(cluster.fADC),
   fTdcND(cluster.fTdcND),
   fTdcRAW(cluster.fTdcRAW),
-  fStatus(cluster.fStatus) 
+  fStatus(cluster.fStatus),
+  fDeltaBC(cluster.fDeltaBC),
+  fL0L1Latency(cluster.fL0L1Latency)
  {
   //
   // copy ctor for AliTOFcluster object

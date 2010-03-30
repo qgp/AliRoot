@@ -681,13 +681,16 @@ Bool_t AliTRDPreprocessor::ExtractDriftVelocityDAQ()
       Int_t nbtg = 6*4*18*((Int_t) ((AliTRDCalibraMode *)calibra->GetCalibraMode())->GetDetChamb0(1))
 	+ 6*  18*((Int_t) ((AliTRDCalibraMode *)calibra->GetCalibraMode())->GetDetChamb2(1));
       Int_t nbfit        = calibra->GetNumberFit();
+      Int_t nbfitSuccess = calibra->GetNumberFitSuccess();
       Int_t nbE        = calibra->GetNumberEnt();
       
       // if enough statistics store the results
       if ((nbtg >                  0) && 
-	  (nbfit        >= 0.5*nbE) && (nbE > 30)) {
+	  (nbfit        >= 0.5*nbE) && (nbE > 30) && (nbfitSuccess > 30)) {
 	// create the cal objects
+	calibra->RemoveOutliers(1,kTRUE);
 	calibra->PutMeanValueOtherVectorFit(1,kTRUE);
+	calibra->RemoveOutliers2(kTRUE);
 	calibra->PutMeanValueOtherVectorFit2(1,kTRUE);
 	TObjArray object      = calibra->GetVectorFit();
 	AliTRDCalDet *objdriftvelocitydet = calibra->CreateDetObjectVdrift(&object,kTRUE);
@@ -781,8 +784,8 @@ Bool_t AliTRDPreprocessor::ExtractHLT()
     
     // gain
     TH2I *histogain = (TH2I *) filehlt->Get("CH2d");
-    histogain->SetDirectory(0);
     if (histogain) {
+      histogain->SetDirectory(0);
       // store the reference data
       if(!StoreReferenceData("HLTData","Gain",(TObject *) histogain,&metaData)){
 	Log("Error storing 2D histos for gain");
@@ -820,8 +823,8 @@ Bool_t AliTRDPreprocessor::ExtractHLT()
     // vdrift
     fVdriftHLT = kFALSE;
     TProfile2D *histodriftvelocity = (TProfile2D *) filehlt->Get("PH2d");
-    histodriftvelocity->SetDirectory(0);
     if (histodriftvelocity) {
+      histodriftvelocity->SetDirectory(0);
       // store the reference data
       if(!StoreReferenceData("HLTData","VdriftT0",(TObject *) histodriftvelocity,&metaData)){
 	Log("Error storing 2D Profile for average pulse height (HLT)");
@@ -834,12 +837,15 @@ Bool_t AliTRDPreprocessor::ExtractHLT()
       Int_t nbtg = 6*4*18*((Int_t) ((AliTRDCalibraMode *)calibra->GetCalibraMode())->GetDetChamb0(1))
 	+ 6*  18*((Int_t) ((AliTRDCalibraMode *)calibra->GetCalibraMode())->GetDetChamb2(1));
       Int_t nbfit        = calibra->GetNumberFit();
+      Int_t nbfitSuccess = calibra->GetNumberFitSuccess();
       Int_t nbE          = calibra->GetNumberEnt();
       // enough statistics
       if ((nbtg >                  0) && 
-	  (nbfit        >= 0.5*nbE) && (nbE > 30)) {
+	  (nbfit        >= 0.5*nbE) && (nbE > 30) && (nbfitSuccess > 30)) {
 	// create the cal objects
+	calibra->RemoveOutliers(1,kTRUE);
 	calibra->PutMeanValueOtherVectorFit(1,kTRUE);
+	calibra->RemoveOutliers2(kTRUE);
 	calibra->PutMeanValueOtherVectorFit2(1,kTRUE);
 	TObjArray object  = calibra->GetVectorFit();
 	AliTRDCalDet *objdriftvelocitydet = calibra->CreateDetObjectVdrift(&object,kTRUE);
@@ -871,8 +877,8 @@ Bool_t AliTRDPreprocessor::ExtractHLT()
     
     // prf
     TProfile2D *histoprf = (TProfile2D *) filehlt->Get("PRF2d");
-    histoprf->SetDirectory(0);
     if (histoprf) {
+      histoprf->SetDirectory(0);    
       // store reference data
       if(!StoreReferenceData("HLTData","PRF",(TObject *) histoprf,&metaData)){
 	Log("Error storing the 2D Profile for Pad Response Function");
@@ -1081,5 +1087,6 @@ UInt_t AliTRDPreprocessor::ProcessDCSConfigData()
   Log("SUCCESS: Processing of the DCS config summary file DONE.");  
   return 0;
 }
+
 
 

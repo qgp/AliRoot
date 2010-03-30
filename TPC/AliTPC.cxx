@@ -259,7 +259,7 @@ void AliTPC::CreateMaterials()
   wmat[0]=0.2729;
   wmat[1]=0.7271;
 
-  density=0.001977;
+  density=0.001754609;
 
 
   AliMixture(10,"CO2",amat,zmat,density,2,wmat);
@@ -283,9 +283,11 @@ void AliTPC::CreateMaterials()
   // drift gases 
   //----------------------------------------------------------------
 
-
+  //
   // Drift gases 1 - nonsensitive, 2 - sensitive
-  // Ne-CO2-N (85-10-5)
+  // Ne-CO2-N2 (90-10-5) (volume) values at 20deg and 1 atm.
+  // rho(Ne) = 0.839 g/cm^3, rho(CO2) = 1.842 g/cm^3, rho(N2) = 1.165 g/cm^3
+  // for the calculation - everything is normalized to 1
 
   amat[0]= 20.18;
   amat[1]=12.011;
@@ -297,12 +299,12 @@ void AliTPC::CreateMaterials()
   zmat[2]=8.;
   zmat[3]=7.;
 
-  wmat[0]=0.7707;
-  wmat[1]=0.0539;
-  wmat[2]=0.1438;
-  wmat[3]=0.0316;
+  wmat[0]=0.756992632;
+  wmat[1]=0.056235789;
+  wmat[2]=0.128469474;
+  wmat[3]=0.058395789;
  
-  density=0.0010252;
+  density=0.000904929;
 
   AliMixture(12,"Ne-CO2-N-1",amat,zmat,density,4,wmat);
   AliMixture(13,"Ne-CO2-N-2",amat,zmat,density,4,wmat);
@@ -443,7 +445,7 @@ void AliTPC::CreateMaterials()
   wmat[0]=0.194;
   wmat[1]=0.023;
   wmat[2]=0.443;
-  wmat[3]=0.340;
+  wmat[3]=0.34;
 
   density=1.82;
 
@@ -461,12 +463,12 @@ void AliTPC::CreateMaterials()
   zmat[2]=8.;
   zmat[3]=14.;
 
-  wmat[0]=0.225;
+  wmat[0]=0.257;
   wmat[1]=0.03;
-  wmat[2]=0.443;
+  wmat[2]=0.412;
   wmat[3]=0.3;
 
-  density=1.163;
+  density=1.725;
 
   AliMixture(21, "Prepreg3",amat,zmat,density,4,wmat);
 
@@ -518,6 +520,24 @@ void AliTPC::CreateMaterials()
 
   AliMaterial(25,"Cu",amat[0],zmat[0],density,999.,999.);
 
+  // brass
+
+  amat[0] = 63.546;
+  zmat[0] = 29.;
+  //
+  amat[1]= 65.409;
+  zmat[1]= 30.;
+  //
+  wmat[0]= 0.6;
+  wmat[1]= 0.4;
+
+  //
+  density = 8.23;
+  
+ 
+  //
+  AliMixture(33,"Brass",amat,zmat,density,2,wmat);
+  
   // Epoxy - C14 H20 O3
  
   amat[0]=12.011;
@@ -535,6 +555,28 @@ void AliTPC::CreateMaterials()
   density=1.25;
 
   AliMixture(26,"Epoxy",amat,zmat,density,-3,wmat);
+  //
+  // epoxy film - 90% epoxy, 10% glass fiber 
+  //
+  amat[0]=12.01;
+  amat[1]=1.;
+  amat[2]=15.994;
+  amat[3]=28.086;
+
+  zmat[0]=6.;
+  zmat[1]=1.;
+  zmat[2]=8.;
+  zmat[3]=14.;
+
+  wmat[0]=0.596;
+  wmat[1]=0.071;
+  wmat[2]=0.257;
+  wmat[3]=0.076;
+
+
+  density=1.345;
+
+  AliMixture(34, "Epoxy-film",amat,zmat,density,4,wmat);
 
   // Plexiglas  C5H8O2
 
@@ -622,6 +664,7 @@ void AliTPC::CreateMaterials()
   density=1.;
 
   AliMixture(32,"Water",amat,zmat,density,-2,wmat);  
+
  
   //----------------------------------------------------------
   // tracking media for gases
@@ -655,7 +698,9 @@ void AliTPC::CreateMaterials()
   AliMedium(18,"Steel",29,0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001); 
   AliMedium(19,"Peek",30,0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
   AliMedium(21,"Alumina",31,0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);    
-  AliMedium(22,"Water",32,0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);  
+  AliMedium(22,"Water",32,0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  AliMedium(23,"Brass",33,0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
+  AliMedium(24,"Epoxyfm",34,0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001);  
 }
 
 void AliTPC::GenerNoise(Int_t tablesize)

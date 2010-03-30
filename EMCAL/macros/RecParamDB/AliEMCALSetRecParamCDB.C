@@ -16,7 +16,7 @@
 #endif
 
 
-void AliEMCALSetRecParamCDB(AliRecoParam::EventSpecie_t default = AliRecoParam::kDefault)
+void AliEMCALSetRecParamCDB(AliRecoParam::EventSpecie_t default = AliRecoParam::kLowMult)
 {
   
   // Create an object AliEMCALRecParam and store it to OCDB
@@ -31,12 +31,13 @@ void AliEMCALSetRecParamCDB(AliRecoParam::EventSpecie_t default = AliRecoParam::
   {
     //default
     //AliEMCALRecParam *recParamDB = AliEMCALRecParam::GetDefaultParameters();
-    AliEMCALRecParam *recParamDB = GetHighMultiplicityParameters();
-    recParamDB->SetName("Default - Pb+Pb");
-    recParamDB->SetTitle("Default - Pb+Pb");
+    AliEMCALRecParam *recParamDB = GetLowMultiplicityParameters();
+    recParamDB->SetName("Default - p+p");
+    recParamDB->SetTitle("Default - p+p");
     //Add to the recParamArray
     recParamDB->SetEventSpecie(AliRecoParam::kDefault);
     recParamArray->AddLast(recParamDB);
+	  
   }
   
   //Add other options here, if desired, for
@@ -298,7 +299,7 @@ AliEMCALRecParam* GetLowMultiplicityParameters()
   //AliEMCALRecParam *recParamDB = AliEMCALRecParam::GetLowFluxParam();
   
   AliEMCALRecParam* params =  AliEMCALRecParam::GetDefaultParameters();
-  params->SetClusteringThreshold(0.2); // 200 MeV                                             
+  params->SetClusteringThreshold(0.1); // 100 MeV                                             
   params->SetMinECut(0.01);  //10 MeV       	
   
   //PID parameters for pp  implemented 

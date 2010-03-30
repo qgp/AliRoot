@@ -17,7 +17,7 @@
 //**************************************************************************
 
 /** @file   AliHLTTRDClusterizerComponent.cxx
-    @author 
+    @author Theodor Rascanu
     @date   
     @brief  A TRDClusterizer processing component for the HLT. 
 */
@@ -38,14 +38,14 @@ using namespace std;
 
 #include "AliHLTTRDClusterizerComponent.h"
 #include "AliHLTTRDDefinitions.h"
-#include "AliHLTTRDCluster.h"
+#include "AliHLTTRDClusterizer.h"
+#include "AliHLTTRDUtils.h"
 
 #include "AliGeomManager.h"
 #include "AliTRDReconstructor.h"
 #include "AliCDBManager.h"
 #include "AliCDBStorage.h"
 #include "AliCDBEntry.h"
-#include "AliHLTTRDClusterizer.h"
 #include "AliTRDrecoParam.h"
 #include "AliTRDrawStreamBase.h"
 #include "AliTRDcluster.h"
@@ -55,22 +55,19 @@ using namespace std;
 #ifdef HAVE_VALGRIND_CALLGRIND_H
 #include <valgrind/callgrind.h>
 #else
-#define CALLGRIND_START_INSTRUMENTATION do { } while (0)
-#define CALLGRIND_STOP_INSTRUMENTATION do { } while (0)
+#define CALLGRIND_START_INSTRUMENTATION (void)0
+#define CALLGRIND_STOP_INSTRUMENTATION (void)0
 #endif
 
 #include <cstdlib>
 #include <cerrno>
 #include <string>
 
-#include "AliTRDrawStream.h"
-#include "AliTRDrawFastStream.h"
-
 ClassImp(AliHLTTRDClusterizerComponent)
    
 AliHLTTRDClusterizerComponent::AliHLTTRDClusterizerComponent()
 : AliHLTProcessor(),
-  fOutputPercentage(500),
+  fOutputPercentage(100),
   fOutputConst(0),
   fClusterizer(NULL),
   fRecoParam(NULL),
@@ -83,7 +80,10 @@ AliHLTTRDClusterizerComponent::AliHLTTRDClusterizerComponent()
   fgeometryFileName(""),
   fProcessTracklets(kFALSE),
   fHLTstreamer(kTRUE),
-  fTC(kFALSE)
+  fTC(kFALSE),
+  fHLTflag(kTRUE),
+  fHighLevelOutput(kFALSE),
+  fEmulateHLTClusters(kFALSE)
 {
   // Default constructor
 
@@ -129,7 +129,7 @@ void AliHLTTRDClusterizerComponent::GetOutputDataSize( unsigned long& constBase,
 {
   // Get the output data size
   constBase = fOutputConst;
-  inputMultiplier = ((double)fOutputPercentage)/100.0;
+  inputMultiplier = ((double)fOutputPercentage)*4/100.0;
 }
 
 AliHLTComponent* AliHLTTRDClusterizerComponent::Spawn()
@@ -207,7 +207,7 @@ int AliHLTTRDClusterizerComponent::DoEvent( const AliHLTComponentEventData& evtD
 {
   // Process an event
 
-  if (evtData.fEventID == 1)
+  if (evtData.fEventID == 10)
     CALLGRIND_START_INSTRUMENTATION;
 
   HLTDebug( "NofBlocks %i", evtData.fBlockCnt );
@@ -236,6 +236,8 @@ int AliHLTTRDClusterizerComponent::DoEvent( const AliHLTComponentEventData& evtD
 		    evtData.fEventID, evtData.fEventID, 
 		    DataType2Text(inputDataType).c_str(), 
 		    DataType2Text(expectedDataType).c_str());
+	  if(block.fDataType == kAliHLTDataTypeEOR)
+	    CALLGRIND_STOP_INSTRUMENTATION;
 	  continue;
 	}
       else 
@@ -261,17 +263,9 @@ int AliHLTTRDClusterizerComponent::DoEvent( const AliHLTComponentEventData& evtD
 
       AliHLTUInt32_t spec = block.fSpecification;
       
-      Int_t id = 1024;
-      
-      for ( Int_t ii = 0; ii < 18 ; ii++ ) {
-	if ( spec & 0x1 ) {
-	  id += ii;
-	  break;
-	}
-	spec = spec >> 1 ;
-      }
+      Int_t id = AliHLTTRDUtils::GetSM(spec) + 1024;
 
-      fMemReader->SetEquipmentID( id ); 
+      fMemReader->SetEquipmentID(id);
       
       fClusterizer->SetMemBlock(outputPtr+offset);
       Bool_t bclustered = fClusterizer->Raw2ClustersChamber(fMemReader);
@@ -420,8 +414,26 @@ int AliHLTTRDClusterizerComponent::Configure(const char* arguments){
 	continue;
       }
       else if (argument.CompareTo("-noZS")==0) {
-	fOutputPercentage = 100;
+	fOutputPercentage = 10;
 	HLTInfo("Awaiting non zero surpressed data");
+	continue;
+      }
+      else if (argument.CompareTo("-HLTflag")==0) {
+	if ((bMissingParam=(++i>=pTokens->GetEntries()))) break;
+	TString toCompareTo=((TObjString*)pTokens->At(i))->GetString();
+	if (toCompareTo.CompareTo("yes")==0){
+	  HLTInfo("Setting HLTflag to: %s", toCompareTo.Data());
+	  fHLTflag=kTRUE;
+	}
+	else if (toCompareTo.CompareTo("no")==0){
+	  HLTInfo("Setting HLTflag to: %s", toCompareTo.Data());
+	  fHLTflag=kFALSE;
+	}
+	else {
+	  HLTError("unknown argument for HLTflag: %s", toCompareTo.Data());
+	  iResult=-EINVAL;
+	  break;
+	}
 	continue;
       }
       else if (argument.CompareTo("-faststreamer")==0) {
@@ -445,6 +457,42 @@ int AliHLTTRDClusterizerComponent::Configure(const char* arguments){
 	fRawDataVersion=((TObjString*)pTokens->At(i))->GetString().Atoi();
 	continue;
       } 
+      else if (argument.CompareTo("-highLevelOutput")==0) {
+	if ((bMissingParam=(++i>=pTokens->GetEntries()))) break;
+	TString toCompareTo=((TObjString*)pTokens->At(i))->GetString();
+	if (toCompareTo.CompareTo("yes")==0){
+	  HLTWarning("Setting highLevelOutput to: %s", toCompareTo.Data());
+	  fHighLevelOutput=kTRUE;
+	}
+	else if (toCompareTo.CompareTo("no")==0){
+	  HLTInfo("Setting highLevelOutput to: %s", toCompareTo.Data());
+	  fHighLevelOutput=kFALSE;
+	}
+	else {
+	  HLTError("unknown argument for highLevelOutput: %s", toCompareTo.Data());
+	  iResult=-EINVAL;
+	  break;
+	}
+	continue;
+      }
+      else if (argument.CompareTo("-emulateHLToutput")==0) {
+	if ((bMissingParam=(++i>=pTokens->GetEntries()))) break;
+	TString toCompareTo=((TObjString*)pTokens->At(i))->GetString();
+	if (toCompareTo.CompareTo("yes")==0){
+	  HLTWarning("Setting emulateHLToutput to: %s", toCompareTo.Data());
+	  fEmulateHLTClusters=kTRUE;
+	}
+	else if (toCompareTo.CompareTo("no")==0){
+	  HLTInfo("Setting emulateHLToutput to: %s", toCompareTo.Data());
+	  fEmulateHLTClusters=kFALSE;
+	}
+	else {
+	  HLTError("unknown argument for emulateHLToutput: %s", toCompareTo.Data());
+	  iResult=-EINVAL;
+	  break;
+	}
+	continue;
+      }
       else if (argument.CompareTo("-yPosMethod")==0) {
 	if ((bMissingParam=(++i>=pTokens->GetEntries()))) break;
 	TString toCompareTo=((TObjString*)pTokens->At(i))->GetString();
@@ -518,54 +566,45 @@ int AliHLTTRDClusterizerComponent::SetParams()
     HLTInfo("Geometry Already Loaded!");
   }
 
-  if (fRecoParamType == 0)
-    {
+  if(fReconstructor->GetRecoParam()){
+    fRecoParam = new AliTRDrecoParam(*fReconstructor->GetRecoParam());
+    HLTInfo("RecoParam already set!");
+  }else{
+    if(fRecoParamType == 0){
       HLTDebug("Low flux params init.");
       fRecoParam = AliTRDrecoParam::GetLowFluxParam();
     }
-
-  if (fRecoParamType == 1)
-    {
+    if(fRecoParamType == 1){
       HLTDebug("High flux params init.");
       fRecoParam = AliTRDrecoParam::GetHighFluxParam();
     }
-  
-  if (fRecoParamType == 2)
-    {
+    if(fRecoParamType == 2){
       HLTDebug("Cosmic Test params init.");
       fRecoParam = AliTRDrecoParam::GetCosmicTestParam();
     }
+  }
 
-  if (fRecoParam == 0)
+  if (!fRecoParam)
     {
       HLTError("No reco params initialized. Sniffing big trouble!");
       return -EINVAL;
     }
 
-  // backward compatibility to AliTRDrecoParam < r34995
-# ifndef HAVE_NOT_ALITRDRECOPARAM_r34995
-#   define AliTRDRecoParamSetTailCancelation(b) fRecoParam->SetTailCancelation(b)
-#   define AliTRDRecoParamSetGAUS(b) fRecoParam->SetGAUS(b)
-#   define AliTRDRecoParamSetLUT(b) fRecoParam->SetLUT(b)
-# else
-#   define AliTRDRecoParamSetTailCancelation(b) fRecoParam->SetTailCancelation()
-#   define AliTRDRecoParamSetGAUS(b) fRecoParam->SetGAUS()
-#   define AliTRDRecoParamSetLUT(b) fRecoParam->SetLUT()
-# endif
-
-  if(fTC){AliTRDRecoParamSetTailCancelation(kTRUE); HLTDebug("Enableing Tail Cancelation"); }
-  else{AliTRDRecoParamSetTailCancelation(kFALSE); HLTDebug("Enableing Tail Cancelation"); }
+  if(fTC){fRecoParam->SetTailCancelation(kTRUE); HLTDebug("Enableing Tail Cancelation"); }
+  else{fRecoParam->SetTailCancelation(kFALSE); HLTDebug("Disableing Tail Cancelation"); }
 
   switch(fyPosMethod){
-  case 0: AliTRDRecoParamSetGAUS(kFALSE); AliTRDRecoParamSetLUT(kFALSE); break;
-  case 1: AliTRDRecoParamSetGAUS(kFALSE); AliTRDRecoParamSetLUT(kTRUE); break;
-  case 2: AliTRDRecoParamSetGAUS(kTRUE); AliTRDRecoParamSetLUT(kFALSE); break;
+  case 0: fRecoParam->SetGAUS(kFALSE); fRecoParam->SetLUT(kFALSE); break;
+  case 1: fRecoParam->SetGAUS(kFALSE); fRecoParam->SetLUT(kTRUE); break;
+  case 2: fRecoParam->SetGAUS(kTRUE); fRecoParam->SetLUT(kFALSE); break;
   }
 
   fRecoParam->SetStreamLevel(AliTRDrecoParam::kClusterizer, 0);
   fReconstructor->SetRecoParam(fRecoParam);
 
-  TString recoOptions="hlt,!cw";
+  TString recoOptions="!cw";
+  if(fHLTflag)
+    recoOptions += ",hlt";
   if(fProcessTracklets) recoOptions += ",tp";
   else  recoOptions += ",!tp";
 
@@ -590,11 +629,20 @@ int AliHLTTRDClusterizerComponent::SetParams()
       HLTDebug("Data type expected is EXPERIMENT!");
     }
 
-  if (fHLTstreamer)
-    {
+#ifndef HAVE_NOT_ALITRD_RAWSTREAM_r39608
+  if(fHLTstreamer){
+    AliTRDrawStreamBase::SetRawStreamVersion("default");
+    HLTDebug("fast rawstreamer used");
+  }else{
+    AliTRDrawStreamBase::SetRawStreamVersion("FAST");
+    HLTDebug("old rawstreamer used");
+  }
+#else
+  if(fHLTstreamer){
       AliTRDrawStreamBase::SetRawStreamVersion("FAST");
       HLTDebug("fast rawstreamer used");  
     }
+#endif
 
   if(!fClusterizer){
     fClusterizer = new AliHLTTRDClusterizer("TRDCclusterizer", "TRDCclusterizer");  

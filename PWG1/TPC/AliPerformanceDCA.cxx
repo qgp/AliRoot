@@ -39,6 +39,7 @@
 #include <TH1.h>
 #include <TH2.h>
 #include <TH3.h>
+#include <TF1.h>
 
 #include "AliPerformanceDCA.h" 
 #include "AliESDEvent.h"   
@@ -131,17 +132,18 @@ void AliPerformanceDCA::Init()
    */
 
    //dca_r, dca_z, eta, pt
-   Int_t binsQA[4]    = {100,100,30,nPtBins};
-   Double_t xminQA[4] = {-10.,-10.,-1.5,ptMin};
-   Double_t xmaxQA[4] = {10.,10.,1.5,ptMax};
+   Int_t binsQA[5]    = {100,100,30,nPtBins,144};
+   Double_t xminQA[5] = {-10.,-10.,-1.5,ptMin,0.};
+   Double_t xmaxQA[5] = {10.,10.,1.5,ptMax,2*TMath::Pi()};
 
-   fDCAHisto = new THnSparseF("fDCAHisto","dca_r:dca_z:eta:pt",4,binsQA,xminQA,xmaxQA);
+   fDCAHisto = new THnSparseF("fDCAHisto","dca_r:dca_z:eta:pt:phi",5,binsQA,xminQA,xmaxQA);
    fDCAHisto->SetBinEdges(3,binsPt);
 
    fDCAHisto->GetAxis(0)->SetTitle("dca_r (cm)");
    fDCAHisto->GetAxis(1)->SetTitle("dca_z (cm)");
    fDCAHisto->GetAxis(2)->SetTitle("#eta");
    fDCAHisto->GetAxis(3)->SetTitle("p_{T} (GeV/c)");
+   fDCAHisto->GetAxis(4)->SetTitle("phi (rad)");
    fDCAHisto->Sumw2();
 
   // init cuts
@@ -168,7 +170,7 @@ void AliPerformanceDCA::ProcessTPC(AliStack* const stack, AliESDtrack *const esd
 
   if (esdTrack->GetTPCNcls()<fCutsRC->GetMinNClustersTPC()) return; // min. nb. TPC clusters  
  
-  Double_t vDCAHisto[4]={dca[0],dca[1],track->Eta(),track->Pt()};
+  Double_t vDCAHisto[5]={dca[0],dca[1],track->Eta(),track->Pt(),track->Phi()};
   fDCAHisto->Fill(vDCAHisto);
 
   //
@@ -192,7 +194,7 @@ void AliPerformanceDCA::ProcessTPCITS(AliStack* const stack, AliESDtrack *const 
   Int_t clusterITS[200];
   if(esdTrack->GetITSclusters(clusterITS)<fCutsRC->GetMinNClustersITS()) return;  // min. nb. ITS clusters
 
-  Double_t vDCAHisto[4]={dca[0],dca[1],esdTrack->Eta(),esdTrack->Pt()};
+  Double_t vDCAHisto[5]={dca[0],dca[1],esdTrack->Eta(),esdTrack->Pt(), esdTrack->Phi()};
   fDCAHisto->Fill(vDCAHisto);
 
   //
@@ -287,6 +289,16 @@ void AliPerformanceDCA::Exec(AliMCEvent* const mcEvent, AliESDEvent *const esdEv
     }
   }
 
+  // trigger
+  if(!bUseMC ) {
+    Bool_t isEventTriggered = esdEvent->IsTriggerClassFired(GetTriggerClass());
+    if(!isEventTriggered) return; 
+  }
+
+  // get TPC event vertex
+  const AliESDVertex *vtxESD = esdEvent->GetPrimaryVertexTPC();
+  if(vtxESD && (vtxESD->GetStatus()<=0)) return;
+
   //  Process events
   for (Int_t iTrack = 0; iTrack < esdEvent->GetNumberOfTracks(); iTrack++) 
   { 
@@ -312,17 +324,18 @@ void AliPerformanceDCA::Analyse()
   //
   
   TH1::AddDirectory(kFALSE);
-  TH1 *h1D=0;
-  TH2 *h2D=0;
-  //TH3 *h3D=0;
+  TH1F *h1D=0;
+  TH2F *h2D=0;
   TObjArray *aFolderObj = new TObjArray;
   char title[256];
+  TObjArray *arr[6] = {0};
+  TF1 *f1[6] = {0};
 
   // set pt measurable range 
-  fDCAHisto->GetAxis(3)->SetRangeUser(0.10,10.);
+  //fDCAHisto->GetAxis(3)->SetRangeUser(0.10,10.);
 
   //
-  h2D = fDCAHisto->Projection(0,1); // inverse projection convention
+  h2D = (TH2F*)fDCAHisto->Projection(0,1); // inverse projection convention
   h2D->SetName("dca_r_vs_dca_z");
   h2D->GetXaxis()->SetTitle(fDCAHisto->GetAxis(1)->GetTitle());
   h2D->GetYaxis()->SetTitle(fDCAHisto->GetAxis(0)->GetTitle());
@@ -331,7 +344,7 @@ void AliPerformanceDCA::Analyse()
   aFolderObj->Add(h2D);
 
   //
-  h2D = fDCAHisto->Projection(0,2);
+  h2D = (TH2F*)fDCAHisto->Projection(0,2);
   h2D->SetName("dca_r_vs_eta");
   h2D->GetXaxis()->SetTitle(fDCAHisto->GetAxis(2)->GetTitle());
   h2D->GetYaxis()->SetTitle(fDCAHisto->GetAxis(0)->GetTitle());
@@ -339,6 +352,9 @@ void AliPerformanceDCA::Analyse()
   h2D->SetTitle(title);
   aFolderObj->Add(h2D);
 
+  //
+  // mean and rms
+  //
   h1D = MakeStat1D(h2D,0,0);
   h1D->SetName("mean_dca_r_vs_eta");
   h1D->GetXaxis()->SetTitle(fDCAHisto->GetAxis(2)->GetTitle());
@@ -356,7 +372,33 @@ void AliPerformanceDCA::Analyse()
   aFolderObj->Add(h1D);
 
   //
-  h2D = fDCAHisto->Projection(0,3);
+  // fit mean and sigma
+  //
+
+  arr[0] = new TObjArray();
+  f1[0] = new TF1("gaus","gaus");
+  h2D->FitSlicesY(f1[0],0,-1,0,"QNR",arr[0]);
+
+  h1D = (TH1F*)arr[0]->At(1);
+  h1D->SetName("fit_mean_dca_r_vs_eta");
+  h1D->GetXaxis()->SetTitle(fDCAHisto->GetAxis(2)->GetTitle());
+  h1D->GetYaxis()->SetTitle("fit_mean_dca_r (cm)");
+  sprintf(title," fit_mean_dca_r (cm) vs %s",fDCAHisto->GetAxis(2)->GetTitle());
+  h1D->SetTitle(title);
+  aFolderObj->Add(h1D);
+
+  h1D = (TH1F*)arr[0]->At(2);
+  h1D->SetName("res_dca_r_vs_eta");
+  h1D->GetXaxis()->SetTitle(fDCAHisto->GetAxis(2)->GetTitle());
+  h1D->GetYaxis()->SetTitle("res_dca_r (cm)");
+  sprintf(title," res_dca_r (cm) vs %s",fDCAHisto->GetAxis(2)->GetTitle());
+  h1D->SetTitle(title);
+  aFolderObj->Add(h1D);
+
+  //
+  // 
+  //
+  h2D = (TH2F*)fDCAHisto->Projection(0,3);
   h2D->SetName("dca_r_vs_pt");
   h2D->GetXaxis()->SetTitle(fDCAHisto->GetAxis(3)->GetTitle());
   h2D->GetYaxis()->SetTitle(fDCAHisto->GetAxis(0)->GetTitle());
@@ -383,8 +425,34 @@ void AliPerformanceDCA::Analyse()
   h1D->SetBit(TH1::kLogX);
   aFolderObj->Add(h1D);
    
+  //
+  // fit mean and sigma
+  //
+
+  arr[1] = new TObjArray();
+  f1[1] = new TF1("gaus","gaus");
+  h2D->FitSlicesY(f1[1],0,-1,0,"QNR",arr[1]);
+
+  h1D = (TH1F*)arr[1]->At(1);
+  h1D->SetName("fit_mean_dca_r_vs_pt");
+  h1D->GetXaxis()->SetTitle(fDCAHisto->GetAxis(3)->GetTitle());
+  h1D->GetYaxis()->SetTitle("fit_mean_dca_r (cm)");
+  sprintf(title,"fit_mean_dca_r (cm) vs %s",fDCAHisto->GetAxis(3)->GetTitle());
+  h1D->SetTitle(title);
+  h1D->SetBit(TH1::kLogX);
+  aFolderObj->Add(h1D);
+
+  h1D = (TH1F*)arr[1]->At(2);
+  h1D->SetName("res_dca_r_vs_pt");
+  h1D->GetXaxis()->SetTitle(fDCAHisto->GetAxis(3)->GetTitle());
+  h1D->GetYaxis()->SetTitle("res_dca_r (cm)");
+  sprintf(title,"res_dca_r (cm) vs %s",fDCAHisto->GetAxis(3)->GetTitle());
+  h1D->SetTitle(title);
+  h1D->SetBit(TH1::kLogX);
+  aFolderObj->Add(h1D);
+
   // 
-  h2D = fDCAHisto->Projection(1,2);
+  h2D = (TH2F*)fDCAHisto->Projection(1,2);
   h2D->SetName("dca_z_vs_eta");
   h2D->GetXaxis()->SetTitle(fDCAHisto->GetAxis(2)->GetTitle());
   h2D->GetYaxis()->SetTitle(fDCAHisto->GetAxis(1)->GetTitle());
@@ -409,7 +477,30 @@ void AliPerformanceDCA::Analyse()
   aFolderObj->Add(h1D);
 
   //
-  h2D = fDCAHisto->Projection(1,3);
+  // fit mean and sigma
+  //
+  arr[2] = new TObjArray();
+  f1[2] = new TF1("gaus","gaus");
+  h2D->FitSlicesY(f1[2],0,-1,0,"QNR",arr[2]);
+
+  h1D = (TH1F*)arr[2]->At(1);
+  h1D->SetName("fit_mean_dca_z_vs_eta");
+  h1D->GetXaxis()->SetTitle(fDCAHisto->GetAxis(2)->GetTitle());
+  h1D->GetYaxis()->SetTitle("fit_mean_dca_z (cm)");
+  sprintf(title,"fit_mean_dca_z (cm) vs %s",fDCAHisto->GetAxis(2)->GetTitle());
+  h1D->SetTitle(title);
+  aFolderObj->Add(h1D);
+
+  h1D = (TH1F*)arr[2]->At(2);
+  h1D->SetName("res_dca_z_vs_eta");
+  h1D->GetXaxis()->SetTitle(fDCAHisto->GetAxis(2)->GetTitle());
+  h1D->GetYaxis()->SetTitle("res_dca_z (cm)");
+  sprintf(title,"res_dca_z (cm) vs %s",fDCAHisto->GetAxis(2)->GetTitle());
+  h1D->SetTitle(title);
+  aFolderObj->Add(h1D);
+
+  //
+  h2D = (TH2F*)fDCAHisto->Projection(1,3);
   h2D->SetName("dca_z_vs_pt");
   h2D->GetXaxis()->SetTitle(fDCAHisto->GetAxis(3)->GetTitle());
   h2D->GetYaxis()->SetTitle(fDCAHisto->GetAxis(1)->GetTitle());
@@ -436,57 +527,133 @@ void AliPerformanceDCA::Analyse()
   h1D->SetBit(TH1::kLogX);
   aFolderObj->Add(h1D);
    
-  /*
-  h3D = fDCAHisto->Projection(2,3,0); // normal 3D projection convention
-  h3D->SetName("dca_r_vs_eta_vs_pt");
+  //
+  // fit mean and sigma
+  //
 
-  h2D = MakeStat2D(h3D,0,0,0);
-  h2D->SetName("mean_dca_r_vs_eta_vs_pt");
-  h2D->GetXaxis()->SetTitle(fDCAHisto->GetAxis(2)->GetTitle());
-  h2D->GetYaxis()->SetTitle(fDCAHisto->GetAxis(3)->GetTitle());
-  h2D->GetZaxis()->SetTitle("mean_dca_r (cm)");
-  sprintf(title,"mean_dca_r (cm) vs %s vs %s",fDCAHisto->GetAxis(2)->GetTitle(),fDCAHisto->GetAxis(3)->GetTitle());
+  arr[3] = new TObjArray();
+  f1[3] = new TF1("gaus","gaus");
+  h2D->FitSlicesY(f1[3],0,-1,0,"QNR",arr[3]);
+
+  h1D = (TH1F*)arr[3]->At(1);
+  h1D->SetName("fit_mean_dca_z_vs_pt");
+  h1D->GetXaxis()->SetTitle(fDCAHisto->GetAxis(3)->GetTitle());
+  h1D->GetYaxis()->SetTitle("fit_mean_dca_z (cm)");
+  sprintf(title,"fit_mean_dca_z (cm) vs %s",fDCAHisto->GetAxis(3)->GetTitle());
+  h1D->SetTitle(title);
+  h1D->SetBit(TH1::kLogX);
+  aFolderObj->Add(h1D);
+
+  h1D = (TH1F*)arr[3]->At(2);
+  h1D->SetName("res_dca_z_vs_pt");
+  h1D->GetXaxis()->SetTitle(fDCAHisto->GetAxis(3)->GetTitle());
+  h1D->GetYaxis()->SetTitle("res_dca_z (cm)");
+  sprintf(title,"res_dca_z (cm) vs %s",fDCAHisto->GetAxis(3)->GetTitle());
+  h1D->SetTitle(title);
+  h1D->SetBit(TH1::kLogX);
+  aFolderObj->Add(h1D);
+
+  // A - side
+  fDCAHisto->GetAxis(2)->SetRangeUser(-1.5,0.0);
+
+  h2D = (TH2F*)fDCAHisto->Projection(1,4);
+  h2D->SetName("dca_z_vs_phi_Aside");
+  h2D->GetXaxis()->SetTitle(fDCAHisto->GetAxis(4)->GetTitle());
+  h2D->GetYaxis()->SetTitle(fDCAHisto->GetAxis(1)->GetTitle());
+  sprintf(title,"%s vs %s (A-side)",fDCAHisto->GetAxis(1)->GetTitle(),fDCAHisto->GetAxis(4)->GetTitle());
   h2D->SetTitle(title);
   aFolderObj->Add(h2D);
 
-  h2D = MakeStat2D(h3D,0,0,1);
-  h2D->SetName("rms_dca_r_vs_eta_vs_pt");
-  h2D->GetXaxis()->SetTitle(fDCAHisto->GetAxis(2)->GetTitle());
-  h2D->GetYaxis()->SetTitle(fDCAHisto->GetAxis(3)->GetTitle());
-  h2D->GetZaxis()->SetTitle("rms_dca_r (cm)");
-  sprintf(title,"rms_dca_r (cm) vs %s vs %s",fDCAHisto->GetAxis(2)->GetTitle(),fDCAHisto->GetAxis(3)->GetTitle());
+  h1D = MakeStat1D(h2D,0,0);
+  h1D->SetName("mean_dca_z_vs_phi_Aside");
+  h1D->GetXaxis()->SetTitle(fDCAHisto->GetAxis(4)->GetTitle());
+  h1D->GetYaxis()->SetTitle("mean_dca_z (cm)");
+  sprintf(title,"mean_dca_z (cm) vs %s (A-side)",fDCAHisto->GetAxis(4)->GetTitle());
+  h1D->SetTitle(title);
+  aFolderObj->Add(h1D);
+
+  h1D = MakeStat1D(h2D,0,1);
+  h1D->SetName("rms_dca_z_vs_phi_Aside");
+  h1D->GetXaxis()->SetTitle(fDCAHisto->GetAxis(4)->GetTitle());
+  h1D->GetYaxis()->SetTitle("rms_dca_z (cm)");
+  sprintf(title,"rms_dca_z (cm) vs %s (A-side)",fDCAHisto->GetAxis(4)->GetTitle());
+  h1D->SetTitle(title);
+  aFolderObj->Add(h1D);
+ 
+  //
+  // fit mean and sigma
+  //
+  arr[4] = new TObjArray();
+  f1[4] = new TF1("gaus","gaus");
+  h2D->FitSlicesY(f1[4],0,-1,0,"QNR",arr[4]);
+
+  h1D = (TH1F*)arr[4]->At(1);
+  h1D->SetName("fit_mean_dca_z_vs_phi_Aside");
+  h1D->GetXaxis()->SetTitle(fDCAHisto->GetAxis(4)->GetTitle());
+  h1D->GetYaxis()->SetTitle("fit_mean_dca_z (cm)");
+  sprintf(title,"fit_mean_dca_z (cm) vs %s (A-side)",fDCAHisto->GetAxis(4)->GetTitle());
+  h1D->SetTitle(title);
+  aFolderObj->Add(h1D);
+
+  h1D = (TH1F*)arr[4]->At(2);
+  h1D->SetName("res_dca_z_vs_phi_Aside");
+  h1D->GetXaxis()->SetTitle(fDCAHisto->GetAxis(4)->GetTitle());
+  h1D->GetYaxis()->SetTitle("res_dca_z (cm)");
+  sprintf(title,"res_dca_z (cm) vs %s (A-side)",fDCAHisto->GetAxis(4)->GetTitle());
+  h1D->SetTitle(title);
+  aFolderObj->Add(h1D);
+ 
+
+  // C - side
+  fDCAHisto->GetAxis(2)->SetRangeUser(0.0,1.5);
+
+  h2D = (TH2F*)fDCAHisto->Projection(1,4);
+  h2D->SetName("dca_z_vs_phi_Cside");
+  h2D->GetXaxis()->SetTitle(fDCAHisto->GetAxis(4)->GetTitle());
+  h2D->GetYaxis()->SetTitle(fDCAHisto->GetAxis(1)->GetTitle());
+  sprintf(title,"%s vs %s (C-side)",fDCAHisto->GetAxis(1)->GetTitle(),fDCAHisto->GetAxis(4)->GetTitle());
   h2D->SetTitle(title);
   aFolderObj->Add(h2D);
+
+  h1D = MakeStat1D(h2D,0,0);
+  h1D->SetName("mean_dca_z_vs_phi_Cside");
+  h1D->GetXaxis()->SetTitle(fDCAHisto->GetAxis(4)->GetTitle());
+  h1D->GetYaxis()->SetTitle("mean_dca_z (cm)");
+  sprintf(title,"mean_dca_z (cm) vs %s (C-side)",fDCAHisto->GetAxis(4)->GetTitle());
+  h1D->SetTitle(title);
+  aFolderObj->Add(h1D);
+
+  h1D = MakeStat1D(h2D,0,1);
+  h1D->SetName("rms_dca_z_vs_phi_Cside");
+  h1D->GetXaxis()->SetTitle(fDCAHisto->GetAxis(4)->GetTitle());
+  h1D->GetYaxis()->SetTitle("rms_dca_z (cm)");
+  sprintf(title,"rms_dca_z (cm) vs %s (C-side)",fDCAHisto->GetAxis(4)->GetTitle());
+  h1D->SetTitle(title);
+  aFolderObj->Add(h1D);
 
   //
-  h3D = fDCAHisto->Projection(2,3,1);
-  h3D->SetName("dca_z_vs_eta_vs_pt");
+  // fit mean and sigma
+  //
+  arr[5] = new TObjArray();
+  f1[5] = new TF1("gaus","gaus");
+  h2D->FitSlicesY(f1[5],0,-1,0,"QNR",arr[5]);
 
-  h2D = MakeStat2D(h3D,0,0,0);
-  h2D->SetName("mean_dca_z_vs_eta_vs_pt");
-  h2D->GetXaxis()->SetTitle(fDCAHisto->GetAxis(2)->GetTitle());
-  h2D->GetYaxis()->SetTitle(fDCAHisto->GetAxis(3)->GetTitle());
-  h2D->GetZaxis()->SetTitle("mean_dca_z (cm)");
-  sprintf(title,"mean_dca_z (cm) vs %s vs %s",fDCAHisto->GetAxis(2)->GetTitle(),fDCAHisto->GetAxis(3)->GetTitle());
-  h2D->SetTitle(title);
-  aFolderObj->Add(h2D);
+  h1D = (TH1F*)arr[5]->At(1);
+  h1D->SetName("fit_mean_dca_z_vs_phi_Cside");
+  h1D->GetXaxis()->SetTitle(fDCAHisto->GetAxis(4)->GetTitle());
+  h1D->GetYaxis()->SetTitle("fit_mean_dca_z (cm)");
+  sprintf(title,"fit_mean_dca_z (cm) vs %s (C-side)",fDCAHisto->GetAxis(4)->GetTitle());
+  h1D->SetTitle(title);
+  aFolderObj->Add(h1D);
 
-  h2D = MakeStat2D(h3D,0,0,1);
-  h2D->SetName("rms_dca_z_vs_eta_vs_pt");
-  h2D->GetXaxis()->SetTitle(fDCAHisto->GetAxis(2)->GetTitle());
-  h2D->GetYaxis()->SetTitle(fDCAHisto->GetAxis(3)->GetTitle());
-  h2D->GetZaxis()->SetTitle("rms_dca_z (cm)");
-  sprintf(title,"rms_dca_z (cm) vs %s vs %s",fDCAHisto->GetAxis(2)->GetTitle(),fDCAHisto->GetAxis(3)->GetTitle());
-  h2D->SetTitle(title);
-  aFolderObj->Add(h2D);
-  */
-
-
-
-
-
-
-
+  h1D = (TH1F*)arr[5]->At(2);
+  h1D->SetName("res_dca_z_vs_phi_Cside");
+  h1D->GetXaxis()->SetTitle(fDCAHisto->GetAxis(4)->GetTitle());
+  h1D->GetYaxis()->SetTitle("res_dca_z (cm)");
+  sprintf(title,"res_dca_z (cm) vs %s (C-side)",fDCAHisto->GetAxis(4)->GetTitle());
+  h1D->SetTitle(title);
+  aFolderObj->Add(h1D);
+ 
   // export objects to analysis folder
   fAnalysisFolder = ExportToFolder(aFolderObj);
 

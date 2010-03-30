@@ -52,14 +52,16 @@ TEvePointSet* phos_clusters(TEveElement* cont=0)
   clusters->SetMarkerSize(0.5);
   clusters->SetMarkerColor(4);
 
-  char form[1000];
-  sprintf(form,"PHOS Clusters");
-  clusters->SetName(form);
+  clusters->SetName("PHOS Clusters");
 
-  char tip[1000];
-  sprintf(tip,"N=%d", clusters->Size());
-  clusters->SetTitle(tip);
+  clusters->SetTitle(Form("N=%d", clusters->Size()));
+
+  const TString viz_tag("REC Clusters PHOS");
+
+  clusters->ApplyVizTag(viz_tag, "Clusters");
+
   gEve->AddElement(clusters);
+
   gEve->Redraw3D();
 
   return clusters;

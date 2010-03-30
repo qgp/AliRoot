@@ -1,3 +1,4 @@
+
 /**************************************************************************
  * Copyright(c) 1998-2009, ALICE Experiment at CERN, All rights reserved. *
  *                                                                        *
@@ -25,6 +26,7 @@
 
 #include <Riostream.h>
 #include <TClonesArray.h>
+#include <TCanvas.h>
 #include <TNtuple.h>
 #include <TList.h>
 #include <TH1F.h>
@@ -52,11 +54,11 @@ ClassImp(AliAnalysisTaskSED0Mass)
 AliAnalysisTaskSED0Mass::AliAnalysisTaskSED0Mass():
 AliAnalysisTaskSE(),
 fOutputPPR(0),
-fOutputloose(0),
+fOutputmycuts(0),
 fDistr(0), 
 fNentries(0),
 fVHFPPR(0),
-fVHFloose(0),
+fVHFmycuts(0),
 fArray(0),
 fReadMC(0),
 fLsNormalization(1.)
@@ -70,11 +72,11 @@ fLsNormalization(1.)
 AliAnalysisTaskSED0Mass::AliAnalysisTaskSED0Mass(const char *name):
 AliAnalysisTaskSE(name),
 fOutputPPR(0), 
-fOutputloose(0), 
+fOutputmycuts(0), 
 fDistr(0),
 fNentries(0),
 fVHFPPR(0),
-fVHFloose(0),
+fVHFmycuts(0),
 fArray(0),
 fReadMC(0),
 fLsNormalization(1.)
@@ -103,9 +105,9 @@ AliAnalysisTaskSED0Mass::~AliAnalysisTaskSED0Mass()
     delete fVHFPPR;
     fVHFPPR = 0;
   }
-  if (fOutputloose) {
-    delete fOutputloose;
-    fOutputloose = 0;
+  if (fOutputmycuts) {
+    delete fOutputmycuts;
+    fOutputmycuts = 0;
   }
 
   if (fDistr) {
@@ -113,9 +115,9 @@ AliAnalysisTaskSED0Mass::~AliAnalysisTaskSED0Mass()
     fDistr = 0;
   }
 
-  if (fVHFloose) {
-    delete fVHFloose;
-    fVHFloose = 0;
+  if (fVHFmycuts) {
+    delete fVHFmycuts;
+    fVHFmycuts = 0;
   }
   if (fNentries){
     delete fNentries;
@@ -136,7 +138,7 @@ void AliAnalysisTaskSED0Mass::Init()
 
   // 2 sets of dedidcated cuts -- defined in UserExec
   fVHFPPR = (AliAnalysisVertexingHF*)gROOT->ProcessLine("ConfigVertexingHF()");
-  fVHFloose = (AliAnalysisVertexingHF*)gROOT->ProcessLine("ConfigVertexingHF()");  
+  fVHFmycuts = (AliAnalysisVertexingHF*)gROOT->ProcessLine("ConfigVertexingHF()");  
   
   return;
 }
@@ -154,9 +156,9 @@ void AliAnalysisTaskSED0Mass::UserCreateOutputObjects()
   fOutputPPR->SetOwner();
   fOutputPPR->SetName("listPPR");
 
-  fOutputloose = new TList();
-  fOutputloose->SetOwner();
-  fOutputloose->SetName("listloose");
+  fOutputmycuts = new TList();
+  fOutputmycuts->SetOwner();
+  fOutputmycuts->SetName("listloose");
 
   fDistr = new TList();
   fDistr->SetOwner();
@@ -164,7 +166,7 @@ void AliAnalysisTaskSED0Mass::UserCreateOutputObjects()
 
   const Int_t nhist=5;
 
-  TString nameMass=" ",nameSgn27=" ",nameSgn=" ", nameBkg=" ", nameRfl=" ", namedistr=" ";
+  TString nameMass=" ",nameSgn27=" ",nameSgn=" ", nameBkg=" ", nameRfl=" ",nameMassNocutsS =" ",nameMassNocutsB =" ", namedistr=" ";
 
   for(Int_t i=0;i<nhist;i++){
     nameMass="histMass_";
@@ -177,6 +179,10 @@ void AliAnalysisTaskSED0Mass::UserCreateOutputObjects()
     nameBkg+=i+1;
     nameRfl="histRfl_";
     nameRfl+=i+1;
+    nameMassNocutsS="hMassS_";
+    nameMassNocutsS+=i+1;
+    nameMassNocutsB="hMassB_";
+    nameMassNocutsB+=i+1;
 
     //histograms of invariant mass distributions
 
@@ -190,7 +196,15 @@ void AliAnalysisTaskSED0Mass::UserCreateOutputObjects()
     TH1F *tmpS27l=(TH1F*)tmpS27t->Clone();
     tmpS27t->Sumw2();
     tmpS27l->Sumw2();
+ 
+    //distribution w/o cuts
+    TH1F* tmpMS = new TH1F(nameMassNocutsS.Data(),"D^{0} invariant mass; M [GeV]; Entries",200,1.765,1.965);
+    TH1F *tmpMB=(TH1F*)tmpMt->Clone();
+    tmpMB->SetName(nameMassNocutsB.Data());
+    tmpMS->Sumw2();
+    tmpMB->Sumw2();
 
+    //MC signal and background
     TH1F* tmpSt = new TH1F(nameSgn.Data(), "D^{0} invariant mass - MC; M [GeV]; Entries",200,1.765,1.965);
     TH1F *tmpSl=(TH1F*)tmpSt->Clone();
     tmpSt->Sumw2();
@@ -214,12 +228,15 @@ void AliAnalysisTaskSED0Mass::UserCreateOutputObjects()
     fOutputPPR->Add(tmpBt);
     fOutputPPR->Add(tmpRt);
 
-    fOutputloose->Add(tmpMl);
-    fOutputloose->Add(tmpSl);
-    fOutputloose->Add(tmpS27l);
-    fOutputloose->Add(tmpBl);
-    fOutputloose->Add(tmpRl);
-    
+    fOutputmycuts->Add(tmpMl);
+    fOutputmycuts->Add(tmpSl);
+    fOutputmycuts->Add(tmpS27l);
+    fOutputmycuts->Add(tmpBl);
+    fOutputmycuts->Add(tmpRl);
+ 
+    fDistr->Add(tmpMS);
+    fDistr->Add(tmpMB);
+
   }
 
   //histograms of cut variable distributions
@@ -401,76 +418,129 @@ void AliAnalysisTaskSED0Mass::UserExec(Option_t */*option*/)
     pdgs[1]=211;
     pdgs[0]=321;
     Double_t minvD0bar = d->InvMassD0bar();
-    //apply cut on invariant mass on the pair
-     if(fReadMC){
-       if(TMath::Abs(minvD0-mPDG)<0.03 || TMath::Abs(minvD0bar-mPDG)<0.03){
-	 //cout<<"inside mass cut"<<endl;
-	 Int_t pdgDgD0toKpi[2]={321,211};
-	 Int_t lab=d->MatchToMC(421,mcArray,2,pdgDgD0toKpi); //return MC particle label if the array corresponds to a D0, -1 if not (cf. AliAODRecoDecay.cxx)
+    //cout<<"inside mass cut"<<endl;
+
+    Int_t pdgDgD0toKpi[2]={321,211};
+    Int_t lab=-9999;
+    if(fReadMC) lab=d->MatchToMC(421,mcArray,2,pdgDgD0toKpi); //return MC particle label if the array corresponds to a D0, -1 if not (cf. AliAODRecoDecay.cxx)
+    Double_t pt = d->Pt();
  
-	 if(lab>=0){ //signal
-	   if(fArray==1) cout<<"LS signal: ERROR"<<endl;
-	   for (Int_t iprong=0; iprong<2; iprong++){
-	     AliAODTrack *prong=(AliAODTrack*)d->GetDaughter(iprong);
-	     Int_t labprong=prong->GetLabel();
+    if(lab>=0 && fReadMC){ //signal	
+      if (((AliAODMCParticle*)mcArray->At(lab))->GetPdgCode() == 421){//D0
+	if(TMath::Abs(minvD0-mPDG)<0.03 || TMath::Abs(minvD0bar-mPDG)<0.03){
+	  ((TH1F*)fDistr->FindObject("hcosthetastarS"))->Fill(d->CosThetaStarD0());
+	}
+	  
+	//no mass cut on mass distribution
+	if(pt>0. && pt<=1.) ((TH1F*)fDistr->FindObject("hMassS_1"))->Fill(minvD0);
+	if(pt>1. && pt<=2.) ((TH1F*)fDistr->FindObject("hMassS_2"))->Fill(minvD0);
+	if(pt>2. && pt<=3.) ((TH1F*)fDistr->FindObject("hMassS_3"))->Fill(minvD0);
+	if(pt>3. && pt<=5.) ((TH1F*)fDistr->FindObject("hMassS_4"))->Fill(minvD0);
+	if(pt>5.)           ((TH1F*)fDistr->FindObject("hMassS_5"))->Fill(minvD0);
 
-	     //cout<<"prong name = "<<prong->GetName()<<" label = "<<prong->GetLabel()<<endl;
-	     AliAODMCParticle *mcprong=0;
-	     if(labprong>=0)  mcprong= (AliAODMCParticle*)mcArray->At(labprong);
-	     Int_t pdgprong=mcprong->GetPdgCode();
-	     if(TMath::Abs(pdgprong)==211) {
-	       //cout<<"pi"<<endl;
-	       ((TH1F*)fDistr->FindObject("hptpiS"))->Fill(d->PtProng(iprong));
-	       ((TH1F*)fDistr->FindObject("hd0piS"))->Fill(d->Getd0Prong(iprong));
-	     }
+      }
+      else { //D0bar
+	if (((AliAODMCParticle*)mcArray->At(lab))->GetPdgCode() == 421){
+	  ((TH1F*)fDistr->FindObject("hcosthetastarS"))->Fill(d->CosThetaStarD0bar());
+	}
 
-	     if(TMath::Abs(pdgprong)==321) {
-	       //cout<<"kappa"<<endl;
-	       ((TH1F*)fDistr->FindObject("hptKS"))->Fill(d->PtProng(iprong));
-	       ((TH1F*)fDistr->FindObject("hd0KS"))->Fill(d->Getd0Prong(iprong));
-	     }
-	     ((TH1F*)fDistr->FindObject("hdcaS"))->Fill(d->GetDCA());
+	//no mass cut on mass distribution
+	if(pt>0. && pt<=1.) ((TH1F*)fDistr->FindObject("hMassS_1"))->Fill(minvD0bar);
+	if(pt>1. && pt<=2.) ((TH1F*)fDistr->FindObject("hMassS_2"))->Fill(minvD0bar);
+	if(pt>2. && pt<=3.) ((TH1F*)fDistr->FindObject("hMassS_3"))->Fill(minvD0bar);
+	if(pt>3. && pt<=5.) ((TH1F*)fDistr->FindObject("hMassS_4"))->Fill(minvD0bar);
+	if(pt>5.)           ((TH1F*)fDistr->FindObject("hMassS_5"))->Fill(minvD0bar);
 
-	   }
+      }
 
-	   if (((AliAODMCParticle*)mcArray->At(lab))->GetPdgCode() == 421)
-	     ((TH1F*)fDistr->FindObject("hcosthetastarS"))->Fill(d->CosThetaStarD0());
-	   else ((TH1F*)fDistr->FindObject("hcosthetastarS"))->Fill(d->CosThetaStarD0bar());
+      //apply cut on invariant mass on the pair
+      if(TMath::Abs(minvD0-mPDG)<0.03 || TMath::Abs(minvD0bar-mPDG)<0.03){
 
-	   ((TH1F*)fDistr->FindObject("hd0d0S"))->Fill(d->Prodd0d0());
+	if(fArray==1) cout<<"LS signal: ERROR"<<endl;
+	for (Int_t iprong=0; iprong<2; iprong++){
+	  AliAODTrack *prong=(AliAODTrack*)d->GetDaughter(iprong);
+	  Int_t labprong=prong->GetLabel();
 
-	   ((TH1F*)fDistr->FindObject("hcosthetapointS"))->Fill(d->CosPointingAngle());
-	   ((TH1F*)fDistr->FindObject("hcosthpointd0d0S"))->Fill(d->CosPointingAngle(),d->Prodd0d0());
+	  //cout<<"prong name = "<<prong->GetName()<<" label = "<<prong->GetLabel()<<endl;
+	  AliAODMCParticle *mcprong=0;
+	  if(labprong>=0)  mcprong= (AliAODMCParticle*)mcArray->At(labprong);
+	  Int_t pdgprong=mcprong->GetPdgCode();
+	  if(TMath::Abs(pdgprong)==211) {
+	    //cout<<"pi"<<endl;
+	    ((TH1F*)fDistr->FindObject("hptpiS"))->Fill(d->PtProng(iprong));
+	    ((TH1F*)fDistr->FindObject("hd0piS"))->Fill(d->Getd0Prong(iprong));
+	  }
 
-	   //cout<<"ok point"<<endl;
+	  if(TMath::Abs(pdgprong)==321) {
+	    //cout<<"kappa"<<endl;
+	    ((TH1F*)fDistr->FindObject("hptKS"))->Fill(d->PtProng(iprong));
+	    ((TH1F*)fDistr->FindObject("hd0KS"))->Fill(d->Getd0Prong(iprong));
+	  }
+	  ((TH1F*)fDistr->FindObject("hdcaS"))->Fill(d->GetDCA());
 
-       
-	 } else{ //Background or LS
-	   //cout<<"is background"<<endl;
-	   AliAODTrack *prong=(AliAODTrack*)d->GetDaughter(0);
-	   if(!prong) cout<<"No daughter found";
-	   else{
-	     if(prong->Charge()==1) {fTotPosPairs[4]++;} else {fTotNegPairs[4]++;}
-	   }
-	   ((TH1F*)fDistr->FindObject("hptB"))->Fill(d->PtProng(0));
-	   //cout<<"ptok"<<endl;
-	   ((TH1F*)fDistr->FindObject("hd0B"))->Fill(d->Getd0Prong(0));
-	   //cout<<"d0ok"<<endl;
-	   ((TH1F*)fDistr->FindObject("hdcaB"))->Fill(d->GetDCA());
-	   //cout<<"dcaok"<<endl;
-	   ((TH1F*)fDistr->FindObject("hcosthetastarB"))->Fill(d->CosThetaStarD0());
-	   ((TH1F*)fDistr->FindObject("hcosthetastarB"))->Fill(d->CosThetaStarD0bar());	
-	   ((TH1F*)fDistr->FindObject("hd0d0B"))->Fill(d->Prodd0d0());
-	   //cout<<"d0d0ok"<<endl;
-	   ((TH1F*)fDistr->FindObject("hcosthetapointB"))->Fill(d->CosPointingAngle());
-	   ((TH1F*)fDistr->FindObject("hcosthpointd0d0B"))->Fill(d->CosPointingAngle(),d->Prodd0d0());
+	}
 
-	   //cout<<"pointok"<<endl;
 
-      
-	 }
-       } //inv mass cut
-     }
+	((TH1F*)fDistr->FindObject("hd0d0S"))->Fill(d->Prodd0d0());
+
+	((TH1F*)fDistr->FindObject("hcosthetapointS"))->Fill(d->CosPointingAngle());
+	((TH1F*)fDistr->FindObject("hcosthpointd0d0S"))->Fill(d->CosPointingAngle(),d->Prodd0d0());
+
+	//cout<<"ok point"<<endl;
+
+      } //invmass cut
+
+    } else{ //Background or LS
+      //cout<<"is background"<<endl;
+      Double_t pt = d->Pt();
+      if(pt>0. && pt<=1.) {
+	((TH1F*)fDistr->FindObject("hMassB_1"))->Fill(minvD0);
+	((TH1F*)fDistr->FindObject("hMassB_1"))->Fill(minvD0bar);
+      }
+      if(pt>1. && pt<=2.) {
+	((TH1F*)fDistr->FindObject("hMassB_2"))->Fill(minvD0);
+	((TH1F*)fDistr->FindObject("hMassB_2"))->Fill(minvD0bar);
+      }
+      if(pt>2. && pt<=3.) {
+	((TH1F*)fDistr->FindObject("hMassB_3"))->Fill(minvD0);
+	((TH1F*)fDistr->FindObject("hMassB_3"))->Fill(minvD0bar);
+      }
+      if(pt>3. && pt<=5.) {
+	((TH1F*)fDistr->FindObject("hMassB_4"))->Fill(minvD0);
+	((TH1F*)fDistr->FindObject("hMassB_4"))->Fill(minvD0bar);
+      }
+      if(pt>5.)           { 
+	((TH1F*)fDistr->FindObject("hMassB_5"))->Fill(minvD0);
+	((TH1F*)fDistr->FindObject("hMassB_5"))->Fill(minvD0bar);
+      }
+
+      //apply cut on invariant mass on the pair
+      if(TMath::Abs(minvD0-mPDG)<0.03 || TMath::Abs(minvD0bar-mPDG)<0.03){
+
+
+	AliAODTrack *prong=(AliAODTrack*)d->GetDaughter(0);
+	if(!prong) cout<<"No daughter found";
+	else{
+	  if(prong->Charge()==1) {fTotPosPairs[4]++;} else {fTotNegPairs[4]++;}
+	}
+	((TH1F*)fDistr->FindObject("hptB"))->Fill(d->PtProng(0));
+	//cout<<"ptok"<<endl;
+	((TH1F*)fDistr->FindObject("hd0B"))->Fill(d->Getd0Prong(0));
+	//cout<<"d0ok"<<endl;
+	((TH1F*)fDistr->FindObject("hdcaB"))->Fill(d->GetDCA());
+	//cout<<"dcaok"<<endl;
+	((TH1F*)fDistr->FindObject("hcosthetastarB"))->Fill(d->CosThetaStarD0());
+	((TH1F*)fDistr->FindObject("hcosthetastarB"))->Fill(d->CosThetaStarD0bar());	
+	((TH1F*)fDistr->FindObject("hd0d0B"))->Fill(d->Prodd0d0());
+	//cout<<"d0d0ok"<<endl;
+	((TH1F*)fDistr->FindObject("hcosthetapointB"))->Fill(d->CosPointingAngle());
+	((TH1F*)fDistr->FindObject("hcosthpointd0d0B"))->Fill(d->CosPointingAngle(),d->Prodd0d0());
+
+
+      }// end if inv mass cut
+    }//end if background
+
+  
   
      //cuts order
 //       printf("    |M-MD0| [GeV]    < %f\n",fD0toKpiCuts[0]);
@@ -482,18 +552,23 @@ void AliAnalysisTaskSED0Mass::UserExec(Option_t */*option*/)
 //     printf("    |d0pi| [cm]  < %f\n",fD0toKpiCuts[6]);
 //     printf("    d0d0  [cm^2] < %f\n",fD0toKpiCuts[7]);
 //     printf("    cosThetaPoint    > %f\n",fD0toKpiCuts[8]);
-
-    Double_t pt = d->Pt();
-
+  
     Int_t ptbin=0;
     
     //cout<<"P_t = "<<pt<<endl;
     if (pt>0. && pt<=1.) {
       ptbin=1;
+      /*
+      //test d0 cut
+      fVHFPPR->SetD0toKpiCuts(0.7,0.04,0.8,0.5,0.5,0.05,0.1,-0.0002,0.5);
+      fVHFmycuts->SetD0toKpiCuts(0.7,0.04,0.8,0.5,0.5,0.05,0.1,-0.00025,0.7);
+      */
+      //original
       fVHFPPR->SetD0toKpiCuts(0.7,0.04,0.8,0.5,0.5,0.05,0.05,-0.0002,0.5);
-      fVHFloose->SetD0toKpiCuts(0.7,0.04,0.8,0.5,0.5,0.05,0.05,-0.00025,0.7);
+      fVHFmycuts->SetD0toKpiCuts(0.7,0.04,0.8,0.5,0.5,0.05,0.05,-0.00025,0.7);
+      
 //       fVHFPPR->SetD0toKpiCuts(0.7,0.04,0.8,0.5,0.5,0.05,0.05,-0.0002,0.7);
-//       fVHFloose->SetD0toKpiCuts(0.7,0.04,0.8,0.5,0.5,1,1,-0.00015,0.5);
+//       fVHFmycuts->SetD0toKpiCuts(0.7,0.04,0.8,0.5,0.5,1,1,-0.00015,0.5);
       //printf("I'm in the bin %d\n",ptbin);
       
     }
@@ -501,39 +576,59 @@ void AliAnalysisTaskSED0Mass::UserExec(Option_t */*option*/)
     if(pt>1. && pt<=3.) {
       if(pt>1. && pt<=2.) ptbin=2;  
       if(pt>2. && pt<=3.) ptbin=3;  
-      fVHFPPR->SetD0toKpiCuts(0.7,0.02,0.8,0.7,0.7,0.05,0.05,-0.0002,0.8);
-      fVHFloose->SetD0toKpiCuts(0.7,0.02,0.8,0.7,0.7,1,1,-0.00025,0.8);
+      /*
+      //test d0 cut
+      fVHFPPR->SetD0toKpiCuts(0.7,0.02,0.8,0.7,0.7,0.05,0.1,-0.0002,0.6);
+      fVHFmycuts->SetD0toKpiCuts(0.7,0.02,0.8,0.7,0.7,1,0.1,-0.00025,0.8);
+      */
+      //original
+      fVHFPPR->SetD0toKpiCuts(0.7,0.02,0.8,0.7,0.7,0.05,0.05,-0.0002,0.6);
+      fVHFmycuts->SetD0toKpiCuts(0.7,0.02,0.8,0.7,0.7,1,1,-0.00025,0.8);
+      
       //printf("I'm in the bin %d\n",ptbin);
     }
  
     if(pt>3. && pt<=5.){
 	ptbin=4;  
+	/*
+	//test d0 cut
+	fVHFPPR->SetD0toKpiCuts(0.7,0.02,0.8,0.7,0.7,0.05,0.1,-0.0001,0.8);
+	fVHFmycuts->SetD0toKpiCuts(0.7,0.02,0.8,0.7,0.7,0.05,0.1,-0.00015,0.8);
+	*/
+	//original
 	fVHFPPR->SetD0toKpiCuts(0.7,0.02,0.8,0.7,0.7,0.05,0.05,-0.0001,0.8);
-	fVHFloose->SetD0toKpiCuts(0.7,0.02,0.8,0.7,0.7,0.05,0.05,-0.00015,0.8);
+	fVHFmycuts->SetD0toKpiCuts(0.7,0.02,0.8,0.7,0.7,0.05,0.05,-0.00015,0.8);
+	
 	//printf("I'm in the bin %d\n",ptbin);
     }
     if(pt>5.){
       ptbin=5;
+      /*
+      //test d0 cut
+      fVHFPPR->SetD0toKpiCuts(0.7,0.02,0.8,0.7,0.7,0.05,0.1,-0.00005,0.8);
+      fVHFmycuts->SetD0toKpiCuts(0.7,0.02,0.8,0.7,0.7,0.05,0.1,-0.00015,0.9);
+      */
+      //original
       fVHFPPR->SetD0toKpiCuts(0.7,0.02,0.8,0.7,0.7,0.05,0.05,-0.00005,0.8);
-      fVHFloose->SetD0toKpiCuts(0.7,0.02,0.8,0.7,0.7,0.05,0.05,-0.00015,0.9);
-    }//if(pt>5)
-  
+      fVHFmycuts->SetD0toKpiCuts(0.7,0.02,0.8,0.7,0.7,0.05,0.05,-0.00015,0.9);
+      
+    }//if(pt>5)    if (pt>0. && pt<=1.) {
     //printf("I'm in the bin %d\n",ptbin);
     //old
     //fVHF->SetD0toKpiCuts(0.7,0.03,0.8,0.06,0.06,0.05,0.05,-0.0002,0.6); //2.p-p vertex reconstructed    
     if(prongsinacc){
       FillHists(ptbin,d,mcArray,fVHFPPR,fOutputPPR);
-      FillHists(ptbin,d,mcArray,fVHFloose,fOutputloose);
+      FillHists(ptbin,d,mcArray,fVHFmycuts,fOutputmycuts);
     }
     if(unsetvtx) d->UnsetOwnPrimaryVtx();
-  }
+  } //end for prongs
   
      
   
    
   // Post the data
   PostData(1,fOutputPPR);
-  PostData(2,fOutputloose);
+  PostData(2,fOutputmycuts);
   PostData(4,fDistr);
   return;
 }
@@ -656,9 +751,9 @@ void AliAnalysisTaskSED0Mass::Terminate(Option_t */*option*/)
     printf("ERROR: fOutputthight not available\n");
     return;
   }
-  fOutputloose = dynamic_cast<TList*> (GetOutputData(2));
-  if (!fOutputloose) {     
-    printf("ERROR: fOutputloose not available\n");
+  fOutputmycuts = dynamic_cast<TList*> (GetOutputData(2));
+  if (!fOutputmycuts) {     
+    printf("ERROR: fOutputmycuts not available\n");
     return;
   }
   fDistr = dynamic_cast<TList*> (GetOutputData(4));
@@ -677,7 +772,7 @@ void AliAnalysisTaskSED0Mass::Terminate(Option_t */*option*/)
 	TString massName="histMass_";
 	massName+=ipt+1;
 	((TH1F*)fOutputPPR->FindObject(massName))->Scale((1/fLsNormalization)*((TH1F*)fOutputPPR->FindObject(massName))->GetEntries());
-	((TH1F*)fOutputloose->FindObject(massName))->Scale((1/fLsNormalization)*((TH1F*)fOutputloose->FindObject(massName))->GetEntries());
+	((TH1F*)fOutputmycuts->FindObject(massName))->Scale((1/fLsNormalization)*((TH1F*)fOutputmycuts->FindObject(massName))->GetEntries());
       }
     }
 
@@ -702,6 +797,17 @@ void AliAnalysisTaskSED0Mass::Terminate(Option_t */*option*/)
 
     }
   }
+
+  TString cvname;
+
+  if (fArray==0){
+    cvname="D0invmass";
+  } else cvname="LSinvmass";
+
+  TCanvas *c1=new TCanvas(cvname,cvname);
+  c1->cd();
+  ((TH1F*)fOutputPPR->FindObject("histMass_4"))->Draw();
+
 
   return;
 }

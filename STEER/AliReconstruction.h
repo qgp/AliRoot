@@ -32,6 +32,7 @@ class AliVertexer;
 class AliESDVertex;
 class AliESDEvent;
 class AliESDfriend;
+class AliESDpid;
 class AliVertexerTracks;
 class TFile;
 class TTree;
@@ -178,7 +179,7 @@ private:
   Bool_t         RunHLTTracking(AliESDEvent*& esd);
   Bool_t         RunMuonTracking(AliESDEvent*& esd);
   Bool_t         RunSPDTrackleting(AliESDEvent*& esd);
-  Bool_t         RunTracking(AliESDEvent*& esd);
+  Bool_t         RunTracking(AliESDEvent*& esd, AliESDpid &PID);
   Bool_t         CleanESD(AliESDEvent *esd);
   Bool_t         FillESD(AliESDEvent*& esd, const TString& detectors);
   Bool_t         FillTriggerESD(AliESDEvent*& esd);
@@ -301,7 +302,9 @@ private:
   AliESDEvent*         fhltesd;     //! Pointer to the HLT ESD event object
   AliESDfriend*        fesdf;       //! Pointer to the ESD friend object
   TFile*               ffile;       //! Pointer to the ESD file
+  TFile*               ffileF;      //! Pointer to the ESD friend file
   TTree*               ftree;       //! Pointer to the ESD tree
+  TTree*               ftreeF;      //! Pointer to the ESD friend tree
   TTree*               fhlttree;    //! Pointer to the HLT ESD tree
   AliVertexerTracks*   ftVertexer;  //! Pointer to the vertexer based on ESD tracks
   Bool_t               fIsNewRunLoader; // galice.root created from scratch (real raw data case)

@@ -3,7 +3,8 @@
 //------------------------------------
 // Configuration macro example:
 //
-// Calorimeters QA
+// Calorimeters QA: Validation of data (MC)
+// Valid for ESDs, comment/uncomment below  in the reader part for AODs
 //
 // Author : Gustavo Conesa Balbastre (INFN-LNF)
 //------------------------------------
@@ -22,44 +23,32 @@ AliAnaPartCorrMaker*  ConfigAnalysis()
 	//-----------------------------------------------------------  
 	// Reader
 	//-----------------------------------------------------------
+	//For this particular analysis few things done by the reader.
+	//Nothing else needs to be set.
 	AliCaloTrackESDReader *reader = new AliCaloTrackESDReader();
 	reader->SetDebug(-1);
-	
-	//Switch on or off the detectors information that you want
-	reader->SwitchOnEMCAL();
-	reader->SwitchOffCTS();
-	reader->SwitchOnPHOS();
-	reader->SwitchOnEMCALCells();
-	reader->SwitchOnPHOSCells();
-	
-	//Min particle pT
-	reader->SetEMCALPtMin(0.); 
-	reader->SetPHOSPtMin(0.);
-	
-	//     //We want tracks fitted in the detectors:
-	//     ULong_t status=AliAODTrack::kTPCrefit;
-	//     status|=AliAODTrack::kITSrefit; //(default settings)
-	
-	//     We want tracks whose PID bit is set:
-	//     ULong_t status =AliAODTrack::kITSpid;
-	//     status|=AliAODTrack::kTPCpid;	
-	
-	//	reader->SetTrackStatus(status);
-	
-	//Remove the temporal AODs we create.	
-	reader->SwitchOffWriteStdAOD();	
-	
+	reader->SwitchOnStack();          
+	reader->SwitchOffAODMCParticles(); 	
+	reader->SetDeltaAODFileName(""); //Do not create deltaAOD file, this analysis do not create branches.
 	reader->Print("");
+	
+	//For AODs:
+//	AliCaloTrackAODReader *reader = new AliCaloTrackAODReader();
+//	reader->SetDebug(-1);
+//	reader->SwitchOffStack();          
+//	reader->SwitchOnAODMCParticles(); 	
+//	reader->SetDeltaAODFileName(""); //Do not create deltaAOD file, this analysis do not create branches.
+//	reader->Print("");
 	
 	
 	//---------------------------------------------------------------------
 	// Analysis algorithm
 	//---------------------------------------------------------------------
 	
-	AliFidutialCut * fidCut = new AliFidutialCut();
-	fidCut->DoCTSFidutialCut(kFALSE) ;
-	fidCut->DoEMCALFidutialCut(kTRUE) ;
-	fidCut->DoPHOSFidutialCut(kTRUE) ;
+	AliFiducialCut * fidCut = new AliFiducialCut();
+	fidCut->DoCTSFiducialCut(kFALSE) ;
+	fidCut->DoEMCALFiducialCut(kTRUE) ;
+	fidCut->DoPHOSFiducialCut(kTRUE) ;
 	
 	
   	AliAnaCalorimeterQA *anaEMCAL = new AliAnaCalorimeterQA();
@@ -68,8 +57,8 @@ AliAnaPartCorrMaker*  ConfigAnalysis()
 	anaEMCAL->SwitchOnDataMC() ;//Access MC stack and fill more histograms
 	//anaEMCAL->SetStyleMacro("$MACROS/style.C") ;
 	anaEMCAL->AddToHistogramsName("AnaCaloQA_EMCAL_");
-	anaEMCAL->SetFidutialCut(fidCut);
-	anaEMCAL->SwitchOnFidutialCut();
+	anaEMCAL->SetFiducialCut(fidCut);
+	anaEMCAL->SwitchOnFiducialCut();
 	anaEMCAL->Print("");
 	
 	AliAnaCalorimeterQA *anaPHOS = new AliAnaCalorimeterQA();
@@ -78,8 +67,8 @@ AliAnaPartCorrMaker*  ConfigAnalysis()
 	anaPHOS->SwitchOnDataMC() ;//Access MC stack and fill more histograms
 	//anaPHOS->SetStyleMacro("$MACROS/style.C") ;
 	anaPHOS->AddToHistogramsName("AnaCaloQA_PHOS_");
-	anaPHOS->SetFidutialCut(fidCut);
-	anaPHOS->SwitchOnFidutialCut();
+	anaPHOS->SetFiducialCut(fidCut);
+	anaPHOS->SwitchOnFiducialCut();
 	anaPHOS->Print("");
 	
 	
@@ -92,7 +81,7 @@ AliAnaPartCorrMaker*  ConfigAnalysis()
 	maker->AddAnalysis(anaPHOS,0);
 	//maker->SetAnaDebug(0)  ;
 	maker->SwitchOnHistogramsMaker()  ;
-	maker->SwitchOffAODsMaker()  ;
+	maker->SwitchOffAODsMaker()  ;//No AODs created in this task.
 	
 	maker->Print("");
 	//

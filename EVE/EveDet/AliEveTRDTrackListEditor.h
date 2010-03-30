@@ -150,19 +150,27 @@ private:
   ClassDef(AliEveTRDTrackListEditor, 0);    // Editor for AliEveTRDTrackList.
 };
 
+//////////////////////////////////////////////////////////////////////////
+//                                                                      //
+// AliEveTRDMacroWizard                                                //
+//                                                                      //
+// Wizard for creating new macros.                                     //
+//                                                                      //
+//////////////////////////////////////////////////////////////////////////
+
 class TGTextEdit;
 class TGComboBox;
-class AliEveTRDMacroWizzard : public TGMainFrame
+class AliEveTRDMacroWizard : public TGMainFrame
 {
 public:
-  AliEveTRDMacroWizzard(const TGWindow* p = 0);
-  void Create(Int_t typ); //*SIGNAL*
+  AliEveTRDMacroWizard(const TGWindow* p = 0);
+  void Create(Int_t type); //*SIGNAL*
   void Create(Char_t *pname); //*SIGNAL*
   void HandleCreate();
 
 private:
-  AliEveTRDMacroWizzard(const AliEveTRDMacroWizzard&);
-  AliEveTRDMacroWizzard& operator=(const AliEveTRDMacroWizzard&);
+  AliEveTRDMacroWizard(const AliEveTRDMacroWizard&);
+  AliEveTRDMacroWizard& operator=(const AliEveTRDMacroWizard&);
 
   TGTextEntry *fText;
   TGComboBox  *fCombo;
@@ -170,7 +178,7 @@ private:
   TGTextButton *fbCreate;                  // "Done" button
   TGTextButton *fbCancel;                  // "Cancel" button
   
-  ClassDef(AliEveTRDMacroWizzard, 0);      // Helper class to create macro templates 
+  ClassDef(AliEveTRDMacroWizard, 0);      // Helper class to create macro templates 
 };
 
 #endif

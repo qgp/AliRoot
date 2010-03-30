@@ -57,12 +57,12 @@ AliMUONTrack::AliMUONTrack()
     fGlobalChi2(-1.),
     fImproved(kFALSE),
     fMatchTrigger(-1),
-    floTrgNum(-1),
     fChi2MatchTrigger(0.),
     fTrackID(-1),
     fTrackParamAtVertex(0x0),
     fHitsPatternInTrigCh(0),
-    fLocalTrigger(0)
+    fLocalTrigger(0),
+    fConnected(kFALSE)
 {
   /// Default constructor
   fVertexErrXY2[0] = 0.;
@@ -81,12 +81,12 @@ AliMUONTrack::AliMUONTrack(AliMUONObjectPair *segment, Double_t bendingVertexDis
     fGlobalChi2(0.),
     fImproved(kFALSE),
     fMatchTrigger(-1),
-    floTrgNum(-1),    
     fChi2MatchTrigger(0.),
     fTrackID(-1),
     fTrackParamAtVertex(0x0),
     fHitsPatternInTrigCh(0),
-    fLocalTrigger(0)
+    fLocalTrigger(0),
+    fConnected(kFALSE)
 {
   /// Constructor from two clusters
   
@@ -190,12 +190,12 @@ AliMUONTrack::AliMUONTrack(const AliMUONTrack& track)
     fGlobalChi2(track.fGlobalChi2),
     fImproved(track.fImproved),
     fMatchTrigger(track.fMatchTrigger),
-    floTrgNum(track.floTrgNum),    
     fChi2MatchTrigger(track.fChi2MatchTrigger),
     fTrackID(track.fTrackID),
     fTrackParamAtVertex(0x0),
     fHitsPatternInTrigCh(track.fHitsPatternInTrigCh),
-    fLocalTrigger(track.fLocalTrigger)
+    fLocalTrigger(track.fLocalTrigger),
+    fConnected(track.fConnected)
 {
   ///copy constructor
   
@@ -275,11 +275,11 @@ AliMUONTrack & AliMUONTrack::operator=(const AliMUONTrack& track)
   fGlobalChi2         =  track.fGlobalChi2;
   fImproved           =  track.fImproved;
   fMatchTrigger       =  track.fMatchTrigger;
-  floTrgNum           =  track.floTrgNum;
   fChi2MatchTrigger   =  track.fChi2MatchTrigger;
   fTrackID            =  track.fTrackID; 
   fHitsPatternInTrigCh = track.fHitsPatternInTrigCh;
   fLocalTrigger        = track.fLocalTrigger;
+  fConnected          =  track.fConnected;
 
   return *this;
 }
@@ -320,11 +320,11 @@ void AliMUONTrack::Reset()
   fGlobalChi2 = -1.;
   fImproved = kFALSE;
   fMatchTrigger = -1;
-  floTrgNum = -1;
   fChi2MatchTrigger = 0.;
   fTrackID = -1;
   fHitsPatternInTrigCh = 0;
   fLocalTrigger = 0;
+  fConnected = kFALSE;
   delete fTrackParamAtCluster; fTrackParamAtCluster = 0x0;
   delete fClusterWeightsNonBending; fClusterWeightsNonBending = 0x0;
   delete fClusterWeightsBending; fClusterWeightsBending = 0x0;
@@ -1008,56 +1008,43 @@ void AliMUONTrack::ComputeMCSCovariances(TMatrixD& mcsCovariances) const
 }
 
   //__________________________________________________________________________
-Int_t AliMUONTrack::ClustersInCommon(AliMUONTrack* track) const
+Int_t AliMUONTrack::ClustersInCommon(AliMUONTrack* track, Int_t stMin, Int_t stMax) const
 {
-  /// Returns the number of clusters in common between the current track ("this")
-  /// and the track pointed to by "track".
-  if (!fTrackParamAtCluster || !this->fTrackParamAtCluster) return 0;
-  Int_t nCluster1 = this->GetNClusters();
-  Int_t nCluster2 = track->GetNClusters();
-  Int_t clustersInCommon = 0;
-  AliMUONTrackParam *trackParamAtCluster1, *trackParamAtCluster2;
-  // Loop over clusters of first track
-  for(Int_t iCluster1 = 0; iCluster1 < nCluster1; iCluster1++) {
-    trackParamAtCluster1 = (AliMUONTrackParam*) this->fTrackParamAtCluster->UncheckedAt(iCluster1);
-    // Loop over clusters of second track
-    for(Int_t iCluster2 = 0; iCluster2 < nCluster2; iCluster2++) {
-      trackParamAtCluster2 = (AliMUONTrackParam*) track->fTrackParamAtCluster->UncheckedAt(iCluster2);
-      // Increment "clustersInCommon" if both trackParamAtCluster1 & 2 point to the same cluster
-      if ((trackParamAtCluster1->GetClusterPtr()) == (trackParamAtCluster2->GetClusterPtr())) {
-	clustersInCommon++;
-	break;
-      }
-    }
-  }
-  return clustersInCommon;
-}
-
-  //__________________________________________________________________________
-Int_t AliMUONTrack::ClustersInCommonInSt345(AliMUONTrack* track) const
-{
-  /// Returns the number of clusters in common on stations 3, 4 and 5
+  /// Returns the number of clusters in common in stations [stMin, stMax]
   /// between the current track ("this") and the track pointed to by "track".
+  
   if (!fTrackParamAtCluster || !this->fTrackParamAtCluster) return 0;
-  Int_t nCluster1 = this->GetNClusters();
-  Int_t nCluster2 = track->GetNClusters();
+  
+  Int_t chMin = 2 * stMin;
+  Int_t chMax = 2 * stMax + 1;
   Int_t clustersInCommon = 0;
-  AliMUONTrackParam *trackParamAtCluster1, *trackParamAtCluster2;
+  
   // Loop over clusters of first track
-  for(Int_t iCluster1 = 0; iCluster1 < nCluster1; iCluster1++) {
-    trackParamAtCluster1 = (AliMUONTrackParam*) this->fTrackParamAtCluster->UncheckedAt(iCluster1);
-    if (trackParamAtCluster1->GetClusterPtr()->GetChamberId() < 4) continue;
+  Int_t nCl1 = this->GetNClusters();
+  for(Int_t iCl1 = 0; iCl1 < nCl1; iCl1++) {
+    AliMUONVCluster* cl1 = ((AliMUONTrackParam*) this->fTrackParamAtCluster->UncheckedAt(iCl1))->GetClusterPtr();
+    
+    Int_t chCl1 = cl1->GetChamberId();
+    if (chCl1 < chMin || chCl1 > chMax) continue;
+    
     // Loop over clusters of second track
-    for(Int_t iCluster2 = 0; iCluster2 < nCluster2; iCluster2++) {
-      trackParamAtCluster2 = (AliMUONTrackParam*) track->fTrackParamAtCluster->UncheckedAt(iCluster2);
-      if (trackParamAtCluster2->GetClusterPtr()->GetChamberId() < 4) continue;
-      // Increment "clustersInCommon" if both trackParamAtCluster1 & 2 point to the same cluster
-      if ((trackParamAtCluster1->GetClusterPtr()) == (trackParamAtCluster2->GetClusterPtr())) {
+    Int_t nCl2 = track->GetNClusters();
+    for(Int_t iCl2 = 0; iCl2 < nCl2; iCl2++) {
+      AliMUONVCluster* cl2 = ((AliMUONTrackParam*) track->fTrackParamAtCluster->UncheckedAt(iCl2))->GetClusterPtr();
+      
+      Int_t chCl2 = cl2->GetChamberId();
+      if (chCl2 < chMin || chCl2 > chMax) continue;
+      
+      // Increment "clustersInCommon" if both clusters have the same ID
+      if (cl1->GetUniqueID() == cl2->GetUniqueID()) {
 	clustersInCommon++;
 	break;
       }
+      
     }
+    
   }
+  
   return clustersInCommon;
 }
 
@@ -1186,7 +1173,7 @@ void AliMUONTrack::Print(Option_t*) const
 
   cout << "<AliMUONTrack> No.Clusters=" << setw(2)   << GetNClusters() << 
       ", Match2Trig=" << setw(1) << GetMatchTrigger()  << 
-      ", LoTrgNum=" << setw(3) << GetLoTrgNum()  << 
+      ", LoTrgNum=" << setw(3) << LoCircuit()  << 
     ", Chi2-tracking-trigger=" << setw(8) << setprecision(5) <<  GetChi2MatchTrigger();
   cout << Form(" HitTriggerPattern %x",fHitsPatternInTrigCh);
   cout << Form(" MClabel=%d",fTrackID) << endl;
@@ -1194,7 +1181,7 @@ void AliMUONTrack::Print(Option_t*) const
 }
 
 //__________________________________________________________________________
-void AliMUONTrack::SetLocalTrigger(Int_t loCirc, Int_t loStripX, Int_t loStripY, Int_t loDev, Int_t loLpt, Int_t loHpt)
+void AliMUONTrack::SetLocalTrigger(Int_t loCirc, Int_t loStripX, Int_t loStripY, Int_t loDev, Int_t loLpt, Int_t loHpt, UChar_t respWithoutChamber)
 {
   /// pack the local trigger information and store
 
@@ -1207,6 +1194,7 @@ void AliMUONTrack::SetLocalTrigger(Int_t loCirc, Int_t loStripX, Int_t loStripY,
   fLocalTrigger += loDev    << 17;
   fLocalTrigger += loLpt    << 22;
   fLocalTrigger += loHpt    << 24;
+  fLocalTrigger += respWithoutChamber << 26;
 
 }
 

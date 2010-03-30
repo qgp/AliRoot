@@ -35,8 +35,11 @@ class AliAnalysisTaskProtons : public AliAnalysisTask {
   AliAODEvent *fAOD;    //AOD object
   AliMCEvent  *fMC;     //MC object 
   
-  TList  *fList; //TList output object 
-  
+  TList  *fListAnalysis; //TList analysis output object 
+  TList  *fListQA; //TList QA output object 
+
+  TH1F   *fHistEventStats; //event statistics
+
   AliProtonAnalysis *fProtonAnalysis; //analysis object 
   
   AliAnalysisTaskProtons(const AliAnalysisTaskProtons&); // not implemented

@@ -28,7 +28,7 @@
 
 
 #include "AliRecoParam.h"
-#include "AliMUONTriggerQADataMakerRec.h"
+#include "AliMUONQAIndices.h"
 #include "AliQAv1.h"
 #include "TH1.h"
 #include "TPaveText.h"
@@ -68,7 +68,7 @@ AliMUONTriggerQAChecker::MarkHisto(TH1& histo, AliMUONVQAChecker::ECheckCode val
 
 //__________________________________________________________________
 AliMUONVQAChecker::ECheckCode* 
-AliMUONTriggerQAChecker::CheckRaws(TObjArray** list, AliMUONRecoParam* )
+AliMUONTriggerQAChecker::CheckRaws(TObjArray** list, const AliMUONRecoParam* )
 {
   /// Check raw data
 
@@ -79,9 +79,9 @@ AliMUONTriggerQAChecker::CheckRaws(TObjArray** list, AliMUONRecoParam* )
   }
 
   Int_t histoRawsPercentIndex[] = {
-    AliMUONTriggerQADataMakerRec::kTriggerErrorSummaryNorm, 
-    AliMUONTriggerQADataMakerRec::kTriggerCalibSummaryNorm,
-    AliMUONTriggerQADataMakerRec::kTriggerReadOutErrorsNorm
+    AliMUONQAIndices::kTriggerErrorSummaryNorm, 
+    AliMUONQAIndices::kTriggerCalibSummaryNorm,
+    AliMUONQAIndices::kTriggerReadOutErrorsNorm
   };
   const Int_t kNrawsHistos = sizeof(histoRawsPercentIndex)/sizeof(histoRawsPercentIndex[0]);
 
@@ -133,7 +133,7 @@ AliMUONTriggerQAChecker::CheckRaws(TObjArray** list, AliMUONRecoParam* )
 
 //__________________________________________________________________
 AliMUONVQAChecker::ECheckCode* 
-AliMUONTriggerQAChecker::CheckRecPoints(TObjArray** , AliMUONRecoParam* )
+AliMUONTriggerQAChecker::CheckRecPoints(TObjArray** , const AliMUONRecoParam* )
 {
   /// Check rec points
   return 0x0;
@@ -141,7 +141,7 @@ AliMUONTriggerQAChecker::CheckRecPoints(TObjArray** , AliMUONRecoParam* )
 
 //__________________________________________________________________
 AliMUONVQAChecker::ECheckCode* 
-AliMUONTriggerQAChecker::CheckESD(TObjArray** , AliMUONRecoParam* )
+AliMUONTriggerQAChecker::CheckESD(TObjArray** , const AliMUONRecoParam* )
 {
   /// Check esd
   return 0x0;

@@ -14,7 +14,9 @@
 #pragma link C++ class AliHighMultiplicitySelector+;
 #pragma link C++ class AliMultiplicityTask+;
 #pragma link C++ class AliCutTask+;
+#pragma link C++ class AliTriggerTask+;
 #pragma link C++ class AlidNdEtaTask+;
 #pragma link C++ class AlidNdEtaCorrectionTask+;
+#pragma link C++ class AliEventStatsTask+;
 
 #endif

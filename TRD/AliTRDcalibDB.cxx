@@ -29,6 +29,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <TClonesArray.h>
+#include <TObjArray.h>
 
 #include "AliCDBManager.h"
 #include "AliCDBEntry.h"
@@ -39,7 +40,7 @@
 #include "Cal/AliTRDCalROC.h"
 #include "Cal/AliTRDCalPad.h"
 #include "Cal/AliTRDCalDet.h"
-#include "Cal/AliTRDCalFEE.h"
+#include "Cal/AliTRDCalDCS.h"
 #include "Cal/AliTRDCalPID.h"
 #include "Cal/AliTRDCalMonitoring.h"
 #include "Cal/AliTRDCalChamberStatus.h"
@@ -245,6 +246,9 @@ const TObject *AliTRDcalibDB::GetCachedCDBObject(Int_t id)
       break;
     case kIDFEE : 
       return CacheCDBEntry(kIDFEE               ,"TRD/Calib/FEE"); 
+      break;
+    case kIDDCS :
+      return CacheCDBEntry(kIDDCS               ,"TRD/Calib/DCS");
       break;
     case kIDPIDNN : 
       return CacheCDBEntry(kIDPIDNN             ,"TRD/Calib/PIDNN");
@@ -733,19 +737,65 @@ Float_t AliTRDcalibDB::GetPRFWidth(Int_t det, Int_t col, Int_t row)
 }
   
 //_____________________________________________________________________________
-Int_t AliTRDcalibDB::GetNumberOfTimeBins()
+Int_t AliTRDcalibDB::GetNumberOfTimeBinsDCS()
 {
   //
-  // Returns the number of time bins which are read-out.
+  // Returns Number of time bins from the DCS
   //
 
-  const AliTRDCalFEE *calFEE     = dynamic_cast<const AliTRDCalFEE *> 
-                                   (GetCachedCDBObject(kIDFEE));
-  if (!calFEE) {
+  const TObjArray *dcsArr = dynamic_cast<const TObjArray *>(GetCachedCDBObject(kIDDCS));
+
+  if(!dcsArr){
     return -1;
   }
+  const AliTRDCalDCS *calDCSsor = dynamic_cast<const AliTRDCalDCS *>(dcsArr->At(0)); // Take SOR
+  const AliTRDCalDCS *calDCSeor = dynamic_cast<const AliTRDCalDCS *>(dcsArr->At(1));
 
-  return calFEE->GetNumberOfTimeBins();
+  // prefer SOR
+  if(!calDCSsor){
+    if(!calDCSeor)
+      return -1;
+    return calDCSeor->GetGlobalNumberOfTimeBins();
+  }
+  // if SOR is available and the number of timebins is > -1, take this, otherwise check EOR
+  Int_t nTimeSOR = calDCSsor->GetGlobalNumberOfTimeBins();
+  if(nTimeSOR > -1){
+    // Make a consistency check
+    if(calDCSeor){
+      Int_t nTimeEOR = calDCSeor->GetGlobalNumberOfTimeBins();
+      if((nTimeEOR > -1) && (nTimeSOR != nTimeEOR)){
+        // Parameter inconsistency found, return -2 to be able to catch the error
+        return -2;
+      }
+    }
+    // Consisency check passed or not done
+    return nTimeSOR;
+  } else {
+    // SOR has unphysical time parameter, take EOR
+    if(calDCSeor) return calDCSeor->GetGlobalNumberOfTimeBins(); 
+    return -1;  // Both SOR and EOR not available
+  }
+}
+
+//_____________________________________________________________________________
+void AliTRDcalibDB::GetFilterType(TString &filterType)
+{
+  //
+  // Returns the filter type
+  //
+
+  const TObjArray *dcsArr = dynamic_cast<const TObjArray *>(GetCachedCDBObject(kIDDCS));
+  if(!dcsArr){
+    filterType = "";
+    return;
+  }
+  const AliTRDCalDCS *calDCS = dynamic_cast<const AliTRDCalDCS *>(dcsArr->At(1)); // Take EOR
+  
+  if(!calDCS){
+    filterType = "";
+    return;
+  } 
+  filterType = calDCS->GetGlobalFilterType();
 
 }
 
@@ -885,6 +935,7 @@ Bool_t AliTRDcalibDB::IsPadNotConnected(Int_t det, Int_t col, Int_t row)
   //
   // Returns status, see name of functions for details ;-)
   //
+
   const AliTRDCalPadStatus         * cal = dynamic_cast<const AliTRDCalPadStatus *> 
                                            (GetCachedCDBObject(kIDPadStatus));
   if (!cal) {
@@ -1158,4 +1209,3 @@ Int_t AliTRDcalibDB::PadResponse(Double_t signal, Double_t dist
   }
 
 }
-

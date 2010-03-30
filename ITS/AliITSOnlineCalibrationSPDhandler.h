@@ -16,6 +16,7 @@
 class TArrayI;
 class TArrayS;
 class AliITSIntMap;
+class AliITSTriggerConditions;
 class AliITSCalibrationSPD;
 
 class AliITSOnlineCalibrationSPDhandler {
@@ -50,6 +51,7 @@ class AliITSOnlineCalibrationSPDhandler {
 
   UInt_t  ReadDeadFromText(const char *fileName, UInt_t module);
   UInt_t  ReadNoisyFromText(const char *fileName, UInt_t module);
+  void    ReadPITConditionsFromText(const char *fileName);
 
   void    WriteToFilesAlways();
   UInt_t  WriteToFiles();
@@ -63,6 +65,7 @@ class AliITSOnlineCalibrationSPDhandler {
   void    WriteDeadToFile(UInt_t eq, Bool_t inactive=kFALSE);
   void    WriteNoisyToFile(UInt_t eq);
 
+  Bool_t  ReadPITConditionsFromDB(Int_t runNr, const Char_t *storage="default");
 #ifndef SPD_DA_OFF
   Bool_t  ReadDeadModuleFromDB(UInt_t module, Int_t runNr, const Char_t *storage="default", Bool_t treeSerial=kFALSE);
   Bool_t  ReadNoisyModuleFromDB(UInt_t module, Int_t runNr, const Char_t *storage="default", Bool_t treeSerial=kFALSE);
@@ -76,6 +79,7 @@ class AliITSOnlineCalibrationSPDhandler {
   Bool_t  WriteDeadToDB(Int_t runNrStart, Int_t runNrEnd, const Char_t *storage="default");
   Bool_t  WriteDeadToDBasNoisy(Int_t runNrStart, Int_t runNrEnd, const Char_t *storage="default");
   Bool_t  WriteNoisyToDB(Int_t runNrStart, Int_t runNrEnd, const Char_t *storage="default");
+  Bool_t  WritePITConditionsToDB(Int_t runNrStart, Int_t runNrEnd, const Char_t *storage="default");
 #endif
 
   void    GenerateDCSConfigFile(const Char_t* fileName);
@@ -100,6 +104,9 @@ class AliITSOnlineCalibrationSPDhandler {
   Bool_t  UnSetNoisyPixel(UInt_t eq, UInt_t hs, UInt_t chip, UInt_t col, UInt_t row);
   Bool_t  UnSetDeadPixelM(UInt_t module, UInt_t colM, UInt_t row);
   Bool_t  UnSetNoisyPixelM(UInt_t module, UInt_t colM, UInt_t row);
+
+  Bool_t SetInactiveChipInPITmask(UInt_t eq, UInt_t hs, UInt_t chip);
+  Bool_t UnSetInactiveChipInPITmask(UInt_t eq, UInt_t hs, UInt_t chip);
 
   Bool_t  IsPixelBad(UInt_t eq, UInt_t hs, UInt_t chip, UInt_t col, UInt_t row) const;
   Bool_t  IsPixelSilent(UInt_t eq, UInt_t hs, UInt_t chip, UInt_t col, UInt_t row) const; // silent = dead or inactive
@@ -216,7 +223,7 @@ class AliITSOnlineCalibrationSPDhandler {
   AliITSOnlineCalibrationSPDhandler* GetSilentDiff(AliITSOnlineCalibrationSPDhandler* other) const;
   AliITSOnlineCalibrationSPDhandler* GetDeadDiff(AliITSOnlineCalibrationSPDhandler* other) const;
   AliITSOnlineCalibrationSPDhandler* GetNoisyDiff(AliITSOnlineCalibrationSPDhandler* other) const;
-
+  AliITSTriggerConditions * GetTriggerConditions() const {return fTriggerConditions;}
 
  private:
   TString fFileLocation;              // location (dir) of files to read and write from
@@ -230,6 +237,8 @@ class AliITSOnlineCalibrationSPDhandler {
   Bool_t fDeadEq[20];                 // dead bit for each equipment
   Bool_t fDeadHS[20][6];              // dead bit for each half-stave
   Bool_t fDeadChip[20][6][10];        // dead bit for each chip
+  AliITSTriggerConditions *fTriggerConditions; // PIT conditions (mask, parameters name, parameters values)
+
 
   Int_t    GetKey(UInt_t eq, UInt_t hs, UInt_t chip, UInt_t col, UInt_t row) const 
     {return eq*6*10*32*256 + hs*10*32*256 + chip*32*256 + col*256 + row;}

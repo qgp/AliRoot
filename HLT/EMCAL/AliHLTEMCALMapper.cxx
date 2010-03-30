@@ -17,7 +17,7 @@
  **************************************************************************/
 #include "AliHLTEMCALMapper.h"
 
-#include "AliHLTEMCALConstants.h"
+#include "AliHLTEMCALConstant.h"
 #include "assert.h"
 
 using namespace EmcalHLTConst;
@@ -52,7 +52,7 @@ AliHLTEMCALMapper::GetLocalCoord(const int channelId, Float_t* localCoord) const
 }
 
 
-void 
+Bool_t 
 AliHLTEMCALMapper::InitAltroMapping(const unsigned long specification )
 {
   char *base =  getenv("ALICE_ROOT");
@@ -115,6 +115,8 @@ AliHLTEMCALMapper::InitAltroMapping(const unsigned long specification )
     {
       fIsInitializedMapping = false;
     }
+    
+    return fIsInitializedMapping;
 }
 
 

@@ -88,9 +88,11 @@ TString  AliEveEventManager::fgCdbUri;
 
 TList*   AliEveEventManager::fgAODfriends = 0;
 
-Bool_t        AliEveEventManager::fgGRPLoaded    = kFALSE;
-AliMagF*      AliEveEventManager::fgMagField     = 0;
-Bool_t        AliEveEventManager::fgUniformField = kFALSE;
+Bool_t   AliEveEventManager::fgRawFromStandardLoc = kFALSE;
+
+Bool_t   AliEveEventManager::fgGRPLoaded    = kFALSE;
+AliMagF* AliEveEventManager::fgMagField     = 0;
+Bool_t   AliEveEventManager::fgUniformField = kFALSE;
 
 AliEveEventManager* AliEveEventManager::fgMaster  = 0;
 AliEveEventManager* AliEveEventManager::fgCurrent = 0;
@@ -252,6 +254,15 @@ void AliEveEventManager::SetAssertElements(Bool_t assertRunloader, Bool_t assert
   fgAssertRaw = assertRaw;
 }
 
+void AliEveEventManager::SearchRawForCentralReconstruction()
+{
+  // Enable searching of raw data in standard location. The path passed to
+  // Open() is expected to point to a centrally reconstructed run, e.g.:
+  // "alien:///alice/data/2009/LHC09c/000101134/ESDs/pass1/09000101134018.10".
+
+  fgRawFromStandardLoc = kTRUE;
+}
+
 /******************************************************************************/
 
 void AliEveEventManager::Open()
@@ -303,9 +314,6 @@ void AliEveEventManager::Open()
       // We use TFile::Open() instead of gSystem->AccessPathName
       // as it seems to work better when attachine alieve to a
       // running reconstruction process with auto-save on.
-      // There was also a problem with TTree::Refresh() - it didn't
-      // save the friend branch on a separate file, fixed in 5.22.2 -
-      // so we might want to try the old way again soon.
       TString p(Form("%s/AliESDfriends.root", fPath.Data()));
       TFile *esdFriendFile = TFile::Open(p);
       if (esdFriendFile)
@@ -474,7 +482,31 @@ void AliEveEventManager::Open()
 
   // Open raw-data file
 
-  TString rawPath(Form("%s/%s", fPath.Data(), fgRawFileName.Data()));
+  TString rawPath;
+  if (fgRawFromStandardLoc)
+  {
+    if (!fPath.BeginsWith("alien:"))
+      throw kEH + "Standard raw search requested, but the directory is not in AliEn.";
+    if (!fPath.Contains("/ESDs/"))
+      throw kEH + "Standard raw search requested, but does not contain 'ESDs' directory.";
+
+    TPMERegexp chunk("/([\\d\\.])+/?$");
+    Int_t nm = chunk.Match(fPath);
+    if (nm != 2)
+      throw kEH + "Standard raw search requested, but the path does not end with chunk-id directory.";
+
+    TPMERegexp esdstrip("/ESDs/.*");
+    rawPath = fPath;
+    esdstrip.Substitute(rawPath, "/raw/");
+    rawPath += chunk[0];
+    rawPath += ".root";
+
+    Info(kEH, "Standard raw search requested, using the following path:\n  %s\n", rawPath.Data());
+  }
+  else
+  {
+    rawPath.Form("%s/%s", fPath.Data(), fgRawFileName.Data());
+  }
   // If i use open directly, raw-reader reports an error but i have
   // no way to detect it.
   // Is this (AccessPathName check) ok for xrootd / alien? Yes, not for http.
@@ -692,10 +724,8 @@ void AliEveEventManager::GotoEvent(Int_t event)
   Int_t maxEvent = 0;
   if (fESDTree)
   {
-    // Refresh crashes with root-5.21.1-alice.
-    // Fixed by Philippe 5.8.2008 r25053, can be reactivated
-    // when we move to a newer root.
-    // fESDTree->Refresh();
+    if (event >= fESDTree->GetEntries())
+      fESDTree->Refresh();
     maxEvent = fESDTree->GetEntries() - 1;
     if (event < 0)
       event = fESDTree->GetEntries() + event;
@@ -933,6 +963,17 @@ void AliEveEventManager::Close()
 //------------------------------------------------------------------------------
 // Static convenience functions, mainly used from macros.
 //------------------------------------------------------------------------------
+
+Int_t AliEveEventManager::CurrentEventId()
+{
+  // Return current event-id.
+
+  static const TEveException kEH("AliEveEventManager::CurrentEventId ");
+
+  if (fgCurrent == 0 || fgCurrent->fHasEvent == kFALSE)
+    throw (kEH + "ALICE event not ready.");
+  return fgCurrent->GetEventId();
+}
 
 Bool_t AliEveEventManager::HasRunLoader()
 {

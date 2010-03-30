@@ -17,6 +17,7 @@ AliFemtoBasicEventCut::AliFemtoBasicEventCut() :
   fEventMult(),
   fVertZPos(),
   fAcceptBadVertex(false), 
+  fAcceptOnlyPhysics(true), 
   fNEventsPassed(0), 
   fNEventsFailed(0)
 {
@@ -36,17 +37,18 @@ bool AliFemtoBasicEventCut::Pass(const AliFemtoEvent* event){
   // position range. Fail otherwise
   int mult =  event->NumberOfTracks();
   double vertexZPos = event->PrimVertPos().z();
-  cout << "AliFemtoBasicEventCut:: mult:       " << fEventMult[0] << " < " << mult << " < " << fEventMult[1] << endl;
-  cout << "AliFemtoBasicEventCut:: VertexZPos: " << fVertZPos[0] << " < " << vertexZPos << " < " << fVertZPos[1] << endl;
-  cout << "AliFemtoBasicEventCut:: VertexZErr: " << event->PrimVertCov()[4] << endl;
+//   cout << "AliFemtoBasicEventCut:: mult:       " << fEventMult[0] << " < " << mult << " < " << fEventMult[1] << endl;
+//   cout << "AliFemtoBasicEventCut:: VertexZPos: " << fVertZPos[0] << " < " << vertexZPos << " < " << fVertZPos[1] << endl;
+//   cout << "AliFemtoBasicEventCut:: VertexZErr: " << event->PrimVertCov()[4] << endl;
   bool goodEvent =
     ((mult >= fEventMult[0]) && 
      (mult <= fEventMult[1]) && 
      (vertexZPos > fVertZPos[0]) &&
      (vertexZPos < fVertZPos[1]) &&
-     (fAcceptBadVertex || (event->PrimVertCov()[4] > -1000.0)));
+     (fAcceptBadVertex || (event->PrimVertCov()[4] > -1000.0)) &&
+     ((!fAcceptOnlyPhysics) || (event->IsCollisionCandidate())));
   goodEvent ? fNEventsPassed++ : fNEventsFailed++ ;
-  cout << "AliFemtoBasicEventCut:: return : " << goodEvent << endl;
+//   cout << "AliFemtoBasicEventCut:: return : " << goodEvent << endl;
   return (goodEvent);
 }
 //------------------------------
@@ -70,4 +72,12 @@ void AliFemtoBasicEventCut::SetAcceptBadVertex(bool b)
 bool AliFemtoBasicEventCut::GetAcceptBadVertex()
 {
   return fAcceptBadVertex;
+}
+void AliFemtoBasicEventCut::SetAcceptOnlyPhysics(bool b)
+{
+  fAcceptOnlyPhysics = b;
+}
+bool AliFemtoBasicEventCut::GetAcceptOnlyPhysics()
+{
+  return fAcceptOnlyPhysics;
 }

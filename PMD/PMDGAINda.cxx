@@ -2,12 +2,12 @@
 PMD DA for online calibration
 
 contact: basanta@phy.iitb.ac.in
-Link:
+Link: https://twiki.cern.ch/twiki/bin/view/ALICE/DA
 Reference run:/afs/cern.ch/user/s/sjena/public/run83496.raw
 Run Type: PHYSICS
 DA Type: MON
 Number of events needed: 1 million for PB+PB, 200 milion for p+p
-Input Files: PMD/Calib/Mapping, PMD_PED.root, PMD_GAIN_CONFIGFILE, pmd_gain_tempfile.dat
+Input Files: PMD/Calib/Mapping/Run0_999999999_v0_s0.root, PMD_PED.root, PMD_GAIN_CONFIGFILE, pmd_gain_tempfile.dat
 Output Files: PMDGAINS.root, to be exported to the DAQ FES
 Trigger types used: PHYSICS_EVENT
 
@@ -193,10 +193,10 @@ int main(int argc, char **argv) {
 	    return -1;
 	  }
       }
-    status = daqDA_DB_getFile("PMD/Calib/Mapping","localOCDB/PMD/Calib/Mapping/Run0_999999999_v0_s0.root");
+    status = daqDA_DB_getFile("PMD/Calib/Mapping/Run0_999999999_v0_s0.root","localOCDB/PMD/Calib/Mapping/Run0_999999999_v0_s0.root");
     if (status)
       {
-	printf("Failed to get PMD-Mapping file (PMD/Calib/Mapping) from DAQdetDB, status=%d\n", status);
+	printf("Failed to get PMD-Mapping file (PMD/Calib/Mapping/Run0_999999999_v0_s0.root) from DAQdetDB, status=%d\n", status);
 	return -1;
       }
 

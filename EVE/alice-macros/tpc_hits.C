@@ -20,13 +20,7 @@ tpc_hits(const char  *varexp    = "TPC2.fArray.fR:TPC2.fArray.fFi:TPC2.fArray.fZ
 
   TTree* ht = rl->GetTreeH("TPC", false);
 
-  //PH The line below is replaced waiting for a fix in Root
-  //PH which permits to use variable siza arguments in CINT
-  //PH on some platforms (alphalinuxgcc, solariscc5, etc.)
-  //PH  TEvePointSet* points = new TEvePointSet(Form("TPC Hits '%s'", selection));
-  char form[1000];
-  sprintf(form,"TPC Hits '%s'", selection);
-  TEvePointSet* points = new TEvePointSet(form);
+  TEvePointSet* points = new TEvePointSet(Form("TPC Hits '%s'", selection));
   points->SetSourceCS(TEvePointSelectorConsumer::kTVT_RPhiZ);
 
   TEvePointSelector ps(ht, points, varexp, selection);
@@ -37,12 +31,16 @@ tpc_hits(const char  *varexp    = "TPC2.fArray.fR:TPC2.fArray.fFi:TPC2.fArray.fZ
     delete points;
     return 0;
   }
+  
+  points->SetName(Form("TPC Hits"));
+  const TString viz_tag("SIM Hits TPC");
+  points->ApplyVizTag(viz_tag, "Hits");
 
-  //PH  points->SetTitle(Form("N=%d", points->Size()));
-  sprintf(form,"N=%d", points->Size());
-  points->SetTitle(form);
+  points->SetTitle(Form("N=%d", points->Size()));
   points->SetMarkerSize(.5);
   points->SetMarkerColor(3);
+
+
 
   gEve->AddElement(points, cont);
   gEve->Redraw3D();

@@ -12,7 +12,6 @@
 
 class TList;
 class AliResonanceKink;
-class TH1D;
 
 #include "AliAnalysisTaskSE.h"
 

@@ -3,14 +3,13 @@
 /* Copyright(c) 1998-2007, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
 
-/* $Id$ */
+// $Id$
 
 ///
 /// @file   AliHLTMUONAgent.h
 /// @author Artur Szostak <artursz@iafrica.com>
 /// @date   28 May 2007
-/// @brief  The HLT module agent for libAliHLTMUON.so which interfaces HLT
-///         components with offline.
+/// @brief  The HLT module agent for libAliHLTMUON.so which interfaces HLT components with offline.
 ///
 
 #include "AliHLTModuleAgent.h"
@@ -92,6 +91,11 @@ public:
 	 * @param pInstance      pointer to handler
 	 */
 	virtual int DeleteOutputHandler(AliHLTOUTHandler* pInstance);
+
+	/**
+	 * \returns true if a MUON module was added to gAlice.
+	 */
+	static bool IsMuonModuleLoaded();
 	
 private:
 	// The following instance is used for automatic agent and component registration.
@@ -99,6 +103,8 @@ private:
 	
 	static AliHLTOUTHandlerChain  fgkESDMakerChain;  ///< Chain handler for converting dHLT raw data to ESD format.
 	static AliHLTOUTHandlerChain  fgkRootifyDumpChain;  ///< Chain handler for converting dHLT raw data to ROOT objects and dumping to file.
+
+	static Int_t fgMuonModuleLoaded; ///< Cached flag for indicating if the MUON module was loaded for a simulation.
 
 	ClassDef(AliHLTMUONAgent, 0); // Dimuon HLT module agent which handles processing configurations.
 };

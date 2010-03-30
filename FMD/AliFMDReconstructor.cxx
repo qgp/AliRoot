@@ -76,7 +76,7 @@ AliFMDReconstructor::AliFMDReconstructor()
     fAngleCorrect(kTRUE),
     fVertexType(kNoVertex),
     fESD(0x0),
-    fDiagnostics(kTRUE),
+    fDiagnostics(kFALSE),
     fDiagStep1(0), 
     fDiagStep2(0),
     fDiagStep3(0),
@@ -167,8 +167,8 @@ AliFMDReconstructor::ConvertDigits(AliRawReader* reader,
   rawRead.Exec();
   AliFMDAltroMapping* map = AliFMDParameters::Instance()->GetAltroMap();
   for (size_t i = 1; i <= 3; i++) { 
-    fZS[i]       = rawRead.IsZeroSuppressed(map->Detector2DDL(i));
-    fZSFactor[i] = rawRead.NoiseFactor(map->Detector2DDL(i));
+    fZS[i-1]       = rawRead.IsZeroSuppressed(map->Detector2DDL(i));
+    fZSFactor[i-1] = rawRead.NoiseFactor(map->Detector2DDL(i));
   }
 }
 

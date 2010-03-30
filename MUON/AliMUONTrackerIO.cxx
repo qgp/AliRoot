@@ -285,6 +285,7 @@ AliMUONTrackerIO::DecodeGains(const char* data, AliMUONVStore& gainStore,
   Int_t* runs(0x0);
   Int_t* dac(0x0);
   Int_t nDAC(0);
+  Int_t nInit(0),f1nbp(0),f2nbp(0);
   
   while ( in.getline(line,1024) )
   {
@@ -318,6 +319,19 @@ AliMUONTrackerIO::DecodeGains(const char* data, AliMUONVStore& gainStore,
             runs = new Int_t[nDAC];
             dac = new Int_t[nDAC];
             // skip two lines
+            in.getline(line,1024);
+            sline = line;
+            if (!sline.Contains("*  nInit ="))
+            {
+              AliErrorClass("Improper format : was expecting nInit= line...");              
+            }
+            else
+            {
+              sscanf(line,"//   *  nInit = %d  *  f1nbp = %d  *  f2nbp = %d",&nInit,&f1nbp,&f2nbp);
+              AliDebugClass(1,Form("nInit = %d",nInit));
+              AliDebugClass(1,Form("f1nbp = %d",f1nbp));
+              AliDebugClass(1,Form("f2nbp = %d",f2nbp));
+            }
             in.getline(line,1024);
             in.getline(line,1024);
             // then get run and dac values
@@ -388,6 +402,10 @@ AliMUONTrackerIO::DecodeGains(const char* data, AliMUONVStore& gainStore,
   {
     comment += Form(";(RUN %d = DAC %d)",runs[i],dac[i]);
   }
+  comment += Form(";(nDAC = %d)",nDAC);
+  comment += Form(";(nInit = %d)",nInit);
+  comment += Form(";(f1nbp = %d)",f1nbp);
+  comment += Form(";(f2nbp = %d)",f2nbp);
   
   delete[] runs;
   delete[] dac;
@@ -471,15 +489,12 @@ AliMUONTrackerIO::DecodeCapacitances(const char* data, AliMUONVStore& capaStore)
 
 //_____________________________________________________________________________
 Int_t 
-AliMUONTrackerIO::ReadConfig(const char* filename, AliMUONVStore& confStore, Bool_t& changed)
+AliMUONTrackerIO::ReadConfig(const char* filename, AliMUONVStore& confStore)
 {
   /// Read config file (produced by the MUONTRKda.exe program for instance)
   /// and append the read values into the given VStore
   /// To be used when the input is a file (for instance when reading data 
   /// from the OCDB).
-  /// changed must be set to kFALSE before calling this method for the first time
-  /// (then the subsequent calls must not set it !)
-  ///
   
   TString sFilename(gSystem->ExpandPathName(filename));
   
@@ -496,19 +511,17 @@ AliMUONTrackerIO::ReadConfig(const char* filename, AliMUONVStore& confStore, Boo
   
   in.close();
   
-  return DecodeConfig(stream.str().c_str(),confStore,changed);
+  return DecodeConfig(stream.str().c_str(),confStore);
 }
 
 //_____________________________________________________________________________
 Int_t 
-AliMUONTrackerIO::DecodeConfig(const char* data, AliMUONVStore& confStore, Bool_t& changed)
+AliMUONTrackerIO::DecodeConfig(const char* data, AliMUONVStore& confStore)
 {
   /// Read config data (produced by the MUONTRKda.exe program for instance)
   /// and append the read values into the given VStore
   /// To be used when the input is a TString (for instance when getting data 
   /// from AMORE DB).
-  /// changed must be set to kFALSE before calling this method for the first time
-  /// (then the subsequent calls must not set it !)
 
   char line[1024];
   Int_t busPatchID, manuID;
@@ -520,9 +533,6 @@ AliMUONTrackerIO::DecodeConfig(const char* data, AliMUONVStore& confStore, Bool_
     AliDebugClass(3,Form("line=%s",line));
     if ( line[0] == '#' ) 
     {
-      TString sline(line);
-      sline.ToUpper();
-      if (sline.Contains("CHANGED") && !sline.Contains("UNCHANGED")) changed = kTRUE;
       continue;
     }
     std::istringstream sin(line);

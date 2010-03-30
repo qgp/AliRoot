@@ -73,7 +73,8 @@ AliGenHijing::AliGenHijing()
      fTargetSpecp(0),
      fLHC(kFALSE),
      fRandomPz(kFALSE),
-     fNoHeavyQuarks(kFALSE)
+     fNoHeavyQuarks(kFALSE),
+     fEventTime(0.)
 {
   // Constructor
   fEnergyCMS = 5500.;
@@ -116,7 +117,8 @@ AliGenHijing::AliGenHijing(Int_t npart)
      fTargetSpecp(0),
      fLHC(kFALSE),
      fRandomPz(kFALSE),
-     fNoHeavyQuarks(kFALSE)
+     fNoHeavyQuarks(kFALSE),
+     fEventTime(0.)
 {
 // Default PbPb collisions at 5. 5 TeV
 //
@@ -231,6 +233,7 @@ void AliGenHijing::Generate()
   fTrials = 0;
   
   for (j = 0;j < 3; j++) origin0[j] = fOrigin[j];
+
   if(fVertexSmear == kPerEvent) {
       Vertex();
       for (j=0; j < 3; j++) origin0[j] = fVertex[j];
@@ -238,6 +241,7 @@ void AliGenHijing::Generate()
 
 
   Float_t sign = (fRandomPz && (Rndm() < 0.5))? -1. : 1.;
+
   while(1)
   {
 //    Generate one event
@@ -367,10 +371,16 @@ void AliGenHijing::Generate()
 	      origin[0] = origin0[0]+iparticle->Vx()/10;
 	      origin[1] = origin0[1]+iparticle->Vy()/10;
 	      origin[2] = origin0[2]+iparticle->Vz()/10;
-//	      tof = kconv * iparticle->T() + sign * origin0[2] / 3.e10;
-	      tof = kconv * iparticle->T();
-	      if (fPileUpTimeWindow > 0.) tof += tInt;
+	      fEventTime = 0.;
 	      
+	      if (TestBit(kVertexRange)) {
+		  fEventTime = sign * origin0[2] / 2.99792458e10;
+		  tof = kconv * iparticle->T() + fEventTime;
+	      } else {
+		  tof = kconv * iparticle->T();
+		  fEventTime = tInt;
+		  if (fPileUpTimeWindow > 0.) tof += tInt;
+	      }
 	      imo = -1;
 	      TParticle* mother = 0;
 	      if (hasMother) {
@@ -556,6 +566,7 @@ void AliGenHijing::MakeHeader()
     ((AliGenHijingEventHeader*) header)->SetSpectators(fProjectileSpecn, fProjectileSpecp,
     						       fTargetSpecn,fTargetSpecp);
     ((AliGenHijingEventHeader*) header)->SetReactionPlaneAngle(fHijing->GetHINT1(20));
+//    printf("Impact Parameter %13.3f \n", fHijing->GetHINT1(19));
     
 
 
@@ -586,6 +597,7 @@ void AliGenHijing::MakeHeader()
     ((AliGenHijingEventHeader*) header)->SetTrials(fTrials);
 // Event Vertex
     header->SetPrimaryVertex(fVertex);
+    header->SetInteractionTime(fEventTime);
     AddHeader(header);
     fCollisionGeometry = (AliGenHijingEventHeader*)  header;
 }

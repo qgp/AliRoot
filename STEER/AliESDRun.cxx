@@ -197,7 +197,7 @@ void AliESDRun::Reset()
   fCurrentDip = 0;
   fBeamEnergy = 0;
   fBeamType = "";
-  ResetBit(kBInfoStored|kUniformBMap);
+  ResetBit(kBInfoStored|kUniformBMap|kConvSqrtSHalfGeV);
   for (Int_t i=0; i<2; i++) fDiamondXY[i]=0.;
   fDiamondCovXY[0]=fDiamondCovXY[2]=3.*3.;
   fDiamondCovXY[1]=0.;
@@ -257,7 +257,7 @@ TString AliESDRun::GetFiredTriggerClasses(ULong64_t mask) const
   // class mask as an argument.
   TString trclasses;
   for(Int_t i = 0; i < kNTriggerClasses; i++) {
-    if (mask & (1 << i)) {
+    if (mask & (1ull << i)) {
       TNamed *str = (TNamed *)((fTriggerClasses).At(i));
       if (str) {
 	trclasses += " ";
@@ -283,7 +283,7 @@ Bool_t AliESDRun::IsTriggerClassFired(ULong64_t mask, const char *name) const
   Int_t iclass = fTriggerClasses.IndexOf(trclass);
   if (iclass < 0) return kFALSE;
 
-  if (mask & (1 << iclass))
+  if (mask & (1ull << iclass))
     return kTRUE;
   else
     return kFALSE;
@@ -312,7 +312,7 @@ Bool_t AliESDRun::InitMagneticField() const
   }
   //
   AliMagF* fld = AliMagF::CreateFieldMap(fCurrentL3,fCurrentDip,AliMagF::kConvLHC,
-					 TestBit(kUniformBMap),fBeamEnergy,fBeamType.Data());
+					 TestBit(kUniformBMap), GetBeamEnergy(), GetBeamType());
   if (fld) {
     TGeoGlobalMagField::Instance()->SetField( fld );
     TGeoGlobalMagField::Instance()->Lock();

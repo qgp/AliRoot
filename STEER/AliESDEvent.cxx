@@ -65,6 +65,8 @@
 #include "AliRawDataErrorLog.h"
 #include "AliLog.h"
 #include "AliESDACORDE.h"
+#include "AliESDHLTDecision.h"
+
 ClassImp(AliESDEvent)
 
 
@@ -478,18 +480,20 @@ void AliESDEvent::Print(Option_t *) const
 	 GetRunNumber(),
 	 GetTriggerMask(),
 	 GetMagneticField() );
-  printf("Vertex: (%.4f +- %.4f, %.4f +- %.4f, %.4f +- %.4f) cm\n",
+  if (fPrimaryVertex)
+    printf("Vertex: (%.4f +- %.4f, %.4f +- %.4f, %.4f +- %.4f) cm\n",
 	   fPrimaryVertex->GetXv(), fPrimaryVertex->GetXRes(),
 	   fPrimaryVertex->GetYv(), fPrimaryVertex->GetYRes(),
 	   fPrimaryVertex->GetZv(), fPrimaryVertex->GetZRes());
-    printf("Mean vertex in RUN: X=%.4f Y=%.4f cm\n",
-	   GetDiamondX(),GetDiamondY());
+  printf("Mean vertex in RUN: X=%.4f Y=%.4f cm\n",
+	 GetDiamondX(),GetDiamondY());
+  if(fSPDMult)
     printf("SPD Multiplicity. Number of tracklets %d \n",
            fSPDMult->GetNumberOfTracklets());
   printf("Number of pileup primary vertices reconstructed with SPD %d\n", 
-        GetNumberOfPileupVerticesSPD());
+	 GetNumberOfPileupVerticesSPD());
   printf("Number of pileup primary vertices reconstructed using the tracks %d\n",
-        GetNumberOfPileupVerticesTracks());
+	 GetNumberOfPileupVerticesTracks());
   printf("Number of tracks: \n");
   printf("                 charged   %d\n", GetNumberOfTracks());
   printf("                 muon      %d\n", GetNumberOfMuonTracks());
@@ -507,6 +511,9 @@ void AliESDEvent::Print(Option_t *) const
   printf("                 emcal     %d\n", GetNumberOfEMCALClusters());
   printf("                 FMD       %s\n", (fESDFMD ? "yes" : "no"));
   printf("                 VZERO     %s\n", (fESDVZERO ? "yes" : "no"));
+  TObject* pHLTDecision=GetHLTTriggerDecision();
+  printf("HLT trigger decision: %s\n", pHLTDecision?pHLTDecision->GetOption():"not available");
+  if (pHLTDecision) pHLTDecision->Print("compact");
 
   return;
 }

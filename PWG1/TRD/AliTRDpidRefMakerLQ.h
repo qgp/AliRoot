@@ -23,29 +23,36 @@
 #include "AliTRDpidUtil.h"
 #endif
 
+class TKDNodeInfo;
+class TKDInterpolator;
 class TObjArray;
 class AliTRDpidRefMakerLQ : public AliTRDpidRefMaker {
 public:
   enum ETRDpidRefMakerLQsteer{
-    kMaxStat    = 180000 // maximum statistics/PID bin
+    kMaxStat    = 40000 // maximum statistics/PID bin
    ,kMinStat    = 50     // minimum statistics/bucket 14%
-   ,kMinBuckets = 450    // minimum number of buckets [lambda(6)*alpha(1.5)*regions(50)]
-   ,kNN2LQtransition = 4 // index of NN slices where first LQ slice ends 
+   ,kMinBuckets = 100    // minimum number of buckets [lambda(6)*alpha(1.5)*regions(50)]
   };
   AliTRDpidRefMakerLQ();
   ~AliTRDpidRefMakerLQ();
- 
-  void      CreateOutputObjects();
-  TObject*  GetOCDBEntry(Option_t *opt);
-  Bool_t    GetRefFigure(Int_t ifig);
-  Bool_t    PostProcess();
+
+  void        CreateOutputObjects();
+  void        Exec(Option_t *opt);
+  TObject*    GetOCDBEntry(Option_t *opt);
+  Bool_t      GetRefFigure(Int_t ifig);
+  Bool_t      HasOnlineMonitor() const {return kTRUE;}
+  TObjArray*  Histos();
+  Bool_t      Load(const Char_t *filename = "TRD.CalibPIDrefMaker.root");
+  Bool_t      PostProcess();
 
 private:
   AliTRDpidRefMakerLQ(const AliTRDpidRefMakerLQ &ref);
   AliTRDpidRefMakerLQ& operator=(const AliTRDpidRefMakerLQ &ref);
- 
-private:
-  ClassDef(AliTRDpidRefMakerLQ, 5)  // Reference builder for Multidim-LQ TRD-PID
+  void        SetZeroes(TKDInterpolator *in, TKDNodeInfo *node, Int_t n0, Int_t& idx, Float_t x, Float_t dx, Float_t y, Float_t dy, const Char_t opt='x');
+
+  TObjArray   *fPDF;          // list of PDF estimations
+
+  ClassDef(AliTRDpidRefMakerLQ, 6)  // Reference builder for Multidim-LQ TRD-PID
 
 };
 

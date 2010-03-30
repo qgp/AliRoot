@@ -35,13 +35,14 @@ class AliESDInputHandlerRP : public AliESDInputHandler {
     virtual Bool_t       Notify(const char* path);
     virtual void         ResetIO();
     //
-    virtual TTree*       GetTreeR(char* det);
+    virtual TTree*       GetTreeR(const char* det);
  private:
     Bool_t      OpenFile(Int_t i);
     AliESDInputHandlerRP(const AliESDInputHandlerRP& handler);             
     AliESDInputHandlerRP& operator=(const AliESDInputHandlerRP& handler);  
  private:
     TObjArray*      fRTrees;           // List of RecPoint Trees
+    TObjArray*      fRDirs;            // List of RecPoint directories
     TList*          fRFiles;           // List of RecPoint Files
     TList*          fDetectors;        // List of detector names
     TDirectoryFile *fDirR;             //! Directory for RP Tree

@@ -50,10 +50,10 @@ class AliVZEROCalibData: public TNamed {
   Float_t* GetTimeGain()   const {return (float*)fTimeGain;}
 
   Float_t* GetTimeResolution() const {return (Float_t*) fTimeResolution;};
-  Float_t  GetTimeResolution(Int_t board ) const  {return (board<kNCIUBoards?fTimeResolution[board]:0);};
+  Float_t  GetTimeResolution(Int_t board ) const  {return ((board>=0 && board<kNCIUBoards)?fTimeResolution[board]:0);};
 
   Float_t* GetWidthResolution() const {return (Float_t*) fWidthResolution;};
-  Float_t  GetWidthResolution(Int_t board ) const  {return (board<kNCIUBoards?fWidthResolution[board]:0);};
+  Float_t  GetWidthResolution(Int_t board ) const  {return ((board>=0 && board<kNCIUBoards)?fWidthResolution[board]:0);};
     
   void     SetPedestal(Float_t val, Int_t channel) {fPedestal[channel]=val;}
   void     SetPedestal(Float_t* Pedestal);
@@ -77,7 +77,7 @@ class AliVZEROCalibData: public TNamed {
   void     SetTimeGain(Float_t val, Int_t channel) {fTimeGain[channel]=val;}
   void     SetTimeGain(Float_t* TimeGain);
   
-  void 	   SetParameter(TString name, Float_t val);
+  void 	   SetParameter(TString name, Int_t val);
   void     SetTimeResolution(UShort_t *resols);
   void     SetTimeResolution(UShort_t resol, Int_t board);
   void     SetWidthResolution(UShort_t *resols);
@@ -100,7 +100,7 @@ class AliVZEROCalibData: public TNamed {
   Float_t  fTimeResolution[kNCIUBoards]; // Time Resolution of the TDC (ns / channel)
   Float_t  fWidthResolution[kNCIUBoards]; // Time Width Resolution of the TDC (ns / channel)
 
-  ClassDef(AliVZEROCalibData,3)    // VZERO Calibration data
+  ClassDef(AliVZEROCalibData,4)    // VZERO Calibration data
 };
 
 #endif

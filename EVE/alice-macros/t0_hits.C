@@ -41,6 +41,10 @@ t0_hits(const char *varexp    = "T0.fX:T0.fY:T0.fZ",
   points->SetMarkerSize(.5);
   points->SetMarkerColor(3);
 
+  points->SetName(Form("T0 Hits"));
+  const TString viz_tag("SIM Hits T0");
+  points->ApplyVizTag(viz_tag, "Hits");
+
   gEve->AddElement(points);
   gEve->Redraw3D();
 

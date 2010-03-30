@@ -8,7 +8,7 @@
 //* See cxx source for full Copyright notice                               *
 
 /** @file   AliHLTTRDClusterizerComponent.h
-    @author 
+    @author Theodor Rascanu
     @date   
     @brief  Declaration of a TRDClusterizer component.
 */
@@ -65,7 +65,7 @@ protected:
   int Configure(const char* arguments);
   int SetParams();
 	
-private:
+protected:
   /** copy constructor prohibited */
   AliHLTTRDClusterizerComponent(const AliHLTTRDClusterizerComponent&);
   /** assignment operator prohibited */
@@ -82,16 +82,19 @@ private:
   AliRawReaderMemory *fMemReader; //! Input raw data reader
   AliTRDReconstructor *fReconstructor;
 
-  Int_t fRecoParamType;     // default will be the low flux
-  Int_t fRecoDataType;      // default will be simulation
-  Int_t fRawDataVersion;
-  Int_t fyPosMethod;        // 0=COG 1=LUT 2=Gauss 
+  Int_t fRecoParamType;        // default will be the low flux
+  Int_t fRecoDataType;         // default will be simulation
+  Int_t fRawDataVersion;       // depreceated ?
+  Int_t fyPosMethod;           // 0=COG 1=LUT 2=Gauss 
   TString fgeometryFileName;
-  Bool_t fProcessTracklets; // write the L! tracklets to output
-  Bool_t fHLTstreamer;      // use FastStreamer
-  Bool_t fTC;               // using tail cancellation
+  Bool_t fProcessTracklets;    // write the L1 tracklets to output
+  Bool_t fHLTstreamer;         // use FastStreamer
+  Bool_t fTC;                  // using tail cancellation
+  Bool_t fHLTflag;             // use HLT flag in reconstructor
+  Bool_t fHighLevelOutput;     // do we what to have high level output (only for debuging)
+  Bool_t fEmulateHLTClusters;  // for debugging data containers
 
-  ClassDef(AliHLTTRDClusterizerComponent, 4)
+  ClassDef(AliHLTTRDClusterizerComponent, 5)
 
 };
 #endif

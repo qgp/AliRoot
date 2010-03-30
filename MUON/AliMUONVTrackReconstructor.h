@@ -92,7 +92,8 @@ class AliMUONVTrackReconstructor : public TObject {
   void RemoveUsedSegments(TClonesArray& segments);
   void RemoveIdenticalTracks();
   void RemoveDoubleTracks();
-  void RemoveConnectedTracks(Bool_t inSt345 = kFALSE);
+  void RemoveConnectedTracks(Int_t stMin, Int_t stMax, Bool_t all);
+  void TagConnectedTracks(Int_t stMin, Int_t stMax, Bool_t all);
 
   void AskForNewClustersInStation(const AliMUONTrackParam &trackParam,
 				  AliMUONVClusterStore& clusterStore, Int_t station);
@@ -107,8 +108,6 @@ class AliMUONVTrackReconstructor : public TObject {
 
   Bool_t FollowLinearTrackInChamber(AliMUONTrack &trackCandidate, const AliMUONVClusterStore& clusterStore, Int_t nextChamber);
   Bool_t FollowLinearTrackInStation(AliMUONTrack &trackCandidate, const AliMUONVClusterStore& clusterStore, Int_t nextStation);
-
-  void CorrectThetaRange(Float_t&);
 
  private:
   

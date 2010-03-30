@@ -154,7 +154,6 @@ AliHLTPHOSClusterAnalyserComponent::DoEvent(const AliHLTComponentEventData& evtD
         }
       specification = specification|iter->fSpecification;
       AliHLTPHOSDigitHeaderStruct *digitHeader = reinterpret_cast<AliHLTPHOSDigitHeaderStruct*>(iter->fPtr);
-      
       fClusterAnalyserPtr->SetRecPointDataPtr(reinterpret_cast<AliHLTPHOSRecPointHeaderStruct*>(reinterpret_cast<Long_t>(iter->fPtr) + sizeof(AliHLTPHOSDigitHeaderStruct) + digitHeader->fNDigits*sizeof(AliHLTPHOSDigitDataStruct)), digitHeader);
       if(fDoDeconvolution)
 	{
@@ -264,13 +263,15 @@ AliHLTPHOSClusterAnalyserComponent::DoInit(int argc, const char** argv )
 
   //See headerfile for documentation
   
+  HLTError("Doing init...");
+
   fClusterAnalyserPtr = new AliHLTPHOSClusterAnalyser();
 
-  const char *path = "HLT/ConfigPHOS/ClusterAnalyserComponent";
+  //  const char *path = "HLT/ConfigPHOS/ClusterAnalyserComponent";
 
   GetGeometryFromCDB();
 
-  ConfigureFromCDBTObjString(path);
+  //  ConfigureFromCDBTObjString(path);
 
   for (int i = 0; i < argc; i++)
     {
@@ -283,11 +284,14 @@ AliHLTPHOSClusterAnalyserComponent::DoInit(int argc, const char** argv )
 int 
 AliHLTPHOSClusterAnalyserComponent::GetGeometryFromCDB()
 {
+  HLTError("Getting geometry...");
+
+  AliCDBManager::Instance()->SetDefaultStorage("local://$ALICE_ROOT/OCDB");
 
   AliCDBPath path("GRP","Geometry","Data");
   if(path.GetPath())
     {
-      HLTInfo("configure from entry %s", path.GetPath());
+      //      HLTInfo("configure from entry %s", path.GetPath());
       AliCDBEntry *pEntry = AliCDBManager::Instance()->Get(path/*,GetRunNo()*/);
       if (pEntry) 
 	{
@@ -298,14 +302,17 @@ AliHLTPHOSClusterAnalyserComponent::GetGeometryFromCDB()
 	    }
 
 	  gGeoManager = (TGeoManager*) pEntry->GetObject();
-  
-	  fPHOSGeometry = new AliPHOSGeoUtils("PHOS", "noCPV");
-	  fClusterAnalyserPtr->SetGeometry(fPHOSGeometry);
+	  HLTError("gGeoManager = 0x%x", gGeoManager);
+	  if(gGeoManager)
+	    {
+	      fPHOSGeometry = new AliPHOSGeoUtils("PHOS", "noCPV");
+	      fClusterAnalyserPtr->SetGeometry(fPHOSGeometry);
+	    }
 
 	}
       else
 	{
-	  HLTError("can not fetch object \"%s\" from OCDB", path);
+	  //	  HLTError("can not fetch object \"%s\" from OCDB", path);
 	}
     }
   return 0;

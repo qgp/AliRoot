@@ -56,10 +56,13 @@ AliGenDPMjet::AliGenDPMjet()
      fDPMjet(0),
      fNoGammas(0),
      fLHC(0),
-     fPi0Decay(0),
+     fPi0Decay(1),
      fDecayAll(0),
      fGenImpPar(0.),
-     fProcess(kDpmMb)
+     fProcess(kDpmMb),
+     fTriggerMultiplicity(0),
+     fTriggerMultiplicityEta(0),
+     fTriggerMultiplicityPtMin(0)
 {
 // Constructor
     fEnergyCMS = 5500.;
@@ -83,10 +86,13 @@ AliGenDPMjet::AliGenDPMjet(Int_t npart)
      fDPMjet(0),
      fNoGammas(0),
      fLHC(0),
-     fPi0Decay(0),
+     fPi0Decay(1),
      fDecayAll(0),
      fGenImpPar(0.),
-     fProcess(kDpmMb)
+     fProcess(kDpmMb),
+     fTriggerMultiplicity(0),
+     fTriggerMultiplicityEta(0),
+     fTriggerMultiplicityPtMin(0)
 {
 // Default PbPb collisions at 5. 5 TeV
 //
@@ -114,10 +120,13 @@ AliGenDPMjet::AliGenDPMjet(const AliGenDPMjet &/*Dpmjet*/)
      fDPMjet(0),
      fNoGammas(0),
      fLHC(0),
-     fPi0Decay(0),
+     fPi0Decay(1),
      fDecayAll(0),
      fGenImpPar(0.),
-     fProcess(kDpmMb)
+     fProcess(kDpmMb),
+     fTriggerMultiplicity(0),
+     fTriggerMultiplicityEta(0),
+     fTriggerMultiplicityPtMin(0)
 {
     // Dummy copy constructor
     fEnergyCMS = 5500.;
@@ -185,6 +194,7 @@ void AliGenDPMjet::Generate()
       fSpecp = 0;
 // --------------------------------------------------------------------------
       fDPMjet->GenerateEvent();
+      
       fTrials++;
 
       fDPMjet->ImportParticles(&fParticles,"All");      
@@ -194,9 +204,39 @@ void AliGenDPMjet::Generate()
       fGenImpPar = fDPMjet->GetBImpac();
       
       Int_t np = fParticles.GetEntriesFast();
-      printf("\n **************************************************%d\n",np);
-      Int_t nc=0;
-      if (np==0) continue;
+      //
+      // Multiplicity Trigger
+      if (fTriggerMultiplicity > 0) {
+	Int_t multiplicity = 0;
+	for (Int_t i = 0; i < np; i++) {
+	  TParticle *  iparticle = (TParticle *) fParticles.At(i);
+	
+	  Int_t statusCode = iparticle->GetStatusCode();
+	
+	  // Initial state particle
+	  if (statusCode != 1)
+	    continue;
+	  // eta cut
+	  if (fTriggerMultiplicityEta > 0 && TMath::Abs(iparticle->Eta()) > fTriggerMultiplicityEta)
+	    continue;
+	  // pt cut
+	  if (iparticle->Pt() < fTriggerMultiplicityPtMin) 
+	    continue;
+	  
+	  TParticlePDG* pdgPart = iparticle->GetPDG();
+	  if (pdgPart && pdgPart->Charge() == 0)
+	    continue;
+	  ++multiplicity;
+	}
+	//
+	//
+	if (multiplicity < fTriggerMultiplicity) continue;
+	Printf("Triggered on event with multiplicity of %d >= %d", multiplicity, fTriggerMultiplicity);
+      }    
+
+      Int_t nc = 0;
+      if (np == 0) continue;
+
       Int_t i;
       Int_t* newPos     = new Int_t[np];
       Int_t* pSelected  = new Int_t[np];
@@ -226,7 +266,10 @@ void AliGenDPMjet::Generate()
 	    
 	  if (!fSelectAll) selected = KinematicSelection(iparticle, 0) && 
 			       SelectFlavor(kf);
+
+	  
 	  hasSelectedDaughters = DaughtersSelection(iparticle);
+
 
 // Put particle on the stack if it is either selected or 
 // it is the mother of at least one seleted particle
@@ -299,6 +342,8 @@ void AliGenDPMjet::Generate()
 		  imo = (mother->GetPdgCode() != 92 && mother->GetPdgCode() != 99999) ? newPos[imo] : -1;
 	      } // if has mother   
 
+
+	      
 	      Bool_t tFlag = (fTrackIt && (ks == 1));
 	      PushTrack(tFlag,imo,kf,p,origin,polar,tof,kPNoProcess,nt, 1., ks);
 	      KeepTrack(nt);

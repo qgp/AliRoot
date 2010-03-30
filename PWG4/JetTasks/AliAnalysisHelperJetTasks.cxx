@@ -10,7 +10,9 @@
 #include "TString.h"
 #include "AliMCEvent.h"
 #include "AliLog.h"
+#include "AliESDEvent.h"
 #include "AliAODJet.h"
+#include "AliAODEvent.h"
 #include "AliStack.h"
 #include "AliGenEventHeader.h"
 #include "AliGenCocktailEventHeader.h"
@@ -374,6 +376,14 @@ Bool_t AliAnalysisHelperJetTasks::PythiaInfoFromFile(const char* currFile,Float_
   return kTRUE;
 }
 
+Bool_t  AliAnalysisHelperJetTasks::Selected(Bool_t bSet,Bool_t bNew){
+  static Bool_t bSelected = kTRUE; // if service task is not run we acccpet all
+  if(bSet){
+    bSelected = bNew;
+  }
+  return bSelected;
+}
+
 //___________________________________________________________________________________________________________
 
 Bool_t AliAnalysisHelperJetTasks::GetEventShapes(TVector3 &n01, TVector3 * pTrack, Int_t nTracks, Double_t * eventShapes)
@@ -528,7 +538,7 @@ Bool_t AliAnalysisHelperJetTasks::GetEventShapes(TVector3 &n01, TVector3 * pTrac
       if(switch2 == 0 && switch1 == 0 && switch3 == 0){
 	if(TMath::Abs(th-th02) < 10e-7 && TMath::Abs(th-th03) < 10e-7 && TMath::Abs(th02-th03) < 10e-7){
 	  eventShapes[0] = th;
-	  Printf("===== THRUST VALUE FOUND AT %d :: %f\n", k, th);
+	  AliInfoGeneral(Form(" %s:%d",(char*)__FILE__,__LINE__),Form("===== THRUST VALUE FOUND AT %d :: %f\n", k, th));
 	  break;
 	}
 	//if they did not, reset switches
@@ -613,3 +623,101 @@ Bool_t AliAnalysisHelperJetTasks::GetEventShapes(TVector3 &n01, TVector3 * pTrac
 
 
  //__________________________________________________________________________________________________________________________
+// Trigger Decisions copid from PWG0/AliTriggerAnalysis
+
+
+Bool_t AliAnalysisHelperJetTasks::IsTriggerFired(const AliVEvent* aEv, Trigger trigger)
+{
+  // checks if an event has been triggered
+  // no usage of ofline trigger here yet
+  
+  // here we do a dirty hack to take also into account the
+  // missing trigger bits and Bunch crossing paatern for real data 
+
+
+  if(aEv->InheritsFrom("AliESDEvent")){
+    const AliESDEvent *esd = (AliESDEvent*)aEv;
+    switch (trigger)
+      {
+      case kAcceptAll:
+	{
+	  return kTRUE;
+	  break;
+	}
+      case kMB1:
+	{
+	  if(esd->GetFiredTriggerClasses().Contains("CINT1B-"))return kTRUE;
+	  // does the same but without or'ed V0s
+	  if(esd->GetFiredTriggerClasses().Contains("CSMBB"))return kTRUE;  
+	  if(esd->GetFiredTriggerClasses().Contains("CINT6B-"))return kTRUE; 
+	  // this is for simulated data
+	  if(esd->GetFiredTriggerClasses().Contains("MB1"))return kTRUE;   
+	  break;
+	}
+      case kMB2:
+	{
+	  if(esd->GetFiredTriggerClasses().Contains("MB2"))return kTRUE;   
+	  break;
+	}
+      case kMB3:
+	{
+	  if(esd->GetFiredTriggerClasses().Contains("MB3"))return kTRUE;   
+	  break;
+	}
+      case kSPDGFO:
+	{
+	  if(esd->GetFiredTriggerClasses().Contains("CSMBB"))return kTRUE;
+	  if(esd->GetFiredTriggerClasses().Contains("CINT6B-"))return kTRUE; 
+	  if(esd->GetFiredTriggerClasses().Contains("GFO"))return kTRUE;
+	  break;
+	}
+      default:
+	{
+	  Printf("IsEventTriggered: ERROR: Trigger type %d not implemented in this method", (Int_t) trigger);
+	  break;
+	}
+      }
+  }
+  else if(aEv->InheritsFrom("AliAODEvent")){
+    const AliAODEvent *aod = (AliAODEvent*)aEv;
+    switch (trigger)
+      {
+      case kAcceptAll:
+	{
+	  return kTRUE;
+	  break;
+	}
+      case kMB1:
+	{
+	  if(aod->GetFiredTriggerClasses().Contains("CINT1B"))return kTRUE;
+	  // does the same but without or'ed V0s
+	  if(aod->GetFiredTriggerClasses().Contains("CSMBB"))return kTRUE;   
+	  // for sim data
+	  if(aod->GetFiredTriggerClasses().Contains("MB1"))return kTRUE;   
+	  break;
+	}
+      case kMB2:
+	{
+	  if(aod->GetFiredTriggerClasses().Contains("MB2"))return kTRUE;   
+	  break;
+	}
+      case kMB3:
+	{
+	  if(aod->GetFiredTriggerClasses().Contains("MB3"))return kTRUE;   
+	  break;
+	}
+      case kSPDGFO:
+	{
+	  if(aod->GetFiredTriggerClasses().Contains("CSMBB"))return kTRUE;	  
+	  if(aod->GetFiredTriggerClasses().Contains("GFO"))return kTRUE;   
+	  break;
+	}
+      default:
+	{
+	  Printf("IsEventTriggered: ERROR: Trigger type %d not implemented in this method", (Int_t) trigger);
+	  break;
+	}
+      }
+  }
+    return kFALSE;
+}

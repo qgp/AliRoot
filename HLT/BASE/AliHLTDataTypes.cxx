@@ -98,6 +98,10 @@ const AliHLTComponentDataType kAliHLTDataTypeMCObject = AliHLTComponentDataTypeI
 const char kAliHLTESDVertexDataTypeIDstring[8] = kAliHLTESDVertexDataTypeID;
 const AliHLTComponentDataType kAliHLTDataTypeESDVertex = AliHLTComponentDataTypeInitializer(kAliHLTESDVertexDataTypeIDstring, kAliHLTDataOriginAny);
 
+/** Global Vertexer data specification */
+const char kAliHLTDataTypeGlobalVertexerIDstring[8] = kAliHLTDataTypeGlobalVertexerID;
+const AliHLTComponentDataType kAliHLTDataTypeGlobalVertexer = AliHLTComponentDataTypeInitializer(kAliHLTDataTypeGlobalVertexerIDstring, kAliHLTDataOriginAny);
+
 /** ESD data specification */
 const char kAliHLTESDObjectDataTypeIDstring[8] = kAliHLTESDObjectDataTypeID;
 const AliHLTComponentDataType kAliHLTDataTypeESDObject = AliHLTComponentDataTypeInitializer(kAliHLTESDObjectDataTypeIDstring, kAliHLTDataOriginAny);
@@ -137,6 +141,10 @@ const AliHLTComponentDataType kAliHLTDataTypeRunSummary = AliHLTComponentDataTyp
 /** Trigger decision */
 const char kAliHLTTriggerDecisionDataTypeIDstring[8] = kAliHLTTriggerDecisionDataTypeID;
 const AliHLTComponentDataType kAliHLTDataTypeTriggerDecision = AliHLTComponentDataTypeInitializer(kAliHLTTriggerDecisionDataTypeIDstring, kAliHLTDataOriginOut);
+
+/** HLT readout list from trigger component */
+const char kAliHLTReadoutListDataTypeIDstring[8] = kAliHLTReadoutListDataTypeID;
+const AliHLTComponentDataType kAliHLTDataTypeReadoutList = AliHLTComponentDataTypeInitializer(kAliHLTReadoutListDataTypeIDstring, kAliHLTDataOriginOut);
 
 /** Global trigger decision */
 const char kAliHLTGlobalTriggerDataTypeIDstring[8] = kAliHLTGlobalTriggerDataTypeID;

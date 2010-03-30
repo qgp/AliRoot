@@ -14,7 +14,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/* $Id$ */
+// $Id$
 
 ///
 /// @file   HLTMUONLinkDef.h
@@ -47,6 +47,7 @@
 #pragma link C++ class AliHLTMUONTriggerReconstructorComponent+;
 #pragma link C++ class AliHLTMUONHitReconstructorComponent+;
 #pragma link C++ class AliHLTMUONMansoTrackerFSMComponent+;
+#pragma link C++ class AliHLTMUONFullTrackerComponent+;
 #pragma link C++ class AliHLTMUONDecisionComponent+;
 #pragma link C++ class AliHLTMUONESDMaker+;
 #pragma link C++ class AliHLTMUONRecHit+;
@@ -62,5 +63,6 @@
 #pragma link C++ class AliHLTMUONDataCheckerComponent+;
 #pragma link C++ class AliHLTMUONClusterFinderComponent+;
 #pragma link C++ class AliHLTMUONRawDataHistoComponent+;
+#pragma link C++ class AliHLTMUONClusterHistoComponent+;
 
 #endif // __CINT__

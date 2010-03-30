@@ -7,6 +7,9 @@
  * full copyright notice.                                                 *
  **************************************************************************/
 
+/// \ingroup evemacros
+/// \file alieve_init.C
+
 void alieve_init(const TString& cdburi = "",
 		 const TString& path   = ".", Int_t event=0,
                  const Text_t* esdfile = 0,
@@ -28,8 +31,6 @@ void alieve_init(const TString& cdburi = "",
   alieve_init_import_macros();
   gSystem->cd(hack);
 
-  alieve_init_basic_vizdb();
-  // Temporarily assert also default vizdb.
   TEveUtil::AssertMacro("VizDB_scan.C");
 
   gSystem->ProcessEvents();
@@ -50,7 +51,7 @@ void alieve_init(const TString& cdburi = "",
     else
     {
       Info("alieve_init", "AliEn requested - connecting.");
-      if (gSystem->Getenv("alien_API_VO") == 0)
+      if (gSystem->Getenv("GSHELL_ROOT") == 0)
       {
 	Error("alieve_init", "AliEn environment not initialized. Aborting.");
 	gSystem->Exit(1);
@@ -122,15 +123,4 @@ void alieve_init_import_macros()
       br->SetTab(0, 0);
     }
   }
-}
-
-void alieve_init_basic_vizdb()
-{
-  TEvePointSet* ps;
-
-  ps = new TEvePointSet();
-  ps->SetMarkerColor(4);
-  ps->SetMarkerSize(0.2);
-  ps->SetMarkerStyle(2);
-  gEve->InsertVizDBEntry("Clusters", ps);
 }

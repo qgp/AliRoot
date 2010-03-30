@@ -1,4 +1,4 @@
-AliAnalysisTaskJFSystematics *AddTaskJFSystematics(char *jf1 = "jetsMC",char *jf2 = "jets")
+AliAnalysisTaskJFSystematics *AddTaskJFSystematics(char *jf1 = "jets",char *jf2 = "jetsAODMC_UA104")
 {
 
    // Get the pointer to the existing analysis manager via the static access method.
@@ -19,14 +19,19 @@ AliAnalysisTaskJFSystematics *AddTaskJFSystematics(char *jf1 = "jetsMC",char *jf
    // Create the task and configure it.
    //===========================================================================
    
-   AliAnalysisTaskJFSystematics* pwg4jfs = new  AliAnalysisTaskJFSystematics("Jet Spectrum");
+   AliAnalysisTaskJFSystematics* pwg4jfs = new  AliAnalysisTaskJFSystematics("JF Systematics");
       
    // or a config file
    pwg4jfs->SetAnalysisType(AliAnalysisTaskJFSystematics::kSysJetOrder);
    //      if(iAODanalysis)pwg4spec->SetAODInput(kTRUE);
-   // pwg4spec->SetDebugLevel(11); 
-   pwg4jfs->SetBranchGen(jf1); 
-   pwg4jfs->SetBranchRec(jf2); 
+   //   pwg4jfs->SetDebugLevel(11); 
+   TString type = mgr->GetInputEventHandler()->GetDataType();
+   if(type == "AOD"){
+     pwg4jfs->SetAODInput(kTRUE);
+   }
+
+   pwg4jfs->SetBranchGen(jf2); 
+   pwg4jfs->SetBranchRec(jf1); 
    mgr->AddTask(pwg4jfs);
       
    // Create ONLY the output containers for the data produced by the task.

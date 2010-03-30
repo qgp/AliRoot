@@ -96,7 +96,7 @@ AliFlowAnalysisWithQCumulants::AliFlowAnalysisWithQCumulants():
  fEtaBinWidth(0),
  fHarmonic(2),
  fAnalysisLabel(NULL),
- // 2.) weights:
+ // 2a.) particle weights:
  fWeightsList(NULL),
  fUsePhiWeights(kFALSE),
  fUsePtWeights(kFALSE),
@@ -105,6 +105,8 @@ AliFlowAnalysisWithQCumulants::AliFlowAnalysisWithQCumulants():
  fPhiWeights(NULL),
  fPtWeights(NULL),
  fEtaWeights(NULL),
+ // 2b.) event weights:
+ fMultiplicityWeight(NULL),
  // 3.) integrated flow:
  fIntFlowList(NULL), 
  fIntFlowProfiles(NULL),
@@ -156,6 +158,9 @@ AliFlowAnalysisWithQCumulants::AliFlowAnalysisWithQCumulants():
   
   // list to hold histograms with phi, pt and eta weights:      
   fWeightsList = new TList();
+  
+  // multiplicity weight:
+  fMultiplicityWeight = new TString("combinations");
     
   // analysis label;
   fAnalysisLabel = new TString();
@@ -624,7 +629,8 @@ void AliFlowAnalysisWithQCumulants::Make(AliFlowEventSimple* anEvent)
     //this->EvaluateDiffFlowCorrelationsWithNestedLoops(anEvent,"RP","Eta"); // to be improved (enabled eventually)
     this->EvaluateDiffFlowCorrelationsWithNestedLoops(anEvent,"POI","Pt"); // to be improved (do I need to pass here anEvent?)
     this->EvaluateDiffFlowCorrelationsWithNestedLoops(anEvent,"POI","Eta"); // to be improved (do I need to pass here anEvent?)
-    // reduced corrections for non-uniform acceptance:    // Q-vectors:
+    // reduced corrections for non-uniform acceptance:
+    // Q-vectors:
     this->CalculateDiffFlowCorrectionsForNUASinTerms("RP","Pt");
     this->CalculateDiffFlowCorrectionsForNUASinTerms("RP","Eta");
     this->CalculateDiffFlowCorrectionsForNUASinTerms("POI","Pt");
@@ -650,7 +656,8 @@ void AliFlowAnalysisWithQCumulants::Make(AliFlowEventSimple* anEvent)
     this->EvaluateDiffFlowCorrelationsWithNestedLoopsUsingParticleWeights(anEvent,"RP","Eta"); // to be improved (enabled eventually)
     this->EvaluateDiffFlowCorrelationsWithNestedLoopsUsingParticleWeights(anEvent,"POI","Pt"); // to be improved (do I need to pass here anEvent?)
     this->EvaluateDiffFlowCorrelationsWithNestedLoopsUsingParticleWeights(anEvent,"POI","Eta"); // to be improved (do I need to pass here anEvent?)
-   } // end of if(fUsePhiWeights||fUsePtWeights||fUseEtaWeights)  } // end of if(nPrim>0 && nPrim<=fMaxAllowedMultiplicity) // by default fMaxAllowedMultiplicity = 10
+   } // end of if(fUsePhiWeights||fUsePtWeights||fUseEtaWeights)
+  } // end of if(nPrim>0 && nPrim<=fMaxAllowedMultiplicity) // by default fMaxAllowedMultiplicity = 10
  } // end of if(fEvaluateDiffFlowNestedLoops) 
  
  // e) Reset all event by event quantities: 
@@ -1201,6 +1208,19 @@ void AliFlowAnalysisWithQCumulants::WriteHistograms(TString outputFileName)
 //================================================================================================================================
 
 
+void AliFlowAnalysisWithQCumulants::WriteHistograms(TDirectoryFile *outputFileName)
+{
+ //store the final results in output .root file
+ fHistList->SetName("cobjQC");
+ fHistList->SetOwner(kTRUE);
+ outputFileName->Add(fHistList);
+ outputFileName->Write(outputFileName->GetName(), TObject::kSingleKey);
+}
+
+
+//================================================================================================================================
+
+
 void AliFlowAnalysisWithQCumulants::BookCommonHistograms()
 {
  // Book common control histograms and common histograms for final results.
@@ -1283,7 +1303,7 @@ void AliFlowAnalysisWithQCumulants::BookAndFillWeightsHistograms()
   if(fWeightsList->FindObject("phi_weights"))
   {
    fPhiWeights = dynamic_cast<TH1F*>(fWeightsList->FindObject("phi_weights"));
-   if(fPhiWeights->GetBinWidth(1) != fPhiBinWidth)
+   if((fPhiWeights->GetBinWidth(1) > fPhiBinWidth) || (fPhiWeights->GetBinWidth(1) < fPhiBinWidth))
    {
     cout<<"WARNING: fPhiWeights->GetBinWidth(1) != fPhiBinWidth in AFAWQC::BAFWH() !!!!        "<<endl;
     cout<<"         This indicates inconsistent binning in phi histograms throughout the code."<<endl;
@@ -1301,7 +1321,7 @@ void AliFlowAnalysisWithQCumulants::BookAndFillWeightsHistograms()
   if(fWeightsList->FindObject("pt_weights"))
   {
    fPtWeights = dynamic_cast<TH1D*>(fWeightsList->FindObject("pt_weights"));
-   if(fPtWeights->GetBinWidth(1) != fPtBinWidth)
+   if((fPtWeights->GetBinWidth(1) > fPtBinWidth) || (fPtWeights->GetBinWidth(1) < fPtBinWidth))
    {
     cout<<"WARNING: fPtWeights->GetBinWidth(1) != fPtBinWidth in AFAWQC::BAFWH() !!!!         "<<endl;
     cout<<"         This indicates insconsistent binning in pt histograms throughout the code."<<endl;
@@ -1319,7 +1339,7 @@ void AliFlowAnalysisWithQCumulants::BookAndFillWeightsHistograms()
   if(fWeightsList->FindObject("eta_weights"))
   {
    fEtaWeights = dynamic_cast<TH1D*>(fWeightsList->FindObject("eta_weights"));
-   if(fEtaWeights->GetBinWidth(1) != fEtaBinWidth)
+   if((fEtaWeights->GetBinWidth(1) > fEtaBinWidth) || (fEtaWeights->GetBinWidth(1) < fEtaBinWidth))
    {
     cout<<"WARNING: fEtaWeights->GetBinWidth(1) != fEtaBinWidth in AFAWQC::BAFWH() !!!!        "<<endl;
     cout<<"         This indicates insconsistent binning in eta histograms throughout the code."<<endl;
@@ -2047,9 +2067,23 @@ void AliFlowAnalysisWithQCumulants::CalculateIntFlowCorrelations()
   
   // store separetately <2> (to be improved: do I really need this?)
   fIntFlowCorrelationsEBE->SetBinContent(1,two1n1n); // <2>
-  fIntFlowEventWeightsForCorrelationsEBE->SetBinContent(1,dMult*(dMult-1.)); // eW_<2>
-  fIntFlowCorrelationsPro->Fill(0.5,two1n1n,dMult*(dMult-1.));
   
+  // to be improved (this can be implemented better):
+  Double_t mWeight2p = 0.;
+  if(!strcmp(fMultiplicityWeight->Data(),"combinations"))
+  {
+   mWeight2p = dMult*(dMult-1.);
+  } else if(!strcmp(fMultiplicityWeight->Data(),"unit"))
+    {
+     mWeight2p = 1.;    
+    } else if(!strcmp(fMultiplicityWeight->Data(),"multiplicity"))
+      {
+       mWeight2p = dMult;           
+      }
+            
+  fIntFlowEventWeightsForCorrelationsEBE->SetBinContent(1,mWeight2p); // eW_<2>
+  fIntFlowCorrelationsPro->Fill(0.5,two1n1n,mWeight2p);
+    
   // distribution of <cos(n*(phi1-phi2))>:
   //f2pDistribution->Fill(two1n1n,dMult*(dMult-1.)); 
  } // end of if(dMult>1)
@@ -2158,8 +2192,22 @@ void AliFlowAnalysisWithQCumulants::CalculateIntFlowCorrelations()
   
   // store separetately <4> (to be improved: do I really need this?)
   fIntFlowCorrelationsEBE->SetBinContent(2,four1n1n1n1n); // <4>
-  fIntFlowEventWeightsForCorrelationsEBE->SetBinContent(2,dMult*(dMult-1.)*(dMult-2.)*(dMult-3.)); // eW_<4>
-  fIntFlowCorrelationsPro->Fill(1.5,four1n1n1n1n,dMult*(dMult-1.)*(dMult-2.)*(dMult-3.));
+  
+  // to be improved (this can be implemented better):
+  Double_t mWeight4p = 0.;
+  if(!strcmp(fMultiplicityWeight->Data(),"combinations"))
+  {
+   mWeight4p = dMult*(dMult-1.)*(dMult-2.)*(dMult-3.);
+  } else if(!strcmp(fMultiplicityWeight->Data(),"unit"))
+    {
+     mWeight4p = 1.;    
+    } else if(!strcmp(fMultiplicityWeight->Data(),"multiplicity"))
+      {
+       mWeight4p = dMult;           
+      }
+      
+  fIntFlowEventWeightsForCorrelationsEBE->SetBinContent(2,mWeight4p); // eW_<4>
+  fIntFlowCorrelationsPro->Fill(1.5,four1n1n1n1n,mWeight4p);
   
   // distribution of <cos(n*(phi1+phi2-phi3-phi4))>
   //f4pDistribution->Fill(four1n1n1n1n,dMult*(dMult-1.)*(dMult-2.)*(dMult-3.));
@@ -2304,8 +2352,22 @@ void AliFlowAnalysisWithQCumulants::CalculateIntFlowCorrelations()
 
   // store separetately <6> (to be improved: do I really need this?)
   fIntFlowCorrelationsEBE->SetBinContent(3,six1n1n1n1n1n1n); // <6>
-  fIntFlowEventWeightsForCorrelationsEBE->SetBinContent(3,dMult*(dMult-1.)*(dMult-2.)*(dMult-3.)*(dMult-4.)*(dMult-5.)); // eW_<6>
-  fIntFlowCorrelationsPro->Fill(2.5,six1n1n1n1n1n1n,dMult*(dMult-1.)*(dMult-2.)*(dMult-3.)*(dMult-4.)*(dMult-5.));
+  
+  // to be improved (this can be implemented better):
+  Double_t mWeight6p = 0.;
+  if(!strcmp(fMultiplicityWeight->Data(),"combinations"))
+  {
+   mWeight6p = dMult*(dMult-1.)*(dMult-2.)*(dMult-3.)*(dMult-4.)*(dMult-5.);
+  } else if(!strcmp(fMultiplicityWeight->Data(),"unit"))
+    {
+     mWeight6p = 1.;    
+    } else if(!strcmp(fMultiplicityWeight->Data(),"multiplicity"))
+      {
+       mWeight6p = dMult;           
+      }
+      
+  fIntFlowEventWeightsForCorrelationsEBE->SetBinContent(3,mWeight6p); // eW_<6>
+  fIntFlowCorrelationsPro->Fill(2.5,six1n1n1n1n1n1n,mWeight6p);
  
   // distribution of <cos(n*(phi1+phi2+phi3-phi4-phi5-phi6))>
   //f6pDistribution->Fill(six1n1n1n1n1n1n,dMult*(dMult-1.)*(dMult-2.)*(dMult-3.)*(dMult-4.)*(dMult-5.)); 
@@ -2366,8 +2428,22 @@ void AliFlowAnalysisWithQCumulants::CalculateIntFlowCorrelations()
  
   // store separetately <8> (to be improved: do I really need this?)
   fIntFlowCorrelationsEBE->SetBinContent(4,eight1n1n1n1n1n1n1n1n); // <8>
-  fIntFlowEventWeightsForCorrelationsEBE->SetBinContent(4,dMult*(dMult-1.)*(dMult-2.)*(dMult-3.)*(dMult-4.)*(dMult-5.)*(dMult-6.)*(dMult-7.)); // eW_<8>
-  fIntFlowCorrelationsPro->Fill(3.5,eight1n1n1n1n1n1n1n1n,dMult*(dMult-1.)*(dMult-2.)*(dMult-3.)*(dMult-4.)*(dMult-5.)*(dMult-6.)*(dMult-7.));
+  
+  // to be improved (this can be implemented better):
+  Double_t mWeight8p = 0.;
+  if(!strcmp(fMultiplicityWeight->Data(),"combinations"))
+  {
+   mWeight8p = dMult*(dMult-1.)*(dMult-2.)*(dMult-3.)*(dMult-4.)*(dMult-5.)*(dMult-6.)*(dMult-7.);
+  } else if(!strcmp(fMultiplicityWeight->Data(),"unit"))
+    {
+     mWeight8p = 1.;    
+    } else if(!strcmp(fMultiplicityWeight->Data(),"multiplicity"))
+      {
+       mWeight8p = dMult;           
+      }
+        
+  fIntFlowEventWeightsForCorrelationsEBE->SetBinContent(4,mWeight8p); // eW_<8>
+  fIntFlowCorrelationsPro->Fill(3.5,eight1n1n1n1n1n1n1n1n,mWeight8p);  
   
   // distribution of <cos(n*(phi1+phi2+phi3+phi4-phi5-phi6-phi7-phi8))>
   //f8pDistribution->Fill(eight1n1n1n1n1n1n1n1n,dMult*(dMult-1.)*(dMult-2.)*(dMult-3.)*(dMult-4.)*(dMult-5.)*(dMult-6.)*(dMult-7.));
@@ -2831,7 +2907,7 @@ void AliFlowAnalysisWithQCumulants::CalculateIntFlow()
  Double_t v8ErrorSquared = 0.; // squared statistical error of v{8,QC} 
  
  // calculate squared statistical errors of integrated flow estimates:
- if(two != 0.) 
+ if(two > 0.) 
  { 
   v2ErrorSquared = (1./(4.*two))*pow(twoError,2.);
  } 
@@ -4545,17 +4621,17 @@ void AliFlowAnalysisWithQCumulants::AccessConstants()
 {
  // access needed common constants from AliFlowCommonConstants
  
- fnBinsPhi = AliFlowCommonConstants::GetNbinsPhi();
- fPhiMin = AliFlowCommonConstants::GetPhiMin();	     
- fPhiMax = AliFlowCommonConstants::GetPhiMax();
+ fnBinsPhi = AliFlowCommonConstants::GetMaster()->GetNbinsPhi();
+ fPhiMin = AliFlowCommonConstants::GetMaster()->GetPhiMin();	     
+ fPhiMax = AliFlowCommonConstants::GetMaster()->GetPhiMax();
  if(fnBinsPhi) fPhiBinWidth = (fPhiMax-fPhiMin)/fnBinsPhi;  
- fnBinsPt = AliFlowCommonConstants::GetNbinsPt();
- fPtMin = AliFlowCommonConstants::GetPtMin();	     
- fPtMax = AliFlowCommonConstants::GetPtMax();
+ fnBinsPt = AliFlowCommonConstants::GetMaster()->GetNbinsPt();
+ fPtMin = AliFlowCommonConstants::GetMaster()->GetPtMin();	     
+ fPtMax = AliFlowCommonConstants::GetMaster()->GetPtMax();
  if(fnBinsPt) fPtBinWidth = (fPtMax-fPtMin)/fnBinsPt;  
- fnBinsEta = AliFlowCommonConstants::GetNbinsEta();
- fEtaMin = AliFlowCommonConstants::GetEtaMin();	     
- fEtaMax = AliFlowCommonConstants::GetEtaMax();
+ fnBinsEta = AliFlowCommonConstants::GetMaster()->GetNbinsEta();
+ fEtaMin = AliFlowCommonConstants::GetMaster()->GetEtaMin();	     
+ fEtaMax = AliFlowCommonConstants::GetMaster()->GetEtaMax();
  if(fnBinsEta) fEtaBinWidth = (fEtaMax-fEtaMin)/fnBinsEta;  
  
 } // end of void AliFlowAnalysisWithQCumulants::AccessConstants()
@@ -5474,7 +5550,7 @@ void AliFlowAnalysisWithQCumulants::CalculateDiffFlowCovariances(TString type, T
   {
    denominator = 1.-term1/(term2*term3);
    prefactor = term1/(term2*term3);
-   if(denominator!=0.)
+   if(denominator!=0)
    {
     covTwoTwoReduced = (twoTwoReduced-two*twoReduced)/denominator;            
     wCovTwoTwoReduced = covTwoTwoReduced*prefactor; 
@@ -5489,7 +5565,7 @@ void AliFlowAnalysisWithQCumulants::CalculateDiffFlowCovariances(TString type, T
   {
    denominator = 1.-term1/(term2*term3);
    prefactor = term1/(term2*term3);
-   if(denominator!=0.)
+   if(denominator!=0)
    {
     covTwoFourReduced = (twoFourReduced-two*fourReduced)/denominator;            
     wCovTwoFourReduced = covTwoFourReduced*prefactor; 
@@ -5504,7 +5580,7 @@ void AliFlowAnalysisWithQCumulants::CalculateDiffFlowCovariances(TString type, T
   {
    denominator = 1.-term1/(term2*term3);
    prefactor = term1/(term2*term3);
-   if(denominator!=0.)
+   if(denominator!=0)
    {
     covFourTwoReduced = (fourTwoReduced-four*twoReduced)/denominator;            
     wCovFourTwoReduced = covFourTwoReduced*prefactor; 
@@ -5519,7 +5595,7 @@ void AliFlowAnalysisWithQCumulants::CalculateDiffFlowCovariances(TString type, T
   {
    denominator = 1.-term1/(term2*term3);
    prefactor = term1/(term2*term3);
-   if(denominator!=0.)
+   if(denominator!=0)
    {
     covFourFourReduced = (fourFourReduced-four*fourReduced)/denominator;            
     wCovFourFourReduced = covFourFourReduced*prefactor; 
@@ -5534,7 +5610,7 @@ void AliFlowAnalysisWithQCumulants::CalculateDiffFlowCovariances(TString type, T
   {
    denominator = 1.-term1/(term2*term3);
    prefactor = term1/(term2*term3);
-   if(denominator!=0.)
+   if(denominator!=0)
    {
     covTwoReducedFourReduced = (twoReducedFourReduced-twoReduced*fourReduced)/denominator;            
     wCovTwoReducedFourReduced = covTwoReducedFourReduced*prefactor; 
@@ -8428,7 +8504,8 @@ void AliFlowAnalysisWithQCumulants::EvaluateIntFlowCorrelationsWithNestedLoops(A
 void AliFlowAnalysisWithQCumulants::CrossCheckIntFlowCorrelations()
 {
  // Cross-check results for multiparticle correlations needed for int. flow: results from Q-vectors vs results from nested loops.
- cout<<endl;
+
+ cout<<endl;
  cout<<endl;
  cout<<"   *****************************************"<<endl;
  cout<<"   **** cross-checking the correlations ****"<<endl;
@@ -8469,7 +8546,8 @@ void AliFlowAnalysisWithQCumulants::CrossCheckIntFlowCorrelations()
 void AliFlowAnalysisWithQCumulants::CrossCheckIntFlowCorrectionTermsForNUA()
 {
  // Cross-check results for corrections terms for non-uniform acceptance needed for int. flow: results from Q-vectors vs results from nested loops.
- cout<<endl;
+
+ cout<<endl;
  cout<<endl;
  cout<<"   *********************************************"<<endl;
  cout<<"   **** cross-checking the correction terms ****"<<endl;
@@ -8556,7 +8634,8 @@ void AliFlowAnalysisWithQCumulants::EvaluateIntFlowCorrelationsWithNestedLoopsUs
  //Double_t wPhi1=1., wPhi2=1., wPhi3=1., wPhi4=1., wPhi5=1., wPhi6=1., wPhi7=1., wPhi8=1.;
  Double_t phi1=0., phi2=0., phi3=0., phi4=0.;
  Double_t wPhi1=1., wPhi2=1., wPhi3=1., wPhi4=1.;
- Int_t n = fHarmonic;  Int_t eventNo = (Int_t)fAvMultiplicity->GetBinEntries(1); // to be improved (is this casting safe in general?)
+ Int_t n = fHarmonic; 
+ Int_t eventNo = (Int_t)fAvMultiplicity->GetBinEntries(1); // to be improved (is this casting safe in general?)
  Double_t dMult = (*fSMpk)(0,0);
  cout<<endl;
  cout<<"Multiparticle correlations: Event number: "<<eventNo<<", multiplicity is "<<dMult<<endl;
@@ -8698,7 +8777,8 @@ void AliFlowAnalysisWithQCumulants::CrossCheckIntFlowExtraCorrelations()
 {
  // Cross-check results for extra multiparticle correlations needed for int. flow 
  // which appear only when particle weights are used: results from Q-vectors vs results from nested loops.
- cout<<endl;
+
+ cout<<endl;
  cout<<endl;
  cout<<"   ***********************************************"<<endl;
  cout<<"   **** cross-checking the extra correlations ****"<<endl;
@@ -8738,7 +8818,8 @@ void AliFlowAnalysisWithQCumulants::EvaluateIntFlowCorrectionsForNUAWithNestedLo
  Int_t nPrim = anEvent->NumberOfTracks(); 
  AliFlowTrackSimple *aftsTrack = NULL;
  Double_t phi1=0., phi2=0., phi3=0.;
- Int_t n = fHarmonic;  Int_t eventNo = (Int_t)fAvMultiplicity->GetBinEntries(1); // to be improved (is this casting safe in general?)
+ Int_t n = fHarmonic; 
+ Int_t eventNo = (Int_t)fAvMultiplicity->GetBinEntries(1); // to be improved (is this casting safe in general?)
  Double_t dMult = (*fSMpk)(0,0);
  cout<<endl;
  cout<<"Correction terms for non-uniform acceptance: Event number: "<<eventNo<<", multiplicity is "<<dMult<<endl;
@@ -8823,13 +8904,8 @@ void AliFlowAnalysisWithQCumulants::EvaluateIntFlowCorrectionsForNUAWithNestedLo
  } // end of if(nPrim>=3)
 
  cout<<endl;
-
-} // end of void AliFlowAnalysisWithQCumulants::EvaluateIntFlowCorrectionsForNUAWithNestedLoops(AliFlowEventSimple* anEvent)
-
-
+}
 //================================================================================================================================
-
-
 void AliFlowAnalysisWithQCumulants::EvaluateDiffFlowCorrelationsWithNestedLoops(AliFlowEventSimple* anEvent, TString type, TString ptOrEta)
 {
  // Evaluate reduced correlations with nested loops without using the particle weights.
@@ -8968,11 +9044,13 @@ void AliFlowAnalysisWithQCumulants::EvaluateDiffFlowCorrelationsWithNestedLoops(
      if(!(aftsTrack->InRPSelection())) continue;  
      phi4=aftsTrack->Phi();
      // 4'-particle correlations:
-     fDiffFlowDirectCorrelations[t][pe][1]->Fill(lowerPtEtaEdge[pe]+binWidthPtEta[pe]/2.,cos(n*(psi1+phi2-phi3-phi4)),1.); // <cos(n(psi1+phi2-phi3-phi4))>         }//end of for(Int_t i4=0;i4<nPrim;i4++)
+     fDiffFlowDirectCorrelations[t][pe][1]->Fill(lowerPtEtaEdge[pe]+binWidthPtEta[pe]/2.,cos(n*(psi1+phi2-phi3-phi4)),1.); // <cos(n(psi1+phi2-phi3-phi4))>     
+    }//end of for(Int_t i4=0;i4<nPrim;i4++)
    }//end of for(Int_t i3=0;i3<nPrim;i3++)
   }//end of for(Int_t i2=0;i2<nPrim;i2++) 
  }//end of for(Int_t i1=0;i1<nPrim;i1++)
-       
+      
+ 
 } // end of void AliFlowAnalysisWithQCumulants::EvaluateDiffFlowCorrelationsWithNestedLoops(AliFlowEventSimple* anEvent, TString type, TString ptOrEta)
 
 
@@ -9003,8 +9081,8 @@ void AliFlowAnalysisWithQCumulants::CrossCheckDiffFlowCorrelations(TString type,
  Int_t t = typeFlag;
  Int_t pe = ptEtaFlag;
       
- TString RPorPOIString[2] = {"RP ","POI"}; // to be improved (name in the same way as in the other methods, eventually promote to data member) 
- TString PtOrEtaString[2] = {"pt","eta"}; // to be improved (name in the same way as in the other methods, eventually promote to data member) 
+ TString rpORpoiString[2] = {"RP ","POI"}; // to be improved (name in the same way as in the other methods, eventually promote to data member) 
+ TString ptORetaString[2] = {"pt","eta"}; // to be improved (name in the same way as in the other methods, eventually promote to data member) 
  TString reducedCorrelations[4] = {"<<cos(n(psi1-phi2))>>","<<cos(n(psi1+phi2-phi3-phi4))>>","",""}; // to be improved (access this from pro or hist)
  Double_t lowerPtEtaEdge[2] = {fPtMin+(fCrossCheckInPtBinNo-1)*fPtBinWidth,fEtaMin+(fCrossCheckInEtaBinNo-1)*fEtaBinWidth};
  Double_t upperPtEtaEdge[2] = {fPtMin+fCrossCheckInPtBinNo*fPtBinWidth,fEtaMin+fCrossCheckInEtaBinNo*fEtaBinWidth};
@@ -9016,10 +9094,10 @@ void AliFlowAnalysisWithQCumulants::CrossCheckDiffFlowCorrelations(TString type,
  cout<<"   *****************************************"<<endl;
  cout<<"   **** cross-checking the correlations ****"<<endl;
  cout<<"   ****      for differential flow      ****"<<endl;
- cout<<"   ****               "<<RPorPOIString[t]<<"               ****"<<endl;
+ cout<<"   ****               "<<rpORpoiString[t]<<"               ****"<<endl;
  cout<<"   *****************************************"<<endl; 
  cout<<endl;
- cout<<"           "<<PtOrEtaString[pe]<<" bin: "<<lowerPtEtaEdge[pe]<<" <= "<<PtOrEtaString[pe]<<" < "<<upperPtEtaEdge[pe]<<endl;
+ cout<<"           "<<ptORetaString[pe]<<" bin: "<<lowerPtEtaEdge[pe]<<" <= "<<ptORetaString[pe]<<" < "<<upperPtEtaEdge[pe]<<endl;
  cout<<endl;
  
  for(Int_t rci=0;rci<2;rci++) // to be improved (calculate 6th and 8th order)
@@ -9143,10 +9221,12 @@ void AliFlowAnalysisWithQCumulants::EvaluateDiffFlowCorrelationsWithNestedLoopsU
      phi4=aftsTrack->Phi();
      if(fUsePhiWeights && fPhiWeights) wPhi4 = fPhiWeights->GetBinContent(1+(Int_t)(TMath::Floor(phi4*fnBinsPhi/TMath::TwoPi())));
      // 4'-particle correlations <w2 w3 w4 cos(n(psi1+phi2-phi3-phi4))>:
-     fDiffFlowDirectCorrelations[t][pe][1]->Fill(lowerPtEtaEdge[pe]+binWidthPtEta[pe]/2.,cos(n*(psi1+phi2-phi3-phi4)),wPhi2*wPhi3*wPhi4);     }//end of for(Int_t i4=0;i4<nPrim;i4++)
+     fDiffFlowDirectCorrelations[t][pe][1]->Fill(lowerPtEtaEdge[pe]+binWidthPtEta[pe]/2.,cos(n*(psi1+phi2-phi3-phi4)),wPhi2*wPhi3*wPhi4); 
+    }//end of for(Int_t i4=0;i4<nPrim;i4++)
    }//end of for(Int_t i3=0;i3<nPrim;i3++)
   }//end of for(Int_t i2=0;i2<nPrim;i2++) 
- }//end of for(Int_t i1=0;i1<nPrim;i1++)       
+ }//end of for(Int_t i1=0;i1<nPrim;i1++)      
+ 
 } // end of void AliFlowAnalysisWithQCumulants::EvaluateDiffFlowCorrelationsWithNestedLoopsUsingParticleWeights(AliFlowEventSimple* anEvent, TString type, TString ptOrEta)
 
 
@@ -9314,8 +9394,8 @@ void AliFlowAnalysisWithQCumulants::CrossCheckDiffFlowCorrectionTermsForNUA(TStr
  Int_t t = typeFlag;
  Int_t pe = ptEtaFlag;
       
- TString RPorPOIString[2] = {"RP ","POI"}; // to be improved (name in the same way as in the other methods, eventually promote to data member) 
- TString PtOrEtaString[2] = {"pt","eta"}; // to be improved (name in the same way as in the other methods, eventually promote to data member) 
+ TString rpORpoiString[2] = {"RP ","POI"}; // to be improved (name in the same way as in the other methods, eventually promote to data member) 
+ TString ptORetaString[2] = {"pt","eta"}; // to be improved (name in the same way as in the other methods, eventually promote to data member) 
  //TString sinCosFlag[2] = {"sin","cos"}; // to be improved (eventually promote to data member)
  TString reducedCorrectionSinTerms[4] = {"<<sin(n(psi1))>>","<<sin(n(psi1+phi2))>>","<<sin(n*(psi1+phi2-phi3))>>","<<sin(n*(psi1-phi2-phi3))>>"}; // to be improved (access this from pro or hist)
  TString reducedCorrectionCosTerms[4] = {"<<cos(n(psi1))>>","<<cos(n(psi1+phi2))>>","<<cos(n*(psi1+phi2-phi3))>>","<<cos(n*(psi1-phi2-phi3))>>"}; // to be improved (access this from pro or hist)
@@ -9329,10 +9409,10 @@ void AliFlowAnalysisWithQCumulants::CrossCheckDiffFlowCorrectionTermsForNUA(TStr
  cout<<"   ****  cross-checking the correction   ****"<<endl;
  cout<<"   **** terms for non-uniform acceptance ****"<<endl;
  cout<<"   ****      for differential flow       ****"<<endl;
- cout<<"   ****              "<<RPorPOIString[t]<<"                 ****"<<endl;
+ cout<<"   ****              "<<rpORpoiString[t]<<"                 ****"<<endl;
  cout<<"   ******************************************"<<endl; 
  cout<<endl;
- cout<<"           "<<PtOrEtaString[pe]<<" bin: "<<lowerPtEtaEdge[pe]<<" <= "<<PtOrEtaString[pe]<<" < "<<upperPtEtaEdge[pe]<<endl;
+ cout<<"           "<<ptORetaString[pe]<<" bin: "<<lowerPtEtaEdge[pe]<<" <= "<<ptORetaString[pe]<<" < "<<upperPtEtaEdge[pe]<<endl;
  cout<<endl;
  
  for(Int_t cti=0;cti<4;cti++) // correction term index

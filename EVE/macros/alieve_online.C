@@ -13,12 +13,13 @@ Bool_t gCenterProjectionsAtPrimaryVertex = kFALSE;
 
 void alieve_online_init()
 {
-  if (gROOT->LoadMacro("MultiView.C++") != 0)
+  
+  if (gSystem->Getenv("ALICE_ROOT") != 0)
   {
-    gEnv->SetValue("Root.Stacktrace", "no");
-    Fatal("alieve_online.C", "Failed loading MultiView.C in compiled mode.");
+    gInterpreter->AddIncludePath(Form("%s/MUON", gSystem->Getenv("ALICE_ROOT")));
+    gInterpreter->AddIncludePath(Form("%s/MUON/mapping", gSystem->Getenv("ALICE_ROOT")));
   }
-
+  
   TEveUtil::AssertMacro("VizDB_scan.C");
 
   TEveBrowser *browser = gEve->GetBrowser();
@@ -27,14 +28,18 @@ void alieve_online_init()
   // Gentle-geom loading changes gGeoManager.
   TEveGeoManagerHolder mgrRestore;
 
-  gMultiView = new MultiView;
+  AliEveMultiView *multiView = new AliEveMultiView;
 
   TEveUtil::LoadMacro("geom_gentle.C");
-  gMultiView->InitGeomGentle(geom_gentle(),
+  multiView->InitGeomGentle(geom_gentle(),
                              geom_gentle_rphi(), 
                              geom_gentle_rhoz());
 
-  // See visscan_init.C for how to add TRD / MUON geometry.
+  TEveUtil::LoadMacro("geom_gentle_trd.C");
+  multiView->InitGeomGentleTrd(geom_gentle_trd());
+
+  TEveUtil::LoadMacro("geom_gentle_muon.C");
+  multiView->InitGeomGentleMuon(geom_gentle_muon(), kFALSE, kTRUE);
 
   //============================================================================
   // Standard macros to execute -- not all are enabled by default.
@@ -54,8 +59,10 @@ void alieve_online_init()
 
   exec->AddMacro(new AliEveMacro(AliEveMacro::kRunLoader, "REC Clus ITS",   "its_clusters.C++",   "its_clusters"));
   exec->AddMacro(new AliEveMacro(AliEveMacro::kRunLoader, "REC Clus TPC",   "tpc_clusters.C++",   "tpc_clusters"));
+  exec->AddMacro(new AliEveMacro(AliEveMacro::kRunLoader, "REC Clus TRD",   "trd_clusters.C++",   "trd_clusters"));
   exec->AddMacro(new AliEveMacro(AliEveMacro::kRunLoader, "REC Clus TOF",   "tof_clusters.C++",   "tof_clusters"));
   exec->AddMacro(new AliEveMacro(AliEveMacro::kRunLoader, "REC Clus HMPID", "hmpid_clusters.C++", "hmpid_clusters"));
+  exec->AddMacro(new AliEveMacro(AliEveMacro::kRunLoader, "REC Clus MUON",  "muon_clusters.C++",  "muon_clusters"));
 
   exec->AddMacro(new AliEveMacro(AliEveMacro::kRunLoader, "REC Clus TOF",   "emcal_digits.C++",   "emcal_digits"));
 
@@ -64,10 +71,12 @@ void alieve_online_init()
   exec->AddMacro(new AliEveMacro(AliEveMacro::kRawReader, "RAW TOF",     "tof_raw.C",     "tof_raw"));
   exec->AddMacro(new AliEveMacro(AliEveMacro::kRawReader, "RAW VZERO",   "vzero_raw.C",   "vzero_raw"));
   exec->AddMacro(new AliEveMacro(AliEveMacro::kRawReader, "RAW ACORDE",  "acorde_raw.C",  "acorde_raw"));
+  exec->AddMacro(new AliEveMacro(AliEveMacro::kRawReader, "RAW MUON",    "muon_raw.C++",  "muon_raw"));
 
   exec->AddMacro(new AliEveMacro(AliEveMacro::kESD, "REC Track", "esd_tracks.C", "esd_tracks",             "", kFALSE));
   exec->AddMacro(new AliEveMacro(AliEveMacro::kESD, "REC Track", "esd_tracks.C", "esd_tracks_MI",          "", kFALSE));
   exec->AddMacro(new AliEveMacro(AliEveMacro::kESD, "REC Track", "esd_tracks.C", "esd_tracks_by_category", "", kTRUE));
+  exec->AddMacro(new AliEveMacro(AliEveMacro::kESD, "REC Track MUON", "esd_muon_tracks.C++", "esd_muon_tracks", "kTRUE,kFALSE", kTRUE));
 
   // ???
   exec->AddMacro(new AliEveMacro(AliEveMacro::kESD, "REC TRD", "trd_detectors.C++", "trd_detectors",         "", kFALSE));
@@ -114,10 +123,15 @@ void alieve_online_init()
 
   gEve->FullRedraw3D(kTRUE);
 
-  TGLViewer *glv = gMultiView->f3DView->GetGLViewer();
+  TGLViewer *glv = multiView->Get3DView()->GetGLViewer();
   glv->CurrentCamera().RotateRad(-0.4, 1);
   glv->DoDraw();
 }
+
+
+Int_t      g_pic_id  = 0;
+Int_t      g_pic_max = 10;
+TTimeStamp g_pic_prev(0, 0);
 
 void alieve_online_on_new_event()
 {
@@ -127,13 +141,53 @@ void alieve_online_on_new_event()
 
   TEveElement* top = gEve->GetCurrentEvent();
 
-  gMultiView->DestroyEventRPhi();
-  if (gCenterProjectionsAtPrimaryVertex)
-    gMultiView->SetCenterRPhi(x[0], x[1], x[2]);
-  gMultiView->ImportEventRPhi(top);
+  AliEveMultiView *multiView = AliEveMultiView::Instance();
 
-  gMultiView->DestroyEventRhoZ();
+  multiView->DestroyEventRPhi();
   if (gCenterProjectionsAtPrimaryVertex)
-    gMultiView->SetCenterRhoZ(x[0], x[1], x[2]);
-  gMultiView->ImportEventRhoZ(top);
+    multiView->SetCenterRPhi(x[0], x[1], x[2]);
+  multiView->ImportEventRPhi(top);
+
+  multiView->DestroyEventRhoZ();
+  if (gCenterProjectionsAtPrimaryVertex)
+    multiView->SetCenterRhoZ(x[0], x[1], x[2]);
+  multiView->ImportEventRhoZ(top);
+
+  // Register image to amore.
+  const TString pichost("aldaqacrs3");
+  TTimeStamp now;
+  Double_t delta = now.AsDouble() - g_pic_prev.AsDouble();
+
+  printf("Pre image dump: host='%s', delta=%f.\n",
+	 gSystem->HostName(), delta);
+
+  if (pichost == gSystem->HostName() && delta >= 30)
+  {
+    TString id;      id.Form("online-viz-%03d", g_pic_id);
+    TString pic(id); pic += ".png";
+
+    printf("In image dump: file='%s'.\n", pic.Data());
+
+    gEve->GetBrowser()->RaiseWindow();
+    gEve->FullRedraw3D();
+    gSystem->ProcessEvents();
+
+    Int_t status;
+
+    status = gSystem->Exec(TString::Format("xwd -id %u | convert - %s",
+			   gEve->GetBrowser()->GetId(), pic.Data()));
+
+    printf("Post capture -- status=%d.\n", status);
+
+    status = gSystem->Exec(TString::Format("SendImageToAmore %s %s %d",
+		          id.Data(), pic.Data(),
+		          AliEveEventManager::AssertRawReader()->GetRunNumber()));
+
+    printf("Post AMORE reg -- status=%d, run=%d.\n", status,
+	   AliEveEventManager::AssertRawReader()->GetRunNumber());
+
+    if (++g_pic_id >= g_pic_max)
+      g_pic_id = 0;
+    g_pic_prev.Set();
+  }
 }

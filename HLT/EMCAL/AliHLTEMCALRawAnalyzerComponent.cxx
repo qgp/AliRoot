@@ -16,17 +16,28 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
+// Base class fro anlyzing EMCAL raww data
+// Further documentation found in base class
+// --------------
+// --------------
+// --------------
+// --------------
+
 
 #include "AliHLTEMCALRawAnalyzerComponent.h"
 #include "AliHLTEMCALMapper.h"
 #include "AliHLTEMCALDefinitions.h"
+#include "AliHLTCaloChannelDataHeaderStruct.h"
+//#include "unistd.h"
+
+//#include  "TStopwatch.h"
+//TStopwatch  fgWatch; //CRAP PTH
 
 
-AliHLTEMCALRawAnalyzerComponent::AliHLTEMCALRawAnalyzerComponent() : 
-AliHLTCaloRawAnalyzerComponentv3("EMCAL")
+AliHLTEMCALRawAnalyzerComponent::AliHLTEMCALRawAnalyzerComponent() : AliHLTCaloRawAnalyzerComponentv3("EMCAL")
 {
   
-
+  
 }
 
 
@@ -45,9 +56,35 @@ AliHLTEMCALRawAnalyzerComponent::GetInputDataTypes( vector <AliHLTComponentDataT
 }
 
 
+
+AliHLTComponentDataType
+AliHLTEMCALRawAnalyzerComponent::GetOutputDataType()
+{
+  //comment
+  return AliHLTEMCALDefinitions::fgkChannelDataType;
+}
+
+
+void
+AliHLTEMCALRawAnalyzerComponent::GetOutputDataSize(unsigned long& constBase, double& inputMultiplier )
+{
+  //comment
+  constBase = sizeof(AliHLTCaloChannelDataHeaderStruct);
+  inputMultiplier = 0.5;
+}
+
+
+void 
+AliHLTEMCALRawAnalyzerComponent::DoInit() 
+{
+  //  fgWatch.Start();
+ 
+}
+
 bool 
 AliHLTEMCALRawAnalyzerComponent::CheckInputDataType(const AliHLTComponentDataType &datatype)
 {
+  // Cheking if datatype is the correct one before processing 
   if ( datatype  == AliHLTEMCALDefinitions::fgkDDLRawDataType  )
      {
        return true;
@@ -62,7 +99,7 @@ AliHLTEMCALRawAnalyzerComponent::CheckInputDataType(const AliHLTComponentDataTyp
 void 
 AliHLTEMCALRawAnalyzerComponent::InitMapping( const int specification )
 {
-
+  //-------------
   if ( fMapperPtr == 0 )
     {
       fMapperPtr =  new   AliHLTEMCALMapper( specification );
@@ -74,3 +111,76 @@ AliHLTEMCALRawAnalyzerComponent::InitMapping( const int specification )
       exit(-2);
     }
 }
+
+
+int 
+AliHLTEMCALRawAnalyzerComponent::DoEvent( const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, AliHLTComponentTriggerData& /*trigData*/, 
+					 AliHLTUInt8_t* outputPtr, AliHLTUInt32_t& size, vector<AliHLTComponentBlockData>& outputBlocks )
+{
+  //-----------------------
+  static int evntcnt = 0;
+  static double wlast = -1;
+  static double wcurrent = 0;
+
+  evntcnt  ++;
+  
+  /*
+  if( evntcnt %100 == 0  )
+    {
+      
+      cout << __FILE__ << __LINE__ << " : Processing event "  << evntcnt   << endl; 
+      wlast =  wcurrent;
+      wcurrent = fgWatch.RealTime();
+      cout << wlast << ":" << wcurrent << endl;
+      cout << __FILE__ << __LINE__ << "The event rate is " <<  100/( wcurrent  -  wlast ) << "  Hz" << endl; 
+      fgWatch.Start(kFALSE); 
+      //     wlast =  fgWatch.RealTime(); 
+    }
+  */
+  
+
+  Int_t blockSize          = -1;
+  UInt_t totSize           = 0;
+  const AliHLTComponentBlockData* iter = NULL; 
+  unsigned long ndx;
+
+  for( ndx = 0; ndx < evtData.fBlockCnt; ndx++ )
+    {
+      iter = blocks+ndx;
+      if(  ! CheckInputDataType(iter->fDataType) )
+	{
+	  continue;
+	}
+      else
+	{
+	  InitMapping( iter->fSpecification); 
+	  blockSize = DoIt(iter, outputPtr, size, totSize); // Processing the block
+	  
+	  if(blockSize == -1) // If the processing returns -1 we are out of buffer and return an error msg.
+	    {
+	      return -ENOBUFS;
+	    }
+	  
+	  totSize += blockSize; //Keeping track of the used size
+	  AliHLTComponentBlockData bdChannelData;
+	  FillBlockData( bdChannelData );
+	  bdChannelData.fOffset = 0; //FIXME
+	  bdChannelData.fSize = blockSize;
+	  
+	  //	  bdChannelData.fDataType = AliHLTPHOSDefinitions::fgkChannelDataType;
+	  bdChannelData.fDataType = AliHLTEMCALDefinitions::fgkChannelDataType;
+
+	  bdChannelData.fSpecification = iter->fSpecification;
+	  outputBlocks.push_back(bdChannelData);
+	  outputPtr += blockSize; //Updating position of the output buffer
+	}
+
+      fCaloEventCount++; 
+      size = totSize; //telling the framework how much buffer space we have used.
+    }
+
+  
+return 0;
+  
+}//end DoEvent
+

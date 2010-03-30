@@ -1,17 +1,23 @@
-#ifndef AliTPCCalibQAChecker_H
-#define AliTPCCalibQAChecker_H
+#ifndef ALITPCCALIBQACHECKER_H
+#define ALITPCCALIBQACHECKER_H
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
+
+/////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                     //
+//                  QA checking class                                                  //
+//                                                                                     //
+/////////////////////////////////////////////////////////////////////////////////////////
 
 #include <TNamed.h>
 #include <TString.h>
 #include <TH1.h>
 
 class TTree;
-class TIter;
+class TIterator;
 class TGraph;
 class TObjArray;
-class TPad;
+class TVirtualPad;
 
 class AliTPCCalibQAChecker : public TNamed {
 public:
@@ -21,7 +27,6 @@ public:
 
   AliTPCCalibQAChecker();
   AliTPCCalibQAChecker(const char* name, const char *title);
-//   AliTPCCalibQAChecker(const char* name, const char *title);
   
   virtual ~AliTPCCalibQAChecker();
   
@@ -30,7 +35,7 @@ public:
   void SetTreeChecker(TTree* &tree)       {fTreePtr=&tree;}
   void SetHistChecker(TH1* &hist)         {fHistPtr=&hist;}
   void SetGraphChecker(TGraph* &graph)    {fGraphPtr=&graph;}
-  void SetNumberChecker(Double_t &number) {fNumberPtr=&number;}
+  void SetNumberChecker(Double_t & number) {fNumberPtr=&number;}
 
   const AliTPCCalibQAChecker* GetSubChecker(const char* name, Bool_t recursive=kTRUE) const;
   AliTPCCalibQAChecker* NextSubChecker();
@@ -99,7 +104,7 @@ public:
   AlarmType_t fAlarmType;          //type of the alarm
   QualityFlag_t fQualityLevel;     //quality level
   
-  TH1* fHistRep;                   //visualised histogram
+  TObject* fHistRep;                   //visualised histogram
 
   Double_t fThresMin[kNQualityFlags];//minimum thresholds
   Double_t fThresMax[kNQualityFlags];//maximum thresholds
@@ -120,12 +125,16 @@ public:
   void CreateAlarmHist();
   void ResetAlarmHist();
   //
-  Int_t DrawInPad(TPad *pad, Int_t sub=1);
+  Int_t DrawInPad(TVirtualPad *pad, Int_t sub=1);
+  void DrawSubNodes(Option_t *option);
+  void DrawRepresentationHist(const Option_t *option);
+  void AddQualityLines(TH1 *hist);
+  //
   AliTPCCalibQAChecker(const AliTPCCalibQAChecker &cfg);
   AliTPCCalibQAChecker& operator = (const AliTPCCalibQAChecker &cfg);
   
   QualityFlag_t GetQuality(Double_t value) const;
-  QualityFlag_t GetQuality(Int_t n, Double_t *arr) const;
+  QualityFlag_t GetQuality(Int_t n, const Double_t *arr) const;
   
   ClassDef(AliTPCCalibQAChecker,1);
 };
@@ -150,7 +159,7 @@ inline AliTPCCalibQAChecker::QualityFlag_t AliTPCCalibQAChecker::GetQuality(Doub
   return quality;
 }
 //_________________________________________________________________________
-inline AliTPCCalibQAChecker::QualityFlag_t AliTPCCalibQAChecker::GetQuality(Int_t n, Double_t *arr) const
+inline AliTPCCalibQAChecker::QualityFlag_t AliTPCCalibQAChecker::GetQuality(Int_t n, const Double_t *arr) const
 {
   //
   // check quality of an array

@@ -19,30 +19,20 @@
 //      Kaons from kink topology are 'identified' in this code
 //-----------------------------------------------------------------
 
-#include "TChain.h"
-#include "TTree.h"
+#include "TF1.h"
+#include "TMath.h"
 #include "TH1F.h"
 #include "TH2F.h"
-#include "TH1D.h"
-#include "TH2D.h"
-#include "TParticle.h"
-#include <TVector3.h>
-#include "TF1.h"
+#include "TCanvas.h"
 
-#include "AliAnalysisTask.h"
-#include "AliAnalysisManager.h"
-
-#include "AliVEvent.h"
 #include "AliESDEvent.h"
 #include "AliMCEvent.h"
-#include "AliAnalysisKinkESDMC.h"
 #include "AliStack.h"
-#include "AliESDpid.h"
 #include "AliESDkink.h"
 
+#include "AliAnalysisKinkESDMC.h"
+
 ClassImp(AliAnalysisKinkESDMC)
-
-
 //________________________________________________________________________
 AliAnalysisKinkESDMC::AliAnalysisKinkESDMC(const char *name) 
   : AliAnalysisTaskSE(name), fHistPtESD(0),fHistPt(0),fHistQtAll(0),fHistQt1(0),fHistQt2(0)
@@ -486,6 +476,14 @@ void AliAnalysisKinkESDMC::Terminate(Option_t *)
 {
   // Draw result to the screen 
   // Called once at the end of the query
+   fHistPtKaon = dynamic_cast<TH1F*> (((TList*)GetOutputData(1))->FindObject("fHistPtKaon"));
+   if (!fHistPtKaon) {
+     Printf("ERROR: fHistPtKaon not available");
+     return;
+   }
+   
+   TCanvas *c1=new TCanvas("c1","  ",1);
+   fHistPtKaon->DrawCopy("E");
 
 }
 //____________________________________________________________________//

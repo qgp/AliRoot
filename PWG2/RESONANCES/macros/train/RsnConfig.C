@@ -27,6 +27,7 @@ AliRsnPairManager* RsnConfig
 (
   const char            *pairMgrName,    // name for the pair manager
   Int_t                  resonancePDG,   // PDG code of resonance (for true pairs)
+  Double_t               resonanceMass,  // mass of resonance
   AliPID::EParticleType  type1,          // PID of one member of decay (+)
   AliPID::EParticleType  type2           // PID of other member of decay (-)
 )
@@ -74,13 +75,13 @@ AliRsnPairManager* RsnConfig
   AliRsnPairDef *defLikePP[2] = {0, 0};
   AliRsnPairDef *defLikeMM[2] = {0, 0};
 
-  defUnlike[0] = new AliRsnPairDef(type1, '+', type2, '-', resonancePDG);
-  defLikePP[0] = new AliRsnPairDef(type1, '+', type2, '+', resonancePDG);
-  defLikeMM[0] = new AliRsnPairDef(type1, '-', type2, '-', resonancePDG);
+  defUnlike[0] = new AliRsnPairDef(type1, '+', type2, '-', resonancePDG, resonanceMass);
+  defLikePP[0] = new AliRsnPairDef(type1, '+', type2, '+', resonancePDG, resonanceMass);
+  defLikeMM[0] = new AliRsnPairDef(type1, '-', type2, '-', resonancePDG, resonanceMass);
 
-  defUnlike[1] = new AliRsnPairDef(type2, '+', type1, '-', resonancePDG);
-  defLikePP[1] = new AliRsnPairDef(type2, '+', type1, '+', resonancePDG);
-  defLikeMM[1] = new AliRsnPairDef(type2, '-', type1, '-', resonancePDG);
+  defUnlike[1] = new AliRsnPairDef(type2, '+', type1, '-', resonancePDG, resonanceMass);
+  defLikePP[1] = new AliRsnPairDef(type2, '+', type1, '+', resonancePDG, resonanceMass);
+  defLikeMM[1] = new AliRsnPairDef(type2, '-', type1, '-', resonancePDG, resonanceMass);
 
   // === PAIR ANALYSIS ENGINES ====================================================================
 
@@ -165,27 +166,22 @@ AliRsnPairManager* RsnConfig
   // === FUNCTIONS ================================================================================
 
   // define all binnings
-  AliRsnFunctionAxis *axisIM   = new AliRsnFunctionAxis(AliRsnFunctionAxis::kPairInvMass,    1000,  0.0,   2.0);
-  AliRsnFunctionAxis *axisPt   = new AliRsnFunctionAxis(AliRsnFunctionAxis::kPairPt,           40,  0.0,  10.0);
-  AliRsnFunctionAxis *axisEta  = new AliRsnFunctionAxis(AliRsnFunctionAxis::kPairEta,          20, -1.5,   1.5);
+  AliRsnFunctionAxis *axisIM   = new AliRsnFunctionAxis(AliRsnFunctionAxis::kPairInvMass,    4000,  0.0,   2.0);
+  AliRsnFunctionAxis *axisPt   = new AliRsnFunctionAxis(AliRsnFunctionAxis::kPairPt,           50,  0.0,  10.0);
+  AliRsnFunctionAxis *axisEta  = new AliRsnFunctionAxis(AliRsnFunctionAxis::kPairEta,          15, -1.5,   1.5);
+  //AliRsnFunctionAxis *axisEta  = new AliRsnFunctionAxis(AliRsnFunctionAxis::kPairY,          15, -1.5,   1.5);
   AliRsnFunctionAxis *axisMult = new AliRsnFunctionAxis(AliRsnFunctionAxis::kEventMult,         8,  0.0, 200.0);
 
-  // function #1: pt, mult
-  AliRsnFunction *fcnPt = new AliRsnFunction;
-  fcnPt->AddAxis(axisIM);
-  fcnPt->AddAxis(axisPt);
-  fcnPt->AddAxis(axisMult);
-  // function #2: eta, mult
-  AliRsnFunction *fcnEta = new AliRsnFunction;
-  fcnEta->AddAxis(axisIM);
-  fcnEta->AddAxis(axisEta);
-  fcnEta->AddAxis(axisMult);
+  AliRsnFunction *fcn = new AliRsnFunction;
+  fcn->AddAxis(axisIM);
+  fcn->AddAxis(axisPt);
+  fcn->AddAxis(axisEta);
+  fcn->AddAxis(axisMult);
 
   // add functions to pairs
   for (i = 0; i < nArray; i++) {
     for (j = 0; j < 4; j++) {
-      pair[i][j]->AddFunction(fcnPt);
-      pair[i][j]->AddFunction(fcnEta);
+      pair[i][j]->AddFunction(fcn);
     }
   }
 

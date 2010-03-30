@@ -158,14 +158,14 @@ AliTRDresolution::AliTRDresolution()
   :AliTRDrecoTask("resolution", "Spatial and momentum TRD resolution checker")
   ,fStatus(0)
   ,fIdxPlot(0)
-  ,fReconstructor(0x0)
-  ,fGeo(0x0)
-  ,fGraphS(0x0)
-  ,fGraphM(0x0)
-  ,fCl(0x0)
-  ,fTrklt(0x0)
-  ,fMCcl(0x0)
-  ,fMCtrklt(0x0)
+  ,fReconstructor(NULL)
+  ,fGeo(NULL)
+  ,fGraphS(NULL)
+  ,fGraphM(NULL)
+  ,fCl(NULL)
+  ,fTrklt(NULL)
+  ,fMCcl(NULL)
+  ,fMCtrklt(NULL)
 {
   //
   // Default constructor
@@ -250,17 +250,17 @@ TH1* AliTRDresolution::PlotCharge(const AliTRDtrackV1 *track)
   if(track) fkTrack = track;
   if(!fkTrack){
     AliWarning("No Track defined.");
-    return 0x0;
+    return NULL;
   }
-  TObjArray *arr = 0x0;
+  TObjArray *arr = NULL;
   if(!(arr = ((TObjArray*)fContainer->At(kCharge)))){
     AliWarning("No output container defined.");
-    return 0x0;
+    return NULL;
   }
-  TH3S* h = 0x0;
+  TH3S* h = NULL;
 
-  AliTRDseedV1 *fTracklet = 0x0;  
-  AliTRDcluster *c = 0x0;
+  AliTRDseedV1 *fTracklet = NULL;  
+  AliTRDcluster *c = NULL;
   for(Int_t ily=0; ily<AliTRDgeometry::kNlayer; ily++){
     if(!(fTracklet = fkTrack->GetTracklet(ily))) continue;
     if(!fTracklet->IsOK()) continue;
@@ -295,17 +295,18 @@ TH1* AliTRDresolution::PlotCluster(const AliTRDtrackV1 *track)
   if(track) fkTrack = track;
   if(!fkTrack){
     AliWarning("No Track defined.");
-    return 0x0;
+    return NULL;
   }
-  TObjArray *arr = 0x0;
+  TObjArray *arr = NULL;
   if(!(arr = ((TObjArray*)fContainer->At(kCluster)))){
     AliWarning("No output container defined.");
-    return 0x0;
+    return NULL;
   }
+  ULong_t status = fkESD ? fkESD->GetStatus():0;
 
   Double_t cov[7];
   Float_t x0, y0, z0, dy, dydx, dzdx;
-  AliTRDseedV1 *fTracklet = 0x0;  
+  AliTRDseedV1 *fTracklet = NULL;  
   for(Int_t ily=0; ily<AliTRDgeometry::kNlayer; ily++){
     if(!(fTracklet = fkTrack->GetTracklet(ily))) continue;
     if(!fTracklet->IsOK()) continue;
@@ -318,7 +319,7 @@ TH1* AliTRDresolution::PlotCluster(const AliTRDtrackV1 *track)
     dzdx = fTracklet->GetZref(1);
     fTracklet->GetCovRef(cov);
     Float_t tilt = fTracklet->GetTilt();
-    AliTRDcluster *c = 0x0;
+    AliTRDcluster *c = NULL;
     fTracklet->ResetClusterIter(kFALSE);
     while((c = fTracklet->PrevCluster())){
       Float_t xc = c->GetX();
@@ -336,9 +337,8 @@ TH1* AliTRDresolution::PlotCluster(const AliTRDtrackV1 *track)
       ((TH2I*)arr->At(0))->Fill(dydx, dy);
       ((TH2I*)arr->At(1))->Fill(dydx, dy/TMath::Sqrt(cov[0] /*+ sx2*/ + sy2));
   
-/*      if(DebugLevel()>=3){
+      if(DebugLevel()>=2){
         // Get z-position with respect to anode wire
-        //AliTRDSimParam    *simParam    = AliTRDSimParam::Instance();
         Int_t istk = fGeo->GetStack(c->GetDetector());
         AliTRDpadPlane *pp = fGeo->GetPadPlane(ily, istk);
         Float_t row0 = pp->GetRow0();
@@ -349,14 +349,16 @@ TH1* AliTRDresolution::PlotCluster(const AliTRDtrackV1 *track)
         AliTRDclusterInfo *clInfo = new AliTRDclusterInfo;
         fCl->Add(clInfo);
         clInfo->SetCluster(c);
-        clInfo->SetGlobalPosition(yt, zt, dydx, dzdx);
+        Float_t covR[] = {cov[0], cov[1], cov[2]};
+        clInfo->SetGlobalPosition(yt, zt, dydx, dzdx, covR);
         clInfo->SetResolution(dy);
         clInfo->SetAnisochronity(d);
         clInfo->SetDriftLength(dx);
-        (*DebugStream()) << "ClusterResiduals"
+        (*DebugStream()) << "ClusterREC"
+          <<"status="  << status
           <<"clInfo.=" << clInfo
           << "\n";
-      }*/
+      }
     }
   }
   return (TH2I*)arr->At(0);
@@ -377,17 +379,17 @@ TH1* AliTRDresolution::PlotTracklet(const AliTRDtrackV1 *track)
   if(track) fkTrack = track;
   if(!fkTrack){
     AliWarning("No Track defined.");
-    return 0x0;
+    return NULL;
   }
-  TObjArray *arr = 0x0;
+  TObjArray *arr = NULL;
   if(!(arr = (TObjArray*)fContainer->At(kTrackTRD ))){
     AliWarning("No output container defined.");
-    return 0x0;
+    return NULL;
   }
 
   Double_t cov[3], covR[7]/*, sqr[3], inv[3]*/;
   Float_t x, dx, dy, dz;
-  AliTRDseedV1 *fTracklet = 0x0;  
+  AliTRDseedV1 *fTracklet = NULL;  
   for(Int_t il=AliTRDgeometry::kNlayer; il--;){
     if(!(fTracklet = fkTrack->GetTracklet(il))) continue;
     if(!fTracklet->IsOK()) continue;
@@ -437,24 +439,24 @@ TH1* AliTRDresolution::PlotTrackTPC(const AliTRDtrackV1 *track)
   if(track) fkTrack = track;
   if(!fkTrack){
     AliWarning("No Track defined.");
-    return 0x0;
+    return NULL;
   }
-  AliExternalTrackParam *tin = 0x0;
+  AliExternalTrackParam *tin = NULL;
   if(!(tin = fkTrack->GetTrackLow())){
     AliWarning("Track did not entered TRD fiducial volume.");
-    return 0x0;
+    return NULL;
   }
-  TH1 *h = 0x0;
+  TH1 *h = NULL;
   
   Double_t x = tin->GetX();
-  AliTRDseedV1 *tracklet = 0x0;  
+  AliTRDseedV1 *tracklet = NULL;  
   for(Int_t ily=0; ily<AliTRDgeometry::kNlayer; ily++){
     if(!(tracklet = fkTrack->GetTracklet(ily))) continue;
     break;
   }
   if(!tracklet || TMath::Abs(x-tracklet->GetX())>1.e-3){
     AliWarning("Tracklet did not match TRD entrance.");
-    return 0x0;
+    return NULL;
   }
   const Int_t kNPAR(5);
   Double_t parR[kNPAR]; memcpy(parR, tin->GetParameter(), kNPAR*sizeof(Double_t));
@@ -574,15 +576,15 @@ TH1* AliTRDresolution::PlotMC(const AliTRDtrackV1 *track)
 
   if(!HasMCdata()){ 
     AliWarning("No MC defined. Results will not be available.");
-    return 0x0;
+    return NULL;
   }
   if(track) fkTrack = track;
   if(!fkTrack){
     AliWarning("No Track defined.");
-    return 0x0;
+    return NULL;
   }
-  TObjArray *arr = 0x0;
-  TH1 *h = 0x0;
+  TObjArray *arr = NULL;
+  TH1 *h = NULL;
   UChar_t s;
   Int_t pdg = fkMC->GetPDG(), det=-1;
   Int_t label = fkMC->GetLabel();
@@ -611,7 +613,7 @@ TH1* AliTRDresolution::PlotMC(const AliTRDtrackV1 *track)
   }
 
   AliTRDReconstructor rec;
-  AliTRDseedV1 *fTracklet = 0x0;  
+  AliTRDseedV1 *fTracklet(NULL); TObjArray *clInfoArr(NULL);
   for(Int_t ily=0; ily<AliTRDgeometry::kNlayer; ily++){
     if(!(fTracklet = fkTrack->GetTracklet(ily)))/* ||
        !fTracklet->IsOK())*/ continue;
@@ -749,7 +751,7 @@ TH1* AliTRDresolution::PlotMC(const AliTRDtrackV1 *track)
     //Double_t exb = AliTRDCommonParam::Instance()->GetOmegaTau(1.5);
 
     arr = (TObjArray*)fContainer->At(kMCcluster);
-    AliTRDcluster *c = 0x0;
+    AliTRDcluster *c = NULL;
     fTracklet->ResetClusterIter(kFALSE);
     while((c = fTracklet->PrevCluster())){
       Float_t  q = TMath::Abs(c->GetQ());
@@ -757,7 +759,7 @@ TH1* AliTRDresolution::PlotMC(const AliTRDtrackV1 *track)
       dx = x0 - x; 
       ymc= y0 - dx*dydx0;
       zmc= z0 - dx*dzdx0;
-      dy = ymc - (y - tilt*(z-zmc));
+      dy = (y - tilt*(z-zmc)) - ymc;
       // Fill Histograms
       if(q>20. && q<250.){ 
         ((TH2I*)arr->At(0))->Fill(dydx0, dy);
@@ -769,23 +771,25 @@ TH1* AliTRDresolution::PlotMC(const AliTRDtrackV1 *track)
       d -= ((Int_t)(2 * d)) / 2.0;
       if (d > 0.25) d  = 0.5 - d;
       AliTRDclusterInfo *clInfo = new AliTRDclusterInfo;
-      fMCcl->Add(clInfo);
       clInfo->SetCluster(c);
       clInfo->SetMC(pdg, label);
       clInfo->SetGlobalPosition(ymc, zmc, dydx0, dzdx0);
       clInfo->SetResolution(dy);
       clInfo->SetAnisochronity(d);
-      clInfo->SetDriftLength(((c->GetPadTime()+0.5)*.1)*1.5);
-      //dx-.5*AliTRDgeometry::CamHght());
+      clInfo->SetDriftLength(dx-.5*AliTRDgeometry::CamHght());
       clInfo->SetTilt(tilt);
-
-      // Fill Debug Tree
-      if(DebugLevel()>=2){
-        //clInfo->Print();
-        (*DebugStream()) << "MCcluster"
-          <<"clInfo.=" << clInfo
-          << "\n";
+      fMCcl->Add(clInfo);
+      if(DebugLevel()>=2){ 
+        if(!clInfoArr) clInfoArr=new TObjArray(AliTRDseedV1::kNclusters);
+        clInfoArr->Add(clInfo);
       }
+    }
+    // Fill Debug Tree
+    if(DebugLevel()>=2 && clInfoArr){
+      (*DebugStream()) << "MCcluster"
+        <<"clInfo.=" << clInfoArr
+        << "\n";
+      delete clInfoArr; clInfoArr=NULL;
     }
   }
   return h;
@@ -804,7 +808,7 @@ Bool_t AliTRDresolution::GetRefFigure(Int_t ifig)
     AliWarning("Please provide a canvas to draw results.");
     return kFALSE;
   }
-  TList *l = 0x0; TVirtualPad *pad=0x0;
+  TList *l = NULL; TVirtualPad *pad=NULL;
   switch(ifig){
   case kCharge:
     gPad->Divide(2, 1, 1.e-5, 1.e-5); l=gPad->GetListOfPrimitives(); 
@@ -1036,9 +1040,9 @@ Bool_t AliTRDresolution::PostProcess()
     AliError("ERROR: list not available");
     return kFALSE;
   }
-  TGraph *gm= 0x0, *gs= 0x0;
+  TGraph *gm= NULL, *gs= NULL;
   if(!fGraphS && !fGraphM){ 
-    TObjArray *aM(0x0), *aS(0x0), *a(0x0);
+    TObjArray *aM(NULL), *aS(NULL), *a(NULL);
     Int_t n = fContainer->GetEntriesFast();
     fGraphS = new TObjArray(n); fGraphS->SetOwner();
     fGraphM = new TObjArray(n); fGraphM->SetOwner();
@@ -1249,8 +1253,10 @@ TObjArray* AliTRDresolution::Histos()
 
   fContainer  = new TObjArray(kNhistos);
   //fContainer->SetOwner(kTRUE);
-  TH1 *h = 0x0;
-  TObjArray *arr = 0x0;
+  TH1 *h = NULL;
+  TObjArray *arr = NULL;
+
+  const Int_t kPbins(12); // binning in momentum range should depend on the statistics analyzed
 
   // cluster to track residuals/pulls
   fContainer->AddAt(arr = new TObjArray(fgNElements[kCharge]), kCharge);
@@ -1501,12 +1507,12 @@ TObjArray* AliTRDresolution::Histos()
   arr->AddAt(h, 7);
   // Kalman track Pt resolution
   const Int_t n = AliPID::kSPECIES;
-  TObjArray *arr2 = 0x0; TH3S* h3=0x0;
+  TObjArray *arr2 = NULL; TH3S* h3=NULL;
   arr->AddAt(arr2 = new TObjArray(AliTRDgeometry::kNlayer), 8);
   arr2->SetName("Track Pt Resolution");
   for(Int_t il=0; il<AliTRDgeometry::kNlayer; il++){
     if(!(h3 = (TH3S*)gROOT->FindObject(Form("hMcTrkPt%d", il)))){
-      h3 = new TH3S(Form("hMcTrkPt%d", il), "Track Pt Resolution", 40, 0., 20., 150, -.1, .2, n, -.5, n-.5);
+      h3 = new TH3S(Form("hMcTrkPt%d", il), "Track Pt Resolution", kPbins, 0., 12., 150, -.1, .2, n, -.5, n-.5);
       h3->GetXaxis()->SetTitle("p_{t} [GeV/c]");
       h3->GetYaxis()->SetTitle("#Delta p_{t}/p_{t}^{MC}");
       h3->GetZaxis()->SetTitle("SPECIES");
@@ -1518,7 +1524,7 @@ TObjArray* AliTRDresolution::Histos()
   arr2->SetName("Track 1/Pt Pulls");
   for(Int_t il=0; il<AliTRDgeometry::kNlayer; il++){
     if(!(h3 = (TH3S*)gROOT->FindObject(Form("hMcTrkPtPulls%d", il)))){
-      h3 = new TH3S(Form("hMcTrkPtPulls%d", il), "Track 1/Pt Pulls", 40, 0., 2., 100, -4., 4., n, -.5, n-.5);
+      h3 = new TH3S(Form("hMcTrkPtPulls%d", il), "Track 1/Pt Pulls", kPbins, 0., 2., 100, -4., 4., n, -.5, n-.5);
       h3->GetXaxis()->SetTitle("1/p_{t}^{MC} [c/GeV]");
       h3->GetYaxis()->SetTitle("#Delta(1/p_{t})/#sigma(1/p_{t}) ");
       h3->GetZaxis()->SetTitle("SPECIES");
@@ -1530,7 +1536,7 @@ TObjArray* AliTRDresolution::Histos()
   arr2->SetName("Track P Resolution [PID]");
   for(Int_t il=0; il<AliTRDgeometry::kNlayer; il++){
     if(!(h3 = (TH3S*)gROOT->FindObject(Form("hMcTrkP%d", il)))){
-      h3 = new TH3S(Form("hMcTrkP%d", il), "Track P Resolution", 40, 0., 20., 150, -.15, .35, n, -.5, n-.5);
+      h3 = new TH3S(Form("hMcTrkP%d", il), "Track P Resolution", kPbins, 0., 12., 150, -.15, .35, n, -.5, n-.5);
       h3->GetXaxis()->SetTitle("p [GeV/c]");
       h3->GetYaxis()->SetTitle("#Delta p/p^{MC}");
       h3->GetZaxis()->SetTitle("SPECIES");
@@ -1607,7 +1613,7 @@ TObjArray* AliTRDresolution::Histos()
   arr->AddAt(h, 7);
   // Kalman track Pt resolution
   if(!(h3 = (TH3S*)gROOT->FindObject("hMcTrkTPCPt"))){
-    h3 = new TH3S("hMcTrkTPCPt", "Track[TPC] Pt Resolution", 80, 0., 20., 150, -.1, .2, n, -.5, n-.5);
+    h3 = new TH3S("hMcTrkTPCPt", "Track[TPC] Pt Resolution", kPbins, 0., 12., 100, -.1, .2, n, -.5, n-.5);
     h3->GetXaxis()->SetTitle("p_{t} [GeV/c]");
     h3->GetYaxis()->SetTitle("#Delta p_{t}/p_{t}^{MC}");
     h3->GetZaxis()->SetTitle("SPECIES");
@@ -1615,7 +1621,7 @@ TObjArray* AliTRDresolution::Histos()
   arr->AddAt(h3, 8);
   // Kalman track Pt pulls
   if(!(h3 = (TH3S*)gROOT->FindObject("hMcTrkTPCPtPulls"))){
-    h3 = new TH3S("hMcTrkTPCPtPulls", "Track[TPC] 1/Pt Pulls", 80, 0., 2., 100, -4., 4., n, -.5, n-.5);
+    h3 = new TH3S("hMcTrkTPCPtPulls", "Track[TPC] 1/Pt Pulls", kPbins, 0., 2., 100, -4., 4., n, -.5, n-.5);
     h3->GetXaxis()->SetTitle("1/p_{t}^{MC} [c/GeV]");
     h3->GetYaxis()->SetTitle("#Delta(1/p_{t})/#sigma(1/p_{t}) ");
     h3->GetZaxis()->SetTitle("SPECIES");
@@ -1623,7 +1629,7 @@ TObjArray* AliTRDresolution::Histos()
   arr->AddAt(h3, 9);
   // Kalman track P resolution
   if(!(h3 = (TH3S*)gROOT->FindObject("hMcTrkTPCP"))){
-    h3 = new TH3S("hMcTrkTPCP", "Track[TPC] P Resolution", 80, 0., 20., 150, -.15, .35, n, -.5, n-.5);
+    h3 = new TH3S("hMcTrkTPCP", "Track[TPC] P Resolution", kPbins, 0., 12., 100, -.15, .35, n, -.5, n-.5);
     h3->GetXaxis()->SetTitle("p [GeV/c]");
     h3->GetYaxis()->SetTitle("#Delta p/p^{MC}");
     h3->GetZaxis()->SetTitle("SPECIES");
@@ -1631,7 +1637,7 @@ TObjArray* AliTRDresolution::Histos()
   arr->AddAt(h3, 10);
   // Kalman track Pt pulls
   if(!(h3 = (TH3S*)gROOT->FindObject("hMcTrkTPCPPulls"))){
-    h3 = new TH3S("hMcTrkTPCPPulls", "Track[TPC] P Pulls", 80, 0., 20., 100, -5., 5., n, -.5, n-.5);
+    h3 = new TH3S("hMcTrkTPCPPulls", "Track[TPC] P Pulls", kPbins, 0., 12., 100, -5., 5., n, -.5, n-.5);
     h3->GetXaxis()->SetTitle("p^{MC} [GeV/c]");
     h3->GetYaxis()->SetTitle("#Deltap/#sigma_{p}");
     h3->GetZaxis()->SetTitle("SPECIES");
@@ -1810,7 +1816,7 @@ Bool_t AliTRDresolution::Process4D(ETRDresolutionPlot plot, Int_t idx, TF1 *f, F
 
   TGraphErrors *g[2];
 
-  TH3S *h3 = 0x0;
+  TH3S *h3 = NULL;
   for(Int_t ix=0; ix<arr->GetEntriesFast(); ix++){
     if(!(h3 = (TH3S*)arr->At(ix))) return kFALSE;
     if(!(gm[1] = (TObjArray*)gm[0]->At(ix))) return kFALSE;
@@ -1862,7 +1868,7 @@ Bool_t AliTRDresolution::GetGraphPlot(Float_t *bb, ETRDresolutionPlot ip, Int_t 
   }
 
   // axis range
-  TAxis *ax = 0x0;
+  TAxis *ax = NULL;
   ax = gs->GetHistogram()->GetXaxis();
   ax->SetRangeUser(bb[0], bb[2]);
   ax->SetTitle(at[1]);ax->CenterTitle();
@@ -1872,7 +1878,7 @@ Bool_t AliTRDresolution::GetGraphPlot(Float_t *bb, ETRDresolutionPlot ip, Int_t 
   ax->SetTitleOffset(1.1);
   ax->SetTitle(at[2]);ax->CenterTitle();
 
-  TGaxis *gax = 0x0;
+  TGaxis *gax = NULL;
   gax = new TGaxis(bb[2], bb[1], bb[2], bb[3], bb[1], bb[3], 510, "+U");
   gax->SetLineColor(kRed);gax->SetLineWidth(2);gax->SetTextColor(kRed);
   //gax->SetVertical();
@@ -1903,8 +1909,8 @@ Bool_t AliTRDresolution::GetGraphTrack(Float_t *bb, Int_t idx, Int_t il)
   for(Int_t jc=0; jc<idx; jc++) nref++;
   const Char_t **at = fgAxTitle[nref];
 
-  TGraphErrors *gm = 0x0, *gs = 0x0;
-  TObjArray *a0 = fGraphS, *a1 = 0x0;
+  TGraphErrors *gm = NULL, *gs = NULL;
+  TObjArray *a0 = fGraphS, *a1 = NULL;
   a1 = (TObjArray*)a0->At(kMCtrackTRD); a0 = a1;
   a1 = (TObjArray*)a0->At(idx); a0 = a1;
   a1 = (TObjArray*)a0->At(il); a0 = a1;
@@ -1929,7 +1935,7 @@ Bool_t AliTRDresolution::GetGraphTrack(Float_t *bb, Int_t idx, Int_t il)
   ax->SetTitleOffset(.5);ax->SetTitleSize(.06);
   ax->SetTitle(at[2]);ax->CenterTitle();
 
-  TGaxis *gax = 0x0;
+  TGaxis *gax = NULL;
   gax = new TGaxis(bb[2], bb[1], bb[2], bb[3], bb[1], bb[3], 510, "+U");
   gax->SetLineColor(kRed);gax->SetLineWidth(2);gax->SetTextColor(kRed);
   //gax->SetVertical();
@@ -1968,11 +1974,11 @@ Bool_t AliTRDresolution::GetGraphTrackTPC(Float_t *bb, Int_t sel)
   for(Int_t jc=0; jc<sel; jc++) nref++;
   const Char_t **at = fgAxTitle[nref];
 
-  TGraphErrors *gm = 0x0, *gs = 0x0;
-  TObjArray *a0 = fGraphS, *a1 = 0x0;
+  TGraphErrors *gm = NULL, *gs = NULL;
+  TObjArray *a0 = fGraphS, *a1 = NULL;
   a1 = (TObjArray*)a0->At(kMCtrackTPC); a0 = a1;
   a1 = (TObjArray*)a0->At(sel); a0 = a1;
-  for(Int_t is=0; is<AliPID::kSPECIES; is++){
+  for(Int_t is=AliPID::kSPECIES; is--;){
     if(!(gs =  (TGraphErrors*)a0->At(is))) return kFALSE;
     if(!gs->GetN()) continue;
     gs->Draw(is ? "pl" : "apl");
@@ -1992,7 +1998,7 @@ Bool_t AliTRDresolution::GetGraphTrackTPC(Float_t *bb, Int_t sel)
   ax->SetTitleOffset(1.);ax->SetTitleSize(0.05);
   ax->SetTitle(at[2]);ax->CenterTitle();
 
-  TGaxis *gax = 0x0;
+  TGaxis *gax = NULL;
   gax = new TGaxis(bb[2], bb[1], bb[2], bb[3], bb[1], bb[3], 510, "+U");
   gax->SetLineColor(kRed);gax->SetLineWidth(2);gax->SetTextColor(kRed);
   //gax->SetVertical();
@@ -2003,7 +2009,7 @@ Bool_t AliTRDresolution::GetGraphTrackTPC(Float_t *bb, Int_t sel)
   a0 = fGraphM;
   a1 = (TObjArray*)a0->At(kMCtrackTPC); a0 = a1;
   a1 = (TObjArray*)a0->At(sel); a0 = a1;
-  for(Int_t is=0; is<AliPID::kSPECIES; is++){
+  for(Int_t is=AliPID::kSPECIES; is--;){
     if(!(gm =  (TGraphErrors*)a0->At(is))) return kFALSE;
     if(!gm->GetN()) continue;
     gm->Draw("pl");

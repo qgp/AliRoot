@@ -45,7 +45,7 @@ const Int_t kValCutTemp = 100;               // discard temperatures > 100 degre
 const Int_t kDiffCutTemp = 5;	             // discard temperature differences > 5 degrees
 const TString kPedestalRunType = "PEDESTAL";  // pedestal run identifier
 const TString kPhysicsRunType = "PHYSICS";   // physics run identifier
-const TString kStandAloneRunType = "STANDALONE"; // standalone run identifier
+const TString kStandAloneRunType = "STANDALONE_BC"; // standalone run identifier
 const TString kAmandaTemp = "PT_%02d.Temperature"; // Amanda string for temperature entries
 //const Double_t kFitFraction = 0.7;                 // Fraction of DCS sensor fits required 
 const Double_t kFitFraction = -1.0;          // Don't require minimum number of fits during commissioning 
@@ -199,7 +199,7 @@ UInt_t AliEMCALPreprocessor::Process(TMap* dcsAliasMap)
   
   // PEDESTAL ENTRIES:
   
-  if(runType == kPedestalRunType) {
+  if (runType == kPedestalRunType || runType == kStandAloneRunType) {
     Int_t numSources = 1;
     Int_t pedestalSource[2] = {AliShuttleInterface::kDAQ, AliShuttleInterface::kHLT} ;
     TString source = fConfEnv->GetValue("Pedestal","DAQ");
@@ -226,7 +226,7 @@ UInt_t AliEMCALPreprocessor::Process(TMap* dcsAliasMap)
   
   // SIGNAL/LED ENTRIES:
   
-  if( runType == kPhysicsRunType || runType == kStandAloneRunType ) {
+  if( runType == kStandAloneRunType ) {
     Int_t numSources = 1;
     Int_t signalSource[2] = {AliShuttleInterface::kDAQ,AliShuttleInterface::kHLT} ;
     TString source = fConfEnv->GetValue("Signal","DAQ");
@@ -311,20 +311,12 @@ UInt_t AliEMCALPreprocessor::ExtractPedestals(Int_t sourceFXS)
   UInt_t result=0;
   //
   //  Read pedestal file from file exchange server
-  //  Keep original entry from OCDB in case no new pedestals are available
+  //  Only store if new pedestal info is available
   //
-  AliCaloCalibPedestal *calibPed=0;
-  AliCDBEntry* entry = GetFromOCDB("Calib", "Pedestals");
-  if (entry) calibPed = (AliCaloCalibPedestal*)entry->GetObject();
-  if ( calibPed==NULL ) {
-    Log("AliEMCALPreprocessor: No previous EMCAL pedestal entry available.\n");
-    calibPed = new AliCaloCalibPedestal(AliCaloCalibPedestal::kEmCal);
-  }
+  AliCaloCalibPedestal *calibPed = new AliCaloCalibPedestal(AliCaloCalibPedestal::kEmCal);
   
   TList* list = GetFileSources(sourceFXS,"pedestals");
   if (list && list->GetEntries()>0) {
-    
-    calibPed->Reset(); // let's make a fresh start before possibly adding stuff below
     
     //  loop through all files from LDCs
 
@@ -387,25 +379,13 @@ UInt_t AliEMCALPreprocessor::ExtractSignal(Int_t sourceFXS)
   UInt_t result=0;
   //
   //  Read signal file from file exchange server
-  //  Keep original entry from OCDB in case no new signal are available
+  //  Only store if new signal info is available
   //
-  AliCaloCalibSignal *calibSig=0;
-  AliCDBEntry* entry = GetFromOCDB("Calib", "LED");
-  if (entry) calibSig = (AliCaloCalibSignal*)entry->GetObject();
-  if ( calibSig==NULL ) {
-    Log("AliEMCALPreprocessor: No previous EMCAL signal entry available.\n");
-    calibSig = new AliCaloCalibSignal(AliCaloCalibSignal::kEmCal); 
-  }
+  AliCaloCalibSignal *calibSig = new AliCaloCalibSignal(AliCaloCalibSignal::kEmCal); 
   
   TList* list = GetFileSources(sourceFXS,"signal");
   if (list && list->GetEntries()>0) {
 
-    /* DS: 17 June 2008 - commented out this reset to avoid crash in shuttle.
-           Not sure why it occurs, in standalone tests a Reset() seemed to work OK..
-    
-    calibSig->Reset(); // let's make a fresh start before possibly adding stuff below
-    */
-    
     //  loop through all files from LDCs
     
     int changes = 0;

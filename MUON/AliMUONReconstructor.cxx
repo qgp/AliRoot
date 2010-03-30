@@ -89,6 +89,7 @@
 #include "AliMUONDigitStoreV1.h"
 #include "AliMUONDigitStoreV2R.h"
 #include "AliMUONGeometryTransformer.h"
+#include "AliMUONPadStatusMaker.h"
 #include "AliMUONPreClusterFinder.h"
 #include "AliMUONPreClusterFinderV2.h"
 #include "AliMUONPreClusterFinderV3.h"
@@ -99,6 +100,7 @@
 #include "AliMUONVClusterFinder.h"
 #include "AliMUONVClusterServer.h"
 #include "AliMUONVTrackStore.h"
+#include "AliMUONTriggerElectronics.h"
 
 #include "AliMpArea.h"
 #include "AliMpCDB.h"
@@ -110,6 +112,7 @@
 #include "AliCDBManager.h"
 #include "AliCodeTimer.h"
 #include "AliLog.h"
+#include "AliRunInfo.h"
 
 #include <Riostream.h>
 #include <TObjArray.h>
@@ -133,7 +136,8 @@ fDigitCalibrator(0x0),
 fClusterServer(0x0),
 fTriggerStore(0x0),
 fTrackStore(0x0),
-fClusterStore(0x0)
+fClusterStore(0x0),
+fTriggerProcessor(0x0)  
 {
   /// normal ctor
 
@@ -172,6 +176,7 @@ AliMUONReconstructor::~AliMUONReconstructor()
   delete fTriggerStore;
   delete fTrackStore;
   delete fClusterStore;
+  delete fTriggerProcessor;
 
   delete AliMpSegmentation::Instance(false);
   delete AliMpDDLStore::Instance(false);
@@ -187,7 +192,7 @@ AliMUONReconstructor::Calibrate(AliMUONVDigitStore& digitStore) const
     CreateCalibrator();
   }
   AliCodeTimerAuto(Form("%s::Calibrate(AliMUONVDigitStore*)",fDigitCalibrator->ClassName()),0)
-  fDigitCalibrator->Calibrate(digitStore);  
+  fDigitCalibrator->Calibrate(digitStore);      
 }
 
 //_____________________________________________________________________________
@@ -409,16 +414,14 @@ AliMUONReconstructor::CreateClusterServer() const
 
 //_____________________________________________________________________________
 void
-AliMUONReconstructor::CreateCalibrator() const
+AliMUONReconstructor::CreateCalibrationData() const
 {
   /// Create the calibrator
   
-  AliCodeTimerAuto("",0)
+  AliCodeTimerAuto("",0);
   
   Int_t runNumber = AliCDBManager::Instance()->GetRun();
 
-  AliInfo("Calibration will occur.");
-  
   fCalibrationData = new AliMUONCalibrationData(runNumber);
   if ( !fCalibrationData->IsValid() )
   {
@@ -428,14 +431,67 @@ AliMUONReconstructor::CreateCalibrator() const
     return;
   }    
   
-  // Check that we get all the calibrations we'll need
-  if ( !fCalibrationData->Pedestals() ||
-       !fCalibrationData->Gains() ||
-       !fCalibrationData->HV() )
-  {
-    AliFatal("Could not access all required calibration data");
-  }
+  // It is now time to check whether we have everything to proceed.
+  // What we need depends on whether both tracker and trigger
+  // are in the readout chain, and what specific "bad channel policy"
+  // we use
   
+  Bool_t kTracker(kFALSE);
+  Bool_t kTrigger(kFALSE);
+  
+  const AliRunInfo* runInfo = GetRunInfo();
+  if (!runInfo)
+  {
+    AliError("Could not get runinfo ?")
+  }
+  else
+  {
+    TString detectors(runInfo->GetActiveDetectors());
+    if (detectors.Contains("MUONTRK")) kTracker=kTRUE;
+    if (detectors.Contains("MUONTRG")) kTrigger=kTRUE;
+  }
+   
+  AliInfo(Form("Run with MUON TRIGGER : %s and MUON TRACKER : %s",
+               kTrigger ? "YES":"NO" , 
+               kTracker ? "YES":"NO"));
+  
+  if ( kTracker ) 
+  {
+    // Check that we get all the calibrations we'll need
+    if ( !fCalibrationData->Pedestals() ||
+        !fCalibrationData->Gains() )
+    {
+      AliFatal(Form("Could not access all required calibration data (PED %p GAIN %p)",
+                    fCalibrationData->Pedestals(),fCalibrationData->Gains()));      
+    }
+    
+    if ( !fCalibrationData->HV() ) 
+    {
+      // Special treatment of HV. We only break if the values
+      // are not there *AND* we cut on them.
+      UInt_t mask = GetRecoParam()->PadGoodnessMask();
+      TString smask(AliMUONPadStatusMaker::AsCondition(mask));
+      if ( smask.Contains("HV") )
+      {
+        AliFatal("Could not access all required calibration data (HV)");      
+      }
+    } 
+  }
+}
+
+//_____________________________________________________________________________
+void
+AliMUONReconstructor::CreateCalibrator() const
+{
+  /// Create the calibrator
+
+  AliCodeTimerAuto("",0);
+
+  if ( ! fCalibrationData )
+    CreateCalibrationData();
+
+  AliInfo("Calibration will occur.");
+
   TString opt(GetOption());
   opt.ToUpper();
   
@@ -447,6 +503,23 @@ AliMUONReconstructor::CreateCalibrator() const
   TString calibMode = GetRecoParam()->GetCalibrationMode();
 
   fDigitCalibrator = new AliMUONDigitCalibrator(*fCalibrationData,GetRecoParam(),calibMode.Data());
+}
+
+//_____________________________________________________________________________
+void
+AliMUONReconstructor::ResponseRemovingChambers(AliMUONVTriggerStore* triggerStore) const
+{
+  /// Update trigger information with informatins obtained after
+  /// re-calculation of trigger response
+  AliCodeTimerAuto("",0);
+
+  if ( ! fCalibrationData )
+    CreateCalibrationData();
+
+  if ( ! fTriggerProcessor )
+    fTriggerProcessor = new AliMUONTriggerElectronics(fCalibrationData);
+
+  fTriggerProcessor->ResponseRemovingChambers(*triggerStore);
 }
 
 //_____________________________________________________________________________
@@ -502,6 +575,7 @@ AliMUONReconstructor::FillTreeR(AliMUONVTriggerStore* triggerStore,
   
   if ( triggerStore ) 
   {
+    ResponseRemovingChambers(triggerStore);
     ok = triggerStore->Connect(clustersTree,alone);
     if (!ok)
     {

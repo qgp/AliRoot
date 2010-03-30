@@ -24,7 +24,7 @@ void RunAnalysisAODVertexingHF()
   Long64_t nentries=1000,firstentry=0;
   Bool_t useParFiles=kFALSE;
   Bool_t useAlienPlugin=kTRUE;
-  TString pluginmode="full";
+  TString pluginmode="test";
   Bool_t saveProofToAlien=kFALSE;
   TString proofOutdir = "";
   TString loadMacroPath="$ALICE_ROOT/PWG3/vertexingHF/";
@@ -70,6 +70,7 @@ void RunAnalysisAODVertexingHF()
     gSystem->Load("libGeom.so");
     gSystem->Load("libPhysics.so");
     gSystem->Load("libVMC.so");    
+    gSystem->Load("libMinuit.so");    
     // Enable the needed packages
     //gProof->ClearPackages();
     TString parDir="/afs/cern.ch/user/d/dainesea/code/";
@@ -114,22 +115,10 @@ void RunAnalysisAODVertexingHF()
       parFile="PWG3vertexingHF.par"; parFile.Prepend(parDir.Data());
       gProof->UploadPackage(parFile.Data());
       gProof->EnablePackage("PWG3vertexingHF");
-      // --- Enable the JETAN Package
-      parFile="JETAN.par"; parFile.Prepend(parDir.Data());
-      gProof->UploadPackage(parFile.Data());
-      gProof->EnablePackage("JETAN");
       // --- Enable the PWG3muon Package
       parFile="PWG3muon.par"; parFile.Prepend(parDir.Data());
       gProof->UploadPackage(parFile.Data());
       gProof->EnablePackage("PWG3muon");
-      // --- Enable the PWG4PartCorrBase Package
-      parFile="PWG4PartCorrBase.par"; parFile.Prepend(parDir.Data());
-      gProof->UploadPackage(parFile.Data());
-      gProof->EnablePackage("PWG4PartCorrBase");
-      // --- Enable the PWG4PartCorrDep Package
-      parFile="PWG4PartCorrDep.par"; parFile.Prepend(parDir.Data());
-      gProof->UploadPackage(parFile.Data());
-      gProof->EnablePackage("PWG4PartCorrDep");
     }
     gProof->ShowEnabledPackages(); // show a list of enabled packages
   }
@@ -201,6 +190,10 @@ void RunAnalysisAODVertexingHF()
   gROOT->LoadMacro(taskName.Data());
   AliAnalysisTaskSEDplus *dplusTask = AddTaskDplus();
   
+  taskName="AddTaskDs.C"; taskName.Prepend(loadMacroPath.Data());
+  gROOT->LoadMacro(taskName.Data());
+  AliAnalysisTaskSEDs *dsTask = AddTaskDs();
+
   //taskName="AddTaskSelectHF.C"; taskName.Prepend(loadMacroPath.Data());
   //gROOT->LoadMacro(taskName.Data());
   //AliAnalysisTaskSESelectHF *seleTask = AddTaskSelectHF();
@@ -278,7 +271,7 @@ AliAnalysisGrid* CreateAlienHandler(TString pluginmode="test",Bool_t useParFiles
    // Set the run mode (can be "full", "test", "offline", "submit" or "terminate")
    plugin->SetRunMode(pluginmode.Data());
    plugin->SetUser("dainesea");
-   plugin->SetNtestFiles(1);
+   plugin->SetNtestFiles(2);
    // Set versions of used packages
    plugin->SetAPIVersion("V2.4");
    plugin->SetROOTVersion("v5-24-00");

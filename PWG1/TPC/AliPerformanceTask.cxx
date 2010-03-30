@@ -60,7 +60,7 @@ ClassImp(AliPerformanceTask)
 
 //_____________________________________________________________________________
 AliPerformanceTask::AliPerformanceTask() 
-  : AliAnalysisTask("Performance","Detector Performance")
+  : AliAnalysisTaskSE("Performance")
   , fESD(0)
   , fESDfriend(0)
   , fMC(0)
@@ -75,8 +75,8 @@ AliPerformanceTask::AliPerformanceTask()
 }
 
 //_____________________________________________________________________________
-AliPerformanceTask::AliPerformanceTask(const char *name, const char *title) 
-  : AliAnalysisTask(name, title)
+AliPerformanceTask::AliPerformanceTask(const char *name, const char */*title*/) 
+  : AliAnalysisTaskSE(name)
   , fESD(0)
   , fESDfriend(0)
   , fMC(0)
@@ -89,8 +89,7 @@ AliPerformanceTask::AliPerformanceTask(const char *name, const char *title)
   // Constructor
 
   // Define input and output slots here
-  DefineInput(0, TChain::Class());
-  DefineOutput(0, TList::Class());
+  DefineOutput(1, TList::Class());
 
   // create the list for comparison objects
   fCompList = new TList;
@@ -99,46 +98,8 @@ AliPerformanceTask::AliPerformanceTask(const char *name, const char *title)
 //_____________________________________________________________________________
 AliPerformanceTask::~AliPerformanceTask()
 {
-  if(fOutput)   delete fOutput;  fOutput =0; 
-  if(fCompList)   delete fCompList;  fCompList =0; 
-}
-
-//_____________________________________________________________________________
-void AliPerformanceTask::ConnectInputData(Option_t *) 
-{
-  // Connect input data 
-  // Called once
-
-  TTree *tree = dynamic_cast<TTree*> (GetInputData(0));
-  if (!tree) {
-    Printf("ERROR: Could not read chain from input slot 0");
-    return;
-  }
-
-  AliESDInputHandler *esdH = dynamic_cast<AliESDInputHandler*> (AliAnalysisManager::GetAnalysisManager()->GetInputEventHandler());
-  if (!esdH) {
-    Printf("ERROR: Could not get ESDInputHandler");
-  } else {
-    fESD = esdH->GetEvent();
-
-    if(fUseESDfriend)
-    {
-      fESDfriend = static_cast<AliESDfriend*>(fESD->FindListObject("AliESDfriend"));
-      if(!fESDfriend) {
-        Printf("ERROR: ESD friends not available");
-      }
-    }
-  }
-
-  // use MC information
-  if(fUseMCInfo) {
-    AliMCEventHandler* eventHandler = dynamic_cast<AliMCEventHandler*> (AliAnalysisManager::GetAnalysisManager()->GetMCtruthEventHandler());
-    if (!eventHandler) {
-      Printf("ERROR: Could not retrieve MC event handler");
-    } else {
-      fMC = eventHandler->MCEvent();
-    }
-  }
+  if(fOutput)     delete fOutput;    fOutput   = 0; 
+  if(fCompList)   delete fCompList;  fCompList = 0; 
 }
 
 //_____________________________________________________________________________
@@ -157,7 +118,7 @@ return kTRUE;
 }
 
 //_____________________________________________________________________________
-void AliPerformanceTask::CreateOutputObjects()
+void AliPerformanceTask::UserCreateOutputObjects()
 {
   // Create histograms
   // Called once
@@ -180,11 +141,24 @@ void AliPerformanceTask::CreateOutputObjects()
 }
 
 //_____________________________________________________________________________
-void AliPerformanceTask::Exec(Option_t *) 
+void AliPerformanceTask::UserExec(Option_t *) 
 {
   // Main loop
   // Called for each event
+  fESD = (AliESDEvent*) (InputEvent());
+  if(fUseESDfriend)
+    {
+      fESDfriend = static_cast<AliESDfriend*>(fESD->FindListObject("AliESDfriend"));
+      if(!fESDfriend) {
+        Printf("ERROR: ESD friends not available");
+      }
+    }
+  
+  if(fUseMCInfo) {
+      fMC = MCEvent();
+  }  
 
+  //
   AliPerformanceObject *pObj=0;
 
   if (!fESD) {
@@ -211,7 +185,7 @@ void AliPerformanceTask::Exec(Option_t *)
   }
 
   // Post output data.
-  PostData(0, fOutput);
+  PostData(1, fOutput);
 }
 
 //_____________________________________________________________________________
@@ -220,7 +194,7 @@ void AliPerformanceTask::Terminate(Option_t *)
   // Called one at the end 
   
   // check output data
-  fOutput = dynamic_cast<TList*> (GetOutputData(0));
+  fOutput = dynamic_cast<TList*> (GetOutputData(1));
   if (!fOutput) {
     Printf("ERROR: AliPerformanceTask::Terminate(): Output data not avaiable GetOutputData(0)==0x0 ..." );
     return;

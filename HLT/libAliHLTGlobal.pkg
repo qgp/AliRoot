@@ -7,7 +7,17 @@ CLASS_HDRS:=	AliHLTGlobalEsdConverterComponent.h \
 		AliHLTGlobalAgent.h \
 		AliHLTGlobalVertexerComponent.h \
 		AliHLTGlobalTrackMatcher.h \
-		physics/AliHLTV0HistoComponent.h
+		AliHLTGlobalVertexerHistoComponent.h \
+		AliHLTGlobalHistoCollector.h \
+		physics/AliHLTV0HistoComponent.h \
+		physics/AliHLTCaloHistoComponent.h \
+	        physics/AliHLTCaloHistoInvMass.h \
+		physics/AliHLTCaloHistoMatchedTracks.h \
+		physics/AliHLTCaloHistoClusterEnergy.h \
+		physics/AliHLTCaloHistoCellEnergy.h 
+
+#	        physics/AliHLTPHOSHistogramProducerComponent.h \
+#physics/AliHLTPHOSHistogramProducerComponent.h 
 
 # 		
 MODULE_SRCS= 	$(CLASS_HDRS:.h=.cxx)
@@ -22,7 +32,8 @@ EINCLUDE 	:= HLT/global HLT/global/physics \
 		   TPC \
 		   RAW \
 		   TRD \
-		   STEER
+		   STEER \
+		   PHOS
 
 LIBRARY_DEP := -lHLTbase -lAliHLTUtil \
                -lCDB -lESD -lSTEER -lSTEERBase -lTPCrec -lTPCcalib -lTPCbase \

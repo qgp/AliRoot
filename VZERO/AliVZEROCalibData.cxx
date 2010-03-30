@@ -33,11 +33,26 @@ ClassImp(AliVZEROCalibData)
 //________________________________________________________________
 AliVZEROCalibData::AliVZEROCalibData()
 {
-  // 
-  	for(int i=0; i<kNCIUBoards ;i++) {
-		fTimeResolution[i] = 25./256.; // Default time resolution
-		fWidthResolution[i] = 25./64.;     // Default time width resolution
-	}
+  // default constructor
+  
+    for(int t=0; t<64; t++) {
+        fMeanHV[t]      = 100.0;
+        fWidthHV[t]     = 0.0; 
+	fTimeOffset[t]  = 0.0;
+        fTimeGain[t]    = 1.0;
+	fDeadChannel[t]= kFALSE;
+    }
+    for(int t=0; t<128; t++) {
+        fPedestal[t]    = 0.0;     
+        fSigma[t]       = 0.0;        
+        fADCmean[t]     = 0.0;      
+        fADCsigma[t]    = 0.0;
+        fGain[t]        = 1.0;
+    }
+    for(int i=0; i<kNCIUBoards ;i++) {
+	fTimeResolution[i]  = 25./256.;     // Default time resolution
+	fWidthResolution[i] = 25./64.;     // Default time width resolution
+    }
 
 }
 
@@ -50,14 +65,28 @@ void AliVZEROCalibData::Reset()
 //________________________________________________________________
 AliVZEROCalibData::AliVZEROCalibData(const char* name)
 {
-  TString namst = "Calib_";
-  namst += name;
-  SetName(namst.Data());
-  SetTitle(namst.Data());
-  for(int i=0; i<kNCIUBoards ;i++) {
-	fTimeResolution[i] = 25./256.; // Default time resolution in ns / channel
-	fWidthResolution[i] = 25./64.;     // Default time width resolution in ns / channel
-  }
+   TString namst = "Calib_";
+   namst += name;
+   SetName(namst.Data());
+   SetTitle(namst.Data());
+   for(int t=0; t<64; t++) {
+       fMeanHV[t]      = 100.0;
+       fWidthHV[t]     = 0.0; 
+       fTimeOffset[t]  = 0.0;
+       fTimeGain[t]    = 1.0;
+       fDeadChannel[t]= kFALSE;
+    }
+   for(int t=0; t<128; t++) {
+       fPedestal[t]    = 0.0;     
+       fSigma[t]       = 0.0;        
+       fADCmean[t]     = 0.0;      
+       fADCsigma[t]    = 0.0;
+       fGain[t]        = 1.0;
+   }
+   for(int i=0; i<kNCIUBoards ;i++) {
+       fTimeResolution[i]  = 25./256.;    // Default time resolution in ns / channel
+       fWidthResolution[i] = 25./64.;     // Default time width resolution in ns / channel
+   }
 
 }
 
@@ -82,14 +111,13 @@ AliVZEROCalibData::AliVZEROCalibData(const AliVZEROCalibData& calibda) :
       fWidthHV[t]      = calibda.GetWidthHV(t);        
       fTimeOffset[t]   = calibda.GetTimeOffset(t);
       fTimeGain[t]     = calibda.GetTimeGain(t); 
-	  fDeadChannel[t]  = calibda.IsChannelDead(t);
+      fDeadChannel[t]  = calibda.IsChannelDead(t);
   }  
   
-  	for(int i=0; i<kNCIUBoards ;i++) {
-		fTimeResolution[i]  = calibda.GetTimeResolution(i);
-		fWidthResolution[i] = calibda.GetWidthResolution(i);	  
-	}
-
+  for(int i=0; i<kNCIUBoards ;i++) {
+      fTimeResolution[i]  = calibda.GetTimeResolution(i);
+      fWidthResolution[i] = calibda.GetWidthResolution(i);	  
+  }
   
 }
 
@@ -113,12 +141,12 @@ AliVZEROCalibData &AliVZEROCalibData::operator =(const AliVZEROCalibData& calibd
       fWidthHV[t]      = calibda.GetWidthHV(t);        
       fTimeOffset[t]   = calibda.GetTimeOffset(t);
       fTimeGain[t]     = calibda.GetTimeGain(t); 
-  	  fDeadChannel[t]  = calibda.IsChannelDead(t);
+      fDeadChannel[t]  = calibda.IsChannelDead(t);
   }   
-  	for(int i=0; i<kNCIUBoards ;i++) {
-		fTimeResolution[i]  = calibda.GetTimeResolution(i);
-		fWidthResolution[i] = calibda.GetWidthResolution(i);	  
-	}
+  for(int i=0; i<kNCIUBoards ;i++) {
+      fTimeResolution[i]  = calibda.GetTimeResolution(i);
+      fWidthResolution[i] = calibda.GetWidthResolution(i);	  
+  }
    
   return *this;
   
@@ -138,10 +166,10 @@ void AliVZEROCalibData::FillDCSData(AliVZERODataDCS * data){
 	
 	while ((  aliasName = (TObjString*) iter.Next() ))  {
 		AliDCSValue* aValue = (AliDCSValue*) params->GetValue(aliasName);
-		Float_t val;
+		Int_t val;
 		if(aValue) {
-			val = aValue->GetFloat();
-			//AliInfo(Form("%s : %f",aliasName->String().Data(), val));
+			val = aValue->GetUInt();
+			AliInfo(Form("%s : %d",aliasName->String().Data(), val));
 			SetParameter(aliasName->String(),val);
 		}
 	}	
@@ -152,7 +180,7 @@ void AliVZEROCalibData::FillDCSData(AliVZERODataDCS * data){
 
 }
 //_____________________________________________________________________________
-void AliVZEROCalibData::SetParameter(TString name, Float_t val){
+void AliVZEROCalibData::SetParameter(TString name, Int_t val){
 	// Set given parameter
 	
 	Int_t iBoard = -1;
@@ -161,8 +189,8 @@ void AliVZEROCalibData::SetParameter(TString name, Float_t val){
 	TObjString * boardName = (TObjString *)nameSplit->At(2);
 	sscanf(boardName->String().Data(),"CIU%d",&iBoard);
 		
-	if(name.Contains("TimeResolution")) SetTimeResolution((UShort_t) val,iBoard-1);
-	else if(name.Contains("WidthResolution")) SetWidthResolution((UShort_t) val,iBoard-1);
+	if(name.Contains("TimeResolution")) SetTimeResolution((UShort_t) val,iBoard);
+	else if(name.Contains("WidthResolution")) SetWidthResolution((UShort_t) val,iBoard);
 	else AliError(Form("No Setter found for FEE parameter : %s",name.Data()));
 }
 
@@ -265,7 +293,7 @@ Float_t AliVZEROCalibData::GetMIPperADC(Int_t channel) const {
 	Float_t  HV = fMeanHV[channel];  
 	Float_t MIP = -1;
 	if (HV>0)
-	  MIP = 0.5/TMath::Exp((TMath::Log(HV) - P0[channel] )/P1[channel]);
+	  MIP = 0.6/TMath::Exp((TMath::Log(HV) - P0[channel] )/P1[channel]);
 	return MIP; 
 	
 }
@@ -273,14 +301,14 @@ Float_t AliVZEROCalibData::GetMIPperADC(Int_t channel) const {
 void AliVZEROCalibData::SetTimeResolution(UShort_t *resols){
 	// Set Time Resolution of the TDC
 	if(resols)  for(int t=0; t<kNCIUBoards; t++) SetTimeResolution(resols[t],t);
-	else AliFatal("Time Resolution not defined.");
+	else AliError("Time Resolution not defined.");
 	
 }
 //________________________________________________________________
 void AliVZEROCalibData::SetTimeResolution(UShort_t resol, Int_t board)
 {
 	// Set Time Resolution of the TDC
-	if((board<kNCIUBoards)) {
+	if((board>=0) && (board<kNCIUBoards)) {
 		switch(resol){
 			case 0:
 				fTimeResolution[board] = 25./256.;
@@ -307,20 +335,21 @@ void AliVZEROCalibData::SetTimeResolution(UShort_t resol, Int_t board)
 				fTimeResolution[board] = 12.5;
 				break;
 		}
+		AliInfo(Form("Time Resolution of board %d set to %f",board,fTimeResolution[board]));
 	} else AliError(Form("Board %d is not valid",board));
 }
 //________________________________________________________________
 void AliVZEROCalibData::SetWidthResolution(UShort_t *resols){
 	// Set Time Width Resolution of the TDC
 	if(resols)  for(int t=0; t<kNCIUBoards; t++) SetWidthResolution(resols[t],t);
-	else AliFatal("Width Resolution not defined.");
+	else AliError("Width Resolution not defined.");
 	
 }
 //________________________________________________________________
 void AliVZEROCalibData::SetWidthResolution(UShort_t resol, Int_t board)
 {
 	// Set Time Width Resolution of the TDC
-	if((board<kNCIUBoards)){
+	if((board>=0) && (board<kNCIUBoards)){
 		switch(resol){
 			case 0:
 				fWidthResolution[board] = 25./256.;
@@ -366,6 +395,7 @@ void AliVZEROCalibData::SetWidthResolution(UShort_t resol, Int_t board)
 				break;
 				
 		}
+		AliInfo(Form("Width Resolution of board %d set to %f",board,fWidthResolution[board]));
 	}else AliError(Form("Board %d is not valid",board));
 }
 

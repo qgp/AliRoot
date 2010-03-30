@@ -150,6 +150,8 @@ void AliHLTReconstructor::Init()
 	pSystem->SwitchAliLog(0);
       } else if (token.CompareTo("ignore-hltout")==0) {
 	fFlags|=kAliHLTReconstructorIgnoreHLTOUT;
+      } else if (token.CompareTo("ignore-ctp")==0) {
+	fFlags|=kAliHLTReconstructorIgnoreCTP;
       } else if (token.Contains("esdmanager=")) {
 	token.ReplaceAll("esdmanager=", "");
 	token.ReplaceAll(","," ");
@@ -168,7 +170,8 @@ void AliHLTReconstructor::Init()
 
   TString ecsParam;
   TString ctpParam;
-  if (BuildCTPTriggerClassString(ctpParam)>=0) {
+  if ((fFlags&kAliHLTReconstructorIgnoreCTP)==0 &&
+      BuildCTPTriggerClassString(ctpParam)>=0) {
     if (!ecsParam.IsNull()) ecsParam+=";";
     ecsParam+="CTP_TRIGGER_CLASS=";
     ecsParam+=ctpParam;
@@ -357,7 +360,7 @@ void AliHLTReconstructor::FillESD(AliRawReader* rawReader, TTree* /*clustersTree
     }
     AliHLTOUTRawReader* pHLTOUT=new AliHLTOUTRawReader(input, esd->GetEventNumberInFile(), fpEsdManager);
     if (pHLTOUT) {
-      ProcessHLTOUT(pHLTOUT, esd);
+      ProcessHLTOUT(pHLTOUT, esd, (pSystem->GetGlobalLoggingLevel()&kHLTLogDebug)!=0);
       delete pHLTOUT;
     } else {
       AliError("error creating HLTOUT handler");
@@ -416,7 +419,7 @@ void AliHLTReconstructor::FillESD(TTree* /*digitsTree*/, TTree* /*clustersTree*/
 
     AliHLTOUTDigitReader* pHLTOUT=new AliHLTOUTDigitReader(esd->GetEventNumberInFile(), fpEsdManager);
     if (pHLTOUT) {
-      ProcessHLTOUT(pHLTOUT, esd);
+      ProcessHLTOUT(pHLTOUT, esd, (pSystem->GetGlobalLoggingLevel()&kHLTLogDebug)!=0);
       delete pHLTOUT;
     } else {
       AliError("error creating HLTOUT handler");
@@ -474,6 +477,10 @@ void AliHLTReconstructor::ProcessHLTOUT(AliHLTOUT* pHLTOUT, AliESDEvent* esd, bo
     if ((pFunc)(pSystem, pHLTOUT, esd)<0) {
       AliError("error processing HLTOUT");
     }
+  }
+  if (bVerbose) {
+    AliInfo("HLT ESD content:");
+    esd->Print();
   }
   pHLTOUT->Reset();
 }

@@ -33,6 +33,7 @@ public:
   void      SetOrbitNumber(UInt_t n) {fOrbitNumber=n;}
   void      SetTimeStamp(UInt_t timeStamp){fTimeStamp = timeStamp;}
   void      SetEventType(UInt_t eventType){fEventType = eventType;}
+  void      SetEventSpecie(UInt_t eventSpecie){fEventSpecie = eventSpecie;}
   void      SetEventNumberInFile(Int_t n) {fEventNumberInFile=n;}
   void      SetBunchCrossNumber(UShort_t n) {fBunchCrossNumber=n;}
   void      SetPeriodNumber(UInt_t n) {fPeriodNumber=n;}
@@ -49,12 +50,18 @@ public:
   void SetTriggerScalersRecord(AliTriggerScalersESD *scalerRun) {fTriggerScalers.AddTriggerScalers(scalerRun); }
   const AliTriggerScalersRecordESD* GetTriggerScalersRecord() const {return &fTriggerScalers; }
   const AliTriggerIR* GetTriggerIR(Int_t i) const { return fIRArray[i]; }
+  void  SetActiveTriggerInputs(const char*name, Int_t index);
+  const char* GetTriggerInputName(Int_t index, Int_t trglevel) const;
+  TString     GetActiveTriggerInputs() const;
+  TString     GetFiredTriggerInputs() const;
+  Bool_t      IsTriggerInputFired(const char *name) const;
 //**************************************************************************
 
   ULong64_t GetTriggerMask() const {return fTriggerMask;}
   UInt_t    GetOrbitNumber() const {return fOrbitNumber;}
   UInt_t    GetTimeStamp()  const { return fTimeStamp;}
   UInt_t    GetEventType()  const { return fEventType;}
+  UInt_t    GetEventSpecie()  const { return fEventSpecie;}
   Int_t     GetEventNumberInFile() const {return fEventNumberInFile;}
   UShort_t  GetBunchCrossNumber() const {return fBunchCrossNumber;}
   UInt_t    GetPeriodNumber() const {return fPeriodNumber;}
@@ -62,6 +69,8 @@ public:
 
   void      Reset();
   void      Print(const Option_t *opt=0) const;
+
+  enum {kNTriggerInputs = 60};  //24 L0, 24 L1 and 12 L2 inputs
 private:
 
   // Event Identification
@@ -69,18 +78,19 @@ private:
   UInt_t       fOrbitNumber;       // Orbit Number
   UInt_t       fTimeStamp;         // Time stamp
   UInt_t       fEventType;         // Type of Event
+  UInt_t       fEventSpecie;       // Reconstruction event specie (1-default,2-lowM,4-highM,8-cosmic,16-cal)
   UInt_t       fPeriodNumber;      // Period Number
   Int_t        fEventNumberInFile; // Running Event count in the file
   UShort_t     fBunchCrossNumber;  // Bunch Crossing Number
   UChar_t      fTriggerCluster;    // Trigger cluster (mask)
-  UInt_t       fL0TriggerInputs;   //L0 Trigger Inputs 
-  UInt_t       fL1TriggerInputs;   //L1 Trigger Inputs
-  UShort_t     fL2TriggerInputs;   //L2 Trigger Inputs
+  UInt_t       fL0TriggerInputs;   //L0 Trigger Inputs (mask)
+  UInt_t       fL1TriggerInputs;   //L1 Trigger Inputs (mask)
+  UShort_t     fL2TriggerInputs;   //L2 Trigger Inputs (mask)
   AliTriggerScalersRecordESD fTriggerScalers;  //Trigger counters of triggered classes in event
   enum {kNMaxIR = 3};              // Max number of interaction records (IR)
   AliTriggerIR*  fIRArray[kNMaxIR];// Array with trigger IRs 
-
-  ClassDef(AliESDHeader,6)
+  TObjArray    fTriggerInputsNames;// Array of TNamed of the active trigger inputs (L0,L1 and L2)
+  ClassDef(AliESDHeader,8)
 };
 
 #endif

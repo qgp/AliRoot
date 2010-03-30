@@ -22,12 +22,14 @@
 #include <TCanvas.h>
 #include <TLatex.h>
 #include <TF1.h>
+#include <TList.h>
+#include <TH1F.h>
 
 #include <AliExternalTrackParam.h>
 #include <AliESDEvent.h>
 #include <AliPID.h>
 #include <AliVertexerTracks.h>
-
+#include <AliESDpid.h>
 class AliLog;
 class AliESDVertex;
 
@@ -37,8 +39,9 @@ ClassImp(AliProtonAnalysisBase)
 
 //____________________________________________________________________//
 AliProtonAnalysisBase::AliProtonAnalysisBase() : 
-  TObject(),  fProtonAnalysisLevel("ESD"),
-  fTriggerMode(kMB2), fProtonAnalysisMode(kTPC), fProtonPIDMode(kBayesian),
+  TObject(),  fProtonAnalysisLevel("ESD"), fAnalysisMC(kFALSE),
+  fTriggerMode(kMB2), kUseOfflineTrigger(kFALSE), fPhysicsSelection(0),
+  fProtonAnalysisMode(kTPC), fProtonPIDMode(kBayesian),
   fAnalysisEtaMode(kFALSE),
   fVxMax(100.), fVyMax(100.), fVzMax(100.),
   fNBinsX(0), fMinX(0), fMaxX(0),
@@ -77,6 +80,37 @@ AliProtonAnalysisBase::AliProtonAnalysisBase() :
     fdEdxMean[i] = 0.0;
     fdEdxSigma[i] = 0.0;
   }
+  fListVertexQA = new TList();
+  fListVertexQA->SetName("fListVertexQA");
+  TH1F *gHistVx = new TH1F("gHistVx",
+			   "Vx distribution;V_{x} [cm];Entries",
+			   100,-5.,5.);
+  gHistVx->SetFillColor(kRed-2);
+  fListVertexQA->Add(gHistVx);
+  TH1F *gHistVxAccepted = new TH1F("gHistVxaccepted",
+				   "Vx distribution;V_{x} [cm];Entries",
+				   100,-5.,5.);
+  fListVertexQA->Add(gHistVxAccepted);
+  TH1F *gHistVy = new TH1F("gHistVy",
+			   "Vy distribution;V_{y} [cm];Entries",
+			   100,-5.,5.);
+  gHistVy->SetFillColor(kRed-2);
+  fListVertexQA->Add(gHistVy);
+  TH1F *gHistVyAccepted = new TH1F("gHistVyaccepted",
+				   "Vy distribution;V_{y} [cm];Entries",
+				   100,-5.,5.);
+  fListVertexQA->Add(gHistVyAccepted);
+  TH1F *gHistVz = new TH1F("gHistVz",
+			   "Vz distribution;V_{z} [cm];Entries",
+			   100,-25.,25.);
+  gHistVz->SetFillColor(kRed-2);
+  fListVertexQA->Add(gHistVz);
+  TH1F *gHistVzAccepted = new TH1F("gHistVzaccepted",
+				   "Vz distribution;V_{z} [cm];Entries",
+				   100,-25.,25.);
+  fListVertexQA->Add(gHistVzAccepted);
+
+
 }
 
 //____________________________________________________________________//
@@ -87,6 +121,7 @@ AliProtonAnalysisBase::~AliProtonAnalysisBase() {
   if(fPionFunction) delete fPionFunction;
   if(fKaonFunction) delete fKaonFunction;
   if(fProtonFunction) delete fProtonFunction;
+  if(fListVertexQA) delete fListVertexQA;
 }
 
 //____________________________________________________________________//
@@ -520,7 +555,9 @@ const AliESDVertex* AliProtonAnalysisBase::GetVertex(AliESDEvent* esd,
       Printf("GetVertex: Event rejected because the value of the vertex resolution in z is 0");
     return 0;
   }
-  
+  ((TH1F *)(fListVertexQA->At(0)))->Fill(vertex->GetXv());
+  ((TH1F *)(fListVertexQA->At(2)))->Fill(vertex->GetYv());
+  ((TH1F *)(fListVertexQA->At(4)))->Fill(vertex->GetZv());
   //check position
   if(TMath::Abs(vertex->GetXv()) > gVxMax) {
     if(fDebugMode)
@@ -537,6 +574,9 @@ const AliESDVertex* AliProtonAnalysisBase::GetVertex(AliESDEvent* esd,
       Printf("GetVertex: Event rejected because it has a Vz value of %lf cm (accepted interval: -%lf - %lf)",TMath::Abs(vertex->GetZv()),gVzMax,gVzMax);
     return 0;
   }
+  ((TH1F *)(fListVertexQA->At(1)))->Fill(vertex->GetXv());
+  ((TH1F *)(fListVertexQA->At(3)))->Fill(vertex->GetYv());
+  ((TH1F *)(fListVertexQA->At(5)))->Fill(vertex->GetZv());
   
   return vertex;
 }
@@ -546,29 +586,36 @@ Bool_t AliProtonAnalysisBase::IsEventTriggered(const AliESDEvent *esd,
 					       TriggerMode trigger) {
   // check if the event was triggered
   ULong64_t triggerMask = esd->GetTriggerMask();
-  
-  // definitions from p-p.cfg
-  ULong64_t spdFO = (1 << 14);
-  ULong64_t v0left = (1 << 11);
-  ULong64_t v0right = (1 << 12);
+  TString firedTriggerClass = esd->GetFiredTriggerClasses();
 
-  switch (trigger) {
-  case kMB1: {
-    if (triggerMask & spdFO || ((triggerMask & v0left) || (triggerMask & v0right)))
-      return kTRUE;
-    break;
+  if(fAnalysisMC) {
+    // definitions from p-p.cfg
+    ULong64_t spdFO = (1 << 14);
+    ULong64_t v0left = (1 << 11);
+    ULong64_t v0right = (1 << 12);
+    
+    switch (trigger) {
+    case kMB1: {
+      if (triggerMask & spdFO || ((triggerMask & v0left) || (triggerMask & v0right)))
+	return kTRUE;
+      break;
+    }
+    case kMB2: {
+      if (triggerMask & spdFO && ((triggerMask & v0left) || (triggerMask & v0right)))
+	return kTRUE;
+      break;
+    }
+    case kSPDFASTOR: {
+      if (triggerMask & spdFO)
+	return kTRUE;
+      break;
+    }
+    }//switch
   }
-  case kMB2: {
-    if (triggerMask & spdFO && ((triggerMask & v0left) || (triggerMask & v0right)))
+  else {
+    if(firedTriggerClass.Contains("CINT1B-ABCE-NOPF-ALL"))
       return kTRUE;
-    break;
   }
-  case kSPDFASTOR: {
-    if (triggerMask & spdFO)
-      return kTRUE;
-    break;
-  }
-  }//switch
 
   return kFALSE;
 }
@@ -801,19 +848,27 @@ Bool_t AliProtonAnalysisBase::IsProton(AliESDtrack *track) {
   }
   //Definition of an N-sigma area around the dE/dx vs P band
   else if(fProtonPIDMode == kSigma1) {
-    AliExternalTrackParam *tpcTrack = (AliExternalTrackParam *)track->GetTPCInnerParam();
-    if(tpcTrack) {
-      gPt = tpcTrack->Pt();
-      gP = tpcTrack->P();
-      gEta = tpcTrack->Eta();
+    Double_t fAlephParameters[5];
+    if(fAnalysisMC) {
+      fAlephParameters[0] = 4.23232575531564326e+00;
+      fAlephParameters[1] = 8.68482806165147636e+00;
+      fAlephParameters[2] = 1.34000000000000005e-05;
+      fAlephParameters[3] = 2.30445734159456084e+00;
+      fAlephParameters[4] = 2.25624744086878559e+00;
     }
-    //We start the P slices at >0.3GeV/c with a bining of 50MeV/c ==> Int_t(0.3001/0.05) = 6
-    Int_t nbinP = Int_t(gP/0.05) - 6;
-    Double_t tpcSignal = track->GetTPCsignal();
-    Double_t dEdxMean = fdEdxMean[nbinP];
-    Double_t dEdxSigma = fdEdxSigma[nbinP];
-    if((tpcSignal <= dEdxMean + fNSigma*dEdxSigma)&&
-       (tpcSignal >= dEdxMean - fNSigma*dEdxSigma))
+    else {
+      fAlephParameters[0] = 50*0.76176e-1;
+      fAlephParameters[1] = 10.632;
+      fAlephParameters[2] = 0.13279e-4;
+      fAlephParameters[3] = 1.8631;
+      fAlephParameters[4] = 1.9479;
+    }
+
+    AliESDpid *fESDpid = new AliESDpid(); 
+    fESDpid->GetTPCResponse().SetBetheBlochParameters(fAlephParameters[0]/50.,fAlephParameters[1],fAlephParameters[2],fAlephParameters[3],fAlephParameters[4]);
+    
+    Double_t nsigma = TMath::Abs(fESDpid->NumberOfSigmasTPC(track,AliPID::kProton));
+    if(nsigma <= fNSigma) 
       return kTRUE;
   }//kSigma1 PID method
   //Another definition of an N-sigma area around the dE/dx vs P band

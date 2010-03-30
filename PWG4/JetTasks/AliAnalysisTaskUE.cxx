@@ -43,9 +43,11 @@
 #include "AliAODJet.h"
 #include "AliAODTrack.h"
 #include "AliAODMCParticle.h"
+#include "AliKFVertex.h"
 
 #include "AliGenPythiaEventHeader.h"
 #include "AliAnalysisHelperJetTasks.h"
+#include "AliInputEventHandler.h"
 #include "AliStack.h"
 #include "AliLog.h"
 
@@ -78,7 +80,12 @@ ClassImp( AliAnalysisTaskUE)
 //____________________________________________________________________
 AliAnalysisTaskUE:: AliAnalysisTaskUE(const char* name):
 AliAnalysisTask(name, ""),
-fDebug(kFALSE),          
+fTrigger(0),
+fDebug(0),
+fDeltaAOD(kFALSE),
+fDeltaAODBranch(""),
+fAODBranch("jets"),
+fArrayJets(0x0),           
 fAOD(0x0),            
 fAODjets(0x0),
 fListOfHistos(0x0),  
@@ -96,6 +103,7 @@ fConeRadius(0.7),
 fConePosition(1),
 fAreaReg(1.5393), // Pi*0.7*0.7
 fUseChPartJet(kFALSE),
+fUseChargeHadrons(kFALSE),
 fUseSingleCharge(kFALSE),
 fUsePositiveCharge(kTRUE),
 fOrdering(1),
@@ -108,7 +116,7 @@ fJet2RatioPtCut(0.8),
 fJet3PtCut(15.),
 fTrackPtCut(0.),
 fTrackEtaCut(0.9),
-  fAvgTrials(1),
+fAvgTrials(1),
 fhNJets(0x0),
 fhEleadingPt(0x0),
 fhMinRegPtDist(0x0),
@@ -124,9 +132,9 @@ fhRegionSumPtMaxVsEt(0x0),
 fhRegionMultMax(0x0),         
 fhRegionMultMaxVsEt(0x0),     
 fhRegionSumPtMinVsEt(0x0), //fhRegionMultMin(0x0),         
-fhRegionMultMinVsEt(0x0),     
-fhRegionAveSumPtVsEt(0x0),    
-fhRegionDiffSumPtVsEt(0x0),   
+fhRegionMultMinVsEt(0x0),
+fhRegionAveSumPtVsEt(0x0),
+fhRegionDiffSumPtVsEt(0x0),
 fhRegionAvePartPtMaxVsEt(0x0),
 fhRegionAvePartPtMinVsEt(0x0),
 fhRegionMaxPartPtMaxVsEt(0x0),
@@ -149,8 +157,6 @@ Bool_t AliAnalysisTaskUE::Notify()
   // Implemented Notify() to read the cross sections
   // and number of trials from pyxsec.root
   // Copy from AliAnalysisTaskJFSystematics
-  // 
-
   fAvgTrials = 1;
   TTree *tree = AliAnalysisManager::GetAnalysisManager()->GetTree();
   Float_t xsection = 0;
@@ -165,12 +171,14 @@ Bool_t AliAnalysisTaskUE::Notify()
       Printf("%s%d No Histogram fh1Xsec",(char*)__FILE__,__LINE__);
       return kFALSE;
     }
-    AliAnalysisHelperJetTasks::PythiaInfoFromFile(curfile->GetName(),xsection,ftrials);
+    AliAnalysisHelperJetTasks::PythiaInfoFromFile(curfile->GetName(),xsection,ftrials); 
     fh1Xsec->Fill("<#sigma>",xsection);
-    // construct average trials 
-    Float_t nEntries = (Float_t)tree->GetTree()->GetEntries();
-    if(ftrials>=nEntries)fAvgTrials = ftrials/nEntries; 
-  }  
+
+   // construct average trials
+   Float_t nEntries = (Float_t)tree->GetTree()->GetEntries();
+   if(ftrials>=nEntries && nEntries>0.)fAvgTrials = ftrials/nEntries;
+  }
+  
   return kTRUE;
 }
 
@@ -184,33 +192,36 @@ void AliAnalysisTaskUE::ConnectInputData(Option_t* /*option*/)
   // or to the OutputEventHandler ( AOD is create by a previus task in the train )
   // we need to check where it is and get the pointer to AODEvent in the right way
   
-  if (fDebug > 1) AliInfo("ConnectInputData() \n");
+  // Delta AODs are also implemented
+  
+ 
+  if (fDebug > 1) AliInfo("ConnectInputData() ");
   
   TObject* handler = AliAnalysisManager::GetAnalysisManager()->GetInputEventHandler();
   
-  if( handler && handler->InheritsFrom("AliAODInputHandler") ) {
-    fAOD  =  ((AliAODInputHandler*)handler)->GetEvent();
-    if (fDebug > 1) AliInfo("  ==== Tracks from AliAODInputHandler");
-    // Case when jets are reconstructed on the fly from AOD tracks
-    // (the Jet Finder is using the AliJetAODReader) of InputEventHandler
-    // and put in the OutputEventHandler AOD. Useful whe you want to reconstruct jets with
-    // different parameters to default ones stored in the AOD or to use a different algorithm
-    if( fJetsOnFly ) {
-      handler = AliAnalysisManager::GetAnalysisManager()->GetOutputEventHandler();
-      if( handler && handler->InheritsFrom("AliAODHandler") ) {
-        fAODjets = ((AliAODHandler*)handler)->GetAOD();
-        if (fDebug > 1) AliInfo("  ==== Jets from AliAODHandler");
-      }
-    } else {
-      fAODjets = fAOD;
-      if (fDebug > 1) AliInfo("  ==== Jets from AliAODInputHandler");
-    }
-  } else {
+  if( handler && handler->InheritsFrom("AliAODInputHandler") ) { // input AOD
+    fAOD = ((AliAODInputHandler*)handler)->GetEvent();
+    if (fDebug > 1) AliInfo(" ==== Tracks from AliAODInputHandler");
+    	// Case when jets are reconstructed on the fly from AOD tracks
+    	// (the Jet Finder is using the AliJetAODReader) of InputEventHandler
+    	// and put in the OutputEventHandler AOD. Useful whe you want to reconstruct jets with
+    	// different parameters to default ones stored in the AOD or to use a different algorithm
+    	if( fJetsOnFly ) {
+      	handler = AliAnalysisManager::GetAnalysisManager()->GetOutputEventHandler();
+      	if( handler && handler->InheritsFrom("AliAODHandler") ) {
+		fAODjets = ((AliAODHandler*)handler)->GetAOD();
+		if (fDebug > 1) AliInfo(" ==== Jets from AliAODHandler (on the fly)");
+      	}
+   	 } else {
+      	fAODjets = fAOD;
+      	if (fDebug > 1) AliInfo(" ==== Jets from AliAODInputHandler");
+   	 }
+  } else {  //output AOD
     handler = AliAnalysisManager::GetAnalysisManager()->GetOutputEventHandler();
     if( handler && handler->InheritsFrom("AliAODHandler") ) {
-      fAOD  = ((AliAODHandler*)handler)->GetAOD();
+      fAOD = ((AliAODHandler*)handler)->GetAOD();
       fAODjets = fAOD;
-      if (fDebug > 1) AliInfo("  ==== Tracks and Jets from AliAODHandler");
+      if (fDebug > 1) AliInfo(" ==== Tracks and Jets from AliAODHandler");
     } else {
       AliFatal("I can't get any AOD Event Handler");
       return;
@@ -227,7 +238,7 @@ void  AliAnalysisTaskUE::CreateOutputObjects()
   //
   //  Histograms
 
-  OpenFile(0);
+  // OpenFile(0);
   CreateHistos();
   //  fListOfHistos->SetOwner(kTRUE);  
 
@@ -238,27 +249,43 @@ void  AliAnalysisTaskUE::CreateOutputObjects()
 //____________________________________________________________________
 void  AliAnalysisTaskUE::Exec(Option_t */*option*/)
 {
+  //Trigger selection ************************************************
+   AliInputEventHandler* inputHandler = (AliInputEventHandler*) 
+         ((AliAnalysisManager::GetAnalysisManager())->GetInputEventHandler());
+    if (inputHandler->IsEventSelected()){
+      if (fDebug > 1) AliInfo(" Trigger Selection: event ACCEPTED ... ");
+    }else{
+      if (fDebug > 1) AliInfo(" Trigger Selection: event REJECTED ... ");
+      return;
+    }
+
+  //Event selection (vertex) *****************************************
+  AliKFVertex primVtx(*(fAOD->GetPrimaryVertex()));
+  Int_t nTracksPrim=primVtx.GetNContributors();
+  if (fDebug > 1) AliInfo(Form(" Primary-vertex Selection: %d",nTracksPrim));
+  if(!nTracksPrim){
+  	if (fDebug > 1) AliInfo(" Primary-vertex Selection: event REJECTED ...");
+  	return; 
+	}
+  if (fDebug > 1) AliInfo(" Primary-vertex Selection: event ACCEPTED ...");
+ 
   // Execute analysis for current event
   //
   if ( fDebug > 3 ) AliInfo( " Processing event..." );
-
   // fetch the pythia header info and get the trials
   AliMCEventHandler* mcHandler = dynamic_cast<AliMCEventHandler*> (AliAnalysisManager::GetAnalysisManager()->GetMCtruthEventHandler());
   Float_t nTrials = 1;
-  if (mcHandler) {  
-    AliMCEvent* mcEvent = mcHandler->MCEvent();
-    if (mcEvent) {
-      AliGenPythiaEventHeader*  pythiaGenHeader = AliAnalysisHelperJetTasks::GetPythiaEventHeader(mcEvent);
-      if(pythiaGenHeader){
-	nTrials = pythiaGenHeader->Trials();
+  if (mcHandler) {
+       AliMCEvent* mcEvent = mcHandler->MCEvent();
+       if (mcEvent) {
+         AliGenPythiaEventHeader*  pythiaGenHeader = AliAnalysisHelperJetTasks::GetPythiaEventHeader(mcEvent);
+         if(pythiaGenHeader){
+           nTrials = pythiaGenHeader->Trials();
+         }
       }
     }
-  }
-
-  fh1Trials->Fill("#sum{ntrials}",fAvgTrials); 
-    
-
-  AnalyseUE();
+ fh1Trials->Fill("#sum{ntrials}",fAvgTrials);
+ AnalyseUE();
   
   // Post the data
   PostData(0, fListOfHistos);
@@ -284,36 +311,75 @@ void  AliAnalysisTaskUE::AnalyseUE()
   TVector3 jetVect[3];
   Int_t nJets = 0;
   
+  
   if( !fUseChPartJet ) {
     
     // Use AOD Jets
-    nJets = fAODjets->GetNJets();
-    //  printf("AOD %d jets \n", nJets);
+    if(fDeltaAOD){
+      if (fDebug > 1) AliInfo(" ==== Jets From  Delta-AODs !");
+      if (fDebug > 1) AliInfo(Form(" ====  Reading Branch: %s  ",fDeltaAODBranch.Data()));
+ 	fArrayJets =
+	  (TClonesArray*)fAODjets->GetList()->FindObject(fDeltaAODBranch.Data());
+	if (!fArrayJets){
+		AliFatal(" No jet-array! ");
+		return;
+	}
+	nJets=fArrayJets->GetEntries();
+    }else{
+      if (fDebug > 1) AliInfo(" ==== Read Standard-AODs  !");
+      if (fDebug > 1) AliInfo(Form(" ====  Reading Branch: %s  ",fAODBranch.Data()));
+      
+      nJets = ((TClonesArray*)fAODjets->FindListObject(fAODBranch.Data()))->GetEntries();
+    }
+    //printf("AOD %d jets \n", nJets);
+
     for( Int_t i=0; i<nJets; ++i ) {
-      AliAODJet* jet = fAODjets->GetJet(i);
-      Double_t jetPt = jet->Pt();//*1.666;  // FIXME Jet Pt Correction ?????!!!
+       AliAODJet* jet;
+      if (fDeltaAOD){
+	jet =(AliAODJet*)fArrayJets->At(i);
+      }else{
+	jet = (AliAODJet*)((TClonesArray*)fAODjets->FindListObject(fAODBranch.Data()))->At(i);
+      }
+      Double_t jetPt = jet->Pt();//*1.666; // FIXME Jet Pt Correction ?????!!!
+ 
       if( jetPt > maxPtJet1 ) {
-        maxPtJet3 = maxPtJet2; index3 = index2;
-        maxPtJet2 = maxPtJet1; index2 = index1;
-        maxPtJet1 = jetPt; index1 = i;
+	maxPtJet3 = maxPtJet2; index3 = index2;
+	maxPtJet2 = maxPtJet1; index2 = index1;
+	maxPtJet1 = jetPt; index1 = i;
       } else if( jetPt > maxPtJet2 ) {
-        maxPtJet3 = maxPtJet2; index3 = index2;
-        maxPtJet2 = jetPt; index2 = i;
+	maxPtJet3 = maxPtJet2; index3 = index2;
+	maxPtJet2 = jetPt; index2 = i;
       } else if( jetPt > maxPtJet3 ) {
-        maxPtJet3 = jetPt; index3 = i;
+	maxPtJet3 = jetPt; index3 = i;
       }
     }
+
     if( index1 != -1 ) {
-      AliAODJet* jet = fAODjets->GetJet(index1);
-      jetVect[0].SetXYZ(jet->Px(), jet->Py(), jet->Pz());
+      AliAODJet *jet = 0;
+      if (fDeltaAOD) {
+      	jet =(AliAODJet*) fArrayJets->At(index1);
+      }else{
+      	jet = (AliAODJet*)((TClonesArray*)fAODjets->FindListObject(fAODBranch.Data()))->At(index1);
+      }
+      if(jet)jetVect[0].SetXYZ(jet->Px(), jet->Py(), jet->Pz());
     }
     if( index2 != -1 ) {
-      AliAODJet* jet = fAODjets->GetJet(index2);
-      jetVect[1].SetXYZ(jet->Px(), jet->Py(), jet->Pz());
+      AliAODJet* jet = 0;
+      if (fDeltaAOD) {
+      	jet= (AliAODJet*) fArrayJets->At(index2);
+	}else{
+      	jet=(AliAODJet*) ((TClonesArray*)fAODjets->FindListObject(fAODBranch.Data()))->At(index2);
+	}
+      if(jet)jetVect[1].SetXYZ(jet->Px(), jet->Py(), jet->Pz());
     }
     if( index3 != -1 ) {
-      AliAODJet* jet = fAODjets->GetJet(index3);
-      jetVect[2].SetXYZ(jet->Px(), jet->Py(), jet->Pz());
+      AliAODJet* jet = 0;
+      if (fDeltaAOD) {
+      	jet= (AliAODJet*) fArrayJets->At(index3);
+      }else{
+     	((TClonesArray*)fAODjets->FindListObject(fAODBranch.Data()))->At(index3);
+      }
+      if(jet)jetVect[2].SetXYZ(jet->Px(), jet->Py(), jet->Pz());
     }
     
   } else {
@@ -323,22 +389,22 @@ void  AliAnalysisTaskUE::AnalyseUE()
     if( jets ) {
       nJets = jets->GetEntriesFast();
       if( nJets > 0 ) {
-        index1 = 0;
-        AliAODJet* jet = (AliAODJet*)jets->At(0);
-        maxPtJet1 = jet->Pt();
-        jetVect[0].SetXYZ(jet->Px(), jet->Py(), jet->Pz());
+	index1 = 0;
+	AliAODJet* jet = (AliAODJet*)jets->At(0);
+	maxPtJet1 = jet->Pt();
+	jetVect[0].SetXYZ(jet->Px(), jet->Py(), jet->Pz());
       }
       if( nJets > 1 ) {
-        index2 = 1;
-        AliAODJet* jet = (AliAODJet*)jets->At(1);
-        maxPtJet1 = jet->Pt();
-        jetVect[1].SetXYZ(jet->Px(), jet->Py(), jet->Pz());
+	index2 = 1;
+	AliAODJet* jet = (AliAODJet*)jets->At(1);
+        maxPtJet2 = jet->Pt();
+	jetVect[1].SetXYZ(jet->Px(), jet->Py(), jet->Pz());
       }
       if( nJets > 2 ) {
-        index3 = 2;
-        AliAODJet* jet = (AliAODJet*)jets->At(2);
-        maxPtJet1 = jet->Pt();
-        jetVect[2].SetXYZ(jet->Px(), jet->Py(), jet->Pz());
+	index3 = 2;
+	AliAODJet* jet = (AliAODJet*)jets->At(2);
+        maxPtJet3 = jet->Pt();
+	jetVect[2].SetXYZ(jet->Px(), jet->Py(), jet->Pz());
       }
       
       jets->Delete();
@@ -346,7 +412,8 @@ void  AliAnalysisTaskUE::AnalyseUE()
     }
   }
   
-  fhNJets->Fill(nJets);
+
+fhNJets->Fill(nJets);
   
   if( fDebug > 1 ) {
     if( index1 < 0 ) {
@@ -405,7 +472,10 @@ void  AliAnalysisTaskUE::AnalyseUE()
   Double_t maxPartPtRegion  = 0.;
   Int_t    nTrackRegionPosit = 0;
   Int_t    nTrackRegionNegat = 0;
-  static const Double_t k270rad = 270.*TMath::Pi()/180.;
+  static Double_t const  kPI     = TMath::Pi();
+  static Double_t const  kTWOPI  = 2.*kPI;
+  static Double_t const  k270rad = 270.*kPI/180.;
+
   
   if (!fUseMCParticleBranch){
     fhEleadingPt->Fill( maxPtJet1 );
@@ -420,7 +490,7 @@ void  AliAnalysisTaskUE::AnalyseUE()
       Bool_t isHadron = part->GetMostProbablePID()==AliAODTrack::kPion || 
                         part->GetMostProbablePID()==AliAODTrack::kKaon || 
                         part->GetMostProbablePID()==AliAODTrack::kProton;
-      if ( !isHadron ) continue;
+      if ( fUseChargeHadrons && !isHadron ) continue;
       
       if ( !part->Charge() ) continue; //Only charged
       if ( fUseSingleCharge ) { // Charge selection
@@ -434,8 +504,8 @@ void  AliAnalysisTaskUE::AnalyseUE()
       TVector3 partVect(part->Px(), part->Py(), part->Pz());
       
       Double_t deltaPhi = jetVect[0].DeltaPhi(partVect)+k270rad;
-      if( deltaPhi > 2.*TMath::Pi() )  deltaPhi-= 2.*TMath::Pi();
-      fhdNdEtaPhiDist->Fill( deltaPhi );
+      if( deltaPhi > kTWOPI )  deltaPhi-= kTWOPI;
+      fhdNdEtaPhiDist->Fill( deltaPhi, maxPtJet1 );
       
       fhFullRegPartPtDistVsEt->Fill( part->Pt(), maxPtJet1 );
       
@@ -559,13 +629,13 @@ void  AliAnalysisTaskUE::AnalyseUE()
                           TMath::Abs(mctrk->GetPdgCode())==2212 ||
                           TMath::Abs(mctrk->GetPdgCode())==321;
         
-        if (!isHadron) continue;
+        if ( fUseChargeHadrons && !isHadron ) continue;
         
         TVector3 partVect(mctrk->Px(), mctrk->Py(), mctrk->Pz());
 
         Double_t deltaPhi = jetVectnew[index].DeltaPhi(partVect)+k270rad;
         if( deltaPhi > 2.*TMath::Pi() )  deltaPhi-= 2.*TMath::Pi();
-        fhdNdEtaPhiDist->Fill( deltaPhi );
+        fhdNdEtaPhiDist->Fill( deltaPhi, maxPtJet1 );
         
         fhFullRegPartPtDistVsEt->Fill( mctrk->Pt(), maxPtJet1 );
         
@@ -611,13 +681,13 @@ void  AliAnalysisTaskUE::AnalyseUE()
                           TMath::Abs(mctrk->GetPdgCode())==2212 ||
                           TMath::Abs(mctrk->GetPdgCode())==321;
         
-        if (!isHadron) continue;
+        if ( fUseChargeHadrons && !isHadron ) continue;
         
         TVector3 partVect(mctrk->Px(), mctrk->Py(), mctrk->Pz());
 
         Double_t deltaPhi = jetVectnew[index].DeltaPhi(partVect)+k270rad;
         if( deltaPhi > 2.*TMath::Pi() )  deltaPhi-= 2.*TMath::Pi();
-        fhdNdEtaPhiDist->Fill( deltaPhi );
+        fhdNdEtaPhiDist->Fill( deltaPhi, maxPtJet1 );
 
         fhFullRegPartPtDistVsEt->Fill( mctrk->Pt(), maxPtJet1 );
         
@@ -788,14 +858,14 @@ TObjArray*  AliAnalysisTaskUE::FindChargedParticleJets()
 {
   // Return a TObjArray of "charged particle jets"
   //
-  // Charged particle jet deﬁnition from reference:
+  // Charged particle jet deï¬nition from reference:
   //
   // "Charged jet evolution and the underlying event
   //  in proton-antiproton collisions at 1.8 TeV"
   //  PHYSICAL REVIEW D 65 092002, CDF Collaboration
   //
-  // We deﬁne "jets" as circular regions in eta-phi space with
-  // radius deﬁned by R = sqrt( (eta-eta0)^2 +(phi-phi0)^2 ).
+  // We deï¬ne "jets" as circular regions in eta-phi space with
+  // radius deï¬ned by R = sqrt( (eta-eta0)^2 +(phi-phi0)^2 ).
   // Our jet algorithm is as follows:
   //   1- Order all charged particles according to their pT .
   //   2- Start with the highest pT particle and include in the jet all
@@ -806,7 +876,7 @@ TObjArray*  AliAnalysisTaskUE::FindChargedParticleJets()
   //      a jet and add to the jet all particles not already included in
   //      a jet within R=0.7.
   //   4- Continue until all particles are in a jet.
-  // We deﬁne the transverse momentum of the jet to be
+  // We deï¬ne the transverse momentum of the jet to be
   // the scalar pT sum of all the particles within the jet, where pT
   // is measured with respect to the beam axis
   
@@ -826,6 +896,7 @@ TObjArray*  AliAnalysisTaskUE::FindChargedParticleJets()
   
   nTracks = tracks.GetEntriesFast();
   if( !nTracks ) return 0;
+
   TObjArray *jets = new TObjArray(nTracks);
   TIter itrack(&tracks);
   while( nTracks ) {
@@ -840,17 +911,21 @@ TObjArray*  AliAnalysisTaskUE::FindChargedParticleJets()
     jets->AddLast( new TLorentzVector(px, py, pz, pt) );
     tracks.Remove( track );
     TLorentzVector* jet = (TLorentzVector*)jets->Last();
+    jet->SetPtEtaPhiE( 1., jet->Eta(), jet->Phi(), pt );
     // 3- Go to the next highest pT particle not already included...
     AliAODTrack* track1;
+    Double_t fPt = jet->E();
     while ( (track1  = (AliAODTrack*)(itrack.Next())) ) {
-      Double_t dphi = TVector2::Phi_mpi_pi(jet->Phi()-track1->Phi());
+      Double_t tphi = track1->Phi(); // here Phi is from 0 <-> 2Pi
+      if (tphi > TMath::Pi()) tphi -= 2. * TMath::Pi(); // convert to  -Pi <-> Pi
+      Double_t dphi = TVector2::Phi_mpi_pi(jet->Phi()-tphi);
       Double_t r = TMath::Sqrt( (jet->Eta()-track1->Eta())*(jet->Eta()-track1->Eta()) +
                                dphi*dphi );
       if( r < fConeRadius ) {
-        Double_t fPt   = jet->E()+track1->Pt();  // Scalar sum of Pt
+        fPt   = jet->E()+track1->Pt();  // Scalar sum of Pt
         // recalculating the centroid
         Double_t eta = jet->Eta()*jet->E()/fPt + track1->Eta()*track1->Pt()/fPt;
-        Double_t phi = jet->Phi()*jet->E()/fPt + track1->Phi()*track1->Pt()/fPt;
+        Double_t phi = jet->Phi()*jet->E()/fPt + tphi*track1->Pt()/fPt;
         jet->SetPtEtaPhiE( 1., eta, phi, fPt );
         tracks.Remove( track1 );
       }
@@ -874,6 +949,7 @@ TObjArray*  AliAnalysisTaskUE::FindChargedParticleJets()
     py = jet->E() * TMath::Sin(jet->Phi());  // Pt * sin(phi)
     pz = jet->E() / TMath::Tan(2.0 * TMath::ATan(TMath::Exp(-jet->Eta())));
     en = TMath::Sqrt(px * px + py * py + pz * pz);
+
     aodjets->AddLast( new AliAODJet(px, py, pz, en) );
   }
   // Order jets according to their pT .
@@ -950,7 +1026,7 @@ void  AliAnalysisTaskUE::CreateHistos()
   fListOfHistos = new TList();
   
   
-  fhNJets = new TH1F("fhNJets", "n Jet",  10, 0, 10);
+  fhNJets = new TH1F("fhNJets", "n Jet",  20, 0, 20);
   fhNJets->SetXTitle("# of jets");
   fhNJets->Sumw2();
   fListOfHistos->Add( fhNJets );                 // At(0) 
@@ -995,23 +1071,24 @@ void  AliAnalysisTaskUE::CreateHistos()
   fhMinRegSumPtvsMult->Sumw2();
   fListOfHistos->Add( fhMinRegSumPtvsMult );     // At(7);
   
-  fhdNdEtaPhiDist  = new TH1F("hdNdEtaPhiDist",   "Charge particle density |#eta|< 1 vs #Delta#phi",  120, 0.,   2.*TMath::Pi());
+  fhdNdEtaPhiDist  = new TH2F("hdNdEtaPhiDist", Form("Charge particle density |#eta|<%3.1f vs #Delta#phi", fTrackEtaCut),  
+                               62, 0.,   2.*TMath::Pi(), fBinsPtInHist, fMinJetPtInHist, fMaxJetPtInHist);
   fhdNdEtaPhiDist->SetXTitle("#Delta#phi");
-  fhdNdEtaPhiDist->SetYTitle("dN_{ch}/d#etad#phi");
+  fhdNdEtaPhiDist->SetYTitle("Leading Jet P_{T}");
   fhdNdEtaPhiDist->Sumw2();
   fListOfHistos->Add( fhdNdEtaPhiDist );        // At(8)
   
   // Can be use to get part pt distribution for differente Jet Pt bins
-  fhFullRegPartPtDistVsEt = new TH2F("hFullRegPartPtDistVsEt", "dN/dP_{T} |#eta|<1 vs Leading Jet P_{T}",  
-                                     50,0.,50., fBinsPtInHist, fMinJetPtInHist,   fMaxJetPtInHist);
+  fhFullRegPartPtDistVsEt = new TH2F("hFullRegPartPtDistVsEt", Form( "dN/dP_{T} |#eta|<%3.1f vs Leading Jet P_{T}", fTrackEtaCut),
+                                     100,0.,50., fBinsPtInHist, fMinJetPtInHist, fMaxJetPtInHist);
   fhFullRegPartPtDistVsEt->SetYTitle("Leading Jet P_{T}");
   fhFullRegPartPtDistVsEt->SetXTitle("p_{T}");
   fhFullRegPartPtDistVsEt->Sumw2();
   fListOfHistos->Add( fhFullRegPartPtDistVsEt );  // At(9) 
   
   // Can be use to get part pt distribution for differente Jet Pt bins
-  fhTransRegPartPtDistVsEt = new TH2F("hTransRegPartPtDistVsEt", "dN/dP_{T} in tranvese regions |#eta|<1 vs Leading Jet P_{T}",  
-                                      50,0.,50., fBinsPtInHist, fMinJetPtInHist,   fMaxJetPtInHist);
+  fhTransRegPartPtDistVsEt = new TH2F("hTransRegPartPtDistVsEt", Form( "dN/dP_{T} in tranvese regions |#eta|<%3.1f vs Leading Jet P_{T}", fTrackEtaCut),  
+                                     100,0.,50., fBinsPtInHist, fMinJetPtInHist,   fMaxJetPtInHist);
   fhTransRegPartPtDistVsEt->SetYTitle("Leading Jet P_{T}");
   fhTransRegPartPtDistVsEt->SetXTitle("p_{T}");
   fhTransRegPartPtDistVsEt->Sumw2();
@@ -1079,6 +1156,8 @@ void  AliAnalysisTaskUE::CreateHistos()
   fListOfHistos->Add( fh1Trials ); //At(22)
   
   fSettingsTree   = new TTree("UEAnalysisSettings","Analysis Settings in UE estimation");
+  fSettingsTree->Branch("fFilterBit", &fFilterBit,"FilterBit/I");
+  fSettingsTree->Branch("fTrigger", &fTrigger,"TriggerFlag/I");
   fSettingsTree->Branch("fConeRadius", &fConeRadius,"Rad/D");
   fSettingsTree->Branch("fJet1EtaCut", &fJet1EtaCut, "LeadJetEtaCut/D");
   fSettingsTree->Branch("fJet2DeltaPhiCut", &fJet2DeltaPhiCut, "DeltaPhi/D");
@@ -1090,6 +1169,7 @@ void  AliAnalysisTaskUE::CreateHistos()
   fSettingsTree->Branch("fRegionType", &fRegionType,"Reg/I");
   fSettingsTree->Branch("fOrdering", &fOrdering,"OrderMeth/I");
   fSettingsTree->Branch("fUseChPartJet", &fUseChPartJet,"UseChPart/O");
+  fSettingsTree->Branch("fUseChargeHadrons", &fUseChargeHadrons,"UseChHadrons/O");
   fSettingsTree->Branch("fUseSingleCharge", &fUseSingleCharge,"UseSingleCh/O");
   fSettingsTree->Branch("fUsePositiveCharge", &fUsePositiveCharge,"UsePositiveCh/O");
   fSettingsTree->Fill();
@@ -1106,6 +1186,8 @@ void  AliAnalysisTaskUE::CreateHistos()
    fListOfHistos->Add( fhValidRegion );  // At(15)
    */
 }
+
+
 
 //____________________________________________________________________
 void  AliAnalysisTaskUE::Terminate(Option_t */*option*/)
@@ -1129,15 +1211,14 @@ void  AliAnalysisTaskUE::Terminate(Option_t */*option*/)
       AliError("Histogram List is not available");
       return;
     }
+    fhNJets              = (TH1F*)fListOfHistos->At(0);
     fhEleadingPt         = (TH1F*)fListOfHistos->At(1);
-    fhdNdEtaPhiDist     = (TH1F*)fListOfHistos->At(8);
+    fhdNdEtaPhiDist      = (TH2F*)fListOfHistos->At(8);
     fhRegionSumPtMaxVsEt = (TH1F*)fListOfHistos->At(11);
     fhRegionSumPtMinVsEt = (TH1F*)fListOfHistos->At(12);
     fhRegionMultMaxVsEt  = (TH1F*)fListOfHistos->At(14);
     fhRegionMultMinVsEt  = (TH1F*)fListOfHistos->At(15);
     fhRegionAveSumPtVsEt = (TH1F*)fListOfHistos->At(16);
-    
-    fhNJets              = (TH1F*)fListOfHistos->At(0);
     
     //fhValidRegion  = (TH2F*)fListOfHistos->At(21);
     
@@ -1199,7 +1280,7 @@ void  AliAnalysisTaskUE::Terminate(Option_t */*option*/)
     Double_t xsec = fh1Xsec->GetBinContent(1);
     Double_t ntrials = fh1Trials->GetBinContent(1);
     Double_t normFactor = xsec/ntrials;
-    Printf("xSec %f nTrials %f Norm %f \n",xsec,ntrials,normFactor);
+    if(fDebug > 1)Printf("xSec %f nTrials %f Norm %f \n",xsec,ntrials,normFactor);
     
     
     TCanvas* c2 = new TCanvas("c2","Jet Pt dist",160,160,1200,800);
@@ -1207,15 +1288,18 @@ void  AliAnalysisTaskUE::Terminate(Option_t */*option*/)
     c2->cd(1);
     fhEleadingPt->SetMarkerStyle(20);
     fhEleadingPt->SetMarkerColor(2);
-    fhEleadingPt->Scale(normFactor);
+    if( normFactor > 0.) fhEleadingPt->Scale(normFactor);
     //fhEleadingPt->Draw("p");
     fhEleadingPt->DrawCopy("p");
     gPad->SetLogy();
     
     c2->cd(2);
-    fhdNdEtaPhiDist->SetMarkerStyle(20);
-    fhdNdEtaPhiDist->SetMarkerColor(2);
-    fhdNdEtaPhiDist->DrawCopy("p");
+    Int_t xbin1 = fhdNdEtaPhiDist->GetYaxis()->FindFixBin(fMinJetPtInHist);
+    Int_t xbin2 = fhdNdEtaPhiDist->GetYaxis()->FindFixBin(fMaxJetPtInHist);
+    TH1D* dNdEtaPhiDistAllJets = fhdNdEtaPhiDist->ProjectionX("dNdEtaPhiDistAllJets",xbin1,xbin2);
+    dNdEtaPhiDistAllJets->SetMarkerStyle(20);
+    dNdEtaPhiDistAllJets->SetMarkerColor(2);
+    dNdEtaPhiDistAllJets->DrawCopy("p");
     gPad->SetLogy();
     
     c2->cd(3);      

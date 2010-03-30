@@ -98,17 +98,28 @@ void AliFlowAnalysisWithScalarProduct::WriteHistograms(TString outputFileName)
 }
 
 //-----------------------------------------------------------------------
+
+void AliFlowAnalysisWithScalarProduct::WriteHistograms(TDirectoryFile *outputFileName)
+{
+ //store the final results in output .root file
+ fHistList->SetName("cobjSP");
+ fHistList->SetOwner(kTRUE);
+ outputFileName->Add(fHistList);
+ outputFileName->Write(outputFileName->GetName(), TObject::kSingleKey);
+}
+
+//-----------------------------------------------------------------------
 void AliFlowAnalysisWithScalarProduct::Init() {
 
   //Define all histograms
   cout<<"---Analysis with the Scalar Product Method--- Init"<<endl;
 
-  Int_t iNbinsPt   = AliFlowCommonConstants::GetNbinsPt();
-  Double_t dPtMin  = AliFlowCommonConstants::GetPtMin();	     
-  Double_t dPtMax  = AliFlowCommonConstants::GetPtMax();
-  Int_t iNbinsEta  = AliFlowCommonConstants::GetNbinsEta();
-  Double_t dEtaMin = AliFlowCommonConstants::GetEtaMin();	     
-  Double_t dEtaMax = AliFlowCommonConstants::GetEtaMax();
+  Int_t iNbinsPt   = AliFlowCommonConstants::GetMaster()->GetNbinsPt();
+  Double_t dPtMin  = AliFlowCommonConstants::GetMaster()->GetPtMin();	     
+  Double_t dPtMax  = AliFlowCommonConstants::GetMaster()->GetPtMax();
+  Int_t iNbinsEta  = AliFlowCommonConstants::GetMaster()->GetNbinsEta();
+  Double_t dEtaMin = AliFlowCommonConstants::GetMaster()->GetEtaMin();	     
+  Double_t dEtaMax = AliFlowCommonConstants::GetMaster()->GetEtaMax();
 
   fHistProUQetaRP = new TProfile("Flow_UQetaRP_SP","Flow_UQetaRP_SP",iNbinsEta,dEtaMin,dEtaMax);
   fHistProUQetaRP->SetXTitle("{eta}");
@@ -158,8 +169,10 @@ void AliFlowAnalysisWithScalarProduct::Make(AliFlowEventSimple* anEvent) {
     fCommonHists->FillControlHistograms(anEvent);
         
     //get Q vectors for the eta-subevents
-    AliFlowVector vQa = anEvent->GetQsub(-1.,-0.01);  
-    AliFlowVector vQb = anEvent->GetQsub(0.01,1.);
+    AliFlowVector* vQarray = new AliFlowVector[2];
+    anEvent->GetQsub(vQarray);
+    AliFlowVector vQa = vQarray[0];
+    AliFlowVector vQb = vQarray[1];
     //get total Q vector
     AliFlowVector vQ = vQa + vQb;
     
@@ -190,9 +203,11 @@ void AliFlowAnalysisWithScalarProduct::Make(AliFlowEventSimple* anEvent) {
 	  TVector2 vQm = vQ;
 	  //subtract particle from the flowvector if used to define it
 	  if (pTrack->InRPSelection()) {
-	    Double_t dQmX = vQm.X() - dUX;
-	    Double_t dQmY = vQm.Y() - dUY;
-	    vQm.Set(dQmX,dQmY);
+	    if (pTrack->InSubevent(0) || pTrack->InSubevent(1)) { 
+	      Double_t dQmX = vQm.X() - dUX;
+	      Double_t dQmY = vQm.Y() - dUY;
+	      vQm.Set(dQmX,dQmY);
+	    }
 	  }
 
 	  //dUQ = scalar product of vU and vQm
@@ -213,6 +228,7 @@ void AliFlowAnalysisWithScalarProduct::Make(AliFlowEventSimple* anEvent) {
 	 
     fEventNumber++;
     //    cout<<"@@@@@ "<<fEventNumber<<" events processed"<<endl;
+    delete [] vQarray;
   }
 }
 
@@ -258,8 +274,8 @@ void AliFlowAnalysisWithScalarProduct::Finish() {
   cout<<"         Scalar product              "<<endl;
   cout<<endl;
   
-  Int_t iNbinsPt  = AliFlowCommonConstants::GetNbinsPt();
-  Int_t iNbinsEta = AliFlowCommonConstants::GetNbinsEta();
+  Int_t iNbinsPt  = AliFlowCommonConstants::GetMaster()->GetNbinsPt();
+  Int_t iNbinsEta = AliFlowCommonConstants::GetMaster()->GetNbinsEta();
 
   Double_t dMmin1    = fHistProM->GetBinContent(1);  //average over M-1
   Double_t dMmin1Err = fHistProM->GetBinError(1);    //error on average over M-1

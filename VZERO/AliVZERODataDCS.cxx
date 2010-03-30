@@ -46,21 +46,29 @@ AliVZERODataDCS::AliVZERODataDCS():
 	fRun(0),
 	fStartTime(0),
 	fEndTime(0),
+	fDaqStartTime(0),
+	fDaqEndTime(0),
     fGraphs("TGraph",kNGraphs),
 	fFEEParameters(NULL),
 	fIsProcessed(kFALSE)
 
 {
   // Default constructor
-  for(int i=0;i<kNHvChannel;i++) fDeadChannel[i] = kFALSE;
+	for(int i=0;i<kNHvChannel;i++) {
+		fDeadChannel[i] = kFALSE;
+		fMeanHV[i]      = 100.0;
+		fWidthHV[i]     = 0.0; 
+	}
 }
 
 //_____________________________________________________________________________
-AliVZERODataDCS::AliVZERODataDCS(Int_t nRun, UInt_t startTime, UInt_t endTime):
+AliVZERODataDCS::AliVZERODataDCS(Int_t nRun, UInt_t startTime, UInt_t endTime, UInt_t daqStartTime, UInt_t daqEndTime):
 	TObject(),
 	fRun(nRun),
 	fStartTime(startTime),
 	fEndTime(endTime),
+	fDaqStartTime(daqStartTime),
+	fDaqEndTime(daqEndTime),
 	fGraphs("TGraph",kNGraphs),
 	fFEEParameters(new TMap()),
 	fIsProcessed(kFALSE)
@@ -68,11 +76,16 @@ AliVZERODataDCS::AliVZERODataDCS(Int_t nRun, UInt_t startTime, UInt_t endTime):
 {
 
   // constructor with arguments
-  	for(int i=0;i<kNHvChannel;i++) fDeadChannel[i] = kFALSE;
-
-	AliInfo(Form("\n\tRun %d \n\tStartTime %s \n\tEndTime %s", nRun,
+  	for(int i=0;i<kNHvChannel;i++) {
+	 fDeadChannel[i] = kFALSE;        
+	 fMeanHV[i]      = 100.0;
+     fWidthHV[i]     = 0.0; 
+	}
+	AliInfo(Form("\n\tRun %d \n\tTime Created %s \n\tTime Completed %s \n\tDAQ start %s \n\tDAQ end %s  ", nRun,
 		TTimeStamp(startTime).AsString(),
-		TTimeStamp(endTime).AsString()));
+		TTimeStamp(endTime).AsString(),
+		TTimeStamp(daqStartTime).AsString(),
+		TTimeStamp(daqEndTime).AsString()));
 	
 	fFEEParameters->SetOwnerValue();
 	Init();
@@ -104,7 +117,7 @@ void AliVZERODataDCS::ProcessData(TMap& aliasMap){
     aliasArr = (TObjArray*) aliasMap.GetValue(fAliasNames[iAlias].Data());
     if(!aliasArr){
       AliError(Form("Alias %s not found!", fAliasNames[iAlias].Data()));
-      return;
+      continue;
     }
 
     //Introduce(iAlias, aliasArr);
@@ -127,16 +140,25 @@ void AliVZERODataDCS::ProcessData(TMap& aliasMap){
 
     	while((aValue = (AliDCSValue*) iterarray.Next())) {
    			values[iValue] = aValue->GetFloat();
+			UInt_t currentTime = aValue->GetTimeStamp();
+   			times[iValue] = (Double_t) (currentTime);
+			
 			if(iValue>0) {
 				if(values[iValue-1]>0.) variation = TMath::Abs(values[iValue]-values[iValue-1])/values[iValue-1];
+				if(currentTime>fDaqEndTime && variation>0.10) continue;
 				if(variation > 0.10) fDeadChannel[GetOfflineChannel(iAlias)] = kTRUE;
 			}
-   			times[iValue] = (Double_t) (aValue->GetTimeStamp());
 			fHv[iAlias]->Fill(values[iValue]);
 			printf("%s %f Dead=%d\n",fAliasNames[iAlias].Data(),values[iValue],fDeadChannel[GetOfflineChannel(iAlias)]);
    			iValue++;
     	}      
     	CreateGraph(iAlias, aliasArr->GetEntries(), times, values); // fill graphs 
+
+  	// calculate mean and rms of the first two histos
+	// and convert index to aliroot channel
+	Int_t iChannel     = GetOfflineChannel(iAlias);	
+	fMeanHV[iChannel]  = fHv[iAlias]->GetMean();
+	fWidthHV[iChannel] = fHv[iAlias]->GetRMS();
 
     	delete[] values;
     	delete[] times;	
@@ -147,14 +169,6 @@ void AliVZERODataDCS::ProcessData(TMap& aliasMap){
 	}      
   }
   
-  	// calculate mean and rms of the first two histos
-	// and convert index to aliroot channel
-	for(int i=0;i<kNHvChannel;i++){
-	    Int_t iChannel     = GetOfflineChannel(i);	
-		fMeanHV[iChannel]  = fHv[i]->GetMean();
-		fWidthHV[iChannel] = fHv[i]->GetRMS();
-	}
-    
   fIsProcessed=kTRUE;
 }
 
@@ -174,7 +188,7 @@ void AliVZERODataDCS::Init(){
 			sindex.Form("%d/RING%d",iSector,iRing);
 			fAliasNames[iAlias] += sindex;
 			
-			fHv[iAlias] = new TH1F(fAliasNames[iAlias].Data(),fAliasNames[iAlias].Data(), 2000, kHvMin, kHvMax);
+			fHv[iAlias] = new TH1F(fAliasNames[iAlias].Data(),fAliasNames[iAlias].Data(), 3000, kHvMin, kHvMax);
 			fHv[iAlias]->GetXaxis()->SetTitle("Hv");
 			iAlias++;
   		}

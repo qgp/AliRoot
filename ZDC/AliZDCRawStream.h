@@ -25,13 +25,14 @@ class AliZDCRawStream: public TObject {
   public :
     
     // Module type codes
-    enum{kV965=1, kV830=2, kTRG=3, kTRGI=4, kPU=5}; 
+    enum{kV965=1, kV830=2, kTRG=3, kTRGI=4, kPU=5, KV1290=6, kV775N=7}; 
     
     // Signal codes for ZDC 
     // Same codes used in DAQ configuration file
     // To be changed ONLY IF this file is changed!!! 
     // **** DO NOT CHANGE THE FOLLOWING LINES!!! ****
-    enum ZDCSignal{kNotConnected=0, kVoid=1,
+    enum ZDCSignal{
+         kNotConnected=0, kVoid=1,
 	 kZNAC=2, kZNA1=3, kZNA2=4, kZNA3=5, kZNA4=6,
 	 kZPAC=7, kZPA1=8, kZPA2=9, kZPA3=10, kZPA4=11,
 	 kZNCC=12, kZNC1=13, kZNC2=14, kZNC3=15, kZNC4=16,
@@ -53,7 +54,14 @@ class AliZDCRawStream: public TObject {
 	 kZPCCD=76, kZPC1CD=77, kZPC2D=78, kZPC3D=79, kZPC4D=80,
 	 kZEM1D=81, kZEM2D=82,
 	 kZDCAMonD=83, kZDCCMonD=84,
-	 kZNAD=85, kZPAD=86, kZNCD=87, kZPCD=88, kZEMD=89};
+	 kZNAD=85, kZPAD=86, kZNCD=87, kZPCD=88, kZEMD=89,
+         kZNA0D=90, kZPA0D=91, kZNC0D=92, kZPC0D=93, k1kHzD=94, kGate=95, kAD=96, kCD=97, 
+	 kAorCD=98, kAandCD=99, kZEMORD=100, kAorCorZEMORD=101, kAorCorZEMD=102, kAD0=103, kAD1=104, kAD2=105, 
+	 kAD3=106, kAD4=107, kAD5=108, kAD6=109, kAD7=110, kAD8=111, kAD9=112, kAD10=113, 
+	 kAD11=114, kAD12=115, kAD13=116, kAD14=117, kAD15=118, kAD0D=119, kAD1D=120, kAD2D=121,
+	 kAD3D=122, kAD4D=123, kAD5D=124, kAD6D=125, kAD7D=126, kAD8D=127, kAD9D=128, kAD10D=129,
+	 kAD11D=130, kAD12D=131, kAD13D=132, kAD14D=133, kAD15D=134
+	 };
     
     // Error codes in raw data streaming
     enum EZDCRawStreamError{
@@ -70,6 +78,12 @@ class AliZDCRawStream: public TObject {
     virtual void ReadChMap();
 
     virtual void ReadCDHHeader();
+
+    Bool_t IsZDCTDCHeader() const {return fIsZDCTDCHeader;}
+    
+    Bool_t IsAddChannel()   const {return fIsADDChannel;}
+    Bool_t IsADDTDCHeader() const {return fIsADDTDCHeader;}
+    Bool_t IsAddTDCdatum()  const {return fIsADDTDCdatum;}
 
     UInt_t GetRawBuffer()      const {return fBuffer;}
     Int_t  GetReadOutCard()    const {return fReadOutCard;}
@@ -122,6 +136,7 @@ class AliZDCRawStream: public TObject {
     UInt_t GetTriggerCount()    const {return fScEvCounter;}
     Bool_t IsScHeaderRead()     const {return fIsScHeaderRead;}
     Bool_t IsScEventGood()      const {return fIsScEventGood;}
+    Bool_t IsScalerWord()       const {return fIsScalerWord;}
     
     UInt_t GetDetectorPattern() const {return fDetPattern;}
     
@@ -197,6 +212,7 @@ class AliZDCRawStream: public TObject {
     Bool_t fIsScHeaderRead;  // true if scaler header is read
     Int_t  fScStartCounter;  // position in the buffer where scaler data begins
     UInt_t fScEvCounter;     // event counter
+    Bool_t fIsScalerWord;    // is scaler word (not header)
     
     // Pattern Unit
     UInt_t fDetPattern;  // word from the pattern unit
@@ -239,10 +255,20 @@ class AliZDCRawStream: public TObject {
     
     // Checks over raw data event quality
     Bool_t fIsADCEventGood; // true if not valid datum not corrupted
-    Bool_t fIsL0BitSet;    // true if L0 bit in history words = 1 
-    Bool_t fIsPileUpEvent; // true if pile up bits in history words = 0
+    Bool_t fIsL0BitSet;     // true if L0 bit in history words = 1 
+    Bool_t fIsPileUpEvent;  // true if pile up bits in history words = 0
     
-    ClassDef(AliZDCRawStream, 15)    // class for reading ZDC raw data
+    // ZDC TDC
+    Bool_t fIsZDCTDCHeader;  // true if datum is a ZDC TDC header
+    Bool_t fIsTDCHeaderRead; // true when streaming TDC data
+    Int_t  fTDCStartCounter; // counts after TDC header
+    
+    // ADD part
+    Bool_t fIsADDChannel;   // true if datum is an ADD ADC channel
+    Bool_t fIsADDTDCHeader; // true if datum is an ADD TDC channel
+    Bool_t fIsADDTDCdatum;  // true if datum is an ADD TDC channel
+   
+    ClassDef(AliZDCRawStream, 18)    // class for reading ZDC raw data
 };
 
 #endif

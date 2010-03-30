@@ -8,8 +8,7 @@
   Input Files: argument list
   Output Files: RESULT_FILE=EMCALLED.root, to be exported to the DAQ FXS
   fileId:  FILE_ID=EMCALLED    
-  Trigger types used: CALIBRATION_EVENT (temporarily also PHYSICS_EVENT to start with)
-  [When we have real data files later, we should only use CALIBRATION_EVENT]
+  Trigger types used: CALIBRATION_EVENT 
 */
 /*
   This process reads RAW data from the files provided as command line arguments
@@ -20,7 +19,6 @@
 #define RESULT_FILE  "EMCALLED.root"
 #define FILE_ID "signal"
 #define AliDebugLevel() -1
-#define FILE_PEDClassName "emcCalibPedestal"
 #define FILE_SIGClassName "emcCalibSignal"
 const int kNRCU = 4;
 /* LOCAL_DEBUG is used to bypass daq* calls that do not work locally */
@@ -53,7 +51,6 @@ extern "C" {
 //
 // EMC calibration-helper algorithm includes
 //
-#include "AliCaloCalibPedestal.h"
 #include "AliCaloCalibSignal.h"
 
 /*
@@ -139,9 +136,6 @@ int main(int argc, char **argv) {
   }
   
   /* set up our analysis classes */  
-  AliCaloCalibPedestal * calibPedestal = new AliCaloCalibPedestal(AliCaloCalibPedestal::kEmCal); 
-  calibPedestal->SetAltroMapping( mapping );
-  calibPedestal->SetParametersFromFile( parameterFile );
   AliCaloCalibSignal * calibSignal = new AliCaloCalibSignal(AliCaloCalibSignal::kEmCal); 
   calibSignal->SetAltroMapping( mapping );
   calibSignal->SetParametersFromFile( parameterFile );
@@ -186,8 +180,8 @@ int main(int argc, char **argv) {
       }
       eventT = event->eventType; /* just convenient shorthand */
       
-      /* skip start/end of run events */
-      if ( (eventT != physicsEvent) && (eventT != calibrationEvent) ) {
+      /* only look at calibration events */
+      if ( eventT != calibrationEvent ) {
 	continue;
       }
       
@@ -197,9 +191,6 @@ int main(int argc, char **argv) {
       rawReader = new AliRawReaderDate((void*)event);
       calibSignal->SetRunNumber(event->eventRunNb);
       calibSignal->ProcessEvent(rawReader);
-      rawReader->Reset();
-      calibPedestal->SetRunNumber(event->eventRunNb);
-      calibPedestal->ProcessEvent(rawReader);
       delete rawReader;
       
       /* free resources */
@@ -224,16 +215,15 @@ int main(int argc, char **argv) {
   // write class to rootfile
   //
   
-  printf ("%d physics/calibration events processed.\n",nevents);
+  printf ("%d calibration events processed.\n",nevents);
   
   TFile f(RESULT_FILE, "recreate");
   if (!f.IsZombie()) { 
     f.cd();
-    calibPedestal->Write(FILE_PEDClassName);
     calibSignal->Write(FILE_SIGClassName);
     f.Close();
-    printf("Objects saved to file \"%s\" as \"%s\" and \"%s\".\n", 
-	   RESULT_FILE, FILE_PEDClassName, FILE_SIGClassName); 
+    printf("Objects saved to file \"%s\" as \"%s\".\n", 
+	   RESULT_FILE, FILE_SIGClassName); 
   } 
   else {
     printf("Could not save the object to file \"%s\".\n", 
@@ -243,7 +233,6 @@ int main(int argc, char **argv) {
   //
   // closing down; see if we can delete our analysis helper(s) also
   //
-  delete calibPedestal;
   delete calibSignal;
   for(Int_t iFile=0; iFile<kNRCU; iFile++) {
     if (mapping[iFile]) delete mapping[iFile];

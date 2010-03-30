@@ -81,13 +81,13 @@ ClassImp(AliFlowCommonHistResults)
 {
   //constructor creating histograms 
   //Pt:
-  Int_t iNbinsPt = AliFlowCommonConstants::GetNbinsPt();
-  Double_t dPtMin = AliFlowCommonConstants::GetPtMin();	     
-  Double_t dPtMax = AliFlowCommonConstants::GetPtMax();
+  Int_t iNbinsPt = AliFlowCommonConstants::GetMaster()->GetNbinsPt();
+  Double_t dPtMin = AliFlowCommonConstants::GetMaster()->GetPtMin();	     
+  Double_t dPtMax = AliFlowCommonConstants::GetMaster()->GetPtMax();
   //eta:
-  Int_t iNbinsEta = AliFlowCommonConstants::GetNbinsEta();
-  Double_t dEtaMin = AliFlowCommonConstants::GetEtaMin();	     
-  Double_t dEtaMax = AliFlowCommonConstants::GetEtaMax();
+  Int_t iNbinsEta = AliFlowCommonConstants::GetMaster()->GetNbinsEta();
+  Double_t dEtaMin = AliFlowCommonConstants::GetMaster()->GetEtaMin();	     
+  Double_t dEtaMax = AliFlowCommonConstants::GetMaster()->GetEtaMax();
   
   TString name;
 
@@ -341,7 +341,7 @@ Bool_t AliFlowCommonHistResults::FillDifferentialFlowEtaPOI(Int_t aBin, Double_t
  Double_t AliFlowCommonHistResults::Merge(TCollection *aList)
 {
   //merge fuction
-  cout<<"entering merge function"<<endl;
+  //cout<<"entering merge function"<<endl;
   if (!aList) return 0;
   if (aList->IsEmpty()) return 0; //no merging is needed
 
@@ -359,7 +359,7 @@ Bool_t AliFlowCommonHistResults::FillDifferentialFlowEtaPOI(Int_t aBin, Double_t
   // Cleanup
   delete pTemp;
     
-  cout<<"Merged"<<endl;
+  //cout<<"Merged"<<endl;
   return (double)iCount;
     
 }

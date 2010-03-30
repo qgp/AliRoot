@@ -23,7 +23,7 @@ TEveElementList* esd_spd_tracklets(Float_t radius=8, Width_t line_width=2,
   gEve->AddElement(cont);
 
   TEveTrackList *tg = new TEveTrackList("Good");
-  tg->SetMainColor(7);
+  tg->SetMainColor(kCyan);
   tg->SetLineWidth(line_width);
   cont->AddElement(tg);
 
@@ -31,7 +31,7 @@ TEveElementList* esd_spd_tracklets(Float_t radius=8, Width_t line_width=2,
   pg->SetMaxR(radius);
 
   TEveTrackList *tb = new TEveTrackList("Bad");
-  tb->SetMainColor(7);
+  tb->SetMainColor(kMagenta);
   tb->SetLineWidth(line_width);
   cont->AddElement(tb);
 
@@ -76,7 +76,11 @@ TEveElementList* esd_spd_tracklets(Float_t radius=8, Width_t line_width=2,
   }
   else
   {
-    tb->SetLineStyle(6);
+//==========================================
+    tb->SetLineStyle(1);
+    tb->SetLineWidth(2);
+//==========================================
+
   }
 
   gEve->Redraw3D();

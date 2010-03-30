@@ -7,8 +7,18 @@
  * full copyright notice.                                                 *
  **************************************************************************/
 
-// Import tracks from kinematics-tree / particle-stack.
-// Preliminary/minimal solution.
+/// \ingroup evemacros
+/// \file kine_tracks.C
+/// \brief Import tracks from kinematics-tree / particle-stack.
+///
+/// Preliminary/minimal solution.
+///
+/// \author Matevz Tadel & Alja Mrak-Tadel: 2006, 2007 
+
+#if !defined(__CINT__) || defined(__MAKECINT__)
+
+#include <TParticle.h>
+#include <TParticlePDG.h>
 
 #include <TEveManager.h>
 #include <TEveTrackPropagator.h>
@@ -22,7 +32,7 @@
 #include <AliStack.h>
 #include <AliMagF.h>
 
-#include "TParticlePDG.h"
+#endif
 
 // Use magnetic-field as retrieved from GRP.
 Bool_t g_kine_tracks_true_field = kTRUE;
@@ -86,7 +96,7 @@ kine_tracks(Double_t min_pt,  Double_t min_p,
   AliStack* stack = rl->Stack();
   if (!stack)
   {
-    Error("kine_tracks.C", "can not get kinematics.");
+    Error("kine_tracks", "can not get kinematics.");
     return 0;
   }
 
@@ -264,6 +274,11 @@ kine_track(Int_t  label,
   AliRunLoader* rl =  AliEveEventManager::AssertRunLoader();
   rl->LoadKinematics();
   AliStack* stack = rl->Stack();
+  if (!stack)
+  {
+     Warning("kine_track", "can not get kinematics.");
+    return 0;
+  }
   if (label >= stack->GetNtrack())
   {
     Warning("kine_track", "label out of range.");
@@ -289,7 +304,7 @@ kine_track(Int_t  label,
       char tooltip[1000];
       sprintf(tooltip,"Ndaughters=%d", p->GetNDaughters());
       tlist->SetTitle(tooltip);
-      trkProp->fMaxOrbs = 2;
+      trkProp->SetMaxOrbs(2);
       trkProp->SetEditPathMarks(kTRUE);
 
       gEve->AddElement(cont);

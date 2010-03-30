@@ -29,7 +29,7 @@ class AliESDEvent;
 
 class AliTOFcluster;
 class AliTOFRecoParam;
-class AliTOFpidESD;
+class AliESDpid;
 
 class AliTOFtrackerV1 : public AliTracker {
 
@@ -40,6 +40,7 @@ public:
  AliTOFtrackerV1(); 
 
  virtual ~AliTOFtrackerV1();
+ virtual void GetPidSettings(AliESDpid *esdPID);
  virtual Int_t Clusters2Tracks(AliESDEvent* /*event*/) {return -1;};
  virtual Int_t PropagateBack(AliESDEvent* event);
  virtual Int_t RefitInward(AliESDEvent* /*event*/) {return -1;};
@@ -62,11 +63,10 @@ private:
  void  MatchTracks(); // Matching Algorithm 
  void  CollectESD(); // Select starting Set for Matching 
  Float_t  GetTimeZerofromTOF(AliESDEvent* /*event*/) const; // T0 from TOF
- Float_t  GetTimeZerofromT0(AliESDEvent* event) const; // T0 from T0
- Float_t  CorrectTimeWalk(Float_t dist,Float_t tof); // Time Walk correction
+ Float_t  GetTimeZerofromT0(const AliESDEvent * const event) const; // T0 from T0
+ Float_t  CorrectTimeWalk(Float_t dist,Float_t tof) const; // Time Walk correction
 
- const AliTOFRecoParam* fRecoParam;     // Pointer to TOF Recon. Pars
- AliTOFpidESD*    fPid;                 // Pointer to TOF PID
+ const AliTOFRecoParam* fkRecoParam;    // Pointer to TOF Recon. Pars
  AliTOFcluster *fClusters[kMaxCluster]; // pointers to the TOF clusters
 
  Int_t fN;              // Number of Clusters
@@ -93,7 +93,7 @@ private:
  TH2F * fHRecSigYVsPWin;//Reco QA, search window size in Y (cm)
  TH2F * fHRecSigZVsPWin;//Reco QA, search window size in X (cm)
 
- ClassDef(AliTOFtrackerV1, 1) // TOF tracker 
+ ClassDef(AliTOFtrackerV1, 2) // TOF tracker 
 };
 
 #endif

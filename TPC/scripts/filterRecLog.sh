@@ -9,19 +9,22 @@
 isOK=0 
 nonOK=0
 #
-rm abort.log
-rm abortout.log
-rm syswatchAbort.log
-rm syswatchAll.log
-echo hname/C:sname/C:id0/I:id1/I:id2/I:first/I:stampSec/I:mi.fMemUsed/F:mi.fSwapUsed/F:cI.fUser/F:cI.fSys/F:pI.fMemResident/F:pI.fMemVirtual/F:pI.fCpuUser/F:pI.fCpuSys/F:stampOldSec/I:miOld.fMemUsed/F:miOld.fSwapUsed/F:cIOld.fUser/F:cIOld.fSys/F:pIOld.fMemResident/F:pIOld.fMemVirtual/F:pIOld.fCpuUser/F:pIOld.fCpuSys/F > syswatchAbort.log
+rm -f abort.log
+rm -f abortout.log
+rm -f syswatchAbort.log
+rm -f syswatchAll.log
+rm -f seg0.out
 
-echo hname/C:sname/C:id0/I:id1/I:id2/I:first/I:stampSec/I:mi.fMemUsed/F:mi.fSwapUsed/F:cI.fUser/F:cI.fSys/F:pI.fMemResident/F:pI.fMemVirtual/F:pI.fCpuUser/F:pI.fCpuSys/F:stampOldSec/I:miOld.fMemUsed/F:miOld.fSwapUsed/F:cIOld.fUserF:cIOld.fSys/F:pIOld.fMemResident/F:pIOld.fMemVirtual/F:pIOld.fCpuUser/F:pIOld.fCpuSys/F > syswatchAll.log
+echo hname/C:sname/C:id0/I:id1/I:id2/I:first/D:stampSec/D:mi.fMemUsed/D:mi.fSwapUsed/D:cI.fUser/D:cI.fSys/D:pI.fMemResident/D:pI.fMemVirtual/D:pI.fCpuUser/D:pI.fCpuSys/D:stampOldSec/D:miOld.fMemUsed/D:miOld.fSwapUsed/D:cIOld.fUser/D:cIOld.fSys/D:pIOld.fMemResident/D:pIOld.fMemVirtual/D:pIOld.fCpuUser/D:pIOld.fCpuSys/D > syswatchAbort.log
+echo hname/C:sname/C:id0/I:id1/I:id2/I:first/D:stampSec/D:mi.fMemUsed/D:mi.fSwapUsed/D:cI.fUser/D:cI.fSys/D:pI.fMemResident/D:pI.fMemVirtual/D:pI.fCpuUser/D:pI.fCpuSys/D:stampOldSec/D:miOld.fMemUsed/D:miOld.fSwapUsed/D:cIOld.fUser/D:cIOld.fSys/D:pIOld.fMemResident/D:pIOld.fMemVirtual/D:pIOld.fCpuUser/D:pIOld.fCpuSys/D > syswatchAll.log
+
 
 #
 for efile in `cat errRec.log`  ;do
  xxx=`cat $efile| grep segmentation`
  xxx=$xxx`cat $efile| grep Aborted`
- sysfile=`echo $efile| sed s_err.log_syswatch.log_`
+ xxx=$xxx`cat $efile| grep floating`
+ sysfile=`echo $efile| sed s_err_syswatch_`
  # 
  if [ -z "$xxx" ]
  then
@@ -33,10 +36,36 @@ for efile in `cat errRec.log`  ;do
   echo $efile
   ofile=`echo $efile| sed s_err_out_`
   cat $ofile   >> abortout.log
-  cat $sysfile | grep -v hname\/C:sname\/C: >> syswatchAbort.log
+  #cat $sysfile | grep -v hname\/C:sname\/C: >> syswatchAbort.log
  fi
-  cat $sysfile | grep -v hname\/C:sname\/ >> syswatchAll.log
+  #cat $sysfile | grep -v hname\/C:sname\/ >> syswatchAll.log 
 done; 
 
-#get the list
+#
+# connection problems
+#
+rm networkProblem.log
+touch networkProblem.log
+netOK=0;
+netNonOK=0;
+for efile in `cat errRec.log`  ;do
+    xxx=`cat $efile| grep tcp_connect`
+    if [ -z "$xxx" ]
+    then
+      let netOK=netOK+1
+    else
+      let netNonOK=netNonOK+1
+      echo $efile >> networkProblem.log 
+    fi;
+done;
+#
+# Print stat
+#
 echo isOK=$isOK nonOK=$nonOK
+echo netOK=$netOK netNonOK=$netNonOK
+#
+# filter segmentation fault
+#
+for a in `cat  abort.log |sed s_err_out_ ` ;do
+    cat $a | grep 0x | grep \# >> seg0.out
+done;

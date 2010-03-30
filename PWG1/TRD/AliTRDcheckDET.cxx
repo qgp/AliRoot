@@ -28,10 +28,12 @@
 #include <TFile.h>
 #include <TH1F.h>
 #include <TH1I.h>
+#include <TH2F.h>
 #include <TF1.h>
 #include <TGaxis.h>
 #include <TGraph.h>
 #include <TLegend.h>
+#include <TLinearFitter.h>
 #include <TMath.h>
 #include <TMap.h>
 #include <TObjArray.h>
@@ -48,6 +50,7 @@
 #include "AliESDHeader.h"
 #include "AliESDRun.h"
 #include "AliESDtrack.h"
+#include "AliExternalTrackParam.h"
 #include "AliTRDgeometry.h"
 #include "AliTRDpadPlane.h"
 #include "AliTRDSimParam.h"
@@ -76,6 +79,7 @@ AliTRDcheckDET::AliTRDcheckDET():
   ,fTriggerNames(0x0)
   ,fReconstructor(0x0)
   ,fGeo(0x0)
+  ,fFlags(0)
 {
   //
   // Default constructor
@@ -203,7 +207,7 @@ Bool_t AliTRDcheckDET::PostProcess(){
     h->SetBinContent(1, 0.);
   }
 
-  fNRefFigures = 18;
+  fNRefFigures = 17;
 
   return kTRUE;
 }
@@ -213,50 +217,72 @@ Bool_t AliTRDcheckDET::GetRefFigure(Int_t ifig){
   //
   // Setting Reference Figures
   //
+  enum FigureType_t{
+    kFigNclustersTrack,
+    kFigNclustersTracklet,
+    kFigNtrackletsTrack,
+    kFigNTrackletsP,
+    kFigNtrackletsCross,
+    kFigNtrackletsFindable,
+    kFigNtracksEvent,
+    kFigNtracksSector,
+    kFigTrackStatus,
+    kFigTrackletStatus,
+    kFigChi2,
+    kFigPH,
+    kFigChargeCluster,
+    kFigChargeTracklet,
+    kFigNeventsTrigger,
+    kFigNeventsTriggerTracks,
+    kFigTriggerPurity
+  };
   gPad->SetLogy(0);
   gPad->SetLogx(0);
   TH1 *h = 0x0; TObjArray *arr=0x0;
   TLegend *leg = 0x0;
   Bool_t kFIRST(1);
   switch(ifig){
-  case kNclustersTrack:
+  case kFigNclustersTrack:
     (h=(TH1F*)fContainer->FindObject("hNcls"))->Draw("pl");
     PutTrendValue("NClustersTrack", h->GetMean());
     PutTrendValue("NClustersTrackRMS", h->GetRMS());
     return kTRUE;
-  case kNclustersTracklet:
+  case kFigNclustersTracklet:
     (h =(TH1F*)fContainer->FindObject("hNclTls"))->Draw("pc");
     PutTrendValue("NClustersTracklet", h->GetMean());
     PutTrendValue("NClustersTrackletRMS", h->GetRMS());
     return kTRUE;
-  case kNtrackletsTrack:
+  case kFigNtrackletsTrack:
     h=MakePlotNTracklets();
     PutTrendValue("NTrackletsTrack", h->GetMean());
     PutTrendValue("NTrackletsTrackRMS", h->GetRMS());
     return kTRUE;
-  case kNtrackletsCross:
+  case kFigNTrackletsP:
+    MakePlotnTrackletsVsP();
+    return kTRUE;
+  case kFigNtrackletsCross:
     h = (TH1F*)fContainer->FindObject("hNtlsCross");
     if(!MakeBarPlot(h, kRed)) break;
     PutTrendValue("NTrackletsCross", h->GetMean());
     PutTrendValue("NTrackletsCrossRMS", h->GetRMS());
     return kTRUE;
-  case kNtrackletsFindable:
+  case kFigNtrackletsFindable:
     h = (TH1F*)fContainer->FindObject("hNtlsFindable");
     if(!MakeBarPlot(h, kGreen)) break;
     PutTrendValue("NTrackletsFindable", h->GetMean());
     PutTrendValue("NTrackletsFindableRMS", h->GetRMS());
     return kTRUE;
-  case kNtracksEvent:
+  case kFigNtracksEvent:
     (h = (TH1F*)fContainer->FindObject("hNtrks"))->Draw("pl");
     PutTrendValue("NTracksEvent", h->GetMean());
     PutTrendValue("NTracksEventRMS", h->GetRMS());
     return kTRUE;
-  case kNtracksSector:
+  case kFigNtracksSector:
     h = (TH1F*)fContainer->FindObject("hNtrksSector");
     if(!MakeBarPlot(h, kGreen)) break;
     PutTrendValue("NTracksSector", h->Integral()/h->GetNbinsX());
     return kTRUE;
-  case kTrackStatus:
+  case kFigTrackStatus:
     if(!(h=(TH1F *)fContainer->FindObject("hTrackStatus"))) break;
     h->GetXaxis()->SetRangeUser(0.5, -1);
     h->GetYaxis()->CenterTitle();
@@ -264,7 +290,7 @@ Bool_t AliTRDcheckDET::GetRefFigure(Int_t ifig){
     PutTrendValue("TrackStatus", h->Integral());
     gPad->SetLogy(0);
     return kTRUE;
-  case kTrackletStatus:
+  case kFigTrackletStatus:
     if(!(arr = dynamic_cast<TObjArray*>(fContainer->At(kTrackletStatus)))) break;
     leg = new TLegend(.68, .7, .98, .98);
     leg->SetBorderSize(1);leg->SetFillColor(0);
@@ -283,31 +309,31 @@ Bool_t AliTRDcheckDET::GetRefFigure(Int_t ifig){
     leg->Draw();
     gPad->SetLogy(0);
     return kTRUE;
-  case kChi2:
+  case kFigChi2:
     MakePlotChi2();
     return kTRUE;
-  case kPH:
+  case kFigPH:
     MakePlotPulseHeight();
     gPad->SetLogy(0);
     return kTRUE;
-  case kChargeCluster:
+  case kFigChargeCluster:
     (h = (TH1F*)fContainer->FindObject("hQcl"))->Draw("c");
     gPad->SetLogy(1);
     PutTrendValue("ChargeCluster", h->GetMaximumBin());
     PutTrendValue("ChargeClusterRMS", h->GetRMS());
     return kTRUE;
-  case kChargeTracklet:
+  case kFigChargeTracklet:
     (h=(TH1F*)fContainer->FindObject("hQtrklt"))->Draw("c");
     PutTrendValue("ChargeTracklet", h->GetMaximumBin());
     PutTrendValue("ChargeTrackletRMS", h->GetRMS());
     return kTRUE;
-  case kNeventsTrigger:
+  case kFigNeventsTrigger:
     ((TH1F*)fContainer->FindObject("hEventsTrigger"))->Draw("");
     return kTRUE;
-  case kNeventsTriggerTracks:
+  case kFigNeventsTriggerTracks:
     ((TH1F*)fContainer->FindObject("hEventsTriggerTracks"))->Draw("");
     return kTRUE;
-  case kTriggerPurity: 
+  case kFigTriggerPurity: 
     if(!MakeBarPlot((TH1F*)fContainer->FindObject("hTriggerPurity"), kGreen)) break;
     break;
   default:
@@ -358,10 +384,18 @@ TObjArray *AliTRDcheckDET::Histos(){
   }
   fContainer->AddAt(h, kNtrackletsSTA);
 
+  // Binning for momentum dependent tracklet Plots
+  const Int_t kNPbins = 11;
+  Double_t binTracklets[AliTRDgeometry::kNlayer + 1];
+  for(Int_t il = 0; il <= AliTRDgeometry::kNlayer; il++) binTracklets[il] = 0.5 + il;
+  Double_t binMomentum[kNPbins + 1] = {0.1, 0.3, 0.5, 0.7, 0.9, 1.1, 1.5, 2., 3., 4., 5., 10};
+
   if(!(h = (TH1F *)gROOT->FindObject("htlsBAR"))){
-    h = new TH1F("hNtlsBAR", "N_{tracklets} / track (Barrel)", AliTRDgeometry::kNlayer, 0.5, 6.5);
-    h->GetXaxis()->SetTitle("N^{tracklet}");
-    h->GetYaxis()->SetTitle("freq. [%]");
+    // Make tracklets for barrel tracks momentum dependent (if we do not exceed min and max values)
+    h = new TH2F("hNtlsBAR", "N_{tracklets} / track (Barrel)", kNPbins, binMomentum, AliTRDgeometry::kNlayer, binTracklets);
+    h->GetXaxis()->SetTitle("p / GeV/c");
+    h->GetYaxis()->SetTitle("N^{tracklet}");
+    h->GetZaxis()->SetTitle("freq. [%]");
   }
   fContainer->AddAt(h, kNtrackletsBAR);
 
@@ -595,32 +629,36 @@ TH1 *AliTRDcheckDET::PlotNClustersTrack(const AliTRDtrackV1 *track){
   
   Int_t nclusters = 0;
   AliTRDseedV1 *tracklet = 0x0;
+  AliExternalTrackParam *par = fkTrack->GetTrackHigh() ? fkTrack->GetTrackHigh() : fkTrack->GetTrackLow();
+  Double_t momentumRec = par->P();
   for(Int_t itl = 0; itl < AliTRDgeometry::kNlayer; itl++){
     if(!(tracklet = fkTrack->GetTracklet(itl)) || !tracklet->IsOK()) continue;
-    nclusters += tracklet->GetN();
+    Int_t n(tracklet->GetN());
+    nclusters += n;
     if(DebugLevel() > 2){
       Int_t crossing = Int_t(tracklet->IsRowCross());
       Int_t detector = tracklet->GetDetector();
       Float_t theta = TMath::ATan(tracklet->GetZref(1));
       Float_t phi = TMath::ATan(tracklet->GetYref(1));
-      Float_t momentum = 0.;
+      Float_t momentumMC = 0.;
       Int_t pdg = 0;
       Int_t kinkIndex = fkESD ? fkESD->GetKinkIndex() : 0;
       UShort_t nclsTPC = fkESD ? fkESD->GetTPCncls() : 0;
       if(fkMC){
-        if(fkMC->GetTrackRef()) momentum = fkMC->GetTrackRef()->P();
+        if(fkMC->GetTrackRef()) momentumMC = fkMC->GetTrackRef()->P();
         pdg = fkMC->GetPDG();
       }
       (*DebugStream()) << "NClustersTrack"
         << "Detector="  << detector
         << "crossing="  << crossing
-        << "momentum="	<< momentum
+        << "momentumMC="<< momentumMC
+        << "momentumRec=" << momentumRec
         << "pdg="				<< pdg
         << "theta="			<< theta
         << "phi="				<< phi
         << "kinkIndex="	<< kinkIndex
         << "TPCncls="		<< nclsTPC
-        << "nclusters=" << nclusters
+        << "TRDncls="   << n
         << "\n";
     }
   }
@@ -639,7 +677,7 @@ TH1 *AliTRDcheckDET::PlotNTrackletsTrack(const AliTRDtrackV1 *track){
     AliWarning("No Track defined.");
     return 0x0;
   }
-  TH1 *h = 0x0, *hMethod = 0x0;
+  TH1 *h = NULL, *hSta = NULL; TH2 *hBarrel = NULL;
   if(!(h = dynamic_cast<TH1F *>(fContainer->At(kNtrackletsTrack)))){
     AliWarning("No Histogram defined.");
     return 0x0;
@@ -648,18 +686,49 @@ TH1 *AliTRDcheckDET::PlotNTrackletsTrack(const AliTRDtrackV1 *track){
   h->Fill(nTracklets);
   if(!fkESD) return h;
   Int_t status = fkESD->GetStatus();
-/*  printf("in/out/refit/pid: TRD[%d|%d|%d|%d]\n", status &AliESDtrack::kTRDin ? 1 : 0, status &AliESDtrack::kTRDout ? 1 : 0, status &AliESDtrack::kTRDrefit ? 1 : 0, status &AliESDtrack::kTRDpid ? 1 : 0);*/
-  if((status & AliESDtrack::kTRDin) != 0){
-    // Full BarrelTrack
-    if(!(hMethod = dynamic_cast<TH1F *>(fContainer->At(kNtrackletsBAR))))
-      AliWarning("Method: Barrel.  Histogram not processed!");
-  } else {
-    // Stand alone Track
-    if(!(hMethod = dynamic_cast<TH1F *>(fContainer->At(kNtrackletsSTA))))
-      AliWarning("Method: StandAlone.  Histogram not processed!");
-  }
-  hMethod->Fill(nTracklets);
 
+/*  printf("in/out/refit/pid: TRD[%d|%d|%d|%d]\n", status &AliESDtrack::kTRDin ? 1 : 0, status &AliESDtrack::kTRDout ? 1 : 0, status &AliESDtrack::kTRDrefit ? 1 : 0, status &AliESDtrack::kTRDpid ? 1 : 0);*/
+  Double_t p = 0.;
+  Int_t method = -1;    // to distinguish between stand alone and full barrel tracks in the debugging
+  if((status & AliESDtrack::kTRDin) != 0){
+    method = 1;
+    // Full Barrel Track: Save momentum dependence
+    if(!(hBarrel = dynamic_cast<TH2F *>(fContainer->At(kNtrackletsBAR)))){
+      AliWarning("Method: Barrel.  Histogram not processed!");
+    } else {
+      AliExternalTrackParam *par = fkTrack->GetTrackHigh() ? fkTrack->GetTrackHigh() : fkTrack->GetTrackLow();
+      if(!par){
+       AliError("Outer track params missing");
+      } else {
+        p = par->P();
+      }
+      hBarrel->Fill(p, nTracklets);
+    }
+  } else {
+    // Stand alone Track: momentum dependence not usefull
+    method = 0;
+    if(!(hSta = dynamic_cast<TH1F *>(fContainer->At(kNtrackletsSTA)))) {
+      AliWarning("Method: StandAlone.  Histogram not processed!");
+    } else {
+      hSta->Fill(nTracklets);
+    }
+  }
+
+  if(DebugLevel() > 2){
+    AliTRDseedV1 *tracklet = NULL;
+    Int_t sector = -1;
+    for(Int_t itl = 0; itl < AliTRDgeometry::kNlayer; itl++){
+      if(!(tracklet = fkTrack->GetTracklet(itl)) || !(tracklet->IsOK())) continue;
+      sector = fGeo->GetSector(tracklet->GetDetector());
+      break;
+    }
+    (*DebugStream()) << "NTrackletsTrack"
+      << "Sector="      << sector
+      << "NTracklets="  << nTracklets
+      << "Method="      << method
+      << "p="           << p
+      << "\n";
+  }
   if(DebugLevel() > 3){
     if(nTracklets == 1){
       // If we have one Tracklet, check in which layer this happens
@@ -668,9 +737,12 @@ TH1 *AliTRDcheckDET::PlotNTrackletsTrack(const AliTRDtrackV1 *track){
       for(Int_t il = 0; il < AliTRDgeometry::kNlayer; il++){
         if((tracklet = fkTrack->GetTracklet(il)) && tracklet->IsOK()){layer =  il; break;}
       }
-      (*DebugStream()) << "NTrackletsTrack"
-        << "Layer=" << layer
-        << "\n";
+      if(layer >= 0){
+        (*DebugStream()) << "NTrackletsLayer"
+          << "Layer=" << layer
+          << "p=" << p
+          << "\n";
+      }
     }
   }
   return h;
@@ -873,7 +945,7 @@ TH1 *AliTRDcheckDET::PlotPHt(const AliTRDtrackV1 *track){
     Int_t detector = tracklet->GetDetector();
     tracklet->ResetClusterIter();
     while((c = tracklet->NextCluster())){
-      if(!c->IsInChamber()) continue;
+      if(!IsUsingClustersOutsideChamber() && !c->IsInChamber()) continue;
       Int_t localtime        = c->GetLocalTimeBin();
       Double_t absoluteCharge = TMath::Abs(c->GetQ());
       h->Fill(localtime, absoluteCharge);
@@ -936,7 +1008,7 @@ TH1 *AliTRDcheckDET::PlotPHx(const AliTRDtrackV1 *track){
     if(!(tracklet = fkTrack->GetTracklet(itl)) || !(tracklet->IsOK())) continue;
     tracklet->ResetClusterIter();
     while((c = tracklet->NextCluster())){
-      if(!c->IsInChamber()) continue;
+      if(!IsUsingClustersOutsideChamber() && !c->IsInChamber()) continue;
       x = c->GetX()-AliTRDcluster::GetXcorr(c->GetLocalTimeBin());
       y = c->GetY()-AliTRDcluster::GetYcorr(AliTRDgeometry::GetLayer(c->GetDetector()), c->GetCenter());
 
@@ -1117,7 +1189,8 @@ TH1* AliTRDcheckDET::MakePlotNTracklets(){
   //
   // Make nice bar plot of the number of tracklets in each method
   //
-  TH1F *hBAR = (TH1F *)fContainer->FindObject("hNtlsBAR");
+  TH2F *tmp = (TH2F *)fContainer->FindObject("hNtlsBAR");
+  TH1D *hBAR = tmp->ProjectionY();
   TH1F *hSTA = (TH1F *)fContainer->FindObject("hNtlsSTA");
   TH1F *hCON = (TH1F *)fContainer->FindObject("hNtls");
   TLegend *leg = new TLegend(0.13, 0.75, 0.39, 0.89);
@@ -1160,6 +1233,34 @@ TH1* AliTRDcheckDET::MakePlotNTracklets(){
 }
 
 //________________________________________________________
+void AliTRDcheckDET::MakePlotnTrackletsVsP(){
+  //
+  // Plot abundance of tracks with number of tracklets as function of momentum
+  //
+  TH1 *hLayer[6];
+  TH2 *hBar = (TH2F *)fContainer->FindObject("hNtlsBAR");
+  TLegend *leg = new TLegend(0.13, 0.75, 0.39, 0.89);
+  leg->SetBorderSize(1);
+  leg->SetFillColor(0);
+  Color_t color[6] = {kBlue, kOrange, kBlack, kGreen, kCyan, kRed};
+  Bool_t first = kTRUE;
+  for(Int_t itl = 1; itl <= 6; itl++){
+    hLayer[itl-1] = hBar->ProjectionX(Form("ntl%d", itl), itl, itl);
+    hLayer[itl-1]->Scale(1./hLayer[itl-1]->Integral());
+    hLayer[itl-1]->SetLineColor(color[itl-1]);
+    hLayer[itl-1]->GetYaxis()->SetRangeUser(0, 1);
+    if(first){
+      hLayer[itl-1]->Draw("l");
+      first=kFALSE;
+    } else
+      hLayer[itl-1]->Draw("lsame");
+    leg->AddEntry(hLayer[itl-1], Form("%d tracklets", itl),"l");
+  }
+  leg->Draw();
+  gPad->Update();
+}
+
+//________________________________________________________
 TH1* AliTRDcheckDET::MakePlotPulseHeight(){
   //
   // Create Plot of the Pluse Height Spectrum
@@ -1171,6 +1272,20 @@ TH1* AliTRDcheckDET::MakePlotPulseHeight(){
   h->SetMarkerColor(kBlack);
   h->SetLineColor(kBlack);
   h->Draw("e1");
+  // Trending for the pulse height: plateau value, slope and timebin of the maximum
+  TLinearFitter fit(1,"pol1");
+  Double_t time = 0.;
+  for(Int_t itime = 10; itime <= 20; itime++){
+    time = static_cast<Double_t>(itime);
+    fit.AddPoint(&time, h->GetBinContent(itime + 1), h->GetBinError(itime + 1));
+  }
+  fit.Eval();
+  Double_t plateau = fit.GetParameter(0) + 12 * fit.GetParameter(1);
+  Double_t slope = fit.GetParameter(1);
+  PutTrendValue("PHplateau", plateau);
+  PutTrendValue("PHslope", slope);
+  PutTrendValue("PHamplificationPeak", static_cast<Double_t>(h->GetMaximumBin()-1));
+  AliDebug(1, Form("plateau %f, slope %f, MaxTime %f", plateau, slope, static_cast<Double_t>(h->GetMaximumBin()-1)));
 //   copy the second histogram in a new one with the same x-dimension as the phs with respect to time
   h1 = (TH1F *)arr->At(1);
   h2 = new TH1F("hphs1","Average PH", 31, -0.5, 30.5);

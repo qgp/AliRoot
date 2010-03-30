@@ -43,22 +43,28 @@ public:
   Bool_t                 IsPair(AliExternalTrackParam *tr0, AliExternalTrackParam *tr1);
   Bool_t                 IsCross(AliESDtrack *tr0, AliESDtrack *tr1);
   Bool_t                 IsSame (AliESDtrack *tr0, AliESDtrack *tr1);
-  void                   ProcessAlignITS(AliESDtrack* track, AliESDfriendTrack *friendTrack);
+  void                   ProcessSame(AliESDtrack* track, AliESDfriendTrack *friendTrack,AliESDEvent *event);
+  void                   ProcessAlignITS(AliESDtrack* track, AliESDfriendTrack *friendTrack, AliESDEvent *event,AliESDfriend *ESDfriend);
   void                   ProcessAlignTRD(AliESDtrack* track, AliESDfriendTrack *friendTrack);
   void                   ProcessAlignTOF(AliESDtrack* track, AliESDfriendTrack *friendTrack);
 
-  THnSparse*    GetHistVdriftLaserA(Int_t index=1){return fHistVdriftLaserA[index];};
-  THnSparse*    GetHistVdriftLaserC(Int_t index=1){return fHistVdriftLaserC[index];};
+  THnSparse*    GetHistVdriftLaserA(Int_t index=1) const {return fHistVdriftLaserA[index];};
+  THnSparse*    GetHistVdriftLaserC(Int_t index=1) const {return fHistVdriftLaserC[index];};
   THnSparse*    GetHistoDrift(const char* name);
   TObjArray*    GetHistoDrift();
   TGraphErrors* GetGraphDrift(const char* name);
   TObjArray*    GetGraphDrift();
   AliSplineFit* GetFitDrift(const char* name);
 //  TObjArray*    GetFitDrift();
-  TH1F*         GetCosmiMatchingHisto(Int_t index=0){return fCosmiMatchingHisto[index];};
+  TH1F*         GetCosmiMatchingHisto(Int_t index=0) const {return fCosmiMatchingHisto[index];};
   
   void     Process(AliESDtrack *track, Int_t runNo=-1){AliTPCcalibBase::Process(track,runNo);};
   void     Process(AliTPCseed *track){return AliTPCcalibBase::Process(track);}
+  TObjArray* GetAlignITSTPC() {return fAlignITSTPC;}              // alignemnt array ITS TPC match
+  TObjArray* GetAlignTRDTPC() {return fAlignTRDTPC;}              // alignemnt array TRD TPC match
+  TObjArray* GetAlignTOFTPC() {return fAlignTOFTPC;}              // alignemnt array TOF TPC match
+
+
 private:
   void ResetCurrent();                  // reset current values
 

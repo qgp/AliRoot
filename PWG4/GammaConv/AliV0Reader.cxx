@@ -32,7 +32,8 @@
 
 #include "AliStack.h"
 #include "AliMCEventHandler.h"
-#include "AliTPCpidESD.h"
+#include "AliESDpid.h"
+#include "AliGammaConversionBGHandler.h"
 
 class iostream;
 class AliESDv0;
@@ -53,7 +54,7 @@ AliV0Reader::AliV0Reader() :
   fESDHandler(NULL),
   fESDEvent(NULL),
   fCFManager(NULL),
-  fTPCpid(NULL),
+  fESDpid(NULL),
   fHistograms(NULL),
   fCurrentV0IndexNumber(0),
   fCurrentV0(NULL),
@@ -100,11 +101,14 @@ AliV0Reader::AliV0Reader() :
   fUseImprovedVertex(kFALSE),
   fUseOwnXYZCalculation(kFALSE),
   fDoCF(kFALSE),
+  fUseOnFlyV0Finder(kTRUE),
   fUpdateV0AlreadyCalled(kFALSE),
-  fCurrentEventGoodV0s(),
-  fPreviousEventGoodV0s()
+  fCurrentEventGoodV0s(NULL),
+//  fPreviousEventGoodV0s(),
+  fBGEventHandler(NULL),
+  fBGEventInitialized(kFALSE)
 {
-  fTPCpid = new AliTPCpidESD;	
+  fESDpid = new AliESDpid;	
 }
 
 
@@ -117,7 +121,7 @@ AliV0Reader::AliV0Reader(const AliV0Reader & original) :
   fESDHandler(original.fESDHandler),
   fESDEvent(original.fESDEvent),
   fCFManager(original.fCFManager),
-  fTPCpid(original.fTPCpid),
+  fESDpid(original.fESDpid),
   fHistograms(original.fHistograms),
   fCurrentV0IndexNumber(original.fCurrentV0IndexNumber),
   fCurrentV0(original.fCurrentV0),
@@ -164,9 +168,12 @@ AliV0Reader::AliV0Reader(const AliV0Reader & original) :
   fUseImprovedVertex(original.fUseImprovedVertex),
   fUseOwnXYZCalculation(original.fUseOwnXYZCalculation),
   fDoCF(original.fDoCF),
+  fUseOnFlyV0Finder(original.fUseOnFlyV0Finder),
   fUpdateV0AlreadyCalled(original.fUpdateV0AlreadyCalled),
   fCurrentEventGoodV0s(original.fCurrentEventGoodV0s),
-  fPreviousEventGoodV0s(original.fPreviousEventGoodV0s)
+  //  fPreviousEventGoodV0s(original.fPreviousEventGoodV0s),
+  fBGEventHandler(original.fBGEventHandler),
+  fBGEventInitialized(original.fBGEventInitialized)
 {
 	
 }
@@ -179,13 +186,14 @@ AliV0Reader & AliV0Reader::operator = (const AliV0Reader & /*source*/)
 }
 AliV0Reader::~AliV0Reader()
 {
-  if(fTPCpid){
-    delete fTPCpid;
+  if(fESDpid){
+    delete fESDpid;
   }
 }
 
 void AliV0Reader::Initialize(){
   //see header file for documentation
+
   fUpdateV0AlreadyCalled = kFALSE;	
   // Get the input handler from the manager
   fESDHandler = (AliESDInputHandler*)(AliAnalysisManager::GetAnalysisManager()->GetInputEventHandler());
@@ -203,27 +211,72 @@ void AliV0Reader::Initialize(){
   fMCTruth = (AliMCEventHandler*)((AliAnalysisManager::GetAnalysisManager())->GetMCtruthEventHandler());
   if(fMCTruth == NULL){
     //print warning here
+    fDoMC = kFALSE;
   }
 	
   //Get pointer to the mc stack
-  fMCStack = fMCTruth->MCEvent()->Stack();
-  if(fMCStack == NULL){
-    //print warning here
+  if(fMCTruth){
+    fMCStack = fMCTruth->MCEvent()->Stack();
+    if(fMCStack == NULL){
+      //print warning here
+    }
+    // Better parameters for MonteCarlo from A. Kalweit 2010/01/8
+    fESDpid->GetTPCResponse().SetBetheBlochParameters( 2.15898e+00/50.,
+				      1.75295e+01,
+				      3.40030e-09,
+				      1.96178e+00,
+				      3.91720e+00);
   }
-	
+  else{
+    // Better parameters for data from A. Kalweit 2010/01/8
+    fESDpid->GetTPCResponse().SetBetheBlochParameters(0.0283086,
+				     2.63394e+01,
+				     5.04114e-11,
+				     2.12543e+00,
+				     4.88663e+00);
+  }
 	
   // for CF
   //Get pointer to the mc event
-  if(fDoCF){
+  if(fDoCF && fDoMC){
     fMCEvent = fMCTruth->MCEvent();
     if(fMCEvent == NULL){
       //print warning here
       fDoCF = kFALSE;
     }	
   }
+
+
+
 	
   AliKFParticle::SetField(fESDEvent->GetMagneticField());
-	
+
+  //  fCurrentEventGoodV0s = new TClonesArray("TClonesArray", 0);
+  fCurrentEventGoodV0s = new TClonesArray("AliKFParticle", 0);
+
+  if(fBGEventInitialized == kFALSE){
+    Double_t *zBinLimitsArray = new Double_t[8];//{-7,-5,-3,-1,1,3,5,7};
+    zBinLimitsArray[0] = -7;
+    zBinLimitsArray[1] = -5;
+    zBinLimitsArray[2] = -3;
+    zBinLimitsArray[3] = -1;
+    zBinLimitsArray[4] = 1;
+    zBinLimitsArray[5] = 3;
+    zBinLimitsArray[6] = 5;
+    zBinLimitsArray[7] = 7;
+    
+    Double_t *multiplicityBinLimitsArray= new Double_t[4];//={0,10,20,500};
+    multiplicityBinLimitsArray[0] = 0;
+    multiplicityBinLimitsArray[1] = 10;
+    multiplicityBinLimitsArray[2] = 20;
+    multiplicityBinLimitsArray[3] = 500;
+    
+    
+    fBGEventHandler = new AliGammaConversionBGHandler(8,4,10);
+    
+    fBGEventHandler->Initialize(zBinLimitsArray, multiplicityBinLimitsArray);
+    fBGEventInitialized = kTRUE;
+  }
 }
 
 AliESDv0* AliV0Reader::GetV0(Int_t index){
@@ -236,6 +289,24 @@ AliESDv0* AliV0Reader::GetV0(Int_t index){
 Bool_t AliV0Reader::CheckForPrimaryVertex(){
   return fESDEvent->GetPrimaryVertex()->GetNContributors()>0;
 }
+
+
+Bool_t AliV0Reader::CheckV0FinderStatus(Int_t index){
+
+  if(fUseOnFlyV0Finder){
+    if(!GetV0(index)->GetOnFlyStatus()){
+      return kFALSE;
+    }
+  }
+  if(!fUseOnFlyV0Finder){
+    if(!GetV0(index)->GetOnFlyStatus()){
+      return kFALSE;
+    }
+  }
+  return kTRUE;
+}
+
+
 
 Bool_t AliV0Reader::NextV0(){
   //see header file for documentation
@@ -391,8 +462,10 @@ Bool_t AliV0Reader::NextV0(){
       fHistograms->FillHistogram("ESD_GoodV0s_InvMass",GetMotherCandidateMass());
     }
 
-    fCurrentEventGoodV0s.push_back(*fCurrentMotherKFCandidate);
-		
+    //    fCurrentEventGoodV0s.push_back(*fCurrentMotherKFCandidate);
+
+    new((*fCurrentEventGoodV0s)[fCurrentEventGoodV0s->GetEntriesFast()])  AliKFParticle(*fCurrentMotherKFCandidate);
+
     iResult=kTRUE;//means we have a v0 who survived all the cuts applied
 		
     fCurrentV0IndexNumber++;
@@ -446,19 +519,19 @@ Bool_t AliV0Reader::UpdateV0Information(){
 
   if(fDodEdxSigmaCut == kTRUE){
 
-    if( fTPCpid->GetNumberOfSigmas(fCurrentPositiveESDTrack,AliPID::kElectron)<fPIDnSigmaBelowElectronLine ||
-	fTPCpid->GetNumberOfSigmas(fCurrentPositiveESDTrack,AliPID::kElectron)>fPIDnSigmaAboveElectronLine ||
-	fTPCpid->GetNumberOfSigmas(fCurrentNegativeESDTrack,AliPID::kElectron)<fPIDnSigmaBelowElectronLine ||
-	fTPCpid->GetNumberOfSigmas(fCurrentNegativeESDTrack,AliPID::kElectron)>fPIDnSigmaAboveElectronLine ){
+    if( fESDpid->NumberOfSigmasTPC(fCurrentPositiveESDTrack,AliPID::kElectron)<fPIDnSigmaBelowElectronLine ||
+	fESDpid->NumberOfSigmasTPC(fCurrentPositiveESDTrack,AliPID::kElectron)>fPIDnSigmaAboveElectronLine ||
+	fESDpid->NumberOfSigmasTPC(fCurrentNegativeESDTrack,AliPID::kElectron)<fPIDnSigmaBelowElectronLine ||
+	fESDpid->NumberOfSigmasTPC(fCurrentNegativeESDTrack,AliPID::kElectron)>fPIDnSigmaAboveElectronLine ){
       iResult=kFALSE;
       if(fHistograms != NULL && fUpdateV0AlreadyCalled == kFALSE){
 	fHistograms->FillHistogram("ESD_CutdEdxSigmaElectronLine_InvMass",GetMotherCandidateMass());
       }
     }
     if( fCurrentPositiveESDTrack->P()>fPIDMinPnSigmaAbovePionLine){
-      if(fTPCpid->GetNumberOfSigmas(fCurrentPositiveESDTrack,AliPID::kElectron)>fPIDnSigmaBelowElectronLine &&
-	 fTPCpid->GetNumberOfSigmas(fCurrentPositiveESDTrack,AliPID::kElectron)<fPIDnSigmaAboveElectronLine&&
-	 fTPCpid->GetNumberOfSigmas(fCurrentPositiveESDTrack,AliPID::kPion)<fPIDnSigmaAbovePionLine){
+      if(fESDpid->NumberOfSigmasTPC(fCurrentPositiveESDTrack,AliPID::kElectron)>fPIDnSigmaBelowElectronLine &&
+	 fESDpid->NumberOfSigmasTPC(fCurrentPositiveESDTrack,AliPID::kElectron)<fPIDnSigmaAboveElectronLine&&
+	 fESDpid->NumberOfSigmasTPC(fCurrentPositiveESDTrack,AliPID::kPion)<fPIDnSigmaAbovePionLine){
 	iResult=kFALSE;
 	if(fHistograms != NULL && fUpdateV0AlreadyCalled == kFALSE){
 	  fHistograms->FillHistogram("ESD_CutdEdxSigmaPionLine_InvMass",GetMotherCandidateMass());
@@ -467,9 +540,9 @@ Bool_t AliV0Reader::UpdateV0Information(){
     }
 
     if( fCurrentNegativeESDTrack->P()>fPIDMinPnSigmaAbovePionLine){
-      if(fTPCpid->GetNumberOfSigmas(fCurrentNegativeESDTrack,AliPID::kElectron)>fPIDnSigmaBelowElectronLine &&
-	 fTPCpid->GetNumberOfSigmas(fCurrentNegativeESDTrack,AliPID::kElectron)<fPIDnSigmaAboveElectronLine&&
-	 fTPCpid->GetNumberOfSigmas(fCurrentNegativeESDTrack,AliPID::kPion)<fPIDnSigmaAbovePionLine){
+      if(fESDpid->NumberOfSigmasTPC(fCurrentNegativeESDTrack,AliPID::kElectron)>fPIDnSigmaBelowElectronLine &&
+	 fESDpid->NumberOfSigmasTPC(fCurrentNegativeESDTrack,AliPID::kElectron)<fPIDnSigmaAboveElectronLine&&
+	 fESDpid->NumberOfSigmasTPC(fCurrentNegativeESDTrack,AliPID::kPion)<fPIDnSigmaAbovePionLine){
 	iResult=kFALSE;
 	if(fHistograms != NULL && fUpdateV0AlreadyCalled == kFALSE){
 	  fHistograms->FillHistogram("ESD_CutdEdxSigmaPionLine_InvMass",GetMotherCandidateMass());
@@ -657,30 +730,10 @@ void AliV0Reader::GetPIDProbability(Double_t &negPIDProb,Double_t & posPIDProb){
 
 void AliV0Reader::UpdateEventByEventData(){
   //see header file for documentation
-	
-  if(fCurrentEventGoodV0s.size() >0 ){
-    //    fPreviousEventGoodV0s.clear();
-    //    fPreviousEventGoodV0s = fCurrentEventGoodV0s;
-    if(fPreviousEventGoodV0s.size()>19){
-      for(UInt_t nCurrent=0;nCurrent<fCurrentEventGoodV0s.size();nCurrent++){
-	fPreviousEventGoodV0s.erase(fPreviousEventGoodV0s.begin());
-	fPreviousEventGoodV0s.push_back(fCurrentEventGoodV0s.at(nCurrent));
-      }
-    }
-    else{
-      for(UInt_t nCurrent=0;nCurrent<fCurrentEventGoodV0s.size();nCurrent++){
-	if(fPreviousEventGoodV0s.size()<20){
-	  fPreviousEventGoodV0s.push_back(fCurrentEventGoodV0s.at(nCurrent));
-	}
-	else{
-	  fPreviousEventGoodV0s.erase(fPreviousEventGoodV0s.begin());
-	  fPreviousEventGoodV0s.push_back(fCurrentEventGoodV0s.at(nCurrent));
-	}
-      }
-    }
+  if(fCurrentEventGoodV0s->GetEntriesFast() >0 ){
+    fBGEventHandler->AddEvent(fCurrentEventGoodV0s,fESDEvent->GetPrimaryVertex()->GetZ(),fESDEvent->GetNumberOfTracks());
   }
-  fCurrentEventGoodV0s.clear();
-	
+  fCurrentEventGoodV0s->Delete();
   fCurrentV0IndexNumber=0;
 }
 
@@ -954,4 +1007,9 @@ Double_t AliV0Reader::GetConvPosZ(AliESDtrack* ptrack,AliESDtrack* ntrack, Doubl
    (zphasePos*negtrackradius+zphaseNeg*postrackradius)/(negtrackradius+postrackradius);
 
    return convposz;
+}
+
+AliGammaConversionKFVector* AliV0Reader::GetBGGoodV0s(Int_t event){
+
+  return fBGEventHandler->GetBGGoodV0s(event,fESDEvent->GetPrimaryVertex()->GetZ(),fESDEvent->GetNumberOfTracks());
 }

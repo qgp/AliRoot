@@ -29,6 +29,7 @@
 
 #include "AliESDEvent.h"
 #include "AliESDtrack.h"
+#include "AliESDpid.h"
 
 #include "AliTOFRecoParam.h"
 #include "AliTOFReconstructor.h"
@@ -36,7 +37,8 @@
 #include "AliTOFGeometry.h"
 #include "AliTOFtrackerMI.h"
 #include "AliTOFtrack.h"
-#include "AliTOFpidESD.h"
+
+#include "AliMathBase.h"
 
 class TGeoManager;
 
@@ -48,7 +50,6 @@ ClassImp(AliTOFtrackerMI)
 AliTOFtrackerMI::AliTOFtrackerMI():
   fRecoParam(0x0),
   fGeom(0x0),
-  fPid(0x0),
   fN(0),
   fNseeds(0),
   fNseedsTOF(0),
@@ -84,7 +85,6 @@ AliTOFtrackerMI::~AliTOFtrackerMI(){
   }
   delete fRecoParam;
   delete fGeom;
-  delete fPid;
   if (fTracks){
     fTracks->Delete();
     delete fTracks;
@@ -96,6 +96,16 @@ AliTOFtrackerMI::~AliTOFtrackerMI(){
     fSeeds=0x0;
   }
 }
+//_____________________________________________________________________________
+void AliTOFtrackerMI::GetPidSettings(AliESDpid *esdPID) {
+  // 
+  // Sets TOF resolution from RecoParams
+  //
+  if (fRecoParam)
+    esdPID->GetTOFResponse().SetTimeResolution(fRecoParam->GetTimeResolution());
+  else
+    AliWarning("fRecoParam not yet set; cannot set PID settings");
+}
 
 //_____________________________________________________________________________
 Int_t AliTOFtrackerMI::PropagateBack(AliESDEvent* event) {
@@ -104,8 +114,7 @@ Int_t AliTOFtrackerMI::PropagateBack(AliESDEvent* event) {
   //
 
   // initialize RecoParam for current event
-
-  AliInfo("Initializing params for TOF... ");
+  AliDebug(1,"Initializing params for TOF");
 
   fRecoParam = AliTOFReconstructor::GetRecoParam();  // instantiate reco param from STEER...
 
@@ -115,11 +124,6 @@ Int_t AliTOFtrackerMI::PropagateBack(AliESDEvent* event) {
   //fRecoParam->Dump();
   //if(fRecoParam->GetApplyPbPbCuts())fRecoParam=fRecoParam->GetPbPbparam();
   //fRecoParam->PrintParameters();
-
-  Double_t parPID[2];   
-  parPID[0]=fRecoParam->GetTimeResolution();
-  parPID[1]=fRecoParam->GetTimeNSigma();
-  fPid=new AliTOFpidESD(parPID);
 
   //Initialise some counters
 
@@ -153,9 +157,7 @@ Int_t AliTOFtrackerMI::PropagateBack(AliESDEvent* event) {
   MatchTracksMI(kFALSE);  // assign track to clusters
   MatchTracksMI(kTRUE);   // assign clusters to esd
   
-  Info("PropagateBack","Number of matched tracks: %d",fnmatch);
-  Info("PropagateBack","Number of good matched tracks: %d",fngoodmatch);
-  Info("PropagateBack","Number of bad  matched tracks: %d",fnbadmatch);
+  AliInfo(Form("Number of matched tracks = %d (good = %d, bad = %d)",fnmatch,fngoodmatch,fnbadmatch));
 
   //Update the matched ESD tracks
 
@@ -167,31 +169,47 @@ Int_t AliTOFtrackerMI::PropagateBack(AliESDEvent* event) {
       t->SetStatus(AliESDtrack::kTOFin);
       //if(seed->GetTOFsignal()>0){
       if ( (seed->GetStatus()&AliESDtrack::kTOFout)!=0 ) {
+	t->SetStatus(AliESDtrack::kTOFout);
 	t->SetTOFsignal(seed->GetTOFsignal());
 	t->SetTOFcluster(seed->GetTOFcluster());
-	Int_t tlab[3];
-	seed->GetTOFLabel(tlab);    
+	Int_t tlab[3]; seed->GetTOFLabel(tlab);    
 	t->SetTOFLabel(tlab);
+
+	// Check done:
+	//       by calling the AliESDtrack::UpdateTrackParams,
+	//       the current track parameters are changed
+	//       and it could cause refit problems.
+	//       We need to update only the following track parameters:
+        //            the track length and expected times.
+	//       Removed AliESDtrack::UpdateTrackParams call
+	//       Called AliESDtrack::SetIntegratedTimes(...) and
+	//       AliESDtrack::SetIntegratedLength() routines.
+	/*
 	AliTOFtrack *track = new AliTOFtrack(*seed);
-	Double_t times[10];
-	seed->GetIntegratedTimes(times);
 	t->UpdateTrackParams(track,AliESDtrack::kTOFout);
-	t->SetIntegratedLength(seed->GetIntegratedLength());
+	delete track;
+	*/
+
+	Double_t times[10]; seed->GetIntegratedTimes(times);
 	t->SetIntegratedTimes(times);
+	t->SetIntegratedLength(seed->GetIntegratedLength());
 	t->SetTOFsignalToT(seed->GetTOFsignalToT());
 	t->SetTOFCalChannel(seed->GetTOFCalChannel());
+	t->SetTOFDeltaBC(seed->GetTOFDeltaBC());
+	t->SetTOFL0L1(seed->GetTOFL0L1());
 	//
+	// Make attention, please:
+	//      AliESDtrack::fTOFInfo array does not be stored in the AliESDs.root file
+	//      it is there only for a check during the reconstruction step.
 	Float_t info[10];
 	seed->GetTOFInfo(info);
 	t->SetTOFInfo(info);
-	delete track;
       }
     }
   }
 
 
   //Make TOF PID
-  fPid->MakePID(event);
 
   fSeeds->Clear();
   fTracks->Clear();
@@ -548,6 +566,8 @@ void AliTOFtrackerMI::MatchTracksMI(Bool_t mLastStep){
     t->SetTOFInfo(info);
     t->SetTOFsignal(tof2);
     t->SetTOFcluster(cgold->GetIndex());  
+    t->SetTOFDeltaBC(cgold->GetDeltaBC());
+    t->SetTOFL0L1(cgold->GetL0L1Latency());
 
     AliDebug(2, Form("%7i     %7i     %10i     %10i  %10i  %10i      %7i",
 		     i,
@@ -603,7 +623,8 @@ Int_t AliTOFtrackerMI::LoadClusters(TTree *cTree) {
   for (Int_t i=0; i<nc; i++) {
     AliTOFcluster *c=(AliTOFcluster*)clusters->UncheckedAt(i);
 
-    fClusters[i]=new AliTOFcluster(*c); fN++;
+//PH    fClusters[i]=new AliTOFcluster(*c); fN++;
+    fClusters[i]=c; fN++;
 
     //AliInfo(Form("%4i %4i  %f %f %f  %f %f   %2i %1i %2i %1i %2i",i, fClusters[i]->GetIndex(),fClusters[i]->GetZ(),fClusters[i]->GetR(),fClusters[i]->GetPhi(), fClusters[i]->GetTDC(),fClusters[i]->GetADC(),fClusters[i]->GetDetInd(0),fClusters[i]->GetDetInd(1),fClusters[i]->GetDetInd(2),fClusters[i]->GetDetInd(3),fClusters[i]->GetDetInd(4)));
     //AliInfo(Form("%i %f",i, fClusters[i]->GetZ()));
@@ -619,7 +640,7 @@ void AliTOFtrackerMI::UnloadClusters() {
   //This function unloads TOF clusters
   //--------------------------------------------------------------------
   for (Int_t i=0; i<fN; i++) {
-    delete fClusters[i];
+//PH    delete fClusters[i];
     fClusters[i] = 0x0;
   }
   fN=0;
@@ -795,28 +816,28 @@ void    AliTOFtrackerMI::GetLikelihood(Float_t dy, Float_t dz, const Double_t *c
   //
   normwidth = fDy/sigmay;
   normd     = dy/sigmay;
-  p0 = 0.5*(1+TMath::Erf(normd-normwidth*0.5));
-  p1 = 0.5*(1+TMath::Erf(normd+normwidth*0.5));  
+  p0 = 0.5*(1+AliMathBase::ErfFast(normd-normwidth*0.5));
+  p1 = 0.5*(1+AliMathBase::ErfFast(normd+normwidth*0.5));  
   py+= 0.75*(p1-p0);
   //
   normwidth = fDy/(3.*sigmay);
   normd     = dy/(3.*sigmay);
-  p0 = 0.5*(1+TMath::Erf(normd-normwidth*0.5));
-  p1 = 0.5*(1+TMath::Erf(normd+normwidth*0.5));  
+  p0 = 0.5*(1+AliMathBase::ErfFast(normd-normwidth*0.5));
+  p1 = 0.5*(1+AliMathBase::ErfFast(normd+normwidth*0.5));  
   py+= 0.25*(p1-p0);
   // 
   // pz calculation   - 75% admixture of original sigma - 25% tails 
   //
   normwidth = fDz/sigmaz;
   normd     = dz/sigmaz;
-  p0 = 0.5*(1+TMath::Erf(normd-normwidth*0.5));
-  p1 = 0.5*(1+TMath::Erf(normd+normwidth*0.5));  
+  p0 = 0.5*(1+AliMathBase::ErfFast(normd-normwidth*0.5));
+  p1 = 0.5*(1+AliMathBase::ErfFast(normd+normwidth*0.5));  
   pz+= 0.75*(p1-p0);
   //
   normwidth = fDz/(3.*sigmaz);
   normd     = dz/(3.*sigmaz);
-  p0 = 0.5*(1+TMath::Erf(normd-normwidth*0.5));
-  p1 = 0.5*(1+TMath::Erf(normd+normwidth*0.5));  
+  p0 = 0.5*(1+AliMathBase::ErfFast(normd-normwidth*0.5));
+  p1 = 0.5*(1+AliMathBase::ErfFast(normd+normwidth*0.5));  
   pz+= 0.25*(p1-p0);
 }
 //_________________________________________________________________________

@@ -13,10 +13,10 @@
 #include "AliReconstructor.h"
 #include "AliITSRecoParam.h"
 
+class AliESDpid;
 class AliITSgeom;
 class AliTracker;
 class AliITStrackerMI;
-class AliITSpidESD;
 class AliITSDetTypeRec;
 
 class AliITSReconstructor: public AliReconstructor {
@@ -24,7 +24,7 @@ public:
   AliITSReconstructor();
   virtual ~AliITSReconstructor();
   virtual void         Init();
-  
+  virtual void         GetPidSettings(AliESDpid *ESDpid);
   virtual void         Reconstruct(AliRawReader* rawReader, TTree* clustersTree) const;
   virtual void         Reconstruct(TTree* digitsTree, TTree* clustersTree) const;
 
@@ -33,7 +33,7 @@ public:
   virtual AliTracker*  CreateTrackleter() const;
 
   virtual void         FillESD(TTree* /*digitsTree*/, TTree* clustersTree, 
-			       AliESDEvent* esd) const; 
+			       AliESDEvent* /* esd */) const; 
   virtual void         FillESD(AliRawReader* /*rawReader*/, TTree* clustersTree, 
 			       AliESDEvent* esd) const
   {FillESD((TTree*)NULL, clustersTree, esd);}
@@ -45,7 +45,6 @@ private:
   AliITSReconstructor& operator=(const AliITSReconstructor &); //Not implemented
 
   //data
-  AliITSpidESD           *fItsPID;      // Pid for ITS
   AliITSDetTypeRec       *fDetTypeRec;  // reconstructor
 
   ClassDef(AliITSReconstructor, 6)   // class for the ITS reconstruction

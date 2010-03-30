@@ -8,6 +8,7 @@ SRCS  = AliTOFGeometry.cxx  \
         AliTOFrawData.cxx\
         AliTOFRawStream.cxx\
         AliTOFHitData.cxx\
+	AliTOFHitField.cxx\
         AliTOFHitDataBuffer.cxx\
         AliTOFDecoder.cxx\
 	AliTOFChannelOffline.cxx  \
@@ -22,11 +23,17 @@ SRCS  = AliTOFGeometry.cxx  \
         AliTOFFormatDCS.cxx \
 	AliTOFPreprocessorFDR.cxx \
 	AliTOFFEEReader.cxx \
+	AliTOFFEEDump.cxx \
 	AliTOFCableLengthMap.cxx \
 	AliTOFNoiseConfigHandler.cxx \
 	AliTOFcalibHisto.cxx \
 	AliTOFArray.cxx \
-	AliTOFDaConfigHandler.cxx
+	AliTOFDeltaBCOffset.cxx \
+	AliTOFCTPLatency.cxx \
+	AliTOFT0Fill.cxx \
+	AliTOFT0FillOnlineCalib.cxx \
+	AliTOFLvHvDataPoints.cxx \
+	AliTOFDCSmaps.cxx
 
 
 HDRS:= $(SRCS:.cxx=.h)
@@ -39,5 +46,5 @@ ifeq (win32gcc,$(ALICE_TARGET))
 PACKSOFLAGS:= $(SOFLAGS) -L$(ALICE_ROOT)/lib/tgt_$(ALICE_TARGET) \
                          -lSTEER -lCDB -lSTEERBase \
                          -lRAWDatarec -lRAWDatabase \
-                         -L$(ROOTLIBDIR) -lGeom
+                         -L$(shell root-config --libdir) -lGeom
 endif

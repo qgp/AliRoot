@@ -32,9 +32,10 @@ class AlidNdEtaCorrectionTask : public AliAnalysisTask {
     void SetTrackCuts(AliESDtrackCuts* cuts) { fEsdTrackCuts = cuts; }
     void SetAnalysisMode(AliPWG0Helper::AnalysisMode mode) { fAnalysisMode = mode; }
     void SetOnlyPrimaries(Bool_t flag = kTRUE) { fOnlyPrimaries = flag; }
-    void SetTrigger(AliPWG0Helper::Trigger trigger) { fTrigger = trigger; }
+    void SetTrigger(AliTriggerAnalysis::Trigger trigger) { fTrigger = trigger; }
     void SetFillPhi(Bool_t flag = kTRUE) { fFillPhi = flag; }
     void SetDeltaPhiCut(Float_t cut) { fDeltaPhiCut = cut; }
+    void SetSymmetrize(Bool_t flag = kTRUE) { fSymmetrize = flag; }
 
     void SetOption(const char* opt) { fOption = opt; }
 
@@ -46,9 +47,10 @@ class AlidNdEtaCorrectionTask : public AliAnalysisTask {
 
     TString fOption;                 // option string
     AliPWG0Helper::AnalysisMode fAnalysisMode;    // detector that is used for analysis
-    AliPWG0Helper::Trigger fTrigger; // trigger used in the analysis
+    AliTriggerAnalysis::Trigger fTrigger;      // trigger used in the analysis
     Bool_t fFillPhi;                           // if true phi is filled as 3rd coordinate in all maps
     Float_t fDeltaPhiCut;                      // cut in delta phi (only SPD)
+    Bool_t  fSymmetrize;     // move all negative to positive eta
 
     Int_t fSignMode;                 // if 0 process all particles, if +-1 process only particles with that sign
     Bool_t fOnlyPrimaries;           // only process primaries (syst. studies)

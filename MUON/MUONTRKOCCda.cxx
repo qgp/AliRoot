@@ -51,6 +51,7 @@
 #include "daqDA.h"
 #include "event.h"
 #include "monitor.h"
+#include "signal.h"
 
 #ifdef ALI_AMORE
 #include <AmoreDA.h>
@@ -60,7 +61,7 @@
 #endif
 
 const char* OUTPUT_FILE = "mch.occupancy";
-const char* DAVERSION = "MUONTRKOCCda v1.2 ($Id$)";
+const char* DAVERSION = "MUONTRKOCCda v1.3 ($Id$)";
 
 //______________________________________________________________________________
 void Add(AliMUONVStore& destStore, const AliMUONVStore& srcStore)
@@ -143,6 +144,8 @@ int main(int argc, char **argv)
   /// to compute the occupancy later on, i.e. the number of times channels
   /// were seen per manu, and the number of events.
   ///
+  
+  signal(SIGSEGV,SIG_DFL); // to be able to get core dumps...
   
   TStopwatch timers;
   timers.Start(kTRUE); 

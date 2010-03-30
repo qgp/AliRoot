@@ -4,11 +4,9 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class AliAODPWG4Particle+;
-#pragma link C++ class AliAODPWG4ParticleCorrelation+;
 #pragma link C++ class AliAnaScale+;
 #pragma link C++ class AliNeutralMesonSelection+;
-#pragma link C++ class AliFidutialCut+;
+#pragma link C++ class AliFiducialCut+;
 #pragma link C++ class AliCaloPID+;
 #pragma link C++ class AliMCAnalysisUtils+;
 #pragma link C++ class AliIsolationCut+;

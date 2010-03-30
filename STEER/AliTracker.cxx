@@ -466,26 +466,34 @@ void AliTracker::FillResiduals(const AliExternalTrackParam *t,
   Int_t esIndex = AliRecoParam::AConvert(fEventSpecie) ; 
   AliGeomManager::ELayerID layer=AliGeomManager::VolUIDToLayer(id);
   h=(TH1F*)fResiduals[esIndex]->At(2*layer-2);
-  h->Fill(residuals[0]);
+  if (h) h->Fill(residuals[0]);
   h=(TH1F*)fResiduals[esIndex]->At(2*layer-1);
-  h->Fill(residuals[1]);
+  if (h) h->Fill(residuals[1]);
 
   if (layer==5) {
     if (p[1]<0) {  // SSD1 absolute residuals
-       ((TH1F*)fResiduals[esIndex]->At(40))->Fill(t->GetY()-p[0]); //C side
-       ((TH1F*)fResiduals[esIndex]->At(41))->Fill(t->GetZ()-p[1]);
+      h = (TH1F*)fResiduals[esIndex]->At(40);
+      if (h) h->Fill(t->GetY()-p[0]); //C side
+      h = (TH1F*)fResiduals[esIndex]->At(41);
+      if (h) h->Fill(t->GetZ()-p[1]);
     } else {             
-       ((TH1F*)fResiduals[esIndex]->At(42))->Fill(t->GetY()-p[0]); //A side
-       ((TH1F*)fResiduals[esIndex]->At(43))->Fill(t->GetZ()-p[1]);
+      h = (TH1F*)fResiduals[esIndex]->At(42);
+      if (h) h->Fill(t->GetY()-p[0]); //A side
+      h = (TH1F*)fResiduals[esIndex]->At(43);
+      if (h) h->Fill(t->GetZ()-p[1]);
     }           
   }
   if (layer==6) {  // SSD2 absolute residuals
     if (p[1]<0) {
-       ((TH1F*)fResiduals[esIndex]->At(44))->Fill(t->GetY()-p[0]); //C side
-       ((TH1F*)fResiduals[esIndex]->At(45))->Fill(t->GetZ()-p[1]);
+      h = (TH1F*)fResiduals[esIndex]->At(44);
+      if (h) h->Fill(t->GetY()-p[0]); //C side
+      h = (TH1F*)fResiduals[esIndex]->At(45);
+      if (h) h->Fill(t->GetZ()-p[1]);
     } else {
-       ((TH1F*)fResiduals[esIndex]->At(46))->Fill(t->GetY()-p[0]); //A side
-       ((TH1F*)fResiduals[esIndex]->At(47))->Fill(t->GetZ()-p[1]);
+      h = (TH1F*)fResiduals[esIndex]->At(46);
+      if (h) h->Fill(t->GetY()-p[0]); //A side
+      h = (TH1F*)fResiduals[esIndex]->At(47);
+      if (h) h->Fill(t->GetZ()-p[1]);
     }
   }
 
@@ -526,8 +534,30 @@ void AliTracker::FillResiduals(const AliExternalTrackParam *t,
   Int_t esIndex = AliRecoParam::AConvert(fEventSpecie) ; 
   AliGeomManager::ELayerID layer=AliGeomManager::VolUIDToLayer(id);
   h=(TH1F*)fResiduals[esIndex]->At(2*layer-2);
-  h->Fill(residuals[0]);
+  if (h) h->Fill(residuals[0]);
   h=(TH1F*)fResiduals[esIndex]->At(2*layer-1);
-  h->Fill(residuals[1]);
+  if (h) h->Fill(residuals[1]);
 
+}
+
+Double_t AliTracker::GetTrackPredictedChi2(AliExternalTrackParam *track,
+                                           Double_t mass, Double_t step,
+			             const AliExternalTrackParam *backup) {
+  //
+  // This function brings the "track" with particle "mass" [GeV] 
+  // to the same local coord. system and the same reference plane as 
+  // of the "backup", doing it in "steps" [cm].
+  // Then, it calculates the 5D predicted Chi2 for these two tracks
+  //
+  Double_t chi2=kVeryBig;
+  Double_t alpha=backup->GetAlpha();
+  if (!track->Rotate(alpha)) return chi2;
+
+  Double_t xb=backup->GetX();
+  Double_t sign=(xb < track->GetX()) ? 1. : -1.;
+  if (!PropagateTrackTo(track,xb,mass,step,kFALSE,kAlmost1,sign)) return chi2;
+
+  chi2=track->GetPredictedChi2(backup);
+
+  return chi2;
 }

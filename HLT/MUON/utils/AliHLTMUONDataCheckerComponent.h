@@ -4,7 +4,7 @@
  * ALICE Experiment at CERN, All rights reserved.                         *
  * See cxx source for full Copyright notice                               */
 
-/* $Id: AliHLTMUONDataCheckerComponent.h 26179 2008-05-29 22:27:27Z aszostak $ */
+// $Id: AliHLTMUONDataCheckerComponent.h 26179 2008-05-29 22:27:27Z aszostak $
 
 ///
 /// @file   AliHLTMUONDataCheckerComponent.h
@@ -25,6 +25,7 @@ extern "C" struct AliHLTMUONClusterStruct;
 extern "C" struct AliHLTMUONTriggerRecordStruct;
 extern "C" struct AliHLTMUONTrigRecInfoStruct;
 extern "C" struct AliHLTMUONMansoTrackStruct;
+extern "C" struct AliHLTMUONTrackStruct;
 
 /**
  * @class AliHLTMUONDataCheckerComponent
@@ -67,6 +68,20 @@ extern "C" struct AliHLTMUONMansoTrackStruct;
  *       would tell the framework that processing of the event failed. Otherwise
  *       errors are just logged but the data is considered to be processed successfully.
  *       (default behaviour is not to return errors)<br>
+ * \li -cdbpath <i>path</i> <br>
+ *      This allows one to override the path to use for the CDB location.
+ *      <i>path</i> must be a valid CDB URI. By default the HLT system framework
+ *      sets the CDB path. <br>
+ * \li -run <i>number</i> <br>
+ *      This allows one to override the run number to use. <i>number</i> must be
+ *      a positive integer number. By default the HLT system framework sets the
+ *      run number. <br>
+ * \li -dumponerror <br>
+ *      This flag will cause the component to dump the data blocks it received if
+ *      an error occurs during the processing of an event. <br>
+ * \li -dumppath <i>path</i> <br>
+ *      Allows one to specify the path in which to dump the received data blocks
+ *      if an error occurs. <br>
  *
  * @ingroup alihlt_dimuon_component
  */
@@ -101,6 +116,7 @@ protected:
 			AliHLTUInt32_t& size,
 			AliHLTComponentBlockDataList& outputBlocks
 		);
+	virtual bool IgnoreArgument(const char* arg) const;
 	
 	using AliHLTProcessor::DoEvent;
 	
@@ -168,6 +184,15 @@ private:
 			bool ddl[22]
 		) const;
 	
+	bool IsTrackOk(
+			const AliHLTComponentBlockData& block,
+			AliHLTUInt32_t blockNumber,
+			const char* name,
+			AliHLTUInt32_t entryNumber,
+			const AliHLTMUONTrackStruct& track,
+			bool ddl[22]
+		) const;
+	
 	bool CheckDetElemIds(
 			const AliHLTComponentBlockData& infoBlock,
 			AliHLTUInt32_t infoBlockNumber,
@@ -230,6 +255,11 @@ private:
 			AliHLTUInt32_t blockNumber
 		) const;
 	
+	bool CheckTracksBlock(
+			const AliHLTComponentBlockData& block,
+			AliHLTUInt32_t blockNumber
+		) const;
+	
 	bool CheckSinglesDecisionBlock(
 			const AliHLTComponentBlockData& block,
 			AliHLTUInt32_t blockNumber
@@ -274,6 +304,15 @@ private:
 			AliHLTUInt32_t totalTrackCount
 		) const;
 	
+	bool IsScalarTooLargePairs(
+			const AliHLTComponentBlockData* block,
+			AliHLTUInt32_t blockNumber,
+			const char* blockTypeName,
+			const char* scalarName,
+			AliHLTUInt32_t scalarValue,
+			AliHLTUInt32_t trackPairsCount
+		) const;
+	
 	bool IsScalarALargerThanB(
 			const AliHLTComponentBlockData* block,
 			AliHLTUInt32_t blockNumber,
@@ -309,6 +348,8 @@ private:
 			AliHLTUInt32_t mansoTrackBlocksCount,
 			const AliHLTComponentBlockData** mansoCandidateBlocks,
 			AliHLTUInt32_t mansoCandidateBlocksCount,
+			const AliHLTComponentBlockData** trackBlocks,
+			AliHLTUInt32_t trackBlocksCount,
 			const AliHLTComponentBlockData** singleDecisionBlocks,
 			AliHLTUInt32_t singleDecisionBlocksCount,
 			const AliHLTComponentBlockData** pairDecisionBlocks,

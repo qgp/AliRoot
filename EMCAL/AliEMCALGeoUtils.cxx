@@ -211,20 +211,6 @@ void AliEMCALGeoUtils::GetGlobal(const Double_t *loc, Double_t *glob, int ind) c
   // local numbering and the transformation
   // matrix stored by the geometry manager (allows for misaligned
   // geometry)
-
-//  if(ind>=0 && ind < fEMCGeometry->GetNumberOfSuperModules()) {
-//    TString volpath = "ALIC_1/XEN1_1/SMOD_";
-//    volpath += ind+1;
-//
-//    if(fKey110DEG && ind>=10) {
-//      volpath = "ALIC_1/XEN1_1/SM10_";
-//      volpath += ind-10+1;
-//    }
-//
-//    if(!gGeoManager->cd(volpath.Data()))
-//      AliFatal(Form("AliEMCALGeometry::GeoManager cannot find path %s!",volpath.Data()));
-//
-//    TGeoHMatrix* m = gGeoManager->GetCurrentMatrix();
 	
 	const TGeoHMatrix* m = GetMatrixForSuperModule(ind);
     if(m) {
@@ -232,7 +218,6 @@ void AliEMCALGeoUtils::GetGlobal(const Double_t *loc, Double_t *glob, int ind) c
     } else {
       AliFatal("Geo matrixes are not loaded \n") ;
     }
-//  }
 }
 
 //________________________________________________________________________________________________
@@ -255,26 +240,10 @@ void AliEMCALGeoUtils::GetGlobal(Int_t absId , double glob[3]) const
   static Int_t nSupMod, nModule, nIphi, nIeta;
   static double loc[3];
 
-  if (!gGeoManager || !gGeoManager->IsClosed()) {
-    AliError("Can't get the global coordinates! gGeoManager doesn't exist or it is still open!");
-    return;
-  }
-
   glob[0]=glob[1]=glob[2]=0.0; // bad case
   if(RelPosCellInSModule(absId, loc)) {
     GetCellIndex(absId, nSupMod, nModule, nIphi, nIeta);
 
-//    TString volpath = "ALIC_1/XEN1_1/SMOD_";
-//    volpath += (nSupMod+1);
-//
-//    if(fKey110DEG && nSupMod>=10) {
-//      volpath = "ALIC_1/XEN1_1/SM10_";
-//      volpath += (nSupMod-10+1);
-//    }
-//    if(!gGeoManager->cd(volpath.Data()))
-//      AliFatal(Form("GeoManager cannot find path %s!",volpath.Data()));
-//
-//    TGeoHMatrix* m = gGeoManager->GetCurrentMatrix();
 	  const TGeoHMatrix* m = GetMatrixForSuperModule(nSupMod);
 	  if(m) {
       m->LocalToMaster(loc, glob);
@@ -598,14 +567,25 @@ Bool_t AliEMCALGeoUtils::RelPosCellInSModule(Int_t absId, Double_t &xr, Double_t
 
   GetCellIndex(absId, nSupMod, nModule, nIphi, nIeta);
   GetCellPhiEtaIndexInSModule(nSupMod,nModule,nIphi,nIeta, iphi, ieta); 
- 
-  xr = fCentersOfCellsXDir.At(ieta);
-  zr = fCentersOfCellsEtaDir.At(ieta);
+	
+  //Get eta position. Careful with ALICE conventions (increase index decrease eta)	
+  Int_t ieta2 = ieta;
+  if(nSupMod%2 == 0)		  
+	  ieta2 = (fCentersOfCellsEtaDir.GetSize()-1)-ieta;// 47-ieta, revert the ordering on A side in order to keep convention.
+  zr = fCentersOfCellsEtaDir.At(ieta2); 
+  xr = fCentersOfCellsXDir.At(ieta2);
 
-  if(nSupMod<10) {
-    yr = fCentersOfCellsPhiDir.At(iphi);
+  //Get phi position. Careful with ALICE conventions (increase index increase phi)
+  Int_t iphi2 = iphi;
+  if(nSupMod<10) { 
+		if(nSupMod%2 != 0) 
+			iphi2 = (fCentersOfCellsPhiDir.GetSize()-1)-iphi;// 23-iphi, revert the ordering on C side in order to keep convention.
+		yr = fCentersOfCellsPhiDir.At(iphi2);
+	  
   } else {
-    yr = fCentersOfCellsPhiDir.At(iphi + kphiIndexShift);
+		if(nSupMod%2 != 0) 
+			iphi2 = (fCentersOfCellsPhiDir.GetSize()/2-1)-iphi;// 11-iphi, revert the ordering on C side in order to keep convention.
+		yr = fCentersOfCellsPhiDir.At(iphi2 + kphiIndexShift);
   }
   AliDebug(1,Form("absId %i nSupMod %i iphi %i ieta %i xr %f yr %f zr %f ",absId,nSupMod,iphi,ieta,xr,yr,zr));
 
@@ -836,9 +816,6 @@ void AliEMCALGeoUtils::ImpactOnEmcal(TVector3 vtx, Double_t theta, Double_t phi,
    Double_t factor = (fIPDistance-vtx[1])/p[1];
   direction = vtx + factor*p;
 
-  if (!gGeoManager){
-    AliFatal("Geo manager not initialized\n");
-  }
   //from particle direction -> tower hitted
   GetAbsCellIdFromEtaPhi(direction.Eta(),direction.Phi(),absId);
   
@@ -867,18 +844,7 @@ void AliEMCALGeoUtils::ImpactOnEmcal(TVector3 vtx, Double_t theta, Double_t phi,
   //3rd point on emcal cell plane
   if(!RelPosCellInSModule(absId3,loc3)) return;
     
-//  TString volpath = "ALIC_1/XEN1_1/SMOD_";
-//  volpath += (nSupMod+1);
-//  
-//  if(fKey110DEG && nSupMod>=10) {
-//    volpath = "ALIC_1/XEN1_1/SM10_";
-//    volpath += (nSupMod-10+1);
-//  }
-//  if(!gGeoManager->cd(volpath.Data())){
-//    AliFatal(Form("GeoManager cannot find path %s!",volpath.Data()))
-//    return;
-//  }
-//  TGeoHMatrix* m = gGeoManager->GetCurrentMatrix();
+  // Get Matrix
   const TGeoHMatrix* m = GetMatrixForSuperModule(nSupMod);
   if(m) {
     m->LocalToMaster(loc, glob);
@@ -966,9 +932,114 @@ Int_t AliEMCALGeoUtils::GetAbsTRUNumberFromNumberInSm(const Int_t row, const Int
   return itru;
 }
 
+//________________________________________________________________________________________________
+Bool_t AliEMCALGeoUtils::GetAbsFastORIndexFromTRU(const Int_t iTRU, const Int_t iADC, Int_t& id) const
+{
+	//Trigger mapping method, get  FastOr Index from TRU
+
+    if (iTRU > 31 || iTRU < 0 || iADC > 95 || iADC < 0) 
+	{
+		AliError("TRU out of range!");
+		return kFALSE;
+	}
+				 
+	id = iADC + iTRU * 96;
+	
+	return kTRUE;
+}
+
+//________________________________________________________________________________________________
+Bool_t AliEMCALGeoUtils::GetTRUFromAbsFastORIndex(const Int_t id, Int_t& iTRU, Int_t& iADC) const
+{
+
+	//Trigger mapping method, get TRU number from FastOr Index
+
+	if (id > 3071 || id < 0)
+	{
+		AliError("Id out of range!");
+		return kFALSE;
+	}
+	
+	iTRU = id / 96;
+	iADC = id % 96;
+	
+	return kTRUE;
+}
+
+//________________________________________________________________________________________________
+Bool_t AliEMCALGeoUtils::GetPositionInTRUFromAbsFastORIndex(const Int_t id, Int_t& iTRU, Int_t& iEta, Int_t& iPhi) const
+{
+	//Trigger mapping method, get position in TRU from FasOr Index
+	
+	Int_t iADC;
+	
+	Bool_t isOK = GetTRUFromAbsFastORIndex(id, iTRU, iADC);
+	
+	if (!isOK) return kFALSE;
+	
+	Int_t x = iADC / 4;
+	Int_t y = iADC % 4;
+	
+	if ( int( iTRU / 3 ) % 2 ) // C side 
+	{
+		iEta = 23 - x;
+		iPhi =      y;
+	}
+	else                       // A side
+	{
+		iEta =      x;
+		iPhi =  3 - y;
+	}
+	
+	return kTRUE;
+}
+
+//________________________________________________________________________________________________
+Bool_t AliEMCALGeoUtils::GetPositionInSMFromAbsFastORIndex(const Int_t id, Int_t& iSM, Int_t& iEta, Int_t& iPhi) const
+{
+	//Trigger mapping method, get position in Super Module from FasOr Index
+
+	Int_t iTRU;
+	Bool_t isOK = GetPositionInTRUFromAbsFastORIndex(id, iTRU, iEta, iPhi);
+	
+	if (!isOK) return kFALSE;
+	
+	iSM  = iTRU / 3;
+	
+	if ( int( iTRU / 3 ) % 2 ) // C side
+	{
+		iPhi = iPhi + 4 * ( 2 - ( iTRU % 3 ) );
+	}
+	else                       // A side
+	{
+		iPhi = iPhi + 4 * (       iTRU % 3   );
+	}
+	
+	return kTRUE;
+}
+
+//________________________________________________________________________________________________
+Bool_t AliEMCALGeoUtils::GetAbsFastORIndexFromPositionInTRU(const Int_t iTRU, const Int_t iEta, const Int_t iPhi, Int_t& id) const
+{
+	//Trigger mapping method, get Index if FastOr from Position in TRU
+
+	if (iTRU < 0 || iTRU > 31 || iEta < 0 || iEta > 23 || iPhi < 0 || iPhi > 3) return kFALSE;
+	
+	if ( int( iTRU / 3 ) % 2 ) // C side
+	{
+		id =      iPhi  + 4 * ( 23 - iEta ) + iTRU * 96;
+	}
+	else 
+	{
+		id = (3 - iPhi) + 4 *        iEta + iTRU * 96;
+	}
+	
+	return kTRUE;
+}
 
 //____________________________________________________________________________
 const TGeoHMatrix * AliEMCALGeoUtils::GetMatrixForSuperModule(Int_t smod) const {
+
 	//Provides shift-rotation matrix for EMCAL
 	
 	if(smod < 0 || smod > fEMCGeometry->GetNumberOfSuperModules()) 
@@ -1001,15 +1072,16 @@ const TGeoHMatrix * AliEMCALGeoUtils::GetMatrixForSuperModule(Int_t smod) const 
 		}
 		return gGeoManager->GetCurrentMatrix();
 	}
-	
+
 	if(fkSModuleMatrix[smod]){
 		return fkSModuleMatrix[smod] ;
 	}
 	else{
-		printf("Can not find EMCAL misalignment matrixes\n") ;
-		printf("Either import TGeoManager from geometry.root or \n");
-		printf("read stored matrixes from AliESD Header:  \n") ;   
-		printf("AliEMCALGeoUtils::SetMisalMatrixes(header->GetEMCALMisalMatrix()) \n") ;
+		AliInfo("Stop:");
+		printf("\t Can not find EMCAL misalignment matrixes\n") ;
+		printf("\t Either import TGeoManager from geometry.root or \n");
+		printf("\t read stored matrixes from AliESD Header:  \n") ;   
+		printf("\t AliEMCALGeoUtils::SetMisalMatrixes(header->GetEMCALMisalMatrix()) \n") ;
 		abort() ;
 	}
 	return 0 ;

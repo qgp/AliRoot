@@ -402,15 +402,9 @@ void AliAnalysisTaskMCParticleFilter::Terminate(Option_t */*option*/){
   //
 
 
-  TTree *tree = (TTree*)GetOutputData(0);
   fHistList = (TList*)GetOutputData(1);
   if(!fHistList){
     Printf("%s:%d Output list not found",(char*)__FILE__,__LINE__);
-    return;
-  }
-
-  if(!tree){
-    Printf("%s:%d Output tree not found",(char*)__FILE__,__LINE__);
     return;
   }
 
@@ -422,16 +416,6 @@ void AliAnalysisTaskMCParticleFilter::Terminate(Option_t */*option*/){
   Float_t xsec = hXsec->GetBinContent(1);
   Float_t trials = hTrials->Integral();
   AliInfo(Form("Average -section %.4E and total number of trials %E",xsec,trials));
-  
-  // This only works if the tree is not a special output
-  // in this case it is already written
-  /*
-  TParameter<float> *x = new TParameter<float>("xsection",xsec);
-  tree->GetUserInfo()->Add(x);
-  TParameter<float> *t = new TParameter<float>("trials",trials);
-  tree->GetUserInfo()->Add(t);
-  */
-  
 
 }
 

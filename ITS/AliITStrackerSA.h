@@ -40,10 +40,10 @@ class AliITStrackerSA : public AliITStrackerMI {
   AliITStrackerSA& operator=(const AliITStrackerSA& source);
   virtual ~AliITStrackerSA();  
   virtual Int_t Clusters2Tracks(AliESDEvent *event);
-  Int_t FindTracks(AliESDEvent* event);
+  Int_t FindTracks(AliESDEvent* event, Bool_t useAllClusters=kFALSE);
 
   AliITStrackV2* FitTrack(AliITStrackSA* tr,Double_t* primaryVertex,Bool_t onePoint=kFALSE);
-  void StoreTrack(AliITStrackV2 *t,AliESDEvent *event) const; 
+  void StoreTrack(AliITStrackV2 *t,AliESDEvent *event, Bool_t pureSA) const; 
   Int_t FindTrackLowChiSquare() const;
   Int_t LoadClusters(TTree *cf) {Int_t rc=AliITStrackerMI::LoadClusters(cf); SetClusterTree(cf); return rc;}
   void SetVertex(AliESDVertex *vtx){fVert = vtx;}
@@ -121,8 +121,8 @@ class AliITStrackerSA : public AliITStrackerMI {
   Double_t *fLambdaWin; // lambda window sizes
   AliESDVertex *fVert;        //! primary vertex
   AliITSVertexer *fVertexer;  //! vertexer 
-  TObjArray *fListOfTracks;   //! container for found tracks 
-  TObjArray *fListOfSATracks; //! container for found SA tracks 
+  TClonesArray *fListOfTracks;   //! container for found tracks 
+  TClonesArray *fListOfSATracks; //! container for found SA tracks 
   TTree *fITSclusters;        //! pointer to ITS tree of clusters
   Bool_t fInwardFlag;       // set to kTRUE for inward track finding
   Int_t fOuterStartLayer;     // Outward search for tracks with <6 points: outer layer to start from
@@ -133,7 +133,9 @@ class AliITStrackerSA : public AliITStrackerMI {
   TClonesArray** fCluLayer; //! array with clusters 
   TClonesArray** fCluCoord; //! array with cluster info
 
-  ClassDef(AliITStrackerSA,9)
+  ClassDef(AliITStrackerSA,10)
 };
 
 #endif
+
+
