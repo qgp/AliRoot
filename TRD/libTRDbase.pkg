@@ -10,6 +10,7 @@ SRCS= AliTRDarraySignal.cxx \
       AliTRDdigitsParam.cxx \
       AliTRDrawData.cxx \
       AliTRDpadPlane.cxx \
+      AliTRDrawStreamOnline.cxx \
       AliTRDrawStream.cxx \
       AliTRDrawFastStream.cxx \
       AliTRDrawTPStream.cxx \
