@@ -27,7 +27,6 @@
 
 // --- ROOT system ---
 #include <TH2.h>
-#include <TTree.h>
 // --- Standard library ---
 
 // --- AliRoot header files ---
@@ -35,7 +34,6 @@
 #include "AliITSQASPDDataMakerRec.h"
 #include "AliITSQASDDDataMakerRec.h"
 #include "AliITSQASSDDataMakerRec.h"
-#include "AliLog.h"
 #include "AliQAv1.h"
 #include "AliQAChecker.h"
 #include "AliITSQAChecker.h"
@@ -44,9 +42,14 @@
 #include "AliRawReader.h"
 #include "AliESDEvent.h"
 #include "AliESDtrack.h"
-#include "AliESDVertex.h"
 #include "AliMultiplicity.h"
 #include "AliITSgeomTGeo.h"
+
+//class TH2;
+//class TH2F;
+class AliESDVertex;
+class AliLog;
+class TTree;
 
 ClassImp(AliITSQADataMakerRec)
 
@@ -58,6 +61,7 @@ fSubDetector(subDet),
 fLDC(ldc),
 fRunNumber(0),
 fEventNumber(0),
+fSelectedTaskIndex(AliQAv1::kNULLTASKINDEX),
 fSPDDataMaker(NULL),
 fSDDDataMaker(NULL),
 fSSDDataMaker(NULL)
@@ -99,6 +103,7 @@ fSubDetector(qadm.fSubDetector),
 fLDC(qadm.fLDC),
 fRunNumber(qadm.fRunNumber),
 fEventNumber(qadm.fEventNumber),
+fSelectedTaskIndex(qadm.fSelectedTaskIndex),
 fSPDDataMaker(NULL),
 fSDDDataMaker(NULL),
 fSSDDataMaker(NULL)
@@ -128,6 +133,14 @@ void AliITSQADataMakerRec::StartOfDetectorCycle()
   if(fSubDetector == 0 || fSubDetector == 3) fSSDDataMaker->StartOfDetectorCycle();
 }
 
+//____________________________________________________________________________
+void AliITSQADataMakerRec::StartOfCycle(AliQAv1::TASKINDEX_t task, Int_t run, const Bool_t sameCycle) 
+{ 
+  // Start a cycle of QA data acquistion
+  fSelectedTaskIndex=task;
+  AliQADataMakerRec::StartOfCycle(task,run,sameCycle);
+}
+
 //____________________________________________________________________________ 
 void AliITSQADataMakerRec::EndOfDetectorCycle(AliQAv1::TASKINDEX_t task, TObjArray** list)
 {
@@ -139,11 +152,10 @@ void AliITSQADataMakerRec::EndOfDetectorCycle(AliQAv1::TASKINDEX_t task, TObjArr
 	if(AliQAv1::Instance()->IsEventSpecieSet(specie)){
 	  Int_t idnumber=list[specie]->GetUniqueID();
 	  //printf("specie %s \t id number == %d\n",AliRecoParam::GetEventSpecieName(specie),idnumber);
-	  if(idnumber==40||idnumber==0)
-	    {
+	  if(idnumber==40||idnumber==0){
 	      //AliInfo(Form("No check for %s\n",AliQAv1::GetTaskName(task).Data() ))
-		continue;
-	    } //skip kDigitsR and not filled TobjArray specie
+	    continue;
+	  } //skip kDigitsR and not filled TobjArray specie
 	  else{
 	    AliDebug(AliQAv1::GetQADebugLevel(),"AliITSDM instantiates checker with Run(AliQAv1::kITS, task, list[specie])\n"); 
 	    if(fSubDetector == 0 || fSubDetector == 1) fSPDDataMaker->EndOfDetectorCycle(task, list[/*GetEventSpecie()*/specie]);
@@ -176,14 +188,14 @@ void AliITSQADataMakerRec::EndOfDetectorCycle(AliQAv1::TASKINDEX_t task, TObjArr
 }
 
 //____________________________________________________________________________ 
-void AliITSQADataMakerRec::EndOfDetectorCycle(const char * /*fgDataName*/)
-{
+//void AliITSQADataMakerRec::EndOfDetectorCycle(const char * /*fgDataName*/)
+//{
   //eventually used for different  AliQAChecker::Instance()->Run
-}
+//}
 
 //____________________________________________________________________________ 
-void AliITSQADataMakerRec::InitRaws()
-{  
+void AliITSQADataMakerRec::InitRaws() {
+  // Initialization of RAW data histograms  
 
   //if(fRawsQAList[AliRecoParam::AConvert(fEventSpecie)]->GetEntries()) return;
 	
@@ -682,7 +694,7 @@ void AliITSQADataMakerRec::MakeESDs(AliESDEvent *esd)
 //_________________________________________________________________
 Int_t AliITSQADataMakerRec::GetDetTaskOffset(Int_t subdet,AliQAv1::TASKINDEX_t task, Int_t specie)
 {
-
+  //number of booked histos for the QAchecking Raws offset
   Int_t offset=0;
   switch(subdet)
     {
@@ -718,7 +730,7 @@ Bool_t AliITSQADataMakerRec::AreEqual(Double_t a1,Double_t a2)
 //_________________________________________________________________
 Int_t AliITSQADataMakerRec::GetDetTaskHisto(Int_t subdet,AliQAv1::TASKINDEX_t task)
 {
-
+  //return the number of histo booked for each the Raws Task 
 
   Int_t histo=0;
   switch(subdet)
@@ -750,30 +762,8 @@ Int_t AliITSQADataMakerRec::GetDetTaskHisto(Int_t subdet,AliQAv1::TASKINDEX_t ta
 
 void AliITSQADataMakerRec::ResetDetector(AliQAv1::TASKINDEX_t task)
 {
-  
-  TObjArray ** list = NULL ; 
-  if ( task == AliQAv1::kRAWS ) {
-		list = fRawsQAList ;	 
-	} else if ( task == AliQAv1::kDIGITSR ) {
-		list = fDigitsQAList ; 
-	} else if ( task == AliQAv1::kRECPOINTS ) {
-		list = fRecPointsQAList ; 
-	} else if ( task == AliQAv1::kESDS ) {
-		list = fESDsQAList ; 
-	}
-    //list was not initialized, skip
-  if (!list) 
-    return ; 
-  
-  for (int spec = 0; spec < AliRecoParam::kNSpecies; spec++) {
-    if (!AliQAv1::Instance()->IsEventSpecieSet(AliRecoParam::ConvertIndex(spec)))
-      continue;
-    TIter next(list[spec]) ; 
-    TH1 * histo = NULL ; 
-    while ( (histo = dynamic_cast<TH1*> (next())) ) {
-      histo->Reset() ;
-    }
-  }
+  //reset the detector histograms for a given task
+  AliQADataMakerRec::ResetDetector(task);
 
   if(fSubDetector==0||fSubDetector==1)fSPDDataMaker->ResetDetector(task);
   
@@ -788,11 +778,21 @@ void AliITSQADataMakerRec::ResetDetector(AliQAv1::TASKINDEX_t task)
 
 AliITSDDLModuleMapSDD *AliITSQADataMakerRec::GetDDLSDDModuleMap()
 {
-  if(fSubDetector==2)
-    {
-      return fSDDDataMaker->GetDDLSDDModuleMap();
-    }
-  else {
-    return NULL;
-  }
+  //return the SDD module map
+  if(fSubDetector==2){return fSDDDataMaker->GetDDLSDDModuleMap();}
+  else {return NULL;}
+}
+
+//____________________________________________________________________
+
+Bool_t AliITSQADataMakerRec::ListExists(AliQAv1::TASKINDEX_t task) const
+{
+  //Check the existence of a list for a given task
+  Bool_t havethelist=kFALSE;
+  if( ( task == AliQAv1::kRAWS && fRawsQAList ) ||
+      ( task == AliQAv1::kRECPOINTS && fRecPointsQAList ) ||
+      ( task == AliQAv1::kDIGITSR && fDigitsQAList ) ||
+      ( task == AliQAv1::kESDS && fESDsQAList ) ) havethelist=kTRUE;
+  return havethelist;
+
 }
