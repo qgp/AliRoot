@@ -11,8 +11,8 @@
 ////////////////////////////////////////////////
 
 #include "TNamed.h"
-#include "AliVZERO.h"
-#include "AliVZERODataDCS.h"
+
+class AliVZERODataDCS;
 
 class AliVZEROCalibData: public TNamed {
 
@@ -42,8 +42,7 @@ class AliVZEROCalibData: public TNamed {
   Bool_t   IsChannelDead(Int_t channel)	const {return fDeadChannel[channel];}
   Bool_t*  GetDeadMap()   const {return (bool*)fDeadChannel;} 
    
-  Float_t  GetGain(Int_t channel)	const {return fGain[channel];}
-  Float_t* GetGain()   const {return (float*)fGain;}  
+  Float_t  GetGain(Int_t channel)	const;
   Float_t  GetTimeOffset(Int_t channel)	const {return fTimeOffset[channel];}
   Float_t* GetTimeOffset()   const {return (float*)fTimeOffset;}
   Float_t  GetTimeGain(Int_t channel)	const {return fTimeGain[channel];}
@@ -54,34 +53,56 @@ class AliVZEROCalibData: public TNamed {
 
   Float_t* GetWidthResolution() const {return (Float_t*) fWidthResolution;};
   Float_t  GetWidthResolution(Int_t board ) const  {return ((board>=0 && board<kNCIUBoards)?fWidthResolution[board]:0);};
+
+  const UInt_t*  GetMatchWindow() const { return fMatchWindow; }
+  UInt_t   GetMatchWindow(Int_t board) const { return ((board>=0 && board<kNCIUBoards)?fMatchWindow[board]:0); }
+  const UInt_t*  GetSearchWindow() const { return fSearchWindow; }
+  UInt_t   GetSearchWindow(Int_t board) const { return ((board>=0 && board<kNCIUBoards)?fSearchWindow[board]:0); }
+  const UInt_t*  GetTriggerCountOffset() const { return fTriggerCountOffset; }
+  UInt_t   GetTriggerCountOffset(Int_t board) const { return ((board>=0 && board<kNCIUBoards)?fTriggerCountOffset[board]:0); }
+  const UInt_t*  GetRollOver() const { return fRollOver; }
+  UInt_t   GetRollOver(Int_t board) const { return ((board>=0 && board<kNCIUBoards)?fRollOver[board]:0); }
+
+  Float_t  GetDiscriThr(Int_t channel)	const {return fDiscriThr[channel];}
+  Float_t* GetDiscriThr()   const {return (Float_t*)fDiscriThr;}
     
   void     SetPedestal(Float_t val, Int_t channel) {fPedestal[channel]=val;}
-  void     SetPedestal(Float_t* Pedestal);
+  void     SetPedestal(const Float_t* Pedestal);
   void     SetSigma(Float_t val, Int_t channel) {fSigma[channel]=val;}
-  void     SetSigma(Float_t* Sigma);
+  void     SetSigma(const Float_t* Sigma);
   void 	   SetADCmean(Float_t val, Int_t channel) {fADCmean[channel]=val;}
-  void 	   SetADCmean(Float_t* ADCmean);  
+  void 	   SetADCmean(const Float_t* ADCmean);  
   void 	   SetADCsigma(Float_t val, Int_t channel) {fADCsigma[channel]=val;}
-  void 	   SetADCsigma(Float_t* ADCsigma);
+  void 	   SetADCsigma(const Float_t* ADCsigma);
   void     SetMeanHV(Float_t val, Int_t channel) {fMeanHV[channel]=val;}
-  void     SetMeanHV(Float_t* MeanHV);  
+  void     SetMeanHV(const Float_t* MeanHV);  
   void     SetWidthHV(Float_t val, Int_t channel) {fWidthHV[channel]=val;}
-  void     SetWidthHV(Float_t* WidthHV); 
+  void     SetWidthHV(const Float_t* WidthHV); 
   void     SetDeadChannel(Bool_t val, Int_t channel) {fDeadChannel[channel]=val;}
-  void     SetDeadMap(Bool_t* deadMap);  
+  void     SetDeadMap(const Bool_t* deadMap);  
    
-  void 	   SetGain(Float_t val, Int_t channel) {fGain[channel]=val;}
-  void 	   SetGain(Float_t* Gain);  
-  void     SetTimeOffset(Float_t val, Int_t channel) {fTimeOffset[channel]=val;}
-  void     SetTimeOffset(Float_t* TimeOffset);
+  void     SetTimeOffset(Float_t val, Int_t channel);
+  void     SetTimeOffset(const Float_t* TimeOffset);
   void     SetTimeGain(Float_t val, Int_t channel) {fTimeGain[channel]=val;}
-  void     SetTimeGain(Float_t* TimeGain);
+  void     SetTimeGain(const Float_t* TimeGain);
   
   void 	   SetParameter(TString name, Int_t val);
   void     SetTimeResolution(UShort_t *resols);
   void     SetTimeResolution(UShort_t resol, Int_t board);
   void     SetWidthResolution(UShort_t *resols);
   void     SetWidthResolution(UShort_t resol, Int_t board);
+
+  void     SetMatchWindow(UInt_t *windows);
+  void     SetMatchWindow(UInt_t window, Int_t board);
+  void     SetSearchWindow(UInt_t *windows);
+  void     SetSearchWindow(UInt_t window, Int_t board);
+  void     SetTriggerCountOffset(UInt_t *offsets);
+  void     SetTriggerCountOffset(UInt_t offset, Int_t board);
+  void     SetRollOver(UInt_t *offsets);
+  void     SetRollOver(UInt_t offset, Int_t board);
+
+  void     SetDiscriThr(Float_t thr, Int_t channel);
+  void     SetDiscriThr(const Float_t* thresholds);
 
   Float_t  GetMIPperADC(Int_t channel) const;
 
@@ -93,14 +114,20 @@ class AliVZEROCalibData: public TNamed {
   Float_t  fMeanHV[64];        // Mean PMT HV needed to compute MIP value
   Float_t  fWidthHV[64];       // Width of the PMT HV
   
-  Float_t  fGain[128];	       // Gain factor used in digitization only  
-  Float_t  fTimeOffset[64];
-  Float_t  fTimeGain[64];
-  Bool_t   fDeadChannel[64];
+  Float_t  fTimeOffset[64];    // Time offsets of the TDC
+  Float_t  fTimeGain[64];      // Gain factors of the TDC
+  Bool_t   fDeadChannel[64];   // List of dead channels
   Float_t  fTimeResolution[kNCIUBoards]; // Time Resolution of the TDC (ns / channel)
   Float_t  fWidthResolution[kNCIUBoards]; // Time Width Resolution of the TDC (ns / channel)
 
-  ClassDef(AliVZEROCalibData,4)    // VZERO Calibration data
+  UInt_t   fMatchWindow[kNCIUBoards]; // HPTDC matching window (25ns units)
+  UInt_t   fSearchWindow[kNCIUBoards];// HPTDC search window (25ns units)
+  UInt_t   fTriggerCountOffset[kNCIUBoards]; // HPTDC trigger count offset (25ns units)
+  UInt_t   fRollOver[kNCIUBoards]; // HPTDC roll-over (25ns units)
+
+  Float_t  fDiscriThr[64];     // Discriminator thresholds
+
+  ClassDef(AliVZEROCalibData,7)    // VZERO Calibration data
 };
 
 #endif
