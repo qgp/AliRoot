@@ -37,6 +37,7 @@ class TObjArray;
 class AliDCSArray;
 class TString;
 class TMap;
+class AliLHCReader;
 
 
 class AliLHCData : public TObject
@@ -60,11 +61,13 @@ class AliLHCData : public TObject
   //le
  public:
   //
- AliLHCData() : fTMin(0),fTMax(1e10),fFillNumber(0),fData(0) {Clear();}
-  AliLHCData(const TMap* dcsMap, double tmin=0, double tmax=1.e10);
+ AliLHCData() : fTMin(0),fTMax(1e10),fFillNumber(0),fData(0),fFile2Process(0),fMap2Process(0) {Clear();}
+  AliLHCData(const TMap*   dcsMap,  double tmin=0, double tmax=1.e10);
+  AliLHCData(const Char_t* dcsFile, double tmin=0, double tmax=1.e10);
   virtual ~AliLHCData() {}
   //
-  Bool_t                FillData(const TMap* dcsMap, double tmin=0, double tmax=1.e20);
+  Bool_t                FillData(const TMap*   dcsMap,  double tmin=0, double tmax=1.e20);
+  Bool_t                FillData(const Char_t* dcsFile, double tmin=0, double tmax=1.e20);
   Double_t              GetTMin()                                    const {return fTMin;}
   Double_t              GetTMax()                                    const {return fTMax;}
   Int_t                 GetFillNumber()                              const {return fFillNumber;}
@@ -72,7 +75,6 @@ class AliLHCData : public TObject
   void                  SetTMin(Double_t t)                                {fTMin = t<0?0:(t>1e10?1e10:t);}
   void                  SetTMax(Double_t t)                                {fTMax = t<0?0:(t>1e10?1e10:t);}
   virtual void          Print(const Option_t *opt="")                const;
-  virtual void          Clear(const Option_t *opt="");
   //
   Int_t GetNBunchConfigMeasured(int bm)           const {return GoodPairID(bm)?fBunchConfMeas[bm][kNStor]:-1;}
   Int_t GetNBunchConfigDeclared(int bm)           const {return GoodPairID(bm)?fBunchConfDecl[bm][kNStor]:-1;}
@@ -117,6 +119,7 @@ class AliLHCData : public TObject
   AliLHCDipValF* GetRCAngleV(int i=0)                     const; 
   AliLHCDipValF* GetCollimJawPos(int coll, int jaw, int i=0) const;
   //
+  void           FlagInteractingBunches(const Int_t beam1[2],const Int_t beam2[2]);
   TObject*       FindRecValidFor(int start,int nrec, double tstamp) const;
   AliLHCDipValI* GetBunchConfigMeasured(int beam,double tstamp)  const;
   AliLHCDipValI* GetBunchConfigDeclared(int beam,double tstamp)  const;
@@ -152,19 +155,21 @@ class AliLHCData : public TObject
   //
  protected:
   //
-  void                  PrintAux(Bool_t full,const Int_t refs[2]) const;
-  TObjArray*            GetDCSEntry(const TMap* dcsMap,const char* key,int &entry,double tmin,double tmax) const;
-  Int_t                 FillScalarRecord(  const TMap* dcsMap, int refs[2], const char* rec, const char* recErr=0);
-  Int_t                 FillBunchConfig(   const TMap* dcsMap, int refs[2], const char* rec);
-  Int_t                 FillStringRecord(  const TMap* dcsMap, int refs[2], const char* rec);
-  Int_t                 FillAcqMode(       const TMap* dcsMap, int refs[2], const char* rec);
-  Int_t                 FillBunchInfo(     const TMap* dcsMap, int refs[2], const char* rec,int ibm, Bool_t inRealSlots);
-  Int_t                 FillBCLuminosities(const TMap* dcsMap, int refs[2], const char* rec, const char* recErr, Bool_t opt);
+  Bool_t                FillData(double tmin=0, double tmax=1.e20);
+  virtual void          Clear(const Option_t *opt="");
+  void                  PrintAux(Bool_t full,const Int_t refs[2],const Option_t *opt="") const;
+  TObjArray*            GetDCSEntry(const char* key,int &entry,double tmin,double tmax) const;
+  Int_t                 FillScalarRecord(  int refs[2], const char* rec, const char* recErr=0);
+  Int_t                 FillBunchConfig(   int refs[2], const char* rec);
+  Int_t                 FillStringRecord(  int refs[2], const char* rec);
+  Int_t                 FillAcqMode(       int refs[2], const char* rec);
+  Int_t                 FillBunchInfo(     int refs[2], const char* rec,int ibm, Bool_t inRealSlots);
+  Int_t                 FillBCLuminosities(int refs[2], const char* rec, const char* recErr, Int_t useBeam);
   //
   Int_t                 ExtractInt(AliDCSArray* dcsArray,Int_t el)    const;
   Double_t              ExtractDouble(AliDCSArray* dcsArray,Int_t el) const;
   TString&              ExtractString(AliDCSArray* dcsArray)          const;
- AliLHCData(const AliLHCData& src) : TObject(src),fTMin(0),fTMax(0),fFillNumber(0),fData(0) { /*dummy*/ }
+ AliLHCData(const AliLHCData& src) : TObject(src),fTMin(0),fTMax(0),fFillNumber(0),fData(0),fFile2Process(0),fMap2Process(0) { /*dummy*/ }
   AliLHCData& operator=(const AliLHCData& ) { /*dummy*/ return *this;}
   Int_t                 TimeDifference(double v1,double v2,double tol=0.9) const;
   Bool_t                IzZero(double val, double tol=1e-16)         const {return TMath::Abs(val)<tol;}
@@ -209,6 +214,11 @@ class AliLHCData : public TObject
   static const Char_t *fgkDCSNames[];                 // beam related DCS names to extract
   static const Char_t *fgkDCSColNames[];              // collimators to extract
   static const Char_t *fgkDCSColJaws[];               // names of collimator pieces
+  //
+ private:
+  // non-persistent objects used at the filling time
+  const Char_t*   fFile2Process;                      //! name of DCS file
+  const TMap*     fMap2Process;                       //! DCS map to process 
 
   ClassDef(AliLHCData,1)
 };
@@ -224,80 +234,80 @@ inline const Int_t* AliLHCData::GetOffsCollimatorJawPos(int coll,int jaw)  const
 }
 
 inline AliLHCDipValI* AliLHCData::GetBunchConfigMeasured(int bm, int i) const { // get record
-  return (GoodPairID(bm) && i>=0 && i<fBunchConfMeas[bm][kNStor]) ? (AliLHCDipValI*)fData[fBunchConfMeas[bm][kStart+i]]:0;
+  return (GoodPairID(bm) && i>=0 && i<fBunchConfMeas[bm][kNStor]) ? (AliLHCDipValI*)fData[fBunchConfMeas[bm][kStart]+i]:0;
 }
 
 inline AliLHCDipValF* AliLHCData::GetBunchLengths(int bm, int i) const { // get record
-  return (GoodPairID(bm) && i>=0 && i<fBunchLengths[bm][kNStor]) ? (AliLHCDipValF*)fData[fBunchLengths[bm][kStart+i]]:0;
+  return (GoodPairID(bm) && i>=0 && i<fBunchLengths[bm][kNStor]) ? (AliLHCDipValF*)fData[fBunchLengths[bm][kStart]+i]:0;
 }
 
 inline AliLHCDipValI* AliLHCData::GetBunchConfigDeclared(int bm, int i) const { // get record
-  return (GoodPairID(bm) && i>=0 && i<fBunchConfDecl[bm][kNStor]) ? (AliLHCDipValI*)fData[fBunchConfDecl[bm][kStart+i]]:0;
+  return (GoodPairID(bm) && i>=0 && i<fBunchConfDecl[bm][kNStor]) ? (AliLHCDipValI*)fData[fBunchConfDecl[bm][kStart]+i]:0;
 }
 
 inline AliLHCDipValF* AliLHCData::GetTotalIntensity(int bm, int i) const { // get record
-  return (GoodPairID(bm) && i>=0 && i<fIntensTotal[bm][kNStor]) ? (AliLHCDipValF*)fData[fIntensTotal[bm][kStart+i]]:0;
+  return (GoodPairID(bm) && i>=0 && i<fIntensTotal[bm][kNStor]) ? (AliLHCDipValF*)fData[fIntensTotal[bm][kStart]+i]:0;
 }
 
 inline AliLHCDipValF* AliLHCData::GetTotalIntensityAv(int bm, int i) const { // get record
-  return (GoodPairID(bm) && i>=0 && i<fIntensTotalAv[bm][kNStor]) ? (AliLHCDipValF*)fData[fIntensTotalAv[bm][kStart+i]]:0;
+  return (GoodPairID(bm) && i>=0 && i<fIntensTotalAv[bm][kNStor]) ? (AliLHCDipValF*)fData[fIntensTotalAv[bm][kStart]+i]:0;
 }
 
 inline AliLHCDipValF* AliLHCData::GetIntensityPerBunch(int bm, int i) const { // get record
-  return (GoodPairID(bm) && i>=0 && i<fIntensPerBunch[bm][kNStor]) ? (AliLHCDipValF*)fData[fIntensPerBunch[bm][kStart+i]]:0;
+  return (GoodPairID(bm) && i>=0 && i<fIntensPerBunch[bm][kNStor]) ? (AliLHCDipValF*)fData[fIntensPerBunch[bm][kStart]+i]:0;
 }
 
 inline AliLHCDipValF* AliLHCData::GetEmittanceH(int bm, int i) const { // get record
-  return (GoodPairID(bm) && i>=0 && i<fEmittanceH[bm][kNStor]) ? (AliLHCDipValF*)fData[fEmittanceH[bm][kStart+i]]:0;
+  return (GoodPairID(bm) && i>=0 && i<fEmittanceH[bm][kNStor]) ? (AliLHCDipValF*)fData[fEmittanceH[bm][kStart]+i]:0;
 }
 
 inline AliLHCDipValF* AliLHCData::GetEmittanceV(int bm, int i) const { // get record
-  return (GoodPairID(bm) && i>=0 && i<fEmittanceV[bm][kNStor]) ? (AliLHCDipValF*)fData[fEmittanceV[bm][kStart+i]]:0;
+  return (GoodPairID(bm) && i>=0 && i<fEmittanceV[bm][kNStor]) ? (AliLHCDipValF*)fData[fEmittanceV[bm][kStart]+i]:0;
 }
 
 inline AliLHCDipValF* AliLHCData::GetBeamSigmaH(int bm, int i) const { // get record
-  return (GoodPairID(bm) && i>=0 && i<fBeamSigmaH[bm][kNStor]) ? (AliLHCDipValF*)fData[fBeamSigmaH[bm][kStart+i]]:0;
+  return (GoodPairID(bm) && i>=0 && i<fBeamSigmaH[bm][kNStor]) ? (AliLHCDipValF*)fData[fBeamSigmaH[bm][kStart]+i]:0;
 }
 
 inline AliLHCDipValF* AliLHCData::GetBeamSigmaV(int bm, int i) const { // get record
-  return (GoodPairID(bm) && i>=0 && i<fBeamSigmaV[bm][kNStor]) ? (AliLHCDipValF*)fData[fBeamSigmaV[bm][kStart+i]]:0;
+  return (GoodPairID(bm) && i>=0 && i<fBeamSigmaV[bm][kNStor]) ? (AliLHCDipValF*)fData[fBeamSigmaV[bm][kStart]+i]:0;
 }
 
 inline AliLHCDipValF* AliLHCData::GetLuminosityTotal(int lr, int i) const { // get record
-  return (GoodPairID(lr) && i>=0 && i<fLuminTotal[lr][kNStor]) ? (AliLHCDipValF*)fData[fLuminTotal[lr][kStart+i]]:0;
+  return (GoodPairID(lr) && i>=0 && i<fLuminTotal[lr][kNStor]) ? (AliLHCDipValF*)fData[fLuminTotal[lr][kStart]+i]:0;
 }
 
 inline AliLHCDipValF* AliLHCData::GetLuminosityPerBunch(int lr, int i) const { // get record
-  return (GoodPairID(lr) && i>=0 && i<fLuminPerBC[lr][kNStor]) ? (AliLHCDipValF*)fData[fLuminPerBC[lr][kStart+i]]:0;
+  return (GoodPairID(lr) && i>=0 && i<fLuminPerBC[lr][kNStor]) ? (AliLHCDipValF*)fData[fLuminPerBC[lr][kStart]+i]:0;
 }
 
 inline AliLHCDipValI* AliLHCData::GetLuminosityAcqMode(int lr, int i) const { // get record
-  return (GoodPairID(lr) && i>=0 && i<fLuminAcqMode[lr][kNStor]) ? (AliLHCDipValI*)fData[fLuminAcqMode[lr][kStart+i]]:0;
+  return (GoodPairID(lr) && i>=0 && i<fLuminAcqMode[lr][kNStor]) ? (AliLHCDipValI*)fData[fLuminAcqMode[lr][kStart]+i]:0;
 }
 
 inline AliLHCDipValF* AliLHCData::GetCrossAngle(int lr, int i) const { // get record
-  return (GoodPairID(lr) && i>=0 && i<fCrossAngle[lr][kNStor]) ? (AliLHCDipValF*)fData[fCrossAngle[lr][kStart+i]]:0;
+  return (GoodPairID(lr) && i>=0 && i<fCrossAngle[lr][kNStor]) ? (AliLHCDipValF*)fData[fCrossAngle[lr][kStart]+i]:0;
 }
 
 inline AliLHCDipValC* AliLHCData::GetInjectionScheme(int i) const { // get record
-  return (i>=0 && i<fRCInjScheme[kNStor]) ? (AliLHCDipValC*)fData[fRCInjScheme[kStart+i]]:0;
+  return (i>=0 && i<fRCInjScheme[kNStor]) ? (AliLHCDipValC*)fData[fRCInjScheme[kStart]+i]:0;
 }
 
 inline AliLHCDipValF* AliLHCData::GetRCBetaStar(int i) const { // get record
-  return (i>=0 && i<fRCBeta[kNStor]) ? (AliLHCDipValF*)fData[fRCBeta[kStart+i]]:0;
+  return (i>=0 && i<fRCBeta[kNStor]) ? (AliLHCDipValF*)fData[fRCBeta[kStart]+i]:0;
 }
 
 inline AliLHCDipValF* AliLHCData::GetRCAngleH(int i) const { // get record
-  return (i>=0 && i<fRCAngH[kNStor]) ? (AliLHCDipValF*)fData[fRCAngH[kStart+i]]:0;
+  return (i>=0 && i<fRCAngH[kNStor]) ? (AliLHCDipValF*)fData[fRCAngH[kStart]+i]:0;
 }
 
 inline AliLHCDipValF* AliLHCData::GetRCAngleV(int i) const { // get record
-  return (i>=0 && i<fRCAngV[kNStor]) ? (AliLHCDipValF*)fData[fRCAngV[kStart+i]]:0;
+  return (i>=0 && i<fRCAngV[kNStor]) ? (AliLHCDipValF*)fData[fRCAngV[kStart]+i]:0;
 }
 
 inline AliLHCDipValF* AliLHCData::GetCollimJawPos(int coll, int jaw, int i) const { // get record
   return (coll>=0 && coll<kNCollimators && jaw>=0 && jaw<kNJaws && 
-	  i>=0 && i<fCollimators[coll][jaw][kNStor]) ? (AliLHCDipValF*)fData[fCollimators[coll][jaw][kStart+i]]:0;
+	  i>=0 && i<fCollimators[coll][jaw][kNStor]) ? (AliLHCDipValF*)fData[fCollimators[coll][jaw][kStart]+i]:0;
 }
 
 

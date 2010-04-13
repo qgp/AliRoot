@@ -42,11 +42,11 @@ template<class Element> class AliLHCDipValT : public TObject
   void                SetValues(const Element *v, Int_t n);
   void                SetTimeStamp(Double_t v)                      {fTimeStamp = v;}
   // 
-  Int_t               GetSizeTotal()                          const {return GetUniqueID();}
+  Int_t               GetSizeTotal()                          const {return fSizeTot;}
   Element             GetValue(Int_t i=0)                     const;
   Element*            GetValues()                             const {return (Element*)fArray;}
   Double_t            GetTimeStamp()                          const {return fTimeStamp;}
-  Char_t*             GetTimeAsString()                       const {return TimeAsString(fTimeStamp);}
+  Char_t*             GetTimeAsString(Bool_t utc=kTRUE)       const {return TimeAsString(fTimeStamp,utc);}
   //
   void                SetProcessed1(Bool_t v=kTRUE)                 {SetBit(kProcessed1,v);}
   void                SetLastSpecial(Bool_t v=kTRUE)                {SetBit(kLastSpecial,v);}
@@ -60,12 +60,13 @@ template<class Element> class AliLHCDipValT : public TObject
   virtual void Clear(const Option_t *opt="");
   virtual void Print(const Option_t *opt="")                  const;
   //
-  static Char_t*      TimeAsString(double t);
+  static Char_t*      TimeAsString(double t,Bool_t utc=kTRUE);
   //
  protected:
   //
   Double_t            fTimeStamp;        // timestamp of the entry
-  Element*            fArray;            //[fUniqueID] array of entries
+  Int_t               fSizeTot;          // vector total size (including special slots, like for errors)
+  Element*            fArray;            //[fSizeTot] array of entries
   //
   ClassDef(AliLHCDipValT,1)
 };
@@ -74,7 +75,7 @@ template<class Element> class AliLHCDipValT : public TObject
 //__________________________________________________________________________
 template<class Element>
 AliLHCDipValT<Element>::AliLHCDipValT(Int_t size,Double_t t) 
-: fTimeStamp(t),fArray(0)
+: fTimeStamp(t),fSizeTot(0),fArray(0)
 {
   //def. constructor
   SetSize(size);
@@ -87,10 +88,9 @@ AliLHCDipValT<Element>::AliLHCDipValT(Int_t size,Double_t t)
 //__________________________________________________________________________
 template<class Element>
 AliLHCDipValT<Element>::AliLHCDipValT(const AliLHCDipValT<Element> &src)
-: TObject(src),fTimeStamp(src.fTimeStamp),fArray(0)
+: TObject(src),fTimeStamp(src.fTimeStamp),fSizeTot(0),fArray(0)
 {
   //copy constructor
-  SetUniqueID(0);
   SetSize(src.GetSizeTotal());
   memcpy(fArray,src.fArray,GetSizeTotal()*sizeof(Element));
 }
@@ -102,7 +102,6 @@ AliLHCDipValT<Element>& AliLHCDipValT<Element>::operator=(const AliLHCDipValT<El
   //assingment
   if (this != &src) {
     ((TObject*)this)->operator=(src);
-    SetUniqueID(0);
     if (GetSizeTotal()!=src.GetSizeTotal()) SetSize(src.GetSizeTotal());
     SetTimeStamp(src.GetTimeStamp());
     memcpy(fArray,src.fArray,GetSizeTotal()*sizeof(Element));    
@@ -112,10 +111,11 @@ AliLHCDipValT<Element>& AliLHCDipValT<Element>::operator=(const AliLHCDipValT<El
 
 //__________________________________________________________________________
 template<class Element>
-Char_t* AliLHCDipValT<Element>::TimeAsString(double t)
+Char_t* AliLHCDipValT<Element>::TimeAsString(double t, Bool_t utc)
 {
+  // time as string in UTC or local format
   time_t tt = (time_t) t;
-  char* st = ctime(&tt);
+  char* st = utc ? asctime(gmtime(&tt)) : ctime(&tt);
   *(strchr(st,'\n')) = 0;
   return st;
 }
@@ -190,11 +190,12 @@ void AliLHCDipValT<Element>::SetSize(Int_t sz)
     if (nc<sz) memset(arr+nc, 0, (sz-nc)*sizeof(Element));
     if (GetSizeTotal()) delete[] fArray;
     fArray = arr;
-    SetUniqueID(sz);
+    fSizeTot = sz;
   }
   else {
     delete[] fArray;
-    SetUniqueID(0);
+    fArray = 0;
+    fSizeTot = 0;
   }
 }
 
@@ -206,7 +207,7 @@ void AliLHCDipValT<Element>::Print(const Option_t *opt) const
   TString str = opt; 
   str.ToLower();
   if (str.Contains("raw")) printf("%.1f ",GetTimeStamp());
-  else printf("[%s] ",GetTimeAsString());
+  else printf("[%s] ",GetTimeAsString(!str.Contains("loc")));
   //
   TString tp = typeid(fArray).name();
   if ( tp==typeid(Char_t*).name() ) printf(": %s\n",(Char_t*)fArray);
@@ -215,7 +216,16 @@ void AliLHCDipValT<Element>::Print(const Option_t *opt) const
     if (sz>1) printf("\n");
     Bool_t eolOK = kFALSE;
     for (int i=0;i<sz;i++) {
-      if      (tp == typeid(Int_t*).name()    || tp == typeid(UInt_t*).name() ) printf(" %+5d |" ,(Int_t)fArray[i]);
+      if      (tp == typeid(Int_t*).name()    || tp == typeid(UInt_t*).name() ) {
+	if (!str.Contains("bit")) printf(" %6d |" ,(Int_t)fArray[i]);
+	else {
+	  printf(" ");
+	  int val = (int)fArray[i];
+	  for (int j=sizeof(int)*8;j--;) printf("%d",(val>>j)&0x1);
+	  printf(" |");
+	}
+
+      }
       else if (tp == typeid(Double_t*).name() || tp == typeid(Float_t*).name()) printf(" %+.3e |",(Float_t)fArray[i]);
       else printf(" ");
       eolOK = kFALSE;

@@ -42,6 +42,7 @@
 #include "AliLHCData.h"
 #include "TMap.h"
 #include "AliDCSArray.h"
+#include "AliLHCReader.h"
 #include <TString.h>
 #include <TObjArray.h>
 
@@ -94,16 +95,40 @@ const Char_t* AliLHCData::fgkDCSColJaws[] = {
 
 //___________________________________________________________________
 AliLHCData::AliLHCData(const TMap* dcsMap, double tmin, double tmax)
-  : fTMin(tmin),fTMax(tmax),fFillNumber(0),fData(0)
+  : fTMin(0),fTMax(0),fFillNumber(0),fData(0),fFile2Process(0),fMap2Process(0)
 {
-  Clear();
-  SetTMin(tmin);
-  SetTMin(tmax);
-  FillData(dcsMap);
+  FillData(dcsMap,tmin,tmax);
 }
 
 //___________________________________________________________________
-Bool_t AliLHCData::FillData(const TMap* dcsMap, double tmin, double tmax)
+AliLHCData::AliLHCData(const Char_t* dcsFile, double tmin, double tmax)
+  : fTMin(0),fTMax(0),fFillNumber(0),fData(0),fFile2Process(dcsFile),fMap2Process(0)
+{
+  FillData(dcsFile,tmin,tmax);
+}
+
+//___________________________________________________________________
+Bool_t AliLHCData::FillData(const TMap*   dcsMap,double tmin, double tmax)
+{
+  // process DCS map and fill all fields. 
+  Clear();
+  fMap2Process = dcsMap;
+  FillData(tmin,tmax);
+  return kTRUE;
+}
+
+//___________________________________________________________________
+Bool_t AliLHCData::FillData(const Char_t* dcsFile,double tmin, double tmax)
+{
+  // process DCS file and fill all fields. 
+  Clear();
+  fFile2Process = dcsFile;
+  FillData(tmin,tmax);
+  return kTRUE;
+}
+
+//___________________________________________________________________
+Bool_t AliLHCData::FillData(double tmin, double tmax)
 {
   // process DCS map and fill all fields. 
   // Accept only entries with timestamp between tmin and tmax
@@ -115,90 +140,105 @@ Bool_t AliLHCData::FillData(const TMap* dcsMap, double tmin, double tmax)
   //
   // -------------------------- extract Fill Number
   int iEntry;
-  TObjArray* arr = GetDCSEntry(dcsMap, fgkDCSNames[kFillNum],iEntry,fTMin,fTMax);
-  if (arr && iEntry>=0) SetFillNumber( ExtractInt( (AliDCSArray*)arr->At(iEntry), 0) );
+  TObjArray* arr = GetDCSEntry(fgkDCSNames[kFillNum],iEntry,fTMin,fTMax);
+  if (arr) SetFillNumber( ExtractInt( (AliDCSArray*)arr->At(iEntry), 0) );
+  if (fFile2Process) delete arr; // array was created on demand
   //
   for (int ibm=0;ibm<2;ibm++) {
     //
     sprintf(buff,fgkDCSNames[kBunchConf],ibm+1);         // ----- declared bunch configuration
-    FillBunchConfig(dcsMap, fBunchConfDecl[ibm], buff);
+    FillBunchConfig(fBunchConfDecl[ibm], buff);
     //
     sprintf(buff,fgkDCSNames[kBunchLgtFillB],ibm+1);     // ----- measured bunch configuration
-    FillBunchConfig(dcsMap, fBunchConfMeas[ibm], buff);
+    FillBunchConfig(fBunchConfMeas[ibm], buff);
     //
-    sprintf(buff,fgkDCSNames[kBunchLgt],ibm+1);          // ----- maesured bunch lenghts
-    FillBunchInfo(dcsMap, fBunchLengths[ibm],buff,ibm,kFALSE);  
+    sprintf(buff,fgkDCSNames[kBunchLgt],ibm+1);          // ----- measured bunch lenghts
+    FillBunchInfo(fBunchLengths[ibm],buff,ibm,kFALSE);  
     //
     sprintf(buff,fgkDCSNames[kIntBunchAv],ibm+1);        // ----- B-by-B intensities
-    FillBunchInfo(dcsMap, fIntensPerBunch[ibm],buff,ibm,kTRUE);
+    FillBunchInfo(fIntensPerBunch[ibm],buff,ibm,kTRUE);
     //
     //
     sprintf(buff,fgkDCSNames[kIntTot],ibm+1);            // ----- total intensities for beam 1 and 2
-    FillScalarRecord(dcsMap, fIntensTotal[ibm], buff);
+    FillScalarRecord(fIntensTotal[ibm], buff);
     //
     sprintf(buff,fgkDCSNames[kIntTotAv],ibm+1);          // ----- total intensities for beam 1 and 2 from B-by-B average
-    FillScalarRecord(dcsMap, fIntensTotalAv[ibm], buff);
+    FillScalarRecord(fIntensTotalAv[ibm], buff);
     //
     sprintf(buff,fgkDCSNames[kBeamSzEmittH],ibm+1);      // ----- H emittance for beam 1 and 2 
-    FillScalarRecord(dcsMap, fEmittanceH[ibm], buff);
+    FillScalarRecord(fEmittanceH[ibm], buff);
     //
     sprintf(buff,fgkDCSNames[kBeamSzEmittV],ibm+1);      // ----- V emittance for beam 1 and 2 
-    FillScalarRecord(dcsMap, fEmittanceV[ibm], buff);
+    FillScalarRecord(fEmittanceV[ibm], buff);
     //
     sprintf(buff ,fgkDCSNames[kBeamSzSigH],   ibm+1);    // ----- H sigmas and errors for beam 1 and 2 
     sprintf(buff1,fgkDCSNames[kBeamSzSigHErr],ibm+1);
-    FillScalarRecord(dcsMap, fBeamSigmaH[ibm], buff, buff1);
+    FillScalarRecord(fBeamSigmaH[ibm], buff, buff1);
     //
     sprintf(buff ,fgkDCSNames[kBeamSzSigV],   ibm+1);    // ----- V sigmas and errors for beam 1 and 2 
     sprintf(buff1,fgkDCSNames[kBeamSzSigVErr],ibm+1);
-    FillScalarRecord(dcsMap, fBeamSigmaV[ibm], buff, buff1);
+    FillScalarRecord(fBeamSigmaV[ibm], buff, buff1);
     //
   }
+  //
+  FlagInteractingBunches(fBunchConfMeas[0],fBunchConfMeas[1]);
+  FlagInteractingBunches(fBunchConfDecl[0],fBunchConfDecl[1]);
   //
   for (int ilr=0;ilr<2;ilr++) {
     //
     sprintf(buff ,fgkDCSNames[kLumBunch], ilr ? 'R':'L');       // ---- BC-by-BC luminosity at IP2 and its error
     sprintf(buff1,fgkDCSNames[kLumBunchErr], ilr ? 'R':'L');
-    FillBCLuminosities(dcsMap, fLuminPerBC[ilr], buff, buff1, kTRUE);
+    FillBCLuminosities(fLuminPerBC[ilr], buff, buff1, 0); // BRAN L uses beam2 as a reference, BRAN R - beam1
     //
     sprintf(buff ,fgkDCSNames[kLumTot]   , ilr ? 'R':'L');       // ---- total luminosity at IP2 and its error
     sprintf(buff1,fgkDCSNames[kLumTotErr], ilr ? 'R':'L');
-    FillScalarRecord(dcsMap, fLuminTotal[ilr], buff, buff1);
+    FillScalarRecord(fLuminTotal[ilr], buff, buff1);
     //
     sprintf(buff ,fgkDCSNames[kLumAcqMode], ilr ? 'R':'L');      // ---- luminosity acquisition mode
-    FillAcqMode(dcsMap, fLuminAcqMode[ilr], buff);
+    FillAcqMode(fLuminAcqMode[ilr], buff);
     //
     sprintf(buff, fgkDCSNames[kLumCrossAng]   , ilr ? 'R':'L');  //----- crossing angle at IP2 and its error
     sprintf(buff1,fgkDCSNames[kLumCrossAngErr], ilr ? 'R':'L');
-    FillScalarRecord(dcsMap, fCrossAngle[ilr], buff, buff1);
+    FillScalarRecord(fCrossAngle[ilr], buff, buff1);
     //    
   }
   //
   for (int icl=0;icl<kNCollimators;icl++) {             // ----- collimators positions
     for (int jaw=0;jaw<kNJaws;jaw++) {
       sprintf(buff,fgkDCSNames[kCollPos], fgkDCSColNames[icl],fgkDCSColJaws[jaw]);        
-      FillScalarRecord(dcsMap, fCollimators[icl][jaw], buff);
+      FillScalarRecord(fCollimators[icl][jaw], buff);
     } // jaws
   } // collimators
   //
   //
   // RunControl info
-  FillStringRecord(dcsMap, fRCInjScheme, fgkDCSNames[kRCInjSch]);   // ---- active injection scheme
-  FillScalarRecord(dcsMap, fRCBeta, fgkDCSNames[kRCBeta]);          // ---- target beta 
-  FillScalarRecord(dcsMap, fRCAngH, fgkDCSNames[kRCCrossAng]);      // ---- horisontal angle
-  FillScalarRecord(dcsMap, fRCAngV,fgkDCSNames[kRCVang] );          // ---- vertical angle
+  FillStringRecord(fRCInjScheme, fgkDCSNames[kRCInjSch]);   // ---- active injection scheme
+  FillScalarRecord(fRCBeta, fgkDCSNames[kRCBeta]);          // ---- target beta 
+  FillScalarRecord(fRCAngH, fgkDCSNames[kRCCrossAng]);      // ---- horisontal angle
+  FillScalarRecord(fRCAngV,fgkDCSNames[kRCVang] );          // ---- vertical angle
   //
   return kTRUE;
 }
 
 //___________________________________________________________________
-TObjArray* AliLHCData::GetDCSEntry(const TMap* dcsMap,const char* key,int &entry,double tmin,double tmax) const
+TObjArray* AliLHCData::GetDCSEntry(const char* key,int &entry,double tmin,double tmax) const
 {
-  // extract array from the DCS map and find the first entry within the time limits
+  // extract array from the DCS map or file and find the first entry within the time limits
   entry = -1;
-  TObjArray* arr = (TObjArray*)dcsMap->GetValue(key);
+  TObjArray* arr;
+  if (fMap2Process) arr = (TObjArray*)fMap2Process->GetValue(key);
+  else if (fFile2Process) {
+    AliLHCReader rd;
+    arr = rd.ReadSingleLHCDP(fFile2Process,key);
+  }
+  else {
+    AliError("Neither DCS map nor DCS filename are set");
+    return 0;  
+  }
+  //
   if (!arr || !arr->GetEntriesFast()) { 
     AliWarning(Form("No data for %s",key)); 
+    if (fMap2Process) delete arr; // created on demand
     return 0;
   }
   int ntot = arr->GetEntriesFast();
@@ -213,6 +253,8 @@ TObjArray* AliLHCData::GetDCSEntry(const TMap* dcsMap,const char* key,int &entry
     str += " : ";
     str += AliLHCDipValD::TimeAsString(tmax);
     AliWarning(Form("All entries for %s are outside the requested range:\n%s",key,str.Data()));
+    if (fMap2Process) delete arr; // created on demand
+    return 0;
   }
   return arr;
 }
@@ -260,7 +302,7 @@ TObject* AliLHCData::FindRecValidFor(int start,int nrec, double tstamp) const
   AliLHCDipValI *prevObj = 0;
   for (int i=0;i<nrec;i++) {
     AliLHCDipValI* curObj = (AliLHCDipValI*)fData[start+i];
-    if (TimeDifference(tstamp,curObj->GetTimeStamp())>0) break;
+    if (TimeDifference(tstamp,curObj->GetTimeStamp())<0) break;
     prevObj = curObj;
   }
   if (!prevObj && nrec>0) prevObj = (AliLHCDipValI*)fData[start]; // if no exact match, return the 1st one
@@ -268,24 +310,24 @@ TObject* AliLHCData::FindRecValidFor(int start,int nrec, double tstamp) const
 }
 
 //___________________________________________________________________
-Int_t AliLHCData::FillScalarRecord(const TMap* dcsMap, int refs[2], const char* rec, const char* recErr)
+Int_t AliLHCData::FillScalarRecord(int refs[2], const char* rec, const char* recErr)
 {
   // fill record for scalar value, optionally accompanied by measurement error 
   //
   AliInfo(Form("Acquiring record: %s",rec));
   //
-  TObjArray *arr,*arrE;
-  Int_t nEntries,nEntriesE,iEntry,iEntryE;
+  TObjArray *arr=0,*arrE=0;
+  Int_t nEntries=0,nEntriesE=0,iEntry=0,iEntryE=0;
   //
   refs[kStart] = fData.GetEntriesFast();
   refs[kNStor] = 0;
   //
-  if ( !(arr=GetDCSEntry(dcsMap,rec,iEntry,fTMin,fTMax)) || iEntry<0 ) return -1;
+  if ( !(arr=GetDCSEntry(rec,iEntry,fTMin,fTMax)) ) return -1;
   nEntries = arr->GetEntriesFast();
   //
   int dim = 1;
   if (recErr) {
-    if ( !(arrE=GetDCSEntry(dcsMap,recErr,iEntryE,fTMin,fTMax)) || iEntryE<0 ) nEntriesE = -999;
+    if ( !(arrE=GetDCSEntry(recErr,iEntryE,fTMin,fTMax)) ) nEntriesE = -999;
     else nEntriesE = arrE->GetEntriesFast();
     dim += 1;
   }
@@ -321,11 +363,15 @@ Int_t AliLHCData::FillScalarRecord(const TMap* dcsMap, int refs[2], const char* 
     refs[kNStor]++;
   }
   //
+  if (fFile2Process) {
+    delete arr;
+    delete arrE;
+  }
   return refs[kNStor];
 }
 
 //___________________________________________________________________
-Int_t AliLHCData::FillBunchConfig(const TMap* dcsMap, int refs[2],const char* rec)
+Int_t AliLHCData::FillBunchConfig(int refs[2],const char* rec)
 {
   // fill record for bunch configuration
   //
@@ -336,7 +382,7 @@ Int_t AliLHCData::FillBunchConfig(const TMap* dcsMap, int refs[2],const char* re
   refs[kStart] = fData.GetEntriesFast();
   refs[kNStor] = 0;
   //
-  if ( !(arr=GetDCSEntry(dcsMap,rec,iEntry,fTMin,fTMax)) || iEntry<0 ) return -1;
+  if ( !(arr=GetDCSEntry(rec,iEntry,fTMin,fTMax)) ) return -1;
   nEntries = arr->GetEntriesFast();
   //
   AliLHCDipValI* prevRecI=0;
@@ -361,11 +407,12 @@ Int_t AliLHCData::FillBunchConfig(const TMap* dcsMap, int refs[2],const char* re
     prevRecI = curValI;
   }
   //
+  if (fFile2Process) delete arr;
   return refs[kNStor];
 }
  
 //___________________________________________________________________
-Int_t AliLHCData::FillAcqMode(const TMap* dcsMap, int refs[2],const char* rec)
+Int_t AliLHCData::FillAcqMode(int refs[2],const char* rec)
 {
   // fill acquisition mode
   //
@@ -376,7 +423,7 @@ Int_t AliLHCData::FillAcqMode(const TMap* dcsMap, int refs[2],const char* rec)
   refs[kStart] = fData.GetEntriesFast();
   refs[kNStor] = 0;
   //
-  if ( !(arr=GetDCSEntry(dcsMap,rec,iEntry,fTMin,fTMax)) || iEntry<0 ) return -1;
+  if ( !(arr=GetDCSEntry(rec,iEntry,fTMin,fTMax)) ) return -1;
   nEntries = arr->GetEntriesFast();
   //
   AliLHCDipValI* prevRecI=0;
@@ -396,11 +443,12 @@ Int_t AliLHCData::FillAcqMode(const TMap* dcsMap, int refs[2],const char* rec)
     prevRecI = curValI;
   }
   //
+  if (fFile2Process) delete arr;
   return refs[kNStor];
 }
  
 //___________________________________________________________________
-Int_t AliLHCData::FillStringRecord(const TMap* dcsMap, int refs[2],const char* rec)
+Int_t AliLHCData::FillStringRecord(int refs[2],const char* rec)
 {
   // fill record with string value
   //
@@ -412,7 +460,7 @@ Int_t AliLHCData::FillStringRecord(const TMap* dcsMap, int refs[2],const char* r
   refs[kStart] = fData.GetEntriesFast();
   refs[kNStor] = 0;
   //
-  if ( !(arr=GetDCSEntry(dcsMap,rec,iEntry,fTMin,fTMax)) || iEntry<0 ) return -1;
+  if ( !(arr=GetDCSEntry(rec,iEntry,fTMin,fTMax)) ) return -1;
   nEntries = arr->GetEntriesFast();
   //
   while (iEntry<nEntries) {
@@ -430,11 +478,12 @@ Int_t AliLHCData::FillStringRecord(const TMap* dcsMap, int refs[2],const char* r
     fData.Add(curValS);
     refs[kNStor]++;
   }
+  if (fFile2Process) delete arr;
   return refs[kNStor];
 }
 
 //___________________________________________________________________
-Int_t AliLHCData::FillBunchInfo(const TMap* dcsMap, int refs[2],const char* rec, int ibm, Bool_t inRealSlots)
+Int_t AliLHCData::FillBunchInfo(int refs[2],const char* rec, int ibm, Bool_t inRealSlots)
 {
   // fill bunch properties for beam ibm
   // if inRealSlots = true, then the value is taken from bunchRFbucket/10, otherwise, the value 
@@ -447,7 +496,7 @@ Int_t AliLHCData::FillBunchInfo(const TMap* dcsMap, int refs[2],const char* rec,
   refs[kStart] = fData.GetEntriesFast();
   refs[kNStor] = 0;
   //
-  if ( !(arr=GetDCSEntry(dcsMap,rec,iEntry,fTMin,fTMax)) || iEntry<0 ) return -1;
+  if ( !(arr=GetDCSEntry(rec,iEntry,fTMin,fTMax)) ) return -1;
   nEntries = arr->GetEntriesFast();
   //
   while (iEntry<nEntries) {
@@ -483,23 +532,24 @@ Int_t AliLHCData::FillBunchInfo(const TMap* dcsMap, int refs[2],const char* rec,
     fData.Add(curValF);
     refs[kNStor]++;
   }
+  if (fFile2Process) delete arr;
   return refs[kNStor];
   //
 }
  
 //___________________________________________________________________
-Int_t AliLHCData::FillBCLuminosities(const TMap* dcsMap, int refs[2],const char* rec, const char* recErr, Bool_t opt)
+Int_t AliLHCData::FillBCLuminosities(int refs[2],const char* rec, const char* recErr, int useBeam)
 {
   // fill luminosities per bunch crossing
   //
   AliInfo(Form("Acquiring record: %s",rec));
-  TObjArray *arr,*arrE;
-  Int_t nEntries,nEntriesE,iEntry,iEntryE;
+  TObjArray *arr,*arrE=0;
+  Int_t nEntries=0,nEntriesE=0,iEntry=0,iEntryE=0;
   //
   refs[kStart] = fData.GetEntriesFast();
   refs[kNStor] = 0;
   //
-  if ( !(arr=GetDCSEntry(dcsMap,rec,iEntry,fTMin,fTMax)) || iEntry<0 ) return -1;
+  if ( !(arr=GetDCSEntry(rec,iEntry,fTMin,fTMax)) ) return -1;
   nEntries = arr->GetEntriesFast();
   //
   while (iEntry<nEntries) {
@@ -507,38 +557,51 @@ Int_t AliLHCData::FillBCLuminosities(const TMap* dcsMap, int refs[2],const char*
     double tstamp = dcsVal->GetTimeStamp();
     if (tstamp>fTMax) break;
     //
-    AliLHCDipValI *bconf = GetBunchConfigMeasured(0,tstamp);  // luminosities are stored according to 1st beam bunches
+    AliLHCDipValI *bconf;
+    bconf = GetBunchConfigMeasured(useBeam,tstamp);  // luminosities are stored according to beam bunches
     if (!bconf) {
-      AliWarning(Form("Mearured bunch configuration for beam 1 at t=%.1f is not available, trying declared one",tstamp));
-      bconf = GetBunchConfigDeclared(0,tstamp);
+      AliWarning(Form("Mearured bunch configuration for beam%d at t=%.1f is not available, trying declared one",useBeam,tstamp));
+      bconf = GetBunchConfigDeclared(useBeam,tstamp);
     }
     if (!bconf) {
-      AliWarning(Form("Declared bunch configuration for beam 1 at t=%.1f is not available, skip this record",tstamp));
+      AliWarning(Form("Declared bunch configuration for beam%i at t=%.1f is not available, skip this record",useBeam,tstamp));
       return -1;
     }
     int nSlots = dcsVal->GetNEntries();     // count number of actual bunches (non-zeros)
     int nbunch = bconf->GetSize();
     double* dcsArr = dcsVal->GetDouble();
     //
-    // ATTENTION: FOR THE MOMENT STORE ALL SLOTS CORRESPONDING TO FILLED BUNCHES (until the scheme is clarified)
     if (nbunch>nSlots) {
       AliWarning(Form("More N bunches than slots in %s at time %.1f",rec,tstamp));
       continue;
     }
-    int dim = nbunch;
+    int dim = 0;
+    if (!bconf->IsProcessed1()) {
+      AliWarning(Form("Bunch conf. for beam%d has no marked interacting bunches, store all luminosity for all filled bunches",useBeam));
+      dim = nbunch;
+    }
+    else { // count number of interacting bunches
+      for (int i=nbunch;i--;) if ((*bconf)[i]<0) dim++;
+    }
+    //
     if (recErr) {
-      if ( !(arrE=GetDCSEntry(dcsMap,recErr,iEntryE,fTMin,fTMax)) || iEntryE<0 ) nEntriesE = -999;
+      if ( !(arrE=GetDCSEntry(recErr,iEntryE,fTMin,fTMax)) || iEntryE<0 ) nEntriesE = -999;
       else nEntriesE = arrE->GetEntriesFast();
       dim += 1;
     }
     AliLHCDipValF* curValF = new AliLHCDipValF(dim,tstamp);
-    for (int i=nbunch;i--;) {
-      int ind = opt ? (*bconf)[i]/10 : i;
+    int cnt = 0;
+    for (int i=0;i<nbunch;i++) {
+      int slot = (*bconf)[i];
+      if (bconf->IsProcessed1() && slot>0) continue;
+      //
+      int ind = TMath::Abs(slot)/10;
       if (ind>nSlots) {
-	AliError(Form("Bunch %d refers to wrong slot %d, set to -1",i,(*bconf)[i]));
-	(*curValF)[i] = -1;
+	AliError(Form("Bunch %d refers to wrong slot %d, set to -1",cnt,slot));
+	(*curValF)[cnt] = -1;
       }
-      else (*curValF)[i] = dcsArr[ind];
+      else (*curValF)[cnt] = dcsArr[ind];
+      cnt++;
     }
     //
     if (recErr) {
@@ -562,6 +625,10 @@ Int_t AliLHCData::FillBCLuminosities(const TMap* dcsMap, int refs[2],const char*
     //
     fData.Add(curValF);
     refs[kNStor]++;
+  }
+  if (fFile2Process) {
+    delete arr;
+    delete arrE;
   }
   return refs[kNStor];
   //
@@ -647,100 +714,100 @@ void AliLHCData::Print(const Option_t* opt) const
   //
   printf("********** SETTINGS FROM RUN CONTROL **********\n");
   //
-  printf("** Injection Scheme");
+  printf("* %-38s","Injection Scheme");
   PrintAux(full,fRCInjScheme);
   //
-  printf("** Beta Star");
+  printf("* %-38s","Beta Star");
   PrintAux(full,fRCBeta);
   //
-  printf("** Horisontal Crossing Angle");
+  printf("* %-38s","Horisontal Crossing Angle");
   PrintAux(full,fRCAngH);
   //
-  printf("** Vertical   Crossing Angle");
+  printf("* %-38s","Vertical   Crossing Angle");
   PrintAux(full,fRCAngV);
   //
   for (int ib=0;ib<2;ib++) {
-    printf("** Beam%d bunch filling scheme [negative: bunch interacting at IR2!]",ib+1);
+    printf("* Beam%d filling  [- interacts at IR2!]  ",ib+1);
     PrintAux(full,fBunchConfDecl[ib]);
   }
   //
   printf("\n**********       MEASURED DATA       **********\n");
   //
   for (int ib=0;ib<2;ib++) {
-    printf("** Beam%d bunch filling scheme [negative: bunch interacts at IR2!]",ib+1);
+    printf("* Beam%d filling  [- interacts at IR2!]  ",ib+1);
     PrintAux(full,fBunchConfMeas[ib]);
   } 
   //
   for (int ib=0;ib<2;ib++) {
-    printf("** Beam%d total intensity",ib+1);
+    printf("* Beam%d total intensity                 ",ib+1);
     PrintAux(full,fIntensTotal[ib]);
   } 
   //
   for (int ib=0;ib<2;ib++) {
-    printf("** Beam%d total intensity from bunch average",ib+1);
+    printf("* Beam%d total intensity (bunch average) ",ib+1);
     PrintAux(full,fIntensTotalAv[ib]);
   } 
   //
   for (int ib=0;ib<2;ib++) {
-    printf("** Beam%d intensity per bunch",ib+1);
+    printf("* Beam%d intensity per bunch             ",ib+1);
     PrintAux(full,fIntensPerBunch[ib]);
   }
   //
   for (int ib=0;ib<2;ib++) {
-    printf("** Beam%d bunch lengths",ib+1);
+    printf("* Beam%d bunch lengths                   ",ib+1);
     PrintAux(full,fBunchLengths[ib]);
   } 
   //
   for (int ib=0;ib<2;ib++) {
-    printf("** Beam%d H. emittance",ib+1);
+    printf("* Beam%d Horisontal emittance            ",ib+1);
     PrintAux(full,fEmittanceH[ib]);
   }
   //
   for (int ib=0;ib<2;ib++) {
-    printf("** Beam%d V. emittance",ib+1);
+    printf("* Beam%d Vertical emittance              ",ib+1);
     PrintAux(full,fEmittanceV[ib]);
   }
   //
   for (int ib=0;ib<2;ib++) {
-    printf("** Beam%d H. sigma",ib+1);
+    printf("* Beam%d Horisontal sigma                ",ib+1);
     PrintAux(full,fBeamSigmaH[ib]);
   }
   //
   for (int ib=0;ib<2;ib++) {
-    printf("** Beam%d V. sigma",ib+1);
+    printf("* Beam%d Vertical sigma                  ",ib+1);
     PrintAux(full,fBeamSigmaV[ib]);
   }
   //
   for (int lr=0;lr<2;lr++) {
-    printf("** Total luminosity from BRANB_4%c2",lr ? 'R':'L');
+    printf("* Total luminosity from BRANB_4%c2       ",lr ? 'R':'L');
     PrintAux(full,fLuminTotal[lr]);
   } 
   //
   for (int lr=0;lr<2;lr++) {
-    printf("** Luminosity acquisition mode, BRANB_4%c2",lr ? 'R':'L');
-    PrintAux(full,fLuminPerBC[lr]);
+    printf("* Luminosity acq.mode, BRANB_4%c2        ",lr ? 'R':'L');
+    PrintAux(full,fLuminAcqMode[lr],"bit");
   } 
   //
   for (int lr=0;lr<2;lr++) {
-    printf("** Luminosity per Bunch Crossing from BRANB_4%c2",lr ? 'R':'L');
+    printf("* Luminosity per BC from BRANB_4%c2      ",lr ? 'R':'L');
     PrintAux(full,fLuminPerBC[lr]);
   }
   //
   for (int lr=0;lr<2;lr++) {
-    printf("** Crossing angle, side %c",lr ? 'R':'L');
+    printf("* Crossing angle, side %c                ",lr ? 'R':'L');
     PrintAux(full,fCrossAngle[lr]);
   }
   //
   for (int coll=0;coll<kNCollimators;coll++)
     for (int jaw=0;jaw<kNJaws;jaw++) {
-      printf("** Collimator %s:%s",fgkDCSColNames[coll],fgkDCSColJaws[jaw]);
+      printf("* Collimator %10s:%16s",fgkDCSColNames[coll],fgkDCSColJaws[jaw]);
       PrintAux(full,fCollimators[coll][jaw]);
     }
   //
 }
 
 //___________________________________________________________________
-void AliLHCData::PrintAux(Bool_t full, const Int_t refs[2]) const
+void AliLHCData::PrintAux(Bool_t full, const Int_t refs[2], const Option_t *opt) const
 {
   // aux method to print the reocrds of the same type
   int nrec = refs[kNStor];
@@ -748,12 +815,12 @@ void AliLHCData::PrintAux(Bool_t full, const Int_t refs[2]) const
     printf(": N/A\n"); 
     return;
   }
-  printf(": (%d):\t",nrec); // number of records
+  printf(": (%3d):\t",nrec); // number of records
   if (!full) nrec = 1;
   int sz = ((AliLHCDipValI*)fData[refs[kStart]])->GetSizeTotal(); // dimension of the record
   Bool_t isStr = ((AliLHCDipValI*)fData[refs[kStart]])->IsTypeC();
   if ((!isStr && sz>2) || nrec>1) printf("\n"); // long record, open new line
-  for (int i=0;i<nrec;i++) fData[refs[kStart]+i]->Print();
+  for (int i=0;i<nrec;i++) fData[refs[kStart]+i]->Print(opt);
   //
 }
 
@@ -765,6 +832,9 @@ void AliLHCData::Clear(const Option_t *)
   fFillNumber = 0;
   fTMin = 0;
   fTMax = 1e10;
+  fFile2Process = 0;
+  fMap2Process  = 0;
+  //
   for (int i=2;i--;) {
     fRCInjScheme[i] = 0;
     fRCBeta[i] = 0;
@@ -800,7 +870,7 @@ Int_t AliLHCData::GetNInteractingBunchesMeasured(int i) const
   if (!rec) {AliInfo(Form("No record %d found",i)); return -1;}
   if (!rec->IsProcessed1()) { AliInfo("Interacting bunches were not marked"); return -1;}
   int n = 0;
-  for (int i=rec->GetSize();i--;) if ( (*rec)[i]<0 ) n++;
+  for (int j=rec->GetSize();j--;) if ( (*rec)[j]<0 ) n++;
   return n;
 }
 
@@ -812,7 +882,7 @@ Int_t AliLHCData::GetNInteractingBunchesDeclared(int i) const
   if (!rec) {AliInfo(Form("No record %d found",i)); return -1;}
   if (!rec->IsProcessed1()) { AliInfo("Interacting bunches were not marked"); return -1; }
   int n = 0;
-  for (int i=rec->GetSize();i--;) if ( (*rec)[i]<0 ) n++;
+  for (int j=rec->GetSize();j--;) if ( (*rec)[j]<0 ) n++;
   return n;
 }
 
@@ -824,4 +894,38 @@ Int_t AliLHCData::IsPilotPresent(int i) const
   if (!rec) {AliInfo(Form("No record %d found",i)); return -1;}
   TString scheme = rec->GetValues();
   return scheme.Contains("wp",TString::kIgnoreCase);
+}
+
+//___________________________________________________________________
+void AliLHCData::FlagInteractingBunches(const Int_t beam1[2],const Int_t beam2[2])
+{
+  // assign - sign to interacting bunches
+  const int kMaxSlots  = 3564;
+  const int kOffsBeam1 = 346;
+  const int kOffsBeam2 = 3019;
+  //
+  for (int ib1=0;ib1<beam1[kNStor];ib1++) {
+    AliLHCDipValI *bm1 = (AliLHCDipValI*)fData[ beam1[kStart] + ib1];
+    if (!bm1) continue;
+    AliLHCDipValI *bm2 = (AliLHCDipValI*)FindRecValidFor(beam2[kStart],beam2[kNStor], bm1->GetTimeStamp());
+    if (!bm2) continue;
+    //
+    int nb1 = bm1->GetSize();
+    int nb2 = bm2->GetSize();
+    int i1,i2;
+    for (i1=0;i1<nb1;i1++) {
+      int bunch2=-1, bunch1 = TMath::Abs((*bm1)[i1]);
+      int slot2 =-1, slot1  = (bunch1/10 + kOffsBeam1)%kMaxSlots;
+      for (i2=0;i2<nb2;i2++) {
+	bunch2 = TMath::Abs((*bm2)[i2]);
+	slot2 = (bunch2/10 + kOffsBeam2)%kMaxSlots;
+	if (slot1==slot2) break;
+      }
+      if (slot1!=slot2) continue;
+      (*bm1)[i1] = -bunch1;
+      (*bm2)[i2] = -bunch2;
+      bm1->SetProcessed1();
+      bm2->SetProcessed1();
+    }
+  }
 }
