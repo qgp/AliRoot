@@ -366,8 +366,9 @@ class AliTRDrawFastStream : public AliTRDrawStreamBase
   
   Bool_t   DecodeSMHeader(void *buffer, UInt_t length); // decode a buffer
   Bool_t   SetReader(AliRawReader *reader); // set the raw reader to use
-  void     SetNoErrorWarning() {fWarnError = kFALSE;} // disable warning and error info
-    	   
+  void     SetNoErrorWarning() {fWarnError = kFALSE;} // disable error info
+  void     SetarnWarning() {fWarnWarning = kTRUE;} // enable warning    	   
+
   // from MCM Header Word
   // rob and mcm ordering
   // side 0(even link) - ROB: 0 2 4 6  MCM: 12 13 14 15 8 9 10 11 4 5 6 7 0 1 2 3  
@@ -541,6 +542,7 @@ class AliTRDrawFastStream : public AliTRDrawStreamBase
   Short_t fExtendedCOL;  // virtual column for extended digit container
   Bool_t  fIsShared;     // true if the pad is shared pad
   Bool_t  fWarnError;    // no errors no warnings
+  Bool_t  fWarnWarning;  // flag to report warning
 
   Bool_t  fBufferRead;   // set true if the buffer for one ddl is read
 

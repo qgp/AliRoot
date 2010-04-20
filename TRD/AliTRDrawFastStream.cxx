@@ -161,6 +161,7 @@ AliTRDrawFastStream::AliTRDrawFastStream()
   , fExtendedCOL(0)
   , fIsShared(0)
   , fWarnError(kTRUE)
+  , fWarnWarning(kFALSE)
   , fBufferRead(0)
   , fGeometry(0)
   , fRawReader(0)
@@ -208,6 +209,7 @@ AliTRDrawFastStream::AliTRDrawFastStream(AliRawReader *rawReader)
   , fExtendedCOL(0)
   , fIsShared(0)
   , fWarnError(kTRUE)
+  , fWarnWarning(kFALSE)
   , fBufferRead(0)
   , fGeometry(0)
   , fRawReader(rawReader)
@@ -259,6 +261,7 @@ AliTRDrawFastStream::AliTRDrawFastStream(const AliTRDrawFastStream& /*st*/)
   , fExtendedCOL(0)
   , fIsShared(0)
   , fWarnError(kTRUE)
+  , fWarnWarning(kFALSE)
   , fBufferRead(0)
   , fGeometry(0)
   , fRawReader(0)
@@ -340,7 +343,7 @@ Bool_t AliTRDrawFastStream::SkipWords(UInt_t iw)
     return kTRUE;
   }
   else {
-    if (fWarnError) AliWarning(Form("Skip %d words failed. %d available", iw, fpEnd - fpPos - 1));
+    if (fWarnWarning) AliWarning(Form("Skip %d words failed. %d available", iw, fpEnd - fpPos - 1));
     return kFALSE;
   }
 
@@ -703,7 +706,7 @@ Int_t AliTRDrawFastStream::NextChamber(AliTRDdigitsManager *digitsManager, UInt_
       if (DecodeTracklets() == kFALSE) {
         SeekEndOfData();
 
-        if (fWarnError) AliError(Form("Tracklet decoding failed stack %d link %d", GetStack(), fStackLinkNumber));
+        if (fWarnWarning) AliError(Form("Tracklet decoding failed stack %d link %d", GetStack(), fStackLinkNumber));
 
         // copy error codes in memory into error container
         if (errorCodeContainer) {
@@ -874,7 +877,7 @@ Bool_t AliTRDrawFastStream::DecodeSMHeader(void *buffer, UInt_t length)
 
   	    if (fpPos >= fpEnd) {
           if (fRawReader) fRawReader->AddMajorErrorLog(kLinkDataMissing, "Link data missing");          
-          if (fWarnError) AliError("Link data missing.");
+          if (fWarnWarning) AliError("Link data missing.");
           break;
         }
 
@@ -949,7 +952,7 @@ Bool_t AliTRDrawFastStream::DecodeGTUheader()
     }
   }
   else {
-    if (fWarnError) AliWarning("No additional sm headers and stack index words present.");
+    if (fWarnWarning) AliWarning("No additional sm headers and stack index words present.");
     if (fRawReader) fRawReader->AddMajorErrorLog(kDecodeStackInfo, "Stack info missing");
     return kFALSE;
   }
@@ -958,7 +961,7 @@ Bool_t AliTRDrawFastStream::DecodeGTUheader()
     if (fgDebugFlag)  AliDebug(5, "GTU headers are OK.");
   }
   else {
-    if (fWarnError) AliWarning("No data just after GTU headers.");
+    if (fWarnWarning) AliWarning("No data just after GTU headers.");
     if (fRawReader) fRawReader->AddMajorErrorLog(kMissingData, "Missing sm data");
     return kFALSE;
   }
@@ -1109,7 +1112,7 @@ Bool_t AliTRDrawFastStream::DecodeHC(AliTRDdigitsManager *digitsManager, AliTRDa
   }
 
   if (DecodeHCheader() == kFALSE) {
-    if (fWarnError) AliWarning(Form("HC Header decode failed. H0 Error: %d H1 Error: %d",fHC->fH0Corrupted,fHC->fH1Corrupted));
+    if (fWarnWarning) AliWarning(Form("HC Header decode failed. H0 Error: %d H1 Error: %d",fHC->fH0Corrupted,fHC->fH1Corrupted));
     return kFALSE;
   }
   else {
