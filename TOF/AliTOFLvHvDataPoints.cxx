@@ -27,13 +27,15 @@ $Log: AliTOFLvHvDataPoints.cxx,v $
 #include "TTimeStamp.h"
 #include "TMap.h"
 #include "TMath.h"
+#include "TH1C.h"
 
 #include "AliDCSValue.h"
 #include "AliLog.h"
 #include "AliBitPacking.h"
 
-#include "AliTOFLvHvDataPoints.h"
 #include "AliTOFGeometry.h"
+#include "AliTOFDCSmaps.h"
+#include "AliTOFLvHvDataPoints.h"
 
 class AliCDBMetaData;
 class TDatime;
@@ -53,7 +55,10 @@ AliTOFLvHvDataPoints::AliTOFLvHvDataPoints():
   fNumberOfLVdataPoints(0),
   fNumberOfHVdataPoints(0),
   fNumberOfHVandLVmaps(0),
-  fHisto(0x0)
+  fStartingLVmap(0x0),
+  fStartingHVmap(0x0),
+  fHisto(0x0),
+  fNSecondsBeforeEOR(60)
 {
   // main constructor 
 
@@ -72,7 +77,10 @@ AliTOFLvHvDataPoints::AliTOFLvHvDataPoints(Int_t nRun, UInt_t startTime, UInt_t 
   fNumberOfLVdataPoints(0),
   fNumberOfHVdataPoints(0),
   fNumberOfHVandLVmaps(0),
-  fHisto(new TH1C("histo","",kNpads,-0.5,kNpads-0.5))
+  fStartingLVmap(new AliTOFDCSmaps()),
+  fStartingHVmap(new AliTOFDCSmaps()),
+  fHisto(new TH1C("histo","",kNpads,-0.5,kNpads-0.5)),
+  fNSecondsBeforeEOR(60)
 {
 
   // constructor with arguments
@@ -101,10 +109,13 @@ AliTOFLvHvDataPoints::AliTOFLvHvDataPoints(const AliTOFLvHvDataPoints & data):
   fNumberOfLVdataPoints(data.fNumberOfLVdataPoints),
   fNumberOfHVdataPoints(data.fNumberOfHVdataPoints),
   fNumberOfHVandLVmaps(data.fNumberOfHVandLVmaps),
-  fHisto(data.fHisto)
+  fStartingLVmap(data.fStartingLVmap),
+  fStartingHVmap(data.fStartingHVmap),
+  fHisto(data.fHisto),
+  fNSecondsBeforeEOR(data.fNSecondsBeforeEOR)
 {
 
-// copy constructor
+  // copy constructor
 
   for(int i=0;i<kNddl;i++)
     fAliasNamesXLVmap[i]=data.fAliasNamesXLVmap[i];
@@ -118,7 +129,7 @@ AliTOFLvHvDataPoints::AliTOFLvHvDataPoints(const AliTOFLvHvDataPoints & data):
 
 AliTOFLvHvDataPoints& AliTOFLvHvDataPoints:: operator=(const AliTOFLvHvDataPoints & data) { 
 
-// assignment operator
+  // assignment operator
 
   if (this == &data)
     return *this;
@@ -134,6 +145,9 @@ AliTOFLvHvDataPoints& AliTOFLvHvDataPoints:: operator=(const AliTOFLvHvDataPoint
   fNumberOfHVdataPoints=data.fNumberOfHVdataPoints;
   fNumberOfHVandLVmaps=data.fNumberOfHVandLVmaps;
 
+  fStartingLVmap=data.fStartingLVmap;
+  fStartingHVmap=data.fStartingHVmap;
+
   for(int i=0;i<kNddl;i++)
     fAliasNamesXLVmap[i]=data.fAliasNamesXLVmap[i];
 
@@ -143,12 +157,17 @@ AliTOFLvHvDataPoints& AliTOFLvHvDataPoints:: operator=(const AliTOFLvHvDataPoint
 
   fHisto=data.fHisto;
 
+  fNSecondsBeforeEOR=data.fNSecondsBeforeEOR;
+
   return *this;
 }
 //---------------------------------------------------------------
 AliTOFLvHvDataPoints::~AliTOFLvHvDataPoints() {
 
   // destructor
+
+  delete fStartingLVmap;
+  delete fStartingHVmap;
 
 }
 
@@ -171,14 +190,15 @@ Bool_t AliTOFLvHvDataPoints::ProcessData(TMap& aliasMap) {
   }
 
 
-  if (!ReadHVDataPoints(aliasMap)) return kFALSE;
-  AliDebug(1,Form(" Number of HV dps = %d",fNumberOfHVdataPoints));
   if (!ReadLVDataPoints(aliasMap)) return kFALSE;
-  AliDebug(1,Form(" Number of LV dps = %d",fNumberOfLVdataPoints));
+  AliDebug(1,Form(" Number of LV dp value changes = %d",fNumberOfLVdataPoints));
 
-  if (!MergeHVmap()) return kFALSE;
+  if (!ReadHVDataPoints(aliasMap)) return kFALSE;
+  AliDebug(1,Form(" Number of HV dp value changes = %d",fNumberOfHVdataPoints));
 
   if (!MergeLVmap()) return kFALSE;
+
+  if (!MergeHVmap()) return kFALSE;
 
   if (!MergeMaps()) return kFALSE;
 
@@ -194,25 +214,15 @@ Bool_t AliTOFLvHvDataPoints::MergeMaps() {
   // Merge together LV and HV maps
   //
 
-  Int_t counter=0;
-
-
-  for (Int_t ii=1; ii<fNumberOfHVdataPoints-1; ii++)
-    for (Int_t jj=1; jj<fNumberOfLVdataPoints-1; jj++) {
-      if (fHVDataPoints[ii]->GetTime()==fLVDataPoints[jj]->GetTime())
-	counter++;
-    }
-
-
-  fNumberOfHVandLVmaps = fNumberOfHVdataPoints-2+fNumberOfLVdataPoints-2-counter+2;
-  AliInfo(Form(" Number of TOF HVandLV dps in the current run = %d",fNumberOfHVandLVmaps));
-
-  counter=-1;
   Int_t timeMaps[kNmaxDataPoints];
   for (Int_t ii=0; ii<kNmaxDataPoints; ii++) timeMaps[ii]=0;
 
-  for (Int_t ii=0; ii<fNumberOfHVdataPoints; ii++)
-    timeMaps[ii]=fHVDataPoints[ii]->GetTime();
+  for (Int_t ii=0; ii<fNumberOfHVdataPoints; ii++) {
+    AliDebug(1,Form(" fNumberOfHVandLVmaps = %d (HV=%d, LV=%d) - time=%d",fNumberOfHVandLVmaps,fNumberOfHVdataPoints,fNumberOfLVdataPoints,timeMaps[fNumberOfHVandLVmaps]));
+    timeMaps[fNumberOfHVandLVmaps++]=fHVDataPoints[ii]->GetTime();
+  }
+
+  AliDebug(1,Form(" fNumberOfHVandLVmaps = %d (HV=%d) ",fNumberOfHVandLVmaps,fNumberOfHVdataPoints));
 
   Bool_t check = kTRUE;
   for (Int_t jj=0; jj<fNumberOfLVdataPoints; jj++) {
@@ -221,60 +231,81 @@ Bool_t AliTOFLvHvDataPoints::MergeMaps() {
       check=check&&(fLVDataPoints[jj]->GetTime()!=timeMaps[ii]);
 
     if (check) {
-      counter++;
-      timeMaps[fNumberOfHVdataPoints+counter]=fLVDataPoints[jj]->GetTime();
+      AliDebug(1,Form(" fNumberOfHVandLVmaps = %d (HV=%d, LV=%d) - time=%d",fNumberOfHVandLVmaps,fNumberOfHVdataPoints,fNumberOfLVdataPoints,timeMaps[fNumberOfHVandLVmaps]));
+      timeMaps[fNumberOfHVandLVmaps++]=fLVDataPoints[jj]->GetTime();
     }
   }
-  if (fNumberOfHVdataPoints+counter+1!=fNumberOfHVandLVmaps) AliWarning("Something is wrong!");
 
-  Int_t controller[kNmaxDataPoints];
-  for (Int_t ii=0; ii<kNmaxDataPoints; ii++) controller[ii]=-1;
+  AliInfo(Form(" TOF HV dps = %d; TOF LV dps = %d; TOF HVandLV dps %d",
+	       fNumberOfHVdataPoints, fNumberOfLVdataPoints, fNumberOfHVandLVmaps));
+
+
+  Int_t *controller = new Int_t[fNumberOfHVandLVmaps];
+  for (Int_t ii=0; ii<fNumberOfHVandLVmaps; ii++) controller[ii]=-1;
   TMath::Sort(fNumberOfHVandLVmaps,timeMaps,controller,kFALSE); // increasing order
 
+  for (Int_t ii=0; ii<fNumberOfHVandLVmaps; ii++)
+    AliDebug(1, Form(" Time Order - time[controller[%d]] = %d", ii, timeMaps[controller[ii]]));
 
   Short_t array[kNpads];
   for (Int_t iPad=0; iPad<kNpads; iPad++) array[iPad]=-1;
   Int_t time = 0;
 
-  // HVandLV status map @ SOR
-  for (Int_t iPad=0; iPad<kNpads; iPad++)
-    array[iPad] = fHVDataPoints[0]->GetCellValue(iPad)*fLVDataPoints[0]->GetCellValue(iPad);
-  time = timeMaps[controller[0]];
-  AliTOFDCSmaps *object0 = new AliTOFDCSmaps(time,array);
-  fMap[0]= object0;
-
   // HVandLV status map during run
-  for (Int_t index=1; index<fNumberOfHVandLVmaps-1; index++) {
+  for (Int_t index=0; index<fNumberOfHVandLVmaps; index++) {
     time = timeMaps[controller[index]];
-    AliDebug(2,Form(" controller=%d time=%d ", controller[index],time));
 
-    for (Int_t ii=0; ii<fNumberOfHVdataPoints-1; ii++)
-      for (Int_t jj=0; jj<fNumberOfLVdataPoints-1; jj++) {
+    AliDebug(2, Form(" Time Order - time[controller[%d]] = %d", index, timeMaps[controller[index]]));
 
-	if ( ( ( fHVDataPoints[ii]->GetTime()==time && fHVDataPoints[ii+1]->GetTime()>time ) &&
-	       ( fLVDataPoints[jj]->GetTime()<=time && fLVDataPoints[jj+1]->GetTime()>time ) ) ||
-	     ( ( fLVDataPoints[jj]->GetTime()==time && fLVDataPoints[jj+1]->GetTime()>time ) &&
-	       ( fHVDataPoints[ii]->GetTime()<=time && fHVDataPoints[ii+1]->GetTime()>time ) ) ) {
+    for (Int_t ii=0; ii<fNumberOfHVdataPoints; ii++)
+      for (Int_t jj=0; jj<fNumberOfLVdataPoints; jj++) {
 
-	  AliDebug(2,Form(" HVdp_time=%d, LVdp_time=%d ",fHVDataPoints[ii]->GetTime(), fLVDataPoints[jj]->GetTime()));
+	AliDebug(2,Form(" time=%d --- HVdp_time[%d]=%d, LVdp_time[%d]=%d",
+			time,
+			ii,fHVDataPoints[ii]->GetTime(),
+			jj,fLVDataPoints[jj]->GetTime()));
 
+	if ( (fHVDataPoints[ii]->GetTime()==time && fLVDataPoints[jj]->GetTime()<=time) ||
+	     (fLVDataPoints[jj]->GetTime()==time && fHVDataPoints[ii]->GetTime()<=time) ) {
+
+	  AliDebug(2,Form(" HVdp_time[%d]=%d, LVdp_time[%d]=%d",
+			  ii,fHVDataPoints[ii]->GetTime(),
+			  jj,fLVDataPoints[jj]->GetTime()));
 	  for (Int_t iPad=0; iPad<kNpads; iPad++)
 	    array[iPad] = fHVDataPoints[ii]->GetCellValue(iPad)*fLVDataPoints[jj]->GetCellValue(iPad);
 	  AliTOFDCSmaps *object = new AliTOFDCSmaps(time,array);
 	  fMap[index]= object;
 	  break;
+
 	}
+	else if ( fHVDataPoints[ii]->GetTime()==time && fLVDataPoints[jj]->GetTime()>time ) {
+
+	  AliDebug(2,Form(" HVdp_time[%d]=%d, (no LVdp)",ii,fHVDataPoints[ii]->GetTime()));
+	  for (Int_t iPad=0; iPad<kNpads; iPad++)
+	    array[iPad] = fHVDataPoints[ii]->GetCellValue(iPad);
+	  AliTOFDCSmaps *object = new AliTOFDCSmaps(time,array);
+	  fMap[index]= object;
+	  break;
+
+	} else if ( fLVDataPoints[jj]->GetTime()==time && fHVDataPoints[ii]->GetTime()>time ) {
+
+	  AliDebug(2,Form(" LVdp_time[%d]=%d, (no HVdp)",jj,fLVDataPoints[jj]->GetTime()));
+	  for (Int_t iPad=0; iPad<kNpads; iPad++)
+	    array[iPad] = fLVDataPoints[jj]->GetCellValue(iPad);
+	  AliTOFDCSmaps *object = new AliTOFDCSmaps(time,array);
+	  fMap[index]= object;
+	  break;
+
+	}
+
       }
 
   }
 
-  // HVandLV status map @ EOR
-  for (Int_t iPad=0; iPad<kNpads; iPad++)
-    array[iPad] = fHVDataPoints[fNumberOfHVdataPoints-1]->GetCellValue(iPad)*fLVDataPoints[fNumberOfLVdataPoints-1]->GetCellValue(iPad);
-  time = timeMaps[controller[fNumberOfHVandLVmaps-1]];
-  AliTOFDCSmaps *object1 = new AliTOFDCSmaps(time,array);
-  fMap[fNumberOfHVandLVmaps-1]= object1;
+  delete controller;
 
+  for (Int_t ii=0; ii<fNumberOfHVandLVmaps; ii++)
+    AliDebug(1,Form(" fMap[%d]->GetTime() = %d ",ii,fMap[ii]->GetTime()));
 
   return kTRUE;
 
@@ -288,20 +319,30 @@ Bool_t AliTOFLvHvDataPoints::MergeHVmap() {
 
   Bool_t check= kFALSE;
 
-  for (Int_t iPad=0; iPad<kNpads; iPad+=96*91)
-    AliDebug(2,Form(" HVdp0: channel=%6d -> %1d",iPad,fHVDataPoints[0]->GetCellValue(iPad)));
-
-  if (fNumberOfHVdataPoints==2)
-    check=kTRUE;
+  if (fNumberOfHVdataPoints==0)
+    return check;
   else {
-    for (Int_t ii=1; ii<fNumberOfHVdataPoints-1; ii++) {
 
+    // first map construction
+    for (Int_t iPad=0; iPad<kNpads; iPad++) {
+      if (fHVDataPoints[0]->GetCellValue(iPad)==-1)
+	fHVDataPoints[0]->SetCellValue(iPad,fStartingHVmap->GetCellValue(iPad));
+      //else
+      //fHVDataPoints[0]->SetCellValue(iPad,fHVDataPoints[0]->GetCellValue(iPad)*fStartingHVmap->GetCellValue(iPad));
+
+      if (iPad%(96*91)==0)
+	AliDebug(2,Form("HVdp0: channel=%6d -> %1d",iPad,fHVDataPoints[0]->GetCellValue(iPad)));
+    }
+
+    // other maps construction
+    for (Int_t ii=1; ii<fNumberOfHVdataPoints; ii++) {
       for (Int_t iPad=0; iPad<kNpads; iPad++) {
 	if (fHVDataPoints[ii]->GetCellValue(iPad)==-1)
 	  fHVDataPoints[ii]->SetCellValue(iPad,fHVDataPoints[ii-1]->GetCellValue(iPad));
+
+	if (iPad%(96*91)==0)
+	  AliDebug(2,Form("HVdp%d: channel=%6d -> %1d",ii,iPad,fHVDataPoints[ii]->GetCellValue(iPad)));
       }
-      for (Int_t iPad=0; iPad<kNpads; iPad+=96*91)
-	AliDebug(2,Form("HVdp%d: channel=%6d -> %1d",ii,iPad,fHVDataPoints[ii]->GetCellValue(iPad)));
     }
 
     check=kTRUE;
@@ -319,20 +360,30 @@ Bool_t AliTOFLvHvDataPoints::MergeLVmap() {
 
   Bool_t check= kFALSE;
 
-  for (Int_t iPad=0; iPad<kNpads; iPad+=96*91)
-    AliDebug(2,Form(" LVdp0: channel=%6d -> %1d",iPad,fLVDataPoints[0]->GetCellValue(iPad)));
-
-  if (fNumberOfLVdataPoints==2)
-    check=kTRUE;
+  if (fNumberOfLVdataPoints==0)
+    return check;
   else {
-    for (Int_t ii=1; ii<fNumberOfLVdataPoints-1; ii++) {
 
+    // first map construction
+    for (Int_t iPad=0; iPad<kNpads; iPad++) {
+      if (fLVDataPoints[0]->GetCellValue(iPad)==-1)
+	fLVDataPoints[0]->SetCellValue(iPad,fStartingLVmap->GetCellValue(iPad));
+      //else
+      //fLVDataPoints[0]->SetCellValue(iPad,fLVDataPoints[0]->GetCellValue(iPad)*fStartingLVmap->GetCellValue(iPad));
+
+      if (iPad%(96*91)==0)
+	AliDebug(2,Form("LVdp0: channel=%6d -> %1d",iPad,fLVDataPoints[0]->GetCellValue(iPad)));
+    }
+
+    // other maps construction
+    for (Int_t ii=1; ii<fNumberOfLVdataPoints; ii++) {
       for (Int_t iPad=0; iPad<kNpads; iPad++) {
 	if (fLVDataPoints[ii]->GetCellValue(iPad)==-1)
 	  fLVDataPoints[ii]->SetCellValue(iPad,fLVDataPoints[ii-1]->GetCellValue(iPad));
+
+	if (iPad%(96*91)==0)
+	  AliDebug(2,Form("LVdp%d: channel=%6d -> %1d",ii,iPad,fLVDataPoints[ii]->GetCellValue(iPad)));
       }
-      for (Int_t iPad=0; iPad<kNpads; iPad+=96*91)
-	AliDebug(2,Form("LVpd%d: channel=%6d -> %1d",ii,iPad,fLVDataPoints[ii]->GetCellValue(iPad)));
     }
 
     check=kTRUE;
@@ -351,7 +402,7 @@ Bool_t AliTOFLvHvDataPoints::ReadHVDataPoints(TMap& aliasMap) {
   TObjArray *aliasArr;
   AliDCSValue* aValue;
   AliDCSValue* aValuePrev;
-  UInt_t val = 0;
+  Int_t val = 0;
   Int_t time = 0;
   Int_t nEntries = 0;
 
@@ -372,6 +423,8 @@ Bool_t AliTOFLvHvDataPoints::ReadHVDataPoints(TMap& aliasMap) {
 
       nEntries = aliasArr->GetEntries();
     
+      if (nEntries<2) AliDebug(1, Form(" NB: number of values for dp %s %d (less than 2)",fAliasNamesXHVmap[i][j].Data(),nEntries));
+
       if (nEntries==0) {
 	AliError(Form("Alias %s has no entries! Nothing will be stored",
 		      fAliasNamesXHVmap[i][j].Data()));
@@ -379,23 +432,29 @@ Bool_t AliTOFLvHvDataPoints::ReadHVDataPoints(TMap& aliasMap) {
       }
       else {
 
-	for (Int_t iEntry=0; iEntry<nEntries; iEntry++) {
+	// read the first value
+	for (Int_t iBin=0; iBin<kNpads; iBin++) dummy[iBin]=-1;
+	aValue = (AliDCSValue*) aliasArr->At(0);
+	val = aValue->GetInt();
+	time = aValue->GetTimeStamp();
+	AliDebug(1, Form(" at t=%d, 1st value for dp %s = %d", time, fAliasNamesXHVmap[i][j].Data(), val));
+	FillHVarrayPerDataPoint(i,j,val,dummy);
+	AliTOFDCSmaps *object0 = new AliTOFDCSmaps(time,dummy);
+	if (InsertHVDataPoint(object0)!=0) return kTRUE; // to be verified
+
+	// read the values from the second one
+	for (Int_t iEntry=1; iEntry<nEntries; iEntry++) {
 	  for (Int_t iBin=0; iBin<kNpads; iBin++) dummy[iBin]=-1;
 	  aValue = (AliDCSValue*) aliasArr->At(iEntry);
-	  val = aValue->GetUInt();
+	  val = aValue->GetInt();
 	  time = aValue->GetTimeStamp();
-	  if (iEntry==0 || iEntry==nEntries-1) {
+	  AliDebug(2, Form(" at t=%d, %dth value for dp %s = %d", time, iEntry+1, fAliasNamesXHVmap[i][j].Data(), val));
+	  aValuePrev = (AliDCSValue*) aliasArr->At(iEntry-1);
+	  if (aValuePrev->GetInt()!=val) {
+	    AliDebug(1, Form(" CHANGE - at t=%d, %dth value for dp %s = %d", time, iEntry+1, fAliasNamesXHVmap[i][j].Data(), val));
 	    FillHVarrayPerDataPoint(i,j,val,dummy);
 	    AliTOFDCSmaps *object = new AliTOFDCSmaps(time,dummy);
-	    InsertHVDataPoint(object);
-	  }
-	  else {
-	    aValuePrev = (AliDCSValue*) aliasArr->At(iEntry-1);
-	    if (aValuePrev->GetUInt()!=val) {
-	      FillHVarrayPerDataPoint(i,j,val,dummy);
-	      AliTOFDCSmaps *object = new AliTOFDCSmaps(time,dummy);
-	      InsertHVDataPoint(object);
-	    }
+	    if (InsertHVDataPoint(object)!=0) return kTRUE; // to be verified
 	  }
 
 	}
@@ -403,36 +462,8 @@ Bool_t AliTOFLvHvDataPoints::ReadHVDataPoints(TMap& aliasMap) {
     }
 
   if (fNumberOfHVdataPoints==0) {
-    AliInfo("Valid LV dps not found. By default all HV TOF channels (except the ones in the PHOS holes) switched ON.");
-    for (int i=0; i<kNsectors; i++)
-      for (int j=0; j<kNplates; j++) {
-	for (Int_t iBin=0; iBin<kNpads; iBin++) dummy[iBin]=-1;
-	if ( (i==13 || i==14 || i==15) && j==2) {
-	  FillHVarrayPerDataPoint(i,j,0,dummy);
-	  AliTOFDCSmaps *object = new AliTOFDCSmaps(0,dummy);
-	  InsertHVDataPoint(object);
-	}
-	else {
-	  FillHVarrayPerDataPoint(i,j,1,dummy);
-	  AliTOFDCSmaps *object = new AliTOFDCSmaps(0,dummy);
-	  InsertHVDataPoint(object);
-	}
-      }
-
-    for (int i=0; i<kNsectors; i++)
-      for (int j=0; j<kNplates; j++) {
-	for (Int_t iBin=0; iBin<kNpads; iBin++) dummy[iBin]=-1;
-	if ( (i==13 || i==14 || i==15) && j==2) {
-	  FillHVarrayPerDataPoint(i,j,0,dummy);
-	  AliTOFDCSmaps *object = new AliTOFDCSmaps(999999,dummy);
-	  InsertHVDataPoint(object);
-	}
-	else {
-	  FillHVarrayPerDataPoint(i,j,1,dummy);
-	  AliTOFDCSmaps *object = new AliTOFDCSmaps(999999,dummy);
-	  InsertHVDataPoint(object);
-	}
-      }
+    AliInfo("Valid HV dps not found. By default all HV TOF channels (except the ones in the PHOS holes) switched ON, at SOR.");
+    if (InsertHVDataPoint(fStartingHVmap)!=0) return kTRUE; // to be verified
   }
 
   return kTRUE;
@@ -448,7 +479,7 @@ Bool_t AliTOFLvHvDataPoints::ReadLVDataPoints(TMap& aliasMap) {
   TObjArray *aliasArr;
   AliDCSValue* aValue;
   AliDCSValue* aValuePrev;
-  UInt_t val = 0;
+  Int_t val = 0;
   Int_t time = 0;
   Int_t nEntries = 0;
 
@@ -468,6 +499,8 @@ Bool_t AliTOFLvHvDataPoints::ReadLVDataPoints(TMap& aliasMap) {
 
     nEntries = aliasArr->GetEntries();
     
+    if (nEntries<2) AliDebug(1, Form(" NB: number of values for dp %s %d (less than 2)",fAliasNamesXLVmap[i].Data(),nEntries));
+    
     if (nEntries==0) {
       AliError(Form("Alias %s has no entries! Nothing will be stored",
 		    fAliasNamesXLVmap[i].Data()));
@@ -475,44 +508,38 @@ Bool_t AliTOFLvHvDataPoints::ReadLVDataPoints(TMap& aliasMap) {
     }
     else {
 
-      for (Int_t iEntry=0; iEntry<nEntries; iEntry++) {
+      // read the first value
+      for (Int_t iBin=0; iBin<kNpads; iBin++) dummy[iBin]=-1;
+      aValue = (AliDCSValue*) aliasArr->At(0);
+      val = aValue->GetInt();
+      time = aValue->GetTimeStamp();
+      AliDebug(1, Form(" at t=%d, 1st value for dp %s = %d", time, fAliasNamesXLVmap[i].Data(), val));
+      FillLVarrayPerDataPoint(i,val,dummy);
+      AliTOFDCSmaps *object0 = new AliTOFDCSmaps(time,dummy);
+      if (InsertLVDataPoint(object0)!=0) return kTRUE; // to be verified
+
+      // read the values from the second one
+      for (Int_t iEntry=1; iEntry<nEntries; iEntry++) {
 	for (Int_t iBin=0; iBin<kNpads; iBin++) dummy[iBin]=-1;
 	aValue = (AliDCSValue*) aliasArr->At(iEntry);
-	val = aValue->GetUInt();
+	val = aValue->GetInt();
 	time = aValue->GetTimeStamp();
-	if (iEntry==0 || iEntry==nEntries-1) {
+	AliDebug(2, Form(" at t=%d, %dth value for dp %s = %d", time, iEntry+1, fAliasNamesXLVmap[i].Data(), val));
+	aValuePrev = (AliDCSValue*) aliasArr->At(iEntry-1);
+	if (aValuePrev->GetInt()!=val) {
+	  AliDebug(1, Form(" CHANGE - at t=%d, %dth value for dp %s = %d", time, iEntry+1, fAliasNamesXLVmap[i].Data(), val));
 	  FillLVarrayPerDataPoint(i,val,dummy);
 	  AliTOFDCSmaps *object = new AliTOFDCSmaps(time,dummy);
-	  InsertLVDataPoint(object);
+	  if (InsertLVDataPoint(object)!=0) return kTRUE; // to be verified
 	}
-	else {
-	  aValuePrev = (AliDCSValue*) aliasArr->At(iEntry-1);
-	  if (aValuePrev->GetUInt()!=val) {
-	    FillLVarrayPerDataPoint(i,val,dummy);
-	    AliTOFDCSmaps *object = new AliTOFDCSmaps(time,dummy);
-	    InsertLVDataPoint(object);
-	  }
-	}
+
       }
     }
   }
 
   if (fNumberOfLVdataPoints==0) {
-    AliInfo("Valid LV dps not found. By default all LV TOF channels switched ON.");
-    for (int i=0; i<kNddl; i++) {
-      for (Int_t iBin=0; iBin<kNpads; iBin++) dummy[iBin]=-1;
-      FillLVarrayPerDataPoint(i,0,dummy);
-      AliTOFDCSmaps *object = new AliTOFDCSmaps(0,dummy);
-      InsertLVDataPoint(object);
-    }
-
-    for (int i=0; i<kNddl; i++) {
-      for (Int_t iBin=0; iBin<kNpads; iBin++) dummy[iBin]=-1;
-      FillLVarrayPerDataPoint(i,0,dummy);
-      AliTOFDCSmaps *object = new AliTOFDCSmaps(999999,dummy);
-      InsertLVDataPoint(object);
-    }
-
+    AliInfo("Valid LV dps not found. By default all LV TOF channels switched ON, at SOR.");
+    if (InsertLVDataPoint(fStartingLVmap)!=0) return kTRUE; // to be verified
   }
 
   return kTRUE;
@@ -646,10 +673,25 @@ void AliTOFLvHvDataPoints::Init(){
     fAliasNamesXLVmap[i] += sindex;
   }
 
+  fStartingLVmap->SetTime(0);
+  for (Int_t iPad=0; iPad<kNpads; iPad++)
+    fStartingLVmap->SetCellValue(iPad,1);
+
+  fStartingHVmap->SetTime(0);
+  for (Int_t iPad=0; iPad<kNpads; iPad++) {
+    Int_t vol[5] = {-1,-1,-1,-1,-1};
+    AliTOFGeometry::GetVolumeIndices(iPad,vol);
+    if ( (vol[0]==13 || vol[0]==14 || vol[0]==15) &&
+	 vol[1]==2)
+      fStartingHVmap->SetCellValue(iPad,0);
+    else
+      fStartingHVmap->SetCellValue(iPad,1);
+  }
+
 }
 
 //---------------------------------------------------------------
-void AliTOFLvHvDataPoints::FillHVarrayPerDataPoint(Int_t sector, Int_t plate, UInt_t baseWord, Short_t *array)
+void AliTOFLvHvDataPoints::FillHVarrayPerDataPoint(Int_t sector, Int_t plate, UInt_t baseWord, Short_t *array) const
 {
   //
   // Set the status of the TOF pads connected to the HV dp
@@ -677,7 +719,7 @@ void AliTOFLvHvDataPoints::FillHVarrayPerDataPoint(Int_t sector, Int_t plate, UI
 }
 
 //---------------------------------------------------------------
-void AliTOFLvHvDataPoints::FillLVarrayPerDataPoint(Int_t nDDL, UInt_t baseWord, Short_t *array)
+void AliTOFLvHvDataPoints::FillLVarrayPerDataPoint(Int_t nDDL, UInt_t baseWord, Short_t *array) const 
 {
   //
   // Set the status of the TOF pads connected to the LV dp
@@ -720,7 +762,7 @@ void AliTOFLvHvDataPoints::FillLVarrayPerDataPoint(Int_t nDDL, UInt_t baseWord, 
 }
 
 //---------------------------------------------------------------
-void AliTOFLvHvDataPoints::GetStripsConnectedToFEAC(Int_t nDDL, Int_t nFEAC, Int_t *iStrip, Int_t &firstPadX, Int_t &lastPadX)
+void AliTOFLvHvDataPoints::GetStripsConnectedToFEAC(Int_t nDDL, Int_t nFEAC, Int_t *iStrip, Int_t &firstPadX, Int_t &lastPadX) const
 {
   //
   // FEAC-strip mapping:
@@ -924,26 +966,36 @@ AliTOFDCSmaps *AliTOFLvHvDataPoints::GetHVandLVmapAtEOR()
   //
   // Returns HVandLV status map at EOR.
   // If the end-of-run has been caused by TOF self,
-  // the last but two value of HVandLV status map
-  // will be taken into account.
+  // the second-last value of HVandLV status map
+  // will be taken into account, i.e. the value immediately before
+  // the change that caused EOR.
   // This last condition is true
-  // if the time interval between the second-last DP and the last one
+  // if the time interval between the last map value and the EOR
   // is less than 60s.
+  // If the run ended correctly, last map value will be take into account.
+  // If nothing changed during the run, the SOR map will be take into account.
   //
 
   AliTOFDCSmaps * lvANDhvMap = 0;
 
-  if (fNumberOfHVandLVmaps==2) { // nothing changed during the run
+  if (fNumberOfHVandLVmaps==1) { // nothing changed during the run
+
+    AliInfo(Form("Nothing changed in the TOF channels LV and HV status during the run number %d",fRun));
 
     lvANDhvMap = fMap[fNumberOfHVandLVmaps-1];
 
   }
   else {
 
-    if (fMap[fNumberOfHVandLVmaps-1]->GetTime()-fMap[fNumberOfHVandLVmaps-2]->GetTime()<=60)
-      lvANDhvMap = (AliTOFDCSmaps*)fMap[fNumberOfHVandLVmaps-3];
-    else
+    if ( (fEndTimeDCSQuery-fMap[fNumberOfHVandLVmaps-1]->GetTime()<=fNSecondsBeforeEOR) ||
+	 (fEndTime-fMap[fNumberOfHVandLVmaps-1]->GetTime()<=fNSecondsBeforeEOR) ) {
+      lvANDhvMap = (AliTOFDCSmaps*)fMap[fNumberOfHVandLVmaps-2];
+      AliInfo(Form("Probably, TOF caused the EOR (EOR-t(last map))<%d).For run number %d the second-last HVandLV map will be take into account.",fNSecondsBeforeEOR,fRun));
+    }
+    else {
       lvANDhvMap = (AliTOFDCSmaps*)fMap[fNumberOfHVandLVmaps-1];
+      AliInfo(Form("The run number %d ended correctly. The last HVandLV map will be take into account.",fRun));
+    }
 
   }
 

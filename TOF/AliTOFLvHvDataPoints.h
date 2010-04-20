@@ -15,14 +15,14 @@
 //                                                     //
 /////////////////////////////////////////////////////////
 
-#include "TObject.h" 
-#include "TH1C.h" 
-
-#include "AliTOFDCSmaps.h"
+#include "TObject.h"
 
 class TMap;
 class TClonesArray;
 class TString;
+class TH1C;
+
+class AliTOFDCSmaps;
 
 class AliTOFLvHvDataPoints : public TObject {
 public:
@@ -39,13 +39,15 @@ public:
   void SetEndTime(Int_t endTime) {fEndTime = endTime;}
   void SetStartTimeDCSQuery(Int_t startTimeDCSQuery) {fStartTimeDCSQuery = startTimeDCSQuery;}
   void SetEndTimeDCSQuery(Int_t endTimeDCSQuery) {fEndTimeDCSQuery = endTimeDCSQuery;}
+  void SetNSecondsBeforeEOR(Int_t nSecondsBeforeEOR) {fNSecondsBeforeEOR = nSecondsBeforeEOR;}
   Int_t GetRun() const {return fRun;}
   Int_t GetStartTime() const {return fStartTime;}
   Int_t GetEndTime() const {return fEndTime;}
   Int_t GetStartTimeDCSQuery() const {return fStartTimeDCSQuery;}
   Int_t GetEndTimeDCSQuery() const {return fEndTimeDCSQuery;}
-  
+  Int_t GetNSecondsBeforeEOR() const {return fNSecondsBeforeEOR;}
   Bool_t ProcessData(TMap& aliasMap);
+
   
   const char* GetAliasNameXLV(Int_t pos) const 
     {return pos<kNddl ? fAliasNamesXLVmap[pos].Data() : 0;}
@@ -62,20 +64,20 @@ public:
   Bool_t GetFDRFlag() const {return fFDR;}
 
   Int_t GetNumberOfHVandLVmaps() const { return fNumberOfHVandLVmaps; };
-  AliTOFDCSmaps * GetHVandLVmapAtSOR() { return fMap[0]; };
+  AliTOFDCSmaps * GetHVandLVmapAtSOR() const { return fMap[0]; };
   AliTOFDCSmaps * GetHVandLVmapAtEOR() ;
-  AliTOFDCSmaps * GetHVandLVmap(Int_t index) { if (index>=fNumberOfHVandLVmaps) return 0x0; else return fMap[index]; };
+  AliTOFDCSmaps * GetHVandLVmap(Int_t index) const { if (index>=fNumberOfHVandLVmaps) return 0x0; else return fMap[index]; };
   Int_t GetNumberOfLVmaps() const { return fNumberOfLVdataPoints; };
-  AliTOFDCSmaps * GetLVmap(Int_t index) { if (index>=fNumberOfLVdataPoints) return 0x0; else return fLVDataPoints[index]; };
+  AliTOFDCSmaps * GetLVmap(Int_t index) const { if (index>=fNumberOfLVdataPoints) return 0x0; else return fLVDataPoints[index]; };
   Int_t GetNumberOfHVmaps() const { return fNumberOfHVdataPoints; };
-  AliTOFDCSmaps * GetHVmap(Int_t index) { if (index>=fNumberOfHVdataPoints) return 0x0; else return fHVDataPoints[index]; };
+  AliTOFDCSmaps * GetHVmap(Int_t index) const { if (index>=fNumberOfHVdataPoints) return 0x0; else return fHVDataPoints[index]; };
 
 private:
   void Init();
   void CreateHisto(int nbin);
-  void FillHVarrayPerDataPoint(Int_t sector, Int_t plate, UInt_t baseWord, Short_t *array);
-  void FillLVarrayPerDataPoint(Int_t nDDL, UInt_t baseWord, Short_t *array);
-  void GetStripsConnectedToFEAC(Int_t nDDL, Int_t nFEAC, Int_t *iStrip, Int_t &firstPadX, Int_t &lastPadX);
+  void FillHVarrayPerDataPoint(Int_t sector, Int_t plate, UInt_t baseWord, Short_t *array) const;
+  void FillLVarrayPerDataPoint(Int_t nDDL, UInt_t baseWord, Short_t *array) const;
+  void GetStripsConnectedToFEAC(Int_t nDDL, Int_t nFEAC, Int_t *iStrip, Int_t &firstPadX, Int_t &lastPadX) const;
 
   Bool_t ReadHVDataPoints(TMap& aliasMap);
   Bool_t ReadLVDataPoints(TMap& aliasMap);
@@ -107,10 +109,15 @@ private:
   
   TString fAliasNamesXLVmap[kNddl]; // aliases for LV map
   TString fAliasNamesXHVmap[kNsectors][kNplates]; // aliases for HV map
+
+  AliTOFDCSmaps *fStartingLVmap; // starting value for LV map
+  AliTOFDCSmaps *fStartingHVmap; // starting value for HV map
   
   TH1C * fHisto; // histogram
 
-  ClassDef(AliTOFLvHvDataPoints, 1);
+  Int_t fNSecondsBeforeEOR; // time window to choose if a run ended correctly or not [s]
+
+  ClassDef(AliTOFLvHvDataPoints, 3);
 };
 
 #endif
