@@ -27,6 +27,7 @@ class AliESDEvent;
 class AliESDtrack;
 class AliESDfriend;
 class TObjArray;
+class AliTPCclusterMI;
 
 /**
  * @class AliHLTTPCCalibTimeComponent
@@ -71,13 +72,16 @@ class AliHLTTPCCalibTimeComponent : public AliHLTCalibrationProcessor
       Int_t InitCalibration();
 
       /** Scan commandline arguments of the calibration component */
-      Int_t ScanArgument( Int_t argc, const char** argv );
+      Int_t ScanConfigurationArgument( Int_t argc, const char** argv );
 
       /** Clean up memory at the end of the run */
       Int_t DeinitCalibration();
 
       /** Process the data in the calibration component, called once per event */
       Int_t ProcessCalibration( const AliHLTComponentEventData& evtData, AliHLTComponentTriggerData& trigData );
+      
+      /** inherited from AliHLTComponent: handle re-configuration event */
+      int Reconfigure(const char* cdbEntry, const char* chainId);
 
       /** Ship the data to the FXS at end of run or event modulo (the first by default, the latter to be implemented if necessary). */
       Int_t ShipDataToFXS( const AliHLTComponentEventData& evtData, AliHLTComponentTriggerData& trigData );
@@ -96,7 +100,15 @@ class AliHLTTPCCalibTimeComponent : public AliHLTCalibrationProcessor
       AliESDtrack      *fESDtrack;  //!transient
       AliESDfriend     *fESDfriend; //!transient
       TObjArray        *fSeedArray; //!transient
+      AliHLTUInt32_t    fOutputSize;// output size
       
-      ClassDef(AliHLTTPCCalibTimeComponent, 3)
+      static const Int_t fkNPartition = 36*6; // number of partitions in TPC
+      AliTPCclusterMI   *fPartitionClusters[fkNPartition];  //! arrays of cluster data for each TPC partition
+      Int_t              fNPartitionClusters[fkNPartition]; //! number of clusters for each TPC partition
+
+      /** the default configuration entry for this component */
+      static const char* fgkOCDBEntry; //!transient
+
+      ClassDef(AliHLTTPCCalibTimeComponent, 5)
     };
 #endif

@@ -19,7 +19,10 @@
 //forward declarations
 class AliHLTTPCSpacePointData;
 class AliTPCParam;
+//class TClonesArray;
 class TObjArray;
+class AliTPCclusterMI;
+class TH2F;
 
 /**
  * @class AliHLTTPCCalibSeedMakerComponent
@@ -74,11 +77,19 @@ class AliHLTTPCCalibSeedMakerComponent : public AliHLTProcessor {
       AliHLTTPCCalibSeedMakerComponent& operator=(const AliHLTTPCCalibSeedMakerComponent&);
       AliTPCParam    *fTPCGeomParam;  //!transient
       
-      AliHLTTPCSpacePointData *fClustersArray[36][6]; //! transient
-      UInt_t                   fNSpacePoints[36][6];  //! transient
+      //AliHLTTPCSpacePointData *fClustersArray[36][6]; //! transient
+      //UInt_t                   fNSpacePoints[36][6];  //! transient
+      //TClonesArray            *fSeedArray; // array of AliTPCseed objects
+      //TObjArray               *seedArray; // array of AliTPCseed arrays
       TObjArray *fSeedArray;
-                      
-      ClassDef(AliHLTTPCCalibSeedMakerComponent, 2)
+      
+      static const Int_t fkNPartition = 36*6;           // number of patches in TPC
+      AliTPCclusterMI   *fPartitionClusters[fkNPartition];  //! arrays of cluster data for each TPC partition
+      Int_t              fNPartitionClusters[fkNPartition]; //! number of clusters for each TPC partition
+      
+      TH2F *fdEdx; // energy loss vs. momentum
+                    
+      ClassDef(AliHLTTPCCalibSeedMakerComponent, 6)
     };
 
 #endif
