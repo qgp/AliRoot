@@ -5,15 +5,15 @@
  * See cxx source for full Copyright notice                               */
 
 #include "AliTPCcalibBase.h"
-#include "TH2F.h"
-#include "TF1.h"
-#include "TArrayD.h"
-#include "TObjArray.h"
+#include "THnSparse.h"           // Temporary
+#include "TH1D.h"                // Temporary make code compiling for HLT in the 
+class TObjArray;
 
 class TH1F;
 class TH3F;
 class TH2F;
 class THnSparse;
+class TH1D;
 class TList;
 class AliESDEvent;
 class AliESDtrack;
@@ -22,9 +22,6 @@ class TGraphErrors;
 class AliSplineFit;
 class AliESDfriendTrack;
 
-#include "TTreeStream.h"
-#include "TMap.h"
- 
 class AliTPCcalibTime:public AliTPCcalibBase {
 public:
   AliTPCcalibTime(); 
@@ -32,26 +29,26 @@ public:
   virtual ~AliTPCcalibTime();
   
   virtual void           Process(AliESDEvent *event);
-  virtual Long64_t       Merge(TCollection *li);
+  virtual Long64_t       Merge(TCollection *const li);
   virtual void           Analyze();
-  static Bool_t          IsLaser      (AliESDEvent *event);
-  static Bool_t          IsCosmics    (AliESDEvent *event);
-  static Bool_t          IsBeam       (AliESDEvent *event);
+  static Bool_t          IsLaser      (const AliESDEvent *const event);
+  static Bool_t          IsCosmics    (const AliESDEvent *const event);
+  static Bool_t          IsBeam       (const AliESDEvent *const event);
   void                   ProcessLaser (AliESDEvent *event);
-  void                   ProcessCosmic(AliESDEvent *event);
-  void                   ProcessBeam  (AliESDEvent *event);
+  void                   ProcessCosmic(const AliESDEvent *const event);
+  void                   ProcessBeam  (const AliESDEvent *const event);
   Bool_t                 IsPair(AliExternalTrackParam *tr0, AliExternalTrackParam *tr1);
-  Bool_t                 IsCross(AliESDtrack *tr0, AliESDtrack *tr1);
-  Bool_t                 IsSame (AliESDtrack *tr0, AliESDtrack *tr1);
-  void                   ProcessSame(AliESDtrack* track, AliESDfriendTrack *friendTrack,AliESDEvent *event);
-  void                   ProcessAlignITS(AliESDtrack* track, AliESDfriendTrack *friendTrack, AliESDEvent *event,AliESDfriend *ESDfriend);
-  void                   ProcessAlignTRD(AliESDtrack* track, AliESDfriendTrack *friendTrack);
-  void                   ProcessAlignTOF(AliESDtrack* track, AliESDfriendTrack *friendTrack);
+  Bool_t                 IsCross(AliESDtrack *const tr0, AliESDtrack *const tr1);
+  Bool_t                 IsSame (AliESDtrack *const tr0, AliESDtrack *const tr1);
+  void                   ProcessSame(AliESDtrack *const track, AliESDfriendTrack *const friendTrack, const AliESDEvent *const event);
+  void                   ProcessAlignITS(AliESDtrack *const track, AliESDfriendTrack *const friendTrack, const AliESDEvent *const event, AliESDfriend *const ESDfriend);
+  void                   ProcessAlignTRD(AliESDtrack* const track, AliESDfriendTrack *const friendTrack);
+  void                   ProcessAlignTOF(AliESDtrack* const track, AliESDfriendTrack *const friendTrack);
 
   THnSparse*    GetHistVdriftLaserA(Int_t index=1) const {return fHistVdriftLaserA[index];};
   THnSparse*    GetHistVdriftLaserC(Int_t index=1) const {return fHistVdriftLaserC[index];};
-  THnSparse*    GetHistoDrift(const char* name);
-  TObjArray*    GetHistoDrift();
+  THnSparse*    GetHistoDrift(const char* name) const;
+  TObjArray*    GetHistoDrift() const;
   TGraphErrors* GetGraphDrift(const char* name);
   TObjArray*    GetGraphDrift();
   AliSplineFit* GetFitDrift(const char* name);
@@ -60,10 +57,18 @@ public:
   
   void     Process(AliESDtrack *track, Int_t runNo=-1){AliTPCcalibBase::Process(track,runNo);};
   void     Process(AliTPCseed *track){return AliTPCcalibBase::Process(track);}
-  TObjArray* GetAlignITSTPC() {return fAlignITSTPC;}              // alignemnt array ITS TPC match
-  TObjArray* GetAlignTRDTPC() {return fAlignTRDTPC;}              // alignemnt array TRD TPC match
-  TObjArray* GetAlignTOFTPC() {return fAlignTOFTPC;}              // alignemnt array TOF TPC match
+  TObjArray* GetAlignITSTPC() const {return fAlignITSTPC;}              // alignemnt array ITS TPC match
+  TObjArray* GetAlignTRDTPC() const {return fAlignTRDTPC;}              // alignemnt array TRD TPC match
+  TObjArray* GetAlignTOFTPC() const {return fAlignTOFTPC;}              // alignemnt array TOF TPC match
 
+  THnSparse*  GetResHistoTPCITS(Int_t index) const { return (index<5) ? fResHistoTPCITS[index]:0;}        //TPC-ITS    matching map
+  THnSparse*  GetResHistoTPCvertex(Int_t index)      const { return (index<5) ? fResHistoTPCvertex[index]   :0;}        //TPC vertex matching map
+  THnSparse*  GetResHistoTPCTRD(Int_t index)   const { return (index<5) ? fResHistoTPCTRD[index]:0;}        //TPC-TRD    matching map
+
+  void        BookDistortionMaps();      // book histograms
+  void        FillResHistoTPCITS(const AliExternalTrackParam * pTPCIn, const AliExternalTrackParam * pITSOut );       // fill residual histo
+  void        FillResHistoTPC(const AliESDtrack * pTrack);
+  void        FillResHistoTPCTRD(const AliExternalTrackParam * pTPCOut, const AliExternalTrackParam * pTRDIn );
 
 private:
   void ResetCurrent();                  // reset current values
@@ -86,12 +91,16 @@ private:
   AliTPCcalibTime& operator=(const AliTPCcalibTime&); 
 
   TH1F* fCosmiMatchingHisto[10];
-
+  //
+  // distortion maps
+  //
+  THnSparse*  fResHistoTPCITS[5];        //TPC-ITS    matching map
+  THnSparse*  fResHistoTPCvertex[5];           //TPC-ITS    vertex matching map
+  THnSparse*  fResHistoTPCTRD[5];        //TPC-TRD    matching map
   // laser histo
   THnSparse * fHistVdriftLaserA[3];	//Histograms for V drift from laser
   THnSparse * fHistVdriftLaserC[3];	//Histograms for V drift from laser
   // DELTA Z histo
-//  TMap*      fMapDz;			//Tmap of V drifts for different triggers
   TObjArray* fArrayDz;                  // array of DZ histograms for different triggers
   TObjArray* fAlignITSTPC;              // alignemnt array ITS TPC match
   TObjArray* fAlignTRDTPC;              // alignemnt array TRD TPC match
@@ -111,7 +120,7 @@ private:
   Int_t    fBinsVdrift[4];		//Bins for vdrift
   Double_t fXminVdrift[4];		//Xmax for vdrift
   Double_t fXmaxVdrift[4];		//Xmin for vdrift
-  ClassDef(AliTPCcalibTime, 2); 
+  ClassDef(AliTPCcalibTime, 3); 
 };
 
 #endif
