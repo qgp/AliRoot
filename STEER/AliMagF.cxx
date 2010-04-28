@@ -26,8 +26,7 @@
 ClassImp(AliMagF)
 
 const Double_t AliMagF::fgkSol2DipZ    =  -700.;  
-const UShort_t AliMagF::fgkPolarityConvention = kConvLHC;
-
+const UShort_t AliMagF::fgkPolarityConvention = AliMagF::kConvLHC;
 /*
  Explanation for polarity conventions: these are the mapping between the
  current signs and main field components in L3 (Bz) and Dipole (Bx) (in Alice frame)
@@ -44,6 +43,25 @@ const UShort_t AliMagF::fgkPolarityConvention = kConvLHC;
  Note: only "negative Bz(L3) with postive Bx(Dipole)" and its inverse was mapped in 2005. Hence 
  the GRP Manager will reject the runs with the current combinations (in the convention defined by the
  static Int_t AliMagF::GetPolarityConvention()) which do not lead to such field polarities.
+
+ ----------------------------------------------- 
+
+ Explanation on integrals in the TPC region
+ GetTPCInt(xyz,b) and GetTPCRatInt(xyz,b) give integrals from point (x,y,z) to point (x,y,0) 
+ (irrespectively of the z sign) of the following:
+ TPCInt:    b contains int{bx}, int{by}, int{bz}
+ TPCRatInt: b contains int{bx/bz}, int{by/bz}, int{(bx/bz)^2+(by/bz)^2}
+  
+ The same applies to integral in cylindrical coordinates:
+ GetTPCIntCyl(rphiz,b)
+ GetTPCIntRatCyl(rphiz,b)
+ They accept the R,Phi,Z coordinate (-pi<phi<pi) and return the field 
+ integrals in cyl. coordinates.
+
+ Thus, to compute the integral from arbitrary xy_z1 to xy_z2, one should take
+ b = b1-b2 with b1 and b2 coming from GetTPCInt(xy_z1,b1) and GetTPCInt(xy_z2,b2)
+
+ Note: the integrals are defined for the range -300<Z<300 and 0<R<300
 */
 //_______________________________________________________________________
 AliMagF::AliMagF():
@@ -128,11 +146,7 @@ AliMagF::AliMagF(const char *name, const char* title, Double_t factorSol, Double
   fSolenoid = GetBz(xyz);
   SetFactorSol(factorSol);
   SetFactorDip(factorDip);
-  AliInfo(Form("Alice   B fields: Solenoid (%+.2f*)%.0f kG, Dipole %s (%+.2f) %s",
-	       factorSol,(fMapType==k5kG||fMapType==k5kGUniform)?5.:2.,
-	       fDipoleOFF ? "OFF":"ON",factorDip,fMapType==k5kGUniform?" |Constant Field!":""));
-  AliInfo(Form("Machine B fields for %s beam (%.0f GeV): QGrad: %.4f Dipole: %.4f",
-	       bt==kBeamTypeAA ? "A-A":(bt==kBeamTypepp ? "p-p":"OFF"),be,fQuadGradient,fDipoleField));
+  Print("a");
 }
 
 //_______________________________________________________________________
@@ -357,7 +371,7 @@ void AliMagF::MachineField(const Double_t *x, Double_t *b) const
 //_______________________________________________________________________
 void AliMagF::GetTPCInt(const Double_t *xyz, Double_t *b) const
 {
-  // Method to calculate the integral of magnetic integral from xyz to nearest cathode plane
+  // Method to calculate the integral_0^z of br,bt,bz 
   b[0]=b[1]=b[2]=0.0;
   if (fMeasuredMap) {
     fMeasuredMap->GetTPCInt(xyz,b);
@@ -366,14 +380,37 @@ void AliMagF::GetTPCInt(const Double_t *xyz, Double_t *b) const
 }
 
 //_______________________________________________________________________
+void AliMagF::GetTPCRatInt(const Double_t *xyz, Double_t *b) const
+{
+  // Method to calculate the integral_0^z of bx/bz,by/bz and (bx/bz)^2+(by/bz)^2
+  b[0]=b[1]=b[2]=0.0;
+  if (fMeasuredMap) {
+    fMeasuredMap->GetTPCRatInt(xyz,b);
+    b[2] /= 100;
+  }
+}
+
+//_______________________________________________________________________
 void AliMagF::GetTPCIntCyl(const Double_t *rphiz, Double_t *b) const
 {
-  // Method to calculate the integral of magnetic integral from point to nearest cathode plane
+  // Method to calculate the integral_0^z of br,bt,bz 
   // in cylindrical coordiates ( -pi<phi<pi convention )
   b[0]=b[1]=b[2]=0.0;
   if (fMeasuredMap) {
     fMeasuredMap->GetTPCIntCyl(rphiz,b);
     for (int i=3;i--;) b[i] *= fFactorSol;
+  }
+}
+
+//_______________________________________________________________________
+void AliMagF::GetTPCRatIntCyl(const Double_t *rphiz, Double_t *b) const
+{
+  // Method to calculate the integral_0^z of bx/bz,by/bz and (bx/bz)^2+(by/bz)^2
+  // in cylindrical coordiates ( -pi<phi<pi convention )
+  b[0]=b[1]=b[2]=0.0;
+  if (fMeasuredMap) {
+    fMeasuredMap->GetTPCRatIntCyl(rphiz,b);
+    b[2] /= 100;
   }
 }
 
@@ -517,3 +554,19 @@ const char*  AliMagF::GetBeamTypeText() const
   }
 }
 
+//_____________________________________________________________________________
+void AliMagF::Print(Option_t *opt) const
+{
+  // print short or long info
+  TString opts = opt; opts.ToLower();
+  AliInfo(Form("%s:%s",GetName(),GetTitle()));
+  AliInfo(Form("Solenoid (%+.2f*)%.0f kG, Dipole %s (%+.2f) %s",
+	       GetFactorSol(),(fMapType==k5kG||fMapType==k5kGUniform)?5.:2.,
+	       fDipoleOFF ? "OFF":"ON",GetFactorDip(),fMapType==k5kGUniform?" |Constant Field!":""));
+  if (opts.Contains("a")) {
+    AliInfo(Form("Machine B fields for %s beam (%.0f GeV): QGrad: %.4f Dipole: %.4f",
+		 fBeamType==kBeamTypeAA ? "A-A":(fBeamType==kBeamTypepp ? "p-p":"OFF"),
+		 fBeamEnergy,fQuadGradient,fDipoleField));
+    AliInfo(Form("Uses %s of %s",GetParamName(),GetDataFileName()));
+  }
+}

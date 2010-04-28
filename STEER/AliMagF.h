@@ -26,15 +26,17 @@ class AliMagF : public TVirtualMagField
   AliMagF();
   AliMagF(const char *name, const char* title,Double_t factorSol=1., Double_t factorDip=1., 
 	  BMap_t maptype = k5kG, BeamType_t btype=kBeamTypepp, Double_t benergy=-1,	
-	  Int_t integ=2, Double_t fmax=10,const char* path="$(ALICE_ROOT)/data/maps/mfchebKGI_sym.root");
+	  Int_t integ=2, Double_t fmax=15,const char* path="$(ALICE_ROOT)/data/maps/mfchebKGI_sym.root");
   AliMagF(const AliMagF& src);             
   AliMagF& operator=(const AliMagF& src);
   virtual ~AliMagF();
   //
   virtual void Field(const Double_t *x, Double_t *b);
-  void       GetTPCInt(const Double_t *xyz, Double_t *b)        const;
-  void       GetTPCIntCyl(const Double_t *rphiz, Double_t *b)   const;
-  Double_t   GetBz(const Double_t *xyz)                         const;
+  void       GetTPCInt(const Double_t *xyz, Double_t *b)         const;
+  void       GetTPCRatInt(const Double_t *xyz, Double_t *b)      const;
+  void       GetTPCIntCyl(const Double_t *rphiz, Double_t *b)    const;
+  void       GetTPCRatIntCyl(const Double_t *rphiz, Double_t *b) const;
+  Double_t   GetBz(const Double_t *xyz)                          const;
   //
   AliMagWrapCheb* GetMeasuredMap()                              const {return fMeasuredMap;}
   //
@@ -62,6 +64,7 @@ class AliMagF : public TVirtualMagField
   Char_t*      GetParamName()                                   const {return (Char_t*)fParNames.GetTitle();}
   void         SetDataFileName(const Char_t* nm)                      {fParNames.SetName(nm);}
   void         SetParamName(const Char_t* nm)                         {fParNames.SetTitle(nm);}
+  virtual void Print(Option_t *opt)                             const;
   //
   Bool_t       LoadParameterization();
   static Int_t GetPolarityConvention()                                {return Int_t(fgkPolarityConvention);}
