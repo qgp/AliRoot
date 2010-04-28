@@ -9,6 +9,7 @@
 /// class for logging debug, info and error messages
 ///
 
+#include <TClass.h>
 #include <TObject.h>
 #include <TObjArray.h>
 #include <TString.h>
