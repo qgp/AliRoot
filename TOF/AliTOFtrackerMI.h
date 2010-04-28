@@ -18,6 +18,7 @@
 
 class TTreeSRedirector;
 class TClonesArray;
+class TObjArray;
 
 class AliESDEvent;
 class AliESDpid;
@@ -28,8 +29,6 @@ class AliTOFGeometry;
 class AliTOFtrack;
 
 class AliTOFtrackerMI : public AliTracker {
-
-enum {kMaxCluster=77777}; //maximal number of the TOF clusters
 
 public:
 
@@ -50,6 +49,8 @@ public:
  void FillClusterArray(TObjArray* arr) const;
 
 private:
+
+ enum {kMaxCluster=77777}; //maximal number of the TOF clusters
 
  AliTOFtrackerMI(const AliTOFtrackerMI &t); //Copy Ctor 
  AliTOFtrackerMI& operator=(const AliTOFtrackerMI &source); // ass. op.
@@ -81,9 +82,9 @@ private:
  Float_t fDy;           // Pad Size in Y (== X  TOF convention)
  Float_t fDz;           // Pad Size in Z 
  TClonesArray* fTracks; //! pointer to the TClonesArray with TOF tracks
- TClonesArray* fSeeds;  //! pointer to the TClonesArray with ESD tracks
+ TObjArray* fSeeds;  //! pointer to the TObjArray with ESD tracks
  TTreeSRedirector *fDebugStreamer;     //!debug streamer
- ClassDef(AliTOFtrackerMI, 2) // TOF trackerMI 
+ ClassDef(AliTOFtrackerMI, 3) // TOF trackerMI 
 };
 
 #endif
