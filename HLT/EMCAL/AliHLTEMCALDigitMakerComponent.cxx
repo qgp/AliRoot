@@ -15,22 +15,23 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-#include "AliHLTPHOSDigitMakerComponent.h"
+#include "AliHLTEMCALDigitMakerComponent.h"
 #include "AliHLTCaloDigitMaker.h"
 #include "AliHLTCaloDigitDataStruct.h"
-#include "AliHLTPHOSMapper.h"
-#include "AliHLTPHOSChannelDataHeaderStruct.h"
-#include "AliHLTPHOSChannelDataStruct.h"
+#include "AliHLTCaloChannelDataHeaderStruct.h"
+#include "AliHLTCaloChannelDataStruct.h"
+#include "AliHLTEMCALMapper.h"
+#include "AliHLTEMCALDefinitions.h"
 #include "TFile.h"
 #include <sys/stat.h>
 #include <sys/types.h>
 
 
 /** 
- * @file   AliHLTPHOSDigitMakerComponent.cxx
+ * @file   AliHLTEMCALDigitMakerComponent.cxx
  * @author Oystein Djuvsland
  * @date   
- * @brief  A digit maker component for PHOS HLT
+ * @brief  A digit maker component for EMCAL HLT
 */
 
 // see below for class documentation
@@ -40,10 +41,10 @@
 // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
 
 
-AliHLTPHOSDigitMakerComponent gAliHLTPHOSDigitMakerComponent;
+AliHLTEMCALDigitMakerComponent gAliHLTEMCALDigitMakerComponent;
 
-AliHLTPHOSDigitMakerComponent::AliHLTPHOSDigitMakerComponent() :
-  AliHLTPHOSProcessor(),
+AliHLTEMCALDigitMakerComponent::AliHLTEMCALDigitMakerComponent() :
+  AliHLTCaloProcessor(),
   fDigitMakerPtr(0),
   fDigitContainerPtr(0)
 {
@@ -51,13 +52,13 @@ AliHLTPHOSDigitMakerComponent::AliHLTPHOSDigitMakerComponent() :
 }
 
 
-AliHLTPHOSDigitMakerComponent::~AliHLTPHOSDigitMakerComponent()
+AliHLTEMCALDigitMakerComponent::~AliHLTEMCALDigitMakerComponent()
 {
   //see header file for documentation
 }
 
 int 
-AliHLTPHOSDigitMakerComponent::Deinit()
+AliHLTEMCALDigitMakerComponent::Deinit()
 { 
   //see header file for documentation
   if(fDigitMakerPtr)
@@ -69,39 +70,39 @@ AliHLTPHOSDigitMakerComponent::Deinit()
 }
 
 const char*
-AliHLTPHOSDigitMakerComponent::GetComponentID()
+AliHLTEMCALDigitMakerComponent::GetComponentID()
 {
   //see header file for documentation
-  return "PhosDigitMaker";
+  return "EmcalDigitMaker";
 }
 
 
 void
-AliHLTPHOSDigitMakerComponent::GetInputDataTypes(vector<AliHLTComponentDataType>& list)
+AliHLTEMCALDigitMakerComponent::GetInputDataTypes(vector<AliHLTComponentDataType>& list)
 { 
   //see header file for documentation
   list.clear();
-  list.push_back(AliHLTPHOSDefinitions::fgkChannelDataType);
+  list.push_back(AliHLTEMCALDefinitions::fgkChannelDataType);
 }
 
 AliHLTComponentDataType 
-AliHLTPHOSDigitMakerComponent::GetOutputDataType()
+AliHLTEMCALDigitMakerComponent::GetOutputDataType()
 {
   //see header file for documentation
-  return AliHLTPHOSDefinitions::fgkDigitDataType;
+  return AliHLTEMCALDefinitions::fgkDigitDataType;
 }
 
 
 void 
-AliHLTPHOSDigitMakerComponent::GetOutputDataSize(unsigned long& constBase, double& inputMultiplier)
+AliHLTEMCALDigitMakerComponent::GetOutputDataSize(unsigned long& constBase, double& inputMultiplier)
 {
   //see header file for documentation
   constBase = 0;
-  inputMultiplier = (float)sizeof(AliHLTCaloDigitDataStruct)/sizeof(AliHLTPHOSChannelDataStruct) + 1;
+  inputMultiplier = (float)sizeof(AliHLTCaloDigitDataStruct)/sizeof(AliHLTCaloChannelDataStruct) + 1;
 }
 
 int 
-AliHLTPHOSDigitMakerComponent::DoEvent(const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks,
+AliHLTEMCALDigitMakerComponent::DoEvent(const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks,
 					AliHLTComponentTriggerData& /*trigData*/, AliHLTUInt8_t* outputPtr, AliHLTUInt32_t& size,
 					std::vector<AliHLTComponentBlockData>& outputBlocks)
 {
@@ -127,9 +128,9 @@ AliHLTPHOSDigitMakerComponent::DoEvent(const AliHLTComponentEventData& evtData, 
     {
       iter = blocks+ndx;
       
-      if(iter->fDataType != AliHLTPHOSDefinitions::fgkChannelDataType)
+      if(iter->fDataType != AliHLTEMCALDefinitions::fgkChannelDataType)
 	{
-	  HLTDebug("Data block is not of type fgkChannelDataType");
+	  HLTError("Data block is not of type fgkChannelDataType");
 	  continue;
 	}
 
@@ -155,7 +156,7 @@ AliHLTPHOSDigitMakerComponent::DoEvent(const AliHLTComponentEventData& evtData, 
       FillBlockData( bd );
       bd.fOffset = offset;
       bd.fSize = mysize;
-      bd.fDataType = AliHLTPHOSDefinitions::fgkDigitDataType;
+      bd.fDataType = AliHLTEMCALDefinitions::fgkDigitDataType;
       bd.fSpecification = specification;
       outputBlocks.push_back(bd);
     }
@@ -169,13 +170,13 @@ AliHLTPHOSDigitMakerComponent::DoEvent(const AliHLTComponentEventData& evtData, 
 
 
 int
-AliHLTPHOSDigitMakerComponent::DoInit(int argc, const char** argv )
+AliHLTEMCALDigitMakerComponent::DoInit(int argc, const char** argv )
 {
   //see header file for documentation
 
-  fDigitMakerPtr = new AliHLTCaloDigitMaker("PHOS");
+  fDigitMakerPtr = new AliHLTCaloDigitMaker("EMCAL");
 
-  AliHLTCaloMapper *mapper = new AliHLTPHOSMapper();
+  AliHLTCaloMapper *mapper = new AliHLTEMCALMapper(2);
   fDigitMakerPtr->SetMapper(mapper);
   
   for(int i = 0; i < argc; i++)
@@ -196,8 +197,8 @@ AliHLTPHOSDigitMakerComponent::DoInit(int argc, const char** argv )
 }
 
 AliHLTComponent*
-AliHLTPHOSDigitMakerComponent::Spawn()
+AliHLTEMCALDigitMakerComponent::Spawn()
 {
   //see header file for documentation
-  return new AliHLTPHOSDigitMakerComponent();
+  return new AliHLTEMCALDigitMakerComponent();
 }

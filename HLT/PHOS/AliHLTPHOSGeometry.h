@@ -18,6 +18,8 @@
 
 #include "AliHLTCaloGeometry.h"
 
+class AliPHOSGeoUtils;
+
 class AliHLTPHOSGeometry : public AliHLTCaloGeometry
   {
      public:
@@ -34,6 +36,26 @@ class AliHLTPHOSGeometry : public AliHLTCaloGeometry
       /** See base class for class documentation */
       virtual void GetCellAbsId(UInt_t /*module*/, UInt_t /*x*/, UInt_t /*z*/, Int_t& AbsId) const { AbsId = 0; }
     
+      /** Intialise the geometry from the HCDB/OCDB */
+      virtual Int_t InitialiseGeometry() {return 0; }
+      
+      virtual void ConvertRecPointCoordinates(Float_t &x, Float_t &z)const;
+    
+     protected:
+	
+	Int_t GetGeometryFromCDB();
+    
+     private:
+	
+	/** Geometry class from offline code */
+	AliPHOSGeoUtils *fGeoUtils;  //! transient
+	
+      /** Copy constructor, not implemented */
+      AliHLTPHOSGeometry (const AliHLTPHOSGeometry&); //COMMENT
+    
+	/** Assignment operator, not implemented */
+      AliHLTPHOSGeometry & operator = (const AliHLTPHOSGeometry&); //COMMENT
+      
   };
 
 #endif // ALIHLTPHOSGEOMETRY_H

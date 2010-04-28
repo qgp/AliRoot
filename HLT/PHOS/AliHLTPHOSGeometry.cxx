@@ -14,13 +14,18 @@
 */
 
 #include "AliHLTPHOSGeometry.h"
-
-
+#include "AliPHOSGeoUtils.h"
+#include "TGeoManager.h"
+#include "AliCDBManager.h"
+#include "AliCDBEntry.h"
+#include "TVector3.h"
 
 AliHLTPHOSGeometry::AliHLTPHOSGeometry() :
-AliHLTCaloGeometry("PHOS")
+AliHLTCaloGeometry("PHOS"),
+fGeoUtils(0)
 {
  // See header file for class documentation
+ GetGeometryFromCDB();
 }
 
 AliHLTPHOSGeometry::~AliHLTPHOSGeometry()
@@ -28,10 +33,60 @@ AliHLTPHOSGeometry::~AliHLTPHOSGeometry()
 // See header file for class documentation
 }
 
-void AliHLTPHOSGeometry::GetGlobalCoordinates ( AliHLTCaloRecPointDataStruct& /*recPoint*/, AliHLTCaloGlobalCoordinate& globalCoord )
+void AliHLTPHOSGeometry::GetGlobalCoordinates ( AliHLTCaloRecPointDataStruct& recPoint, AliHLTCaloGlobalCoordinate& globalCoord )
 {
    // See header file for class documentation
-   globalCoord.fX = 0;
-   globalCoord.fZ = 0;
-   globalCoord.fY = 0;
+   Float_t x = recPoint.fX;
+   Float_t z = recPoint.fZ;
+
+   ConvertRecPointCoordinates(x, z);
+
+   TVector3 coord;
+   
+   fGeoUtils->Local2Global(5 - recPoint.fModule, x, z, coord);
+   
+   globalCoord.fX = coord[0];
+   globalCoord.fY = coord[1];
+   globalCoord.fZ = coord[2];
 }
+
+void AliHLTPHOSGeometry::ConvertRecPointCoordinates(Float_t &x, Float_t &z) const
+{
+   x = (x - fCaloConstants->GetNXCOLUMNSMOD()/2)*fCaloConstants->GetCELLSTEP();
+   z = (z - fCaloConstants->GetNZROWSMOD()/2)*fCaloConstants->GetCELLSTEP();
+}
+
+int AliHLTPHOSGeometry::GetGeometryFromCDB()
+{
+   // See header file for documentation
+
+   AliCDBPath path("GRP","Geometry","Data");
+   if(path.GetPath())
+    {
+      //      HLTInfo("configure from entry %s", path.GetPath());
+      AliCDBEntry *pEntry = AliCDBManager::Instance()->Get(path/*,GetRunNo()*/);
+      if (pEntry) 
+	{
+	  if(!fGeoUtils) 
+	    {
+	      delete fGeoUtils;
+	      fGeoUtils = 0;
+	    }
+
+	  gGeoManager = (TGeoManager*) pEntry->GetObject();
+//	  HLTError("gGeoManager = 0x%x", gGeoManager);
+	  if(gGeoManager)
+	    {
+	      fGeoUtils = new AliPHOSGeoUtils("PHOS", "noCPV");
+	    }
+	}
+      else
+	{
+//	    HLTError("can not fetch object \"%s\" from OCDB", path);
+	}
+    }
+    return 0;
+}
+
+
+

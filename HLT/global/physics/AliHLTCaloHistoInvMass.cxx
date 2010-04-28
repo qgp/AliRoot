@@ -3,7 +3,7 @@
  * This file is property of and copyright by the ALICE HLT Project        * 
  * All rights reserved.                                                   *
  *                                                                        *
- * Primary Authors: Albin Gaignette, Svein Lindal                         *
+ * Primary Authors: Svein Lindal                                          *
  *                                                                        *
  * Permission to use, copy, modify and distribute this software and its   *
  * documentation strictly for non-commercial purposes is hereby granted   *
@@ -16,9 +16,9 @@
 
 /** 
  * @file   AliHLTCaloHistoInvMass
- * @author Albin Gaignette rewritten Svein Lindal <slindal@fys.uio.no>
+ * @author Svein Lindal <slindal@fys.uio.no>
  * @date 
- * @brief  
+ * @brief  Produces plots of invariant mass of two clusters. 
  */
 
 // see header file for class documentation
@@ -28,32 +28,25 @@
 // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
 
 #include "AliHLTCaloHistoInvMass.h"
-#include "AliESDCaloCluster.h"
-#include "TMath.h"
-
-// #include "AliHLTCaloClusterDataStruct.h"
-// #include "AliHLTCaloClusterReader.h"
+#include "AliHLTCaloClusterDataStruct.h"
 #include "TObjArray.h"
 #include "AliESDEvent.h"
-#include "AliESDCaloCluster.h"
 #include "TRefArray.h"
 #include "TH1F.h"
 #include "TString.h"
+#include "AliESDCaloCluster.h"
+#include "TVector3.h"
+#include "TLorentzVector.h"
 
 AliHLTCaloHistoInvMass::AliHLTCaloHistoInvMass(TString det) :
-  fHistTwoClusterInvMass(NULL),
-  fHistArrayPtr(NULL)
+  fHistTwoClusterInvMass(NULL)
 {
   // See header file for documentation
-
-  fHistArrayPtr = new TObjArray;
-  
   fHistTwoClusterInvMass = new TH1F(Form("%s fHistTwoClusterInvMass", det.Data()), Form("%s Invariant mass of two clusters PHOS", det.Data()), 200, 0, 1);
   fHistTwoClusterInvMass->GetXaxis()->SetTitle("m_{#gamma#gamma} GeV");
   fHistTwoClusterInvMass->GetYaxis()->SetTitle("Number of counts");
   fHistTwoClusterInvMass->SetMarkerStyle(21);
-  fHistArrayPtr->AddLast(fHistTwoClusterInvMass);
-
+  fHistArray->AddLast(fHistTwoClusterInvMass);
 }
 
 AliHLTCaloHistoInvMass::~AliHLTCaloHistoInvMass()
@@ -61,33 +54,24 @@ AliHLTCaloHistoInvMass::~AliHLTCaloHistoInvMass()
   if(fHistTwoClusterInvMass)
     delete fHistTwoClusterInvMass;
   fHistTwoClusterInvMass = NULL;
- 
-  if(fHistArrayPtr)
-    delete fHistArrayPtr;
-  fHistArrayPtr = NULL;
-
 }
 
-TObjArray* AliHLTCaloHistoInvMass::GetHistograms()
-{  
-  // See header file for documentation
-  return fHistArrayPtr;
-}
 
-Int_t AliHLTCaloHistoInvMass::FillHistograms(Int_t nc, TRefArray * clustersArray) {
+Int_t AliHLTCaloHistoInvMass::FillHistograms(Int_t nc, vector<AliHLTCaloClusterDataStruct*> &cVec) {
   //See header file for documentation
   
   Float_t cPos[nc][3];
   Float_t cEnergy[nc];
 
   for(int ic = 0; ic < nc; ic++) {
-    AliESDCaloCluster * cluster = static_cast<AliESDCaloCluster*>(clustersArray->At(ic));
+    AliHLTCaloClusterDataStruct * cluster = cVec.at(ic);
     cluster->GetPosition(cPos[ic]);
     cEnergy[ic] = cluster->E();
   }
 
   for(Int_t ipho = 0; ipho<(nc-1); ipho++) { 
     for(Int_t jpho = ipho+1; jpho<nc; jpho++) { 
+      
       // Calculate the theta angle between two photons
       Double_t theta = (2* asin(0.5*TMath::Sqrt((cPos[ipho][0]-cPos[jpho][0])*(cPos[ipho][0]-cPos[jpho][0]) +(cPos[ipho][1]-cPos[jpho][1])*(cPos[ipho][1]-cPos[jpho][1]))/460));
       
@@ -101,41 +85,41 @@ Int_t AliHLTCaloHistoInvMass::FillHistograms(Int_t nc, TRefArray * clustersArray
   return 0;
 }
 
-// Int_t AliHLTCaloHistoInvMass::DoEvent(AliHLTCaloClusterHeaderStruct* cHeader) {   
+Int_t AliHLTCaloHistoInvMass::FillHistograms(Int_t nc, TRefArray * clusterArray) {
+  //See header file for documentation
   
-//   fClusterReader->SetMemory(cHeader);
-  
-//   int ncls = cHeader->fNClusters;
-//   Float_t* cPos[ncls];
-//   Float_t cEnergy[ncls];
-  
-//   AliHLTCaloClusterDataStruct* cluster;
-//   Int_t icls = 0;
-//   while ( ( cluster = fClusterReader->NextCluster() ) ) {
-    
-//     cPos[icls] = cluster->fGlobalPos;
-//     cEnergy[icls] = cluster->fEnergy; 
-    
-//     icls++;
-//   }  
-  
-//   for(Int_t ipho = 0; ipho<(ncls-1); ipho++) { 
-//     for(Int_t jpho = ipho+1 ; jpho<ncls ; jpho++) { 
-//       // Calcul of the theta angle between two photons
-//       Double_t theta = (2* asin(0.5*TMath::Sqrt((cPos[ipho][0]-cPos[jpho][0])*(cPos[ipho][0]-cPos[jpho][0]) +(cPos[ipho][1]-cPos[jpho][1])*(cPos[ipho][1]-cPos[jpho][1]))/460));
-      
-//       // Calcul of the mass m of the pion 
-//       Double_t m =(TMath::Sqrt(2 * cEnergy[ipho]* cEnergy[jpho]*(1-TMath::Cos(theta))));
-      
+  Float_t cPos[nc][3];
+  Float_t cEnergy[nc];
 
-//       //BALLE
-//       // fHistTwoClusterInvMass->Fill(m);
-//     }
-//   }
-  
-//   return 0;
-// }
-  
- 
- 
+  for(int ic = 0; ic < nc; ic++) {
+    AliESDCaloCluster * cluster = static_cast<AliESDCaloCluster*>(clusterArray->At(ic));
+    cluster->GetPosition(cPos[ic]);
+    cEnergy[ic] = cluster->E();
+  }
 
+  for(Int_t ic = 0; ic<(nc-1); ic++) { 
+
+    //Get momentum vector
+    TVector3 iVec(cPos[ic]);
+    iVec = iVec.Unit();
+    iVec = cEnergy[ic] * iVec;
+
+    
+    for(Int_t jc = ic+1; jc<nc; jc++) { 
+
+      //Get second momentum vector
+      TVector3 jVec(cPos[jc]);
+      jVec = jVec.Unit();
+      jVec = cEnergy[jc] * jVec;
+
+      //Calculate inv mass
+      Double_t m = TMath::Sqrt( 2 *(cEnergy[ic]* cEnergy[jc] - iVec.Dot(jVec) ) );
+
+      //Fill histogram
+      fHistTwoClusterInvMass->Fill(m);
+    }
+  }
+
+
+  return 0;
+}

@@ -57,6 +57,20 @@ AliHLTCaloClusterizerComponent::AliHLTCaloClusterizerComponent(TString det):
    
   fAnalyserPtr = new AliHLTCaloClusterAnalyser();
   
+  if(det == "PHOS")
+  {
+     fAnalyserPtr->SetClusterType(kPHOSCluster);
+  }
+  else if(det == "EMCAL")
+  {
+     fAnalyserPtr->SetClusterType(kEMCALClusterv1);
+  }
+  else
+  {
+     fAnalyserPtr->SetClusterType(kUndef);
+  }
+  
+  
 }
 
 AliHLTCaloClusterizerComponent::~AliHLTCaloClusterizerComponent()
@@ -169,18 +183,24 @@ AliHLTCaloClusterizerComponent::DoEvent(const AliHLTComponentEventData& evtData,
       fAnalyserPtr->SetRecPointArray(fClusterizerPtr->GetRecPoints(), nRecPoints);
 
       fAnalyserPtr->SetDigitDataArray(fOutputDigitsArray);
-
-      Int_t nClusters = fAnalyserPtr->CreateClusters(nRecPoints, size, mysize);
-  
-      caloClusterHeaderPtr->fNClusters = nClusters;
       
+      Int_t nClusters = fAnalyserPtr->CreateClusters(nRecPoints, size, mysize);
+      if (nClusters < 0) 
+	{
+	  caloClusterHeaderPtr->fNClusters = 0;
+	} 
+      else 
+	{
+	  caloClusterHeaderPtr->fNClusters = nClusters;
+      	}
+     
       //HLTDebug("Number of clusters: %d", nRecPoints);
       
       AliHLTComponentBlockData bd;
       FillBlockData( bd );
       bd.fOffset = offset;
       bd.fSize = mysize;
-      bd.fDataType = kAliHLTDataTypeCaloCluster | kAliHLTDataOriginPHOS;
+      bd.fDataType = kAliHLTDataTypeCaloCluster | fDataOrigin;
       bd.fSpecification = specification;
       outputBlocks.push_back( bd );
     }
