@@ -43,6 +43,7 @@ using namespace std;
 
 #include <cstdlib>
 #include <cerrno>
+#include "TFile.h"
 #include "TString.h"
 #include "TObjString.h"
 #include <sys/time.h>
@@ -68,7 +69,8 @@ AliHLTITSClusterFinderComponent::AliHLTITSClusterFinderComponent(int mode)
   fSSD(NULL),
   tD(NULL),
   tR(NULL),
-  fclusters()
+  fclusters(),
+  fBenchmark(GetComponentID())
 { 
   // see header file for class documentation
   // or
@@ -157,6 +159,10 @@ AliHLTComponent* AliHLTITSClusterFinderComponent::Spawn() {
 	
 Int_t AliHLTITSClusterFinderComponent::DoInit( int argc, const char** argv ) {
   // see header file for class documentation
+  fBenchmark.Reset();
+  fBenchmark.SetTimer(0,"total");
+  fBenchmark.SetTimer(1,"reco");
+
   /*
   fStatTime = 0;
   fStatTimeAll = 0;
@@ -340,12 +346,10 @@ Int_t AliHLTITSClusterFinderComponent::DoDeinit() {
   return 0;
 }
 
-// #include "TStopwatch.h"
-
 int AliHLTITSClusterFinderComponent::DoEvent
 (
  const AliHLTComponentEventData& evtData,
- const AliHLTComponentBlockData* blocks,
+ const AliHLTComponentBlockData* /*blocks*/,
  AliHLTComponentTriggerData& /*trigData*/,
  AliHLTUInt8_t* outputPtr,
  AliHLTUInt32_t& size,
@@ -363,25 +367,55 @@ int AliHLTITSClusterFinderComponent::DoEvent
       HLTDebug("no blocks in event" );
       return 0;
     }
-  
-  // TStopwatch timer;
+
+  fBenchmark.StartNewEvent();
+  fBenchmark.Start(0);
+  for( const AliHLTComponentBlockData *i= GetFirstInputBlock(fInputDataType); i!=NULL; i=GetNextInputBlock() ){
+    fBenchmark.AddInput(i->fSize);
+  }
+
   Int_t ret = 0;
-  //std::vector<AliITSRecPoint> vclusters;
+
   if(fModeSwitch==kClusterFinderDigits) {
+
     for ( const TObject *iter = GetFirstInputObject(fInputDataType); iter != NULL; iter = GetNextInputObject() ) {  
       tD = dynamic_cast<TTree*>(const_cast<TObject*>( iter ) );
       if(!tD){
 	HLTFatal("No Digit Tree found");
 	return -1;
       }
+      // 2010-04-17 very crude workaround: TTree objects are difficult to send
+      // The actual case: Running ITS and TPC reconstruction fails at the second event
+      // to read the ITS digits from the TreeD
+      //
+      // Reason: reading fails in TBranch::GetBasket, there a new basket is opened from
+      // a TFile object. The function TBranch::GetFile returns the file object from
+      // an internal fDirectory (TDirectory) object. This file is at the second event
+      // set to the TPC.Digits.root. The internal mismatch creates a seg fault
+      //
+      // Investigation: TBranch::Streamer uses a crude assignment after creating the
+      // TBranch object
+      //    fDirectory = gDirectory;
+      // gDirectory is obviously not set correctly. Setting the directory to a TFile
+      // object for the ITS digits helps to fix the internal mess. Tried also to set
+      // the Directory for the TreeD to NULL (This has only effect if ones sets it 
+      // to something not NULL first, and then to NULL). But then no content, i.e.
+      // ITS clusters could be retrieved.
+      //
+      // Conclusion: TTree objects are hardly to be sent via TMessage, there are direct
+      // links to the file required anyhow.
+      TFile* dummy=new TFile("ITS.Digits.root");
+      tD->SetDirectory(dummy);
       tR = new TTree();
+      tR->SetDirectory(0);
       fDettype->SetTreeAddressD(tD);
       fDettype->MakeBranch(tR,"R");
       fDettype->SetTreeAddressR(tR);
       Option_t *opt="All";
+      fBenchmark.Start(1);
       fDettype->DigitsToRecPoints(tD,tR,0,opt,kTRUE);
-      
-      TClonesArray * fRecPoints;
+      fBenchmark.Stop(1);
+      TClonesArray * fRecPoints = NULL;
       tR->SetBranchAddress("ITSRecPoints",&fRecPoints);
       for(Int_t treeEntry=0;treeEntry<tR->GetEntries();treeEntry++){
 	tR->GetEntry(treeEntry);
@@ -394,6 +428,9 @@ int AliHLTITSClusterFinderComponent::DoEvent
       if(tR){
 	tR->Delete();
       }
+
+      tD->SetDirectory(0);
+      delete dummy;
       UInt_t nClusters=fclusters.size();
       
       UInt_t bufferSize = nClusters * sizeof(AliHLTITSSpacePointData) + sizeof(AliHLTITSClusterData);
@@ -403,9 +440,9 @@ int AliHLTITSClusterFinderComponent::DoEvent
 	break;		
       }
       if( nClusters>0 ){
-
+	fBenchmark.Start(1);
 	RecPointToSpacePoint(outputPtr,size);
-	
+	fBenchmark.Stop(1);
 	AliHLTComponentBlockData bd;
 	FillBlockData( bd );
 	bd.fOffset = size;
@@ -414,7 +451,7 @@ int AliHLTITSClusterFinderComponent::DoEvent
 	bd.fDataType = GetOutputDataType();
 	outputBlocks.push_back( bd );
 	size += bufferSize;
-	
+	fBenchmark.AddOutput(bd.fSize);
 	fclusters.clear();	
       }
     }
@@ -448,11 +485,17 @@ int AliHLTITSClusterFinderComponent::DoEvent
       
       // -- Set equipment ID to the raw reader
       
+      if(!fRawReader){
+	HLTWarning("The fRawReader pointer is NULL");
+	continue;
+      }
+
       if(!fRawReader->AddBuffer((UChar_t*) iter->fPtr, iter->fSize, id)){
 	HLTWarning("Could not add buffer");
       }
-      // TStopwatch timer1;
-      
+
+      fBenchmark.Start(1);
+
       if(fModeSwitch==kClusterFinderSPD && !fUseOfflineFinder){ fSPD->RawdataToClusters( fRawReader, fclusters ); }
       else if(fModeSwitch==kClusterFinderSSD && !fUseOfflineFinder){ fSSD->RawdataToClusters( fclusters ); }
       else{
@@ -471,10 +514,7 @@ int AliHLTITSClusterFinderComponent::DoEvent
 	  fClusters[i] = NULL;
 	}     
       }
-      
-      // timer1.Stop();
-      // fStatTime+=timer1.RealTime();
-      // fStatTimeC+=timer1.CpuTime();
+      fBenchmark.Stop(1);
       
       fRawReader->ClearBuffers();    
          
@@ -498,23 +538,15 @@ int AliHLTITSClusterFinderComponent::DoEvent
 	bd.fDataType = GetOutputDataType();
 	outputBlocks.push_back( bd );
 	size += bufferSize;
-	
+	fBenchmark.AddOutput(bd.fSize);
 	fclusters.clear();	
       }
       
     } // input blocks
   }
-  /*
-  timer.Stop();
-  
-  fStatTimeAll+=timer.RealTime();
-  fStatTimeAllC+=timer.CpuTime();
-  fStatNEv++;
-  if( fStatNEv%1000==0 && fStatTimeAll>0.0 && fStatTime>0.0 && fStatTimeAllC>0.0 && fStatTimeC>0.0)
-    cout<<fStatTimeAll/fStatNEv*1.e3<<" "<<fStatTime/fStatNEv*1.e3<<" "
-	<<fStatTimeAllC/fStatNEv*1.e3<<" "<<fStatTimeC/fStatNEv*1.e3<<" ms"<<endl;
-  */
 
+  fBenchmark.Stop(0);
+  HLTInfo(fBenchmark.GetStatistics());
   return ret;
 }
 
@@ -590,7 +622,7 @@ void AliHLTITSClusterFinderComponent::RecPointToSpacePoint(AliHLTUInt8_t* output
   AliHLTITSClusterData *outputClusters = reinterpret_cast<AliHLTITSClusterData*>(outputPtr + size);
   outputClusters->fSpacePointCnt=fclusters.size();    
   int clustIdx=0;
-  for(int i=0;i<fclusters.size();i++){
+  for(UInt_t i=0;i<fclusters.size();i++){
     AliITSRecPoint *recpoint = (AliITSRecPoint*) &(fclusters[i]);
     outputClusters->fSpacePoints[clustIdx].fY=recpoint->GetY();
     outputClusters->fSpacePoints[clustIdx].fZ=recpoint->GetZ();
