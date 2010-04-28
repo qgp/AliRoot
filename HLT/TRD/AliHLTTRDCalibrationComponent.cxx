@@ -3,9 +3,8 @@
 /**************************************************************************
  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  *                                                                        *
- * Authors: Matthias Richter <Matthias.Richter@ift.uib.no>                *
- *          Timm Steinbeck <timm@kip.uni-heidelberg.de>                   *
- *          for The ALICE Off-line Project.                               *
+ * Authors:                                                               *
+ *          for The ALICE HLT Project.                                    *
  *                                                                        *
  * Permission to use, copy, modify and distribute this software and its   *
  * documentation strictly for non-commercial purposes is hereby granted   *
@@ -16,10 +15,11 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/** @file   AliHLTTRDCalibrationComponent.cxx
-    @author Timm Steinbeck, Matthias Richter
-    @date
-    @brief  A TRDCalibration processing component for the HLT. */
+//  @file   AliHLTTRDCalibrationComponent.cxx
+//  @author 
+//  @date
+//  @brief  A TRDCalibration processing component for the HLT. 
+// 
 
 #if __GNUC__ >= 3
 using namespace std;
@@ -286,7 +286,7 @@ Int_t AliHLTTRDCalibrationComponent::DeinitCalibration()
 
 Int_t AliHLTTRDCalibrationComponent::ProcessCalibration(const AliHLTComponent_EventData& /*evtData*/,
                                                         const AliHLTComponent_BlockData* /*blocks*/,
-                                                        AliHLTComponent_TriggerData& trigData,
+                                                        AliHLTComponent_TriggerData& /*trigData*/,
                                                         AliHLTUInt8_t* /*outputPtr*/,
                                                         AliHLTUInt32_t& /*size*/,
                                                         vector<AliHLTComponent_BlockData>& /*outputBlocks*/)
@@ -346,8 +346,7 @@ Int_t AliHLTTRDCalibrationComponent::ProcessCalibration(const AliHLTComponent_Ev
       for(int i = 0; i < fTrgStrings->GetEntriesFast(); i++){
 	const TObjString *const obString=(TObjString*)fTrgStrings->At(i);
 	const TString tString=obString->GetString();
-	//printf("Trigger Output: %i\n",EvaluateCTPTriggerClass(tString.Data(),trigData));
-	if(EvaluateCTPTriggerClass(tString.Data(),trigData)){TriggerPassed=kTRUE; break;}
+	if(CheckCTPTrigger(tString.Data())>0){TriggerPassed=kTRUE; break;}
       }
     }
     else{
@@ -355,7 +354,7 @@ Int_t AliHLTTRDCalibrationComponent::ProcessCalibration(const AliHLTComponent_Ev
       for(int i = 0; i < fTrgStrings->GetEntriesFast(); i++){
 	const TObjString *const obString=(TObjString*)fTrgStrings->At(i);
 	const TString tString=obString->GetString();
-	if(EvaluateCTPTriggerClass(tString.Data(),trigData)){TriggerPassed=kFALSE; break;}
+	if(CheckCTPTrigger(tString.Data())>0){TriggerPassed=kFALSE; break;}
       }
     }
   }
@@ -445,20 +444,20 @@ Int_t AliHLTTRDCalibrationComponent::ShipDataToFXS(const AliHLTComponentEventDat
   //fOutArray->Remove(fOutArray->FindObject("PH2d"));
   //fOutArray->Remove(fOutArray->FindObject("CH2d"));
 
-  //if(!(fOutArray->FindObject("CH2d"))) {
-  //  TH2I * ch2d = new TH2I("CH2d","Nz0Nrphi0",100,0.0,300.0,540,0,540);
-  //  fOutArray->Add(ch2d);
-  //}
+  if(!(fOutArray->FindObject("CH2d"))) {
+    TH2I * ch2d = new TH2I("CH2d","Nz0Nrphi0",100,0.0,300.0,540,0,540);
+    fOutArray->Add(ch2d);
+  }
 
-  //if(!(fOutArray->FindObject("PH2d"))) {
-  //  TProfile2D * ph2d = new TProfile2D("PH2d","Nz0Nrphi0",30,-0.05,2.95,540,0,540);
-  //  fOutArray->Add(ph2d);
-  //}
+  if(!(fOutArray->FindObject("PH2d"))) {
+    TProfile2D * ph2d = new TProfile2D("PH2d","Nz0Nrphi0",30,-0.05,2.95,540,0,540);
+    fOutArray->Add(ph2d);
+  }
 
-  //if(!(fOutArray->FindObject("PRF2d"))) {
-  //  TProfile2D * prf2d = new TProfile2D("PRF2d","Nz0Nrphi0Ngp3",60,-9.0,9.0,540,0,540);
-  //  fOutArray->Add(prf2d);
-  //}
+  if(!(fOutArray->FindObject("PRF2d"))) {
+    TProfile2D * prf2d = new TProfile2D("PRF2d","Nz0Nrphi0Ngp3",60,-9.0,9.0,540,0,540);
+    fOutArray->Add(prf2d);
+  }
 
   HLTDebug("Size of the fOutArray is %d\n",fOutArray->GetEntriesFast());
 
