@@ -19,6 +19,7 @@ class TH1F;
 class TObjArray;
 class AliESDVertex;
 class AliExternalTrackParam;
+class AliHLTMCEvent;
 
 /**
  * @class  AliHLTD0Trigger
@@ -48,7 +49,7 @@ class AliExternalTrackParam;
  * \li -d0    <i> Impact parameter for decay products  </i> <br>
  * \li -d0d0    <i> Product of impact parameter for decay products  </i> <br>
  * \li -cospoint    <i> pointing angle  </i> <br>
- * \li -plothistogram    <i> ploting the inv. mass histogram  </i> <br>
+ * \li -plothistogram    <i> ploting the inv. mass and pt of D0  </i> <br>
  *
  * By default, configuration is loaded from OCDB, can be overridden by
  * component arguments.
@@ -103,7 +104,8 @@ class AliHLTD0Trigger : public AliHLTTrigger
   
   void SingleTrackSelect(AliExternalTrackParam*);
   Int_t RecV0(const TObject* iter);
-  Int_t RecD0();
+  void RecD0(Int_t&,Int_t&);
+  bool CheckTrackMC(AliExternalTrackParam* pt, AliExternalTrackParam* pn);
 
   /// pt cut for decay, minimum [GeV/c]
   float fPtMin;                                            //! transient
@@ -127,6 +129,7 @@ class AliHLTD0Trigger : public AliHLTTrigger
 
   /// D0 inv. mass plot
   TH1F *fD0mass;                                           //! transient  
+  TH1F *fD0pt;                                             //! transient  
 
   vector<AliExternalTrackParam*> fPos;                       //! transient
   vector<AliExternalTrackParam*> fNeg;                       //! transient
@@ -135,9 +138,12 @@ class AliHLTD0Trigger : public AliHLTTrigger
   TObjArray *ftwoTrackArray;                                //! transient
 
   Int_t fTotalD0;                                           //! transient
-  AliESDVertex *fVertex;                                 //! transient
-  Double_t fField;                                         //!transient
+  Int_t fTotalD0true;                                       //! transient
+  AliESDVertex *fVertex;                                    //! transient
+  Double_t fField;                                          //!transient
   
+  AliHLTMCEvent* fEvent;                                    //!transient
+
   /// the default configuration entry for this component
   static const char* fgkOCDBEntry; //!transient
 

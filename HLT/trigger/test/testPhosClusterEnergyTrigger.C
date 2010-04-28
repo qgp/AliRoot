@@ -41,8 +41,8 @@ bool CheckIfOutputIsOk()
 {
   const char* filename = "PhosClusterEnergyTriggerTestOutput.root";
   TFile file(filename, "READ");
-  AliHLTTriggerDecision* decision1 = dynamic_cast<AliHLTTriggerDecision*>(file.Get("PhosClusterEnergyTrigger;1"));
-  AliHLTTriggerDecision* decision2 = dynamic_cast<AliHLTTriggerDecision*>(file.Get("PhosClusterEnergyTrigger;2"));
+  AliHLTTriggerDecision* decision1 = dynamic_cast<AliHLTTriggerDecision*>(file.Get("PhosClusterEnergyTrigger;2"));
+  AliHLTTriggerDecision* decision2 = dynamic_cast<AliHLTTriggerDecision*>(file.Get("PhosClusterEnergyTrigger;3"));
   if (decision1 == NULL)
   {
     cerr << "ERROR: 'PhosClusterEnergyTrigger;1' AliHLTTriggerDecision object not found in file " << filename << endl;
@@ -76,6 +76,9 @@ bool testPhosClusterEnergyTrigger()
   AliCDBManager * man = AliCDBManager::Instance();
   man->SetDefaultStorage("local://$ALICE_ROOT/OCDB");
   man->SetRun(0);
+  gSystem->Load("libAliHLTUtil.so");
+  gSystem->Load("libAliHLTMUON.so");
+  gSystem->Load("libAliHLTTRD.so");
   gSystem->Load("libAliHLTTrigger.so");
   CreateInput("PhosClusterEnergyTriggerTestInput1.root", -2, 0.1, 1.99);
   CreateInput("PhosClusterEnergyTriggerTestInput2.root", 0, 2.1, 4.0);
