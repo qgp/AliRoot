@@ -89,6 +89,7 @@ AliHLTComponentDataType
 AliHLTEMCALDigitMakerComponent::GetOutputDataType()
 {
   //see header file for documentation
+//  return AliHLTCaloDefinitions::fgkDigitDataType|kAliHLTDataOriginEMCAL;
   return AliHLTEMCALDefinitions::fgkDigitDataType;
 }
 
@@ -130,7 +131,7 @@ AliHLTEMCALDigitMakerComponent::DoEvent(const AliHLTComponentEventData& evtData,
       
       if(iter->fDataType != AliHLTEMCALDefinitions::fgkChannelDataType)
 	{
-	  HLTError("Data block is not of type fgkChannelDataType");
+	  HLTDebug("Data block is not of type fgkChannelDataType");
 	  continue;
 	}
 
@@ -195,6 +196,25 @@ AliHLTEMCALDigitMakerComponent::DoInit(int argc, const char** argv )
 
   return 0;
 }
+
+int AliHLTEMCALDigitMakerComponent::GetBCMFromCDB()
+{
+   // See header file for class documentation
+
+
+
+
+   return 0;
+}
+
+int AliHLTEMCALDigitMakerComponent::GetGainsFromCDB()
+{
+   // See header file for class documentation
+   
+   return 0;
+}
+
+
 
 AliHLTComponent*
 AliHLTEMCALDigitMakerComponent::Spawn()

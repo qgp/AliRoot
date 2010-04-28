@@ -38,6 +38,7 @@
 // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
 #include "AliHLTCaloDefinitions.h"
 #include "AliHLTPHOSGeometry.h"
+#include "AliHLTPHOSRecoParamHandler.h"
 
 AliHLTPHOSClusterizerComponent gAliHLTPHOSClusterizerComponent;
 
@@ -51,6 +52,8 @@ AliHLTPHOSClusterizerComponent::AliHLTPHOSClusterizerComponent():
   //AliHLTPHOSGeometry *geom = new AliHLTPHOSGeometry;
   
   fAnalyserPtr->SetGeometry(new AliHLTPHOSGeometry);
+  
+  fRecoParamsPtr = new AliHLTPHOSRecoParamHandler();
   
 }
 
@@ -82,7 +85,6 @@ AliHLTPHOSClusterizerComponent::GetOutputDataSize(unsigned long& constBase, doub
   constBase = sizeof(AliHLTCaloRecPointHeaderStruct) + sizeof(AliHLTCaloRecPointDataStruct) + (sizeof(AliHLTCaloDigitDataStruct) << 7); //Reasonable estimate... ;
   inputMultiplier = 2.0;
 }
-
 
 const Char_t*
 AliHLTPHOSClusterizerComponent::GetComponentID()

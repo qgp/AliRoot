@@ -1,3 +1,5 @@
+//-*- Mode: C++ -*-
+// $Id$
 
 /**************************************************************************
  * This file is property of and copyright by the ALICE HLT Project        * 
@@ -81,18 +83,33 @@ AliHLTESDCaloClusterMaker::FillESD(AliESDEvent *esdPtr, const AliHLTCaloClusterH
       esdCluster.SetEmcCpvDistance(caloClusterStructPtr->fEmcCpvDistance);
       esdCluster.SetDistanceToBadChannel(caloClusterStructPtr->fDistToBadChannel);
       esdCluster.SetNCells(caloClusterStructPtr->fNCells);
-      TArrayI tracksMatched(caloClusterStructPtr->GetNTracksMatched(), caloClusterStructPtr->fTracksMatched);
-      esdCluster.AddTracksMatched(tracksMatched);
+      //esdCluster.SetNCells(0);
+      if(caloClusterStructPtr->GetNTracksMatched())
+      {
+	 TArrayI tracksMatched(caloClusterStructPtr->GetNTracksMatched(), caloClusterStructPtr->fTracksMatched);
+	 esdCluster.AddTracksMatched(tracksMatched);
+      }
       UShort_t *idArrayPtr = new UShort_t[caloClusterStructPtr->fNCells];
-      Double32_t *ampFracArrayPtr = new Double32_t[caloClusterStructPtr->fNCells];
+     Double32_t *ampFracArrayPtr = new Double32_t[caloClusterStructPtr->fNCells];
+      
       for(UInt_t index = 0; index < caloClusterStructPtr->fNCells; index++)
 	{
 	    fClusterReaderPtr->GetCell(caloClusterStructPtr, idArrayPtr[index], ampFracArrayPtr[index], index);
-//	    printf("EM: cellId: %d\n", idArrayPtr[index]);;
+	    //printf("EM: cellId: %d\n", idArrayPtr[index]);;
 	}
       esdCluster.SetCellsAbsId(idArrayPtr);
       esdCluster.SetCellsAmplitudeFraction(ampFracArrayPtr);
-
+#ifndef HAVE_NOT_ALIESDCALOCLUSTER_r38477
+      // this is to ensure compilation with the v4-18-Release branch for the moment
+      // until the changes of AliESDCaloCluster have been ported
+      esdCluster.SetTrackDistance(caloClusterStructPtr->fTrackDx, caloClusterStructPtr->fTrackDz);
+#endif //HAVE_NOT_ALIESDCALOCLUSTER_r38477
+   
+      delete [] idArrayPtr;
+      delete [] ampFracArrayPtr;
+//      idArrayPtr = 0;
+      //ampFracArrayPtr = 0;
+      
       esdPtr->AddCaloCluster(&esdCluster);
       //printf("EM: Energy: %f\n", esdCluster.E());
       nClusters++;

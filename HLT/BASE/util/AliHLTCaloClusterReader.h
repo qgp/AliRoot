@@ -21,7 +21,7 @@
 
 class AliHLTCaloClusterDataStruct;
 class AliHLTCaloClusterHeaderStruct;
-
+class AliHLTCaloDigitDataStruct;
 /** 
  * @class AliHLTCaloClusterReader
  * Reads clusters from a memory block of AliHLTCaloClusters
@@ -65,6 +65,16 @@ public:
    */
   void Reset();
 
+  /**
+  * Get the digits shipped with the clusters
+  */
+  AliHLTCaloDigitDataStruct* GetDigits() {return fDigitsPointer; } 
+  
+  /** 
+  * Get the number of digits shipped with the clusters
+  */
+  Int_t GetNDigits() {return fNDigits; }
+  
  private:
   
   /**
@@ -89,6 +99,12 @@ public:
   /* The current number of clusters */
   int fCurrentCnt; // The current number of clusters
 
+  /** Pointer to the digits in the data block */
+  AliHLTCaloDigitDataStruct* fDigitsPointer;    // Pointer to the digits in the data block 
+    
+   /** Number of digits in the data block */
+   Int_t fNDigits; // Number of digits in the data block 
+   
 };
 
 #endif

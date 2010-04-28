@@ -21,6 +21,8 @@
 /// @date   2009-11-12
 /// @brief  Class containing constants for EMCAL and EMCAL
 ///         loaded libraries
+
+#include "AliHLTCaloConstants.h"
 #include "AliHLTEMCALConstants.h"
 
 ClassImp(AliHLTEMCALConstants);
@@ -59,7 +61,7 @@ AliHLTEMCALConstants::AliHLTEMCALConstants() :
   fkZ1(1),
   fkX0(0),
   fkX1(1),
-  fkNMODULES(13),
+  fkNMODULES(10),
   fkNRCUS(4),
   fkNRCUSPERMODULE(2),
   fkNRCUSPERTOTAL(fkNMODULES*fkNRCUSPERMODULE),
@@ -67,8 +69,17 @@ AliHLTEMCALConstants::AliHLTEMCALConstants() :
   fkNALTROS(4),
   fkNALTROCHANNELS(16),
   fkNBRANCHES(2), 
-  fkCELLSTEP(-999999999.9),
-  fkNRCUSPERSECTOR(4)
+  fkCELLSTEP(6.0),
+  fkMAXCELLSTEPETA(6.32), 	// FR: max tower dimension along eta
+  fkMINCELLSTEPETA(5.99), 	// FR: min tower dimension along eta
+  fkCELLSTEPPHI(6.04667), 	// FR: tower dimension along phi
+  fkCELLHEIGHT(27.74),  	// FR: tower height
+  fkCELLANGLE(1.50),  		// FR: tower tapeiring angle (DEG)
+  fkRADLENGTH(1.23),
+  fkCRITICENERGY(8),
+  fkCJ(0.5),
+  fkNRCUSPERSECTOR(4),
+  fkDDLOFFSET(4608)
 {
   //Default constructor
 }

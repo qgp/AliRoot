@@ -34,6 +34,7 @@
 #include "AliHLTCaloCrazynessDefinitions.h"
 #include "AliHLTCaloChannelRawDataStruct.h"
 #include "AliHLTCaloCoordinate.h"
+#include "AliLog.h"
 
 //#include "AliCALOBunchInfo.h"
 //AliCALORawAnalyzer
@@ -84,7 +85,46 @@ AliHLTCaloRawAnalyzerComponentv3::AliHLTCaloRawAnalyzerComponentv3(TString det):
 AliHLTCaloRawAnalyzerComponentv3::~AliHLTCaloRawAnalyzerComponentv3()
 {
   //comment
-  DoDeinit();
+  //this is not created here but in the derived classes
+  //   if(fAnalyzerPtr)
+  //     {
+  //       delete fAnalyzerPtr;
+  //        fAnalyzerPtr = 0;
+  //     }
+
+  if(fMapperPtr)
+    {
+      delete  fMapperPtr;
+      fMapperPtr = 0;
+    }
+
+  if(fRawReaderMemoryPtr)
+    {
+      delete fRawReaderMemoryPtr;
+      fRawReaderMemoryPtr = 0;
+    }
+
+  if(fAltroRawStreamPtr)
+    {
+      delete fAltroRawStreamPtr;
+      fAltroRawStreamPtr = 0;
+    }
+
+  if (fRawDataWriter)
+    {
+      delete fRawDataWriter;
+      fRawDataWriter = 0;
+    }
+
+  if (fSanityInspectorPtr)
+    {
+      delete fSanityInspectorPtr;
+      fSanityInspectorPtr = 0;
+    }
+
+  // NOT A GOOD IDEA TO CALL VIRTUAL FUNCTION
+  // ESPECIALLY IN VIRTUAL DESTRUCTOR - just stick to it
+  // DoDeinit();
 }
 
 
@@ -133,6 +173,10 @@ AliHLTCaloRawAnalyzerComponentv3::DoInit( int argc, const char** argv )
 	   HLTWarning("fDoPushBadRawData and fDoPushRawData in conflict, using fDoPushRawData");
 	   fDoPushBadRawData = false;
 	}
+	if(!strcmp("-suppressalilogwarnings", argv[i]))
+	{
+	    AliLog::SetGlobalLogLevel(AliLog::kError);  //PHOS sometimes produces bad data -> Fill up the HLT logs...
+	}
     }
  
   /*
@@ -149,12 +193,16 @@ int
 AliHLTCaloRawAnalyzerComponentv3::DoDeinit()
 {
   //comment
+  
+  //this is not created here but in the derived classes
+  //   if(fAnalyzerPtr)
+  //     {
+  //       delete fAnalyzerPtr;
+  //        fAnalyzerPtr = 0;
+  //     }
 
-  if(fAnalyzerPtr)
-    {
-      delete fAnalyzerPtr;
-      fAnalyzerPtr = 0;
-    }
+  // what about the rest of the created objects?
+  // in the contructor?
 
   if(fMapperPtr)
     {
@@ -235,7 +283,7 @@ AliHLTCaloRawAnalyzerComponentv3::DoIt(const AliHLTComponentBlockData* iter, Ali
  
   totSize += sizeof( AliHLTCaloChannelDataHeaderStruct );
   fRawReaderMemoryPtr->SetMemory(         reinterpret_cast<UChar_t*>( iter->fPtr ),  static_cast<ULong_t>( iter->fSize )  );
-  fRawReaderMemoryPtr->SetEquipmentID(    fMapperPtr->GetDDLFromSpec(  iter->fSpecification) + 1792  );
+  fRawReaderMemoryPtr->SetEquipmentID(    fMapperPtr->GetDDLFromSpec(  iter->fSpecification) + fCaloConstants->GetDDLOFFSET() );
   fRawReaderMemoryPtr->Reset();
   fRawReaderMemoryPtr->NextEvent();
  
@@ -398,7 +446,15 @@ AliHLTCaloRawAnalyzerComponentv3::RawDataWriter::RawDataWriter(AliHLTCaloConstan
   Init();
 }
 
-
+AliHLTCaloRawAnalyzerComponentv3::RawDataWriter::~RawDataWriter()
+{
+  //destructor - added by MP
+  if (0 != fRawDataBuffer)
+    {
+      delete [] fRawDataBuffer;
+      fRawDataBuffer = 0;
+    }
+}
    
 void  
 AliHLTCaloRawAnalyzerComponentv3::RawDataWriter::Init()

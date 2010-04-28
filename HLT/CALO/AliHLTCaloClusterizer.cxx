@@ -72,8 +72,8 @@ AliHLTCaloClusterizer::AliHLTCaloClusterizer(TString det):
   fRecPointArray = new AliHLTCaloRecPointDataStruct*[fArraySize];
   
   fAvailableSize = sizeof(AliHLTCaloRecPointDataStruct) * 20;
-  fRecPointDataPtr = reinterpret_cast<AliHLTCaloRecPointDataStruct*>(new UChar_t[fAvailableSize]);
-  fFirstRecPointPtr = fRecPointDataPtr;  
+  fFirstRecPointPtr = reinterpret_cast<AliHLTCaloRecPointDataStruct*>(new UChar_t[fAvailableSize]);
+  fRecPointDataPtr = fFirstRecPointPtr;  
 
 }//end
 
@@ -98,6 +98,7 @@ AliHLTCaloClusterizer::ClusterizeEvent(Int_t nDigits)
   fUsedSize = 0;
   fNDigits = nDigits;
   fRecPointDataPtr = fFirstRecPointPtr;
+
   //Clusterization starts
   for(Int_t i = 0; i < nDigits; i++)
     { 
@@ -112,7 +113,7 @@ AliHLTCaloClusterizer::ClusterizeEvent(Int_t nDigits)
 
       // First digit is placed at the fDigits member variable in the recpoint
       fDigitIndexPtr = &(fRecPointDataPtr->fDigits);
-      fUsedSize += sizeof(AliHLTCaloRecPointDataStruct);
+      //fUsedSize += sizeof(AliHLTCaloRecPointDataStruct);
       
       fRecPointDataPtr->fAmp = 0;
       fRecPointDataPtr->fModule = fDigitsPointerArray[i]->fModule;
@@ -146,7 +147,7 @@ AliHLTCaloClusterizer::ClusterizeEvent(Int_t nDigits)
       
     }//end of clusterization
 
-   return nRecPoints;
+    return nRecPoints;
 }
 
 Int_t
@@ -180,14 +181,15 @@ AliHLTCaloClusterizer::ScanForNeighbourDigits(Int_t index, AliHLTCaloRecPointDat
 // 			fUsedSize = 0;
 // 		     }	
 		  CheckBuffer();
+		  
 		  // Assigning index to digit
 		  *fDigitIndexPtr = j;
 		  fUsedSize += sizeof(Int_t);
 		  
 		  // Incrementing digit pointer to be ready for new entry
 		  fDigitIndexPtr++;
-
-		  recPoint->fAmp += fDigitsPointerArray[j]->fEnergy;
+		  
+		  fRecPointDataPtr->fAmp += fDigitsPointerArray[j]->fEnergy;
 		  fDigitsPointerArray[j]->fEnergy = 0;	      
 		  fDigitsInCluster++;
 		  ScanForNeighbourDigits(j, recPoint);
@@ -249,8 +251,12 @@ Int_t AliHLTCaloClusterizer::CheckArray()
 	   fArraySize *= 2;
 	   AliHLTCaloRecPointDataStruct **tmp = new AliHLTCaloRecPointDataStruct*[fArraySize];
 	   memcpy(tmp, fRecPointArray, fArraySize/2 * sizeof(AliHLTCaloRecPointDataStruct*));
-	   delete fRecPointArray;
+	   delete [] fRecPointArray;
 	   fRecPointArray = tmp;
+	   //fRecPointArray[fNRecPoints-1] = fRecPointDataPtr;
+	   //Int_t recPointOffset = reinterpret_cast<UChar_t*>(fRecPointDataPtr) - reinterpret_cast<UChar_t*>(fFirstRecPointPtr);
+	   //fRecPointDataPtr = reinterpret_cast<AliHLTCaloRecPointDataStruct*>(reinterpret_cast<UChar_t*>(tmp) + recPointOffset);
+	   
 	}
    return 0;
 }
@@ -258,20 +264,23 @@ Int_t AliHLTCaloClusterizer::CheckArray()
 Int_t AliHLTCaloClusterizer::CheckBuffer()
 {
    // See header file for class documentation 
-	if((fAvailableSize - fUsedSize) < sizeof(AliHLTCaloRecPointDataStruct))
+	if((fAvailableSize - fUsedSize) < (Int_t)sizeof(AliHLTCaloRecPointDataStruct))
 	{
 	    Int_t recPointOffset = reinterpret_cast<UChar_t*>(fRecPointDataPtr) - reinterpret_cast<UChar_t*>(fFirstRecPointPtr);
+	    Int_t digitIndexOffset = reinterpret_cast<UChar_t*>(fDigitIndexPtr) - reinterpret_cast<UChar_t*>(fRecPointDataPtr);
+	    UChar_t *tmp = new UChar_t[fAvailableSize*2];
+
+	    memcpy(tmp, fFirstRecPointPtr, fUsedSize);
 	    fAvailableSize *= 2;
-	    UChar_t *tmp = new UChar_t[fAvailableSize];
-	    memcpy(tmp, fRecPointDataPtr, fAvailableSize/2);
 	    for(Int_t n = 0; n < fNRecPoints; n++)
 	    {
 	       fRecPointArray[n] = reinterpret_cast<AliHLTCaloRecPointDataStruct*>(reinterpret_cast<UChar_t*>(fRecPointArray[n]) - reinterpret_cast<UChar_t*>(fFirstRecPointPtr) + reinterpret_cast<UChar_t*>(tmp));
 	    }
-	    delete fRecPointDataPtr;
+	    delete [] fFirstRecPointPtr;
 	    fFirstRecPointPtr = reinterpret_cast<AliHLTCaloRecPointDataStruct*>(tmp);
 	    fRecPointDataPtr = reinterpret_cast<AliHLTCaloRecPointDataStruct*>(tmp + recPointOffset);
-	    fUsedSize = 0;
+	    fDigitIndexPtr = reinterpret_cast<Int_t*>(reinterpret_cast<UChar_t*>(fRecPointDataPtr) + digitIndexOffset);
+	    //fUsedSize = 0;
 	}
    return 0;
 }

@@ -22,8 +22,8 @@
 /// @brief  Class containing constants for PHOS
 ///         loaded libraries
 
-#include "AliHLTPHOSConstants.h"
 #include "AliHLTCaloConstants.h"
+#include "AliHLTPHOSConstants.h"
 
 ClassImp(AliHLTPHOSConstants);
 
@@ -69,8 +69,9 @@ AliHLTPHOSConstants::AliHLTPHOSConstants() :
   fkNALTROS(4),
   fkNALTROCHANNELS(16),
   fkNBRANCHES(2),
-  fkCELLSTEP(2.2),
-  fkNRCUSPERSECTOR(-9999)
+  fkCELLSTEP(2.255),
+  fkNRCUSPERSECTOR(-9999),
+  fkDDLOFFSET(1792)
 {
   //Default constructor
 }
