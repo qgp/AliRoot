@@ -38,8 +38,8 @@
 #include "AliHLTMUONClustersBlockStruct.h"
 #include "AliHLTMUONChannelsBlockStruct.h"
 #include "AliHLTMUONUtils.h"
-#include <cstring>
-#include <strings.h>
+#include "AliRawDataHeader.h"
+#include <cassert>
 
 
 const AliHLTInt32_t AliHLTMUONHitReconstructor::fgkDetectorId = 0xA00;
@@ -273,7 +273,7 @@ void AliHLTMUONHitReconstructor::TryRecover(ERecoveryMode mode)
 bool AliHLTMUONHitReconstructor::Run(
 		const AliHLTUInt32_t* rawData,
 		AliHLTUInt32_t rawDataSize,
-		AliHLTMUONRecHitStruct* recHit,
+		AliHLTMUONRecHitStruct* const recHit,
 		AliHLTUInt32_t& nofHit
 	) 
 {
@@ -1125,13 +1125,13 @@ bool AliHLTMUONHitReconstructor::MergeQuadRecHits()
 	    
 	    // First check that we have not overflowed the buffer.
 	    if((*fRecPointsCount) == fMaxRecPointsCount){
-	      HLTError("Number of RecHits (i.e. %d) exceeds the max number of RecHit limit %d."
+	      HLTWarning("Number of RecHits (i.e. %d) exceeds the max number of RecHit limit %d."
 	                " Output buffer is too small.",
 	               (*fRecPointsCount),fMaxRecPointsCount
 	      );
 	      delete [] isMergedY;
 	      delete [] isMergedX;
-	      return false;
+	      return true;
 	    }
 
 	    AliHLTUInt32_t idflags = AliHLTMUONUtils::PackRecHitFlags(
@@ -1293,13 +1293,13 @@ bool AliHLTMUONHitReconstructor::MergeQuadRecHits()
       	    
       // First check that we have not overflowed the buffer.
       if((*fRecPointsCount) == fMaxRecPointsCount){
-	HLTError("Number of RecHits (i.e. %d) exceeds the max number of RecHit limit %d."
+	HLTWarning("Number of RecHits (i.e. %d) exceeds the max number of RecHit limit %d."
 		 " Output buffer is too small.",
 		 (*fRecPointsCount),fMaxRecPointsCount
 		 );
 	delete [] isMergedY;
 	delete [] isMergedX;
-	return false;
+	return true;
       }
 
       AliHLTUInt32_t idflags = AliHLTMUONUtils::PackRecHitFlags(
@@ -1448,13 +1448,13 @@ bool AliHLTMUONHitReconstructor::MergeQuadRecHits()
 	    
       // First check that we have not overflowed the buffer.
       if((*fRecPointsCount) == fMaxRecPointsCount){
-	HLTError("Number of RecHits (i.e. %d) exceeds the max number of RecHit limit %d."
+	HLTWarning("Number of RecHits (i.e. %d) exceeds the max number of RecHit limit %d."
 		 " Output buffer is too small.",
 		 (*fRecPointsCount),fMaxRecPointsCount
 		 );
 	delete [] isMergedY;
 	delete [] isMergedX;
-	return false;
+	return true;
       }
 
       AliHLTUInt32_t idflags = AliHLTMUONUtils::PackRecHitFlags(
@@ -1724,11 +1724,11 @@ bool AliHLTMUONHitReconstructor::MergeSlatRecHits()
 	    
 	    // First check that we have not overflowed the buffer.
 	    if((*fRecPointsCount) == fMaxRecPointsCount){
-	      HLTError("Number of RecHits (i.e. %d) exceeds the max number of RecHit limit %d."
+	      HLTWarning("Number of RecHits (i.e. %d) exceeds the max number of RecHit limit %d."
 	                " Output buffer is too small.",
 	               (*fRecPointsCount),fMaxRecPointsCount
 	      );
-	      return false;
+	      return true;
 	    }
 
 	    AliHLTUInt32_t idflags = AliHLTMUONUtils::PackRecHitFlags(
@@ -1893,6 +1893,28 @@ void AliHLTMUONHitReconstructor::Clear()
   
   // for(int i=0;i<130;i++)
   //   fMaxFiredPerDetElem[i] = 0;
+}
+
+
+AliHLTInt32_t AliHLTMUONHitReconstructor::GetkNofDetElemInDDL(Int_t iDDL)
+{
+	/// Returns the number of detection elements for a DDL.
+	
+	if(iDDL>=0 && iDDL<=19)
+		return fgkNofDetElemInDDL[iDDL];
+	else
+		return -1;
+}
+
+
+AliHLTInt32_t AliHLTMUONHitReconstructor::GetkMinDetElemIdInDDL(Int_t iDDL)
+{
+	/// Returns the first detection element ID for a DDL.
+	
+	if(iDDL>=0 && iDDL<=19)
+		return fgkMinDetElemIdInDDL[iDDL];
+	else
+		return -1;
 }
 
 

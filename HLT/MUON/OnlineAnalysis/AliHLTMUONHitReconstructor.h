@@ -14,21 +14,12 @@
 //         sukalyan.chattopadhyay@saha.ac.in 
 ///////////////////////////////////////////////
 
-#include <iostream>
-#include <cstdio>
-#include <fstream>
-#include <cstring>
-#include <cmath>
 #include <map>
-#include <cassert>
 
-#include "TString.h"
 #include "AliHLTLogging.h"
 #include "AliMUONTrackerDDLDecoder.h"
 #include "AliMUONTrackerDDLDecoderEventHandler.h"
 #include "AliHLTMUONDataTypes.h"
-
-#include "AliRawDataHeader.h"
 
 #if __GNUC__ && __GNUC__ < 3
 #define std
@@ -60,7 +51,7 @@ public:
 	bool Run(
 			const AliHLTUInt32_t* rawData,
 			AliHLTUInt32_t rawDataSize,
-			AliHLTMUONRecHitStruct* recHit,
+			AliHLTMUONRecHitStruct* const recHit,
 			AliHLTUInt32_t& nofHit
 		);
 	
@@ -94,20 +85,8 @@ public:
 	static AliHLTInt32_t GetkDDLOffSet() { return fgkDDLOffSet; }
 	static AliHLTInt32_t GetkNofDDL() { return fgkNofDDL; }
 	static AliHLTInt32_t GetkDDLHeaderSize() { return fgkDDLHeaderSize; }
-	static AliHLTInt32_t GetkNofDetElemInDDL(Int_t iDDL) 
-	{ 
-	  if(iDDL>=0 && iDDL<=19)
-	    return fgkNofDetElemInDDL[iDDL];
-	  else
-	    return -1; 
-	}
-	static AliHLTInt32_t GetkMinDetElemIdInDDL(Int_t iDDL) 
-	{ 
-	  if(iDDL>=0 && iDDL<=19)
-	    return fgkMinDetElemIdInDDL[iDDL];
-	  else
-	    return -1; 
-	}
+	static AliHLTInt32_t GetkNofDetElemInDDL(Int_t iDDL);
+	static AliHLTInt32_t GetkMinDetElemIdInDDL(Int_t iDDL);
 	
 	/// The error recovery mode used for TryRecover.
 	enum ERecoveryMode
@@ -179,12 +158,8 @@ private:
 	static const AliHLTInt32_t fgkNofDetElemInDDL[20] ;         // nof Detelem in a given ddl
 	static const AliHLTInt32_t fgkMinDetElemIdInDDL[20] ;       // the detelem which has minimum value in ddl
 
-protected:
-
 	AliHLTMUONHitReconstructor(const AliHLTMUONHitReconstructor& rhs); // copy constructor
 	AliHLTMUONHitReconstructor& operator=(const AliHLTMUONHitReconstructor& rhs); // assignment operator
-
-private:
 
 	struct AliHLTMUONPad
 	{
@@ -214,7 +189,7 @@ private:
 		void OnError(ErrorCode code, const void* location);
 		
 		void SetDCCut(AliHLTInt32_t dcCut) {fDCCut = dcCut;}
-		void SetPadData(AliHLTMUONPad* padData) {fPadData = padData;}
+		void SetPadData(AliHLTMUONPad* const padData) {fPadData = padData;}
 		void SetLookUpTable(const AliHLTMUONHitRecoLutRow* lookUpTableData) {fkLookUpTableData = lookUpTableData;}
 
 		void SetIdManuChannelToEntry(const IdManuChannelToEntry* idToEntry) {fkIdToEntry = idToEntry;}
@@ -223,8 +198,8 @@ private:
 		AliHLTInt32_t DDLNumber() const { return fDDL; }
 		void DDLNumber(AliHLTInt32_t value) { fDDL = (value & 0x1F); }  // 0x1F forces value into our required range.
 		// The following two methods have to called after set the ddl
-		void SetNofFiredDetElemId(AliHLTUInt16_t *nofDataInDetElem) {fNofDataInDetElem = nofDataInDetElem;}
-		void SetMaxFiredPerDetElem(AliHLTUInt16_t **dataCountListPerDetElem) {fDataCountListPerDetElem = dataCountListPerDetElem;}		
+		void SetNofFiredDetElemId(AliHLTUInt16_t* const nofDataInDetElem) {fNofDataInDetElem = nofDataInDetElem;}
+		void SetMaxFiredPerDetElem(AliHLTUInt16_t** const dataCountListPerDetElem) {fDataCountListPerDetElem = dataCountListPerDetElem;}		
 
 
 		AliHLTInt32_t GetDataCount() const {return fDataCount;}
