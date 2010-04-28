@@ -28,6 +28,7 @@
 #include "AliHLTReadoutList.h"
 #include "AliHLTTriggerDomain.h"
 #include "AliHLTDomainEntry.h"
+#include "AliHLTCTPData.h"
 
 ClassImp(AliHLTTrigger)
 
@@ -136,9 +137,21 @@ int AliHLTTrigger::TriggerEvent(
   // See header file for more details.
   
   if (fTriggerEventResult != 0) return fTriggerEventResult;  // Do not do anything if a previous call failed.
+  
+  AliHLTReadoutList readoutlist = result->ReadoutList();
+  // mask the readout list according to the CTP trigger
+  // if the classes have been initialized (mask non-zero)
+  if (CTPData() != NULL and CTPData()->Mask() != 0x0) {
+    AliHLTEventDDL eventDDL = CTPData()->ReadoutList(*GetTriggerData());
+    AliHLTReadoutList ctpreadout(eventDDL);
+    ctpreadout.Enable(AliHLTReadoutList::kHLT);
+    readoutlist.AndEq(ctpreadout);
+    result->ReadoutList(readoutlist); // override the readout list with the masked one.
+  }
+  
   fTriggerEventResult = PushBack(result, type, spec);
   if (fTriggerEventResult == 0) {
-    fTriggerEventResult = PushBack(result->ReadoutList().Buffer(), result->ReadoutList().BufferSize(), kAliHLTDataTypeReadoutList);
+    fTriggerEventResult = PushBack(readoutlist.Buffer(), readoutlist.BufferSize(), kAliHLTDataTypeReadoutList);
   }
   
   if (fTriggerEventResult == 0) fDecisionMade = true;

@@ -26,8 +26,21 @@
 #include "Riostream.h"
 #include "TClass.h"
 #include "AliHLTMisc.h"
+#include "AliHLTLogging.h"
 
 ClassImp(AliHLTGlobalTriggerDecision)
+
+
+namespace {
+const char* kgNULLObjMessage =
+  "The global decision object contains NULL pointers in the fContributingTriggers array."
+  " This is unexpected and probably indicates a serious problem.";
+const char* kgSplitModeMessage =
+  "The global decision object contains NULL pointers in the fInputObjects array."
+  " This means that it was written to a TTree branch with the split-mode > 0."
+  " This causes the custom streamer to be skipped and prevents the"
+  " fInputObjects array to be setup properly. In addition this can cause memory leaks.";
+};
 
 
 AliHLTGlobalTriggerDecision::AliHLTGlobalTriggerDecision() :
@@ -37,6 +50,10 @@ AliHLTTriggerDecision(0, "HLTGlobalTrigger"),
   fCounters()
 {
   // Default constructor.
+  
+  // We set the ownership to false since the objects are deleted manually by this
+  // class in DeleteInputObjects().
+  fInputObjects.SetOwner(kFALSE);
 }
 
 
@@ -51,13 +68,17 @@ AliHLTGlobalTriggerDecision::AliHLTGlobalTriggerDecision(
   // Constructor specifying multiple information fields.
   
   Result(result);
-  fInputObjects.SetOwner(kTRUE);
+  // We set the ownership to false since the objects are deleted manually by this
+  // class in DeleteInputObjects().
+  fInputObjects.SetOwner(kFALSE);
 }
 
 
 AliHLTGlobalTriggerDecision::~AliHLTGlobalTriggerDecision()
 {
   // Default destructor.
+  
+  DeleteInputObjects();
 }
 
 
@@ -78,7 +99,15 @@ void AliHLTGlobalTriggerDecision::Print(Option_t* option) const
     cout << "#################### Input trigger decisions ####################" << endl;
     for (Int_t i = 0; i < NumberOfTriggerInputs(); i++)
     {
-      if (TriggerInput(i)) TriggerInput(i)->Print(option);
+      if (TriggerInput(i) != NULL)
+      {
+        TriggerInput(i)->Print(option);
+      }
+      else
+      {
+        AliHLTLogging log;
+        log.LoggingVarargs(kHLTLogError, this->ClassName(), FUNCTIONNAME(), __FILE__, __LINE__, kgNULLObjMessage);
+      }
     }
     if (NumberOfTriggerInputs() == 0)
     {
@@ -105,7 +134,15 @@ void AliHLTGlobalTriggerDecision::Print(Option_t* option) const
     for (Int_t i = 0; i < NumberOfTriggerInputs(); i++)
     {
       cout << "-------------------- Input trigger decision " << i << " --------------------" << endl;
-      if (TriggerInput(i)) TriggerInput(i)->Print(option);
+      if (TriggerInput(i) != NULL)
+      {
+        TriggerInput(i)->Print(option);
+      }
+      else
+      {
+        AliHLTLogging log;
+        log.LoggingVarargs(kHLTLogError, this->ClassName(), FUNCTIONNAME(), __FILE__, __LINE__, kgNULLObjMessage);
+      }
     }
     if (NumberOfTriggerInputs() == 0)
     {
@@ -115,7 +152,15 @@ void AliHLTGlobalTriggerDecision::Print(Option_t* option) const
     for (Int_t i = 0; i < NumberOfInputObjects(); i++)
     {
       cout << "------------------------ Input object " << i << " ------------------------" << endl;
-      if (InputObject(i)) InputObject(i)->Print(option);
+      if (InputObject(i) != NULL)
+      {
+        InputObject(i)->Print(option);
+      }
+      else
+      {
+        AliHLTLogging log;
+        log.LoggingVarargs(kHLTLogError, this->ClassName(), FUNCTIONNAME(), __FILE__, __LINE__, kgSplitModeMessage);
+      }
     }
     if (NumberOfInputObjects() == 0)
     {
@@ -166,35 +211,48 @@ AliHLTGlobalTriggerDecision::AliHLTGlobalTriggerDecision(const AliHLTGlobalTrigg
   fInputObjects(),
   fCounters()
 {
-  // copy constructor
+  // Copy constructor performs a deep copy.
+  
+  // We set the ownership to false since the objects are deleted manually by this
+  // class in DeleteInputObjects().
+  fInputObjects.SetOwner(kFALSE);
+  
   *this=src;
 }
 
 AliHLTGlobalTriggerDecision& AliHLTGlobalTriggerDecision::operator=(const AliHLTGlobalTriggerDecision& src)
 {
-  // assignment operator
+  // assignment operator performs a deep copy.
 
   fContributingTriggers.Delete();
   for (int triggerInput=0; triggerInput<src.NumberOfTriggerInputs(); triggerInput++) {
     const AliHLTTriggerDecision* pTriggerObject=src.TriggerInput(triggerInput);
-    if (pTriggerObject) {
+    if (pTriggerObject != NULL)
+    {
       // the AddTriggerInput function uses the copy constructor and
       // makes a new object from the reference
       AddTriggerInput(*pTriggerObject);
-    } else {
-      //Error("failed to get trigger input #%d", triggerInput);
+    }
+    else
+    {
+      AliHLTLogging log;
+      log.LoggingVarargs(kHLTLogError, this->ClassName(), FUNCTIONNAME(), __FILE__, __LINE__, kgNULLObjMessage);
     }
   }
 
-  fInputObjects.Delete();
-  for (int inputObject=0; inputObject<src.NumberOfTriggerInputs(); inputObject++) {
+  DeleteInputObjects();
+  for (int inputObject=0; inputObject<src.NumberOfInputObjects(); inputObject++) {
     const TObject* pInputObject=src.InputObject(inputObject);
-    if (pInputObject) {
+    if (pInputObject != NULL)
+    {
       // the AddInputObject function uses Clone() and
       // makes a new object from the reference
       AddInputObject(pInputObject);
-    } else {
-      //Error("failed to get trigger input #%d", inputObject);
+    }
+    else
+    {
+      AliHLTLogging log;
+      log.LoggingVarargs(kHLTLogError, this->ClassName(), FUNCTIONNAME(), __FILE__, __LINE__, kgSplitModeMessage);
     }
   }
   
@@ -202,6 +260,35 @@ AliHLTGlobalTriggerDecision& AliHLTGlobalTriggerDecision::operator=(const AliHLT
 
   return *this;
 }
+
+
+void AliHLTGlobalTriggerDecision::AddInputObject(const TObject* object)
+{
+  // Adds an object to the list of input objects considered in the global trigger.
+  
+  if (object == NULL) return;
+  TObject* obj = object->Clone();
+  obj->SetBit(kCanDelete);
+  fInputObjects.Add(obj);
+}
+
+
+void AliHLTGlobalTriggerDecision::AddInputObjectRef(TObject* object, bool own)
+{
+  // Adds an object to the list of input objects considered in the global trigger.
+  
+  if (object == NULL) return;
+  if (own)
+  {
+    object->SetBit(kCanDelete);
+  }
+  else
+  {
+    object->ResetBit(kCanDelete);
+  }
+  fInputObjects.Add(object);
+}
+
 
 void AliHLTGlobalTriggerDecision::SetCounters(const TArrayL64& counters, Long64_t eventCount)
 {
@@ -213,4 +300,78 @@ void AliHLTGlobalTriggerDecision::SetCounters(const TArrayL64& counters, Long64_
     fCounters.Set(size+1);
     fCounters[size]=eventCount;
   }
+}
+
+
+void AliHLTGlobalTriggerDecision::Clear(Option_t* option)
+{
+  // Clears the trigger domain and resets the decision result.
+  
+  AliHLTTriggerDecision::Clear(option);
+  fContributingTriggers.Clear(option);
+  DeleteInputObjects();
+  fCounters.Set(0);
+}
+
+
+void AliHLTGlobalTriggerDecision::DeleteInputObjects()
+{
+  // Deletes the objects marked with kCanDelete in fInputObjects and clears the array.
+  
+  for (Int_t i = 0; i < NumberOfInputObjects(); i++)
+  {
+    TObject* obj = fInputObjects.UncheckedAt(i);
+    if (obj == NULL)
+    {
+      AliHLTLogging log;
+      log.LoggingVarargs(kHLTLogError, this->ClassName(), FUNCTIONNAME(), __FILE__, __LINE__, kgSplitModeMessage);
+      continue;
+    }
+    if (obj->TestBit(kCanDelete)) delete obj;
+  }
+  fInputObjects.Clear();
+}
+
+
+void AliHLTGlobalTriggerDecision::Streamer(TBuffer &b)
+{
+   // Stream an object of class AliHLTGlobalTriggerDecision.
+
+   if (b.IsReading())
+   {
+     b.ReadClassBuffer(AliHLTGlobalTriggerDecision::Class(), this);
+     // We must mark all the objects that were read into fInputObjects as owned.
+     // Otherwise we will have a memory leak in DeleteInputObjects.
+     bool loggedWarning = false;
+     for (Int_t i = 0; i < fInputObjects.GetEntriesFast(); ++i)
+     {
+       TObject* obj = fInputObjects.UncheckedAt(i);
+       // We must check if the object pointer is NULL. This could happen because the
+       // class dictionary has not been loaded, so the ReadClassBuffer streamer just
+       // silently skips the object but fills the fInputObjects array with a NULL pointer.
+       if (obj == NULL)
+       {
+         fInputObjects.RemoveAt(i);
+         if (not loggedWarning)
+         {
+           AliHLTLogging log;
+           log.LoggingVarargs(kHLTLogWarning, this->ClassName(), FUNCTIONNAME(), __FILE__, __LINE__,
+             "The global trigger decision contains NULL pointers in the input object array."
+             " This is probably due to the fact that some class dictionaries have not been loaded."
+             " Will just remove the NULL pointer and continue."
+           );
+           loggedWarning = true;  // Prevent multiple warnings, one is enough.
+         }
+       }
+       else
+       {
+         obj->SetBit(kCanDelete);
+       }
+     }
+     fInputObjects.Compress();
+   }
+   else
+   {
+     b.WriteClassBuffer(AliHLTGlobalTriggerDecision::Class(), this);
+   }
 }
