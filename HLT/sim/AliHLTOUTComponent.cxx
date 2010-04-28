@@ -16,11 +16,11 @@
 //* provided "as is" without express or implied warranty.                  *
 //**************************************************************************
 
-/** @file   AliHLTOUTComponent.cxx
-    @author Matthias Richter
-    @date   
-    @brief  The HLTOUT data sink component similar to HLTOUT nodes
-*/
+//  @file   AliHLTOUTComponent.cxx
+//  @author Matthias Richter
+//  @date   
+//  @brief  The HLTOUT data sink component similar to HLTOUT nodes
+//  @note   Used in the AliRoot environment only.
 
 #if __GNUC__>= 3
 using namespace std;
@@ -44,18 +44,18 @@ using namespace std;
 ClassImp(AliHLTOUTComponent)
 
 AliHLTOUTComponent::AliHLTOUTComponent()
-  :
-  AliHLTOfflineDataSink(),
-  fWriters(),
-  fNofDDLs(10),
-  fIdFirstDDL(7680), // 0x1e<<8
-  fBuffer(),
-  fpLibManager(NULL),
-  fpDigitFile(NULL),
-  fpDigitTree(NULL),
-  fppDigitArrays(NULL),
-  fReservedWriter(-1),
-  fReservedData(0)
+  : AliHLTOfflineDataSink()
+  , fWriters()
+  , fNofDDLs(10)
+  , fIdFirstDDL(7680) // 0x1e<<8
+  , fBuffer()
+  , fpLibManager(NULL)
+  , fDigitFileName("HLT.Digits.root")
+  , fpDigitFile(NULL)
+  , fpDigitTree(NULL)
+  , fppDigitArrays(NULL)
+  , fReservedWriter(-1)
+  , fReservedData(0)
 {
   // see header file for class documentation
   // or
@@ -105,35 +105,7 @@ int AliHLTOUTComponent::DoInit( int argc, const char** argv )
 {
   // see header file for class documentation
   int iResult=0;
-  TString argument="";
-  int bMissingParam=0;
-  for (int i=0; i<argc && iResult>=0; i++) {
-    argument=argv[i];
-    if (argument.IsNull()) continue;
-
-    // -links
-    if (argument.CompareTo("-links")==0) {
-      if ((bMissingParam=(++i>=argc))) break;
-      TString parameter(argv[i]);
-      parameter.Remove(TString::kLeading, ' '); // remove all blanks
-      if (parameter.IsDigit()) {
-	fNofDDLs=parameter.Atoi();
-      } else {
-	HLTError("wrong parameter for argument %s, number expected", argument.Data());
-	iResult=-EINVAL;
-      }
-    } else {
-      HLTError("unknown argument %s", argument.Data());
-      iResult=-EINVAL;
-      break;
-    }
-  }
-  if (bMissingParam) {
-    HLTError("missing parameter for argument %s", argument.Data());
-    iResult=-EINVAL;
-  }
-  if (iResult>=0) {
-  }
+  if ((iResult=ConfigureFromArgumentString(argc, argv))<0) return iResult;
 
   // Make sure there is no library manager before we try and create a new one.
   if (fpLibManager) {
@@ -162,6 +134,78 @@ int AliHLTOUTComponent::DoInit( int argc, const char** argv )
   }
 
   return iResult;
+}
+
+int AliHLTOUTComponent::ScanConfigurationArgument(int argc, const char** argv)
+{
+  // see header file for class documentation
+  if (argc<=0) return 0;
+  int i=0;
+  TString argument=argv[i];
+  const char* key="";
+
+  // -links n
+  // specify number of ddl links
+  if (argument.CompareTo("-links")==0) {
+    if (++i>=argc) return -EPROTO;
+    TString parameter(argv[i]);
+    parameter.Remove(TString::kLeading, ' '); // remove all blanks
+    if (parameter.IsDigit()) {
+      fNofDDLs=parameter.Atoi();
+    } else {
+      HLTError("wrong parameter for argument %s, number expected", argument.Data());
+      return -EINVAL;
+    }
+
+    return 2;
+  } 
+
+  // -digitfile name
+  if (argument.CompareTo("-digitfile")==0) {
+    if (++i>=argc) return -EPROTO;
+    fDigitFileName=argv[i];
+
+    return 2;
+  }
+
+  // -rawout
+  key="-rawout";
+  if (argument.Contains(key)) {
+    argument.ReplaceAll(key, "");
+    if (argument.IsNull()) {
+      fgOptions|=kWriteRawFiles;
+    } else if (argument.CompareTo("=off")==0) {
+      fgOptions&=~kWriteRawFiles;
+    } else if (argument.CompareTo("=on")==0) {
+      fgOptions|=kWriteRawFiles;
+    } else {
+      HLTError("invalid parameter for argument %s: possible %s=off/%s=on", key, key, key);
+      return -EPROTO;
+    }
+
+    return 1;
+  }
+
+  // -digitout
+  key="-digitout";
+  if (argument.Contains(key)) {
+    argument.ReplaceAll(key, "");
+    if (argument.IsNull()) {
+      fgOptions|=kWriteDigits;
+    } else if (argument.CompareTo("=off")==0) {
+      fgOptions&=~kWriteDigits;
+    } else if (argument.CompareTo("=on")==0) {
+      fgOptions|=kWriteDigits;
+    } else {
+      HLTError("invalid parameter for argument %s: possible %s=off/%s=on", key, key, key);
+      return -EPROTO;
+    }
+
+    return 1;
+  }
+
+  // unknown argument
+  return -EINVAL;
 }
 
 int AliHLTOUTComponent::DoDeinit()
@@ -219,6 +263,7 @@ int AliHLTOUTComponent::DumpEvent( const AliHLTComponentEventData& evtData,
   int iResult=0;
   HLTInfo("write %d output block(s)", evtData.fBlockCnt);
   int writerNo=0;
+  int blockCount=0;
   AliHLTUInt32_t eventType=gkAliEventTypeUnknown;
   bool bIsDataEvent=IsDataEvent(&eventType);
   if (iResult>=0) {
@@ -273,12 +318,19 @@ int AliHLTOUTComponent::DumpEvent( const AliHLTComponentEventData& evtData,
       // different fields in the homer header, which is an array of 64 bit
       // words.
       fWriters[writerNo]->AddBlock(homerHeader, blocks[n].fPtr);
+      blockCount++;
     }
   }
 
-  if (iResult>=0 && !bIsDataEvent) {
+  if (iResult>=0 && !bIsDataEvent && fNofDDLs>=2) {
     // data blocks from a special event are kept to be added to the
-    // following event.
+    // following event. In the current implementation at least 2 DDLs
+    // are required to allow to keep the blocks of the SOR event and
+    // include it in the first event. If only one writer is available
+    // the blocks are ignored. For the moment this is not expexted to
+    // be a problem since components should not gererate anything on
+    // SOR/EOR. The only case is the list of AliHLTComponentTableEntry
+    // transmitted for component statistics in debug mode.
     if (fReservedWriter>=0) {
       HLTWarning("overriding previous buffer of non-data event data blocks");
     }
@@ -287,23 +339,38 @@ int AliHLTOUTComponent::DumpEvent( const AliHLTComponentEventData& evtData,
     // TODO: not yet clear whether it is smart to send the event id of
     // this special event or if it should be set from the id of the
     // following event where the data will be added
-    if ((bufferSize=FillOutputBuffer(evtData.fEventID, fWriters[writerNo], pBuffer))>0) {
+    if (blockCount>0 && (bufferSize=FillOutputBuffer(evtData.fEventID, fWriters[writerNo], pBuffer))>0) {
       fReservedWriter=writerNo;
       fReservedData=bufferSize;
     }
     fWriters[writerNo]->Clear();
+  } else if (iResult>=0 && !bIsDataEvent && fNofDDLs<2 && blockCount>0) {
+    HLTWarning("ignoring %d block(s) for special event of type %d: at least 2 DDLs are required", blockCount, eventType);
+  }
+
+  if (iResult>=0 && bIsDataEvent) {
+    iResult=Write(GetEventCount(), GetRunLoader());
   }
 
   return iResult;
 }
 
-int AliHLTOUTComponent::FillESD(int eventNo, AliRunLoader* runLoader, AliESDEvent* /*esd*/)
+
+int AliHLTOUTComponent::FillESD(int /*eventNo*/, AliRunLoader* /*runLoader*/, AliESDEvent* /*esd*/)
+{
+  // see header file for class documentation
+  // 2010-04-14 nothing to do any more. The data is written at the end of
+  // DumpEvent
+  return 0;
+}
+
+int AliHLTOUTComponent::Write(int eventNo, AliRunLoader* runLoader)
 {
   // see header file for class documentation
   int iResult=0;
 
   if (fWriters.size()==0) return 0;
-  
+
   if (fReservedWriter>=0) {
     if (fgOptions&kWriteDigits) WriteDigitArray(fReservedWriter, &fBuffer[0], fReservedData);
     if (fgOptions&kWriteRawFiles) WriteRawFile(eventNo, runLoader, fReservedWriter, &fBuffer[0], fReservedData);
@@ -422,7 +489,7 @@ int AliHLTOUTComponent::FillOutputBuffer(int eventNo, AliHLTMonitoringWriter* pW
     // version does not really matter since we do not add decision data
     pHLTH->fVersion=AliHLTOUT::kVersion1;
 
-    pCDH->fSize=sizeof(AliRawDataHeader)+pHLTH->fLength;
+    pCDH->fSize=bufferSize;
     pCDH->fStatusMiniEventID|=0x1<<(AliHLTOUT::kCDHStatusFlagsOffset + AliHLTOUT::kCDHFlagsHLTPayload);
     
     pBuffer=&fBuffer[0];
@@ -462,9 +529,8 @@ int AliHLTOUTComponent::WriteDigits(int /*eventNo*/, AliRunLoader* /*runLoader*/
 {
   // see header file for class documentation
   int iResult=0;
-  const char* digitFileName="HLT.Digits.root";
   if (!fpDigitFile) {
-    fpDigitFile=new TFile(digitFileName, "RECREATE");
+    fpDigitFile=new TFile(fDigitFileName, "RECREATE");
   }
   if (fpDigitFile && !fpDigitFile->IsZombie()) {
     if (!fpDigitTree) {
@@ -492,7 +558,7 @@ int AliHLTOUTComponent::WriteDigits(int /*eventNo*/, AliRunLoader* /*runLoader*/
       errorMsg=" (suppressing further error messages)";
     }
     if (GetEventCount()<5) {
-      HLTError("can not open HLT digit file %s%s", digitFileName, errorMsg);
+      HLTError("can not open HLT digit file %s%s", fDigitFileName.Data(), errorMsg);
     }
     iResult=-EBADF;
   }

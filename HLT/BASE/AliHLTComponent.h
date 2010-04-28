@@ -7,13 +7,13 @@
 //* ALICE Experiment at CERN, All rights reserved.                         *
 //* See cxx source for full Copyright notice                               *
 
-/** @file   AliHLTComponent.h
-    @author Matthias Richter, Timm Steinbeck
-    @date   
-    @brief  Base class declaration for HLT components. 
-    @note   The class is both used in Online (PubSub) and Offline (AliRoot)
-            context
-*/
+//  @file   AliHLTComponent.h
+//  @author Matthias Richter, Timm Steinbeck
+//  @date   
+//  @brief  Base class declaration for HLT components. 
+//  @note   The class is both used in Online (PubSub) and Offline (AliRoot)
+//          context
+
 
 /**
  * @defgroup alihlt_component Component handling of the HLT module
@@ -80,6 +80,7 @@ typedef AliHLTComponentEventDoneData AliHLTComponent_EventDoneData;
 
 class AliHLTComponentHandler;
 class TObjArray;
+class TMap;
 class TStopwatch;
 class AliHLTComponent;
 class AliHLTMemoryFile;
@@ -573,12 +574,35 @@ class AliHLTComponent : public AliHLTLogging {
   virtual void GetOutputDataSize( unsigned long& constBase, double& inputMultiplier ) = 0;
 
   /**
+   * Get a list of OCDB object description.
+   * The list of objects is provided in a TMap
+   * - key: complete OCDB path, e.g. GRP/GRP/Data
+   * - value: short description why the object is needed
+   * Key and value objects created inside this class go into ownership of
+   * target TMap.
+   * @param targetMap   TMap instance receiving the list
+   * @return void
+   */
+  virtual void GetOCDBObjectDescription( TMap* const targetArray);
+
+  /**
    * Spawn function.
    * Each component must implement a spawn function to create a new instance of 
    * the class. Basically the function must return <i>new <b>my_class_name</b></i>.
    * @return new class instance
    */
   virtual AliHLTComponent* Spawn() = 0;
+
+  /**
+   * check the availability of the OCDB entry descriptions in the TMap
+   *  key : complete OCDB path of the entry
+   *  value : auxiliary object - short description
+   * if the external map was not provided the function invokes
+   * interface function GetOCDBObjectDescription() to retrieve the list.
+   * @param externList  map of entries to be tested
+   * @result 0 if all found, -ENOENT if objects not found
+   */
+  int CheckOCDBEntries(const TMap* const externList=NULL);
 
   /**
    * Find matching data types between this component and a consumer component.
@@ -744,7 +768,7 @@ class AliHLTComponent : public AliHLTLogging {
      *            be started<br>
      *            0 if it controls the same stopwatch
      */
-    int Hold(TStopwatch* pSucc);
+    int Hold(const TStopwatch* pSucc);
 
     /**
      * Resume the previous guard.
@@ -755,7 +779,7 @@ class AliHLTComponent : public AliHLTLogging {
      *            be stopped<br>
      *            0 if it controls the same stopwatch
      */
-    int Resume(TStopwatch* pSucc);
+    int Resume(const TStopwatch* pSucc);
 
     /** the stopwatch controlled by this guard */
     TStopwatch* fpStopwatch;                                                //!transient
@@ -936,7 +960,7 @@ class AliHLTComponent : public AliHLTLogging {
    * framework. Function pointers are transferred via the @ref
    * AliHLTAnalysisEnvironment structure.
    */
-  int GetEventDoneData( unsigned long size, AliHLTComponentEventDoneData** edd );
+  int GetEventDoneData( unsigned long size, AliHLTComponentEventDoneData** edd ) const;
 
   /**
    * Allocate an EventDoneData structure for the current event .
@@ -962,7 +986,7 @@ class AliHLTComponent : public AliHLTLogging {
    * Get the pointer to the event done data available/built so far for the current event via
    * @ref ReserveEventDoneData and @ref PushEventDoneData
    */
-  AliHLTComponentEventDoneData* GetCurrentEventDoneData()
+  AliHLTComponentEventDoneData* GetCurrentEventDoneData() const
     {
     return fEventDoneData;
     }
@@ -1409,10 +1433,25 @@ class AliHLTComponent : public AliHLTLogging {
    * Check whether a combination of trigger classes is fired.
    * The expression can contain trigger class ids and logic operators
    * like &&, ||, !, and ^, and may be grouped by parentheses.
+   * @note the function requires the setup of the CTP handling for the component by
+   * invoking SetupCTPData() from DoInit()
    * @param expression     a logic expression of trigger class ids
    * @param trigData       the trigger data data
    */
   bool EvaluateCTPTriggerClass(const char* expression, AliHLTComponentTriggerData& trigData) const;
+
+  /**
+   * Check state of a trigger class.
+   * If the class name is not part of the current trigger setup (i.e. ECS parameter
+   * does not contain a trigger definition for this class name) the function
+   * returns -1
+   * @note the function requires the setup of the CTP handling for the component by
+   * invoking SetupCTPData() from DoInit()
+   * @return -1 class name not initialized, 
+   *          0 trigger not active
+   *          1 trigger active
+   */
+  int CheckCTPTrigger(const char* name) const;
 
   /**
    * Get the overall solenoid field.
@@ -1432,7 +1471,7 @@ class AliHLTComponent : public AliHLTLogging {
    * @param pTgt    optional pointer to get the event type
    * @return true if the current event is a real data event
    */
-  bool IsDataEvent(AliHLTUInt32_t* pTgt=NULL);
+  bool IsDataEvent(AliHLTUInt32_t* pTgt=NULL) const;
 
   /**
    * Set a bit to 1 in a readout list ( = AliHLTEventDDL )
@@ -1629,6 +1668,11 @@ class AliHLTComponent : public AliHLTLogging {
    */
   int InitCTPTriggerClasses(const char* ctpString);
 
+  enum {
+    kRequireSteeringBlocks = 0x1,
+    kDisableComponentStat = 0x2
+  };
+
   /** The global component handler instance */
   static AliHLTComponentHandler* fgpComponentHandler;              //! transient
 
@@ -1698,8 +1742,8 @@ class AliHLTComponent : public AliHLTLogging {
   /** optional benchmarking for the component statistics */
   TStopwatch* fpBenchmark;                                         //! transient
 
-  /** component requires steering data blocks */
-  bool fRequireSteeringBlocks;                                     //! transient
+  /** component flags, cleared in Deinit */
+  AliHLTUInt32_t fFlags;                                           //! transient
 
   /** current event type */
   AliHLTUInt32_t fEventType;                                       //! transient
@@ -1728,6 +1772,6 @@ class AliHLTComponent : public AliHLTLogging {
   /// time of last executed PushBack
   int fLastPushBackTime;                                           //! transient
 
-  ClassDef(AliHLTComponent, 13)
+  ClassDef(AliHLTComponent, 14)
 };
 #endif

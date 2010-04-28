@@ -38,6 +38,7 @@ AC_PROG_CXX
 AC_PROG_LIBTOOL
 
 AC_DEBUG
+AC_PROFILING
 AC_OPTIMIZATION
 AM_CONDITIONAL(STANDALONE_SAMPLELIB, test 0 )
 
@@ -540,8 +541,19 @@ AC_MSG_CHECKING([whether to enable component statistics])
 AC_ARG_ENABLE(component-stat,
   [AC_HELP_STRING([--enable-component-stat],
       [enable component statistics ])],
-  [],[enable_component_stat=no])
-if test "x$enable_component_stat" = "xyes" ; then
+  [],[])
+
+dnl enable component statistics if not explicitely disabled
+if test "x$enable_component_stat" != "xno" &&
+   test "x$enable_debug" = "xyes" ; then
+   enable_component_stat=yes.debug
+fi
+
+if test "x$enable_component_stat" = "x" ; then
+   enable_component_stat=no
+fi
+
+if test "x$enable_component_stat" != "xno" ; then
    AC_DEFINE(HLT_COMPONENT_STATISTICS)
 fi
 AC_MSG_RESULT([$enable_component_stat])
@@ -654,8 +666,19 @@ if test "x$enable_tpc" = "xyes" ; then
   				       cl.GetOutputClonesArray();])],
                                     [have_tpc_hltoffline_rec=yes], 
   				      [AC_DEFINE(HAVE_NOT_TPCOFFLINE_REC)])
-    LIBS=$save_LIBS
   AC_MSG_RESULT([$have_tpc_hltoffline_rec])
+
+    have_alitpcclusterparam_r40128=no
+    AC_MSG_CHECKING([checking for AliTPCClusterParam r40128])
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <AliTPCClusterParam.h>], 
+                                       [AliTPCClusterParam param;
+    				          float test=param.ParamS0Par(0,0,0)]);],
+                                       [have_alitpcclusterparam_r40128=yes],
+    				         [AC_DEFINE(HAVE_NOT_ALITPCCLUSTERPARAM_r40128)])
+    AC_MSG_RESULT([$have_alitpcclusterparam_r40128])
+
+    LIBS=$save_LIBS
+
 
   AC_CHECK_HEADER([AliTPCCalibPulser.h], [], [AC_DEFINE(HAVE_NOT_ALITPCCALIBPULSER)])
   AC_CHECK_HEADER([AliTPCCalibPedestal.h], [], [AC_DEFINE(HAVE_NOT_ALITPCCALIBPEDESTAL)])
@@ -736,7 +759,7 @@ ALICALO_LIBS=
 CHECK_HLTMODULE([calo],
 		[], [$ALIROOT_CPPFLAGS],
 		[RAWDatasim], [-L$ROOTLIBDIR $ALIROOT_LDFLAGS], [$ROOTLIBS $ADD_ROOTLIBS $ALIROOT_LIBS],
-		[PHOSUtils PHOSbase PHOSrec PHOSsim PHOSshuttle], [-L$ROOTLIBDIR $ALIROOT_LDFLAGS], 
+		[EMCALUtils PHOSUtils PHOSbase PHOSrec PHOSsim PHOSshuttle], [-L$ROOTLIBDIR $ALIROOT_LDFLAGS], 
 		[$ROOTLIBS $ADD_ROOTLIBS $ALIROOT_LIBS])
 
 if test "x$enable_module" = "xmissheader"; then
@@ -760,6 +783,16 @@ else
 				        have_alicalorawstream=yes], 
   				       [])
     AC_MSG_RESULT([$have_alicalorawstream])
+
+    have_aliesdcalocluster_r38477=no
+    AC_MSG_CHECKING([for AliESDCaloCluster r38477])
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <AliESDCaloCluster.h>], 
+                                       [AliESDCaloCluster cluster;
+    				        cluster.SetTrackDistance(0.0, 0.0)]);],
+                                       [have_aliesdcalocluster_r38477=yes],
+    				         [AC_DEFINE(HAVE_NOT_ALIESDCALOCLUSTER_r38477)])
+    AC_MSG_RESULT([$have_aliesdcalocluster_r38477])
+
     AC_LANG_POP(C++)
     CPPFLAGS="$save_CPPFLAGS"
   fi
@@ -845,9 +878,9 @@ AH_TEMPLATE([HLT_EMCAL],[hlt emcal library])
 
 ALIEMCAL_LIBS=
 CHECK_HLTMODULE([emcal],
-		[], [$ALIROOT_CPPFLAGS -I$ALICE_ROOT/EMCAL],
+		[], [$ALIROOT_CPPFLAGS -I$ALICE_ROOT/EMCAL -I$ALICE_ROOT/VZERO],
 		[RAWDatasim], [-L$ROOTLIBDIR], [$ROOTLIBS $ADD_ROOTLIBS],
-		[EMCALrec EMCALsim EMCALbase EMCALUtils], [-L$ROOTLIBDIR $ALIROOT_LDFLAGS], 
+		[EMCALrec EMCALsim EMCALbase EMCALUtils VZERObase], [-L$ROOTLIBDIR $ALIROOT_LDFLAGS], 
 		[$ROOTLIBS $ADD_ROOTLIBS $ALIROOT_LIBS])
 
 if test "x$enable_module" = "xmissheader"; then
@@ -877,7 +910,7 @@ ALITRD_LIBS=
 CHECK_HLTMODULE([trd],
 		[], [],
 		[MLP XMLParser], [-L$ROOTLIBDIR], [$ROOTLIBS $ADD_ROOTLIBS],
-		[STAT TRDbase TRDrec TRDsim], [-L$ROOTLIBDIR $ALIROOT_LDFLAGS], 
+		[STAT TRDbase TRDrec], [-L$ROOTLIBDIR $ALIROOT_LDFLAGS], 
 		[$ROOTLIBS $ADD_ROOTLIBS $ALIROOT_LIBS])
 
 if test "x$enable_module" = "xmissheader"; then
@@ -897,24 +930,32 @@ else
     # changed to AliTRDReconstructor::SetClusters() according to revision 28069, Mon Aug 18 2008
     # changed to AliTRDCluster according to revision 30461, Thu Dec 18 2008
     # changed to AliTRDclusterizer::GetAddedClusters according to revision 31299, Wed Mar 4 2009
+    # changed to AliTRDclusterizer::GetNTimeBins according to revision 37102 Sun Nov 22 2009
     AC_MSG_CHECKING([for required functions in AliTRDclusterizer])
     AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <AliTRDclusterizer.h>], 
                                        [AliTRDclusterizer c;
-				       c.GetAddedClusters()])],
+				       c.GetNTimeBins()])],
                                        [], 
-  				       [enable_trd="no...requires.AliRoot>v4-16-Release"])
+  				       [enable_trd="no...requires.AliRoot>v4-18-Release"])
     AC_MSG_RESULT([$enable_trd])       
 
     if test "x$enable_trd" = "xyes" ; then
-      have_alitrdrecoparam_r34995=no
-      AC_MSG_CHECKING([checking for AliTRDrecoParam r34995])
-      AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <AliTRDrecoParam.h>], 
-                                         [AliTRDrecoParam param;
-      				          param.SetPIDNeuralNetwork(kFALSE)]);],
-                                         [have_alitrdrecoparam_r34995=yes],
-      				         [AC_DEFINE(HAVE_NOT_ALITRDRECOPARAM_r34995)])
-      AC_MSG_RESULT([$have_alitrdrecoparam_r34995])       
-      
+      have_alitrdseedv1_r39693=no
+      AC_MSG_CHECKING([checking for AliTRDseedV1 r39693])
+      AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <AliTRDseedV1.h>], 
+                                         [AliTRDseedV1 seed;
+      				          seed.SetC(0.0, 1)]);],
+                                         [have_alitrdseedv1_r39693=yes],
+      				         [AC_DEFINE(HAVE_NOT_ALITRD_SEEDV1_r39693)])
+      AC_MSG_RESULT([$have_alitrdseedv1_r39693])
+
+      have_alitrdrawstream_r39608=no
+      AC_MSG_CHECKING([checking for AliTRDrawStream r39608])
+      AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <AliTRDrawStreamBase.h>], 
+                                         [AliTRDrawStreamBase::SetRawStreamVersion(AliTRDrawStreamBase::kTRDdefaultStream)]);],
+                                         [have_alitrdrawstream_r39608=yes],
+                                         [AC_DEFINE(HAVE_NOT_ALITRD_RAWSTREAM_r39608)])
+      AC_MSG_RESULT([$have_alitrdrawstream_r39608])
     fi
 
     AC_LANG_POP(C++)
@@ -1121,7 +1162,7 @@ AC_ARG_WITH(fastjet, [installation path of the FASTJET package],
 
 if test "x$with_fastjet" != "x" && test "x$with_fastjet" != "xno" ; then
   ALIFASTJET_INCFLAGS="-I${with_fastjet}/include"
-  ALIFASTJET_HEADER="PseudoJet.hh"
+  ALIFASTJET_HEADER="fastjet/PseudoJet.hh"
   ALIFASTJET_LDFLAGS="-L${with_fastjet}/lib"
   ALIFASTJET_LIBS="CGAL fastjet"
 else
@@ -1130,9 +1171,9 @@ fi
 
 CHECK_HLTMODULE([jet],
 	[$ALIFASTJET_HEADER], [$ALIROOT_CPPFLAGS -I$ALICE_ROOT/JETAN $ALIFASTJET_INCFLAGS],
-	[$ALIFASTJET_LIBS], [-L$ROOTLIBDIR $ALIFASTJET_LDFLAGS], [$ROOTLIBS $ADD_ROOTLIBS],
+	[$ALIFASTJET_LIBS], [$ROOTLIBDIR $ALIFASTJET_LDFLAGS], [$ROOTLIBS $ADD_ROOTLIBS],
 	[AOD ESD ANALYSIS ANALYSISalice JETAN], 
-	[-L$ROOTLIBDIR $ALIROOT_LDFLAGS -L$ALICE_ROOT/lib/tgt_$ALICE_TARGET],
+	[-L$ROOTLIBDIR $ALIROOT_LDFLAGS $ALIFASTJET_LDFLAGS -L$ALICE_ROOT/lib/tgt_$ALICE_TARGET],
 	[$ROOTLIBS $ADD_ROOTLIBS $ALIROOT_LIBS])
 
 if test "x$enable_module" = "xmissheader"; then
@@ -1151,7 +1192,7 @@ if test "x$enable_jet" = "xyes" ; then
   if test "x$with_fastjet" != "xno"; then
      AC_DEFINE(HAVE_FASTJET)
      AC_DEFINE(WITHFASTJET)
-     ALIJET_LIBS="$ALIJET_LIBS -L$FASTJET_LDFLAGS"
+     ALIJET_LIBS="$ALIJET_LIBS $FASTJET_LDFLAGS"
   fi
   AC_MSG_CHECKING([compilation with FASTJET package])
   AC_MSG_RESULT($with_fastjet)

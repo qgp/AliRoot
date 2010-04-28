@@ -47,6 +47,32 @@ AC_DEFUN([AC_DEBUG],
 ])
 
 dnl ------------------------------------------------------------------
+AC_DEFUN([AC_PROFILING],
+[
+  AC_REQUIRE([AC_PROG_CC])
+  AC_REQUIRE([AC_PROG_CXX])
+  AC_MSG_CHECKING(whether to add profiling info)
+  AC_ARG_ENABLE(profiling,
+    [AC_HELP_STRING([--enable-profiling],[Enable profiling info in objects])],
+    [],[enable_profiling=no])
+  if test "x$enable_profiling" = "xno" ; then
+    CFLAGS=`echo $CFLAGS | sed 's,-pg,,'`
+    CXXFLAGS=`echo $CXXFLAGS | sed 's,-pg,,'`
+  else
+    AC_DEFINE(PROFILING)
+    case $CXXFLAGS in
+    *-pg*) ;;
+    *)    CXXFLAGS="$CXXFLAGS -pg" ;;
+    esac
+    case $CFLAGS in
+    *-pg*) ;;
+    *)    CFLAGS="$CFLAGS -pg" ;;
+    esac
+  fi
+  AC_MSG_RESULT($enable_profiling 'CFLAGS=$CFLAGS')
+])
+
+dnl ------------------------------------------------------------------
 AC_DEFUN([AC_OPTIMIZATION],
 [
   AC_REQUIRE([AC_PROG_CC])
@@ -250,7 +276,9 @@ AC_ARG_ENABLE([$1],
      save_LIBS="$LIBS"
      CPPFLAGS="$save_CPPFLAGS [$3]"
 
-     AC_CHECK_HEADERS([$2], [], [enable_module="missheader"])
+     if test "x[$2]" != "x"; then
+        AC_CHECK_HEADERS([$2], [], [enable_module="missheader"])
+     fi
 
      dnl ==========================================================================
      dnl

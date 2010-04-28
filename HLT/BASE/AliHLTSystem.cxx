@@ -138,6 +138,7 @@ AliHLTSystem::~AliHLTSystem()
     fpComponentHandler->Destroy();
   }
   fpComponentHandler=NULL;
+  delete fStopwatches;
 
   // note: fpHLTOUTTask and fpControlTask are deleted by
   // CleanTaskList
@@ -694,6 +695,7 @@ int AliHLTSystem::SendControlEvent(AliHLTComponentDataType dt)
   AliHLTRunDesc runDesc;
   memset(&runDesc, 0, sizeof(AliHLTRunDesc));
   runDesc.fStructSize=sizeof(AliHLTRunDesc);
+  runDesc.fRunNo=AliHLTMisc::Instance().GetCDBRunNo();
   bd.fPtr=&runDesc;
   bd.fSize=sizeof(AliHLTRunDesc);
   bd.fDataType=dt;
@@ -1166,6 +1168,7 @@ int AliHLTSystem::ScanOptions(const char* options)
   if (options) {
     //AliHLTComponentHandler::TLibraryMode libMode=AliHLTComponentHandler::kDynamic;
     TString libs("");
+    TString excludelibs("");
     TString alloptions(options);
     TObjArray* pTokens=alloptions.Tokenize(" ");
     if (pTokens) {
@@ -1229,6 +1232,9 @@ int AliHLTSystem::ScanOptions(const char* options)
 	} else if (token.BeginsWith("lib") && token.EndsWith(".so")) {
 	  libs+=token;
 	  libs+=" ";
+	} else if (token.BeginsWith("!lib") && token.EndsWith(".so")) {
+	  excludelibs+=token;
+	  excludelibs+=" ";
 	} else {
 	  HLTWarning("unknown option \'%s\'", token.Data());
 	}
@@ -1239,8 +1245,9 @@ int AliHLTSystem::ScanOptions(const char* options)
     if (iResult>=0) {
       if (libs.IsNull()) {
 	const char** deflib=fgkHLTDefaultLibs;
-	while (*deflib) {
-	  libs+=*deflib++;
+	for (;*deflib; deflib++) {
+	  if (excludelibs.Contains(*deflib)) continue;
+	  libs+=*deflib;
 	  libs+=" ";
 	}
       }
