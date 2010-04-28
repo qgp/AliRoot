@@ -53,6 +53,7 @@
 #include "AliEMCALRecParam.h"
 #include "AliCDBEntry.h"
 #include "AliCDBManager.h"
+#include "AliEMCALReconstructor.h"
 
 #include "AliEMCALTracker.h"
 
@@ -155,7 +156,7 @@ void AliEMCALTracker::InitParameters()
 	//
 	
   // Check if the instance of AliEMCALRecParam exists, 
-  const AliEMCALRecParam* recParam = new AliEMCALRecParam();
+  const AliEMCALRecParam* recParam = AliEMCALReconstructor::GetRecParam();
 
   if(!recParam){
     AliFatal("Reconstruction parameters for EMCAL not set!");
@@ -170,7 +171,7 @@ void AliEMCALTracker::InitParameters()
   fCutAlphaMax =  recParam->GetTrkCutAlphaMax();
   fCutNITS = recParam->GetTrkCutNITS();
   fCutNTPC = recParam->GetTrkCutNTPC();
-
+	
 }
 //
 //------------------------------------------------------------------------------
@@ -263,6 +264,9 @@ Int_t AliEMCALTracker::LoadClusters(TTree *cTree)
 	
 	Clear("CLUSTERS");
 
+	cTree->SetBranchStatus("*",0); //disable all branches
+	cTree->SetBranchStatus("EMCALECARP",1); //Enable only the branch we need
+
 	TBranch *branch = cTree->GetBranch("EMCALECARP");
 	if (!branch) {
 		AliError("Can't get the branch with the EMCAL clusters");
@@ -272,9 +276,11 @@ Int_t AliEMCALTracker::LoadClusters(TTree *cTree)
 	TClonesArray *clusters = new TClonesArray("AliEMCALRecPoint", 1000);
 	branch->SetAddress(&clusters);
 	
-	cTree->GetEvent(0);
+	//cTree->GetEvent(0);
+	branch->GetEntry(0);
 	Int_t nClusters = (Int_t)clusters->GetEntries();
-	fClusters = new TObjArray(0);
+	if(fClusters) fClusters->Delete();
+	else fClusters = new TObjArray(0);
 	for (Int_t i = 0; i < nClusters; i++) {
 		AliEMCALRecPoint *cluster = (AliEMCALRecPoint*)clusters->At(i);
 		if (!cluster) continue;
