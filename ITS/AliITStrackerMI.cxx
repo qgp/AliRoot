@@ -635,6 +635,12 @@ Int_t AliITStrackerMI::Clusters2Tracks(AliESDEvent *event) {
   }
 
   fTrackHypothesys.Delete();
+  entries = fBestHypothesys.GetEntriesFast();
+  for (Int_t ientry=0; ientry<entries; ientry++) {
+    TObjArray * array =(TObjArray*)fBestHypothesys.UncheckedAt(ientry);
+    if (array) array->Delete();
+    delete fBestHypothesys.RemoveAt(ientry);
+  }
   fBestHypothesys.Delete();
   fOriginal.Clear();
   delete [] fCoefficients;
@@ -960,6 +966,7 @@ void AliITStrackerMI::FollowProlongationTree(AliITStrackMI * otrack, Int_t esdin
   TObjArray *bestarray = (TObjArray*)fBestHypothesys.At(esdindex);
   if (!bestarray){
     bestarray = new TObjArray(5);
+    bestarray->SetOwner();
     fBestHypothesys.AddAt(bestarray,esdindex);
   }
 
