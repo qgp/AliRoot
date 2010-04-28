@@ -404,7 +404,7 @@ void AliEveEMCALData::LoadDigits(TTree *t)
   AliEMCALDigit * dig;
 
   //  Double_t amp   = -1 ;
-  Double_t ampInt   = -1 ;
+  Double_t ampFlo   = -1 ;
   Int_t id      = -1 ;
   Int_t iSupMod =  0 ;
   Double_t x, y, z;
@@ -416,9 +416,9 @@ void AliEveEMCALData::LoadDigits(TTree *t)
       if(dig != 0) {
 	id   = dig->GetId() ; //cell (digit) label
 	// adc
-	ampInt  = dig->GetAmp(); //amplitude in cell (digit)
+	ampFlo  = dig->GetAmplitude(); //amplitude in cell (digit)
 	// GeV
-	// 	amp = ampInt*0.0153; // To be modified with correct OCDB conversion	
+	// 	amp = ampFlo*0.0153; // To be modified with correct OCDB conversion	
 
 	GetGeomInfo(id,iSupMod,x,y,z);
 
@@ -427,7 +427,7 @@ void AliEveEMCALData::LoadDigits(TTree *t)
 // //	fSM[iSupMod]->SaveDigit(dig);
 // // 	if(iSupMod<fNsmfull) fSMfull[iSupMod]->RegisterDigit(id,iSupMod,amp,x,y,z);
 // // 	if(iSupMod>fNsmfull) fSMhalf[iSupMod-10]->RegisterDigit(id,iSupMod,amp,x,y,z);
-	fSM[iSupMod]->RegisterDigit(id,iSupMod,ampInt,x,y,z);
+	fSM[iSupMod]->RegisterDigit(id,iSupMod,ampFlo,x,y,z);
 //	fSM[iSupMod]->SaveDigit(dig);
 // 	if(iSupMod<fNsmfull) fSMfull[iSupMod]->RegisterDigit(id,iSupMod,amp,x,y,z);
 // 	if(iSupMod>fNsmfull) fSMhalf[iSupMod-10]->RegisterDigit(id,iSupMod,amp,x,y,z);
@@ -456,7 +456,7 @@ void AliEveEMCALData::LoadDigitsFromEMCALLoader(AliEMCALLoader* emcl)
   //Get digits from the list  
   
   //  Double_t amp   = -1 ;
-  Double_t ampInt   = -1 ;
+  Double_t ampFlo   = -1 ;
   Int_t id      = -1 ;
   Int_t iSupMod =  0 ;
   Double_t x, y, z;
@@ -469,16 +469,16 @@ void AliEveEMCALData::LoadDigitsFromEMCALLoader(AliEMCALLoader* emcl)
        if(fDebug>1) cout << "Digit info " << dig->GetId() << " " << dig->GetAmp() << endl;
        id   = dig->GetId() ; //cell (digit) label
        // adc
-       ampInt  = dig->GetAmp(); //amplitude in cell (digit)
+       ampFlo  = dig->GetAmplitude(); //amplitude in cell (digit)
        // GeV
-       //       amp = ampInt*0.0153.; // To be modified with correct OCDB conversion
+       //       amp = ampFlo*0.0153.; // To be modified with correct OCDB conversion
 
        GetGeomInfo(id,iSupMod,x,y,z);
        
        //       // GeV
        //       fSM[iSupMod]->RegisterDigit(id,iSupMod,amp,x,y,z);
        // adc
-       fSM[iSupMod]->RegisterDigit(id,iSupMod,ampInt,x,y,z);
+       fSM[iSupMod]->RegisterDigit(id,iSupMod,ampFlo,x,y,z);
      }
       else {
 	cout << "Digit object empty" << endl;
@@ -505,9 +505,9 @@ void AliEveEMCALData::LoadDigitsFromESD()
     {
       Int_t id   = cells.GetCellNumber(icell);
       // adc
-      Double_t ampInt  = cells.GetAmplitude(icell);
+      Double_t ampFlo  = cells.GetAmplitude(icell);
       // GeV
-      //      Double_t amp = ampInt*0.0153; // To be modified with correct OCDB conversion
+      //      Double_t amp = ampFlo*0.0153; // To be modified with correct OCDB conversion
 
       GetGeomInfo(id,iSupMod,x,y,z);
 
@@ -516,9 +516,9 @@ void AliEveEMCALData::LoadDigitsFromESD()
 //       if(iSupMod<fNsmfull) fSMfull[iSupMod]->RegisterDigit(id,iSupMod,amp,x,y,z);
 //       if(iSupMod>fNsmfull) fSMhalf[iSupMod-10]->RegisterDigit(id,iSupMod,amp,x,y,z);
       // adc
-      fSM[iSupMod]->RegisterDigit(id,iSupMod,ampInt,x,y,z);
-      if(iSupMod<fNsmfull) fSMfull[iSupMod]->RegisterDigit(id,iSupMod,ampInt,x,y,z);
-      if(iSupMod>fNsmfull) fSMhalf[iSupMod-10]->RegisterDigit(id,iSupMod,ampInt,x,y,z);
+      fSM[iSupMod]->RegisterDigit(id,iSupMod,ampFlo,x,y,z);
+      if(iSupMod<fNsmfull) fSMfull[iSupMod]->RegisterDigit(id,iSupMod,ampFlo,x,y,z);
+      if(iSupMod>fNsmfull) fSMhalf[iSupMod-10]->RegisterDigit(id,iSupMod,ampFlo,x,y,z);
 
     } // end loop cells
 }
@@ -550,14 +550,14 @@ void AliEveEMCALData::LoadRecPoints(TTree* t)
 	// GeV
 	Double_t amp = (Double_t)rp->GetEnergy();
 	// adc
-	Double_t ampInt = amp/0.0153; // To be modified with correct OCDB conversion
+	Double_t ampFlo = amp/0.0153; // To be modified with correct OCDB conversion
 	TVector3 lpos;
 	rp->GetLocalPosition(lpos);
 
 // 	// GeV
 // 	fSM[iSupMod]->RegisterCluster(iSupMod,amp,lpos[0],lpos[1],lpos[2]);
         // adc
-	fSM[iSupMod]->RegisterCluster(iSupMod,ampInt,lpos[0],lpos[1],lpos[2]);
+	fSM[iSupMod]->RegisterCluster(iSupMod,ampFlo,lpos[0],lpos[1],lpos[2]);
       }
     }
   }
@@ -592,14 +592,14 @@ void AliEveEMCALData::LoadRecPointsFromEMCALLoader(AliEMCALLoader* emcl)
        if(fDebug>1) cout << "RecPoint info " << rp->GetAbsId() << " " << rp->GetEnergy() << endl;
        Int_t iSupMod = rp->GetSuperModuleNumber();
        Double_t amp = (Double_t)rp->GetEnergy();
-       Double_t ampInt = amp/0.0153; // To be modified with correct OCDB conversion
+       Double_t ampFlo = amp/0.0153; // To be modified with correct OCDB conversion
        TVector3 lpos;
        rp->GetLocalPosition(lpos);
        
 //        // GeV
 //        fSM[iSupMod]->RegisterCluster(iSupMod,amp,lpos[0],lpos[1],lpos[2]);
        // adc
-       fSM[iSupMod]->RegisterCluster(iSupMod,ampInt,lpos[0],lpos[1],lpos[2]);
+       fSM[iSupMod]->RegisterCluster(iSupMod,ampFlo,lpos[0],lpos[1],lpos[2]);
     }
   }
   

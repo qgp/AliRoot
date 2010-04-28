@@ -636,7 +636,7 @@ void AliEMCALQADataMakerRec::MakeDigits()
   TIter next(fDigitsArray) ; 
   AliEMCALDigit * digit ; 
   while ( (digit = dynamic_cast<AliEMCALDigit *>(next())) ) {
-    GetDigitsData(0)->Fill( digit->GetAmp()) ;
+    GetDigitsData(0)->Fill( digit->GetAmplitude()) ;
   }  
   
 }
