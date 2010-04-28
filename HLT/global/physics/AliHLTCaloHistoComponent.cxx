@@ -52,10 +52,13 @@ AliHLTCaloHistoComponent::AliHLTCaloHistoComponent() :
   fClusterReader(NULL),
   fEmcalClustersArray(NULL),
   fPhosClustersArray(NULL),
+  fPhosProducerArray(NULL),
+  fEmcalProducerArray(NULL),
   fPhosHistogramArray(NULL),
   fEmcalHistogramArray(NULL),
   fDoEmcal(kFALSE),
   fDoPhos(kFALSE)
+  
 {
   //see header file for documentation
 }
@@ -69,12 +72,29 @@ AliHLTCaloHistoComponent::~AliHLTCaloHistoComponent()
 Int_t AliHLTCaloHistoComponent::DoInit(int argc, const char** argv ) {
   //see header file for documentation
   
+  TString allArgs = "";
   
+  for ( int i = 0; i < argc; i++ ) {
+    if ( !allArgs.IsNull() ) allArgs += " ";
+    allArgs += argv[i];
+  }
+
+  HLTImportant("Configuring with string \"%s\"", allArgs.Data());
+
+  
+  fEmcalProducerArray = new TObjArray();
+  fEmcalProducerArray->SetOwner(kTRUE);
+  fPhosProducerArray = new TObjArray();
+  fPhosProducerArray->SetOwner(kTRUE);
+
+
   fEmcalHistogramArray = new TObjArray();
-  fEmcalHistogramArray->SetOwner(kTRUE);
+  fEmcalHistogramArray->SetOwner(kFALSE);
   fPhosHistogramArray = new TObjArray();
-  fPhosHistogramArray->SetOwner(kTRUE);
-  
+  fPhosHistogramArray->SetOwner(kFALSE);
+
+
+  //Configure the component
   bool doPhos = true;
   bool doEmcal = true;
 
@@ -86,56 +106,64 @@ Int_t AliHLTCaloHistoComponent::DoInit(int argc, const char** argv ) {
       doPhos = true;
       doEmcal = false;
     }
-    if(!strcmp("-emcal", argv[i])) {
+
+    else if(!strcmp("-emcal", argv[i])) {
       fDoEmcal = kTRUE;
       doEmcal = true;
       doPhos = false;
     }
-    if(!strcmp("-both", argv[i])) {
+
+    else if(!strcmp("-both", argv[i])) {
       fDoEmcal = kTRUE;
       fDoPhos = kTRUE;
       doEmcal = true;
       doPhos = true;
     }
     
-    if(!strcmp("-clusterenergy", argv[i])){
+    else if(!strcmp("-clusterenergy", argv[i])){
       if(doEmcal){
 	AliHLTCaloHistoClusterEnergy * histo = new AliHLTCaloHistoClusterEnergy("EMCAL");
-	fEmcalHistogramArray->AddLast(dynamic_cast<TObject*>(histo));
-	HLTInfo("Adding EMCAL cluster energy histogram");
+	fEmcalProducerArray->AddLast(dynamic_cast<TObject*>(histo));
+	HLTImportant("Adding EMCAL cluster energy histogram");
       }	
       if(doPhos){
 	AliHLTCaloHistoClusterEnergy * histo = new AliHLTCaloHistoClusterEnergy("PHOS");
-	fPhosHistogramArray->AddLast(dynamic_cast<TObject*>(histo));
-	HLTInfo("Adding PHOS cluster energy histogram");
+	fPhosProducerArray->AddLast(dynamic_cast<TObject*>(histo));
+	HLTImportant("Adding PHOS cluster energy histogram");
       }
     } 
 
-    if(!strcmp("-invariantmass", argv[i])){
+    else if(!strcmp("-invariantmass", argv[i])){
       if(doEmcal){
 	AliHLTCaloHistoInvMass * histo = new AliHLTCaloHistoInvMass("EMCAL");
-	fEmcalHistogramArray->AddLast(dynamic_cast<TObject*>(histo));
-	HLTInfo("Adding EMCAL invariant mass histogram");
+	fEmcalProducerArray->AddLast(dynamic_cast<TObject*>(histo));
+	HLTImportant("Adding EMCAL invariant mass histogram");
       }	
       if(doPhos){
 	AliHLTCaloHistoInvMass * histo = new AliHLTCaloHistoInvMass("PHOS");
-	fPhosHistogramArray->AddLast(dynamic_cast<TObject*>(histo));
-	HLTInfo("Adding PHOS invariant mass histogram");
+	fPhosProducerArray->AddLast(dynamic_cast<TObject*>(histo));
+	HLTImportant("Adding PHOS invariant mass histogram");
       }
     } 
    
-    if(!strcmp("-matchedtracks", argv[i])) {
+    else if(!strcmp("-matchedtracks", argv[i])) {
       if(doEmcal){
 	AliHLTCaloHistoMatchedTracks * histo = new AliHLTCaloHistoMatchedTracks("EMCAL");
-	fEmcalHistogramArray->AddLast(dynamic_cast<TObject*>(histo));
-	HLTInfo("Adding EMCAL track-matching histograms");
+	fEmcalProducerArray->AddLast(dynamic_cast<TObject*>(histo));
+	HLTImportant("Adding EMCAL track-matching histograms");
       }	
       if(doPhos){
 	AliHLTCaloHistoMatchedTracks * histo = new AliHLTCaloHistoMatchedTracks("PHOS");
-	fPhosHistogramArray->AddLast(dynamic_cast<TObject*>(histo));
-	HLTInfo("Adding PHOS track-matching histograms");
+	fPhosProducerArray->AddLast(dynamic_cast<TObject*>(histo));
+	HLTImportant("Adding PHOS track-matching histograms");
       }
+    } 
+
+    else {
+      HLTError("Unknown argument \"%s\"", argv[i]);
     }
+
+
   }
     
   if(fDoPhos)
@@ -161,12 +189,21 @@ Int_t AliHLTCaloHistoComponent::DoDeinit()
     delete fPhosClustersArray;
   fPhosClustersArray = NULL;
 
-  //Deleting these should also destroy histograms!!?
+  //Deleting these should also destroy histogram producers!!?
+  if(fEmcalProducerArray)
+    delete fEmcalProducerArray;
+  fEmcalProducerArray = NULL;
+ 
+ if(fPhosProducerArray)
+    delete fPhosProducerArray;
+  fPhosProducerArray = NULL;
+ 
+
   if(fEmcalHistogramArray)
     delete fEmcalHistogramArray;
   fEmcalHistogramArray = NULL;
- 
- if(fPhosHistogramArray)
+  
+  if(fPhosHistogramArray)
     delete fPhosHistogramArray;
   fPhosHistogramArray = NULL;
  
@@ -216,6 +253,10 @@ AliHLTComponent* AliHLTCaloHistoComponent::Spawn() {
 
 Int_t AliHLTCaloHistoComponent::DoEvent(const AliHLTComponentEventData& /*evtData*/, AliHLTComponentTriggerData& /*trigData*/) {
 
+  fPhosHistogramArray->Clear();
+  fEmcalHistogramArray->Clear();
+
+
   //see header file for documentation
   Int_t iResult = 0;
 
@@ -227,26 +268,30 @@ Int_t AliHLTCaloHistoComponent::DoEvent(const AliHLTComponentEventData& /*evtDat
   if (fDoEmcal) {
     //    HLTInfo("Processing EMCAL blocks");
     for (const AliHLTComponentBlockData* pBlock=GetFirstInputBlock( kAliHLTDataTypeCaloCluster | kAliHLTDataOriginEMCAL ); pBlock!=NULL; pBlock=GetNextInputBlock()) {
-      ProcessBlocks(pBlock, fEmcalHistogramArray);
+      ProcessBlocks(pBlock, fEmcalProducerArray);
     }
   }
 
   if (fDoPhos) {
     //HLTInfo("Processing PHOS blocks");
     for (const AliHLTComponentBlockData* pBlock=GetFirstInputBlock( kAliHLTDataTypeCaloCluster | kAliHLTDataOriginPHOS ); pBlock!=NULL; pBlock=GetNextInputBlock()) {
-      ProcessBlocks(pBlock, fPhosHistogramArray);
+      ProcessBlocks(pBlock, fPhosProducerArray);
     }
   }
 
-  //Push histos
-  for(int ih = 0; ih < fPhosHistogramArray->GetEntriesFast(); ih++) {
-    //HLTInfo("Pushing PHOS histograms");
-    PushBack(static_cast<AliHLTCaloHistoProducer*>(fPhosHistogramArray->At(ih))->GetHistograms(), kAliHLTDataTypeHistogram | kAliHLTDataOriginPHOS );
+  //Get histograms from all producers and push back in one block
+  for(int ih = 0; ih < fPhosProducerArray->GetEntriesFast(); ih++) {
+    fPhosHistogramArray->AddAll(static_cast<AliHLTCaloHistoProducer*>(fPhosProducerArray->At(ih))->GetHistograms());
+    //    PushBack(static_cast<AliHLTCaloHistoProducer*>(fPhosProducerArray->At(ih))->GetHistograms(), kAliHLTDataTypeHistogram | kAliHLTDataOriginPHOS );
+    
   }
-  for(int ih = 0; ih < fEmcalHistogramArray->GetEntriesFast(); ih++) {
-    //HLTInfo("Pushing EMCAL histograms");
-    PushBack(static_cast<AliHLTCaloHistoProducer*>(fEmcalHistogramArray->At(ih))->GetHistograms(), kAliHLTDataTypeHistogram | kAliHLTDataOriginEMCAL );
+  PushBack(fPhosHistogramArray, kAliHLTDataTypeHistogram | kAliHLTDataOriginPHOS );
+
+  for(int ih = 0; ih < fEmcalProducerArray->GetEntriesFast(); ih++) {
+    fEmcalHistogramArray->AddAll(static_cast<AliHLTCaloHistoProducer*>(fEmcalProducerArray->At(ih))->GetHistograms() );
+    //    PushBack(static_cast<AliHLTCaloHistoProducer*>(fEmcalProducerArray->At(ih))->GetHistograms(), kAliHLTDataTypeHistogram | kAliHLTDataOriginEMCAL );
   }
+  PushBack(fEmcalHistogramArray, kAliHLTDataTypeHistogram | kAliHLTDataOriginEMCAL );
 
   return iResult;
 

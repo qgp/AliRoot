@@ -16,11 +16,11 @@
 //* provided "as is" without express or implied warranty.                  *
 //**************************************************************************
 
-/** @file   AliHLTGlobalEsdConverterComponent.cxx
-    @author Matthias Richter
-    @date   
-    @brief  Global ESD converter component.
-*/
+//  @file   AliHLTGlobalEsdConverterComponent.cxx
+//  @author Matthias Richter
+//  @date   
+//  @brief  Global ESD converter component.
+// 
 
 // see header file for class documentation
 // or
@@ -172,6 +172,27 @@ int AliHLTGlobalEsdConverterComponent::DoInit(int argc, const char** argv)
   TString argument="";
   int bMissingParam=0;
 
+  // default list of skiped ESD objects
+  TString skipObjects=
+    // "AliESDRun,"
+    // "AliESDHeader,"
+    "AliESDZDC,"
+    "AliESDFMD,"
+    // "AliESDVZERO,"
+    // "AliESDTZERO,"
+    // "TPCVertex,"
+    // "SPDVertex,"
+    // "PrimaryVertex,"
+    // "AliMultiplicity,"
+    // "PHOSTrigger,"
+    // "EMCALTrigger,"
+    // "SPDPileupVertices,"
+    // "TrkPileupVertices,"
+    "Cascades,"
+    "Kinks,"
+    "AliRawDataErrorLogs,"
+    "AliESDACORDE";
+
   iResult=Reconfigure(NULL, NULL);
   TString allArgs = "";
   for ( int i = 0; i < argc; i++ ) {
@@ -195,10 +216,14 @@ int AliHLTGlobalEsdConverterComponent::DoInit(int argc, const char** argv)
       } else if (argument.CompareTo("-solenoidBz")==0) {
 	if ((bMissingParam=(++i>=pTokens->GetEntries()))) break;
 	HLTInfo("Magnetic Field set to: %s", ((TObjString*)pTokens->At(i))->GetString().Data());
-	fSolenoidBz=((TObjString*)pTokens->At(i))->GetString().Atof();
+	HLTWarning("argument '-solenoidBz' is deprecated, solenoid field initiaized from CDB settings");
 	continue;
+      } else if (argument.Contains("-skipobject=")) {
+	argument.ReplaceAll("-skipobject=", "");
+	skipObjects=argument;
       } else {
 	HLTError("unknown argument %s", argument.Data());
+	iResult=-EINVAL;
 	break;
       }
     }
@@ -214,6 +239,29 @@ int AliHLTGlobalEsdConverterComponent::DoInit(int argc, const char** argv)
     fESD = new AliESDEvent;
     if (fESD) {
       fESD->CreateStdContent();
+
+      // remove some of the objects which are not needed
+      if (fESD->GetList() && !skipObjects.IsNull()) {
+	pTokens=skipObjects.Tokenize(",");
+	if (pTokens) {
+	  const char* id=NULL;
+	  TIter next(pTokens);
+	  TObject* pObject=NULL;
+	  while ((pObject=next())!=NULL) {
+	    id=((TObjString*)pObject)->GetString().Data();
+	    TObject* pObj=fESD->GetList()->FindObject(id);
+	    if (pObj) {
+	      HLTDebug("removing object %s", id);
+	      fESD->GetList()->Remove(pObj);
+	      delete pObj;
+	    } else {
+	      HLTWarning("failed to remove object '%s' from ESD", id);
+	    }
+	  }
+	  fESD->GetStdContent();
+	  delete pTokens;
+	}
+      }
     } else {
       iResult=-ENOMEM;
     }
@@ -478,7 +526,7 @@ int AliHLTGlobalEsdConverterComponent::ProcessBlocks(TTree* pTree, AliESDEvent* 
 	}
 	
 	AliESDtrack iotrack;
-	iotrack.UpdateTrackParams(&(*element),AliESDtrack::kTRDin);
+	iotrack.UpdateTrackParams(&(*element),AliESDtrack::kTRDout);
 	iotrack.SetTRDpid(TRDpid);
 	
 	pESD->AddTrack(&iotrack);
