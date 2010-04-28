@@ -7,11 +7,11 @@
 //* ALICE Experiment at CERN, All rights reserved.                         *
 //* See cxx source for full Copyright notice                               *
 
-/** @file   AliHLTPendolino.h
-    @author Sebastian Bablok
-    @date   
-    @brief  
-*/
+//  @file   AliHLTPendolino.h
+//  @author Sebastian Bablok
+//  @date   
+//  @brief  
+//  @note   maintained by Matthias.Richter@ift.uib.no
 
 //#include <TObject.h>
 #include <TString.h>
@@ -45,61 +45,61 @@ class AliHLTPendolino : public AliShuttleInterface {
 		/**
  		 * Static string that defines the local storage indicator in path
  		 */  
-		static const TString kLOCAL_STORAGE_DEFINE;  // defines the local storage
+		static const TString fgkLocalStorageDefine;  // defines the local storage
 
 		/**
 		 * Static string defining the name of this inteface module.
 		 */
-		static const char* kHLTInterfaceModule;  // defines the name of inteface module
+		static const char* fgkHLTInterfaceModule;  // defines the name of inteface module
 
 		/**
  		 * Static value defining error value for a Pendolino exception.
  		 */ 
-		static const Int_t kHLTPendolinoException;  // error value for a Pendolino exception
+		static const Int_t fgkHLTPendolinoException;  // error value for a Pendolino exception
 
 		/**
  		 * Static value defining error value for a bad cast
  		 */ 
-		static const Int_t kHLTPendolinoBadCast;  // error value for a bad cast
+		static const Int_t fgkHLTPendolinoBadCast;  // error value for a bad cast
 
 		/**
  		 * Static value defining error value for handed in module is not 
  		 * implementing the PredictionProcessor interface.
  		 */ 
-		static const Int_t kHLTPendolinoNotPredictProc;  //  error value for "not implementing the PredictionProcessor interface"
+		static const Int_t fgkHLTPendolinoNotPredictProc;  //  error value for "not implementing the PredictionProcessor interface"
 
 		/**
 		 * Static value defining error value for module not existing.
 		 */ 
-		static const Int_t kHLTPendolinoModuleNotExisting;  // error value for module not existing
+		static const Int_t fgkHLTPendolinoModuleNotExisting;  // error value for module not existing
 
 		/**
 		 * Static value defining error value for PredictionProc does not
 		 * process DCS values.
 		 */	
-		static const Int_t kHLTPendolinoNoDCS; // error value for PredictionProc does not process DCS
+		static const Int_t fgkHLTPendolinoNoDCS; // error value for PredictionProc does not process DCS
 
 		/**
  		 * Static string that defines the base folder for the Taxi list files.
  		 */ 
-		static const TString kTaxiListBaseFolder;  // defines the base folder for the Taxi list files
+		static const TString fgkTaxiListBaseFolder;  // defines the base folder for the Taxi list files
 
 		/**
 		 * Static string that defines list folder name for taxi list
 		 */
-		static const TString kTaxiListFolderName; // defines list folder name for taxi list
+		static const TString fgkTaxiListFolderName; // defines list folder name for taxi list
 
 		/**
  		 * Static string that defines the filename for the Taxi list required
  		 * by the Pendolino
  		 */  
-		static const TString kTaxiListPendolino; // defines the filename for the Taxi list 
+		static const TString fgkTaxiListPendolino; // defines the filename for the Taxi list 
 
 		/**
  		 * Static value that defines the max length of a line that can be read
  		 * when browsing through the list file
  		 */ 
-		static const Int_t kMAX_LINE_LENGTH; // defines the max length of a line
+		static const Int_t fgkMaxLineLength; // defines the max length of a line
 		
 
 		/**
@@ -267,6 +267,9 @@ class AliHLTPendolino : public AliShuttleInterface {
 		 */
 //		virtual const char* GetTriggerConfiguration(); --> is private now
 
+  virtual const char* GetCTPTimeParams() {return "";}
+  virtual void Log(const char* name, const char* message, UInt_t level);
+
 		/**
 		 * Registers a preprocessor; actually it has to be a PredictionProcessor
 		 * since the Pendolino requires a PredictionProcessor. If the registered
@@ -295,14 +298,14 @@ class AliHLTPendolino : public AliShuttleInterface {
 		 * 				more PredictionProcessors, but if switching on failed 
 		 * 				for one, this one is not counted.)
 		 */
-		virtual UInt_t setToPredictMaking(); 
+		virtual UInt_t SetToPredictMaking(); 
 
 		/**
 		 * Function to get the number of registered PredictionProcessors
 		 *
 		 * @return number of registered PredictionProcessors
 		 */
-		Int_t getNumberOfPredictProc();
+		Int_t GetNumberOfPredictProc();
 
 		/**
 		 * Function to check if given PredtionProc allows for processing DCS
@@ -340,7 +343,7 @@ class AliHLTPendolino : public AliShuttleInterface {
 		 *
 		 * @return 0 on success, else an error code is returned.
 		 */
-		virtual Int_t prepareDCSValues(TString detector, TMap* DCSValues);
+		virtual Int_t PrepareDCSValues(TString detector, TMap* DCSValues);
 
 		/**
 		 * Function to retrieve dummy data for testing the Pendolino from a
@@ -358,7 +361,7 @@ class AliHLTPendolino : public AliShuttleInterface {
 		 * 			PredictionProcessor). NOTE: can be NULL, if no corresponding
 		 * 			PredictionProcessor is registered.
 		 */
-		virtual TMap* emulateDCSMap(TString detector, TString aliasName = "");
+		virtual TMap* EmulateDCSMap(TString detector, TString aliasName = "");
    
 		/**
  		 * Function to add a entry request to the Taxi lists.
@@ -369,7 +372,7 @@ class AliHLTPendolino : public AliShuttleInterface {
  		 * @return true, when successful included or entry already existing in 
  		 * 				list; else false.
  		 */
-		virtual Bool_t includeAliCDBEntryInList(const TString& entryPath); 
+		virtual Bool_t IncludeAliCDBEntryInList(const TString& entryPath); 
 
 		/**
 		 * Function to get the start time of the DCS Archive DB request; in HLT
@@ -493,12 +496,12 @@ class AliHLTPendolino : public AliShuttleInterface {
 		/**
 		 * Stores the start time of the DCS Archive DB request
 		 */
-		UInt_t fStartTime;
+                UInt_t fStartTime; //!
 
 		/**
 		 * Stores the end time of the DCS Archive DB request
 		 */
-		UInt_t fEndTime;
+                UInt_t fEndTime; //!
 		
 		ClassDef(AliHLTPendolino, 6);
 
@@ -515,7 +518,7 @@ inline Int_t AliHLTPendolino::GetRunNumber() {
 	return fRunNumber;
 }
 
-inline Int_t AliHLTPendolino::getNumberOfPredictProc() {
+inline Int_t AliHLTPendolino::GetNumberOfPredictProc() {
 	// getter for number of registered PredictionProcessors
 	return fPredictionProcessorMap.GetSize();
 }
