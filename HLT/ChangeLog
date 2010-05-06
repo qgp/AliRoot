@@ -140,8 +140,9 @@
 	postponed, introduces a compilation error in AliHLTEMCALDigitMakerComponent due to r40575
 	40537 cause conficts: depends on 40438
 
-	-?- Jet: 38384
-	postponed, includes lots of other files
+	xxx Jet: 38384
+	postponed, there has been a change in the AliAnalysisCuts changing argument list
+	of an interface function, not to be ported unless the AliAnalysisCuts is updated
 
 	-?- EMCAL: 40435 40436 40438 40441
 	postponed
@@ -149,10 +150,52 @@
 	xxx PerThomas: 40444 40455 40462
 	not to be ported: build messed up, compensated in 40455 40462
 
-	-?- DefaultReconstruction: 40465
-	postponed, first check extended chain
+	--- DefaultReconstruction: 40465
+	ported 2010-05-03
 
 	-?- UPCTrigger: 40596
-	postponed
+	ported 2010-05-03
 
 	Last checked revision: 40650
+
+2010-05-03 updated to r40817
+	--- Framework: 40820 40856
+	bugfix GRP macro, pendolino docu
+
+	--- ITS: 40790 40872
+	warnings removed, interface function implemented
+
+	--- TPCLib: 40653 40743
+	bugfix digit reader, macro updated
+
+	--- triggeragent: 40875
+	bug https://savannah.cern.ch/bugs/?66649
+
+	--- trigger: 40596,40722,40873,40908,40918
+	UPC trigger, D0 trigger, CaloClusterEnergy update
+
+	--- TRD: 40721 40725 40785 40787 40835
+	calibration components updated
+
+	--- MUON: 40677 40927
+	bugfix FullTracker
+
+	--- Framework: 40708 40709 40710 40711 40716 40735 40736
+	trunk development (documentation & cleanup): postponed
+
+	--- CALO: 40685 40686 40687 40717 40766 40776 40777
+	postponed
+
+	---> global: 40688 40727 40728 40737 40738 40739 40782 40788 40842
+	some conflicts possibly due to CALO: postponed
+
+	--- QA: 40659 40871 40915 40916 40920 40921 40922
+	trunk development: postponed
+
+	--- SampleLib: 40707 40734 40902
+	trunk development: postponed
+
+	--- EVE: 40681 40682 40683 40897 40910
+	trunk development: postponed
+
+	Last checked revision: 40927
