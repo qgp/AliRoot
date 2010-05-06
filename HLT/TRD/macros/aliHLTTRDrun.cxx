@@ -117,8 +117,10 @@ void aliHLTTRDrun(const TString inDir)
   if(customArgs || disableHLTflag){
     sCFArgs = readCDBentry("HLT/ConfigTRD/ClusterizerComponent"); //output_percentage 100 -lowflux -experiment -tailcancellation -faststreamer -yPosMethod LUT
     sTrackerArgs = readCDBentry("HLT/ConfigTRD/TrackerV1Component"); //"output_percentage 100 -lowflux -NTimeBins 24";
-    sCFArgs += ""; // -processTracklets
-    sTrackerArgs += ""; // -highLevelOutput yes -emulateHLToutput no
+    if(customArgs){
+      sCFArgs += ""; // -processTracklets
+      sTrackerArgs += ""; // -highLevelOutput yes -emulateHLToutput no
+    }
     if(disableHLTflag){
       sCFArgs +=" -HLTflag no";
       sTrackerArgs +=" -HLTflag no";
@@ -147,10 +149,7 @@ void aliHLTTRDrun(const TString inDir)
 
   AliHLTConfiguration writerOffConf("esdWriter", "TRDEsdWriter", "HTracker", "-datafile AliHLTTRDESDs.root -concatenate-events -concatenate-blocks");
 
-  gHLT.BuildTaskList(&HTracker); 
-  //gHLT.BuildTaskList(&HESDMaker);
-  //gHLT.BuildTaskList(&writerOffConf);
-  //gHLT.BuildTaskList(&HCalib);
+  gHLT.BuildTaskList("HTracker");
 
   gHLT.Run(nEvents);
 }
