@@ -60,6 +60,7 @@
 class AliHLTCaloClusterReader;
 class TRefArray;
 class AliESDEvent;
+class TMap;
 
 class AliHLTTriggerCaloClusterEnergy : public AliHLTTrigger
 {
@@ -72,6 +73,9 @@ public:
   virtual const char* GetTriggerName() const = 0;
   /// inherited from AliHLTComponent: create an instance
   virtual AliHLTComponent* Spawn() = 0;
+
+  ///Inherited from AliHLTComponent: Get list of OCDB objects
+  void GetOCDBObjectDescription( TMap* const targetMap);
 
  protected:
   /// inherited from AliHLTComponent: handle the initialization
@@ -125,10 +129,10 @@ protected :
   AliHLTCaloClusterReader * fClusterReader; //!transient
 
   /// the default configuration entry for this component
-  const char* fgkOCDBEntry; //!transient
+  const char* fOCDBEntry; //!transient
 
   
-  AliHLTComponentDataType fgkInputDataType;   ///Input data type for calo struct input, must be set in child class
+  AliHLTComponentDataType fInputDataType;   ///Input data type for calo struct input, must be set in child class
   
 
   ClassDef(AliHLTTriggerCaloClusterEnergy, 0)

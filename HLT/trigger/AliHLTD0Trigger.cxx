@@ -44,6 +44,7 @@
 #include "AliHLTMCEvent.h"
 #include "AliStack.h"
 #include "TParticle.h"
+#include "TMap.h"
 
 /** ROOT macro for the implementation of ROOT specific class methods */
 ClassImp(AliHLTD0Trigger)
@@ -71,6 +72,7 @@ AliHLTD0Trigger::AliHLTD0Trigger()
   , fVertex(NULL)
   , fField(0)
   , fEvent(NULL)
+  , fuseKF(false)
 {
   
   // see header file for class documentation
@@ -322,7 +324,10 @@ int AliHLTD0Trigger::ScanConfigurationArgument(int argc, const char** argv)
     fUseV0=true;
     return 1;
   }
-
+  if (argument.CompareTo("-useKF")==0) {
+    fuseKF=true;
+    return 1;
+  }
   // unknown argument
   return -EINVAL;
 }
@@ -369,7 +374,7 @@ void AliHLTD0Trigger::RecD0(Int_t& nD0, Int_t& nD0true){
       
       ftwoTrackArray->AddAt(tP,0);
       ftwoTrackArray->AddAt(tN,1);
-      AliAODVertex *vertexp1n1 = fd0calc->ReconstructSecondaryVertex(ftwoTrackArray,fField,fVertex);
+      AliAODVertex *vertexp1n1 = fd0calc->ReconstructSecondaryVertex(ftwoTrackArray,fField,fVertex,fuseKF);
       if(!vertexp1n1) { 
 	ftwoTrackArray->Clear();
 	continue; 
@@ -512,4 +517,10 @@ bool AliHLTD0Trigger::CheckTrackMC(AliExternalTrackParam* pt, AliExternalTrackPa
     }
   }
   return false;
+}
+void AliHLTD0Trigger::GetOCDBObjectDescription( TMap* const targetMap)
+{
+  // Get a list of OCDB object description.
+  if (!targetMap) return;
+  targetMap->Add(new TObjString("HLT/ConfigHLT/D0Trigger"),new TObjString("Object with default cuts for D0 reconstruction" ));
 }
