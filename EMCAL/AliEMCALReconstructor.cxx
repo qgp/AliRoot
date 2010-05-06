@@ -60,7 +60,7 @@
 #include "AliRun.h"
 #include "AliEMCALTriggerData.h"
 #include "AliEMCALTriggerElectronics.h"
-#include "AliVZEROLoader.h"
+//#include "AliVZEROLoader.h"
 
 ClassImp(AliEMCALReconstructor) 
 
@@ -161,16 +161,16 @@ void AliEMCALReconstructor::Reconstruct(TTree* digitsTree, TTree* clustersTree) 
   else
 	  clustersTree->Branch("EMTRG","AliEMCALTriggerData",&trgData,bufferSize);
 
-  AliVZEROLoader* vzeroLoader = dynamic_cast<AliVZEROLoader*>(AliRunLoader::Instance()->GetDetectorLoader("VZERO"));
-  
-  TTree* treeV0 = 0x0;
-	
-  if (vzeroLoader) 
-  {
-	  vzeroLoader->LoadDigits("READ");
-      treeV0 = vzeroLoader->TreeD();
-  }
-
+//  AliVZEROLoader* vzeroLoader = dynamic_cast<AliVZEROLoader*>(AliRunLoader::Instance()->GetDetectorLoader("VZERO"));
+//  
+//  TTree* treeV0 = 0x0;
+//	
+//  if (vzeroLoader) 
+//  {
+//	  vzeroLoader->LoadDigits("READ");
+//      treeV0 = vzeroLoader->TreeD();
+//  }
+//
   TClonesArray *trgDigits = new TClonesArray("AliEMCALRawDigit",1000);
   TBranch *branchdig = digitsTree->GetBranch("EMTRG");
   if (!branchdig) 
@@ -182,7 +182,7 @@ void AliEMCALReconstructor::Reconstruct(TTree* digitsTree, TTree* clustersTree) 
   branchdig->SetAddress(&trgDigits);
   branchdig->GetEntry(0);
 
-  fgTriggerProcessor->Digits2Trigger(trgDigits, treeV0, trgData);
+  fgTriggerProcessor->Digits2Trigger(trgDigits, NULL, trgData);
 	
   trgDigits->Delete();
 	
@@ -199,11 +199,11 @@ void AliEMCALReconstructor::Reconstruct(TTree* digitsTree, TTree* clustersTree) 
 
   }
 
-  if (vzeroLoader) 
-  {
-	  vzeroLoader->UnloadDigits();
-  }
-
+//  if (vzeroLoader) 
+//  {
+//	  vzeroLoader->UnloadDigits();
+//  }
+//
   clustersTree->Fill();	
 
   delete trgData;
