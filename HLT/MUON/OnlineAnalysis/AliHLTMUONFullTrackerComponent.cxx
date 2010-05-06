@@ -173,12 +173,18 @@ int AliHLTMUONFullTrackerComponent::DoEvent( const AliHLTComponentEventData& evt
   // Process an event
   unsigned long totalSize = 0;
   AliHLTUInt32_t specification = 0;  // Contains the output data block spec bits.
+  bool resultOk = true;
   // Loop over all input blocks in the event
-
-  HLTDebug("Processing event %llu with %u input data blocks.",
+  
+  HLTDebug("Processing iEvent %llu with %u input data blocks.",
 	 evtData.fEventID, evtData.fBlockCnt
-	 );
-
+	       );
+  
+  if (! IsDataEvent()){
+    size = totalSize;
+    return 0;
+  }
+  
   //if(evtData.fBlockCnt==3) return 0;
 
     AliHLTMUONTracksBlockWriter block(outputPtr, size);  
@@ -192,6 +198,7 @@ int AliHLTMUONFullTrackerComponent::DoEvent( const AliHLTComponentEventData& evt
 	      );
       if (DumpDataOnError()) DumpEvent(evtData, blocks, trigData, outputPtr, size, outputBlocks);
       size = 0; // Important to tell framework that nothing was generated.
+      resultOk = false;
       return -ENOBUFS;
     }
 
@@ -204,16 +211,19 @@ int AliHLTMUONFullTrackerComponent::DoEvent( const AliHLTComponentEventData& evt
   	     n, DataType2Text(blocks[n].fDataType).c_str(), blocks[n].fPtr, blocks[n].fSize
   	     );
 
+    if (not resultOk) continue;
+
     if (blocks[n].fDataType == AliHLTMUONConstants::RecHitsBlockDataType()){
       specification |= blocks[n].fSpecification;
 			
       AliHLTMUONRecHitsBlockReader inblock(blocks[n].fPtr, blocks[n].fSize);
       if (not BlockStructureOk(inblock)){
   	if (DumpDataOnError()) DumpEvent(evtData, blocks, trigData, outputPtr, size, outputBlocks);
+	resultOk = false;
   	continue;
       }
 
-      fTracker->SetInput(AliHLTMUONUtils::SpecToDDLNumber(blocks[n].fSpecification), inblock.GetArray(), inblock.Nentries());	
+      resultOk = fTracker->SetInput(AliHLTMUONUtils::SpecToDDLNumber(blocks[n].fSpecification), inblock.GetArray(), inblock.Nentries());	
       
 
     }else if (blocks[n].fDataType == AliHLTMUONConstants::TriggerRecordsBlockDataType()){
@@ -221,26 +231,32 @@ int AliHLTMUONFullTrackerComponent::DoEvent( const AliHLTComponentEventData& evt
       AliHLTMUONTriggerRecordsBlockReader inblock(blocks[n].fPtr, blocks[n].fSize);
       if (not BlockStructureOk(inblock)){
   	if (DumpDataOnError()) DumpEvent(evtData, blocks, trigData, outputPtr, size, outputBlocks);
+	resultOk = false;
   	continue;
       }
       
-      fTracker->SetInput(AliHLTMUONUtils::SpecToDDLNumber(blocks[n].fSpecification), inblock.GetArray(),inblock.Nentries());	
+      resultOk = fTracker->SetInput(AliHLTMUONUtils::SpecToDDLNumber(blocks[n].fSpecification), inblock.GetArray(),inblock.Nentries());	
+
     }//check if trigger block
   }//loop over blocks array of rechit and trigrecs
-  
-  AliHLTUInt32_t nofTracks = block.MaxNumberOfEntries();
+
+  AliHLTUInt32_t nofTracks = 0;
+  if( resultOk ){
     
-  //  if (evtData.fBlockCnt!=3){
-  bool resultOk  = fTracker->Run(int(evtData.fEventID),block.GetArray(), nofTracks);
+    nofTracks   = block.MaxNumberOfEntries();
+    //  if (evtData.fBlockCnt!=3){
+    resultOk  = fTracker->Run(evtData.fEventID,block.GetArray(), nofTracks);
+  }
+
   if (resultOk){
     assert( nofTracks <= block.MaxNumberOfEntries() );
     block.SetNumberOfEntries(nofTracks);
-		
+    
     HLTDebug("Number of reconstructed tracks found is %d\n", nofTracks);
     HLTDebug("sizeof  %d\n", sizeof(AliHLTMUONMansoTrackStruct));
     HLTDebug("Bytes Used  is %d\n",block.BytesUsed());    
     HLTDebug("specification is %d\n", specification);
-
+    
     AliHLTComponentBlockData bd;
     FillBlockData(bd);
     bd.fPtr = outputPtr;
