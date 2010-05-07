@@ -50,6 +50,8 @@ class AliLHCData : public TObject
   enum Collim_t {kTCTVB4L2, kTCTVB4R2, kTCLIA4R2, kNCollimators};
   enum ColJaw_t {kGapDn,kGapUp,kLeftDn,kLeftUp,kRightDn,kRightUp,kNJaws};
   enum          {kMaxBSlots = 3564};
+  enum          {kMarginSOR = 60*60*24*30, // use margin of 30 days for SOR, when looking for the 1st record
+		 kMarginEOR = 60*15};      // use margin of 15 min for EOR, when looking for the last record
   //
   enum {kIntTot,kIntTotAv,kIntBunchAv,
 	kLumAcqMode,kLumTot,kLumTotErr,kLumBunch,kLumBunchErr,kLumCrossAng,kLumCrossAngErr,
@@ -74,6 +76,7 @@ class AliLHCData : public TObject
   void                  SetFillNumber(Int_t fill)                          {fFillNumber = fill;}
   void                  SetTMin(Double_t t)                                {fTMin = t<0?0:(t>1e10?1e10:t);}
   void                  SetTMax(Double_t t)                                {fTMax = t<0?0:(t>1e10?1e10:t);}
+  //
   virtual void          Print(const Option_t *opt="")                const;
   //
   Int_t GetNBunchConfigMeasured(int bm)           const {return GoodPairID(bm)?fBunchConfMeas[bm][kNStor]:-1;}
@@ -158,7 +161,7 @@ class AliLHCData : public TObject
   Bool_t                FillData(double tmin=0, double tmax=1.e20);
   virtual void          Clear(const Option_t *opt="");
   void                  PrintAux(Bool_t full,const Int_t refs[2],const Option_t *opt="") const;
-  TObjArray*            GetDCSEntry(const char* key,int &entry,double tmin,double tmax) const;
+  TObjArray*            GetDCSEntry(const char* key,int &entry,int &last,double tmin,double tmax) const;
   Int_t                 FillScalarRecord(  int refs[2], const char* rec, const char* recErr=0);
   Int_t                 FillBunchConfig(   int refs[2], const char* rec);
   Int_t                 FillStringRecord(  int refs[2], const char* rec);
