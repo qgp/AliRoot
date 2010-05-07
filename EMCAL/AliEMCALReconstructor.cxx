@@ -185,7 +185,8 @@ void AliEMCALReconstructor::Reconstruct(TTree* digitsTree, TTree* clustersTree) 
   fgTriggerProcessor->Digits2Trigger(trgDigits, NULL, trgData);
 	
   trgDigits->Delete();
-	
+  delete	trgDigits;
+
   if(fgDigitsArr && fgDigitsArr->GetEntries()) {
 
     fgClusterizer->SetInput(digitsTree);
