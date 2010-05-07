@@ -1,5 +1,5 @@
-#ifndef ALIVZEROTriggerMask_H
-#define ALIVZEROTriggerMask_H
+#ifndef ALIVZEROTRIGGERMASK_H
+#define ALIVZEROTRIGGERMASK_H
 
 ///_________________________________________________________________________
 ///
@@ -7,8 +7,10 @@
 ///_________________________________________________________________________   
 
 #include <TObject.h>
-#include <TTree.h>
-#include <TClonesArray.h>
+class TTree;
+class TClonesArray;
+class AliESDVZERO;
+class AliVZEROCalibData;
 
 class AliVZEROTriggerMask : public TObject
 {
@@ -16,40 +18,43 @@ class AliVZEROTriggerMask : public TObject
                    AliVZEROTriggerMask();   // constructor
    virtual        ~AliVZEROTriggerMask(){}  // destructor
 
-   void FillMasks(TTree* vzeroDigitsTree,
-		  TClonesArray* vzeroDigits);
+   void FillMasks(AliESDVZERO *esdV0,
+		  AliVZEROCalibData *cal,
+		  TF1 *slewing);
    Double_t GetZPosition(const char* symname);
 
-   void            SetAdcThreshold(Float_t t=55.0) 
-     {fAdcThresHold=t;}
-   void            SetTimeWindowWidthBBA(Float_t w=50.0)
-     {fTimeWindowWidthBBA=w;}
-   void            SetTimeWindowWidthBBC(Float_t w=50.0)
-     {fTimeWindowWidthBBC=w;}
-   void            SetTimeWindowWidthBGA(Float_t w=20.0) 
-     {fTimeWindowWidthBGA=w;}
-   void            SetTimeWindowWidthBGC(Float_t w=20.0) 
-     {fTimeWindowWidthBGC=w;}
-
-   UInt_t GetBBtriggerV0A() { return fBBtriggerV0A;}
-   UInt_t GetBGtriggerV0A() { return fBGtriggerV0A;}
-   UInt_t GetBBtriggerV0C() { return fBBtriggerV0C;}
-   UInt_t GetBGtriggerV0C() { return fBGtriggerV0C;}
+   void            SetAdcThreshold(Float_t thr) 
+     {fAdcThresHold=thr;}
+   void            SetTimeWindowBBA(Float_t wlow,Float_t wup)
+     {fTimeWindowBBALow=wlow; fTimeWindowBBAUp=wup;}
+   void            SetTimeWindowBBC(Float_t wlow,Float_t wup)
+     {fTimeWindowBBCLow=wlow; fTimeWindowBBCUp=wup;}
+   void            SetTimeWindowBGA(Float_t wlow,Float_t wup) 
+     {fTimeWindowBGALow=wlow; fTimeWindowBGAUp=wup;}
+   void            SetTimeWindowBGC(Float_t wlow,Float_t wup) 
+     {fTimeWindowBGCLow=wlow; fTimeWindowBGCUp=wup;}
 
 private:
 
-   Float_t fAdcThresHold;
-   Float_t fTimeWindowWidthBBA; // 
-   Float_t fTimeWindowWidthBGA; // 
-   Float_t fTimeWindowWidthBBC; // 
-   Float_t fTimeWindowWidthBGC; // 
-   UInt_t fBBtriggerV0A; // bit mask for Beam-Beam trigger in V0A
-   UInt_t fBGtriggerV0A; // bit mask for Beam-Gas trigger in V0A
-   UInt_t fBBtriggerV0C; // bit mask for Beam-Beam trigger in V0C
-   UInt_t fBGtriggerV0C; // bit mask for Beam-Gas trigger in V0C
+   Float_t fAdcThresHold; // Threshold on the ADC
+   Float_t fTimeWindowBBALow;  // BBA window (lower cut)
+   Float_t fTimeWindowBBAUp;   // BBA window (upper cut)
+   Float_t fTimeWindowBGALow;  // BGA window (lower cut)
+   Float_t fTimeWindowBGAUp;   // BGA window (upper cut)
+   Float_t fTimeWindowFakeALow;// Fake V0A window (lower cut)
+   Float_t fTimeWindowFakeAUp; // Fake V0A window (upper cut)
+   Float_t fTimeWindowBBCLow;  // BBC window (lower cut)
+   Float_t fTimeWindowBBCUp;   // BBC window (upper cut)
+   Float_t fTimeWindowBGCLow;  // BGC window (lower cut)
+   Float_t fTimeWindowBGCUp;   // BGC window (upper cut)
+   Float_t fTimeWindowFakeCLow;// Fake V0C window (lower cut)
+   Float_t fTimeWindowFakeCUp; // Fake V0C window (upper cut)
+
+   Float_t fV0ADist;     // Z position of V0A
+   Float_t fV0CDist;     // Z position of V0C
 
 
-   ClassDef( AliVZEROTriggerMask, 1 )  // VZERO Trigger Detector class
+   ClassDef( AliVZEROTriggerMask, 2 )  // VZERO Trigger Detector class
 };
 
-#endif // AliVZEROTriggerMask_H
+#endif // ALIVZEROTRIGGERMASK_H
