@@ -15,6 +15,7 @@
 class TArrayI;
 #include <TVectorDfwd.h>
 #include <TVectorFfwd.h>
+#include <TMatrixDfwd.h>
 
 class TGraph;
 class TMap;
