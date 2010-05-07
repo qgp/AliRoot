@@ -56,15 +56,13 @@ AliQACheckerBase::AliQACheckerBase(const char * name, const char * title) :
   fDataSubDir(0x0),
   fRefSubDir(0x0), 
   fRefOCDBSubDir(new TObjArray*[AliRecoParam::kNSpecies]), 
-  fLowTestValue(0x0),
-  fUpTestValue(0x0),
+  fLowTestValue(new Float_t[AliQAv1::kNBIT]),
+  fUpTestValue(new Float_t[AliQAv1::kNBIT]),
   fImage(new TCanvas*[AliRecoParam::kNSpecies]), 
   fPrintImage(kTRUE), 
   fExternParamList(new TList())
 {
   // ctor
-  fLowTestValue = new Float_t[AliQAv1::kNBIT] ; 
-  fUpTestValue  = new Float_t[AliQAv1::kNBIT] ; 
   fLowTestValue[AliQAv1::kINFO]    =  0.5   ; 
   fUpTestValue[AliQAv1::kINFO]     = 1.0 ; 
   fLowTestValue[AliQAv1::kWARNING] =  0.002 ; 
@@ -96,9 +94,9 @@ AliQACheckerBase::AliQACheckerBase(const AliQACheckerBase& qac) :
   fDataSubDir(qac.fDataSubDir), 
   fRefSubDir(qac.fRefSubDir), 
   fRefOCDBSubDir(qac.fRefOCDBSubDir), 
-  fLowTestValue(qac.fLowTestValue),
-  fUpTestValue(qac.fLowTestValue), 
-  fImage(NULL),  
+  fLowTestValue(new Float_t[AliQAv1::kNBIT]),
+  fUpTestValue(new Float_t[AliQAv1::kNBIT]), 
+  fImage(new TCanvas*[AliRecoParam::kNSpecies]),  
   fPrintImage(kTRUE), 
   fExternParamList(new TList())  
 {
@@ -149,7 +147,7 @@ AliQACheckerBase::~AliQACheckerBase()
 }
 
 //____________________________________________________________________________
-Double_t * AliQACheckerBase::Check(AliQAv1::ALITASK_t index, const AliDetectorRecoParam * recoParam) 
+void AliQACheckerBase::Check(Double_t * test, AliQAv1::ALITASK_t index, const AliDetectorRecoParam * recoParam) 
 {
   // Performs a basic checking
   // Compares all the histograms stored in the directory
@@ -182,24 +180,20 @@ Double_t * AliQACheckerBase::Check(AliQAv1::ALITASK_t index, const AliDetectorRe
     }
   }
  
-  Double_t * test = Check(index, list, recoParam) ;
+  Check(test, index, list, recoParam) ;
   
   delete[] list ; 
     
-  return test ;
 }  
 
 //____________________________________________________________________________
-Double_t * AliQACheckerBase::Check(AliQAv1::ALITASK_t task, TObjArray ** list, const AliDetectorRecoParam * /*recoParam*/) 
+void AliQACheckerBase::Check(Double_t * test, AliQAv1::ALITASK_t task, TObjArray ** list, const AliDetectorRecoParam * /*recoParam*/) 
 {
   // Performs a basic checking
   // Compares all the histograms in the list
 
-	Double_t * test = new Double_t[AliRecoParam::kNSpecies] ;
 	Int_t count[AliRecoParam::kNSpecies]   = { 0 }; 
 
-//  TDirectory * refDir     = NULL ; 
-//	TObjArray ** refOCDBDir = NULL  ;	
   GetRefSubDir(GetName(), AliQAv1::GetTaskName(task), fRefSubDir, fRefOCDBSubDir) ;
  // SetRefandData(refDir, refOCDBDir) ; 
   
@@ -241,7 +235,6 @@ Double_t * AliQACheckerBase::Check(AliQAv1::ALITASK_t task, TObjArray ** list, c
       }
     }
   }
-  return test ;
 }  
 
 
@@ -280,7 +273,7 @@ void AliQACheckerBase::GetRefSubDir(const char * det, const char * task, TDirect
     return ; 
   } else {
     AliQAManager* manQA = AliQAManager::QAManager(AliQAv1::GetTaskIndex(task)) ;
-    dirOCDB = new TObjArray*[AliRecoParam::kNSpecies] ;	
+      //    dirOCDB = new TObjArray*[AliRecoParam::kNSpecies] ;	
     for (Int_t specie = 0 ; specie < AliRecoParam::kNSpecies ; specie++) {
       dirOCDB[specie] = NULL ; 
       if ( !AliQAv1::Instance()->IsEventSpecieSet(specie) ) 
@@ -330,7 +323,7 @@ void AliQACheckerBase::Run(AliQAv1::ALITASK_t index, AliDetectorRecoParam * reco
 	AliDebug(AliQAv1::GetQADebugLevel(), Form("Processing %s", AliQAv1::GetAliTaskName(index))) ; 
   
 	Double_t * rv = NULL ;
-  rv = Check(index, recoParam) ;
+  Check(rv, index, recoParam) ;
 	SetQA(index, rv) ; 	
 	
   AliDebug(AliQAv1::GetQADebugLevel(), Form("Test result of %s", AliQAv1::GetAliTaskName(index))) ;
@@ -345,14 +338,13 @@ void AliQACheckerBase::Run(AliQAv1::ALITASK_t index, TObjArray ** list, AliDetec
 { 
 	AliDebug(AliQAv1::GetQADebugLevel(), Form("Processing %s", AliQAv1::GetAliTaskName(index))) ; 
   
-	Double_t * rv = NULL ;
-  rv = Check(index, list, recoParam) ;
+	Double_t * rv = new Double_t[AliRecoParam::kNSpecies] ;
+  Check(rv, index, list, recoParam) ;
 	SetQA(index, rv) ; 	
 	
   AliDebug(AliQAv1::GetQADebugLevel(), Form("Test result of %s", AliQAv1::GetAliTaskName(index))) ;
 	
-  if (rv) 
-    delete [] rv ; 
+  delete [] rv ; 
   Finish() ; 
 }
 

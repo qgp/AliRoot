@@ -82,15 +82,13 @@ AliHMPIDQAChecker::~AliHMPIDQAChecker()
   delete fQARefRec ; 
 }
 //_________________________________________________________________
-Double_t * AliHMPIDQAChecker::Check(AliQAv1::ALITASK_t index, TObjArray ** list, const AliDetectorRecoParam * /*recoParam*/) 
+void AliHMPIDQAChecker::Check(Double_t *  check, AliQAv1::ALITASK_t index, TObjArray ** list, const AliDetectorRecoParam * /*recoParam*/) 
 {
 //
 // Main check function: Depending on the TASK, different checks are applied
 // At the moment:       check for empty histograms and checks for RecPoints
 
-  Double_t * check = new Double_t[AliRecoParam::kNSpecies] ; 
   if(fNoReference)  
-  return check;
 
   for (Int_t specie = 0 ; specie < AliRecoParam::kNSpecies ; specie++) {
     check[specie] = 1.0;
@@ -111,8 +109,6 @@ Double_t * AliHMPIDQAChecker::Check(AliQAv1::ALITASK_t index, TObjArray ** list,
     //default check response. It will be changed when reasonable checks will be considered
     else check[specie] = 0.7 ; // /-> Corresponds to kINFO see AliQACheckerBase::Run 
   } // species loop
-
-  return check;
 }
 //_________________________________________________________________
 Double_t AliHMPIDQAChecker::CheckEntries(TObjArray * list) const

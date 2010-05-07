@@ -30,7 +30,7 @@ public:
   AliHMPIDQAChecker(const AliHMPIDQAChecker& qac) ; // cpy ctor   
   virtual ~AliHMPIDQAChecker() ; // dtor
   
-  virtual Double_t * Check(AliQAv1::ALITASK_t index, TObjArray ** list, const AliDetectorRecoParam * recoParam) ;
+  virtual void Check(Double_t * test, AliQAv1::ALITASK_t index, TObjArray ** list, const AliDetectorRecoParam * recoParam) ;
   
   Double_t CheckEntries(TObjArray * list) const ;
   Double_t CheckRec(TObjArray *listrec, TObjArray *listref) const ;
