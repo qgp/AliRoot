@@ -112,12 +112,24 @@ class AliMUON : public  AliDetector
 	{ fTriggerEffCells = trigEffCells; }
     virtual Bool_t GetTriggerEffCells() const;
                  /// Set off generation of noisy digits
-    virtual void SetDigitizerWithNoise(Int_t digitizerWithNoise)
-        { fDigitizerWithNoise = digitizerWithNoise; }
+  virtual void SetDigitizerWithNoise(Int_t digitizerWithNoise, Double_t nsigmas=4.0)
+  { fDigitizerWithNoise = digitizerWithNoise; fDigitizerNSigmas = nsigmas; }
+  
     virtual Int_t GetDigitizerWithNoise() const; 
+  
+  virtual Double_t GetDigitizerNSigmas() const { return fDigitizerNSigmas; }
+
+  /// Parametrised tail effect in resolution histogram
+  virtual void SetTailEffect(Bool_t isTailEffect) { fIsTailEffect=isTailEffect; }
     
-                 /// Parametrised tail effect in resolution histogram
-    virtual void SetTailEffect(Bool_t isTailEffect) { fIsTailEffect=isTailEffect; }
+    // For pileup studies
+    //
+                 /// Set time limits for sdigits to be digitized
+    virtual void SetTimeLimits(Float_t time1, Float_t time2) {fTimeMin=time1; fTimeMax=time2;}
+                 /// Return minimum time(*10^9) for a sdigit to be digitized
+    virtual Float_t GetTimeMin() {return fTimeMin;}
+                 /// Return maximum time(*10^9) for a sdigit to be digitized
+    virtual Float_t GetTimeMax() {return fTimeMax;}
     
     // Getters
                   /// Return reference to Chamber \a id
@@ -167,6 +179,7 @@ class AliMUON : public  AliDetector
     Int_t  fTriggerCoinc44;     ///< Flag to select TriggerCoinc44 
     Bool_t fTriggerEffCells;    ///< Flag to select TriggerEffCells
     Int_t  fDigitizerWithNoise; ///< Flag to switch on/off generation of noisy digits
+    Double_t fDigitizerNSigmas; ///< nsigma cut for noise generation
     Bool_t fIsTailEffect;       ///< Switch to turn on/off the tail effect
 
     AliMUONRawWriter* fRawWriter; //!< Raw data writer
@@ -178,8 +191,11 @@ class AliMUON : public  AliDetector
     TString fDigitStoreConcreteClassName; ///< to be able to select what the sdigitizer uses
     
     AliMUONCalibrationData* fCalibrationData; ///< pointer of calibration data
-    
-    ClassDef(AliMUON,17)  // MUON Detector base class
+
+    Float_t fTimeMin;           ///< minimum time(*10^9) for an sdigit to be digitized
+    Float_t fTimeMax;           ///< maximum time(*10^9) for an sdigit to be digitized
+  
+    ClassDef(AliMUON,20)  // MUON Detector base class
 };
 #endif
 

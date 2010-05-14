@@ -85,7 +85,7 @@ namespace
   }
 }
 
-const Double_t AliMUONDigitizerV3::fgkNSigmas=3;
+Double_t AliMUONDigitizerV3::fgNSigmas = 4.0;
 
 /// \cond CLASSIMP
 ClassImp(AliMUONDigitizerV3)
@@ -322,7 +322,7 @@ AliMUONDigitizerV3::DecalibrateTrackerDigit(const AliMUONVCalibParam& pedestals,
     
   adc = TMath::Nint(padc + pedestalMean + adcNoise + 0.5);
   
-  if ( adc < TMath::Nint(pedestalMean + fgkNSigmas*pedestalSigma + 0.5) ) 
+  if ( adc < TMath::Nint(pedestalMean + fgNSigmas*pedestalSigma + 0.5) ) 
   {
     adc = 0;
   }
@@ -538,7 +538,7 @@ AliMUONDigitizerV3::GenerateNoisyDigitsForOneCathode(AliMUONVDigitStore& digitSt
   Int_t maxIx = seg->MaxPadIndexX();
   Int_t maxIy = seg->MaxPadIndexY();
   
-  static const Double_t kProbToBeOutsideNsigmas = TMath::Erfc(fgkNSigmas/TMath::Sqrt(2.0)) / 2. ;
+  static const Double_t kProbToBeOutsideNsigmas = TMath::Erfc(fgNSigmas/TMath::Sqrt(2.0)) / 2. ;
   
   Int_t nofNoisyPads = TMath::Nint(kProbToBeOutsideNsigmas*nofPads);
   if ( !nofNoisyPads ) return;
@@ -783,8 +783,14 @@ AliMUONDigitizerV3::MergeWithSDigits(AliMUONVDigitStore*& outputStore,
   TIter next(input.CreateIterator());
   AliMUONVDigit* sdigit;
   
+  const float kTime1 = muon()->GetTimeMin();
+  const float kTime2 = muon()->GetTimeMax();
+
   while ( ( sdigit = static_cast<AliMUONVDigit*>(next()) ) )
   {
+    float time = sdigit->Time()*1E9;
+    if (time<kTime1 || time>kTime2) continue;
+    
     // Update the track references using the mask.
     // FIXME: this is dirty, for backward compatibility only.
     // Should re-design all this way of keeping track of MC information...
@@ -806,7 +812,7 @@ AliMUONDigitizerV3::NoiseFunction()
   static TF1* f = 0x0;
   if (!f)
   {
-    f = new TF1("AliMUONDigitizerV3::NoiseFunction","gaus",fgkNSigmas,fgkNSigmas*10);
+    f = new TF1("AliMUONDigitizerV3::NoiseFunction","gaus",fgNSigmas,fgNSigmas*10);
     f->SetParameters(1,0,1);
   }
   return f;

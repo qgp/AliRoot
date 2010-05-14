@@ -97,12 +97,15 @@ AliMUON::AliMUON()
     fTriggerCoinc44(0),
     fTriggerEffCells(0),
     fDigitizerWithNoise(1),
+    fDigitizerNSigmas(4.0),
     fIsTailEffect(kTRUE),
     fRawWriter(0x0),
     fDigitMaker(0x0),
     fHitStore(0x0),
     fDigitStoreConcreteClassName(),
-    fCalibrationData(0x0)
+    fCalibrationData(0x0),
+    fTimeMin(-100000),
+    fTimeMax(100000)
 {
 /// Default Constructor
     
@@ -132,12 +135,15 @@ AliMUON::AliMUON(const char *name, const char* title)
     fTriggerCoinc44(0),
     fTriggerEffCells(0),
     fDigitizerWithNoise(1),
+    fDigitizerNSigmas(4.0),
     fIsTailEffect(kTRUE),
     fRawWriter(0x0),
     fDigitMaker(new AliMUONDigitMaker),
     fHitStore(0x0),
     fDigitStoreConcreteClassName("AliMUONDigitStoreV2S"),
-    fCalibrationData()
+    fCalibrationData(),
+    fTimeMin(-100000),
+    fTimeMax(100000)
 
 {
   /// Standard constructor  
@@ -430,6 +436,7 @@ AliDigitizer* AliMUON::CreateDigitizer(AliRunDigitizer* manager) const
 /// Return digitizer
   
   AliMUONDigitizerV3* digitizer = new AliMUONDigitizerV3(manager, fDigitizerWithNoise);
+  AliMUONDigitizerV3::SetNSigmas(fDigitizerNSigmas);
   digitizer->SetCalibrationData(fCalibrationData);
   return digitizer;
 }
