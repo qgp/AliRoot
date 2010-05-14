@@ -26,5 +26,6 @@
 #pragma link C++ class  AliT0Digitizer+;
 #pragma link C++ class  AliT0MisAligner+;
 #pragma link C++ class  AliT0TriggerParameters+;
+#pragma link C++ class  AliT0CalibLatency+;
 
 #endif
