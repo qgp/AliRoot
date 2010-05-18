@@ -347,6 +347,7 @@ Int_t AliTRDrawStreamOnline::NextChamber(AliTRDdigitsManager *digMgr, UInt_t ** 
   if (fCurrLink % 2 == 0) {
     // if we just read the A-side HC then also check the B-side
     fCurrLink++;
+    fCurrHC++;
     if (fCurrLinkMask[fCurrSlot] & (1 << fCurrLink)) {
       ReadLinkData();
       while (fPayloadCurr - fPayloadStart < fPayloadSize && 
@@ -771,8 +772,8 @@ Int_t AliTRDrawStreamOnline::ReadZSData()
       if (evno == -1)
 	evno = EvNo(*fPayloadCurr);
       else {
-	AliError(MCMError(kPtrgCntMismatch,
-			  Form("%i <-> %i", evno, EvNo(*fPayloadCurr)) ));
+	AliDebug(1, MCMError(kPtrgCntMismatch,
+			     Form("%i <-> %i", evno, EvNo(*fPayloadCurr)) ));
       }
     }
     Int_t adccoloff = AdcColOffset(*fPayloadCurr);
@@ -809,9 +810,9 @@ Int_t AliTRDrawStreamOnline::ReadZSData()
 	  break;
 	}
       }
-      AliError(MCMError(kAdcMaskInconsistent,
-			Form("Inconsistency in no. of active channels: Counter: %i, Mask: %i, chosen: %i!", 
-			     GetNActiveChannels(fPayloadCurr[-1]), GetNActiveChannelsFromMask(fPayloadCurr[-1]), channelcountExp) ));
+      AliDebug(1, MCMError(kAdcMaskInconsistent,
+			   Form("Inconsistency in no. of active channels: Counter: %i, Mask: %i, chosen: %i!", 
+				GetNActiveChannels(fPayloadCurr[-1]), GetNActiveChannelsFromMask(fPayloadCurr[-1]), channelcountExp) ));
     }
     AliDebug(2, Form("expecting %i active channels, timebins: %i", channelcountExp, fCurrNtimebins));
     
@@ -880,7 +881,7 @@ Int_t AliTRDrawStreamOnline::ReadZSData()
     }
     
     if (channelcount != channelcountExp)
-      AliError(MCMError(kAdcChannelsMiss));
+      AliDebug(1, MCMError(kAdcChannelsMiss));
     
     mcmcount++;
     // continue with next MCM
@@ -950,8 +951,8 @@ Int_t AliTRDrawStreamOnline::ReadNonZSData()
       if (evno == -1)
 	evno = EvNo(*fPayloadCurr);
       else {
-	AliError(MCMError(kPtrgCntMismatch,
-			  Form("%i <-> %i", evno, EvNo(*fPayloadCurr)) ));
+	AliDebug(1, MCMError(kPtrgCntMismatch,
+			     Form("%i <-> %i", evno, EvNo(*fPayloadCurr)) ));
       }
     }
     
@@ -1023,7 +1024,7 @@ Int_t AliTRDrawStreamOnline::ReadNonZSData()
     }
 
     if (channelcount != channelcountExp)
-      AliError(MCMError(kAdcChannelsMiss));
+      AliDebug(1, MCMError(kAdcChannelsMiss));
     mcmcount++;
     // continue with next MCM
   }
