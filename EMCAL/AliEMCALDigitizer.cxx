@@ -598,6 +598,8 @@ void AliEMCALDigitizer::Exec(Option_t *option)
 	  
 	WriteDigits(digitsTRG);
 	  
+	(emcalLoader->TreeD())->Fill();
+	  
 	emcalLoader->WriteDigits(   "OVERWRITE");
 	emcalLoader->WriteDigitizer("OVERWRITE");
 	  
@@ -1047,7 +1049,8 @@ void AliEMCALDigitizer::WriteDigits()
   else
     treeD->Branch("EMCAL","TClonesArray",&digits,bufferSize);
   //digitsBranch->SetTitle(fEventFolderName);
-  treeD->Fill() ;
+
+//	treeD->Fill() ;
 /*  
   emcalLoader->WriteDigits("OVERWRITE");
   emcalLoader->WriteDigitizer("OVERWRITE");
@@ -1081,7 +1084,7 @@ void AliEMCALDigitizer::WriteDigits(TClonesArray* digits, const char* branchName
 		treeD->Branch(branchName,"TClonesArray",&digits,bufferSize);
 	}
 	
-	treeD->Fill();
+//	treeD->Fill();
 }
 
 //__________________________________________________________________

@@ -44,7 +44,12 @@
 #pragma link C++ class AliEMCALTriggerSTURawStream+;
 #pragma link C++ class AliEMCALRawUtils+;
 #pragma link C++ class AliCaloRawAnalyzerFastFit+;
+#pragma link C++ class AliCaloRawAnalyzerPeakFinder+;
 #pragma link C++ class AliEMCAL+;
+#pragma link C++ class AliEMCALTriggerDCSConfig+;
+#pragma link C++ class AliEMCALTriggerTRUDCSConfig+;
+#pragma link C++ class AliEMCALTriggerSTUDCSConfig+;
+#pragma link C++ class AliEMCALTriggerDCSConfigDB+;
 
 #endif
 
