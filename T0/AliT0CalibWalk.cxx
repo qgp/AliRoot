@@ -157,6 +157,7 @@ Bool_t AliT0CalibWalk::MakeWalkCorrGraph(const char *laserFile)
 	      	AliWarning(Form(" no LED correction data in LASER DA for channel %i for amplitude %f MIPs",i,mips[im]));
       	      
 	      if(hCFD )	{
+		hCFD->GetXaxis()->SetRangeUser(32200,32450);
 		TSpectrum *s = new TSpectrum(2*npeaks,1);
 		nfound = s->Search(hCFD,sigma," ",0.1);
 		if(nfound!=0){
