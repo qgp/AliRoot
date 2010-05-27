@@ -1,34 +1,31 @@
-/*
-  Copyright   : The FASTMC and SPHMC Collaboration
-  Author      : Ionut Cristian Arsene 
-  Affiliation : Oslo University, Norway & Institute for Space Sciences, Bucharest, Romania
-  e-mail      : i.c.arsene@fys.uio.no
-  Date        : 2007/05/30
+//
+//  Copyright   : The FASTMC and SPHMC Collaboration
+//  Author      : Ionut Cristian Arsene 
+//  Affiliation : Oslo University, Norway & Institute for Space Sciences, Bucharest, Romania
+//  e-mail      : i.c.arsene@fys.uio.no
+//  Date        : 2007/05/30
+//
+//  This class is using the particle and decay lists provided by the 
+//  THERMINATOR (Computer Physics Communications 174 669 (2006)) and
+//  SHARE (Computer Physics Communications 167 229 (2005)) collaborations.
+//
 
-  This class is using the particle and decay lists provided by the 
-  THERMINATOR (Computer Physics Communications 174 669 (2006)) and
-  SHARE (Computer Physics Communications 167 229 (2005)) collaborations.
-*/
+#ifndef PARTICLEPDG_H
+#define PARTICLEPDG_H
 
-#ifndef PARTICLE_PDG
-#define PARTICLE_PDG
-
-#include "Rtypes.h"
-
-#ifndef DECAY_CHANNEL
+#include <Rtypes.h>
 #include "DecayChannel.h"
-#endif
 
 const Int_t kMaxDecayChannels = 100;
 
 class ParticlePDG {
  public:
   ParticlePDG();
-  ParticlePDG(Char_t* name, Int_t pdg, Double_t mass, Double_t width);
+  ParticlePDG(const Char_t * const name, Int_t pdg, Double_t mass, Double_t width);
   ~ParticlePDG();
   
   void AddChannel(DecayChannel* channel);
-  void SetName(Char_t* name) {
+  void SetName(const Char_t * const name) {
     for(Int_t i=0; i<9; i++)
       if(*(name+i) != '\0') fName[i] = *(name+i);
       else break;
@@ -47,45 +44,43 @@ class ParticlePDG {
   void SetCharmAQNumber(Double_t value) {fAntiCharmQuarkNumber = value;}
   void SetStable(Bool_t value) {fStable = value;}
   
-  Char_t* GetName() {return fName;}
-  Int_t GetPDG() {return fPDG;}
-  Double_t GetMass() {return fMass;}
-  Double_t GetWidth() {return fWidth;}
-  Int_t GetNDecayChannels() {return fNDecayChannels;}
-  Double_t GetSpin() {return fSpin;}
-  Double_t GetIsospin() {return fIsospin;}
-  Double_t GetIsospinZ() {return fIsospinZ;}
-  Double_t GetLightQNumber() {return fLightQuarkNumber;}
-  Double_t GetLightAQNumber() {return fAntiLightQuarkNumber;}
-  Double_t GetStrangeQNumber() {return fStrangeQuarkNumber;}
-  Double_t GetStrangeAQNumber() {return fAntiStrangeQuarkNumber;}
-  Double_t GetCharmQNumber() {return fCharmQuarkNumber;}
-  Double_t GetCharmAQNumber() {return fAntiCharmQuarkNumber;}
-  Double_t GetBaryonNumber() {return (fLightQuarkNumber     + fStrangeQuarkNumber     + fCharmQuarkNumber -  
+  const Char_t* GetName() const {return fName;}
+  Int_t GetPDG() const {return fPDG;}
+  Double_t GetMass() const {return fMass;}
+  Double_t GetWidth() const {return fWidth;}
+  Int_t GetNDecayChannels() const {return fNDecayChannels;}
+  Double_t GetSpin() const {return fSpin;}
+  Double_t GetIsospin() const {return fIsospin;}
+  Double_t GetIsospinZ() const {return fIsospinZ;}
+  Double_t GetLightQNumber() const {return fLightQuarkNumber;}
+  Double_t GetLightAQNumber() const {return fAntiLightQuarkNumber;}
+  Double_t GetStrangeQNumber() const {return fStrangeQuarkNumber;}
+  Double_t GetStrangeAQNumber() const {return fAntiStrangeQuarkNumber;}
+  Double_t GetCharmQNumber() const {return fCharmQuarkNumber;}
+  Double_t GetCharmAQNumber() const {return fAntiCharmQuarkNumber;}
+  Double_t GetBaryonNumber() const {return (fLightQuarkNumber     + fStrangeQuarkNumber     + fCharmQuarkNumber -  
                                       fAntiLightQuarkNumber - fAntiStrangeQuarkNumber - fAntiCharmQuarkNumber)/3.;}
-  Double_t GetStrangeness() {return (fAntiStrangeQuarkNumber - fStrangeQuarkNumber);}
-  Double_t GetCharmness() {return (fCharmQuarkNumber - fAntiCharmQuarkNumber);}
-  Double_t GetElectricCharge() {return fIsospinZ + (GetBaryonNumber()+GetStrangeness()+GetCharmness())/2.;}
-  Bool_t GetStableStatus() {
+  Double_t GetStrangeness() const {return (fAntiStrangeQuarkNumber - fStrangeQuarkNumber);}
+  Double_t GetCharmness() const {return (fCharmQuarkNumber - fAntiCharmQuarkNumber);}
+  Double_t GetElectricCharge() const {return fIsospinZ + (GetBaryonNumber()+GetStrangeness()+GetCharmness())/2.;}
+  Bool_t GetStableStatus() const {
     return fStable;
   }  
 
   Double_t GetFullBranching();
-  DecayChannel* GetDecayChannel(Int_t i) {
-    if(0<=i && i<fNDecayChannels) 
-      return fDecayChannels[i];
-    else
-      return 0x0;
+  DecayChannel* GetDecayChannel(Int_t i) const {
+    if(0<=i && i<fNDecayChannels) return fDecayChannels[i];
+    else return 0x0;
   }
 
  private:
   ParticlePDG(const ParticlePDG&);
   ParticlePDG& operator=(const ParticlePDG&);
 
-  Char_t        fName[9];
-  Int_t         fPDG;
-  Double_t      fMass;
-  Double_t      fWidth;
+  Char_t        fName[9];                      // particle name
+  Int_t         fPDG;                          // PDG code
+  Double_t      fMass;                         // mass
+  Double_t      fWidth;                        // width
   Double_t      fSpin;                         // J
   Double_t      fIsospin;                      // I
   Double_t      fIsospinZ;                     // I3
@@ -95,9 +90,9 @@ class ParticlePDG {
   Double_t      fAntiStrangeQuarkNumber;       // s- quark number
   Double_t      fCharmQuarkNumber;             // c quark number
   Double_t      fAntiCharmQuarkNumber;         // c- quark number
-  Int_t         fNDecayChannels;
+  Int_t         fNDecayChannels;               // number of decay channels
   Bool_t        fStable;                       // flag to turn on/off decay
-  DecayChannel* fDecayChannels[kMaxDecayChannels];   
+  DecayChannel* fDecayChannels[kMaxDecayChannels];   // array of decay channels
 };
 
 #endif
