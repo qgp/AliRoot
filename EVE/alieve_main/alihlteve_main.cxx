@@ -65,7 +65,8 @@ int main(int argc, char **argv)
   gROOT->SetMacroPath(macPath);
 
   // get a logger instance
-  AliLog *log = new AliLog;
+  //  AliLog *log =  // JMT to fix warning
+  AliLog::Instance();
   TRint  *app = new TRint("App", &argc, argv);
 
 #if ROOT_VERSION_CODE >= ROOT_VERSION(5,25,4) || defined XXX_LATEST_ROOT
@@ -90,9 +91,7 @@ int main(int argc, char **argv)
 
   app->Terminate(0);
 
-  if (log) {
-    delete log;
-  }
+  //  delete log;
 
   return 0;
 }

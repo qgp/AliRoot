@@ -32,15 +32,16 @@ AliEveHOMERManagerEditor::AliEveHOMERManagerEditor(const TGWindow *p, Int_t widt
   
 TGedFrame(p, width, height, options | kVerticalFrame, back),
   fM(0),
-//  fButtonSaveBlockList(0),
+  fButtonConnect(NULL),
+  fButtonWriteToFile(0),
   fButtonNextEvent(0),
   fButtonNavigateBack(0),
   fButtonNavigateFwd(0),
+  fButtonPrintScreens(NULL),
   fBoxTriggerSelector(0),
-  fButtonEventLoopText(0),
 //  fBoxEventLoopSpeed(0),
+  fButtonEventLoopText(0),
   fButtonEventLoop(0),
-  
  fEventLoopStarted(kFALSE) 
 {
   
@@ -51,9 +52,9 @@ TGedFrame(p, width, height, options | kVerticalFrame, back),
   // AddFrame(fXYZZ, new TGLayoutHints(...));
   // fXYZZ->Connect("SignalName()", "AliEveHOMERManagerEditor", this, "DoXYZZ()");
 
-//   fButtonConnect = new TGTextButton(this, "  Connect to HLT  ");
-//   AddFrame(fButtonConnect); //, new TGLayoutHints(...));
-//   fButtonConnect->Connect("Clicked()", "AliEveHOMERManagerEditor", this, "ConnectToHLT()");
+  fButtonConnect = new TGTextButton(this, " Reconnect ");
+  AddFrame(fButtonConnect); //, new TGLayoutHints(...));
+  fButtonConnect->Connect("Clicked()", "AliEveHOMERManagerEditor", this, "ConnectToHLT()");
 
   fButtonWriteToFile = new TGTextButton(this, " Write to file  ");
   AddFrame(fButtonWriteToFile); //, new TGLayoutHints(...));
@@ -71,6 +72,12 @@ TGedFrame(p, width, height, options | kVerticalFrame, back),
   fButtonNavigateFwd = new TGTextButton(this, "  Navigate Fwd  ");
   AddFrame(fButtonNavigateFwd); //, new TGLayoutHints(...));
   fButtonNavigateFwd->Connect("Clicked()", "AliEveHOMERManagerEditor", this, "NavigateFwd()");
+
+
+  fButtonPrintScreens = new TGTextButton(this, "  Save Viewers  ");
+  AddFrame(fButtonPrintScreens); //, new TGLayoutHints(...));
+  fButtonPrintScreens->Connect("Clicked()", "AliEveHOMERManagerEditor", this, "PrintScreens()");
+
 
   fBoxTriggerSelector = new TGComboBox(this, "Select Trigger");
   fBoxTriggerSelector->AddEntry("HLT Global Trigger", 0);
@@ -102,30 +109,25 @@ void AliEveHOMERManagerEditor::SetModel(TObject* obj) {
 
 /******************************************************************************/
 
-// void AliEveHOMERManagerEditor::ConnectToHLT() {
-//   // Connects to HOMER sources -> to HLT.
-  
-//   fM->ConnectEVEtoHOMER();
-// }
+void AliEveHOMERManagerEditor::ConnectToHLT() {
+   // Connects to HOMER sources -> to HLT.
+  fM->ReConnectHOMER();
+}
 
 void AliEveHOMERManagerEditor::NextEvent() {
-  // call next event from macro
-
-  Int_t iResult = 0;
-    if ( fM->NextEvent() )
-    return;
-
-    
-  gROOT->ProcessLineFast("processEvent();");
-
-  return;
+  // call next event from AliEveHOMERManger
+  fM->NextHOMEREvent();
 }
 
 void AliEveHOMERManagerEditor::WriteBlockListToFile() {
-  
-  
   gROOT->ProcessLineFast("writeToFile();");
 
+}
+
+
+void AliEveHOMERManagerEditor::PrintScreens() {
+  //Print screens
+  fM->PrintScreens();
 }
 
 void AliEveHOMERManagerEditor::NavigateFwd() {
@@ -135,7 +137,8 @@ void AliEveHOMERManagerEditor::NavigateFwd() {
     if ( fM->NavigateEventBufferFwd() == -1 )
       return;
 
-    gROOT->ProcessLineFast("processEvent();");
+    fM->ProcessEvent();
+    //    gROOT->ProcessLineFast("processEvent();");
   }
   return;
 }
@@ -146,23 +149,29 @@ void AliEveHOMERManagerEditor::NavigateBack() {
   if ( !fEventLoopStarted ) {
     if ( fM->NavigateEventBufferBack() == -1 )
       return;
-
-    gROOT->ProcessLineFast("processEvent();");
+    
+    fM->ProcessEvent();
+    //gROOT->ProcessLineFast("processEvent();");
   }
   return;
 }
 
 void AliEveHOMERManagerEditor::EventLoop() {
-
   // Start/stop event loop
   if ( !fEventLoopStarted ) {
-    gROOT->ProcessLineFast("loopEvent();");
     fEventLoopStarted = kTRUE;
     fButtonEventLoopText->SetText(" Stop Loop ");
-  }
-  else {
-    gROOT->ProcessLineFast("stopLoopEvent();");
+    //fM->SetEventLoopStarted(kTRUE);
+    fM->StartLoop();
+    
+    //    gROOT->ProcessLineFast("loopEvent();");
+  
+  } else {
+    
+    //gROOT->ProcessLineFast("stopLoopEvent();");
+    fM->StopLoop();
     fEventLoopStarted = kFALSE;
+    //fM->SetEventLoopStarted(kFALSE);
     fButtonEventLoopText->SetText(" Loop Events ");
   }
 }

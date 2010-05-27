@@ -395,10 +395,10 @@ Bool_t AliEveListAnalyser::ApplyProcessMacros(const TList* selIterator, const TL
 
   TGeneralMacroData* macro = 0;
 
-  Char_t** procCmds = 0;
+  TString* procCmds = 0;
   AliEveListAnalyserMacroType* mProcType = 0;
   if (procIterator->GetEntries() > 0) {
-    procCmds = new Char_t*[procIterator->GetEntries()];
+    procCmds = new TString[procIterator->GetEntries()];
     mProcType = new AliEveListAnalyserMacroType[procIterator->GetEntries()];
   }
   
@@ -407,10 +407,10 @@ Bool_t AliEveListAnalyser::ApplyProcessMacros(const TList* selIterator, const TL
     mProcObjectType = new TClass*[procIterator->GetEntries()];
   }
 
-  Char_t** selCmds  = 0;
+  TString* selCmds  = 0;
   AliEveListAnalyserMacroType* mSelType = 0;
   if (selIterator->GetEntries() > 0) {
-    selCmds = new Char_t*[selIterator->GetEntries()];
+    selCmds = new TString[selIterator->GetEntries()];
     mSelType = new AliEveListAnalyserMacroType[selIterator->GetEntries()];
   }
 
@@ -430,9 +430,6 @@ Bool_t AliEveListAnalyser::ApplyProcessMacros(const TList* selIterator, const TL
 
   // Collect the commands for each process macro and add them to "data-from-list"
   for (Int_t i = 0; i < procIterator->GetEntries(); i++){
-    procCmds[i] = new Char_t[(fkMaxMacroPathNameLength + fkMaxApplyCommandLength)];
-    memset(procCmds[i], '\0', sizeof(Char_t) * (fkMaxMacroNameLength + fkMaxApplyCommandLength));
-
     macro = (TGeneralMacroData*)fMacroList->GetValue(procIterator->At(i)->GetTitle());
 
     if (!macro){
@@ -455,14 +452,14 @@ Bool_t AliEveListAnalyser::ApplyProcessMacros(const TList* selIterator, const TL
       mProcType[i] = macroType;
       numHistoMacros++;
       // Create the command 
-      sprintf(procCmds[i], macro->GetCmd());
+      procCmds[i] = macro->GetCmd();
 
       // Add to "data-from-list" -> Mark as a histo macro with the substring "(histo macro)"
       fDataFromMacroList->Add(new TObjString(Form("%s (histo macro)", macro->GetName())));
     } else if (macroType == kSingleObjectAnalyse || macroType == kCorrelObjectAnalyse) {
       mProcType[i] = macroType;
       // Create the command 
-      sprintf(procCmds[i], macro->GetCmd());
+      procCmds[i] = macro->GetCmd();
 
       // Add to "data-from-list"
       fDataFromMacroList->Add(new TObjString(macro->GetName()));
@@ -476,9 +473,6 @@ Bool_t AliEveListAnalyser::ApplyProcessMacros(const TList* selIterator, const TL
 
   // Collect the commands for each selection macro and add them to "data-from-list"
   for (Int_t i = 0; i < selIterator->GetEntries(); i++){
-    selCmds[i] = new Char_t[(fkMaxMacroPathNameLength + fkMaxApplyCommandLength)];
-    memset(selCmds[i], '\0', sizeof(Char_t) * (fkMaxMacroNameLength + fkMaxApplyCommandLength));
-
     macro = (TGeneralMacroData*)fMacroList->GetValue(selIterator->At(i)->GetTitle());
 
     if (!macro){
@@ -508,7 +502,7 @@ Bool_t AliEveListAnalyser::ApplyProcessMacros(const TList* selIterator, const TL
       mSelType[i] = macroType;  
  
       // Create the command
-      sprintf(selCmds[i], macro->GetCmd());
+      selCmds[i] = macro->GetCmd();
     } else {
       Error("Apply process macros", 
         Form("Macro list corrupted: Macro \"%s/%s.C\" is not registered as a selection macro!", 

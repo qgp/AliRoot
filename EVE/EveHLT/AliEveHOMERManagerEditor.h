@@ -30,7 +30,7 @@ public:
   virtual void SetModel(TObject* obj);
 
   // Declare callback/slot methods
-  //void ConnectToHLT();
+  void ConnectToHLT();
   void NextEvent();
   void EventLoop();
 
@@ -38,15 +38,17 @@ public:
   void NavigateFwd();
   void SetTriggerString(int id);
   void WriteBlockListToFile();
+  void PrintScreens();
 protected:
 
   AliEveHOMERManager  *fM; // Model object.
   
-  //  TGTextButton     *fButtonConnect; // Button to connect to HOMER.
+  TGTextButton     *fButtonConnect; // Button to connect to HOMER.
   TGTextButton     *fButtonWriteToFile; // Button to write block list to file
   TGTextButton     *fButtonNextEvent; // Button to call next Even
   TGTextButton     *fButtonNavigateBack; // Button to navigate back
   TGTextButton     *fButtonNavigateFwd;  // Button to navigate fwd
+  TGTextButton     *fButtonPrintScreens;  // Button to print viewers
   TGComboBox       *fBoxTriggerSelector; // Drop down menu to select trigger criteria.
   TGTextButton     *fButtonEventLoopText; //Text button to start / stop event loop.
   //TGComboBox       *fBoxEventLoopSpeed; // Drop down menu to set the speed of the loop.

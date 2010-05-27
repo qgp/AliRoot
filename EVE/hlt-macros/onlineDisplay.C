@@ -50,6 +50,7 @@
 #include "TGeoNode.h"
 #include "TGeoManager.h"
 #include "TGLOverlayButton.h"
+
 //****************** AliRoot ***************************************
 #include "AliESDEvent.h"
 #include "AliCDBManager.h"
@@ -113,12 +114,16 @@
 #include "HLT/PHOS/AliHLTPHOSDigitDataStruct.h"
 #include  "AliHLTPHOSChannelDataHeaderStruct.h"
 #include  "AliHLTPHOSChannelDataStruct.h"
+#include  "HLT/CALO/AliHLTCaloChannelDataHeaderStruct.h"
+#include  "HLT/CALO/AliHLTCaloChannelDataStruct.h"
+#include "AliHLTCaloDigitDataStruct.h"
 //****************** Macros ****************************************
 #include "hlt_structs.C"
 #include "hlt_alieve_init.C"
 #include "geom_gentle_hlt.C"
 #include "alice-macros/esd_tracks.C"
 #include "hlt_esd_tracks.C"
+
 //#include "alieve_vizdb.C"
 
 #endif
@@ -137,20 +142,6 @@ class TEvePointSetArray;
 class AliHLTHOMERBlockDesc;
 
 class TEveViewer;
-
-// 
-class caloCell :  public TObject 
-{
-
-public :
-
-  AliHLTPHOSChannelDataStruct phosStruct;
-
-private :
-  ClassDef(caloCell, 1);
-
-};
-
 
 
 // -----------------------------------------------------------------
@@ -225,6 +216,7 @@ TEveTrackList*                            gTPCTrack          = 0;
 // -- Canvas for histograms
 TCanvas*                                  gTRDCanvas         = 0;
 TCanvas*                                  gTPCCanvas         = 0;
+TCanvas*                                  gTPCClustCanvas          = 0;
 TCanvas*                                  gTRDCalibCanvas    = 0;
 TCanvas*                                  gTRDEORCanvas      = 0;
 TCanvas*                                  gPrimVertexCanvas  = 0;
@@ -233,6 +225,8 @@ TCanvas*                                  gITSCanvas         = 0;
 TCanvas*                                  gSSDCanvas0        = 0;
 TCanvas*                                  gSSDCanvas1        = 0;
 TCanvas*                                  gV0Canvas          = 0;
+TCanvas*                                  gPHOSCanvas          = NULL;
+TCanvas*                                  gEMCALCanvas          = 0;
 
 // -- vertex --
 Int_t                                     gSPDVertexHistoCount  = 0;
@@ -254,12 +248,19 @@ TH1F*                                     gTPCCharge         = 0;
 TH1F*                                     gTPCQMax           = 0;
 TH1F*                                     gTPCQMaxOverCharge = 0;
 
+TH1F*                                     gTPCPt        = 0; // KK
+TH1F*                                     gTPCEta       = 0; 
+TH1F*                                     gTPCPsi       = 0; 
+TH1F*                                     gTPCnClusters = 0; 
+TH1F*                                     gTPCMult      = 0;
+
 // -- PHOS --
 TEveElementList*                          gPHOSElementList   = 0;
-
+Int_t                                     gPHOSHistoCount    =0;
 // -- EMCAL
 TEveElementList*                          gEMCALElementList  = 0;
 TGeoNode*                                 gEMCALNode         = 0;
+Int_t                                     gEMCALHistoCount    =0;
 
 // --- Flag if eventloop is running
 Bool_t                                    gEventLoopStarted = kFALSE;
@@ -278,6 +279,7 @@ void nextEvent();
 Int_t processEvent();
 
 Int_t processPHOSClusters( AliHLTHOMERBlockDesc* block);
+Int_t processPHOSDigits(AliHLTHOMERBlockDesc* block);
 
 Int_t processEMCALClusters( AliHLTHOMERBlockDesc* block);
 
@@ -313,6 +315,33 @@ Int_t processITSClusters( AliHLTHOMERBlockDesc* block, TEvePointSet* cont );
 
 Int_t processITSHist( AliHLTHOMERBlockDesc* block );
 
+//Global functions
+
+Int_t processBlock( AliHLTHOMERBlockDesc* block );
+
+void resetDisplay();
+
+//Detector specific block handlers
+Int_t processTRDBlock(AliHLTHOMERBlockDesc * block);
+void processISPDBlock(AliHLTHOMERBlockDesc * block);
+void processISDDBlock(AliHLTHOMERBlockDesc * block);
+void processISSDBlock(AliHLTHOMERBlockDesc * block);
+void processMUONBlock(AliHLTHOMERBlockDesc * block);
+Int_t processPHOSBlock (AliHLTHOMERBlockDesc * block);
+TEveElementList * createPHOSElementList();
+void processEMCALBlock(AliHLTHOMERBlockDesc * block);
+TEveElementList * createEMCALElementList();
+void processHLTBlock(AliHLTHOMERBlockDesc * block);
+void processTPCBlock(AliHLTHOMERBlockDesc * block);
+void processITSBlock(AliHLTHOMERBlockDesc * block);
+//Generic functions
+
+TCanvas * CreateCanvas(TString  tabTitle, TString  canvasTitle );
+
+Int_t updateDisplay();
+
+Int_t AddHistogramsToCanvas(AliHLTHOMERBlockDesc * block, TCanvas * canvas, Int_t &cdCount );
+
 void writeToFile();
 
 
@@ -336,7 +365,7 @@ void onlineDisplay(Bool_t TPCMode = kTRUE, Bool_t MUONMode = kFALSE, Bool_t TRDM
   // -- Create new hM object
   // -------------------------
   gHomerManager = new AliEveHOMERManager();
-  gHomerManager->SetRetryCount(1000,15);
+  gHomerManager->SetRetryCount(100,10);
 
   Int_t iResult = gHomerManager->Initialize();
   if (iResult) { 
@@ -399,12 +428,11 @@ Int_t initializeEveViewer( Bool_t TPCMode, Bool_t MUONMode, Bool_t TRDMode) {
   TEveUtil::AssertMacro("VizDB_scan.C");
   
   //  alieve_vizdb();
-  
-
 
   //==============================================================================
   // -- Geometry, scenes, projections and viewers
   //==============================================================================
+
 
   TEveBrowser         *browser = gEve->GetBrowser();
   browser->ShowCloseTab(kFALSE);
@@ -498,8 +526,6 @@ Int_t initializeEveViewer( Bool_t TPCMode, Bool_t MUONMode, Bool_t TRDMode) {
   g3DView->AddScene(gEve->GetGlobalScene());
   g3DView->AddScene(gEve->GetEventScene());
 
- 
-
 
   pack = pack->NewSlot()->MakePack();
   pack->SetShowTitleBar(kFALSE);
@@ -552,6 +578,8 @@ Int_t initializeEveViewer( Bool_t TPCMode, Bool_t MUONMode, Bool_t TRDMode) {
   // -------------------------------------
 
   AliEveMacroExecutor *exec    = new AliEveMacroExecutor();
+  
+
 #if 0
   exec->AddMacro(new AliEveMacro(AliEveMacro::kRunLoader, "SIM Track",   "kine_tracks.C", "kine_tracks", "", kFALSE));
 
@@ -614,36 +642,6 @@ Int_t initializeEveViewer( Bool_t TPCMode, Bool_t MUONMode, Bool_t TRDMode) {
   // -- Histograms
   //==============================================================================
 
-  if(TRDMode) {
-    slot = TEveWindow::CreateWindowInTab(browser->GetTabRight());
-    slot->StartEmbedding();
-    
-    gTRDCanvas = new TCanvas("canvasTRD","canvasTRD", 600, 400);
-    gTRDCanvas->Divide(3,2);
-    slot->StopEmbedding("TRD histograms");
-    
-    slot=TEveWindow::CreateWindowInTab(browser->GetTabRight());
-    slot->StartEmbedding();
-    gTRDCalibCanvas=new TCanvas("CalibCanvasTRD","CalibCanvasTRD",600,400);
-    gTRDCalibCanvas->Divide(2,2);
-    slot->StopEmbedding("TRD Calibration Histograms");
-
-     slot=TEveWindow::CreateWindowInTab(browser->GetTabRight());
-    slot->StartEmbedding();
-    gTRDEORCanvas=new TCanvas("CalibEORTRD","CalibCEORTRD",600,400);
-    gTRDEORCanvas->Divide(3,2);
-    slot->StopEmbedding("TRD EOR Histograms");
-  }
-  else if(TPCMode){
-    slot = TEveWindow::CreateWindowInTab(browser->GetTabRight());
-    slot->StartEmbedding();
-    
-    gTPCCanvas = new TCanvas("canvasTPC","canvasTPC", 600, 400);
-    gTPCCharge = new TH1F("ClusterCharge","ClusterCharge",100,0,500);
-    gTPCQMax = new TH1F("QMax","QMax",50,0,250);
-    gTPCQMaxOverCharge = new TH1F("QMaxOverCharge","QMaxOverCharge",50,0,1);
-    slot->StopEmbedding("TPC histograms");
-  }
 
   slot = TEveWindow::CreateWindowInTab(browser->GetTabRight());
   slot->StartEmbedding();  
@@ -660,20 +658,23 @@ Int_t initializeEveViewer( Bool_t TPCMode, Bool_t MUONMode, Bool_t TRDMode) {
   gV0Canvas = new TCanvas("canvasV0","canvasV0", 600, 400);
   slot->StopEmbedding("V0");
 
-  slot = TEveWindow::CreateWindowInTab(browser->GetTabRight());
-  slot->StartEmbedding();
-  gITSCanvas = new TCanvas("canvasITS","canvasITS", 600, 400);
-  slot->StopEmbedding("ITS QA Histograms");
 
   slot = TEveWindow::CreateWindowInTab(browser->GetTabRight());
   slot->StartEmbedding();
   gSSDCanvas0 = new TCanvas("canvasSSD0","canvasSSD0", 600, 400);
-  slot->StopEmbedding("SSD QA Histograms 0");
+  slot->StopEmbedding("SSD QA 0");
 
   slot = TEveWindow::CreateWindowInTab(browser->GetTabRight());
   slot->StartEmbedding();
   gSSDCanvas1 = new TCanvas("canvasSSD1","canvasSSD1", 600, 400);
-  slot->StopEmbedding("SSD QA Histograms 1");
+  slot->StopEmbedding("SSD QA 1");
+
+  slot = TEveWindow::CreateWindowInTab(browser->GetTabRight());
+  slot->StartEmbedding();
+  gTPCClustCanvas = new TCanvas("canvasTPCClust","canvasTPCClust", 600, 400);
+  gTPCClustCanvas->Divide(3, 2);
+  slot->StopEmbedding("TPC Cluster QA Histograms ");
+
 
   //==============================================================================
   // -- Additional GUI components
@@ -710,6 +711,22 @@ void nextEvent() {
   processEvent();
 }
 
+TCanvas * CreateCanvas(TString  tabTitle, TString  canvasTitle ) {
+
+  
+
+//   TEveWindowSlot *slot = TEveWindow::CreateWindowInTab(gEve->GetBrowser()->GetTabRight());
+//   slot->StartEmbedding();
+//   TCanvas * canvas = new TCanvas(canvasTitle.Data(),canvasTitle.Data(), 600, 400);
+//   slot->StopEmbedding(tabTitle.Data());
+ 
+  cout << "Create"<<endl;
+
+  TCanvas * canvas = gEve->AddCanvasTab(canvasTitle.Data());
+  return canvas;
+}
+
+
 // -----------------------------------------------------------------
 Int_t processEvent() {
 
@@ -717,6 +734,51 @@ Int_t processEvent() {
 
   gStyle->SetPalette(1, 0);
   gEve->DisableRedraw();
+
+  resetDisplay();
+  
+  //==============================================================================
+  // -- Process Blocks
+  //==============================================================================
+
+  AliHLTHOMERBlockDesc* block = 0;
+
+  if ( gHomerManager->GetBlockList() == NULL) {
+    printf ("onlineDisplay:   No regular BlockList ... \n");
+    cout << endl;
+    //return -1;
+    
+  } else {
+    
+    if (gHomerManager->GetBlockList()->IsEmpty() ) {
+      printf ("onlineDisplay:   No Sync Blocks in list ... \n");
+      cout<<endl;
+      return -2;
+    }  
+    
+    
+    TIter next(gHomerManager->GetBlockList());
+    
+    while ((block = (AliHLTHOMERBlockDesc*)next())) {
+      iResult = processBlock(block);
+    } 
+  }
+
+  //Read out histograms and elements from detectors outside physics 1 partition
+  TIter anext(gHomerManager->GetAsyncBlockList());
+  
+  while ( (block = (AliHLTHOMERBlockDesc*)anext()) ) {
+    iResult = processBlock(block);
+  }
+  
+  updateDisplay();
+
+  return iResult;
+}
+
+
+void resetDisplay() {
+
 
   //==============================================================================
   // -- Reset
@@ -765,6 +827,16 @@ Int_t processEvent() {
     gV0Canvas->Divide(2,2);
   }
 
+  if(gPHOSCanvas) {
+    gPHOSCanvas->Clear();
+    gPHOSCanvas->Divide(3, 3);
+  }
+
+  if(gEMCALCanvas) {
+    gEMCALCanvas->Clear();
+    gEMCALCanvas->Divide(3, 3);
+  }
+
   if ( gTPCTrack )     gTPCTrack->DestroyElements();
 
   if ( gSPDClusters )  gSPDClusters->Reset();
@@ -801,529 +873,21 @@ Int_t processEvent() {
   gSSDHistoCount0 = 0;
   gSSDHistoCount1 = 0;
   gITSHistoCount = 0;
+  gPHOSHistoCount = 0;
+  gEMCALHistoCount = 0;
+
   
-
-  //==============================================================================
-  // -- Process Blocks
-  //==============================================================================
-
-  if ( gHomerManager->GetBlockList() == NULL) {
-    printf ("onlineDisplay:   No BlockList ... \n");
-	cout << endl;
-    return -1;
-  }
-  if (gHomerManager->GetBlockList()->IsEmpty() ) {
-    printf ("onlineDisplay:   No Blocks in list ... \n");
-	cout<<endl;
-    return -2;
-  }
-
-  TIter next(gHomerManager->GetBlockList());
-  AliHLTHOMERBlockDesc* block = 0;
-
-  // -- Iterate over blocks in the block list
-  // ------------------------------------------
-  while ((block = (AliHLTHOMERBlockDesc*)next())) {
-        
-#if 0 //DEBUG
-    printf( "------------------- xxxxxxxxxxxxxxx ----------------------\n");
-    printf( "Detector           : %s\n", block->GetDetector().Data() );
-    printf( "Datatype           : %s\n", block->GetDataType().Data() );
-    if (block->IsTObject() )
-      printf( "Is TObject of class: %s\n", block->GetClassName().Data() );
-    printf( "------------------- xxxxxxxxxxxxxxx ----------------------\n");
-#endif
-
-    // ++ HLT BLOCK
-    // +++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    if ( ! block->GetDetector().CompareTo("HLT") ) {
-
-      // -- ESDTREE
-      if ( ! block->GetDataType().CompareTo("ALIESDV0") ) {
-	if(!gTPCTrack){
-	  gTPCTrack = new TEveTrackList("ESD Tracks");
-	  gTPCTrack->SetMainColor(6);
-	  gEve->AddElement(gTPCTrack);
-	}
-	iResult = processEsdTracks(block, gTPCTrack);
-	gTPCTrack->ElementChanged();
-      } // if ( ! block->GetDataType().CompareTo("ALIESDV0") ) {
-      
-      // -- Process ROOTObj
-      else if ( ! block->GetDataType().CompareTo("ROOTTOBJ") ) {
-	if(!gHLTText){
-	  //gHLTText = new TEveText();
-	  //gHLTText->BBoxZero(5, -5, -5, 0);
-	  //gHLTText->SetExtrude(25);
-	  //gHLTText->AssertBBoxExtents(25,25,25);
-	  //gEve->AddElement(gHLTText);
-	} 
- 	processROOTTOBJ( block, gHLTText );
-      } // else if ( ! block->GetDataType().CompareTo("ROOTTOBJ") ) {
-
-      // -- Process HLT RDLST
-      else if ( ! block->GetDataType().CompareTo("HLTRDLST") ) {
-	processHLTRDLST( block );
-      } // else if ( ! block->GetDataType().CompareTo("HLTRDLST") ) {
-
-    } // if ( ! block->GetDetector().CompareTo("HLT") ) {
-
-    // ++ TPC BLOCK
-    // +++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    else if ( ! block->GetDetector().CompareTo("TPC") ) {
-      
-      // -- Process TPC Clusters
-      if ( ! block->GetDataType().CompareTo("CLUSTERS") ) {
-	if(!gTPCClusters){	  
-	  gTPCClusters = new TEvePointSet("TPC Clusters");
-	  //gTPCClusters->ApplyVizTag("TPC Clusters");
-	  gTPCClusters->SetMainColor(kRed);
-	  gTPCClusters->SetMarkerStyle((Style_t)kFullDotSmall);
-	  //gEve->AddElement(gTPCClusters);
-	} 
-
-	if(!gTPCColClusters){
-	  gTPCColClusters = new TEvePointSetArray("TPC Clusters Colorized");
-	  gTPCColClusters->SetMainColor(kRed);
-	  gTPCColClusters->SetMarkerStyle(4); // antialiased circle
-	  gTPCColClusters->SetMarkerSize(0.4);
-	  gTPCColClusters->InitBins("Cluster Charge", gTPCBins, 0., gTPCBins*20.);
-
-	  const Int_t nCol = TColor::GetNumberOfColors();
-	  
-	  for (Int_t ii = 0; ii < gTPCBins+1; ++ii)
-	    gTPCColClusters->GetBin(ii)->SetMainColor(TColor::GetColorPalette(ii * nCol / (gTPCBins+2)));
-	  
-	  gEve->AddElement(gTPCColClusters);
-	} 
-
-	iResult = processTPCClusters(block, gTPCClusters, gTPCColClusters);
-	//gTPCClusters->ElementChanged();
-	gTPCColClusters->ElementChanged();
-      }
-      
-    } // else if ( ! block->GetDetector().CompareTo("TPC") ) {
-
-    // ++ TRD BLOCK
-    // +++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    else if ( ! block->GetDetector().CompareTo("TRD") ) {
-       
-      // -- Process TRD Clusters
-      if ( ! block->GetDataType().CompareTo("CLUSTERS") ) {
-
-	if(!gTRDClusters){
-	  gTRDClusters = new TEvePointSet("TRD Clusters");
-	  gTRDClusters->SetMainColor(kBlue);
-	  gTRDClusters->SetMarkerStyle((Style_t)kFullDotSmall);
-	  //gEve->AddElement(gTRDClusters);
-	} 
-
-	if(!gTRDColClusters){
-	  gTRDColClusters = new TEvePointSetArray("TRD Clusters Colorized");
-	  gTRDColClusters->SetMainColor(kRed);
-	  gTRDColClusters->SetMarkerStyle(4); // antialiased circle
-	  //	  gTRDColClusters->SetMarkerStyle((Style_t)kFullDotSmall);
-	  gTRDColClusters->SetMarkerSize(0.4);
-	  gTRDColClusters->InitBins("Cluster Charge", gTRDBins, 0., gTRDBins*100.);
-
-	  //TColor::SetPalette(1, 0); // Spectrum palette
-	  const Int_t nCol = TColor::GetNumberOfColors();
-	  for (Int_t ii = 0; ii < gTRDBins+1; ++ii)
-	    gTRDColClusters->GetBin(ii)->SetMainColor(TColor::GetColorPalette(ii * nCol / (gTRDBins+2)));
-	  
-	  gEve->AddElement(gTRDColClusters);
-	} 
-
-	iResult = processTRDClusters( block, gTRDClusters, gTRDColClusters );
-	//gTRDClusters->ElementChanged();
-	gTRDColClusters->ElementChanged();
-      }
-
-      // -- Process TRD Histograms
-      else if ( block->GetDataType().CompareTo("ROOTHIST") == 0 ) {
-	iResult = processTRDHistograms( block, gTRDCanvas );     
-	if ( gTRDCanvas) gTRDCanvas->Update();
-      }
-      else if(block->GetDataType().CompareTo("CALIBRAH")==0){
-      	iResult=processTRDCalibHistograms(block,gTRDCalibCanvas);
-      	if(gTRDCalibCanvas)gTRDCalibCanvas->Update();
-      }
-      else if(block->GetDataType().CompareTo("CALIBEOR")==0){
-      	iResult=processTRDCalibHistograms(block,gTRDEORCanvas);
-      	if(gTRDEORCanvas)gTRDEORCanvas->Update();
-      }
-    } // else if ( ! block->GetDetector().CompareTo("TRD") ) {
-    
-    // ++ MUON BLOCK
-    // +++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    else if ( ! block->GetDetector().CompareTo("MUON") && gShowMUON ) {
-
-      // -- Process MUON Clusters
-      if ( (block->GetDataType().CompareTo("RECHITS") == 0) || (block->GetDataType().CompareTo("TRIGRECS") == 0) ) {
-	
-	if ( !gMUONClusters ) {
-	  gMUONClusters = new TEvePointSet("MUON RecHits");
-	  gMUONClusters->SetMainColor(kBlue);
-	  gMUONClusters->SetMarkerStyle(20);
-	  gEve->AddElement(gMUONClusters);
-	}
-	
- 	processMUONClusters( block );
-	gMUONClusters->ElementChanged();
-	
-      }else if(block->GetDataType().CompareTo("MANTRACK") == 0){
-	
-	if ( !gMUONTracks ) {
-	  gMUONTracks = new TEveStraightLineSet("MUON Tracks");
-	  gMUONTracks->SetMainColor(kRed);
-	  gMUONTracks->SetLineWidth(3);
-	  gEve->AddElement(gMUONTracks);
-	}
-
- 	processMUONTracks( block );
-	gMUONTracks->ElementChanged();
+}
 
 
-      } 
-    } // else if ( ! block->GetDetector().CompareTo("MUON") && gShowMUON ) {
+Int_t updateDisplay() {
+  Int_t iResult = 0;
 
-    // ++ ISPD BLOCK
-    // +++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    else if ( ! block->GetDetector().CompareTo("ISPD") ){
-      if ( block->GetDataType().CompareTo("CLUSTERS") == 0 ) {
-	
-	if(!gSPDClusters){
-	  gSPDClusters = new TEvePointSet("SPD Clusters");
-	  gSPDClusters->SetMainColor(kBlack);
-	  gSPDClusters->SetMarkerStyle((Style_t)kFullDotMedium);
-	  gEve->AddElement(gSPDClusters);
-	} 
- 	
-	processITSClusters( block , gSPDClusters);
-	gSPDClusters->ElementChanged();
-      
-      } else if ( block->GetDataType().CompareTo("ROOTHIST") == 0 ) {
-
-	// -- Process Vertex Histos
-	processSPDVertexHistograms( block , gSPDVertexCanvas);
-	gSPDVertexCanvas->Update();
-      } 
-    } // else if ( ! block->GetDetector().CompareTo("ISPD") ){
-
-    // ++ ISDD BLOCK
-    // +++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    else if ( ! block->GetDetector().CompareTo("ISDD") ){
-      if ( block->GetDataType().CompareTo("CLUSTERS") == 0 ) {
-	
-	if(!gSDDClusters){
-	  gSDDClusters = new TEvePointSet("SDD Clusters");
-	  gSDDClusters->SetMainColor(kPink);
-	  gSDDClusters->SetMarkerStyle((Style_t)kFullDotMedium);
-	  gEve->AddElement(gSDDClusters);
-	} 
- 	
-	processITSClusters( block , gSDDClusters);
-	gSDDClusters->ElementChanged();
-      } 
-    } // else if ( ! block->GetDetector().CompareTo("ISDD") ){
-
-    // ++ ISSD BLOCK
-    // +++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    else if ( ! block->GetDetector().CompareTo("ISSD") ){
-      if ( block->GetDataType().CompareTo("CLUSTERS") == 0 ) {
-	
-	if(!gSSDClusters){
-	  gSSDClusters = new TEvePointSet("SSD Clusters");
-	  gSSDClusters->SetMainColor(kBlue);
-	  gSSDClusters->SetMarkerStyle((Style_t)kFullDotMedium);
-	  gEve->AddElement(gSSDClusters);
-	} 
- 	
-	processITSClusters( block , gSSDClusters);
-	gSSDClusters->ElementChanged();
-      } 
-    } // else if ( ! block->GetDetector().CompareTo("ISSD") ){
-        
-    // ++ ITS BLOCK
-    // +++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    else if ( ! block->GetDetector().CompareTo("ITS") ){
-      if ( block->GetDataType().CompareTo("ROOTHIST") == 0 ) {
-	iResult = processITSHist( block );
-      } 
-    } // else if ( ! block->GetDetector().CompareTo("ITS") ){
-    
-    // ++ PHOS BLOCK
-    // +++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    else if ( ! block->GetDetector().CompareTo("PHOS") ) {
-
-      // -- Process Digits
-      //if ( block->GetDataType().CompareTo("DIGITTYP") == 0 ) { 
-      if ( block->GetDataType().CompareTo("CHANNELT") == 0 ) {
-	
-	if( !gPHOSElementList ){
-	  gPHOSElementList = new TEveElementList("PHOS Cells");
-	  gEve->AddElement(gPHOSElementList);
-	  
-	  TVector3 center;
-	  Float_t angle;
-	  
-	  // -- Create boxsets
-	  for(int im = 0; im < 5; im++) {
-	  
-	    TEveRGBAPalette* pal = new TEveRGBAPalette(0,120);
-	    pal->SetLimits(-0.1, 1024);
-	    gPHOSBoxSet[im] = new TEveBoxSet(Form("Cells Module %d" , im));
-	    gPHOSBoxSet[im]->SetPalette(pal);
-	    gPHOSBoxSet[im]->Reset(TEveBoxSet::kBT_AABox, kFALSE, 64);
-	    gPHOSBoxSet[im]->SetOwnIds(kTRUE);
-	    
-
-	    gPHOSGeom->GetModuleCenter(center, "CPV", im+1);
-	    angle = gPHOSGeom->GetPHOSAngle(im+1)*TMath::Pi()/180;
-	  
-	    gPHOSBoxSet[im]->RefitPlex();
-	    TEveTrans& t = gPHOSBoxSet[im]->RefMainTrans();
-	    t.SetupRotation(1, 2, angle );
-	    t.SetPos(center.X(), center.Y(), center.Z());
-	    
-	    gPHOSElementList->AddElement(gPHOSBoxSet[im]);
-	  }
-	} // for(int im = 0; im < 5; im++) {
-	
-	iResult = processPHOSClusters( block );
-	
-	for(int im = 0; im < 5; im++)
-	  gPHOSBoxSet[im]->ElementChanged();
-
-      } // if ( block->GetDataType().CompareTo("DIGITTYP") == 0 ) {
-
-    } // else if ( ! block->GetDetector().CompareTo("PHOS") ){
-
-    else if ( ! block->GetDetector().CompareTo("EMCAL") ){
-      if ( block->GetDataType().CompareTo("CHANNELT") == 0 ) {
-	
-	if( !gEMCALElementList ){
-	  gEMCALElementList = new TEveElementList("EMCAL Cells");
-	  gEMCALElementList->SetTitle("Tooltip");
-	  gEve->AddElement(gEMCALElementList);
-	  
-	  
-	  gStyle->SetPalette(1, 0);
-	  TEveRGBAPalette* pal = new TEveRGBAPalette(0, 512);
-	  pal->SetLimits(0, 1024);
-	  
-	  
-	  for (Int_t sm=0; sm<12; ++sm) {
-	      
-	    TEveBoxSet* q = new TEveBoxSet(Form("SM %d", sm+1));
-	    q->SetOwnIds(kTRUE);
-	    
-	    q->Reset(TEveBoxSet::kBT_AABox, kFALSE, 64);
-	    q->RefMainTrans().SetFrom(*gEMCALNode->GetDaughter(sm)->GetMatrix());
-	    q->SetPalette(pal);
-	    
-	    gEve->AddElement(q, gEMCALElementList);
-	    gEMCALBoxSet[sm] = q;
-	  }
-	}
-	
-	iResult = processEMCALClusters( block );
-	
-	for(int sm = 0; sm < 12; sm++) {
-	  gEMCALBoxSet[sm]->ElementChanged();
-	}
-	
-	
-      }
-      
-    } // "EMCAL" blocks end
-
-    // ---------------------------------------------------------
-  } // while ((block = (AliHLTHOMERBlockDesc*)next())) {
-
-
-  //============================================================================
-  //   Reading out the histograms
-  //===========================================================================
-  TIter anext(gHomerManager->GetAsyncBlockList());
   
-  while ( (block = (AliHLTHOMERBlockDesc*)anext()) ) {
-
-#if 0 //DEBUG
-    printf( "------------------- xxxxxxxxxxxxxxx ----------------------\n");
-    printf( "Detector           : %s\n", block->GetDetector().Data() );
-    printf( "Datatype           : %s\n", block->GetDataType().Data() );
-    if (block->IsTObject() )
-      printf( "Is TObject of class: %s\n", block->GetClassName().Data() );
-    printf( "------------------- xxxxxxxxxxxxxxx ----------------------\n");
-#endif
-
-    // ++ V0 BLOCK
-    // +++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    if ( block->GetDataType().CompareTo("ROOTHIST") == 0 ) {      
-      // -- Process V0 Histos
-      processV0Histograms( block , gV0Canvas);
-    }
-    
-    // ++ vertex BLOCK
-    // +++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    if ( ! block->GetDetector().CompareTo("HLT") && 
-	 !block->GetDataType().CompareTo("ROOTHIST") ) {      
-      // -- Process Vertex Histos
-      processPrimVertexHistograms( block , gPrimVertexCanvas);
-      gPrimVertexCanvas->Update();    
-    }
-
-    // ++ ISPD Vertex BLOCK
-    // +++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    if ( ! block->GetDetector().CompareTo("ISPD") ){
-      if ( block->GetDataType().CompareTo("ROOTHIST") == 0 ) {
-      
-	// -- Process Vertex Histos
-	processSPDVertexHistograms( block , gSPDVertexCanvas);
-	gSPDVertexCanvas->Update();
-      } 
-    }
-  
-    // ++ ITS BLOCK
-    // +++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    if ( ! block->GetDetector().CompareTo("ITS") ){
-      if ( block->GetDataType().CompareTo("ROOTHIST") == 0 ) {
-      
-	// -- Process Vertex Histos
-	processITSHistograms( block , gITSCanvas);
-	gITSCanvas->Update();
-      } 
-    }
-  
-    // ++ ISSD BLOCK
-    // +++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    if ( ! block->GetDetector().CompareTo("ISSD") ){
-      if ( block->GetDataType().CompareTo("ROOTOBAR") == 0 ) {
-      
-	// -- Process Vertex Histos
-	processSSDHistograms( block , gSSDCanvas0, gSSDCanvas1);
-	gSSDCanvas0->Update();
-	gSSDCanvas1->Update();
-      } 
-    }
-
-    // ++ PHOS BLOCK
-    // +++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    if ( ! block->GetDetector().CompareTo("PHOS") ) {
-
-      // -- Process Digits
-      //if ( block->GetDataType().CompareTo("DIGITTYP") == 0 ) { 
-      if ( block->GetDataType().CompareTo("CHANNELT") == 0 ) {
-	
-	if( !gPHOSElementList ){
-	  gPHOSElementList = new TEveElementList("PHOS Cells");
-	  gEve->AddElement(gPHOSElementList);
-	  
-	  TVector3 center;
-	  Float_t angle;
-	  
-	  // -- Create boxsets
-	  for(int im = 0; im < 5; im++) {
-	  
-	    TEveRGBAPalette* pal = new TEveRGBAPalette(0,120);
-	    pal->SetLimits(-0.1, 1024);
-	    gPHOSBoxSet[im] = new TEveBoxSet(Form("Cells Module %d" , im));
-	    gPHOSBoxSet[im]->SetPalette(pal);
-	    gPHOSBoxSet[im]->Reset(TEveBoxSet::kBT_AABox, kFALSE, 64);
-	    gPHOSBoxSet[im]->SetOwnIds(kTRUE);
-	    
-
-	    gPHOSGeom->GetModuleCenter(center, "CPV", im+1);
-	    angle = gPHOSGeom->GetPHOSAngle(im+1)*TMath::Pi()/180;
-	  
-	    gPHOSBoxSet[im]->RefitPlex();
-	    TEveTrans& t = gPHOSBoxSet[im]->RefMainTrans();
-	    t.SetupRotation(1, 2, angle );
-	    t.SetPos(center.X(), center.Y(), center.Z());
-	    
-	    gPHOSElementList->AddElement(gPHOSBoxSet[im]);
-	  }
-	} // for(int im = 0; im < 5; im++) {
-	
-	iResult = processPHOSClusters( block );
-	
-	for(int im = 0; im < 5; im++)
-	  gPHOSBoxSet[im]->ElementChanged();
-
-      } // if ( block->GetDataType().CompareTo("DIGITTYP") == 0 ) {
-
-    } // else if ( ! block->GetDetector().CompareTo("PHOS") ){
-
-    else if ( ! block->GetDetector().CompareTo("EMCA") ){
-      if ( block->GetDataType().CompareTo("CHANNELT") == 0 ) {
-	
-	if( !gEMCALElementList ){
-	  
-	  
-	  gEMCALElementList = new TEveElementList("EMCAL Cells");
-	  gEMCALElementList->SetTitle("Tooltip");
-	  gEve->AddElement(gEMCALElementList);
-	  
-	  
-	  gStyle->SetPalette(1, 0);
-	  TEveRGBAPalette* pal = new TEveRGBAPalette(0, 512);
-	  pal->SetLimits(0, 1024);
-	  
-	  
-	  for (Int_t sm=0; sm<12; ++sm) {
-	      
-	    TEveBoxSet* q = new TEveBoxSet(Form("SM %d", sm+1));
-	    q->SetOwnIds(kTRUE);
-	    
-	    q->Reset(TEveBoxSet::kBT_AABox, kFALSE, 64);
-	    q->RefMainTrans().SetFrom(*gEMCALNode->GetDaughter(sm)->GetMatrix());
-	    q->SetPalette(pal);
-	    
-	    gEve->AddElement(q, gEMCALElementList);
-	    gEMCALBoxSet[sm] = q;
-	  }
-	}
-	
-	
-	//	cout << "Processing emcal digits" << endl;
-	iResult = processEMCALClusters( block );
-	
-	for(int sm = 0; sm < 12; sm++) {
-	  gEMCALBoxSet[sm]->ElementChanged();
-	}
-	
-	
-      }
-      
-    } // "EMCAL" blocks end
-
-      //Extra TPC clusters set for testing
-    else if ( ! block->GetDetector().CompareTo("TPC") ) {
-      if ( ! block->GetDataType().CompareTo("HWCL_ALT") ) {
-	if(!gTPCTestClusters){	  
-	  
-	  gTPCTestClusters = new TEvePointSet("TPC Clusters Test");
-	  //ggTPCTestClusters->ApplyVizTag("TPC Clusters");
-	  gTPCTestClusters->SetMainColor(kBlue);
-	  gTPCTestClusters->SetMarkerStyle((Style_t)kFullDotSmall);
-	  gEve->AddElement(gTPCTestClusters);
-	}
-	
-	iResult = processTPCClusters(block, gTPCTestClusters);
-	gTPCTestClusters->ElementChanged();
-      }
-      
-      
-    }
-
-
-  }
-
   //==============================================================================
   // -- Update Objects
   //==============================================================================
-
+  
   // -- TPC Histograms
   if ( gTPCCanvas && gTPCCharge && gTPCQMax) {
 
@@ -1396,7 +960,9 @@ Int_t processEvent() {
   gEve->EnableRedraw(); 
 
   return iResult;
+
 }
+
 
 // -----------------------------------------------------------------
 Int_t processITSHist(AliHLTHOMERBlockDesc* /*block*/) {
@@ -1435,7 +1001,7 @@ Int_t processEsdTracks( AliHLTHOMERBlockDesc* block, TEveTrackList* cont ) {
 
   AliESDEvent* esd = (AliESDEvent *) (block->GetTObject());
   esd->GetStdContent();
-
+  
   esd_track_propagator_setup(cont->GetPropagator(),-0.1*esd->GetMagneticField(), 520);
 
   //  printf( "Number of ESD Tracks : %d \n", esd->GetNumberOfTracks());
@@ -1444,70 +1010,127 @@ Int_t processEsdTracks( AliHLTHOMERBlockDesc* block, TEveTrackList* cont ) {
     //AliEveTrack* track = dynamic_cast<AliEveTrack*>(esd_make_track(esd->GetTrack(iter), cont));
     AliEveTrack* track = dynamic_cast<AliEveTrack*>(hlt_esd_make_track(esd->GetTrack(iter), cont));
     cont->AddElement(track);
+    
+//     gTPCPt->Fill(esd->GetTrack(iter)->GetSignedPt()); // KK
+//     gTPCEta->Fill(esd->GetTrack(iter)->GetSnp());
+//     gTPCPsi->Fill(esd->GetTrack(iter)->GetTgl());
+//     gTPCnClusters->Fill(esd->GetTrack(iter)->GetTPCNcls());  
   }
+  
+//   gTPCMult->Fill(esd->GetNumberOfTracks()); // KK
+  
+//   Int_t icd = 0;
+//   gTPCClustCanvas->Clear();
+//   gTPCClustCanvas->Divide(2, 2);
+//   gTPCClustCanvas->cd(icd++);
+//   gTPCPt->Draw();
+//   gTPCClustCanvas->cd(icd++);
+//   gTPCEta->Draw();
+//   gTPCClustCanvas->cd(icd++);
+//   gTPCPsi->Draw();
+//   gTPCClustCanvas->cd(icd++);
+//   gTPCnClusters->Draw();
+//   gTPCClustCanvas->cd(icd++);
+//   gTPCMult->Draw();
+//   gTPCClustCanvas->Update();
+
   
   cont->SetTitle(Form("N=%d", esd->GetNumberOfTracks()) );
   cont->MakeTracks();
-
-  return 0;
-}
-
-// -----------------------------------------------------------------
-Int_t processPHOSClusters(AliHLTHOMERBlockDesc* block) {
-
-   
-  AliHLTPHOSChannelDataHeaderStruct *chh = reinterpret_cast<AliHLTPHOSChannelDataHeaderStruct*> (block->GetData());
   
-  AliHLTPHOSChannelDataStruct *chd = reinterpret_cast<AliHLTPHOSChannelDataStruct*>(chh+1);
-
-  for(Int_t i = 0; i < chh->fNChannels; i++, chd++) {
-    
-    Int_t gain = (chd->fChannelID >> 12)&0x1;    
-    Int_t module = (chd->fChannelID >> 13)&0x1f;
-    module = 4 -module;
-   
-
-    if(gain == 0)
-      
-      {
-	Float_t x = (static_cast<Float_t>(chd->fChannelID&0x3f) - 32)* 2.2;
-	Float_t z = (static_cast<Float_t>((chd->fChannelID >> 6)&0x3f) - 28) * 2.2;
-	//	gPHOSBoxSet[ds->fModule]->AddBox(ds->fLocX, 0, ds->fLocZ, 2.2, ds->fEnergy*20, 2.2);
-	gPHOSBoxSet[module]->AddBox(x, 0, z, 2.2, chd->fEnergy/15, 2.2);
-	gPHOSBoxSet[module]->DigitValue(static_cast<Int_t>(chd->fEnergy));
-	
-	caloCell *cs = new caloCell();
-	cs->phosStruct = *chd;
-	gPHOSBoxSet[module]->DigitId(cs);
-      }
-
-
-
-  }
-
   return 0;
 }
 
 // // -----------------------------------------------------------------
 // Int_t processPHOSClusters(AliHLTHOMERBlockDesc* block) {
 
-//   AliHLTPHOSDigitHeaderStruct *dh = reinterpret_cast<AliHLTPHOSDigitHeaderStruct*> (block->GetData());
-//   //UInt_t nClusters = block->GetSize()/sizeof(AliHLTPHOSDigitDataStruct);
+
+//   cout <<"Processgin phos clusters"<<endl;
+   
+//   AliHLTCaloChannelDataHeaderStruct *chh = reinterpret_cast<AliHLTCaloChannelDataHeaderStruct*> (block->GetData());
+  
+//   AliHLTCaloChannelDataStruct *chd = reinterpret_cast<AliHLTCaloChannelDataStruct*>(chh+1);
+
+//   for(Int_t i = 0; i < chh->fNChannels; i++, chd++) {
     
-//     UInt_t nDigits = dh->fNDigits;
+//     Int_t gain = (chd->fChannelID >> 12)&0x1;    
+//     Int_t module = (chd->fChannelID >> 13)&0x1f;
+//     module = 4 -module;
+   
 
-//     AliHLTPHOSDigitDataStruct *ds = reinterpret_cast<AliHLTPHOSDigitDataStruct*>(reinterpret_cast<UChar_t*>(dh)+sizeof(AliHLTPHOSDigitHeaderStruct));
+//     if(gain == 1)
+      
+//       {
+// 	Float_t x = (static_cast<Float_t>(chd->fChannelID&0x3f) - 32)* 2.2;
+// 	Float_t z = (static_cast<Float_t>((chd->fChannelID >> 6)&0x3f) - 28) * 2.2;
+// 	//	gPHOSBoxSet[ds->fModule]->AddBox(ds->fLocX, 0, ds->fLocZ, 2.2, ds->fEnergy*20, 2.2);
+// 	gPHOSBoxSet[module]->AddBox(x, 0, z, 2.2, chd->fEnergy/1, 2.2);
+// 	gPHOSBoxSet[module]->DigitValue(static_cast<Int_t>(chd->fEnergy));
+//       }
 
-//   for(UInt_t i = 0; i < nDigits; i++, ds++) {
-//     gPHOSBoxSet[ds->fModule]->AddBox(ds->fLocX, 0, ds->fLocZ, 2.2, ds->fEnergy*20, 2.2);
-//     gPHOSBoxSet[ds->fModule]->DigitValue(static_cast<Int_t>(ds->fEnergy*100));
+
+
 //   }
+// cout <<"done with phos"<<endl;
+
 
 //   return 0;
 // }
 
+
+
+// // -----------------------------------------------------------------
+Int_t processPHOSDigits(AliHLTHOMERBlockDesc* block) {
+
+  AliHLTCaloDigitDataStruct *ds = reinterpret_cast<AliHLTCaloDigitDataStruct*> (block->GetData());
+  UInt_t nDigits = block->GetSize()/sizeof(AliHLTCaloDigitDataStruct);
+    
+
+  for(UInt_t i = 0; i < nDigits; i++, ds++) {
+
+    Float_t x = (ds->fX - 32)* 2.2;
+      Float_t z = (ds->fZ - 28) * 2.2;
+
+      cout << "MODULE DIGITTYP  :" << ds->fModule;
+
+    gPHOSBoxSet[4-ds->fModule]->AddBox(x, 0, z, 2.2, ds->fEnergy*20, 2.2);
+    gPHOSBoxSet[4-ds->fModule]->DigitValue(static_cast<Int_t>(ds->fEnergy*10));
+  }
+
+  return 0;
+}
+
+
+// -----------------------------------------------------------------
+Int_t processPHOSClusters(AliHLTHOMERBlockDesc* block) {
+
+  AliHLTCaloClusterHeaderStruct *dh = reinterpret_cast<AliHLTCaloClusterHeaderStruct*> (block->GetData());
+  AliHLTCaloClusterReader * clusterReader = new AliHLTCaloClusterReader();
+  clusterReader->SetMemory(dh);  
+
+  AliHLTCaloClusterDataStruct * ds;
+
+  Int_t nc = 0;
+
+  
+  while( (ds = clusterReader->NextCluster()) ){
+    nc++;
+    cout << "Cluster nr " << nc  << "   Energy  " << ds->fEnergy<< "      " << ds->fGlobalPos[0] << " " << ds->fGlobalPos[1] << " " << ds->fGlobalPos[2] << endl;
+
+
+    gPHOSBoxSet[2]->AddBox(ds->fGlobalPos[0], 0, ds->fGlobalPos[2], 2.2, -ds->fEnergy*20, 2.2);
+    gPHOSBoxSet[2]->DigitValue(static_cast<Int_t>(ds->fEnergy*10));
+  }
+
+  return 0;
+}
+
+
+
 // -----------------------------------------------------------------
 Int_t processEMCALClusters(AliHLTHOMERBlockDesc* block) {
+
+  cout << "EMCAL"<<endl;
 
   AliHLTCaloChannelDataHeaderStruct *dhs = reinterpret_cast<AliHLTCaloChannelDataHeaderStruct*> (block->GetData());
   Short_t nC = dhs->fNChannels;
@@ -1530,7 +1153,7 @@ Int_t processEMCALClusters(AliHLTHOMERBlockDesc* block) {
     
     //    cout << fX << " " << fZ << " " << fGain << " " << fModuleId <<endl;
    
-    if ( ( fModuleId >= 0 && fModuleId < 12 ) ) {
+    if ( (  fModuleId < 12 ) ) {
       gEMCALBoxSet[fModuleId]->AddBox(10, fX*6-12*6, fZ*6-24*6, ds->fEnergy/4, 6, 6);
       gEMCALBoxSet[fModuleId]->DigitValue(static_cast<Int_t>(ds->fEnergy));
     } 
@@ -1582,6 +1205,8 @@ Int_t processITSClusters(AliHLTHOMERBlockDesc* block, TEvePointSet* cont) {
 // -----------------------------------------------------------------
 Int_t processTPCClusters(AliHLTHOMERBlockDesc* block, TEvePointSet* cont, TEvePointSetArray *contCol ) {
 
+  
+
   Int_t   slice = block->GetSubDetector();
   Float_t phi   = ( slice + 0.5 ) * TMath::Pi() / 9.0;  
   Float_t cos   = TMath::Cos( phi );
@@ -1589,6 +1214,22 @@ Int_t processTPCClusters(AliHLTHOMERBlockDesc* block, TEvePointSet* cont, TEvePo
   
   AliHLTTPCClusterData *cd = reinterpret_cast<AliHLTTPCClusterData*> (block->GetData());
   UChar_t *data            = reinterpret_cast<UChar_t*> (cd->fSpacePoints);
+
+
+  if(!gTPCCanvas){
+    gTPCCanvas = gEve->AddCanvasTab("TPC QA");
+    gTPCCharge = new TH1F("ClusterCharge","ClusterCharge",100,0,500);
+    gTPCQMax = new TH1F("QMax","QMax",50,0,250);
+    gTPCQMaxOverCharge = new TH1F("QMaxOverCharge","QMaxOverCharge",50,0,1);
+  }
+
+
+
+  
+
+
+
+
 
   if ( cd->fSpacePointCnt != 0 ) {
     for (Int_t iter = 0; iter < cd->fSpacePointCnt; ++iter, data += sizeof(AliHLTTPCSpacePointData)) {
@@ -1755,8 +1396,8 @@ Int_t processTRDHistograms(AliHLTHOMERBlockDesc* block, TCanvas * canvas) {
 
   Int_t iResult = 0;
 
-  if ( ! block->GetClassName().CompareTo("TH1D")) {
-    TH1D* histo = reinterpret_cast<TH1D*>(block->GetTObject());
+  if ( ! block->GetClassName().CompareTo("TH1F")) {
+    TH1F* histo = reinterpret_cast<TH1F*>(block->GetTObject());
     ++gTRDHistoCount;
   
     TVirtualPad* pad = canvas->cd(gTRDHistoCount);
@@ -1770,23 +1411,11 @@ Int_t processTRDHistograms(AliHLTHOMERBlockDesc* block, TCanvas * canvas) {
     }
 
     if ( ! strcmp(histo->GetName(),"sclsdist") ||
-	 ! strcmp(histo->GetName(),"qClsCand") )
+	 ! strcmp(histo->GetName(),"evSize") )
       pad->SetLogy();
   }
-  else if ( ! block->GetClassName().CompareTo("TH2F")) {
-    TH2F *hista = reinterpret_cast<TH2F*>(block->GetTObject());
-    ++gTRDHistoCount;
-    
-    TVirtualPad* pad = canvas->cd(gTRDHistoCount);
 
-    if (gTRDEvents > 0)
-      hista->Scale(1./gTRDEvents);
-
-    hista->Draw("COLZ");
-    pad->SetLogz();
-    pad->SetGridy();
-    pad->SetGridx();
-  }
+  gTRDCanvas->Update();
 
   return iResult;
 }
@@ -1856,6 +1485,8 @@ Int_t processSPDVertexHistograms(AliHLTHOMERBlockDesc* block, TCanvas * canvas) 
 // -----------------------------------------------------------------
 Int_t processV0Histograms(AliHLTHOMERBlockDesc* block, TCanvas * canvas) {
 
+  cout << "Processing to see if it's V0 histogram, !!!!!!!!!"<<endl;
+
   Int_t iResult = 0;
   bool update = 0;
   if ( ! block->GetClassName().CompareTo("TH1F")) {
@@ -1922,6 +1553,35 @@ Int_t processITSHistograms(AliHLTHOMERBlockDesc* block, TCanvas * canvas) {
 
   return iResult;
 }
+
+
+Int_t AddHistogramsToCanvas(AliHLTHOMERBlockDesc * block, TCanvas * canvas, Int_t &cdCount ) {
+
+  if (canvas == NULL) 
+    cout <<"fucked canvasn"<<endl;
+    
+
+  Int_t iResult = 0;
+
+  if ( ! block->GetClassName().CompareTo("TObjArray")) {
+    TIter next((TObjArray*)(block->GetTObject()));
+    TObject *object;
+    while (( object = (TObject*) next())) {
+      TH1* histo = dynamic_cast<TH1*>(object);
+      cout <<" cd "<< cdCount << endl;
+      canvas->cd(++cdCount);
+      cout <<"draw"<<endl;
+      histo->Draw();
+      cout <<"drew"<<endl;
+    }
+  }
+
+  //  canvas->cd();
+  canvas->Update();
+
+  return iResult;
+}
+
 
 // -----------------------------------------------------------------
 Int_t processSSDHistograms(AliHLTHOMERBlockDesc* block, TCanvas *canvas0, TCanvas *canvas1) {
@@ -2008,9 +1668,14 @@ Int_t processTRDCalibHistograms(AliHLTHOMERBlockDesc* block, TCanvas * canvas) {
     
    
   }
+  
+  gTRDCalibCanvas->Update();
+
  return iResult;
 }
 //****************************************************************************
+
+
 
 void writeToFile(){
 
@@ -2075,3 +1740,435 @@ void EventLoopFast() {
   
   }
 }
+
+
+
+Int_t processBlock (AliHLTHOMERBlockDesc * block ){
+
+  
+#if 1//DEBUG
+   printf( "------------------- xxxxxxxxxxxxxxx ----------------------\n");
+   printf( "Detector           : %s\n", block->GetDetector().Data() );
+   printf( "Datatype           : %s\n", block->GetDataType().Data() );
+   if (block->IsTObject() )
+     printf( "Is TObject of class: %s\n", block->GetClassName().Data() );
+   printf( "------------------- xxxxxxxxxxxxxxx ----------------------\n");
+#endif
+
+  
+  Int_t iResult = 0;
+
+  if ( ! block->GetDetector().CompareTo("HLT") ) 
+    processHLTBlock(block);
+  
+  else if ( ! block->GetDetector().CompareTo("TPC") ) 
+    processTPCBlock(block);
+  
+  else if ( ! block->GetDetector().CompareTo("TRD") ) 
+    iResult = processTRDBlock(block);
+
+  else if ( ! block->GetDetector().CompareTo("MUON") && gShowMUON ) 
+    processMUONBlock(block);
+
+  else if ( ! block->GetDetector().CompareTo("ISPD") )
+    processISPDBlock(block);
+
+  else if ( ! block->GetDetector().CompareTo("ISDD") )
+    processISDDBlock(block);
+
+  else if ( ! block->GetDetector().CompareTo("ISSD") )
+    processISSDBlock(block);
+
+  else if ( ! block->GetDetector().CompareTo("PHOS") ) 
+    processPHOSBlock(block);
+
+  else if ( ! block->GetDetector().CompareTo("EMCA") )
+    processEMCALBlock(block);
+
+  else if ( ! block->GetDetector().CompareTo("ITS") )
+    processITSBlock(block);
+ 
+  
+
+  if ( block->GetDataType().CompareTo("ROOTHIST") == 0 )     
+    processV0Histograms( block , gV0Canvas);
+   
+  return iResult;
+} 
+
+
+void processITSBlock(AliHLTHOMERBlockDesc * block) {
+  
+  if ( block->GetDataType().CompareTo("ROOTHIST") == 0 ) {
+    if(!gITSCanvas){
+      gITSCanvas = gEve->AddCanvasTab("ITS QA");
+    }
+    processITSHistograms( block , gITSCanvas);
+    gITSCanvas->Update();
+  } 
+}
+
+
+ Int_t processTRDBlock (AliHLTHOMERBlockDesc * block) {
+
+   Int_t iResult = 0;
+
+  if ( ! block->GetDataType().CompareTo("CLUSTERS") ) {
+     
+    if(!gTRDClusters){
+      gTRDClusters = new TEvePointSet("TRD Clusters");
+      gTRDClusters->SetMainColor(kBlue);
+      gTRDClusters->SetMarkerStyle((Style_t)kFullDotSmall);
+      //gEve->AddElement(gTRDClusters);
+    } 
+
+    if(!gTRDColClusters){
+      gTRDColClusters = new TEvePointSetArray("TRD Clusters Colorized");
+      gTRDColClusters->SetMainColor(kRed);
+      gTRDColClusters->SetMarkerStyle(4); // antialiased circle
+      //	  gTRDColClusters->SetMarkerStyle((Style_t)kFullDotSmall);
+      gTRDColClusters->SetMarkerSize(0.4);
+      gTRDColClusters->InitBins("Cluster Charge", gTRDBins, 0., gTRDBins*100.);
+
+      //TColor::SetPalette(1, 0); // Spectrum palette
+      const Int_t nCol = TColor::GetNumberOfColors();
+      for (Int_t ii = 0; ii < gTRDBins+1; ++ii)
+	gTRDColClusters->GetBin(ii)->SetMainColor(TColor::GetColorPalette(ii * nCol / (gTRDBins+2)));
+	  
+      gEve->AddElement(gTRDColClusters);
+    } 
+
+    iResult = processTRDClusters( block, gTRDClusters, gTRDColClusters );
+    //gTRDClusters->ElementChanged();
+    gTRDColClusters->ElementChanged();
+  }
+
+  // -- Process TRD Histograms
+  else if ( block->GetDataType().CompareTo("ROOTHIST") == 0 ) {
+    if(!gTRDCanvas) {
+      gTRDCanvas = gEve->AddCanvasTab("TRD");
+      gTRDCanvas->Divide(3,2);
+    }
+    iResult = processTRDHistograms( block, gTRDCanvas );     
+  }
+
+  else if(block->GetDataType().CompareTo("CALIBRAH")==0){
+     
+    if(!gTRDCalibCanvas){
+      gTRDCalibCanvas = gEve->AddCanvasTab("TRD Calib");
+      gTRDCalibCanvas->Divide(2,2);
+    }
+     
+    iResult=processTRDCalibHistograms(block,gTRDCalibCanvas);
+  }
+
+  else if(block->GetDataType().CompareTo("CALIBEOR")==0){
+     
+    if(!gTRDEORCanvas){
+      gTRDEORCanvas = gEve->AddCanvasTab("TRD QA");
+      gTRDEORCanvas->Divide(3,2);       
+    }
+  
+    iResult=processTRDCalibHistograms(block,gTRDEORCanvas);
+  }
+  return iResult;
+}
+
+void processMUONBlock(AliHLTHOMERBlockDesc * block){
+
+   // -- Process MUON Clusters
+   if ( (block->GetDataType().CompareTo("RECHITS") == 0) || (block->GetDataType().CompareTo("TRIGRECS") == 0) ) {
+	
+     if ( !gMUONClusters ) {
+       gMUONClusters = new TEvePointSet("MUON RecHits");
+       gMUONClusters->SetMainColor(kBlue);
+       gMUONClusters->SetMarkerStyle(20);
+       gEve->AddElement(gMUONClusters);
+     }
+	
+     processMUONClusters( block );
+     gMUONClusters->ElementChanged();
+	
+   }else if(block->GetDataType().CompareTo("MANTRACK") == 0){
+	
+     if ( !gMUONTracks ) {
+       gMUONTracks = new TEveStraightLineSet("MUON Tracks");
+       gMUONTracks->SetMainColor(kRed);
+       gMUONTracks->SetLineWidth(3);
+       gEve->AddElement(gMUONTracks);
+     }
+
+     processMUONTracks( block );
+     gMUONTracks->ElementChanged();
+
+
+   } 
+}
+
+
+void processISPDBlock( AliHLTHOMERBlockDesc * block) {
+
+  if ( block->GetDataType().CompareTo("CLUSTERS") == 0 ) {
+    
+    if(!gSPDClusters){
+      gSPDClusters = new TEvePointSet("SPD Clusters");
+      gSPDClusters->SetMainColor(kBlack);
+      gSPDClusters->SetMarkerStyle((Style_t)kFullDotMedium);
+      gEve->AddElement(gSPDClusters);
+    } 
+    
+    processITSClusters( block , gSPDClusters);
+    gSPDClusters->ElementChanged();
+
+  } else if ( block->GetDataType().CompareTo("ROOTHIST") == 0 ) {
+    processSPDVertexHistograms( block , gSPDVertexCanvas);
+    gSPDVertexCanvas->Update();
+  } 
+} 
+
+void processISDDBlock(AliHLTHOMERBlockDesc * block){
+  
+  if ( block->GetDataType().CompareTo("CLUSTERS") == 0 ) {
+    
+    if(!gSDDClusters){
+      gSDDClusters = new TEvePointSet("SDD Clusters");
+      gSDDClusters->SetMainColor(kPink);
+      gSDDClusters->SetMarkerStyle((Style_t)kFullDotMedium);
+      gEve->AddElement(gSDDClusters);
+    } 
+    
+    processITSClusters( block , gSDDClusters);
+    gSDDClusters->ElementChanged();
+  } 
+}
+
+void processISSDBlock(AliHLTHOMERBlockDesc * block){
+  if ( block->GetDataType().CompareTo("CLUSTERS") == 0 ) {
+    
+    if(!gSSDClusters){
+      gSSDClusters = new TEvePointSet("SSD Clusters");
+      gSSDClusters->SetMainColor(kBlue);
+      gSSDClusters->SetMarkerStyle((Style_t)kFullDotMedium);
+      gEve->AddElement(gSSDClusters);
+    } 
+    
+    processITSClusters( block , gSSDClusters);
+    gSSDClusters->ElementChanged();
+  } 
+  
+  else if ( block->GetDataType().CompareTo("ROOTOBAR") == 0 ) {
+    processSSDHistograms( block , gSSDCanvas0, gSSDCanvas1);
+    gSSDCanvas0->Update();
+    gSSDCanvas1->Update();
+  } 
+}
+ 
+        
+
+Int_t processPHOSBlock(AliHLTHOMERBlockDesc * block) { 
+  
+  Int_t iResult = 0;
+
+  if ( block->GetDataType().CompareTo("ROOTHIST") == 0 ) { 
+    
+    if(!gPHOSCanvas) {
+      gPHOSCanvas = CreateCanvas("PHOS QA", "PHOS QA");
+      gPHOSCanvas->Divide(3, 2);
+    }
+    
+    AddHistogramsToCanvas(block, gPHOSCanvas, gPHOSHistoCount);
+   
+ 
+  } else {
+    
+    cout <<"PHOS block not histo"<<endl;
+
+    if( !gPHOSElementList )
+      gPHOSElementList = createPHOSElementList();
+        
+    if ( block->GetDataType().CompareTo("CALOCLUS") == 0 )
+      iResult = processPHOSClusters( block );
+      
+    else if ( block->GetDataType().CompareTo("DIGITTYP") == 0 )
+      iResult = processPHOSDigits( block);
+    
+    else if ( block->GetDataType().CompareTo("CHANNELT") == 0 ) 
+      iResult = processPHOSClusters( block );
+  
+  
+    //Update the eve elements
+    for(int im = 0; im < 5; im++)
+      gPHOSBoxSet[im]->ElementChanged();
+    
+  }
+  
+  return iResult;
+} 
+
+
+TEveElementList * createPHOSElementList() {
+  
+  TEveElementList * elementList  = new TEveElementList("PHOS Cells");
+  
+  gEve->AddElement(elementList);
+  
+  TVector3 center;
+  Float_t angle;
+  
+  // -- Create boxsets
+  for(int im = 0; im < 5; im++) {
+    
+    TEveRGBAPalette* pal = new TEveRGBAPalette(0,120);
+    pal->SetLimits(-0.1, 1024);
+    gPHOSBoxSet[im] = new TEveBoxSet(Form("Cells Module %d" , im));
+    gPHOSBoxSet[im]->SetPalette(pal);
+    gPHOSBoxSet[im]->Reset(TEveBoxSet::kBT_AABox, kFALSE, 64);
+    gPHOSBoxSet[im]->SetOwnIds(kTRUE);
+    
+    
+    gPHOSGeom->GetModuleCenter(center, "CPV", im+1);
+    angle = gPHOSGeom->GetPHOSAngle(im+1)*TMath::Pi()/180;
+    
+    gPHOSBoxSet[im]->RefitPlex();
+    TEveTrans& t = gPHOSBoxSet[im]->RefMainTrans();
+    t.SetupRotation(1, 2, angle );
+    t.SetPos(center.X(), center.Y(), center.Z());
+    
+    elementList->AddElement(gPHOSBoxSet[im]);
+  }
+
+  return elementList;
+}
+
+
+void processEMCALBlock(AliHLTHOMERBlockDesc * block) {	
+
+  Int_t iResult = 0;
+  
+  if ( block->GetDataType().CompareTo("ROOTHIST") == 0 ) { 
+    
+    if(!gEMCALCanvas) {
+      gEMCALCanvas = CreateCanvas("EMCAL QA", "EMCAL QA");
+      gEMCALCanvas->Divide(3, 2);
+    }
+    AddHistogramsToCanvas(block, gEMCALCanvas, gEMCALHistoCount);
+   
+ 
+  } else {
+
+    if( !gEMCALElementList ){
+      gEMCALElementList = createEMCALElementList();
+    }
+
+    if ( block->GetDataType().CompareTo("CALOCLUS") == 0 ) {
+      iResult = processEMCALClusters( block );
+      for(int sm = 0; sm < 12; sm++) {
+	gEMCALBoxSet[sm]->ElementChanged();
+      }
+    }
+  } 
+}
+
+TEveElementList * createEMCALElementList() { 
+  TEveElementList * elementList = new TEveElementList("EMCAL Cells");
+  elementList->SetTitle("Tooltip");
+  gEve->AddElement(elementList);
+  
+  gStyle->SetPalette(1, 0);
+  TEveRGBAPalette* pal = new TEveRGBAPalette(0, 512);
+  pal->SetLimits(0, 1024);
+  
+  
+  for (Int_t sm=0; sm<12; ++sm) {
+    
+    TEveBoxSet* q = new TEveBoxSet(Form("SM %d", sm+1));
+    q->SetOwnIds(kTRUE);
+    
+    q->Reset(TEveBoxSet::kBT_AABox, kFALSE, 64);
+    q->RefMainTrans().SetFrom(*gEMCALNode->GetDaughter(sm)->GetMatrix());
+    q->SetPalette(pal);
+    
+    gEve->AddElement(q, elementList);
+    gEMCALBoxSet[sm] = q;
+  }
+
+  return elementList;
+}
+
+void processHLTBlock(AliHLTHOMERBlockDesc * block) {
+
+  if ( ! block->GetDataType().CompareTo("ALIESDV0") ) {
+    if(!gTPCTrack){
+      gTPCTrack = new TEveTrackList("ESD Tracks");
+      gTPCTrack->SetMainColor(6);
+      gEve->AddElement(gTPCTrack);
+    }
+    
+    processEsdTracks(block, gTPCTrack);
+    gTPCTrack->ElementChanged();
+  } 
+  
+  else if ( ! block->GetDataType().CompareTo("ROOTTOBJ") ) {
+    processROOTTOBJ( block, gHLTText );
+  } 
+
+  else if ( ! block->GetDataType().CompareTo("HLTRDLST") ) {
+    processHLTRDLST( block );
+  } 
+
+  else if ( !block->GetDataType().CompareTo("ROOTHIST") ) {      
+    
+    processPrimVertexHistograms( block , gPrimVertexCanvas);
+    gPrimVertexCanvas->Update();    
+  }
+
+} 
+
+
+void processTPCBlock(AliHLTHOMERBlockDesc * block) {
+
+  cout <<"Processing tpc clusters"<<endl;
+
+  if ( ! block->GetDataType().CompareTo("CLUSTERS") ) {
+    if(!gTPCClusters){	  
+      gTPCClusters = new TEvePointSet("TPC Clusters");
+      //gTPCClusters->ApplyVizTag("TPC Clusters");
+      gTPCClusters->SetMainColor(kRed);
+      gTPCClusters->SetMarkerStyle((Style_t)kFullDotSmall);
+      //gEve->AddElement(gTPCClusters);
+    } 
+    
+    if(!gTPCColClusters){
+      gTPCColClusters = new TEvePointSetArray("TPC Clusters Colorized");
+      gTPCColClusters->SetMainColor(kRed);
+      gTPCColClusters->SetMarkerStyle(4); // antialiased circle
+      gTPCColClusters->SetMarkerSize(0.4);
+      gTPCColClusters->InitBins("Cluster Charge", gTPCBins, 0., gTPCBins*20.);
+      
+      const Int_t nCol = TColor::GetNumberOfColors();
+      
+      for (Int_t ii = 0; ii < gTPCBins+1; ++ii)
+	gTPCColClusters->GetBin(ii)->SetMainColor(TColor::GetColorPalette(ii * nCol / (gTPCBins+2)));
+      
+      gEve->AddElement(gTPCColClusters);
+    } 
+    
+    processTPCClusters(block, gTPCClusters, gTPCColClusters);
+    //gTPCClusters->ElementChanged();
+    gTPCColClusters->ElementChanged();
+  }
+      
+  else if ( ! block->GetDataType().CompareTo("HWCL_ALT") ) {
+    if(!gTPCTestClusters){	  
+      
+      gTPCTestClusters = new TEvePointSet("TPC Clusters Test");
+      //ggTPCTestClusters->ApplyVizTag("TPC Clusters");
+      gTPCTestClusters->SetMainColor(kBlue);
+      gTPCTestClusters->SetMarkerStyle((Style_t)kFullDotSmall);
+      gEve->AddElement(gTPCTestClusters);
+    }
+    
+    processTPCClusters(block, gTPCTestClusters);
+    gTPCTestClusters->ElementChanged();
+  }
+} 
