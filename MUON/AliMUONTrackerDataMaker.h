@@ -61,6 +61,9 @@ public:
   /// Get our accumulated data
   AliMUONVTrackerData* Data() const { return fAccumulatedData; }
   
+  /// Whether or not we're the owner of our fAccumulatedData
+  void SetOwnerOfData(Bool_t flag) { fIsOwnerOfAccumulatedData = flag; }
+
   /// Whether we're only handling event-by-event data (i.e. no accumulation)
   Bool_t IsEventByEvent() const { return fIsEventByEvent; }
   
@@ -92,7 +95,13 @@ public:
   
   /// Number of events seen
   Int_t NumberOfEvents() const { return fNumberOfEvents; }
-  
+
+  /// Number of physics events seen
+  Int_t NumberOfPhysicsEvents() const { return fNumberOfPhysicsEvents; }
+
+  /// Number of good physics events seen
+  Int_t NumberOfGoodPhysicsEvents() const { return fNumberOfGoodPhysicsEvents; }
+
   Long64_t Merge(TCollection* li);
   
   void SetRawReader(AliRawReader* rawReader);
@@ -100,6 +109,15 @@ public:
   /// Set the error logger
   void EnableErrorLogger(AliMUONLogger* logger) { fLogger = logger; }
   
+  /// Whether last decoded event was empty
+  Bool_t LastEventWasEmpty() const { return fLastEventWasEmpty; }
+  
+  /// Whether or not we should try to recover corrupted raw data
+  void SetTryRecover(Bool_t flag) { fTryRecover = flag; }
+  
+  /// Set the event range to consider
+  void SetEventRange(Int_t first, Int_t last) { fFirstEvent=first; fLastEvent=last; }
+
 private:
   /// not implemented
   AliMUONTrackerDataMaker(const AliMUONTrackerDataMaker& rhs);
@@ -115,7 +133,8 @@ private:
   
 private:
   AliRawReader* fRawReader; //!< reader of the data (owner or not)
-  AliMUONVTrackerData* fAccumulatedData; ///< data (owner)
+  AliMUONVTrackerData* fAccumulatedData; ///< data (owner or not)
+  Bool_t fIsOwnerOfAccumulatedData; ///< owner or not of fAccumulatedData
   AliMUONVStore* fOneEventData; ///< data for a single event (owner)
   AliMUONDigitCalibrator* fDigitCalibrator; //!< digit calibrator (if calibrating)
   AliMUONCalibrationData* fCalibrationData; ///< calibration data (if calibrating)
@@ -128,8 +147,14 @@ private:
   Bool_t fIsEventByEvent; ///< we only keep one event's data (no accumulation)
   static Int_t fgkCounter; ///< to count the number of instances
   AliMUONLogger* fLogger; ///< error logger (not owner)
-  
-  ClassDef(AliMUONTrackerDataMaker,2) // Producer of AliMUONVTrackerData from raw
+  Bool_t fLastEventWasEmpty; ///< whether last decoded event was empty
+  Int_t fNumberOfPhysicsEvents; ///< number of physics events seen
+  Int_t fNumberOfGoodPhysicsEvents; ///< number of errors with no (fatal) readout error
+  Bool_t fTryRecover; ///< whether we should try to recover corrupted raw data
+  Int_t fFirstEvent; ///< first event to consider
+  Int_t fLastEvent; ///< last event to consider
+
+  ClassDef(AliMUONTrackerDataMaker,5) // Producer of AliMUONVTrackerData from raw
 };
 
 #endif

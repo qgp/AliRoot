@@ -53,6 +53,7 @@ AliMUONTrackerDataMaker::AliMUONTrackerDataMaker(TRootIOCtor*)
 AliMUONVTrackerDataMaker(),
 fRawReader(0x0),
 fAccumulatedData(0x0),
+fIsOwnerOfAccumulatedData(kTRUE),
 fOneEventData(0x0),
 fDigitCalibrator(0x0),
 fCalibrationData(0x0), 
@@ -63,7 +64,13 @@ fRunNumber(0),
 fIsRunning(kFALSE),
 fIsOwnerOfRawReader(kFALSE),
 fIsEventByEvent(kFALSE),
-fLogger(0x0)
+fLogger(0x0),
+fLastEventWasEmpty(kFALSE),
+fNumberOfPhysicsEvents(0),
+fNumberOfGoodPhysicsEvents(0),
+fTryRecover(kFALSE),
+fFirstEvent(-1),
+fLastEvent(-1)
 {
 /// Root IO ctor
 }
@@ -81,6 +88,7 @@ AliMUONTrackerDataMaker::AliMUONTrackerDataMaker(const AliMUONRecoParam* recoPar
 AliMUONVTrackerDataMaker(),
 fRawReader(rawReader),
 fAccumulatedData(0x0),
+fIsOwnerOfAccumulatedData(kTRUE),
 fOneEventData(new AliMUON2DMap(true)),
 fDigitCalibrator(0x0),
 fCalibrationData(0x0), 
@@ -91,7 +99,13 @@ fRunNumber(runNumber),
 fIsRunning(kFALSE),
 fIsOwnerOfRawReader(kFALSE),
 fIsEventByEvent(kFALSE),
-fLogger(0x0)
+fLogger(0x0),
+fLastEventWasEmpty(kFALSE),
+fNumberOfPhysicsEvents(0),
+fNumberOfGoodPhysicsEvents(0),
+fTryRecover(kFALSE),
+fFirstEvent(-1),
+fLastEvent(-1)
 {
   /// Ctor in which this object will NOT be the owner of the reader
   /// and can NOT apply rewind to it, nor use Next on it. 
@@ -111,6 +125,7 @@ AliMUONTrackerDataMaker::AliMUONTrackerDataMaker(const AliMUONRecoParam* recoPar
 AliMUONVTrackerDataMaker(),
 fRawReader(rawReader),
 fAccumulatedData(0x0),
+fIsOwnerOfAccumulatedData(kTRUE),
 fOneEventData(new AliMUON2DMap(true)),
 fDigitCalibrator(0x0),
 fCalibrationData(0x0), 
@@ -121,7 +136,13 @@ fRunNumber(0),
 fIsRunning(kFALSE),
 fIsOwnerOfRawReader(kTRUE),
 fIsEventByEvent(kFALSE),
-fLogger(0x0)
+fLogger(0x0),
+fLastEventWasEmpty(kFALSE),
+fNumberOfPhysicsEvents(0),
+fNumberOfGoodPhysicsEvents(0),
+fTryRecover(kFALSE),
+fFirstEvent(-1),
+fLastEvent(-1)
 {
   /// Ctor in which we take the ownership of the rawReader, so we can rewind
   /// and advance it as we wish
@@ -142,6 +163,7 @@ AliMUONTrackerDataMaker::AliMUONTrackerDataMaker(AliRawReader* rawReader, Bool_t
 AliMUONVTrackerDataMaker(),
 fRawReader(rawReader),
 fAccumulatedData(0x0),
+fIsOwnerOfAccumulatedData(kTRUE),
 fOneEventData(new AliMUON2DMap(true)),
 fDigitCalibrator(0x0),
 fCalibrationData(0x0), 
@@ -152,7 +174,13 @@ fRunNumber(0),
 fIsRunning(kFALSE),
 fIsOwnerOfRawReader(kTRUE),
 fIsEventByEvent(kFALSE),
-fLogger(0x0)
+fLogger(0x0),
+fLastEventWasEmpty(kFALSE),
+fNumberOfPhysicsEvents(0),
+fNumberOfGoodPhysicsEvents(0),
+fTryRecover(kFALSE),
+fFirstEvent(-1),
+fLastEvent(-1)
 {
   /// Ctor from raw data reader
   if (fRawReader) 
@@ -253,7 +281,7 @@ AliMUONTrackerDataMaker::~AliMUONTrackerDataMaker()
 /// dtor
 
   delete fOneEventData;
-  delete fAccumulatedData;
+  if ( fIsOwnerOfAccumulatedData ) delete fAccumulatedData;
   if ( fIsOwnerOfRawReader ) delete fRawReader;
   delete fCalibrationData;
   delete fDigitCalibrator;
@@ -279,7 +307,9 @@ AliMUONTrackerDataMaker::Add(const AliMUONTrackerDataMaker& other)
   fSource += other.fSource;
   
   fNumberOfEvents += other.fNumberOfEvents;
-  
+  fNumberOfPhysicsEvents += other.fNumberOfPhysicsEvents;
+  fNumberOfGoodPhysicsEvents += other.fNumberOfGoodPhysicsEvents;
+
   TList list;
   list.Add(other.fAccumulatedData);
   
@@ -302,34 +332,41 @@ AliMUONTrackerDataMaker::NextEvent()
   
   AliCodeTimerAuto("",0);
   
-  static Int_t nphysics(0);
-  static Int_t ngood(0);
-  
   if ( !IsRunning() ) return kTRUE;
   
-  Bool_t ok = fRawReader->NextEvent();
+  Bool_t ok(kTRUE);
+  
+  if ( fLastEvent >= fFirstEvent && fLastEvent > 0 ) // do we have an event range to consider ?
+  {
+    // skip up to first event
+    
+    while ( (fNumberOfEvents-1) < fFirstEvent && ( ok = fRawReader->NextEvent() ) ) 
+    {
+      ++fNumberOfEvents; 
+    }
+    
+    if ( ok && (fNumberOfEvents-1) <= fLastEvent ) 
+    {
+      ok = fRawReader->NextEvent();
+    }
+    else
+    {
+      fNumberOfEvents=fLastEvent+1;
+      return kFALSE;
+    }
+  }
+  else
+  {
+    // no event range, just proceed...
+    ok = fRawReader->NextEvent();
+  }
   
   if (!ok) 
   {
     return kFALSE;
   }
   
-  Int_t eventType = fRawReader->GetType();
-  
-  ++fNumberOfEvents;
-  
-  if (eventType != AliRawEventHeaderBase::kPhysicsEvent ) 
-  {
-    return kTRUE; // for the moment
-  }
-  
-  ++nphysics;
-  
-	Bool_t pok = ProcessEvent();
-	
-	if ( pok ) ++ngood;
-	
-	AliDebug(1,Form("n %10d nphysics %10d ngood %10d",fNumberOfEvents,nphysics,ngood));
+	ProcessEvent();
 	
 	return kTRUE;  
 }
@@ -347,6 +384,19 @@ Bool_t AliMUONTrackerDataMaker::ProcessEvent()
   /// duplicate this critical piece of calibration code !
   ///
   
+  ++fNumberOfEvents;
+  
+  Int_t eventType = fRawReader->GetType();
+  
+  if (eventType != AliRawEventHeaderBase::kPhysicsEvent ) 
+  {
+    return kTRUE; // for the moment
+  }
+  
+  ++fNumberOfPhysicsEvents;
+  
+  fLastEventWasEmpty = kFALSE;
+  
   AliCodeTimerAuto("",0);
   
   AliMUONRawStreamTrackerHP stream(fRawReader);
@@ -354,6 +404,15 @@ Bool_t AliMUONTrackerDataMaker::ProcessEvent()
   stream.DisableWarnings();
   stream.DisableRawReaderErrorLogger();
   stream.DisableMUONErrorLogger();
+
+  if ( fTryRecover ) 
+  {
+    stream.TryRecover(kTRUE);
+  }
+  else
+  {
+    stream.TryRecover(kFALSE);
+  }
   
   if (fLogger)
   {
@@ -419,9 +478,13 @@ Bool_t AliMUONTrackerDataMaker::ProcessEvent()
 
 	if (!badEvent)
   {
-    fAccumulatedData->Add(*fOneEventData,&nevents);    
+    fAccumulatedData->Add(*fOneEventData,&nevents);  
+    if ( fOneEventData->GetSize() == 0 ) fLastEventWasEmpty = kTRUE;
+    ++fNumberOfGoodPhysicsEvents;
   }
     
+  AliDebug(1,Form("n %10d nphysics %10d ngood %10d",fNumberOfEvents,fNumberOfPhysicsEvents,fNumberOfGoodPhysicsEvents));
+	
   return !badEvent;
 }
 
@@ -444,6 +507,8 @@ void AliMUONTrackerDataMaker::Rewind()
   {
     fRawReader->RewindEvents();
     fNumberOfEvents=0;  
+    fNumberOfPhysicsEvents=0;
+    fNumberOfGoodPhysicsEvents=0;
   }
   else
   {
