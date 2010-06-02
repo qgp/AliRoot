@@ -33,6 +33,8 @@ class AliHLTGlobalBarrelTrack : public AliKalmanTrack
   AliHLTGlobalBarrelTrack(const AliHLTGlobalBarrelTrack& t);
   /** copy constructor */
   AliHLTGlobalBarrelTrack(const AliHLTExternalTrackParam& p);
+  /** copy constructor */
+  AliHLTGlobalBarrelTrack(const AliExternalTrackParam& p);
 
   /** assignment operator */
   template <class c>
@@ -44,6 +46,13 @@ class AliHLTGlobalBarrelTrack : public AliKalmanTrack
   Int_t GetClusterIndex(Int_t i) const { 
     return (i<(int)fPoints.size()) ?fPoints[i] :0;
   } 
+
+  /// inherited from AliKalmanTrack, dummy implementation
+  virtual Int_t GetNumberOfTracklets() const {return 0;}
+  /// inherited from AliKalmanTrack, dummy implementation
+  virtual Int_t GetTrackletIndex(Int_t) const {return -1;} 
+  /// inherited from AliKalmanTrack, dummy implementation
+  virtual Double_t GetPIDsignal() const {return 0.;}
 
   /// Get the x position of the last assigned point
   Double_t GetLastPointX() const {return fLastX;}
@@ -82,11 +91,6 @@ class AliHLTGlobalBarrelTrack : public AliKalmanTrack
  protected:
 
  private:
-
-  /// inherited from AliKalmanTrack, dummy implementation
-  virtual Double_t GetPIDsignal() const {
-    return 0.;
-  }
 
   /// array of points
   vector<UInt_t> fPoints; //

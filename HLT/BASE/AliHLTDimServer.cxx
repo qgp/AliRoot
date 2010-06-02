@@ -16,11 +16,11 @@
 //* provided "as is" without express or implied warranty.                  *
 //**************************************************************************
 
-/** @file   AliHLTDimServer.cxx
-    @author Matthias Richter
-    @date   2010-03-10
-    @brief  HLT DIM server implementation
-*/
+//  @file   AliHLTDimServer.cxx
+//  @author Matthias Richter
+//  @date   2010-03-10
+//  @brief  HLT DIM server implementation and dynamic access
+//          to DIM library
 
 #include "AliHLTDimServer.h"
 #include "TObjArray.h"
@@ -90,6 +90,7 @@ AliHLTDimServer::AliHLTDimService* AliHLTDimServer::CreateService(enum AliHLTDim
 
 TObjArray* AliHLTDimServer::CreateServiceGroup(enum AliHLTDimServer::AliHLTDimServiceDataType type, const char* basename, int count)
 {
+  // see header file for class documentation
   int iResult=0;
   TObjArray* pServices=new TObjArray;
   AliHLTLogging log;
@@ -143,6 +144,7 @@ int AliHLTDimServer::UpdateServices()
 
 AliHLTDimServer::AliHLTDimInterface* AliHLTDimServer::Interface()
 {
+  // get instance of the interface
   if (!fgpInterface) {
     fgpInterface=new AliHLTDimInterface;
     if (fgpInterface) {
@@ -154,6 +156,8 @@ AliHLTDimServer::AliHLTDimInterface* AliHLTDimServer::Interface()
 
 int AliHLTDimServer::Init(const char* dimNameServer)
 {
+  // init the dim server, check if the interface is available and set the
+  // DIM DNS node name
   AliHLTLogging log;
   const char* myname=GetName();
   if (myname==NULL || myname[0]==0) {
@@ -169,6 +173,7 @@ int AliHLTDimServer::Init(const char* dimNameServer)
 
 int AliHLTDimServer::Reset()
 {
+  // reset the DIM server, functionality needs to be clarified
   return 0;
 }
 
@@ -250,7 +255,7 @@ void* AliHLTDimServer::ServerLoop()
   while ((obj=next())!=NULL) {
     AliHLTDimService* pService=dynamic_cast<AliHLTDimService*>(obj);
     if (!pService) continue;
-    const char* name=pService->GetName();
+    TString name=GetName(); name+="_"; name+=pService->GetName();
     const char* type="";
     void* buffer=pService->GetLocation();
     int size=0;
@@ -264,15 +269,15 @@ void* AliHLTDimServer::ServerLoop()
       size=sizeof(float);
       break;
     case kDataTypeString:
-      log.LoggingVarargs(kHLTLogError, "AliHLTDimServer::AliHLTDimService", "ServerLoop" , __FILE__ , __LINE__ , "ignoring dim service %s: type 'string' not yet implemented", name);
+      log.LoggingVarargs(kHLTLogError, "AliHLTDimServer::AliHLTDimService", "ServerLoop" , __FILE__ , __LINE__ , "ignoring dim service %s: type 'string' not yet implemented", name.Data());
       break;
     default:
-      log.LoggingVarargs(kHLTLogError, "AliHLTDimServer::AliHLTDimService", "ServerLoop" , __FILE__ , __LINE__ , "ignoring dim service %s: unknown type %d", name, pService->GetType());
+      log.LoggingVarargs(kHLTLogError, "AliHLTDimServer::AliHLTDimService", "ServerLoop" , __FILE__ , __LINE__ , "ignoring dim service %s: unknown type %d", name.Data(), pService->GetType());
     }
     if (type[0]!=0) {
-      int id=Interface()->DisAddService(name, type, buffer, size);
+      int id=Interface()->DisAddService(name.Data(), type, buffer, size);
       if (id<0) {
-	 log.LoggingVarargs(kHLTLogError, "AliHLTDimServer::AliHLTDimService", "ServerLoop" , __FILE__ , __LINE__ , "failed to add dim service %s: error %d", name, id);
+	log.LoggingVarargs(kHLTLogError, "AliHLTDimServer::AliHLTDimService", "ServerLoop" , __FILE__ , __LINE__ , "failed to add dim service %s: error %d", name.Data(), id);
       } else {
 	 pService->SetId(id);
       }
@@ -280,8 +285,8 @@ void* AliHLTDimServer::ServerLoop()
   }
 
   SetState(kStateRunning);
+  Interface()->DisStartServing(GetName());
   while (GetState()==kStateRunning) {
-    cout << "test" << endl;
     gSystem->Sleep(fUpdatePeriod);
   }
 
@@ -332,7 +337,7 @@ AliHLTDimServer::AliHLTDimService::AliHLTDimService(enum AliHLTDimServiceDataTyp
   };
 }
 
-void AliHLTDimServer::AliHLTDimService::Update(AliHLTDimServicePoint_t& sp)
+void AliHLTDimServer::AliHLTDimService::Update(const AliHLTDimServicePoint_t& sp)
 {
   // see header file for class documentation
   static bool bWarning=true;
@@ -348,6 +353,8 @@ void AliHLTDimServer::AliHLTDimService::Update(AliHLTDimServicePoint_t& sp)
     if (bWarning) log.LoggingVarargs(kHLTLogError, "AliHLTDimServer::AliHLTDimService", "Update" , __FILE__ , __LINE__ , "Failed to update dim service %s: unknown type %d", GetName(), fType);
     bWarning=false;
   };
+
+  AliHLTDimServer::Interface()->DisUpdateService(fId);
 }
 
 AliHLTDimServer::AliHLTDimInterface::AliHLTDimInterface()
