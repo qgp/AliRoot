@@ -77,7 +77,6 @@ class	TMap;
 
 //#define PRINT_FULL 1
 
-
 #ifdef PRINT_FULL
 #define PRINT_POINTS 1
 #define PRINT_BACK 1
@@ -135,7 +134,10 @@ AliHLTMUONFullTracker::AliHLTMUONFullTracker() :
   fNofTracks(0),
   fDetElemList(),
   fFastTracking(kFALSE),
-  fNofInputs(0)
+  fNofInputs(0),
+  fNofTriggerInputs(0),
+  fNofTrackerInputs(0),
+  fIsMagfield(kFALSE)
 {
 
   /// Constructor of the class
@@ -302,6 +304,8 @@ Bool_t AliHLTMUONFullTracker::Clear(){
   
 
   fNofInputs = 0;
+  fNofTriggerInputs = 0;
+  fNofTrackerInputs = 0;
 
   for( Int_t ich=0;ich<fgkMaxNofCh;ich++)
     fNofPoints[ich] = 0;
@@ -341,8 +345,15 @@ Bool_t AliHLTMUONFullTracker::Init()
   //The following condition is based on the fact that at the middle of the dipole the field cannot be zero
   if(TMath::AreEqualAbs(b[0],0.0,1.0e-5) and TMath::AreEqualAbs(b[1],0.0,1.0e-5) and TMath::AreEqualAbs(b[2],0.0,1.0e-5)){
     HLTWarning("Magnetic field is not set by GRP");
-    TGeoGlobalMagField::Instance()->SetField(new AliMagF("Maps","Maps", -1., -1, AliMagF::k5kG));
-    TGeoGlobalMagField::Instance()->Field(x,b);
+    if(not TGeoGlobalMagField::Instance()->IsLocked()){
+      TGeoGlobalMagField::Instance()->SetField(new AliMagF("Maps","Maps", -1., -1, AliMagF::k5kG));
+      TGeoGlobalMagField::Instance()->Field(x,b);
+      fIsMagfield = kTRUE;
+    }else{
+      HLTWarning("Magnetic field is not set and cannot be set since it is locked");
+    }
+  }else{
+    fIsMagfield = kTRUE;
   }
   
   
@@ -406,6 +417,7 @@ Bool_t AliHLTMUONFullTracker::SetInput(AliHLTInt32_t /*ddl*/, const AliHLTMUONRe
     data++;
   }
   fNofInputs++;
+  fNofTrackerInputs++;
   return true;
 }
 
@@ -448,6 +460,7 @@ Bool_t AliHLTMUONFullTracker::SetInput(AliHLTInt32_t /*ddl*/, const AliHLTMUONTr
     data++;
   }///ipoint
     fNofInputs++;
+  fNofTriggerInputs++;
   return true;
 }
 
@@ -460,7 +473,9 @@ Bool_t AliHLTMUONFullTracker::CheckInput(AliHLTEventID_t iEvent)
 
   bool resultOk = true;
   
-  if(fNofInputs > 22){ //if more than 22 inputs, do not do anything
+  //if more than expected inputs or no input from one detector, do not do anything
+  if((fNofInputs > 22) or  (fNofTrackerInputs > 20) or  (fNofTriggerInputs > 2) 
+     or (fNofTrackerInputs == 0) or  (fNofTriggerInputs == 0)){ 
     
     resultOk = false;
     return resultOk;
@@ -477,8 +492,8 @@ Bool_t AliHLTMUONFullTracker::CheckInput(AliHLTEventID_t iEvent)
 					TMath::AreEqualAbs(fChPoint[ich][ipt]->fY,0.0,1.0e-5) and 
 					TMath::AreEqualAbs(fChPoint[ich][ipt]->fZ,0.0,1.0e-5))){
 	  resultOk = false;
-	  HLTError("iEvent : 0x%x, fNofInputs : %d, Nof tracker point for chamber %d, is not equal to nof valid tracker pointer",
-		   iEvent,fNofInputs,ich);
+	  HLTError("iEvent : 0x%x, fNofTrackerInputs : %d, Nof tracker point for chamber %d, is not equal to nof valid tracker pointer",
+		   iEvent,fNofTrackerInputs,ich);
 	  return resultOk;
 	}
       }// tracker ch loop
@@ -493,8 +508,8 @@ Bool_t AliHLTMUONFullTracker::CheckInput(AliHLTEventID_t iEvent)
     for(int ipt=0;ipt<fNofPoints[10];ipt++){
       if(not fChPoint11[ipt]){
 	resultOk = false;
-	HLTError("iEvent : 0x%x, fNofInputs : %d, Nof trigger points, is not equal to nof valid tracker pointer",
-		 iEvent,fNofInputs);
+	HLTError("iEvent : 0x%x, fNofTriggerInputs : %d, Nof trigger points, is not equal to nof valid tracker pointer",
+		 iEvent,fNofTriggerInputs);
 	return resultOk;
 	
       }
@@ -521,6 +536,9 @@ Bool_t AliHLTMUONFullTracker::Run( AliHLTEventID_t iEvent,AliHLTMUONTrackStruct 
 //     HLTDebug("\tNof hits in ich [%d] : %d\t",ich,fNofPoints[ich]);
   
   resultOk = CheckInput(iEvent);
+  
+  if((not fIsMagfield) and resultOk)
+    resultOk = false;
   
   if(resultOk){
     resultOk = SlatTrackSeg();
@@ -577,9 +595,9 @@ Bool_t AliHLTMUONFullTracker::Run( AliHLTEventID_t iEvent,AliHLTMUONTrackStruct 
   
   if(!resultOk)
     size = 0;
-
-  HLTDebug("iEvent: 0x%X, has tracks : %d, triggers : %d, nof slat tracks : %d, quad tracks : %d, connected : %d\n",
-	   iEvent,size,fNofPoints[10],fNofbackTrackSeg,fNoffrontTrackSeg,fNofConnected);
+  
+  HLTDebug("iEvent: %llu, has tracks : %d, triggers : %d, nof slat tracks : %d, quad tracks : %d, connected : %d\n",
+	     iEvent,size,fNofPoints[10],fNofbackTrackSeg,fNoffrontTrackSeg,fNofConnected);
   Clear();
   
   return resultOk;
@@ -669,9 +687,19 @@ Bool_t AliHLTMUONFullTracker::FillOutData(AliHLTMUONTrackStruct *track, AliHLTUI
 	if(ipoint >= 6 and ipoint <= 9 and fBackTrackSeg[ibackTrackSeg].fIndex[ipoint-6]!=-1 ){
 	    track->fHit[ipoint] = *(fChPoint[ipoint][fBackTrackSeg[ibackTrackSeg].fIndex[ipoint-6]]);
 	    hitset[ipoint] = true;
+#ifdef PRINT_OUTPUT
+	    AliHLTUInt8_t chamber; AliHLTUInt16_t detElemID;
+	    AliHLTMUONUtils::UnpackRecHitFlags((track->fHit[ipoint]).fFlags,chamber,detElemID);
+	    HLTImportant("(X,Y,Z) : (%lf,%lf,%lf)",(track->fHit[ipoint]).fX,(track->fHit[ipoint]).fY,(track->fHit[ipoint]).fZ);
+#endif
 	}else if(ipoint <= 3 and fFrontTrackSeg[fBackToFront[ibackTrackSeg][0]].fIndex[ipoint]!=-1 ){
 	    track->fHit[ipoint] = *(fChPoint[ipoint][fFrontTrackSeg[fBackToFront[ibackTrackSeg][0]].fIndex[ipoint]]);
 	    hitset[ipoint] = true;
+#ifdef PRINT_OUTPUT
+	    AliHLTUInt8_t chamber; AliHLTUInt16_t detElemID;
+	    AliHLTMUONUtils::UnpackRecHitFlags((track->fHit[ipoint]).fFlags,chamber,detElemID);
+	    HLTImportant("(X,Y,Z) : (%lf,%lf,%lf)",(track->fHit[ipoint]).fX,(track->fHit[ipoint]).fY,(track->fHit[ipoint]).fZ);
+#endif
 	}
       }
       AliHLTMUONParticleSign sign = AliHLTMUONParticleSign(Int_t(TMath::Sign(1.,fTrackParam[ibackTrackSeg].GetInverseBendingMomentum())));
@@ -716,6 +744,11 @@ Bool_t AliHLTMUONFullTracker::FillOutData(AliHLTMUONTrackStruct *track, AliHLTUI
 	  
 	  track->fHit[ipoint] = *(fChPoint[ipoint][fBackTrackSeg[ibackTrackSeg].fIndex[ipoint-6]]);
 	  hitset[ipoint] = true;
+#ifdef PRINT_OUTPUT
+	  AliHLTUInt8_t chamber; AliHLTUInt16_t detElemID;
+	  AliHLTMUONUtils::UnpackRecHitFlags((track->fHit[ipoint]).fFlags,chamber,detElemID);
+	  HLTImportant("(X,Y,Z) : (%lf,%lf,%lf)",(track->fHit[ipoint]).fX,(track->fHit[ipoint]).fY,(track->fHit[ipoint]).fZ);
+#endif
 	}
       }
       AliHLTMUONParticleSign sign = AliHLTMUONParticleSign(fHalfTrack[ibackTrackSeg].fCharge);
@@ -1647,10 +1680,10 @@ Bool_t AliHLTMUONFullTracker::QuadTrackSeg()
     }///frontch
   }///backch
 
-  if(nofSt2Cells==0){
-    HLTDebug("No Hits found in Stn2");
-    return false;
-  }
+  // if(nofSt2Cells==0){
+  //   HLTDebug("No Hits found in Stn2");
+  //   return false;
+  // }
   
   for( Int_t ibackpoint=0;ibackpoint<fNofPoints[1];ibackpoint++){
     for( Int_t ifrontpoint=0;ifrontpoint<fNofPoints[0];ifrontpoint++){
@@ -1678,8 +1711,8 @@ Bool_t AliHLTMUONFullTracker::QuadTrackSeg()
       }///if point found
     }///frontch
   }///backch
-  if(nofSt1Cells==0){
-    HLTDebug("No Hits found in Stn1");
+  if(nofSt1Cells==0 and nofSt2Cells==0){
+    HLTDebug("No Hit pair found in Stn1 and St2");
     return false;
   }
   
