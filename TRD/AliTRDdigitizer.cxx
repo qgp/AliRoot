@@ -1242,7 +1242,7 @@ Bool_t AliTRDdigitizer::Signal2ADC(Int_t det, AliTRDarraySignal *signals)
 
       // Check whether pad is masked
       // Bridged pads are not considered yet!!!
-      if (calibration->IsPadMasked(det,col,row)) {
+      if (calibration->IsPadMasked(det,col,row) || calibration->IsPadNotConnected(det,col,row)) {
         continue;
       }
 
@@ -1944,3 +1944,4 @@ void AliTRDdigitizer::RunDigitalProcessing(Int_t det)
   delete mcmfast;
 
 }
+
