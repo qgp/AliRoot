@@ -36,6 +36,7 @@
 #include "AliHLTV0HistoComponent.h"
 #include "AliHLTGlobalVertexerHistoComponent.h"
 #include "AliHLTGlobalHistoCollector.h"
+#include "AliHLTGlobalDCSPublisherComponent.h"
 
 /** global instance for agent registration */
 AliHLTGlobalAgent gAliHLTGlobalAgent;
@@ -71,6 +72,7 @@ int AliHLTGlobalAgent::RegisterComponents(AliHLTComponentHandler* pHandler) cons
   pHandler->AddComponent(new AliHLTGlobalVertexerHistoComponent);
   pHandler->AddComponent(new AliHLTV0HistoComponent );
   pHandler->AddComponent(new AliHLTGlobalHistoCollector );
+  pHandler->AddComponent(new AliHLTGlobalDCSPublisherComponent );
   return 0;
 }
 
@@ -188,7 +190,7 @@ const char* AliHLTGlobalAgent::GetRequiredComponentLibraries() const
 {
   // see header file for class documentation
 
-  return "libAliHLTUtil.so libAliHLTRCU.so libAliHLTTPC.so libAliHLTITS.so";
+  return "";
 }
 
 int AliHLTGlobalAgent::GetHandlerDescription(AliHLTComponentDataType /*dt*/,
