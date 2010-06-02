@@ -54,18 +54,28 @@ class  AliCaloRawAnalyzer : public TObject
   void SetAmpCut(const Float_t cut) { fAmpCut = cut ; } ;
   void SetFitArrayCut(const Int_t cut) { fFitArrayCut = cut ; } ;
   void SetNsampleCut(const Int_t cut) { fNsampleCut = cut ; } ;
+  void SetOverflowCut(const Int_t cut) { fOverflowCut = cut ; } ;
   void SetNsamplePed(const Int_t i) { fNsamplePed = i ; } ;
 
   bool GetIsZeroSuppressed() const { return fIsZerosupressed;} ;
   Float_t GetAmpCut() const { return fAmpCut; } ;
   Int_t GetFitArrayCut() const { return fFitArrayCut; } ;
   Int_t GetNsampleCut() const { return fNsampleCut; } ;
+  Int_t GetOverflowCut() const { return fOverflowCut; } ;
   Int_t GetNsamplePed() const { return fNsamplePed; } ;
 
   // access to array info
   Double_t GetReversed(const int i) const { return fReversed[i]; }
   const char * GetAlgoName() const { return fName;  };
   const char * GetAlgoAbbr() const { return fNameShort;  };
+
+  Double_t CalculateChi2(const Double_t amp, const Double_t time,
+			 const Int_t first, const Int_t last,
+			 const Double_t adcErr=1, 
+			 const Double_t tau=2.35);
+
+  void CalculateMeanAndRMS(const Int_t first, const Int_t last,
+			   Double_t & mean, Double_t & rms);
 
  protected:
   short Max( const AliCaloBunchInfo *const bunch, int *const maxindex) const;
@@ -85,6 +95,7 @@ class  AliCaloRawAnalyzer : public TObject
   int fFitArrayCut;  //Cut on ADC value (after ped. subtraction) for signals used for fit
   Float_t fAmpCut;   //Max ADC - pedestal must be higher than this befor attemting to extract the amplitude 
   int fNsampleCut;   //Minimum number of sample require before attemting to extract signal parameters 
+  int fOverflowCut; // value when ADC starts to saturate
   int fNsamplePed;   //Number of samples used for pedestal calculation (first in bunch) 
   bool fIsZerosupressed; //Wether or not the data is zeros supressed, by default its assumed that the baseline is also subtracted if set to true
   bool fVerbose;     //Print debug information to std out if set to true
