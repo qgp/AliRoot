@@ -263,7 +263,7 @@ int AliHLTTPCHWClusterTransformComponent::DoEvent(const AliHLTComponentEventData
 
     	   Float_t xyz[3]; xyz[0] = xyz[1] = xyz[2] = -99.;
     	  	   
-	   HLTDebug("padrow: %d, charge: %f, pad: %f, time: %f, errY: %f, errZ: %f \n", cluster.fPadRow, (Float_t)cluster.fCharge, tmpPad, tmpTime, cluster.fSigmaY2, cluster.fSigmaZ2);        	   
+	   HLTDebug("padrow: %d, charge: %d, pad: %f, time: %f, errY: %f, errZ: %f \n", cluster.fPadRow, (UInt_t)cluster.fCharge, tmpPad, tmpTime, cluster.fSigmaY2, cluster.fSigmaZ2);        	   
 	   
 	   //fOfflineTransform=NULL;
 	   
@@ -292,7 +292,10 @@ int AliHLTTPCHWClusterTransformComponent::DoEvent(const AliHLTComponentEventData
 	     cluster.fZ = x[2];		     
  	   }	   
 
-	   HLTDebug("cluster X: %f, Y: %f, Z: %f \n", cluster.fX, cluster.fY, cluster.fZ);
+	   // set the cluster ID so that the cluster dump printout is the same for FCF and SCF
+	   cluster.fID = nAddedClusters +((minSlice&0x7f)<<25)+((minPartition&0x7)<<22);
+
+	   HLTDebug("Cluster number %d: %f, Y: %f, Z: %f, charge: %d \n", nAddedClusters, cluster.fX, cluster.fY, cluster.fZ, (UInt_t)cluster.fCharge);
 	   spacePoints[nAddedClusters] = cluster;
 	   	   
            nAddedClusters++; 
@@ -400,3 +403,9 @@ void AliHLTTPCHWClusterTransformComponent::PrintDebug(AliHLTUInt32_t *buffer, In
     printf("\n");
   }
 } // end of PrintDebug
+
+void AliHLTTPCHWClusterTransformComponent::GetOCDBObjectDescription( TMap* const targetMap){
+// Get a list of OCDB object description needed for the particular component
+  if (!targetMap) return;
+  targetMap->Add(new TObjString("HLT/ConfigTPC/TPCHWClusterTransform"), new TObjString("component argument for the charge threshold"));
+}

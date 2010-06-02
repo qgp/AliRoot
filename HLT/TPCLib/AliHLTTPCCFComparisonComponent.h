@@ -1,16 +1,16 @@
 // XEmacs -*-C++-*-
 // $Id$
 
-#ifndef ALIHLTTPCTRACKHISTOCOMPONENT_H
-#define ALIHLTTPCTRACKHISTOCOMPONENT_H
+#ifndef ALIHLTTPCCFCOMPARISONCOMPONENT_H
+#define ALIHLTTPCCFCOMPARISONCOMPONENT_H
 //* This file is property of and copyright by the ALICE HLT Project        * 
 //* ALICE Experiment at CERN, All rights reserved.                         *
 //* See cxx source for full Copyright notice                               *
 
-/** @file   AliHLTTPCTrackHistoComponent.h
-    @author Gaute Ovrebekk
+/** @file   AliHLTTPCCFComparisonComponent.h
+    @author Kalliopi Kanaki
     @date   
-    @brief  Component for track histo
+    @brief  Comparison component for FCF and SCF
 */
 
 #include "AliHLTProcessor.h"
@@ -19,16 +19,15 @@
 
 class TNtuple;
 class TH1F;
-class TProfile;
 
 /**
- * @class AliHLTTPCTrackHistoComponent
+ * @class AliHLTTPCCFComparisonComponent
  * Component for plotting proparties of Tracks. 
  * The component gives out 2 NTuples. One for cluster and one for track properties
  * 
  * <h2>General properties:</h2> 
  *
- * Component ID: \b TPCTrackHisto <br>
+ * Component ID: \b TPCCFComparison <br>
  * Library: \b libAliHLTTPC.so <br>
  * Input Data Types: AliHLTTPCDefinitions::fgkClustersDataType,
  *                   AliHLTTPCDefinitions::fgkTracksDataType <br>
@@ -56,13 +55,13 @@ class TProfile;
  *
  * @ingroup alihlt_tpc_components
  */
-class AliHLTTPCTrackHistoComponent : public AliHLTProcessor
+class AliHLTTPCCFComparisonComponent : public AliHLTProcessor
 {
 public:
   /** default constructor */
-  AliHLTTPCTrackHistoComponent();
+  AliHLTTPCCFComparisonComponent();
   /** destructor */
-  virtual ~AliHLTTPCTrackHistoComponent();
+  virtual ~AliHLTTPCCFComparisonComponent();
 
   // Public functions to implement AliHLTComponent's interface.
   // These functions are required for the registration process
@@ -103,9 +102,9 @@ protected:
   
 private:
   /** copy constructor prohibited */
-  AliHLTTPCTrackHistoComponent(const AliHLTTPCTrackHistoComponent&);
+  AliHLTTPCCFComparisonComponent(const AliHLTTPCCFComparisonComponent&);
   /** assignment operator prohibited */
-  AliHLTTPCTrackHistoComponent& operator=(const AliHLTTPCTrackHistoComponent&);
+  AliHLTTPCCFComparisonComponent& operator=(const AliHLTTPCCFComparisonComponent&);
   /**
    * Configure the component.
    * Parse a string for the configuration arguments and set the component
@@ -116,32 +115,24 @@ private:
 
   void PushHisto();
  
-  Int_t fNEvents;    //! transient
-  Int_t fNtotTracks; //! transient
-
   Int_t fEvtMod;     //! number of events reached to reset the counter
   Int_t fBufferSize; //! size of circular buffer (number of entries) for the ntuples
-  Bool_t fdEdx;      //! plot dEdx
-  //  Bool_t fReset;  //! Reset track counter every certain events
-
-  TH1F *fMeanMultiplicity; //! transient (mean multiplicity for every 20 evts vs. #evt by Z.Y.)
+ 
   TH1F *fMultiplicity;     //! transient (track multiplicity by Z.Y.)
-  //TH1F *fdNdEta;           //! transient (dN/dEta)
-     
-  //TH2F *fNClusterVsXY;   //! transient (#Clusters vs. x, y positions, by ZY)
-  //TH2F *fChargeVsXY;     //! transient (Charge distr. vs. x, y added by ZY)
-  TProfile *fDeDxVsP;    //! transient (dEdX vs. p)
 
   TNtuple *fClusters;                             //! transient  
   TNtuple *fTracks;                               //! transient
 
-  AliHLTTPCSpacePointData *fClustersArray[36][6]; //! transient
-  UInt_t                   fNSpacePoints[36][6];  //! transient
+  AliHLTTPCSpacePointData *fFCFClustersArray[36][6]; //! transient
+  UInt_t                   fFCFNSpacePoints[36][6];  //! transient
+
+  AliHLTTPCSpacePointData *fSCFClustersArray[36][6]; //! transient
+  UInt_t                   fSCFNSpacePoints[36][6];  //! transient
   
   /** the default configuration entry for this component */
   static const char* fgkOCDBEntry; //!transient
 
-  ClassDef(AliHLTTPCTrackHistoComponent, 5);
+  ClassDef(AliHLTTPCCFComparisonComponent, 0);
 
 };
 #endif
