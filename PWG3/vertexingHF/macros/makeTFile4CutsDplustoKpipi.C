@@ -16,26 +16,26 @@
 //Author: Chiara Bianchin, cbianchi@pd.infn.it
 //        Giacomo Ortona, ortona@to.infn.it
 
-void makeTFile5CutsDplustoKpipi(){
+void makeTFile4CutsDplustoKpipi(){
 
   AliRDHFCutsDplustoKpipi* RDHFDplustoKpipi=new AliRDHFCutsDplustoKpipi();
   RDHFDplustoKpipi->SetName("loosercuts");
   RDHFDplustoKpipi->SetTitle("Cuts for significance maximization");
 
-  AliESDtrackCuts* esdTrackCuts=new AliESDtrackCuts();
-  esdTrackCuts->SetRequireSigmaToVertex(kFALSE);
-  //default
-  esdTrackCuts->SetRequireTPCRefit(kTRUE);
-  esdTrackCuts->SetRequireITSRefit(kTRUE);
-  esdTrackCuts->SetMinNClustersITS(4); // default is 5
-  esdTrackCuts->SetClusterRequirementITS(AliESDtrackCuts::kSPD,
-					 AliESDtrackCuts::kAny); 
- // default is kBoth, otherwise kAny
-  esdTrackCuts->SetMinDCAToVertexXY(0.);
-  esdTrackCuts->SetPtRange(0.3,1.e10);
+//   AliESDtrackCuts* esdTrackCuts=new AliESDtrackCuts();
+//   esdTrackCuts->SetRequireSigmaToVertex(kFALSE);
+//   //default
+//   esdTrackCuts->SetRequireTPCRefit(kTRUE);
+//   esdTrackCuts->SetRequireITSRefit(kTRUE);
+//   esdTrackCuts->SetMinNClustersITS(4); // default is 5
+//   esdTrackCuts->SetClusterRequirementITS(AliESDtrackCuts::kSPD,
+// 					 AliESDtrackCuts::kAny); 
+//  // default is kBoth, otherwise kAny
+//   esdTrackCuts->SetMinDCAToVertexXY(0.);
+//   esdTrackCuts->SetPtRange(0.3,1.e10);
 
 
-  RDHFDplustoKpipi->AddTrackCuts(esdTrackCuts);
+//   RDHFDplustoKpipi->AddTrackCuts(esdTrackCuts);
 
   const Int_t nvars=12;
 
@@ -74,7 +74,7 @@ void makeTFile5CutsDplustoKpipi(){
   RDHFDplustoKpipi->SetCuts(nvars,nptbins,prodcutsval);
 
   Int_t nvarsforopt=RDHFDplustoKpipi->GetNVarsForOpt();
-  const Int_t dim=4; //set this!!
+  const Int_t dim=5; //set this!!
   Bool_t *boolforopt;
   boolforopt=new Bool_t[nvars];
   if(dim>nvarsforopt){
@@ -110,9 +110,10 @@ void makeTFile5CutsDplustoKpipi(){
   Float_t tighterval[dim][nptbins];
   //sigmavert
   //declength
+  //Pmax
   //costhetapoint
   //sumd02
-  
+
   //number of steps for each variable is 4 now
   //set this!!
 
@@ -126,16 +127,21 @@ void makeTFile5CutsDplustoKpipi(){
   tighterval[1][1]=0.09;
   tighterval[1][2]=0.095;
   tighterval[1][3]=0.115;
+
+  tighterval[2][0]=1.;
+  tighterval[2][1]=1.;
+  tighterval[2][2]=1.;
+  tighterval[2][3]=1.;
   
-  tighterval[2][0]=0.979;
-  tighterval[2][1]=0.9975;
-  tighterval[2][2]=0.995;
-  tighterval[2][3]=0.9975;
+  tighterval[3][0]=0.979;
+  tighterval[3][1]=0.9975;
+  tighterval[3][2]=0.995;
+  tighterval[3][3]=0.9975;
   
-  tighterval[3][0]=0.0055;
-  tighterval[3][1]=0.0028;
-  tighterval[3][2]=0.000883;
-  tighterval[3][3]=0.000883;
+  tighterval[4][0]=0.0055;
+  tighterval[4][1]=0.0028;
+  tighterval[4][2]=0.000883;
+  tighterval[4][3]=0.000883;
 
   TString name=""; 
   Int_t arrdim=dim*nptbins;
@@ -143,8 +149,7 @@ void makeTFile5CutsDplustoKpipi(){
   for (Int_t ipt=0;ipt<nptbins;ipt++){
     for(Int_t ival=0;ival<dim;ival++){
       name=Form("par%dptbin%d",ival,ipt);
-      new(max[ipt*nptbins+ival])TParameter<float>(name.Data(),tighterval[ival][ipt]);
-      cout<<name.Data()<<"  "<<tighterval[ival][ipt]<<endl; 
+      new(max[ipt*dim+ival])TParameter<float>(name.Data(),tighterval[ival][ipt]);
     }
   }
 
