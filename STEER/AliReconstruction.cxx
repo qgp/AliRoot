@@ -193,6 +193,7 @@
 #include "AliCTPTimeParams.h" 
 #include "AliESDHLTDecision.h"
 #include "AliTriggerInput.h"
+#include "AliLHCData.h"
 ClassImp(AliReconstruction)
 
 //_____________________________________________________________________________
@@ -298,7 +299,8 @@ AliReconstruction::AliReconstruction(const char* gAliceFilename) :
     fQACycles[iDet] = 999999 ;
     fQAWriteExpert[iDet] = kFALSE ; 
   }
-    
+  fBeamInt[0][0]=fBeamInt[0][1]=fBeamInt[1][0]=fBeamInt[1][1] = -1;
+
   AliPID pid;
 }
 
@@ -409,6 +411,9 @@ AliReconstruction::AliReconstruction(const AliReconstruction& rec) :
   for (Int_t i = 0; i < rec.fSpecCDBUri.GetEntriesFast(); i++) {
     if (rec.fSpecCDBUri[i]) fSpecCDBUri.Add(rec.fSpecCDBUri[i]->Clone());
   }
+
+  for (int i=2;i--;) for (int j=2;j--;) fBeamInt[i][j] = rec.fBeamInt[i][j];
+
 }
 
 //_____________________________________________________________________________
@@ -524,7 +529,7 @@ AliReconstruction& AliReconstruction::operator = (const AliReconstruction& rec)
   fInitQACalled                = rec.fInitQACalled;
   fWriteQAExpertData           = rec.fWriteQAExpertData;
   fRunPlaneEff                 = rec.fRunPlaneEff;
-
+  for (int i=2;i--;) for (int j=2;j--;) fBeamInt[i][j] = rec.fBeamInt[i][j];
   fesd     = NULL;
   fhltesd  = NULL;
   fesdf    = NULL;
@@ -1193,6 +1198,29 @@ Bool_t AliReconstruction::LoadCTPTimeParamsCDB()
   
   return kFALSE; 
 }
+
+//_____________________________________________________________________________
+Bool_t AliReconstruction::ReadIntensityInfoCDB()
+{
+  // Load LHC DIP data
+  AliCDBEntry* entry = AliCDBManager::Instance()->Get("GRP/GRP/LHCData");
+
+  if (entry) { 
+    AliInfo("Found an AliLHCData in GRP/GRP/LHCData, reading it");
+    AliLHCData* dipData = dynamic_cast<AliLHCData*> (entry->GetObject());
+    for (int ib=2;ib--;) {
+      double intI,intNI;
+      if (dipData->GetMeanIntensity(ib,intI,intNI)>=0) {
+	fBeamInt[ib][0] = intI;
+	fBeamInt[ib][1] = intNI;	
+      }
+    }
+    return kTRUE;
+  }
+  return kFALSE;
+}
+
+
 //_____________________________________________________________________________
 Bool_t AliReconstruction::Run(const char* input)
 {
@@ -1704,8 +1732,16 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
     fesd->SetMagneticField(AliTracker::GetBz());
     fhltesd->SetMagneticField(AliTracker::GetBz());
     //
-    ((AliESDRun*)fesd->GetESDRun())->SetBeamEnergyIsSqrtSHalfGeV();
-    ((AliESDRun*)fhltesd->GetESDRun())->SetBeamEnergyIsSqrtSHalfGeV();
+    AliESDRun *esdRun,*esdRunH;
+    esdRun  = (AliESDRun*)fesd->GetESDRun();
+    esdRunH = (AliESDRun*)fhltesd->GetESDRun();
+    esdRun->SetBeamEnergyIsSqrtSHalfGeV();
+    esdRunH->SetBeamEnergyIsSqrtSHalfGeV();
+    //
+    for (int ib=2;ib--;) for (int it=2;it--;) {
+	esdRun->SetMeanIntensity(ib,it, fBeamInt[ib][it]); 
+	esdRunH->SetMeanIntensity(ib,it, fBeamInt[ib][it]); 
+      }
     //
     AliMagF* fld = (AliMagF*)TGeoGlobalMagField::Instance()->GetField();
     if (fld) { // set info needed for field initialization
