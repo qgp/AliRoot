@@ -114,8 +114,8 @@ void AliVZEROTriggerMask::FillMasks(AliESDVZERO *esdV0,
   UInt_t aBBtriggerV0C = 0; // bit mask for Beam-Beam trigger in V0C
   UInt_t aBGtriggerV0C = 0; // bit mask for Beam-Gas trigger in V0C
 
-  const Float_t p1 = 2.19; // photostatistics term in the time resolution
-  const Float_t p2 = 3.28; // slewing related term in the time resolution
+  const Float_t p1 = 2.50; // photostatistics term in the time resolution
+  const Float_t p2 = 3.00; // slewing related term in the time resolution
 
   // loop over vzero channels
   Float_t timeAW = 0,timeCW = 0;
@@ -176,7 +176,7 @@ void AliVZEROTriggerMask::FillMasks(AliESDVZERO *esdV0,
   esdV0->SetV0ATime(timeAW);
   esdV0->SetV0CTime(timeCW);
   esdV0->SetV0ATimeError((weightA > 0) ? (1./TMath::Sqrt(weightA)) : 0);
-  esdV0->SetV0ATimeError((weightC > 0) ? (1./TMath::Sqrt(weightC)) : 0);
+  esdV0->SetV0CTimeError((weightC > 0) ? (1./TMath::Sqrt(weightC)) : 0);
 
   esdV0->SetV0ADecision(AliESDVZERO::kV0Empty);
   esdV0->SetV0CDecision(AliESDVZERO::kV0Empty);
