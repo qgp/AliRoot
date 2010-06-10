@@ -499,7 +499,7 @@ AliMUONTriggerIO::WriteConfig(const char* localFile,
 /// write config files
 
     Bool_t ok;
-    ok  = WriteLocalMasks(localFile, *localMasks, regionalConfig);
+    ok  = WriteLocalMasks(localFile, *localMasks);
     ok &= WriteRegionalConfig(regionalFile, regionalConfig);
     ok &= WriteGlobalConfig(globalFile, globalConfig);
     
@@ -671,7 +671,7 @@ AliMUONTriggerIO::WriteRegionalConfig(const char* regionalFile, AliMUONRegionalT
 
 //_____________________________________________________________________________
 Bool_t 
-AliMUONTriggerIO::WriteLocalMasks(const char* localFile, AliMUONVStore& localMasks, AliMUONRegionalTriggerConfig* regionalConfig) const
+AliMUONTriggerIO::WriteLocalMasks(const char* localFile, AliMUONVStore& localMasks) const
 {
     /// write local mask
     /// removing/adding enable for a local board need a update of the configuration 
@@ -686,32 +686,23 @@ AliMUONTriggerIO::WriteLocalMasks(const char* localFile, AliMUONVStore& localMas
     }   
 
     UShort_t maskBuffer[8];
+    Int_t localBoardIndex(0);
+    while (localBoardIndex < NofLocalBoards()) {
 
-    TIter next(regionalConfig->CreateCrateIterator());
-    AliMUONTriggerCrateConfig* crate;
-    
-    while ( ( crate = static_cast<AliMUONTriggerCrateConfig*>(next()) ) )
-    {      
-      UShort_t mask = crate->GetMask(); // getting mask from current config
+      Int_t localBoardId = fRegionalTrigger.LocalBoardId(localBoardIndex);
 
-      for (Int_t iLocal = 0; iLocal < crate->GetNofLocalBoards(); ++iLocal) 
-      {
-	Int_t localBoardId = crate->GetLocalBoardId(iLocal);
+      AliMUONVCalibParam* localMask = 
+	static_cast<AliMUONVCalibParam*>(localMasks.FindObject(localBoardId));
 
-	if ( (mask >> iLocal ) & 0x1 ) 
+      for (Int_t index = 0; index < 8; ++index) 
 	{
-	  AliMUONVCalibParam* localMask = 
-	      static_cast<AliMUONVCalibParam*>(localMasks.FindObject(localBoardId));
-
-	  for (Int_t index = 0; index < 8; ++index) 
-	  {
-	    maskBuffer[index] = localMask->ValueAsInt(index,0); 
-	  }
-
-	  fwrite ( maskBuffer, 2, 8, fp); 
+	  maskBuffer[index] = localMask->ValueAsInt(index,0); 
 	}
+      
+      fwrite ( maskBuffer, 2, 8, fp); 
 
-      }
+      ++localBoardIndex;
+
     }
 
     fclose(fp);
