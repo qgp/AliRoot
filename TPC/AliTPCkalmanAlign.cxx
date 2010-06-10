@@ -31,8 +31,9 @@
   gSystem->Load("libANALYSIS");
   gSystem->Load("libTPCcalib");
   //
-  Int_t run=117092;
+  Int_t run=117220;
   .x ConfigCalibTrain.C(run)
+  calibDB = AliTPCcalibDB::Instance()
 
   AliTPCkalmanAlign kalmanAlign("TPC align", "TPC align");  // create the object
   kalmanAlign.ReadAlign("CalibObjects.root");               // read the calibration form file         
@@ -48,6 +49,11 @@
 #include "TGraphErrors.h"
 #include "TVectorD.h"
 #include "TClonesArray.h"
+#include "TCut.h"
+#include "TChain.h"
+#include "AliXRDPROOFtoolkit.h"
+#include "TLegend.h"
+#include "TCanvas.h"
 
 #include "AliTPCcalibDB.h"
 #include "AliTPCCalROC.h"
@@ -65,14 +71,19 @@
 #include "TH1.h"
 #include "AliTPCCalPad.h"
 #include "AliTPCkalmanAlign.h"
-#include "TLegend.h"
-#include "TCanvas.h"
+#include "TStatToolkit.h"
+#include "AliTPCPreprocessorOnline.h"
+#include "TPostScript.h"
+#include "AliGRPObject.h"
 
 AliTPCkalmanAlign::AliTPCkalmanAlign():
   TNamed(),
   fCalibAlign(0),     // kalman alignnmnt
   fOriginalAlign(0),   // original alignment 0 read for the OCDB
-  fNewAlign(0)
+  fNewAlign(0),
+  fPadTime0(0),
+  fFitCEGlobal(0),
+  fFitCELocal(0)
 {
   //
   // Default constructor
@@ -87,7 +98,10 @@ AliTPCkalmanAlign::AliTPCkalmanAlign(const char* name, const char* title):
   TNamed(name,title),
   fCalibAlign(0),     // kalman alignnmnt
   fOriginalAlign(0),   // original alignment 0 read for the OCDB
-  fNewAlign(0)     // kalman alignnmnt
+  fNewAlign(0),
+  fPadTime0(0),
+  fFitCEGlobal(0),
+  fFitCELocal(0) 
 {
   //
   // Default constructor
@@ -95,6 +109,12 @@ AliTPCkalmanAlign::AliTPCkalmanAlign(const char* name, const char* title):
   for (Int_t i=0; i<4; i++){
     fDelta1D[i]=0;
     fCovar1D[i]=0;
+  }
+  fFitCEGlobal = new TObjArray(6); 
+  fFitCELocal  = new TObjArray(6); 
+  for (Int_t ipar=0; ipar<6;ipar++){
+    fFitCEGlobal->AddAt(new TVectorD(36),ipar);
+    fFitCELocal->AddAt(new TVectorD(36),ipar);
   }
 }
 
@@ -181,14 +201,24 @@ void AliTPCkalmanAlign::MakeGlobalAlign(){
   //
   // Combine all pairs of fitters and make global alignemnt
   //
+  
   AliTPCkalmanAlign &kalmanAlign=*this;
   TTreeSRedirector *pcstream = new TTreeSRedirector("AliTPCkalmanAlign.root");
+  Int_t run = AliCDBManager::Instance()->GetRun();
+  AliGRPObject * grp = AliTPCcalibDB::Instance()->GetGRP(run);
+  Float_t bz = AliTracker::GetBz();
+  UInt_t timeS = grp->GetTimeStart();
+  UInt_t timeE = grp->GetTimeEnd();
+  UInt_t  time = (timeS+timeE)/2;
+  
   //
   // get ce info
   //
   AliTPCCalPad *padTime0 = AliTPCcalibDB::Instance()->GetPadTime0();
   TVectorD paramCE[72];
   TMatrixD covarCE[72];
+  Int_t  statUpDown=0;   // statistic up down
+  Int_t  statLeftRight=0;   // statistic left-right
   Float_t chi2;
   for (Int_t isec=0; isec<72; isec++){
     AliTPCCalROC * roc0  = padTime0->GetCalROC(isec);
@@ -244,6 +274,8 @@ void AliTPCkalmanAlign::MakeGlobalAlign(){
       rms[3]=his->GetRMS();
       stat[3]=his->GetEntries();
       kalmanAlign.UpdateAlign1D(his->GetMean(),his->GetRMS(),is0,is1, vec[3],cov[3]);
+      if (is1==is0+36) statUpDown+=Int_t(stat[0]);
+      if (is1==is0+35) statLeftRight+=Int_t(stat[0]);
     }  
 
   fDelta1D[0] = (TMatrixD*)vec[0].Clone();
@@ -255,9 +287,10 @@ void AliTPCkalmanAlign::MakeGlobalAlign(){
   fCovar1D[1] = (TMatrixD*)cov[1].Clone();
   fCovar1D[2] = (TMatrixD*)cov[2].Clone();
   fCovar1D[3] = (TMatrixD*)cov[3].Clone();
-
+  statUpDown/=36;
+  statLeftRight/=36;
   MakeNewAlignment(kTRUE);
-
+  FitCE();
   for (Int_t is0=0;is0<72;is0++)
     for (Int_t is1=0;is1<72;is1++){
       Bool_t isPair=kFALSE;
@@ -294,26 +327,64 @@ void AliTPCkalmanAlign::MakeGlobalAlign(){
 	rms[3]=his->GetRMS();
 	stat[3]=his->GetEntries();
       }
-      Int_t run = AliCDBManager::Instance()->GetRun();
-      Float_t bz = AliTracker::GetBz();
+      TVectorD fceG[8],fceL[6];
+      if (fFitCEGlobal)
+	for (Int_t ipar=0; ipar<8;ipar++){
+	  fceG[ipar].ResizeTo(36);
+	  if (ipar<6) fceL[ipar].ResizeTo(36);
+	  if (fFitCEGlobal->At(ipar)){
+	    fceG[ipar]=*((TVectorD*)fFitCEGlobal->At(ipar));
+	    if (ipar<6){
+	      fceL[ipar]=*((TVectorD*)fFitCELocal->At(ipar));
+	    }
+	  }	      
+	}
+      
       (*pcstream)<<"kalmanAlignDebug"<<
-	"run="<<run<<
+	"run="<<run<<            // runs
+	"time="<<time<<          // time
+	"timeE="<<timeE<<        // sart of tun time
+	"timeS="<<timeS<<        // end od run time
 	"bz="<<bz<<
 	"is0="<<is0<<
 	"is1="<<is1<<
-	"delta.="<<&delta<<
-	"rms.="<<&rms<<
+	"delta.="<<&delta<<      // alignment deltas
+	"rms.="<<&rms<<          // rms
 	"stat.="<<&stat<<
 	"vec0.="<<&vec[0]<<
 	"vec1.="<<&vec[1]<<
 	"vec2.="<<&vec[2]<<
 	"vec3.="<<&vec[3]<<
-	"pceIn0.="<<&paramCE[is0%36]<<
+	"pceIn0.="<<&paramCE[is0%36]<<        // default CE parameters
 	"pceOut0.="<<&paramCE[is0%36+36]<<
 	"pceIn1.="<<&paramCE[is1%36]<<
 	"pceOut1.="<<&paramCE[is1%36+36]<<
+	//                     // current CE parameters form last calibration - not used in Reco
+	"fceG0.="<<&fceG[0]<<  // global fit of CE  - offset
+	"fceG1.="<<&fceG[1]<<  // global fit of CE  - Gy gradient 
+	"fceG2.="<<&fceG[2]<<  // global fit of CE  - Gx gradient
+	"fceG3.="<<&fceG[3]<<  // global fit of CE  - IROC-OROC offset
+	"fceG4.="<<&fceG[4]<<  // global fit of CE  - commont slope LX
+	"fceG5.="<<&fceG[5]<<  // global fit of CE  - delta slope LX
+	"fceG6.="<<&fceG[6]<<  // global fit of CE  - common slope LY
+	"fceG7.="<<&fceG[7]<<  // global fit of CE  - delta slope LY
+	//
+	"fceL0.="<<&fceL[0]<<  // local fit of CE  - offset to mean
+	"fceL1.="<<&fceL[1]<<  // local fit of CE  - IROC-OROC offset
+	"fceL2.="<<&fceL[2]<<  // local fit of CE  - common slope LX
+	"fceL3.="<<&fceL[3]<<  // local fit of CE  - delta slope  LX
+	"fceL4.="<<&fceL[4]<<  // local fit of CE  - common slope LY
+	"fceL5.="<<&fceL[5]<<  // local fit of CE  - delta slope  LY
 	"\n";
     }
+  
+  (*pcstream)<<"runSummary"<<
+    "run="<<run<<                      // run number 
+    "bz="<<bz<<                        // bz field
+    "statUpDown="<<statUpDown<<        // stat up-down
+    "statLeftRight="<<statLeftRight<<  // stat left-right
+    "\n";
+
   delete pcstream;
 }
 
@@ -516,11 +587,20 @@ void AliTPCkalmanAlign::DrawDeltaAlign(){
   canvasDz->Write();
   canvasDtheta->Write();
   canvasDphi->Write();
+  //  
   //
-  canvasDy->SaveAs("alignDy.pdf");
-  canvasDz->SaveAs("alignDz.pdf");
-  canvasDtheta->SaveAs("alignDtheta.pdf");
-  canvasDphi->SaveAs("alignDphi.pdf");
+  //
+  TPostScript *ps = new TPostScript("alignReport.ps", 112); 
+  ps->NewPage();
+  canvasDy->Draw();
+  ps->NewPage();
+  canvasDz->Draw();
+  ps->NewPage();
+  canvasDtheta->Draw();
+  ps->NewPage();
+  canvasDphi->Draw();
+  ps->Close();
+  delete ps;
 }
 
 
@@ -614,6 +694,224 @@ void AliTPCkalmanAlign::MakeNewAlignment(Bool_t badd, TTreeSRedirector * pcstrea
       "ngR.="<<&globalRotNew<<
       "\n";
   }
-  
+}
 
+
+
+void AliTPCkalmanAlign::DrawAlignmentTrends(){
+  //
+  // Draw trends of alingment variables
+  //
+  /*
+    //1.  Create a list of  align data
+    //
+    //2. Filter list
+    AliXRDPROOFtoolkit::FilterList("align.list","AliTPCkalmanAlign.root kalmanAlignDebug",0);
+
+  */
+  AliXRDPROOFtoolkit toolkit;
+  TChain * chain = toolkit.MakeChainRandom("align.list.Good","kalmanAlignDebug",0,2000);
+  TChain * chainRef = toolkit.MakeChainRandom("alignRef.list","kalmanAlignDebug",0,2000);
+  chain->AddFriend(chainRef,"R");
+  chainRef->AddFriend(chainRef,"T");
+  //cuts
+  TCut cutS="stat.fElements[0]>200&&stat.fElements[1]>200&&stat.fElements[3]>200&&stat.fElements[3]>200";   //statistic in the bin
+  TCut cutST="T.stat.fElements[0]>200&&T.stat.fElements[1]>200&&T.stat.fElements[3]>200&&T.stat.fElements[3]>200";   //statistic in the bin
+  //  TTree *tree  = chain->CopyTree(cutS);
+  //TTree *treeR = chainRef->CopyTree(cutST);
+
+  TCanvas * canvasDy= new TCanvas("canvasDy","canvasDy");
+  TH1 *his=0;
+  TLegend *legend = 0;
+  //  Int_t grcol[3]={2,1,4};
+  
+  legend = new TLegend(0.7,0.6,0.9,0.9, "Alignment #Delta_{y}- Up-Down");
+  for (Int_t isec=0; isec<18; isec+=2){
+    chain->SetMarkerColor(1+(isec%5));
+    chain->SetMarkerStyle(isec+20);
+    chain->Draw("10*(delta.fElements[0]-R.delta.fElements[0]):run",cutS+Form("is1==is0+36&&is0==%d",isec),"profgoff");
+    his = (TH1*)(chain->GetHistogram()->Clone());
+    his->SetName(Form("#Delta_{Y} sector %d",isec));
+    his->SetTitle(Form("#Delta_{Y} sector %d",isec));
+    his->SetMaximum(1.);
+    his->SetMinimum(-1.);
+    his->GetYaxis()->SetTitle("#Delta_{y} (mm)");
+    his->GetXaxis()->SetTitle("run Number");
+    if (isec==0) his->Draw("");
+    if (isec>0) his->Draw("same");
+    legend->AddEntry(his);
+  }
+  legend->Draw();
+  canvasDy->Draw();
+}
+
+
+
+
+
+
+void AliTPCkalmanAlign::FitCE(){
+  //
+  // fit CE 
+  // 1. Global fit - gy and gx
+  // 2. Local X fit common 
+  // 3. Sector fit 
+  //
+  AliTPCPreprocessorOnline * preprocesor = new AliTPCPreprocessorOnline;
+  //
+  AliTPCCalPad *padTime0 = AliTPCcalibDB::Instance()->GetPadTime0();
+  AliTPCCalPad *padNoise = AliTPCcalibDB::Instance()->GetPadNoise();
+  AliTPCCalPad * ceTmean = AliTPCcalibDB::Instance()->GetCETmean();  // CE information
+  AliTPCCalPad * ceTrms  = AliTPCcalibDB::Instance()->GetCETrms();
+  AliTPCCalPad * ceQmean = AliTPCcalibDB::Instance()->GetCEQmean();  
+  AliTPCCalPad * pulserTmean = AliTPCcalibDB::Instance()->GetPulserTmean(); //
+  AliTPCCalPad * pulserTrms = AliTPCcalibDB::Instance()->GetPulserTrms();
+  AliTPCCalPad * pulserQmean = AliTPCcalibDB::Instance()->GetPulserQmean();
+  AliTPCCalPad * dmap0  = AliTPCcalibDB::Instance()->GetDistortionMap(0);   // distortion maps
+  AliTPCCalPad * dmap1  = AliTPCcalibDB::Instance()->GetDistortionMap(1);
+  AliTPCCalPad * dmap2  = AliTPCcalibDB::Instance()->GetDistortionMap(2);
+  pulserTmean->Add(-pulserTmean->GetMean());
+  //
+  preprocesor->AddComponent(padTime0->Clone());
+  preprocesor->AddComponent(padNoise->Clone());
+  preprocesor->AddComponent(pulserTmean->Clone());
+  preprocesor->AddComponent(pulserQmean->Clone());
+  preprocesor->AddComponent(pulserTrms->Clone());
+  preprocesor->AddComponent(ceTmean->Clone());
+  preprocesor->AddComponent(ceQmean->Clone());
+  preprocesor->AddComponent(ceTrms->Clone());
+  preprocesor->AddComponent(dmap0->Clone());
+  preprocesor->AddComponent(dmap1->Clone());
+  preprocesor->AddComponent(dmap2->Clone());
+  preprocesor->DumpToFile("cetmean.root");
+
+  TCut cutNoise="abs(PadNoise.fElements/PadNoise_Median-1)<0.3";
+  TCut cutPulserT="abs(PulserTrms.fElements/PulserTrms_Median-1)<0.2";
+  TCut cutPulserQ="abs(PulserQmean.fElements/PulserQmean_Median-1)<0.2";
+  TCut cutCEQ="CEQmean.fElements>50";
+  TCut cutCET="abs(CETmean.fElements)<2";
+  TCut cutAll=cutNoise+cutPulserT+cutPulserQ+cutCEQ+cutCET;
+  //
+  //
+  TFile * f = new TFile("cetmean.root");
+  TTree * chain = (TTree*) f->Get("calPads");
+  Int_t entries = chain->Draw("1",cutAll,"goff");
+  if (entries<200000) return;  // no calibration available - pulser or CE or noise
+
+  TStatToolkit toolkit;
+  Double_t chi2=0;
+  Int_t    npoints=0;
+  TVectorD param;
+  TMatrixD covar;
+  //
+  // make a aliases
+  AliTPCkalmanAlign::MakeAliasCE(chain);
+  TString  fstringG="";              // global part
+  //
+  fstringG+="Gy++";                  // 1 - global y
+  fstringG+="Gx++";                  // 2 - global x
+  // 
+  fstringG+="isin++";                // 3 -delta IROC-OROC offset
+  fstringG+="Lx++";                  // 4 -common slope 
+  fstringG+="Lx*isin++";             // 5 -delta slope 
+  fstringG+="Ly++";                  // 6 -common slope 
+  fstringG+="Ly*isin++";             // 7 -delta slope 
+  TVectorD vecG[2];
+  TString * strFitG=0;
+  TString * strFitLX=0;
+  //
+  strFitG = TStatToolkit::FitPlane(chain,"deltaT", fstringG.Data(),"sideA"+cutAll, chi2,npoints,vecG[0],covar,-1,0, 10000000, kFALSE);
+  chain->SetAlias("tfitGA",strFitG->Data());
+  strFitG->Tokenize("++")->Print();
+  printf("chi2=%f\n",TMath::Sqrt(chi2/npoints));
+  //
+  strFitG = TStatToolkit::FitPlane(chain,"deltaT", fstringG.Data(),"sideC"+cutAll, chi2,npoints,vecG[1],covar,-1,0, 10000000, kFALSE);
+  chain->SetAlias("tfitGC",strFitG->Data());
+  strFitG->Tokenize("++")->Print();
+  printf("chi2=%f\n",TMath::Sqrt(chi2/npoints));
+  //
+  AliTPCCalPad *padFitG =AliTPCCalPad::CreateCalPadFit("1++gy/500.++gx/500.++0+++0++0++0++0",vecG[0],vecG[1]);
+  AliTPCCalPad *padFitLX=AliTPCCalPad::CreateCalPadFit("0++0++0++(sector<36)++(lx-133)/100++(sector<36)*(lx-133)/100.++(ly)/100++(sector<36)*(ly)/100.",vecG[0],vecG[1]);
+  // swap a side and c side
+  AliTPCCalPad *padFitGSwap =AliTPCCalPad::CreateCalPadFit("1++gy/500.++gx/500.++0+++0++0++0++0",vecG[1],vecG[0]);
+  AliTPCCalPad *padFitLXSwap=AliTPCCalPad::CreateCalPadFit("0++0++0++(sector<36)++(lx-133)/100++(sector<36)*(lx-133)/100.++(ly)/100++(sector<36)*(ly)/100.",vecG[1],vecG[0]);
+  padFitG->SetName("CEG");
+  padFitLX->SetName("CELX");
+  padFitGSwap->SetName("CEGS");
+  padFitLXSwap->SetName("CELXS");
+  preprocesor->AddComponent(padFitG->Clone());
+  preprocesor->AddComponent(padFitLX->Clone());
+  preprocesor->AddComponent(padFitGSwap->Clone());
+  preprocesor->AddComponent(padFitLXSwap->Clone());
+  preprocesor->DumpToFile("cetmean.root");   // add it to the file
+  //
+  // make local fits
+  //
+  f = new TFile("cetmean.root");
+  chain = (TTree*) f->Get("calPads");
+  AliTPCkalmanAlign::MakeAliasCE(chain);
+  TString  fstringL="";              // local fit
+  //                                 // 0. delta common
+  fstringL+="isin++";                // 1. delta IROC-OROC offset
+  fstringL+="Lx++";                  // 2. common slope 
+  fstringL+="Lx*isin++";             // 3. delta slope 
+  fstringL+="Ly++";                  // 4. common slope 
+  fstringL+="Ly*isin++";             // 5. delta slope 
+  TVectorD vecL[36];
+  TVectorD dummy(6);
+  AliTPCCalPad *padFitLCE = new AliTPCCalPad("LocalCE","LocalCE");
+  AliTPCCalPad *padFitTmpCE;
+  for (Int_t isec=0; isec<36; isec++){
+    TCut cutSector=Form("(sector%36)==%d",isec);
+    strFitLX = TStatToolkit::FitPlane(chain,"deltaT-CEG.fElements-CELX.fElements", fstringL.Data(),cutSector+cutAll+"abs(deltaT-CEG.fElements-CELX.fElements)<0.4", chi2,npoints,vecL[isec],covar,-1,0, 10000000, kFALSE);
+    printf("sec=%d\tchi2=%f\n",isec,TMath::Sqrt(chi2/npoints));
+    //
+    TString fitL=Form("((sector%36)==%d)++((sector%36)==%d)*(sector<36)++((sector%36)==%d)*(lx-133)/100.++((sector%36)==%d)*(sector<36)*(lx-133)/100.++((sector%36)==%d)*(ly)/100.++((sector%36)==%d)*(sector<36)*(ly)/100.",isec,isec,isec,isec);
+    if (isec<18) padFitTmpCE=AliTPCCalPad::CreateCalPadFit(fitL.Data(),vecL[isec],dummy);
+    if (isec>=18) padFitTmpCE=AliTPCCalPad::CreateCalPadFit(fitL.Data(),dummy,vecL[isec]);
+    padFitLCE->Add(padFitTmpCE);
+  }
+  //
+  padFitLCE->SetName("CELocal");
+  preprocesor->AddComponent(padFitLCE->Clone());
+  preprocesor->DumpToFile("cetmean.root");   // add it to the file
+  //
+  // write data to array
+  //
+  fFitCELocal  = new TObjArray(6); 
+  fFitCEGlobal = new TObjArray(8); 
+  for (Int_t ipar=0; ipar<8;ipar++){
+    //
+    fFitCEGlobal->AddAt(new TVectorD(36),ipar);
+    TVectorD &fvecG = *((TVectorD*)fFitCEGlobal->At(ipar));
+    for (Int_t isec=0; isec<36;isec++){      
+      if (isec<18)  fvecG[isec]=vecG[0][ipar];
+      if (isec>=18) fvecG[isec]=vecG[1][ipar];    
+    }
+    if (ipar<6){
+      fFitCELocal->AddAt(new TVectorD(36),ipar);
+      TVectorD &fvecL = *((TVectorD*)fFitCELocal->At(ipar));
+      for (Int_t isec=0; isec<36;isec++){      
+	fvecL[isec]=vecL[isec][ipar];
+      }
+    }
+  }
+}
+
+void AliTPCkalmanAlign::MakeAliasCE(TTree * chain){
+  //
+  // make a aliases of pad variables
+  //
+  chain->SetAlias("side","(-1+(sector%36<18)*2)");
+  chain->SetAlias("sideA","(sector%36<18)");
+  chain->SetAlias("sideC","(sector%36>=18)");
+  chain->SetAlias("isin","(sector<36)");
+  chain->SetAlias("deltaT","CETmean.fElements-PulserTmean.fElements");
+  chain->SetAlias("timeP","PulserTmean.fElements");
+  chain->SetAlias("Gy","(gy.fElements/500.)");
+  chain->SetAlias("Gx","(gx.fElements/500.)");
+  chain->SetAlias("Lx","(lx.fElements-133)/100.");   // lx in meters
+  chain->SetAlias("Ly","(ly.fElements)/100.");
+  chain->SetAlias("La","(ly.fElements/lx.fElements/0.155)");
+  chain->SetAlias("deltaT","(CETmean.fElements-PulserTmean.fElements)");
 }

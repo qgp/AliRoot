@@ -23,6 +23,7 @@
 
 #include "AliDCSSensorArray.h"
 #include "AliLog.h"
+#include <TMath.h>
 
 ClassImp(AliDCSSensorArray)
 
@@ -360,6 +361,7 @@ TMap* AliDCSSensorArray::ExtractDCS(TMap *dcsMap, Bool_t keepStart)
  return values;
 }
 
+
 //_____________________________________________________________________________
 TGraph* AliDCSSensorArray::MakeGraph(TObjArray* valueSet, Bool_t keepStart){
   //
@@ -432,6 +434,31 @@ TGraph* AliDCSSensorArray::MakeGraph(TObjArray* valueSet, Bool_t keepStart){
   delete [] y;
   return graph;
 }
+
+//_____________________________________________________________________________
+void AliDCSSensorArray::RemoveGraphDuplicates(Double_t tolerance){
+//
+//   Remove points with same y value as the previous measured point
+//   (to save space for non-fitted graphs -- i.e. last measured point used)
+//
+  Int_t nsensors = fSensors->GetEntries();
+  for ( Int_t isensor=0; isensor<nsensors; isensor++) {
+    AliDCSSensor *entry = (AliDCSSensor*)fSensors->At(isensor);
+    TGraph *graph = entry->GetGraph();
+    Double_t x=-999.,y=-999., x0=-999.,y0=-999.;
+    if (graph) {
+      Int_t npoints=graph->GetN();
+      if (npoints>1) {
+        for (Int_t i=npoints-1;i>0;i--) {
+	   graph->GetPoint(i,x,y);
+	   graph->GetPoint(i-1,x0,y0);
+	   if ( TMath::Abs(y-y0) < TMath::Abs(tolerance*y0) ) graph->RemovePoint(i);
+	 }
+      }
+    }
+   }
+}    
+
   
 //_____________________________________________________________________________
 AliDCSSensor* AliDCSSensorArray::GetSensor(Int_t IdDCS) 

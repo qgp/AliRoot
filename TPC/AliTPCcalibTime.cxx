@@ -141,6 +141,7 @@ AliTPCcalibTime::AliTPCcalibTime()
   for (Int_t i=0;i<5;i++) {
     fResHistoTPCITS[i]=0;
     fResHistoTPCTRD[i]=0;
+    fResHistoTPCTOF[i]=0;
     fResHistoTPCvertex[i]=0;
   }
 
@@ -186,6 +187,7 @@ AliTPCcalibTime::AliTPCcalibTime(const Text_t *name, const Text_t *title, UInt_t
   for (Int_t i=0;i<5;i++) {
     fResHistoTPCITS[i]=0;
     fResHistoTPCTRD[i]=0;
+    fResHistoTPCTOF[i]=0;
     fResHistoTPCvertex[i]=0;
   }
 
@@ -295,9 +297,11 @@ AliTPCcalibTime::~AliTPCcalibTime(){
   for (Int_t i=0;i<5;i++) {
     delete fResHistoTPCITS[i];
     delete fResHistoTPCTRD[i];
+    delete fResHistoTPCTOF[i];
     delete fResHistoTPCvertex[i];
     fResHistoTPCITS[i]=0;
     fResHistoTPCTRD[i]=0;
+    fResHistoTPCTOF[i]=0;
     fResHistoTPCvertex[i]=0;
   }
 
@@ -406,36 +410,12 @@ void AliTPCcalibTime::ProcessLaser(AliESDEvent *event){
     TTreeSRedirector *cstream = GetDebugStreamer();
     if (cstream){
       TTimeStamp tstamp(fTime);
-      Float_t valuePressure0 = AliTPCcalibDB::GetPressure(tstamp,fRun,0);
-      Float_t valuePressure1 = AliTPCcalibDB::GetPressure(tstamp,fRun,1);
-      Double_t ptrelative0   = AliTPCcalibDB::GetPTRelative(tstamp,fRun,0);
-      Double_t ptrelative1   = AliTPCcalibDB::GetPTRelative(tstamp,fRun,1);
-      Double_t temp0         = AliTPCcalibDB::GetTemperature(tstamp,fRun,0);
-      Double_t temp1         = AliTPCcalibDB::GetTemperature(tstamp,fRun,1);
-      Double_t vdcorr        = AliTPCcalibDB::Instance()->GetVDriftCorrectionTime(tstamp,fRun,0,1);
-      TVectorD vecGoofie(20);
-      AliDCSSensorArray* goofieArray = AliTPCcalibDB::Instance()->GetGoofieSensors(fRun);
-      if (goofieArray){
-	for (Int_t isensor=0; isensor<goofieArray->NumSensors();isensor++){
-	  AliDCSSensor *gsensor = goofieArray->GetSensor(isensor);
-	  if (gsensor) vecGoofie[isensor]=gsensor->GetValue(tstamp);
-	}
-      }
       (*cstream)<<"laserInfo"<<
 	"run="<<fRun<<              //  run number
 	"event="<<fEvent<<          //  event number
 	"time="<<fTime<<            //  time stamp of event
 	"trigger="<<fTrigger<<      //  trigger
 	"mag="<<fMagF<<             //  magnetic field
-	// Environment values
-	"press0="<<valuePressure0<<
-	"press1="<<valuePressure1<<
-	"pt0="<<ptrelative0<<
-	"pt1="<<ptrelative1<<
-	"temp0="<<temp0<<
-	"temp1="<<temp1<<
-	"vecGoofie.="<<&vecGoofie<<
-	"vdcorr="<<vdcorr<<
 	//laser
 	"rejectA="<<isReject[0]<<
 	"rejectC="<<isReject[1]<<
@@ -743,22 +723,6 @@ void AliTPCcalibTime::ProcessCosmic(const AliESDEvent *const event){
   if (fStreamLevel>0){
     TTreeSRedirector *cstream = GetDebugStreamer();
     if (cstream){
-      TTimeStamp tstamp(fTime);
-      Float_t valuePressure0 = AliTPCcalibDB::GetPressure(tstamp,fRun,0);
-      Float_t valuePressure1 = AliTPCcalibDB::GetPressure(tstamp,fRun,1);
-      Double_t ptrelative0   = AliTPCcalibDB::GetPTRelative(tstamp,fRun,0);
-      Double_t ptrelative1   = AliTPCcalibDB::GetPTRelative(tstamp,fRun,1);
-      Double_t temp0         = AliTPCcalibDB::GetTemperature(tstamp,fRun,0);
-      Double_t temp1         = AliTPCcalibDB::GetTemperature(tstamp,fRun,1);
-      Double_t vdcorr        = AliTPCcalibDB::Instance()->GetVDriftCorrectionTime(tstamp,fRun,0,1);
-      TVectorD vecGoofie(20);
-      AliDCSSensorArray* goofieArray = AliTPCcalibDB::Instance()->GetGoofieSensors(fRun);
-      if (goofieArray){
-	for (Int_t isensor=0; isensor<goofieArray->NumSensors();isensor++){
-	  AliDCSSensor *gsensor = goofieArray->GetSensor(isensor);
-	  if (gsensor) vecGoofie[isensor]=gsensor->GetValue(tstamp);
-	}
-      }
       (*cstream)<<"timeInfo"<<
 	"run="<<fRun<<              //  run number
 	"event="<<fEvent<<          //  event number
@@ -766,14 +730,6 @@ void AliTPCcalibTime::ProcessCosmic(const AliESDEvent *const event){
 	"trigger="<<fTrigger<<      //  trigger
 	"mag="<<fMagF<<             //  magnetic field
 	// Environment values
-	"press0="<<valuePressure0<<
-	"press1="<<valuePressure1<<
-	"pt0="<<ptrelative0<<
-	"pt1="<<ptrelative1<<
-	"temp0="<<temp0<<
-	"temp1="<<temp1<<
-	"vecGoofie.=<<"<<&vecGoofie<<
-	"vdcorr="<<vdcorr<<
 	//
 	// accumulated values
 	//
@@ -908,6 +864,7 @@ Long64_t AliTPCcalibTime::Merge(TCollection *const li) {
 	fResHistoTPCITS[imeas]->Add(cal->fResHistoTPCITS[imeas]);
 	fResHistoTPCvertex[imeas]->Add(cal->fResHistoTPCvertex[imeas]);
 	fResHistoTPCTRD[imeas]->Add(cal->fResHistoTPCTRD[imeas]);
+	fResHistoTPCTOF[imeas]->Add(cal->fResHistoTPCTOF[imeas]);
       }
     }
     TObjArray* addArray=cal->GetHistoDrift();
@@ -1146,18 +1103,12 @@ void  AliTPCcalibTime::ProcessSame(AliESDtrack *const track, AliESDfriendTrack *
     TVectorD gxyz(3);
     trackIn.GetXYZ(gxyz.GetMatrixArray());
     TTimeStamp tstamp(fTime);
-    Double_t ptrelative0 = AliTPCcalibDB::GetPTRelative(tstamp,fRun,0);
-    Double_t ptrelative1 = AliTPCcalibDB::GetPTRelative(tstamp,fRun,1);
-    Double_t vdcorr        = AliTPCcalibDB::Instance()->GetVDriftCorrectionTime(tstamp,fRun,0,1);
     (*cstream)<<"tpctpc"<<
       "run="<<fRun<<              //  run number
       "event="<<fEvent<<          //  event number
       "time="<<fTime<<            //  time stamp of event
       "trigger="<<fTrigger<<      //  trigger
       "mag="<<fMagF<<             //  magnetic field
-      "ptrel0.="<<ptrelative0<<
-      "ptrel1.="<<ptrelative1<<
-      "vdcorr="<<vdcorr<<        // drift correction applied
       //
       "xyz.="<<&gxyz<<             // global position
       "tIn.="<<&trackIn<<         // refitterd track in 
@@ -1306,7 +1257,7 @@ void  AliTPCcalibTime::ProcessAlignITS(AliESDtrack *const track, AliESDfriendTra
   // 3. Update alignment
   //
   Int_t htime = fTime/3600; //time in hours
-  if (fAlignITSTPC->GetEntries()<htime){
+  if (fAlignITSTPC->GetEntriesFast()<htime){
     fAlignITSTPC->Expand(htime*2+20);
   }
   AliRelAlignerKalman* align =  (AliRelAlignerKalman*)fAlignITSTPC->At(htime);
@@ -1338,43 +1289,18 @@ void  AliTPCcalibTime::ProcessAlignITS(AliESDtrack *const track, AliESDfriendTra
   align->SetRejectOutliers(kFALSE);
   TTreeSRedirector *cstream = GetDebugStreamer();  
   if (cstream && align->GetState() && align->GetState()->GetNrows()>2 ){
-    TTimeStamp tstamp(fTime);
-    Float_t valuePressure0 = AliTPCcalibDB::GetPressure(tstamp,fRun,0);
-    Float_t valuePressure1 = AliTPCcalibDB::GetPressure(tstamp,fRun,1);
-    Double_t ptrelative0   = AliTPCcalibDB::GetPTRelative(tstamp,fRun,0);
-    Double_t ptrelative1   = AliTPCcalibDB::GetPTRelative(tstamp,fRun,1);
-    Double_t temp0         = AliTPCcalibDB::GetTemperature(tstamp,fRun,0);
-    Double_t temp1         = AliTPCcalibDB::GetTemperature(tstamp,fRun,1);
-    TVectorD vecGoofie(20);
-    AliDCSSensorArray* goofieArray = AliTPCcalibDB::Instance()->GetGoofieSensors(fRun);
-    if (goofieArray){
-      for (Int_t isensor=0; isensor<goofieArray->NumSensors();isensor++){
-	AliDCSSensor *gsensor = goofieArray->GetSensor(isensor);
-	if (gsensor) vecGoofie[isensor]=gsensor->GetValue(tstamp);
-      }
-    }
     TVectorD gpTPC(3), gdTPC(3);
     TVectorD gpITS(3), gdITS(3);
     pTPC.GetXYZ(gpTPC.GetMatrixArray());
     pTPC.GetDirection(gdTPC.GetMatrixArray());
     pITS.GetXYZ(gpITS.GetMatrixArray());
     pITS.GetDirection(gdITS.GetMatrixArray());
-    Double_t vdcorr        = AliTPCcalibDB::Instance()->GetVDriftCorrectionTime(tstamp,fRun,0,1);
     (*cstream)<<"itstpc"<<
       "run="<<fRun<<              //  run number
       "event="<<fEvent<<          //  event number
       "time="<<fTime<<            //  time stamp of event
       "trigger="<<fTrigger<<      //  trigger
       "mag="<<fMagF<<             //  magnetic field
-      // Environment values
-      "press0="<<valuePressure0<<
-      "press1="<<valuePressure1<<
-      "pt0="<<ptrelative0<<
-      "pt1="<<ptrelative1<<
-      "temp0="<<temp0<<
-      "temp1="<<temp1<<
-      "vecGoofie.="<<&vecGoofie<<
-      "vdcorr="<<vdcorr<<        // drift correction applied
       //
       "hasAlone="<<hasAlone<<    // has ITS standalone ?
       "track.="<<track<<  // track info
@@ -1481,7 +1407,7 @@ void  AliTPCcalibTime::ProcessAlignTRD(AliESDtrack *const track, AliESDfriendTra
   // 3. Update alignment
   //
   Int_t htime = fTime/3600; //time in hours
-  if (fAlignTRDTPC->GetEntries()<htime){
+  if (fAlignTRDTPC->GetEntriesFast()<htime){
     fAlignTRDTPC->Expand(htime*2+20);
   }
   AliRelAlignerKalman* align =  (AliRelAlignerKalman*)fAlignTRDTPC->At(htime);
@@ -1500,50 +1426,29 @@ void  AliTPCcalibTime::ProcessAlignTRD(AliESDtrack *const track, AliESDfriendTra
   align->AddTrackParams(&pTRD,&pTPC);
   align->SetTimeStamp(fTime);
   align->SetRunNumber(fRun );
-  FillResHistoTPCTRD(&pTPC,&pTRD);
+  Float_t dca[2],cov[3];
+  track->GetImpactParameters(dca,cov);
+  if (TMath::Abs(dca[0])<kMaxDy){
+    FillResHistoTPCTRD(&pTPC,&pTRD);  //only primaries
+  }
   //
   Int_t nupdates=align->GetNUpdates();
   align->SetOutRejSigma(kOutCut+kOutCut*kN/Double_t(nupdates));
   align->SetRejectOutliers(kFALSE);
   TTreeSRedirector *cstream = GetDebugStreamer();  
   if (cstream && align->GetState() && align->GetState()->GetNrows()>2 ){
-    TTimeStamp tstamp(fTime);
-    Float_t valuePressure0 = AliTPCcalibDB::GetPressure(tstamp,fRun,0);
-    Float_t valuePressure1 = AliTPCcalibDB::GetPressure(tstamp,fRun,1);
-    Double_t ptrelative0   = AliTPCcalibDB::GetPTRelative(tstamp,fRun,0);
-    Double_t ptrelative1   = AliTPCcalibDB::GetPTRelative(tstamp,fRun,1);
-    Double_t temp0         = AliTPCcalibDB::GetTemperature(tstamp,fRun,0);
-    Double_t temp1         = AliTPCcalibDB::GetTemperature(tstamp,fRun,1);
-    TVectorD vecGoofie(20);
-    AliDCSSensorArray* goofieArray = AliTPCcalibDB::Instance()->GetGoofieSensors(fRun);
-    if (goofieArray){
-      for (Int_t isensor=0; isensor<goofieArray->NumSensors();isensor++){
-	AliDCSSensor *gsensor = goofieArray->GetSensor(isensor);
-	if (gsensor) vecGoofie[isensor]=gsensor->GetValue(tstamp);
-      }
-    }
     TVectorD gpTPC(3), gdTPC(3);
     TVectorD gpTRD(3), gdTRD(3);
     pTPC.GetXYZ(gpTPC.GetMatrixArray());
     pTPC.GetDirection(gdTPC.GetMatrixArray());
     pTRD.GetXYZ(gpTRD.GetMatrixArray());
     pTRD.GetDirection(gdTRD.GetMatrixArray());
-    Double_t vdcorr        = AliTPCcalibDB::Instance()->GetVDriftCorrectionTime(tstamp,fRun,0,1);
     (*cstream)<<"trdtpc"<<
       "run="<<fRun<<              //  run number
       "event="<<fEvent<<          //  event number
       "time="<<fTime<<            //  time stamp of event
       "trigger="<<fTrigger<<      //  trigger
       "mag="<<fMagF<<             //  magnetic field
-      // Environment values
-      "press0="<<valuePressure0<<
-      "press1="<<valuePressure1<<
-      "pt0="<<ptrelative0<<
-      "pt1="<<ptrelative1<<
-      "temp0="<<temp0<<
-      "temp1="<<temp1<<
-      "vecGoofie.="<<&vecGoofie<<
-      "vdcorr="<<vdcorr<<        // drift correction applied
       //
       "nmed="<<kglast<<        // number of entries to define median and RMS
       "vMed.="<<&vecMedian<<    // median of deltas
@@ -1667,7 +1572,7 @@ void  AliTPCcalibTime::ProcessAlignTOF(AliESDtrack *const track, AliESDfriendTra
   // 3. Update alignment
   //
   Int_t htime = fTime/3600; //time in hours
-  if (fAlignTOFTPC->GetEntries()<htime){
+  if (fAlignTOFTPC->GetEntriesFast()<htime){
     fAlignTOFTPC->Expand(htime*2+20);
   }
   AliRelAlignerKalman* align =  (AliRelAlignerKalman*)fAlignTOFTPC->At(htime);
@@ -1684,6 +1589,11 @@ void  AliTPCcalibTime::ProcessAlignTOF(AliESDtrack *const track, AliESDfriendTra
     fAlignTOFTPC->AddAt(align,htime);
   }
   align->AddTrackParams(&pTOF,&pTPC);
+  Float_t dca[2],cov[3];
+  track->GetImpactParameters(dca,cov);
+  if (TMath::Abs(dca[0])<kMaxDy){
+    FillResHistoTPCTOF(&pTPC,&pTOF);
+  }
   align->SetTimeStamp(fTime);
   align->SetRunNumber(fRun );
   //
@@ -1692,43 +1602,18 @@ void  AliTPCcalibTime::ProcessAlignTOF(AliESDtrack *const track, AliESDfriendTra
   align->SetRejectOutliers(kFALSE);
   TTreeSRedirector *cstream = GetDebugStreamer();  
   if (cstream && align->GetState() && align->GetState()->GetNrows()>2 ){
-    TTimeStamp tstamp(fTime);
-    Float_t valuePressure0 = AliTPCcalibDB::GetPressure(tstamp,fRun,0);
-    Float_t valuePressure1 = AliTPCcalibDB::GetPressure(tstamp,fRun,1);
-    Double_t ptrelative0   = AliTPCcalibDB::GetPTRelative(tstamp,fRun,0);
-    Double_t ptrelative1   = AliTPCcalibDB::GetPTRelative(tstamp,fRun,1);
-    Double_t temp0         = AliTPCcalibDB::GetTemperature(tstamp,fRun,0);
-    Double_t temp1         = AliTPCcalibDB::GetTemperature(tstamp,fRun,1);
-    TVectorD vecGoofie(20);
-    AliDCSSensorArray* goofieArray = AliTPCcalibDB::Instance()->GetGoofieSensors(fRun);
-    if (goofieArray){
-      for (Int_t isensor=0; isensor<goofieArray->NumSensors();isensor++){
-	AliDCSSensor *gsensor = goofieArray->GetSensor(isensor);
-	if (gsensor) vecGoofie[isensor]=gsensor->GetValue(tstamp);
-      }
-    }
     TVectorD gpTPC(3), gdTPC(3);
     TVectorD gpTOF(3), gdTOF(3);
     pTPC.GetXYZ(gpTPC.GetMatrixArray());
     pTPC.GetDirection(gdTPC.GetMatrixArray());
     pTOF.GetXYZ(gpTOF.GetMatrixArray());
     pTOF.GetDirection(gdTOF.GetMatrixArray());
-    Double_t vdcorr        = AliTPCcalibDB::Instance()->GetVDriftCorrectionTime(tstamp,fRun,0,1);
     (*cstream)<<"toftpc"<<
       "run="<<fRun<<              //  run number
       "event="<<fEvent<<          //  event number
       "time="<<fTime<<            //  time stamp of event
       "trigger="<<fTrigger<<      //  trigger
       "mag="<<fMagF<<             //  magnetic field
-      // Environment values
-      "press0="<<valuePressure0<<
-      "press1="<<valuePressure1<<
-      "pt0="<<ptrelative0<<
-      "pt1="<<ptrelative1<<
-      "temp0="<<temp0<<
-      "temp1="<<temp1<<
-      "vecGoofie.="<<&vecGoofie<<
-      "vdcorr="<<vdcorr<<        // drift correction applied
       //
       "nmed="<<kglast<<        // number of entries to define median and RMS
       "vMed.="<<&vecMedian<<    // median of deltas
@@ -1783,30 +1668,37 @@ void  AliTPCcalibTime::BookDistortionMaps(){
   fResHistoTPCvertex[0]    = new THnSparseS("TPCVertex#Delta_{Y} (cm)","#Delta_{Y} (cm)", 4, binsTrack,xminTrack, xmaxTrack);
   xminTrack[0] =-1.5; xmaxTrack[0]=1.5;  // 
   fResHistoTPCTRD[0] = new THnSparseS("TPCTRD#Delta_{Y} (cm)","#Delta_{Y} (cm)", 4, binsTrack,xminTrack, xmaxTrack);
+  xminTrack[0] =-5; xmaxTrack[0]=5;  // 
+  fResHistoTPCTOF[0] = new THnSparseS("TPCTOF#Delta_{Y} (cm)","#Delta_{Y} (cm)", 4, binsTrack,xminTrack, xmaxTrack);
   //
   // delta z
   xminTrack[0] =-3.; xmaxTrack[0]=3.;  // 
   fResHistoTPCITS[1] = new THnSparseS("TPCITS#Delta_{Z} (cm)","#Delta_{Z} (cm)",    4, binsTrack,xminTrack, xmaxTrack);
   fResHistoTPCvertex[1]    = new THnSparseS("TPCVertex#Delta_{Z} (cm)","#Delta_{Z} (cm)", 4, binsTrack,xminTrack, xmaxTrack);
   fResHistoTPCTRD[1] = new THnSparseS("TPCTRD#Delta_{Z} (cm)","#Delta_{Z} (cm)", 4, binsTrack,xminTrack, xmaxTrack);
+  xminTrack[0] =-5.; xmaxTrack[0]=5.;  // 
+  fResHistoTPCTOF[1] = new THnSparseS("TPCTOF#Delta_{Z} (cm)","#Delta_{Z} (cm)", 4, binsTrack,xminTrack, xmaxTrack);
   //
   // delta snp-P2
   xminTrack[0] =-0.015; xmaxTrack[0]=0.015;  // 
   fResHistoTPCITS[2] = new THnSparseS("TPCITS#Delta_{#phi}","#Delta_{#phi}",    4, binsTrack,xminTrack, xmaxTrack);
   fResHistoTPCvertex[2] = new THnSparseS("TPCITSv#Delta_{#phi}","#Delta_{#phi}",    4, binsTrack,xminTrack, xmaxTrack);
   fResHistoTPCTRD[2] = new THnSparseS("TPCTRD#Delta_{#phi}","#Delta_{#phi}", 4, binsTrack,xminTrack, xmaxTrack);
+  fResHistoTPCTOF[2] = new THnSparseS("TPCTOF#Delta_{#phi}","#Delta_{#phi}", 4, binsTrack,xminTrack, xmaxTrack);
   //
   // delta theta-P3
   xminTrack[0] =-0.025; xmaxTrack[0]=0.025;  // 
   fResHistoTPCITS[3] = new THnSparseS("TPCITS#Delta_{#theta}","#Delta_{#theta}",    4, binsTrack,xminTrack, xmaxTrack);
   fResHistoTPCvertex[3] = new THnSparseS("TPCITSv#Delta_{#theta}","#Delta_{#theta}",    4, binsTrack,xminTrack, xmaxTrack);
   fResHistoTPCTRD[3] = new THnSparseS("TPCTRD#Delta_{#theta}","#Delta_{#theta}", 4, binsTrack,xminTrack, xmaxTrack);
+  fResHistoTPCTOF[3] = new THnSparseS("TPCTOF#Delta_{#theta}","#Delta_{#theta}", 4, binsTrack,xminTrack, xmaxTrack);
   //
   // delta theta-P4
   xminTrack[0] =-0.2; xmaxTrack[0]=0.2;  // 
   fResHistoTPCITS[4] = new THnSparseS("TPCITS#Delta_{1/pt}","#Delta_{1/pt}",    4, binsTrack,xminTrack, xmaxTrack);
   fResHistoTPCvertex[4] = new THnSparseS("TPCITSv#Delta_{1/pt}","#Delta_{1/pt}",    4, binsTrack,xminTrack, xmaxTrack);
   fResHistoTPCTRD[4] = new THnSparseS("TPCTRD#Delta_{1/pt}","#Delta_{1/pt}",    4, binsTrack,xminTrack, xmaxTrack);
+  fResHistoTPCTOF[4] = new THnSparseS("TPCTOF#Delta_{1/pt}","#Delta_{1/pt}",    4, binsTrack,xminTrack, xmaxTrack);
   //
   for (Int_t ivar=0;ivar<4;ivar++){
     for (Int_t ivar2=0;ivar2<4;ivar2++){      
@@ -1896,6 +1788,30 @@ void        AliTPCcalibTime::FillResHistoTPCTRD(const AliExternalTrackParam * pT
   for (Int_t ihisto=0; ihisto<5; ihisto++){
     histoX[0]=pTPCOut->GetParameter()[ihisto]-ltrd.GetParameter()[ihisto];
     fResHistoTPCTRD[ihisto]->Fill(histoX);
+  }
+
+}
+
+void        AliTPCcalibTime::FillResHistoTPCTOF(const AliExternalTrackParam * pTPCOut, const AliExternalTrackParam * pTOFIn ){
+  //
+  // fill resuidual histogram TPCout-TOFin
+  // track propagated to the TOF position
+  Double_t histoX[4];
+  Double_t xyz[3];
+
+  AliExternalTrackParam ltpc(*pTPCOut);
+  ltpc.Rotate(pTOFIn->GetAlpha());
+  AliTracker::PropagateTrackToBxByBz(&ltpc,pTOFIn->GetX(),0.1,0.1,kFALSE);
+  //
+  ltpc.GetXYZ(xyz);
+  Double_t phi= TMath::ATan2(xyz[1],xyz[0]);
+  histoX[1]= ltpc.GetTgl();
+  histoX[2]= phi;
+  histoX[3]= ltpc.GetSnp();
+  //
+  for (Int_t ihisto=0; ihisto<2; ihisto++){
+    histoX[0]=ltpc.GetParameter()[ihisto]-pTOFIn->GetParameter()[ihisto];
+    fResHistoTPCTOF[ihisto]->Fill(histoX);
   }
 
 }
