@@ -47,6 +47,7 @@ ClassImp(AliFlowEventSimple)
 //-----------------------------------------------------------------------
 AliFlowEventSimple::AliFlowEventSimple():
   fTrackCollection(NULL),
+  fRefMultiplicity(0),
   fNumberOfTracks(0),
   fNumberOfRPs(0),
   fMCReactionPlaneAngle(0.),
@@ -62,6 +63,7 @@ AliFlowEventSimple::AliFlowEventSimple():
 //-----------------------------------------------------------------------
 AliFlowEventSimple::AliFlowEventSimple(Int_t aLength):
   fTrackCollection(new TObjArray(aLength)),
+  fRefMultiplicity(0),
   fNumberOfTracks(0),
   fNumberOfRPs(0),
   fMCReactionPlaneAngle(0.),
@@ -82,6 +84,7 @@ AliFlowEventSimple::AliFlowEventSimple( Int_t nParticles,
                                         Double_t etaMin,
                                         Double_t etaMax):
   fTrackCollection(new TObjArray(nParticles)),
+  fRefMultiplicity(nParticles),
   fNumberOfTracks(0),
   fNumberOfRPs(0),
   fMCReactionPlaneAngle(0.),
@@ -100,6 +103,7 @@ AliFlowEventSimple::AliFlowEventSimple( Int_t nParticles,
 AliFlowEventSimple::AliFlowEventSimple(const AliFlowEventSimple& anEvent):
   TObject(anEvent),
   fTrackCollection((TObjArray*)(anEvent.fTrackCollection)->Clone()),
+  fRefMultiplicity(anEvent.fRefMultiplicity),
   fNumberOfTracks(anEvent.fNumberOfTracks),
   fNumberOfRPs(anEvent.fNumberOfRPs),
   fMCReactionPlaneAngle(anEvent.fMCReactionPlaneAngle),
@@ -118,6 +122,7 @@ AliFlowEventSimple& AliFlowEventSimple::operator=(const AliFlowEventSimple& anEv
   //assignment operator
   delete fTrackCollection;
   fTrackCollection = (TObjArray*)(anEvent.fTrackCollection)->Clone(); //deep copy
+  fRefMultiplicity = anEvent.fRefMultiplicity;
   fNumberOfTracks = anEvent.fNumberOfTracks;
   fNumberOfRPs = anEvent.fNumberOfRPs;
   fMCReactionPlaneAngle = anEvent.fMCReactionPlaneAngle;
@@ -448,6 +453,7 @@ AliFlowEventSimple::AliFlowEventSimple( TTree* inputTree,
                                         const AliFlowTrackSimpleCuts* rpCuts,
                                         const AliFlowTrackSimpleCuts* poiCuts):
   fTrackCollection(NULL),
+  fRefMultiplicity(0),
   fNumberOfTracks(0),
   fNumberOfRPs(0),
   fMCReactionPlaneAngle(0.),
@@ -583,6 +589,30 @@ void AliFlowEventSimple::AddFlow(Double_t v1, Double_t v2, Double_t v4)
   {
     AliFlowTrackSimple* track = static_cast<AliFlowTrackSimple*>(fTrackCollection->At(i));
     if (track) track->AddFlow(v1,v2,v4,fMCReactionPlaneAngle, fAfterBurnerPrecision);
+  }
+}
+
+//_____________________________________________________________________________
+void AliFlowEventSimple::TagRP(AliFlowTrackSimpleCuts* cuts)
+{
+  //tag tracks as reference particles (RPs)
+  for (Int_t i=0; i<fNumberOfTracks; i++)
+  {
+    AliFlowTrackSimple* track = static_cast<AliFlowTrackSimple*>(fTrackCollection->At(i));
+    if (!track) continue;
+    if (cuts->PassesCuts(track)) track->SetForRPSelection();
+  }
+}
+
+//_____________________________________________________________________________
+void AliFlowEventSimple::TagPOI(AliFlowTrackSimpleCuts* cuts)
+{
+  //tag tracks as particles of interest (POIs)
+  for (Int_t i=0; i<fNumberOfTracks; i++)
+  {
+    AliFlowTrackSimple* track = static_cast<AliFlowTrackSimple*>(fTrackCollection->At(i));
+    if (!track) continue;
+    if (cuts->PassesCuts(track)) track->SetForPOISelection();
   }
 }
 
