@@ -33,7 +33,7 @@ AliAnalysisTask *AddTaskTender(){
   tender->AddSupply(new AliPIDTenderSupply("PIDtender"));
 
   //========= Attach Primary Vertex supply ======
-  tender->AddSupply(new AliVtxTenderSupply("PriVtxtender"));
+  // tender->AddSupply(new AliVtxTenderSupply("PriVtxtender"));
   
   //================================================
   //              data containers
