@@ -20,6 +20,8 @@
 
 class AliTOFHitData;
 
+class AliTOFDecoderV2;
+
 /**********************************
  * OLD DEFINITIONS 
  **********************************/ 
@@ -464,13 +466,15 @@ class AliTOFRawStream: public TObject {
 
   Bool_t DecodeDDL(Int_t DDLMin, Int_t DDLMax, Int_t verbose);
   Bool_t Decode(Int_t verbose);
+  Bool_t DecodeV2(Int_t verbose);
   AliTOFDecoder *GetDecoder() const {return fDecoder;};
+  AliTOFDecoderV2 *GetDecoderV2() const {return fDecoderV2;};
   void SetV2718Patch(Bool_t V2718Patch = kTRUE) {fDecoder->SetV2718Patch(V2718Patch);};
 
   void SetRawReader(AliRawReader * const rawReader) {fRawReader=rawReader;};
 
-  const AliTOFHitDataBuffer * GetDataBuffer(Int_t DDL) const {return &fDataBuffer[DDL];};
-  const AliTOFHitDataBuffer * GetPackedDataBuffer(Int_t DDL) const {return &fPackedDataBuffer[DDL];};
+  AliTOFHitDataBuffer * GetDataBuffer(Int_t DDL) {return &fDataBuffer[DDL];};
+  AliTOFHitDataBuffer * GetPackedDataBuffer(Int_t DDL) {return &fPackedDataBuffer[DDL];};
 
   void ResetDataBuffer(Int_t DDL) {fDataBuffer[DDL].Reset();};
   void ResetPackedDataBuffer(Int_t DDL) {fPackedDataBuffer[DDL].Reset();};
@@ -478,6 +482,7 @@ class AliTOFRawStream: public TObject {
   void ResetBuffers();
 
   Bool_t LoadRawDataBuffers(Int_t indexDDL, Int_t verbose = 0);
+  Bool_t LoadRawDataBuffersV2(Int_t indexDDL, Int_t verbose = 0);
   static void ApplyBCCorrections(Bool_t Value = kTRUE) {fgApplyBCCorrections = Value;};
   
   Int_t GetEventID() const {return fEventID;}; // getter for the eventID1 (bunch crossing) in the common data header
@@ -516,6 +521,7 @@ class AliTOFRawStream: public TObject {
   TClonesArray *fTOFrawData; // pointer to AliTOFrawData TClonesArray
 
   AliTOFDecoder *fDecoder; //pointer to TOF decoder
+  AliTOFDecoderV2 *fDecoderV2; //pointer to TOF decoder
 
   Int_t         fDDL;          // DDL file number [0;71]
   Int_t         fTRM;          // TRM number [1;12]

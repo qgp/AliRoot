@@ -6,7 +6,7 @@
 // Task: Transform digits/raw data to TOF Clusters, to fill TOF RecPoints
 // and feed TOF tracking 
 
-#include "TObject.h"
+#include "TTask.h"
 
 #include "AliTOFRawStream.h"
 
@@ -22,7 +22,7 @@ class AliTOFGeometry;
 class AliTOFcluster;
 class AliTOFcalib;
 
-class AliTOFClusterFinder : public TObject
+class AliTOFClusterFinder : public TTask
 {
 
   enum {kTofMaxCluster=77777}; //maximal number of the TOF clusters
@@ -49,7 +49,7 @@ class AliTOFClusterFinder : public TObject
   void UnLoadClusters();
   void SetVerbose(Int_t Verbose){fVerbose=Verbose;} // To set the verbose level
   void SetDecoderVersion(Int_t version){fDecoderVersion=version;} // To set the decoder version
-  Bool_t GetDecoderVersion() const {return fDecoderVersion;} // To get the decoder version
+  Int_t GetDecoderVersion() const {return fDecoderVersion;} // To get the decoder version
   UShort_t  GetClusterVolIndex(const Int_t * const ind) const; //Volume Id getter
   void GetClusterPars(Int_t *ind, Double_t *pos, Double_t *cov) const; //cluster par getter
 
@@ -77,13 +77,11 @@ class AliTOFClusterFinder : public TObject
 
   Int_t fVerbose;           // Verbose level (0:no msg,
                             //  1:msg, 2:digits in txt files)
-  Bool_t fDecoderVersion;   //setting whether to use the new decoder version 
-                            // -true -> new version
-                            // -false ->old version  (default value!!)
+  Int_t fDecoderVersion;   //setting whether to use the new decoder version 
   AliTOFcalib *fTOFcalib;         // pointer to the TOF calibration info
   AliTOFRawStream fTOFRawStream; // AliTOFRawStream variable
 
-  ClassDef(AliTOFClusterFinder,5) // To run TOF clustering
+  ClassDef(AliTOFClusterFinder,6) // To run TOF clustering
 };
 #endif
 
