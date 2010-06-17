@@ -97,10 +97,12 @@ void AliAnalysisTaskFilterFriendSecond::UserCreateOutputObjects()
 void AliAnalysisTaskFilterFriendSecond::UserExec(Option_t */*option*/)
 {
 
-	AliInfo("Filling Friends");
+	//
+	// Filtering Friends
+	//
 
 	fESDInput = dynamic_cast<AliESDEvent*>(InputEvent()); // get the input ESD
-	fESDfriendInput = (AliESDfriend*)(fESDInput->FindListObject("AliESDfriend"));
+	fESDfriendInput = InputFriend();  // get the input friend
 	if(!fESDInput) {
 		printf("AliAnalysisTaskFilterFriendSecond::Exec(): no ESD \n");
 		return;
@@ -112,28 +114,26 @@ void AliAnalysisTaskFilterFriendSecond::UserExec(Option_t */*option*/)
 	// attach ESDfriend
 	
 	AliESDfriend* esdFriendOutput = (AliESDfriend*)ESDfriend();  
-	AliInfo(Form("Number of ESD tracks in input = %d ",fESDInput->GetNumberOfTracks()));
-	AliInfo(Form("Number of tracks in input friends = %d ",fESDfriendInput->GetNumberOfTracks()));
-	AliInfo(Form("Number of tracks in output friendsNew before filtering = %d ",esdFriendOutput->GetNumberOfTracks()));
+	AliDebug(3,Form("Number of ESD tracks in input = %d ",fESDInput->GetNumberOfTracks()));
+	AliDebug(3,Form("Number of tracks in input friends = %d ",fESDfriendInput->GetNumberOfTracks()));
+	AliDebug(3,Form("Number of tracks in output friendsNew before filtering = %d ",esdFriendOutput->GetNumberOfTracks()));
 	
-	AliESDfriendTrack* tNull = new AliESDfriendTrack();
-
 	for (Int_t i = 0; i< fESDInput->GetNumberOfTracks(); i++){
 		if (i%3 == 0){
 			// keep friend
-			AliInfo(Form("Keeping %d-th track",i));
+			AliDebug(2,Form("Keeping %d-th track",i));
 			AliESDfriendTrack* tOld = (AliESDfriendTrack*)fESDfriendInput->GetTrack(i);
-			AliDebug(2,Form("1P of the %d-th track = %f",i,tOld->Get1P()));
+			// debugging printouts
+			AliDebug(3,Form("1P of the %d-th track = %f",i,tOld->Get1P()));
 			AddFriendTrackAt(tOld,i);
 			//	tOld->Dump();
 		}
 		else {
 			//discard friend 
-			AddFriendTrackAt(tNull,i);
+			SkipFriendTrackAt(i);
 		}
 	} 
-	AliInfo(Form("Number of tracks in output friendsNew after filtering = %d ",esdFriendOutput->GetNumberOfTracks()));
-	AliInfo(Form("Number of tracks in output friendsNew after filtering with GetEntries() = %d ",esdFriendOutput->GetEntriesInTracks()));
+	AliDebug(2,Form("Number of tracks in output friendsNew after filtering with GetEntries() = %d ",esdFriendOutput->GetEntriesInTracks()));
 	return;
 }
 
@@ -153,15 +153,16 @@ Bool_t AliAnalysisTaskFilterFriendSecond::UserSelectESDfriendForCurrentEvent()
 	// Selecting or discarding current event
 	//
 
-		
+	/*		
 	fESDInput = dynamic_cast<AliESDEvent*>(InputEvent()); // get the input ESD
 	if ((fESDInput->GetNumberOfTracks())%2 == 1){
-		AliInfo("Selecting event");
+		AliDebug(2,"****************Selecting event");
 		return kTRUE;
 	}
 	
-	AliInfo("Discarding event");	
+	AliDebug(2,"****************Discarding event");	
 	return kFALSE;
-	
-	//return kTRUE;
+	*/
+		AliDebug(2,"****************Selecting event");
+	return kTRUE;
 }
