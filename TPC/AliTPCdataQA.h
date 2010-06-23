@@ -106,7 +106,6 @@ private:
 	       const Int_t pad, const Int_t maxTimeBins, 
 	       Int_t& timeMin,Int_t& timeMax,Int_t& padMin,Int_t& padMax);
   void UpdateEventHistograms();
-  void UpdateEventHisto(TH1F* hist, Float_t average);
 
   Int_t fFirstTimeBin;              //  First Time bin needed for analysis
   Int_t fLastTimeBin;               //  Last Time bin needed for analysis
