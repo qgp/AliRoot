@@ -368,7 +368,7 @@ AliTRDpadPlane *AliTRDgeometry::CreatePadPlane(Int_t ilayer, Int_t istack)
       padPlane->SetWidthOPad(0.515);
       padPlane->SetLengthIPad(9.0);
       padPlane->SetWidthIPad(0.635);
-      padPlane->SetTiltingAngle(2.0);
+      padPlane->SetTiltingAngle(-2.0);
     }
     else {
       // L0C1 type
@@ -379,7 +379,7 @@ AliTRDpadPlane *AliTRDgeometry::CreatePadPlane(Int_t ilayer, Int_t istack)
       padPlane->SetWidthOPad(0.515);
       padPlane->SetLengthIPad(7.5);
       padPlane->SetWidthIPad(0.635);
-      padPlane->SetTiltingAngle(2.0);
+      padPlane->SetTiltingAngle(-2.0);
     }
     break;
   case 1:
@@ -392,7 +392,7 @@ AliTRDpadPlane *AliTRDgeometry::CreatePadPlane(Int_t ilayer, Int_t istack)
       padPlane->SetWidthOPad(0.585);
       padPlane->SetLengthIPad(9.0);
       padPlane->SetWidthIPad(0.665);
-      padPlane->SetTiltingAngle(-2.0);
+      padPlane->SetTiltingAngle(2.0);
     }
     else {
       // L1C1 type
@@ -403,7 +403,7 @@ AliTRDpadPlane *AliTRDgeometry::CreatePadPlane(Int_t ilayer, Int_t istack)
       padPlane->SetWidthOPad(0.585);
       padPlane->SetLengthIPad(7.5);
       padPlane->SetWidthIPad(0.665);
-      padPlane->SetTiltingAngle(-2.0);
+      padPlane->SetTiltingAngle(2.0);
     }
     break;
   case 2:
@@ -416,7 +416,7 @@ AliTRDpadPlane *AliTRDgeometry::CreatePadPlane(Int_t ilayer, Int_t istack)
       padPlane->SetWidthOPad(0.705);
       padPlane->SetLengthIPad(9.0);
       padPlane->SetWidthIPad(0.695);
-      padPlane->SetTiltingAngle(2.0);
+      padPlane->SetTiltingAngle(-2.0);
     }
     else {
       // L2C1 type
@@ -427,7 +427,7 @@ AliTRDpadPlane *AliTRDgeometry::CreatePadPlane(Int_t ilayer, Int_t istack)
       padPlane->SetWidthOPad(0.705);
       padPlane->SetLengthIPad(8.0);
       padPlane->SetWidthIPad(0.695);
-      padPlane->SetTiltingAngle(2.0);
+      padPlane->SetTiltingAngle(-2.0);
     }
     break;
   case 3:
@@ -440,7 +440,7 @@ AliTRDpadPlane *AliTRDgeometry::CreatePadPlane(Int_t ilayer, Int_t istack)
       padPlane->SetWidthOPad(0.775);
       padPlane->SetLengthIPad(9.0);
       padPlane->SetWidthIPad(0.725);
-      padPlane->SetTiltingAngle(-2.0);
+      padPlane->SetTiltingAngle(2.0);
     }
     else {
       // L3C1 type
@@ -451,7 +451,7 @@ AliTRDpadPlane *AliTRDgeometry::CreatePadPlane(Int_t ilayer, Int_t istack)
       padPlane->SetWidthOPad(0.775);
       padPlane->SetLengthIPad(8.5);
       padPlane->SetWidthIPad(0.725);
-      padPlane->SetTiltingAngle(-2.0);
+      padPlane->SetTiltingAngle(2.0);
     }
     break;
   case 4:
@@ -464,7 +464,7 @@ AliTRDpadPlane *AliTRDgeometry::CreatePadPlane(Int_t ilayer, Int_t istack)
       padPlane->SetWidthOPad(0.845);
       padPlane->SetLengthIPad(9.0);
       padPlane->SetWidthIPad(0.755);
-      padPlane->SetTiltingAngle(2.0);
+      padPlane->SetTiltingAngle(-2.0);
     }
     else {
       // L4C1 type
@@ -475,7 +475,7 @@ AliTRDpadPlane *AliTRDgeometry::CreatePadPlane(Int_t ilayer, Int_t istack)
       padPlane->SetWidthOPad(0.845);
       padPlane->SetLengthIPad(9.0);
       padPlane->SetWidthIPad(0.755);
-      padPlane->SetTiltingAngle(2.0);
+      padPlane->SetTiltingAngle(-2.0);
     }
     break;
   case 5:
@@ -488,7 +488,7 @@ AliTRDpadPlane *AliTRDgeometry::CreatePadPlane(Int_t ilayer, Int_t istack)
       padPlane->SetWidthOPad(0.965);
       padPlane->SetLengthIPad(9.0);
       padPlane->SetWidthIPad(0.785);
-      padPlane->SetTiltingAngle(-2.0);
+      padPlane->SetTiltingAngle(2.0);
     }
     else {
       // L5C1 type
@@ -499,7 +499,7 @@ AliTRDpadPlane *AliTRDgeometry::CreatePadPlane(Int_t ilayer, Int_t istack)
       padPlane->SetWidthOPad(0.965);
       padPlane->SetLengthIPad(9.0);
       padPlane->SetWidthIPad(0.785);
-      padPlane->SetTiltingAngle(-2.0);
+      padPlane->SetTiltingAngle(2.0);
     }
     break;
   };
