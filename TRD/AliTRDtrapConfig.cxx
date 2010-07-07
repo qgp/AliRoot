@@ -480,16 +480,16 @@ AliTRDtrapConfig::AliTRDtrapConfig() :
   // DMEM allocation
   // to save space only allocated in groups of normally
   // equal settings
-  fDmem[fgkDmemAddrDeflCorr - fgkDmemStartAddress]      = new UInt_t[5*6*8*16];
-  fDmem[fgkDmemAddrNdrift - fgkDmemStartAddress]        = new UInt_t[18*5*6];
+  fDmem[fgkDmemAddrDeflCorr - fgkDmemStartAddress]      = new UInt_t[AliTRDgeometry::kNdets*AliTRDfeeParam::GetNrobC1()*fgkMaxMcm];
+  fDmem[fgkDmemAddrNdrift - fgkDmemStartAddress]        = new UInt_t[AliTRDgeometry::kNsector*AliTRDgeometry::kNdets];
   for (Int_t iAddr = fgkDmemAddrDeflCutStart; iAddr <= fgkDmemAddrDeflCutEnd; iAddr++) {
-    fDmem[iAddr - fgkDmemStartAddress]        = new UInt_t[5*6*8*16];
+    fDmem[iAddr - fgkDmemStartAddress]        = new UInt_t[AliTRDgeometry::kNdets*AliTRDfeeParam::GetNrobC1()*fgkMaxMcm];
   }
   for (Int_t iAddr = fgkDmemAddrLUTStart; iAddr <= fgkDmemAddrLUTEnd; iAddr++) {
     fDmem[iAddr - fgkDmemStartAddress]        = new UInt_t;
   }
   for (Int_t iAddr = fgkDmemAddrTrackletStart; iAddr <= fgkDmemAddrTrackletEnd; iAddr++) {
-    fDmem[iAddr - fgkDmemStartAddress]        = new UInt_t[18*5*6*8*16];
+    fDmem[iAddr - fgkDmemStartAddress]        = new UInt_t[AliTRDgeometry::kNdet*AliTRDfeeParam::GetNrobC1()*fgkMaxMcm];
   }
 
   InitRegs();
@@ -739,7 +739,7 @@ Bool_t AliTRDtrapConfig::SetDmem(Int_t addr, UInt_t value)
   for (Int_t iDet = 0; iDet < 540; iDet++) {
     for (Int_t iROB = 0; iROB < AliTRDfeeParam::GetNrobC1(); iROB++) {
       for (Int_t iMCM = 0; iMCM < fgkMaxMcm; iMCM++) {
-          fDmem[addr - fgkDmemStartAddress][(iDet % 30)*8*16 + iROB*16 + iMCM] = value;
+	fDmem[addr - fgkDmemStartAddress][(iDet % 30)*AliTRDfeeParam::GetNrobC1()*fgkMaxMcm + iROB*fgkMaxMcm + iMCM] = value;
       }
     }
   }
@@ -753,7 +753,7 @@ Bool_t AliTRDtrapConfig::SetDmem(Int_t addr, UInt_t value)
     for (Int_t iDet = 0; iDet < 540; iDet++) {
       for (Int_t iROB = 0; iROB < AliTRDfeeParam::GetNrobC1(); iROB++) {
         for (Int_t iMCM = 0; iMCM < fgkMaxMcm; iMCM++) {
-          fDmem[addr - fgkDmemStartAddress][(iDet % 30)*8*16 + iROB*16 + iMCM] = value;
+          fDmem[addr - fgkDmemStartAddress][(iDet % 30)*AliTRDfeeParam::GetNrobC1()*fgkMaxMcm + iROB*fgkMaxMcm + iMCM] = value;
         }
       }
     }
@@ -765,7 +765,7 @@ Bool_t AliTRDtrapConfig::SetDmem(Int_t addr, UInt_t value)
     for (Int_t iDet = 0; iDet < 540; iDet++) {
       for (Int_t iROB = 0; iROB < AliTRDfeeParam::GetNrobC1(); iROB++) {
         for (Int_t iMCM = 0; iMCM < fgkMaxMcm; iMCM++) {
-          fDmem[addr - fgkDmemStartAddress][iDet*8*16 + iROB*16 + iMCM] = value;
+          fDmem[addr - fgkDmemStartAddress][iDet*AliTRDfeeParam::GetNrobC1()*fgkMaxMcm + iROB*fgkMaxMcm + iMCM] = value;
         }
       }
     }
@@ -791,7 +791,7 @@ Bool_t AliTRDtrapConfig::SetDmem(Int_t addr, UInt_t value, Int_t det)
   if (addr == fgkDmemAddrDeflCorr) {
   for (Int_t iROB = 0; iROB < AliTRDfeeParam::GetNrobC1(); iROB++) {
     for (Int_t iMCM = 0; iMCM < fgkMaxMcm; iMCM++) {
-        fDmem[addr - fgkDmemStartAddress][(det % 30)*8*16 + iROB*16 + iMCM] = value;
+      fDmem[addr - fgkDmemStartAddress][(det % 30)*AliTRDfeeParam::GetNrobC1()*fgkMaxMcm + iROB*fgkMaxMcm + iMCM] = value;
       }
     }
   }
@@ -801,7 +801,7 @@ Bool_t AliTRDtrapConfig::SetDmem(Int_t addr, UInt_t value, Int_t det)
   else if (addr >= fgkDmemAddrDeflCutStart && addr <= fgkDmemAddrDeflCutEnd) {
     for (Int_t iROB = 0; iROB < AliTRDfeeParam::GetNrobC1(); iROB++) {
       for (Int_t iMCM = 0; iMCM < fgkMaxMcm; iMCM++) {
-        fDmem[addr - fgkDmemStartAddress][(det % 30)*8*16 + iROB*16 + iMCM] = value;
+        fDmem[addr - fgkDmemStartAddress][(det % 30)*AliTRDfeeParam::GetNrobC1()*fgkMaxMcm + iROB*fgkMaxMcm + iMCM] = value;
       }
     }
   }
@@ -811,7 +811,7 @@ Bool_t AliTRDtrapConfig::SetDmem(Int_t addr, UInt_t value, Int_t det)
   else if (addr >= fgkDmemAddrTrackletStart && addr <= fgkDmemAddrTrackletEnd) {
     for (Int_t iROB = 0; iROB < AliTRDfeeParam::GetNrobC1(); iROB++) {
       for (Int_t iMCM = 0; iMCM < fgkMaxMcm; iMCM++) {
-        fDmem[addr - fgkDmemStartAddress][det*8*16 + iROB*16 + iMCM] = value;
+        fDmem[addr - fgkDmemStartAddress][det*AliTRDfeeParam::GetNrobC1()*fgkMaxMcm + iROB*fgkMaxMcm + iMCM] = value;
     }
   }
   }
@@ -834,19 +834,19 @@ Bool_t AliTRDtrapConfig::SetDmem(Int_t addr, UInt_t value, Int_t det, Int_t rob,
   }
 
   if (addr == fgkDmemAddrDeflCorr) {
-    fDmem[addr - fgkDmemStartAddress][(det % 30)*8*16 + rob*16 + mcm] = value;
+    fDmem[addr - fgkDmemStartAddress][(det % 30)*AliTRDfeeParam::GetNrobC1()*fgkMaxMcm + rob*fgkMaxMcm + mcm] = value;
   }
   else if (addr == fgkDmemAddrNdrift) {
     fDmem[addr - fgkDmemStartAddress][det] = value;
   }
   else if (addr >= fgkDmemAddrDeflCutStart && addr <= fgkDmemAddrDeflCutEnd) {
-    fDmem[addr - fgkDmemStartAddress][(det % 30)*8*16 + rob*16 + mcm] = value;
+    fDmem[addr - fgkDmemStartAddress][(det % 30)*AliTRDfeeParam::GetNrobC1()*fgkMaxMcm + rob*fgkMaxMcm + mcm] = value;
   }
   else if (addr >= fgkDmemAddrLUTStart && addr <= fgkDmemAddrLUTEnd) {
     fDmem[addr - fgkDmemStartAddress][0] = value;
   }
   else if (addr >= fgkDmemAddrTrackletStart && addr <= fgkDmemAddrTrackletEnd) {
-    fDmem[addr - fgkDmemStartAddress][det*8*16 + rob*16 + mcm] = value;
+    fDmem[addr - fgkDmemStartAddress][det*AliTRDfeeParam::GetNrobC1()*fgkMaxMcm + rob*fgkMaxMcm + mcm] = value;
   }
   else {
     AliError(Form("Address 0x%04x not allocated in DMEM", addr));
@@ -862,19 +862,19 @@ UInt_t AliTRDtrapConfig::GetDmemUnsigned(Int_t addr, Int_t det, Int_t rob, Int_t
   // Get the content of the given DMEM address 
 
   if (addr == fgkDmemAddrDeflCorr) {
-    return fDmem[addr - fgkDmemStartAddress][(det % 30)*8*16 + rob*16 + mcm];
+    return fDmem[addr - fgkDmemStartAddress][(det % 30)*AliTRDfeeParam::GetNrobC1()*fgkMaxMcm + rob*fgkMaxMcm + mcm];
   }
   else if (addr == fgkDmemAddrNdrift) {
     return fDmem[addr - fgkDmemStartAddress][det];
   }
   else if (addr >= fgkDmemAddrDeflCutStart && addr <= fgkDmemAddrDeflCutEnd) {
-    return fDmem[addr - fgkDmemStartAddress][(det % 30)*8*16 + rob*16 + mcm];
+    return fDmem[addr - fgkDmemStartAddress][(det % 30)*AliTRDfeeParam::GetNrobC1()*fgkMaxMcm + rob*fgkMaxMcm + mcm];
   }
   else if (addr >= fgkDmemAddrLUTStart && addr <= fgkDmemAddrLUTEnd) {
     return fDmem[addr - fgkDmemStartAddress][0];
   }
   else if (addr >= fgkDmemAddrTrackletStart && addr <= fgkDmemAddrTrackletEnd) {
-    return fDmem[addr - fgkDmemStartAddress][det*8*16 + rob*16 + mcm];
+    return fDmem[addr - fgkDmemStartAddress][det*AliTRDfeeParam::GetNrobC1()*fgkMaxMcm + rob*fgkMaxMcm + mcm];
   }
   else {
     AliError(Form("Address 0x%04x not allocated in DMEM", addr));

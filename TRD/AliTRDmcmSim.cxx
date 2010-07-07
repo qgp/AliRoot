@@ -202,8 +202,8 @@ void AliTRDmcmSim::SetNTimebins(Int_t ntimebins)
 
   fNTimeBin = ntimebins;
   for( Int_t iAdc = 0 ; iAdc < fgkNADC; iAdc++ ) {
-    delete fADCR[iAdc];
-    delete fADCF[iAdc];
+    delete [] fADCR[iAdc];
+    delete [] fADCF[iAdc];
     fADCR[iAdc] = new Int_t[fNTimeBin];
     fADCF[iAdc] = new Int_t[fNTimeBin];
   }
