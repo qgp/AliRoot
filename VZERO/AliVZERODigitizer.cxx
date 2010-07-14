@@ -156,6 +156,11 @@ ClassImp(AliVZERODigitizer)
   AliCTPTimeParams *ctpParams = (AliCTPTimeParams*)entry->GetObject();
   Float_t l1Delay = (Float_t)ctpParams->GetDelayL1L0()*25.0;
 
+  AliCDBEntry *entry1 = AliCDBManager::Instance()->Get("GRP/CTP/TimeAlign");
+  if (!entry1) AliFatal("CTP time-alignment is not found in OCDB !");
+  AliCTPTimeParams *ctpTimeAlign = (AliCTPTimeParams*)entry1->GetObject();
+  l1Delay += ((Float_t)ctpTimeAlign->GetDelayL1L0()*25.0);
+
   AliCDBEntry *entry2 = AliCDBManager::Instance()->Get("VZERO/Calib/TimeDelays");
   if (!entry2) AliFatal("VZERO time delays are not found in OCDB !");
   TH1F *delays = (TH1F*)entry2->GetObject();
@@ -181,7 +186,7 @@ ClassImp(AliVZERODigitizer)
     fBinSize[i] = fCalibData->GetTimeResolution(board);
     fHptdcOffset[i] = (((Float_t)fCalibData->GetTriggerCountOffset(board)-
 			(Float_t)fCalibData->GetRollOver(board))*25.0+
-		       fCalibData->GetTimeOffset(i)+
+		       fCalibData->GetTimeOffset(i)-
 		       l1Delay+
 		       delays->GetBinContent(i+1)+
 		       kV0Offset);
