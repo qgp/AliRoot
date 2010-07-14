@@ -32,6 +32,7 @@ class AliTRDCalROC;
 class AliTRDReconstructor;
 class AliTRDCalSingleChamberStatus;
 class AliTRDrawStreamBase;
+class AliTRDrecoParam;
 
 class AliTRDclusterizer : public TNamed 
 {
@@ -102,16 +103,16 @@ class AliTRDclusterizer : public TNamed
   Int_t            GetAddedClusters() const {return fNoOfClusters;}
   Int_t            GetNTimeBins() const {return fTimeTotal;}
 
-  Bool_t   IsClustersOwner() const {return TestBit(kClOwner);}
+  Bool_t           IsClustersOwner() const {return TestBit(kClOwner);}
   virtual void     SetClustersOwner(Bool_t own=kTRUE) {SetBit(kClOwner, own); if(!own) {fRecPoints = 0x0; fNoOfClusters=0;} }
-  void     SetTrackletsOwner(Bool_t own=kTRUE) {SetBit(kTrOwner, own); if(!own) {fTracklets = 0x0; } }
+  void             SetTrackletsOwner(Bool_t own=kTRUE) {SetBit(kTrOwner, own); if(!own) {fTracklets = 0x0; } }
 
 protected:
 
-  void             DeConvExp (Float_t *const arr, const Int_t nTimeTotal, const Int_t nexp);
-  void             TailCancelation();
+  void             DeConvExp (Short_t *const arr, const Int_t nTime, const Int_t nexp);
+  void             TailCancelation(const AliTRDrecoParam* const recoParam);
 
-  Float_t  Unfold(Double_t eps, Int_t layer, const Double_t *const padSignal) const;
+  Float_t          Unfold(Double_t eps, Int_t layer, const Double_t *const padSignal) const;
   
   void             SetPadStatus(const UChar_t status, UChar_t &encoding) const;
   UChar_t          GetPadStatus(UChar_t encoding) const;
@@ -146,8 +147,9 @@ protected:
 
   AliTRDarrayADC      *fDigits;               // Array holding the digits
   AliTRDSignalIndex   *fIndexes;              // Array holding the indexes to the digits
-  Float_t              fMaxThresh;            // Threshold value for the maximum
-  Float_t              fSigThresh;            // Threshold value for the digit signal
+  Short_t              fMaxThresh;            // Threshold value for the maximum
+  Short_t              fMaxThreshTest;        // Threshold value for the maximum to test agains
+  Short_t              fSigThresh;            // Threshold value for the digit signal
   Float_t              fMinMaxCutSigma;       // Threshold value for the maximum (cut noise)
   Float_t              fMinLeftRightCutSigma; // Threshold value for the sum pad (cut noise)
   Int_t                fLayer;                // Current layer of the detector
@@ -166,7 +168,7 @@ protected:
   Int_t                fBaseline;             // Baseline of the ADC values
   AliTRDrawStreamBase *fRawStream;            // Currently used RawStream
 
-  ClassDef(AliTRDclusterizer,6)               //  TRD clusterfinder
+  ClassDef(AliTRDclusterizer,7)               //  TRD clusterfinder
 
 };
 
