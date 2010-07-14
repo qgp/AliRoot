@@ -70,7 +70,8 @@
 
 // Root Geometry includes
 #include <TGeoCompositeShape.h>
-#include <TGeoEltu.h>
+//PH #include <TGeoEltu.h>
+#include <TGeoScaledShape.h>
 #include <TGeoGlobalMagField.h>
 #include <TGeoMaterial.h>
 #include <TGeoMatrix.h>
@@ -815,7 +816,8 @@ void AliITSv11GeometrySPD::CarbonFiberSector(TGeoVolume *moth,
     Double_t *yp[ksecNRadii],   *yp2[ksecNRadii];
     TGeoXtru *sA0,  *sA1, *sB0, *sB1,*sB2;
     TGeoBBox *sB3;
-    TGeoEltu *sTA0, *sTA1;
+    //PH    TGeoEltu *sTA0, *sTA1;
+    TGeoScaledShape *sTA0, *sTA1;
     TGeoTube *sTB0, *sTB1; //,*sM0;
     TGeoRotation    *rot;
     TGeoTranslation *trans;
@@ -1041,11 +1043,22 @@ void AliITSv11GeometrySPD::CarbonFiberSector(TGeoVolume *moth,
     sA1->DefineSection(1,  ksecDz);
     //
     // Error in TGeoEltu. Semi-axis X must be < Semi-axis Y (?).
-    sTA0 = new TGeoEltu("ITS SPD Cooling Tube TA0", 0.5 * ksecCoolTubeFlatY,
-                        0.5 * ksecCoolTubeFlatX, ksecDz);
-    sTA1 = new TGeoEltu("ITS SPD Cooling Tube coolant TA1",
-                        sTA0->GetA() - ksecCoolTubeThick,
-                        sTA0->GetB()-ksecCoolTubeThick,ksecDz);
+
+    // Temporary replacement of elliptical tubes by scaled tubes (AG + PH)
+
+    // sTA0 = new TGeoEltu("ITS SPD Cooling Tube TA0", 0.5 * ksecCoolTubeFlatY,
+    //                     0.5 * ksecCoolTubeFlatX, ksecDz);
+    TGeoTube *stTA0 = new TGeoTube("tITS SPD Cooling Tube TA0", 0., 0.5 * ksecCoolTubeFlatY, ksecDz);
+    TGeoScale *sclsTA0 = new TGeoScale(1., ksecCoolTubeFlatX/ksecCoolTubeFlatY, 1.);
+    sTA0 = new TGeoScaledShape("ITS SPD Cooling Tube TA0", stTA0, sclsTA0);
+    // sTA1 = new TGeoEltu("ITS SPD Cooling Tube coolant TA1",
+    //                     sTA0->GetA() - ksecCoolTubeThick,
+    //                     sTA0->GetB()-ksecCoolTubeThick,ksecDz);
+    TGeoTube *stTA1 = new TGeoTube("tITS SPD Cooling Tube coolant TA1", 0.,
+			  0.5 * ksecCoolTubeFlatY - ksecCoolTubeThick,ksecDz);
+    TGeoScale *sclsTA1 = new TGeoScale(1., (0.5 * ksecCoolTubeFlatX-ksecCoolTubeThick)/(0.5 * ksecCoolTubeFlatY - ksecCoolTubeThick), 1.);
+    sTA1 = new TGeoScaledShape("ITS SPD Cooling Tube coolant TA1",stTA1,sclsTA1);
+
     SPDsectorShape(ksecNRadii,secX2,secY2,secR2,secAngleStart2,secAngleEnd2,
                    ksecNPointsPerRadii, m, xp, yp);
     sB0 = new TGeoXtru(2);
@@ -1218,7 +1231,8 @@ void AliITSv11GeometrySPD::CarbonFiberSector(TGeoVolume *moth,
     vB0->AddNode(vB2,1,0); // Put air wholes inside carbon fiber ends
     vTA0->AddNode(vTA1,1,0); // Put cooling liquid indide tube middel.
     vTB0->AddNode(vTB1,1,0); // Put cooling liquid inside tube end.
-    Double_t tubeEndLocal[3]={0.0,0.0,sTA0->GetDz()};
+    //PH    Double_t tubeEndLocal[3]={0.0,0.0,sTA0->GetDz()};
+    Double_t tubeEndLocal[3]={0.0,0.0,((TGeoTube*)sTA0->GetShape())->GetDz()};
     for(i = 0; i < ksecNCoolingTubeDips; i++) {
         x0 = secX3[ksecDipIndex[i]];
         y0 = secY3[ksecDipIndex[i]];

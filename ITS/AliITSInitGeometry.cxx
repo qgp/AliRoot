@@ -41,6 +41,7 @@ $Id$
 #include <TGeoPgon.h>
 #include <TGeoPcon.h>
 #include <TGeoEltu.h>
+#include <TGeoScaledShape.h>
 #include <TGeoHype.h>
 #include <TMath.h>
 
@@ -1344,6 +1345,27 @@ Bool_t AliITSInitGeometry::GetShape(const TString &volumePath,
 	par.AddAt(eltu->GetB(),1);
 	par.AddAt(eltu->GetDz(),2);
 	return kTRUE;
+    } // end if
+    if (classType==TGeoScaledShape::Class()) {
+	shapeType = "ELTU";
+	npar = 3;
+	par.Set(npar);
+	TGeoScaledShape *scsh = (TGeoScaledShape*)shape;
+	TGeoShape *shp = scsh->GetShape();
+	TGeoScale *scl = scsh->GetScale();
+	if (shp->IsA() == TGeoTube::Class()) {
+	  TGeoTube * stube = (TGeoTube*)shp;
+	  par.AddAt(stube->GetRmax(),0);
+	  par.AddAt(stube->GetRmax()*(scl->GetScale())[1],1);
+	  par.AddAt(stube->GetDz(),2);
+	  return kTRUE;
+	}
+	else {
+	  Error("GetShape","Getting shape parameters for shape %s not implemented",
+		shape->ClassName());
+	  shapeType = "Unknown";
+	  return kFALSE;
+	}
     } // end if
     if (classType==TGeoHype::Class()) {
 	shapeType = "HYPE";
