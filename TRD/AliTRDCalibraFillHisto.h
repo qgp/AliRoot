@@ -42,7 +42,11 @@ class AliTRDseedV1;
 class AliTRDgeometry;
 class AliTRDCalDet;
 class AliTRDCalROC;
+class AliTRDcalibDB;
 
+class AliTRDrawFastStream;
+class AliTRDdigitsManager;
+class AliTRDSignalIndex;
 
 struct eventHeaderStruct;
 
@@ -69,6 +73,8 @@ class AliTRDCalibraFillHisto : public TObject {
 	  Int_t   ProcessEventDAQ(AliTRDrawStreamBase *rawStream, Bool_t nocheck = kFALSE);
 	  Int_t   ProcessEventDAQ(AliRawReader *rawReader, Bool_t nocheck = kFALSE);
 	  Int_t   ProcessEventDAQ(const eventHeaderStruct *event, Bool_t nocheck = kFALSE);
+	  Int_t   ProcessEventDAQ2(AliRawReader *rawReader);
+	  Int_t   ProcessEventDAQ3(AliRawReader *rawReader);
 
   // Is Pad on
           Bool_t   IsPadOn(Int_t detector, Int_t row, Int_t col) const;
@@ -99,7 +105,11 @@ class AliTRDCalibraFillHisto : public TObject {
           void     SetVector2d(Bool_t vector2d = kTRUE)                      { fVector2d        = vector2d;          }
 	  void     SetLinearFitterOn(Bool_t linearfitteron = kTRUE)          { fLinearFitterOn      = linearfitteron;}
 	  void     SetLinearFitterDebugOn(Bool_t debug = kTRUE)              { fLinearFitterDebugOn = debug;         }
-	 	  
+	  void     SetVersionGainUsed(Int_t versionGainUsed)                 { fVersionGainUsed = versionGainUsed;   }
+	  void     SetSubVersionGainUsed(Int_t subVersionGainUsed)           { fSubVersionGainUsed = subVersionGainUsed;   }
+	  void     SetVersionVdriftUsed(Int_t versionVdriftUsed)             { fVersionVdriftUsed = versionVdriftUsed;   }
+	  void     SetSubVersionVdriftUsed(Int_t subVersionVdriftUsed)       { fSubVersionVdriftUsed = subVersionVdriftUsed;   }
+	
   
 	  Bool_t   GetPH2dOn() const                                         { return fPH2dOn;                 }
           Bool_t   GetCH2dOn() const                                         { return fCH2dOn;                 }
@@ -107,7 +117,11 @@ class AliTRDCalibraFillHisto : public TObject {
           Bool_t   GetHisto2d() const                                        { return fHisto2d;                }
           Bool_t   GetVector2d() const                                       { return fVector2d;               }
           Bool_t   GetLinearFitterOn() const                                 { return fLinearFitterOn;         }
-	  Bool_t   GetLinearFitterDebugOn() const                            { return fLinearFitterDebugOn; }
+	  Bool_t   GetLinearFitterDebugOn() const                            { return fLinearFitterDebugOn;    }
+	  Int_t    GetVersionGainUsed() const                                { return fVersionGainUsed;        }
+	  Int_t    GetSubVersionGainUsed() const                             { return fSubVersionGainUsed;     }
+	  Int_t    GetVersionVdriftUsed() const                              { return fVersionVdriftUsed;      }
+	  Int_t    GetSubVersionVdriftUsed() const                           { return fSubVersionVdriftUsed;   }
 
 
   // Get stuff that are filled
@@ -139,7 +153,7 @@ class AliTRDCalibraFillHisto : public TObject {
 	  void     SetThresholdClustersDAQ(Float_t thresholdClustersDAQ)     { fThresholdClustersDAQ = thresholdClustersDAQ;                         }
 	  void     SetNumberRowDAQ(Short_t numberRowDAQ)                     { fNumberRowDAQ         = numberRowDAQ;         }
 	  void     SetNumberColDAQ(Short_t numberColDAQ)                     { fNumberColDAQ         = numberColDAQ;         }
-          void     SetNumberBinCharge(Short_t numberBinCharge)               { fNumberBinCharge      = numberBinCharge;      }
+	  void     SetNumberBinCharge(Short_t numberBinCharge)               { fNumberBinCharge      = numberBinCharge;      }
           void     SetNumberBinPRF(Short_t numberBinPRF)                     { fNumberBinPRF         = numberBinPRF;         }
 	  void     SetNumberGroupsPRF(Short_t numberGroupsPRF);
   
@@ -169,6 +183,8 @@ AliTRDCalibraVector *GetCalibraVector() const                                { r
 
   // Geometry
   AliTRDgeometry  *fGeo;                    //! The TRD geometry
+  // calibration DB
+  AliTRDcalibDB   *fCalibDB;                //! The pointer to the TRDcalibDB instance
 
   // Is HLT
           Bool_t   fIsHLT;                  // Now if HLT, the per detector
@@ -190,6 +206,11 @@ AliTRDCalibraVector *GetCalibraVector() const                                { r
 	  Bool_t   fNormalizeNbOfCluster;   // Normalize with the number of cluster for the gain
 	  Float_t  fMaxCluster;             // Max amplitude of one cluster
 	  Short_t  fNbMaxCluster;           // Number of tb at the end
+  // Back correction
+	  Int_t    fVersionGainUsed;        // VersionGainUsed 
+	  Int_t    fSubVersionGainUsed;     // SubVersionGainUsed
+	  Int_t    fVersionVdriftUsed;      // VersionVdriftUsed 
+	  Int_t    fSubVersionVdriftUsed;   // SubVersionVdriftUsed
   // Calibration mode
 	  AliTRDCalibraMode *fCalibraMode;  // Calibration mode
 
@@ -266,7 +287,7 @@ AliTRDCalibraVector *GetCalibraVector() const                                { r
 	  Bool_t   HandlePRFtracklet(const AliTRDtrack *t, Int_t index0, Int_t index1);
 	  Bool_t   HandlePRFtrackletV1(const AliTRDseedV1 *tracklet, Int_t nbclusters);
 	  void     ResetfVariablestracklet();
-	  void     StoreInfoCHPHtrack(const AliTRDcluster *cl,const Double_t dqdl,const Int_t *group,const Int_t row,const Int_t col);
+	  void     StoreInfoCHPHtrack(const AliTRDcluster *cl,const Double_t dqdl,const Int_t *group,const Int_t row,const Int_t col,const AliTRDcluster *cls=0x0);
 	  void     FillCH2d(Int_t x, Float_t y);
 
   // Calibration on DAQ

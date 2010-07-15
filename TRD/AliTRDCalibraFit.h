@@ -18,6 +18,7 @@
 # include <TVectorD.h>
 #endif 
 
+class TString;
 class TTree;
 class TProfile2D;
 class TGraphErrors;
@@ -74,7 +75,7 @@ class AliTRDCalibraFit : public TObject {
   Bool_t   AnalyseLinearFitters(AliTRDCalibraVdriftLinearFit *calivdli);
   
   // Pad Calibration
-  Bool_t   SetModeCalibration(const char *name, Int_t i);
+  Bool_t   SetModeCalibration(TString name, Int_t i);
   
   //Reset Function
   void     ResetVectorFit();
@@ -292,9 +293,9 @@ class AliTRDCalibraFit : public TObject {
        void     ReconstructFitRowMinRowMax(Int_t idect, Int_t i);
        Bool_t   CheckFitVoir();
        void     NormierungCharge();
-       Bool_t   SetNrphiFromTObject(const char *name, Int_t i);
-       Bool_t   SetNzFromTObject(const char *name, Int_t i);
-       Int_t    GetNumberOfGroupsPRF(const char* nametitle);
+       Bool_t   SetNrphiFromTObject(TString name, Int_t i);
+       Bool_t   SetNzFromTObject(TString name, Int_t i);
+       Int_t    GetNumberOfGroupsPRF(TString nametitle);
        
        // Calculate the mean coefs from the database
        Bool_t   CalculVdriftCoefMean();

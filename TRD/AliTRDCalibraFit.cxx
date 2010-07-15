@@ -64,6 +64,7 @@
 #include <TLinearFitter.h>
 #include <TVectorD.h>
 #include <TArrayF.h>
+#include <TString.h>
 
 #include "AliLog.h"
 #include "AliMathBase.h"
@@ -362,7 +363,8 @@ Bool_t AliTRDCalibraFit::AnalyseCH(const TH2I *ch)
   //
 
   // Set the calibration mode
-  const char *name = ch->GetTitle();
+  //const char *name = ch->GetTitle();
+  TString name = ch->GetTitle();
   if(!SetModeCalibration(name,0)) return kFALSE;
 
   // Number of Ybins (detectors or groups of pads)
@@ -460,7 +462,8 @@ Bool_t AliTRDCalibraFit::AnalyseCH(AliTRDCalibraVector *calvect)
   //
 
   // Set the calibraMode
-  const char *name = calvect->GetNameCH();
+  //const char *name = calvect->GetNameCH();
+  TString name = calvect->GetNameCH();
   if(!SetModeCalibration(name,0)) return kFALSE;  
 
   // Number of Xbins (detectors or groups of pads)
@@ -553,7 +556,8 @@ Bool_t AliTRDCalibraFit::AnalysePH(const TProfile2D *ph)
   //
 
   // Set the calibration mode
-  const char *name = ph->GetTitle();
+  //const char *name = ph->GetTitle();
+  TString name = ph->GetTitle();
   if(!SetModeCalibration(name,1)) return kFALSE;
   
   //printf("Mode calibration set\n");
@@ -654,7 +658,8 @@ Bool_t AliTRDCalibraFit::AnalysePH(AliTRDCalibraVector *calvect)
   //
 
   // Set the calibration mode
-  const char *name = calvect->GetNamePH();
+  //const char *name = calvect->GetNamePH();
+  TString name = calvect->GetNamePH();
   if(!SetModeCalibration(name,1)) return kFALSE;
 
   // Number of Xbins (detectors or groups of pads)
@@ -733,7 +738,8 @@ Bool_t AliTRDCalibraFit::AnalysePRF(const TProfile2D *prf)
   //
 
   // Set the calibration mode
-  const char *name = prf->GetTitle();
+  //const char *name = prf->GetTitle();
+  TString name = prf->GetTitle();
   if(!SetModeCalibration(name,2)) return kFALSE;
 
   // Number of Ybins (detectors or groups of pads)
@@ -820,7 +826,8 @@ Bool_t AliTRDCalibraFit::AnalysePRFMarianFit(const TProfile2D *prf)
   //
 
   // Set the calibration mode
-  const char *name = prf->GetTitle();
+  //const char *name = prf->GetTitle();
+  TString name = prf->GetTitle();
   if(!SetModeCalibration(name,2)) return kFALSE;
 
   // Number of Ybins (detectors or groups of pads)
@@ -915,7 +922,8 @@ Bool_t AliTRDCalibraFit::AnalysePRF(AliTRDCalibraVector *calvect)
   //
 
   // Set the calibra mode
-  const char *name = calvect->GetNamePRF();
+  //const char *name = calvect->GetNamePRF();
+  TString name = calvect->GetNamePRF();
   if(!SetModeCalibration(name,2)) return kFALSE;
   //printf("test0 %s\n",name);
 
@@ -991,7 +999,8 @@ Bool_t AliTRDCalibraFit::AnalysePRFMarianFit(AliTRDCalibraVector *calvect)
   //
 
   // Set the calibra mode
-  const char *name = calvect->GetNamePRF();
+  //const char *name = calvect->GetNamePRF();
+  TString name = calvect->GetNamePRF();
   if(!SetModeCalibration(name,2)) return kFALSE;
   //printf("test0 %s\n",name);
   Int_t    nbg     = GetNumberOfGroupsPRF((const char *)name);
@@ -1167,7 +1176,7 @@ Bool_t AliTRDCalibraFit::AnalyseLinearFitters(AliTRDCalibraVdriftLinearFit *cali
 }
 //____________Functions for seeing if the pad is really okey___________________
 //_____________________________________________________________________________
-Int_t AliTRDCalibraFit::GetNumberOfGroupsPRF(const char* nametitle)
+Int_t AliTRDCalibraFit::GetNumberOfGroupsPRF(TString nametitle)
 {
   //
   // Get numberofgroupsprf
@@ -1183,25 +1192,25 @@ Int_t AliTRDCalibraFit::GetNumberOfGroupsPRF(const char* nametitle)
   const Char_t *pattern6 = "Ngp6";
 
   // Nrphi mode
-  if (strstr(nametitle,pattern0)) {
+  if (strstr(nametitle.Data(),pattern0)) {
     return 0;
   }
-  if (strstr(nametitle,pattern1)) {
+  if (strstr(nametitle.Data(),pattern1)) {
     return 1;
   }
-  if (strstr(nametitle,pattern2)) {
+  if (strstr(nametitle.Data(),pattern2)) {
     return 2;
   }
-  if (strstr(nametitle,pattern3)) {
+  if (strstr(nametitle.Data(),pattern3)) {
     return 3;
   }
-  if (strstr(nametitle,pattern4)) {
+  if (strstr(nametitle.Data(),pattern4)) {
     return 4;
   }
-  if (strstr(nametitle,pattern5)) {
+  if (strstr(nametitle.Data(),pattern5)) {
     return 5;
   }
-  if (strstr(nametitle,pattern6)){
+  if (strstr(nametitle.Data(),pattern6)){
     return 6;
   }
   else return -1;
@@ -1209,7 +1218,7 @@ Int_t AliTRDCalibraFit::GetNumberOfGroupsPRF(const char* nametitle)
 
 }
 //_____________________________________________________________________________
-Bool_t AliTRDCalibraFit::SetModeCalibration(const char *name, Int_t i)
+Bool_t AliTRDCalibraFit::SetModeCalibration(TString name, Int_t i)
 {
   //
   // Set fNz[i] and fNrphi[i] of the AliTRDCalibraFit::Instance()
@@ -1223,7 +1232,7 @@ Bool_t AliTRDCalibraFit::SetModeCalibration(const char *name, Int_t i)
 
 }
 //_____________________________________________________________________________
-Bool_t AliTRDCalibraFit::SetNrphiFromTObject(const char *name, Int_t i)
+Bool_t AliTRDCalibraFit::SetNrphiFromTObject(TString name, Int_t i)
 {
   //
   // Set fNrphi[i] of the AliTRDCalibraFit::Instance()
@@ -1246,7 +1255,7 @@ Bool_t AliTRDCalibraFit::SetNrphiFromTObject(const char *name, Int_t i)
   const Char_t *patternz100 = "Nz100";
 
   // Nrphi mode
-  if ((strstr(name,patternrphi100)) && (strstr(name,patternz100))) {
+  if ((strstr(name.Data(),patternrphi100)) && (strstr(name.Data(),patternz100))) {
     fCalibraMode->SetAllTogether(i);
     fNbDet = 540;
     if (fDebugLevel > 1) {
@@ -1254,7 +1263,7 @@ Bool_t AliTRDCalibraFit::SetNrphiFromTObject(const char *name, Int_t i)
     }
     return kTRUE;
   }
-  if ((strstr(name,patternrphi10)) && (strstr(name,patternz10))) {
+  if ((strstr(name.Data(),patternrphi10)) && (strstr(name.Data(),patternz10))) {
     fCalibraMode->SetPerSuperModule(i);
     fNbDet = 30;
     if (fDebugLevel > 1) {
@@ -1263,49 +1272,49 @@ Bool_t AliTRDCalibraFit::SetNrphiFromTObject(const char *name, Int_t i)
     return kTRUE;
   }
   
-  if (strstr(name,patternrphi0)) {
+  if (strstr(name.Data(),patternrphi0)) {
     fCalibraMode->SetNrphi(i ,0);
     if (fDebugLevel > 1) {
       AliInfo(Form("fNbDet %d and 0",fNbDet));
     }
     return kTRUE;
   }
-  if (strstr(name,patternrphi1)) {
+  if (strstr(name.Data(),patternrphi1)) {
     fCalibraMode->SetNrphi(i, 1);
     if (fDebugLevel > 1) {
       AliInfo(Form("fNbDet %d and 1",fNbDet));
     }
     return kTRUE;
   }
-  if (strstr(name,patternrphi2)) {
+  if (strstr(name.Data(),patternrphi2)) {
     fCalibraMode->SetNrphi(i, 2);
     if (fDebugLevel > 1) {
       AliInfo(Form("fNbDet %d and 2",fNbDet));
     }    
     return kTRUE;
   }
-  if (strstr(name,patternrphi3)) {
+  if (strstr(name.Data(),patternrphi3)) {
     fCalibraMode->SetNrphi(i, 3);
     if (fDebugLevel > 1) {
       AliInfo(Form("fNbDet %d and 3",fNbDet));
     }   
     return kTRUE;
   }
-  if (strstr(name,patternrphi4)) {
+  if (strstr(name.Data(),patternrphi4)) {
     fCalibraMode->SetNrphi(i, 4);
     if (fDebugLevel > 1) {
       AliInfo(Form("fNbDet %d and 4",fNbDet));
     }   
     return kTRUE;
   }
-  if (strstr(name,patternrphi5)) {
+  if (strstr(name.Data(),patternrphi5)) {
     fCalibraMode->SetNrphi(i, 5);
     if (fDebugLevel > 1) {
       AliInfo(Form("fNbDet %d and 5",fNbDet));
     }
     return kTRUE;
   }
-  if (strstr(name,patternrphi6)) {
+  if (strstr(name.Data(),patternrphi6)) {
     fCalibraMode->SetNrphi(i, 6);
     if (fDebugLevel > 1) {
       AliInfo(Form("fNbDet %d and 6",fNbDet));
@@ -1321,7 +1330,7 @@ Bool_t AliTRDCalibraFit::SetNrphiFromTObject(const char *name, Int_t i)
   
 }
 //_____________________________________________________________________________
-Bool_t AliTRDCalibraFit::SetNzFromTObject(const char *name, Int_t i)
+Bool_t AliTRDCalibraFit::SetNzFromTObject(TString name, Int_t i)
 {
   //
   // Set fNz[i] of the AliTRDCalibraFit::Instance()
@@ -1340,7 +1349,7 @@ Bool_t AliTRDCalibraFit::SetNzFromTObject(const char *name, Int_t i)
   const Char_t *patternz10 = "Nz10";
   const Char_t *patternz100 = "Nz100";
 
-  if ((strstr(name,patternrphi100)) && (strstr(name,patternz100))) {
+  if ((strstr(name.Data(),patternrphi100)) && (strstr(name.Data(),patternz100))) {
     fCalibraMode->SetAllTogether(i);
     fNbDet = 540;
     if (fDebugLevel > 1) {
@@ -1348,7 +1357,7 @@ Bool_t AliTRDCalibraFit::SetNzFromTObject(const char *name, Int_t i)
     }
     return kTRUE;
   }
-  if ((strstr(name,patternrphi10)) && (strstr(name,patternz10))) {
+  if ((strstr(name.Data(),patternrphi10)) && (strstr(name.Data(),patternz10))) {
     fCalibraMode->SetPerSuperModule(i);
     fNbDet = 30;
     if (fDebugLevel > 1) {
@@ -1356,35 +1365,35 @@ Bool_t AliTRDCalibraFit::SetNzFromTObject(const char *name, Int_t i)
     }
     return kTRUE;
   }
-  if (strstr(name,patternz0)) {
+  if (strstr(name.Data(),patternz0)) {
     fCalibraMode->SetNz(i, 0);
     if (fDebugLevel > 1) {
       AliInfo(Form("fNbDet %d and 0",fNbDet));
     }
     return kTRUE;
   }
-  if (strstr(name,patternz1)) {
+  if (strstr(name.Data(),patternz1)) {
     fCalibraMode->SetNz(i ,1);
     if (fDebugLevel > 1) {
       AliInfo(Form("fNbDet %d and 1",fNbDet));
     }
     return kTRUE;
   }
-  if (strstr(name,patternz2)) {
+  if (strstr(name.Data(),patternz2)) {
     fCalibraMode->SetNz(i ,2);
     if (fDebugLevel > 1) {    
       AliInfo(Form("fNbDet %d and 2",fNbDet));
     }
     return kTRUE;
   }
-  if (strstr(name,patternz3)) {
+  if (strstr(name.Data(),patternz3)) {
     fCalibraMode->SetNz(i ,3);
     if (fDebugLevel > 1) {
       AliInfo(Form("fNbDet %d and 3",fNbDet));
     }
     return kTRUE;  
   }
-  if (strstr(name,patternz4)) {
+  if (strstr(name.Data(),patternz4)) {
     fCalibraMode->SetNz(i ,4);
     if (fDebugLevel > 1) {    
       AliInfo(Form("fNbDet %d and 4",fNbDet));
@@ -6204,3 +6213,4 @@ Double_t AliTRDCalibraFit::GausConstant(const Double_t *x, const Double_t *par)
   return gauss;
 
 }
+
