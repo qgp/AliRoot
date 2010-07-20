@@ -61,7 +61,7 @@ private:
                     Int_t Res) const;
   Int_t   Pedestal(Int_t Detector, Int_t Quadrant, Int_t Res) const;
 
-  Float_t fPMGain[6][5];      	// PM gain
+  Float_t fPMGain[5][5];      	// PM gain
   Float_t fADCRes[2];	      	// ADC conversion factors
   Int_t   fIsCalibration; 	// !=0 if simulation creates calibration data
   Bool_t  fIsSignalInADCGate;   // true if signal in ADC gate
@@ -72,6 +72,6 @@ private:
   Bool_t  fSpectators2Track;    // should digitizer track spectators
   Float_t fBeamEnergy;          // beam energy taken from GRP object
        
-  ClassDef(AliZDCDigitizer, 11)     // digitizer for ZDC
+  ClassDef(AliZDCDigitizer, 12)     // digitizer for ZDC
 };    
 #endif

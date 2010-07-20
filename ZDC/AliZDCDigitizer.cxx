@@ -76,7 +76,7 @@ AliZDCDigitizer::AliZDCDigitizer(AliRunDigitizer* manager):
 {
   // Get calibration data
   if(fIsCalibration!=0) printf("\n\t AliZDCDigitizer -> Creating calibration data (pedestals)\n");
-  for(Int_t i=0; i<6; i++){
+  for(Int_t i=0; i<5; i++){
     for(Int_t j=0; j<5; j++)
        fPMGain[i][j] = 0.;
   }
@@ -102,7 +102,7 @@ AliZDCDigitizer::AliZDCDigitizer(const AliZDCDigitizer &digitizer):
 {
   // Copy constructor
 
-  for(Int_t i=0; i<6; i++){
+  for(Int_t i=0; i<5; i++){
      for(Int_t j=0; j<5; j++){
         fPMGain[i][j]   = digitizer.fPMGain[i][j];           
      }
@@ -149,28 +149,30 @@ Bool_t AliZDCDigitizer::Init()
   if((beamType.CompareTo("P-P")) == 0 || (beamType.CompareTo("p-p")) == 0){
     //PTM gains rescaled to beam energy for p-p
     if(fBeamEnergy != 0){
-      for(Int_t j = 0; j < 5; j++){
-        fPMGain[0][j] = (661.444/fBeamEnergy+0.000740671)*10000000;
-        fPMGain[1][j] = (864.350/fBeamEnergy+0.002344)*10000000;
-        fPMGain[2][j] = (1.32312-0.000101515*fBeamEnergy)*10000000;
-        fPMGain[3][j] = fPMGain[0][j];
-        fPMGain[4][j] = fPMGain[1][j] ;
-      }
-      AliInfo(Form("    PMT gains for p-p @ %1.0f+%1.0f GeV: ZN(%1.0f), ZP(%1.0f), ZEM(%1.0f)\n",
+    for(Int_t j = 0; j < 5; j++){
+        fPMGain[0][j] = 1.515831*(661.444/fBeamEnergy+0.000740671)*10000000;
+        fPMGain[1][j] = 0.674234*(864.350/fBeamEnergy+0.00234375)*10000000;
+        fPMGain[3][j] = 1.350938*(661.444/fBeamEnergy+0.000740671)*10000000; 
+        fPMGain[4][j] = 0.678597*(864.350/fBeamEnergy+0.00234375)*10000000;
+    }
+    fPMGain[2][1] = 0.869654*(1.32312-0.000101515*fBeamEnergy)*10000000;
+    fPMGain[2][2] = 1.030883*(1.32312-0.000101515*fBeamEnergy)*10000000;
+    AliInfo(Form("    PMT gains for p-p @ %1.0f+%1.0f GeV: ZN(%1.0f), ZP(%1.0f), ZEM(%1.0f)\n",
       	fBeamEnergy, fBeamEnergy, fPMGain[0][0], fPMGain[1][0], fPMGain[2][0]));
     }
   }
   else if((beamType.CompareTo("A-A")) == 0){
     // PTM gains for Pb-Pb @ 2.7+2.7 A TeV ***************
     // rescaled for Pb-Pb @ 1.38+1.38 A TeV ***************
+    // New correction coefficients for PMT gains needed
+    // to reproduce experimental spectra (from Grazia Jul 2010)
     Float_t scalGainFactor = fBeamEnergy/2760.;
     for(Int_t j = 0; j < 5; j++){
-      fPMGain[0][j] = 50000./scalGainFactor;
-      fPMGain[1][j] = 100000./scalGainFactor;
-      fPMGain[2][j] = 100000./scalGainFactor;
-      fPMGain[3][j] = 50000./scalGainFactor;
-      fPMGain[4][j] = 100000./scalGainFactor;
-      fPMGain[5][j] = 100000./scalGainFactor;
+       fPMGain[0][j] = 50000./scalGainFactor; 	         
+       fPMGain[1][j] = 100000./scalGainFactor; 	         
+       fPMGain[2][j] = 100000./scalGainFactor; 	         
+       fPMGain[3][j] = 50000./scalGainFactor; 	         
+       fPMGain[4][j] = 100000./scalGainFactor;    
     }
     AliInfo(Form("    PMT gains for Pb-Pb @ %1.0f+%1.0f A GeV: ZN(%1.0f), ZP(%1.0f), ZEM(%1.0f)\n",
       	fBeamEnergy, fBeamEnergy, fPMGain[0][0], fPMGain[1][0], fPMGain[2][0]));
@@ -295,7 +297,7 @@ void AliZDCDigitizer::Exec(Option_t* /*option*/)
       specPTarg = ((AliGenHijingEventHeader*) genHeader)->TargSpectatorsp();
       printf("\n\t AliZDCDigitizer: b = %1.2f fm\n"
       " \t    PROJ.:  #spectator n %d, #spectator p %d\n"
-      " \t    TARG.:  #spectator n %d, #spectator p %d\n\n", 
+      " \t    TARG.:  #spectator n %d, #spectator p %d\n", 
       impPar, specNProj, specPProj, specNTarg, specPTarg);
     }
     
@@ -308,13 +310,13 @@ void AliZDCDigitizer::Exec(Option_t* /*option*/)
     Int_t freeSpecNTarg, freeSpecPTarg;
     Fragmentation(impPar, specNTarg, specPTarg, freeSpecNTarg, freeSpecPTarg);
     SpectatorSignal(1, freeSpecNProj, pm);
-    //printf("    AliZDCDigitizer -> Signal for %d PROJ free spectator n",freeSpecNProj);
+    printf("\t AliZDCDigitizer -> Adding signal for %d PROJ free spectator n",freeSpecNProj);
     SpectatorSignal(2, freeSpecPProj, pm);
-    //printf(" and %d free spectator p added\n",freeSpecPProj);
+    printf(" and %d free spectator p\n",freeSpecPProj);
     SpectatorSignal(3, freeSpecNTarg, pm);
-    //printf("    AliZDCDigitizer -> Signal for %d TARG free spectator n",freeSpecNTarg);
+    printf("\t AliZDCDigitizer -> Adding signal for %d TARG free spectator n",freeSpecNTarg);
     SpectatorSignal(4, freeSpecPTarg, pm);
-    //printf("and %d free spectator p added\n",freeSpecPTarg);
+    printf(" and %d free spectator p\n\n",freeSpecPTarg);
   }
 
 
