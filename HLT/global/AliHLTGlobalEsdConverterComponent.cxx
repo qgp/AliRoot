@@ -354,12 +354,29 @@ int AliHLTGlobalEsdConverterComponent::ProcessBlocks(TTree* pTree, AliESDEvent* 
   int iAddedDataBlocks=0;
 
   // Barrel tracking
+  // tracks are based on the TPC tracks, and only updated from the ITS information
+  // Sequence:
+  // 1) extract MC information for TPC and ITS from specific data blocks and store in
+  //    intermediate vector arrays
+  // 2) extract TPC tracks, update with MC labels if available, the track parameters
+  //    are estimated at the first cluster position
+  // 2.1) propagate to last cluster position and update kTPCout, sets also outer param (fOp)
+  // 2.2) update kTPCin, sets also inner param (fIp) and TPC inner param (fTPCInner)
+  // 2.3) update kTPCrefit using the same parameters at the first cluster position
+  //      HLT has strictly spoking no refit, but we want the flag to be set
+  //      can be changed to be done after all the individual barrel detector parameters
+  //      have been updated by looping over the tracks again
+  // 3) extract ITS tracks, the tracks are actually TPC tracks updated from the ITS
+  //    tracking information
+  // 3.1) TODO 2010-07-12: handle ITS standalone tracks by updating kITSout before kITSin
+  // 3.2) update with kITSin
+  //    TODO 2010-07-12 find out if the kITSrefit has to be set as well
+  // 4) extract TRD tracks and add to ESD
+  //    TODO 2010-07-12 at the moment there is no matching or merging of TPC and TRD tracks
 
-  // in the first attempt this component reads the TPC tracks and updates in the
-  // second step from the ITS tracks
-
-  // first read MC information (if present)
-  std::map<int,int> mcLabels;
+  // 1) first read MC information (if present)
+  std::map<int,int> mcLabelsTPC;
+  std::map<int,int> mcLabelsITS;
 
   for (const AliHLTComponentBlockData* pBlock=GetFirstInputBlock(kAliHLTDataTypeTrackMC|kAliHLTDataOriginTPC);
        pBlock!=NULL; pBlock=GetNextInputBlock()) {
@@ -370,7 +387,25 @@ int AliHLTGlobalEsdConverterComponent::ProcessBlocks(TTree* pTree, AliESDEvent* 
     if (sizeof(AliHLTTrackMCData)+dataPtr->fCount*sizeof(AliHLTTrackMCLabel)==pBlock->fSize) {
       for( unsigned int il=0; il<dataPtr->fCount; il++ ){
 	AliHLTTrackMCLabel &lab = dataPtr->fLabels[il];
-	mcLabels[lab.fTrackID] = lab.fMCLabel;
+	mcLabelsTPC[lab.fTrackID] = lab.fMCLabel;
+      }
+    } else {
+      HLTWarning("data mismatch in block %s (0x%08x): count %d, size %d -> ignoring track MC information", 
+		 DataType2Text(pBlock->fDataType).c_str(), pBlock->fSpecification, 
+		 dataPtr->fCount, pBlock->fSize);
+    }
+  }
+ 
+  for (const AliHLTComponentBlockData* pBlock=GetFirstInputBlock(kAliHLTDataTypeTrackMC|kAliHLTDataOriginITS);
+       pBlock!=NULL; pBlock=GetNextInputBlock()) {
+
+    fBenchmark.AddInput(pBlock->fSize);
+
+    AliHLTTrackMCData* dataPtr = reinterpret_cast<AliHLTTrackMCData*>( pBlock->fPtr );
+    if (sizeof(AliHLTTrackMCData)+dataPtr->fCount*sizeof(AliHLTTrackMCLabel)==pBlock->fSize) {
+      for( unsigned int il=0; il<dataPtr->fCount; il++ ){
+	AliHLTTrackMCLabel &lab = dataPtr->fLabels[il];
+	mcLabelsITS[lab.fTrackID] = lab.fMCLabel;
       }
     } else {
       HLTWarning("data mismatch in block %s (0x%08x): count %d, size %d -> ignoring track MC information", 
@@ -379,7 +414,9 @@ int AliHLTGlobalEsdConverterComponent::ProcessBlocks(TTree* pTree, AliESDEvent* 
     }
   }
 
+
   // read dEdx information (if present)
+  // TODO 2010-07-12 this needs to be verified
 
   AliHLTFloat32_t *dEdxTPC = 0; 
   Int_t ndEdxTPC = 0;
@@ -391,7 +428,7 @@ int AliHLTGlobalEsdConverterComponent::ProcessBlocks(TTree* pTree, AliESDEvent* 
     break;
   }
 
-  // convert the TPC tracks to ESD tracks
+  // 2) convert the TPC tracks to ESD tracks
   for (const AliHLTComponentBlockData* pBlock=GetFirstInputBlock(kAliHLTDataTypeTrack|kAliHLTDataOriginTPC);
        pBlock!=NULL; pBlock=GetNextInputBlock()) {
     fBenchmark.AddInput(pBlock->fSize);
@@ -407,8 +444,8 @@ int AliHLTGlobalEsdConverterComponent::ProcessBlocks(TTree* pTree, AliESDEvent* 
 	};
 
 	Int_t mcLabel = -1;
-	if( mcLabels.find(element->TrackID())!=mcLabels.end() )
-	  mcLabel = mcLabels[element->TrackID()];
+	if( mcLabelsTPC.find(element->TrackID())!=mcLabelsTPC.end() )
+	  mcLabel = mcLabelsTPC[element->TrackID()];
 	element->SetLabel( mcLabel );
 
 	AliESDtrack iotrack;
@@ -421,14 +458,38 @@ int AliHLTGlobalEsdConverterComponent::ProcessBlocks(TTree* pTree, AliESDEvent* 
 	//   pid signal
 	// The first one can be updated already at that stage here, while the two others
 	// eventually require to update from the ITS tracks before. The exact scheme
-	// needs to be checked 
+	// needs to be checked
 	iotrack.SetID( element->TrackID() );
-	iotrack.UpdateTrackParams(&(*element),AliESDtrack::kTPCin);
+
+	// 2.1 set kTPCout
+	// TODO 2010-07-12 disabled for the moment because of bug
+	// https://savannah.cern.ch/bugs/index.php?69875
+	// the propagation does not work, there is an offset in z
+	// propagate to last cluster and update parameters with flag kTPCout
+	// Note: updating with flag kITSout further down will overwrite the outer
+	// parameter again so this can be done only for ITS standalone tracks, meaning
+	// tracks in the ITS not associated with any TPC track
+	// HLT does not provide such standalone tracking
 	{
 	  AliHLTGlobalBarrelTrack outPar(*element);	  
-	  outPar.AliExternalTrackParam::PropagateTo( element->GetLastPointX(), fSolenoidBz );
+	  //outPar.AliExternalTrackParam::PropagateTo( element->GetLastPointX(), fSolenoidBz );
+	  const Int_t N=10; // number of steps.
+	  const Float_t xRange = element->GetLastPointX() - element->GetX();
+	  const Float_t xStep = xRange / N ;
+	  for(int i = 1; i <= N; ++i) {
+	    if(!outPar.AliExternalTrackParam::PropagateTo(element->GetX() + xStep * i, fSolenoidBz)) break;
+	  }
+	  outPar.SetLabel(element->GetLabel());
 	  iotrack.UpdateTrackParams(&outPar,AliESDtrack::kTPCout);
 	}
+	// 2.2 TPC tracking estimates parameters at first cluster
+	iotrack.UpdateTrackParams(&(*element),AliESDtrack::kTPCin);
+
+	// 2.3 use the same parameters also for kTPCrefit, there is no proper refit in HLT
+	// maybe this can be done later, however also the inner parameter is changed which
+	// is used as a reference point in the display. That point should be at the first
+	// TPC cluster
+	iotrack.UpdateTrackParams(&(*element),AliESDtrack::kTPCrefit);
 	iotrack.SetTPCPoints(points);
 	if( element->TrackID()<ndEdxTPC ){
 	  iotrack.SetTPCsignal( dEdxTPC[element->TrackID()], 0, 0 ); 
@@ -441,6 +502,7 @@ int AliHLTGlobalEsdConverterComponent::ProcessBlocks(TTree* pTree, AliESDEvent* 
 	} else {
 	  if( dEdxTPC ) HLTWarning("Wrong number of dEdx TPC labels");
 	}
+	iotrack.SetLabel(mcLabel);
 	pESD->AddTrack(&iotrack);
 	if (fVerbosity>0) element->Print();
       }
@@ -463,7 +525,16 @@ int AliHLTGlobalEsdConverterComponent::ProcessBlocks(TTree* pTree, AliESDEvent* 
     pESD->SetPrimaryVertexSPD( vtx );
   }
 
-  // now update ESD tracks with the ITSOut info
+  // 3.1. now update ESD tracks with the ITSOut info
+  // updating track parameters with flag kITSout will overwrite parameter set above with flag kTPCout
+  // TODO 2010-07-12 there are some issues with this updating sequence, for the moment update with
+  // flag kITSout is disabled, would require
+  // a) to update kTPCout after kITSout
+  // b) update only for ITS standalone tracks. The HLT ITS tracker does not provide standalone
+  //    tracking, every track is related to a TPC track
+  // Furthermore there seems to be a bug as the data blocks describe track parameters around the
+  // vertex, not at the outer ITS
+  // bug https://savannah.cern.ch/bugs/index.php?69872
   for (const AliHLTComponentBlockData* pBlock=GetFirstInputBlock(kAliHLTDataTypeTrack|kAliHLTDataOriginITSOut);
        pBlock!=NULL; pBlock=GetNextInputBlock()) {
     fBenchmark.AddInput(pBlock->fSize);
@@ -476,12 +547,14 @@ int AliHLTGlobalEsdConverterComponent::ProcessBlocks(TTree* pTree, AliESDEvent* 
 	// the trackID
 	if( tpcID<0 || tpcID>=pESD->GetNumberOfTracks()) continue;
 	AliESDtrack *tESD = pESD->GetTrack( tpcID );
-	if( tESD ) tESD->UpdateTrackParams( &(*element), AliESDtrack::kITSout );
+	element->SetLabel(tESD->GetLabel());
+	// 2010-07-12 disabled, see above, bugfix https://savannah.cern.ch/bugs/index.php?69872
+	//if( tESD ) tESD->UpdateTrackParams( &(*element), AliESDtrack::kITSout );
       }
     }
   }
 
-  // now update ESD tracks with the ITS info
+  // 3.2. now update ESD tracks with the ITS info
   for (const AliHLTComponentBlockData* pBlock=GetFirstInputBlock(kAliHLTDataTypeTrack|kAliHLTDataOriginITS);
        pBlock!=NULL; pBlock=GetNextInputBlock()) {
     fBenchmark.AddInput(pBlock->fSize);
@@ -493,8 +566,25 @@ int AliHLTGlobalEsdConverterComponent::ProcessBlocks(TTree* pTree, AliESDEvent* 
 	// the ITS tracker assigns the TPC track used as seed for a certain track to
 	// the trackID
 	if( tpcID<0 || tpcID>=pESD->GetNumberOfTracks()) continue;
+	Int_t mcLabel = -1;
+	if( mcLabelsITS.find(element->TrackID())!=mcLabelsITS.end() )
+	  mcLabel = mcLabelsITS[element->TrackID()];
 	AliESDtrack *tESD = pESD->GetTrack( tpcID );
-	if( tESD ) tESD->UpdateTrackParams( &(*element), AliESDtrack::kITSin );
+	if (!tESD) continue;
+	// the labels for the TPC and ITS tracking params can be different, e.g.
+	// there can be a decay. The ITS label should then be the better one, the
+	// TPC label is saved in a member of AliESDtrack
+	if (mcLabel>=0) {
+	  // upadte only if the ITS label is available, otherwise keep TPC label
+	  element->SetLabel( mcLabel );
+	} else {
+	  // bugfix https://savannah.cern.ch/bugs/?69713
+	  element->SetLabel( tESD->GetLabel() );	  
+	}
+	tESD->UpdateTrackParams( &(*element), AliESDtrack::kITSin );
+
+	// TODO: add a proper refit
+	//tESD->UpdateTrackParams( &(*element), AliESDtrack::kTPCrefit );
       }
     }
   }
@@ -507,8 +597,39 @@ int AliHLTGlobalEsdConverterComponent::ProcessBlocks(TTree* pTree, AliESDEvent* 
     AliHLTGlobalVertexerComponent::FillESD( pESD, reinterpret_cast<AliHLTGlobalVertexerComponent::AliHLTGlobalVertexerData* >(pBlock->fPtr) );
   }
 
+  // Fill DCA parameters for TPC tracks
+  // TODO 2010-07-12 this propagates also the TPC inner param to beamline
+  // sounds not very reasonable
+  // https://savannah.cern.ch/bugs/index.php?69873
+  for (int i=0; i<pESD->GetNumberOfTracks(); i++) {
+    if (!pESD->GetTrack(i) || 
+	!pESD->GetTrack(i)->GetTPCInnerParam() ) continue;
+    pESD->GetTrack(i)->RelateToVertexTPC(pESD->GetPrimaryVertexTracks(), fSolenoidBz, 1000 );    
+  }
 
-  // convert the HLT TRD tracks to ESD tracks                        
+  // loop over all tracks and set the TPC refit flag by updating with the
+  // original TPC inner parameter if not yet set
+  // TODO: replace this by a proper refit
+  // code is comented for the moment as it does not fully solve the problems with
+  // the display
+  // - would set the main parameters to the TPC inner wall again, or
+  // - changes the inner param if the parameters are propagated, so we loose the track
+  //   reference point for the display
+  // with the current sequence we have the latter case as the DCA operations above
+  // change the TPC inner parameters
+  /*
+  for (int i=0; i<pESD->GetNumberOfTracks(); i++) {
+    if (!pESD->GetTrack(i) || 
+	!pESD->GetTrack(i)->GetTPCInnerParam() ||
+	pESD->GetTrack(i)->IsOn(AliESDtrack::kTPCrefit)) continue;
+    AliESDtrack* tESD=pESD->GetTrack(i);
+    AliHLTGlobalBarrelTrack inner(*tESD->GetTPCInnerParam());
+    inner.SetLabel(tESD->GetLabel());
+    tESD->UpdateTrackParams(&inner, AliESDtrack::kTPCrefit);
+  }
+  */
+
+  // 4. convert the HLT TRD tracks to ESD tracks                        
   for (const AliHLTComponentBlockData* pBlock=GetFirstInputBlock(kAliHLTDataTypeTrack | kAliHLTDataOriginTRD);
        pBlock!=NULL; pBlock=GetNextInputBlock()) {
     fBenchmark.AddInput(pBlock->fSize);
