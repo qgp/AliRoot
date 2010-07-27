@@ -131,7 +131,8 @@
 	AliLog, not compatible, not necessary as long as 38921 is not ported
 
 	-?- HLTEVE: 39521 39534 39638 39654 39664 39686 39719 39720 39743 39769 39776 39777 39788 39789 39790 40004 40007 40010 40015 40050 40057 40058 40466 40467 40473 40518
-	postponed, check dependencies to EVE
+	ported 2010-05-26, except 40007 40473 40518
+	https://savannah.cern.ch/bugs/index.php?67960
 
 	-?- TRD: 39693 39747
 	postponed, changes outside HLT module
@@ -153,7 +154,7 @@
 	--- DefaultReconstruction: 40465
 	ported 2010-05-03
 
-	-?- UPCTrigger: 40596
+	--- UPCTrigger: 40596
 	ported 2010-05-03
 
 	Last checked revision: 40650
@@ -183,63 +184,74 @@
 	--- Framework: 40708 40709 40710 40711 40716 40735 40736
 	trunk development (documentation & cleanup): postponed
 
-	--- CALO: 40685 40686 40687 40717 40766 40776 40777
+	-?- CALO: 40685 40686 40687 40717 40766 40776 40777
 	postponed
 
-	--- global: 40688 40727 40728 40737 40738 40739 40782 40788 40842
+	-?- global: 40688 40727 40728 40737 40738 40739 40782 40788 40842
 	some conflicts possibly due to CALO
 	ported on 2010-05-26 after resolving conflicts with porting of Eve changes
 
-	--- QA: 40659 40871 40915 40916 40920 40921 40922
+	xxx QA: 40659 40871 40915 40916 40920 40921 40922
 	trunk development: postponed
 
-	--- SampleLib: 40707 40734 40902
+	xxx SampleLib: 40707 40734 40902
 	trunk development: postponed
 
-	--- EVE: 40681 40682 40683 40897 40910
-	trunk development: postponed
+	-?- EVE: 40681 40682 40683 40897 40910
+	trunk development: ported 2010-07-15
 
 	Last checked revision: 40927
 
 2010-05-26 update to r41388
 	--- Eve: 38926 39078 39085 39122 39123 39133 39143 39145 39189 39190 39191 39217 39354 39521 39534 39575 39638 39642 39652 39654 39664 39686 39719 39720 39743 39769 39776 39777 39789 40004 40010 40015 40044 40050 40053 40056 40057 40058 40231 40232 40234 40466 40467
+	https://savannah.cern.ch/bugs/index.php?67960
 
 	--- global: 40688,40727,40728,40737,40738,40739,40782,40788,40842
 	PHOS histogramming and cluster matching
+	https://savannah.cern.ch/bugs/index.php?68014
 
 2010-05-28 update to r41491
 	--- BASE: 40967 40994 41005 41146 41147 41170 41202 41262 41321
+	https://savannah.cern.ch/bugs/index.php?68146
 
 	--- global: 40995 40996 41171
 	Vertex DIM server and module agent
+	https://savannah.cern.ch/bugs/index.php?68147
 
 	--- global: 41101 41102 41264
 	Calo histograms
+	https://savannah.cern.ch/bugs/index.php?68148
 
 	xxx global: 41352 41354
 	not to be merged  wrong commits
 
 	--- TPC: 40934 40936 40939 41111 41115 41142 41154 41165 41175 41244 41245 41246 41340 41488
+	https://savannah.cern.ch/bugs/index.php?68150
 
 	--- ITS: 41095
 	important bugfix in cluster finder
+	https://savannah.cern.ch/bugs/index.php?68151
 
 	--- MUON: 40927 41008 41217 41221 41249 41274
+	https://savannah.cern.ch/bugs/index.php?68152
 
 	--- TRD: 41149 41151
+	https://savannah.cern.ch/bugs/index.php?68153
 
 	--- trigger: 41172
+	https://savannah.cern.ch/bugs/index.php?68154
 
 	--- pendolino: 40942 41162
+	https://savannah.cern.ch/bugs/index.php?68155
 
 	-?- EVE: 41012 41255
-	some conflicts to solve -> postponed
+	some conflicts to solve -> ported 2010-07-15
 
 	-?- ITS: 41070 41114 41322 41377
-	MC labels -> postponed
+	MC labels -> ported 2010-07-15
 
 	-?- global: 41180 41203
-	ESD converter -> postponed, depends on 41070
+	ESD converter -> ported 2010-07-15
 
 	xxx EMCAL: 40947 40948 40949 40950 40953 40962 40963 40965 40966 40974 40975 40976 40977 40991 41065 41068 41069 41071 41073 41075 41084 41193 41195 41196 41197 41199 41201 41237 41283 41285 41341 41342 41343 41344 41345 41350 41351 41373 41404
 	development, not propagated at the moment
@@ -254,3 +266,78 @@
 	development, not propagated at the moment
 
 	Last checked revision 41488
+
+2010-07-15 update to r42300
+	--- agents: 41560 41562 41578 41581 41582 41583
+	cleanup of include header files, postponed
+
+	--- BASE: 42038 42071 42072 42092 42097 42124 42268
+	new HLTOUT handler base classes, some minor cleanup, new tool classes
+	not backported because of new v4-19-Release branch
+
+	--- rec: 42093 42096
+	allow merging of non std ESD members which are not TClonesArrays, updated documentation
+	not backported because of new v4-19-Release branch
+
+	--- utils: 41559 41574
+	setup kinematics tree in loader publisher
+	not backported because of new v4-19-Release branch
+
+	--- ITS: 41070 41114 41322 41377 41577 42032 42389
+	MC labels, new offline clusterfinder code, 41831 already ported to release in r41891
+
+	--- global: 41180 41203 41575 41645 41659 41698 41712 42193 42201 42229 42259
+	ESDtrack flags and labels in the ESDConverter fixed, bugfix CALO histograms and track matcher
+
+	--- trigger base: 41625 41700 41908 41918 41924 41929 41961 41962 41967 42021
+	new ReadoutList format
+	not backported because of new v4-19-Release branch
+
+	--- trigger library: 41580 41951
+	deleting obsolete component, adding more robust file name generation in HLTGlobalTrigger
+	not backported because of new v4-19-Release branch
+
+	--- EVE: 40473 40518 40681 40682 40683 40897 40910 41012 41255 41672 42030
+	not backported because of new v4-19-Release branch
+
+	--- TPC: 41576 41769 41779 41935 42058
+	not backported because of new v4-19-Release branch
+
+	--- MUON: 41660 42031
+	not backported because of new v4-19-Release branch
+
+	--- CALO/EMCAL/PHOS: 40435 40436 40438 40441 40535 40536 40537 40574 40575 40587 40588
+	postponed from 2010-04-22
+	not backported because of new v4-19-Release branch
+
+	--- CALO: 40685 40686 40687 40717 40766 40776 40777
+	postponed from 2010-05-03
+	not backported because of new v4-19-Release branch
+
+	--- CALO/EMCAL/PHOS: 40946 40947 40948 40949 40950 40951 40952 40953 40961 40962 40963 40965 40966 40970 40971 40972 40973 40974 40975 40976 40977 40991 41054 41055 41056 41059 41061 41062 41063 41064 41065 41068 41069 41071 41072 41073 41074 41075 41084 41100 41103 41104 41105 41106 41140 41193 41194 41195 41196 41197 41198 41199 41200 41201 41204 41205 41206 41237 41265 41266 41267 41283 41285 41316 41341 41342 41343 41344 41345 41350 41351 41353 41373 41404
+	postponed from 2010-05-28
+	not backported because of new v4-19-Release branch
+
+	--- CALO: 41635 41694 41695 41696 41713 41818 41852 41853 41954
+	trunk development, depends on postponed revisions 2010-05-28: postponed
+	not backported because of new v4-19-Release branch
+
+	--- EMCAL: 41639 41841
+	trunk development, depends on postponed revisions 2010-05-28: postponed
+	not backported because of new v4-19-Release branch
+
+	--- QA: 40659 40871 40915 40916 40920 40921 40922 40980 40982 41248 41360 41811 41813 41815 41846 42049
+	trunk development: postponed
+	not backported because of new v4-19-Release branch
+
+	--- SampleLib: 40707 40734 40902 41561 42094 42095
+	trunk development, postponed
+	not backported because of new v4-19-Release branch
+
+	xxx invalid: 42022 42029
+	reverted revisions, warnings fixed but collective commit of different files
+
+	xxx invalid: 41975 41994 42258
+	reverted changes, TPC cluster finder
+
+	Last checked revision 42268
