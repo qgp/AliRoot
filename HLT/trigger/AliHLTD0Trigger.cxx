@@ -68,6 +68,7 @@ AliHLTD0Trigger::AliHLTD0Trigger()
   , fd0calc(NULL)                  
   , ftwoTrackArray(NULL)
   , fTotalD0(0)
+  , fTotalD0Onetrue(0)
   , fTotalD0true(0)
   , fVertex(NULL)
   , fField(0)
@@ -87,6 +88,7 @@ const char* AliHLTD0Trigger::fgkOCDBEntry="HLT/ConfigHLT/D0Trigger";
 
 AliHLTD0Trigger::~AliHLTD0Trigger()
 {
+  // TODO: code audit 2010-07-23 delete obsolete code
   //if(fd0calc){delete fd0calc;}  
   //if(fD0mass){delete fD0mass;}
   //if(ftwoTrackArray){delete ftwoTrackArray;}
@@ -112,7 +114,10 @@ int AliHLTD0Trigger::DoTrigger()
 
   if (!IsDataEvent()) return 0;
 
+  HLTDebug("Used  Cuts: pT: %f , DCA: %f , InvMass: %f , CosThetaStar: %f , d0: %f , d0xd0: %f , CosPointingAngle: %f",fPtMin,fdca,finvMass,fcosThetaStar,fd0,fd0d0,fcosPoint);
+
   Int_t nD0=0;
+  Int_t nD0Onetrue=0;
   Int_t nD0true=0;
   TString description;
 
@@ -124,6 +129,12 @@ int AliHLTD0Trigger::DoTrigger()
     }
   }
 
+  // TODO: code audit 2010-07-23 get rid of fVertex as member variable, the object
+  // is changing every event and already available after the object extraction
+  // change internal functions to pass the vertex as parameter. Setting the variable
+  // to NULL here to be coherent with checks further down.
+  fVertex=NULL;
+
   for ( const TObject *iter = GetFirstInputObject(kAliHLTDataTypeESDObject); iter != NULL; iter = GetNextInputObject() ) {   
     if(fUseV0){
       nD0=RecV0(iter);
@@ -133,16 +144,22 @@ int AliHLTD0Trigger::DoTrigger()
        event->GetStdContent();
        fField = event->GetMagneticField();
        const AliESDVertex* pv = event->GetPrimaryVertexTracks();
-       fVertex =  new AliESDVertex(*pv);
+       // TODO: code audit 2010-07-23 this is a memory leak, fVertex is not deleted
+       //fVertex =  new AliESDVertex(*pv);
+       // use the vertex object from the ESD, right now we need to cast away the
+       // const'ness, think about changing the functions to use const AliESDVertex* objects
+       fVertex =  const_cast<AliESDVertex*>(pv);
        if(fVertex->GetNContributors()<2){
-	 HLTWarning("Contributors in ESD vertex to low or not been set");
+	 HLTDebug("Contributors in ESD vertex to low or not been set");
 	 continue;
        }
        for(Int_t it=0;it<event->GetNumberOfTracks();it++){
+	 // TODO: code audit 2010-07-23 pass vertex object as parameter
 	 SingleTrackSelect(event->GetTrack(it));
        }
     
-       RecD0(nD0,nD0true);       
+       // TODO: code audit 2010-07-23 pass vertex object as parameter
+       if (fVertex) RecD0(nD0,nD0Onetrue,nD0true);       
     }
   }
 
@@ -164,10 +181,12 @@ int AliHLTD0Trigger::DoTrigger()
     for(UInt_t i=0;i<tracksVector.size();i++){
       SingleTrackSelect(&tracksVector[i]);
     }
-    RecD0(nD0,nD0true);
+    // TODO: code audit 2010-07-23 pass vertex object as parameter
+    if (fVertex) RecD0(nD0,nD0Onetrue,nD0true);
   }    
 
   fTotalD0+=nD0;
+  fTotalD0Onetrue += nD0Onetrue;
   fTotalD0true += nD0true;
 
   ftwoTrackArray->Clear();
@@ -175,8 +194,10 @@ int AliHLTD0Trigger::DoTrigger()
   fNeg.clear();
      
   HLTDebug("Number of D0 found: %d",nD0);
+  HLTDebug("Number of D0 candidates with one track as D0 decay: %d",nD0Onetrue);
   HLTDebug("Number of True D0 found: %d",nD0true);
   HLTDebug("Total Number of D0 found: %d",fTotalD0);
+  HLTDebug("Number of D0 candidates with one track as D0 decay: %d",fTotalD0Onetrue);
   HLTDebug("Total Number of True D0 found: %d",fTotalD0true);
 
   if(fplothisto){
@@ -239,10 +260,13 @@ int AliHLTD0Trigger::DoInit(int argc, const char** argv)
 int AliHLTD0Trigger::DoDeinit()
 {
   // see header file for class documentation
+
+  // TODO: code audit 2010-07-23 deleted variables to be set to NULL
   if(fd0calc){delete fd0calc;}  
   if(fD0mass){delete fD0mass;}
-  if(ftwoTrackArray){delete ftwoTrackArray;}
-  if(fVertex){delete fVertex;}
+  // TODO: code audit 2010-07-23 delete obsolete code
+  //if(ftwoTrackArray){delete ftwoTrackArray;}
+  //if(fVertex){delete fVertex;}
   return 0;
 }
 
@@ -334,6 +358,9 @@ int AliHLTD0Trigger::ScanConfigurationArgument(int argc, const char** argv)
 
 void AliHLTD0Trigger::SingleTrackSelect(AliExternalTrackParam* t){
   // Offline har || på disse kuttene på de to henfallsproduktene 
+  // TODO: code audit 2010-07-23 translate all comments
+  if (!fVertex) return;
+
   Double_t pv[3];
   fVertex->GetXYZ(pv);
 
@@ -348,7 +375,7 @@ void AliHLTD0Trigger::SingleTrackSelect(AliExternalTrackParam* t){
   }
 }
 
-void AliHLTD0Trigger::RecD0(Int_t& nD0, Int_t& nD0true){
+void AliHLTD0Trigger::RecD0(Int_t& nD0,Int_t& nD0Onetrue ,Int_t& nD0true){
  
   Double_t D0,D0bar,xdummy,ydummy; 
   Double_t d0[2];
@@ -433,8 +460,11 @@ void AliHLTD0Trigger::RecD0(Int_t& nD0, Int_t& nD0true){
 	*/
       }
       
-      if(CheckTrackMC(tP,tN)){
+      if(CheckTrackMC(tP,tN)==2){
 	nD0true++;
+      }
+      if(CheckTrackMC(tP,tN)==1){
+	nD0Onetrue++;
       }
 
       nD0++;
@@ -496,9 +526,9 @@ Int_t AliHLTD0Trigger::RecV0(const TObject* iter){
   return nD0;
   
 }
-bool AliHLTD0Trigger::CheckTrackMC(AliExternalTrackParam* pt, AliExternalTrackParam* pn){
+int AliHLTD0Trigger::CheckTrackMC(AliExternalTrackParam* pt, AliExternalTrackParam* pn){
 
-  if(!fEvent){return false;}
+  if(!fEvent){return 0;}
 
   int lP = pt->GetLabel();
   int lN = pn->GetLabel();
@@ -512,11 +542,14 @@ bool AliHLTD0Trigger::CheckTrackMC(AliExternalTrackParam* pt, AliExternalTrackPa
       TParticle * mP = fEvent->Particle(imP);
       TParticle * mN = fEvent->Particle(imN);
       if(fabs(mP->GetPdgCode())==421 && fabs(mN->GetPdgCode())==421 && imP == imN){
-	return true;
+	return 2;
+      }
+      if(fabs(mP->GetPdgCode())==421 || fabs(mN->GetPdgCode())==421 && imP == imN){
+	return 1;
       }
     }
   }
-  return false;
+  return 0;
 }
 void AliHLTD0Trigger::GetOCDBObjectDescription( TMap* const targetMap)
 {
