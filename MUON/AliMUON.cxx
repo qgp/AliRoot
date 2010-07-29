@@ -508,7 +508,6 @@ Bool_t AliMUON::Raw2SDigits(AliRawReader* rawReader)
 {
 /// Convert  raw data to SDigit
 
-  fLoader->LoadDigits("READ");
   if (!fLoader->TreeS()) fLoader->MakeSDigitsContainer();
 
   TTree* treeS = fLoader->TreeS();
@@ -517,7 +516,7 @@ Bool_t AliMUON::Raw2SDigits(AliRawReader* rawReader)
   sDigitStore->Connect(*treeS);
   
   fDigitMaker->Raw2Digits(rawReader,sDigitStore,0x0);
-
+  treeS->Fill();
   fLoader->WriteSDigits("OVERWRITE");
 
   fLoader->UnloadSDigits();
