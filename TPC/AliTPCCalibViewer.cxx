@@ -305,8 +305,10 @@ const char* AliTPCCalibViewer::AddAbbreviations(const Char_t *c, Bool_t printDra
    str.ReplaceAll(removeString, "");
   
    if (printDrawCommand) std::cout << "The string looks now like: " << str.Data() << std::endl;
-   delete varSort;
-   delete normSort;
+   delete [] varLengths;
+   delete [] normLengths;
+   delete [] varSort;
+   delete [] normSort;
    return str.Data();
 }
 
