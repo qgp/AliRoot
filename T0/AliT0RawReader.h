@@ -27,7 +27,9 @@ class AliT0RawReader : public TTask {
     fData(NULL),
     fPosition(0),
     fParam(0),
-    fIsOnline(kFALSE)
+    fIsOnline(kFALSE),
+    fBunchID(0),
+    fPrintout(kFALSE)
     {}
   
   AliT0RawReader& operator=(const AliT0RawReader&) { return *this; }
@@ -53,6 +55,9 @@ class AliT0RawReader : public TTask {
   };
 
   Bool_t IsOnlineMode () {return fIsOnline;}
+  Int_t GetTRMBunchID() {return fBunchID;};
+
+  void SetPrintout(Bool_t pp ) {fPrintout = pp;}
      
   protected :
 
@@ -61,10 +66,11 @@ class AliT0RawReader : public TTask {
   Int_t            fPosition;     // current (32 bit) position in fData
   AliT0Parameters *fParam;       // instanse of  Parameters class
   Bool_t           fIsOnline;     // for case online DA usage
-  
+  Int_t            fBunchID;       //bunchID from TRM chain header
+  Bool_t           fPrintout;      // advanced printout
   Int_t            fAllData[110][5]; // container for raw data
   
- ClassDef(AliT0RawReader,2) //class for reading T0 Raw data
+ ClassDef(AliT0RawReader,3) //class for reading T0 Raw data
 };
 
 typedef AliT0RawReader AliSTARTRawReader; // for backward compatibility
