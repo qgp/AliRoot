@@ -43,24 +43,6 @@ class AliITSv11GeometrySPD : public AliITSv11Geometry
     // Destructor
     virtual ~AliITSv11GeometrySPD() {};
 
-    /* Settings */
-
-    // define/create materials
-    virtual Int_t CreateSPDCentralMaterials(Int_t &medOffset,
-                                            Int_t &matOffset) const;
-    // set SPD Central, GEANT3 type, tracking parameters
-    virtual void InitSPDCentral(Int_t offset, TVirtualMC *mc = gMC) const;
-
-    /* Monitoring */
-
-    // creates standard figures for the documentation of this class
-    virtual void CreateFigure0(const Char_t *path = "",
-                               const Char_t *type = "gif",
-                               TGeoManager *mgr = gGeoManager) const;
-    // fill TPolylines with crossections of the SPD Carbon fiber sectors.
-    Bool_t Make2DCrossSections(TPolyLine &a0, TPolyLine &a1, TPolyLine &b0,
-                               TPolyLine &b1, TPolyMarker &p) const;
-
     /* Services */
 
     // get names
@@ -94,8 +76,6 @@ class AliITSv11GeometrySPD : public AliITSv11Geometry
     virtual TGeoVolume* CreateClip(TArrayD &sizes,Bool_t isDummy,
                                    TGeoManager *mgr = gGeoManager) const;
     // the grounding foil (splitted in many components)
-    //virtual TGeoVolumeAssembly* CreateGroundingFoilSingle(Int_t type,
-    //                 TArrayD &sizes, TGeoManager *mgr = gGeoManager) const;
     virtual  TGeoCompositeShape* CreateGroundingFoilShape(Int_t itype,
         Double_t &length,Double_t &width,Double_t thickness,TArrayD &sizes);
     virtual TGeoVolumeAssembly* CreateGroundingFoil(Bool_t isRight, TArrayD &sizes,
@@ -109,11 +89,11 @@ class AliITSv11GeometrySPD : public AliITSv11Geometry
     // the extender complicated geometry
     virtual TGeoVolume* CreateExtender(const Double_t *params,
                               const TGeoMedium *medium, TArrayD &sizes) const;
-    // the Pixel Bus & extenders (old method which will be removed)
-    virtual TGeoVolumeAssembly* CreatePixelBusAndExtensions(Bool_t zpos=kTRUE,
+                                        
+    virtual TGeoVolume* CreatePatchPanel(TArrayD &sizes,
                                         TGeoManager *mgr = gGeoManager) const;
 
-    virtual TList* CreateConeModule(const Double_t angle,
+    virtual TList* CreateConeModule(Bool_t sideC, const Double_t angle,
 				    TGeoManager *mgr = gGeoManager) const;
     virtual void CreateCones(TGeoVolume *moth) const;
     // a half-stave (put together ladders + MCM + bus, and add clips
