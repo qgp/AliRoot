@@ -264,7 +264,7 @@ void AliTRDrecoTask::Terminate(Option_t *)
   //
   // Terminate
   //
-
+  return;
   if(fgDebugStream){ 
     delete fgDebugStream;
     fgDebugStream = NULL;
