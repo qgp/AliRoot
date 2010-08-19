@@ -42,6 +42,7 @@
 #include "AliTRDtransform.h"
 #include "AliTRDSignalIndex.h"
 #include "AliTRDrawStreamBase.h"
+#include "AliTRDrawStream.h"
 #include "AliTRDfeeParam.h"
 #include "AliTRDtrackletWord.h"
 
@@ -649,19 +650,23 @@ Bool_t AliTRDclusterizer::Raw2ClustersChamber(AliRawReader *rawReader)
     fRawStream->SetReader(rawReader);
 
   if(fReconstructor->IsHLT()){
-    fRawStream->SetSharedPadReadout(kFALSE);
-    fRawStream->SetNoErrorWarning();
+    if(fRawStream->InheritsFrom(AliTRDrawStream::Class()))
+      ((AliTRDrawStream*)fRawStream)->DisableErrorStorage();
+    else{
+      fRawStream->SetSharedPadReadout(kFALSE);
+      fRawStream->SetNoErrorWarning();
+    }
   }
 
   AliDebug(1,Form("Stream version: %s", fRawStream->IsA()->GetName()));
   
   Int_t det    = 0;
   while ((det = fRawStream->NextChamber(fDigitsManager,fTrackletContainer)) >= 0){
-    if (fDigitsManager->GetIndexes(det)->HasEntry())
+    if (fDigitsManager->GetIndexes(det)->HasEntry()){
       MakeClusters(det);
-
-    fDigitsManager->ClearArrays(det);
-
+      fDigitsManager->ClearArrays(det);
+    }
+    
     if (!fReconstructor->IsWritingTracklets()) continue;
     if (*(fTrackletContainer[0]) > 0 || *(fTrackletContainer[1]) > 0) WriteTracklets(det);
   }
