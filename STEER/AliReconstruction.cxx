@@ -2025,19 +2025,15 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
           cvtxer.V0sTracks2CascadeVertices(fesd);
        }
     }
- 
+
+    // write ESD
+    if (fCleanESD) CleanESD(fesd);
+    // 
     // RS run updated trackleter: since we want to mark the clusters used by tracks and also mark the 
     // tracks interpreted as primary, this step should be done in the very end, when full 
     // ESD info is available (particulalry, V0s)
     // vertex finder
-    if (fRunMultFinder) {
-      if (!RunMultFinder(fesd)) {
-	if (fStopOnError) {CleanUp(); return kFALSE;}
-      }
-    }
-
-    // write ESD
-    if (fCleanESD) CleanESD(fesd);
+    if (fRunMultFinder) RunMultFinder(fesd);
 
   if (fRunQA && IsInTasks(AliQAv1::kESDS)) {
     AliQAManager::QAManager()->SetEventSpecie(fRecoParam.GetEventSpecie()) ;
@@ -3138,8 +3134,9 @@ AliTrackleter* AliReconstruction::CreateMultFinder()
   if (itsReconstructor && ((fRunLocalReconstruction.Contains("ITS")) || fRunTracking.Contains("ITS"))) {
     trackleter = itsReconstructor->CreateMultFinder();
   }
-  if (!trackleter) {
-    AliWarning("couldn't create a trackleter for ITS");
+  else {
+    AliWarning("ITS is not in reconstruction, switching off RunMultFinder");
+    fRunMultFinder = kFALSE;
   }
 
   return trackleter;
