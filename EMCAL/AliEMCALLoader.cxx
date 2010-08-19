@@ -46,14 +46,12 @@
 #include "AliCDBStorage.h"
 #include "AliCDBManager.h"
 #include "AliCDBEntry.h"
-#include "AliEMCALHit.h"
 
  ClassImp(AliEMCALLoader)
   
 const TString         AliEMCALLoader::fgkECARecPointsBranchName("EMCALECARP");//Name for branch with ECA Reconstructed Points
 const TString         AliEMCALLoader::fgkECADigitsBranchName("DIGITS");//Name for branch with ECA Digits
 const TString         AliEMCALLoader::fgkECASDigitsBranchName("SDIGITS");//Name for branch with ECA SDigits
-const TString         AliEMCALLoader::fgkECAHitsBranchName("HITS");//Name for branch with ECA Hits
 
 AliEMCALCalibData*    AliEMCALLoader::fgCalibData = 0; //calibration data
 //AliCaloCalibPedestal* AliEMCALLoader::fgCaloPed   = 0; //dead map data
@@ -61,28 +59,25 @@ AliEMCALSimParam*     AliEMCALLoader::fgSimParam  = 0; //simulation parameters
 
 //____________________________________________________________________________ 
 AliEMCALLoader::AliEMCALLoader()
-: fDebug(0), fTempArr(0x0)
+: fDebug(0)
 {
   //Default constructor for EMCAL Loader Class
-  fTempArr =  new TClonesArray("AliEMCALHit",0);
 
 }
 
 //____________________________________________________________________________ 
 AliEMCALLoader::AliEMCALLoader(const Char_t *detname,const Char_t *eventfoldername)
-  : AliLoader(detname,eventfoldername), fDebug(0), fTempArr(0x0)
+  : AliLoader(detname,eventfoldername), fDebug(0)
 {
   //Specific constructor for EMCAL Loader class
-  fTempArr =  new TClonesArray("AliEMCALHit",0);
 
 }
 
 //____________________________________________________________________________
 AliEMCALLoader::AliEMCALLoader(const Char_t *name, TFolder *topfolder)
-  : AliLoader(name,topfolder), fDebug(0), fTempArr(0x0)
+  : AliLoader(name,topfolder), fDebug(0)
 {
   //Specific constructor for EMCAL Loader class
-  fTempArr =  new TClonesArray("AliEMCALHit",0);
 
 }
 
@@ -90,8 +85,8 @@ AliEMCALLoader::AliEMCALLoader(const Char_t *name, TFolder *topfolder)
 AliEMCALLoader::~AliEMCALLoader()
 {
   // Disconnect trees and remove arrays
-//  if (TreeH())
-//    TreeH()->SetBranchAddress(fDetectorName,0);
+  if (TreeH())
+    TreeH()->SetBranchAddress(fDetectorName,0);
 //  if (TreeD())
 //    TreeD()->SetBranchAddress(fDetectorName,0);
 //  if (TreeS())
@@ -99,18 +94,12 @@ AliEMCALLoader::~AliEMCALLoader()
 //  if (TreeR())
 //    TreeR()->SetBranchAddress(fgkECARecPointsBranchName,0);
 	
-	Clean(fgkECAHitsBranchName);
 	Clean(fgkECASDigitsBranchName);
 	Clean(fgkECADigitsBranchName);
 	Clean(fgkECARecPointsBranchName);
 	
 	AliLoader::CleanFolders();
-	
-	if (fTempArr) {
-		fTempArr->Delete();
-		delete fTempArr;
-	}
-	
+		
 }
 
 //____________________________________________________________________________ 
@@ -184,31 +173,9 @@ Int_t AliEMCALLoader::GetEvent()
   AliLoader::GetEvent();  // First call AliLoader to do all the groundwork
   
   // *** Hits ***
-  // Initialize the Hits TClonesArray, only if it did not existed before
-  MakeHitsArray();
-  
-  TTree *treeH = TreeH();	
-  if (treeH) {
-    Int_t nEnt = treeH->GetEntries();  // TreeH has array of hits for every primary
-    Int_t index = 0;
-    TBranch * branchH = treeH->GetBranch(fDetectorName);
-    branchH->SetAddress(&fTempArr);
-    TClonesArray* hits = const_cast<AliEMCALLoader *>(this)->Hits();
-    if (hits) hits->Clear();
-    for (Int_t iEnt = 0; iEnt < nEnt; iEnt++) {
-      branchH->GetEntry(iEnt);
-      Int_t nHit = fTempArr->GetEntriesFast();
-      for (Int_t iHit = 0; iHit < nHit; iHit++) {
-	new ((*hits)[index]) AliEMCALHit(*((AliEMCALHit*)fTempArr->At(iHit)));
-	index++;
-      }
-    }
-    branchH->ResetAddress();
-	if (fTempArr) {
-		  fTempArr->Clear();
-	}
-  }
-  
+  // Hits are now handled directly on the AliEMCALSDigitizer, the only place it is requested.
+  // together with AliEveEMCALData
+	
   // *** SDigits ***
   // Initialize the SDigits TClonesArray, only if it did not existed before
   MakeSDigitsArray();
@@ -220,7 +187,7 @@ Int_t AliEMCALLoader::GetEvent()
     // Reset SDigits array and branch
     branchS->ResetAddress();
     TClonesArray* sdigits = const_cast<AliEMCALLoader *>(this)->SDigits();
-    if (sdigits) sdigits->Clear();
+    if (sdigits) sdigits->Clear("C");
     
     branchS->SetAddress(&sdigits);
     branchS->GetEntry(0);
@@ -237,7 +204,7 @@ Int_t AliEMCALLoader::GetEvent()
     // Reset Digits array and branch
     branchD->ResetAddress();
     TClonesArray* digits = const_cast<AliEMCALLoader *>(this)->Digits();
-    if (digits) digits->Clear();
+    if (digits) digits->Clear("C");
     
     branchD->SetAddress(&digits);
     branchD->GetEntry(0);
@@ -261,15 +228,6 @@ Int_t AliEMCALLoader::GetEvent()
   }
   
   return 0;
-}
-
-//____________________________________________________________________________
-void AliEMCALLoader::MakeHitsArray(){
-  // Add Hits array to the data folder
-  if (Hits()) return;
-  TClonesArray* hits = new TClonesArray("AliEMCALHit",0);
-  hits->SetName(fgkECAHitsBranchName);
-  GetDetectorDataFolder()->Add(hits);
 }
 
 //____________________________________________________________________________
