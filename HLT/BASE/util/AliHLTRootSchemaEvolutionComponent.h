@@ -13,13 +13,22 @@
     @brief  Handler component for ROOT schema evolution of streamed objects
 */
 
-#include "AliHLTProcessor.h"
+#include "AliHLTCalibrationProcessor.h"
 #include "TString.h"
+#include <vector>
 
 class TObjArray;
+class TObject;
+class TStopwatch;
+class AliHLTMessage;
 
 /**
  * @class AliHLTRootSchemaEvolutionComponent
+ * Collects streamer info for all input objects and produces the corresponding
+ * calibration object for reconstruction of HLT. The component runs with a
+ * configurable rate constraint and skips the processing of known data blocks
+ * for the sake of performance. New data blocks are always processed and added
+ * to the list.
  *
  * <h2>General properties:</h2>
  *
@@ -33,15 +42,19 @@ class TObjArray;
  *      
  * <h2>Optional arguments:</h2>
  * <!-- NOTE: ignore the \li. <i> and </i>: it's just doxygen formatting -->
- * \li -fxs<=off> <br>
+ * \li -fxs<=[n,off]> <br>
  *      push streamer info to FXS, fetched by Shuttle and store in the entry
- *      HLT/Calib/StreamerInfo
- *      default off
+ *      HLT/Calib/StreamerInfo                                          <br>
+ *      if a scalar greather then 0 is specified the calibration object is
+ *      pushed during the event processing with the specified scale down<br>
+ *      always pushed on EOR, default on
  * \li -hltout<=[all,first,eor,off]> <br>
  *      push streamer info to output, the streamer info is stored in the
  *      events in all, the first, and/or the EOR.
- * \li -file=<filename> <br>
+ * \li -file=filename <br>
  *      write to file at EOR
+ * \li -rate=hz <br>
+ *      required processing rate in Hz, default 2000Hz
  *
  * <h2>Configuration:</h2>
  * <!-- NOTE: ignore the \li. <i> and </i>: it's just doxygen formatting -->
@@ -61,7 +74,7 @@ class TObjArray;
  *
  * @ingroup alihlt_util_components
  */
-class AliHLTRootSchemaEvolutionComponent : public AliHLTProcessor
+class AliHLTRootSchemaEvolutionComponent : public AliHLTCalibrationProcessor
 {
  public:
   /// standard constructor
@@ -99,17 +112,100 @@ class AliHLTRootSchemaEvolutionComponent : public AliHLTProcessor
   /// and adds if it is a new info. 
   int UpdateStreamerInfos(const TList* list, TObjArray* infos) const;
 
- protected:
-  /// inherited from AliHLTComponent: custom initialization
-  int DoInit( int argc, const char** argv );
-  /// inherited from AliHLTComponent: cleanup
-  int DoDeinit();
+  /// merge streamer info entries from source array to target array
+  /// add all existing infos if not existing in the current one, or having
+  /// different class version
+  /// return 1 if target array has been changed
+  static int MergeStreamerInfo(TObjArray* tgt, const TObjArray* src);
 
-  /// inherited from AliHLTProcessor processing
-  virtual int DoEvent( const AliHLTComponentEventData& evtData,
-		       AliHLTComponentTriggerData& trigData );
+  class AliHLTDataBlockItem
+  {
+  public:
+    AliHLTDataBlockItem(AliHLTComponentDataType dt=kAliHLTVoidDataType,
+			AliHLTUInt32_t spec=kAliHLTVoidDataSpec);
+    ~AliHLTDataBlockItem();
+
+    /// extract data block to root object, and update performance parameters
+    /// object needs to be deleted externally
+    TObject* Extract(const AliHLTComponentBlockData* bd);
+
+    /// stream object and update performance parameters
+    int Stream(TObject* obj, AliHLTMessage& msg);
+
+    bool IsObject() const {return fIsObject;}
+    bool operator==(AliHLTDataBlockItem& i) const {return fDt==i.fDt && fSpecification==i.fSpecification;}
+    bool operator==(AliHLTComponentDataType dt) const {return fDt==dt;}
+    bool operator==(AliHLTUInt32_t spec) const {return fSpecification==spec;}
+    int operator+(AliHLTDataBlockItem& b) const;
+    operator const AliHLTComponentDataType&() const {return fDt;}
+    AliHLTUInt32_t GetSpecification() const {return fSpecification;}
+    
+    /// average extraction time in usec
+    AliHLTUInt32_t GetExtractionTime() const {return fNofExtractions>0?fExtractionTimeUsec/fNofExtractions:0;}
+    /// average streaming time in usec
+    AliHLTUInt32_t GetStreamingTime() const {return fNofStreamings>0?fStreamingTimeUsec/fNofStreamings:0;}
+    /// average total time in usec
+    AliHLTUInt32_t GetTotalTime() const {return GetExtractionTime() + GetStreamingTime();}
+
+    /// print status
+    void Print(const char* option) const;
+
+    class TimeSum : public binary_function<int,AliHLTDataBlockItem,int> {
+    public:
+      int operator() (int a, AliHLTDataBlockItem b) {
+	return a+b.GetTotalTime();
+      }
+    };
+
+  private:
+    /// data type of the block
+    AliHLTComponentDataType fDt; //! transient
+    /// specification of the block
+    AliHLTUInt32_t fSpecification; //! transient
+    /// flag for TObject
+    bool fIsObject; //! transient
+
+    /// number of extractions
+    AliHLTUInt32_t fNofExtractions; //! transient
+    /// object extraction time in usec
+    AliHLTUInt32_t fExtractionTimeUsec; //! transient
+    /// timestamp of last extraction in usec
+    AliHLTUInt32_t fLastExtraction; //! transient
+    /// number of streamings
+    AliHLTUInt32_t fNofStreamings; //! transient
+    /// object streaming time in usec
+    AliHLTUInt32_t fStreamingTimeUsec; //! transient
+    /// timestamp of last streaming in usec
+    AliHLTUInt32_t fLastStreaming; // !transient
+  };
+
+  /// find item in the list
+  AliHLTDataBlockItem* FindItem(AliHLTComponentDataType dt,
+				AliHLTUInt32_t spec);
+
+ protected:
+  /// inherited from AliHLTCalibrationProcessor: custom initialization
+  int InitCalibration();
+  /// inherited from AliHLTCalibrationProcessor: custom argument scan
+  /// the AliHLTCalibrationProcessor so far does not use the base class
+  /// methods for argument scan.
+  int ScanArgument( int argc, const char** argv ) {
+    int result=ScanConfigurationArgument(argc, argv); return result>0?result-1:result;
+  }
+  /// inherited from AliHLTCalibrationProcessor: cleanup
+  int DeinitCalibration();
+
+  /// inherited from AliHLTCalibrationProcessor processing
+  virtual int ProcessCalibration( const AliHLTComponentEventData& evtData,
+				  AliHLTComponentTriggerData& trigData );
   
-  using AliHLTProcessor::DoEvent;
+  using AliHLTCalibrationProcessor::ProcessCalibration;
+
+  /// inherited from AliHLTCalibrationProcessor processing
+  int ShipDataToFXS( const AliHLTComponentEventData& evtData,
+		     AliHLTComponentTriggerData& trigData);
+
+  using AliHLTCalibrationProcessor::ShipDataToFXS;
 
   /**
    * Inherited from AliHLTComponent
@@ -129,16 +225,22 @@ private:
   /** assignment operator prohibited */
   AliHLTRootSchemaEvolutionComponent& operator=(const AliHLTRootSchemaEvolutionComponent&);
 
+  vector<AliHLTDataBlockItem> fList; //! list of block properties
+
   AliHLTUInt32_t fFlags; //! property flags
 
   TObjArray* fpStreamerInfos; //! array of streamer infos
+  TStopwatch* fpEventTimer; //! stopwatch for event processing
+  TStopwatch* fpCycleTimer; //! stopwatch for event cycle
+  AliHLTUInt32_t fMaxEventTime; //! required maximum processing time in usec
 
   AliHLTUInt32_t fFXSPrescaler; //! prescalar for the publishing to FXS
 
   TString fFileName; //! file name for dump at EOR
 
   static const char* fgkConfigurationObject; //! configuration object
+  static const AliHLTUInt32_t fgkTimeScale; //! timescale base
 
-  ClassDef(AliHLTRootSchemaEvolutionComponent, 2) // ROOT schema evolution component
+  ClassDef(AliHLTRootSchemaEvolutionComponent, 0) // ROOT schema evolution component
 };
 #endif
