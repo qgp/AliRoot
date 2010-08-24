@@ -1346,7 +1346,7 @@ Bool_t AliITS::Raw2SDigits(AliRawReader* rawReader)
 	modA[mod]->Clear();
     }
     loader->WriteSDigits("OVERWRITE");    
-    delete modA;
+    delete [] modA;
     return kTRUE;
 }
 
