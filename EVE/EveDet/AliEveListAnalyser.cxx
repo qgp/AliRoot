@@ -910,9 +910,9 @@ Bool_t AliEveListAnalyser::ApplyProcessMacros(const TList* selIterator, const TL
 
   if (selCmds != 0)  delete [] selCmds;
   selCmds = 0;
-  if (mSelObjectType != 0)  delete mSelObjectType;
+  if (mSelObjectType != 0)  delete [] mSelObjectType;
   mSelObjectType = 0;
-  if (mSelObjectType2 != 0)  delete mSelObjectType2;
+  if (mSelObjectType2 != 0)  delete [] mSelObjectType2;
   mSelObjectType2 = 0;
   if (mSelType != 0)  delete [] mSelType;
   mSelType = 0;
