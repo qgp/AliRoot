@@ -74,7 +74,10 @@ public:
   void        FillResHistoTPCTRD(const AliExternalTrackParam * pTPCOut, const AliExternalTrackParam * pTRDIn );
   void        FillResHistoTPCTOF(const AliExternalTrackParam * pTPCOut, const AliExternalTrackParam * pTOFIn );
 
-private:
+  TObjArray * GetLaserArrayA() const { return fArrayLaserA;}
+  TObjArray * GetLaserArrayC() const { return fArrayLaserC;}
+
+protected:
   void ResetCurrent();                  // reset current values
 
   AliTPCcalibLaser * fLaser;            //! laser calibration
@@ -91,8 +94,6 @@ private:
   Float_t fCutMinDir;   // direction vector products
   Int_t   fCutTracks;   // maximal number of tracks
  
-  AliTPCcalibTime(const AliTPCcalibTime&); 
-  AliTPCcalibTime& operator=(const AliTPCcalibTime&); 
 
   TH1F* fCosmiMatchingHisto[10];
   //
@@ -106,11 +107,14 @@ private:
   // laser histo
   THnSparse * fHistVdriftLaserA[3];	//Histograms for V drift from laser
   THnSparse * fHistVdriftLaserC[3];	//Histograms for V drift from laser
+  TObjArray *fArrayLaserA;              //Object array of driftvelocity laserA
+  TObjArray *fArrayLaserC;              //Object array of driftvelocity laserC
   // DELTA Z histo
   TObjArray* fArrayDz;                  // array of DZ histograms for different triggers
   TObjArray* fAlignITSTPC;              // alignemnt array ITS TPC match
   TObjArray* fAlignTRDTPC;              // alignemnt array TRD TPC match
   TObjArray* fAlignTOFTPC;              // alignemnt array TOF TPC match
+  Int_t      fTimeKalmanBin;            // width of Kalman bin - time in seconds
   Int_t    fTimeBins;			//Bins time
   Double_t fTimeStart;			//Start time
   Double_t fTimeEnd;			//End time
@@ -126,7 +130,12 @@ private:
   Int_t    fBinsVdrift[4];		//Bins for vdrift
   Double_t fXminVdrift[4];		//Xmax for vdrift
   Double_t fXmaxVdrift[4];		//Xmin for vdrift
-  ClassDef(AliTPCcalibTime, 4); 
+
+private:
+  AliTPCcalibTime(const AliTPCcalibTime&); 
+  AliTPCcalibTime& operator=(const AliTPCcalibTime&); 
+
+  ClassDef(AliTPCcalibTime, 5); 
 };
 
 #endif
