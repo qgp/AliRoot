@@ -62,7 +62,7 @@ AliEMCALv2::AliEMCALv2(const char *name, const char *title)
 {
     // Standard Creator.
 
-    fHits= new TClonesArray("AliEMCALHit",1000);
+    //fHits= new TClonesArray("AliEMCALHit",1000); //Already done in ctor of v1
     gAlice->GetMCApp()->AddHitList(fHits);
 
     fNhits    = 0;
@@ -76,11 +76,12 @@ AliEMCALv2::AliEMCALv2(const char *name, const char *title)
 AliEMCALv2::~AliEMCALv2(){
     // dtor
 
-    if ( fHits) {
-	fHits->Delete();
-	delete fHits;
-	fHits = 0;
-    }
+  //Already done in dtor of v1
+//  if ( fHits ) {
+//    fHits->Clear();
+//    delete fHits;
+//    fHits = 0;
+//  }
 }
 
 //______________________________________________________________________
@@ -91,8 +92,8 @@ void AliEMCALv2::AddHit(Int_t shunt, Int_t primary, Int_t tracknumber, Int_t ipa
     //   originating from the same entering particle 
     static Int_t hitCounter;
     static AliEMCALHit *newHit, *curHit;
-    static Bool_t deja;
-
+    static Bool_t deja ;
+  
     deja = kFALSE;
 
     newHit = new AliEMCALHit(shunt, primary, tracknumber, iparent, ienergy, id, hits, p);
@@ -127,8 +128,8 @@ void AliEMCALv2::StepManager(void){
   static TLorentzVector pos;  // Lorentz vector of the track current position.
   static TLorentzVector mom;  // Lorentz vector of the track current momentum.
   static Float_t ienergy = 0; // part->Energy();
-  static TString curVolName;
-  static int supModuleNumber, moduleNumber, yNumber, xNumber, absid;
+  static TString curVolName="";
+  static int supModuleNumber=-1, moduleNumber=-1, yNumber=-1, xNumber=-1, absid=-1;
   static int keyGeom=1;  //real TRD1 geometry
   static const char *vn = "SCMX"; // Apr 13, 2006 - only TRD1 case now
   static int nSMOP[7]={1,3,5,7,9,11}; // 30-mar-05
@@ -146,8 +147,8 @@ void AliEMCALv2::StepManager(void){
     if(gMC->VolId("WSUC")==1) printf(" WSUC - cosmic ray stand geometry \n");
   }
   Int_t tracknumber =  gAlice->GetMCApp()->GetCurrentTrackNumber();
-  Int_t parent;
-  TParticle* part;
+  Int_t parent=0;
+  TParticle* part=0;
 
   curVolName = gMC->CurrentVolName();
   if(curVolName.Contains(vn) || curVolName.Contains("SCX")) { // We are in a scintillator layer; SCX for 3X3
@@ -271,7 +272,7 @@ void AliEMCALv2::StepManager(void){
 	  else                                   birkC1Mod = fBirkC1;
 	}
 
-	Float_t dedxcm;
+	Float_t dedxcm=0.;
 	if (gMC->TrackStep()>0)  dedxcm=1000.*gMC->Edep()/gMC->TrackStep();
 	else                     dedxcm=0;
 	lightYield=lightYield/(1.+birkC1Mod*dedxcm+fBirkC2*dedxcm*dedxcm);
@@ -454,7 +455,7 @@ void AliEMCALv2::DrawAlicWithHits(int mode)
   TClonesArray *hits = Hits();
   Int_t nhits = hits->GetEntries(), absId, nSupMod, nModule, nIphi, nIeta, iphi, ieta;
   AliEMCALHit *hit = 0;
-  Double_t de, des=0.;
+  Double_t de=0., des=0.;
   for(Int_t i=0; i<nhits; i++) {
     hit   = (AliEMCALHit*)hits->UncheckedAt(i);
     absId = hit->GetId();
