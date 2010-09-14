@@ -1390,7 +1390,7 @@ Int_t AliTOFcalib::Calibrate(Int_t nch, Int_t *ch, Option_t *optionSave, Option_
       ntracksTotal+=nentries/3;
     }
     if (ntracksTotal < MEANENTRIES) {
-      AliInfo(Form(" Too small mean number of entires in channel %i (number of tracks = %f), not calibrating channel and continuing.....",i,ntracksTotal));
+      AliInfo(Form(" Too small mean number of entires in channel %i (number of tracks = %d), not calibrating channel and continuing.....",i,ntracksTotal));
       continue;
     }
   
@@ -1506,7 +1506,7 @@ Int_t AliTOFcalib::CalibrateFromProfile(Int_t ich, Option_t *optionSave, Option_
   }
 
   if (ntracksTotal < MEANENTRIES) {  
-    AliInfo(Form(" Too small mean number of entires per channel (mean number = %f) not calibrating and exiting.....",ntracksTotal));
+    AliInfo(Form(" Too small mean number of entires per channel (mean number = %d) not calibrating and exiting.....",ntracksTotal));
     return 2;
   }
 
@@ -1605,7 +1605,7 @@ Int_t AliTOFcalib::Calibrate(Option_t *optionSave, Option_t *optionFit){
       ntracksTotal+=nentries/3;
     }
     if (ntracksTotal < MEANENTRIES) {
-      AliInfo(Form(" Too small mean number of entires in channel %i (number of tracks = %f), not calibrating channel and continuing.....",ii,ntracksTotal));
+      AliInfo(Form(" Too small mean number of entires in channel %i (number of tracks = %d), not calibrating channel and continuing.....",ii,ntracksTotal));
       continue;
     }
     Float_t meantime=0;
