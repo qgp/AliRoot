@@ -21,6 +21,17 @@ AliFMDESDRevertexer::AliFMDESDRevertexer()
 Bool_t
 AliFMDESDRevertexer::Revertex(AliESDFMD* fmdEsd, Double_t vz) const
 {
+  // Recalculate the various quantities based on updated 
+  // primary vertex position. 
+  // 
+  // Parameters: 
+  //    fmdEsd    FMD ESD object 
+  //    vz        New vertex location (along the z-axis)
+  //
+  // Return:
+  //    true on success, false if there was an error during the 
+  //    recalculations.   Please inspect log output for details. 
+  // 
   if (!fmdEsd) return kFALSE;
   
   Bool_t ret = kTRUE;
@@ -34,7 +45,7 @@ AliFMDESDRevertexer::Revertex(AliESDFMD* fmdEsd, Double_t vz) const
 	Double_t phi, r, theta;
 	Double_t eta      = AliESDFMD::kInvalidEta;
 	Double_t oldEta   = fmdEsd->Eta(det, rng, 0, str);
-	if (oldEta == AliESDFMD::kInvalidEta) continue;
+	// if (oldEta == AliESDFMD::kInvalidEta) continue;
 
 	Double_t oldTheta = Eta2Theta(oldEta);
 	Bool_t   ret1     = PhysicalCoordinates(det, rng, 0, str, vz, 
@@ -53,12 +64,14 @@ AliFMDESDRevertexer::Revertex(AliESDFMD* fmdEsd, Double_t vz) const
 	}
 
 	Double_t corr = TMath::Abs(TMath::Cos(theta));
-	if (fmdEsd->IsAngleCorrected()) 
-	  corr /= TMath::Abs(TMath::Cos(oldTheta));
-	for (UShort_t sec = 0; sec < nsec; sec++) { 
-	  Double_t mult = fmdEsd->Multiplicity(det, rng, sec, str);
-	  if (mult == AliESDFMD::kInvalidMult) continue;
-	  fmdEsd->SetMultiplicity(det, rng, sec, str, corr * mult);
+	if (fmdEsd->IsAngleCorrected()) {
+	  if (oldEta != AliESDFMD::kInvalidMult)
+	    corr /= TMath::Abs(TMath::Cos(oldTheta));
+	  for (UShort_t sec = 0; sec < nsec; sec++) { 
+	    Double_t mult = fmdEsd->Multiplicity(det, rng, sec, str);
+	    if (mult == AliESDFMD::kInvalidMult) continue;
+	    fmdEsd->SetMultiplicity(det, rng, sec, str, corr * mult);
+	  }
 	}
       }
     }
@@ -71,6 +84,7 @@ AliFMDESDRevertexer::Revertex(AliESDFMD* fmdEsd, Double_t vz) const
 Double_t
 AliFMDESDRevertexer::Eta2Theta(Double_t eta) const
 {
+  if (eta == AliESDFMD::kInvalidEta) return 0;
   return 2 * TMath::ATan(TMath::Exp(-eta));
 }
 
@@ -94,17 +108,7 @@ AliFMDESDRevertexer::PhysicalCoordinates(UShort_t  det,
   Double_t x=0, y=0, z=0;
   geom->Detector2XYZ(det, rng, sec, str, x, y, z);
 
-  // Check that the conversion succeeded
-  if (x == 0 && y == 0 && z == 0) return kFALSE;
-  
-  // Correct for vertex offset. 
-  z     -= vz;
-  phi   =  TMath::ATan2(y, x);
-  r     =  TMath::Sqrt(y * y + x * x);
-  theta =  TMath::ATan2(r, z);
-  eta   = -TMath::Log(TMath::Tan(theta / 2));
-
-  return kTRUE;
+  return AliFMDGeometry::XYZ2REtaPhiTheta(x, y, z-vz, r, eta, phi, theta);
 }
 
 
