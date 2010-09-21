@@ -29,6 +29,7 @@
 #include "AliCDBEntry.h"
 #include "AliGRPManager.h"
 #include "AliRawReader.h"
+#include "AliRawEventHeaderBase.h"
 #include "AliTracker.h"
 #ifndef HAVE_NOT_ALIESDHLTDECISION
 #include "AliESDHLTDecision.h"
@@ -110,12 +111,36 @@ int AliHLTMiscImplementation::GetCDBRunNo() const
 AliCDBEntry* AliHLTMiscImplementation::LoadOCDBEntry(const char* path, int runNo, int version, int subVersion) const
 {
   // see header file for function documentation
-  AliCDBStorage* store = AliCDBManager::Instance()->GetDefaultStorage();
+  AliCDBManager* man = AliCDBManager::Instance();
+  if (!man) return NULL;
+  if (runNo<0) runNo=man->GetRun();
+
+  const char* uri=man->GetURI(path);
+  if (!uri) return NULL;
+
+  AliCDBStorage* store = AliCDBManager::Instance()->GetStorage(uri);
   if (!store) {
     return NULL;
   }
+
+  TString strUri=store->GetURI();
+  bool bIsGrid=strUri.BeginsWith("alien://");
+
   if (version<0) version = store->GetLatestVersion(path, runNo);
-  if (subVersion<0) subVersion = store->GetLatestSubVersion(path, runNo, version);
+
+  // OCDB objects on GRID have no sub version
+  if (subVersion<0 && !bIsGrid) subVersion = store->GetLatestSubVersion(path, runNo, version);
+  AliCDBEntry* entry=man->Get(path, runNo, version, subVersion);
+  if (entry) {
+    // there seems to be a problem with the caching of objects in the CDBManager
+    // regardless what version is specified it returns the object from the cache
+    AliCDBId id=entry->GetId();
+    if ((version<0 || id.GetVersion()==version) &&
+	(subVersion<0 || id.GetSubVersion()==subVersion)) {
+      // entry in the cache has the correct version
+      return entry;
+    }
+  }
   return store->Get(path, runNo, version, subVersion);
 }
 
@@ -138,6 +163,8 @@ int AliHLTMiscImplementation::CheckOCDBEntries(const TMap* const pMap) const
   Int_t runNo = GetCDBRunNo();
 
   TIterator* next=pMap->MakeIterator();
+  if (!next) return -ENOENT;
+
   TObject* pEntry=NULL;
   while ((pEntry=next->Next())) {
     // check if the entry has specific storage
@@ -149,6 +176,8 @@ int AliHLTMiscImplementation::CheckOCDBEntries(const TMap* const pMap) const
       pStorage=AliCDBManager::Instance()->GetDefaultStorage();
     }
 
+    // FIXME: this will fail as soon as we have several specific storages
+    // access to the internal mapping information for specific storages is needed
     if (pStorage->GetLatestVersion(pEntry->GetName(), runNo)<0) {
       AliHLTLogging log;
       log.Logging(kHLTLogError, "CheckOCDBEntries", "CDB handling", "can not find required OCDB object %s for run number %d in storage %s", pEntry->GetName(), runNo, pStorage->GetURI().Data());
@@ -158,6 +187,8 @@ int AliHLTMiscImplementation::CheckOCDBEntries(const TMap* const pMap) const
       log.Logging(kHLTLogDebug, "CheckOCDBEntries", "CDB handling", "found required OCDB object %s for run number %d in storage %s", pEntry->GetName(), runNo, pStorage->GetURI().Data());
     }
   }
+  delete next;
+  next=NULL;
 
   return iResult;
 }
@@ -201,6 +232,30 @@ AliHLTUInt64_t AliHLTMiscImplementation::GetTriggerMask(AliRawReader* rawReader)
     trgMask|=pattern[0]; // 32 lower bits of the mask
   }
   return trgMask;
+}
+
+AliHLTUInt32_t AliHLTMiscImplementation::GetTimeStamp(AliRawReader* rawReader) const
+{
+  // extract time stamp of the event from the event header
+  if (!rawReader) return 0;
+  const AliRawEventHeaderBase* eventHeader = rawReader->GetEventHeader();
+  if (!eventHeader) return 0;
+  return eventHeader->Get("Timestamp");
+}
+
+AliHLTUInt32_t AliHLTMiscImplementation::GetEventType(AliRawReader* rawReader) const
+{
+  // extract event type from the event header
+  if (!rawReader) return 0;
+  const AliRawEventHeaderBase* eventHeader = rawReader->GetEventHeader();
+  if (!eventHeader) return 0;
+  return eventHeader->Get("Type");
+}
+
+const char* AliHLTMiscImplementation::GetBeamTypeFromGRP() const
+{
+  // get beam type from GRP
+  return NULL;
 }
 
 Double_t AliHLTMiscImplementation::GetBz()
