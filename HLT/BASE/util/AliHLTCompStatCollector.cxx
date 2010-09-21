@@ -375,12 +375,13 @@ int AliHLTCompStatCollector::DoEvent( const AliHLTComponentEventData& /*evtData*
 	  TFolder* parentFolder=dynamic_cast<TFolder*>((*consumer)->FindObject(HLTSTAT_ENTRY_PARENT_FOLDER_NAME));
 	  assert(parentFolder);
 	  if (parentFolder) {
+#ifdef __DEBUG
 	    TIter entries(parentFolder->GetListOfFolders());
 	    while (TObject* entry=entries.Next())
 	      if (entry) {
-		Bool_t foo; foo=kTRUE;// only to avoid warning in non-debug compile
 		HLTDebug("   searching %s in %s: %s", idstr.Data(), (*consumer)->GetName(), entry->GetName());
 	      }
+#endif
 	    TObject* parent=parentFolder->FindObjectAny(idstr);
 	    if (parent) {
 	      parentFolder->Add(*publisher);
