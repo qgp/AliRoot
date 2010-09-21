@@ -1,5 +1,5 @@
 //-*- Mode: C++ -*-
-// @(#) $Id$
+// $Id$
 
 #ifndef ALIHLTMODULEPREPROCESSOR_H
 #define ALIHLTMODULEPREPROCESSOR_H
@@ -7,12 +7,11 @@
 //* ALICE Experiment at CERN, All rights reserved.                         *
 //* See cxx source for full Copyright notice                               *
 
-/**
- * @file   AliHLTModulePreprocessor.h
- * @author Matthias Richter
- * @date   2008-01-22
- * @brief  Base class for HLT module preprocessors
- */
+// @file   AliHLTModulePreprocessor.h
+// @author Matthias Richter
+// @date   2008-01-22
+// @brief  Base class for HLT module preprocessors
+// 
 
 // see below for class documentation
 // or
@@ -73,13 +72,13 @@ public:
   virtual UInt_t Process(TMap* dcsAliasMap) = 0;
 
   /** Get the run no */
-  Int_t GetRun();
+  Int_t GetRun() const;
 
   /** Get the start time */
-  UInt_t GetStartTime();
+  UInt_t GetStartTime() const;
 
   /** Get the end time */
-  UInt_t GetEndTime();
+  UInt_t GetEndTime() const;
 
  /**
    * Get the id of the module
@@ -87,7 +86,7 @@ public:
    * The function is pure virtual and must be implemented by the child class.
    * @return module id (string)
    */
-  virtual const char* GetModuleID() = 0;
+  virtual const char* GetModuleID() {return ClassName();}
 
  /**
    * Get all detectors the module process
@@ -116,6 +115,10 @@ public:
    *@return const char* name of the detector corresponding to the ID
    */
   const char *DetectorName(Int_t detectorID);
+
+  /// extract object from the alias map
+  /// return the last object from the value set
+  TObject* GetFromMap(TMap* dcsAliasMap, const char* stringId) const;
 
   /** number of detectors */
   static const Int_t kNDetectors;    // Number of detectors

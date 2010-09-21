@@ -437,7 +437,35 @@ int AliHLTComponent::ConfigureFromArgumentString(int argc, const char** argv)
   int i=0;
   for (i=0; i<argc && iResult>=0; i++) {
     argument=argv[i];
+    if (argument.IsWhitespace()) continue;
+
+    // special handling for single component arguments ending with
+    // a sequence of blanks
+    argument.Remove(0, argument.First(' '));
+    if (argument.IsWhitespace()) {
+      array.push_back(argv[i]);
+      continue;
+    }
+
+    // extra blank to insert blank token before leading quotes
+    argument=" ";
+    argument+=argv[i];
+    // insert blank in consecutive quotes to correctly tokenize
+    argument.ReplaceAll("''", "' '");
+    // replace newlines by blanks
+    argument.ReplaceAll("\n", " ");
     if (argument.IsNull()) continue;
+    TObjArray* pTokensQuote=argument.Tokenize("'");
+    if (pTokensQuote) {
+      if (pTokensQuote->GetEntriesFast()>0) {
+	for (int k=0; k<pTokensQuote->GetEntriesFast(); k++) {
+	  argument=((TObjString*)pTokensQuote->At(k))->GetString();
+	  if (argument.IsWhitespace()) continue;
+	  if (k%2) {
+	    // every second entry is enclosed by quotes and thus
+	    // one single argument
+	    array.push_back(argument.Data());
+	  } else {
     TObjArray* pTokens=argument.Tokenize(" ");
     if (pTokens) {
       if (pTokens->GetEntriesFast()>0) {
@@ -451,6 +479,12 @@ int AliHLTComponent::ConfigureFromArgumentString(int argc, const char** argv)
 	pTokens->SetOwner(kFALSE);
       }
       delete pTokens;
+    }
+	  }
+	}
+	pTokensQuote->SetOwner(kFALSE);
+      }
+      delete pTokensQuote;
     }
   }
 
@@ -476,9 +510,10 @@ int AliHLTComponent::ConfigureFromArgumentString(int argc, const char** argv)
   return iResult;
 }
 
-int AliHLTComponent::ConfigureFromCDBTObjString(const char* entries)
+int AliHLTComponent::ConfigureFromCDBTObjString(const char* entries, const char* key)
 {
-  // see header file for function documentation
+  // load a list of OCDB objects and configure from the objects
+  // can either be a TObjString or a TMap with a TObjString:TObjString key-value pair
   int iResult=0;
   TString arguments;
   TString confEntries=entries;
@@ -487,16 +522,32 @@ int AliHLTComponent::ConfigureFromCDBTObjString(const char* entries)
     for (int n=0; n<pTokens->GetEntriesFast(); n++) {
       const char* path=((TObjString*)pTokens->At(n))->GetString().Data();
       const char* chainId=GetChainId();
-      HLTInfo("configure from entry %s, chain id %s", path, (chainId!=NULL && chainId[0]!=0)?chainId:"<none>");
-      TObject* pOCDBObject = LoadAndExtractOCDBObject(path);
+      HLTInfo("configure from entry \"%s\"%s%s, chain id %s", path, key?" key ":"",key?key:"", (chainId!=NULL && chainId[0]!=0)?chainId:"<none>");
+      TObject* pOCDBObject = LoadAndExtractOCDBObject(path, key);
       if (pOCDBObject) {
 	TObjString* pString=dynamic_cast<TObjString*>(pOCDBObject);
+	if (!pString) {
+	  TMap* pMap=dynamic_cast<TMap*>(pOCDBObject);
+	  if (pMap) {
+	    // this is the case where no key has been specified and the OCDB
+	    // object is a TMap, search for the default key
+	    TObject* pObject=pMap->GetValue("default");
+	    if (pObject && (pString=dynamic_cast<TObjString*>(pObject))!=NULL) {
+	      HLTInfo("using default key of TMap of configuration object \"%s\"", path);
+	    } else {
+	      HLTError("no default key available in TMap of configuration object \"%s\"", path);
+	      iResult=-ENOENT;
+	      break;
+	    }
+	  }
+	}
+
 	if (pString) {
 	  HLTInfo("received configuration object string: \'%s\'", pString->GetString().Data());
 	  arguments+=pString->GetString().Data();
 	  arguments+=" ";
 	} else {
-	  HLTError("configuration object \"%s\" has wrong type, required TObjString", path);
+	  HLTError("configuration object \"%s\"%s%s has wrong type, required TObjString", path, key?" key ":"",key?key:"");
 	  iResult=-EINVAL;
 	}
       } else {
@@ -513,12 +564,27 @@ int AliHLTComponent::ConfigureFromCDBTObjString(const char* entries)
   return iResult;
 }
 
-TObject* AliHLTComponent::LoadAndExtractOCDBObject(const char* path, int version, int subVersion)
+TObject* AliHLTComponent::LoadAndExtractOCDBObject(const char* path, int version, int subVersion, const char* key)
 {
   // see header file for function documentation
   AliCDBEntry* pEntry=AliHLTMisc::Instance().LoadOCDBEntry(path, GetRunNo(), version, subVersion);
   if (!pEntry) return NULL;
-  return AliHLTMisc::Instance().ExtractObject(pEntry);
+  TObject* pObject=AliHLTMisc::Instance().ExtractObject(pEntry);
+  TMap* pMap=dynamic_cast<TMap*>(pObject);
+  if (pMap && key) {
+    pObject=pMap->GetValue(key);
+    if (!pObject) {
+      pObject=pMap->GetValue("default");
+      if (pObject) {
+	HLTWarning("can not find object for key \"%s\" in TMap of configuration object \"%s\", using key \"default\"", key, path);
+      }
+    }
+    if (!pObject) {
+      HLTError("can not find object for key \"%s\" in TMap of configuration object \"%s\"", key, path);
+      return NULL;
+    }
+  }
+  return pObject;
 }
 
 int AliHLTComponent::DoInit( int /*argc*/, const char** /*argv*/)
@@ -623,6 +689,39 @@ string AliHLTComponent::DataType2Text( const AliHLTComponentDataType& type, int 
   // see header file for function documentation
   string out("");
 
+  // 'typeid' 'origin'
+  // aligned to 8 and 4 chars respectively, blocks enclosed in quotes and
+  // separated by blank e.g.
+  // 'DDL_RAW ' 'TPC '
+  if (mode==3) {
+    int i=0;
+    char tmp[8];
+    out+="'";
+    for (i=0; i<kAliHLTComponentDataTypefIDsize; i++) {
+      unsigned char* puc=(unsigned char*)type.fID;
+      if (puc[i]<32)
+	sprintf(tmp, "\\%x", type.fID[i]);
+      else
+	sprintf(tmp, "%c", type.fID[i]);
+      out+=tmp;
+    }
+    out+="' '";
+    for (i=0; i<kAliHLTComponentDataTypefOriginSize; i++) {
+      unsigned char* puc=(unsigned char*)type.fOrigin;
+      if ((puc[i])<32)
+	sprintf(tmp, "\\%x", type.fOrigin[i]);
+      else
+	sprintf(tmp, "%c", type.fOrigin[i]);
+      out+=tmp;
+    }
+    out+="'";
+    return out;
+  }
+
+  // origin typeid as numbers separated by colon e.g.
+  // aligned to 8 and 4 chars respectively, all characters separated by
+  // quotes, e.g.
+  // '84'80'67'32':'68'68'76'95'82'65'87'32'
   if (mode==2) {
     int i=0;
     char tmp[8];
@@ -638,6 +737,10 @@ string AliHLTComponent::DataType2Text( const AliHLTComponentDataType& type, int 
     return out;
   }
 
+  // origin typeid separated by colon e.g.
+  // aligned to 8 and 4 chars respectively, all characters separated by
+  // quotes, e.g.
+  // 'T'P'C' ':'D'D'L'_'R'A'W' '
   if (mode==1) {
     int i=0;
     char tmp[8];
@@ -661,6 +764,9 @@ string AliHLTComponent::DataType2Text( const AliHLTComponentDataType& type, int 
     return out;
   }
 
+  // origin typeid
+  // aligned to 8 and 4 chars respectively, separated by colon e.g.
+  // TPC :DDL_RAW 
   if (type==kAliHLTVoidDataType) {
     out="VOID:VOID";
   } else {
@@ -1175,7 +1281,7 @@ int AliHLTComponent::Forward(const AliHLTComponentBlockData* pBlock)
   int iResult=0;
   int idx=fCurrentInputBlock;
   if (pBlock) {
-    if (fpInputObjects==NULL || (idx=FindInputBlock(pBlock))>=0) {
+    if ((idx=FindInputBlock(pBlock))>=0) {
     } else {
       HLTError("unknown Block %p", pBlock);
       iResult=-ENOENT;      
