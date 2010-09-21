@@ -207,8 +207,13 @@ int AliHLTTRDClusterizerComponent::DoEvent( const AliHLTComponentEventData& evtD
 {
   // Process an event
 
+#ifdef HAVE_VALGRIND_CALLGRIND_H
   if (evtData.fEventID == 10)
     CALLGRIND_START_INSTRUMENTATION;
+
+  if(GetFirstInputBlock(kAliHLTDataTypeEOR))
+    CALLGRIND_STOP_INSTRUMENTATION;
+#endif
 
   if(!IsDataEvent())return 0;
 
@@ -238,8 +243,6 @@ int AliHLTTRDClusterizerComponent::DoEvent( const AliHLTComponentEventData& evtD
 		    evtData.fEventID, evtData.fEventID, 
 		    DataType2Text(inputDataType).c_str(), 
 		    DataType2Text(expectedDataType).c_str());
-	  if(block.fDataType == kAliHLTDataTypeEOR)
-	    CALLGRIND_STOP_INSTRUMENTATION;
 	  continue;
 	}
       else 
@@ -345,8 +348,15 @@ int AliHLTTRDClusterizerComponent::DoEvent( const AliHLTComponentEventData& evtD
   return 0;
 }
 
-void AliHLTTRDClusterizerComponent::PrintObject( TClonesArray* inClustersArray)
+void AliHLTTRDClusterizerComponent::PrintObject(
+#ifdef __DEBUG
+		TClonesArray* inClustersArray
+#else
+		TClonesArray*
+#endif
+	)
 {
+#ifdef __DEBUG
   AliTRDcluster* cluster=0x0;
   
   for (Int_t i=0; i < inClustersArray->GetEntriesFast(); i++){
@@ -356,7 +366,7 @@ void AliHLTTRDClusterizerComponent::PrintObject( TClonesArray* inClustersArray)
     HLTDebug("  Detector = %i, Amplitude = %f, Center = %f", cluster->GetDetector(), cluster->GetQ(), cluster->GetCenter());
     HLTDebug("  LocalTimeBin =  %i; NPads = %i; maskedPosition: %s, status: %s", cluster->GetLocalTimeBin(), cluster->GetNPads(),cluster->GetPadMaskedPosition(),cluster->GetPadMaskedPosition());
   }
-  
+#endif
 }
 
 int AliHLTTRDClusterizerComponent::Configure(const char* arguments){
