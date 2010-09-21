@@ -1,40 +1,53 @@
 //-*- Mode: C++ -*-
 // $Id$
-#ifndef ALIHLTSAMPLEESDANALYSISCOMPONENT_H
-#define ALIHLTSAMPLEESDANALYSISCOMPONENT_H
+#ifndef ALIHLTSAMPLERAWANALYSISCOMPONENT_H
+#define ALIHLTSAMPLERAWANALYSISCOMPONENT_H
 
 //* This file is property of and copyright by the ALICE HLT Project        * 
 //* ALICE Experiment at CERN, All rights reserved.                         *
 //* See cxx source for full Copyright notice                               */
 
-/// @file   AliHLTSampleESDAnalysisComponent.h
+/// @file   AliHLTSampleRawAnalysisComponent.h
 /// @author Matthias Richter
-/// @date   2010-04-17
-/// @brief  A sample processing component for ESD analysis.
+/// @date   2010-08-29
+/// @brief  A sample processing component for raw data
 /// @ingroup alihlt_tutorial
 
 #include "AliHLTProcessor.h"
 
+class AliRawReaderMemory;
+
 /**
- * @class AliHLTSampleESDAnalysisComponent
- * An example how to implement an HLT ESD analysis component.
+ * @class AliHLTSampleRawAnalysisComponent
+ * An example how to implement an HLT analysis component for raw data.
  * The class features the AliHLTComponent interface for HLT processing
  * components. The interface allows to run such components in either
  * the (sequential) AliSimulation/AliReconstruction framework or the
  * parallel HLT online processing framework.
  *
- * An example to run the component can be found in macro sampleEsdAnalysis.C
+ * An example to run the component can be found in macro sampleRawAnalysis.C
  * in the folder HLT/exa.
  *
- * Component fetches the ESD from the input objects, loops over tracks and
- * publishes the tracks in a TObjArray of AliESDtrack.
+ * Component fetches raw data  input objects in DDL format and prints
+ * some basic properties of the CommonDataHeader. It also instantiates a
+ * RawReader in order to be used with some reconstruction.
+ *
+ * Raw data (DDL) bloxks are sent within the HLT chain with data type
+ * kAliHLTDataTypeDDLRaw (see AliHLTComponentDataType). E.g Raw data
+ * from TPC has data type kAliHLTDataTypeDDLRaw|kAliHLTDataOriginTPC,
+ * and from SPD kAliHLTDataTypeDDLRaw|kAliHLTDataOriginITSSPD. A 32 bit
+ * data specification allows to differentiate between the DDL numbers
+ * for one detector. For all detectors having not more than 32 links
+ * the link is indicated by the corresponding bit in the specification
+ * word. E.g. for link #3 bit #3 is set which gives 8 (Please note that
+ * counting starts at 0).
  *
  * <h2>General properties:</h2>
  *
- * Component ID: \b SampleESDAnalysis <br>
+ * Component ID: \b SampleRawAnalysis <br>
  * Library: \b libAliHLTSample.so     <br>
- * Input Data Types: @ref kAliHLTDataTypeESDObject <br>
- * Output Data Types: @ref kAliHLTDataTypeTObjArray|kAliHLTDataOriginSample
+ * Input Data Types: @ref kAliHLTDataTypeDDLRaw <br>
+ * Output Data Types: @ref kAliHLTDataType|kAliHLTDataOriginSample
  *                         {ROOTOBAR:SMPL} <br>
  *
  * <h2>Mandatory arguments:</h2>
@@ -42,22 +55,22 @@
  * Argument scan is implemented in the function ScanConfigurationArgument().
  * see @ref alihltcomponent-initialization-ocdb.
  * Please provide specific descriptions and implementations.
- * \li -mandatory1     <i> teststring   </i> <br>
- *      an argument with one parameter
+ * \li -mandatory     <i> teststring   </i> <br>
+ *      
  *
  * <h2>Optional arguments:</h2>
  * <!-- NOTE: ignore the \li. <i> and </i>: it's just doxygen formatting -->
- * \li -optional1      <i> teststring   </i> <br>
+ * \li -oprional1      <i> teststring   </i> <br>
  *      an argument with one parameter
- * \li -optional2                            <br>
- *      an argument without parameters
+ * \li -verbose                              <br>
+ *      print some comments
  *
  * <h2>Configuration:</h2>
  * <!-- NOTE: ignore the \li. <i> and </i>: it's just doxygen formatting -->
  *
  * <h2>Default CDB entries:</h2>
  * The component has just one default CDB entry in 
- * <tt>HLT/ConfigSample/SampleESDAnalysis</tt>.
+ * <tt>HLT/ConfigSample/SampleRawAnalysis</tt>.
  * It does not load any configuration from the global <tt>ConfigHLT</tt>
  * folder.
  * \li -TObjString object holding a string with the configuration parameters
@@ -74,10 +87,10 @@
  *
  * @ingroup alihlt_tutorial
  */
-class AliHLTSampleESDAnalysisComponent : public AliHLTProcessor {
+class AliHLTSampleRawAnalysisComponent : public AliHLTProcessor {
 public:
-  AliHLTSampleESDAnalysisComponent();
-  virtual ~AliHLTSampleESDAnalysisComponent();
+  AliHLTSampleRawAnalysisComponent();
+  virtual ~AliHLTSampleRawAnalysisComponent();
 
   // AliHLTComponent interface functions
   const char* GetComponentID();
@@ -102,10 +115,16 @@ public:
 
 private:
   /** copy constructor prohibited */
-  AliHLTSampleESDAnalysisComponent(const AliHLTSampleESDAnalysisComponent&);
+  AliHLTSampleRawAnalysisComponent(const AliHLTSampleRawAnalysisComponent&);
   /** assignment operator prohibited */
-  AliHLTSampleESDAnalysisComponent& operator=(const AliHLTSampleESDAnalysisComponent&);
+  AliHLTSampleRawAnalysisComponent& operator=(const AliHLTSampleRawAnalysisComponent&);
 
-  ClassDef(AliHLTSampleESDAnalysisComponent, 0)
+  /// verbosity level
+  int fVerbosity; //! transient
+
+  /// rawreader instance
+  AliRawReaderMemory* fRawReader; //! transient
+
+  ClassDef(AliHLTSampleRawAnalysisComponent, 0)
 };
 #endif
