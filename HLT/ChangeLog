@@ -5,7 +5,10 @@
 #   merging:      '---> [module/comment]: x y z'
 #
 # merging of an entry of this file:
-# cat $ALICE_ROOT/HLT/ChangeLog | sed -e '/^#/d' -e '/--->/!d' | while read line; do revisions=`echo $line | sed -e 's|---> [ A-Za-z]*:||'`; text=`echo $line | sed -e 's|:[ 0-9]*||g'`; for r in $revisions; do echo $r $text; svn merge -c $r https://alisoft.cern.ch/AliRoot/trunk;done; done
+# cat $ALICE_ROOT/HLT/ChangeLog | sed -e '/^#/d' -e '/--->/!d' | while read line; do revisions=`echo $line | sed -e 's|---> [ A-Za-z/]*:||'`; text=`echo $line | sed -e 's|:[ 0-9]*||g'`; for r in $revisions; do echo $r $text; svn merge -c $r https://alisoft.cern.ch/AliRoot/trunk;done; done
+#
+# checking log message and diff of the selcted revisions
+# cat $ALICE_ROOT/HLT/ChangeLog | sed -e '/^#/d' -e '/--->/!d' | while read line; do revisions=`echo $line | sed -e 's|---> [ A-Za-z]*:||'`; text=`echo $line | sed -e 's|:[ 0-9]*||g'`; for r in $revisions; do echo $r $text;svn log -c $r https://alisoft.cern.ch/AliRoot/trunk/HLT; svn diff -c $r https://alisoft.cern.ch/AliRoot/trunk;done; done
 #
 # merged revisions:
 # for r in `cat $ALICE_ROOT/HLT/ChangeLog | sed -e '/---/!d' -e 's|---[ >:A-Za-z]*||'`; do echo $r; done | sort
@@ -23,13 +26,13 @@
 	--- Global: 42445
 	Track flags corrected for TRD tracks
 
-	--- Framework: 42446,42476,42503
+	--- Framework: 42446 42476 42503
 	build system, corrected warning, removal of obsolete code
 
 	--- TPC: 42460
 	bug https://savannah.cern.ch/bugs/?69885
 
-	--- TPC/Global: 42501
+	--- TPC Global: 42501
 	dE/dx component, postponed
 
 	--- TPC: 42513
@@ -44,7 +47,7 @@
 	--- EVE: 42479
 	changes related to TRD cluster change
 
-	---> trigger: 42504 42520 42521
+	--- trigger: 42504 42520 42521
 	D0 trigger, HLTGlobalTrigger
 
 	--- sim: 42522
@@ -52,3 +55,220 @@
 
 	--- PHOS QA: 42444
 	macro development, postponed
+
+	Last checked revision 42522
+
+2010-08-23 updated to r43010
+	--- util: 42934 42936 42938 42939 42940 43016 43017
+	ROOTSchemaEvolutionComponent, BlockFilter component
+	https://savannah.cern.ch/bugs/index.php?71740
+	ported in r43035
+
+	--- EVE: 42855 42856
+	HOMERProxyHandler
+	https://savannah.cern.ch/bugs/index.php?71742
+	ported in r43036
+
+	--- TRD: 42845
+	https://savannah.cern.ch/bugs/index.php?71521
+	ported in r42958
+
+	--- TPCLib Global: 42865 42866
+	add dEdx component in default configuration
+	https://savannah.cern.ch/bugs/index.php?71746
+	ported in r43038
+
+	--- BASE: 42754 42793 42808 42841 42935 42941 43006
+	bugfixes, helper methods, ClassDef cleaned
+	minor updates, ported 2010-09-20
+
+	--- BASE: 42772 42773
+	minor modifications, ported 2010-09-20
+
+	--- util: 42758 42760
+	minor modifications, ported 2010-09-20
+
+	--- BASE: 42998
+	HLT preprocessor, ported 2010-09-20
+
+	--- shuttle pendolino: 42996 42997
+	helper method, ported 2010-09-20
+
+	--- EVE: 42917
+	postponed
+
+	--- TRD: 42769 42776 42780 42781
+	minor code cleanup, ported 2010-09-20
+
+	--- Trigger: 42887 42891
+	output data type changed to kAliHLTDataTypeTriggerDecision/kAliHLTDataTypeGlobalTrigger
+	helper macro
+	to be ported after verification of reconstruction
+
+	--- MUON: 42888
+	minor changes, postponed
+
+	--- TPC: 42932 42933
+	data checker component, trunk development, postponed
+
+	--- QA: 42946 42947
+	postponed
+
+	xxx global aliroot change: 42844 42882
+	not ported
+
+	last checked revision 43017
+
+2010-09-06 updated to r43305
+	--- BASE: 43210
+	global aliroot fix, bugfix AliHLTReadoutList
+	https://savannah.cern.ch/bugs/index.php?71975
+	ported in r43211
+
+	--- BASE: 43350
+	bugfix AliHLTDataBuffer
+	https://savannah.cern.ch/bugs/index.php?72239
+	ported in r43387
+
+	--- BASE: 43353
+	bugfix libAliHLTUtil library dependencies
+	https://savannah.cern.ch/bugs/index.php?72266
+	ported in r43394
+
+	--- TRD: 43085 43088 43091 43104 43171 43173 43253 43327
+	corrected warnings, backward compatibility, bugfix in cluster charge
+	https://savannah.cern.ch/bugs/index.php?72342
+	ported in r43401
+
+	--- Global: 43335
+	https://savannah.cern.ch/bugs/index.php?72343
+	ported in r43402
+
+	--- BASE: 43198 43282
+	data type update, ported 2010-09-20
+
+	--- BASE: 43199 43229
+	bugfixes, helper methods, ClassDef cleaned
+	ported 2010-09-20
+
+	--- BASE: 43112
+	HLT preprocessor, ported 2010-09-20
+
+	--- BASE: 43108 43111 43137
+	AliHLTComponent helper method and argument scan
+	ported 2010-09-20
+
+	--- BASE: 43069 43070 43084
+	configuration substitution
+
+	--- BASE: 43176
+	time stamp in reconstruction
+
+	--- TPC: 43071
+	minor modification in DataChecker
+
+	--- CALO Backward compatibility: 43086 43087
+
+	--- CALO util: 43105 43172
+	ported 2010-09-20
+
+	--- util: 43110 43092
+	FileWriter/Publisher extension
+	RootSchemaEvolution extension and test macro
+	ported 2010-09-20
+
+	--- util: 43145 43146 43147 43148
+	HLTESDTrackCuts, postponed
+
+	--- util: 43281
+	data corruption component, postponed
+
+	--- MUON: 43109
+	MUON default reco chain
+
+	--- MUON: 43330
+	added library dependencies, to be reverted?
+
+	--- QA: 43342 43343
+
+	--- CALO: 43073 43074 43075 43076 43077 43078 43079 43080 43081
+	trunk development, postponed
+
+	--- Global: 43205
+	new vertexer version, postponed
+
+	--- trigger:  43149 43150 43157 43177
+	BarrelMultiplicityTrigger, to be tested
+
+	--- Jet: 43178 43179 43180 43181
+	trunk development, postponed
+
+	--- build system: 43151
+	fix for JET package
+	ported 2010-09-20
+
+	xxx TRD: 43169 43170
+	intermediate changes, not to be ported
+
+	Last checked revision 43353
+
+2010-09-13 updated to r43530
+	--- BASE: 43422
+	https://savannah.cern.ch/bugs/index.php?72524
+	ported in r43539
+
+2010-09-20 updated to r43542
+	--- BASE: 42754 42772 42773 42793 42808 42841 42842 42935 42941 42998 43006 43108 43111 43112 43137 43151 43198 43199 43229 43282 43383 43477 43596
+	compilation warnings
+	suppress warning in AliHLTDataSource,
+	code audit AliHLTCalibrationProcessor
+	DataType added
+	improved argument scan
+	TMap configuration objects
+	ticket https://savannah.cern.ch/bugs/index.php?72732
+
+	--- rec: 42843 43382 43476 43534
+	helper methods
+	bugfix LoadOCDBEntry bugs https://savannah.cern.ch/bugs/?69031 and https://savannah.cern.ch/bugs/?57740
+	ticket https://savannah.cern.ch/bugs/index.php?72730
+
+	--- shuttle pendolino: 42764 42996 42997
+	helper methods and cleanup
+	ticket https://savannah.cern.ch/bugs/index.php?72733
+
+	--- util: 42758 42760 43092 43110 43427 43515 43516
+	warnings corrected, bugfix MC publisher
+	ticket https://savannah.cern.ch/bugs/?72734
+
+	--- Sample: 43201 43202 43203 43204 43228 43351 43187 43200
+	new sample components, updated macros
+	ticket https://savannah.cern.ch/bugs/index.php?72735
+
+	--- TRD: 42769 42776 42780 42781 43461 43462
+	ticket https://savannah.cern.ch/bugs/?72499
+
+	--- CALO util: 43105 43172 43521
+	handle effC++ warnings
+	ticket https://savannah.cern.ch/bugs/index.php?72736
+
+	--- CALO: 43448 43449
+	postponed
+
+	--- trigger: 43505
+	potponed
+
+	xxx simulation: 43522
+	D0 trigger input: removed MC publisher
+	not yet in the release
+
+	--- TPC: 43478 43489 43577
+	CF parameters according to beam type
+	bugfix filling MC labels when running with deconvolution
+	postponed
+
+	--- TPC: 43439 43440 43443 43453 43454
+	new wrapper for TPC cluster transformation
+	HWClusterTransformation
+	postponed
+
+	Last check revision: 43596
