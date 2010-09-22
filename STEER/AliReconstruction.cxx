@@ -3436,9 +3436,15 @@ Bool_t AliReconstruction::InitAliEVE()
   // The return flag shows whenever the
   // AliEVE initialization was successful or not.
 
-  TString macroStr;
-  macroStr.Form("%s/EVE/macros/alieve_online.C",gSystem->ExpandPathName("$ALICE_ROOT"));
-  AliInfo(Form("Loading AliEVE macro: %s",macroStr.Data()));
+  TString macroPath;
+  macroPath.Form(".:%s:%s/EVE/macros/",
+		 gROOT->GetMacroPath(),
+		 gSystem->ExpandPathName("$ALICE_ROOT"));
+  gROOT->SetMacroPath(macroPath.Data());
+
+  TString macroStr("alieve_online.C");
+  AliInfo(Form("Loading AliEVE macro: %s (%s)",macroStr.Data(), 
+	       gSystem->Which(gROOT->GetMacroPath(), macroStr.Data())));
   if (gROOT->LoadMacro(macroStr.Data()) != 0) return kFALSE;
 
   gROOT->ProcessLine("if (!AliEveEventManager::GetMaster()){new AliEveEventManager();AliEveEventManager::GetMaster()->AddNewEventCommand(\"alieve_online_on_new_event()\");gEve->AddEvent(AliEveEventManager::GetMaster());};");
@@ -3456,7 +3462,7 @@ void AliReconstruction::RunAliEVE()
   // successful initialization of AliEVE.
 
   AliInfo("Running AliEVE...");
-  gROOT->ProcessLine(Form("AliEveEventManager::GetMaster()->SetEvent((AliRunLoader*)0x%lx,(AliRawReader*)0x%lx,(AliESDEvent*)0x%lx,(AliESDfriend*)0x%lx);",fRunLoader,fRawReader,fesd,fesdf));
+  gROOT->ProcessLine(Form("AliEveEventManager::GetMaster()->SetEvent((AliRunLoader*)%p,(AliRawReader*)%p,(AliESDEvent*)%p,(AliESDfriend*)%p);",fRunLoader,fRawReader,fesd,fesdf));
   gSystem->Run();
 }
 
