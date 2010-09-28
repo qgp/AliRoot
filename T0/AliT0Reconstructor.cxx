@@ -259,7 +259,6 @@ void AliT0Reconstructor::Reconstruct(AliRawReader* rawReader, TTree*recTree) con
   Int_t refPoint = 0;
   //Bad channel
   Int_t badpmt = GetRecoParam()->GetRefPoint();
-  
   Int_t low[110], high[110];
 
   Int_t allData[110][5];
@@ -421,7 +420,7 @@ void AliT0Reconstructor::Reconstruct(AliRawReader* rawReader, TTree*recTree) con
        }
        fESDTZEROfriend->SetT0timeCorr(noncalibtime) ;     
        for (Int_t ipmt=0; ipmt<12; ipmt++){
-	 if(time[ipmt] > 1 && ipmt != badpmt )
+	 if(time[ipmt] > 1 && ipmt != badpmt && adc[ipmt]>0.1 )
 	   {
 	     if(time[ipmt]<besttimeC){
 	       besttimeC=time[ipmt]; //timeC
@@ -431,7 +430,7 @@ void AliT0Reconstructor::Reconstruct(AliRawReader* rawReader, TTree*recTree) con
        }
        for ( Int_t ipmt=12; ipmt<24; ipmt++)
 	 {
-	   if(time[ipmt] > 1 && ipmt != badpmt)
+	   if(time[ipmt] > 1 && ipmt != badpmt && adc[ipmt]>0.1)
 	     {
 	       if(time[ipmt]<besttimeA) {
 		 besttimeA=time[ipmt]; //timeA
