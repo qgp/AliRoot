@@ -1910,7 +1910,7 @@ Bool_t AliTPCcalibDButil::CreateGUIRefTree(const char* filename)
 
 Double_t  AliTPCcalibDButil::GetVDriftTPCLaserTracks(Double_t &dist, Int_t run, Int_t timeStamp, Double_t deltaT, Int_t side){
   //
-  // Get the correction of the drift velocity using the laser tracks calbration
+  // Get the correction of the drift velocity using the offline laser tracks calbration
   //
   // run       - run number
   // timeStamp - tim stamp in seconds
@@ -1918,6 +1918,56 @@ Double_t  AliTPCcalibDButil::GetVDriftTPCLaserTracks(Double_t &dist, Int_t run, 
   // side      - 0 - A side,  1 - C side, 2 - mean from both sides
   // Note in case no data form both A and C side - the value from active side used
   TObjArray *array =AliTPCcalibDB::Instance()->GetTimeVdriftSplineRun(run);
+
+  return GetVDriftTPCLaserTracksCommon(dist, timeStamp, deltaT, side, array);
+}
+
+Double_t  AliTPCcalibDButil::GetVDriftTPCLaserTracksOnline(Double_t &dist, Int_t /*run*/, Int_t timeStamp, Double_t deltaT, Int_t side){
+  //
+  // Get the correction of the drift velocity using the online laser tracks calbration
+  //
+  // run       - run number
+  // timeStamp - tim stamp in seconds
+  // deltaT    - integration period to calculate time0 offset
+  // side      - 0 - A side,  1 - C side, 2 - mean from both sides
+  // Note in case no data form both A and C side - the value from active side used
+  TObjArray *array =AliTPCcalibDB::Instance()->GetCEfitsDrift();
+
+  Double_t dv = GetVDriftTPCLaserTracksCommon(dist, timeStamp, deltaT, side, array);
+  AliTPCParam *param  =AliTPCcalibDB::Instance()->GetParameters();
+  if (!param) return 0;
+
+  //the drift velocity is hard wired in the AliTPCCalibCE class, since online there is no access to OCDB
+  dv*=param->GetDriftV()/2.61301900000000000e+06;
+  if (dv>1e-20) dv=1/dv-1;
+  else return 0;
+  // T/P correction
+  TObjArray*  cearray =AliTPCcalibDB::Instance()->GetCEData();
+  
+  AliTPCSensorTempArray *temp = (AliTPCSensorTempArray*)cearray->FindObject("TempMap");
+  AliDCSSensor *press         = (AliDCSSensor*)cearray->FindObject("CavernAtmosPressure");
+  
+  Double_t corrPTA=0;
+  Double_t corrPTC=0;
+  
+  if (temp&&press) {
+    AliTPCCalibVdrift corr(temp,press,0);
+    corrPTA=corr.GetPTRelative(timeStamp,0);
+    corrPTC=corr.GetPTRelative(timeStamp,1);
+  }
+  
+  if (side==0) dv -=  corrPTA;
+  if (side==1) dv -=  corrPTC;
+  if (side==2) dv -=  (corrPTA+corrPTC)/2;
+  
+  return dv;
+}
+
+Double_t  AliTPCcalibDButil::GetVDriftTPCLaserTracksCommon(Double_t &dist, Int_t timeStamp, Double_t deltaT,
+  Int_t side, TObjArray * const array){
+  //
+  // common drift velocity retrieval for online and offline method
+  //
   TGraphErrors *grlaserA=0;
   TGraphErrors *grlaserC=0;
   Double_t vlaserA=0, vlaserC=0;
@@ -2319,7 +2369,7 @@ Double_t AliTPCcalibDButil::EvalGraphConst(TGraph * const graph, Double_t xref){
   if (xref<graph->GetX()[0]) return graph->GetY()[0];
   if (xref>graph->GetX()[graph->GetN()-1]) return graph->GetY()[graph->GetN()-1]; 
 
-  printf("graph->Eval(graph->GetX()[0]) %f, graph->Eval(xref) %f \n",graph->Eval(graph->GetX()[0]), graph->Eval(xref));
+  //  printf("graph->Eval(graph->GetX()[0]) %f, graph->Eval(xref) %f \n",graph->Eval(graph->GetX()[0]), graph->Eval(xref));
 
   if(graph->GetN()==1)
     return graph->Eval(graph->GetX()[0]);
@@ -3024,16 +3074,32 @@ TObjArray *AliTPCcalibDButil::SmoothRelKalman(TObjArray * const arrayP, TObjArra
   if (arrayP->GetEntries()<=0) return 0;
   if (!arrayM) return 0;
   if (arrayM->GetEntries()<=0) return 0;
+
   Int_t entries = arrayP->GetEntriesFast();
   TObjArray *array = new TObjArray(arrayP->GetEntriesFast()); 
+
   for (Int_t i=0; i<entries; i++){
      AliRelAlignerKalman * kalmanP = (AliRelAlignerKalman *) arrayP->UncheckedAt(i);
      AliRelAlignerKalman * kalmanM = (AliRelAlignerKalman *) arrayM->UncheckedAt(i);
      if (!kalmanP) continue;
      if (!kalmanM) continue;
-     AliRelAlignerKalman *kalman = new AliRelAlignerKalman(*kalmanP);
-     kalman->Merge(kalmanM);
+  
+     AliRelAlignerKalman *kalman = NULL;
+     if(kalmanP->GetRunNumber() != 0 && kalmanM->GetRunNumber() != 0) {
+       kalman = new AliRelAlignerKalman(*kalmanP);
+       kalman->Merge(kalmanM);
+     }
+     else if (kalmanP->GetRunNumber() == 0) {
+       kalman = new AliRelAlignerKalman(*kalmanM);
+     }
+     else if (kalmanM->GetRunNumber() == 0) {
+       kalman = new AliRelAlignerKalman(*kalmanP);
+     }
+     else 
+       continue;
+
      array->AddAt(kalman,i);
   }
+
   return array;
 }
