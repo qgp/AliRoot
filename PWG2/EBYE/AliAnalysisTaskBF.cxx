@@ -17,6 +17,7 @@
 #include "AliMCEventHandler.h"
 #include "AliMCEvent.h"
 #include "AliStack.h"
+#include "AliESDtrackCuts.h"
 
 #include "AliBalance.h"
 
@@ -32,7 +33,11 @@ AliAnalysisTaskBF::AliAnalysisTaskBF(const char *name)
   : AliAnalysisTaskSE(name), 
     fBalance(0),
     fList(0),
-    fHistEventStats(0) {
+    fHistEventStats(0),
+    fESDtrackCuts(0),
+    fVxMax(0.3),
+    fVyMax(0.3),
+    fVzMax(10.) {
   // Constructor
 
   // Define input and output slots here
@@ -67,6 +72,8 @@ void AliAnalysisTaskBF::UserCreateOutputObjects() {
     fHistEventStats->GetXaxis()->SetBinLabel(i,gCutName[i-1].Data());
   fList->Add(fHistEventStats);
 
+  if(fESDtrackCuts) fList->Add(fESDtrackCuts);
+
   // Post output data.
   PostData(1, fBalance);
   PostData(2, fList);
@@ -95,18 +102,32 @@ void AliAnalysisTaskBF::UserExec(Option_t *) {
 
       const AliESDVertex *vertex = gESD->GetPrimaryVertex();
       if(vertex) {
-	fHistEventStats->Fill(3); //events with a proper vertex
-	fHistEventStats->Fill(4); //analayzed events
+	if(vertex->GetNContributors() > 0) {
+	  if(vertex->GetZRes() != 0) {
+	    fHistEventStats->Fill(3); //events with a proper vertex
+	    if(TMath::Abs(vertex->GetXv()) < fVxMax) {
+	      if(TMath::Abs(vertex->GetYv()) < fVyMax) {
+		if(TMath::Abs(vertex->GetZv()) < fVzMax) {
+		  fHistEventStats->Fill(4); //analayzed events
 	
-	Printf("There are %d tracks in this event", gESD->GetNumberOfTracks());
-	for (Int_t iTracks = 0; iTracks < gESD->GetNumberOfTracks(); iTracks++) {
-	  AliESDtrack* track = gESD->GetTrack(iTracks);
-	  if (!track) {
-	    Printf("ERROR: Could not receive track %d", iTracks);
-	    continue;
-	  }
-	  array->Add(track);
-	} //track loop
+		  Printf("There are %d tracks in this event", gESD->GetNumberOfTracks());
+		  for (Int_t iTracks = 0; iTracks < gESD->GetNumberOfTracks(); iTracks++) {
+		    AliESDtrack* track = gESD->GetTrack(iTracks);
+		    if (!track) {
+		      Printf("ERROR: Could not receive track %d", iTracks);
+		      continue;
+		    }
+		    
+		    //ESD track cuts
+		    if(fESDtrackCuts) 
+		      if(!fESDtrackCuts->AcceptTrack(track)) continue;
+		    array->Add(track);
+		  } //track loop
+		}//Vz cut
+	      }//Vy cut
+	    }//Vx cut
+	  }//proper vertex resolution
+	}//proper number of contributors
       }//vertex object valid
     }//triggered event 
   }//ESD analysis
