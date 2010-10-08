@@ -973,7 +973,7 @@ void AliEMCALDigitizer::MixWith(TString alirunFileName, TString eventFolderName)
   // looking for the file which contains SDigits
   AliEMCALLoader *emcalLoader = dynamic_cast<AliEMCALLoader*>(AliRunLoader::Instance()->GetDetectorLoader("EMCAL"));
   
-  if(emcalLoader){
+  if(!emcalLoader){
     AliFatal("Did not get the  Loader");
   }
   else{
