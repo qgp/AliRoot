@@ -40,6 +40,7 @@ class AliEMCALGeometry;
 class AliEMCALCalibData ;
 class AliCaloCalibPedestal ;
 class AliEMCALTriggerElectronics;
+class AliEMCALTriggerData;
 
 // --- Standard library ---
 
@@ -55,7 +56,7 @@ public:
 
   virtual  void Init() {;}
   virtual  void InitClusterizer();
-  
+
   Bool_t       Debug() const { return fDebug ; }
 
   using AliReconstructor::FillESD;
@@ -97,13 +98,17 @@ private:
 						// parameters for EMCAL
   static AliEMCALRawUtils*   fgRawUtils;  // raw utilities class -
 					  // only need one per reco
-  static TClonesArray*       fgDigitsArr; // Array with EMCAL digits
+  static TClonesArray*       fgDigitsArr;   // Array with EMCAL digits
+  static TObjArray*          fgClustersArr; // Array with EMCAL clusters
+
   AliEMCALCalibData    * fCalibData   ;   //! Calibration database if aval
   AliCaloCalibPedestal * fPedestalData ;   //! Tower status database if aval
 
   static AliEMCALTriggerElectronics* fgTriggerProcessor;
-
-  ClassDef(AliEMCALReconstructor,9)  // Reconstruction algorithm class (Base Class)
+  AliEMCALTriggerData* fTriggerData;
+	
+	
+  ClassDef(AliEMCALReconstructor,10)  // Reconstruction algorithm class (Base Class)
 
 }; 
 
