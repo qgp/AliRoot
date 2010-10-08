@@ -37,8 +37,6 @@
 #include "AliEMCALReconstructor.h"
 
 #include "AliCodeTimer.h"
-#include "AliCaloCalibPedestal.h"
-#include "AliEMCALCalibData.h"
 #include "AliESDEvent.h"
 #include "AliESDCaloCluster.h"
 #include "AliESDCaloCells.h"
@@ -64,22 +62,17 @@
 #include "AliEMCALTriggerElectronics.h"
 #include "AliEMCALTriggerDCSConfigDB.h"
 #include "AliEMCALTriggerDCSConfig.h"
-#include "AliEMCALTriggerData.h"
-#include "AliEMCALTriggerRawDigit.h"
-#include "AliEMCALTriggerPatch.h"
-#include "AliEMCALTriggerTypes.h"
 
 ClassImp(AliEMCALReconstructor) 
 
-const AliEMCALRecParam*     AliEMCALReconstructor::fgkRecParam        = 0;   // EMCAL rec. parameters
-AliEMCALRawUtils*           AliEMCALReconstructor::fgRawUtils         = 0;   // EMCAL raw utilities class
-AliEMCALClusterizer*        AliEMCALReconstructor::fgClusterizer      = 0;   // EMCAL clusterizer class
-TClonesArray*               AliEMCALReconstructor::fgDigitsArr        = 0;   // list of digits, to be used multiple times
-TObjArray*                  AliEMCALReconstructor::fgClustersArr      = 0;   // list of clusters, to be used multiple times
+const AliEMCALRecParam* AliEMCALReconstructor::fgkRecParam = 0;  // EMCAL rec. parameters
+AliEMCALRawUtils* AliEMCALReconstructor::fgRawUtils = 0;   // EMCAL raw utilities class
+AliEMCALClusterizer* AliEMCALReconstructor::fgClusterizer = 0;   // EMCAL clusterizer class
+TClonesArray*     AliEMCALReconstructor::fgDigitsArr = 0;  // shoud read just once at event
 AliEMCALTriggerElectronics* AliEMCALReconstructor::fgTriggerProcessor = 0x0;
 //____________________________________________________________________________
 AliEMCALReconstructor::AliEMCALReconstructor() 
-  : fDebug(kFALSE), fList(0), fGeom(0),fCalibData(0),fPedestalData(0),fTriggerData(0x0) 
+  : fDebug(kFALSE), fList(0), fGeom(0),fCalibData(0),fPedestalData(0) 
 {
   // ctor
 
@@ -109,16 +102,16 @@ AliEMCALReconstructor::AliEMCALReconstructor()
   //Get calibration parameters	
   if(!fPedestalData)
     {
-      AliCDBEntry *entry = (AliCDBEntry*) 
-	AliCDBManager::Instance()->Get("EMCAL/Calib/Pedestals");
-      if (entry) fPedestalData =  (AliCaloCalibPedestal*) entry->GetObject();
+		AliCDBEntry *entry = (AliCDBEntry*) 
+		AliCDBManager::Instance()->Get("EMCAL/Calib/Pedestals");
+		if (entry) fPedestalData =  (AliCaloCalibPedestal*) entry->GetObject();
     }
-  
+	
   if(!fPedestalData)
     AliFatal("Dead map not found in CDB!");
-  
-  InitClusterizer();
 	
+  InitClusterizer();
+		
   if(!fGeom) AliFatal(Form("Could not get geometry!"));
 
   AliEMCALTriggerDCSConfigDB* dcsConfigDB = AliEMCALTriggerDCSConfigDB::Instance();
@@ -127,38 +120,17 @@ AliEMCALReconstructor::AliEMCALReconstructor()
 
   if (!dcsConfig) AliFatal("No Trigger DCS Configuration from OCDB!");
   fgTriggerProcessor = new AliEMCALTriggerElectronics( dcsConfig );
-	
-  fTriggerData = new AliEMCALTriggerData();
-
- //Init temporary list of digits
-  fgDigitsArr   = new TClonesArray("AliEMCALDigit",1000);
-  fgClustersArr = new TObjArray(1000);
-	
 } 
 
 //____________________________________________________________________________
 AliEMCALReconstructor::~AliEMCALReconstructor()
 {
   // dtor
+  delete fGeom;
+  delete fgRawUtils;
+  delete fgClusterizer;
+  delete fgTriggerProcessor;
 
-  if(fGeom)              delete fGeom;
-  if(fCalibData)         delete fCalibData;
-  if(fPedestalData)      delete fPedestalData;
-  
-  if(fgDigitsArr){
-    fgDigitsArr->Clear("C");
-    delete fgDigitsArr; 
-  }
-  
-  if(fgClustersArr){
-    fgClustersArr->Clear();
-    delete fgClustersArr; 
-  }
-  
-  if(fgRawUtils)         delete fgRawUtils;
-  if(fgClusterizer)      delete fgClusterizer;
-  if(fgTriggerProcessor) delete fgTriggerProcessor;
-  
   AliCodeTimer::Instance()->Print();
 } 
 
@@ -176,22 +148,22 @@ void AliEMCALReconstructor::InitClusterizer()
   
   AliEMCALRecParam *recParam = NULL;
   AliCDBEntry *entry = (AliCDBEntry*) 
-    AliCDBManager::Instance()->Get("EMCAL/Calib/RecoParam");
+  AliCDBManager::Instance()->Get("EMCAL/Calib/RecoParam");
   //Get The reco param for the default event specie
   if (entry) 
-    recParam = (AliEMCALRecParam*)((TObjArray *) entry->GetObject())->At(0);
-  
+   recParam = (AliEMCALRecParam*)((TObjArray *) entry->GetObject())->At(0);
+    
   if(!recParam)  
     AliFatal("RecoParam not found in CDB!");
-  
+    
   if (recParam->GetClusterizerFlag() == AliEMCALRecParam::kClusterizerv1)
-    {
-      fgClusterizer = new AliEMCALClusterizerv1(fGeom, fCalibData,fPedestalData); 
-    }
+  {
+    fgClusterizer = new AliEMCALClusterizerv1(fGeom, fCalibData,fPedestalData); 
+  }
   else
-    {
-      fgClusterizer = new AliEMCALClusterizerNxN(fGeom, fCalibData,fPedestalData); 
-    }
+  {
+    fgClusterizer = new AliEMCALClusterizerNxN(fGeom, fCalibData,fPedestalData); 
+  }
   
 }
 
@@ -207,14 +179,38 @@ void AliEMCALReconstructor::Reconstruct(TTree* digitsTree, TTree* clustersTree) 
   AliCodeTimerAuto("",0)
 
   ReadDigitsArrayFromTree(digitsTree);
-
+  
   fgClusterizer->InitParameters();
   fgClusterizer->SetOutput(clustersTree);
- 	
+ 
+  AliEMCALTriggerData* trgData = new AliEMCALTriggerData();
+	
+  Int_t bufferSize = 32000;
+
+  if (TBranch* triggerBranch = clustersTree->GetBranch("EMTRG"))
+		triggerBranch->SetAddress(&trgData);
+	else
+		clustersTree->Branch("EMTRG","AliEMCALTriggerData",&trgData,bufferSize);
+
+  TClonesArray *trgDigits = new TClonesArray("AliEMCALRawDigit",1000);
+  TBranch *branchdig = digitsTree->GetBranch("EMTRG");
+  if (!branchdig) 
+  { 
+	  AliError("Can't get the branch with the EMCAL trigger digits !");
+	  return;
+  }
+
+  branchdig->SetAddress(&trgDigits);
+  branchdig->GetEntry(0);
+	
   //Skip clusterization of LED events
   if (GetRecParam()->GetEventSpecie()!=AliRecoParam::kCalib){
 
-		if(fgDigitsArr && fgDigitsArr->GetEntries()) {
+	  Int_t v0M[2] = {0,0};
+	  fgTriggerProcessor->Digits2Trigger(trgDigits, v0M, trgData);
+	
+ 
+	  if(fgDigitsArr && fgDigitsArr->GetEntries()) {
 
 		  fgClusterizer->SetInput(digitsTree);
     
@@ -229,6 +225,10 @@ void AliEMCALReconstructor::Reconstruct(TTree* digitsTree, TTree* clustersTree) 
   }//not a LED event
 	
   clustersTree->Fill();	
+  trgDigits->Delete();
+  delete trgDigits; trgDigits = 0x0;
+  delete trgData;   trgData   = 0x0;
+
 }
 
 //____________________________________________________________________________
@@ -241,14 +241,11 @@ void AliEMCALReconstructor::ConvertDigits(AliRawReader* rawReader, TTree* digits
 
   rawReader->Reset() ; 
 
-  fTriggerData->SetMode(1);	
-
-  if(fgDigitsArr) fgDigitsArr->Clear("C");
-
-  TClonesArray *digitsTrg = new TClonesArray("AliEMCALTriggerRawDigit", 32 * 96);
+  TClonesArray *digitsArr = new TClonesArray("AliEMCALDigit",200);
+  TClonesArray *digitsTrg = new TClonesArray("AliEMCALRawDigit", 200);
 
   Int_t bufsize = 32000;
-  digitsTree->Branch("EMCAL", &fgDigitsArr, bufsize);
+  digitsTree->Branch("EMCAL", &digitsArr, bufsize);
   digitsTree->Branch("EMTRG", &digitsTrg, bufsize);
 	
   //Skip calibration events do the rest
@@ -269,14 +266,16 @@ void AliEMCALReconstructor::ConvertDigits(AliRawReader* rawReader, TTree* digits
 	  fgRawUtils->SetTimeMin(GetRecParam()->GetTimeMin());
 	  fgRawUtils->SetTimeMax(GetRecParam()->GetTimeMax());
 	
-	  fgRawUtils->Raw2Digits(rawReader,fgDigitsArr,fPedestalData,digitsTrg,fTriggerData);
+	  fgRawUtils->Raw2Digits(rawReader,digitsArr,fPedestalData,digitsTrg);
   }//skip calibration event
   else{
 	AliDebug(1," Calibration Event, skip!");
   }
 	
   digitsTree->Fill();
+  digitsArr->Delete();
   digitsTrg->Delete();
+  delete digitsArr;
   delete digitsTrg;
 
 }
@@ -289,110 +288,22 @@ void AliEMCALReconstructor::FillESD(TTree* digitsTree, TTree* clustersTree,
   // Called by AliReconstruct after Reconstruct() and global tracking and vertexing 
   // and V0 
   // Works on the current event
-  // printf(" ## AliEMCALReconstructor::FillESD() is started ### \n ");
+  //  printf(" ## AliEMCALReconstructor::FillESD() is started ### \n ");
   //return;
 
-  //FIXME UNCOMMENT WHEN ESDTRIGGER AVAILABLE 
-//   // Trigger
-//   Int_t v0M[2] = {0, 0};
-	
-//   AliESDVZERO* esdV0 = esd->GetVZEROData();
-
-//   if (esdV0) 
-//   {
-// 	  for (Int_t i = 0; i < 32; i++)
-// 	  {
-// 		  v0M[0] += esdV0->GetAdcV0C(i);
-// 		  v0M[1] += esdV0->GetAdcV0A(i);
-// 	  }
-//   }
-//   else
-//   {
-// 	  AliWarning("Cannot retrieve V0 ESD! Run w/ null V0 charges");
-//   }
-
-//   TClonesArray *trgDigits = new TClonesArray("AliEMCALTriggerRawDigit",1000);
-	
-//   TBranch *branchtrg = digitsTree->GetBranch("EMTRG");
-	
-//   if (!branchtrg) 
-//   { 
-// 	  AliError("Can't get the branch with the EMCAL trigger digits!");
-// 	  return;
-//   }
-	
-//   branchtrg->SetAddress(&trgDigits);
-//   branchtrg->GetEntry(0);
-  
-//   // Note: fgTriggerProcessor reset done at the end of this method
-//   fgTriggerProcessor->Digits2Trigger(trgDigits, v0M, fTriggerData);
-
-//   // Fill ESD
-//   AliESDCaloTrigger* trgESD = esd->GetCaloTrigger("EMCAL");
-  
-//   if (trgESD)
-//   {
-// 	  trgESD->Allocate(trgDigits->GetEntriesFast());
-	  
-// 	  for (Int_t i = 0; i < trgDigits->GetEntriesFast(); i++)
-// 	  {	  
-// 		  AliEMCALTriggerRawDigit* rdig = (AliEMCALTriggerRawDigit*)trgDigits->At(i);
-		  
-// 		  Int_t px, py;
-// 		  if (fGeom->GetPositionInEMCALFromAbsFastORIndex(rdig->GetId(), px, py))
-// 		  {
-// 			  Int_t a = -1, t = -1, times[10]; 
-			  
-// 			  rdig->GetMaximum(a, t);
-// 			  rdig->GetL0Times(times);
-			  
-// //			  rdig->Print("");
-			  
-// 			  trgESD->Add(px, py, a, t, times, rdig->GetNL0Times(), rdig->GetL1TimeSum());
-// 		  }
-// 	  }
-	  
-// //	  cout << "End of Adding................." << endl;
-
-// 	  trgESD->SetL1Threshold(0, fTriggerData->GetL1GammaThreshold());
-	  
-// 	  trgESD->SetL1Threshold(1, fTriggerData->GetL1JetThreshold()  );
-
-// 	  for (Int_t i = 0; i < kTriggerTypeEnd; i++)
-// 	  {	  
-// 		  for (Int_t j = 0; j < 2; j++)
-// 		  {
-// 			  TClonesArray* patches = fTriggerData->GetPatches((TriggerType_t)i, j);
-			  
-// 			  TIter NextPatch(patches);
-// 			  while (AliEMCALTriggerPatch* p = (AliEMCALTriggerPatch*)NextPatch())
-// 			  {
-// 				  TVector2 pos; p->Position(pos);
-// 				  trgESD->SetTriggerBits(pos.X(), pos.Y(), i, j);
-// 			  }
-// 		  }
-// 	  }
-//   }
-
-//   // Resetting
-//   fTriggerData->Reset();
-// //  cout << "Reset trg data" << endl;
-  //FIXME UNCOMMENT WHEN ESDTRIGGER AVAILABLE 
-  
   //########################################
   //##############Fill CaloCells###############
   //########################################
-  ReadDigitsArrayFromTree(digitsTree);
 
-//   TClonesArray *digits = new TClonesArray("AliEMCALDigit",1000);
-//   TBranch *branchdig = digitsTree->GetBranch("EMCAL");
-//   if (!branchdig) { 
-//     AliError("can't get the branch with the EMCAL digits !");
-//     return;
-//   }
-//   branchdig->SetAddress(&digits);
-//   digitsTree->GetEvent(0);
-  Int_t nDigits = fgDigitsArr->GetEntries(), idignew = 0 ;
+  TClonesArray *digits = new TClonesArray("AliEMCALDigit",1000);
+  TBranch *branchdig = digitsTree->GetBranch("EMCAL");
+  if (!branchdig) { 
+    AliError("can't get the branch with the EMCAL digits !");
+    return;
+  }
+  branchdig->SetAddress(&digits);
+  digitsTree->GetEvent(0);
+  Int_t nDigits = digits->GetEntries(), idignew = 0 ;
   AliDebug(1,Form("%d digits",nDigits));
 
   AliESDCaloCells &emcCells = *(esd->GetEMCALCells());
@@ -400,7 +311,7 @@ void AliEMCALReconstructor::FillESD(TTree* digitsTree, TTree* clustersTree,
   emcCells.SetType(AliESDCaloCells::kEMCALCell);
   Float_t energy = 0;
   for (Int_t idig = 0 ; idig < nDigits ; idig++) {
-    const AliEMCALDigit * dig = (const AliEMCALDigit*)fgDigitsArr->At(idig);
+    const AliEMCALDigit * dig = (const AliEMCALDigit*)digits->At(idig);
     if(dig->GetAmplitude() > 0 ){
 	  energy = fgClusterizer->Calibrate(dig->GetAmplitude(),dig->GetTime(),dig->GetId()); //TimeR or Time?
 	  if(energy > 0){ //Digits tagged as bad (dead, hot, not alive) are set to 0 in calibrate, remove them	
@@ -417,13 +328,14 @@ void AliEMCALReconstructor::FillESD(TTree* digitsTree, TTree* clustersTree,
   //------------------------------------------------------------
   clustersTree->SetBranchStatus("*",0); //disable all branches
   clustersTree->SetBranchStatus("EMCALECARP",1); //Enable only the branch we need
-  if(fgClustersArr) fgClustersArr->Clear();
+
+  TObjArray *clusters = new TObjArray(100);
   TBranch *branch = clustersTree->GetBranch("EMCALECARP");
-  branch->SetAddress(&fgClustersArr);
+  branch->SetAddress(&clusters);
   branch->GetEntry(0);
   //clustersTree->GetEvent(0);
 
-  Int_t nClusters = fgClustersArr->GetEntries(),  nClustersNew=0;
+  Int_t nClusters = clusters->GetEntries(),  nClustersNew=0;
   AliDebug(1,Form("%d clusters",nClusters));
 
   //######################################################
@@ -449,7 +361,7 @@ void AliEMCALReconstructor::FillESD(TTree* digitsTree, TTree* clustersTree,
   //##############Fill CaloClusters#############
   //########################################
   for (Int_t iClust = 0 ; iClust < nClusters ; iClust++) {
-    const AliEMCALRecPoint * clust = (const AliEMCALRecPoint*)fgClustersArr->At(iClust);
+    const AliEMCALRecPoint * clust = (const AliEMCALRecPoint*)clusters->At(iClust);
     //if(clust->GetClusterType()== AliESDCaloCluster::kEMCALClusterv1) nRP++; else nPC++;
     if (Debug()) clust->Print();
     // Get information from EMCAL reconstruction points
@@ -504,7 +416,7 @@ void AliEMCALReconstructor::FillESD(TTree* digitsTree, TTree* clustersTree,
       Double_t *newFracList   = new Double_t[newCellMult];
       for(Int_t i = 0; i < newCellMult ; i++) {
         newAbsIdList[i]=absIdList[i];
-        newFracList[i] =fracList[i];
+        newFracList[i]=fracList[i];
       }
       ec->SetCellsAbsId(newAbsIdList);
       ec->SetCellsAmplitudeFraction(newFracList);
@@ -537,7 +449,10 @@ void AliEMCALReconstructor::FillESD(TTree* digitsTree, TTree* clustersTree,
  pid->SetReconstructor(kTRUE);
  pid->RunPID(esd);
  delete pid;
-    
+  
+ delete digits;
+ delete clusters;
+  
  //Store EMCAL misalignment matrixes
  FillMisalMatrixes(esd) ;
 
@@ -588,8 +503,8 @@ void AliEMCALReconstructor::ReadDigitsArrayFromTree(TTree *digitsTree) const
   // See AliEMCALClusterizer::SetInput(TTree *digitsTree);
   if(fgDigitsArr) {
     // Clear previous digits 
-    fgDigitsArr->Clear("C");
-    //delete fgDigitsArr;
+    fgDigitsArr->Delete();
+    delete fgDigitsArr;
   }
   // Read the digits from the input tree
   TBranch *branch = digitsTree->GetBranch("EMCAL");

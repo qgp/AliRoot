@@ -135,20 +135,14 @@ AliEMCALClusterizer::AliEMCALClusterizer(AliEMCALGeometry* geometry, AliEMCALCal
 AliEMCALClusterizer::~AliEMCALClusterizer()
 {
   // dtor
-  //Already deleted in AliEMCALReconstructor.
-
-//   if(fGeom)      delete fGeom;
-//   if(fCalibData) delete fCalibData;
-//   if(fCaloPed)   delete fCaloPed;
-
-//   if (fDigitsArr) {
-//     fDigitsArr->Clear("C");
-//     delete fDigitsArr;
-//   }
-//   if (fRecPoints) {
-//     fRecPoints->Delete();
-//     delete fRecPoints;
-//  }
+  if (fDigitsArr) {
+    fDigitsArr->Delete();
+    delete fDigitsArr;
+  }
+  if (fRecPoints) {
+    fRecPoints->Delete();
+    delete fRecPoints;
+  }
 }
 
 //____________________________________________________________________________

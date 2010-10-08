@@ -89,15 +89,14 @@ AliEMCALTriggerBoard::~AliEMCALTriggerBoard()
 {
    for (Int_t i=0;i<fRegionSize->X();i++) 
    {
-      if (fRegion[i]) {free(fRegion[i]); fRegion[i] = 0;}
-      if (   fMap[i]) {free(fMap[i]);    fMap[i] = 0;}
+      if (fRegion[i]) {delete fRegion[i]; fRegion[i] = 0;}
+      if (   fMap[i]) {delete    fMap[i];    fMap[i] = 0;}
    }
    
-   free(fRegion); fRegion = 0x0;
-   free(fMap);    fMap = 0x0;
+   delete [] fRegion; fRegion = 0x0;
+   delete []    fMap;    fMap = 0x0;
    
    if(fPatches)fPatches->Delete();
-   
    delete fPatches;
 }
 
@@ -109,7 +108,7 @@ void AliEMCALTriggerBoard::ZeroRegion()
 }
 
 //_______________
-void AliEMCALTriggerBoard::SlidingWindow(TriggerType_t /*type*/, Int_t thres, Int_t time)
+void AliEMCALTriggerBoard::SlidingWindow( L1TriggerType_t /*type*/, Int_t thres )
 {
 	//
 	Int_t ipatch = 0;
@@ -135,7 +134,7 @@ void AliEMCALTriggerBoard::SlidingWindow(TriggerType_t /*type*/, Int_t thres, In
 				//if ( type == kJet ) sum /= 4; // truncate patch sum for jet case
 				
 				new((*fPatches)[fPatches->GetLast()+1]) 
-						AliEMCALTriggerPatch(int(i/fSubRegionSize->X()), int(j/fSubRegionSize->Y()), int(sum), time);
+						AliEMCALTriggerPatch( int(i/fSubRegionSize->X()), int(j/fSubRegionSize->Y()), int(sum) );
 			}
 		}
 	}

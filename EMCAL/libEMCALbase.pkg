@@ -38,10 +38,7 @@ AliCaloRawAnalyzerPeakFinder.cxx \
 AliEMCALTriggerDCSConfig.cxx \
 AliEMCALTriggerTRUDCSConfig.cxx \
 AliEMCALTriggerSTUDCSConfig.cxx \
-AliEMCALTriggerDCSConfigDB.cxx \
-AliEMCALTriggerRawDigitMaker.cxx \
-AliCaloRawAnalyzerFakeALTRO.cxx \
-AliEMCALTriggerRawDigit.cxx
+AliEMCALTriggerDCSConfigDB.cxx
 
 
 

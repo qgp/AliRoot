@@ -4,11 +4,7 @@
  * See cxx source for full Copyright notice                               */
 
 /*
- 
- 
-
-Adapted from TRD: thanks!
-Author: R. GUERNANE LPSC Grenoble CNRS/IN2P3
+ adapted from TRD: thanks!
 */
 
 #ifndef ROOT_TObject
@@ -29,8 +25,7 @@ public:
 	void                                SetRun(Long64_t run);
 	Long64_t                            GetRun() const { return fRun; }
 	const AliEMCALTriggerDCSConfig*     GetTriggerDCSConfig();
-	void                                GetSTUSegmentation(Int_t ssg[], Int_t spg[], Int_t ssj[], Int_t spj[]);
-	Int_t                               GetTRUSegmentation(Int_t iTRU);
+	void                                GetSTUSegmentation(Int_t ss[], Int_t sp[]);
 	Int_t                               GetTRUGTHRL0(Int_t iTRU);   
 	
 protected:

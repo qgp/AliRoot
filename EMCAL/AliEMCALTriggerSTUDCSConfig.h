@@ -11,7 +11,6 @@ Author: R. GUERNANE LPSC Grenoble CNRS/IN2P3
 */
 
 #include "TObject.h"
-#include "TVector2.h"
 
 class AliEMCALTriggerSTUDCSConfig : public TObject 
 {
@@ -39,8 +38,6 @@ class AliEMCALTriggerSTUDCSConfig : public TObject
   Int_t   GetRawData()   const { return fGetRawData; }
   Int_t   GetRegion()    const { return fRegion;     }
   Int_t   GetFw()        const { return fFw;         }
-
-  void    GetSegmentation(TVector2& v1, TVector2& v2, TVector2& v3, TVector2& v4) const;
 	
 protected:
 
