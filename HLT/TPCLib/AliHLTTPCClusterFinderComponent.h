@@ -18,6 +18,7 @@
 
 class AliHLTTPCClusterFinder;
 class AliHLTTPCDigitReader;
+class AliTPCTransform;
 
 /**
  * @class AliHLTTPCClusterFinderComponent
@@ -184,6 +185,8 @@ class AliHLTTPCClusterFinderComponent : public AliHLTProcessor
 
 	/** flag to deconvolute in time direction */
 	Bool_t fDeconvTime;                                                          //!transient
+        /** the object to set the time stamp */
+        AliTPCTransform *fTS; //!transient
 
 	/** flag to deconvolute in pad direction */
 	Bool_t fDeconvPad;                                                           //!transient
@@ -229,13 +232,7 @@ class AliHLTTPCClusterFinderComponent : public AliHLTProcessor
 	Bool_t fReleaseMemory; // flag to release the memory after each event
 	AliHLTComponentBenchmark fBenchmark; // benchmark
 
-	/// the default configuration entry for this component
-	static const char* fgkOCDBEntryPacked; //!transient
-	static const char* fgkOCDBEntryUnpacked; //!transient
-	static const char* fgkOCDBEntryDecoder; //!transient
-	static const char* fgkOCDBEntry32Bit; //!transient
-
-	ClassDef(AliHLTTPCClusterFinderComponent, 8)
+	ClassDef(AliHLTTPCClusterFinderComponent, 0)
 
 };
 #endif

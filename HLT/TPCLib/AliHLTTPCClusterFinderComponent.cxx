@@ -37,11 +37,14 @@ using namespace std;
 #include "AliHLTTPCTransform.h"
 #include "AliHLTTPCClusters.h"
 #include "AliHLTTPCDefinitions.h"
+#include "AliGRPObject.h"
 #include "AliCDBEntry.h"
 #include "AliCDBManager.h"
 #include "AliTPCcalibDB.h"
 #include "AliTPCCalPad.h"
 #include "AliTPCParam.h"
+#include "AliTPCTransform.h"
+
 //#include "AliHLTTPCCAInputDataCompressorComponent.h"
 //#include "AliHLTTPCCADef.h"
 
@@ -61,16 +64,12 @@ using namespace std;
 /** ROOT macro for the implementation of ROOT specific class methods */
 ClassImp(AliHLTTPCClusterFinderComponent)
 
-const char* AliHLTTPCClusterFinderComponent::fgkOCDBEntryPacked="HLT/ConfigTPC/TPCClusterFinderPacked";
-const char* AliHLTTPCClusterFinderComponent::fgkOCDBEntryUnpacked="HLT/ConfigTPC/TPCClusterFinderUnpacked";
-const char* AliHLTTPCClusterFinderComponent::fgkOCDBEntryDecoder="HLT/ConfigTPC/TPCClusterFinderDecoder";
-const char* AliHLTTPCClusterFinderComponent::fgkOCDBEntry32Bit="HLT/ConfigTPC/TPCClusterFinder32Bit";
-
 AliHLTTPCClusterFinderComponent::AliHLTTPCClusterFinderComponent(int mode)
   :
   fClusterFinder(NULL),
   fReader(NULL),
   fDeconvTime(kFALSE),
+  fTS(0),
   fDeconvPad(kFALSE),
   fClusterDeconv(false),
   fXYClusterError(-1),
@@ -203,6 +202,9 @@ int AliHLTTPCClusterFinderComponent::DoInit( int argc, const char** argv )
     HLTError("AliTPCcalibDB does not exist");
     return -ENOENT;
   }
+
+  fTS = calib->GetTransform();
+
   calib->SetRun(GetRunNo());
   calib->UpdateRunInformations(GetRunNo());
   AliTPCCalPad * time0TPC = calib->GetPadTime0(); 
@@ -230,22 +232,18 @@ int AliHLTTPCClusterFinderComponent::DoInit( int argc, const char** argv )
 
   fClusterFinder = new AliHLTTPCClusterFinder();
 
+  TObject* pOCDBEntry=LoadAndExtractOCDBObject("GRP/GRP/Data");
+  AliGRPObject* pGRP=pOCDBEntry?dynamic_cast<AliGRPObject*>(pOCDBEntry):NULL;
+  TString beamType;
+  if (pGRP) {
+    beamType=pGRP->GetBeamType();
+  }
+
   // first configure the default
   int iResult = 0;
-  switch(fModeSwitch){
-  case kClusterFinderPacked:
-    iResult=ConfigureFromCDBTObjString(fgkOCDBEntryPacked);
-    break;
-  case kClusterFinderUnpacked: 	 
-    iResult=ConfigureFromCDBTObjString(fgkOCDBEntryUnpacked);
-    break;
-  case kClusterFinderDecoder:
-    iResult=ConfigureFromCDBTObjString(fgkOCDBEntryDecoder);
-    break;
-  case kClusterFinder32Bit:
-    iResult=ConfigureFromCDBTObjString(fgkOCDBEntry32Bit);
-    break;
-  }
+  TString cdbPath="HLT/ConfigTPC/";
+  cdbPath+=GetComponentID();
+  iResult=ConfigureFromCDBTObjString(cdbPath, beamType.Data());
 
   // configure from the command line parameters if specified
   if (iResult>=0 && argc>0)
@@ -366,6 +364,9 @@ int AliHLTTPCClusterFinderComponent::DoEvent( const AliHLTComponentEventData& ev
   // fDeconvPad = kTRUE;
   //fClusterFinder->SetDeconvPad(fDeconvPad);
     
+  
+  fTS->SetCurrentTimeStamp(GetTimeStamp());
+  //fTS->SetCurrentTimeStamp(0);
 
   if(fReader == NULL){
     HLTFatal("Digit reader not initialized, skipping HLT TPC cluster reconstruction.");
@@ -755,25 +756,15 @@ int AliHLTTPCClusterFinderComponent::Reconfigure(const char* cdbEntry, const cha
 {  
   // see header file for class documentation
 
-  const char* entry=cdbEntry;
-  if (!entry || entry[0]==0){
-    switch(fModeSwitch){
-    case kClusterFinderPacked:
-      entry=fgkOCDBEntryPacked;
-      break;
-    case kClusterFinderUnpacked: 	 
-      entry=fgkOCDBEntryUnpacked;
-      break;
-    case kClusterFinderDecoder:
-      entry=fgkOCDBEntryDecoder;
-      break;
-    case kClusterFinder32Bit:
-      entry=fgkOCDBEntry32Bit;
-      break;
-    }
+  TString cdbPath;
+  if (cdbEntry) {
+    cdbPath=cdbEntry;
+  } else {
+    cdbPath="HLT/ConfigTPC/";
+    cdbPath+=GetComponentID();
   }
 
-  return ConfigureFromCDBTObjString(entry);
+  return ConfigureFromCDBTObjString(cdbPath.Data());
 
   /*
   int iResult=0;
