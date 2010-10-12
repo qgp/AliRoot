@@ -19,18 +19,28 @@
 2010-07-26
 	--- ITS: 42389
 	bug https://savannah.cern.ch/bugs/index.php?69826
+	ticket https://savannah.cern.ch/bugs/index.php?69826
+	ported in r42580
 
 	--- QA: 42389
 	bug https://savannah.cern.ch/bugs/?70332
+	ticket https://savannah.cern.ch/bugs/index.php?70332
+	ported in r42583
 
 	--- Global: 42445
 	Track flags corrected for TRD tracks
+	https://savannah.cern.ch/bugs/index.php?70634
+	ported in r42602
 
 	--- Framework: 42446 42476 42503
 	build system, corrected warning, removal of obsolete code
+	ticket https://savannah.cern.ch/bugs/index.php?70632
+	ported in r42600
 
 	--- TPC: 42460
 	bug https://savannah.cern.ch/bugs/?69885
+	ticket https://savannah.cern.ch/bugs/index.php?70633
+	ported in r42601
 
 	--- TPC Global: 42501
 	dE/dx component, postponed
@@ -43,12 +53,18 @@
 
 	--- TRD: 42478
 	reduced cluster size
+	https://savannah.cern.ch/bugs/index.php?70635
+	ported in r42603
 
 	--- EVE: 42479
 	changes related to TRD cluster change
+	https://savannah.cern.ch/bugs/index.php?70636
+	ported in r42604
 
 	--- trigger: 42504 42520 42521
 	D0 trigger, HLTGlobalTrigger
+	https://savannah.cern.ch/bugs/index.php?70637
+	ported in r42605
 
 	--- sim: 42522
 	D0 trigger in simulation, postponed
@@ -108,6 +124,11 @@
 	--- MUON: 42888
 	minor changes, postponed
 
+	--- TPC: 42791 42792 42795
+	ClassDef version cleanup
+	postponed, ported 2010-10-11
+
+
 	--- TPC: 42932 42933
 	data checker component, trunk development, postponed
 
@@ -160,12 +181,14 @@
 
 	--- BASE: 43069 43070 43084
 	configuration substitution
+	postponed
 
 	--- BASE: 43176
 	time stamp in reconstruction
+	postponed, ported 2010-10-11
 
 	--- TPC: 43071
-	minor modification in DataChecker
+	minor modification in DataChecker, trunk development, postponed
 
 	--- CALO Backward compatibility: 43086 43087
 
@@ -226,30 +249,37 @@
 	improved argument scan
 	TMap configuration objects
 	ticket https://savannah.cern.ch/bugs/index.php?72732
+	ported in r43728
 
 	--- rec: 42843 43382 43476 43534
 	helper methods
 	bugfix LoadOCDBEntry bugs https://savannah.cern.ch/bugs/?69031 and https://savannah.cern.ch/bugs/?57740
 	ticket https://savannah.cern.ch/bugs/index.php?72730
+	ported in r43721
 
 	--- shuttle pendolino: 42764 42996 42997
 	helper methods and cleanup
 	ticket https://savannah.cern.ch/bugs/index.php?72733
+	ported in r43730
 
 	--- util: 42758 42760 43092 43110 43427 43515 43516
 	warnings corrected, bugfix MC publisher
 	ticket https://savannah.cern.ch/bugs/?72734
+	ported in r43731
 
 	--- Sample: 43201 43202 43203 43204 43228 43351 43187 43200
 	new sample components, updated macros
 	ticket https://savannah.cern.ch/bugs/index.php?72735
+	ported in r43732
 
 	--- TRD: 42769 42776 42780 42781 43461 43462
 	ticket https://savannah.cern.ch/bugs/?72499
+	ported in r43719
 
 	--- CALO util: 43105 43172 43521
 	handle effC++ warnings
 	ticket https://savannah.cern.ch/bugs/index.php?72736
+	ported in r43733
 
 	--- CALO: 43448 43449
 	postponed
@@ -264,7 +294,7 @@
 	--- TPC: 43478 43489 43577
 	CF parameters according to beam type
 	bugfix filling MC labels when running with deconvolution
-	postponed
+	postponed, ported 2010-10-11
 
 	--- TPC: 43439 43440 43443 43453 43454
 	new wrapper for TPC cluster transformation
@@ -272,3 +302,73 @@
 	postponed
 
 	Last check revision: 43596
+
+2010-10-11 updated to r44158
+
+	xxx aliroot build: 43608
+	not to be ported
+
+	--- EVE: 43640 43647 43800
+	update of histograms
+	conditional build of EVE libraries bug https://savannah.cern.ch/bugs/index.php?71490
+	ticket https://savannah.cern.ch/bugs/index.php?73855
+
+	--- BASE: 43176 43674 43893 43984 44125
+	bug fix AliHLTReadoutList: TRG mistaken for MUONTRG
+	bug fix AliHLTTTreeProcessor: rebinning of histograms
+	ticket https://savannah.cern.ch/bugs/index.php?73857
+
+	--- exa: 43687 43891 44051
+	- switching MultFinder depending on 'ITS' in reconstruction recraw-local.C
+	- support compilation of simhlt.C
+	- adding support for TMap configuration objects in makeComponentConfigurationObject.C
+	ticket https://savannah.cern.ch/bugs/index.php?73858
+
+	--- TPC: 42791 42792 42795 43478 43489 43577 43703 43729 44054 44181 44187
+	ClusterFinder bugs
+	ticket https://savannah.cern.ch/bugs/index.php?73860
+
+	--- global: 43896 43985
+	adding AliHLTGlobalHistoComponent
+	ticket https://savannah.cern.ch/bugs/index.php?73862
+
+	xxx build system: 43784 43794
+	reverted change, not to be ported
+
+	--- trigger: 43726 43727 43783
+	handling of software triggers
+	postponed
+
+	--- ITS: 44141
+	Supress MC output block when it is empty
+	postponed
+
+	--- BASE: 43894
+	code cleanup in AliHLTDataBuffer handling
+	trunk development, postponed
+
+	--- VZERO: 43814 43816 43878
+	trunk development, postponed
+
+	--- global: 43899 43900
+	AliESDVZERO in ESD converter
+	trunk development, postponed
+
+	--- BASE: 43920
+	storage of online configuration
+	trunk development, postponed
+
+	--- PHOS: 44093
+	trunk development, postponed
+
+	--- BASE: 44111
+	code cleanup, argument scan, verification in the online system needed
+	postponed
+
+	--- MUON: 43663
+	Reversing commit 42768, waiting for proper fix
+	42768 is not yet ported
+
+	--- QA: 43641 43855 43856 43857 43858
+
+	last checked revision 44187
