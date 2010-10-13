@@ -1212,7 +1212,7 @@ void  AliTPCcalibTime::ProcessAlignITS(AliESDtrack *const track, AliESDfriendTra
   const Int_t    kMinITS  = 3;     // minimal number of ITS cluster
   const Double_t kMinZ    = 10;    // maximal dz distance
   const Double_t kMaxDy   = 2.;    // maximal dy distance
-  const Double_t kMaxAngle= 0.015;  // maximal angular distance
+  const Double_t kMaxAngle= 0.05;  // maximal angular distance
   const Double_t kSigmaCut= 5;     // maximal sigma distance to median
   const Double_t kVdErr   = 0.1;  // initial uncertainty of the vd correction 
   const Double_t kT0Err   = 3.;  // initial uncertainty of the T0 time
