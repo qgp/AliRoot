@@ -107,11 +107,11 @@ Bool_t AliRsnCutPrimaryVertex::IsSelected(TObject *obj1, TObject* /*obj2*/)
   {
     // lines suggested by Andrea to reject TPC-only events
     if(!aod->GetPrimaryVertexSPD()) return kFALSE;
-    if(!aod->GetPrimaryVertexSPD()->Status()) return kFALSE;
+    if(aod->GetPrimaryVertexSPD()->GetNContributors() < 1) return kFALSE;
     
     AliAODVertex *prim = (AliAODVertex*)aod->GetPrimaryVertex();
     fCutValueI = prim->GetNContributors();
-    fCutValueD = prim->Zv();
+    fCutValueD = prim->GetZ();
   }
   else
     return kFALSE;
