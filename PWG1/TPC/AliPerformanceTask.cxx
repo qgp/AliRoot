@@ -58,7 +58,7 @@
 #include "AliPerformanceTPC.h"
 #include "AliPerformanceDEdx.h"
 #include "AliPerformanceTask.h"
-
+#include "AliCDBManager.h"
 
 using namespace std;
 
