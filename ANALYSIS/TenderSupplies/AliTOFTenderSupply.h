@@ -10,43 +10,42 @@
 //                                                                    //
 ////////////////////////////////////////////////////////////////////////
 
-
-
 #include <AliTenderSupply.h>
 
 class AliESDpid;
-class AliTOFcalibESD;
-class AliTOFT0makerANA;
+class AliTOFcalib;
+class AliTOFT0maker;
 
 class AliTOFTenderSupply: public AliTenderSupply {
-  
+
 public:
   AliTOFTenderSupply();
   AliTOFTenderSupply(const char *name, const AliTender *tender=NULL);
-  
+
   virtual ~AliTOFTenderSupply(){;}
-  
+
   virtual void              Init();
   virtual void              ProcessEvent();
 
   // TOF method
   void SetTOFres(Float_t res){fTOFres=res;}
-  
+
 private:
   AliESDpid          *fESDpid;         //! ESD pid object
-  
+
+  Bool_t fIsMC;
+
   // variables for TOF calibrations
-  AliTOFcalibESD     *fTOFesdCalib;    //! recalibrate TOF signal with OCDB
-  AliTOFT0makerANA   *fTOFT0maker;     //! TOF maker objects (apply all the correction for T0)
+  AliTOFcalib     *fTOFCalib;    //! recalibrate TOF signal with OCDB
+  AliTOFT0maker   *fTOFT0maker;     //! TOF maker objects (apply all the correction for T0)
 
   Float_t fTOFres;                   // TOF resolution
-  
+
   AliTOFTenderSupply(const AliTOFTenderSupply&c);
   AliTOFTenderSupply& operator= (const AliTOFTenderSupply&c);
-  
-  ClassDef(AliTOFTenderSupply, 1);  // TPC tender task
+
+  ClassDef(AliTOFTenderSupply, 1);
 };
 
 
-#endif
-
+#endif 
