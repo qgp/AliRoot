@@ -271,11 +271,11 @@ Bool_t AliEMCALRecPoint::AreNeighbours(AliEMCALDigit * digit1, AliEMCALDigit * d
   // A neighbour is defined as being two digits which share a corner
   // ONLY USED IN CASE OF UNFOLDING 
 	
-  static Bool_t areNeighbours = kFALSE ;
-  static Int_t nSupMod=0, nModule=0, nIphi=0, nIeta=0;
-  static int nSupMod1=0, nModule1=0, nIphi1=0, nIeta1=0;
-  static Int_t relid1[2] , relid2[2] ; // ieta, iphi
-  static Int_t rowdiff=0, coldiff=0;
+  Bool_t areNeighbours = kFALSE ;
+  Int_t nSupMod=0, nModule=0, nIphi=0, nIeta=0;
+  Int_t nSupMod1=0, nModule1=0, nIphi1=0, nIeta1=0;
+  Int_t relid1[2] , relid2[2] ; // ieta, iphi
+  Int_t rowdiff=0, coldiff=0;
 
   areNeighbours = kFALSE ;
 
@@ -545,47 +545,62 @@ void AliEMCALRecPoint::EvalDistanceToBadChannels(AliCaloCalibPedestal* caloped)
 {
 	//For each EMC rec. point set the distance to the nearest bad channel.
 	//AliInfo(Form("%d bad channel(s) found.\n", caloped->GetDeadTowerCount()));
-    //Needs to be carefully checked!!! Gustavo 10-11-2009
+  //It is done in cell units and not in global or local position as before (Sept 2010)
 	
 	if(!caloped->GetDeadTowerCount()) return;
 		
 	//Get channels map of the supermodule where the cluster is.
 	TH2D* hMap  = caloped->GetDeadMap(fSuperModuleNumber);
 	
-	TVector3 dR;	
-	TVector3 cellpos;
-	Float_t  minDist = 100000;
-	Float_t  dist    = 0;
-	Int_t    absId   = -1;
-	
-	//Loop on tower status map 
+  Int_t dRrow, dReta;	
+	Float_t  minDist = 10000.;
+	Float_t  dist    = 0.;
+  Int_t nSupMod, nModule;
+  Int_t nIphi, nIeta;
+  Int_t iphi, ieta;
+  fDigitIndMax  = GetMaximalEnergyIndex();
+  fGeomPtr->GetCellIndex(fAbsIdList[fDigitIndMax], nSupMod,nModule,nIphi,nIeta);
+  fGeomPtr->GetCellPhiEtaIndexInSModule(nSupMod,nModule,nIphi,nIeta, iphi,ieta);
+
+  //	TVector3 dR;	
+  //	TVector3 cellpos;
+  //	Float_t  minDist = 100000;
+  //	Float_t  dist    = 0;
+  //	Int_t    absId   = -1;  
+  
+  //Loop on tower status map 
 	for(Int_t irow = 0; irow < AliEMCALGeoParams::fgkEMCALRows; irow++){
 		for(Int_t icol = 0; icol < AliEMCALGeoParams::fgkEMCALCols; icol++){
 			//Check if tower is bad.
 			if(hMap->GetBinContent(icol,irow)==AliCaloCalibPedestal::kAlive) continue;
-			//printf("AliEMCALRecPoint::EvalDistanceToBadChannels() - Bad channel in SM %d, col %d, row %d\n",iSM,icol, irow);
-			
-			//Tower is bad, get the absId of the index.
-			absId = fGeomPtr->GetAbsCellIdFromCellIndexes(fSuperModuleNumber, irow, icol); 
-			
-			//Get the position of this tower.
-			
-			//Calculate the distance in local coordinates
-			//fGeomPtr->RelPosCellInSModule(absId,cellpos);
-			//Calculate distance between this tower and cluster, set if is smaller than previous.
-			//dR = cellpos-fLocPos;
-			
-			//Calculate the distance in global coordinates
-			fGeomPtr->GetGlobal(absId,cellpos);
-			//Calculate distance between this tower and cluster, set if it is smaller than previous.
-			dR = cellpos-fGlobPos;
-			
-			dist = dR.Mag();
+      //printf("AliEMCALRecPoint::EvalDistanceToBadChannels() - Bad channel in SM %d, col %d, row %d\n",iSM,icol, irow);
+
+      dRrow=TMath::Abs(irow-iphi);
+      dReta=TMath::Abs(icol-ieta);
+      dist=TMath::Sqrt(dRrow*dRrow+dReta*dReta);
 			if(dist < minDist) minDist = dist;
+      
+      //			//Tower is bad, get the absId of the index.
+      //			absId = fGeomPtr->GetAbsCellIdFromCellIndexes(fSuperModuleNumber, irow, icol); 
+      //			
+      //			//Get the position of this tower.
+      //			
+      //			//Calculate the distance in local coordinates
+      //			//fGeomPtr->RelPosCellInSModule(absId,cellpos);
+      //			//Calculate distance between this tower and cluster, set if is smaller than previous.
+      //			//dR = cellpos-fLocPos;
+      //			
+      //			//Calculate the distance in global coordinates
+      //			fGeomPtr->GetGlobal(absId,cellpos);
+      //			//Calculate distance between this tower and cluster, set if it is smaller than previous.
+      //			dR = cellpos-fGlobPos;
+      //			
+      //			dist = dR.Mag();
+      //			if(dist < minDist) minDist = dist;
+      
 		}
 	}
-	
-	
+  
 	//In case the cluster is shared by 2 SuperModules, need to check the map of the second Super Module
 	if (fSharedCluster) {
 		TH2D* hMap2 = 0;
@@ -595,33 +610,44 @@ void AliEMCALRecPoint::EvalDistanceToBadChannels(AliCaloCalibPedestal* caloped)
 		if(fSuperModuleNumber%2) nSupMod2 = fSuperModuleNumber-1;
 		else                     nSupMod2 = fSuperModuleNumber+1;
 		hMap2  = caloped->GetDeadMap(nSupMod2);
-	
-	
+    
 		//Loop on tower status map of second super module
 		for(Int_t irow = 0; irow < AliEMCALGeoParams::fgkEMCALRows; irow++){
 			for(Int_t icol = 0; icol < AliEMCALGeoParams::fgkEMCALCols; icol++){
 				//Check if tower is bad.
 				if(hMap2->GetBinContent(icol,irow)==AliCaloCalibPedestal::kAlive) continue;
 				//printf("AliEMCALRecPoint::EvalDistanceToBadChannels() - Bad channel in SM %d, col %d, row %d\n",iSM,icol, irow);
-				
-				//Tower is bad, get the absId of the index.
-				absId = fGeomPtr->GetAbsCellIdFromCellIndexes(nSupMod2, irow, icol); 
-				
-				//Get the position of this tower.
-				
-				//Calculate the distance in global coordinates
-				fGeomPtr->GetGlobal(absId,cellpos);
-				//Calculate distance between this tower and cluster, set if it is smaller than previous.
-				dR = cellpos-fGlobPos;
-				
-				dist = dR.Mag();
-				if(dist < minDist) minDist = dist;
+        
+        dRrow=TMath::Abs(irow-iphi);
+
+        if(fSuperModuleNumber%2) {
+				  dReta=TMath::Abs(icol-(AliEMCALGeoParams::fgkEMCALCols+ieta));
+				}
+        else {
+          dReta=TMath::Abs(AliEMCALGeoParams::fgkEMCALCols+icol-ieta);
+				}                    
+        
+				dist=TMath::Sqrt(dRrow*dRrow+dReta*dReta);
+        if(dist < minDist) minDist = dist;        
+        
+//				
+//				//Tower is bad, get the absId of the index.
+//				absId = fGeomPtr->GetAbsCellIdFromCellIndexes(nSupMod2, irow, icol); 
+//				
+//				//Get the position of this tower.
+//				
+//				//Calculate the distance in global coordinates
+//				fGeomPtr->GetGlobal(absId,cellpos);
+//				//Calculate distance between this tower and cluster, set if it is smaller than previous.
+//				dR = cellpos-fGlobPos;
+//				
+//				dist = dR.Mag();
+//				if(dist < minDist) minDist = dist;
 			}
 		}
 	
 	}// shared cluster in 2 SuperModules
-	
-	
+		
 	fDistToBadTower = minDist;
 	//printf("AliEMCALRecPoint::EvalDistanceToBadChannel() - Distance to Bad is %f cm, shared cluster? %d \n",fDistToBadTower,fSharedCluster);
 }
@@ -636,7 +662,7 @@ void AliEMCALRecPoint::EvalLocalPosition(Float_t logWeight, TClonesArray * digit
 	AliEMCALDigit * digit=0;
 	Int_t i=0, nstat=0;
 	
-	static Double_t dist  = TmaxInCm(Double_t(fAmp));
+	Double_t dist  = TmaxInCm(Double_t(fAmp));
 	//Int_t	idMax = GetAbsIdMaxDigit();// idMax is not used at all in RelPosCellInSModule, why use it?
 	
 	Double_t clXYZ[3]={0.,0.,0.}, clRmsXYZ[3]={0.,0.,0.}, xyzi[3], wtot=0., w=0.;
@@ -645,6 +671,11 @@ void AliEMCALRecPoint::EvalLocalPosition(Float_t logWeight, TClonesArray * digit
 	for(Int_t iDigit=0; iDigit<fMulDigit; iDigit++) {
 		digit = dynamic_cast<AliEMCALDigit *>(digits->At(fDigitsList[iDigit])) ;
 
+    if(!digit) {
+      AliError("No Digit!!");
+      continue;
+    }
+    
 		//fGeomPtr->RelPosCellInSModule(digit->GetId(), idMax, dist, xyzi[0], xyzi[1], xyzi[2]);
 		fGeomPtr->RelPosCellInSModule(digit->GetId(), dist, xyzi[0], xyzi[1], xyzi[2]);
 		
@@ -714,7 +745,7 @@ void AliEMCALRecPoint::EvalGlobalPosition(Float_t logWeight, TClonesArray * digi
   AliEMCALDigit * digit=0;
   Int_t i=0, nstat=0;
 	
-  static Double_t dist  = TmaxInCm(Double_t(fAmp));
+  Double_t dist  = TmaxInCm(Double_t(fAmp));
   //Int_t	idMax = GetAbsIdMaxDigit();// idMax is not used at all in RelPosCellInSModule, why use it?
 	
   Double_t clXYZ[3]={0.,0.,0.}, clRmsXYZ[3]={0.,0.,0.}, lxyzi[3], xyzi[3], wtot=0., w=0.;
@@ -723,6 +754,11 @@ void AliEMCALRecPoint::EvalGlobalPosition(Float_t logWeight, TClonesArray * digi
   for(Int_t iDigit=0; iDigit<fMulDigit; iDigit++) {
     digit = dynamic_cast<AliEMCALDigit *>(digits->At(fDigitsList[iDigit])) ;
 
+    if(!digit) {
+      AliError("No Digit!!");
+      continue;
+    }    
+    
     //Get the local coordinates of the cell
     //fGeomPtr->RelPosCellInSModule(digit->GetId(), idMax, dist, lxyzi[0], lxyzi[1], lxyzi[2]);
     fGeomPtr->RelPosCellInSModule(digit->GetId(), dist, lxyzi[0], lxyzi[1], lxyzi[2]);
@@ -787,14 +823,14 @@ void AliEMCALRecPoint::EvalGlobalPosition(Float_t logWeight, TClonesArray * digi
 void AliEMCALRecPoint::EvalLocalPositionFit(Double_t deff, Double_t logWeight, 
 Double_t phiSlope, TClonesArray * digits)
 {
-  // Aug 14-16, 2007 - for fit 
-  // Aug 31 - should be static ??
-  static Double_t ycorr=0;
-  static AliEMCALDigit *digit=0;
+  // Evaluates local position of clusters in SM
+  
+  Double_t ycorr=0;
+  AliEMCALDigit *digit=0;
   Int_t i=0, nstat=0;
   Double_t clXYZ[3]={0.,0.,0.}, clRmsXYZ[3]={0.,0.,0.}, xyzi[3], wtot=0., w=0.; 
 
-  static Double_t dist  = TmaxInCm(Double_t(fAmp));
+  Double_t dist  = TmaxInCm(Double_t(fAmp));
   //Int_t	idMax = GetAbsIdMaxDigit();// idMax is not used at all in RelPosCellInSModule, why use it?
 	
   for(Int_t iDigit=0; iDigit<digits->GetEntries(); iDigit++) {
@@ -864,9 +900,9 @@ Bool_t AliEMCALRecPoint::EvalLocalPosition2(TClonesArray * digits, TArrayD &ed)
 Bool_t AliEMCALRecPoint::EvalLocalPositionFromDigits(TClonesArray *digits, TArrayD &ed, TVector3 &locPos)
 {
   // Used when digits should be recalibrated
-  static Double_t deff=0, w0=0, esum=0;
-  static Int_t iDigit=0;
-  //  static AliEMCALDigit *digit;
+  Double_t deff=0, w0=0, esum=0;
+  Int_t iDigit=0;
+  //  AliEMCALDigit *digit;
 
   if(ed.GetSize() && (digits->GetEntries()!=ed.GetSize())) return kFALSE;
 
@@ -883,7 +919,7 @@ Bool_t AliEMCALRecPoint::EvalLocalPositionFromDigits(TClonesArray *digits, TArra
 Bool_t AliEMCALRecPoint::EvalLocalPositionFromDigits(const Double_t esum, const Double_t deff, const Double_t w0, TClonesArray *digits, TArrayD &ed, TVector3 &locPos)
 {
   //Evaluate position of digits in supermodule.
-  static AliEMCALDigit *digit=0;
+  AliEMCALDigit *digit=0;
 
   Int_t i=0, nstat=0;
   Double_t clXYZ[3]={0.,0.,0.}, xyzi[3], wtot=0., w=0.; 
@@ -935,7 +971,7 @@ void AliEMCALRecPoint::GetDeffW0(const Double_t esum , Double_t &deff,  Double_t
   // for coordinate calculation; 0.5 GeV < esum <100 GeV.
   // Look to:  http://rhic.physics.wayne.edu/~pavlinov/ALICE/SHISHKEBAB/RES/CALIB/GEOMCORR/deffandW0VaEgamma_2.gif
   //
-  static Double_t e=0.0;
+  Double_t e=0.0;
   const  Double_t kdp0=9.25147, kdp1=1.16700; // Hard coded now
   const  Double_t kwp0=4.83713, kwp1=-2.77970e-01, kwp2 = 4.41116;
 
@@ -987,7 +1023,7 @@ void  AliEMCALRecPoint::EvalElipsAxis(Float_t logWeight,TClonesArray * digits)
   // Calculates the axis of the shower ellipsoid in eta and phi
   // in cell units
 
-  static TString gn(fGeomPtr->GetName());
+  TString gn(fGeomPtr->GetName());
 
   Double_t wtot = 0.;
   Double_t x    = 0.;
@@ -1074,39 +1110,46 @@ void  AliEMCALRecPoint::EvalPrimaries(TClonesArray * digits)
   
   AliEMCALDigit * digit =0;
   Int_t * primArray = new Int_t[fMaxTrack] ;
+  memset(primArray,-1,sizeof(Int_t)*fMaxTrack);
   Float_t * dEPrimArray = new Float_t[fMaxTrack] ;
-
+  memset(dEPrimArray,-1,sizeof(Int_t)*fMaxTrack);
+  
   Int_t index ;  
   for ( index = 0 ; index < GetDigitsMultiplicity() ; index++ ) { // all digits
     digit = dynamic_cast<AliEMCALDigit *>(digits->At( fDigitsList[index] )) ; 
+    if(!digit) {
+      AliError("No Digit!!");
+      continue;
+    }
+    
     Int_t nprimaries = digit->GetNprimary() ;
     if ( nprimaries == 0 ) continue ;
     Int_t jndex ;
     for ( jndex = 0 ; jndex < nprimaries ; jndex++ ) { // all primaries in digit
       if ( fMulTrack > fMaxTrack ) {
-	fMulTrack = fMaxTrack ;
-	Error("EvalPrimaries", "increase fMaxTrack ")  ;
-	break ;
+        fMulTrack = fMaxTrack ;
+        Error("EvalPrimaries", "increase fMaxTrack ")  ;
+        break ;
       }
       Int_t newPrimary = digit->GetPrimary(jndex+1);
       Float_t dEPrimary = digit->GetDEPrimary(jndex+1);
       Int_t kndex ;
       Bool_t already = kFALSE ;
       for ( kndex = 0 ; kndex < fMulTrack ; kndex++ ) { //check if not already stored
-	if ( newPrimary == primArray[kndex] ){
-	  already = kTRUE ;
-	  dEPrimArray[kndex] += dEPrimary; 
-	  break ;
-	}
+        if ( newPrimary == primArray[kndex] ){
+          already = kTRUE ;
+          dEPrimArray[kndex] += dEPrimary; 
+          break ;
+        }
       } // end of check
       if ( !already && (fMulTrack < fMaxTrack)) { // store it
-	primArray[fMulTrack] = newPrimary ; 
-	dEPrimArray[fMulTrack] = dEPrimary ; 
-	fMulTrack++ ;
+        primArray[fMulTrack] = newPrimary ; 
+        dEPrimArray[fMulTrack] = dEPrimary ; 
+        fMulTrack++ ;
       } // store it
     } // all primaries in digit
   } // all digits
-
+  
   Int_t *sortIdx = new Int_t[fMulTrack];
   TMath::Sort(fMulTrack,dEPrimArray,sortIdx); 
   for(index = 0; index < fMulTrack; index++) {
@@ -1116,52 +1159,59 @@ void  AliEMCALRecPoint::EvalPrimaries(TClonesArray * digits)
   delete [] sortIdx;
   delete [] primArray ;
   delete [] dEPrimArray ;
-
+  
 }
 
 //______________________________________________________________________________
 void  AliEMCALRecPoint::EvalParents(TClonesArray * digits)
 {
   // Constructs the list of parent particles (tracks) which have contributed to this RecPoint
- 
+  
   AliEMCALDigit * digit=0 ;
   Int_t * parentArray = new Int_t[fMaxTrack] ;
+  memset(parentArray,-1,sizeof(Int_t)*fMaxTrack);
   Float_t * dEParentArray = new Float_t[fMaxTrack] ;
-
+  memset(dEParentArray,-1,sizeof(Int_t)*fMaxTrack);
+  
   Int_t index ;  
   for ( index = 0 ; index < GetDigitsMultiplicity() ; index++ ) { // all digits
     if (fDigitsList[index] >= digits->GetEntries() || fDigitsList[index] < 0)
-       AliError(Form("Trying to get invalid digit %d (idx in WriteRecPoint %d)",fDigitsList[index],index));
+      AliError(Form("Trying to get invalid digit %d (idx in WriteRecPoint %d)",fDigitsList[index],index));
     digit = dynamic_cast<AliEMCALDigit *>(digits->At( fDigitsList[index] )) ; 
+    if(!digit) {
+      AliError("No Digit!!");
+      continue;
+    }
+    
     Int_t nparents = digit->GetNiparent() ;
     if ( nparents == 0 ) continue ;
-
+    
     Int_t jndex ;
     for ( jndex = 0 ; jndex < nparents ; jndex++ ) { // all primaries in digit
       if ( fMulParent > fMaxParent ) {
-	fMulTrack = - 1 ;
-	Error("EvalParents", "increase fMaxParent")  ;
-	break ;
+        fMulTrack = - 1 ;
+        Error("EvalParents", "increase fMaxParent")  ;
+        break ;
       }
       Int_t newParent = digit->GetIparent(jndex+1) ;
       Float_t newdEParent = digit->GetDEParent(jndex+1) ;
       Int_t kndex ;
       Bool_t already = kFALSE ;
       for ( kndex = 0 ; kndex < fMulParent ; kndex++ ) { //check if not already stored
-	if ( newParent == parentArray[kndex] ){
-	  dEParentArray[kndex] += newdEParent;
-	  already = kTRUE ;
-	  break ;
-	}
+        if ( newParent == parentArray[kndex] ){
+          dEParentArray[kndex] += newdEParent;
+          already = kTRUE ;
+          break ;
+        }
       } // end of check
       if ( !already && (fMulParent < fMaxParent)) { // store it
-	parentArray[fMulParent] = newParent ; 
-	dEParentArray[fMulParent] = newdEParent ; 
-	fMulParent++ ;
+        parentArray[fMulParent] = newParent ; 
+        dEParentArray[fMulParent] = newdEParent ; 
+        fMulParent++ ;
       } // store it
     } // all parents in digit
   } // all digits
-
+  
   if (fMulParent>0) {
     Int_t *sortIdx = new Int_t[fMulParent];
     TMath::Sort(fMulParent,dEParentArray,sortIdx); 
@@ -1171,7 +1221,7 @@ void  AliEMCALRecPoint::EvalParents(TClonesArray * digits)
     }
     delete [] sortIdx;
   }
- 
+  
   delete [] parentArray;
   delete [] dEParentArray;
 }
@@ -1404,9 +1454,9 @@ Double_t AliEMCALRecPoint::TmaxInCm(const Double_t e , const Int_t key)
   // e energy in GeV)
   // key  =  0(gamma, default)
   //     !=  0(electron)
-  static Double_t ca   = 4.82;  // shower max parameter - first guess; ca=TMath::Log(1000./8.07)
-  static Double_t x0   = 1.23;  // radiation lenght (cm)
-  static Double_t tmax = 0.;    // position of electromagnetic shower max in cm
+  const Double_t ca   = 4.82;  // shower max parameter - first guess; ca=TMath::Log(1000./8.07)
+  const Double_t x0   = 1.23;  // radiation lenght (cm)
+  Double_t tmax = 0.;    // position of electromagnetic shower max in cm
 
   if(e>0.1) {
     tmax = TMath::Log(e) + ca;
@@ -1476,7 +1526,7 @@ void AliEMCALRecPoint::Print(Option_t *opt) const
 Double_t  AliEMCALRecPoint::GetPointEnergy() const
 {
   //Returns energy ....
-  static double e=0.0;
+  Double_t e=0.0;
   for(int ic=0; ic<GetMultiplicity(); ic++) e += double(fEnergyList[ic]);
   return e;
 }
