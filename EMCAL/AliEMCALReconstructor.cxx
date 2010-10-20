@@ -142,8 +142,8 @@ AliEMCALReconstructor::~AliEMCALReconstructor()
   // dtor
 
   if(fGeom)              delete fGeom;
-  if(fCalibData)         delete fCalibData;
-  if(fPedestalData)      delete fPedestalData;
+  //PH  if(fCalibData)         delete fCalibData;
+  //PH  if(fPedestalData)      delete fPedestalData;
   
   if(fgDigitsArr){
     fgDigitsArr->Clear("C");
