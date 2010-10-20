@@ -36,6 +36,7 @@
 //AliRoot
 #include "AliRunTag.h"
 #include "AliEventTag.h"
+#include "AliFileTag.h"
 #include "AliPID.h"
 #include "AliAODEvent.h"
 #include "AliAODVertex.h"
@@ -93,7 +94,7 @@ Bool_t AliAODTagCreator::ReadGridCollection(TGridResult *fresult) {
   }//grid result loop
   
   AliInfo(Form("AOD chain created......."));	
-  AliInfo(Form("Chain entries: %d",fChain->GetEntries()));	
+  AliInfo(Form("Chain entries: %lld",fChain->GetEntries()));	
 
   CreateTag(fChain, "grid");
   
@@ -129,7 +130,7 @@ Bool_t AliAODTagCreator::ReadLocalCollection(const char *localpath, const char* 
   } //parent directory's entry loop
   
   AliInfo(Form("AOD chain created......."));	
-  AliInfo(Form("Chain entries: %d",fChain->GetEntries()));	
+  AliInfo(Form("Chain entries: %lld",fChain->GetEntries()));	
 
   CreateTag(fChain, "local");
 
@@ -157,7 +158,7 @@ Bool_t AliAODTagCreator::ReadCAFCollection(const char *filename) {
   }
 
   AliInfo(Form("AOD chain created......."));	
-  AliInfo(Form("Chain entries: %d",fChain->GetEntries()));	
+  AliInfo(Form("Chain entries: %lld",fChain->GetEntries()));	
 
   CreateTag(fChain, "proof");
 
@@ -227,7 +228,7 @@ void AliAODTagCreator::CreateTag(TChain* chain, const char *type) {
     while((name = gSystem->GetDirEntry(dirp))) {
 	if (strstr(name,tagPattern)) fTreeTEsd->Add(name);
     }//directory loop
-    AliInfo(Form("Chained tag files: %d", fTreeTEsd->GetEntries()));
+    AliInfo(Form("Chained tag files: %lld",fTreeTEsd->GetEntries()));
       
     fChain = chain;
     
@@ -296,15 +297,17 @@ void AliAODTagCreator::CreateTags(const char* type)
     Int_t nEvents = fChain->GetEntries();
     Int_t ntags    = 0;
     Int_t tagentry = 0;
-    const TClonesArray *evTagList = 0;
-   
+    //    const TClonesArray *evTagList = 0;
+    TString foldguid = "";
+
     for (Int_t iEventNumber = 0; iEventNumber < nEvents; iEventNumber++) {
 	// Copy old tag information
 	if (iEventNumber >= ntags) {
 	    fTreeTEsd->GetEntry(tagentry++);
 	    fRunTag->CopyStandardContent(fRunTagEsd);
-	    evTagList = fRunTagEsd->GetEventTags();
-	    ntags += evTagList->GetEntries();
+// 	    evTagList = fRunTagEsd->GetEventTags();
+// 	    ntags += evTagList->GetEntries();
+	    ntags = fRunTagEsd->GetNEvents();
 	}
 
 	// Create a new Tag
@@ -330,13 +333,16 @@ void AliAODTagCreator::CreateTags(const char* type)
 	FillEventTag(fAODEvent, evTag);
 	// Set the event and input file references
 	//evTag->SetEventId(iEventNumber+1);
-	evTag->SetGUID(fguid);
-	if(!strcmp(type,"grid")) {
-	    evTag->SetMD5("");
-	    evTag->SetTURL(fturl);
-	    evTag->SetSize(0);
-	    }
-	else evTag->SetPath(fturl);
+	
+	// **** FIXME ****
+// 	evTag->SetGUID(fguid);
+// 	if(!strcmp(type,"grid")) {
+// 	    evTag->SetMD5("");
+// 	    evTag->SetTURL(fturl);
+// 	    evTag->SetSize(0);
+// 	    }
+// 	else evTag->SetPath(fturl);
+	//  **** FIXME ****
 
 	// Check if a new run has to be created
 	// File has changed
@@ -344,13 +350,58 @@ void AliAODTagCreator::CreateTags(const char* type)
 	    ftempGuid = fguid;
 	    fTreeT->Fill();
 	    fRunTag->Clear("");
+
+	    AliFileTag *nftag = new AliFileTag();
+	    
+	    // if(fSession == "grid") {
+	      nftag->SetMD5("");
+	      nftag->SetTURL(fturl);
+	      nftag->SetSize(0);
+	    // }
+	    // else {
+	    //   nftag->SetPath(fturl);
+	    //   nftag->SetSize(0);
+	    //   nftag->SetMD5("");
+	    //   nftag->SetTURL(fturl);
+	    // }
+      
+	    if (fRunTag->GetFileId(fguid) > -1)
+	      AliFatal("Adding a file which is already in the RunTag.");
+	    
+	    fRunTag->AddFileTag(nftag);
+	    
 	}
+
 	// Run# has changed
 	if (oldRun != (fAODEvent->GetRunNumber()))
 	{
 	    oldRun = fAODEvent->GetRunNumber();
+
 	    fTreeT->Fill();
 	    fRunTag->Clear("");
+	    ftempGuid = fguid;
+	    fTreeT->Fill();
+	    fRunTag->Clear("");
+
+	    AliFileTag *nftag = new AliFileTag();
+	    
+	    // if(fSession == "grid") {
+	      nftag->SetMD5("");
+	      nftag->SetTURL(fturl);
+	      nftag->SetSize(0);
+	    // }
+	    // else {
+	    //   nftag->SetPath(fturl);
+	    //   nftag->SetSize(0);
+	    //   nftag->SetMD5("");
+	    //   nftag->SetTURL(fturl);
+	    // }
+      
+	    if (fRunTag->GetFileId(fguid) > -1)
+	      AliFatal("Adding a file which is already in the RunTag.");
+	    
+	    fRunTag->AddFileTag(nftag);
+	    
 	}
 	
 	// Add the event tag
