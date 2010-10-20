@@ -145,7 +145,7 @@ void AddCalibTime(TObject* task){
   // setup calibration component
   //
   AliTPCAnalysisTaskcalib* myTask = (AliTPCAnalysisTaskcalib*) task;
-  AliTPCcalibTime *calibTime = new AliTPCcalibTime("calibTime","calibTime",  startTime.GetSec(), stopTime.GetSec(), 10*60);
+  AliTPCcalibTime *calibTime = new AliTPCcalibTime("calibTime","calibTime",  startTime.GetSec(), stopTime.GetSec(), 10*60, 1);
   calibTime->SetDebugLevel(0);
   calibTime->SetStreamLevel(0);
   calibTime->SetTriggerMask(-1,-1,kFALSE);        //accept everything 
