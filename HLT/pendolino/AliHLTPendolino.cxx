@@ -337,7 +337,6 @@ AliCDBEntry* AliHLTPendolino::GetFromOCDB(const char* detector,
 			const AliCDBPath& path) {
 	// fetches entry from HCDB
 	AliCDBManager *man = AliCDBManager::Instance();
-	AliCDBEntry* entry = 0;
 	
 	if (man == 0) {
 		TString msg(" *** ERROR, cannot obtain a CDB Manager reference for: ");
@@ -354,16 +353,12 @@ AliCDBEntry* AliHLTPendolino::GetFromOCDB(const char* detector,
 		return NULL;
 	}
 	
-	entry = hcdb->Get(path, fRunNumber);
-
-	if (entry == 0) {
-		TString msg(" ~~~ WARNING: no valid entry for '");
-		msg += path.GetPath() + "' in HCDB for run number ";
-		msg += fRunNumber;
-		Log(fgkHLTInterfaceModule, msg.Data());
+	if (hcdb->GetLatestVersion(path.GetPath(), fRunNumber)<0) {
+		return NULL;
 	}
 
-	return entry;
+	return hcdb->Get(path, fRunNumber);
+
 	
 /*
 	AliCDBEntry* entry = 0;
