@@ -1,3 +1,11 @@
+/**************************************************************************
+ * Copyright(c) 1998-2009, ALICE Experiment at CERN, all rights reserved. *
+ * See http://aliceinfo.cern.ch/Offline/AliRoot/License.html for          *
+ * full copyright notice.                                                 *
+ **************************************************************************/
+
+// Author: Pawel Debski 2010
+
 #include <TGButton.h>
 #include <TGComboBox.h>
 #include <TEveBrowser.h>
@@ -11,88 +19,6 @@
 #include <TGSlider.h>
 #include "TGDoubleSlider.h"
 #include <TEvePointSet.h>
-
-/*
-class CutsDoubleSlider : public TGMainFrame {
-
-protected:
-   TGLabel*		gLabel;
-   TGCheckButton*	gApplyCut;
-   TGNumberEntry*	gMaxValue;
-   TGNumberEntry*	gMinValue;
-   TGDoubleSlider*	gDoubleSlider;
-
-public:
-   CutsDoubleSlider((const TGWindow* p, Int_t sliderWidth, const char* labelText, Int_t valMin, Int_t valMax, Pixel_t backgroundColor, Pixel_t textColor);
-
-   void GetLabel() { return gLabel; };
-   void GetCheckButton() { return gApplyCut; };
-   void GetEntryMax() { return gMaxValue; };
-   void GetEntryMin() { return gMinValue; };
-   void GetSlider() { return gDoubleSlider; };
-
-   ClassDef(CutsDoubleSlider, 0)
-};
-
-CutsDoubleSlider::CutsDoubleSlider(const TGWindow* p, Int_t sliderWidth, const char* labelText, Int_t valMin, Int_t valMax, Pixel_t backgroundColor, Pixel_t textColor)
- : TGMainFrame(p, 10, 10, kHorizontalFrame)
-{
-
-   TGVerticalFrame *vframe = new TGVerticalFrame(this);
-
-   TGHorizontalFrame* hframe = new TGHorizontalFrame(vframe, 200, 20, kFixedWidth);
-   TGLabel *label = 0;
-
-   gLabel = new TGLabel(hframe,labelText);
-   gLabel->SetBackgroundColor(backgroundColor);
-   gLabel->SetTextColor(textColor);
-
-   gMinValue = new TGNumberEntry(hframe, 0, 6);
-   gMinValue->SetNumber(valMin);
-   gMinValue->SetBackgroundColor(backgroundColor);
-
-   gMaxValue = new TGNumberEntry(hframe, 0, 6);
-   gMaxValue->SetNumber(valMax);
-   gMaxValue->SetBackgroundColor(backgroundColor);
-
-   gApplyCut = new TGCheckButton(hframe, "", 10);
-   gApplyCut->SetBackgroundColor(backgroundColor);
-
-   hframe->AddFrame(gLabel, new TGLayoutHints(kLHintsExpandX, 0, 0, 0, 0));
-   hframe->AddFrame(gMinValue, new TGLayoutHints(kLHintsNormal, 0, 0, 0, 0));
-   hframe->AddFrame(gMaxValue, new TGLayoutHints(kLHintsNormal, 0, 0, 0, 0));
-   hframe->AddFrame(gApplyCut, new TGLayoutHints(kLHintsRight, 4, 0, 0, 0));
-   hframe->SetBackgroundColor(backgroundColor);
-
-   vframe->AddFrame(hframe, new TGLayoutHints(kLHintsExpandX, 0, 0, 10, 0));
-
-   hframe = new TGHorizontalFrame(vframe, 200, 20, kFixedWidth);
-
-   gDoubleSlider = new TGDoubleHSlider(hframe, sliderWidth, 1, -1, kHorizontalFrame, backgroundColor, kFALSE, kFALSE);
-   gDoubleSlider->SetRange(valMin, valMax);
-   gDoubleSlider->SetPosition(valMin, valMax);
-   gDoubleSlider->SetBackgroundColor(backgroundColor);
-
-   hframe->AddFrame(gDoubleSlider, new TGLayoutHints(kLHintsExpandX, 0, 0, 0, 0));
-   hframe->SetBackgroundColor(backgroundColor);
-
-   vframe->AddFrame(hframe, new TGLayoutHints(kLHintsExpandX, 0, 0, 0, 10));
-
-   AddFrame(vframe, new TGLayoutHints(kLHintsCenterX));
-
-   SetBackgroundColor(backgroundColor);
-
-   Resize();
-
-   MapSubwindows();
-
-   SetWMSizeHints(GetDefaultWidth(), GetDefaultHeight(), 1000, 1000, 0 ,0);
-   SetWindowName("Double Slider");
-   MapRaised();
-
-}
-
-*/
 
 class SetCutsWindow : public TGMainFrame {
 
@@ -130,6 +56,7 @@ protected:
    TGTextButton* gPosColorButton;
    TGComboBox* gNegColorList;
    TGTextButton* gNegColorButton;
+   TGComboBox* gTrackColorScale;
    TGComboBox* gBkgColorList;
    TGTextButton* gBkgColorButton;
    TGLOverlayButton *gOverlayButton3D;
@@ -137,10 +64,6 @@ protected:
    TGLOverlayButton *gOverlayButtonRhoZ;
    Bool_t gDrawHistograms[12];
    
-//   CutsDoubleSlider *slajder1;
-//   CutsDoubleSlider *slajder2;
-//   CutsDoubleSlider *slajder3;
-
 public:
    SetCutsWindow();
    void MultNECallBack();
@@ -180,6 +103,11 @@ public:
    void AddMomentumVectors();
    void SetCuts();
    void CloseTab();
+   void Macro1();
+   void Macro2();
+   void Macro3();
+   void Macro4();
+   void Macro5();
    
    ClassDef(SetCutsWindow, 0)
 };
@@ -191,6 +119,12 @@ namespace
 
    const char *gPictureSaveAsTypes[] = {"PNG Image", "*.png", 0, 0}; //for saving pictures
 
+}
+
+namespace
+{
+
+   const char *gMacroSaveAsTypes[] = {"AliEve settings", "*.alieve", 0, 0};
 }
 
 //________________________________________________
@@ -235,6 +169,8 @@ SetCutsWindow::SetCutsWindow() : TGMainFrame(gClient->GetRoot(), 10, 10, kHorizo
 
    TGShutterItem *item6 = new TGShutterItem(mainShutter, new TGHotString("Momentum Vectors"), 6);
 
+   TGShutterItem *item7 = new TGShutterItem(mainShutter, new TGHotString("PR macros"), 7);
+
    mainShutter->AddItem(item1);
 
    mainShutter->AddItem(item2);
@@ -246,6 +182,8 @@ SetCutsWindow::SetCutsWindow() : TGMainFrame(gClient->GetRoot(), 10, 10, kHorizo
    mainShutter->AddItem(item5);
 
    mainShutter->AddItem(item6);
+
+   mainShutter->AddItem(item7);
 
    AddFrame(mainShutter, new TGLayoutHints(kLHintsExpandX | kLHintsExpandY));
 
@@ -261,30 +199,36 @@ SetCutsWindow::SetCutsWindow() : TGMainFrame(gClient->GetRoot(), 10, 10, kHorizo
 
    TGCompositeFrame *container6 = (TGCompositeFrame *) item6->GetContainer();
 
+   TGCompositeFrame *container7 = (TGCompositeFrame *) item7->GetContainer();
+
    // Draw Elements
 
    TGVerticalFrame *drawElements = new TGVerticalFrame(container1);
-   container1->AddFrame(drawElements, new TGLayoutHints(kLHintsExpandX | kLHintsExpandY));//, 5, 5, 5, 5));// | kLHintsExpandY
+   container1->AddFrame(drawElements, new TGLayoutHints(kLHintsExpandX | kLHintsExpandY));
 
    // Track Cuts
    TGVerticalFrame *trackCuts = new TGVerticalFrame(container2);
-   container2->AddFrame(trackCuts, new TGLayoutHints(kLHintsExpandX | kLHintsExpandY));//, 5, 5, 5, 5));// | kLHintsExpandY
+   container2->AddFrame(trackCuts, new TGLayoutHints(kLHintsExpandX | kLHintsExpandY));
 
    // Buttons
    TGVerticalFrame *buttons = new TGVerticalFrame(container3);
-   container3->AddFrame(buttons, new TGLayoutHints(kLHintsExpandX | kLHintsExpandY));//, 5, 5, 5, 5));// | kLHintsExpandY
+   container3->AddFrame(buttons, new TGLayoutHints(kLHintsExpandX | kLHintsExpandY));
 
    // Geometry
    TGVerticalFrame *geometry = new TGVerticalFrame(container4);
-   container4->AddFrame(geometry, new TGLayoutHints(kLHintsExpandX | kLHintsExpandY));//, 5, 5, 5, 5));// | kLHintsExpandY
+   container4->AddFrame(geometry, new TGLayoutHints(kLHintsExpandX | kLHintsExpandY));
 
    // Analysis
    TGVerticalFrame *analysis = new TGVerticalFrame(container5);
-   container5->AddFrame(analysis, new TGLayoutHints(kLHintsExpandX | kLHintsExpandY));//, 5, 5, 5, 5));// | kLHintsExpandY
+   container5->AddFrame(analysis, new TGLayoutHints(kLHintsExpandX | kLHintsExpandY));
 
    // Momentum Vectors
    TGVerticalFrame *momentumVectors = new TGVerticalFrame(container6);
-   container6->AddFrame(momentumVectors, new TGLayoutHints(kLHintsExpandX | kLHintsExpandY));//, 5, 5, 5, 5));// | kLHintsExpandY
+   container6->AddFrame(momentumVectors, new TGLayoutHints(kLHintsExpandX | kLHintsExpandY));
+
+   // PR macros
+   TGVerticalFrame *prMacros = new TGVerticalFrame(container7);
+   container7->AddFrame(prMacros, new TGLayoutHints(kLHintsExpandX | kLHintsExpandY));
 
    // DRAW ELEMENTS
 
@@ -378,6 +322,18 @@ SetCutsWindow::SetCutsWindow() : TGMainFrame(gClient->GetRoot(), 10, 10, kHorizo
    gDrawClusters->SetEnabled(kTRUE);
    hframeMerge->AddFrame(label, new TGLayoutHints(kLHintsExpandX));
    hframeMerge->AddFrame(gDrawClusters);
+
+   drawElements->AddFrame(hframeMerge, new TGLayoutHints(kLHintsExpandX));
+
+   // Muon
+
+   hframeMerge = new TGHorizontalFrame(drawElements, 200, 20, kFixedWidth);
+
+   label = new TGLabel(hframeMerge, "MUON");
+   gDrawVertex = new TGCheckButton(hframeMerge, "", 10);
+   gDrawVertex->SetEnabled(kTRUE);
+   hframeMerge->AddFrame(label, new TGLayoutHints(kLHintsExpandX));
+   hframeMerge->AddFrame(gDrawVertex);
 
    drawElements->AddFrame(hframeMerge, new TGLayoutHints(kLHintsExpandX));
 
@@ -659,10 +615,6 @@ SetCutsWindow::SetCutsWindow() : TGMainFrame(gClient->GetRoot(), 10, 10, kHorizo
 
    trackCuts->AddFrame(hframe, new TGLayoutHints(kLHintsExpandX));
 
-//    trackCutsITS->SetMaxDCAToVertexXY(2.4);
-//    trackCutsITS->SetMaxDCAToVertexZ(3.2);
-
-
    // BUTTONS
 
    separator = new TGHorizontal3DLine(buttons);
@@ -676,9 +628,37 @@ SetCutsWindow::SetCutsWindow() : TGMainFrame(gClient->GetRoot(), 10, 10, kHorizo
    hframe->AddFrame(label, new TGLayoutHints(kLHintsExpandX));
 
    gPosColorList = new TGComboBox(hframe);
-   gPosColorList->AddEntry("Blue", 1);
-   gPosColorList->AddEntry("Red", 2);
-   gPosColorList->AddEntry("Mixed", 3);
+   gPosColorList->AddEntry("Mixed 1", 0);
+   gPosColorList->AddEntry("Mixed 2", 1);
+   gPosColorList->AddEntry("Cyan-Blue", 2);
+   gPosColorList->AddEntry("Yellow-Red", 3);
+   gPosColorList->AddEntry("Red 1", 4);
+   gPosColorList->AddEntry("Red 2", 5);
+   gPosColorList->AddEntry("Orange 1", 6);
+   gPosColorList->AddEntry("Orange 2", 7);
+   gPosColorList->AddEntry("Yellow 1", 8);
+   gPosColorList->AddEntry("Yellow 2", 9);
+   gPosColorList->AddEntry("Spring 1", 10);
+   gPosColorList->AddEntry("Spring 2", 11);
+   gPosColorList->AddEntry("Green 1", 12);
+   gPosColorList->AddEntry("Green 2", 13);
+   gPosColorList->AddEntry("Teal 1", 14);
+   gPosColorList->AddEntry("Teal 2", 15);
+   gPosColorList->AddEntry("Cyan 1", 16);
+   gPosColorList->AddEntry("Cyan 2", 17);
+   gPosColorList->AddEntry("Azure 1", 18);
+   gPosColorList->AddEntry("Azure 2", 19);
+   gPosColorList->AddEntry("Blue 1", 20);
+   gPosColorList->AddEntry("Blue 2", 21);
+   gPosColorList->AddEntry("Violet 1", 22);
+   gPosColorList->AddEntry("Violet 2", 23);
+   gPosColorList->AddEntry("Magenta 1", 24);
+   gPosColorList->AddEntry("Magenta 2", 25);
+   gPosColorList->AddEntry("Pink 1", 26);
+   gPosColorList->AddEntry("Pink 2", 27);
+
+   gPosColorList->Select(0, kFALSE);
+
    gPosColorList->Resize(100,20);
    gPosColorList->Connect("Selected(Int_t)", "SetCutsWindow", this, "PosTracksCallBack()");
    hframe->AddFrame(gPosColorList, new TGLayoutHints(kLHintsExpandX));
@@ -697,9 +677,37 @@ SetCutsWindow::SetCutsWindow() : TGMainFrame(gClient->GetRoot(), 10, 10, kHorizo
    hframe->AddFrame(label, new TGLayoutHints(kLHintsExpandX));
 
    gNegColorList = new TGComboBox(hframe);
-   gNegColorList->AddEntry("Blue", 1);
-   gNegColorList->AddEntry("Red", 2);
-   gNegColorList->AddEntry("Mixed", 3);
+   gNegColorList->AddEntry("Mixed 1", 0);
+   gNegColorList->AddEntry("Mixed 2", 1);
+   gNegColorList->AddEntry("Cyan-Blue", 2);
+   gNegColorList->AddEntry("Yellow-Red", 3);
+   gNegColorList->AddEntry("Red 1", 4);
+   gNegColorList->AddEntry("Red 2", 5);
+   gNegColorList->AddEntry("Orange 1", 6);
+   gNegColorList->AddEntry("Orange 2", 7);
+   gNegColorList->AddEntry("Yellow 1", 8);
+   gNegColorList->AddEntry("Yellow 2", 9);
+   gNegColorList->AddEntry("Spring 1", 10);
+   gNegColorList->AddEntry("Spring 2", 11);
+   gNegColorList->AddEntry("Green 1", 12);
+   gNegColorList->AddEntry("Green 2", 13);
+   gNegColorList->AddEntry("Teal 1", 14);
+   gNegColorList->AddEntry("Teal 2", 15);
+   gNegColorList->AddEntry("Cyan 1", 16);
+   gNegColorList->AddEntry("Cyan 2", 17);
+   gNegColorList->AddEntry("Azure 1", 18);
+   gNegColorList->AddEntry("Azure 2", 19);
+   gNegColorList->AddEntry("Blue 1", 20);
+   gNegColorList->AddEntry("Blue 2", 21);
+   gNegColorList->AddEntry("Violet 1", 22);
+   gNegColorList->AddEntry("Violet 2", 23);
+   gNegColorList->AddEntry("Magenta 1", 24);
+   gNegColorList->AddEntry("Magenta 2", 25);
+   gNegColorList->AddEntry("Pink 1", 26);
+   gNegColorList->AddEntry("Pink 2", 27);
+
+   gNegColorList->Select(0, kFALSE);
+
    gNegColorList->Resize(100,20);
    gNegColorList->Connect("Selected(Int_t)", "SetCutsWindow", this, "NegTracksCallBack()");
    hframe->AddFrame(gNegColorList, new TGLayoutHints(kLHintsExpandX));
@@ -708,6 +716,29 @@ SetCutsWindow::SetCutsWindow() : TGMainFrame(gClient->GetRoot(), 10, 10, kHorizo
    hframe->AddFrame(gNegColorButton, new TGLayoutHints(kLHintsNormal, 5, 5, 1, 1));
 
    buttons->AddFrame(hframe, new TGLayoutHints(kLHintsExpandX, 5, 5, 5, 5));
+
+   // Color scale
+
+   hframe = new TGHorizontalFrame(buttons, 200, 20, kFixedWidth);
+
+   label = new TGLabel(hframe, "Color scale:");
+   hframe->AddFrame(label, new TGLayoutHints(kLHintsExpandX));
+
+   gTrackColorScale = new TGComboBox(hframe);
+   gTrackColorScale->AddEntry("Linear", 1);
+   gTrackColorScale->AddEntry("Logarithmic", 2);
+   gTrackColorScale->AddEntry("Power", 3);
+
+   gTrackColorScale->Select(1, kFALSE);
+
+   gTrackColorScale->Resize(100,20);
+   hframe->AddFrame(gTrackColorScale, new TGLayoutHints(kLHintsExpandX));
+
+   label = new TGLabel(hframe, "      ");
+   hframe->AddFrame(label, new TGLayoutHints(kLHintsNormal, 5, 5, 1, 1));
+
+   buttons->AddFrame(hframe, new TGLayoutHints(kLHintsExpandX, 5, 5, 5, 5));
+
 
    // Background color
 
@@ -719,6 +750,9 @@ SetCutsWindow::SetCutsWindow() : TGMainFrame(gClient->GetRoot(), 10, 10, kHorizo
    gBkgColorList = new TGComboBox(hframe);
    gBkgColorList->AddEntry("White", 1);
    gBkgColorList->AddEntry("Black", 2);
+
+   gBkgColorList->Select(1, kFALSE);
+
    gBkgColorList->Resize(100,20);
    gBkgColorList->Connect("Selected(Int_t)", "SetCutsWindow", this, "BackgroundCallBack()");
    hframe->AddFrame(gBkgColorList, new TGLayoutHints(kLHintsExpandX));
@@ -796,18 +830,6 @@ SetCutsWindow::SetCutsWindow() : TGMainFrame(gClient->GetRoot(), 10, 10, kHorizo
 
    geometry->AddFrame(hframe, new TGLayoutHints(kLHintsExpandX, 5, 5, 5, 5));
 
-//   hframe = new TGHorizontalFrame(geometry, 200, 20, kFixedWidth);
-
-//   b = new TGTextButton(hframe, "Close Tab");
-//   b->Connect("Clicked()", "SetCutsWindow", this, "CloseTab()");
-//   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX, 5, 5, 5, 5));
-
-//   b = new TGTextButton(hframe, "Close Tab");
-//   b->Connect("Clicked()", "SetCutsWindow", this, "CloseTab()");
-//   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX, 5, 5, 5, 5));
-
-//   geometry->AddFrame(hframe, new TGLayoutHints(kLHintsExpandX, 5, 5, 5, 5));
-
    // Snapshots
 
    separator = new TGHorizontal3DLine(geometry);
@@ -818,14 +840,6 @@ SetCutsWindow::SetCutsWindow() : TGMainFrame(gClient->GetRoot(), 10, 10, kHorizo
 
    separator = new TGHorizontal3DLine(geometry);
    geometry->AddFrame(separator, new TGLayoutHints(kLHintsExpandX, 5, 5, 5, 5));
-
-//   hframe = new TGHorizontalFrame(geometry, 200, 20, kFixedWidth);
-
-//   b = new TGTextButton(hframe, "Descriptions");
-//   b->Connect("Clicked()", "SetCutsWindow", this, "AddDescriptions()");
-//   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX, 5, 5, 5, 5));
-
-//   geometry->AddFrame(hframe, new TGLayoutHints(kLHintsExpandX, 5, 5, 5, 5));
 
    hframe = new TGHorizontalFrame(geometry, 200, 20, kFixedWidth);
 
@@ -874,6 +888,14 @@ SetCutsWindow::SetCutsWindow() : TGMainFrame(gClient->GetRoot(), 10, 10, kHorizo
 
    geometry->AddFrame(hframe, new TGLayoutHints(kLHintsExpandX));
 
+//   hframe = new TGHorizontalFrame(geometry, 150, 20, kFixedWidth);
+
+//   TGPictureButton* b1 = new TGPictureButton(hframe, gClient->GetPicture("$ALICE_ROOT/EVE/alice-data/ALICE_logo.png"));
+
+//   hframe->AddFrame(b1, new TGLayoutHints(kLHintsExpandX, 5, 5, 5, 5));
+
+//   geometry->AddFrame(hframe, new TGLayoutHints(kLHintsExpandX));
+
    // ANALYSIS
 
    separator = new TGHorizontal3DLine(analysis);
@@ -892,17 +914,17 @@ SetCutsWindow::SetCutsWindow() : TGMainFrame(gClient->GetRoot(), 10, 10, kHorizo
    b = new TGTextButton(hframe, "Pt");
    b->AllowStayDown(kTRUE);
    b->Connect("Clicked()", "SetCutsWindow", this, "DrawPtHisto()");
-   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX));//, 5, 5, 5, 5));
+   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX));
 
    b = new TGTextButton(hframe, "Eta");
    b->AllowStayDown(kTRUE);
    b->Connect("Clicked()", "SetCutsWindow", this, "DrawEtaHisto()");
-   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX));//, 5, 5, 5, 5));
+   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX));
 
    b = new TGTextButton(hframe, "Phi");
    b->AllowStayDown(kTRUE);
    b->Connect("Clicked()", "SetCutsWindow", this, "DrawPhiHisto()");
-   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX));//, 5, 5, 5, 5));
+   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX));
 
    analysis->AddFrame(hframe, new TGLayoutHints(kLHintsExpandX, 5, 5, 0, 0));
 
@@ -911,17 +933,17 @@ SetCutsWindow::SetCutsWindow() : TGMainFrame(gClient->GetRoot(), 10, 10, kHorizo
    b = new TGTextButton(hframe, "Phi-Pt");
    b->AllowStayDown(kTRUE);
    b->Connect("Clicked()", "SetCutsWindow", this, "DrawPhiPtHisto()");
-   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX));//, 5, 5, 5, 5));
+   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX));
 
    b = new TGTextButton(hframe, "Pt-Y");
    b->AllowStayDown(kTRUE);
    b->Connect("Clicked()", "SetCutsWindow", this, "DrawPtYHisto()");
-   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX));//, 5, 5, 5, 5));
+   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX));
 
    b = new TGTextButton(hframe, "Eta-Phi");
    b->AllowStayDown(kTRUE);
    b->Connect("Clicked()", "SetCutsWindow", this, "DrawEtaPhiHisto()");
-   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX));//, 5, 5, 5, 5));
+   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX));
 
    analysis->AddFrame(hframe, new TGLayoutHints(kLHintsExpandX, 5, 5, 0, 0));
 
@@ -949,17 +971,17 @@ SetCutsWindow::SetCutsWindow() : TGMainFrame(gClient->GetRoot(), 10, 10, kHorizo
    b = new TGTextButton(hframe, "Pt");
    b->AllowStayDown(kTRUE);
    b->Connect("Clicked()", "SetCutsWindow", this, "DrawPtHistoAll()");
-   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX));//, 5, 5, 5, 5));
+   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX));
 
    b = new TGTextButton(hframe, "Eta");
    b->AllowStayDown(kTRUE);
    b->Connect("Clicked()", "SetCutsWindow", this, "DrawEtaHistoAll()");
-   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX));//, 5, 5, 5, 5));
+   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX));
 
    b = new TGTextButton(hframe, "Phi");
    b->AllowStayDown(kTRUE);
    b->Connect("Clicked()", "SetCutsWindow", this, "DrawPhiHistoAll()");
-   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX));//, 5, 5, 5, 5));
+   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX));
 
    analysis->AddFrame(hframe, new TGLayoutHints(kLHintsExpandX, 5, 5, 0, 0));
 
@@ -968,17 +990,17 @@ SetCutsWindow::SetCutsWindow() : TGMainFrame(gClient->GetRoot(), 10, 10, kHorizo
    b = new TGTextButton(hframe, "Phi-Pt");
    b->AllowStayDown(kTRUE);
    b->Connect("Clicked()", "SetCutsWindow", this, "DrawPhiPtHistoAll()");
-   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX));//, 5, 5, 5, 5));
+   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX));
 
    b = new TGTextButton(hframe, "Pt-Y");
    b->AllowStayDown(kTRUE);
    b->Connect("Clicked()", "SetCutsWindow", this, "DrawPtYHistoAll()");
-   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX));//, 5, 5, 5, 5));
+   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX));
 
    b = new TGTextButton(hframe, "Eta-Phi");
    b->AllowStayDown(kTRUE);
    b->Connect("Clicked()", "SetCutsWindow", this, "DrawEtaPhiHistoAll()");
-   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX));//, 5, 5, 5, 5));
+   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX));
 
    analysis->AddFrame(hframe, new TGLayoutHints(kLHintsExpandX, 5, 5, 0, 0));
 
@@ -1076,7 +1098,7 @@ SetCutsWindow::SetCutsWindow() : TGMainFrame(gClient->GetRoot(), 10, 10, kHorizo
 
    gPMVRange = new TGHSlider(hframe,180);
    gPMVRange->SetRange(0, 50);
-   gPMVRange->SetPosition(0);
+   gPMVRange->SetPosition(3);
    gPMVRange->Connect("PositionChanged(Int_t)", "SetCutsWindow", this, "PMVSliderCallBack()");
 
    hframe->AddFrame(gPMVRange, new TGLayoutHints(kLHintsExpandX, 5, 5, 5, 5));
@@ -1113,6 +1135,108 @@ SetCutsWindow::SetCutsWindow() : TGMainFrame(gClient->GetRoot(), 10, 10, kHorizo
    hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX, 5, 5, 5, 5));
 
    momentumVectors->AddFrame(hframe, new TGLayoutHints(kLHintsExpandX));
+
+   // PR macros
+
+   // choose pr macro
+
+   separator = new TGHorizontal3DLine(prMacros);
+   prMacros->AddFrame(separator, new TGLayoutHints(kLHintsExpandX, 5, 5, 5, 5));
+
+   label = new TGLabel(prMacros, "Choose PR macro");
+   prMacros->AddFrame(label, new TGLayoutHints(kLHintsExpandX, 5, 5, 5, 5));
+
+   separator = new TGHorizontal3DLine(prMacros);
+   prMacros->AddFrame(separator, new TGLayoutHints(kLHintsExpandX, 5, 5, 5, 5));
+
+   hframe = new TGHorizontalFrame(prMacros, 200, 20, kFixedWidth);
+
+   label = new TGLabel(hframe, "No geometry, global tracks");
+
+   b = new TGTextButton(hframe, "OK");
+   b->Connect("Clicked()", "SetCutsWindow", this, "Macro1()");
+   hframe->AddFrame(label);
+   hframe->AddFrame(b, new TGLayoutHints(kLHintsRight));
+
+   prMacros->AddFrame(hframe, new TGLayoutHints(kLHintsExpandX, 5, 5, 5, 5));
+
+   hframe = new TGHorizontalFrame(prMacros, 200, 20, kFixedWidth);
+
+   label = new TGLabel(hframe, "Clusters, global tracks, mixed colors");
+
+   b = new TGTextButton(hframe, "OK");
+   b->Connect("Clicked()", "SetCutsWindow", this, "Macro2()");
+   hframe->AddFrame(label);
+   hframe->AddFrame(b, new TGLayoutHints(kLHintsRight));
+
+   prMacros->AddFrame(hframe, new TGLayoutHints(kLHintsExpandX, 5, 5, 5, 5));
+
+   hframe = new TGHorizontalFrame(prMacros, 200, 20, kFixedWidth);
+
+   label = new TGLabel(hframe, "No geometry, clusters, tracks, mixed colors");
+
+   b = new TGTextButton(hframe, "OK");
+   b->Connect("Clicked()", "SetCutsWindow", this, "Macro3()");
+   hframe->AddFrame(label);
+   hframe->AddFrame(b, new TGLayoutHints(kLHintsRight));
+
+   prMacros->AddFrame(hframe, new TGLayoutHints(kLHintsExpandX, 5, 5, 5, 5));
+
+   hframe = new TGHorizontalFrame(prMacros, 200, 20, kFixedWidth);
+
+   label = new TGLabel(hframe, "Only V0s, cascades, kinks");
+
+   b = new TGTextButton(hframe, "OK");
+   b->Connect("Clicked()", "SetCutsWindow", this, "Macro4()");
+   hframe->AddFrame(label);
+   hframe->AddFrame(b, new TGLayoutHints(kLHintsRight));
+
+   prMacros->AddFrame(hframe, new TGLayoutHints(kLHintsExpandX, 5, 5, 5, 5));
+
+   hframe = new TGHorizontalFrame(prMacros, 200, 20, kFixedWidth);
+
+   label = new TGLabel(hframe, "No geometry, global tracks, vectors");
+
+   b = new TGTextButton(hframe, "OK");
+   b->Connect("Clicked()", "SetCutsWindow", this, "Macro5()");
+   hframe->AddFrame(label);
+   hframe->AddFrame(b, new TGLayoutHints(kLHintsRight));
+
+   prMacros->AddFrame(hframe, new TGLayoutHints(kLHintsExpandX, 5, 5, 5, 5));
+
+   separator = new TGHorizontal3DLine(prMacros);
+
+   prMacros->AddFrame(separator, new TGLayoutHints(kLHintsExpandX, 5, 5, 5, 5));
+
+   hframe = new TGHorizontalFrame(prMacros, 200, 20, kFixedWidth);
+
+   b = new TGTextButton(hframe, "Save Current Settings");
+   b->Connect("Clicked()", "SetCutsWindow", this, "SaveMacro()");
+   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX, 5, 5, 5, 5));
+
+   prMacros->AddFrame(hframe, new TGLayoutHints(kLHintsExpandX, 5, 5, 5, 5));
+
+   hframe = new TGHorizontalFrame(prMacros, 200, 20, kFixedWidth);
+
+   b = new TGTextButton(hframe, "Load Settings");
+   b->Connect("Clicked()", "SetCutsWindow", this, "LoadMacro()");
+   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX, 5, 5, 5, 5));
+
+   prMacros->AddFrame(hframe, new TGLayoutHints(kLHintsExpandX, 5, 5, 5, 5));
+
+   // Main menu
+
+   separator = new TGHorizontal3DLine(prMacros);
+   prMacros->AddFrame(separator, new TGLayoutHints(kLHintsExpandX, 5, 5, 5, 5));
+
+   hframe = new TGHorizontalFrame(prMacros, 150, 20, kFixedWidth);
+
+   b = new TGTextButton(hframe, "Apply Cuts");
+   b->Connect("Clicked()", "SetCutsWindow", this, "SetCuts()");
+
+   hframe->AddFrame(b, new TGLayoutHints(kLHintsExpandX));
+
+   prMacros->AddFrame(hframe, new TGLayoutHints(kLHintsExpandX, 5, 5, 5, 5));
 
    // FINAL STUFF
 
@@ -1189,25 +1313,149 @@ void SetCutsWindow::PosTracksCallBack()
 
    switch(gPosColorList->GetSelected())
    {
+      case 0:
+         gPosColorButton->SetBackgroundColor(gROOT->GetColor(18)->GetPixel());
+         gPosColorButton->SetText("M 1");
+         break;
 
       case 1:
-         gPosColorButton->SetBackgroundColor(gROOT->GetColor(4)->GetPixel());
-         gPosColorButton->SetText("    ");
+         gPosColorButton->SetBackgroundColor(gROOT->GetColor(18)->GetPixel());
+         gPosColorButton->SetText("M 2");
          break;
 
       case 2:
-         gPosColorButton->SetBackgroundColor(gROOT->GetColor(2)->GetPixel());
-         gPosColorButton->SetText("    ");
+         gPosColorButton->SetBackgroundColor(gROOT->GetColor(kAzure)->GetPixel());
+         gPosColorButton->SetText("   ");
          break;
 
       case 3:
-         gPosColorButton->SetBackgroundColor(gROOT->GetColor(18)->GetPixel());
-         gPosColorButton->SetText(" M ");
+         gPosColorButton->SetBackgroundColor(gROOT->GetColor(kOrange)->GetPixel());
+         gPosColorButton->SetText("   ");
+         break;
+
+      case 4:
+         gPosColorButton->SetBackgroundColor(gROOT->GetColor(kRed)->GetPixel());
+         gPosColorButton->SetText(" 1 ");
+         break;
+
+      case 5:
+         gPosColorButton->SetBackgroundColor(gROOT->GetColor(kRed)->GetPixel());
+         gPosColorButton->SetText(" 2 ");
+         break;
+
+      case 6:
+         gPosColorButton->SetBackgroundColor(gROOT->GetColor(kOrange)->GetPixel());
+         gPosColorButton->SetText(" 1 ");
+         break;
+
+      case 7:
+         gPosColorButton->SetBackgroundColor(gROOT->GetColor(kOrange)->GetPixel());
+         gPosColorButton->SetText(" 2 ");
+         break;
+
+      case 8:
+         gPosColorButton->SetBackgroundColor(gROOT->GetColor(kYellow)->GetPixel());
+         gPosColorButton->SetText(" 1 ");
+         break;
+
+      case 9:
+         gPosColorButton->SetBackgroundColor(gROOT->GetColor(kYellow)->GetPixel());
+         gPosColorButton->SetText(" 2 ");
+         break;
+
+      case 10:
+         gPosColorButton->SetBackgroundColor(gROOT->GetColor(kSpring)->GetPixel());
+         gPosColorButton->SetText(" 1 ");
+         break;
+
+      case 11:
+         gPosColorButton->SetBackgroundColor(gROOT->GetColor(kSpring)->GetPixel());
+         gPosColorButton->SetText(" 2 ");
+         break;
+
+      case 12:
+         gPosColorButton->SetBackgroundColor(gROOT->GetColor(kGreen)->GetPixel());
+         gPosColorButton->SetText(" 1 ");
+         break;
+
+      case 13:
+         gPosColorButton->SetBackgroundColor(gROOT->GetColor(kGreen)->GetPixel());
+         gPosColorButton->SetText(" 2 ");
+         break;
+
+      case 14:
+         gPosColorButton->SetBackgroundColor(gROOT->GetColor(kTeal)->GetPixel());
+         gPosColorButton->SetText(" 1 ");
+         break;
+
+      case 15:
+         gPosColorButton->SetBackgroundColor(gROOT->GetColor(kTeal)->GetPixel());
+         gPosColorButton->SetText(" 2 ");
+         break;
+
+      case 16:
+         gPosColorButton->SetBackgroundColor(gROOT->GetColor(kCyan)->GetPixel());
+         gPosColorButton->SetText(" 1 ");
+         break;
+
+      case 17:
+         gPosColorButton->SetBackgroundColor(gROOT->GetColor(kCyan)->GetPixel());
+         gPosColorButton->SetText(" 2 ");
+         break;
+
+      case 18:
+         gPosColorButton->SetBackgroundColor(gROOT->GetColor(kAzure)->GetPixel());
+         gPosColorButton->SetText(" 1 ");
+         break;
+
+      case 19:
+         gPosColorButton->SetBackgroundColor(gROOT->GetColor(kAzure)->GetPixel());
+         gPosColorButton->SetText(" 2 ");
+         break;
+
+      case 20:
+         gPosColorButton->SetBackgroundColor(gROOT->GetColor(kBlue)->GetPixel());
+         gPosColorButton->SetText(" 1 ");
+         break;
+
+      case 21:
+         gPosColorButton->SetBackgroundColor(gROOT->GetColor(kBlue)->GetPixel());
+         gPosColorButton->SetText(" 2 ");
+         break;
+
+      case 22:
+         gPosColorButton->SetBackgroundColor(gROOT->GetColor(kViolet)->GetPixel());
+         gPosColorButton->SetText(" 1 ");
+         break;
+
+      case 23:
+         gPosColorButton->SetBackgroundColor(gROOT->GetColor(kViolet)->GetPixel());
+         gPosColorButton->SetText(" 2 ");
+         break;
+
+      case 24:
+         gPosColorButton->SetBackgroundColor(gROOT->GetColor(kMagenta)->GetPixel());
+         gPosColorButton->SetText(" 1 ");
+         break;
+
+      case 25:
+         gPosColorButton->SetBackgroundColor(gROOT->GetColor(kMagenta)->GetPixel());
+         gPosColorButton->SetText(" 2 ");
+         break;
+
+      case 26:
+         gPosColorButton->SetBackgroundColor(gROOT->GetColor(kPink)->GetPixel());
+         gPosColorButton->SetText(" 1 ");
+         break;
+
+      case 27:
+         gPosColorButton->SetBackgroundColor(gROOT->GetColor(kPink)->GetPixel());
+         gPosColorButton->SetText(" 2 ");
          break;
 
       default:
          gPosColorButton->SetBackgroundColor(gROOT->GetColor(18)->GetPixel());
-         gPosColorButton->SetText("    ");
+         gPosColorButton->SetText("M 1");
          break;
 
    }
@@ -1221,25 +1469,149 @@ void SetCutsWindow::NegTracksCallBack()
 
    switch(gNegColorList->GetSelected())
    {
+      case 0:
+         gNegColorButton->SetBackgroundColor(gROOT->GetColor(18)->GetPixel());
+         gNegColorButton->SetText("M 1");
+         break;
 
       case 1:
-         gNegColorButton->SetBackgroundColor(gROOT->GetColor(4)->GetPixel());
-         gNegColorButton->SetText("    ");
+         gNegColorButton->SetBackgroundColor(gROOT->GetColor(18)->GetPixel());
+         gNegColorButton->SetText("M 2");
          break;
 
       case 2:
-         gNegColorButton->SetBackgroundColor(gROOT->GetColor(2)->GetPixel());
-         gNegColorButton->SetText("    ");
+         gNegColorButton->SetBackgroundColor(gROOT->GetColor(kAzure)->GetPixel());
+         gNegColorButton->SetText("   ");
          break;
 
       case 3:
-         gNegColorButton->SetBackgroundColor(gROOT->GetColor(18)->GetPixel());
-         gNegColorButton->SetText(" M ");
+         gNegColorButton->SetBackgroundColor(gROOT->GetColor(kOrange)->GetPixel());
+         gNegColorButton->SetText("   ");
+         break;
+
+      case 4:
+         gNegColorButton->SetBackgroundColor(gROOT->GetColor(kRed)->GetPixel());
+         gNegColorButton->SetText(" 1 ");
+         break;
+
+      case 5:
+         gNegColorButton->SetBackgroundColor(gROOT->GetColor(kRed)->GetPixel());
+         gNegColorButton->SetText(" 2 ");
+         break;
+
+      case 6:
+         gNegColorButton->SetBackgroundColor(gROOT->GetColor(kOrange)->GetPixel());
+         gNegColorButton->SetText(" 1 ");
+         break;
+
+      case 7:
+         gNegColorButton->SetBackgroundColor(gROOT->GetColor(kOrange)->GetPixel());
+         gNegColorButton->SetText(" 2 ");
+         break;
+
+      case 8:
+         gNegColorButton->SetBackgroundColor(gROOT->GetColor(kYellow)->GetPixel());
+         gNegColorButton->SetText(" 1 ");
+         break;
+
+      case 9:
+         gNegColorButton->SetBackgroundColor(gROOT->GetColor(kYellow)->GetPixel());
+         gNegColorButton->SetText(" 2 ");
+         break;
+
+      case 10:
+         gNegColorButton->SetBackgroundColor(gROOT->GetColor(kSpring)->GetPixel());
+         gNegColorButton->SetText(" 1 ");
+         break;
+
+      case 11:
+         gNegColorButton->SetBackgroundColor(gROOT->GetColor(kSpring)->GetPixel());
+         gNegColorButton->SetText(" 2 ");
+         break;
+
+      case 12:
+         gNegColorButton->SetBackgroundColor(gROOT->GetColor(kGreen)->GetPixel());
+         gNegColorButton->SetText(" 1 ");
+         break;
+
+      case 13:
+         gNegColorButton->SetBackgroundColor(gROOT->GetColor(kGreen)->GetPixel());
+         gNegColorButton->SetText(" 2 ");
+         break;
+
+      case 14:
+         gNegColorButton->SetBackgroundColor(gROOT->GetColor(kTeal)->GetPixel());
+         gNegColorButton->SetText(" 1 ");
+         break;
+
+      case 15:
+         gNegColorButton->SetBackgroundColor(gROOT->GetColor(kTeal)->GetPixel());
+         gNegColorButton->SetText(" 2 ");
+         break;
+
+      case 16:
+         gNegColorButton->SetBackgroundColor(gROOT->GetColor(kCyan)->GetPixel());
+         gNegColorButton->SetText(" 1 ");
+         break;
+
+      case 17:
+         gNegColorButton->SetBackgroundColor(gROOT->GetColor(kCyan)->GetPixel());
+         gNegColorButton->SetText(" 2 ");
+         break;
+
+      case 18:
+         gNegColorButton->SetBackgroundColor(gROOT->GetColor(kAzure)->GetPixel());
+         gNegColorButton->SetText(" 1 ");
+         break;
+
+      case 19:
+         gNegColorButton->SetBackgroundColor(gROOT->GetColor(kAzure)->GetPixel());
+         gNegColorButton->SetText(" 2 ");
+         break;
+
+      case 20:
+         gNegColorButton->SetBackgroundColor(gROOT->GetColor(kBlue)->GetPixel());
+         gNegColorButton->SetText(" 1 ");
+         break;
+
+      case 21:
+         gNegColorButton->SetBackgroundColor(gROOT->GetColor(kBlue)->GetPixel());
+         gNegColorButton->SetText(" 2 ");
+         break;
+
+      case 22:
+         gNegColorButton->SetBackgroundColor(gROOT->GetColor(kViolet)->GetPixel());
+         gNegColorButton->SetText(" 1 ");
+         break;
+
+      case 23:
+         gNegColorButton->SetBackgroundColor(gROOT->GetColor(kViolet)->GetPixel());
+         gNegColorButton->SetText(" 2 ");
+         break;
+
+      case 24:
+         gNegColorButton->SetBackgroundColor(gROOT->GetColor(kMagenta)->GetPixel());
+         gNegColorButton->SetText(" 1 ");
+         break;
+
+      case 25:
+         gNegColorButton->SetBackgroundColor(gROOT->GetColor(kMagenta)->GetPixel());
+         gNegColorButton->SetText(" 2 ");
+         break;
+
+      case 26:
+         gNegColorButton->SetBackgroundColor(gROOT->GetColor(kPink)->GetPixel());
+         gNegColorButton->SetText(" 1 ");
+         break;
+
+      case 27:
+         gNegColorButton->SetBackgroundColor(gROOT->GetColor(kPink)->GetPixel());
+         gNegColorButton->SetText(" 2 ");
          break;
 
       default:
          gNegColorButton->SetBackgroundColor(gROOT->GetColor(18)->GetPixel());
-         gNegColorButton->SetText("    ");
+         gNegColorButton->SetText("M 1");
          break;
 
    }
@@ -1289,10 +1661,6 @@ void SetCutsWindow::BackgroundCallBack()
 void SetCutsWindow::PMVSliderCallBack()
 {
 
-//   TGHSlider* gPMVRange;
-//   TGLabel* gPMVRangeLabel;
-
-
    Double_t entry;
 
    entry = gPMVRange->GetPosition();
@@ -1306,6 +1674,7 @@ void SetCutsWindow::PMVSliderCallBack()
 
 void SetCutsWindow::AddDescriptions()
 {
+
 /*
    if(gOverlayButton3D && gOverlayButtonRPhi && gOverlayButtonRhoZ)
    {
@@ -1336,6 +1705,7 @@ void SetCutsWindow::AddDescriptions()
 
    gEve->Redraw3D(kFALSE, kTRUE);
 */
+
    return;
 
 }
@@ -2186,21 +2556,38 @@ Int_t SetCutsWindow::GetTrackColorByMomentum(Double_t momentum, Int_t size)
 {
 
 
-   Double_t step = 2.0/size;
+   Double_t step = 1.0/size;
 
    for(Int_t i = 0; i < size; i++)
    {
 
-      if(momentum > i*step && momentum <= (i+1)*step)
+      switch(gTrackColorScale->GetSelected())
       {
-//         cout << "tutaj " << i <<endl;
-         return i;
+
+         case 1:
+            if(momentum > i*step && momentum <= (i+1)*step)
+               return i;
+            break;
+
+         case 2:
+            if(momentum > TMath::Log(1+i*step) && momentum <= TMath::Log(1+(i+1)*step))
+               return i;
+            break;
+
+         case 3:
+            if(momentum > TMath::Power(i*step,0.5) && momentum <= TMath::Power((i+1)*step,0.5))
+               return i;
+            break;
+
+         default:
+            if(momentum > i*step && momentum <= (i+1)*step)
+               return i;
+            break;
       }
 
    }
 
-//   cout << i <<endl;
-   return i;
+   return i-1;
 
 }
 
@@ -2239,6 +2626,46 @@ void SetCutsWindow::SetStandardCuts()
 
 void SetCutsWindow::AddMomentumVectors()
 {
+
+   Int_t posTrackColor= gPosColorList->GetSelected();
+   Int_t negTrackColor= gNegColorList->GetSelected();
+
+Int_t colorNeg[27][10] =
+{
+   { kRed, kBlue, kOrange, kCyan, kGreen, kGray, kViolet, kMagenta, kSpring, kYellow },
+   { kCyan-4, kCyan, kAzure+10, kAzure+8, kAzure+5, kAzure, kBlue, kBlue+1, kBlue+2, kBlue+3 },
+   { kYellow-4, kYellow, kOrange+10, kOrange, kOrange+7, kOrange+10, kRed, kRed+1, kRed+2, kRed+3 },
+   { kRed, kRed-1, kRed-2, kRed-3, kRed-4, kRed-5, kRed-6, kRed-7, kRed-8, kRed-9},
+   { kRed, kRed, kRed+1, kRed+1, kRed+2, kRed+2, kRed+3, kRed+3, kRed+4, kRed+4},
+   { kOrange, kOrange-1, kOrange-2, kOrange-3, kOrange-4, kOrange-5, kOrange-6, kOrange-7, kOrange-8, kOrange-9},
+   { kOrange, kOrange+1, kOrange+2, kOrange+3, kOrange+4, kOrange+5, kOrange+6, kOrange+7, kOrange+8, kOrange+9},
+   { kYellow, kYellow-1, kYellow-2, kYellow-3, kYellow-4, kYellow-5, kYellow-6, kYellow-7, kYellow-8, kYellow-9},
+   { kYellow, kYellow, kYellow+1, kYellow+1, kYellow+2, kYellow+2, kYellow+3, kYellow+3, kYellow+4, kYellow+4},
+   { kSpring, kSpring-1, kSpring-2, kSpring-3, kSpring-4, kSpring-5, kSpring-6, kSpring-7, kSpring-8, kSpring-9},
+   { kSpring, kSpring+1, kSpring+2, kSpring+3, kSpring+4, kSpring+5, kSpring+6, kSpring+7, kSpring+8, kSpring+9},
+   { kGreen, kGreen-1, kGreen-2, kGreen-3, kGreen-4, kGreen-5, kGreen-6, kGreen-7, kGreen-8, kGreen-9},
+   { kGreen, kGreen, kGreen+1, kGreen+1, kGreen+2, kGreen+2, kGreen+3, kGreen+3, kGreen+4, kGreen+4},
+   { kTeal, kTeal-1, kTeal-2, kTeal-3, kTeal-4, kTeal-5, kTeal-6, kTeal-7, kTeal-8, kTeal-9},
+   { kTeal, kTeal+1, kTeal+2, kTeal+3, kTeal+4, kTeal+5, kTeal+6, kTeal+7, kTeal+8, kTeal+9},
+   { kCyan, kCyan-1, kCyan-2, kCyan-3, kCyan-4, kCyan-5, kCyan-6, kCyan-7, kCyan-8, kCyan-9},
+   { kCyan, kCyan, kCyan+1, kCyan+1, kCyan+2, kCyan+2, kCyan+3, kCyan+3, kCyan+4, kCyan+4},
+   { kAzure, kAzure-1, kAzure-2, kAzure-3, kAzure-4, kAzure-5, kAzure-6, kAzure-7, kAzure-8, kAzure-9},
+   { kAzure, kAzure+1, kAzure+2, kAzure+3, kAzure+4, kAzure+5, kAzure+6, kAzure+7, kAzure+8, kAzure+9},
+   { kBlue, kBlue-1, kBlue-2, kBlue-3, kBlue-4, kBlue-5, kBlue-6, kBlue-7, kBlue-8, kBlue-9},
+   { kBlue, kBlue, kBlue+1, kBlue+1, kBlue+2, kBlue+2, kBlue+3, kBlue+3, kBlue+4, kBlue+4},
+   { kViolet, kViolet-1, kViolet-2, kViolet-3, kViolet-4, kViolet-5, kViolet-6, kViolet-7, kViolet-8, kViolet-9},
+   { kViolet, kViolet+1, kViolet+2, kViolet+3, kViolet+4, kViolet+5, kViolet+6, kViolet+7, kViolet+8, kViolet+9},
+   { kMagenta, kMagenta-1, kMagenta-2, kMagenta-3, kMagenta-4, kMagenta-5, kMagenta-6, kMagenta-7, kMagenta-8, kMagenta-9},
+   { kMagenta, kMagenta, kMagenta+1, kMagenta+1, kMagenta+2, kMagenta+2, kMagenta+3, kMagenta+3, kMagenta+4, kMagenta+4},
+   { kPink, kPink-1, kPink-2, kPink-3, kPink-4, kPink-5, kPink-6, kPink-7, kPink-8, kPink-9},
+   { kPink, kPink+1, kPink+2, kPink+3, kPink+4, kPink+5, kPink+6, kPink+7, kPink+8, kPink+9},
+};
+
+Int_t colorAll[22] = 
+{
+kBlue+4, kBlue+2, kBlue, kAzure, kAzure-3, kAzure+7, kCyan, kCyan-7, kGreen-7, kGreen-4, kGreen, kSpring,
+kSpring+7, kSpring+8, kYellow, kOrange, kOrange-3, kOrange+7, kOrange+4, kRed, kRed+2, kMagenta
+};
 
 //   Bool_t drawWithTracks = kTRUE;
 
@@ -2389,6 +2816,18 @@ void SetCutsWindow::AddMomentumVectors()
    // draw momentum vectors
    //==============================================
 
+   TEveRecTrack rcNeg;
+
+   TEveTrackList* fTrackListV0Neg = new TEveTrackList("V0 Tracks Neg"); 
+   fTrackListV0Neg->SetMainColor(kGreen-4);
+   fTrackListV0Neg->SetMarkerColor(kYellow);
+   fTrackListV0Neg->SetMarkerStyle(10);
+   fTrackListV0Neg->SetMarkerSize(5);
+
+    TEveTrackPropagator* trkProp = fTrackListV0Neg->GetPropagator();
+    trkProp->SetMagField(0.5);
+    trkProp->SetMaxR(250);
+
    if(mode == 1 && maxMomentum > 1)
       vectorLength = 100/TMath::Log(100*maxMomentum);
    if(mode == 2 && maxMomentum)
@@ -2414,11 +2853,6 @@ void SetCutsWindow::AddMomentumVectors()
             TEveElement* trackType = (TEveElement*) *l;
             str2 = trackType->GetElementName();
 
-//            trackType->SetRnrSelf(kFALSE);
-
-//            if(trackType->HasChildren())
-//               trackType->SetRnrChildren(kFALSE);
-
             if(str2.Contains("Sigma < 3"))
             {
 
@@ -2435,6 +2869,47 @@ void SetCutsWindow::AddMomentumVectors()
                   {
 
                      AliEveTrack* trackSingle1 = dynamic_cast<AliEveTrack*>((TEveElement*) *z);
+
+                     Double_t p[3];
+                     Double_t pos[3];
+
+                     trackSingle1->GetESDTrack()->GetTPCInnerParam()->GetPxPyPzAt(80,-5.01,p);
+                     trackSingle1->GetESDTrack()->GetTPCInnerParam()->GetXYZAt(80,-5.01,pos);
+
+//                     printf("%f %f %f\n",p[0],p[1],p[2]);
+//                     printf("%f %f %f\n",pos[0],pos[1],pos[2]);
+
+//                     printf("%f %f %f %f\n",trackSingle1->GetESDTrack()->GetTPCPoints(0),trackSingle1->GetESDTrack()->GetTPCPoints(1),trackSingle1->GetESDTrack()->GetTPCPoints(2),trackSingle1->GetESDTrack()->GetTPCPoints(3));
+
+                     rcNeg.fP.Set(p);
+                     rcNeg.fV.Set(pos);
+                     rcNeg.fStatus = trackSingle1->GetESDTrack()->GetStatus();
+                     rcNeg.fLabel = trackSingle1->GetESDTrack()->GetLabel();
+                     Double_t momentum = trackSingle1->GetESDTrack()->P();
+                     rcNeg.fBeta = momentum/TMath::Sqrt(momentum*momentum + TMath::C()*TMath::C()*trackSingle1->GetESDTrack()->M()*trackSingle1->GetESDTrack()->M());
+                     rcNeg.fSign = trackSingle1->GetESDTrack()->GetSign();
+
+                     TEveTrack* track1 = new TEveTrack(&rcNeg, trkProp);
+
+                        if(trackSingle1->GetESDTrack()->GetSign() > 0)
+                        {
+                           if(posTrackColor == 0)
+                              track1->SetLineColor(colorAll[GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),22)]);
+                           else
+                              track1->SetLineColor(colorNeg[posTrackColor-1][GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),10)]);
+                        }
+                        else
+                        {
+                           if(negTrackColor == 0)
+                              track1->SetLineColor(colorAll[GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),22)]);
+                           else
+                              track1->SetLineColor(colorNeg[negTrackColor-1][GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),10)]);
+                        }
+
+                        track1->SetLineStyle(1);
+                        track1->SetRnrSelf(kTRUE);
+
+                     fTrackListV0Neg->AddElement(track1);
 
                      TEveLine* momentumVector = new TEveLine(TString::Format("Momentum Vector"));
 
@@ -2519,6 +2994,48 @@ void SetCutsWindow::AddMomentumVectors()
 
                      TEveLine* momentumVector = new TEveLine(TString::Format("Momentum Vector"));
 
+                     Double_t p[3];
+                     Double_t pos[3];
+
+                     trackSingle1->GetESDTrack()->GetTPCInnerParam()->GetPxPyPzAt(80,-5.01,p);
+                     trackSingle1->GetESDTrack()->GetTPCInnerParam()->GetXYZAt(80,-5.01,pos);
+
+//                     printf("%f %f %f\n",p[0],p[1],p[2]);
+//                     printf("%f %f %f\n",pos[0],pos[1],pos[2]);
+
+//                     printf("%f %f %f %f\n",trackSingle1->GetESDTrack()->GetTPCPoints(0),trackSingle1->GetESDTrack()->GetTPCPoints(1),trackSingle1->GetESDTrack()->GetTPCPoints(2),trackSingle1->GetESDTrack()->GetTPCPoints(3));
+
+                     rcNeg.fP.Set(p);
+                     rcNeg.fV.Set(pos);
+                     rcNeg.fStatus = trackSingle1->GetESDTrack()->GetStatus();
+                     rcNeg.fLabel = trackSingle1->GetESDTrack()->GetLabel();
+                     Double_t momentum = trackSingle1->GetESDTrack()->P();
+                     rcNeg.fBeta = momentum/TMath::Sqrt(momentum*momentum + TMath::C()*TMath::C()*trackSingle1->GetESDTrack()->M()*trackSingle1->GetESDTrack()->M());
+                     rcNeg.fSign = trackSingle1->GetESDTrack()->GetSign();
+
+                     TEveTrack* track1 = new TEveTrack(&rcNeg, trkProp);
+
+                        if(trackSingle1->GetESDTrack()->GetSign() > 0)
+                        {
+                           if(posTrackColor == 0)
+                              track1->SetLineColor(colorAll[GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),22)]);
+                           else
+                              track1->SetLineColor(colorNeg[posTrackColor-1][GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),10)]);
+                        }
+                        else
+                        {
+                           if(negTrackColor == 0)
+                              track1->SetLineColor(colorAll[GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),22)]);
+                           else
+                              track1->SetLineColor(colorNeg[negTrackColor-1][GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),10)]);
+                        }
+
+                        track1->SetLineStyle(1);
+                        track1->SetRnrSelf(kTRUE);
+
+                     fTrackListV0Neg->AddElement(track1);
+
+
                      if(trackSingle1->GetESDTrack()->P() > cut)
                      {
 
@@ -2568,11 +3085,11 @@ void SetCutsWindow::AddMomentumVectors()
 
                         momentumVectorList2->AddElement(momentumVector);
 
+
                      }
 
                   }
 
-//                  gEve->AddElement(momentumVectorList2);
                   momentumVectorList->AddElement(momentumVectorList2);
 
                   draw = kTRUE;
@@ -2598,6 +3115,47 @@ void SetCutsWindow::AddMomentumVectors()
                      AliEveTrack* trackSingle1 = dynamic_cast<AliEveTrack*>((TEveElement*) *z);
 
                      TEveLine* momentumVector = new TEveLine(TString::Format("Momentum Vector"));
+
+                     Double_t p[3];
+                     Double_t pos[3];
+
+                     trackSingle1->GetESDTrack()->GetTPCInnerParam()->GetPxPyPzAt(80,-5.01,p);
+                     trackSingle1->GetESDTrack()->GetTPCInnerParam()->GetXYZAt(80,-5.01,pos);
+
+//                     printf("%f %f %f\n",p[0],p[1],p[2]);
+//                     printf("%f %f %f\n",pos[0],pos[1],pos[2]);
+
+//                     printf("%f %f %f %f\n",trackSingle1->GetESDTrack()->GetTPCPoints(0),trackSingle1->GetESDTrack()->GetTPCPoints(1),trackSingle1->GetESDTrack()->GetTPCPoints(2),trackSingle1->GetESDTrack()->GetTPCPoints(3));
+
+                     rcNeg.fP.Set(p);
+                     rcNeg.fV.Set(pos);
+                     rcNeg.fStatus = trackSingle1->GetESDTrack()->GetStatus();
+                     rcNeg.fLabel = trackSingle1->GetESDTrack()->GetLabel();
+                     Double_t momentum = trackSingle1->GetESDTrack()->P();
+                     rcNeg.fBeta = momentum/TMath::Sqrt(momentum*momentum + TMath::C()*TMath::C()*trackSingle1->GetESDTrack()->M()*trackSingle1->GetESDTrack()->M());
+                     rcNeg.fSign = trackSingle1->GetESDTrack()->GetSign();
+
+                     TEveTrack* track1 = new TEveTrack(&rcNeg, trkProp);
+
+                        if(trackSingle1->GetESDTrack()->GetSign() > 0)
+                        {
+                           if(posTrackColor == 0)
+                              track1->SetLineColor(colorAll[GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),22)]);
+                           else
+                              track1->SetLineColor(colorNeg[posTrackColor-1][GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),10)]);
+                        }
+                        else
+                        {
+                           if(negTrackColor == 0)
+                              track1->SetLineColor(colorAll[GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),22)]);
+                           else
+                              track1->SetLineColor(colorNeg[negTrackColor-1][GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),10)]);
+                        }
+
+                        track1->SetLineStyle(2);
+                        track1->SetRnrSelf(kTRUE);
+
+                     fTrackListV0Neg->AddElement(track1);
 
                      if(trackSingle1->GetESDTrack()->P() > cut)
                      {
@@ -2651,7 +3209,6 @@ void SetCutsWindow::AddMomentumVectors()
 
                   }
 
-                  //gEve->AddElement(momentumVectorList3);
                   momentumVectorList->AddElement(momentumVectorList3);
 
                   draw = kTRUE;
@@ -2662,6 +3219,9 @@ void SetCutsWindow::AddMomentumVectors()
       }
    }
  
+//  fTrackListV0Neg->MakeTracks();
+//  gEve->AddElement(fTrackListV0Neg);
+
   gEve->AddElement(momentumVectorList);
 
   TEveElement* top = gEve->GetCurrentEvent();
@@ -2769,60 +3329,41 @@ void SetCutsWindow::SetCuts()
       if(gDrawTracks->IsOn())
       {
 
-//         Int_t colorPos[10] = {kRed, kBlue, kOrange, kCyan, kGreen, kGray, kViolet, kMagenta, kSpring, kYellow};
-
-Int_t colorNeg[10] = 
+Int_t colorNeg[27][10] =
 {
-kCyan-4,
-kCyan,
-kAzure+10,
-kAzure+8,
-kAzure+5,
-kAzure,
-kBlue,
-kBlue+1,
-kBlue+2,
-kBlue+3
-};
-
-Int_t colorPos[10] = 
-{
-kYellow-4,
-kYellow,
-kOrange+10,
-kOrange,
-kOrange+7,
-kOrange+10,
-kRed,
-kRed+1,
-kRed+2,
-kRed+3
+   { kRed, kBlue, kOrange, kCyan, kGreen, kGray, kViolet, kMagenta, kSpring, kYellow },
+   { kCyan-4, kCyan, kAzure+10, kAzure+8, kAzure+5, kAzure, kBlue, kBlue+1, kBlue+2, kBlue+3 },
+   { kYellow-4, kYellow, kOrange+10, kOrange, kOrange+7, kOrange+10, kRed, kRed+1, kRed+2, kRed+3 },
+   { kRed, kRed-1, kRed-2, kRed-3, kRed-4, kRed-5, kRed-6, kRed-7, kRed-8, kRed-9},
+   { kRed, kRed, kRed+1, kRed+1, kRed+2, kRed+2, kRed+3, kRed+3, kRed+4, kRed+4},
+   { kOrange, kOrange-1, kOrange-2, kOrange-3, kOrange-4, kOrange-5, kOrange-6, kOrange-7, kOrange-8, kOrange-9},
+   { kOrange, kOrange+1, kOrange+2, kOrange+3, kOrange+4, kOrange+5, kOrange+6, kOrange+7, kOrange+8, kOrange+9},
+   { kYellow, kYellow-1, kYellow-2, kYellow-3, kYellow-4, kYellow-5, kYellow-6, kYellow-7, kYellow-8, kYellow-9},
+   { kYellow, kYellow, kYellow+1, kYellow+1, kYellow+2, kYellow+2, kYellow+3, kYellow+3, kYellow+4, kYellow+4},
+   { kSpring, kSpring-1, kSpring-2, kSpring-3, kSpring-4, kSpring-5, kSpring-6, kSpring-7, kSpring-8, kSpring-9},
+   { kSpring, kSpring+1, kSpring+2, kSpring+3, kSpring+4, kSpring+5, kSpring+6, kSpring+7, kSpring+8, kSpring+9},
+   { kGreen, kGreen-1, kGreen-2, kGreen-3, kGreen-4, kGreen-5, kGreen-6, kGreen-7, kGreen-8, kGreen-9},
+   { kGreen, kGreen, kGreen+1, kGreen+1, kGreen+2, kGreen+2, kGreen+3, kGreen+3, kGreen+4, kGreen+4},
+   { kTeal, kTeal-1, kTeal-2, kTeal-3, kTeal-4, kTeal-5, kTeal-6, kTeal-7, kTeal-8, kTeal-9},
+   { kTeal, kTeal+1, kTeal+2, kTeal+3, kTeal+4, kTeal+5, kTeal+6, kTeal+7, kTeal+8, kTeal+9},
+   { kCyan, kCyan-1, kCyan-2, kCyan-3, kCyan-4, kCyan-5, kCyan-6, kCyan-7, kCyan-8, kCyan-9},
+   { kCyan, kCyan, kCyan+1, kCyan+1, kCyan+2, kCyan+2, kCyan+3, kCyan+3, kCyan+4, kCyan+4},
+   { kAzure, kAzure-1, kAzure-2, kAzure-3, kAzure-4, kAzure-5, kAzure-6, kAzure-7, kAzure-8, kAzure-9},
+   { kAzure, kAzure+1, kAzure+2, kAzure+3, kAzure+4, kAzure+5, kAzure+6, kAzure+7, kAzure+8, kAzure+9},
+   { kBlue, kBlue-1, kBlue-2, kBlue-3, kBlue-4, kBlue-5, kBlue-6, kBlue-7, kBlue-8, kBlue-9},
+   { kBlue, kBlue, kBlue+1, kBlue+1, kBlue+2, kBlue+2, kBlue+3, kBlue+3, kBlue+4, kBlue+4},
+   { kViolet, kViolet-1, kViolet-2, kViolet-3, kViolet-4, kViolet-5, kViolet-6, kViolet-7, kViolet-8, kViolet-9},
+   { kViolet, kViolet+1, kViolet+2, kViolet+3, kViolet+4, kViolet+5, kViolet+6, kViolet+7, kViolet+8, kViolet+9},
+   { kMagenta, kMagenta-1, kMagenta-2, kMagenta-3, kMagenta-4, kMagenta-5, kMagenta-6, kMagenta-7, kMagenta-8, kMagenta-9},
+   { kMagenta, kMagenta, kMagenta+1, kMagenta+1, kMagenta+2, kMagenta+2, kMagenta+3, kMagenta+3, kMagenta+4, kMagenta+4},
+   { kPink, kPink-1, kPink-2, kPink-3, kPink-4, kPink-5, kPink-6, kPink-7, kPink-8, kPink-9},
+   { kPink, kPink+1, kPink+2, kPink+3, kPink+4, kPink+5, kPink+6, kPink+7, kPink+8, kPink+9},
 };
 
 Int_t colorAll[22] = 
 {
-kBlue+4,
-kBlue+2,
-kBlue,
-kAzure,
-kAzure-3,
-kAzure+7,
-kCyan,
-kCyan-7,
-kGreen-7,
-kGreen-4,
-kGreen,
-kSpring,
-kSpring+7,
-kSpring+8,
-kYellow,
-kOrange,
-kOrange-3,
-kOrange+7,
-kOrange+4,
-kRed,
-kRed+2,
-kMagenta
+kBlue+4, kBlue+2, kBlue, kAzure, kAzure-3, kAzure+7, kCyan, kCyan-7, kGreen-7, kGreen-4, kGreen, kSpring,
+kSpring+7, kSpring+8, kYellow, kOrange, kOrange-3, kOrange+7, kOrange+4, kRed, kRed+2, kMagenta
 };
 
          if(str1.Contains("Tracks") || str1.Contains("tracks"))
@@ -2843,7 +3384,7 @@ kMagenta
 
                trackType->SetRnrSelf(kFALSE);
 
-               (dynamic_cast<TEveTrackList*>trackType)->GetPropagator()->SetMaxR(250);
+//               (dynamic_cast<TEveTrackList*>trackType)->GetPropagator()->SetMaxR(250);
 
                if(trackType->HasChildren())
                   trackType->SetRnrChildren(kFALSE);
@@ -2867,21 +3408,17 @@ kMagenta
 
                         if(trackSingle1->GetESDTrack()->GetSign() > 0)
                         {
-                           if(posTrackColor == 1)
-                              trackSingle1->SetLineColor(colorNeg[GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),10)]);
-                           if(posTrackColor == 2)
-                              trackSingle1->SetLineColor(colorPos[GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),10)]);
-                           if(posTrackColor == 3)
+                           if(posTrackColor == 0)
                               trackSingle1->SetLineColor(colorAll[GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),22)]);
+                           else
+                              trackSingle1->SetLineColor(colorNeg[posTrackColor-1][GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),10)]);
                         }
                         else
                         {
-                           if(negTrackColor == 1)
-                              trackSingle1->SetLineColor(colorNeg[GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),10)]);
-                           if(negTrackColor == 2)
-                              trackSingle1->SetLineColor(colorPos[GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),10)]);
-                           if(negTrackColor == 3)
+                           if(negTrackColor == 0)
                               trackSingle1->SetLineColor(colorAll[GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),22)]);
+                           else
+                              trackSingle1->SetLineColor(colorNeg[negTrackColor-1][GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),10)]);
                         }
 
                         trackSingle1->SetLineStyle(1);
@@ -2913,24 +3450,20 @@ kMagenta
 
                         if(trackSingle1->GetESDTrack()->GetSign() > 0)
                         {
-                           if(posTrackColor == 1)
-                              trackSingle1->SetLineColor(colorNeg[GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),10)]);
-                           if(posTrackColor == 2)
-                              trackSingle1->SetLineColor(colorPos[GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),10)]);
-                           if(posTrackColor == 3)
+                           if(posTrackColor == 0)
                               trackSingle1->SetLineColor(colorAll[GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),22)]);
+                           else
+                              trackSingle1->SetLineColor(colorNeg[posTrackColor-1][GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),10)]);
                         }
                         else
                         {
-                           if(negTrackColor == 1)
-                              trackSingle1->SetLineColor(colorNeg[GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),10)]);
-                           if(negTrackColor == 2)
-                              trackSingle1->SetLineColor(colorPos[GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),10)]);
-                           if(negTrackColor == 3)
+                           if(negTrackColor == 0)
                               trackSingle1->SetLineColor(colorAll[GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),22)]);
+                           else
+                              trackSingle1->SetLineColor(colorNeg[negTrackColor-1][GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),10)]);
                         }
 
-                        trackSingle1->SetLineStyle(1);
+                        trackSingle1->SetLineStyle(2);
                         trackSingle1->SetRnrSelf(kTRUE);
 
                      }
@@ -2956,24 +3489,20 @@ kMagenta
 
                         if(trackSingle1->GetESDTrack()->GetSign() > 0)
                         {
-                           if(posTrackColor == 1)
-                              trackSingle1->SetLineColor(colorNeg[GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),10)]);
-                           if(posTrackColor == 2)
-                              trackSingle1->SetLineColor(colorPos[GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),10)]);
-                           if(posTrackColor == 3)
+                           if(posTrackColor == 0)
                               trackSingle1->SetLineColor(colorAll[GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),22)]);
+                           else
+                              trackSingle1->SetLineColor(colorNeg[posTrackColor-1][GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),10)]);
                         }
                         else
                         {
-                           if(negTrackColor == 1)
-                              trackSingle1->SetLineColor(colorNeg[GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),10)]);
-                           if(negTrackColor == 2)
-                              trackSingle1->SetLineColor(colorPos[GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),10)]);
-                           if(negTrackColor == 3)
+                           if(negTrackColor == 0)
                               trackSingle1->SetLineColor(colorAll[GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),22)]);
+                           else
+                              trackSingle1->SetLineColor(colorNeg[negTrackColor-1][GetTrackColorByMomentum(trackSingle1->GetESDTrack()->Pt(),10)]);
                         }
 
-                        trackSingle1->SetLineStyle(1);
+                        trackSingle1->SetLineStyle(3);
                         trackSingle1->SetRnrSelf(kTRUE);
 
                      }
@@ -3640,7 +4169,6 @@ kMagenta
 
       }
 
-cout << "doszlo v0s" << endl;
 
       i = gEve->GetEventScene()->FirstChild()->FindChild("ESD cascade")->BeginChildren();
       j = gEve->GetEventScene()->FirstChild()->FindChild("ESD cascade")->EndChildren();
@@ -3883,6 +4411,405 @@ void SetCutsWindow::CloseTab()
       Int_t current = browser->GetTabLeft()->GetCurrent();
 
       browser->GetTabLeft()->RemoveTab(current);
+
+}
+
+//______________________________________________________________________________
+
+void SetCutsWindow::Macro1()
+{
+
+   SetStandardCuts();
+
+   gPosColorList->Select(2, kTRUE);
+   gNegColorList->Select(2, kTRUE);
+
+   gEve->GetScenes()->FirstChild()->SetRnrSelf(kFALSE);
+   gEve->GetScenes()->FirstChild()->SetRnrChildren(kFALSE);
+
+   SetCuts();
+
+   gEve->FullRedraw3D(kTRUE);
+
+}
+
+//______________________________________________________________________________
+
+void SetCutsWindow::Macro2()
+{
+
+   gDrawV0s->SetOn(kFALSE,kFALSE);
+   gDrawCascades->SetOn(kFALSE,kFALSE);
+   gDrawKinks->SetOn(kFALSE,kFALSE);
+   gDrawVertex->SetOn(kFALSE,kFALSE);
+   gDrawTracklets->SetOn(kFALSE,kFALSE);
+   gDrawTracks->SetOn(kTRUE,kFALSE);
+   gDrawClusters->SetOn(kTRUE,kFALSE);
+   gDrawTracksType1->SetOn(kTRUE,kFALSE);
+   gDrawTracksType2->SetOn(kTRUE,kFALSE);
+   gDrawTracksType3->SetOn(kTRUE,kFALSE);
+   gDrawTracksType4->SetOn(kTRUE,kFALSE);
+   gDrawTracksType5->SetOn(kFALSE,kFALSE);
+   gDrawTracksType6->SetOn(kFALSE,kFALSE);
+   gDrawTracksType7->SetOn(kFALSE,kFALSE);
+   gCutOnP->SetOn(kFALSE,kFALSE);
+   gCutOnPt->SetOn(kFALSE,kFALSE);
+   gCutOnEta->SetOn(kTRUE,kFALSE);
+   gCutOnMult->SetOn(kFALSE,kFALSE);
+   gCutOnCls->SetOn(kFALSE,kFALSE);
+   gPtRange->SetValues(0.15,gPtRange->GetLimitMax());
+   gEtaRange->SetValues(-0.9,0.9);
+   gClsRangeNE->SetNumber(70);
+   gClsRange->SetPosition(70);
+
+   gEve->GetScenes()->FirstChild()->SetRnrSelf(kTRUE);
+   gEve->GetScenes()->FirstChild()->SetRnrChildren(kTRUE);
+
+   SetCuts();
+
+   gEve->FullRedraw3D(kTRUE);
+
+}
+
+//______________________________________________________________________________
+
+void SetCutsWindow::Macro3()
+{
+
+   SetStandardCuts();
+
+   gDrawVertex->SetOn(kTRUE,kFALSE);
+   gDrawTracklets->SetOn(kFALSE,kFALSE);
+   gDrawClusters->SetOn(kTRUE,kFALSE);
+
+   gPosColorList->Select(3, kTRUE);
+   gNegColorList->Select(2, kTRUE);
+
+   gEve->GetScenes()->FirstChild()->SetRnrSelf(kFALSE);
+   gEve->GetScenes()->FirstChild()->SetRnrSelf(kFALSE);
+
+   SetCuts();
+
+   gEve->FullRedraw3D(kTRUE);
+
+}
+
+//______________________________________________________________________________
+
+void SetCutsWindow::Macro4()
+{
+
+   gDrawV0s->SetOn(kTRUE,kFALSE);
+   gDrawCascades->SetOn(kTRUE,kFALSE);
+   gDrawKinks->SetOn(kTRUE,kFALSE);
+   gDrawVertex->SetOn(kTRUE,kFALSE);
+   gDrawTracklets->SetOn(kFALSE,kFALSE);
+   gDrawTracks->SetOn(kFALSE,kFALSE);
+   gDrawClusters->SetOn(kFALSE,kFALSE);
+   gDrawTracksType1->SetOn(kFALSE,kFALSE);
+   gDrawTracksType2->SetOn(kFALSE,kFALSE);
+   gDrawTracksType3->SetOn(kFALSE,kFALSE);
+   gDrawTracksType4->SetOn(kFALSE,kFALSE);
+   gDrawTracksType5->SetOn(kFALSE,kFALSE);
+   gDrawTracksType6->SetOn(kFALSE,kFALSE);
+   gDrawTracksType7->SetOn(kFALSE,kFALSE);
+   gCutOnP->SetOn(kFALSE,kFALSE);
+   gCutOnPt->SetOn(kFALSE,kFALSE);
+   gCutOnEta->SetOn(kFALSE,kFALSE);
+   gCutOnMult->SetOn(kFALSE,kFALSE);
+   gCutOnCls->SetOn(kFALSE,kFALSE);
+
+   gEve->GetScenes()->FirstChild()->SetRnrSelf(kTRUE);
+   gEve->GetScenes()->FirstChild()->SetRnrSelf(kTRUE);
+
+   SetCuts();
+
+   gEve->FullRedraw3D(kTRUE);
+
+}
+
+//______________________________________________________________________________
+
+void SetCutsWindow::Macro5()
+{
+
+   SetStandardCuts();
+
+   gPosColorList->Select(1, kTRUE);
+   gNegColorList->Select(1, kTRUE);
+
+   gEve->GetScenes()->FirstChild()->SetRnrSelf(kFALSE);
+   gEve->GetScenes()->FirstChild()->SetRnrChildren(kFALSE);
+
+   gMultRangeNE->SetNumber(50);
+
+   SetCuts();
+
+   AddMomentumVectors();
+
+   gEve->FullRedraw3D(kTRUE);
+
+}
+
+//______________________________________________________________________________
+
+void SetCutsWindow::SetValues()
+{
+
+}
+
+//______________________________________________________________________________
+
+void SetCutsWindow::SaveMacro()
+{
+
+  TGFileInfo fi;
+  fi.fFileTypes   = gMacroSaveAsTypes;
+  fi.fIniDir      = StrDup(""); // current directory
+  fi.fFileTypeIdx = 0;
+  fi.fOverwrite   = kTRUE;
+  new TGFileDialog(gClient->GetDefaultRoot(), gEve->GetMainWindow(), kFDSave, &fi);
+  if (!fi.fFilename) return;
+
+  TPMERegexp filere(".*/([^/]+$)");
+  if (filere.Match(fi.fFilename) != 2)
+  {
+    Warning("AliEvePopupHandler", "file '%s' bad.", fi.fFilename);
+    return;
+  }
+  printf("Saving...\n");
+
+  TString file(filere[1]);
+  TString file1;
+  if (!file.EndsWith(".alieve"))
+  file1 = file + ".alieve";
+  gSystem->ChangeDirectory(fi.fIniDir);
+  ofstream myfile;
+  myfile.open (file1);
+
+  myfile << gDrawV0s->IsOn() << endl;
+  myfile << gDrawCascades->IsOn() << endl;
+  myfile << gDrawKinks->IsOn() << endl;
+  myfile << gDrawVertex->IsOn() << endl;
+  myfile << gDrawTracklets->IsOn() << endl;
+  myfile << gDrawTracks->IsOn() << endl;
+  myfile << gDrawClusters->IsOn() << endl;
+  myfile << gDrawTracksType1->IsOn() << endl;
+  myfile << gDrawTracksType2->IsOn() << endl;
+  myfile << gDrawTracksType3->IsOn() << endl;
+  myfile << gDrawTracksType4->IsOn() << endl;
+  myfile << gDrawTracksType5->IsOn() << endl;
+  myfile << gDrawTracksType6->IsOn() << endl;
+  myfile << gDrawTracksType7->IsOn() << endl;
+  myfile << gCutOnP->IsOn() << endl;
+  myfile << gCutOnPt->IsOn() << endl;
+  myfile << gCutOnEta->IsOn() << endl;
+  myfile << gCutOnMult->IsOn() << endl;
+  myfile << gCutOnCls->IsOn() << endl;
+  myfile << gEve->GetScenes()->FirstChild()->GetRnrSelf() << endl;
+  myfile << gEve->GetScenes()->FirstChild()->GetRnrChildren() << endl;
+  myfile << gPRange->GetMin() << endl;
+  myfile << gPRange->GetMax() << endl;
+  myfile << gPtRange->GetMin() << endl;
+  myfile << gPtRange->GetMax() << endl;
+  myfile << gEtaRange->GetMin() << endl;
+  myfile << gEtaRange->GetMax() << endl;
+  myfile << gMultRange->GetPosition() << endl;
+  myfile << gMultRange->GetPosition() << endl;
+  myfile << gClsRange->GetPosition() << endl;
+  myfile << gPMVRange->GetPosition() << endl;
+
+  myfile << gVectorMode->GetSelected() << endl;
+  myfile << gPosColorList->GetSelected() << endl;
+  myfile << gNegColorList->GetSelected() << endl;
+  myfile << gTrackColorScale->GetSelected() << endl;
+  myfile << gBkgColorList->GetSelected() << endl;
+
+  if(gEve->GetEventScene()->FindChild("Momentum Vectors"))
+    myfile << 1 << endl;
+  else
+    myfile << 0 << endl;
+
+/*
+  myfile <<"//Macro with display settings generated automatically by AliEve\n\n";
+
+  myfile <<"void "<<file<<"(){\n" << endl;
+  myfile << "  gDrawV0s->SetOn(" << gDrawV0s->IsOn() << ",kFALSE);" << endl;
+  myfile << "  gDrawCascades->SetOn(" << gDrawCascades->IsOn() << ",kFALSE);" << endl;
+  myfile << "  gDrawKinks->SetOn(" << gDrawKinks->IsOn() << ",kFALSE);" << endl;
+  myfile << "  gDrawVertex->SetOn(" << gDrawVertex->IsOn() << ",kFALSE);" << endl;
+  myfile << "  gDrawTracklets->SetOn(" << gDrawTracklets->IsOn() << ",kFALSE);" << endl;
+  myfile << "  gDrawTracks->SetOn(" << gDrawTracks->IsOn() << ",kFALSE);" << endl;
+  myfile << "  gDrawClusters->SetOn(" << gDrawClusters->IsOn() << ",kFALSE);" << endl;
+  myfile << "  gDrawTracksType1->SetOn(" << gDrawTracksType1->IsOn() << ",kFALSE);" << endl;
+  myfile << "  gDrawTracksType2->SetOn(" << gDrawTracksType2->IsOn() << ",kFALSE);" << endl;
+  myfile << "  gDrawTracksType3->SetOn(" << gDrawTracksType3->IsOn() << ",kFALSE);" << endl;
+  myfile << "  gDrawTracksType4->SetOn(" << gDrawTracksType4->IsOn() << ",kFALSE);" << endl;
+  myfile << "  gDrawTracksType5->SetOn(" << gDrawTracksType5->IsOn() << ",kFALSE);" << endl;
+  myfile << "  gDrawTracksType6->SetOn(" << gDrawTracksType6->IsOn() << ",kFALSE);" << endl;
+  myfile << "  gDrawTracksType7->SetOn(" << gDrawTracksType7->IsOn() << ",kFALSE);" << endl;
+  myfile << "  gCutOnP->SetOn(" << gCutOnP->IsOn() << ",kFALSE);" << endl;
+  myfile << "  gCutOnPt->SetOn(" << gCutOnPt->IsOn() << ",kFALSE);" << endl;
+  myfile << "  gCutOnEta->SetOn(" << gCutOnEta->IsOn() << ",kFALSE);" << endl;
+  myfile << "  gCutOnMult->SetOn(" << gCutOnMult->IsOn() << ",kFALSE);" << endl;
+  myfile << "  gCutOnCls->SetOn(" << gCutOnCls->IsOn() << ",kFALSE);" << endl;
+
+  myfile << "  gEve->GetScenes()->FirstChild()->SetRnrSelf(" << gEve->GetScenes()->FirstChild()->GetRnrSelf() << ");" << endl;
+  myfile << "  gEve->GetScenes()->FirstChild()->SetRnrChildren(" << gEve->GetScenes()->FirstChild()->GetRnrChildren() << ");" << endl;
+
+  myfile << "  gPRange->SetValues(" << gPRange->GetMin() << "," << gPRange->GetMax() << ",kFALSE);" << endl;
+  myfile << "  gPtRange->SetValues(" << gPtRange->GetMin() << "," << gPtRange->GetMax() << ",kFALSE);" << endl;
+  myfile << "  gEtaRange->SetValues(" << gEtaRange->GetMin() << "," << gEtaRange->GetMax() << ",kFALSE);" << endl;
+  myfile << "  gMultRange->SetPosition(" << gMultRange->GetPosition() << ");" << endl;
+  myfile << "  gMultRange->SetPosition(" << gMultRange->GetPosition() << ");" << endl;
+  myfile << "  gClsRange->SetPosition(" << gClsRange->GetPosition() << ");" << endl;
+  myfile << "  gPMVRange->SetPosition(" << gPMVRange->GetPosition() << ");" << endl;
+
+  myfile << "  SetCuts();" << endl;
+  if(gEve->GetEventScene()->FindChild("Momentum Vectors"))
+    myfile << "  AddMomentumVectors();" << endl;
+
+  myfile << "  gEve->FullRedraw3D(kTRUE);" << endl;
+  myfile << "\n}" << endl;
+
+*/
+
+}
+
+//______________________________________________________________________________
+
+void SetCutsWindow::LoadMacro()
+{
+
+   TGFileInfo fi;
+   fi.fFileTypes   = gMacroSaveAsTypes;
+   fi.fIniDir      = StrDup(""); // current directory
+   fi.fFileTypeIdx = 0;
+   fi.fOverwrite   = kTRUE;
+   new TGFileDialog(gClient->GetDefaultRoot(), gEve->GetMainWindow(), kFDOpen, &fi);//dialog
+   if (!fi.fFilename) return;
+
+   TPMERegexp filere(".*/([^/]+$)");
+   if (filere.Match(fi.fFilename) != 2)
+   {
+     Warning("AliEvePopupHandler", "file '%s' bad.", fi.fFilename);
+     return;
+   }
+   printf("Loading...\n");
+
+   TString file(filere[1]);
+   gSystem->ChangeDirectory(fi.fIniDir);
+
+   Bool_t boolValue = kFALSE;
+   Int_t intValue = 0;
+   Double_t doubleValue1 = 0.0, doubleValue2 = 0.0;
+
+   ifstream myfile(file);
+
+   if(myfile.is_open())
+   {
+      myfile >> boolValue;
+      gDrawV0s->SetOn(boolValue,kFALSE);
+      myfile >> boolValue;
+      gDrawCascades->SetOn(boolValue,kFALSE);
+      myfile >> boolValue;
+      gDrawKinks->SetOn(boolValue,kFALSE);
+      myfile >> boolValue;
+      gDrawVertex->SetOn(boolValue,kFALSE);
+      myfile >> boolValue;
+      gDrawTracklets->SetOn(boolValue,kFALSE);
+      myfile >> boolValue;
+      gDrawTracks->SetOn(boolValue,kFALSE);
+      myfile >> boolValue;
+      gDrawClusters->SetOn(boolValue,kFALSE);
+      myfile >> boolValue;
+      gDrawTracksType1->SetOn(boolValue,kFALSE);
+      myfile >> boolValue;
+      gDrawTracksType2->SetOn(boolValue,kFALSE);
+      myfile >> boolValue;
+      gDrawTracksType3->SetOn(boolValue,kFALSE);
+      myfile >> boolValue;
+      gDrawTracksType4->SetOn(boolValue,kFALSE);
+      myfile >> boolValue;
+      gDrawTracksType5->SetOn(boolValue,kFALSE);
+      myfile >> boolValue;
+      gDrawTracksType6->SetOn(boolValue,kFALSE);
+      myfile >> boolValue;
+      gDrawTracksType7->SetOn(boolValue,kFALSE);
+      myfile >> boolValue;
+      gCutOnP->SetOn(boolValue,kFALSE);
+      myfile >> boolValue;
+      gCutOnPt->SetOn(boolValue,kFALSE);
+      myfile >> boolValue;
+      gCutOnEta->SetOn(boolValue,kFALSE);
+      myfile >> boolValue;
+      gCutOnMult->SetOn(boolValue,kFALSE);
+      myfile >> boolValue;
+      gCutOnCls->SetOn(boolValue,kFALSE);
+      myfile >> boolValue;
+      gEve->GetScenes()->FirstChild()->SetRnrSelf(boolValue);
+      myfile >> boolValue;
+      gEve->GetScenes()->FirstChild()->SetRnrChildren(boolValue);
+      myfile >> doubleValue1;
+      myfile >> doubleValue2;
+      gPRange->SetValues(doubleValue1,doubleValue2,kFALSE);
+      myfile >> doubleValue1;
+      myfile >> doubleValue2;
+      gPtRange->SetValues(doubleValue1,doubleValue2,kFALSE);
+      myfile >> doubleValue1;
+      myfile >> doubleValue2;
+      gEtaRange->SetValues(doubleValue1,doubleValue2,kFALSE);
+      myfile >> intValue;
+      gMultRange->SetPosition(intValue);
+      myfile >> intValue;
+      gMultRange->SetPosition(intValue);
+      myfile >> intValue;
+      gClsRange->SetPosition(intValue);
+      myfile >> intValue;
+      gPMVRange->SetPosition(intValue);
+      myfile >> intValue;
+      gVectorMode->Select(intValue);
+      myfile >> intValue;
+      gPosColorList->Select(intValue);
+      myfile >> intValue;
+      gNegColorList->Select(intValue);
+      myfile >> intValue;
+      gTrackColorScale->Select(intValue);
+      myfile >> intValue;
+      gBkgColorList->Select(intValue);
+
+      myfile >> boolValue;
+      if(boolValue) AddMomentumVectors();
+
+      SetCuts();
+      gEve->FullRedraw3D(kTRUE);
+
+   }
+
+/*
+      TGFileInfo fi;
+      fi.fFileTypes   = gMacroSaveAsTypes;
+      fi.fIniDir      = StrDup(""); // current directory
+      fi.fFileTypeIdx = 0;
+      fi.fOverwrite   = kTRUE;
+      new TGFileDialog(gClient->GetDefaultRoot(), gEve->GetMainWindow(), kFDOpen, &fi);//dialog
+      if (!fi.fFilename) return;
+*/
+//      TPMERegexp filere(".*/([^/]+$)");
+/*
+      if (filere.Match(fi.fFilename) != 2)
+      {
+        Warning("AliEvePopupHandler", "file '%s' bad.", fi.fFilename);
+        return;
+      }
+      printf("Loading...\n");
+
+      TString file(filere[1]);
+      gSystem->ChangeDirectory(fi.fIniDir);
+
+      TEveUtil::Macro(file);//run macro
+
+*/
 
 }
 
