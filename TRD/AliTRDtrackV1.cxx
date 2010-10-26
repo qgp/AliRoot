@@ -214,8 +214,8 @@ AliTRDtrackV1::AliTRDtrackV1(AliTRDseedV1 * const trklts, const Double_t p[5], c
 //_______________________________________________________________
 AliTRDtrackV1::~AliTRDtrackV1()
 {
-  //AliInfo("");
-  //printf("I-AliTRDtrackV1::~AliTRDtrackV1() : Owner[%s]\n", TestBit(kOwner)?"YES":"NO");
+  // Clean up all objects allocated by the track during its lifetime.
+  AliDebug(2, Form("Deleting track[%d]\n   fBackupTrack[%p] fTrackLow[%p] fTrackHigh[%p] Owner[%c].", fESDid, (void*)fBackupTrack, (void*)fTrackLow, (void*)fTrackHigh, TestBit(kOwner)?'y':'n'));
 
   if(fBackupTrack) delete fBackupTrack; fBackupTrack = NULL;
 
@@ -457,10 +457,8 @@ Int_t  AliTRDtrackV1::GetClusterIndex(Int_t id) const
       n+=fTracklet[ip]->GetN();
       continue;
     }
-    AliTRDcluster *c = NULL;
     for(Int_t ic=AliTRDseedV1::kNclusters; ic--;){
-      if(!(c = fTracklet[ip]->GetClusters(ic))) continue;
-
+      if(!(fTracklet[ip]->GetClusters(ic))) continue;
       if(n<id){n++; continue;}
       return fTracklet[ip]->GetIndexes(ic);
     }
@@ -858,6 +856,7 @@ void AliTRDtrackV1::SetTrackIn()
 //
   const AliExternalTrackParam *op = dynamic_cast<const AliExternalTrackParam*>(this);
 
+  //printf("SetTrackIn() : fTrackLow[%p]\n", (void*)fTrackLow);
   if(fTrackLow){
     fTrackLow->~AliExternalTrackParam();
     new(fTrackLow) AliExternalTrackParam(*op);
@@ -880,7 +879,7 @@ void AliTRDtrackV1::SetTrackOut(const AliExternalTrackParam *op)
 //_______________________________________________________________
 void AliTRDtrackV1::UnsetTracklet(Int_t plane)
 {
-  if(plane<0 && plane >= kNplane) return;
+  if(plane<0) return;
   fTrackletIndex[plane] = -1;
   fTracklet[plane] = NULL;
 }
